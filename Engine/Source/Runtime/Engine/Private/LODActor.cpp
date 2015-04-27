@@ -75,15 +75,42 @@ void ALODActor::CheckForErrors()
 			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete" ) ))
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
 	}
-	else if( StaticMeshComponent->StaticMesh == NULL )
+
+	if(StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
 	{
-		MapCheck.Warning()
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+		FMessageLog("MapCheck").Error()
 			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshNull", "Static mesh actor has NULL StaticMesh property" ) ))
-			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorMissingMesh", "{ActorName} : Static mesh is missing for the built LODActor.  Did you remove the asset? Please delete it and build LOD again. "), Arguments)))
+			->AddToken(FMapErrorToken::Create(FMapErrors::LODActorMissingStaticMesh));
 	}
 
-	// @todo error message when missing Actors
+	if (SubActors.Num() == 0)
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+		FMessageLog("MapCheck").Error()
+			->AddToken(FUObjectToken::Create(this))
+			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorEmptyActor", "{ActorName} : NoActor is assigned. We recommend you to delete this actor. "), Arguments)))
+			->AddToken(FMapErrorToken::Create(FMapErrors::LODActorNoActorFound));
+	}
+	else
+	{
+		for(auto& Actor : SubActors)
+		{
+			// see if it's null, if so it is not good
+			if(Actor == nullptr)
+			{
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+				FMessageLog("MapCheck").Error()
+					->AddToken(FUObjectToken::Create(this))
+					->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorNullActor", "{ActorName} : Actor is missing. The actor might have been removed. We recommend you to build LOD again. "), Arguments)))
+					->AddToken(FMapErrorToken::Create(FMapErrors::LODActorMissingActor));
+			}
+		}
+	}
 }
 
 #endif // WITH_EDITOR

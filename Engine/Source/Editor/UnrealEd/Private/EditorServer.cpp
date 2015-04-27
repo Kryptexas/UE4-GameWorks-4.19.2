@@ -5005,7 +5005,7 @@ void UEditorEngine::AssignReplacementComponentsByActors(TArray<AActor*>& ActorsT
 				FComponentReregisterContext ComponentReattch(PrimitiveComponent);
 
 				// set the replacement
-				PrimitiveComponent->LODParentPrimitive = ReplacementComponent;
+				PrimitiveComponent->SetLODParentPrimitive(ReplacementComponent);
 
 				// makr the package as dirty now that we've modified it
 				Actor->MarkPackageDirty();
