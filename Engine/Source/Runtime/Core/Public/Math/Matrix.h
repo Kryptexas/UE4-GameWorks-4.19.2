@@ -309,6 +309,9 @@ public:
 	/** Output ToString */
 	void DebugPrint() const;
 
+	/** For debugging purpose, could be changed */
+	CORE_API uint32 ComputeHash() const; 
+
 	/**
 	 * Serializes the Matrix.
 	 *

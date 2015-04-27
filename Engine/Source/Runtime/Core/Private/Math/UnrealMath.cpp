@@ -411,6 +411,20 @@ void FMatrix::DebugPrint() const
 	UE_LOG(LogUnrealMath, Log, TEXT("%s"), *ToString());
 }
 
+uint32 FMatrix::ComputeHash() const
+{
+	uint32 Ret = 0;
+
+	const uint32* Data = (uint32*)this;
+
+	for(uint32 i = 0; i < 16; ++i)
+	{
+		Ret ^= Data[i] + i;
+	}
+
+	return Ret;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FQuat
 

@@ -616,7 +616,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	}
 	// visualize BoneBuffers
 	{
-		const int2 LeftTop = int2(16, 100);
+		const int2 LeftTop = int2(16, 114);
 		const int ElementsPerLine = 32;
 		const int Scale = 3;
 		const int LinesPerBuffer = 48;
