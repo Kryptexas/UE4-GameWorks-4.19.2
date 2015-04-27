@@ -976,7 +976,7 @@ bool FWindowsPlatformProcess::ResolveNetworkPath( FString InUNCPath, FString& Ou
 
 void FWindowsPlatformProcess::Sleep( float Seconds )
 {
-	//SCOPE_CYCLE_COUNTER(STAT_Sleep);
+	SCOPE_CYCLE_COUNTER(STAT_Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
 	SleepNoStats(Seconds);
 }
