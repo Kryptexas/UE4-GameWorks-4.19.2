@@ -40,9 +40,7 @@ void UK2Node_ComponentBoundEvent::InitializeComponentBoundEventParams(UObjectPro
 		DelegatePropertyName = InDelegateProperty->GetFName();
 		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
 
-		FName ReferenceName = InDelegateProperty->SignatureFunction->GetFName();
-		UClass* ReferenceClass = InDelegateProperty->SignatureFunction->GetOwnerClass();
-		EventReference.SetExternalMember(ReferenceName, ReferenceClass);
+		EventReference.SetFromField<UFunction>(InDelegateProperty->SignatureFunction, /*bIsConsideredSelfContext =*/false);
 
 		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InComponentProperty->GetName(), *GetName(), *EventReference.GetMemberName().ToString()) );
 		bOverrideFunction = false;

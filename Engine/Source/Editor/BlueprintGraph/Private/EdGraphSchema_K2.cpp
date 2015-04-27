@@ -3449,10 +3449,10 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			{
 				OutFunction = NULL;
 			}
-			if (!OutFunction && Output.PinSubCategoryMemberReference.MemberParentClass)
+			if (!OutFunction && Output.PinSubCategoryMemberReference.GetMemberParentClass())
 			{
-				const auto ParentClass = Output.PinSubCategoryMemberReference.MemberParentClass;
-				const auto BPOwner = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
+				const UClass* ParentClass = Output.PinSubCategoryMemberReference.GetMemberParentClass();
+				const UBlueprint* BPOwner = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
 				if (BPOwner && BPOwner->SkeletonGeneratedClass && (BPOwner->SkeletonGeneratedClass != ParentClass))
 				{
 					OutFunction = BPOwner->SkeletonGeneratedClass->FindFunctionByName(Output.PinSubCategoryMemberReference.MemberName);
@@ -3463,10 +3463,10 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			{
 				InFunction = NULL;
 			}
-			if (!InFunction && Input.PinSubCategoryMemberReference.MemberParentClass)
+			if (!InFunction && Input.PinSubCategoryMemberReference.GetMemberParentClass())
 			{
-				const auto ParentClass = Input.PinSubCategoryMemberReference.MemberParentClass;
-				const auto BPOwner = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
+				const UClass* ParentClass = Input.PinSubCategoryMemberReference.GetMemberParentClass();
+				const UBlueprint* BPOwner = Cast<UBlueprint>(ParentClass->ClassGeneratedBy);
 				if (BPOwner && BPOwner->SkeletonGeneratedClass && (BPOwner->SkeletonGeneratedClass != ParentClass))
 				{
 					InFunction = BPOwner->SkeletonGeneratedClass->FindFunctionByName(Input.PinSubCategoryMemberReference.MemberName);

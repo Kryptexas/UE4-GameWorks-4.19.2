@@ -164,7 +164,7 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeMessageNodeSpawn
 	auto SetNodeFunctionLambda = [](UEdGraphNode* NewNode, UField const* FuncField)
 	{
 		UK2Node_Message* MessageNode = CastChecked<UK2Node_Message>(NewNode);
-		MessageNode->FunctionReference.SetExternalMember(FuncField->GetFName(), FuncField->GetOwnerClass());
+		MessageNode->FunctionReference.SetFromField<UFunction>(FuncField, /*bIsConsideredSelfContext =*/false);
 	};
 	NodeSpawner->SetNodeFieldDelegate = UBlueprintFunctionNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeFunctionLambda);
 
