@@ -40,7 +40,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 
 	DrawHelper.bDrawGrid = GetDefault<UTileMapEditorSettings>()->bShowGridByDefault;
 	DrawHelper.bDrawPivot = false;
-	bShowPivot = true;
+	bShowPivot = false;
 
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.CompositeEditorPrimitives = true;
@@ -89,6 +89,32 @@ void FTileMapEditorViewportClient::DrawBoundsAsText(FViewport& InViewport, FScen
 		GEngine->GetSmallFont(),
 		FLinearColor::White);
 	YPos += 18;
+}
+
+void FTileMapEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
+{
+	FPaperEditorViewportClient::Draw(View, PDI);
+
+	if (bShowPivot)
+	{
+		FColor PivotColor = FColor::Red;
+		float PivotSize = 0.02f;
+
+
+		//@TODO: Merge this with FEditorCommonDrawHelper::DrawPivot, which needs to take the pivot position as an argument
+		const FMatrix CameraToWorld = View->ViewMatrices.ViewMatrix.InverseFast();
+
+		const FVector PivLoc = FVector::ZeroVector;
+
+		const float ZoomFactor = FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
+		const float WidgetRadius = View->ViewMatrices.GetViewProjMatrix().TransformPosition(PivLoc).W * (PivotSize / ZoomFactor);
+
+		const FVector CamX = CameraToWorld.TransformVector(FVector(1, 0, 0));
+		const FVector CamY = CameraToWorld.TransformVector(FVector(0, 1, 0));
+
+		PDI->DrawLine(PivLoc - (WidgetRadius*CamX), PivLoc + (WidgetRadius*CamX), PivotColor, SDPG_Foreground);
+		PDI->DrawLine(PivLoc - (WidgetRadius*CamY), PivLoc + (WidgetRadius*CamY), PivotColor, SDPG_Foreground);
+	}
 }
 
 void FTileMapEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas)
