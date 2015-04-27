@@ -2,6 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "SCurveEditor.h"
+#include "Sequencer.h"
 
 #define LOCTEXT_NAMESPACE "SequencerCurveEditor"
 

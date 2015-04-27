@@ -2,6 +2,8 @@
 
 #pragma once
 
+class UPluginMetadataObject;
+
 /**
  * Widget that represents a "tile" for a single plugin in our plugins list
  */

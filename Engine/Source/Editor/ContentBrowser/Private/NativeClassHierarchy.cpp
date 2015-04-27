@@ -7,6 +7,7 @@
 #include "IProjectManager.h"
 #include "HotReloadInterface.h"
 #include "SourceCodeNavigation.h"
+#include "IPluginManager.h"
 
 TSharedRef<FNativeClassHierarchyNode> FNativeClassHierarchyNode::MakeFolderEntry(FName InEntryName, FString InEntryPath)
 {

@@ -4,6 +4,7 @@
 #include "SequencerCurveOwner.h"
 #include "IKeyArea.h"
 #include "MovieSceneSection.h"
+#include "Sequencer.h"
 
 void GetAllKeyAreaNodes( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, TArray<TSharedRef<FSectionKeyAreaNode>>& KeyAreaNodes )
 {

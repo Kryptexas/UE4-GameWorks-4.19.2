@@ -6,6 +6,7 @@
 #include "SPluginTileList.h"
 #include "SPluginCategoryTree.h"
 #include "SSearchBox.h"
+#include "PluginBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 

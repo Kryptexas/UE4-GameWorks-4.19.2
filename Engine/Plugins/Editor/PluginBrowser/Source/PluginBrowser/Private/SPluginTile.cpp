@@ -12,6 +12,7 @@
 #include "IProjectManager.h"
 #include "PluginBrowserModule.h"
 #include "ISourceControlModule.h"
+#include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
