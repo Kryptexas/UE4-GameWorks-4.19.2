@@ -15,7 +15,8 @@
 	[
 		{
 			"Name" : "PluginCreator",
-			"Type" : "Editor"
+            "Type": "Editor",
+            "LoadingPhase": "PostEngineInit"
 		}
 	]
 }
