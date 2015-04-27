@@ -23,6 +23,8 @@
 
 SMeshMergingDialog::SMeshMergingDialog()
 	: bPlaceInWorld(false)
+	, bExportSpecificLOD(false)
+	, ExportLODIndex(0)
 {
 }
 
@@ -57,6 +59,11 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 	for (int32 Index = 0; Index < MAX_MESH_TEXTURE_COORDS; Index++)
 	{
 		LightMapChannelOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(Index))));
+	}
+
+	for (int32 Index = 0; Index < MAX_STATIC_MESH_LODS; Index++)
+	{
+		ExportLODOptions.Add(MakeShareable(new FString(FString::FormatAsNumber(Index))));
 	}
 
 	GenerateNewPackageName();
@@ -150,6 +157,40 @@ void SMeshMergingDialog::Construct(const FArguments& InArgs)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
 				SNew(SVerticalBox)
+
+				// LOD to export
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				[
+					SNew(SHorizontalBox)
+
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.Type(ESlateCheckBoxType::CheckBox)
+						.IsChecked(this, &SMeshMergingDialog::GetExportSpecificLODEnabled)
+						.OnCheckStateChanged(this, &SMeshMergingDialog::SetExportSpecificLODEnabled)
+						.Content()
+						[
+							SNew(STextBlock).Text(LOCTEXT("TargetMeshLODIndexLabel", "Export specific LOD:"))
+						]
+					]
+					
+					+SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(4,0,4,0)
+					[
+						SNew(STextComboBox)
+						.IsEnabled(this, &SMeshMergingDialog::IsExportSpecificLODEnabled)
+						.OptionsSource(&ExportLODOptions)
+						.InitiallySelectedItem(ExportLODOptions[ExportLODIndex])
+						.OnSelectionChanged(this, &SMeshMergingDialog::SetExportSpecificLODIndex)
+					]
+				]
 					
 				// Vertex colors
 				+SVerticalBox::Slot()
@@ -416,6 +457,26 @@ void SMeshMergingDialog::SetTargetLightMapResolution(TSharedPtr<FString> NewSele
 	TTypeFromString<int32>::FromString(MergingSettings.TargetLightMapResolution, **NewSelection);
 }
 
+ECheckBoxState SMeshMergingDialog::GetExportSpecificLODEnabled() const
+{
+	return (bExportSpecificLOD ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
+}
+
+void SMeshMergingDialog::SetExportSpecificLODEnabled(ECheckBoxState NewValue)
+{
+	bExportSpecificLOD = (NewValue == ECheckBoxState::Checked);
+}
+
+bool SMeshMergingDialog::IsExportSpecificLODEnabled() const
+{
+	return bExportSpecificLOD;
+}
+
+void SMeshMergingDialog::SetExportSpecificLODIndex(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+{
+	TTypeFromString<int32>::FromString(ExportLODIndex, **NewSelection);
+}
+
 ECheckBoxState SMeshMergingDialog::GetImportVertexColors() const
 {
 	return (MergingSettings.bImportVertexColors ? ECheckBoxState::Checked : ECheckBoxState::Unchecked);
@@ -583,10 +644,12 @@ void SMeshMergingDialog::RunMerging()
 		OpenMsgDlgInt(EAppMsgType::Ok, Message, NSLOCTEXT("UnrealEd", "FailedToMergeActors_Title", "Unable to merge actors"));
 		return;
 	}
-		
+
+	int32 TargetMeshLOD = bExportSpecificLOD ? ExportLODIndex : INDEX_NONE;
+
 	FVector MergedActorLocation;
 	TArray<UObject*> AssetsToSync;
-	MeshUtilities.MergeActors(Actors, MergingSettings, NULL, MergedMeshPackageName, -1, AssetsToSync, MergedActorLocation);
+	MeshUtilities.MergeActors(Actors, MergingSettings, NULL, MergedMeshPackageName, TargetMeshLOD, AssetsToSync, MergedActorLocation);
 
 	if (AssetsToSync.Num())
 	{

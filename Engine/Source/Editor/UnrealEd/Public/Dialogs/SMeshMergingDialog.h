@@ -41,6 +41,12 @@ private:
 	bool IsLightmapChannelEnabled() const;
 	void SetTargetLightMapChannel(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	void SetTargetLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+
+	/**  */
+	ECheckBoxState GetExportSpecificLODEnabled() const;
+	void SetExportSpecificLODEnabled(ECheckBoxState NewValue);
+	bool IsExportSpecificLODEnabled() const;
+	void SetExportSpecificLODIndex(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 		
 	/**  */
 	ECheckBoxState GetImportVertexColors() const;
@@ -100,6 +106,10 @@ private:
 
 	/** Whether to spawn merged actor in the world */
 	bool bPlaceInWorld;
+
+	bool bExportSpecificLOD;
+	int32 ExportLODIndex;
+	TArray<TSharedPtr<FString>>	ExportLODOptions;
 
 	/**  */
 	TArray<TSharedPtr<FString>>	LightMapResolutionOptions;

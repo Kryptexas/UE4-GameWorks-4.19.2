@@ -3,14 +3,12 @@
 #include "MeshUtilitiesPrivate.h"
 #include "StaticMeshResources.h"
 #include "SkeletalMeshTypes.h"
-#include "LandscapeRender.h"
 #include "MeshBuild.h"
 #include "TessellationRendering.h"
 #include "NvTriStrip.h"
 #include "forsythtriangleorderoptimizer.h"
 #include "ThirdParty/nvtesslib/inc/nvtess.h"
 #include "SkeletalMeshTools.h"
-#include "LandscapeDataAccess.h"
 #include "ImageUtils.h"
 #include "MaterialExportUtils.h"
 #include "Textures/TextureAtlas.h"
@@ -4365,11 +4363,11 @@ void FMeshUtilities::MergeActors(
 	bool											bWithVertexColors[MAX_STATIC_MESH_LODS] = {};
 	bool											bOcuppiedUVChannels[MAX_STATIC_MESH_LODS][MAX_MESH_TEXTURE_COORDS] = {};
 		
-	// Convert collected static mesh components into raw meshes
 	SourceMeshes.Reserve(ComponentsToMerge.Num());
 	SourceMeshes.SetNum(ComponentsToMerge.Num());
 
 	int32 NumMaxLOD = 0;
+	// Convert collected static mesh components into raw meshes
 	for (int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
 	{
 		UStaticMeshComponent* MeshComponent = ComponentsToMerge[MeshId];
@@ -4380,77 +4378,47 @@ void FMeshUtilities::MergeActors(
 		// Source mesh asset package name
 		SourceMeshes[MeshId].AssetPackageName = MeshComponent->StaticMesh->GetOutermost()->GetName();
 	}
-	
+
 	NumMaxLOD = FMath::Min(NumMaxLOD, MAX_STATIC_MESH_LODS);
 		
-	if ( UseLOD >=  0 && UseLOD < NumMaxLOD )
+	int32 StartLODIndex = 0;
+	if (UseLOD >= 0)
 	{
-		// change NumMaxLOD to be 1. We won't need anything else anymore
-		NumMaxLOD = 1;
-
+		// Will export only one specified LOD as base mesh
+		StartLODIndex = FMath::Min(UseLOD, NumMaxLOD - 1);
+		NumMaxLOD = StartLODIndex + 1;
+	}
+		
+	int32 RawMeshLODIdx = 0;
+	for(int32 LODIndex = StartLODIndex; LODIndex < NumMaxLOD; ++LODIndex, ++RawMeshLODIdx)
+	{
 		for(int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
 		{
 			UStaticMeshComponent* MeshComponent = ComponentsToMerge[MeshId];
 
 			TArray<int32> MeshMaterialMap;
-			FRawMesh& RawMeshLOD = SourceMeshes[MeshId].MeshLOD[0];
+			FRawMesh& RawMeshLOD = SourceMeshes[MeshId].MeshLOD[RawMeshLODIdx];
 
 			// We duplicate lower LOD in case this mesh has no LOD we want
-			int32 ExportLODIndex = FMath::Min(UseLOD, MeshComponent->StaticMesh->SourceModels.Num()-1);
+			int32 ExportLODIndex = FMath::Min(LODIndex, MeshComponent->StaticMesh->SourceModels.Num()-1);
 
 			if(ConstructRawMesh(MeshComponent, ExportLODIndex, RawMeshLOD, UniqueMaterials, MeshMaterialMap))
 			{
-				MaterialMap.Add(FMeshIdAndLOD(MeshId, 0), MeshMaterialMap);
+				MaterialMap.Add(FMeshIdAndLOD(MeshId, RawMeshLODIdx), MeshMaterialMap);
 
 				// Should we use vertex colors?
 				if(InSettings.bImportVertexColors)
 				{
 					// Propagate painted vertex colors into our raw mesh
-					PropagatePaintedColorsToRawMesh(MeshComponent, 0, RawMeshLOD);
+					PropagatePaintedColorsToRawMesh(MeshComponent, ExportLODIndex, RawMeshLOD);
 					// Whether at least one of the meshes has vertex colors
-					bWithVertexColors[0]|= (RawMeshLOD.WedgeColors.Num() != 0);
+					bWithVertexColors[RawMeshLODIdx]|= (RawMeshLOD.WedgeColors.Num() != 0);
 				}
 
 				// Which UV channels has data at least in one mesh
 				for(int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
 				{
-					bOcuppiedUVChannels[0][ChannelIdx]|= (RawMeshLOD.WedgeTexCoords[ChannelIdx].Num() != 0);
-				}
-			}
-		}
-	}
-	else
-	{
-		for(int32 LODIndex = 0; LODIndex < NumMaxLOD; ++LODIndex)
-		{
-			for(int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
-			{
-				UStaticMeshComponent* MeshComponent = ComponentsToMerge[MeshId];
-
-				TArray<int32> MeshMaterialMap;
-				FRawMesh& RawMeshLOD = SourceMeshes[MeshId].MeshLOD[LODIndex];
-
-				// We duplicate lower LOD in case this mesh has no LOD we want
-				int32 ExportLODIndex = FMath::Min(LODIndex, MeshComponent->StaticMesh->SourceModels.Num()-1);
-
-				if(ConstructRawMesh(MeshComponent, ExportLODIndex, RawMeshLOD, UniqueMaterials, MeshMaterialMap))
-				{
-					MaterialMap.Add(FMeshIdAndLOD(MeshId, LODIndex), MeshMaterialMap);
-
-					// Should we use vertex colors?
-					if(InSettings.bImportVertexColors)
-					{
-						// Propagate painted vertex colors into our raw mesh
-						PropagatePaintedColorsToRawMesh(MeshComponent, LODIndex, RawMeshLOD);
-						// Whether at least one of the meshes has vertex colors
-						bWithVertexColors[LODIndex]|= (RawMeshLOD.WedgeColors.Num() != 0);
-					}
-
-					// Which UV channels has data at least in one mesh
-					for(int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
-					{
-						bOcuppiedUVChannels[LODIndex][ChannelIdx]|= (RawMeshLOD.WedgeTexCoords[ChannelIdx].Num() != 0);
-					}
+					bOcuppiedUVChannels[RawMeshLODIdx][ChannelIdx]|= (RawMeshLOD.WedgeTexCoords[ChannelIdx].Num() != 0);
 				}
 			}
 		}
