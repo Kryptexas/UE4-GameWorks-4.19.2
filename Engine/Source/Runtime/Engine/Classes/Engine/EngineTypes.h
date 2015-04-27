@@ -820,12 +820,14 @@ namespace ECollisionEnabled
 { 
 	enum Type 
 	{ 
-		/** No collision is performed against this body */ 
+		/** No collision is enabled for this body */ 
 		NoCollision UMETA(DisplayName="No Collision"), 
-		/** This body is only used for collision raycasts, sweeps and overlaps */ 
-		QueryOnly UMETA(DisplayName="No Physics Collision"), 
-		/** This body is used for physics simulation and collision queries */ 
-		QueryAndPhysics UMETA(DisplayName="Collision Enabled") 
+		/** This body is used only for collision queries (raycasts, sweeps, and overlaps) */ 
+		QueryOnly UMETA(DisplayName="Query Only (No Physics Collision)"),
+		/** This body is used only for physics collision */
+		PhysicsOnly UMETA(DisplayName="Physics Only (No Query Collision)"),
+		/** This body interacts with all collision (Query and Physics) */ 
+		QueryAndPhysics UMETA(DisplayName="Collision Enabled (Query and Physics)") 
 	}; 
 } 
 

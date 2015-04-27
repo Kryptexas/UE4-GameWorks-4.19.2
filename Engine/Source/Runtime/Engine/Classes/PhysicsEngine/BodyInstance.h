@@ -163,11 +163,13 @@ private:
 	UPROPERTY(EditAnywhere, Category=Custom)
 	FName CollisionProfileName;
 
-	/** Type of Collision Enabled 
+	/**
+	 * Type of collision enabled.
 	 * 
-	 *	No Collision				: No collision is performed against this neither trace or physics
-	 *	No Physics Collision		: This body is only used for collision raycasts, sweeps and overlaps 
-	 *	Collision Enabled			: This body is used for physics simulation and collision queries
+	 *	No Collision      : No collision is performed against this body.
+	 *	Query Only        : This body is used only for collision queries (raycasts, sweeps, and overlaps).
+	 *	Physics Only      : This body is used only for physics collision.
+	 *	Collision Enabled : This body interacts with all collision (Query and Physics).
 	 */
 	UPROPERTY(EditAnywhere, Category=Custom)
 	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
@@ -483,7 +485,7 @@ public:
 	}
 
 	/** Populate the filter data within the provided FShapeData with the correct filters for this instance
-	 *	@param ShapeData ShapeData to populate
+	 *	@param ShapeData ShapeData to populate. ShapeData.CollisionEnabled and ShapeData.FilterData will be filled in.
 	 *	@param bForceSimpleAsComplex Whether to force simple colision as complex
 	 *  Note: This function is not thread safe. Make sure to obtain the appropriate PhysX scene locks before calling this function
 	 */
@@ -522,7 +524,7 @@ public:
 	}
 
 	/** Populate the flag fields of the provided FShapeData with correct initialisation flags
-	 *	@param ShapeData ShapeData to populate
+	 *	@param ShapeData ShapeData to populate. ShapeData.FilterData will not be modified.
 	 *	@param UseCollisionEnabled Whether collision is enabled for this instance
 	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
 	 *  Note: This function is not thread safe. Make sure to obtain the appropriate PhysX scene locks before calling this function
@@ -1005,7 +1007,7 @@ private:
 	/** 
 	 * Helper function to update per shape filtering info. This should interface is not very friendly and should only be used from inside FBodyInstance
 	 */
-	void UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
+	void UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride);
 #endif 
 	/**
 	 * Invalidate Collision Profile Name

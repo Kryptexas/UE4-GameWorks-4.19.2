@@ -843,7 +843,8 @@ struct FShapeFilterData
 struct FShapeData
 {
 	FShapeData()
-		: SyncShapeFlags(0)
+		: CollisionEnabled(ECollisionEnabled::NoCollision)
+		, SyncShapeFlags(0)
 		, AsyncShapeFlags(0)
 		, SimpleShapeFlags(0)
 		, ComplexShapeFlags(0)

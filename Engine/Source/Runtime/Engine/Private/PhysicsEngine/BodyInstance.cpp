@@ -685,7 +685,7 @@ void ExecuteOnPxShapeWrite(FBodyInstance* BodyInstance, PxShape* PShape, Lambda 
 }
 
 
-void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride)
+void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUseComplexAsSimple, bool bUseSimpleAsComplex, bool bPhysicsStatic, const TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride, FCollisionResponseContainer * ResponseOverride, bool * bNotifyOverride)
 {
 	ExecuteOnPhysicsReadWrite([&]
 	{
@@ -693,8 +693,8 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 		{
 
 		// Iterate over all shapes and assign filterdata
-			TArray<PxShape*> AllShapes;
-			const int32 NumSyncShapes = GetAllShapes_AssumesLocked(AllShapes);
+		TArray<PxShape*> AllShapes;
+		const int32 NumSyncShapes = GetAllShapes_AssumesLocked(AllShapes);
 
 		bool bUpdateMassProperties = false;
 		for (int32 ShapeIdx = 0; ShapeIdx < AllShapes.Num(); ShapeIdx++)
@@ -703,7 +703,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 			FBodyInstance* BI = FPhysxUserData::Get<FBodyInstance>(PShape->userData);
 			BI = BI ? BI : this;
 
-			const TEnumAsByte<ECollisionEnabled::Type> & UseCollisionEnabled = CollisionEnabledOverride ? *CollisionEnabledOverride : (TEnumAsByte<ECollisionEnabled::Type>)BI->GetCollisionEnabled();
+			const TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled = CollisionEnabledOverride ? *CollisionEnabledOverride : (TEnumAsByte<ECollisionEnabled::Type>)BI->GetCollisionEnabled();
 			const FCollisionResponseContainer& UseResponse = ResponseOverride ? *ResponseOverride : BI->CollisionResponses.GetResponseContainer();
 			bool bUseNotify = bNotifyOverride ? *bNotifyOverride : BI->bNotifyRigidBodyCollision;
 
@@ -737,22 +737,24 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 			PShape->setSimulationFilterData(PSimFilterData);
 
 			// If query collision is enabled..
-			if ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly))
+			if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 			{
+				const bool bQueryEnabled = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly));
+
 				// Only perform scene queries in the synchronous scene for static shapes
 				if (bPhysicsStatic)
 				{
 					bool bIsSyncShape = (ShapeIdx < NumSyncShapes);
-					PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bIsSyncShape);
+					PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bIsSyncShape && bQueryEnabled);
 				}
-				// If non-static, always enable scene queries
+				// If non-static, enable scene queries if requested
 				else
 				{
-					PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+					PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bQueryEnabled);
 				}
 
 				// See if we want physics collision
-				bool bSimCollision = (UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+				const bool bSimCollision = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::PhysicsOnly));
 
 				// Triangle mesh is 'complex' geom
 				if (PShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
@@ -780,7 +782,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 					PShape->setQueryFilterData(PSimpleQueryData);
 
 					// See if we currently have sim collision
-					bool bCurrentSimCollision = (PShape->getFlags() & PxShapeFlag::eSIMULATION_SHAPE);
+					const bool bCurrentSimCollision = (PShape->getFlags() & PxShapeFlag::eSIMULATION_SHAPE);
 					// Enable sim collision
 					if (bSimCollision && !bCurrentSimCollision)
 					{
@@ -795,7 +797,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 					}
 
 					// enable swept bounds for CCD for this shape
-						PxRigidBody* PBody = PActor->is<PxRigidBody>();
+					PxRigidBody* PBody = PActor->is<PxRigidBody>();
 					if (bSimCollision && !bPhysicsStatic && bUseCCD && PBody)
 					{
 						PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
@@ -917,7 +919,7 @@ void FBodyInstance::UpdatePhysicsFilterData(bool bForceSimpleAsComplex)
 	const bool bUseSimpleAsComplex = bForceSimpleAsComplex || (BodySetup.Get()->CollisionTraceFlag == CTF_UseSimpleAsComplex);
 
 #if WITH_PHYSX
-	TEnumAsByte<ECollisionEnabled::Type> * CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
+	const TEnumAsByte<ECollisionEnabled::Type>* CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
 	FCollisionResponseContainer * ResponseOverride = bResponseOverride ? &UseResponse : NULL;
 	bool * bNotifyOverridePtr = bNotifyOverride ? &bUseNotifyRBCollision : NULL;
 	UpdatePhysicsShapeFilterData(SkelMeshCompID, bUseComplexAsSimple, bUseSimpleAsComplex, bPhysicsStatic, CollisionEnabledOverride, ResponseOverride, bNotifyOverridePtr);
@@ -940,7 +942,7 @@ void FBodyInstance::UpdatePhysicsFilterData(bool bForceSimpleAsComplex)
 			BoxSimFilterData.BodyIndex = InstanceBodyIndex;
 
 			// Update the body data
-			const bool bSimCollision = (UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+			const bool bSimCollision = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::PhysicsOnly));
 			BodyInstancePtr->SetBullet(bSimCollision && !bPhysicsStatic && bUseCCD);
 			BodyInstancePtr->SetActive(true);
 
@@ -1167,7 +1169,7 @@ struct FInitBodiesHelper
 
 		FShapeData ShapeData;
 		Instance->GetFilterData_AssumesLocked(ShapeData);
-		Instance->GetShapeFlags_AssumesLocked(ShapeData, Instance->CollisionEnabled, BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+		Instance->GetShapeFlags_AssumesLocked(ShapeData, ShapeData.CollisionEnabled, BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
 
 		if (!bCompileStatic && PNewDynamic)
 		{
@@ -1847,8 +1849,8 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 	PxMaterial* PSimpleMat = SimplePhysMat->GetPhysXMaterial();
 
 	FShapeData ShapeData;
-		GetFilterData_AssumesLocked(ShapeData);
-		GetShapeFlags_AssumesLocked(ShapeData, CollisionEnabled, BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+	GetFilterData_AssumesLocked(ShapeData);
+	GetShapeFlags_AssumesLocked(ShapeData, ShapeData.CollisionEnabled, BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
 
 	//child body gets placed into the same scenes as parent body
 	if (PxRigidActor* MyBody = RigidActorSync)
@@ -4632,6 +4634,8 @@ void FBodyInstance::SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::T
 		bool bUpdateMassProperties = false;
 		if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 		{
+			const bool bQueryEnabled = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly));
+
 			UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
 			AActor* Owner = OwnerComponentInst ? OwnerComponentInst->GetOwner() : NULL;
 			const bool bPhysicsStatic = !OwnerComponentInst || OwnerComponentInst->IsWorldGeometry();
@@ -4639,16 +4643,16 @@ void FBodyInstance::SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::T
 			// Only perform scene queries in the synchronous scene for static shapes
 			if (bPhysicsStatic)
 			{
-				PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, SceneType == PST_Sync);
+				PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, (SceneType == PST_Sync) && bQueryEnabled);
 			}
-			// If non-static, always enable scene queries
+			// If non-static, enable scene queries if requested
 			else
 			{
-				PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, true);
+				PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bQueryEnabled);
 			}
 
 			// See if we want physics collision
-			bool bSimCollision = (UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+			const bool bSimCollision = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::PhysicsOnly));
 
 			// Triangle mesh is 'complex' geom
 			if (PShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
@@ -4715,7 +4719,7 @@ void FBodyInstance::SetShapeFlags_AssumesLocked(TEnumAsByte<ECollisionEnabled::T
 
 void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, const bool bUseComplexAsSimple /*= false*/)
 {
-	// If query collision is enabled..
+	ShapeData.CollisionEnabled = UseCollisionEnabled;
 	ShapeData.SyncShapeFlags = PxShapeFlags(0);
 	ShapeData.AsyncShapeFlags = PxShapeFlags(0);
 	ShapeData.SimpleShapeFlags = PxShapeFlags(0);
@@ -4723,16 +4727,19 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 	ShapeData.SyncBodyFlags = PxRigidBodyFlags(0);
 
 	// Default flags
-	ShapeData.SyncShapeFlags |= PxShapeFlag::eSCENE_QUERY_SHAPE;
-	ShapeData.AsyncShapeFlags |= PxShapeFlag::eSCENE_QUERY_SHAPE;
 	ShapeData.SimpleShapeFlags |= PxShapeFlag::eVISUALIZATION;
 	ShapeData.ComplexShapeFlags |= PxShapeFlag::eVISUALIZATION;
 
-	UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
-	AActor* Owner = OwnerComponentInst ? OwnerComponentInst->GetOwner() : NULL;
-
-	if(ShapeData.CollisionEnabled != ECollisionEnabled::NoCollision)
+	if(UseCollisionEnabled != ECollisionEnabled::NoCollision)
 	{
+		const bool bQueryEnabled = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly));
+		if (bQueryEnabled)
+		{
+			ShapeData.SyncShapeFlags |= PxShapeFlag::eSCENE_QUERY_SHAPE;
+			ShapeData.AsyncShapeFlags |= PxShapeFlag::eSCENE_QUERY_SHAPE;
+		}
+
+		const UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get();
 		const bool bPhysicsStatic = !OwnerComponentInst || OwnerComponentInst->IsWorldGeometry();
 
 		// Only perform scene queries in the synchronous scene for static shapes
@@ -4742,7 +4749,7 @@ void FBodyInstance::GetShapeFlags_AssumesLocked(FShapeData& ShapeData, TEnumAsBy
 		}
 
 		// See if we want physics collision
-		bool bSimCollision = (UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics);
+		const bool bSimCollision = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::PhysicsOnly));
 
 		// on dynamic objects and objects which don't use complex as simple, tri mesh not used for sim
 		if(bSimCollision && bUseComplexAsSimple)
