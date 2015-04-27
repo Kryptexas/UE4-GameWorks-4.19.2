@@ -414,7 +414,7 @@ FSlateColor SGraphNodeComment::GetCommentBodyColor() const
 {
 	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
 
-	if (CommentNode && CommentNode->bColorCommentBubble)
+	if (CommentNode)
 	{
 		return CommentNode->CommentColor;
 	}
@@ -425,6 +425,21 @@ FSlateColor SGraphNodeComment::GetCommentBodyColor() const
 }
 
 FSlateColor SGraphNodeComment::GetCommentTitleBarColor() const
+{
+	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
+	if (CommentNode)
+	{
+		const FLinearColor Color = CommentNode->CommentColor * SCommentNodeDefs::TitleBarColorMultiplier;
+		return FLinearColor(Color.R, Color.G, Color.B);
+	}
+	else
+	{
+		const FLinearColor Color = FLinearColor::White * SCommentNodeDefs::TitleBarColorMultiplier;
+		return FLinearColor(Color.R, Color.G, Color.B);
+	}
+}
+
+FSlateColor SGraphNodeComment::GetCommentBubbleColor() const
 {
 	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
 	if (CommentNode && CommentNode->bColorCommentBubble)
