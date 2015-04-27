@@ -22,6 +22,7 @@ public:
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual void TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge) override;
 	virtual void TrackingStopped() override;
+	virtual void DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas) override;
 	// End of FEditorViewportClient interface
 
 	// ISpriteSelectionContext interface
@@ -43,6 +44,9 @@ public:
 
 	void ApplyCollisionGeometryEdits();
 
+	void ToggleShowStats();
+	bool IsShowStatsChecked() const;
+
 protected:
 	// FPaperEditorViewportClient interface
 	virtual FBox GetDesiredFocusBounds() const override;
@@ -59,6 +63,9 @@ public:
 
 	// Did we dirty something during manipulation?
 	bool bManipulationDirtiedSomething;
+
+	// Should we show stats for the tile?
+	bool bShowStats;
 
 	// Pointer back to the sprite editor viewport control that owns us
 	TWeakPtr<class SEditorViewport> SpriteEditorViewportPtr;

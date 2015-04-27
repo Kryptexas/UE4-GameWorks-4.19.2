@@ -20,6 +20,7 @@ FSingleTileEditorViewportClient::FSingleTileEditorViewportClient(UPaperTileSet* 
 	, TileBeingEditedIndex(INDEX_NONE)
 	, bManipulating(false)
 	, bManipulationDirtiedSomething(false)
+	, bShowStats(false)
 	, ScopedTransaction(nullptr)
 {
 	//@TODO: Should be able to set this to false eventually
@@ -92,6 +93,45 @@ void FSingleTileEditorViewportClient::TrackingStopped()
 		EndTransaction();
 		bManipulating = false;
 	}
+}
+
+void FSingleTileEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas)
+{
+	const bool bIsHitTesting = Canvas.IsHitTesting();
+	if (!bIsHitTesting)
+	{
+		Canvas.SetHitProxy(nullptr);
+	}
+
+	int32 YPos = 42;
+
+	if (TileBeingEditedIndex != INDEX_NONE)
+	{
+		// Draw the collision geometry stats
+		YPos += 60; //@TODO: Need a better way to determine this from the editor mode
+
+		if (bShowStats)
+		{
+			bool bHasCollision = false;
+			if (const FPaperTileMetadata* TileData = TileSet->GetTileMetadata(TileBeingEditedIndex))
+			{
+				if (TileData->HasCollision())
+				{
+					bHasCollision = true;
+					FSpriteGeometryEditMode::DrawGeometryStats(Viewport, View, Canvas, TileData->CollisionData, false, /*inout*/ YPos);
+				}
+			}
+
+			if (!bHasCollision)
+			{
+				FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("NoCollisionDataMainScreen", "No collision data"), GEngine->GetSmallFont(), FLinearColor::White);
+				TextItem.EnableShadow(FLinearColor::Black);
+				TextItem.Draw(&Canvas);
+			}
+		}
+	}
+
+	FEditorViewportClient::DrawCanvas(Viewport, View, Canvas);
 }
 
 FVector2D FSingleTileEditorViewportClient::SelectedItemConvertWorldSpaceDeltaToLocalSpace(const FVector& WorldSpaceDelta) const
@@ -302,6 +342,17 @@ void FSingleTileEditorViewportClient::ApplyCollisionGeometryEdits()
 			TileMap->PostEditChange();
 		}
 	}
+}
+
+void FSingleTileEditorViewportClient::ToggleShowStats()
+{
+	bShowStats = !bShowStats;
+	Invalidate();
+}
+
+bool FSingleTileEditorViewportClient::IsShowStatsChecked() const
+{
+	return bShowStats;
 }
 
 //////////////////////////////////////////////////////////////////////////

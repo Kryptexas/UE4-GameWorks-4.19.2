@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SpriteGeometryEditMode.h"
 #include "../SpriteEditor/SpriteEditorCommands.h"
+#include "PhysicsEngine/BodySetup2D.h"
 #include "SocketEditing.h"
 
 #define LOCTEXT_NAMESPACE "PaperGeometryEditing"
@@ -515,6 +516,120 @@ void FSpriteGeometryEditMode::DrawMarquee(FViewport& InViewport, const FSceneVie
 		MarqueeLine.SetColor(Color);
 		Canvas.DrawItem(MarqueeLine);
 	}
+}
+
+
+void FSpriteGeometryEditMode::DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpriteGeometryCollection& Geometry, bool bIsRenderGeometry, int32& YPos)
+{
+	// Draw the type of geometry we're displaying stats for
+	const FText GeometryName = bIsRenderGeometry ? LOCTEXT("RenderGeometry", "Render Geometry (source)") : LOCTEXT("CollisionGeometry", "Collision Geometry (source)");
+
+	FCanvasTextItem TextItem(FVector2D(6, YPos), GeometryName, GEngine->GetSmallFont(), FLinearColor::White);
+	TextItem.EnableShadow(FLinearColor::Black);
+
+	TextItem.Draw(&Canvas);
+	TextItem.Position += FVector2D(6.0f, 18.0f);
+
+	// Draw the number of shapes
+	TextItem.Text = FText::Format(LOCTEXT("PolygonCount", "Shapes: {0}"), FText::AsNumber(Geometry.Shapes.Num()));
+	TextItem.Draw(&Canvas);
+	TextItem.Position.Y += 18.0f;
+
+	// Draw the number of vertices
+	int32 NumVerts = 0;
+	for (int32 PolyIndex = 0; PolyIndex < Geometry.Shapes.Num(); ++PolyIndex)
+	{
+		NumVerts += Geometry.Shapes[PolyIndex].Vertices.Num();
+	}
+
+	TextItem.Text = FText::Format(LOCTEXT("VerticesCount", "Verts: {0}"), FText::AsNumber(NumVerts));
+	TextItem.Draw(&Canvas);
+	TextItem.Position.Y += 18.0f;
+
+	YPos = (int32)TextItem.Position.Y;
+}
+
+void FSpriteGeometryEditMode::DrawCollisionStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UBodySetup* BodySetup, int32& YPos)
+{
+	FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("CollisionGeomBaked", "Collision Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
+	TextItem.EnableShadow(FLinearColor::Black);
+
+	TextItem.Draw(&Canvas);
+	TextItem.Position += FVector2D(6.0f, 18.0f);
+
+	// Collect stats
+	const FKAggregateGeom& AggGeom3D = BodySetup->AggGeom;
+
+	int32 NumSpheres = AggGeom3D.SphereElems.Num();
+	int32 NumBoxes = AggGeom3D.BoxElems.Num();
+	int32 NumCapsules = AggGeom3D.SphylElems.Num();
+	int32 NumConvexElems = AggGeom3D.ConvexElems.Num();
+	int32 NumConvexVerts = 0;
+	bool bIs2D = false;
+
+	for (const FKConvexElem& ConvexElement : AggGeom3D.ConvexElems)
+	{
+		NumConvexVerts += ConvexElement.VertexData.Num();
+	}
+
+	if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(BodySetup))
+	{
+		bIs2D = true;
+		const FAggregateGeometry2D& AggGeom2D = BodySetup2D->AggGeom2D;
+		NumSpheres += AggGeom2D.CircleElements.Num();
+		NumBoxes += AggGeom2D.BoxElements.Num();
+		NumConvexElems += AggGeom2D.ConvexElements.Num();
+
+		for (const FConvexElement2D& ConvexElement : AggGeom2D.ConvexElements)
+		{
+			NumConvexVerts += ConvexElement.VertexData.Num();
+		}
+	}
+
+	if (NumSpheres > 0)
+	{
+		static const FText SpherePrompt = LOCTEXT("SphereCount", "Spheres: {0}");
+		static const FText CirclePrompt = LOCTEXT("CircleCount", "Circles: {0}");
+
+		TextItem.Text = FText::Format(bIs2D ? CirclePrompt : SpherePrompt, FText::AsNumber(NumSpheres));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumBoxes > 0)
+	{
+		static const FText BoxPrompt = LOCTEXT("BoxCount", "Boxes: {0}");
+		TextItem.Text = FText::Format(BoxPrompt, FText::AsNumber(NumBoxes));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumCapsules > 0)
+	{
+		static const FText CapsulePrompt = LOCTEXT("CapsuleCount", "Capsules: {0}");
+		TextItem.Text = FText::Format(CapsulePrompt, FText::AsNumber(NumCapsules));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumConvexElems > 0)
+	{
+		static const FText ConvexPrompt = LOCTEXT("ConvexCount", "Convex Shapes: {0} ({1} verts)");
+		TextItem.Text = FText::Format(ConvexPrompt, FText::AsNumber(NumConvexElems), FText::AsNumber(NumConvexVerts));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if ((NumConvexElems + NumCapsules + NumBoxes + NumSpheres) == 0)
+	{
+		static const FText NoShapesPrompt = LOCTEXT("NoCollisionDataWarning", "Warning: Collision is enabled but there are no shapes");
+		TextItem.Text = NoShapesPrompt;
+		TextItem.SetColor(FLinearColor::Yellow);
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	YPos = (int32)TextItem.Position.Y;
 }
 
 //////////////////////////////////////////////////////////////////////////
