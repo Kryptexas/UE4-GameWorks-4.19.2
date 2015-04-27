@@ -33,5 +33,5 @@ public:
 	bool bShowTilesWithMetaData;
 	bool bHasValidPaintRectangle;
 	FViewportSelectionRectangle ValidPaintRectangle;
-	int32 TileIndex;
+	int32 CurrentSelectedTileIndex;
 };

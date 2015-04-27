@@ -13,7 +13,7 @@ FTileSetEditorViewportClient::FTileSetEditorViewportClient(UPaperTileSet* InTile
 	, bShowTilesWithCollision(false)
 	, bShowTilesWithMetaData(false)
 	, bHasValidPaintRectangle(false)
-	, TileIndex(INDEX_NONE)
+	, CurrentSelectedTileIndex(INDEX_NONE)
 {
 }
 
@@ -63,9 +63,9 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 			const float Width = (TileSet->TileWidth - 2) * ZoomAmount;
 			const float Height = (TileSet->TileHeight - 2) * ZoomAmount;
 
-			for (int32 OtherTileIndex = 0; OtherTileIndex < NumTiles; ++OtherTileIndex)
+			for (int32 TileIndex = 0; TileIndex < NumTiles; ++TileIndex)
 			{
-				if (const FPaperTileMetadata* TileMetadata = TileSet->GetTileMetadata(OtherTileIndex))
+				if (const FPaperTileMetadata* TileMetadata = TileSet->GetTileMetadata(TileIndex))
 				{
 					const bool bShowDueToCollision = TileMetadata->HasCollision() && bShowTilesWithCollision;
 					const bool bShowDueToMetaData = TileMetadata->HasMetaData() && bShowTilesWithMetaData;
@@ -73,7 +73,7 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 					if (bShowDueToCollision || bShowDueToMetaData)
 					{
 						FVector2D TileUV;
-						TileSet->GetTileUV(OtherTileIndex, /*out*/ TileUV);
+						TileSet->GetTileUV(TileIndex, /*out*/ TileUV);
 
 						const float XPos = (TileUV.X + 1 - ZoomPos.X) * ZoomAmount;
 						const float YPos = (TileUV.Y + 1 - ZoomPos.Y) * ZoomAmount;
@@ -102,9 +102,9 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		Canvas->DrawItem(BoxItem);
 	}
 
-	if (TileIndex != INDEX_NONE)
+	if (CurrentSelectedTileIndex != INDEX_NONE)
 	{
-		const FString TileIndexString = FString::Printf(TEXT("Tile# %d"), TileIndex);
+		const FString TileIndexString = FString::Printf(TEXT("Tile# %d"), CurrentSelectedTileIndex);
 
 		int32 XL;
 		int32 YL;
