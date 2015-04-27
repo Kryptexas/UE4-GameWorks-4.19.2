@@ -202,11 +202,27 @@ UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEd
 		return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	}
 
-	const bool bCanMatchSelfs = ((OldPin->PinName == K2Schema->PN_Self) == (NewPin->PinName == K2Schema->PN_Self));
+	const bool bPinNamesMatch = (OldPin->PinName == NewPin->PinName);
+	const bool bCanMatchSelfs = bPinNamesMatch || ((OldPin->PinName == K2Schema->PN_Self) == (NewPin->PinName == K2Schema->PN_Self));
 	const bool bTheSameDirection = (NewPin->Direction == OldPin->Direction);
+
 	if (bCanMatchSelfs && bTheSameDirection)
 	{
-		if (K2Schema->ArePinTypesCompatible(NewPin->PinType, OldPin->PinType))
+		// the order that the PinTypes are passed to ArePinTypesCompatible() 
+		// matters; object pin types are seen as compatible when the output-
+		// pin's type is a subclass of the input-pin's type, so we want to keep 
+		// that in mind here (should the pins "MatchForReconstruction" if the 
+		// variable has been changed to a super class of the original? what 
+		// about a subclass?
+		// 
+		// if these are output nodes, then it is perfectly acceptable that the 
+		// variable has been altered to be a sub-class ref (meaning we should 
+		// treat the NewPin as an output)... the opposite applies if the pins 
+		// are inputs
+		const FEdGraphPinType& InputType  = (OldPin->Direction == EGPD_Output) ? OldPin->PinType : NewPin->PinType;
+		const FEdGraphPinType& OutputType = (OldPin->Direction == EGPD_Output) ? NewPin->PinType : OldPin->PinType;
+
+		if (K2Schema->ArePinTypesCompatible(OutputType, InputType))
 		{
 			// If these are split pins, we need to do some name checking logic
 			if (NewPin->ParentPin)
@@ -249,30 +265,65 @@ UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEd
 
 			return ERedirectType_Name;
 		}
-		else if ((OldPin->PinName == NewPin->PinName) && ((NewPin->PinType.PinCategory == K2Schema->PC_Object) ||
-			(NewPin->PinType.PinCategory == K2Schema->PC_Interface)) && (NewPin->PinType.PinSubCategoryObject == NULL))
-		{
-			// Special Case:  If we had a pin match, and the class isn't loaded yet because of a cyclic dependency, temporarily cast away the const, and fix up.
-			// @TODO:  Fix this up to be less hacky
-			UBlueprintGeneratedClass* TypeClass = Cast<UBlueprintGeneratedClass>(OldPin->PinType.PinSubCategoryObject.Get());
-			if (TypeClass && TypeClass->ClassGeneratedBy && TypeClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
-			{
-				UEdGraphPin* NonConstNewPin = (UEdGraphPin*)NewPin;
-				NonConstNewPin->PinType.PinSubCategoryObject = OldPin->PinType.PinSubCategoryObject.Get();
-				return ERedirectType_Name;
-			}
-		}
 		else
 		{
-			// Special Case:  If we're migrating from old blueprint references to class references, allow pins to be reconnected if coerced
-			const UClass* PSCOClass = Cast<UClass>(OldPin->PinType.PinSubCategoryObject.Get());
-			const bool bOldIsBlueprint = PSCOClass && PSCOClass->IsChildOf(UBlueprint::StaticClass());
-			const bool bNewIsClass = (NewPin->PinType.PinCategory == K2Schema->PC_Class);
-			if (bNewIsClass && bOldIsBlueprint)
+			const bool bNewPinIsObject = (NewPin->PinType.PinCategory == K2Schema->PC_Object);
+
+			// Special Case: If we had a pin match, and the class isn't loaded 
+			//               yet because of a cyclic dependency, temporarily 
+			//               cast away the const, and fix up.
+			if ( bPinNamesMatch &&
+				(bNewPinIsObject || (NewPin->PinType.PinCategory == K2Schema->PC_Interface)) &&
+				(NewPin->PinType.PinSubCategoryObject == NULL) )
 			{
-				UEdGraphPin* OldPinNonConst = (UEdGraphPin*)OldPin;
-				OldPinNonConst->PinName = NewPin->PinName;
-				return ERedirectType_Name;
+				// @TODO:  Fix this up to be less hacky
+				UBlueprintGeneratedClass* TypeClass = Cast<UBlueprintGeneratedClass>(OldPin->PinType.PinSubCategoryObject.Get());
+				if (TypeClass && TypeClass->ClassGeneratedBy && TypeClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
+				{
+					UEdGraphPin* NonConstNewPin = (UEdGraphPin*)NewPin;
+					NonConstNewPin->PinType.PinSubCategoryObject = OldPin->PinType.PinSubCategoryObject.Get();
+					return ERedirectType_Name;
+				}
+			}
+			// Special Case: if we have object pins that are "compatible" in the
+			//               reverse order (meaning one's type is a sub-class of 
+			//               the other's), then they could still be acceptable 
+			//               if all their connections are still valid (for 
+			//               example: if the OldPin was an output only connected 
+			//               to super-class pins)
+			else if (bNewPinIsObject && K2Schema->ArePinTypesCompatible(InputType, OutputType))
+			{
+				bool bLinksCompatible = (OldPin->LinkedTo.Num() > 0) && (OldPin->DefaultObject == nullptr);
+				for (UEdGraphPin* OldLink : OldPin->LinkedTo)
+				{
+					const FEdGraphPinType& LinkInputType  = (OldPin->Direction == EGPD_Input) ? NewPin->PinType : OldLink->PinType;
+					const FEdGraphPinType& LinkOutputType = (OldPin->Direction == EGPD_Input) ? OldLink->PinType : NewPin->PinType;
+				
+					if (!K2Schema->ArePinTypesCompatible(LinkOutputType, LinkInputType))
+					{
+						bLinksCompatible = false;
+						break;
+					}
+				}
+
+				if (bLinksCompatible)
+				{
+					return ERedirectType_Name;
+				}
+			}
+			else
+			{
+				const UClass* PSCOClass = Cast<UClass>(OldPin->PinType.PinSubCategoryObject.Get());
+				const bool bOldIsBlueprint = PSCOClass && PSCOClass->IsChildOf(UBlueprint::StaticClass());
+				const bool bNewIsClass     = (NewPin->PinType.PinCategory == K2Schema->PC_Class);
+				// Special Case: If we're migrating from old blueprint references 
+				//               to class references, allow pins to be reconnected if coerced
+				if (bNewIsClass && bOldIsBlueprint)
+				{
+					UEdGraphPin* OldPinNonConst = (UEdGraphPin*)OldPin;
+					OldPinNonConst->PinName = NewPin->PinName;
+					return ERedirectType_Name;
+				}
 			}
 		}
 	}
