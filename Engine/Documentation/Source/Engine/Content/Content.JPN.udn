@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2498976
+﻿INTSourceChangelist:2509035
 Availability:Public
 Title:コンテンツの管理
 Crumbs:%ROOT%, Engine
@@ -65,7 +65,7 @@ contentcreator
 ![FBX](Engine/Content/FBX/fbx_banner.png)
 [/REGION]
 
-ゲームに必要なコンテンツ全てをエディタで作成するわけではありません。芸術的なアセットのほとんどは、3ds Max、Maya、Photoshop、ZBrush などを使用して外部で作成します。以下は、エディタで作成するアセットタイプと外部で作成するアセットタイプの一般的な内訳です。
+ゲームに必要なコンテンツ全てをエディタで作成するわけではありません。芸術的なアセットのほとんどは、3ds Max、Maya、Photoshop、ZBrushなどを使用して外部で作成します。以下は、エディタで作成するアセットタイプと外部で作成するアセットタイプの一般的な内訳です。
 
 |アセットの作成場所||
 | ------------------------ | ---------------------------------- |
@@ -78,7 +78,7 @@ contentcreator
 [EXCERPT:InEditor]
 * ゲームレベル
 * マテリアル
-* パーティクル システム
+* パーティクルシステム
 * シネマティック シーケンス
 * ブループリント スクリプト
 * AI ナビゲーション メッシュ
@@ -92,6 +92,8 @@ contentcreator
 * スケルタル アニメーション
 * テクスチャ
 * サウンド (WAVs)
+* IES ライト プロファイル
+* Nvidia APEX ファイル (APB と APX)
 [/EXCERPT:External]
 --------------------->
 
@@ -127,7 +129,7 @@ contentcreator
 		アーティスト向けクイックスタートガイド
 	[/PARAM]
 	[PARAM:description]
-	コンテンツ クリエイターとしてアンリアル エンジン 4 を迅速に習得するには、 **アーティスト向けクイックスタートガイド** をご覧ください。アーティスト向けクイックスタートガイドでは、メッシュやテクスチャのインポート、マテリアル作成の基礎、およびマテリアルをメッシュに適用する手順を紹介します。
+	コンテンツ クリエイターとしてアンリアル エンジン 4 を迅速に習得するには、**アーティスト向けクイックスタートガイド** をご覧ください。アーティスト向けクイックスタートガイドでは、メッシュやテクスチャのインポート、マテリアル作成の基礎、およびマテリアルをメッシュに適用する手順を紹介します。
 	[/PARAM]
 	[PARAM:links]
 		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
@@ -148,7 +150,7 @@ contentcreator
 	[PARAM:links]
 		* [FBX インポート パイプライン](Engine/Content/FBX "%Engine/Content/FBX:description%")
 		* [](Engine/Content/FBX/ImportOptions "%Engine/Content/FBX/ImportOptions:description%")
-		* [FBX パイプライン：スタティックメッシュ](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
+		* [](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
 		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
 		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
 		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
