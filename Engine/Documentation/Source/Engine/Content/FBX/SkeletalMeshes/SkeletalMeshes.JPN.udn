@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2386033
+﻿INTSourceChangelist:2511767
 Availability:Public
 Title:FBX スケルタル メッシュ パイプライン
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -36,10 +36,10 @@ FBX インポート パイプラインでは _スケルタル メッシュ_ が�
 マテリアルが自動的に作成され、インポートされたメッシュに適用されます。
 [/EXCERPT:FBX_SkeletalMeshes]
 
-FBX を使用してスタティック メッシュをインポートするための機能は、つぎのようになります。
+FBX を使用して _スケルタル メッシュ_ をインポートするための機能は、つぎのようになります。   
 
 
-* [テクスチャを含むマテリアルを使用したスケルタルメッシュ](#マテリアル)
+* [テクスチャを含むマテリアル](#マテリアル)
 * [アニメーション](#アニメーション)
 *  [モーフターゲット](#モーフターゲット)
 * Multiple UV sets
@@ -267,7 +267,7 @@ _スケルタル メッシュ_ の回転軸はつねにスケルトンのルー�
 * インポーターがメッシュを三角分割できるようにする - クリーンアップはできませんが単純なメッシュには機能するため、悪くはない方法です。
 
 
-**注記：**FBX エクスポーターがメッシュを三角分割できるようにすることによって、Split Non-Matching Triangles (不一致なトライアングルの分割) にチェックが入っている場合、完全にランダムなスムージングとなります。 
+**注記：** FBX エクスポーターがメッシュを三角分割できるようにすることによって、Split Non-Matching Triangles (不一致なトライアングルの分割) にチェックが入っている場合、完全にランダムなスムージングとなります。 
 トライアングルにチェックが入ります。FBX による三角分割されたメッシュを Maya にインポートして戻し、さらに再エクスポートすることによって、正しいスムージングが表示されるようになります。 
 
 どのような場合でも、 3D アプリケーション内でメッシュを手動で三角分割することによって、 
@@ -387,14 +387,15 @@ _スケルタルメッシュ_ は、個別にエクスポート、もしくは�
 
 
 1. **コンテンツ ブラウザ** で ![](import_button.png) ボタンをクリックします。開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。 **注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。   
+
 	![import_file.jpg](import_file.jpg)(w:764 h:362)
   
 	[REGION:note]
-		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
+		インポートしたアセットのパスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
 	[/REGION]
    
-1. **FBX Import Options** ダイアログから適切な設定値を選択します。既存のスケルトンを共有しないメッシュをインポートする場合は、デフォルト値で十分です。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。  
- 
+1. **FBX Import Options** ダイアログから適切な設定値を選択します。既存のスケルトンを共有しないメッシュをインポートする場合は、デフォルト値で十分です。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+
 	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
 
 	インポート中のスケルタル メッシュが既存のスケルトンを共有する場合は、**[Select Skeleton]**ドロップダウン メニューをクリックして、リストからそのスケルトン アセットを選択します。
@@ -472,7 +473,7 @@ FBX パイプラインを使用してこれらの LOD メッシュをエクス�
 
     ![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
 
-1. ![max_utilities_button.jpg](max_utilities_button.jpg) ボタンをクリックして、 _[Utilities]_ パネルを表示し、 _[Level of Detail]_ ユーティリティを選択します。 **注記：**![max_utility_more_button.jpg](max_utility_more_button.jpg) をクリックして、リストから選択しなければならない場合があります。   
+1. ![max_utilities_button.jpg](max_utilities_button.jpg) ボタンをクリックして _[Utilities]_ パネルを表示し _[Level of Detail]_ ユーティリティを選択します。**注記：** [max_utility_more_button.jpg](max_utility_more_button.jpg) をクリックして、リストから選択しなければならない場合があります。   
 
     ![max_lod_utility.jpg](max_lod_utility.jpg)(w:170 h:561)
 
@@ -484,7 +485,7 @@ FBX パイプラインを使用してこれらの LOD メッシュをエクス�
 
 
 [EXCERPT:mayaLODSetup]
-1. ベースとなる LOD から最後の LOD まで、順番にメッシュをすべて (ベースに加えてLOD) 選択します。これは重要なため、複雑度に応じて正しい順序で追加します。[_Edit_] メニューから _[Level of Detail] > [Group]_ コマンドを選択します。   
+1. ベースとなる LOD から最後の LOD まで、順番にメッシュをすべて (ベースに加えてLOD) 選択します。複雑度に応じて正しい順序で追加されるためにこれは重要です。[_Edit_] メニューから _[Level of Detail] > [Group]_ コマンドを選択します。   
 
     ![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
 
@@ -570,8 +571,7 @@ _スケルタル メッシュの LOD_ をエクスポートするには、次の
 1. 各 LOD で、**Display Factor** 設定に LOD の使用時期が示されます。 
 
 	![](LODs_Set.png)
-
-	**注記：**値が小さくなるほど、遠く離れた時に LOD を使用し、値が大きくなるほど近くで LOD を使用します。 
+	**注記：** 値が小さくなるほど、遠く離れた時に LOD を使用し、値が大きくなるほど近くで LOD を使用します。 
 
 	上の画像では、**Skeletal Mesh** に近いときに LOD 0 が使用しています。さらに離れたときには、 LOD1 を使用しています。
 
@@ -595,7 +595,7 @@ _スタティック メッシュ_ の LOD は、 **コンテンツ ブラウザ*
 		インポートしたアセットのインポート パスは、インポート中の **コンテンツ ブラウザ** の現行位置に依存します。インポートを実行する前に、必ず適切なフォルダへ移動してください。インポートが完了したら、インポートしたアセットを新規フォルダへドラッグしてください。
 	[/REGION]
 
-1. **Import** ダイアログボックスから適切な設定値を選択します。_Import Mesh LODs_ を有効にします。**注記：**インポートされるメッシュの名前はデフォルトの命名規則 [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
+1. **Import** ダイアログボックスから適切な設定値を選択します。_Import Mesh LODs_ を有効にします。**注記：** インポートされるメッシュの名前はデフォルトの命名規則 [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX インポート オプションのリファレンス](Engine/Content/FBX/ImportOptions) セクションを参照してください。   
 
     ![](SkelMeshImportOptions.png)
 
@@ -613,7 +613,7 @@ _スタティック メッシュ_ の LOD は、 **コンテンツ ブラウザ*
 
     ![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:352 h:262)
 
-1. ファイル ブラウザで、 LOD メッシュが含まれている FBX ファイルに進み、それを選択します。**注記：**ファイルを見るには、ファイル形式を ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) にセットしなければならない場合があります。   
+1. ファイル ブラウザで、LOD メッシュが含まれている FBX ファイルに進み、それを選択します。**注記：** ファイルを見るには、ファイル形式を ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) にセットしなければならない場合があります。   
 
     ![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:611 h:363)
 
@@ -647,7 +647,7 @@ _スタティック メッシュ_ の LOD は、 **コンテンツ ブラウザ*
 
     ![](SelectSkeletalMesh.png)
 
-1. _SkeletalMesh_ を右クリックし **[Export]** を選択します。   
+1. _SkeletalMesh_ を **右クリック** し **[Export]** を選択します。   
 
     ![](ExportMenu.png)
 
