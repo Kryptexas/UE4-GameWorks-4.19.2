@@ -3265,7 +3265,7 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 
 		for (auto BlueprintIt = PinRenamedHelper.ModifiedBlueprints.CreateIterator(); BlueprintIt; ++BlueprintIt)
 		{
-			FBlueprintEditorUtils::MarkBlueprintAsModified(*BlueprintIt);
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(*BlueprintIt);
 		}
 	}
 	return true;
