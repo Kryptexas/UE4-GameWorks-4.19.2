@@ -6,6 +6,8 @@
 #include "PaperTileLayer.h"
 #include "PaperTileMapComponent.generated.h"
 
+class FPaperTileMapRenderSceneProxy;
+
 /**
  * A component that handles rendering and collision for a single instance of a UPaperTileMap asset.
  *
@@ -54,6 +56,14 @@ private:
 	UPROPERTY(EditAnywhere, Category=Materials)
 	FLinearColor TileMapColor;
 
+#if WITH_EDITOR
+	// The number of batches required to render this tile map
+	int32 NumBatches;
+
+	// The number of triangles rendered in this tile map
+	int32 NumTriangles;
+#endif
+
 public:
 	// The tile map used by this component
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
@@ -74,9 +84,9 @@ public:
 #endif
 
 protected:
-	friend class FPaperTileMapRenderSceneProxy;
+	friend FPaperTileMapRenderSceneProxy;
 
-	void RebuildRenderData(class FPaperTileMapRenderSceneProxy* Proxy);
+	void RebuildRenderData(FPaperTileMapRenderSceneProxy* Proxy);
 
 public:
 	// UObject interface
@@ -152,6 +162,11 @@ public:
 	// if the tile map is an asset reference, it is cloned to make a unique instance.
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void MakeTileMapEditable();
+
+#if WITH_EDITOR
+	// Returns the rendering stats for this component
+	void GetRenderingStats(int32& OutNumTriangles, int32& OutNumBatches) const;
+#endif
 };
 
 // Allow the old name to continue to work for one release

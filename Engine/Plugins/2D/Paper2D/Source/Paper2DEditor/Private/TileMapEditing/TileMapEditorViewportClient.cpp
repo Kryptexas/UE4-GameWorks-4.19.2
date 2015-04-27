@@ -4,6 +4,7 @@
 #include "TileMapEditorViewportClient.h"
 #include "SceneViewport.h"
 #include "EdModeTileMap.h"
+#include "PaperEditorShared/SpriteGeometryEditMode.h"
 
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
@@ -34,6 +35,7 @@ FTileMapEditorViewportClient::FTileMapEditorViewportClient(TWeakPtr<FTileMapEdit
 	WidgetMode = FWidget::WM_Translate;
 	bManipulating = false;
 	bManipulationDirtiedSomething = false;
+	bShowTileMapStats = true;
 	ScopedTransaction = nullptr;
 
 	DrawHelper.bDrawGrid = GetDefault<UTileMapEditorSettings>()->bShowGridByDefault;
@@ -106,6 +108,78 @@ void FTileMapEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& V
 
 	int32 YPos = 42;
 
+	// Draw the stats (if enabled)
+	if (bShowTileMapStats)
+	{
+		if (UPaperTileMap* TileMap = GetTileMapBeingEdited())
+		{
+			// Show baked collision stats
+			if (TileMap->BodySetup != nullptr)
+			{
+				FSpriteGeometryEditMode::DrawCollisionStats(Viewport, View, Canvas, TileMap->BodySetup, /*inout*/ YPos);
+			}
+			else
+			{
+				FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("NoCollisionDataMainScreen", "No collision data"), GEngine->GetSmallFont(), FLinearColor::White);
+				TextItem.EnableShadow(FLinearColor::Black);
+				TextItem.Draw(&Canvas);
+				YPos += 18.0f;
+			}
+
+
+			// Show baked rendering stats
+			int32 NumTriangles = 0;
+			int32 NumBatches = 0;
+			RenderTileMapComponent->GetRenderingStats(/*out*/ NumTriangles, /*out*/ NumBatches);
+
+			{
+
+				FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("RenderGeomBaked", "Render Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
+				TextItem.EnableShadow(FLinearColor::Black);
+
+				TextItem.Draw(&Canvas);
+				TextItem.Position += FVector2D(6.0f, 18.0f);
+
+				// Draw the number of batches
+				TextItem.Text = FText::Format(LOCTEXT("SectionCount", "Sections: {0}"), FText::AsNumber(NumBatches));
+				TextItem.Draw(&Canvas);
+				TextItem.Position.Y += 18.0f;
+
+				// Determine the material type
+				//@TODO: Similar code happens in the sprite editor and sprite details panel, and should be consolidated if possible
+				static const FText Opaque = LOCTEXT("OpaqueMaterial", "Opaque");
+				static const FText Translucent = LOCTEXT("TranslucentMaterial", "Translucent");
+				static const FText Masked = LOCTEXT("MaskedMaterial", "Masked");
+
+				FText MaterialType = LOCTEXT("NoMaterial", "No material set!");
+				if (TileMap->Material != nullptr)
+				{
+					switch (TileMap->Material->GetBlendMode())
+					{
+					case EBlendMode::BLEND_Opaque:
+						MaterialType = Opaque;
+						break;
+					case EBlendMode::BLEND_Translucent:
+					case EBlendMode::BLEND_Additive:
+					case EBlendMode::BLEND_Modulate:
+						MaterialType = Translucent;
+						break;
+					case EBlendMode::BLEND_Masked:
+						MaterialType = Masked;
+						break;
+					}
+				}
+
+				// Draw the number of triangles
+				TextItem.Text = FText::Format(LOCTEXT("TriangleCountAndMaterialBlendMode", "Triangles: {0} ({1})"), FText::AsNumber(NumTriangles), MaterialType);
+				TextItem.Draw(&Canvas);
+				TextItem.Position.Y += 18.0f;
+
+				YPos = (int32)TextItem.Position.Y;
+			}
+		}
+	}
+
 	// Draw the render bounds
 	DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
 }
@@ -165,6 +239,17 @@ void FTileMapEditorViewportClient::ToggleShowMeshEdges()
 bool FTileMapEditorViewportClient::IsShowMeshEdgesChecked() const
 {
 	return EngineShowFlags.MeshEdges;
+}
+
+void FTileMapEditorViewportClient::ToggleShowTileMapStats()
+{
+	bShowTileMapStats = !bShowTileMapStats;
+	Invalidate();
+}
+
+bool FTileMapEditorViewportClient::IsShowTileMapStatsChecked() const
+{
+	return bShowTileMapStats;
 }
 
 void FTileMapEditorViewportClient::EndTransaction()

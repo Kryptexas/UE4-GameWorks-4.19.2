@@ -25,8 +25,9 @@ void FTileMapEditorCommands::RegisterCommands()
 
 	UI_COMMAND(SetShowTileGrid, "Tile Grid", "Display the tile grid.", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND(SetShowLayerGrid, "Layer Grid", "Display the layer grid.", EUserInterfaceActionType::ToggleButton, FInputChord());
-	
 
+	UI_COMMAND(SetShowTileMapStats, "Stats", "Display render and collision stats about the tile map.", EUserInterfaceActionType::ToggleButton, FInputChord());
+	
 	// Selection actions
 	UI_COMMAND(FlipSelectionHorizontally, "Flip brush horizontally", "Flips the brush horizontally", EUserInterfaceActionType::Button, FInputChord(EKeys::X));
 	UI_COMMAND(FlipSelectionVertically, "Flip brush vertically", "Flips the brush vertically", EUserInterfaceActionType::Button, FInputChord(EKeys::Y));

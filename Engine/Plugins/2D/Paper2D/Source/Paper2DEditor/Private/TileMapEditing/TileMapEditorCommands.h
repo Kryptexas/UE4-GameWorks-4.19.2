@@ -39,6 +39,8 @@ public:
 	TSharedPtr<FUICommandInfo> SetShowTileGrid;
 	TSharedPtr<FUICommandInfo> SetShowLayerGrid;
 
+	TSharedPtr<FUICommandInfo> SetShowTileMapStats;
+
 	// Selection actions
 	TSharedPtr<FUICommandInfo> FlipSelectionHorizontally;
 	TSharedPtr<FUICommandInfo> FlipSelectionVertically;
