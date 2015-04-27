@@ -967,5 +967,24 @@ namespace UnrealBuildTool
 		{
 			return UnrealTargetPlatform.Android;
 		}
+
+		public override void StripSymbols(string SourceFileName, string TargetFileName)
+		{
+			File.Copy(SourceFileName, TargetFileName, true);
+
+			ProcessStartInfo StartInfo = new ProcessStartInfo();
+			if(SourceFileName.Contains("-armv7"))
+			{
+				StartInfo.FileName = ArPathArm.Replace("-ar.exe", "-strip.exe");
+			}
+			else
+			{
+				throw new BuildException("Couldn't determine Android architecture to strip symbols from {0}", SourceFileName);
+			}
+			StartInfo.Arguments = TargetFileName;
+			StartInfo.UseShellExecute = false;
+			StartInfo.CreateNoWindow = true;
+			Utils.RunLocalProcessAndLogOutput(StartInfo);
+		}
 	};
 }
