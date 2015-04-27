@@ -799,6 +799,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		FGlobalDynamicIndexBuffer::Get().Commit();
 	}
 
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_MotionBlurStartFrame);
+		Scene->MotionBlurInfoData.StartFrame(ViewFamily.bWorldIsPaused);
+	}
+
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{

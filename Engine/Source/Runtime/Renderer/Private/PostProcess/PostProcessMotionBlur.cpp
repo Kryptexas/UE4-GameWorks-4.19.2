@@ -1529,6 +1529,11 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 	Canvas.DrawShadowedString(X, Y += YStep, TEXT("WorldIsPaused, r.VelocityTest, Parallel:"), GetStatsFont(), FLinearColor(1, 1, 0));
 	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
 
+	const FScene* Scene = (const FScene*)View.Family->Scene;
+
+	Canvas.DrawShadowedString(X, Y += YStep, TEXT("MotionBlurInfoData (per object):"), GetStatsFont(), FLinearColor(1, 1, 0));
+	Canvas.DrawShadowedString(X + ColumnWidth, Y, *Scene->MotionBlurInfoData.GetDebugString(), GetStatsFont(), FLinearColor(1, 1, 0));	
+
 	for(uint32 BufferId = 0; BufferId < 2; ++BufferId)
 	{
 		const TCHAR* Usage = TEXT("unused");
@@ -1544,7 +1549,7 @@ void FRCPassPostProcessVisualizeMotionBlur::Process(FRenderingCompositePassConte
 
 		Line = FString::Printf(TEXT("BoneBuffer %d: %s"), BufferId, Usage);
 		// LeftTop.y + (LinesPerBuffer + GapBetweenBuffers) * Scale
-		Canvas.DrawShadowedString(4, 74 + BufferId * (48 + 8) * 3, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
+		Canvas.DrawShadowedString(4, 84 + BufferId * (48 + 8) * 3, *Line, GetStatsFont(), FLinearColor(1, 1, 0));
 	}
 
 	Canvas.Flush_RenderThread(Context.RHICmdList);

@@ -1451,9 +1451,6 @@ struct FMotionBlurInfo
 	/**  */
 	void UpdateMotionBlurInfo();
 
-	/** Call if you want to keep the existing motionblur */
-	void RestoreForPausedMotionBlur();
-
 	void SetKeepAndUpdateThisFrame(bool bValue = true)
 	{
 		if(bValue)
@@ -1488,7 +1485,12 @@ struct FMotionBlurInfo
 	void ApplyOffset(FVector InOffset)
 	{
 		PreviousLocalToWorld.SetOrigin(PreviousLocalToWorld.GetOrigin() + InOffset);
-		PausedLocalToWorld.SetOrigin(PausedLocalToWorld.GetOrigin() + InOffset);
+		CurrentLocalToWorld.SetOrigin(CurrentLocalToWorld.GetOrigin() + InOffset);
+	}
+
+	void OnStartFrame()
+	{
+		PreviousLocalToWorld = CurrentLocalToWorld;
 	}
 
 private:
@@ -1498,8 +1500,8 @@ private:
 	FPrimitiveSceneInfo* MBPrimitiveSceneInfo;
 	/** The previous LocalToWorld of the component.	*/
 	FMatrix	PreviousLocalToWorld;
-	/** Used in case when Pause is activate. */
-	FMatrix	PausedLocalToWorld;
+	/** todo */
+	FMatrix	CurrentLocalToWorld;
 	/** if true then the PreviousLocalToWorld has already been updated for the current frame */
 	bool bKeepAndUpdateThisFrame;
 };
@@ -1532,10 +1534,7 @@ public:
 	 */
 	void UpdateMotionBlurCache(class FScene* InScene);
 
-	/**
-	 * Call if you want to keep the existing motionblur
-	 */
-	void RestoreForPausedMotionBlur();
+	void StartFrame(bool bWorldIsPaused);
 
 	/** 
 	 *	Get the primitives motion blur info
@@ -1555,11 +1554,18 @@ public:
 	 */
 	void ApplyOffset(FVector InOffset);
 
+	/**
+	 * Get some debug string for VisualizeMotionBlur
+	 */
+	FString GetDebugString() const;
+
 private:
 	/** The motion blur info entries for the frame. Accessed on Renderthread only! */
 	TMap<FPrimitiveComponentId, FMotionBlurInfo> MotionBlurInfos;
 	/** */
 	bool bShouldClearMotionBlurInfo;
+	/** set in StartFrame() */
+	bool bWorldIsPaused;
 
 	/**
 	 * O(n) with the amount of motion blurred objects but that number should be low

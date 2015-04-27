@@ -1097,14 +1097,6 @@ void FPreviousPerBoneMotionBlur::ReleaseResources()
 	}
 }
 
-void FPreviousPerBoneMotionBlur::RestoreForPausedMotionBlur()
-{
-	if(CVarMotionBlurDebug.GetValueOnRenderThread())
-	{
-		UE_LOG(LogEngine, Log, TEXT("r.MotionBlurDebug: RestoreForPausedMotionBlur"));
-	}
-}
-
 uint32 FPreviousPerBoneMotionBlur::GetSizeX() const
 {
 	return PerChunkBoneMatricesTexture[0].GetSizeX();

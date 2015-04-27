@@ -2617,8 +2617,8 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalL
 
 FMotionBlurInfoData::FMotionBlurInfoData()
 	: bShouldClearMotionBlurInfo(false)
+	, bWorldIsPaused(false)
 {
-
 }
 
 void FMotionBlurInfoData::UpdatePrimitiveMotionBlur(FPrimitiveSceneInfo* PrimitiveSceneInfo)
@@ -2673,37 +2673,39 @@ void FMotionBlurInfo::UpdateMotionBlurInfo()
 {
 	if(MBPrimitiveSceneInfo && MBPrimitiveSceneInfo->Proxy)
 	{
-		PausedLocalToWorld = PreviousLocalToWorld;
 		// only if the proxy is still there
-		PreviousLocalToWorld = MBPrimitiveSceneInfo->Proxy->GetLocalToWorld();
+		CurrentLocalToWorld = MBPrimitiveSceneInfo->Proxy->GetLocalToWorld();
 	}
 
 	bKeepAndUpdateThisFrame = false;
 }
 
-void FMotionBlurInfo::RestoreForPausedMotionBlur()
-{
-	PreviousLocalToWorld = PausedLocalToWorld;
-}
-
 // Doxygen has trouble parsing these functions because the header declaring them is in Engine, not Renderer
 #if !UE_BUILD_DOCS
 
-void FMotionBlurInfoData::RestoreForPausedMotionBlur()
+void FMotionBlurInfoData::StartFrame(bool bInWorldIsPaused)
 {
-	check(IsInRenderingThread());
+	bWorldIsPaused = bInWorldIsPaused;
 
-	for (TMap<FPrimitiveComponentId, FMotionBlurInfo>::TIterator It(MotionBlurInfos); It; ++It)
+	if(!bWorldIsPaused)
 	{
-		FMotionBlurInfo& MotionBlurInfo = It.Value();
+		for (TMap<FPrimitiveComponentId, FMotionBlurInfo>::TIterator It(MotionBlurInfos); It; ++It)
+		{
+			FMotionBlurInfo& MotionBlurInfo = It.Value();
 
-		MotionBlurInfo.RestoreForPausedMotionBlur();
+			MotionBlurInfo.OnStartFrame();
+		}
 	}
 }
 
 void FMotionBlurInfoData::UpdateMotionBlurCache(FScene* InScene)
 {
 	check(InScene && IsInRenderingThread());
+
+	if(bWorldIsPaused)
+	{
+		return;
+	}
 
 	if (InScene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
@@ -2743,6 +2745,11 @@ void FMotionBlurInfoData::ApplyOffset(FVector InOffset)
 	{
 		It.Value().ApplyOffset(InOffset);
 	}
+}
+
+FString FMotionBlurInfoData::GetDebugString() const
+{
+	return FString::Printf(TEXT("Num=%d Clear=%d"), MotionBlurInfos.Num(), bShouldClearMotionBlurInfo);
 }
 
 const FMotionBlurInfo* FMotionBlurInfoData::FindMBInfoIndex(FPrimitiveComponentId ComponentId) const

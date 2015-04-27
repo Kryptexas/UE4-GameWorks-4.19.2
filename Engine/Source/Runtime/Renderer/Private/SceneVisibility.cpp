@@ -2148,16 +2148,6 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 		InitDynamicShadows(RHICmdList);
 	}
 
-	if (ViewFamily.bWorldIsPaused)
-	{
-		// so we can freeze motion blur and TemporalAA in paused mode
-
-		// per object velocity (static meshes)
-		Scene->MotionBlurInfoData.RestoreForPausedMotionBlur();
-		// per bone velocity (skeletal meshes)
-		GPrevPerBoneMotionBlur.RestoreForPausedMotionBlur();
-	}
-
 	// initialize per-view uniform buffer.
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{

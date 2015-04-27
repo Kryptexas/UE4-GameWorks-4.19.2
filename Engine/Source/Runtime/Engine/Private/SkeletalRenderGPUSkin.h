@@ -179,9 +179,6 @@ public:
 	*/
 	void ReleaseResources();
 
-	/** */
-	ENGINE_API void RestoreForPausedMotionBlur();
-
 	void InitIfNeeded();
 
 	/** Returns the width of the texture in pixels. */
