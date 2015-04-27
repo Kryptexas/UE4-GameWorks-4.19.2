@@ -626,6 +626,9 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	AssetRegistryModule.Get().OnPathRemoved().AddSP(this, &SContentBrowser::HandlePathRemoved);
 
+	// We want to be able to search the feature packs in the super search so we need the module loaded 
+	IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");
+
 	const TWeakPtr<SContentBrowser> WeakThis = SharedThis(this);
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );

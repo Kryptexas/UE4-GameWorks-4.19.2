@@ -10,6 +10,7 @@ public class AddContentDialog : ModuleRules
 			new string[] {
 				"AssetTools",
 				"ContentBrowser",
+				"SuperSearch"
 			}
 		);
 
@@ -26,18 +27,15 @@ public class AddContentDialog : ModuleRules
 				"PakFile",
 				"ImageWrapper",
 				"UnrealEd",
-				"CoreUObject"
-			}
-		);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[] {
-				"WidgetCarousel"
+				"CoreUObject",				
+				"WidgetCarousel",				
+			
 			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
+				"SuperSearch",
 			}
 		);
 		

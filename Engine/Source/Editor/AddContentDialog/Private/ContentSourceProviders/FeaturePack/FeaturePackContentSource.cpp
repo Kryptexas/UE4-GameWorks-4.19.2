@@ -7,6 +7,10 @@
 #include "ContentBrowserModule.h"
 #include "IPlatformFilePak.h"
 #include "FileHelpers.h"
+#include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
+/*#include "SuperSearchModule.h"*/
+
+#define LOCTEXT_NAMESPACE "ContentFeaturePacks"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFeaturePack, Log, All);
 
@@ -190,6 +194,15 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 			FText::FromString(LocalizedAssetTypesObject->GetStringField("Text"))));
 	}
 	
+	// Parse asset types field
+	for (TSharedPtr<FJsonValue> AssetTypesValue : ManifestObject->GetArrayField("SearchTags"))
+	{
+		TSharedPtr<FJsonObject> LocalizedAssetTypesObject = AssetTypesValue->AsObject();
+		LocalizedSearchTags.Add(FLocalizedTextArray(
+			LocalizedAssetTypesObject->GetStringField("Language"),
+			LocalizedAssetTypesObject->GetStringField("Text")));
+	}
+
 	// Parse class types field
 	ClassTypes = ManifestObject->GetStringField("ClassTypes");
 	
@@ -201,22 +214,9 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	ManifestObject->TryGetStringField("SortKey", SortKey);
 
 	FString CategoryString = ManifestObject->GetStringField("Category");	
-	if (CategoryString == "CodeFeature")
-	{
-		Category = EContentSourceCategory::CodeFeature;
-	}
-	else if (CategoryString == "BlueprintFeature")
-	{
-		Category = EContentSourceCategory::BlueprintFeature;
-	}
-	else if (CategoryString == "Content")
-	{
-		Category = EContentSourceCategory::Content;
-	}
-	else
-	{
-		Category = EContentSourceCategory::Unknown;
-	}
+	UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
+	int32 Index = Enum->FindEnumIndex(FName(*CategoryString));
+	Category = Index != INDEX_NONE ? (EContentSourceCategory)Index : EContentSourceCategory::Unknown;
 
 	// Load image data
 	FString IconFilename = ManifestObject->GetStringField("Thumbnail");
@@ -238,6 +238,10 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 		LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("Media"), *ScreenshotFilename->AsString()), *SingleScreenshotData);
 		ScreenshotData.Add(MakeShareable(new FImageData(ScreenshotFilename->AsString(), SingleScreenshotData)));
 	}
+
+	FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+	SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);	
+	SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
 	bPackValid = true;
 }
 
@@ -253,37 +257,38 @@ bool FFeaturePackContentSource::LoadPakFileToBuffer(FPakPlatformFile& PakPlatfor
 	return bResult;
 }
 
-TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedNames()
+TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedNames() const
 {
 	return LocalizedNames;
 }
 
-TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedDescriptions()
+TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedDescriptions() const
 {
 	return LocalizedDescriptions;
 }
 
-TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedAssetTypes()
+TArray<FLocalizedText> FFeaturePackContentSource::GetLocalizedAssetTypes() const
 {
 	return LocalizedAssetTypesList;
 }
 
-FString FFeaturePackContentSource::GetClassTypesUsed()
+
+FString FFeaturePackContentSource::GetClassTypesUsed() const
 {
 	return ClassTypes;
 }
 
-EContentSourceCategory FFeaturePackContentSource::GetCategory()
+EContentSourceCategory FFeaturePackContentSource::GetCategory() const
 {
 	return Category;
 }
 
-TSharedPtr<FImageData> FFeaturePackContentSource::GetIconData()
+TSharedPtr<FImageData> FFeaturePackContentSource::GetIconData() const
 {
 	return IconData;
 }
 
-TArray<TSharedPtr<FImageData>> FFeaturePackContentSource::GetScreenshotData()
+TArray<TSharedPtr<FImageData>> FFeaturePackContentSource::GetScreenshotData() const
 {
 	return ScreenshotData;
 }
@@ -357,3 +362,108 @@ FString FFeaturePackContentSource::GetSortKey() const
 {
 	return SortKey;
 }
+
+
+void FFeaturePackContentSource::HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry)
+{
+	if (SearchEntry.IsValid())
+	{
+		if (SearchEntry->bCategory == false)
+		{
+			UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
+			FString CurrentLanguage = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
+			FLocalizedText CurrentName = ChooseLocalizedText(LocalizedNames,CurrentLanguage);
+			FString MyTitle = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameText((int32)Category)).ToString();
+			if (SearchEntry->Title == MyTitle)
+			{
+				IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+				IAddContentDialogModule& AddContentDialogModule = FModuleManager::LoadModuleChecked<IAddContentDialogModule>("AddContentDialog");				
+				AddContentDialogModule.ShowDialog(MainFrameModule.GetParentWindow().ToSharedRef());
+			}
+		}
+	}
+}
+
+void FFeaturePackContentSource::TryAddFeaturePackCategory(FString CategoryTitle, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions)
+{
+	bool bCategoryExists = false;
+	if( OutSuggestions.FindByPredicate(
+		[&CategoryTitle](TSharedPtr<FSearchEntry> InElement)
+	{
+		return (( InElement->Title == CategoryTitle ) && (InElement->bCategory == true ));
+	})==false)
+	{
+		TSharedPtr<FSearchEntry> FeaturePackCat = MakeShareable(new FSearchEntry());
+		FeaturePackCat->bCategory = true;
+		FeaturePackCat->Title = CategoryTitle;
+		OutSuggestions.Add(FeaturePackCat);
+
+	}
+}
+
+void FFeaturePackContentSource::HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions)
+{
+	FString FeaturePackSearchCat = LOCTEXT("FeaturePackSearchCategory", "Feature Packs").ToString();
+
+	FString CurrentLanguage = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
+	FLocalizedText CurrentName = ChooseLocalizedText(LocalizedNames,CurrentLanguage);
+	FLocalizedTextArray CurrentTagSet = ChooseLocalizedTextArray(LocalizedSearchTags,CurrentLanguage);
+	FText AsText = FText::FromString(InText);
+	TArray<FText> TagArray = CurrentTagSet.GetTags();
+	if (TagArray.Num() != 0)
+	{
+		UEnum* Enum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EContentSourceCategory"));
+		// Add a feature packs category		
+		for (int32 iTag = 0; iTag < TagArray.Num(); iTag++)
+		{
+			if (TagArray[iTag].EqualToCaseIgnored(AsText))
+			{
+				// This will add the category if one doesnt exist
+				TryAddFeaturePackCategory(FeaturePackSearchCat,OutSuggestions);
+				TSharedPtr<FSearchEntry> FeaturePackEntry = MakeShareable(new FSearchEntry());
+				FeaturePackEntry->Title = FText::Format( LOCTEXT("FeaturePackSearchResult", "{0} ({1})"), CurrentName.GetText(), Enum->GetDisplayNameText((int32)Category)).ToString();
+				FeaturePackEntry->bCategory = false;
+				OutSuggestions.Add(FeaturePackEntry);
+				return;
+			}
+		}
+	}
+}
+
+FLocalizedText FFeaturePackContentSource::ChooseLocalizedText(TArray<FLocalizedText> Choices, FString LanguageCode)
+{
+	FLocalizedText Default;
+	for (const FLocalizedText& Choice : Choices)
+	{
+		if (Choice.GetTwoLetterLanguage() == LanguageCode)
+		{
+			return Choice;
+			break;
+		}
+		else if (Choice.GetTwoLetterLanguage() == TEXT("en"))
+		{
+			Default = Choice;
+		}
+	}
+	return Default;
+}
+
+FLocalizedTextArray FFeaturePackContentSource::ChooseLocalizedTextArray(TArray<FLocalizedTextArray> Choices, FString LanguageCode)
+{
+	FLocalizedTextArray Default;
+	for (const FLocalizedTextArray& Choice : Choices)
+	{
+		if (Choice.GetTwoLetterLanguage() == LanguageCode)
+		{
+			return Choice;
+			break;
+		}
+		else if (Choice.GetTwoLetterLanguage() == TEXT("en"))
+		{
+			Default = Choice;
+		}
+	}
+	return Default;
+}
+
+#undef LOCTEXT_NAMESPACE 
