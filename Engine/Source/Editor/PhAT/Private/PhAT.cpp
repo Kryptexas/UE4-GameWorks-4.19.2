@@ -2326,14 +2326,18 @@ void FPhAT::FixPhysicsState()
 
 void FPhAT::ImpToggleSimulation()
 {
+	static const int32 PrevMaxFPS = GEngine->GetMaxFPS();
+
 	TSharedPtr<FPhATEdPreviewViewportClient> PreviewClient = PreviewViewport->GetViewportClient();
 	if(!SharedData->bRunningSimulation)
 	{
 		BeforeSimulationWidgetMode = PreviewClient->GetWidgetMode();
-		PreviewClient->SetWidgetMode(FWidget::EWidgetMode::WM_None);
+		PreviewClient->SetWidgetMode(FWidget::EWidgetMode::WM_None);	
+		GEngine->SetMaxFPS(SharedData->EditorSimOptions->MaxFPS);
 	}else
 	{
 		PreviewClient->SetWidgetMode(BeforeSimulationWidgetMode);
+		GEngine->SetMaxFPS(PrevMaxFPS);
 	}
 	
 

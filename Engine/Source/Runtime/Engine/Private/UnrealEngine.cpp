@@ -6186,6 +6186,17 @@ float UEngine::GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing) co
 	return MaxTickRate;
 }
 
+int32 UEngine::GetMaxFPS() const
+{
+	return CVarMaxFPS.GetValueOnAnyThread();
+}
+
+void UEngine::SetMaxFPS(const int32 MaxFPS)
+{
+	IConsoleVariable* ConsoleVariable = CVarMaxFPS.AsVariable();
+	ConsoleVariable->Set(MaxFPS);
+}
+
 /**
  * Enables or disables the ScreenSaver (desktop only)
  *

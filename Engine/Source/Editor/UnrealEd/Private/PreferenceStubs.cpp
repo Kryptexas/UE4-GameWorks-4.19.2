@@ -21,6 +21,7 @@ UPhATSimOptions::UPhATSimOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PhysicsBlend = 1.0f;
+	MaxFPS = -1;
 }
 
 UMaterialEditorOptions::UMaterialEditorOptions(const FObjectInitializer& ObjectInitializer)

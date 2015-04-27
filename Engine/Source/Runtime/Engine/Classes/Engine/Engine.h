@@ -1748,6 +1748,12 @@ public:
 	/** Get tick rate limiter. */
 	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const;
 
+	/** Get max fps. */
+	virtual int32 GetMaxFPS() const;
+
+	/** Set max fps. Overrides console variable. */
+	virtual void SetMaxFPS(const int32 MaxFPS);
+
 	/** Updates the running average delta time */
 	virtual void UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing = true);
 
