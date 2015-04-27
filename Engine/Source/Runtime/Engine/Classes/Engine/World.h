@@ -12,6 +12,7 @@
 #include "Engine/LatentActionManager.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
 #include "GameFramework/Actor.h"
+#include "GameInstance.h"
 
 #if WITH_EDITOR
 	#include "Editor/UnrealEd/Public/HierarchicalLOD.h"
@@ -3120,7 +3121,7 @@ public:
 	/** Returns TimerManager instance for this world. */
 	inline FTimerManager& GetTimerManager() const
 	{
-		return *TimerManager;
+		return (OwningGameInstance ? OwningGameInstance->GetTimerManager() : *TimerManager);
 	}
 
 	/** Returns LatentActionManager instance for this world. */

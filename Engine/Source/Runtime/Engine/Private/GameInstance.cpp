@@ -20,7 +20,19 @@
 
 UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
+, TimerManager(new FTimerManager())
 {
+}
+
+void UGameInstance::FinishDestroy()
+{
+	if (TimerManager)
+	{
+		delete TimerManager;
+		TimerManager = nullptr;
+	}
+
+	Super::FinishDestroy();
 }
 
 UWorld* UGameInstance::GetWorld() const
@@ -73,6 +85,11 @@ void UGameInstance::InitializeStandalone()
 	// Creates the world context. This should be the only WorldContext that ever gets created for this GameInstance.
 	WorldContext = &Engine->CreateNewWorldContext(EWorldType::Game);
 	WorldContext->OwningGameInstance = this;
+
+	// In standalone create a dummy world from the beginning to avoid issues of not having a world until LoadMap gets us our real world
+	UWorld* DummyWorld = UWorld::CreateWorld(EWorldType::Game, false);
+	DummyWorld->SetGameInstance(this);
+	WorldContext->SetCurrentWorld(DummyWorld);
 
 	Init();
 }
