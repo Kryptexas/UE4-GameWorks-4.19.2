@@ -73,7 +73,7 @@ The ObjectPivotPoint function returns the object's pivot point in world space. T
 
 ### ObjectScale
 
-The ObjectScale function returns the object's XYZ scale together and seperately.This is not compatible with the pixel shader.
+The ObjectScale function returns the object's XYZ scale together and seperately. This is not compatible with the pixel shader.
 
 | Item | Description |
 | -------- | -------- |
