@@ -45,6 +45,8 @@ namespace UnrealBuildTool
 		void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries);
 
 		UnrealTargetPlatform GetPlatform();
+
+		void StripSymbols(string SourceFileName, string TargetFileName);
 	}
 
 	public abstract class UEToolChain : IUEToolChain
@@ -221,6 +223,12 @@ namespace UnrealBuildTool
 		public virtual UnrealTargetPlatform GetPlatform()
 		{
 			return UnrealTargetPlatform.Unknown;
+		}
+
+		public virtual void StripSymbols(string SourceFileName, string TargetFileName)
+		{
+			Log.TraceWarning("StripSymbols() has not been implemented for {0}; copying files", GetPlatform().ToString());
+			File.Copy(SourceFileName, TargetFileName, true);
 		}
 	};
 }

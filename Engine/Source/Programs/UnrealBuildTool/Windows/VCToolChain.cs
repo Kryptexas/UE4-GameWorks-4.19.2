@@ -1700,5 +1700,15 @@ namespace UnrealBuildTool
 			// @todo clang: Convert relative includes to absolute files so they'll be clickable
 			Log.TraceInformation(Output);
 		}
+
+		public override void StripSymbols(string SourceFileName, string TargetFileName)
+		{
+			ProcessStartInfo StartInfo = new ProcessStartInfo();
+			StartInfo.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
+			StartInfo.Arguments = String.Format("\"{0}\" \"{1}\" -p", SourceFileName, TargetFileName);
+			StartInfo.UseShellExecute = false;
+			StartInfo.CreateNoWindow = true;
+			Utils.RunLocalProcessAndLogOutput(StartInfo);
+		}
 	};
 }

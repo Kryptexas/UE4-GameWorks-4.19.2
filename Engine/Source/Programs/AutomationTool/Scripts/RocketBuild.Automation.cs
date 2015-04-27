@@ -375,22 +375,13 @@ namespace Rocket
 
 		public static void StripSymbols(UnrealTargetPlatform TargetPlatform, string[] SourceFileNames, string[] TargetFileNames)
 		{
-			if(TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64)
+			IUEBuildPlatform Platform = UEBuildPlatform.GetBuildPlatform(TargetPlatform);
+			IUEToolChain ToolChain = UEToolChain.GetPlatformToolChain(Platform.GetCPPTargetPlatform(TargetPlatform));
+			for (int Idx = 0; Idx < SourceFileNames.Length; Idx++)
 			{
-				string PDBCopyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "MSBuild", "Microsoft", "VisualStudio", "v12.0", "AppxPackage", "PDBCopy.exe");
-				for(int Idx = 0; Idx < SourceFileNames.Length; Idx++)
-				{
-					CommandUtils.CreateDirectory(Path.GetDirectoryName(TargetFileNames[Idx]));
-					CommandUtils.Run(PDBCopyPath, String.Format("{0} {1} -p", CommandUtils.MakePathSafeToUseWithCommandLine(SourceFileNames[Idx]), CommandUtils.MakePathSafeToUseWithCommandLine(TargetFileNames[Idx])));
-				}
-			}
-			else
-			{
-				for(int Idx = 0; Idx < SourceFileNames.Length; Idx++)
-				{
-					CommandUtils.LogWarning("Stripping has not yet been implemented for {0}. Skipping strip for {1}.", TargetPlatform, SourceFileNames[Idx]);
-					CommandUtils.CopyFile(SourceFileNames[Idx], TargetFileNames[Idx]);
-				}
+				CommandUtils.CreateDirectory(Path.GetDirectoryName(TargetFileNames[Idx]));
+				CommandUtils.Log("Stripping symbols: {0} -> {1}", SourceFileNames[Idx], TargetFileNames[Idx]);
+				ToolChain.StripSymbols(SourceFileNames[Idx], TargetFileNames[Idx]);
 			}
 		}
 	}
