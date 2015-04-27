@@ -1165,6 +1165,15 @@ namespace UnrealBuildTool.Android
 					}
 				}
 			}
+            else // try to remove the file it we aren't packaing inside the APK
+            {
+                string ObbFileDestination = UE4BuildPath + "/assets";
+                var DestFileName = Path.Combine(ObbFileDestination, "main.obb.png");
+                if(File.Exists(DestFileName))
+                {
+                    File.Delete(DestFileName);
+                }
+            }
 
 			//Copy build files to the intermediate folder in this order (later overrides earlier):
 			//	- Shared Engine
