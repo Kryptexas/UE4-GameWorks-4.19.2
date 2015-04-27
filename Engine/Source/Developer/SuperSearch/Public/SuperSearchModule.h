@@ -4,6 +4,10 @@
 
 #include "SlateBasics.h"
 
+#if WITH_EDITOR
+#include "AssetData.h"
+#endif
+
 struct FSearchEntry
 {
 	FString Title;
