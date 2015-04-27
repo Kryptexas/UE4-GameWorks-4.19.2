@@ -209,7 +209,10 @@ bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoo
 			}
 		}
 	}
-
+	if (!bFound)
+	{
+		OutRepositoryRoot = InPathToGameDir; // If not found, return the GameDir as best possible root.
+	}
 	return bFound;
 }
 

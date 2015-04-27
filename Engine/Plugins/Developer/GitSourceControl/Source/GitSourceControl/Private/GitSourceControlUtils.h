@@ -47,7 +47,7 @@ bool CheckGitAvailability(const FString& InPathToGitBinary);
 /**
  * Find the root of the Git repository, looking from the GameDir and upward in its parent directories
  * @param InPathToGameDir		The path to the Game Directory
- * @param OutRepositoryRoot		The path to the root directory of the Git repository if found
+ * @param OutRepositoryRoot		The path to the root directory of the Git repository if found, else the path to the GameDir
  * @returns true if the command succeeded and returned no errors
  */
 bool FindRootDirectory(const FString& InPathToGameDir, FString& OutRepositoryRoot);
