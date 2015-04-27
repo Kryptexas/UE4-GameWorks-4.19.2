@@ -71,7 +71,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>User input from the client.</summary>
 		public FormCollection FormCollection { get; set; }
 
+		/// <summary>A collection of Version names used in the drop down on the main search form</summary>
+		public List<SelectListItem> VersionNames { get; set; }
+
 		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
+
+		/// <summary>
+		/// Default constructor
+		/// </summary>
+		public BuggsViewModel()
+		{
+			VersionNames = CrashRepository.GetVersions();
+		}
 	}
 }

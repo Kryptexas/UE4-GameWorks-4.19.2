@@ -251,12 +251,14 @@ table
 
 	table td
 	{
-		padding: 5px;
+		padding: 2px;
+		margin: 2px;
 	}
 
 	table th
 	{
-		padding: 6px 5px;
+		padding: 2px;
+		margin: 2px;
 		text-align: left;
 		background-color: #e8eef4;
 		border: none;
@@ -517,12 +519,6 @@ div#utils
 	padding: 1em;
 }
 
-#CrashesTable
-{
-	width: auto;
-	min-width: 1280px;
-	table-layout: auto;
-}
 
 #SelectBar
 {
@@ -584,43 +580,58 @@ th a:visited
 	border: 1px solid black;
 }
 
-#CrashesTable td
+#CrashesTable
 {
-	border-right: 1px solid grey;
+	width: auto;
+	min-width: 1280px;
+	table-layout: auto;
 }
 
-	#CrashesTable td.Id a
+	#CrashesTable td
 	{
-		font-weight: bold;
-		Color: #5c87b2;
-		text-decoration: none;
+		border-right: 1px solid grey;
 	}
 
-		#CrashesTable td.Id a:hover
+		#CrashesTable td.Id a
 		{
 			font-weight: bold;
-			text-decoration: underline;
+			Color: #5c87b2;
+			text-decoration: none;
 		}
 
-	#CrashesTable td.CallStack a
+			#CrashesTable td.Id a:hover
+			{
+				font-weight: bold;
+				text-decoration: underline;
+			}
+
+		#CrashesTable td.CallStack a
+		{
+			color: #5c87b2;
+			font-size: 1em;
+			font-family: monospace;
+			text-decoration: none;
+		}
+
+			#CrashesTable td.CallStack a:hover
+			{
+				text-decoration: underline;
+			}
+
+	#CrashesTable .FullCallStackTriggerText
 	{
-		color: #5c87b2;
-		font-size: 1em;
-		font-family: monospace;
-		text-decoration: none;
+		font-size: 1.1em;
+		font-weight: bold;
 	}
 
-		#CrashesTable td.CallStack a:hover
-		{
-			text-decoration: underline;
-		}
-
-#CrashesTable .FullCallStackTriggerText
-{
-	font-size: 1.1em;
-	font-weight: bold;
-}
-
+/*	#CrashTable .Summary
+	{
+		max-width: 128px;
+		word-wrap: break-word;
+		color: blue;
+		background-color: white;
+	}
+*/
 .FullCallStackBox
 {
 	text-decoration: none;

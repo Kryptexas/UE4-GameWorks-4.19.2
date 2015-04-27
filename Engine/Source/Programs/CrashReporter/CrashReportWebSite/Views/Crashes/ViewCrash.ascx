@@ -15,13 +15,17 @@
 					new 
 					{ 
 						page = i, 
-						SearchQuery = Model.SearchQuery, 
-						SortTerm = Model.SortTerm, 
-						SortOrder = Model.SortOrder, 
-						UserGroup = Model.UserGroup, 
-						DateFrom = Model.DateFrom, 
-						DateTo = Model.DateTo, 
+						SortTerm = Model.SortTerm,
+						SortOrder = Model.SortOrder,
 						CrashType = Model.CrashType,
+						UserGroup = Model.UserGroup,
+						SearchQuery = Model.SearchQuery,
+						UsernameQuery = Model.UsernameQuery,
+						EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
+						MessageQuery = Model.MessageQuery,
+						JiraQuery = Model.JiraQuery,
+						DateFrom = Model.DateFrom,
+						DateTo = Model.DateTo,
 						BranchName = Model.BranchName,
 						VersionName = Model.VersionName,
 						GameName = Model.GameName

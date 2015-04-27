@@ -6,19 +6,6 @@
 
 <asp:Content ID="StyleSheet" ContentPlaceHolderID="CssContent" runat="server">
 	<link href="../../Content/Site.css" rel="stylesheet" type="text/css" />
-
-	<style>
-		table, table tr, table th, table td
-		{
-			border: solid;
-			border-width: 0px;
-			color: white;
-			background-color: black;
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			font-size: 12px;
-		}
-	</style>
-
 </asp:Content>
 
 <asp:Content ID="TitleContent" ContentPlaceHolderID="TitleContent" runat="server">
@@ -168,7 +155,7 @@ Crash Reporter - Home
 							<p class="SearchTextTitle">EpicID/MachineID</p>
 						</td>
 						<td>
-							<input name="EpicIdQuery" type="text" value="<%=Model.EpicIdQuery %>" title="" />
+							<input name="EpicIdOrMachineQuery" type="text" value="<%=Model.EpicIdOrMachineQuery %>" title="" />
 						</td>
 
 						<td>

@@ -14,14 +14,14 @@
 				new 
 				{ 
 					page = i, 
+					SortTerm = Model.SortTerm,
+					SortOrder = Model.SortOrder,
+					CrashType = Model.CrashType,
+					UserGroup = Model.UserGroup,
 					SearchQuery = Model.SearchQuery,
-					SortTerm = Model.SortTerm, 
-					SortOrder = Model.SortOrder, 
-					UserGroup = Model.UserGroup, 
-					DateFrom = Model.DateFrom, 
+					DateFrom = Model.DateFrom,
 					DateTo = Model.DateTo,
-					BuildVersion = Model.BuildVersion,
-					CrashType = Model.CrashType
+					VersionName = Model.VersionName,
 				} 
 			) )%>
 			</div>
@@ -33,7 +33,7 @@
 			<%=Html.Hidden( "SearchQuery", Model.SearchQuery )%>
 			<%=Html.HiddenFor( m => m.DateFrom )%>
 			<%=Html.HiddenFor( m => m.DateTo )%>
-			<%=Html.HiddenFor( m => m.BuildVersion )%>
+			<%=Html.HiddenFor( m => m.VersionName )%>
 		</td>
 	</tr>
 	<tr id="CrashesTableHeader">
@@ -41,12 +41,12 @@
 		<!-- if you add a new column be sure to update the switch statement in the repository SortBy function -->
 		<th style='width:  6em;'><%=Url.TableHeader( "Id", "Id", Model )%></th>
 		<th style='width: 8em;'><%=Url.TableHeader( "Build Version", "BuildVersion", Model )%></th>
-		<th style='width: 8em;'><%=Url.TableHeader( "Crashes In Time Frame (Group)", "CrashesInTimeFrameGroup", Model )%></th>
-		<th style='width: 8em;'><%=Url.TableHeader( "Crashes In Time Frame (All)", "CrashesInTimeFrameAll", Model )%></th>
+		<th style='width: 8em;'><%=Url.TableHeader( "Crashes In Timeframe (Group)", "CrashesInTimeFrameGroup", Model )%></th>
+		<th style='width: 8em;'><%=Url.TableHeader( "Crashes In Timeframe (All)", "CrashesInTimeFrameAll", Model )%></th>
 		<th style='width: 12em;'><%=Url.TableHeader( "Latest Crash", "LatestCrash", Model )%></th>
 		<th style='width: 12em;'><%=Url.TableHeader( "First Crash", "FirstCrash", Model )%></th> 
 		<th style='width: 8em;'><%=Url.TableHeader( "# of Crashes", "NumberOfCrashes", Model )%></th> 
-		<th style='width: 8em;'><%=Url.TableHeader( "Users Affected", "NumberOfUsers", Model )%></th> 
+		<th style='width: 8em;'><%=Url.TableHeader( "Users Affected in Timeframe", "NumberOfUsers", Model )%></th> 
 		<th style='width: 24em;'><%=Url.TableHeader( "Pattern", "Pattern", Model )%></th>
 		<th style='width: 8em;'><%=Url.TableHeader( "CrashType", "CrashType", Model )%></th>
 		<th style='width: 8em;'><%=Url.TableHeader( "Status", "Status", Model )%></th>

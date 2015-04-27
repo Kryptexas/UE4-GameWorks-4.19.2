@@ -6,19 +6,6 @@
 
 <asp:Content ID="StyleSheet" ContentPlaceHolderID="CssContent" runat="server">
 	<link href="../../Content/Site.css" rel="stylesheet" type="text/css" />
-
-	<style>
-		table, table tr, table th, table td
-		{
-			border: solid;
-			border-width: 0px;
-			color: white;
-			background-color: black;
-			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-			font-size: 12px;
-		}
-	</style>
-
 </asp:Content>
 
 <asp:Content ID="TitleContent" ContentPlaceHolderID="TitleContent" runat="server">
@@ -28,7 +15,8 @@ Crash Reports
 <asp:Content ID="ScriptContent"  ContentPlaceHolderID="ScriptContent" runat="server" >
 	<script src="../../Scripts/searchCollapse.js"></script>
 	<script type="text/javascript">
-		$(function () {
+		$(function ()
+		{
 			$("#dateFromVisible")
 				.datepicker({ maxDate: '+0D' })
 				.datepicker('setDate', new Date(parseInt($('#dateFrom').val())));
@@ -39,16 +27,19 @@ Crash Reports
 		});
 
 		$.datepicker.setDefaults({
-			onSelect: function () {
+			onSelect: function ()
+			{
 				$("#dateFrom").val($("#dateFromVisible").datepicker('getDate').getTime());
 				$("#dateTo").val($("#dateToVisible").datepicker('getDate').getTime());
 				//$("#FilterCrashesForm").submit();
 			}
 		});
 
-		$(document).ready(function () {
+		$(document).ready(function ()
+		{
 			// Select All
-			$("#CheckAll").click(function () {
+			$("#CheckAll").click(function ()
+			{
 				$("#CrashesForm input:checkbox").attr('checked', true);
 				$("#CheckAll").css("color", "Black");
 				$("#CheckNone").css("color", "Blue");
@@ -56,7 +47,8 @@ Crash Reports
 			});
 
 			// Select None
-			$("#CheckNone").click(function () {
+			$("#CheckNone").click(function ()
+			{
 				$("#CrashesForm input:checkbox").attr('checked', false);
 				$("#CheckAll").css("color", "Blue");
 				$("#CheckNone").css("color", "Black");
@@ -80,11 +72,14 @@ Crash Reports
 				message: null
 			});
 
-			$("#CrashesForm input:checkbox").click(function () {
+			$("#CrashesForm input:checkbox").click(function ()
+			{
 				var n = $("#CrashesForm input:checked").length;
-				if (n > 0) {
+				if (n > 0)
+				{
 					$("#SetStatusInput").unblock();
-				} else {
+				} else
+				{
 					$("#SetStatusInput").block({
 						message: null
 					});
@@ -159,7 +154,7 @@ Crash Reports
 							<input id="dateFrom" name="dateFrom" type="hidden" value="<%=Model.DateFrom %>" autocomplete="OFF" />
 							<span class="SearchTextTitle">To:</span>
 							<input id="dateToVisible" type="text" class="date" autocomplete="OFF" style="width:80px" />
-							<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>" autocomplete="OFF"  />
+							<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>"autocomplete="OFF"  />
 						</td>
 					</tr>
 
@@ -168,7 +163,7 @@ Crash Reports
 							<p class="SearchTextTitle">EpicID/MachineID</p>
 						</td>
 						<td>
-							<input name="EpicIdQuery" type="text" value="<%=Model.EpicIdQuery %>" title="" />
+							<input name="EpicIdOrMachineQuery" type="text" value="<%=Model.EpicIdOrMachineQuery %>" title="" />
 						</td>
 
 						<td>
@@ -224,8 +219,12 @@ Crash Reports
 
 <div id='CrashesTableContainer'>
 	<div id='UserGroupBar'>
-		<%foreach( var GroupCount in Model.GroupCounts ){%>
-			<span class=<%if( Model.UserGroup == GroupCount.Key ) { %> "UserGroupTabSelected" <%} else {%> "UserGroupTab"<%} %> id="<%=GroupCount.Key%>Tab">
+		<%foreach (var GroupCount in Model.GroupCounts)
+	{%>
+			<span class=<%if (Model.UserGroup == GroupCount.Key)
+				 { %> "UserGroupTabSelected" <%}
+				 else
+				 {%> "UserGroupTab"<%} %> id="<%=GroupCount.Key%>Tab">
 				<%=Url.UserGroupLink( GroupCount.Key, Model )%> 
 				<span class="UserGroupResults">
 					(<%=GroupCount.Value%>)
@@ -242,17 +241,20 @@ Crash Reports
 					"Crashes", "Index", "Crashes",
 					new 
 					{
+						SortTerm = Model.SortTerm,
+						SortOrder = Model.SortOrder,
+						CrashType = Model.CrashType,
+						UserGroup = Model.UserGroup,
 						SearchQuery = Model.SearchQuery,
 						UsernameQuery = Model.UsernameQuery,
-						EpicIdQuery = Model.EpicIdQuery,
-						MachineIdQuery = Model.MachineIdQuery,
-						JiraQuery = Model.JiraQuery, 
-						SortTerm = Model.SortTerm, 
-						SortOrder = Model.SortOrder, 
-						UserGroup = Model.UserGroup, 
-						DateFrom = Model.DateFrom, 
-						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType,
+						EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
+						MessageQuery = Model.MessageQuery,
+						JiraQuery = Model.JiraQuery,
+						DateFrom = Model.DateFrom,
+						DateTo = Model.DateTo,
+						BranchName = Model.BranchName,
+						VersionName = Model.VersionName,
+						GameName = Model.GameName,
 						RealUserName = Model.RealUserName
 					}
 					, 
@@ -262,17 +264,21 @@ Crash Reports
 					  title="<%= BuggsViewModel.Tooltip %>"><%=Html.ActionLink( "CrashGroups", "Index", "Buggs", 
 					new 
 					{ 
+						SortTerm = Model.SortTerm,
+						SortOrder = Model.SortOrder,
+						CrashType = Model.CrashType,
+						UserGroup = Model.UserGroup,
 						SearchQuery = Model.SearchQuery,
 						UsernameQuery = Model.UsernameQuery,
-						EpicIdQuery = Model.EpicIdQuery,
-						MachineIdQuery = Model.MachineIdQuery,
-						JiraQuery = Model.JiraQuery, 
-						SortTerm = Model.SortTerm, 
-						SortOrder = Model.SortOrder, 
-						UserGroup = Model.UserGroup, 
-						DateFrom = Model.DateFrom, 
-						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType
+						EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
+						MessageQuery = Model.MessageQuery,
+						JiraQuery = Model.JiraQuery,
+						DateFrom = Model.DateFrom,
+						DateTo = Model.DateTo,
+						BranchName = Model.BranchName,
+						VersionName = Model.VersionName,
+						GameName = Model.GameName,
+						RealUserName = Model.RealUserName
 					}
 					, 
 					new { style = "color:black; text-decoration:none;" } )%></span>
@@ -287,17 +293,20 @@ Crash Reports
 		new 
 		{ 
 			page = i, 
-			SearchQuery = Model.SearchQuery, 
-			UsernameQuery = Model.UsernameQuery,
-			EpicIdQuery = Model.EpicIdQuery,
-			MachineIdQuery = Model.MachineIdQuery,
-			JiraQuery = Model.JiraQuery,
-			SortTerm = Model.SortTerm, 
-			SortOrder = Model.SortOrder, 
-			UserGroup = Model.UserGroup, 
-			DateFrom = Model.DateFrom, 
-			DateTo = Model.DateTo, 
+			SortTerm = Model.SortTerm,
+			SortOrder = Model.SortOrder,
 			CrashType = Model.CrashType,
+			UserGroup = Model.UserGroup,
+			SearchQuery = Model.SearchQuery,
+			UsernameQuery = Model.UsernameQuery,
+			EpicIdOrMachineQuery = Model.EpicIdOrMachineQuery,
+			MessageQuery = Model.MessageQuery,
+			JiraQuery = Model.JiraQuery,
+			DateFrom = Model.DateFrom,
+			DateTo = Model.DateTo,
+			BranchName = Model.BranchName,
+			VersionName = Model.VersionName,
+			GameName = Model.GameName,
 			RealUserName = Model.RealUserName
 		} 
 	) )%>
