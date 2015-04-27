@@ -1983,7 +1983,8 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 		// We hide the header row to keep the UI compact.
 		// @todo: Might be useful to have this sometimes, actually.  Ideally the user could summon it.
 		InitOptions.bShowHeaderRow = false;
-
+		InitOptions.bShowSearchBox = false;
+		InitOptions.bShowCreateNewFolder = false;
 		struct Local
 		{
 			static bool IsMatineeActor( const AActor* const Actor )
@@ -2056,7 +2057,7 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 	{
 		if( bHasAnyMatineeActors )
 		{
-			MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
+			MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
 		}
 	}
 	MenuBuilder.EndSection();

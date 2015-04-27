@@ -2074,18 +2074,15 @@ void SLevelViewport::OnActorLockToggleFromMenu(AActor* Actor)
 	{
 		const bool bLockNewActor = Actor != LevelViewportClient->GetActiveActorLock().Get();
 
-		// Unlock the previous actor
-		OnActorUnlock();
-
 		// Lock the new actor if it wasn't the same actor that we just unlocked
 		if (bLockNewActor)
 		{
+			// Unlock the previous actor
+			OnActorUnlock();
+
 			LockActorInternal(Actor);
 		}
 	}
-
-	// this is currently called from a context menu containing a scene outliner widget that needs closing
-	FSlateApplication::Get().DismissAllMenus();
 }
 
 bool SLevelViewport::IsActorLocked(const TWeakObjectPtr<AActor> Actor) const
