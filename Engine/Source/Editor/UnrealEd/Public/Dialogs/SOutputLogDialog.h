@@ -10,10 +10,14 @@ public:
 		SLATE_ATTRIBUTE(FText, Header)	
 		SLATE_ATTRIBUTE(FText, Log)	
 		SLATE_ATTRIBUTE(FText, Footer)	
+		SLATE_ATTRIBUTE(TArray<FText>, Buttons)
 	SLATE_END_ARGS()
 
 	/** Displays the modal dialog box */
 	static UNREALED_API void Open(const FText& InTitle, const FText& InHeader, const FText& InLog, const FText& InFooter = FText::GetEmpty());
+
+	/** Displays the modal dialog box with a custom set of buttons */
+	static UNREALED_API int32 Open(const FText& InTitle, const FText& InHeader, const FText& InLog, const FText& InFooter, const TArray<FText>& InButtons);
 
 	/** Constructs the dialog */
 	void Construct( const FArguments& InArgs );
@@ -33,14 +37,16 @@ protected:
 
 private:
 	/** Handles clicking a message box button. */
-	FReply HandleButtonClicked( );
+	FReply HandleButtonClicked( int32  );
 
 	/** Handles clicking the 'Copy Message' hyper link. */
 	void HandleCopyMessageHyperlinkNavigate( );
 
+	int32 Response;
 	TSharedPtr<SWindow> ParentWindow;
-	TAttribute<FText> Header;
-	TAttribute<FText> Log;
-	TAttribute<FText> Footer;
+	FText Header;
+	FText Log;
+	FText Footer;
+	TArray<FText> Buttons;
 	float MaxWidth;
 };

@@ -6,6 +6,13 @@
 
 void SOutputLogDialog::Open( const FText& InTitle, const FText& InHeader, const FText& InLog, const FText& InFooter )
 {
+	TArray<FText> Buttons;
+	Buttons.Add(NSLOCTEXT("SOutputLogDialog", "Ok", "Ok"));
+	Open(InTitle, InHeader, InLog, InFooter, Buttons);
+}
+
+int32 SOutputLogDialog::Open( const FText& InTitle, const FText& InHeader, const FText& InLog, const FText& InFooter, const TArray<FText>& InButtons )
+{
 	TSharedRef<SWindow> ModalWindow = SNew(SWindow)
 		.Title( InTitle )
 		.SizingRule(ESizingRule::Autosized)
@@ -17,11 +24,14 @@ void SOutputLogDialog::Open( const FText& InTitle, const FText& InHeader, const 
 		.ParentWindow(ModalWindow)
 		.Header( InHeader )
 		.Log( InLog )
-		.Footer( InFooter );
+		.Footer( InFooter )
+		.Buttons( InButtons );
 
 	ModalWindow->SetContent( MessageBox );
 
 	GEditor->EditorAddModalWindow(ModalWindow);
+
+	return MessageBox->Response;
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -31,9 +41,10 @@ void SOutputLogDialog::Construct( const FArguments& InArgs )
 	ParentWindow->SetWidgetToFocusOnActivate(SharedThis(this));
 
 	FSlateFontInfo MessageFont( FEditorStyle::GetFontStyle("StandardDialog.LargeFont"));
-	Header = InArgs._Header;
-	Log = InArgs._Log;
-	Footer = InArgs._Footer;
+	Header = InArgs._Header.Get();
+	Log = InArgs._Log.Get();
+	Footer = InArgs._Footer.Get();
+	Buttons = InArgs._Buttons.Get();
 
 	MaxWidth = FSlateApplication::Get().GetPreferredWorkArea().GetSize().X * 0.8f;
 
@@ -53,7 +64,7 @@ void SOutputLogDialog::Construct( const FArguments& InArgs )
 						[
 							SNew(STextBlock)
 								.Text(Header)
-								.Visibility(Header.Get().IsEmptyOrWhitespace()? EVisibility::Hidden : EVisibility::Visible)
+								.Visibility(Header.IsEmptyOrWhitespace()? EVisibility::Hidden : EVisibility::Visible)
 								.Font(MessageFont)
 								.WrapTextAt(MaxWidth - 50.0f)
 						]
@@ -69,7 +80,7 @@ void SOutputLogDialog::Construct( const FArguments& InArgs )
 								.Style(FEditorStyle::Get(), "Log.TextBox")
 								.TextStyle(FEditorStyle::Get(), "Log.Normal")
 								.ForegroundColor(FLinearColor::Gray)
-								.Text(FText::TrimTrailing(Log.Get()))
+								.Text(FText::TrimTrailing(Log))
 								.IsReadOnly(true)
 								.AlwaysShowScrollbars(true)
 						]
@@ -77,11 +88,11 @@ void SOutputLogDialog::Construct( const FArguments& InArgs )
 					+SVerticalBox::Slot()
 						.HAlign(HAlign_Fill)
 						.AutoHeight()
-						.Padding(12.0f, 0.0f, 12.0f, Footer.Get().IsEmptyOrWhitespace()? 0.0f : 12.0f)
+						.Padding(12.0f, 0.0f, 12.0f, Footer.IsEmptyOrWhitespace()? 0.0f : 12.0f)
 						[
 							SNew(STextBlock)
 								.Text(Footer)
-								.Visibility(Footer.Get().IsEmptyOrWhitespace()? EVisibility::Hidden : EVisibility::Visible)
+								.Visibility(Footer.IsEmptyOrWhitespace()? EVisibility::Hidden : EVisibility::Visible)
 								.Font(MessageFont)
 								.WrapTextAt(MaxWidth - 50.0f)
 						]
@@ -104,31 +115,38 @@ void SOutputLogDialog::Construct( const FArguments& InArgs )
 										.ToolTipText( NSLOCTEXT("SOutputLogDialog", "CopyMessageTooltip", "Copy the text in this message to the clipboard (CTRL+C)") )
 								]
 
-							+SHorizontalBox::Slot()
+							+ SHorizontalBox::Slot()
 								.AutoWidth()
 								.HAlign(HAlign_Right)
 								.VAlign(VAlign_Center)
-								.Padding(0.f)
+								.Padding(0.0f)
 								[
-									SNew( SButton )
-										.Text( NSLOCTEXT("SOutputLogDialog", "Ok", "Ok") )
-										.OnClicked( this, &SOutputLogDialog::HandleButtonClicked )
-										.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-										.HAlign(HAlign_Center)
+									SAssignNew( ButtonBox, SUniformGridPanel )
+										.SlotPadding(FEditorStyle::GetMargin("StandardDialog.SlotPadding"))
+										.MinDesiredSlotWidth(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotWidth"))
+										.MinDesiredSlotHeight(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotHeight"))
 								]
 						]
 				]
 		];
+
+	for(int32 Idx = 0; Idx < Buttons.Num(); Idx++)
+	{
+		ButtonBox->AddSlot(Idx, 0)
+			[
+				SNew( SButton )
+				.Text( Buttons[Idx] )
+				.OnClicked( this, &SOutputLogDialog::HandleButtonClicked, Idx )
+				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
+				.HAlign(HAlign_Center)
+			];
+	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 FReply SOutputLogDialog::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	if( InKeyEvent.GetKey() == EKeys::Escape )
-	{
-		return HandleButtonClicked();
-	}
-	else if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
+	if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 	{
 		CopyMessageToClipboard();
 		return FReply::Handled();
@@ -153,12 +171,13 @@ FVector2D SOutputLogDialog::ComputeDesiredSize(float LayoutScaleMultiplier) cons
 
 void SOutputLogDialog::CopyMessageToClipboard( )
 {
-	FString FullMessage = FString::Printf(TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), *Header.Get().ToString(), *Log.Get().ToString(), *Footer.Get().ToString()).Trim();
+	FString FullMessage = FString::Printf(TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), *Header.ToString(), *Log.ToString(), *Footer.ToString()).Trim();
 	FPlatformMisc::ClipboardCopy( *FullMessage );
 }
 
-FReply SOutputLogDialog::HandleButtonClicked( )
+FReply SOutputLogDialog::HandleButtonClicked( int32 InResponse )
 {
+	Response = InResponse;
 	ParentWindow->RequestDestroyWindow();
 	return FReply::Handled();
 }
