@@ -438,7 +438,7 @@ void AAIController::Possess(APawn* InPawn)
 {
 	Super::Possess(InPawn);
 
-	if (!GetPawn())
+	if (GetPawn() == nullptr || InPawn == nullptr)
 	{
 		return;
 	}
