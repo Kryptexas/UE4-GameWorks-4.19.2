@@ -106,6 +106,22 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
+bool UPaperTileMap::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty)
+	{
+		const FName PropertyName = InProperty->GetFName();
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, HexSideLength))
+		{
+			bIsEditable = ProjectionMode == ETileMapProjectionMode::HexagonalStaggered;
+		}
+	}
+
+	return bIsEditable;
+}
+
 void UPaperTileMap::PostLoad()
 {
 	Super::PostLoad();
