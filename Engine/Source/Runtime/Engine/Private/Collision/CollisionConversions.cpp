@@ -913,7 +913,7 @@ static bool ConvertOverlappedShapeToImpactHit(const UWorld* World, const PxLocat
 		if (!bValidNormal)
 		{
 			OutResult.ImpactNormal = (StartLoc - EndLoc).GetSafeNormal();
-			ensure(OutResult.Normal.IsNormalized());
+			ensure(OutResult.ImpactNormal.IsNormalized());
 		}
 	}
 
