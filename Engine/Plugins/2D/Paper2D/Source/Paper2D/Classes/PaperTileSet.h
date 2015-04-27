@@ -93,7 +93,7 @@ class PAPER2D_API UPaperTileSet : public UObject
 	int32 Spacing;
 
 	// The drawing offset for tiles from this set (in pixels)
-	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=0, ClampMin=0))
+	UPROPERTY(Category=TileSet, EditAnywhere)
 	FIntPoint DrawingOffset;
 
 #if WITH_EDITORONLY_DATA
