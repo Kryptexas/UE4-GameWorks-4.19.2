@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2386009
+﻿INTSourceChangelist:2511696
 Availability:Public
 Title:FBX モーフターゲット パイプライン 
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -268,11 +268,11 @@ FBX モーフ ターゲット インポート パイプラインは、 _スケ�
 **モーフ ターゲットを持つスケルタルメッシュ**
 
 
-1. **コンテンツ ブラウザ** で **[Import]** ボタンをクリックします。開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。**注意：**ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。    
+1. **コンテンツ ブラウザ** で **[Import]** ボタンをクリックします。開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。 **注意：** ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。    
     
 	![](import_file.jpg)
 
-1. **Import** ダイアログから適切な設定値を選択します。_Import Morph Targets_ を有効にします。**注記：** インポートされるメッシュの名前はデフォルトの命名規則 [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions) に従います。全設定値の詳細は、 [FBX Import Dialog](Engine/Content/FBX/ImportOptions) セクションを参照してください。    
+1. **Import** ダイアログから適切な設定値を選択します。_Import Morph Targets_ を有効にします。**注記：**インポートしたメッシュの名前はデフォルトの [命名規則](Engine/Content/FBX/ImportOptions#命名規則) に従います。全設定値の詳細は、 [FBX Import Dialog](Engine/Content/FBX/ImportOptions) セクションを参照してください。    
     
 	![](ImportMorphTargets.png)
 
