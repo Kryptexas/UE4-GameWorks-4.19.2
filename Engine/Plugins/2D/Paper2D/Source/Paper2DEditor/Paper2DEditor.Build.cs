@@ -19,11 +19,9 @@ public class Paper2DEditor : ModuleRules
                 "InputCore",
 				"UnrealEd", // for FAssetEditorManager
 				"KismetWidgets",
-				"GraphEditor",
 				"Kismet",  // for FWorkflowCentricApplication
 				"PropertyEditor",
 				"RenderCore",
-				"LevelEditor", // for EdModes to get a toolkit host  //@TODO: PAPER: Should be a better way to do this (see the @todo in EdModeTileMap.cpp)
 				"Paper2D",
 				"ContentBrowser",
 				"WorkspaceMenuStructure",

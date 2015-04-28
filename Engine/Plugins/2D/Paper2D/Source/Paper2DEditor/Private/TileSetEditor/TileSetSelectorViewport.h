@@ -29,10 +29,18 @@ public:
 	}
 
 protected:
+	// SWidget interface
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+	// End of SWidget interface
+
 	// SPaperEditorViewport interface
 	virtual FText GetTitleText() const override;
-	virtual void BindCommands() override;
 	// End of SPaperEditorViewport interface
+
+	// SEditorViewport interface
+	virtual void BindCommands() override;
+	virtual void OnFocusViewportToSelection() override;
+	// End of SEditorViewport interface
 
 private:
 	void OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview);
@@ -44,6 +52,7 @@ private:
 	class FEdModeTileMap* TileMapEditor;
 	FIntPoint SelectionTopLeft;
 	FIntPoint SelectionDimensions;
+	bool bPendingZoom;
 
 	FOnTileViewportSelectionChanged OnTileSelectionChanged;
 };

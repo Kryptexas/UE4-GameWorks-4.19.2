@@ -18,6 +18,8 @@ STileSetSelectorViewport::~STileSetSelectorViewport()
 
 void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, FEdModeTileMap* InTileMapEditor)
 {
+	bPendingZoom = true;
+
 	SelectionTopLeft = FIntPoint::ZeroValue;
 	SelectionDimensions = FIntPoint::ZeroValue;
 
@@ -79,6 +81,44 @@ void STileSetSelectorViewport::BindCommands()
 		FIsActionChecked::CreateSP(EditorViewportClientRef, &FTileSetEditorViewportClient::IsShowTilesWithMetaDataChecked));
 }
 
+void STileSetSelectorViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	if (bPendingZoom && (SceneViewport->GetSize().GetMin() > 0))
+	{
+		OnFocusViewportToSelection();
+		bPendingZoom = false;
+	}
+
+	SPaperEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+}
+
+void STileSetSelectorViewport::OnFocusViewportToSelection()
+{
+	//@TODO: The rest of this method would get replaced by the following if we use a component to render the tile set
+	//TypedViewportClient->RequestFocusOnSelection(/*bInstant=*/ false);
+
+	if (UPaperTileSet* TileSetBeingEdited = TileSetPtr.Get())
+	{
+		const FIntPoint ViewportSize = SceneViewport->GetSize();
+		if (UTexture* Texture = TileSetBeingEdited->TileSheet)
+		{
+			const FIntPoint TextureSize(Texture->Source.GetSizeX(), Texture->Source.GetSizeY());
+
+			const float CopiesInX = ViewportSize.X / (float)TextureSize.X;
+			const float CopiesInY = ViewportSize.Y / (float)TextureSize.Y;
+
+			const float NumCopies = FMath::Min<float>(CopiesInX, CopiesInY);
+
+			// Find the zoom level that would match
+			ZoomLevel = FindNearestZoomLevel(NumCopies, /*bRoundDown=*/ true);
+
+			// Figure out the desired zoom position
+			const float ZoomAmount = GetZoomAmount();
+			ViewOffset.X = -(ViewportSize.X / ZoomAmount - TextureSize.X) * 0.5f;
+			ViewOffset.Y = -(ViewportSize.Y / ZoomAmount - TextureSize.Y) * 0.5f;
+		}
+	}
+}
 
 void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview)
 {
