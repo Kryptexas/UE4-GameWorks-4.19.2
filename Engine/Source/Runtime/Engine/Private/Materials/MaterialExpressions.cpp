@@ -5763,7 +5763,7 @@ UMaterialExpressionObjectPositionWS::UMaterialExpressionObjectPositionWS(const F
 
 int32 UMaterialExpressionObjectPositionWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	if (Material->MaterialDomain == MD_DeferredDecal)
+	if (Material && Material->MaterialDomain == MD_DeferredDecal)
 	{
 		return CompilerError(Compiler, TEXT("Expression not available in the deferred decal material domain."));
 	}
@@ -5800,7 +5800,7 @@ UMaterialExpressionObjectRadius::UMaterialExpressionObjectRadius(const FObjectIn
 
 int32 UMaterialExpressionObjectRadius::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	if (Material->MaterialDomain == MD_DeferredDecal)
+	if (Material && Material->MaterialDomain == MD_DeferredDecal)
 	{
 		return CompilerError(Compiler, TEXT("Expression not available in the deferred decal material domain."));
 	}
@@ -5837,7 +5837,7 @@ UMaterialExpressionObjectBounds::UMaterialExpressionObjectBounds(const FObjectIn
 
 int32 UMaterialExpressionObjectBounds::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	if (Material->MaterialDomain == MD_DeferredDecal)
+	if (Material && Material->MaterialDomain == MD_DeferredDecal)
 	{
 		return CompilerError(Compiler, TEXT("Expression not available in the deferred decal material domain."));
 	}
@@ -7929,7 +7929,7 @@ UMaterialExpressionObjectOrientation::UMaterialExpressionObjectOrientation(const
 
 int32 UMaterialExpressionObjectOrientation::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	if (Material->MaterialDomain == MD_DeferredDecal)
+	if (Material && Material->MaterialDomain == MD_DeferredDecal)
 	{
 		return CompilerError(Compiler, TEXT("Expression not available in the deferred decal material domain."));
 	}
@@ -8531,7 +8531,7 @@ UMaterialExpressionDecalMipmapLevel::UMaterialExpressionDecalMipmapLevel(const F
 
 int32 UMaterialExpressionDecalMipmapLevel::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	if (Material->MaterialDomain != MD_DeferredDecal)
+	if (Material && Material->MaterialDomain != MD_DeferredDecal)
 	{
 		return CompilerError(Compiler, TEXT("Node only works for the deferred decal material domain."));
 	}
