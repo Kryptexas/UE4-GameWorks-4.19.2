@@ -915,11 +915,6 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		}
 	}
 
-	if(Src.bOverride_FilmEnable)
-	{
-		Dest.FilmEnable = Src.FilmEnable;
-	}
-
 	if(Src.bOverride_DepthOfFieldMethod)
 	{
 		Dest.DepthOfFieldMethod = Src.DepthOfFieldMethod;
