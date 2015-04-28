@@ -164,9 +164,12 @@ FSlateColor FTileSetDetailsCustomization::GetCellDimensionHeaderColor() const
 void FTileSetDetailsCustomization::OnTileIndexChanged(int32 NewIndex, int32 OldIndex)
 {
 	SelectedSingleTileIndex = NewIndex;
-	if (MyDetailLayout != nullptr)
+	if (NewIndex != OldIndex)
 	{
-		MyDetailLayout->ForceRefreshDetails();
+		if (MyDetailLayout != nullptr)
+		{
+			MyDetailLayout->ForceRefreshDetails();
+		}
 	}
 }
 
