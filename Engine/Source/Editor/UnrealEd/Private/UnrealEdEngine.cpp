@@ -657,7 +657,12 @@ void UUnrealEdEngine::OnOpenMatinee()
 
 bool UUnrealEdEngine::IsAutosaving() const
 {
-	return PackageAutoSaver->IsAutoSaving();
+	if (PackageAutoSaver)
+	{
+		return PackageAutoSaver->IsAutoSaving();
+	}
+	
+	return NULL;
 }
 
 
