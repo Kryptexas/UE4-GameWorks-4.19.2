@@ -212,6 +212,7 @@ void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 		// Set up replay info
 		ReplayInfo.NetworkVersion = ReplayVersion.NetworkVersion;
 		ReplayInfo.Changelist = ReplayVersion.Changelist;
+		ReplayInfo.FriendlyName = FriendlyName;
 	}
 
 	// Notify immediately
@@ -352,6 +353,7 @@ void FNullNetworkReplayStreamer::EnumerateStreams( const FNetworkReplayVersion& 
 				Info.Timestamp = IFileManager::Get().GetTimeStamp( *FullDemoFilePath );
 				Info.bIsLive = IsNamedStreamLive( Directory );
 				Info.LengthInMS = StoredReplayInfo.LengthInMS;
+				Info.FriendlyName = StoredReplayInfo.FriendlyName;
 
 				// Live streams not supported yet
 				if (!Info.bIsLive)

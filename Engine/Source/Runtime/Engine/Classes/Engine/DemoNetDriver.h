@@ -4,6 +4,8 @@
 
 #include "DemoNetDriver.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
+
 /**
  * Simulated network driver for recording and playing back game sessions.
  */

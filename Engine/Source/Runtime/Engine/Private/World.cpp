@@ -2680,48 +2680,16 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if ( FParse::Param( FCommandLine::Get(),TEXT( "NOREPLAYS" ) ) )
+	if ( InWorld != nullptr && InWorld->GetGameInstance() != nullptr )
 	{
-		UE_LOG( LogWorld, Warning, TEXT( "HandleDemoRecordCommand: Rejected due to -noreplays option" ) );
-		return true;
-	}
+		FString DemoName;
 
-	FURL DemoURL;
-	FString DemoName;
+		FParse::Token( Cmd, DemoName, 0 );
 
-	FParse::Token( Cmd, DemoName, 0 );
-	
-	DemoName.ReplaceInline( TEXT( "%m" ), *GetMapName() );
+		// The friendly name will be the map name if no name is supplied
+		const FString FriendlyName = DemoName.IsEmpty() ? InWorld->GetMapName() : DemoName;
 
-	// replace the current URL's map with a demo extension
-	DemoURL.Map = DemoName;
-
-	DestroyDemoNetDriver();
-
-	const FName NAME_DemoNetDriver( TEXT( "DemoNetDriver" ) );
-
-	if ( !GEngine->CreateNamedNetDriver( this, NAME_DemoNetDriver, NAME_DemoNetDriver ) )
-	{
-		Ar.Logf( TEXT( "Failed to create demo net driver!" ) );
-		return true;
-	}
-
-	DemoNetDriver = Cast< UDemoNetDriver >( GEngine->FindNamedNetDriver( this, NAME_DemoNetDriver ) );
-
-	check( DemoNetDriver != NULL );
-
-	DemoNetDriver->SetWorld( this );
-
-	FString Error;
-
-	if ( !DemoNetDriver->InitListen( this, DemoURL, false, Error ) )
-	{
-		Ar.Logf( TEXT( "Demo recording failed: %s" ), *Error );
-		DemoNetDriver = NULL;
-	}
-	else
-	{
-		Ar.Logf( TEXT( "Num Network Actors: %i" ), InWorld->NetworkActors.Num() );
+		InWorld->GetGameInstance()->StartRecordingReplay( DemoName, FriendlyName );
 	}
 
 	return true;
@@ -2730,62 +2698,33 @@ bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 	FString Temp;
+	const TCHAR* ErrorString = nullptr;
 
-	if ( FParse::Token( Cmd, Temp, 0 ) )
+	if ( !FParse::Token( Cmd, Temp, 0 ) )
 	{
-		DestroyDemoNetDriver();
-
-		FURL DemoURL;
-		UE_LOG( LogWorld, Log, TEXT( "Attempting to play demo %s" ), *Temp );
-
-		DemoURL.Map = Temp;
-
-#if 0
-		UPendingNetGame * NewPendingNetGame = new UDemoPendingNetGame( FObjectInitializer(), DemoURL );
-
-		if ( !NewPendingNetGame->DemoNetDriver )
-		{
-			Ar.Logf( TEXT( "Demo playback failed: %s" ), *NewPendingNetGame->ConnectionError );
-			NewPendingNetGame = NULL;
-		}
-
-		GEngine->CancelPending( InWorld, NewPendingNetGame );
-#else
-		const FName NAME_DemoNetDriver( TEXT( "DemoNetDriver" ) );
-
-		if ( !GEngine->CreateNamedNetDriver( this, NAME_DemoNetDriver, NAME_DemoNetDriver ) )
-		{
-			Ar.Logf( TEXT( "Failed to create demo net driver!" ) );
-			return true;
-		}
-
-		DemoNetDriver = Cast< UDemoNetDriver >( GEngine->FindNamedNetDriver( this, NAME_DemoNetDriver ) );
-
-		check( DemoNetDriver != NULL );
-
-		DemoNetDriver->SetWorld( this );
-
-		FString Error;
-
-		if ( !DemoNetDriver->InitConnect( this, DemoURL, Error ) )
-		{
-			Ar.Logf( TEXT( "Demo playback failed: %s" ), *Error );
-			DestroyDemoNetDriver();
-		}
-		else
-		{
-			FCoreUObjectDelegates::PostDemoPlay.Broadcast();
-		}
-#endif
+		ErrorString = TEXT( "You must specify a filename" );
 	}
-	else
+	else if ( InWorld == nullptr )
 	{
-		Ar.Log( TEXT( "You must specify a filename" ) );
+		ErrorString = TEXT( "InWorld is null" );
+	}
+	else if ( InWorld->GetGameInstance() == nullptr )
+	{
+		ErrorString = TEXT( "InWorld->GetGameInstance() is null" );
+	}
+
+	if ( ErrorString != nullptr )
+	{
+		Ar.Log( ErrorString );
 
 		if ( GetGameInstance() != nullptr )
 		{
-			GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( TEXT( "You must specify a filename " ) ) );
+			GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( ErrorString ) );
 		}
+	}
+	else
+	{
+		InWorld->GetGameInstance()->PlayReplay( Temp );
 	}
 
 	return true;
@@ -2793,7 +2732,11 @@ bool UWorld::HandleDemoPlayCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 
 bool UWorld::HandleDemoStopCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	DestroyDemoNetDriver();
+	if ( InWorld != nullptr && InWorld->GetGameInstance() != nullptr )
+	{
+		InWorld->GetGameInstance()->StopRecordingReplay();
+	}
+
 	return true;
 }
 
