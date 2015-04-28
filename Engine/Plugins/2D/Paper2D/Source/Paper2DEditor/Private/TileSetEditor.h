@@ -6,6 +6,10 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "SPaperEditorViewport.h"
 
+class STileSetSelectorViewport;
+class SSingleTileEditorViewport;
+class FSingleTileEditorViewportClient;
+
 //////////////////////////////////////////////////////////////////////////
 // FTileSetEditor
 
@@ -40,6 +44,8 @@ public:
 
 	UPaperTileSet* GetTileSetBeingEdited() const { return TileSetBeingEdited; }
 
+	TSharedPtr<FSingleTileEditorViewportClient> GetSingleTileEditor() const { return TileEditorViewportClient; }
+
 protected:
 	TSharedRef<class SDockTab> SpawnTab_TextureView(const FSpawnTabArgs& Args);
 	TSharedRef<class SDockTab> SpawnTab_Details(const FSpawnTabArgs& Args);
@@ -54,9 +60,9 @@ protected:
 protected:
 	UPaperTileSet* TileSetBeingEdited;
 
-	TSharedPtr<class STileSetSelectorViewport> TileSetViewport;
-	TSharedPtr<class SSingleTileEditorViewport> TileEditorViewport;
-	TSharedPtr<class FSingleTileEditorViewportClient> TileEditorViewportClient;
+	TSharedPtr<STileSetSelectorViewport> TileSetViewport;
+	TSharedPtr<SSingleTileEditorViewport> TileEditorViewport;
+	TSharedPtr<FSingleTileEditorViewportClient> TileEditorViewportClient;
 
 	FDelegateHandle OnPropertyChangedHandle;
 };

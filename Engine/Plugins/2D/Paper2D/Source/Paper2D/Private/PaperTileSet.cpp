@@ -69,9 +69,9 @@ int32 UPaperTileSet::GetTileCountY() const
 
 FPaperTileMetadata* UPaperTileSet::GetMutableTileMetadata(int32 TileIndex)
 {
-	if (ExperimentalPerTileData.IsValidIndex(TileIndex))
+	if (PerTileData.IsValidIndex(TileIndex))
 	{
-		return &(ExperimentalPerTileData[TileIndex]);
+		return &(PerTileData[TileIndex]);
 	}
 	else
 	{
@@ -81,9 +81,9 @@ FPaperTileMetadata* UPaperTileSet::GetMutableTileMetadata(int32 TileIndex)
 
 const FPaperTileMetadata* UPaperTileSet::GetTileMetadata(int32 TileIndex) const
 {
-	if (ExperimentalPerTileData.IsValidIndex(TileIndex))
+	if (PerTileData.IsValidIndex(TileIndex))
 	{
-		return &(ExperimentalPerTileData[TileIndex]);
+		return &(PerTileData[TileIndex]);
 	}
 	else
 	{
@@ -191,10 +191,10 @@ void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 void UPaperTileSet::DestructiveAllocateTileData(int32 NewWidth, int32 NewHeight)
 {
 	const int32 NumCells = NewWidth * NewHeight;
-	ExperimentalPerTileData.Empty(NumCells);
+	PerTileData.Empty(NumCells);
 	for (int32 Index = 0; Index < NumCells; ++Index)
 	{
-		ExperimentalPerTileData.Add(FPaperTileMetadata());
+		PerTileData.Add(FPaperTileMetadata());
 	}
 
 	AllocatedWidth = NewWidth;
@@ -210,7 +210,7 @@ void UPaperTileSet::ReallocateAndCopyTileData()
 
 	const int32 SavedWidth = AllocatedWidth;
 	const int32 SavedHeight = AllocatedHeight;
-	TArray<FPaperTileMetadata> SavedDesignedMap(ExperimentalPerTileData);
+	TArray<FPaperTileMetadata> SavedDesignedMap(PerTileData);
 
 	DestructiveAllocateTileData(WidthInTiles, HeightInTiles);
 
@@ -224,8 +224,7 @@ void UPaperTileSet::ReallocateAndCopyTileData()
 			const int32 SrcIndex = Y*SavedWidth + X;
 			const int32 DstIndex = Y*WidthInTiles + X;
 
-			ExperimentalPerTileData[DstIndex] = SavedDesignedMap[SrcIndex];
+			PerTileData[DstIndex] = SavedDesignedMap[SrcIndex];
 		}
 	}
-
 }

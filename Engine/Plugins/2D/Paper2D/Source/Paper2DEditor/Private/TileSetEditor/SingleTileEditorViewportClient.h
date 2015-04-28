@@ -6,6 +6,8 @@
 #include "PaperEditorViewportClient.h"
 #include "SpriteEditor/SpriteEditorSelections.h"
 
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSingleTileIndexChanged, int32 /*NewIndex*/, int32 /*OldIndex*/);
+
 //////////////////////////////////////////////////////////////////////////
 // FSingleTileEditorViewportClient
 
@@ -38,7 +40,7 @@ public:
 
 	void SetTileIndex(int32 InTileIndex);
 	int32 GetTileIndex() const;
-	void OnActiveTileIndexChanged(const FIntPoint& TopLeft, const FIntPoint& Dimensions);
+	void OnTileSelectionRegionChanged(const FIntPoint& TopLeft, const FIntPoint& Dimensions);
 
 	void ActivateEditMode(TSharedPtr<FUICommandList> InCommandList);
 
@@ -47,15 +49,22 @@ public:
 	void ToggleShowStats();
 	bool IsShowStatsChecked() const;
 
+	// Delegate for when the index of the single tile being edited changes
+	FOnSingleTileIndexChanged& GetOnSingleTileIndexChanged()
+	{
+		return OnSingleTileIndexChanged;
+	}
+
 protected:
 	// FPaperEditorViewportClient interface
 	virtual FBox GetDesiredFocusBounds() const override;
 	// End of FPaperEditorViewportClient
 
-public:
+private:
 	// Tile set
 	UPaperTileSet* TileSet;
 
+	// The current tile being edited or INDEX_NONE
 	int32 TileBeingEditedIndex;
 
 	// Are we currently manipulating something?
@@ -78,4 +87,7 @@ public:
 
 	// The preview sprite in the scene
 	UPaperSpriteComponent* PreviewTileSpriteComponent;
+
+	// Called when TileBeingEditedIndex changes
+	FOnSingleTileIndexChanged OnSingleTileIndexChanged;
 };

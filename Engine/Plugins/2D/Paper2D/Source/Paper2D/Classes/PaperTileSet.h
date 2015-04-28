@@ -17,6 +17,11 @@ struct PAPER2D_API FPaperTileMetadata
 public:
 	GENERATED_USTRUCT_BODY()
 
+	// A tag that can be used for grouping and categorizing (consider using it as the index into a UDataTable asset).
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Sprite)
+	FName UserDataName;
+
+	// Collision data for the tile
 	UPROPERTY(EditAnywhere, Category=Sprite)
 	FSpriteGeometryCollection CollisionData;
 
@@ -44,7 +49,7 @@ public:
 	// Does this tile have user-specified metadata?
 	bool HasMetaData() const
 	{
-		return false;
+		return !UserDataName.IsNone();
 	}
 };
 
@@ -73,27 +78,27 @@ class PAPER2D_API UPaperTileSet : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// The width of a single tile (in pixels)
-	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=1, ClampMin=1))
 	int32 TileWidth;
 
 	// The height of a single tile (in pixels)
-	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=1, ClampMin=1))
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=1, ClampMin=1))
 	int32 TileHeight;
 
 	// The tile sheet texture associated with this tile set
-	UPROPERTY(Category=TileSet, EditAnywhere)
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere)
 	UTexture2D* TileSheet;
 
 	// The amount of padding around the perimeter of the tile sheet (in pixels)
-	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=0, ClampMin=0))
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0))
 	int32 Margin;
 
 	// The amount of padding between tiles in the tile sheet (in pixels)
-	UPROPERTY(Category=TileSet, EditAnywhere, meta=(UIMin=0, ClampMin=0))
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0))
 	int32 Spacing;
 
 	// The drawing offset for tiles from this set (in pixels)
-	UPROPERTY(Category=TileSet, EditAnywhere)
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere)
 	FIntPoint DrawingOffset;
 
 #if WITH_EDITORONLY_DATA
@@ -120,9 +125,9 @@ protected:
 	UPROPERTY()
 	int32 AllocatedHeight;
 
-	// Per-tile information (Experimental)
+	// Per-tile information
 	UPROPERTY(EditAnywhere, EditFixedSize, Category=Sprite)
-	TArray<FPaperTileMetadata> ExperimentalPerTileData;
+	TArray<FPaperTileMetadata> PerTileData;
 
 	// Terrain information
 	UPROPERTY()//@TODO: TileMapTerrains: (EditAnywhere, Category=Sprite)
@@ -130,14 +135,14 @@ protected:
 
 protected:
 
-	// Reallocates the ExperimentalPerTileData array to the specified size.
+	// Reallocates the PerTileData array to the specified size.
 	// Note: This is a destructive operation!
 	void DestructiveAllocateTileData(int32 NewWidth, int32 NewHeight);
 
 	// Reallocates the per-tile data to match the current (WidthInTiles, HeightInTiles) size, copying over what it can
 	void ReallocateAndCopyTileData();
 
-public:	
+public:
 
 	// UObject interface
 #if WITH_EDITOR
@@ -184,4 +189,8 @@ public:
 
 	// Returns the terrain type this tile is a member of, or INDEX_NONE if it is not part of a terrain
 	int32 GetTerrainMembership(const FPaperTileInfo& TileInfo) const;
+
+#if WITH_EDITOR
+	static FName GetPerTilePropertyName() { return GET_MEMBER_NAME_CHECKED(UPaperTileSet, PerTileData); }
+#endif
 };
