@@ -371,6 +371,7 @@ public:
 		}
 		Ar << WeightsParameter << ColorScale << OverlayColor;
 		Ar << ColorRemapShaderParameters;
+		Ar << InverseGamma;
 
 		Ar << WhiteTemp;
 		Ar << WhiteTint;
