@@ -7,7 +7,8 @@
 #define LOCTEXT_NAMESPACE "NullSourceCodeAccessor"
 bool FNullSourceCodeAccessor::CanAccessSourceCode() const
 {
-	return FPaths::FileExists(TEXT("/usr/bin/clang++"));
+	// only check the binaries that UBT will/can use. This file must be in sync with LinuxToolChain.cs
+	return FPaths::FileExists(TEXT("/usr/bin/clang++")) || FPaths::FileExists(TEXT("/usr/bin/clang++-3.5"));
 }
 
 FName FNullSourceCodeAccessor::GetFName() const
