@@ -4349,7 +4349,7 @@ void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 		DesiredRotation.Roll = 0;
 	}
 
-	if( CurrentRotation.Equals(DesiredRotation), 0.01f )
+	if( CurrentRotation.Equals(DesiredRotation, 0.01f) )
 	{
 		return;
 	}
