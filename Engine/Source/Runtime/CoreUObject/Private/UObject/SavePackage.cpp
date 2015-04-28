@@ -3492,24 +3492,32 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					{
 						BulkDataFeedback.EnterProgressFrame();
 
-						FLinkerSave::FBulkDataStorageInfo& BulkData = Linker->BulkDataToAppend[i];
+						FLinkerSave::FBulkDataStorageInfo& BulkDataStorageInfo = Linker->BulkDataToAppend[i];
+
+						// Set bulk data flags to what they were during initial serialization (they might have changed after that)
+						const uint32 OldBulkDataFlags = BulkDataStorageInfo.BulkData->GetBulkDataFlags();
+						BulkDataStorageInfo.BulkData->SetBulkDataFlags(BulkDataStorageInfo.BulkDataFlags);
 
 						int64 BulkStartOffset = Linker->Tell();
 						int64 StoredBulkStartOffset = BulkStartOffset - StartOfBulkDataArea;
 
-						BulkData.BulkData->SerializeBulkData(*Linker, BulkData.BulkData->Lock(LOCK_READ_ONLY));
-						BulkData.BulkData->Unlock();
+						BulkDataStorageInfo.BulkData->SerializeBulkData(*Linker, BulkDataStorageInfo.BulkData->Lock(LOCK_READ_ONLY));
+						BulkDataStorageInfo.BulkData->Unlock();
 
 						int64 BulkEndOffset = Linker->Tell();
 						int32 SizeOnDisk = (int32)(BulkEndOffset - BulkStartOffset);
 				
-						Linker->Seek(BulkData.BulkDataOffsetInFilePos);
+						Linker->Seek(BulkDataStorageInfo.BulkDataOffsetInFilePos);
 						*Linker << StoredBulkStartOffset;
 
-						Linker->Seek(BulkData.BulkDataSizeOnDiskPos);
+						Linker->Seek(BulkDataStorageInfo.BulkDataSizeOnDiskPos);
 						*Linker << SizeOnDisk;
 
 						Linker->Seek(BulkEndOffset);
+
+						// Restore BulkData flags to before serialization started
+						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
+						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
 					}
 				}
 
