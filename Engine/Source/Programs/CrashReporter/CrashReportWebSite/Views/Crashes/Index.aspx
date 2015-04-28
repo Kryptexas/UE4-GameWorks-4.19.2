@@ -31,7 +31,6 @@ Crash Reports
 			{
 				$("#dateFrom").val($("#dateFromVisible").datepicker('getDate').getTime());
 				$("#dateTo").val($("#dateToVisible").datepicker('getDate').getTime());
-				//$("#FilterCrashesForm").submit();
 			}
 		});
 
