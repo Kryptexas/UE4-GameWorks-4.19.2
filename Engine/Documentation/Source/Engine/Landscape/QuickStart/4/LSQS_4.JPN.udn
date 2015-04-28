@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2393040
+﻿INTSourceChangelist:2516340
 Availability:Public
 Title:4.ランドスケープ マテリアルの作成
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -24,7 +24,7 @@ Description:ランドスケープで使用するマテリアルを作成する�
 
 
 ## フォルダの設定
-ランドスケープのスカルプト処理が終わったので、今度はいくつかのマテリアルを追加し、現実世界で見えるものに一段と近づくようにします。 
+ランドスケープのスカルプト処理が終わったので、今度はいくつかのマテリアルを追加し、現実世界で見えるものに一段と近づけるようにします。 
 しかし、その前に、いくつかのフォルダをセットアップし、作成、移行するコンテンツの格納場所を作ります。 
 このセクションでは、以下の 4 つのフォルダを作ります。
 
@@ -32,13 +32,13 @@ Description:ランドスケープで使用するマテリアルを作成する�
 アンリアル エンジン 4 でのフォルダのセットアップ方法についての詳しい情報は、 [フォルダ](Engine/Content/Browser/UserGuide/WorkingWithSources) をご覧ください。
 [/REGION]
 
-**ランドスケープ** 
+**Landscape** 
 
-**マテリアル**
+**Materials**
 
-**リソース**
+**Resources**
 
-**テクスチャ**
+**Textures**
 
 完了すると以下のようになります。
 
@@ -82,7 +82,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 
 ![](T_Landscape_Create_New_Material.png)
 
-新規ランドスケープ マテリアルが作成された状態で **Generic Browser** 内でそのマテリアルを **ダブルクリック** して開きます。その結果、以下のような画面が表示されるはずです。
+新規ランドスケープ マテリアルが作成された状態で **Generic Browser** 内でそのマテリアルを **ダブルクリック** して開きます。その結果、以下のような画面が表示されます。
 [REGION:fullwidth] 
 ![](T_Landscape_Blank_Material.png)
 [/REGION]
@@ -94,7 +94,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 ![](T_Landscape_Materail_Usage.png)
 [/REGION]
 
-**Used with Landscape** Usage フラグが設定された状態で、マテリアル エディタ内にノードを配置します。 
+**Used with Landscape** の Usage フラグが設定された状態で、マテリアル エディタ内にノードを配置します。 
 最初に配置するノードは、**LandscapeCoords** UV ノードです。このノードはマテリアル ネットワークをランドスケープ テレインにマッピングするために使用できる UV 座標生成を支援します。
 
 ![](T_Landscape_UVCords.png)
