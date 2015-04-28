@@ -1277,4 +1277,31 @@ bool UBlueprint::GetFunctionGuidFromClassByFieldName(const UClass* InClass, cons
 	return FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
 
+UEdGraph* UBlueprint::GetLastEditedUberGraph() const
+{
+	for ( int32 LastEditedIndex = LastEditedDocuments.Num() - 1; LastEditedIndex >= 0; LastEditedIndex-- )
+	{
+		if ( UObject* Obj = LastEditedDocuments[LastEditedIndex].EditedObject )
+		{
+			if ( UEdGraph* Graph = Cast<UEdGraph>(Obj) )
+			{
+				for ( int32 GraphIndex = 0; GraphIndex < UbergraphPages.Num(); GraphIndex++ )
+				{
+					if ( Graph == UbergraphPages[GraphIndex] )
+					{
+						return UbergraphPages[GraphIndex];
+					}
+				}
+			}
+		}
+	}
+
+	if ( UbergraphPages.Num() > 0 )
+	{
+		return UbergraphPages[0];
+	}
+
+	return nullptr;
+}
+
 #endif //WITH_EDITOR

@@ -646,6 +646,12 @@ public:
 
 	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
 	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
+
+	/**
+	 * Gets the last edited uber graph.  If no graph was found in the last edited document set, the first
+	 * ubergraph is returned.  If there are no ubergraphs nullptr is returned.
+	 */
+	UEdGraph* GetLastEditedUberGraph() const;
 #endif
 
 	/** Find a function given its name and optionally an object property name within this Blueprint */
