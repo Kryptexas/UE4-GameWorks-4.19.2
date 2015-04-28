@@ -631,9 +631,12 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	UPROPERTY()
 	class AParticleEventManager*				MyParticleEventManager;
 
+private:
 	/** DefaultPhysicsVolume used for whole game **/
 	UPROPERTY()
 	APhysicsVolume*								DefaultPhysicsVolume;
+
+public:
 
 	/** View locations rendered in the previous frame, if any. */
 	TArray<FVector>								ViewLocationsRenderedLastFrame;
@@ -2177,6 +2180,9 @@ public:
 	 * @return default physics volume
 	 */
 	APhysicsVolume* GetDefaultPhysicsVolume() const;
+
+	/** Returns true if a DefaultPhysicsVolume has been created. */
+	bool HasDefaultPhysicsVolume() const { return DefaultPhysicsVolume != nullptr; }
 
 	/** Add a physics volume to the list of those in the world. DefaultPhysicsVolume is not tracked. Used internally by APhysicsVolume. */
 	void AddPhysicsVolume(APhysicsVolume* Volume);
