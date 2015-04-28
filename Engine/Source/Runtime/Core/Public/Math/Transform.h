@@ -612,7 +612,7 @@ public:
 
 	inline bool Equals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
-		return Rotation.Equals(Other.Rotation, Tolerance) && Translation.Equals(Other.Translation, Tolerance) && ((Scale3D-Other.Scale3D).Size() < Tolerance);
+		return Rotation.Equals(Other.Rotation, Tolerance) && Translation.Equals(Other.Translation, Tolerance) && ((Scale3D-Other.Scale3D).SizeSquared() <= FMath::Square(Tolerance));
 	}
 
 	inline bool EqualsNoScale(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const

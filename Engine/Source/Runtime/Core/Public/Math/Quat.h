@@ -586,9 +586,9 @@ inline FMatrix FQuat::operator*( const FMatrix& M ) const
 FORCEINLINE bool DebugRotatorEquals(const FRotator& R1, const FRotator& R2, float Tolerance=1.f) 
 {
 	// also 0 and 360 should be considered same 
-	return ( FMath::Abs(R1.Pitch-R2.Pitch) < Tolerance || FMath::Abs(R1.Pitch+R2.Pitch-360) < Tolerance )
-		&& ( FMath::Abs(R1.Yaw-R2.Yaw) < Tolerance || FMath::Abs(R1.Yaw+R2.Yaw-360) < Tolerance )
-		&& ( FMath::Abs(R1.Roll-R2.Roll) < Tolerance || FMath::Abs(R1.Roll+R2.Roll-360) < Tolerance );
+	return ( FMath::Abs(R1.Pitch-R2.Pitch) <= Tolerance || FMath::Abs(R1.Pitch+R2.Pitch-360) <= Tolerance )
+		&& ( FMath::Abs(R1.Yaw-R2.Yaw) <= Tolerance || FMath::Abs(R1.Yaw+R2.Yaw-360) <= Tolerance )
+		&& ( FMath::Abs(R1.Roll-R2.Roll) <= Tolerance || FMath::Abs(R1.Roll+R2.Roll-360) <= Tolerance );
 }
 #endif
 
@@ -681,8 +681,8 @@ FORCEINLINE FQuat FQuat::operator-( const FQuat& Q ) const
 
 FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 {
-	return (FMath::Abs(X - Q.X) < Tolerance && FMath::Abs(Y - Q.Y) < Tolerance && FMath::Abs(Z - Q.Z) < Tolerance && FMath::Abs(W - Q.W) < Tolerance)
-		|| (FMath::Abs(X + Q.X) < Tolerance && FMath::Abs(Y + Q.Y) < Tolerance && FMath::Abs(Z + Q.Z) < Tolerance && FMath::Abs(W + Q.W) < Tolerance);
+	return (FMath::Abs(X - Q.X) <= Tolerance && FMath::Abs(Y - Q.Y) <= Tolerance && FMath::Abs(Z - Q.Z) <= Tolerance && FMath::Abs(W - Q.W) <= Tolerance)
+		|| (FMath::Abs(X + Q.X) <= Tolerance && FMath::Abs(Y + Q.Y) <= Tolerance && FMath::Abs(Z + Q.Z) <= Tolerance && FMath::Abs(W + Q.W) <= Tolerance);
 }
 
 

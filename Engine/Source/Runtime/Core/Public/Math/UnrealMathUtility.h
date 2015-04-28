@@ -170,7 +170,7 @@ struct FMath : public FPlatformMath
 	 */
 	static FORCEINLINE bool IsNearlyEqual(float A, float B, float ErrorTolerance = SMALL_NUMBER)
 	{
-		return Abs<float>( A - B ) < ErrorTolerance;
+		return Abs<float>( A - B ) <= ErrorTolerance;
 	}
 
 	/**
@@ -182,7 +182,7 @@ struct FMath : public FPlatformMath
 	 */
 	static FORCEINLINE bool IsNearlyEqual(double A, double B, double ErrorTolerance = SMALL_NUMBER)
 	{
-		return Abs<double>( A - B ) < ErrorTolerance;
+		return Abs<double>( A - B ) <= ErrorTolerance;
 	}
 
 	/**
@@ -193,7 +193,7 @@ struct FMath : public FPlatformMath
 	 */
 	static FORCEINLINE bool IsNearlyZero(float Value, float ErrorTolerance = SMALL_NUMBER)
 	{
-		return Abs<float>( Value ) < ErrorTolerance;
+		return Abs<float>( Value ) <= ErrorTolerance;
 	}
 
 	/**
@@ -204,7 +204,7 @@ struct FMath : public FPlatformMath
 	 */
 	static FORCEINLINE bool IsNearlyZero(double Value, double ErrorTolerance = SMALL_NUMBER)
 	{
-		return Abs<double>( Value ) < ErrorTolerance;
+		return Abs<double>( Value ) <= ErrorTolerance;
 	}
 
 	/**

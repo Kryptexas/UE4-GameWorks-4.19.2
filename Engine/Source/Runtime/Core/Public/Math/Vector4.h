@@ -537,7 +537,7 @@ FORCEINLINE bool FVector4::operator!=( const FVector4& V ) const
 
 FORCEINLINE bool FVector4::Equals( const FVector4& V, float Tolerance ) const
 {
-	return FMath::Abs(X-V.X) < Tolerance && FMath::Abs(Y-V.Y) < Tolerance && FMath::Abs(Z-V.Z) < Tolerance && FMath::Abs(W-V.W) < Tolerance;
+	return FMath::Abs(X-V.X) <= Tolerance && FMath::Abs(Y-V.Y) <= Tolerance && FMath::Abs(Z-V.Z) <= Tolerance && FMath::Abs(W-V.W) <= Tolerance;
 }
 
 
@@ -623,9 +623,9 @@ FORCEINLINE bool FVector4::ContainsNaN() const
 FORCEINLINE bool FVector4::IsNearlyZero3( float Tolerance ) const
 {
 	return
-			FMath::Abs(X)<Tolerance
-		&&	FMath::Abs(Y)<Tolerance
-		&&	FMath::Abs(Z)<Tolerance;
+			FMath::Abs(X)<=Tolerance
+		&&	FMath::Abs(Y)<=Tolerance
+		&&	FMath::Abs(Z)<=Tolerance;
 }
 
 

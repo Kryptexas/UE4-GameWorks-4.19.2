@@ -481,9 +481,9 @@ FORCEINLINE FRotator FRotator::operator-=( const FRotator &R )
 FORCEINLINE bool FRotator::IsNearlyZero(float Tolerance) const
 {
 	return
-		FMath::Abs(NormalizeAxis(Pitch))<Tolerance
-		&&	FMath::Abs(NormalizeAxis(Yaw))<Tolerance
-		&&	FMath::Abs(NormalizeAxis(Roll))<Tolerance;
+		FMath::Abs(NormalizeAxis(Pitch))<=Tolerance
+		&&	FMath::Abs(NormalizeAxis(Yaw))<=Tolerance
+		&&	FMath::Abs(NormalizeAxis(Roll))<=Tolerance;
 }
 
 
