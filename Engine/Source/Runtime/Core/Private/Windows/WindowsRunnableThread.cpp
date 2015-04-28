@@ -14,10 +14,6 @@ uint32 FRunnableThreadWin::GuardedRun()
 
 	FPlatformProcess::SetThreadAffinityMask(ThreadAffinityMask);
 
-#if PLATFORM_XBOXONE
-	UE_LOG(LogThreadingWindows, Log, TEXT("Runnable thread %s is on Process %d."), *ThreadName  , static_cast<uint32>(::GetCurrentProcessorNumber()) );
-#endif
-
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	if( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
 	{
