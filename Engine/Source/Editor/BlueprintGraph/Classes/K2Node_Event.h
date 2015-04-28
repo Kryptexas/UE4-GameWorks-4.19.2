@@ -90,7 +90,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	/** Returns localized string describing replication settings. 
 	 *		Calling - whether this function is being called ("sending") or showing implementation ("receiving"). Determined whether we output "Replicated To Server" or "Replicated From Client".
 	 */
-	static FString GetLocalizedNetString(uint32 NetFlags, bool Calling);
+	static FText GetLocalizedNetString(uint32 NetFlags, bool Calling);
 
 	/** Helper function to identify if two Event nodes are the same */
 	static BLUEPRINTGRAPH_API bool AreEventNodesIdentical(const UK2Node_Event* InNodeA, const UK2Node_Event* InNodeB);
