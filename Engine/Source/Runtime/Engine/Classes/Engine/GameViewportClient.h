@@ -464,12 +464,6 @@ public:
 	/** Make sure all navigation objects have appropriate path rendering components set.  Called when EngineShowFlags.Navigation is set. */
 	virtual void VerifyPathRenderingComponents();
 
-	/** Accessor for delegate called when a png screenshot is captured */
-	FOnPNGScreenshotCaptured& OnPNGScreenshotCaptured()
-	{
-		return PNGScreenshotCapturedDelegate;
-	}
-
 	/** Accessor for delegate called when a screenshot is captured */
 	static FOnScreenshotCaptured& OnScreenshotCaptured()
 	{
@@ -737,9 +731,6 @@ private:
 	 * @param WindowMode What window mode do we want to st the display to.
 	 */
 	bool SetDisplayConfiguration( const FIntPoint* Dimensions, EWindowMode::Type WindowMode);
-
-	/** Delegate called at the end of the frame when a screenshot is captured and a .png is requested */
-	FOnPNGScreenshotCaptured PNGScreenshotCapturedDelegate;
 
 	/** Delegate called at the end of the frame when a screenshot is captured */
 	static FOnScreenshotCaptured ScreenshotCapturedDelegate;

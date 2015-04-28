@@ -14,6 +14,7 @@ public:
 	// Begin IModuleInterface interface
 
 	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
 	virtual bool SupportsDynamicReloading() override;
 
@@ -86,9 +87,16 @@ private:
 	// Handles FAutomationWorkerRunTests messages.
 	void HandleRunTestsMessage( const FAutomationWorkerRunTests& Message, const IMessageContextRef& Context );
 
+	// Handles FAutomationTestFramework PreTestingEvents.
+	void HandlePreTestingEvent();
+
+	// Handles FAutomationTestFramework PostTestingEvents.
+	void HandlePostTestingEvent();
+
 #if WITH_ENGINE
 	/** Invoked when we have screen shot to send. */
-	void HandleScreenShotCaptured( int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName );
+	void HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap);
+	void HandleScreenShotCapturedWithName(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName);
 #endif
 
 private:

@@ -15,8 +15,16 @@ IMPLEMENT_MODULE(FAutomationWorkerModule, AutomationWorker);
 void FAutomationWorkerModule::StartupModule()
 {
 	Initialize();
+
+	FAutomationTestFramework::GetInstance().PreTestingEvent.AddRaw(this, &FAutomationWorkerModule::HandlePreTestingEvent);
+	FAutomationTestFramework::GetInstance().PostTestingEvent.AddRaw(this, &FAutomationWorkerModule::HandlePostTestingEvent);
 }
 
+void FAutomationWorkerModule::ShutdownModule()
+{
+	FAutomationTestFramework::GetInstance().PreTestingEvent.RemoveAll(this);
+	FAutomationTestFramework::GetInstance().PostTestingEvent.RemoveAll(this);
+}
 
 bool FAutomationWorkerModule::SupportsDynamicReloading()
 {
@@ -117,15 +125,6 @@ void FAutomationWorkerModule::Initialize()
 		{
 			MessageEndpoint->Subscribe<FAutomationWorkerFindWorkers>();
 		}
-
-#if WITH_ENGINE
-		if (!GIsEditor && GEngine->GameViewport)
-		{
-			GEngine->GameViewport->OnPNGScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
-		}
-		//Register the editor screen shot callback
-		FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
-#endif
 
 		bExecuteNextNetworkCommand = true;		
 	}
@@ -329,8 +328,41 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 }
 
 
+void FAutomationWorkerModule::HandlePreTestingEvent()
+{
 #if WITH_ENGINE
-void FAutomationWorkerModule::HandleScreenShotCaptured( int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName )
+	if (!GIsEditor && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->OnScreenshotCaptured().AddRaw(this, &FAutomationWorkerModule::HandleScreenShotCaptured);
+	}
+	//Register the editor screen shot callback
+	FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
+#endif
+}
+
+
+void FAutomationWorkerModule::HandlePostTestingEvent()
+{
+#if WITH_ENGINE
+	if (!GIsEditor && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->OnScreenshotCaptured().RemoveAll(this);
+	}
+	//Register the editor screen shot callback
+	FAutomationTestFramework::GetInstance().OnScreenshotCaptured().BindRaw(this, &FAutomationWorkerModule::HandleScreenShotCapturedWithName);
+#endif
+}
+
+
+#if WITH_ENGINE
+void FAutomationWorkerModule::HandleScreenShotCaptured(int32 Width, int32 Height, const TArray<FColor>& Bitmap)
+{
+	FString Filename = FScreenshotRequest::GetFilename();
+
+	HandleScreenShotCapturedWithName(Width, Height, Bitmap, Filename);
+}
+
+void FAutomationWorkerModule::HandleScreenShotCapturedWithName(int32 Width, int32 Height, const TArray<FColor>& Bitmap, const FString& ScreenShotName)
 {
 	if( FAutomationTestFramework::GetInstance().IsScreenshotAllowed() )
 	{
