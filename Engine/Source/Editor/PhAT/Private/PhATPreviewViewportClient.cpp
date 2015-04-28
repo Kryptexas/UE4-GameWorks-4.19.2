@@ -658,7 +658,6 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 	FEditorViewportClient::Tick(DeltaSeconds);
 
 	UWorld* World = SharedData->PreviewScene.GetWorld();
-	World->Tick(LEVELTICK_All, DeltaSeconds);
 
 	if (SharedData->bRunningSimulation)
 	{
@@ -678,6 +677,8 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetSpaceBases();
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
 	}
+
+	World->Tick(LEVELTICK_All, DeltaSeconds);
 
 	if(SharedData->Recorder.InRecording())
 	{
