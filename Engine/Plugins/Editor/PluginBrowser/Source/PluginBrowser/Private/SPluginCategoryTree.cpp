@@ -14,38 +14,35 @@ void SPluginCategoryTree::Construct( const FArguments& Args, const TSharedRef< S
 {
 	OwnerWeak = Owner;
 
-	RootPluginCategories.Reset();
+	// Create the root categories
+	BuiltInCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Built-In"), LOCTEXT("BuiltInCategoryName", "Built-In")));
+	InstalledCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
+	ProjectCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Project"), LOCTEXT("ProjectCategoryName", "Project")));
 
-	// Add the root level categories
-	TSharedRef<FPluginCategory> InstalledCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
-	RootPluginCategories.Add( InstalledCategory );
-	TSharedRef<FPluginCategory> ProjectCategory = MakeShareable(new FPluginCategory(NULL, TEXT("Project"), LOCTEXT("ProjectCategoryName", "Project")));
-	RootPluginCategories.Add( ProjectCategory );
-
-	PluginCategoryTreeView =
+	// Create the tree view control
+	TreeView =
 		SNew( STreeView<TSharedPtr<FPluginCategory>> )
 
 		// For now we only support selecting a single folder in the tree
 		.SelectionMode( ESelectionMode::Single )
 		.ClearSelectionOnClick( false )		// Don't allow user to select nothing.  We always expect a category to be selected!
 
-		.TreeItemsSource( &RootPluginCategories )
+		.TreeItemsSource( &RootCategories )
 		.OnGenerateRow( this, &SPluginCategoryTree::PluginCategoryTreeView_OnGenerateRow ) 
 		.OnGetChildren( this, &SPluginCategoryTree::PluginCategoryTreeView_OnGetChildren )
 
 		.OnSelectionChanged( this, &SPluginCategoryTree::PluginCategoryTreeView_OnSelectionChanged )
 		;
 
-	// Expand the root categories by default
-	for( auto RootCategoryIt( RootPluginCategories.CreateConstIterator() ); RootCategoryIt; ++RootCategoryIt )
-	{
-		const auto& Category = *RootCategoryIt;
-		PluginCategoryTreeView->SetItemExpansion( Category, true );
-	}
-
 	RebuildAndFilterCategoryTree();
 
-	ChildSlot.AttachWidget( PluginCategoryTreeView.ToSharedRef() );
+	// Expand all the root categories by default
+	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
+	{
+		TreeView->SetItemExpansion( RootCategory, true );
+	}
+
+	ChildSlot.AttachWidget( TreeView.ToSharedRef() );
 }
 
 
@@ -65,7 +62,7 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 {
 	// Get a plugin from the currently selected category, so we can track it if it's removed
 	TSharedPtr<IPlugin> TrackPlugin = nullptr;
-	for(TSharedPtr<FPluginCategory> SelectedItem: PluginCategoryTreeView->GetSelectedItems())
+	for(TSharedPtr<FPluginCategory> SelectedItem: TreeView->GetSelectedItems())
 	{
 		if(SelectedItem->Plugins.Num() > 0)
 		{
@@ -75,7 +72,7 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 	}
 
 	// Clear the list of plugins in each current category
-	for(TSharedPtr<FPluginCategory> RootCategory: RootPluginCategories)
+	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
 	{
 		for(TSharedPtr<FPluginCategory> Category: RootCategory->SubCategories)
 		{
@@ -89,13 +86,17 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 	{
 		// Figure out which base category this plugin belongs in
 		TSharedPtr<FPluginCategory> RootCategory;
-		if( Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine )
+		if(Plugin->GetDescriptor().bInstalled)
 		{
-			RootCategory = RootPluginCategories[0];
+			RootCategory = InstalledCategory;
+		}
+		else if(Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)
+		{
+			RootCategory = BuiltInCategory;
 		}
 		else
 		{
-			RootCategory = RootPluginCategories[1];
+			RootCategory = ProjectCategory;
 		}
 
 		// Get the subcategory for this plugin
@@ -134,7 +135,7 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 	}
 
 	// Remove any empty categories, keeping track of which items are still selected
-	for(TSharedPtr<FPluginCategory> RootCategory: RootPluginCategories)
+	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
 	{
 		for(int32 Idx = 0; Idx < RootCategory->SubCategories.Num(); Idx++)
 		{
@@ -145,27 +146,41 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 		}
 	}
 
+	// Build the new list of root plugin categories
+	RootCategories.Reset();
+	if(InstalledCategory->SubCategories.Num() > 0 || InstalledCategory->Plugins.Num() > 0)
+	{
+		RootCategories.Add(InstalledCategory);
+	}
+	if(BuiltInCategory->SubCategories.Num() > 0 || BuiltInCategory->Plugins.Num() > 0)
+	{
+		RootCategories.Add(BuiltInCategory);
+	}
+	if(ProjectCategory->SubCategories.Num() > 0 || ProjectCategory->Plugins.Num() > 0)
+	{
+		RootCategories.Add(ProjectCategory);
+	}
+
 	// Sort every single category alphabetically
-	for(TSharedPtr<FPluginCategory> RootCategory: RootPluginCategories)
+	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
 	{
 		RootCategory->SubCategories.Sort([](const TSharedPtr<FPluginCategory>& A, const TSharedPtr<FPluginCategory>& B) -> bool { return A->DisplayName.CompareTo(B->DisplayName) < 0; });
 	}
 
 	// Refresh the view
-	PluginCategoryTreeView->RequestTreeRefresh();
+	TreeView->RequestTreeRefresh();
 
 	// Make sure we have something selected
-	if(SelectCategory.IsValid())
+	if(RootCategories.Num() > 0)
 	{
-		PluginCategoryTreeView->SetSelection(SelectCategory);
-	}
-	else if(RootPluginCategories[0]->SubCategories.Num() > 0)
-	{
-		PluginCategoryTreeView->SetSelection(RootPluginCategories[0]->SubCategories[0]);
-	}
-	else
-	{
-		PluginCategoryTreeView->SetSelection(RootPluginCategories[0]);
+		if(SelectCategory.IsValid())
+		{
+			TreeView->SetSelection(SelectCategory);
+		}
+		else if(RootCategories.Num() > 0 && RootCategories[0]->SubCategories.Num() > 0)
+		{
+			TreeView->SetSelection(RootCategories[0]->SubCategories[0]);
+		}
 	}
 }
 
@@ -194,9 +209,9 @@ void SPluginCategoryTree::PluginCategoryTreeView_OnSelectionChanged(TSharedPtr<F
 
 TSharedPtr<FPluginCategory> SPluginCategoryTree::GetSelectedCategory() const
 {
-	if( PluginCategoryTreeView.IsValid() )
+	if( TreeView.IsValid() )
 	{
-		auto SelectedItems = PluginCategoryTreeView->GetSelectedItems();
+		auto SelectedItems = TreeView->GetSelectedItems();
 		if( SelectedItems.Num() > 0 )
 		{
 			const auto& SelectedCategoryItem = SelectedItems[ 0 ];
@@ -209,15 +224,15 @@ TSharedPtr<FPluginCategory> SPluginCategoryTree::GetSelectedCategory() const
 
 void SPluginCategoryTree::SelectCategory( const TSharedPtr<FPluginCategory>& CategoryToSelect )
 {
-	if( ensure( PluginCategoryTreeView.IsValid() ) )
+	if( ensure( TreeView.IsValid() ) )
 	{
-		PluginCategoryTreeView->SetSelection( CategoryToSelect );
+		TreeView->SetSelection( CategoryToSelect );
 	}
 }
 
 bool SPluginCategoryTree::IsItemExpanded( const TSharedPtr<FPluginCategory> Item ) const
 {
-	return PluginCategoryTreeView->IsItemExpanded( Item );
+	return TreeView->IsItemExpanded( Item );
 }
 
 void SPluginCategoryTree::SetNeedsRefresh()

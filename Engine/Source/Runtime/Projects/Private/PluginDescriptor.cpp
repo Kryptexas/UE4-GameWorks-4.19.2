@@ -12,7 +12,9 @@ FPluginDescriptor::FPluginDescriptor()
 	, bEnabledByDefault(false)
 	, bCanContainContent(false)
 	, bIsBetaVersion(false)
-{ }
+	, bInstalled(false)
+{ 
+}
 
 
 bool FPluginDescriptor::Load( const FString& FileName, FText& OutFailReason )
@@ -96,6 +98,7 @@ bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
 	Object.TryGetBoolField(TEXT("EnabledByDefault"), bEnabledByDefault);
 	Object.TryGetBoolField(TEXT("CanContainContent"), bCanContainContent);
 	Object.TryGetBoolField(TEXT("IsBetaVersion"), bIsBetaVersion);
+	Object.TryGetBoolField(TEXT("Installed"), bInstalled);
 
 	return true;
 }
@@ -138,6 +141,7 @@ FString FPluginDescriptor::ToString() const
 	Writer.WriteValue(TEXT("EnabledByDefault"), bEnabledByDefault);
 	Writer.WriteValue(TEXT("CanContainContent"), bCanContainContent);
 	Writer.WriteValue(TEXT("IsBetaVersion"), bIsBetaVersion);
+	Writer.WriteValue(TEXT("Installed"), bInstalled);
 
 	Writer.WriteObjectEnd();
 	Writer.Close();

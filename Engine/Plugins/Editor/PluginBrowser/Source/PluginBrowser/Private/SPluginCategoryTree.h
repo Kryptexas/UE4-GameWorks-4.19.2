@@ -63,9 +63,18 @@ private:
 	TWeakPtr< class SPluginBrowser > OwnerWeak;
 
 	/** The tree view widget for our plugin categories tree */
-	TSharedPtr<STreeView<TSharedPtr<FPluginCategory>>> PluginCategoryTreeView;
+	TSharedPtr<STreeView<TSharedPtr<FPluginCategory>>> TreeView;
 
 	/** Root list of categories */
-	TArray<TSharedPtr<FPluginCategory>> RootPluginCategories;
+	TArray<TSharedPtr<FPluginCategory>> RootCategories;
+
+	/** Category for built-in plugins */
+	TSharedPtr<FPluginCategory> BuiltInCategory;
+
+	/** Category for installed plugins */
+	TSharedPtr<FPluginCategory> InstalledCategory;
+
+	/** Category for project plugins */
+	TSharedPtr<FPluginCategory> ProjectCategory;
 };
 

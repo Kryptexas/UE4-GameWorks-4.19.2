@@ -78,11 +78,11 @@ const FSlateBrush* SPluginCategory::GetIconBrush() const
 	}
 	else if (Category->Name == TEXT("Installed"))
 	{
-		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.BuiltIn" );
+		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.Installed");
 	}
 	else
 	{
-		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.Installed" );
+		return FPluginStyle::Get()->GetBrush( "CategoryTreeItem.BuiltIn" );
 	}
 }
 

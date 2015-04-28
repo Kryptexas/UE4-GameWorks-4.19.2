@@ -63,6 +63,9 @@ namespace UnrealBuildTool
 		// Marks the plugin as beta in the UI
 		public bool bIsBetaVersion;
 
+		// Set for plugins which are installed
+		public bool bInstalled;
+
 		/// <summary>
 		/// Private constructor. This object should not be created directly; read it from disk using FromFile() instead.
 		/// </summary>
@@ -130,6 +133,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetBoolField("EnabledByDefault", out Descriptor.bEnabledByDefault);
 				RawObject.TryGetBoolField("CanContainContent", out Descriptor.bCanContainContent);
 				RawObject.TryGetBoolField("IsBetaVersion", out Descriptor.bIsBetaVersion);
+				RawObject.TryGetBoolField("Installed", out Descriptor.bInstalled);
 
 				return Descriptor;
 			}
