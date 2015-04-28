@@ -1040,32 +1040,6 @@ void SNodePanel::ApplyMarqueeSelection( const FMarqueeOperation& InMarquee, cons
 	}
 }
 
-FSlateRect SNodePanel::ComputeSensibleGraphBounds() const
-{
-	float Left = 0.0f;
-	float Top = 0.0f;
-	float Right = 0.0f;
-	float Bottom = 0.0f;
-
-	// Find the bounds of the node positions
-	for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
-	{
-		const TSharedRef<SNode>& SomeChild = Children[ChildIndex];
-
-		FVector2D ChildPos = SomeChild->GetPosition();
-
-		Left = FMath::Min( Left, ChildPos.X );
-		Right = FMath::Max( Right, ChildPos.X );
-		Top = FMath::Min( Top, ChildPos.Y );
-		Bottom = FMath::Max( Bottom, ChildPos.Y );
-	}
-
-	// Pad it out in every direction, to roughly account for nodes being of non-zero extent
-	const float Padding = 100.0f;
-
-	return FSlateRect( Left - Padding, Top - Padding, Right + Padding, Bottom + Padding );
-}
-
 void SNodePanel::SelectAndCenterObject(const UObject* ObjectToSelect, bool bCenter)
 {
 	DeferredSelectionTargetObjects.Empty();

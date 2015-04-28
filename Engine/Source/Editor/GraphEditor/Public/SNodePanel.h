@@ -694,9 +694,6 @@ protected:
 	 */
 	static void ApplyMarqueeSelection(const FMarqueeOperation& InMarquee, const FGraphPanelSelectionSet& CurrentSelection, FGraphPanelSelectionSet& OutNewSelection);
 
-	/** @return a bounding rectangle around all the node locations; the graph bounds are padded out for the user's convenience */
-	FSlateRect ComputeSensibleGraphBounds() const;
-
 	/**
 	 * On the next tick, centers and selects the widget associated with the object if it exists
 	 *
