@@ -1,10 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	IBuildPatchServicesModule.h: Declares the IBuildPatchServicesModule interface.
-=============================================================================*/
-
 #pragma once
+
+#include "IBuildInstaller.h"
+#include "IBuildManifest.h"
 
 class IAnalyticsProvider;
 class FHttpServiceTracker;

@@ -157,6 +157,14 @@ public:
 private:
 
 	/**
+	 * Checks the installation directory for any already existing files of the correct size, with may account for manual
+	 * installation. Should be used for new installation detecting existing files.
+	 * NB: Not useful for patches, where we'd expect existing files anyway.
+	 * @return    Returns true if there were potentially already installed files
+	 */
+	bool CheckForExternallyInstalledFiles();
+
+	/**
 	 * Runs the installation process
 	 * @param	CorruptFiles	A list of files that were corrupt, to only install those.
 	 * @return    Returns true if there were no errors blocking installation

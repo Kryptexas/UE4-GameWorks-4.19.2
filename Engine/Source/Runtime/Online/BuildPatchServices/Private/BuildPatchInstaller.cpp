@@ -136,6 +136,7 @@ uint32 FBuildPatchInstaller::Run()
 		bProcessSuccess = bInstallSuccess && RunVerification(CorruptFiles);
 
 		// Clean staging if INSTALL success
+		BuildProgress.SetStateProgress(EBuildPatchProgress::CleanUp, 0.0f);
 		CleanUpTime = FPlatformTime::Seconds();
 		if (bInstallSuccess)
 		{
@@ -221,6 +222,33 @@ uint32 FBuildPatchInstaller::Run()
 	return bSuccess ? 0 : 1;
 }
 
+bool FBuildPatchInstaller::CheckForExternallyInstalledFiles()
+{
+	// Never return true if we are patching, we always expect existing files in that case
+	if (CurrentBuildManifest.IsValid())
+	{
+		return false;
+	}
+
+	// Check the marker file for a previous installation unfinished
+	if (IPlatformFile::GetPlatformPhysical().FileExists(*PreviousMoveMarker))
+	{
+		return true;
+	}
+
+	// Check if any required file is potentially already in place, by comparing file size as a quick 'same file' check
+	TArray<FString> BuildFiles;
+	NewBuildManifest->GetFileList(BuildFiles);
+	for (const FString& BuildFile : BuildFiles)
+	{
+		if (NewBuildManifest->GetFileSize(BuildFile) == IFileManager::Get().FileSize(*(InstallDirectory / BuildFile)))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 {
 	GLog->Logf(TEXT("BuildPatchServices: Starting Installation"));
@@ -242,11 +270,12 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Remove any inventory
 	FBuildPatchFileConstructor::PurgeFileDataInventory();
 
-	// Check if we should skip out of this process
-	bool bPreviousStagingCompleted = FPaths::FileExists(PreviousMoveMarker);
-	if (bPreviousStagingCompleted)
+	// Check if we should skip out of this process due to existing installation,
+	// that will mean we start with the verification stage
+	bool bFirstTimeRun = CorruptFiles.Num() == 0;
+	if (bFirstTimeRun && CheckForExternallyInstalledFiles())
 	{
-		GLog->Logf(TEXT("BuildPatchServices: Detected previous staging completed"));
+		GLog->Logf(TEXT("BuildPatchServices: Detected previous staging completed, or existing files in target directory"));
 		// Set weights for verify only
 		BuildProgress.SetStateWeight(EBuildPatchProgress::Downloading, 0.0f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::Installing, 0.0f);

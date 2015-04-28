@@ -232,6 +232,18 @@ void FBuildPatchServicesModule::SetStagingDirectory( const FString& StagingDir )
 void FBuildPatchServicesModule::SetCloudDirectory( const FString& CloudDir )
 {
 	CloudDirectory = CloudDir;
+
+	// Ensure that we remove any double-slash characters apart from:
+	//   1. A double slash following the URI schema
+	//   2. A double slash at the start of the path, indicating a network share
+	CloudDirectory.ReplaceInline(TEXT("\\"), TEXT("/"));
+	bool bIsNetworkPath = CloudDirectory.StartsWith(TEXT("//"));
+	CloudDirectory.ReplaceInline(TEXT("://"), TEXT(":////"));
+	CloudDirectory.ReplaceInline(TEXT("//"), TEXT("/"));
+	if (bIsNetworkPath)
+	{
+		CloudDirectory.InsertAt(0, TEXT("/"));
+	}
 }
 
 void FBuildPatchServicesModule::SetBackupDirectory( const FString& BackupDir )
