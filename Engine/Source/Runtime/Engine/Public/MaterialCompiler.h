@@ -135,6 +135,7 @@ public:
 	virtual int32 Cross(int32 A,int32 B) = 0;
 
 	virtual int32 Power(int32 Base,int32 Exponent) = 0;
+	virtual int32 Logarithm2(int32 X) = 0;
 	virtual int32 SquareRoot(int32 X) = 0;
 	virtual int32 Length(int32 X) = 0;
 
@@ -290,6 +291,7 @@ public:
 	virtual int32 Cross(int32 A,int32 B) override { return Compiler->Cross(A,B); }
 
 	virtual int32 Power(int32 Base,int32 Exponent) override { return Compiler->Power(Base,Exponent); }
+	virtual int32 Logarithm2(int32 X) override { return Compiler->Logarithm2(X); }
 	virtual int32 SquareRoot(int32 X) override { return Compiler->SquareRoot(X); }
 	virtual int32 Length(int32 X) override { return Compiler->Length(X); }
 

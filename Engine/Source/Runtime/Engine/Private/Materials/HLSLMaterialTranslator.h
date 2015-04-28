@@ -2902,6 +2902,21 @@ protected:
 		// use ClampedPow so artist are prevented to cause NAN creeping into the math
 		return AddCodeChunk(GetParameterType(Base),TEXT("ClampedPow(%s,%s)"),*GetParameterCode(Base),*CoerceParameter(Exponent,MCT_Float));
 	}
+	
+	virtual int32 Logarithm2(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+		
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionLogarithm2(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("log2(%s)"),*GetParameterCode(X));
+		}
+
+		return AddCodeChunk(GetParameterType(X),TEXT("log2(%s)"),*GetParameterCode(X));
+	}
 
 	virtual int32 SquareRoot(int32 X) override
 	{

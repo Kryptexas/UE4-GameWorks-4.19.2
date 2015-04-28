@@ -617,6 +617,14 @@ Engine/Rendering/Materials/ExpressionReference/Math#power
 [/VAR]
 [/EXCERPT:UMaterialExpressionPower]
 
+[EXCERPT:UMaterialExpressionLogarithm2]
+The Logarithm expression takes two inputs, compute X's logarithm base 2, and outputs the result; in other words, the number of time you should get 2 multiply itself to find X. The logarithm computation happens per channel. Both inputs must have the same number of values unless one of the values is a single float value. 
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Math#Logarithm
+[/VAR]
+[/EXCERPT:UMaterialExpressionLogarithm2]
+
 [EXCERPT:UMaterialExpressionSine]
 The Sine expression outputs the sine of the value input (in radians). Most commonly, this is used to output a continuous oscillating waveform by connecting a Time expression to its input. The output value will cycle back and forth between -1 and 1. The difference between this and the output of the Cosine expression is the output waveform is offset half the period.
 

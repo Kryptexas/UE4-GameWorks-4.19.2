@@ -58,6 +58,7 @@
 #include "Materials/MaterialExpressionLightmassReplace.h"
 #include "Materials/MaterialExpressionLightVector.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionLogarithm2.h"
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialExpressionMax.h"
@@ -4994,6 +4995,38 @@ void UMaterialExpressionPower::GetCaption(TArray<FString>& OutCaptions) const
 	}
 
 	OutCaptions.Add(ret);
+}
+
+UMaterialExpressionLogarithm2::UMaterialExpressionLogarithm2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FString NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+}
+
+int32 UMaterialExpressionLogarithm2::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	if(!X.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Log2 X input"));
+	}
+
+	return Compiler->Logarithm2(X.Compile(Compiler));
+}
+
+void UMaterialExpressionLogarithm2::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Log2"));
 }
 
 FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
