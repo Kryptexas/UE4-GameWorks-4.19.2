@@ -18,12 +18,12 @@ DECLARE_CYCLE_STAT(TEXT("Tile Map Proxy"), STAT_TileMap_GetDynamicMeshElements, 
 
 FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMapComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
-	, TileMap(nullptr)
 #if WITH_EDITOR
 	, bShowPerTileGrid(false)
 	, bShowPerLayerGrid(false)
 	, bShowOutlineWhenUnselected(false)
 #endif
+	, TileMap(nullptr)
 {
 	check(InComponent);
 
