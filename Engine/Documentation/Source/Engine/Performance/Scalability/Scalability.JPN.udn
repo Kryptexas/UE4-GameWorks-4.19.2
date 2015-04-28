@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2521349
+Availability:Public
 Title:拡張性
 Crumbs: %ROOT%, Engine, Engine/Performance
 Description:クオリティとパフォーマンスを調整するためのオプション
@@ -6,7 +7,7 @@ Description:クオリティとパフォーマンスを調整するためのオ�
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Performance/Scalability:title%](Engine/Rendering/rendering_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -25,7 +26,7 @@ Description:クオリティとパフォーマンスを調整するためのオ�
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Performance/Scalability:title%](Engine/Rendering/rendering_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -50,10 +51,10 @@ Description:クオリティとパフォーマンスを調整するためのオ�
 
 最近のゲームは幅広いハードウェア上で実行する必要があり、分割画面や特殊なゲームプレイ モードなどの様々なニーズに応じてゲームのパフォーマンスを適用させる必要があります。一般的にゲームのグラフィックスをチューニングすることは、ゲームプレイにあまり影響を与えずにスケーリングする一番簡単な方法です。
 
-以下のセクションでは、スケーラビリティのためにアンリアル エンジン 4 が実装する機能、その使用方法、開発者が認識しておくべき様々な規範について説明します。
+以下のセクションでは、拡張性のためにアンリアル エンジン 4 が実装する機能、その使用方法、開発者が認識しておくべき様々な規範について説明します。
 
 
 [REGION:topics third]
 %Engine/Performance/Scalability/ScalabilityAndYou:topiccompact%
-%Engine/Performance/Scalability/ScalabilityReference:topiccompact%
+%Engine/Performance/Scalability/ScalabilityReference:TopicCompact%
 [/REGION]
