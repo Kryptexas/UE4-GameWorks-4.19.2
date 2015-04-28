@@ -21,7 +21,7 @@ namespace SCommentNodeDefs
 	/** Minimum resize height for comment */
 	static const float MinHeight = 30.0;
 
-	/** TitleBarColor = CommnetColor * TitleBarColorMultiplier */
+	/** TitleBarColor = CommentColor * TitleBarColorMultiplier */
 	static const float TitleBarColorMultiplier = 0.6f;
 
 	/** Titlebar Offset - taken from the widget borders in UpdateGraphNode */
@@ -183,22 +183,23 @@ void SGraphNodeComment::UpdateGraphNode()
 	// Create comment bubble
 	TSharedPtr<SCommentBubble> CommentBubble;
 
-	SAssignNew( CommentBubble, SCommentBubble )
-	.GraphNode( GraphNode )
-	.Text( this, &SGraphNode::GetNodeComment )
-	.ColorAndOpacity( this, &SGraphNodeComment::GetCommentColor )
-	.AllowPinning( true )
-	.EnableTitleBarBubble( false )
-	.EnableBubbleCtrls( false )
-	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
-	.InvertLODCulling( true )
-	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+	SAssignNew(CommentBubble, SCommentBubble)
+	.GraphNode(GraphNode)
+	.Text(this, &SGraphNodeComment::GetNodeComment)
+	.OnTextCommitted(this, &SGraphNodeComment::OnNameTextCommited)
+	.ColorAndOpacity(this, &SGraphNodeComment::GetCommentBubbleColor )
+	.AllowPinning(true)
+	.EnableTitleBarBubble(false)
+	.EnableBubbleCtrls(false)
+	.GraphLOD(this, &SGraphNode::GetCurrentLOD)
+	.InvertLODCulling(true)
+	.IsGraphNodeHovered(this, &SGraphNode::IsHovered);
 
-	GetOrAddSlot( ENodeZone::TopCenter )
-	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
-	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
-	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
-	.VAlign( VAlign_Top )
+	GetOrAddSlot(ENodeZone::TopCenter)
+	.SlotOffset(TAttribute<FVector2D>(CommentBubble.Get(), &SCommentBubble::GetOffset))
+	.SlotSize(TAttribute<FVector2D>(CommentBubble.Get(), &SCommentBubble::GetSize))
+	.AllowScaling(TAttribute<bool>(CommentBubble.Get(), &SCommentBubble::IsScalingAllowed))
+	.VAlign(VAlign_Top)
 	[
 		CommentBubble.ToSharedRef()
 	];
@@ -207,6 +208,12 @@ void SGraphNodeComment::UpdateGraphNode()
 FVector2D SGraphNodeComment::ComputeDesiredSize( float ) const
 {
 	return UserSize;
+}
+
+FString SGraphNodeComment::GetNodeComment() const
+{
+	const FString Title = GetEditableNodeTitle();;
+	return Title;
 }
 
 FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
@@ -442,9 +449,10 @@ FSlateColor SGraphNodeComment::GetCommentTitleBarColor() const
 FSlateColor SGraphNodeComment::GetCommentBubbleColor() const
 {
 	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
-	if (CommentNode && CommentNode->bColorCommentBubble)
+	if (CommentNode)
 	{
-		const FLinearColor Color = CommentNode->CommentColor * SCommentNodeDefs::TitleBarColorMultiplier;
+		const FLinearColor Color = CommentNode->bColorCommentBubble ?	(CommentNode->CommentColor * SCommentNodeDefs::TitleBarColorMultiplier) :
+																		GetDefault<UGraphEditorSettings>()->DefaultCommentNodeTitleColor;
 		return FLinearColor(Color.R, Color.G, Color.B);
 	}
 	else

@@ -22,6 +22,7 @@ public:
 	virtual bool ShouldAllowCulling() const override { return false; }
 	virtual int32 GetSortDepth() const override;
 	virtual void EndUserInteraction() const override;
+	virtual FString GetNodeComment() const override;
 	// End SNodePanel::SNode interface
 
 	// Begin SPanel Interface
