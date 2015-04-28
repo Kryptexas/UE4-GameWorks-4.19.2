@@ -1450,8 +1450,6 @@ public:
 		SunColorVignetteIntensityParam.W = Settings.VignetteIntensity;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, SunColorVignetteIntensity, SunColorVignetteIntensityParam);
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColor, Context.View.FinalPostProcessSettings.VignetteColor);
-
 		// Scaling Bloom1 by extra factor to match filter area difference between PC default and mobile.
 		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomColor, Context.View.FinalPostProcessSettings.Bloom1Tint * Context.View.FinalPostProcessSettings.BloomIntensity * 0.5);
 	}
@@ -1459,7 +1457,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << SunColorVignetteIntensity << VignetteColor << BloomColor;
+		Ar << PostprocessParameter << SunColorVignetteIntensity << BloomColor;
 		return bShaderHasOutdatedParameters;
 	}
 };
@@ -1679,8 +1677,6 @@ public:
 		SunColorVignetteIntensityParam.W = Settings.VignetteIntensity;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, SunColorVignetteIntensity, SunColorVignetteIntensityParam);
 
-		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColor, Context.View.FinalPostProcessSettings.VignetteColor);
-
 		// Scaling Bloom1 by extra factor to match filter area difference between PC default and mobile.
 		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomColor, Context.View.FinalPostProcessSettings.Bloom1Tint * Context.View.FinalPostProcessSettings.BloomIntensity * 0.5);
 		SetShaderValue(Context.RHICmdList, ShaderRHI, BloomColor2, Context.View.FinalPostProcessSettings.Bloom2Tint * Context.View.FinalPostProcessSettings.BloomIntensity);
@@ -1689,7 +1685,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << SunColorVignetteIntensity << VignetteColor << BloomColor << BloomColor2;
+		Ar << PostprocessParameter << SunColorVignetteIntensity << BloomColor << BloomColor2;
 		return bShaderHasOutdatedParameters;
 	}
 };
@@ -2603,14 +2599,16 @@ public:
 		FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 		if(ViewState)
 		{
-			FMatrix Proj = Context.View.ViewMatrices.ProjMatrix;
+			const FViewInfo& View = Context.View;
+
+			FMatrix Proj = View.ViewMatrices.ProjMatrix;
 			FMatrix PrevProj = ViewState->PrevViewMatrices.ProjMatrix;
 
 			// Remove jitter
-			Proj.M[2][0] = 0.0f;
-			Proj.M[2][1] = 0.0f;
-			PrevProj.M[2][0] = 0.0f;
-			PrevProj.M[2][1] = 0.0f;
+			Proj.M[2][0] -= View.ViewMatrices.TemporalAASample.X * 2.0f / View.ViewRect.Width();
+			Proj.M[2][1] -= View.ViewMatrices.TemporalAASample.Y * 2.0f / View.ViewRect.Height();
+			PrevProj.M[2][0] -= ViewState->PrevViewMatrices.TemporalAASample.X * 2.0f / View.ViewRect.Width();
+			PrevProj.M[2][1] -= ViewState->PrevViewMatrices.TemporalAASample.Y * 2.0f / View.ViewRect.Height();
 
 			FMatrix ViewProj = ( Context.View.ViewMatrices.ViewMatrix * Proj ).GetTransposed();
 			FMatrix PrevViewProj = ( ViewState->PrevViewMatrices.ViewMatrix * PrevProj ).GetTransposed();
@@ -2786,8 +2784,8 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
 	{
 		// Remove jitter (ensures editor prims are stable.)
-		View.ViewMatrices.ProjMatrix.M[2][0] = 0.0f;
-		View.ViewMatrices.ProjMatrix.M[2][1] = 0.0f;
+		View.ViewMatrices.ProjMatrix.M[2][0] -= View.ViewMatrices.TemporalAASample.X * 2.0f / View.ViewRect.Width();
+		View.ViewMatrices.ProjMatrix.M[2][1] -= View.ViewMatrices.TemporalAASample.Y * 2.0f / View.ViewRect.Height();
 
 		// Compute the view projection matrix and its inverse.
 		View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;

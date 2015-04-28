@@ -28,8 +28,6 @@ public:
 	/** @return 0xffffffff if not found */
 	uint32 FindIndex(const FFinalPostProcessSettings& Settings, UTexture* Tex) const;
 
-	static bool IsColorGradingLUTNeeded(const FViewInfo* RESTRICT View);
-
 private:
 
 	EShaderPlatform ShaderPlatform;
