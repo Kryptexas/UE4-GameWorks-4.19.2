@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438434
+﻿INTSourceChangelist:2517729
 Availability:Public
 Title:ドアの設定
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -58,7 +58,7 @@ Description:マチネで自動的に開閉するドアを設定する
 
 	![](MHT1_DoorCollision.png)
 
-	_注記:このドアには適用されているコリジョンはありませんでした。上記のステップでは、コリジョンを確実に適用させるようにします。_
+	_注記:上記のステップでは、コリジョンを確実に適用させるようにします。_
 
 1. **レベル ビューポート** で **SM_Door** が選択されている状態で **[詳細]** パネルを探します。**Transform** と **Rotation** 設定で **Z** 値を **-180** に設定します。 
 
