@@ -1353,20 +1353,45 @@ void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHa
 }
 
 //This is only called when ending or canceling an ability in response to a remote instruction.
-void UAbilitySystemComponent::RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
+void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled)
 {
 	FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(AbilityToEnd);
 	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive())
 	{
-		TArray<UGameplayAbility*> Instances = AbilitySpec->GetAbilityInstances();
-
-		for (auto Instance : Instances)
+		// Handle non-instanced case, which cannot perform prediction key validation
+		if (AbilitySpec->Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
 		{
-			// Check if the ability is the same prediction key (can both by 0) and has been confirmed. If so cancel it.
-			if (Instance->GetCurrentActivationInfoRef().GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->GetCurrentActivationInfoRef().bCanBeEndedByOtherInstance)
+			// End/Cancel the ability but don't replicate it back to whoever called us
+			if (bWasCanceled)
 			{
-				// End the ability but don't replicate it back to whoever called us
-				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				AbilitySpec->Ability->CancelAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false);
+			}
+			else
+			{
+				AbilitySpec->Ability->EndAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false);
+			}
+		}
+		else
+		{
+			TArray<UGameplayAbility*> Instances = AbilitySpec->GetAbilityInstances();
+
+			for (auto Instance : Instances)
+			{
+				// Check if the ability is the same prediction key (can both by 0) and has been confirmed. If so cancel it.
+				if (Instance->GetCurrentActivationInfoRef().GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->GetCurrentActivationInfoRef().bCanBeEndedByOtherInstance)
+				{
+					// End/Cancel the ability but don't replicate it back to whoever called us
+					if (bWasCanceled)
+					{
+						// Since this was a remote cancel, we should force it through. We do not support 'server says ability was cancelled but client disagrees that it can be'.
+						Instance->SetCanBeCanceled(true);
+						Instance->CancelAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+					}
+					else
+					{
+						Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+					}
+				}
 			}
 		}
 	}
@@ -1376,7 +1401,7 @@ void UAbilitySystemComponent::ServerEndAbility_Implementation(FGameplayAbilitySp
 {
 	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
 	
-	RemoteEndAbility(AbilityToEnd, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
 }
 
 bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
@@ -1386,12 +1411,12 @@ bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHand
 
 void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToEnd, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
 }
 
 void UAbilitySystemComponent::ServerCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToCancel, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
 }
 
 bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
@@ -1401,7 +1426,7 @@ bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecH
 
 void UAbilitySystemComponent::ClientCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToCancel, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
 }
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
@@ -2237,13 +2262,13 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			bool ReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
 			if( ReplicatedIsStopped && !bIsStopped )
 			{
-				CurrentMontageStop();
+				CurrentMontageStop(RepAnimMontageInfo.BlendTime);
 			}
 		}
 	}
 }
 
-void UAbilitySystemComponent::CurrentMontageStop()
+void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
 	UAnimMontage* MontageToStop = LocalAnimMontageInfo.AnimMontage;
@@ -2251,6 +2276,8 @@ void UAbilitySystemComponent::CurrentMontageStop()
 
 	if (bShouldStopMontage)
 	{
+		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOutTime);
+
 		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
 
 		if (IsOwnerActorAuthoritative())

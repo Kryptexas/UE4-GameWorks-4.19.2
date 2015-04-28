@@ -697,7 +697,7 @@ protected:
 	void	ClientTryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate);
 
 	/** Called by ServerEndAbility and ClientEndAbility; avoids code duplication. */
-	void	RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
+	void	RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled);
 
 	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey);
@@ -817,16 +817,16 @@ public:
 	/** Plays a montage without updating replication/prediction structures. Used by simulated proxies when replication tells them to play a montage. */
 	float PlayMontageSimulated(UAnimMontage* Montage, float InPlayRate, FName StartSectionName = NAME_None);
 
-	/** Stops whatever montage is currently playing. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
-	void CurrentMontageStop();
+	/** Stops whatever montage is currently playing. Expectation is caller should only be stopping it if they are the current animating ability (or have good reason not to check) */
+	void CurrentMontageStop(float OverrideBlendOutTime = -1.0f);
 
 	/** Clear the animating ability that is passed in, if it's still currently animating */
 	void ClearAnimatingAbility(UGameplayAbility* Ability);
 
-	/** Jumps current montage to given section. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	/** Jumps current montage to given section. Expectation is caller should only be stopping it if they are the current animating ability (or have good reason not to check) */
 	void CurrentMontageJumpToSection(FName SectionName);
 
-	/** Sets current montages next section name. Expectation is caller should only be stoping it if they are the current animating ability (or have good reason not to check) */
+	/** Sets current montages next section name. Expectation is caller should only be stopping it if they are the current animating ability (or have good reason not to check) */
 	void CurrentMontageSetNextSectionName(FName FromSectionName, FName ToSectionName);
 
 	/** Returns true if the passed in ability is the current animating ability */
