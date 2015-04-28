@@ -85,9 +85,12 @@ void FTileSetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 				UProperty* TestProperty = *PropIt;
 				if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
 				{
+					const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+					const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
+
 					const FString PropertyPath = ArrayEntryPathPrefix + TestProperty->GetName();
 					TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(*PropertyPath);
-					SingleTileCategory.AddProperty(PropertyHandle);
+					SingleTileCategory.AddProperty(PropertyHandle, PropertyLocation);
 				}
 			}
 
