@@ -480,10 +480,17 @@ FORCEINLINE FRotator FRotator::operator-=( const FRotator &R )
 
 FORCEINLINE bool FRotator::IsNearlyZero(float Tolerance) const
 {
+#if PLATFORM_ENABLE_VECTORINTRINSICS
+	const VectorRegister RegA = VectorLoadFloat3_W0(this);
+	const VectorRegister Norm = VectorNormalizeRotator(RegA);
+	const VectorRegister AbsNorm = VectorAbs(Norm);
+	return !VectorAnyGreaterThan(AbsNorm, VectorLoadFloat1(&Tolerance));
+#else
 	return
 		FMath::Abs(NormalizeAxis(Pitch))<=Tolerance
 		&&	FMath::Abs(NormalizeAxis(Yaw))<=Tolerance
 		&&	FMath::Abs(NormalizeAxis(Roll))<=Tolerance;
+#endif
 }
 
 
@@ -495,9 +502,17 @@ FORCEINLINE bool FRotator::IsZero() const
 
 FORCEINLINE bool FRotator::Equals(const FRotator &R, float Tolerance) const
 {
+#if PLATFORM_ENABLE_VECTORINTRINSICS
+	const VectorRegister RegA = VectorLoadFloat3_W0(this);
+	const VectorRegister RegB = VectorLoadFloat3_W0(&R);
+	const VectorRegister NormDelta = VectorNormalizeRotator(VectorSubtract(RegA, RegB));
+	const VectorRegister AbsNormDelta = VectorAbs(NormDelta);
+	return !VectorAnyGreaterThan(AbsNormDelta, VectorLoadFloat1(&Tolerance));
+#else
 	return (FMath::Abs(NormalizeAxis(Pitch - R.Pitch)) <= Tolerance) 
 		&& (FMath::Abs(NormalizeAxis(Yaw - R.Yaw)) <= Tolerance) 
 		&& (FMath::Abs(NormalizeAxis(Roll - R.Roll)) <= Tolerance);
+#endif
 }
 
 
