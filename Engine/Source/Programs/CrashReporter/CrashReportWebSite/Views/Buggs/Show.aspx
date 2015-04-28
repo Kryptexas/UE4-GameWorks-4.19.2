@@ -121,7 +121,7 @@
 			<%if( string.IsNullOrEmpty( Model.Bugg.TTPID ) )
 			{ %>
 				<dd class='even'>
-					<input type="submit" value="CopyToJira" title="<%=Model.Bugg.ToTooltip()%>" id="id <%=Model.Bugg.Id%>" name="CopyToJira-<%=Model.Bugg.Id%>" class="CopyToJiraStyle" />
+					<input type="submit" value="CopyToJira" title="<%=Model.Bugg.ToTooltip()%>" id="id <%=Model.Bugg.Id%>" name="CopyToJira-<%=Model.Bugg.Id%>" class="SearchButton CopyToJiraStyle" />
 				</dd>
 			<% } else { %>
 				<dd class='even'>

@@ -849,7 +849,6 @@ th a:visited
 	margin: 2px;
 }
 
-.CopyToJiraStyle,
 .SearchButton
 {
 	/*padding: 0;*/
@@ -861,15 +860,26 @@ th a:visited
 	background-color: #5c87b2;
 	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 	font-size: 14px;
+
+	padding: 2px;
+	margin: 0px;
+
+	height: 24px;
 }
 
-	.CopyToJiraStyle:hover,
 	.SearchButton:hover
 	{
 		color: blue;
 		border-color: #718698;
 		background-color: #CCC;
 	}
+
+.CopyToJiraStyle
+{
+	font-size: 12px;
+
+	height: initial;
+}
 
 /* User admin screen
 ----------------------------------------------------------*/

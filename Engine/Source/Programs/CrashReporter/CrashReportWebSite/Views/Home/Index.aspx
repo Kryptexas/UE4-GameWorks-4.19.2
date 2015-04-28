@@ -29,7 +29,6 @@ Crash Reporter - Home
 			onSelect: function () {
 				$("#dateFrom").val($("#dateFromVisible").datepicker('getDate').getTime());
 				$("#dateTo").val($("#dateToVisible").datepicker('getDate').getTime());
-				//$("#FilterCrashesForm").submit();
 			}
 		});
 

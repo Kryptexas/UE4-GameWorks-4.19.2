@@ -15,6 +15,9 @@ table, table tr, table th, table td
 
 	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 	font-size: 12px;
+
+	padding: 2px;
+	margin: 2px;
 }
 
 </style>
@@ -43,7 +46,7 @@ table, table tr, table th, table td
 </table>
 <br />
 
-<table>
+<table style="width: 100%">
 	<tr>
 		<th>
 			#
@@ -52,19 +55,13 @@ table, table tr, table th, table td
 			URL
 		</th>
 		<th>
-			JIRA
-		</th>
-		<th>
-			FixCL
-		</th>
-		<th>
 			# Occurrences
 		</th>
 		<th>
-			Latest Version Affected
+			# Affected Users
 		</th>
 		<th>
-			# Affected Users
+			Versions Affected
 		</th>
 		<th>
 			Latest CL Affected
@@ -73,21 +70,20 @@ table, table tr, table th, table td
 			Latest Environment Affected
 		</th>
 		<th>
-			First Crash Timestamp
+			JIRA
 		</th>
-
 		<%--JIRA--%>
 		<th>
-			JiraSummary
+			JiraComponents
 		</th>
-		<th>
-			JiraComponentsText
+		<th style="width: 384px">
+			JiraSummary
 		</th>
 		<th>
 			JiraResolution
 		</th>
 		<th>
-			JiraFixVersionsText
+			JiraFixVersions
 		</th>
 		<th>
 			JiraFixCL
@@ -109,11 +105,30 @@ table, table tr, table th, table td
 			<%--<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.TTPID%>" target="_blank"><%=Model.Bugg.TTPID%></a>--%>
 			<%=Html.ActionLink( Bugg.Id.ToString(), "Show", new { controller = "Buggs", id = Bugg.Id }, null )%>
 		</td>
-
+		<td>
+			<%--NewBugg.NumberOfCrashes = Top.Value;					// # Occurrences--%>
+			<%=Bugg.CrashesInTimeFrameGroup%>
+		</td>
+		<td>
+			<%--NewBugg.NumberOfUniqueMachines = MachineIds.Count;		// # Affected Users--%>
+			<%=Bugg.NumberOfUniqueMachines%>
+		</td>
+		<td>
+			<%--NewBugg.BuildVersion = NewBugg.AffectedVersions.Last();	// Latest Version Affected--%>
+			<%=Bugg.GetAffectedVersions()%>
+		</td>
+		<td>
+			<%--NewBugg.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected--%>
+			<%=Bugg.LatestCLAffected%>
+		</td>
+		<td>
+			<%--NewBugg.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected--%>
+			<%=Bugg.LatestOSAffected%>
+		</td>
 		<%if( string.IsNullOrEmpty( Bugg.TTPID ) && !string.IsNullOrEmpty(Bugg.Pattern ) )
 		{ %>
 			<td>
-				<input type="submit" value="CopyToJira" title="<%=Bugg.ToTooltip()%>" id="id <%=Bugg.Id%>" name="CopyToJira-<%=Bugg.Id%>" class="CopyToJiraStyle" />
+				<input type="submit" value="CopyToJira" title="<%=Bugg.ToTooltip()%>" id="id <%=Bugg.Id%>" name="CopyToJira-<%=Bugg.Id%>" class="SearchButton CopyToJiraStyle CopyToJiraStyle" />
 			</td>
 		<% } else if( string.IsNullOrEmpty( Bugg.TTPID ) && string.IsNullOrEmpty(Bugg.Pattern ) )
 		{ %>
@@ -128,41 +143,12 @@ table, table tr, table th, table td
 		<% } %>
 
 		<td>
-			<%--NewBugg.FixedChangeList = RealBugg.FixedChangeList;		// FixCL--%>
-			<%=Bugg.FixedChangeList%>
+			<%=Bugg.JiraComponentsText%>
 		</td>
-		<td>
-			<%--NewBugg.NumberOfCrashes = Top.Value;					// # Occurrences--%>
-			<%=Bugg.CrashesInTimeFrameGroup%>
-		</td>
-		<td>
-			<%--NewBugg.BuildVersion = NewBugg.AffectedVersions.Last();	// Latest Version Affected--%>
-			<%=Bugg.BuildVersion%>
-		</td>
-		<td>
-			<%--NewBugg.NumberOfUniqueMachines = MachineIds.Count;		// # Affected Users--%>
-			<%=Bugg.NumberOfUniqueMachines%>
-		</td>
-		<td>
-			<%--NewBugg.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected--%>
-			<%=Bugg.LatestCLAffected%>
-		</td>
-		<td>
-			<%--NewBugg.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected--%>
-			<%=Bugg.LatestOSAffected%>
-		</td>
-		<td>
-			<%--NewBugg.TimeOfFirstCrash = RealBugg.TimeOfFirstCrash;	// First Crash Timestamp	--%>
-			<%=Bugg.TimeOfFirstCrash%>
-		</td>
-
 		<%--JIRA--%>
 		<td style="max-width: 256px;">
 			<%=Bugg.JiraSummary%>
-		</td>
-		<td>
-			<%=Bugg.JiraComponentsText%>
-		</td>
+		</td>		
 		<td>
 			<%=Bugg.JiraResolution%>
 		</td>
