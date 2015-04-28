@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2488290
+﻿INTSourceChangelist:2514715
 Availability:Public
 Title:スタティックメッシュ - マテリアルの設定方法
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
@@ -56,7 +56,7 @@ Description:スタティックメッシュ エディタ内でメッシュのマ�
 ![](NewProjectWithStarterContent.png)
 
 
-プロジェクトが読み込まれたら **コンテンツ ブラウザ** を探します。**スターター コンテンツ** を有効にしたら **コンテンツ ブラウザ** に **Starter Content** という名前のフォルダが存在するはずです。以下のようになるはずです。
+プロジェクトが読み込まれたら **コンテンツ ブラウザ** を探します。**スターター コンテンツ** を有効にしたら **コンテンツ ブラウザ** に **Starter Content** という名前のフォルダが存在します。下記のようになります。
 
 ![](ContentBrowserWithStarterContent.png)(w:400 h:500)
 
