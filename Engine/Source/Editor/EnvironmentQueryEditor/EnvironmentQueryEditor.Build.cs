@@ -35,6 +35,7 @@ public class EnvironmentQueryEditor : ModuleRules
 				"UnrealEd", 
 				"MessageLog", 
 				"GraphEditor",
+				"KismetWidgets",
                 "PropertyEditor",
 				"AnimGraph",
 				"BlueprintGraph",

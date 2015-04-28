@@ -22,6 +22,8 @@ void SNodeTitle::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
 
 	ExtraLineStyle = InArgs._ExtraLineStyle;
 
+	CachedSize = FVector2D::ZeroVector;
+
 	// If the user set the text, use it, otherwise use the node title by default
 	if(InArgs._Text.IsSet())
 	{
@@ -37,6 +39,8 @@ void SNodeTitle::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
 
 void SNodeTitle::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
+	CachedSize = AllottedGeometry.GetLocalSize();
+
 	// Checks to see if the cached string is valid, and if not, updates it.
 	if (NodeTitleCache.IsOutOfDate(GraphNode))
 	{
@@ -55,6 +59,11 @@ FText SNodeTitle::GetNodeTitle() const
 FText SNodeTitle::GetHeadTitle() const
 {
 	return GraphNode->bCanRenameNode ? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle) : CachedHeadTitle;
+}
+
+FVector2D SNodeTitle::GetTitleSize() const
+{
+	return CachedSize;
 }
 
 void SNodeTitle::RebuildWidget()

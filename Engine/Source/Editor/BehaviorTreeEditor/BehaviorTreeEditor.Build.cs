@@ -37,6 +37,7 @@ public class BehaviorTreeEditor : ModuleRules
 				"MessageLog", 
 				"GraphEditor",
                 "Kismet",
+				"KismetWidgets",
                 "PropertyEditor",
 				"AnimGraph",
 				"BlueprintGraph",

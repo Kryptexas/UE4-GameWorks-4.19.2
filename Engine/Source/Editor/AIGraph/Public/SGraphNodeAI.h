@@ -62,6 +62,8 @@ protected:
 	uint32 bDragMarkerVisible : 1;
 
 	virtual FText GetDescription() const;
+	virtual EVisibility GetDescriptionVisibility() const;
+
 	virtual FText GetPreviewCornerText() const;
 	virtual const FSlateBrush* GetNameIcon() const;
 };
