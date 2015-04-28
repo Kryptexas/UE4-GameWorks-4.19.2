@@ -2,22 +2,19 @@
 
 #pragma once
 
+#include "Misc/TextFilter.h"
+
 class SFoliagePaletteTile;
 class FEdModeFoliage;
-struct FFoliageMeshUIInfo;
-typedef TSharedPtr<FFoliageMeshUIInfo> FFoliageMeshUIInfoPtr; //should match typedef in FoliageEdMode.h
+class FFoliagePaletteItemModel;
 
-typedef STreeView<FFoliageMeshUIInfoPtr> SFoliageTypeTreeView;
-typedef STileView<FFoliageMeshUIInfoPtr> SFoliageTypeTileView;
+typedef TSharedPtr<FFoliagePaletteItemModel> FFoliagePaletteItemModelPtr;
+typedef STreeView<FFoliagePaletteItemModelPtr> SFoliageTypeTreeView;
+typedef STileView<FFoliagePaletteItemModelPtr> SFoliageTypeTileView;
 
-/** View modes supported by the foliage palette */
-namespace EPaletteViewMode
+namespace FoliagePaletteConstants
 {
-	enum Type
-	{
-		Thumbnail,
-		Tree
-	};
+	const FInt32Interval ThumbnailSizeRange(32, 128);
 }
 
 /** The palette of foliage types available for use by the foliage edit mode */
@@ -29,25 +26,43 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
-	void Refresh();
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
+	/** Updates the foliage palette, optionally doing a full refresh of the items in the palette as well */
+	void UpdatePalette(bool bRefreshItems = false);
 	
 	bool AnySelectedTileHovered() const;
 	void ActivateAllSelectedTypes(bool bActivate) const;
 
 	/** @return True if the given view mode is the active view mode */
-	bool IsActiveViewMode(EPaletteViewMode::Type ViewMode) const;
+	bool IsActiveViewMode(EFoliagePaletteViewMode::Type ViewMode) const;
 
 	/** @return True if tooltips should be shown when hovering over foliage type items in the palette */
 	bool ShouldShowTooltips() const;
+
+	/** @return The current search filter text */
+	FText GetSearchText() const;
+
+	/** Adds the foliage type asset to the instanced foliage actor's list of types. */
+	void AddFoliageType(const FAssetData& AssetData);
 
 private:	// GENERAL
 
 	/** Binds commands used by the palette */
 	void BindCommands();
 
-	/** Adds the foliage type asset to the foliage actor's list of meshes. */
-	void AddFoliageType(const FAssetData& AssetData);
-	
+	/** Refreshes the active palette view widget */
+	void RefreshActivePaletteViewWidget();
+
+	/** Creates the palette views */
+	TSharedRef<class SWidgetSwitcher> CreatePaletteViews();
+
+	/** Adds the displayed name of the foliage type for filtering */
+	void GetPaletteItemFilterString(FFoliagePaletteItemModelPtr PaletteItemModel, TArray<FString>& OutArray) const;
+
+	/** Handles changes to the search filter text */
+	void OnSearchTextChanged(const FText& InFilterText);
+
 	/** Gets the asset picker for adding a foliage type. */
 	TSharedRef<SWidget> GetAddFoliageTypePicker();
 
@@ -62,7 +77,7 @@ private:	// GENERAL
 	void HandleOnToolChanged();
 
 	/** Sets the view mode of the palette */
-	void SetViewMode(EPaletteViewMode::Type NewViewMode);
+	void SetViewMode(EFoliagePaletteViewMode::Type NewViewMode);
 
 	/** Sets whether to show tooltips when hovering over foliage type items in the palette */
 	void ToggleShowTooltips();
@@ -74,18 +89,24 @@ private:	// GENERAL
 	int32 GetActiveViewIndex() const;
 
 	/** Handler for selection changes in either view */
-	void OnSelectionChanged(FFoliageMeshUIInfoPtr Item, ESelectInfo::Type SelectInfo);
+	void OnSelectionChanged(FFoliagePaletteItemModelPtr Item, ESelectInfo::Type SelectInfo);
 
 	/** Toggle the activation state of a type on a double-click */
-	void OnItemDoubleClicked(FFoliageMeshUIInfoPtr Item) const;
+	void OnItemDoubleClicked(FFoliagePaletteItemModelPtr Item) const;
 
 	/** Creates the view options menu */
 	TSharedRef<SWidget> GetViewOptionsMenuContent();
 
-	TSharedPtr<SListView<FFoliageMeshUIInfoPtr>> GetActiveViewWidget() const;
+	TSharedPtr<SListView<FFoliagePaletteItemModelPtr>> GetActiveViewWidget() const;
 
 	/** Gets the visibility of the "Drop Foliage Here" prompt for when the palette is empty */
 	EVisibility GetDropFoliageHintVisibility() const;
+
+	/** Gets the visibility of the drag-drop zone overlay */
+	EVisibility GetFoliageDropTargetVisibility() const;
+
+	/** Handles dropping of a mesh or foliage type into the palette */
+	FReply HandleFoliageDropped(const FGeometry& DropZoneGeometry, const FDragDropEvent& DragDropEvent);
 
 private:	// CONTEXT MENU
 
@@ -128,15 +149,27 @@ private:	// CONTEXT MENU
 private:	// THUMBNAIL VIEW
 
 	/** Creates a thumbnail tile for the given foliage type */
-	TSharedRef<ITableRow> GenerateTile(FFoliageMeshUIInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> GenerateTile(FFoliagePaletteItemModelPtr Item, const TSharedRef<STableViewBase>& OwnerTable);
+
+	/** Gets the scaled thumbnail tile size */
+	float GetScaledThumbnailSize() const;
+
+	/** Gets the current scale of the thumbnail tiles */
+	float GetThumbnailScale() const;
+
+	/** Sets the current scale of the thumbnail tiles */
+	void SetThumbnailScale(float InScale);
+
+	/** Gets whether the thumbnail scaling slider is visible */
+	bool GetThumbnailScaleSliderEnabled() const;
 
 private:	// TREE VIEW
 
 	/** Generates a row widget for foliage mesh item */
-	TSharedRef<ITableRow> TreeViewGenerateRow(FFoliageMeshUIInfoPtr Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> TreeViewGenerateRow(FFoliagePaletteItemModelPtr Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Generates a list of children items for foliage item */
-	void TreeViewGetChildren(FFoliageMeshUIInfoPtr Item, TArray<FFoliageMeshUIInfoPtr>& OutChildren);
+	void TreeViewGetChildren(FFoliagePaletteItemModelPtr Item, TArray<FFoliagePaletteItemModelPtr>& OutChildren);
 
 	/** Text for foliage meshes list header */
 	FText GetMeshesHeaderText() const;
@@ -151,7 +184,7 @@ private:	// TREE VIEW
 private:	// DETAILS
 
 	/** Refreshes the mesh details widget to match the current selection */
-	void RefreshMeshDetailsWidget();
+	void RefreshDetailsWidget();
 
 	/** Gets the text for the details area header */
 	FText GetDetailsNameAreaText() const;
@@ -166,6 +199,18 @@ private:	// DETAILS
 	FReply OnShowHideDetailsClicked() const;
 
 private:
+	/** Active timer handler to update the items in the palette */
+	EActiveTimerReturnType UpdatePaletteItems(double InCurrentTime, float InDeltaTime);
+
+private:
+	typedef TTextFilter<FFoliagePaletteItemModelPtr> FoliageTypeTextFilter;
+	TSharedPtr<FoliageTypeTextFilter> TypeFilter;
+
+	/** All the items in the palette */
+	TMap<FFoliageMeshUIInfoPtr, FFoliagePaletteItemModelPtr> PaletteItemsByTypeInfo;
+
+	/** The filtered list of types to display in the palette */
+	TArray<FFoliagePaletteItemModelPtr> FilteredItems;
 
 	/** Switches between the thumbnail and tree views */
 	TSharedPtr<class SWidgetSwitcher> WidgetSwitcher;
@@ -190,7 +235,6 @@ private:
 
 	FEdModeFoliage* FoliageEditMode;
 
-	//@todo: Should be saved to config
-	EPaletteViewMode::Type ActiveViewMode;
-	bool bShowTooltips;
+	bool bItemsNeedRefresh : 1;
+	bool bIsActiveTimerRegistered : 1;
 };

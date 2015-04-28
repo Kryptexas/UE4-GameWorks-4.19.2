@@ -11,87 +11,12 @@
 #include "SFoliagePalette.h"
 #include "SScaleBox.h"
 
-
-// Possibly not needed (move over to SFoliagePalette)
-#include "Editor/UnrealEd/Public/AssetSelection.h"
-#include "Editor/UnrealEd/Public/ScopedTransaction.h"
-
-// Seemingly totally unneeded
-//#include "DetailLayoutBuilder.h"
-
-
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
-
-class SFoliageDragDropHandler : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS(SFoliageDragDropHandler) {}
-	SLATE_DEFAULT_SLOT(FArguments, Content)
-	SLATE_ARGUMENT(TWeakPtr<SFoliageEdit>, FoliageEditPtr)
-	SLATE_END_ARGS()
-
-	/** SCompoundWidget functions */
-	void Construct(const FArguments& InArgs)
-	{
-		FoliageEditPtr = InArgs._FoliageEditPtr;
-		bIsDragOn = false;
-
-		this->ChildSlot
-		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
-			.BorderBackgroundColor(this, &SFoliageDragDropHandler::GetBackgroundColor)
-			.Padding(FMargin(30))
-			[
-				InArgs._Content.Widget
-			]
-		];
-	}
-
-	~SFoliageDragDropHandler() {}
-
-	FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
-	{
-		bIsDragOn = false;
-
-		TSharedPtr<SFoliageEdit> PinnedPtr = FoliageEditPtr.Pin();
-		if (PinnedPtr.IsValid())
-		{
-			return PinnedPtr->OnDrop_ListView(MyGeometry, DragDropEvent);
-		}
-		return FReply::Handled();
-	}
-
-	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
-	{
-		bIsDragOn = true;
-	}
-
-	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override
-	{
-		bIsDragOn = false;
-	}
-
-private:
-	FSlateColor GetBackgroundColor() const
-	{
-		return bIsDragOn ? FLinearColor(1.0f, 0.6f, 0.1f, 0.9f) : FLinearColor(0.1f, 0.1f, 0.1f, 0.9f);
-	}
-
-private:
-	TWeakPtr<SFoliageEdit> FoliageEditPtr;
-	bool bIsDragOn;
-};
-
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SFoliageEdit::Construct(const FArguments& InArgs)
 {
 	FoliageEditMode = (FEdModeFoliage*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Foliage);
-
-	FFoliageEditCommands::Register();
-	UICommandList = MakeShareable(new FUICommandList);
-	BindCommands();
 
 	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
 
@@ -346,8 +271,6 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					]
 
 					+ SVerticalBox::Slot()
-					.AutoHeight()
-					.HAlign(HAlign_Fill)
 					.Padding(StandardPadding)
 					[
 						SNew(SWrapBox)
@@ -356,69 +279,68 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 
 						// Select all instances
 						+ SWrapBox::Slot()
-						.Padding(FMargin(0.f, 0.f, 5.f, 0.f))
+						.Padding(FMargin(0.f, 0.f, 6.f, 3.f))
 						[
-							SNew(SButton)
-							.OnClicked(this, &SFoliageEdit::OnSelectAllInstances)
-							.Text(LOCTEXT("SelectAllInstances", "Select All"))
-							.ToolTipText(LOCTEXT("SelectAllInstances_Tooltip", "Selects all foliage instances"))
+							SNew(SBox)
+							.WidthOverride(100.f)
+							.HeightOverride(25.f)
+							[
+								SNew(SButton)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								.OnClicked(this, &SFoliageEdit::OnSelectAllInstances)
+								.Text(LOCTEXT("SelectAllInstances", "Select All"))
+								.ToolTipText(LOCTEXT("SelectAllInstances_Tooltip", "Selects all foliage instances"))
+							]
 						]
 
 						// Select all invalid instances
 						+ SWrapBox::Slot()
-						.Padding(FMargin(0.f, 0.f, 5.f, 0.f))
+						.Padding(FMargin(0.f, 0.f, 6.f, 3.f))
 						[
-							SNew(SButton)
-							.OnClicked(this, &SFoliageEdit::OnSelectInvalidInstances)
-							.Text(LOCTEXT("SelectInvalidInstances", "Select Invalid"))
-							.ToolTipText(LOCTEXT("SelectInvalidInstances_Tooltip", "Selects all foliage instances that are not placed in a valid location"))
+							SNew(SBox)
+							.WidthOverride(100.f)
+							.HeightOverride(25.f)
+							[
+								SNew(SButton)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								.OnClicked(this, &SFoliageEdit::OnSelectInvalidInstances)
+								.Text(LOCTEXT("SelectInvalidInstances", "Select Invalid"))
+								.ToolTipText(LOCTEXT("SelectInvalidInstances_Tooltip", "Selects all foliage instances that are not placed in a valid location"))
+						
+							]
 						]
 
 						// Deselect all
 						+ SWrapBox::Slot()
-						.Padding(FMargin(0.f, 0.f, 5.f, 0.f))
+						.Padding(FMargin(0.f, 0.f, 6.f, 3.f))
 						[
-							SNew(SButton)
-							.OnClicked(this, &SFoliageEdit::OnDeselectAllInstances)
-							.Text(LOCTEXT("DeselectAllInstances", "Deselect All"))
-							.ToolTipText(LOCTEXT("DeselectAllInstances_Tooltip", "Deselects all foliage instances"))
+							SNew(SBox)
+							.WidthOverride(100.f)
+							.HeightOverride(25.f)
+							[
+								SNew(SButton)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								.OnClicked(this, &SFoliageEdit::OnDeselectAllInstances)
+								.Text(LOCTEXT("DeselectAllInstances", "Deselect All"))
+								.ToolTipText(LOCTEXT("DeselectAllInstances_Tooltip", "Deselects all foliage instances"))
+							]
 						]
 					]
 				]
 			]
 		]
 
+		// Foliage Palette
 		+ SVerticalBox::Slot()
 		.FillHeight(1.f)
 		.VAlign(VAlign_Fill)
 		.Padding(0.f, 5.f, 0.f, 0.f)
 		[
-			SNew(SOverlay)
-
-			+ SOverlay::Slot()
-			[
-				SAssignNew(FoliagePalette, SFoliagePalette)
-				.FoliageEdMode(FoliageEditMode)
-			]
-			
-			// Foliage Mesh Drop Zone
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SFoliageDragDropHandler)
-				.Visibility(this, &SFoliageEdit::GetVisibility_FoliageDropTarget)
-				.FoliageEditPtr(SharedThis(this))
-				[
-					SNew(SScaleBox)
-					.Stretch(EStretch::ScaleToFit)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("Foliage_AddFoliageMesh", "+ Foliage Mesh"))
-						.ShadowOffset(FVector2D(1.f, 1.f))
-					]
-				]
-			]
+			SAssignNew(FoliagePalette, SFoliagePalette)
+			.FoliageEdMode(FoliageEditMode)
 		]
 	];
 
@@ -428,56 +350,12 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SFoliageEdit::RefreshFullList()
 {
-	FoliagePalette->Refresh();
-}
-
-void SFoliageEdit::ClearAllToolSelection()
-{
-	FoliageEditMode->UISettings.SetLassoSelectToolSelected(false);
-	FoliageEditMode->UISettings.SetPaintToolSelected(false);
-	FoliageEditMode->UISettings.SetReapplyToolSelected(false);
-	FoliageEditMode->UISettings.SetSelectToolSelected(false);
-	FoliageEditMode->UISettings.SetPaintBucketToolSelected(false);
-}
-
-void SFoliageEdit::BindCommands()
-{
-	const FFoliageEditCommands& Commands = FFoliageEditCommands::Get();
-
-	UICommandList->MapAction(
-		Commands.SetPaint,
-		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSetPaint),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SFoliageEdit::IsPaintTool));
-
-	UICommandList->MapAction(
-		Commands.SetReapplySettings,
-		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSetReapplySettings),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SFoliageEdit::IsReapplySettingsTool));
-
-	UICommandList->MapAction(
-		Commands.SetSelect,
-		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSetSelectInstance),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SFoliageEdit::IsSelectTool));
-
-	UICommandList->MapAction(
-		Commands.SetLassoSelect,
-		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSetLasso),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SFoliageEdit::IsLassoSelectTool));
-
-	UICommandList->MapAction(
-		Commands.SetPaintBucket,
-		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSetPaintFill),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SFoliageEdit::IsPaintFillTool));
+	FoliagePalette->UpdatePalette(true);
 }
 
 TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
 {
-	FToolBarBuilder Toolbar(UICommandList, FMultiBoxCustomization::None, nullptr, Orient_Vertical);
+	FToolBarBuilder Toolbar(FoliageEditMode->UICommandList, FMultiBoxCustomization::None, nullptr, Orient_Vertical);
 	Toolbar.SetLabelVisibility(EVisibility::Collapsed);
 	Toolbar.SetStyle(&FEditorStyle::Get(), "FoliageEditToolbar");
 	{
@@ -508,40 +386,9 @@ TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
 		];
 }
 
-void SFoliageEdit::AddFoliageType(const FAssetData& AssetData)
-{
-	GWarn->BeginSlowTask(LOCTEXT("AddFoliageType_LoadPackage", "Fully Loading Package for Add"), true, false);
-	UObject* Asset = AssetData.GetAsset();
-	GWarn->EndSlowTask();
-
-	UFoliageType* FoliageType = FoliageEditMode->AddFoliageAsset(Asset);
-	if (FoliageType)
-	{
-		FoliagePalette->Refresh();
-	}
-}
-
-void SFoliageEdit::OnSetPaint()
-{
-	ClearAllToolSelection();
-
-	FoliageEditMode->UISettings.SetPaintToolSelected(true);
-
-	FoliageEditMode->NotifyToolChanged();
-}
-
 bool SFoliageEdit::IsPaintTool() const
 {
 	return FoliageEditMode->UISettings.GetPaintToolSelected();
-}
-
-void SFoliageEdit::OnSetReapplySettings()
-{
-	ClearAllToolSelection();
-
-	FoliageEditMode->UISettings.SetReapplyToolSelected(true);
-
-	FoliageEditMode->NotifyToolChanged();
 }
 
 bool SFoliageEdit::IsReapplySettingsTool() const
@@ -549,41 +396,14 @@ bool SFoliageEdit::IsReapplySettingsTool() const
 	return FoliageEditMode->UISettings.GetReapplyToolSelected();
 }
 
-void SFoliageEdit::OnSetSelectInstance()
-{
-	ClearAllToolSelection();
-
-	FoliageEditMode->UISettings.SetSelectToolSelected(true);
-
-	FoliageEditMode->NotifyToolChanged();
-}
-
 bool SFoliageEdit::IsSelectTool() const
 {
 	return FoliageEditMode->UISettings.GetSelectToolSelected();
 }
 
-void SFoliageEdit::OnSetLasso()
-{
-	ClearAllToolSelection();
-
-	FoliageEditMode->UISettings.SetLassoSelectToolSelected(true);
-
-	FoliageEditMode->NotifyToolChanged();
-}
-
 bool SFoliageEdit::IsLassoSelectTool() const
 {
 	return FoliageEditMode->UISettings.GetLassoSelectToolSelected();
-}
-
-void SFoliageEdit::OnSetPaintFill()
-{
-	ClearAllToolSelection();
-
-	FoliageEditMode->UISettings.SetPaintBucketToolSelected(true);
-
-	FoliageEditMode->NotifyToolChanged();
 }
 
 bool SFoliageEdit::IsPaintFillTool() const
@@ -654,23 +474,6 @@ EVisibility SFoliageEdit::GetVisibility_SelectionOptions() const
 	return IsSelectTool() || IsLassoSelectTool() ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
 
-EVisibility SFoliageEdit::GetVisibility_FoliageDropTarget() const
-{
-	if ( FSlateApplication::Get().IsDragDropping() )
-	{
-		TArray<FAssetData> DraggedAssets = AssetUtil::ExtractAssetDataFromDrag(FSlateApplication::Get().GetDragDroppingContent());
-		for ( const FAssetData& AssetData : DraggedAssets )
-		{
-			if ( AssetData.IsValid() && (AssetData.GetClass()->IsChildOf(UStaticMesh::StaticClass()) ||	AssetData.GetClass()->IsChildOf(UFoliageType::StaticClass())) )
-			{
-				return EVisibility::Visible;
-			}
-		}
-	}
-	
-	return EVisibility::Hidden;
-}
-
 FReply SFoliageEdit::OnSelectAllInstances()
 {
 	for (FFoliageMeshUIInfoPtr& TypeInfo : FoliageEditMode->GetFoliageMeshList())
@@ -708,22 +511,6 @@ FReply SFoliageEdit::OnDeselectAllInstances()
 		{
 			UFoliageType* FoliageType = TypeInfo->Settings;
 			FoliageEditMode->SelectInstances(FoliageType, false);
-		}
-	}
-
-	return FReply::Handled();
-}
-
-FReply SFoliageEdit::OnDrop_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
-{
-	TArray<FAssetData> DroppedAssetData = AssetUtil::ExtractAssetDataFromDrag(DragDropEvent);
-	{
-		// Treat the entire drop as a transaction (in case multiples types are being added)
-		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "FoliageMode_DragDropTypesTransaction", "Drag-drop Foliage Type(s)"));
-
-		for (int32 AssetIdx = 0; AssetIdx < DroppedAssetData.Num(); ++AssetIdx)
-		{	
-			AddFoliageType(DroppedAssetData[AssetIdx]);
 		}
 	}
 

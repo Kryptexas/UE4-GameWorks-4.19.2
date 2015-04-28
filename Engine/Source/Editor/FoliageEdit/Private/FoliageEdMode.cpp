@@ -10,6 +10,7 @@
 #include "ModuleManager.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Toolkits/ToolkitManager.h"
+#include "FoliageEditActions.h"
 
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
@@ -154,6 +155,7 @@ FEdModeFoliage::FEdModeFoliage()
 	: FEdMode()
 	, bToolActive(false)
 	, bCanAltDrag(false)
+	, bAdjustBrushRadius(false)
 	, FoliageMeshListSortMode(EColumnSortMode::None)
 {
 	// Load resources and construct brush component
@@ -175,8 +177,76 @@ FEdModeFoliage::FEdModeFoliage()
 
 	bBrushTraceValid = false;
 	BrushLocation = FVector::ZeroVector;
+
+	FFoliageEditCommands::Register();
+	UICommandList = MakeShareable(new FUICommandList);
+	BindCommands();
 }
 
+void FEdModeFoliage::BindCommands()
+{
+	const FFoliageEditCommands& Commands = FFoliageEditCommands::Get();
+
+	UICommandList->MapAction(
+		Commands.IncreaseBrushSize,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::AdjustBrushRadius, 50.f),
+		FCanExecuteAction::CreateRaw(this, &FEdModeFoliage::CurrentToolUsesBrush));
+
+	UICommandList->MapAction(
+		Commands.DecreaseBrushSize,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::AdjustBrushRadius, -50.f),
+		FCanExecuteAction::CreateRaw(this, &FEdModeFoliage::CurrentToolUsesBrush));
+
+	UICommandList->MapAction(
+		Commands.SetPaint,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::OnSetPaint),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]
+		{
+			return UISettings.GetPaintToolSelected();
+		}));
+
+	UICommandList->MapAction(
+		Commands.SetReapplySettings,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::OnSetReapplySettings),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]
+		{
+			return UISettings.GetReapplyToolSelected();
+		}));
+
+	UICommandList->MapAction(
+		Commands.SetSelect,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::OnSetSelectInstance),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]
+		{
+			return UISettings.GetSelectToolSelected();
+		}));
+
+	UICommandList->MapAction(
+		Commands.SetLassoSelect,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::OnSetLasso),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]
+		{
+			return UISettings.GetLassoSelectToolSelected();
+		}));
+
+	UICommandList->MapAction(
+		Commands.SetPaintBucket,
+		FExecuteAction::CreateRaw(this, &FEdModeFoliage::OnSetPaintFill),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateLambda([=]
+		{
+			return UISettings.GetPaintBucketToolSelected();
+		}));
+}
+
+bool FEdModeFoliage::CurrentToolUsesBrush() const
+{
+	return UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected();
+}
 
 /** Destructor */
 FEdModeFoliage::~FEdModeFoliage()
@@ -291,7 +361,7 @@ void FEdModeFoliage::NotifyLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorl
 }
 
 /** When the user changes the current tool in the UI */
-void FEdModeFoliage::NotifyToolChanged()
+void FEdModeFoliage::HandleToolChanged()
 {
 	if (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
@@ -303,6 +373,50 @@ void FEdModeFoliage::NotifyToolChanged()
 	}
 
 	OnToolChanged.Broadcast();
+}
+
+void FEdModeFoliage::ClearAllToolSelection()
+{
+	UISettings.SetLassoSelectToolSelected(false);
+	UISettings.SetPaintToolSelected(false);
+	UISettings.SetReapplyToolSelected(false);
+	UISettings.SetSelectToolSelected(false);
+	UISettings.SetPaintBucketToolSelected(false);
+}
+
+void FEdModeFoliage::OnSetPaint()
+{
+	ClearAllToolSelection();
+	UISettings.SetPaintToolSelected(true);
+	HandleToolChanged();
+}
+
+void FEdModeFoliage::OnSetReapplySettings()
+{
+	ClearAllToolSelection();
+	UISettings.SetReapplyToolSelected(true);
+	HandleToolChanged();
+}
+
+void FEdModeFoliage::OnSetSelectInstance()
+{
+	ClearAllToolSelection();
+	UISettings.SetSelectToolSelected(true);
+	HandleToolChanged();
+}
+
+void FEdModeFoliage::OnSetLasso()
+{
+	ClearAllToolSelection();
+	UISettings.SetLassoSelectToolSelected(true);
+	HandleToolChanged();
+}
+
+void FEdModeFoliage::OnSetPaintFill()
+{
+	ClearAllToolSelection();
+	UISettings.SetPaintBucketToolSelected(true);
+	HandleToolChanged();
 }
 
 bool FEdModeFoliage::DisallowMouseDeltaTracking() const
@@ -385,8 +499,13 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, in
 					(UISettings.bFilterTranslucent || !Material || !IsTranslucentBlendMode(Material->GetBlendMode())) &&
 					(CanPaint(PrimComp->GetComponentLevel())))
 				{
-					// Adjust the sphere brush
-					BrushLocation = Hit.Location;
+					if (!bAdjustBrushRadius)
+					{
+						// Adjust the brush location
+						BrushLocation = Hit.Location;
+					}
+					
+					// Still want to draw the brush when resizing
 					bBrushTraceValid = true;
 				}
 			}
@@ -786,19 +905,19 @@ static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, 
 FFoliageMeshInfo* UpdateMeshSettings(AInstancedFoliageActor* IFA, const FDesiredFoliageInstance& DesiredInstance)
 {
 	FFoliageMeshInfo* MeshInfo = nullptr;
-	//We have to add the mesh into the foliage actor. This assumes the foliage type is just a concrete InstancedStaticMesh.
-	//With the new tree system coming this will not be true and you'll need to traverse the tree and insert the needed meshes
-	if (const UFoliageType_InstancedStaticMesh* Settings = Cast<UFoliageType_InstancedStaticMesh>(DesiredInstance.FoliageType))
+
+	//We have to add the foliage type into the foliage actor.
+	if (const UFoliageType_InstancedStaticMesh* FoliageType = Cast<UFoliageType_InstancedStaticMesh>(DesiredInstance.FoliageType))
 	{
-		if (UStaticMesh* StaticMesh = Settings->GetStaticMesh())
+		if (UStaticMesh* StaticMesh = FoliageType->GetStaticMesh())
 		{
-			if (UFoliageType* ExistingSettings = IFA->GetSettingsForMesh(StaticMesh))
+			if (UFoliageType* ExistingType = IFA->GetSettingsForMesh(StaticMesh))
 			{
-				MeshInfo = IFA->UpdateMeshSettings(StaticMesh, Settings);
+				MeshInfo = IFA->UpdateMeshSettings(StaticMesh, FoliageType);
 			}
 			else
 			{
-				MeshInfo = IFA->AddMesh(Settings->GetStaticMesh(), nullptr, Settings);
+				IFA->AddFoliageType(FoliageType, &MeshInfo);
 			}
 		}
 	}
@@ -1266,6 +1385,21 @@ void FEdModeFoliage::SelectInvalidInstances(const UFoliageType* Settings)
 			MeshInfo->SelectInstances(IFA, true, InvalidInstances);
 		}
 	}
+}
+
+void FEdModeFoliage::AdjustBrushRadius(float Adjustment)
+{
+	const float CurrentBrushRadius = UISettings.GetRadius();
+
+	if (Adjustment > 0.f)
+	{
+		UISettings.SetRadius(FMath::Min(CurrentBrushRadius + Adjustment, 8192.f));
+	}
+	else if (Adjustment < 0.f)
+	{
+		UISettings.SetRadius(FMath::Max(CurrentBrushRadius + Adjustment, 0.f));
+	}
+	
 }
 
 void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, const UFoliageType* Settings, const FSphere& BrushSphere, float Pressure)
@@ -2535,6 +2669,15 @@ void FEdModeFoliage::ReallocateClusters(UFoliageType* Settings)
 /** FEdMode: Called when a key is pressed */
 bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
+	if (Event != IE_Released)
+	{
+		if (UICommandList->ProcessCommandBindings(Key, FSlateApplication::Get().GetModifierKeys(), false/*Event == IE_Repeat*/))
+		{
+			return true;
+		}
+	}
+	
+	bool bHandled = false;
 	if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
 		// Require Ctrl or not as per user preference
@@ -2558,12 +2701,12 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 					PreApplyBrush();
 					ApplyBrush(ViewportClient);
 					bToolActive = true;
-					return true;
+
+					bHandled = true;
 				}
 			}
 		}
-
-		if (bToolActive && Event == IE_Released &&
+		else if (bToolActive && Event == IE_Released &&
 			(Key == EKeys::LeftMouseButton || (FoliageEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && (Key == EKeys::LeftControl || Key == EKeys::RightControl))))
 		{
 			//Set the cursor position to that of the slate cursor so it wont snap back
@@ -2572,28 +2715,47 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 			InstanceSnapshot.Empty();
 			LandscapeLayerCaches.Empty();
 			bToolActive = false;
-			return true;
+			
+			bHandled = true;
+		}
+		else if (IsCtrlDown(Viewport))
+		{
+			// Control + scroll adjusts the brush radius
+			static const float RadiusAdjustmentAmount = 25.f;
+			if (Key == EKeys::MouseScrollUp)
+			{
+				AdjustBrushRadius(RadiusAdjustmentAmount);
+				
+				bHandled = true;
+			}
+			else if (Key == EKeys::MouseScrollDown)
+			{
+				AdjustBrushRadius(-RadiusAdjustmentAmount);
+				
+				bHandled = true;
+			}
 		}
 	}
-
-	if (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected())
+	else if (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
 		if (Event == IE_Pressed)
 		{
 			if (Key == EKeys::Platform_Delete)
 			{
 				RemoveSelectedInstances(GetWorld());
-				return true;
+				
+				bHandled = true;
 			}
 			else if (Key == EKeys::End)
 			{
 				SnapSelectedInstancesToGround(GetWorld());
-				return true;
+				
+				bHandled = true;
 			}
 		}
 	}
 
-	return false;
+	return bHandled;
 }
 
 /** FEdMode: Render the foliage edit mode */
@@ -2716,7 +2878,12 @@ FVector FEdModeFoliage::GetWidgetLocation() const
 /** FEdMode: Called when a mouse button is pressed */
 bool FEdModeFoliage::StartTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
-	if (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected())
+	if (IsCtrlDown(InViewport) && InViewport->KeyState(EKeys::MiddleMouseButton) && (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected()))
+	{
+		bAdjustBrushRadius = true;
+		return true;
+	}
+	else if (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
 		// Update pivot
 		UpdateWidgetLocationToInstanceSelection();
@@ -2733,29 +2900,42 @@ bool FEdModeFoliage::StartTracking(FEditorViewportClient* InViewportClient, FVie
 /** FEdMode: Called when the a mouse button is released */
 bool FEdModeFoliage::EndTracking(FEditorViewportClient* InViewportClient, FViewport* InViewport)
 {
-	if (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected())
+	if (!bAdjustBrushRadius && (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected()))
 	{
 		GEditor->EndTransaction();
 		return true;
 	}
+	else
+	{
+		bAdjustBrushRadius = false;
+		return true;
+	}
+
 	return FEdMode::EndTracking(InViewportClient, InViewport);
 }
 
 /** FEdMode: Called when mouse drag input it applied */
 bool FEdModeFoliage::InputDelta(FEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
-	bool bFoundSelection = false;
-
-	bool bAltDown = InViewport->KeyState(EKeys::LeftAlt) || InViewport->KeyState(EKeys::RightAlt);
-
-	if (InViewportClient->GetCurrentWidgetAxis() != EAxisList::None && (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected()))
+	if (bAdjustBrushRadius)
 	{
-		const bool bDuplicateInstances = (bAltDown && bCanAltDrag && (InViewportClient->GetCurrentWidgetAxis() & EAxisList::XYZ));
-		
-		TransformSelectedInstances(GetWorld(), InDrag, InRot, InScale, bDuplicateInstances);
+		if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
+		{
+			static const float RadiusAdjustmentFactor = 10.f;
+			AdjustBrushRadius(RadiusAdjustmentFactor * InDrag.Y);
+		}
+	}
+	else
+	{
+		if (InViewportClient->GetCurrentWidgetAxis() != EAxisList::None && (UISettings.GetSelectToolSelected() || UISettings.GetLassoSelectToolSelected()))
+		{
+			const bool bDuplicateInstances = (bCanAltDrag && IsAltDown(InViewport) && (InViewportClient->GetCurrentWidgetAxis() & EAxisList::XYZ));
 
-		// Only allow alt-drag on first InputDelta
-		bCanAltDrag = false;
+			TransformSelectedInstances(GetWorld(), InDrag, InRot, InScale, bDuplicateInstances);
+
+			// Only allow alt-drag on first InputDelta
+			bCanAltDrag = false;
+		}
 	}
 
 	return FEdMode::InputDelta(InViewportClient, InViewport, InDrag, InRot, InScale);
@@ -2817,6 +2997,15 @@ void FFoliageUISettings::Load()
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterStaticMesh"), bFilterStaticMesh, GEditorPerProjectIni);
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterBSP"), bFilterBSP, GEditorPerProjectIni);
 	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bFilterTranslucent"), bFilterTranslucent, GEditorPerProjectIni);
+
+	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bShowPaletteItemDetails"), bShowPaletteItemDetails, GEditorPerProjectIni);
+	GConfig->GetBool(TEXT("FoliageEdit"), TEXT("bShowPaletteItemTooltips"), bShowPaletteItemTooltips, GEditorPerProjectIni);
+
+	int32 ActivePaletteViewModeAsInt = 0;
+	GConfig->GetInt(TEXT("FoliageEdit"), TEXT("ActivePaletteViewMode"), ActivePaletteViewModeAsInt, GEditorPerProjectIni);
+	ActivePaletteViewMode = EFoliagePaletteViewMode::Type(ActivePaletteViewModeAsInt);
+	
+	GConfig->GetFloat(TEXT("FoliageEdit"), TEXT("PaletteThumbnailScale"), PaletteThumbnailScale, GEditorPerProjectIni);
 }
 
 /** Save UI settings to ini file */
@@ -2832,6 +3021,11 @@ void FFoliageUISettings::Save()
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterStaticMesh"), bFilterStaticMesh, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterBSP"), bFilterBSP, GEditorPerProjectIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterTranslucent"), bFilterTranslucent, GEditorPerProjectIni);
+
+	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bShowPaletteItemDetails"), bShowPaletteItemDetails, GEditorPerProjectIni);
+	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bShowPaletteItemTooltips"), bShowPaletteItemTooltips, GEditorPerProjectIni);
+	GConfig->SetInt(TEXT("FoliageEdit"), TEXT("ActivePaletteViewMode"), ActivePaletteViewMode, GEditorPerProjectIni);
+	GConfig->SetFloat(TEXT("FoliageEdit"), TEXT("PaletteThumbnailScale"), PaletteThumbnailScale, GEditorPerProjectIni);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -13,6 +13,17 @@
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 
+namespace EInstanceCountMagnitude
+{
+	enum Type
+	{
+		Thousand,
+		Million,
+		Billion,
+		Max
+	};
+}
+
 FFoliagePaletteItemModel::FFoliagePaletteItemModel(FFoliageMeshUIInfoPtr InTypeInfo, TSharedRef<SFoliagePalette> InFoliagePalette, FEdModeFoliage* InFoliageEditMode)
 	: TypeInfo(InTypeInfo)
 	, FoliagePalette(InFoliagePalette)
@@ -22,11 +33,12 @@ FFoliagePaletteItemModel::FFoliagePaletteItemModel(FFoliageMeshUIInfoPtr InTypeI
 	TSharedPtr<FAssetThumbnailPool> ThumbnailPool = LevelEditorModule.GetFirstLevelEditor()->GetThumbnailPool();
 	FAssetData AssetData = FAssetData(TypeInfo->Settings->GetStaticMesh());
 
-	TSharedPtr< FAssetThumbnail > Thumbnail = MakeShareable(new FAssetThumbnail(AssetData, 128, 128, ThumbnailPool));
+	int32 MaxThumbnailSize = FoliagePaletteConstants::ThumbnailSizeRange.Max;
+	TSharedPtr< FAssetThumbnail > Thumbnail = MakeShareable(new FAssetThumbnail(AssetData, MaxThumbnailSize, MaxThumbnailSize, ThumbnailPool));
 	FAssetThumbnailConfig ThumbnailConfig;
 	if (TypeInfo->Settings->IsAsset())
 	{
-		//@todo: access the foliage type asset type action and get the color from that
+		//@todo: access the foliage type asset type action and get the color from that (and maybe change it from pale blue - hard to see against the white thumbnail)
 		ThumbnailConfig.AssetTypeColorOverride = FColor(128, 192, 255);
 	}
 
@@ -38,9 +50,19 @@ const TSharedPtr<SFoliagePalette>& FFoliagePaletteItemModel::GetFoliagePalette()
 	return FoliagePalette;
 }
 
-const UFoliageType* FFoliagePaletteItemModel::GetFoliageType() const
+FFoliageMeshUIInfoPtr FFoliagePaletteItemModel::GetTypeUIInfo() const
+{
+	return TypeInfo;
+}
+
+UFoliageType* FFoliagePaletteItemModel::GetFoliageType() const
 {
 	return TypeInfo->Settings;
+}
+
+const FFoliageUISettings& FFoliagePaletteItemModel::GetFoliageUISettings() const
+{
+	return FoliageEditMode->UISettings;
 }
 
 TSharedRef<SWidget> FFoliagePaletteItemModel::GetThumbnailWidget() const
@@ -71,8 +93,9 @@ TSharedRef<SToolTip> FFoliagePaletteItemModel::CreateTooltipWidget() const
 					.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 					[
 						SNew(STextBlock)
-						.Text(this, &FFoliagePaletteItemModel::GetFoliageTypeNameText)
+						.Text(this, &FFoliagePaletteItemModel::GetFoliageTypeDisplayNameText)
 						.Font(FEditorStyle::GetFontStyle("ContentBrowser.TileViewTooltip.NameFont"))
+						.HighlightText(this, &FFoliagePaletteItemModel::GetPaletteSearchText)
 					]
 				]
 
@@ -80,19 +103,57 @@ TSharedRef<SToolTip> FFoliagePaletteItemModel::CreateTooltipWidget() const
 				.AutoHeight()
 				.Padding(FMargin(0.f, 3.f, 0.f, 0.f))
 				[
-					SNew(SBorder)
-					.Visibility(this, &FFoliagePaletteItemModel::GetTooltipThumbnailVisibility)
-					.Padding(6.f)
-					.HAlign(HAlign_Left)
-					.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+					
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(FMargin(0.f, 0.f, 3.f, 0.f))
 					[
-						SNew(SBox)
-						.HeightOverride(64.f)
-						.WidthOverride(64.f)
+						SNew(SBorder)
+						.Padding(6.f)
+						.HAlign(HAlign_Center)
+						.Visibility(this, &FFoliagePaletteItemModel::GetTooltipThumbnailVisibility)
+						.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 						[
-							GetThumbnailWidget()
+							SNew(SBox)
+							.HeightOverride(64.f)
+							.WidthOverride(64.f)
+							[
+								GetThumbnailWidget()
+							]
 						]
 					]
+
+					+ SHorizontalBox::Slot()
+					[
+						SNew(SBorder)
+						.Padding(6.f)
+						.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+						[
+							SNew(SVerticalBox)
+
+							+ SVerticalBox::Slot()
+							[
+								SNew(SHorizontalBox)
+								
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("InstanceCountHeading", "Instance Count: "))
+									.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+								]
+
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(STextBlock)
+									.Text(this, &FFoliagePaletteItemModel::GetInstanceCountText, false)
+								]
+							]
+						]
+					]					
 				]
 			]
 		];
@@ -128,7 +189,7 @@ TSharedRef<SButton> FFoliagePaletteItemModel::CreateSaveAssetButton(TAttribute<E
 		];
 }
 
-FText FFoliagePaletteItemModel::GetFoliageTypeNameText() const
+FText FFoliagePaletteItemModel::GetFoliageTypeDisplayNameText() const
 {
 	if (TypeInfo->Settings->IsAsset())
 	{
@@ -140,18 +201,59 @@ FText FFoliagePaletteItemModel::GetFoliageTypeNameText() const
 	}
 }
 
-FText FFoliagePaletteItemModel::GetInstanceCountText() const
+FText FFoliagePaletteItemModel::GetPaletteSearchText() const
+{
+	return FoliagePalette->GetSearchText();
+}
+
+FText FFoliagePaletteItemModel::GetInstanceCountText(bool bRounded) const
 {
 	const int32	InstanceCountTotal = TypeInfo->InstanceCountTotal;
 	const int32	InstanceCountCurrentLevel = TypeInfo->InstanceCountCurrentLevel;
 
 	if (InstanceCountCurrentLevel != InstanceCountTotal)
 	{
-		return FText::Format(LOCTEXT("InstanceCount", "{0} ({1})"), FText::AsNumber(InstanceCountCurrentLevel), FText::AsNumber(InstanceCountTotal));
+		return FText::Format(LOCTEXT("InstanceCount_Total", "{0} ({1})"), FText::AsNumber(InstanceCountCurrentLevel), FText::AsNumber(InstanceCountTotal));
 	}
-	else
+	else if (bRounded)
 	{
-		return FText::AsNumber(InstanceCountCurrentLevel);
+		// Note: Instance counts greater than 999 billion (unlikely) will not be formatted properly
+		static const FText Suffixes[EInstanceCountMagnitude::Max] =
+		{
+			LOCTEXT("Suffix_Thousand", "K"),
+			LOCTEXT("Suffix_Million", "M"),
+			LOCTEXT("Suffix_Billion", "B")
+		};
+
+		int32 NumThousands = 0;
+		float DisplayValue = InstanceCountCurrentLevel;
+		while (DisplayValue >= 1000.f && NumThousands < EInstanceCountMagnitude::Max)
+		{
+			DisplayValue /= 1000.f;
+			NumThousands++;
+		}
+
+		if (NumThousands > 0)
+		{
+			// Allow 3 significant figures
+			const int32 NumFractionalDigits = DisplayValue >= 100.f ? 0 : DisplayValue >= 10.f ? 1 : 2;
+
+			FNumberFormattingOptions Options;
+			Options.SetMaximumFractionalDigits(NumFractionalDigits);
+			return FText::Format(LOCTEXT("InstanceCount_CurrentLevel", "{0}{1}"), FText::AsNumber(DisplayValue, &Options), Suffixes[NumThousands - 1]);
+		}
+	}
+
+	return FText::AsNumber(InstanceCountCurrentLevel);
+}
+
+void FFoliagePaletteItemModel::SetTypeActiveInPalette(bool bSetActiveInPalette)
+{
+	UFoliageType* FoliageType = GetFoliageType();
+	if (FoliageType->IsSelected != bSetActiveInPalette)
+	{
+		FoliageType->Modify();
+		FoliageType->IsSelected = bSetActiveInPalette;
 	}
 }
 
@@ -162,11 +264,7 @@ void FFoliagePaletteItemModel::HandleCheckStateChanged(const ECheckBoxState NewC
 	const bool bShouldActivate = NewCheckedState == ECheckBoxState::Checked;
 	if (!IsItemWidgetSelected.Get())
 	{
-		if (TypeInfo->Settings->IsSelected != bShouldActivate)
-		{
-			TypeInfo->Settings->Modify();
-			TypeInfo->Settings->IsSelected = bShouldActivate;
-		}
+		SetTypeActiveInPalette(bShouldActivate);
 	}
 	else
 	{
@@ -181,7 +279,7 @@ ECheckBoxState FFoliagePaletteItemModel::GetCheckBoxState() const
 
 bool FFoliagePaletteItemModel::IsSaveEnabled() const
 {
-	UFoliageType* FoliageType = TypeInfo->Settings;
+	UFoliageType* FoliageType = GetFoliageType();
 
 	// Saving is enabled for non-assets and dirty assets
 	return (!FoliageType->IsAsset() || FoliageType->GetOutermost()->IsDirty());
@@ -205,12 +303,14 @@ EVisibility FFoliagePaletteItemModel::GetTooltipVisibility() const
 
 EVisibility FFoliagePaletteItemModel::GetTooltipThumbnailVisibility() const
 {
-	return FoliagePalette->IsActiveViewMode(EPaletteViewMode::Tree) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	return FoliagePalette->IsActiveViewMode(EFoliagePaletteViewMode::Tree) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
 
 ////////////////////////////////////////////////
 // SFoliagePaletteItemTile
 ////////////////////////////////////////////////
+
+const float SFoliagePaletteItemTile::MinScaleForOverlayItems = 0.2f;
 
 void SFoliagePaletteItemTile::Construct(const FArguments& InArgs, TSharedRef<STableViewBase> InOwnerTableView, TSharedPtr<FFoliagePaletteItemModel>& InModel)
 {
@@ -229,6 +329,7 @@ void SFoliagePaletteItemTile::Construct(const FArguments& InArgs, TSharedRef<STa
 			SNew(SOverlay)
 			.ToolTip(Model->CreateTooltipWidget())
 			
+			// Thumbnail
 			+ SOverlay::Slot()
 			[
 				SNew(SBorder)
@@ -241,6 +342,7 @@ void SFoliagePaletteItemTile::Construct(const FArguments& InArgs, TSharedRef<STa
 				]
 			]
 			
+			// Checkbox
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Top)
@@ -256,6 +358,7 @@ void SFoliagePaletteItemTile::Construct(const FArguments& InArgs, TSharedRef<STa
 				]
 			]
 
+			// Save Button
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Right)
 			.VAlign(VAlign_Top)
@@ -264,15 +367,15 @@ void SFoliagePaletteItemTile::Construct(const FArguments& InArgs, TSharedRef<STa
 				Model->CreateSaveAssetButton(SaveButtonVisibility)
 			]
 
-			+ SOverlay::Slot()
-
+			// Instance Count
 			+ SOverlay::Slot()
 			.HAlign(HAlign_Right)
 			.VAlign(VAlign_Bottom)
 			.Padding(FMargin(6.f, 8.f))
 			[
 				SNew(STextBlock)
-				.Text(Model.Get(), &FFoliagePaletteItemModel::GetInstanceCountText)
+				.Visibility(this, &SFoliagePaletteItemTile::GetInstanceCountVisibility)
+				.Text(Model.ToSharedRef(), &FFoliagePaletteItemModel::GetInstanceCountText, true)
 				.ShadowOffset(FVector2D(1.f, 1.f))
 				.ColorAndOpacity(FLinearColor(.85f, .85f, .85f, 1.f))
 			]
@@ -292,7 +395,17 @@ EVisibility SFoliagePaletteItemTile::GetCheckBoxVisibility() const
 
 EVisibility SFoliagePaletteItemTile::GetSaveButtonVisibility() const
 {
-	return IsHovered() ? EVisibility::Visible : EVisibility::Collapsed;
+	return IsHovered() && CanShowOverlayItems() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility SFoliagePaletteItemTile::GetInstanceCountVisibility() const
+{
+	return CanShowOverlayItems() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+bool SFoliagePaletteItemTile::CanShowOverlayItems() const
+{
+	return Model->GetFoliageUISettings().GetPaletteThumbnailScale() >= MinScaleForOverlayItems;
 }
 
 ////////////////////////////////////////////////
@@ -332,7 +445,8 @@ TSharedRef<SWidget> SFoliagePaletteItemRow::GenerateWidgetForColumn(const FName&
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(Model.Get(), &FFoliagePaletteItemModel::GetFoliageTypeNameText)
+				.Text(Model.ToSharedRef(), &FFoliagePaletteItemModel::GetFoliageTypeDisplayNameText)
+				.HighlightText(Model.ToSharedRef(), &FFoliagePaletteItemModel::GetPaletteSearchText)
 			];
 	}
 	else if (ColumnName == FoliagePaletteTreeColumns::ColumnID_InstanceCount)
@@ -346,7 +460,7 @@ TSharedRef<SWidget> SFoliagePaletteItemRow::GenerateWidgetForColumn(const FName&
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text(Model.Get(), &FFoliagePaletteItemModel::GetInstanceCountText)
+				.Text(Model.ToSharedRef(), &FFoliagePaletteItemModel::GetInstanceCountText, true)
 			];
 	}
 	else if (ColumnName == FoliagePaletteTreeColumns::ColumnID_Save)
