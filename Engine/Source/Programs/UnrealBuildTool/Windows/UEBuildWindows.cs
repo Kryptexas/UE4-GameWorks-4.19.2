@@ -54,6 +54,12 @@ namespace UnrealBuildTool
             }
         }
 
+        /// <summary>
+        /// When true, throws some CL and link flags (/Bt+ and /link) to output detailed timing info.
+        /// </summary>
+        [XmlConfig]
+        public static bool bLogDetailedCompilerTimingInfo = false;
+
         /// True if we should use Clang/LLVM instead of MSVC to compile code on Windows platform
         public static readonly bool bCompileWithClang = false;
 
