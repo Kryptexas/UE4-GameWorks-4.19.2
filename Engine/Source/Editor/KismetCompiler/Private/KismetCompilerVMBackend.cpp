@@ -275,12 +275,12 @@ protected:
 			FSkipOffsetEmitter Skipper(ScriptBuilder.Writer.ScriptBuffer);
 			Skipper.Emit();
 
-			// R-Value property
+			// R-Value property, see ReadVariableSize in UObject::ProcessContextOpcode() for usage
 			//@TODO: Not sure what to use for yet
 			UProperty* RValueProperty = RValueTerm ? RValueTerm->AssociatedVarProperty : NULL;
 			Writer << RValueProperty;
 
-			// Property type if needed
+			// Property type if needed, it seems it's not used in ue4
 			//@TODO: Not sure what to use for yet
 			uint8 PropetyType = 0;
 			Writer << PropetyType;

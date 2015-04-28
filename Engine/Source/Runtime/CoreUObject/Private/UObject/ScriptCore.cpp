@@ -1519,7 +1519,9 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	// Execute or skip the following expression in the object's context.
 	if (IsValid(NewContext))
 	{
-		Stack.Code += sizeof(CodeSkipSizeType) + sizeof(ScriptPointerType) + sizeof(uint8);
+		Stack.Code += sizeof(CodeSkipSizeType)	// Code offset for NULL expressions.
+			+ sizeof(ScriptPointerType)			// Property corresponding to the r-value data, in case the l-value needs to be cleared
+			+ sizeof(uint8);					// Property type, in case the r-value is a non-property - in ue4 it seems to be unused
 		Stack.Step( NewContext, RESULT_PARAM );
 	}
 	else
@@ -1549,15 +1551,25 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 			}
 		}
 
-		CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount();
-		VariableSizeType bSize = Stack.ReadVariableSize();
+		const CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount(); // Code offset for NULL expressions. Code += sizeof(CodeSkipSizeType)
+		UField* RValueField = nullptr;
+		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueField); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
 		Stack.Code += wSkip;
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.MostRecentProperty = NULL;
 
 		if (RESULT_PARAM)
 		{
-			FMemory::Memzero( RESULT_PARAM, bSize );
+			auto RValueProperty = Cast<const UProperty>(RValueField);
+			ensure(RValueProperty || !RValueField);
+			if (RValueProperty)
+			{
+				RValueProperty->ClearValue(RESULT_PARAM);
+			}
+			else
+			{
+				Stack.KismetExecutionMessage(TEXT("Cannot clear R-value after a context fail. Unknown property."), ELogVerbosity::Warning);
+			}
 		}
 	}
 }
