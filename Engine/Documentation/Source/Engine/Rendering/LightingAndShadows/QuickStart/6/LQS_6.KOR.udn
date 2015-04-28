@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2522957
+﻿INTSourceChangelist:2527351
 Availability: Public
 Title:6. 라이트 프로파일 사용하기
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -62,6 +62,7 @@ Description:이번 단계에서는 라이트 프로파일을 사용하여 좀 �
 이 가이드의 마지막인 **다음 단계** 에서는 직접 시도해 볼 수 있는 예제 몇 가지와 추가적인 라이팅 문서, 샘플, 기법에 대한 링크를 제공해 드리겠습니다.
 
 %Steps%
+
 
 
 

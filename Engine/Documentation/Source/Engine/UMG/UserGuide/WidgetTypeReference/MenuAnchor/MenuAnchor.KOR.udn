@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2385867
+﻿INTSourceChangelist:2527287
 Availability:Public
 Title: 메뉴 앵커
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -25,9 +25,15 @@ Menu Anchor, 메뉴 앵커는 팝업 메뉴의 기준이 되어 띄울 위치를
 | -------- | ----------- |
 | **Menu Class** | 메뉴 클래스 - 메뉴 호출시 스폰시킬 위젯 블루프린트 (팝업) 입니다. 매번 새롭게 위젯을 생성합니다. |
 | **Placement** | 배치 - 생성된 위젯의 위치 결정에 사용되는 여러가지 배치 옵션입니다. |
-| **OnGetMenuContent** | 메뉴 콘텐츠 구할 때 - 팝업을 불러올 때 호출되는 **OnGetMenuContent** 이벤트에 함수나 프로퍼티를 바인딩하는 식으로 팝업의 커스터마이징이 가능합니다. |
+| **OnGetMenuContent** | 메뉴 콘텐츠 구할 때 - 팝업을 불러올 때 호출되는 **OnGetMenuContent** 이벤트에 함수나 프로퍼티를 바인딩하는 식으로 팝업의 커스터마이징이 가능합니다  (see below). |
 
-**Menu Anchor** 위젯에는 스크립트를 통해 호출 가능한 위젯 전용 노드가 몇 가지 있는데, 다음과 같습니다.
+**OnGetMenuContent** 이벤트에 대해, **디테일** 패널에서 함수를 직접 만들어 바인딩할 수 있는데, 메뉴 앵커 호출시마다 바로 그 함수가 호출됩니다. 이를 통해 팝업 메뉴 생성시 부가 기능을 추가할 수 있습니다. 예를 들어 아래에서 플레이어가 _전투중_ 인지 알아보는 검사를 실행하고, 전투중이 아니면 팝업 메뉴를 열 수 있도록 합니다. 전투중이면 팝업 메뉴를 열 수 없도록 합니다.
+
+![](ExampleGetMenu.png)(w:840)
+
+### 메뉴 앵커 블루프린트 함수
+
+**Menu Anchor** 위젯에는 스크립트를 통해 호출 가능한 위젯 전용 함수가 몇 가지 있는데, 다음과 같습니다.
 
 ![](MenuAnchorNodes.png)
 

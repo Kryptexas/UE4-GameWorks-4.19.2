@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2514483
+﻿INTSourceChangelist:2527081
 Availability: Public
 Title:스태틱 메시 - LOD 생성 및 사용 비법
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
@@ -51,7 +51,7 @@ Description: LOD 생성 및 사용 비법입니다.
 
 ## 셋업
 
-이 비법에서는 UE4 에 바로 임포트할 수 있는 **.FBX** 로 저장된 메시가 이미 있어야 합니다. 이 예제에서는, Maya 에서 만든 간단한 폴리곤 구체를 사용하겠습니다.
+이 비법에서는 UE4 에 바로 임포트할 수 있는 **.FBX** 로 저장된 메시가 이미 있어야 합니다. 이 예제에서는, Maya 에서 만든 간단한 폴리곤 구체를 사용하겠습니다. 참고로 다른 어플리케이션에서 직접 만든 애셋을 사용해도 됩니다.
 
 메시를 익스포트했으면, UE4 를 실행합니다. 작업하고자 하는 프로젝트가 이미 있는 경우, 그 프로젝트를 사용하셔도 됩니다. 없으시다면, **새 프로젝트** 탭에서 블루프린트 일인칭 템플릿을 선택합니다. 그 후 **시작용 콘텐츠** 가 포함되었는지 확인합니다. 포함시키지 않으면 나중에 이 비법에서 사용할 애셋이 없어 따라하기 힘들 것입니다.
 

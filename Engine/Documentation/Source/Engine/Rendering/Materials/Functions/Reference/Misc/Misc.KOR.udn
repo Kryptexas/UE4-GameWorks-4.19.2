@@ -1,4 +1,4 @@
-INTSourceChangelist:2125630
+﻿INTSourceChangelist:2527382
 Availability: Public
 title:기타
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -64,7 +64,7 @@ SplitComponents (컴포넌트 분할) 함수는 입력받은 색이나 이미지
 
 ![Split Components](SplitComponents_Demo.png)
 
-### FlipBook
+### Flipbook
 
 스프라이트 프레임으로 이루어진 그리드같은 Texture2D 를 받은 다음 그 애니메이션을 순서대로 재생 출력하는 함수입니다.
 

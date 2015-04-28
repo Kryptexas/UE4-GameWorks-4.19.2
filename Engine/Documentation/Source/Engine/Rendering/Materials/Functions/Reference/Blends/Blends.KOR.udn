@@ -1,4 +1,4 @@
-INTSourceChangelist:2170735
+﻿INTSourceChangelist:2526990
 Availability: Public
 title:블렌드
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -8,7 +8,7 @@ Description:Blends, 블렌드 카테고리 아래 나열되어 있는 머티리�
 
 ## 개요
 
-Blends 는 텍스처의 색 정보에 수학적 연산을 하여 특정한 방식으로 다른 텍스처와 블렌딩할 수 있도록 해 주는 함수 유형입니다. 보통 이미지 편집 프로그램에서 [Photoshop 의 Blend Modes](http://www.webdesign.org/photoshop/photo-editing/photoshop-basics-blending-modes.20793.html) 같은 식으로 흔히 볼 수 있는 기능입니다.
+Blends 는 텍스처의 색 정보에 수학적 연산을 하여 특정한 방식으로 다른 텍스처와 블렌딩할 수 있도록 해 주는 함수 유형입니다.
 
 Blends 에는 항상 Base 와 Blend 입력이 있는데, 둘 다 Vector3 입니다. 이들은 각각 텍스처를 받아들인 다음 일정한 방식으로 블렌딩을 합니다. 블렌딩이 일어나는 방식은 사용된 블렌드 함수 유형에 따라 달라집니다.
 

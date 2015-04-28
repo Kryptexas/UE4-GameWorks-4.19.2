@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2333373
+﻿INTSourceChangelist:2526904
 Availability: Public
 Title:머티리얼 함수 만들기
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -7,6 +7,7 @@ Description:머티리얼 함수를 만드는 과정에 대한 안내서입니다
 [TOC(start:2)]
 
 ## 머티리얼 함수 만들기
+
 
 머티리얼 함수를 새로 만들려면, 콘텐츠 브라우저에서 우클릭한 다음 **추가** > **머티리얼 & 텍스처** > **머티리얼 함수** 를 선택하면 됩니다. 그러면 새로운 머티리얼 함수가 머티리얼 에디터에 열립니다.
 
