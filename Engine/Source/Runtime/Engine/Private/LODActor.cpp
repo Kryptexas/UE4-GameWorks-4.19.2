@@ -55,10 +55,6 @@ bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
 	Super::GetReferencedContentObjects(Objects);
 
-	if (StaticMeshComponent && StaticMeshComponent->StaticMesh)
-	{
-		Objects.Add(StaticMeshComponent->StaticMesh);
-	}
 	return true;
 }
 
