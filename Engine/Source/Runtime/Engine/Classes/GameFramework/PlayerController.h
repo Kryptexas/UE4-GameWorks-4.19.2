@@ -1457,7 +1457,8 @@ public:
 	// Spectating
 
 	/** Get the Pawn used when spectating. NULL when not spectating. */
-	FORCEINLINE class ASpectatorPawn* GetSpectatorPawn() const { return SpectatorPawn; }
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+	class ASpectatorPawn* GetSpectatorPawn() const { return SpectatorPawn; }
 
 	/** Returns the first of GetPawn() or GetSpectatorPawn() that is not NULL, or NULL otherwise. */
 	class APawn* GetPawnOrSpectator() const;
@@ -1491,7 +1492,6 @@ protected:
 
 private:
 	/** The pawn used when spectating (NULL if not spectating). */
-	UPROPERTY()
 	class ASpectatorPawn* SpectatorPawn;
 
 protected:

@@ -229,6 +229,10 @@ public:
 	UPROPERTY(EditAnywhere, noclear, BlueprintReadOnly, Category=Classes)
 	TSubclassOf<class ASpectatorPawn> SpectatorClass;
 
+	/** The PlayerController class used when spectating a network replay. */
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadOnly, Category = Classes)
+	TSubclassOf<class APlayerController> ReplaySpectatorPlayerControllerClass;
+
 	/** A PlayerState of this class will be associated with every player to replicate relevant player information to all clients. */
 	UPROPERTY(EditAnywhere, noclear, BlueprintReadOnly, Category=Classes)
 	TSubclassOf<class APlayerState> PlayerStateClass;

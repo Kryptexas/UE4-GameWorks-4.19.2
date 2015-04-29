@@ -52,6 +52,7 @@ AGameMode::AGameMode(const FObjectInitializer& ObjectInitializer)
 	DefaultPawnClass = ADefaultPawn::StaticClass();
 	PlayerControllerClass = APlayerController::StaticClass();
 	SpectatorClass = ASpectatorPawn::StaticClass();
+	ReplaySpectatorPlayerControllerClass = APlayerController::StaticClass();
 	EngineMessageClass = UEngineMessage::StaticClass();
 	GameStateClass = AGameState::StaticClass();
 	CurrentID = 1;

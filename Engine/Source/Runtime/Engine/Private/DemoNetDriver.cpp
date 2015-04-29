@@ -20,6 +20,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataReplication.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
@@ -1349,7 +1350,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 {
 	check( Connection != NULL );
 
-	UClass* C = StaticLoadClass( AActor::StaticClass(), NULL, *DemoSpectatorClass, NULL, LOAD_None, NULL );
+	UClass* C = GetWorld()->GetAuthGameMode()->ReplaySpectatorPlayerControllerClass;
 
 	if ( C == NULL )
 	{
