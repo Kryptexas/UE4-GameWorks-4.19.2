@@ -298,6 +298,7 @@ FShaderResource::FShaderResource()
 	, NumInstructions(0)
 	, NumTextureSamplers(0)
 	, NumRefs(0)
+	, Canary(FShader::ShaderMagic_Uninitialized)
 {
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
@@ -308,6 +309,7 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 	, NumInstructions(Output.NumInstructions)
 	, NumTextureSamplers(Output.NumTextureSamplers)
 	, NumRefs(0)
+	, Canary(FShader::ShaderMagic_Initialized)
 	
 {
 	Target = Output.Target;
@@ -330,6 +332,10 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderTyp
 
 FShaderResource::~FShaderResource()
 {
+	check(Canary == FShader::ShaderMagic_Uninitialized || Canary == FShader::ShaderMagic_CleaningUp || Canary == FShader::ShaderMagic_Initialized);
+	check(NumRefs == 0);
+	Canary = 0;
+
 	DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	DEC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
@@ -358,12 +364,17 @@ void FShaderResource::Serialize(FArchive& Ar)
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 		
 		FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, Code);
+
+		// The shader resource has been serialized in, so this shader resource is now initialized.
+		check(Canary != FShader::ShaderMagic_CleaningUp);
+		Canary = FShader::ShaderMagic_Initialized;
 	}
 }
 
 
 void FShaderResource::AddRef()
 {
+	check(Canary != FShader::ShaderMagic_CleaningUp);
 	++NumRefs;
 }
 
@@ -381,6 +392,7 @@ void FShaderResource::Release()
 		// Send a release message to the rendering thread when the shader loses its last reference.
 		BeginReleaseResource(this);
 
+		Canary = FShader::ShaderMagic_CleaningUp;
 		BeginCleanup(this);
 	}
 }
