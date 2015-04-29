@@ -52,6 +52,12 @@ bool FBuildPatchVerificationImpl::VerifyAgainstDirectory(TArray<FString>& OutDat
 	Manifest->GetFileList(BuildFiles);
 	for (const FString& BuildFile : BuildFiles)
 	{
+		// Break if quitting
+		if (FBuildPatchInstallError::HasFatalError())
+		{
+			break;
+		}
+
 		// Get file details
 		int64 BuildFileSize = Manifest->GetFileSize(BuildFile);
 		FSHAHashData BuildFileHash;
