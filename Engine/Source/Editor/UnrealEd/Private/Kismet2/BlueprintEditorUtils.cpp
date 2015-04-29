@@ -49,6 +49,7 @@
 #include "Editor/Blutility/Public/IBlutilityModule.h"
 
 #include "Engine/InheritableComponentHandler.h"
+#include "Editor/LevelEditor/Public/LevelEditor.h"
 
 #include "EditorCategoryUtils.h"
 #include "EngineUtils.h"
@@ -6890,10 +6891,14 @@ void FBlueprintEditorUtils::UpdateOldPureFunctions( UBlueprint* Blueprint )
 }
 
 /** Call PostEditChange() on any Actors that are based on this Blueprint */
-void FBlueprintEditorUtils::PostEditChangeBlueprintActors(UBlueprint* Blueprint)
+void FBlueprintEditorUtils::PostEditChangeBlueprintActors(UBlueprint* Blueprint, bool bComponentEditChange)
 {
 	if (Blueprint->GeneratedClass && Blueprint->GeneratedClass->IsChildOf(AActor::StaticClass()))
 	{
+		// Get the selected Actor set in the level editor context
+		bool bEditorSelectionChanged = false;
+		const USelection* CurrentEditorActorSelection = GEditor ? GEditor->GetSelectedActors() : nullptr;
+
 		TArray<UObject*> MatchingBlueprintObjects;
 		GetObjectsOfClass(Blueprint->GeneratedClass, MatchingBlueprintObjects, true, (RF_ClassDefaultObject | RF_PendingKill));
 
@@ -6902,6 +6907,19 @@ void FBlueprintEditorUtils::PostEditChangeBlueprintActors(UBlueprint* Blueprint)
 			// We know the class was derived from AActor because we checked the Blueprint->GeneratedClass.
 			AActor* Actor = static_cast<AActor*>(ObjIt);
 			Actor->PostEditChange();
+
+			// Broadcast edit notification if necessary so that the level editor's detail panel is refreshed
+			bEditorSelectionChanged |= CurrentEditorActorSelection && CurrentEditorActorSelection->IsSelected(Actor);
+		}
+
+		// Broadcast edit notifications if necessary so that level editor details are refreshed (e.g. components tree)
+		if(bEditorSelectionChanged)
+		{
+			if(bComponentEditChange)
+			{
+				FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
+				LevelEditor.BroadcastComponentsEdited();
+			}
 		}
 	}	
 
