@@ -380,7 +380,7 @@ public:
 
 				if (ReturnField != nullptr)
 				{
-					UE_LOG(LogBlueprint, Warning, TEXT("Generic delegate signature ref (%s). Explicitly setting it to: '%s'. Make sure this is correct (there could be multiple native delegate types with this name)?"), *StringName, *ReturnField->GetPathName());
+					UE_LOG(LogBlueprint, Display, TEXT("Generic delegate signature ref (%s). Explicitly setting it to: '%s'. Make sure this is correct (there could be multiple native delegate types with this name)."), *StringName, *ReturnField->GetPathName());
 					MemberParent = ReturnField->GetOutermost();
 				}
 			}
