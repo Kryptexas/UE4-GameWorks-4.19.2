@@ -25,6 +25,7 @@ UAchievementQueryCallbackProxy* UAchievementQueryCallbackProxy::CacheAchievement
 	UAchievementQueryCallbackProxy* Proxy = NewObject<UAchievementQueryCallbackProxy>();
 	Proxy->PlayerControllerWeakPtr = PlayerController;
 	Proxy->bFetchDescriptions = true;
+	Proxy->WorldContextObject = WorldContextObject;
 	return Proxy;
 }
 
