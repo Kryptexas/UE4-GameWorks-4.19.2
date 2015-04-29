@@ -263,18 +263,22 @@ public:
 	/** Pointer to data shared with the render thread, used by the editor tools */
 	struct FLandscapeEditToolRenderData* EditToolRenderData;
 
-	/** Runtime-generated editor data for ES2 emulation */
+	/** Hash of source for ES2 generated data. Used for mobile preview to determine if we need to re-generate ES2 pixel data. */
 	UPROPERTY(Transient, DuplicateTransient)
-	UTexture2D* MobileNormalmapTexture;
-
-	/** Runtime-generated editor data for ES2 emulation */
-	UPROPERTY(Transient, DuplicateTransient)
-	UMaterialInterface* MobileMaterialInterface;
+	FGuid MobilePixelDataSourceHash;
 #endif
 
 	/** For ES2 */
 	UPROPERTY()
 	uint8 MobileBlendableLayerMask;
+
+	/** Material interface used for ES2. Serialized only when cooking or loading cooked builds. */
+	UPROPERTY(Transient, DuplicateTransient)
+	UMaterialInterface* MobileMaterialInterface;
+
+	/** Generated weight/normal map texture used for ES2. Serialized only when cooking or loading cooked builds. */
+	UPROPERTY(Transient, DuplicateTransient)
+	UTexture2D* MobileWeightNormalmapTexture;
 
 public:
 	/** Platform Data where don't support texture sampling in vertex buffer */
@@ -343,7 +347,7 @@ public:
 	void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, struct FLandscapeEditDataInterface* LandscapeEdit);
 	
 	void GeneratePlatformVertexData();
-	UMaterialInstance* GeneratePlatformPixelData(TArray<class UTexture2D*>& WeightmapTextures, bool bIsCooking);
+	void GeneratePlatformPixelData(bool bIsCooking);
 
 	/** Creates and destroys cooked grass data stored in the map */
 	void RenderGrassMap();

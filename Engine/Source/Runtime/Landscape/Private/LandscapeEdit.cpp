@@ -4391,11 +4391,30 @@ struct FMobileLayerAllocation
 	}
 };
 
-UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTexture2D*>& InWeightmapTextures, bool bIsCooking)
+void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
 {
-	if (IsTemplate() || HeightmapTexture == NULL)
+	check(!IsTemplate())
+
+	if (!bIsCooking)
 	{
-		return MaterialInstance;
+		// Calculate hash of source data and skip generation if the data we have in memory is unchanged
+		FBufferArchive ComponentStateAr;
+		SerializeStateHashes(ComponentStateAr);
+
+		uint32 Hash[5];
+		FSHA1::HashBuffer(ComponentStateAr.GetData(), ComponentStateAr.Num(), (uint8*)Hash);
+		FGuid NewSourceHash = FGuid(Hash[0] ^ Hash[4], Hash[1], Hash[2], Hash[3]);
+	
+		// Skip generation if the source hash matches
+		if (MobilePixelDataSourceHash.IsValid() && 
+			MobilePixelDataSourceHash == NewSourceHash &&
+			MobileMaterialInterface != nullptr &&
+			MobileWeightNormalmapTexture != nullptr)
+		{
+			return;
+		}
+			
+		MobilePixelDataSourceHash = NewSourceHash;
 	}
 
 	TArray<FMobileLayerAllocation> MobileLayerAllocations;
@@ -4442,13 +4461,13 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 	}
 
 	int32 WeightmapSize = (SubsectionSizeQuads + 1) * NumSubsections;
-	UTexture2D* WeightmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
-	CreateEmptyTextureMips(WeightmapTexture);
+	UTexture2D* NewWeightNormalmapTexture = GetLandscapeProxy()->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
+	CreateEmptyTextureMips(NewWeightNormalmapTexture);
 
 	{
 		FLandscapeEditDataInterface LandscapeEdit(GetLandscapeInfo(false));
 
-		if (InWeightmapTextures.Num() > 0)
+		if (WeightmapTextures.Num() > 0)
 		{
 			int32 CurrentIdx = 0;
 			for (const auto& MobileAllocation : MobileLayerAllocations)
@@ -4456,9 +4475,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 				// Only for valid Layers
 				if (MobileAllocation.Allocation.LayerInfo)
 				{
-					uint8 TextureIndex = MobileAllocation.Allocation.WeightmapTextureIndex;
-					uint8 TextureChannel = MobileAllocation.Allocation.WeightmapTextureChannel;
-					LandscapeEdit.CopyTextureChannel(WeightmapTexture, CurrentIdx, InWeightmapTextures[TextureIndex], TextureChannel);
+					LandscapeEdit.CopyTextureFromWeightmap(NewWeightNormalmapTexture, CurrentIdx, this, MobileAllocation.Allocation.LayerInfo);
 					CurrentIdx++;
 					if (CurrentIdx >= 2) // Only support 2 layers in texture
 					{
@@ -4468,13 +4485,15 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 			}
 		}
 
-		LandscapeEdit.CopyTextureFromHeightmap(WeightmapTexture, 2, this, 2);
-		LandscapeEdit.CopyTextureFromHeightmap(WeightmapTexture, 3, this, 3);
+		// copy normals into B/A channels.
+		LandscapeEdit.CopyTextureFromHeightmap(NewWeightNormalmapTexture, 2, this, 2);
+		LandscapeEdit.CopyTextureFromHeightmap(NewWeightNormalmapTexture, 3, this, 3);
 	}
 
-	WeightmapTexture->PostEditChange();
-	InWeightmapTextures.Empty();
-	InWeightmapTextures.Add(WeightmapTexture);
+	NewWeightNormalmapTexture->PostEditChange();
+
+	MobileWeightNormalmapTexture = NewWeightNormalmapTexture;
+
 
 	FLinearColor Masks[5];
 	Masks[0] = FLinearColor(1, 0, 0, 0);
@@ -4485,7 +4504,7 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 
 	if (!bIsCooking)
 	{
-		UMaterialInstanceDynamic* MobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost());
+		UMaterialInstanceDynamic* NewMobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost());
 
 		MobileBlendableLayerMask = 0;
 
@@ -4497,19 +4516,19 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 			if (Allocation.LayerInfo)
 			{
 				FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
-				MobileMaterialInstance->SetVectorParameterValue(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
+				NewMobileMaterialInstance->SetVectorParameterValue(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
 				MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
 				CurrentIdx++;
 			}
 		}
-		return MobileMaterialInstance;
+		MobileMaterialInterface = NewMobileMaterialInstance;
 	}
 	else // for cooking
 	{
 		UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(true);
-		UMaterialInstanceConstant* MobileMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
+		UMaterialInstanceConstant* NewMobileMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 
-		MobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
+		NewMobileMaterialInstance->SetParentEditorOnly(CombinationMaterialInstance);
 
 		MobileBlendableLayerMask = 0;
 
@@ -4521,15 +4540,15 @@ UMaterialInstance* ULandscapeComponent::GeneratePlatformPixelData(TArray<UTextur
 			if (Allocation.LayerInfo)
 			{
 				FName LayerName = Allocation.LayerInfo == ALandscapeProxy::VisibilityLayer ? UMaterialExpressionLandscapeVisibilityMask::ParameterName : Allocation.LayerInfo->LayerName;
-				MobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
+				NewMobileMaterialInstance->SetVectorParameterValueEditorOnly(FName(*FString::Printf(TEXT("LayerMask_%s"), *LayerName.ToString())), Masks[FMath::Min(4, CurrentIdx)]);
 				MobileBlendableLayerMask |= (!Allocation.LayerInfo->bNoWeightBlend ? (1 << CurrentIdx) : 0);
 				CurrentIdx++;
 			}
 		}
 
-		MobileMaterialInstance->PostEditChange();
+		NewMobileMaterialInstance->PostEditChange();
 
-		return MobileMaterialInstance;
+		MobileMaterialInterface = NewMobileMaterialInstance;
 	}
 }
 

@@ -133,10 +133,6 @@ void ULandscapeComponent::AddReferencedObjects(UObject* InThis, FReferenceCollec
 void ULandscapeComponent::Serialize(FArchive& Ar)
 {
 #if ENABLE_LANDSCAPE_COOKING && WITH_EDITOR
-	bool bRestoreAfterCooking = false;
-	UMaterialInstanceConstant* BackupMaterialInstance = MaterialInstance;
-	UTexture2D* BackupHeightmapTexture = HeightmapTexture;
-
 	// Saving for cooking path
 	if (Ar.IsCooking() && Ar.IsSaving() && !HasAnyFlags(RF_ClassDefaultObject))
 	{
@@ -145,23 +141,36 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 			if (!PlatformData.HasValidPlatformData())
 			{
 				GeneratePlatformVertexData();
-				MaterialInstance = Cast<UMaterialInstanceConstant>(GeneratePlatformPixelData(WeightmapTextures, true));
-				HeightmapTexture = NULL;
-				bRestoreAfterCooking = true;
+				GeneratePlatformPixelData(true);
 			}
 		}
 	}
 #endif
 
-	Super::Serialize(Ar);
-
-#if ENABLE_LANDSCAPE_COOKING && WITH_EDITOR
-	if (bRestoreAfterCooking)
+	if (Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::VertexShaderTextureSampling))
 	{
-		MaterialInstance = BackupMaterialInstance;
-		HeightmapTexture = BackupHeightmapTexture;
+		// These properties are not used for ES2 so we back them up and clear them before serializing them.
+		UTexture2D* BackupHeightmapTexture = nullptr;
+		UTexture2D* BackupXYOffsetmapTexture = nullptr;
+		UMaterialInstanceConstant* BackupMaterialInstance = nullptr;
+		TArray<UTexture2D*> BackupWeightmapTextures;
+			
+		Exchange(HeightmapTexture, BackupHeightmapTexture);
+		Exchange(BackupXYOffsetmapTexture, XYOffsetmapTexture);
+		Exchange(BackupMaterialInstance, MaterialInstance);
+		Exchange(BackupWeightmapTextures, WeightmapTextures);
+
+		Super::Serialize(Ar);
+
+		Exchange(HeightmapTexture, BackupHeightmapTexture);
+		Exchange(BackupXYOffsetmapTexture, XYOffsetmapTexture);
+		Exchange(BackupMaterialInstance, MaterialInstance);
+		Exchange(BackupWeightmapTextures, WeightmapTextures);
 	}
-#endif
+	else
+	{
+		Super::Serialize(Ar);
+	}
 
 	Ar << LightMap;
 	Ar << ShadowMap;
@@ -232,6 +241,11 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 			{
 				Ar << PlatformData;
 			}
+			if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES)
+			{
+				Ar << MobileMaterialInterface;
+				Ar << MobileWeightNormalmapTexture;
+			}
 		}
 		else if (!FPlatformProperties::SupportsVertexShaderTextureSampling())
 		{
@@ -242,6 +256,11 @@ void ULandscapeComponent::Serialize(FArchive& Ar)
 			if (bValid)
 			{
 				Ar << PlatformData;
+			}
+			if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES)
+			{
+				Ar << MobileMaterialInterface;
+				Ar << MobileWeightNormalmapTexture;
 			}
 		}
 		if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_GRASS_COOKING && Ar.UE4Ver() < VER_UE4_SERIALIZE_LANDSCAPE_GRASS_DATA)
