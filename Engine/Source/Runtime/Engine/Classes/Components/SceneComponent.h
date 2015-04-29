@@ -511,6 +511,11 @@ public:
 
 	// Begin ActorComponent interface
 	virtual void OnRegister() override;
+	/** Return true if CreateRenderState() should be called */
+	virtual bool ShouldCreateRenderState() const override
+	{
+		return true;
+	}
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual void OnComponentDestroyed() override;

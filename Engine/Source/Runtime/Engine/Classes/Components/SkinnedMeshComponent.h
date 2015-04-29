@@ -433,15 +433,10 @@ protected:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-#if 0
-	/** return true if this component requires end of frame updates to happen from the game thread. */
-	virtual bool RequiresGameThreadEndOfFrameUpdates()
+	virtual bool RequiresGameThreadEndOfFrameRecreate() const override
 	{
-		//@todo there isn't a great reason for this, it has to do with activating morph targets triggering material usage flag changes and potentially shader compilation.
-		// it seems unlikely this would cook right anyway
-		return true;
+		return false;
 	}
-#endif
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual UObject const* AdditionalStatObject() const override;
 	// End UActorComponent interface

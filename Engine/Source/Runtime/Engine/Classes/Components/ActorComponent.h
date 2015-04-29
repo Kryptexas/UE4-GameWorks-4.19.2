@@ -288,6 +288,12 @@ protected:
 	 */
 	virtual void OnUnregister();
 
+	/** Return true if CreateRenderState() should be called */
+	virtual bool ShouldCreateRenderState() const 
+	{
+		return false;
+	}
+
 	/** Used to create any rendering thread information for this component
 	*
 	* **Caution**, this is called concurrently on multiple threads (but never the same component concurrently)
@@ -479,6 +485,9 @@ public:
 
 	/** return true if this component requires end of frame updates to happen from the game thread. */
 	virtual bool RequiresGameThreadEndOfFrameUpdates() const;
+
+	/** return true if this component requires end of frame recreates to happen from the game thread. */
+	virtual bool RequiresGameThreadEndOfFrameRecreate() const;
 
 	/** Recreate the render state right away. Generally you always want to call MarkRenderStateDirty instead. 
 	*

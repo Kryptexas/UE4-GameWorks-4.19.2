@@ -969,7 +969,7 @@ void UActorComponent::ExecuteRegisterEvents()
 		checkf(bRegistered, TEXT("Failed to route OnRegister (%s)"), *GetFullName());
 	}
 
-	if(FApp::CanEverRender() && !bRenderStateCreated && World->Scene)
+	if(FApp::CanEverRender() && !bRenderStateCreated && World->Scene && ShouldCreateRenderState())
 	{
 		CreateRenderState_Concurrent();
 		checkf(bRenderStateCreated, TEXT("Failed to route CreateRenderState_Concurrent (%s)"), *GetFullName());
@@ -1203,7 +1203,7 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 	if (ComponentWorld)
 	{
 		// by convention, recreates are always done on the gamethread
-		ComponentWorld->MarkActorComponentForNeededEndOfFrameUpdate(this, true);
+		ComponentWorld->MarkActorComponentForNeededEndOfFrameUpdate(this, RequiresGameThreadEndOfFrameRecreate());
 	}
 	else if (!HasAnyFlags(RF_Unreachable))
 	{
@@ -1215,6 +1215,11 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 bool UActorComponent::RequiresGameThreadEndOfFrameUpdates() const
 {
 	return false;
+}
+
+bool UActorComponent::RequiresGameThreadEndOfFrameRecreate() const
+{
+	return true;
 }
 
 void UActorComponent::Activate(bool bReset)
