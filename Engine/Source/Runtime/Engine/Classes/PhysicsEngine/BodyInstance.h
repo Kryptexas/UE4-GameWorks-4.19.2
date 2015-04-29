@@ -420,17 +420,7 @@ public:
 	 *	@param InRBScene The physics scene to place the body into
 	 *	@param InAggregate An aggregate to place the body into
 	 */
-	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool bDefer = false);
-
-	/** Initialise multiple rigid bodies 
-	 *	@param Bodies List of body instances to initialise
-	 *	@param Transforms List of transforms to use for the bodies
-	 *	@param BodySetup The setup to use for the bodies
-	 *	@param PrimitiveComp The owning component
-	 *	@param InRBScene The physics scene to put the bodies into
-	 *	@param InAggregate Aggregate to place the bodies into, be aware for PhysX we can only have 128 elements in an aggregate!
-	 */
-	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false, class UPhysicsSerializer* PhysicsSerializer = nullptr);
+	void InitBody(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
 
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
@@ -447,7 +437,7 @@ public:
 	 *	@param InRBScene
 	 *  @param PhysicsSerializer
 	 */
-	static void InitStaticBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, UPhysicsSerializer* PhysicsSerializer);
+	static void InitStaticBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, class UPhysicsSerializer* PhysicsSerializer);
 
 	/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda. */
 	void ExecuteOnPhysicsReadOnly(TFunctionRef<void()> Func) const;
