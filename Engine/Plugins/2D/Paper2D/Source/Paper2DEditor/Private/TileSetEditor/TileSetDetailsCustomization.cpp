@@ -70,29 +70,18 @@ void FTileSetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 	{
 		// Hide the array to start with
 		const FName MetadataArrayName = UPaperTileSet::GetPerTilePropertyName();
-		DetailLayout.HideProperty(MetadataArrayName);
+		TSharedPtr<IPropertyHandle> PerTileArrayProperty = DetailLayout.GetProperty(MetadataArrayName);
+		DetailLayout.HideProperty(PerTileArrayProperty);
 
 		if (SelectedSingleTileIndex != INDEX_NONE)
 		{
 			// Customize for the single tile being edited
 			IDetailCategoryBuilder& SingleTileCategory = DetailLayout.EditCategory("SingleTileEditor", FText::GetEmpty());
+			
+			TSharedPtr<IPropertyHandle> OneTileEntry = PerTileArrayProperty->GetChildHandle(SelectedSingleTileIndex);
+			SingleTileCategory.AddProperty(OneTileEntry)
+				.ShouldAutoExpand(true);
 
-			const FString ArrayEntryPathPrefix = FString::Printf(TEXT("%s[%d]."), *MetadataArrayName.ToString(), SelectedSingleTileIndex);
-
-			// Add all of the editable properties in the array entry
-			for (TFieldIterator<UProperty> PropIt(FPaperTileMetadata::StaticStruct()); PropIt; ++PropIt)
-			{
-				UProperty* TestProperty = *PropIt;
-				if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
-				{
-					const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
-					const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
-
-					const FString PropertyPath = ArrayEntryPathPrefix + TestProperty->GetName();
-					TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(*PropertyPath);
-					SingleTileCategory.AddProperty(PropertyHandle, PropertyLocation);
-				}
-			}
 
 			// Add a display of the tile index being edited to the header
 			const FText TileIndexHeaderText = FText::Format(LOCTEXT("SingleTileSectionHeader", "Editing Tile #{0}"), FText::AsNumber(SelectedSingleTileIndex));
@@ -141,7 +130,7 @@ FText FTileSetDetailsCustomization::GetCellDimensionHeaderText() const
 		{
 			const FText TextNumTilesX = FText::AsNumber(NumTilesX, &FNumberFormattingOptions::DefaultNoGrouping());
 			const FText TextNumTilesY = FText::AsNumber(NumTilesY, &FNumberFormattingOptions::DefaultNoGrouping());
-			Result = FText::Format(LOCTEXT("CellDimensions", "{0} x {0} tiles"), TextNumTilesX, TextNumTilesY);
+			Result = FText::Format(LOCTEXT("CellDimensions", "{0} x {1} tiles"), TextNumTilesX, TextNumTilesY);
 		}
 	}
 

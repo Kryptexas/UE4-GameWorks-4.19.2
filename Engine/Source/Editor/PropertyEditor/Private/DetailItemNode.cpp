@@ -52,6 +52,11 @@ void FDetailItemNode::Initialize()
 		InitGroup();
 	}
 
+	if (Customization.PropertyRow.IsValid() && Customization.PropertyRow->GetForceAutoExpansion())
+	{
+		SetExpansionState(true);
+	}
+
 	// Cache the visibility of customizations that can set it
 	if( Customization.HasCustomWidget() )
 	{	
@@ -133,12 +138,17 @@ bool FDetailItemNode::HasMultiColumnWidget() const
 
 void FDetailItemNode::ToggleExpansion()
 {
-	bIsExpanded = !bIsExpanded;
-	
-	// Expand the child after filtering if it wants to be expanded
-	ParentCategory.Pin()->RequestItemExpanded( AsShared(), bIsExpanded );
+	SetExpansionState( !bIsExpanded );
+}
 
-	OnItemExpansionChanged( bIsExpanded );
+void FDetailItemNode::SetExpansionState(bool bWantsExpanded)
+{
+	bIsExpanded = bWantsExpanded;
+
+	// Expand the child after filtering if it wants to be expanded
+	ParentCategory.Pin()->RequestItemExpanded(AsShared(), bIsExpanded);
+
+	OnItemExpansionChanged(bIsExpanded);
 }
 
 TSharedRef< ITableRow > FDetailItemNode::GenerateNodeWidget( const TSharedRef<STableViewBase>& OwnerTable, const FDetailColumnSizeData& ColumnSizeData, const TSharedRef<IPropertyUtilities>& PropertyUtilities )
