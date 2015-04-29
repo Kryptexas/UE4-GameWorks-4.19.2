@@ -105,7 +105,7 @@ void FPDBCache::InitializePDBCache()
 	IFileManager::Get().MakeDirectory( *PDBCachePath, true );
 
 	TArray<FString> PDBCacheEntryDirectories;
-	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *PDBCachePath, false, true );
+	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *(PDBCachePath / TEXT( "*" )), false, true );
 
 	for( const auto& Directory : PDBCacheEntryDirectories )
 	{
