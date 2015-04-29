@@ -3,8 +3,8 @@
 #include "UnrealEd.h"
 
 #include "FoliagePaletteItem.h"
-#include "SFoliagePalette.h"
 #include "FoliageEdMode.h"
+#include "SFoliagePalette.h"
 #include "FoliageType.h"
 
 #include "LevelEditor.h"
