@@ -4,6 +4,11 @@
 	TonemapCommon.usf: PostProcessing tone mapping common
 =============================================================================*/
 
+// #todo-rco: Fix in the cross-compiler
+#if COMPILER_GLSL || COMPILER_GLSL_ES2
+#define log10(x)  log(x) / log(10)
+#endif
+
 #include "ACES.usf"
 
 // usually 1/2.2, the .y is used for inverse gamma when "gamma only" mode is not used
