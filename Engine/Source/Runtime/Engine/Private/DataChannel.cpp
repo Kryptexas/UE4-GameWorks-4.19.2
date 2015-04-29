@@ -1445,6 +1445,7 @@ void UActorChannel::DestroyActorAndComponents()
 		{
 			UObject *SubObject = CreateSubObjects[i].Get();
 			Actor->OnSubobjectDestroyFromReplication(SubObject);
+			SubObject->PreDestroyFromReplication();
 			SubObject->MarkPendingKill();
 		}
 	}
@@ -1454,6 +1455,7 @@ void UActorChannel::DestroyActorAndComponents()
 	// Destroy the actor
 	if ( Actor != NULL )
 	{
+		Actor->PreDestroyFromReplication();
 		Actor->Destroy( true );
 	}
 }
@@ -2502,6 +2504,7 @@ UObject* UActorChannel::ReadContentBlockHeader(FInBunch & Bunch, bool& bObjectDe
 
 			Actor->OnSubobjectDestroyFromReplication( SubObj );
 
+			SubObj->PreDestroyFromReplication();
 			SubObj->MarkPendingKill();
 		}
 		bObjectDeleted = true;

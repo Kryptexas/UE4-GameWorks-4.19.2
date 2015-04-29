@@ -628,6 +628,9 @@ public:
 	/** Called right after receiving a bunch */
 	virtual void PostNetReceive();
 
+	/** Called right before being marked for destruction due to network replication */
+	virtual void PreDestroyFromReplication();
+
 	/**
  	 *******************************************************
 	 * Non virtual functions, not intended to be overridden

@@ -3757,6 +3757,12 @@ void UObject::PostNetReceive()
 
 }
 
+/** Called right before being marked for destruction due to network replication */
+void UObject::PreDestroyFromReplication()
+{
+
+}
+
 /** IsNameStableForNetworking means an object can be referred to its path name (relative to outer) over the network */
 bool UObject::IsNameStableForNetworking() const
 {
