@@ -264,7 +264,7 @@ private:
 			{
 				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
 				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
-				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
+				case EChatMessageType::Game: return FriendStyle.GameChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
 				default: return FLinearColor::Gray;
 			}
 		}
@@ -286,8 +286,8 @@ private:
 		switch(ViewModel->GetMessageType())
 		{
 			case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
-			case EChatMessageType::Whisper: DisplayColor =  FriendStyle.WhisplerChatColor; break;
-			case EChatMessageType::Party: DisplayColor =  FriendStyle.PartyChatColor; break;
+			case EChatMessageType::Whisper: DisplayColor = FriendStyle.WhisplerChatColor; break;
+			case EChatMessageType::Game: DisplayColor = FriendStyle.GameChatColor; break;
 			default: DisplayColor = FLinearColor::Gray;
 		}
 		return DisplayColor;
@@ -305,7 +305,7 @@ private:
 			{
 				case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
 				case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
-				case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
+				case EChatMessageType::Game: return &FriendStyle.ChatGameBrush; break;
 				default:
 				return nullptr;
 			}
@@ -328,7 +328,7 @@ private:
 			{
 				case EChatMessageType::Global: return TEXT("UserNameTextStyle.GlobalHyperlink"); break;
 				case EChatMessageType::Whisper: return TEXT("UserNameTextStyle.Whisperlink"); break;
-				case EChatMessageType::Party: return TEXT("UserNameTextStyle.PartyHyperlink"); break;
+				case EChatMessageType::Game: return TEXT("UserNameTextStyle.GameHyperlink"); break;
 				default:
 					return TEXT("UserNameTextStyle.DefaultHyperlink");
 			}
@@ -364,7 +364,7 @@ private:
 
 		if (bRequiresTextUpdate)
 		{
-			if(ViewModel->GetMessageType() == EChatMessageType::Party)
+			if (ViewModel->GetMessageType() == EChatMessageType::Game)
 			{
 				CurrentListMessageText = TextToSet;
 			}

@@ -130,10 +130,10 @@ public:
 		bool bSuccess = true;
 		if(!NewMessage.IsEmptyOrWhitespace())
 		{
-			if(ChatViewModel->GetChatChannel() == EChatMessageType::Party)
+			if(ChatViewModel->GetChatChannel() == EChatMessageType::Game)
 			{
 				OnNetworkMessageSentEvent().Broadcast(NewMessage.ToString());
-				FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Party"));
+				FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Game"));
 			}
 			else
 			{
@@ -160,7 +160,7 @@ public:
 		
 		if (OnNetworkMessageSentEvent().IsBound() && FFriendsAndChatManager::Get()->IsInGameSession())
 		{
-			OUTChannelType.Add(EChatMessageType::Party);
+			OUTChannelType.Add(EChatMessageType::Game);
 		}
 	}
 

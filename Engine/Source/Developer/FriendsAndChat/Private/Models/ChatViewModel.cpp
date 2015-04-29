@@ -468,7 +468,7 @@ public:
 		if(bInGame != bInGameSetting)
 		{
 			bInGame = bInGameSetting;
-			SetViewChannel(bInGame ? EChatMessageType::Party : EChatMessageType::Global);
+			SetViewChannel(bInGame ? EChatMessageType::Game : EChatMessageType::Global);
 		}
 	}
 

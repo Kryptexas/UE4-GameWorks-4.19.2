@@ -7,12 +7,12 @@
 #define LOCTEXT_NAMESPACE "FriendsMessageManager"
 // Message expiry time for different message types
 static const int32 GlobalMessageLifetime = 5 * 60;  // 5 min
-static const int32 PartyMessageLifetime = 5 * 60;  // 5 min
+static const int32 GameMessageLifetime = 5 * 60;  // 5 min
 static const int32 WhisperMessageLifetime = 5 * 60;  // 5 min
 static const int32 MessageStore = 200;
 static const int32 GlobalMaxStore = 100;
 static const int32 WhisperMaxStore = 100;
-static const int32 PartyMaxStore = 100;
+static const int32 GameMaxStore = 100;
 
 class FFriendsMessageManagerImpl
 	: public FFriendsMessageManager
@@ -127,11 +127,11 @@ public:
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 		ChatItem->FromName = FText::FromString("Game");
 		ChatItem->Message = FText::FromString(MsgBody);
-		ChatItem->MessageType = EChatMessageType::Party;
+		ChatItem->MessageType = EChatMessageType::Game;
 		ChatItem->MessageTime = FDateTime::UtcNow();
-		ChatItem->ExpireTime = FDateTime::UtcNow() + FTimespan::FromSeconds(PartyMessageLifetime);
+		ChatItem->ExpireTime = FDateTime::UtcNow() + FTimespan::FromSeconds(GameMessageLifetime);
 		ChatItem->bIsFromSelf = false;
-		PartyMessagesCount++;
+		GameMessagesCount++;
 		AddMessage(ChatItem.ToSharedRef());
 	}
 
@@ -184,7 +184,7 @@ private:
 
 		GlobalMessagesCount = 0;
 		WhisperMessagesCount = 0;
-		PartyMessagesCount = 0;
+		GameMessagesCount = 0;
 		ReceivedMessages.Empty();
 
 		OnlineSub = IOnlineSubsystem::Get( TEXT( "MCP" ) );
@@ -369,7 +369,7 @@ private:
 		if(ReceivedMessages.Add(NewMessage) > MessageStore)
 		{
 			bool bGlobalTimeFound = false;
-			bool bPartyTimeFound = false;
+			bool bGameTimeFound = false;
 			bool bWhisperFound = false;
 			FDateTime CurrentTime = FDateTime::UtcNow();
 			for(int32 Index = 0; Index < ReceivedMessages.Num(); Index++)
@@ -397,16 +397,16 @@ private:
 							}
 						}
 						break;
-						case EChatMessageType::Party :
+						case EChatMessageType::Game :
 						{
-							if(PartyMessagesCount > PartyMaxStore)
+							if(GameMessagesCount > GameMaxStore)
 							{
 								RemoveMessage(Message);
 								Index--;
 							}
 							else
 							{
-								bPartyTimeFound = true;
+								bGameTimeFound = true;
 							}
 						}
 						break;
@@ -425,7 +425,7 @@ private:
 						break;
 					}
 				}
-				if(ReceivedMessages.Num() < MessageStore || (bPartyTimeFound && bGlobalTimeFound && bWhisperFound))
+				if (ReceivedMessages.Num() < MessageStore || (bGameTimeFound && bGlobalTimeFound && bWhisperFound))
 				{
 					break;
 				}
@@ -439,7 +439,7 @@ private:
 		switch(Message->MessageType)
 		{
 			case EChatMessageType::Global : GlobalMessagesCount--; break;
-			case EChatMessageType::Party : PartyMessagesCount--; break;
+			case EChatMessageType::Game: GameMessagesCount--; break;
 			case EChatMessageType::Whisper : WhisperMessagesCount--; break;
 		}
 		ReceivedMessages.Remove(Message);
@@ -479,7 +479,7 @@ private:
 
 	int32 GlobalMessagesCount;
 	int32 WhisperMessagesCount;
-	int32 PartyMessagesCount;
+	int32 GameMessagesCount;
 
 	bool bEnableEnterExitMessages;
 

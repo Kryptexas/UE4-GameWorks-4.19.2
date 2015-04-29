@@ -320,9 +320,9 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetWhisplerChatColor(const FLinearCo
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetPartyChatColor(const FLinearColor& InFontColor)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetGameChatColor(const FLinearColor& InFontColor)
 {
-	PartyChatColor = InFontColor;
+	GameChatColor = InFontColor;
 	return *this;
 }
 
@@ -356,9 +356,9 @@ FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatGlobalBrush(const FSlateBrush
 	return *this;
 }
 
-FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatPartyBrush(const FSlateBrush& Brush)
+FFriendsAndChatStyle& FFriendsAndChatStyle::SetChatGameBrush(const FSlateBrush& Brush)
 {
-	ChatPartyBrush = Brush;
+	ChatGameBrush = Brush;
 	return *this;
 }
 
@@ -600,9 +600,9 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 		.SetFont(FriendStyle.FriendsFontStyleSmallBold)
 		.SetColorAndOpacity(FriendStyle.DefaultChatColor);
 
-	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
+	const FTextBlockStyle GameChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsFontStyleSmallBold)
-		.SetColorAndOpacity(FriendStyle.PartyChatColor);
+		.SetColorAndOpacity(FriendStyle.GameChatColor);
 
 	const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsFontStyleSmallBold)
@@ -618,9 +618,9 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 		.SetTextStyle(GlobalChatFont)
 		.SetPadding(FMargin(0.0f));
 
-	const FHyperlinkStyle PartyChatHyperlink = FHyperlinkStyle()
+	const FHyperlinkStyle GameChatHyperlink = FHyperlinkStyle()
 		.SetUnderlineStyle(UserNameButton)
-		.SetTextStyle(PartyChatFont)
+		.SetTextStyle(GameChatFont)
 		.SetPadding(FMargin(0.0f));
 
 	const FHyperlinkStyle WhisperChatHyperlink = FHyperlinkStyle()
@@ -636,11 +636,11 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 	Style->Set("UserNameTextStyle.Default", DefaultText);
 
 	Style->Set("UserNameTextStyle.GlobalHyperlink", GlobalChatHyperlink);
-	Style->Set("UserNameTextStyle.PartyHyperlink", PartyChatHyperlink);
+	Style->Set("UserNameTextStyle.GameHyperlink", GameChatHyperlink);
 	Style->Set("UserNameTextStyle.Whisperlink", WhisperChatHyperlink);
 	Style->Set("UserNameTextStyle.DefaultHyperlink", DefaultChatHyperlink);
 	Style->Set("UserNameTextStyle.GlobalTextStyle", GlobalChatFont);
-	Style->Set("UserNameTextStyle.PartyTextStyle", PartyChatFont);
+	Style->Set("UserNameTextStyle.GameTextStyle", GameChatFont);
 	Style->Set("UserNameTextStyle.WhisperTextStyle", WhisperChatFont);
 
 	Style->Set("MessageBreak", FTextBlockStyle(DefaultText)
