@@ -58,8 +58,9 @@ void FOnlineSubsystemModule::StartupModule()
 {
 	FString InterfaceString;
 
-	// Load the platform defined "default" online services module
-	if (GConfig->GetString(TEXT("OnlineSubsystem"), TEXT("DefaultPlatformService"), InterfaceString, GEngineIni) &&
+	// Try to load the right service defined by an overload as a command line argument or as a value in the config
+	if ((FParse::Value(FCommandLine::Get(), *FString::Printf(TEXT("PlatformService=")), InterfaceString) ||
+		GConfig->GetString(TEXT("OnlineSubsystem"), TEXT("DefaultPlatformService"), InterfaceString, GEngineIni)) &&
 		InterfaceString.Len() > 0)
 	{
 		FName InterfaceName = FName(*InterfaceString);
