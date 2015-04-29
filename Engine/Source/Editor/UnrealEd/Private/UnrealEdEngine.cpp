@@ -662,7 +662,7 @@ bool UUnrealEdEngine::IsAutosaving() const
 		return PackageAutoSaver->IsAutoSaving();
 	}
 	
-	return NULL;
+	return false;
 }
 
 
