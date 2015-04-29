@@ -30,4 +30,7 @@ public:
 
 	// Collision commands
 	TSharedPtr<FUICommandInfo> ApplyCollisionEdits;
+
+	// Editor mode switches
+	TSharedPtr<FUICommandInfo> SwapTileSetEditorViewports;
 };
