@@ -600,8 +600,7 @@ void SReferenceViewer::ShowSizeMap()
 		UEdGraphNode_Reference* ReferenceNode = Cast<UEdGraphNode_Reference>(SelectedNodes.Array()[0]);
 		if ( ReferenceNode )
 		{
-			const FAssetData& AssetData = ReferenceNode->GetAssetData();
-			SelectedAssetPackageNames.AddUnique( AssetData.PackageName );
+			SelectedAssetPackageNames.AddUnique( ReferenceNode->GetPackageName() );
 		}
 	}
 
