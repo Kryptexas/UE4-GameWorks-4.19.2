@@ -8,6 +8,9 @@ enum class EAllowOverscroll : uint8
 	No
 };
 
+/**
+ * Handles overscroll management.
+ */
 struct SLATE_API FOverscroll
 {
 public:

@@ -6,8 +6,10 @@ namespace OverscrollConstants
 {
 	/** The amount to scale the logarithm by to make it more loose */
 	static const float Looseness = 50.0f;
+	/** The "max" used to perform the interpolation snap back, and make it faster the further away it is. */
+	static const float OvershootLooseMax = 100.0f;
 	/** The bounce back rate when the overscroll stops. */
-	static const float OvershootBounceRate = 2000.0f;
+	static const float OvershootBounceRate = 1500.0f;
 }
 
 FOverscroll::FOverscroll()
@@ -47,15 +49,15 @@ float FOverscroll::GetOverscroll() const
 void FOverscroll::UpdateOverscroll(float InDeltaTime)
 {
 	const float PullForce = FMath::Abs(OverscrollAmount) + 1.0f;
-	const float EasedDelta = OverscrollConstants::OvershootBounceRate * InDeltaTime * PullForce;
+	const float EasedDelta = OverscrollConstants::OvershootBounceRate * InDeltaTime * FMath::Max(1.0f, PullForce / OverscrollConstants::OvershootLooseMax);
 
 	if ( OverscrollAmount > 0 )
 	{
-		OverscrollAmount = FMath::Max(0.0f, OverscrollAmount - EasedDelta * InDeltaTime);
+		OverscrollAmount = FMath::Max(0.0f, OverscrollAmount - EasedDelta);
 	}
 	else
 	{
-		OverscrollAmount = FMath::Min(0.0f, OverscrollAmount + EasedDelta * InDeltaTime);
+		OverscrollAmount = FMath::Min(0.0f, OverscrollAmount + EasedDelta);
 	}
 }
 

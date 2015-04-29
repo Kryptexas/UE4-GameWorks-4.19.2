@@ -522,7 +522,7 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	float TargetPhysicalOffset = GetScrollComponentFromVector(ViewOffset*ScrollPanel->GetDesiredSize());
 	if ( AllowOverscroll == EAllowOverscroll::Yes )
 	{
-		TargetPhysicalOffset -= Overscroll.GetOverscroll();
+		TargetPhysicalOffset += Overscroll.GetOverscroll();
 	}
 
 	bIsScrolling = !FMath::IsNearlyEqual(TargetPhysicalOffset, ScrollPanel->PhysicalOffset, 0.001f);
@@ -697,18 +697,21 @@ bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount,
 	const float ContentSize = GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());
 	const FGeometry ScrollPanelGeometry = FindChildGeometry( AllottedGeometry, ScrollPanel.ToSharedRef() );
 
-	float PreviousScrollOffset = DesiredScrollOffset;
-
-	float UnclampedDesiredScrollOffset = DesiredScrollOffset + ScrollAmount;
+	const float PreviousScrollOffset = DesiredScrollOffset;
 
 	const float ScrollMin = 0.0f;
 	const float ScrollMax = ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size);
-	DesiredScrollOffset = FMath::Clamp(UnclampedDesiredScrollOffset, ScrollMin, ScrollMax);
 
-	float RemainingScrollDelta = UnclampedDesiredScrollOffset - DesiredScrollOffset;
-	if ( Overscrolling == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll(DesiredScrollOffset == 0, DesiredScrollOffset == ScrollMax, RemainingScrollDelta) )
+	if ( ScrollAmount != 0 )
 	{
-		Overscroll.ScrollBy(-RemainingScrollDelta);
+		if ( Overscrolling == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll(DesiredScrollOffset == 0, DesiredScrollOffset == ScrollMax, ScrollAmount) )
+		{
+			Overscroll.ScrollBy(ScrollAmount);
+		}
+		else
+		{
+			DesiredScrollOffset = FMath::Clamp(DesiredScrollOffset + ScrollAmount, ScrollMin, ScrollMax);
+		}
 	}
 
 	OnUserScrolled.ExecuteIfBound(DesiredScrollOffset);
