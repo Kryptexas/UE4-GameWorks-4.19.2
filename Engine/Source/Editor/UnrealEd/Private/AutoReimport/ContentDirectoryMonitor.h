@@ -34,6 +34,9 @@ public:
 	/** Extract the assets we need to delete from our outstanding changes (happens last) */ 
 	void ExtractAssetsToDelete(const IAssetRegistry& Registry, TArray<FAssetData>& OutAssetsToDelete);
 
+	/** Abort the current processing operation */
+	void Abort();
+
 	/** Report an external change to the manager, such that a subsequent equal change reported by the os be ignored */
 	void IgnoreNewFile(const FString& Filename);
 	void IgnoreFileModification(const FString& Filename);

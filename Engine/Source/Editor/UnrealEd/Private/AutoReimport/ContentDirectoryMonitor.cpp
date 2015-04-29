@@ -392,4 +392,32 @@ void FContentDirectoryMonitor::ExtractAssetsToDelete(const IAssetRegistry& Regis
 	DeletedFiles.Empty();
 }
 
+void FContentDirectoryMonitor::Abort()
+{
+	for (auto& Add : AddedFiles)
+	{
+		Cache.CompleteTransaction(MoveTemp(Add));
+	}
+	AddedFiles.Empty();
+
+	for (auto& Mod : ModifiedFiles)
+	{
+		Cache.CompleteTransaction(MoveTemp(Mod));
+	}
+	ModifiedFiles.Empty();
+
+	for (auto& Del : DeletedFiles)
+	{
+		Cache.CompleteTransaction(MoveTemp(Del));
+	}
+	DeletedFiles.Empty();
+
+	for (auto& Change : Cache.GetOutstandingChanges())
+	{
+		Cache.CompleteTransaction(MoveTemp(Change));
+	}
+
+	WorkProgress = TotalWork;
+}
+
 #undef LOCTEXT_NAMESPACE

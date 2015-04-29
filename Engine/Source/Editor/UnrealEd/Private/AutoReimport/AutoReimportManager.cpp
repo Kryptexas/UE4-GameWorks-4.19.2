@@ -83,7 +83,7 @@ private:
 /** Enum and value to specify the current state of our processing */
 enum class ECurrentState
 {
-	Idle, PendingResponse, ProcessAdditions, ProcessModifications, ProcessDeletions, SavePackages
+	Idle, Paused, Aborting, ProcessAdditions, ProcessModifications, ProcessDeletions, SavePackages
 };
 uint32 GetTypeHash(ECurrentState State)
 {
@@ -169,10 +169,16 @@ private:
 	TOptional<ECurrentState> ProcessDeletions();
 
 	/** Wait for a user's input. Just updates the progress text for now */
-	TOptional<ECurrentState> PendingResponse();
+	TOptional<ECurrentState> Paused();
+
+	/** Abort the process */
+	TOptional<ECurrentState> Abort();
 
 	/** Cleanup an operation that just processed some changes */
 	void Cleanup();
+
+	/** Check whether we should pause the operation or not */
+	TOptional<ECurrentState> HandlePauseAbort(ECurrentState InCurrentState);
 
 private:
 
@@ -190,11 +196,32 @@ private:
 
 	/** A timeout used to refresh directory monitors when the user has made an interactive change to the settings */
 	FTimeLimit ResetMonitorsTimeout;
+
+	/** The paused state of the state machine */
+	ECurrentState PausedState;
+
+private:
+
+	void OnPauseClicked()
+	{
+		switch (State)
+		{
+		case EProcessState::Paused: State = EProcessState::Running; break;
+		case EProcessState::Running: State = EProcessState::Paused; break;
+		default: break;
+		}
+	}
+	void OnAbortClicked() { State = EProcessState::Aborted; }
+
+	/** Flags for paused/aborted */
+	enum class EProcessState { Running, Paused, Aborted };
+	EProcessState State;
 };
 
 FAutoReimportManager::FAutoReimportManager()
 	: StateMachine(ECurrentState::Idle)
 	, bGuardAssetChanges(false)
+	, PausedState(ECurrentState::Idle)
 {
 	auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
 	Settings->OnSettingChanged().AddRaw(this, &FAutoReimportManager::HandleLoadingSavingSettingChanged);
@@ -218,7 +245,8 @@ FAutoReimportManager::FAutoReimportManager()
 	}
 
 	StateMachine.Add(ECurrentState::Idle,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Idle();					});
-	StateMachine.Add(ECurrentState::PendingResponse,		EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->PendingResponse();		});
+	StateMachine.Add(ECurrentState::Paused,					EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Paused();					});
+	StateMachine.Add(ECurrentState::Aborting,				EStateMachineNode::CallOnce,	[this](const FTimeLimit& T){ return this->Abort();					});
 	StateMachine.Add(ECurrentState::ProcessAdditions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessAdditions(T);		});
 	StateMachine.Add(ECurrentState::ProcessModifications,	EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessModifications(T);	});
 	StateMachine.Add(ECurrentState::ProcessDeletions,		EStateMachineNode::CallMany,	[this](const FTimeLimit& T){ return this->ProcessDeletions();		});
@@ -413,11 +441,15 @@ FText FAutoReimportManager::GetProgressText() const
 
 TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit& TimeLimit)
 {
+	auto NewState = HandlePauseAbort(ECurrentState::ProcessAdditions);
+	if (NewState.IsSet())
+	{
+		return NewState;
+	}
+
 	// Override the global feedback context while we do this to avoid popping up dialogs
 	TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
 	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
-
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
 	TMap<FString, TArray<UFactory*>> Factories;
 
@@ -464,11 +496,15 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit
 
 TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const FTimeLimit& TimeLimit)
 {
+	auto NewState = HandlePauseAbort(ECurrentState::ProcessModifications);
+	if (NewState.IsSet())
+	{
+		return NewState;
+	}
+
 	// Override the global feedback context while we do this to avoid popping up dialogs
 	TGuardValue<FFeedbackContext*> ScopedContextOverride(GWarn, FeedbackContextOverride.Get());
 	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
-
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
 	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
 
@@ -483,11 +519,15 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessModifications(const FTimeL
 
 TOptional<ECurrentState> FAutoReimportManager::ProcessDeletions()
 {
+	auto NewState = HandlePauseAbort(ECurrentState::ProcessDeletions);
+	if (NewState.IsSet())
+	{
+		return NewState;
+	}
+
 	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
 
 	const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
 
 	TArray<FAssetData> AssetsToDelete;
 
@@ -516,8 +556,6 @@ TOptional<ECurrentState> FAutoReimportManager::SavePackages()
 
 	TGuardValue<bool> ScopedAssetChangesGuard(bGuardAssetChanges, true);
 
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
-
 	if (PackagesToSave.Num() > 0)
 	{
 		const bool bAlreadyCheckedOut = false;
@@ -528,17 +566,46 @@ TOptional<ECurrentState> FAutoReimportManager::SavePackages()
 		PackagesToSave.Empty();
 	}
 
-	// Make sure the progress text is up to date before we close the notification
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
-
 	Cleanup();
 	return ECurrentState::Idle;
 }
 
-TOptional<ECurrentState> FAutoReimportManager::PendingResponse()
+TOptional<ECurrentState> FAutoReimportManager::HandlePauseAbort(ECurrentState InCurrentState)
 {
-	FeedbackContextOverride->GetContent()->SetMainText(GetProgressText());
+	if (State == EProcessState::Aborted)
+	{
+		return ECurrentState::Aborting;
+	}
+	else if (State == EProcessState::Paused)
+	{
+		PausedState = InCurrentState;
+		return ECurrentState::Paused;
+	}
+
 	return TOptional<ECurrentState>();
+}
+
+TOptional<ECurrentState> FAutoReimportManager::Paused()
+{
+	TOptional<ECurrentState> NewState = HandlePauseAbort(PausedState);
+	if (NewState.IsSet())
+	{
+		return NewState.GetValue();
+	}
+
+	// No longer paused
+	return PausedState;
+}
+
+TOptional<ECurrentState> FAutoReimportManager::Abort()
+{
+	for (auto& Monitor : DirectoryMonitors)
+	{
+		Monitor.Abort();
+	}
+
+	Cleanup();
+	return ECurrentState::Idle;
 }
 
 TOptional<ECurrentState> FAutoReimportManager::Idle()
@@ -579,6 +646,8 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 
 	if (GetNumUnprocessedChanges() > 0)
 	{
+		State = EProcessState::Running;
+
 		// We have some changes so kick off the process
 		for (auto& Monitor : DirectoryMonitors)
 		{
@@ -592,10 +661,17 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 
 		if (WorkTotal > 0)
 		{
-			// Create a new feedback context override
-			FeedbackContextOverride = MakeShareable(new FReimportFeedbackContext);
-			FeedbackContextOverride->Initialize(SNew(SReimportFeedback, GetProgressText()));
+			if (!FeedbackContextOverride.IsValid())
+			{
+				// Create a new feedback context override
+				FeedbackContextOverride = MakeShareable(new FReimportFeedbackContext(
+					TAttribute<FText>(this, &FAutoReimportManager::GetProgressText),
+					FSimpleDelegate::CreateSP(this, &FAutoReimportManager::OnPauseClicked),
+					FSimpleDelegate::CreateSP(this, &FAutoReimportManager::OnAbortClicked))
+				);
+			}
 
+			FeedbackContextOverride->Show();
 			return ECurrentState::ProcessAdditions;
 		}
 	}
@@ -605,8 +681,10 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 
 void FAutoReimportManager::Cleanup()
 {
-	FeedbackContextOverride->Destroy();
-	FeedbackContextOverride = nullptr;
+	if (GetNumUnprocessedChanges() == 0)
+	{
+		FeedbackContextOverride->Hide();
+	}
 }
 
 void FAutoReimportManager::Tick(float DeltaTime)

@@ -74,8 +74,11 @@ struct FTimeLimit
 	/** Constructor specifying not to run over the specified number of seconds */
 	FTimeLimit(float NumSeconds) : Delay(NumSeconds) { Reset(); }
 
+	/** Return true if this time limit has been set up, false otherwise */
+	bool IsValid() const { return Delay != -1; }
+	
 	/** Check whether we have exceeded the time limit */
-	bool Exceeded() const { return Delay != -1 && FPlatformTime::Seconds() >= StartTime + Delay; }
+	bool Exceeded() const { return IsValid() && FPlatformTime::Seconds() >= StartTime + Delay; }
 
 	/** Reset the time limit to start timing again from the current time */
 	void Reset() { StartTime = FPlatformTime::Seconds(); }
