@@ -105,3 +105,17 @@ FNavAgentProperties* UNavMovementComponent::GetNavAgentProperties()
 {
 	return &GetNavAgentPropertiesRef();
 }
+void UNavMovementComponent::UpdateNavAgent(AActor* Owner)
+{
+	if (Owner)
+	{
+		UpdateNavAgent(*Owner);
+	}
+}
+void UNavMovementComponent::UpdateNavAgent(UCapsuleComponent* CapsuleComponent)
+{
+	if (CapsuleComponent)
+	{
+		UpdateNavAgent(*CapsuleComponent);
+	}
+}
