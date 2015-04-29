@@ -2060,6 +2060,22 @@ public:
 				[
 					SAssignNew(ErrorText, SErrorText)
 				]
+				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
+				[
+					SNew( SEditableTextBox )
+					.Text( LOCTEXT( "CustomContextMenuInput", "This text box has a custom context menu" ) )
+					.RevertTextOnEscape( true )
+					.HintText(LOCTEXT("CustomContextMenuHint", "Custom context menu..."))
+					.OnContextMenuOpening( this, &STextEditTest::OnCustomContextMenuOpening )
+				]
+				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
+				[
+					SNew( SEditableTextBox )
+					.Text( LOCTEXT( "DisabledContextMenuInput", "This text box has no context menu" ) )
+					.RevertTextOnEscape( true )
+					.HintText(LOCTEXT("DisabledContextMenuHint", "No context menu..."))
+					.OnContextMenuOpening(this, &STextEditTest::OnDisabledContextMenuOpening)
+				]
 			]
 		];
 	}
@@ -2087,6 +2103,22 @@ public:
 
 		ErrorText->SetError( Error );
 		NumericInput->SetError( Error );
+	}
+
+	TSharedPtr<SWidget> OnCustomContextMenuOpening()
+	{
+		return SNew(SBorder)
+			.Padding(5.0f)
+			.BorderImage(FCoreStyle::Get().GetBrush("BoxShadow"))
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CustomContextMenuContent", "This context menu content is just a text block"))
+			];
+	}
+
+	TSharedPtr<SWidget> OnDisabledContextMenuOpening()
+	{
+		return TSharedPtr<SWidget>();
 	}
 
 	void ClearSearchBox()

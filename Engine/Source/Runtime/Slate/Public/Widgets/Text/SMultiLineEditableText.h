@@ -96,6 +96,9 @@ public:
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE(bool, ClearKeyboardFocusOnCommit)
 
+		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
+		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
+
 		/** Called whenever the horizontal scrollbar is moved by the user */
 		SLATE_EVENT(FOnUserScrolled, OnHScrollBarUserScrolled)
 
@@ -682,6 +685,9 @@ private:
 
 	/** A list commands to execute if a user presses the corresponding keybinding in the text box */
 	TSharedRef< FUICommandList > UICommandList;
+
+	/** Delegate to call before a context menu is opened */
+	FOnContextMenuOpening OnContextMenuOpening;
 
 	/** Called whenever the text is changed interactively by the user */
 	FOnTextChanged OnTextChanged;

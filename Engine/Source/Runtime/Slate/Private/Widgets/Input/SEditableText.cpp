@@ -77,6 +77,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	bSelectAllTextWhenFocused = InArgs._SelectAllTextWhenFocused;
 	RevertTextOnEscape = InArgs._RevertTextOnEscape;
 	ClearKeyboardFocusOnCommit = InArgs._ClearKeyboardFocusOnCommit;
+	OnContextMenuOpening = InArgs._OnContextMenuOpening;
 	OnIsTypedCharValid = InArgs._OnIsTypedCharValid;
 	OnTextChanged = InArgs._OnTextChanged;
 	OnTextCommitted = InArgs._OnTextCommitted;
@@ -1938,68 +1939,82 @@ void SEditableText::SaveText()
 
 void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow)
 {
-	// Set the menu to automatically close when the user commits to a choice
-	const bool bShouldCloseWindowAfterMenuSelection = true;
+	TSharedPtr<SWidget> MenuContentWidget;
 
-#define LOCTEXT_NAMESPACE "EditableTextContextMenu"
-
-	// This is a context menu which could be summoned from within another menu if this text block is in a menu
-	// it should not close the menu it is inside
-	bool bCloseSelfOnly = true;
-	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, UICommandList, MenuExtender, bCloseSelfOnly, &FCoreStyle::Get() );
+	if (OnContextMenuOpening.IsBound())
 	{
-		MenuBuilder.BeginSection( "EditText", LOCTEXT( "Heading", "Modify Text" ) );
-		{
-			// Undo
-			MenuBuilder.AddMenuEntry( FGenericCommands::Get().Undo );
-		}
-		MenuBuilder.EndSection();
-
-		MenuBuilder.BeginSection("EditableTextModify2");
-		{
-			// Cut
-			MenuBuilder.AddMenuEntry( FGenericCommands::Get().Cut );
-
-			// Copy
-			MenuBuilder.AddMenuEntry( FGenericCommands::Get().Copy );
-
-			// Paste
-			MenuBuilder.AddMenuEntry( FGenericCommands::Get().Paste );
-
-			// Delete
-			MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
-		}
-		MenuBuilder.EndSection();
-
-		MenuBuilder.BeginSection("EditableTextModify3");
-		{
-			// Select All
-			MenuBuilder.AddMenuEntry( FGenericCommands::Get().SelectAll );
-		}
-		MenuBuilder.EndSection();
-	}
-
-#undef LOCTEXT_NAMESPACE
-
-	ActiveContextMenu.PrepareToSummon();
-
-	const bool bFocusImmediately = true;
-	TSharedRef<SWidget> MenuParent = SharedThis(this);
-	if (ParentWindow.IsValid())
-	{
-		MenuParent = StaticCastSharedRef<SWidget>(ParentWindow.ToSharedRef());
-	}
-	TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(MenuParent, MenuBuilder.MakeWidget(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately );
-	
-	// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
-	if( ContextMenuWindow.IsValid() )
-	{
-		ContextMenuWindow->SetOnWindowClosed( FOnWindowClosed::CreateSP( this, &SEditableText::OnWindowClosed ) );
-		ActiveContextMenu.SummonSucceeded( ContextMenuWindow.ToSharedRef() );
+		MenuContentWidget = OnContextMenuOpening.Execute();
 	}
 	else
 	{
-		ActiveContextMenu.SummonFailed();
+		// Set the menu to automatically close when the user commits to a choice
+		const bool bShouldCloseWindowAfterMenuSelection = true;
+
+#define LOCTEXT_NAMESPACE "EditableTextContextMenu"
+
+		// This is a context menu which could be summoned from within another menu if this text block is in a menu
+		// it should not close the menu it is inside
+		bool bCloseSelfOnly = true;
+		FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, UICommandList, MenuExtender, bCloseSelfOnly, &FCoreStyle::Get());
+		{
+			MenuBuilder.BeginSection("EditText", LOCTEXT("Heading", "Modify Text"));
+			{
+				// Undo
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Undo);
+			}
+			MenuBuilder.EndSection();
+
+			MenuBuilder.BeginSection("EditableTextModify2");
+			{
+				// Cut
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
+
+				// Copy
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
+
+				// Paste
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+
+				// Delete
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
+			}
+			MenuBuilder.EndSection();
+
+			MenuBuilder.BeginSection("EditableTextModify3");
+			{
+				// Select All
+				MenuBuilder.AddMenuEntry(FGenericCommands::Get().SelectAll);
+			}
+			MenuBuilder.EndSection();
+		}
+
+		MenuContentWidget = MenuBuilder.MakeWidget();
+
+#undef LOCTEXT_NAMESPACE
+	}
+
+	if (MenuContentWidget.IsValid())
+	{
+		ActiveContextMenu.PrepareToSummon();
+
+		const bool bFocusImmediately = true;
+		TSharedRef<SWidget> MenuParent = SharedThis(this);
+		if (ParentWindow.IsValid())
+		{
+			MenuParent = StaticCastSharedRef<SWidget>(ParentWindow.ToSharedRef());
+		}
+		TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(MenuParent, MenuContentWidget.ToSharedRef(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately);
+
+		// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
+		if (ContextMenuWindow.IsValid())
+		{
+			ContextMenuWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SEditableText::OnWindowClosed));
+			ActiveContextMenu.SummonSucceeded(ContextMenuWindow.ToSharedRef());
+		}
+		else
+		{
+			ActiveContextMenu.SummonFailed();
+		}
 	}
 }
 

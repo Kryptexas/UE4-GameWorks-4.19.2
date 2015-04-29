@@ -105,6 +105,9 @@ public:
 		/** Padding around the vertical scrollbar (overrides Style) */
 		SLATE_ATTRIBUTE( FMargin, VScrollBarPadding )
 
+		/** Delegate to call before a context menu is opened. User returns the menu content or null to the disable context menu */
+		SLATE_EVENT(FOnContextMenuOpening, OnContextMenuOpening)
+
 		/** Called whenever the text is changed interactively by the user */
 		SLATE_EVENT( FOnTextChanged, OnTextChanged )
 
