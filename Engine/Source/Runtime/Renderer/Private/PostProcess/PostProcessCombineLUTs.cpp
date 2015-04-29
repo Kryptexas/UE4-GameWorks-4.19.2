@@ -163,6 +163,8 @@ public:
 		FilmBlackClip.Bind(	Initializer.ParameterMap,TEXT("FilmBlackClip") );
 		FilmWhiteClip.Bind(	Initializer.ParameterMap,TEXT("FilmWhiteClip") );
 
+		OutputDevice.Bind( Initializer.ParameterMap,TEXT("OutputDevice") );
+
 		ColorMatrixR_ColorCurveCd1.Bind(Initializer.ParameterMap, TEXT("ColorMatrixR_ColorCurveCd1"));
 		ColorMatrixG_ColorCurveCd3Cm3.Bind(Initializer.ParameterMap, TEXT("ColorMatrixG_ColorCurveCd3Cm3"));
 		ColorMatrixB_ColorCurveCm2.Bind(Initializer.ParameterMap, TEXT("ColorMatrixB_ColorCurveCm2"));
@@ -215,18 +217,26 @@ public:
 		SetShaderValue( RHICmdList, ShaderRHI, FilmWhiteClip,	Settings.FilmWhiteClip );
 
 		{
+			static TConsoleVariableData<int32>* CVar709		= IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
+			static TConsoleVariableData<float>* CVarGamma	= IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
+
+			int32 Rec709 = CVar709->GetValueOnRenderThread();
+			float Gamma = CVarGamma->GetValueOnRenderThread();
+			
+			if( PLATFORM_APPLE && Gamma == 0.0f )
+			{
+				Gamma = 2.2f;
+			}
+			
+			int32 Value = 0;						// sRGB
+			Value = Rec709			? 1 : Value;	// Rec709
+			Value = Gamma != 0.0f	? 2 : Value;	// Explicit gamma
+			SetShaderValue( RHICmdList, ShaderRHI, OutputDevice, Value );
+			
 			FVector InvDisplayGammaValue;
 			InvDisplayGammaValue.X = 1.0f / ViewFamily.RenderTarget->GetDisplayGamma();
 			InvDisplayGammaValue.Y = 2.2f / ViewFamily.RenderTarget->GetDisplayGamma();
-			{
-				static TConsoleVariableData<float>* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
-				float Value = CVar->GetValueOnRenderThread();
-				if(Value < 1.0f)
-				{
-					Value = 1.0f;
-				}
-				InvDisplayGammaValue.Z = 1.0f / Value;
-			}
+			InvDisplayGammaValue.Z = 1.0f / FMath::Max( Gamma, 1.0f );
 			SetShaderValue(RHICmdList, ShaderRHI, InverseGamma, InvDisplayGammaValue);
 		}
 
@@ -363,8 +373,6 @@ public:
 
 		OutEnvironment.SetDefine(TEXT("BLENDCOUNT"), BlendCount);
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"), UseVolumeTextureLUT(Platform));
-		//OutEnvironment.SetDefine(TEXT("USE_GAMMA"), OutputDevice == 1);
-		//OutEnvironment.SetDefine(TEXT("USE_709"), OutputDevice == 2);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -388,6 +396,8 @@ public:
 		Ar << ColorGamma;
 		Ar << ColorGain;
 		Ar << ColorOffset;
+
+		Ar << OutputDevice;
 
 		Ar << FilmSlope;
 		Ar << FilmToe;
@@ -426,6 +436,8 @@ private: // ---------------------------------------------------
 	FShaderParameter FilmShoulder;
 	FShaderParameter FilmBlackClip;
 	FShaderParameter FilmWhiteClip;
+
+	FShaderParameter OutputDevice;
 
 	// Legacy
 	FShaderParameter ColorMatrixR_ColorCurveCd1;

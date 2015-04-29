@@ -148,6 +148,8 @@ float3 ColorGrade( float3 LinearColor )
 	return mul( AP1_2_sRGB, WorkingColor );
 }
 
+uint OutputDevice;
+
 // todo: Weight[0] should be used for neutral, Texture* name should start with 1, color correction should apply on top of that
 #if USE_VOLUME_LUT == 1
 void MainPS(FWriteToSliceGeometryOutput Input, out float4 OutColor : SV_Target0)
@@ -207,15 +209,15 @@ void MainPS(float4 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	{
 		// Legacy LDR LUT color grading
 
-		// FIXME LUTs are in gamma space
-		half3 GammaColor = pow( FilmColor, 1.0 / 2.2 );
+		// FIXME LUTs are in sRGB space
+		half3 GammaColor = LinearToSrgbBranching( saturate( FilmColor ) );
 
 		// Transform color to 256x16 UV
 		float Scale = 15.0f / 16.0f;
 
-		float IntB = floor(Neutral.b * 15.9999f) / 16.0f;
+		float IntB = floor(GammaColor.b * 15.9999f) / 16.0f;
 
-		float2 UV = float2(Neutral.r * Scale / 16.0f + IntB, Neutral.g * Scale);
+		float2 UV = float2(GammaColor.r * Scale / 16.0f + IntB, GammaColor.g * Scale);
 		UV += float2(0.5f / 256.0f, 0.5f / 16.0f);
 
 		GammaColor = LUTWeights[0] * GammaColor;
@@ -238,7 +240,7 @@ void MainPS(float4 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	#endif
 
 		// Back to linear space
-		FilmColor = pow( GammaColor, 2.2 );
+		FilmColor = sRGBToLinear( GammaColor );
 	}
 #endif
 	
@@ -248,26 +250,29 @@ void MainPS(float4 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// blend with custom LDR color, used for Fade track in Matinee
 	FilmColor = lerp( FilmColor * ColorScale, OverlayColor.rgb, OverlayColor.a );
 
-#if 0
 	// Apply "gamma" curve adjustment.
 	FilmColor = pow( FilmColor, InverseGamma.y );
 		
-	#if USE_GAMMA
+	half3 OutDeviceColor = 0;
+	BRANCH
+	if( OutputDevice == 0 )
+	{
+		// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
+		// Branching is faster than branchless on AMD on PC.
+		OutDeviceColor = LinearToSrgbBranching( FilmColor );
+	}
+	else if( OutputDevice == 1 )
+	{
+		// Didn't profile yet if the branching version would be faster (different linear segment).
+		OutDeviceColor = LinearTo709Branchless( FilmColor );
+	}
+	else
+	{
 		// This is different than the prior "gamma" curve adjustment (but reusing the variable).
 		// For displays set to a gamma colorspace.
 		// Note, MacOSX native output is raw gamma 2.2 not sRGB!
-		half3 OutDeviceColor = pow( FilmColor, InverseGamma.z );
-	#elif USE_709
-		// Didn't profile yet if the branching version would be faster (different linear segment).
-		half3 OutDeviceColor = LinearTo709Branchless( FilmColor );
-	#else
-		// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-		// Branching is faster than branchless on AMD on PC.
-		half3 OutDeviceColor = LinearToSrgbBranching( FilmColor );
-	#endif
-#else
-	half3 OutDeviceColor = sqrt( FilmColor );
-#endif
+		OutDeviceColor = pow( FilmColor, InverseGamma.z );
+	}
 
 	// Better to saturate(lerp(a,b,t)) than lerp(saturate(a),saturate(b),t)
 	OutColor.rgb = OutDeviceColor / 1.05;

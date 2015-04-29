@@ -255,34 +255,6 @@ void MainPS(
 		#endif
 
 		half3 OutDeviceColor = ColorLookupTable( LinearColor );
-		
-#if 1	// TODO remove all of this. Do full output device conversion in LUT
-		// remove fake gamma
-		OutDeviceColor *= OutDeviceColor;
-
-		// Apply "gamma" curve adjustment.
-		OutDeviceColor.rgb = pow(OutDeviceColor.rgb, InverseGamma.y);
-		
-		#if MAC
-			// Note, MacOSX native output is raw gamma 2.2 not sRGB!
-			OutDeviceColor = pow(OutDeviceColor.rgb, 1.0/2.2);
-		#else
-			#if USE_709
-				// Didn't profile yet if the branching version would be faster (different linear segment).
-				OutDeviceColor = LinearTo709Branchless(OutDeviceColor);
-			#else
-				#if USE_GAMMA
-					// This is different than the prior "gamma" curve adjustment (but reusing the variable).
-					// For displays set to a gamma colorspace.
-					OutDeviceColor = pow(OutDeviceColor.rgb, InverseGamma.z);
-				#else
-					// Apply conversion to sRGB (this must be an exact sRGB conversion else darks are bad).
-					// Branching is faster than branchless on AMD on PC.
-					OutDeviceColor = LinearToSrgbBranching(OutDeviceColor);
-				#endif
-			#endif
-		#endif
-#endif
 
 		//OutDeviceColor = Graph( ScreenSpacePos );
 	
