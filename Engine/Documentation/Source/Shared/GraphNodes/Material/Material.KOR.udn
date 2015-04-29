@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2517815
+﻿INTSourceChangelist:2528858
 Availability:NoPublish
 Title:
 Crumbs:
@@ -617,6 +617,14 @@ Power (거듭제곱) 표현식은 입력 둘을 받아서, Base(밑)을 Exp(지�
 Engine/Rendering/Materials/ExpressionReference/Math#power
 [/VAR]
 [/EXCERPT:UMaterialExpressionPower]
+
+[EXCERPT:UMaterialExpressionLogarithm2]
+Logarithm (로그) 표현식은 입력 둘을 받아서, 밑이 2 인 X 의 로그를 계산한 다음, 결과를 출력합니다. 다른 말로 X 가 2 를 몇 번 제곱해야 나오는가 입니다. 로그 계산은 채널별로 일어납니다. 두 값 중 하나가 single float 값이 아닌 다음에야 두 입력 모두 값의 수가 같아야 합니다.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Math#Logarithm
+[/VAR]
+[/EXCERPT:UMaterialExpressionLogarithm2]
 
 [EXCERPT:UMaterialExpressionSine]
 Sine (사인) 표현식은 (라디안) 입력값의 사인 곡선을 출력합니다. 가장 흔하게는 Time 표현식의 입력에 연결하여 지속적으로 진동하는 파형을 출력할 때 쓰입니다. 출력값은 -1 에서 1 까지 순환합니다. Cosine 표현식과의 차이점은, 파형이 절반만큼 오프셋되어 있다는 점입니다. 그 파형을 시각적으로 나타내 보자면 아래와 같습니다:
