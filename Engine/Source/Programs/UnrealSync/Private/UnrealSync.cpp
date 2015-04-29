@@ -211,7 +211,6 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetAllLabels()
 
 TSharedPtr<TArray<FString> > FUnrealSync::GetPossibleGameNames()
 {
-	/* TODO: Hard coded game names. Needs to be fixed! */
 	TSharedPtr<TArray<FString> > PossibleGames = MakeShareable(new TArray<FString>());
 
 	FP4Env& Env = FP4Env::Get();
@@ -225,7 +224,7 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetPossibleGameNames()
 	FString Line, Rest = FileList;
 	while (Rest.Split(LINE_TERMINATOR, &Line, &Rest, ESearchCase::CaseSensitive))
 	{
-		if (!Line.StartsWith(Env.GetBranch(), ESearchCase::CaseSensitive))
+		if (!Line.StartsWith(Env.GetBranch()))
 		{
 			continue;
 		}
