@@ -1126,6 +1126,28 @@ void FKismetCompilerUtilities::ValidateProperEndExecutionPath(FKismetFunctionCon
 	}
 }
 
+void FKismetCompilerUtilities::DetectValuesReturnedByRef(const UFunction* Func, const UK2Node * Node, FCompilerResultsLog& MessageLog)
+{
+	for (TFieldIterator<UProperty> PropIt(Func); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
+	{
+		UProperty* FuncParam = *PropIt;
+		if (FuncParam->HasAllPropertyFlags(CPF_OutParm) && !FuncParam->HasAllPropertyFlags(CPF_ConstParm))
+		{
+			const FString MessageStr = FString::Printf(
+				*LOCTEXT("WrongRefOutput", "No value will be returned by reference. Parameter '%s'. Node: @@").ToString(),
+				*FuncParam->GetName());
+			if (FuncParam->IsA<UArrayProperty>()) // array is always passed by reference, see FKismetCompilerContext::CreatePropertiesFromList
+			{
+				MessageLog.Note(*MessageStr, Node);
+			}
+			else
+			{
+				MessageLog.Warning(*MessageStr, Node);
+			}
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FNodeHandlingFunctor
 

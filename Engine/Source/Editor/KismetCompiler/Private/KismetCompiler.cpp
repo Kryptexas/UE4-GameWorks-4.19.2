@@ -2708,7 +2708,10 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			{
 				for(UEdGraph* OldEventGraph : Blueprint->EventGraphs)
 				{
-					OldEventGraph->Rename(NULL, GetTransientPackage());
+					if (OldEventGraph)
+					{
+						OldEventGraph->Rename(NULL, GetTransientPackage());
+					}
 				}
 			}
 			Blueprint->EventGraphs.Empty();

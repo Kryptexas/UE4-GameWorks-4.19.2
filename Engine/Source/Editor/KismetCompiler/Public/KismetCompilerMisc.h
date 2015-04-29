@@ -94,6 +94,9 @@ public:
 
 	/** Checks if each execution path ends with a Return node */
 	static void ValidateProperEndExecutionPath(FKismetFunctionContext& Context);
+
+	/** Generate an error for non-const output parameters */
+	static void DetectValuesReturnedByRef(const UFunction* Func, const UK2Node * Node, FCompilerResultsLog& MessageLog);
 };
 
 //////////////////////////////////////////////////////////////////////////
