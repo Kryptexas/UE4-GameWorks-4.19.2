@@ -811,12 +811,12 @@ bool STableViewBase::CanUseInertialScroll( float ScrollAmount ) const
 	return CurrentOverscroll == 0.f || FMath::Sign(CurrentOverscroll) != FMath::Sign(ScrollAmount);
 }
 
-STableViewBase::FOverscroll::FOverscroll()
+STableViewBase::FListOverscroll::FListOverscroll()
 : OverscrollAmount( 0.0f )
 {
 }
 
-float STableViewBase::FOverscroll::ScrollBy( float Delta )
+float STableViewBase::FListOverscroll::ScrollBy(float Delta)
 {
 	const float ValueBeforeDeltaApplied = OverscrollAmount;
 	const float EasedDelta = Delta / (FMath::Abs(OverscrollAmount/ListConstants::OvershootMax)+1.0f);
@@ -832,12 +832,12 @@ float STableViewBase::FOverscroll::ScrollBy( float Delta )
 	return ValueBeforeDeltaApplied - OverscrollAmount;
 }
 
-float STableViewBase::FOverscroll::GetOverscroll() const
+float STableViewBase::FListOverscroll::GetOverscroll() const
 {
 	return OverscrollAmount;
 }
 
-void STableViewBase::FOverscroll::UpdateOverscroll( float InDeltaTime )
+void STableViewBase::FListOverscroll::UpdateOverscroll(float InDeltaTime)
 {
 	const float PullForce = FMath::Abs(OverscrollAmount) + 1.0f;
 	const float EasedDelta = ListConstants::OvershootBounceRate * InDeltaTime * PullForce;
@@ -852,7 +852,7 @@ void STableViewBase::FOverscroll::UpdateOverscroll( float InDeltaTime )
 	}
 }
 
-bool STableViewBase::FOverscroll::ShouldApplyOverscroll( const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta ) const
+bool STableViewBase::FListOverscroll::ShouldApplyOverscroll(const bool bIsAtStartOfList, const bool bIsAtEndOfList, const float ScrollDelta) const
 {
 	const bool bShouldApplyOverscroll =
 		// We can scroll past the edge of the list only if we are at the edge

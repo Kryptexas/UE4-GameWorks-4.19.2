@@ -4,16 +4,11 @@
 
 #include "IScrollableWidget.h"
 #include "InertialScrollManager.h"
+#include "Overscroll.h"
 
 class SListPanel;
 class SHeaderRow;
 
-
-enum class EAllowOverscroll
-{
-	Yes,
-	No
-};
 
 /** If the list panel is arranging items horizontally, this enum dictates how the items should be aligned (basically, where any extra space is placed) */
 enum class EListItemAlignment : uint8
@@ -316,11 +311,11 @@ private:
 
 protected:
 
-	struct SLATE_API FOverscroll
+	struct SLATE_API FListOverscroll
 	{
 	public:
 
-		FOverscroll();
+		FListOverscroll();
 
 		/** @return The Amount actually scrolled */
 		float ScrollBy( float Delta );

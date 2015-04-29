@@ -3,6 +3,7 @@
 #pragma once
 
 #include "InertialScrollManager.h"
+#include "Overscroll.h"
 
 /** SScrollBox can scroll through an arbitrary number of widgets. */
 class SLATE_API SScrollBox : public SCompoundWidget
@@ -46,6 +47,7 @@ public:
 		, _ScrollBarVisibility(EVisibility::Visible)
 		, _ScrollBarAlwaysVisible(false)
 		, _ScrollBarThickness(FVector2D(5, 5))
+		, _AllowOverscroll(EAllowOverscroll::Yes)
 		, _OnUserScrolled()
 		, _ConsumeMouseWheel(EConsumeMouseWheel::WhenScrollingPossible)
 		{}
@@ -69,6 +71,8 @@ public:
 		SLATE_ARGUMENT( bool, ScrollBarAlwaysVisible )
 
 		SLATE_ARGUMENT( FVector2D, ScrollBarThickness )
+
+		SLATE_ARGUMENT(EAllowOverscroll, AllowOverscroll);
 
 		/** Called when the button is clicked */
 		SLATE_EVENT(FOnUserScrolled, OnUserScrolled)
@@ -130,6 +134,7 @@ public:
 
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	virtual FReply OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -138,6 +143,9 @@ public:
 	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual FReply OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
+	virtual FReply OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
+	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent) override;
 	// End of SWidget interface
 
 private:
@@ -181,7 +189,7 @@ private:
 	 * @param InAnimateScroll	Whether or not to animate the scroll
 	 * @return Whether or not the scroll was fully handled
 	 */
-	bool ScrollBy( const FGeometry& AllottedGeometry, float ScrollAmount, bool InAnimateScroll = true );
+	bool ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscroll, bool InAnimateScroll = true);
 
 	/** Invoked when the user scroll via the scrollbar */
 	void ScrollBar_OnUserScrolled( float InScrollOffsetFraction );
@@ -195,6 +203,9 @@ private:
 	/** Active timer to update inertial scrolling as needed */
 	EActiveTimerReturnType UpdateInertialScroll(double InCurrentTime, float InDeltaTime);
 
+	/** Check whether the current state of the table warrants inertial scroll by the specified amount */
+	bool CanUseInertialScroll(float ScrollAmount) const;
+
 private:
 
 	/** The panel which stacks the child slots */
@@ -203,11 +214,23 @@ private:
 	/** The scrollbar which controls scrolling for the scrollbox. */
 	TSharedPtr<SScrollBar> ScrollBar;
 
+	/** The amount we have scrolled this tick cycle */
+	float TickScrollDelta;
+
+	/** Did the user start an interaction in this list? */
+	bool bStartedTouchInteraction;
+
 	/** How much we scrolled while the rmb has been held */
 	float AmountScrolledWhileRightMouseDown;
 
 	/** Helper object to manage inertial scrolling */
 	FInertialScrollManager InertialScrollManager;
+
+	/** The overscroll state management structure. */
+	FOverscroll Overscroll;
+
+	/** Whether to permit overscroll on this scroll box */
+	EAllowOverscroll AllowOverscroll;
 
 	/**	The current position of the software cursor */
 	FVector2D SoftwareCursorPosition;
@@ -246,7 +269,5 @@ private:
 	bool bScrollToEnd : 1;
 
 	/** Whether the active timer to update the inertial scroll is registered */
-	bool bIsActiveTimerRegistered : 1;
+	bool bIsScrollingActiveTimerRegistered : 1;
 };
-
-

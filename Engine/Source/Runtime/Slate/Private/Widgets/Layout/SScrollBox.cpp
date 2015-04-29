@@ -154,14 +154,17 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	DesiredScrollOffset = 0;
 	bIsScrolling = false;
 	bAnimateScroll = false;
+	bStartedTouchInteraction = false;
 	AmountScrolledWhileRightMouseDown = 0;
 	bShowSoftwareCursor = false;
 	SoftwareCursorPosition = FVector2D::ZeroVector;
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
 	bScrollToEnd = false;
-	bIsActiveTimerRegistered = false;
+	bIsScrollingActiveTimerRegistered = false;
 	ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
+	TickScrollDelta = 0;
+	AllowOverscroll = InArgs._AllowOverscroll;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -381,13 +384,13 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 	if ( ensureMsg( WidgetGeometry, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox") ) )
 	{
 		// @todo: This is a workaround because DesiredScrollOffset can exceed the ScrollMax when mouse dragging on the scroll bar and we need it clamped here or the offset is wrong
-		ScrollBy(MyGeometry, 0, false);
+		ScrollBy(MyGeometry, 0, EAllowOverscroll::No, false);
 
 		// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
 		const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition);
 		const float MyPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition);
 		const float ScrollOffset = WidgetPosition - MyPosition;
-		ScrollBy(MyGeometry, ScrollOffset, InAnimateScroll);
+		ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
 		return true;
 	}
 	return false;
@@ -436,25 +439,66 @@ void SScrollBox::SetScrollBarThickness(FVector2D InThickness)
 
 EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, float InDeltaTime)
 {
-	InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
+	bool bKeepTicking = false;
 
-	if (bIsScrolling)
+	//if (bIsScrolling)
+	//{
+	//	const float ScrollVelocity = InertialScrollManager.GetScrollVelocity();
+	//	// Do not apply inertial scrolling while the user is actively scrolling via RMB.
+	//	if (ScrollVelocity != 0.f && !IsRightClickScrolling())
+	//	{
+	//		ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll, true);
+	//	}
+
+	//	bKeepTicking = true;
+	//}
+
+	if ( IsRightClickScrolling() )
 	{
-		const float ScrollVelocity = InertialScrollManager.GetScrollVelocity();
-		// Do not apply inertial scrolling while the user is actively scrolling via RMB.
-		if (ScrollVelocity != 0.f && !IsRightClickScrolling())
+		bKeepTicking = true;
+
+		// We sample for the inertial scroll on tick rather than on mouse/touch move so
+		// that we still get samples even if the mouse has not moved.
+		if ( CanUseInertialScroll(TickScrollDelta) )
 		{
-			ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, true);
+			InertialScrollManager.AddScrollSample(TickScrollDelta, InCurrentTime);
+		}
+	}
+	else
+	{
+		InertialScrollManager.UpdateScrollVelocity(InDeltaTime);
+		const float ScrollVelocity = InertialScrollManager.GetScrollVelocity();
+
+		if ( ScrollVelocity != 0.f )
+		{
+			if ( CanUseInertialScroll(ScrollVelocity) )
+			{
+				bKeepTicking = true;
+				ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, AllowOverscroll);
+			}
+			else
+			{
+				InertialScrollManager.ClearScrollVelocity();
+			}
 		}
 
-		return EActiveTimerReturnType::Continue;
+		if ( AllowOverscroll == EAllowOverscroll::Yes )
+		{
+			// If we are currently in overscroll, the list will need refreshing.
+			// Do this before UpdateOverscroll, as that could cause GetOverscroll() to be 0
+			if ( Overscroll.GetOverscroll() != 0.0f )
+			{
+				bKeepTicking = true;
+			}
+
+			Overscroll.UpdateOverscroll(InDeltaTime);
+		}
 	}
 
-	// Clear the scroll velocity so there isn't any delayed minuscule movement
-	InertialScrollManager.ClearScrollVelocity();
+	TickScrollDelta = 0.f;
 
-	bIsActiveTimerRegistered = false;
-	return EActiveTimerReturnType::Stop;
+	bIsScrollingActiveTimerRegistered = bKeepTicking;
+	return bKeepTicking ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
 }
 
 void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -475,7 +519,12 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	const float ViewOffset = FMath::Clamp<float>( DesiredScrollOffset/ContentSize, 0.0, 1.0 - ViewFraction );
 	
 	// Update the scrollbar with the clamped version of the offset
-	const float TargetPhysicalOffset = GetScrollComponentFromVector(ViewOffset*ScrollPanel->GetDesiredSize());
+	float TargetPhysicalOffset = GetScrollComponentFromVector(ViewOffset*ScrollPanel->GetDesiredSize());
+	if ( AllowOverscroll == EAllowOverscroll::Yes )
+	{
+		TargetPhysicalOffset -= Overscroll.GetOverscroll();
+	}
+
 	bIsScrolling = !FMath::IsNearlyEqual(TargetPhysicalOffset, ScrollPanel->PhysicalOffset, 0.001f);
 	ScrollPanel->PhysicalOffset = (bAnimateScroll)
 		? FMath::FInterpTo(ScrollPanel->PhysicalOffset, TargetPhysicalOffset, InDeltaTime, 15.f)
@@ -487,11 +536,23 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		// We cannot scroll, so ensure that there is no offset.
 		ScrollPanel->PhysicalOffset = 0.0f;
 	}
-	else if (bIsScrolling && !bIsActiveTimerRegistered)
+}
+
+FReply SScrollBox::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if ( MouseEvent.IsTouchEvent() )
 	{
-		// If scrolling and the scrollbar is needed, make sure the active timer is registered (possible b/c we may need to scroll when our geometry changes)
-		bIsActiveTimerRegistered = true;
-		RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+		// Clear any inertia 
+		this->InertialScrollManager.ClearScrollVelocity();
+		// We have started a new interaction; track how far the user has moved since they put their finger down.
+		AmountScrolledWhileRightMouseDown = 0;
+		// Someone put their finger down in this list, so they probably want to drag the list.
+		bStartedTouchInteraction = true;
+		return FReply::Unhandled();
+	}
+	else
+	{
+		return FReply::Unhandled();
 	}
 }
 
@@ -519,12 +580,12 @@ FReply SScrollBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 {
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
-		if (!bIsActiveTimerRegistered && IsRightClickScrolling())
+		if ( !bIsScrollingActiveTimerRegistered && IsRightClickScrolling() )
 		{
 			// Register the active timer to handle the inertial scrolling
 			CachedGeometry = MyGeometry;
 			bIsScrolling = true;
-			bIsActiveTimerRegistered = true;
+			bIsScrollingActiveTimerRegistered = true;
 			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 		}
 
@@ -566,7 +627,7 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 		if( IsRightClickScrolling() )
 		{
 			this->InertialScrollManager.AddScrollSample(-ScrollByAmount, FPlatformTime::Seconds());
-			const bool bDidScroll = this->ScrollBy( MyGeometry, -ScrollByAmount );
+			const bool bDidScroll = this->ScrollBy( MyGeometry, -ScrollByAmount, AllowOverscroll );
 
 			FReply Reply = FReply::Handled();
 
@@ -584,6 +645,8 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 				SetScrollComponentOnVector(SoftwareCursorPosition, GetScrollComponentFromVector(SoftwareCursorPosition) + GetScrollComponentFromVector(MouseEvent.GetCursorDelta()));
 			}
 
+			TickScrollDelta -= ScrollByAmount;
+
 			return Reply;
 		}
 	}
@@ -593,10 +656,11 @@ FReply SScrollBox::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 
 void SScrollBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
-	if(this->HasMouseCapture() == false)
+	if (HasMouseCapture() == false)
 	{
 		// No longer scrolling (unless we have mouse capture)
 		AmountScrolledWhileRightMouseDown = 0;
+		bStartedTouchInteraction = false;
 	}
 }
 
@@ -607,14 +671,14 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		InertialScrollManager.ClearScrollVelocity();
 
-		const bool bScrollWasHandled = this->ScrollBy( MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount );
+		const bool bScrollWasHandled = this->ScrollBy(MyGeometry, -MouseEvent.GetWheelDelta()*WheelScrollAmount, EAllowOverscroll::No);
 
-		if (bScrollWasHandled && !bIsActiveTimerRegistered)
+		if ( bScrollWasHandled && !bIsScrollingActiveTimerRegistered )
 		{
 			// Register the active timer to handle the inertial scrolling
 			CachedGeometry = MyGeometry;
 			bIsScrolling = true;
-			bIsActiveTimerRegistered = true;
+			bIsScrollingActiveTimerRegistered = true;
 			RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 		}
 
@@ -626,7 +690,7 @@ FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEven
 	}
 }
 
-bool SScrollBox::ScrollBy( const FGeometry& AllottedGeometry, float ScrollAmount, bool InAnimateScroll )
+bool SScrollBox::ScrollBy(const FGeometry& AllottedGeometry, float ScrollAmount, EAllowOverscroll Overscrolling, bool InAnimateScroll)
 {
 	bAnimateScroll = InAnimateScroll;
 
@@ -635,11 +699,17 @@ bool SScrollBox::ScrollBy( const FGeometry& AllottedGeometry, float ScrollAmount
 
 	float PreviousScrollOffset = DesiredScrollOffset;
 
-	DesiredScrollOffset += ScrollAmount;
+	float UnclampedDesiredScrollOffset = DesiredScrollOffset + ScrollAmount;
 
 	const float ScrollMin = 0.0f;
 	const float ScrollMax = ContentSize - GetScrollComponentFromVector(ScrollPanelGeometry.Size);
-	DesiredScrollOffset = FMath::Clamp(DesiredScrollOffset, ScrollMin, ScrollMax);
+	DesiredScrollOffset = FMath::Clamp(UnclampedDesiredScrollOffset, ScrollMin, ScrollMax);
+
+	float RemainingScrollDelta = UnclampedDesiredScrollOffset - DesiredScrollOffset;
+	if ( Overscrolling == EAllowOverscroll::Yes && Overscroll.ShouldApplyOverscroll(DesiredScrollOffset == 0, DesiredScrollOffset == ScrollMax, RemainingScrollDelta) )
+	{
+		Overscroll.ScrollBy(-RemainingScrollDelta);
+	}
 
 	OnUserScrolled.ExecuteIfBound(DesiredScrollOffset);
 
@@ -661,6 +731,59 @@ FCursorReply SScrollBox::OnCursorQuery( const FGeometry& MyGeometry, const FPoin
 	else
 	{
 		return FCursorReply::Unhandled();
+	}
+}
+
+FReply SScrollBox::OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	// See OnPreviewMouseButtonDown()
+	//     if (MouseEvent.IsTouchEvent())
+
+	return FReply::Unhandled();
+}
+
+FReply SScrollBox::OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	if ( bStartedTouchInteraction )
+	{
+		const float ScrollByAmount = GetScrollComponentFromVector(InTouchEvent.GetCursorDelta()) / MyGeometry.Scale;
+		AmountScrolledWhileRightMouseDown += FMath::Abs(ScrollByAmount);
+		TickScrollDelta -= ScrollByAmount;
+
+		if ( AmountScrolledWhileRightMouseDown > FSlateApplication::Get().GetDragTriggerDistance() )
+		{
+			const float AmountScrolled = this->ScrollBy(MyGeometry, -ScrollByAmount, EAllowOverscroll::Yes, false);
+
+			// The user has moved the list some amount; they are probably
+			// trying to scroll. From now on, the list assumes the user is scrolling
+			// until they lift their finger.
+			return FReply::Handled().CaptureMouse(AsShared());
+		}
+		return FReply::Handled();
+	}
+	else
+	{
+		return FReply::Handled();
+	}
+}
+
+FReply SScrollBox::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent)
+{
+	CachedGeometry = MyGeometry;
+
+	AmountScrolledWhileRightMouseDown = 0;
+	bStartedTouchInteraction = false;
+
+	bIsScrollingActiveTimerRegistered = true;
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
+
+	if ( HasMouseCapture() )
+	{
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	else
+	{
+		return FReply::Handled();
 	}
 }
 
@@ -708,4 +831,13 @@ FSlateColor SScrollBox::GetEndShadowOpacity() const
 	const float ShadowOpacity = (ScrollBar->DistanceFromBottom() * GetScrollComponentFromVector(ScrollPanel->GetDesiredSize()) / ShadowFadeDistance);
 	
 	return FLinearColor(1.0f, 1.0f, 1.0f, ShadowOpacity);
+}
+
+bool SScrollBox::CanUseInertialScroll(float ScrollAmount) const
+{
+	const auto CurrentOverscroll = Overscroll.GetOverscroll();
+
+	// We allow sampling for the inertial scroll if we are not in the overscroll region,
+	// Or if we are scrolling outwards of the overscroll region
+	return CurrentOverscroll == 0.f || FMath::Sign(CurrentOverscroll) != FMath::Sign(ScrollAmount);
 }
