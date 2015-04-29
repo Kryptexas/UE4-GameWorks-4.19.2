@@ -2092,24 +2092,30 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	CurrentCookMode = DesiredCookMode;
 	CookFlags = InCookFlags;
 
-	TArray<FString> FullGCAssetClassNames;
-	GConfig->GetArray( TEXT("CookSettings"), TEXT("FullGCAssetClassNames"), FullGCAssetClassNames, GEditorIni );
-	for ( const auto& FullGCAssetClassName : FullGCAssetClassNames )
+	bool bUseFullGCAssetClassNames = true;
+	GConfig->GetBool(TEXT("CookSettings"), TEXT("bUseFullGCAssetClassNames"), bUseFullGCAssetClassNames, GEditorIni);
+	
+	if (bUseFullGCAssetClassNames)
 	{
-		UClass* FullGCAssetClass = FindObject<UClass>(ANY_PACKAGE, *FullGCAssetClassName, true);
-		if( FullGCAssetClass == NULL )
+		TArray<FString> FullGCAssetClassNames;
+		GConfig->GetArray( TEXT("CookSettings"), TEXT("FullGCAssetClassNames"), FullGCAssetClassNames, GEditorIni );
+		for ( const auto& FullGCAssetClassName : FullGCAssetClassNames )
 		{
-			UE_LOG(LogCook, Warning, TEXT("Unable to find full gc asset class name %s may result in bad cook"), *FullGCAssetClassName);
+			UClass* FullGCAssetClass = FindObject<UClass>(ANY_PACKAGE, *FullGCAssetClassName, true);
+			if( FullGCAssetClass == NULL )
+			{
+				UE_LOG(LogCook, Warning, TEXT("Unable to find full gc asset class name %s may result in bad cook"), *FullGCAssetClassName);
+			}
+			else
+			{
+				FullGCAssetClasses.Add( FullGCAssetClass );
+			}
 		}
-		else
+		if ( FullGCAssetClasses.Num() == 0 )
 		{
-			FullGCAssetClasses.Add( FullGCAssetClass );
+			// default to UWorld
+			FullGCAssetClasses.Add( UWorld::StaticClass() );
 		}
-	}
-	if ( FullGCAssetClasses.Num() == 0 )
-	{
-		// default to UWorld
-		FullGCAssetClasses.Add( UWorld::StaticClass() );
 	}
 
 	PackagesPerGC = 50;
