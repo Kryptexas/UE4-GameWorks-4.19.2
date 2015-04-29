@@ -3133,6 +3133,7 @@ UNetDriver* AActor::GetNetDriver() const
 	UWorld *World = GetWorld();
 	if (NetDriverName == NAME_GameNetDriver)
 	{
+		check(World);
 		return World->GetNetDriver();
 	}
 
