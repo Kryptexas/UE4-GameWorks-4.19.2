@@ -21,7 +21,6 @@
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
 #include "ChunkManifestGenerator.h"
-#include "PhysicsPublic.h"
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"
 #include "MemoryMisc.h"
@@ -451,11 +450,6 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				if (World)
 				{
 					World->PersistentLevel->OwningWorld = World;
-					if ( !World->bIsWorldInitialized)
-					{
-						// we need to initialize the world - at least need physics scene since BP construction script runs during cooking, otherwise trace won't work
-						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).CreateAISystem(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
-					}
 				}
 
 				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
@@ -468,17 +462,6 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				{
 					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue() );
 				}
-
-				if (World && World->bIsWorldInitialized)
-				{
-					// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
-					World->SetPhysicsScene(nullptr);
-					if ( GPhysCommandHandler )
-					{
-						GPhysCommandHandler->Flush();
-					}
-				}
-
 				
 				bOutWasUpToDate = false;
 			}
