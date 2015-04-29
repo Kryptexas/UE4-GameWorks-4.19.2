@@ -368,24 +368,29 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 	
 	if( bAnythingRemoved )
 	{
-		// @todo Sequencer - Remove this
-		NotifyMovieSceneDataChanged();
+		UpdateRuntimeInstances();
 	}
 }
 
 void FSequencer::DeleteSelectedKeys()
 {
 	FScopedTransaction DeleteKeysTransaction( NSLOCTEXT("Sequencer", "DeleteSelectedKeys_Transaction", "Delete Selected Keys") );
-
+	bool bAnythingRemoved = false;
 	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys()->Array();
+
 	for ( const FSelectedKey& Key : SelectedKeysArray )
 	{
 		if (Key.IsValid())
 		{
 			Key.Section->Modify();
-
 			Key.KeyArea->DeleteKey(Key.KeyHandle.GetValue());
+			bAnythingRemoved = true;
 		}
+	}
+
+	if (bAnythingRemoved)
+	{
+		UpdateRuntimeInstances();
 	}
 }
 
@@ -675,8 +680,7 @@ void FSequencer::ResetPerMovieSceneData()
 	FilterToShotSections( TArray< TWeakObjectPtr<UMovieSceneSection> >(), false );
 
 	//@todo Sequencer - We may want to preserve selections when moving between movie scenes
-	Selection.EmptySelectedKeys();
-	Selection.EmptySelectedSections();
+	Selection.Empty();
 
 	// @todo run through all tracks for new movie scene changes
 	//  needed for audio track decompression

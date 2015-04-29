@@ -179,7 +179,7 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 
 	if( bKeysUnderMouse )
 	{
-		DragOperation = MakeShareable( new FMoveKeys( GetSequencer().GetSelection()->GetSelectedKeys(), PressedKey ) );
+		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection()->GetSelectedKeys(), PressedKey ) );
 	}
 	else
 	{
@@ -188,17 +188,17 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 		if( bLeftEdgePressed || bLeftEdgeHovered )
 		{
 			// Selected the start of a section
-			DragOperation = MakeShareable( new FResizeSection( *SectionObject, false ) );
+			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), *SectionObject, false ) );
 		}
 		else if( bRightEdgePressed || bRightEdgeHovered )
 		{
 			// Selected the end of a section
-			DragOperation = MakeShareable( new FResizeSection( *SectionObject, true ) );
+			DragOperation = MakeShareable( new FResizeSection( GetSequencer(), *SectionObject, true ) );
 		}
 		else
 		{
 			// Entire selection moved
-			DragOperation = MakeShareable( new FMoveSection( *SectionObject ) );
+			DragOperation = MakeShareable( new FMoveSection( GetSequencer(), *SectionObject ) );
 		}
 	}
 	
