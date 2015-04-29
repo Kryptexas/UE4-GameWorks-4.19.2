@@ -149,13 +149,13 @@ public:
 	* @param OutFriendsList  Array of friends to fill in.
 	* @return the friend list count.
 	*/
-	virtual int32 GetFilteredFriendsList(TArray< TSharedPtr< IFriendItem > >& OutFriendsList) override;
+	int32 GetFilteredFriendsList(TArray< TSharedPtr< IFriendItem > >& OutFriendsList);
 
 	/**
 	* Get the recent players list.
 	* @return the list.
 	*/
-	virtual TArray< TSharedPtr< IFriendItem > >& GetRecentPlayerList() override;
+	TArray< TSharedPtr< IFriendItem > >& GetRecentPlayerList();
 
 	/**
 	* Get incoming game invite list.
@@ -163,7 +163,7 @@ public:
 	* @param OutFriendsList  Array of friends to fill in.
 	* @return The friend list count.
 	*/
-	virtual int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendItem > >& OutFriendsList) override;
+	int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendItem > >& OutFriendsList);
 	
 	/**
 	 * Get the analytics for recording friends chat events
@@ -400,13 +400,13 @@ public:
 
 	// Internal events
 
-	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsUpdated, FOnFriendsUpdated)
+	DECLARE_EVENT(FFriendsAndChatManager, FOnFriendsUpdated)
 	virtual FOnFriendsUpdated& OnFriendsListUpdated()
 	{
 		return OnFriendsListUpdatedDelegate;
 	}
 
-	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnGameInvitesUpdated, FOnGameInvitesUpdated)
+	DECLARE_EVENT(FFriendsAndChatManager, FOnGameInvitesUpdated)
 	virtual FOnGameInvitesUpdated& OnGameInvitesUpdated()
 	{
 		return OnGameInvitesUpdatedDelegate;
