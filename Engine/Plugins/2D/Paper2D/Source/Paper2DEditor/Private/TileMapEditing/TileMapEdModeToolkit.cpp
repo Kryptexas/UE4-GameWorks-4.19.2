@@ -302,8 +302,9 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 		ToolsToolbar.AddToolBarButton(Commands.SelectTerrainTool);
 
 		//@TODO: TileMapTerrain: Ugly styling
-		FUIAction DummyAction;
-		ToolsToolbar.AddComboButton(DummyAction, FOnGetContent::CreateSP(this, &FTileMapEdModeToolkit::GenerateTerrainMenu));
+		FUIAction TerrainTypeDropdownAction;
+		TerrainTypeDropdownAction.IsActionVisibleDelegate = FIsActionButtonVisible::CreateSP(this, &FTileMapEdModeToolkit::DoesSelectedTileSetHaveTerrains);
+		ToolsToolbar.AddComboButton(TerrainTypeDropdownAction, FOnGetContent::CreateSP(this, &FTileMapEdModeToolkit::GenerateTerrainMenu));
 	}
 
 	return
