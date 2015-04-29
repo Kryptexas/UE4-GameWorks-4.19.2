@@ -1196,7 +1196,7 @@ void STreeMap::ApplyVisualizationToNodesRecursively( const FTreeMapNodeDataRef& 
 	// Select default color saturation based on tree depth
 	FLinearColor MyDefaultColor = DefaultColor;
 	auto HSV = MyDefaultColor.LinearRGBToHSV();
-	const float SaturationReductionPerDepthLevel = 0.2f;	// @todo treemap custom: Make configurable in the tree map settings?  Calculate tree depth?
+	const float SaturationReductionPerDepthLevel = 0.05f;	// @todo treemap custom: Make configurable in the tree map settings?  Calculate tree depth?
 	const float MinAllowedSaturation = 0.1f;
 	HSV.G = FMath::Max( MinAllowedSaturation, HSV.G - TreeDepth * SaturationReductionPerDepthLevel );
 	MyDefaultColor = HSV.HSVToLinearRGB();
