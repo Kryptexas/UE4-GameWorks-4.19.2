@@ -2340,7 +2340,6 @@ public:
 		IrradianceSampler.Bind(Initializer.ParameterMap, TEXT("IrradianceSampler"));
 		IrradianceHistoryTexture.Bind(Initializer.ParameterMap, TEXT("IrradianceHistoryTexture"));
 		IrradianceHistorySampler.Bind(Initializer.ParameterMap, TEXT("IrradianceHistorySampler"));
-		CameraMotion.Bind(Initializer.ParameterMap);
 		HistoryWeight.Bind(Initializer.ParameterMap, TEXT("HistoryWeight"));
 		HistoryDistanceThreshold.Bind(Initializer.ParameterMap, TEXT("HistoryDistanceThreshold"));
 		UseHistoryFilter.Bind(Initializer.ParameterMap, TEXT("UseHistoryFilter"));
@@ -2404,7 +2403,7 @@ public:
 				);
 		}
 
-		CameraMotion.Set(RHICmdList, View, ShaderRHI);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(View));
 
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryWeight, GAOHistoryWeight);
 		SetShaderValue(RHICmdList, ShaderRHI, HistoryDistanceThreshold, GAOHistoryDistanceThreshold);
@@ -2432,7 +2431,6 @@ public:
 		Ar << IrradianceSampler;
 		Ar << IrradianceHistoryTexture;
 		Ar << IrradianceHistorySampler;
-		Ar << CameraMotion;
 		Ar << HistoryWeight;
 		Ar << HistoryDistanceThreshold;
 		Ar << UseHistoryFilter;
@@ -2452,7 +2450,6 @@ private:
 	FShaderResourceParameter IrradianceSampler;
 	FShaderResourceParameter IrradianceHistoryTexture;
 	FShaderResourceParameter IrradianceHistorySampler;
-	FCameraMotionParameters CameraMotion;
 	FShaderParameter HistoryWeight;
 	FShaderParameter HistoryDistanceThreshold;
 	FShaderParameter UseHistoryFilter;

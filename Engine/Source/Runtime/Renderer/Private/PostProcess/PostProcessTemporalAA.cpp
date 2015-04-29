@@ -65,7 +65,6 @@ public:
 	FShaderParameter SampleWeights;
 	FShaderParameter LowpassWeights;
 	FShaderParameter PlusWeights;
-	FCameraMotionParameters CameraMotionParams;
 	FShaderParameter RandomOffset;
 
 	/** Initialization constructor. */
@@ -77,7 +76,6 @@ public:
 		SampleWeights.Bind(Initializer.ParameterMap, TEXT("SampleWeights"));
 		LowpassWeights.Bind(Initializer.ParameterMap, TEXT("LowpassWeights"));
 		PlusWeights.Bind(Initializer.ParameterMap, TEXT("PlusWeights"));
-		CameraMotionParams.Bind(Initializer.ParameterMap);
 		RandomOffset.Bind(Initializer.ParameterMap, TEXT("RandomOffset"));
 	}
 
@@ -85,7 +83,7 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << CameraMotionParams << RandomOffset;
+		Ar << PostprocessParameter << DeferredParameters << SampleWeights << LowpassWeights << PlusWeights << RandomOffset;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -186,7 +184,7 @@ public:
 
 		}
 
-		CameraMotionParams.Set(Context.RHICmdList, Context.View, ShaderRHI);
+		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
 	}
 };
 

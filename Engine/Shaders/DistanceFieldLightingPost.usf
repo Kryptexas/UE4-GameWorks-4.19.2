@@ -149,7 +149,6 @@ void FillGapsPS(
 #endif
 }
 
-float4 CameraMotion[5];
 Texture2D BentNormalHistoryTexture;
 SamplerState BentNormalHistorySampler;
 Texture2D IrradianceHistoryTexture;
@@ -182,11 +181,11 @@ void UpdateHistoryPS(
 		xyd.xy = UVAndScreenPos.zw * float2(0.5, -0.5) + 0.5;
 		xyd.z = ConvertToDeviceZ(SceneDepth);
 
-		float scaleM = 1.0 / (dot(xyd, CameraMotion[0].xyz) + CameraMotion[0].w);
+		float scaleM = 1.0 / (dot(xyd, CameraMotion.Value[0].xyz) + CameraMotion.Value[0].w);
 		float2 MotionVector;
 		// Unwound vector-matrix transform with special care for precision taken from Temporal AA
-		MotionVector.x = ((xyd.x * ((CameraMotion[1].x * xyd.y) + (CameraMotion[1].y * xyd.z) + CameraMotion[1].z)) + (CameraMotion[1].w * xyd.y) + (CameraMotion[2].x * xyd.x * xyd.x) + (CameraMotion[2].y * xyd.z) + CameraMotion[2].z) * scaleM;
-		MotionVector.y = ((xyd.y * ((CameraMotion[3].x * xyd.x) + (CameraMotion[3].y * xyd.z) + CameraMotion[3].z)) + (CameraMotion[3].w * xyd.x) + (CameraMotion[4].x * xyd.y * xyd.y) + (CameraMotion[4].y * xyd.z) + CameraMotion[4].z) * scaleM;
+		MotionVector.x = ((xyd.x * ((CameraMotion.Value[1].x * xyd.y) + (CameraMotion.Value[1].y * xyd.z) + CameraMotion.Value[1].z)) + (CameraMotion.Value[1].w * xyd.y) + (CameraMotion.Value[2].x * xyd.x * xyd.x) + (CameraMotion.Value[2].y * xyd.z) + CameraMotion.Value[2].z) * scaleM;
+		MotionVector.y = ((xyd.y * ((CameraMotion.Value[3].x * xyd.x) + (CameraMotion.Value[3].y * xyd.z) + CameraMotion.Value[3].z)) + (CameraMotion.Value[3].w * xyd.x) + (CameraMotion.Value[4].x * xyd.y * xyd.y) + (CameraMotion.Value[4].y * xyd.z) + CameraMotion.Value[4].z) * scaleM;
 
 		// Note: have to sample from one of the high res texels exactly to avoid filtering of the velocity buffer
 		// 0 is stored where camera velocity should be used, which must not be filtered with valid object velocities

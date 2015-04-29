@@ -678,7 +678,12 @@ FPooledRenderTargetDesc FRCPassPostProcessMotionBlurRecombine::ComputeOutputDesc
 	return Ret;
 }
 
+/** The uniform shader parameters used in FPostProcessVelocityFlattenCS. */
+BEGIN_UNIFORM_BUFFER_STRUCT(FVelocityFlattenParameters,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FIntRect,ViewDimensions)	// View rect min in xy, max in zw.
+END_UNIFORM_BUFFER_STRUCT(FVelocityFlattenParameters)
 
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FVelocityFlattenParameters,TEXT("VelocityFlatten"));
 
 class FPostProcessVelocityFlattenCS : public FGlobalShader
 {
@@ -700,19 +705,17 @@ class FPostProcessVelocityFlattenCS : public FGlobalShader
 	FPostProcessVelocityFlattenCS() {}
 
 public:
-	FShaderParameter		OutVelocityFlat;
-	FShaderParameter		OutPackedVelocityDepth;
-	FShaderParameter		OutMaxTileVelocity;
-	
+	FShaderParameter		OutVelocityFlat;		// UAV
+	FShaderParameter		OutPackedVelocityDepth;	// unused
+	FShaderParameter		OutMaxTileVelocity;		// UAV
+
 	FPostProcessVelocityFlattenCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
-		CameraMotionParams.Bind(Initializer.ParameterMap);
 		OutVelocityFlat.Bind(Initializer.ParameterMap, TEXT("OutVelocityFlat"));
 		OutPackedVelocityDepth.Bind(Initializer.ParameterMap, TEXT("OutPackedVelocityDepth"));
 		OutMaxTileVelocity.Bind(Initializer.ParameterMap, TEXT("OutMaxTileVelocity"));
-		ViewDimensions.Bind(Initializer.ParameterMap, TEXT("ViewDimensions"));
 	}
 
 	void SetCS( FRHICommandList& RHICmdList, const FRenderingCompositePassContext& Context, const FSceneView& View )
@@ -721,27 +724,31 @@ public:
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetCS(ShaderRHI, Context, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
-		CameraMotionParams.Set(RHICmdList, Context.View, ShaderRHI);
 
-		SetShaderValue(RHICmdList, ShaderRHI, ViewDimensions, View.ViewRect);
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FCameraMotionParameters>(), CreateCameraMotionParametersUniformBuffer(Context.View));
+		
+		{
+			FVelocityFlattenParameters Data;
+
+			Data.ViewDimensions = View.ViewRect;
+
+			TUniformBufferRef<FVelocityFlattenParameters> UniformBuffer = TUniformBufferRef<FVelocityFlattenParameters>::CreateUniformBufferImmediate(Data, UniformBuffer_SingleFrame);
+			SetUniformBufferParameter(RHICmdList, ShaderRHI, GetUniformBufferParameter<FVelocityFlattenParameters>(), UniformBuffer);
+		}
 	}
 	
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter;
-		Ar << CameraMotionParams;
 		Ar << OutVelocityFlat;
 		Ar << OutPackedVelocityDepth;
 		Ar << OutMaxTileVelocity;
-		Ar << ViewDimensions;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FPostProcessPassParameters	PostprocessParameter;
-	FCameraMotionParameters		CameraMotionParams;
-	FShaderParameter			ViewDimensions;
 };
 
 IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityFlattenCS,TEXT("PostProcessVelocityFlatten"),TEXT("VelocityFlattenMain"),SF_Compute);

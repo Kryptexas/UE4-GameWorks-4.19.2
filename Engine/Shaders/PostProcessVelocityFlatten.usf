@@ -7,11 +7,6 @@
 
 groupshared float2 Shared[ THREADGROUP_TOTALSIZE ];
 
-float4 CameraMotion[5];
-
-// View rect min in xy, max in zw.
-uint4 ViewDimensions;
-
 RWTexture2D<float4>	OutVelocityFlat;
 RWTexture2D<float4>	OutMaxTileVelocity;
 
@@ -30,8 +25,8 @@ void VelocityFlattenMain(
 	uint GroupIndex : SV_GroupIndex ) 
 {
 	uint ThreadIndex = GroupThreadId.y * THREADGROUP_SIZEX + GroupThreadId.x;
-	uint2 PixelPos = DispatchThreadId.xy * 2 + ViewDimensions.xy;
-	float2 ScreenUV = ( (float2)( DispatchThreadId.xy * 2 ) + 0.5 ) / ( ViewDimensions.zw - ViewDimensions.xy );
+	uint2 PixelPos = DispatchThreadId.xy * 2 + VelocityFlatten.ViewDimensions.xy;
+	float2 ScreenUV = ( (float2)( DispatchThreadId.xy * 2 ) + 0.5 ) / ( VelocityFlatten.ViewDimensions.zw - VelocityFlatten.ViewDimensions.xy );
 	float2 ScreenPosition = float2(2.0f, -2.0f) * ScreenUV + float2(-1.0f, 1.0f);
 
 	// FIXME for sub viewrect
@@ -81,13 +76,13 @@ void VelocityFlattenMain(
 		else
 		{
 			float3 PosN = float3( ScreenUV, DepthSamples[i] );
-			float ScaleM = rcp( dot( PosN, CameraMotion[0].xyz ) + CameraMotion[0].w );
-			Velocity[i].x = -2.0 * ((PosN.x * ((CameraMotion[1].x * PosN.y) + (CameraMotion[1].y * PosN.z) + CameraMotion[1].z)) + (CameraMotion[1].w * PosN.y) + (CameraMotion[2].x * PosN.x * PosN.x) + (CameraMotion[2].y * PosN.z) + CameraMotion[2].z) * ScaleM;
-			Velocity[i].y =  2.0 * ((PosN.y * ((CameraMotion[3].x * PosN.x) + (CameraMotion[3].y * PosN.z) + CameraMotion[3].z)) + (CameraMotion[3].w * PosN.x) + (CameraMotion[4].x * PosN.y * PosN.y) + (CameraMotion[4].y * PosN.z) + CameraMotion[4].z) * ScaleM;
+			float ScaleM = rcp( dot( PosN, CameraMotion.Value[0].xyz ) + CameraMotion.Value[0].w );
+			Velocity[i].x = -2.0 * ((PosN.x * ((CameraMotion.Value[1].x * PosN.y) + (CameraMotion.Value[1].y * PosN.z) + CameraMotion.Value[1].z)) + (CameraMotion.Value[1].w * PosN.y) + (CameraMotion.Value[2].x * PosN.x * PosN.x) + (CameraMotion.Value[2].y * PosN.z) + CameraMotion.Value[2].z) * ScaleM;
+			Velocity[i].y =  2.0 * ((PosN.y * ((CameraMotion.Value[3].x * PosN.x) + (CameraMotion.Value[3].y * PosN.z) + CameraMotion.Value[3].z)) + (CameraMotion.Value[3].w * PosN.x) + (CameraMotion.Value[4].x * PosN.y * PosN.y) + (CameraMotion.Value[4].y * PosN.z) + CameraMotion.Value[4].z) * ScaleM;
 		}
 
 		BRANCH
-		if( all( PixelPos.xy + Offsets[i] < ViewDimensions.zw ) )
+		if( all( PixelPos.xy + Offsets[i] < VelocityFlatten.ViewDimensions.zw ) )
 		{
 			OutVelocityFlat[ PixelPos + Offsets[i] ] = EncodeVelocityToTexture( Velocity[i] ).xyxy;
 			//OutPackedVelocityDepth[ PixelPos + Offsets[i] ] = float2( Velocity[i], DepthSamples[i] ).xyxy;
