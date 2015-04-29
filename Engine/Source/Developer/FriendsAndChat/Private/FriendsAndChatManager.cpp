@@ -1939,12 +1939,7 @@ void FFriendsAndChatManager::OnFriendsListChanged()
 	if(ManagerState == EFriendsAndManagerState::Idle)
 	{
 		// Request called from outside our expected actions. e.g. Friend canceled their friend request
-		
-		// @saad this callback is meant for alerting us that our local friends list copy has changed
-		// and not the remote copy. So in this case, we only need to do a get list which is done below
-		//RequestListRefresh();
-
-		PreProcessList(EFriendsLists::ToString(EFriendsLists::Default));
+		RequestListRefresh();
 	}
 }
 
@@ -1975,11 +1970,8 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 		{
 			const FReceivedGameInvite& Invite = ReceivedGameInvites[Idx];
 
-			TSharedPtr<FUniqueNetId> MySessionId = GetGameSessionId();
-			bool bMySessionValid = MySessionId.IsValid() && MySessionId->IsValid();
-
 			if (!Invite.InviteResult->Session.SessionInfo.IsValid() ||
-				(bMySessionValid && Invite.InviteResult->Session.SessionInfo->GetSessionId().ToString() == MySessionId->ToString()))
+				Invite.InviteResult->Session.SessionInfo->GetSessionId().ToString() == GetGameSessionId()->ToString())
 			{
 				// remove invites if user is already in the game session
 				ReceivedGameInvites.RemoveAt(Idx--);
@@ -1987,36 +1979,36 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 			else
 			{
 				// add to list of pending invites to accept
-				TSharedPtr<FOnlineUser> UserInfo;
-				TSharedPtr<IFriendItem> Friend = FindUser(*Invite.FromId);
-				TSharedPtr<FOnlineFriend> OnlineFriend;
-				if (Friend.IsValid())
-				{
-					UserInfo = Friend->GetOnlineUser();
-					OnlineFriend = Friend->GetOnlineFriend();
-				}
-				if (!UserInfo.IsValid())
-				{
-					UserInfo = OnlineSub->GetUserInterface()->GetUserInfo(0, *Invite.FromId);
-				}
-				if (UserInfo.IsValid() && OnlineFriend.IsValid())
-				{
-					TSharedPtr<FFriendGameInviteItem> GameInvite = MakeShareable(
-						new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult, Invite.ClientId, OnlineFriend.ToSharedRef())
-						);
-
-					PendingGameInvitesList.Add(Invite.FromId->ToString(), GameInvite);
-
-					OnGameInvitesUpdated().Broadcast();
-					SendGameInviteNotification(GameInvite);
-
-					ReceivedGameInvites.RemoveAt(Idx--);
-				}
+			TSharedPtr<FOnlineUser> UserInfo;
+			TSharedPtr<IFriendItem> Friend = FindUser(*Invite.FromId);
+			TSharedPtr<FOnlineFriend> OnlineFriend;
+			if (Friend.IsValid())
+			{
+				UserInfo = Friend->GetOnlineUser();
+				OnlineFriend = Friend->GetOnlineFriend();
 			}
+			if (!UserInfo.IsValid())
+			{
+				UserInfo = OnlineSub->GetUserInterface()->GetUserInfo(0, *Invite.FromId);
+			}
+			if (UserInfo.IsValid() && OnlineFriend.IsValid())
+			{
+				TSharedPtr<FFriendGameInviteItem> GameInvite = MakeShareable(
+					new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult, Invite.ClientId, OnlineFriend.ToSharedRef())
+					);
 
-			OnGameInvitesUpdated().Broadcast();
+				PendingGameInvitesList.Add(Invite.FromId->ToString(), GameInvite);
+
+				OnGameInvitesUpdated().Broadcast();
+				SendGameInviteNotification(GameInvite);
+
+				ReceivedGameInvites.RemoveAt(Idx--);
+			}
 		}
+
+		OnGameInvitesUpdated().Broadcast();
 	}
+}
 }
 
 bool FFriendsAndChatManager::RequestGameInviteUserInfo()
