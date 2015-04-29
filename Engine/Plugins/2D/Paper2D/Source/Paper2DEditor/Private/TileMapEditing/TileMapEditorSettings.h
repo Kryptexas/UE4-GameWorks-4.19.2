@@ -5,7 +5,7 @@
 #include "TileMapEditorSettings.generated.h"
 
 // Settings for the Paper2D tile map editor
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UTileMapEditorSettings : public UObject
 {
 	GENERATED_BODY()

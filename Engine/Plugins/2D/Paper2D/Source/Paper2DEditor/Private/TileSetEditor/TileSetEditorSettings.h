@@ -5,7 +5,7 @@
 #include "TileSetEditorSettings.generated.h"
 
 // Settings for the Paper2D tile set editor
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UTileSetEditorSettings : public UObject
 {
 	GENERATED_BODY()
