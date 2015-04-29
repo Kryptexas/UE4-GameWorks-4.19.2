@@ -131,6 +131,11 @@ namespace Rocket
 				GUBP.SharedLabelPromotableSuccessNode LabelPromotableNode = (GUBP.SharedLabelPromotableSuccessNode)bp.FindNode(GUBP.SharedLabelPromotableSuccessNode.StaticGetFullName());
 				LabelPromotableNode.AddDependency(PublishRocketNode.StaticGetFullName(HostPlatform));
 				LabelPromotableNode.AddDependency(PublishRocketSymbolsNode.StaticGetFullName(HostPlatform));
+
+				// Add dependencies on a promotable to do these steps too
+				GUBP.WaitForSharedPromotionUserInput WaitForPromotionNode = (GUBP.WaitForSharedPromotionUserInput)bp.FindNode(GUBP.WaitForSharedPromotionUserInput.StaticGetFullName(true));
+				WaitForPromotionNode.AddDependency(PublishRocketNode.StaticGetFullName(HostPlatform));
+				WaitForPromotionNode.AddDependency(PublishRocketSymbolsNode.StaticGetFullName(HostPlatform));
 			}
 		}
 
@@ -693,12 +698,6 @@ namespace Rocket
 		{
 			OutputDir = InOutputDir;
 			CodeTargetPlatforms = new List<UnrealTargetPlatform>(InCodeTargetPlatforms);
-
-			// Optimization for testing locally; don't do other things that are part of the shared promotable
-			if(RocketBuild.ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP())
-			{
-				AddDependency(GUBP.WaitForSharedPromotionUserInput.StaticGetFullName(false));
-			}
 
 			AddDependency(FilterRocketNode.StaticGetFullName(HostPlatform));
 			AddDependency(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
