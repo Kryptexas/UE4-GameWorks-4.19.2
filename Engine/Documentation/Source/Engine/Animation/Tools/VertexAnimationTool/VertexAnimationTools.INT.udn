@@ -50,8 +50,7 @@ In the following section we will go over what these two methods are and how they
 	|**Animation Options:** | Animation Options allows you to pick between using animation that was created using the Timeline in 3Ds Max or use individual Key Frame Meshes that were created in 3Ds Max or another 3D package like Maya or Blender and then exported out of that package frame by frame so the animation could then be re-constructed inside 3Ds Max.|
 	|**Process Animated Meshes:** | This button will process the animated meshes that are in the 3Ds Max scene, creating and then exporting the required Textures. |
 	|**Anim Start:** |This option defines the frame that the animation should start from. |
-	|**Anim End
-:** |This option defines the frame that the animation should end on. |
+	|**Anim End:** |This option defines the frame that the animation should end on. |
 	|**Frame Skip:** |This option allows you skip frames to try and save on Texture space. |
 	|**Process Selected Meshes:** |This option, only available if Key Frame Meshes is enabled, will process the selected Key Frame Meshes in the order that they were selected. |
 
