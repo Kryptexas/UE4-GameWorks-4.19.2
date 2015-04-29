@@ -272,7 +272,7 @@ private:
 	void ExecuteRegisterEvents();
 
 	/* Utility function for each of the PostEditChange variations to call for the same behavior */
-	void ConsolidatedPostEditChange();
+	void ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent);
 protected:
 
 	friend class FComponentReregisterContextBase;

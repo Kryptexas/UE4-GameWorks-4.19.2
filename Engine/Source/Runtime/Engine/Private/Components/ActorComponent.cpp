@@ -488,7 +488,7 @@ void UActorComponent::PostEditUndo()
 	Super::PostEditUndo();
 }
 
-void UActorComponent::ConsolidatedPostEditChange()
+void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent)
 {
 	FComponentReregisterContext* ReregisterContext = EditReregisterContexts.FindRef(this);
 	if(ReregisterContext)
@@ -496,7 +496,7 @@ void UActorComponent::ConsolidatedPostEditChange()
 		delete ReregisterContext;
 		EditReregisterContexts.Remove(this);
 
-		if (Owner && !Owner->IsTemplate())
+		if ( Owner && !Owner->IsTemplate() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 		{
 			Owner->RerunConstructionScripts();
 		}
@@ -514,14 +514,14 @@ void UActorComponent::ConsolidatedPostEditChange()
 
 void UActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	ConsolidatedPostEditChange();
+	ConsolidatedPostEditChange(PropertyChangedEvent);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void UActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	ConsolidatedPostEditChange();
+	ConsolidatedPostEditChange(PropertyChangedEvent);
 
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
