@@ -200,38 +200,44 @@ struct ENGINE_API FHierarchicalSimplification
 	/** If this is true, it will simplify mesh but it is slower. 
 	 * If false, it will just merge actors but not simplify using the lower LOD if exists. 
 	 * For example if you build LOD 1, it will use LOD 1 of the mesh to merge actors if exists.  
-	 * Also it will flattening material so that it can reduce drawcalls. 
+	 * If you merge material, it will reduce drawcalls. 
 	 */
 	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere)
 	bool bSimplifyMesh;
 
-	/** What are the draw distance for this LOD */
+	/** Draw Distance for this LOD actor to display. Once one of parent displays, it won't draw any of children. */
 	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
 	float DrawDistance;
 
-	/** Desired Bounding Box Size for clustering - this is not guaranteed but used to calculate filling factor */
+	/** Desired Bounding Radius for clustering - this is not guaranteed but used to calculate filling factor for auto clustering */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
-	float DesiredBoundSize;
+	float DesiredBoundRadius;
 
-	/** Desired Filling Percentage for clustering - this is not guaranteed but used to calculate filling factor  */
+	/** Desired Filling Percentage for clustering - this is not guaranteed but used to calculate filling factor  for auto clustering */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))
 	float DesiredFillingPercentage;
 
+	/** Min number of actors to build LODActor */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "1", UIMin = "1"))
 	int32 MinNumberOfActorsToBuild;
 
 	/** Simplification Setting if bSimplifyMesh is true */
-	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(editcondition = "bSimplifyMesh"))
-	FMeshProxySettings Setting;
+	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay)
+	FMeshProxySettings ProxySetting;
+
+	/** Merge Mesh Setting if bSimplifyMesh is false */
+	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay)
+	FMeshMergingSettings MergeSetting;
 
 	FHierarchicalSimplification()
 		: bSimplifyMesh(true)
-		, DrawDistance(2000)
-		, DesiredBoundSize(5000)
+		, DrawDistance(3000)
+		, DesiredBoundRadius(3000)
 		, DesiredFillingPercentage(50)
 		, MinNumberOfActorsToBuild(2)
 	{
-		Setting.ScreenSize = 200;
+		ProxySetting.ScreenSize = 200;
+		MergeSetting.bMergeMaterials = true;
 	}
 };
 

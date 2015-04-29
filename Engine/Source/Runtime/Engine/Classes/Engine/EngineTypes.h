@@ -2195,6 +2195,70 @@ struct FMeshProxySettings
 	}
 };
 
+/**
+ * Mesh merging settings
+ */
+USTRUCT()
+struct FMeshMergingSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Whether to generate lightmap UVs for a merged mesh*/
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	bool bGenerateLightMapUV;
+	
+	/** Target UV channel in a merged mesh for a lightmap */
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	int32 TargetLightMapUVChannel;
+
+	/** Target lightmap resolution */
+UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	int32 TargetLightMapResolution;
+		
+	/** Whether we should import vertex colors into merged mesh */
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	bool bImportVertexColors;
+	
+	/** Whether merged mesh should have pivot at world origin, or at first merged component otherwise */
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	bool bPivotPointAtZero;
+
+	/** Whether to merge source materials into one flat material */
+	UPROPERTY(EditAnywhere, Category=MeshMerge)
+	bool bMergeMaterials;
+	/** Whether to export normal maps for material merging */
+	UPROPERTY(EditAnywhere, Category=MeshMerge)
+	bool bExportNormalMap;
+	/** Whether to export metallic maps for material merging */
+	UPROPERTY(EditAnywhere, Category=MeshMerge)
+	bool bExportMetallicMap;
+	/** Whether to export roughness maps for material merging */
+	UPROPERTY(EditAnywhere, Category=MeshMerge)
+	bool bExportRoughnessMap;
+	/** Whether to export specular maps for material merging */
+	UPROPERTY(EditAnywhere, Category=MeshMerge)
+	bool bExportSpecularMap;
+	/** Merged material texture atlas resolution */
+	UPROPERTY(EditAnywhere, Category=MeshMerge)
+	int32 MergedMaterialAtlasResolution;
+		
+	/** Default settings. */
+	FMeshMergingSettings()
+		: bGenerateLightMapUV(false)
+		, TargetLightMapUVChannel(1)
+		, TargetLightMapResolution(256)
+		, bImportVertexColors(false)
+		, bPivotPointAtZero(false)
+		, bMergeMaterials(false)
+		, bExportNormalMap(true)
+		, bExportMetallicMap(false)
+		, bExportRoughnessMap(false)
+		, bExportSpecularMap(false)
+		, MergedMaterialAtlasResolution(1024)
+	{
+	}
+};
+
 
 USTRUCT()
 struct ENGINE_API FDamageEvent

@@ -13,5 +13,8 @@ public:
 
 protected:
 	EVisibility IsSimplifyMeshVisible() const;
-	TSharedPtr< IPropertyHandle > SimplifyMeshHandle;
+	EVisibility IsProxyMeshSettingVisible() const;
+	EVisibility IsMergeMeshSettingVisible() const;
+
+	TSharedPtr< IPropertyHandle > SimplifyMeshPropertyHandle;
 };
