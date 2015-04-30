@@ -170,3 +170,76 @@ FORCEINLINE VectorRegister VectorQuaternionInverse(const VectorRegister& Normali
 {
 	return VectorMultiply(GlobalVectorConstants::QINV_SIGN_MASK, NormalizedQuat);
 }
+
+
+// Return whether the W component is zero. Should only be used for debug purposes (it's slow).
+inline bool DebugVectorWIsZero(const VectorRegister& Vector_W0)
+{
+	union { VectorRegister v; float f[4]; } TestFloats;
+	VectorStoreAligned(Vector_W0, TestFloats.f);
+	return (TestFloats.f[3] == 0.f);
+}
+
+
+/**
+ * Rotate a vector using a unit Quaternion.
+ *
+ * @param Quat Unit Quaternion to use for rotation.
+ * @param Vector_W0 Vector to rotate. W component must be zero.
+ * @return Vector after rotation by Quat.
+ */
+FORCEINLINE VectorRegister VectorQuaternionRotateVector(const VectorRegister& Quat, const VectorRegister& Vector_W0)
+{
+	//checkfSlow(DebugVectorWIsZero(Vector_W0), TEXT("VectorQuaternionRotateVector: Vector_W0.W is not zero before rotation!"));
+
+	// Q * V * Q.Inverse
+	const VectorRegister InverseRotation = VectorQuaternionInverse(Quat);
+	const VectorRegister Temp = VectorQuaternionMultiply2(Quat, Vector_W0);
+	const VectorRegister Rotated = VectorQuaternionMultiply2(Temp, InverseRotation);
+
+	return Rotated;
+}
+
+/**
+ * Rotate a vector using the inverse of a unit Quaternion (rotation in the opposite direction).
+ *
+ * @param Quat Unit Quaternion to use for rotation.
+ * @param Vector_W0 Vector to rotate. W component must be zero.
+ * @return Vector after rotation by the inverse of Quat.
+ */
+FORCEINLINE VectorRegister VectorQuaternionInverseRotateVector(const VectorRegister& Quat, const VectorRegister& Vector_W0)
+{
+	//checkfSlow(DebugVectorWIsZero(Vector_W0), TEXT("VectorQuaternionRotateVector: Vector_W0.W is not zero before rotation!"));
+
+	// Q.Inverse * V * Q
+	const VectorRegister InverseRotation = VectorQuaternionInverse(Quat);
+	const VectorRegister Temp = VectorQuaternionMultiply2(InverseRotation, Vector_W0);
+	const VectorRegister Rotated = VectorQuaternionMultiply2(Temp, Quat);
+
+	return Rotated;
+}
+
+
+/**
+* Rotate a vector using a pointer to a unit Quaternion.
+*
+* @param Result		Pointer to where the result should be stored
+* @param Quat		Pointer to the unit quaternion (must not be the destination)
+* @param Vector_W0	Pointer to the vector (must not be the destination). W component must be zero.
+*/
+FORCEINLINE void VectorQuaternionRotateVectorPtr( void* RESTRICT Result, const void* RESTRICT Quat, const void* RESTRICT Vector_W0)
+{
+	*((VectorRegister *)Result) = VectorQuaternionRotateVector(*((const VectorRegister *)Quat), *((const VectorRegister *)Vector_W0));
+}
+
+/**
+* Rotate a vector using the inverse of a unit Quaternion (rotation in the opposite direction).
+*
+* @param Result		Pointer to where the result should be stored
+* @param Quat		Pointer to the unit quaternion (must not be the destination)
+* @param Vector_W0	Pointer to the vector (must not be the destination). W component must be zero.
+*/
+FORCEINLINE void VectorQuaternionInverseRotateVectorPtr(void* RESTRICT Result, const void* RESTRICT Quat, const void* RESTRICT Vector_W0)
+{
+	*((VectorRegister *)Result) = VectorQuaternionInverseRotateVector(*((const VectorRegister *)Quat), *((const VectorRegister *)Vector_W0));
+}

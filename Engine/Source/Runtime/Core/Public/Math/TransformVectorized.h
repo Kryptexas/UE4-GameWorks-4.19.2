@@ -2,9 +2,6 @@
 
 #pragma once
 
-/** This returns Quaternion Inverse of X **/
-#define MAKE_QUATINV_VECTORREGISTER(X) VectorMultiply(GlobalVectorConstants::QINV_SIGN_MASK, X)
-
 /**
  * Transform composed of Scale, Rotation (as a quaternion), and Translation.
  *
@@ -1269,12 +1266,11 @@ private:
 		const VectorRegister InvScale = VectorSet_W0(GetSafeScaleReciprocal(Scale3D , ScalarRegister(GlobalVectorConstants::SmallNumber)));
 
 		// Invert the rotation
-		const VectorRegister InvRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+		const VectorRegister InvRotation = VectorQuaternionInverse(Rotation);
 
 		// Invert the translation
 		const VectorRegister ScaledTranslation = VectorMultiply(InvScale, Translation);
-		const VectorRegister t1 = VectorQuaternionMultiply2(InvRotation, ScaledTranslation);
-		const VectorRegister t2 = VectorQuaternionMultiply2(t1, Rotation);
+		const VectorRegister t2 = VectorQuaternionRotateVector(InvRotation, ScaledTranslation);
 		const VectorRegister InvTranslation = VectorSet_W0(VectorNegate(t2));
 
 		return FTransform(InvRotation, InvTranslation, InvScale);
@@ -1339,15 +1335,12 @@ FORCEINLINE void FTransform::Multiply(FTransform* OutTransform, const FTransform
 	const VectorRegister ScaleA = A->Scale3D;
 	const VectorRegister ScaleB = B->Scale3D;
 
-	const VectorRegister QuatBInv = MAKE_QUATINV_VECTORREGISTER(QuatB);
-
 	// RotationResult = B.Rotation * A.Rotation
 	OutTransform->Rotation = VectorQuaternionMultiply2(QuatB, QuatA);
 
-	// TranslateResult = ((B.Rotation * B.Scale * A.Translation) * Inverse(B.Rotation)) + B.Translate
+	// TranslateResult = B.Rotate(B.Scale * A.Translation) + B.Translate
 	const VectorRegister ScaledTransA = VectorMultiply(TranslateA, ScaleB);
-	const VectorRegister Temp = VectorQuaternionMultiply2(QuatB, ScaledTransA);
-	const VectorRegister RotatedTranslate = VectorQuaternionMultiply2(Temp, QuatBInv);
+	const VectorRegister RotatedTranslate = VectorQuaternionRotateVector(QuatB, ScaledTransA);
 	OutTransform->Translation = VectorAdd(RotatedTranslate, TranslateB);
 
 	// ScaleResult = Scale.B * Scale.A
@@ -1395,13 +1388,11 @@ FORCEINLINE FVector4 FTransform::TransformFVector4NoScale(const FVector4& V) con
 	const VectorRegister InputVector = VectorLoadAligned(&V);
 
 	//Transform using QST is following
-	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = 1.0f, T = translation
-	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);	
+	//QST(P) = Q.Rotate(S*P) + T where Q = quaternion, S = 1.0f, T = translation
 
-	//FQuat Transform = Rotation*FQuat(V.X, V.Y, V.Z, 0.f)*Rotation.Inverse();
+	//RotatedVec = Q.Rotate(V.X, V.Y, V.Z, 0.f)
 	const VectorRegister InputVectorW0 = VectorSet_W0(InputVector);	
-	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, InputVectorW0);
-	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+	const VectorRegister RotatedVec = VectorQuaternionRotateVector(Rotation, InputVectorW0);
 
 	// NewVect.XYZ += Translation * W
 	// NewVect.W += 1 * W
@@ -1423,14 +1414,12 @@ FORCEINLINE FVector4 FTransform::TransformFVector4(const FVector4& V) const
 	const VectorRegister InputVector = VectorLoadAligned(&V);
 
 	//Transform using QST is following
-	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = scale, T = translation
-	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);	
+	//QST(P) = Q.Rotate(S*P) + T where Q = quaternion, S = scale, T = translation
 
-	//FQuat Transform = Rotation*FQuat(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)*Rotation.Inverse();
+	//RotatedVec = Q.Rotate(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)
 	const VectorRegister InputVectorW0 = VectorSet_W0(InputVector);
 	const VectorRegister ScaledVec = VectorMultiply(Scale3D, InputVectorW0);
-	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, ScaledVec);
-	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+	const VectorRegister RotatedVec = VectorQuaternionRotateVector(Rotation, ScaledVec);
 
 	// NewVect.XYZ += Translation * W
 	// NewVect.W += 1 * W
@@ -1450,13 +1439,11 @@ FORCEINLINE FVector FTransform::TransformPosition(const FVector& V) const
 	const VectorRegister InputVectorW0 = VectorLoadFloat3_W0(&V);
 
 	//Transform using QST is following
-	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = scale, T = translation
-	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
-
-	//FQuat Transform = Rotation*FQuat(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)*Rotation.Inverse();
+	//QST(P) = Q.Rotate(S*P) + T where Q = quaternion, S = scale, T = translation
+	
+	//RotatedVec = Q.Rotate(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)
 	const VectorRegister ScaledVec = VectorMultiply(Scale3D, InputVectorW0);
-	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, ScaledVec);
-	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+	const VectorRegister RotatedVec = VectorQuaternionRotateVector(Rotation, ScaledVec);
 
 	const VectorRegister TranslatedVec = VectorAdd(RotatedVec, Translation);
 
@@ -1472,12 +1459,10 @@ FORCEINLINE FVector FTransform::TransformPositionNoScale(const FVector& V) const
 	const VectorRegister InputVectorW0 = VectorLoadFloat3_W0(&V);
 
 	//Transform using QST is following
-	//QST(P) = Q*S*P*-Q + T where Q = quaternion, S = 1.0f, T = translation
-	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+	//QST(P) = Q.Rotate(S*P) + T where Q = quaternion, S = 1.0f, T = translation
 
-	//FQuat Transform = Rotation*FQuat(V.X, V.Y, V.Z, 0.f)*Rotation.Inverse();
-	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, InputVectorW0);
-	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+	//RotatedVec = Q.Rotate(V.X, V.Y, V.Z, 0.f)
+	const VectorRegister RotatedVec = VectorQuaternionRotateVector(Rotation, InputVectorW0);
 
 	const VectorRegister TranslatedVec = VectorAdd(RotatedVec, Translation);
 
@@ -1491,12 +1476,10 @@ FORCEINLINE FVector FTransform::TransformVector(const FVector& V) const
 	DiagnosticCheckNaN_All();
 
 	const VectorRegister InputVectorW0 = VectorLoadFloat3_W0(&V);
-	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
 
-	//FQuat Transform = Rotation*FQuat(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)*Rotation.Inverse();
+	//RotatedVec = Q.Rotate(Scale*V.X, Scale*V.Y, Scale*V.Z, 0.f)
 	const VectorRegister ScaledVec = VectorMultiply(Scale3D, InputVectorW0);
-	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, ScaledVec);
-	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+	const VectorRegister RotatedVec = VectorQuaternionRotateVector(Rotation, ScaledVec);
 
 	FVector Result;
 	VectorStoreFloat3(RotatedVec, &Result);
@@ -1508,11 +1491,9 @@ FORCEINLINE FVector FTransform::TransformVectorNoScale(const FVector& V) const
 	DiagnosticCheckNaN_All();
 
 	const VectorRegister InputVectorW0 = VectorLoadFloat3_W0(&V);
-	const VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
 
-	//FQuat Transform = Rotation*FQuat(V.X, V.Y, V.Z, 0.f)*Rotation.Inverse()
-	const VectorRegister TempStorage = VectorQuaternionMultiply2(Rotation, InputVectorW0);
-	const VectorRegister RotatedVec = VectorQuaternionMultiply2(TempStorage, InverseRotation);
+	//RotatedVec = Q.Rotate(V.X, V.Y, V.Z, 0.f)
+	const VectorRegister RotatedVec = VectorQuaternionRotateVector(Rotation, InputVectorW0);
 
 	FVector Result;
 	VectorStoreFloat3(RotatedVec, &Result);
@@ -1524,23 +1505,19 @@ FORCEINLINE FVector FTransform::InverseTransformPosition(const FVector &V) const
 {
 	DiagnosticCheckNaN_All();
 
-	VectorRegister InputVector = VectorLoadFloat3_W0(&V);
-
-	// Rotation.Inverse()
-	VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+	const VectorRegister InputVector = VectorLoadFloat3_W0(&V);
 
 	// (V-Translation)
 	const VectorRegister TranslatedVec = VectorSet_W0(VectorSubtract(InputVector, Translation));
 
-	// ( Rotation.Inverse() * (V-Translation) ); aka. FVector FQuat::operator*( const FVector& V ) const
-	VectorRegister VT = VectorQuaternionMultiply2(InverseRotation, TranslatedVec);
-	VectorRegister VR = VectorQuaternionMultiply2(VT, Rotation);
+	// ( Rotation.Inverse() * (V-Translation) )
+	const VectorRegister VR = VectorQuaternionInverseRotateVector(Rotation, TranslatedVec);
 
 	// GetSafeScaleReciprocal(Scale3D);
-	VectorRegister SafeReciprocal = GetSafeScaleReciprocal(Scale3D);	
+	const VectorRegister SafeReciprocal = GetSafeScaleReciprocal(Scale3D);	
 
 	// ( Rotation.Inverse() * (V-Translation) ) * GetSafeScaleReciprocal(Scale3D);
-	VectorRegister VResult = VectorMultiply(VR , SafeReciprocal);
+	const VectorRegister VResult = VectorMultiply(VR, SafeReciprocal);
 
 	FVector Result;
 	VectorStoreFloat3(VResult, &Result);
@@ -1552,17 +1529,13 @@ FORCEINLINE FVector FTransform::InverseTransformPositionNoScale(const FVector &V
 {
 	DiagnosticCheckNaN_All();
 
-	VectorRegister InputVector = VectorLoadFloat3_W0(&V);
-
-	// Rotation.Inverse()
-	VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+	const VectorRegister InputVector = VectorLoadFloat3_W0(&V);
 
 	// (V-Translation)
 	const VectorRegister TranslatedVec = VectorSet_W0(VectorSubtract(InputVector, Translation));
 
-	// ( Rotation.Inverse() * (V-Translation) ); aka. FVector FQuat::operator*( const FVector& V ) const
-	VectorRegister VT = VectorQuaternionMultiply2(InverseRotation, TranslatedVec);
-	VectorRegister VResult = VectorQuaternionMultiply2(VT, Rotation);
+	// ( Rotation.Inverse() * (V-Translation) )
+	const VectorRegister VResult = VectorQuaternionInverseRotateVector(Rotation, TranslatedVec);
 
 	FVector Result;
 	VectorStoreFloat3(VResult, &Result);
@@ -1575,20 +1548,16 @@ FORCEINLINE FVector FTransform::InverseTransformVector(const FVector &V) const
 {
 	DiagnosticCheckNaN_All();
 
-	VectorRegister InputVector = VectorLoadFloat3_W0(&V);
-
-	// Rotation.Inverse()
-	VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
+	const VectorRegister InputVector = VectorLoadFloat3_W0(&V);
 
 	// ( Rotation.Inverse() * V ) aka. FVector FQuat::operator*( const FVector& V ) const
-	VectorRegister VT = VectorQuaternionMultiply2(InverseRotation, InputVector);
-	VectorRegister VR = VectorQuaternionMultiply2(VT, Rotation);
+	const VectorRegister VR = VectorQuaternionInverseRotateVector(Rotation, InputVector);
 
 	// GetSafeScaleReciprocal(Scale3D);
-	VectorRegister SafeReciprocal = GetSafeScaleReciprocal(Scale3D);
+	const VectorRegister SafeReciprocal = GetSafeScaleReciprocal(Scale3D);
 
 	// ( Rotation.Inverse() * V) * GetSafeScaleReciprocal(Scale3D);
-	VectorRegister VResult = VectorMultiply(VR , SafeReciprocal);
+	const VectorRegister VResult = VectorMultiply(VR, SafeReciprocal);
 
 	FVector Result;
 	VectorStoreFloat3(VResult, &Result);
@@ -1602,12 +1571,8 @@ FORCEINLINE FVector FTransform::InverseTransformVectorNoScale(const FVector &V) 
 
 	VectorRegister InputVector = VectorLoadFloat3_W0(&V);
 
-	// Rotation.Inverse()
-	VectorRegister InverseRotation = MAKE_QUATINV_VECTORREGISTER(Rotation);
-
-	// ( Rotation.Inverse() * V ); aka. FVector FQuat::operator*( const FVector& V ) const
-	VectorRegister VT = VectorQuaternionMultiply2(InverseRotation, InputVector);
-	VectorRegister VResult = VectorQuaternionMultiply2(VT, Rotation);
+	// ( Rotation.Inverse() * V )
+	VectorRegister VResult = VectorQuaternionInverseRotateVector(Rotation, InputVector);
 
 	FVector Result;
 	VectorStoreFloat3(VResult, &Result);
