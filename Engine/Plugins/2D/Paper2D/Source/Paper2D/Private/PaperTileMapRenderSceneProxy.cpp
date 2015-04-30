@@ -18,6 +18,11 @@ DECLARE_CYCLE_STAT(TEXT("Tile Map Proxy"), STAT_TileMap_GetDynamicMeshElements, 
 
 FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMapComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
+#if WITH_EDITOR
+	, bShowPerTileGrid(false)
+	, bShowPerLayerGrid(false)
+	, bShowOutlineWhenUnselected(false)
+#endif
 	, TileMap(nullptr)
 {
 	if (const UPaperTileMapComponent* InTileComponent = Cast<const UPaperTileMapComponent>(InComponent))
@@ -27,9 +32,11 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 		Material = InTileComponent->GetMaterial(0);
 		MaterialRelevance = InTileComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 
+#if WITH_EDITORONLY_DATA
 		bShowPerTileGrid = InTileComponent->bShowPerTileGridWhenSelected;
 		bShowPerLayerGrid = InTileComponent->bShowPerLayerGridWhenSelected;
 		bShowOutlineWhenUnselected = InTileComponent->bShowOutlineWhenUnselected;
+#endif 
 	}
 }
 
