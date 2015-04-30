@@ -117,7 +117,7 @@ void FGearVR::EnableHMD(bool enable)
 
 EHMDDeviceType::Type FGearVR::GetHMDDeviceType() const
 {
-	return EHMDDeviceType::DT_NoPost;
+	return EHMDDeviceType::DT_GearVR;
 }
 
 bool FGearVR::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)

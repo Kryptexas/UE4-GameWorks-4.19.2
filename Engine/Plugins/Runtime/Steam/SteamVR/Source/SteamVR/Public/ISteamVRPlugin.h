@@ -4,8 +4,9 @@
 
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
+#include "openvr.h"
 
-#define STEAMVR_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WITH_STEAMWORKS)
+#define STEAMVR_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS)
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
@@ -36,5 +37,10 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "SteamVR" );
 	}
+
+	virtual TSharedPtr<vr::IVRSystem> GetVRSystem() const=0;
+	virtual void SetVRSystem(TSharedPtr<vr::IVRSystem>)=0;
+
+private:
 };
 
