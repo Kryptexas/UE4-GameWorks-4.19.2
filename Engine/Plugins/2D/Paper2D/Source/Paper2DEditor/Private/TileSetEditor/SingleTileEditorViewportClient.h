@@ -41,6 +41,8 @@ public:
 
 	void ActivateEditMode(TSharedPtr<FUICommandList> InCommandList);
 
+	void ApplyCollisionGeometryEdits();
+
 protected:
 	// FPaperEditorViewportClient interface
 	virtual FBox GetDesiredFocusBounds() const override;

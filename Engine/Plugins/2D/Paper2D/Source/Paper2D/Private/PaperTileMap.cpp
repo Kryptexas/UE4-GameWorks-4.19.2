@@ -408,6 +408,19 @@ UPaperTileMap* UPaperTileMap::CloneTileMap(UObject* OuterForClone)
 	return CastChecked<UPaperTileMap>(StaticDuplicateObject(this, OuterForClone, nullptr));
 }
 
+bool UPaperTileMap::UsesTileSet(UPaperTileSet* TileSet) const
+{
+	for (UPaperTileLayer* Layer : TileLayers)
+	{
+		if (Layer->UsesTileSet(TileSet))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

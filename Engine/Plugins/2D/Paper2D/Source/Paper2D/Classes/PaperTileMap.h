@@ -174,6 +174,11 @@ public:
 
 	// Creates a clone of this tile map in the specified outer
 	UPaperTileMap* CloneTileMap(UObject* OuterForClone);
+
+	// Checks to see if this tile map uses the specified tile set
+	// Note: This is a slow operation, it scans each tile of each layer!
+	bool UsesTileSet(UPaperTileSet* TileSet) const;
+
 protected:
 	virtual void UpdateBodySetup();
 };

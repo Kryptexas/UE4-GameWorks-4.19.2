@@ -134,6 +134,11 @@ void SSingleTileEditorViewport::BindCommands()
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FEditorViewportClient::SetShowGrid),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(EditorViewportClientRef, &FEditorViewportClient::IsSetShowGridChecked));
+
+	// Collision commands
+	CommandList->MapAction(
+		Commands.ApplyCollisionEdits,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSingleTileEditorViewportClient::ApplyCollisionGeometryEdits));
 }
 
 TSharedRef<class SEditorViewport> SSingleTileEditorViewport::GetViewportWidget()
