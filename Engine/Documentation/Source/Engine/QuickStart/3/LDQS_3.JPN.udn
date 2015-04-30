@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2467410
+﻿INTSourceChangelist:2521084
 Availability:Public
 Title:3.アクタの配置
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:アクタの配置および操作は、レベルをビルドする基礎となります。
+Description:レベル作成の基礎となるアクタの配置と操作
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,7 +24,7 @@ Description:アクタの配置および操作は、レベルをビルドする�
 
 「配置」という考え方は、エディタの多くの部分に及ぶものです。常に何かをクリックし、レベルのビューポートにドラッグする操作を伴います。
 
-**[Modes] パネル** にある** [Place] モード** では、ライトやジオメトリなどの一般的に使用する多くのアクタを配置することができます。次のステップでは、フロアー、平行光源、 Atmospheric Fog アクタ、 Player Start アクタを配置します。 
+**[Modes] パネル** にある **[Place] モード** では、ライトやジオメトリなどの一般的に使用する多くのアクタを配置することができます。次のステップでは、フロアー、平行光源、 Atmospheric Fog アクタ、 Player Start アクタを配置します。 
 
 [REGION:tip]
 ごく簡単に言うと、 **アクタ** はレベルに配置可能な任意のオブジェクトで、アンリアル エンジン 4 でレベルを作成するときに、多くの **アクタ** を配置、移動、編集することでしょう。
@@ -82,7 +82,7 @@ Description:アクタの配置および操作は、レベルをビルドする�
 
 	![](rotate1.png) ![](rotate2.png)(h:320)
 
-1. **[Modes]** パネルの **[Volumes]** カテゴリに切り替えます。
+1. **[Modes]** パネルで **[Volumes]** カテゴリに切り替えます。
 1. **Lightmass Importance Volume** をレベルに配置します。
 
 	![](Engine/QuickStart/4/placeVolume.png)
@@ -107,7 +107,7 @@ Description:アクタの配置および操作は、レベルをビルドする�
 
 **スタティックメッシュ** をレベルに追加していきましょう。 
 
-1. **[Starter Content]** には、「props」フォルダが含まれています。**Asset Tree** ビューの**「Props」** フォルダを　**左クリック** します (下図でハイライトされています)。 
+1. **[Starter Content]** には、「props」という名前のフォルダが含まれています。**Asset Tree** ビューの**「Props」** フォルダを **左クリック** します (下図でハイライトされています)。 
 
 	![](Engine/QuickStart/4/openProps.png)
 
@@ -125,7 +125,7 @@ Description:アクタの配置および操作は、レベルをビルドする�
 
 	![](Engine/QuickStart/4/placeThings.png)
 
-	_**「Architecture」** フォルダから **ポイントライト** 、 **Props** 、屋根のついたウォールを追加します！_
+	_「 **Architecture** 」フォルダから **ポイントライト** 、 **Props** 、屋根のついたウォールを追加します！_
 
 次のセクションでは、レベル内に配置したアクタを編集する方法について学びます。
 
