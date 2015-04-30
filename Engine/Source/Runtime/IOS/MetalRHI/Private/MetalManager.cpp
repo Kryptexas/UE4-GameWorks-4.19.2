@@ -608,17 +608,7 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		//			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
 		//		}
 #endif
-		
-		[CurrentContext endEncoding];
-		NumDrawCalls = 0;
-		
-		[CurrentContext release];
-		
-		// commit the buffer for this context
-		[CurrentCommandBuffer commit];
-		UNTRACK_OBJECT(CurrentCommandBuffer);
-		[CurrentCommandBuffer release];
-
+        
 		// Check if CurrentCommandBuffer was rendering to the BackBuffer.
 		if( PreviousRenderTargetsInfo.NumColorRenderTargets == 1 )
 		{
@@ -626,14 +616,11 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
 			if(&Surface == &BackBuffer->Surface && CurrentDrawable != nil)
 			{
-				// release our record of it to ensure we are allocated a new drawable.
+                // release our record of it to ensure we are allocated a new drawable.
 				CurrentDrawable = nil;
 				BackBuffer->Surface.Texture = nil;
 			}
 		}
-		
-		// create the command buffer for this frame
-		CreateCurrentCommandBuffer(false);
 	}
 	
 	// back this up for next frame
@@ -786,7 +773,33 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	SET_HASH(OFFSET_STENCIL_ENABLED, NUMBITS_STENCIL_ENABLED, (Pipeline.StencilTargetFormat == MTLPixelFormatInvalid ? 0 : 1));
 	SET_HASH(OFFSET_SAMPLE_COUNT, NUMBITS_SAMPLE_COUNT, Pipeline.SampleCount);
 
-	// make a new render context to use to render to the framebuffer
+    // commit pending commands on the old render target
+    if (CurrentContext)
+    {
+#if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
+        //		if (NumDrawCalls == 0)
+        //		{
+        //			NSLog(@"There were %d draw calls for an RT in frame %lld", NumDrawCalls, GFrameCounter);
+        //		}
+#endif
+        
+        [CurrentContext endEncoding];
+        NumDrawCalls = 0;
+        
+        UNTRACK_OBJECT(CurrentContext);
+        [CurrentContext release];
+        CurrentContext = nil;
+        
+        // commit the buffer for this context
+        [CurrentCommandBuffer commit];
+        UNTRACK_OBJECT(CurrentCommandBuffer);
+        [CurrentCommandBuffer release];
+        
+        // create the command buffer for this frame
+        CreateCurrentCommandBuffer(false);
+    }
+
+    // make a new render context to use to render to the framebuffer
 	CurrentContext = [CurrentCommandBuffer renderCommandEncoderWithDescriptor:RenderPass];
 	[CurrentContext retain];
 	TRACK_OBJECT(CurrentContext);

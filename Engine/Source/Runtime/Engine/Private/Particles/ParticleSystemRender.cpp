@@ -961,7 +961,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 	SCOPE_CYCLE_COUNTER(STAT_SpriteRenderingTime);
 
 	const auto FeatureLevel = View->GetFeatureLevel();
-	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM4;
+	const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(FeatureLevel));
 
 	// Sort and generate particles for this view.
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
@@ -1373,7 +1373,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 {
 	SCOPE_CYCLE_COUNTER(STAT_MeshRenderingTime);
 
-	const bool bInstanced = View->GetFeatureLevel() >= ERHIFeatureLevel::SM4;
+	const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(View->GetFeatureLevel()));
 
 	if (bValid)
 	{

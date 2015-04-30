@@ -142,9 +142,9 @@ private:
 static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationInstanced(true);
 static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationNonInstanced(false);
 
-inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpriteVertexDeclaration(ERHIFeatureLevel::Type InFeatureLevel)
+inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpriteVertexDeclaration(bool SupportsInstancing)
 {
-	if (InFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (SupportsInstancing)
 	{
 		return GParticleSpriteVertexDeclarationInstanced;
 	}
@@ -176,12 +176,12 @@ void FParticleSpriteVertexFactory::ModifyCompilationEnvironment(EShaderPlatform 
 void FParticleSpriteVertexFactory::InitRHI()
 {
 	InitStreams();
-	SetDeclaration(GetParticleSpriteVertexDeclaration(GetFeatureLevel()).VertexDeclarationRHI);
+	SetDeclaration(GetParticleSpriteVertexDeclaration(RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()))).VertexDeclarationRHI);
 }
 
 void FParticleSpriteVertexFactory::InitStreams()
 {
-	const bool bInstanced = GetFeatureLevel() >= ERHIFeatureLevel::SM4;
+    const bool bInstanced = RHISupportsInstancing(GetFeatureLevelShaderPlatform(GetFeatureLevel()));
 
 	check(Streams.Num() == 0);
 	if(bInstanced) 
