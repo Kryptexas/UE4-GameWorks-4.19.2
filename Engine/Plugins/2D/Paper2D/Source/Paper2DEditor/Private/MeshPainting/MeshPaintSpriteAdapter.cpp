@@ -136,16 +136,8 @@ void FMeshPaintSpriteAdapter::QueryPaintableTextures(int32 MaterialIndex, int32&
 
 void FMeshPaintSpriteAdapter::ApplyOrRemoveTextureOverride(UTexture* SourceTexture, UTexture* OverrideTexture) const
 {
-	UPaperSprite* Sprite = SpriteComponent->GetSprite();
-	checkSlow(Sprite != nullptr);
-
-	if (Sprite->GetSourceTexture() == SourceTexture)
-	{
-		//@TOOD: Need to set SourceTexture override on the component or something like that!
-	}
-	//else if (Sprite->AdditionalSourceTextures.Contains(SourceTexture)) //@TOOD: Need to swap it here too
-	//{
-	//}
+	// Apply it to the sprite component
+	SpriteComponent->SetTransientTextureOverride(SourceTexture, OverrideTexture);
 
 	// Make sure we swap it out on any textures that aren't part of the sprite as well
 	DefaultApplyOrRemoveTextureOverride(SpriteComponent, SourceTexture, OverrideTexture);

@@ -344,6 +344,20 @@ void UPaperSpriteComponent::CheckForErrors()
 }
 #endif
 
+#if WITH_EDITOR
+void UPaperSpriteComponent::SetTransientTextureOverride(const UTexture* TextureToModifyOverrideFor, UTexture* OverrideTexture)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+		FSendPaperSpriteComponentDynamicData,
+		FPaperSpriteSceneProxy*, InSceneProxy, (FPaperSpriteSceneProxy*)SceneProxy,
+		const UTexture*, InTextureToModifyOverrideFor, TextureToModifyOverrideFor,
+		UTexture*, InOverrideTexture, OverrideTexture,
+		{
+			InSceneProxy->SetTransientTextureOverride_RenderThread(InTextureToModifyOverrideFor, InOverrideTexture);
+		});
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

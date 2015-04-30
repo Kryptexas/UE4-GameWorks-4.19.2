@@ -109,12 +109,15 @@ public:
 	const FMaterialRenderProxy* const Parent;
 	const UTexture* BaseTexture;
 	FAdditionalSpriteTextureArray AdditionalTextures;
+	UE_EXPAND_IF_WITH_EDITOR(const FPaperRenderSceneProxyTextureOverrideMap& TextureOverrideList);
 
+public:
 	/** Initialization constructor. */
-	FSpriteTextureOverrideRenderProxy(const FMaterialRenderProxy* InParent, const UTexture* InBaseTexture, FAdditionalSpriteTextureArray InAdditionalTextures)
+	FSpriteTextureOverrideRenderProxy(const FMaterialRenderProxy* InParent, const UTexture* InBaseTexture, FAdditionalSpriteTextureArray InAdditionalTextures UE_EXPAND_IF_WITH_EDITOR(, const FPaperRenderSceneProxyTextureOverrideMap& InTextureOverrideList))
 		: Parent(InParent)
 		, BaseTexture(InBaseTexture)
 		, AdditionalTextures(InAdditionalTextures)
+		UE_EXPAND_IF_WITH_EDITOR(, TextureOverrideList(InTextureOverrideList))
 	{}
 
 	virtual ~FSpriteTextureOverrideRenderProxy()
@@ -146,11 +149,11 @@ public:
 		return Parent->GetScalarValue(ParameterName, OutValue, Context);
 	}
 
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const override
+	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const override
 	{
 		if (ParameterName == TextureParameterName)
 		{
-			*OutValue = BaseTexture;
+			*OutValue = ApplyEditorOverrides(BaseTexture);
 			return true;
 		}
 		else if (ParameterName.GetComparisonIndex() == AdditionalTextureParameterRootName.GetComparisonIndex())
@@ -158,7 +161,7 @@ public:
 			const int32 AdditionalSlotIndex = ParameterName.GetNumber() - 1;
 			if (AdditionalTextures.IsValidIndex(AdditionalSlotIndex))
 			{
-				*OutValue = AdditionalTextures[AdditionalSlotIndex];
+				*OutValue = ApplyEditorOverrides(AdditionalTextures[AdditionalSlotIndex]);
 				return true;
 			}
 		}
@@ -166,7 +169,26 @@ public:
 		return Parent->GetTextureValue(ParameterName, OutValue, Context);
 	}
 
-protected:
+#if WITH_EDITOR
+	inline const UTexture* ApplyEditorOverrides(const UTexture* InTexture) const
+	{
+		if (TextureOverrideList.Num() > 0)
+		{
+			if (const UTexture* const* OverridePtr = TextureOverrideList.Find(InTexture))
+			{
+				return *OverridePtr;
+			}
+		}
+
+		return InTexture;
+	}
+#else
+	FORCEINLINE const UTexture* ApplyEditorOverrides(const UTexture* InTexture) const
+	{
+		return InTexture;
+	}
+#endif
+
 	static const FName TextureParameterName;
 	static const FName AdditionalTextureParameterRootName;
 };
@@ -380,7 +402,7 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 			}
 
 			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
-			FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy, Batch.BaseTexture, Batch.AdditionalTextures);
+			FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy, Batch.BaseTexture, Batch.AdditionalTextures UE_EXPAND_IF_WITH_EDITOR(, TextureOverrideList));
 			Collector.RegisterOneFrameMaterialProxy(TextureOverrideMaterialProxy);
 
 			Mesh.UseDynamicData = true;
@@ -478,7 +500,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 			}
 
 			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
-			FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy, Record.BaseTexture, Record.AdditionalTextures);
+			FSpriteTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FSpriteTextureOverrideRenderProxy(ParentMaterialProxy, Record.BaseTexture, Record.AdditionalTextures UE_EXPAND_IF_WITH_EDITOR(, TextureOverrideList));
 			Collector.RegisterOneFrameMaterialProxy(TextureOverrideMaterialProxy);
 
 			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;
@@ -596,3 +618,17 @@ bool FPaperRenderSceneProxy::IsCollisionView(const FEngineShowFlags& EngineShowF
 
 	return bInCollisionView;
 }
+
+#if WITH_EDITOR
+void FPaperRenderSceneProxy::SetTransientTextureOverride_RenderThread(const UTexture* InTextureToModifyOverrideFor, UTexture* InOverrideTexture)
+{
+	if (InOverrideTexture != nullptr)
+	{
+		TextureOverrideList.FindOrAdd(InTextureToModifyOverrideFor) = InOverrideTexture;
+	}
+	else
+	{
+		TextureOverrideList.Remove(InTextureToModifyOverrideFor);
+	}
+}
+#endif
