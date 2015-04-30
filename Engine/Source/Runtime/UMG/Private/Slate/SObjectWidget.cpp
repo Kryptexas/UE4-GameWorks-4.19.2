@@ -275,7 +275,7 @@ FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 	if ( CanRouteEvent() )
 	{
 		UDragDropOperation* Operation = nullptr;
-	WidgetObject->NativeOnDragDetected( MyGeometry, PointerEvent, Operation );
+		WidgetObject->NativeOnDragDetected( MyGeometry, PointerEvent, Operation );
 
 		if ( Operation )
 		{
@@ -300,7 +300,7 @@ void SObjectWidget::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEven
 	{
 		if ( CanRouteEvent() )
 		{
-		WidgetObject->NativeOnDragEnter( MyGeometry, DragDropEvent, NativeOp->GetOperation() );
+			WidgetObject->NativeOnDragEnter( MyGeometry, DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -312,7 +312,7 @@ void SObjectWidget::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	{
 		if ( CanRouteEvent() )
 		{
-		WidgetObject->NativeOnDragLeave( DragDropEvent, NativeOp->GetOperation() );
+			WidgetObject->NativeOnDragLeave( DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -324,7 +324,7 @@ FReply SObjectWidget::OnDragOver(const FGeometry& MyGeometry, const FDragDropEve
 	{
 		if ( CanRouteEvent() )
 		{
-		if ( WidgetObject->NativeOnDragOver( MyGeometry, DragDropEvent, NativeOp->GetOperation() ) )
+			if ( WidgetObject->NativeOnDragOver( MyGeometry, DragDropEvent, NativeOp->GetOperation() ) )
 			{
 				return FReply::Handled();
 			}

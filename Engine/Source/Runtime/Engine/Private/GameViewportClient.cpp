@@ -508,10 +508,14 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 
 	if (InViewport && GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
-		FIntPoint LastViewportCursorPos;
-		InViewport->GetMousePos(LastViewportCursorPos, false);
-		FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
+		// Only send the touch end event if we're not drag/dropping, as that will end the drag/drop operation.
+		if ( !FSlateApplication::Get().IsDragDropping() )
+		{
+			FIntPoint LastViewportCursorPos;
+			InViewport->GetMousePos(LastViewportCursorPos, false);
+			FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
+			FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
+		}
 	}
 }
 

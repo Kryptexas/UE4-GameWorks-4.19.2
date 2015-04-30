@@ -238,7 +238,7 @@ FEventReply UWidgetBlueprintLibrary::DetectDrag(UPARAM(ref) FEventReply& Reply, 
 
 FEventReply UWidgetBlueprintLibrary::DetectDragIfPressed(const FPointerEvent& PointerEvent, UWidget* WidgetDetectingDrag, FKey DragKey)
 {
-	if ( PointerEvent.GetEffectingButton() == DragKey )
+	if ( PointerEvent.GetEffectingButton() == DragKey || PointerEvent.IsTouchEvent() )
 	{
 		FEventReply Reply = UWidgetBlueprintLibrary::Handled();
 		return UWidgetBlueprintLibrary::DetectDrag(Reply, WidgetDetectingDrag, DragKey);
