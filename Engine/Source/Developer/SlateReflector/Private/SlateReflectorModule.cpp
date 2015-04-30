@@ -27,6 +27,7 @@ public:
 		if (!WidgetReflector.IsValid())
 		{
 			WidgetReflector = SNew(SWidgetReflector);
+			WidgetReflectorPtr = WidgetReflector;
 			FSlateApplication::Get().SetWidgetReflector(WidgetReflector.ToSharedRef());
 		}
 
