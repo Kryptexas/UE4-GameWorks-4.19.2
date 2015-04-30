@@ -109,6 +109,7 @@ void FUMGSequencerObjectBindingManager::UnbindPossessableObjects( const FGuid& P
 
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
 
+	WidgetAnimation->Modify();
 	WidgetAnimation->AnimationBindings.RemoveAll( [&]( const FWidgetAnimationBinding& Binding ) { return Binding.AnimationGuid == PossessableGuid; } );
 
 }
