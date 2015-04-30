@@ -130,6 +130,7 @@ FPhysScene::FPhysScene()
 	check(SyncPhysXScene);
 	check(GApexModuleDestructible);
 	GApexModuleDestructible->setWorldSupportPhysXScene(*ApexScene, SyncPhysXScene);
+	GApexModuleDestructible->setDamageApplicationRaycastFlags(NxDestructibleActorRaycastFlags::AllChunks, *ApexScene);
 #endif
 }
 
