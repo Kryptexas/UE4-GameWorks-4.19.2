@@ -378,6 +378,22 @@ void SMultiLineEditableText::SetText(const TAttribute< FText >& InText)
 	}
 }
 
+const FText SMultiLineEditableText::GetPlainText() const
+{
+	const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+	const int32 NumberOfLines = Lines.Num();
+	if( NumberOfLines > 0)
+	{
+		FString SelectedText;
+		const FTextLocation StartLocation(0, 0);
+		const FTextLocation EndLocation(NumberOfLines -1, Lines[NumberOfLines -1].Text->Len());
+		FTextSelection Selection(StartLocation, EndLocation);
+		TextLayout->GetSelectionAsText(SelectedText, Selection);
+		return FText::FromString(SelectedText);
+	}
+	return FText::GetEmpty();
+}
+
 void SMultiLineEditableText::SetHintText(const TAttribute< FText >& InHintText)
 {
 	HintText = InHintText;
@@ -1547,6 +1563,11 @@ void SMultiLineEditableText::GoTo(const FTextLocation& NewLocation)
 			UpdateCursorHighlight();
 		}
 	}
+}
+
+void SMultiLineEditableText::GoTo(ETextLocation GoToLocation)
+{
+	JumpTo(GoToLocation, ECursorAction::MoveCursor);
 }
 
 void SMultiLineEditableText::ScrollTo(const FTextLocation& NewLocation)

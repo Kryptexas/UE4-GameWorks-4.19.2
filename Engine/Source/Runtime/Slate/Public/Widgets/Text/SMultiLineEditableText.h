@@ -127,6 +127,12 @@ public:
 	void SetText(const TAttribute< FText >& InText);
 
 	/**
+	 * Returns the plain text string without richtext formatting
+	 * @return  Text string
+	 */
+	const FText GetPlainText() const;
+
+	/**
 	 * Sets the text that appears when there is no text in the text box
 	 */
 	void SetHintText(const TAttribute< FText >& InHintText);
@@ -146,6 +152,9 @@ public:
 
 	/** Move the cursor to the given location in the document (will also scroll to this point) */
 	void GoTo(const FTextLocation& NewLocation);
+
+	/** Move the cursor specified location */
+	void GoTo(ETextLocation NewLocation);
 
 	/** Scroll to the given location in the document (without moving the cursor) */
 	void ScrollTo(const FTextLocation& NewLocation);

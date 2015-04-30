@@ -173,6 +173,16 @@ public:
 	}
 
 	/**
+	 * Returns the plain text string without richtext formatting
+	 *
+	 * @return  Text string
+	 */
+	const FText GetPlainText() const
+	{
+		return EditableText->GetPlainText();
+	}
+
+	/**
 	 * Sets the text string currently being edited 
 	 *
 	 * @param  InNewText  The new text string
@@ -231,6 +241,12 @@ public:
 
 	/** Move the cursor to the given location in the document */
 	void GoTo(const FTextLocation& NewLocation);
+
+	/** Move the cursor to the specified location */
+	void GoTo(ETextLocation NewLocation)
+	{
+		EditableText->GoTo(NewLocation);
+	}
 
 	/** Scroll to the given location in the document (without moving the cursor) */
 	void ScrollTo(const FTextLocation& NewLocation);
