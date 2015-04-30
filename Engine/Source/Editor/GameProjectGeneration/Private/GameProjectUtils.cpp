@@ -563,8 +563,8 @@ bool GameProjectUtils::OpenCodeIDE(const FString& ProjectFile, FText& OutFailRea
 #elif PLATFORM_MAC
 	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".xcodeproj");
 #elif PLATFORM_LINUX
-	// FIXME: need a better way to select between plugins. For now we don't generate .kdev4 directly. Should depend on PreferredAccessor setting
-	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".pro");
+	// FIXME: need a better way to select between plugins. For now we generate .kdev4 directly. Should depend on PreferredAccessor setting
+	CodeSolutionFile = SolutionFilenameWithoutExtension + TEXT(".kdev4");
 #else
 	OutFailReason = LOCTEXT( "OpenCodeIDE_UnknownPlatform", "could not open the code editing IDE. The operating system is unknown." );
 	return false;
