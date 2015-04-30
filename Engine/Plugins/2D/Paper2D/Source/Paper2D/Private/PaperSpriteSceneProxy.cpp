@@ -91,6 +91,8 @@ void FPaperSpriteSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 
 void FPaperSpriteSceneProxy::SetSprite_RenderThread(const FSpriteDrawCallRecord& NewDynamicData, int32 SplitIndex)
 {
+	SCOPE_CYCLE_COUNTER(STAT_PaperRender_SetSpriteRT);
+
 	BatchedSprites.Empty();
 	AlternateBatchedSprites.Empty();
 

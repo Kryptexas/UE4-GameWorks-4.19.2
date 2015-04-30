@@ -11,6 +11,8 @@
 #include "PaperTileLayer.h"
 #include "PaperTileMapComponent.h"
 
+DECLARE_CYCLE_STAT(TEXT("Tile Map Proxy"), STAT_TileMap_GetDynamicMeshElements, STATGROUP_Paper2D);
+
 //////////////////////////////////////////////////////////////////////////
 // FPaperTileMapRenderSceneProxy
 
@@ -50,7 +52,7 @@ void FPaperTileMapRenderSceneProxy::DrawBoundsForLayer(FPrimitiveDrawInterface* 
 
 void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_FPaperTileMapRenderSceneProxy_GetDynamicMeshElements);
+	SCOPE_CYCLE_COUNTER(STAT_TileMap_GetDynamicMeshElements);
 	checkSlow(IsInRenderingThread());
 
 	// Slight depth bias so that the wireframe grid overlay doesn't z-fight with the tiles themselves

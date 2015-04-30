@@ -13,6 +13,9 @@
 #include "Engine/Engine.h"
 #include "SpriteDrawCall.h"
 
+DECLARE_CYCLE_STAT(TEXT("Get Batch Mesh"), STAT_PaperRender_GetBatchMesh, STATGROUP_Paper2D);
+DECLARE_CYCLE_STAT(TEXT("Get New Batch Meshes"), STAT_PaperRender_GetNewBatchMeshes, STATGROUP_Paper2D);
+
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteVertex
 
@@ -341,6 +344,8 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, bool bUse
 		return;
 	}
 
+	SCOPE_CYCLE_COUNTER(STAT_PaperRender_GetNewBatchMeshes);
+
 	const uint8 DPG = GetDepthPriorityGroup(View);
 	FVertexFactory* VertexFactory = GetPaperSpriteVertexFactory();
 	const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
@@ -416,6 +421,8 @@ public:
 
 void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor, class UMaterialInterface* BatchMaterial, const TArray<FSpriteDrawCallRecord>& Batch, int32 ViewIndex, FMeshElementCollector& Collector) const
 {
+	SCOPE_CYCLE_COUNTER(STAT_PaperRender_GetBatchMesh);
+
 	const uint8 DPG = GetDepthPriorityGroup(View);
 	FVertexFactory* VertexFactory = GetPaperSpriteVertexFactory();
 
@@ -554,6 +561,8 @@ bool FPaperRenderSceneProxy::CanBeOccluded() const
 
 void FPaperRenderSceneProxy::SetDrawCall_RenderThread(const FSpriteDrawCallRecord& NewDynamicData)
 {
+	SCOPE_CYCLE_COUNTER(STAT_PaperRender_SetSpriteRT);
+
 	BatchedSprites.Empty();
 
 	FSpriteDrawCallRecord& Record = *new (BatchedSprites) FSpriteDrawCallRecord;
