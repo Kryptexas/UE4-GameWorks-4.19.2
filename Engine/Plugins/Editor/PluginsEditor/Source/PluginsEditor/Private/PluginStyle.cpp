@@ -163,6 +163,11 @@ void FPluginStyle::Initialize()
 
 			StyleSet->Set( "PluginTile.BetaWarning", new IMAGE_BRUSH( "icon_plugins_betawarn_14px", FVector2D(14, 14) ) );
 		}
+
+		// Metadata editor
+		{
+			StyleSet->Set("PluginMetadataNameFont", TTF_FONT("Fonts/Roboto-Bold", 18));
+		}
 	}
 
 	FSlateStyleRegistry::RegisterSlateStyle( *StyleSet.Get() );

@@ -15,7 +15,13 @@ void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPl
 {
 	OwnerWeak = Owner;
 
-	RebuildAndFilterCategoryTree();
+	RootPluginCategories.Reset();
+
+	// Add the root level categories
+	TSharedRef<FPluginCategoryTreeItem> InstalledCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
+	RootPluginCategories.Add( InstalledCategory );
+	TSharedRef<FPluginCategoryTreeItem> ProjectCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Project"), LOCTEXT("ProjectCategoryName", "Project")));
+	RootPluginCategories.Add( ProjectCategory );
 
 	PluginCategoryTreeView =
 		SNew( SPluginCategoryTreeView )
@@ -38,11 +44,7 @@ void SPluginCategories::Construct( const FArguments& Args, const TSharedRef< SPl
 		PluginCategoryTreeView->SetItemExpansion( Category, true );
 	}
 
-	// Select the first item by default
-	if( RootPluginCategories.Num() > 0 )
-	{
-		PluginCategoryTreeView->SetSelection( RootPluginCategories[ 0 ] );
-	}
+	RebuildAndFilterCategoryTree();
 
 	ChildSlot.AttachWidget( PluginCategoryTreeView.ToSharedRef() );
 }
@@ -62,118 +64,109 @@ SPluginsEditor& SPluginCategories::GetOwner()
 
 void SPluginCategories::RebuildAndFilterCategoryTree()
 {
+	// Get a plugin from the currently selected category, so we can track it if it's removed
+	IPlugin* TrackPlugin = nullptr;
+	for(FPluginCategoryTreeItemPtr SelectedItem: PluginCategoryTreeView->GetSelectedItems())
 	{
-		RootPluginCategories.Reset();
-
-		// Add the root level categories
-		TSharedRef<FPluginCategoryTreeItem> InstalledCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Installed"), TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
-		RootPluginCategories.Add( InstalledCategory );
-		TSharedRef<FPluginCategoryTreeItem> ProjectCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Project"), TEXT("Project"), LOCTEXT("ProjectCategoryName", "Project")));
-		RootPluginCategories.Add( ProjectCategory );
-
-
-		const TArray< FPluginStatus > Plugins = IPluginManager::Get().QueryStatusForAllPlugins();
-		for(const FPluginStatus& Plugin: Plugins)
+		if(SelectedItem->Plugins.Num() > 0)
 		{
-			// Figure out which base category this plugin belongs in
-			FPluginCategoryTreeItemPtr CategoryForPlugin;
-			if( Plugin.LoadedFrom == EPluginLoadedFrom::Engine )
-			{
-				CategoryForPlugin = InstalledCategory;
-			}
-			else
-			{
-				CategoryForPlugin = ProjectCategory;
-			}
-			check( CategoryForPlugin.IsValid() );
-			FString ItemCategoryPath = CategoryForPlugin->GetCategoryPath();
-
-
-			const FString& CategoryPath = Plugin.Descriptor.Category;
-			{
-				// We're expecting the category string to be in the "A.B.C" format.  We'll split up the string here and form
-				// a proper hierarchy in the UI
-				TArray< FString > SplitCategories;
-				CategoryPath.ParseIntoArray( SplitCategories, TEXT( "." ), true /* bCullEmpty */ );
-
-				// Make sure all of the categories exist
-				for( auto SplitCategoryIt( SplitCategories.CreateConstIterator() ); SplitCategoryIt; ++SplitCategoryIt )
-				{
-					const auto& SplitCategory = *SplitCategoryIt;
-
-					if( !ItemCategoryPath.IsEmpty() )
-					{
-						ItemCategoryPath += TEXT( '.' );
-					}
-					ItemCategoryPath += SplitCategory;
-
-					// Locate this category at the level we're at in the hierarchy
-					FPluginCategoryTreeItemPtr FoundCategory = NULL;
-					TArray< FPluginCategoryTreeItemPtr >& TestCategoryList = CategoryForPlugin.IsValid() ? CategoryForPlugin->AccessSubCategories() : RootPluginCategories;
-					for( auto TestCategoryIt( TestCategoryList.CreateConstIterator() ); TestCategoryIt; ++TestCategoryIt )
-					{
-						const auto& TestCategory = *TestCategoryIt;
-						if( TestCategory->GetCategoryName() == SplitCategory )
-						{
-							// Found it!
-							FoundCategory = TestCategory;
-							break;
-						}
-					}
-
-					if( !FoundCategory.IsValid() )
-					{
-						// OK, this is a new category name for us, so add it now!
-						const auto ParentCategory = CategoryForPlugin;
-
-						//@todo Allow for properly localized category names [3/7/2014 justin.sargent]
-						FoundCategory = MakeShareable(new FPluginCategoryTreeItem(ParentCategory, ItemCategoryPath, SplitCategory, FText::FromString(SplitCategory)));
-						TestCategoryList.Add( FoundCategory );
-					}
-
-					// Descend the hierarchy for the next category
-					CategoryForPlugin = FoundCategory;
-				}
-			}
-
-			check( CategoryForPlugin.IsValid() );
-			
-			// Associate the plugin with the category
-			// PERFORMANCE NOTE: Copying FPluginStats by value here
-			CategoryForPlugin->AddPlugin( MakeShareable( new FPluginStatus( Plugin ) ) );
-		}
-
-
-		// Sort every single category alphabetically
-		{
-			struct FPluginCategoryTreeItemSorter
-			{
-				bool operator()( const FPluginCategoryTreeItemPtr& A, const FPluginCategoryTreeItemPtr& B ) const
-				{
-					return A->GetCategoryDisplayName().CompareTo( B->GetCategoryDisplayName() ) == -1;
-				}
-
-				static void SortCategoriesRecursively( TArray< FPluginCategoryTreeItemPtr >& Categories )
-				{
-					// Sort the categories
-					Categories.Sort( FPluginCategoryTreeItemSorter() );
-
-					// Sort sub-categories
-					for( auto SubCategoryIt( Categories.CreateConstIterator() ); SubCategoryIt; ++SubCategoryIt )
-					{
-						const auto& SubCategory = *SubCategoryIt;
-						SortCategoriesRecursively( SubCategory->AccessSubCategories() );
-					}
-				}
-			};
-
-			FPluginCategoryTreeItemSorter::SortCategoriesRecursively( RootPluginCategories );
+			TrackPlugin = SelectedItem->Plugins[0];
+			break;
 		}
 	}
 
-	if( PluginCategoryTreeView.IsValid() )
+	// Clear the list of plugins in each current category
+	for(FPluginCategoryTreeItemPtr RootCategory: RootPluginCategories)
 	{
-		PluginCategoryTreeView->RequestTreeRefresh();
+		for(FPluginCategoryTreeItemPtr Category: RootCategory->AccessSubCategories())
+		{
+			Category->Plugins.Reset();
+		}
+	}
+
+	// Add all the known plugins into categories
+	FPluginCategoryTreeItemPtr SelectCategory;
+	for(IPlugin* Plugin: IPluginManager::Get().GetDiscoveredPlugins())
+	{
+		// Figure out which base category this plugin belongs in
+		FPluginCategoryTreeItemPtr RootCategory;
+		if( Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine )
+		{
+			RootCategory = RootPluginCategories[0];
+		}
+		else
+		{
+			RootCategory = RootPluginCategories[1];
+		}
+
+		// Get the subcategory for this plugin
+		FString CategoryName = Plugin->GetDescriptor().Category;
+		if(CategoryName.IsEmpty())
+		{
+			CategoryName = TEXT("Other");
+		}
+
+		// Locate this category at the level we're at in the hierarchy
+		FPluginCategoryTreeItemPtr FoundCategory = NULL;
+		for(FPluginCategoryTreeItemPtr TestCategory: RootCategory->SubCategories)
+		{
+			if(TestCategory->GetCategoryName() == CategoryName)
+			{
+				FoundCategory = TestCategory;
+				break;
+			}
+		}
+
+		if( !FoundCategory.IsValid() )
+		{
+			//@todo Allow for properly localized category names [3/7/2014 justin.sargent]
+			FoundCategory = MakeShareable(new FPluginCategoryTreeItem(RootCategory, CategoryName, FText::FromString(CategoryName)));
+			RootCategory->SubCategories.Add( FoundCategory );
+		}
+			
+		// Associate the plugin with the category
+		FoundCategory->AddPlugin(Plugin);
+
+		// Update the selection if this is the plugin we're tracking
+		if(TrackPlugin == Plugin)
+		{
+			SelectCategory = FoundCategory;
+		}
+	}
+
+	// Remove any empty categories, keeping track of which items are still selected
+	for(FPluginCategoryTreeItemPtr RootCategory: RootPluginCategories)
+	{
+		for(int32 Idx = 0; Idx < RootCategory->SubCategories.Num(); Idx++)
+		{
+			if(RootCategory->SubCategories[Idx]->Plugins.Num() == 0)
+			{
+				RootCategory->SubCategories.RemoveAt(Idx);
+			}
+		}
+	}
+
+	// Sort every single category alphabetically
+	for(FPluginCategoryTreeItemPtr RootCategory: RootPluginCategories)
+	{
+		RootCategory->SubCategories.Sort([](const FPluginCategoryTreeItemPtr& A, const FPluginCategoryTreeItemPtr& B) -> bool { return A->CategoryName < B->CategoryName; });
+	}
+
+	// Refresh the view
+	PluginCategoryTreeView->RequestTreeRefresh();
+
+	// Make sure we have something selected
+	if(SelectCategory.IsValid())
+	{
+		PluginCategoryTreeView->SetSelection(SelectCategory);
+	}
+	else if(RootPluginCategories[0]->SubCategories.Num() > 0)
+	{
+		PluginCategoryTreeView->SetSelection(RootPluginCategories[0]->SubCategories[0]);
+	}
+	else
+	{
+		PluginCategoryTreeView->SetSelection(RootPluginCategories[0]);
 	}
 }
 
@@ -216,7 +209,6 @@ FPluginCategoryTreeItemPtr SPluginCategories::GetSelectedCategory() const
 	return NULL;
 }
 
-
 void SPluginCategories::SelectCategory( const FPluginCategoryTreeItemPtr& CategoryToSelect )
 {
 	if( ensure( PluginCategoryTreeView.IsValid() ) )
@@ -225,11 +217,20 @@ void SPluginCategories::SelectCategory( const FPluginCategoryTreeItemPtr& Catego
 	}
 }
 
-
 bool SPluginCategories::IsItemExpanded( const FPluginCategoryTreeItemPtr Item ) const
 {
 	return PluginCategoryTreeView->IsItemExpanded( Item );
 }
 
+void SPluginCategories::SetNeedsRefresh()
+{
+	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginCategories::TriggerCategoriesRefresh));
+}
+
+EActiveTimerReturnType SPluginCategories::TriggerCategoriesRefresh(double InCurrentTime, float InDeltaTime)
+{
+	RebuildAndFilterCategoryTree();
+	return EActiveTimerReturnType::Stop;
+}
 
 #undef LOCTEXT_NAMESPACE

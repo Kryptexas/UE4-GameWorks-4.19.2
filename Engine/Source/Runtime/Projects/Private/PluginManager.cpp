@@ -24,9 +24,18 @@ FPlugin::FPlugin(const FString& InFileName, const FPluginDescriptor& InDescripto
 {
 }
 
+FPlugin::~FPlugin()
+{
+}
+
 FString FPlugin::GetName() const
 {
 	return Name;
+}
+
+FString FPlugin::GetDescriptorFileName() const
+{
+	return FileName;
 }
 
 FString FPlugin::GetBaseDir() const
@@ -54,6 +63,26 @@ bool FPlugin::CanContainContent() const
 	return Descriptor.bCanContainContent;
 }
 
+EPluginLoadedFrom FPlugin::GetLoadedFrom() const
+{
+	return LoadedFrom;
+}
+
+const FPluginDescriptor& FPlugin::GetDescriptor() const
+{
+	return Descriptor;
+}
+
+bool FPlugin::UpdateDescriptor(const FPluginDescriptor& NewDescriptor, FText& OutFailReason)
+{
+	if(!NewDescriptor.Save(FileName, OutFailReason))
+	{
+		return false;
+	}
+
+	Descriptor = NewDescriptor;
+	return true;
+}
 
 
 
@@ -345,7 +374,6 @@ bool FPluginManager::ConfigureEnabledPlugins()
 			}
 		}
 
-		ContentFolders.Empty();
 		for(const TSharedRef<FPlugin>& Plugin: AllPlugins)
 		{
 			if (Plugin->bEnabled)
@@ -353,17 +381,11 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				// Build the list of content folders
 				if (Plugin->Descriptor.bCanContainContent)
 				{
-					FPluginContentFolder ContentFolder;
-					ContentFolder.Name = Plugin->GetName();
-					ContentFolder.RootPath = Plugin->GetMountedAssetPath();
-					ContentFolder.ContentPath = Plugin->GetContentDir();
-					ContentFolders.Emplace(ContentFolder);
-
 					if (auto EngineConfigFile = GConfig->Find(GEngineIni, false))
 					{
 						if (auto CoreSystemSection = EngineConfigFile->Find(TEXT("Core.System")))
 						{
-							CoreSystemSection->AddUnique("Paths", ContentFolder.ContentPath);
+							CoreSystemSection->AddUnique("Paths", Plugin->GetContentDir());
 						}
 					}
 				}
@@ -387,22 +409,26 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		TArray<FString>	FoundPaks;
 		FPakFileSearchVisitor PakVisitor(FoundPaks);
 		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-		if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
-		{
-			for(const FPluginContentFolder& ContentFolder: ContentFolders)
+		if( ensure( RegisterMountPointDelegate.IsBound() ) )
 			{
-				RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
-
-				// Pak files are loaded from <PluginName>/Content/Paks/<PlatformName>
-				if (FPlatformProperties::RequiresCookedData())
+			for(IPlugin* Plugin: GetEnabledPlugins())
 				{
-					FoundPaks.Reset();
-					PlatformFile.IterateDirectoryRecursively(*(ContentFolder.ContentPath / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
-					for (const auto& PakPath : FoundPaks)
+				if(Plugin->CanContainContent())
+				{
+					FString ContentDir = Plugin->GetContentDir();
+					RegisterMountPointDelegate.Execute(Plugin->GetMountedAssetPath(), ContentDir);
+
+					// Pak files are loaded from <PluginName>/Content/Paks/<PlatformName>
+					if (FPlatformProperties::RequiresCookedData())
 					{
-						if (FCoreDelegates::OnMountPak.IsBound())
+						FoundPaks.Reset();
+						PlatformFile.IterateDirectoryRecursively(*(ContentDir / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
+						for (const auto& PakPath : FoundPaks)
 						{
-							FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+							if (FCoreDelegates::OnMountPak.IsBound())
+							{
+								FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+							}
 						}
 					}
 				}
@@ -548,6 +574,29 @@ FPlugin* FPluginManager::FindPlugin(const FString& Name)
 	return Plugin;
 }
 
+TArray<IPlugin*> FPluginManager::GetEnabledPlugins()
+{
+	TArray<IPlugin*> Plugins;
+	for(TSharedRef<FPlugin>& PossiblePlugin : AllPlugins)
+	{
+		if(PossiblePlugin->bEnabled)
+		{
+			Plugins.Add(&(PossiblePlugin.Get()));
+		}
+	}
+	return Plugins;
+}
+
+TArray<IPlugin*> FPluginManager::GetDiscoveredPlugins()
+{
+	TArray<IPlugin*> Plugins;
+	for(TSharedRef<FPlugin>& Plugin : AllPlugins)
+	{
+		Plugins.Add(&(Plugin.Get()));
+	}
+	return Plugins;
+}
+
 TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 {
 	TArray< FPluginStatus > PluginStatuses;
@@ -567,11 +616,6 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 	}
 
 	return PluginStatuses;
-}
-
-const TArray<FPluginContentFolder>& FPluginManager::GetPluginContentFolders() const
-{
-	return ContentFolders;
 }
 
 #undef LOCTEXT_NAMESPACE

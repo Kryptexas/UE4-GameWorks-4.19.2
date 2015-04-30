@@ -26,23 +26,23 @@ bool FPluginDescriptor::Load( const FString& FileName, FText& OutFailReason )
 		return false;
 	}
 
+	// Parse it as a plug-in descriptor
+	return Read(FileContents, OutFailReason);
+}
+
+
+bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
+{
 	// Deserialize a JSON object from the string
-	TSharedPtr< FJsonObject > Object;
-	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
-	
-	if (!FJsonSerializer::Deserialize(Reader, Object) || !Object.IsValid() )
+	TSharedPtr< FJsonObject > ObjectPtr;
+	TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(Text);
+	if (!FJsonSerializer::Deserialize(Reader, ObjectPtr) || !ObjectPtr.IsValid() )
 	{
 		OutFailReason = FText::Format(LOCTEXT("FailedToReadDescriptorFile", "Failed to read file. {0}"), FText::FromString(Reader->GetErrorMessage()));
 		return false;
 	}
+	FJsonObject& Object = *ObjectPtr.Get();
 
-	// Parse it as a plug-in descriptor
-	return Read(*Object.Get(), OutFailReason);
-}
-
-
-bool FPluginDescriptor::Read( const FJsonObject& Object, FText& OutFailReason )
-{
 	// Read the file version
 	int32 FileVersionInt32;
 
@@ -100,6 +100,52 @@ bool FPluginDescriptor::Read( const FJsonObject& Object, FText& OutFailReason )
 	return true;
 }
 
+bool FPluginDescriptor::Save(const FString& FileName, FText& OutFailReason) const
+{
+	// Write the contents of the descriptor to a string. Make sure the writer is destroyed so that the contents are flushed to the string.
+	FString Text = ToString();
+	if ( FFileHelper::SaveStringToFile(Text, *FileName) )
+	{
+		return true;
+	}
+	else
+	{
+		OutFailReason = FText::Format( LOCTEXT("FailedToWriteOutputFile", "Failed to write output file '{0}'. Perhaps the file is Read-Only?"), FText::FromString(FileName) );
+		return false;
+	}
+}
+
+FString FPluginDescriptor::ToString() const
+{
+	FString Text;
+	TSharedRef< TJsonWriter<> > WriterRef = TJsonWriterFactory<>::Create(&Text);
+	TJsonWriter<>& Writer = WriterRef.Get();
+
+	Writer.WriteObjectStart();
+
+	Writer.WriteValue(TEXT("FileVersion"), EProjectDescriptorVersion::Latest);
+	Writer.WriteValue(TEXT("Version"), Version);
+	Writer.WriteValue(TEXT("VersionName"), VersionName);
+	Writer.WriteValue(TEXT("FriendlyName"), FriendlyName);
+	Writer.WriteValue(TEXT("Description"), Description);
+	Writer.WriteValue(TEXT("Category"), Category);
+	Writer.WriteValue(TEXT("CreatedBy"), CreatedBy);
+	Writer.WriteValue(TEXT("CreatedByURL"), CreatedByURL);
+	Writer.WriteValue(TEXT("DocsURL"), DocsURL);
+
+	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
+
+	Writer.WriteValue(TEXT("EnabledByDefault"), bEnabledByDefault);
+	Writer.WriteValue(TEXT("CanContainContent"), bCanContainContent);
+	Writer.WriteValue(TEXT("IsBetaVersion"), bIsBetaVersion);
+
+	Writer.WriteObjectEnd();
+	Writer.Close();
+
+	return Text;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString &InName, bool bInEnabled )
 	: Name(InName)
