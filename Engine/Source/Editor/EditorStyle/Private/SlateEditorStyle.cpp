@@ -1401,12 +1401,19 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "MainFrame.RecentLevels", new IMAGE_BRUSH( "Icons/icon_file_LevelsRecent_16px", Icon16x16 ) );
 		Set( "MainFrame.FavoriteLevels", new IMAGE_BRUSH( "Icons/icon_file_LevelsRecent_16px", Icon16x16 ) );
 
-		Set( "MainFrame.EditorPreferences", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_EditorPreferences_16x", Icon16x16 ) );
-		Set( "MainFrame.ProjectSettings", new IMAGE_BRUSH( "Icons/Edit/icon_Edit_ProjectSettings_16x", Icon16x16 ) );
-
 		Set( "MainFrame.DebugTools.SmallFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "MainFrame.DebugTools.NormalFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 9 ) );
 		Set( "MainFrame.DebugTools.LabelFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
+	}
+
+	// Editor preferences
+	{
+		Set("EditorPreferences.TabIcon", new IMAGE_BRUSH("Icons/Edit/icon_Edit_EditorPreferences_16x", Icon16x16));
+	}
+
+	// Project settings
+	{
+		Set("ProjectSettings.TabIcon", new IMAGE_BRUSH("Icons/Edit/icon_Edit_ProjectSettings_16x", Icon16x16));
 	}
 
 	// Main frame

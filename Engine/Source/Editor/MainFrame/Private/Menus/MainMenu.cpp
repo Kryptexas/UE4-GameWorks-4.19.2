@@ -120,13 +120,17 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("EditorPreferencesSubMenuLabel", "Editor Preferences"),
 				LOCTEXT("EditorPreferencesSubMenuToolTip", "Configure the behavior and features of this Editor"),
-				FNewMenuDelegate::CreateStatic(&FSettingsMenu::MakeMenu, FName("Editor"))
+				FNewMenuDelegate::CreateStatic(&FSettingsMenu::MakeMenu, FName("Editor")),
+				false,
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorPreferences.TabIcon")
 			);
 
 			MenuBuilder.AddSubMenu(
 				LOCTEXT("ProjectSettingsSubMenuLabel", "Project Settings"),
 				LOCTEXT("ProjectSettingsSubMenuToolTip", "Change the settings of the currently loaded project"),
-				FNewMenuDelegate::CreateStatic(&FSettingsMenu::MakeMenu, FName("Project"))
+				FNewMenuDelegate::CreateStatic(&FSettingsMenu::MakeMenu, FName("Project")),
+				false,
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ProjectSettings.TabIcon")
 			);
 		}
 		else
@@ -135,7 +139,7 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("EditorPreferencesMenuLabel", "Editor Preferences..."),
 				LOCTEXT("EditorPreferencesMenuToolTip", "Configure the behavior and features of the Unreal Editor."),
-				FSlateIcon(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "EditorPreferences.TabIcon"),
 				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Editor"), FName("General"), FName("Appearance")))
 			);
 #endif
@@ -143,7 +147,7 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
 				LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project."),
-				FSlateIcon(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ProjectSettings.TabIcon"),
 				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Project"), FName("Project"), FName("General")))
 			);
 		}
