@@ -784,27 +784,6 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		HandleDumpSelectionCommand( Str, Ar );
 	}
 
-#if ENABLE_LOC_TESTING
-	{
-		FString CultureName;
-		if( FParse::Value(Str,TEXT("CULTURE="), CultureName) )
-		{
-			FInternationalization::Get().SetCurrentCulture( CultureName );
-		}
-	}
-
-	{
-		FString ConfigFilePath;
-		if(FParse::Value(Str,TEXT("REGENLOC="), ConfigFilePath))
-		{
-			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-			FJsonInternationalizationManifestSerializer ManifestSerializer;
-
-			FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
-		}
-	}
-#endif
-
 	//----------------------------------------------------------------------------------
 	// EDIT
 	//
@@ -3013,23 +2992,6 @@ bool UUnrealEdEngine::Exec_Mode( const TCHAR* Str, FOutputDevice& Ar )
 
 		Word1 = MAX_uint16;
 	}
-
-#if ENABLE_LOC_TESTING
-	FString CultureName;
-	if( FParse::Value(Str,TEXT("CULTURE="), CultureName) )
-	{
-		FInternationalization::Get().SetCurrentCulture( CultureName );
-	}
-
-	FString ConfigFilePath;
-	if( FParse::Value(Str,TEXT("REGENLOC="), ConfigFilePath) )
-	{
-		FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-		FJsonInternationalizationManifestSerializer ManifestSerializer;
-
-		FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
-	}
-#endif
 
 	if( FParse::Value(Str,TEXT("USESIZINGBOX="), DWord1) )
 	{

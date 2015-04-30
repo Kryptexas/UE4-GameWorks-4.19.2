@@ -102,6 +102,8 @@
 #include "SNotificationList.h"
 #include "Engine/UserInterfaceSettings.h"
 #include "ComponentRecreateRenderStateContext.h"
+#include "JsonInternationalizationArchiveSerializer.h"
+#include "JsonInternationalizationManifestSerializer.h"
 
 DEFINE_LOG_CATEGORY(LogEngine);
 
@@ -2242,6 +2244,27 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return true;
 	}
+
+#if ENABLE_LOC_TESTING
+	{
+		FString CultureName;
+		if (FParse::Value(Cmd, TEXT("CULTURE="), CultureName))
+		{
+			FInternationalization::Get().SetCurrentCulture(CultureName);
+		}
+	}
+
+	{
+		FString ConfigFilePath;
+		if (FParse::Value(Cmd, TEXT("REGENLOC="), ConfigFilePath))
+		{
+			FJsonInternationalizationArchiveSerializer ArchiveSerializer;
+			FJsonInternationalizationManifestSerializer ManifestSerializer;
+
+			FTextLocalizationManager::Get().LoadFromManifestAndArchives(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
+		}
+	}
+#endif
 
 	// Handle engine command line.
 	if ( FParse::Command(&Cmd,TEXT("FLUSHLOG")) )
