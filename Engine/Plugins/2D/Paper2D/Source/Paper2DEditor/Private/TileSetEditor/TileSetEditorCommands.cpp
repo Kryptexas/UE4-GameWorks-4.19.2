@@ -11,8 +11,8 @@
 void FTileSetEditorCommands::RegisterCommands()
 {
 	// Show toggles
-	UI_COMMAND(SetShowCollision, "Collision", "Toggles display of the collision geometry, if any exists.", EUserInterfaceActionType::ToggleButton, FInputChord(EKeys::C, EModifierKey::Alt));
 	UI_COMMAND(SetShowGrid, "Grid", "Display the grid.", EUserInterfaceActionType::ToggleButton, FInputChord());
+	UI_COMMAND(SetShowTileStats, "Stats", "Display statistics about the tile being edited.", EUserInterfaceActionType::ToggleButton, FInputChord());
 
 	UI_COMMAND(SetShowTilesWithCollision, "Colliding Tiles", "Toggles highlight of tiles that have custom collision geometry.", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(SetShowTilesWithMetaData, "Metadata Tiles", "Toggles highlight of tiles that have custom metadata.", EUserInterfaceActionType::RadioButton, FInputChord());

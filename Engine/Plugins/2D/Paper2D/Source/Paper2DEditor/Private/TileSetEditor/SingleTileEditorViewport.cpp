@@ -41,8 +41,6 @@ TSharedRef<SWidget> STileSetEditorViewportToolbar::GenerateShowMenu() const
 	FMenuBuilder ShowMenuBuilder(bInShouldCloseWindowAfterMenuSelection, ViewportRef->GetCommandList());
 	{
 		ShowMenuBuilder.AddMenuEntry(FSpriteGeometryEditCommands::Get().SetShowNormals);
-		// Disabled as the single tile editor doesn't actually create collision, that's done in the tile map component
-		// ShowMenuBuilder.AddMenuEntry(FTileSetEditorCommands::Get().SetShowCollision);
 		ShowMenuBuilder.AddMenuEntry(FTileSetEditorCommands::Get().SetShowGrid);
 	}
 
@@ -124,16 +122,16 @@ void SSingleTileEditorViewport::BindCommands()
 
 	// Show toggles
 	CommandList->MapAction(
-		Commands.SetShowCollision,
-		FExecuteAction::CreateSP(EditorViewportClientRef, &FEditorViewportClient::SetShowCollision),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(EditorViewportClientRef, &FEditorViewportClient::IsSetShowCollisionChecked));
-
-	CommandList->MapAction(
 		Commands.SetShowGrid,
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FEditorViewportClient::SetShowGrid),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(EditorViewportClientRef, &FEditorViewportClient::IsSetShowGridChecked));
+
+	CommandList->MapAction(
+		Commands.SetShowTileStats,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSingleTileEditorViewportClient::ToggleShowStats),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSingleTileEditorViewportClient::IsShowStatsChecked));
 
 	// Collision commands
 	CommandList->MapAction(

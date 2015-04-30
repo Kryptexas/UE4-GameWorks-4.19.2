@@ -141,6 +141,9 @@ void FPaperStyle::Initialize()
 		StyleSet->Set("TileSetEditor.SetShowGrid", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon40x40));
 		StyleSet->Set("TileSetEditor.SetShowGrid.Small", new IMAGE_BRUSH(TEXT("Icons/icon_MatEd_Grid_40x"), Icon20x20));
 
+		StyleSet->Set("TileSetEditor.SetShowTileStats", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_ShowStats_40x"), Icon40x40));
+		StyleSet->Set("TileSetEditor.SetShowTileStats.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_ShowStats_40x"), Icon20x20));
+
 		StyleSet->Set("TileSetEditor.SetShowTilesWithCollision", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_ShowTilesWithCollision_40x"), Icon40x40));
 		StyleSet->Set("TileSetEditor.SetShowTilesWithCollision.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_ShowTilesWithCollision_40x"), Icon20x20));
 		StyleSet->Set("TileSetEditor.SetShowTilesWithMetaData", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_ShowTilesWithMetadata_40x"), Icon40x40));

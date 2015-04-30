@@ -50,6 +50,9 @@ public:
 	// Returns true if the specified socket is selected
 	bool IsSocketSelected(FName SocketName) const;
 
+	static void DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpriteGeometryCollection& Geometry, bool bIsRenderGeometry, int32& YPos);
+	static void DrawCollisionStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UBodySetup* BodySetup, int32& YPos);
+
 protected:
 	FBox2D BoundsForNewShapes;
 	FLinearColor GeometryVertexColor;

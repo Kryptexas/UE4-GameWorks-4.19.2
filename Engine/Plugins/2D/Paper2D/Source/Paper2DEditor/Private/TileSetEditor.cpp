@@ -258,6 +258,7 @@ void FTileSetEditor::ExtendToolbar()
 
 			ToolbarBuilder.BeginSection("Actions");
 			{
+				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().SetShowTileStats);
 				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().ApplyCollisionEdits);
 			}
 			ToolbarBuilder.EndSection();
