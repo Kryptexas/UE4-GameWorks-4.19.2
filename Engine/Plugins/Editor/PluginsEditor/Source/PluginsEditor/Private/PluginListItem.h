@@ -17,7 +17,7 @@ class FPluginListItem
 public:
 
 	/** Plugin status object, which contains information about the plugin such as its name and description */
-	IPlugin* Plugin;
+	FPluginStatus PluginStatus;
 
 
 public:

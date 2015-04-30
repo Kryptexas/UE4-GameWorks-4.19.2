@@ -40,8 +40,6 @@ public:
 	/** @return Returns true if the specified item is currently expanded in the tree */
 	bool IsItemExpanded( const FPluginCategoryTreeItemPtr Item ) const;
 
-	/** Signal that the categories list needs to be refreshed */
-	void SetNeedsRefresh();
 
 private:
 	
@@ -56,9 +54,6 @@ private:
 
 	/** Rebuilds the category tree from scratch */
 	void RebuildAndFilterCategoryTree();
-
-	/** Callback for refreshing the tree */
-	EActiveTimerReturnType TriggerCategoriesRefresh(double InCurrentTime, float InDeltaTime);
 
 private:
 

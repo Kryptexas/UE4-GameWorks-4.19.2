@@ -4,19 +4,26 @@
 #include "SPluginsEditor.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "Editor/UnrealEd/Public/Features/EditorFeatures.h"
-#include "PluginMetadataObject.h"
 #include "PluginStyle.h"
-#include "PropertyEditorModule.h"
-#include "PluginBrowserModule.h"
 #include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 
-IMPLEMENT_MODULE( FPluginBrowserModule, PluginBrowserModule )
+class FPluginsEditor : public IPluginsEditor
+{
+	/** IModuleInterface implementation */
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 
-const FName FPluginBrowserModule::PluginsEditorTabName( TEXT( "PluginsEditor" ) );
+	/** ID name for the plugins editor major tab */
+	static const FName PluginsEditorTabName;
+};
 
-void FPluginBrowserModule::StartupModule()
+IMPLEMENT_MODULE( FPluginsEditor, PluginsEditor )
+
+const FName FPluginsEditor::PluginsEditorTabName( TEXT( "PluginsEditor" ) );
+
+void FPluginsEditor::StartupModule()
 {
 	FPluginStyle::Initialize();
 
@@ -40,9 +47,6 @@ void FPluginBrowserModule::StartupModule()
 		}
 	};
 
-	// Register the detail customization for the metadata object
-	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterCustomClassLayout(UPluginMetadataObject::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FPluginMetadataCustomization::MakeInstance));
 	
 	// Register a tab spawner so that our tab can be automatically restored from layout files
 	FGlobalTabmanager::Get()->RegisterTabSpawner( PluginsEditorTabName, FOnSpawnTab::CreateStatic( &Local::SpawnPluginsEditorTab ) )
@@ -51,7 +55,7 @@ void FPluginBrowserModule::StartupModule()
 			.SetIcon(FSlateIcon(FPluginStyle::Get()->GetStyleSetName(), "Plugins.TabIcon"));
 }
 
-void FPluginBrowserModule::ShutdownModule()
+void FPluginsEditor::ShutdownModule()
 {
 	FPluginStyle::Shutdown();
 

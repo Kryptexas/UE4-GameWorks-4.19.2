@@ -22,8 +22,6 @@ namespace UnrealBuildTool.Rules
 					"EditorStyle",
 					"Projects",
 					"UnrealEd",
-					"PropertyEditor",
-					"SharedSettingsWidgets"
 				}
 			);
 

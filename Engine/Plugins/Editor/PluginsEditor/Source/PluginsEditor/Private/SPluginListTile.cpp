@@ -7,12 +7,7 @@
 #include "SPluginList.h"
 #include "PluginStyle.h"
 #include "GameProjectGenerationModule.h"
-#include "IDetailsView.h"
 #include "SHyperlink.h"
-#include "PluginMetadataObject.h"
-#include "IProjectManager.h"
-#include "PluginBrowserModule.h"
-#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginListTile"
 
@@ -31,33 +26,34 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 
 	// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 
-	IPlugin* Plugin = ItemData->Plugin;
-	const FPluginDescriptor& PluginDescriptor = Plugin->GetDescriptor();
-
 	// Plugin thumbnail image
-	FString Icon128FilePath = Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
-	if(!FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
+	const FString Icon128FilePath = Item->PluginStatus.PluginDirectory / TEXT("Resources/Icon128.png");
+	if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*Icon128FilePath))
 	{
-		Icon128FilePath = IPluginManager::Get().FindPlugin(TEXT("PluginBrowser"))->GetBaseDir() / TEXT("Resources/DefaultIcon128.png");
-	}
+		const FName BrushName( *Icon128FilePath );
+		const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
 
-	const FName BrushName( *Icon128FilePath );
-	const FIntPoint Size = FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(BrushName);
-	if ((Size.X > 0) && (Size.Y > 0))
+		if ((Size.X > 0) && (Size.Y > 0))
+		{
+			PluginIconDynamicImageBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(Size.X, Size.Y)));
+		}
+	}
+	else
 	{
-		PluginIconDynamicImageBrush = MakeShareable(new FSlateDynamicImageBrush(BrushName, FVector2D(Size.X, Size.Y)));
+		// Plugin is missing a thumbnail image
+		// @todo plugedit: Should display default image or just omit the thumbnail
 	}
 
 	// create documentation link
 	TSharedPtr<SWidget> DocumentationWidget;
 	{
-		if (PluginDescriptor.DocsURL.IsEmpty())
+		if (Item->PluginStatus.Descriptor.DocsURL.IsEmpty())
 		{
 			DocumentationWidget = SNullWidget::NullWidget;
 		}
 		else
 		{
-			FString DocsURL = PluginDescriptor.DocsURL;
+			FString DocsURL = Item->PluginStatus.Descriptor.DocsURL;
 			DocumentationWidget = SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
@@ -85,11 +81,11 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 	// create vendor link
 	TSharedPtr<SWidget> CreatedByWidget;
 	{
-		if (PluginDescriptor.CreatedBy.IsEmpty())
+		if (Item->PluginStatus.Descriptor.CreatedBy.IsEmpty())
 		{
 			CreatedByWidget = SNullWidget::NullWidget;
 		}
-		else if (PluginDescriptor.CreatedByURL.IsEmpty())
+		else if (Item->PluginStatus.Descriptor.CreatedByURL.IsEmpty())
 		{
 			CreatedByWidget = SNew(SHorizontalBox)
 
@@ -108,12 +104,12 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[
 					SNew(STextBlock)
-						.Text(FText::FromString(PluginDescriptor.CreatedBy))
+						.Text(FText::FromString(Item->PluginStatus.Descriptor.CreatedBy))
 				];
 		}
 		else
 		{
-			FString CreatedByURL = PluginDescriptor.CreatedByURL;
+			FString CreatedByURL = Item->PluginStatus.Descriptor.CreatedByURL;
 			CreatedByWidget = SNew(SHorizontalBox)
 
 			+ SHorizontalBox::Slot()
@@ -131,7 +127,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[				
 					SNew(SHyperlink)
-						.Text(FText::FromString(PluginDescriptor.CreatedBy))
+						.Text(FText::FromString(Item->PluginStatus.Descriptor.CreatedBy))
 						.ToolTipText(FText::Format(LOCTEXT("NavigateToCreatedByURL", "Visit the vendor's web site ({0})"), FText::FromString(CreatedByURL)))
 						.OnNavigate_Lambda([=]() { FPlatformProcess::LaunchURL(*CreatedByURL, nullptr, nullptr); })
 				];
@@ -178,8 +174,8 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 										.Padding(PaddingAmount)
 										[
 											SNew(STextBlock)
-												.Text(FText::FromString(PluginDescriptor.FriendlyName))
-												.HighlightText_Raw(&OwnerWeak.Pin()->GetOwner().GetPluginTextFilter(), &FPluginTextFilter::GetRawFilterText)
+												.Text(FText::FromString(Item->PluginStatus.Descriptor.FriendlyName))
+												.HighlightText_Raw(&Owner->GetOwner().GetPluginTextFilter(), &FPluginTextFilter::GetRawFilterText)
 												.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
 										]
 
@@ -204,7 +200,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 															.Padding(0.0f, 0.0f, 3.0f, 2.0f)
 															[
 																SNew(SImage)
-																	.Visibility(PluginDescriptor.bIsBetaVersion ? EVisibility::Visible : EVisibility::Collapsed)
+																	.Visibility(Item->PluginStatus.Descriptor.bIsBetaVersion ? EVisibility::Visible : EVisibility::Collapsed)
 																	.Image(FPluginStyle::Get()->GetBrush("PluginTile.BetaWarning"))
 															]
 
@@ -214,7 +210,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 															.VAlign(VAlign_Bottom)
 															[
 																SNew(STextBlock)
-																	.Text(PluginDescriptor.bIsBetaVersion ? LOCTEXT("PluginBetaVersionLabel", "BETA Version ") : LOCTEXT("PluginVersionLabel", "Version "))
+																	.Text(Item->PluginStatus.Descriptor.bIsBetaVersion ? LOCTEXT("PluginBetaVersionLabel", "BETA Version ") : LOCTEXT("PluginVersionLabel", "Version "))
 															]
 													]
 
@@ -224,7 +220,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 													.Padding( 0.0f, 0.0f, 2.0f, 0.0f )	// Extra padding from the right edge
 													[
 														SNew(STextBlock)
-															.Text(FText::FromString(PluginDescriptor.VersionName))
+															.Text(FText::FromString(Item->PluginStatus.Descriptor.VersionName))
 															.TextStyle(FPluginStyle::Get(), "PluginTile.VersionNumberText")
 													]
 											]
@@ -239,7 +235,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 											.Padding( PaddingAmount )
 											[
 												SNew(STextBlock)
-													.Text(FText::FromString(PluginDescriptor.Description))
+													.Text(FText::FromString(Item->PluginStatus.Descriptor.Description))
 													.AutoWrapText(true)
 											]
 
@@ -252,7 +248,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 												// Enable checkbox
 												+ SHorizontalBox::Slot()
 													.Padding(PaddingAmount)
-													.HAlign(HAlign_Left)
+													.AutoWidth()
 													[
 														SNew(SCheckBox)
 															.OnCheckStateChanged(this, &SPluginListTile::OnEnablePluginCheckboxChanged)
@@ -262,25 +258,6 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 															[
 																SNew(STextBlock)
 																	.Text(LOCTEXT("EnablePluginCheckbox", "Enabled"))
-															]
-													]
-
-												// edit link
-												+ SHorizontalBox::Slot()
-													.HAlign(HAlign_Center)
-													.AutoWidth()
-													.Padding(2.0f, 0.0f, 0.0f, 0.0f)
-													[
-														SNew(SHorizontalBox)
-
-														+ SHorizontalBox::Slot()
-															.AutoWidth()
-															.Padding(PaddingAmount)
-															[
-																SNew(SHyperlink)
-																	.Visibility(this, &SPluginListTile::GetAuthoringButtonsVisibility)	
-																	.OnNavigate(this, &SPluginListTile::OnEditPlugin)
-																	.Text(LOCTEXT("EditPlugin", "Edit..."))
 															]
 													]
 
@@ -311,27 +288,21 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 
 ECheckBoxState SPluginListTile::IsPluginEnabled() const
 {
-	FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-	if(PluginBrowserModule.PendingEnablePlugins.Contains(ItemData->Plugin))
-	{
-		return PluginBrowserModule.PendingEnablePlugins[ItemData->Plugin]? ECheckBoxState::Checked : ECheckBoxState::Unchecked;;
-	}
-	else
-	{
-		return ItemData->Plugin->IsEnabled()? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
+	return ItemData->PluginStatus.bIsEnabled
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
+
 
 void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 {
 	const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 
-	const FPluginDescriptor& PluginDescriptor = ItemData->Plugin->GetDescriptor();
-	if (bNewEnabledState && PluginDescriptor.bIsBetaVersion)
+	if (bNewEnabledState && ItemData->PluginStatus.Descriptor.bIsBetaVersion)
 	{
 		FText WarningMessage = FText::Format(
 			LOCTEXT("Warning_EnablingBetaPlugin", "Plugin '{0}' is a beta version and might be unstable or removed without notice. Please use with caution. Are you sure you want to enable the plugin?"),
-			FText::FromString(PluginDescriptor.FriendlyName));
+			FText::FromString(ItemData->PluginStatus.Descriptor.FriendlyName));
 
 		if (EAppReturnType::No == FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage))
 		{
@@ -340,138 +311,14 @@ void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedSta
 		}
 	}
 
+	ItemData->PluginStatus.bIsEnabled = bNewEnabledState;
 	FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
 	FText FailMessage;
 
-	if (!IProjectManager::Get().SetPluginEnabled(ItemData->Plugin->GetName(), bNewEnabledState, FailMessage))
+	if (!IProjectManager::Get().SetPluginEnabled(ItemData->PluginStatus.Name, bNewEnabledState, FailMessage))
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FailMessage);
 	}
-	else
-	{
-		FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-		if(ItemData->Plugin->IsEnabled() == bNewEnabledState)
-		{
-			PluginBrowserModule.PendingEnablePlugins.Remove(ItemData->Plugin);
-		}
-		else
-		{
-			PluginBrowserModule.PendingEnablePlugins.FindOrAdd(ItemData->Plugin) = bNewEnabledState;
-		}
-	}
-
-
-}
-
-EVisibility SPluginListTile::GetAuthoringButtonsVisibility() const
-{
-	return (FApp::IsEngineInstalled() && ItemData->Plugin->GetLoadedFrom() == EPluginLoadedFrom::Engine)? EVisibility::Hidden : EVisibility::Visible;
-}
-
-void SPluginListTile::OnEditPlugin()
-{
-	// Construct the plugin metadata object using the descriptor for this plugin
-	UPluginMetadataObject* MetadataObject = NewObject<UPluginMetadataObject>();
-	MetadataObject->TargetIconPath = ItemData->Plugin->GetBaseDir() / TEXT("Resources/Icon128.png");
-	MetadataObject->PopulateFromDescriptor(ItemData->Plugin->GetDescriptor());
-	MetadataObject->AddToRoot();
-
-	// Create a property view
-	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	TSharedRef<IDetailsView> PropertyView = EditModule.CreateDetailView(FDetailsViewArgs(false, false, false, FDetailsViewArgs::ActorsUseNameArea, true));
-	PropertyView->SetObject(MetadataObject, true);
-
-	// Create the window
-	PropertiesWindow = SNew(SWindow)
-		.SupportsMaximize(false)
-		.SupportsMinimize(false)
-		.SizingRule(ESizingRule::FixedSize)
-		.ClientSize(FVector2D(700.0f, 575.0f))
-		.Title(LOCTEXT("PluginMetadata", "Plugin Properties"))
-		.Content()
-		[
-			SNew(SBorder)
-			.Padding(FMargin(8.0f, 8.0f))
-			[
-				SNew(SVerticalBox)
-
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(FMargin(5.0f, 10.0f, 5.0f, 5.0f))
-				[
-					SNew(STextBlock)
-					.Font(FPluginStyle::Get()->GetFontStyle(TEXT("PluginMetadataNameFont")))
-					.Text(FText::FromString(ItemData->Plugin->GetName()))
-				]
-
-				+ SVerticalBox::Slot()
-				.Padding(5)
-				[
-					PropertyView
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5)
-				.HAlign(HAlign_Right)
-				[
-					SNew(SButton)
-					.ContentPadding(FMargin(20.0f, 2.0f))
-					.Text(LOCTEXT("OkButtonLabel", "Ok"))
-					.OnClicked(this, &SPluginListTile::OnEditPluginFinished, MetadataObject)
-				]
-			]
-		];
-
-	FSlateApplication::Get().AddModalWindow(PropertiesWindow.ToSharedRef(), OwnerWeak.Pin());//Args.ParentWidget);
-}
-
-FReply SPluginListTile::OnEditPluginFinished(UPluginMetadataObject* MetadataObject)
-{
-	IPlugin* Plugin = ItemData->Plugin;
-	FPluginDescriptor OldDescriptor = Plugin->GetDescriptor();
-
-	// Update the descriptor with the new metadata
-	FPluginDescriptor NewDescriptor = OldDescriptor;
-	MetadataObject->CopyIntoDescriptor(NewDescriptor);
-	MetadataObject->RemoveFromRoot();
-
-	// Close the properties window
-	PropertiesWindow->RequestDestroyWindow();
-
-	// Write both to strings
-	FString OldText = OldDescriptor.ToString();
-	FString NewText = NewDescriptor.ToString();
-	if(OldText.Compare(NewText, ESearchCase::CaseSensitive) != 0)
-	{
-		FString DescriptorFileName = Plugin->GetDescriptorFileName();
-
-		// First attempt to check out the file if SCC is enabled
-		ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
-		if(SourceControlModule.IsEnabled())
-		{
-			ISourceControlProvider& SourceControlProvider = SourceControlModule.GetProvider();
-			TSharedPtr<ISourceControlState, ESPMode::ThreadSafe> SourceControlState = SourceControlProvider.GetState(DescriptorFileName, EStateCacheUsage::ForceUpdate);
-			if(SourceControlState.IsValid() && SourceControlState->CanCheckout())
-			{
-				SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), DescriptorFileName);
-			}
-		}
-
-		// Write to the file and update the in-memory metadata
-		FText FailReason;
-		if(!ItemData->Plugin->UpdateDescriptor(NewDescriptor, FailReason))
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, FailReason);
-		}
-
-		// Refresh the view
-		if(OwnerWeak.IsValid())
-		{
-			OwnerWeak.Pin()->GetOwner().SetNeedsRefresh();
-		}
-	}
-	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

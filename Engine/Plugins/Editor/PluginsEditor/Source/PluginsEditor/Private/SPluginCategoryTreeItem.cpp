@@ -80,17 +80,26 @@ const FSlateBrush* SPluginCategoryTreeItem::GetIconBrush() const
 	// @todo plugedit: Need support for styles embedded into plugins!
 	const FSlateBrush* IconBrush;
 
-	if(ItemData->GetParentCategory().IsValid())
-	{
-		IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.LeafItemWithPlugin" );
-	}
-	else if ( ItemData->GetCategoryName() == TEXT("Installed"))
+	if ( ItemData->GetCategoryPath() == TEXT("BuiltIn") )
 	{
 		IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.BuiltIn" );
 	}
-	else
+	else if ( ItemData->GetCategoryPath() == TEXT("Installed") )
 	{
 		IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.Installed" );
+	}
+	else
+	{
+		const bool bIsLeafItemWithPlugins = ( ItemData->GetSubCategories().Num() == 0 ) && ( ItemData->GetPlugins().Num() > 0 );
+		if( bIsLeafItemWithPlugins )
+		{
+			IconBrush = FPluginStyle::Get()->GetBrush( "CategoryTreeItem.LeafItemWithPlugin" );
+		}
+		else
+		{
+			const bool bIsExpanded = OwnerWeak.Pin()->IsItemExpanded( ItemData );
+			IconBrush = bIsExpanded ? FPluginStyle::Get()->GetBrush( "CategoryTreeItem.ExpandedCategory" ) : FPluginStyle::Get()->GetBrush( "CategoryTreeItem.Category" );
+		}
 	}
 
 	return IconBrush;

@@ -20,6 +20,12 @@ public:
 		return ParentCategoryWeak.Pin();
 	}
 
+	/** @return Returns the path up to this category */
+	const FString& GetCategoryPath() const
+	{
+		return CategoryPath;
+	}
+
 	/** @return	Returns the name of this category */
 	const FString& GetCategoryName() const
 	{
@@ -44,31 +50,37 @@ public:
 	}
 
 	/** @return Returns the plugins in this category */
-	const TArray< IPlugin* >& GetPlugins() const
+	const TArray< TSharedPtr< FPluginStatus > >& GetPlugins() const
 	{
 		return Plugins;
 	}
 
 	/** Adds a plugin to this category */
-	void AddPlugin( IPlugin* Plugin )
+	void AddPlugin( const TSharedRef< FPluginStatus >& PluginStatus )
 	{
-		Plugins.Add( Plugin );
+		Plugins.Add( PluginStatus );
 	}
 
 
 public:
 
 	/** Constructor for FPluginCategoryTreeItem */
-	FPluginCategoryTreeItem(const FPluginCategoryTreeItemPtr ParentCategory, const FString& InitCategoryName, const FText& InitCategoryDisplayName)
+	FPluginCategoryTreeItem(const FPluginCategoryTreeItemPtr ParentCategory, const FString& InitCategoryPath, const FString& InitCategoryName, const FText& InitCategoryDisplayName)
 		: ParentCategoryWeak( ParentCategory ),
+		  CategoryPath( InitCategoryPath ),
 		  CategoryName(InitCategoryName),
 		  CategoryDisplayName(InitCategoryDisplayName)
 	{
 	}
 
 
+private:
+
 	/** Parent category item or NULL if this is a root category */
 	TWeakPtr< FPluginCategoryTreeItem > ParentCategoryWeak;
+
+	/** Category path string.  The full path up to this category */
+	FString CategoryPath;
 
 	/** Name of the category */
 	FString CategoryName;
@@ -80,7 +92,7 @@ public:
 	TArray< TSharedPtr< FPluginCategoryTreeItem > > SubCategories;
 
 	/** Plugins in this category */
-	TArray< IPlugin* > Plugins;
+	TArray< TSharedPtr< FPluginStatus > > Plugins;
 
 };
 

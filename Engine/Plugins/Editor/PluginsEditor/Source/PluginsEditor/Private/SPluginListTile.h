@@ -26,14 +26,6 @@ private:
 	/** Called when the enabled checkbox is clicked */
 	void OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState);
 
-	/** Used to determine whether to show the edit and package buttons for this plugin */
-	EVisibility GetAuthoringButtonsVisibility() const;
-
-	/** Called when the 'edit' hyperlink is clicked */
-	void OnEditPlugin();
-
-	/** Called when the 'edit' hyperlink is clicked */
-	FReply OnEditPluginFinished(UPluginMetadataObject* MetadataObject);
 
 private:
 
@@ -42,9 +34,6 @@ private:
 
 	/** Weak pointer back to its owner */
 	TWeakPtr< class SPluginList > OwnerWeak;
-
-	/** Dialog for editing plugin properties */
-	TSharedPtr< SWindow > PropertiesWindow;
 
 	/** Brush resource for the image that is dynamically loaded */
 	TSharedPtr< FSlateDynamicImageBrush > PluginIconDynamicImageBrush;
