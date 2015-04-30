@@ -195,13 +195,21 @@ bool FOnlineSubsystemFacebook::Tick(float DeltaTime)
 bool FOnlineSubsystemFacebook::IsEnabled()
 {
 	// Check the ini for disabling Facebook
-	bool bEnableFacebook = false;
-	GConfig->GetBool(TEXT("OnlineSubsystemFacebook"), TEXT("bEnabled"), bEnableFacebook, GEngineIni);
+	bool bEnableFacebookSupport = false;
+	// Whilst we deprecate the old warning, let's still check if it's available
+	if (!GConfig->GetBool(TEXT("OnlineSubsystemFacebook"), TEXT("bEnabled"), bEnableFacebookSupport, GEngineIni))
+	{
+		GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableFacebookSupport"), bEnableFacebookSupport, GEngineIni);
+	}
+	else
+	{
+		UE_LOG(LogOnline, Warning, TEXT("The [OnlineSubsystemFacebook]:bEnabled flag has been moved to the IOS Project Settings, please update your preferences and App ID there."));
+	}
 
 #if !UE_BUILD_SHIPPING
 	// Check the commandline for disabling Facebook
-	bEnableFacebook = bEnableFacebook && !FParse::Param(FCommandLine::Get(),TEXT("NOFACEBOOK"));
+	bEnableFacebookSupport = bEnableFacebookSupport && !FParse::Param(FCommandLine::Get(), TEXT("NOFACEBOOK"));
 #endif
 
-	return bEnableFacebook;
+	return bEnableFacebookSupport;
 }

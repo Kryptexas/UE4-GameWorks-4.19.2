@@ -204,6 +204,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = ExtraData)
 	FString AdditionalPlistData;
 
+	// Whether the app supports Facebook
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)
+	bool bEnableFacebookSupport;
+
+	// Facebook App ID obtained from Facebook's Developer Centre
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (EditCondition = "bEnableFacebookSupport"))
+	FString FacebookAppID;
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

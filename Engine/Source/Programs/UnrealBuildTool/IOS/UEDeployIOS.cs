@@ -243,6 +243,15 @@ namespace UnrealBuildTool.IOS
 				MinVersion = "6.1";
 			}
 
+			// Get Facebook Support details
+			bool bEnableFacebookSupport = true;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableFacebookSupport", out bEnableFacebookSupport);
+
+			// Write the Facebook App ID if we need it.
+			string FacebookAppID = "";
+			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "FacebookAppID", out FacebookAppID);
+			bEnableFacebookSupport = bEnableFacebookSupport && !string.IsNullOrWhiteSpace(FacebookAppID);
+
 			// extra plist data
 			string ExtraData = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalPlistData", out ExtraData);
@@ -261,6 +270,11 @@ namespace UnrealBuildTool.IOS
 			Text.AppendLine("\t\t\t<key>CFBundleURLSchemes</key>");
 			Text.AppendLine("\t\t\t<array>");
 			Text.AppendLine(string.Format("\t\t\t\t<string>{0}</string>", bIsUE4Game ? "UE4Game" : GameName));
+			if (bEnableFacebookSupport)
+			{
+				// This is needed for facebook login to redirect back to the app after completion.
+				Text.AppendLine(string.Format("\t\t\t\t<string>fb{0}</string>", FacebookAppID));
+			}
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t</dict>");
 			Text.AppendLine("\t</array>");
@@ -418,6 +432,12 @@ namespace UnrealBuildTool.IOS
 			Text.AppendLine("\t</array>");
 			Text.AppendLine("\t<key>MinimumOSVersion</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", MinVersion));
+			if (bEnableFacebookSupport)
+			{
+				Text.AppendLine("\t<key>FacebookAppID</key>");
+				Text.AppendLine(string.Format("\t<string>{0}</string>", FacebookAppID));
+				
+			}
 			if (!string.IsNullOrEmpty(ExtraData))
 			{
 				ExtraData = ExtraData.Replace("\\n", "\n");
