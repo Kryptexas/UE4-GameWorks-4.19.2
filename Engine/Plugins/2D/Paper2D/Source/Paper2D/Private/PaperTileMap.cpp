@@ -402,6 +402,11 @@ void UPaperTileMap::InitializeNewEmptyTileMap()
 	PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 }
 
+UPaperTileMap* UPaperTileMap::CloneTileMap(UObject* OuterForClone)
+{
+	return CastChecked<UPaperTileMap>(StaticDuplicateObject(this, OuterForClone, nullptr));
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
