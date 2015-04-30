@@ -278,6 +278,11 @@ FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClas
 	, bNeedsReinstancing(false)
 	, CopyOfPreviousCDO(nullptr)
 {
+	ensure(InOldClass);
+	ensure(!HotReloadedOldClass && !HotReloadedNewClass);
+	HotReloadedOldClass = InOldClass;
+	HotReloadedNewClass = InNewClass ? InNewClass : InOldClass;
+
 	// If InNewClass is NULL, then the old class has not changed after hot-reload.
 	// However, we still need to check for changes to its constructor code (CDO values).
 	if (InNewClass)
@@ -289,7 +294,11 @@ FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClas
 
 		for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
 		{
-			FArchiveReplaceObjectRef<UObject>(*BlueprintIt, ClassRedirects, false, true, true);
+			FArchiveReplaceObjectRef<UObject> ReplaceObjectArch(*BlueprintIt, ClassRedirects, false, true, true);
+			if (ReplaceObjectArch.GetCount())
+			{
+				EnlistDependentBlueprintToRecompile(*BlueprintIt, true);
+			}
 		}
 	}
 	else
@@ -303,6 +312,10 @@ FHotReloadClassReinstancer::~FHotReloadClassReinstancer()
 	// Make sure the base class does not remove the DuplicatedClass from root, we not always want it.
 	// For example when we're just reconstructing CDOs. Other cases are handled by HotReloadClassReinstancer.
 	DuplicatedClass = nullptr;
+
+	ensure(HotReloadedOldClass);
+	HotReloadedOldClass = nullptr;
+	HotReloadedNewClass = nullptr;
 }
 
 /** Helper for finding subobject in an array. Usually there's not that many subobjects on a class to justify a TMap */

@@ -160,6 +160,8 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileGeneratedClass);
 
+		FBlueprintCompileReinstancer::OptionallyRefreshNodes(Blueprint);
+
 		// Perform the full compile
 		CompileBlueprintInner(Blueprint, CompileOptions, Results, ParentReinstancer, ObjLoaded);
 
