@@ -45,6 +45,7 @@ class UBehaviorTreeGraph : public UAIGraph
 	void ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
 	void RebuildExecutionOrder();
 	void SpawnMissingNodesForParallel();
+	void RemoveUnknownSubNodes();
 
 	void AutoArrange();
 
