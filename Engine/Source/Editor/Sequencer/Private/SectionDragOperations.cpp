@@ -2,6 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "SectionDragOperations.h"
+#include "Sequencer.h"
 #include "MovieSceneSection.h"
 #include "ISequencerSection.h"
 #include "IKeyArea.h"
