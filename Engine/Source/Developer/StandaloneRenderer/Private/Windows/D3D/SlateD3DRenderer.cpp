@@ -114,7 +114,8 @@ void FSlateD3DRenderer::CreateDevice()
 		const D3D_FEATURE_LEVEL FeatureLevels[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0, D3D_FEATURE_LEVEL_9_3 };
 		D3D_FEATURE_LEVEL CreatedFeatureLevel;
 		HRESULT Hr = D3D11CreateDevice( NULL, DriverType, NULL, DeviceCreationFlags, FeatureLevels, sizeof(FeatureLevels)/sizeof(D3D_FEATURE_LEVEL), D3D11_SDK_VERSION, GD3DDevice.GetInitReference(), &CreatedFeatureLevel, GD3DDeviceContext.GetInitReference() );
-		checkf( SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr );
+		UE_LOG(LogStandaloneRenderer, Log, TEXT("D3D11CreateDevice Result: %X"), Hr);
+		checkf(SUCCEEDED(Hr), TEXT("D3D11 Error Result %X"), Hr);
 	}
 }
 
