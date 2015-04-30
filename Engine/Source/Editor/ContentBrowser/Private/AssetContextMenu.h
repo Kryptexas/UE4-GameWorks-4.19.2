@@ -86,6 +86,9 @@ private:
 	/** Adds common menu options to a menu builder. Returns true if any options were added. */
 	bool AddCommonMenuOptions(FMenuBuilder& MenuBuilder);
 
+	/** Adds explore menu options to a menu builder. */
+	void AddExploreMenuOptions(FMenuBuilder& MenuBuilder);
+
 	/** Adds Asset Actions sub-menu to a menu builder. */
 	void MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder);
 
