@@ -68,6 +68,10 @@ public:
 
 	void RemoveRevertFocusWindow(SDL_HWindow HWnd);
 
+	void RaiseNotificationWindows( const TSharedPtr< FLinuxWindow >& ParentWindow);
+
+	void RemoveNotificationWindow(SDL_HWindow HWnd);
+
 	EWindowZone::Type WindowHitTest( const TSharedPtr< FLinuxWindow > &window, int x, int y );
 
 	TSharedPtr< FLinuxWindow > FindWindowBySDLWindow( SDL_Window *win );
@@ -121,6 +125,9 @@ private:
 
 	TArray< TSharedRef< FLinuxWindow > > Windows;
 
+	/** Array of notificaion windows to raise when activating toplevel window */ 
+	TArray< TSharedRef< FLinuxWindow > > NotificationWindows;
+
 	/** Array of windows to focus when current gets removed. */
 	TArray< TSharedRef< FLinuxWindow > > RevertFocusStack;
 
@@ -170,6 +177,9 @@ private:
 
 	/** Last time we asked about work area (this is a hack. What we need is a callback when screen config changes). */
 	mutable double			LastTimeCachedDisplays;
+
+	/** Somewhat hacky way to know whether a window was deleted because the user pressed Escape. */
+	bool bEscapeKeyPressed;
 };
 
 extern FLinuxApplication* LinuxApplication;

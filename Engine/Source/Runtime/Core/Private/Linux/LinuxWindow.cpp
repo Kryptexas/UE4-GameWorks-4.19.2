@@ -5,6 +5,8 @@
 #include "LinuxApplication.h"
 
 DEFINE_LOG_CATEGORY( LogLinuxWindow );
+DEFINE_LOG_CATEGORY( LogLinuxWindowType );
+DEFINE_LOG_CATEGORY( LogLinuxWindowEvent );
 
 FLinuxWindow::~FLinuxWindow()
 {
@@ -31,6 +33,12 @@ FLinuxWindow::FLinuxWindow()
 	, bWasFullscreen( false )
 	, bIsPopupWindow(false)
 	, bIsTooltipWindow(false)
+	, bIsConsoleWindow(false)
+	, bIsDialogWindow(false)
+	, bIsNotificationWindow(false)
+	, bIsTopLevelWindow(false)
+	, bIsDragAndDropWindow(false)
+	, bIsUtilityWindow(false)
 	, bIsPointerInsideWindow(false)
 	, LeftBorderWidth(0)
 	, TopBorderHeight(0)
@@ -105,26 +113,100 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 		}
 	}
 
-	// Does this combination tell us that this is a tooltip window? Need to pass information to
-	// SDL2 (WM) about the type of the window for ICCCM compatibility.
-	if( !InParent.IsValid() && !Definition->HasOSWindowBorder && 
+	// This is a tool tip window.
+	if (!InParent.IsValid() && !Definition->HasOSWindowBorder &&
 		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
-		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame)
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
+		Definition->SizeWillChangeOften)
 	{
-		// This here is a tooltip window.
 		WindowStyle |= SDL_WINDOW_TOOLTIP;
 		bIsTooltipWindow = true;
-	} 
-
-	// Does this combination tell us that this is a menu window? Need to pass information to
-	// SDL2 (WM) about the type of the window for ICCCM compatibility.
-	if( InParent.IsValid() && !Definition->HasOSWindowBorder && 
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a Tooltip Window ***"));
+	}
+	// This is a notification window.
+	else if (InParent.IsValid() && !Definition->HasOSWindowBorder &&
 		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
-		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame)
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
+		!Definition->ActivateWhenFirstShown && Definition->SizeWillChangeOften)
 	{
-		// This here is a pop up window.
+		WindowStyle |= SDL_WINDOW_NOTIFICATION;
+		bIsNotificationWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a Notification Window ***"));
+	}
+	// Is it another notification window?
+	else if (InParent.IsValid() && !Definition->HasOSWindowBorder &&
+		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		Definition->IsModalWindow && !Definition->IsRegularWindow &&
+		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+	{
+		WindowStyle |= SDL_WINDOW_NOTIFICATION;
+		bIsNotificationWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is another Notification Window ***"));
+	}
+	// This is a popup menu window?
+	else if (InParent.IsValid() && !Definition->HasOSWindowBorder &&
+		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
+		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+	{
 		WindowStyle |= SDL_WINDOW_POPUP_MENU;
 		bIsPopupWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a Popup Menu Window ***"));
+	}
+	// Is it a console window?
+	else if( InParent.IsValid() && !Definition->HasOSWindowBorder &&
+		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
+		!Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+	{
+		WindowStyle |= SDL_WINDOW_POPUP_MENU;
+		bIsConsoleWindow = true;
+		bIsPopupWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a Console Window ***"));
+	}
+	// Is it a drag and drop window?
+	else if (!InParent.IsValid() && !Definition->HasOSWindowBorder &&
+		!Definition->AcceptsInput && Definition->IsTopmostWindow && 
+		!Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		!Definition->IsModalWindow && !Definition->IsRegularWindow &&
+		!Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+	{
+		// TODO Experimental
+		WindowStyle |= SDL_WINDOW_DND;
+		bIsDragAndDropWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a Drag and Drop Window ***"));
+	}
+	// Is modal dialog window?
+	else if (InParent.IsValid() && !Definition->HasOSWindowBorder &&
+		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
+		Definition->AppearsInTaskbar && !Definition->HasSizingFrame &&
+		Definition->IsModalWindow && Definition->IsRegularWindow &&
+		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+	{
+		WindowStyle |= SDL_WINDOW_DIALOG;
+		bIsDialogWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a Modal Dialog Window ***"));
+	}
+	// Is a Blueprint, Cascade, etc. utility window.
+	else if (InParent.IsValid() && !Definition->HasOSWindowBorder &&
+		Definition->AcceptsInput && !Definition->IsTopmostWindow && 
+		Definition->AppearsInTaskbar && Definition->HasSizingFrame &&
+		!Definition->IsModalWindow && Definition->IsRegularWindow &&
+		Definition->ActivateWhenFirstShown && !Definition->SizeWillChangeOften)
+	{
+		WindowStyle |= SDL_WINDOW_DIALOG;
+		bIsUtilityWindow = true;
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is a BP, Cascade, etc. Window ***"));
+	}
+	else
+	{
+		UE_LOG(LogLinuxWindowType, Verbose, TEXT("*** New Window is TopLevel Window ***"));
+		bIsTopLevelWindow = true;
 	}
 
 	//	The SDL window doesn't need to be reshaped.
@@ -132,7 +214,14 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	HWnd = SDL_CreateWindow( TCHAR_TO_ANSI( *Definition->Title ), X, Y, ClientWidth, ClientHeight, WindowStyle  );
 	SDL_SetWindowHitTest( HWnd, FLinuxWindow::HitTest, this );
 
-	if (InParent.IsValid())
+	/* 
+		Do not set for Notification Windows the transient flag because the WM's usually raise the the parent window
+		if the Notificaton Window gets raised. That behaviour is to aggresive and disturbs users doing other things 
+		while UE4 calculates lights and other things and pop ups notifications. Notifications will be handled so that 
+		they are some sort of independend but will be raised if the TopLevel Window gets focused or activated.
+	*/
+	// Make the Window modal for it's parent.
+	if (bIsUtilityWindow || bIsDialogWindow || bIsConsoleWindow || bIsDialogWindow)
 	{
 		SDL_SetWindowModalFor(HWnd, InParent->GetHWnd());
 	}
@@ -233,6 +322,7 @@ void FLinuxWindow::Destroy()
 {
 	OwningApplication->RemoveEventWindow( HWnd );
 	OwningApplication->RemoveRevertFocusWindow( HWnd );
+	OwningApplication->RemoveNotificationWindow( HWnd );
 
 	SDL_DestroyWindow( HWnd );
 }
@@ -511,9 +601,6 @@ bool FLinuxWindow::IsPointInWindow( int32 X, int32 Y ) const
 
 int32 FLinuxWindow::GetWindowBorderSize() const
 {
-	// need to lie and return 0 border size even if we have a border.
-	// reporting anything else causes problems in Slate with menu
-	// positioning.
 	return 0;
 }
 
@@ -544,6 +631,36 @@ bool FLinuxWindow::IsTooltipWindow() const
 	return bIsTooltipWindow;
 }
 
+bool FLinuxWindow::IsNotificationWindow() const
+{
+	return bIsNotificationWindow;
+}
+
+bool FLinuxWindow::IsTopLevelWindow() const
+{
+	return bIsTopLevelWindow;
+}
+
+bool FLinuxWindow::IsDialogWindow() const
+{
+	return bIsDialogWindow;
+}
+
+bool FLinuxWindow::IsDragAndDropWindow() const
+{
+	return bIsDragAndDropWindow;
+}
+
+bool FLinuxWindow::IsUtilityWindow() const
+{
+	return bIsUtilityWindow;
+}
+
+bool FLinuxWindow::IsActivateWhenFirstShown() const
+{
+	return Definition->ActivateWhenFirstShown;
+}
+
 uint32 FLinuxWindow::GetID() const
 {
 	return WindowSDLID;
@@ -551,13 +668,17 @@ uint32 FLinuxWindow::GetID() const
 
 void FLinuxWindow::LogInfo() 
 {
-	UE_LOG(LogLinuxWindow, Warning, TEXT("---------- Windows Properties -----------)"));
-	UE_LOG(LogLinuxWindow, Warning, TEXT("InParent: %d"), ParentWindow.IsValid());
-	UE_LOG(LogLinuxWindow, Warning, TEXT("HasOSWindowBorder: %d"), Definition->HasOSWindowBorder);
-	UE_LOG(LogLinuxWindow, Warning, TEXT("IsTopmostWindow: %d"), Definition->IsTopmostWindow);
-	UE_LOG(LogLinuxWindow, Warning, TEXT("HasSizingFrame: %d"), Definition->HasSizingFrame);
-	UE_LOG(LogLinuxWindow, Warning, TEXT("AppearsInTaskbar: %d"), Definition->AppearsInTaskbar);	
-	UE_LOG(LogLinuxWindow, Warning, TEXT("AcceptsInput: %d"), Definition->AcceptsInput);	
+	UE_LOG(LogLinuxWindowType, Log, TEXT("---------- Windows ID: %d Properties -----------)"), GetID());
+	UE_LOG(LogLinuxWindowType, Log, TEXT("InParent: %d"), ParentWindow.IsValid());
+	UE_LOG(LogLinuxWindowType, Log, TEXT("HasOSWindowBorder: %d"), Definition->HasOSWindowBorder);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("IsTopmostWindow: %d"), Definition->IsTopmostWindow);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("HasSizingFrame: %d"), Definition->HasSizingFrame);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("AppearsInTaskbar: %d"), Definition->AppearsInTaskbar);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("AcceptsInput: %d"), Definition->AcceptsInput);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("IsModalWindow: %d"), Definition->IsModalWindow);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("IsRegularWindow: %d"), Definition->IsRegularWindow);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("ActivateWhenFirstShown: %d"), Definition->ActivateWhenFirstShown);
+	UE_LOG(LogLinuxWindowType, Log, TEXT("SizeWillChangeOften: %d"), Definition->SizeWillChangeOften);
 }
 
 const TSharedPtr< FLinuxWindow >& FLinuxWindow::GetParent() const

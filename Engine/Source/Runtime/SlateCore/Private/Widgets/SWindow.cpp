@@ -698,7 +698,7 @@ FMargin SWindow::GetWindowBorderSize( bool bIncTitleBar ) const
 
 		return BorderSize;
 	}
-#if PLATFORM_WINDOWS // || PLATFORM_LINUX
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	return LayoutBorder;
 #else
 	return FMargin();
@@ -1391,23 +1391,6 @@ FReply SWindow::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& 
 
 FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-#if PLATFORM_SPECIFIC_HACK && PLATFORM_LINUX
-	if (bHasSizingFrame && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		if ((WindowZone == EWindowZone::TopLeftBorder || WindowZone == EWindowZone::BottomRightBorder ||
-			WindowZone == EWindowZone::BottomLeftBorder || WindowZone == EWindowZone::TopRightBorder ||
-			WindowZone == EWindowZone::TopBorder || WindowZone == EWindowZone::BottomBorder ||
-			WindowZone == EWindowZone::LeftBorder || WindowZone == EWindowZone::RightBorder ||
-			WindowZone == EWindowZone::TitleBar)
-			&& MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-		{
-			MoveResizeZone = WindowZone;
-			MoveResizeStart = MouseEvent.GetScreenSpacePosition();
-			MoveResizeRect = GetRectInScreen();
-			return FReply::Handled().CaptureMouse(SharedThis(this));
-		}
-	}
-#endif
 	if (bDragAnywhere && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
 		MoveResizeZone = WindowZone;
