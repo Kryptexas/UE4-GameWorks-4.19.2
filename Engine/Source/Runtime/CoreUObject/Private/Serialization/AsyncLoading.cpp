@@ -1852,7 +1852,9 @@ void FArchiveAsync::FlushCache()
 	if (PrecacheReadStatus[CURRENT].GetValue() || PrecacheReadStatus[NEXT].GetValue())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Sleep);
+#if !( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 on Windows has bugs with inlining DLL imported functions
 		FThreadIdleStats::FScopeIdle Scope;
+#endif
 		do
 		{
 			SHUTDOWN_IF_EXIT_REQUESTED;
@@ -2188,7 +2190,9 @@ void FArchiveAsync::Serialize(void* Data, int64 Count)
 		if (!Precache(CurrentPos, Count))
 		{
 			SCOPE_CYCLE_COUNTER(STAT_Sleep);
+#if !( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 on Windows has bugs with inlining DLL imported functions
 			FThreadIdleStats::FScopeIdle Scope;
+#endif
 			do
 			{
 				SHUTDOWN_IF_EXIT_REQUESTED;
@@ -2205,7 +2209,9 @@ void FArchiveAsync::Serialize(void* Data, int64 Count)
 	if (PrecacheReadStatus[CURRENT].GetValue())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Sleep);
+#if !( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 on Windows has bugs with inlining DLL imported functions
 		FThreadIdleStats::FScopeIdle Scope;
+#endif
 		do
 		{
 			SHUTDOWN_IF_EXIT_REQUESTED;

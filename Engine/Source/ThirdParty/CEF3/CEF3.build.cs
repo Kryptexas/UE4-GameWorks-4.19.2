@@ -33,7 +33,7 @@ public class CEF3 : ModuleRules
 
 			string PlatformPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "CEF3/cef_binary_" + CEFVersion + "_" + CEFPlatform;
 
-			PublicIncludePaths.Add(PlatformPath);
+			PublicSystemIncludePaths.Add(PlatformPath);
 
 			string LibraryPath = PlatformPath + "/Release";
 

@@ -67,7 +67,7 @@ namespace UnrealBuildTool
 		public static readonly bool bUseVCCompilerArgs = !bCompileWithClang || false;
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
-		public static readonly bool bAllowClangLinker = bCompileWithClang && true;
+		public static readonly bool bAllowClangLinker = bCompileWithClang && false;
 
         /// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
         /// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)

@@ -4020,9 +4020,6 @@ void FNativeClassHeaderGenerator::ExportFunctionThunk(FUHTStringBuilder& RPCWrap
 
 	RPCWrappers += TEXT("\t\tP_FINISH;") LINE_TERMINATOR;
 
-	const auto DeprecationPushString = TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR;
-	const auto DeprecationPopString = TEXT("PRAGMA_POP") LINE_TERMINATOR;
-
 	auto ClassRange = ClassDefinitionRange();
 	if (ClassDefinitionRanges.Contains(Function->GetOwnerClass()))
 	{
@@ -4518,7 +4515,11 @@ bool IsExportClass(FClass* Class)
 
 FUHTStringBuilder& FNativeClassHeaderGenerator::GetGeneratedFunctionTextDevice()
 {
-	int32 MaxLinesPerCpp = 30000;
+#if ( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 often crashes with huge Engine.generated.cpp files, so we split using a smaller threshold
+	const int32 MaxLinesPerCpp = 15000;
+#else
+	const int32 MaxLinesPerCpp = 30000;
+#endif
 
 	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1]->GetLineCount() > MaxLinesPerCpp))
 	{

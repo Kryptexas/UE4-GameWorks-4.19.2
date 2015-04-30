@@ -639,6 +639,11 @@ namespace UnrealBuildTool
 				// @todo clang: Hack due to how we have our 'DummyPCH' wrappers setup when using unity builds.  This warning should not be disabled!!
 				Arguments.Append(" -Wno-msvc-include");
 
+				if (BuildConfiguration.bEnableShadowVariableWarning)
+				{
+					Arguments.Append(" -Wshadow");
+				}
+
 				// @todo clang: Kind of a shame to turn these off.  We'd like to catch unused variables, but it is tricky with how our assertion macros work.
 				Arguments.Append(" -Wno-inconsistent-missing-override");
 				Arguments.Append(" -Wno-unused-variable");
