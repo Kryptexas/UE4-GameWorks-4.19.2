@@ -47,6 +47,13 @@ public:
 	UPROPERTY()
 	bool bGridMode;
 
+	// The name of the sprite that will be created. {0} will get replaced by the sprite number.
+	UPROPERTY(Category = Naming, EditAnywhere)
+	FString NamingTemplate;
+
+	// The number to start naming with
+	UPROPERTY(Category = Naming, EditAnywhere)
+	int32 NamingStartIndex;
 
 	UPaperExtractSpritesSettings(const FObjectInitializer& ObjectInitializer);
 
@@ -62,14 +69,6 @@ class UPaperExtractSpriteGridSettings : public UObject
 
 	//////////////////////////////////////////////////////////////////////////
 	// Grid mode
-
-	// The name of the sprite that will be created. {0} will get replaced by the sprite number.
-	UPROPERTY(Category = Naming, EditAnywhere)
-	FString NamingTemplate;
-
-	// The number to start naming with
-	UPROPERTY(Category = Naming, EditAnywhere)
-	int32 NamingStartIndex;
 
 	// The width of each sprite in grid mode
 	UPROPERTY(Category = Grid, EditAnywhere, meta = (UIMin = 1, ClampMin = 1))
