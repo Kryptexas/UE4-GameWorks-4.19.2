@@ -18,6 +18,9 @@ public:
 	/** Does a full refresh on the list. */
 	void RefreshFullList();
 
+	/** Notifies the widget that the mesh assigned to a foliage type in the list has changed */
+	void NotifyFoliageTypeMeshChanged(UFoliageType* FoliageType);
+
 	/** Gets FoliageEditMode. Used by the cluster details to notify changes */
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
 

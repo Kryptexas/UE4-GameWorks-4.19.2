@@ -8,6 +8,7 @@ class ULandscapeComponent;
 class UFoliageType;
 
 #include "InstancedFoliage.h"
+#include "InstancedFoliageActor.h"
 
 //
 // Forward declarations.
@@ -441,6 +442,12 @@ private:
 	bool SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx);
 	void SnapSelectedInstancesToGround(UWorld* InWorld);
 
+	/** Callback for when an actor is spawned (to check if it's a new IFA) */
+	void HandleOnActorSpawned(AActor* Actor);
+
+	/** Callback for when the mesh assigned to a foliage type referenced by an IFA is changed */
+	void HandleOnFoliageTypeMeshChanged(UFoliageType* FoliageType);
+
 	/** Common code for adding instances to world based on settings */
 	static void AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const TArray<int32>& ExistingInstances = TArray<int32>(), const float Pressure = 1.f, LandscapeLayerCacheData* LandscapeLayerCaches = nullptr, const FFoliageUISettings* UISettings = nullptr);
 
@@ -473,5 +480,7 @@ private:
 
 	TArray<FFoliageMeshUIInfoPtr>	FoliageMeshList;
 	EColumnSortMode::Type			FoliageMeshListSortMode; 
+
+	FDelegateHandle OnActorSpawnedHandle;
 };
 

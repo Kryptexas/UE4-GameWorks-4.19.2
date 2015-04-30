@@ -26,7 +26,7 @@ public:
 	FFoliagePaletteItemModel(FFoliageMeshUIInfoPtr InTypeInfo, TSharedRef<SFoliagePalette> InFoliagePalette, FEdModeFoliage* InFoliageEditMode);
 
 	/** @return The foliage palette that contains the item */
-	const TSharedPtr<SFoliagePalette>& GetFoliagePalette() const;
+	TSharedPtr<SFoliagePalette> GetFoliagePalette() const;
 
 	FFoliageMeshUIInfoPtr GetTypeUIInfo() const;
 	UFoliageType* GetFoliageType() const;
@@ -56,6 +56,9 @@ public:
 	/** Sets whether this foliage type is active in the palette */
 	void SetTypeActiveInPalette(bool bSetActiveInPalette);
 
+	/** Gets whether this foliage type is active in the palette */
+	bool IsActive() const;
+
 private:
 	/** Handles the change in activation of the item in the palette */
 	void HandleCheckStateChanged(const ECheckBoxState NewCheckedState, TAttribute<bool> IsItemWidgetSelected);
@@ -79,7 +82,7 @@ private:
 	TSharedPtr<SWidget> ThumbnailWidget;
 
 	FFoliageMeshUIInfoPtr TypeInfo;
-	TSharedPtr<SFoliagePalette> FoliagePalette;
+	TWeakPtr<SFoliagePalette> FoliagePalette;
 	FEdModeFoliage* FoliageEditMode;
 };
 

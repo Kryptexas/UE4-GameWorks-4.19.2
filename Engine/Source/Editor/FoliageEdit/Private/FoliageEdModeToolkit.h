@@ -23,6 +23,7 @@ public:
 	virtual TSharedPtr<class SWidget> GetInlineContent() const override;
 
 	void RefreshFullList();
+	void NotifyFoliageTypeMeshChanged(class UFoliageType* FoliageType);
 
 private:
 	TSharedPtr< class SFoliageEdit > FoliageEdWidget;
