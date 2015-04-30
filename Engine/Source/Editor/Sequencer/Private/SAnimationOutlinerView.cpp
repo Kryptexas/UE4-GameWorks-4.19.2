@@ -17,6 +17,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 	OnSelectionChanged = InArgs._OnSelectionChanged;
 
 	SelectedBrush = FEditorStyle::GetBrush( "Sequencer.AnimationOutliner.SelectionBorder" );
+	SelectedBrushInactive = FEditorStyle::GetBrush("Sequencer.AnimationOutliner.SelectionBorderInactive");
 	NotSelectedBrush = FEditorStyle::GetBrush( "NoBorder" );
 	ExpandedBrush = FEditorStyle::GetBrush( "TreeArrow_Expanded" );
 	CollapsedBrush = FEditorStyle::GetBrush( "TreeArrow_Collapsed" );
@@ -77,19 +78,19 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 {
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && DisplayNode->IsSelectable() )
 	{
-		bool bSelected = DisplayNode->IsSelected();
+		FSequencer& Sequencer = DisplayNode->GetSequencer();
+		bool bSelected = Sequencer.GetSelection()->IsSelected(DisplayNode.ToSharedRef());
 
 		if( MouseEvent.IsControlDown() )
 		{
-			const bool bDeselectOtherNodes = false;
 			// Select the node if we were clicked on
-			DisplayNode->SetSelectionState( !bSelected, bDeselectOtherNodes );
+			Sequencer.GetSelection()->AddToSelection(DisplayNode.ToSharedRef());
 		}
 		else
 		{
-			const bool bDeselectOtherNodes = true;
-			// Select the node if we were clicked on
-			DisplayNode->SetSelectionState( true, bDeselectOtherNodes );
+			// Deselect the other nodes and select this node.
+			Sequencer.GetSelection()->EmptySelectedOutlinerNodes();
+			Sequencer.GetSelection()->AddToSelection(DisplayNode.ToSharedRef());
 		}
 
 		OnSelectionChanged.ExecuteIfBound( DisplayNode );
@@ -133,10 +134,25 @@ FReply SAnimationOutlinerTreeNode::OnExpanderClicked()
 }
 
 const FSlateBrush* SAnimationOutlinerTreeNode::GetNodeBorderImage() const
-{		
+{
 	// Display a highlight when the node is selected
-	const bool bIsSelected = DisplayNode->IsSelected();
-	return bIsSelected ? SelectedBrush : NotSelectedBrush;
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	const bool bIsSelected = Sequencer.GetSelection()->IsSelected(DisplayNode.ToSharedRef());
+	if (bIsSelected)
+	{
+		if (Sequencer.GetSelection()->GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
+		{
+			return SelectedBrush;
+		}
+		else
+		{
+			return SelectedBrushInactive;
+		}
+	}
+	else
+	{
+		return  NotSelectedBrush;
+	}
 }
 
 const FSlateBrush* SAnimationOutlinerTreeNode::OnGetExpanderImage() const

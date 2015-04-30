@@ -13,8 +13,6 @@ class UMovieSceneTrack;
 class FSequencerNodeTree : public TSharedFromThis<FSequencerNodeTree>
 {
 public:
-	DECLARE_MULTICAST_DELEGATE(FOnSelectionChanged)
-
 	FSequencerNodeTree( class FSequencer& InSequencer )
 		: Sequencer( InSequencer )
 	{}
@@ -33,28 +31,6 @@ public:
 	 * @return The root nodes of the tree
 	 */
 	const TArray< TSharedRef<FSequencerDisplayNode> >& GetRootNodes() const;
-
-	/**
-	 * Selects a node in the tree
-	 *
-	 * @param AffectedNode			The node to select
-	 * @param bSelect				Whether or not to select
-	 * @param bDeselectOtherNodes	Whether or not to deselect all other nodes
-	 */
-	void SetSelectionState( TSharedRef<const FSequencerDisplayNode> AffectedNode, bool bSelect, bool bDeselectOtherNodes = true );
-
-	/**
-	 * @return All currently selected nodes
-	 */
-	const TSet< TSharedRef<const FSequencerDisplayNode> >& GetSelectedNodes() const { return SelectedNodes; }
-
-	/**
-	 * Returns whether or not a node is selected
-	 *
-	 * @param Node	The node to check for selection
-	 * @return true if the node is selected
-	 */
-	bool IsNodeSelected( const TSharedRef<const FSequencerDisplayNode> Node ) const;
 
 	/** @return Whether or not there is an active filter */
 	bool HasActiveFilter() const { return !FilterString.IsEmpty(); }
@@ -95,9 +71,6 @@ public:
 	/** Updates nodes visibility for use when shot filters change at all */
 	void UpdateCachedVisibilityBasedOnShotFiltersChanged();
 
-	/** Gets the multicast delegate which is run when the node selection changes. */
-	FOnSelectionChanged* GetOnSelectionChanged();
-
 private:
 	/**
 	 * Finds or adds a type editor for the track
@@ -111,7 +84,7 @@ private:
 	 * Makes section interfaces for all sections in a track
 	 *
 	 * @param Track	The type to get sections from
-	 * @param SectionAreaNode	The section area whech section interfaces belong to
+	 * @param SectionAreaNode	The section area which section interfaces belong to
 	 */
 	void MakeSectionInterfaces( UMovieSceneTrack& Track, TSharedRef<class FTrackNode>& SectionAreaNode );
 
@@ -128,14 +101,10 @@ private:
 	TArray< TSharedRef<FSequencerDisplayNode> > RootNodes;
 	/** Mapping of object binding guids to their node (for fast lookup) */
 	TMap< FGuid, TSharedPtr<FObjectBindingNode> > ObjectBindingMap;
-	/** Set of all selected nodes */
-	TSet< TSharedRef<const FSequencerDisplayNode> > SelectedNodes;
 	/** Set of all filtered nodes */
 	TSet< TSharedRef<const FSequencerDisplayNode> > FilteredNodes;
 	/** Active filter string if any */
 	FString FilterString;
 	/** Sequencer interface */
 	FSequencer& Sequencer;
-	/** The multicast delegate which is run when the node selection changes */
-	FOnSelectionChanged OnSelectionChanged;
 };

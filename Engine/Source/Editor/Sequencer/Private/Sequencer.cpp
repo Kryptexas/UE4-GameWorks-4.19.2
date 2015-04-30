@@ -240,8 +240,7 @@ void FSequencer::ResetToNewRootMovieScene( UMovieScene& NewRoot, TSharedRef<ISeq
 
 	//@todo Sequencer - Encapsulate this better
 	MovieSceneStack.Empty();
-	SelectedSections.Empty();
-	SelectedKeys.Empty();
+	Selection.Empty();
 	FilteringShots.Empty();
 	UnfilterableSections.Empty();
 	UnfilterableObjects.Empty();
@@ -378,7 +377,7 @@ void FSequencer::DeleteSelectedKeys()
 {
 	FScopedTransaction DeleteKeysTransaction( NSLOCTEXT("Sequencer", "DeleteSelectedKeys_Transaction", "Delete Selected Keys") );
 
-	TArray<FSelectedKey> SelectedKeysArray = SelectedKeys.Array();
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys()->Array();
 	for ( const FSelectedKey& Key : SelectedKeysArray )
 	{
 		if (Key.IsValid())
@@ -676,8 +675,8 @@ void FSequencer::ResetPerMovieSceneData()
 	FilterToShotSections( TArray< TWeakObjectPtr<UMovieSceneSection> >(), false );
 
 	//@todo Sequencer - We may want to preserve selections when moving between movie scenes
-	SelectedSections.Empty();
-	SelectedKeys.Empty();
+	Selection.EmptySelectedKeys();
+	Selection.EmptySelectedSections();
 
 	// @todo run through all tracks for new movie scene changes
 	//  needed for audio track decompression
@@ -1148,38 +1147,22 @@ void FSequencer::PostUndo(bool bSuccess)
 	NotifyMovieSceneDataChanged();
 }
 
-TArray< TWeakObjectPtr<UMovieSceneSection> > FSequencer::GetSelectedSections() const
-{
-	return SelectedSections;
-}
 
-void FSequencer::SelectSection(UMovieSceneSection* Section)
+void FSequencer::OnSectionSelectionChanged()
 {
-	if (!Section->IsA<UMovieSceneShotSection>())
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
 	{
 		// if we select something, consider it unfilterable until we change shot filters
-		UnfilterableSections.AddUnique(TWeakObjectPtr<UMovieSceneSection>(Section));
+		UnfilterableSections.AddUnique(TWeakObjectPtr<UMovieSceneSection>(SelectedSection));
 	}
-
-	SelectedSections.Add(TWeakObjectPtr<UMovieSceneSection>(Section));
-}
-
-bool FSequencer::IsSectionSelected(UMovieSceneSection* Section) const
-{
-	return SelectedSections.Contains(TWeakObjectPtr<UMovieSceneSection>(Section));
-}
-
-void FSequencer::ClearSectionSelection()
-{
-	SelectedSections.Empty();
 }
 
 void FSequencer::ZoomToSelectedSections()
 {
 	TArray< TRange<float> > Bounds;
-	for (int32 i = 0; i < SelectedSections.Num(); ++i)
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
 	{
-		Bounds.Add(SelectedSections[i]->GetRange());
+		Bounds.Add(SelectedSection->GetRange());
 	}
 	TRange<float> BoundsHull = TRange<float>::Hull(Bounds);
 
@@ -1192,27 +1175,6 @@ void FSequencer::ZoomToSelectedSections()
 	{
 		OnViewRangeChanged(BoundsHull, true);
 	}
-}
-
-
-void FSequencer::SelectKey( const FSelectedKey& Key )
-{
-	SelectedKeys.Add( Key );
-}
-
-void FSequencer::ClearKeySelection()
-{
-	SelectedKeys.Empty();
-}
-
-bool FSequencer::IsKeySelected( const FSelectedKey& Key ) const
-{
-	return SelectedKeys.Contains( Key );
-}
-
-TSet<FSelectedKey>& FSequencer::GetSelectedKeys()
-{
-	return SelectedKeys; 
 }
 
 void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds )
@@ -1277,11 +1239,11 @@ void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieS
 void FSequencer::FilterToSelectedShotSections(bool bZoomToShotBounds)
 {
 	TArray< TWeakObjectPtr<UMovieSceneSection> > SelectedShotSections;
-	for (int32 i = 0; i < SelectedSections.Num(); ++i)
+	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
 	{
-		if (SelectedSections[i]->IsA<UMovieSceneShotSection>())
+		if (SelectedSection->IsA<UMovieSceneShotSection>())
 		{
-			SelectedShotSections.Add(SelectedSections[i]);
+			SelectedShotSections.Add(SelectedSection);
 		}
 	}
 	FilterToShotSections(SelectedShotSections, bZoomToShotBounds);
@@ -1300,6 +1262,11 @@ void FSequencer::KeyProperty(const TArray<UObject*>& ObjectsToKey, const class I
 TSharedRef<ISequencerObjectBindingManager> FSequencer::GetObjectBindingManager() const
 {
 	return ObjectBindingManager.ToSharedRef();
+}
+
+FSequencerSelection* FSequencer::GetSelection()
+{
+	return &Selection;
 }
 
 TArray< TWeakObjectPtr<UMovieSceneSection> > FSequencer::GetFilteringShotSections() const
@@ -1350,14 +1317,18 @@ bool FSequencer::IsSectionVisible(UMovieSceneSection* Section) const
 
 void FSequencer::DeleteSelectedItems()
 {
-	DeleteSelectedKeys();
-
-	for (int32 i = 0; i < SelectedSections.Num(); ++i)
+	if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection)
 	{
-		DeleteSection(SelectedSections[i].Get());
+		DeleteSelectedKeys();
+		for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : *Selection.GetSelectedSections())
+		{
+			DeleteSection(SelectedSection.Get());
+		}
 	}
-
-	SequencerWidget->DeleteSelectedNodes();
+	else if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
+	{
+		SequencerWidget->DeleteSelectedNodes();
+	}
 }
 
 void FSequencer::SetKey()

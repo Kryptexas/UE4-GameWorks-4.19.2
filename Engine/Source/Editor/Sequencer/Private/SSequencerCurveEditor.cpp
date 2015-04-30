@@ -9,6 +9,7 @@ void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSeq
 {
 	ViewRange = InArgs._ViewRange;
 	Sequencer = InSequencer;
+	NodeTreeSelectionChangedHandle = Sequencer.Pin()->GetSelection()->GetOnOutlinerNodeSelectionChanged()->AddSP(this, &SSequencerCurveEditor::NodeTreeSelectionChanged);
 	GetMutableDefault<USequencerSettings>()->GetOnCurveVisibilityChanged()->AddSP( this, &SSequencerCurveEditor::SequencerCurveVisibilityChanged );
 
 	ChildSlot
@@ -46,14 +47,7 @@ TSharedPtr<ParentNodeType> GetParentOfType( TSharedRef<FSequencerDisplayNode> In
 
 void SSequencerCurveEditor::SetSequencerNodeTree( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree )
 {
-	if ( SequencerNodeTree.IsValid() )
-	{
-		SequencerNodeTree->GetOnSelectionChanged()->Remove( NodeTreeSelectionChangedHandle );
-	}
-
 	SequencerNodeTree = InSequencerNodeTree;
-	NodeTreeSelectionChangedHandle = SequencerNodeTree->GetOnSelectionChanged()->AddSP( this, &SSequencerCurveEditor::NodeTreeSelectionChanged );
-
 	UpdateCurveOwner();
 }
 
@@ -90,9 +84,12 @@ bool SSequencerCurveEditor::GetShowCurveEditorCurveToolTips() const
 
 void SSequencerCurveEditor::NodeTreeSelectionChanged()
 {
-	if ( GetDefault<USequencerSettings>()->GetCurveVisibility() == ESequencerCurveVisibility::SelectedCurves )
+	if (SequencerNodeTree.IsValid())
 	{
-		UpdateCurveOwner();
+		if (GetDefault<USequencerSettings>()->GetCurveVisibility() == ESequencerCurveVisibility::SelectedCurves)
+		{
+			UpdateCurveOwner();
+		}
 	}
 }
 
@@ -108,9 +105,9 @@ TSharedPtr<FUICommandList> SSequencerCurveEditor::GetCommands()
 
 SSequencerCurveEditor::~SSequencerCurveEditor()
 {
-	if ( SequencerNodeTree.IsValid() )
+	if ( Sequencer.IsValid() )
 	{
-		SequencerNodeTree->GetOnSelectionChanged()->Remove( NodeTreeSelectionChangedHandle );
+		Sequencer.Pin()->GetSelection()->GetOnOutlinerNodeSelectionChanged()->Remove( NodeTreeSelectionChangedHandle );
 	}
 }
 

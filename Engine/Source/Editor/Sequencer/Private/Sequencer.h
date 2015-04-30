@@ -91,6 +91,7 @@ public:
 	virtual bool CanKeyProperty(const UClass& ObjectClass, const class IPropertyHandle& PropertyHandle) const override;
 	virtual void KeyProperty(const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle) override;
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const override;
+	virtual FSequencerSelection* GetSelection() override;
 
 	bool IsPerspectiveViewportPosessionEnabled() const { return bPerspectiveViewportPossessionEnabled; }
 
@@ -163,56 +164,9 @@ public:
 	virtual void CopyActorProperties( AActor* PuppetActor, AActor* TargetActor ) const;
 
 	/**
-	 * Gets all selected sections in the sequencer
-	 */
-	virtual TArray< TWeakObjectPtr<UMovieSceneSection> > GetSelectedSections() const;
-
-	/**
-	 * Selects a section in the sequencer
-	 */
-	void SelectSection(UMovieSceneSection* Section);
-
-	/**
-	 * Returns whether or not a section is selected
-	 *
-	 * @param Section The section to check
-	 * @return true if the section is selected
-	 */
-	bool IsSectionSelected( UMovieSceneSection* Section) const;
-
-	/**
-	 * Clears all selected sections
-	 */
-	void ClearSectionSelection();
-
-	/**
 	 * Zooms to the edges of all currently selected sections
 	 */
 	void ZoomToSelectedSections();
-
-	/**
-	 * Selects a key
-	 * 
-	 * @param Key	Representation of the key to select
-	 */
-	void SelectKey( const FSelectedKey& Key );
-
-	/**
-	 * Clears the entire set of selected keys
-	 */
-	void ClearKeySelection();
-
-	/**
-	 * Returns whether or not a key is selected
-	 * 
-	 * @param Key	Representation of the key to check for selection
-	 */
-	bool IsKeySelected( const FSelectedKey& Key ) const;
-
-	/**
-	 * @return The entire set of selected keys
-	 */
-	TSet<FSelectedKey>& GetSelectedKeys();
 
 	/**
 	 * Gets all shots that are filtering currently
@@ -371,6 +325,8 @@ protected:
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient
 
+	void OnSectionSelectionChanged();
+
 private:
 	TMap< TWeakObjectPtr<UMovieSceneSection>, TSharedRef<FMovieSceneInstance> > MovieSceneSectionToInstanceMap;
 
@@ -411,12 +367,6 @@ private:
 	/** A list of object guids that will be visible, regardless of shot filters */
 	TArray<FGuid> UnfilterableObjects;
 
-	/** Selected non-shot sections */
-	TArray< TWeakObjectPtr<class UMovieSceneSection> > SelectedSections;
-
-	/** Set of selected keys */
-	TSet< FSelectedKey > SelectedKeys;
-
 	/** Stack of movie scenes.  The first element is always the root movie scene.  The last element is the focused movie scene */
 	TArray< TSharedRef<FMovieSceneInstance> > MovieSceneStack;
 
@@ -454,4 +404,6 @@ private:
 	    do this simply to avoid refreshing the UI more than once per frame. (e.g. during live recording where
 		the MovieScene data can change many times per frame.) */
 	bool bNeedTreeRefresh;
+
+	FSequencerSelection Selection;
 };

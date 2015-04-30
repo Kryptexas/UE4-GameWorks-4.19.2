@@ -15,7 +15,7 @@ void FSequencerNodeTree::Empty()
 {
 	RootNodes.Empty();
 	ObjectBindingMap.Empty();
-	SelectedNodes.Empty();
+	Sequencer.GetSelection()->EmptySelectedOutlinerNodes();
 	EditorMap.Empty();
 	FilteredNodes.Empty();
 }
@@ -180,31 +180,6 @@ bool FSequencerNodeTree::GetSavedExpansionState( const FSequencerDisplayNode& No
 	return !bCollapsed;
 }
 
-void FSequencerNodeTree::SetSelectionState( TSharedRef<const FSequencerDisplayNode> AffectedNode, bool bSelect, bool bDeselectOtherNodes )
-{
-	if( bSelect && AffectedNode->IsSelectable() )
-	{
-		if( bDeselectOtherNodes )
-		{
-			// empty current selection set unless multiple selecting
-			SelectedNodes.Empty();
-		}
-
-		SelectedNodes.Add( AffectedNode );
-	}
-	else
-	{
-		// Not selecting so remove the node from the selection set
-		SelectedNodes.Remove( AffectedNode );
-	}
-	OnSelectionChanged.Broadcast();
-}
-
-bool FSequencerNodeTree::IsNodeSelected( TSharedRef<const FSequencerDisplayNode> Node ) const
-{
-	return SelectedNodes.Contains( Node );
-}
-
 bool FSequencerNodeTree::IsNodeFiltered( const TSharedRef<const FSequencerDisplayNode> Node ) const
 {
 	return FilteredNodes.Contains( Node );
@@ -295,9 +270,4 @@ void FSequencerNodeTree::UpdateCachedVisibilityBasedOnShotFiltersChanged()
 	{
 		RootNodes[i]->UpdateCachedShotFilteredVisibility();
 	}
-}
-
-FSequencerNodeTree::FOnSelectionChanged* FSequencerNodeTree::GetOnSelectionChanged()
-{
-	return &OnSelectionChanged;
 }

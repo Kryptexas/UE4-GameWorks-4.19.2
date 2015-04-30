@@ -385,15 +385,14 @@ bool FMoveSection::IsSectionAtNewLocationValid(UMovieSceneSection* InSection, in
 
 void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode)
 {
-	check( SelectedKeys.Num() > 0 )
+	check( SelectedKeys->Num() > 0 )
 
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
 	GEditor->BeginTransaction( NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
 
 	TSet<UMovieSceneSection*> ModifiedSections;
-	for( auto It = SelectedKeys.CreateIterator(); It; ++It )
+	for( FSelectedKey SelectedKey : *SelectedKeys )
 	{
-		FSelectedKey& SelectedKey = *It;
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
 
 		// Only modify sections once
@@ -438,9 +437,8 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 				GetKeySnapTimes(OutSnapTimes, SequencerNode);
 
 				TArray<float> InitialTimes;
-				for (TSet<FSelectedKey>::TConstIterator It(SelectedKeys); It; ++It)
+				for ( FSelectedKey SelectedKey : *SelectedKeys )
 				{
-					const FSelectedKey& SelectedKey = *It;
 					InitialTimes.Add(SelectedKey.KeyArea->GetKeyTime(SelectedKey.KeyHandle.GetValue()) + DistanceMoved);
 				}
 				float OutInitialTime = 0.f;
@@ -458,10 +456,8 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 			}
 		}
 
-		for( auto It = SelectedKeys.CreateIterator(); It; ++It )
+		for( FSelectedKey SelectedKey : *SelectedKeys )
 		{
-			FSelectedKey& SelectedKey = *It;
-
 			UMovieSceneSection* Section = SelectedKey.Section;
 
 			TSharedPtr<IKeyArea>& KeyArea = SelectedKey.KeyArea;
@@ -505,9 +501,8 @@ void FMoveKeys::GetKeySnapTimes(TArray<float>& OutSnapTimes, TSharedPtr<FTrackNo
 			{
 				FKeyHandle KeyHandle = KeyHandles[KeyIndex];
 				bool bKeyIsSnappable = true;
-				for (TSet<FSelectedKey>::TConstIterator It(SelectedKeys); It; ++It)
+				for ( FSelectedKey SelectedKey : *SelectedKeys )
 				{
-					const FSelectedKey& SelectedKey = *It;
 					if (SelectedKey.KeyArea == KeyArea && SelectedKey.KeyHandle.GetValue() == KeyHandle)
 					{
 						bKeyIsSnappable = false;
