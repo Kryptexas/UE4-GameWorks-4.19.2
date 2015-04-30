@@ -3,10 +3,10 @@
 #ifndef UNREAL_STANDALONERENDERER_PRIVATEPCH_H
 #define UNREAL_STANDALONERENDERER_PRIVATEPCH_H
 
-DECLARE_LOG_CATEGORY_EXTERN(LogStandaloneRenderer, Log, All);
-
 #include "Core.h"
 #include "SlateCore.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(LogStandaloneRenderer, Log, All);
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
