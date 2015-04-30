@@ -8,6 +8,7 @@
 #include "PackageTools.h"
 #include "SpriterImporterFactory.h"
 #include "PaperSpriterImportData.h"
+#include "PaperImporterSettings.h"
 
 #include "PaperSprite.h"
 
@@ -645,11 +646,7 @@ UTexture2D* USpriterImporterFactory::ImportTexture(const FString& SourceFilename
 	if (ImportedTexture != nullptr)
 	{
 		// Change the compression settings
-		ImportedTexture->Modify();
-		ImportedTexture->LODGroup = TEXTUREGROUP_UI;
-		ImportedTexture->CompressionSettings = TC_EditorIcon;
-		//@TODO: Determine if/when we should apply this ImportedTexture->Filter = TF_Nearest;
-		ImportedTexture->PostEditChange();
+		GetDefault<UPaperImporterSettings>()->ApplyTextureSettings(ImportedTexture);
 	}
 
 	return ImportedTexture;
