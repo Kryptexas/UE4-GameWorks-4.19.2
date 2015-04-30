@@ -53,7 +53,6 @@ FBox FSingleTileEditorViewportClient::GetDesiredFocusBounds() const
 	return ComponentToFocusOn->Bounds.GetBox();
 }
 
-
 void FSingleTileEditorViewportClient::Tick(float DeltaSeconds)
 {
 	FPaperEditorViewportClient::Tick(DeltaSeconds);
@@ -166,6 +165,7 @@ void FSingleTileEditorViewportClient::InvalidateViewportAndHitProxies()
 
 void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
 {
+	const int32 OldTileIndex = TileBeingEditedIndex;
 	const bool bNewIndexValid = (InTileIndex >= 0) && (InTileIndex < TileSet->GetTileCount());
 	TileBeingEditedIndex = bNewIndexValid ? InTileIndex : INDEX_NONE;
 
@@ -212,6 +212,12 @@ void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
 	DesiredBounds.Min = -HalfTileSize;
 	DesiredBounds.Max = HalfTileSize;
 	GeometryEditMode->SetNewGeometryPreferredBounds(DesiredBounds);
+
+	// Zoom to fit when we start editing a tile and weren't before, but leave it alone if we just changed tiles, in case they zoomed in or out further
+	if ((TileBeingEditedIndex != INDEX_NONE) && (OldTileIndex == INDEX_NONE))
+	{
+		RequestFocusOnSelection(/*bInstant=*/ true);
+	}
 
 	// Redraw the viewport
 	Invalidate();
