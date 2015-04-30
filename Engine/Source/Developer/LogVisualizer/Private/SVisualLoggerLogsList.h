@@ -19,6 +19,7 @@ public:
 	void OnFiltersChanged();
 	void OnFiltersSearchChanged(const FText& Filter);
 	FText GetFilterText() const;
+	const FVisualLogDevice::FVisualLogEntryItem& GetCurrentLogEntry() { return CurrentLogEntry; }
 
 protected:
 	TSharedPtr<SListView<TSharedPtr<struct FLogEntryItem> > > LogsLinesWidget;

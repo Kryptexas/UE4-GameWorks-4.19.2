@@ -68,6 +68,7 @@ public:
 	void OnFiltersChanged();
 	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);
 	void OnFiltersSearchChanged(const FText& Filter);
+	void OnLogLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName);
 
 	bool HandleStartRecordingCommandCanExecute() const;
 	void HandleStartRecordingCommandExecute();

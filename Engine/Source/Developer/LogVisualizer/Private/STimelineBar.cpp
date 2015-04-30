@@ -485,6 +485,7 @@ int32 STimelineBar::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeo
 		if (BestItemIndex != CurrentItemIndex)
 		{
 			FLogVisualizer::Get().GetVisualLoggerEvents().OnItemSelectionChanged.ExecuteIfBound(BestItemEntry);
+			CurrentItemIndex = BestItemIndex;
 		}
 
 		float CurrentTime = BestItemEntry.Entry.TimeStamp;
