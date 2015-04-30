@@ -5510,7 +5510,7 @@ UTextureCube* UReimportTextureFactory::CreateTextureCube( UObject* InParent, FNa
 bool UReimportTextureFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
 {	
 	UTexture* pTex = Cast<UTexture>(Obj);
-	if(pTex)
+	if( pTex && !pTex->IsA<UTextureRenderTarget>() )
 	{
 		OutFilenames.Add(FReimportManager::ResolveImportFilename(pTex->SourceFilePath, pTex));
 		return true;
