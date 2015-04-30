@@ -6,6 +6,7 @@
 #include "PaperSpriteFactory.h"
 #include "PaperTileSetFactory.h"
 #include "PaperImporterSettings.h"
+#include "PaperStyle.h"
 
 #include "ExtractSprites/SPaperExtractSpritesDialog.h"
 
@@ -209,10 +210,12 @@ public:
 		FUIAction Action_CreateSpritesFromTextures(
 			FExecuteAction::CreateStatic(&FPaperContentBrowserExtensions_Impl::ExecuteSelectedContentFunctor, StaticCastSharedPtr<FContentBrowserSelectedAssetExtensionBase>(SpriteCreatorFunctor)));
 		
+		const FName PaperStyleSetName = FPaperStyle::Get()->GetStyleSetName();
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_CreateSprite", "Create Sprite"),
 			LOCTEXT("CB_Extension_Texture_CreateSprite_Tooltip", "Create sprites from selected textures"),
-			FSlateIcon(),
+			FSlateIcon(PaperStyleSetName, "AssetActions.CreateSprite"),
 			Action_CreateSpritesFromTextures,
 			NAME_None,
 			EUserInterfaceActionType::Button);
@@ -228,7 +231,7 @@ public:
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_ExtractSprites", "Extract Sprites"),
 			LOCTEXT("CB_Extension_Texture_ExtractSprites_Tooltip", "Extract sprites from selected textures"),
-			FSlateIcon(),
+			FSlateIcon(PaperStyleSetName, "AssetActions.ExtractSprites"),
 			Action_ExtractSpritesFromTextures,
 			NAME_None,
 			EUserInterfaceActionType::Button);
@@ -243,7 +246,7 @@ public:
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites", "Configure For Retro Sprites"),
 			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites_Tooltip", "Sets compression settings and sampling modes to good defaults for retro sprites (nearest filtering, uncompressed, etc...)"),
-			FSlateIcon(),
+			FSlateIcon(PaperStyleSetName, "AssetActions.ConfigureForRetroSprites"),
 			Action_ConfigureTexturesForSprites,
 			NAME_None,
 			EUserInterfaceActionType::Button);
@@ -258,7 +261,7 @@ public:
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_CreateTileSet", "Create Tile Set"),
 			LOCTEXT("CB_Extension_Texture_CreateTileSet_Tooltip", "Create tile set from selected texture"),
-			FSlateIcon(),
+			FSlateIcon(PaperStyleSetName, "AssetActions.CreateTileSet"),
 			Action_CreateTileSetFromTextures,
 			NAME_None,
 			EUserInterfaceActionType::Button);

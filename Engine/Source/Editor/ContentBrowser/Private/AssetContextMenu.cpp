@@ -162,7 +162,7 @@ bool FAssetContextMenu::AddImportedAssetMenuOptions(FMenuBuilder& MenuBuilder)
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("Reimport", "Reimport"),
 				LOCTEXT("ReimportTooltip", "Reimport the selected asset(s) from the source file on disk."),
-				FSlateIcon(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
 				FUIAction(
 					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteReimport),
 					FCanExecuteAction()
@@ -208,7 +208,7 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("EditAsset", "Edit..."),
 			LOCTEXT("EditAssetTooltip", "Opens the selected asset(s) for edit."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Edit"),
 			FUIAction( FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteEditAsset) )
 			);
 	
@@ -216,21 +216,21 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None,
 			LOCTEXT("Rename", "Rename"),
 			LOCTEXT("RenameTooltip", "Rename the selected asset."),
-			FSlateIcon()
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename")
 			);
 
 		// Duplicate
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate, NAME_None,
 			LOCTEXT("Duplicate", "Duplicate"),
 			LOCTEXT("DuplicateTooltip", "Create a copy of the selected asset(s)."),
-			FSlateIcon()
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Duplicate")
 			);
 
 		// Save
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SaveAsset", "Save"),
 			LOCTEXT("SaveAssetTooltip", "Saves the asset to file."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSaveAsset ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSaveAsset )
@@ -241,19 +241,8 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete, NAME_None,
 			LOCTEXT("Delete", "Delete"),
 			LOCTEXT("DeleteTooltip", "Delete the selected assets."),
-			FSlateIcon()
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Delete")
 			);
-
-			// Open Containing Folder
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("SyncToAssetTree", "Show in Sources Panel"),
-				LOCTEXT("SyncToAssetTreeTooltip", "Selects the folder that contains this asset in the Content Browser Sources Panel."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteSyncToAssetTree),
-					FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteSyncToAssetTree)
-					)
-				);
 
 		// Asset Actions sub-menu
 		MenuBuilder.AddSubMenu(
@@ -267,7 +256,7 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 			NAME_None,
 			EUserInterfaceActionType::Button,
 			false, 
-			FSlateIcon()
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
 			);
 	}
 	MenuBuilder.EndSection();
@@ -325,7 +314,7 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CaptureThumbnail", "Capture Thumbnail"),
 			LOCTEXT("CaptureThumbnailTooltip", "Captures a thumbnail from the active viewport."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.CreateThumbnail"),
 			FUIAction(
 			FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteCaptureThumbnail),
 			FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteCaptureThumbnail)
@@ -339,7 +328,7 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ClearCustomThumbnail", "Clear Thumbnail"),
 			LOCTEXT("ClearCustomThumbnailTooltip", "Clears all custom thumbnails for selected assets."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.DeleteThumbnail"),
 			FUIAction( FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteClearThumbnail) ) 
 			);
 	}
@@ -671,9 +660,9 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 	else
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("SCCConnectToSourceControl", "Connect To Source Control"),
+			LOCTEXT("SCCConnectToSourceControl", "Connect To Source Control..."),
 			LOCTEXT("SCCConnectToSourceControlTooltip", "Connect to source control to allow source control operations to be performed on content and levels."),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.StatusIcon.Unknown"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Connect"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteEnableSourceControl ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSourceControlActions )
@@ -687,7 +676,7 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("DiffSelected", "Diff Selected"),
 			LOCTEXT("DiffSelectedTooltip", "Diff the two assets that you have selected."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Diff"),
 			FUIAction(
 				FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteDiffSelected)
 			)
@@ -717,7 +706,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCSync", "Sync"),
 			LOCTEXT("SCCSyncTooltip", "Updates the item to the latest version in source control."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Syc"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCSync ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCSync )
@@ -730,7 +719,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCCheckOut", "Check Out"),
 			LOCTEXT("SCCCheckOutTooltip", "Checks out the selected asset from source control."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.CheckOut"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCCheckOut ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCCheckOut )
@@ -743,7 +732,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCOpenForAdd", "Mark For Add"),
 			LOCTEXT("SCCOpenForAddTooltip", "Adds the selected asset to source control."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Add"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCOpenForAdd ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCOpenForAdd )
@@ -756,7 +745,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCCheckIn", "Check In"),
 			LOCTEXT("SCCCheckInTooltip", "Checks in the selected asset to source control."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Submit"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCCheckIn ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCCheckIn )
@@ -767,7 +756,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("SCCRefresh", "Refresh"),
 		LOCTEXT("SCCRefreshTooltip", "Updates the source control status of the asset."),
-		FSlateIcon(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Refresh"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCRefresh ),
 			FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCRefresh )
@@ -779,7 +768,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCHistory", "History"),
 			LOCTEXT("SCCHistoryTooltip", "Displays the source control revision history of the selected asset."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.History"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCHistory ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCHistory )
@@ -789,7 +778,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCDiffAgainstDepot", "Diff Against Depot"),
 			LOCTEXT("SCCDiffAgainstDepotTooltip", "Look at differences between your version of the asset and that in source control."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Diff"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCDiffAgainstDepot ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCDiffAgainstDepot )
@@ -802,7 +791,7 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("SCCRevert", "Revert"),
 			LOCTEXT("SCCRevertTooltip", "Reverts the asset to the state it was before it was checked out."),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Revert"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteSCCRevert ),
 				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSCCRevert )

@@ -12,7 +12,7 @@ void FAssetTypeActions_MaterialFunction::GetActions( const TArray<UObject*>& InO
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("MaterialFunction_FindMaterials", "Find Materials Using This"),
 		LOCTEXT("MaterialFunction_FindMaterialsTooltip", "Finds the materials that reference this material function in the content browser."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.FindResults"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.GenericFind"),
 		FUIAction(
 			FExecuteAction::CreateSP( this, &FAssetTypeActions_MaterialFunction::ExecuteFindMaterials, Materials ),
 			FCanExecuteAction()

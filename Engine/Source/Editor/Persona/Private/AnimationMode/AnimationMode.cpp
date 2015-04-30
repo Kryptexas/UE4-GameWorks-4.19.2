@@ -110,7 +110,7 @@ FAnimAssetPropertiesSummoner::FAnimAssetPropertiesSummoner(TSharedPtr<class FAss
 	: FWorkflowTabFactory(FPersonaTabs::AnimAssetPropertiesID, InHostingApp)
 {
 	TabLabel = LOCTEXT("AnimAssetProperties_TabTitle", "Anim Asset Details");
-	//TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.ContentBrowser");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.AnimAssetDetails");
 
 	bIsSingleton = true;
 
