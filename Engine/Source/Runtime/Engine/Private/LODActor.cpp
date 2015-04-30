@@ -24,6 +24,7 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	StaticMeshComponent->bGenerateOverlapEvents = false;
 	StaticMeshComponent->bCastDynamicShadow = false;
 	StaticMeshComponent->bCastStaticShadow = false;
+	StaticMeshComponent->CastShadow = false;
 
 	RootComponent = StaticMeshComponent;
 }
@@ -46,9 +47,33 @@ void ALODActor::PostRegisterAllComponents()
 }
 #if WITH_EDITOR
 
-void ALODActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	FName PropertyName = PropertyThatChanged != NULL ? PropertyThatChanged->GetFName() : NAME_None;
+	
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(ALODActor, LODDrawDistance))
+	{
+		for (auto& Actor: SubActors)
+		{
+			if (Actor)
+			{
+				TArray<UPrimitiveComponent*> InnerComponents;
+				Actor->GetComponents<UPrimitiveComponent>(InnerComponents);
+
+				for(auto& Component: InnerComponents)
+				{
+					UPrimitiveComponent* ParentComp = Component->GetLODParentPrimitive();
+					if (ParentComp)
+					{
+						ParentComp->MinDrawDistance = LODDrawDistance;
+						ParentComp->MarkRenderStateDirty();
+					}
+				}
+			}
+		}
+	}
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const

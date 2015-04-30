@@ -434,6 +434,7 @@ void FHierarchicalLODBuilder::InitializeClusters(class ULevel* InLevel, const in
 		else // at this point we only care for LODActors
 		{
 			Clusters.Empty();
+
 			// we filter the LOD index first
 			TArray<AActor*> Actors;
 			for(int32 ActorId=0; ActorId<InLevel->Actors.Num(); ++ActorId)
@@ -467,6 +468,11 @@ void FHierarchicalLODBuilder::InitializeClusters(class ULevel* InLevel, const in
 					Clusters.Add(NewClusterCandidate);
 				}
 			}
+
+			// shrink after adding actors
+			// LOD 0 has lots of actors, and subsequence LODs tend to have a lot less actors
+			// so this should save a lot more. 
+			Clusters.Shrink();
 		}
 	}
 }
@@ -626,8 +632,6 @@ void FLODCluster::BuildActor(class ULevel* InLevel, const int32 LODIdx)
 		////////////////////////////////////////////////////////////////////////////////////
 		// create asset using Actors
 		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx];
-		const FMeshProxySettings& ProxySetting = LODSetup.ProxySetting;
-		const FMeshMergingSettings& MergeSetting = LODSetup.MergeSetting;
 
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = InLevel->GetOutermost(); // this asset is going to save with map, this means, I'll have to delete with it
@@ -660,11 +664,11 @@ void FLODCluster::BuildActor(class ULevel* InLevel, const int32 LODIdx)
 				const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
 				if (MeshUtilities.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
 				{
-					MeshUtilities.CreateProxyMesh(Actors, ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
+					MeshUtilities.CreateProxyMesh(Actors, LODSetup.ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
 				}
 				else
 				{
-					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsOuter, PackageName, LODIdx+1, OutAssets, OutProxyLocation, true );
+					MeshUtilities.MergeActors(Actors, LODSetup.MergeSetting, AssetsOuter, PackageName, LODIdx+1, OutAssets, OutProxyLocation, true );
 				}
 
 				// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
@@ -698,6 +702,7 @@ void FLODCluster::BuildActor(class ULevel* InLevel, const int32 LODIdx)
 					NewActor->SubActors = Actors;
 					NewActor->LODLevel = LODIdx+1; 
 					float DrawDistance = LODSetup.DrawDistance;
+					NewActor->LODDrawDistance = DrawDistance;
 
 					NewActor->GetStaticMeshComponent()->StaticMesh = MainMesh;
 

@@ -25,7 +25,7 @@ public:
 	TArray<class AActor*> SubActors;
 
 	/** what distance do you want this to show up instead of SubActors */
-	UPROPERTY(Category=LODActor, VisibleAnywhere)
+	UPROPERTY(Category=LODActor, EditAnywhere, meta=(ClampMin = "0", UIMin = "0"))
 	float LODDrawDistance;
 
 	/** what distance do you want this to show up instead of SubActors */
@@ -48,7 +48,7 @@ protected:
 	virtual FString GetDetailedInfoInternal() const override;
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;	
 #if WITH_EDITOR
-	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR	
 	virtual void PostRegisterAllComponents() override;
 	// End UObject interface.
