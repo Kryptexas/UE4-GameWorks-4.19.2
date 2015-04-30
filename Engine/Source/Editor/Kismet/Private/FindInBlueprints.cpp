@@ -1129,7 +1129,7 @@ void SFindInBlueprints::ConditionallyAddCacheBar()
 									.OnClicked( this, &SFindInBlueprints::OnCacheAllBlueprints )
 									.Visibility( this, &SFindInBlueprints::GetCacheAllButtonVisibility )
 									.ToolTip(IDocumentation::Get()->CreateToolTip(
-									LOCTEXT("IndexAlLBlueprints_Tooltip", "Loads all non-indexed Blueprints and saves them with their search data. This can be a very slow process, feel free to cancel it whenever and benefit from the Blueprints it indexes."),
+									LOCTEXT("IndexAlLBlueprints_Tooltip", "Loads all non-indexed Blueprints and saves them with their search data. This can be a very slow process and the editor may become unresponsive."),
 									NULL,
 									TEXT("Shared/Editors/BlueprintEditor"),
 									TEXT("FindInBlueprint_IndexAll")))
@@ -1197,10 +1197,23 @@ void SFindInBlueprints::ConditionallyAddCacheBar()
 							.AutoHeight()
 							.Padding(8.0f, 0.0f, 0.0f, 2.0f)
 							[
-								SNew(STextBlock)
-								.Text(this, &SFindInBlueprints::GetCurrentCacheBlueprintName)
-								.Visibility( this, &SFindInBlueprints::GetCachingBlueprintNameVisiblity )
-								.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
+								SNew(SVerticalBox)
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									SNew(STextBlock)
+									.Text(this, &SFindInBlueprints::GetCurrentCacheBlueprintName)
+									.Visibility( this, &SFindInBlueprints::GetCachingBlueprintNameVisiblity )
+									.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
+								]
+
+								+SVerticalBox::Slot()
+								.AutoHeight()
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("FiBUnresponsiveEditorWarning", "NOTE: the editor may become unresponsive for some time!"))
+									.TextStyle(&FCoreStyle::Get().GetWidgetStyle<FTextBlockStyle>( "SmallText" ))
+								]
 							]
 					]
 				];
