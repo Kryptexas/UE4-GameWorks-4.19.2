@@ -149,7 +149,7 @@ public class GameActivity extends NativeActivity
 	/** Flag to ensure we have finished startup before allowing nativeOnActivityResult to get called */
 	private boolean InitCompletedOK = false;
 	
-	private boolean ShouldHideUI = true;
+	private boolean ShouldHideUI = false;
 	
 	/** Access singleton activity for game. **/
 	public static GameActivity Get()
@@ -352,9 +352,7 @@ public class GameActivity extends NativeActivity
 				VerifyOBBOnStartUp = false;
 				Log.debug( "Did not find bVerifyOBBOnStartUp, using default.");
 			}
-			
-			
-			
+				
 			if(bundle.containsKey("com.epicgames.ue4.GameActivity.bShouldHideUI"))
 			{
 				ShouldHideUI = bundle.getBoolean("com.epicgames.ue4.GameActivity.bShouldHideUI");
@@ -557,7 +555,7 @@ public class GameActivity extends NativeActivity
 		else
 		{
 			// Start the check activity here
-			Log.debug("==============> Starting activity to check files and download if required");
+			Log.debug("==============> Starting activity to check files and download if required");			
 			Intent intent = new Intent(this, DownloadShim.GetDownloaderType());
 			startActivityForResult(intent, DOWNLOAD_ACTIVITY_ID);
 		}
