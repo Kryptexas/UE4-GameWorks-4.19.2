@@ -2981,14 +2981,28 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 		static void Register(UClass* NewClass);
 		static void Unregister(UClass* NewClass);
 
-		static TArray<UClass*>                Classes;
-		static TMap<UClass*, TArray<UClass*>> Orphans;
-		static FCriticalSection               ClassesCriticalSection;
+		static TArray<UClass*>& GetClasses()
+		{
+			static TArray<UClass*> Classes;
+			return Classes;
+		}
+		static TMap<UClass*, TArray<UClass*>>& GetOrphans()
+		{
+			static TMap<UClass*, TArray<UClass*>> Orphans;
+			return Orphans;
+		}
+		static FCriticalSection& GetClassesCriticalSection()
+		{
+			static FCriticalSection ClassesCriticalSection;
+			return ClassesCriticalSection;
+		}
 	};
 
 	void FFastIndexingClassTree::Register(UClass* Class)
 	{
-		FScopeLock Lock(&ClassesCriticalSection);
+		FScopeLock Lock(&GetClassesCriticalSection());
+		TMap<UClass*, TArray<UClass*>>& Orphans = GetOrphans();
+		TArray<UClass*>& Classes = GetClasses();
 
 		UClass* ParentClass = Class->GetSuperClass();
 
@@ -3049,7 +3063,9 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 	void FFastIndexingClassTree::Unregister(UClass* Class)
 	{
-		FScopeLock Lock(&ClassesCriticalSection);
+		FScopeLock Lock(&GetClassesCriticalSection());
+		TMap<UClass*, TArray<UClass*>>& Orphans = GetOrphans();
+		TArray<UClass*>& Classes = GetClasses();
 
 		UClass* ParentClass = Class->GetSuperClass();
 
@@ -3098,10 +3114,6 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 		Classes.RemoveAt(ClassIndex, NumRemoved, false);
 	}
-
-	TArray<UClass*>                FFastIndexingClassTree::Classes;
-	TMap<UClass*, TArray<UClass*>> FFastIndexingClassTree::Orphans;
-	FCriticalSection               FFastIndexingClassTree::ClassesCriticalSection;
 
 	FFastIndexingClassTreeRegistrar::FFastIndexingClassTreeRegistrar()
 	{
