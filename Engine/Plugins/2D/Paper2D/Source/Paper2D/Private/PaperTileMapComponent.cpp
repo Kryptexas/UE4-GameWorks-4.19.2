@@ -30,6 +30,12 @@ UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectI
 	CastShadow = false;
 	bUseAsOccluder = false;
 	bCanEverAffectNavigation = true;
+
+#if WITH_EDITORONLY_DATA
+	bShowPerTileGridWhenSelected = true;
+	bShowPerLayerGridWhenSelected = true;
+	bShowOutlineWhenUnselected = true;
+#endif
 }
 
 FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()

@@ -31,6 +31,12 @@ public:
 	void ToggleShowPivot() { bShowPivot = !bShowPivot; Invalidate(); }
 	bool IsShowPivotChecked() const { return bShowPivot; }
 
+	void ToggleShowTileGrid();
+	bool IsShowTileGridChecked() const;
+
+	void ToggleShowLayerGrid();
+	bool IsShowLayerGridChecked() const;
+
 	void ToggleShowMeshEdges();
 	bool IsShowMeshEdgesChecked() const;
 
