@@ -9,6 +9,7 @@
 //----------------------------------------------------------------------//
 ANavModifierVolume::ANavModifierVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, AreaClass(UNavArea_Null::StaticClass())
 {
 }
 
@@ -24,6 +25,20 @@ void ANavModifierVolume::GetNavigationData(FNavigationRelevantData& Data) const
 FBox ANavModifierVolume::GetNavigationBounds() const
 {
 	return GetComponentsBoundingBox();
+}
+
+void ANavModifierVolume::SetAreaClass(TSubclassOf<UNavArea> NewAreaClass)
+{
+	if (NewAreaClass != AreaClass)
+	{
+		AreaClass = NewAreaClass;
+
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+		if (NavSys != nullptr)
+		{
+			NavSys->UpdateNavOctree(this);
+		}
+	}
 }
 
 #if WITH_EDITOR
