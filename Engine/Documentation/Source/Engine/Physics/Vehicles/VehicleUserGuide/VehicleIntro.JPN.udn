@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2330472
+﻿INTSourceChangelist:2520034
 Availability:Public
 Title:ビークル ユーザー ガイド
 Crumbs:%ROOT%
@@ -40,8 +40,8 @@ Navigation:topic
 
 * **スケルタル メッシュ**
 * **物理アセット**
-* **アニメーション ブループリント**
-* ビークル ブループリント
+* **Animation ブループリント**
+*  Vehicle ブループリント
 * 1 つ以上の Wheel のブループリント
 * **TireType のデータアセット**
 
@@ -72,7 +72,7 @@ Navigation:topic
 ほとんどの場合、少なくとも 2 つの車輪タイプを選ぶようにします。ステアリングの影響を受ける車輪と影響を受けない車輪の 2 タイプです。また、異なる半径、質量、幅、ハンドブレーキの効果、サスペンションや他の多くのプロパティを設定し、必要とするハンドリングをビークルに設定します。
 
 
-## TireType プのデータアセットを作成する
+## TireType のデータアセットを作成する
 
 **コンテンツ ブラウザ** で新規 **TireType のデータアセット** を作成するには、以下の順序で選択します。**[New]** ボタン-> **Misc** -> **Data Asset** -> **TireType** を選択します。-> **[Select]** ボタンをクリックします。
 
@@ -117,7 +117,7 @@ Navigation:topic
 
 ![](animBPPreAnimGraph.png)
 
-完了です! **Component to Local** 変換ノードが自動的に作成され、Animation ブループリントがビークルの車輪を動かします。
+完了です ! **Component to Local** 変換ノードが自動的に作成され、Animation ブループリントがビークルの車輪を動かします。
 
 ![](animBPanimGraph.png)
 
@@ -152,8 +152,8 @@ Navigation:topic
 	![](defaultsMode.png)
 
 1. 以下は最初に設定すべきプロパティです。
-	* Shape Radius
 
+	* Shape Radius
 	* Shape Width
 	* Affected by Handbrake (通常は後輪に制限)
 	* Steer Angle (通常、前輪のみ)
@@ -201,7 +201,7 @@ Navigation:topic
 
 	![](cameraControllerOff.png)
 
-1. **デフォル トモード** の、**Vehicle Setup** カテゴリで「Wheel Setups」 を展開します。
+1. **デフォル トモード** の、**Vehicle Setup** カテゴリで [Wheel Setups] を展開します。
 
 	![](defaultsMode.png)
 
@@ -218,7 +218,7 @@ Navigation:topic
 	車輪を割り当てた順序は、前輪であるか後輪であるかに関係なく、**ボーン名** と **Wheel Class** だけが影響を与えます。
 
 	[REGION:note]
-	4 つ以上の車輪が必要な場合、**Wheel Setups** プロパティの隣にある"**+**" アイコンをクリックして車輪を追加できます。
+	4 つ以上の車輪が必要な場合、**Wheel Setups** プロパティの隣にある "**+**" アイコンをクリックして車輪を追加できます。
 	[/REGION]
 
 この時点では、ビークルがミニバンよりもはるかに大きなものではないことを前提とし、テストを開始するにはデフォルト値が最適な開始点になるでしょう。
@@ -226,7 +226,7 @@ Navigation:topic
 
 ## テスト
 
-テストのためにビークルをセットアップするには、2,3の方法があります。いくつかの手順は、どのテンプレートで開始したかによって変わります。
+テストのためにビークルをセットアップするには、2、3の方法があります。いくつかの手順は、どのテンプレートで開始したかによって変わります。
 
 1. コントロール
 
@@ -234,8 +234,8 @@ Navigation:topic
 	![](input.png)
 	[/REGION]
 
-	1. **[プロジェクト設定]** -> **[入力]**
-	1. ** [軸マッピング] ** プロパティの隣にある "**+**" 記号をクリックして、**軸マッピング** を追加します。
+	1. **[Project Settings]** -> **[Input]**
+	1. **Axis Mappings** プロパティの隣にある "**+**" 記号をクリックして、**Axis Mappings** を追加します。
 	1. 軸マッピングを展開します。
 	1. 軸マッピングを "None" から **Forward** に名前変更します。
 	1. **Forward** 軸マッピングの隣にある "**+**" 記号をクリックします。
@@ -243,15 +243,15 @@ Navigation:topic
 	1. 最初の "None" を "**W**" に設定します。
 	1. 2 番めの"None" を "**S**" に設定します。
 	1. "**S**" マッピングのスケールを "-1.0" に設定します。
-	1. ** [軸マッピング] ** プロパティの隣にある"**+**" 記号をクリックして、**軸マッピング** プロパティにもう 1 つ追加します。
+	1. **Axis Mappings** プロパティの隣にある "**+**" 記号をクリックして、**Axis Mappings** プロパティにもう 1 つ追加します。
 	1. 新しい軸マッピングを "None" から **Right** に名前変更します。 
 	1. **Right** 軸マッピングを展開します。
 	1. 最初の "None" を "**D**" に設定します。
 	1. 2 番めの"None" を "**A**" に設定します。
 	1. "**A**" マッピングのスケールを "-1.0" に設定します。
-	1. ** [Action マッピング] ** プロパティの隣にある"**+**" 記号をクリックして、Action  マッピングを追加します。
-	1. **[Action マッピング]** プロパティを展開します。
-	1. 新しい Action マッピングを "None" から **Handbrake** に名前変更します。
+	1. **Action Mappings** プロパティの隣にある "**+**" 記号をクリックして、Action マッピングを追加します。
+	1. **Action Mappings** プロパティを展開します。
+	1. 新しい Action マッピングを "None" から「 **Handbrake** 」に名前変更します。
 	1. **Handbrake** アクション マッピングを展開します。
 	1. "None" を "**Space Bar**" に設定します。
 1. 新規ゲームモード
@@ -262,29 +262,30 @@ Navigation:topic
 		[/REGION]
 
 	1. 新規ゲームモードのブループリントを編集するには **ダブルクリック** します。
-	1. **[デフォルトモード]** に切り替えます。
+	1. **Defaults Mode** に切り替えます。
 
 		![](defaultsMode.png)
 
-	1. **[ゲームモード]** カテゴリ-> **Default Pawn Class** -> の順序で選択し、"None" をご自身のビークル ブループリントに変更してください。
+	1. **[Game Mode]** カテゴリ-> **[Default Pawn Class]** -> の順序で選択し、"None" をご自身のビークル ブループリントに変更してください。
 
 		[REGION:raw]
 		![](defaultPawnClass.png)
 		[/REGION]
 
-1. **ワールド設定値** -> **[ゲームモード]** -> **Gamemode Override** をご自身のゲームモードに設定します。
+1. **[World Settings]** -> **[Game Mode]** -> **[Gamemode Override]** をご自身のゲームモードに設定します。
 
 	[REGION:raw]
 	![](setGameMode.png)
 	[/REGION]
 
-1. ビークルのブループリントで、**[Project Settings Input]** カテゴリで作成したAxis イベントと Action イベントを呼び出すことができます。
-	1. ビークルのブループリントを編集し、**[グラフモード]** に切り替えます。
+1. ビークルのブループリントで、**[Project Settings Input]** カテゴリで作成した Axis イベントと Action イベントを呼び出すことができます。
+	1. ビークルのブループリントを編集し、**Graph Mode** に切り替えます。
 
 		![](graphMode.png)
 
 	1. スロットル
-	![](throttleBP.png)
+
+		![](throttleBP.png)
 
 	1. ステアリング
 
@@ -295,10 +296,10 @@ Navigation:topic
 		![](handbrakeBP.png)
 
 1. プレイヤースタート
-	* ワールドに **Player Start** アクタがない場合、以下の順序で選択してマップに追加することができます。**Modes Panel** -> **Placement Mode** -> **Basic** -> 次に、**Player Start** をクリックしてワールドにドラッグします。
+	* ワールドに **Player Start** アクタがない場合、以下の順序で選択してマップに追加することができます。**[Modes Panel]** -> **[Placement Mode]** -> **[Basic]** -> 次に、**[Player Start]** をクリックしてワールドにドラッグします。
 
 	[REGION:raw]
-	![](playerStart.png)
+	![](LQS_PlayerStart.png)
 	[/REGION]
 
 	または現在のカメラ位置からプレイするために PIE (Play in Editor) を設定することもできます。
@@ -308,7 +309,7 @@ Navigation:topic
 	![](Play.png)
 	[/REGION]
 
-	上記で設定した軸 とAxis と Action Bindings を前提に、**W** はスロットルを強め、**S** はブレーキを適用し、**A** は左折、**D** は右折、**Space Bar** はハンドブレーキを適用します。
+	上記で設定した軸と Axis と Action Bindings を前提に、**W** はスロットルを強め、**S** はブレーキを適用し、**A** は左折、**D** は右折、**Space Bar** はハンドブレーキを適用します。
 
 
 
