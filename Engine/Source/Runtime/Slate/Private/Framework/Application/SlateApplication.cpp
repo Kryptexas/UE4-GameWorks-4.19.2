@@ -13,6 +13,8 @@
 #include "ToolboxModule.h"
 #include "TabCommands.h"
 
+extern SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
+
 class FEventRouter
 {
 
@@ -3078,6 +3080,11 @@ void FSlateApplication::EnterDebuggingMode()
 	GFirstFrameIntraFrameDebugging = true;
 #endif	//WITH_EDITORONLY_DATA
 
+
+	// The scissor rect stack must be reset when re-entering the tick loop to avoid graphical artifacts with existing clip rects applied new widgets
+	TOptional<FShortRect> PreviousScissorRect = GSlateScissorRect;
+	GSlateScissorRect.Reset();
+
 	// Tick slate from here in the event that we should not return until the modal window is closed.
 	while (!bRequestLeaveDebugMode)
 	{
@@ -3114,6 +3121,9 @@ void FSlateApplication::EnterDebuggingMode()
 			RegisterGameViewport( PreviousGameViewport.ToSharedRef() );
 		}
 	}
+
+	// Reset the scissor rect back to what it was before we started debugging
+	GSlateScissorRect = PreviousScissorRect;
 
 	bLeaveDebugForSingleStep = false;
 }
