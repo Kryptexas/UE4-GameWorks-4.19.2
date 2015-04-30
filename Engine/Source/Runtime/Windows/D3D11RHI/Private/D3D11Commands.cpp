@@ -1496,36 +1496,36 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		/** The global D3D device's immediate context */
 		FDeviceStateHelper(TRefCountPtr<FD3D11DeviceContext> InDirect3DDeviceIMContext) : Direct3DDeviceIMContext(InDirect3DDeviceIMContext) {}
 
-		void CaptureDeviceState(FD3D11StateCache& StateCache)
+		void CaptureDeviceState(FD3D11StateCache& StateCacheRef)
 		{
-			StateCache.GetVertexShader(&VSOld);
-			StateCache.GetPixelShader(&PSOld);
-			StateCache.GetShaderResourceViews<SF_Vertex>(0, ResourceCount, &VertResources[0]);
-			StateCache.GetDepthStencilState(&OldDepthStencilState, &StencilRef);
-			StateCache.GetBlendState(&OldBlendState, BlendFactor, &SampleMask);
-			StateCache.GetRasterizerState(&OldRasterizerState);
+			StateCacheRef.GetVertexShader(&VSOld);
+			StateCacheRef.GetPixelShader(&PSOld);
+			StateCacheRef.GetShaderResourceViews<SF_Vertex>(0, ResourceCount, &VertResources[0]);
+			StateCacheRef.GetDepthStencilState(&OldDepthStencilState, &StencilRef);
+			StateCacheRef.GetBlendState(&OldBlendState, BlendFactor, &SampleMask);
+			StateCacheRef.GetRasterizerState(&OldRasterizerState);
 		}
 
-		void ClearCurrentVertexResources(FD3D11StateCache& StateCache)
+		void ClearCurrentVertexResources(FD3D11StateCache& StateCacheRef)
 		{
 			static ID3D11ShaderResourceView* NullResources[ResourceCount] = {};
 			for (int ResourceLoop = 0 ; ResourceLoop < ResourceCount; ResourceLoop++)
 			{
-				StateCache.SetShaderResourceView<SF_Vertex>(NullResources[0],0);
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(NullResources[0],0);
 			}
 		}
 
-		void RestoreDeviceState(FD3D11StateCache& StateCache) 
+		void RestoreDeviceState(FD3D11StateCache& StateCacheRef) 
 		{
 
 			// Restore the old shaders
-			StateCache.SetVertexShader(VSOld);
-			StateCache.SetPixelShader(PSOld);
+			StateCacheRef.SetVertexShader(VSOld);
+			StateCacheRef.SetPixelShader(PSOld);
 			for (int ResourceLoop = 0 ; ResourceLoop < ResourceCount; ResourceLoop++)
-				StateCache.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop],ResourceLoop);
-			StateCache.SetDepthStencilState(OldDepthStencilState, StencilRef);
-			StateCache.SetBlendState(OldBlendState, BlendFactor, SampleMask);
-			StateCache.SetRasterizerState(OldRasterizerState);
+				StateCacheRef.SetShaderResourceView<SF_Vertex>(VertResources[ResourceLoop],ResourceLoop);
+			StateCacheRef.SetDepthStencilState(OldDepthStencilState, StencilRef);
+			StateCacheRef.SetBlendState(OldBlendState, BlendFactor, SampleMask);
+			StateCacheRef.SetRasterizerState(OldRasterizerState);
 
 			ReleaseResources();
 		}

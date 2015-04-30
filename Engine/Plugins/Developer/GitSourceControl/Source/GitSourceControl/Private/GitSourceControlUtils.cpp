@@ -116,7 +116,7 @@ FString FindGitBinaryPath()
 	// 2) Else, look for the version of Git bundled with SmartGit "Installer with JRE"
 	if(!bFound)
 	{
-		FString GitBinaryPath(TEXT("C:/Program Files (x86)/SmartGit/bin/git.exe"));
+		GitBinaryPath = TEXT("C:/Program Files (x86)/SmartGit/bin/git.exe");
 		bFound = CheckGitAvailability(GitBinaryPath);
 	}
 

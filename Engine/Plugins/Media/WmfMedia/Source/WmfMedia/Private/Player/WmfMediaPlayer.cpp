@@ -261,7 +261,7 @@ bool FWmfMediaPlayer::SetRate( float Rate )
 /* FWmfMediaPlayer implementation
  *****************************************************************************/
 
-void FWmfMediaPlayer::AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSource )
+void FWmfMediaPlayer::AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject )
 {
 	// get stream descriptor
 	TComPtr<IMFStreamDescriptor> StreamDescriptor;
@@ -357,7 +357,7 @@ void FWmfMediaPlayer::AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topo
 		TComPtr<IMFTopologyNode> SourceNode;
 		{
 			if (FAILED(::MFCreateTopologyNode(MF_TOPOLOGY_SOURCESTREAM_NODE, &SourceNode)) ||
-				FAILED(SourceNode->SetUnknown(MF_TOPONODE_SOURCE, MediaSource)) ||
+				FAILED(SourceNode->SetUnknown(MF_TOPONODE_SOURCE, MediaSourceObject)) ||
 				FAILED(SourceNode->SetUnknown(MF_TOPONODE_PRESENTATION_DESCRIPTOR, PresentationDescriptor)) ||
 				FAILED(SourceNode->SetUnknown(MF_TOPONODE_STREAM_DESCRIPTOR, StreamDescriptor)) ||
 				FAILED(Topology->AddNode(SourceNode)))

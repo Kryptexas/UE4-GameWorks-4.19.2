@@ -366,19 +366,19 @@ bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWin
 		FString Extension = CleanExtensionList.IsValidIndex( OutFilterIndex ) ? CleanExtensionList[OutFilterIndex] : TEXT("");
 
 		// Make sure all filenames gathered have their paths normalized and proper extensions added
-		for ( auto FilenameIt = OutFilenames.CreateIterator(); FilenameIt; ++FilenameIt )
+		for ( auto OutFilenameIt = OutFilenames.CreateIterator(); OutFilenameIt; ++OutFilenameIt )
 		{
-			FString& Filename = *FilenameIt;
+			FString& OutFilename = *OutFilenameIt;
 			
-			Filename = IFileManager::Get().ConvertToRelativePath(*Filename);
+			OutFilename = IFileManager::Get().ConvertToRelativePath(*OutFilename);
 
-			if( FPaths::GetExtension(Filename).IsEmpty() && !Extension.IsEmpty() )
+			if( FPaths::GetExtension(OutFilename).IsEmpty() && !Extension.IsEmpty() )
 			{
 				// filename does not have an extension. Add an extension based on the filter that the user chose in the dialog
-				Filename += Extension;
+				OutFilename += Extension;
 			}
 
-			FPaths::NormalizeFilename(Filename);
+			FPaths::NormalizeFilename(OutFilename);
 		}
 	}
 	else

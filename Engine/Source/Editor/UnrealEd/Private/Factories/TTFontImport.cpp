@@ -1277,8 +1277,6 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 				CurrentTexture++;
 
 				// blank out DC
-				HBRUSH Black = CreateSolidBrush(0x00000000);
-				RECT r = {0, 0, BitmapWidth, BitmapHeight};
 				FillRect( DCHandle, &r, Black );
 
 				X=BitmapPaddingX;

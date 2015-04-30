@@ -5,15 +5,6 @@
 #include "SWidgetSwitcher.h"
 
 
-/* Local constants
- *****************************************************************************/
-
-const TAttribute<FVector2D> ContentScale = FVector2D::UnitVector;
-
-
-/* SWidgetSwitcher interface
- *****************************************************************************/
-
 SWidgetSwitcher::SWidgetSwitcher()
 	: AllChildren()
 { }
@@ -114,6 +105,8 @@ void SWidgetSwitcher::SetActiveWidgetIndex( int32 Index )
 
 void SWidgetSwitcher::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
+	const TAttribute<FVector2D> ContentScale = FVector2D::UnitVector;
+
 	if (AllChildren.Num() > 0)
 	{
 		ArrangeSingleChild(AllottedGeometry, ArrangedChildren, AllChildren[WidgetIndex.Get()], ContentScale);

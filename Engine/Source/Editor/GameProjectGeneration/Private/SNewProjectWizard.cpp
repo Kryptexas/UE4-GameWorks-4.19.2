@@ -24,7 +24,7 @@ FName SNewProjectWizard::TemplatePageName = TEXT("Template");
 FName SNewProjectWizard::NameAndLocationPageName = TEXT("NameAndLocation");
 
 
-namespace
+namespace NewProjectWizardDefs
 {
 	const float ThumbnailSize = 64.f, ThumbnailPadding = 5.f;
 	const float ItemWidth = ThumbnailSize + 2*ThumbnailPadding;
@@ -250,11 +250,11 @@ public:
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				.HAlign(HAlign_Center)
-				.Padding(ThumbnailPadding)
+				.Padding(NewProjectWizardDefs::ThumbnailPadding)
 				[
 					SNew(SBox)
-					.WidthOverride(ThumbnailSize)
-					.HeightOverride(ThumbnailSize)
+					.WidthOverride( NewProjectWizardDefs::ThumbnailSize )
+					.HeightOverride( NewProjectWizardDefs::ThumbnailSize )
 					[
 						SNew(SImage)
 						.Image(this, &STemplateTile::GetThumbnail)
@@ -265,10 +265,10 @@ public:
 				+ SVerticalBox::Slot()
 				.HAlign(HAlign_Center)
 				.VAlign(VAlign_Top)
-				.Padding(FMargin(ThumbnailPadding, 0))
+				.Padding(FMargin(NewProjectWizardDefs::ThumbnailPadding, 0))
 				[
 					SNew(STextBlock)
-					.WrapTextAt(ThumbnailSize)
+					.WrapTextAt( NewProjectWizardDefs::ThumbnailSize )
 					.Justification(ETextJustify::Center)
 					.LineBreakPolicy(FBreakIterator::CreateCamelCaseBreakIterator())
 					//.HighlightText(this, &SNewProjectWizard::GetItemHighlightText)
@@ -318,8 +318,8 @@ void SNewProjectWizard::Construct( const FArguments& InArgs )
 	.SelectionMode(ESelectionMode::Single)
 	.ClearSelectionOnClick(false)
 	.OnGenerateTile_Static(&STemplateTile::BuildTile)
-	.ItemHeight(ItemHeight)
-	.ItemWidth(ItemWidth)
+	.ItemHeight( NewProjectWizardDefs::ItemHeight )
+	.ItemWidth( NewProjectWizardDefs::ItemWidth )
 	.OnMouseButtonDoubleClick(this, &SNewProjectWizard::HandleTemplateListViewDoubleClick)
 	.OnSelectionChanged(this, &SNewProjectWizard::HandleTemplateListViewSelectionChanged);
 

@@ -390,18 +390,18 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
-		FAudioDevice* AudioDevice = nullptr;
+		FAudioDevice* BestAudioDevice = nullptr;
 		if (InWaveInstance->ActiveSound->AudioComponent.IsValid())
 		{
-			AudioDevice = InWaveInstance->ActiveSound->AudioComponent->GetAudioDevice();
+			BestAudioDevice = InWaveInstance->ActiveSound->AudioComponent->GetAudioDevice();
 		}
 		else
 		{
-			AudioDevice = GEngine->GetMainAudioDevice();
+			BestAudioDevice = GEngine->GetMainAudioDevice();
 		}
-		check(AudioDevice);
+		check(BestAudioDevice);
 
-		XAudio2Buffer = FXAudio2SoundBuffer::Init(AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
+		XAudio2Buffer = FXAudio2SoundBuffer::Init(BestAudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
 		Buffer = XAudio2Buffer;
 
 		// Buffer failed to be created, or there was an error with the compressed data

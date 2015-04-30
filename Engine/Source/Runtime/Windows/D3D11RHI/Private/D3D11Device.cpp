@@ -238,14 +238,14 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 	BestMode.Height = 0;
 
 	{
-		HRESULT hr = S_OK;
+		HRESULT HResult = S_OK;
 		TRefCountPtr<IDXGIAdapter> Adapter;
-		hr = DXGIFactory1->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
-		if( DXGI_ERROR_NOT_FOUND == hr )
+		HResult = DXGIFactory1->EnumAdapters(ChosenAdapter,Adapter.GetInitReference());
+		if( DXGI_ERROR_NOT_FOUND == HResult )
 		{
 			return;
 		}
-		if( FAILED(hr) )
+		if( FAILED(HResult) )
 		{
 			return;
 		}
@@ -259,22 +259,22 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 		for(uint32 o = 0;o < 1; o++)
 		{
 			TRefCountPtr<IDXGIOutput> Output;
-			hr = Adapter->EnumOutputs(o,Output.GetInitReference());
-			if(DXGI_ERROR_NOT_FOUND == hr)
+			HResult = Adapter->EnumOutputs(o,Output.GetInitReference());
+			if(DXGI_ERROR_NOT_FOUND == HResult)
 				break;
-			if(FAILED(hr))
+			if(FAILED(HResult))
 				return;
 
 			// TODO: GetDisplayModeList is a terribly SLOW call.  It can take up to a second per invocation.
 			//  We might want to work around some DXGI badness here.
 			DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			uint32 NumModes = 0;
-			hr = Output->GetDisplayModeList(Format,0,&NumModes,NULL);
-			if(hr == DXGI_ERROR_NOT_FOUND)
+			HResult = Output->GetDisplayModeList(Format,0,&NumModes,NULL);
+			if(HResult == DXGI_ERROR_NOT_FOUND)
 			{
 				return;
 			}
-			else if(hr == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
+			else if(HResult == DXGI_ERROR_NOT_CURRENTLY_AVAILABLE)
 			{
 				UE_LOG(LogD3D11RHI, Fatal,
 					TEXT("This application cannot be run over a remote desktop configuration")

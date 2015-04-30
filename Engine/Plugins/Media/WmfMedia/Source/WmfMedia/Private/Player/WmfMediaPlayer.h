@@ -70,10 +70,10 @@ protected:
 	 * @param StreamIndex The index number of the stream in the presentation descriptor.
 	 * @param Topology The topology to add the stream to.
 	 * @param PresentationDescriptor The presentation descriptor object.
-	 * @param MediaSource The media source object.
+	 * @param MediaSourceObject The media source object.
 	 * @return true on success, false otherwise.
 	 */
-	void AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSource );
+	void AddStreamToTopology( uint32 StreamIndex, IMFTopology* Topology, IMFPresentationDescriptor* PresentationDescriptor, IMFMediaSource* MediaSourceObject );
 
 	/**
 	 * Initializes the media session for the given media source.
