@@ -584,7 +584,7 @@ void InstallSignalHandlers()
     [self ToggleSuspend:false];
 	[self ToggleAudioSession:true];
 
-    if (FTaskGraphInterface::IsRunning())
+    if (bEngineInit)
     {
         FGraphEventRef ResignTask = FFunctionGraphTask::CreateAndDispatchWhenReady([&]()
         {
