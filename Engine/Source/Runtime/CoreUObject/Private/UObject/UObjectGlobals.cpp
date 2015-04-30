@@ -2010,8 +2010,6 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
 	FTlsObjectInitializers::Push(this);
 }
 
-COREUOBJECT_API bool IgnoreFObjectInitializer = false;
-
 /**
  * Destructor for internal class to finalize UObject creation (initialize properties) after the real C++ constructor is called.
  **/
@@ -2023,11 +2021,6 @@ FObjectInitializer::~FObjectInitializer()
 	ThreadContext.IsInConstructor--;
 	check(ThreadContext.IsInConstructor >= 0);
 	ThreadContext.ConstructedObject = LastConstructedObject;
-
-	if( IgnoreFObjectInitializer )
-	{
-		return;
-	}
 
 	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
 	check(Obj);
