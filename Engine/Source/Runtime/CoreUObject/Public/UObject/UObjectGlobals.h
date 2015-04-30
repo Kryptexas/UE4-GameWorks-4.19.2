@@ -864,6 +864,13 @@ private:
 	 * @return	Returns true if that property was a non-native one, otherwise false
 	 */
 	static bool InitNonNativeProperty(UProperty* Property, UObject* Data);
+	
+	/**
+	 * Finalizes a constructed UObject by initializing properties, 
+	 * instancing/initializing sub-objects, etc.
+	 */
+	void PostConstructInit();
+
 private:
 
 	/**  Littel helper struct to manage overrides from dervied classes **/
@@ -976,6 +983,11 @@ private:
 	mutable FSubobjectsToInit ComponentInits;
 	/**  Previously constructed object in the callstack */
 	UObject* LastConstructedObject;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	/**  */
+	bool bIsDeferredInitializer : 1;
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 };
 
 #define FPostConstructInitializeProperties \
@@ -1021,6 +1033,17 @@ public:
 	inline static void InstanceSubobjects(const FObjectInitializer& ObjectInitializer, UClass* Class, bool bNeedInstancing, bool bNeedSubobjectInstancing)
 	{
 		ObjectInitializer.InstanceSubobjects(Class, bNeedInstancing, bNeedSubobjectInstancing);
+	}
+
+	/**
+	 * Finalizes a constructed UObject by initializing properties, instancing &
+	 * initializing sub-objects, etc.
+	 * 
+	 * @param  ObjectInitializer    The initializer to run PostConstructInit() on.
+	 */
+	inline static void PostConstructInitObject(FObjectInitializer& ObjectInitializer)
+	{
+		ObjectInitializer.PostConstructInit();
 	}
 };
 

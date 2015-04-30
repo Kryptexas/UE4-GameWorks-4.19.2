@@ -65,3 +65,29 @@ private:
 	FScopedClassDependencyGather();
 };
 #endif //WITH_EDITOR
+
+/** 
+ * A helper struct for storing FObjectInitializers that were not run on 
+ * Blueprint CDO's post-construction (presumably because that CDO's super had 
+ * not been fully serialized yet). 
+ * 
+ * This was designed to hold onto FObjectInitializers until a later point, when 
+ * they can properly be ran (presumably in FLinkerLoad::ResolveDeferredExports,
+ * after the super has been finalized).
+ */
+struct FDeferredObjInitializerTracker : TThreadSingleton<FDeferredObjInitializerTracker>
+{
+public:
+	/** Stores a copy of the specified FObjectInitializer and returns a pointer to it (could be null if a corresponding class could not be determined). */
+	static FObjectInitializer* Add(const FObjectInitializer& DeferringInitializer);
+
+	/** Looks up a FObjectInitializer that was deferred for the specified class (an FObjectInitializer for that class's CDO). */
+	static FObjectInitializer* Find(UClass* LoadClass);
+
+	/** Destroys any FObjectInitializers that were cached corresponding to the specified class. */
+	static void Remove(UClass* LoadClass);
+
+private:
+	/** A map that tracks the relationsship between Blueprint classes and  FObjectInitializers for their CDOs */
+	TMap<UClass*, FObjectInitializer> DeferredInitializers;
+};
