@@ -214,7 +214,8 @@ public:
 	void Reset();
 
 	// Conditions this geometry collection (turning Polygons back to Boxes if they meet the definition of a box, etc...)
-	void ConditionGeometry();
+	// Returns true if something was modified
+	bool ConditionGeometry();
 
 	// Takes all polygon shapes and generates a list of triangles from them.
 	// Output will contain a multiple of 3 points, each set is one triangle.
