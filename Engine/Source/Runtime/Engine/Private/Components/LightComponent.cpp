@@ -450,18 +450,6 @@ void ULightComponent::PostLoad()
 }
 
 #if WITH_EDITOR
-void ULightComponent::PreEditUndo()
-{
-	// Directly call UActorComponent::PreEditChange to avoid ULightComponent::PreEditChange being called for transactions.
-	UActorComponent::PreEditChange(NULL);
-}
-
-void ULightComponent::PostEditUndo()
-{
-	// Directly call UActorComponent::PostEditChange to avoid ULightComponent::PostEditChange being called for transactions.
-	UActorComponent::PostEditChange();
-}
-
 bool ULightComponent::CanEditChange(const UProperty* InProperty) const
 {
 	if (InProperty)
