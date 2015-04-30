@@ -896,9 +896,6 @@ static bool IsSimpleStruct(const Definition *pd)
 
 Serializer::ErrorType BinSerializer::internalSerialize(physx::PxFileBuf &stream, const Interface **objs, physx::PxU32 nobjs, bool doMetadata)
 {
-	// This is not yet working (this is not trivial and needs extensive testing!)
-	NX_BOOL_ERR_CHECK_RETURN( SerializePlatform::OS_MACOSX != mPlatform.osType, Serializer::ERROR_NOT_IMPLEMENTED );
-
 	NX_BOOL_ERR_CHECK_WARN_RETURN(
 		PlatformABI::VerifyCurrentPlatform(),
 		Serializer::ERROR_INVALID_PLATFORM ,
