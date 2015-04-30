@@ -1780,10 +1780,11 @@ void SMultiLineEditableText::RestoreOriginalText()
 {
 	if(HasTextChangedFromOriginal())
 	{
-		SaveText(OriginalText.Text);
+		SetText(OriginalText.Text);
+		TextLayout->UpdateIfNeeded();
 
 		// Let outsiders know that the text content has been changed
-		OnTextChanged.ExecuteIfBound(OriginalText.Text);
+		OnTextCommitted.ExecuteIfBound(OriginalText.Text, ETextCommit::OnCleared);
 	}
 }
 
