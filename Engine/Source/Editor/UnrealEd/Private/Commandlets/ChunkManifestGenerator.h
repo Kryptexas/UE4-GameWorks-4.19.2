@@ -304,6 +304,14 @@ public:
 
 
 	/**
+	 * Loads asset registry data and incorporates it into the current asset registry data
+	 * 
+	 * @param the SandboxPath to load teh asset registry from
+	 * @param PackagesToLoadMask is used to mask out any packages which we don't want to incorporate into the internal asset registry when we load
+	 */
+	bool LoadAssetRegistry(const FString& SandboxPath, const TSet<FName>* PackagesToLoadMask = nullptr);
+
+	/**
 	 * Saves cooked package and asset information about all the cooked packages and assets contained within for stats purposes
 	 * in json format
 	 *

@@ -407,6 +407,50 @@ bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 	return true;
 }
 
+bool FChunkManifestGenerator::LoadAssetRegistry(const FString& SandboxPath, const TSet<FName>* PackagesToKeep)
+{
+	UE_LOG(LogChunkManifestGenerator, Display, TEXT("Saving asset registry."));
+
+	// Load generated registry for each platform
+	check(Platforms.Num() == 1);
+
+	for (auto Platform : Platforms)
+	{
+		FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
+		FArchive* AssetRegistryReader = IFileManager::Get().CreateFileReader(*PlatformSandboxPath);
+
+		TMap<FName, FAssetData*> SavedAssetRegistryData;
+		AssetRegistry.LoadRegistryData(*AssetRegistryReader, SavedAssetRegistryData);
+
+		for (FAssetData LoadedAssetData : AssetRegistryData)
+		{
+			if (PackagesToKeep &&
+				PackagesToKeep->Contains(LoadedAssetData.PackageName) == false)
+			{
+				continue;
+			}
+
+			FAssetData* FoundAssetData = SavedAssetRegistryData.FindRef(LoadedAssetData.ObjectPath);
+			if ( FoundAssetData )
+			{
+				LoadedAssetData.ChunkIDs.Append(FoundAssetData->ChunkIDs);
+				
+				SavedAssetRegistryData.Remove(LoadedAssetData.ObjectPath);
+				delete FoundAssetData;
+			}
+		}
+
+		for (const auto& SavedAsset : SavedAssetRegistryData)
+		{
+			if (PackagesToKeep && PackagesToKeep->Contains(SavedAsset.Value->PackageName))
+			AssetRegistryData.Add(*SavedAsset.Value);
+			delete SavedAsset.Value;
+		}
+		SavedAssetRegistryData.Empty();
+	}
+	return true;
+}
+
 bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath)
 {
 	UE_LOG(LogChunkManifestGenerator, Display, TEXT("Saving asset registry."));
@@ -422,7 +466,7 @@ bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath)
 			GeneratedAssetRegistryData.Add(AssetData.ObjectPath, &AssetData);
 		}
 	}
-	AssetRegistry.SaveRegistryData(SerializedAssetRegistry, GeneratedAssetRegistryData, GeneratedAssetRegistryData.Num());
+	AssetRegistry.SaveRegistryData(SerializedAssetRegistry, GeneratedAssetRegistryData);
 	UE_LOG(LogChunkManifestGenerator, Display, TEXT("Generated asset registry num assets %d, size is %5.2fkb"), GeneratedAssetRegistryData.Num(), (float)SerializedAssetRegistry.Num() / 1024.f);
 
 	// Save the generated registry for each platform
