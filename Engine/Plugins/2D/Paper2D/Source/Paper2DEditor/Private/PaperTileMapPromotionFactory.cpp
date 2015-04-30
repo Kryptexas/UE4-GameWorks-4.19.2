@@ -18,8 +18,9 @@ UPaperTileMapPromotionFactory::UPaperTileMapPromotionFactory(const FObjectInitia
 
 UObject* UPaperTileMapPromotionFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
-	AssetToRename->Rename(*Name.ToString(), InParent);
 	AssetToRename->SetFlags(Flags | RF_Transactional);
+	AssetToRename->Modify();
+	AssetToRename->Rename(*Name.ToString(), InParent);
 
 	return AssetToRename;
 }

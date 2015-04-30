@@ -26,11 +26,17 @@ private:
 private:
 	FReply EnterTileMapEditingMode();
 	FReply OnNewButtonClicked();
-	FReply OnPromoteButtonClicked();
+	FReply OnPromoteToAssetButtonClicked();
+	FReply OnMakeInstanceFromAssetButtonClicked();
 
 	EVisibility GetNonEditModeVisibility() const;
 
 	EVisibility GetVisibilityForInstancedOnlyProperties() const;
+	
+	EVisibility GetVisibilityForMakeIntoInstance() const;
 
 	EVisibility GetNewButtonVisiblity() const;
+
+	bool InLevelEditorContext() const;
+	bool IsInstanced() const;
 };
