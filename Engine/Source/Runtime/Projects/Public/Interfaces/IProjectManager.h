@@ -201,11 +201,4 @@ public:
 	 * @return	True if the plugin has been marked as enabled, and the project descriptor has been saved.
 	 */
 	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason) = 0;
-
-	/**
-	 * Returns whether a restart is required to reflect changes to the project.
-	 * 
-	 * @return	True if the application needs to be restarted.
-	 */
-	virtual bool IsRestartRequired() const = 0;
 };

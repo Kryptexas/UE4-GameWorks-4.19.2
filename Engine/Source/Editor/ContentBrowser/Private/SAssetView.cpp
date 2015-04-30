@@ -2327,21 +2327,18 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			EUserInterfaceActionType::ToggleButton
 			);
 
-		if(IPluginManager::Get().GetPluginContentFolders().Num() > 0)
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("ShowPluginFolderOption", "Show Plugin Content"),
-				LOCTEXT("ShowPluginFolderOptionToolTip", "Shows plugin content in the view."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &SAssetView::ToggleShowPluginFolders ),
-					FCanExecuteAction(),
-					FIsActionChecked::CreateSP( this, &SAssetView::IsShowingPluginFolders )
-				),
-				NAME_None,
-				EUserInterfaceActionType::ToggleButton
-				);
-		}
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowPluginFolderOption", "Show Plugin Content"),
+			LOCTEXT("ShowPluginFolderOptionToolTip", "Shows plugin content in the view."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &SAssetView::ToggleShowPluginFolders ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SAssetView::IsShowingPluginFolders )
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ShowEngineFolderOption", "Show Engine Content"),

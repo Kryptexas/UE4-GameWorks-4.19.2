@@ -38,6 +38,7 @@ public class %MODULE_NAME% : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"Projects",
 				"InputCore",
 				"UnrealEd",
 				"LevelEditor",

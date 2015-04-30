@@ -3,8 +3,9 @@
 #pragma once
 
 #include "UnrealEd.h"
-#include "IPluginsEditor.h"
+#include "IPluginBrowser.h"
+#include "IPluginManager.h"
 
 #include "TextFilter.h"
 
-typedef TTextFilter< const struct FPluginStatus& > FPluginTextFilter;
+typedef TTextFilter< const IPlugin* > FPluginTextFilter;

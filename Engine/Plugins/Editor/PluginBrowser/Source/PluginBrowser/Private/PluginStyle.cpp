@@ -1,8 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "PluginsEditorPrivatePCH.h"
+#include "PluginBrowserPrivatePCH.h"
 #include "PluginStyle.h"
 #include "SlateStyle.h"
+#include "IPluginManager.h"
 
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( FPluginStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( FPluginStyle::InContent( RelativePath, ".png" ), __VA_ARGS__ )
@@ -12,7 +13,7 @@
 
 FString FPluginStyle::InContent( const FString& RelativePath, const ANSICHAR* Extension )
 {
-	static FString ContentDir = FPaths::EnginePluginsDir() / TEXT("Editor/PluginsEditor/Content");
+	static FString ContentDir = IPluginManager::Get().FindPlugin(TEXT("PluginBrowser"))->GetContentDir();
 	return ( ContentDir / RelativePath ) + Extension;
 }
 
@@ -162,6 +163,11 @@ void FPluginStyle::Initialize()
 			}
 
 			StyleSet->Set( "PluginTile.BetaWarning", new IMAGE_BRUSH( "icon_plugins_betawarn_14px", FVector2D(14, 14) ) );
+		}
+
+		// Metadata editor
+		{
+			StyleSet->Set("PluginMetadataNameFont", TTF_FONT("Fonts/Roboto-Bold", 18));
 		}
 	}
 

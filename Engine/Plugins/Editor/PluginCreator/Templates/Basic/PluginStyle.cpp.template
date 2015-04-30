@@ -3,6 +3,7 @@
 
 #include "%PLUGIN_NAME%Style.h"
 #include "SlateGameResources.h"
+#include "IPluginManager.h"
 
 TSharedPtr< FSlateStyleSet > F%PLUGIN_NAME%Style::StyleInstance = NULL;
 
@@ -41,7 +42,7 @@ const FVector2D Icon40x40(40.0f, 40.0f);
 TSharedRef< FSlateStyleSet > F%PLUGIN_NAME%Style::Create()
 {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("%PLUGIN_NAME%Style"));
-	Style->SetContentRoot(FPaths::GamePluginsDir() / TEXT("%PLUGIN_NAME%/Resources"));
+	Style->SetContentRoot(IPluginManager::Get().FindPlugin("%PLUGIN_NAME%")->GetBaseDir() / TEXT("Resources"));
 
 	Style->Set("%PLUGIN_NAME%.PluginAction", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));
 

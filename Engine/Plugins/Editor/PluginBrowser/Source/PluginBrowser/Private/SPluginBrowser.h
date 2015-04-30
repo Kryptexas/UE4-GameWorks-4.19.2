@@ -3,46 +3,14 @@
 #pragma once
 
 #include "SBreadcrumbTrail.h"
-
-/**
- * Stores data about a breadcrumb entry for the plugins editor
- */
-class FPluginCategoryBreadcrumb
-{
-
-public:
-
-	/** Initializing constructor */
-	FPluginCategoryBreadcrumb( TSharedPtr< class FPluginCategoryTreeItem > InitCategoryItem )
-		: CategoryItem( InitCategoryItem )
-	{
-	}
-
-	/** @return Gets the category item for this breadcrumb */
-	const TSharedPtr< class FPluginCategoryTreeItem >& GetCategoryItem() const
-	{
-		return CategoryItem;
-	}
-
-
-private:
-
-	/** The category tree item data for this breadcrumb */
-	TSharedPtr< class FPluginCategoryTreeItem > CategoryItem;
-};
-
-
-
-typedef TSharedPtr< FPluginCategoryBreadcrumb > FPluginCategoryBreadcrumbPtr;
-typedef SBreadcrumbTrail< FPluginCategoryBreadcrumbPtr > SPluginCategoryBreadcrumbTrail;
-
+#include "SPluginCategory.h"
 
 /**
  * Implementation of main plugin editor Slate widget
  */
-class SPluginsEditor : public SCompoundWidget
+class SPluginBrowser : public SCompoundWidget
 {
-	SLATE_BEGIN_ARGS( SPluginsEditor )
+	SLATE_BEGIN_ARGS( SPluginBrowser )
 	{
 	}
 
@@ -59,11 +27,13 @@ class SPluginsEditor : public SCompoundWidget
 	}
 
 	/** @return Returns the currently selected category */
-	TSharedPtr< class FPluginCategoryTreeItem > GetSelectedCategory() const;
+	TSharedPtr< class FPluginCategory > GetSelectedCategory() const;
 
 	/** Called when the selected category changes so we can invalidate the list */
 	void OnCategorySelectionChanged();
 
+	/** Refresh the whole window */
+	void SetNeedsRefresh();
 
 private:
 
@@ -77,7 +47,7 @@ private:
 	void SearchBox_OnPluginSearchTextChanged( const FText& NewText );
 
 	/** Called when a breadcrumb is clicked on the breadcrumb trail */
-	void BreadcrumbTrail_OnCrumbClicked( const FPluginCategoryBreadcrumbPtr& CrumbData );
+	void BreadcrumbTrail_OnCrumbClicked( const TSharedPtr<FPluginCategory>& CrumbData );
 
 	/** Called to refresh the breadcrumb trail immediately */
 	void RefreshBreadcrumbTrail();
@@ -88,16 +58,15 @@ private:
 private:
 
 	/** The plugin categories widget */
-	TSharedPtr< class SPluginCategories > PluginCategories;
+	TSharedPtr< class SPluginCategoryTree > PluginCategories;
 
 	/** The plugin list widget */
-	TSharedPtr< class SPluginList > PluginList;
+	TSharedPtr< class SPluginTileList > PluginList;
 
 	/** Text filter object for typing in filter text to the search box */
 	TSharedPtr< FPluginTextFilter > PluginTextFilter;
 
 	/** Breadcrumb trail widget for the currently selected category */
-	TSharedPtr< SPluginCategoryBreadcrumbTrail > BreadcrumbTrail;
-
+	TSharedPtr< SBreadcrumbTrail< TSharedPtr< FPluginCategory > > > BreadcrumbTrail;
 };
 

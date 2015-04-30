@@ -2,9 +2,9 @@
 
 namespace UnrealBuildTool.Rules
 {
-	public class PluginsEditor : ModuleRules
+	public class PluginBrowser : ModuleRules
 	{
-		public PluginsEditor(TargetInfo Target)
+		public PluginBrowser(TargetInfo Target)
 		{
 			PublicDependencyModuleNames.AddRange(
 				new string[] {
@@ -22,6 +22,8 @@ namespace UnrealBuildTool.Rules
 					"EditorStyle",
 					"Projects",
 					"UnrealEd",
+					"PropertyEditor",
+					"SharedSettingsWidgets"
 				}
 			);
 

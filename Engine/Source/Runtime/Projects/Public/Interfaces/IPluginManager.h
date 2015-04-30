@@ -41,32 +41,27 @@ struct FPluginStatus
 
 
 /**
- * Structure holding information about a plug-in content folder.
- */
-struct FPluginContentFolder
-{
-	/** Name of the plug-in */
-	FString Name;
-
-	/** Virtual root path for asset paths */
-	FString RootPath;
-
-	/** Content path on disk */
-	FString ContentPath;
-};
-
-/**
  * Information about an enabled plugin.
  */
 class IPlugin
 {
 public:
+	/* Virtual destructor */
+	virtual ~IPlugin(){}
+
 	/**
 	 * Gets the plugin name.
 	 *
 	 * @return Name of the plugin.
 	 */
 	virtual FString GetName() const = 0;
+
+	/**
+	 * Get a path to the plugin's descriptor
+	 *
+	 * @return Path to the plugin's descriptor.
+	 */
+	virtual FString GetDescriptorFileName() const = 0;
 
 	/**
 	 * Get a path to the plugin's directory.
@@ -102,6 +97,29 @@ public:
 	 * @return True if the plugin can contain content.
 	 */
 	virtual bool CanContainContent() const = 0;
+
+	/**
+	 * Returns the plugin's location
+	 *
+	 * @return Where the plugin was loaded from
+	 */
+	virtual EPluginLoadedFrom GetLoadedFrom() const = 0;
+
+	/**
+	 * Gets the plugin's descriptor
+	 *
+	 * @return Reference to the plugin's descriptor
+	 */
+	virtual const FPluginDescriptor& GetDescriptor() const = 0;
+
+	/**
+	 * Updates the plugin's descriptor
+	 *
+	 * @param NewDescriptor The new plugin descriptor
+	 * @param OutFailReason The error message if the plugin's descriptor could not be updated
+	 * @return True if the descriptor was updated, false otherwise. 
+	 */ 
+	virtual bool UpdateDescriptor(const FPluginDescriptor& NewDescriptor, FText& OutFailReason) = 0;
 };
 
 /**
@@ -150,7 +168,21 @@ public:
 	 *
 	 * @return	 Pointer to the plugin's information, or nullptr.
 	 */
-	virtual IPlugin* FindPlugin(const FString& Name) = 0;
+	virtual TSharedPtr<IPlugin> FindPlugin(const FString& Name) = 0;
+
+	/**
+	 * Gets an array of all the enabled plugins.
+	 *
+	 * @return	Array of the enabled plugins.
+	 */
+	virtual TArray<TSharedRef<IPlugin>> GetEnabledPlugins() = 0;
+
+	/**
+	 * Gets an array of all the discovered plugins.
+	 *
+	 * @return	Array of the discovered plugins.
+	 */
+	virtual TArray<TSharedRef<IPlugin>> GetDiscoveredPlugins() = 0;
 
 	/**
 	 * Gets status about all currently known plug-ins.
@@ -158,13 +190,6 @@ public:
 	 * @return	 Array of plug-in status objects.
 	 */
 	virtual TArray<FPluginStatus> QueryStatusForAllPlugins() const = 0;
-
-	/**
-	 * Gets a list of plug-in content folders.
-	 *
-	 * @return	 Array of plug-in content folders.
-	 */
-	virtual const TArray<FPluginContentFolder>& GetPluginContentFolders() const = 0;
 
 public:
 

@@ -2,30 +2,25 @@
 
 #pragma once
 
-#include "PluginListItem.h"
-
-typedef SListView< FPluginListItemPtr > SPluginListView;
-
-
 /**
  * A filtered list of plugins, driven by a category selection
  */
-class SPluginList : public SCompoundWidget
+class SPluginTileList : public SCompoundWidget
 {
-	SLATE_BEGIN_ARGS( SPluginList )
+	SLATE_BEGIN_ARGS( SPluginTileList )
 	{
 	}
 
 	SLATE_END_ARGS()
 
 	/** Widget constructor */
-	void Construct( const FArguments& Args, const TSharedRef< class SPluginsEditor > Owner );
+	void Construct( const FArguments& Args, const TSharedRef< class SPluginBrowser > Owner );
 
 	/** Destructor */
-	~SPluginList();
+	~SPluginTileList();
 
 	/** @return Gets the owner of this list */
-	SPluginsEditor& GetOwner();
+	SPluginBrowser& GetOwner();
 
 	/** Called to invalidate the list */
 	void SetNeedsRefresh();
@@ -36,11 +31,8 @@ private:
 	/** Called when the plugin text filter has changed what its filtering */
 	void OnPluginTextFilterChanged();
 
-	/** Recursively gathers plugins from a category and all sub-categories.  Updates the PluginListItems structure. */
-	void GetPlugins( const TSharedPtr< class FPluginCategoryTreeItem >& Category );
-
 	/** Called to generate a widget for the specified list item */
-	TSharedRef<ITableRow> PluginListView_OnGenerateRow( FPluginListItemPtr Item, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> PluginListView_OnGenerateRow(TSharedRef<IPlugin> Item, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Rebuilds the list of plugins from scratch and applies filtering. */
 	void RebuildAndFilterPluginList();
@@ -51,13 +43,13 @@ private:
 private:
 
 	/** Weak pointer back to its owner */
-	TWeakPtr< class SPluginsEditor > OwnerWeak;
+	TWeakPtr< class SPluginBrowser > OwnerWeak;
 
 	/** The list view widget for our plugins list */
-	TSharedPtr< SPluginListView > PluginListView;
+	TSharedPtr<SListView<TSharedRef<IPlugin>>> PluginListView;
 
 	/** List of everything that we want to display in the plugin list */
-	TArray< FPluginListItemPtr > PluginListItems;
+	TArray<TSharedRef<IPlugin>> PluginListItems;
 
 	/** Whether the active timer to refresh the list is registered */
 	bool bIsActiveTimerRegistered;

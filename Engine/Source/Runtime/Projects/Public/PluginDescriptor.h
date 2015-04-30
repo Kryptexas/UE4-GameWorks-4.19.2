@@ -70,6 +70,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Marks the plugin as beta in the UI */
 	bool bIsBetaVersion;
 
+	/** Signifies that the plugin was installed on top of the engine */
+	bool bInstalled;
+
 	/** Constructor. */
 	FPluginDescriptor();
 
@@ -77,7 +80,13 @@ struct PROJECTS_API FPluginDescriptor
 	bool Load(const FString& FileName, FText& OutFailReason);
 
 	/** Reads the descriptor from the given JSON object */
-	bool Read(const FJsonObject& Object, FText& OutFailReason);
+	bool Read(const FString& Text, FText& OutFailReason);
+
+	/** Saves the descriptor from the given file. */
+	bool Save(const FString& FileName, FText& OutFailReason) const;
+
+	/** Writes a descriptor to JSON */
+	FString ToString() const;
 };
 
 /**

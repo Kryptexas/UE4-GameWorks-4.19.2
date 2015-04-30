@@ -12,6 +12,7 @@
 #include "EngineBuildSettings.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -1096,11 +1097,14 @@ bool ContentBrowserUtils::IsDevelopersFolder( const FString& InPath )
 bool ContentBrowserUtils::IsPluginFolder( const FString& InPath )
 {
 	FString PathWithSlash = InPath / TEXT("");
-	for(const FPluginContentFolder& ContentFolder: IPluginManager::Get().GetPluginContentFolders())
+	for(const TSharedRef<IPlugin>& Plugin: IPluginManager::Get().GetEnabledPlugins())
 	{
-		if(PathWithSlash.StartsWith(ContentFolder.RootPath) || InPath == ContentFolder.Name)
+		if(Plugin->CanContainContent())
 		{
-			return true;
+			if(PathWithSlash.StartsWith(Plugin->GetMountedAssetPath()) || InPath == Plugin->GetName())
+			{
+				return true;
+			}
 		}
 	}
 	return false;

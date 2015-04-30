@@ -1,7 +1,7 @@
 {
 	"FileVersion" : 3,
 	
-	"FriendlyName" : "Plugins Editor",
+	"FriendlyName" : "Plugin Browser",
 	"Version" : 1,
 	"VersionName" : "1.0",
 	"CreatedBy" : "Epic Games, Inc.",
@@ -14,7 +14,7 @@
 	"Modules" :
 	[
 		{
-			"Name" : "PluginsEditor",
+			"Name" : "PluginBrowser",
 			"Type" : "Editor"
 		}
 	]

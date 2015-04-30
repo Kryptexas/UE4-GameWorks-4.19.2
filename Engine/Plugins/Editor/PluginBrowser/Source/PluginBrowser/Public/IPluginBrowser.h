@@ -8,7 +8,7 @@
 /**
  * The public interface to this module
  */
-class IPluginsEditor : public IModuleInterface, public IPluginsEditorFeature
+class IPluginBrowser : public IModuleInterface, public IPluginsEditorFeature
 {
 
 public:
@@ -19,9 +19,9 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline IPluginsEditor& Get()
+	static inline IPluginBrowser& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IPluginsEditor >( "PluginsEditor" );
+		return FModuleManager::LoadModuleChecked< IPluginBrowser >( "PluginBrowser" );
 	}
 
 	/**
@@ -31,7 +31,7 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "PluginsEditor" );
+		return FModuleManager::Get().IsModuleLoaded( "PluginBrowser" );
 	}
 };
 
