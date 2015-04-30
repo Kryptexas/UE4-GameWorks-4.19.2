@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2223759
+﻿INTSourceChangelist:2521503
 Availability:Public
-Title: IES ライトプロファイル
-Crumbs: %ROOT%, Engine, Engine/Rendering
-Description:アンリアル・エンジン 4で IES ライトプロファイルを使用する
+Title:IES ライト プロファイル
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description:アンリアル・エンジン 4 で IES ライトプロファイルを使用する
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -53,21 +53,19 @@ Description:アンリアル・エンジン 4で IES ライトプロファイル�
 ## 概要
 
 [EXCERPT:IES001]
-**IES ライト プロファイル** は、円弧でライト強度を定義するカーブです。これをアンリアル エンジンが軸の周囲をスイープして照明器具の反射面、電球の形状、レンズ効果を表すかのように **ポイントライト** や **スポットライト** が一段とリアルに投射するように見えるようにします。カーブ自体は、ライトからテクスチャを投影するかのようにライトの全体的な輝度に対する乗数とみなすことができます。しかし、それを行うためのテクスチャのオーバーヘッドや、何らかの角度で投影する場合に発生しうるエラーを生じることはありません。
+**IES ライト プロファイル** は、円弧でライト強度を定義するカーブです。これをアンリアル エンジンが軸の周囲をスイープして照明器具の反射面、電球の形状、レンズ効果を表すかのように**ポイントライト** や**スポットライト** が一段とリアルに投射するように見えるようにします。カーブ自体は、ライトからテクスチャを投影するかのようにライトすべての輝度に対する乗数とみなすことができます。しかし、それを行うためのテクスチャのオーバーヘッドや、何らかの角度で投影する場合に発生しうるエラーを生じることはありません。
 [/EXCERPT:IES001]
 
 [REGION:lightbox]
-[![](IES_01.png)(w:225)](IES_01.png) [![](IES_02.png)(w:225)](IES_02.png) [![](IES_03.png)(w:225)](IES_03.png) [![](IES_04.png)(w:225)](IES_04.png)
+[![](IES_01.png)(w:225 h:225)](IES_01.png) [![](IES_02.png)(w:225 h:225)](IES_02.png) [![](IES_03.png)(w:225 h:225)](IES_03.png) [![](IES_04.png)(w:225 h:225)](IES_04.png)
 [/REGION]
-
-_ライト プロファイルは左側から以下のように並んでいます。CDM-i_25W-40deg, LTL11041, TPG_1000S_PG21_M, およびリアリスティックなレンダリング サンプルからの IES の例_
 
 ## こうしたものをどこで入手できますか？
 
-IES ライト プロファイルを入手する一番簡単な方法は、メーカーのウェブサイトからダウンロードすることです。ほぼすべての大手照明メーカーが無料で提供しているからです。例えば、以下のサイトが単一のライトに対する幅広いライトプロファイルの選択を提示しています。[ERCO](http://www.erco.com/products/download/others/downloaddaten-3992/en/dltut-1.php?aktion=_startseite&sprache=en&dir=40_planning_luminaire/25_ies), [Lithonia Lighting](http://www.lithonia.com/photometrics.aspx), および[Phillips](http://www.usa.lighting.philips.com/connect/tools_literature/photometric_data_1.wpd)こうしたサイトでは自社の照明について非常に丁寧に文書化しています。プロファイルは、使用されているライトエミッタのタイプとカラー、照明器具のバリエーションがあればそれに基づいたものにすることもあります。
+ほぼすべての大手照明メーカーが IES ライト プロファイルを無料で提供しているので、メーカーのウェブサイトからダウンロードするのが一番簡単に入手できます。例えば、 [Lithonia Lighting](http://www.lithonia.com/photometrics.aspx) および [Phillips](http://www.usa.lighting.philips.com/connect/tools_literature/photometric_data_1.wpd) では、一つのライトに対して数多くのライトプロファイルを選択することができます。こうしたサイトでは自社の照明について非常に丁寧に文書化しています。プロファイルは、使用されているライトエミッタのタイプとカラー、照明器具のバリエーションがあればそれに基づいたものにすることもあります。
 
 [REGION:tip]
-以下のウェブサイトの優れた点は、ウェブ ブラウザのプロファイル ビューアがあることです。これで、ほしいと思う実際の照明が見つかったら、入手しようとしているものを見ることができます。[Lithonia Lighting](http://www.lithonia.com/photometrics.aspx)
+[Lithonia Lighting](http://www.lithonia.com/photometrics.aspx) の優れた点は、ウェブ ブラウザのプロファイル ビューアがあることです。これで、ほしいと思う実際の照明が見つかったら、入手しようとしているものを見ることができます。
 [/REGION]
 
 アンリアル エディタでプロファイルを調べると、1D テクスチャ (グラディエント) として表されます。しかし、これらはテクスチャではなく、幅広いメタデータを含むASCII ファイルです。 
@@ -108,17 +106,17 @@ _The IES Profile for a Lithonia TPG_1000S_PG21_M_
 
 ## 使用法
 
-1. IES プロファイル をクリックしてコンテンツ ブラウザにドラッグしてインポートします。または以下の手順を使用してインポートします。 **New Asset -> Import to...**
+1. IES プロファイル をクリックして **コンテンツ ブラウザ** にドラッグするか、または **[New Asset] -> [Import to...]** を使用します。
 1. そのライトプロファイルを **Light Profiles** の下の **IES Texture** スロットにドラッグすることで、シーン内の **Point Light** に割り当てます。
 1. **IES Brightness Scale** スライダを使用してプロファイルの輝度を調整することができます。
-1. **コンテンツ ブラウザ** 内で作成した「テクスチャ」上でダブルクリックして **Texture Properties** を呼び出して微調整することもできます。 
+1. **コンテンツ ブラウザ** 内で作成した「テクスチャ」上を**ダブルクリック** して **Texture Properties** を呼び出して微調整することもできます。 
 
 ## スポットライト
 
 IES ライトプロファイルは基本的にポイントライトをスポットライト (視覚的観点から) に変えます。スポットライトで IES プロファイルを使用するとポイントライトで使用する場合と同様に機能します。ただし、スポットライトの円錐は IES プロファイル エフェクトをマスクします。しかし、スポットライトの投影領域は最大でも 179 度の円弧であり、それを超えると IES データは失われます。
 
 [REGION:lightbox]
-[![](IES_SpotVsPoint_02.png)(w:440)](IES_SpotVsPoint_02.png) [![](IES_SpotVsPoint_01.png)(w:440)](IES_SpotVsPoint_01.png)
+[![](IES_SpotVsPoint_02.png)(h:220)](IES_SpotVsPoint_02.png) [![](IES_SpotVsPoint_01.png)(h:220)](IES_SpotVsPoint_01.png)
 [/REGION]
 
-_こうした画像では、左側のライトがスポットライトで右側のライトがポイントライトです。スポットライトの上ではライティングが足りないことがわかります。スポットライトの円錐は、IES のライト プロファイルのエフェクトを切り落とします。
+_こうした画像では、左側のライトがスポットライトで右側のライトがポイントライトです。スポットライトの上ではライティングが足りないことがわかります。スポットライトの円錐は、IES のライト プロファイルのエフェクトを切り落とします。_
