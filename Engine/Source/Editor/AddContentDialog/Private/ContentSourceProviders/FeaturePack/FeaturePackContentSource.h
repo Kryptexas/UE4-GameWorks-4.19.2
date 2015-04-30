@@ -1,7 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "SuperSearchModule.h"
 
 class FLocalizedTextArray
 {
@@ -43,6 +42,7 @@ private:
 
 
 class FPakPlatformFile;
+struct FSearchEntry;
 
 /** A content source which represents a content upack. */
 class FFeaturePackContentSource : public IContentSource
@@ -66,8 +66,8 @@ public:
 	
 	virtual ~FFeaturePackContentSource();
 	
-	virtual void HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry);
-	virtual void HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
+	void HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry);
+	void HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
 
 private:
 	bool LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);

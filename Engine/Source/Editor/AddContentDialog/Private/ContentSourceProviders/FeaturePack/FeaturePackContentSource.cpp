@@ -8,7 +8,7 @@
 #include "IPlatformFilePak.h"
 #include "FileHelpers.h"
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
-/*#include "SuperSearchModule.h"*/
+#include "SuperSearchModule.h"
 
 #define LOCTEXT_NAMESPACE "ContentFeaturePacks"
 
