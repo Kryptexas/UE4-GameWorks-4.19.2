@@ -83,7 +83,8 @@ FDataTableEditor::~FDataTableEditor()
 {
 	GEditor->UnregisterForUndo(this);
 
-	if (DataTable.IsValid())
+	const UDataTable* Table = GetDataTable();
+	if (Table)
 	{
 		SaveLayoutData();
 	}
@@ -101,7 +102,8 @@ void FDataTableEditor::PostRedo(bool bSuccess)
 
 void FDataTableEditor::HandleUndoRedo()
 {
-	if (DataTable.IsValid())
+	const UDataTable* Table = GetDataTable();
+	if (Table)
 	{
 		HandlePostChange();
 		CallbackOnDataTableUndoRedo.ExecuteIfBound();
@@ -114,7 +116,8 @@ void FDataTableEditor::PreChange(const class UUserDefinedStruct* Struct, FStruct
 
 void FDataTableEditor::PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
 {
-	if (Struct && DataTable.IsValid() && (DataTable->RowStruct == Struct))
+	const UDataTable* Table = GetDataTable();
+	if (Struct && Table && (Table->RowStruct == Struct))
 	{
 		HandlePostChange();
 	}
@@ -126,11 +129,16 @@ void FDataTableEditor::PreChange(const UDataTable* Changed, FDataTableEditorUtil
 
 void FDataTableEditor::PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info)
 {
-	FStringAssetReference::InvalidateTag(); // Should be removed after UE-5615 is fixed
-	if (Changed == DataTable.Get())
+	const UDataTable* Table = GetDataTable();
+	if (Changed == Table)
 	{
 		HandlePostChange();
 	}
+}
+
+const UDataTable* FDataTableEditor::GetDataTable() const
+{
+	return Cast<const UDataTable>(GetEditingObject());
 }
 
 void FDataTableEditor::HandlePostChange()
@@ -260,12 +268,13 @@ void FDataTableEditor::LoadLayoutData()
 {
 	LayoutData.Reset();
 
-	if (!DataTable.IsValid())
+	const UDataTable* Table = GetDataTable();
+	if (!Table)
 	{
 		return;
 	}
 
-	const FString LayoutDataFilename = FPaths::GameSavedDir() / TEXT("AssetData") / TEXT("DataTableEditorLayout") / DataTable->GetName() + TEXT(".json");
+	const FString LayoutDataFilename = FPaths::GameSavedDir() / TEXT("AssetData") / TEXT("DataTableEditorLayout") / Table->GetName() + TEXT(".json");
 
 	FString JsonText;
 	if (FFileHelper::LoadFileToString(JsonText, *LayoutDataFilename))
@@ -277,12 +286,13 @@ void FDataTableEditor::LoadLayoutData()
 
 void FDataTableEditor::SaveLayoutData()
 {
-	if (!DataTable.IsValid() || !LayoutData.IsValid())
+	const UDataTable* Table = GetDataTable();
+	if (!Table || !LayoutData.IsValid())
 	{
 		return;
 	}
 
-	const FString LayoutDataFilename = FPaths::GameSavedDir() / TEXT("AssetData") / TEXT("DataTableEditorLayout") / DataTable->GetName() + TEXT(".json");
+	const FString LayoutDataFilename = FPaths::GameSavedDir() / TEXT("AssetData") / TEXT("DataTableEditorLayout") / Table->GetName() + TEXT(".json");
 
 	FString JsonText;
 	TSharedRef< TJsonWriter< TCHAR, TPrettyJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory< TCHAR, TPrettyJsonPrintPolicy<TCHAR> >::Create(&JsonText);
@@ -385,7 +395,8 @@ void FDataTableEditor::OnFilterTextChanged(const FText& InFilterText)
 
 void FDataTableEditor::RefreshCachedDataTable()
 {
-	FDataTableEditorUtils::CacheDataTableForEditing(DataTable.Get(), AvailableColumns, AvailableRows);
+	const UDataTable* Table = GetDataTable();
+	FDataTableEditorUtils::CacheDataTableForEditing(Table, AvailableColumns, AvailableRows);
 
 	// Update the desired width of the row names column
 	// This prevents it growing or shrinking as you scroll the list view
@@ -616,7 +627,15 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 
 TSharedRef<SWidget> FDataTableEditor::CreateRowEditorBox()
 {
-	auto RowEditor = SNew(SRowEditor, DataTable.Get());
+	UDataTable* Table = Cast<UDataTable>(GetEditingObject());
+
+	// Support undo/redo
+	if (Table)
+	{
+		Table->SetFlags(RF_Transactional);
+	}
+
+	auto RowEditor = SNew(SRowEditor, Table);
 	RowEditor->RowSelectedCallback.BindSP(this, &FDataTableEditor::SetHighlightedRow);
 	CallbackOnRowHighlighted.BindSP(RowEditor, &SRowEditor::SelectRow);
 	CallbackOnDataTableUndoRedo.BindSP(RowEditor, &SRowEditor::HandleUndoRedo);
@@ -648,12 +667,12 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 {
 	check( Args.GetTabId().TabType == DataTableTabId );
 
-	DataTable = Cast<UDataTable>(GetEditingObject());
+	UDataTable* Table = Cast<UDataTable>(GetEditingObject());
 
 	// Support undo/redo
-	if (DataTable.IsValid())
+	if (Table)
 	{
-		DataTable->SetFlags(RF_Transactional);
+		Table->SetFlags(RF_Transactional);
 	}
 
 	LoadLayoutData();

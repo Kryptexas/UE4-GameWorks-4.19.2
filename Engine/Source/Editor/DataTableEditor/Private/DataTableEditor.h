@@ -60,6 +60,9 @@ public:
 	virtual void PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 	virtual void PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info) override;
 
+	/** Get the data table being edited */
+	const UDataTable* GetDataTable() const;
+
 	void HandlePostChange();
 
 	void SetHighlightedRow(FName Name);
@@ -153,9 +156,6 @@ private:
 
 	/** Widths of data table cell columns */
 	TArray<FColumnWidth> ColumnWidths;
-
-	/* The DataTable that is active in the editor */
-	TAssetPtr<UDataTable> DataTable;
 
 	/** The layout data for the currently loaded data table */
 	TSharedPtr<FJsonObject> LayoutData;
