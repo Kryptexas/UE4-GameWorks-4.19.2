@@ -190,8 +190,6 @@ void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 void UPaperTileSet::DestructiveAllocateTileData(int32 NewWidth, int32 NewHeight)
 {
-	check((NewWidth > 0) && (NewHeight > 0));
-
 	const int32 NumCells = NewWidth * NewHeight;
 	ExperimentalPerTileData.Empty(NumCells);
 	for (int32 Index = 0; Index < NumCells; ++Index)
