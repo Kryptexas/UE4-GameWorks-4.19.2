@@ -197,7 +197,11 @@ struct ENGINE_API FHierarchicalSimplification
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** If this is true, it will simplify mesh. However it is slower. If false, it will just merge actors but not simplify */
+	/** If this is true, it will simplify mesh but it is slower. 
+	 * If false, it will just merge actors but not simplify using the lower LOD if exists. 
+	 * For example if you build LOD 1, it will use LOD 1 of the mesh to merge actors if exists.  
+	 * Also it will flattening material so that it can reduce drawcalls. 
+	 */
 	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere)
 	bool bSimplifyMesh;
 
@@ -205,13 +209,16 @@ struct ENGINE_API FHierarchicalSimplification
 	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
 	float DrawDistance;
 
-	/** Desired Bounding Box Size for clustering */
+	/** Desired Bounding Box Size for clustering - this is not guaranteed but used to calculate filling factor */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(UIMin=10.f, ClampMin=10.f))
 	float DesiredBoundSize;
 
-	/** Desired Filling Percentage for clustering */
+	/** Desired Filling Percentage for clustering - this is not guaranteed but used to calculate filling factor  */
 	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))
 	float DesiredFillingPercentage;
+
+	UPROPERTY(EditAnywhere, Category=FHierarchicalSimplification, AdvancedDisplay, meta=(ClampMin = "1", UIMin = "1"))
+	int32 MinNumberOfActorsToBuild;
 
 	/** Simplification Setting if bSimplifyMesh is true */
 	UPROPERTY(Category=FHierarchicalSimplification, EditAnywhere, AdvancedDisplay, meta=(editcondition = "bSimplifyMesh"))
@@ -222,6 +229,7 @@ struct ENGINE_API FHierarchicalSimplification
 		, DrawDistance(5000)
 		, DesiredBoundSize(5000)
 		, DesiredFillingPercentage(50)
+		, MinNumberOfActorsToBuild(2)
 	{
 		Setting.ScreenSize = 200;
 	}

@@ -34,8 +34,6 @@ struct FLODCluster
 	void Invalidate() { bValid = false; }
 	// return true if valid
 	bool IsValid() const {	return bValid; }
-	// should build to actor list
-	bool ShouldBuild() const { return IsValid() && Actors.Num() > 1; }
 
 	// return cost of the cluster, lower is better
 	const float GetCost() const
@@ -106,7 +104,7 @@ private:
 	void InitializeClusters(class ULevel* InLevel, const int32 LODIdx, float CullCost);
 
 	// merge clusters
-	void MergeClustersAndBuildActors(class ULevel* InLevel, const int32 LODIdx, float HighestCost);
+	void MergeClustersAndBuildActors(class ULevel* InLevel, const int32 LODIdx, float HighestCost, int32 MinNumActors);
 
 	// find minmal spanning tree of clusters
 	void FindMST();
