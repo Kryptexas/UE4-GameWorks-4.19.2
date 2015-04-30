@@ -632,6 +632,7 @@ void FNativeClassHeaderGenerator::ExportProperties(UStruct* Struct, int32 TextIn
 			{
 				// find the class info for this class
 				FClassMetaData* ClassData = GScriptHelper.FindClassData(Struct);
+				check(ClassData);
 
 				// find the compiler token for this property
 				FTokenData* PropData = ClassData->FindTokenData(Current);
@@ -1197,9 +1198,6 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 	// Sort the list of functions
 	FunctionsToExport.Sort();
 
-	// find the class info for this class
-	FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
-
 	// Export the init code for each function
 	for (int32 FuncIndex = 0; FuncIndex < FunctionsToExport.Num(); FuncIndex++)
 	{
@@ -1659,7 +1657,7 @@ FString GetGeneratedMacroDeprecationWarning(const TCHAR* MacroName)
 FString GetPreservedAccessSpecifierString(FClass* Class)
 {
 	FString PreservedAccessSpecifier(FString::Printf(TEXT("static_assert(false, \"Unknown access specifier for GENERATED_BODY() macro in class %s.\");"), *GetNameSafe(Class)));
-	FClassMetaData* Data = GScriptHelper.FindClassData(Class);	
+	FClassMetaData* Data = GScriptHelper.FindClassData(Class);
 	if (Data)
 	{
 		switch (Data->GeneratedBodyMacroAccessSpecifier)
@@ -1795,12 +1793,13 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileInner(FUnrealSource
 		EnhancedUObjectConstructorsMacroCall.Reset();
 
 		auto* Class = (FClass*)RawUClass;
-		auto* ClassData = GScriptHelper.FindClassData(Class);
-
 		if (Class->ClassFlags & CLASS_Intrinsic)
 		{
 			continue;
 		}
+
+		auto* ClassData = GScriptHelper.FindClassData(Class);
+		check(ClassData);
 
 		// C++ -> VM stubs (native function execs)
 		ExportNativeFunctions(SourceFile, Class, ClassData);
@@ -2093,6 +2092,7 @@ void ExportCopyConstructorDefinition(FUHTStringBuilder& Out, FClass* Class, cons
 void ExportVTableHelperConstructorDecl(FStringOutputDevice& Out, FClass* Class, const FString& API)
 {
 	auto* ClassData = GScriptHelper.FindClassData(Class);
+	check(ClassData);
 	if (!ClassData->bCustomVTableHelperConstructorDeclared)
 	{
 		Out.Logf(TEXT("%sDECLARE_VTABLE_PTR_HELPER_CTOR(%s_API, %s);" LINE_TERMINATOR), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
@@ -2130,6 +2130,7 @@ void ExportVTableHelperCtorCallerDummy(FStringOutputDevice& Out)
 void ExportVTableHelperConstructorBody(FStringOutputDevice& Out, FClass* Class)
 {
 	auto* ClassData = GScriptHelper.FindClassData(Class);
+	check(ClassData);
 	if (!ClassData->bCustomVTableHelperConstructorDeclared)
 	{
 		Out.Logf(TEXT("%sDEFINE_VTABLE_PTR_HELPER_CTOR(%s);" LINE_TERMINATOR), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
@@ -2177,6 +2178,7 @@ void ExportStandardConstructorsMacro(FUHTStringBuilder& Out, FClass* Class, cons
 		Out.Logf(TEXT("\t/** Standard constructor, called after all reflected properties have been initialized */\r\n"));
 
 		auto* ClassData = GScriptHelper.FindClassData(Class);
+		check(ClassData);
 
 		Out.Logf(TEXT("\t%s_API %s(const FObjectInitializer& ObjectInitializer%s);\r\n"), *API, NameLookupCPP.GetNameCPP(Class),
 			ClassData->bDefaultConstructorDeclared ? TEXT("") : TEXT(" = FObjectInitializer::Get()"));
@@ -2200,6 +2202,7 @@ void ExportStandardConstructorsMacro(FUHTStringBuilder& Out, FClass* Class, cons
 void ExportConstructorDefinition(FUHTStringBuilder& Out, FClass* Class, const FString& API)
 {
 	auto* ClassData = GScriptHelper.FindClassData(Class);
+	check(ClassData);
 	if (!ClassData->bConstructorDeclared)
 	{
 		Out.Logf(TEXT("\t/** Standard constructor, called after all reflected properties have been initialized */\r\n"));
@@ -2241,6 +2244,7 @@ void ExportConstructorDefinition(FUHTStringBuilder& Out, FClass* Class, const FS
 void ExportDefaultConstructorCallDefinition(FUHTStringBuilder& Out, FClass* Class)
 {
 	auto* ClassData = GScriptHelper.FindClassData(Class);
+	check(ClassData);
 
 	if (ClassData->bObjectInitializerConstructorDeclared)
 	{

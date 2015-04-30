@@ -68,19 +68,31 @@ namespace
 	bool ProbablyAMacro(const TCHAR* Identifier)
 	{
 		// Test for known delegate and event macros.
-		TCHAR DelegateStart[] = TEXT("DECLARE_DELEGATE_");
-		if (!FCString::Strncmp(Identifier, DelegateStart, ARRAY_COUNT(DelegateStart) - 1))
+		TCHAR MulticastDelegateStart[] = TEXT("DECLARE_MULTICAST_DELEGATE");
+		if (!FCString::Strncmp(Identifier, MulticastDelegateStart, ARRAY_COUNT(MulticastDelegateStart) - 1))
+		{
 			return true;
+		}
+
+		TCHAR DelegateStart[] = TEXT("DECLARE_DELEGATE");
+		if (!FCString::Strncmp(Identifier, DelegateStart, ARRAY_COUNT(DelegateStart) - 1))
+		{
+			return true;
+		}
 
 		TCHAR DelegateEvent[] = TEXT("DECLARE_EVENT");
 		if (!FCString::Strncmp(Identifier, DelegateEvent, ARRAY_COUNT(DelegateEvent) - 1))
+		{
 			return true;
+		}
 
 		// Failing that, we'll guess about it being a macro based on it being a fully-capitalized identifier.
 		while (TCHAR Ch = *Identifier++)
 		{
 			if (Ch != TEXT('_') && (Ch < TEXT('A') || Ch > TEXT('Z')))
+			{
 				return false;
+			}
 		}
 
 		return true;
@@ -2119,7 +2131,9 @@ void FHeaderParser::FixupDelegateProperties( FClasses& AllClasses, UStruct* Stru
 			{
 				// this UDelegateProperty corresponds to an actual delegate variable (i.e. delegate<SomeDelegate> Foo); we need to lookup the token data for
 				// this property and verify that the delegate property's "type" is an actual delegate function
-				FTokenData* DelegatePropertyToken = GScriptHelper.FindClassData(Struct)->FindTokenData(Property);
+				FClassMetaData* StructData = GScriptHelper.FindClassData(Struct);
+				check(StructData);
+				FTokenData* DelegatePropertyToken = StructData->FindTokenData(Property);
 				check(DelegatePropertyToken);
 
 				// attempt to find the delegate function in the map of functions we've already found
@@ -2251,7 +2265,9 @@ void FHeaderParser::VerifyRepNotifyCallbacks( UClass* TargetClass )
 		UProperty* Prop = Cast<UProperty>(Field);
 		if( Prop && (Prop->GetPropertyFlags() & CPF_RepNotify) )
 		{
-			FTokenData* PropertyToken = GScriptHelper.FindClassData(TargetClass)->FindTokenData(Prop);
+			FClassMetaData* TargetClassData = GScriptHelper.FindClassData(TargetClass);
+			check(TargetClassData);
+			FTokenData* PropertyToken = TargetClassData->FindTokenData(Prop);
 			check(PropertyToken);
 
 			// Search through this class and its superclasses looking for the specified callback
@@ -3856,7 +3872,9 @@ UProperty* FHeaderParser::GetVarNameAndDim
 	}
 
 	VarProperty.TokenProperty = NewProperty;
-	GScriptHelper.FindClassData(Scope)->AddProperty(VarProperty);
+	FClassMetaData* ScopeData = GScriptHelper.FindClassData(Scope);
+	check(ScopeData);
+	ScopeData->AddProperty(VarProperty);
 
 	// if we had any metadata, add it to the class
 	AddMetaDataToClassData(VarProperty.TokenProperty, VarProperty.MetaData);
@@ -4340,13 +4358,17 @@ void FHeaderParser::HandleOneInheritedClass(FClasses& AllClasses, UClass* Class,
 		new (Class->Interfaces) FImplementedInterface(Interface, 0, false);
 		if (Interface->HasAnyClassFlags(CLASS_Native))
 		{
-			GScriptHelper.FindClassData(Class)->AddInheritanceParent(Interface);
+			FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
+			check(ClassData);
+			ClassData->AddInheritanceParent(Interface);
 		}
 	}
 	else
 	{
 		// Non-UObject inheritance
-		GScriptHelper.FindClassData(Class)->AddInheritanceParent(InterfaceName);
+		FClassMetaData* ClassData = GScriptHelper.FindClassData(Class);
+		check(ClassData);
+		ClassData->AddInheritanceParent(InterfaceName);
 	}
 }
 
@@ -7344,6 +7366,7 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 	}
 
 	auto* ClassData = GScriptHelper.FindClassData(GetCurrentClass());
+	check(ClassData);
 
 	bool bOICtor = false;
 #if WITH_HOT_RELOAD_CTORS
@@ -7646,7 +7669,9 @@ void FHeaderParser::PostPopFunctionDeclaration(FClasses& AllClasses, UFunction* 
 
 void FHeaderParser::PostPopNestInterface(FClasses& AllClasses, UClass* CurrentInterface)
 {
-	if (GScriptHelper.FindClassData(CurrentInterface)->ContainsDelegates())
+	FClassMetaData* ClassData = GScriptHelper.FindClassData(CurrentInterface);
+	check(ClassData);
+	if (ClassData->ContainsDelegates())
 	{
 		TMap<FName, UFunction*> DelegateCache;
 		FixupDelegateProperties(AllClasses, CurrentInterface, FScope::GetTypeScope(ExactCast<UClass>(CurrentInterface)).Get(), DelegateCache);
