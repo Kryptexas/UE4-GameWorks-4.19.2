@@ -7,7 +7,7 @@
 /**
  * Instance of a plugin in memory
  */
-class FPluginInstance
+class FPlugin : public IPlugin
 {
 public:
 	/** The name of the plugin */
@@ -28,7 +28,15 @@ public:
 	/**
 	 * FPlugin constructor
 	 */
-	FPluginInstance(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom InLoadedFrom);
+	FPlugin(const FString &FileName, const FPluginDescriptor& InDescriptor, EPluginLoadedFrom InLoadedFrom);
+
+	/* IPluginInfo interface */
+	virtual FString GetName() const override;
+	virtual FString GetBaseDir() const override;
+	virtual FString GetContentDir() const override;
+	virtual FString GetMountedAssetPath() const override;
+	virtual bool IsEnabled() const override;
+	virtual bool CanContainContent() const override;
 };
 
 /**
@@ -48,6 +56,7 @@ public:
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
 	virtual bool AreRequiredPluginsAvailable() override;
 	virtual bool CheckModuleCompatibility( TArray<FString>& OutIncompatibleModules ) override;
+	virtual FPlugin* FindPlugin(const FString& Name) override;
 	virtual TArray< FPluginStatus > QueryStatusForAllPlugins() const override;
 	virtual const TArray< FPluginContentFolder >& GetPluginContentFolders() const override;
 
@@ -61,11 +70,11 @@ private:
 	bool ConfigureEnabledPlugins();
 
 	/** Gets the instance of a given plugin */
-	TSharedPtr<FPluginInstance> FindPluginInstance(const FString& Name);
+	TSharedPtr<FPlugin> FindPluginInstance(const FString& Name);
 
 private:
 	/** All of the plugins that we know about */
-	TArray< TSharedRef< FPluginInstance > > AllPlugins;
+	TArray< TSharedRef< FPlugin > > AllPlugins;
 
 	/** All the plugin content folders */
 	TArray<FPluginContentFolder> ContentFolders;
