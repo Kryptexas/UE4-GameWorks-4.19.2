@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2467433
+﻿INTSourceChangelist:2521087
 Availability:Public
 Title:5.ビルド プロセスを実行する
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:多くのアクタを配置し、カスタマイズした状態で、レベルを作成するための最終ステップの 1 つは、ビルド プロセスです。
+Description:多数のアクタを配置したカスタマイズ状態でレベルを作成する最終ステップの 1 つは、ビルド プロセスです。
 
 
 
@@ -14,7 +14,7 @@ Description:多くのアクタを配置し、カスタマイズした状態で�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[クイックスタート ホーム](Engine/QuickStart)
+		[Quick Start Home](Engine/QuickStart)
 	[/PARAM]
 	[PARAM:next]
 		[次のステップ](Engine/QuickStart/6 "%Engine/QuickStart/6:title%")
@@ -26,9 +26,9 @@ Description:多くのアクタを配置し、カスタマイズした状態で�
 
 ![](Engine\QuickStart\5\beforeBake.png)(w:940)
 
-シャドウに "Preview というラベルが見え、ライトが壁の下から漏れていることが分かります。これは、シーン内のすべてのライトは静的で、事前計算、すなわちベイクされた光源処理を使用しているものの、この光源処理がまだ計算されていないためです。この「プレビュー」テキストは、現在ビューポートで見ているものはゲーム内で見えるものとは異なることを気付かせるためのものです。シーンの見栄えをよくするためには、 **[Build]** プロセスを実行する必要があります。
+シャドウに「Preview」というラベルが見え、ライトが壁の下から漏れていることが分かります。これは、シーン内のすべてのライトは静的で、事前計算、すなわちベイクされた光源処理を使用しているものの、この光源処理がまだ計算されていないためです。この「Preview」というテキストは、現在ビューポートで見ているものはゲーム内で見えるものとは異なることを気付かせるためのものです。シーンの見栄えをよくするためには、 **[Build]** プロセスを実行する必要があります。
 
-アンリアル エディタで **ビルドする** ことは非常に簡単です。ご利用のクオリティ設定を選択し、 ![**Build**](Engine\QuickStart\6\build_button.png) ボタンをクリックします。
+アンリアル エディタでの **ビルド作業** は非常に簡単です。使用するクオリティ設定を選択し、 ![**Build**](Engine\QuickStart\6\build_button.png) ボタンをクリックします。
 
 
 
@@ -52,6 +52,6 @@ Description:多くのアクタを配置し、カスタマイズした状態で�
 ![](Engine\QuickStart\6\built.png)(w:940)
 
 
-最後になりますが、配置した **Player Start** を覚えていますか？![**Play**](Engine\QuickStart\6\play_button.png) ボタンを押すと、 **マウス** と **WASD** キーを使用してレベルを飛び回ることができます。プレイモード中は、実際にゲームが実行し、スタンドアロンのクライアントで見るものと全く同じレンダラーになります。
+最後に、配置した **Player Start** を覚えていますか？![**Play**](Engine\QuickStart\6\play_button.png) ボタンを押すと、 **マウス** と **WASD** キーを使用してレベルを飛び回ることができます。Play モードでは、実際にゲームが実行し、スタンドアロンのクライアントで見るものと全く同じレンダラーになります。
 
 %Steps%
