@@ -516,10 +516,19 @@ void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 		//	(we want to continue to fly around in real-time)
 		if ( SpectatorController != NULL )
 		{
-			SpectatorController->CustomTimeDilation = 1.0f;
+			if ( World->GetWorldSettings()->DemoPlayTimeDilation > KINDA_SMALL_NUMBER )
+			{
+				SpectatorController->CustomTimeDilation = 1.0f / World->GetWorldSettings()->DemoPlayTimeDilation;
+			}
+			else
+			{
+				SpectatorController->CustomTimeDilation = 1.0f;
+			}
 
 			if ( SpectatorController->GetSpectatorPawn() != NULL )
 			{
+				SpectatorController->GetSpectatorPawn()->CustomTimeDilation = SpectatorController->CustomTimeDilation;
+
 				// Disable collision on the spectator
 				SpectatorController->GetSpectatorPawn()->SetActorEnableCollision( false );
 					
@@ -529,7 +538,7 @@ void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 
 				if ( SpectatorMovement )
 				{
-					SpectatorMovement->bIgnoreTimeDilation = true;
+					//SpectatorMovement->bIgnoreTimeDilation = true;
 					SpectatorMovement->PrimaryComponentTick.bTickEvenWhenPaused = true;
 				}
 			}
