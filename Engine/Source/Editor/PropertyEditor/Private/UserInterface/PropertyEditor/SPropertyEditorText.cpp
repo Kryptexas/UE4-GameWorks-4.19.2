@@ -7,6 +7,7 @@
 #include "PropertyEditor.h"
 #include "PropertyEditorHelpers.h"
 
+#define LOCTEXT_NAMESPACE "PropertyEditor"
 
 void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef< class FPropertyEditor >& InPropertyEditor )
 {
@@ -15,6 +16,8 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 	const UProperty* Property = InPropertyEditor->GetProperty();
 
 	TSharedPtr<SHorizontalBox> HorizontalBox;
+
+	bIsFNameProperty = Property->IsA<UNameProperty>();
 
 	bIsMultiLine = Property->GetBoolMetaData("MultiLine");
 	if(bIsMultiLine)
@@ -25,18 +28,21 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 			+SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			[
-				SAssignNew(PrimaryWidget, SMultiLineEditableTextBox)
+				SAssignNew(MultiLineWidget, SMultiLineEditableTextBox)
 				.Text(InPropertyEditor, &FPropertyEditor::GetValueAsText)
 				.Font(InArgs._Font)
 				.SelectAllTextWhenFocused(false)
 				.ClearKeyboardFocusOnCommit(false)
 				.OnTextCommitted(this, &SPropertyEditorText::OnTextCommitted)
+				.OnTextChanged(this, &SPropertyEditorText::OnMultiLineTextChanged)
 				.SelectAllTextOnCommit(false)
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
 				.AutoWrapText(true)
 				.ModiferKeyForNewLine(EModifierKey::Shift)
 			]
 		];
+
+		PrimaryWidget = MultiLineWidget;
 	}
 	else
 	{
@@ -46,16 +52,20 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 			+SHorizontalBox::Slot()
 			.FillWidth(1.0f)
 			[
-				SAssignNew( PrimaryWidget, SEditableTextBox )
+				SAssignNew( SingleLineWidget, SEditableTextBox )
 				.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
 				.Font( InArgs._Font )
 				.SelectAllTextWhenFocused( true )
 				.ClearKeyboardFocusOnCommit(false)
 				.OnTextCommitted( this, &SPropertyEditorText::OnTextCommitted )
+				.OnTextChanged( this, &SPropertyEditorText::OnSingleLineTextChanged )
 				.SelectAllTextOnCommit( true )
 				.IsReadOnly(this, &SPropertyEditorText::IsReadOnly)
+			
 			]
 		];
+
+		PrimaryWidget = SingleLineWidget;
 	}
 
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
@@ -107,6 +117,35 @@ void SPropertyEditorText::OnTextCommitted( const FText& NewText, ETextCommit::Ty
 	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
 
 	PropertyHandle->SetValueFromFormattedString( NewText.ToString() );
+}
+
+static FText ValidateNameLength( const FText& Text )
+{
+	if( Text.ToString().Len() > NAME_SIZE )
+	{
+		static FText ErrorString = FText::Format( LOCTEXT("NamePropertySizeTooLongError", "Name properties may only be a maximum of {0} characters"), FText::AsNumber( NAME_SIZE ) );
+		return ErrorString;
+	}
+
+	return FText::GetEmpty();
+}
+
+void SPropertyEditorText::OnMultiLineTextChanged( const FText& NewText )
+{
+	if( bIsFNameProperty )
+	{
+		FText ErrorMessage = ValidateNameLength( NewText );
+		MultiLineWidget->SetError( ErrorMessage );
+	}
+}
+
+void SPropertyEditorText::OnSingleLineTextChanged( const FText& NewText )
+{
+	if( bIsFNameProperty )
+	{
+		FText ErrorMessage = ValidateNameLength( NewText );
+		SingleLineWidget->SetError( ErrorMessage );
+	}
 }
 
 bool SPropertyEditorText::SupportsKeyboardFocus() const
