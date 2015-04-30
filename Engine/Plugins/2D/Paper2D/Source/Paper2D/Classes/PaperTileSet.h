@@ -86,7 +86,7 @@ class PAPER2D_API UPaperTileSet : public UObject
 	int32 TileHeight;
 
 	// The tile sheet texture associated with this tile set
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(DisplayName="Tile Sheet Texture"))
 	UTexture2D* TileSheet;
 
 	// The amount of padding around the perimeter of the tile sheet (in pixels)
