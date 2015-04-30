@@ -65,16 +65,16 @@
 						string BuggRowColor = "grey";
 						string BuggColorDescription = "Incoming CrashGroup";
 
-						if( string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentBugg.TTPID ) )
+						if( string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentBugg.Jira ) )
 						{
 							BuggRowColor = "#FFFF88"; // yellow
 							BuggColorDescription = "This CrashGroup has not been fixed or assigned a JIRA";
 						}
 
-						if( !string.IsNullOrWhiteSpace( CurrentBugg.TTPID ) && string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) )
+						if (!string.IsNullOrWhiteSpace( CurrentBugg.Jira ) && string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ))
 						{
 							BuggRowColor = "#D01F3C"; // red
-							BuggColorDescription = "This CrashGroup has  been assigned a JIRA: " + CurrentBugg.TTPID + " but has not been fixed.";
+							BuggColorDescription = "This CrashGroup has  been assigned a JIRA: " + CurrentBugg.Jira + " but has not been fixed.";
 						}
 
 						if( CurrentBugg.Status == "Coder" )
@@ -149,7 +149,7 @@
 			<td><%=CurrentBugg.GetCrashTypeAsString()%></td>
 			<td><%=CurrentBugg.Status%></td>
 			<td><%=CurrentBugg.FixedChangeList%></td>
-			<td> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentBugg.TTPID%>" target="_blank"><%=CurrentBugg.TTPID%></a></span>  </td>
+			<td> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentBugg.Jira%>" target="_blank"><%=CurrentBugg.Jira%></a></span>  </td>
 		</tr>
 	<%				}
 				}

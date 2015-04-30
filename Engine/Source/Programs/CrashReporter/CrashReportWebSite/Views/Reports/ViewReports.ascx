@@ -102,7 +102,7 @@ table, table tr, table th, table td
 		</td>
 		<td>
 			<%--NewBugg.Id = RealBugg.Id;								// CrashGroup URL (a link to the Bugg)--%>
-			<%--<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.TTPID%>" target="_blank"><%=Model.Bugg.TTPID%></a>--%>
+			<%--<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.Jira%>" target="_blank"><%=Model.Bugg.Jira%></a>--%>
 			<%=Html.ActionLink( Bugg.Id.ToString(), "Show", new { controller = "Buggs", id = Bugg.Id }, null )%>
 		</td>
 		<td>
@@ -125,20 +125,20 @@ table, table tr, table th, table td
 			<%--NewBugg.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected--%>
 			<%=Bugg.LatestOSAffected%>
 		</td>
-		<%if( string.IsNullOrEmpty( Bugg.TTPID ) && !string.IsNullOrEmpty(Bugg.Pattern ) )
+		<%if (string.IsNullOrEmpty( Bugg.Jira ) && !string.IsNullOrEmpty( Bugg.Pattern ))
 		{ %>
 			<td>
 				<input type="submit" value="CopyToJira" title="<%=Bugg.ToTooltip()%>" id="id <%=Bugg.Id%>" name="CopyToJira-<%=Bugg.Id%>" class="SearchButton CopyToJiraStyle CopyToJiraStyle" />
 			</td>
-		<% } else if( string.IsNullOrEmpty( Bugg.TTPID ) && string.IsNullOrEmpty(Bugg.Pattern ) )
+		<% } else if( string.IsNullOrEmpty( Bugg.Jira ) && string.IsNullOrEmpty(Bugg.Pattern ) )
 		{ %>
 			<td>
 				No pattern!
 			</td>
 		<% } else { %>
 			<td>
-				<%--NewBugg.TTPID = RealBugg.TTPID;							// JIRA--%>
-				<a href="https://jira.ol.epicgames.net/browse/<%=Bugg.TTPID%>" target="_blank"><%=Bugg.TTPID%></a>
+				<%--NewBugg.Jira = RealBugg.Jira;							// JIRA--%>
+				<a href="https://jira.ol.epicgames.net/browse/<%=Bugg.Jira%>" target="_blank"><%=Bugg.Jira%></a>
 			</td>
 		<% } %>
 

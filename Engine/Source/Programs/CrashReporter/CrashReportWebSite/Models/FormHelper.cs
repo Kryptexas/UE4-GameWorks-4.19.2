@@ -34,7 +34,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>The number of items to display per page.</summary>
 		public int PageSize = 100;
 
-		/// <summary>The term to sort by. e.g. TTPID.</summary>
+		/// <summary>The term to sort by. e.g. Jira.</summary>
 		public string SortTerm = "";
 
 		/// <summary>The types of crashes we wish to see.</summary>

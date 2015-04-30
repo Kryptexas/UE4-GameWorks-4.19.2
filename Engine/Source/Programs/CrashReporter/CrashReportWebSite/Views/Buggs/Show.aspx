@@ -118,14 +118,14 @@
 		<%using( Html.BeginForm( "Show", "Buggs" ) )
 		{	%>
 
-			<%if( string.IsNullOrEmpty( Model.Bugg.TTPID ) )
+			<%if (string.IsNullOrEmpty( Model.Bugg.Jira ))
 			{ %>
 				<dd class='even'>
 					<input type="submit" value="CopyToJira" title="<%=Model.Bugg.ToTooltip()%>" id="id <%=Model.Bugg.Id%>" name="CopyToJira-<%=Model.Bugg.Id%>" class="SearchButton CopyToJiraStyle" />
 				</dd>
 			<% } else { %>
 				<dd class='even'>
-					<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.TTPID%>" target="_blank"><%=Model.Bugg.TTPID%></a>
+					<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.Jira%>" target="_blank"><%=Model.Bugg.Jira%></a>
 				</dd>
 			<% } %>
 
@@ -263,7 +263,7 @@
 							<td class="TimeOfCrash">
 								<%=CrashInstance.GetTimeOfCrash()[0]%> &nbsp;
 								<%=CrashInstance.GetTimeOfCrash()[1]%><br />
-								Change: <%= CrashInstance.ChangeListVersion %><br />
+								Change: <%= CrashInstance.BuiltFromCL %><br />
 							</td>
 							<td class="Summary">
 								<%=CrashInstance.UserName%><br />

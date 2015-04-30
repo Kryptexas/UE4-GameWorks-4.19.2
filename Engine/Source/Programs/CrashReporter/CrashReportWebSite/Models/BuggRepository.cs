@@ -226,7 +226,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						}
 
 						CurrentCrash.FixedChangeList = Bugg.FixedChangeList;
-						CurrentCrash.TTPID = Bugg.TTPID;
+						CurrentCrash.Jira = Bugg.Jira;
 						CurrentCrash.Status = Bugg.Status;
 
 						if( Bugg.Id != 0 )
@@ -692,7 +692,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						(
 							from Crash in Context.Crashes
 							where Crash.TimeOfCrash >= DateFrom && Crash.TimeOfCrash <= DateTo.AddDays( 1 )
-							select new { Id = Crash.Id, UserName = Crash.UserName, MachineId = Crash.ComputerName }
+							select new { Id = Crash.Id, UserName = Crash.UserName, MachineId = Crash.MachineId }
 						);
 
 						CrashToUser = CrashesWithIdUserMachine.ToDictionary( x => x.Id, y => y.UserName );
@@ -834,7 +834,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 							break;
 
 						case "TTPID":
-							Results = EnumerableOrderBy( Results, BuggCrashInstance => BuggCrashInstance.TTPID, bSortDescending );
+							Results = EnumerableOrderBy( Results, BuggCrashInstance => BuggCrashInstance.Jira, bSortDescending );
 							break;
 
 					}

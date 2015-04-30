@@ -164,9 +164,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			foreach( var Crash in CrashesForBugg )
 			{
 				// Only add machine if the number has 32 characters
-				if( Crash.MachineID != null && Crash.MachineID.Length == 32 )
+				if (Crash.MachineId != null && Crash.MachineId.Length == 32)
 				{
-					MachineIds.Add( Crash.MachineID );
+					MachineIds.Add( Crash.MachineId );
 
 					// Sent in the unattended mode 29 char
 					if( Crash.Description.Length > 32 )
@@ -298,7 +298,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public void CopyToJira()
 		{
 			var JC = JiraConnection.Get();
-			if( JC.CanBeUsed() && string.IsNullOrEmpty( this.TTPID ) )
+			if( JC.CanBeUsed() && string.IsNullOrEmpty( this.Jira ) )
 			{
 				Dictionary<string, object> Fields = new Dictionary<string, object>();
 				Fields.Add( "project", new Dictionary<string, object> { { "id", 11205 } } );	// UE
@@ -332,7 +332,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				string Key = JC.AddJiraTicket( Fields );
 				if( !string.IsNullOrEmpty( Key ) )
 				{
-					TTPID = Key;
+					Jira = Key;
 					BuggRepository Buggs = new BuggRepository();
 					Buggs.SetJIRAForBuggAndCrashes( Key, Id );
 				}
@@ -533,7 +533,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Return the Url of the log.
 		/// </summary>
-		/// <returns>The Url of the log file.</returns>
 		public string GetLogUrl()
 		{
 			return Properties.Settings.Default.CrashReporterFiles + Id + "_Launch.log";
@@ -542,8 +541,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Return the Url of the minidump.
 		/// </summary>
-		/// <returns>The Url of the minidump file.</returns>
-		public string GetDumpUrl()
+		public string GetMiniDumpUrl()
 		{
 			return Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
 		}
@@ -551,7 +549,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Return the Url of the diagnostics file.
 		/// </summary>
-		/// <returns>The Url of the diagnostics file.</returns>
 		public string GetDiagnosticsUrl()
 		{
 			return Properties.Settings.Default.CrashReporterFiles + Id + "_Diagnostics.txt";
@@ -560,7 +557,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Return the Url of the Windows Error Report meta data file.
 		/// </summary>
-		/// <returns>The Url of the meta data file.</returns>
 		public string GetMetaDataUrl()
 		{
 			return Properties.Settings.Default.CrashReporterFiles + Id + "_WERMeta.xml";
@@ -762,19 +758,42 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		public string JIRA
+		/// <summary>Hard coded site path.</summary>
+		const string SitePath = @"\\devweb-02\Sites";
+
+		/// <summary>Return true, if there is a diagnostics file associated with the crash</summary>
+		public bool HasDiagnosticsFile()
 		{
-			get
-			{
-				return this.TTPID;
-			}
-			set
-			{
-				this.TTPID = value;
-			}
+			var Path = SitePath + GetDiagnosticsUrl();
+			return System.IO.File.Exists( Path );
+		}
+
+		/// <summary>Return true, if there is a minidump file associated with the crash</summary>
+		public bool HasMiniDumpFile()
+		{
+			var Path = SitePath + GetMiniDumpUrl();
+			return System.IO.File.Exists( Path );
+		}
+
+		/// <summary>Return true, if there is a log file associated with the crash</summary>
+		public bool HasLogFile()
+		{
+			var Path = SitePath + GetLogUrl();
+			return System.IO.File.Exists( Path );
+		}
+
+		/// <summary>Return true, if there is a video file associated with the crash</summary>
+		public bool HasVideoFile()
+		{
+			var Path = SitePath + GetVideoUrl();
+			return System.IO.File.Exists( Path );
+		}
+
+		/// <summary>Return true, if there is a metadata file associated with the crash</summary>
+		public bool HasMetaDataFile()
+		{
+			var Path = SitePath + GetMetaDataUrl();
+			return System.IO.File.Exists( Path );
 		}
 
 		/// <summary>
@@ -804,36 +823,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			set
 			{
 				this.FixedChangeList = value;
-			}
-		}
-
-		/// <summary>
-		/// 
-		/// </summary>
-		public string MachineID
-		{
-			get
-			{
-				return this.ComputerName;
-			}
-			set
-			{
-				this.ComputerName = value;
-			}
-		}
-
-		/// <summary>
-		/// 
-		/// </summary>
-		public string BuiltFromCL
-		{
-			get
-			{
-				return this.ChangeListVersion;
-			}
-			set
-			{
-				this.ChangeListVersion = value;
 			}
 		}
 	}

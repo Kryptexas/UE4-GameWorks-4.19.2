@@ -113,7 +113,7 @@
 							string CrashRowColor = "grey";
 							string CrashColorDescription = "Incoming Crash";
 
-							if( string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentCrash.TTPID ) )
+							if( string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentCrash.Jira ) )
 							{
 								CrashRowColor = "#FFFF88"; // yellow
 								CrashColorDescription = "This crash has not been fixed or assigned a JIRA";
@@ -126,10 +126,10 @@
 								CrashColorDescription = "This crash has been fixed in CL# " + CurrentCrash.FixedChangeList;
 							}
 
-							if( ( BuggCrash != null ) && !string.IsNullOrWhiteSpace( CurrentCrash.TTPID ) && string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ) )
+							if (( BuggCrash != null ) && !string.IsNullOrWhiteSpace( CurrentCrash.Jira ) && string.IsNullOrWhiteSpace( CurrentCrash.FixedChangeList ))
 							{
 								CrashRowColor = "#D01F3C"; // red
-								CrashColorDescription = "This crash has occurred more than once and been assigned a JIRA: " + CurrentCrash.TTPID + " but has not been fixed.";
+								CrashColorDescription = "This crash has occurred more than once and been assigned a JIRA: " + CurrentCrash.Jira + " but has not been fixed.";
 							}
 
 							if( CurrentCrash.Status == "Tester" )
@@ -182,12 +182,12 @@
 									<td class="Game"><%=CurrentCrash.GameName%></td>
 									<td class="Mode"><%=CurrentCrash.EngineMode%></td>
 									<td class="FixedChangeList"><%=CurrentCrash.FixedChangeList%></td>
-									<td class="Jira"> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentCrash.TTPID%>" target="_blank"><%=CurrentCrash.TTPID%></a></span>  </td>
+									<td class="Jira"> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentCrash.Jira%>" target="_blank"><%=CurrentCrash.Jira%></a></span>  </td>
 									<td class="Branch"><%=CurrentCrash.Branch%>&nbsp;</td>
 									<td class="Description"><span class="TableData"><%=CurrentCrash.Description%>&nbsp;</span></td>
 									<td class="Summary"><%=Html.Encode(CurrentCrash.Summary)%></td>
-									<td class="ChangeListVersion"><%=CurrentCrash.ChangeListVersion%></td>
-									<td class="Computer"><%=CurrentCrash.ComputerName%></td>
+									<td class="BuiltFromCL"><%=CurrentCrash.BuiltFromCL%></td>
+									<td class="Computer"><%=CurrentCrash.MachineId%></td>
 									<td class="Platform"><%=CurrentCrash.PlatformName%></td>
 									<td class="Status"><%=CurrentCrash.Status%></td>
 									<td class="Module"><%=CurrentCrash.Module%></td>

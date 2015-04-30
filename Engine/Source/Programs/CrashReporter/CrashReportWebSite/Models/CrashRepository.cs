@@ -222,18 +222,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					{
 						Results = Results.Where( X =>
 
-							( !string.IsNullOrEmpty( X.ChangeListVersion ) ? X.ChangeListVersion.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.BuiltFromCL ) ? X.BuiltFromCL.ToLower().Contains( Term ) : false ) ||
 							( !string.IsNullOrEmpty( X.PlatformName ) ? X.PlatformName.ToLower().Contains( Term ) : false ) ||
 							( !string.IsNullOrEmpty( X.Summary ) ? X.Summary.ToLower().Contains( Term ) : false ) ||
 							( !string.IsNullOrEmpty( X.Description ) ? X.Description.ToLower().Contains( Term ) : false ) ||
 							( !string.IsNullOrEmpty( X.RawCallStack ) ? X.RawCallStack.ToLower().Contains( Term ) : false ) ||
 							( !string.IsNullOrEmpty( X.CommandLine ) ? X.CommandLine.ToLower().Contains( Term ) : false ) ||
-							( !string.IsNullOrEmpty( X.ComputerName ) ? X.ComputerName.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.MachineId ) ? X.MachineId.ToLower().Contains( Term ) : false ) ||
 
 							( !string.IsNullOrEmpty( X.Module ) ? X.Module.ToLower().Contains( Term ) : false ) ||
 
 							( !string.IsNullOrEmpty( X.BaseDir ) ? X.BaseDir.ToLower().Contains( Term ) : false ) ||
-							( !string.IsNullOrEmpty( X.TTPID ) ? X.TTPID.ToLower().Contains( Term ) : false ) 
+							( !string.IsNullOrEmpty( X.Jira ) ? X.Jira.ToLower().Contains( Term ) : false ) 
 						);
 					}
 
@@ -486,7 +486,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						break;
 
 					case "TTPID":
-						Results = EnumerableOrderBy( Results, CrashInstance => CrashInstance.TTPID, bSortByDescending );
+						Results = EnumerableOrderBy( Results, CrashInstance => CrashInstance.Jira, bSortByDescending );
 						break;
 
 					case "Branch":
@@ -494,11 +494,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						break;
 
 					case "ChangeListVersion":
-						Results = EnumerableOrderBy( Results, CrashInstance => CrashInstance.ChangeListVersion, bSortByDescending );
+						Results = EnumerableOrderBy( Results, CrashInstance => CrashInstance.BuiltFromCL, bSortByDescending );
 						break;
 
 					case "ComputerName":
-						Results = EnumerableOrderBy( Results, CrashInstance => CrashInstance.ComputerName, bSortByDescending );
+						Results = EnumerableOrderBy( Results, CrashInstance => CrashInstance.MachineId, bSortByDescending );
 						break;
 
 					case "PlatformName":
@@ -551,10 +551,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewCrash.Branch = NewCrashInfo.BranchName;
 			NewCrash.BaseDir = NewCrashInfo.BaseDir;
 			NewCrash.BuildVersion = NewCrashInfo.BuildVersion;
-			NewCrash.ChangeListVersion = NewCrashInfo.BuiltFromCL.ToString();
+			NewCrash.BuiltFromCL = NewCrashInfo.BuiltFromCL.ToString();
 			NewCrash.CommandLine = NewCrashInfo.CommandLine;
 			NewCrash.EngineMode = NewCrashInfo.EngineMode;
-			NewCrash.ComputerName = NewCrashInfo.MachineGuid;
+			NewCrash.MachineId = NewCrashInfo.MachineGuid;
 
 			// Valid MachineID and UserName, updated crash from non-UE4 release
 			if(!string.IsNullOrEmpty(NewCrashInfo.UserName))
@@ -605,16 +605,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 
 			NewCrash.TimeOfCrash = NewCrashInfo.TimeofCrash;
-					
-			NewCrash.HasLogFile = NewCrashInfo.bHasLog;
-			NewCrash.HasMiniDumpFile = NewCrashInfo.bHasMiniDump;
-			NewCrash.HasDiagnosticsFile = NewCrashInfo.bHasDiags;
-			NewCrash.HasVideoFile = NewCrashInfo.bHasVideo;
-			NewCrash.HasMetaData = NewCrashInfo.bHasWERData;
-
 			NewCrash.bAllowToBeContacted = NewCrashInfo.bAllowToBeContacted;
 
-			NewCrash.TTPID = "";
+			NewCrash.Jira = "";
 			NewCrash.FixedChangeList = "";
 
 			// Set the crash type
@@ -730,7 +723,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Results =
 						(
 							from CrashDetail in Results
-							where CrashDetail.EpicAccountId.Equals( DecodedEpicOrMachineID ) || CrashDetail.ComputerName.Equals( DecodedEpicOrMachineID )
+							where CrashDetail.EpicAccountId.Equals( DecodedEpicOrMachineID ) || CrashDetail.MachineId.Equals( DecodedEpicOrMachineID )
 							select CrashDetail
 						);
 			}
@@ -741,7 +734,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Results =
 					(
 						from CrashDetail in Results
-						where CrashDetail.TTPID.Contains( DecodedJIRA )
+						where CrashDetail.Jira.Contains( DecodedJIRA )
 						select CrashDetail
 					);
 			}

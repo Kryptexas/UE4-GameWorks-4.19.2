@@ -16,6 +16,15 @@ using Tools.DotNETCommon;
 namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 {
 
+	//How hard would it be for you to create a CSV of:
+	// Epic ID, 
+	// buggs ID, 
+	// engine version, 
+	// 
+	// # of crashes with that buggs ID for 
+	//	this engine version and 
+	//	user
+
 	/// <summary>
 	/// The controller to handle graphing of crashes per user group over time.
 	/// </summary>
@@ -36,6 +45,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			CrashRepository CrashRepo = new CrashRepository();
 
 			// @TODO yrx 2015-02-17 BuggIDToBeAddedToJira replace with List<int> based on check box and Submit?
+			// It would be great to have a CSV export of this as well with buggs ID being the key I can then use to join them :)
+			// 
 			// Enumerate JIRA projects if needed.
 			// https://jira.ol.epicgames.net//rest/api/2/project
 			var JC = JiraConnection.Get();
@@ -63,12 +74,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						TimeOfCrash = Crash.TimeOfCrash.Value,
 						//UserID = Crash.UserNameId.Value, 
 						BuildVersion = Crash.BuildVersion,
-						JIRA = Crash.TTPID,
+						JIRA = Crash.Jira,
 						Platform = Crash.PlatformName,
 						FixCL = Crash.FixedChangeList,
-						BuiltFromCL = Crash.ChangeListVersion,
+						BuiltFromCL = Crash.BuiltFromCL,
 						Pattern = Crash.Pattern,
-						MachineID = Crash.ComputerName,
+						MachineID = Crash.MachineId,
 						Branch = Crash.Branch,
 						Description = Crash.Description,
 						RawCallStack = Crash.RawCallStack,
@@ -158,12 +169,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 									ID = Anon.ID,
 									TimeOfCrash = Anon.TimeOfCrash,
 									BuildVersion = Anon.BuildVersion,
-									JIRA = Anon.JIRA,
+									Jira = Anon.JIRA,
 									Platform = Anon.Platform,
 									FixCL = Anon.FixCL,
 									BuiltFromCL = Anon.BuiltFromCL,
 									Pattern = Anon.Pattern,
-									MachineID = Anon.MachineID,
+									MachineId = Anon.MachineID,
 									Branch = Anon.Branch,
 									Description = Anon.Description,
 									RawCallStack = Anon.RawCallStack,
@@ -173,10 +184,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 							NewBugg.PrepareBuggForJira( FullCrashesForBugg );
 
 							// Verify valid JiraID, this may be still a TTP 
-							if( !string.IsNullOrEmpty( NewBugg.TTPID ) )
+							if( !string.IsNullOrEmpty( NewBugg.Jira ) )
 							{
 								int TTPID = 0;
-								int.TryParse( NewBugg.TTPID, out TTPID );
+								int.TryParse( NewBugg.Jira, out TTPID );
 
 								if( TTPID == 0 )
 								{
@@ -279,7 +290,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 					// If there are buggs, we need to update the summary to indicate an error.
 					// Usually caused when bugg's project has changed.
-					foreach( var Bugg in BuggsCopy.Where( b => !string.IsNullOrEmpty( b.TTPID ) ) )
+					foreach( var Bugg in BuggsCopy.Where( b => !string.IsNullOrEmpty( b.Jira ) ) )
 					{
 						Bugg.JiraSummary = "JIRA MISMATCH";
 						Bugg.JiraComponentsText = "JIRA MISMATCH";
@@ -306,7 +317,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 		private void AddBuggJiraMapping( Bugg NewBugg, ref HashSet<string> FoundJiras, ref Dictionary<string, List<Bugg>> JiraIDtoBugg )
 		{
-			string JiraID = NewBugg.TTPID;
+			string JiraID = NewBugg.Jira;
 			FoundJiras.Add( "key = " + JiraID );
 
 			bool bAdd = !JiraIDtoBugg.ContainsKey( JiraID );
