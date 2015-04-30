@@ -226,7 +226,7 @@ struct ENGINE_API FHierarchicalSimplification
 
 	FHierarchicalSimplification()
 		: bSimplifyMesh(true)
-		, DrawDistance(5000)
+		, DrawDistance(2000)
 		, DesiredBoundSize(5000)
 		, DesiredFillingPercentage(50)
 		, MinNumberOfActorsToBuild(2)

@@ -58,7 +58,7 @@ struct FLODCluster
 	// this clears previous actors and sets to this new actor
 	// this is required when new LOD is created from these actors, this will be replaced
 	// to save memory and to reduce memory increase during this process, we discard previous actors and replace with this actor
-	void BuildActor(class UWorld* InWorld, class ULevel* InLevel, const int32 LODIdx);
+	void BuildActor(class ULevel* InLevel, const int32 LODIdx);
 
 private:
 	// cluster operations
@@ -66,6 +66,7 @@ private:
 	void SubtractCluster(const FLODCluster& Other);
 
 	// add new actor, this doesn't recalculate filling factor
+	// the filling factor has to be calculated outside
 	FSphere AddActor(class AActor* NewActor);
 
 	// whether it's valid or not
@@ -94,6 +95,7 @@ struct UNREALED_API FHierarchicalLODBuilder
 private:
 	// data structure - this is only valid within scope since mem stack allocator
 	TArray<FLODCluster, TMemStackAllocator<>> Clusters;
+
 	// owner world
 	class UWorld*		World;
 

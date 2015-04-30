@@ -16,7 +16,8 @@ class ENGINE_API ALODActor : public AActor
 	GENERATED_UCLASS_BODY()
 
 private_subobject:
-	UPROPERTY(Category=LODActor, VisibleAnywhere)
+	// disable display of this component
+	UPROPERTY(/*Category=LODActor, VisibleAnywhere*/)
 	class UStaticMeshComponent* StaticMeshComponent;
 
 public:
