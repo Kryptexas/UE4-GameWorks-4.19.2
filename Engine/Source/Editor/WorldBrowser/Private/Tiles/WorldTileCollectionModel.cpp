@@ -7,8 +7,8 @@
 #include "FileHelpers.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
-#include "MaterialExportUtils.h"
 #include "MeshUtilities.h"
+#include "MaterialUtilities.h"
 #include "RawMesh.h"
 #include "LandscapeEdMode.h"
 #include "ImageWrapper.h"
@@ -1979,8 +1979,6 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 		}
 
-		using namespace MaterialExportUtils;
-
 		// Convert landscape actors into static meshes
 		int32 LandscapeActorIndex = 0;
 		for (ALandscapeProxy* Landscape : LandscapeActors)
@@ -2037,7 +2035,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			LandscapeFlattenMaterial.RoughnessSize	= SimplificationDetails.bGenerateLandscapeRoughnessMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
 			LandscapeFlattenMaterial.SpecularSize	= SimplificationDetails.bGenerateLandscapeSpecularMap ? LandscapeTextureSize : FIntPoint::ZeroValue;
 			
-			ExportMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
+			FMaterialUtilities::ExportLandscapeMaterial(Landscape, PrimitivesToHide, LandscapeFlattenMaterial);
 		
 			if (SimplificationDetails.bBakeGrassToLandscape)
 			{
@@ -2045,7 +2043,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			}
 			FString LandscapeBaseAssetName = FString::Printf(TEXT("%s_LOD%d"), *Landscape->GetName(), TargetLODIndex + 1);
 			// Construct landscape material
-			UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
+			UMaterial* StaticLandscapeMaterial = FMaterialUtilities::CreateMaterial(
 				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public|RF_Standalone, GeneratedAssets);
 			// Currently landscape exports world space normal map
 			StaticLandscapeMaterial->bTangentSpaceNormal = false;

@@ -55,13 +55,15 @@ public class Landscape : ModuleRules
 		{
 			PrivateDependencyModuleNames.AddRange(
 				new string[] {
-                    "UnrealEd", 
+                    "UnrealEd",
+                    "MaterialUtilities", 
                 }
 			);
 
 			CircularlyReferencedDependentModules.AddRange(
 				new string[] {
                     "UnrealEd",
+                    "MaterialUtilities",
                 }
 			);
 		}

@@ -38,7 +38,7 @@ Landscape.cpp: Terrain rendering
 #include "Materials/MaterialExpressionLandscapeVisibilityMask.h"
 
 #if WITH_EDITOR
-#include "MaterialExportUtils.h"
+#include "MaterialUtilities.h"
 #endif
 
 /** Landscape stats */
@@ -2436,7 +2436,7 @@ void ALandscapeProxy::UpdateBakedTextures()
 
 						int32 BakeSize = ComponentSamples >> 3;
 						TArray<FColor> Samples;
-						if (MaterialExportUtils::ExportBaseColor(Component, BakeSize, Samples))
+						if (FMaterialUtilities::ExportBaseColor(Component, BakeSize, Samples))
 						{
 							int32 AtlasOffsetX = FMath::RoundToInt(Component->HeightmapScaleBias.Z * (float)HeightmapTexture->GetSizeX()) >> 3;
 							int32 AtlasOffsetY = FMath::RoundToInt(Component->HeightmapScaleBias.W * (float)HeightmapTexture->GetSizeY()) >> 3;
@@ -2447,7 +2447,7 @@ void ALandscapeProxy::UpdateBakedTextures()
 							NumGenerated++;
 						}
 					}
-					UTexture2D* AtlasTexture = MaterialExportUtils::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_Public, true, CombinedStateId);
+					UTexture2D* AtlasTexture = FMaterialUtilities::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_Public, true, CombinedStateId);
 					AtlasTexture->MarkPackageDirty();
 
 					for (ULandscapeComponent* Component : Info.Components)

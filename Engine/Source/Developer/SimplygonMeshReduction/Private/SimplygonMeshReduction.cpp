@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "RawMesh.h"
 #include "MeshUtilities.h"
+#include "MaterialUtilities.h"
 
 // Standard Simplygon channels have some issues with extracting color data back from simplification, 
 // so we use this workaround with user channels
@@ -24,7 +25,6 @@ static const char* USER_MATERIAL_CHANNEL_SPECULAR = "UserSpecular";
 #endif
 
 #include "MeshBoneReduction.h"
-#include "MaterialExportUtils.h"
 #include "ComponentReregisterContext.h"
 
 #define LOCTEXT_NAMESPACE "SimplygonMeshReduction"
@@ -446,10 +446,10 @@ public:
 	// IMeshMerging interface
 	virtual void BuildProxy(
 		const TArray<FRawMesh>& InputMeshes,
-		const TArray<MaterialExportUtils::FFlattenMaterial>& InputMaterials,
+		const TArray<FFlattenMaterial>& InputMaterials,
 		const struct FMeshProxySettings& InProxySettings,
 		FRawMesh& OutProxyMesh,
-		MaterialExportUtils::FFlattenMaterial& OutMaterial) override
+		FFlattenMaterial& OutMaterial) override
 	{
 		if (InputMeshes.Num() == 0)
 		{
@@ -1569,7 +1569,7 @@ private:
 
 	//Material conversions
 	bool CreateSGMaterialFromFlattenMaterial(
-		const TArray<MaterialExportUtils::FFlattenMaterial>& InputMaterials,
+		const TArray<FFlattenMaterial>& InputMaterials,
 		SimplygonSDK::spMaterialTable& OutSGMaterialTable, 
 		FMaterialCastingProperties& OutCastProperties)
 	{
@@ -1583,7 +1583,7 @@ private:
 		for (int32 MaterialIndex = 0; MaterialIndex < InputMaterials.Num(); MaterialIndex++)
 		{
 			SimplygonSDK::spMaterial SGMaterial = SDK->CreateMaterial();
-			const MaterialExportUtils::FFlattenMaterial& FlattenMaterial = InputMaterials[MaterialIndex];
+			const FFlattenMaterial& FlattenMaterial = InputMaterials[MaterialIndex];
 
 			//Create UE4 Channels
 			//Simplygon 5.5 has three new channels already present called base color metallic roughness
@@ -1679,7 +1679,7 @@ private:
 
 	void CreateFlattenMaterialFromSGMaterial(
 		SimplygonSDK::spMaterialTable& InSGMaterialTable, 
-		MaterialExportUtils::FFlattenMaterial& OutMaterial)
+		FFlattenMaterial& OutMaterial)
 	{
 		SimplygonSDK::spMaterial SGMaterial = InSGMaterialTable->GetMaterial(0);
 		

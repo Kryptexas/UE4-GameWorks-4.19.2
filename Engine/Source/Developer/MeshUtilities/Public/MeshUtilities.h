@@ -47,11 +47,7 @@ public:
 	virtual bool IsSupported() const = 0;
 };
 
-//
-namespace MaterialExportUtils
-{
-	struct FFlattenMaterial;
-};
+struct FFlattenMaterial;
 
 /**
  * Mesh merging interface.
@@ -61,10 +57,10 @@ class IMeshMerging
 public:
 	virtual void BuildProxy(
 		const TArray<FRawMesh>& InputMeshes,
-		const TArray<MaterialExportUtils::FFlattenMaterial>& InputMaterials,
+		const TArray<FFlattenMaterial>& InputMaterials,
 		const struct FMeshProxySettings& InProxySettings,
 		FRawMesh& OutProxyMesh,
-		MaterialExportUtils::FFlattenMaterial& OutMaterial
+		FFlattenMaterial& OutMaterial
 		) = 0;
 };
 

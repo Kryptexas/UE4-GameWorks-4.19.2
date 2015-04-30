@@ -15,7 +15,7 @@ public class MeshUtilities : ModuleRules
 				"RawMesh",
 				"RenderCore", // For FPackedNormal
 				"SlateCore",
-				"UnrealEd",
+				"MaterialUtilities"
 			}
 		);
 

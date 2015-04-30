@@ -10,13 +10,13 @@
 #include "ThirdParty/nvtesslib/inc/nvtess.h"
 #include "SkeletalMeshTools.h"
 #include "ImageUtils.h"
-#include "MaterialExportUtils.h"
 #include "Textures/TextureAtlas.h"
 #include "LayoutUV.h"
 #include "mikktspace.h"
 #include "DistanceFieldAtlas.h"
 #include "FbxErrors.h"
 #include "Components/SplineMeshComponent.h"
+#include "MaterialUtilities.h"
 
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
@@ -3687,7 +3687,7 @@ void FMeshUtilities::CreateProxyMesh(
 	
 	// Convert collected static mesh components and landscapes into raw meshes and flatten materials
 	TArray<FRawMesh>								RawMeshes;
-	TArray<MaterialExportUtils::FFlattenMaterial>	UniqueMaterials;
+	TArray<FFlattenMaterial>						UniqueMaterials;
 	TMap<int32, TArray<int32>>						MaterialMap;
 	FBox											ProxyBounds(0);
 	
@@ -3720,7 +3720,7 @@ void FMeshUtilities::CreateProxyMesh(
 
 	// Convert materials into flatten materials
 	{
-		MaterialExportUtils::FFlattenMaterial FlattenMaterial;
+		FFlattenMaterial FlattenMaterial;
 		FIntPoint TargetTextureSize = FIntPoint(InProxySettings.TextureWidth, InProxySettings.TextureHeight);
 
 		FlattenMaterial.DiffuseSize = TargetTextureSize;
@@ -3732,7 +3732,7 @@ void FMeshUtilities::CreateProxyMesh(
 		for (UMaterialInterface* Material : StaticMeshMaterials)
 		{
 			UniqueMaterials.Add(FlattenMaterial);
-			MaterialExportUtils::ExportMaterial(InWorld, Material, UniqueMaterials.Last());
+			FMaterialUtilities::ExportMaterial(InWorld, Material, UniqueMaterials.Last());
 		}
 	}
 		
@@ -3757,7 +3757,7 @@ void FMeshUtilities::CreateProxyMesh(
 	// Build proxy mesh
 	//
 	FRawMesh								ProxyRawMesh;
-	MaterialExportUtils::FFlattenMaterial	ProxyFlattenMaterial;
+	FFlattenMaterial						ProxyFlattenMaterial;
 	
 	MeshMerging->BuildProxy(RawMeshes, UniqueMaterials, InProxySettings, ProxyRawMesh, ProxyFlattenMaterial);
 
@@ -3769,7 +3769,7 @@ void FMeshUtilities::CreateProxyMesh(
 	}
 	
 	// Construct proxy material
-	UMaterial* ProxyMaterial = MaterialExportUtils::CreateMaterial(ProxyFlattenMaterial, InOuter, ProxyBasePackageName, RF_Public|RF_Standalone, OutAssetsToSync);
+	UMaterial* ProxyMaterial = FMaterialUtilities::CreateMaterial(ProxyFlattenMaterial, InOuter, ProxyBasePackageName, RF_Public|RF_Standalone, OutAssetsToSync);
 	
 	// Construct proxy static mesh
 	UPackage* MeshPackage = InOuter;
@@ -4191,10 +4191,8 @@ static FVector2D GetValidUV(const FVector2D& UV)
 	return NewUV;
 }
 
-static void MergeMaterials(UWorld* InWorld, const TArray<UMaterialInterface*>& InMaterialList, MaterialExportUtils::FFlattenMaterial& OutMergedMaterial, TArray<FRawMeshUVTransform>& OutUVTransforms)
+static void MergeMaterials(UWorld* InWorld, const TArray<UMaterialInterface*>& InMaterialList, FFlattenMaterial& OutMergedMaterial, TArray<FRawMeshUVTransform>& OutUVTransforms)
 {
-	using namespace MaterialExportUtils;
-	
 	OutUVTransforms.Reserve(InMaterialList.Num());
 
 	// We support merging only for opaque materials
@@ -4278,7 +4276,7 @@ static void MergeMaterials(UWorld* InWorld, const TArray<UMaterialInterface*>& I
 		FlatMaterial.RoughnessSize	= bExportRoughness ? ExportTextureSize : FIntPoint::ZeroValue;
 		FlatMaterial.SpecularSize	= bExportSpecular ? ExportTextureSize : FIntPoint::ZeroValue;
 
-		ExportMaterial(InWorld, Material, FlatMaterial);
+		FMaterialUtilities::ExportMaterial(InWorld, Material, FlatMaterial);
 
 		if (FlatMaterial.DiffuseSamples.Num() > 0)
 		{
@@ -4455,7 +4453,7 @@ void FMeshUtilities::MergeActors(
 	if (InSettings.bMergeMaterials)
 	{
 		FIntPoint AtlasTextureSize			= FIntPoint(InSettings.MergedMaterialAtlasResolution, InSettings.MergedMaterialAtlasResolution);
-		MaterialExportUtils::FFlattenMaterial MergedFlatMaterial;
+		FFlattenMaterial MergedFlatMaterial;
 		MergedFlatMaterial.DiffuseSize		= AtlasTextureSize;
 		MergedFlatMaterial.NormalSize		= InSettings.bExportNormalMap ? AtlasTextureSize : FIntPoint::ZeroValue;
 		MergedFlatMaterial.MetallicSize		= InSettings.bExportMetallicMap ? AtlasTextureSize : FIntPoint::ZeroValue;
@@ -4545,7 +4543,7 @@ void FMeshUtilities::MergeActors(
 			MaterialPackage->Modify();
 		}
 
-		UMaterial* MergedMaterial = CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public|RF_Standalone, OutAssetsToSync);
+		UMaterial* MergedMaterial = FMaterialUtilities::CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public|RF_Standalone, OutAssetsToSync);
 		UniqueMaterials.Add(MergedMaterial);
 	}
 		

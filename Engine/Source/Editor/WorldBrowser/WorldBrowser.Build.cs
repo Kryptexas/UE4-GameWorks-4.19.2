@@ -12,9 +12,10 @@ public class WorldBrowser : ModuleRules
         new string[] {
                 "AssetRegistry",
 				"AssetTools",
-                "MeshUtilities",
                 "ContentBrowser",
 				"Landscape",
+                "MeshUtilities",
+                "MaterialUtilities",
 			}
         );
      
@@ -39,10 +40,10 @@ public class WorldBrowser : ModuleRules
                 "SourceControl",
 				"SourceControlWindows",
                 "RawMesh",
-                "MeshUtilities",
                 "LandscapeEditor",
                 "ImageWrapper",
                 "Foliage",
+                "MaterialUtilities",
             }
 		);
 

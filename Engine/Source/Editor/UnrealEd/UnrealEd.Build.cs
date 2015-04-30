@@ -129,6 +129,7 @@ public class UnrealEd : ModuleRules
                 "Foliage",
                 "VectorVM",
 				"TreeMap",
+                "MaterialUtilities",
 			}
 		);
 
