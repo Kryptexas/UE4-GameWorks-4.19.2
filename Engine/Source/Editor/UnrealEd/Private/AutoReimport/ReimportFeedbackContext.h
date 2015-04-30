@@ -33,7 +33,7 @@ public:
 	/** INotificationWidget and FFeedbackContext overrides */
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override {}
 	virtual void OnSetCompletionState(SNotificationItem::ECompletionState State) override {}
-	virtual TSharedRef<SWidget> AsWidget() override { return NotificationContent.ToSharedRef(); };
+	virtual TSharedRef<SWidget> AsWidget() override;
 	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false) override;
 
 	/** True if we will suppress slow task messages from being shown on the UI, false if otherwise */

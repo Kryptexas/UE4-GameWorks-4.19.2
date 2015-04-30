@@ -503,6 +503,11 @@ void FReimportFeedbackContext::AddWidget(const TSharedRef<SWidget>& Widget)
 	}
 }
 
+TSharedRef<SWidget> FReimportFeedbackContext::AsWidget()
+{
+	return NotificationContent.ToSharedRef();
+}
+
 void FReimportFeedbackContext::StartSlowTask(const FText& Task, bool bShowCancelButton)
 {
 	FFeedbackContext::StartSlowTask(Task, bShowCancelButton);
