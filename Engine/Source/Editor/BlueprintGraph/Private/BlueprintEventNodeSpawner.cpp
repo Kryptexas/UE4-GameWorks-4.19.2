@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "EdGraphSchema_K2.h" // for GetFriendlySignatureName()
+#include "BlueprintNodeTemplateCache.h" // for IsTemplateOuter()
 
 #define LOCTEXT_NAMESPACE "BlueprintEventNodeSpawner"
 
@@ -169,11 +170,17 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 {
 	check(ParentGraph != nullptr);
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(ParentGraph);
-	// look to see if a node for this event already exists (only one node is
-	// allowed per event, per blueprint)
-	UK2Node_Event const* PreExistingNode = FindPreExistingEvent(Blueprint, Bindings);
-	// @TODO: casting away the const is bad form!
-	UK2Node_Event* EventNode = const_cast<UK2Node_Event*>(PreExistingNode);
+
+	UK2Node_Event* EventNode = nullptr;
+	bool const bIsTemplateNode = FBlueprintNodeTemplateCache::IsTemplateOuter(ParentGraph);
+	if (!bIsTemplateNode)
+	{
+		// look to see if a node for this event already exists (only one node is
+		// allowed per event, per blueprint)
+		UK2Node_Event const* PreExistingNode = FindPreExistingEvent(Blueprint, Bindings);
+		// @TODO: casting away the const is bad form!
+		EventNode = const_cast<UK2Node_Event*>(PreExistingNode);
+	}
 
 	bool const bIsCustomEvent = IsForCustomEvent();
 	check(bIsCustomEvent || (EventFunc != nullptr));

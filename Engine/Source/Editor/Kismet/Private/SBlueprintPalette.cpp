@@ -1207,20 +1207,6 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 
 				UBlueprint* BlueprintObj = BlueprintEditorPtr.Pin()->GetBlueprintObj();
 				FBlueprintEditorUtils::RenameMemberVariable(BlueprintObj, OldName, NewName);
-
-				TArray<UK2Node_BaseMCDelegate*> NodeUsingDelegate;
-				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_BaseMCDelegate>(BlueprintObj, NodeUsingDelegate);
-				for (auto FuncIt = NodeUsingDelegate.CreateIterator(); FuncIt; ++FuncIt)
-				{
-					UK2Node_BaseMCDelegate* FunctionNode = *FuncIt;
-					if (FunctionNode->DelegateReference.IsSelfContext() && (FunctionNode->DelegateReference.GetMemberName() == OldName))
-					{
-						FunctionNode->Modify();
-						FunctionNode->DelegateReference.SetSelfMember(NewName);
-					}
-				}
-
-				FBlueprintEditorUtils::RenameGraph(Graph, NewNameString );
 			}
 		}
 	}

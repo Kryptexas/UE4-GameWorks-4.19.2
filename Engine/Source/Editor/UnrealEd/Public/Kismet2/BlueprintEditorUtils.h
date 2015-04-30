@@ -641,7 +641,7 @@ public:
 	 *
 	 * @param	VarName	Name of the variable to be removed.
 	 */
-	static void RemoveMemberVariable(UBlueprint* Blueprint, const FName& VarName);
+	static void RemoveMemberVariable(UBlueprint* Blueprint, const FName VarName);
 	
 	/**
 	 * Removes member variables if they were declared in this blueprint and not in a base class.
@@ -677,16 +677,16 @@ public:
 	 * @param	LocalGraphScope		Local scope graph of variables
 	 *								false if you just want everything with the specified name removed (variables from other classes too).
 	 */
-	static void RemoveVariableNodes(UBlueprint* Blueprint, const FName& VarName, bool const bForSelfOnly = true, UEdGraph* LocalGraphScope = nullptr);
+	static void RemoveVariableNodes(UBlueprint* Blueprint, const FName VarName, bool const bForSelfOnly = true, UEdGraph* LocalGraphScope = nullptr);
 
 	/**Rename a member variable*/
-	static void RenameMemberVariable(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
+	static void RenameMemberVariable(UBlueprint* Blueprint, const FName OldName, const FName NewName);
 
 	/** Rename a member variable created by a SCS entry */
-	static void RenameComponentMemberVariable(UBlueprint* Blueprint, USCS_Node* Node, const FName& NewName);
+	static void RenameComponentMemberVariable(UBlueprint* Blueprint, USCS_Node* Node, const FName NewName);
 	
 	/** Changes the type of a member variable */
-	static void ChangeMemberVariableType(UBlueprint* Blueprint, const FName& VariableName, const FEdGraphPinType& NewPinType);
+	static void ChangeMemberVariableType(UBlueprint* Blueprint, const FName VariableName, const FEdGraphPinType& NewPinType);
 
 	/**
 	 * Finds the scope's associated graph for local variables (or any passed UFunction)
@@ -705,7 +705,7 @@ public:
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	static bool AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName& InNewVarName, const FEdGraphPinType& InNewVarType);
+	static bool AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName InNewVarName, const FEdGraphPinType& InNewVarType);
 
 	/**
 	 * Removes a member variable if it was declared in this blueprint and not in a base class.
@@ -714,7 +714,7 @@ public:
 	 * @param	InScope				Local variable's scope
 	 * @param	InVarName			Name of the variable to be removed.
 	 */
-	static void RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVarName);
+	static void RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName InVarName);
 
 	/**
 	 * Returns a local variable with the function entry it was found in
@@ -723,7 +723,7 @@ public:
 	 * @param InVariableName	Name of the variable to search for
 	 * @return					The local variable description
 	 */
-	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName);
+	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName InVariableName);
 
 	/**
 	 * Returns a local variable
@@ -734,7 +734,7 @@ public:
 	 * @param OutFunctionEntry	Optional output parameter. If not null, the found function entry is returned.
 	 * @return					The local variable description
 	 */
-	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
+	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
 
 	/**
 	 * Returns a local variable
@@ -745,7 +745,7 @@ public:
 	 * @param OutFunctionEntry	Optional output parameter. If not null, the found function entry is returned.
 	 * @return					The local variable description
 	 */
-	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
+	static FBPVariableDescription* FindLocalVariable(const UBlueprint* InBlueprint, const UStruct* InScope, const FName InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry = NULL);
 
 	/**
 	 * Finds a local variable name using the variable's Guid
@@ -784,7 +784,7 @@ public:
 	 * @param InOldName			The name of the local variable to change
 	 * @param InNewName			The new name of the local variable
 	 */
-	static void RenameLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InOldName, const FName& InNewName);
+	static void RenameLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName InOldName, const FName InNewName);
 
 	/**
 	 * Changes the type of a local variable
@@ -794,19 +794,19 @@ public:
 	 * @param InVariableName	Name of the local variable to change the type of
 	 * @param InNewPinType		The pin type to change the local variable type to
 	 */
-	static void ChangeLocalVariableType(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, const FEdGraphPinType& InNewPinType);
+	static void ChangeLocalVariableType(UBlueprint* InBlueprint, const UStruct* InScope, const FName InVariableName, const FEdGraphPinType& InNewPinType);
 
 	/** Replaces all variable references in the specified blueprint */
-	static void ReplaceVariableReferences(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
+	static void ReplaceVariableReferences(UBlueprint* Blueprint, const FName OldName, const FName NewName);
 
 	/** Replaces all variable references in the specified blueprint */
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const UProperty* OldVariable, const UProperty* NewVariable);
 
 	/** Validate child blueprint component member variables, member variables, and timelines, and function graphs against the given variable name */
-	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName& InVariableName);
+	static void ValidateBlueprintChildVariables(UBlueprint* InBlueprint, const FName InVariableName);
 
 	/** Rename a Timeline. If bRenameNodes is true, will also rename any timeline nodes associated with this timeline */
-	static bool RenameTimeline (UBlueprint* Blueprint, const FName& OldVarName, const FName& NewVarName);
+	static bool RenameTimeline (UBlueprint* Blueprint, const FName OldVarName, const FName NewVarName);
 
 	/**
 	 * Sets the Blueprint edit-only flag on the variable with the specified name
@@ -1204,7 +1204,7 @@ protected:
 	static bool IsObjectADebugCandidate( AActor* InActorObject, UBlueprint* InBlueprint , bool bInDisallowDerivedBlueprints );
 
 	/** Validate child blueprint member variables against the given variable name */
-	static bool ValidateAllMemberVariables(UBlueprint* InBlueprint, UBlueprint* InParentBlueprint, const FName& InVariableName);
+	static bool ValidateAllMemberVariables(UBlueprint* InBlueprint, UBlueprint* InParentBlueprint, const FName InVariableName);
 
 	/** Validate child blueprint component member variables against the given variable name */
 	static bool ValidateAllComponentMemberVariables(UBlueprint* InBlueprint, UBlueprint* InParentBlueprint, const FName& InVariableName);
