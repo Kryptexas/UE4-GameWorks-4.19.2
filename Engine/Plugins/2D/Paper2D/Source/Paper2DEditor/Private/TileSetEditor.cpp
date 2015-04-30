@@ -249,6 +249,13 @@ void FTileSetEditor::ExtendToolbar()
 	{
 		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
 		{
+			ToolbarBuilder.BeginSection("TileHighlights");
+			{
+				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().SetShowTilesWithCollision);
+				//ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().SetShowTilesWithMetaData); //@TODO: TileMetadata: Enable once there is actually metadata...
+			}
+			ToolbarBuilder.EndSection();
+
 			ToolbarBuilder.BeginSection("Actions");
 			{
 				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().ApplyCollisionEdits);
@@ -268,10 +275,13 @@ void FTileSetEditor::ExtendToolbar()
 
 	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
 
+	ToolkitCommands->Append(TileEditorViewport->GetCommandList().ToSharedRef());
+	ToolkitCommands->Append(TileSetViewport->GetCommandList().ToSharedRef());
+
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
-		TileEditorViewport->GetCommandList(),
+		ToolkitCommands,
 		FToolBarExtensionDelegate::CreateStatic(&Local::FillToolbar)
 		);
 

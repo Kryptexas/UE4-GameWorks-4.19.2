@@ -31,6 +31,7 @@ public:
 protected:
 	// SPaperEditorViewport interface
 	virtual FText GetTitleText() const override;
+	virtual void BindCommands() override;
 	// End of SPaperEditorViewport interface
 
 private:

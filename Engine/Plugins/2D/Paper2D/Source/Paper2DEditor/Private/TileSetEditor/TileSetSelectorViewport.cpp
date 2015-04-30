@@ -4,6 +4,7 @@
 #include "TileMapEditing/EdModeTileMap.h"
 #include "TileSetSelectorViewport.h"
 #include "TileSetEditorViewportClient.h"
+#include "TileSetEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -54,6 +55,28 @@ FText STileSetSelectorViewport::GetTitleText() const
 	}
 
 	return LOCTEXT("TileSetSelectorTitle", "Tile Set Selector");
+}
+
+void STileSetSelectorViewport::BindCommands()
+{
+	SPaperEditorViewport::BindCommands();
+
+	FTileSetEditorCommands::Register();
+	const FTileSetEditorCommands& Commands = FTileSetEditorCommands::Get();
+
+	TSharedRef<FTileSetEditorViewportClient> EditorViewportClientRef = TypedViewportClient.ToSharedRef();
+
+	CommandList->MapAction(
+		Commands.SetShowTilesWithCollision,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FTileSetEditorViewportClient::ToggleShowTilesWithCollision),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FTileSetEditorViewportClient::IsShowTilesWithCollisionChecked));
+
+	CommandList->MapAction(
+		Commands.SetShowTilesWithMetaData,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FTileSetEditorViewportClient::ToggleShowTilesWithMetaData),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FTileSetEditorViewportClient::IsShowTilesWithMetaDataChecked));
 }
 
 

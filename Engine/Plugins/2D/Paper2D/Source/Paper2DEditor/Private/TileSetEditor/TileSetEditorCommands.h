@@ -25,6 +25,8 @@ public:
 	// Show toggles
 	TSharedPtr<FUICommandInfo> SetShowCollision;
 	TSharedPtr<FUICommandInfo> SetShowGrid;
+	TSharedPtr<FUICommandInfo> SetShowTilesWithCollision;
+	TSharedPtr<FUICommandInfo> SetShowTilesWithMetaData;
 
 	// Collision commands
 	TSharedPtr<FUICommandInfo> ApplyCollisionEdits;

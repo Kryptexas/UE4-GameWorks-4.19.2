@@ -129,6 +129,9 @@ void SPaperEditorViewport::Construct(const FArguments& InArgs, TSharedRef<FPaper
 
 	DeferredPanPosition = FVector2D::ZeroVector;
 	bRequestDeferredPan = false;
+
+	CommandList = MakeShareable(new FUICommandList);
+	BindCommands();
 }
 
 void SPaperEditorViewport::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )

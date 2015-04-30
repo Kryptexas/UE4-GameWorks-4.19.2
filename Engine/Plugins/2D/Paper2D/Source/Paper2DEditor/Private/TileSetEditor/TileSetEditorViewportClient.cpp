@@ -10,6 +10,8 @@
 
 FTileSetEditorViewportClient::FTileSetEditorViewportClient(UPaperTileSet* InTileSet)
 	: TileSetBeingEdited(InTileSet)
+	, bShowTilesWithCollision(false)
+	, bShowTilesWithMetaData(false)
 	, bHasValidPaintRectangle(false)
 	, TileIndex(INDEX_NONE)
 {
@@ -39,12 +41,48 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 		FLinearColor TextureDrawColor = FLinearColor::White;
 
-		const float XPos = -ZoomPos.X * ZoomAmount;
-		const float YPos = -ZoomPos.Y * ZoomAmount;
-		const float Width = Texture->GetSurfaceWidth() * ZoomAmount;
-		const float Height = Texture->GetSurfaceHeight() * ZoomAmount;
+		{
+			// Draw the tile sheet texture 
+			const float XPos = -ZoomPos.X * ZoomAmount;
+			const float YPos = -ZoomPos.Y * ZoomAmount;
+			const float Width = Texture->GetSurfaceWidth() * ZoomAmount;
+			const float Height = Texture->GetSurfaceHeight() * ZoomAmount;
 
-		Canvas->DrawTile(XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, TextureDrawColor, Texture->Resource, bUseTranslucentBlend);
+			Canvas->DrawTile(XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, TextureDrawColor, Texture->Resource, bUseTranslucentBlend);
+		}
+
+		if (bShowTilesWithCollision || bShowTilesWithMetaData)
+		{
+			// Draw an overlay rectangle on top of any tiles that have collision or metadata geometry
+			const int32 NumTiles = TileSet->GetTileCount();
+
+			const FLinearColor CollisionOverlayColor(0.0f, 0.7f, 1.0f, 0.5f);
+			const FLinearColor MetaDataOverlayColor(1.0f, 0.2f, 0.0f, 0.5f);
+			const FLinearColor InfoOverlayColor = bShowTilesWithCollision ? CollisionOverlayColor : MetaDataOverlayColor;
+
+			const float Width = (TileSet->TileWidth - 2) * ZoomAmount;
+			const float Height = (TileSet->TileHeight - 2) * ZoomAmount;
+
+			for (int32 TileIndex = 0; TileIndex < NumTiles; ++TileIndex)
+			{
+				if (const FPaperTileMetadata* TileMetadata = TileSet->GetTileMetadata(TileIndex))
+				{
+					const bool bShowDueToCollision = TileMetadata->HasCollision() && bShowTilesWithCollision;
+					const bool bShowDueToMetaData = TileMetadata->HasMetaData() && bShowTilesWithMetaData;
+
+					if (bShowDueToCollision || bShowDueToMetaData)
+					{
+						FVector2D TileUV;
+						TileSet->GetTileUV(TileIndex, /*out*/ TileUV);
+
+						const float XPos = (TileUV.X + 1 - ZoomPos.X) * ZoomAmount;
+						const float YPos = (TileUV.Y + 1 - ZoomPos.Y) * ZoomAmount;
+
+						Canvas->DrawTile(XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, InfoOverlayColor, GWhiteTexture, /*bUseTranslucentBlend=*/ true);
+					}
+				}
+			}
+		}
 	}
 
 	// Overlay the selection rectangles
@@ -87,6 +125,28 @@ FLinearColor FTileSetEditorViewportClient::GetBackgroundColor() const
 	{
 		return FEditorViewportClient::GetBackgroundColor();
 	}
+}
+
+void FTileSetEditorViewportClient::ToggleShowTilesWithCollision()
+{
+	bShowTilesWithCollision = !bShowTilesWithCollision;
+	bShowTilesWithMetaData = false;
+}
+
+bool FTileSetEditorViewportClient::IsShowTilesWithCollisionChecked() const
+{
+	return bShowTilesWithCollision;
+}
+
+void FTileSetEditorViewportClient::ToggleShowTilesWithMetaData()
+{
+	bShowTilesWithMetaData = !bShowTilesWithMetaData;
+	bShowTilesWithCollision = false;
+}
+
+bool FTileSetEditorViewportClient::IsShowTilesWithMetaDataChecked() const
+{
+	return bShowTilesWithMetaData;
 }
 
 //////////////////////////////////////////////////////////////////////////
