@@ -566,14 +566,13 @@ bool FPaperJsonSpriteSheetImporter::PerformImport(const FString& LongPackagePath
 		{
 			// Put the normal map into the additional textures array and ask for a lit material instead of unlit
 			SpriteInitParams.AdditionalTextures.Add(NormalMapTexture);
-
-			const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
-			ImporterSettings->PopulateMaterialsIntoInitParams(/*inout*/ SpriteInitParams);
 		}
 
 		SpriteInitParams.Offset = Frame.SpritePosInSheet;
 		SpriteInitParams.Dimension = Frame.SpriteSizeInSheet;
-		SpriteInitParams.bNewlyCreated = true;
+
+		GetDefault<UPaperImporterSettings>()->ApplySettingsForSpriteInit(/*inout*/ SpriteInitParams, (NormalMapTexture != nullptr) ? ESpriteInitMaterialLightingMode::ForceLit : ESpriteInitMaterialLightingMode::Automatic);
+
 		TargetSprite->InitializeSprite(SpriteInitParams);
 
 		if (Frame.bRotated)

@@ -209,7 +209,7 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		Result->SeparationPerTileY = 0.0f;
 		Result->SeparationPerLayer = 1.0f;
 		Result->ProjectionMode = GlobalInfo.GetOrientationType();
-		Result->PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
+		Result->PixelsPerUnrealUnit = GetDefault<UPaperImporterSettings>()->GetDefaultPixelsPerUnrealUnit();
 		Result->BackgroundColor = GlobalInfo.BackgroundColor;
 		Result->HexSideLength = GlobalInfo.HexSideLength;
 
@@ -310,6 +310,8 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		{
 			// Bind our selected tile set to the first tile set that was imported so something is already picked
 			Result->SelectedTileSet = GlobalInfo.CreatedTileSetAssets[0];
+		
+			//@TODO: Should analyze the material from the used tile sets and set it appropriately on the tile map
 		}
 
 		// Create the layers

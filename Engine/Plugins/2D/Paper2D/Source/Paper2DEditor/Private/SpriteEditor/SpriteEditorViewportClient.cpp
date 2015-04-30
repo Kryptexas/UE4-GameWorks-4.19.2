@@ -146,8 +146,11 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 			FComponentReregisterContext ReregisterSprite(SourceTextureViewComponent);
 
 			FSpriteAssetInitParameters SpriteReinitParams;
+
 			SpriteReinitParams.SetTextureAndFill(SourceSprite->SourceTexture);
-			TargetSprite->PixelsPerUnrealUnit = SourceSprite->PixelsPerUnrealUnit;
+			SpriteReinitParams.DefaultMaterialOverride = SourceSprite->DefaultMaterial;
+			SpriteReinitParams.AlternateMaterialOverride = SourceSprite->AlternateMaterial;
+			SpriteReinitParams.SetPixelsPerUnrealUnit(SourceSprite->PixelsPerUnrealUnit);
 			TargetSprite->InitializeSprite(SpriteReinitParams);
 
 			RequestFocusOnSelection(/*bInstant=*/ true);

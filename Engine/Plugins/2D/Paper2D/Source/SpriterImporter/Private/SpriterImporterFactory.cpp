@@ -302,7 +302,8 @@ UObject* USpriterImporterFactory::FactoryCreateText(UClass* InClass, UObject* In
 
 					FSpriteAssetInitParameters SpriteInitParams;
 					SpriteInitParams.SetTextureAndFill(ImportedTexture);
-					//@TODO: Need to make a way to force pixels/uu to 1.0 when doing this: SpriteInitParams.bNewlyCreated = true;
+					GetDefault<UPaperImporterSettings>()->ApplySettingsForSpriteInit(SpriteInitParams);
+					SpriteInitParams.SetPixelsPerUnrealUnit(1.0f);
 					ImportedSprite->InitializeSprite(SpriteInitParams);
 				}
 				else if (File.FileType == ESpriterFileType::Sound)
