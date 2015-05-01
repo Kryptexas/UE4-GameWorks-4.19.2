@@ -471,6 +471,13 @@ void UActorComponent::PreEditChange(UProperty* PropertyThatWillChange)
 	FlushRenderingCommands();
 }
 
+void UActorComponent::PreEditUndo()
+{
+	Super::PreEditUndo();
+
+	Owner = nullptr;
+}
+
 void UActorComponent::PostEditUndo()
 {
 	// Objects marked pending kill don't call PostEditChange() from UObject::PostEditUndo(),
@@ -487,7 +494,7 @@ void UActorComponent::PostEditUndo()
 	}
 	else
 	{
-		//Let the component be properly registered, after it was restored.
+		// Let the component be properly registered, after it was restored.
 		if (Owner)
 		{
 			Owner->AddOwnedComponent(this);

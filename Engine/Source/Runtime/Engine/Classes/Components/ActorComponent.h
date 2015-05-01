@@ -146,9 +146,9 @@ public:
 	UPROPERTY()
 	EComponentCreationMethod CreationMethod;
 
-	AActor* Owner;
-
 private:
+	mutable AActor* Owner;
+
 	UPROPERTY()
 	TArray<FSimpleMemberReference> UCSModifiedProperties;
 
@@ -555,6 +555,7 @@ public:
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty( FPropertyChangedChainEvent& PropertyChangedEvent ) override;
+	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	// End UObject interface.
@@ -643,6 +644,10 @@ private:
 
 FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
 {
+	if (Owner == nullptr)
+	{
+		Owner = GetTypedOuter<AActor>();
+	}
 	checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
 	return Owner;
 }
