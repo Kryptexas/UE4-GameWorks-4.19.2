@@ -248,11 +248,24 @@ void UK2Node_Event::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mes
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
-	// If we are overriding a function, but we can;t find the function we are overriding, that is a compile error
-	if(bOverrideFunction && EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()) == nullptr)
+	UFunction* Function = nullptr;
+	if (bOverrideFunction)
 	{
-		MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingEventSig_Error", "Missing Event '%s' for @@").ToString(), *EventReference.GetMemberName().ToString()), this);
+		Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
+		if (!Function)
+		{
+			// If we are overriding a function, but we can;t find the function we are overriding, that is a compile error
+			MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingEventSig_Error", "Missing Event '%s' for @@").ToString(), *EventReference.GetMemberName().ToString()), this);
+		}
 	}
+	else if (UBlueprint* Blueprint = GetBlueprint())
+	{
+		Function = Blueprint->SkeletonGeneratedClass
+			? Blueprint->SkeletonGeneratedClass->FindFunctionByName(CustomFunctionName)
+			: nullptr;
+	}
+
+	FKismetCompilerUtilities::DetectValuesReturnedByRef(Function, this, MessageLog);
 }
 
 bool UK2Node_Event::NodeCausesStructuralBlueprintChange() const
