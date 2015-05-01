@@ -421,5 +421,20 @@ protected:
 
 	// Holds a pointer to the platform application.
 	static TSharedPtr<class GenericApplication> PlatformApplication;
+
+public:
+
+	/**
+	 * Is Slate currently sleeping or not.
+	 *
+	 * @return True if Slate is sleeping.
+	 */
+	bool IsSlateAsleep();
+
+protected:
+
+	// Gets set when Slate goes to sleep and cleared when active.
+	bool bIsSlateAsleep;
+
 };
 

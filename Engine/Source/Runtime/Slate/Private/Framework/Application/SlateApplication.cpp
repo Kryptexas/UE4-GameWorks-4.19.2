@@ -1390,8 +1390,10 @@ void FSlateApplication::Tick()
 	// This effectively means the slate application is totally idle and we don't need to update the UI.
 	// This relies on Widgets properly registering for Active timer when they need something to happen even
 	// when the user is not providing any input (ie, animations, viewport rendering, async polling, etc).
+	bIsSlateAsleep = true;
 	if (!AllowSlateToSleep.GetValueOnGameThread() || bAnyActiveTimersPending || !bIsUserIdle || bNeedsSyntheticMouseMouse)
 	{
+		bIsSlateAsleep = false; // if we get here, then Slate is not sleeping
 		if (!bFoldTick)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_SlateTickWindowAndChildren);

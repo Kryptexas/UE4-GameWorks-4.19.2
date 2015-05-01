@@ -22,6 +22,7 @@ FWidgetPath FHitTesting::LocateWidgetInWindow(FVector2D ScreenspaceMouseCoordina
 FSlateApplicationBase::FSlateApplicationBase()
 : Renderer()
 , HitTesting(this)
+, bIsSlateAsleep(false)
 {
 
 }
@@ -74,4 +75,9 @@ bool FSlateApplicationBase::AnyActiveTimersArePending()
 	}
 
 	return bAnyTickReady;
+}
+
+bool FSlateApplicationBase::IsSlateAsleep()
+{
+	return bIsSlateAsleep;
 }
