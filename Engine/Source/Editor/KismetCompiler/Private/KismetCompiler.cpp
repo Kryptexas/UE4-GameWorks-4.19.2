@@ -449,9 +449,19 @@ void FKismetCompilerContext::ValidateVariableNames()
 			{
 				NewVarName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, VarNameStr);
 			}
-			else if (ParentClass->HasAnyFlags(RF_Native) && FindObject<UObject>(ParentClass, *VarNameStr, /*ExactClass =*/false))
+			else if (ParentClass->HasAnyFlags(RF_Native)) // the above case handles when the parent is a blueprint
 			{
-				NewVarName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, VarNameStr);
+				UClass* SuperClass = ParentClass;
+				do
+				{
+					if (FindObject<UObject>(SuperClass, *VarNameStr, /*ExactClass =*/false))
+					{
+						NewVarName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, VarNameStr);
+						break;
+					}
+					SuperClass = SuperClass->GetSuperClass();
+
+				} while (SuperClass != nullptr);
 			}
 
 			if (OldVarName != NewVarName)
@@ -1158,6 +1168,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
 		if(Context.IsDelegateSignature())
 		{
+			// prefix with the the blueprint name to avoid conflicts with natively defined delegate signatures
 			FString Name = NewFunctionName.ToString();
 			Name += HEADER_GENERATED_DELEGATE_SIGNATURE_SUFFIX;
 			NewFunctionName = FName(*Name);

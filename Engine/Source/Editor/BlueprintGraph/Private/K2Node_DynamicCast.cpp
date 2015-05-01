@@ -327,39 +327,7 @@ bool UK2Node_DynamicCast::IsConnectionDisallowed(const UEdGraphPin* MyPin, const
 		}
 		else if (OtherPinType.PinCategory == UEdGraphSchema_K2::PC_Object)
 		{
-			UClass* ObjectClass = Cast<UClass>(OtherPinType.PinSubCategoryObject.Get());
-			if ((ObjectClass == nullptr) && (OtherPinType.PinSubCategory == UEdGraphSchema_K2::PSC_Self))
-			{
-				if (UK2Node* K2Node = Cast<UK2Node>(OtherPin->GetOwningNode()))
-				{
-					ObjectClass = K2Node->GetBlueprint()->GeneratedClass;
-				}
-			}
-			// if the ObjectClass is still null, assume it is a UObject, which 
-			// will work with everything (so don't disallow it)
-			
-			if (ObjectClass != nullptr)
-			{
-				
-				if (ObjectClass == TargetType)
-				{
-					bIsDisallowed = true;
-					OutReason = FText::Format(LOCTEXT("EqualObjectCast", "'{0}' is already a '{1}', you don't need the cast."),
-						OtherPinName, TargetType->GetDisplayNameText()).ToString();
-				}
-				else if (ObjectClass->IsChildOf(TargetType))
-				{
-					bIsDisallowed = true;
-					OutReason = FText::Format(LOCTEXT("UnneededObjectCast", "'{0}' is already a '{1}' (which inherits from '{2}'), so you don't need the cast."),
-						OtherPinName, ObjectClass->GetDisplayNameText(), TargetType->GetDisplayNameText()).ToString();
-				}
-				else if (!TargetType->IsChildOf(ObjectClass))
-				{
-					bIsDisallowed = true;
-					OutReason = FText::Format(LOCTEXT("DisallowedObjectCast", "'{0}' does not inherit from '{1}' (the cast would always fail)."),
-						TargetType->GetDisplayNameText(), ObjectClass->GetDisplayNameText()).ToString();
-				}
-			}
+			// let's handle wasted cast inputs with warnings in ValidateNodeDuringCompilation() instead
 		}
 		else
 		{
@@ -409,6 +377,64 @@ void UK2Node_DynamicCast::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 
 	// Update exec pins if we converted from impure to pure
 	ReconnectPureExecPins(OldPins);
+}
+
+void UK2Node_DynamicCast::ValidateNodeDuringCompilation(FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+
+	UEdGraphPin* SourcePin = GetCastSourcePin();
+	if ((SourcePin->LinkedTo.Num() > 0) && (TargetType != nullptr))
+	{
+		for (UEdGraphPin* CastInput : SourcePin->LinkedTo)
+		{
+			const FEdGraphPinType& SourcePinType = CastInput->PinType;
+			if (SourcePinType.PinCategory != UEdGraphSchema_K2::PC_Object)
+			{
+				// all other types should have been rejected by IsConnectionDisallowed()
+				continue;
+			}
+
+			UClass* SourceClass = Cast<UClass>(SourcePinType.PinSubCategoryObject.Get());
+			if ((SourceClass == nullptr) && (SourcePinType.PinSubCategory == UEdGraphSchema_K2::PSC_Self))
+			{
+				if (UK2Node* K2Node = Cast<UK2Node>(CastInput->GetOwningNode()))
+				{
+					SourceClass = K2Node->GetBlueprint()->GeneratedClass;
+				}
+			}
+
+			if (SourceClass == nullptr)
+			{
+				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
+
+				FText const ErrorFormat = LOCTEXT("BadCastInput", "'%s' does not have a clear object type (invalid input into @@).");
+				MessageLog.Error( *FString::Printf(*ErrorFormat.ToString(), *SourcePinName), this );
+
+				continue;
+			}
+
+			if (SourceClass == TargetType)
+			{
+				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
+
+				FText const WarningFormat = LOCTEXT("EqualObjectCast", "'%s' is already a '%s', you don't need @@.");
+				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *TargetType->GetDisplayNameText().ToString()), this );
+			}
+			else if (SourceClass->IsChildOf(TargetType))
+			{
+				const FString SourcePinName = CastInput->PinFriendlyName.IsEmpty() ? CastInput->PinName : CastInput->PinFriendlyName.ToString();
+
+				FText const WarningFormat = LOCTEXT("UnneededObjectCast", "'%s' is already a '%s' (which inherits from '%s'), so you don't need @@.");
+				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *SourcePinName, *SourceClass->GetDisplayNameText().ToString(), *TargetType->GetDisplayNameText().ToString()), this );
+			}
+			else if (!TargetType->IsChildOf(SourceClass))
+			{
+				FText const WarningFormat = LOCTEXT("DisallowedObjectCast", "'%s' does not inherit from '%s' (@@ would always fail).");
+				MessageLog.Warning( *FString::Printf(*WarningFormat.ToString(), *TargetType->GetDisplayNameText().ToString(), *SourceClass->GetDisplayNameText().ToString()), this );
+			}
+		}
+	}
 }
 
 
