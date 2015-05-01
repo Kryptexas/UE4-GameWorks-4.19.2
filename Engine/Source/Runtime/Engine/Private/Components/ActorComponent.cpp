@@ -1389,6 +1389,12 @@ bool UActorComponent::IsNetSimulating() const
 
 void UActorComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
+	UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(GetClass());
+	if (BPClass != NULL)
+	{
+		BPClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
+	}
+
 	DOREPLIFETIME( UActorComponent, bIsActive );
 	DOREPLIFETIME( UActorComponent, bReplicates );
 }
