@@ -106,6 +106,22 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
+bool UPaperTileMap::CanEditChange(const UProperty* InProperty) const
+{
+	bool bIsEditable = Super::CanEditChange(InProperty);
+	if (bIsEditable && InProperty)
+	{
+		const FName PropertyName = InProperty->GetFName();
+
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, HexSideLength))
+		{
+			bIsEditable = ProjectionMode == ETileMapProjectionMode::HexagonalStaggered;
+		}
+	}
+
+	return bIsEditable;
+}
+
 void UPaperTileMap::PostLoad()
 {
 	Super::PostLoad();
@@ -203,7 +219,7 @@ void UPaperTileMap::GetTileToLocalParameters(FVector& OutCornerPosition, FVector
 		break;
 	case ETileMapProjectionMode::HexagonalStaggered:
 	case ETileMapProjectionMode::IsometricStaggered:
-		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 1.0f);
+		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 0.5f);
 		OutOffsetYFactor = 0.5f * TileWidthInUU * PaperAxisX;
 		OutStepX = PaperAxisX * TileWidthInUU;
 		OutStepY = 0.5f * -PaperAxisY * TileHeightInUU;
@@ -234,7 +250,7 @@ void UPaperTileMap::GetLocalToTileParameters(FVector& OutCornerPosition, FVector
 		break;
 	case ETileMapProjectionMode::HexagonalStaggered:
 	case ETileMapProjectionMode::IsometricStaggered:
-		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 1.0f);
+		OutCornerPosition = -(TileWidthInUU * PaperAxisX * 0.5f) + (TileHeightInUU * PaperAxisY * 0.5f);
 		OutOffsetYFactor = 0.5f * TileWidthInUU * PaperAxisX;
 		OutStepX = PaperAxisX / TileWidthInUU;
 		OutStepY = -PaperAxisY / TileHeightInUU;
@@ -258,8 +274,37 @@ void UPaperTileMap::GetTileCoordinatesFromLocalSpacePosition(const FVector& Posi
 	const float ProjectionSpaceXInTiles = FVector::DotProduct(RelativePosition, ParameterAxisX);
 	const float ProjectionSpaceYInTiles = FVector::DotProduct(RelativePosition, ParameterAxisY);
 
-	OutTileX = FMath::FloorToInt(ProjectionSpaceXInTiles);
-	OutTileY = FMath::FloorToInt(ProjectionSpaceYInTiles);
+	float X2 = ProjectionSpaceXInTiles;
+	float Y2 = ProjectionSpaceYInTiles;
+
+	if ((ProjectionMode == ETileMapProjectionMode::IsometricStaggered) || (ProjectionMode == ETileMapProjectionMode::HexagonalStaggered))
+	{
+		const float px = FMath::Frac(ProjectionSpaceXInTiles);
+		const float py = FMath::Frac(ProjectionSpaceYInTiles);
+
+		// Determine if the point is inside of the diamond or outside
+		const float h = 0.5f;
+		const float Det1 = -((px - h)*h - py*h);
+		const float Det2 = -(px - 1.0f)*h - (py - h)*h;
+		const float Det3 = -(-(px - h)*h + (py - 1.0f)*h);
+		const float Det4 = px*h + (py - h)*h;
+
+		const bool bOutsideTile = (Det1 < 0.0f) || (Det2 < 0.0f) || (Det3 < 0.0f) || (Det4 < 0.0f);
+
+		if (bOutsideTile)
+		{
+			X2 = ProjectionSpaceXInTiles - ((px < 0.5f) ? 1.0f : 0.0f);
+			Y2 = FMath::FloorToFloat(ProjectionSpaceYInTiles)*2.0f + py + ((py < 0.5f) ? -1.0f : 1.0f);
+		}
+ 		else
+ 		{
+ 			X2 = ProjectionSpaceXInTiles;
+			Y2 = FMath::FloorToFloat(ProjectionSpaceYInTiles)*2.0f + py;
+ 		}
+	}
+
+	OutTileX = FMath::FloorToInt(X2);
+	OutTileY = FMath::FloorToInt(Y2);
 }
 
 FVector UPaperTileMap::GetTilePositionInLocalSpace(float TileX, float TileY, int32 LayerIndex) const

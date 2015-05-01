@@ -211,6 +211,12 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		Result->ProjectionMode = GlobalInfo.GetOrientationType();
 		Result->PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 		Result->BackgroundColor = GlobalInfo.BackgroundColor;
+		Result->HexSideLength = GlobalInfo.HexSideLength;
+
+		if (GlobalInfo.Orientation == ETiledOrientation::Hexagonal)
+		{
+			Result->TileHeight += GlobalInfo.HexSideLength;
+		}
 
 		// Create the tile sets
 		for (const FTileSetFromTiled& TileSetData : GlobalInfo.TileSets)
