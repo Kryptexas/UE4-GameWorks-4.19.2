@@ -124,11 +124,11 @@ FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
-		FString RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
+		FText RPCString = UK2Node_Event::GetLocalizedNetString(FunctionFlags, false);
 		
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("FunctionName"), FText::FromName(CustomFunctionName));
-		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
+		Args.Add(TEXT("RPCString"), RPCString);
 
 		// FText::Format() is slow, so we cache this to save on performance
 		CachedNodeTitle.SetCachedText(FText::Format(NSLOCTEXT("K2Node", "CustomEvent_Name", "{FunctionName}{RPCString}\nCustom Event"), Args), this);

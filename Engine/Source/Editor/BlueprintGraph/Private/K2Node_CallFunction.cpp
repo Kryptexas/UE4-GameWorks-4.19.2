@@ -428,9 +428,9 @@ FString UK2Node_CallFunction::GetDeprecationMessage() const
 }
 
 
-FString UK2Node_CallFunction::GetFunctionContextString() const
+FText UK2Node_CallFunction::GetFunctionContextString() const
 {
-	FString ContextString;
+	FText ContextString;
 
 	// Don't show 'target is' if no target pin!
 	UEdGraphPin* SelfPin = GetDefault<UEdGraphSchema_K2>()->FindSelfPin(*this, EGPD_Input);
@@ -446,7 +446,9 @@ FString UK2Node_CallFunction::GetFunctionContextString() const
 
 		const FText TargetText = FBlueprintEditorUtils::GetFriendlyClassDisplayName(TrueSelfClass);
 
-		ContextString = FText::Format(LOCTEXT("CallFunctionOnDifferentContext", "\nTarget is {0}"), TargetText).ToString();
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("TargetName"), TargetText);
+		ContextString = FText::Format(LOCTEXT("CallFunctionOnDifferentContext", "Target is {TargetName}"), Args);
 	}
 
 	return ContextString;
@@ -456,8 +458,8 @@ FString UK2Node_CallFunction::GetFunctionContextString() const
 FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FText FunctionName;
-	FString ContextString;
-	FString RPCString;
+	FText ContextString;
+	FText RPCString;
 
 	if (UFunction* Function = GetTargetFunction())
 	{
@@ -478,9 +480,25 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("FunctionName"), FunctionName);
-		Args.Add(TEXT("ContextString"), FText::FromString(ContextString));
-		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
-		return FText::Format(LOCTEXT("CallFunction_FullTitle", "{FunctionName}{ContextString}{RPCString}"), Args);
+		Args.Add(TEXT("ContextString"), ContextString);
+		Args.Add(TEXT("RPCString"), RPCString);
+
+		if (ContextString.IsEmpty() && RPCString.IsEmpty())
+		{
+			return FText::Format(LOCTEXT("CallFunction_FullTitle", "{FunctionName}"), Args);
+		}
+		else if (ContextString.IsEmpty())
+		{
+			return FText::Format(LOCTEXT("CallFunction_FullTitle_WithRPCString", "{FunctionName}\n{RPCString}"), Args);
+		}
+		else if (RPCString.IsEmpty())
+		{
+			return FText::Format(LOCTEXT("CallFunction_FullTitle_WithContextString", "{FunctionName}\n{ContextString}"), Args);
+		}
+		else
+		{
+			return FText::Format(LOCTEXT("CallFunction_FullTitle_WithContextRPCString", "{FunctionName}\n{ContextString}\n{RPCString}"), Args);
+		}
 	}
 	else
 	{

@@ -181,7 +181,8 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if (bIsPreviewExpression)
 		{
-			NodeTitle.AppendLine(LOCTEXT("PreviewExpression", "\nPreviewing"));
+			NodeTitle.AppendLine();
+			NodeTitle.AppendLine(LOCTEXT("PreviewExpression", "Previewing"));
 		}
 
 		return NodeTitle.ToText();

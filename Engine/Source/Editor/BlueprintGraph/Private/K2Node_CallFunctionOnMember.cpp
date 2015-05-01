@@ -32,11 +32,14 @@ UEdGraphPin* UK2Node_CallFunctionOnMember::CreateSelfPin(const UFunction* Functi
 	return SelfPin;
 }
 
-FString UK2Node_CallFunctionOnMember::GetFunctionContextString() const
+FText UK2Node_CallFunctionOnMember::GetFunctionContextString() const
 {
 	UClass* MemberVarClass = MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode());
-	FString CallFunctionClassName = (MemberVarClass != NULL) ? MemberVarClass->GetDisplayNameText().ToString() : TEXT("NULL");
-	return FString(TEXT("\n")) + FString::Printf(TEXT("%s %s (%s)"), *LOCTEXT("CallFunctionOnMemberDifferentContext", "Target is").ToString(), *CallFunctionClassName, *MemberVariableToCallOn.GetMemberName().ToString());
+	FText CallFunctionClassName = (MemberVarClass != NULL) ? MemberVarClass->GetDisplayNameText() : FText::GetEmpty();
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("TargetName"), CallFunctionClassName);
+	Args.Add(TEXT("MemberVariableName"), FText::FromName(MemberVariableToCallOn.GetMemberName()));
+	return FText::Format(LOCTEXT("CallFunctionOnMemberDifferentContext", "Target is {TargetName} ({MemberVariableName})"), Args);
 }
 
 FNodeHandlingFunctor* UK2Node_CallFunctionOnMember::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

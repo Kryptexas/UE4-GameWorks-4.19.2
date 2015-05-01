@@ -130,7 +130,7 @@ FText UK2Node_Event::GetTooltipText() const
 			{
 				Args.Add(
 					TEXT("ClientString"),
-					NSLOCTEXT("K2Node", "ServerEvent", "\n\nAuthority Only. This event only fires on the server.")
+					NSLOCTEXT("K2Node", "ServerEvent", "Authority Only. This event only fires on the server.")
 				);
 				// FText::Format() is slow, so we cache this to save on performance
 				CachedTooltip.SetCachedText(FText::Format(LOCTEXT("Event_SubtitledTooltip", "{FunctionTooltip}\n\n{ClientString}"), Args), this);
@@ -506,51 +506,50 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 	return !bDisallowPaste;
 }
 
-FString UK2Node_Event::GetLocalizedNetString(uint32 FunctionFlags, bool Calling)
+FText UK2Node_Event::GetLocalizedNetString(uint32 FunctionFlags, bool Calling)
 {
-	FString RPCString;
+	FText RPCString;
 	if (FunctionFlags & FUNC_Net)
 	{
-		RPCString = FString(TEXT("\n"));
-
-		if (FunctionFlags & FUNC_NetReliable)
-		{
-			RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedReliable", "RELIABLE ").ToString();
-		}
-
 		if (FunctionFlags & FUNC_NetMulticast)
 		{
 			if (Calling)
 			{
-				RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedMulticast", "Replicated To All (if server)").ToString();
+				RPCString = NSLOCTEXT("K2Node", "CustomEvent_ReplicatedMulticast", "Replicated To All (if server)");
 			}
 			else
 			{
-				RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedMulticastFrom", "Replicated From Server\nExecutes On All").ToString();
+				RPCString = NSLOCTEXT("K2Node", "CustomEvent_ReplicatedMulticastFrom", "Replicated From Server\nExecutes On All");
 			}
-
 		}
 		else if (FunctionFlags & FUNC_NetServer)
 		{
 			if (Calling)
 			{
-				RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedServer", "Replicated To Server (if owning client)").ToString();
+				RPCString = NSLOCTEXT("K2Node", "CustomEvent_ReplicatedServer", "Replicated To Server (if owning client)");
 			}
 			else
 			{
-				RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedServerFrom", "Replicated From Client\nExecutes On Server").ToString();
+				RPCString = NSLOCTEXT("K2Node", "CustomEvent_ReplicatedServerFrom", "Replicated From Client\nExecutes On Server");
 			}
 		}
 		else if (FunctionFlags & FUNC_NetClient)
 		{
 			if (Calling)
 			{
-				RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedClient", "Replicated To Owning Client (if server)").ToString();
+				RPCString = NSLOCTEXT("K2Node", "CustomEvent_ReplicatedClient", "Replicated To Owning Client (if server)");
 			}
 			else
 			{
-				RPCString += NSLOCTEXT("K2Node", "CustomEvent_ReplicatedClientFrom", "Replicated From Server\nExecutes on Owning Client").ToString();
+				RPCString = NSLOCTEXT("K2Node", "CustomEvent_ReplicatedClientFrom", "Replicated From Server\nExecutes on Owning Client");
 			}
+		}
+
+		if (FunctionFlags & FUNC_NetReliable)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("RPCString"), RPCString);
+			RPCString = FText::Format(NSLOCTEXT("K2Node", "CustomEvent_ReplicatedReliable", "RELIABLE {RPCString}"), Args);
 		}
 	}
 	return RPCString;

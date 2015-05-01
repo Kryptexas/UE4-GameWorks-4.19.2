@@ -152,8 +152,8 @@ public:
 	/** Get the compact name for this function */
 	static FString GetCompactNodeTitle(const UFunction* Function);
 
-	/** Get the string to use to explain the context for this function (used on node title) */
-	virtual FString GetFunctionContextString() const;
+	/** Get the text to use to explain the context for this function (used on node title) */
+	virtual FText GetFunctionContextString() const;
 
 	/** Set properties of this node from a supplied function (does not save ref to function) */
 	virtual void SetFromFunction(const UFunction* Function);
