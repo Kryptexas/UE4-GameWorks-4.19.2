@@ -2356,6 +2356,16 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 				// Get the associated component template if it is a scene component, so we can adjust the transform
 				USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
 
+				// Cache current default values for propagation
+				FVector OldRelativeLocation, OldRelativeScale3D;
+				FRotator OldRelativeRotation;
+				if(SceneComponentTemplate)
+				{
+					OldRelativeLocation = SceneComponentTemplate->RelativeLocation;
+					OldRelativeRotation = SceneComponentTemplate->RelativeRotation;
+					OldRelativeScale3D = SceneComponentTemplate->RelativeScale3D;
+				}
+
 				// Check for a valid parent node
 				FSCSEditorTreeNodePtrType ParentNodePtr = DroppedNodePtr->GetParent();
 				if(ParentNodePtr.IsValid())
@@ -2400,7 +2410,7 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 				{
 					// If we find a match, calculate its new position relative to the scene root component instance in its current scene
 					FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
-					FTransform ParentToWorld = ParentSceneComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
+					FTransform ParentToWorld = SceneComponentTemplate->AttachSocketName != NAME_None ? ParentSceneComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName, RTS_World) : ParentSceneComponent->GetComponentToWorld();
 					FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 
 					// Store new relative location value (if not set to absolute)
@@ -2419,6 +2429,23 @@ void SSCS_RowWidget::OnAttachToDropAction(const TArray<FSCSEditorTreeNodePtrType
 					if(!SceneComponentTemplate->bAbsoluteScale)
 					{
 						SceneComponentTemplate->RelativeScale3D = RelativeTM.GetScale3D();
+					}
+				}
+
+				// Propagate any default value changes out to all instances of the template. If we didn't do this, then instances could incorrectly override the new default value with the old default value when construction scripts are re-run.
+				if(SceneComponentTemplate)
+				{
+					TArray<UObject*> InstancedSceneComponents;
+					SceneComponentTemplate->GetArchetypeInstances(InstancedSceneComponents);
+					for(int32 InstanceIndex = 0; InstanceIndex < InstancedSceneComponents.Num(); ++InstanceIndex)
+					{
+						USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(InstancedSceneComponents[InstanceIndex]);
+						if(InstancedSceneComponent != nullptr)
+						{
+							FComponentEditorUtils::ApplyDefaultValueChange(InstancedSceneComponent, InstancedSceneComponent->RelativeLocation, OldRelativeLocation, SceneComponentTemplate->RelativeLocation);
+							FComponentEditorUtils::ApplyDefaultValueChange(InstancedSceneComponent, InstancedSceneComponent->RelativeRotation, OldRelativeRotation, SceneComponentTemplate->RelativeRotation);
+							FComponentEditorUtils::ApplyDefaultValueChange(InstancedSceneComponent, InstancedSceneComponent->RelativeScale3D,  OldRelativeScale3D,  SceneComponentTemplate->RelativeScale3D);
+						}
 					}
 				}
 			}
@@ -2467,6 +2494,9 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 
 		for(const auto& DroppedNodePtr : DroppedNodePtrs)
 		{
+			FVector OldRelativeLocation, OldRelativeScale3D;
+			FRotator OldRelativeRotation;
+
 			check(DroppedNodePtr.IsValid());
 
 			// Detach the node from its parent
@@ -2476,6 +2506,11 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 			USceneComponent* SceneComponentTemplate = Cast<USceneComponent>(DroppedNodePtr->GetComponentTemplate());
 			if(SceneComponentTemplate)
 			{
+				// Cache current default values for propagation
+				OldRelativeLocation = SceneComponentTemplate->RelativeLocation;
+				OldRelativeRotation = SceneComponentTemplate->RelativeRotation;
+				OldRelativeScale3D = SceneComponentTemplate->RelativeScale3D;
+
 				// Save current state
 				SceneComponentTemplate->Modify();
 
@@ -2510,7 +2545,7 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 			{
 				// If we find a match, calculate its new position relative to the scene root component instance in the preview scene
 				FTransform ComponentToWorld(SceneComponentTemplate->RelativeRotation, SceneComponentTemplate->RelativeLocation, SceneComponentTemplate->RelativeScale3D);
-				FTransform ParentToWorld = InstancedSceneRootComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName);
+				FTransform ParentToWorld = SceneComponentTemplate->AttachSocketName != NAME_None ? InstancedSceneRootComponent->GetSocketTransform(SceneComponentTemplate->AttachSocketName, RTS_World) : InstancedSceneRootComponent->GetComponentToWorld();
 				FTransform RelativeTM = ComponentToWorld.GetRelativeTransform(ParentToWorld);
 
 				// Store new relative location value (if not set to absolute)
@@ -2529,6 +2564,23 @@ void SSCS_RowWidget::OnDetachFromDropAction(const TArray<FSCSEditorTreeNodePtrTy
 				if(!SceneComponentTemplate->bAbsoluteScale)
 				{
 					SceneComponentTemplate->RelativeScale3D = RelativeTM.GetScale3D();
+				}
+			}
+
+			// Propagate any default value changes out to all instances of the template. If we didn't do this, then instances could incorrectly override the new default value with the old default value when construction scripts are re-run.
+			if(SceneComponentTemplate)
+			{
+				TArray<UObject*> InstancedSceneComponents;
+				SceneComponentTemplate->GetArchetypeInstances(InstancedSceneComponents);
+				for(int32 InstanceIndex = 0; InstanceIndex < InstancedSceneComponents.Num(); ++InstanceIndex)
+				{
+					USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(InstancedSceneComponents[InstanceIndex]);
+					if(InstancedSceneComponent != nullptr)
+					{
+						FComponentEditorUtils::ApplyDefaultValueChange(InstancedSceneComponent, InstancedSceneComponent->RelativeLocation, OldRelativeLocation, SceneComponentTemplate->RelativeLocation);
+						FComponentEditorUtils::ApplyDefaultValueChange(InstancedSceneComponent, InstancedSceneComponent->RelativeRotation, OldRelativeRotation, SceneComponentTemplate->RelativeRotation);
+						FComponentEditorUtils::ApplyDefaultValueChange(InstancedSceneComponent, InstancedSceneComponent->RelativeScale3D,  OldRelativeScale3D,  SceneComponentTemplate->RelativeScale3D);
+					}
 				}
 			}
 		}
@@ -2712,7 +2764,7 @@ void SSCS_RowWidget::PostDragDropAction(bool bRegenerateTreeNodes)
 				UBlueprint* Blueprint = GetBlueprint();
 				if(Blueprint != nullptr)
 				{
-					FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
+					FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint, true);
 				}
 			}
 		}

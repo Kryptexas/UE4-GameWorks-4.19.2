@@ -961,7 +961,7 @@ public:
 	static bool PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm);
 
 	/** Call PostEditChange() on all Actors based on the given Blueprint */
-	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint);
+	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint, bool bComponentEditChange = false);
 
 	/** Checks if the property can be modified in given blueprint */
 	static bool IsPropertyReadOnlyInCurrentBlueprint(const UBlueprint* Blueprint, const UProperty* Property);
