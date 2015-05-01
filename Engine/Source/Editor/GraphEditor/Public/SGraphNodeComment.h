@@ -73,6 +73,9 @@ private:
 	/** @return the color to tint the title bar */
 	FSlateColor GetCommentTitleBarColor() const;
 
+	/** @return the color to tint the comment bubble */
+	FSlateColor GetCommentBubbleColor() const;
+
 	/** Returns the width to wrap the text of the comment at */
 	float GetWrapAt() const;
 
