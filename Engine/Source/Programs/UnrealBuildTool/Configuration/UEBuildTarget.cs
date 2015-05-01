@@ -168,6 +168,8 @@ namespace UnrealBuildTool
 		public List<OnlyModule> OnlyModules;
 		public bool bPrecompile;
 		public bool bUsePrecompiled;
+		public List<string> ForeignPlugins;
+		public string ForceReceiptFileName;
 	}
 
 
@@ -217,6 +219,8 @@ namespace UnrealBuildTool
 			var Configuration = UnrealTargetConfiguration.Unknown;
 			string RemoteRoot = null;
 			var OnlyModules = new List<OnlyModule>();
+			List<string> ForeignPlugins = new List<string>();
+			string ForceReceiptFileName = null;
 
 			// If true, the recompile was launched by the editor.
 			bool bIsEditorRecompile = false;
@@ -266,6 +270,28 @@ namespace UnrealBuildTool
 								var OnlyModuleSuffix = Arguments[++ArgumentIndex];
 
 								OnlyModules.Add(new OnlyModule(OnlyModuleName, OnlyModuleSuffix));
+							}
+							break;
+
+						case "-PLUGIN":
+							{
+								if (ArgumentIndex + 1 >= Arguments.Count)
+								{
+									throw new BuildException("Expected plugin filename after -Plugin argument, but found nothing.");
+								}
+
+								ForeignPlugins.Add(Arguments[++ArgumentIndex]);
+							}
+							break;
+
+						case "-RECEIPT":
+							{
+								if (ArgumentIndex + 1 >= Arguments.Count)
+								{
+									throw new BuildException("Expected path to the generated receipt after -Receipt argument, but found nothing.");
+								}
+
+								ForceReceiptFileName = Arguments[++ArgumentIndex];
 							}
 							break;
 
@@ -460,6 +486,8 @@ namespace UnrealBuildTool
 							OnlyModules = OnlyModules,
 							bPrecompile = bPrecompile,
 							bUsePrecompiled = bUsePrecompiled,
+							ForeignPlugins = ForeignPlugins,
+							ForceReceiptFileName = ForceReceiptFileName
 						} );
 					break;
 				}
@@ -485,7 +513,7 @@ namespace UnrealBuildTool
 
 				// Scan the disk to find source files for all known targets and modules, and generate "in memory" project
 				// file data that will be used to determine what to build
-				RulesCompiler.SetAssemblyNameAndGameFolders( PossibleAssemblyName, UEBuildTarget.DiscoverAllGameFolders() );
+				RulesCompiler.SetAssemblyNameAndGameFolders( PossibleAssemblyName, UEBuildTarget.DiscoverAllGameFolders(), Desc.ForeignPlugins );
 			}
 
 			// Try getting it from the RulesCompiler
@@ -683,6 +711,10 @@ namespace UnrealBuildTool
 		[NonSerialized]
 		public List<PluginInfo> EnabledPlugins;
 
+		/** Additional plugin filenames which are foreign to this target */
+		[NonSerialized]
+		public List<string> ForeignPlugins;
+
 		/** All application binaries; may include binaries not built by this target. */
 		[NonSerialized]
 		public List<UEBuildBinary> AppBinaries = new List<UEBuildBinary>();
@@ -712,6 +744,10 @@ namespace UnrealBuildTool
 		/** The receipt for this target, which contains a record of this build. */
 		private BuildReceipt Receipt;
 
+		/** Force output of the receipt to an additional filename */
+		[NonSerialized]
+		private string ForceReceiptFileName;
+
 		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
 		/// </summary>
@@ -738,6 +774,8 @@ namespace UnrealBuildTool
 			bEditorRecompile = InDesc.bIsEditorRecompile;
 			bPrecompile = InDesc.bPrecompile;
 			bUsePrecompiled = InDesc.bUsePrecompiled;
+			ForeignPlugins = InDesc.ForeignPlugins;
+			ForceReceiptFileName = InDesc.ForceReceiptFileName;
 
 			{
 				bCompileMonolithic = Rules.ShouldCompileMonolithic(InDesc.Platform, InDesc.Configuration);
@@ -1284,7 +1322,10 @@ namespace UnrealBuildTool
 			}
 
 			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-			Manifest.AddBuildProduct(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture()));
+			if(OnlyModules.Count == 0)
+			{
+				Manifest.AddBuildProduct(BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture()));
+			}
 
 			if (UEBuildConfiguration.bCleanProject)
 			{
@@ -1324,9 +1365,17 @@ namespace UnrealBuildTool
 			if(Receipt != null)
 			{
 				IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-				string ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture());
-				Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
-				Receipt.Write(ReceiptFileName);
+				if(OnlyModules.Count == 0)
+				{
+					string ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture());
+					Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
+					Receipt.Write(ReceiptFileName);
+				}
+				if(ForceReceiptFileName != null)
+				{
+					Directory.CreateDirectory(Path.GetDirectoryName(ForceReceiptFileName));
+					Receipt.Write(ForceReceiptFileName);
+				}
 			}
 		}
 
@@ -2492,6 +2541,17 @@ namespace UnrealBuildTool
 			else
 			{
 				BuildPlugins = new List<PluginInfo>(EnabledPlugins);
+			}
+
+			// Add any foreign plugins to the list
+			if(ForeignPlugins != null)
+			{
+				foreach(string ForeignPlugin in ForeignPlugins)
+				{
+					PluginInfo ForeignPluginInfo = new PluginInfo(ForeignPlugin, PluginLoadedFrom.GameProject);
+					ValidPlugins.Add(ForeignPluginInfo);
+					BuildPlugins.Add(ForeignPluginInfo);
+				}
 			}
 		}
 
