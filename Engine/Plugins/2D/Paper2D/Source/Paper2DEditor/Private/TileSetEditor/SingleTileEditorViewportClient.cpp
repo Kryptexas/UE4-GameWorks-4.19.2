@@ -228,20 +228,21 @@ void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
 	UPaperSprite* DummySprite = nullptr;
 	if (TileBeingEditedIndex != INDEX_NONE)
 	{
-		//@TODO: Should use this to pick the correct material
-		//const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
-
 		DummySprite = NewObject<UPaperSprite>();
  		DummySprite->SpriteCollisionDomain = ESpriteCollisionMode::None;
  		DummySprite->PivotMode = ESpritePivotMode::Center_Center;
  		DummySprite->CollisionGeometry.GeometryType = ESpritePolygonMode::SourceBoundingBox;
  		DummySprite->RenderGeometry.GeometryType = ESpritePolygonMode::SourceBoundingBox;
-		DummySprite->PixelsPerUnrealUnit = 1.0f;
 
 		FSpriteAssetInitParameters SpriteReinitParams;
+
 		SpriteReinitParams.Texture = TileSet->TileSheet;
+
+		//@TODO: Should analyze the texture (*at a higher level, not per tile click!*) to pick the correct material
+
 		TileSet->GetTileUV(TileBeingEditedIndex, /*out*/ SpriteReinitParams.Offset);
 		SpriteReinitParams.Dimension = FVector2D(TileSet->TileWidth, TileSet->TileHeight);
+		SpriteReinitParams.SetPixelsPerUnrealUnit(1.0f);
 		DummySprite->InitializeSprite(SpriteReinitParams);
 	}
 	PreviewTileSpriteComponent->SetSprite(DummySprite);

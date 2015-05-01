@@ -7,7 +7,6 @@
 
 #include "PaperCustomVersion.h"
 #include "PaperGeomTools.h"
-#include "PaperRuntimeSettings.h"
 #include "PaperSpriteComponent.h"
 #include "PaperFlipbookComponent.h"
 #include "SpriteDrawCall.h"
@@ -22,6 +21,7 @@
 #include "GeomTools.h"
 #include "BitmapUtils.h"
 #include "ComponentReregisterContext.h"
+#include "PaperRuntimeSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // maf
@@ -375,7 +375,7 @@ void UPaperSprite::OnObjectReimported(UObject* InObject)
 	// If SourceTetxureDimension == 0, we don't have a previous dimension to work off, so can't
 	// rescale sensibly
 	UTexture2D* Texture = Cast<UTexture2D>(InObject);
-	if (Texture != nullptr && Texture == GetSourceTexture())
+	if ((Texture != nullptr) && (Texture == GetSourceTexture()))
 	{
 		if (NeedRescaleSpriteData())
 		{
@@ -691,12 +691,17 @@ void UPaperSprite::RescaleSpriteData(UTexture2D* Texture)
 
 bool UPaperSprite::NeedRescaleSpriteData()
 {
-	if (UTexture2D* Texture = GetSourceTexture())
+	const bool bSupportsRescaling = GetDefault<UPaperRuntimeSettings>()->bResizeSpriteDataToMatchTextures;
+
+	if (bSupportsRescaling)
 	{
-		Texture->ConditionalPostLoad();
-		const FIntPoint TextureSize = Texture->GetImportedSize();
-		const bool bTextureSizeIsZero = (TextureSize.X == 0) || (TextureSize.Y == 0);
-		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && ((TextureSize.X != SourceTextureDimension.X) || (TextureSize.Y != SourceTextureDimension.Y));
+		if (UTexture2D* Texture = GetSourceTexture())
+		{
+			Texture->ConditionalPostLoad();
+			const FIntPoint TextureSize = Texture->GetImportedSize();
+			const bool bTextureSizeIsZero = (TextureSize.X == 0) || (TextureSize.Y == 0);
+			return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && ((TextureSize.X != SourceTextureDimension.X) || (TextureSize.Y != SourceTextureDimension.Y));
+		}
 	}
 
 	return false;
@@ -1351,58 +1356,19 @@ void UPaperSprite::ExtractRectsFromTexture(UTexture2D* Texture, TArray<FIntRect>
 
 void UPaperSprite::InitializeSprite(const FSpriteAssetInitParameters& InitParams)
 {
-	if (InitParams.bNewlyCreated)
+	if (InitParams.bOverridePixelsPerUnrealUnit)
 	{
-		const UPaperRuntimeSettings* DefaultSettings = GetDefault<UPaperRuntimeSettings>();
-		PixelsPerUnrealUnit = DefaultSettings->DefaultPixelsPerUnrealUnit;
+		PixelsPerUnrealUnit = InitParams.PixelsPerUnrealUnit;
+	}
 
-		bool bUseMaskedTexture = true;
+	if (InitParams.DefaultMaterialOverride != nullptr)
+	{
+		DefaultMaterial = InitParams.DefaultMaterialOverride;
+	}
 
-		// Analyze the texture if desired (to see if it's got greyscale alpha or just binary alpha, picking either a translucent or masked material)
-		if (DefaultSettings->bPickBestMaterialWhenCreatingSprite)
-		{
-			if (InitParams.Texture != nullptr)
-			{
-				FAlphaBitmap AlphaBitmap(InitParams.Texture);
-				bool bHasIntermediateValues;
-				bool bHasZeros;
-				AlphaBitmap.AnalyzeImage((int32)InitParams.Offset.X, (int32)InitParams.Offset.Y, (int32)InitParams.Dimension.X, (int32)InitParams.Dimension.Y, /*out*/ bHasZeros, /*out*/ bHasIntermediateValues);
-
-				bUseMaskedTexture = !bHasIntermediateValues;
-			}
-		}
-
-		if (bUseMaskedTexture)
-		{
-			if (InitParams.MaskedMaterialOverride != nullptr)
-			{
-				DefaultMaterial = InitParams.MaskedMaterialOverride;
-			}
-			else if (UMaterialInterface* MaskedMaterial = Cast<UMaterialInterface>(DefaultSettings->DefaultMaskedMaterialName.TryLoad()))
-			{
-				DefaultMaterial = MaskedMaterial;
-			}
-		}
-		else
-		{
-			if (InitParams.TranslucentMaterialOverride != nullptr)
-			{
-				DefaultMaterial = InitParams.TranslucentMaterialOverride;
-			}
-			else if (UMaterialInterface* TranslucentMaterial = Cast<UMaterialInterface>(DefaultSettings->DefaultTranslucentMaterialName.TryLoad()))
-			{
-				DefaultMaterial = TranslucentMaterial;
-			}
-		}
-
-		if (InitParams.OpaqueMaterialOverride != nullptr)
-		{
-			AlternateMaterial = InitParams.OpaqueMaterialOverride;
-		}
-		else if (UMaterialInterface* OpaqueMaterial = Cast<UMaterialInterface>(DefaultSettings->DefaultOpaqueMaterialName.TryLoad()))
-		{
-			AlternateMaterial = OpaqueMaterial;
-		}
+	if (InitParams.AlternateMaterialOverride != nullptr)
+	{
+		AlternateMaterial = InitParams.AlternateMaterialOverride;
 	}
 
 	SourceTexture = InitParams.Texture;

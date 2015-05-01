@@ -33,7 +33,6 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 	UPaperSprite* NewSprite = NewObject<UPaperSprite>(InParent, Class, Name, Flags | RF_Transactional);
 
 	FSpriteAssetInitParameters SpriteInitParams;
-	SpriteInitParams.bNewlyCreated = true;
 
 	if (bUseSourceRegion)
 	{
@@ -46,14 +45,15 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 		SpriteInitParams.SetTextureAndFill(InitialTexture);
 	}
 
+	const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
+
+	bool bFoundNormalMap = false;
 	if (InitialTexture != nullptr)
 	{
 		// Look for an associated normal map to go along with the base map
 		const FString SanitizedBasePackageName = PackageTools::SanitizePackageName(InitialTexture->GetOutermost()->GetName());
 		const FString PackagePath = FPackageName::GetLongPackagePath(SanitizedBasePackageName);
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-
-		const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
 
 		const FString NormalMapNameNoSuffix = ImporterSettings->RemoveSuffixFromBaseMapName(InitialTexture->GetName());
 
@@ -71,14 +71,15 @@ UObject* UPaperSpriteFactory::FactoryCreateNew(UClass* Class, UObject* InParent,
 			{
 				if (UTexture2D* NormalMapTexture = Cast<UTexture2D>(AssetData.GetAsset()))
 				{
+					bFoundNormalMap = true;
 					SpriteInitParams.AdditionalTextures.Add(NormalMapTexture);
-					ImporterSettings->PopulateMaterialsIntoInitParams(/*inout*/ SpriteInitParams);
 					break;
 				}
 			}
 		}
 	}
 
+	ImporterSettings->ApplySettingsForSpriteInit(/*inout*/ SpriteInitParams, bFoundNormalMap ? ESpriteInitMaterialLightingMode::ForceLit : ESpriteInitMaterialLightingMode::Automatic);
 	NewSprite->InitializeSprite(SpriteInitParams);
 
 	return NewSprite;

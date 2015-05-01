@@ -4,6 +4,36 @@
 
 #include "PaperImporterSettings.generated.h"
 
+enum class ESpriteInitMaterialLightingMode : uint8
+{
+	// Use the default in the importer settings
+	Automatic,
+
+	// Force unlit
+	ForceUnlit,
+
+	// Force lit
+	ForceLit
+};
+
+enum class ESpriteInitMaterialType : uint8
+{
+	// Leave the material alone
+	LeaveAsIs,
+
+	// Use the default in the importer settings (typically auto-analyze)
+	Automatic,
+
+	// Force masked
+	Masked,
+
+	// Force translucent
+	Translucent,
+
+	// Force opaque
+	Opaque
+};
+
 /**
  * Implements the settings for imported Paper2D assets, such as sprite sheet textures.
  */
@@ -12,7 +42,19 @@ class PAPER2DEDITOR_API UPaperImporterSettings : public UObject
 {
 	GENERATED_BODY()
 
-public:
+protected:
+	// Should the source texture be scanned when creating new sprites to determine the appropriate material? (if false, the Default Masked Material is always used)
+	UPROPERTY(config, EditAnywhere, Category=Settings)
+	bool bPickBestMaterialWhenCreatingSprite;
+
+	// Can opaque materials be applied as part of the 'best material' analysis?
+	UPROPERTY(config, EditAnywhere, Category=Settings, meta=(EditCondition=bPickBestMaterialWhenCreatingSprite))
+	bool bAnalysisCanUseOpaque;
+
+	// The default scaling factor between pixels and Unreal units (cm) to use for newly created sprite assets (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
+	UPROPERTY(config, EditAnywhere, Category=Settings)
+	float DefaultPixelsPerUnrealUnit;
+
 	// A list of default suffixes to use when looking for associated normal maps while importing sprites or creating sprites from textures
 	UPROPERTY(config, EditAnywhere, Category=ImportSettings)
 	TArray<FString> NormalMapTextureSuffixes;
@@ -31,18 +73,30 @@ public:
 	
 	// Compression settings to use when building the texture.
 	// The default texture group for imported sprite textures, tile sheets, etc... (typically set to UI for 'modern 2D' or 2D pixels for 'retro 2D')
-	UPROPERTY(config, EditAnywhere, Category = ImportSettings, meta = (EditCondition = bOverrideTextureCompression))
+	UPROPERTY(config, EditAnywhere, Category=ImportSettings, meta=(EditCondition=bOverrideTextureCompression))
 	TEnumAsByte<TextureCompressionSettings> DefaultSpriteTextureCompression;
 
-	// The default masked material for newly created sprites (masked means binary opacity: things are either opaque or see-thru, with nothing in between)
+	// The unlit default masked material for newly created sprites (masked means binary opacity: things are either opaque or see-thru, with nothing in between)
+	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Unlit Default Masked Material"))
+	FStringAssetReference UnlitDefaultMaskedMaterialName;
+
+	// The unlit default translucent material for newly created sprites (translucent means smooth opacity which can vary continuously from 0..1, but translucent rendering is more expensive that opaque or masked rendering and has different sorting rules)
+	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Unlit Default Translucent Material"))
+	FStringAssetReference UnlitDefaultTranslucentMaterialName;
+
+	// The unlit default opaque material for newly created sprites
+	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Unlit Default Opaque Sprite Material"))
+	FStringAssetReference UnlitDefaultOpaqueMaterialName;
+
+	// The lit default masked material for newly created sprites (masked means binary opacity: things are either opaque or see-thru, with nothing in between)
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Lit Default Masked Material"))
 	FStringAssetReference LitDefaultMaskedMaterialName;
 
-	// The default translucent material for newly created sprites (translucent means smooth opacity which can vary continuously from 0..1, but translucent rendering is more expensive that opaque or masked rendering and has different sorting rules)
+	// The lit default translucent material for newly created sprites (translucent means smooth opacity which can vary continuously from 0..1, but translucent rendering is more expensive that opaque or masked rendering and has different sorting rules)
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Lit Default Translucent Material"))
 	FStringAssetReference LitDefaultTranslucentMaterialName;
 
-	// The default opaque material for newly created sprites
+	// The lit default opaque material for newly created sprites
 	UPROPERTY(config, EditAnywhere, Category=MaterialSettings, meta=(AllowedClasses="MaterialInterface", DisplayName="Lit Default Opaque Material"))
 	FStringAssetReference LitDefaultOpaqueMaterialName;
 
@@ -55,9 +109,22 @@ public:
 	// Generates names to test for a normal map using NormalMapTextureSuffixes
 	void GenerateNormalMapNamesToTest(const FString& InRoot, TArray<FString>& InOutNames) const;
 
-	// Pushes the lit materials
-	void PopulateMaterialsIntoInitParams(FSpriteAssetInitParameters& InitParams) const;
-
 	// Applies the compression settings to the specified texture
 	void ApplyTextureSettings(UTexture2D* Texture) const;
+
+	// Applies the material settings to the 
+	// Note: This should be called after the texture has been set, as that will be analyzed if the lighting/material type flags are set to automatic
+	void ApplySettingsForSpriteInit(FSpriteAssetInitParameters& InitParams, ESpriteInitMaterialLightingMode LightingMode = ESpriteInitMaterialLightingMode::Automatic, ESpriteInitMaterialType MaterialTypeMode = ESpriteInitMaterialType::Automatic) const;
+
+	// Returns the default translucent material
+	UMaterialInterface* GetDefaultTranslucentMaterial(bool bLit) const;
+
+	// Returns the default opaque material
+	UMaterialInterface* GetDefaultOpaqueMaterial(bool bLit) const;
+
+	// Returns the default masked material
+	UMaterialInterface* GetDefaultMaskedMaterial(bool bLit) const;
+
+	// Returns the default pixels/uu setting
+	float GetDefaultPixelsPerUnrealUnit() const { return DefaultPixelsPerUnrealUnit; }
 };

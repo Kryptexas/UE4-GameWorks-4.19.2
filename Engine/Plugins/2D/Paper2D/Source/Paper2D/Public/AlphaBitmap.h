@@ -3,9 +3,9 @@
 #pragma once
 
 //////////////////////////////////////////////////////////////////////////
-// FBitmap
+// FAlphaBitmap
 
-struct FAlphaBitmap
+struct PAPER2D_API FAlphaBitmap
 {
 	FAlphaBitmap(UTexture2D* SourceTexture, uint8 InDefaultValue = 0)
 		: Width(0)

@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
 #include "TileMapActorFactory.h"
+#include "PaperImporterSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UTileMapActorFactory
@@ -36,6 +37,7 @@ void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 			RenderComponent->TileMap->TileWidth = TileSet->TileWidth;
 			RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
 			RenderComponent->TileMap->SelectedTileSet = TileSet;
+			//@TODO: Initialize the tile map material here too, based on analysis of the TileSheet texture
 			RenderComponent->RegisterComponent();
 		}
 	}
@@ -43,6 +45,7 @@ void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	if (RenderComponent->OwnsTileMap())
 	{
 		RenderComponent->TileMap->InitializeNewEmptyTileMap();
+		RenderComponent->TileMap->PixelsPerUnrealUnit = GetDefault<UPaperImporterSettings>()->GetDefaultPixelsPerUnrealUnit();
 	}
 }
 
@@ -64,12 +67,14 @@ void UTileMapActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 				RenderComponent->TileMap->TileWidth = TileSet->TileWidth;
 				RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
 				RenderComponent->TileMap->SelectedTileSet = TileSet;
+				//@TODO: Initialize the tile map material here too, based on analysis of the TileSheet texture
 			}
 		}
 
 		if (RenderComponent->OwnsTileMap())
 		{
 			RenderComponent->TileMap->InitializeNewEmptyTileMap();
+			RenderComponent->TileMap->PixelsPerUnrealUnit = GetDefault<UPaperImporterSettings>()->GetDefaultPixelsPerUnrealUnit();
 		}
 	}
 }

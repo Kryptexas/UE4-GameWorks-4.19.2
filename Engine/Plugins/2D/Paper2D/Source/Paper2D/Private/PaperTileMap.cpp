@@ -544,9 +544,8 @@ void UPaperTileMap::ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize
 
 void UPaperTileMap::InitializeNewEmptyTileMap()
 {
+	//@TODO: Consider removing this function / making it a 'prepare' method just like the sprite one on the importer settings
 	AddNewLayer();
-
-	PixelsPerUnrealUnit = GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit;
 }
 
 UPaperTileMap* UPaperTileMap::CloneTileMap(UObject* OuterForClone)
