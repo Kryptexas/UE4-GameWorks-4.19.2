@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SlateBasics.h"
+#include "AssetData.h"
 
 struct FSearchEntry
 {
