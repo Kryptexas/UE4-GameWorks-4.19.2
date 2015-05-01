@@ -76,6 +76,12 @@ public:
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 	// End of FGCObject interface
 
+protected:
+	virtual FSlateRect ComputeAreaBounds() const override;
+	virtual int32 GetGraphRulePeriod() const override;
+	virtual float GetGridScaleAmount() const override;
+	virtual int32 GetSnapGridSize() const override;
+
 private:
 	/** Establishes the resolution and aspect ratio to use on construction from config settings */
 	void SetStartupResolution();
@@ -98,8 +104,6 @@ private:
 
 	/** Gets the DPI scale that would be applied given the current preview width and height */
 	float GetPreviewDPIScale() const;
-
-	virtual FSlateRect ComputeAreaBounds() const override;
 
 	/** Adds any pending selected widgets to the selection set */
 	void ResolvePendingSelectedWidgets();

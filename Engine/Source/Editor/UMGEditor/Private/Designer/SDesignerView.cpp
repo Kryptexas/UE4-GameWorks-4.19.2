@@ -760,6 +760,22 @@ FSlateRect SDesignerView::ComputeAreaBounds() const
 	return FSlateRect(0, 0, GetPreviewAreaWidth().Get(), GetPreviewAreaHeight().Get());
 }
 
+int32 SDesignerView::GetSnapGridSize() const
+{
+	const UWidgetDesignerSettings* DesignerSettings = GetDefault<UWidgetDesignerSettings>();
+	return DesignerSettings->GridSnapSize;
+}
+
+int32 SDesignerView::GetGraphRulePeriod() const
+{
+	return 10;
+}
+
+float SDesignerView::GetGridScaleAmount() const
+{
+	return GetPreviewDPIScale();
+}
+
 EVisibility SDesignerView::GetInfoBarVisibility() const
 {
 	if ( DesignerMessage != EDesignerMessage::None )
