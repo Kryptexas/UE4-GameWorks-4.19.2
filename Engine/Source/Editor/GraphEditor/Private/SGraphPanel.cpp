@@ -254,7 +254,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					{
 						NodeMatches.Add(NodeMatch);
 					}
-					const bool bNodeIsDifferent = (!GraphObjToDiff || NodeMatch.Diff());
+					const bool bNodeIsDifferent = (!GraphObjToDiff || NodeMatch.Diff(FGraphDiffControl::FNodeDiffContext()));
 
 					/* When dragging off a pin, we want to duck the alpha of some nodes */
 					TSharedPtr< SGraphPin > OnlyStartPin = (1 == PreviewConnectorFromPins.Num()) ? PreviewConnectorFromPins[0].FindInGraphPanel(*this) : TSharedPtr< SGraphPin >();
@@ -1243,7 +1243,7 @@ bool SGraphPanel::JumpToRect(const FVector2D &TopLeft, const FVector2D &BottomRi
 	return true;
 }
 
-void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
+void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename, bool bSelectNode)
 {
 	if (JumpToMe != nullptr)
 	{
@@ -1257,8 +1257,16 @@ void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
 			}
 		}
 
-		// Select this node, and request that we jump to it.
-		SelectAndCenterObject(JumpToMe, true);
+		if (bSelectNode)
+		{
+			// Select this node, and request that we jump to it.
+			SelectAndCenterObject(JumpToMe, true);
+		}
+		else
+		{
+			// Jump to the node
+			CenterObject(JumpToMe);
+		}
 	}
 }
 
@@ -1266,7 +1274,7 @@ void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 {
 	if (JumpToMe != nullptr)
 	{
-		JumpToNode(JumpToMe->GetOwningNode(), false);
+		JumpToNode(JumpToMe->GetOwningNode(), false, true);
 	}
 }
 

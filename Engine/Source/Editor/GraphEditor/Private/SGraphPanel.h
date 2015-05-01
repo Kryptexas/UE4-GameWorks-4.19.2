@@ -126,7 +126,7 @@ public:
 	/** Focuses the view on rectangle, zooming if neccesary */
 	bool JumpToRect(const FVector2D &BottomLeft, const FVector2D &TopRight);
 
-	void JumpToNode(const class UEdGraphNode* JumpToMe, bool bRequestRename);
+	void JumpToNode(const class UEdGraphNode* JumpToMe, bool bRequestRename, bool bSelectNode);
 
 	void JumpToPin(const class UEdGraphPin* JumptToMe);
 

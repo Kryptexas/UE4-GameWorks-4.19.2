@@ -125,7 +125,7 @@ public:
 	virtual void SelectAllNodes() override;
 	virtual FVector2D GetPasteLocation() const override;
 	virtual bool IsNodeTitleVisible( const UEdGraphNode* Node, bool bRequestRename ) override;
-	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false ) override;
+	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false, bool bSelectNode = true ) override;
 	virtual void JumpToPin( const UEdGraphPin* JumpToMe ) override;
 	virtual UEdGraphPin* GetGraphPinForMenu() override;
 	virtual void ZoomToFit(bool bOnlySelection) override;

@@ -22,9 +22,9 @@ bool SGraphEditorImpl::IsNodeTitleVisible( const UEdGraphNode* Node, bool bEnsur
 	return GraphPanel->IsNodeTitleVisible(Node, bEnsureVisible);
 }
 
-void SGraphEditorImpl::JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename )
+void SGraphEditorImpl::JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename, bool bSelectNode )
 {
-	GraphPanel->JumpToNode(JumpToMe, bRequestRename);
+	GraphPanel->JumpToNode(JumpToMe, bRequestRename, bSelectNode);
 	FocusLockedEditorHere();
 }
 

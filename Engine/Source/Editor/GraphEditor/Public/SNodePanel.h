@@ -702,6 +702,13 @@ protected:
 	 */
 	void SelectAndCenterObject(const UObject* ObjectToSelect, bool bCenter);
 
+	/**
+	 * On the next tick, centers the widget associated with the object if it exists
+	 *
+	 * @param ObjectToCenter	The object to center
+	 */
+	void CenterObject(const UObject* ObjectToCenter);
+
 	/** Add a slot to the CanvasPanel dynamically */
 	virtual void AddGraphNode(const TSharedRef<SNode>& NodeToAdd);
 
@@ -740,6 +747,12 @@ protected:
 	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return TSharedPtr<SWidget>(); }
 	virtual bool OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return false; }
 protected:
+	/**
+	 * Get the bounds of the given node
+	 * @return True if successful
+	 */
+	bool GetBoundsForNode(const UObject* InNode, /*out*/ FVector2D& MinCorner, /*out*/ FVector2D& MaxCorner, float Padding = 0.0f);
+
 	/**
 	 * Get the bounds of the selected nodes 
 	 * @param bSelectionSetOnly If true, limits the query to just the selected nodes.  Otherwise it does all nodes.

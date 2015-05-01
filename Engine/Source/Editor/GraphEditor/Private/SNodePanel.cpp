@@ -437,6 +437,7 @@ void SNodePanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 {
 	CachedGeometry = AllottedGeometry;
 	bool bWasActiveTimerRegisteredThisFrame = false;
+	bool bCanMoveToTargetObjectThisFrame = true;
 
 	if(DeferredSelectionTargetObjects.Num() > 0)
 	{
@@ -453,22 +454,26 @@ void SNodePanel::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		{
 			SelectionManager.SetSelectionSet(NewSelectionSet);
 		}
+
 		DeferredSelectionTargetObjects.Empty();
 
-
-		// Since we want to move to a target object, do not zoom to extent. Panning and zoom will not begin until next tick however due to the nodes potentially not having a size yet.
-		if( DeferredMovementTargetObject )
-		{
-			bDeferredZoomToNodeExtents = false;
-		}
+		// Do not allow movement to happen this Tick as the selected nodes may not yet have a size set (if they're newly added)
+		bCanMoveToTargetObjectThisFrame = false;
 	}
-	else if(DeferredMovementTargetObject != nullptr && GetBoundsForNodes(true, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
+	
+	if(DeferredMovementTargetObject)
 	{
-		DeferredMovementTargetObject = nullptr;
-		if (!ActiveTimerHandle.IsValid())
+		// Since we want to move to a target object, do not zoom to extent
+		bDeferredZoomToNodeExtents = false;
+
+		if (bCanMoveToTargetObjectThisFrame && GetBoundsForNode(DeferredMovementTargetObject, ZoomTargetTopLeft, ZoomTargetBottomRight, ZoomPadding))
 		{
-			ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
-			bWasActiveTimerRegisteredThisFrame = true;
+			DeferredMovementTargetObject = nullptr;
+			if (!ActiveTimerHandle.IsValid())
+			{
+				ActiveTimerHandle = RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SNodePanel::HandleZoomToFit));
+				bWasActiveTimerRegisteredThisFrame = true;
+			}
 		}
 	}
 	
@@ -1058,6 +1063,18 @@ void SNodePanel::SelectAndCenterObject(const UObject* ObjectToSelect, bool bCent
 	}
 }
 
+void SNodePanel::CenterObject(const UObject* ObjectToCenter)
+{
+	DeferredMovementTargetObject = ObjectToCenter;
+
+	auto PinnedActiveTimerHandle = ActiveTimerHandle.Pin();
+	if (PinnedActiveTimerHandle.IsValid())
+	{
+		// Stop zooming for now and let the a new zoom target be established
+		UnRegisterActiveTimer(PinnedActiveTimerHandle.ToSharedRef());
+	}
+}
+
 /** Add a slot to the CanvasPanel dynamically */
 void SNodePanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 {
@@ -1359,6 +1376,39 @@ bool SNodePanel::IsNodeCulled(const TSharedRef<SNode>& Node, const FGeometry& Al
 		return false;
 	}
 
+}
+
+bool SNodePanel::GetBoundsForNode(const UObject* InNode, /*out*/ FVector2D& MinCorner, /*out*/ FVector2D& MaxCorner, float Padding)
+{
+	MinCorner = FVector2D(MAX_FLT, MAX_FLT);
+	MaxCorner = FVector2D(-MAX_FLT, -MAX_FLT);
+
+	bool bValid = false;
+
+	TSharedRef<SNode>* pWidget = (InNode) ? NodeToWidgetLookup.Find(InNode) : nullptr;
+	if (pWidget)
+	{
+		SNode& Widget = pWidget->Get();
+		const FVector2D Lower = Widget.GetPosition();
+		const FVector2D Upper = Lower + Widget.GetDesiredSize();
+
+		MinCorner.X = FMath::Min(MinCorner.X, Lower.X);
+		MinCorner.Y = FMath::Min(MinCorner.Y, Lower.Y);
+		MaxCorner.X = FMath::Max(MaxCorner.X, Upper.X);
+		MaxCorner.Y = FMath::Max(MaxCorner.Y, Upper.Y);
+
+		bValid = true;
+	}
+
+	if (bValid)
+	{
+		MinCorner.X -= Padding;
+		MinCorner.Y -= Padding;
+		MaxCorner.X += Padding;
+		MaxCorner.Y += Padding;
+	}
+
+	return bValid;
 }
 
 bool SNodePanel::GetBoundsForNodes(bool bSelectionSetOnly, FVector2D& MinCorner, FVector2D& MaxCorner, float Padding)

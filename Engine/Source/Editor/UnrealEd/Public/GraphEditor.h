@@ -215,11 +215,11 @@ public:
 	}
 
 	/** Bring the specified node into view */
-	virtual void JumpToNode( const class UEdGraphNode* JumpToMe, bool bRequestRename )
+	virtual void JumpToNode( const class UEdGraphNode* JumpToMe, bool bRequestRename = false, bool bSelectNode = true )
 	{
 		if (Implementation.IsValid())
 		{
-			Implementation->JumpToNode(JumpToMe, bRequestRename);
+			Implementation->JumpToNode(JumpToMe, bRequestRename, bSelectNode);
 		}
 	}
 
