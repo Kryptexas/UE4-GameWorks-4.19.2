@@ -36,7 +36,7 @@ protected:
 	void OnInitialAssetRegistrySearchComplete();
 
 	/** Recursively discovers and loads dependent assets, building up a tree map node hierarchy */
-	void GatherDependenciesRecursively( class FAssetRegistryModule& AssetRegistryModule, TSharedPtr<class FAssetThumbnailPool>& AssetThumbnailPool, TMap<FName, TSharedPtr<class FTreeMapNodeData>>& VisitedAssetPackageNames, const TArray<FName>& RootAssetPackageNames, const TArray<FName>& AssetPackageNames, const TSharedPtr<FTreeMapNodeData>& ParentTreeMapNode, TSharedPtr<FTreeMapNodeData>& SharedRootNode, int32& NumAssetsWhichFailedToLoad );
+	void GatherDependenciesRecursively( class FAssetRegistryModule& AssetRegistryModule, TSharedPtr<class FAssetThumbnailPool>& AssetThumbnailPool, TMap<FName, TSharedPtr<class FTreeMapNodeData>>& VisitedAssetPackageNames, const TArray<FName>& AssetPackageNames, const TSharedPtr<FTreeMapNodeData>& ParentTreeMapNode, TSharedPtr<FTreeMapNodeData>& SharedRootNode, int32& NumAssetsWhichFailedToLoad );
 
 	/** After the node tree is built up, this function is called to generate nice labels for the nodes and to do a final clean-up pass on the tree */
 	void FinalizeNodesRecursively( TSharedPtr<FTreeMapNodeData>& Node, const TSharedPtr<FTreeMapNodeData>& SharedRootNode, int32& TotalAssetCount, SIZE_T& TotalSize, bool& bAnyUnknownSizes );
