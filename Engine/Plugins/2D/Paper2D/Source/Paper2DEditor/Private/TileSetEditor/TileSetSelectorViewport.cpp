@@ -144,7 +144,7 @@ void STileSetSelectorViewport::RefreshSelectionRectangle()
 		Client->bHasValidPaintRectangle = bHasSelection && (TileSetBeingEdited != nullptr);
 
 		const int32 TileIndex = (bHasSelection && (TileSetBeingEdited != nullptr)) ? (SelectionTopLeft.X + SelectionTopLeft.Y * TileSetBeingEdited->GetTileCountX()) : INDEX_NONE;
-		Client->TileIndex = TileIndex;
+		Client->CurrentSelectedTileIndex = TileIndex;
 
 		if (bHasSelection && (TileSetBeingEdited != nullptr))
 		{
