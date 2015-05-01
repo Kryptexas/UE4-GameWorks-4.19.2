@@ -177,13 +177,6 @@ private:
 	FSceneViewStateReference ViewState;
 	FSceneViewStateReference StereoViewState;
 
-	/** Class to manage online services */
-	UPROPERTY()
-	class UOnlineSession* OnlineSession;
-
-	/** @return OnlineSession class to use for this player controller  */
-	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass();
-
 	/** The controller ID which this player accepts input from. */
 	int32 ControllerId;
 
@@ -217,10 +210,6 @@ public:
 	bool HandleToggleStreamingVolumesCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCancelMatineeCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	
-	// UPlayer interface
-	virtual void HandleDisconnect(class UWorld *World, class UNetDriver *NetDriver) override;
-	// End of UPlayer interface
-
 protected:
 	/**
 	 * Retrieve the viewpoint of this player.
@@ -291,9 +280,6 @@ public:
 	 * Called to initialize the online delegates
 	 */
 	virtual void InitOnlineSession();
-
-	/** @return online session management object associated with this player */
-	UOnlineSession* GetOnlineSession() const { return OnlineSession; }
 
 	/**
 	 * Called when the player is removed from the viewport client

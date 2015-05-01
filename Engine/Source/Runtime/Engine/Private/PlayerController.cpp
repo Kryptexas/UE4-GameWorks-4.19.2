@@ -1611,9 +1611,9 @@ void APlayerController::LocalTravel( const FString& FURL )
 void APlayerController::ClientReturnToMainMenu_Implementation(const FString& ReturnReason)
 {
 	UWorld* World = GetWorld();
-	if (Player)
+	if (GetGameInstance() && GetGameInstance()->GetOnlineSession())
 	{
-		Player->HandleDisconnect(World, World->GetNetDriver());
+		GetGameInstance()->GetOnlineSession()->HandleDisconnect(World, World->GetNetDriver());
 	}
 	else
 	{
@@ -3158,33 +3158,17 @@ void APlayerController::ClientWasKicked_Implementation(const FText& KickReason)
 
 void APlayerController::ClientStartOnlineSession_Implementation()
 {
-	if (IsPrimaryPlayer() && PlayerState)
+	if (IsPrimaryPlayer() && PlayerState && GetGameInstance() && GetGameInstance()->GetOnlineSession())
 	{
-		ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
-		if (LP)
-		{
-			UOnlineSession* Session = LP->GetOnlineSession();
-			if (Session)
-			{
-				Session->StartOnlineSession(PlayerState->SessionName);
-			}
-		}
+		GetGameInstance()->GetOnlineSession()->StartOnlineSession(PlayerState->SessionName);
 	}
 }
 
 void APlayerController::ClientEndOnlineSession_Implementation()
 {
-	if (IsPrimaryPlayer() && PlayerState)
+	if (IsPrimaryPlayer() && PlayerState && GetGameInstance() && GetGameInstance()->GetOnlineSession())
 	{
-		ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
-		if (LP)
-		{
-			UOnlineSession* Session = LP->GetOnlineSession();
-			if (Session)
-			{
-				Session->EndOnlineSession(PlayerState->SessionName);
-			}
-		}
+		GetGameInstance()->GetOnlineSession()->EndOnlineSession(PlayerState->SessionName);
 	}
 }
 

@@ -40,9 +40,4 @@ public:
 	 * @param    PC - new player controller to assign to player
 	 */
 	ENGINE_API virtual void SwitchController( class APlayerController* PC );
-
-	/**
-	 * Return the main menu after graceful cleanup
-	 */
-	virtual void HandleDisconnect(class UWorld *World, class UNetDriver *NetDriver) {}
 };

@@ -49,6 +49,10 @@ protected:
 	// Delegate handle that stores delegate for when an invite is accepted by a user
 	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
 	
+	/** Class to manage online services */
+	UPROPERTY()
+	class UOnlineSession* OnlineSession;
+
 public:
 
 	FString PIEMapName;
@@ -181,6 +185,11 @@ public:
 	/** Start playing back a previously recorded replay. */
 	virtual void PlayReplay(const FString& Name);
 
-private:
 	FTimerManager* TimerManager;
+
+	/** @return online session management object associated with this game instance */
+	class UOnlineSession* GetOnlineSession() const { return OnlineSession; }
+
+	/** @return OnlineSession class to use for this game instance  */
+	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass();
 };

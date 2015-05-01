@@ -105,6 +105,8 @@
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
 
+#include "GameFramework/OnlineSession.h"
+
 DEFINE_LOG_CATEGORY(LogEngine);
 
 IMPLEMENT_MODULE( FEngineModule, Engine );
@@ -7900,13 +7902,12 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 		}
 	}
 	
-	// A valid world or NetDriver is required to look up a ULocalPlayer.
+	// A valid world or NetDriver is required to look up a GameInstance/ULocalPlayer.
 	if (InWorld)
 	{
-		ULocalPlayer* const LP = GEngine->GetFirstGamePlayer(InWorld);
-		if(ensure(LP))
+		if (InWorld->GetGameInstance() != nullptr && InWorld->GetGameInstance()->GetOnlineSession() != nullptr)
 		{
-			LP->HandleDisconnect(InWorld, NetDriver);
+			InWorld->GetGameInstance()->GetOnlineSession()->HandleDisconnect(InWorld, NetDriver);
 		}
 	}
 	else if(NetDriver && NetDriver->NetDriverName == NAME_PendingNetDriver)
@@ -7915,12 +7916,9 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 		FWorldContext &Context = GEngine->GetWorldContextFromPendingNetGameNetDriverChecked(NetDriver);
 		check(Context.OwningGameInstance != NULL && Context.OwningGameInstance->GetFirstGamePlayer() != NULL);
 
-		ULocalPlayer* const LP = Context.OwningGameInstance->GetFirstGamePlayer();
-		if(ensure(LP))
+		if ( Context.OwningGameInstance->GetOnlineSession() != nullptr )
 		{
-			// Use the world on the context instead since InWorld is null, it should be valid. This way we can do a travel
-			// in UEngine::HandleDisconnect if it gets called
-			LP->HandleDisconnect(Context.World(), NetDriver);
+			Context.OwningGameInstance->GetOnlineSession()->HandleDisconnect(Context.World(), NetDriver);
 		}
 	}
 	else

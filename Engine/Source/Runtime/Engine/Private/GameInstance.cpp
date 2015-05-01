@@ -59,6 +59,13 @@ void UGameInstance::Init()
 			SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
 		}
 	}
+
+	UClass* SpawnClass = GetOnlineSessionClass();
+	OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
+	if (OnlineSession)
+	{
+		OnlineSession->RegisterOnlineDelegates();
+	}
 }
 
 void UGameInstance::Shutdown()
@@ -649,23 +656,7 @@ void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const in
 	{
 		if (InviteResult.IsValid())
 		{
-			for (ULocalPlayer* LocalPlayer : LocalPlayers)
-			{
-				// Route the call to the actual user that accepted the invite
-				if (LocalPlayer->GetCachedUniqueNetId() == UserId)
-				{
-					LocalPlayer->GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
-					return;
-				}
-			}
-
-			// Go ahead and have the active local player handle accepting the invite. A game can detect that the user id is different and handle
-			// it how it needs to.
-			ULocalPlayer* LocalPlayer = GetFirstGamePlayer();
-			if (LocalPlayer)
-			{
-				LocalPlayer->GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
-			}
+			GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
 		}
 		else
 		{
@@ -783,4 +774,9 @@ void UGameInstance::PlayReplay(const FString& Name)
 	{
 		FCoreUObjectDelegates::PostDemoPlay.Broadcast();
 	}
+}
+
+TSubclassOf<UOnlineSession> UGameInstance::GetOnlineSessionClass()
+{
+	return UOnlineSession::StaticClass();
 }

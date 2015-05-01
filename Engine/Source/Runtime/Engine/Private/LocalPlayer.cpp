@@ -185,47 +185,11 @@ void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InCo
 
 void ULocalPlayer::InitOnlineSession()
 {
-	if (OnlineSession == NULL)
-	{
-		UClass* SpawnClass = GetOnlineSessionClass();
-		OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
-		if (OnlineSession)
-		{
-			UWorld* World = GetWorld();
-			if (World != NULL)
-			{
-				OnlineSession->RegisterOnlineDelegates(World);
-			}
-		}
-	}
+	// FIXME: This may be obsolete, still here to support a few straggler cases that do stuff in child classes
 }
 
 void ULocalPlayer::PlayerRemoved()
 {
-	// Clear all online delegates
-	if (OnlineSession != NULL)
-	{
-		OnlineSession->ClearOnlineDelegates(GetWorld());
-		OnlineSession = NULL;
-	}
-}
-
-TSubclassOf<UOnlineSession> ULocalPlayer::GetOnlineSessionClass()
-{
-	return UOnlineSession::StaticClass();
-}
-
-void ULocalPlayer::HandleDisconnect(UWorld *World, UNetDriver *NetDriver)
-{
-	if (OnlineSession)
-	{
-		OnlineSession->HandleDisconnect(World, NetDriver);
-	}
-	else
-	{
-		// Let the engine cleanup this disconnect
-		GEngine->HandleDisconnect(World, NetDriver);
-	}
 }
 
 bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* InWorld)
