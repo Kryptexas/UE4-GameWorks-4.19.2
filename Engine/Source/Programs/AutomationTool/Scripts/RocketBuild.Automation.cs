@@ -77,6 +77,9 @@ namespace Rocket
 				// Find all the target platforms for this host platform.
 				List<UnrealTargetPlatform> TargetPlatforms = GetTargetPlatforms(bp, HostPlatform);
 
+				// Remove any platforms that aren't available on this machine
+				TargetPlatforms.RemoveAll(x => !bp.ActivePlatforms.Contains(x));
+
 				// Get the temp directory for stripped files for this host
 				string StrippedDir = Path.GetFullPath(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Rocket", HostPlatform.ToString()));
 
@@ -156,10 +159,10 @@ namespace Rocket
 			return FEngineVersionSupport.FromVersionFile(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Runtime\Launch\Resources\Version.h")).ToString();
 		}
 
-		public static List<UnrealTargetPlatform> GetTargetPlatforms(GUBP bp, UnrealTargetPlatform HostPlatform)
+		public static List<UnrealTargetPlatform> GetTargetPlatforms(BuildCommand Command, UnrealTargetPlatform HostPlatform)
 		{
 			List<UnrealTargetPlatform> TargetPlatforms = new List<UnrealTargetPlatform>();
-			if(!bp.ParseParam("NoTargetPlatforms"))
+			if(!Command.ParseParam("NoTargetPlatforms"))
 			{
 				// Always support the host platform
 				TargetPlatforms.Add(HostPlatform);
@@ -186,11 +189,8 @@ namespace Rocket
 					TargetPlatforms.Add(UnrealTargetPlatform.HTML5);
 				}
 
-				// Remove any platforms that aren't available on this machine
-				TargetPlatforms.RemoveAll(x => !bp.ActivePlatforms.Contains(x));
-
 				// Remove any platforms that aren't enabled on the command line
-				string TargetPlatformFilter = bp.ParseParamValue("TargetPlatforms", null);
+				string TargetPlatformFilter = Command.ParseParamValue("TargetPlatforms", null);
 				if(TargetPlatformFilter != null)
 				{
 					List<UnrealTargetPlatform> NewTargetPlatforms = new List<UnrealTargetPlatform>();
