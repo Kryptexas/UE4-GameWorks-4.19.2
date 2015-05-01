@@ -53,7 +53,7 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 			if (const UFunction* Signature = Cast<const UFunction>(PinSubCategoryObject.Get()))
 			{
 				PinSubCategoryMemberReference.MemberName = Signature->GetFName();
-				PinSubCategoryMemberReference.MemberParentClass = Signature->GetOwnerClass();
+				PinSubCategoryMemberReference.MemberParent = Signature->GetOwnerClass();
 				PinSubCategoryObject = NULL;
 			}
 			else

@@ -15,10 +15,19 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 {
 	MemberName = InMemberName;
 #if WITH_EDITOR
-	MemberParentClass = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
+	MemberParent = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
 #else
-	MemberParentClass = *InMemberParentClass;
+	MemberParent = *InMemberParentClass;
 #endif
+	MemberScope.Empty();
+	bSelfContext = false;
+	bWasDeprecated = false;
+}
+
+void FMemberReference::SetGlobalField(FName InFieldName, UPackage* InParentPackage)
+{
+	MemberName = InFieldName;
+	MemberParent = InParentPackage;
 	MemberScope.Empty();
 	bSelfContext = false;
 	bWasDeprecated = false;
@@ -32,7 +41,7 @@ void FMemberReference::SetExternalDelegateMember(FName InMemberName)
 void FMemberReference::SetSelfMember(FName InMemberName)
 {
 	MemberName = InMemberName;
-	MemberParentClass = NULL;
+	MemberParent = NULL;
 	MemberScope.Empty();
 	bSelfContext = true;
 	bWasDeprecated = false;
@@ -44,7 +53,7 @@ void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberG
 	MemberGuid = InMemberGuid;
 	bSelfContext = bIsConsideredSelfContext;
 	bWasDeprecated = false;
-	MemberParentClass = InMemberParentClass;
+	MemberParent = InMemberParentClass;
 	MemberScope.Empty();
 }
 
@@ -52,7 +61,7 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 {
 	MemberName = InMemberName;
 	MemberGuid = InMemberGuid;
-	MemberParentClass = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
+	MemberParent = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
 	MemberScope.Empty();
 
 	// SelfScope should always be valid, but if it's not ensure and move on, the node will be treated as if it's not self scoped.
@@ -62,7 +71,7 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 
 	if (bSelfContext)
 	{
-		MemberParentClass = NULL;
+		MemberParent = NULL;
 	}
 }
 
@@ -83,7 +92,7 @@ void FMemberReference::InvalidateScope()
 {
 	if( IsSelfContext() )
 	{
-		MemberParentClass = NULL;
+		MemberParent = NULL;
 	}
 	else if(IsLocalScope())
 	{
