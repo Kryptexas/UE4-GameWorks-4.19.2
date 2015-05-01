@@ -1179,7 +1179,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//	2. We have cooked non-map packages and...
 	//		a. we have accumulated 50 (configurable) of these since the last GC.
 	//		b. we have been idle for 20 (configurable) seconds.
-	bool bShouldGC = true;
+	bool bShouldGC = false;
 
 	// megamoth
 	uint32 NonMapPackageCountSinceLastGC = 0;
@@ -1249,7 +1249,7 @@ bool UCookCommandlet::HasExceededMaxMemory(uint64 MaxMemoryAllowance) const
 {
 	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
 
-	uint64 UsedMemory = MemStats.UsedPhysical + MemStats.UsedVirtual;
+	uint64 UsedMemory = MemStats.UsedPhysical;
 	if ( (UsedMemory >= MaxMemoryAllowance) && 
 		(MaxMemoryAllowance > 0u) )
 	{
