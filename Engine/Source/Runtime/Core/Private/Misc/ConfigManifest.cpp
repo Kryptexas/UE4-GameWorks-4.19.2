@@ -190,8 +190,11 @@ void FConfigManifest::MigrateEditorUserSettings()
 	EditorUserSettingsConfig.NoSave = true;
 	FConfigCacheIni::LoadLocalIniFile(EditorUserSettingsConfig, TEXT("EditorUserSettings"), true);
 	
+	// Rename the config section
+	MigrateConfigSection(EditorUserSettingsConfig, TEXT("/Script/UnrealEd.EditorUserSettings"), TEXT("/Script/UnrealEd.EditorPerProjectUserSettings"));
+
 	FConfigFile EditorPerProjectUserSettingsConfig;
-	FConfigCacheIni::LoadLocalIniFile(EditorPerProjectUserSettingsConfig, TEXT("EditorPerProjectUserSettings"), true);
+	FConfigCacheIni::LoadLocalIniFile(EditorPerProjectUserSettingsConfig, TEXT("EditorPerProjectUserSettings"), false);
 
 	EditorPerProjectUserSettingsConfig.AddMissingProperties(EditorUserSettingsConfig);
 	if (EditorPerProjectUserSettingsConfig.Write(ProjectSpecificIniPath(TEXT("EditorPerProjectUserSettings.ini")), false))
@@ -207,7 +210,13 @@ EConfigManifestVersion FConfigManifest::UpgradeFromVersion(EConfigManifestVersio
 	if (FromVersion < EConfigManifestVersion::RenameEditorAgnosticSettings)
 	{
 		// First off, rename the Editor game agnostic ini config to EditorSettings
-		RenameIni(*ProjectAgnosticIniPath(TEXT("EditorGameAgnostic.ini")), *ProjectAgnosticIniPath(TEXT("EditorSettings.ini")));
+		auto Path = ProjectAgnosticIniPath(TEXT("EditorSettings.ini"));
+		RenameIni(*ProjectAgnosticIniPath(TEXT("EditorGameAgnostic.ini")), *Path);
+
+		FConfigFile EditorSettings;
+		EditorSettings.Read(Path);
+		MigrateConfigSection(EditorSettings, TEXT("/Script/UnrealEd.EditorGameAgnosticSettings"), TEXT("/Script/UnrealEd.EditorSettings"));
+		EditorSettings.Write(Path, false /*bDoRemoteWrite*/);
 
 		FromVersion = EConfigManifestVersion::RenameEditorAgnosticSettings;
 	}
@@ -234,4 +243,31 @@ EConfigManifestVersion FConfigManifest::UpgradeFromVersion(EConfigManifestVersio
 	}
 
 	return FromVersion;
+}
+
+void FConfigManifest::MigrateConfigSection(FConfigFile& ConfigFile, const TCHAR* OldSectionName, const TCHAR* NewSectionName)
+{
+	const FConfigSection* OldSection = ConfigFile.Find(OldSectionName);
+	if (OldSection)
+	{
+		FConfigSection* NewSection = ConfigFile.Find(NewSectionName);
+		if (NewSection)
+		{
+			for (auto& Setting : *OldSection)
+			{
+				if (!NewSection->Contains(Setting.Key))
+				{
+					NewSection->Add(Setting.Key, Setting.Value);
+				}
+			}
+		}
+		else
+		{
+			// Add the new section and remove the old
+			FConfigSection SectionCopy = *OldSection;
+			ConfigFile.Add(NewSectionName, MoveTemp(SectionCopy));
+			ConfigFile.Remove(OldSectionName);
+		}
+		ConfigFile.Dirty = true;
+	}
 }
