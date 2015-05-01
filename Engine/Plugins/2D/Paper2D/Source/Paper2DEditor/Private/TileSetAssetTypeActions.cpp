@@ -12,6 +12,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FTileSetAssetTypeActions
 
+FTileSetAssetTypeActions::FTileSetAssetTypeActions(EAssetTypeCategories::Type InAssetCategory)
+	: MyAssetCategory(InAssetCategory)
+{
+}
+
 FText FTileSetAssetTypeActions::GetName() const
 {
 	return LOCTEXT("FTileSetAssetTypeActionsName", "Tile Set");
@@ -43,7 +48,7 @@ void FTileSetAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObjects
 
 uint32 FTileSetAssetTypeActions::GetCategories()
 {
-	return EAssetTypeCategories::Misc;
+	return MyAssetCategory;
 }
 
 void FTileSetAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder)

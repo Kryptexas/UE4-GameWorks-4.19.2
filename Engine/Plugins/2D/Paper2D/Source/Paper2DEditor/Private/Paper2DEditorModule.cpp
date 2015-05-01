@@ -67,12 +67,18 @@ DEFINE_LOG_CATEGORY(LogPaper2DEditor);
 class FPaper2DEditor : public IPaper2DEditorModule
 {
 public:
+	FPaper2DEditor()
+		: Paper2DAssetCategoryBit(EAssetTypeCategories::Misc)
+	{
+	}
+
 	// IPaper2DEditorModule interface
 	virtual TSharedPtr<FExtensibilityManager> GetSpriteEditorMenuExtensibilityManager() override { return SpriteEditor_MenuExtensibilityManager; }
 	virtual TSharedPtr<FExtensibilityManager> GetSpriteEditorToolBarExtensibilityManager() override { return SpriteEditor_ToolBarExtensibilityManager; }
 
 	virtual TSharedPtr<FExtensibilityManager> GetFlipbookEditorMenuExtensibilityManager() override { return FlipbookEditor_MenuExtensibilityManager; }
 	virtual TSharedPtr<FExtensibilityManager> GetFlipbookEditorToolBarExtensibilityManager() override { return FlipbookEditor_ToolBarExtensibilityManager; }
+	virtual uint32 GetPaper2DAssetCategory() const override { return Paper2DAssetCategoryBit; }
 	// End of IPaper2DEditorModule
 
 private:
@@ -93,6 +99,8 @@ private:
 	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
 	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 
+	EAssetTypeCategories::Type Paper2DAssetCategoryBit;
+
 public:
 	virtual void StartupModule() override
 	{
@@ -110,11 +118,14 @@ public:
 
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FSpriteAssetTypeActions));
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FFlipbookAssetTypeActions));
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileSetAssetTypeActions));
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileMapAssetTypeActions));
-		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAtlasAssetTypeActions));
+
+		Paper2DAssetCategoryBit = AssetTools.RegisterAdvancedAssetCategory(FName(TEXT("Paper2D")), LOCTEXT("Paper2DAssetCategory", "Paper2D"));
+
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FSpriteAssetTypeActions(Paper2DAssetCategoryBit)));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FFlipbookAssetTypeActions(Paper2DAssetCategoryBit)));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileSetAssetTypeActions(Paper2DAssetCategoryBit)));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileMapAssetTypeActions(Paper2DAssetCategoryBit)));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAtlasAssetTypeActions(Paper2DAssetCategoryBit)));
 
 		PaperSpriteBroker = MakeShareable(new FPaperSpriteAssetBroker);
 		FComponentAssetBrokerage::RegisterBroker(PaperSpriteBroker, UPaperSpriteComponent::StaticClass(), true, true);

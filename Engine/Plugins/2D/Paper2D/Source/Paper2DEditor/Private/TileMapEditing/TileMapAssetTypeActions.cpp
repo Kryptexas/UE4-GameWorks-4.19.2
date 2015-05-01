@@ -10,6 +10,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FTileMapAssetTypeActions
 
+FTileMapAssetTypeActions::FTileMapAssetTypeActions(EAssetTypeCategories::Type InAssetCategory)
+	: MyAssetCategory(InAssetCategory)
+{
+}
+
 FText FTileMapAssetTypeActions::GetName() const
 {
 	return LOCTEXT("FTileMapAssetTypeActionsName", "Tile Map");
@@ -41,7 +46,7 @@ void FTileMapAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObjects
 
 uint32 FTileMapAssetTypeActions::GetCategories()
 {
-	return EAssetTypeCategories::Misc;
+	return MyAssetCategory;
 }
 
 //////////////////////////////////////////////////////////////////////////

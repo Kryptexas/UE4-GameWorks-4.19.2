@@ -22,7 +22,19 @@
 FAssetTools::FAssetTools()
 	: AssetRenameManager( MakeShareable(new FAssetRenameManager) )
 	, AssetFixUpRedirectors( MakeShareable(new FAssetFixUpRedirectors) )
+	, NextUserCategoryBit( EAssetTypeCategories::FirstUser )
 {
+	// Register the built-in advanced categories
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_0"), FAdvancedAssetCategory(EAssetTypeCategories::Animation, LOCTEXT("AnimationAssetCategory", "Animation")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_1"), FAdvancedAssetCategory(EAssetTypeCategories::Blueprint, LOCTEXT("BlueprintAssetCategory", "Blueprints")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_2"), FAdvancedAssetCategory(EAssetTypeCategories::MaterialsAndTextures, LOCTEXT("MaterialAssetCategory", "Materials & Textures")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_3"), FAdvancedAssetCategory(EAssetTypeCategories::Sounds, LOCTEXT("SoundAssetCategory", "Sounds")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_4"), FAdvancedAssetCategory(EAssetTypeCategories::Physics, LOCTEXT("PhysicsAssetCategory", "Physics")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_5"), FAdvancedAssetCategory(EAssetTypeCategories::UI, LOCTEXT("UserInterfaceAssetCategory", "User Interface")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_6"), FAdvancedAssetCategory(EAssetTypeCategories::Misc, LOCTEXT("MiscellaneousAssetCategory", "Miscellaneous")));
+	AllocatedCategoryBits.Add(TEXT("_BuiltIn_7"), FAdvancedAssetCategory(EAssetTypeCategories::Gameplay, LOCTEXT("GameplayAssetCategory", "Gameplay")));
+
+	// Register the built-in asset type actions
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimationAsset) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimBlueprint) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_AnimComposite) );
@@ -92,6 +104,9 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VectorFieldStatic) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_VertexAnimation) );
 
+	// Note: Please don't add any more actions here!  They belong in an editor-only module that is more tightly
+	// coupled to your new system, and you should not create a dependency on your new system from AssetTools.
+
 	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
 		RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_World) );
@@ -148,6 +163,53 @@ TWeakPtr<IAssetTypeActions> FAssetTools::GetAssetTypeActionsForClass( UClass* Cl
 	}
 
 	return MostDerivedAssetTypeActions;
+}
+
+EAssetTypeCategories::Type FAssetTools::RegisterAdvancedAssetCategory(FName CategoryKey, FText CategoryDisplayName)
+{
+	EAssetTypeCategories::Type Result = FindAdvancedAssetCategory(CategoryKey);
+	if (Result == EAssetTypeCategories::Misc)
+	{
+		if (NextUserCategoryBit != 0)
+		{
+			// Register the category
+			Result = (EAssetTypeCategories::Type)NextUserCategoryBit;
+			AllocatedCategoryBits.Add(CategoryKey, FAdvancedAssetCategory(Result, CategoryDisplayName));
+
+			// Advance to the next bit, or store that we're out
+			if (NextUserCategoryBit == EAssetTypeCategories::LastUser)
+			{
+				NextUserCategoryBit = 0;
+			}
+			else
+			{
+				NextUserCategoryBit = NextUserCategoryBit << 1;
+			}
+		}
+		else
+		{
+			UE_LOG(LogAssetTools, Warning, TEXT("RegisterAssetTypeCategory(\"%s\", \"%s\") failed as all user bits have been exhausted (placing into the Misc category instead)"), *CategoryKey.ToString(), *CategoryDisplayName.ToString());
+		}
+	}
+
+	return Result;
+}
+
+EAssetTypeCategories::Type FAssetTools::FindAdvancedAssetCategory(FName CategoryKey) const
+{
+	if (const FAdvancedAssetCategory* ExistingCategory = AllocatedCategoryBits.Find(CategoryKey))
+	{
+		return ExistingCategory->CategoryType;
+	}
+	else
+	{
+		return EAssetTypeCategories::Misc;
+	}
+}
+
+void FAssetTools::GetAllAdvancedAssetCategories(TArray<FAdvancedAssetCategory>& OutCategoryList) const
+{
+	AllocatedCategoryBits.GenerateValueArray(OutCategoryList);
 }
 
 void FAssetTools::RegisterClassTypeActions(const TSharedRef<IClassTypeActions>& NewActions)

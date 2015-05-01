@@ -10,6 +10,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FAtlasAssetTypeActions
 
+FAtlasAssetTypeActions::FAtlasAssetTypeActions(EAssetTypeCategories::Type InAssetCategory)
+	: MyAssetCategory(InAssetCategory)
+{
+}
+
 FText FAtlasAssetTypeActions::GetName() const
 {
 	return LOCTEXT("FAtlasAssetTypeActionsName", "Sprite Atlas Group");
@@ -33,7 +38,7 @@ void FAtlasAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObjects, 
 
 uint32 FAtlasAssetTypeActions::GetCategories()
 {
-	return EAssetTypeCategories::Misc;
+	return MyAssetCategory;
 }
 
 FText FAtlasAssetTypeActions::GetAssetDescription(const FAssetData& AssetData) const

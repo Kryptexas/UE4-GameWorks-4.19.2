@@ -10,6 +10,11 @@
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookAssetTypeActions
 
+FFlipbookAssetTypeActions::FFlipbookAssetTypeActions(EAssetTypeCategories::Type InAssetCategory)
+	: MyAssetCategory(InAssetCategory)
+{
+}
+
 FText FFlipbookAssetTypeActions::GetName() const
 {
 	return LOCTEXT("FFlipbookAssetTypeActionsName", "Paper Flipbook");
@@ -41,7 +46,7 @@ void FFlipbookAssetTypeActions::OpenAssetEditor(const TArray<UObject*>& InObject
 
 uint32 FFlipbookAssetTypeActions::GetCategories()
 {
-	return EAssetTypeCategories::Animation;
+	return EAssetTypeCategories::Animation | MyAssetCategory;
 }
 
 //////////////////////////////////////////////////////////////////////////
