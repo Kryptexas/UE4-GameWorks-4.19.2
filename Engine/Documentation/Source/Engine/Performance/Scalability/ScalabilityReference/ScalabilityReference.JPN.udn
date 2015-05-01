@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2415450
+﻿INTSourceChangelist:2519485
 Availability:Public
 Title:拡張性のリファレンス
 Crumbs: %ROOT%, Engine, Engine/Performance/Scalability
@@ -7,7 +7,7 @@ Description:拡張性のオプション、プロパティ、コンソール変�
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Rendering/rendering_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -26,7 +26,7 @@ Description:拡張性のオプション、プロパティ、コンソール変�
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Rendering/rendering_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -68,10 +68,10 @@ Description:拡張性のオプション、プロパティ、コンソール変�
 
 ![](SC_00007.png)(w:920)
 
-_ 左:50 % AA なし、中央 50 % AA 有り、右:100% (解像度スケーリングなし) AA 有り_
+_左:50 % AA なし、中央 50 % AA 有り、右:100% (解像度スケーリングなし) AA 有り_
 
 [REGION:note]
-滑らかな輪郭の入力画像はアップサンプリングの手順に役立ちます。つまり [Scalability] オプションは、アンチエイリアシング品質など、別の拡張機能オプションからの恩恵を受けます。
+滑らかな輪郭の入力画像はアップサンプリングのステップに役立ちます。つまり [Scalability] オプションは、アンチエイリアシング品質など、別の拡張機能オプションからの恩恵を受けます。
 [/REGION]
 
 この設定は、`r.ScreenPercentage` コンソール変数でアクセスが可能です。10-100 の値を取り、 -1 は 100 ％と同等になります。
@@ -79,11 +79,11 @@ _ 左:50 % AA なし、中央 50 % AA 有り、右:100% (解像度スケーリ�
 
 ## 表示距離
 
-オブジェクトはビューアーへの距離に基づいてカリングすることができます。デフォルトでは、全オブジェクトは距離に基づいたカリングではありません（値 0 の最大描画距離が望ましい）。デザイナーが指定する値に加えて、グローバル拡張設定が乗算値のように機能します（r.ViewDistanceScale）。以下に草オブジェクトを示します（値 1000 の最大描画距離が望ましい）。
+オブジェクトはビューアへの距離に基づいてカリングすることができます。デフォルトでは、全オブジェクトは距離に基づいたカリングではありません（値 0 の最大描画距離が望ましい）。デザイナーが指定する値に加えて、グローバル拡張設定が乗算値のように機能します（r.ViewDistanceScale）。以下に草オブジェクトを示します（値 1000 の最大描画距離が望ましい）。
 
 ![](SC_00006.png)(w:920)
 
-_左: `r.ViewDistanceScale 0.4`、中央: `r.ViewDistanceScale 0.7`、 右: `r.ViewDistanceScale 1.0` (デフォルト)_
+_左: `r.ViewDistanceScale 0.4`、中央:`r.ViewDistanceScale 0.7`、右: `r.ViewDistanceScale 1.0`(デフォルト)_
 
 
 ## アンチエイリアシング
@@ -92,7 +92,7 @@ _左: `r.ViewDistanceScale 0.4`、中央: `r.ViewDistanceScale 0.7`、 右: `r.V
 [![](ScaleR_AA_small.png)(w:920)](ScaleR_AA.png)
 [/REGION]
 
-_左から:_ 0 から 6 の `r.PostProcessAAQuality` 最初の 3 つの画像は、 **View -> Scalability Options -> AA** 設定の **Low**、 **Medium**、 **High/Epic** 設定と同等です。_
+_左から:_ `r.PostProcessAAQuality` _0 から 6。最初の 3 つの画像は、 **View -> Scalability Options -> AA** 設定の **Low**、 **Medium**、 **High/Epic** 設定と同等です。_
 
 `r.PostProcessAAQuality` コンソール コマンドを使用してアンチエイリアシング品質のレベルを調整すると、ユーザーが使用しているいずれかのアンチエイリアシング手法（FXAAまたは Temporal AA）で品質を調整します。いずれのアンチエイリアシング処理でも、`r.PostProcessAAQuality` に値 0 を使用するとエフェクトが無効になります。FXAA 手法のエフェクトに値 2、4、6 を使用したのが上記の画像です。ギザギザのエッジがスムージングによりどんどん良くなっています。6 以上の値は効果がありません。
 
@@ -107,7 +107,7 @@ Temporal AA 手法は、高い値を使用すればするほどエフェクト�
 
 `sg.PostProcessQuality`_左の値 0 から右に向かって 3 へ設定_
 
-**View** -> **Engine Scalability Settings** -> **Post Processing** オプションで、[UE4_InstallPath]/Engine/Config フォルダに格納されている`BaseScalaiblity.ini` ファイルの設定に従ってポストプロセス エフェクトの品質を調整します。_Low_ 設定は、`sg.PostProcessQuality 0` および _Epic_ は `sg.PostProcessQuality 3` と同等です。
+**View** -> **Engine Scalability Settings** -> **Post Processing** オプションで、[UE4_InstallPath]/Engine/Config フォルダに格納されている `BaseScalaiblity.ini` ファイルの設定に従ってポストプロセス エフェクトの品質を調整します。_Low_ 設定は、`sg.PostProcessQuality 0` および _Epic_ は `sg.PostProcessQuality 3` と同等です。
 
 [REGION:simpletable]
 |sg.PostProcessQuality 0|sg.PostProcessQuality 1|
@@ -256,7 +256,7 @@ _左の値 0 から右に向かって 3 へ設定した_ `sg.ShadowQuality`
 
 ## テクスチャ - sg.TextureQuality
 
-最近のレンダリングエンジンは、大容量の GPU メモリを必要とします（テクスチャ、メッシュ、GBuffer、深度バッファ、シャドウマップ）。これらの一部はスクリーン解像度に対応しますが（例えばGBuffer）、その他は特定の品質の設定に対応します（例えばシャドウマップ）。その他の大部分は使用済みのテクスチャによってもたらされます（通常は圧縮およびストリーミング済み）。ストリーミング システムの管理をより積極的に指示したり（プールのサイズを小さく設定、未使用のテクスチャをカリング処理など）、ミップレベルの演算処理の詳細を少なくしたり多くする指示を出すことができます。テクスチャ ストリーミングのアーティファクトが現れる度合いや、ゲームの滑らかな実行状況など、画像品質にエフェクトを与えることができます（更新は負荷が高いメモリ転送を必要とします）。メディアによって結果はさまざまです（例えば高速/低速ハードドライブやSSD）。DVDやBlueRayからのストリーミングはレイテンシーが増すため、できるだけこの方法は避けてください。
+最近のレンダリングエンジンは、大容量の GPU メモリを必要とします（テクスチャ、メッシュ、GBuffer、深度バッファ、シャドウマップ）。これらの一部はスクリーン解像度に対応しますが（例えば GBuffer）、その他は特定の品質の設定に対応します（例えばシャドウマップ）。その他の大部分は使用済みのテクスチャによってもたらされます（通常は圧縮およびストリーミング済み）。ストリーミング システムの管理をより積極的に指示したり（プールのサイズを小さく設定、未使用のテクスチャをカリング処理など）、ミップレベルの演算処理の詳細を少なくしたり多くする指示を出すことができます。テクスチャ ストリーミングのアーティファクトが現れる度合いや、ゲームの滑らかな実行状況など、画像品質にエフェクトを与えることができます（更新は負荷が高いメモリ転送を必要とします）。メディアによって結果はさまざまです（例えば高速/低速ハードドライブやSSD）。DVD や BlueRay からのストリーミングはレイテンシーが増すため、できるだけこの方法は避けてください。
 
 テクスチャの品質は、テクスチャ フィルタリング モードにも影響を及ぼします（r.MaxAnisotropy）。テクスチャの異方性サンプリング数を制限すると、テクスチャ帯域幅は減少しますが、テクスチャ メモリの節約にはなりません。 
 
@@ -390,7 +390,7 @@ Scalability（拡張機能）モードはコンソールから変更できます
 [![](SC_SwitchNode.png)(w:900)](SC_SwitchNode.png)
 [/REGION]
 
-**Material Quality Level** が low または high のどちらに設定されていても、このマテリアルに対して評価される表現式が判断されます（lowまたはhighピン）。入力が無い場合、デフォルトピンが high または low （もしくは両方）のどちらかに設定されます。highに設定時は、マテリアルにはかなり高負荷のパーリン ノイズオペレーションが 2 つ含まれます。
+**Material Quality Level** が low または high のどちらに設定されていても、このマテリアルに対して評価される表現式が判断されます（lowまたはhighピン）。入力が無い場合、デフォルトピンが high または low （もしくは両方）のどちらかに設定されます。high に設定時は、マテリアルにはかなり高負荷のパーリン ノイズオペレーションが 2 つ含まれます。
 
 [REGION:note]
 この例は単に **Material Switch Node** を示すためのものです。**Noise** ノードは非常に負荷が高く、この例には適していますが、このエフェクトを得るには負荷が低い方法があるため控え目に使用してください。
@@ -407,7 +407,7 @@ Scalability（拡張機能）モードはコンソールから変更できます
 
 ![](SC_MirrorComplexity.png)
 
-_上記の **Shader Complexity** モードは、高品質のマテリアルが他のシェーダーよりも高コストであることを示します。緑の濃さは、シェーダーが高負荷であることを示しています。_
+_上記の **Shader Complexity** モードは、高品質のマテリアルが他のシェーダーよりも高負荷であることを示します。緑の濃さは、シェーダーが高負荷であることを示しています。_
 
 [REGION:note]
 クオリティスイッチを使用すると、より多くのシェーダーをコンパイルします。（シェーダーの置換）。
@@ -422,13 +422,13 @@ _上記の **Shader Complexity** モードは、高品質のマテリアルが�
 	* 検証のために実際のハードウェアでプロファイリングしなくてはいけません
 
 
-ほとんどのマテリアルエディタの出力は、ピクセルシェーダーのみに影響を及ぼします。world position offset と全てのテッセレーション出力は、他のシェーダータイプに影響を及ぼします。ピクセル シェーダーは画面の大部分を占領した場合のみ高負荷となります (例、スカイボックス)。一方で、他のシェーダーはオブジェクトがカリングされていない場合のみ問題となります（ビュー内部で不透明なオブジェクトの背後で非表示になっていない場合）。
+ほとんどのマテリアルエディタの出力は、ピクセルシェーダーのみに影響を及ぼします。ワールド ポジション オフセットと全てのテッセレーション出力は、他のシェーダータイプに影響を及ぼします。ピクセル シェーダーは画面の大部分を占領した場合のみ高負荷となります (例、スカイボックス)。一方で、他のシェーダーはオブジェクトがカリングされていない場合のみ問題となります（ビュー内部で不透明なオブジェクトの背後で非表示になっていない場合）。
 
 
 ##スケルタル メッシュ LOD バイアス
 
 ![](SC_Skeletal.png)(w:920)
 
-スケルタル メッシュには、 [Details] モデルのスタティックレベルを設定することができます。コンソール変数 `r.SkeletalMeshLODBias` でグローバルに LOD レベルにバイアスをかけることが可能です。最初または 2 番目の LOD の品質によっては、このオプションを [Scalability] 設定に入れるといいかもしれません。上記の画像は、距離に基づいたLODの拡張機能設定を示すものです。
+スケルタル メッシュには、Level of Details (LOD) モデルのスタティックレベルを設定することができます。コンソール変数 `r.SkeletalMeshLODBias` でグローバルに LOD レベルにバイアスをかけることが可能です。最初または 2 番目の LOD の品質によっては、このオプションを [Scalability] 設定に入れるといいかもしれません。上記の画像は、距離に基づいた LOD の拡張機能設定を示すものです。
 
 
