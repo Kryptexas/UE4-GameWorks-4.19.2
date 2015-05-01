@@ -2561,6 +2561,11 @@ void UPrimitiveComponent::SetLODParentPrimitive(UPrimitiveComponent * InLODParen
 	LODParentPrimitive = InLODParentPrimitive;
 	MarkRenderStateDirty();
 }
+
+UPrimitiveComponent* UPrimitiveComponent::GetLODParentPrimitive()
+{
+	return LODParentPrimitive;
+}
 #if WITH_EDITOR
 const int32 UPrimitiveComponent::GetNumUncachedStaticLightingInteractions() const
 {

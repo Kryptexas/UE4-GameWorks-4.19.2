@@ -69,26 +69,6 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 
 	// wait until resources are released
 	FlushRenderingCommands();
-
-	// Detach only actor components that are children of the actors list provided
-	for (auto* Component : TObjectRange<UActorComponent>())
-	{
-		bool bShouldReregister=false;
-		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
-		if (PrimitiveComponent && PrimitiveComponent->LODParentPrimitive.Get())
-		{
-			UPrimitiveComponent* LODParentPrimitive = PrimitiveComponent->LODParentPrimitive.Get();
-			AActor* ParentActor = Cast<AActor>(LODParentPrimitive->GetOuter());
-			if (ParentActor && InParentActors.Contains(ParentActor))
-			{
-				bShouldReregister = true;
-			}
-		}
-		if( bShouldReregister )
-		{
-			new(ComponentContexts) FComponentReregisterContext(Component);		
-		}
-	}
 }
 
 FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()

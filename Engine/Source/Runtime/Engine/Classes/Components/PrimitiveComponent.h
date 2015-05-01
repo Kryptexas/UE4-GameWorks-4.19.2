@@ -987,14 +987,14 @@ public:
 	FThreadSafeCounter AttachmentCounter;
 
 	// Scene data
-
-	/** Replacement primitive to draw instead of this one (multiple UPrim's will point to the same Replacement) */
+private:
+	/** LOD parent primitive to draw instead of this one (multiple UPrim's will point to the same LODParent ) */
 	UPROPERTY(duplicatetransient)
-	TLazyObjectPtr<class UPrimitiveComponent> LODParentPrimitive;
+	class UPrimitiveComponent* LODParentPrimitive;
 
 public:
-	UFUNCTION(BlueprintCallable, Category="Rendering|LOD")
 	void SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive);
+	UPrimitiveComponent* GetLODParentPrimitive();
 
 #if WITH_EDITOR
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const override; // recursive function

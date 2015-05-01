@@ -123,11 +123,10 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	}
 
 	// set LOD parent info if exists
-	if (InComponent->LODParentPrimitive.IsValid())
+	UPrimitiveComponent* LODParent = InComponent->GetLODParentPrimitive();
+	if (LODParent)
 	{
-		// I think this should be checked in editor feature
-		check (InComponent->LODParentPrimitive.Get() != InComponent);
-		LODParentComponentId = InComponent->LODParentPrimitive.Get()->ComponentId;
+		LODParentComponentId = LODParent->ComponentId;
 	}
 }
 

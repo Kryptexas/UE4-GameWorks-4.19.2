@@ -64,8 +64,12 @@ float CalculateOverlap(const FSphere& ASphere, const float AFillingFactor, const
 	float  ACapHeight = (BRadius*BRadius - (ARadius - Distance)*(ARadius - Distance)) / (2*Distance);
 	float  BCapHeight = (ARadius*ARadius - (BRadius - Distance)*(BRadius - Distance)) / (2*Distance);
 
-	check (ACapHeight>0.f);
-	check (BCapHeight>0.f);
+	if (ACapHeight<=0.f || BCapHeight<=0.f)
+	{
+		// it's possible to get cap height to be less than 0 
+		// since when we do check intersect, we do have regular tolerance
+		return 0.f;		
+	}
 
 	float  OverlapRadius1 = ((ARadius+BRadius)*(ARadius+BRadius) - Distance*Distance) * (Distance*Distance - (ARadius-BRadius)*(ARadius-BRadius));
 	float  OverlapRadius2 = 2*Distance;
@@ -169,6 +173,9 @@ void FHierarchicalLODBuilder::BuildClusters(class ULevel* InLevel)
 	{
 		ObjectTools::DeleteSingleObject(Asset, false);
 	}
+
+	// garbage collect
+	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS, true );
 
 	// only build if it's enabled
 	if(InLevel->GetWorld()->GetWorldSettings()->bEnableHierarchicalLODSystem)
@@ -365,7 +372,21 @@ bool ShouldGenerateCluster(class AActor* Actor)
 	// TODO: support instanced static meshes
 	Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
 
-	return (Components.Num() > 0);
+	// now make sure you check parent primitive, so that we don't build for the actor that already has built. 
+	if (Components.Num() > 0)
+	{
+		for (auto& ComponentIter: Components)
+		{
+			if (ComponentIter->GetLODParentPrimitive())
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 void FHierarchicalLODBuilder::InitializeClusters(class ULevel* InLevel, const int32 LODIdx, float CullCost)
@@ -405,34 +426,37 @@ void FHierarchicalLODBuilder::InitializeClusters(class ULevel* InLevel, const in
 		else // at this point we only care for LODActors
 		{
 			Clusters.Empty();
-			TArray<ALODActor*> LODActors;
+			// we filter the LOD index first
+			TArray<AActor*> Actors;
 			for(int32 ActorId=0; ActorId<InLevel->Actors.Num(); ++ActorId)
 			{
-				ALODActor* Actor = Cast<ALODActor>(InLevel->Actors[ActorId]);
-				if (Actor)
+				AActor* Actor = (InLevel->Actors[ActorId]);
+				if (Actor && Actor->IsA(ALODActor::StaticClass()))
 				{
-					LODActors.Add(Actor);
+					ALODActor* LODActor = CastChecked<ALODActor>(Actor);
+					if (LODActor->LODLevel == LODIdx)
+					{
+						Actors.Add(Actor);
+					}
+				}
+				else if(ShouldGenerateCluster(Actor))
+				{
+					Actors.Add(Actor);
 				}
 			}
 			// first we generate graph with 2 pair nodes
 			// this is very expensive when we have so many actors
 			// so we'll need to optimize later @todo
-			for(int32 ActorId=0; ActorId<LODActors.Num(); ++ActorId)
+			for(int32 ActorId=0; ActorId<Actors.Num(); ++ActorId)
 			{
-				ALODActor* Actor1 = (LODActors[ActorId]);
-				if (Actor1->LODLevel == LODIdx)
+				AActor* Actor1 = (Actors[ActorId]);
+				for(int32 SubActorId=ActorId+1; SubActorId<Actors.Num(); ++SubActorId)
 				{
-					for(int32 SubActorId=ActorId+1; SubActorId<LODActors.Num(); ++SubActorId)
-					{
-						ALODActor* Actor2 = LODActors[SubActorId];
+					AActor* Actor2 = Actors[SubActorId];
 
-						if (Actor2->LODLevel == LODIdx)
-						{
-							// create new cluster
-							FLODCluster NewClusterCandidate = FLODCluster(Actor1, Actor2);
-							Clusters.Add(NewClusterCandidate);
-						}
-					}
+					// create new cluster
+					FLODCluster NewClusterCandidate = FLODCluster(Actor1, Actor2);
+					Clusters.Add(NewClusterCandidate);
 				}
 			}
 		}
