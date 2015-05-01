@@ -20,6 +20,7 @@
 #include "GameFramework/CheatManager.h"
 #include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
+#include "Engine/GameInstance.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -627,9 +628,9 @@ void AGameMode::HandleMatchHasStarted()
 		}
 	}
 
-	if (IsHandlingReplays())
+	if (IsHandlingReplays() && GetGameInstance() != nullptr)
 	{
-		GEngine->Exec(GetWorld(), TEXT("DEMOREC %m"));
+		GetGameInstance()->StartRecordingReplay(GetWorld()->GetMapName(), GetWorld()->GetMapName());
 	}
 }
 
@@ -653,9 +654,9 @@ void AGameMode::HandleMatchHasEnded()
 {
 	GameSession->HandleMatchHasEnded();
 
-	if (IsHandlingReplays())
+	if (IsHandlingReplays() && GetGameInstance() != nullptr)
 	{
-		GEngine->Exec(GetWorld(), TEXT("DEMOSTOP"));
+		GetGameInstance()->StopRecordingReplay();
 	}
 }
 

@@ -17,12 +17,14 @@ public:
 	int32		LengthInMS;
 	uint32		NetworkVersion;
 	uint32		Changelist;
-	
+	FString		FriendlyName;
+
 	// FOnlineJsonSerializable
 	BEGIN_ONLINE_JSON_SERIALIZER
 		ONLINE_JSON_SERIALIZE( "LengthInMS",		LengthInMS );
 		ONLINE_JSON_SERIALIZE( "NetworkVersion",	NetworkVersion );
 		ONLINE_JSON_SERIALIZE( "Changelist",		Changelist );
+		ONLINE_JSON_SERIALIZE( "FriendlyName",		FriendlyName );
 	END_ONLINE_JSON_SERIALIZER
 };
 

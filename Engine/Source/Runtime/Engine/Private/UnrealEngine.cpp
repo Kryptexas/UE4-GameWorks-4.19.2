@@ -9313,12 +9313,12 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// See if we need to record network demos
 	if ( WorldContext.World()->GetAuthGameMode() == NULL || !WorldContext.World()->GetAuthGameMode()->IsHandlingReplays() )
 	{
-		if ( URL.HasOption( TEXT( "DemoRec" ) ) )
+		if ( URL.HasOption( TEXT( "DemoRec" ) ) && WorldContext.OwningGameInstance != nullptr )
 		{
 			const TCHAR* DemoRecName = URL.GetOption( TEXT( "DemoRec=" ), NULL );
 
 			// Record the demo, optionally with the specified custom name.
-			GEngine->Exec( WorldContext.World(), *FString::Printf( TEXT("DEMOREC %s"), DemoRecName != NULL ? DemoRecName : TEXT("") ) );
+			WorldContext.OwningGameInstance->StartRecordingReplay( FString(DemoRecName), WorldContext.World()->GetMapName() );
 		}
 	}
 
