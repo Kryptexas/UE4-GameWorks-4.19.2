@@ -44,6 +44,20 @@ public:
 		(*this)=Object;
 	}
 
+	/**  
+	 * Synchronously load (if necessary) and return the asset object represented by this asset ptr
+	 */
+	UObject* LoadSynchronous()
+	{
+		UObject* Asset = Get();
+		if (Asset == nullptr && IsPending())
+		{
+			Asset = GetUniqueID().TryLoad();
+			*this = Asset;
+		}
+		return Asset;
+	}
+
 	using TPersistentObjectPtr<FStringAssetReference>::operator=;
 };
 
@@ -192,6 +206,19 @@ public:
 	FORCEINLINE T* operator->() const
 	{
 		return Get();
+	}
+
+	/**  
+	 * Synchronously load (if necessary) and return the asset object represented by this asset ptr
+	 */
+	T* LoadSynchronous()
+	{
+		UObject* Asset = AssetPtr.Get();
+		if (AssetPtr == nullptr && IsPending())
+		{
+			Asset = AssetPtr.LoadSynchronous();
+		}
+		return Cast<T>(Asset);
 	}
 
 	/**  
