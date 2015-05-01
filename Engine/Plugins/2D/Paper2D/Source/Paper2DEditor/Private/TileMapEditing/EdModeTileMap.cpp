@@ -346,6 +346,7 @@ bool FEdModeTileMap::InputKey(FEditorViewportClient* InViewportClient, FViewport
 		else if (bWasPainting && !bIsPainting)
 		{
 			// Stopping painting
+			InViewportClient->Viewport->SetPreCaptureMousePosFromSlateCursor();
 		}
 
 		const FViewportCursorLocation Ray = CalculateViewRay(InViewportClient, InViewport);
