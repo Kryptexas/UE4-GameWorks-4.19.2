@@ -38,8 +38,6 @@ public:
 protected:
 	FText GetTitleText() const;
 
-	bool IsVisible() const;
-
 private:
 	TSharedPtr<FSingleTileEditorViewportClient> TypedViewportClient;
 	FEdModeTileMap* TileMapEditor;

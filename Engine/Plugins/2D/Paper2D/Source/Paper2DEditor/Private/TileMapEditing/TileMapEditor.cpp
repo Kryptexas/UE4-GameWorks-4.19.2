@@ -79,10 +79,6 @@ private:
 
 	// Viewport client
 	TSharedPtr<FTileMapEditorViewportClient> EditorViewportClient;
-
-private:
-	// Returns true if the viewport is visible
-	bool IsVisible() const override;
 };
 
 void STileMapEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<FTileMapEditor> InTileMapEditor)
@@ -136,14 +132,7 @@ TSharedRef<FEditorViewportClient> STileMapEditorViewport::MakeEditorViewportClie
 {
 	EditorViewportClient = MakeShareable(new FTileMapEditorViewportClient(TileMapEditorPtr, SharedThis(this)));
 
-	EditorViewportClient->VisibilityDelegate.BindSP(this, &STileMapEditorViewport::IsVisible);
-
 	return EditorViewportClient.ToSharedRef();
-}
-
-bool STileMapEditorViewport::IsVisible() const
-{
-	return true;//@TODO: Determine this better so viewport ticking optimizations can take place
 }
 
 TSharedPtr<SWidget> STileMapEditorViewport::MakeViewportToolbar()

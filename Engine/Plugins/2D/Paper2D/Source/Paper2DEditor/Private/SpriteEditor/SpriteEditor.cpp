@@ -86,10 +86,6 @@ private:
 
 	// Viewport client
 	TSharedPtr<FSpriteEditorViewportClient> EditorViewportClient;
-
-private:
-	// Returns true if the viewport is visible
-	bool IsVisible() const override;
 };
 
 void SSpriteEditorViewport::Construct(const FArguments& InArgs, TSharedPtr<FSpriteEditor> InSpriteEditor)
@@ -177,14 +173,7 @@ TSharedRef<FEditorViewportClient> SSpriteEditorViewport::MakeEditorViewportClien
 {
 	EditorViewportClient = MakeShareable(new FSpriteEditorViewportClient(SpriteEditorPtr, SharedThis(this)));
 
-	EditorViewportClient->VisibilityDelegate.BindSP(this, &SSpriteEditorViewport::IsVisible);
-
 	return EditorViewportClient.ToSharedRef();
-}
-
-bool SSpriteEditorViewport::IsVisible() const
-{
-	return true;//@TODO: Determine this better so viewport ticking optimizations can take place
 }
 
 TSharedPtr<SWidget> SSpriteEditorViewport::MakeViewportToolbar()
