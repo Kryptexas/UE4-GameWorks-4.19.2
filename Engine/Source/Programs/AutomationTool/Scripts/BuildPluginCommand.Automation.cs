@@ -9,6 +9,9 @@ using AutomationTool;
 using UnrealBuildTool;
 
 [Help("Builds a plugin, and packages it for distribution")]
+[Help("Plugin", "Specify the path to the plugin that should be packaged")]
+[Help("NoEditor", "Prevent compiling for the editor platform")]
+[Help("TargetPlatforms", "Specify a list of target platforms to build, separated by '+' characters (eg. -TargetPlatforms=Win32+Win64). Default is all the Rocket target platforms.")]
 class BuildPlugin : BuildCommand
 {
 	public override void ExecuteBuild()
@@ -19,11 +22,7 @@ class BuildPlugin : BuildCommand
 		{
 			throw new AutomationException("Plugin file name was not specified via the -plugin argument");
 		}
-
-		// Get the platforms to build for
-		List<UnrealTargetPlatform> EditorPlatforms = ParseParamPlatforms("EditorPlatforms");
-		List<UnrealTargetPlatform> GamePlatforms = ParseParamPlatforms("GamePlatforms");
-
+			
 		// Read the plugin
 		PluginDescriptor Plugin = PluginDescriptor.FromFile(PluginFileName);
 
@@ -34,10 +33,27 @@ class BuildPlugin : BuildCommand
 			CommandUtils.DeleteDirectory(IntermediateBuildDirectory);
 		}
 
-		// Build everything
+		// Build the host platforms
 		List<string> ReceiptFileNames = new List<string>();
 		UE4Build.BuildAgenda Agenda = new UE4Build.BuildAgenda();
-		AddPluginToAgenda(Agenda, PluginFileName, Plugin, EditorPlatforms, GamePlatforms, ReceiptFileNames);
+		UnrealTargetPlatform HostPlatform = BuildHostPlatform.Current.Platform;
+		if(!ParseParam("NoHostPlatform"))
+		{
+			AddPluginToAgenda(Agenda, PluginFileName, Plugin, "UE4Editor", TargetRules.TargetType.Editor, HostPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames);
+		}
+
+		// Add the game targets
+		List<UnrealTargetPlatform> TargetPlatforms = Rocket.RocketBuild.GetTargetPlatforms(this, HostPlatform);
+		foreach(UnrealTargetPlatform TargetPlatform in TargetPlatforms)
+		{
+			if(Rocket.RocketBuild.IsCodeTargetPlatform(HostPlatform, TargetPlatform))
+			{
+				AddPluginToAgenda(Agenda, PluginFileName, Plugin, "UE4Game", TargetRules.TargetType.Game, TargetPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames);
+				AddPluginToAgenda(Agenda, PluginFileName, Plugin, "UE4Game", TargetRules.TargetType.Game, TargetPlatform, UnrealTargetConfiguration.Shipping, ReceiptFileNames);
+			}
+		}
+
+		// Build it
 		UE4Build Build = new UE4Build(this);
 		Build.Build(Agenda, InDeleteBuildProducts: true, InUpdateVersionFiles: false);
 
@@ -70,22 +86,6 @@ class BuildPlugin : BuildCommand
 			}
 		}
 		return Platforms;
-	}
-
-	static void AddPluginToAgenda(UE4Build.BuildAgenda Agenda, string PluginFileName, PluginDescriptor Plugin, List<UnrealTargetPlatform> EditorPlatforms, List<UnrealTargetPlatform> GamePlatforms, List<string> ReceiptFileNames)
-	{
-		// Add the editor targets
-		foreach(UnrealTargetPlatform EditorPlatform in EditorPlatforms)
-		{
-			AddPluginToAgenda(Agenda, PluginFileName, Plugin, "UE4Editor", TargetRules.TargetType.Editor, EditorPlatform, UnrealTargetConfiguration.Development, ReceiptFileNames);
-		}
-
-		// Add the game targets
-		foreach(UnrealTargetPlatform GamePlatform in GamePlatforms)
-		{
-			AddPluginToAgenda(Agenda, PluginFileName, Plugin, "UE4Game", TargetRules.TargetType.Game, GamePlatform, UnrealTargetConfiguration.Development, ReceiptFileNames);
-			AddPluginToAgenda(Agenda, PluginFileName, Plugin, "UE4Game", TargetRules.TargetType.Game, GamePlatform, UnrealTargetConfiguration.Shipping, ReceiptFileNames);
-		}
 	}
 
 	static void AddPluginToAgenda(UE4Build.BuildAgenda Agenda, string PluginFileName, PluginDescriptor Plugin, string TargetName, TargetRules.TargetType TargetType, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, List<string> ReceiptFileNames)
