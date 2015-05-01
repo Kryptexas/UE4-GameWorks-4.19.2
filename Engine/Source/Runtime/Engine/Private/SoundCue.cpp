@@ -61,7 +61,8 @@ void USoundCue::PostLoad()
 {
 	Super::PostLoad();
 
-		// Game doesn't care if there are NULL graph nodes
+	// Game doesn't care if there are NULL graph nodes
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		// Deal with SoundNode types being removed - iterate in reverse as nodes may be removed
@@ -72,6 +73,41 @@ void USoundCue::PostLoad()
 			if (Node && Node->SoundNode == NULL)
 			{
 				FBlueprintEditorUtils::RemoveNode(NULL, Node, true);
+			}
+		}
+
+		// Always load all sound waves in the editor
+		for (USoundNode* SoundNode : AllNodes)
+		{
+			if (USoundNodeWavePlayer* WavePlayerNode = Cast<USoundNodeWavePlayer>(SoundNode))
+			{
+				WavePlayerNode->SoundWave.LoadSynchronous();
+			}
+		}
+	}
+	else
+#endif
+	{
+		TArray<USoundNode*> NodesToEvaluate;
+		NodesToEvaluate.Push(FirstNode);
+
+		while (NodesToEvaluate.Num() > 0)
+		{
+			if (USoundNode* SoundNode = NodesToEvaluate.Pop(false))
+			{
+				if (USoundNodeWavePlayer* WavePlayerNode = Cast<USoundNodeWavePlayer>(SoundNode))
+				{
+					WavePlayerNode->SoundWave.LoadSynchronous();
+				}
+				/* else if USoundNodeQuality
+				{
+					// Only pick the node connected for current quality
+				}
+				*/
+				else
+				{
+					NodesToEvaluate.Append(SoundNode->ChildNodes);
+				}
 			}
 		}
 	}
@@ -205,7 +241,7 @@ SIZE_T USoundCue::GetResourceSize(EResourceSizeMode::Type Mode)
 
 		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
 		{
-			USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave;
+			USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave.Get();
 			if (SoundWave)
 			{
 				ResourceSize += SoundWave->GetResourceSize(Mode);
@@ -224,7 +260,7 @@ int32 USoundCue::GetResourceSizeForFormat(FName Format)
 	int32 ResourceSize = 0;
 	for (int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex)
 	{
-		USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave;
+		USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave.Get();
 		if (SoundWave)
 		{
 			ResourceSize += SoundWave->GetResourceSizeForFormat(Format);

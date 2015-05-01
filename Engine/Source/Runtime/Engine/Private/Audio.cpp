@@ -99,7 +99,7 @@ FName FSoundBuffer::GetSoundClassName()
 			// look through them to see if this cue uses a wave this buffer is bound to, via ResourceID
 			for (int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex)
 			{
-				USoundWave* WaveNode = WavePlayers[WaveIndex]->SoundWave;
+				USoundWave* WaveNode = WavePlayers[WaveIndex]->SoundWave.Get();
 				if (WaveNode != NULL)
 				{
 					if (WaveNode->ResourceID == ResourceID)

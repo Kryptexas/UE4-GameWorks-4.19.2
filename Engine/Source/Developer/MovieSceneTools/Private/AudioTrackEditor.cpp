@@ -58,12 +58,11 @@ USoundWave* DeriveSoundWave(UMovieSceneAudioSection* AudioSection)
 		// @todo Sequencer - Right now for sound cues, we just use the first sound wave in the cue
 		// In the future, it would be better to properly generate the sound cue's data after forcing determinism
 		const TArray<USoundNode*>& AllNodes = SoundCue->AllNodes;
-		for (int32 i = 0; i < AllNodes.Num(); ++i)
+		for (int32 i = 0; i < AllNodes.Num() && SoundWave == nullptr; ++i)
 		{
 			if (AllNodes[i]->IsA<USoundNodeWavePlayer>())
 			{
-				SoundWave = Cast<USoundNodeWavePlayer>(AllNodes[i])->SoundWave;
-				break;
+				SoundWave = Cast<USoundNodeWavePlayer>(AllNodes[i])->SoundWave.Get();
 			}
 		}
 	}
@@ -75,7 +74,7 @@ float DeriveUnloopedDuration(UMovieSceneAudioSection* AudioSection)
 {
 	USoundWave* SoundWave = DeriveSoundWave(AudioSection);
 
-	float Duration = SoundWave->GetDuration();
+	const float Duration = (SoundWave ? SoundWave->GetDuration() : 0.f);
 	return Duration == INDEFINITELY_LOOPING_DURATION ? SoundWave->Duration : Duration;
 }
 

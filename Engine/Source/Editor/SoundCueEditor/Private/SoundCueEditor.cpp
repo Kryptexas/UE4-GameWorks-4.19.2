@@ -390,7 +390,7 @@ void FSoundCueEditor::SyncInBrowser()
 			USoundNodeWavePlayer* SelectedWave = Cast<USoundNodeWavePlayer>(SelectedNode->SoundNode);
 			if (SelectedWave && SelectedWave->SoundWave)
 			{
-				ObjectsToSync.AddUnique(SelectedWave->SoundWave);
+				ObjectsToSync.AddUnique(SelectedWave->SoundWave.Get());
 			}
 			//ObjectsToSync.AddUnique(SelectedNode->SoundNode);
 		}

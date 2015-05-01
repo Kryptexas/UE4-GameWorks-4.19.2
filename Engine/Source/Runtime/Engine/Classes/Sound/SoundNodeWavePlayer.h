@@ -14,7 +14,7 @@ class USoundNodeWavePlayer : public USoundNode
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY(EditAnywhere, Category=WavePlayer)
-	USoundWave* SoundWave;
+	TAssetPtr<USoundWave> SoundWave;
 
 	UPROPERTY(EditAnywhere, Category=WavePlayer)
 	uint32 bLooping:1;
