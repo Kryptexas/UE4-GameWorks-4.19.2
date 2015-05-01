@@ -1213,8 +1213,8 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		if (TickType != LEVELTICK_TimeOnly && !bIsPaused)
 		{
-			STAT(FScopeCycleCounter Context(TimerManager->GetStatId());)
-			TimerManager->Tick(DeltaSeconds);
+			STAT(FScopeCycleCounter Context(GetTimerManager().GetStatId());)
+			GetTimerManager().Tick(DeltaSeconds);
 		}
 
 		for( int32 i=0; i<FTickableGameObject::TickableObjects.Num(); i++ )

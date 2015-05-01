@@ -5,6 +5,9 @@
 #include "EngineBaseTypes.h"
 #include "GameInstance.generated.h"
 
+class ULocalPlayer;
+class FUniqueNetId;
+
 // 
 // 	EWelcomeScreen, 	//initial screen.  Used for platforms where we may not have a signed in user yet.
 // 	EMessageScreen, 	//message screen.  Used to display a message - EG unable to connect to game.
@@ -56,6 +59,7 @@ public:
 
 	// Begin UObject Interface
 	virtual class UWorld* GetWorld() const override;
+	virtual void FinishDestroy() override;
 	// End UObject Interface
 
 	/** virtual function to allow custom GameInstances an opportunity to set up what it needs */
@@ -166,4 +170,8 @@ public:
 	/** Overridable implementation of HandleSessionUserInviteAccepted, which does nothing but call this function */
 	virtual void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
 
+	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
+
+private:
+	FTimerManager* TimerManager;
 };
