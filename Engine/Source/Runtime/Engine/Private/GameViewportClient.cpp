@@ -1328,32 +1328,32 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 				if (GIsDumpingMovie && ScreenShotName.IsEmpty())
 				{
 					// Request a new screenshot with a formatted name
-					FScreenshotRequest::RequestScreenshot(false);
+					const bool bShowUI = false;
+					const bool bAddFilenameSuffix = true;
+					FScreenshotRequest::RequestScreenshot(FString(), bShowUI, bAddFilenameSuffix);
 					ScreenShotName = FScreenshotRequest::GetFilename();
 				}
 
-				if (PNGScreenshotCapturedDelegate.IsBound() && FPaths::GetExtension(ScreenShotName).ToLower() == TEXT("png"))
+				GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
+				
+				FIntRect SourceRect(0, 0, GScreenshotResolutionX, GScreenshotResolutionY);
+				if (GIsHighResScreenshot)
 				{
-					PNGScreenshotCapturedDelegate.Execute(Size.X, Size.Y, Bitmap, ScreenShotName);
+					SourceRect = GetHighResScreenshotConfig().CaptureRegion;
 				}
-				else
-				{
-					// Save the contents of the array to a bitmap file.
-					bool bWriteAlpha = false;
-					FIntRect SourceRect(0, 0, GScreenshotResolutionX, GScreenshotResolutionY);
-					if (GIsHighResScreenshot)
-					{
-						bWriteAlpha = GetHighResScreenshotConfig().MergeMaskIntoAlpha(Bitmap);
-						SourceRect = GetHighResScreenshotConfig().CaptureRegion;
-					}
 
-					if (!FPaths::GetExtension(ScreenShotName).IsEmpty())
-					{
-						ScreenShotName = FPaths::GetBaseFilename(ScreenShotName, false);
-						ScreenShotName += TEXT(".bmp");
-					}
-					FFileHelper::CreateBitmap(*ScreenShotName, Size.X, Size.Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
+				if (!FPaths::GetExtension(ScreenShotName).IsEmpty())
+				{
+					ScreenShotName = FPaths::GetBaseFilename(ScreenShotName, false);
+					ScreenShotName += TEXT(".png");
 				}
+
+				// Save the contents of the array to a png file.
+				TArray<uint8> CompressedBitmap;
+				FImageUtils::CompressImageArray(Size.X, Size.Y, Bitmap, CompressedBitmap);
+				FFileHelper::SaveArrayToFile(CompressedBitmap, *ScreenShotName);
+
+//				FFileHelper::CreateBitmap(*ScreenShotName, InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, Bitmap.GetData(), &SourceRect, &IFileManager::Get(), NULL, bWriteAlpha);
 			}
 		}
 
@@ -2834,10 +2834,8 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 	if(Viewport)
 	{
 		const bool bShowUI = FParse::Command(&Cmd, TEXT("SHOWUI"));
-
-//		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
-		// PNG is disabled for now as it breaks "shot" command in game, see UE-5780 
-		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("bmp") );
+		const bool bAddFilenameSuffix = true;
+		FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 
 		GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 		GAreScreenMessagesEnabled = false;
@@ -3116,7 +3114,7 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 		TCHAR File[MAX_SPRINTF] = TEXT("");
 		for( int32 TestBitmapIndex = 0; TestBitmapIndex < 9; ++TestBitmapIndex )
 		{ 
-			const FString DescPlusExtension = FString::Printf( TEXT("%s%i.bmp"), Cmd, TestBitmapIndex );
+			const FString DescPlusExtension = FString::Printf( TEXT("%s%i.png"), Cmd, TestBitmapIndex );
 			const FString SSFilename = CreateProfileFilename( DescPlusExtension, false );
 
 			const FString OutputDir = FPaths::BugItDir() + FString::Printf( TEXT("%s"), Cmd) + TEXT("/");
@@ -3141,7 +3139,8 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 				GScreenshotBitmapIndex = TestBitmapIndex; // this is safe as the UnMisc.cpp ScreenShot code will test each number before writing a file
 
 				const bool bShowUI = true;
-				FScreenshotRequest::RequestScreenshot( File, bShowUI );
+				const bool bAddFilenameSuffix = false;
+				FScreenshotRequest::RequestScreenshot( File, bShowUI, bAddFilenameSuffix );
 				break;
 			}
 		}

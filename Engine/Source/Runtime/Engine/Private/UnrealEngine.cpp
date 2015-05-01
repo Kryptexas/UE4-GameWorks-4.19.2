@@ -6419,7 +6419,9 @@ void UEngine::PerformanceCapture(const FString& CaptureName)
 	
 	FString ScreenshotName = FString::Printf(TEXT("%s%d.png"), *PathName, GEngineVersion.GetChangelist());
 	
-	FScreenshotRequest::RequestScreenshot( ScreenshotName, false );
+	const bool bShowUI = false;
+	const bool bAddFilenameSuffix = false;
+	FScreenshotRequest::RequestScreenshot( ScreenshotName, bShowUI, bAddFilenameSuffix );
 
 }
 

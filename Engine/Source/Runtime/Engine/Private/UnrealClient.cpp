@@ -200,22 +200,25 @@ const FTexture2DRHIRef& FRenderTarget::GetRenderTargetTexture() const
 }
 
 
-void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInShowUI )
+void FScreenshotRequest::RequestScreenshot( const FString& InFilename, bool bInShowUI, bool bAddUniqueSuffix )
 {
-	Filename = InFilename;
-	CreateViewportScreenShotFilename( Filename );
+	FString GeneratedFilename = InFilename;
+	CreateViewportScreenShotFilename(GeneratedFilename);
+
+	if (bAddUniqueSuffix)
+	{
+		const bool bRemovePath = false;
+		GeneratedFilename = FPaths::GetBaseFilename(GeneratedFilename, bRemovePath);
+		FFileHelper::GenerateNextBitmapFilename(GeneratedFilename, TEXT("png"), Filename);
+	}
+	else
+	{
+		Filename = GeneratedFilename;
+	}
+
 	bShowUI = bInShowUI;
 }
 
-
-void FScreenshotRequest::RequestScreenshot( bool bInShowUI, const FString& InExtension )
-{
-	FString NewFilename;
-	CreateViewportScreenShotFilename( NewFilename );
-	FFileHelper::GenerateNextBitmapFilename(NewFilename, InExtension, Filename);
-
-	bShowUI = bInShowUI;
-}
 
 void FScreenshotRequest::Reset()
 {
@@ -945,8 +948,9 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		{
 			if( GIsHighResScreenshot || bTakeHighResScreenShot )
 			{
-				bool bShowUI = false;
-				FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
+				const bool bShowUI = false;
+				const bool bAddFilenameSuffix = true;
+				FScreenshotRequest::RequestScreenshot( FString(), bShowUI, bAddFilenameSuffix );
 				GIsHighResScreenshot = true;
 				GScreenMessagesRestoreState = GAreScreenMessagesEnabled;
 				GAreScreenMessagesEnabled = false;

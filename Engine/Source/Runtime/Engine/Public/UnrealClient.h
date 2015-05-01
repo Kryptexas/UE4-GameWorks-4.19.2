@@ -113,19 +113,11 @@ struct ENGINE_API FScreenshotRequest
 	/**
 	 * Requests a new screenshot with a specific filename
 	 *
-	 * @param InFilename	The filename to use
-	 * @param bInShowUI		Whether or not to show Slate UI
+	 * @param InFilename			The filename to use
+	 * @param bInShowUI				Whether or not to show Slate UI
+	 * @param bAddFilenameSuffix	Whether an auto-generated unique suffix should be added to the supplied filename
 	 */
-	static void RequestScreenshot( const FString& InFilename, bool bInShowUI );
-
-	/**
-	 * Requests a new screenshot.  This method will auto-generate a filename via the format "Screenshot{0}.{1} where {0} is an incremented coutner
-	 * and {1} is an optional extension (defaulting to .bmp)
-	 *
-	 * @param bInShowUI		Whether or not to show Slate UI
-	 * @param InExtension	Which file extension to use
-	 */
-	static void RequestScreenshot( bool bInShowUI, const FString& InExtension = FString(TEXT("bmp") ) );
+	static void RequestScreenshot( const FString& InFilename, bool bInShowUI, bool bAddFilenameSuffix );
 
 	/**
 	 * Resets a screenshot request

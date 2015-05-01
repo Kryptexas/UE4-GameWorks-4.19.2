@@ -219,8 +219,9 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FTakeViewportScreenshotCommand, F
 
 bool FTakeViewportScreenshotCommand::Update()
 {
-	
-	FScreenshotRequest::RequestScreenshot( ScreenshotFileName, false );
+	const bool bShowUI = false;
+	const bool bAddFilenameSuffix = false;
+	FScreenshotRequest::RequestScreenshot( ScreenshotFileName, bShowUI, bAddFilenameSuffix );
 	return true;
 }
 
