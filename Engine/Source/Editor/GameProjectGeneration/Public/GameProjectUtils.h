@@ -234,6 +234,9 @@ public:
 	/** Returns a list of #include lines formed from InList */
 	static FString MakeIncludeList(const TArray<FString>& InList);
 
+	/** Returns true if the currently loaded project requires a code build */
+	static bool ProjectRequiresBuild(const FName InPlatformInfoName);
+
 private:
 
 	static FString GetHardwareConfigString(const FProjectInformation& InProjectInfo);
@@ -430,6 +433,10 @@ private:
 	 * @returns True if descriptor has been modified. False otherwise.
 	 */
 	static bool UpdateRequiredAdditionalDependencies(FProjectDescriptor& Descriptor, TArray<FString>& RequiredDependencies, const FString& ModuleName);
+
+	/** checks the project ini file against the default ini file to determine whether or not the build settings have changed from default */
+	static bool HasDefaultBuildSettings(const FName InPlatformInfoName);
+	static bool DoProjectSettingsMatchDefault(const FString& InPlatformnName, const FString& InSection, const TArray<FString>* InBoolKeys, const TArray<FString>* InIntKeys = NULL, const TArray<FString>* InStringKeys = NULL);
 
 private:
 	/**

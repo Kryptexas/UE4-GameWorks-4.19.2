@@ -370,6 +370,11 @@ public:
 	 */
 	virtual bool SendLowerCaseFilePaths() const = 0;
 
+	/**
+	* Project settings to check to determine if a build should occurr
+	*/
+	virtual void GetBuildProjectSettingKeys(FString& OutSection, TArray<FString>& InBoolKeys, TArray<FString>& InIntKeys, TArray<FString>& InStringKeys) const = 0;
+
 public:
 
 	/**

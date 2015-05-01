@@ -31,6 +31,8 @@
 
 #include "SOutputLogDialog.h"
 
+#include "PlatformInfo.h"
+
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
 #define MAX_PROJECT_PATH_BUFFER_SPACE 130 // Leave a reasonable buffer of additional characters to account for files created in the content directory during or after project generation
@@ -2953,6 +2955,107 @@ void GameProjectUtils::GetProjectSourceDirectoryInfo(int32& OutNumCodeFiles, int
 bool GameProjectUtils::ProjectHasCodeFiles()
 {
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
+}
+
+bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
+{
+	//  early out on projects with code files
+	if (ProjectHasCodeFiles())
+	{
+		return true;
+	}
+
+	bool bRequiresBuild = false;
+	// check to see if the default build settings have changed
+	bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);
+
+	// check to see if any plugins beyond the defaults have been enabled
+	bRequiresBuild |= IProjectManager::Get().IsNonDefaultPluginEnabled();
+
+	return bRequiresBuild;
+}
+
+bool GameProjectUtils::DoProjectSettingsMatchDefault(const FString& InPlatformName, const FString& InSection, const TArray<FString>* InBoolKeys, const TArray<FString>* InIntKeys, const TArray<FString>* InStringKeys)
+{
+	FConfigFile ProjIni;
+	FConfigFile DefaultIni;
+	FConfigCacheIni::LoadLocalIniFile(ProjIni, TEXT("Engine"), true, *InPlatformName, true);
+	FConfigCacheIni::LoadLocalIniFile(DefaultIni, TEXT("Engine"), true, NULL, true);
+
+	if (InBoolKeys != NULL)
+	{
+		for (int Index = 0; Index < InBoolKeys->Num(); ++Index)
+		{
+			FString Default(TEXT("False")), Project(TEXT("False"));
+			DefaultIni.GetString(*InSection, *((*InBoolKeys)[Index]), Default);
+			ProjIni.GetString(*InSection, *((*InBoolKeys)[Index]), Project);
+			if (!Default.Compare(Project, ESearchCase::IgnoreCase))
+			{
+				return false;
+			}
+		}
+	}
+
+	if (InIntKeys != NULL)
+	{
+		for (int Index = 0; Index < InIntKeys->Num(); ++Index)
+		{
+			int64 Default(0), Project(0);
+			DefaultIni.GetInt64(*InSection, *((*InIntKeys)[Index]), Default);
+			ProjIni.GetInt64(*InSection, *((*InIntKeys)[Index]), Project);
+			if (Default != Project)
+			{
+				return false;
+			}
+		}
+	}
+
+	if (InStringKeys != NULL)
+	{
+		for (int Index = 0; Index < InStringKeys->Num(); ++Index)
+		{
+			FString Default(TEXT("False")), Project(TEXT("False"));
+			DefaultIni.GetString(*InSection, *((*InStringKeys)[Index]), Default);
+			ProjIni.GetString(*InSection, *((*InStringKeys)[Index]), Project);
+			if (!Default.Compare(Project, ESearchCase::IgnoreCase))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool GameProjectUtils::HasDefaultBuildSettings(const FName InPlatformInfoName)
+{
+	// first check default build settings for all platforms
+	TArray<FString> BoolKeys, IntKeys, StringKeys, BuildKeys;
+	BuildKeys.Add(TEXT("bCompileApex")); BuildKeys.Add(TEXT("bCompileBox2D")); BuildKeys.Add(TEXT("bCompileICU"));
+	BuildKeys.Add(TEXT("bCompileSimplygon")); BuildKeys.Add(TEXT("bCompi8leLeanAndMeanUE")); BuildKeys.Add(TEXT("bIncludeADO"));
+	BuildKeys.Add(TEXT("bCompileRecast")); BuildKeys.Add(TEXT("bCompileSpeedTree")); BuildKeys.Add(TEXT("bCompileWithPluginSupport"));
+	BuildKeys.Add(TEXT("bCompilePhysXVehicle")); BuildKeys.Add(TEXT("bCompileFreeType")); BuildKeys.Add(TEXT("bCompileForSize"));
+	BuildKeys.Add(TEXT("bCompileCEF3"));
+
+	const PlatformInfo::FPlatformInfo* const PlatInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
+	check(PlatInfo);
+
+	if (!DoProjectSettingsMatchDefault(PlatInfo->TargetPlatformName.ToString(), TEXT("/Script/BuildSettings.BuildSettings"), &BuildKeys))
+	{
+		return false;
+	}
+
+	if (PlatInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::Installed)
+	{
+		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatInfo->TargetPlatformName.ToString());
+		if (Platform)
+		{
+			FString PlatformSection;
+			Platform->GetBuildProjectSettingKeys(PlatformSection, BoolKeys, IntKeys, StringKeys);
+			return DoProjectSettingsMatchDefault(PlatInfo->TargetPlatformName.ToString(), PlatformSection, &BoolKeys, &IntKeys, &StringKeys);
+		}
+	}
+	return true;
 }
 
 TArray<FString> GameProjectUtils::GetRequiredAdditionalDependencies(const FNewClassInfo& ClassInfo)
