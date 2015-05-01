@@ -1263,7 +1263,7 @@ static bool VerifySamplerType(
 		EMaterialSamplerType CorrectSamplerType = UMaterialExpressionTextureBase::GetSamplerTypeForTexture( Texture );
 		if ( SamplerType != CorrectSamplerType )
 		{
-			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EMaterialSamplerType") );
+			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
 			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
@@ -1278,7 +1278,7 @@ static bool VerifySamplerType(
 		}
 		if((SamplerType == SAMPLERTYPE_Normal || SamplerType == SAMPLERTYPE_Masks) && Texture->SRGB)
 		{
-			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EMaterialSamplerType") );
+			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
 			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();

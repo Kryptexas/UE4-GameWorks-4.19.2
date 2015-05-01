@@ -9,6 +9,10 @@
 
 //////////////////////////////////////////////////////////////////////////
 
+UEnum* UMaterialInterface::SamplerTypeEnum = nullptr;
+
+//////////////////////////////////////////////////////////////////////////
+
 /** Copies the material's relevance flags to a primitive's view relevance flags. */
 void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutViewRelevance) const
 {
@@ -29,6 +33,9 @@ UMaterialInterface::UMaterialInterface(const FObjectInitializer& ObjectInitializ
 	{
 		InitDefaultMaterials();
 		AssertDefaultMaterialsExist();
+
+		SamplerTypeEnum = FindObject<UEnum>(NULL, TEXT("/Script/Engine.EMaterialSamplerType"));
+		check(SamplerTypeEnum);
 	}
 }
 

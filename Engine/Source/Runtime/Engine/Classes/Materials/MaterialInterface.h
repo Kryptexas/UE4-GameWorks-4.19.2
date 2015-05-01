@@ -607,6 +607,13 @@ public:
 		}
 	}
 
+	/** Access the cached uenum type information for material sampler type */
+	static UEnum* GetSamplerTypeEnum() 
+	{ 
+		check(SamplerTypeEnum); 
+		return SamplerTypeEnum; 
+	}
+
 protected:
 
 	/** Returns a bitfield indicating which feature levels should be compiled for rendering. GMaxRHIFeatureLevel is always present */
@@ -620,6 +627,10 @@ private:
 	 */
 	static void PostLoadDefaultMaterials();
 
+	/**
+	* Cached type information for the sampler type enumeration. 
+	*/
+	static UEnum* SamplerTypeEnum;
 };
 
 /** Helper function to serialize inline shader maps for the given material resources. */
