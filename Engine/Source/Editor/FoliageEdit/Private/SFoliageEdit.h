@@ -18,53 +18,23 @@ public:
 	/** Does a full refresh on the list. */
 	void RefreshFullList();
 
-	/** Handles adding a new item to the list and refreshing the list in it's entirety. */
-	FReply OnDrop_ListView(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
-
 	/** Gets FoliageEditMode. Used by the cluster details to notify changes */
 	class FEdModeFoliage* GetFoliageEditMode() const { return FoliageEditMode; }
 
 private:
-	/** Clears all the tools selection by setting them to false. */
-	void ClearAllToolSelection();
-
-	/** Binds UI commands for the toolbar. */
-	void BindCommands();
-
 	/** Creates the toolbar. */
 	TSharedRef<SWidget> BuildToolBar();
-
-	/** Adds the foliage type asset to the foliage actor's list of meshes. */
-	void AddFoliageType(const class FAssetData& AssetData);
-
-	/** Delegate callbacks for the UI */
-
-	/** Sets the tool mode to Paint. */
-	void OnSetPaint();
 
 	/** Checks if the tool mode is Paint. */
 	bool IsPaintTool() const;
 
-	/** Sets the tool mode to Reapply Settings. */
-	void OnSetReapplySettings();
-
 	/** Checks if the tool mode is Reapply Settings. */
 	bool IsReapplySettingsTool() const;
-
-	/** Sets the tool mode to Select. */
-	void OnSetSelectInstance();
 
 	/** Checks if the tool mode is Select. */
 	bool IsSelectTool() const;
 
-	/** Sets the tool mode to Lasso Select. */
-	void OnSetLasso();
-
-	/** Checks if the tool mode is Lasso Select. */
 	bool IsLassoSelectTool() const;
-
-	/** Sets the tool mode to Paint Bucket. */
-	void OnSetPaintFill();
 
 	/** Checks if the tool mode is Paint Bucket. */
 	bool IsPaintFillTool() const;
@@ -144,9 +114,6 @@ private:	// BRUSH SETTINGS
 	/** Checks if the text in the empty list overlay should appear. If the list is has items but the the drag and drop override is true, it will return EVisibility::Visible. */
 	EVisibility GetVisibility_EmptyList() const;
 
-	/** Should the drop area be visible currently?  Happens when the user is dragging static meshes */
-	EVisibility GetVisibility_FoliageDropTarget() const;
-
 	/** @return Whether selecting instances is currently possible */
 	EVisibility GetVisibility_SelectionOptions() const;
 
@@ -171,9 +138,6 @@ private:	// SELECTION
 private:
 	/** Palette of available foliage types */
 	TSharedPtr<class SFoliagePalette> FoliagePalette;
-
-	/** Command list for binding functions for the toolbar. */
-	TSharedPtr<FUICommandList>		UICommandList;
 
 	/** Pointer to the foliage edit mode. */
 	FEdModeFoliage*					FoliageEditMode;
