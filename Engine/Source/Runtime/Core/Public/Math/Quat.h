@@ -860,27 +860,19 @@ FORCEINLINE FVector FQuat::RotateVector( FVector V ) const
 	VectorQuaternionVector3Rotate(&Result, &V, this);
 	return Result;
 
-	/*
-	// In unit testing this appears to be slower than the non-vectorized version.
-#elif PLATFORM_ENABLE_VECTORINTRINSICS
-	FQuat VQ(V.X, V.Y, V.Z, 0.f);
-	FQuat VT, VR;
-	FQuat I = Inverse();
-	VectorQuaternionMultiply(&VT, this, &VQ);
-	VectorQuaternionMultiply(&VR, &VT, &I);
-
-	return FVector(VR.X, VR.Y, VR.Z);
-	*/
-
 #else
-	// (q.W*q.W-qv.qv)v + 2(qv.v)qv + 2 q.W (qv x v)
 
-	const FVector qv(X, Y, Z);
-	FVector vOut = (2.f * W) * (qv ^ V);
-	vOut += ((W * W) - (qv | qv)) * V;
-	vOut += (2.f * (qv | V)) * qv;
+	// http://people.csail.mit.edu/bkph/articles/Quaternions.pdf
+	// V' = V + 2w(Q x V) + (2Q x (Q x V))
+	// refactor:
+	// V' = V + w(2(Q x V)) + (Q x (2(Q x V)))
+	// T = 2(Q x V);
+	// V' = V + w*(T) + (Q x T)
 
-	return vOut;
+	const FVector Q(X, Y, Z);
+	const FVector T = 2.f * FVector::CrossProduct(Q, V);
+	const FVector Result = V + (W * T) + FVector::CrossProduct(Q, T);
+	return Result;
 #endif
 }
 
@@ -891,7 +883,12 @@ FORCEINLINE FVector FQuat::UnrotateVector( FVector V ) const
 	VectorQuaternionVector3InverseRotate(&Result, &V, this);
 	return Result;
 #else
-	return Inverse().RotateVector(V);
+	//return Inverse().RotateVector(V);
+
+	const FVector Q(-X, -Y, -Z); // Inverse
+	const FVector T = 2.f * FVector::CrossProduct(Q, V);
+	const FVector Result = V + (W * T) + FVector::CrossProduct(Q, T);
+	return Result;
 #endif
 }
 
