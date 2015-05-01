@@ -214,7 +214,7 @@ public:
 	T* LoadSynchronous()
 	{
 		UObject* Asset = AssetPtr.Get();
-		if (AssetPtr == nullptr && IsPending())
+		if (Asset == nullptr && IsPending())
 		{
 			Asset = AssetPtr.LoadSynchronous();
 		}
