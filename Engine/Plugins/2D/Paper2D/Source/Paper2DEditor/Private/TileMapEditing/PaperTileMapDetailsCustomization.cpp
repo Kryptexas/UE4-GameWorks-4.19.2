@@ -294,6 +294,8 @@ FReply FPaperTileMapDetailsCustomization::OnPromoteToAssetButtonClicked()
 		}
 	}
 
+	MyDetailLayout->ForceRefreshDetails();
+
 	return FReply::Handled();
 }
 
@@ -309,6 +311,8 @@ FReply FPaperTileMapDetailsCustomization::OnMakeInstanceFromAssetButtonClicked()
 			TileMapComponent->MakeTileMapEditable();
 		}
 	}
+
+	MyDetailLayout->ForceRefreshDetails();
 
 	return FReply::Handled();
 }
