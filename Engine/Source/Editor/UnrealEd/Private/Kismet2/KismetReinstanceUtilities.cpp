@@ -766,7 +766,7 @@ void FActorReplacementHelper::Finalize(const TMap<UObject*, UObject*>& OldToNewI
 	if (TargetParentComponent)
 	{
 		UObject* const* NewTargetParentComponent = OldToNewInstanceMap.Find(TargetParentComponent);
-		if (NewTargetParentComponent)
+		if (NewTargetParentComponent && *NewTargetParentComponent)
 		{
 			TargetParentComponent = CastChecked<USceneComponent>(*NewTargetParentComponent);
 		}
