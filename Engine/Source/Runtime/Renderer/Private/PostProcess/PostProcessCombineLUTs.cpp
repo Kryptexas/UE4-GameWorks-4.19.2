@@ -52,7 +52,7 @@ static TAutoConsoleVariable<int32> CVarTonemapperFilm(
 
 // false:use 256x16 texture / true:use volume texture (faster, requires geometry shader)
 // USE_VOLUME_LUT: needs to be the same for C++ and HLSL
-static bool UseVolumeTextureLUT(EShaderPlatform Platform) 
+bool UseVolumeTextureLUT(EShaderPlatform Platform) 
 {
 	// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
 	return (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && Platform != EShaderPlatform::SP_OPENGL_SM4_MAC && RHISupportsGeometryShaders(Platform));
