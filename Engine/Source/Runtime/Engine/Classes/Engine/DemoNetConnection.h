@@ -48,4 +48,7 @@ public:
 	}
 
 	TArray<FQueuedDemoPacket> QueuedDemoPackets;
+
+private:
+	void TrackSendForProfiler(const void* Data, int32 NumBytes);
 };
