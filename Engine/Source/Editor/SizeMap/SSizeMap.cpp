@@ -93,15 +93,16 @@ namespace SizeMapInternals
 					AllVisitedObjects.Add( Object );
 
 					const bool bIsAsset =
-				Object->GetOuter()->IsA( UPackage::StaticClass() ) &&	// Only want outer assets (these should be the only public assets, anyway)
+						Object->GetOuter() != nullptr &&						// Not a package itself (such as a script package like '/Script/Engine')
+						Object->GetOuter()->IsA( UPackage::StaticClass() ) &&	// Only want outer assets (these should be the only public assets, anyway)
 						Object->HasAllFlags( RF_Public );						// Assets should be public
 
 					if( bIsAsset )
-			{
+					{
 						ReferencedAssets.Add( Object );
 					}
 					else
-				{
+					{
 						// It's probably an inner object.  Recursively serialize.
 						Object->Serialize( *this );
 
@@ -316,7 +317,7 @@ void SSizeMap::GatherDependenciesRecursively( FAssetRegistryModule& AssetRegistr
 						}
 						else
 						{
-						NodeSizeMapData.AssetSize = Asset->GetResourceSize( EResourceSizeMode::Exclusive );
+							NodeSizeMapData.AssetSize = Asset->GetResourceSize( EResourceSizeMode::Exclusive );
 						}
 
 						NodeSizeMapData.bHasKnownSize = NodeSizeMapData.AssetSize != UObject::RESOURCE_SIZE_NONE && NodeSizeMapData.AssetSize != 0;
@@ -372,7 +373,7 @@ void SSizeMap::FinalizeNodesRecursively( TSharedPtr<FTreeMapNodeData>& Node, con
 	{
 		// @todo sizemap: Should we indicate in a non-shared parent node how many if its dependents ended up being in the "shared" bucket?  Probably 
 		// not that important, because the user can choose to view that asset in isolation to see the full tree.
-		Node->Name = FString::Printf( TEXT( "%s (%s)" ),
+		Node->Name = FString::Printf( TEXT( "%s  (%s)" ),
 			*LOCTEXT( "SharedGroupName", "*SHARED*" ).ToString(),
 			*SizeMapInternals::MakeBestSizeString( SubtreeSize, !bAnyUnknownSizes ) );
 
@@ -516,6 +517,9 @@ void SSizeMap::RefreshMap()
 	{
 		// @todo sizemap: When zoomed right into one asset, can we use the Class color for the node instead of grey?
 		
+		FString OnlyAssetName = RootAssetPackageNames[ 0 ].ToString();
+		if( RootTreeMapNode->Children.Num() > 0 )
+		{
 		// The root will only have one child, so go ahead and use that child as the actual root
 		FTreeMapNodeDataPtr OnlyChild = RootTreeMapNode->Children[0];
 		OnlyChild->CopyNodeInto( *RootTreeMapNode );
@@ -526,10 +530,13 @@ void SSizeMap::RefreshMap()
 			ChildNode->Parent = RootTreeMapNode.Get();
 		}
 
+			OnlyAssetName = OnlyChild->Name;
+		}
+
 		// Use a more descriptive name for the root level node
-		RootTreeMapNode->Name = FString::Printf( TEXT( "%s %s (%i %s)" ),
+		RootTreeMapNode->Name = FString::Printf( TEXT( "%s %s  (%i %s)" ),
 			*LOCTEXT( "RootNode_SizeMapForOneAsset", "Size map for" ).ToString(),
-			*OnlyChild->Name,
+			*OnlyAssetName,
 			TotalAssetCount,
 			*LOCTEXT( "RootNode_References", "total assets" ).ToString() );
 	}
@@ -539,7 +546,7 @@ void SSizeMap::RefreshMap()
 		RootTreeMapNode->BackgroundBrush = nullptr;
 		RootTreeMapNode->Size = 0.0f;
 		RootTreeMapNode->Parent = nullptr;
-		RootTreeMapNode->Name = FString::Printf( TEXT( "%s %i %s (%i %s, %s)" ),
+		RootTreeMapNode->Name = FString::Printf( TEXT( "%s %i %s  (%i %s, %s)" ),
 			*LOCTEXT( "RootNode_SizeMapForMultiple", "Size map for" ).ToString(),
 			RootAssetPackageNames.Num(),
 			*LOCTEXT( "RootNode_Assets", "assets" ).ToString(),
