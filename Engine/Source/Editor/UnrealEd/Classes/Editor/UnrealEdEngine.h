@@ -425,16 +425,6 @@ public:
 	virtual void edactRemoveFromGroup();
 	
 	/**
-	 * Opens the dialog window for merging selected actors into single static mesh
-	 */
-	virtual void edactMergeActors();
-
-	/**
-	 * Merges selected actors geometry grouping them by materials 
-	 */
-	virtual void edactMergeActorsByMaterials();
-
-	/**
 	 * Copy selected actors to the clipboard.  Does not copy PrefabInstance actors or parts of Prefabs.
 	 *
 	 * @param	InWorld					World context

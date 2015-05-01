@@ -272,10 +272,6 @@ public:
 	TSharedPtr< FUICommandInfo > LockGroup;
 	/** Unlocks the selected group */
 	TSharedPtr< FUICommandInfo > UnlockGroup;
-	/** Opens a dialog window for creating mesh proxies */
-	TSharedPtr< FUICommandInfo > MergeActors;
-	/** Merge selected actors grouping them by materials */
-	TSharedPtr< FUICommandInfo > MergeActorsByMaterials;
 		
 	/**
 	 * Visibility commands                   
@@ -953,22 +949,6 @@ public:
 	 * Called when the RemoveActorsFromGroup command is executed
 	 */
 	static void RemoveActorsFromGroup_Clicked();
-
-	/**
-	 * Called when the MergeActors command is executed
-	 */
-	static void MergeActors_Clicked();
-
-	/** @return Returns true if 'Merge Actors' can be used right now */
-	static bool CanExecuteMergeActors();
-
-	/**
-	 * Called when the MergeActorsByMaterials command is executed
-	 */
-	static void MergeActorsByMaterials_Clicked();
-
-	/** @return Returns true if 'Merge Actors y Materials' can be used right now */
-	static bool CanExecuteMergeActorsByMaterials();
 
 	/**
 	 * Called when the location grid snap is toggled off and on

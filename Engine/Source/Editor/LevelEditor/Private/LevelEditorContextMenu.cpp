@@ -109,13 +109,6 @@ public:
 	 */
 	static void FillEditMenu( class FMenuBuilder& MenuBuilder, LevelEditorMenuContext ContextType );
 
-	/**
-	 * Fills in menu options for the actors merging
-	 *
-	 * @param MenuBuilder	The menu to add items to
-	 */
-	static void FillMergeActorsMenu( class FMenuBuilder& MenuBuilder );
-
 private:
 	/**
 	 * Fills in menu options for the matinee selection menu
@@ -433,15 +426,6 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 				{
 					MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ResetPivot);
 				}
-			}
-
-			if (GetDefault<UEditorExperimentalSettings>()->bActorMerging &&
-				( SelectionInfo.bHaveStaticMeshComponent || SelectionInfo.bHaveLandscape ))
-			{
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("MergeActorsSubMenu", "Merge"),
-					LOCTEXT("MergeActorsSubMenu_ToolTip", "Actor merging utils"),
-					FNewMenuDelegate::CreateStatic(&FLevelEditorContextMenuImpl::FillMergeActorsMenu));
 			}
 		}
 		MenuBuilder.EndSection();
@@ -1010,18 +994,6 @@ void FLevelEditorContextMenuImpl::FillEditMenu( class FMenuBuilder& MenuBuilder,
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Duplicate );
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Delete );
 	MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename );
-}
-
-void FLevelEditorContextMenuImpl::FillMergeActorsMenu( class FMenuBuilder& MenuBuilder )
-{
-	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActorsByMaterials );
-
-	// Simplygon ProxyLOD
-	MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon"));
-	{
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MergeActors);
-	}
-	MenuBuilder.EndSection();
 }
 
 void FLevelScriptEventMenuHelper::FillLevelBlueprintEventsMenu(class FMenuBuilder& MenuBuilder, const TArray<AActor*>& SelectedActors)

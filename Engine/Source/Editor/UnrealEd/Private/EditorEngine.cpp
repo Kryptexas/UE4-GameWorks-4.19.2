@@ -643,7 +643,8 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("LocalizationDashboard"),
 			TEXT("ReferenceViewer"),
 			TEXT("TreeMap"),
-			TEXT("SizeMap")
+			TEXT("SizeMap"),
+			TEXT("MergeActors")
 		};
 
 		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
