@@ -946,6 +946,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 
 				BulkStore.BulkDataOffsetInFilePos = SavedBulkDataOffsetInFilePos;
 				BulkStore.BulkDataSizeOnDiskPos = SavedBulkDataSizeOnDiskPos;
+				BulkStore.BulkDataFlags = BulkDataFlags;
 				BulkStore.BulkData = this;
 				
 				// Serialize bulk data into the storage info
@@ -1486,13 +1487,13 @@ void FFormatContainer::Serialize(FArchive& Ar, UObject* Owner, const TArray<FNam
 				FName Name = It.Key();
 				Ar << Name;
 				FByteBulkData* Bulk = It.Value();
-				// Force this kind of bulk data (physics, etc) to be stored inline for streaming
-				uint32 OldBulkDataSettings = Bulk->GetBulkDataFlags();
-				Bulk->SetBulkDataFlags(bSingleUse ? (BULKDATA_ForceInlinePayload | BULKDATA_SingleUse) : BULKDATA_ForceInlinePayload);
 				check(Bulk);
+				// Force this kind of bulk data (physics, etc) to be stored inline for streaming
+				const uint32 OldBulkDataFlags = Bulk->GetBulkDataFlags();
+				Bulk->SetBulkDataFlags(bSingleUse ? (BULKDATA_ForceInlinePayload | BULKDATA_SingleUse) : BULKDATA_ForceInlinePayload);				
 				Bulk->Serialize(Ar, Owner);
 				Bulk->ClearBulkDataFlags(0xFFFFFFFF);
-				Bulk->SetBulkDataFlags(OldBulkDataSettings);
+				Bulk->SetBulkDataFlags(OldBulkDataFlags);
 			}
 		}
 		check(NumFormats == 0);
