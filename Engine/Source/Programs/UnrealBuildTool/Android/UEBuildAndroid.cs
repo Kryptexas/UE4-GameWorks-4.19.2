@@ -57,12 +57,6 @@ namespace UnrealBuildTool
         private bool HasAnySDK()
         {
             string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-/* Don't check for existence of env vars, always set them from the .ini values if they exist
-//			bool bNeedsNDKPath = string.IsNullOrEmpty(NDKPath);
-//			bool bNeedsAndroidHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANDROID_HOME"));
-//			bool bNeedsAntHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANT_HOME"));
- //           if((bNeedsNDKPath || bNeedsAndroidHome || bNeedsAntHome))
- */
             {
                 var configCacheIni = new ConfigCacheIni("Engine", null);
                 var AndroidEnv = new Dictionary<string, string>();
@@ -79,7 +73,6 @@ namespace UnrealBuildTool
                 {
                     if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
                     {
-//                        Log.TraceWarning("Adding {0} from ini as {1} to {2}", kvp.Value, path, kvp.Key);
                         AndroidEnv.Add(kvp.Key, path);
                     }
                     else
@@ -87,7 +80,6 @@ namespace UnrealBuildTool
                         var envValue = Environment.GetEnvironmentVariable(kvp.Key);
                         if(!String.IsNullOrEmpty(envValue))
                         {
-//                            Log.TraceWarning("Adding {0} from env as {1}", kvp.Key, envValue);
                             AndroidEnv.Add(kvp.Key, envValue);
                         }
                     }
