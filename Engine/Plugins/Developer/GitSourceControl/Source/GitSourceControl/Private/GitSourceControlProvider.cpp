@@ -165,7 +165,7 @@ void FGitSourceControlProvider::UnregisterSourceControlStateChanged_Handle( FDel
 
 ECommandResult::Type FGitSourceControlProvider::Execute( const TSharedRef<ISourceControlOperation, ESPMode::ThreadSafe>& InOperation, const TArray<FString>& InFiles, EConcurrency::Type InConcurrency, const FSourceControlOperationComplete& InOperationCompleteDelegate )
 {
-	if(!IsEnabled())
+	if(!IsEnabled() && !(InOperation->GetName() == "Connect")) // Only Connect operation allowed while not Enabled (Connected)
 	{
 		return ECommandResult::Failed;
 	}
