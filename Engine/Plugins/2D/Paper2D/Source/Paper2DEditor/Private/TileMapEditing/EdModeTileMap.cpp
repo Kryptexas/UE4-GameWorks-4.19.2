@@ -87,7 +87,9 @@ struct FHorizontalSpan
 		// Go left
 		for (int32 TestX = X0 - 1; TestX >= 0; --TestX)
 		{
-			if ((Layer->GetCell(TestX, Y) == RequiredInk) && !Reach(Layer, Reachability, TestX, Y))
+			const FPaperTileInfo ExistingCell = Layer->GetCell(TestX, Y);
+			const bool bCellMatches = (ExistingCell == RequiredInk) || (!ExistingCell.IsValid() && !RequiredInk.IsValid());
+			if (bCellMatches && !Reach(Layer, Reachability, TestX, Y))
 			{
 				X0 = TestX;
 			}
@@ -100,7 +102,9 @@ struct FHorizontalSpan
 		// Go right
 		for (int32 TestX = X1 + 1; TestX < Layer->LayerWidth; ++TestX)
 		{
-			if ((Layer->GetCell(TestX, Y) == RequiredInk) && !Reach(Layer, Reachability, TestX, Y))
+			const FPaperTileInfo ExistingCell = Layer->GetCell(TestX, Y);
+			const bool bCellMatches = (ExistingCell == RequiredInk) || (!ExistingCell.IsValid() && !RequiredInk.IsValid());
+			if (bCellMatches && !Reach(Layer, Reachability, TestX, Y))
 			{
 				X1 = TestX;
 			}
@@ -933,7 +937,10 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 				for (int32 X = Span.X0; X <= Span.X1; ++X)
 				{
 					// If it is the right color and not already visited, create a span there
-					if ((TargetLayer->GetCell(X, Y) == RequiredInk) && !FHorizontalSpan::Reach(TargetLayer, TileReachability, X, Y))
+					FPaperTileInfo ExistingCell = TargetLayer->GetCell(X, Y);
+					const bool bCellMatches = (ExistingCell == RequiredInk) || (!ExistingCell.IsValid() && !RequiredInk.IsValid());
+
+					if (bCellMatches && !FHorizontalSpan::Reach(TargetLayer, TileReachability, X, Y))
 					{
 						FHorizontalSpan& NewSpan = *(new (OutstandingSpans) FHorizontalSpan(X, Y));
 						NewSpan.GrowSpan(RequiredInk, TargetLayer, TileReachability);

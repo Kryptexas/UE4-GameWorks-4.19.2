@@ -157,7 +157,7 @@ void UPaperTileLayer::DestructiveAllocateMap(int32 NewWidth, int32 NewHeight)
 
 	const int32 NumCells = NewWidth * NewHeight;
 	AllocatedCells.Empty(NumCells);
-	AllocatedCells.AddZeroed(NumCells);
+	AllocatedCells.AddDefaulted(NumCells);
 
 	AllocatedWidth = NewWidth;
 	AllocatedHeight = NewHeight;
