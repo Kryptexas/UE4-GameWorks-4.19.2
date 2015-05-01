@@ -343,9 +343,95 @@ FVector UPaperTileMap::GetTilePositionInLocalSpace(float TileX, float TileY, int
 	return LocalPos;
 }
 
+void UPaperTileMap::GetTilePolygon(int32 TileX, int32 TileY, int32 LayerIndex, TArray<FVector>& LocalSpacePoints)
+{
+	switch (ProjectionMode)
+	{
+	case ETileMapProjectionMode::Orthogonal:
+	case ETileMapProjectionMode::IsometricDiamond:
+	default:
+		LocalSpacePoints.Add(GetTilePositionInLocalSpace(TileX, TileY, LayerIndex));
+		LocalSpacePoints.Add(GetTilePositionInLocalSpace(TileX + 1, TileY, LayerIndex));
+		LocalSpacePoints.Add(GetTilePositionInLocalSpace(TileX, TileY + 1, LayerIndex));
+		LocalSpacePoints.Add(GetTilePositionInLocalSpace(TileX + 1, TileY + 1, LayerIndex));
+		break;
+
+	case ETileMapProjectionMode::IsometricStaggered:
+		{
+			const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+			const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+			const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+
+			const FVector RecenterOffset = PaperAxisX*TileWidthInUU*0.5f;
+			const FVector LSTM = GetTilePositionInLocalSpace(TileX, TileY, LayerIndex) + RecenterOffset;
+
+			LocalSpacePoints.Add(LSTM);
+			LocalSpacePoints.Add(LSTM + PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f);
+			LocalSpacePoints.Add(LSTM - PaperAxisY*TileHeightInUU*1.0f);
+			LocalSpacePoints.Add(LSTM - PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f);
+		}
+		break;
+
+	case ETileMapProjectionMode::HexagonalStaggered:
+		{
+			const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+			const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+			const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+
+			const FVector RecenterOffset = PaperAxisX*TileWidthInUU*0.5f;
+			const FVector LSTM = GetTilePositionInLocalSpace(TileX, TileY, LayerIndex) + RecenterOffset;
+
+			const float HexSideLengthInUU = HexSideLength * UnrealUnitsPerPixel;
+
+			const FVector Top(LSTM - PaperAxisY*HexSideLengthInUU);
+
+			const FVector RightTop(LSTM + PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f);
+			const FVector LeftTop(LSTM - PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f);
+
+			const FVector RightBottom(LSTM + PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*(TileHeightInUU*0.5f + HexSideLengthInUU));
+			const FVector LeftBottom(LSTM - PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*(TileHeightInUU*0.5f + HexSideLengthInUU));
+
+			const FVector Bottom(LSTM - PaperAxisY*TileHeightInUU*1.0f);
+
+			LocalSpacePoints.Add(Top);
+			LocalSpacePoints.Add(RightTop);
+			LocalSpacePoints.Add(RightBottom);
+			LocalSpacePoints.Add(Bottom);
+			LocalSpacePoints.Add(LeftBottom);
+			LocalSpacePoints.Add(LeftTop);
+		}
+		break;
+	}
+}
+
 FVector UPaperTileMap::GetTileCenterInLocalSpace(float TileX, float TileY, int32 LayerIndex) const
 {
-	return GetTilePositionInLocalSpace(TileX + 0.5f, TileY + 0.5f, LayerIndex);
+	switch (ProjectionMode)
+	{
+	case ETileMapProjectionMode::Orthogonal:
+	default:
+		return GetTilePositionInLocalSpace(TileX + 0.5f, TileY + 0.5f, LayerIndex);
+	case ETileMapProjectionMode::IsometricStaggered:
+		{
+			const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+			const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+			const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+
+			const FVector RecenterOffset = PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*TileHeightInUU*0.5f;
+			return GetTilePositionInLocalSpace(TileX, TileY, LayerIndex) + RecenterOffset;
+		}
+
+	case ETileMapProjectionMode::HexagonalStaggered:
+		{
+			const float UnrealUnitsPerPixel = GetUnrealUnitsPerPixel();
+			const float TileWidthInUU = TileWidth * UnrealUnitsPerPixel;
+			const float TileHeightInUU = TileHeight * UnrealUnitsPerPixel;
+			const float HexSideLengthInUU = HexSideLength * UnrealUnitsPerPixel;
+
+			const FVector RecenterOffset = PaperAxisX*TileWidthInUU*0.5f - PaperAxisY*(HexSideLengthInUU + TileHeightInUU)*0.5f;
+			return GetTilePositionInLocalSpace(TileX, TileY, LayerIndex) + RecenterOffset;
+		}
+	}
 }
 
 FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
@@ -376,7 +462,16 @@ FBoxSphereBounds UPaperTileMap::GetRenderBounds() const
 			 const FBox Box(BottomLeft, BottomLeft + Dimensions);
 			 return FBoxSphereBounds(Box);
 		}
-//@TODO: verify bounds for IsometricStaggered and HexagonalStaggered
+		case ETileMapProjectionMode::HexagonalStaggered:
+		case ETileMapProjectionMode::IsometricStaggered:
+		{
+			const int32 RoundedHalfHeight = (MapHeight + 1) / 2;
+			const FVector BottomLeft((-0.5f) * TileWidthInUU, -HalfThickness - Depth, -(RoundedHalfHeight) * TileHeightInUU);
+			const FVector Dimensions((MapWidth + 0.5f) * TileWidthInUU, Depth + 2 * HalfThickness, (RoundedHalfHeight + 1.0f) * TileHeightInUU);
+
+			const FBox Box(BottomLeft, BottomLeft + Dimensions);
+			return FBoxSphereBounds(Box);
+		}
 	}
 }
 
