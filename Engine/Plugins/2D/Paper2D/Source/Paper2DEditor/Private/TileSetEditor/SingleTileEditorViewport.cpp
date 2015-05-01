@@ -106,8 +106,6 @@ TSharedPtr<SWidget> SSingleTileEditorViewport::MakeViewportToolbar()
 
 TSharedRef<FEditorViewportClient> SSingleTileEditorViewport::MakeEditorViewportClient()
 {
-	TypedViewportClient->VisibilityDelegate.BindSP(this, &SSingleTileEditorViewport::IsVisible);
-
 	return TypedViewportClient.ToSharedRef();
 }
 
@@ -173,11 +171,6 @@ FText SSingleTileEditorViewport::GetTitleText() const
 	{
 		return LOCTEXT("SingleTileEditorViewportTitle_NoTile", "Tile Editor - Select a tile");
 	}
-}
-
-bool SSingleTileEditorViewport::IsVisible() const
-{
-	return true;//@TODO: Determine this better so viewport ticking optimizations can take place
 }
 
 //////////////////////////////////////////////////////////////////////////

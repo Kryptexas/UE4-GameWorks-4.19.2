@@ -78,10 +78,6 @@ private:
 
 	// Viewport client
 	TSharedPtr<FFlipbookEditorViewportClient> EditorViewportClient;
-
-private:
-	// Returns true if the viewport is visible
-	bool IsVisible() const override;
 };
 
 void SFlipbookEditorViewport::Construct(const FArguments& InArgs)
@@ -134,14 +130,7 @@ TSharedRef<FEditorViewportClient> SFlipbookEditorViewport::MakeEditorViewportCli
 {
 	EditorViewportClient = MakeShareable(new FFlipbookEditorViewportClient(FlipbookBeingEdited));
 
-	EditorViewportClient->VisibilityDelegate.BindSP(this, &SFlipbookEditorViewport::IsVisible);
-
 	return EditorViewportClient.ToSharedRef();
-}
-
-bool SFlipbookEditorViewport::IsVisible() const
-{
-	return true;//@TODO: Determine this better so viewport ticking optimizations can take place
 }
 
 TSharedPtr<SWidget> SFlipbookEditorViewport::MakeViewportToolbar()

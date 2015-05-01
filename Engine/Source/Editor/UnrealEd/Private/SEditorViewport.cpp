@@ -58,6 +58,12 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 	];
 
 	TSharedRef<FEditorViewportClient> ViewportClient = MakeEditorViewportClient();
+
+	if (!ViewportClient->VisibilityDelegate.IsBound())
+	{
+		ViewportClient->VisibilityDelegate.BindSP(this, &SEditorViewport::IsVisible);
+	}
+
 	SceneViewport = MakeShareable( new FSceneViewport( &ViewportClient.Get(), ViewportWidget ) );
 	ViewportClient->Viewport = SceneViewport.Get();
 	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
