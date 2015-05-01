@@ -13,9 +13,21 @@
 //////////////////////////////////////////////////////////////////////////
 // FTileSetDetailsCustomization
 
+FTileSetDetailsCustomization::FTileSetDetailsCustomization(bool bInIsEmbedded)
+	: bIsEmbeddedInTileSetEditor(bInIsEmbedded)
+	, SelectedSingleTileIndex(INDEX_NONE)
+	, MyDetailLayout(nullptr)
+{
+}
+
 TSharedRef<IDetailCustomization> FTileSetDetailsCustomization::MakeInstance()
 {
-	return MakeShareable(new FTileSetDetailsCustomization);
+	return MakeShareable(new FTileSetDetailsCustomization(/*bIsEmbedded=*/ false));
+}
+
+TSharedRef<FTileSetDetailsCustomization> FTileSetDetailsCustomization::MakeEmbeddedInstance()
+{
+	return MakeShareable(new FTileSetDetailsCustomization(/*bIsEmbedded=*/ true));
 }
 
 void FTileSetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
@@ -54,28 +66,51 @@ void FTileSetDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 	);
 
 
-	// Add all of the properties from the inline tilemap
-// 	if ((TileComponent != nullptr) && (TileComponent->OwnsTileMap()))
-// 	{
-// 		TArray<UObject*> ListOfTileMaps;
-// 		ListOfTileMaps.Add(TileMap);
-// 
-// 		for (TFieldIterator<UProperty> PropIt(UPaperTileMap::StaticClass()); PropIt; ++PropIt)
-// 		{
-// 			UProperty* TestProperty = *PropIt;
-// 
-// 			if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
-// 			{
-// 				FName CategoryName(*TestProperty->GetMetaData(TEXT("Category")));
-// 				IDetailCategoryBuilder& Category = DetailLayout.EditCategory(CategoryName);
-// 
-// 				if (IDetailPropertyRow* ExternalRow = Category.AddExternalProperty(ListOfTileMaps, TestProperty->GetFName()))
-// 				{
-// 					ExternalRow->Visibility(InternalInstanceVis);
-// 				}
-// 			}
-// 		}
-// 	}
+	if (bIsEmbeddedInTileSetEditor)
+	{
+		// Hide the array to start with
+		const FName MetadataArrayName = UPaperTileSet::GetPerTilePropertyName();
+		DetailLayout.HideProperty(MetadataArrayName);
+
+		if (SelectedSingleTileIndex != INDEX_NONE)
+		{
+			// Customize for the single tile being edited
+			IDetailCategoryBuilder& SingleTileCategory = DetailLayout.EditCategory("SingleTileEditor", FText::GetEmpty());
+
+			const FString ArrayEntryPathPrefix = FString::Printf(TEXT("%s[%d]."), *MetadataArrayName.ToString(), SelectedSingleTileIndex);
+
+			// Add all of the editable properties in the array entry
+			for (TFieldIterator<UProperty> PropIt(FPaperTileMetadata::StaticStruct()); PropIt; ++PropIt)
+			{
+				UProperty* TestProperty = *PropIt;
+				if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
+				{
+					const FString PropertyPath = ArrayEntryPathPrefix + TestProperty->GetName();
+					TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(*PropertyPath);
+					SingleTileCategory.AddProperty(PropertyHandle);
+				}
+			}
+
+			// Add a display of the tile index being edited to the header
+			const FText TileIndexHeaderText = FText::Format(LOCTEXT("SingleTileSectionHeader", "Editing Tile #{0}"), FText::AsNumber(SelectedSingleTileIndex));
+			SingleTileCategory.HeaderContent
+			(
+				SNew(SBox)
+				.HAlign(HAlign_Right)
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.Padding(FMargin(5.0f, 0.0f))
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("TinyText"))
+						.Text(TileIndexHeaderText)
+					]
+				]
+			);
+		}
+	}
 }
 
 FText FTileSetDetailsCustomization::GetCellDimensionHeaderText() const
@@ -121,6 +156,15 @@ FSlateColor FTileSetDetailsCustomization::GetCellDimensionHeaderColor() const
 	}
 
 	return FSlateColor::UseForeground();
+}
+
+void FTileSetDetailsCustomization::OnTileIndexChanged(int32 NewIndex, int32 OldIndex)
+{
+	SelectedSingleTileIndex = NewIndex;
+	if (MyDetailLayout != nullptr)
+	{
+		MyDetailLayout->ForceRefreshDetails();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

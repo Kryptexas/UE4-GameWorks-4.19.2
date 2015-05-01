@@ -259,11 +259,14 @@ void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
 		RequestFocusOnSelection(/*bInstant=*/ true);
 	}
 
+	// Trigger a details panel customization rebuild
+	OnSingleTileIndexChanged.Broadcast(TileBeingEditedIndex, OldTileIndex);
+
 	// Redraw the viewport
 	Invalidate();
 }
 
-void FSingleTileEditorViewportClient::OnActiveTileIndexChanged(const FIntPoint& TopLeft, const FIntPoint& Dimensions)
+void FSingleTileEditorViewportClient::OnTileSelectionRegionChanged(const FIntPoint& TopLeft, const FIntPoint& Dimensions)
 {
 	const int32 TopLeftIndex = (TileSet->GetTileCountX() * TopLeft.Y) + TopLeft.X;
 	const int32 SelectionArea = Dimensions.X * Dimensions.Y;

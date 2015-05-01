@@ -18,6 +18,8 @@
 #include "TileSetEditor/SingleTileEditorViewportClient.h"
 #include "TileSetEditor/TileSetEditorCommands.h"
 #include "SpriteEditor/SpriteEditorCommands.h"
+#include "TileSetEditor/TileSetDetailsCustomization.h"
+#include "Editor/PropertyEditor/Public/IDetailsView.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -51,6 +53,26 @@ public:
 	SLATE_END_ARGS()
 
 private:
+	TSharedRef<IDetailCustomization> MakeEmbeddedInstance()
+	{
+		TSharedRef<FTileSetDetailsCustomization> Customization = FTileSetDetailsCustomization::MakeEmbeddedInstance();
+
+		// Make sure the customization starts off looking at the right tile index
+		TSharedPtr<FSingleTileEditorViewportClient> SingleTileEditor = TileSetEditorPtr.Pin()->GetSingleTileEditor();
+
+		const int32 TileIndex = SingleTileEditor->GetTileIndex();
+		if (TileIndex != INDEX_NONE)
+		{
+			Customization->OnTileIndexChanged(TileIndex, INDEX_NONE);
+		}
+
+		// And that it gets updated when the tile index changes
+		SingleTileEditor->GetOnSingleTileIndexChanged().AddSP(Customization, &FTileSetDetailsCustomization::OnTileIndexChanged);
+
+		return Customization;
+	}
+
+private:
 	// Pointer back to owning TileSet editor instance (the keeper of state)
 	TWeakPtr<class FTileSetEditor> TileSetEditorPtr;
 public:
@@ -59,6 +81,9 @@ public:
 		TileSetEditorPtr = InTileSetEditor;
 
 		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments().HostCommandList(InTileSetEditor->GetToolkitCommands()));
+
+		FOnGetDetailCustomizationInstance LayoutTileSetDetails = FOnGetDetailCustomizationInstance::CreateSP(this, &STileSetPropertiesTabBody::MakeEmbeddedInstance);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UPaperTileSet::StaticClass(), LayoutTileSetDetails);
 	}
 
 	// SSingleObjectDetailsPanel interface
@@ -136,7 +161,7 @@ void FTileSetEditor::InitTileSetEditor(const EToolkitMode::Type Mode, const TSha
 
 	TileSetViewport = SNew(STileSetSelectorViewport, InitTileSet, /*EdMode=*/ nullptr);
 	TileEditorViewportClient = MakeShareable(new FSingleTileEditorViewportClient(InitTileSet));
-	TileSetViewport->GetTileSelectionChanged().AddRaw(TileEditorViewportClient.Get(), &FSingleTileEditorViewportClient::OnActiveTileIndexChanged);
+	TileSetViewport->GetTileSelectionChanged().AddRaw(TileEditorViewportClient.Get(), &FSingleTileEditorViewportClient::OnTileSelectionRegionChanged);
 
 	TileEditorViewport = SNew(SSingleTileEditorViewport, TileEditorViewportClient);
 
@@ -252,7 +277,7 @@ void FTileSetEditor::ExtendToolbar()
 			ToolbarBuilder.BeginSection("TileHighlights");
 			{
 				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().SetShowTilesWithCollision);
-				//ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().SetShowTilesWithMetaData); //@TODO: TileMetadata: Enable once there is actually metadata...
+				ToolbarBuilder.AddToolBarButton(FTileSetEditorCommands::Get().SetShowTilesWithMetaData);
 			}
 			ToolbarBuilder.EndSection();
 
