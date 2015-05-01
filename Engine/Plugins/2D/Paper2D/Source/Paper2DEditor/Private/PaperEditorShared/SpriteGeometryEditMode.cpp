@@ -189,21 +189,25 @@ bool FSpriteGeometryEditMode::InputKey(FEditorViewportClient* ViewportClient, FV
 	{
 		if (SpriteGeometryHelper.IsAddingPolygon())
 		{
-			if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
+			if (Key == EKeys::LeftMouseButton)
 			{
 				const int32 HitX = Viewport->GetMouseX();
 				const int32 HitY = Viewport->GetMouseY();
 
-				// Calculate world space positions
+				// Calculate the texture space position of the mouse click
 				FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(Viewport, ViewportClient->GetScene(), ViewportClient->EngineShowFlags));
 				FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
-				FVector WorldPoint = View->PixelToWorld(HitX, HitY, 0);
-
+				const FVector WorldPoint = View->PixelToWorld(HitX, HitY, 0);
 				const FVector2D TexturePoint = SpriteGeometryHelper.GetEditorContext()->WorldSpaceToTextureSpace(WorldPoint);
 
+				// Add or close the polygon (depending on where the click happened and how)
 				const bool bMakeSubtractiveIfAllowed = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
-				SpriteGeometryHelper.TEMP_HandleAddPolygonClick(TexturePoint, bMakeSubtractiveIfAllowed);
+				SpriteGeometryHelper.HandleAddPolygonClick(TexturePoint, bMakeSubtractiveIfAllowed, *View, Event);
 			}
+			else if ((Key == EKeys::BackSpace) && (Event == IE_Pressed))
+			{
+				SpriteGeometryHelper.DeleteLastVertexFromAddPolygonMode();
+			}			
 			else if (Key == EKeys::Enter)
 			{
 				SpriteGeometryHelper.ResetAddPolygonMode();

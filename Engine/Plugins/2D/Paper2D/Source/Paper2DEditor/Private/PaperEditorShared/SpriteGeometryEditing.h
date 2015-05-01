@@ -120,7 +120,7 @@ public:
 	void AddNewBoxShape(const FVector2D& BoxLocation, const FVector2D& BoxSize);
 	bool CanAddBoxShape() const { return GeometryBeingEdited != nullptr; }
 
-	void ResetAddPolygonMode() { bIsAddingPolygon = false; }
+	void ResetAddPolygonMode();
 	void ToggleAddPolygonMode();
 	bool IsAddingPolygon() const { return bIsAddingPolygon; }
 	bool CanAddPolygon() const { return GeometryBeingEdited != nullptr; }
@@ -130,8 +130,9 @@ public:
 	void SnapAllVerticesToPixelGrid();
 	bool CanSnapVerticesToPixelGrid() const { return GeometryBeingEdited != nullptr; }
 
-	//@TODO: The code calling this will eventually be folded in here too
-	void TEMP_HandleAddPolygonClick(const FVector2D& TexturePoint, bool bWantsSubtractive);
+	void HandleAddPolygonClick(const FVector2D& TexturePoint, bool bWantsSubtractive, const FSceneView& View, EInputEvent Event);
+
+	void DeleteLastVertexFromAddPolygonMode();
 
 	bool IsEditingGeometry() const
 	{
