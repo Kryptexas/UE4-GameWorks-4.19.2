@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "GraphEditor.h"
 #include "MarqueeRect.h"
+#include "SEditorViewport.h"
 
 /** Helper for managing marquee operations */
 struct FMarqueeOperation
@@ -68,7 +68,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // SPaperEditorViewport
 
-class SPaperEditorViewport : public SCompoundWidget
+class SPaperEditorViewport : public SEditorViewport
 {
 public:
 	DECLARE_DELEGATE_TwoParams(FOnSelectionChanged, FMarqueeOperation /*MarqueeAction*/, bool /*bPreview*/);
@@ -92,21 +92,19 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedRef<class FPaperEditorViewportClient> InViewportClient);
 
-	/** Refreshes the viewport */
-	void RefreshViewport();
-
 	float GetZoomAmount() const;
 	FText GetZoomText() const;
 	FSlateColor GetZoomTextColorAndOpacity() const;
 	FVector2D GetViewOffset() const;
 
-	virtual void BindCommands() { }
-
-	/** @return The viewport command list */
-	const TSharedPtr<FUICommandList> GetCommandList() const { return CommandList; }
-
 protected:
-	int32 FindNearestZoomLevel(int32 CurrentZoomLevel, float InZoomAmount) const;
+
+	// SEditorViewport interface
+	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
+	// End of SEditorViewport interface
+
+
+	int32 FindNearestZoomLevel(float InZoomAmount, bool bRoundDown) const;
 
 
 	FVector2D ComputeEdgePanAmount(const FGeometry& MyGeometry, const FVector2D& TargetPosition);
@@ -118,8 +116,6 @@ protected:
 	virtual bool OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return false; }
 
 	void PaintSoftwareCursor(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 DrawLayerId) const;
-
-	FSlateRect ComputeSensibleGraphBounds() const;
 
 	virtual FText GetTitleText() const;
 protected:
@@ -141,12 +137,6 @@ protected:
 	/** A pending marquee operation if it's active */
 	FMarqueeOperation Marquee;
 
-	/** Allow continuous zoom interpolation? */
-	bool bAllowContinousZoomInterpolation;
-
-	/** Fade on zoom for graph */
-	FCurveSequence ZoomLevelGraphFade;
-
 	/** Curve that handles fading the 'Zoom +X' text */
 	FCurveSequence ZoomLevelFade;
 
@@ -163,17 +153,8 @@ protected:
 	bool bShowSoftwareCursor;
 
 	/** Level viewport client */
-	TSharedPtr<class FPaperEditorViewportClient> ViewportClient;
-
-	/** Slate viewport for rendering and I/O */
-	TSharedPtr<FSceneViewport> Viewport;
-
-	/** Viewport widget*/
-	TSharedPtr<SViewport> ViewportWidget;
+	TSharedPtr<class FPaperEditorViewportClient> PaperViewportClient;
 
 	// Selection changed delegate
 	FOnSelectionChanged OnSelectionChanged;
-
-	// The command list
-	TSharedPtr<FUICommandList> CommandList;
 };

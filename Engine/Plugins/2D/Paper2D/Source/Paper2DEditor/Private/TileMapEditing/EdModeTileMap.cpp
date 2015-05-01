@@ -3,7 +3,6 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "EdModeTileMap.h"
 #include "TileMapEdModeToolkit.h"
-#include "LevelEditor.h"
 #include "Toolkits/ToolkitManager.h"
 #include "../PaperEditorCommands.h"
 #include "ScopedTransaction.h"

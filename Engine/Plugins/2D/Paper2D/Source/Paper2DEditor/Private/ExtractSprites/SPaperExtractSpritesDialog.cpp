@@ -125,7 +125,7 @@ void SPaperExtractSpritesViewport::Construct(const FArguments& InArgs, UTexture2
 	// Make sure we get input instead of the viewport stealing it
 	ViewportWidget->SetVisibility(EVisibility::HitTestInvisible);
 
-	RefreshViewport();
+	Invalidate();
 }
 
 FText SPaperExtractSpritesViewport::GetTitleText() const
