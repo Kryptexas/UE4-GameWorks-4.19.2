@@ -2,7 +2,6 @@
 
 /*=============================================================================
 	Character.cpp: ACharacter implementation
-	TODO: Put description here
 =============================================================================*/
 
 #include "EnginePrivate.h"
