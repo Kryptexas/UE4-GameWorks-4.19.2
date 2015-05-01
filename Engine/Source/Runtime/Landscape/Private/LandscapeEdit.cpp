@@ -344,9 +344,9 @@ bool ULandscapeComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolum
 
 void ULandscapeComponent::PostEditUndo()
 {
-	Super::PostEditUndo();
-
 	UpdateMaterialInstances();
+
+	Super::PostEditUndo();
 
 	if (EditToolRenderData)
 	{
@@ -3539,6 +3539,7 @@ void ULandscapeComponent::PreEditChange(UProperty* PropertyThatWillChange)
 void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 	if (PropertyName == FName(TEXT("OverrideMaterial")))
 	{
