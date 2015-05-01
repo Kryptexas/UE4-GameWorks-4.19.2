@@ -3502,7 +3502,6 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						int64 StoredBulkStartOffset = BulkStartOffset - StartOfBulkDataArea;
 
 						BulkDataStorageInfo.BulkData->SerializeBulkData(*Linker, BulkDataStorageInfo.BulkData->Lock(LOCK_READ_ONLY));
-						BulkDataStorageInfo.BulkData->Unlock();
 
 						int64 BulkEndOffset = Linker->Tell();
 						int32 SizeOnDisk = (int32)(BulkEndOffset - BulkStartOffset);
@@ -3518,6 +3517,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						// Restore BulkData flags to before serialization started
 						BulkDataStorageInfo.BulkData->ClearBulkDataFlags(0xFFFFFFFF);
 						BulkDataStorageInfo.BulkData->SetBulkDataFlags(OldBulkDataFlags);
+
+						BulkDataStorageInfo.BulkData->Unlock();
 					}
 				}
 
