@@ -12,6 +12,8 @@
 
 // from screen space position to decal space (for position)
 float4x4 ScreenToDecal;
+// from decal space to world space (for normals)
+float4x4 DecalToWorld;
 
 #if DECAL_PROJECTION
 	#include "Material.usf"
@@ -19,8 +21,6 @@ float4x4 ScreenToDecal;
 
 #include "DeferredShadingCommon.usf"		// GBufferData
 
-// from decal space to world space (for normals)
-float4x4 DecalToWorld;
 // from component to clip space (for decal frustum)
 float4x4 FrustumComponentToClip;
 // only for StencilDecalMaskMain, to get ShaderComplexity for Decals (doesn't look at the DecalMask yet)
