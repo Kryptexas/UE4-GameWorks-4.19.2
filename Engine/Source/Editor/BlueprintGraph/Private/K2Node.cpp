@@ -1122,11 +1122,10 @@ void UK2Node::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) con
 
 UClass* UK2Node::GetBlueprintClassFromNode() const
 {
-	UClass* BPClass = nullptr;
-	if (HasValidBlueprint())
-	{
-		BPClass = GetBlueprint()->SkeletonGeneratedClass;
-	}
+	auto BP = FBlueprintEditorUtils::FindBlueprintForNode(this);
+	UClass* BPClass = BP
+		? (BP->SkeletonGeneratedClass ? BP->SkeletonGeneratedClass : BP->GeneratedClass)
+		: nullptr;
 	return BPClass;
 }
 
