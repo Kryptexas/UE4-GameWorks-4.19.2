@@ -695,6 +695,9 @@ bool FBuildLightingCommand::Update()
 		return true;
 	}
 
+	UWorld* CurrentWorld = GEditor->GetEditorWorldContext().World();
+	GUnrealEd->Exec(CurrentWorld, TEXT("MAP REBUILD"));
+
 	FLightingBuildOptions LightingBuildOptions;
 
 	// Retrieve settings from ini.
