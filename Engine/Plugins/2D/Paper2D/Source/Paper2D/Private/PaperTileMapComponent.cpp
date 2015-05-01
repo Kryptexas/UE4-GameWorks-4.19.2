@@ -258,7 +258,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 				EffectiveTopLeftCorner = CornerOffset;
 				break;
 			case ETileMapProjectionMode::IsometricDiamond:
-				EffectiveTopLeftCorner = CornerOffset - StepPerTileX;
+				EffectiveTopLeftCorner = CornerOffset - 0.5f * StepPerTileX + 0.5f * StepPerTileY;
 				break;
 			case ETileMapProjectionMode::IsometricStaggered:
 			case ETileMapProjectionMode::HexagonalStaggered:

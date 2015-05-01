@@ -23,6 +23,9 @@ public:
 
 protected:
 	void DrawBoundsForLayer(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const;
+	void DrawNormalGridLines(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const;
+	void DrawStaggeredGridLines(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const;
+	void DrawHexagonalGridLines(FPrimitiveDrawInterface* PDI, const FLinearColor& Color, int32 LayerIndex) const;
 
 protected:
 
@@ -34,4 +37,7 @@ protected:
 
 	//@TODO: Not thread safe
 	const class UPaperTileMap* TileMap;
+
+	// Slight depth bias so that the wireframe grid overlay doesn't z-fight with the tiles themselves
+	const float WireDepthBias;
 };
