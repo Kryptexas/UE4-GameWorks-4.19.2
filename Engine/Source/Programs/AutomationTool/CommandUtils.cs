@@ -2107,6 +2107,7 @@ namespace AutomationTool
 		public static void ZipFiles(string ZipFileName, string BaseDirectory, FileFilter Filter)
 		{
 			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+			Zip.UseZip64WhenSaving = Ionic.Zip.Zip64Option.Always;
 			foreach(string FilteredFile in Filter.ApplyToDirectory(BaseDirectory, true))
 			{
 				Zip.AddFile(Path.Combine(BaseDirectory, FilteredFile), Path.GetDirectoryName(FilteredFile));
@@ -2123,21 +2124,22 @@ namespace AutomationTool
 		/// <returns>List of files written</returns>
 		public static IEnumerable<string> UnzipFiles(string ZipFileName, string BaseDirectory)
 		{
-			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName);
-
-			// For some reason, calling ExtractAll() under Mono throws an exception from a call to Directory.CreateDirectory(). Manually extract all the files instead.
-			List<string> OutputFileNames = new List<string>();
-			foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries)
+			using(Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile(ZipFileName))
 			{
-				string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
-				Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
-				using(FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
+				// For some reason, calling ExtractAll() under Mono throws an exception from a call to Directory.CreateDirectory(). Manually extract all the files instead.
+				List<string> OutputFileNames = new List<string>();
+				foreach(Ionic.Zip.ZipEntry Entry in Zip.Entries)
 				{
-					Entry.Extract(OutputStream);
+					string OutputFileName = Path.Combine(BaseDirectory, Entry.FileName);
+					Directory.CreateDirectory(Path.GetDirectoryName(OutputFileName));
+					using(FileStream OutputStream = new FileStream(OutputFileName, FileMode.Create, FileAccess.Write))
+					{
+						Entry.Extract(OutputStream);
+					}
+					OutputFileNames.Add(OutputFileName);
 				}
-				OutputFileNames.Add(OutputFileName);
+				return OutputFileNames;
 			}
-			return OutputFileNames;
 		}
 	}
 
