@@ -1864,6 +1864,41 @@ void UObject::UpdateGlobalUserConfigFile()
 	UpdateSingleSectionOfConfigFile(GetGlobalUserConfigFilename());
 }
 
+void UObject::UpdateSinglePropertyInConfigFile(const UProperty* InProperty, const FString& InConfigIniName)
+{
+	// Arrays and ini files are a mine field, for now we don't support this.
+	if (!InProperty->IsA(UArrayProperty::StaticClass()))
+	{
+		// create a sandbox FConfigCache
+		FConfigCacheIni Config(EConfigCacheType::Temporary);
+
+		// add an empty file to the config so it doesn't read in the original file (see FConfigCacheIni.Find())
+		FConfigFile& NewFile = Config.Add(InConfigIniName, FConfigFile());
+
+		// save the object properties to this file
+		SaveConfig(CPF_Config, *InConfigIniName, &Config);
+
+		// Take the saved section for this object and have the config system process and write out the one property we care about.
+		ensureMsgf(Config.Num() == 1, TEXT("UObject::UpdateDefaultConfig() caused more files than expected in the Sandbox config cache!"));
+
+		TArray<FString> Keys;
+		NewFile.GetKeys(Keys);
+
+		const FString SectionName = Keys[0];
+		const FString PropertyName = InProperty->GetFName().ToString();
+		NewFile.UpdateSinglePropertyInSection(*InConfigIniName, *PropertyName, *SectionName);
+
+		// reload the file, so that it refresh the cache internally.
+		FString FinalIniFileName;
+		GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, true);
+	}
+	else
+	{
+		UE_LOG(LogObj, Warning, TEXT("UObject::UpdateSinglePropertyInConfigFile does not support this property type."));
+		return;
+	}
+}
+
 
 void UObject::InstanceSubobjectTemplates( FObjectInstancingGraph* InstanceGraph )
 {

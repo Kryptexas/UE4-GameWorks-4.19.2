@@ -57,7 +57,7 @@ void FConfigPropertyHelperDetails::OnPropertyValueChanged(UObject* Object, FProp
 		const FString* FileName = ConfigFileAndPropertySourcePairings.FindKey(Object);
 		if (FileName != nullptr)
 		{
-			Object->UpdateDefaultConfigFile(*FileName);
+			Object->UpdateSinglePropertyInConfigFile(Property, *FileName);
 		}
 	}
 }

@@ -169,6 +169,11 @@ public:
 	 */
 	CORE_API void UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRootName=NULL);
 
+	/**
+	 * Update a single property in the config file, for the section that is specified.
+	 */
+	CORE_API bool UpdateSinglePropertyInSection(const TCHAR* DiskFilename, const TCHAR* PropertyName, const TCHAR* SectionName);
+
 	
 	/** 
 	 * Check the source hierarchy which was loaded without any user changes from the Config/Saved dir.

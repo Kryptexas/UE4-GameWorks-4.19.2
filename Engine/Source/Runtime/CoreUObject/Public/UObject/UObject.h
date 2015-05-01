@@ -789,6 +789,11 @@ public:
 	 */
 	void UpdateGlobalUserConfigFile();
 
+	/**
+	 * Saves just the property into the global user ini file for the class (with just the changes from base)
+	 */
+	void UpdateSinglePropertyInConfigFile(const UProperty* InProperty, const FString& InConfigIniName);
+
 private:
 	/**
 	 * Saves just the section(s) for this class into the given ini file for the class (with just the changes from base)
