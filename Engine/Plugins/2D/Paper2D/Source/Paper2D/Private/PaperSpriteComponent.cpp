@@ -38,7 +38,6 @@ void UPaperSpriteComponent::PostEditChangeProperty(FPropertyChangedEvent& Proper
 }
 #endif
 
-#if WITH_EDITORONLY_DATA
 void UPaperSpriteComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -60,7 +59,6 @@ void UPaperSpriteComponent::PostLoad()
 		}
 	}
 }
-#endif
 
 FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 {

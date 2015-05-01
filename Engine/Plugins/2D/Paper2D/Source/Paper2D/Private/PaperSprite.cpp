@@ -16,6 +16,42 @@
 #endif
 
 #if WITH_EDITOR
+static void UpdateGeometryToBeBoxPositionRelative(FSpriteGeometryCollection& Geometry)
+{
+	// Make sure the per-shape GeometryType fields are up to date (introduced in this version)
+	const bool bWasBoundingBox = (Geometry.GeometryType == ESpritePolygonMode::SourceBoundingBox) || (Geometry.GeometryType == ESpritePolygonMode::TightBoundingBox);
+
+	if (bWasBoundingBox)
+	{
+		for (FSpriteGeometryShape& Shape : Geometry.Shapes)
+		{
+			Shape.ShapeType = ESpriteShapeType::Box;
+
+			// Recenter the bounding box (BoxPosition is now defined as the center)
+			const FVector2D AmountToSubtract = Shape.BoxPosition + Shape.BoxSize * 0.5f;
+			Shape.BoxPosition += Shape.BoxSize * 0.5f;
+			for (FVector2D& Vertex : Shape.Vertices)
+			{
+				Vertex -= AmountToSubtract;
+			}
+		}
+	}
+	else
+	{
+		for (FSpriteGeometryShape& Shape : Geometry.Shapes)
+		{
+			Shape.ShapeType = ESpriteShapeType::Polygon;
+
+			// Make sure BoxPosition is zeroed since polygon points are relative to it now, but it was being ignored
+			//@TODO: Consider computing the center and recentering verts to keep the numbers small/relative
+			Shape.BoxPosition = FVector2D::ZeroVector;
+			Shape.BoxSize = FVector2D::ZeroVector;
+		}
+	}
+}
+#endif
+
+#if WITH_EDITOR
 
 #include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
@@ -1705,7 +1741,6 @@ void UPaperSprite::RemoveSocket(FName SocketNameToDelete)
 }
 #endif
 
-#if WITH_EDITOR
 void UPaperSprite::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -1713,52 +1748,22 @@ void UPaperSprite::Serialize(FArchive& Ar)
 	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
 }
 
-static void UpdateGeometryToBeBoxPositionRelative(FSpriteGeometryCollection& Geometry)
-{
-	// Make sure the per-shape GeometryType fields are up to date (introduced in this version)
-	const bool bWasBoundingBox = (Geometry.GeometryType == ESpritePolygonMode::SourceBoundingBox) || (Geometry.GeometryType == ESpritePolygonMode::TightBoundingBox);
-
-	if (bWasBoundingBox)
-	{
-		for (FSpriteGeometryShape& Shape : Geometry.Shapes)
-		{
-			Shape.ShapeType = ESpriteShapeType::Box;
-
-			// Recenter the bounding box (BoxPosition is now defined as the center)
-			const FVector2D AmountToSubtract = Shape.BoxPosition + Shape.BoxSize * 0.5f;
-			Shape.BoxPosition += Shape.BoxSize * 0.5f;
-			for (FVector2D& Vertex : Shape.Vertices)
-			{
-				Vertex -= AmountToSubtract;
-			}
-		}
-	}
-	else
-	{
-		for (FSpriteGeometryShape& Shape : Geometry.Shapes)
-		{
-			Shape.ShapeType = ESpriteShapeType::Polygon;
-
-			// Make sure BoxPosition is zeroed since polygon points are relative to it now, but it was being ignored
-			//@TODO: Consider computing the center and recentering verts to keep the numbers small/relative
-			Shape.BoxPosition = FVector2D::ZeroVector;
-			Shape.BoxSize = FVector2D::ZeroVector;
-		}
-	}
-}
-
-
 void UPaperSprite::PostLoad()
 {
 	Super::PostLoad();
+	
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
 
-#if WITH_EDITORONLY_DATA
+#if !WITH_EDITORONLY_DATA
+	if (PaperVer < FPaperCustomVersion::LatestVersion)
+	{
+		UE_LOG(LogPaper2D, Warning, TEXT("Stale UPaperSprite asset '%s' with version %d detected in a cooked build (latest version is %d).  Please perform a full recook."), *GetPathName(), PaperVer, (int32)FPaperCustomVersion::LatestVersion);
+	}
+#else
 	if (UTexture2D* EffectiveTexture = GetBakedTexture())
 	{
 		EffectiveTexture->ConditionalPostLoad();
 	}
-	
-	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
 
 	bool bRebuildCollision = false;
 	bool bRebuildRenderData = false;
@@ -1813,7 +1818,6 @@ void UPaperSprite::PostLoad()
 	}
 #endif
 }
-#endif
 
 UTexture2D* UPaperSprite::GetBakedTexture() const
 {

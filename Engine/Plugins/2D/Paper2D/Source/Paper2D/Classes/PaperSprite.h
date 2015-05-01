@@ -162,14 +162,16 @@ public:
 
 public:
 
-#if WITH_EDITOR
 	// UObject interface
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
+#if WITH_EDITOR
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	// End of UObject interface
 
+#if WITH_EDITOR
 	FVector2D ConvertTextureSpaceToPivotSpace(FVector2D Input) const;
 	FVector2D ConvertPivotSpaceToTextureSpace(FVector2D Input) const;
 	FVector ConvertTextureSpaceToPivotSpace(FVector Input) const;
