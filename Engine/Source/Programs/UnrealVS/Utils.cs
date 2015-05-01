@@ -177,9 +177,10 @@ namespace UnrealVS
 		/// </summary>
 		public class UITreeItem
 		{
+			public UIHierarchyItem Item { get; set; }
 			public UITreeItem[] Children { get; set; }
-			public string Name { get; set; }
-			public object Object { get; set; }
+			public string Name { get { return Item != null ? Item.Name : "None"; } }
+			public object Object { get { return Item != null ? Item.Object : null; } }
 		}
 
 		/// <summary>
@@ -189,8 +190,7 @@ namespace UnrealVS
 		{
 			return new UITreeItem
 			{
-				Name = "Root",
-				Object = null,
+				Item = null,
 				Children = (from UIHierarchyItem Child in Hierarchy.UIHierarchyItems select GetUIHierarchyTree(Child)).ToArray()
 			};
 		}
@@ -202,8 +202,7 @@ namespace UnrealVS
 		{
 			return new UITreeItem
 			{
-				Name = HierarchyItem.Name,
-				Object = HierarchyItem.Object,
+				Item = HierarchyItem,
 				Children = (from UIHierarchyItem Child in HierarchyItem.UIHierarchyItems select GetUIHierarchyTree(Child)).ToArray()
 			};
 		}
@@ -225,6 +224,22 @@ namespace UnrealVS
 			foreach (var Child in RootItem.Children)
 			{
 				Results.AddRange(GetUITreeItemObjectsByType<T>(Child));
+			}
+
+			return Results;
+		}
+
+		public static IEnumerable<UIHierarchyItem> GetUITreeItemsByObjectType<T>(UITreeItem RootItem) where T : class
+		{
+			List<UIHierarchyItem> Results = new List<UIHierarchyItem>();
+
+			if (RootItem.Object is T)
+			{
+				Results.Add(RootItem.Item);
+			}
+			foreach (var Child in RootItem.Children)
+			{
+				Results.AddRange(GetUITreeItemsByObjectType<T>(Child));
 			}
 
 			return Results;
@@ -610,6 +625,29 @@ namespace UnrealVS
 					return true;
 				}
 			}
+			return false;
+		}
+
+		public static bool SelectProjectInSolutionExplorer(Project Project)
+		{
+			UnrealVSPackage.Instance.DTE.ExecuteCommand("View.SolutionExplorer");
+			Project.ParentProjectItem.ExpandView();
+
+			UIHierarchy SolutionExplorerHierarachy = UnrealVSPackage.Instance.DTE2.ToolWindows.SolutionExplorer;
+			Utils.UITreeItem SolutionExplorerTree = Utils.GetUIHierarchyTree(SolutionExplorerHierarachy);
+			var UIHierarachyProjects = Utils.GetUITreeItemsByObjectType<Project>(SolutionExplorerTree);
+
+			var SelectableUIItem = UIHierarachyProjects.FirstOrDefault(uihp => uihp.Object as Project == Project);
+
+			if (SelectableUIItem != null)
+			{
+				if (Project.ParentProjectItem != null)
+				{
+					SelectableUIItem.Select(vsUISelectionType.vsUISelectionTypeSelect);
+					return true;
+				}
+			}
+
 			return false;
 		}
 

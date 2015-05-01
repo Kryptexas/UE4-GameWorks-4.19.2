@@ -40,7 +40,7 @@ namespace UnrealVS
 	[ProvideToolWindow(typeof(BatchBuilderToolWindow))]
 
 	// This attribute registers an options page for the package.
-	[ProvideOptionPage(typeof(UnrealVsOptions), ExtensionName, "General", 101, 102, true)]
+	//[ProvideOptionPage(typeof(UnrealVsOptions), ExtensionName, "General", 101, 102, true)]
 
 	/// <summary>
 	/// UnrealVSPackage implements Package abstract class.  This is the main class that is registered
@@ -55,7 +55,7 @@ namespace UnrealVS
 	{
 		/** Constants */
 
-		private const string VersionString = "v1.34";
+		private const string VersionString = "v1.36";
 		private const string UnrealSolutionFileNamePrefix = "UE4";
 		private const string ExtensionName = "UnrealVS";
 		private const string CommandLineOptionKey = ExtensionName + "CommandLineMRU";
@@ -460,26 +460,26 @@ namespace UnrealVS
 		/// <param name="stream">The stream to load the option data from.</param>
 		protected override void OnLoadOptions(string key, Stream stream)
 		{
-			try
-			{
-				if (0 == string.Compare(key, CommandLineOptionKey))
-				{
-					Logging.WriteLine("Restoring CommandLineEditor options");
-					CommandLineEditor.LoadOptions(stream);
-				}
-				else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
-				{
-					Logging.WriteLine("Restoring BatchBuilder options");
-					BatchBuilder.LoadOptions(stream);
-				}
-			}
-			catch (Exception Ex)
-			{
-				// Couldn't load options
-				Exception AppEx = new ApplicationException("OnLoadOptions() failed with key " + key, Ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
-			}
+			//try
+			//{
+			//	if (0 == string.Compare(key, CommandLineOptionKey))
+			//	{
+			//		Logging.WriteLine("Restoring CommandLineEditor options");
+			//		CommandLineEditor.LoadOptions(stream);
+			//	}
+			//	else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
+			//	{
+			//		Logging.WriteLine("Restoring BatchBuilder options");
+			//		BatchBuilder.LoadOptions(stream);
+			//	}
+			//}
+			//catch (Exception Ex)
+			//{
+			//	// Couldn't load options
+			//	Exception AppEx = new ApplicationException("OnLoadOptions() failed with key " + key, Ex);
+			//	Logging.WriteLine(AppEx.ToString());
+			//	throw AppEx;
+			//}
 		}
 
 
@@ -491,26 +491,26 @@ namespace UnrealVS
 		/// <param name="stream">The stream to save the option data to.</param>
 		protected override void OnSaveOptions(string key, Stream stream)
 		{
-			try
-			{
-				if (0 == string.Compare(key, CommandLineOptionKey))
-				{
-					Logging.WriteLine("Saving CommandLineEditor options");
-					CommandLineEditor.SaveOptions(stream);
-				}
-				else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
-				{
-					Logging.WriteLine("Saving BatchBuilder options");
-					BatchBuilder.SaveOptions(stream);
-				}
-			}
-			catch (Exception Ex)
-			{
-				// Couldn't save options
-				Exception AppEx = new ApplicationException("OnSaveOptions() failed with key " + key, Ex);
-				Logging.WriteLine(AppEx.ToString());
-				throw AppEx;
-			}
+			//try
+			//{
+			//	if (0 == string.Compare(key, CommandLineOptionKey))
+			//	{
+			//		Logging.WriteLine("Saving CommandLineEditor options");
+			//		CommandLineEditor.SaveOptions(stream);
+			//	}
+			//	else if (0 == string.Compare(key, BatchBuildSetsOptionKey))
+			//	{
+			//		Logging.WriteLine("Saving BatchBuilder options");
+			//		BatchBuilder.SaveOptions(stream);
+			//	}
+			//}
+			//catch (Exception Ex)
+			//{
+			//	// Couldn't save options
+			//	Exception AppEx = new ApplicationException("OnSaveOptions() failed with key " + key, Ex);
+			//	Logging.WriteLine(AppEx.ToString());
+			//	throw AppEx;
+			//}
 		}
 
 
