@@ -154,6 +154,9 @@ void FPaperStyle::Initialize()
 
 		StyleSet->Set("TileSetEditor.ApplyCollisionEdits", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_TileSet_Refresh_40x"), Icon40x40));
 		StyleSet->Set("TileSetEditor.ApplyCollisionEdits.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_TileSet_Refresh_40x"), Icon20x20));
+		
+		StyleSet->Set("TileSetEditor.SwapTileSetEditorViewports", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_AlternateView_40x"), Icon40x40));
+		StyleSet->Set("TileSetEditor.SwapTileSetEditorViewports.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileSetEditor/icon_AlternateView_40x"), Icon20x20));
 	}
 
 	// Sprite editor

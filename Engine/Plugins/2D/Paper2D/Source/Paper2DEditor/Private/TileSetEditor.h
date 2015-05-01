@@ -57,6 +57,10 @@ protected:
 
 	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
 
+	void CreateLayouts();
+	void ToggleActiveLayout();
+
+	TSharedRef<FTabManager::FLayout> GetDesiredLayout() const;
 protected:
 	UPaperTileSet* TileSetBeingEdited;
 
@@ -65,4 +69,13 @@ protected:
 	TSharedPtr<FSingleTileEditorViewportClient> TileEditorViewportClient;
 
 	FDelegateHandle OnPropertyChangedHandle;
+
+	// Should we use the default layout or the alternate (single tile editor) layout?
+	bool bUseAlternateLayout;
+
+	// Layout with the tile selector large and on the left
+	TSharedPtr<FTabManager::FLayout> TileSelectorPreferredLayout;
+
+	// Layout with the single tile editor large and on the left
+	TSharedPtr<FTabManager::FLayout> SingleTileEditorPreferredLayout;
 };

@@ -19,6 +19,9 @@ void FTileSetEditorCommands::RegisterCommands()
 
 	// Collision commands
 	UI_COMMAND(ApplyCollisionEdits, "Refresh Maps", "Refreshes tile maps that use this tile set to ensure they have up-to-date collision geometry.", EUserInterfaceActionType::Button, FInputChord());
+
+	// Editor mode switches
+	UI_COMMAND(SwapTileSetEditorViewports, "Swap Views", "Switches the position of the 'single tile editor' and the 'tile selector' viewports.", EUserInterfaceActionType::Button, FInputChord());
 }
 
 #undef LOCTEXT_NAMESPACE
