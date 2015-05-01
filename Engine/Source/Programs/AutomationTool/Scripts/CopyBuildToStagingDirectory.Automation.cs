@@ -1388,8 +1388,9 @@ public partial class Project : CommandUtils
 
 					foreach (UnrealTargetPlatform ReceiptPlatform in SubPlatformsToStage)
 					{
-						// Read the receipt
-						string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, "");
+						// Read the receipt (FIXME: store the architecture in project params?)
+						string Architecture = UEBuildPlatform.GetBuildPlatform(ReceiptPlatform).GetActiveArchitecture();
+						string ReceiptFileName = BuildReceipt.GetDefaultPath(ReceiptBaseDir, Target, ReceiptPlatform, Config, Architecture);
 						if(!File.Exists(ReceiptFileName))
 						{
 							if (bRequireStagedFilesToExist)
