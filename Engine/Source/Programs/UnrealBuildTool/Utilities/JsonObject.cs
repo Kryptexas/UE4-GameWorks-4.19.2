@@ -185,4 +185,110 @@ namespace UnrealBuildTool
 			}
 		}
 	}
+
+	public class JsonWriter : IDisposable
+	{
+		StreamWriter Writer;
+		bool bRequiresComma;
+		string Indent;
+
+		public JsonWriter(string FileName)
+		{
+			Writer = new StreamWriter(FileName);
+			Indent = "";
+		}
+
+		public void Dispose()
+		{
+			Writer.Dispose();
+		}
+
+		public void WriteObjectStart()
+		{
+			WriteCommaNewline();
+
+			Writer.Write(Indent);
+			Writer.Write("{");
+
+			Indent += "\t";
+			bRequiresComma = false;
+		}
+
+		public void WriteObjectEnd()
+		{
+			Indent = Indent.Substring(0, Indent.Length - 1);
+
+			Writer.WriteLine();
+			Writer.Write(Indent);
+			Writer.Write("}");
+
+			bRequiresComma = true;
+		}
+
+		public void WriteArrayStart(string ArrayName)
+		{
+			WriteCommaNewline();
+
+			Writer.WriteLine("{0}\"{1}\" :", Indent, ArrayName);
+			Writer.Write("{0}[", Indent);
+
+			Indent += "\t";
+			bRequiresComma = false;
+		}
+
+		public void WriteArrayEnd()
+		{
+			Indent = Indent.Substring(0, Indent.Length - 1);
+
+			Writer.WriteLine();
+			Writer.Write("{0}]", Indent);
+
+			bRequiresComma = true;
+		}
+
+		public void WriteValue(string Value)
+		{
+			WriteCommaNewline();
+
+			Writer.Write("{0}\"{1}\"", Indent, Value);
+
+			bRequiresComma = true;
+		}
+
+		public void WriteValue(string Name, string Value)
+		{
+			WriteValueInternal(Name, '"' + Value + '"');
+		}
+
+		public void WriteValue(string Name, int Value)
+		{
+			WriteValueInternal(Name, Value.ToString());
+		}
+
+		public void WriteValue(string Name, bool Value)
+		{
+			WriteValueInternal(Name, Value? "true" : "false");
+		}
+
+		void WriteCommaNewline()
+		{
+			if(bRequiresComma)
+			{
+				Writer.WriteLine(",");
+			}
+			else if(Indent.Length > 0)
+			{
+				Writer.WriteLine();
+			}
+		}
+
+		void WriteValueInternal(string Name, string Value)
+		{
+			WriteCommaNewline();
+
+			Writer.Write("{0}\"{1}\" : {2}", Indent, Name, Value);
+
+			bRequiresComma = true;
+		}
+	}
 }

@@ -97,6 +97,65 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Write this module to a JsonWriter
+		/// </summary>
+		/// <param name="Writer">Writer to output to</param>
+		void Write(JsonWriter Writer)
+		{
+			Writer.WriteObjectStart();
+			Writer.WriteValue("Name", Name);
+			Writer.WriteValue("Type", Type.ToString());
+			Writer.WriteValue("LoadingPhase", LoadingPhase.ToString());
+			if (WhitelistPlatforms != null && WhitelistPlatforms.Length > 0)
+			{
+				Writer.WriteArrayStart("WhitelistPlatforms");
+				foreach(UnrealTargetPlatform WhitelistPlatform in WhitelistPlatforms)
+				{
+					Writer.WriteValue(WhitelistPlatform.ToString());
+				}
+				Writer.WriteArrayEnd();
+			}
+			if (BlacklistPlatforms != null && BlacklistPlatforms.Length > 0)
+			{
+				Writer.WriteArrayStart("BlacklistPlatforms");
+				foreach(UnrealTargetPlatform BlacklistPlatform in BlacklistPlatforms)
+				{
+					Writer.WriteValue(BlacklistPlatform.ToString());
+				}
+				Writer.WriteArrayEnd();
+			}
+			if (AdditionalDependencies != null && AdditionalDependencies.Length > 0)
+			{
+				Writer.WriteArrayStart("AdditionalDependencies");
+				foreach(string AdditionalDependency in AdditionalDependencies)
+				{
+					Writer.WriteValue(AdditionalDependency);
+				}
+				Writer.WriteArrayEnd();
+			}
+			Writer.WriteObjectEnd();
+		}
+
+		/// <summary>
+		/// Write an array of module descriptors
+		/// </summary>
+		/// <param name="Writer">The Json writer to output to</param>
+		/// <param name="Name">Name of the array</param>
+		/// <param name="Modules">Array of modules</param>
+		public static void WriteArray(JsonWriter Writer, string Name, ModuleDescriptor[] Modules)
+		{
+			if(Modules.Length > 0)
+			{
+				Writer.WriteArrayStart(Name);
+				foreach(ModuleDescriptor Module in Modules)
+				{
+					Module.Write(Writer);
+				}
+				Writer.WriteArrayEnd();
+			}
+		}
+
+		/// <summary>
 		/// Determines whether the given plugin module is part of the current build.
 		/// </summary>
 		/// <param name="Platform">The platform being compiled for</param>
@@ -125,7 +184,7 @@ namespace UnrealBuildTool
 					return UEBuildConfiguration.bBuildDeveloperTools;
 				case ModuleHostType.Editor:
 				case ModuleHostType.EditorNoCommandlet:
-					return UEBuildConfiguration.bBuildEditor;
+					return TargetType == TargetRules.TargetType.Editor || UEBuildConfiguration.bBuildEditor;
 				case ModuleHostType.Program:
 					return TargetType == TargetRules.TargetType.Program;
 			}

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -140,6 +141,37 @@ namespace UnrealBuildTool
 			catch(JsonParseException ParseException)
 			{
 				throw new JsonParseException("{0} (in {1})", ParseException.Message, FileName);
+			}
+		}
+
+		/// <summary>
+		/// Saves the descriptor to disk
+		/// </summary>
+		/// <param name="FileName">The filename to write to</param>
+		public void Save(string FileName)
+		{
+			using(JsonWriter Writer = new JsonWriter(FileName))
+			{
+				Writer.WriteObjectStart();
+
+				Writer.WriteValue("FileVersion", (int)ProjectDescriptorVersion.Latest);
+				Writer.WriteValue("Version", Version);
+				Writer.WriteValue("VersionName", VersionName);
+				Writer.WriteValue("FriendlyName", FriendlyName);
+				Writer.WriteValue("Description", Description);
+				Writer.WriteValue("Category", Category);
+				Writer.WriteValue("CreatedBy", CreatedBy);
+				Writer.WriteValue("CreatedByURL", CreatedByURL);
+				Writer.WriteValue("DocsURL", DocsURL);
+
+				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
+
+				Writer.WriteValue("EnabledByDefault", bEnabledByDefault);
+				Writer.WriteValue("CanContainContent", bCanContainContent);
+				Writer.WriteValue("IsBetaVersion", bIsBetaVersion);
+				Writer.WriteValue("Installed", bInstalled);
+
+				Writer.WriteObjectEnd();
 			}
 		}
 	}

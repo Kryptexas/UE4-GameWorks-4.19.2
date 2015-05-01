@@ -1134,6 +1134,9 @@ namespace UnrealBuildTool
 			private set;
 		}
 
+		/// External folders to also search for rules files
+		static List<string> ForeignPlugins;
+
 		/// <summary>
 		/// Sets which game folders to look at when harvesting for rules source files.  This must be called before
 		/// other functions in the RulesCompiler.  The idea here is that we can actually cache rules files for multiple
@@ -1141,12 +1144,15 @@ namespace UnrealBuildTool
 		/// when generating project files.
 		/// </summary>
 		/// <param name="GameFolders">List of all game folders that rules files will ever be requested for</param>
-		public static void SetAssemblyNameAndGameFolders( string AssemblyName, List<string> GameFolders )
+		/// <param name="InExtraPluginFolders">List of additional folders </param>
+		public static void SetAssemblyNameAndGameFolders( string AssemblyName, List<string> GameFolders, List<string> InForeignPlugins = null)
 		{
 			RulesCompiler.AssemblyName = AssemblyName + "ModuleRules";
 
 			AllGameFolders = new List<string>();
 			AllGameFolders.AddRange( GameFolders );
+
+			ForeignPlugins = (InForeignPlugins == null)? null : new List<string>(InForeignPlugins);
 		}
 
 
@@ -1172,6 +1178,16 @@ namespace UnrealBuildTool
 				foreach(string PluginFile in Plugins.EnumeratePlugins(PluginsFolder))
 				{
 					string PluginDirectory = Path.GetDirectoryName(PluginFile);
+					Folders.Add(Path.Combine(PluginDirectory, "Source"));
+				}
+			}
+
+			// Add all the extra plugin folders
+			if( ForeignPlugins != null )
+			{
+				foreach(string ForeignPlugin in ForeignPlugins)
+				{
+					string PluginDirectory = Path.GetDirectoryName(Path.GetFullPath(ForeignPlugin));
 					Folders.Add(Path.Combine(PluginDirectory, "Source"));
 				}
 			}
