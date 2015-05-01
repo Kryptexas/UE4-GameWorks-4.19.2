@@ -770,6 +770,28 @@ FName FComponentEditorUtils::FindVariableNameGivenComponentInstance(UActorCompon
 					}
 				}
 			}
+
+			for (TFieldIterator<UArrayProperty> PropIt(OwnerClass, EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt)
+			{
+				UArrayProperty* TestProperty = *PropIt;
+				void* ArrayPropInstAddress = TestProperty->ContainerPtrToValuePtr<void>(OwnerCDO);
+
+				UObjectProperty* ArrayEntryProp = Cast<UObjectProperty>(TestProperty->Inner);
+				if ((ArrayEntryProp == nullptr) || !ArrayEntryProp->PropertyClass->IsChildOf<UActorComponent>())
+				{
+					continue;
+				}
+
+				FScriptArrayHelper ArrayHelper(TestProperty, ArrayPropInstAddress);
+				for (int32 ComponentIndex = 0; ComponentIndex < ArrayHelper.Num(); ++ComponentIndex)
+				{
+					UObject* ArrayElement = ArrayEntryProp->GetObjectPropertyValue(ArrayHelper.GetRawPtr(ComponentIndex));
+					if (ArrayElement == Archetype)
+					{
+						return TestProperty->GetFName();
+					}
+				}
+			}
 		}
 	}
 
