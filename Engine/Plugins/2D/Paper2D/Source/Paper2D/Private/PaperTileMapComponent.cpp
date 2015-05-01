@@ -87,7 +87,6 @@ FBoxSphereBounds UPaperTileMapComponent::CalcBounds(const FTransform& LocalToWor
 	}
 }
 
-#if WITH_EDITORONLY_DATA
 void UPaperTileMapComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -99,7 +98,6 @@ void UPaperTileMapComponent::PostLoad()
 {
 	Super::PostLoad();
 
-#if WITH_EDITORONLY_DATA
 	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::MovedTileMapDataToSeparateClass)
 	{
 		// Create a tile map object and move our old properties over to it
@@ -126,9 +124,7 @@ void UPaperTileMapComponent::PostLoad()
 		Material_DEPRECATED = nullptr;
 		TileLayers_DEPRECATED.Empty();
 	}
-#endif
 }
-#endif
 
 UBodySetup* UPaperTileMapComponent::GetBodySetup()
 {

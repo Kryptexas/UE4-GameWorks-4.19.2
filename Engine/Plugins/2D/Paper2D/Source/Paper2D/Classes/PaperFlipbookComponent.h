@@ -165,10 +165,8 @@ protected:
 
 public:
 	// UObject interface
-#if WITH_EDITORONLY_DATA
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
-#endif
 	// End of UObject interface
 
 	// UActorComponent interface

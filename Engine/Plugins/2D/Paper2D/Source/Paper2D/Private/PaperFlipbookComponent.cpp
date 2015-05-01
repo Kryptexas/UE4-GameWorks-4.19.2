@@ -56,7 +56,6 @@ UPaperSprite* UPaperFlipbookComponent::GetSpriteAtCachedIndex() const
 }
 
 
-#if WITH_EDITORONLY_DATA
 void UPaperFlipbookComponent::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -78,7 +77,6 @@ void UPaperFlipbookComponent::PostLoad()
 		}
 	}
 }
-#endif
 
 FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 {
