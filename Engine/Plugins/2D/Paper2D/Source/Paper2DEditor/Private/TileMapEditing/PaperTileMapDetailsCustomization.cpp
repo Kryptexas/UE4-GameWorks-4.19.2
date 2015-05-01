@@ -227,10 +227,13 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 			if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
 			{
-				FName CategoryName(*TestProperty->GetMetaData(TEXT("Category")));
+				const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+				const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
+
+				const FName CategoryName(*TestProperty->GetMetaData(TEXT("Category")));
 				IDetailCategoryBuilder& Category = DetailLayout.EditCategory(CategoryName);
 
-				if (IDetailPropertyRow* ExternalRow = Category.AddExternalProperty(ListOfTileMaps, TestProperty->GetFName()))
+				if (IDetailPropertyRow* ExternalRow = Category.AddExternalProperty(ListOfTileMaps, TestProperty->GetFName(), PropertyLocation))
 				{
 					ExternalRow->Visibility(InternalInstanceVis);
 				}
