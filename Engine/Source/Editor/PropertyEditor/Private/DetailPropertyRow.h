@@ -12,7 +12,8 @@ public:
 	virtual IDetailPropertyRow& ToolTip( const FText& InToolTip ) override;
 	virtual IDetailPropertyRow& ShowPropertyButtons( bool bInShowPropertyButtons ) override;
 	virtual IDetailPropertyRow& EditCondition( TAttribute<bool> EditConditionValue, FOnBooleanValueChanged OnEditConditionValueChanged ) override;
-	virtual IDetailPropertyRow& IsEnabled( TAttribute<bool> InIsEnabled ) override;
+	virtual IDetailPropertyRow& IsEnabled(TAttribute<bool> InIsEnabled) override;
+	virtual IDetailPropertyRow& ShouldAutoExpand(bool bForceExpansion) override;
 	virtual IDetailPropertyRow& Visibility( TAttribute<EVisibility> Visibility ) override;
 	virtual IDetailPropertyRow& OverrideResetToDefault( TAttribute<bool> IsResetToDefaultVisible, FSimpleDelegate OnResetToDefaultClicked ) override;
 	virtual FDetailWidgetRow& CustomWidget( bool bShowChildren = false ) override;
@@ -54,6 +55,11 @@ public:
 	 * @param OutChildren	The list of children created
 	 */
 	void OnGenerateChildren( FDetailNodeList& OutChildren );
+	
+	/**
+	 * @return Whether or not this row wants to force expansion
+	 */
+	bool GetForceAutoExpansion() const;
 
 	/** 
 	 * @return The visibility of this property
@@ -125,4 +131,6 @@ private:
 	bool bShowPropertyButtons;
 	/** True to show custom property children */
 	bool bShowCustomPropertyChildren;
+	/** True to force auto-expansion */
+	bool bForceAutoExpansion;
 };

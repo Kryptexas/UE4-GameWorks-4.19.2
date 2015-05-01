@@ -18,6 +18,8 @@ public:
 
 	void ToggleExpansion();
 
+	void SetExpansionState(bool bWantsExpanded);
+
 	/**
 	 * Generates children for this node
 	 *

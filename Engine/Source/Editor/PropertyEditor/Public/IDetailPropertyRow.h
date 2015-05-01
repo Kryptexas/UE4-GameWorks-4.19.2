@@ -51,6 +51,14 @@ public:
 	 */
 	virtual IDetailPropertyRow& IsEnabled( TAttribute<bool> InIsEnabled ) = 0;
 	
+
+	/**
+	 * Sets whether or not this property should auto-expand
+	 *
+	 * @param bForceExpansion	true to force the property to be expanded
+	 */
+	virtual IDetailPropertyRow& ShouldAutoExpand(bool bForceExpansion = true) = 0;
+
 	/**
 	 * Sets the visibility of this property
 	 *
