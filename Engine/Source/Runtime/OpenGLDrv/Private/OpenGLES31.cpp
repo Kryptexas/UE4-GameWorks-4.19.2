@@ -124,6 +124,9 @@ bool FOpenGLES31::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = false;
 /* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
 bool FOpenGLES31::bRequiresGLFragCoordVaryingLimitHack = false;
 
+/* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
+bool FOpenGLES2::bRequiresTexture2DPrecisionHack = false;
+
 /** GL_EXT_disjoint_timer_query or GL_NV_timer_query*/
 bool FOpenGLES31::bSupportsDisjointTimeQueries = false;
 

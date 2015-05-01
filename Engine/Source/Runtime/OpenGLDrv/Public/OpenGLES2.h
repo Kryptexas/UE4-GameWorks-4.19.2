@@ -124,11 +124,14 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsCopyTextureLevels()					{ return bSupportsCopyTextureLevels; }
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT; }
 	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT; }
+	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return false; }
+
 
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
 	static FORCEINLINE bool SupportsStandardDerivativesExtension()		{ return bSupportsStandardDerivativesExtension; }
 	static FORCEINLINE bool RequiresGLFragCoordVaryingLimitHack()		{ return bRequiresGLFragCoordVaryingLimitHack; }
+	static FORCEINLINE bool RequiresTexture2DPrecisionHack()			{ return bRequiresTexture2DPrecisionHack; }
 
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
@@ -484,6 +487,9 @@ public:
 
 	/* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
 	static bool bRequiresGLFragCoordVaryingLimitHack;
+
+	/* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
+	static bool bRequiresTexture2DPrecisionHack;
 };
 
 
