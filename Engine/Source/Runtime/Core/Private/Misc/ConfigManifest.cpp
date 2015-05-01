@@ -186,21 +186,27 @@ void FConfigManifest::MigrateEditorUserSettings()
 	}
 
 	// Handle upgrading editor user settings to the new path
-	FConfigFile EditorUserSettingsConfig;
-	EditorUserSettingsConfig.NoSave = true;
-	FConfigCacheIni::LoadLocalIniFile(EditorUserSettingsConfig, TEXT("EditorUserSettings"), true);
+	FConfigFile OldIni;
+	OldIni.NoSave = true;
+	OldIni.Read(EditorUserSettingsFilename);
 	
-	// Rename the config section
-	MigrateConfigSection(EditorUserSettingsConfig, TEXT("/Script/UnrealEd.EditorUserSettings"), TEXT("/Script/UnrealEd.EditorPerProjectUserSettings"));
-
-	FConfigFile EditorPerProjectUserSettingsConfig;
-	FConfigCacheIni::LoadLocalIniFile(EditorPerProjectUserSettingsConfig, TEXT("EditorPerProjectUserSettings"), false);
-
-	EditorPerProjectUserSettingsConfig.AddMissingProperties(EditorUserSettingsConfig);
-	if (EditorPerProjectUserSettingsConfig.Write(ProjectSpecificIniPath(TEXT("EditorPerProjectUserSettings.ini")), false))
+	if (OldIni.Num() != 0)
 	{
-		FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*EditorUserSettingsFilename);
+		// Rename the config section
+		MigrateConfigSection(OldIni, TEXT("/Script/UnrealEd.EditorUserSettings"), TEXT("/Script/UnrealEd.EditorPerProjectUserSettings"));
+
+		const FString EditorPerProjectUserSettingsFilename = ProjectSpecificIniPath(TEXT("EditorPerProjectUserSettings.ini"));
+
+		FConfigFile NewIni;
+		NewIni.Read(EditorPerProjectUserSettingsFilename);
+		NewIni.AddMissingProperties(OldIni);
+		if (!NewIni.Write(EditorPerProjectUserSettingsFilename, false))
+		{
+			return;
+		}
 	}
+
+	IFileManager::Get().Move(*(EditorUserSettingsFilename + TEXT(".bak")), *EditorUserSettingsFilename);
 }
 
 EConfigManifestVersion FConfigManifest::UpgradeFromVersion(EConfigManifestVersion FromVersion)
