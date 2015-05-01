@@ -2606,5 +2606,9 @@ void UPrimitiveComponent::SetCustomNavigableGeometry(const EHasCustomNavigableGe
 	bHasCustomNavigableGeometry = InType;
 }
 
+const bool UPrimitiveComponent::ShouldGenerateAutoLOD() const
+{
+	return (Mobility != EComponentMobility::Movable);
+}
 #undef LOCTEXT_NAMESPACE
 

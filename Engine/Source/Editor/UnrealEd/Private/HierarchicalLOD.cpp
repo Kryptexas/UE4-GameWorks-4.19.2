@@ -379,6 +379,7 @@ bool ShouldGenerateCluster(class AActor* Actor)
 	// TODO: support instanced static meshes
 	Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
 
+	int32 ValidComponentCount=0;
 	// now make sure you check parent primitive, so that we don't build for the actor that already has built. 
 	if (Components.Num() > 0)
 	{
@@ -388,12 +389,16 @@ bool ShouldGenerateCluster(class AActor* Actor)
 			{
 				return false;
 			}
-		}
 
-		return true;
+			// see if we should generate it
+			if (ComponentIter->ShouldGenerateAutoLOD())
+			{
+				++ValidComponentCount;
+			}
+		}
 	}
 
-	return false;
+	return (ValidComponentCount>0);
 }
 
 void FHierarchicalLODBuilder::InitializeClusters(class ULevel* InLevel, const int32 LODIdx, float CullCost)
