@@ -466,11 +466,11 @@ void FTreeMap::PadNodesRecursively( const FTreeMapOptions& Options, const FTreeM
 	// Choose a height for this node's font
 	const uint16 MinAllowedFontSize = 8;		// @todo treemap custom: Don't hardcode and instead make this a customizable option?
 	Node->NameFont = Options.NameFont; 
-	Node->NameFont.Size = FMath::Max< uint16 >( MinAllowedFontSize, Options.NameFont.Size - ( TreeDepth * Options.FontSizeChangeBasedOnDepth ) );
+	Node->NameFont.Size = FMath::Max< int32 >( MinAllowedFontSize, Options.NameFont.Size - ( TreeDepth * Options.FontSizeChangeBasedOnDepth ) );
 	Node->Name2Font = Options.Name2Font; 
-	Node->Name2Font.Size = FMath::Max< uint16 >( MinAllowedFontSize, Options.Name2Font.Size - ( TreeDepth * Options.FontSizeChangeBasedOnDepth ) );
+	Node->Name2Font.Size = FMath::Max< int32 >( MinAllowedFontSize, Options.Name2Font.Size - ( TreeDepth * Options.FontSizeChangeBasedOnDepth ) );
 	Node->CenterTextFont = Options.CenterTextFont; 
-	Node->CenterTextFont.Size = FMath::Max< uint16 >( MinAllowedFontSize, Options.CenterTextFont.Size - ( TreeDepth * Options.FontSizeChangeBasedOnDepth ) );
+	Node->CenterTextFont.Size = FMath::Max< int32 >( MinAllowedFontSize, Options.CenterTextFont.Size - ( TreeDepth * Options.FontSizeChangeBasedOnDepth ) );
 
 	if( Node != RootNode )
 	{
