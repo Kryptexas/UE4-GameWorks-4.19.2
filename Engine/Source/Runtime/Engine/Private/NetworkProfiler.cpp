@@ -283,7 +283,6 @@ void FNetworkProfiler::TrackSocketSendTo(
 		uint32 NetworkByteOrderIP;
 		Destination.GetIp(NetworkByteOrderIP);
 		TrackSocketSendToCore( SocketDesc, Data, BytesSent, NumPacketIdBits, NumBunchBits, NumAckBits, NumPaddingBits, NetworkByteOrderIP);
-		bHasNoticeableNetworkTrafficOccured = true;
 	}
 }
 
@@ -328,6 +327,7 @@ void FNetworkProfiler::TrackSocketSendToCore(
 		check( FileWriter->IsSaving() );
 		FileWriter->Serialize( const_cast<void*>(Data), BytesSent );
 #endif
+		bHasNoticeableNetworkTrafficOccured = true;
 	}
 }
 
