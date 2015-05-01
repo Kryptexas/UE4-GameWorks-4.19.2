@@ -133,6 +133,7 @@ void FSlateEditorStyle::FStyle::Initialize()
 	SetupGeneralStyles();
 	SetupGeneralIcons();
 	SetupWindowStyles();
+	SetupProjectBadgeStyle();
 	SetupDockingStyles();
 	SetupTutorialStyles();
 	SetupPropertyEditorStyles();
@@ -2567,8 +2568,18 @@ void FSlateEditorStyle::FStyle::SetupWindowStyles()
 			.SetChildBackgroundBrush( IMAGE_BRUSH( "Common/NoiseBackground", FVector2D(64, 64), FLinearColor::White, ESlateBrushTileType::Both) )
 			);
 	}
-	}
-	
+}
+
+void FSlateEditorStyle::FStyle::SetupProjectBadgeStyle()
+{
+	Set("SProjectBadge.Text", FTextBlockStyle(NormalText)
+		.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 12))
+		.SetColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 1.f))
+	);
+
+	Set("SProjectBadge.BadgeShape", new BOX_BRUSH("ProjectBadge/Badge", Icon16x16, FMargin(6.0f/16)));
+}
+
 void FSlateEditorStyle::FStyle::SetupDockingStyles()
 {
 #if WITH_EDITOR || IS_PROGRAM

@@ -48,6 +48,7 @@ public:
 		: _Content()
 		, _TabWellContentLeft()
 		, _TabWellContentRight()
+		, _TabWellContentBackground()
 		, _ContentPadding( FMargin( 2 ) )
 		, _TabRole(ETabRole::PanelTab)
 		, _Label()
@@ -63,6 +64,7 @@ public:
 		SLATE_DEFAULT_SLOT( FArguments, Content )
 		SLATE_NAMED_SLOT( FArguments, TabWellContentLeft )
 		SLATE_NAMED_SLOT( FArguments, TabWellContentRight )
+		SLATE_NAMED_SLOT(FArguments, TabWellContentBackground)
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 		SLATE_ARGUMENT( ETabRole, TabRole )
 		SLATE_ATTRIBUTE( FText, Label )
@@ -94,8 +96,12 @@ public:
 	virtual void SetContent(TSharedRef<SWidget> InContent) override;
 	// End of SBorder interface
 
+	/** Content that appears in the TabWell to the left of the tabs */
 	void SetLeftContent( TSharedRef<SWidget> InContent );
+	/** Content that appears in the TabWell to the right of the tabs */
 	void SetRightContent( TSharedRef<SWidget> InContent );
+	/** Content that appears in the TabWell behind the tabs */
+	void SetBackgroundContent( TSharedRef<SWidget> InContent );
 
 	/** @return True if this tab is currently focused */
 	bool IsActive() const;
@@ -126,6 +132,7 @@ public:
 	TSharedRef<SWidget> GetContent();
 	TSharedRef<SWidget> GetLeftContent();
 	TSharedRef<SWidget> GetRightContent();
+	TSharedRef<SWidget> GetBackgrounfContent();
 
 	/** Padding around the content when it is presented by the SDockingTabStack */
 	FMargin GetContentPadding() const;
@@ -304,6 +311,8 @@ protected:
 	TSharedRef<SWidget> Content;
 	TSharedRef<SWidget> TabWellContentLeft;
 	TSharedRef<SWidget> TabWellContentRight;
+	TSharedRef<SWidget> TabWellContentBackground;
+
 	
 	/** The tab's layout identifier */
 	FTabId LayoutIdentifier;

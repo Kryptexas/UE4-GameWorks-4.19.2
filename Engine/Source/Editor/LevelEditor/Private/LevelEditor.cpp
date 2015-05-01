@@ -42,16 +42,22 @@ FLevelEditorModule::FLevelEditorModule()
 }
 
 
-class SLevelEditorWatermark : public SCompoundWidget
+class SProjectBadge : public SBox
 {
 public:
-	SLATE_BEGIN_ARGS(SLevelEditorWatermark) {}
+	SLATE_BEGIN_ARGS(SProjectBadge) {}
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs)
 	{
 		FString OptionalBranchPrefix;
 		GConfig->GetString(TEXT("LevelEditor"), TEXT("ProjectNameWatermarkPrefix"), /*out*/ OptionalBranchPrefix, GEditorPerProjectIni);
+
+		FColor BadgeBackgroundColor = FColor::Black;
+		GConfig->GetColor(TEXT("LevelEditor"), TEXT("ProjectBadgeBackgroundColor"), /*out*/ BadgeBackgroundColor, GEditorPerProjectIni);
+
+		FColor BadgeTextColor = FColor(128,128,128,255);
+		GConfig->GetColor(TEXT("LevelEditor"), TEXT("ProjectBadgeTextColor"), /*out*/ BadgeTextColor, GEditorPerProjectIni);
 
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Branch"), FText::FromString(OptionalBranchPrefix));
@@ -82,16 +88,27 @@ public:
 
 		SetToolTipText(RightContentTooltip);
 
-		ChildSlot
-		[
-			SNew(STextBlock)
-			.Text(RightContentText)
-			.Visibility(EVisibility::HitTestInvisible)
-			.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14))
-			.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.4f))
-		];
+		SBox::Construct(SBox::FArguments()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Top)
+			.Padding(FMargin(0.0f, 0.0f, 15.0f, 0.0f))
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("SProjectBadge.BadgeShape"))
+				.Padding(FMargin(10.0f, 2.5f))
+				.BorderBackgroundColor(BadgeBackgroundColor)
+				.VAlign(VAlign_Top)
+				[
+					SNew(STextBlock)
+					.Text(RightContentText)
+					.Visibility(EVisibility::HitTestInvisible)
+					.TextStyle(FEditorStyle::Get(),"SProjectBadge.Text")
+					.ColorAndOpacity(BadgeTextColor)
+				]
+			]);
 	}
-	
+
+
 	// SWidget interface
 	virtual EWindowZone::Type GetWindowZoneOverride() const override
 	{
@@ -132,45 +149,41 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
 	TSharedRef<SWidget> TutorialWidget = IntroTutorials.CreateTutorialsWidget(TEXT("LevelEditor"), OwnerWindow);
 
-	TSharedPtr< SWidget > RightContent;
-	{
-		RightContent =
-				SNew( SHorizontalBox )
+	TSharedPtr< SWidget > RightContent=
+		SNew( SHorizontalBox )
 
-				+SHorizontalBox::Slot()
-				.Padding(0.0f, 0.0f, 14.0f, 0.0f)
-				.AutoWidth()
-				[
-					SNew(SLevelEditorWatermark)
-				]
 // Put the level editor stats/notification widgets on the main window title bar since we don't have a menu bar on OS X
 #if PLATFORM_MAC
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					LevelEditorTab->GetRightContent()
-				]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(8.0f, 0.0f, 0.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			LevelEditorTab->GetRightContent()
+		]
 #endif
 		
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					UserFeedbackWidget
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(8.0f, 0.0f, 8.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				[
-					TutorialWidget
-				]
-		;
-	}
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(8.0f, 0.0f, 0.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			UserFeedbackWidget
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(8.0f, 0.0f, 8.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			TutorialWidget
+		];
+
 	LevelEditorTab->SetRightContent( RightContent.ToSharedRef() );
+
+	LevelEditorTab->SetBackgroundContent(
+			SNew(SProjectBadge)
+	);
+	
 	
 	return LevelEditorTab;
 }

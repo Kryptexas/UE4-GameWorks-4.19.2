@@ -177,6 +177,15 @@ void SDockTab::SetRightContent( TSharedRef<SWidget> InContent )
 	}
 }
 
+void SDockTab::SetBackgroundContent(TSharedRef<SWidget> InContent)
+{
+	this->TabWellContentBackground = InContent;
+	if (ParentPtr.IsValid())
+	{
+		ParentPtr.Pin()->RefreshParentContent();
+	}
+}
+
 
 bool SDockTab::IsActive() const
 {
@@ -248,6 +257,11 @@ TSharedRef<SWidget> SDockTab::GetRightContent()
 	return TabWellContentRight;
 }
 
+TSharedRef<SWidget> SDockTab::GetBackgrounfContent()
+{
+	return TabWellContentBackground;
+}
+
 FMargin SDockTab::GetContentPadding() const
 {
 	return ContentAreaPadding.Get();
@@ -307,6 +321,7 @@ SDockTab::SDockTab()
 	: Content(SNew(SSpacer))
 	, TabWellContentLeft(SNullWidget::NullWidget)
 	, TabWellContentRight(SNullWidget::NullWidget)
+	, TabWellContentBackground(SNullWidget::NullWidget)
 	, LayoutIdentifier(NAME_None)
 	, TabRole(ETabRole::PanelTab)
 	, ParentPtr()
