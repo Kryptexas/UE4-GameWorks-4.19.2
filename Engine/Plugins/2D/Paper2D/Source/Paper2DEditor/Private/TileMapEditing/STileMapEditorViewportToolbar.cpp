@@ -32,6 +32,7 @@ TSharedRef<SWidget> STileMapEditorViewportToolbar::GenerateShowMenu() const
 
 		ShowMenuBuilder.AddMenuEntry(Commands.SetShowTileGrid);
 		ShowMenuBuilder.AddMenuEntry(Commands.SetShowLayerGrid);
+		ShowMenuBuilder.AddMenuEntry(Commands.SetShowTileMapStats);
 
 		ShowMenuBuilder.AddMenuSeparator();
 

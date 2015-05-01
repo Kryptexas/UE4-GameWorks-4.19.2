@@ -36,6 +36,11 @@ UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectI
 	bShowPerLayerGridWhenSelected = true;
 	bShowOutlineWhenUnselected = true;
 #endif
+
+#if WITH_EDITOR
+	NumBatches = 0;
+	NumTriangles = 0;
+#endif
 }
 
 FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()
@@ -366,6 +371,15 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		}
 	}
 
+#if WITH_EDITOR
+	NumBatches = BatchedSprites.Num();
+	NumTriangles = 0;
+	for (const FSpriteDrawCallRecord& Batch : BatchedSprites)
+	{
+		NumTriangles += Batch.RenderVerts.Num() / 3;
+	}
+#endif
+
 	Proxy->SetBatchesHack(BatchedSprites);
 }
 
@@ -518,5 +532,13 @@ void UPaperTileMapComponent::MakeTileMapEditable()
 		SetTileMap(TileMap->CloneTileMap(this));
 	}
 }
+
+#if WITH_EDITOR
+void UPaperTileMapComponent::GetRenderingStats(int32& OutNumTriangles, int32& OutNumBatches) const
+{
+	OutNumBatches = NumBatches;
+	OutNumTriangles = NumTriangles;
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

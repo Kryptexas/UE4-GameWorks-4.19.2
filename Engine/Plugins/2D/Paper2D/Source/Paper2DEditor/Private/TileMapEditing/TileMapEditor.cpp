@@ -124,6 +124,12 @@ void STileMapEditorViewport::BindCommands()
 		FExecuteAction::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::ToggleShowLayerGrid),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::IsShowLayerGridChecked));
+
+	CommandList->MapAction(
+		Commands.SetShowTileMapStats,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::ToggleShowTileMapStats),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FTileMapEditorViewportClient::IsShowTileMapStatsChecked));
 }
 
 TSharedRef<FEditorViewportClient> STileMapEditorViewport::MakeEditorViewportClient()
@@ -462,6 +468,7 @@ void FTileMapEditor::ExtendToolbar()
 			const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 			ToolbarBuilder.AddToolBarButton(Commands.SetShowTileGrid);
 			ToolbarBuilder.AddToolBarButton(Commands.SetShowLayerGrid);
+			ToolbarBuilder.AddToolBarButton(Commands.SetShowTileMapStats);
 		}
 	};
 
