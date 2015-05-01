@@ -280,6 +280,7 @@ inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NUL
 
 	if ( Field != NULL )
 	{
+		// currently only Property (or null) seems to be a valid option.
 		if (UProperty* Property = dynamic_cast<UProperty*>(Field))
 		{
 			Result = Property->GetSize();
