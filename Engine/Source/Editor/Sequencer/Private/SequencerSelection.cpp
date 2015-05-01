@@ -2,6 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 #include "SequencerSelection.h"
+#include "MovieSceneSection.h"
 
 FSequencerSelection::FSequencerSelection()
 {

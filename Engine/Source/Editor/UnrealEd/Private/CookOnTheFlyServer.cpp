@@ -36,6 +36,8 @@
 #include "Engine/LevelStreaming.h"
 #include "Engine/TextureLODSettings.h"
 
+#define LOCTEXT_NAMESPACE "Cooker"
+
 DEFINE_LOG_CATEGORY_STATIC(LogCook, Log, All);
 
 
