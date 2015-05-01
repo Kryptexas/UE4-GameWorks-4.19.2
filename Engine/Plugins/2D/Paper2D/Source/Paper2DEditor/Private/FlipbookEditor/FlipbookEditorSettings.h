@@ -5,7 +5,7 @@
 #include "FlipbookEditorSettings.generated.h"
 
 // Settings for the Paper2D sprite editor
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class UFlipbookEditorSettings : public UObject
 {
 	GENERATED_BODY()

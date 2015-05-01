@@ -5,7 +5,7 @@
 #include "SpriteEditorSettings.generated.h"
 
 // Settings for the Paper2D sprite editor
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class USpriteEditorSettings : public UObject
 {
 	GENERATED_BODY()
