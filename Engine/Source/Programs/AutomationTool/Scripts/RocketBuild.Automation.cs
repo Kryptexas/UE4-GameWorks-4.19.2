@@ -125,10 +125,20 @@ namespace Rocket
 					}
 				}
 
+				// Get the output directory for the build zips
+				string PublishedEngineDir;
+				if(ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP())
+				{
+					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.RootSharedTempStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
+				}
+				else
+				{
+					PublishedEngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "LocalBuilds", "RocketPublish", CommandUtils.GetGenericPlatformName(HostPlatform));
+				}
+
 				// Publish the install to the network
-				string RemoteOutputDir = CommandUtils.CombinePaths(CommandUtils.RootSharedTempStorageDirectory(), "Rocket", "Automated", GetBuildLabel(), CommandUtils.GetGenericPlatformName(HostPlatform));
-				bp.AddNode(new PublishRocketNode(HostPlatform, LocalOutputDir, RemoteOutputDir));
-				bp.AddNode(new PublishRocketSymbolsNode(bp, HostPlatform, TargetPlatforms, RemoteOutputDir + "Symbols"));
+				bp.AddNode(new PublishRocketNode(HostPlatform, LocalOutputDir, PublishedEngineDir));
+				bp.AddNode(new PublishRocketSymbolsNode(bp, HostPlatform, TargetPlatforms, PublishedEngineDir + "Symbols"));
 
 				// Add a dependency on this being published as part of the shared promotable being labeled
 				GUBP.SharedLabelPromotableSuccessNode LabelPromotableNode = (GUBP.SharedLabelPromotableSuccessNode)bp.FindNode(GUBP.SharedLabelPromotableSuccessNode.StaticGetFullName());
@@ -814,11 +824,39 @@ namespace Rocket
 
 		public override void DoBuild(GUBP bp)
 		{
-			if(RocketBuild.ShouldDoSeriousThingsLikeP4CheckinAndPostToMCP())
-			{
-				CommandUtils.ThreadedCopyFiles(LocalDir, PublishDir);
-			}
+			// Create a zip file containing the install
+			string FullZipFileName = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "FullInstall" + StaticGetHostPlatformSuffix(HostPlatform) + ".zip");
+			CommandUtils.Log("Creating {0}...", FullZipFileName);
+			CommandUtils.ZipFiles(FullZipFileName, LocalDir, new FileFilter(FileFilterType.Include));
 
+			// Create a filter for the files we need just to run the editor
+			FileFilter EditorFilter = new FileFilter(FileFilterType.Include);
+			EditorFilter.Exclude("/Engine/Binaries/...");
+			EditorFilter.Include("/Engine/Binaries/DotNET/...");
+			EditorFilter.Include("/Engine/Binaries/ThirdParty/...");
+			EditorFilter.Include("/Engine/Binaries/" + HostPlatform.ToString() + "/...");
+			EditorFilter.Exclude("/Engine/Binaries/.../*.lib");
+			EditorFilter.Exclude("/Engine/Binaries/.../*.a");
+			EditorFilter.Exclude("/Engine/Extras/...");
+			EditorFilter.Exclude("/Engine/Source/.../Private/...");
+			EditorFilter.Exclude("/FeaturePacks/...");
+			EditorFilter.Exclude("/Samples/...");
+			EditorFilter.Exclude("/Templates/...");
+			EditorFilter.Exclude("*.pdb");
+
+			// Create a zip file containing the editor install
+			string EditorZipFileName = Path.Combine(CommandUtils.CmdEnv.LocalRoot, "EditorInstall" + StaticGetHostPlatformSuffix(HostPlatform) + ".zip");
+			CommandUtils.Log("Creating {0}...", EditorZipFileName);
+			CommandUtils.ZipFiles(EditorZipFileName, LocalDir, EditorFilter);
+
+			// Copy the files to their final location
+			CommandUtils.Log("Copying files to {0}", PublishDir);
+			CommandUtils.CopyFile(FullZipFileName, Path.Combine(PublishDir, Path.GetFileName(FullZipFileName)));
+			CommandUtils.CopyFile(EditorZipFileName, Path.Combine(PublishDir, Path.GetFileName(EditorZipFileName)));
+			CommandUtils.DeleteFile(FullZipFileName);
+			CommandUtils.DeleteFile(EditorZipFileName);
+
+			// Save a record of success
 			BuildProducts = new List<string>();
 			SaveRecordOfSuccessAndAddToBuildProducts();
 		}
