@@ -161,20 +161,32 @@ void SSuperSearchBox::ActOnSuggestion(TSharedPtr<FSearchEntry> SearchEntry, FStr
 	{
 		EntryClicked = SearchEntry;
 #if WITH_EDITOR
+		// Broadcast text change to anyone registered for it
+		FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));		
+		SuperSearchModule.GetActOnSearchTextClicked().Broadcast(SearchEntry);
+
+		// See if the search has tutorial hits
 		if (SearchEntry->URL.IsEmpty())
 		{
 			UBlueprint* Blueprint = LoadObject<UBlueprint>(nullptr, *(SearchEntry->AssetData.ObjectPath.ToString()));
-			UEditorTutorial* Tutorial = Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>();
-			IIntroTutorials& IntroTutorials = IIntroTutorials::Get();
-			
-			FWidgetPath OutWidgetPath;
-			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SuggestionBox.ToSharedRef(), OutWidgetPath);
+			if( Blueprint != nullptr )
+			{
+				UEditorTutorial* Tutorial = Blueprint->GeneratedClass->GetDefaultObject<UEditorTutorial>();
+				if( Tutorial!= nullptr)
+				{
+					IIntroTutorials& IntroTutorials = IIntroTutorials::Get();
 
-			IntroTutorials.LaunchTutorial(Tutorial, IIntroTutorials::ETutorialStartType::TST_RESTART, ParentWindow);
+					FWidgetPath OutWidgetPath;
+					TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(SuggestionBox.ToSharedRef(), OutWidgetPath);
+
+					IntroTutorials.LaunchTutorial(Tutorial, IIntroTutorials::ETutorialStartType::TST_RESTART, ParentWindow);
+				}
+			} 
 		}
 		else
 #endif
 		{
+			// Check for documentation hits
 			if (Category == TEXT("documentation"))
 			{
 				// append some tracking data to the URL
@@ -537,14 +549,7 @@ FReply SSuperSearchBox::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent&
 	return FReply::Unhandled();
 }
 
-FSearchEntry * FSearchEntry::MakeCategoryEntry(const FString & InTitle)
-{
-	FSearchEntry * SearchEntry = new FSearchEntry();
-	SearchEntry->Title = InTitle;
-	SearchEntry->bCategory = true;
 
-	return SearchEntry;
-}
 
 void UpdateSuggestionHelper(const FText & CategoryLabel, const TArray<FSearchEntry> & Elements, TArray<TSharedPtr< FSearchEntry > > & OutSuggestions)
 {
@@ -588,6 +593,10 @@ void SSuperSearchBox::UpdateSuggestions()
 
 	//then answerhub
 	UpdateSuggestionHelper(NSLOCTEXT("SuperSearch", "answers", "Answerhub"), SearchResults->OnlineResults.FindOrAdd(TEXT("answers")), Suggestions);
+
+	FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+	//Broadcast to anyone registered 
+	SuperSearchModule.GetSearchTextChanged().Broadcast(InputText->GetText().ToString(),Suggestions);
 
 	//finally add other category
 	Suggestions.Add(OtherCategory);
