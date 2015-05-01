@@ -425,6 +425,7 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		TSharedPtr<SPropertyValueWidget> PropertyValue;
 
 		ValueWidget->AddSlot()
+		.Padding( 0.0f, 0.0f, 4.0f, 0.0f )
 		[
 			SAssignNew( PropertyValue, SPropertyValueWidget, PropertyEditor, ParentCategory.Pin()->GetParentLayoutImpl().GetPropertyUtilities() )
 			.ShowPropertyButtons( false ) // We handle this ourselves
