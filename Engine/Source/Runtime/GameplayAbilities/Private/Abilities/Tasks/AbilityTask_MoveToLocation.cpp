@@ -14,7 +14,7 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const FObjectInitialize
 	bIsFinished = false;
 }
 
-UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FName TaskInstanceName, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
+UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(UObject* WorldContextObject, FName TaskInstanceName, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve, UCurveVector* OptionalVectorInterpolationCurve)
 {
 	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject, TaskInstanceName);
 
@@ -28,6 +28,7 @@ UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class U
 	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
 	MyObj->TimeMoveWillEnd = MyObj->TimeMoveStarted + MyObj->DurationOfMovement;
 	MyObj->LerpCurve = OptionalInterpolationCurve;
+	MyObj->LerpCurveVector = OptionalVectorInterpolationCurve;
 
 	return MyObj;
 }
@@ -85,13 +86,25 @@ void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 		}
 		else
 		{
+			FVector NewLocation;
+
 			float MoveFraction = (CurrentTime - TimeMoveStarted) / DurationOfMovement;
-			if (LerpCurve)
+			if (LerpCurveVector)
 			{
-				MoveFraction = LerpCurve->GetFloatValue(MoveFraction);
+				const FVector ComponentInterpolationFraction = LerpCurveVector->GetVectorValue(MoveFraction);
+				NewLocation = FMath::Lerp<FVector, FVector>(StartLocation, TargetLocation, ComponentInterpolationFraction);
+			}
+			else
+			{
+				if (LerpCurve)
+				{
+					MoveFraction = LerpCurve->GetFloatValue(MoveFraction);
+				}
+
+				NewLocation = FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction);
 			}
 
-			MyActor->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));
+			MyActor->SetActorLocation(NewLocation);
 		}
 	}
 	else
