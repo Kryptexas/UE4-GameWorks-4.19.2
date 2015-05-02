@@ -31,6 +31,15 @@ bool UMediaPlayer::CanPlay() const
 }
 
 
+void UMediaPlayer::Close()
+{
+	if (Player.IsValid())
+	{
+		Player->Close();
+	}
+}
+
+
 FTimespan UMediaPlayer::GetDuration() const
 {
 	if (Player.IsValid())
