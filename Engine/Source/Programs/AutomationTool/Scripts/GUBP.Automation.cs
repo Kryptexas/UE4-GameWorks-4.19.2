@@ -1746,8 +1746,8 @@ public class GUBP : BuildCommand
 
 				// Archive all the headers
 				FileFilter Filter = new FileFilter();
-				Filter.Include("/Engine/Intermediate/Build/" + HostPlatform.ToString() + "/UE4/Inc/...");
-				Filter.Include("/Engine/Plugins/.../Intermediate/Build/" + HostPlatform.ToString() + "/UE4/Inc/...");
+				Filter.Include("/Engine/Intermediate/Build/" + TargetPlatform.ToString() + "/UE4/Inc/...");
+				Filter.Include("/Engine/Plugins/.../Intermediate/Build/" + TargetPlatform.ToString() + "/UE4/Inc/...");
 
 				string ZipFileName = StaticGetArchivedHeadersPath(HostPlatform, GameProj, TargetPlatform);
 				CommandUtils.ZipFiles(ZipFileName, CommandUtils.CmdEnv.LocalRoot, Filter);
