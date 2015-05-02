@@ -113,7 +113,7 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 		SpawnedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(CueClass, TargetActor->GetActorLocation(), TargetActor->GetActorRotation(), SpawnParams);
 		if (ensure(SpawnedCue))
 		{
-			auto& InnerMap = NotifyMapActor.Add(TargetActor);
+			auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
 			InnerMap.Add(CueClass) = SpawnedCue;
 		}
 	}
