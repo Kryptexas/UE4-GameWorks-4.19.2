@@ -115,7 +115,9 @@ void IGameplayCueInterface::ForwardGameplayCueToParent()
 
 void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray)
 {
-	if (PredictionKey.IsLocalClientKey() == false)
+	// We don't check the PredictionKey here like we do in PostReplicatedAdd. PredictionKey tells us
+	// if we were predictely created, but this doesn't mean we will predictively remove ourselves.
+	if (bPredictivelyRemoved == false)
 	{
 		// If predicted ignore the add/remove
 		InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
@@ -158,6 +160,19 @@ void FActiveGameplayCueContainer::RemoveCue(const FGameplayTag& Tag)
 			GameplayCues.RemoveAt(idx);
 			MarkArrayDirty();
 			Owner->UpdateTagMap(Tag, -1);
+			return;
+		}
+	}
+}
+
+void FActiveGameplayCueContainer::PredictiveRemove(const FGameplayTag& Tag)
+{
+	for (int32 idx=0; idx < GameplayCues.Num(); ++idx)
+	{
+		FActiveGameplayCue& Cue = GameplayCues[idx];
+		if (Cue.GameplayCueTag == Tag)
+		{			
+			Cue.bPredictivelyRemoved = true;
 			return;
 		}
 	}

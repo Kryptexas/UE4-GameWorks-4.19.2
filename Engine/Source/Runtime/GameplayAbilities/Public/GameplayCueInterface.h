@@ -63,11 +63,20 @@ struct FActiveGameplayCue : public FFastArraySerializerItem
 {
 	GENERATED_USTRUCT_BODY()
 
+	FActiveGameplayCue()	
+	{
+		bPredictivelyRemoved = false;
+	}
+
 	UPROPERTY()
 	FGameplayTag GameplayCueTag;
 
 	UPROPERTY()
 	FPredictionKey PredictionKey;
+
+	/** Has this been predictively removed on the client? */
+	UPROPERTY(NotReplicated)
+	bool bPredictivelyRemoved;
 
 	void PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray);
@@ -87,6 +96,9 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 
 	void AddCue(const FGameplayTag& Tag, const FPredictionKey& PredictionKey);
 	void RemoveCue(const FGameplayTag& Tag);
+
+	/** Marks as predictively removed so that we dont invoke remove event twice due to onrep */
+	void PredictiveRemove(const FGameplayTag& Tag);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
