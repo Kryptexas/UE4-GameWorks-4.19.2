@@ -178,7 +178,7 @@ public:
 
 	// Called when a fresh tile map has been created (by factory or otherwise)
 	// Adds a default layer and pulls the PixelsPerUnrealUnit from the project settings
-	void InitializeNewEmptyTileMap();
+	void InitializeNewEmptyTileMap(UPaperTileSet* DefaultTileSetAsset = nullptr);
 
 	// Creates a clone of this tile map in the specified outer
 	UPaperTileMap* CloneTileMap(UObject* OuterForClone);

@@ -542,9 +542,15 @@ void UPaperTileMap::ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize
 	}
 }
 
-void UPaperTileMap::InitializeNewEmptyTileMap()
+void UPaperTileMap::InitializeNewEmptyTileMap(UPaperTileSet* InitialTileSet)
 {
-	//@TODO: Consider removing this function / making it a 'prepare' method just like the sprite one on the importer settings
+	if (InitialTileSet != nullptr)
+	{
+		TileWidth = InitialTileSet->TileWidth;
+		TileHeight = InitialTileSet->TileHeight;
+		SelectedTileSet = InitialTileSet;
+	}
+
 	AddNewLayer();
 }
 

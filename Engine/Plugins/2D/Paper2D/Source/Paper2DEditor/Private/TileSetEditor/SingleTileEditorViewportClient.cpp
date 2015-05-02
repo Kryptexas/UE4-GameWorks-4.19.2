@@ -239,9 +239,10 @@ void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
 		SpriteReinitParams.Texture = TileSet->TileSheet;
 
 		//@TODO: Should analyze the texture (*at a higher level, not per tile click!*) to pick the correct material
-
-		TileSet->GetTileUV(TileBeingEditedIndex, /*out*/ SpriteReinitParams.Offset);
-		SpriteReinitParams.Dimension = FVector2D(TileSet->TileWidth, TileSet->TileHeight);
+		FVector2D UV;
+		TileSet->GetTileUV(TileBeingEditedIndex, /*out*/ UV);
+		SpriteReinitParams.Offset = FIntPoint((int32)UV.X, (int32)(UV.Y));
+		SpriteReinitParams.Dimension = FIntPoint(TileSet->TileWidth, TileSet->TileHeight);
 		SpriteReinitParams.SetPixelsPerUnrealUnit(1.0f);
 		DummySprite->InitializeSprite(SpriteReinitParams);
 	}

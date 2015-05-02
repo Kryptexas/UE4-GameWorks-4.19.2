@@ -698,8 +698,10 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 			FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
 			if (bIsCtrlKeyDown)
 			{
-				UPaperSprite* NewSprite = CreateNewSprite(Sprite->GetSourceUV(), Sprite->GetSourceSize());
-				if (NewSprite != nullptr)
+				const FVector2D StartingUV = Sprite->GetSourceUV();
+				const FVector2D StartingSize = Sprite->GetSourceSize();
+
+				if (UPaperSprite* NewSprite = CreateNewSprite(FIntPoint((int32)StartingUV.X, (int32)StartingUV.Y), FIntPoint((int32)StartingSize.X, (int32)StartingSize.Y)))
 				{
 					NewSprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
 					bHandled = true;
@@ -746,7 +748,7 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 
 // Create a new sprite and return this sprite. The sprite editor will now be editing this new sprite
 // Returns nullptr if failed
-UPaperSprite* FSpriteEditorViewportClient::CreateNewSprite(FVector2D TopLeft, FVector2D Dimensions)
+UPaperSprite* FSpriteEditorViewportClient::CreateNewSprite(const FIntPoint& TopLeft, const FIntPoint& Dimensions)
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -798,8 +800,8 @@ bool FSpriteEditorViewportClient::InputKey(FViewport* Viewport, int32 Controller
 		const bool bMarqueeStartModifier = InputState.IsCtrlButtonPressed();
 		if (GeometryEditMode->ProcessMarquee(Viewport, Key, Event, bMarqueeStartModifier))
 		{
-			FVector2D TextureSpaceStartPos;
-			FVector2D TextureSpaceDimensions;
+			FIntPoint TextureSpaceStartPos;
+			FIntPoint TextureSpaceDimensions;
 			if (ConvertMarqueeToSourceTextureSpace(/*out*/TextureSpaceStartPos, /*out*/TextureSpaceDimensions))
 			{
 				//@TODO: Warn if overlapping with another sprite
@@ -985,7 +987,7 @@ void FSpriteEditorViewportClient::InternalActivateNewMode(ESpriteEditorMode::Typ
 	}
 }
 
-bool FSpriteEditorViewportClient::ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension)
+bool FSpriteEditorViewportClient::ConvertMarqueeToSourceTextureSpace(/*out*/ FIntPoint& OutStartPos, /*out*/ FIntPoint& OutDimension)
 {
 	FSpriteGeometryEditMode* GeometryEditMode = ModeTools->GetActiveModeTyped<FSpriteGeometryEditMode>(FSpriteGeometryEditMode::EM_SpriteGeometry);
 	check(GeometryEditMode);
@@ -1019,15 +1021,19 @@ bool FSpriteEditorViewportClient::ConvertMarqueeToSourceTextureSpace(/*out*/FVec
 		const FIntPoint SourceTextureSize(SpriteSourceTexture->GetImportedSize());
 		const int32 SourceTextureWidth = SourceTextureSize.X;
 		const int32 SourceTextureHeight = SourceTextureSize.Y;
-		TextureSpaceStartPos.X = FMath::Clamp((int)TextureSpaceStartPos.X, 0, SourceTextureWidth - 1);
-		TextureSpaceStartPos.Y = FMath::Clamp((int)TextureSpaceStartPos.Y, 0, SourceTextureHeight - 1);
-		TextureSpaceEndPos.X = FMath::Clamp((int)TextureSpaceEndPos.X, 0, SourceTextureWidth - 1);
-		TextureSpaceEndPos.Y = FMath::Clamp((int)TextureSpaceEndPos.Y, 0, SourceTextureHeight - 1);
+		
+		FIntPoint TSStartPos;
+		TSStartPos.X = FMath::Clamp<int32>((int32)TextureSpaceStartPos.X, 0, SourceTextureWidth - 1);
+		TSStartPos.Y = FMath::Clamp<int32>((int32)TextureSpaceStartPos.Y, 0, SourceTextureHeight - 1);
 
-		const FVector2D TextureSpaceDimensions = TextureSpaceEndPos - TextureSpaceStartPos;
-		if (TextureSpaceDimensions.X > 0 || TextureSpaceDimensions.Y > 0)
+		FIntPoint TSEndPos;
+		TSEndPos.X = FMath::Clamp<int32>((int32)TextureSpaceEndPos.X, 0, SourceTextureWidth - 1);
+		TSEndPos.Y = FMath::Clamp<int32>((int32)TextureSpaceEndPos.Y, 0, SourceTextureHeight - 1);
+
+		const FIntPoint TextureSpaceDimensions = TSEndPos - TSStartPos;
+		if ((TextureSpaceDimensions.X > 0) || (TextureSpaceDimensions.Y > 0))
 		{
-			OutStartPos = TextureSpaceStartPos;
+			OutStartPos = TSStartPos;
 			OutDimension = TextureSpaceDimensions;
 			bSuccessful = true;
 		}

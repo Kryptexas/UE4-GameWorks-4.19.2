@@ -129,7 +129,7 @@ static bool ParseFrame(TSharedPtr<FJsonObject> &FrameData, FSpriteFrame &OutFram
 	}
 	else
 	{
-		OutFrame.SpriteSourcePos = FVector2D::ZeroVector;
+		OutFrame.SpriteSourcePos = FIntPoint::ZeroValue;
 		OutFrame.SpriteSourceSize = OutFrame.SpriteSizeInSheet;
 		OutFrame.ImageSourceSize = OutFrame.SpriteSizeInSheet;
 	}

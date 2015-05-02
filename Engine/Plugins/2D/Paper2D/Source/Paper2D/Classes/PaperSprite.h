@@ -41,11 +41,11 @@ class PAPER2D_API UPaperSprite : public UObject, public IInterface_CollisionData
 protected:
 
 #if WITH_EDITORONLY_DATA
-	// Position with SourceTexture
+	// Position with SourceTexture (in pixels)
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	FVector2D SourceUV;
 
-	// Dimensions within SourceTexture
+	// Dimensions within SourceTexture (in pixels)
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	FVector2D SourceDimension;
 

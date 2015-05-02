@@ -23,29 +23,22 @@ void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 	UPaperTileMapComponent* RenderComponent = TypedActor->GetRenderComponent();
 	check(RenderComponent);
 
-	if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
+	if (UPaperTileMap* TileMapAsset = Cast<UPaperTileMap>(Asset))
 	{
 		RenderComponent->UnregisterComponent();
-		RenderComponent->TileMap = TileMap;
+		RenderComponent->TileMap = TileMapAsset;
 		RenderComponent->RegisterComponent();
 	}
-	else if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(Asset))
+	else if (RenderComponent->OwnsTileMap())
 	{
-		if (RenderComponent->TileMap != nullptr)
-		{
-			RenderComponent->UnregisterComponent();
-			RenderComponent->TileMap->TileWidth = TileSet->TileWidth;
-			RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
-			RenderComponent->TileMap->SelectedTileSet = TileSet;
-			//@TODO: Initialize the tile map material here too, based on analysis of the TileSheet texture
-			RenderComponent->RegisterComponent();
-		}
-	}
+		RenderComponent->UnregisterComponent();
 
-	if (RenderComponent->OwnsTileMap())
-	{
-		RenderComponent->TileMap->InitializeNewEmptyTileMap();
-		RenderComponent->TileMap->PixelsPerUnrealUnit = GetDefault<UPaperImporterSettings>()->GetDefaultPixelsPerUnrealUnit();
+		UPaperTileMap* OwnedTileMap = RenderComponent->TileMap;
+		check(OwnedTileMap);
+
+		GetDefault<UPaperImporterSettings>()->ApplySettingsForTileMapInit(OwnedTileMap, Cast<UPaperTileSet>(Asset));
+
+		RenderComponent->RegisterComponent();
 	}
 }
 
@@ -60,21 +53,12 @@ void UTileMapActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 		{
 			RenderComponent->TileMap = TileMap;
 		}
-		else if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(Asset))
+		else if (RenderComponent->OwnsTileMap())
 		{
-			if (RenderComponent->TileMap != nullptr)
-			{
-				RenderComponent->TileMap->TileWidth = TileSet->TileWidth;
-				RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
-				RenderComponent->TileMap->SelectedTileSet = TileSet;
-				//@TODO: Initialize the tile map material here too, based on analysis of the TileSheet texture
-			}
-		}
+			UPaperTileMap* OwnedTileMap = RenderComponent->TileMap;
+			check(OwnedTileMap);
 
-		if (RenderComponent->OwnsTileMap())
-		{
-			RenderComponent->TileMap->InitializeNewEmptyTileMap();
-			RenderComponent->TileMap->PixelsPerUnrealUnit = GetDefault<UPaperImporterSettings>()->GetDefaultPixelsPerUnrealUnit();
+			GetDefault<UPaperImporterSettings>()->ApplySettingsForTileMapInit(OwnedTileMap, Cast<UPaperTileSet>(Asset));
 		}
 	}
 }

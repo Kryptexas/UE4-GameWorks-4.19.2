@@ -3,12 +3,14 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperImporterSettings.h"
 #include "AlphaBitmap.h"
+#include "TileMapEditing/TileMapEditorSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperImporterSettings
 
 UPaperImporterSettings::UPaperImporterSettings()
-	: bPickBestMaterialWhenCreatingSprite(true)
+	: bPickBestMaterialWhenCreatingSprites(true)
+	, bPickBestMaterialWhenCreatingTileMaps(true)
 	, DefaultPixelsPerUnrealUnit(1.0f)
 	, DefaultSpriteTextureGroup(TEXTUREGROUP_Pixels2D)
 	, bOverrideTextureCompression(true)
@@ -76,6 +78,29 @@ void UPaperImporterSettings::ApplyTextureSettings(UTexture2D* Texture) const
 	}
 }
 
+ESpriteInitMaterialType UPaperImporterSettings::AnalyzeTextureForDesiredMaterialType(UTexture* Texture, const FIntPoint& Offset, const FIntPoint& Dimensions) const
+{
+	// Analyze the texture if desired (to see if it's got greyscale alpha or just binary alpha, picking either a translucent or masked material)
+	if (Texture != nullptr)
+	{
+		FAlphaBitmap AlphaBitmap(Texture);
+		bool bHasIntermediateValues;
+		bool bHasZeros;
+		AlphaBitmap.AnalyzeImage(Offset.X, Offset.Y, Dimensions.X, Dimensions.Y, /*out*/ bHasZeros, /*out*/ bHasIntermediateValues);
+
+		if (bAnalysisCanUseOpaque && !bHasIntermediateValues && !bHasZeros)
+		{
+			return ESpriteInitMaterialType::Opaque;
+		}
+		else
+		{
+			return bHasIntermediateValues ? ESpriteInitMaterialType::Translucent : ESpriteInitMaterialType::Masked;
+		}
+	}
+
+	return ESpriteInitMaterialType::Automatic;
+}
+
 void UPaperImporterSettings::ApplySettingsForSpriteInit(FSpriteAssetInitParameters& InitParams, ESpriteInitMaterialLightingMode LightingMode, ESpriteInitMaterialType MaterialTypeMode) const
 {
 	InitParams.SetPixelsPerUnrealUnit(DefaultPixelsPerUnrealUnit);
@@ -84,21 +109,9 @@ void UPaperImporterSettings::ApplySettingsForSpriteInit(FSpriteAssetInitParamete
 	if (DesiredMaterialType == ESpriteInitMaterialType::Automatic)
 	{
 		// Analyze the texture if desired (to see if it's got greyscale alpha or just binary alpha, picking either a translucent or masked material)
-		if (bPickBestMaterialWhenCreatingSprite && (InitParams.Texture != nullptr))
+		if (bPickBestMaterialWhenCreatingSprites)
 		{
-			FAlphaBitmap AlphaBitmap(InitParams.Texture);
-			bool bHasIntermediateValues;
-			bool bHasZeros;
-			AlphaBitmap.AnalyzeImage((int32)InitParams.Offset.X, (int32)InitParams.Offset.Y, (int32)InitParams.Dimension.X, (int32)InitParams.Dimension.Y, /*out*/ bHasZeros, /*out*/ bHasIntermediateValues);
-
-			if (bAnalysisCanUseOpaque && !bHasIntermediateValues && !bHasZeros)
-			{
-				DesiredMaterialType = ESpriteInitMaterialType::Opaque;
-			}
-			else
-			{
-				DesiredMaterialType = bHasIntermediateValues ? ESpriteInitMaterialType::Translucent : ESpriteInitMaterialType::Masked;
-			}
+			DesiredMaterialType = AnalyzeTextureForDesiredMaterialType(InitParams.Texture, InitParams.Offset, InitParams.Dimension);
 		}
 	}
 
@@ -114,24 +127,52 @@ void UPaperImporterSettings::ApplySettingsForSpriteInit(FSpriteAssetInitParamete
 		const bool bUseLitMaterial = LightingMode == ESpriteInitMaterialLightingMode::ForceLit;
 
 		// Apply the materials
-		switch (DesiredMaterialType)
-		{
-		default:
-		case ESpriteInitMaterialType::LeaveAsIs:
-		case ESpriteInitMaterialType::Automatic:
-			check(false);
-		case ESpriteInitMaterialType::Masked:
-			InitParams.DefaultMaterialOverride = GetDefaultMaskedMaterial(bUseLitMaterial);
-			break;
-		case ESpriteInitMaterialType::Translucent:
-			InitParams.DefaultMaterialOverride = GetDefaultTranslucentMaterial(bUseLitMaterial);
-			break;
-		case ESpriteInitMaterialType::Opaque:
-			InitParams.DefaultMaterialOverride = GetDefaultOpaqueMaterial(bUseLitMaterial);
-			break;
-		}
-
+		InitParams.DefaultMaterialOverride = GetDefaultMaterial(DesiredMaterialType, bUseLitMaterial);
 		InitParams.AlternateMaterialOverride = GetDefaultOpaqueMaterial(bUseLitMaterial);
+	}
+}
+
+void UPaperImporterSettings::ApplySettingsForTileMapInit(UPaperTileMap* TileMap, UPaperTileSet* DefaultTileSet, ESpriteInitMaterialLightingMode LightingMode, ESpriteInitMaterialType MaterialTypeMode, bool bCreateEmptyLayer) const
+{
+	if (DefaultTileSet != nullptr)
+	{
+		TileMap->TileWidth = DefaultTileSet->TileWidth;
+		TileMap->TileHeight = DefaultTileSet->TileHeight;
+		TileMap->SelectedTileSet = DefaultTileSet;
+	}
+
+	TileMap->PixelsPerUnrealUnit = DefaultPixelsPerUnrealUnit;
+	TileMap->BackgroundColor = GetDefault<UTileMapEditorSettings>()->DefaultBackgroundColor;
+
+	ESpriteInitMaterialType DesiredMaterialType = MaterialTypeMode;
+	if (DesiredMaterialType == ESpriteInitMaterialType::Automatic)
+	{
+		// Analyze the texture if desired (to see if it's got greyscale alpha or just binary alpha, picking either a translucent or masked material)
+		if (bPickBestMaterialWhenCreatingTileMaps && (DefaultTileSet != nullptr) && (DefaultTileSet->TileSheet != nullptr))
+		{
+			DesiredMaterialType = AnalyzeTextureForDesiredMaterialType(DefaultTileSet->TileSheet, FIntPoint::ZeroValue, DefaultTileSet->TileSheet->GetImportedSize());
+		}
+	}
+
+	if (DesiredMaterialType == ESpriteInitMaterialType::Automatic)
+	{
+		// Fall back to masked if we wanted automatic and couldn't analyze things
+		DesiredMaterialType = ESpriteInitMaterialType::Masked;
+	}
+
+	if (DesiredMaterialType != ESpriteInitMaterialType::LeaveAsIs)
+	{
+		// Determine whether to use lit or unlit materials
+		const bool bUseLitMaterial = LightingMode == ESpriteInitMaterialLightingMode::ForceLit;
+
+		// Apply the material
+		TileMap->Material = GetDefaultMaterial(DesiredMaterialType, bUseLitMaterial);
+	}
+
+	if (bCreateEmptyLayer)
+	{
+		// Add a new empty layer
+		TileMap->AddNewLayer();
 	}
 }
 
@@ -148,4 +189,23 @@ UMaterialInterface* UPaperImporterSettings::GetDefaultOpaqueMaterial(bool bLit) 
 UMaterialInterface* UPaperImporterSettings::GetDefaultMaskedMaterial(bool bLit) const
 {
 	return Cast<UMaterialInterface>((bLit ? LitDefaultMaskedMaterialName : UnlitDefaultMaskedMaterialName).TryLoad());
+}
+
+UMaterialInterface* UPaperImporterSettings::GetDefaultMaterial(ESpriteInitMaterialType MaterialType, bool bUseLitMaterial) const
+{
+	// Apply the materials
+	switch (MaterialType)
+	{
+	default:
+		ensureMsgf(false, TEXT("Unexpected material type in UPaperImporterSettings::GetDefaultMaterial"));
+		// Fall thru
+	case ESpriteInitMaterialType::LeaveAsIs:
+	case ESpriteInitMaterialType::Automatic:
+	case ESpriteInitMaterialType::Masked:
+		return GetDefaultMaskedMaterial(bUseLitMaterial);
+	case ESpriteInitMaterialType::Translucent:
+		return GetDefaultTranslucentMaterial(bUseLitMaterial);
+	case ESpriteInitMaterialType::Opaque:
+		return GetDefaultOpaqueMaterial(bUseLitMaterial);
+	}
 }

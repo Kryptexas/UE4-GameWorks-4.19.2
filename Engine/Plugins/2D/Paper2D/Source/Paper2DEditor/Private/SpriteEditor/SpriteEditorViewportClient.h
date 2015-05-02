@@ -90,7 +90,7 @@ public:
 
 	void UpdateRelatedSpritesList();
 
-	UPaperSprite* CreateNewSprite(FVector2D TopLeft, FVector2D Dimensions);
+	UPaperSprite* CreateNewSprite(const FIntPoint& TopLeft, const FIntPoint& Dimensions);
 
 	ESpriteEditorMode::Type GetCurrentMode() const
 	{
@@ -168,7 +168,7 @@ private:
 
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
 	
-	bool ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension);
+	bool ConvertMarqueeToSourceTextureSpace(/*out*/ FIntPoint& OutStartPos, /*out*/ FIntPoint& OutDimension);
 
 	// Activates a new mode, clearing selection set, etc...
 	void InternalActivateNewMode(ESpriteEditorMode::Type NewMode);
