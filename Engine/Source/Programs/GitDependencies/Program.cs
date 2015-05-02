@@ -49,7 +49,7 @@ namespace GitDependencies
 
 		class IncomingFile
 		{
-			public string Name;
+			public string[] Names;
 			public string Hash;
 			public long MinPackOffset;
 			public long MaxPackOffset;
@@ -933,15 +933,12 @@ namespace GitDependencies
 			List<IncomingFile> Files = new List<IncomingFile>();
 			foreach(DependencyBlob RequiredBlob in PackToBlobs[RequiredPack.Hash])
 			{
-				foreach(DependencyFile RequiredFile in BlobToFiles[RequiredBlob.Hash])
-				{
-					IncomingFile File = new IncomingFile();
-					File.Name = Path.Combine(RootPath, RequiredFile.Name);
-					File.Hash = RequiredBlob.Hash;
-					File.MinPackOffset = RequiredBlob.PackOffset;
-					File.MaxPackOffset = RequiredBlob.PackOffset + RequiredBlob.Size;
-					Files.Add(File);
-				}
+				IncomingFile File = new IncomingFile();
+				File.Names = BlobToFiles[RequiredBlob.Hash].Select(x => Path.Combine(RootPath, x.Name)).ToArray();
+				File.Hash = RequiredBlob.Hash;
+				File.MinPackOffset = RequiredBlob.PackOffset;
+				File.MaxPackOffset = RequiredBlob.PackOffset + RequiredBlob.Size;
+				Files.Add(File);
 			}
 			return Files.OrderBy(x => x.MinPackOffset).ToArray();
 		}
@@ -949,14 +946,24 @@ namespace GitDependencies
 		static void DownloadWorker(ConcurrentQueue<IncomingPack> DownloadQueue, AsyncDownloadState State, int MaxRetries)
 		{
 			int Retries = 0;
-			while(State.NumFilesRead < State.NumFiles)
+			for(;;)
 			{
 				// Remove the next file from the download queue, or wait before polling again
 				IncomingPack NextPack;
 				if (!DownloadQueue.TryDequeue(out NextPack))
 				{
-					Thread.Sleep(100);
-					continue;
+					Interlocked.Increment(ref State.NumFailingOrIdleDownloads);
+					while(State.NumFilesRead < State.NumFiles && !DownloadQueue.TryDequeue(out NextPack))
+					{
+						Thread.Sleep(100);
+					}
+					Interlocked.Decrement(ref State.NumFailingOrIdleDownloads);
+				}
+
+				// Quit if we exited the loop because we're finished
+				if(NextPack == null)
+				{
+					break;
 				}
 
 				// Try to download the file
@@ -1168,8 +1175,8 @@ namespace GitDependencies
 						// Open the stream if it's a new file
 						if(Idx == MaxFileIdx)
 						{
-							Directory.CreateDirectory(Path.GetDirectoryName(CurrentFile.Name));
-							OutputStreams[Idx] = File.Open(CurrentFile.Name + IncomingFileSuffix, FileMode.Create, FileAccess.Write, FileShare.None);
+							Directory.CreateDirectory(Path.GetDirectoryName(CurrentFile.Names[0]));
+							OutputStreams[Idx] = File.Open(CurrentFile.Names[0] + IncomingFileSuffix, FileMode.Create, FileAccess.Write, FileShare.None);
 							OutputStreams[Idx].SetLength(CurrentFile.MaxPackOffset - CurrentFile.MinPackOffset);
 							OutputHashers[Idx] = SHA1.Create();
 							MaxFileIdx++;
@@ -1189,12 +1196,21 @@ namespace GitDependencies
 							string Hash = BitConverter.ToString(OutputHashers[Idx].Hash).ToLower().Replace("-", "");
 							if(Hash != CurrentFile.Hash)
 							{
-								throw new CorruptPackFileException(String.Format("Incorrect hash value of {0}: expected {1}, got {2}", CurrentFile.Name, CurrentFile.Hash, Hash), null);
+								throw new CorruptPackFileException(String.Format("Incorrect hash value of {0}: expected {1}, got {2}", CurrentFile.Names[0], CurrentFile.Hash, Hash), null);
 							}
 						
 							OutputStreams[Idx].Dispose();
-							File.Delete(CurrentFile.Name);
-							File.Move(CurrentFile.Name + IncomingFileSuffix, CurrentFile.Name);
+
+							for(int FileIdx = 1; FileIdx < CurrentFile.Names.Length; FileIdx++)
+							{
+								Directory.CreateDirectory(Path.GetDirectoryName(CurrentFile.Names[FileIdx]));
+								File.Copy(CurrentFile.Names[0] + IncomingFileSuffix, CurrentFile.Names[FileIdx] + IncomingFileSuffix, true);
+								File.Delete(CurrentFile.Names[FileIdx]);
+								File.Move(CurrentFile.Names[FileIdx] + IncomingFileSuffix, CurrentFile.Names[FileIdx]);
+							}
+
+							File.Delete(CurrentFile.Names[0]);
+							File.Move(CurrentFile.Names[0] + IncomingFileSuffix, CurrentFile.Names[0]);
 							MinFileIdx++;
 						}
 					}
@@ -1219,7 +1235,10 @@ namespace GitDependencies
 				for(int Idx = MinFileIdx; Idx < MaxFileIdx; Idx++)
 				{
 					OutputStreams[Idx].Dispose();
-					SafeDeleteFileQuiet(Files[Idx].Name + IncomingFileSuffix);
+					foreach(string Name in Files[Idx].Names)
+					{
+						SafeDeleteFileQuiet(Name + IncomingFileSuffix);
+					}
 				}
 			}
 		}
