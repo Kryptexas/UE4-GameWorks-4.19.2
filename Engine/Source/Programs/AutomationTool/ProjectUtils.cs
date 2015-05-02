@@ -707,7 +707,7 @@ namespace AutomationTool
             BaseEngineProject = new BranchUProject();
 
             var AllProjects = UnrealBuildTool.UProjectInfo.FilterGameProjects(false, null);
-
+            var StartTime = DateTime.UtcNow.ToString();
             foreach (var InfoEntry in AllProjects)
             {
                 var UProject = new BranchUProject(InfoEntry);
@@ -725,12 +725,15 @@ namespace AutomationTool
                     }
                 }
             }
+            var FinishTime = DateTime.UtcNow.ToString();
+            CommandUtils.StepDurations.Add("SortProjects", String.Format("{0},{1}", StartTime, FinishTime));
             if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
             {
                 throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
             }
 
             CommandUtils.Log("  Base Engine:");
+            var StartBranchDump = DateTime.UtcNow.ToString();
             BaseEngineProject.Dump(InHostPlatforms);
 
             CommandUtils.Log("  {0} Code projects:", CodeProjects.Count);
@@ -743,6 +746,8 @@ namespace AutomationTool
             {
                 Proj.Dump(InHostPlatforms);
             }
+            var BuildDumpFinish = DateTime.UtcNow.ToString();
+            CommandUtils.StepDurations.Add("Project Dump", String.Format("{0},{1}", StartBranchDump, BuildDumpFinish));
         }
 
         public BranchUProject FindGame(string GameName)

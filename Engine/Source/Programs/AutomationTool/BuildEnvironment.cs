@@ -18,6 +18,7 @@ namespace AutomationTool
 		// Command Environment
 		static public readonly string LocalRoot = "uebp_LOCAL_ROOT";
 		static public readonly string LogFolder = "uebp_LogFolder";
+        static public readonly string CSVFile = "uebp_CSVFile";
 		static public readonly string EngineSavedFolder = "uebp_EngineSavedFolder";
 		static public readonly string NETFrameworkDir = "FrameworkDir";
 		static public readonly string NETFrameworkVersion = "FrameworkVersion";
@@ -49,7 +50,8 @@ namespace AutomationTool
 
 		public string LocalRoot { get; protected set; }
 		public string EngineSavedFolder { get; protected set; }
-		public string LogFolder { get; protected set; }		
+		public string LogFolder { get; protected set; }
+        public string CSVFile { get; protected set; }
 		public string RobocopyExe { get; protected set; }
 		public string MountExe { get; protected set; }
 		public string CmdExe { get; protected set; }
@@ -104,6 +106,7 @@ namespace AutomationTool
 				SetUATSavedPath();
 			}
 			EngineSavedFolder = CommandUtils.GetEnvVar(EnvVarNames.EngineSavedFolder);
+            CSVFile = CommandUtils.GetEnvVar(EnvVarNames.CSVFile);            
 			LogFolder = CommandUtils.GetEnvVar(EnvVarNames.LogFolder);
 			RobocopyExe = CommandUtils.CombinePaths(Environment.SystemDirectory, "robocopy.exe");
 			MountExe = CommandUtils.CombinePaths(Environment.SystemDirectory, "mount.exe");

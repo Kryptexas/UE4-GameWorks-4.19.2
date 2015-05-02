@@ -1878,6 +1878,8 @@ namespace AutomationTool
 		}
 		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms;
 
+        public static Dictionary<string, string> StepDurations = new Dictionary<string,string>();
+
 		#endregion
 
 		#region Properties
@@ -2142,8 +2144,6 @@ namespace AutomationTool
 			}
 		}
 	}
-
-
 
 	/// <summary>
 	/// Use with "using" syntax to push and pop directories in a convenient, exception-safe way

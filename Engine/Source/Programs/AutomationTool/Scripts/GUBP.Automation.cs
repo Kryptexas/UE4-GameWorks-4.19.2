@@ -6444,6 +6444,7 @@ public class GUBP : BuildCommand
         {
             Log("******* {0} GUBP Nodes", GUBPNodes.Count);
             var SortedNodes = TopologicalSort(new HashSet<string>(GUBPNodes.Keys), LocalOnly: true, DoNotConsiderCompletion: true);
+            var DependencyStart = DateTime.UtcNow.ToString();
             foreach (var Node in SortedNodes)
             {
                 string Note = GetControllingTriggerDotName(Node);
@@ -6476,6 +6477,8 @@ public class GUBP : BuildCommand
                     Log("  {0}: {1} [Aggregate]", Node, Note);
                 }
             }
+            var DependencyFinish = DateTime.UtcNow.ToString();
+            CommandUtils.StepDurations.Add("GetDependencies", String.Format("{0},{1}", DependencyStart, DependencyFinish));
         }
 		Dictionary<string, int> FullNodeListSortKey = GetDisplayOrder(FullNodeList.Keys.ToList(), FullNodeDirectDependencies, GUBPNodes);
 
@@ -6955,6 +6958,7 @@ public class GUBP : BuildCommand
             }
 
             var FilteredOrdereredToDo = new List<string>();
+            var StartFilterTime = DateTime.Now.ToString();
             // remove nodes that have unfinished triggers
             foreach (var NodeToDo in OrdereredToDo)
             {
@@ -6979,9 +6983,14 @@ public class GUBP : BuildCommand
                     FilteredOrdereredToDo.Add(NodeToDo);
                 }
             }
+            
             OrdereredToDo = FilteredOrdereredToDo;
+            var FinishFilterTime = DateTime.Now.ToString();
+            StepDurations.Add("FilterNodes", String.Format("{0},{1}", StartFilterTime, FinishFilterTime));
             Log("*********** EC Nodes, in order.");
             PrintNodes(this, OrdereredToDo, LocalOnly, UnfinishedTriggers);
+            var FinishNodePrint = DateTime.Now.ToString();
+            StepDurations.Add("SetupCommanderPrint", String.Format("{0},{1}", FinishFilterTime, FinishNodePrint));
 
             // here we are just making sure everything before the explicit trigger is completed.
             if (!String.IsNullOrEmpty(ExplicitTrigger))
@@ -7027,6 +7036,7 @@ public class GUBP : BuildCommand
             }
 			
             string ParentPath = ParseParamValue("ParentPath");
+            var StartPerlOutput = DateTime.Now.ToString();
             string BaseArgs = String.Format("$batch->createJobStep({{parentPath => '{0}'", ParentPath);
 
             bool bHasNoop = false;
@@ -7347,6 +7357,8 @@ public class GUBP : BuildCommand
                 }
             }
             WriteECPerl(StepList);
+            var FinishPerlOutput = DateTime.Now.ToString();
+            StepDurations.Add("PerlOutput", String.Format("{0},{1}", StartPerlOutput, FinishPerlOutput));
             RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
             {
                 ECProps.Add("GUBP_LoadedProps=1");
@@ -7368,6 +7380,7 @@ public class GUBP : BuildCommand
                 }
             }
             Log("Commander setup only, done.");
+            PrintCSVFile();
             PrintRunTime();
             return;
 
@@ -7504,7 +7517,10 @@ public class GUBP : BuildCommand
                     {                        
 						Log("***** Building GUBP Node {0} for {1}", NodeToDo, NodeStoreName);
 						var StartTime = DateTime.UtcNow;
+                        var StartString = StartTime.ToString();
                         GUBPNodes[NodeToDo].DoBuild(this);
+                        var FinishBuild = DateTime.UtcNow.ToString();
+                        StepDurations.Add(String.Format("DoBuild{0}", NodeToDo), String.Format("{0},{1}", StartString, FinishBuild));
 						BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
 						
                     }
@@ -7512,8 +7528,12 @@ public class GUBP : BuildCommand
                     {
 						var StoreDuration = 0.0;
 						var StartTime = DateTime.UtcNow;
+                        var StoreTime = StartTime.ToString();
                         StoreToTempStorage(CmdEnv, NodeStoreName, GUBPNodes[NodeToDo].BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
 						StoreDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
+                        var FinishStore = DateTime.UtcNow.ToString();
+                        StepDurations.Add(String.Format("StoreBuildProducts{0}", NodeToDo), String.Format("{0},{1}", StoreTime, FinishStore));
+                        //StepDurations.Add("StoreBuildProducts", StoreTime + "," + FinishStore);
 						Log("Took {0} seconds to store build products", StoreDuration);
 						if (IsBuildMachine)
 						{
@@ -7526,7 +7546,10 @@ public class GUBP : BuildCommand
                                 try
                                 {
                                     bool WasLocal;
+                                    var StartRetrieve = DateTime.UtcNow.ToString();
 									RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
+                                    var FinishRetrieve = DateTime.UtcNow.ToString();
+                                    StepDurations.Add(String.Format("RetrieveBuildProducts{0}", NodeToDo), String.Format("{0},{1}", StartRetrieve, FinishRetrieve));
 									if (!WasLocal)
 									{
 										throw new AutomationException("Retrieve was not local?");
@@ -7546,12 +7569,21 @@ public class GUBP : BuildCommand
                 {
                     if (SaveSuccessRecords)
                     {
-                        UpdateNodeHistory(NodeToDo, CLString);						
+                        var StartNodeHistory = DateTime.Now.ToString();
+                        UpdateNodeHistory(NodeToDo, CLString);
+                        var FinishNodeHistory = DateTime.Now.ToString();
+                        StepDurations.Add(String.Format("UpdateNodeHistory{0}", NodeToDo), String.Format("{0},{1}", StartNodeHistory, FinishNodeHistory));                        
                         SaveStatus(NodeToDo, FailedTempStorageSuffix, NodeStoreName, bSaveSharedTempStorage, GameNameIfAny, ParseParamValue("MyJobStepId"));
+                        var FinishSaveStatus = DateTime.Now.ToString();
+                        StepDurations.Add(String.Format("SaveNodeStatus{0}", NodeToDo), String.Format("{0},{1}", FinishNodeHistory, FinishSaveStatus));
                         UpdateECProps(NodeToDo, CLString);
+                        var FinishECPropUpdate = DateTime.Now.ToString();
+                        StepDurations.Add(String.Format("UpdateECProps{0}", NodeToDo), String.Format("{0},{1}", FinishSaveStatus, FinishECPropUpdate));
 						if (IsBuildMachine)
 						{
 							GetFailureEmails(NodeToDo, CLString);
+                            var FinishFailEmails = DateTime.Now.ToString();
+                            StepDurations.Add(String.Format("GetFailEmails{0}", NodeToDo), String.Format("{0},{1}", FinishECPropUpdate, FinishFailEmails));
 						}
 						UpdateECBuildTime(NodeToDo, BuildDuration);
                     }
@@ -7603,12 +7635,20 @@ public class GUBP : BuildCommand
                 }
                 if (SaveSuccessRecords) 
                 {
-                    UpdateNodeHistory(NodeToDo, CLString);					
+                    var StartNodeHistory = DateTime.Now.ToString();
+                    UpdateNodeHistory(NodeToDo, CLString);
+                    var FinishNodeHistory = DateTime.Now.ToString();					
                     SaveStatus(NodeToDo, SucceededTempStorageSuffix, NodeStoreName, bSaveSharedTempStorage, GameNameIfAny);
+                    var FinishSaveStatus = DateTime.Now.ToString();
+                    StepDurations.Add(String.Format("SaveNodeStatus{0}", NodeToDo), String.Format("{0},{1}", FinishNodeHistory, FinishSaveStatus));
                     UpdateECProps(NodeToDo, CLString);
+                    var FinishECPropUpdate = DateTime.Now.ToString();
+                    StepDurations.Add(String.Format("UpdateECProps{0}", NodeToDo), String.Format("{0},{1}", FinishSaveStatus, FinishECPropUpdate));
 					if (IsBuildMachine)
 					{
 						GetFailureEmails(NodeToDo, CLString);
+                        var FinishFailEmails = DateTime.Now.ToString();
+                        StepDurations.Add(String.Format("GetFailEmails{0}", NodeToDo), String.Format("{0},{1}", FinishECPropUpdate, FinishFailEmails));
 					}
 					UpdateECBuildTime(NodeToDo, BuildDuration);
                 }
@@ -7623,9 +7663,23 @@ public class GUBP : BuildCommand
             }
         }
 
+        PrintCSVFile();
         PrintRunTime();
     }
 
+    static void PrintCSVFile()
+    {
+        if (IsBuildMachine && CmdEnv.CSVFile != "")
+        {
+            var CSVBuilder = new StringBuilder();
+            foreach (KeyValuePair<string, string> Step in StepDurations)
+            {
+                var CSVLineToAppend = String.Format("{0},{1}{2}", Step.Key, Step.Value, Environment.NewLine);
+                CSVBuilder.Append(CSVLineToAppend);
+            }
+            File.AppendAllText(CmdEnv.CSVFile, CSVBuilder.ToString());
+        }
+    }
 	/// <summary>
 	/// Sorts a list of nodes to display in EC. The default order is based on execution order and agent groups, whereas this function arranges nodes by
 	/// frequency then execution order, while trying to group nodes on parallel paths (eg. Mac/Windows editor nodes) together.
