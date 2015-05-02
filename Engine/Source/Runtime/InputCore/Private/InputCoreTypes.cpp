@@ -222,6 +222,14 @@ const FKey EKeys::Gesture_Flick("Gesture_Flick");
 // PS4-specific
 const FKey EKeys::PS4_Special("PS4_Special");
 
+// Steam Controller Specific
+const FKey EKeys::Steam_Touch_0("Steam_Touch_0");
+const FKey EKeys::Steam_Touch_1("Steam_Touch_1");
+const FKey EKeys::Steam_Touch_2("Steam_Touch_2");
+const FKey EKeys::Steam_Touch_3("Steam_Touch_3");
+const FKey EKeys::Steam_Back_Left("Steam_Back_Left");
+const FKey EKeys::Steam_Back_Right("Steam_Back_Right");
+
 // Xbox One global speech commands
 const FKey EKeys::Global_Menu("Global_Menu");
 const FKey EKeys::Global_View("Global_View");
@@ -460,6 +468,14 @@ void EKeys::Initialize()
 
 	// PS4-specific
 	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey));
+
+	// Steam Controller specific
+	AddKey(FKeyDetails(EKeys::Steam_Touch_0, LOCTEXT("Steam_Touch_0", "Steam Touch 0"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Steam_Touch_1, LOCTEXT("Steam_Touch_1", "Steam Touch 1"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Steam_Touch_2, LOCTEXT("Steam_Touch_2", "Steam Touch 2"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Steam_Touch_3, LOCTEXT("Steam_Touch_3", "Steam Touch 3"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Steam_Back_Left, LOCTEXT("Steam_Back_Left", "Steam Back Left"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Steam_Back_Right, LOCTEXT("Steam_Back_Right", "Steam Back Right"), FKeyDetails::GamepadKey));
 
 	// Xbox One global speech commands
 	AddKey(FKeyDetails(EKeys::Global_Menu, LOCTEXT("Global_Menu", "Global Menu"), FKeyDetails::GamepadKey));
