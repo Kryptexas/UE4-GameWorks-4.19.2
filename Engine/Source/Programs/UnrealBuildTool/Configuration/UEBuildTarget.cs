@@ -1394,7 +1394,7 @@ namespace UnrealBuildTool
 			if(Receipt != null)
 			{
 				IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
-				if(OnlyModules.Count == 0)
+				if(OnlyModules == null || OnlyModules.Count == 0)
 				{
 					string ReceiptFileName = BuildReceipt.GetDefaultPath(ProjectDirectory, TargetName, Platform, Configuration, BuildPlatform.GetActiveArchitecture());
 					Directory.CreateDirectory(Path.GetDirectoryName(ReceiptFileName));
