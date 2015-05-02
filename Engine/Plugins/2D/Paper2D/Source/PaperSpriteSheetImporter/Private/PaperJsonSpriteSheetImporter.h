@@ -15,11 +15,11 @@ struct FSpriteFrame
 {
 	FName FrameName;
 
-	FVector2D SpritePosInSheet;
-	FVector2D SpriteSizeInSheet;
+	FIntPoint SpritePosInSheet;
+	FIntPoint SpriteSizeInSheet;
 
-	FVector2D SpriteSourcePos;
-	FVector2D SpriteSourceSize;
+	FIntPoint SpriteSourcePos;
+	FIntPoint SpriteSourceSize;
 
 	FVector2D ImageSourceSize;
 

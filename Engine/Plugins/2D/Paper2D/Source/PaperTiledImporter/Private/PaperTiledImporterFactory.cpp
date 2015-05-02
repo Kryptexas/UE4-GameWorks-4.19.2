@@ -209,7 +209,6 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		Result->SeparationPerTileY = 0.0f;
 		Result->SeparationPerLayer = 1.0f;
 		Result->ProjectionMode = GlobalInfo.GetOrientationType();
-		Result->PixelsPerUnrealUnit = GetDefault<UPaperImporterSettings>()->GetDefaultPixelsPerUnrealUnit();
 		Result->BackgroundColor = GlobalInfo.BackgroundColor;
 		Result->HexSideLength = GlobalInfo.HexSideLength;
 
@@ -219,100 +218,8 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 		}
 
 		// Create the tile sets
-		for (const FTileSetFromTiled& TileSetData : GlobalInfo.TileSets)
-		{
-			if (TileSetData.IsValid())
-			{
-				const FString TargetTileSetPath = LongPackagePath;
-				const FString TargetTexturePath = LongPackagePath + TEXT("/Textures");
-
-				UPaperTileSet* TileSetAsset = CastChecked<UPaperTileSet>(CreateNewAsset(UPaperTileSet::StaticClass(), TargetTileSetPath, TileSetData.Name, Flags));
-				TileSetAsset->Modify();
-
-				TileSetAsset->TileWidth = TileSetData.TileWidth;
-				TileSetAsset->TileHeight = TileSetData.TileHeight;
-				TileSetAsset->Margin = TileSetData.Margin;
-				TileSetAsset->Spacing = TileSetData.Spacing;
-				TileSetAsset->DrawingOffset = FIntPoint(TileSetData.TileOffsetX, TileSetData.TileOffsetY);
-
-				// Import the texture
-				const FString SourceImageFilename = FPaths::Combine(*CurrentSourcePath, *TileSetData.ImagePath);
-				TileSetAsset->TileSheet = ImportTexture(SourceImageFilename, TargetTexturePath);
-
-				if (TileSetAsset->TileSheet == nullptr)
-				{
-					UE_LOG(LogPaperTiledImporter, Warning, TEXT("Failed to import tile set image '%s' referenced from tile set '%s'."), *TileSetData.ImagePath, *TileSetData.Name);
-					bLoadedSuccessfully = false;
-				}
-
-				// Make the tile set allocate space for the per-tile data
-				FPropertyChangedEvent InteractiveRebuildTileSet(nullptr, EPropertyChangeType::Interactive);
-				TileSetAsset->PostEditChangeProperty(InteractiveRebuildTileSet);
-
-				// Copy across terrain information
-				const int32 MaxTerrainTypes = 0xFE;
-				const uint8 NoTerrainMembershipIndex = 0xFF;
-				if (TileSetData.TerrainTypes.Num() > MaxTerrainTypes)
-				{
-					UE_LOG(LogPaperTiledImporter, Warning, TEXT("Tile set '%s' contains more than %d terrain types, ones above this will be ignored."), *TileSetData.Name, MaxTerrainTypes);
-				}
-				const int32 NumTerrainsToCopy = FMath::Min<int32>(TileSetData.TerrainTypes.Num(), MaxTerrainTypes);
-				for (int32 TerrainIndex = 0; TerrainIndex < NumTerrainsToCopy; ++TerrainIndex)
-				{
-					const FTiledTerrain& SourceTerrain = TileSetData.TerrainTypes[TerrainIndex];
-
-					FPaperTileSetTerrain DestTerrain;
-					DestTerrain.TerrainName = SourceTerrain.TerrainName;
-					DestTerrain.CenterTileIndex = SourceTerrain.SolidTileLocalIndex;
-
-					TileSetAsset->AddTerrainDescription(DestTerrain);
-				}
-
-				// Copy across per-tile metadata
-				const int32 NumTilesCreated = TileSetAsset->GetTileCount();
-				for (const auto& KV : TileSetData.PerTileData)
-				{
-					const int32 TileIndex = KV.Key;
-					const FTiledTileInfo& SourceTileData = KV.Value;
-
-					if (FPaperTileMetadata* TargetTileData = TileSetAsset->GetMutableTileMetadata(TileIndex))
-					{
-						// Convert collision geometry
-						FTiledObject::AddToSpriteGeometryCollection(FVector2D::ZeroVector, SourceTileData.Objects, TargetTileData->CollisionData);
-						
-						// Convert terrain memberhsip
-						for (int32 Index = 0; Index < 4; ++Index)
-						{
-							const int32 SourceTerrainIndex = SourceTileData.TerrainIndices[Index];
-
-							const uint8 DestTerrainIndex = ((SourceTerrainIndex >= 0) && (SourceTerrainIndex < NumTerrainsToCopy)) ? (uint8)SourceTerrainIndex : NoTerrainMembershipIndex;
-							TargetTileData->TerrainMembership[Index] = DestTerrainIndex;
-						}
-
-						//@TODO: Convert metadata?
-					}
-				}
-				
-				// Update anyone who might be using the tile set (in case we're reimporting)
-				FPropertyChangedEvent FinalRebuildTileSet(nullptr, EPropertyChangeType::ValueSet);
-				TileSetAsset->PostEditChangeProperty(FinalRebuildTileSet);
-
-				// Save off that we created the asset
-				GlobalInfo.CreatedTileSetAssets.Add(TileSetAsset);
-			}
-			else
-			{
-				GlobalInfo.CreatedTileSetAssets.Add(nullptr);
-			}
-		}
-
-		if (GlobalInfo.CreatedTileSetAssets.Num() > 0)
-		{
-			// Bind our selected tile set to the first tile set that was imported so something is already picked
-			Result->SelectedTileSet = GlobalInfo.CreatedTileSetAssets[0];
-		
-			//@TODO: Should analyze the material from the used tile sets and set it appropriately on the tile map
-		}
+		const bool bConvertedTileSetsSuccessfully = ConvertTileSets(GlobalInfo, CurrentSourcePath, LongPackagePath, Flags);
+		bLoadedSuccessfully = bLoadedSuccessfully && bConvertedTileSetsSuccessfully;
 
 		// Create the layers
 		for (int32 LayerIndex = GlobalInfo.Layers.Num() - 1; LayerIndex >= 0; --LayerIndex)
@@ -348,6 +255,9 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 				Result->TileLayers.Add(NewLayer);
 			}
 		}
+
+		// Finalize the tile map, including analyzing the tile set textures to determine a good material
+		FinalizeTileMap(GlobalInfo, Result);
 
 		Result->PostEditChange();
 	}
@@ -1234,6 +1144,149 @@ void FTiledObject::AddToSpriteGeometryCollection(const FVector2D& Offset, const 
 	}
 
 	InOutShapes.ConditionGeometry();
+}
+
+void UPaperTiledImporterFactory::FinalizeTileMap(FTileMapFromTiled& GlobalInfo, UPaperTileMap* TileMap)
+{
+	const UPaperImporterSettings* ImporterSettings = GetDefault<UPaperImporterSettings>();
+
+	// Bind our selected tile set to the first tile set that was imported so something is already picked
+	UPaperTileSet* DefaultTileSet = (GlobalInfo.CreatedTileSetAssets.Num() > 0) ? GlobalInfo.CreatedTileSetAssets[0] : nullptr;
+	TileMap->SelectedTileSet = DefaultTileSet;
+
+	// Initialize the scale
+	TileMap->PixelsPerUnrealUnit = ImporterSettings->GetDefaultPixelsPerUnrealUnit();
+	
+	// Analyze the tile set textures (anything with translucent wins; failing that use masked)
+	ESpriteInitMaterialType BestMaterial = ESpriteInitMaterialType::Masked;
+	if (ImporterSettings->ShouldPickBestMaterialWhenCreatingTileMaps())
+	{
+		BestMaterial = ESpriteInitMaterialType::Automatic;
+		for (UPaperTileSet* TileSet : GlobalInfo.CreatedTileSetAssets)
+		{
+			if ((TileSet != nullptr) && (TileSet->TileSheet != nullptr))
+			{
+				ESpriteInitMaterialType TileSheetMaterial = ImporterSettings->AnalyzeTextureForDesiredMaterialType(TileSet->TileSheet, FIntPoint::ZeroValue, TileSet->TileSheet->GetImportedSize());
+				
+				switch (TileSheetMaterial)
+				{
+				case ESpriteInitMaterialType::Opaque:
+				case ESpriteInitMaterialType::Masked:
+					BestMaterial = ((BestMaterial == ESpriteInitMaterialType::Automatic) || (BestMaterial == ESpriteInitMaterialType::Opaque)) ? TileSheetMaterial : BestMaterial;
+					break;
+				case ESpriteInitMaterialType::Translucent:
+					BestMaterial = TileSheetMaterial;
+					break;
+				}
+			}
+		}
+	}
+
+	if (BestMaterial == ESpriteInitMaterialType::Automatic)
+	{
+		// Fall back to masked if we wanted automatic and couldn't analyze things
+		BestMaterial = ESpriteInitMaterialType::Masked;
+	}
+
+	if (BestMaterial != ESpriteInitMaterialType::LeaveAsIs)
+	{
+		const bool bUseLitMaterial = false;
+		TileMap->Material = ImporterSettings->GetDefaultMaterial(BestMaterial, bUseLitMaterial);
+	}
+}
+
+bool UPaperTiledImporterFactory::ConvertTileSets(FTileMapFromTiled& GlobalInfo, const FString& CurrentSourcePath, const FString& LongPackagePath, EObjectFlags Flags)
+{
+	bool bLoadedSuccessfully = true;
+
+	for (const FTileSetFromTiled& TileSetData : GlobalInfo.TileSets)
+	{
+		if (TileSetData.IsValid())
+		{
+			const FString TargetTileSetPath = LongPackagePath;
+			const FString TargetTexturePath = LongPackagePath / TEXT("Textures");
+
+			UPaperTileSet* TileSetAsset = CastChecked<UPaperTileSet>(CreateNewAsset(UPaperTileSet::StaticClass(), TargetTileSetPath, TileSetData.Name, Flags));
+			TileSetAsset->Modify();
+
+			TileSetAsset->TileWidth = TileSetData.TileWidth;
+			TileSetAsset->TileHeight = TileSetData.TileHeight;
+			TileSetAsset->Margin = TileSetData.Margin;
+			TileSetAsset->Spacing = TileSetData.Spacing;
+			TileSetAsset->DrawingOffset = FIntPoint(TileSetData.TileOffsetX, TileSetData.TileOffsetY);
+
+			// Import the texture
+			const FString SourceImageFilename = FPaths::Combine(*CurrentSourcePath, *TileSetData.ImagePath);
+			TileSetAsset->TileSheet = ImportTexture(SourceImageFilename, TargetTexturePath);
+
+			if (TileSetAsset->TileSheet == nullptr)
+			{
+				UE_LOG(LogPaperTiledImporter, Warning, TEXT("Failed to import tile set image '%s' referenced from tile set '%s'."), *TileSetData.ImagePath, *TileSetData.Name);
+				bLoadedSuccessfully = false;
+			}
+
+			// Make the tile set allocate space for the per-tile data
+			FPropertyChangedEvent InteractiveRebuildTileSet(nullptr, EPropertyChangeType::Interactive);
+			TileSetAsset->PostEditChangeProperty(InteractiveRebuildTileSet);
+
+			// Copy across terrain information
+			const int32 MaxTerrainTypes = 0xFE;
+			const uint8 NoTerrainMembershipIndex = 0xFF;
+			if (TileSetData.TerrainTypes.Num() > MaxTerrainTypes)
+			{
+				UE_LOG(LogPaperTiledImporter, Warning, TEXT("Tile set '%s' contains more than %d terrain types, ones above this will be ignored."), *TileSetData.Name, MaxTerrainTypes);
+			}
+			const int32 NumTerrainsToCopy = FMath::Min<int32>(TileSetData.TerrainTypes.Num(), MaxTerrainTypes);
+			for (int32 TerrainIndex = 0; TerrainIndex < NumTerrainsToCopy; ++TerrainIndex)
+			{
+				const FTiledTerrain& SourceTerrain = TileSetData.TerrainTypes[TerrainIndex];
+
+				FPaperTileSetTerrain DestTerrain;
+				DestTerrain.TerrainName = SourceTerrain.TerrainName;
+				DestTerrain.CenterTileIndex = SourceTerrain.SolidTileLocalIndex;
+
+				TileSetAsset->AddTerrainDescription(DestTerrain);
+			}
+
+			// Copy across per-tile metadata
+			const int32 NumTilesCreated = TileSetAsset->GetTileCount();
+			for (const auto& KV : TileSetData.PerTileData)
+			{
+				const int32 TileIndex = KV.Key;
+				const FTiledTileInfo& SourceTileData = KV.Value;
+
+				if (FPaperTileMetadata* TargetTileData = TileSetAsset->GetMutableTileMetadata(TileIndex))
+				{
+					// Convert collision geometry
+					FTiledObject::AddToSpriteGeometryCollection(FVector2D::ZeroVector, SourceTileData.Objects, TargetTileData->CollisionData);
+
+					// Convert terrain memberhsip
+					for (int32 Index = 0; Index < 4; ++Index)
+					{
+						const int32 SourceTerrainIndex = SourceTileData.TerrainIndices[Index];
+
+						const uint8 DestTerrainIndex = ((SourceTerrainIndex >= 0) && (SourceTerrainIndex < NumTerrainsToCopy)) ? (uint8)SourceTerrainIndex : NoTerrainMembershipIndex;
+						TargetTileData->TerrainMembership[Index] = DestTerrainIndex;
+					}
+
+					//@TODO: Convert metadata?
+				}
+			}
+
+			// Update anyone who might be using the tile set (in case we're reimporting)
+			FPropertyChangedEvent FinalRebuildTileSet(nullptr, EPropertyChangeType::ValueSet);
+			TileSetAsset->PostEditChangeProperty(FinalRebuildTileSet);
+
+			// Save off that we created the asset
+			GlobalInfo.CreatedTileSetAssets.Add(TileSetAsset);
+		}
+		else
+		{
+			GlobalInfo.CreatedTileSetAssets.Add(nullptr);
+		}
+	}
+
+	return bLoadedSuccessfully;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -444,8 +444,8 @@ void SPaperExtractSpritesDialog::CreateExtractedSprites()
 
 		SpriteFactory->bUseSourceRegion = true;
 		const FIntRect& ExtractedRect = ExtractedSprite.Rect;
-		SpriteFactory->InitialSourceUV = FVector2D(ExtractedRect.Min.X, ExtractedRect.Min.Y);
-		SpriteFactory->InitialSourceDimension = FVector2D(ExtractedRect.Width(), ExtractedRect.Height());
+		SpriteFactory->InitialSourceUV = ExtractedRect.Min;
+		SpriteFactory->InitialSourceDimension = FIntPoint(ExtractedRect.Width(), ExtractedRect.Height());
 
 		// Get a unique name for the sprite
 		// Extracted sprite name is a name, we insert a _ as we're appending this to the texture name

@@ -2,7 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperTileMapFactory.h"
-#include "TileMapEditing/TileMapEditorSettings.h"
+#include "PaperImporterSettings.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -21,15 +21,7 @@ UObject* UPaperTileMapFactory::FactoryCreateNew(UClass* Class, UObject* InParent
 {
 	UPaperTileMap* NewTileMap = NewObject<UPaperTileMap>(InParent, Class, Name, Flags | RF_Transactional);
 
-	if (InitialTileSet != nullptr)
-	{
-		NewTileMap->TileWidth = InitialTileSet->TileWidth;
-		NewTileMap->TileHeight = InitialTileSet->TileHeight;
-		NewTileMap->SelectedTileSet = InitialTileSet;
-	}
-
-	NewTileMap->BackgroundColor = GetDefault<UTileMapEditorSettings>()->DefaultBackgroundColor;
-	NewTileMap->InitializeNewEmptyTileMap();
+	GetDefault<UPaperImporterSettings>()->ApplySettingsForTileMapInit(NewTileMap, InitialTileSet);
 
 	return NewTileMap;
 }

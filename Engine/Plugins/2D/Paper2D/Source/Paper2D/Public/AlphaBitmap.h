@@ -7,7 +7,7 @@
 
 struct PAPER2D_API FAlphaBitmap
 {
-	FAlphaBitmap(UTexture2D* SourceTexture, uint8 InDefaultValue = 0)
+	FAlphaBitmap(UTexture* SourceTexture, uint8 InDefaultValue = 0)
 		: Width(0)
 		, Height(0)
 		, DefaultValue(InDefaultValue)
@@ -15,7 +15,7 @@ struct PAPER2D_API FAlphaBitmap
 		ExtractFromTexture(SourceTexture);
 	}
 
-	void ExtractFromTexture(UTexture2D* SourceTexture)
+	void ExtractFromTexture(UTexture* SourceTexture)
 	{
 		// use the source art if it exists
 		FTextureSource* TextureSource = nullptr;
@@ -135,7 +135,7 @@ struct PAPER2D_API FAlphaBitmap
 	}
 
 	// Is the rectangle empty (X0..X1, Y0..Y1 inclusive)
-	bool IsRegionEqual(int32 X0, int32 Y0, int32 X1, int32 Y1, int32 Target)
+	bool IsRegionEqual(int32 X0, int32 Y0, int32 X1, int32 Y1, int32 Target) const
 	{
 		bool bEqual = true;
 		for (int32 Y = Y0; (Y < Y1) && bEqual; ++Y)
@@ -150,7 +150,7 @@ struct PAPER2D_API FAlphaBitmap
 		return IsColumnEqual(X, Y0, Y1, 0);
 	}
 
-	bool IsRowEmpty(int X0, int X1, int Y)
+	bool IsRowEmpty(int X0, int X1, int Y) const
 	{
 		return IsRowEqual(X0, X1, Y, 0);
 	}
@@ -162,7 +162,7 @@ struct PAPER2D_API FAlphaBitmap
 	}
 
 	// Returns the tight bounding box around pixels that are not 0
-	void GetTightBounds(FIntPoint& OutOrigin, FIntPoint& OutDimension)
+	void GetTightBounds(FIntPoint& OutOrigin, FIntPoint& OutDimension) const
 	{
 		OutOrigin.X = 0;
 		OutOrigin.Y = 0;
@@ -172,7 +172,7 @@ struct PAPER2D_API FAlphaBitmap
 	}
 
 	// Returns the tight bounding box around pixels that are not 0
-	void TightenBounds(FIntPoint& InOutOrigin, FIntPoint& InOutDimension)
+	void TightenBounds(FIntPoint& InOutOrigin, FIntPoint& InOutDimension) const
 	{
 		int Top = InOutOrigin.Y;
 		int Bottom = InOutOrigin.Y + InOutDimension.Y - 1;
@@ -237,7 +237,7 @@ struct PAPER2D_API FAlphaBitmap
 	}
 
 	// Wind through the bitmap from StartX, StartY to find the closest hit point
-	bool FoundClosestValidPoint(int StartX, int StartY, const int MaxAllowedSearchDistance, FIntPoint& OutHitPoint)
+	bool FoundClosestValidPoint(int StartX, int StartY, const int MaxAllowedSearchDistance, FIntPoint& OutHitPoint) const
 	{
 		// Constrain the point within the image bounds
 		StartX = FMath::Clamp(StartX, 0, Width - 1);
@@ -323,7 +323,7 @@ struct PAPER2D_API FAlphaBitmap
 	}
 
 	// Checks the image to determine if it is suitable for opaque, masked or translucent rendering
-	void AnalyzeImage(int32 StartX, int32 StartY, int32 InWidth, int32 InHeight, bool& bOutHasZeros, bool& bOutHasIntermediateValues)
+	void AnalyzeImage(int32 StartX, int32 StartY, int32 InWidth, int32 InHeight, bool& bOutHasZeros, bool& bOutHasIntermediateValues) const
 	{
 		bOutHasZeros = false;
 		bOutHasIntermediateValues = false;

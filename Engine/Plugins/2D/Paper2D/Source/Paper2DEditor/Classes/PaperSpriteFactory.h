@@ -18,8 +18,8 @@ class UPaperSpriteFactory : public UFactory
 
 	// Set bUseSourceRegion to get it to use/set initial sourceUV and dimensions
 	bool bUseSourceRegion;
-	FVector2D InitialSourceUV;
-	FVector2D InitialSourceDimension;
+	FIntPoint InitialSourceUV;
+	FIntPoint InitialSourceDimension;
 
 	// UFactory interface
 	virtual bool ConfigureProperties() override;

@@ -82,22 +82,22 @@ bool FPaperJSONHelpers::ReadIntegerNoDefault(const TSharedPtr<class FJsonObject>
 	}
 }
 
-bool FPaperJSONHelpers::ReadRectangle(const TSharedPtr<class FJsonObject> Item, const FString& Key, FVector2D& Out_XY, FVector2D& Out_WH)
+bool FPaperJSONHelpers::ReadRectangle(const TSharedPtr<class FJsonObject> Item, const FString& Key, FIntPoint& Out_XY, FIntPoint& Out_WH)
 {
 	const TSharedPtr<FJsonObject> Struct = ReadObject(Item, Key);
 	if (Struct.IsValid())
 	{
-		if (ReadFloatNoDefault(Struct, TEXT("x"), /*out*/ Out_XY.X) &&
-			ReadFloatNoDefault(Struct, TEXT("y"), /*out*/ Out_XY.Y) &&
-			ReadFloatNoDefault(Struct, TEXT("w"), /*out*/ Out_WH.X) &&
-			ReadFloatNoDefault(Struct, TEXT("h"), /*out*/ Out_WH.Y))
+		if (ReadIntegerNoDefault(Struct, TEXT("x"), /*out*/ Out_XY.X) &&
+			ReadIntegerNoDefault(Struct, TEXT("y"), /*out*/ Out_XY.Y) &&
+			ReadIntegerNoDefault(Struct, TEXT("w"), /*out*/ Out_WH.X) &&
+			ReadIntegerNoDefault(Struct, TEXT("h"), /*out*/ Out_WH.Y))
 		{
 			return true;
 		}
 		else
 		{
-			Out_XY = FVector2D::ZeroVector;
-			Out_WH = FVector2D::ZeroVector;
+			Out_XY = FIntPoint::ZeroValue;
+			Out_WH = FIntPoint::ZeroValue;
 			return false;
 		}
 	}

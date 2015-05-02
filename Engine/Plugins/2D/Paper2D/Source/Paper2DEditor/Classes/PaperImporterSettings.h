@@ -4,6 +4,9 @@
 
 #include "PaperImporterSettings.generated.h"
 
+class UPaperTileSet;
+class UPaperTileMap;
+
 enum class ESpriteInitMaterialLightingMode : uint8
 {
 	// Use the default in the importer settings
@@ -44,15 +47,19 @@ class PAPER2DEDITOR_API UPaperImporterSettings : public UObject
 
 protected:
 	// Should the source texture be scanned when creating new sprites to determine the appropriate material? (if false, the Default Masked Material is always used)
-	UPROPERTY(config, EditAnywhere, Category=Settings)
-	bool bPickBestMaterialWhenCreatingSprite;
+	UPROPERTY(config, EditAnywhere, Category=NewAssetSettings)
+	bool bPickBestMaterialWhenCreatingSprites;
+
+	// Should the source texture be scanned when creating new tile maps (from a tile set or via importing) to determine the appropriate material? (if false, the Default Masked Material is always used)
+	UPROPERTY(config, EditAnywhere, Category=NewAssetSettings)
+	bool bPickBestMaterialWhenCreatingTileMaps;
 
 	// Can opaque materials be applied as part of the 'best material' analysis?
-	UPROPERTY(config, EditAnywhere, Category=Settings, meta=(EditCondition=bPickBestMaterialWhenCreatingSprite))
+	UPROPERTY(config, EditAnywhere, Category=NewAssetSettings)
 	bool bAnalysisCanUseOpaque;
 
 	// The default scaling factor between pixels and Unreal units (cm) to use for newly created sprite assets (e.g., 0.64 would make a 64 pixel wide sprite take up 100 cm)
-	UPROPERTY(config, EditAnywhere, Category=Settings)
+	UPROPERTY(config, EditAnywhere, Category=NewAssetSettings)
 	float DefaultPixelsPerUnrealUnit;
 
 	// A list of default suffixes to use when looking for associated normal maps while importing sprites or creating sprites from textures
@@ -103,6 +110,9 @@ protected:
 public:
 	UPaperImporterSettings();
 
+	// Should the source texture be scanned when creating new tile maps (from a tile set or via importing) to determine the appropriate material? (if false, the Default Masked Material is always used)
+	bool ShouldPickBestMaterialWhenCreatingTileMaps() const { return bPickBestMaterialWhenCreatingTileMaps; }
+
 	// Removes the suffix from the specified name if it matches something in BaseMapTextureSuffixes
 	FString RemoveSuffixFromBaseMapName(const FString& InName) const;
 
@@ -112,9 +122,17 @@ public:
 	// Applies the compression settings to the specified texture
 	void ApplyTextureSettings(UTexture2D* Texture) const;
 
-	// Applies the material settings to the 
+	// Fills out the sprite init parameters with the default settings given the desired material type and lighting mode (which can both be automatic)
 	// Note: This should be called after the texture has been set, as that will be analyzed if the lighting/material type flags are set to automatic
 	void ApplySettingsForSpriteInit(FSpriteAssetInitParameters& InitParams, ESpriteInitMaterialLightingMode LightingMode = ESpriteInitMaterialLightingMode::Automatic, ESpriteInitMaterialType MaterialTypeMode = ESpriteInitMaterialType::Automatic) const;
+
+	// Fills out the tile map with the default settings given the desired material type and lighting mode (which can both be automatic)
+	void ApplySettingsForTileMapInit(UPaperTileMap* TileMap, UPaperTileSet* DefaultTileSet = nullptr, ESpriteInitMaterialLightingMode LightingMode = ESpriteInitMaterialLightingMode::Automatic, ESpriteInitMaterialType MaterialTypeMode = ESpriteInitMaterialType::Automatic, bool bCreateEmptyLayer = true) const;
+
+	// Analyzes the specified texture in the Offset..Offset+Dimensions region and returns the best kind of material
+	// to represent the alpha content in the texture (typically masked or translucent, but can return opaque if bAnalysisCanUseOpaque is true
+	// Note: Will return Automatic if the texture is null.
+	ESpriteInitMaterialType AnalyzeTextureForDesiredMaterialType(UTexture* Texture, const FIntPoint& Offset, const FIntPoint& Dimensions) const;
 
 	// Returns the default translucent material
 	UMaterialInterface* GetDefaultTranslucentMaterial(bool bLit) const;
@@ -124,6 +142,10 @@ public:
 
 	// Returns the default masked material
 	UMaterialInterface* GetDefaultMaskedMaterial(bool bLit) const;
+
+	// Returns the default material for the specified material type.
+	// Input should be Masked, Opaque, or Translucent.  Automatic and LeaveAsIs will be treated like masked!
+	UMaterialInterface* GetDefaultMaterial(ESpriteInitMaterialType MaterialType, bool bUseLitMaterial) const;
 
 	// Returns the default pixels/uu setting
 	float GetDefaultPixelsPerUnrealUnit() const { return DefaultPixelsPerUnrealUnit; }

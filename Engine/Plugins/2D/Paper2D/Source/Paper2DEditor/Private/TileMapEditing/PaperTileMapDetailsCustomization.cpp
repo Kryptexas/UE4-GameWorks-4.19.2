@@ -8,6 +8,7 @@
 #include "PropertyEditing.h"
 #include "AssetToolsModule.h"
 #include "PaperTileMapPromotionFactory.h"
+#include "PaperImporterSettings.h"
 
 #include "STileLayerList.h"
 #include "ScopedTransaction.h"
@@ -262,9 +263,14 @@ FReply FPaperTileMapDetailsCustomization::OnNewButtonClicked()
 {
 	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
 	{
+		UPaperTileSet* OldTileSet = (TileMapComponent->TileMap != nullptr) ? TileMapComponent->TileMap->SelectedTileSet.Get() : nullptr;
+
 		const FScopedTransaction Transaction(LOCTEXT("CreateNewTileMap", "New Tile Map"));
 		TileMapComponent->Modify();
 		TileMapComponent->CreateNewOwnedTileMap();
+
+		// Add a layer and set things up
+		GetDefault<UPaperImporterSettings>()->ApplySettingsForTileMapInit(TileMapComponent->TileMap, OldTileSet);
 
 		MyDetailLayout->ForceRefreshDetails();
 	}

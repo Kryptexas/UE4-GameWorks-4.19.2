@@ -83,6 +83,10 @@ protected:
 
 	static UObject* CreateNewAsset(UClass* AssetClass, const FString& TargetPath, const FString& DesiredName, EObjectFlags Flags);
 	static UTexture2D* ImportTexture(const FString& SourceFilename, const FString& TargetSubPath);
+
+	void FinalizeTileMap(FTileMapFromTiled& GlobalInfo, UPaperTileMap* TileMap);
+
+	bool ConvertTileSets(FTileMapFromTiled& GlobalInfo, const FString& CurrentSourcePath, const FString& LongPackagePath, EObjectFlags Flags);
 };
 
 //////////////////////////////////////////////////////////////////////////

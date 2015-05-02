@@ -256,8 +256,8 @@ struct FSpriteAssetInitParameters
 
 	FSpriteAssetInitParameters()
 		: Texture(nullptr)
-		, Offset(FVector2D::ZeroVector)
-		, Dimension(FVector2D::ZeroVector)
+		, Offset(ForceInitToZero)
+		, Dimension(ForceInitToZero)
 		, bOverridePixelsPerUnrealUnit(false)
 		, PixelsPerUnrealUnit(1.0f)
 		, DefaultMaterialOverride(nullptr)
@@ -271,13 +271,13 @@ struct FSpriteAssetInitParameters
 		Texture = InTexture;
 		if (Texture != nullptr)
 		{
-			Dimension = FVector2D(Texture->GetImportedSize());
-			Offset = FVector2D::ZeroVector;
+			Dimension = Texture->GetImportedSize();
+			Offset = FIntPoint::ZeroValue;
 		}
 		else
 		{
-			Dimension = FVector2D::ZeroVector;
-			Offset = FVector2D::ZeroVector;
+			Dimension = FIntPoint::ZeroValue;
+			Offset = FIntPoint::ZeroValue;
 		}
 	}
 
@@ -294,10 +294,10 @@ public:
 	TArray<UTexture*> AdditionalTextures;
 
 	// The offset within the texture (in pixels)
-	FVector2D Offset;
+	FIntPoint Offset;
 
 	// The dimension of the subregion within the texture (in pixels)
-	FVector2D Dimension;
+	FIntPoint Dimension;
 
 	// Should we apply the PixelsPerUnrealUnit, or leave the value as it was
 	bool bOverridePixelsPerUnrealUnit;
