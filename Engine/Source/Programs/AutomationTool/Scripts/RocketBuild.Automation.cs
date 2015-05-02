@@ -817,11 +817,6 @@ namespace Rocket
 			return StaticGetFullName(HostPlatform);
 		}
 
-		public override float Priority()
-		{
-			return -10000.0f; // Do this and PublishRocketSymbolsNode at the end
-		}
-
 		public override void DoBuild(GUBP bp)
 		{
 			// Create a zip file containing the install
@@ -895,11 +890,6 @@ namespace Rocket
 		public override string GetFullName()
 		{
 			return StaticGetFullName(HostPlatform);
-		}
-
-		public override float Priority()
-		{
-			return -100000.0f; // Do this last; it's not mission critical
 		}
 
 		public override void DoBuild(GUBP bp)
