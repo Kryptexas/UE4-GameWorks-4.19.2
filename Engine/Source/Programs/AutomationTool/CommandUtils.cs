@@ -2138,6 +2138,10 @@ namespace AutomationTool
 					{
 						Entry.Extract(OutputStream);
 					}
+					if (UnrealBuildTool.Utils.IsRunningOnMono && CommandUtils.IsProbablyAMacOrIOSExe(OutputFileName))
+					{
+						FixUnixFilePermissions(OutputFileName);
+					}
 					OutputFileNames.Add(OutputFileName);
 				}
 				return OutputFileNames;
