@@ -34,6 +34,18 @@ public:
 	{
 		FMemory::Memzero(ControllerStates, sizeof(ControllerStates));
 
+		for (int32 i=0; i < vr::k_unMaxTrackedDeviceCount; ++i)
+		{
+			DeviceToControllerMap[i] = -1;
+		}
+
+		for (int32 i=0; i < MAX_STEAMVR_CONTROLLERS; ++i)
+		{
+			ControllerToDeviceMap[i] = -1;
+		}
+
+		NumControllersMapped = 0;
+
 		InitialButtonRepeatDelay = 0.2f;
 		ButtonRepeatDelay = 0.1f;
 
@@ -62,15 +74,32 @@ public:
 	{
 		vr::VRControllerState_t ControllerState;
 
-		TSharedPtr<vr::IVRSystem> VRSystem = GetVRSystem();
+		vr::IVRSystem* VRSystem = GetVRSystem();
 
-		if (VRSystem.IsValid())
+		if (VRSystem != nullptr)
 		{
 			const double CurrentTime = FPlatformTime::Seconds();
 
-			for (uint32 ControllerIndex=0; ControllerIndex < MAX_STEAMVR_CONTROLLERS; ++ControllerIndex)
+			for (uint32 DeviceIndex=0; DeviceIndex < vr::k_unMaxTrackedDeviceCount; ++DeviceIndex)
 			{
-				if (VRSystem->GetControllerState(ControllerIndex, &ControllerState))
+				// skip non-controllers
+				if (VRSystem->GetTrackedDeviceClass(DeviceIndex) != vr::TrackedDeviceClass_Controller)
+				{
+					continue;
+				}
+
+				// update the mappings if this is a new device
+				if (DeviceToControllerMap[DeviceIndex] == -1)
+				{
+					DeviceToControllerMap[DeviceIndex] = NumControllersMapped;
+					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
+					++NumControllersMapped;
+				}
+
+				// get the controller index for this device
+				int32 ControllerIndex = DeviceToControllerMap[DeviceIndex];
+
+				if (VRSystem->GetControllerState(DeviceIndex, &ControllerState))
 				{
 					if (ControllerState.unPacketNum != ControllerStates[ControllerIndex].PacketNum )
 					{
@@ -179,10 +208,17 @@ public:
 
 	void UpdateVibration(int32 ControllerId)
 	{
-		const FControllerState& ControllerState = ControllerStates[ControllerId];
-		TSharedPtr<vr::IVRSystem> VRSystem = GetVRSystem();
+		// make sure there is a valid device for the controllerid
+		int32 DeviceIndex = ControllerToDeviceMap[ControllerId];
+		if (DeviceIndex < 0)
+		{
+			return;
+		}
 
-		if (!VRSystem.IsValid())
+		const FControllerState& ControllerState = ControllerStates[ControllerId];
+		vr::IVRSystem* VRSystem = GetVRSystem();
+
+		if (VRSystem == nullptr)
 		{
 			return;
 		}
@@ -191,7 +227,7 @@ public:
  		const float LeftIntensity = FMath::Clamp(ControllerState.VibeValues.LeftLarge * 2000.f, 0.f, 2000.f);
 		if (LeftIntensity > 0.f)
 		{
-			VRSystem->TriggerHapticPulse(ControllerId, TOUCHPAD_AXIS, LeftIntensity);
+			VRSystem->TriggerHapticPulse(DeviceIndex, TOUCHPAD_AXIS, LeftIntensity);
 		}
 	}
 
@@ -207,7 +243,7 @@ public:
 
 private:
 
-	inline TSharedPtr<vr::IVRSystem> GetVRSystem()
+	inline vr::IVRSystem* GetVRSystem()
 	{
 		if (SteamVRPlugin == nullptr)
 		{
@@ -218,13 +254,7 @@ private:
 			}
 		}
 
-		// not valid, attempt to grab it from the SteamVRHMD module
-		if (!HMDVRSystem.IsValid())
-		{
-			HMDVRSystem = SteamVRPlugin->GetVRSystem();
-		}
-
-		return HMDVRSystem.Pin();
+		return SteamVRPlugin->GetVRSystem();
 	}
 
 	struct FControllerState
@@ -249,7 +279,12 @@ private:
 
 		/** Values for force feedback on this controller.  We only consider the LEFT_LARGE channel for SteamControllers */
 		FForceFeedbackValues VibeValues;
-	}; 
+	};
+
+	/** Mappings between tracked devices and 0 indexed controllers */
+	int32 NumControllersMapped;
+	int32 ControllerToDeviceMap[MAX_STEAMVR_CONTROLLERS];
+	int32 DeviceToControllerMap[vr::k_unMaxTrackedDeviceCount];
 
 	/** Controller states */
 	FControllerState ControllerStates[MAX_STEAMVR_CONTROLLERS];

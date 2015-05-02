@@ -878,16 +878,16 @@ public class CVRCompositor : IVRCompositor
 
 public class OpenVRInterop
 {
-	[DllImportAttribute("openvr_api", EntryPoint = "OpenVR_Init")]
-	internal static extern IntPtr Init(string pchVRRuntimePath, ref HmdError peError);
-	[DllImportAttribute("openvr_api", EntryPoint = "OpenVR_Shutdown")]
+	[DllImportAttribute("openvr_api", EntryPoint = "VR_Init")]
+	internal static extern IntPtr Init(ref HmdError peError);
+	[DllImportAttribute("openvr_api", EntryPoint = "VR_Shutdown")]
 	internal static extern void Shutdown();
-	[DllImportAttribute("openvr_api", EntryPoint = "OpenVR_GetGenericInterface")]
-	internal static extern IntPtr GetGenericInterface(string pchInterfaceVersion, ref HmdError peError);
-	[DllImportAttribute("openvr_api", EntryPoint = "OpenVR_IsHmdPresent")]
-	internal static extern bool IsHmdPresent(string pchPathToRuntime);
-	[DllImportAttribute("openvr_api", EntryPoint = "OpenVR_GetStringForHmdError")]
-	internal static extern string GetStringForHmdError(HmdError error);
+	[DllImportAttribute("openvr_api", EntryPoint = "VR_GetGenericInterface")]
+	internal static extern IntPtr GetGenericInterface([In, MarshalAs(UnmanagedType.LPStr)] string pchInterfaceVersion, ref HmdError peError);
+	[DllImportAttribute("openvr_api", EntryPoint = "VR_IsHmdPresent")]
+	internal static extern bool IsHmdPresent();
+	[DllImportAttribute("openvr_api", EntryPoint = "VR_GetStringForHmdError")]
+	internal static extern IntPtr GetStringForHmdError(HmdError error);
 }
 
 
@@ -1273,9 +1273,9 @@ public enum Compositor_DeviceType
 
 public class OpenVR
 {
-	public static IntPtr Init(string pchVRRuntimePath, ref HmdError peError)
+	public static IntPtr Init(ref HmdError peError)
 	{
-		return OpenVRInterop.Init(pchVRRuntimePath, ref peError);
+		return OpenVRInterop.Init(ref peError);
 	}
 
 	public static void Shutdown()
@@ -1288,14 +1288,14 @@ public class OpenVR
 		return OpenVRInterop.GetGenericInterface(pchInterfaceVersion, ref peError);
 	}
 
-	public static bool IsHmdPresent(string pchPathToRuntime)
+	public static bool IsHmdPresent()
 	{
-		return OpenVRInterop.IsHmdPresent(pchPathToRuntime);
+		return OpenVRInterop.IsHmdPresent();
 	}
 
 	public static string GetStringForHmdError(HmdError error)
 	{
-		return OpenVRInterop.GetStringForHmdError(error);
+		return Marshal.PtrToStringAnsi(OpenVRInterop.GetStringForHmdError(error));
 	}
 
 	public const uint k_unTrackingStringSize = 32;

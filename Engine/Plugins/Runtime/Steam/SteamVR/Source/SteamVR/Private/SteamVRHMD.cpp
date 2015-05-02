@@ -24,18 +24,18 @@ class FSteamVRPlugin : public ISteamVRPlugin
 	}
 
 public:
-	virtual TSharedPtr<vr::IVRSystem> GetVRSystem() const override
+	virtual vr::IVRSystem* GetVRSystem() const override
 	{
 		return VRSystem;
 	}
 
-	virtual void SetVRSystem(TSharedPtr<vr::IVRSystem> InVRSystem) override
+	virtual void SetVRSystem(vr::IVRSystem* InVRSystem) override
 	{
 		VRSystem = InVRSystem;
 	}
 
 private:
-	TSharedPtr<vr::IVRSystem> VRSystem;
+	vr::IVRSystem* VRSystem;
 };
 
 IMPLEMENT_MODULE( FSteamVRPlugin, SteamVR )
@@ -138,7 +138,7 @@ float FSteamVRHMD::GetInterpupillaryDistance() const
 
 void FSteamVRHMD::GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceId, bool bForceRefresh /* = false*/)
 {
-	if (!VRSystem.IsValid())
+	if (VRSystem == nullptr)
 	{
 		return;
 	}
@@ -748,7 +748,7 @@ FSteamVRHMD::FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin) :
 	bHmdPosTracking(true),
 	bHaveVisionTracking(false),
 	IPD(0.064f),
-	WindowMirrorMode(0),
+	WindowMirrorMode(1),
 	CurHmdOrientation(FQuat::Identity),
 	LastHmdOrientation(FQuat::Identity),
 	BaseOrientation(FQuat::Identity),
@@ -771,7 +771,7 @@ FSteamVRHMD::~FSteamVRHMD()
 
 bool FSteamVRHMD::IsInitialized() const
 {
-	return (VRSystem.IsValid());
+	return (VRSystem != nullptr);
 }
 
 void FSteamVRHMD::Startup()
@@ -787,16 +787,15 @@ void FSteamVRHMD::Startup()
 	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
 	
 	vr::HmdError HmdErr = vr::HmdError_None;
-	vr::IVRSystem* VRSystemPtr = openvr::VR_Init(&HmdErr);
+	VRSystem = vr::VR_Init(&HmdErr);
 
 	// make sure that the version of the HMD we're compiled against is correct
-	VRSystemPtr = (vr::IVRSystem*)openvr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
-	VRSystem = MakeShareable(VRSystemPtr);
+	VRSystem = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
 
 	// attach to the compositor
-	if ((VRSystem.IsValid()) && (HmdErr == vr::HmdError_None))
+	if ((VRSystem != nullptr) && (HmdErr == vr::HmdError_None))
 	{
-		VRCompositor = (vr::IVRCompositor*)openvr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
+		VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
 
 		if ((VRCompositor != nullptr) && (HmdErr == vr::HmdError_None))
 		{
@@ -814,7 +813,7 @@ void FSteamVRHMD::Startup()
 		}
 	}
 
-	if ((VRSystem.IsValid()) && (HmdErr == vr::HmdError_None))
+	if ((VRSystem != nullptr) && (HmdErr == vr::HmdError_None))
 	{
 		// grab info about the attached display
 		char Buf[128];
@@ -868,7 +867,7 @@ void FSteamVRHMD::Startup()
 
 		// Grab the chaperone
 		vr::HmdError ChaperoneErr = vr::HmdError_None;
-		VRChaperone = (vr::IVRChaperone*)openvr::VR_GetGenericInterface(vr::IVRChaperone_Version, &ChaperoneErr);
+		VRChaperone = (vr::IVRChaperone*)vr::VR_GetGenericInterface(vr::IVRChaperone_Version, &ChaperoneErr);
 		if ((VRChaperone != nullptr) && (ChaperoneErr == vr::HmdError_None))
 		{
 			ChaperoneBounds = FChaperoneBounds(VRChaperone);
@@ -893,10 +892,7 @@ void FSteamVRHMD::Startup()
 	{
 		UE_LOG(LogHMD, Warning, TEXT("SteamVR failed to initialize.  Error: %d"), (int32)HmdErr);
 
-		if (VRSystem.IsValid())
-		{
-			VRSystem = nullptr;
-		}
+		VRSystem = nullptr;
 	}
 
 	// share the IVRSystem interface out to the SteamVRController via the module layer
@@ -927,8 +923,8 @@ void FSteamVRHMD::Shutdown()
 
 	// shut down our headset
 	VRSystem = nullptr;
-	SteamVRPlugin->SetVRSystem(VRSystem);
-	openvr::VR_Shutdown();
+	SteamVRPlugin->SetVRSystem(nullptr);
+	vr::VR_Shutdown();
 
 	// unload OpenVR library
 	UnloadOpenVRModule();

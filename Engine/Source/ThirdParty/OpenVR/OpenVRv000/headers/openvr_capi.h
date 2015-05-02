@@ -36,7 +36,7 @@
 
 
 #include <stdint.h>
-#include "steamvr.h"
+#include "openvr.h"
 #include "ivrsystem.h"
 #include "ivrcameraaccess.h"
 #include "ivrchaperone.h"
