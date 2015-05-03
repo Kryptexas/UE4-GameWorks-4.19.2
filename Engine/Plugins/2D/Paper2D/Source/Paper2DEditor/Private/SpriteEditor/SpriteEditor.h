@@ -5,6 +5,9 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "Toolkits/AssetEditorManager.h"
 
+class SSpriteEditorViewport;
+class SSpriteList;
+
 //////////////////////////////////////////////////////////////////////////
 // 
 
@@ -57,7 +60,8 @@ public:
 
 protected:
 	UPaperSprite* SpriteBeingEdited;
-	TSharedPtr<class SSpriteEditorViewport> ViewportPtr;
+	TSharedPtr<SSpriteEditorViewport> ViewportPtr;
+	TSharedPtr<SSpriteList> SpriteListPtr;
 
 protected:
 	void BindCommands();

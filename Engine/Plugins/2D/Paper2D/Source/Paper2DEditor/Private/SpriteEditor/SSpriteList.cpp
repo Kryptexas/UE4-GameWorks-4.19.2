@@ -31,6 +31,7 @@ void SSpriteList::RebuildWidget(UTexture2D* NewTextureFilter)
 
 	Config.ThumbnailScale = 0.0f;
 	Config.InitialAssetViewType = EAssetViewType::Tile;
+	Config.SyncToAssetsDelegates.Add(&SyncToAssetsDelegate);
 
 	if (NewTextureFilter != nullptr)
 	{
@@ -93,4 +94,17 @@ void SSpriteList::OnSpriteDoubleClicked(const FAssetData& AssetData)
 bool SSpriteList::CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const
 {
 	return !AssetRegistryTagsToIgnore.Contains(TagName);
+}
+
+void SSpriteList::SelectAsset(UObject* Asset)
+{
+	FAssetData AssetData(Asset);
+
+	if (AssetData.IsValid())
+	{
+		TArray<FAssetData> AssetsToSelect;
+		AssetsToSelect.Add(AssetData);
+
+		SyncToAssetsDelegate.Execute(AssetsToSelect);
+	}
 }

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "ContentBrowserDelegates.h"
+
 //////////////////////////////////////////////////////////////////////////
 // SSpriteList
 
@@ -16,6 +18,8 @@ public:
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
+
+	void SelectAsset(UObject* Asset);
 
 protected:
 	void RebuildWidget(UTexture2D* NewTextureFilter);
@@ -33,4 +37,7 @@ protected:
 
 	// Set of tags to prevent creating details view columns for (infrequently used)
 	TSet<FName> AssetRegistryTagsToIgnore;
+
+	// Delegate to sync the asset picker to selected assets
+	FSyncToAssetsDelegate SyncToAssetsDelegate;
 };
