@@ -27,7 +27,8 @@ public class Paper2DEditor : ModuleRules
 				"WorkspaceMenuStructure",
 				"EditorStyle",
 				"MeshPaint",
-				"EditorWidgets"
+				"EditorWidgets",
+				"Projects"
 			}
 			);
 
