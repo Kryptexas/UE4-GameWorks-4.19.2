@@ -293,13 +293,11 @@ TSharedRef<SDockTab> FSpriteEditor::SpawnTab_Details(const FSpawnTabArgs& Args)
 
 TSharedRef<SDockTab> FSpriteEditor::SpawnTab_SpriteList(const FSpawnTabArgs& Args)
 {
-	TSharedPtr<FSpriteEditor> SpriteEditorPtr = SharedThis(this);
-
 	// Spawn the tab
 	return SNew(SDockTab)
 		.Label(LOCTEXT("SpriteListTab_Title", "Sprite List"))
 		[
-			SNew(SSpriteList, SpriteEditorPtr)
+			SpriteListPtr.ToSharedRef()
 		];
 }
 
@@ -344,8 +342,10 @@ void FSpriteEditor::InitSpriteEditor(const EToolkitMode::Type Mode, const TShare
 
 	BindCommands();
 
-	ViewportPtr = SNew(SSpriteEditorViewport, SharedThis(this));
-	
+	TSharedPtr<FSpriteEditor> SpriteEditorPtr = SharedThis(this);
+	ViewportPtr = SNew(SSpriteEditorViewport, SpriteEditorPtr);
+	SpriteListPtr = SNew(SSpriteList, SpriteEditorPtr);
+
 	// Default layout
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_SpriteEditor_Layout_v6")
 		->AddArea
@@ -536,6 +536,9 @@ void FSpriteEditor::SetSpriteBeingEdited(UPaperSprite* NewSprite)
 		// Let the editor know that are editing something different
 		RemoveEditingObject(OldSprite);
 		AddEditingObject(NewSprite);
+
+		// Update the asset picker to select the new active sprite
+		SpriteListPtr->SelectAsset(NewSprite);
 	}
 }
 
