@@ -24,7 +24,7 @@ UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectI
 	TileWidth_DEPRECATED = 32;
 	TileHeight_DEPRECATED = 32;
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> DefaultMaterial(TEXT("/Paper2D/MaskedUnlitSpriteMaterial"));
 	Material_DEPRECATED = DefaultMaterial.Object;
 
 	CastShadow = false;
