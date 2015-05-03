@@ -127,7 +127,9 @@ bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewpor
 	{
 		AndroidEGL::GetInstance()->SwapBuffers();
 	}
-	return true;
+//	return true;
+	//Do not want WaitForFrameEventCompletion
+	return false;
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
