@@ -3,7 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperStyle.h"
 #include "SingleTileEditorViewport.h"
-#include "SpriteEditor/SpriteEditorCommands.h"
+#include "PaperEditorShared/SpriteGeometryEditCommands.h"
 #include "SingleTileEditorViewportClient.h"
 #include "TileSetEditorCommands.h"
 

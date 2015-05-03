@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "SSpriteEditorViewportToolbar.h"
 #include "SpriteEditorCommands.h"
+#include "PaperEditorShared/SpriteGeometryEditCommands.h"
 #include "SEditorViewport.h"
 
 #define LOCTEXT_NAMESPACE "SSpriteEditorViewportToolbar"
