@@ -21,6 +21,9 @@ void FSpriteEditorCommands::RegisterCommands()
 	UI_COMMAND(SetShowPivot, "Pivot", "Display the pivot location of the sprite.", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND(SetShowMeshEdges, "Mesh Edges", "Overlays the mesh edges on top of the view.", EUserInterfaceActionType::ToggleButton, FInputChord());
 
+	// Editor actions
+	UI_COMMAND(ExtractSprites, "Extract Sprites", "Triggers the Extract Sprites dialog on the source texture.", EUserInterfaceActionType::Button, FInputChord());
+
 	// Editing modes
 	UI_COMMAND(EnterViewMode, "View", "View the sprite.", EUserInterfaceActionType::ToggleButton, FInputChord());
 	UI_COMMAND(EnterSourceRegionEditMode, "Edit Source Region", "Edit the sprite source region.", EUserInterfaceActionType::ToggleButton, FInputChord());

@@ -25,7 +25,7 @@ public:
 	virtual ~SPaperExtractSpritesDialog();
 
 	// Show the dialog, returns true if successfully extracted sprites
-	static bool ShowWindow(const FText& TitleText, UTexture2D* SourceTexture);
+	static bool ShowWindow(UTexture2D* SourceTexture);
 
 private:
 	// Handler for Extract button

@@ -19,6 +19,8 @@
 #include "SSpriteList.h"
 #include "SDockTab.h"
 
+#include "ExtractSprites/SPaperExtractSpritesDialog.h"
+
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,6 +83,9 @@ public:
 	{
 		EditorViewportClient->ActivateEditMode();
 	}
+
+	void ShowExtractSpritesDialog();
+
 private:
 	// Pointer back to owning sprite editor instance (the keeper of state)
 	TWeakPtr<class FSpriteEditor> SpriteEditorPtr;
@@ -116,6 +121,13 @@ void SSpriteEditorViewport::BindCommands()
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSourceTexture ),
 		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanShowSourceTexture),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowSourceTextureChecked ) );
+
+	CommandList->MapAction(
+		Commands.ExtractSprites,
+		FExecuteAction::CreateSP(this, &SSpriteEditorViewport::ShowExtractSpritesDialog),
+		FCanExecuteAction(),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInSourceRegionEditMode));
 
 	CommandList->MapAction(
 		Commands.SetShowBounds,
@@ -206,6 +218,18 @@ TSharedPtr<FExtender> SSpriteEditorViewport::GetExtenders() const
 void SSpriteEditorViewport::OnFloatingButtonClicked()
 {
 }
+
+void SSpriteEditorViewport::ShowExtractSpritesDialog()
+{
+	if (UPaperSprite* Sprite = SpriteEditorPtr.Pin()->GetSpriteBeingEdited())
+	{
+		if (UTexture2D* SourceTexture = Sprite->GetSourceTexture())
+		{
+			SPaperExtractSpritesDialog::ShowWindow(SourceTexture);
+		}
+	}
+}
+
 
 /////////////////////////////////////////////////////
 // SSpritePropertiesTabBody
@@ -489,6 +513,7 @@ void FSpriteEditor::ExtendToolbar()
 			ToolbarBuilder.BeginSection("Command");
 			{
 				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSourceTexture);
+				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().ExtractSprites);
 			}
 			ToolbarBuilder.EndSection();
 
