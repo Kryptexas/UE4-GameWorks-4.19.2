@@ -17,8 +17,8 @@
 #include "TileSetEditor/SingleTileEditorViewport.h"
 #include "TileSetEditor/SingleTileEditorViewportClient.h"
 #include "TileSetEditor/TileSetEditorCommands.h"
-#include "SpriteEditor/SpriteEditorCommands.h"
 #include "TileSetEditor/TileSetDetailsCustomization.h"
+#include "PaperEditorShared/SpriteGeometryEditCommands.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"

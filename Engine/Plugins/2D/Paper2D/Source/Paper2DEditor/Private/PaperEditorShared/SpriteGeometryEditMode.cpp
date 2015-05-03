@@ -2,7 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SpriteGeometryEditMode.h"
-#include "../SpriteEditor/SpriteEditorCommands.h"
+#include "SpriteGeometryEditCommands.h"
 #include "PhysicsEngine/BodySetup2D.h"
 #include "SocketEditing.h"
 

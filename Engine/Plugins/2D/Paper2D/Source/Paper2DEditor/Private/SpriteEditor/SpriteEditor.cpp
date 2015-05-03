@@ -9,6 +9,7 @@
 
 #include "SpriteEditorViewportClient.h"
 #include "SpriteEditorCommands.h"
+#include "PaperEditorShared/SpriteGeometryEditCommands.h"
 #include "SEditorViewport.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Paper2DEditorModule.h"
