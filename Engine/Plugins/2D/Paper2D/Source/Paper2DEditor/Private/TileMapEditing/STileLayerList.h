@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 // STileLayerList
 
-class STileLayerList : public SCompoundWidget
+class STileLayerList : public SCompoundWidget, public FEditorUndoClient
 {
 public:
 	SLATE_BEGIN_ARGS(STileLayerList) {}
@@ -13,6 +13,12 @@ public:
 
 	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InCommandList);
 
+	// FEditorUndoClient Interface
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
+	// End of FEditorUndoClient
+
+	~STileLayerList();
 protected:
 	typedef TSharedPtr<int32> FMirrorEntry;
 

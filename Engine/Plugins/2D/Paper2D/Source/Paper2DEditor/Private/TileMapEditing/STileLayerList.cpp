@@ -87,8 +87,6 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 
 	TSharedRef<SWidget> Toolbar = ToolbarBuilder.MakeWidget();
 
-	RefreshMirrorList();
-
 	ListViewWidget = SNew(SPaperLayerListView)
 		.SelectionMode(ESelectionMode::Single)
 		.ClearSelectionOnClick(false)
@@ -96,6 +94,8 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 		.OnSelectionChanged(this, &STileLayerList::OnSelectionChanged)
 		.OnGenerateRow(this, &STileLayerList::OnGenerateLayerListRow)
 		.OnContextMenuOpening(this, &STileLayerList::OnConstructContextMenu);
+
+	RefreshMirrorList();
 
 	// Restore the selection
 	InTileMap->ValidateSelectedLayerIndex();
@@ -122,6 +122,8 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 			Toolbar
 		]
 	];
+
+	GEditor->RegisterForUndo(this);
 }
 
 TSharedRef<ITableRow> STileLayerList::OnGenerateLayerListRow(FMirrorEntry Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -498,8 +500,6 @@ void STileLayerList::PostEditNotfications()
 {
 	RefreshMirrorList();
 
-	ListViewWidget->RequestListRefresh();
-
 	if (UPaperTileMap* TileMap = TileMapPtr.Get())
 	{
 		TileMap->PostEditChange();
@@ -536,6 +536,23 @@ void STileLayerList::RefreshMirrorList()
 	{
 		MirrorList.Empty();
 	}
+
+	ListViewWidget->RequestListRefresh();
+}
+
+void STileLayerList::PostUndo(bool bSuccess)
+{
+	RefreshMirrorList();
+}
+
+void STileLayerList::PostRedo(bool bSuccess)
+{
+	RefreshMirrorList();
+}
+
+STileLayerList::~STileLayerList()
+{
+	GEditor->UnregisterForUndo(this);
 }
 
 //////////////////////////////////////////////////////////////////////////
