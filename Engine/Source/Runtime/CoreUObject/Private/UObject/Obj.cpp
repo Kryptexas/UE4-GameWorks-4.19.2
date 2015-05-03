@@ -1477,13 +1477,6 @@ void UObject::LoadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/
 		? InFilename
 		: GetConfigFilename(this);
 
-	// If the file name is empty on build machines, this means the config system never initialized them
-	// as this would potentially create indeterminate on the builder. As such we don't load these configs.
-	if (Filename.IsEmpty() && GIsBuildMachine)
-	{
-		return;
-	}
-
 	const bool bPerObject = UsesPerObjectConfig(this);
 
 	FString ClassSection;
@@ -1681,13 +1674,6 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	=	InFilename
 		? InFilename
 		: GetConfigFilename(this);
-
-	// If the file name is empty on build machines, this means the config system never initialized them
-	// as this would potentially create indeterminate on the builder. As such we don't save these configs.
-	if (Filename.IsEmpty() && GIsBuildMachine)
-	{
-		return;
-	}
 
 	// Determine whether the file we are writing is a default file config.
 	const bool bIsADefaultIniWrite = !Filename.Contains(FPaths::GameSavedDir())
