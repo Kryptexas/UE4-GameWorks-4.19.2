@@ -35,8 +35,6 @@ typedef enum {
 	TonemapperMosaic            = (1<<11),
 	TonemapperColorFringe       = (1<<12),
 	TonemapperMsaa              = (1<<13),
-	Tonemapper709               = (1<<14),
-	TonemapperGamma             = (1<<15),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -57,8 +55,6 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperMosaic
 	1, //TonemapperColorFringe
 	1, //TonemapperMsaa
-	1, //Tonemapper709
-	1, //TonemapperGamma
 };
 
 // Edit the following to add and remove configurations.
@@ -66,7 +62,7 @@ static uint8 TonemapperCostTab[] = {
 // Place most common first (faster when searching in TonemapperFindLeastExpensive()).
 
 // List of configurations compiled for PC.
-static uint32 TonemapperConfBitmaskPC[9] = { 
+static uint32 TonemapperConfBitmaskPC[7] = { 
 
 	TonemapperBloom +
 	TonemapperGrainJitter +
@@ -74,15 +70,6 @@ static uint32 TonemapperConfBitmaskPC[9] = {
 	TonemapperGrainQuantization +
 	TonemapperVignette +
 	TonemapperColorFringe +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperColorFringe +
-	Tonemapper709 +
 	0,
 
 	TonemapperBloom + 
@@ -102,14 +89,6 @@ static uint32 TonemapperConfBitmaskPC[9] = {
 	TonemapperGrainIntensity +
 	TonemapperVignette +
 	TonemapperColorFringe +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperVignette +
-	TonemapperColorFringe +
-	Tonemapper709 +
 	0,
 
 	TonemapperBloom + 
@@ -544,16 +523,6 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 		}
 	}
 
-	{
-		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
-		int32 Value = CVar->GetValueOnRenderThread();
-
-		if(Value > 0)
-		{
-			Bitmask |= Tonemapper709;
-		}
-	}
-
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
 
 	int32 FringeQuality = CVar->GetValueOnRenderThread();
@@ -835,8 +804,6 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && Platform != EShaderPlatform::SP_OPENGL_SM4_MAC));
-		OutEnvironment.SetDefine(TEXT("USE_709"),                TonemapperIsDefined(ConfigBitmask, Tonemapper709));
-		OutEnvironment.SetDefine(TEXT("USE_GAMMA"),              TonemapperIsDefined(ConfigBitmask, TonemapperGamma));
 
 		if( !IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) )
 		{
@@ -1049,8 +1016,7 @@ public:
 #define VARIATION1(A) typedef FPostProcessTonemapPS<A> FPostProcessTonemapPS##A; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
-	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5)
-	VARIATION1(6)  VARIATION1(7)  VARIATION1(8)
+	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5) VARIATION1(6)
 
 #undef VARIATION1
 
@@ -1127,8 +1093,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		case 4: SetShaderTempl<4>(Context); break;
 		case 5: SetShaderTempl<5>(Context); break;
 		case 6: SetShaderTempl<6>(Context); break;
-		case 7: SetShaderTempl<7>(Context); break;
-		case 8: SetShaderTempl<8>(Context); break;
 		default:
 			check(0);
 	}
