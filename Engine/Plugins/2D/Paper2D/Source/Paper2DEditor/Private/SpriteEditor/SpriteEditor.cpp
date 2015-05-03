@@ -112,21 +112,35 @@ void SSpriteEditorViewport::BindCommands()
 	// Show toggles
 	CommandList->MapAction(
 		Commands.SetShowGrid,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FEditorViewportClient::SetShowGrid ),
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FEditorViewportClient::SetShowGrid),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FEditorViewportClient::IsSetShowGridChecked ) );
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FEditorViewportClient::IsSetShowGridChecked));
 
 	CommandList->MapAction(
 		Commands.SetShowSourceTexture,
-		FExecuteAction::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSourceTexture ),
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSourceTexture),
 		FCanExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::CanShowSourceTexture),
-		FIsActionChecked::CreateSP( EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowSourceTextureChecked ) );
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowSourceTextureChecked));
 
 	CommandList->MapAction(
 		Commands.ExtractSprites,
 		FExecuteAction::CreateSP(this, &SSpriteEditorViewport::ShowExtractSpritesDialog),
 		FCanExecuteAction(),
 		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInSourceRegionEditMode));
+
+	CommandList->MapAction(
+		Commands.ToggleShowRelatedSprites,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowRelatedSprites),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowRelatedSpritesChecked),
+		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInSourceRegionEditMode));
+
+	CommandList->MapAction(
+		Commands.ToggleShowSpriteNames,
+		FExecuteAction::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::ToggleShowSpriteNames),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsShowSpriteNamesChecked),
 		FIsActionButtonVisible::CreateSP(EditorViewportClientRef, &FSpriteEditorViewportClient::IsInSourceRegionEditMode));
 
 	CommandList->MapAction(
@@ -504,25 +518,24 @@ void FSpriteEditor::ExtendToolbar()
 	{
 		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
 		{
-// 			ToolbarBuilder.BeginSection("Realtime");
-// 			{
-// 				ToolbarBuilder.AddToolBarButton(FEditorViewportCommands::Get().ToggleRealTime);
-// 			}
-// 			ToolbarBuilder.EndSection();
+			const FSpriteEditorCommands& SpriteCommands = FSpriteEditorCommands::Get();
+			const FSpriteGeometryEditCommands& GeometryCommands = FSpriteGeometryEditCommands::Get();
 
 			ToolbarBuilder.BeginSection("Command");
 			{
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().SetShowSourceTexture);
-				ToolbarBuilder.AddToolBarButton(FSpriteEditorCommands::Get().ExtractSprites);
+				ToolbarBuilder.AddToolBarButton(SpriteCommands.SetShowSourceTexture);
+				ToolbarBuilder.AddToolBarButton(SpriteCommands.ToggleShowRelatedSprites);
+				ToolbarBuilder.AddToolBarButton(SpriteCommands.ToggleShowSpriteNames);
 			}
 			ToolbarBuilder.EndSection();
 
 			ToolbarBuilder.BeginSection("Tools");
 			{
-				ToolbarBuilder.AddToolBarButton(FSpriteGeometryEditCommands::Get().AddBoxShape);
-				ToolbarBuilder.AddToolBarButton(FSpriteGeometryEditCommands::Get().ToggleAddPolygonMode);
-				ToolbarBuilder.AddToolBarButton(FSpriteGeometryEditCommands::Get().AddCircleShape);
-				ToolbarBuilder.AddToolBarButton(FSpriteGeometryEditCommands::Get().SnapAllVertices);
+				ToolbarBuilder.AddToolBarButton(SpriteCommands.ExtractSprites);
+				ToolbarBuilder.AddToolBarButton(GeometryCommands.AddBoxShape);
+				ToolbarBuilder.AddToolBarButton(GeometryCommands.ToggleAddPolygonMode);
+				ToolbarBuilder.AddToolBarButton(GeometryCommands.AddCircleShape);
+				ToolbarBuilder.AddToolBarButton(GeometryCommands.SnapAllVertices);
 			}
 			ToolbarBuilder.EndSection();
 		}
