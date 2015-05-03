@@ -1961,6 +1961,9 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 				// tile's can't be too big, otherwise we'll crash while tryng to allocate
 				// memory during navmesh generation
 				TileSizeUU = FMath::Clamp(TileSizeUU, CellSize, ArbitraryMaxVoxelTileSize * CellSize);
+
+				// update config
+				FillConfig(NavDataConfig);
 			}
 
 			if (HasAnyFlags(RF_ClassDefaultObject) == false)
