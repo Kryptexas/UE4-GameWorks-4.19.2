@@ -242,34 +242,6 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			// For Rocket projects, we currently only allow 64-bit versions of Debug and Development binaries to be compiled
-			// and only 32-bit versions of Shipping binaries to be compiled.  This has to do with our choice of which build
-			// configurations we want to ship with that product.  So to simplify things, we're merging Win32 and Win64
-			// configurations together in the IDE under "Windows".  In order for this to work properly, we need to make
-			// sure that Rocket projects only report the respective Windows platform that is valid for each configuration
-			if( UnrealBuildTool.RunningRocket() && ProjectTarget.TargetRules != null )
-			{
-				if( Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.Win64 )
-				{
-					// In Rocket, shipping game targets are always 32-bit
-					if( Configuration == UnrealTargetConfiguration.Shipping && ProjectTarget.TargetRules.Type == TargetRules.TargetType.Game )
-					{
-						if( Platform != UnrealTargetPlatform.Win32 )
-						{
-							return false;
-						}
-					}
-					else
-					{
-						// Everything else is expecting to be 64-bit
-						if( Platform != UnrealTargetPlatform.Win64 )
-						{
-							return false;
-						}
-					}
-				}
-			}
-
 			return true;
 		}
 
