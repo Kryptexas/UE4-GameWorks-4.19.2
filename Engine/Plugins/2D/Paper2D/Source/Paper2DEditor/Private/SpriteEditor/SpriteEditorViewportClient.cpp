@@ -53,6 +53,7 @@ namespace SpriteEditingConstants
 
 	const FLinearColor SourceRegionBoundsColor(1.0f, 1.0f, 1.0f, 0.8f);
 	const FLinearColor SourceRegionRelatedBoundsColor(0.3f, 0.3f, 0.3f, 0.8f);
+	const FLinearColor SourceRegionRelatedSpriteNameColor(0.6f, 0.6f, 0.6f, 0.8f);
 
 	const FLinearColor CollisionShapeColor(0.0f, 0.7f, 1.0f, 1.0f);
 	const FLinearColor RenderShapeColor(1.0f, 0.2f, 0.0f, 1.0f);
@@ -218,10 +219,9 @@ FVector FSpriteEditorViewportClient::SourceTextureSpaceToWorldSpace(const FVecto
 	return Sprite->ConvertTextureSpaceToWorldSpace(SourcePoint);
 }
 
-void FSpriteEditorViewportClient::DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& LineColor)
+void FSpriteEditorViewportClient::DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& BoundsColor, const FLinearColor& NameColor)
 {
-	FLinearColor ShadowColor = FLinearColor::Black;
-	ShadowColor.A = LineColor.A;
+	const FLinearColor ShadowColor = FLinearColor::Black;
 
 	for (int32 SpriteIndex = 0; SpriteIndex < RelatedSprites.Num(); ++SpriteIndex)
 	{
@@ -234,7 +234,7 @@ void FSpriteEditorViewportClient::DrawRelatedSprites(FViewport& InViewport, FSce
 			const FVector2D TextPos = SourceTextureSpaceToScreenSpace(View, SourceUV + SourceDimension*0.5f);
 
 			const FText AssetNameText = FText::AsCultureInvariant(RelatedSprite.AssetData.AssetName.ToString());
-			FCanvasTextItem TextItem(TextPos, AssetNameText, GEngine->GetSmallFont(), LineColor);
+			FCanvasTextItem TextItem(TextPos, AssetNameText, GEngine->GetSmallFont(), NameColor);
 			TextItem.EnableShadow(ShadowColor);
 			TextItem.bCentreX = true;
 			TextItem.bCentreY = true;
@@ -255,7 +255,7 @@ void FSpriteEditorViewportClient::DrawRelatedSprites(FViewport& InViewport, FSce
 				const int32 NextVertexIndex = (VertexIndex + 1) % 4;
 
 				FCanvasLineItem LineItem(BoundsVertices[VertexIndex], BoundsVertices[NextVertexIndex]);
-				LineItem.SetColor(LineColor);
+				LineItem.SetColor(BoundsColor);
 				Canvas.DrawItem(LineItem);
 			}
 		}
@@ -556,9 +556,9 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 				YPos += 18;
 			}
 
-			if (bShowRelatedSprites || bShowNamesForSprites)
+			if (bShowRelatedSprites)
 			{
-				DrawRelatedSprites(Viewport, View, Canvas, SpriteEditingConstants::SourceRegionRelatedBoundsColor);
+				DrawRelatedSprites(Viewport, View, Canvas, SpriteEditingConstants::SourceRegionRelatedBoundsColor, SpriteEditingConstants::SourceRegionRelatedSpriteNameColor);
 			}
 
 			DrawSourceRegion(Viewport, View, Canvas, SpriteEditingConstants::SourceRegionBoundsColor);
@@ -654,6 +654,18 @@ void FSpriteEditorViewportClient::ToggleShowSourceTexture()
 	bShowSourceTexture = !bShowSourceTexture;
 	SourceTextureViewComponent->SetVisibility(bShowSourceTexture);
 	
+	Invalidate();
+}
+
+void FSpriteEditorViewportClient::ToggleShowRelatedSprites()
+{
+	bShowRelatedSprites = !bShowRelatedSprites;
+	Invalidate();
+}
+
+void FSpriteEditorViewportClient::ToggleShowSpriteNames()
+{
+	bShowNamesForSprites = !bShowNamesForSprites;
 	Invalidate();
 }
 

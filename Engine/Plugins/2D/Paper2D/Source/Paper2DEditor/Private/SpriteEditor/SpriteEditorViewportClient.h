@@ -85,6 +85,12 @@ public:
 	bool IsShowSourceTextureChecked() const { return bShowSourceTexture; }
 	bool CanShowSourceTexture() const { return !IsInSourceRegionEditMode(); }
 
+	void ToggleShowRelatedSprites();
+	bool IsShowRelatedSpritesChecked() const { return bShowRelatedSprites; }
+
+	void ToggleShowSpriteNames();
+	bool IsShowSpriteNamesChecked() const { return bShowNamesForSprites; }
+
 	// Invalidate any references to the sprite being edited; it has changed
 	void NotifySpriteBeingEditedHasChanged();
 
@@ -167,7 +173,7 @@ private:
 
 	void DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos);
 	void DrawSourceRegion(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
-	void DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& GeometryVertexColor);
+	void DrawRelatedSprites(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FLinearColor& BoundsColor, const FLinearColor& NameColor);
 
 	void UpdateSourceTextureSpriteFromSprite(UPaperSprite* SourceSprite);
 	
