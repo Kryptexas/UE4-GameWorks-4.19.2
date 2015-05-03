@@ -33,6 +33,9 @@ public:
 	TSharedPtr<FUICommandInfo> SetShowPivot;
 	TSharedPtr<FUICommandInfo> SetShowMeshEdges;
 
+	// Editor actions
+	TSharedPtr<FUICommandInfo> ExtractSprites;
+
 	// Editing modes
 	TSharedPtr<FUICommandInfo> EnterViewMode;
 	TSharedPtr<FUICommandInfo> EnterSourceRegionEditMode;

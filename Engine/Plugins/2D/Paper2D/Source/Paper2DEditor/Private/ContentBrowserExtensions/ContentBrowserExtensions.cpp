@@ -82,7 +82,7 @@ struct FCreateSpriteFromTextureExtension : public FContentBrowserSelectedAssetEx
 			}
 			else
 			{
-				SPaperExtractSpritesDialog::ShowWindow(NSLOCTEXT("Paper2D", "Paper2D_ExtractSprites", "Extract sprites"), Texture);
+				SPaperExtractSpritesDialog::ShowWindow(Texture);
 			}
 		}
 
