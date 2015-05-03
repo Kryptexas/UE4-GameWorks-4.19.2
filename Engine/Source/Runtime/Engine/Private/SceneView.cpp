@@ -751,6 +751,15 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	FFinalPostProcessSettings& Dest = FinalPostProcessSettings;
 
 	// The following code needs to be adjusted when settings in FPostProcessSettings change.
+	LERP_PP(WhiteTemp);
+	LERP_PP(WhiteTint);
+	
+	LERP_PP(ColorSaturation);
+	LERP_PP(ColorContrast);
+	LERP_PP(ColorGamma);
+	LERP_PP(ColorGain);
+	LERP_PP(ColorOffset);
+
 	LERP_PP(FilmWhitePoint);
 	LERP_PP(FilmSaturation);
 	LERP_PP(FilmChannelMixerRed);
@@ -764,18 +773,11 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(FilmShadowTintBlend);
 	LERP_PP(FilmShadowTintAmount);
 
-	LERP_PP(PhotoExposure);
-	LERP_PP(PhotoMid);
-	LERP_PP(PhotoWhite);
-	LERP_PP(PhotoSaturation);
-	LERP_PP(PhotoChannelMixerRed);
-	LERP_PP(PhotoChannelMixerGreen);
-	LERP_PP(PhotoChannelMixerBlue);
-	LERP_PP(PhotoBlackOut);
-	LERP_PP(PhotoContrast);
-	LERP_PP(PhotoTint);
-	LERP_PP(PhotoOver);
-	LERP_PP(PhotoOverTint);
+	LERP_PP(FilmSlope);
+	LERP_PP(FilmToe);
+	LERP_PP(FilmShoulder);
+	LERP_PP(FilmBlackClip);
+	LERP_PP(FilmWhiteClip);
 
 	LERP_PP(SceneColorTint);
 	LERP_PP(SceneFringeIntensity);
@@ -816,7 +818,6 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(LensFlareBokehSize);
 	LERP_PP(LensFlareThreshold);
 	LERP_PP(VignetteIntensity);
-	LERP_PP(VignetteColor);
 	LERP_PP(GrainIntensity);
 	LERP_PP(GrainJitter);
 	LERP_PP(AmbientOcclusionIntensity);
@@ -912,6 +913,11 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		{
 			Dest.LensFlareTints[i] = FMath::Lerp(Dest.LensFlareTints[i], Src.LensFlareTints[i], Weight);
 		}
+	}
+
+	if(Src.bOverride_FilmEnable)
+	{
+		Dest.FilmEnable = Src.FilmEnable;
 	}
 
 	if(Src.bOverride_DepthOfFieldMethod)
@@ -1127,7 +1133,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	if(!Family->EngineShowFlags.Vignette)
 	{
 		FinalPostProcessSettings.VignetteIntensity = 0;
-		FinalPostProcessSettings.VignetteColor = FLinearColor(0.0f, 0.0f, 0.0f);
 	}
 
 	if(!Family->EngineShowFlags.Grain)

@@ -31,15 +31,12 @@ typedef enum {
 	TonemapperBloom             = (1<<7),
 	TonemapperDOF               = (1<<8),
 	TonemapperVignette          = (1<<9),
-	TonemapperVignetteColor     = (1<<10),
-	TonemapperLightShafts       = (1<<11),
-	TonemapperMosaic            = (1<<12),
-	TonemapperColorFringe       = (1<<13),
-	TonemapperColorGrading      = (1<<14),
-	TonemapperMsaa              = (1<<15),
-	TonemapperPhoto             = (1<<16),
-	Tonemapper709               = (1<<17),
-	TonemapperGamma             = (1<<18),
+	TonemapperLightShafts       = (1<<10),
+	TonemapperMosaic            = (1<<11),
+	TonemapperColorFringe       = (1<<12),
+	TonemapperMsaa              = (1<<13),
+	Tonemapper709               = (1<<14),
+	TonemapperGamma             = (1<<15),
 } TonemapperOption;
 
 // Tonemapper option cost (0 = no cost, 255 = max cost).
@@ -56,13 +53,10 @@ static uint8 TonemapperCostTab[] = {
 	1, //TonemapperBloom
 	1, //TonemapperDOF
 	1, //TonemapperVignette
-	1, //TonemapperVignetteColor
 	1, //TonemapperLightShafts
 	1, //TonemapperMosaic
 	1, //TonemapperColorFringe
-	1, //TonemapperColorGrading
 	1, //TonemapperMsaa
-	1, //TonemapperPhoto
 	1, //Tonemapper709
 	1, //TonemapperGamma
 };
@@ -72,206 +66,64 @@ static uint8 TonemapperCostTab[] = {
 // Place most common first (faster when searching in TonemapperFindLeastExpensive()).
 
 // List of configurations compiled for PC.
-static uint32 TonemapperConfBitmaskPC[22] = { 
+static uint32 TonemapperConfBitmaskPC[9] = { 
 
 	TonemapperBloom +
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainJitter +
 	TonemapperGrainIntensity +
 	TonemapperGrainQuantization +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperColorFringe +
-	TonemapperColorGrading +
 	0,
 
 	TonemapperBloom +
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainJitter +
 	TonemapperGrainIntensity +
 	TonemapperGrainQuantization +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperColorFringe +
-	TonemapperColorGrading +
 	Tonemapper709 +
 	0,
 
 	TonemapperBloom + 
-	TonemapperContrast + 
-	TonemapperColorMatrix + 
-	TonemapperShadowTint +
 	TonemapperVignette +
 	TonemapperGrainQuantization +
 	TonemapperColorFringe +
-	TonemapperColorGrading +
 	0,
 
 	TonemapperBloom + 
-	TonemapperContrast + 
-	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainQuantization +
-	TonemapperColorGrading +
-	0,
-
-	TonemapperBloom + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperGrainQuantization +
-	TonemapperColorGrading +
 	0,
 
 	// same without TonemapperGrainQuantization
 
 	TonemapperBloom +
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainJitter +
 	TonemapperGrainIntensity +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperColorFringe +
-	TonemapperColorGrading +
 	0,
 
 	TonemapperBloom +
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainJitter +
 	TonemapperGrainIntensity +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperColorFringe +
-	TonemapperColorGrading +
 	Tonemapper709 +
 	0,
 
 	TonemapperBloom + 
-	TonemapperContrast + 
-	TonemapperColorMatrix + 
-	TonemapperShadowTint +
 	TonemapperVignette +
 	TonemapperColorFringe +
-	TonemapperColorGrading +
 	0,
 
 	TonemapperBloom + 
-	TonemapperContrast + 
-	TonemapperColorMatrix +
-	TonemapperShadowTint +
-	TonemapperColorGrading +
 	0,
-
-	TonemapperBloom + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperColorGrading +
-	0,
-	
-	//
-
-	TonemapperGammaOnly +
-	TonemapperColorGrading +
-	0,
-
-// SAME WITHOUT COLORGRADING WITH NEW PHOTO POST
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperColorFringe +
-	TonemapperPhoto +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperPhoto +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperColorFringe +
-	TonemapperPhoto +
-	Tonemapper709 +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainJitter +
-	TonemapperGrainIntensity +
-	TonemapperGrainQuantization +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperColorFringe +
-	TonemapperPhoto +
-	TonemapperGamma +
-	0,
-
-	TonemapperBloom +
-	TonemapperGrainQuantization +
-	TonemapperPhoto +
-	0,
-
-
-	// similar without TonemapperGrain
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperColorFringe +
-	TonemapperPhoto +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperPhoto +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperColorFringe +
-	TonemapperPhoto +
-	Tonemapper709 +
-	0,
-
-	TonemapperBloom +
-	TonemapperVignette +
-	TonemapperVignetteColor +
-	TonemapperColorFringe +
-	TonemapperPhoto +
-	TonemapperGamma +
-	0,
-
-	TonemapperBloom +
-	TonemapperPhoto +
-	0,
-
 
 	//
 
 	TonemapperGammaOnly +
 	0,
-
-
 };
 
 // List of configurations compiled for Mobile.
@@ -299,7 +151,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	TonemapperContrast +
@@ -307,7 +158,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	TonemapperContrast +
@@ -316,7 +166,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	// DOF enabled.
@@ -325,7 +174,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperDOF +
 	0,
 
@@ -335,7 +183,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperDOF +
 	0,
 
@@ -354,7 +201,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -363,7 +209,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -373,7 +218,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -383,7 +227,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperDOF +
 	TonemapperGrainIntensity +
 	0,
@@ -394,7 +237,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperBloom +
 	TonemapperLightShafts +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperDOF +
 	TonemapperGrainIntensity +
 	0,
@@ -430,14 +272,12 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperMosaic + 
 	TonemapperContrast +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	TonemapperMosaic + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	TonemapperMosaic + 
@@ -445,7 +285,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	// With grain
@@ -471,7 +310,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperMosaic + 
 	TonemapperContrast +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -479,7 +317,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -488,7 +325,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -510,7 +346,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperContrast +
 	TonemapperBloom +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	TonemapperMsaa +
@@ -518,7 +353,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperColorMatrix +
 	TonemapperBloom +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	TonemapperMsaa +
@@ -527,7 +361,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperShadowTint +
 	TonemapperBloom +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	0,
 
 	// Same with grain.
@@ -546,7 +379,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperContrast +
 	TonemapperBloom +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -555,7 +387,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperColorMatrix +
 	TonemapperBloom +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -565,7 +396,6 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 	TonemapperShadowTint +
 	TonemapperBloom +
 	TonemapperVignette +
-	TonemapperVignetteColor +
 	TonemapperGrainIntensity +
 	0,
 
@@ -585,11 +415,6 @@ static uint32 TonemapperFindLeastExpensive(uint32* RESTRICT Table, uint32 TableE
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperDOF) == 0) ? TonemapperDOF : 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMosaic) == 0) ? TonemapperMosaic : 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMsaa) == 0) ? TonemapperMsaa : 0;
-
-	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperPhoto) != 0) ? TonemapperColorMatrix : 0;
-	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperPhoto) != 0) ? TonemapperShadowTint : 0;
-	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperPhoto) != 0) ? TonemapperColorGrading : 0;
-	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperPhoto) == 0) ? TonemapperPhoto : 0;
 
 	// Search for exact match first.
 	uint32 Index;
@@ -675,13 +500,11 @@ static uint32 TonemapperGenerateBitmask(const FViewInfo* RESTRICT View, bool bGa
 
 	FVector Tint(Settings->FilmWhitePoint);
 	FVector TintShadow(Settings->FilmShadowTint);
-	FVector VignetteColor(Settings->VignetteColor);
 
 	Bitmask += (Settings->FilmShadowTintAmount > 0.0f) ? TonemapperShadowTint     : 0;	
 	Bitmask += (Settings->FilmContrast > 0.0f)         ? TonemapperContrast       : 0;
 	Bitmask += (Settings->GrainIntensity > 0.0f)       ? TonemapperGrainIntensity : 0;
 	Bitmask += (Settings->VignetteIntensity > 0.0f)    ? TonemapperVignette       : 0;
-	Bitmask += (VignetteColor.GetAbsMax() != 0.0f)     ? TonemapperVignetteColor  : 0;
 
 	return Bitmask;
 }
@@ -701,7 +524,7 @@ static uint32 TonemapperGenerateBitmaskPost(const FViewInfo* RESTRICT View)
 }
 
 // PC only.
-static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool bGammaOnly, bool bUseLUT)
+static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool bGammaOnly)
 {
 	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, false);
 
@@ -741,23 +564,6 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 		&& FringeQuality > 0)
 	{
 		Bitmask |= TonemapperColorFringe;
-	}
-
-	if(bUseLUT)
-	{
-		Bitmask |= TonemapperColorGrading;
-	}
-
-	{
-		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperPhoto"));
-		int32 Value = CVar->GetValueOnRenderThread();
-
-		if(Value > 0)
-		{
-			// Remove settings not compatible.
-			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
-			Bitmask |= TonemapperPhoto;
-		}
 	}
 
 	return Bitmask + TonemapperGenerateBitmaskPost(View);
@@ -819,10 +625,6 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	uint32 UseShadowTint  = TonemapperIsDefined(ConfigBitmask, TonemapperShadowTint);
 	uint32 UseContrast    = TonemapperIsDefined(ConfigBitmask, TonemapperContrast);
 
-	// DON'T CHECK INTO MAIN: NEEDS A PERMUTATION TO AVOID NON-BACKWARDS COMPATIBLE CHANGES
-	// This corrects so the linear segment is linear in log space!
-	float In18Grey = FMath::Log2(1.0f+0.18f);
-
 	// Must insure inputs are in correct range (else possible generation of NaNs).
 	float InExposure = 1.0f;
 	FVector InWhitePoint(FinalPostProcessSettings->FilmWhitePoint);
@@ -833,9 +635,9 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	FVector InMatrixB(FinalPostProcessSettings->FilmChannelMixerBlue);
 	float InContrast = FMath::Clamp(FinalPostProcessSettings->FilmContrast, 0.0f, 1.0f) + 1.0f;
 	float InDynamicRange = powf(2.0f, FMath::Clamp(FinalPostProcessSettings->FilmDynamicRange, 1.0f, 4.0f));
-	float InToe = (1.0f - FMath::Clamp(FinalPostProcessSettings->FilmToeAmount, 0.0f, 1.0f)) * In18Grey;
-	InToe = FMath::Clamp(InToe, In18Grey/8.0f, In18Grey * (15.0f/16.0f));
-	float InHeal = 1.0f - (FMath::Max(1.0f/32.0f, 1.0f - FMath::Clamp(FinalPostProcessSettings->FilmHealAmount, 0.0f, 1.0f)) * (1.0f - In18Grey)); 
+	float InToe = (1.0f - FMath::Clamp(FinalPostProcessSettings->FilmToeAmount, 0.0f, 1.0f)) * 0.18f;
+	InToe = FMath::Clamp(InToe, 0.18f/8.0f, 0.18f * (15.0f/16.0f));
+	float InHeal = 1.0f - (FMath::Max(1.0f/32.0f, 1.0f - FMath::Clamp(FinalPostProcessSettings->FilmHealAmount, 0.0f, 1.0f)) * (1.0f - 0.18f)); 
 	FVector InShadowTint(FinalPostProcessSettings->FilmShadowTint);
 	float InShadowTintBlend = FMath::Clamp(FinalPostProcessSettings->FilmShadowTintBlend, 0.0f, 1.0f) * 64.0f;
 
@@ -915,7 +717,7 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	float OutColorCurveCm2;
 
 	// Line for linear section.
-	float FilmLineOffset = In18Grey - In18Grey*InContrast;
+	float FilmLineOffset = 0.18f - 0.18f*InContrast;
 	float FilmXAtY0 = -FilmLineOffset/InContrast;
 	float FilmXAtY1 = (1.0f - FilmLineOffset) / InContrast;
 	float FilmXS = FilmXAtY1 - FilmXAtY0;
@@ -987,102 +789,6 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	Constants[7] = FVector4(OutColorShadow_Tint2, 0.0f);
 }
 
-// Improved film post: setting of constants.
-void FilmPostSetConstantsPhoto(FVector4* RESTRICT const Constants, const FPostProcessSettings* RESTRICT const FinalPostProcessSettings)
-{
-	float PhotoExp = FMath::Pow(2.0f,FMath::Clamp(FinalPostProcessSettings->PhotoExposure, -64.0f, 64.0f));
-	float PhotoMid = 0.18f * FMath::Pow(2.0f,FMath::Clamp(FinalPostProcessSettings->PhotoMid, -64.0f, 64.0f));
-	FVector PhotoWhite(FinalPostProcessSettings->PhotoWhite);
-	float PhotoSat = FMath::Clamp(FinalPostProcessSettings->PhotoSaturation, 0.0f, 2.0f) - 1.0f;
-	FVector PhotoMixR(FinalPostProcessSettings->PhotoChannelMixerRed);
-	FVector PhotoMixG(FinalPostProcessSettings->PhotoChannelMixerGreen);
-	FVector PhotoMixB(FinalPostProcessSettings->PhotoChannelMixerBlue);
-	FVector PhotoOverTint(FinalPostProcessSettings->PhotoOverTint);
-	float PhotoGamma = FMath::Clamp(FinalPostProcessSettings->PhotoContrast, 0.0f, 4.0f);
-	float PhotoBlackIn = (PhotoMid*PhotoMid*PhotoMid);
-	float PhotoBlackOut = (PhotoMid*PhotoMid*PhotoMid)*FMath::Pow(2.0f,FMath::Clamp(FinalPostProcessSettings->PhotoBlackOut, -64.0f, 64.0f));
-	FVector PhotoTint(FinalPostProcessSettings->PhotoTint);
-	float PhotoOver = FMath::Clamp(FinalPostProcessSettings->PhotoOver, 0.0f, 1.0f);
-
-	// Conversion from linear rgb to luma (using HDTV coef).
-	FVector LumaWeights = FVector(0.2126f, 0.7152f, 0.0722f);
-
-	// Make sure not zero.
-	PhotoWhite += FVector(1.0f / (256.0f*256.0f*32.0f));
-	PhotoMixR += FVector(1.0f / (256.0f*256.0f*32.0f));
-	PhotoMixG += FVector(1.0f / (256.0f*256.0f*32.0f));
-	PhotoMixB += FVector(1.0f / (256.0f*256.0f*32.0f));
-
-	// Normalize inputs for luma.
-	FVector PW = PhotoWhite/FVector::DotProduct(PhotoWhite, LumaWeights);
-	FVector PR = PhotoMixR*(FVector::DotProduct(FVector(1.0f,0.0f,0.0f), LumaWeights)/FVector::DotProduct(PhotoMixR, LumaWeights));    
-	FVector PG = PhotoMixG*(FVector::DotProduct(FVector(0.0f,1.0f,0.0f), LumaWeights)/FVector::DotProduct(PhotoMixG, LumaWeights));    
-	FVector PB = PhotoMixB*(FVector::DotProduct(FVector(0.0f,0.0f,1.0f), LumaWeights)/FVector::DotProduct(PhotoMixB, LumaWeights));    
-
-	// Fold exposure into white point.
-	PW *= PhotoExp;
-
-	// Channel mixer matrix 
-	FVector MR = FVector(PR.X,PG.X,PB.X);
-	FVector MG = FVector(PR.Y,PG.Y,PB.Y);
-	FVector MB = FVector(PR.Z,PG.Z,PB.Z);
-
-	// Fold white point exposure into channel mixer matrix.
-	MR *= PW;
-	MG *= PW;
-	MB *= PW;
-
-	// Saturation matrix.
-	FVector SR = FVector(1.0+(1.0-LumaWeights.X)*PhotoSat,(-LumaWeights.Y)*PhotoSat,(-LumaWeights.Z)*PhotoSat);
-	FVector SG = FVector((-LumaWeights.X)*PhotoSat,1.0+(1.0-LumaWeights.Y)*PhotoSat,(-LumaWeights.Z)*PhotoSat);
-	FVector SB = FVector((-LumaWeights.X)*PhotoSat,(-LumaWeights.Y)*PhotoSat,1.0+(1.0-LumaWeights.Z)*PhotoSat);    
-
-	// Final matrix, fold white point exposure mixer into saturation.
-	FVector OutMatrixR = FVector(
-		FVector::DotProduct(FVector(MR.X,MG.X,MB.X),SR),
-		FVector::DotProduct(FVector(MR.Y,MG.Y,MB.Y),SR),
-		FVector::DotProduct(FVector(MR.Z,MG.Z,MB.Z),SR));
-	FVector OutMatrixG = FVector(
-		FVector::DotProduct(FVector(MR.X,MG.X,MB.X),SG),
-		FVector::DotProduct(FVector(MR.Y,MG.Y,MB.Y),SG),
-		FVector::DotProduct(FVector(MR.Z,MG.Z,MB.Z),SG));
-	FVector OutMatrixB = FVector(
-		FVector::DotProduct(FVector(MR.X,MG.X,MB.X),SB),
-		FVector::DotProduct(FVector(MR.Y,MG.Y,MB.Y),SB),
-		FVector::DotProduct(FVector(MR.Z,MG.Z,MB.Z),SB));    
-
-	float OutLift = (PhotoMid*(FMath::Pow(PhotoBlackOut*FMath::Pow(PhotoMid,PhotoGamma-1.0f),1.0f/PhotoGamma)-PhotoBlackIn))/(PhotoMid-PhotoBlackIn);
-	float OutLiftScale = (PhotoMid-OutLift)/PhotoMid;
-
-	FVector OutTint = PhotoTint;
-	OutTint += FVector(1.0f / (256.0f*256.0f*32.0f));
-	OutTint *= 1.0f / FVector::DotProduct(OutTint, LumaWeights);
-	// Factor in the scale to ensure gamma does not change the 18% midtone.
-	OutTint *= PhotoMid/FMath::Pow(PhotoMid, PhotoGamma);
-
-	// HDR display support provides a secondary exposure adjustment 
-	// which is factored into the tint mulitply in the {Lift, gamma, tint} processing.
-	// This is prior to over-exposure crosstalk (desaturate overexposed color),
-	// and prior to highlight compression.
-	// If an LDR display goes from 0-1 this multiply will be 1.
-	// If an HDR display goes from 0-16 this multiply will be 1/16 (the display is 16x brigher).
-	{
-		static TConsoleVariableData<float>* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperHDR"));
-		float Value = CVar->GetValueOnRenderThread();
-		if(Value < 1.0f)
-		{
-			Value = 1.0f;
-		}
-		OutTint *= 1.0f/Value;
-	}
-
-	Constants[0] = FVector4(OutMatrixR, OutLift);
-	Constants[1] = FVector4(OutMatrixG, OutLiftScale);
-	Constants[2] = FVector4(OutMatrixB, PhotoGamma); 
-	Constants[3] = FVector4(OutTint, PhotoOver*(1.0f/3.0f)); 
-	Constants[4] = FVector4(PhotoOverTint, 1.0f-PhotoMid);
-}
-
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,Tint)
@@ -1126,12 +832,9 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_INTENSITY"),    TonemapperIsDefined(ConfigBitmask, TonemapperGrainIntensity));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_QUANTIZATION"), TonemapperIsDefined(ConfigBitmask, TonemapperGrainQuantization));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
-		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE_COLOR"),     TonemapperIsDefined(ConfigBitmask, TonemapperVignetteColor));
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_FRINGE"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorFringe));
 		// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
 		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && Platform != EShaderPlatform::SP_OPENGL_SM4_MAC));
-		OutEnvironment.SetDefine(TEXT("USE_COLOR_GRADING"),		 TonemapperIsDefined(ConfigBitmask, TonemapperColorGrading));
-		OutEnvironment.SetDefine(TEXT("USE_PHOTO"),              TonemapperIsDefined(ConfigBitmask, TonemapperPhoto));
 		OutEnvironment.SetDefine(TEXT("USE_709"),                TonemapperIsDefined(ConfigBitmask, Tonemapper709));
 		OutEnvironment.SetDefine(TEXT("USE_GAMMA"),              TonemapperIsDefined(ConfigBitmask, TonemapperGamma));
 
@@ -1152,7 +855,7 @@ public:
 	FShaderResourceParameter NoiseTexture;
 	FShaderResourceParameter NoiseTextureSampler;
 	FShaderParameter TexScale;
-	FShaderParameter VignetteColorIntensity;
+	FShaderParameter VignetteIntensity;
 	FShaderParameter GrainScaleBiasJitter;
 	FShaderResourceParameter ColorGradingLUT;
 	FShaderResourceParameter ColorGradingLUTSampler;
@@ -1167,12 +870,6 @@ public:
 	FShaderParameter ColorShadow_Tint1;
 	FShaderParameter ColorShadow_Tint2;
 
-	FShaderParameter PhotoMatrixR_Lift;
-	FShaderParameter PhotoMatrixG_LiftScale;
-	FShaderParameter PhotoMatrixB_Gamma;
-	FShaderParameter PhotoTint_Over;
-	FShaderParameter PhotoOverTint_OneMinusMid;
-
 	//@HACK
 	FShaderParameter OverlayColor;
 
@@ -1186,7 +883,7 @@ public:
 		NoiseTexture.Bind(Initializer.ParameterMap,TEXT("NoiseTexture"));
 		NoiseTextureSampler.Bind(Initializer.ParameterMap,TEXT("NoiseTextureSampler"));
 		TexScale.Bind(Initializer.ParameterMap, TEXT("TexScale"));
-		VignetteColorIntensity.Bind(Initializer.ParameterMap, TEXT("VignetteColorIntensity"));
+		VignetteIntensity.Bind(Initializer.ParameterMap, TEXT("VignetteIntensity"));
 		GrainScaleBiasJitter.Bind(Initializer.ParameterMap, TEXT("GrainScaleBiasJitter"));
 		ColorGradingLUT.Bind(Initializer.ParameterMap, TEXT("ColorGradingLUT"));
 		ColorGradingLUTSampler.Bind(Initializer.ParameterMap, TEXT("ColorGradingLUTSampler"));
@@ -1200,12 +897,6 @@ public:
 		ColorShadow_Luma.Bind(Initializer.ParameterMap, TEXT("ColorShadow_Luma"));
 		ColorShadow_Tint1.Bind(Initializer.ParameterMap, TEXT("ColorShadow_Tint1"));
 		ColorShadow_Tint2.Bind(Initializer.ParameterMap, TEXT("ColorShadow_Tint2"));
-
-		PhotoMatrixR_Lift.Bind(Initializer.ParameterMap, TEXT("PhotoMatrixR_Lift"));
-		PhotoMatrixG_LiftScale.Bind(Initializer.ParameterMap, TEXT("PhotoMatrixG_LiftScale"));
-		PhotoMatrixB_Gamma.Bind(Initializer.ParameterMap, TEXT("PhotoMatrixB_Gamma"));
-		PhotoTint_Over.Bind(Initializer.ParameterMap, TEXT("PhotoTint_Over"));
-		PhotoOverTint_OneMinusMid.Bind(Initializer.ParameterMap, TEXT("PhotoOverTint_OneMinusMid"));
 		
 		OverlayColor.Bind(Initializer.ParameterMap, TEXT("OverlayColor"));
 	}
@@ -1215,10 +906,9 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar  << PostprocessParameter << ColorScale0 << ColorScale1 << InverseGamma << NoiseTexture << NoiseTextureSampler
-			<< TexScale << VignetteColorIntensity << GrainScaleBiasJitter
+			<< TexScale << VignetteIntensity << GrainScaleBiasJitter
 			<< ColorGradingLUT << ColorGradingLUTSampler
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
-			<< PhotoMatrixR_Lift << PhotoMatrixG_LiftScale << PhotoMatrixB_Gamma << PhotoTint_Over << PhotoOverTint_OneMinusMid
 			<< OverlayColor;
 		
 		return bShaderHasOutdatedParameters;
@@ -1264,12 +954,7 @@ public:
 			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 		
-		FVector4 VignetteColorIntensityValue;
-		VignetteColorIntensityValue.X = Settings.VignetteColor.R;
-		VignetteColorIntensityValue.Y = Settings.VignetteColor.G;
-		VignetteColorIntensityValue.Z = Settings.VignetteColor.B;
-		VignetteColorIntensityValue.W = Settings.VignetteIntensity;
-		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteIntensity, Settings.VignetteIntensity);
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);
@@ -1347,16 +1032,6 @@ public:
 			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint1, Constants[6]);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, ColorShadow_Tint2, Constants[7]);
 		}
-
-		{
-			FVector4 Constants[5];
-			FilmPostSetConstantsPhoto(Constants, &Context.View.FinalPostProcessSettings);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoMatrixR_Lift, Constants[0]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoMatrixG_LiftScale, Constants[1]);
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoMatrixB_Gamma, Constants[2]); 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoTint_Over, Constants[3]); 
-			SetShaderValue(Context.RHICmdList, ShaderRHI, PhotoOverTint_OneMinusMid, Constants[4]);
-		}
 	}
 	
 	static const TCHAR* GetSourceFilename()
@@ -1375,11 +1050,7 @@ public:
 	IMPLEMENT_SHADER_TYPE2(FPostProcessTonemapPS##A, SF_Pixel);
 
 	VARIATION1(0)  VARIATION1(1)  VARIATION1(2)  VARIATION1(3)  VARIATION1(4)  VARIATION1(5)
-	VARIATION1(6)  VARIATION1(7)  VARIATION1(8)  VARIATION1(9)  VARIATION1(10)
-
-	VARIATION1(11)  VARIATION1(12)  VARIATION1(13)  VARIATION1(14)  VARIATION1(15)  VARIATION1(16)
-	VARIATION1(17)  VARIATION1(18)  VARIATION1(19)  VARIATION1(20)  VARIATION1(21)
-
+	VARIATION1(6)  VARIATION1(7)  VARIATION1(8)
 
 #undef VARIATION1
 
@@ -1390,15 +1061,8 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessTonemapVS,TEXT("PostProcessTonemap"),TEXT("Ma
 FRCPassPostProcessTonemap::FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly)
 	: bDoGammaOnly(bInDoGammaOnly)
 {
-	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&View, bDoGammaOnly, FRCPassPostProcessCombineLUTs::IsColorGradingLUTNeeded(&View));
+	uint32 ConfigBitmask = TonemapperGenerateBitmaskPC(&View, bDoGammaOnly);
 	ConfigIndexPC = TonemapperFindLeastExpensive(TonemapperConfBitmaskPC, sizeof(TonemapperConfBitmaskPC)/4, TonemapperCostTab, ConfigBitmask);
-}
-
-bool FRCPassPostProcessTonemap::IsLUTNeeded() const
-{
-	uint32 ConfigBitmask = TonemapperConfBitmaskPC[ConfigIndexPC];
-
-	return TonemapperIsDefined(ConfigBitmask, TonemapperColorGrading) != 0;
 }
 
 template <uint32 ConfigIndex>
@@ -1465,19 +1129,6 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		case 6: SetShaderTempl<6>(Context); break;
 		case 7: SetShaderTempl<7>(Context); break;
 		case 8: SetShaderTempl<8>(Context); break;
-		case 9: SetShaderTempl<9>(Context); break;
-		case 10: SetShaderTempl<10>(Context); break;
-		case 11: SetShaderTempl<11>(Context); break;
-		case 12: SetShaderTempl<12>(Context); break;
-		case 13: SetShaderTempl<13>(Context); break;
-		case 14: SetShaderTempl<14>(Context); break;
-		case 15: SetShaderTempl<15>(Context); break;
-		case 16: SetShaderTempl<16>(Context); break;
-		case 17: SetShaderTempl<17>(Context); break;
-		case 18: SetShaderTempl<18>(Context); break;
-		case 19: SetShaderTempl<19>(Context); break;
-		case 20: SetShaderTempl<20>(Context); break;
-		case 21: SetShaderTempl<21>(Context); break;
 		default:
 			check(0);
 	}
@@ -1556,7 +1207,6 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_INTENSITY"),    TonemapperIsDefined(ConfigBitmask, TonemapperGrainIntensity));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_QUANTIZATION"), TonemapperIsDefined(ConfigBitmask, TonemapperGrainQuantization));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
-		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE_COLOR"),     TonemapperIsDefined(ConfigBitmask, TonemapperVignetteColor));
 		OutEnvironment.SetDefine(TEXT("USE_LIGHT_SHAFTS"),       TonemapperIsDefined(ConfigBitmask, TonemapperLightShafts));
 		OutEnvironment.SetDefine(TEXT("USE_DOF"),                TonemapperIsDefined(ConfigBitmask, TonemapperDOF));
 		OutEnvironment.SetDefine(TEXT("USE_MSAA"),               TonemapperIsDefined(ConfigBitmask, TonemapperMsaa));
@@ -1575,7 +1225,7 @@ public:
 	FShaderParameter TexScale;
 	FShaderParameter GrainScaleBiasJitter;
 	FShaderParameter InverseGamma;
-	FShaderParameter VignetteColorIntensity;
+	FShaderParameter VignetteIntensity;
 
 	FShaderParameter ColorMatrixR_ColorCurveCd1;
 	FShaderParameter ColorMatrixG_ColorCurveCd3Cm3;
@@ -1596,7 +1246,7 @@ public:
 		ColorScale0.Bind(Initializer.ParameterMap, TEXT("ColorScale0"));
 		ColorScale1.Bind(Initializer.ParameterMap, TEXT("ColorScale1"));
 		TexScale.Bind(Initializer.ParameterMap, TEXT("TexScale"));
-		VignetteColorIntensity.Bind(Initializer.ParameterMap, TEXT("VignetteColorIntensity"));
+		VignetteIntensity.Bind(Initializer.ParameterMap, TEXT("VignetteIntensity"));
 		GrainScaleBiasJitter.Bind(Initializer.ParameterMap, TEXT("GrainScaleBiasJitter"));
 		InverseGamma.Bind(Initializer.ParameterMap,TEXT("InverseGamma"));
 
@@ -1617,7 +1267,7 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar  << PostprocessParameter << ColorScale0 << ColorScale1 << InverseGamma
-			<< TexScale << GrainScaleBiasJitter << VignetteColorIntensity
+			<< TexScale << GrainScaleBiasJitter << VignetteIntensity
 			<< ColorMatrixR_ColorCurveCd1 << ColorMatrixG_ColorCurveCd3Cm3 << ColorMatrixB_ColorCurveCm2 << ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3 << ColorCurve_Ch1_Ch2 << ColorShadow_Luma << ColorShadow_Tint1 << ColorShadow_Tint2
 			<< OverlayColor;
 
@@ -1667,12 +1317,7 @@ public:
 			SetShaderValue(Context.RHICmdList, ShaderRHI, TexScale, TexScaleValue);
 		}
 
-		FVector4 VignetteColorIntensityValue;
-		VignetteColorIntensityValue.X = Settings.VignetteColor.R;
-		VignetteColorIntensityValue.Y = Settings.VignetteColor.G;
-		VignetteColorIntensityValue.Z = Settings.VignetteColor.B;
-		VignetteColorIntensityValue.W = Settings.VignetteIntensity;
-		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteColorIntensity, VignetteColorIntensityValue);
+		SetShaderValue(Context.RHICmdList, ShaderRHI, VignetteIntensity, Settings.VignetteIntensity);
 
 		FVector GrainValue;
 		GrainPostSettings(&GrainValue, &Settings);

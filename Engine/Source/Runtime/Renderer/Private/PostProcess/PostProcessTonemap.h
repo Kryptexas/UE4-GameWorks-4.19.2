@@ -43,8 +43,6 @@ public:
 	// constructor
 	FRCPassPostProcessTonemap(const FViewInfo& View, bool bInDoGammaOnly = false);
 
-	bool IsLUTNeeded() const;
-
 	// interface FRenderingCompositePass ---------
 
 	virtual void Process(FRenderingCompositePassContext& Context) override;

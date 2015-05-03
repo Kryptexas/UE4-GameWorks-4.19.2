@@ -129,17 +129,12 @@ half3 ColorCorrection(half3 InLDRColor)
 // @param ScreenSpacePos -1..1
 float ComputeVignetteMask(float2 ScreenSpacePos, float Intensity)
 {
-	return lerp(1, DiscMask(ScreenSpacePos / 1.3f), Intensity);
-
-//	NormalizedUV = ScreenSpacePos * 0.5f + 0.5f;
-	// alternative method (pillow like shape):
-	// 0..1 -> 0 .. 0.25f .. 1.0f
-//	float2 Temp = NormalizedUV * (1 - NormalizedUV);
-	// ShapeFactor 1:fast, 0.5:more bright areas, 0.25:even more bright area
-//	float ShapeFactor = 1.0f;
-	// (0 .. 0.25f .. 1.0f, 0 .. 0.25f .. 1.0f) -> (0:border .. 1:center)
-//	float Mask = Temp.x * Temp.y * 16.0f;
-//	return lerp(1, pow(Mask, ShapeFactor), Intensity);
+	// Natural vignetting
+	// cosine-fourth law
+	ScreenSpacePos *= Intensity;
+	float Tan2Angle = dot( ScreenSpacePos, ScreenSpacePos );
+	float Cos4Angle = Square( rcp( Tan2Angle + 1 ) );
+	return Cos4Angle;
 }
 
 // Scale {-1 to 1} space to vignette circle space.

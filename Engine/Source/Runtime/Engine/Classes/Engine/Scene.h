@@ -39,6 +39,22 @@ struct FPostProcessSettings
 	// first all bOverride_... as they get grouped together into bitfields
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_WhiteTemp:1;
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_WhiteTint:1;
+
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_ColorSaturation:1;
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_ColorContrast:1;
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_ColorGamma:1;
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_ColorGain:1;
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
+	uint32 bOverride_ColorOffset:1;
+
+	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_FilmWhitePoint:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
@@ -75,40 +91,18 @@ struct FPostProcessSettings
 	uint32 bOverride_FilmShadowTintAmount:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoExposure:1;
+	uint32 bOverride_FilmEnable:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoMid:1;
-
+	uint32 bOverride_FilmSlope:1;
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoWhite:1;
-
+	uint32 bOverride_FilmToe:1;
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoSaturation:1;
-
+	uint32 bOverride_FilmShoulder:1;
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoChannelMixerRed:1;
-
+	uint32 bOverride_FilmBlackClip:1;
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoChannelMixerGreen:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoChannelMixerBlue:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoBlackOut:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoContrast:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoTint:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoOver:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_PhotoOverTint:1;
+	uint32 bOverride_FilmWhiteClip:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_SceneColorTint:1;
@@ -226,9 +220,6 @@ struct FPostProcessSettings
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_VignetteIntensity:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_VignetteColor:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_GrainIntensity:1;
@@ -394,6 +385,21 @@ struct FPostProcessSettings
 
 	// -----------------------------------------------------------------------
 
+	UPROPERTY(interp, BlueprintReadWrite, Category=WhiteBalance, meta=(UIMin = "1500.0", UIMax = "15000.0", editcondition = "bOverride_WhiteTemp", DisplayName = "Temp"))
+	float WhiteTemp;
+	UPROPERTY(interp, BlueprintReadWrite, Category=WhiteBalance, meta=(UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_WhiteTint", DisplayName = "Tint"))
+	float WhiteTint;
+
+	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorSaturation", DisplayName = "Saturation"))
+	FVector ColorSaturation;
+	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorContrast", DisplayName = "Contrast"))
+	FVector ColorContrast;
+	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGamma", DisplayName = "Gamma"))
+	FVector ColorGamma;
+	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_ColorGain", DisplayName = "Gain"))
+	FVector ColorGain;
+	UPROPERTY(interp, BlueprintReadWrite, Category=ColorGrading, meta=(UIMin = "-1.0", UIMax = "1.0", editcondition = "bOverride_ColorOffset", DisplayName = "Offset"))
+	FVector ColorOffset;
 
 	UPROPERTY(interp, BlueprintReadWrite, Category=Film, meta=(editcondition = "bOverride_FilmWhitePoint", DisplayName = "Tint", HideAlphaChannel))
 	FLinearColor FilmWhitePoint;
@@ -422,30 +428,19 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_FilmDynamicRange", DisplayName = "Dynamic Range"))
 	float FilmDynamicRange;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_PhotoMid", DisplayName = "Mid-point (linear)"))
-	float PhotoMid;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(UIMin = "-16.0", UIMax = "16.0", editcondition = "bOverride_PhotoExposure", DisplayName = "Exposure (+/- stops)"))
-	float PhotoExposure;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(editcondition = "bOverride_PhotoWhite", DisplayName = "White (pre-tonemap)", HideAlphaChannel))
-	FLinearColor PhotoWhite;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "2.0", editcondition = "bOverride_PhotoSaturation", DisplayName = "Saturation"))
-	float PhotoSaturation;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(editcondition = "bOverride_PhotoChannelMixerRed", DisplayName = "Channel Mixer Red", HideAlphaChannel))
-	FLinearColor PhotoChannelMixerRed;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(editcondition = "bOverride_PhotoChannelMixerGreen", DisplayName = "Channel Mixer Green", HideAlphaChannel))
-	FLinearColor PhotoChannelMixerGreen;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(editcondition = "bOverride_PhotoChannelMixerBlue", DisplayName = " Channel Mixer Blue", HideAlphaChannel))
-	FLinearColor PhotoChannelMixerBlue;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(UIMin = "-6.0", UIMax = "2.0", editcondition = "bOverride_PhotoBlackOut", DisplayName = "Lift (+/- stops from mid^3)"))
-	float PhotoBlackOut;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_PhotoContrast", DisplayName = "Contrast (gamma)"))
-	float PhotoContrast;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(editcondition = "bOverride_PhotoTint", DisplayName = "Tint (post-tonemap)", HideAlphaChannel))
-	FLinearColor PhotoTint;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_PhotoOver", DisplayName = "Over Exposure Mix"))
-	float PhotoOver;
-	UPROPERTY(interp, BlueprintReadWrite, Category=Photo, AdvancedDisplay, meta=(editcondition = "bOverride_PhotoOverTint", DisplayName = "Over Exposure Tint", HideAlphaChannel))
-	FLinearColor PhotoOverTint;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Film, meta=(editcondition = "bOverride_FilmEnable", DisplayName = "Use film tone mapper"))
+	uint32 FilmEnable:1;
+
+	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmSlope", DisplayName = "Slope"))
+	float FilmSlope;
+	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmToe", DisplayName = "Toe"))
+	float FilmToe;
+	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmShoulder", DisplayName = "Shoulder"))
+	float FilmShoulder;
+	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmBlackClip", DisplayName = "Black clip"))
+	float FilmBlackClip;
+	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmWhiteClip", DisplayName = "White clip"))
+	float FilmWhiteClip;
 	
 	/** Scene tint color */
 	UPROPERTY(interp, BlueprintReadWrite, Category=SceneColor, AdvancedDisplay, meta=(editcondition = "bOverride_SceneColorTint", HideAlphaChannel))
@@ -691,10 +686,6 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=SceneColor, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_VignetteIntensity"))
 	float VignetteIntensity;
 
-	/** Vignette color. */
-	UPROPERTY(interp, BlueprintReadWrite, Category=SceneColor, AdvancedDisplay, meta=(editcondition = "bOverride_VignetteColor", DisplayName = "Vignette Color", HideAlphaChannel))
-	FLinearColor VignetteColor;
-
 	/** 0..1 grain jitter */
 	UPROPERTY(interp, BlueprintReadWrite, Category = SceneColor, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_GrainJitter"))
 	float GrainJitter;
@@ -892,6 +883,15 @@ struct FPostProcessSettings
 		// to set all bOverride_.. by default to false
 		FMemory::Memzero(this, sizeof(FPostProcessSettings));
 
+		WhiteTemp = 6500.0f;
+		WhiteTint = 0.0f;
+
+		ColorSaturation = FVector( 1.0f, 1.0f, 1.0f );
+		ColorContrast = FVector( 1.0f, 1.0f, 1.0f );
+		ColorGamma = FVector( 1.0f, 1.0f, 1.0f );
+		ColorGain = FVector( 1.0f, 1.0f, 1.0f );
+		ColorOffset = FVector( 0.0f, 0.0f, 0.0f );
+
 		// default values:
 		FilmWhitePoint = FLinearColor(1.0f,1.0f,1.0f);
 		FilmSaturation = 1.0f;
@@ -906,18 +906,14 @@ struct FPostProcessSettings
 		FilmShadowTintBlend = 0.5;
 		FilmShadowTintAmount = 0.0;
 
-		PhotoExposure = 0.0f;
-		PhotoMid = 0.18f;
-		PhotoWhite = FLinearColor(1.0f,1.0f,1.0f);
-		PhotoSaturation = 1.0f;
-		PhotoChannelMixerRed = FLinearColor(1.0f,0.0f,0.0f);
-		PhotoChannelMixerGreen = FLinearColor(0.0f,1.0f,0.0f);
-		PhotoChannelMixerBlue = FLinearColor(0.0f,0.0f,1.0f);
-		PhotoBlackOut = -1.0f;
-		PhotoContrast = 1.2f;
-		PhotoTint = FLinearColor(1.0f,1.0f,1.0f);
-		PhotoOver = 1.0f/32.0f;
-		PhotoOverTint = FLinearColor(16.0f,12.0f,1.0f);
+		FilmEnable = 0;
+
+		// ACES settings
+		FilmSlope = 0.88f;
+		FilmToe = 0.55f;
+		FilmShoulder = 0.26f;
+		FilmBlackClip = 0.0f;
+		FilmWhiteClip = 0.04f;
 
 		SceneColorTint = FLinearColor(1, 1, 1);
 		SceneFringeIntensity = 0.0f;
@@ -968,8 +964,7 @@ struct FPostProcessSettings
 		LensFlareTint = FLinearColor(1.0f, 1.0f, 1.0f);
 		LensFlareBokehSize = 3.0f;
 		LensFlareThreshold = 8.0f;
-		VignetteIntensity = 0.0f;
-		VignetteColor = FLinearColor(0.0f, 0.0f, 0.0f);
+		VignetteIntensity = 0.4f;
 		GrainIntensity = 0.0f;
 		GrainJitter = 0.0f;
 		// next value might get overwritten by r.DefaultFeature.AmbientOcclusion
