@@ -38,6 +38,17 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITOR
+void UPaperTileMap::PreEditChange(UProperty* PropertyAboutToChange)
+{
+	if ((PropertyAboutToChange != nullptr) && (PropertyAboutToChange->GetFName() == GET_MEMBER_NAME_CHECKED(UPaperTileMap, HexSideLength)))
+	{
+		// Subtract out the hex side length; we'll add it back (along with any changes) in PostEditChangeProperty
+		TileHeight -= HexSideLength;
+	}
+}
+#endif
+
+#if WITH_EDITOR
 
 #include "PaperTileMapComponent.h"
 #include "ComponentReregisterContext.h"
@@ -87,6 +98,19 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	FTileMapReregisterContext ReregisterTileMapComponents(this);
 
 	ValidateSelectedLayerIndex();
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, HexSideLength))
+	{
+		HexSideLength = FMath::Max<int32>(HexSideLength, 0);
+
+		// The side length needs to be included in the overall tile height
+		TileHeight += HexSideLength;
+	}
+
+	TileWidth = FMath::Max(TileWidth, 1);
+	TileHeight = FMath::Max(TileHeight, 1);
+	MapWidth = FMath::Max(MapWidth, 1);
+	MapHeight = FMath::Max(MapHeight, 1);
 
 	if (PixelsPerUnrealUnit <= 0.0f)
 	{
