@@ -274,7 +274,7 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 				const uint8 DPG = SDPG_Foreground;//GetDepthPriorityGroup(View);
 
 				// Draw separation wires if selected
-				const FLinearColor OverrideColor = GetSelectionColor(FLinearColor::White, bShowAsSelected, IsHovered());
+				const FLinearColor OverrideColor = GetSelectionColor(FLinearColor::White, bShowAsSelected, IsHovered(), /*bUseOverlayIntensity=*/ false);
 
 				FTransform LocalToWorld(GetLocalToWorld());
 
