@@ -102,7 +102,7 @@ enum class ELevelEditor2DAxis : uint8
 };
 
 /**
- * Configure the settings for the 2D Level Editor
+ * Configure settings for the 2D Level Editor
  */
 UCLASS(config=Editor, meta=(DisplayName="2D"))
 class UNREALED_API ULevelEditor2DSettings : public UDeveloperSettings
