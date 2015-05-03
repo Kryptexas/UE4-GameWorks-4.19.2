@@ -6,6 +6,7 @@
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
 #include "PaperTileMapFactory.h"
+#include "TileSetEditor/TileSheetPaddingFactory.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -63,6 +64,13 @@ void FTileSetAssetTypeActions::GetActions(const TArray<UObject*>& InObjects, FMe
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.PaperTileSet"),
 			FUIAction(FExecuteAction::CreateSP(this, &FTileSetAssetTypeActions::ExecuteCreateTileMap, TileSets[0]))
 			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("TileSet_ConditionTileSet", "Condition Tile Sheet Texture"),
+			LOCTEXT("TileSet_ConditionTileSetTooltip", "Conditions the tile sheet texture for the selected tile set by duplicating tile edges to create a buffer zone around each tile"),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.Texture2D"),
+			FUIAction(FExecuteAction::CreateSP(this, &FTileSetAssetTypeActions::ExecutePadTileSetTexture, TileSets[0]))
+			);
 	}
 }
 
@@ -82,7 +90,7 @@ void FTileSetAssetTypeActions::ExecuteCreateTileMap(TWeakObjectPtr<UPaperTileSet
 		const FString TileSetPathName = TileSet->GetOutermost()->GetPathName();
 		const FString LongPackagePath = FPackageName::GetLongPackagePath(TileSetPathName);
 
-		const FString NewTileMapDefaultPath = LongPackagePath + TEXT("/") + EffectiveTileSetName;
+		const FString NewTileMapDefaultPath = LongPackagePath / EffectiveTileSetName;
 
 		// Make sure the name is unique
 		FString AssetName;
@@ -94,6 +102,36 @@ void FTileSetAssetTypeActions::ExecuteCreateTileMap(TWeakObjectPtr<UPaperTileSet
 		UPaperTileMapFactory* TileMapFactory = NewObject<UPaperTileMapFactory>();
 		TileMapFactory->InitialTileSet = TileSet;
 		ContentBrowserModule.Get().CreateNewAsset(AssetName, PackagePath, UPaperTileMap::StaticClass(), TileMapFactory);
+	}
+}
+
+void FTileSetAssetTypeActions::ExecutePadTileSetTexture(TWeakObjectPtr<UPaperTileSet> TileSetPtr)
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+
+	if (UPaperTileSet* TileSet = TileSetPtr.Get())
+	{
+		if (TileSet->TileSheet != nullptr)
+		{
+			const FString TileSheetSuffix(TEXT("Padded"));
+			const FString TileSheetPathName = TileSet->TileSheet->GetOutermost()->GetPathName();
+			const FString LongPackagePath = FPackageName::GetLongPackagePath(TileSheetPathName);
+
+			const FString EffectiveTileSheetName = TileSet->TileSheet->GetName();
+			const FString NewTileSheetDefaultPath = LongPackagePath / EffectiveTileSheetName;
+
+			// Make sure the name is unique
+			FString AssetName;
+			FString PackageName;
+			AssetToolsModule.Get().CreateUniqueAssetName(NewTileSheetDefaultPath, TileSheetSuffix, /*out*/ PackageName, /*out*/ AssetName);
+			const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+
+			// Create the new tile sheet
+			UTileSheetPaddingFactory* TileSheetPaddingFactory = NewObject<UTileSheetPaddingFactory>();
+			TileSheetPaddingFactory->SourceTileSet = TileSet;
+			ContentBrowserModule.Get().CreateNewAsset(AssetName, PackagePath, UTexture::StaticClass(), TileSheetPaddingFactory);
+		}
 	}
 }
 
