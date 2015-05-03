@@ -91,9 +91,6 @@ struct FPostProcessSettings
 	uint32 bOverride_FilmShadowTintAmount:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_FilmEnable:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_FilmSlope:1;
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_FilmToe:1;
@@ -427,9 +424,6 @@ struct FPostProcessSettings
 	float FilmHealAmount;
 	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "1.0", UIMax = "4.0", editcondition = "bOverride_FilmDynamicRange", DisplayName = "Dynamic Range"))
 	float FilmDynamicRange;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Film, meta=(editcondition = "bOverride_FilmEnable", DisplayName = "Use film tone mapper"))
-	uint32 FilmEnable:1;
 
 	UPROPERTY(interp, BlueprintReadWrite, Category=Film, AdvancedDisplay, meta=(UIMin = "0.0", UIMax = "1.0", editcondition = "bOverride_FilmSlope", DisplayName = "Slope"))
 	float FilmSlope;
@@ -905,8 +899,6 @@ struct FPostProcessSettings
 		FilmShadowTint = FLinearColor(1.0f,1.0f,1.0f);
 		FilmShadowTintBlend = 0.5;
 		FilmShadowTintAmount = 0.0;
-
-		FilmEnable = 0;
 
 		// ACES settings
 		FilmSlope = 0.88f;
