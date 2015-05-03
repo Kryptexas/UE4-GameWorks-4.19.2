@@ -686,7 +686,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 					}
 				}
 
-				GEditor->RedrawViewports();
+				GEditor->RedrawLevelEditingViewports(true);
 			}
 
 			return FReply::Handled();
