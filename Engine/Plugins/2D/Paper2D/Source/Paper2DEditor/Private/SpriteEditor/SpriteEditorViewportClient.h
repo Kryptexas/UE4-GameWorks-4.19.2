@@ -147,6 +147,9 @@ private:
 	// Should we show related sprites in the source texture?
 	bool bShowRelatedSprites;
 
+	// Should we show names for sprites in the source region edit mode?
+	bool bShowNamesForSprites;
+
 	// Other sprites that share the same source texture
 	TArray<FRelatedSprite> RelatedSprites;
 
