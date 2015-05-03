@@ -622,24 +622,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformInfoName )
 {
-	// For a binary Rocket build, Development is ALWAYS Win64, and Shipping is ALWAYS Win32.
-	if(FRocketSupport::IsRocket())
-	{
-		const EProjectPackagingBuildConfigurations BuildConfiguration = GetDefault<UProjectPackagingSettings>()->BuildConfiguration;
-		switch(BuildConfiguration)
-		{
-		case PPBC_DebugGame: // DebugGame uses the same libs as Development, so fall through and apply the same validation logic
-		case PPBC_Development:
-			return PlatformInfoName != "WindowsNoEditor_Win32";
-
-		case PPBC_Shipping:
-			return PlatformInfoName != "WindowsNoEditor_Win64";
-
-		default:
-			break;
-		}
-	}
-
 	return true;
 }
 

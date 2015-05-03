@@ -459,28 +459,6 @@ namespace UnrealBuildTool
 
 								var SolutionPlatformName = CurPlatform.ToString();
 
-								// For Rocket, there are currently no targets that are valid to build both for Win32 and Win64.  So we simply things by
-								// only displaying a "Windows" platform and building for the appropriate Windows platform automatically based on whichever
-								// configuration they have selected.
-								if( UnrealBuildTool.RunningRocket() && ( CurPlatform == UnrealTargetPlatform.Win32 || CurPlatform == UnrealTargetPlatform.Win64 ) )
-								{
-									SolutionPlatformName = "Windows";
-									if( Configuration == UnrealTargetConfiguration.Shipping )
-									{
-										if(CurPlatform != UnrealTargetPlatform.Win32)
-										{
-											continue;
-										}
-									}
-									else
-									{
-										if(CurPlatform != UnrealTargetPlatform.Win64)
-										{
-											continue;
-										}
-									}
-								}
-
 								var SolutionConfigAndPlatformPair = SolutionConfigName + "|" + SolutionPlatformName;
 								SolutionConfigCombinations.Add(
 										new VCSolutionConfigCombination
