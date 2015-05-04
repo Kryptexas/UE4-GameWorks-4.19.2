@@ -24,7 +24,20 @@ void FMacPlatformMemory::Init()
 
 FMalloc* FMacPlatformMemory::BaseAllocator()
 {
-	if(getenv("UE4_FORCE_MALLOC_ANSI") != nullptr)
+	bool bIsMavericks = false;
+
+	char OSRelease[PATH_MAX] = {};
+	size_t OSReleaseBufferSize = PATH_MAX;
+	if (sysctlbyname("kern.osrelease", OSRelease, &OSReleaseBufferSize, NULL, 0) == 0)
+	{
+		int32 OSVersionMajor = 0;
+		if (sscanf(OSRelease, "%d", &OSVersionMajor) == 1)
+		{
+			bIsMavericks = OSVersionMajor <= 13;
+		}
+	}
+
+	if(getenv("UE4_FORCE_MALLOC_ANSI") != nullptr || bIsMavericks)
 	{
 		return new FMallocAnsi();
 	}
