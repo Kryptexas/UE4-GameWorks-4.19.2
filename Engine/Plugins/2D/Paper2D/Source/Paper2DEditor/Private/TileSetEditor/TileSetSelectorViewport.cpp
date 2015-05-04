@@ -191,7 +191,7 @@ void STileSetSelectorViewport::RefreshSelectionRectangle()
 			Client->ValidPaintRectangle.Color = FLinearColor::White;
 
 			const FIntPoint TopLeft = TileSetBeingEdited->GetTileUVFromTileXY(SelectionTopLeft);
-			const FIntPoint BottomRight = TileSetBeingEdited->GetTileUVFromTileXY(SelectionTopLeft + SelectionDimensions);
+			const FIntPoint BottomRight = TileSetBeingEdited->GetTileUVFromTileXY(SelectionTopLeft + SelectionDimensions - FIntPoint(1,1)) + TileSetBeingEdited->GetTileSize();
 			Client->ValidPaintRectangle.Dimensions = BottomRight - TopLeft;
 			Client->ValidPaintRectangle.TopLeft = TopLeft;
 		}
