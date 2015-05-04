@@ -252,6 +252,14 @@ public:
 	virtual bool RequiresVsync() const = 0;
 
 	/**
+	 * Whether the viewport contents should be scaled or not. Defaults to true.
+	 */
+	virtual bool AllowScaling() const
+	{
+		return true;
+	}
+
+	/**
 	 * Called when Slate needs to know what the mouse cursor should be.
 	 * 
 	 * @return FCursorReply::Unhandled() if the event is not handled; FCursorReply::Cursor() otherwise.
