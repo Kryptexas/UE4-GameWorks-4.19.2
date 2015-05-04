@@ -982,7 +982,7 @@ namespace GitDependencies
 
 					// Update the stats
 					Interlocked.Add(ref State.NumBytesTotal, RollbackSize - NextPack.CompressedSize);
-					Interlocked.Add(ref State.NumFilesRead, NextPack.Files.Length);
+					Interlocked.Add(ref State.NumFilesRead, NextPack.Files.Sum(x => x.Names.Length));
 
 					// If we were failing, decrement the number of failing threads
 					if(Retries > MaxRetries)
