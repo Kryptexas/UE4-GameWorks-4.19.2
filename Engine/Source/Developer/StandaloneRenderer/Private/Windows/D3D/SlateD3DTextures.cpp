@@ -43,17 +43,32 @@ void FSlateD3DTexture::ResizeTexture(uint32 Width, uint32 Height)
 	Init(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, NULL, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
 }
 
-void FSlateD3DTexture::UpdateTexture(const TArray<uint8>& Bytes)
+void FSlateD3DTexture::UpdateTextureRaw(const void* Buffer)
 {
 	// TODO: Improve the memory copying here, have tried using UpdateSubresource but it doesn't seem to work
 	D3D11_MAPPED_SUBRESOURCE Resource;
 	GD3DDeviceContext->Map(D3DTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &Resource);
 	for (uint32 Row = 0; Row < SizeY; ++Row)
 	{
-		FMemory::Memcpy((uint8*)Resource.pData + Row * Resource.RowPitch, Bytes.GetData() + Row * SizeX*4, SizeX*4);
+		FMemory::Memcpy((uint8*)Resource.pData + Row * Resource.RowPitch, (uint8*)Buffer + Row * SizeX*4, SizeX*4);
 	}
 	GD3DDeviceContext->Unmap(D3DTexture, 0);
 }
+
+void FSlateD3DTexture::UpdateTexture(const TArray<uint8>& Bytes)
+{
+	UpdateTextureRaw(Bytes.GetData());
+}
+
+void FSlateD3DTexture::UpdateTextureThreadSafeRaw(uint32 Width, uint32 Height, const void* Buffer)
+{
+	if (Width != SizeX || Height != SizeY)
+	{
+		ResizeTexture(Width, Height);
+	}
+	UpdateTextureRaw(Buffer);
+}
+
 
 FSlateTextureAtlasD3D::FSlateTextureAtlasD3D( uint32 Width, uint32 Height, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle )
 	: FSlateTextureAtlas( Width, Height, StrideBytes, PaddingStyle )

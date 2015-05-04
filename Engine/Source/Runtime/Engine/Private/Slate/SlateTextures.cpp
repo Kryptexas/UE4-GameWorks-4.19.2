@@ -181,6 +181,33 @@ void FSlateTexture2DRHIRef::UpdateTextureThreadSafe(const TArray<uint8>& Bytes)
 	}
 }
 
+void FSlateTexture2DRHIRef::UpdateTextureThreadSafeRaw(uint32 InWidth, uint32 InHeight, const void* Buffer)
+{
+	if (IsInGameThread())
+	{
+		// No cheap way to avoid having to copy the Buffer, as we cannot guarantee it will not be touched before the rendering thread is done with it.
+		const uint32 BufferSize = InWidth * InHeight * 4;
+		TArray<uint8>* BufferCopy = new TArray<uint8>();
+		BufferCopy->AddUninitialized(BufferSize);
+		FMemory::Memcpy(BufferCopy->GetData(), Buffer, BufferSize);
+		FIntPoint Dimensions(InWidth, InHeight);
+
+		// Update the texture RHI
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			FSlateTexture2DRHIRef_UpdateTextureRaw,
+			FSlateTexture2DRHIRef*, ThisTexture, this,
+			FIntPoint, InDimensions, Dimensions,
+			TArray<uint8>*, BufferCopy, BufferCopy,
+			{
+				if (ThisTexture->GetWidth() != InDimensions.X || ThisTexture->GetHeight() != InDimensions.Y)
+				{
+					ThisTexture->Resize(InDimensions.X, InDimensions.Y);
+				}
+				ThisTexture->UpdateTexture(*BufferCopy);
+				delete BufferCopy;
+			});
+	}
+}
 
 void FSlateRenderTargetRHI::SetRHIRef( FTexture2DRHIRef InRenderTargetTexture, uint32 InWidth, uint32 InHeight )
 {
@@ -224,8 +251,8 @@ void FSlateTextureRenderTarget2DResource::ClampSize(int32 MaxSizeX,int32 MaxSize
 	check(IsInRenderingThread());
 
 	// upsize to go back to original or downsize to clamp to max
- 	int32 NewSizeX = FMath::Min<int32>(TargetSizeX,MaxSizeX);
- 	int32 NewSizeY = FMath::Min<int32>(TargetSizeY,MaxSizeY);
+	int32 NewSizeX = FMath::Min<int32>(TargetSizeX,MaxSizeX);
+	int32 NewSizeY = FMath::Min<int32>(TargetSizeY,MaxSizeY);
 	if (NewSizeX != TargetSizeX || NewSizeY != TargetSizeY)
 	{
 		TargetSizeX = NewSizeX;
