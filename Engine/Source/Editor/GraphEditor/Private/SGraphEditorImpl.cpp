@@ -161,7 +161,6 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 	Commands = MakeShareable( new FUICommandList() );
 	IsEditable = InArgs._IsEditable;
 	Appearance = InArgs._Appearance;
-	TitleBarEnabledOnly = InArgs._TitleBarEnabledOnly;
 	TitleBar	= InArgs._TitleBar;
 	bAutoExpandActionMenu = InArgs._AutoExpandActionMenu;
 	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
@@ -252,7 +251,6 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.IsEditable( this, &SGraphEditorImpl::IsGraphEditable )
 			.OnDropActor( InArgs._GraphEvents.OnDropActor )
 			.OnDropStreamingLevel( InArgs._GraphEvents.OnDropStreamingLevel )
-			.IsEnabled(this, &SGraphEditorImpl::GraphEd_OnGetGraphEnabled)
 			.OnVerifyTextCommit( InArgs._GraphEvents.OnVerifyTextCommit )
 			.OnTextCommitted( InArgs._GraphEvents.OnTextCommitted )
 			.OnSpawnNodeByShortcut( InArgs._GraphEvents.OnSpawnNodeByShortcut )
@@ -408,12 +406,6 @@ EActiveTimerReturnType SGraphEditorImpl::TriggerRefresh( double InCurrentTime, f
 void SGraphEditorImpl::OnClosedActionMenu()
 {
 	GraphPanel->OnStopMakingConnection(/*bForceStop=*/ true);
-}
-
-bool SGraphEditorImpl::GraphEd_OnGetGraphEnabled() const
-{
-	const bool bTitleBarOnly = TitleBarEnabledOnly.Get();
-	return !bTitleBarOnly;
 }
 
 FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo)

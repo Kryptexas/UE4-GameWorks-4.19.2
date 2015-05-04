@@ -35,7 +35,6 @@ private:
 		const TAttribute<bool>& InIsEmpty,
 		TAttribute<FGraphAppearanceInfo> Appearance,
 		TSharedPtr<SWidget> InTitleBar,
-		const TAttribute<bool>& InTitleBarEnabledOnly,
 		UEdGraph* InGraphToEdit,
 		SGraphEditor::FGraphEditorEvents GraphEvents,
 		bool InAutoExpandActionMenu,

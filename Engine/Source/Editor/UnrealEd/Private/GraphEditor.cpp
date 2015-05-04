@@ -22,7 +22,6 @@ void SGraphEditor::ConstructImplementation( const FArguments& InArgs )
 		InArgs._IsEmpty,
 		InArgs._Appearance,
 		InArgs._TitleBar,
-		InArgs._TitleBarEnabledOnly,
 		InArgs._GraphToEdit,
 		InArgs._GraphEvents,
 		InArgs._AutoExpandActionMenu,

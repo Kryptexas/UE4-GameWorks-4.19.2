@@ -26,7 +26,6 @@ public:
 		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 		SLATE_ATTRIBUTE( bool, IsEditable )
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )
-		SLATE_ATTRIBUTE( bool, TitleBarEnabledOnly )
 		SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 		SLATE_ARGUMENT( UEdGraph*, GraphToEdit )
 		SLATE_ARGUMENT( UEdGraph*, GraphToDiff )
@@ -58,7 +57,6 @@ private:
 	SGraphEditor::FOnCreateActionMenu OnCreateActionMenu;
 
 	TAttribute<bool> IsEditable;
-	TAttribute<bool> TitleBarEnabledOnly;
 
 	bool bAutoExpandActionMenu;
 
@@ -100,8 +98,6 @@ public:
 	virtual ~SGraphEditorImpl();
 
 	void OnClosedActionMenu();
-
-	bool GraphEd_OnGetGraphEnabled() const;
 
 	FActionMenuContent GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo);
 

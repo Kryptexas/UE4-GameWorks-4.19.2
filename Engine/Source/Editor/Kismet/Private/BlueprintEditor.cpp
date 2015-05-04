@@ -1173,12 +1173,10 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 	}
 
 
-	bool const bEnableTitleBarOnly = !IsGraphPanelEnabled(InGraph);
 	TSharedRef<SGraphEditor> Editor = SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(this, &FBlueprintEditor::IsEditable, InGraph)
 		.TitleBar(TitleBarWidget)
-		.TitleBarEnabledOnly(bEnableTitleBarOnly)
 		.Appearance(this, &FBlueprintEditor::GetGraphAppearance, InGraph)
 		.GraphToEdit(InGraph)
 		.GraphEvents(InEvents)
@@ -7537,7 +7535,7 @@ UEdGraph* FBlueprintEditor::GetFocusedGraph() const
 
 bool FBlueprintEditor::IsEditable(UEdGraph* InGraph) const
 {
-	return InEditingMode() && InGraph && InGraph->bEditable;
+	return InEditingMode() && InGraph && InGraph->bEditable && IsGraphPanelEnabled(InGraph);
 }
 
 bool FBlueprintEditor::IsGraphPanelEnabled(UEdGraph* InGraph) const

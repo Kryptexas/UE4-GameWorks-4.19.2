@@ -457,7 +457,6 @@ void SBehaviorTreeDiff::FBehaviorTreeDiffPanel::GeneratePanel(UEdGraph* Graph, U
 			.GraphToEdit(Graph)
 			.GraphToDiff(GraphToDiff)
 			.IsEditable(false)
-			.TitleBarEnabledOnly(false)
 			.TitleBar(SNew(SBorder).HAlign(HAlign_Center)
 			[
 				SNew(STextBlock).Text(GetTitle())

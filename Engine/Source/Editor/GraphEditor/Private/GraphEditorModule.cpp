@@ -59,7 +59,6 @@ TSharedRef<SGraphEditor> FGraphEditorModule::PRIVATE_MakeGraphEditor(
 	const TAttribute<bool>& InIsEmpty,
 	TAttribute<FGraphAppearanceInfo> Appearance,
 	TSharedPtr<SWidget> InTitleBar,
-	const TAttribute<bool>& InTitleBarEnabledOnly,
 	UEdGraph* InGraphToEdit,
 	SGraphEditor::FGraphEditorEvents InGraphEvents,
 	bool InAutoExpandActionMenu,
@@ -74,7 +73,6 @@ TSharedRef<SGraphEditor> FGraphEditorModule::PRIVATE_MakeGraphEditor(
 		.IsEditable(InIsEditable)
 		.Appearance(Appearance)
 		.TitleBar(InTitleBar)
-		.TitleBarEnabledOnly(InTitleBarEnabledOnly)
 		.GraphToEdit(InGraphToEdit)
 		.GraphEvents(InGraphEvents)
 		.AutoExpandActionMenu(InAutoExpandActionMenu)

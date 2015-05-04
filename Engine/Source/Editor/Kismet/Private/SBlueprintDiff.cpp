@@ -1106,7 +1106,6 @@ void FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff )
 			.GraphToEdit(Graph)
 			.GraphToDiff(GraphToDiff)
 			.IsEditable(false)
-			.TitleBarEnabledOnly(false)
 			.GraphEvents(InEvents);
 
 		GraphEditor = Editor;
