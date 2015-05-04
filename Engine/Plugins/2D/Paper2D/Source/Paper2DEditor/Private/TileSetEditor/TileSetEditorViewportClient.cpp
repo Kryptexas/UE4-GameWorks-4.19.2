@@ -49,6 +49,23 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 			Canvas->DrawTile(XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, TextureDrawColor, Texture->Resource, bUseTranslucentBlend);
 		}
 
+
+		const FLinearColor BorderRectangleColor(0.3f, 0.3f, 0.3f, 1.0f);
+		{
+			const FIntPoint TextureSize = Texture->GetImportedSize();
+			const FIntMargin BorderSize = TileSet->GetMargin();
+			const FIntRect TileSetRegion(BorderSize.Left, BorderSize.Top, TextureSize.X - BorderSize.Right, TextureSize.Y - BorderSize.Bottom);
+
+			const float X = (TileSetRegion.Min.X - ZoomPos.X) * ZoomAmount;
+			const float Y = (TileSetRegion.Min.Y - ZoomPos.Y) * ZoomAmount;
+			const float W = TileSetRegion.Width() * ZoomAmount;
+			const float H = TileSetRegion.Height() * ZoomAmount;
+
+			FCanvasBoxItem BoxItem(FVector2D(X, Y), FVector2D(W, H));
+			BoxItem.SetColor(BorderRectangleColor);
+			Canvas->DrawItem(BoxItem);
+		}
+
 		if (bShowTilesWithCollision || bShowTilesWithMetaData)
 		{
 			// Draw an overlay rectangle on top of any tiles that have collision or metadata geometry
