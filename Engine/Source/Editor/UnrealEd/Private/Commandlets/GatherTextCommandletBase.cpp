@@ -727,7 +727,7 @@ FGatherTextSCC::~FGatherTextSCC()
 
 bool FGatherTextSCC::CheckOutFile(const FString& InFile, FText& OutError)
 {
-	if ( InFile.IsEmpty() )
+	if ( InFile.IsEmpty() || InFile.StartsWith(TEXT("\\\\")) )
 	{
 		OutError = NSLOCTEXT("GatherTextCmdlet", "InvalidFileSpecified", "Could not checkout file at invalid path.");
 		return false;
@@ -905,7 +905,7 @@ bool FGatherTextSCC::IsReady(FText& OutError)
 
 bool FGatherTextSCC::RevertFile( const FString& InFile, FText& OutError )
 {
-	if( InFile.IsEmpty() )
+	if( InFile.IsEmpty() || InFile.StartsWith(TEXT("\\\\")) )
 	{
 		OutError = NSLOCTEXT("GatherTextCmdlet", "CouldNotRevertFile", "Could not revert file.");
 		return false;
