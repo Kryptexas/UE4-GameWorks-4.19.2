@@ -659,19 +659,17 @@ void FTlsAutoCleanup::Register()
 	}
 }
 
-
-
-FMultiReaderSingleWriterGT::FMultiReaderSingleWriterGT()
-{
-	CanRead = TFunction<bool()>([=]() { return FPlatformAtomics::InterlockedCompareExchange(&CriticalSection.Action, ReadingAction, NoAction) == ReadingAction; });
-	CanWrite = TFunction<bool()>([=]() { return FPlatformAtomics::InterlockedCompareExchange(&CriticalSection.Action, WritingAction, NoAction) == WritingAction; });
-}
-
 void FMultiReaderSingleWriterGT::LockRead()
 {
 	if (!IsInGameThread())
-	{
-		FPlatformProcess::ConditionalSleep(CanRead);
+	{		
+		SCOPE_CYCLE_COUNTER(STAT_Sleep);
+
+		FThreadIdleStats::FScopeIdle Scope;
+		while (!CanRead())
+		{
+			FPlatformProcess::SleepNoStats(0.0f);
+		}
 	}
 	CriticalSection.ReadCounter.Increment();
 }
@@ -692,7 +690,17 @@ void FMultiReaderSingleWriterGT::UnlockRead()
 void FMultiReaderSingleWriterGT::LockWrite()
 {
 	check(IsInGameThread());
-	FPlatformProcess::ConditionalSleep(CanWrite);
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Sleep);
+
+		FThreadIdleStats::FScopeIdle Scope;
+		while (!CanWrite())
+		{
+			FPlatformProcess::SleepNoStats(0.0f);
+		}
+	}
+
 	CriticalSection.WriteCounter.Increment();
 }
 

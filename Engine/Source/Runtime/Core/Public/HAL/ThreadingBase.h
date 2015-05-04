@@ -843,8 +843,6 @@ public:
 class FMultiReaderSingleWriterGT
 {
 public:
-	FMultiReaderSingleWriterGT();
-
 	/** Protect data from modification while reading. If issued on game thread, doesn't wait for write to finish. */
 	void LockRead();
 
@@ -877,8 +875,15 @@ private:
 	static const int32 NoAction = 0;
 	static const int32 ReadingAction = 1;
 
-	TFunction<bool()> CanRead;
-	TFunction<bool()> CanWrite;
+	bool CanRead()
+	{
+		return FPlatformAtomics::InterlockedCompareExchange(&CriticalSection.Action, ReadingAction, NoAction) == ReadingAction;
+	}
+	
+	bool CanWrite()
+	{
+		return FPlatformAtomics::InterlockedCompareExchange(&CriticalSection.Action, WritingAction, NoAction) == WritingAction;
+	}
 };
 
 class FReadScopeLock
