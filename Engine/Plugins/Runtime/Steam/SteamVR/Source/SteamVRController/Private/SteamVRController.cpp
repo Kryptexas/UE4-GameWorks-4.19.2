@@ -91,6 +91,12 @@ public:
 				// update the mappings if this is a new device
 				if (DeviceToControllerMap[DeviceIndex] == -1)
 				{
+					// don't map too many controllers
+					if (NumControllersMapped >= MAX_STEAMVR_CONTROLLERS)
+					{
+						continue;
+					}
+
 					DeviceToControllerMap[DeviceIndex] = NumControllersMapped;
 					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
 					++NumControllersMapped;
