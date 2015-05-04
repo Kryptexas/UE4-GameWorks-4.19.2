@@ -9,13 +9,11 @@ USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& Objec
 {
 }
 
-//@TODO steamvr:  Make these safer with device ID checking instead of nasty casting.
-
 void USteamVRFunctionLibrary::GetValidTrackedDeviceIds(TArray<int32>& DeviceIds)
 {
 	DeviceIds.Empty();
 
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
 	{
 		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
 		SteamVRHMD->GetTrackedDeviceIds(DeviceIds);
@@ -26,7 +24,7 @@ bool USteamVRFunctionLibrary::GetTrackedDevicePositionAndOrientation(int32 Devic
 {
 	bool RetVal = false;
 
-	if (GEngine->HMDDevice.IsValid())
+	if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
 	{
 		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
 
@@ -42,7 +40,7 @@ bool USteamVRFunctionLibrary::GetTrackedDeviceIdFromControllerIndex(int32 Contro
 {
 	OutDeviceId = -1;
 
-	if (!GEngine->HMDDevice.IsValid())
+	if (!GEngine->HMDDevice.IsValid() || (GEngine->HMDDevice->GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR))
 	{
 		return false;
 	}

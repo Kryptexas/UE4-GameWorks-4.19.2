@@ -187,7 +187,7 @@ public:
 
 public:
 	/** Constructor */
-	FSteamVRHMD();
+	FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin);
 
 	/** Destructor */
 	virtual ~FSteamVRHMD();
@@ -198,23 +198,20 @@ public:
 private:
 
 	/**
-	 * Starts up the SteamVR API
+	 * Starts up the OpenVR API
 	 */
 	void Startup();
 
 	/**
-	 * Shuts down the SteamVR API
+	 * Shuts down the OpenVR API
 	 */
 	void Shutdown();
 
 	void LoadFromIni();
 	void SaveToIni();
 
-	bool LoadSteamModule();
-	void UnloadSteamModule();
-
-	// Initialize the controller to tracked device mappings
-	void InitializeControllerMappings();
+	bool LoadOpenVRModule();
+	void UnloadOpenVRModule();
 
 	void PoseToOrientationAndPosition(const vr::HmdMatrix34_t& Pose, FQuat& OutOrientation, FVector& OutPosition) const;
 	void GetCurrentPose(FQuat& CurrentOrientation, FVector& CurrentPosition, uint32 DeviceID = vr::k_unTrackedDeviceIndex_Hmd, bool bForceRefresh=false);
@@ -250,7 +247,7 @@ private:
  	{
  		uint32 FrameNumber;
  
- 		bool bDeviceIsValid[vr::k_unMaxTrackedDeviceCount];
+ 		bool bDeviceIsConnected[vr::k_unMaxTrackedDeviceCount];
  		bool bPoseIsValid[vr::k_unMaxTrackedDeviceCount];
  		FVector DevicePosition[vr::k_unMaxTrackedDeviceCount];
  		FQuat DeviceOrientation[vr::k_unMaxTrackedDeviceCount];
@@ -263,7 +260,7 @@ private:
 
 			const uint32 MaxDevices = vr::k_unMaxTrackedDeviceCount;
 
-			FMemory::Memzero(bDeviceIsValid, MaxDevices * sizeof(bool));
+			FMemory::Memzero(bDeviceIsConnected, MaxDevices * sizeof(bool));
 			FMemory::Memzero(bPoseIsValid, MaxDevices * sizeof(bool));
 			FMemory::Memzero(DevicePosition, MaxDevices * sizeof(FVector));
 
@@ -276,10 +273,6 @@ private:
 		}
  	};
 	FTrackingFrame TrackingFrame;
-
-	// a mapping from steam controller index to a tracked device index.  -1 indicates an invalid mapping
-	int32 ControllerIndexToTrackedDeviceIndex[MAX_STEAM_CONTROLLERS];
-	static const uint32 InvalidTrackedDeviceId = 0xFFFFFFFF;
 
 	/** Coverts a SteamVR-space vector to an Unreal-space vector.  Does not handle scaling, only axes conversion */
 	FORCEINLINE static FVector CONVERT_STEAMVECTOR_TO_FVECTOR(const vr::HmdVector3_t InVector)
@@ -364,12 +357,13 @@ private:
 	float WorldToMetersScale;
 
 	IRendererModule* RendererModule;
+	ISteamVRPlugin* SteamVRPlugin;
 
-	vr::IVRSystem* Hmd;
+	TSharedPtr<vr::IVRSystem> VRSystem;
 	vr::IVRCompositor* VRCompositor;
 	vr::IVRChaperone* VRChaperone;
 
-	void* SteamDLLHandle;
+	void* OpenVRDLLHandle;
 	
 	FString DisplayId;
 

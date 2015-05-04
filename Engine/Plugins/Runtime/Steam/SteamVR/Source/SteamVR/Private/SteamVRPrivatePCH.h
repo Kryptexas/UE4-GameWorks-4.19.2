@@ -2,33 +2,11 @@
 
 #pragma once
 
-/** Name of the current Steam SDK version in use (matches directory name) */
-#define STEAM_SDK_VER TEXT("Steamv132")
+/** Name of the current OpenVR SDK version in use (matches directory name) */
+#define OPENVR_SDK_VER TEXT("OpenVRv000")
 
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
 #include "Runtime/Engine/Public/ScreenRendering.h"
 
-// @todo Steam: Steam headers trigger secure-C-runtime warnings in Visual C++. Rather than mess with _CRT_SECURE_NO_WARNINGS, we'll just
-//	disable the warnings locally. Remove when this is fixed in the SDK
-#if WITH_STEAMWORKS
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4996)
-#endif
-
-#pragma push_macro("ARRAY_COUNT")
-#undef ARRAY_COUNT
-
-#include "steam/steam_api.h"
-#include "steam/steamvr.h"
-
-#pragma pop_macro("ARRAY_COUNT")
-
-// @todo Steam: See above
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-#endif // WITH_STEAMWORKS
+#include "openvr.h"

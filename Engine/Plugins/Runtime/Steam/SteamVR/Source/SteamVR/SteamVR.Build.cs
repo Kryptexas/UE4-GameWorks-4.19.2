@@ -29,12 +29,10 @@ namespace UnrealBuildTool.Rules
 					"SlateCore"
 				}
 				);
-
-			Definitions.Add("WITH_STEAMWORKS=" + (UEBuildConfiguration.bCompileSteamOSS ? "1" : "0"));
 			
-            if (UEBuildConfiguration.bCompileSteamOSS && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
+            if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
             {
-				AddThirdPartyPrivateStaticDependencies(Target, "Steamworks");
+				AddThirdPartyPrivateStaticDependencies(Target, "OpenVR");
                 PrivateDependencyModuleNames.AddRange(new string[] { "D3D11RHI" });     //@todo steamvr: multiplatform
             }
 		}
