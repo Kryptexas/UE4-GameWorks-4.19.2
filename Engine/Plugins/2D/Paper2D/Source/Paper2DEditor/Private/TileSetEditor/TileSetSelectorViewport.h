@@ -28,6 +28,8 @@ public:
 		return OnTileSelectionChanged;
 	}
 
+	void RefreshSelectionRectangle();
+
 protected:
 	// SWidget interface
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
@@ -44,7 +46,6 @@ protected:
 
 private:
 	void OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview);
-	void RefreshSelectionRectangle();
 
 private:
 	TWeakObjectPtr<class UPaperTileSet> TileSetPtr;
