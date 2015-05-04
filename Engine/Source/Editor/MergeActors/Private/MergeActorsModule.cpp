@@ -53,6 +53,9 @@ private:
 
 	/** List of registered MergeActorsTool instances */
 	TArray<TUniquePtr<IMergeActorsTool>> MergeActorsTools;
+
+	/** Whether a nomad tab spawner was registered */
+	bool bRegisteredTabSpawner;
 };
 
 IMPLEMENT_MODULE(FMergeActorsModule, MergeActors);
@@ -90,11 +93,20 @@ TSharedRef<SDockTab> FMergeActorsModule::CreateMergeActorsTab(const FSpawnTabArg
 
 void FMergeActorsModule::StartupModule()
 {
+	bRegisteredTabSpawner = false;
+
+	if (!GetDefault<UEditorExperimentalSettings>()->bActorMerging)
+	{
+		return;
+	}
+
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(MergeActorsApp, FOnSpawnTab::CreateRaw(this, &FMergeActorsModule::CreateMergeActorsTab))
 		.SetDisplayName(LOCTEXT("TabTitle", "Merge Actors"))
 		.SetTooltipText(LOCTEXT("TooltipText", "Open the Merge Actors tab."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassViewer.TabIcon"));
+
+	bRegisteredTabSpawner = true;
 
 	// Register built-in merging tools straight away
 	ensure(RegisterMergeActorsTool(MakeUnique<FMeshMergingTool>()));
@@ -104,6 +116,11 @@ void FMergeActorsModule::StartupModule()
 
 void FMergeActorsModule::ShutdownModule()
 {
+	if (!bRegisteredTabSpawner)
+	{
+		return;
+	}
+
 	if (FSlateApplication::IsInitialized())
 	{
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(MergeActorsApp);

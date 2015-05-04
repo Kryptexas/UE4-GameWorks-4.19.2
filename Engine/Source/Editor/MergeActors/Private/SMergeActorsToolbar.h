@@ -51,7 +51,7 @@ private:
 	/** Called when the Merge Actors button is clicked */
 	FReply OnMergeActorsClicked();
 
-	/** Called to determine whether the widget content is enabled or not */
+	/** Determine whether the widget content is enabled or not */
 	bool GetContentEnabledState() const;
 
 	/** Update the toolbar container based on the currently registered tools */
@@ -71,6 +71,9 @@ private:
 
 	/** List of currently selected objects */
 	TArray<UObject*> SelectedObjects;
+
+	/** Whether the merge actors tool panel is enabled or not */
+	bool bIsContentEnabled;
 
 	/** The container holding the toolbar */
 	TSharedPtr<SBorder> ToolbarContainer;
