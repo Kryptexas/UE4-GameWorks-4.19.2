@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472679
+﻿INTSourceChangelist:2533923
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 인스턴스 생성 및 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -18,7 +18,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 이 프로세스 효율을 높이고 속도를 올리기 위해, 언리얼 엔진 4 에는 **머티리얼 인스턴스** 라는 특수 유형 머티리얼이 제공됩니다.
 다음 비법에서는 프로젝트에서 머티리얼 인스턴스를 구성하고 사용하는 방법에 대해 배워보실 수 있습니다.
 
-## 머티리얼 인스턴싱이란?
+## 머티리얼 인스턴싱
 
 머티리얼 인스턴싱이란, 부모 머티리얼이라 불리는 하나의 머티리얼을 만든 다음, 그것을 바탕으로 여러가지 다양한 모양의 머티리얼을 만드는 것을 말합니다.
 이러한 유연성을 내기 위해 머티리얼 인스턴싱은 상속이란 개념을 사용합니다.

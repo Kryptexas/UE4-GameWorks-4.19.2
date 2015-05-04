@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2473059
+﻿INTSourceChangelist:2534146
 Availability: Public
 Title:머티리얼 에디터 - 광택 머티리얼 제작 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -18,7 +18,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_3
 이번 비법 안내에서는 반짝이 머티리얼을 만드는 법에 대한 모든 것을 다뤄보겠습니다.
 
 
-## 광택이란
+## 광택
 
 Shininess, 광택이란 단순히 표면의 빛 반사 능력을 말합니다.
 표면이 빛을 많이 반사할 수록 표면의 광택이 더한 것이고,

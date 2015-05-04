@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472716
+﻿INTSourceChangelist:2533944
 Availability: Public
 Title:머티리얼 에디터 - 메인 머티리얼 노드 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -17,7 +17,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 머티리얼을 컴파일하고 게임 내 오브젝트에 적용하면, 메인 머티리얼 노드에 입력된 것에 대한 결과가 표시됩니다.
 다음 비법 안내에서는, 메인 머티리얼 노드를 사용하는 데 있어 알아야 할 모든 것에 대해 다루도록 하겠습니다.
 
-## 메인 머티리얼 노드란?
+## 메인 머티리얼 노드
 
 머티리얼은 하이 레벨 셰이딩 언어, 약자로 HLSL 이라 부르는 전문 코딩 언어를 사용하여 생성됩니다.
 HLSL 을 통해 머티리얼은 그래픽 하드웨어에 직접 대화하는 것이 가능하여, 아티스트와 코더는 화면에 표시되는 내용을 더욱 잘 제어할 수 있게됩니다.

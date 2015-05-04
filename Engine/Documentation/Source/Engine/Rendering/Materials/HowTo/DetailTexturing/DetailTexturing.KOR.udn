@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2469193
+﻿INTSourceChangelist:2533872
 Availability: Public
 Title:머티리얼 에디터 - 디테일 텍스처 추가 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -17,7 +17,7 @@ Related: Engine/Rendering/Materials/ExpressionReference/Textures
 이러한 문제 해결을 위해, Detail Texture (디테일 텍스처)라 알려진 방법을 사용하면 머티리얼을 매우 가까이서 봤을 때 텍스처가 픽셀로 보이는 것을 숨기는 데 도움이 될 수 있습니다.
 
 
-## 디테일 텍스처란
+## 디테일 텍스처
 
 Detail Texturing 은 오브젝트의 원래 디퓨즈와 노멀에 고도로 반복된 디퓨즈 & 노멀맵 조합을 레이어로 쌓아올리는 식으로 텍스처에 디테일이 추가된 듯이 보이도록 만들어 줍니다.
 일반적으로 가능한 방법보다 가까이서 봤을 때의 디테일이 크게 살아난 듯이 보이도록 만들어 줍니다.

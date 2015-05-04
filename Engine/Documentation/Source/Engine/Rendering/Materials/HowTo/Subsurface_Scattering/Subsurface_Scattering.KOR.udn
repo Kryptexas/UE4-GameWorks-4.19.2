@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2473797
+﻿INTSourceChangelist:2534185
 Availability:Public
 Title: 머티리얼 에디터 - 머티리얼에서 서브서피스 스캐터링 사용법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -129,7 +129,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 ![](SSM_Different_Opacity_Settings.png)
 
 [region:tip]
-오파시티로 흩어지는 빛을 제거하는 데 크게 도움이 되기는 하지만, 약간의 서브서피스 스캐터링이 남아있는 것을 볼 수 있습니다. 이러한 이펙트를 완전히 제거하기 위해서는, 서브서피스 컬러 값도 조절해 줘야 합니다. 이에 대해서는 아랫 부분에서 자세히 다루겠습니다.
+오파시티로 흩어지는 빛을 제거하는 데 크게 도움이 되기는 하지만, 약간의 서브서피스 스캐터링이 남아있는 것을 볼 수 있습니다. 이러한 이펙트를 완전히 제거하기 위해서는, 서브서피스 컬러 값도 조절해 줘야 합니다 (이에 대해서는 아랫 부분에서 자세히 다루겠습니다).
 [/region]
 
 ### 서브서피스 컬러 값

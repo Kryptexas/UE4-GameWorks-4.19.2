@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472872
+﻿INTSourceChangelist:2534029
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 표현식 및 함수 배치 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -15,7 +15,7 @@ Related: Engine/UI/KeyBindings
 각 표현식이나 함수는 그 입력에 작은 코드 스니펫을 실행하여 결과를 출력할 수 있는, 자립된 블랙 박스입니다.
 이 비법 안내서에서는 머티리얼 그래프에 머티리얼 표현식과 머티리얼 함수를 배치하는 여러가지 방법에 대해 알아보겠습니다.
 
-## 머티리얼 표현식이란 무엇인가
+## 머티리얼 표현식
 
 머티리얼 표현식 노드란 머티리얼 안에서 매우 구체적인 작업을 수행하는 자그마한 HLSL 코드 조각을 말합니다.
 머티리얼은 특정한 작업을 하는 머티리얼 표현식 노드 조합을 통해 만들어집니다.

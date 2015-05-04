@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2469080
+﻿INTSourceChangelist:2533832
 Availability: Public
 Title:머티리얼 에디터 - 컬러 반투명 그림자 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -20,7 +20,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
  ![](translucent_T.JPG)(w:450)
 
 
-## 반투명 그림자 컬러란
+## 반투명 그림자 컬러
 
 Translucent Shadow Color 는 그림자가 통과하는 오브젝트의 색을 따는 방법을 나타내는 데 사용되는 용어로, **Transmission** (투과)라고도 합니다.
 머티리얼을 통과하는 빛의 양은 0 과 1 사이의 오파시티(불투명도) 값과 머티리얼에 얼마만큼의 빛이 내리쬐는가에 따라 직접적으로 결정됩니다.

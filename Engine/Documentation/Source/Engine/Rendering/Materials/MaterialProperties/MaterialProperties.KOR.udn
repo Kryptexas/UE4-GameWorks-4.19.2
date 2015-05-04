@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2422766
+﻿INTSourceChangelist:2532173
 Availability: Public
 Title:머티리얼 프로퍼티
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
@@ -18,7 +18,7 @@ Description:UE4 머티리얼과 그 작동방식에 대한 입문서입니다.
 
 * 프로퍼티 매트릭스 접근하기:
 
-![](PropertiesContextMenu_Mat.png)(h:445)
+![](PropertiesContextMenu_Mat.png)(h:445) 
 
 * 프로퍼티 매트릭스:
 

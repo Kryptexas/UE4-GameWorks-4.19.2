@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2533979
 Availability: Public
 Title:4. 직접 해보기!
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
-Description:C++ 코드에 입력을 바인딩합니다.
+Description:추가로 해 볼 수 있는 아이디어입니다!
+
 
 [VAR:Steps]
 [OBJECT:Navigation]

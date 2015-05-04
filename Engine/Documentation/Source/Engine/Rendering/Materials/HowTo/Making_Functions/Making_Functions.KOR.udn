@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472737
+﻿INTSourceChangelist:2533962
 Availability: Public
 Title:머티리얼 에디터 - 머티리얼 함수 제작 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -22,7 +22,7 @@ Related: Engine/Rendering/Materials
 [](Engine/Rendering/Materials/Functions/Creating) 문서에도 머티리얼 함수 생성 및 사용 관련 귀중한 정보가 많이 있으니 잊지 마시고 확인해 보세요.
 [/region]
 
-## 머티리얼 함수란
+## 머티리얼 함수
 
 [INCLUDE:Engine/Rendering/Materials/Functions#functionsintro] 
 
