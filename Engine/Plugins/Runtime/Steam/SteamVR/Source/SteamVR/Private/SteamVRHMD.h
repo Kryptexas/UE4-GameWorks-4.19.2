@@ -359,7 +359,7 @@ private:
 	IRendererModule* RendererModule;
 	ISteamVRPlugin* SteamVRPlugin;
 
-	TSharedPtr<vr::IVRSystem> VRSystem;
+	vr::IVRSystem* VRSystem;
 	vr::IVRCompositor* VRCompositor;
 	vr::IVRChaperone* VRChaperone;
 

@@ -38,8 +38,8 @@ public:
 		return FModuleManager::Get().IsModuleLoaded( "SteamVR" );
 	}
 
-	virtual TSharedPtr<vr::IVRSystem> GetVRSystem() const=0;
-	virtual void SetVRSystem(TSharedPtr<vr::IVRSystem>)=0;
+	virtual vr::IVRSystem* GetVRSystem() const=0;
+	virtual void SetVRSystem(vr::IVRSystem* VRSystem)=0;
 
 private:
 };
