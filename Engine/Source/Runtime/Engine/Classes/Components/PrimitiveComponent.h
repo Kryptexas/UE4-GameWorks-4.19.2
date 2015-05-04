@@ -993,7 +993,7 @@ private:
 	class UPrimitiveComponent* LODParentPrimitive;
 
 public:
-	void SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive);
+	void SetLODParentPrimitive(UPrimitiveComponent* InLODParentPrimitive);
 	UPrimitiveComponent* GetLODParentPrimitive();
 
 #if WITH_EDITOR
