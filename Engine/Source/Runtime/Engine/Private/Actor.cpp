@@ -2991,7 +2991,7 @@ void AActor::SetActorEnableCollision(bool bNewActorEnableCollision)
 }
 
 
-bool AActor::GetActorEnableCollision()
+bool AActor::GetActorEnableCollision() const
 {
 	return bActorEnableCollision;
 }

@@ -851,7 +851,7 @@ public:
 
 	/** Get current state of collision for the whole actor */
 	UFUNCTION(BlueprintPure, Category="Collision")
-	bool GetActorEnableCollision();
+	bool GetActorEnableCollision() const;
 
 	/** Destroy the actor */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "Delete", DisplayName = "DestroyActor"))
