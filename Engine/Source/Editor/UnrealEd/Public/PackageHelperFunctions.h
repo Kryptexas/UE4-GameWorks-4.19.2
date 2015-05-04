@@ -29,6 +29,8 @@ enum EPackageNormalizationFlags
 	NORMALIZE_ExcludeNonDeveloperPackages  = 0x10,
 	/** do not include packages inside the Engine/Content folders in the result array; only relevant if the input array is empty */
 	NORMALIZE_ExcludeEnginePackages		= 0x20,
+	/** do not include packages inside NoRedist or NotForLicensees folders */
+	NORMALIZE_ExcludeNoRedistPackages	= 0x40,
 	/** Combo flags */
 	NORMALIZE_DefaultFlags				= NORMALIZE_ResetExistingLoaders,
 };

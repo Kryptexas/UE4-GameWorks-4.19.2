@@ -164,6 +164,15 @@ bool NormalizePackageNames( TArray<FString> PackageNames, TArray<FString>& Packa
 					continue;
 				}
 			}
+
+			if ( (PackageFilter&NORMALIZE_ExcludeNoRedistPackages) != 0 )
+			{
+				if(PackagePathNames.Contains("/NoRedist/") || PackagePathNames.Contains("/NotForLicensees/") || PackagePathNames.Contains("/EpicInternal/"))
+				{
+					PackagePathNames.RemoveAt(PackageIndex);
+					continue;
+				}
+			}
 		}
 	}
 
