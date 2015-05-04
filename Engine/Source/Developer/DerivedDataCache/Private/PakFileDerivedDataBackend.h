@@ -404,20 +404,23 @@ public:
 
 		// Copy all the DDC to the new cache
 		TArray<uint8> Buffer;
+		TArray<uint32> KeySizes;
 		for (int KeyIndex = 0; KeyIndex < KeyNames.Num(); KeyIndex++)
 		{
 			Buffer.Reset();
 			InputPak.GetCachedData(*KeyNames[KeyIndex], Buffer);
 			OutputPak.PutCachedData(*KeyNames[KeyIndex], Buffer, false);
+			KeySizes.Add(Buffer.Num());
 		}
 
 		// Write out a TOC listing for debugging
 		FStringOutputDevice Output;
+		Output.Logf(TEXT("Asset,Size") LINE_TERMINATOR);
 		for(int KeyIndex = 0; KeyIndex < KeyNames.Num(); KeyIndex++)
 		{
-			Output.Logf(TEXT("%s") LINE_TERMINATOR, *KeyNames[KeyIndex]);
+			Output.Logf(TEXT("%s,%d") LINE_TERMINATOR, *KeyNames[KeyIndex], KeySizes[KeyIndex]);
 		}
-		FFileHelper::SaveStringToFile(Output, *FPaths::Combine(*FPaths::GetPath(OutputFilename), *(FPaths::GetBaseFilename(OutputFilename) + TEXT(".txt"))));
+		FFileHelper::SaveStringToFile(Output, *FPaths::Combine(*FPaths::GetPath(OutputFilename), *(FPaths::GetBaseFilename(OutputFilename) + TEXT(".csv"))));
 		return true;
 	}
 
