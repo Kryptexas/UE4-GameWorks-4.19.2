@@ -401,7 +401,7 @@ public:
 	~FMaterialShaderMapId()
 	{ }
 
-	void SetShaderDependencies(const TArray<FShaderType*>& ShaderTypes, const TArray<FVertexFactoryType*>& VFTypes);
+	ENGINE_API void SetShaderDependencies(const TArray<FShaderType*>& ShaderTypes, const TArray<FVertexFactoryType*>& VFTypes);
 
 	void Serialize(FArchive& Ar);
 
@@ -1144,6 +1144,9 @@ protected:
 
 	/** Gets the Guid that represents this material. */
 	virtual FGuid GetMaterialId() const = 0;
+	
+	/** Produces arrays of any shader and vertex factory type that this material is dependent on. */
+	ENGINE_API void GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FShaderType*>& OutShaderTypes, TArray<FVertexFactoryType*>& OutVFTypes) const;
 
 private:
 
@@ -1222,9 +1225,6 @@ private:
 	ENGINE_API FShader* GetShader(class FMeshMaterialShaderType* ShaderType, FVertexFactoryType* VertexFactoryType) const;
 
 	void GetReferencedTexturesHash(FSHAHash& OutHash) const;
-
-	/** Produces arrays of any shader and vertex factory type that this material is dependent on. */
-	ENGINE_API void GetDependentShaderAndVFTypes(EShaderPlatform Platform, TArray<FShaderType*>& OutShaderTypes, TArray<FVertexFactoryType*>& OutVFTypes) const;
 
 	EMaterialQualityLevel::Type GetQualityLevelForShaderMapId() const 
 	{
