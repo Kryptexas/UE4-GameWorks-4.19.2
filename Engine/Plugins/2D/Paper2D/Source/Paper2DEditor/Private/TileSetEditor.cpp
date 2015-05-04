@@ -298,6 +298,7 @@ void FTileSetEditor::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyCh
 	if (ObjectBeingModified == TileSetBeingEdited)
 	{
 		TileEditorViewportClient->SetTileIndex(TileEditorViewportClient->GetTileIndex());
+		TileSetViewport->RefreshSelectionRectangle();
 	}
 }
 
