@@ -502,7 +502,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 			OldParentActor->Modify();
 		}
 
-		ThisActor->DetachRootComponentFromParent(false);
+		ThisActor->DetachRootComponentFromParent();
 
 #if WITH_EDITOR
 		if( GIsEditor )
