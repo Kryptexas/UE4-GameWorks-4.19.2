@@ -49,12 +49,14 @@ void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 		const float TextureWidth = TileSheetTexture->GetSurfaceWidth();
 		const float TextureHeight = TileSheetTexture->GetSurfaceHeight();
 
+		const FIntMargin Margin = TileSet->GetMargin();
+
 		float FinalX = (float)X;
 		float FinalY = (float)Y;
 		float FinalWidth = (float)Width;
 		float FinalHeight = (float)Height;
-		const float DesiredWidth = TextureWidth;
-		const float DesiredHeight = TextureHeight;
+		const float DesiredWidth = TextureWidth - Margin.GetDesiredSize().X;
+		const float DesiredHeight = TextureHeight - Margin.GetDesiredSize().Y;
 
 		const FLinearColor BlackBarColor(0.0f, 0.0f, 0.0f, 0.5f);
 
@@ -81,18 +83,18 @@ void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 			Canvas->DrawTile(FinalX+FinalWidth, Y, Width-FinalWidth, Height, 0, 0, 1, 1, BlackBarColor, GWhiteTexture, bAlphaBlend);
 		}
 
-		//@TODO: Cut off the border margin when rendering
-
 		// Draw the tile sheet 
+		const float InvWidth = 1.0f / TextureWidth;
+		const float InvHeight = 1.0f / TextureHeight;
 		Canvas->DrawTile(
 			FinalX,
 			FinalY,
 			FinalWidth,
 			FinalHeight,
-			0.0f,
-			0.0f,
-			1.0f,
-			1.0f,
+			Margin.Left * InvWidth,
+			Margin.Top * InvHeight,
+			(TextureWidth - Margin.Right) * InvWidth,
+			(TextureHeight - Margin.Bottom) * InvHeight,
 			FLinearColor::White,
 			TileSheetTexture->Resource,
 			bUseTranslucentBlend);
