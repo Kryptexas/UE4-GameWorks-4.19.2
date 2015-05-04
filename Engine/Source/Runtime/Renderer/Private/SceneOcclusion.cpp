@@ -939,7 +939,7 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	const FIntPoint HZBSize( 512, 256 );
 	const uint32 NumMips = 8;
 
-	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( HZBSize, PF_R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false, NumMips ) );
+	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
 	Desc.Flags |= TexCreate_FastVRAM;
 	GRenderTargetPool.FindFreeElement( Desc, View.HZB, TEXT("HZB") );
 	

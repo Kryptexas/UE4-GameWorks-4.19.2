@@ -529,6 +529,8 @@ enum ETextureCreateFlags
 	TexCreate_TargetArraySlicesIndependently	= 1<<23,
 	// Texture that may be shared with DX9 or other devices
 	TexCreate_Shared = 1 << 24,
+	// RenderTarget will not use full-texture fast clear functionality.
+	TexCreate_NoFastClear = 1 << 25,
 };
 
 /**
