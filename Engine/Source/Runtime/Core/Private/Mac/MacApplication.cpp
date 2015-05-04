@@ -379,7 +379,9 @@ void FMacApplication::DeferEvent(NSObject* Object)
 				DeferredEvent.Window = FindWindowByNSWindow(WindowHandle);
 				if (DeferredEvent.Window.IsValid())
 				{
-					GameThreadCall(^{ OnWindowDidResize(DeferredEvent.Window.Pin().ToSharedRef()); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
+					GameThreadCall(^{
+						TSharedPtr<FMacWindow> Window = FindWindowByNSWindow(WindowHandle); // We cannot use DeferredEvent.Window here because the block doesn't handle TSharedPtr correctly
+						OnWindowDidResize(Window.ToSharedRef()); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
 				}
 				return;
 			}
@@ -761,13 +763,14 @@ void FMacApplication::ProcessMouseDownEvent(const FDeferredMacEvent& Event)
 			if (IsMouseOverTitleBar)
 			{
 				const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
+				FCocoaWindow* WindowHandle = EventWindow->GetWindowHandle();
 				if (bShouldMinimize)
 				{
-					MainThreadCall(^{ [EventWindow->GetWindowHandle() performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
+					MainThreadCall(^{ [WindowHandle performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
 				}
 				else if (!FPlatformMisc::IsRunningOnMavericks())
 				{
-					MainThreadCall(^{ [EventWindow->GetWindowHandle() zoom:nil]; }, NSDefaultRunLoopMode, true);
+					MainThreadCall(^{ [WindowHandle zoom:nil]; }, NSDefaultRunLoopMode, true);
 				}
 			}
 			else
@@ -892,7 +895,8 @@ void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event)
 		FCocoaMenu* MainMenu = [[NSApp mainMenu] isKindOfClass:[FCocoaMenu class]] ? (FCocoaMenu*)[NSApp mainMenu]: nil;
 		if (MainMenu)
 		{
-			MainThreadCall(^{ [MainMenu highlightKeyEquivalent:Event.Event]; }, NSDefaultRunLoopMode, true);
+			NSEvent* NativeEvent = Event.Event;
+			MainThreadCall(^{ [MainMenu highlightKeyEquivalent:NativeEvent]; }, NSDefaultRunLoopMode, true);
 		}
 	}
 	else

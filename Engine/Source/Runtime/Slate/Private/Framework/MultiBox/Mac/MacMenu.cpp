@@ -85,6 +85,14 @@ static FCriticalSection GCachedMenuStateCS;
 
 void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 {
+	// The dispatch block can't handle TSharedPtr correctly, so we use a small trick to pass MultiBox safely
+	struct FSafeMultiBoxPass
+	{
+		TSharedPtr<FMultiBox> MultiBox;
+	};
+	FSafeMultiBoxPass* SafeMultiBoxPtr = new FSafeMultiBoxPass;
+	SafeMultiBoxPtr->MultiBox = MultiBox;
+
 	MainThreadCall(^{
 		FScopeLock Lock(&GCachedMenuStateCS);
 
@@ -103,9 +111,9 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 		}
 		GCachedMenuState.Reset();
 		
-		if( MultiBox.IsValid() )
+		if( SafeMultiBoxPtr->MultiBox.IsValid() )
 		{
-			const TArray<TSharedRef<const FMultiBlock> >& MenuBlocks = MultiBox->GetBlocks();
+			const TArray<TSharedRef<const FMultiBlock> >& MenuBlocks = SafeMultiBoxPtr->MultiBox->GetBlocks();
 
 			for (int32 Index = 0; Index < MenuBlocks.Num(); Index++)
 			{
@@ -153,6 +161,8 @@ void FSlateMacMenu::UpdateWithMultiBox(const TSharedPtr< FMultiBox > MultiBox)
 			{
 				[HelpMenu release];
 			}
+
+			delete SafeMultiBoxPtr;
 		}
 
 		FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
