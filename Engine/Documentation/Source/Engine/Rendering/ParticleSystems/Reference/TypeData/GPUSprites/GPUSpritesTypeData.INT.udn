@@ -13,7 +13,7 @@ The **GPUSprite** type data module supports simulating particles on the GPU. Tra
 
 GPU particles do not support all of the features available to traditional CPU particles, but they offer greater efficiency as well as a few unique features. Emission of particles still happens on the CPU to determine where, when, and how many particles to spawn. The CPU may also assign initial attributes such as size and velocity using methods available to traditional CPU particles.
 
-GPU particle sprites are authored in Cascade by adding the "GPU Sprites" type data module to an emitter. As with other effects authored in Cascade, the parameters of the simulation are modified by adding and editing modules to the emitter. The simulation updates in realtime as properties change. 
+GPU particle sprites are authored in Cascade by adding the "GPU Sprites" type data module to an emitter. As with other effects authored in Cascade, the parameters of the simulation are modified by adding and editing modules to the emitter. The simulation updates in real time as properties change. 
 
 
 ## Properties
