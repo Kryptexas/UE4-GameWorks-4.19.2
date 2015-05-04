@@ -126,7 +126,7 @@ namespace FAnimUpdateRateManager
 		// Not rendered, including dedicated servers. we can skip the Evaluation part.
 		if (!bRecentlyRendered)
 		{
-			Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), (bHumanControlled ? 1 : 4), 4, false);
+			Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), ((bHumanControlled || bNeedsEveryFrame) ? 1 : 4), 4, false);
 		}
 		// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
 		else  if (bHumanControlled || bNeedsEveryFrame)
