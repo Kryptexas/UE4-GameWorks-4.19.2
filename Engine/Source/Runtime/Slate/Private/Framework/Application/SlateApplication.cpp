@@ -4648,6 +4648,13 @@ FKey TranslateControllerButtonToKey( EControllerButtons::Type Button )
 	case EControllerButtons::RightStickLeft: Key = EKeys::Gamepad_RightStick_Left; break;
 	case EControllerButtons::RightStickRight: Key = EKeys::Gamepad_RightStick_Right; break;
 
+	case EControllerButtons::Touch0: Key = EKeys::Steam_Touch_0; break;
+	case EControllerButtons::Touch1: Key = EKeys::Steam_Touch_1; break;
+	case EControllerButtons::Touch2: Key = EKeys::Steam_Touch_2; break;
+	case EControllerButtons::Touch3: Key = EKeys::Steam_Touch_3; break;
+	case EControllerButtons::BackLeft: Key = EKeys::Steam_Back_Left; break;
+	case EControllerButtons::BackRight: Key = EKeys::Steam_Back_Right; break;
+
 	case EControllerButtons::GlobalMenu: Key = EKeys::Global_Menu; break;
 	case EControllerButtons::GlobalView: Key = EKeys::Global_View; break;
 	case EControllerButtons::GlobalPause: Key = EKeys::Global_Pause; break;

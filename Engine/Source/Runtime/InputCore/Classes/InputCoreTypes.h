@@ -371,7 +371,7 @@ struct INPUTCORE_API EKeys
 	// PS4-specific
 	static const FKey PS4_Special;
 
-	// Steam Controller Specifit;
+	// Steam Controller Specific
 	static const FKey Steam_Touch_0;
 	static const FKey Steam_Touch_1;
 	static const FKey Steam_Touch_2;
