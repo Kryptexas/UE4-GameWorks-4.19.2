@@ -30,7 +30,7 @@ Description:월드에 카메라 디렉터를 배치하고 카메라를 할당합
 
 	[![](CameraDirectorDetails.png)](CameraDirectorDetails.png)
 
-	**None** (없음)이란 드롭다운 박스를 클리갛ㄴ 다음 변수를 앞서 만든 **Cube** 와 **CameraActor** 로 설정합니다.
+	**None** (없음)이란 드롭다운 박스를 클릭한 다음 변수를 앞서 만든 **Cube** 와 **CameraActor** 로 설정합니다.
 
 	[![](CameraDirectorDetails2.png)](CameraDirectorDetails2.png)
 
