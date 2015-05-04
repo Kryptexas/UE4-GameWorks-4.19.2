@@ -43,7 +43,7 @@ FPhATSharedData::FPhATSharedData()
 	bShowHierarchy = false;
 	bShowInfluences = false;
 	bDrawGround = true;
-	bShowFixedStatus = false;
+	bShowFixedStatus = true;
 	bShowAnimSkel = false;
 
 	bSelectionLock = false;
