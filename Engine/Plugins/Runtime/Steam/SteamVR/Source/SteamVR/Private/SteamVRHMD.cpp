@@ -251,6 +251,47 @@ TArray<FVector> FSteamVRHMD::GetHardBounds() const
 	return Bounds;
 }
 
+void FSteamVRHMD::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace::Type> NewSpace)
+{
+	if(VRCompositor)
+	{
+		vr::TrackingUniverseOrigin NewOrigin;
+
+		switch(NewSpace)
+		{
+			case ESteamVRTrackingSpace::Seated:
+				NewOrigin = vr::TrackingUniverseOrigin::TrackingUniverseSeated;
+				break;
+			case ESteamVRTrackingSpace::Standing:
+			default:
+				NewOrigin = vr::TrackingUniverseOrigin::TrackingUniverseStanding;
+				break;
+		}
+
+		VRCompositor->SetTrackingSpace(NewOrigin);
+	}
+}
+
+ESteamVRTrackingSpace::Type FSteamVRHMD::GetTrackingSpace() const
+{
+	if(VRCompositor)
+	{
+		const vr::TrackingUniverseOrigin CurrentOrigin = VRCompositor->GetTrackingSpace();
+
+		switch(CurrentOrigin)
+		{
+		case vr::TrackingUniverseOrigin::TrackingUniverseSeated:
+			return ESteamVRTrackingSpace::Seated;
+		case vr::TrackingUniverseOrigin::TrackingUniverseStanding:
+		default:
+			return ESteamVRTrackingSpace::Standing;
+		}
+	}
+
+	// By default, assume standing
+	return ESteamVRTrackingSpace::Standing;
+}
+
 void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	FMatrix Pose = ToFMatrix(InPose);
@@ -277,15 +318,35 @@ void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FV
 	CurrentPosition = CurHmdPosition;
 }
 
-void FSteamVRHMD::GetTrackedDeviceIds(TArray<int32>& TrackedIds)
+ESteamVRTrackedDeviceType::Type FSteamVRHMD::GetTrackedDeviceType(uint32 DeviceId) const
+{
+	vr::TrackedDeviceClass DeviceClass = VRSystem->GetTrackedDeviceClass(DeviceId);
+
+	switch (DeviceClass)
+	{
+	case vr::TrackedDeviceClass_Controller:
+		return ESteamVRTrackedDeviceType::Controller;
+	case vr::TrackedDeviceClass_TrackingReference:
+		return ESteamVRTrackedDeviceType::TrackingReference;
+	case vr::TrackedDeviceClass_Other:
+		return ESteamVRTrackedDeviceType::Other;
+	default:
+		return ESteamVRTrackedDeviceType::Invalid;
+	}
+}
+
+
+void FSteamVRHMD::GetTrackedDeviceIds(ESteamVRTrackedDeviceType::Type DeviceType, TArray<int32>& TrackedIds)
 {
 	TrackedIds.Empty();
 
 	for (uint32 i = 0; i < vr::k_unMaxTrackedDeviceCount; ++i)
 	{
 		// Add only devices with a currently valid tracked pose, and exclude the HMD
-		if ((i != vr::k_unTrackedDeviceIndex_Hmd) && TrackingFrame.bPoseIsValid[i])
-	{
+		if ((i != vr::k_unTrackedDeviceIndex_Hmd) 
+			&& TrackingFrame.bPoseIsValid[i]
+			&& (GetTrackedDeviceType(i) == DeviceType))
+		{
 			TrackedIds.Add(i);
 		}
 	}

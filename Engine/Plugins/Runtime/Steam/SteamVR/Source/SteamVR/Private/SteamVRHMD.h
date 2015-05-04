@@ -15,6 +15,16 @@
 
 #include "SceneViewExtension.h"
 
+namespace ESteamVRTrackedDeviceType
+{
+	enum Type;
+}
+
+namespace ESteamVRTrackingSpace
+{
+	enum Type;
+}
+
 //@todo steamvr: better association between SteamController plugin and SteamVR plugin
 #ifndef MAX_STEAM_CONTROLLERS
 	#define MAX_STEAM_CONTROLLERS 8
@@ -168,7 +178,8 @@ public:
 	void ShutdownRendering();
 
 	/** Motion Controllers */
-	void GetTrackedDeviceIds(TArray<int32>& TrackedIds);
+	ESteamVRTrackedDeviceType::Type GetTrackedDeviceType(uint32 DeviceId) const;
+	void GetTrackedDeviceIds(ESteamVRTrackedDeviceType::Type DeviceType, TArray<int32>& TrackedIds);
 	bool GetTrackedObjectOrientationAndPosition(uint32 DeviceId, FQuat& CurrentOrientation, FVector& CurrentPosition);
 	bool GetTrackedDeviceIdFromControllerIndex(int32 ControllerIndex, int32& OutDeviceId);
 
@@ -184,6 +195,12 @@ public:
 
 	/** Get the windowed mirror mode.  @todo steamvr: thread safe flags */
 	int32 GetWindowMirrorMode() const { return WindowMirrorMode; }
+
+	/** Sets the tracking space for the returned coordinate system (e.g. standing, sitting) */
+	void SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace::Type> NewSpace);
+
+	/** Returns the tracking space for the returned coordinate system (e.g. standing, sitting) */
+	ESteamVRTrackingSpace::Type GetTrackingSpace() const;
 
 public:
 	/** Constructor */

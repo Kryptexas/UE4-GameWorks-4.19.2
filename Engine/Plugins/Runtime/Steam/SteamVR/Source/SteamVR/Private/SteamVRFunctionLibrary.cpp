@@ -9,14 +9,24 @@ USteamVRFunctionLibrary::USteamVRFunctionLibrary(const FObjectInitializer& Objec
 {
 }
 
-void USteamVRFunctionLibrary::GetValidTrackedDeviceIds(TArray<int32>& DeviceIds)
+FSteamVRHMD* GetSteamVRHMD()
 {
-	DeviceIds.Empty();
-
 	if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
 	{
-		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
-		SteamVRHMD->GetTrackedDeviceIds(DeviceIds);
+		return static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
+	}
+
+	return nullptr;
+}
+
+void USteamVRFunctionLibrary::GetValidTrackedDeviceIds(TEnumAsByte<ESteamVRTrackedDeviceType::Type> DeviceType, TArray<int32>& OutTrackedDeviceIds)
+{
+	OutTrackedDeviceIds.Empty();
+
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if (SteamVRHMD)
+	{
+		SteamVRHMD->GetTrackedDeviceIds(DeviceType, OutTrackedDeviceIds);
 	}
 }
 
@@ -24,10 +34,9 @@ bool USteamVRFunctionLibrary::GetTrackedDevicePositionAndOrientation(int32 Devic
 {
 	bool RetVal = false;
 
-	if (GEngine->HMDDevice.IsValid() && (GEngine->HMDDevice->GetHMDDeviceType() == EHMDDeviceType::DT_SteamVR))
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if (SteamVRHMD)
 	{
-		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
-
 		FQuat DeviceOrientation = FQuat::Identity;
 		RetVal = SteamVRHMD->GetTrackedObjectOrientationAndPosition(DeviceId, DeviceOrientation, OutPosition);
 		OutOrientation = DeviceOrientation.Rotator();
@@ -40,12 +49,33 @@ bool USteamVRFunctionLibrary::GetTrackedDeviceIdFromControllerIndex(int32 Contro
 {
 	OutDeviceId = -1;
 
-	if (!GEngine->HMDDevice.IsValid() || (GEngine->HMDDevice->GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR))
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if (SteamVRHMD)
 	{
-		return false;
+		return SteamVRHMD->GetTrackedDeviceIdFromControllerIndex(ControllerIndex, OutDeviceId);
 	}
 
-	FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
+	return false;
+}
 
-	return SteamVRHMD->GetTrackedDeviceIdFromControllerIndex(ControllerIndex, OutDeviceId);
+void USteamVRFunctionLibrary::SetTrackingSpace(TEnumAsByte<ESteamVRTrackingSpace::Type> NewSpace)
+{
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if (SteamVRHMD)
+	{
+		SteamVRHMD->SetTrackingSpace(NewSpace);
+	}
+}
+
+TEnumAsByte<ESteamVRTrackingSpace::Type> USteamVRFunctionLibrary::GetTrackingSpace()
+{
+	ESteamVRTrackingSpace::Type RetVal = ESteamVRTrackingSpace::Standing;
+
+	FSteamVRHMD* SteamVRHMD = GetSteamVRHMD();
+	if (SteamVRHMD)
+	{
+		RetVal = SteamVRHMD->GetTrackingSpace();
+	}
+
+	return RetVal;
 }
