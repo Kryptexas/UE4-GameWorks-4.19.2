@@ -66,7 +66,7 @@ void FSingleTileEditorViewportClient::Tick(float DeltaSeconds)
 
 FLinearColor FSingleTileEditorViewportClient::GetBackgroundColor() const
 {
-	return TileSet->BackgroundColor;
+	return TileSet->GetBackgroundColor();
 }
 
 void FSingleTileEditorViewportClient::TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge)
@@ -236,20 +236,20 @@ void FSingleTileEditorViewportClient::SetTileIndex(int32 InTileIndex)
 
 		FSpriteAssetInitParameters SpriteReinitParams;
 
-		SpriteReinitParams.Texture = TileSet->TileSheet;
+		SpriteReinitParams.Texture = TileSet->GetTileSheetTexture();
 
 		//@TODO: Should analyze the texture (*at a higher level, not per tile click!*) to pick the correct material
 		FVector2D UV;
 		TileSet->GetTileUV(TileBeingEditedIndex, /*out*/ UV);
 		SpriteReinitParams.Offset = FIntPoint((int32)UV.X, (int32)(UV.Y));
-		SpriteReinitParams.Dimension = FIntPoint(TileSet->TileWidth, TileSet->TileHeight);
+		SpriteReinitParams.Dimension = TileSet->GetTileSize();
 		SpriteReinitParams.SetPixelsPerUnrealUnit(1.0f);
 		DummySprite->InitializeSprite(SpriteReinitParams);
 	}
 	PreviewTileSpriteComponent->SetSprite(DummySprite);
 
 	// Update the default geometry bounds
-	const FVector2D HalfTileSize(TileSet->TileWidth * 0.5f, TileSet->TileHeight * 0.5f);
+	const FVector2D HalfTileSize(TileSet->GetTileSize().X * 0.5f, TileSet->GetTileSize().Y * 0.5f);
 	FBox2D DesiredBounds(ForceInitToZero);
 	DesiredBounds.Min = -HalfTileSize;
 	DesiredBounds.Max = HalfTileSize;

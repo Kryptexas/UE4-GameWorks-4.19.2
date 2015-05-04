@@ -136,8 +136,9 @@ void UPaperImporterSettings::ApplySettingsForTileMapInit(UPaperTileMap* TileMap,
 {
 	if (DefaultTileSet != nullptr)
 	{
-		TileMap->TileWidth = DefaultTileSet->TileWidth;
-		TileMap->TileHeight = DefaultTileSet->TileHeight;
+		const FIntPoint TileSetTileSize(DefaultTileSet->GetTileSize());
+		TileMap->TileWidth = TileSetTileSize.X;
+		TileMap->TileHeight = TileSetTileSize.Y;
 		TileMap->SelectedTileSet = DefaultTileSet;
 	}
 
@@ -148,9 +149,12 @@ void UPaperImporterSettings::ApplySettingsForTileMapInit(UPaperTileMap* TileMap,
 	if (DesiredMaterialType == ESpriteInitMaterialType::Automatic)
 	{
 		// Analyze the texture if desired (to see if it's got greyscale alpha or just binary alpha, picking either a translucent or masked material)
-		if (bPickBestMaterialWhenCreatingTileMaps && (DefaultTileSet != nullptr) && (DefaultTileSet->TileSheet != nullptr))
+		if (bPickBestMaterialWhenCreatingTileMaps && (DefaultTileSet != nullptr))
 		{
-			DesiredMaterialType = AnalyzeTextureForDesiredMaterialType(DefaultTileSet->TileSheet, FIntPoint::ZeroValue, DefaultTileSet->TileSheet->GetImportedSize());
+			if (UTexture2D* TileSheetTexture = DefaultTileSet->GetTileSheetTexture())
+			{
+				DesiredMaterialType = AnalyzeTextureForDesiredMaterialType(TileSheetTexture, FIntPoint::ZeroValue, TileSheetTexture->GetImportedSize());
+			}
 		}
 	}
 

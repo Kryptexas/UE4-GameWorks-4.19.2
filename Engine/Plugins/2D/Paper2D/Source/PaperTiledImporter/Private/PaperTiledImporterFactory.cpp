@@ -1164,9 +1164,9 @@ void UPaperTiledImporterFactory::FinalizeTileMap(FTileMapFromTiled& GlobalInfo, 
 		BestMaterial = ESpriteInitMaterialType::Automatic;
 		for (UPaperTileSet* TileSet : GlobalInfo.CreatedTileSetAssets)
 		{
-			if ((TileSet != nullptr) && (TileSet->TileSheet != nullptr))
+			if ((TileSet != nullptr) && (TileSet->GetTileSheetTexture() != nullptr))
 			{
-				ESpriteInitMaterialType TileSheetMaterial = ImporterSettings->AnalyzeTextureForDesiredMaterialType(TileSet->TileSheet, FIntPoint::ZeroValue, TileSet->TileSheet->GetImportedSize());
+				ESpriteInitMaterialType TileSheetMaterial = ImporterSettings->AnalyzeTextureForDesiredMaterialType(TileSet->GetTileSheetTexture(), FIntPoint::ZeroValue, TileSet->GetTileSheetAuthoredSize());
 				
 				switch (TileSheetMaterial)
 				{
@@ -1209,17 +1209,19 @@ bool UPaperTiledImporterFactory::ConvertTileSets(FTileMapFromTiled& GlobalInfo, 
 			UPaperTileSet* TileSetAsset = CastChecked<UPaperTileSet>(CreateNewAsset(UPaperTileSet::StaticClass(), TargetTileSetPath, TileSetData.Name, Flags));
 			TileSetAsset->Modify();
 
-			TileSetAsset->TileWidth = TileSetData.TileWidth;
-			TileSetAsset->TileHeight = TileSetData.TileHeight;
-			TileSetAsset->Margin = TileSetData.Margin;
-			TileSetAsset->Spacing = TileSetData.Spacing;
-			TileSetAsset->DrawingOffset = FIntPoint(TileSetData.TileOffsetX, TileSetData.TileOffsetY);
+			TileSetAsset->SetTileSize(FIntPoint(TileSetData.TileWidth, TileSetData.TileHeight));
+			TileSetAsset->SetMargin(FIntMargin(TileSetData.Margin));
+			TileSetAsset->SetPerTileSpacing(FIntPoint(TileSetData.Spacing, TileSetData.Spacing));
+			TileSetAsset->SetDrawingOffset(FIntPoint(TileSetData.TileOffsetX, TileSetData.TileOffsetY));
 
 			// Import the texture
 			const FString SourceImageFilename = FPaths::Combine(*CurrentSourcePath, *TileSetData.ImagePath);
-			TileSetAsset->TileSheet = ImportTexture(SourceImageFilename, TargetTexturePath);
 
-			if (TileSetAsset->TileSheet == nullptr)
+			if (UTexture2D* ImportedTileSheetTexture = ImportTexture(SourceImageFilename, TargetTexturePath))
+			{
+				TileSetAsset->SetTileSheetTexture(ImportedTileSheetTexture);
+			}
+			else
 			{
 				UE_LOG(LogPaperTiledImporter, Warning, TEXT("Failed to import tile set image '%s' referenced from tile set '%s'."), *TileSetData.ImagePath, *TileSetData.Name);
 				bLoadedSuccessfully = false;

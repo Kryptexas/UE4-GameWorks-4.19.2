@@ -143,9 +143,12 @@ void UPaperTileMapComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMa
 				for (int32 X = 0; X < TileMap->MapWidth; ++X)
 				{
 					FPaperTileInfo TileInfo = Layer->GetCell(X, Y);
-					if (TileInfo.IsValid() && (TileInfo.TileSet != nullptr) && (TileInfo.TileSet->TileSheet != nullptr))
+					if (TileInfo.IsValid() && (TileInfo.TileSet != nullptr))
 					{
-						OutTextures.AddUnique(TileInfo.TileSet->TileSheet);
+						if (UTexture2D* TileSheet = TileInfo.TileSet->GetTileSheetTexture())
+						{
+							OutTextures.AddUnique(TileSheet);
+						}
 					}
 				}
 			}
@@ -294,7 +297,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 						continue;
 					}
 
-					SourceTexture = TileInfo.TileSet->TileSheet;
+					SourceTexture = TileInfo.TileSet->GetTileSheetTexture();
 					if (SourceTexture == nullptr)
 					{
 						continue;
@@ -317,11 +320,14 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 						if (TileInfo.TileSet != nullptr)
 						{
-							SourceDimensionsUV = FVector2D(TileInfo.TileSet->TileWidth * InverseTextureSize.X, TileInfo.TileSet->TileHeight * InverseTextureSize.Y);
-							TileSizeXY = FVector2D(UnrealUnitsPerPixel * TileInfo.TileSet->TileWidth, UnrealUnitsPerPixel * TileInfo.TileSet->TileHeight);
+							const FIntPoint TileSetTileSize(TileInfo.TileSet->GetTileSize());
 
-							const float HorizontalCellOffset = TileInfo.TileSet->DrawingOffset.X * UnrealUnitsPerPixel;
-							const float VerticalCellOffset = (-TileInfo.TileSet->DrawingOffset.Y - TileHeight + TileInfo.TileSet->TileHeight) * UnrealUnitsPerPixel;
+							SourceDimensionsUV = FVector2D(TileSetTileSize.X * InverseTextureSize.X, TileSetTileSize.Y * InverseTextureSize.Y);
+							TileSizeXY = FVector2D(UnrealUnitsPerPixel * TileSetTileSize.X, UnrealUnitsPerPixel * TileSetTileSize.Y);
+
+							const FIntPoint TileSetDrawingOffset = TileInfo.TileSet->GetDrawingOffset();
+							const float HorizontalCellOffset = TileSetDrawingOffset.X * UnrealUnitsPerPixel;
+							const float VerticalCellOffset = (-TileSetDrawingOffset.Y - TileHeight + TileSetTileSize.Y) * UnrealUnitsPerPixel;
 							TileSetOffset = (HorizontalCellOffset * PaperAxisX) + (VerticalCellOffset * PaperAxisY);
 						}
 						else
