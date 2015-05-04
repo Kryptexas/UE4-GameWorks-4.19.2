@@ -2689,6 +2689,8 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TS
 			}
 		}
 	}
+
+	Dependencies.Remove(InBlueprint);
 }
 
 void FBlueprintEditorUtils::EnsureCachedDependenciesUpToDate(UBlueprint* Blueprint)
