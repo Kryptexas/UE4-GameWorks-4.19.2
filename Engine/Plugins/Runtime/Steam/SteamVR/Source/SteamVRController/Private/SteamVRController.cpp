@@ -100,6 +100,9 @@ public:
 					DeviceToControllerMap[DeviceIndex] = NumControllersMapped;
 					ControllerToDeviceMap[NumControllersMapped] = DeviceIndex;
 					++NumControllersMapped;
+
+					// update the SteamVR plugin with the new mapping
+					SteamVRPlugin->SetControllerToDeviceMap(ControllerToDeviceMap);
 				}
 
 				// get the controller index for this device

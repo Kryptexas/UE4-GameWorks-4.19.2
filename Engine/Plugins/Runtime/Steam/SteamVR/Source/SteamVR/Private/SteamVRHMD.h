@@ -25,9 +25,9 @@ namespace ESteamVRTrackingSpace
 	enum Type;
 }
 
-//@todo steamvr: better association between SteamController plugin and SteamVR plugin
-#ifndef MAX_STEAM_CONTROLLERS
-	#define MAX_STEAM_CONTROLLERS 8
+//@todo steamvr: better association between SteamVRController plugin and SteamVR plugin
+#ifndef MAX_STEAMVR_CONTROLLERS
+	#define MAX_STEAMVR_CONTROLLERS 8
 #endif
 
 /** Stores vectors, in clockwise order, to define soft and hard bounds for Chaperone */
@@ -202,6 +202,9 @@ public:
 	/** Returns the tracking space for the returned coordinate system (e.g. standing, sitting) */
 	ESteamVRTrackingSpace::Type GetTrackingSpace() const;
 
+	/** Sets the map from controller index to tracked device index. */
+	void SetControllerToDeviceMap(int32* InControllerToDeviceMap);
+
 public:
 	/** Constructor */
 	FSteamVRHMD(ISteamVRPlugin* SteamVRPlugin);
@@ -372,6 +375,9 @@ private:
 
 	/** World units (UU) to Meters scale.  Read from the level, and used to transform positional tracking data */
 	float WorldToMetersScale;
+
+	/** Mapping from Controller index to tracked device index.  Passed in from the controller plugin */
+	int32 ControllerToDeviceMap[MAX_STEAMVR_CONTROLLERS];
 
 	IRendererModule* RendererModule;
 	ISteamVRPlugin* SteamVRPlugin;
