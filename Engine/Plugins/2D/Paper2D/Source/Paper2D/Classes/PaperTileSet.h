@@ -5,6 +5,7 @@
 #include "SpriteEditorOnlyTypes.h"
 #include "Engine/DataAsset.h"
 #include "Engine/EngineTypes.h"
+#include "IntMargin.h"
 
 #include "PaperTileSet.generated.h"
 
@@ -77,38 +78,33 @@ class PAPER2D_API UPaperTileSet : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// The width of a single tile (in pixels)
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=1, ClampMin=1))
-	int32 TileWidth;
-
-	// The height of a single tile (in pixels)
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=1, ClampMin=1))
-	int32 TileHeight;
+private:
+	// The width and height of a single tile (in pixels)
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=1, ClampMin=1, AllowPrivateAccess="true"))
+	FIntPoint TileSize;
 
 	// The tile sheet texture associated with this tile set
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(DisplayName="Tile Sheet Texture"))
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(DisplayName="Tile Sheet Texture", AllowPrivateAccess="true"))
 	UTexture2D* TileSheet;
 
-	// The amount of padding around the perimeter of the tile sheet (in pixels)
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0))
-	int32 Margin;
+	// The amount of padding around the border of the tile sheet (in pixels)
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0, AllowPrivateAccess="true"))
+	FIntMargin BorderMargin;
 
 	// The amount of padding between tiles in the tile sheet (in pixels)
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0))
-	int32 Spacing;
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(UIMin=0, ClampMin=0, DisplayName="Per-Tile Spacing", AllowPrivateAccess="true"))
+	FIntPoint PerTileSpacing;
 
 	// The drawing offset for tiles from this set (in pixels)
-	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(Category=TileSet, BlueprintReadOnly, EditAnywhere, meta=(AllowPrivateAccess="true"))
 	FIntPoint DrawingOffset;
 
 #if WITH_EDITORONLY_DATA
 	/** The background color displayed in the tile set viewer */
-	UPROPERTY(Category=TileSet, EditAnywhere, meta=(HideAlphaChannel))
+	UPROPERTY(Category=TileSet, EditAnywhere, meta=(HideAlphaChannel), meta=(AllowPrivateAccess="true"))
 	FLinearColor BackgroundColor;
 #endif
 
-
-protected:
 	// Cached width of this tile set (in tiles)
 	UPROPERTY()
 	int32 WidthInTiles;
@@ -145,8 +141,9 @@ protected:
 public:
 
 	// UObject interface
-#if WITH_EDITOR
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
+#if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End of UObject interface
@@ -193,4 +190,102 @@ public:
 #if WITH_EDITOR
 	static FName GetPerTilePropertyName() { return GET_MEMBER_NAME_CHECKED(UPaperTileSet, PerTileData); }
 #endif
+
+	// Sets the size of a tile (in pixels)
+	// Note: Does not trigger a rebuild of any tile map components using this tile set
+	inline void SetTileSize(FIntPoint NewSize)
+	{
+		TileSize = FIntPoint(FMath::Max(NewSize.X, 1), FMath::Max(NewSize.Y, 1));
+	}
+
+	// Returns the size of a tile (in pixels)
+	inline FIntPoint GetTileSize() const
+	{
+		return TileSize;
+	}
+
+	// Sets the tile sheet texture associated with this tile set
+	// Note: Does not trigger a rebuild of any tile map components using this tile set
+	inline void SetTileSheetTexture(UTexture2D* NewTileSheet)
+	{
+		TileSheet = NewTileSheet;
+	}
+
+	// Returns the tile sheet texture associated with this tile set
+	inline UTexture2D* GetTileSheetTexture() const
+	{
+		return TileSheet;
+	}
+
+	// Returns the imported size of the tile sheet texture (in pixels)
+	inline FIntPoint GetTileSheetAuthoredSize() const
+	{
+		return TileSheet->GetImportedSize();
+	}
+
+	// Returns the amount of padding around the border of the tile sheet (in pixels)
+	inline FIntMargin GetMargin() const
+	{
+		return BorderMargin;
+	}
+
+	// Sets the amount of padding around the border of the tile sheet (in pixels)
+	// Note: Does not trigger a rebuild of any tile map components using this tile set
+	inline void SetMargin(FIntMargin NewMargin)
+	{
+		BorderMargin = NewMargin;
+	}
+
+	// Returns the amount of padding between tiles in the tile sheet (in pixels)
+	inline FIntPoint GetPerTileSpacing() const
+	{
+		return PerTileSpacing;
+	}
+
+	// Sets the amount of padding between tiles in the tile sheet (in pixels)
+	// Note: Does not trigger a rebuild of any tile map components using this tile set
+	inline void SetPerTileSpacing(FIntPoint NewSpacing)
+	{
+		PerTileSpacing = NewSpacing;
+	}
+
+	// Returns the drawing offset for tiles from this set (in pixels)
+	inline FIntPoint GetDrawingOffset() const
+	{
+		return DrawingOffset;
+	}
+
+	// Sets the drawing offset for tiles from this set (in pixels)
+	// Note: Does not trigger a rebuild of any tile map components using this tile set
+	inline void SetDrawingOffset(FIntPoint NewDrawingOffset)
+	{
+		DrawingOffset = NewDrawingOffset;
+	}
+
+#if WITH_EDITORONLY_DATA
+	// Returns the background color displayed in the tile set viewer
+	inline FLinearColor GetBackgroundColor() const
+	{
+		return BackgroundColor;
+	}
+
+	// Returns the background color displayed in the tile set viewer
+	inline void SetBackgroundColor(FLinearColor NewColor)
+	{
+		BackgroundColor = NewColor;
+	}
+#endif
+
+private:
+	UPROPERTY()
+	int32 TileWidth_DEPRECATED;
+
+	UPROPERTY()
+	int32 TileHeight_DEPRECATED;
+
+	UPROPERTY()
+	int32 Margin_DEPRECATED;
+
+	UPROPERTY()
+	int32 Spacing_DEPRECATED;
 };

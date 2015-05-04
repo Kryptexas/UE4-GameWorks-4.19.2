@@ -100,7 +100,7 @@ void STileSetSelectorViewport::OnFocusViewportToSelection()
 	if (UPaperTileSet* TileSetBeingEdited = TileSetPtr.Get())
 	{
 		const FIntPoint ViewportSize = SceneViewport->GetSize();
-		if (UTexture* Texture = TileSetBeingEdited->TileSheet)
+		if (UTexture* Texture = TileSetBeingEdited->GetTileSheetTexture())
 		{
 			const FIntPoint TextureSize(Texture->Source.GetSizeX(), Texture->Source.GetSizeY());
 

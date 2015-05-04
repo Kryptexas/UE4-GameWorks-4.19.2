@@ -112,13 +112,13 @@ void FTileSetAssetTypeActions::ExecutePadTileSetTexture(TWeakObjectPtr<UPaperTil
 
 	if (UPaperTileSet* TileSet = TileSetPtr.Get())
 	{
-		if (TileSet->TileSheet != nullptr)
+		if (UTexture2D* TileSheetTexture = TileSet->GetTileSheetTexture())
 		{
 			const FString TileSheetSuffix(TEXT("Padded"));
-			const FString TileSheetPathName = TileSet->TileSheet->GetOutermost()->GetPathName();
+			const FString TileSheetPathName = TileSheetTexture->GetOutermost()->GetPathName();
 			const FString LongPackagePath = FPackageName::GetLongPackagePath(TileSheetPathName);
 
-			const FString EffectiveTileSheetName = TileSet->TileSheet->GetName();
+			const FString EffectiveTileSheetName = TileSheetTexture->GetName();
 			const FString NewTileSheetDefaultPath = LongPackagePath / EffectiveTileSheetName;
 
 			// Make sure the name is unique

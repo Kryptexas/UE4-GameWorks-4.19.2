@@ -15,9 +15,10 @@ UPaperTileSetThumbnailRenderer::UPaperTileSetThumbnailRenderer(const FObjectInit
 void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas)
 {
 	UPaperTileSet* TileSet = Cast<UPaperTileSet>(Object);
-	if ((TileSet != nullptr) && (TileSet->TileSheet != nullptr))
+	if ((TileSet != nullptr) && (TileSet->GetTileSheetTexture() != nullptr))
 	{
-		const bool bUseTranslucentBlend = TileSet->TileSheet->HasAlphaChannel();
+		UTexture2D* TileSheetTexture = TileSet->GetTileSheetTexture();
+		const bool bUseTranslucentBlend = TileSheetTexture->HasAlphaChannel();
 
 		// Draw the grid behind the sprite
 		if (bUseTranslucentBlend)
@@ -45,8 +46,8 @@ void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 		}
 
 		// Draw the sprite itself
-		const float TextureWidth = TileSet->TileSheet->GetSurfaceWidth();
-		const float TextureHeight = TileSet->TileSheet->GetSurfaceHeight();
+		const float TextureWidth = TileSheetTexture->GetSurfaceWidth();
+		const float TextureHeight = TileSheetTexture->GetSurfaceHeight();
 
 		float FinalX = (float)X;
 		float FinalY = (float)Y;
@@ -80,6 +81,7 @@ void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 			Canvas->DrawTile(FinalX+FinalWidth, Y, Width-FinalWidth, Height, 0, 0, 1, 1, BlackBarColor, GWhiteTexture, bAlphaBlend);
 		}
 
+		//@TODO: Cut off the border margin when rendering
 
 		// Draw the tile sheet 
 		Canvas->DrawTile(
@@ -92,7 +94,7 @@ void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uin
 			1.0f,
 			1.0f,
 			FLinearColor::White,
-			TileSet->TileSheet->Resource,
+			TileSheetTexture->Resource,
 			bUseTranslucentBlend);
 
 		// Draw a label overlay

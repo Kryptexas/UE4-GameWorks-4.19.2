@@ -52,6 +52,9 @@ struct FPaperCustomVersion
 		// Refactor sprite render/collision polygon storage to allow more flexible geometry shapes
 		RefactorPolygonStorageToSupportShapes = 14,
 
+		// Change Tile Set margin and padding to allow non-uniform values (also converts TileWidth/TileHeight into TileSize and makes members private)
+		AllowNonUniformPaddingInTileSets = 15,
+
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1

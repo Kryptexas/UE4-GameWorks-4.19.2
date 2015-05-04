@@ -2,15 +2,17 @@
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperTileSet.h"
+#include "PaperCustomVersion.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileSet
 
 UPaperTileSet::UPaperTileSet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, TileSize(32, 32)
 {
-	TileWidth = 32;
-	TileHeight = 32;
+	TileWidth_DEPRECATED = 32;
+	TileHeight_DEPRECATED = 32;
 
 #if WITH_EDITORONLY_DATA
 	BackgroundColor = FColor(0, 0, 127);
@@ -21,13 +23,15 @@ int32 UPaperTileSet::GetTileCount() const
 {
 	if (TileSheet != nullptr)
 	{
-		checkSlow((TileWidth > 0) && (TileHeight > 0));
+		checkSlow((TileSize.X > 0) && (TileSize.Y > 0));
 		const FIntPoint TextureSize = TileSheet->GetImportedSize();
 		const int32 TextureWidth = TextureSize.X;
 		const int32 TextureHeight = TextureSize.Y;
 
-		const int32 CellsX = (TextureWidth - (Margin * 2) + Spacing) / (TileWidth + Spacing);
-		const int32 CellsY = (TextureHeight - (Margin * 2) + Spacing) / (TileHeight + Spacing);
+		const FIntPoint SumMargin = BorderMargin.GetDesiredSize();
+
+		const int32 CellsX = (TextureWidth - SumMargin.X + PerTileSpacing.X) / (TileSize.X + PerTileSpacing.X);
+		const int32 CellsY = (TextureHeight - SumMargin.Y + PerTileSpacing.Y) / (TileSize.Y + PerTileSpacing.Y);
 
 		return CellsX * CellsY;
 	}
@@ -41,9 +45,9 @@ int32 UPaperTileSet::GetTileCountX() const
 {
 	if (TileSheet != nullptr)
 	{
-		checkSlow(TileWidth > 0);
+		checkSlow(TileSize.X > 0);
 		const int32 TextureWidth = TileSheet->GetImportedSize().X;
-		const int32 CellsX = (TextureWidth - (Margin * 2) + Spacing) / (TileWidth + Spacing);
+		const int32 CellsX = (TextureWidth - (BorderMargin.Left + BorderMargin.Right) + PerTileSpacing.X) / (TileSize.X + PerTileSpacing.X);
 		return CellsX;
 	}
 	else
@@ -56,9 +60,9 @@ int32 UPaperTileSet::GetTileCountY() const
 {
 	if (TileSheet != nullptr)
 	{
-		checkSlow(TileHeight > 0);
+		checkSlow(TileSize.Y > 0);
 		const int32 TextureHeight = TileSheet->GetImportedSize().Y;
-		const int32 CellsY = (TextureHeight - (Margin * 2) + Spacing) / (TileHeight + Spacing);
+		const int32 CellsY = (TextureHeight - (BorderMargin.Top + BorderMargin.Bottom) + PerTileSpacing.Y) / (TileSize.Y + PerTileSpacing.Y);
 		return CellsY;
 	}
 	else
@@ -112,15 +116,15 @@ bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) co
 
 FIntPoint UPaperTileSet::GetTileUVFromTileXY(const FIntPoint& TileXY) const
 {
-	return FIntPoint(TileXY.X * (TileWidth + Spacing) + Margin, TileXY.Y * (TileHeight + Spacing) + Margin);
+	return FIntPoint(TileXY.X * (TileSize.X + PerTileSpacing.X) + BorderMargin.Left, TileXY.Y * (TileSize.Y + PerTileSpacing.Y) + BorderMargin.Top);
 }
 
 FIntPoint UPaperTileSet::GetTileXYFromTextureUV(const FVector2D& TextureUV, bool bRoundUp) const
 {
-	const float DividendX = TextureUV.X - Margin;
-	const float DividendY = TextureUV.Y - Margin;
-	const float DivisorX = TileWidth + Spacing;
-	const float DivisorY = TileHeight + Spacing;
+	const float DividendX = TextureUV.X - BorderMargin.Left;
+	const float DividendY = TextureUV.Y - BorderMargin.Top;
+	const float DivisorX = TileSize.X + PerTileSpacing.X;
+	const float DivisorY = TileSize.Y + PerTileSpacing.Y;
 	const int32 X = bRoundUp ? FMath::DivideAndRoundUp<int32>(DividendX, DivisorX) : FMath::DivideAndRoundDown<int32>(DividendX, DivisorX);
 	const int32 Y = bRoundUp ? FMath::DivideAndRoundUp<int32>(DividendY, DivisorY) : FMath::DivideAndRoundDown<int32>(DividendY, DivisorY);
 	return FIntPoint(X, Y);
@@ -144,13 +148,24 @@ int32 UPaperTileSet::GetTerrainMembership(const FPaperTileInfo& TileInfo) const
 	return INDEX_NONE; //@TODO: TileMapTerrain: Implement this
 }
 
-#if WITH_EDITOR
+void UPaperTileSet::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
 
-#include "PaperTileMapComponent.h"
-#include "ComponentReregisterContext.h"
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
 
 void UPaperTileSet::PostLoad()
 {
+	const int32 PaperVer = GetLinkerCustomVersion(FPaperCustomVersion::GUID);
+
+	if (PaperVer < FPaperCustomVersion::AllowNonUniformPaddingInTileSets)
+	{
+		BorderMargin = FIntMargin(Margin_DEPRECATED);
+		PerTileSpacing = FIntPoint(Spacing_DEPRECATED, Spacing_DEPRECATED);
+		TileSize = FIntPoint(TileWidth_DEPRECATED, TileHeight_DEPRECATED);
+	}
+
 	if (TileSheet != nullptr)
 	{
 		TileSheet->ConditionalPostLoad();
@@ -163,15 +178,25 @@ void UPaperTileSet::PostLoad()
 	Super::PostLoad();
 }
 
+
+#if WITH_EDITOR
+
+#include "PaperTileMapComponent.h"
+#include "ComponentReregisterContext.h"
+
 void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	Margin = FMath::Max<int32>(Margin, 0);
-	Spacing = FMath::Max<int32>(Spacing, 0);
+	BorderMargin.Left = FMath::Max<int32>(BorderMargin.Left, 0);
+	BorderMargin.Right = FMath::Max<int32>(BorderMargin.Right, 0);
+	BorderMargin.Top = FMath::Max<int32>(BorderMargin.Top, 0);
+	BorderMargin.Bottom = FMath::Max<int32>(BorderMargin.Bottom, 0);
+	PerTileSpacing.X = FMath::Max<int32>(PerTileSpacing.X, 0);
+	PerTileSpacing.Y = FMath::Max<int32>(PerTileSpacing.Y, 0);
 
-	TileWidth = FMath::Max<int32>(TileWidth, 1);
-	TileHeight = FMath::Max<int32>(TileHeight, 1);
+	TileSize.X = FMath::Max<int32>(TileSize.X, 1);
+	TileSize.Y = FMath::Max<int32>(TileSize.Y, 1);
 
 	WidthInTiles = GetTileCountX();
 	HeightInTiles = GetTileCountY();

@@ -570,8 +570,9 @@ void UPaperTileMap::InitializeNewEmptyTileMap(UPaperTileSet* InitialTileSet)
 {
 	if (InitialTileSet != nullptr)
 	{
-		TileWidth = InitialTileSet->TileWidth;
-		TileHeight = InitialTileSet->TileHeight;
+		const FIntPoint TileSetTileSize = InitialTileSet->GetTileSize();
+		TileWidth = TileSetTileSize.X;
+		TileHeight = TileSetTileSize.Y;
 		SelectedTileSet = InitialTileSet;
 	}
 

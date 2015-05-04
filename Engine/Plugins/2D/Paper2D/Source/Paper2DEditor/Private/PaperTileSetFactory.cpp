@@ -20,8 +20,8 @@ UPaperTileSetFactory::UPaperTileSetFactory(const FObjectInitializer& ObjectIniti
 UObject* UPaperTileSetFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	UPaperTileSet* NewTileSet = NewObject<UPaperTileSet>(InParent, Class, Name, Flags | RF_Transactional);
-	NewTileSet->TileSheet = InitialTexture;
-	NewTileSet->BackgroundColor = GetDefault<UTileSetEditorSettings>()->DefaultBackgroundColor;
+	NewTileSet->SetTileSheetTexture(InitialTexture);
+	NewTileSet->SetBackgroundColor(GetDefault<UTileSetEditorSettings>()->DefaultBackgroundColor);
 
 	return NewTileSet;
 }

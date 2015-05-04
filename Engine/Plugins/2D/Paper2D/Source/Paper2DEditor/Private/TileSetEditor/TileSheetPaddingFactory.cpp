@@ -23,9 +23,9 @@ UTileSheetPaddingFactory::UTileSheetPaddingFactory(const FObjectInitializer& Obj
 UObject* UTileSheetPaddingFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
 {
 	check(SourceTileSet);
-	check(SourceTileSet->TileSheet);
 
-	UTexture* SourceTexture = SourceTileSet->TileSheet;
+	UTexture* SourceTexture = SourceTileSet->GetTileSheetTexture();
+	check(SourceTexture);
 
 	if (SourceTexture->Source.GetFormat() != TSF_BGRA8)
 	{
@@ -36,11 +36,10 @@ UObject* UTileSheetPaddingFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 	// Determine how big the new texture needs to be
 	const int32 NumTilesX = SourceTileSet->GetTileCountX();
 	const int32 NumTilesY = SourceTileSet->GetTileCountY();
-	const int32 TileWidth = SourceTileSet->TileWidth;
-	const int32 TileHeight = SourceTileSet->TileHeight;
+	const FIntPoint TileSize = SourceTileSet->GetTileSize();
 
-	const uint32 NewMinTextureWidth = (uint32)(NumTilesX * (TileWidth + 2 * ExtrusionAmount) + (2 * ExtrusionAmount));
-	const uint32 NewMinTextureHeight = (uint32)(NumTilesY * (TileHeight + 2 * ExtrusionAmount) + (2 * ExtrusionAmount));
+	const uint32 NewMinTextureWidth = (uint32)(NumTilesX * (TileSize.X + 2 * ExtrusionAmount) + (2 * ExtrusionAmount));
+	const uint32 NewMinTextureHeight = (uint32)(NumTilesY * (TileSize.Y + 2 * ExtrusionAmount) + (2 * ExtrusionAmount));
 
 	const uint32 NewTextureWidth = bPadToPowerOf2 ? FMath::RoundUpToPowerOfTwo(NewMinTextureWidth) : NewMinTextureWidth;
 	const uint32 NewTextureHeight = bPadToPowerOf2 ? FMath::RoundUpToPowerOfTwo(NewMinTextureHeight) : NewMinTextureHeight;
@@ -56,7 +55,6 @@ UObject* UTileSheetPaddingFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 	TArray<uint8> NewTextureData;
 	NewTextureData.AddZeroed(NewTextureWidth * NewTextureHeight * sizeof(FColor));
 
-	const FIntPoint TileWH(TileWidth, TileHeight);
 	for (int32 TileY = 0; TileY < NumTilesY; ++TileY)
 	{
 		for (int32 TileX = 0; TileX < NumTilesX; ++TileX)
@@ -64,16 +62,16 @@ UObject* UTileSheetPaddingFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 			const FIntPoint TileUV = SourceTileSet->GetTileUVFromTileXY(FIntPoint(TileX, TileY));
 
 			TArray<uint8> DummyBuffer;
-			FPaperAtlasTextureHelpers::ReadSpriteTexture(SourceTexture, TileUV, TileWH, DummyBuffer);
+			FPaperAtlasTextureHelpers::ReadSpriteTexture(SourceTexture, TileUV, TileSize, DummyBuffer);
 
 			FPaperSpriteAtlasSlot Slot;
-			Slot.X = TileX * (TileWidth + (2 * ExtrusionAmount));
-			Slot.Y = TileY * (TileHeight + (2 * ExtrusionAmount));
-			Slot.Width = TileWidth;// +(2 * ExtrusionAmount);
-			Slot.Height = TileHeight;// +(2 * ExtrusionAmount);
+			Slot.X = TileX * (TileSize.X + (2 * ExtrusionAmount));
+			Slot.Y = TileY * (TileSize.Y + (2 * ExtrusionAmount));
+			Slot.Width = TileSize.X;// +(2 * ExtrusionAmount);
+			Slot.Height = TileSize.Y;// +(2 * ExtrusionAmount);
 			Slot.AtlasIndex = 0;
 
-			FPaperAtlasTextureHelpers::CopyTextureRegionToAtlasTextureData(NewTextureData, NewTextureWidth, NewTextureHeight, sizeof(FColor), EPaperSpriteAtlasPadding::DilateBorder, ExtrusionAmount, DummyBuffer, TileWH, Slot);
+			FPaperAtlasTextureHelpers::CopyTextureRegionToAtlasTextureData(NewTextureData, NewTextureWidth, NewTextureHeight, sizeof(FColor), EPaperSpriteAtlasPadding::DilateBorder, ExtrusionAmount, DummyBuffer, TileSize, Slot);
 		}
 	}
 
@@ -84,9 +82,9 @@ UObject* UTileSheetPaddingFactory::FactoryCreateNew(UClass* Class, UObject* InPa
 
 	// Apply the new tile sheet to the specified tile set
 	SourceTileSet->Modify();
-	SourceTileSet->TileSheet = Result;
-	SourceTileSet->Margin = ExtrusionAmount;
-	SourceTileSet->Spacing = 2*ExtrusionAmount;
+	SourceTileSet->SetTileSheetTexture(Result);
+	SourceTileSet->SetMargin(FIntMargin(ExtrusionAmount));
+	SourceTileSet->SetPerTileSpacing(FIntPoint(2 * ExtrusionAmount, 2 * ExtrusionAmount));
 	SourceTileSet->PostEditChange();
 
 	return Result;

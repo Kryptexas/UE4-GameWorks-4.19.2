@@ -29,9 +29,7 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		return;
 	}
 
-	UTexture2D* Texture = TileSet->TileSheet;
-
-	if (Texture != nullptr)
+	if (UTexture2D* Texture = TileSet->GetTileSheetTexture())
 	{
 		const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
 
@@ -60,8 +58,9 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 			const FLinearColor MetaDataOverlayColor(1.0f, 0.2f, 0.0f, 0.5f);
 			const FLinearColor InfoOverlayColor = bShowTilesWithCollision ? CollisionOverlayColor : MetaDataOverlayColor;
 
-			const float Width = (TileSet->TileWidth - 2) * ZoomAmount;
-			const float Height = (TileSet->TileHeight - 2) * ZoomAmount;
+			const FIntPoint TileSetTileSize(TileSet->GetTileSize());
+			const float Width = (TileSetTileSize.X - 2) * ZoomAmount;
+			const float Height = (TileSetTileSize.Y - 2) * ZoomAmount;
 
 			for (int32 TileIndex = 0; TileIndex < NumTiles; ++TileIndex)
 			{
@@ -119,7 +118,7 @@ FLinearColor FTileSetEditorViewportClient::GetBackgroundColor() const
 {
 	if (UPaperTileSet* TileSet = TileSetBeingEdited.Get())
 	{
-		return TileSet->BackgroundColor;
+		return TileSet->GetBackgroundColor();
 	}
 	else
 	{
