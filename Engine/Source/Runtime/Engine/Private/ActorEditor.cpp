@@ -18,6 +18,13 @@ void AActor::PreEditChange(UProperty* PropertyThatWillChange)
 {
 	Super::PreEditChange(PropertyThatWillChange);
 
+	UObjectProperty* ObjProp = Cast<UObjectProperty>(PropertyThatWillChange);
+	UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(GetClass());
+	if ( BPGC != nullptr && ObjProp != nullptr )
+	{
+		BPGC->UnbindDynamicDelegatesForProperty(this, ObjProp);
+	}
+
 	if ( ReregisterComponentsWhenModified() )
 	{
 		UnregisterAllComponents();
