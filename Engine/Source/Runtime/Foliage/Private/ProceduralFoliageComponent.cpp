@@ -209,6 +209,12 @@ bool UProceduralFoliageComponent::ExecuteSimulation(TArray<FDesiredFoliageInstan
 
 }
 
+void UProceduralFoliageComponent::PostEditImport()
+{
+	// The Guid should always be unique
+	ProceduralGuid = FGuid::NewGuid();
+}
+
 bool UProceduralFoliageComponent::GenerateProceduralContent(TArray <FDesiredFoliageInstance>& OutInstances)
 {
 #if WITH_EDITOR
