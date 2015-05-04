@@ -18,6 +18,10 @@
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
 
+
+IMPLEMENT_MODULE(FDefaultModuleImpl, MaterialUtilities);
+
+
 DEFINE_LOG_CATEGORY_STATIC(LogMaterialUtilities, Log, All);
 
 /*------------------------------------------------------------------------------
