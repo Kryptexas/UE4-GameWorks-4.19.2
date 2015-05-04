@@ -76,6 +76,22 @@ public:
 	UPROPERTY(EditAnywhere, Category=Painting, meta=(UIMin=0, ClampMin=0, ReapplyCondition="ReapplyRadius"))
 	float Radius;
 
+	/** Specifies foliage instance scaling behavior when painting. */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(ReapplyCondition="ReapplyScaling"))
+	EFoliageScaling Scaling;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's X Scale property */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(ClampMin="0.001", UIMin="0.001", ReapplyCondition="ReapplyScaleX"))
+	FFloatInterval ScaleX;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Y Scale property */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(ClampMin="0.001", UIMin="0.001", ReapplyCondition="ReapplyScaleY"))
+	FFloatInterval ScaleY;
+
+	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Z Scale property */
+	UPROPERTY(EditAnywhere, Category=Painting, meta=(ClampMin="0.001", UIMin="0.001", ReapplyCondition="ReapplyScaleZ"))
+	FFloatInterval ScaleZ;
+
 	/** 
 	 *  When painting on static meshes, foliage instance placement can be limited to areas where the static mesh has values in the selected vertex color channel(s). 
 	 *  This allows a static mesh to mask out certain areas to prevent foliage from being placed there
@@ -96,22 +112,6 @@ public:
 
 public:
 	// PLACEMENT
-
-	/** Specifies foliage instance scaling behavior when painting. */
-	UPROPERTY(EditAnywhere, Category=Placement, meta=(ReapplyCondition="ReapplyScaling"))
-	EFoliageScaling Scaling;
-
-	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's X Scale property */
-	UPROPERTY(EditAnywhere, Category=Placement, meta=(ClampMin="0.001", UIMin="0.001", ReapplyCondition="ReapplyScaleX"))
-	FFloatInterval ScaleX;
-
-	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Y Scale property */
-	UPROPERTY(EditAnywhere, Category=Placement, meta=(ClampMin="0.001", UIMin="0.001", ReapplyCondition="ReapplyScaleY"))
-	FFloatInterval ScaleY;
-
-	/** Specifies the range of scale, from minimum to maximum, to apply to a foliage instance's Z Scale property */
-	UPROPERTY(EditAnywhere, Category=Placement, meta=(ClampMin="0.001", UIMin="0.001", ReapplyCondition="ReapplyScaleZ"))
-	FFloatInterval ScaleZ;
 
 	/** Specifies a range from minimum to maximum of the offset to apply to a foliage instance's Z location */
 	UPROPERTY(EditAnywhere, Category=Placement, meta=(DisplayName="Z Offset", ReapplyCondition="ReapplyZOffset"))
@@ -240,6 +240,7 @@ public:
 	FOLIAGE_API float GetScaleForAge(const float Age) const;
 	FOLIAGE_API float GetInitAge(FRandomStream& RandomStream) const;
 	FOLIAGE_API float GetNextAge(const float CurrentAge, const int32 NumSteps) const;
+	FOLIAGE_API bool GetSpawnsInShade() const;
 
 	// COLLISION
 
@@ -283,29 +284,44 @@ public:
 
 	// GROWTH
 
-	/** Whether the species can grow in shade. If this is true shade radius is ignored during overlap tests*/
+	/** If true, seeds of this type will ignore shade radius during overlap tests with other types. */
 	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth"))
-	bool bGrowsInShade;
+	bool bCanGrowInShade;
 
-	/** The minimum scale that an instance will be. Corresponds to age = 0. */
-	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth", ClampMin="0.0", UIMin="0.0"))
-	float MinScale;
+	/** 
+	 * Whether new seeds are spawned exclusively in shade. Occurs in a second pass after all types that do not spawn in shade have been simulated. 
+	 * Only valid when CanGrowInShade is true. 
+	 */
+	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth", EditCondition="bCanGrowInShade"))
+	bool bSpawnsInShade;
 
-	/** The maximum scale that a seed will grow to. Corresponds to age = 10. */
+	/** Allows a new seed to be older than 0 when created. New seeds will be randomly assigned an age in the range [0,MaxInitialAge] */
 	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth", ClampMin="0.0", UIMin="0.0"))
-	float MaxScale;
-
-	/** Specifies the oldest a new seed can be. The new seed will have an age randomly distributed in [0,InitMaxAge] */
-	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth", ClampMin="0.0", UIMin="0.0"))
-	float InitialMaxAge;
+	float MaxInitialAge;
 
 	/** Specifies the oldest a seed can be. After reaching this age the instance will still spread seeds, but will not get any older*/
 	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth", ClampMin="0.0", UIMin="0.0"))
 	float MaxAge;
 
-	/** When two instances overlap we must determine which instance to remove. The instance with a lower OverlapPriority will be removed. In the case where OverlapPriority is the same regular simulation rules apply.*/
+	/** 
+	 * When two instances overlap we must determine which instance to remove. 
+	 * The instance with a lower OverlapPriority will be removed. 
+	 * In the case where OverlapPriority is the same regular simulation rules apply.
+	 */
 	UPROPERTY(Category=Procedural, EditAnywhere, meta=(Subcategory="Growth"))
 	float OverlapPriority;
+
+	/** The scale range of this type when being procedurally generated. Configured with the Scale Curve. */
+	UPROPERTY(Category=Procedural, EditAnywhere, meta = (Subcategory = "Growth", ClampMin = "0.001", UIMin = "0.001"))
+	FFloatInterval ProceduralScale;
+
+	/** 
+	 * Instance scale factor as a function of normalized age (i.e. Current Age / Max Age).
+	 * X = 0 corresponds to Age = 0, X = 1 corresponds to Age = Max Age.
+	 * Y = 0 corresponds to Min Scale, Y = 1 corresponds to Max Scale.
+	 */
+	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory = "Growth", XAxisName = "Normalized Age", YAxisName = "Scale Factor"))
+	FRuntimeFloatCurve ScaleCurve;
 
 	UPROPERTY()
 	int32 ChangeCount;
@@ -375,12 +391,8 @@ public:
 
 private:
 
-	/** The curve used to interpolate the instance scale.*/
-	UPROPERTY(Category = Procedural, EditAnywhere, meta = (Subcategory="Growth"))
-	FRuntimeFloatCurve ScaleCurve;
-	
-	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
 #if WITH_EDITORONLY_DATA
+	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
 	UPROPERTY()
 	float ScaleMinX_DEPRECATED;
 
@@ -434,6 +446,12 @@ private:
 	
 	UPROPERTY()
 	float MinGroundSlope_DEPRECATED;
+
+	UPROPERTY()
+	float MinScale_DEPRECATED;
+
+	UPROPERTY()
+	float MaxScale_DEPRECATED;
 #endif// WITH_EDITORONLY_DATA
 };
 

@@ -93,9 +93,9 @@ private:
 	void Empty();
 
 	/** Run the simulation for the appropriate number of steps. 
-	 * @param bShadeGrowth Whether the simulation should run exclusively within existing shade from other instances
+	 * @param bOnlyInShade Whether the simulation should run exclusively within existing shade from other instances
 	 */
-	void RunSimulation(const int32 MaxNumSteps, bool bShadeGrowth);
+	void RunSimulation(const int32 MaxNumSteps, bool bOnlyInShade);
 
 	/** Advance the simulation by a step (think of a step as a generation) */
 	void StepSimulation();
@@ -133,7 +133,7 @@ private:
 
 	int32 RandomSeed;
 	FRandomStream RandomStream;
-	bool bSimulateShadeGrowth;
+	bool bSimulateOnlyInShade;
 
 	int32 LastCancel;
 

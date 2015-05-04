@@ -359,11 +359,11 @@ int32 TQuadTree<ElementType, NodeCapacity>::GetQuads(const FBox2D& Box, TreeType
 	int32 QuadCount = 0;
 	if (bInternal)
 	{
-		bool bNegX = Box.Min.X < Position.X;
-		bool bNegY = Box.Min.Y < Position.Y;
+		bool bNegX = Box.Min.X <= Position.X;
+		bool bNegY = Box.Min.Y <= Position.Y;
 
-		bool bPosX = Box.Max.X > Position.X;
-		bool bPosY = Box.Max.Y > Position.Y;
+		bool bPosX = Box.Max.X >= Position.X;
+		bool bPosY = Box.Max.Y >= Position.Y;
 
 		if (bNegX && bNegY)
 		{
