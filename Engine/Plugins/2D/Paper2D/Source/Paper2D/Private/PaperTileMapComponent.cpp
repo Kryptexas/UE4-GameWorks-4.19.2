@@ -228,7 +228,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 	const float UnrealUnitsPerPixel = TileMap->GetUnrealUnitsPerPixel();
 
-	for (int32 Z = 0; Z < TileMap->TileLayers.Num(); ++Z)
+	for (int32 Z = TileMap->TileLayers.Num() - 1; Z >= 0; --Z)
 	{
 		UPaperTileLayer* Layer = TileMap->TileLayers[Z];
 
