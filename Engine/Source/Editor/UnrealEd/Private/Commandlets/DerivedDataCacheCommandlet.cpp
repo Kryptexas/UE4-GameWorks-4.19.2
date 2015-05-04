@@ -91,6 +91,11 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
 		}
 
+		if( !Switches.Contains(TEXT("NOREDIST")) )
+		{
+			PackageFilter |= NORMALIZE_ExcludeNoRedistPackages;
+		}
+
 		// assume the first token is the map wildcard/pathname
 		TArray<FString> Unused;
 		for ( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); TokenIndex++ )
