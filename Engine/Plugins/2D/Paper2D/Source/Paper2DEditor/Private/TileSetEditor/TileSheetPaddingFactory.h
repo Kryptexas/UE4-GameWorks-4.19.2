@@ -27,6 +27,9 @@ class UTileSheetPaddingFactory : public UFactory
 	UPROPERTY(Category=Settings, EditAnywhere)
 	bool bPadToPowerOf2;
 
+	// Should we use transparent black or white when filling the texture areas that aren't covered by tiles?
+	UPROPERTY(Category=Settings, EditAnywhere)
+	bool bFillWithTransparentBlack;
 
 	// UFactory interface
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
