@@ -93,7 +93,7 @@ public:
 
 	void ForceLoadResources();
 
-	/** Gets the current scale of the UI based on the size */
+	/** Gets the current scale of the UI based on the size of a viewport */
 	float GetDPIScaleBasedOnSize(FIntPoint Size) const;
 
 #if WITH_EDITOR

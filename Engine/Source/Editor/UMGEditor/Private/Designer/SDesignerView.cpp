@@ -1068,7 +1068,7 @@ SDesignerView::FWidgetHitResult::FWidgetHitResult()
 {
 }
 
-bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FWidgetHitResult& HitResult)
+bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, TSubclassOf<UWidget> FindType, FWidgetHitResult& HitResult)
 {
 	//@TODO UMG Make it so you can request dropable widgets only, to find the first parentable.
 
@@ -1096,6 +1096,13 @@ bool SDesignerView::FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPo
 			
 			// Ignore the drop preview widget when doing widget picking
 			if ( WidgetUnderCursor == DropPreviewWidget )
+			{
+				WidgetUnderCursor = nullptr;
+				continue;
+			}
+
+			// Ignore widgets that don't pass our find widget filter.
+			if ( WidgetUnderCursor->GetClass()->IsChildOf(FindType) == false )
 			{
 				WidgetUnderCursor = nullptr;
 				continue;
@@ -1148,7 +1155,7 @@ FReply SDesignerView::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 
 	//TODO UMG Undoable Selection
 	FWidgetHitResult HitResult;
-	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, HitResult) )
+	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, UWidget::StaticClass(), HitResult) )
 	{
 		SelectedWidgetContextMenuLocation = HitResult.WidgetArranged.Geometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 
@@ -1273,7 +1280,7 @@ FReply SDesignerView::OnMouseMove(const FGeometry& MyGeometry, const FPointerEve
 	// Update the hovered widget under the mouse
 	auto PinnedBlueprintEditor = BlueprintEditor.Pin();
 	FWidgetHitResult HitResult;
-	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, HitResult) )
+	if ( FindWidgetUnderCursor(MyGeometry, MouseEvent, UWidget::StaticClass(), HitResult) )
 	{
 		PinnedBlueprintEditor->SetHoveredWidget(HitResult.Widget);
 	}
@@ -1674,7 +1681,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 	UWidget* Target = nullptr;
 
 	FWidgetHitResult HitResult;
-	if ( FindWidgetUnderCursor(MyGeometry, DragDropEvent, HitResult) )
+	if ( FindWidgetUnderCursor(MyGeometry, DragDropEvent, UPanelWidget::StaticClass(), HitResult) )
 	{
 		Target = bIsPreview ? HitResult.Widget.GetPreview() : HitResult.Widget.GetTemplate();
 	}

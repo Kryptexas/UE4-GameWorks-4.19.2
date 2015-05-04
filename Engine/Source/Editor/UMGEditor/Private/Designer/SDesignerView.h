@@ -188,7 +188,7 @@ private:
 	};
 
 	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
-	bool FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FWidgetHitResult& HitResult);
+	bool FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, TSubclassOf<UWidget> FindType, FWidgetHitResult& HitResult);
 
 private:
 	FReply HandleZoomToFitClicked();
