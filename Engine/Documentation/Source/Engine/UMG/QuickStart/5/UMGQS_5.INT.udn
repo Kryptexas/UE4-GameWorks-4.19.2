@@ -1,13 +1,13 @@
 Availability: Public
-Title:5. Experience Bar and Hotbar Button
+Title:5. Creating / Scripting an In-Game Pause Menu
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:The fifth step in the UMG Quick Start is to create an experience bar and hotbar button. 
+Description:Here we will create an in-game pause menu which will allow us to pause or exit our game. 
 
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+		[Previous Step](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,7 +15,7 @@ Description:The fifth step in the UMG Quick Start is to create an experience bar
 		[Quick Start Home](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
+	[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,177 +24,162 @@ Description:The fifth step in the UMG Quick Start is to create an experience bar
 
 ---
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Adding an Experience Bar and Hot Bar Button
-	[/PARAM]
-	[PARAM:description]
-	In this section, we will update our HUD to include an experience bar, level up text, and an action bar button. 
-	[/PARAM]
-[/OBJECT]
+The last thing we will do is create a simple Pause Menu which will allow the player to pause or exit the game. 
 
-1. From the **Content Browser**, select the **UMG** folder and open the **GameHUD** Blueprint. 
 
-1. Inside the **Palette** window under **Common**, drag a **Progress Bar** onto the **CanvasPanel** in the **Hierarchy** window. 
+## Visual: Pause Menu Layout
 
-1. Move and resize the bar as you would like (we placed ours at the bottom). 
+In this section we will create the visual layout of our basic Pause Menu. 
 
-	![](New_1.png)
+1.	Open your **Pause Menu** Widget Blueprint. 
 
-	In the **Details** panel, make sure to **Anchor** it where you would like (we Anchored it to the bottom center).
+1.	On the **Designer** tab, drag and drop widgets from the **Palette** onto the **Hierarchy** to achieve the setup below. 
 
-1. Add a **Text Block** to the **CanvasPanel**, this text will be used to let the user know they "Leveled Up."
+	![](Pause1.png)
 
-1. Place the **Text Block** where you would like, along with the text you would like to display.
+	Here we have a **Border** that contains a **Vertical Box** with **Text** and two **Buttons** each with **Text** on our **Canvas Panel**. 
 
-	![](New_2.png)
+1.	In the **Designer** window, resize the **Border** so that it fills the entire dotted window (filling the screen). 
 
-	 We used the text "Super Jump Unlocked!" and placed and Anchored it at the bottom.
+	![](Pause2.png)
 
-1. Next, add a **Button** to the **CanvasPanel**, move and resize as desired (we placed ours under our experience bar). 
+	You can also change the color from the **Brush Color** option inside the **Details** panel. 
 
-	![](New_4.png)
+	![](Pause3.png)
 
-1. In the **Details** panel for the button under **Behavior**, uncheck the **Is Enabled** button (as we will turn it on when the player levels up). 
+	You may also want to set the set the **Alpha** for your color to **0.5** to give it some translucency. When the Pause Menu is opened during gameplay, the Border will fill the screen but adding some translucency will allow the game to still be visible in the background. 
 
-	![](New_3.png)
+1.	Also for the **Border** in the **Details** panel, be sure to use the fill screen Anchor. 
 
-1. Next to the **IsEnabled** checkbox, click the **Bind** button then **Create Binding**. 
+	![](Pause4.png)
 
-1. In the graph, create a new **Bool** variable called **H_LevelUp** and connect it to the **Return Value**. 
+	This will ensure that the Border fills the screen regardless of screen size. 
 
-	![](New_5.png)
+1.	Select the **Vertical Box** in the **Hierarchy** then in the **Details** panel, center it both horizontally and vertically. 
 
-1. Return to the **Design** tab and click the experience bar. 
+	![](Pause5.png)
 
-1. In the **Details** panel, assign a color to the bar then click **Bind** next to **Percent** and **Create Binding**. 
+1.	Select the **Text** under the **Vertical Box** then in the **Details** panel for **Content**, enter **Pause Menu**. 
 
-1. In the graph, create a new **Float** variable called **H_Experience** and connect it to the **Return Value**. 
+	![](Pause6.png)
 
-	![](New_7.png)
+1.	Enter **Resume** and **Quit** for the other two **Text** blocks. 
 
-1. In the **MyBlueprint** window, **Double-click** the **EventGraph** to jump to it. 
+	![](Pause7.png)
 
-	![](New_15.png)
+1.	Hold **Ctrl** and select both **Buttons** in the **Hierarchy**, then in the **Details** panel under **Style**, assign a color for **Hovered**. 
 
-1. **Right-click** in the graph and add an **Event Tick** connected to a **Branch**. 
+	![](Pause8.png)
 
-1. For the condition, **Control** drag in the **H_Experience** variable and connect it to a **>=** node (set to **1.0**). 
+1.	Rename the **Buttons** to **Resume** and **Quit** respectively inside the **Details** panel. 
 
-1. Create a new **Text** variable called **H_UnlockedText**. 
+	![](Pause9.png)
 
-1. Next, **Alt** drag in the **H_UnlockedText** variable and enter the text you want to display when unlocking the ability. 
 
-	![](New_13.png)
+## Script: Pause Menu Functionality
 
-1.	Return to the **Designer** tab and select your unlock text, next to the **Text** field click **Bind** and select the **H_UnlockedText** variable.
+With the visuals set, next we will provide the scripted functionality for our Pause Menu. 
 
-	![](New_13b.png)
+1.	Click the **Graph** button in the upper-right corner of the Widget Blueprint Editor window. 
 
-	This will Bind the text displayed to whatever the variable is. 
+1.	On the **Graph** tab in the **My Blueprint** window, click the **QuitButton** then in the **Details** panel add an **OnClicked** Event. 
 
-1. Return to the **Graph** tab. 
+	![](PauseScript1.png)
 
-1. Add a **Delay** node following the unlock text (set to 1 second). 
+1.	Also add an **OnClicked** Event for the **ResumeButton**. 
 
-1. After the **Delay**, **Set H_Experience** to **0.0**, **Set H_UnlockedText** to **Blank** and finally set **H_LevelUp** to **True**. 
+1.	In the **Graph** window, **Right-click** and add a **Get Player Controller** node. 
 
-	[REGION:lightbox]
-	[![](New_14.png)(w:840)](New_14.png)
-	[/REGION]
-	
-	The resulting graph should look similar to above, click the image for full view. Here we are enabling the ability when enough experience is reached, displaying text that we unlocked the ability, then removing the text and resetting the experience bar.
-	
-1. **Compile** and **Save**, then close the Blueprint. 
+	![](PauseScript2.png)
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		Generating Experience and Finishing Up
-	[/PARAM]
-	[PARAM:description]
-	In this section, we will set it up so that when you shoot a box, it generates experience and updates the HUD. 
-	[/PARAM]
-[/OBJECT]
+1.	Off the **Get Player Controller**, use **Set Input Mode Game Only** then **Remove from Parent** and **Set Game Paused** as shown below. 
 
-1. In the **Content Browser** under **Game/Blueprints**, open the **MyProjectile** Blueprint. 
+	![](PauseScript3.png)
 
-1. In the graph after the **Destroy Actor** node, **Cast To MyCharacter** by adding a **Get Player Character** node. 
+	Here when the **Resume Button** is clicked, the input mode is set to game only and the cursor that is displayed when the Pause Menu is activated is removed. The **Remove from Parent** node is used to remove the actual Pause Menu widget from display before leaving the paused state by using the **Set Game Paused** node and leaving **Paused** unchecked. 
 
-1. Off the **As My Character C** pin add the **Get GameHUDWidget** (our Widget Blueprint) node. 
+1.	Create a new **Function** called **Remove HUD**. 
 
-	![](New_8.png)
+	![](PauseScript4.png)
 
-1. Off the **GameHUDWidget**, **Set H_Experience** to **H_Experience** + **0.10** as seen below. 
+	We will use this to remove the game HUD from the player's view when the Pause Menu is activated. 
 
-	![](New_9.png)
-	
-	The ending sequence should look similar to above, click the image for a full view.
+1.	In the Function, add a **Get Player Character** node and off the **Return Value**, add the **Cast ToFirstPersonCharacter** node. 
 
-1. **Compile** and **Save**, then close the Blueprint.
+	![](PauseScript5.png)
 
-1. In the **Content Browser** under **Game/Blueprints**, open the **MyCharacter** Blueprint. 
+	This will allow us to access the Character Blueprint being used by the player and the game HUD that is being used by that player. 
 
-1. **Right-click** and add a **1** Key Press Event, drag in the **GameHUDWidget** variable and off it, get **H_LevelUp**. 
+1.	Off the **As First Person Character**, use **Get HUD Reference** then **Remove from Parent** as shown below. 
 
-1. Off the **Pressed** pin of the **1** Key Press Event, add a **Branch** with the condition being **H_LevelUp**. 
+	![](PauseScript6.png)(w:840)
 
-	![](New_10.png)
+	This will access the HUD being used by the player character and remove it from the viewport when quitting the game. 
 
-1. Off the **True** of the **Branch**, add a **Launch Character** node and set the **Launch Velocity** X to **50** and Z to **1000.0**. 
+1.	On the **Event Graph**, off **Get Player Controller** use the **Set Show Mouse Cursor** node set to **True**. 
 
-1. **Alt** drag in the **P_Energy** variable, then **Control** drag it in and connect it to a **Float - Float** node set to **0.5**. 
+	![](PauseScript7.png)(w:840)
 
-	![](New_11.png)
+	When **Quit** is clicked, this will turn on the mouse cursor for menu navigation when returning to the Main Menu. 
 
-	This will launch the character in the air and subtract energy from the character which will be displayed via the HUD.
-
-1. Drag off the **GameHUDWidget** node in this sequence again and **Set H_LevelUp** to **False** (unchecked). 
-
-1. Add a **Delay** node (set to **2**) following the previous step, then **Set H_LevelUp** to **True** (checked). 
+1.	Next add the **Remove HUD** function created above followed by **Open Level** (set to **MainMenu**) and connect as shown. 
 
 	[REGION:lightbox]
-	[![](New_12.png)(w:840)](New_12.png)
+	[![](PauseScript8.png)(w:840)](PauseScript8.png)
 	[/REGION]
 
-	_Click image for full view._
+	_Click for full view._
 
-	When **1** is pressed, if the player has unlocked the ability, we launch them and remove some energy, then add a 2 second cooldown to the ability.
+	Both Buttons are now setup, the last thing that we need to do is allow the player to call the Pause Menu and pause the game.  
 
-1. Next, find the section for the **F** key press event, following the **Set P_Health** node, add a **Branch** with condition being **P_Health** <= **0.0**. 
+1.	In the **Content Browser** under **Content/FirstPersonBP/Blueprints**, open the **FirstPersonCharacter** Blueprint. 
 
-1. **Control** drag in the **GameHUDWidget** variable and place it under the **Branch**, then drag off it and add the **Remove from Viewport** node. 
+	![](PauseScript9.png)
 
-1. Connect the **Remove from Viewport** node to the **True** of the **Branch**, then off the exit pin, add a **Print String** with text **You're Dead!**. 
+1.	In the Graph, add a **M** Key Event and a **Create Widget** node (set to **Pause Menu**) and promote the **Return Value** to a variable. 
+
+	![](PauseScript10.png)
+
+	While we used the **M** Key as our input for bringing up the Pause Menu, you can use any key you wish. For the promoted variable, we called our variable **Pause Menu Reference** as this will store a reference to created Pause Menu. 
+
+1.	Hold **Ctrl** and drag in the variable from the **MyBlueprint** window and connect it to an **IsValid** node. 
+
+	![](PauseScript11.png)
+
+	We are checking to see if the Pause Menu widget has been created and stored in this variable yet. 
+
+1.	Connect the **Is Not Valid** pin to the **Create PauseMenu_C Widget**. 
+
+	![](PauseScript12.png)
+
+1.	**Right-click** and add the **Get Player Controller** node then **Set Input Mode UI Only** and connect the nodes as shown below. 
+
+	![](PauseScript13.png)
+
+	When **M** is pressed, if the Pause Menu has been accessed before it will not need to create it again and will instead access the variable. If this is the first time the Pause Menu has been accessed it will create it then store it as a variable so it can be access later. In either case, the input mode is set to UI only before we display the Pause Menu (which we will do next). 
+
+1.	Off the **Pause Menu Reference** variable, use the **Add to Viewport** node then **Set Game Paused** (set **Paused** to **True**). 
 
 	[REGION:lightbox]
-	[![](New_16.png)(w:800)](New_16.png)
+	[![](PauseScript14.png)(w:840)](PauseScript14.png)
 	[/REGION]
-
-	The last few steps should result in the above, click for full view. This will remove the HUD when the player is out of Health (or "dead").
-
-	[REGION:note]
-	Note: If you do not see the **Remove from Viewport** option, use the **Remove from Parent** option instead.
-	[/REGION]
-
-1. **Compile** and **Save** then close the Blueprint then play in the editor.
-
-	![](Gif1.gif)(convert:false)
-
-	You should now see that when you hit 10 boxes, you level up and the text appears on screen. After a moment, you can press 1 to perform the ability and a cooldown will be applied to the button. You can also press the **F** key several times until you are out of health at which point the HUD should disappear.
-
 	
-While this is a simple example and there is plenty more to do here, you should have an understanding of how to create and implement screens using **UMG** now as well as how to pass variables to and communicate with them using different methods. The final step of this guide will provide you with additional links to more documentation on using **UMG** and **Blueprints Visual Scripting** which you can use to take this example even further on your own!
+	_Click for full view._
+
+	Our Pause Menu is setup, now it is time to test. 
+
+1.	Click the **Compile** and **Save** Buttons, then the **Play** button to play in the editor. 
+
+	[![](Engine\UMG\QuickStart\4\MenuImage.png)(w:720)](PauseMovie.mp4)
+
+	Once in-game, if you press the **M** Key (or whichever key you assigned), you will see that the game is paused and the Pause Menu appears. From here, you can resume gameplay with the **Resume** button or quit back to the Main Menu with the **Quit** Button. 
+	
+
+The next section will provide you with additional information on working with **Unreal Motion Graphics** and **Blueprints**. 
 
 ---
 
 %Steps%
-
 
 
 
