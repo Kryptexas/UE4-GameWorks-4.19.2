@@ -813,6 +813,9 @@ void FConstraintInstance::SetLinearVelocityDrive(bool bEnableXDrive, bool bEnabl
 	}
 #endif
 
+	bLinearXVelocityDrive = bEnableXDrive;
+	bLinearYVelocityDrive = bEnableYDrive;
+	bLinearZVelocityDrive = bEnableZDrive;
 	bLinearVelocityDrive = bEnableXDrive || bEnableYDrive || bEnableZDrive;
 }
 
@@ -919,18 +922,18 @@ void FConstraintInstance::SetLinearDriveParams(float InSpring, float InDamping, 
 		{
 			// X-Axis linear drive
 			const float DriveSpringX = bLinearPositionDrive && bLinearXPositionDrive ? InSpring : 0.0f;
-			const float DriveDampingX = (bLinearVelocityDrive && LinearVelocityTarget.X != 0.f) ? InDamping : 0.0f;
+			const float DriveDampingX = bLinearVelocityDrive && bLinearXVelocityDrive ? InDamping : 0.0f;
 			const float LinearForceLimit = InForceLimit > 0.f ? InForceLimit : PX_MAX_F32;
 			Joint->setDrive(PxD6Drive::eX, PxD6JointDrive(DriveSpringX, DriveDampingX, LinearForceLimit, bIsAccelerationDrive));
 
 			// Y-Axis linear drive
 			const float DriveSpringY = bLinearPositionDrive && bLinearYPositionDrive ? InSpring : 0.0f;
-			const float DriveDampingY = (bLinearVelocityDrive && LinearVelocityTarget.Y != 0.f) ? InDamping : 0.0f;
+			const float DriveDampingY = bLinearVelocityDrive && bLinearYVelocityDrive ? InDamping : 0.0f;
 			Joint->setDrive(PxD6Drive::eY, PxD6JointDrive(DriveSpringY, DriveDampingY, LinearForceLimit, bIsAccelerationDrive));
 
 			// Z-Axis linear drive
 			const float DriveSpringZ = bLinearPositionDrive && bLinearZPositionDrive ? InSpring : 0.0f;
-			const float DriveDampingZ = (bLinearVelocityDrive && LinearVelocityTarget.Z != 0.f) ? InDamping : 0.0f;
+			const float DriveDampingZ = bLinearVelocityDrive && bLinearZVelocityDrive ? InDamping : 0.0f;
 			Joint->setDrive(PxD6Drive::eZ, PxD6JointDrive(DriveSpringZ, DriveDampingZ, LinearForceLimit, bIsAccelerationDrive));
 		});
 	}
@@ -1258,6 +1261,13 @@ void FConstraintInstance::PostSerialize(const FArchive& Ar)
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_MOTOR_UNITS)
 	{
 		AngularVelocityTarget *= 1.f / (2.f * PI);	//we want to use revolutions per second - old system was using radians directly
+	}
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CONSTRAINT_INSTANCE_MOTOR_FLAGS)
+	{
+		bLinearXVelocityDrive = LinearVelocityTarget.X != 0.f;
+		bLinearYVelocityDrive = LinearVelocityTarget.Y != 0.f;
+		bLinearZVelocityDrive = LinearVelocityTarget.Z != 0.f;
 	}
 }
 

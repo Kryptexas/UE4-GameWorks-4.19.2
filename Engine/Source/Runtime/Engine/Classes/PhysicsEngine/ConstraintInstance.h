@@ -251,53 +251,59 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bAngularBreakable", ClampMin = "0.0"))
 	float AngularBreakThreshold;
 
-	/** Enables/Disables linear drive along the x axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+private:
+	/** Enables/Disables linear position drive along the x axis. */
+	UPROPERTY(EditAnywhere, Category=LinearMotor)
 	uint32 bLinearXPositionDrive:1;
 
-	UPROPERTY()
-	uint32 bLinearXVelocityDrive_DEPRECATED:1;
+	/** Enables/Disables linear velocity drive along the x axis. */
+	UPROPERTY(EditAnywhere, Category=LinearMotor)
+	uint32 bLinearXVelocityDrive:1;
 
-	/** Enables/Disables linear drive along the y axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	/** Enables/Disables linear position drive along the y axis. */
+	UPROPERTY(EditAnywhere, Category=LinearMotor)
 	uint32 bLinearYPositionDrive:1;
 
-	UPROPERTY()
-	uint32 bLinearYVelocityDrive_DEPRECATED:1;
+	/** Enables/Disables linear velocity drive along the y axis. */
+	UPROPERTY(EditAnywhere, Category=LinearMotor)
+	uint32 bLinearYVelocityDrive:1;
 
-	/** Enables/Disables linear drive along the z axis. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	/** Enables/Disables linear position drive along the z axis. */
+	UPROPERTY(EditAnywhere, Category=LinearMotor)
 	uint32 bLinearZPositionDrive:1;
 
-	UPROPERTY()
-	uint32 bLinearZVelocityDrive_DEPRECATED:1;
+	/** Enables/Disables linear velocity drive along the z axis. */
+	UPROPERTY(EditAnywhere, Category=LinearMotor)
+	uint32 bLinearZVelocityDrive:1;
 
-	/** Enables/Disables the linear position drive. */
+public:
+
+	/** Enables/Disables linear position drive. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
 	uint32 bLinearPositionDrive:1;
 	
-	/** Enables/Disables the linear velocity drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	/** Enables/Disables linear velocity drive. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor)
 	uint32 bLinearVelocityDrive:1;
 
 	/** Target position the linear drive. Only the components that are enabled are used. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor, meta=(editcondition="bLinearPositionDrive"))
 	FVector LinearPositionTarget;
 
 	/** Target velocity the linear drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (editcondition = "bLinearVelocityDrive"))
 	FVector LinearVelocityTarget;
 
 	/** Spring to apply to the for linear drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (DisplayName = "Linear Position Strength", editcondition = "bLinearPositionDrive"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (DisplayName = "Linear Position Strength"))
 	float LinearDriveSpring;
 
 	/** Damping to apply to the for linear drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (DisplayName = "Linear Velocity Strength", editcondition = "bLinearVelocityDrive"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = LinearMotor, meta = (DisplayName = "Linear Velocity Strength"))
 	float LinearDriveDamping;
 
 	/** Limit to the force the linear drive can apply. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LinearMotor, meta = (DisplayName = "Max Linear Force"))
 	float LinearDriveForceLimit;
 
 	UPROPERTY()
@@ -343,11 +349,11 @@ struct ENGINE_API FConstraintInstance
 	float AngularDriveSpring;
 
 	/** Damping value to apply to the for angular drive. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor, meta = (DisplayName = "Angular Velocity Strength"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor, meta = (DisplayName = "Angular Velocity Strength", editcondition = "bAngularVelocityDrive"))
 	float AngularDriveDamping;
 
 	/** Limit to the force the angular drive can apply. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AngularMotor)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AngularMotor, meta = (DisplayName = "Max Angular Force"))
 	float AngularDriveForceLimit;
 
 	float AverageMass;

@@ -504,6 +504,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_DITHERED_LOD_TRANSITION,
 	// Serialize ES2 textures separately rather than overwriting the properties used on other platforms
 	VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES,
+	// Constraint motor velocity is broken into per-component
+	VER_UE4_CONSTRAINT_INSTANCE_MOTOR_FLAGS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
