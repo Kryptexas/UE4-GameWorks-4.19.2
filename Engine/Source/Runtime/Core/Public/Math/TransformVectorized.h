@@ -728,6 +728,12 @@ public:
 		DiagnosticCheckNaN_Translate();
 	}
 
+	/** Copy translation from another FTransform. */
+	FORCEINLINE void CopyTranslation(const FTransform& Other)
+	{
+		Translation = Other.Translation;
+	}
+
 	/**
 	 * Concatenates another rotation to this transformation 
 	 * @param DeltaRotation The rotation to concatenate in the following fashion: Rotation = Rotation * DeltaRotation
@@ -758,6 +764,12 @@ public:
 		DiagnosticCheckNaN_Rotate();
 	}
 
+	/** Copy rotation from another FTransform. */
+	FORCEINLINE void CopyRotation(const FTransform& Other)
+	{
+		Rotation = Other.Rotation;
+	}
+
 	/**
 	 * Sets the Scale3D component
 	 * @param NewScale3D The new value for the Scale3D component
@@ -766,6 +778,12 @@ public:
 	{
 		Scale3D = VectorLoadFloat3_W0(&NewScale3D);
 		DiagnosticCheckNaN_Scale3D();
+	}
+
+	/** Copy scale from another FTransform. */
+	FORCEINLINE void CopyScale3D(const FTransform& Other)
+	{
+		Scale3D = Other.Scale3D;
 	}
 
 	/**

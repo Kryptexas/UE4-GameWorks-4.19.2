@@ -294,17 +294,17 @@ FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativ
 
 		if(bAbsoluteLocation)
 		{
-			NewCompToWorld.SetTranslation(NewRelativeTransform.GetTranslation());
+			NewCompToWorld.CopyTranslation(NewRelativeTransform);
 		}
 
 		if(bAbsoluteRotation)
 		{
-			NewCompToWorld.SetRotation(NewRelativeTransform.GetRotation());
+			NewCompToWorld.CopyRotation(NewRelativeTransform);
 		}
 
 		if(bAbsoluteScale)
 		{
-			NewCompToWorld.SetScale3D(NewRelativeTransform.GetScale3D());
+			NewCompToWorld.CopyScale3D(NewRelativeTransform);
 		}
 
 		return NewCompToWorld;
