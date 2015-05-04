@@ -986,6 +986,8 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 	if (UBodySetup* BodySetup = GetBodySetup())
 	{
+		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+
 	    const int32 NumBodies = PerInstanceSMData.Num();
 	    InstanceBodies.SetNumUninitialized(NumBodies);
     
@@ -996,26 +998,32 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 	    {
 		    InstanceBodies[i] = new FBodyInstance;
 		    FBodyInstance* Instance = InstanceBodies[i];
-		    Transforms.Add(FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld);
-    
+			const FTransform InstanceTM = FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld;   
 		    Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
 		    Instance->InstanceBodyIndex = i; // Set body index 
 		    Instance->bAutoWeld = false;
-
-#if WITH_PHYSX
-			Instance->RigidActorSyncId = i+1;
-
-			if(GetWorld()->GetPhysicsScene()->HasAsyncScene())
-			{
-				Instance->RigidActorAsyncId = Instance->RigidActorSyncId + NumBodies;
-			}
-#endif
     
 		    // make sure we never enable bSimulatePhysics for ISMComps
 		    Instance->bSimulatePhysics = false;
+
+			if(Mobility == EComponentMobility::Movable)
+			{
+				Instance->InitBody(BodySetup, InstanceTM, this, PhysScene);
+			}else
+			{
+				Transforms.Add(InstanceTM);
+#if WITH_PHYSX
+				Instance->RigidActorSyncId = i + 1;
+
+				if (GetWorld()->GetPhysicsScene()->HasAsyncScene())
+				{
+					Instance->RigidActorAsyncId = Instance->RigidActorSyncId + NumBodies;
+				}
+#endif
+			}
 	    }
 
-		if (NumBodies > 0)
+		if (NumBodies > 0 && Mobility == EComponentMobility::Static)
 		{
 			TArray<UBodySetup*> BodySetups;
 			TArray<UPhysicalMaterial*> PhysicalMaterials;
@@ -1026,15 +1034,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 			PhysicalMaterials.Add(FBodyInstance::GetSimplePhysicalMaterial(&BodyInstance, WeakSelfPtr, TWeakObjectPtr<UBodySetup>(BodySetup)));
 
 			PhysicsSerializer->CreatePhysicsData(BodySetups, PhysicalMaterials);
-			
-			if(Mobility == EComponentMobility::Static)
-			{
-				FBodyInstance::InitStaticBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), PhysicsSerializer);
-			}else
-			{
-				FBodyInstance::InitBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), nullptr, true, PhysicsSerializer);
-			}
-			
+			FBodyInstance::InitStaticBodies(InstanceBodies, Transforms, BodySetup, this, GetWorld()->GetPhysicsScene(), PhysicsSerializer);
 
 			//Serialize physics data for fast path cooking
 			PhysicsSerializer->SerializePhysics(InstanceBodies, BodySetups, PhysicalMaterials);
