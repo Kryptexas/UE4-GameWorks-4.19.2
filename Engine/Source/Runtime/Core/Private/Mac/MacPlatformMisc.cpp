@@ -282,6 +282,7 @@ FMacMallocCrashHandler* FMacApplicationInfo::CrashMalloc = nullptr;
 
 UpdateCachedMacMenuStateProc FMacPlatformMisc::UpdateCachedMacMenuState = nullptr;
 bool FMacPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+bool FMacPlatformMisc::bIsPumpingMessages = false;
 id<NSObject> FMacPlatformMisc::CommandletActivity = nil;
 
 void FMacPlatformMisc::PlatformPreInit()
@@ -581,6 +582,9 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )
 	{
+		const bool bIsAlreadyPumpingMessages = bIsPumpingMessages;
+		bIsPumpingMessages = true;
+
 		ProcessGameThreadEvents();
 
 		if (MacApplication && !MacApplication->IsProcessingDeferredEvents() && IsInGameThread())
@@ -591,6 +595,8 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 				bChachedMacMenuStateNeedsUpdate = false;
 			}
 		}
+
+		bIsPumpingMessages = bIsAlreadyPumpingMessages;
 	}
 }
 

@@ -407,10 +407,6 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 - (void)windowWillClose:(NSNotification*)Notification
 {
 	SCOPED_AUTORELEASE_POOL;
-	if (MacApplication)
-	{
-		MacApplication->DeferEvent(Notification);
-	}
 	[self setDelegate:nil];
 }
 

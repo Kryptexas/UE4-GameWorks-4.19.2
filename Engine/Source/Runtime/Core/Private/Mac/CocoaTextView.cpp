@@ -163,10 +163,13 @@
 - (void)deactivateInputMethod
 {
 	SCOPED_AUTORELEASE_POOL;
-	[self unmarkText];
-	IMMContext = NULL;
-	[[self inputContext] deactivate];
-	[[self inputContext] discardMarkedText];
+	if (IMMContext.IsValid())
+	{
+		[self unmarkText];
+		IMMContext = NULL;
+		[[self inputContext] deactivate];
+		[[self inputContext] discardMarkedText];
+	}
 }
 
 - (bool)isActiveInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext
