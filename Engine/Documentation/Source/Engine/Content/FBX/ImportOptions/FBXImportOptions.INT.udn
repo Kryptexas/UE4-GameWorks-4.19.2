@@ -192,7 +192,7 @@ This import option adjusts how Normals will be handled. The options are as follo
 [REGION:simpletable]
 	| **Option** | **Description** |
 	| ---- | ---- |
-	| **Calculate Normals** | The engine computes normals and tangents. Smoothing group and normal info is discarded from the FBX info. |
+	| **Compute Normals** | The engine computes normals and tangents. Smoothing group and normal info is discarded from the FBX info. |
 	| **Import Normals** | The normals are imported from the FBX file, tangents are computed by the engine. |
 	| **Import Normals and Tangents** | The normals and tangents are imported from the FBX file and nothing is computed by the engine. |
 [/REGION]

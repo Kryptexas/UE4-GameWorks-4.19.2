@@ -60,7 +60,8 @@ Related: Engine/Content/FBX/Materials
 
 Unreal Engine 4 can either take in normals only from an FBX file, normals and tangents from an FBX file, or it can simply re-calculate them on its own. The image above shows the difference in **calculated normals** on the **left**, and **imported normals and tangents** on the **right**.
 
-When importing an FBX file, you will find this feature near the top of the import dialog under **Static Mesh**. The pull down will have these 3 options:
+When importing an FBX file, you will find this feature near the top of the import dialog under **Mesh**. The pull down will have these 3 options:
+![](ImportPulldown.png)
 
 [INCLUDE:Engine/Content\FBX\ImportOptions#NormalsDesc]
 
