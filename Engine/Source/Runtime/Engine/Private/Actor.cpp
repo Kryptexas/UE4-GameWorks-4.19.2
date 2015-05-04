@@ -2463,9 +2463,6 @@ void AActor::PostActorConstruction()
 		PreInitializeComponents();
 	}
 
-	// components are all there, init overlapping state
-	UpdateOverlaps();
-
 	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
 	bool deferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
@@ -2496,7 +2493,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// Components are all there and we've begun play, init overlapping state
-	if (!deferBeginPlayAndUpdateOverlaps)
+	if (GetWorld()->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
 	{
 		UpdateOverlaps();
 	}
