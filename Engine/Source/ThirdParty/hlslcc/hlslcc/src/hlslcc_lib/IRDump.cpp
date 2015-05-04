@@ -361,7 +361,10 @@ void DebugPrintVisitor::visit(ir_dereference_array* ir)
 void DebugPrintVisitor::visit(ir_dereference_image* ir)
 {
 	PrintID(ir);
-	check(0);
+	ir->image->accept(this);
+	irdump_printf("[");
+	ir->image_index->accept(this);
+	irdump_printf("]");
 }
 
 void DebugPrintVisitor::visit(ir_dereference_record* ir)
@@ -547,19 +550,22 @@ void DebugPrintVisitor::visit(ir_loop* ir)
 	irdump_printf("for (");
 	if (ir->counter != NULL)
 	{
+		bool bPrevEOL = bIRVarEOL;
+		bIRVarEOL = false;
 		ir->counter->accept(this);
+		bIRVarEOL = bPrevEOL;
 	}
 	if (ir->from != NULL)
 	{
 		irdump_printf(" = ");
 		ir->from->accept(this);
 	}
-	irdump_printf(";");
+	irdump_printf(" : ");
 	if (ir->to != NULL)
 	{
 		ir->to->accept(this);
 	}
-	irdump_printf(";");
+	irdump_printf("; ");
 	if (ir->increment != NULL)
 	{
 		ir->increment->accept(this);
@@ -577,7 +583,29 @@ void DebugPrintVisitor::visit(ir_loop_jump* ir)
 
 void DebugPrintVisitor::visit(ir_atomic* ir)
 {
-	check(0);
+	static const char *AtomicFunctions[] =
+	{
+		"imageAtomicAdd",
+		"imageAtomicAnd",
+		"imageAtomicMin",
+		"imageAtomicMax",
+		"imageAtomicOr",
+		"imageAtomicXor",
+		"imageAtomicExchange",
+		"imageAtomicCompSwap"
+	};
+
+	ir->lhs->accept(this);
+	irdump_printf(" = %s(&", AtomicFunctions[ir->operation]);
+	ir->memory_ref->accept(this);
+	irdump_printf(", ");
+	ir->operands[0]->accept(this);
+	if (ir->operands[1])
+	{
+		irdump_printf(", ");
+		ir->operands[1]->accept(this);
+	}
+	irdump_printf(")");
 }
 
 void DebugPrintVisitor::PrintID(ir_instruction * ir)
