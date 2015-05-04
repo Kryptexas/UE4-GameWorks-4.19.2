@@ -3164,7 +3164,6 @@ void FBaseBlueprintGraphActionDetails::OnParamsChanged(UK2Node_EditablePinBase* 
 		{
 			if(UBlueprint* Blueprint = *BlueprintIt)
 			{
-				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 				Blueprint->BroadcastChanged();
 			}
 		}
@@ -3261,11 +3260,6 @@ bool FBaseBlueprintGraphActionDetails::OnPinRenamed(UK2Node_EditablePinBase* Tar
 		for(auto NodeIter = PinRenamedHelper.NodesToRename.CreateIterator(); NodeIter; ++NodeIter)
 		{
 			(*NodeIter)->RenameUserDefinedPin(OldName, NewName, false);
-		}
-
-		for (auto BlueprintIt = PinRenamedHelper.ModifiedBlueprints.CreateIterator(); BlueprintIt; ++BlueprintIt)
-		{
-			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(*BlueprintIt);
 		}
 	}
 	return true;

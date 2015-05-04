@@ -5737,7 +5737,6 @@ UEdGraphPin* UEdGraphSchema_K2::DropPinOnNode(UEdGraphNode* InTargetNode, const 
 		{
 			if(UBlueprint* Blueprint = *BlueprintIt)
 			{
-				FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
 				Blueprint->BroadcastChanged();
 			}
 		}
