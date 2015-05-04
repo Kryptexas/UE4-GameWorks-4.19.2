@@ -34,6 +34,19 @@ public:
 		VRSystem = InVRSystem;
 	}
 
+	virtual void SetControllerToDeviceMap(int32* InControllerToDeviceMap) override
+	{
+		if (!GEngine->HMDDevice.IsValid() || (GEngine->HMDDevice->GetHMDDeviceType() != EHMDDeviceType::DT_SteamVR))
+		{
+			// no valid SteamVR HMD found
+			return;
+		}
+
+		FSteamVRHMD* SteamVRHMD = static_cast<FSteamVRHMD*>(GEngine->HMDDevice.Get());
+
+		SteamVRHMD->SetControllerToDeviceMap(InControllerToDeviceMap);
+	}
+
 private:
 	vr::IVRSystem* VRSystem;
 };
@@ -292,6 +305,13 @@ ESteamVRTrackingSpace::Type FSteamVRHMD::GetTrackingSpace() const
 	return ESteamVRTrackingSpace::Standing;
 }
 
+void FSteamVRHMD::SetControllerToDeviceMap(int32* InControllerToDeviceMap)
+{
+	check(sizeof(ControllerToDeviceMap) == (MAX_STEAMVR_CONTROLLERS*sizeof(int32)));
+
+	FMemory::Memcpy(ControllerToDeviceMap, InControllerToDeviceMap, sizeof(ControllerToDeviceMap));
+}
+
 void FSteamVRHMD::PoseToOrientationAndPosition(const vr::HmdMatrix34_t& InPose, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	FMatrix Pose = ToFMatrix(InPose);
@@ -375,12 +395,12 @@ bool FSteamVRHMD::GetTrackedDeviceIdFromControllerIndex(int32 ControllerIndex, i
 
 	OutDeviceId = -1;
 
-	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAM_CONTROLLERS))
+	if ((ControllerIndex < 0) || (ControllerIndex >= MAX_STEAMVR_CONTROLLERS))
 	{
 		return false;
 	}
 
-	OutDeviceId = ControllerIndex;		//@todo steamvr: remove entirely now that these always match
+	OutDeviceId = ControllerToDeviceMap[ControllerIndex];
 	
 	return (OutDeviceId != -1);
 }
@@ -936,6 +956,12 @@ void FSteamVRHMD::Startup()
 		else
 		{
 			UE_LOG(LogHMD, Warning, TEXT("Failed to initialize Chaperone.  Error: %d"), (int32)ChaperoneErr);
+		}
+
+		// Initialize our controller to device index
+		for (int32 i = 0; i < MAX_STEAMVR_CONTROLLERS; ++i)
+		{
+			ControllerToDeviceMap[i] = -1;
 		}
 
 #if PLATFORM_WINDOWS
