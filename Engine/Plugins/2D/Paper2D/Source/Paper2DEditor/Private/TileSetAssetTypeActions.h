@@ -26,4 +26,5 @@ private:
 
 private:
 	void ExecuteCreateTileMap(TWeakObjectPtr<UPaperTileSet> TileSetPtr);
+	void ExecutePadTileSetTexture(TWeakObjectPtr<UPaperTileSet> TileSetPtr);
 };

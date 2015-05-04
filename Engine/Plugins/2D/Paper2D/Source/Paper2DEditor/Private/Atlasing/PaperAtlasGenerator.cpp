@@ -21,7 +21,7 @@ void FPaperAtlasGenerator::HandleAssetChangedEvent(UPaperSpriteAtlas* Atlas)
 	static_assert(MaxAtlasDimension < 16384, "PaperAtlasGenerator MaxAtlasDimension exceeds multiplier in sort key");
 	Atlas->MaxWidth = FMath::Clamp(Atlas->MaxWidth, 16, MaxAtlasDimension);
 	Atlas->MaxHeight = FMath::Clamp(Atlas->MaxHeight, 16, MaxAtlasDimension);
-	Atlas->MipCount = ClampMips(Atlas->MaxWidth, Atlas->MaxHeight, Atlas->MipCount);
+	Atlas->MipCount = FPaperAtlasTextureHelpers::ClampMips(Atlas->MaxWidth, Atlas->MaxHeight, Atlas->MipCount);
 
 	bool bTestForAtlasImprovement = true;
 
@@ -219,14 +219,14 @@ void FPaperAtlasGenerator::HandleAssetChangedEvent(UPaperSpriteAtlas* Atlas)
 			if (Slot.AtlasIndex == AtlasIndex && SpriteBeingBuilt != nullptr)
 			{
 				SlotsForAtlas.Add(Slot);
-				CopySpriteToAtlasTextureData(AtlasTextureData, AtlasWidth, AtlasHeight, BytesPerPixel, Atlas->PaddingType, Atlas->Padding, SpriteBeingBuilt, Slot);
+				FPaperAtlasTextureHelpers::CopySpriteToAtlasTextureData(AtlasTextureData, AtlasWidth, AtlasHeight, BytesPerPixel, Atlas->PaddingType, Atlas->Padding, SpriteBeingBuilt, Slot);
 			}
 		}
 
 		// Mipmaps
 		if (Atlas->MipCount > 1)
 		{
-			GenerateMipChainARGB(SlotsForAtlas, AtlasTextureData, Atlas->MipCount, AtlasWidth, AtlasHeight);
+			FPaperAtlasTextureHelpers::GenerateMipChainARGB(SlotsForAtlas, AtlasTextureData, Atlas->MipCount, AtlasWidth, AtlasHeight);
 		}
 
 
