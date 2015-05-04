@@ -962,7 +962,7 @@ namespace Rocket
 
 				// Delete the output file
 				string OutputPakFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, RelativePakPath);
-				string OutputTxtFile = Path.ChangeExtension(OutputPakFile, ".txt");
+				string OutputCsvFile = Path.ChangeExtension(OutputPakFile, ".csv");
 
 				// Generate DDC for all the non-code projects. We don't necessarily have editor DLLs for the code projects, but they should be the same as their blueprint counterparts.
 				List<string> ProjectPakFiles = new List<string>();
@@ -978,9 +978,9 @@ namespace Rocket
 						CommandUtils.DeleteFile(ProjectPakFile);
 						CommandUtils.RenameFile(OutputPakFile, ProjectPakFile);
 
-						string ProjectTxtFile = Path.ChangeExtension(ProjectPakFile, ".txt");
-						CommandUtils.DeleteFile(ProjectTxtFile);
-						CommandUtils.RenameFile(OutputTxtFile, ProjectTxtFile);
+						string ProjectCsvFile = Path.ChangeExtension(ProjectPakFile, ".csv");
+						CommandUtils.DeleteFile(ProjectCsvFile);
+						CommandUtils.RenameFile(OutputCsvFile, ProjectCsvFile);
 
 						ProjectPakFiles.Add(Path.GetFileName(ProjectPakFile));
 					}
