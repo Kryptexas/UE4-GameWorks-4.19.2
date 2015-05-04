@@ -23,6 +23,8 @@ UObject* UPaperTileSetFactory::FactoryCreateNew(UClass* Class, UObject* InParent
 	NewTileSet->SetTileSheetTexture(InitialTexture);
 	NewTileSet->SetBackgroundColor(GetDefault<UTileSetEditorSettings>()->DefaultBackgroundColor);
 
+	NewTileSet->PostEditChange();
+
 	return NewTileSet;
 }
 
