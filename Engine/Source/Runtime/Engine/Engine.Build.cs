@@ -68,7 +68,8 @@ public class Engine : ModuleRules
 				"Landscape",
                 "UMG",
 				"Projects",
-				"Niagara"
+				"Niagara",
+                "Internationalization"
 			}
         );
 
