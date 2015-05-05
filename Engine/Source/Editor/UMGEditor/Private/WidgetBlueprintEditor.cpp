@@ -66,7 +66,7 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 	if ( Blueprint->WidgetTree->RootWidget == nullptr )
 	{
 		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		RootWidget->SetIsDesignTime(true);
+		RootWidget->SetDesignerFlags(GetCurrentDesignerFlags());
 		Blueprint->WidgetTree->RootWidget = RootWidget;
 	}
 
@@ -634,7 +634,7 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		PreviewActor->SetFlags(RF_Transactional);
 		
 		// Configure all the widgets to be set to design time.
-		PreviewActor->SetIsDesignTime(true);
+		PreviewActor->SetDesignerFlags(GetCurrentDesignerFlags());
 
 		// Store a reference to the preview actor.
 		PreviewWidgetPtr = PreviewActor;
@@ -683,6 +683,18 @@ void FWidgetBlueprintEditor::AddPostDesignerLayoutAction(TFunction<void()> Actio
 TArray< TFunction<void()> >& FWidgetBlueprintEditor::GetQueuedDesignerActions()
 {
 	return QueuedDesignerActions;
+}
+
+EWidgetDesignFlags::Type FWidgetBlueprintEditor::GetCurrentDesignerFlags() const
+{
+	EWidgetDesignFlags::Type Flags = EWidgetDesignFlags::Designing;
+	
+	if ( GetDefault<UWidgetDesignerSettings>()->bShowOutlines )
+	{
+		Flags = ( EWidgetDesignFlags::Type )(Flags | EWidgetDesignFlags::ShowOutline);
+	}
+
+	return Flags;
 }
 
 #undef LOCTEXT_NAMESPACE

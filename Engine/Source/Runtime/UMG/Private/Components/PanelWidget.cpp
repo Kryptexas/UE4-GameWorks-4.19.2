@@ -176,6 +176,21 @@ void UPanelWidget::ShiftChild(int32 Index, UWidget* Child)
 	Slots.Insert(Child->Slot, FMath::Clamp(Index, 0, Slots.Num()));
 }
 
+void UPanelWidget::SetDesignerFlags(EWidgetDesignFlags::Type NewFlags)
+{
+	Super::SetDesignerFlags(NewFlags);
+
+	// Also mark all children as design time widgets.
+	int32 Children = GetChildrenCount();
+	for ( int32 SlotIndex = 0; SlotIndex < Children; SlotIndex++ )
+	{
+		if ( Slots[SlotIndex]->Content != nullptr )
+		{
+			Slots[SlotIndex]->Content->SetDesignerFlags(NewFlags);
+		}
+	}
+}
+
 #endif
 
 bool UPanelWidget::RemoveChild(UWidget* Content)
@@ -200,21 +215,6 @@ void UPanelWidget::ClearChildren()
 	for ( int32 ChildIndex = 0; ChildIndex < Children; ChildIndex++ )
 	{
 		RemoveChildAt(0);
-	}
-}
-
-void UPanelWidget::SetIsDesignTime(bool bInDesignTime)
-{
-	Super::SetIsDesignTime(bInDesignTime);
-
-	// Also mark all children as design time widgets.
-	int32 Children = GetChildrenCount();
-	for ( int32 SlotIndex = 0; SlotIndex < Children; SlotIndex++ )
-	{
-		if ( Slots[SlotIndex]->Content != nullptr )
-		{
-			Slots[SlotIndex]->Content->SetIsDesignTime(bInDesignTime);
-		}
 	}
 }
 

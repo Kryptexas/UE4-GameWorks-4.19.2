@@ -190,15 +190,6 @@ UWorld* UUserWidget::GetWorld() const
 	return nullptr;
 }
 
-void UUserWidget::SetIsDesignTime(bool bInDesignTime)
-{
-	Super::SetIsDesignTime(bInDesignTime);
-
-	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
-		Widget->SetIsDesignTime(bInDesignTime);
-	});
-}
-
 void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
 {
 	if( InAnimation )
@@ -679,6 +670,15 @@ const FText UUserWidget::GetPaletteCategory()
 	return PaletteCategory;
 }
 
+void UUserWidget::SetDesignerFlags(EWidgetDesignFlags::Type NewFlags)
+{
+	Super::SetDesignerFlags(NewFlags);
+
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+		Widget->SetDesignerFlags(NewFlags);
+	});
+}
+
 #endif
 
 void UUserWidget::OnAnimationStarted_Implementation(const UWidgetAnimation* Animation)
@@ -714,7 +714,7 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	if ( bDesignTime )
+	if ( IsDesignTime() )
 	{
 		return;
 	}

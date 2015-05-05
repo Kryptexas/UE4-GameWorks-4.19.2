@@ -1710,7 +1710,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 			// Add it to the root if there are no other widgets to add it to.
 			UWidget* Widget = TemplateDragDropOp->Template->Create(BP->WidgetTree);
-			Widget->SetIsDesignTime(true);
+			Widget->SetDesignerFlags(BlueprintEditor.Pin()->GetCurrentDesignerFlags());
 
 			BP->WidgetTree->RootWidget = Widget;
 
@@ -1742,7 +1742,7 @@ UWidget* SDesignerView::ProcessDropAndAddWidget(const FGeometry& MyGeometry, con
 
 			// Construct the widget and mark it for design time rendering.
 			UWidget* Widget = TemplateDragDropOp->Template->Create(BP->WidgetTree);
-			Widget->SetIsDesignTime(true);
+			Widget->SetDesignerFlags(BlueprintEditor.Pin()->GetCurrentDesignerFlags());
 
 			// Determine local position inside the parent widget and add the widget to the slot.
 			FVector2D LocalPosition = WidgetUnderCursorGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());

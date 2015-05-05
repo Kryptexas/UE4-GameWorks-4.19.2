@@ -170,9 +170,6 @@ public:
 	virtual void SetContentForSlot(FName SlotName, UWidget* Content) override;
 	// UNamedSlotInterface End
 
-	/** Sets that this widget is being designed sets it on all children as well. */
-	virtual void SetIsDesignTime(bool bInDesignTime) override;
-
 	/**
 	 * Adds it to the game's viewport and fills the entire screen, unless SetDesiredSizeInViewport is called
 	 * to explicitly set the size.
@@ -768,6 +765,8 @@ public:
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 	// End UWidget interface
+
+	void SetDesignerFlags(EWidgetDesignFlags::Type NewFlags);
 #endif
 
 public:

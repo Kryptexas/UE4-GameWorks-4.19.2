@@ -121,6 +121,9 @@ public:
 
 	TArray< TFunction<void()> >& GetQueuedDesignerActions();
 
+	/** Get the current designer flags that are in effect for the current user widget we're editing. */
+	EWidgetDesignFlags::Type GetCurrentDesignerFlags() const;
+
 public:
 	/** Fires whenever a new widget is being hovered over */
 	FOnHoveredWidgetSet OnHoveredWidgetSet;

@@ -100,7 +100,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 {
 	bIsEnabled = true;
 	bIsVariable = true;
-	bDesignTime = false;
+	DesignerFlags = EWidgetDesignFlags::None;
 	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 
@@ -493,7 +493,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 		.VAlign(VAlign_Fill)
 		[
 			SNew(SBorder)
-			.Visibility( EVisibility::HitTestInvisible )
+			.Visibility(HasAnyDesignerFlags(EWidgetDesignFlags::ShowOutline) ? EVisibility::HitTestInvisible : EVisibility::Collapsed)
 			.BorderImage(FUMGStyle::Get().GetBrush("MarchingAnts"))
 		];
 	}
@@ -505,6 +505,11 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 
 #if WITH_EDITOR
 #define LOCTEXT_NAMESPACE "UMGEditor"
+
+void UWidget::SetDesignerFlags(EWidgetDesignFlags::Type NewFlags)
+{
+	DesignerFlags = ( EWidgetDesignFlags::Type )( DesignerFlags | NewFlags );
+}
 
 bool UWidget::IsGeneratedName() const
 {
@@ -713,18 +718,6 @@ void UWidget::BuildNavigation()
 
 		Navigation->UpdateMetaData(MetaData.ToSharedRef());
 	}
-}
-
-#if WITH_EDITOR
-bool UWidget::IsDesignTime() const
-{
-	return bDesignTime;
-}
-#endif
-
-void UWidget::SetIsDesignTime(bool bInDesignTime)
-{
-	bDesignTime = bInDesignTime;
 }
 
 UWorld* UWidget::GetWorld() const

@@ -737,7 +737,7 @@ void UWidgetComponent::InitWidget()
 		if ( Widget && !GetWorld()->IsGameWorld() )
 		{
 			// Prevent native ticking of editor component previews
-			Widget->SetIsDesignTime(true);
+			Widget->SetDesignerFlags(EWidgetDesignFlags::Designing);
 		}
 	}
 }
