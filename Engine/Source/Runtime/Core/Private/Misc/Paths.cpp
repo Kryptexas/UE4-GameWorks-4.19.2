@@ -781,6 +781,15 @@ FString FPaths::ConvertRelativePathToFull(const FString& BasePath, const FString
 
 	FPaths::NormalizeFilename(FullyPathed);
 	FPaths::CollapseRelativeDirectories(FullyPathed);
+
+	if (FullyPathed.Len() == 0)
+	{
+		// Empty path is not absolute, and '/' is the best guess across all the platforms.
+		// This substituion is not valid for Windows of course; however CollapseRelativeDirectories() will not produce an empty
+		// absolute path on Windows as it takes care not to remove the drive letter.
+		FullyPathed = TEXT("/");
+	}
+
 	return FullyPathed;
 }
 

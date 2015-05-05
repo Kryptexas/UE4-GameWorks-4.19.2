@@ -72,7 +72,8 @@ const TCHAR* FLinuxPlatformMisc::RootDir()
 
 void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 {
-	if (InPath.Contains(TEXT("~"), ESearchCase::CaseSensitive))	// case sensitive is quicker, and our substring doesn't care
+	// only expand if path starts with ~, e.g. ~/ should be expanded, /~ should not
+	if (InPath.StartsWith(TEXT("~"), ESearchCase::CaseSensitive))	// case sensitive is quicker, and our substring doesn't care
 	{
 		static bool bHaveHome = false;
 		static TCHAR CachedResult[PlatformMiscLimits::MaxUserHomeDirLength];
