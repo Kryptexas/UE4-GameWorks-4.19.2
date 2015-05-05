@@ -615,8 +615,9 @@ void FHttpNetworkReplayStreamer::SetLastError( const ENetworkReplayError::Type I
 	TSharedPtr< FQueuedHttpRequest > QueuedRequest;
 	while ( QueuedHttpRequests.Dequeue( QueuedRequest ) ) { }
 
-	StreamerState		= EStreamerState::Idle;
-	StreamerLastError	= InLastError;
+	StreamerState			= EStreamerState::Idle;
+	StreamerLastError		= InLastError;
+	bStopStreamingCalled	= false;
 }
 
 ENetworkReplayError::Type FHttpNetworkReplayStreamer::GetLastError() const
