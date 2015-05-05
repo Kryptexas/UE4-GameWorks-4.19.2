@@ -367,9 +367,12 @@ void UEdGraphNode::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutT
 
 void UEdGraphNode::OnUpdateCommentText( const FString& NewComment )
 {
-	const FScopedTransaction Transaction( LOCTEXT( "CommentCommitted", "Comment Changed" ) );
-	Modify();
-	NodeComment	= NewComment;
+	if( !NodeComment.Equals( NewComment ))
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "CommentCommitted", "Comment Changed" ) );
+		Modify();
+		NodeComment	= NewComment;
+	}
 }
 
 FText UEdGraphNode::GetKeywords() const

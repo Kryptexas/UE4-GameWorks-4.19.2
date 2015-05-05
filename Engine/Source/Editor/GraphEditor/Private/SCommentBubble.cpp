@@ -16,6 +16,12 @@ namespace SCommentBubbleDefs
 	/** Height of the arrow connecting the bubble to the node */
 	static const float BubbleArrowHeight = 8.f;
 
+	/** Offset from the left edge to comment bubbles arrow center */
+	static const float ArrowCentreOffset = 12.f;
+
+	/** Offset from the left edge to comment bubbles toggle button center */
+	static const float ToggleButtonCentreOffset = 3.f;
+
 	/** Luminance CoEficients */
 	static const FLinearColor LuminanceCoEff( 0.2126f, 0.7152f, 0.0722f, 0.f );
 
@@ -38,6 +44,7 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 
 	GraphNode				= InArgs._GraphNode;
 	CommentAttribute		= InArgs._Text;
+	OnTextCommittedDelegate	= InArgs._OnTextCommitted;
 	ColorAndOpacity			= InArgs._ColorAndOpacity;
 	bAllowPinning			= InArgs._AllowPinning;
 	bEnableTitleBarBubble	= InArgs._EnableTitleBarBubble;
@@ -47,11 +54,7 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 	IsGraphNodeHovered		= InArgs._IsGraphNodeHovered;
 	HintText				= InArgs._HintText.IsSet() ? InArgs._HintText : NSLOCTEXT( "CommentBubble", "EditCommentHint", "Click to edit" );
 	OpacityValue			= SCommentBubbleDefs::FadeDelay;
-	// Create Default toggle and pin handlers
-	CommentBubbleToggleDelegate	= InArgs._OnCommentBubbleToggle.IsBound() ? InArgs._OnCommentBubbleToggle : 
-																			FOnCheckStateChanged::CreateSP( this, &SCommentBubble::OnCommentBubbleToggle );
-	CommentBubblePinnedDelegate = InArgs._OnCommentBubblePinned.IsBound() ? InArgs._OnCommentBubblePinned : 
-																			FOnCheckStateChanged::CreateSP( this, &SCommentBubble::OnPinStateToggle );
+	// Create default delegate/attribute handlers if required
 	ToggleButtonCheck			= InArgs._ToggleButtonCheck.IsBound() ?		InArgs._ToggleButtonCheck : 
 																			TAttribute<ECheckBoxState>( this, &SCommentBubble::GetToggleButtonCheck );
 	// Ensue this value is set to something sensible
@@ -117,13 +120,19 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 			}
 		}
 	}
-	if( CachedComment != GraphNode->NodeComment )
+	if( CachedComment != CommentAttribute.Get() )
 	{
-		CachedComment = GraphNode->NodeComment;
+		CachedComment = CommentAttribute.Get();
 		CachedCommentText = FText::FromString( CachedComment );
-		// Comment nodes should always have bCommentBubbleVisible set to true, they also are the nodes that set bInvertCulling.
-		GraphNode->bCommentBubbleVisible = bInvertLODCulling ? GraphNode->bCommentBubbleVisible : !CachedComment.IsEmpty();
-		UpdateBubble();
+		// Call text commit delegate
+		OnTextCommittedDelegate.ExecuteIfBound( CachedCommentText, ETextCommit::Default );
+		// Reflect changes to the Textblock because it doesn't update itself.
+		TextBlock->SetText( CachedCommentText );
+		// Toggle the comment on/off, provided it the parent isn't a comment node
+		if( !bInvertLODCulling )
+		{
+			OnCommentBubbleToggle( CachedComment.IsEmpty() ? ECheckBoxState::Unchecked : ECheckBoxState::Checked );
+		}
 	}
 }
 
@@ -157,7 +166,7 @@ void SCommentBubble::UpdateBubble()
 						SNew( SCheckBox )
 						.Style( &FEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>( "CommentBubblePin" ))
 						.IsChecked( this, &SCommentBubble::GetPinnedButtonCheck )
-						.OnCheckStateChanged( CommentBubblePinnedDelegate )
+						.OnCheckStateChanged( this, &SCommentBubble::OnPinStateToggle )
 						.ToolTipText( this, &SCommentBubble::GetScaleButtonTooltip )
 						.Cursor( EMouseCursor::Default )
 						.ForegroundColor( this, &SCommentBubble::GetForegroundColor )
@@ -171,7 +180,7 @@ void SCommentBubble::UpdateBubble()
 					SNew( SCheckBox )
 					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
 					.IsChecked( ToggleButtonCheck )
-					.OnCheckStateChanged( CommentBubbleToggleDelegate )
+					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
 					.ForegroundColor( FLinearColor::White )
@@ -189,7 +198,7 @@ void SCommentBubble::UpdateBubble()
 					SNew( SCheckBox )
 					.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentBubbleButton" ))
 					.IsChecked( ToggleButtonCheck )
-					.OnCheckStateChanged( CommentBubbleToggleDelegate )
+					.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 					.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 					.Cursor( EMouseCursor::Default )
 					.ForegroundColor( FLinearColor::White )
@@ -225,13 +234,14 @@ void SCommentBubble::UpdateBubble()
 						.AutoWidth()
 						[
 							SAssignNew(TextBlock, SMultiLineEditableTextBox)
-							.Text( this, &SCommentBubble::GetCommentText )
+							.Text( CachedCommentText )
 							.HintText( NSLOCTEXT( "CommentBubble", "EditCommentHint", "Click to edit" ))
 							.IsReadOnly( this, &SCommentBubble::IsReadOnly )
 							.Font( FEditorStyle::GetFontStyle( TEXT("Graph.Node.CommentFont")))
 							.SelectAllTextWhenFocused( true )
 							.RevertTextOnEscape( true )
-							.ModiferKeyForNewLine( EModifierKey::Shift )
+							.ClearKeyboardFocusOnCommit( true )
+							.ModiferKeyForNewLine( EModifierKey::Control )
 							.ForegroundColor( this, &SCommentBubble::GetTextForegroundColor )
 							.BackgroundColor( this, &SCommentBubble::GetTextBackgroundColor )
 							.OnTextCommitted( this, &SCommentBubble::OnCommentTextCommitted )
@@ -280,7 +290,7 @@ void SCommentBubble::UpdateBubble()
 				SNew( SCheckBox )
 				.Style( &FEditorStyle::Get().GetWidgetStyle< FCheckBoxStyle >( "CommentTitleButton" ))
 				.IsChecked( ToggleButtonCheck )
-				.OnCheckStateChanged( CommentBubbleToggleDelegate )
+				.OnCheckStateChanged( this, &SCommentBubble::OnCommentBubbleToggle )
 				.ToolTipText( NSLOCTEXT( "CommentBubble", "ToggleCommentTooltip", "Toggle Comment Bubble" ))
 				.Cursor( EMouseCursor::Default )
 				.ForegroundColor( this, &SCommentBubble::GetToggleButtonColor )
@@ -300,6 +310,18 @@ FVector2D SCommentBubble::GetOffset() const
 		return FVector2D( 0.f, -GetDesiredSize().Y );
 	}
 	return FVector2D::ZeroVector;
+}
+
+float SCommentBubble::GetArrowCenterOffset() const
+{
+	float CentreOffset = GraphNode->bCommentBubbleVisible ? SCommentBubbleDefs::ArrowCentreOffset : SCommentBubbleDefs::ToggleButtonCentreOffset;
+	const bool bVisibleAndUnpinned = !GraphNode->bCommentBubblePinned && GraphNode->bCommentBubbleVisible;
+	if( bVisibleAndUnpinned && GraphNode->NodeWidget.IsValid() )
+	{
+		TSharedPtr<SGraphPanel> GraphPanel = GraphNode->NodeWidget.Pin()->GetOwnerPanel();
+		CentreOffset *= GraphPanel.IsValid() ? GraphPanel->GetZoomAmount() : 1.f;
+	}
+	return CentreOffset;
 }
 
 FVector2D SCommentBubble::GetSize() const
@@ -325,11 +347,6 @@ bool SCommentBubble::IsScalingAllowed() const
 	return !GraphNode->bCommentBubblePinned || !GraphNode->bCommentBubbleVisible;
 }
 
-FText SCommentBubble::GetCommentText() const
-{
-	return CachedCommentText;
-}
-
 FText SCommentBubble::GetScaleButtonTooltip() const
 {
 	if( GraphNode->bCommentBubblePinned )
@@ -350,19 +367,7 @@ FSlateColor SCommentBubble::GetToggleButtonColor() const
 
 FSlateColor SCommentBubble::GetBubbleColor() const
 {
-	bool bColorCommentBubble = true;
-
-	// For comment nodes, check if the color is enabled
-	if (UEdGraphNode_Comment* CommentBubble = Cast<UEdGraphNode_Comment>(GraphNode))
-	{
-		bColorCommentBubble = CommentBubble->bColorCommentBubble;
-	}
-
-	FLinearColor ReturnColor = FLinearColor::White;
-	if (bColorCommentBubble)
-	{
-		ReturnColor = ColorAndOpacity.Get().GetSpecifiedColor();
-	}
+	FLinearColor ReturnColor = ColorAndOpacity.Get().GetSpecifiedColor();
 
 	if(!GraphNode->bIsNodeEnabled)
 	{
@@ -383,10 +388,9 @@ FSlateColor SCommentBubble::GetTextForegroundColor() const
 
 void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
-	if( GraphNode )
-	{
-		GraphNode->OnUpdateCommentText( NewText.ToString() );
-	}
+	CachedComment = NewText.ToString();
+	CachedCommentText = NewText;
+	OnTextCommittedDelegate.ExecuteIfBound( CachedCommentText, CommitInfo );
 }
 
 EVisibility SCommentBubble::GetToggleButtonVisibility() const
@@ -421,7 +425,7 @@ void SCommentBubble::OnCommentBubbleToggle( ECheckBoxState State )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT( "CommentBubble", "BubbleVisibility", "Comment Bubble Visibilty" ) );
 		GraphNode->Modify();
-		GraphNode->bCommentBubbleVisible = !GraphNode->bCommentBubbleVisible;
+		GraphNode->bCommentBubbleVisible = State == ECheckBoxState::Checked;
 		OpacityValue = 0.f;
 		UpdateBubble();
 	}

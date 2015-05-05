@@ -19,17 +19,14 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 		/** the GraphNode this bubble should interact with */
 		SLATE_ARGUMENT( UEdGraphNode*, GraphNode )
 
-		/** Called when the comment bubble toggle button is pressed */
-		SLATE_EVENT( FOnCheckStateChanged, OnCommentBubbleToggle )
-
-		/** Called when the comment bubble pin button is pressed */
-		SLATE_EVENT( FOnCheckStateChanged, OnCommentBubblePinned )
-
-		/** Called when the comment bubble toggle button is pressed */
+		/** Attribute to determine the visibility buttons check state */
 		SLATE_ATTRIBUTE( ECheckBoxState, ToggleButtonCheck )
 
 		/** The comment text for the bubble */
 		SLATE_ATTRIBUTE( FString, Text )
+
+		/** Called when the comment text is committed */
+		SLATE_EVENT( FOnTextCommitted, OnTextCommitted )
 
 		/** The comment hint text for the bubble */
 		SLATE_ATTRIBUTE( FText, HintText )
@@ -73,6 +70,9 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	/** Returns the offset from the SNode center slot */
 	FVector2D GetOffset() const;
 
+	/** Returns the offset to the arrow center accounting for zoom on either the comment bubble or the title bar button based on current state */
+	float GetArrowCenterOffset() const;
+
 	/** Returns the bubble size */
 	FVector2D GetSize() const;
 
@@ -92,9 +92,6 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 	void UpdateBubble();
 
 protected:
-
-	/** Returns the current comment text, converting from FString into FText */
-	FText GetCommentText() const;
 
 	/** Returns the current scale button tooltip */
 	FText GetScaleButtonTooltip() const;
@@ -150,10 +147,8 @@ protected:
 	/** Toggle button checked state  */
 	TAttribute<ECheckBoxState> ToggleButtonCheck;
 
-	/** Optional delegate to call when the comment is toggled */
-	FOnCheckStateChanged CommentBubbleToggleDelegate;
-	/** Optional delegate to call when the comment is toggled */
-	FOnCheckStateChanged CommentBubblePinnedDelegate;
+	/** Optional delegate to call when the comment text is committed */
+	FOnTextCommitted OnTextCommittedDelegate;
 	/** Delegate to determine if the graph node is currently hovered */
 	FIsGraphNodeHovered IsGraphNodeHovered;
 
@@ -170,7 +165,8 @@ protected:
 	/** Used to Control hover fade up/down for widgets */
 	float OpacityValue;
 	/** Cached comment */
-	mutable FString CachedComment;
-	/** Cached FText version of the comment */
-	mutable FText CachedCommentText;
+	FString CachedComment;
+	/** Cached FText comment */
+	FText CachedCommentText;
+
 };

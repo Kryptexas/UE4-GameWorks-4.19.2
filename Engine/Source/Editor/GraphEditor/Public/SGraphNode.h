@@ -177,6 +177,8 @@ public:
 	void SetTextCommittedEvent(FOnNodeTextCommitted InDelegate);
 	/** Set event when the user generates a warning tooltip because a connection was invalid */
 	void SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinConnection InOnDisallowedPinConnection);
+	/** called to replace this nodes comment text */
+	void OnCommentTextCommitted(const FText& NewComment, ETextCommit::Type CommitInfo);
 	/** returns true if a rename is pending on this node */
 	bool IsRenamePending() const { return bRenameIsPending; }
 
