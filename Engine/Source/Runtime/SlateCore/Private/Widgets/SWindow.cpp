@@ -302,7 +302,7 @@ void SWindow::Construct(const FArguments& InArgs)
 	// Window visibility is currently driven by whether the window is interactive.
 	this->Visibility = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateRaw(this, &SWindow::GetWindowVisibility) );
 
-	this->ConstructWindowInternals( bCreateTitleBar );
+	this->ConstructWindowInternals();
 	this->SetContent( InArgs._Content.Widget );
 }
 
@@ -375,7 +375,7 @@ FVector2D SWindow::ComputeWindowSizeForContent( FVector2D ContentSize )
 	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize);
 }
 
-void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
+void SWindow::ConstructWindowInternals()
 {
 	ForegroundColor = FCoreStyle::Get().GetSlateColor("DefaultForeground");
 

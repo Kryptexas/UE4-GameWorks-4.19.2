@@ -951,7 +951,7 @@ private:
 	
 	virtual
 
-	void ConstructWindowInternals( const bool bCreateTitleBar );
+	void ConstructWindowInternals();
 
 	/**
 	 * @return EVisibility::Visible if we are showing this viewports content.  EVisibility::Hidden otherwise (we hide the content during full screen overlays)
