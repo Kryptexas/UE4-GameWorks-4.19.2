@@ -9,6 +9,8 @@
 #include "SDL.h"
 
 DECLARE_LOG_CATEGORY_EXTERN( LogLinuxWindow, Log, All );
+DECLARE_LOG_CATEGORY_EXTERN( LogLinuxWindowType, Log, All );
+DECLARE_LOG_CATEGORY_EXTERN( LogLinuxWindowEvent, Log, All );
 
 typedef SDL_Window*		SDL_HWindow;
 
@@ -46,6 +48,24 @@ public:
 
 	/** TODO: describe */
 	bool IsTooltipWindow() const;
+
+	/** TODO: describe */
+	bool IsNotificationWindow() const;
+	
+	/** TODO: describe */
+	bool IsTopLevelWindow() const;
+
+	/** TODO: describe */
+	bool IsDialogWindow() const;
+
+	/** TODO: describe */
+	bool IsDragAndDropWindow() const;
+	
+	/** TODO: describe */
+	bool IsUtilityWindow() const;
+
+	/** TODO: describe */
+	bool IsActivateWhenFirstShown() const;
 
 	/** TODO: describe */
 	const TSharedPtr< FLinuxWindow >& GetParent() const;
@@ -215,9 +235,24 @@ private:
 	/** TODO: describe */
 	bool bIsConsoleWindow;
 
+	/** TODO: describe */
+	bool bIsDialogWindow;
+
+	/** TODO: describe */
+	bool bIsNotificationWindow;
+
+	/** TODO: describe */
+	bool bIsTopLevelWindow;
+
+	/** TODO: describe */
+	bool bIsDragAndDropWindow;
+
+	/** TODO: describe */
+	bool bIsUtilityWindow;
+
 	/** Whether the is inside this window */
 	bool bIsPointerInsideWindow;
-	
+
 	/** SDL ID (for debugging purposes) */
 	uint32 WindowSDLID;
 

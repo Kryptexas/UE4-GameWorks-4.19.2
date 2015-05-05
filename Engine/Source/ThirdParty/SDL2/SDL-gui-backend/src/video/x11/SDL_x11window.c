@@ -528,7 +528,14 @@ X11_CreateWindow(_THIS, SDL_Window * window)
 
     /* Setup the input hints so we get keyboard input */
     wmhints = X11_XAllocWMHints();
+/* EG BEGIN */
+#ifdef SDL_WITH_EPIC_EXTENSIONS
+    /* Default to false. */
+    wmhints->input = False;
+#else
     wmhints->input = True;
+#endif /* SDL_WITH_EPIC_EXTENSIONS */
+/* EG END */
     wmhints->window_group = data->window_group;
     wmhints->flags = InputHint | WindowGroupHint;
 
@@ -558,6 +565,12 @@ X11_CreateWindow(_THIS, SDL_Window * window)
 
     if (window->flags & SDL_WINDOW_UTILITY) {
         wintype_name = "_NET_WM_WINDOW_TYPE_UTILITY";
+    } else if (window->flags & SDL_WINDOW_DND) {
+        wintype_name = "_NET_WM_WINDOW_TYPE_DND";
+    } else if (window->flags & SDL_WINDOW_NOTIFICATION) {
+        wintype_name = "_NET_WM_WINDOW_TYPE_NOTIFICATION";
+    } else if (window->flags & SDL_WINDOW_DIALOG) {
+        wintype_name = "_NET_WM_WINDOW_TYPE_DIALOG";
     } else if (window->flags & SDL_WINDOW_TOOLTIP) {
         wintype_name = "_NET_WM_WINDOW_TYPE_TOOLTIP";
     } else if (window->flags & SDL_WINDOW_POPUP_MENU) {
