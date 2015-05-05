@@ -109,7 +109,7 @@ namespace UnrealBuildTool
 			else
 			{
 				// Shared action history (unless this is a rocket target)
-				Folder = UnrealBuildTool.RunningRocket() ?
+				Folder = (UnrealBuildTool.RunningRocket() && UnrealBuildTool.HasUProjectFile()) ?
 					Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) :
 					BuildConfiguration.BaseIntermediatePath;
 			}
