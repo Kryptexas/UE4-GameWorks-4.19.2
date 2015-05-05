@@ -22,6 +22,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogLODGenerator, Warning, All);
 
 #define LOCTEXT_NAMESPACE "HierarchicalLOD"
+#define CM_TO_METER		0.01f
 
 /*-----------------------------------------------------------------------------
 	HierarchicalLOD implementation.
