@@ -1492,6 +1492,7 @@ protected:
 
 private:
 	/** The pawn used when spectating (NULL if not spectating). */
+	UPROPERTY()
 	class ASpectatorPawn* SpectatorPawn;
 
 protected:
