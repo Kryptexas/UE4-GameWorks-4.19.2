@@ -556,6 +556,8 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance
 
 			ensure(0 == DependentBlueprintsToRecompile.Num());
 
+			TGuardValue<bool> ReinstancingGuard(GIsReinstancing, true);
+
 			TArray<TSharedPtr<FReinstanceFinalizer>> Finalizers;
 
 			// All children were recompiled. It's safe to reinstance.

@@ -52,6 +52,8 @@ extern CORE_API bool GIsReconstructingBlueprintInstances;
 /** Force blueprints to not compile on load */
 extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
 
+/** True if actors and objects are being re-instanced. */
+extern CORE_API bool GIsReinstancing;
 
 /** Helper function to flush resource streaming. */
 extern CORE_API void(*GFlushStreamingFunc)(void);

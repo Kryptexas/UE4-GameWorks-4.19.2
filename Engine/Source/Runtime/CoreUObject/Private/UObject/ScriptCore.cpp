@@ -619,11 +619,14 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	// remove later when stable
 	if (GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
 	{
-		static int32 num=0;
-		num++;
-		if (num < 5)
+		if (!GIsReinstancing)
 		{
-			ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
+			static int32 num = 0;
+			num++;
+			if (num < 5)
+			{
+				ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
+			}
 		}
 		return;
 	}
