@@ -76,7 +76,33 @@ void FBlueprintCoreDelegates::ThrowScriptException(const UObject* ActiveObject, 
 	case EBlueprintExceptionType::Tracepoint:
 	case EBlueprintExceptionType::WireTracepoint:
 		break;
+#if WITH_EDITOR
+	case EBlueprintExceptionType::AccessViolation:
+		{
+			struct FIntConfigValueHelper
+			{
+				int32 Value;
 
+				FIntConfigValueHelper() : Value(0)
+				{
+					GConfig->GetInt(TEXT("ScriptErrorLog"), TEXT("MaxNumOfAccessViolation"), Value, GEditorIni);
+				}
+			};
+
+			static const FIntConfigValueHelper MaxNumOfAccessViolation;
+			if (MaxNumOfAccessViolation.Value > 0)
+			{
+				static TMap<FName, int32> DisplayedWarningsMap;
+				const FName ActiveObjectName = ActiveObject ? ActiveObject->GetFName() : FName();
+				int32& Num = DisplayedWarningsMap.FindOrAdd(ActiveObjectName);
+				if (Num > MaxNumOfAccessViolation.Value)
+				{
+					break;
+				}
+				Num++;
+			}
+		}
+#endif // WITH_EDITOR
 	default:
 		UE_SUPPRESS(LogScript, Warning, const_cast<FFrame*>(&StackFrame)->Logf(TEXT("%s"), *(Info.GetDescription())));
 		break;
@@ -1565,10 +1591,6 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 			if (RValueProperty)
 			{
 				RValueProperty->ClearValue(RESULT_PARAM);
-			}
-			else
-			{
-				Stack.KismetExecutionMessage(TEXT("Cannot clear R-value after a context fail. Unknown property."), ELogVerbosity::Warning);
 			}
 		}
 	}
