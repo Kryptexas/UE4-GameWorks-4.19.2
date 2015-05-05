@@ -37,7 +37,11 @@ public:
 	TSharedPtr<FSceneViewport> GetViewport() const;
 	TSharedPtr<FCascadeEdPreviewViewportClient> GetViewportClient() const;
 	TSharedPtr<SViewport> GetViewportWidget() const;
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	
+	bool HasJustTicked()	{ return JustTicked; }
+	void ClearTickFlag()	{ JustTicked = false; }
 protected:
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
@@ -52,4 +56,6 @@ private:
 	
 	/** Level viewport client */
 	TSharedPtr<FCascadeEdPreviewViewportClient> ViewportClient;
+
+	bool JustTicked;
 };

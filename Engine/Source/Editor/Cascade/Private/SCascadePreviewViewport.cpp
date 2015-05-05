@@ -10,6 +10,15 @@
 #include "SDockTab.h"
 
 
+
+void SCascadePreviewViewport::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SEditorViewport::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	JustTicked = true;
+}
+
+
 SCascadePreviewViewport::~SCascadePreviewViewport()
 {
 	if (ViewportClient.IsValid())
