@@ -2449,8 +2449,7 @@ namespace ObjectTools
 				// Used in the IsValidObjectName checks below
 				FText Reason;
 
-				if( (ExistingPackage && InOutPackagesUserRefusedToFullyLoad.Contains(ExistingPackage)) ||
-					!PackageTools::HandleFullyLoadingPackages( TopLevelPackages, NSLOCTEXT("UnrealEd", "Rename", "Rename") ) )
+				if( ExistingPackage && ( InOutPackagesUserRefusedToFullyLoad.Contains(ExistingPackage) || !PackageTools::HandleFullyLoadingPackages( TopLevelPackages, NSLOCTEXT("UnrealEd", "Rename", "Rename") ) ) )
 				{
 					// HandleFullyLoadingPackages should never return false for empty input.
 					check( ExistingPackage );
