@@ -135,14 +135,7 @@ bool UK2Node_FunctionResult::CanCreateUserDefinedPin(const FEdGraphPinType& InPi
 
 UEdGraphPin* UK2Node_FunctionResult::CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo)
 {
-	UEdGraphPin* Pin = CreatePin(
-		EGPD_Input, 
-		NewPinInfo->PinType.PinCategory, 
-		NewPinInfo->PinType.PinSubCategory, 
-		NewPinInfo->PinType.PinSubCategoryObject.Get(), 
-		NewPinInfo->PinType.bIsArray, 
-		NewPinInfo->PinType.bIsReference, 
-		NewPinInfo->PinName);
+	UEdGraphPin* Pin = CreatePin(EGPD_Input, NewPinInfo->PinType, NewPinInfo->PinName);
 	FFillDefaultPinValueHelper::Fill(Pin);
 	return Pin;
 }

@@ -2004,15 +2004,7 @@ static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, 
 	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 
 	UK2Node_Composite* DummyNode = NewObject<UK2Node_Composite>(Graph);
-	UEdGraphPin* DummyPin = DummyNode->CreatePin(
-		EGPD_Input,
-		PinType.PinCategory,
-		PinType.PinSubCategory,
-		PinType.PinSubCategoryObject.Get(),
-		PinType.bIsArray,
-		PinType.bIsReference,
-		DummyNode->GetName()
-	);
+	UEdGraphPin* DummyPin = DummyNode->CreatePin(EGPD_Input, PinType, DummyNode->GetName());
 	ContextMenuBuilder.FromPin = DummyPin;
 
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);

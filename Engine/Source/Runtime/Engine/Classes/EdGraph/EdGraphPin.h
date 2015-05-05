@@ -99,6 +99,7 @@ public:
 		PinSubCategoryObject = NULL;
 		bIsArray = false;
 		bIsReference = false;
+		bIsConst = false;
 		bIsWeakPointer = false;
 	}
 	FEdGraphPinType(const FString& InPinCategory, const FString& InPinSubCategory, UObject* InPinSubCategoryObject, bool bInIsArray, bool bInIsReference)
@@ -108,17 +109,19 @@ public:
 		PinSubCategoryObject = InPinSubCategoryObject;
 		bIsArray = bInIsArray;
 		bIsReference = bInIsReference;
+		bIsConst = false;
 		bIsWeakPointer = false;
 	}
 	bool operator == ( const FEdGraphPinType& Other ) const
 	{
-		return (PinCategory == Other.PinCategory) 
-			&& (PinSubCategory == Other.PinSubCategory) 
-			&& (PinSubCategoryObject == Other.PinSubCategoryObject) 
-			&& (bIsArray == Other.bIsArray) 
+		return (PinCategory == Other.PinCategory)
+			&& (PinSubCategory == Other.PinSubCategory)
+			&& (PinSubCategoryObject == Other.PinSubCategoryObject)
+			&& (bIsArray == Other.bIsArray)
 			&& (bIsReference == Other.bIsReference)
 			&& (bIsWeakPointer == Other.bIsWeakPointer)
-			&& (PinSubCategoryMemberReference == Other.PinSubCategoryMemberReference);
+			&& (PinSubCategoryMemberReference == Other.PinSubCategoryMemberReference)
+			&& (bIsConst == Other.bIsConst);
 	}
 	bool operator != ( const FEdGraphPinType& Other ) const
 	{
@@ -127,7 +130,8 @@ public:
 			|| (PinSubCategoryObject != Other.PinSubCategoryObject) 
 			|| (bIsArray != Other.bIsArray) 
 			|| (bIsReference != Other.bIsReference)
-			|| (bIsWeakPointer != Other.bIsWeakPointer);
+			|| (bIsWeakPointer != Other.bIsWeakPointer)
+			|| (bIsConst != Other.bIsConst);
 	}
 
 	void ResetToDefaults()
@@ -139,9 +143,10 @@ public:
 		bIsArray = false;
 		bIsReference = false;
 		bIsWeakPointer = false;
+		bIsConst = false;
 	}
 
-	bool Serialize(FArchive& Ar);
+	ENGINE_API bool Serialize(FArchive& Ar);
 };
 
 template<>

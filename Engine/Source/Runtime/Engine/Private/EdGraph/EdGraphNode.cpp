@@ -53,21 +53,15 @@ UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITOR
-UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/)
+
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index /*= INDEX_NONE*/)
 {
-#if 0
-	UEdGraphPin* NewPin = AllocatePinFromPool(this);
-#else
 	UEdGraphPin* NewPin = NewObject<UEdGraphPin>(this);
-#endif
 	NewPin->PinName = PinName;
 	NewPin->Direction = Dir;
-	NewPin->PinType.PinCategory = PinCategory;
-	NewPin->PinType.PinSubCategory = PinSubCategory;
-	NewPin->PinType.PinSubCategoryObject = PinSubCategoryObject;
-	NewPin->PinType.bIsArray = bIsArray;
-	NewPin->PinType.bIsReference = bIsReference;
-	NewPin->PinType.bIsConst = bIsConst;
+
+	NewPin->PinType = InPinType;
+
 	NewPin->SetFlags(RF_Transactional);
 
 	if (HasAnyFlags(RF_Transient))
@@ -76,7 +70,7 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& Pi
 	}
 
 	Modify(false);
-	if ( Pins.IsValidIndex( Index ) )
+	if (Pins.IsValidIndex(Index))
 	{
 		Pins.Insert(NewPin, Index);
 	}
@@ -85,6 +79,14 @@ UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& Pi
 		Pins.Add(NewPin);
 	}
 	return NewPin;
+}
+
+UEdGraphPin* UEdGraphNode::CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst /*= false*/, int32 Index /*= INDEX_NONE*/)
+{
+	FEdGraphPinType PinType(PinCategory, PinSubCategory, PinSubCategoryObject, bIsArray, bIsReference);
+	PinType.bIsConst = bIsConst;
+
+	return CreatePin(Dir, PinType, PinName, Index);
 }
 
 UEdGraphPin* UEdGraphNode::FindPin(const FString& PinName) const

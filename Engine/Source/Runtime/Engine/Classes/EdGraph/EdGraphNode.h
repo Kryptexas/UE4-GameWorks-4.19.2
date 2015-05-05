@@ -10,6 +10,7 @@ class UEdGraphNode;
 class UEdGraphSchema;
 class UEdGraphPin;
 class SGraphNode;
+struct FEdGraphPinType;
 
 /** Enum used to define which way data flows into or out of this pin */
 UENUM()
@@ -171,6 +172,9 @@ public:
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
 	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false, int32 Index = INDEX_NONE);
+
+	/** Create a new pin on this node using the supplied pin type, and return the new pin */
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FEdGraphPinType& InPinType, const FString& PinName, int32 Index = INDEX_NONE);
 
 	// Allocates a pin from the pool
 	static UEdGraphPin* AllocatePinFromPool(UEdGraphNode* OuterNode);

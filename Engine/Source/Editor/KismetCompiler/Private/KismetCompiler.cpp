@@ -656,6 +656,11 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 		{
 			NewProperty->PropertyFlags |= PropertyFlags;
 
+			if (bPropertiesAreParameters && Term.Type.bIsConst)
+			{
+				NewProperty->SetPropertyFlags(CPF_ConstParm);
+			}
+
 			if (Term.bPassedByReference)
 			{
 				// special case for BlueprintImplementableEvent
@@ -2426,14 +2431,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 			UEdGraphPin* UGSourcePin = SrcEventNode->FindPin(SourcePin->PinName);
 			const FString MemberVariableName = ClassScopeNetNameMap.MakeValidName(UGSourcePin);
 
-			UEdGraphPin* DestPin = AssignmentNode->CreatePin(
-				EGPD_Input, 
-				SourcePin->PinType.PinCategory, 
-				SourcePin->PinType.PinSubCategory, 
-				SourcePin->PinType.PinSubCategoryObject.Get(), 
-				SourcePin->PinType.bIsArray, 
-				SourcePin->PinType.bIsReference, 
-				MemberVariableName);
+			UEdGraphPin* DestPin = AssignmentNode->CreatePin(EGPD_Input, SourcePin->PinType, MemberVariableName);
 			MessageLog.NotifyIntermediateObjectCreation(DestPin, SourcePin);
 			DestPin->MakeLinkTo(SourcePin);
 		}

@@ -2541,7 +2541,8 @@ void SMyBlueprint::EnsureLastPinTypeValid()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	const bool bLastPinTypeValid = (Schema->PC_Struct != LastPinType.PinCategory) || LastPinType.PinSubCategoryObject.IsValid();
 	const bool bLastFunctionPinTypeValid = (Schema->PC_Struct != LastFunctionPinType.PinCategory) || LastFunctionPinType.PinSubCategoryObject.IsValid();
-	if (!bLastPinTypeValid || !bLastFunctionPinTypeValid)
+	const bool bConstType = LastPinType.bIsConst || LastFunctionPinType.bIsConst;
+	if (!bLastPinTypeValid || !bLastFunctionPinTypeValid || bConstType)
 	{
 		ResetLastPinType();
 	}
@@ -2551,10 +2552,8 @@ void SMyBlueprint::ResetLastPinType()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
+	LastPinType.ResetToDefaults();
 	LastPinType.PinCategory = Schema->PC_Boolean;
-	LastPinType.PinSubCategory = TEXT("");
-	LastPinType.bIsArray = false;
-	LastPinType.bIsReference = false;
 	LastFunctionPinType = LastPinType;
 }
 

@@ -63,6 +63,15 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 		}
 	}
 
+	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_PINTYPE_CONST)
+	{
+		Ar << bIsConst;
+	}
+	else if (Ar.IsLoading())
+	{
+		bIsConst = false;
+	}
+
 	return true;
 }
 

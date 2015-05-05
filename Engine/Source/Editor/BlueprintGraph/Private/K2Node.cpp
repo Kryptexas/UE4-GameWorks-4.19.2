@@ -878,7 +878,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 							Args.Add(TEXT("Index"), Index);
 							const FText PinFriendlyName = FText::Format(LOCTEXT("PinFriendlyNameWithIndex", "{PinName}_{Index}"), Args);
 							const FString PinName = PinFriendlyName.ToString();
-							NewPin = TargetNode->CreatePin(Direction, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsReference, PinName);
+							NewPin = TargetNode->CreatePin(Direction, PinType, PinName);
 							NewPin->PinFriendlyName = PinFriendlyName;
 							Schema->ConstructBasicPinTooltip(*NewPin, PropertyEntry.PropertyTooltip, NewPin->PinToolTip);
 
@@ -911,7 +911,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 					if (PropertyEntry.bShowPin)
 					{
 						const FString PinName = PropertyEntry.PropertyName.ToString();
-						NewPin = TargetNode->CreatePin(Direction, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsReference, PinName);
+						NewPin = TargetNode->CreatePin(Direction, PinType, PinName);
 						NewPin->PinFriendlyName = PropertyEntry.PropertyFriendlyName.IsEmpty() ? FText::FromString(PinName) : FText::FromString(PropertyEntry.PropertyFriendlyName);
 						Schema->ConstructBasicPinTooltip(*NewPin, PropertyEntry.PropertyTooltip, NewPin->PinToolTip);
 

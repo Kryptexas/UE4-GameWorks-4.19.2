@@ -29,13 +29,22 @@ struct FUserPinInfo
 	{
 		Ar << Info.PinName;
 
-		Ar << Info.PinType.bIsArray;
-		Ar << Info.PinType.bIsReference;
+		if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_PINTYPE_CONST)
+		{
+			Info.PinType.Serialize(Ar);
+			Ar << Info.DesiredPinDirection;
+		}
+		else
+		{
+			Ar << Info.PinType.bIsArray;
+			Ar << Info.PinType.bIsReference;
 
-		Ar << Info.PinType.PinCategory;
-		Ar << Info.PinType.PinSubCategory;
+			Ar << Info.PinType.PinCategory;
+			Ar << Info.PinType.PinSubCategory;
 
-		Ar << Info.PinType.PinSubCategoryObject;
+			Ar << Info.PinType.PinSubCategoryObject;
+		}
+		
 		Ar << Info.PinDefaultValue;
 
 		return Ar;

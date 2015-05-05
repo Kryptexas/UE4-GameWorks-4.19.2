@@ -506,6 +506,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES,
 	// Constraint motor velocity is broken into per-component
 	VER_UE4_CONSTRAINT_INSTANCE_MOTOR_FLAGS,
+	// Serialize bIsConst in FEdGraphPinType
+	VER_UE4_SERIALIZE_PINTYPE_CONST,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
