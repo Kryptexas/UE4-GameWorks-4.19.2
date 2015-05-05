@@ -5,6 +5,7 @@
 #include "Dialogs/DlgPickAssetPath.h"
 #include "SNumericEntryBox.h"
 #include "STextComboBox.h"
+#include "MeshProxyTool/MeshProxyTool.h"
 
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 

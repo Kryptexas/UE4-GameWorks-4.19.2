@@ -5,6 +5,7 @@
 #include "Dialogs/DlgPickAssetPath.h"
 #include "STextComboBox.h"
 #include "RawMesh.h"
+#include "MeshMergingTool/MeshMergingTool.h"
 
 #define LOCTEXT_NAMESPACE "SMeshMergingDialog"
 
