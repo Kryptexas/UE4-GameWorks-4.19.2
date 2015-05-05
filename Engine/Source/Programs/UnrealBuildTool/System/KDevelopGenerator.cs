@@ -402,9 +402,6 @@ namespace UnrealBuildTool
 		{
 			/// RAKE! Take one KDevelopProjectFileContent and pass
 			/// it through each function that writes out the sections.
-
-			int ProjectIndex = 0;
-
 			var KDevelopFileContent = new StringBuilder();
 			var KDevelopMasterFileContent = new StringBuilder ();
 
