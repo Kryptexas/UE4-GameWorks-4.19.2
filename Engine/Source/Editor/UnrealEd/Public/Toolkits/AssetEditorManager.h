@@ -140,6 +140,19 @@ private:
 		FDateTime OpenedTime;
 	};
 
+	/** struct used to track total time and # of invocations during an overall UnrealEd session */
+	struct FAssetEditorAnalyticInfo
+	{
+		FTimespan SumDuration;
+		int32 NumTimesOpened;
+
+		FAssetEditorAnalyticInfo()
+			: SumDuration(0)
+			, NumTimesOpened(0)
+		{
+		}
+	};
+
 	/**
 	 * Holds the opened assets.
 	 */
@@ -158,7 +171,7 @@ private:
 	/**
 	 * Holds the cumulative time editors have been open by type.
 	 */
-	TMap<FName, FTimespan> EditorDurations;
+	TMap<FName, FAssetEditorAnalyticInfo> EditorUsageAnalytics;
 
 private:
 
