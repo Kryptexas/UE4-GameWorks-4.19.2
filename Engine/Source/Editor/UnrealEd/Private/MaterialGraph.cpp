@@ -327,6 +327,19 @@ void UMaterialGraph::GetUnusedExpressions(TArray<UEdGraphNode*>& UnusedNodes) co
 				NodesToCheck.Push(InputPins[Index]->LinkedTo[0]->GetOwningNode());
 			}
 		}
+
+		for (int32 Index = 0; Index < Nodes.Num(); Index++)
+		{
+			UMaterialGraphNode* GraphNode = Cast<UMaterialGraphNode>(Nodes[Index]);
+			if (GraphNode)
+			{
+				UMaterialExpressionLandscapeGrassOutput* Output = Cast<UMaterialExpressionLandscapeGrassOutput>(GraphNode->MaterialExpression);
+				if (Output)
+				{
+					NodesToCheck.Push(GraphNode);
+				}
+			}
+		}
 	}
 	else if (MaterialFunction)
 	{
