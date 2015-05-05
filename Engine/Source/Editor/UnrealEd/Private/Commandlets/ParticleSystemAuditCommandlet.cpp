@@ -40,7 +40,7 @@ int32 UParticleSystemAuditCommandlet::Main(const FString& Params)
 
 bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 {
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	AssetRegistry.SearchAllAssets(true);
 
