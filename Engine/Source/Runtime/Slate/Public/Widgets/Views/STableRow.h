@@ -706,6 +706,12 @@ public:
 		return SharedThis(this);
 	}
 
+	virtual void SetContent(TSharedRef< SWidget > InContent) override
+	{
+		this->Content = InContent;
+		SBorder::SetContent(InContent);
+	}
+
 	virtual TSharedPtr<SWidget> GetContent() override
 	{
 		if ( this->Content.IsValid() )
