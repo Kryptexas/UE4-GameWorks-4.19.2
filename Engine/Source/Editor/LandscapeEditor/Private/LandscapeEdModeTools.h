@@ -625,7 +625,8 @@ struct FHeightmapAccessor
 			bool bUpdateFoliage = false;
 			for (ULandscapeComponent* Component : Components)
 			{
-				if (AInstancedFoliageActor::HasFoliageAttached(Component))
+				ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
+				if (CollisionComponent && AInstancedFoliageActor::HasFoliageAttached(CollisionComponent))
 				{
 					bUpdateFoliage = true;
 					break;
@@ -793,7 +794,8 @@ struct FXYOffsetmapAccessor
 			bool bUpdateFoliage = false;
 			for (ULandscapeComponent* Component : Components)
 			{
-				if (AInstancedFoliageActor::HasFoliageAttached(Component))
+				ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
+				if (CollisionComponent && AInstancedFoliageActor::HasFoliageAttached(CollisionComponent))
 				{
 					bUpdateFoliage = true;
 					break;
