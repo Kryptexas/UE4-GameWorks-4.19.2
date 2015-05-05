@@ -351,7 +351,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::FindPrimitiveAllocatio
 
 void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview)
 {
-	if (IsIndirectLightingCacheAllowed(GetFeatureLevel()))
+	if (IsIndirectLightingCacheAllowed(GetFeatureLevel()) && Scene->PrecomputedLightVolumes.Num() > 0)
 	{
 		bool bAnyViewAllowsIndirectLightingCache = false;
 
