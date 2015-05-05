@@ -254,7 +254,8 @@ public:
 
 	bool AllowIndirectLightingCache() const
 	{
-		return View.Family->EngineShowFlags.IndirectLightingCache;
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		return View.Family->EngineShowFlags.IndirectLightingCache && Scene && Scene->PrecomputedLightVolumes.Num() > 0;
 	}
 
 	bool AllowIndirectLightingCacheVolumeTexture() const

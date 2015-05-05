@@ -178,6 +178,8 @@ public:
 
 	bool AllowIndirectLightingCache() const 
 	{ 
+		// Note: can't disallow based on presence of PrecomputedLightVolumes in the scene as this is registration time
+		// Unless extra handling is added to recreate static draw lists when new volumes are added
 		return true; 
 	}
 
@@ -286,7 +288,8 @@ public:
 
 	bool AllowIndirectLightingCache() const 
 	{ 
-		return View.Family->EngineShowFlags.IndirectLightingCache; 
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		return View.Family->EngineShowFlags.IndirectLightingCache && Scene && Scene->PrecomputedLightVolumes.Num() > 0;
 	}
 
 	bool AllowIndirectLightingCacheVolumeTexture() const
