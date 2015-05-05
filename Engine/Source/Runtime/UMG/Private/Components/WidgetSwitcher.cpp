@@ -109,6 +109,13 @@ TSharedRef<SWidget> UWidgetSwitcher::RebuildWidget()
 	return BuildDesignTimeWidget( MyWidgetSwitcher.ToSharedRef() );
 }
 
+void UWidgetSwitcher::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	ActiveWidgetIndex = FMath::Clamp(ActiveWidgetIndex, 0, FMath::Max(0, Slots.Num() - 1));
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
 void UWidgetSwitcher::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
@@ -145,10 +152,7 @@ void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
 
 void UWidgetSwitcher::OnDescendantDeselected(UWidget* DescendantWidget)
 {
-	if ( MyWidgetSwitcher.IsValid() )
-	{
-		MyWidgetSwitcher->SetActiveWidgetIndex(ActiveWidgetIndex);
-	}
+	SetActiveWidgetIndex(ActiveWidgetIndex);
 }
 
 #endif

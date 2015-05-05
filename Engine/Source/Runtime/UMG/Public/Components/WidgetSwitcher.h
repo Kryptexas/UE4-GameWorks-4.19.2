@@ -34,10 +34,15 @@ public:
 	/** Activates the widget and makes it the active index. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
 	void SetActiveWidget(UWidget* Widget);
-	
-	virtual void SynchronizeProperties() override;
 
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+	
+	// UWidget interface
+	virtual void SynchronizeProperties() override;
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
+	// End of UWidget interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
