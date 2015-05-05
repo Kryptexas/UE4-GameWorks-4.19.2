@@ -136,6 +136,11 @@ private:
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
 	uint32 bHasBegunPlay:1;
 
+#if WITH_EDITOR
+	/** During undo/redo it isn't safe to cache owner */
+	uint32 bCanUseCachedOwner:1;
+#endif
+
 	/** Tracks whether the component has been added to one of the world's end of frame update lists */
 	uint32 MarkedForEndOfFrameUpdateState:2;
 	friend struct FMarkComponentEndOfFrameUpdateState;
@@ -644,10 +649,19 @@ private:
 
 FORCEINLINE_DEBUGGABLE class AActor* UActorComponent::GetOwner() const
 {
-	if (Owner == nullptr)
+#if WITH_EDITOR
+	// During undo/redo the cached owner is unreliable so just used GetTypedOuter
+	if (bCanUseCachedOwner)
 	{
-		Owner = GetTypedOuter<AActor>();
+		checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
+		return Owner;
 	}
+	else
+	{
+		return GetTypedOuter<AActor>();
+	}
+#else
 	checkSlow(Owner == GetTypedOuter<AActor>()); // verify cached value is correct
 	return Owner;
+#endif
 }
