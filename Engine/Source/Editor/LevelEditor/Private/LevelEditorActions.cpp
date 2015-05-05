@@ -343,7 +343,6 @@ bool FLevelEditorActionCallbacks::ToggleFavorite_IsChecked()
 	return bIsChecked;
 }
 
-
 bool FLevelEditorActionCallbacks::CanSaveWorld()
 {
 	return FSlateApplication::Get().IsNormalExecution() && (!GUnrealEd || !GUnrealEd->GetPackageAutoSaver().IsAutoSaving());
@@ -1682,34 +1681,6 @@ void FLevelEditorActionCallbacks::RemoveActorsFromGroup_Clicked()
 	GUnrealEd->edactRemoveFromGroup();
 }
 
-void FLevelEditorActionCallbacks::MergeActors_Clicked()
-{
-	GUnrealEd->edactMergeActors();
-}
-
-bool FLevelEditorActionCallbacks::CanExecuteMergeActors()
-{
-	IMeshUtilities* MeshUtilities = FModuleManager::Get().LoadModulePtr<IMeshUtilities>("MeshUtilities");
-	
-	if (MeshUtilities && MeshUtilities->GetMeshMergingInterface() != nullptr)
-	{
-		FSelectedActorInfo Info = AssetSelectionUtils::GetSelectedActorInfo();
-		return (Info.bHaveStaticMeshComponent || Info.bHaveLandscape);
-	}
-	
-	return false;
-}
-
-void FLevelEditorActionCallbacks::MergeActorsByMaterials_Clicked()
-{
-	GUnrealEd->edactMergeActorsByMaterials();
-}
-
-bool FLevelEditorActionCallbacks::CanExecuteMergeActorsByMaterials()
-{
-	FSelectedActorInfo Info = AssetSelectionUtils::GetSelectedActorInfo();
-	return Info.bHaveStaticMeshComponent;
-}
 
 void FLevelEditorActionCallbacks::LocationGridSnap_Clicked()
 {
@@ -2912,8 +2883,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( RemoveActorsFromGroup, "Remove from Group", "Removes the selected actors from the selected groups", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( LockGroup, "Lock", "Locks the selected groups", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( UnlockGroup, "Unlock", "Unlocks the selected groups", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( MergeActors, "Create Mesh Proxy...", "Harvest geometry from selected actors and merge them into single mesh", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( MergeActorsByMaterials, "Merge Actors...", "Harvest geometry from selected actors and merge grouping them by materials", EUserInterfaceActionType::Button, FInputChord() );
 
 #if PLATFORM_MAC
 	UI_COMMAND( ShowAll, "Show All Actors", "Shows all actors", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Command, EKeys::H ) );

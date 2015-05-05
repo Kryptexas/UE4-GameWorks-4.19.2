@@ -930,18 +930,6 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		);
 	
 	ActionList.MapAction(
-		Commands.MergeActors,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::MergeActors_Clicked ),
-		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanExecuteMergeActors )
-		);
-
-	ActionList.MapAction(
-		Commands.MergeActorsByMaterials,
-		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::MergeActorsByMaterials_Clicked ),
-		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanExecuteMergeActorsByMaterials )
-		);
-	
-	ActionList.MapAction(
 		Commands.ShowAll,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("ACTOR UNHIDE ALL") ) ) 
 		);

@@ -2359,7 +2359,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set("StandardDialog.SlotPadding",FMargin(6.0f, 0.0f, 6.0f, 0.0f));
 		Set("StandardDialog.MinDesiredSlotWidth", 80.0f );
 		Set("StandardDialog.MinDesiredSlotHeight", 0.0f );
-		Set("StandardDialog.LargeFont",  TTF_CORE_FONT( "Fonts/Roboto-Regular", 11 ) );
+		Set("StandardDialog.SmallFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 8));
+		Set("StandardDialog.LargeFont", TTF_CORE_FONT("Fonts/Roboto-Regular", 11));
 	}
 
 	// Highres Screenshot
@@ -4295,6 +4296,9 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "LevelEditor.OpenClassBlueprint", new IMAGE_BRUSH("Icons/icon_class_Blueprint_Open_16x", Icon16x16));
 		Set( "LevelEditor.EditMatinee", new IMAGE_BRUSH( "Icons/icon_matinee_40x", Icon40x40 ) );
 		Set( "LevelEditor.EditMatinee.Small", new IMAGE_BRUSH( "Icons/icon_matinee_40x", Icon20x20 ) );
+
+		Set( "MergeActors.MeshMergingTool", new IMAGE_BRUSH( "Icons/icon_MergeActors_MeshMerging_40x", Icon40x40 ) );
+		Set( "MergeActors.MeshProxyTool", new IMAGE_BRUSH( "Icons/icon_MergeActors_MeshProxy_40x", Icon40x40 ) );
 		
 		Set( "PlacementBrowser.OptionsMenu", new IMAGE_BRUSH( "Icons/icon_Blueprint_Macro_16x", Icon16x16 ) );
 
