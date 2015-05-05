@@ -122,6 +122,26 @@ FRHICommandList* FParallelCommandListSet::AllocCommandList()
 	return new FRHICommandList;
 }
 
+static TAutoConsoleVariable<int32> CVarRHICmdSpewParallelListBalance(
+	TEXT("r.RHICmdSpewParallelListBalance"),
+	0,
+	TEXT("For debugging, spews the size of the parallel command lists. This stalls and otherwise wrecks performance."));
+
+static TAutoConsoleVariable<int32> CVarRHICmdBalanceParallelLists(
+	TEXT("r.RHICmdBalanceParallelLists"),
+	1,
+	TEXT("If >0 preprocess the drawlists to try to balance the load equally among the command lists."));
+
+static TAutoConsoleVariable<int32> CVarRHICmdMinCmdlistForParallelSubmit(
+	TEXT("r.RHICmdMinCmdlistForParallelSubmit"),
+	2,
+	TEXT("Minimum number of parallel translate command lists to submit. If there are fewer than this number, they just run on the RHI thread and immediate context."));
+
+static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
+	TEXT("r.RHICmdMinDrawsPerParallelCmdList"),
+	32,
+	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
+
 FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute)
 	: View(InView)
 	, ParentCmdList(InParentCmdList)
@@ -130,22 +150,63 @@ FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICo
 	, bParallelExecute(GRHISupportsParallelRHIExecute && bInParallelExecute)
 {
 	Width = CVarRHICmdWidth.GetValueOnRenderThread();
+	MinDrawsPerCommandList = CVarRHICmdMinDrawsPerParallelCmdList.GetValueOnRenderThread();
+	bSpewBalance = !!CVarRHICmdSpewParallelListBalance.GetValueOnRenderThread();
+	bBalanceCommands = !!CVarRHICmdBalanceParallelLists.GetValueOnRenderThread();
 	CommandLists.Reserve(Width * 8);
 	Events.Reserve(Width * 8);
-
+	NumDrawsIfKnown.Reserve(Width * 8);
 }
 
 void FParallelCommandListSet::Dispatch()
 {
 	check(CommandLists.Num() == Events.Num());
-	if (bParallelExecute && CommandLists.Num())
+	if (bSpewBalance)
 	{
+		// finish them all
+		for (auto& Event : Events)
+		{
+			FTaskGraphInterface::Get().WaitUntilTaskCompletes(Event, ENamedThreads::RenderThread_Local);
+		}
+		// spew sizes
+		int32 Index = 0;
+		for (auto CmdList : CommandLists)
+		{
+			UE_LOG(LogTemp, Display, TEXT("CmdList %2d/%2d  : %8dKB"), Index, CommandLists.Num(), (CmdList->GetUsedMemory() + 1023) / 1024);
+			Index++;
+		}
+	}
+	bool bActuallyDoParallelTranslate = bParallelExecute && CommandLists.Num() >= CVarRHICmdMinCmdlistForParallelSubmit.GetValueOnRenderThread();
+	if (bActuallyDoParallelTranslate)
+	{
+		int32 Total = 0;
+		bool bIndeterminate = false;
+		for (int32 Count : NumDrawsIfKnown)
+		{
+			if (Count < 0)
+			{
+				bIndeterminate = true;
+				break; // can't determine how many are in this one; assume we should run parallel translate
+			}
+			Total += Count;
+		}
+		if (!bIndeterminate && Total < MinDrawsPerCommandList)
+		{
+			UE_CLOG(bSpewBalance, LogTemp, Display, TEXT("Disabling parallel translate because the number of draws is known to be small."));
+			bActuallyDoParallelTranslate = false;
+		}
+	}
+
+	if (bActuallyDoParallelTranslate)
+	{
+		UE_CLOG(bSpewBalance, LogTemp, Display, TEXT("%d cmdlists for parallel translate"), CommandLists.Num());
 		check(GRHISupportsParallelRHIExecute);
-		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], &CommandLists[0], CommandLists.Num());
+		ParentCmdList.QueueParallelAsyncCommandListSubmit(&Events[0], &CommandLists[0], &NumDrawsIfKnown[0], CommandLists.Num(), (MinDrawsPerCommandList * 4) / 3, bSpewBalance);
 		SetStateOnCommandList(ParentCmdList);
 	}
 	else
 	{
+		UE_CLOG(bSpewBalance, LogTemp, Display, TEXT("%d cmdlists (no parallel translate desired)"), CommandLists.Num());
 		for (int32 Index = 0; Index < CommandLists.Num(); Index++)
 		{
 			ParentCmdList.QueueAsyncCommandListSubmit(Events[Index], CommandLists[Index]);
@@ -167,11 +228,12 @@ FRHICommandList* FParallelCommandListSet::NewParallelCommandList()
 	return Result;
 }
 
-void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent)
+void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent, int32 InNumDrawsIfKnown)
 {
 	check(CommandLists.Num() == Events.Num());
 	CommandLists.Add(CmdList);
 	Events.Add(CompletionEvent);
+	NumDrawsIfKnown.Add(InNumDrawsIfKnown);
 }
 
 

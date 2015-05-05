@@ -15,7 +15,7 @@
 	*	@param bForceSingleThread; Mostly used for testing, if true, run single threaded instead.
 	*	Notes: Please add stats around to calls to parallel for and within your lambda as appropriate. Do not clog the task graph with long running tasks or tasks that block.
 **/
-void ParallelFor(int32 Num, TFunctionRef<void(int32)> Body, bool bForceSingleThread = false)
+inline void ParallelFor(int32 Num, TFunctionRef<void(int32)> Body, bool bForceSingleThread = false)
 {
 	// struct to hold the working data; this outlives the ParallelFor call; lifetime is controlled by a shared pointer
 	struct FParallelForData

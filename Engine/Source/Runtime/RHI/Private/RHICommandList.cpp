@@ -38,15 +38,17 @@ static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
 	TEXT("r.RHICmdUseDeferredContexts"),
 	1,
 	TEXT("True to use deferred contexts to parallelize command list execution. Only available on some RHIs."));
-static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
-	TEXT("r.RHIDeferredContextWidth"),
-	99999,
-	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list. Only available on some RHIs."));
 
 static TAutoConsoleVariable<int32> CVarRHICmdFlushOnQueueParallelSubmit(
 	TEXT("r.RHICmdFlushOnQueueParallelSubmit"),
 	0,
 	TEXT("Wait for completion of parallel commandlists immediately after submitting.  Debug feature. Only available on some RHIs."));
+
+static TAutoConsoleVariable<int32> CVarRHIMergeSmallDeferredContexts(
+	TEXT("r.RHIMergeSmallDeferredContexts"),
+	1,
+	TEXT("When it can be determined, merge small parallel translate tasks based on r.RHICmdMinDrawsPerParallelCmdList."));
+
 
 RHI_API FRHICommandListExecutor GRHICommandList;
 
@@ -671,7 +673,7 @@ struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitFo
 	}
 };
 
-void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, FRHICommandList** CmdLists, int32 Num)
+void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* AnyThreadCompletionEvents, FRHICommandList** CmdLists, int32* NumDrawsIfKnown, int32 Num, int32 MinDrawsPerTranslate, bool bSpewMerge)
 {
 	check(IsInRenderingThread() && IsImmediate() && Num);
 	if (GRHIThread)
@@ -695,61 +697,92 @@ void FRHICommandListBase::QueueParallelAsyncCommandListSubmit(FGraphEventRef* An
 		}
 		if (ContextContainer)
 		{
-			int32 EffectiveThreads = FMath::Min<int32>(Num, CVarRHIDeferredContextWidth.GetValueOnRenderThread());
+			bool bMerge = !!CVarRHIMergeSmallDeferredContexts.GetValueOnRenderThread();
 
+			int32 EffectiveThreads = 0;
 			int32 Start = 0;
-			if (EffectiveThreads)
+			// this is pretty silly but we need to know the number of jobs in advance, so we run the merge logic twice
+			while (Start < Num)
 			{
+				int32 Last = Start;
+				int32 DrawCnt = NumDrawsIfKnown[Start];
 
-				int32 NumPer = Num / EffectiveThreads;
-				int32 Extra = Num - NumPer * EffectiveThreads;
-
-				for (int32 ThreadIndex = 0; ThreadIndex < EffectiveThreads; ThreadIndex++)
+				if (bMerge && DrawCnt >= 0)
 				{
-					int32 Last = Start + (NumPer - 1) + (ThreadIndex < Extra);
-					check(Last >= Start);
-
-					if (!ContextContainer)
+					while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
 					{
-						ContextContainer = RHIGetCommandContextContainer();
+						Last++;
+						DrawCnt += NumDrawsIfKnown[Last];
 					}
-					check(ContextContainer);
-
-					FGraphEventArray Prereq;
-					FRHICommandListBase** RHICmdLists = (FRHICommandListBase**)Alloc(sizeof(FRHICommandListBase*) * (1 + Last - Start), ALIGNOF(FRHICommandListBase*));
-					for (int32 Index = Start; Index <= Last; Index++)
-					{
-						FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
-						FRHICommandList* CmdList = CmdLists[Index];
-						RHICmdLists[Index - Start] = CmdList;
-						if (AnyThreadCompletionEvent.GetReference())
-						{
-							Prereq.Add(AnyThreadCompletionEvent);
-							AllOutstandingTasks.Add(AnyThreadCompletionEvent);
-							WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
-						}
-					}
-					FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(&Prereq, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[0], 1 + Last - Start, ContextContainer);
-
-					AllOutstandingTasks.Add(TranslateCompletionEvent);
-					new (AllocCommand<FRHICommandWaitForAndSubmitSubListParallel>()) FRHICommandWaitForAndSubmitSubListParallel(TranslateCompletionEvent, ContextContainer, EffectiveThreads, ThreadIndex);
-					if (GRHIThread)
-					{
-						FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
-					}
-
-					ContextContainer = nullptr;
-					Start = Last + 1;
 				}
+				check(Last >= Start);
+				Start = Last + 1;
+				EffectiveThreads++;
+			} 
+			Start = 0;
+			int32 ThreadIndex = 0;
+			   
+			while (Start < Num)       
+			{    
+				int32 Last = Start;
+				int32 DrawCnt = NumDrawsIfKnown[Start];
+				int32 TotalMem = bSpewMerge ? CmdLists[Start]->GetUsedMemory() : 0;   // the memory is only accurate if we are spewing because otherwise it isn't done yet!
+
+				if (bMerge && DrawCnt >= 0)
+				{
+					while (Last < Num - 1 && NumDrawsIfKnown[Last + 1] >= 0 && DrawCnt + NumDrawsIfKnown[Last + 1] <= MinDrawsPerTranslate)
+					{
+						Last++;
+						DrawCnt += NumDrawsIfKnown[Last];
+						TotalMem += bSpewMerge ? CmdLists[Start]->GetUsedMemory() : 0;   // the memory is only accurate if we are spewing because otherwise it isn't done yet!
+					}
+				}
+
+				check(Last >= Start);
+
+				if (!ContextContainer) 
+				{
+					ContextContainer = RHIGetCommandContextContainer();
+				}
+				check(ContextContainer);
+
+				FGraphEventArray Prereq;
+				FRHICommandListBase** RHICmdLists = (FRHICommandListBase**)Alloc(sizeof(FRHICommandListBase*) * (1 + Last - Start), ALIGNOF(FRHICommandListBase*));
+				for (int32 Index = Start; Index <= Last; Index++)
+				{
+					FGraphEventRef& AnyThreadCompletionEvent = AnyThreadCompletionEvents[Index];
+					FRHICommandList* CmdList = CmdLists[Index];
+					RHICmdLists[Index - Start] = CmdList;
+					if (AnyThreadCompletionEvent.GetReference())
+					{
+						Prereq.Add(AnyThreadCompletionEvent);
+						AllOutstandingTasks.Add(AnyThreadCompletionEvent);
+						WaitOutstandingTasks.Add(AnyThreadCompletionEvent);
+					}
+				}
+				UE_CLOG(bSpewMerge, LogTemp, Display, TEXT("Parallel translate %d->%d    %dKB mem   %d draws (-1 = unknown)"), Start, Last, FMath::DivideAndRoundUp(TotalMem, 1024), DrawCnt);
+
+				FGraphEventRef TranslateCompletionEvent = TGraphTask<FParallelTranslateCommandList>::CreateTask(&Prereq, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(&RHICmdLists[0], 1 + Last - Start, ContextContainer);
+
+				AllOutstandingTasks.Add(TranslateCompletionEvent);
+				new (AllocCommand<FRHICommandWaitForAndSubmitSubListParallel>()) FRHICommandWaitForAndSubmitSubListParallel(TranslateCompletionEvent, ContextContainer, EffectiveThreads, ThreadIndex++);
+				if (GRHIThread)
+				{
+					FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we don't want stuff after the async cmd list to be bundled with it
+				}
+
+				ContextContainer = nullptr;
+				Start = Last + 1;
+			}
+			check(EffectiveThreads == ThreadIndex);
 
 #if !UE_BUILD_SHIPPING
-				if (CVarRHICmdFlushOnQueueParallelSubmit.GetValueOnRenderThread())
-				{
-					FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
-				}
-#endif
-				return;
+			if (CVarRHICmdFlushOnQueueParallelSubmit.GetValueOnRenderThread())
+			{
+				FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::FlushRHIThread);
 			}
+#endif
+			return;
 		}
 	}
 	for (int32 Index = 0; Index < Num; Index++)

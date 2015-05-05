@@ -311,14 +311,19 @@ class FParallelCommandListSet
 {
 public:
 	const FViewInfo& View;
-	int32 Width;
 	FRHICommandList& ParentCmdList;
+	int32 Width;
+	int32 MinDrawsPerCommandList;
+	bool bBalanceCommands;
+	bool bSpewBalance;
 private:
 	bool OutDirtyIfIgnored;
 public:
 	bool& OutDirty;
 	TArray<FRHICommandList*,SceneRenderingAllocator> CommandLists;
 	TArray<FGraphEventRef,SceneRenderingAllocator> Events;
+	// number of draws in this commandlist if known, -1 if not known. Overestimates are better than nothing.
+	TArray<int32,SceneRenderingAllocator> NumDrawsIfKnown;
 protected:
 	//this must be called by deriving classes virtual destructor because it calls the virtual SetStateOnCommandList.
 	//C++ will not do dynamic dispatch of virtual calls from destructors so we can't call it in the base class.
@@ -328,8 +333,12 @@ protected:
 public:
 	FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute);
 	virtual ~FParallelCommandListSet();
+	int32 NumParallelCommandLists() const
+	{
+		return CommandLists.Num();
+	}
 	FRHICommandList* NewParallelCommandList();
-	void AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent);	
+	void AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent, int32 InNumDrawsIfKnown = -1);	
 
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList)
 	{
