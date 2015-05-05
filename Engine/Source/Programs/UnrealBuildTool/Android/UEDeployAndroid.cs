@@ -397,7 +397,7 @@ namespace UnrealBuildTool.Android
             //
             obbData.Append("};\n"); // close class definition off
 
-            if (obbDataFile == null || !obbDataFile.ToString().SequenceEqual(obbData.ToString()))
+            if (obbDataFile == null || !obbDataFile.SequenceEqual(obbData.ToString().Split('\n')))
             {
                 MakeDirectoryIfRequired(FileName);
                 File.WriteAllText(FileName, obbData.ToString());
@@ -422,7 +422,7 @@ namespace UnrealBuildTool.Android
             Log.TraceInformation("\n==== Writing to shim file {0} ====", ShimFileName);
 
             // If they aren't the same then dump out the settings
-            if (DestFileContent == null || DestFileContent.ToString() != ShimFileContent.ToString())
+            if (DestFileContent == null || !DestFileContent.SequenceEqual((ShimFileContent.ToString()).Split('\n')))
             {
                 MakeDirectoryIfRequired(ShimFileName);
                 File.WriteAllText(ShimFileName, ShimFileContent.ToString());
