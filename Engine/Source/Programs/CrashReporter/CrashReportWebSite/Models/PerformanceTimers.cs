@@ -6,7 +6,9 @@ using Tools.CrashReporter.CrashReportCommon;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Diagnostics;
-using System.Threading; 
+using System.Threading;
+
+using Tools.CrashReporter.CrashReportWebSite.Properties;
 
 /// <summary> Helper class used to log various things into the log file. </summary>
 public class FLogger
@@ -62,6 +64,17 @@ public class FLogger
 		string FullName = UserName + Path + "~" + Guid.NewGuid().ToString( "N" );
 		FullName = FullName.Replace( '\\', '.' ).Replace( '/', '_' );
 		return FullName;
+	}
+
+	/// <summary>
+	/// Writes a custom message to the log file.
+	/// </summary>
+	public void WriteCustom( string Message )
+	{
+		if (Message != null && Message.Length > 2)
+		{
+			Log.Print( Message );
+		}
 	}
 
 	/// <summary>

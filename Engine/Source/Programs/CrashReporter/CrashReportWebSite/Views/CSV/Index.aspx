@@ -1,6 +1,6 @@
 ﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
 
-<%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<ReportsViewModel>" %>
+<%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<CSV_ViewModel>" %>
 <%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
 
 <asp:Content ID="StyleSheet" ContentPlaceHolderID="CssContent" runat="server">
@@ -8,7 +8,7 @@
 </asp:Content>
 
 <asp:Content ID="TitleContent" ContentPlaceHolderID="TitleContent" runat="server">
-[CR] Reports
+[CR] CSV
 </asp:Content>
 
 <asp:Content ID="ScriptContent" ContentPlaceHolderID="ScriptContent" runat="server" >
@@ -41,7 +41,7 @@
 <div style="clear:both;"><small style="color: lightgray;">Generated in <%=Model.GenerationTime%> second(s)</small><br /></div>
 
 <div id='SearchForm' style="clear:both;">
-<%using( Html.BeginForm( "", "Reports", FormMethod.Get, new { id = "ReportsForm" } ) )
+<%using( Html.BeginForm( "", "CSV", FormMethod.Get, new { id = "CSVForm" } ) )
 { %>
 	<script>$.datepicker.setDefaults($.datepicker.regional['']);</script>
 
@@ -65,10 +65,10 @@
 </div>
 </asp:Content>
 
-<asp:Content ID="ReportsContent" ContentPlaceHolderID="ReportsContent" runat="server">
+<asp:Content ID="CSVContent" ContentPlaceHolderID="CSVContent" runat="server">
 	<div>
 		<div>
-			<% Html.RenderPartial("/Views/Reports/ViewReports.ascx"); %>
+			<% Html.RenderPartial("/Views/CSV/ViewCSV.ascx"); %>
 		</div>
 	</div>
 
