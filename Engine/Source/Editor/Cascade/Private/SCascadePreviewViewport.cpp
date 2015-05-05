@@ -32,7 +32,7 @@ void SCascadePreviewViewport::RefreshViewport()
 
 bool SCascadePreviewViewport::IsVisible() const
 {
-	return ViewportWidget.IsValid() && (!ParentTab.IsValid() || ParentTab.Pin()->IsForeground()) && SEditorViewport::IsVisible();
+	return ViewportWidget.IsValid() && (!ParentTab.IsValid() || ParentTab.Pin()->IsForeground());
 }
 
 TSharedPtr<FSceneViewport> SCascadePreviewViewport::GetViewport() const
