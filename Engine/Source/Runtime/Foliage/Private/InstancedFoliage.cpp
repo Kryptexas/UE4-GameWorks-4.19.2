@@ -485,12 +485,16 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 
 	UpdateGuid = FGuid::NewGuid();
 
+	//@todo: move this into FoliageType_InstancedStaticMesh
+	// Check to see if the mesh is what changed
+	const bool bMeshChanged = PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == "Mesh";
+
 	// Notify any currently-loaded InstancedFoliageActors
 	if (IsFoliageReallocationRequiredForPropertyChange(PropertyChangedEvent))
 	{
 		for (TObjectIterator<AInstancedFoliageActor> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
 		{
-			It->NotifyFoliageTypeChanged(this);
+			It->NotifyFoliageTypeChanged(this, bMeshChanged);
 		}
 	}
 }
@@ -587,6 +591,13 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 	{
 		bool bNeedsMarkRenderStateDirty = false;
 		bool bNeedsInvalidateLightingCache = false;
+		
+		if (Component->StaticMesh != InSettings->GetStaticMesh())
+		{
+			Component->StaticMesh = InSettings->GetStaticMesh();
+			bNeedsInvalidateLightingCache = true;
+			bNeedsMarkRenderStateDirty = true;
+		}
 
 		EComponentMobility::Type NewMobility = InSettings->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
 		if (Component->Mobility != NewMobility)
@@ -2228,12 +2239,19 @@ void AInstancedFoliageActor::PostLoad()
 
 #if WITH_EDITOR
 
-void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType)
+void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType, bool bMeshChanged)
 {
-	FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType);
-	if (MeshInfo)
+	FFoliageMeshInfo* TypeInfo = FindMesh(FoliageType);
+
+	if (TypeInfo)
 	{
-		MeshInfo->UpdateComponentSettings(FoliageType);
+		TypeInfo->UpdateComponentSettings(FoliageType);
+
+		if (bMeshChanged)
+		{
+			// If the type's mesh has changed, the UI needs to be notified so it can update thumbnails accordingly
+			OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
+		}
 	}
 }
 

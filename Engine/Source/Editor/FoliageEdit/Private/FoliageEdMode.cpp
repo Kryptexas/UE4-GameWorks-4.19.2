@@ -156,7 +156,7 @@ FEdModeFoliage::FEdModeFoliage()
 	, bToolActive(false)
 	, bCanAltDrag(false)
 	, bAdjustBrushRadius(false)
-	, FoliageMeshListSortMode(EColumnSortMode::None)
+	, FoliageMeshListSortMode(EColumnSortMode::Ascending)
 {
 	// Load resources and construct brush component
 	UMaterial* BrushMaterial = nullptr;
@@ -298,6 +298,23 @@ void FEdModeFoliage::Enter()
 	{
 		ApplySelectionToComponents(GetWorld(), true);
 	}
+
+	// Subscribe to mesh changed events (for existing and future IFA's)
+	UWorld* World = GetWorld();
+	OnActorSpawnedHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateRaw(this, &FEdModeFoliage::HandleOnActorSpawned));
+	const int32 NumLevels = World->GetNumLevels();
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = World->GetLevel(LevelIdx);
+		if (Level && Level->bIsVisible)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+			if (IFA)
+			{
+				IFA->OnFoliageTypeMeshChanged().AddSP(this, &FEdModeFoliage::HandleOnFoliageTypeMeshChanged);
+			}
+		}
+	}
 		
 	// Update UI
 	NotifyNewCurrentLevel();
@@ -332,6 +349,23 @@ void FEdModeFoliage::Exit()
 
 	// Clear selection visualization on any foliage items
 	ApplySelectionToComponents(GetWorld(), false);
+
+	// Remove all event subscriptions
+	UWorld* World = GetWorld();
+	World->RemoveOnActorSpawnedHandler(OnActorSpawnedHandle);
+	const int32 NumLevels = World->GetNumLevels();
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = World->GetLevel(LevelIdx);
+		if (Level && Level->bIsVisible)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+			if (IFA)
+			{
+				IFA->OnFoliageTypeMeshChanged().RemoveAll(this);
+			}
+		}
+	}
 
 	// Call base Exit method to ensure proper cleanup
 	FEdMode::Exit();
@@ -2216,6 +2250,20 @@ void FEdModeFoliage::SnapSelectedInstancesToGround(UWorld* InWorld)
 	{
 		UpdateWidgetLocationToInstanceSelection();
 	}
+}
+
+void FEdModeFoliage::HandleOnActorSpawned(AActor* Actor)
+{
+	if (AInstancedFoliageActor* IFA = Cast<AInstancedFoliageActor>(Actor))
+	{
+		// If an IFA was created, we want to be notified if any meshes assigned to its foliage types change
+		IFA->OnFoliageTypeMeshChanged().AddSP(this, &FEdModeFoliage::HandleOnFoliageTypeMeshChanged);
+	}
+}
+
+void FEdModeFoliage::HandleOnFoliageTypeMeshChanged(UFoliageType* FoliageType)
+{
+	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->NotifyFoliageTypeMeshChanged(FoliageType);
 }
 
 bool FEdModeFoliage::SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx)

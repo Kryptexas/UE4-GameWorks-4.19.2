@@ -45,9 +45,9 @@ FFoliagePaletteItemModel::FFoliagePaletteItemModel(FFoliageMeshUIInfoPtr InTypeI
 	ThumbnailWidget = Thumbnail->MakeThumbnailWidget(ThumbnailConfig);
 }
 
-const TSharedPtr<SFoliagePalette>& FFoliagePaletteItemModel::GetFoliagePalette() const
+TSharedPtr<SFoliagePalette> FFoliagePaletteItemModel::GetFoliagePalette() const
 {
-	return FoliagePalette;
+	return FoliagePalette.Pin();
 }
 
 FFoliageMeshUIInfoPtr FFoliagePaletteItemModel::GetTypeUIInfo() const
@@ -203,7 +203,14 @@ FText FFoliagePaletteItemModel::GetFoliageTypeDisplayNameText() const
 
 FText FFoliagePaletteItemModel::GetPaletteSearchText() const
 {
-	return FoliagePalette->GetSearchText();
+	if (FoliagePalette.IsValid())
+	{
+		return FoliagePalette.Pin()->GetSearchText();
+	}
+	else
+	{
+		return FText();
+	}
 }
 
 FText FFoliagePaletteItemModel::GetInstanceCountText(bool bRounded) const
@@ -257,6 +264,11 @@ void FFoliagePaletteItemModel::SetTypeActiveInPalette(bool bSetActiveInPalette)
 	}
 }
 
+bool FFoliagePaletteItemModel::IsActive() const
+{
+	return TypeInfo->Settings->IsSelected;
+}
+
 void FFoliagePaletteItemModel::HandleCheckStateChanged(const ECheckBoxState NewCheckedState, TAttribute<bool> IsItemWidgetSelected)
 {
 	if (!IsItemWidgetSelected.IsSet()) { return; }
@@ -266,9 +278,9 @@ void FFoliagePaletteItemModel::HandleCheckStateChanged(const ECheckBoxState NewC
 	{
 		SetTypeActiveInPalette(bShouldActivate);
 	}
-	else
+	else if (FoliagePalette.IsValid())
 	{
-		FoliagePalette->ActivateAllSelectedTypes(bShouldActivate);
+		FoliagePalette.Pin()->ActivateAllSelectedTypes(bShouldActivate);
 	}
 }
 
@@ -298,12 +310,12 @@ FReply FFoliagePaletteItemModel::HandleSaveAsset()
 
 EVisibility FFoliagePaletteItemModel::GetTooltipVisibility() const
 {
-	return FoliagePalette->ShouldShowTooltips() ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	return (FoliagePalette.IsValid() && FoliagePalette.Pin()->ShouldShowTooltips()) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
 
 EVisibility FFoliagePaletteItemModel::GetTooltipThumbnailVisibility() const
 {
-	return FoliagePalette->IsActiveViewMode(EFoliagePaletteViewMode::Tree) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	return (FoliagePalette.IsValid() && FoliagePalette.Pin()->IsActiveViewMode(EFoliagePaletteViewMode::Tree)) ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 }
 
 ////////////////////////////////////////////////
@@ -390,7 +402,7 @@ FLinearColor SFoliagePaletteItemTile::GetTileColorAndOpacity() const
 
 EVisibility SFoliagePaletteItemTile::GetCheckBoxVisibility() const
 {
-	return IsHovered() || (IsSelected() && Model->GetFoliagePalette()->AnySelectedTileHovered()) ? EVisibility::Visible : EVisibility::Collapsed;
+	return CanShowOverlayItems() && (IsHovered() || (IsSelected() && Model->GetFoliagePalette()->AnySelectedTileHovered())) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SFoliagePaletteItemTile::GetSaveButtonVisibility() const

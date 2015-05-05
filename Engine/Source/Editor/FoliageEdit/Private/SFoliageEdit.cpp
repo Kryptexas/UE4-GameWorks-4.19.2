@@ -353,6 +353,11 @@ void SFoliageEdit::RefreshFullList()
 	FoliagePalette->UpdatePalette(true);
 }
 
+void SFoliageEdit::NotifyFoliageTypeMeshChanged(UFoliageType* FoliageType)
+{
+	FoliagePalette->UpdateThumbnailForType(FoliageType);
+}
+
 TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
 {
 	FToolBarBuilder Toolbar(FoliageEditMode->UICommandList, FMultiBoxCustomization::None, nullptr, Orient_Vertical);

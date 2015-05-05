@@ -157,7 +157,10 @@ public:
 	static FOLIAGE_API bool HasFoliageAttached(UActorComponent* InComponent);
 
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
-	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);
+	void NotifyFoliageTypeChanged(UFoliageType* FoliageType, bool bMeshChanged);
+
+	DECLARE_EVENT_OneParam(AInstancedFoliageActor, FOnFoliageTypeMeshChanged, UFoliageType*);
+	FOnFoliageTypeMeshChanged& OnFoliageTypeMeshChanged() { return OnFoliageTypeMeshChangedEvent; }
 
 #endif	//WITH_EDITOR
 
@@ -177,6 +180,8 @@ private:
 	FDelegateHandle OnLevelActorMovedDelegateHandle;
 	FDelegateHandle OnLevelActorDeletedDelegateHandle;
 	FDelegateHandle OnPostApplyLevelOffsetDelegateHandle;
+
+	FOnFoliageTypeMeshChanged OnFoliageTypeMeshChangedEvent;
 #endif
 
 };

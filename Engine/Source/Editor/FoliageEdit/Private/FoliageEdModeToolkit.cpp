@@ -48,4 +48,9 @@ void FFoliageEdModeToolkit::RefreshFullList()
 	FoliageEdWidget->RefreshFullList();
 }
 
+void FFoliageEdModeToolkit::NotifyFoliageTypeMeshChanged(class UFoliageType* FoliageType)
+{
+	FoliageEdWidget->NotifyFoliageTypeMeshChanged(FoliageType);
+}
+
 #undef LOCTEXT_NAMESPACE

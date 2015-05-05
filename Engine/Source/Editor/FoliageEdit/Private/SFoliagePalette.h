@@ -29,8 +29,11 @@ public:
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	/** Updates the foliage palette, optionally doing a full refresh of the items in the palette as well */
-	void UpdatePalette(bool bRefreshItems = false);
-	
+	void UpdatePalette(bool bRebuildItems = false);
+
+	/** Updates the thumbnail for the given foliage type in the palette */
+	void UpdateThumbnailForType(UFoliageType* FoliageType);
+
 	bool AnySelectedTileHovered() const;
 	void ActivateAllSelectedTypes(bool bActivate) const;
 
@@ -114,13 +117,21 @@ private:	// CONTEXT MENU
 	TSharedPtr<SWidget> ConstructFoliageTypeContextMenu();
 
 	/** Saves a temporary non-asset foliage type (created from a static mesh) as a foliage type asset */
-	void OnSaveSelectedAsFoliageType();
+	void OnSaveSelected();
 
 	/** @return True if all selected types are non-assets */
-	bool OnCanSaveSelectedAsFoliageType() const;
+	bool OnCanSaveAnySelectedAssets() const;
 
 	/** @return True if any of the selected types are non-assets */
 	bool AreAnyNonAssetTypesSelected() const;
+
+	/** Handler for the 'Activate' command */
+	void OnActivateFoliageTypes();
+	bool OnCanActivateFoliageTypes() const;
+
+	/** Handler for the 'Deactivate' command */
+	void OnDeactivateFoliageTypes();
+	bool OnCanDeactivateFoliageTypes() const;
 
 	/** Fills 'Replace' menu command  */
 	void FillReplaceFoliageTypeSubmenu(FMenuBuilder& MenuBuilder);
@@ -206,8 +217,8 @@ private:
 	typedef TTextFilter<FFoliagePaletteItemModelPtr> FoliageTypeTextFilter;
 	TSharedPtr<FoliageTypeTextFilter> TypeFilter;
 
-	/** All the items in the palette */
-	TMap<FFoliageMeshUIInfoPtr, FFoliagePaletteItemModelPtr> PaletteItemsByTypeInfo;
+	/** All the items in the palette (unfiltered) */
+	TArray<FFoliagePaletteItemModelPtr> PaletteItems;
 
 	/** The filtered list of types to display in the palette */
 	TArray<FFoliagePaletteItemModelPtr> FilteredItems;
@@ -235,6 +246,6 @@ private:
 
 	FEdModeFoliage* FoliageEditMode;
 
-	bool bItemsNeedRefresh : 1;
+	bool bItemsNeedRebuild : 1;
 	bool bIsActiveTimerRegistered : 1;
 };

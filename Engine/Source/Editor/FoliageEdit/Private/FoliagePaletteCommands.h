@@ -23,6 +23,8 @@ public:
 	virtual void RegisterCommands() override;
 
 	/** Foliage Palette Commands */
+	TSharedPtr< FUICommandInfo > ActivateFoliageType;
+	TSharedPtr< FUICommandInfo > DeactivateFoliageType;
 	TSharedPtr< FUICommandInfo > RemoveFoliageType;
 	TSharedPtr< FUICommandInfo > ShowFoliageTypeInCB;
 	TSharedPtr< FUICommandInfo > SelectAllInstances;
