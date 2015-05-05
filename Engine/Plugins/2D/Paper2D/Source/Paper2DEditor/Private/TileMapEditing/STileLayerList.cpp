@@ -39,6 +39,11 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
 
 	CommandList->MapAction(
+		Commands.RenameLayer,
+		FExecuteAction::CreateSP(this, &STileLayerList::RenameLayer),
+		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
+
+	CommandList->MapAction(
 		Commands.DuplicateLayer,
 		FExecuteAction::CreateSP(this, &STileLayerList::DuplicateLayer),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
@@ -311,6 +316,28 @@ void STileLayerList::DeleteLayer()
 	}
 }
 
+void STileLayerList::RenameLayer()
+{
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		const int32 RenameIndex = GetSelectionIndex();
+		if (MirrorList.IsValidIndex(RenameIndex))
+		{
+			TSharedPtr<ITableRow> LayerRowWidget = ListViewWidget->WidgetFromItem(MirrorList[RenameIndex]);
+			if (LayerRowWidget.IsValid())
+			{
+				TSharedPtr<SWidget> RowContent = LayerRowWidget->GetContent();
+				if (RowContent.IsValid())
+				{
+					TSharedPtr<STileLayerItem> LayerWidget = StaticCastSharedPtr<STileLayerItem>(RowContent);
+					LayerWidget->BeginEditingName();
+				}
+			}
+		}
+	}
+}
+
+
 void STileLayerList::DuplicateLayer()
 {
 	if (UPaperTileMap* TileMap = TileMapPtr.Get())
@@ -473,23 +500,26 @@ TSharedPtr<SWidget> STileLayerList::OnConstructContextMenu()
 
 	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
+	FSlateIcon DummyIcon(NAME_None, NAME_None);
+
 	MenuBuilder.BeginSection("BasicOperations", LOCTEXT("BasicOperationsHeader", "Layer actions"));
  	{
-		MenuBuilder.AddMenuEntry(Commands.DuplicateLayer);
-		MenuBuilder.AddMenuEntry(Commands.DeleteLayer);
-		MenuBuilder.AddMenuEntry(Commands.MergeLayerDown);
+		MenuBuilder.AddMenuEntry(Commands.DuplicateLayer, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.DeleteLayer, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.RenameLayer, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.MergeLayerDown, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
 		MenuBuilder.AddMenuSeparator();
-		MenuBuilder.AddMenuEntry(Commands.SelectLayerAbove);
-		MenuBuilder.AddMenuEntry(Commands.SelectLayerBelow);
+		MenuBuilder.AddMenuEntry(Commands.SelectLayerAbove, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.SelectLayerBelow, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
 	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("OrderingOperations", LOCTEXT("OrderingOperationsHeader", "Order actions"));
 	{
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerToTop);
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerUp);
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerDown);
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerToBottom);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerToTop, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerUp, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerDown, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(Commands.MoveLayerToBottom, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
 	}
 	MenuBuilder.EndSection();
 

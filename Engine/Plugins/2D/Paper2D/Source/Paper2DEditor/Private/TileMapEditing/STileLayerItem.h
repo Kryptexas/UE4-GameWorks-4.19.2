@@ -13,6 +13,8 @@ public:
 
 	void Construct(const FArguments& InArgs, int32 Index, class UPaperTileMap* InMap, FIsSelected InIsSelectedDelegate);
 
+	void BeginEditingName();
+
 protected:
 	int32 MyIndex;
 	class UPaperTileMap* MyMap;
@@ -22,6 +24,8 @@ protected:
 
 	const FSlateBrush* EyeClosed;
 	const FSlateBrush* EyeOpened;
+
+	TSharedPtr<SInlineEditableTextBlock> LayerNameWidget;
 
 protected:
 	FText GetLayerDisplayName() const;
