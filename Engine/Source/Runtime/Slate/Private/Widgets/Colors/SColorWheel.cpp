@@ -38,12 +38,13 @@ FReply SColorWheel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPoint
 {
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+		OnMouseCaptureBegin.ExecuteIfBound();
+
 		if (!ProcessMouseAction(MyGeometry, MouseEvent, false))
 		{
+			OnMouseCaptureEnd.ExecuteIfBound();
 			return FReply::Unhandled();
 		}
-
-		OnMouseCaptureBegin.ExecuteIfBound();
 
 		return FReply::Handled().CaptureMouse(SharedThis(this));
 	}
