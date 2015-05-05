@@ -14,6 +14,8 @@ namespace Rocket
 	{
 		static readonly string[] CurrentTemplates = 
 		{
+			"FP_FirstPerson",
+			"FP_FirstPersonBP",
 			"TP_FirstPerson",
 			"TP_FirstPersonBP",
 			"TP_Flying",
