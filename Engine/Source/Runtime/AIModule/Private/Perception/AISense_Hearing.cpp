@@ -71,6 +71,16 @@ UAISense_Hearing::UAISense_Hearing(const FObjectInitializer& ObjectInitializer)
 	}
 }
 
+void UAISense_Hearing::ReportNoiseEvent(UObject* WorldContext, FVector NoiseLocation, float Loudness, AActor* Instigator)
+{
+	UAIPerceptionSystem* PerceptionSystem = UAIPerceptionSystem::GetCurrent(WorldContext);
+	if (PerceptionSystem)
+	{
+		FAINoiseEvent Event(Instigator, NoiseLocation, Loudness);
+		PerceptionSystem->OnEvent(Event);
+	}
+}
+
 void UAISense_Hearing::OnNewListenerImpl(const FPerceptionListener& NewListener)
 {
 	check(NewListener.Listener.IsValid());

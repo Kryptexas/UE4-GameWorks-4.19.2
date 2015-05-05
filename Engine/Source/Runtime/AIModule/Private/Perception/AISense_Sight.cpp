@@ -89,6 +89,8 @@ UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
 	DebugDrawColor = FColor::Green;
 	DebugName = TEXT("Sight");
 	NotifyType = EAISenseNotifyType::OnPerceptionChange;
+	
+	bAutoRegisterAllPawnsAsSources = true;
 }
 
 FORCEINLINE_DEBUGGABLE float UAISense_Sight::CalcQueryImportance(const FPerceptionListener& Listener, const FVector& TargetLocation, const float SightRadiusSq) const
