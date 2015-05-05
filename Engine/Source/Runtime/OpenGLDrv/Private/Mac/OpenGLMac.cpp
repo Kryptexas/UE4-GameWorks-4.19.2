@@ -338,25 +338,27 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 
 	[Context->OpenGLView setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 
-	if (FPlatformMisc::IsRunningOnMavericks() && ([Context->WindowHandle styleMask] & NSTexturedBackgroundWindowMask))
-	{
-		NSView* SuperView = [[Context->WindowHandle contentView] superview];
-		[SuperView addSubview:Context->OpenGLView];
-		[SuperView setWantsLayer:YES];
-		[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowCloseButton]];
-		[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowMiniaturizeButton]];
-		[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowZoomButton]];
-	}
-	else
-	{
-		[Context->OpenGLView setWantsLayer:YES];
-		[Context->WindowHandle setContentView:Context->OpenGLView];
-	}
+	MainThreadCall(^{
+		if (FPlatformMisc::IsRunningOnMavericks() && ([Context->WindowHandle styleMask] & NSTexturedBackgroundWindowMask))
+		{
+			NSView* SuperView = [[Context->WindowHandle contentView] superview];
+			[SuperView addSubview:Context->OpenGLView];
+			[SuperView setWantsLayer:YES];
+			[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowCloseButton]];
+			[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowMiniaturizeButton]];
+			[SuperView addSubview:[Context->WindowHandle standardWindowButton:NSWindowZoomButton]];
+		}
+		else
+		{
+			[Context->OpenGLView setWantsLayer:YES];
+			[Context->WindowHandle setContentView:Context->OpenGLView];
+		}
 
-	[[Context->WindowHandle standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
+		[[Context->WindowHandle standardWindowButton:NSWindowCloseButton] setAction:@selector(performClose:)];
 
-	Context->OpenGLView.layer.magnificationFilter = kCAFilterNearest;
-	Context->OpenGLView.layer.minificationFilter = kCAFilterNearest;
+		Context->OpenGLView.layer.magnificationFilter = kCAFilterNearest;
+		Context->OpenGLView.layer.minificationFilter = kCAFilterNearest;
+	}, NSDefaultRunLoopMode, true);
 
 	return Context;
 }

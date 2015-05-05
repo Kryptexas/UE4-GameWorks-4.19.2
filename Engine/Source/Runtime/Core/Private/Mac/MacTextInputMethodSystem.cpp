@@ -208,20 +208,28 @@ void FMacTextInputMethodSystem::DeactivateContext(const TSharedRef<ITextInputMet
 	if(MacNotifier->GetContextWindowNumber() != 0)
 	{
 		FCocoaWindow* CocoaWindow = (FCocoaWindow*)[NSApp windowWithWindowNumber:MacNotifier->GetContextWindowNumber()];
-		bDeactivatedContext = MainThreadReturn(^{
-			bool bSuccess = false;
-			if(CocoaWindow && [CocoaWindow openGLView])
-			{
-				NSView* GLView = [CocoaWindow openGLView];
-				if([GLView isKindOfClass:[FCocoaTextView class]])
+		if (CocoaWindow)
+		{
+			bDeactivatedContext = MainThreadReturn(^{
+				bool bSuccess = false;
+				if(CocoaWindow && [CocoaWindow openGLView])
 				{
-					FCocoaTextView* TextView = (FCocoaTextView*)GLView;
-					[TextView deactivateInputMethod];
-					bSuccess = true;
+					NSView* GLView = [CocoaWindow openGLView];
+					if([GLView isKindOfClass:[FCocoaTextView class]])
+					{
+						FCocoaTextView* TextView = (FCocoaTextView*)GLView;
+						[TextView deactivateInputMethod];
+						bSuccess = true;
+					}
 				}
-			}
-			return bSuccess;
-		}, UE4IMEEventMode);
+				return bSuccess;
+			}, UE4IMEEventMode);
+		}
+		else
+		{
+			// If the window is no longer open, the context is already inactive (handled by MessageHandler->OnWindowActivationChanged() called in FMacApplication::OnWindowDestroyed())
+			bDeactivatedContext = true;
+		}
 	}
 	if(!bDeactivatedContext)
 	{

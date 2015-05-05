@@ -210,7 +210,6 @@ private:
 
 	void OnWindowDidMove(TSharedRef<FMacWindow> Window);
 	void OnWindowDidResize(TSharedRef<FMacWindow> Window);
-	void OnWindowDidClose(TSharedRef<FMacWindow> Window);
 	bool OnWindowDestroyed(TSharedRef<FMacWindow> Window);
 
 	void OnApplicationDidBecomeActive();
