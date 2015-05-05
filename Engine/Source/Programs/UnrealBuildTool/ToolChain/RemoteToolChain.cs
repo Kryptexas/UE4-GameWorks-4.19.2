@@ -42,6 +42,9 @@ namespace UnrealBuildTool
 		/** Whether or not to connect to UnrealRemoteTool using RPCUtility */
 		[XmlConfig]
 		public static bool bUseRPCUtil = true;
+
+		/** The user has specified a deltacopy install path */
+		private static string OverrideDeltaCopyInstallPath = null;
 		
 		/** Path to rsync executable and parameters for your rsync utility */
 		[XmlConfig]
@@ -206,6 +209,15 @@ namespace UnrealBuildTool
 			{
 				bUseRPCUtil = !bUseRSync;
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RSyncUsername", out RSyncUsername);
+				
+				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "DeltaCopyInstallPath", out OverrideDeltaCopyInstallPath))
+				{
+					if (!string.IsNullOrEmpty(OverrideDeltaCopyInstallPath))
+					{
+						SSHExe = Path.Combine(OverrideDeltaCopyInstallPath, Path.GetFileName(SSHExe));
+						RSyncExe = Path.Combine(OverrideDeltaCopyInstallPath, Path.GetFileName(RSyncExe));
+					}
+				}
 
 				string ConfigKeyPath;
 				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SSHPrivateKeyOverridePath", out ConfigKeyPath))

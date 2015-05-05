@@ -704,14 +704,6 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 	IDetailGroup& RemoteBuildingGroup = BuildCategory.AddGroup(*RemoteBuildingGroupName.ToString(), RemoteBuildingGroupName, false);
 
 
-	// Add Use RSync Property
-	TSharedRef<IPropertyHandle> UseRSyncPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bUseRSync));
-	IDetailPropertyRow& UseRSyncPropertRow = RemoteBuildingGroup.AddPropertyRow(UseRSyncPropertyHandle);
-	UseRSyncPropertRow
-		.IsEnabled(!FRocketSupport::IsRocket())
-		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("UseRSyncToolTip", "Use RSync instead of RPCUtility") : FIOSTargetSettingsCustomizationConstants::DisabledTip);
-
-
 	// Remote Server Name Property
 	TSharedRef<IPropertyHandle> RemoteServerNamePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, RemoteServerName));
 	IDetailPropertyRow& RemoteServerNamePropertyRow = RemoteBuildingGroup.AddPropertyRow(RemoteServerNamePropertyHandle);
@@ -732,13 +724,11 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 			]
 		]
 		.ValueContent()
-		.MinDesiredWidth(0.0f)
-		.MaxDesiredWidth(0.0f)
+		.MinDesiredWidth(150.0f)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
-			.HAlign(HAlign_Fill)
+			.Padding(FMargin(0.0f, 8.0f))
 			[
 				SNew(SEditableTextBox)
 				.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
@@ -750,9 +740,21 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 				.ToolTipText(RemoteServerNamePropertyHandle->GetToolTipText())
 				.OnTextCommitted(this, &FIOSTargetSettingsCustomization::OnRemoteServerChanged, RemoteServerNamePropertyHandle)
 			]
+
 		];
 
-	
+
+
+	// Add Use RSync Property
+	TSharedRef<IPropertyHandle> UseRSyncPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bUseRSync));
+	IDetailPropertyRow& UseRSyncPropertRow = RemoteBuildingGroup.AddPropertyRow(UseRSyncPropertyHandle);
+	UseRSyncPropertRow
+		.IsEnabled(!FRocketSupport::IsRocket())
+		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("UseRSyncToolTip", "Use RSync instead of RPCUtility") : FIOSTargetSettingsCustomizationConstants::DisabledTip);
+
+	TSharedRef<IPropertyHandle> DeltaCopyInstallDirPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, DeltaCopyInstallPath));
+	IDetailPropertyRow& DeltaCopyInstallDirPropertyRow = RemoteBuildingGroup.AddPropertyRow(DeltaCopyInstallDirPropertyHandle);
+
 	// Add RSync Username Property
 	TSharedRef<IPropertyHandle> RSyncUsernamePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, RSyncUsername));
 	IDetailPropertyRow& RSyncUsernamePropertyRow = RemoteBuildingGroup.AddPropertyRow(RSyncUsernamePropertyHandle);
@@ -772,14 +774,12 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 					.Font(DetailLayout.GetDetailFont())
 				]
 			]
-		.ValueContent()
-			.MinDesiredWidth(0.0f)
-			.MaxDesiredWidth(0.0f)
+			.ValueContent()
+			.MinDesiredWidth(150.0f)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
-				.HAlign(HAlign_Fill)
+				.Padding(FMargin(0.0f, 8.0f))
 				[
 					SNew(SEditableTextBox)
 					.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
@@ -1142,13 +1142,20 @@ FReply FIOSTargetSettingsCustomization::OnGenerateSSHKey()
 	}
 
 	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/MakeAndInstallSSHKey.bat"));
-	TCHAR ProgramPath[4096];
-	FPlatformMisc::GetEnvironmentVariable(TEXT("PROGRAMFILES(X86)"), ProgramPath, ARRAY_COUNT(ProgramPath));
+	FString DeltaCopyPath = Settings.DeltaCopyInstallPath.Path;
+	if (DeltaCopyPath.IsEmpty())
+	{
+		// if the user hasn't specified a location for DeltaCopy, try and use the default install location
+		TCHAR ProgramPath[4096];
+		FPlatformMisc::GetEnvironmentVariable(TEXT("PROGRAMFILES(X86)"), ProgramPath, ARRAY_COUNT(ProgramPath));
+		DeltaCopyPath = FPaths::Combine(ProgramPath, TEXT("DeltaCopy"));
+
+	}
 	FString CygwinPath = TEXT("/cygdrive/") + FString(Path).Replace(TEXT(":"), TEXT("")).Replace(TEXT("\\"), TEXT("/"));
 	FString EnginePath = FPaths::EngineDir();
-	FString CommandLine = FString::Printf(TEXT("\"%s\\DeltaCopy\\ssh.exe\" \"%s\\DeltaCopy\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
-		ProgramPath,
-		ProgramPath,
+	FString CommandLine = FString::Printf(TEXT("\"%s\\ssh.exe\" \"%s\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
+		*DeltaCopyPath,
+		*DeltaCopyPath,
 		*(Settings.RSyncUsername),
 		*(Settings.RemoteServerName),
 		Path,
