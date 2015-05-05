@@ -624,6 +624,9 @@ private:
 
 	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
 
+	// For a given client size, calculate the window size required to accomodate any potential non-OS borders and tilebars
+	FVector2D GetWindowSizeFromClientSize(FVector2D InClientSize);
+
 public:
 	/** @return true if this window will be focused when it is first shown */
 	inline bool IsFocusedInitially() const
@@ -758,6 +761,9 @@ protected:
 
 	/** Transparency setting for this window */
 	EWindowTransparency TransparencySupport;
+
+	/** True if this window has a title bar */
+	bool bCreateTitleBar : 1;
 
 	/** True if this is a pop up window */
 	bool bIsPopupWindow : 1;

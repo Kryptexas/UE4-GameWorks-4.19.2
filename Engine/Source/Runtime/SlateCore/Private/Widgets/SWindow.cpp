@@ -176,6 +176,23 @@ private:
 	TWeakPtr<SWindow> OwnerWindow;
 };
 
+FVector2D SWindow::GetWindowSizeFromClientSize(FVector2D InClientSize)
+{
+	if (!HasOSWindowBorder())
+	{
+		const FMargin BorderSize = GetWindowBorderSize();
+
+		InClientSize.X += BorderSize.Left + BorderSize.Right;
+		InClientSize.Y += BorderSize.Bottom + BorderSize.Top;
+
+		if (bCreateTitleBar)
+		{
+			InClientSize.Y += SWindowDefs::DefaultTitleBarSize;
+		}
+	}
+
+	return InClientSize;
+}
 
 void SWindow::Construct(const FArguments& InArgs)
 {
@@ -206,22 +223,10 @@ void SWindow::Construct(const FArguments& InArgs)
 		.SetMaxHeight(InArgs._MaxHeight);
 	
 	// calculate window size from client size
-	const bool bCreateTitleBar = InArgs._CreateTitleBar && !bIsPopupWindow && !bIsCursorDecoratorWindow && !bHasOSWindowBorder;
-	FVector2D WindowSize = InArgs._ClientSize;
-
+	bCreateTitleBar = InArgs._CreateTitleBar && !bIsPopupWindow && !bIsCursorDecoratorWindow && !bHasOSWindowBorder;
+	
 	// If the window has no OS border, simulate it ourselves, enlarging window by the size that OS border would have.
-	if (!HasOSWindowBorder())
-	{
-		const FMargin BorderSize = GetWindowBorderSize();
-
-		WindowSize.X += BorderSize.Left + BorderSize.Right;
-		WindowSize.Y += BorderSize.Bottom + BorderSize.Top;
-
-		if (bCreateTitleBar)
-		{
-			WindowSize.Y += SWindowDefs::DefaultTitleBarSize;
-		}
-	}
+	FVector2D WindowSize = GetWindowSizeFromClientSize(InArgs._ClientSize);
 
 	// calculate initial window position
 	FVector2D WindowPosition = InArgs._ScreenPosition;
@@ -759,6 +764,9 @@ void SWindow::ReshapeWindow( const FSlateRect& InNewShape )
 void SWindow::Resize( FVector2D NewSize )
 {
 	Morpher.Sequence.JumpToEnd();
+
+	NewSize = GetWindowSizeFromClientSize(NewSize);
+
 	if ( Size != NewSize )
 	{
 		if (NativeWindow.IsValid())
