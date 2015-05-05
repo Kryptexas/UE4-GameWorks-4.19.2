@@ -16,6 +16,9 @@ namespace UnrealBuildTool
 		public readonly string            BaseVSToolPath;       // The path to Visual Studio's /Common7/Tools directory.
 		public readonly string            PlatformVSToolPath;   // The path to the platform tool binaries.
 		public readonly string            WindowsSDKDir;        // Installation folder of the Windows SDK, e.g. C:\Program Files\Microsoft SDKs\Windows\v6.0A\
+		public readonly string            WindowsSDKExtensionDir;  // Installation folder of the Windows SDK Extensions, e.g. C:\Program Files (x86)\Windows SDKs\10
+		public readonly string            NetFxSDKExtensionDir;    // Installation folder of the NetFx SDK, since that is split out from platform SDKs >= v10
+		public readonly Version           WindowsSDKExtensionHeaderLibVersion;  // 10.0.9910.0 for instance...
 		public readonly string            CompilerPath;         // The path to the linker for linking executables
 		public readonly Version           CLExeVersion;         // The version of cl.exe we're running
 		public readonly string            LinkerPath;           // The path to the linker for linking executables
@@ -58,19 +61,30 @@ namespace UnrealBuildTool
 			BaseVSToolPath = WindowsPlatform.GetVSComnToolsPath();
 			if (string.IsNullOrEmpty(BaseVSToolPath))
 			{
-				throw new BuildException("Visual Studio 2012 or Visual Studio 2013 must be installed in order to build this target.");
+				throw new BuildException("Visual Studio 2012, 2013 or 2015 must be installed in order to build this target.");
 			}
 
 			WindowsSDKDir        = FindWindowsSDKInstallationFolder(Platform);
-			PlatformVSToolPath   = GetPlatformVSToolPath      (Platform, BaseVSToolPath);
+			WindowsSDKExtensionDir = FindWindowsSDKExtensionInstallationFolder();
+			NetFxSDKExtensionDir = FindNetFxSDKExtensionInstallationFolder();
+			WindowsSDKExtensionHeaderLibVersion = FindWindowsSDKExtensionLatestVersion(WindowsSDKExtensionDir);
+			PlatformVSToolPath = GetPlatformVSToolPath      (Platform, BaseVSToolPath);
 			CompilerPath         = GetCompilerToolPath        (PlatformVSToolPath);
 			CLExeVersion         = FindCLExeVersion           (CompilerPath);
 			LinkerPath           = GetLinkerToolPath          (PlatformVSToolPath);
 			LibraryLinkerPath    = GetLibraryLinkerToolPath   (PlatformVSToolPath);
-			ResourceCompilerPath = GetResourceCompilerToolPath(Platform, WindowsSDKDir);
+			ResourceCompilerPath = GetResourceCompilerToolPath(Platform);
 
-			var VCVarsBatchFile = Path.Combine(BaseVSToolPath, (Platform == CPPTargetPlatform.Win64) ? "../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" : "vsvars32.bat");
-			Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile);
+			var VCVarsBatchFile = Path.Combine(BaseVSToolPath, 
+				(Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.WinUAP) ? "../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" : "vsvars32.bat");
+			if (Platform == CPPTargetPlatform.WinUAP && WinUAPPlatform.bBuildForStore)
+			{
+				Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile, "store");
+			}
+			else
+			{
+				Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile);
+			}
 
 			// When targeting Windows XP on Visual Studio 2012+, we need to override the Windows SDK include and lib path set
 			// by the batch file environment (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -97,6 +111,17 @@ namespace UnrealBuildTool
 			}
 			else switch (WindowsPlatform.Compiler)
 			{
+				case WindowsCompiler.VisualStudio2015:
+					if( WindowsPlatform.bUseWindowsSDK10 )
+					{ 
+						Version = "v10.0";
+					}
+					else
+					{
+						Version = "v8.1";
+					}
+					break;
+
 				case WindowsCompiler.VisualStudio2013:
 					Version = "v8.1";
 					break;
@@ -110,17 +135,127 @@ namespace UnrealBuildTool
 			}
 
 			// Based on VCVarsQueryRegistry
-			var Result =
-					Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Microsoft SDKs\Windows\"              + Version, "InstallationFolder", null)
-				?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null)
-				?? Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\"  + Version, "InstallationFolder", null);
+			string FinalResult = null;
+			foreach (string IndividualVersion in Version.Split('|'))
+			{
+				var Result = Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Microsoft\Microsoft SDKs\Windows\" + IndividualVersion, "InstallationFolder", null)
+					?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + IndividualVersion, "InstallationFolder", null)
+					?? Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + IndividualVersion, "InstallationFolder", null);
 
-			if (Result == null)
+				if (Result != null)
+				{
+					FinalResult = (string)Result;
+					break;
+				}
+			}
+			if (FinalResult == null)
 			{
 				throw new BuildException("Windows SDK {0} must be installed in order to build this target.", Version);
 			}
 
-			return (string)Result;
+			return FinalResult;
+		}
+
+		
+		private static string FindNetFxSDKExtensionInstallationFolder()
+		{
+			string Version;
+			switch (WindowsPlatform.Compiler)
+			{
+				case WindowsCompiler.VisualStudio2015:
+					if( WindowsPlatform.bUseWindowsSDK10 )
+					{ 
+						Version = "4.6";
+					}
+					else
+					{ 
+						return string.Empty;
+					}
+					break;
+
+				default:
+					return string.Empty;
+			}
+			string FinalResult = string.Empty;
+			var Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null)
+					  ?? Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\NETFXSDK\" + Version, "KitsInstallationFolder", null);
+
+			if (Result != null)
+			{
+				FinalResult = ((string)Result).TrimEnd('\\');
+			}
+			return FinalResult;
+		}
+
+		private static string FindWindowsSDKExtensionInstallationFolder()
+		{
+			string Version;
+			switch (WindowsPlatform.Compiler)
+			{
+				case WindowsCompiler.VisualStudio2015:
+					if( WindowsPlatform.bUseWindowsSDK10 )
+					{ 
+						Version = "v10.0";
+					}
+					else
+					{
+						return string.Empty;
+					}
+					break;
+
+				default:
+					return string.Empty;
+			}
+
+			// Based on VCVarsQueryRegistry
+			string FinalResult = null;
+			{
+				var Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows SDKs\" + Version, "InstallationFolder", null)
+						  ?? Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows SDKs\" + Version, "InstallationFolder", null);
+				if (Result == null)
+				{
+					 Result = Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null)
+						   ?? Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Wow6432Node\Microsoft\Microsoft SDKs\Windows\" + Version, "InstallationFolder", null);
+				}
+				if (Result != null)
+				{
+					FinalResult = ((string)Result).TrimEnd('\\');
+				}
+				
+			}
+			if (FinalResult == null)
+			{
+				FinalResult = string.Empty;
+			}
+
+			return FinalResult;
+		}
+
+		static Version FindWindowsSDKExtensionLatestVersion(string WindowsSDKExtensionDir)
+		{
+			Version LatestVersion = new Version(0, 0, 0, 0);
+
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 &&
+				WindowsPlatform.bUseWindowsSDK10 &&
+				!string.IsNullOrEmpty(WindowsSDKExtensionDir)  &&
+				Directory.Exists(WindowsSDKExtensionDir))
+			{
+				string IncludesBaseDirectory = Path.Combine(WindowsSDKExtensionDir, "include");
+				if (Directory.Exists(IncludesBaseDirectory))
+				{
+					string[] IncludeVersions = Directory.GetDirectories(IncludesBaseDirectory);
+					foreach (string IncludeVersion in IncludeVersions)
+					{
+						string VersionString = Path.GetFileName(IncludeVersion);
+						Version FoundVersion;
+						if (Version.TryParse(VersionString, out FoundVersion) && FoundVersion > LatestVersion)
+						{
+							LatestVersion = FoundVersion;
+						}
+					}
+				}
+			}
+			return LatestVersion;
 		}
 
 		/** Gets the path to the tool binaries for the specified platform. */
@@ -128,7 +263,7 @@ namespace UnrealBuildTool
 		{
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker)
 			//@todo.WIN32: Using the 64-bit linker appears to be broken at the moment.
-			if (Platform == CPPTargetPlatform.Win64)
+			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.WinUAP)
 			{
 				// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
 				var Result = Path.Combine(BaseVSToolPath, "../../VC/bin/amd64");
@@ -210,19 +345,33 @@ namespace UnrealBuildTool
 		}
 
 		/** Gets the path to the resource compiler's rc.exe for the specified platform. */
-		static string GetResourceCompilerToolPath(CPPTargetPlatform Platform, string WindowsSDKDir)
+		string GetResourceCompilerToolPath(CPPTargetPlatform Platform)
 		{
 			// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
-			if (Platform == CPPTargetPlatform.Win64)
+			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.WinUAP)
 			{
-				return Path.Combine(WindowsSDKDir, "bin/x64/rc.exe");
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+				{
+					return Path.Combine(WindowsSDKExtensionDir, "bin/x64/rc.exe");
+				}
+				else
+				{
+					return Path.Combine(WindowsSDKDir, "bin/x64/rc.exe");
+				}
 			}
 
+			// @todo UAP: Verify that Windows XP will compile using VS 2015 (it should be supported)
 			if (!WindowsPlatform.IsWindowsXPSupported())	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
 			{
-				return Path.Combine(WindowsSDKDir, "bin/x86/rc.exe");
+				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
+				{
+					return Path.Combine(WindowsSDKExtensionDir, "bin/x86/rc.exe");
+				}
+				else
+				{
+					return Path.Combine(WindowsSDKDir, "bin/x86/rc.exe");
+				}
 			}
-
 			return Path.Combine(WindowsSDKDir, "bin/rc.exe");
 		}
 

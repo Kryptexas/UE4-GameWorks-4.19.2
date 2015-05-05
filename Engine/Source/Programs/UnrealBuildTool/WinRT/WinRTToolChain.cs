@@ -66,7 +66,16 @@ namespace UnrealBuildTool
 			// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 			Result += " /wd4819";
 
-			if( BuildConfiguration.bUseSharedPCHs )
+			// @todo UAP: UE4 is non-compliant when it comes to use of %s and %S
+			// Previously %s meant "the current character set" and %S meant "the other one".
+			// Now %s means multibyte and %S means wide. %Ts means "natural width".
+			// Reverting this behaviour until the UE4 source catches up.
+			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				Result += " /D_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1";
+			}
+
+			if ( BuildConfiguration.bUseSharedPCHs )
 			{
 				// @todo SharedPCH: Disable warning about PCH defines not matching .cpp defines.  We "cheat" these defines a little
 				// bit to make shared PCHs work.  But it's totally safe.  Trust us.

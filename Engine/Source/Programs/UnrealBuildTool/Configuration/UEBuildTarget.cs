@@ -16,13 +16,14 @@ namespace UnrealBuildTool
 		Unknown,
 		Win32,
 		Win64,
+		WinRT,
+		WinRT_ARM,
+		WinUAP,
 		Mac,
 		XboxOne,
 		PS4,
 		IOS,
 		Android,
-		WinRT,
-		WinRT_ARM,
 		HTML5,
         Linux,
 		Desktop,
@@ -204,6 +205,7 @@ namespace UnrealBuildTool
 			{
 				case CPPTargetPlatform.Win32:			return UnrealTargetPlatform.Win32;
 				case CPPTargetPlatform.Win64:			return UnrealTargetPlatform.Win64;
+				case CPPTargetPlatform.WinUAP:          return UnrealTargetPlatform.WinUAP;
 				case CPPTargetPlatform.Mac:				return UnrealTargetPlatform.Mac;
 				case CPPTargetPlatform.XboxOne:			return UnrealTargetPlatform.XboxOne;
 				case CPPTargetPlatform.PS4:				return UnrealTargetPlatform.PS4;
@@ -1446,7 +1448,7 @@ namespace UnrealBuildTool
                 }
                 else
                 {
-                    IsCurrentPlatform = Platform == UnrealTargetPlatform.Win64 || Platform == UnrealTargetPlatform.Win32;
+                    IsCurrentPlatform = Platform == UnrealTargetPlatform.Win64 || Platform == UnrealTargetPlatform.Win32 || Platform == UnrealTargetPlatform.WinUAP;
 
                 }
 

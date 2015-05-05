@@ -322,20 +322,24 @@ namespace UnrealBuildTool
 
 			// Build up the new include search path string
 			var VCIncludeSearchPaths = new StringBuilder();
-			{ 
-				foreach( var CurPath in IntelliSenseIncludeSearchPaths )
+			{
+				foreach (var CurPath in IntelliSenseIncludeSearchPaths)
 				{
-					VCIncludeSearchPaths.Append( CurPath + ";" );
+					VCIncludeSearchPaths.Append(CurPath + ";");
 				}
-				foreach( var CurPath in IntelliSenseSystemIncludeSearchPaths )
+				foreach (var CurPath in IntelliSenseSystemIncludeSearchPaths)
 				{
-					VCIncludeSearchPaths.Append( CurPath + ";" );
+					VCIncludeSearchPaths.Append(CurPath + ";");
 				}
-				if(InPlatforms.Contains(UnrealTargetPlatform.Win64))
+				if (InPlatforms.Contains(UnrealTargetPlatform.WinUAP))
+				{
+					VCIncludeSearchPaths.Append(WinUAPToolChain.GetVCIncludePaths(CPPTargetPlatform.WinUAP) + ";");
+				}
+				else if (InPlatforms.Contains(UnrealTargetPlatform.Win64))
 				{
 					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win64) + ";");
 				}
-				else if(InPlatforms.Contains(UnrealTargetPlatform.Win32))
+				else if (InPlatforms.Contains(UnrealTargetPlatform.Win32))
 				{
 					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win32) + ";");
 				}
@@ -361,11 +365,10 @@ namespace UnrealBuildTool
 			var FiltersFileIsNeeded = false;
 
 			// Project file header
-			var ToolsVersion = VCProjectFileGenerator.ProjectFileFormat == VCProjectFileGenerator.VCProjectFileFormat.VisualStudio2013 ? "12.0" : "4.0";
 			VCProjectFileContent.Append(
 				"<?xml version=\"1.0\" encoding=\"utf-8\"?>" + ProjectFileGenerator.NewLine +
 				ProjectFileGenerator.NewLine +
-				"<Project DefaultTargets=\"Build\" ToolsVersion=\"" + ToolsVersion + "\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine);
+				"<Project DefaultTargets=\"Build\" ToolsVersion=\"" + VCProjectFileGenerator.ProjectFileToolVersionString + "\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine);
 
 			bool bGenerateUserFileContent = UEPlatformProjectGenerator.PlatformRequiresVSUserFileGeneration(InPlatforms, InConfigurations);
 			if (bGenerateUserFileContent)
@@ -373,7 +376,7 @@ namespace UnrealBuildTool
 				VCUserFileContent.Append(
 					"<?xml version=\"1.0\" encoding=\"utf-8\"?>" + ProjectFileGenerator.NewLine + 
 					ProjectFileGenerator.NewLine +
-					"<Project ToolsVersion=\"" + ToolsVersion + "\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine
+					"<Project ToolsVersion=\"" + VCProjectFileGenerator.ProjectFileToolVersionString + "\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">" + ProjectFileGenerator.NewLine
 					);
 			}
 
@@ -843,14 +846,7 @@ namespace UnrealBuildTool
 			string PlatformToolsetString = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioPlatformToolsetString(Combination.Platform, Combination.Configuration, this) : "";
 			if( String.IsNullOrEmpty( PlatformToolsetString ) )
 			{
-				if( VCProjectFileGenerator.ProjectFileFormat == VCProjectFileGenerator.VCProjectFileFormat.VisualStudio2013 )
-				{
-					PlatformToolsetString = "		<PlatformToolset>v120</PlatformToolset>" + ProjectFileGenerator.NewLine;
-				}
-				else if( VCProjectFileGenerator.ProjectFileFormat == VCProjectFileGenerator.VCProjectFileFormat.VisualStudio2012 )
-				{
-					PlatformToolsetString = "		<PlatformToolset>v110</PlatformToolset>" + ProjectFileGenerator.NewLine;
-				}
+				PlatformToolsetString = "		<PlatformToolset>" + VCProjectFileGenerator.ProjectFilePlatformToolsetVersionString + "</PlatformToolset>" + ProjectFileGenerator.NewLine;
 			}
 
 			string PlatformConfigurationType = (ProjGenerator == null)? "Makefile" : ProjGenerator.GetVisualStudioPlatformConfigurationType(Combination.Platform);	
@@ -893,15 +889,15 @@ namespace UnrealBuildTool
 					string ProjectRelativeUnusedDirectory = NormalizeProjectPath(Path.Combine(ProjectFileGenerator.EngineRelativePath, BuildConfiguration.BaseIntermediateFolder, "Unused"));
 
 					VCProjectFileContent.Append(
-					    "	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine +
+						"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine +
 						"		<OutDir>" + ProjectRelativeUnusedDirectory + Path.DirectorySeparatorChar + "</OutDir>" + ProjectFileGenerator.NewLine +
 						"		<IntDir>" + ProjectRelativeUnusedDirectory + Path.DirectorySeparatorChar + "</IntDir>" + ProjectFileGenerator.NewLine +
 						"		<NMakeBuildCommandLine>@rem Nothing to do.</NMakeBuildCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeReBuildCommandLine>@rem Nothing to do.</NMakeReBuildCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeCleanCommandLine>@rem Nothing to do.</NMakeCleanCommandLine>" + ProjectFileGenerator.NewLine +
 						"		<NMakeOutput/>" + ProjectFileGenerator.NewLine +
-                        "	</PropertyGroup>" + ProjectFileGenerator.NewLine);
-                }
+						"	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+				}
 				else
 				{
 					TargetRules TargetRulesObject = Combination.ProjectTarget.TargetRules;
@@ -920,7 +916,7 @@ namespace UnrealBuildTool
 					// Get the output directory
 					string EngineRootDirectory = Path.GetFullPath(ProjectFileGenerator.EngineRelativePath);
 					string RootDirectory = EngineRootDirectory;
-                    if ((TargetRules.IsAGame(TargetRulesObject.Type) || TargetRulesObject.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
+					if ((TargetRules.IsAGame(TargetRulesObject.Type) || TargetRulesObject.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
 					{
 						if (UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(TargetFilePath, UnrealBuildTool.GetUProjectPath()))
 						{
@@ -970,8 +966,8 @@ namespace UnrealBuildTool
 					NMakePath += BuildPlatform.GetBinaryExtension(UEBuildBinaryType.Executable);
 					NMakePath = (BuildPlatform as UEBuildPlatform).ModifyNMakeOutput(NMakePath);
 
-                    VCProjectFileContent.Append(
-                        "	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);
+					VCProjectFileContent.Append(
+						"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);
 
 					string PathStrings = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioPathsEntries(Platform, Configuration, TargetRulesObject.Type, TargetFilePath, ProjectFilePath, NMakePath) : "";
 					if (string.IsNullOrEmpty(PathStrings) || (PathStrings.Contains("<IntDir>") == false))
@@ -1009,6 +1005,22 @@ namespace UnrealBuildTool
 					}
 					string BatchFilesDirectoryName = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Build", "BatchFiles");
 
+					// @todo UAP: For the MS toolchains, if an override was set for project generation, push that into the build strings to override the build toolchain as well
+					string BuildToolOverride = "";
+					if (UnrealBuildTool.CommandLineContains("-2012"))
+					{
+						BuildToolOverride = " -2012";
+					}
+					if (UnrealBuildTool.CommandLineContains("-2013"))
+					{
+						BuildToolOverride = " -2013";
+					}
+					if (UnrealBuildTool.CommandLineContains("-2015"))
+					{
+						BuildToolOverride = " -2015";
+					}
+					BuildArguments += BuildToolOverride;
+
 					// NMake Build command line
 					VCProjectFileContent.Append("		<NMakeBuildCommandLine>");
 					VCProjectFileContent.Append(EscapePath(NormalizeProjectPath(Path.Combine(BatchFilesDirectoryName, "Build.bat"))) + BuildArguments.ToString());
@@ -1027,17 +1039,17 @@ namespace UnrealBuildTool
 					VCProjectFileContent.Append("		<NMakeOutput>");
 					VCProjectFileContent.Append(NormalizeProjectPath(NMakePath));
 					VCProjectFileContent.Append("</NMakeOutput>" + ProjectFileGenerator.NewLine);
-				    VCProjectFileContent.Append("	</PropertyGroup>" + ProjectFileGenerator.NewLine);
+					VCProjectFileContent.Append("	</PropertyGroup>" + ProjectFileGenerator.NewLine);
 
-                    string LayoutDirString = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioLayoutDirSection(Platform, Configuration, ConditionString, Combination.ProjectTarget.TargetRules.Type, Combination.ProjectTarget.TargetFilePath, ProjectFilePath, NMakePath) : "";
-                    VCProjectFileContent.Append(LayoutDirString);
-                }
+					string LayoutDirString = (ProjGenerator != null) ? ProjGenerator.GetVisualStudioLayoutDirSection(Platform, Configuration, ConditionString, Combination.ProjectTarget.TargetRules.Type, Combination.ProjectTarget.TargetFilePath, ProjectFilePath, NMakePath) : "";
+					VCProjectFileContent.Append(LayoutDirString);
+				}
 
 				if (VCUserFileContent != null && Combination.ProjectTarget != null)
 				{
 					TargetRules TargetRulesObject = Combination.ProjectTarget.TargetRules;
 
-					if ((Platform == UnrealTargetPlatform.Win32) || (Platform == UnrealTargetPlatform.Win64))
+					if ((Platform == UnrealTargetPlatform.Win32) || (Platform == UnrealTargetPlatform.Win64) || (Platform == UnrealTargetPlatform.WinUAP))
 					{
 						VCUserFileContent.Append(
 							"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);
@@ -1165,7 +1177,7 @@ namespace UnrealBuildTool
 
 			ProjectFileContent.Append(
 				"<Import Project=\"$(MSBuildExtensionsPath)\\$(MSBuildToolsVersion)\\Microsoft.Common.props\" Condition=\"Exists('$(MSBuildExtensionsPath)\\$(MSBuildToolsVersion)\\Microsoft.Common.props')\" />" +
- 					ProjectFileGenerator.NewLine);
+					ProjectFileGenerator.NewLine);
 
 			// Support single configuration only (for now).
 			ProjectFileContent.Append(
@@ -1176,7 +1188,7 @@ namespace UnrealBuildTool
 					"\t<DefineConstants>TRACE</DefineConstants>" + ProjectFileGenerator.NewLine +
 					"\t<ErrorReport>prompt</ErrorReport>" + ProjectFileGenerator.NewLine +
 					"\t<WarningLevel>4</WarningLevel>" + ProjectFileGenerator.NewLine +
-                    "\t<TreatWarningsAsErrors>true</TreatWarningsAsErrors>" + ProjectFileGenerator.NewLine +
+					"\t<TreatWarningsAsErrors>true</TreatWarningsAsErrors>" + ProjectFileGenerator.NewLine +
 				"</PropertyGroup>" + ProjectFileGenerator.NewLine);
 
 			ProjectFileContent.Append(

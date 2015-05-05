@@ -241,8 +241,9 @@ namespace UnrealBuildTool
 		 * Sets the environment variables from the passed in batch file
 		 * 
 		 * @param	BatchFileName	Name of the batch file to parse
+		 * @param	Parameters		Optional command-line parameters to pass to the batch file when running it
 		 */
-		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName)
+		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName, string Parameters = "")
 		{
 			// @todo ubtmake: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
 			if( File.Exists( BatchFileName ) )
@@ -267,7 +268,7 @@ namespace UnrealBuildTool
 					var ShortEnvVarsToXMLExePath = GetShortPathName(EnvVarsToXMLExePath);
 
 					// Run 'vcvars32.bat' (or similar x64 version) to set environment variables
-					EnvReaderBatchFileContent.Add( String.Format( "call \"{0}\"", ShortBatchFileName ) );
+					EnvReaderBatchFileContent.Add( String.Format("call \"{0}\" {1}", ShortBatchFileName, Parameters) );
 
 					// Pipe all environment variables to a file where we can read them in.
 					// We use a separate executable which runs after the batch file because we want to capture
@@ -294,9 +295,16 @@ namespace UnrealBuildTool
 					StartInfo.Arguments = String.Format("/U /C \"{0}\"", EnvReaderBatchFileName);
 					StartInfo.CreateNoWindow = true;
 					StartInfo.UseShellExecute = false;
-					StartInfo.RedirectStandardOutput = true;
-					StartInfo.RedirectStandardError = true;
-					StartInfo.RedirectStandardInput = true;
+
+					// @todo UAP: Win10-beta issue, sometimes the process hangs if standard I/O is redirected, and there's bytes
+					// in the buffer and there is no reader for those streams.  Loop back with a later Win10 build
+					if (System.Environment.OSVersion.Platform != PlatformID.Win32NT ||
+						System.Environment.OSVersion.Version.Major < 10)
+					{
+						StartInfo.RedirectStandardOutput = true;
+						StartInfo.RedirectStandardError = true;
+						StartInfo.RedirectStandardInput = true;
+					}
 
 					Log.TraceVerbose( "Launching {0} to harvest Visual Studio environment settings...", StartInfo.FileName );
 

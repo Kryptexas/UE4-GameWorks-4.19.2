@@ -198,22 +198,22 @@ namespace UnrealBuildTool
             return UnrealBuildToolPath;
         }
 
-        // @todo projectfiles: Move this into the ProjectPlatformGeneration class?
-        /// <summary>
-        /// IsDesktopPlatform
-        /// </summary>
-        /// <param name="InPlatform">The platform of interest</param>
-        /// <returns>True if the given platform is a 'desktop' platform</returns>
-        static public bool IsDesktopPlatform(UnrealTargetPlatform InPlatform)
-        {
-            // Windows and Mac are desktop platforms.
-            return (
-                (InPlatform == UnrealTargetPlatform.Win64) ||
-                (InPlatform == UnrealTargetPlatform.Win32) ||
-                (InPlatform == UnrealTargetPlatform.Linux) ||
-                (InPlatform == UnrealTargetPlatform.Mac)
-                );
-        }
+		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
+		/// <summary>
+		/// IsDesktopPlatform
+		/// </summary>
+		/// <param name="InPlatform">The platform of interest</param>
+		/// <returns>True if the given platform is a 'desktop' platform</returns>
+		static public bool IsDesktopPlatform(UnrealTargetPlatform InPlatform)
+		{
+			// Windows and Mac are desktop platforms.
+			return (
+				(InPlatform == UnrealTargetPlatform.Win64) ||
+				(InPlatform == UnrealTargetPlatform.Win32) ||
+				(InPlatform == UnrealTargetPlatform.Linux) ||
+				(InPlatform == UnrealTargetPlatform.Mac)
+				);
+		}
 
         // @todo projectfiles: Move this into the ProjectPlatformGeneration class?
         /// <summary>
@@ -249,21 +249,22 @@ namespace UnrealBuildTool
                 );
         }
 
-        // @todo projectfiles: Move this into the ProjectPlatformGeneration class?
-        /// <summary>
-        /// PlatformSupportsCrashReporter
-        /// </summary>
-        /// <param name="InPlatform">The platform of interest</param>
-        /// <returns>True if the given platform supports a crash reporter client (i.e. it can be built for it)</returns>
-        static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
-        {
-            return (
-                (InPlatform == UnrealTargetPlatform.Win64) ||
-                (InPlatform == UnrealTargetPlatform.Win32) ||
-                (InPlatform == UnrealTargetPlatform.Linux) ||
-                (InPlatform == UnrealTargetPlatform.Mac)
-                );
-        }
+		// @todo projectfiles: Move this into the ProjectPlatformGeneration class?
+		/// <summary>
+		/// PlatformSupportsCrashReporter
+		/// </summary>
+		/// <param name="InPlatform">The platform of interest</param>
+		/// <returns>True if the given platform supports a crash reporter client (i.e. it can be built for it)</returns>
+		static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
+		{
+			return (
+				(InPlatform == UnrealTargetPlatform.WinUAP) ||
+				(InPlatform == UnrealTargetPlatform.Win64) ||
+				(InPlatform == UnrealTargetPlatform.Win32) ||
+				(InPlatform == UnrealTargetPlatform.Linux) ||
+				(InPlatform == UnrealTargetPlatform.Mac)
+				);
+		}
 
         /// <summary>
         /// Gets all platforms that satisfies the predicate.
@@ -356,33 +357,33 @@ namespace UnrealBuildTool
             return true;
         }
 
-        /// <summary>
-        /// Is this a valid platform
-        /// Used primarily for Rocket vs non-Rocket
-        /// </summary>
-        /// <param name="InPlatform"></param>
-        /// <returns>true if valid, false if not</returns>
-        static public bool IsValidPlatform(UnrealTargetPlatform InPlatform)
-        {
-            if (RunningRocket())
-            {
-                if(Utils.IsRunningOnMono)
-                {
-                    if (InPlatform != UnrealTargetPlatform.Mac && InPlatform != UnrealTargetPlatform.IOS && InPlatform != UnrealTargetPlatform.Linux)
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    if(InPlatform != UnrealTargetPlatform.Win32 && InPlatform != UnrealTargetPlatform.Win64 && InPlatform != UnrealTargetPlatform.Android)
-                    {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
+		/// <summary>
+		/// Is this a valid platform
+		/// Used primarily for Rocket vs non-Rocket
+		/// </summary>
+		/// <param name="InPlatform"></param>
+		/// <returns>true if valid, false if not</returns>
+		static public bool IsValidPlatform(UnrealTargetPlatform InPlatform)
+		{
+			if (RunningRocket())
+			{
+				if(Utils.IsRunningOnMono)
+				{
+					if (InPlatform != UnrealTargetPlatform.Mac && InPlatform != UnrealTargetPlatform.IOS && InPlatform != UnrealTargetPlatform.Linux)
+					{
+						return false;
+					}
+				}
+				else
+				{
+					if(InPlatform != UnrealTargetPlatform.Win32 && InPlatform != UnrealTargetPlatform.Win64 && InPlatform != UnrealTargetPlatform.Android)
+					{
+						return false;
+					}
+				}
+			}
+			return true;
+		}
 
 
         /// <summary>

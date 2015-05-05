@@ -10,17 +10,20 @@ using System.Linq;
 
 namespace UnrealBuildTool
 {
-    /// <summary>
-    /// Available compiler toolchains on Windows platform
-    /// </summary>
-    public enum WindowsCompiler
-    {
-        /// Visual Studio 2012 (Visual C++ 11.0). No longer supported for building on Windows, but required for other platform toolchains.
-        VisualStudio2012,
+	/// <summary>
+	/// Available compiler toolchains on Windows platform
+	/// </summary>
+	public enum WindowsCompiler
+	{
+		/// Visual Studio 2012 (Visual C++ 11.0). No longer supported for building on Windows, but required for other platform toolchains.
+		VisualStudio2012,
 
-        /// Visual Studio 2013 (Visual C++ 12.0)
-        VisualStudio2013,
-    }
+		/// Visual Studio 2013 (Visual C++ 12.0)
+		VisualStudio2013,
+
+		/// Visual Studio 2015 (Visual C++ 14.0)
+		VisualStudio2015,
+	}
 
 
     public class WindowsPlatform : UEBuildPlatform
@@ -39,20 +42,44 @@ namespace UnrealBuildTool
                     return CachedCompiler.Value;
                 }
 
-                // First check if Visual Sudio 2013 is installed.
-                if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
-                {
-                    CachedCompiler = WindowsCompiler.VisualStudio2013;
-                }
-                // Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
-                else
-                {
-                    CachedCompiler = WindowsCompiler.VisualStudio2013;
-                }
+				// First, default based on whether there is a command line override...
+				if (UnrealBuildTool.CommandLineContains("-2012"))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2012;
+				}
+				else if (UnrealBuildTool.CommandLineContains("-2013"))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+				else if (UnrealBuildTool.CommandLineContains("-2015"))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2015;
+				}
 
-                return CachedCompiler.Value;
-            }
-        }
+				// Second, default based on what's installed, from newest to oldest
+				// @todo UAP: Currently we default to VS 2013, even if VS 2015 is installed, until the engine is fully updated to
+				// support compiling with VS 2015.  You can override this with the "-2015" command-line switch.
+				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015)) && false)
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2015;
+				}
+				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
+				{
+					CachedCompiler = WindowsCompiler.VisualStudio2012;
+				}
+				else
+				{
+					// Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
+					CachedCompiler = WindowsCompiler.VisualStudio2013;
+				}
+
+				return CachedCompiler.Value;
+			}
+		}
 
         /// <summary>
         /// When true, throws some CL and link flags (/Bt+ and /link) to output detailed timing info.
@@ -68,6 +95,12 @@ namespace UnrealBuildTool
 
 		/// True if we should use the Clang linker (LLD) when bCompileWithClang is enabled, otherwise we use the MSVC linker
 		public static readonly bool bAllowClangLinker = bCompileWithClang && false;
+
+		/// Whether to compile against the Windows 10 SDK, instead of the Windows 8.1 SDK.  This requires the Visual Studio 2015
+		/// compiler or later, and the Windows 10 SDK must be installed.  The application will require at least Windows 8.x to run.
+		// @todo UAP: Expose this to be enabled more easily for building Windows 10 desktop apps
+		public static readonly bool bUseWindowsSDK10 = false;
+
 
         /// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
         /// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
@@ -94,10 +127,22 @@ namespace UnrealBuildTool
 
                 try
                 {
-                    // Interrogate the Win32 registry
-                    string DTEKey = (Compiler == WindowsCompiler.VisualStudio2013) ? "VisualStudio.DTE.12.0" : "VisualStudio.DTE.11.0";
-                    return RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey(DTEKey) != null;
-                }
+					// Interrogate the Win32 registry
+					string DTEKey = null;
+					switch (Compiler)
+					{
+						case WindowsCompiler.VisualStudio2015:
+							DTEKey = "VisualStudio.DTE.14.0";
+							break;
+						case WindowsCompiler.VisualStudio2013:
+							DTEKey = "VisualStudio.DTE.12.0";
+							break;
+						case WindowsCompiler.VisualStudio2012:
+							DTEKey = "VisualStudio.DTE.11.0";
+							break;
+					}
+					return RegistryKey.OpenBaseKey(RegistryHive.ClassesRoot, RegistryView.Registry32).OpenSubKey(DTEKey) != null;
+				}
                 catch(Exception) 
                 {
                     return false;
@@ -137,17 +182,20 @@ namespace UnrealBuildTool
         {
             int VSVersion;
 
-            switch(Compiler)
-            {
-                case WindowsCompiler.VisualStudio2012:
-                    VSVersion = 11;
-                    break;
-                case WindowsCompiler.VisualStudio2013:
-                    VSVersion = 12;
-                    break;
-                default:
-                    throw new NotSupportedException("Not supported compiler.");
-            }
+			switch(Compiler)
+			{
+				case WindowsCompiler.VisualStudio2012:
+					VSVersion = 11;
+					break;
+				case WindowsCompiler.VisualStudio2013:
+					VSVersion = 12;
+					break;
+				case WindowsCompiler.VisualStudio2015:
+					VSVersion = 14;
+					break;
+				default:
+					throw new NotSupportedException("Not supported compiler.");
+			}
 
             string[] PossibleRegPaths = new string[] {
                 @"Wow6432Node\Microsoft\VisualStudio",	// Non-express VS2013 on 64-bit machine.
@@ -251,20 +299,23 @@ namespace UnrealBuildTool
         /// When using a Visual Studio compiler, returns the version name as a string
         /// </summary>
         /// <returns>The Visual Studio compiler version name (e.g. "2012")</returns>
-        public static string GetVisualStudioCompilerVersionName()
-        {
-            switch( Compiler )
-            { 
-                case WindowsCompiler.VisualStudio2012:
-                    return "2012";
+		public static string GetVisualStudioCompilerVersionName()
+		{
+			switch( Compiler )
+			{ 
+				case WindowsCompiler.VisualStudio2012:
+					return "2012";
 
-                case WindowsCompiler.VisualStudio2013:
-                    return "2013";
+				case WindowsCompiler.VisualStudio2013:
+					return "2013";
 
-                default:
-                    throw new BuildException( "Unexpected WindowsCompiler version for GetVisualStudioCompilerVersionName().  Either not using a Visual Studio compiler or switch block needs to be updated");
-            }
-        }
+				case WindowsCompiler.VisualStudio2015:
+					return "2015";
+
+				default:
+					throw new BuildException( "Unexpected WindowsCompiler version for GetVisualStudioCompilerVersionName().  Either not using a Visual Studio compiler or switch block needs to be updated");
+			}
+		}
 
 
         /**
@@ -439,21 +490,33 @@ namespace UnrealBuildTool
         {
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
 
-			// Win32 XP is only supported at this time.
-			SupportWindowsXP = SupportWindowsXPIfAvailable && (GetCPPTargetPlatform(InBuildTarget.Platform) == CPPTargetPlatform.Win32);
-			if (IsWindowsXPSupported())
-            {
-                // Windows XP SP3 or higher required
-                InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0502");
-                InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0502");
-            }
-            else
-            {
-                // Windows Vista or higher required
-                InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0600");
-                InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0600");
-            }
-            InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
+			if (WindowsPlatform.bUseWindowsSDK10 && WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
+			{
+				if (SupportWindowsXP)
+				{
+					throw new NotSupportedException("Windows XP support is not possible when targeting the Windows 10 SDK");
+				}
+				// Windows 8 or higher required
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0602");
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0602");
+			}
+			else
+			{
+				SupportWindowsXP = SupportWindowsXP && (GetCPPTargetPlatform(InBuildTarget.Platform) == CPPTargetPlatform.Win32);
+				if (SupportWindowsXP)
+				{
+					// Windows XP SP3 or higher required
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0502");
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0502");
+				}
+				else
+				{
+					// Windows Vista or higher required
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0600");
+					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0600");
+				}
+			}
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
 
             String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
             if (File.Exists(MorpheusShaderPath))

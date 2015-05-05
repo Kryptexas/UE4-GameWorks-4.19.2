@@ -14,6 +14,7 @@ namespace UnrealBuildTool
 	{
 		Win32,
 		Win64,
+		WinUAP,
 		Mac,
 		XboxOne,
 		PS4,

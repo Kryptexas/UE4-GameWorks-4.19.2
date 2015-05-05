@@ -34,16 +34,8 @@ namespace UnrealBuildTool
 
 			string ProgramFilesPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
 
-			string PlatformToolsetVersion;
-			if (VCProjectFileGenerator.ProjectFileFormat == VCProjectFileGenerator.VCProjectFileFormat.VisualStudio2013)
-			{
-				PlatformToolsetVersion = "v120";
-			}
-			else if (VCProjectFileGenerator.ProjectFileFormat == VCProjectFileGenerator.VCProjectFileFormat.VisualStudio2012)
-			{
-				PlatformToolsetVersion = "v110";
-			}
-			else
+			string PlatformToolsetVersion = VCProjectFileGenerator.ProjectFilePlatformToolsetVersionString;
+			if( String.IsNullOrEmpty( PlatformToolsetVersion ) )
 			{
 				// future maintainer: add toolset version and verify that the rest of the msbuild path, version, and location in ProgramFiles(x86) is still valid
 				Log.TraceInformation("Android project generation needs to be updated for this version of Visual Studio.");

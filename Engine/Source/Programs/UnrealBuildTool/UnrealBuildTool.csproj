@@ -117,15 +117,6 @@
       </ItemGroup>
     </When>
   </Choose>
-  <Choose>
-    <When Condition="Exists('Cygwin\UEBuildCygwin.cs')">
-      <ItemGroup>
-        <Compile Include="Cygwin\CygwinToolChain.cs" />
-        <Compile Include="Cygwin\UEBuildCygwin.cs" />
-        <Compile Include="Cygwin\CygwinProjectGenerator.cs" />
-      </ItemGroup>
-    </When>
-  </Choose>
   <ItemGroup>
     <Compile Include="Mac\MacToolChain.cs" />
     <Compile Include="Mac\UEBuildMac.cs" />
@@ -138,16 +129,18 @@
     <Compile Include="Android\AndroidToolChain.cs" />
     <Compile Include="Android\AndroidProjectGenerator.cs" />
   </ItemGroup>
-  <Choose>
-    <When Condition="Exists('WinRT\UEBuildWinRT.cs')">
-      <ItemGroup>
-        <Compile Include="WinRT\UEBuildWinRT.cs" />
-        <Compile Include="WinRT\WinRTToolChain.cs" />
-        <Compile Include="WinRT\WinRTDeploy.cs" />
-        <Compile Include="WinRT\WinRTProjectGenerator.cs" />
-      </ItemGroup>
-    </When>
-  </Choose>
+  <ItemGroup>
+    <Compile Include="WinRT\UEBuildWinRT.cs" />
+    <Compile Include="WinRT\WinRTToolChain.cs" />
+    <Compile Include="WinRT\WinRTDeploy.cs" />
+    <Compile Include="WinRT\WinRTProjectGenerator.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="WinUAP\WinUAPProjectGenerator.cs" />
+    <Compile Include="WinUAP\WinUAPToolChain.cs" />
+    <Compile Include="WinUAP\UEBuildWinUAP.cs" />
+    <Compile Include="WinUAP\WinUAPDeploy.cs" />
+  </ItemGroup>
   <ItemGroup>
     <Compile Include="IOS\IOSProjectGenerator.cs" />
     <Compile Include="IOS\IOSToolChain.cs" />
@@ -169,13 +162,6 @@
     <When Condition="Exists('System\NotForLicensees\TelemetryProviderET.cs')">
       <ItemGroup>
         <Compile Include="System\NotForLicensees\TelemetryProviderET.cs" />
-      </ItemGroup>
-    </When>
-  </Choose>
-  <Choose>
-    <When Condition="Exists('ToolChain\NoRedist\EpicMachineNames.cs')">
-      <ItemGroup>
-        <Compile Include="ToolChain\NoRedist\EpicMachineNames.cs" />
       </ItemGroup>
     </When>
   </Choose>

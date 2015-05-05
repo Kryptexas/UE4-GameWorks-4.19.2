@@ -73,6 +73,11 @@ namespace UnrealBuildTool
 			{
 				File.Delete(MasterProjDeleteFilename);
 			}
+			MasterProjDeleteFilename = MasterProjectFile + ".v12.suo";
+			if (File.Exists(MasterProjDeleteFilename))
+			{
+				File.Delete(MasterProjDeleteFilename);
+			}
 
 			// Delete the project files folder
 			if (Directory.Exists(InIntermediateProjectFilesPath))
@@ -110,13 +115,65 @@ namespace UnrealBuildTool
 		public enum VCProjectFileFormat
 		{
 			VisualStudio2012,
-			VisualStudio2013
+			VisualStudio2013,
+			VisualStudio2015,
+		}
+
+		/// "4.0", "12.0", or "14.0", etc...
+		static public string ProjectFileToolVersionString
+		{
+			get
+			{
+				switch (ProjectFileFormat)
+				{
+					case VCProjectFileFormat.VisualStudio2012:
+						return "4.0";
+					case VCProjectFileFormat.VisualStudio2013:
+						return "12.0";
+					case VCProjectFileFormat.VisualStudio2015:
+						return "14.0";
+				}
+				return string.Empty;
+			}
+		}
+
+		/// for instance: <PlatformToolset>v110</PlatformToolset>
+		static public string ProjectFilePlatformToolsetVersionString
+		{
+			get
+			{
+				switch (ProjectFileFormat)
+				{
+					case VCProjectFileFormat.VisualStudio2012:
+						return "v110";
+					case VCProjectFileFormat.VisualStudio2013:
+						return "v120";
+					case VCProjectFileFormat.VisualStudio2015:
+						return "v140";
+				}
+				return string.Empty;
+			}
 		}
 
 		/// Which version of Visual Studio we should generate project files for
-		static public VCProjectFileFormat ProjectFileFormat = 
-			( WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2012 ) ? VCProjectFileFormat.VisualStudio2012 : VCProjectFileFormat.VisualStudio2013;
+		static public VCProjectFileFormat ProjectFileFormat;
 
+		/// Just set up the defaults, later this will be overridden by command line or other options
+		static VCProjectFileGenerator()
+		{
+			switch (WindowsPlatform.Compiler)
+			{
+				case WindowsCompiler.VisualStudio2012:
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2012;
+					break;
+				case WindowsCompiler.VisualStudio2013:
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
+					break;
+				case WindowsCompiler.VisualStudio2015:
+					ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
+					break;
+			}
+		}
 
 		/// This is the platform name that Visual Studio is always guaranteed to support.  We'll use this as
 		/// a platform for any project configurations where our actual platform is not supported by the
@@ -148,6 +205,10 @@ namespace UnrealBuildTool
 					case WindowsCompiler.VisualStudio2013:
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
 						break;
+
+					case WindowsCompiler.VisualStudio2015:
+						ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
+						break;
 				}
 			}
 
@@ -161,6 +222,10 @@ namespace UnrealBuildTool
 
 					case "-2013":
 						ProjectFileFormat = VCProjectFileFormat.VisualStudio2013;
+						break;
+
+					case "-2015":
+						ProjectFileFormat = VCProjectFileFormat.VisualStudio2015;
 						break;
 				}
 			}
@@ -266,18 +331,22 @@ namespace UnrealBuildTool
 			const string VersionTag = "# UnrealEngineGeneratedSolutionVersion=1.0";
 
 			// Solution file header
-			if( ProjectFileFormat == VCProjectFileFormat.VisualStudio2013 )
+			if (ProjectFileFormat == VCProjectFileFormat.VisualStudio2015)
+			{
+				VCSolutionFileContent.Append(
+					ProjectFileGenerator.NewLine +
+					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
+					"# Visual Studio 14" + ProjectFileGenerator.NewLine +
+					"VisualStudioVersion = 14.0.22310.1" + ProjectFileGenerator.NewLine +
+					"MinimumVisualStudioVersion = 10.0.40219.1" + ProjectFileGenerator.NewLine);
+			}
+			else if ( ProjectFileFormat == VCProjectFileFormat.VisualStudio2013 )
 			{
 				VCSolutionFileContent.Append(
 					ProjectFileGenerator.NewLine +
 					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
 					"# Visual Studio 2013" + ProjectFileGenerator.NewLine +
 					VersionTag + ProjectFileGenerator.NewLine);
-				
-				/* This is not required by VS 2013 to load the projects
-				VCSolutionFileContent.Append(
-					"VisualStudioVersion = 12.0.20617.1 PREVIEW" + ProjectFileGenerator.NewLine +
-					"MinimumVisualStudioVersion = 10.0.40219.1" + ProjectFileGenerator.NewLine );*/
 			}
 			else if( ProjectFileFormat == VCProjectFileFormat.VisualStudio2012 )
 			{
@@ -741,8 +810,20 @@ namespace UnrealBuildTool
 			// Save a solution config file which selects the development editor configuration by default.
 			if (bSuccess)
 			{
-				// Figure out the filename for the SUO file. VS2013 will automatically import the VS2012 options if necessary.
-				string SolutionOptionsExtension = (ProjectFileFormat == VCProjectFileFormat.VisualStudio2012)? "v11.suo" : "v12.suo";
+				// Figure out the filename for the SUO file. VS will automatically import the options from earlier versions if necessary.
+				string SolutionOptionsExtension = "vUnknown.suo";
+				switch (ProjectFileFormat)
+				{
+					case VCProjectFileFormat.VisualStudio2012:
+						SolutionOptionsExtension = "v11.suo";
+						break;
+					case VCProjectFileFormat.VisualStudio2013:
+						SolutionOptionsExtension = "v12.suo";
+						break;
+					case VCProjectFileFormat.VisualStudio2015:
+						SolutionOptionsExtension = "v14.suo";
+						break;
+				}
 
 				// Check it doesn't exist before overwriting it. Since these files store the user's preferences, it'd be bad form to overwrite them.
 				string SolutionOptionsFileName = Path.Combine(MasterProjectRelativePath, Path.ChangeExtension(SolutionFileName, SolutionOptionsExtension));
