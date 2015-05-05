@@ -185,10 +185,12 @@ void FHierarchicalLODBuilder::BuildClusters(class ULevel* InLevel)
 		for(int32 LODId=0; LODId<TotalNumLOD; ++LODId)
 		{
 			AWorldSettings* WorldSetting = InLevel->GetWorld()->GetWorldSettings();
-			float DesiredBoundBoxHalfSize = WorldSetting->HierarchicalLODSetup[LODId].DesiredBoundSize * 0.5f;
+			// we use meter for bound. Otherwise it's very easy to get to overflow and have problem with filling ratio because
+			// bound is too huge
+			float DesiredBoundRadius = WorldSetting->HierarchicalLODSetup[LODId].DesiredBoundRadius * CM_TO_METER;
 			float DesiredFillingRatio = WorldSetting->HierarchicalLODSetup[LODId].DesiredFillingPercentage * 0.01f;
 			ensure(DesiredFillingRatio!=0.f);
-			float HighestCost = FMath::Pow(DesiredBoundBoxHalfSize, 3)/(DesiredFillingRatio);
+			float HighestCost = FMath::Pow(DesiredBoundRadius, 3)/(DesiredFillingRatio);
 			int32 MinNumActors = WorldSetting->HierarchicalLODSetup[LODId].MinNumberOfActorsToBuild;
 			check (MinNumActors > 0);
 			// test parameter I was playing with to cull adding to the array
@@ -222,6 +224,7 @@ void FHierarchicalLODBuilder::BuildClusters(class ULevel* InLevel)
 
 	// Clear Clusters. It is using stack mem, so it won't be good after this
 	Clusters.Empty();
+	Clusters.Shrink();
 }
 
 void FHierarchicalLODBuilder::FindMST() 
@@ -617,7 +620,9 @@ void FLODCluster::BuildActor(class ULevel* InLevel, const int32 LODIdx)
 		////////////////////////////////////////////////////////////////////////////////////
 		// create asset using Actors
 		const FHierarchicalSimplification& LODSetup = InLevel->GetWorld()->GetWorldSettings()->HierarchicalLODSetup[LODIdx];
-		const FMeshProxySettings& ProxySetting = LODSetup.Setting;
+		const FMeshProxySettings& ProxySetting = LODSetup.ProxySetting;
+		const FMeshMergingSettings& MergeSetting = LODSetup.MergeSetting;
+
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = InLevel->GetOutermost(); // this asset is going to save with map, this means, I'll have to delete with it
 		if (AssetsOuter)
@@ -653,8 +658,6 @@ void FLODCluster::BuildActor(class ULevel* InLevel, const int32 LODIdx)
 				}
 				else
 				{
-					FMeshMergingSettings MergeSetting;
-					MergeSetting.bMergeMaterials = true;
 					MeshUtilities.MergeActors(Actors, MergeSetting, AssetsOuter, PackageName, LODIdx+1, OutAssets, OutProxyLocation, true );
 				}
 

@@ -38,18 +38,27 @@ void FHierarchicalSimplificationCustomizations::CustomizeChildren( TSharedRef<IP
 		PropertyHandles.Add(PropertyName, ChildHandle);
 	}
 
-	TSharedPtr< IPropertyHandle > SimplifyMeshPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, bSimplifyMesh));
+	SimplifyMeshPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, bSimplifyMesh));
 
 	IDetailPropertyRow& SimplifyMeshRow = ChildBuilder.AddChildProperty(SimplifyMeshPropertyHandle.ToSharedRef());
 	SimplifyMeshRow.Visibility(TAttribute<EVisibility>(this, &FHierarchicalSimplificationCustomizations::IsSimplifyMeshVisible));
 
+	TSharedPtr< IPropertyHandle > ProxyMeshSettingPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, ProxySetting));
+	TSharedPtr< IPropertyHandle > MergeMeshSettingPropertyHandle = PropertyHandles.FindChecked(GET_MEMBER_NAME_CHECKED(FHierarchicalSimplification, MergeSetting));
+
 	for( auto Iter(PropertyHandles.CreateConstIterator()); Iter; ++Iter  )
 	{
-		if (Iter.Value() != SimplifyMeshPropertyHandle)
+		if (Iter.Value() != SimplifyMeshPropertyHandle && Iter.Value() != ProxyMeshSettingPropertyHandle && Iter.Value() != MergeMeshSettingPropertyHandle)
 		{
 			ChildBuilder.AddChildProperty(Iter.Value().ToSharedRef());
 		}
 	}
+
+	IDetailPropertyRow& ProxyMeshSettingRow = ChildBuilder.AddChildProperty(ProxyMeshSettingPropertyHandle.ToSharedRef());
+	ProxyMeshSettingRow.Visibility(TAttribute<EVisibility>(this, &FHierarchicalSimplificationCustomizations::IsProxyMeshSettingVisible));
+
+	IDetailPropertyRow& MergeMeshSettingRow = ChildBuilder.AddChildProperty(MergeMeshSettingPropertyHandle.ToSharedRef());
+	MergeMeshSettingRow.Visibility(TAttribute<EVisibility>(this, &FHierarchicalSimplificationCustomizations::IsMergeMeshSettingVisible));
 }
 
 EVisibility FHierarchicalSimplificationCustomizations::IsSimplifyMeshVisible() const
@@ -63,3 +72,27 @@ EVisibility FHierarchicalSimplificationCustomizations::IsSimplifyMeshVisible() c
 	return EVisibility::Hidden;
 }
 
+EVisibility FHierarchicalSimplificationCustomizations::IsProxyMeshSettingVisible() const
+{
+	bool bSimplifyMesh;
+
+	if (SimplifyMeshPropertyHandle->GetValue(bSimplifyMesh) == FPropertyAccess::Result::Success)
+	{
+		if (IsSimplifyMeshVisible() == EVisibility::Visible && bSimplifyMesh)
+		{
+			return EVisibility::Visible;
+		}
+	}
+		
+	return EVisibility::Hidden;
+}
+
+EVisibility FHierarchicalSimplificationCustomizations::IsMergeMeshSettingVisible() const
+{
+	if(IsProxyMeshSettingVisible() == EVisibility::Hidden)
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Hidden;
+}
