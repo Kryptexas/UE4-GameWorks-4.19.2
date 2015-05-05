@@ -11,15 +11,46 @@
 // FFrontendFilter_Text
 /////////////////////////////////////////
 
+void AssetDataToNameString(FAssetFilterType Asset, OUT TArray< FString >& Array)
+{
+	const FString FullPath = Asset.PackageName.ToString();
+	const TCHAR* Ptr = FullPath.GetCharArray().GetData();
+	if (Ptr == nullptr)
+	{
+		return;
+	}
+
+	// Enter each piece of the path name, apart from the first, as a potential match
+	bool bIsFirst = true;
+	while (const TCHAR* Delimiter = FCString::Strchr(Ptr, '/'))
+	{
+		const int32 Length = Delimiter - Ptr;
+
+		if (Length > 0)
+		{
+			if (bIsFirst)
+			{
+				bIsFirst = false;
+			}
+			else
+			{
+				Array.Emplace(Length, Ptr);
+			}
+		}
+
+		Ptr += (Length + 1);
+	}
+
+	if (*Ptr != 0)
+	{
+		Array.Emplace(Ptr);
+	}
+}
+
 void AssetDataToClassAndNameStrings(FAssetFilterType Asset, OUT TArray< FString >& Array)
 {
 	Array.Add(Asset.AssetClass.ToString());
-	Array.Add(Asset.AssetName.ToString());
-}
-
-void AssetDataToNameString(FAssetFilterType Asset, OUT TArray< FString >& Array)
-{
-	Array.Add(Asset.AssetName.ToString());
+	AssetDataToNameString(Asset, Array);
 }
 
 FFrontendFilter_Text::FFrontendFilter_Text()
