@@ -29,21 +29,49 @@ table, table tr, table th, table td
 <table >
 	<tr>
 		<td>
-			TotalAnonymousCrashes:&nbsp;<%=Model.TotalAnonymousCrashes %>
+			Total Crashes:&nbsp;<%=Model.TotalCrashes %>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			Total Crashes YearToDate:&nbsp;<%=Model.TotalCrashesYearToDate %>
 		</td>
 	</tr>
 
 	<tr>
 		<td>
-			TotalUniqueAnonymousCrashes:&nbsp;<%=Model.TotalUniqueAnonymousCrashes %>
+			<strong>
+			Filtered = CrashOrAssert, Anonymous, EpicId != 0, BuggId != 0,
+			</strong>
 		</td>
 	</tr>
 
 	<tr>
 		<td>
-			TotalAffectedUsers:&nbsp;<%=Model.TotalAffectedUsers %>
+			Total Unique Crashes:&nbsp;<%=Model.UniqueCrashesFiltered %>
 		</td>
 	</tr>
+	<tr>
+		<td>
+			Total Affected Users:&nbsp;<%=Model.AffectedUsersFiltered %>
+		</td>
+	</tr>
+		
+
+	<tr>
+		<td>
+			<strong>
+			Filtered = CrashOrAssert, Anonymous, EpicId != 0, BuggId != 0, TimeOfCrash within the time range, from <%=Model.DateTimeFrom.ToString()%> to <%=Model.DateTimeTo.ToString()%>
+			</strong>
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			Crashes:&nbsp;<%=Model.CrashesFilteredWithDate %>
+		</td>
+	</tr>
+
 
 	<tr>
 		<td>
@@ -56,14 +84,20 @@ table, table tr, table th, table td
 			Directory:&nbsp;<a href="<%=Model.GetCSVDirectory()%>" target="_blank"><%=Model.GetCSVDirectory()%></a>
 		</td>
 	</tr>
+
+	<tr>
+		<td title="Copy the link and open in the explorer">
+			Public Directory:&nbsp;<strong><%=Model.GetCSVPublicDirectory() %></strong>
+		</td>
+	</tr>
 </table>
 <br />
 
-<p>Displaying top 100 records, ordered by # of crashes</p>
+<p>Displaying top 100 records, ordered by the date of a crash</p>
 <table style="width: 100%">
 	<tr>
 		<th>
-			#
+			Time of crash
 		</th>
 		<th>
 			EpicId
@@ -75,7 +109,7 @@ table, table tr, table th, table td
 			BuggId
 		</th>
 		<th>
-			Versions Affected
+			Engine version
 		</th>
 	</tr>
 
@@ -90,7 +124,7 @@ table, table tr, table th, table td
 	%>
 	<tr>
 		<td>
-			<%=CSVRow.NumberOfCrashes%>
+			<%=CSVRow.TimeOfCrash.ToString()%>
 		</td>
 		<td>
 			<%=CSVRow.EpicId%>
@@ -102,7 +136,7 @@ table, table tr, table th, table td
 			<%=CSVRow.BuggId%>
 		</td>
 		<td>
-			<%=CSVRow.AffectedVersionsString%>
+			<%=CSVRow.EngineVersion%>
 		</td>		
 	</tr>
 	<%
