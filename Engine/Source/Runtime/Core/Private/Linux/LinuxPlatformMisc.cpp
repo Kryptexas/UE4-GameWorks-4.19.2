@@ -23,7 +23,8 @@ namespace PlatformMiscLimits
 {
 	enum
 	{
-		MaxUserHomeDirLength= MAX_PATH + 1
+		MaxUserHomeDirLength= MAX_PATH + 1,
+		MaxOsGuidLength = 32,
 	};
 };
 
@@ -694,4 +695,45 @@ bool FLinuxPlatformMisc::HasBeenStartedRemotely()
 	}
 
 	return bResult;
+}
+
+FString FLinuxPlatformMisc::GetOperatingSystemId()
+{
+	static bool bHasCachedResult = false;
+	static FString CachedResult;
+
+	if (!bHasCachedResult)
+	{
+		int OsGuidFile = open("/etc/machine-id", O_RDONLY);
+		if (OsGuidFile != -1)
+		{
+			char Buffer[PlatformMiscLimits::MaxOsGuidLength + 1] = {0};
+			ssize_t ReadBytes = read(OsGuidFile, Buffer, sizeof(Buffer) - 1);
+
+			if (ReadBytes > 0)
+			{
+				CachedResult = ANSI_TO_TCHAR(Buffer);
+			}
+
+			close(OsGuidFile);
+		}
+		else
+		{
+			// use old POSIX API which doesn't seem to be useful anymore
+			long HostId = gethostid();
+			if (HostId != 0)
+			{
+				CachedResult = FString::Printf(TEXT("baad051dbaad051dbaad051d%08lx"), HostId);
+			}
+		}
+
+		if (CachedResult.Len() == 0)
+		{
+			CachedResult = TEXT("dead051ddead051ddead051ddead051d");
+		}
+
+		bHasCachedResult = true;	// even if we failed to read the real one
+	}
+
+	return CachedResult;
 }

@@ -88,6 +88,7 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	static int32 NumberOfCoresIncludingHyperthreads();
 	static void LoadPreInitModules();
 	static void LoadStartupModules();
+	static FString GetOperatingSystemId();
 
 	/**
 	 * Determines the shader format for the platform
