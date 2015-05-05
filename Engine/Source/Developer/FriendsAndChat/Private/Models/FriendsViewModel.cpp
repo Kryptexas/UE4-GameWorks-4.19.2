@@ -63,7 +63,8 @@ public:
 	{
 		if (FriendsAndChatManager.IsValid())
 		{
-			return FriendsAndChatManager.Pin()->IsInGlobalChat() ? EVisibility::Visible : EVisibility::Collapsed;
+			TSharedPtr<FFriendsAndChatManager> FriendsAndChatManagerPtr = FriendsAndChatManager.Pin();
+			return FriendsAndChatManagerPtr->IsInGlobalChat() && FriendsAndChatManagerPtr->IsInLauncher() ? EVisibility::Visible : EVisibility::Collapsed;
 		}
 		return EVisibility::Collapsed;
 	}
