@@ -10,6 +10,7 @@
 #include "UObject/UObjectAnnotation.h"
 #include "UObject/TlsObjectInitializers.h"
 #include "UObject/UObjectThreadContext.h"
+#include "BlueprintSupport.h" // for FDeferredObjInitializerTracker
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -1944,7 +1945,7 @@ void UObject::PostInitProperties()
 	FUObjectThreadContext::Get().PostInitPropertiesCheck.Push(this);
 #endif
 #if USE_UBER_GRAPH_PERSISTENT_FRAME
-	GetClass()->CreatePersistentUberGraphFrame(this);
+	GetClass()->CreatePersistentUberGraphFrame(this, true);
 #endif
 }
 
@@ -1975,14 +1976,17 @@ UObject::UObject(const FObjectInitializer& ObjectInitializer)
 
 
 
-FObjectInitializer::FObjectInitializer() :
-Obj(nullptr),
-	ObjectArchetype(nullptr),
-	bCopyTransientsFromClassDefaults(false),
-	bShouldIntializePropsFromArchetype(false),
-	bSubobjectClassInitializationAllowed(true),
-	InstanceGraph(nullptr),
-	LastConstructedObject(nullptr)
+FObjectInitializer::FObjectInitializer()
+	: Obj(nullptr)
+	, ObjectArchetype(nullptr)
+	, bCopyTransientsFromClassDefaults(false)
+	, bShouldIntializePropsFromArchetype(false)
+	, bSubobjectClassInitializationAllowed(true)
+	, InstanceGraph(nullptr)
+	, LastConstructedObject(nullptr)
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	, bIsDeferredInitializer(false)
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 {
 	auto& ThreadContext = FUObjectThreadContext::Get();
 	// Mark we're in the constructor now.	
@@ -1992,15 +1996,18 @@ Obj(nullptr),
 	FTlsObjectInitializers::Push(this);
 }	
 
-FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph) :
-	Obj(InObj),
-	ObjectArchetype(InObjectArchetype),
+FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph)
+	: Obj(InObj)
+	, ObjectArchetype(InObjectArchetype)
 	// if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
-	bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults),
-	bShouldIntializePropsFromArchetype(bInShouldIntializeProps),
-	bSubobjectClassInitializationAllowed(true),
-	InstanceGraph(InInstanceGraph),
-	LastConstructedObject(nullptr)
+	, bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults)
+	, bShouldIntializePropsFromArchetype(bInShouldIntializeProps)
+	, bSubobjectClassInitializationAllowed(true)
+	, InstanceGraph(InInstanceGraph)
+	, LastConstructedObject(nullptr)
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	, bIsDeferredInitializer(false)
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 {
 	auto& ThreadContext = FUObjectThreadContext::Get();
 	// Mark we're in the constructor now.
@@ -2017,20 +2024,35 @@ COREUOBJECT_API bool IgnoreFObjectInitializer = false;
  **/
 FObjectInitializer::~FObjectInitializer()
 {
-	FTlsObjectInitializers::Pop();
-	auto& ThreadContext = FUObjectThreadContext::Get();
-	// Let the FObjectFinders know we left the constructor.
-	ThreadContext.IsInConstructor--;
-	check(ThreadContext.IsInConstructor >= 0);
-	ThreadContext.ConstructedObject = LastConstructedObject;
 
-	if( IgnoreFObjectInitializer )
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	// if we're not at the top of FTlsObjectInitializers, then this is most 
+	// likely a deferred FObjectInitializer that's a copy of one that was used 
+	// in a constructor (that has already been popped)
+	if (!bIsDeferredInitializer)
 	{
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		check(FTlsObjectInitializers::Top() == this);
+
+		FTlsObjectInitializers::Pop();
+		auto& ThreadContext = FUObjectThreadContext::Get();
+		// Let the FObjectFinders know we left the constructor.
+		ThreadContext.IsInConstructor--;
+		check(ThreadContext.IsInConstructor >= 0);
+		ThreadContext.ConstructedObject = LastConstructedObject;
+
+		check(Obj != nullptr);
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	}
+	else if (Obj == nullptr)
+	{
+		// the deferred initialization has already been ran, we clear Obj once 
+		// PostConstructInit() has been executed
 		return;
 	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
-	check(Obj);
 	const bool bIsCDO = Obj->HasAnyFlags(RF_ClassDefaultObject);
 	UClass* Class = Obj->GetClass();
 
@@ -2045,8 +2067,66 @@ FObjectInitializer::~FObjectInitializer()
 	else if (bIsCDO)
 	{
 		// for the Object CDO, make sure that we do not use an archetype
-		check(!ObjectArchetype);
+		check(ObjectArchetype == nullptr);
 	}
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	bool bIsPostConstructInitDeferred = false;
+	if (bIsCDO && (ObjectArchetype != nullptr))
+	{
+		UClass* ArchetypeClass = ObjectArchetype->GetClass();
+		// if this is a blueprint CDO that derives from another blueprint, and 
+		// that parent (archetype) CDO isn't fully serialized
+		if ( !Class->HasAnyFlags(RF_Native) && !ArchetypeClass->HasAnyFlags(RF_Native) &&
+			(ObjectArchetype->HasAnyFlags(RF_NeedLoad) || !ObjectArchetype->HasAnyFlags(RF_LoadCompleted)) )
+		{
+			FLinkerLoad* ClassLinker = Class->GetLinker();
+			if ((ClassLinker != nullptr) && (ClassLinker->LoadFlags & LOAD_DeferDependencyLoads) != 0x00)
+			{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+				// make sure we haven't already deferred this once, if we have
+				// then something is destroying this one prematurely 
+				check(bIsDeferredInitializer == false);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+				// makes a copy of this and saves it off, to be ran later
+				if (FObjectInitializer* DeferredCopy = FDeferredObjInitializerTracker::Add(*this))
+				{
+					bIsPostConstructInitDeferred = true;
+					DeferredCopy->bIsDeferredInitializer = true;
+
+					// make sure this wasn't mistakenly pushed into FTlsObjectInitializers
+					// (the copy constructor should have been what was invoked, 
+					// which doesn't push to FTlsObjectInitializers)
+					check(FTlsObjectInitializers::Top() != DeferredCopy);
+				}
+			}
+		}
+	}
+
+	if (!bIsPostConstructInitDeferred)
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	{
+		PostConstructInit();
+	}
+}
+
+void FObjectInitializer::PostConstructInit()
+{
+	// we clear the Obj pointer at the end of this function, so if it is null 
+	// then it most likely means that this is being ran for a second time
+	if (Obj == nullptr)
+	{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		checkf(Obj != nullptr, TEXT("Looks like you're attempting to run FObjectInitializer::PostConstructInit() twice, and that should never happen."));
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		return;
+	}
+
+	SCOPE_CYCLE_COUNTER(STAT_PostConstructInitializeProperties);
+	const bool bIsCDO = Obj->HasAnyFlags(RF_ClassDefaultObject);
+	UClass* Class = Obj->GetClass();
+
 	if (bShouldIntializePropsFromArchetype)
 	{
 		UClass* BaseClass = (bIsCDO && !GIsDuplicatingClassForReinstancing) ? Obj->GetClass()->GetSuperClass() : Class;
@@ -2137,6 +2217,9 @@ FObjectInitializer::~FObjectInitializer()
 	{
 		Obj->CheckDefaultSubobjects();
 	}
+
+	// clear the object pointer so we can guard against runing this function again
+	Obj = nullptr;
 }
 
 bool FObjectInitializer::IsInstancingAllowed() const
