@@ -169,6 +169,7 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	int32	FinishLoadingGameplayCueNotifies();
 
+	UPROPERTY(transient)
 	FStreamableManager	StreamableManager;
 
 	// Fixme: we can combine the AActor* and the FGameplayTag into a single struct with a decent hash and avoid double map lookups
