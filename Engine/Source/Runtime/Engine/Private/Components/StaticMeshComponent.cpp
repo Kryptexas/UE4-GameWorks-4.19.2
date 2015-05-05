@@ -1116,6 +1116,11 @@ void UStaticMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Propert
 		{
 			GEngine->TriggerStreamingDataRebuild();
 		}
+
+		if ( PropertyThatChanged->GetName() == TEXT("StaticMesh") )
+		{
+			InvalidateLightingCache();
+		}
 	}
 
 	FBodyInstanceEditorHelpers::EnsureConsistentMobilitySimulationSettingsOnPostEditChange(this, PropertyChangedEvent);
