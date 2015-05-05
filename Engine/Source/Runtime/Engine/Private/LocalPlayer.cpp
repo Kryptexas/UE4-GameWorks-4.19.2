@@ -624,7 +624,7 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass
     // allow HMDs to override fov
     if ((StereoPass != eSSP_FULL) && GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
     {
-		float HFOV, VFOV;
+		float HFOV = OutViewInfo.FOV, VFOV = OutViewInfo.FOV;
         GEngine->HMDDevice->GetFieldOfView(HFOV, VFOV);
         if (VFOV > 0 && HFOV > 0)
         {

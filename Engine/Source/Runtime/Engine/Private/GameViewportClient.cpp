@@ -796,17 +796,16 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	DebugCanvasObject->Canvas = DebugCanvas;	
 	DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
 
+	const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport);
+	if (DebugCanvas)
 	{
-		const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport);
-
-		if (DebugCanvas)
-		{
-			DebugCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
-		}
-		if (SceneCanvas)
-		{
-			SceneCanvas->SetScaledToRenderTarget(bScaledToRenderTarget);
-		}
+		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
+		DebugCanvas->SetStereoRendering(bStereoRendering);
+	}
+	if (SceneCanvas)
+	{
+		SceneCanvas->SetScaledToRenderTarget(bStereoRendering);
+		SceneCanvas->SetStereoRendering(bStereoRendering);
 	}
 
 	bool bUIDisableWorldRendering = false;
@@ -822,12 +821,18 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	// Allow HMD to modify the view later, just before rendering
 	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
-		ISceneViewExtension* HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-		if (HmdViewExt)
+		auto HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt.IsValid())
 		{
 			ViewFamily.ViewExtensions.Add(HmdViewExt);
-			HmdViewExt->ModifyShowFlags(ViewFamily.EngineShowFlags);
+			HmdViewExt->SetupViewFamily(ViewFamily);
 		}
+	}
+
+	if (bStereoRendering)
+	{
+		// Allow HMD to modify screen settings
+		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
 	}
 
 	ESplitScreenType::Type SplitScreenConfig = GetCurrentSplitscreenConfiguration();
@@ -1128,28 +1133,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 							DebugCanvasObject->SceneView = View;
 							PlayerController->MyHUD->SetCanvas(CanvasObject, DebugCanvasObject);
-							if (GEngine->IsStereoscopic3D(InViewport))
-							{
-								check(GEngine->StereoRenderingDevice.IsValid());
-								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, SceneCanvas, CanvasObject, Viewport);
-								PlayerController->MyHUD->PostRender();
-								SceneCanvas->PopTransform();
 
-								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, SceneCanvas, CanvasObject, Viewport);
-								PlayerController->MyHUD->PostRender();
-								SceneCanvas->PopTransform();
-
-								// Reset the canvas for rendering to the full viewport.
-								CanvasObject->Reset();
-								CanvasObject->SizeX = View->UnscaledViewRect.Width();
-								CanvasObject->SizeY = View->UnscaledViewRect.Height();
-								CanvasObject->SetView(NULL);
-								CanvasObject->Update();
-							}
-							else
-							{
-								PlayerController->MyHUD->PostRender();
-							}
+							PlayerController->MyHUD->PostRender();
 							
 							// Put these pointers back as if a blueprint breakpoint hits during HUD PostRender they can
 							// have been changed
@@ -1206,45 +1191,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		// Render the console.
 		if (ViewportConsole)
 		{
-			if (GEngine->IsStereoscopic3D(InViewport))
-			{
-				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
-				ViewportConsole->PostRender_Console(DebugCanvasObject);
-#if !UE_BUILD_SHIPPING
-				if (DebugCanvas != NULL && GEngine->HMDDevice.IsValid())
-				{
-					GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_LEFT_EYE);
-				}
-#endif
-				if (DebugCanvas != NULL)
-				{
-					DebugCanvas->PopTransform();
-				}
-
-				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
-				ViewportConsole->PostRender_Console(DebugCanvasObject);
-#if !UE_BUILD_SHIPPING
-				if (DebugCanvas != NULL && GEngine->HMDDevice.IsValid())
-				{
-					GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_RIGHT_EYE);
-				}
-#endif
-				if (DebugCanvas != NULL)
-				{
-					DebugCanvas->PopTransform();
-				}
-
-				// Reset the canvas for rendering to the full viewport.
-				DebugCanvasObject->Reset();
-				DebugCanvasObject->SizeX = Viewport->GetSizeXY().X;
-				DebugCanvasObject->SizeY = Viewport->GetSizeXY().Y;
-				DebugCanvasObject->SetView(NULL);
-				DebugCanvasObject->Update();
-			}
-			else
-			{
-				ViewportConsole->PostRender_Console(DebugCanvasObject);
-			}
+			ViewportConsole->PostRender_Console(DebugCanvasObject);
 		}
 	}
 
@@ -1259,33 +1206,16 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		}
 	}
 
+	DrawStatsHUD( GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
+
 	if (GEngine->IsStereoscopic3D(InViewport))
 	{
-		GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, DebugCanvas, DebugCanvasObject, InViewport);
-		DrawStatsHUD(GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation);
-		DebugCanvas->PopTransform();
-
-		GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_RIGHT_EYE, DebugCanvas, DebugCanvasObject, InViewport);
-		DrawStatsHUD(GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation);
-		DebugCanvas->PopTransform();
-
-		// Reset the canvas for rendering to the full viewport.
-		DebugCanvasObject->Reset();
-		DebugCanvasObject->SizeX = Viewport->GetSizeXY().X;
-		DebugCanvasObject->SizeY = Viewport->GetSizeXY().Y;
-		DebugCanvasObject->SetView(NULL);
-		DebugCanvasObject->Update();
-
 #if !UE_BUILD_SHIPPING
 		if (GEngine->HMDDevice.IsValid())
 		{
-			GEngine->HMDDevice->DrawDebug(DebugCanvasObject, eSSP_FULL);
+			GEngine->HMDDevice->DrawDebug(DebugCanvasObject);
 		}
 #endif
-	}
-	else
-	{
-		DrawStatsHUD( GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation );
 	}
 
 	EndDrawDelegate.Broadcast();

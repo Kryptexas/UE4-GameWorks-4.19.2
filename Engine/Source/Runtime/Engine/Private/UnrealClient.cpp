@@ -358,11 +358,12 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 #endif // #if !UE_BUILD_SHIPPING
 
 	// Render CPU thread and GPU frame times.
+	const bool bStereoRendering = (GEngine && GEngine->IsStereoscopic3D(InViewport));
 	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
 
 	FColor Color;
 	// Note InX should already be within the safe zone
-	int32 X3 = InX;
+	int32 X3 = InX * (bStereoRendering ? 0.5f : 1.0f);
 	if (bShowUnitMaxTimes)
 	{
 		X3 -= Font->GetStringSize(TEXT(" 0000.00 ms "));

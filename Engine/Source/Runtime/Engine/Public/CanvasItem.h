@@ -27,6 +27,7 @@ public:
 	 */
 	FCanvasItem( const FVector2D& InPosition )
 		: Position( InPosition )
+		, StereoDepth( 0 )
 		, BlendMode( SE_BLEND_Opaque )
 		, bFreezeTime( false )
 		, BatchedElementParameters( nullptr )
@@ -68,6 +69,9 @@ public:
 	
 	/* The position to draw the item. */
 	FVector2D Position;
+
+	/* Stereo projection depth in game units.  Default value 0 draws at canvas property StereoDepth. */
+	uint32 StereoDepth;
 
 		/* Blend mode. */
 	ESimpleElementBlendMode BlendMode;

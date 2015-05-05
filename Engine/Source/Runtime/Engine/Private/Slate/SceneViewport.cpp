@@ -30,7 +30,8 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bPlayInEditorGetsMouseControl( true )
 	, bPlayInEditorIsSimulate( false )
 	, bCursorHiddenDueToCapture( false )
-	, MousePosBeforeHiddenDueToCapture( -1, -1 )	
+	, MousePosBeforeHiddenDueToCapture( -1, -1 )
+	, RTTSize( 0, 0 )
 	, NumBufferedFrames(1)
 	, CurrentBufferedTargetIndex(0)
 {
@@ -964,7 +965,7 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 				// Toggle fullscreen and resize
 				WindowToResize->SetWindowMode(DesiredWindowMode);
 
-				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
 				{
 					if (NewWindowMode == EWindowMode::Windowed)
 					{
@@ -1352,15 +1353,17 @@ void FSceneViewport::InitDynamicRHI()
 		// Initialize the hit proxy map.
 		HitProxyMap.Init(SizeX,SizeY);
 	}
+	RTTSize = FIntPoint(0, 0);
 
 	TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
-	if( bUseSeparateRenderTarget )
+	uint32 TexSizeX = SizeX, TexSizeY = SizeY;
+	if (bUseSeparateRenderTarget)
 	{
 		NumBufferedFrames = 1;
-		uint32 TexSizeX = SizeX, TexSizeY = SizeY;
-		if (GEngine->IsStereoscopic3D(this))
+		
+		if (GEngine->IsStereoscopic3D(this) && GEngine->StereoRenderingDevice.IsValid())
 		{
-			GEngine->StereoRenderingDevice->CalculateRenderTargetSize(TexSizeX, TexSizeY);
+			GEngine->StereoRenderingDevice->CalculateRenderTargetSize(*this, TexSizeX, TexSizeY);
 			//todo, get from HMD
 			NumBufferedFrames = 3;
 		}
@@ -1439,6 +1442,10 @@ void FSceneViewport::InitDynamicRHI()
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(PinnedViewport.ToSharedRef(), WidgetPath);
 		
 		WindowRenderTargetUpdate(Renderer.Get(), Window.Get());
+		if (bUseSeparateRenderTarget)
+		{
+			RTTSize = FIntPoint(TexSizeX, TexSizeY);
+		}
 	}
 }
 

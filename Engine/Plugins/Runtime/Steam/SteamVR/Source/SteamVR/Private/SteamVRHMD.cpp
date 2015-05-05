@@ -16,7 +16,7 @@
 class FSteamVRPlugin : public ISteamVRPlugin
 {
 	/** IHeadMountedDisplayModule implementation */
-	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() override;
+	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
 	FString GetModulePriorityKeyName() const
 	{
@@ -53,10 +53,10 @@ private:
 
 IMPLEMENT_MODULE( FSteamVRPlugin, SteamVR )
 
-TSharedPtr< class IHeadMountedDisplay > FSteamVRPlugin::CreateHeadMountedDisplay()
+TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FSteamVRPlugin::CreateHeadMountedDisplay()
 {
 #if STEAMVR_SUPPORTED_PLATFORMS
-	TSharedPtr< FSteamVRHMD > SteamVRHMD( new FSteamVRHMD(this) );
+	TSharedPtr< FSteamVRHMD, ESPMode::ThreadSafe > SteamVRHMD( new FSteamVRHMD(this) );
 	if( SteamVRHMD->IsInitialized() )
 	{
 		return SteamVRHMD;
@@ -131,12 +131,12 @@ bool FSteamVRHMD::DoesSupportPositionalTracking() const
 	return true;
 }
 
-bool FSteamVRHMD::HasValidTrackingPosition() const
+bool FSteamVRHMD::HasValidTrackingPosition()
 {
 	return bHmdPosTracking && bHaveVisionTracking;
 }
 
-void FSteamVRHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
+void FSteamVRHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
 {
 }
 
@@ -405,9 +405,10 @@ bool FSteamVRHMD::GetTrackedDeviceIdFromControllerIndex(int32 ControllerIndex, i
 	return (OutDeviceId != -1);
 }
 
-ISceneViewExtension* FSteamVRHMD::GetViewExtension()
+TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> FSteamVRHMD::GetViewExtension()
 {
-	return this;
+	TSharedPtr<FSteamVRHMD, ESPMode::ThreadSafe> ptr(AsShared());
+	return StaticCastSharedPtr<ISceneViewExtension>(ptr);
 }
 
 void FSteamVRHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation)
@@ -588,15 +589,6 @@ FQuat FSteamVRHMD::GetBaseOrientation() const
 	return BaseOrientation;
 }
 
-void FSteamVRHMD::SetPositionOffset(const FVector& PosOff)
-{
-}
-
-FVector FSteamVRHMD::GetPositionOffset() const
-{
-	return FVector::ZeroVector;
-}
-
 bool FSteamVRHMD::IsStereoEnabled() const
 {
 	return bStereoEnabled && bHmdEnabled;
@@ -683,23 +675,9 @@ void FSteamVRHMD::InitCanvasFromView(FSceneView* InView, UCanvas* Canvas)
 {
 }
 
-void FSteamVRHMD::PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const 
+void FSteamVRHMD::GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
 {
-	FMatrix m;
-	m.SetIdentity();
-	InCanvas->PushAbsoluteTransform(m);
-}
-
-void FSteamVRHMD::PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const 
-{
-	FMatrix m;
-	m.SetIdentity();
-	InCanvas->PushAbsoluteTransform(m);
-}
-
-void FSteamVRHMD::GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const
-{
-	if (StereoPass == eSSP_LEFT_EYE)
+	if (Context.View.StereoPass == eSSP_LEFT_EYE)
 	{
 		EyeToSrcUVOffsetValue.X = 0.0f;
 		EyeToSrcUVOffsetValue.Y = 0.0f;
@@ -718,11 +696,11 @@ void FSteamVRHMD::GetEyeRenderParams_RenderThread(EStereoscopicPass StereoPass, 
 }
 
 
-void FSteamVRHMD::ModifyShowFlags(FEngineShowFlags& ShowFlags)
+void FSteamVRHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
-	ShowFlags.MotionBlur = 0;
-	ShowFlags.HMDDistortion = false;
-	ShowFlags.StereoRendering = IsStereoEnabled();
+	InViewFamily.EngineShowFlags.MotionBlur = 0;
+	InViewFamily.EngineShowFlags.HMDDistortion = false;
+	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 }
 
 void FSteamVRHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
@@ -733,7 +711,7 @@ void FSteamVRHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 	InViewFamily.bUseSeparateRenderTarget = true;
 }
 
-void FSteamVRHMD::PreRenderView_RenderThread(FSceneView& View)
+void FSteamVRHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
 {
 	check(IsInRenderingThread());
 
@@ -784,7 +762,7 @@ FSteamVRHMD::BridgeBaseImpl* FSteamVRHMD::GetActiveRHIBridgeImpl()
 	return nullptr;
 }
 
-void FSteamVRHMD::CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOutSizeY) const
+void FSteamVRHMD::CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) const
 {
 	check(IsInGameThread());
 
@@ -813,7 +791,7 @@ bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport) 
 		RenderTargetSize.Y = Viewport.GetRenderTargetTexture()->GetSizeY();
 
 		uint32 NewSizeX = InSizeX, NewSizeY = InSizeY;
-		CalculateRenderTargetSize(NewSizeX, NewSizeY);
+		CalculateRenderTargetSize(Viewport, NewSizeX, NewSizeY);
 		if (NewSizeX != RenderTargetSize.X || NewSizeY != RenderTargetSize.Y)
 		{
 			return true;
@@ -869,7 +847,7 @@ void FSteamVRHMD::Startup()
 	
 	vr::HmdError HmdErr = vr::HmdError_None;
 	VRSystem = vr::VR_Init(&HmdErr);
-
+	
 	// make sure that the version of the HMD we're compiled against is correct
 	VRSystem = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
 

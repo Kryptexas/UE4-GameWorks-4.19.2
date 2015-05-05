@@ -1143,7 +1143,7 @@ void UConsole::PostRender_InputLine(UCanvas* Canvas, FIntPoint UserInputLinePos)
 
 	if (GEngine->IsStereoscopic3D())
 	{
-		ClipX -= 150;
+		ClipX = Canvas->ClipX - UserInputLinePos.X;
 		ClipY = ClipY * 0.60;
 	}
 

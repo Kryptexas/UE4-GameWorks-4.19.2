@@ -1389,7 +1389,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(RHICmdList, SceneRenderer->ViewFamily);
 		for( int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++ )
 		{
-			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(SceneRenderer->Views[ViewIndex]);
+			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(RHICmdList, SceneRenderer->Views[ViewIndex]);
 		}
 	}
 
@@ -1478,6 +1478,11 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily*
 
 	// this is passes to the render thread, better access that than GFrameNumberRenderThread
 	ViewFamily->FrameNumber = GFrameNumber;
+
+	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
+	{
+		ViewFamily->ViewExtensions[ViewExt]->BeginRenderViewFamily(*ViewFamily);
+	}
 
 	check(ViewFamily->Scene);
 	FScene* const Scene = ViewFamily->Scene->GetRenderScene();

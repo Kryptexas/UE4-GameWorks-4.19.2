@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "OculusRiftPrivate.h"
+#include "HMDPrivatePCH.h"
 #include "OculusRiftHMD.h"
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
@@ -10,17 +10,6 @@
 #include "Editor/UnrealEd/Classes/Editor/EditorEngine.h"
 #endif
 
-#if !UE_BUILD_SHIPPING
-// Should be changed to CAPI when available.
-#if PLATFORM_SUPPORTS_PRAGMA_PACK
-#pragma pack (push,8)
-#endif
-#include "../Src/Kernel/OVR_Log.h"
-#if PLATFORM_SUPPORTS_PRAGMA_PACK
-#pragma pack (pop)
-#endif
-#endif // #if !UE_BUILD_SHIPPING
-
 //---------------------------------------------------
 // Oculus Rift Plugin Implementation
 //---------------------------------------------------
@@ -28,7 +17,7 @@
 class FOculusRiftPlugin : public IOculusRiftPlugin
 {
 	/** IHeadMountedDisplayModule implementation */
-	virtual TSharedPtr< class IHeadMountedDisplay > CreateHeadMountedDisplay() override;
+	virtual TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > CreateHeadMountedDisplay() override;
 
 	// Pre-init the HMD module (optional).
 	virtual void PreInit() override;
@@ -41,10 +30,10 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 
 IMPLEMENT_MODULE( FOculusRiftPlugin, OculusRift )
 
-TSharedPtr< class IHeadMountedDisplay > FOculusRiftPlugin::CreateHeadMountedDisplay()
+TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > FOculusRiftPlugin::CreateHeadMountedDisplay()
 {
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
-	TSharedPtr< FOculusRiftHMD > OculusRiftHMD( new FOculusRiftHMD() );
+	TSharedPtr< FOculusRiftHMD, ESPMode::ThreadSafe > OculusRiftHMD( new FOculusRiftHMD() );
 	if( OculusRiftHMD->IsInitialized() )
 	{
 		return OculusRiftHMD;
@@ -68,59 +57,157 @@ void FOculusRiftPlugin::PreInit()
 
 #if !UE_BUILD_SHIPPING
 //////////////////////////////////////////////////////////////////////////
-class OculusLog : public OVR::Log
+static void OVR_CDECL OvrLogCallback(int level, const char* message)
 {
-public:
-	OculusLog()
+	const TCHAR* tbuf = ANSI_TO_TCHAR(message);
+	const TCHAR* levelStr = TEXT("");
+	switch (level)
 	{
-		SetLoggingMask(OVR::LogMask_Debug | OVR::LogMask_Regular);
+	case ovrLogLevel_Debug: levelStr = TEXT(" Debug:"); break;
+	case ovrLogLevel_Info:  levelStr = TEXT(" Info:"); break;
+	case ovrLogLevel_Error: levelStr = TEXT(" Error:"); break;
+	default:;
 	}
-
-	// This virtual function receives all the messages,
-	// developers should override this function in order to do custom logging
-	virtual void    LogMessageVarg(LogMessageType messageType, const char* fmt, va_list argList)
-	{
-		if ((messageType & GetLoggingMask()) == 0)
-			return;
-
-		ANSICHAR buf[1024];
-		int32 len = FCStringAnsi::GetVarArgs(buf, sizeof(buf), sizeof(buf) / sizeof(ANSICHAR), fmt, argList);
-		if (len > 0 && buf[len - 1] == '\n') // truncate the trailing new-line char, since Logf adds its own
-			buf[len - 1] = '\0';
-		GLog->Logf(TEXT("OCULUS: %s"), ANSI_TO_TCHAR(buf));
-	}
-};
-
+	GLog->Logf(TEXT("OCULUS:%s %s"), levelStr, tbuf);
+}
 #endif
 
 //////////////////////////////////////////////////////////////////////////
-class ConditionalLocker
+FSettings::FSettings()
 {
-public:
-	ConditionalLocker(bool condition, OVR::Lock* plock) :
-		pLock((condition) ? plock : NULL)
+#ifndef OVR_VISION_ENABLED
+	Flags.bHmdPosTracking = false;
+#endif
+#ifndef OVR_SDK_RENDERING
+	Flags.bTimeWarp = false;
+#else
+#endif
+	FMemory::Memset(EyeRenderDesc, 0);
+	FMemory::Memset(EyeProjectionMatrices, 0);
+	FMemory::Memset(EyeFov, 0);
+
+	SupportedTrackingCaps = SupportedDistortionCaps = SupportedHmdCaps = 0;
+	TrackingCaps = DistortionCaps = HmdCaps = 0;
+
+#ifndef OVR_SDK_RENDERING
+	FMemory::Memset(UVScaleOffset, 0);
+#endif
+
+#ifndef OVR_SDK_RENDERING
+	for (unsigned i = 0; i < sizeof(pDistortionMesh) / sizeof(pDistortionMesh[0]); ++i)
 	{
-		OVR_ASSERT(!condition || pLock);
-		if (pLock)
-			pLock->DoLock();
+		pDistortionMesh[i] = nullptr;
 	}
-	~ConditionalLocker()
-	{
-		if (pLock)
-			pLock->Unlock();
-	}
-private:
-	OVR::Lock*	pLock;
-};
+#endif
+}
+
+TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FSettings::Clone() const
+{
+	TSharedPtr<FSettings, ESPMode::ThreadSafe> NewSettings = MakeShareable(new FSettings(*this));
+	return NewSettings;
+}
+
+void FSettings::SetEyeRenderViewport(int OneEyeVPw, int OneEyeVPh)
+{
+	FHMDSettings::SetEyeRenderViewport(OneEyeVPw, OneEyeVPh);
+	EyeRenderViewport[0].Max.X -= GetTexturePaddingPerEye();
+	EyeRenderViewport[1].Min.X += GetTexturePaddingPerEye();
+}
+
+//////////////////////////////////////////////////////////////////////////
+FGameFrame::FGameFrame()
+{
+	FMemory::Memset(CurEyeRenderPose, 0);
+	FMemory::Memset(CurTrackingState, 0);
+	FMemory::Memset(EyeRenderPose, 0);
+	FMemory::Memset(HeadPose, 0);
+}
+
+TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FGameFrame::Clone() const
+{
+	TSharedPtr<FGameFrame, ESPMode::ThreadSafe> NewFrame = MakeShareable(new FGameFrame(*this));
+	return NewFrame;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+// a hack to allow quickly check if Oculus is in Direct mode
+bool FOculusRiftHMD::bDirectModeHack = false;
 
 void FOculusRiftHMD::PreInit()
 {
-	ovr_Initialize();
+	ovrInitParams initParams;
+	FMemory::Memset(initParams, 0);
+	initParams.Flags = ovrInit_RequestVersion;
+	initParams.RequestedMinorVersion = OVR_MINOR_VERSION;
+#if !UE_BUILD_SHIPPING
+	initParams.LogCallback = OvrLogCallback;
+#endif
+	ovr_Initialize(&initParams);
+}
+
+TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> FOculusRiftHMD::CreateNewGameFrame() const
+{
+	TSharedPtr<FGameFrame, ESPMode::ThreadSafe> Result(MakeShareable(new FGameFrame()));
+	return Result;
+}
+
+TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FOculusRiftHMD::CreateNewSettings() const
+{
+	TSharedPtr<FSettings, ESPMode::ThreadSafe> Result(MakeShareable(new FSettings()));
+	return Result;
+}
+
+bool FOculusRiftHMD::OnStartGameFrame()
+{
+	bool rv = FHeadMountedDisplay::OnStartGameFrame();
+	if (!rv)
+	{
+		return false;
+	}
+
+	FGameFrame* CurrentFrame = GetFrame();
+
+	// need to make a copy of settings here, since settings could change.
+	CurrentFrame->Settings = Settings->Clone();
+	FSettings* CurrentSettings = CurrentFrame->GetSettings();
+
+	if (Hmd)
+	{
+		// Save eye and head poses
+		const ovrVector3f hmdToEyeViewOffset[2] = { CurrentSettings->EyeRenderDesc[0].HmdToEyeViewOffset, CurrentSettings->EyeRenderDesc[1].HmdToEyeViewOffset };
+		ovrHmd_GetEyePoses(Hmd, CurrentFrame->FrameNumber, hmdToEyeViewOffset, CurrentFrame->CurEyeRenderPose, &CurrentFrame->CurTrackingState);
+#ifdef OVR_VISION_ENABLED
+		if (CurrentSettings->Flags.bHmdPosTracking)
+		{
+			CurrentFrame->Flags.bHaveVisionTracking = (CurrentFrame->CurTrackingState.StatusFlags & ovrStatus_PositionTracked) != 0;
+			if (CurrentFrame->Flags.bHaveVisionTracking && !Flags.bHadVisionTracking)
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Vision Tracking Acquired"));
+			}
+			if (!CurrentFrame->Flags.bHaveVisionTracking && Flags.bHadVisionTracking)
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Lost Vision Tracking"));
+			}
+			Flags.bHadVisionTracking = CurrentFrame->Flags.bHaveVisionTracking;
+		}
+#endif // OVR_VISION_ENABLED
+#if !UE_BUILD_SHIPPING
+		{ // used for debugging, do not remove
+			FQuat CurHmdOrientation;
+			FVector CurHmdPosition;
+			GetCurrentPose(CurHmdOrientation, CurHmdPosition, false, false);
+			//UE_LOG(LogHMD, Log, TEXT("BFPOSE: Pos %.3f %.3f %.3f, fr: %d"), CurHmdPosition.X, CurHmdPosition.Y, CurHmdPosition.Y,(int)CurrentFrame->FrameNumber);
+			//UE_LOG(LogHMD, Log, TEXT("BFPOSE: Yaw %.3f Pitch %.3f Roll %.3f, fr: %d"), CurHmdOrientation.Rotator().Yaw, CurHmdOrientation.Rotator().Pitch, CurHmdOrientation.Rotator().Roll,(int)CurrentFrame->FrameNumber);
+		}
+#endif
+	}
+	return true;
 }
 
 bool FOculusRiftHMD::IsHMDConnected()
 {
-	if (IsHMDEnabled())
+	if (Settings->Flags.bHMDEnabled)
 	{
 		InitDevice();
 		return Hmd != nullptr;
@@ -128,18 +215,14 @@ bool FOculusRiftHMD::IsHMDConnected()
 	return false;
 }
 
-bool FOculusRiftHMD::IsHMDEnabled() const
+FGameFrame* FOculusRiftHMD::GetFrame()
 {
-	return Flags.bHMDEnabled;
+	return static_cast<FGameFrame*>(GetCurrentFrame());
 }
 
-void FOculusRiftHMD::EnableHMD(bool enable)
+const FGameFrame* FOculusRiftHMD::GetFrame() const
 {
-	Flags.bHMDEnabled = enable;
-	if (!Flags.bHMDEnabled)
-	{
-		EnableStereo(false);
-	}
+	return static_cast<FGameFrame*>(GetCurrentFrame());
 }
 
 EHMDDeviceType::Type FOculusRiftHMD::GetHMDDeviceType() const
@@ -161,8 +244,8 @@ bool FOculusRiftHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 		MonitorDesc.DesktopY	= Hmd->WindowsPos.y;
 		MonitorDesc.ResolutionX = Hmd->Resolution.w;
 		MonitorDesc.ResolutionY = Hmd->Resolution.h;
-		MonitorDesc.WindowSizeX = MirrorWindowSize.X;
-		MonitorDesc.WindowSizeY = MirrorWindowSize.Y;
+		MonitorDesc.WindowSizeX = Settings->MirrorWindowSize.X;
+		MonitorDesc.WindowSizeY = Settings->MirrorWindowSize.Y;
 		return true;
 	}
 	else
@@ -177,23 +260,29 @@ bool FOculusRiftHMD::GetHMDMonitorInfo(MonitorInfo& MonitorDesc)
 
 bool FOculusRiftHMD::IsFullscreenAllowed()
 {
-	InitDevice();	
+	if (!Hmd)
+	{
+		InitDevice();
+	}
 	return ((Hmd && (Hmd->HmdCaps & ovrHmdCap_ExtendDesktop) != 0) || !Hmd) ? true : false;
 }
 
 bool FOculusRiftHMD::DoesSupportPositionalTracking() const
 {
 #ifdef OVR_VISION_ENABLED
-	 return Flags.bHmdPosTracking && (SupportedTrackingCaps & ovrTrackingCap_Position) != 0;
+	const FGameFrame* frame = GetFrame();
+	const FSettings* OculusSettings = frame->GetSettings();
+	return (frame && OculusSettings->Flags.bHmdPosTracking && (OculusSettings->SupportedTrackingCaps & ovrTrackingCap_Position) != 0);
 #else
 	return false;
 #endif //OVR_VISION_ENABLED
 }
 
-bool FOculusRiftHMD::HasValidTrackingPosition() const
+bool FOculusRiftHMD::HasValidTrackingPosition()
 {
 #ifdef OVR_VISION_ENABLED
-	return Flags.bHmdPosTracking && Flags.bHaveVisionTracking;
+	const auto frame = GetFrame();
+	return (frame && frame->Settings->Flags.bHmdPosTracking && frame->Flags.bHaveVisionTracking);
 #else
 	return false;
 #endif //OVR_VISION_ENABLED
@@ -201,10 +290,15 @@ bool FOculusRiftHMD::HasValidTrackingPosition() const
 
 #define TRACKER_FOCAL_DISTANCE			1.00f // meters (focal point to origin for position)
 
-void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
+void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
 {
+	const auto frame = GetFrame();
+	if (!frame)
+	{
+		return;
+	}
 	OutOrigin = FVector::ZeroVector;
-	OutOrientation = FRotator::ZeroRotator;
+	OutOrientation = FQuat::Identity;
 	OutHFOV = OutVFOV = OutCameraDistance = OutNearPlane = OutFarPlane = 0;
 
 	if (!Hmd)
@@ -212,464 +306,164 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 		return;
 	}
 
-	OutCameraDistance = TRACKER_FOCAL_DISTANCE * WorldToMetersScale;
+	check(frame->WorldToMetersScale >= 0);
+	OutCameraDistance = TRACKER_FOCAL_DISTANCE * frame->WorldToMetersScale;
 	OutHFOV = FMath::RadiansToDegrees(Hmd->CameraFrustumHFovInRadians);
 	OutVFOV = FMath::RadiansToDegrees(Hmd->CameraFrustumVFovInRadians);
-	OutNearPlane = Hmd->CameraFrustumNearZInMeters * WorldToMetersScale;
-	OutFarPlane = Hmd->CameraFrustumFarZInMeters * WorldToMetersScale;
+	OutNearPlane = Hmd->CameraFrustumNearZInMeters * frame->WorldToMetersScale;
+	OutFarPlane = Hmd->CameraFrustumFarZInMeters * frame->WorldToMetersScale;
 
 	// Read the camera pose
-	const ovrTrackingState ss = ovrHmd_GetTrackingState(Hmd, ovr_GetTimeInSeconds());
-	if (!(ss.StatusFlags & ovrStatus_CameraPoseTracked))
+	if (!(frame->CurTrackingState.StatusFlags & ovrStatus_CameraPoseTracked))
 	{
 		return;
 	}
-	const ovrPosef& cameraPose = ss.CameraPose;
+	const ovrPosef& cameraPose = frame->CurTrackingState.CameraPose;
 
 	FQuat Orient;
 	FVector Pos;
-	PoseToOrientationAndPosition(cameraPose, Orient, Pos);
-	OutOrientation = (DeltaControlOrientation * Orient).Rotator();
-	OutOrigin = DeltaControlOrientation.RotateVector(Pos) + PositionOffset;
+	frame->PoseToOrientationAndPosition(cameraPose, Orient, Pos);
+
+	OutOrientation = Orient;
+	OutOrigin = Pos;
 }
 
 bool FOculusRiftHMD::IsInLowPersistenceMode() const
 {
-	return Flags.bLowPersistenceMode && (SupportedHmdCaps & ovrHmdCap_LowPersistence) != 0;
+	const auto frame = GetFrame();
+	const auto FrameSettings = frame->GetSettings();
+	return (frame && FrameSettings->Flags.bLowPersistenceMode && (FrameSettings->SupportedHmdCaps & ovrHmdCap_LowPersistence) != 0);
 }
 
 void FOculusRiftHMD::EnableLowPersistenceMode(bool Enable)
 {
-	Flags.bLowPersistenceMode = Enable;
-	UpdateHmdCaps();
+	Settings->Flags.bLowPersistenceMode = Enable;
+	Flags.bNeedUpdateHmdCaps = true;
 }
 
-float FOculusRiftHMD::GetInterpupillaryDistance() const
-{
-	return InterpupillaryDistance;
-}
-
-void FOculusRiftHMD::SetInterpupillaryDistance(float NewInterpupillaryDistance)
-{
-	InterpupillaryDistance = NewInterpupillaryDistance;
-
-	UpdateStereoRenderingParams();
-}
-
-void FOculusRiftHMD::GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const
-{
-	OutHFOVInDegrees = FMath::RadiansToDegrees(HFOVInRadians);
-	OutVFOVInDegrees = FMath::RadiansToDegrees(VFOVInRadians);
-}
-
-void FOculusRiftHMD::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOrientation, FVector& OutPosition) const
+void FGameFrame::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOrientation, FVector& OutPosition) const
 {
 	OutOrientation = ToFQuat(InPose.Orientation);
 
+	check(WorldToMetersScale >= 0);
 	// correct position according to BaseOrientation and BaseOffset. 
-	const FVector Pos = ToFVector_M2U(Vector3f(InPose.Position)) - ToFVector_M2U(BaseOffset);
-	OutPosition = BaseOrientation.Inverse().RotateVector(Pos);
+	const FVector Pos = (ToFVector_M2U(OVR::Vector3f(InPose.Position), WorldToMetersScale) - (Settings->BaseOffset * WorldToMetersScale)) * CameraScale3D;
+	OutPosition = Settings->BaseOrientation.Inverse().RotateVector(Pos);
 
 	// apply base orientation correction to OutOrientation
-	OutOrientation = BaseOrientation.Inverse() * OutOrientation;
+	OutOrientation = Settings->BaseOrientation.Inverse() * OutOrientation;
 	OutOrientation.Normalize();
+}
+
+void FOculusRiftHMD::GetCurrentHMDPose(FQuat& CurrentOrientation, FVector& CurrentPosition,
+	bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera, const FVector& PositionScale)
+{
+	// only supposed to be used from the game thread
+	check(IsInGameThread());
+	auto frame = GetFrame();
+	if (!frame)
+	{
+		CurrentOrientation = FQuat::Identity;
+		CurrentPosition = FVector::ZeroVector;
+		return;
+	}
+	if (PositionScale != FVector::ZeroVector)
+	{
+		frame->CameraScale3D = PositionScale;
+		frame->Flags.bCameraScale3DAlreadySet = true;
+	}
+	GetCurrentPose(CurrentOrientation, CurrentPosition, bUseOrienationForPlayerCamera, bUsePositionForPlayerCamera);
+	if (bUseOrienationForPlayerCamera)
+	{
+		frame->LastHmdOrientation = CurrentOrientation;
+		frame->Flags.bOrientationChanged = bUseOrienationForPlayerCamera;
+	}
+	if (bUsePositionForPlayerCamera)
+	{
+		frame->LastHmdPosition = CurrentPosition;
+		frame->Flags.bPositionChanged = bUsePositionForPlayerCamera;
+	}
 }
 
 void FOculusRiftHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
-	// only supposed to be used from the game thread
+	GetCurrentHMDPose(CurrentOrientation, CurrentPosition, false, false, FVector::ZeroVector);
+}
+
+FVector FOculusRiftHMD::GetNeckPosition(const FQuat& CurrentOrientation, const FVector& CurrentPosition, const FVector& PositionScale)
+{
+	const auto frame = GetFrame();
+	if (!frame)
+	{
+		return FVector::ZeroVector;
+	}
+	FVector UnrotatedPos = CurrentOrientation.Inverse().RotateVector(CurrentPosition);
+	UnrotatedPos.X -= frame->Settings->NeckToEyeInMeters.X * frame->WorldToMetersScale;
+	UnrotatedPos.Z -= frame->Settings->NeckToEyeInMeters.Y * frame->WorldToMetersScale;
+	return UnrotatedPos;
+}
+
+void FOculusRiftHMD::GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition, bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera)
+{
 	check(IsInGameThread());
-	GetCurrentPose(CurrentOrientation, CurrentPosition);
-	LastHmdOrientation = CurrentOrientation;
-}
 
-void FOculusRiftHMD::GetCurrentPose(FQuat& CurrentHmdOrientation, FVector& CurrentHmdPosition)
-{
-	check(IsInGameThread());
-	check(Hmd);
+	auto frame = GetFrame();
+	check(frame);
 
-	if (Flags.bNeedUpdateStereoRenderingParams)
-		UpdateStereoRenderingParams();
-
-	// Save eye poses
-	ovrTrackingState ts;
-	ovrVector3f hmdToEyeViewOffset[2] = { EyeRenderDesc[0].HmdToEyeViewOffset, EyeRenderDesc[1].HmdToEyeViewOffset };
-	ovrHmd_GetEyePoses(Hmd, GFrameNumber, hmdToEyeViewOffset, EyeRenderPose, &ts);
-
-	const ovrPosef& ThePose = ts.HeadPose.ThePose;
-	PoseToOrientationAndPosition(ThePose, CurrentHmdOrientation, CurrentHmdPosition);
-	//UE_LOG(LogHMD, Log, TEXT("P: %.3f %.3f %.3f"), CurrentPosition.X, CurrentPosition.Y, CurrentPosition.Y);
-
-	LastFrameNumber = GFrameNumber;
-
-#ifdef OVR_VISION_ENABLED
-	if (Flags.bHmdPosTracking)
+	if (bUseOrienationForPlayerCamera || bUsePositionForPlayerCamera)
 	{
-#if !UE_BUILD_SHIPPING
-		bool hadVisionTracking = Flags.bHaveVisionTracking;
-		Flags.bHaveVisionTracking = (ts.StatusFlags & ovrStatus_PositionTracked) != 0;
-		if (Flags.bHaveVisionTracking && !hadVisionTracking)
-			UE_LOG(LogHMD, Warning, TEXT("Vision Tracking Acquired"));
-		if (!Flags.bHaveVisionTracking && hadVisionTracking)
-			UE_LOG(LogHMD, Warning, TEXT("Lost Vision Tracking"));
-#endif // #if !UE_BUILD_SHIPPING
-	}
-#endif // OVR_VISION_ENABLED
-}
-
-void FOculusRiftHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation)
-{
-#if !UE_BUILD_SHIPPING
-	if (Flags.bDoNotUpdateOnGT)
-		return;
-#endif
-
-	ViewRotation.Normalize();
-
-	FQuat CurHmdOrientation;
-	FVector CurHmdPosition;
-	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
-	LastHmdOrientation = CurHmdOrientation;
-
-	const FRotator DeltaRot = ViewRotation - PC->GetControlRotation();
-	DeltaControlRotation = (DeltaControlRotation + DeltaRot).GetNormalized();
-
-	// Pitch from other sources is never good, because there is an absolute up and down that must be respected to avoid motion sickness.
-	// Same with roll.
-	DeltaControlRotation.Pitch = 0;
-	DeltaControlRotation.Roll = 0;
-	{
-		ConditionalLocker lock(Flags.bUpdateOnRT, &StereoParamsLock);
-		DeltaControlOrientation = DeltaControlRotation.Quaternion();
+		// if this pose is going to be used for camera update then save it.
+		// This matters only if bUpdateOnRT is OFF.
+		frame->EyeRenderPose[0] = frame->CurEyeRenderPose[0];
+		frame->EyeRenderPose[1] = frame->CurEyeRenderPose[1];
+		frame->HeadPose = frame->CurTrackingState.HeadPose.ThePose;
 	}
 
-	ViewRotation = FRotator(DeltaControlOrientation * CurHmdOrientation);
-
-#if !UE_BUILD_SHIPPING
-	if (Flags.bDrawTrackingCameraFrustum && PC->GetPawnOrSpectator())
-	{
-		DrawDebugTrackingCameraFrustum(PC->GetWorld(), PC->GetPawnOrSpectator()->GetPawnViewLocation());
-	}
-#endif
+	frame->PoseToOrientationAndPosition(frame->CurTrackingState.HeadPose.ThePose, CurrentHmdOrientation, CurrentHmdPosition);
+	//UE_LOG(LogHMD, Log, TEXT("CRHDPS: Pos %.3f %.3f %.3f"), frame->CurTrackingState.HeadPose.ThePose.Position.x, frame->CurTrackingState.HeadPose.ThePose.Position.y, frame->CurTrackingState.HeadPose.ThePose.Position.z);
+	//UE_LOG(LogHMD, Log, TEXT("CRPOSE: Pos %.3f %.3f %.3f"), CurrentHmdPosition.X, CurrentHmdPosition.Y, CurrentHmdPosition.Z);
+	//UE_LOG(LogHMD, Log, TEXT("CRPOSE: Yaw %.3f Pitch %.3f Roll %.3f"), CurrentHmdOrientation.Rotator().Yaw, CurrentHmdOrientation.Rotator().Pitch, CurrentHmdOrientation.Rotator().Roll);
 }
 
-void FOculusRiftHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV)
+TSharedPtr<ISceneViewExtension, ESPMode::ThreadSafe> FOculusRiftHMD::GetViewExtension()
 {
-#if !UE_BUILD_SHIPPING
-	if (Flags.bDoNotUpdateOnGT)
-		return;
-#endif
-	FQuat	CurHmdOrientation;
-	FVector CurHmdPosition;
-	GetCurrentPose(CurHmdOrientation, CurHmdPosition);
-	LastHmdOrientation = CurHmdOrientation;
-
-	static const FName NAME_Fixed = FName(TEXT("Fixed"));
-	static const FName NAME_ThirdPerson = FName(TEXT("ThirdPerson"));
-	static const FName NAME_FreeCam = FName(TEXT("FreeCam"));
-	static const FName NAME_FreeCam_Default = FName(TEXT("FreeCam_Default"));
-	static const FName NAME_FirstPerson = FName(TEXT("FirstPerson"));
-
-	DeltaControlRotation = POV.Rotation;
-	{
-		ConditionalLocker lock(Flags.bUpdateOnRT, &StereoParamsLock);
-		DeltaControlOrientation = DeltaControlRotation.Quaternion();
-	}
-
-	// Apply HMD orientation to camera rotation.
-	POV.Rotation = FRotator(POV.Rotation.Quaternion() * CurHmdOrientation);
-
-#if !UE_BUILD_SHIPPING
-	if (Flags.bDrawTrackingCameraFrustum)
-	{
-		DrawDebugTrackingCameraFrustum(Camera->GetWorld(), POV.Location);
-	}
-#endif
+ 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> Result(MakeShareable(new FViewExtension(this)));
+ 	return Result;
 }
 
-#if !UE_BUILD_SHIPPING
-void FOculusRiftHMD::DrawDebugTrackingCameraFrustum(UWorld* World, const FVector& ViewLocation)
+void FOculusRiftHMD::ResetStereoRenderingParams()
 {
-	const FColor c = (HasValidTrackingPosition() ? FColor::Green : FColor::Red);
-	FVector origin;
-	FRotator rotation;
-	float hfovDeg, vfovDeg, nearPlane, farPlane, cameraDist;
-	GetPositionalTrackingCameraProperties(origin, rotation, hfovDeg, vfovDeg, cameraDist, nearPlane, farPlane);
-
-	// Level line
-	//DrawDebugLine(World, ViewLocation, FVector(ViewLocation.X + 1000, ViewLocation.Y, ViewLocation.Z), FColor::Blue);
-
-	const float hfov = FMath::DegreesToRadians(hfovDeg * 0.5f);
-	const float vfov = FMath::DegreesToRadians(vfovDeg * 0.5f);
-	FVector coneTop(0, 0, 0);
-	FVector coneBase1(-farPlane, farPlane * FMath::Tan(hfov), farPlane * FMath::Tan(vfov));
-	FVector coneBase2(-farPlane,-farPlane * FMath::Tan(hfov), farPlane * FMath::Tan(vfov));
-	FVector coneBase3(-farPlane,-farPlane * FMath::Tan(hfov),-farPlane * FMath::Tan(vfov));
-	FVector coneBase4(-farPlane, farPlane * FMath::Tan(hfov),-farPlane * FMath::Tan(vfov));
-	FMatrix m(FMatrix::Identity);
-	m *= FRotationMatrix(rotation);
-	m *= FTranslationMatrix(origin);
-	m *= FTranslationMatrix(ViewLocation); // to location of pawn
-	coneTop = m.TransformPosition(coneTop);
-	coneBase1 = m.TransformPosition(coneBase1);
-	coneBase2 = m.TransformPosition(coneBase2);
-	coneBase3 = m.TransformPosition(coneBase3);
-	coneBase4 = m.TransformPosition(coneBase4);
-
-	// draw a point at the camera pos
-	DrawDebugPoint(World, coneTop, 5, c);
-
-	// draw main pyramid, from top to base
-	DrawDebugLine(World, coneTop, coneBase1, c);
-	DrawDebugLine(World, coneTop, coneBase2, c);
-	DrawDebugLine(World, coneTop, coneBase3, c);
-	DrawDebugLine(World, coneTop, coneBase4, c);
-											  
-	// draw base (far plane)				  
-	DrawDebugLine(World, coneBase1, coneBase2, c);
-	DrawDebugLine(World, coneBase2, coneBase3, c);
-	DrawDebugLine(World, coneBase3, coneBase4, c);
-	DrawDebugLine(World, coneBase4, coneBase1, c);
-
-	// draw near plane
-	FVector coneNear1(-nearPlane, nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
-	FVector coneNear2(-nearPlane,-nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
-	FVector coneNear3(-nearPlane,-nearPlane * FMath::Tan(hfov),-nearPlane * FMath::Tan(vfov));
-	FVector coneNear4(-nearPlane, nearPlane * FMath::Tan(hfov),-nearPlane * FMath::Tan(vfov));
-	coneNear1 = m.TransformPosition(coneNear1);
-	coneNear2 = m.TransformPosition(coneNear2);
-	coneNear3 = m.TransformPosition(coneNear3);
-	coneNear4 = m.TransformPosition(coneNear4);
-	DrawDebugLine(World, coneNear1, coneNear2, c);
-	DrawDebugLine(World, coneNear2, coneNear3, c);
-	DrawDebugLine(World, coneNear3, coneNear4, c);
-	DrawDebugLine(World, coneNear4, coneNear1, c);
-
-	// center line
-	FVector centerLine(-cameraDist, 0, 0);
-	centerLine = m.TransformPosition(centerLine);
-	DrawDebugLine(World, coneTop, centerLine, FColor::Yellow);
-	DrawDebugPoint(World, centerLine, 5, FColor::Yellow);
-}
-#endif // #if !UE_BUILD_SHIPPING
-
-bool FOculusRiftHMD::IsChromaAbCorrectionEnabled() const
-{
-	return Flags.bChromaAbCorrectionEnabled;
-}
-
-ISceneViewExtension* FOculusRiftHMD::GetViewExtension()
-{
-	return this;
+	FHeadMountedDisplay::ResetStereoRenderingParams();
+	Settings->InterpupillaryDistance = ovrHmd_GetFloat(Hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
 }
 
 bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	if (FParse::Command( &Cmd, TEXT("STEREO") ))
+	if (FHeadMountedDisplay::Exec(InWorld, Cmd, Ar))
 	{
-		if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			DoEnableStereo(false, true);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("TOGGLE")))
-		{
-			EnableStereo(!IsStereoEnabled());
-			return true;
-		}
-		else if (FParse::Command( &Cmd, TEXT("RESET") ))
-		{
-			Flags.bNeedUpdateStereoRenderingParams = true;
-			Flags.bOverrideStereo = false;
-			Flags.bOverrideIPD = false;
-			Flags.bWorldToMetersOverride = false;
-			NearClippingPlane = FarClippingPlane = 0.f;
-			Flags.bClippingPlanesOverride = true; // forces zeros to be written to ini file to use default values next run
-			InterpupillaryDistance = ovrHmd_GetFloat(Hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
-			UpdateStereoRenderingParams();
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("SHOW")))
-		{
-			Ar.Logf(TEXT("stereo ipd=%.4f hfov=%.3f vfov=%.3f\n nearPlane=%.4f farPlane=%.4f"), GetInterpupillaryDistance(),
-				FMath::RadiansToDegrees(HFOVInRadians), FMath::RadiansToDegrees(VFOVInRadians),
-				(NearClippingPlane) ? NearClippingPlane : GNearClippingPlane, FarClippingPlane);
-		}
-		else
-		{
-			bool on, hmd = false;
-			on = FParse::Command(&Cmd, TEXT("ON"));
-			if (!on)
-			{
-				hmd = FParse::Command(&Cmd, TEXT("HMD"));
-			}
-			if (on || hmd)
-			{
-				if (!IsHMDEnabled())
-				{
-					Ar.Logf(TEXT("HMD is disabled. Use 'hmd enable' to re-enable it."));
-				}
-				DoEnableStereo(true, hmd);
-				if (!Flags.bStereoEnabled)
-				{
-					Ar.Logf(TEXT("Stereo can't be enabled (is HMD connected?)"));
-				}
-				return true;
-			}
-		}
-
-		// normal configuration
-		float val;
-		if (FParse::Value( Cmd, TEXT("E="), val))
-		{
-			SetInterpupillaryDistance( val );
-			Flags.bOverrideIPD = true;
-			Flags.bNeedUpdateStereoRenderingParams = true;
-		}
-		if (FParse::Value(Cmd, TEXT("FCP="), val)) // far clipping plane override
-		{
-			FarClippingPlane = val;
-			Flags.bClippingPlanesOverride = true;
-		}
-		if (FParse::Value(Cmd, TEXT("NCP="), val)) // near clipping plane override
-		{
-			NearClippingPlane = val;
-			Flags.bClippingPlanesOverride = true;
-		}
-		if (FParse::Value(Cmd, TEXT("W2M="), val))
-		{
-			WorldToMetersScale = val;
-			Flags.bWorldToMetersOverride = true;
-		}
-
-		// debug configuration
-		if (Flags.bDevSettingsEnabled)
-		{
-			float fov;
-			if (FParse::Value(Cmd, TEXT("HFOV="), fov))
-			{
-				HFOVInRadians = FMath::DegreesToRadians(fov);
-				Flags.bOverrideStereo = true;
-			}
-			else if (FParse::Value(Cmd, TEXT("VFOV="), fov))
-			{
-				VFOVInRadians = FMath::DegreesToRadians(fov);
-				Flags.bOverrideStereo = true;
-			}
-		}
 		return true;
 	}
-	else if (FParse::Command(&Cmd, TEXT("HMD")))
+
+	auto frame = GetFrame();
+
+	if (FParse::Command(&Cmd, TEXT("HMD")))
 	{
-		if (FParse::Command(&Cmd, TEXT("ENABLE")))
-		{
-			EnableHMD(true);
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("DISABLE")))
-		{
-			EnableHMD(false);
-			return true;
-		}
-#ifdef OVR_SDK_RENDERING
-		else if (FParse::Command(&Cmd, TEXT("AFR")))
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (CmdName.IsEmpty())
-			{
-				AlternateFrameRateDivider = 1;
-			}
-			else
-			{
-				AlternateFrameRateDivider = FCString::Atof(*CmdName);
-			}
-
-			return true;
-		}
-#endif // #ifdef OVR_SDK_RENDERING
-		else if (FParse::Command(&Cmd, TEXT("VSYNC")))
-		{
-			if (FParse::Command( &Cmd, TEXT("RESET") ))
-			{
-				if (Flags.bStereoEnabled)
-				{
-					Flags.bVSync = Flags.bSavedVSync;
-					ApplySystemOverridesOnStereo();
-				}
-				Flags.bOverrideVSync = false;
-				return true;
-			}
-			else
-			{
-				if (FParse::Command(&Cmd, TEXT("ON")) || FParse::Command(&Cmd, TEXT("1")))
-				{
-					Flags.bVSync = true;
-					Flags.bOverrideVSync = true;
-					ApplySystemOverridesOnStereo();
-					return true;
-				}
-				else if (FParse::Command(&Cmd, TEXT("OFF")) || FParse::Command(&Cmd, TEXT("0")))
-				{
-					Flags.bVSync = false;
-					Flags.bOverrideVSync = true;
-					ApplySystemOverridesOnStereo();
-					return true;
-				}
-				else if (FParse::Command(&Cmd, TEXT("TOGGLE")) || FParse::Command(&Cmd, TEXT("")))
-				{
-					Flags.bVSync = !Flags.bVSync;
-					Flags.bOverrideVSync = true;
-					ApplySystemOverridesOnStereo();
-					Ar.Logf(TEXT("VSync is currently %s"), (Flags.bVSync) ? TEXT("ON") : TEXT("OFF"));
-					return true;
-				}
-			}
-			return false;
-		}
-		else if (FParse::Command(&Cmd, TEXT("SP")) || 
-				 FParse::Command(&Cmd, TEXT("SCREENPERCENTAGE")))
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (CmdName.IsEmpty())
-				return false;
-
-			if (!FCString::Stricmp(*CmdName, TEXT("RESET")))
-			{
-				Flags.bOverrideScreenPercentage = false;
-				ApplySystemOverridesOnStereo();
-			}
-			else
-			{
-				float sp = FCString::Atof(*CmdName);
-				if (sp >= 30 && sp <= 300)
-				{
-					Flags.bOverrideScreenPercentage = true;
-					ScreenPercentage = sp;
-					ApplySystemOverridesOnStereo();
-				}
-				else
-				{
-					Ar.Logf(TEXT("Value is out of range [30..300]"));
-				}
-			}
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("LP"))) // low persistence mode
+		if (FParse::Command(&Cmd, TEXT("LP"))) // low persistence mode
 		{
 			FString CmdName = FParse::Token(Cmd, 0);
 			if (!CmdName.IsEmpty())
 			{
 				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
 				{
-					Flags.bLowPersistenceMode = true;
+					Settings->Flags.bLowPersistenceMode = true;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
 				{
-					Flags.bLowPersistenceMode = false;
+					Settings->Flags.bLowPersistenceMode = false;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
 				{
-					Flags.bLowPersistenceMode = !Flags.bLowPersistenceMode;
+					Settings->Flags.bLowPersistenceMode = !Settings->Flags.bLowPersistenceMode;
 				}
 				else
 				{
@@ -678,10 +472,10 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			}
 			else
 			{
-				Flags.bLowPersistenceMode = !Flags.bLowPersistenceMode;
+				Settings->Flags.bLowPersistenceMode = !Settings->Flags.bLowPersistenceMode;
 			}
-			UpdateHmdCaps();
-			Ar.Logf(TEXT("Low Persistence is currently %s"), (Flags.bLowPersistenceMode) ? TEXT("ON") : TEXT("OFF"));
+			Flags.bNeedUpdateHmdCaps = true;
+			Ar.Logf(TEXT("Low Persistence is currently %s"), (Settings->Flags.bLowPersistenceMode) ? TEXT("ON") : TEXT("OFF"));
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("MIRROR"))) // to mirror or not to mirror?...
@@ -691,20 +485,20 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			{
 				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
 				{
-					Flags.bMirrorToWindow = true;
+					Settings->Flags.bMirrorToWindow = true;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
 				{
-					Flags.bMirrorToWindow = false;
+					Settings->Flags.bMirrorToWindow = false;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE"))) 
 				{
-					Flags.bMirrorToWindow = !Flags.bMirrorToWindow;
+					Settings->Flags.bMirrorToWindow = !Settings->Flags.bMirrorToWindow;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("RESET")))
 				{
-					Flags.bMirrorToWindow = true;
-					MirrorWindowSize.X = MirrorWindowSize.Y = 0;
+					Settings->Flags.bMirrorToWindow = true;
+					Settings->MirrorWindowSize.X = Settings->MirrorWindowSize.Y = 0;
 				}
 				else
 				{
@@ -712,49 +506,20 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 					const TCHAR* CmdTemp = FCString::Strchr(*CmdName, 'x') ? FCString::Strchr(*CmdName, 'x') + 1 : FCString::Strchr(*CmdName, 'X') ? FCString::Strchr(*CmdName, 'X') + 1 : TEXT("");
 					int32 Y = FCString::Atoi(CmdTemp);
 
-					MirrorWindowSize.X = X;
-					MirrorWindowSize.Y = Y; 
+					Settings->MirrorWindowSize.X = X;
+					Settings->MirrorWindowSize.Y = Y;
 				}
 			}
 			else
 			{
-				Flags.bMirrorToWindow = !Flags.bMirrorToWindow;
+				Settings->Flags.bMirrorToWindow = !Settings->Flags.bMirrorToWindow;
 			}
-			UpdateHmdCaps();
-			Ar.Logf(TEXT("Mirroring is currently %s"), (Flags.bMirrorToWindow) ? TEXT("ON") : TEXT("OFF"));
-			if (Flags.bMirrorToWindow && (MirrorWindowSize.X != 0 || MirrorWindowSize.Y != 0))
+			Flags.bNeedUpdateHmdCaps = true;
+			Ar.Logf(TEXT("Mirroring is currently %s"), (Settings->Flags.bMirrorToWindow) ? TEXT("ON") : TEXT("OFF"));
+			if (Settings->Flags.bMirrorToWindow && (Settings->MirrorWindowSize.X != 0 || Settings->MirrorWindowSize.Y != 0))
 			{
-				Ar.Logf(TEXT("Mirror window size is %d x %d"), MirrorWindowSize.X, MirrorWindowSize.Y);
+				Ar.Logf(TEXT("Mirror window size is %d x %d"), Settings->MirrorWindowSize.X, Settings->MirrorWindowSize.Y);
 			}
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("UPDATEONRT"))) // update on renderthread
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (!CmdName.IsEmpty())
-			{
-				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-				{
-					Flags.bUpdateOnRT = true;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
-				{
-					Flags.bUpdateOnRT = false;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
-				{
-					Flags.bUpdateOnRT = !Flags.bUpdateOnRT;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			else
-			{
-				Flags.bUpdateOnRT = !Flags.bUpdateOnRT;
-			}
-			Ar.Logf(TEXT("Update on render thread is currently %s"), (Flags.bUpdateOnRT) ? TEXT("ON") : TEXT("OFF"));
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("OVERDRIVE"))) // 2 frame raise overdrive
@@ -764,15 +529,15 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			{
 				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
 				{
-					Flags.bOverdrive = true;
+					Settings->Flags.bOverdrive = true;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
 				{
-					Flags.bOverdrive = false;
+					Settings->Flags.bOverdrive = false;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
 				{
-					Flags.bOverdrive = !Flags.bOverdrive;
+					Settings->Flags.bOverdrive = !Settings->Flags.bOverdrive;
 				}
 				else
 				{
@@ -781,10 +546,10 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			}
 			else
 			{
-				Flags.bOverdrive = !Flags.bOverdrive;
+				Settings->Flags.bOverdrive = !Settings->Flags.bOverdrive;
 			}
-			UpdateDistortionCaps();
-			Ar.Logf(TEXT("Overdrive is currently %s"), (Flags.bOverdrive) ? TEXT("ON") : TEXT("OFF"));
+			Flags.bNeedUpdateDistortionCaps = true;
+			Ar.Logf(TEXT("Overdrive is currently %s"), (Settings->Flags.bOverdrive) ? TEXT("ON") : TEXT("OFF"));
 			return true;
 		}
 #ifdef OVR_SDK_RENDERING
@@ -795,15 +560,15 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			{
 				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
 				{
-					Flags.bTimeWarp = true;
+					Settings->Flags.bTimeWarp = true;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
 				{
-					Flags.bTimeWarp = false;
+					Settings->Flags.bTimeWarp = false;
 				}
 				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
 				{
-					Flags.bTimeWarp = !Flags.bTimeWarp;
+					Settings->Flags.bTimeWarp = !Settings->Flags.bTimeWarp;
 				}
 				else
 				{
@@ -812,58 +577,29 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			}
 			else
 			{
-				Flags.bTimeWarp = !Flags.bTimeWarp;
+				Settings->Flags.bTimeWarp = !Settings->Flags.bTimeWarp;
 			}
-			UpdateDistortionCaps();
-			Ar.Logf(TEXT("TimeWarp is currently %s"), (Flags.bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
+			Flags.bNeedUpdateDistortionCaps = true;
+			Ar.Logf(TEXT("TimeWarp is currently %s"), (Settings->Flags.bTimeWarp) ? TEXT("ON") : TEXT("OFF"));
 			return true;
 		}
 #endif // #ifdef OVR_SDK_RENDERING
 #if !UE_BUILD_SHIPPING
-		else if (FParse::Command(&Cmd, TEXT("UPDATEONGT"))) // update on game thread
-		{
-			FString CmdName = FParse::Token(Cmd, 0);
-			if (!CmdName.IsEmpty())
-			{
-				if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-				{
-					Flags.bDoNotUpdateOnGT = false;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("OFF")))
-				{
-					Flags.bDoNotUpdateOnGT = true;
-				}
-				else if (!FCString::Stricmp(*CmdName, TEXT("TOGGLE")))
-				{
-					Flags.bDoNotUpdateOnGT = !Flags.bDoNotUpdateOnGT;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			else
-			{
-				Flags.bDoNotUpdateOnGT = !Flags.bDoNotUpdateOnGT;
-			}
-			Ar.Logf(TEXT("Update on game thread is currently %s"), (!Flags.bDoNotUpdateOnGT) ? TEXT("ON") : TEXT("OFF"));
-			return true;
-		}
 		else if (FParse::Command(&Cmd, TEXT("STATS"))) // status / statistics
 		{
-			Flags.bShowStats = !Flags.bShowStats;
+			Settings->Flags.bShowStats = !Settings->Flags.bShowStats;
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("GRID"))) // grid
 		{
-			Flags.bDrawGrid = !Flags.bDrawGrid;
+			Settings->Flags.bDrawGrid = !Settings->Flags.bDrawGrid;
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("PROFILE"))) // profile
 		{
-			Flags.bProfiling = !Flags.bProfiling;
-			UpdateDistortionCaps();
-			Ar.Logf(TEXT("Profiling mode is currently %s"), (Flags.bProfiling) ? TEXT("ON") : TEXT("OFF"));
+			Settings->Flags.bProfiling = !Settings->Flags.bProfiling;
+			Flags.bNeedUpdateDistortionCaps = true;
+			Ar.Logf(TEXT("Profiling mode is currently %s"), (Settings->Flags.bProfiling) ? TEXT("ON") : TEXT("OFF"));
 			return true;
 		}
 #endif //UE_BUILD_SHIPPING
@@ -872,19 +608,19 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 	{
 		if (FParse::Command(&Cmd, TEXT("ON")))
 		{
-			Flags.bYawDriftCorrectionEnabled = true;
-			UpdateHmdCaps();
+			Settings->Flags.bYawDriftCorrectionEnabled = true;
+			Flags.bNeedUpdateHmdCaps = true;
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("OFF")))
 		{
-			Flags.bYawDriftCorrectionEnabled = false;
-			UpdateHmdCaps();
+			Settings->Flags.bYawDriftCorrectionEnabled = false;
+			Flags.bNeedUpdateHmdCaps = true;
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("SHOW")))
 		{
-			Ar.Logf(TEXT("mag %s"), Flags.bYawDriftCorrectionEnabled ? 
+			Ar.Logf(TEXT("mag %s"), Settings->Flags.bYawDriftCorrectionEnabled ?
 				TEXT("on") : TEXT("off"));
 			return true;
 		}
@@ -895,25 +631,25 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 #ifndef OVR_SDK_RENDERING
         if (FParse::Command( &Cmd, TEXT("ON") ))
         {
-            Flags.bHmdDistortion = true;
+			Settings->Flags.bHmdDistortion = true;
             return true;
         }
         else if (FParse::Command( &Cmd, TEXT("OFF") ))
         {
-            Flags.bHmdDistortion = false;
+			Settings->Flags.bHmdDistortion = false;
             return true;
         }
 #endif //OVR_SDK_RENDERING
 		if (FParse::Command(&Cmd, TEXT("CHA")))
 		{
-			Flags.bChromaAbCorrectionEnabled = true;
-			UpdateDistortionCaps();
+			Settings->Flags.bChromaAbCorrectionEnabled = true;
+			Flags.bNeedUpdateDistortionCaps = true;
 			return true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("NOCHA")))
 		{
-			Flags.bChromaAbCorrectionEnabled = false;
-			UpdateDistortionCaps();
+			Settings->Flags.bChromaAbCorrectionEnabled = false;
+			Flags.bNeedUpdateDistortionCaps = true;
 			return true;
 		}
 		else if (FParse::Command( &Cmd, TEXT("HQ") ))
@@ -921,177 +657,37 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			// High quality distortion
 			if (FParse::Command( &Cmd, TEXT("ON") ))
 			{
-				Flags.bHQDistortion = true;
+				Settings->Flags.bHQDistortion = true;
 			}
 			else if (FParse::Command(&Cmd, TEXT("OFF")))
 			{
-				Flags.bHQDistortion = false;
+				Settings->Flags.bHQDistortion = false;
 			}
 			else
 			{
-				Flags.bHQDistortion = !Flags.bHQDistortion;
+				Settings->Flags.bHQDistortion = !Settings->Flags.bHQDistortion;
 			}
-			Ar.Logf(TEXT("High quality distortion is currently %s"), (Flags.bHQDistortion) ? TEXT("ON") : TEXT("OFF"));
-			UpdateDistortionCaps();
+			Ar.Logf(TEXT("High quality distortion is currently %s"), (Settings->Flags.bHQDistortion) ? TEXT("ON") : TEXT("OFF"));
+			Flags.bNeedUpdateDistortionCaps = true;
 			return true;
 		}
 
 		if (FParse::Command(&Cmd, TEXT("SHOW")))
 		{
-			Ar.Logf(TEXT("hmdwarp %s sc=%f %s"), (Flags.bHmdDistortion ? TEXT("on") : TEXT("off"))
-				, IdealScreenPercentage / 100.f
-				, (Flags.bChromaAbCorrectionEnabled ? TEXT("cha") : TEXT("nocha")));
+			Ar.Logf(TEXT("hmdwarp %s sc=%f %s"), (Settings->Flags.bHmdDistortion ? TEXT("on") : TEXT("off"))
+				, Settings->IdealScreenPercentage / 100.f
+				, (Settings->Flags.bChromaAbCorrectionEnabled ? TEXT("cha") : TEXT("nocha")));
 		}
 		return true;
     }
-	else if (FParse::Command(&Cmd, TEXT("HMDPOS")))
-	{
-		if (FParse::Command(&Cmd, TEXT("RESET")))
-		{
-			FString YawStr = FParse::Token(Cmd, 0);
-			float yaw = 0.f;
-			if (!YawStr.IsEmpty())
-			{
-				yaw = FCString::Atof(*YawStr);
-			}
-			ResetOrientationAndPosition(yaw);
-			return true;
-		}
-#ifdef OVR_VISION_ENABLED
-		else if (FParse::Command(&Cmd, TEXT("ON")) || FParse::Command(&Cmd, TEXT("ENABLE")))
-		{
-			Flags.bHmdPosTracking = true;
-			UpdateHmdCaps();
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")) || FParse::Command(&Cmd, TEXT("DISABLE")))
-		{
-			Flags.bHmdPosTracking = false;
-			Flags.bHaveVisionTracking = false;
-			UpdateHmdCaps();
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("TOGGLE")))
-		{
-			Flags.bHmdPosTracking = !Flags.bHmdPosTracking;
-			Flags.bHaveVisionTracking = false;
-			UpdateHmdCaps();
-			return true;
-		}
-#if !UE_BUILD_SHIPPING
-		else if (FParse::Command(&Cmd, TEXT("SHOWCAMERA")))
-		{
-			if (FParse::Command(&Cmd, TEXT("OFF")))
-			{
-				Flags.bDrawTrackingCameraFrustum = false;
-				return true;
-			}
-			if (FParse::Command(&Cmd, TEXT("ON")))
-			{
-				Flags.bDrawTrackingCameraFrustum = true;
-				return true;
-			}
-			else 
-			{
-				Flags.bDrawTrackingCameraFrustum = !Flags.bDrawTrackingCameraFrustum;
-				return true;
-			}
-		}
-#endif // #if !UE_BUILD_SHIPPING
-		else if (FParse::Command(&Cmd, TEXT("SHOW")))
-		{
-			Ar.Logf(TEXT("hmdpos is %s, vision='%s'"), 
-				(Flags.bHmdPosTracking ? TEXT("enabled") : TEXT("disabled")),
-				(Flags.bHaveVisionTracking ? TEXT("active") : TEXT("lost")));
-			return true;
-		}
-#endif // #ifdef OVR_VISION_ENABLED
-	}
-	else if (FParse::Command(&Cmd, TEXT("OCULUSDEV")))
-	{
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			Flags.bDevSettingsEnabled = true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			Flags.bDevSettingsEnabled = false;
-		}
-		UpdateStereoRenderingParams();
-		return true;
-	}
-	if (FParse::Command(&Cmd, TEXT("MOTION")))
-	{
-		FString CmdName = FParse::Token(Cmd, 0);
-		if (CmdName.IsEmpty())
-			return false;
-
-		if (!FCString::Stricmp(*CmdName, TEXT("ON")))
-		{
-			Flags.bHeadTrackingEnforced = false;
-			return true;
-		}
-		else if (!FCString::Stricmp(*CmdName, TEXT("ENFORCE")))
-		{
-			Flags.bHeadTrackingEnforced = !Flags.bHeadTrackingEnforced;
-			if (!Flags.bHeadTrackingEnforced)
-			{
-				ResetControlRotation();
-			}
-			return true;
-		}
-		else if (!FCString::Stricmp(*CmdName, TEXT("RESET")))
-		{
-			Flags.bHeadTrackingEnforced = false;
-			ResetControlRotation();
-			return true;
-		}
-		return false;
-	}
-#ifndef OVR_SDK_RENDERING
-	else if (FParse::Command(&Cmd, TEXT("SETFINISHFRAME")))
-	{
-		static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-
-		if (FParse::Command(&Cmd, TEXT("ON")))
-		{
-			Flags.bAllowFinishCurrentFrame = true;
-			if (Flags.bStereoEnabled)
-			{
-				CFinishFrameVar->Set(Flags.bAllowFinishCurrentFrame != 0);
-			}
-			return true;
-		}
-		else if (FParse::Command(&Cmd, TEXT("OFF")))
-		{
-			Flags.bAllowFinishCurrentFrame = false;
-			if (Flags.bStereoEnabled)
-			{
-				CFinishFrameVar->Set(Flags.bAllowFinishCurrentFrame != 0);
-			}
-			return true;
-		}
-		return false;
-	}
-#endif
-	else if (FParse::Command(&Cmd, TEXT("UNCAPFPS")))
-	{
-		GEngine->bSmoothFrameRate = false;
-		return true;
-	}
 	else if (FParse::Command(&Cmd, TEXT("OVRVERSION")))
 	{
+		// deprecated. Use 'hmdversion' instead
 		Ar.Logf(*GetVersionString());
 		return true;
 	}
 
 	return false;
-}
-
-void FOculusRiftHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
-{
-	EnableStereo(WindowMode != EWindowMode::Windowed);
-	UpdateStereoRenderingParams();
 }
 
 FString FOculusRiftHMD::GetVersionString() const
@@ -1109,7 +705,7 @@ void FOculusRiftHMD::RecordAnalytics()
 		// prepare and send analytics data
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 
-		IHeadMountedDisplay::MonitorInfo MonitorInfo;
+		FHeadMountedDisplay::MonitorInfo MonitorInfo;
 		GetHMDMonitorInfo(MonitorInfo);
 		if (Hmd)
 		{
@@ -1125,68 +721,48 @@ void FOculusRiftHMD::RecordAnalytics()
 		FString MonResolution(FString::Printf(TEXT("(%d, %d)"), MonitorInfo.ResolutionX, MonitorInfo.ResolutionY));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Resolution"), MonResolution));
 
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), Flags.bChromaAbCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), Flags.bYawDriftCorrectionEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), Flags.bDevSettingsEnabled));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), Flags.bOverrideIPD));
-		if (Flags.bOverrideIPD)
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ChromaAbCorrectionEnabled"), Settings->Flags.bChromaAbCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MagEnabled"), Settings->Flags.bYawDriftCorrectionEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("DevSettingsEnabled"), Settings->Flags.bDevSettingsEnabled));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideInterpupillaryDistance"), Settings->Flags.bOverrideIPD));
+		if (Settings->Flags.bOverrideIPD)
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), GetInterpupillaryDistance()));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), Flags.bOverrideStereo));
-		if (Flags.bOverrideStereo)
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideStereo"), Settings->Flags.bOverrideStereo));
+		if (Settings->Flags.bOverrideStereo)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HFOV"), HFOVInRadians));
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VFOV"), VFOVInRadians));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HFOV"), Settings->HFOVInRadians));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VFOV"), Settings->VFOVInRadians));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), Flags.bOverrideVSync));
-		if (Flags.bOverrideVSync)
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideVSync"), Settings->Flags.bOverrideVSync));
+		if (Settings->Flags.bOverrideVSync)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), Flags.bVSync));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("VSync"), Settings->Flags.bVSync));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), Flags.bOverrideScreenPercentage));
-		if (Flags.bOverrideScreenPercentage)
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OverrideScreenPercentage"), Settings->Flags.bOverrideScreenPercentage));
+		if (Settings->Flags.bOverrideScreenPercentage)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ScreenPercentage"), ScreenPercentage));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ScreenPercentage"), Settings->ScreenPercentage));
 		}
-		if (Flags.bWorldToMetersOverride)
+		if (Settings->Flags.bWorldToMetersOverride)
 		{
-			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("WorldToMetersScale"), WorldToMetersScale));
+			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("WorldToMetersScale"), Settings->WorldToMetersScale));
 		}
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), InterpupillaryDistance));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), Flags.bTimeWarp));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AllowFinishCurrentFrame"), Flags.bAllowFinishCurrentFrame));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InterpupillaryDistance"), Settings->InterpupillaryDistance));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeWarp"), Settings->Flags.bTimeWarp));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("AllowFinishCurrentFrame"), Settings->Flags.bAllowFinishCurrentFrame));
 #ifdef OVR_VISION_ENABLED
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), Flags.bHmdPosTracking));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("HmdPosTracking"), Settings->Flags.bHmdPosTracking));
 #endif
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LowPersistenceMode"), Flags.bLowPersistenceMode));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), Flags.bUpdateOnRT));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Overdrive"), Flags.bOverdrive));
-		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), Flags.bMirrorToWindow));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LowPersistenceMode"), Settings->Flags.bLowPersistenceMode));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("UpdateOnRT"), Settings->Flags.bUpdateOnRT));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Overdrive"), Settings->Flags.bOverdrive));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("MirrorToWindow"), Settings->Flags.bMirrorToWindow));
 
 		FString OutStr(TEXT("Editor.VR.DeviceInitialised"));
 		FEngineAnalytics::GetProvider().RecordEvent(OutStr, EventAttributes);
 	}
-}
-
-bool FOculusRiftHMD::IsPositionalTrackingEnabled() const
-{
-#ifdef OVR_VISION_ENABLED
-	return Flags.bHmdPosTracking;
-#else
-	return false;
-#endif // #ifdef OVR_VISION_ENABLED
-}
-
-bool FOculusRiftHMD::EnablePositionalTracking(bool enable)
-{
-#ifdef OVR_VISION_ENABLED
-	Flags.bHmdPosTracking = enable;
-	return IsPositionalTrackingEnabled();
-#else
-	OVR_UNUSED(enable);
-	return false;
-#endif
 }
 
 class FSceneViewport* FOculusRiftHMD::FindSceneViewport()
@@ -1209,40 +785,49 @@ class FSceneViewport* FOculusRiftHMD::FindSceneViewport()
 //---------------------------------------------------
 // Oculus Rift IStereoRendering Implementation
 //---------------------------------------------------
-bool FOculusRiftHMD::IsStereoEnabled() const
-{
-	return Flags.bStereoEnabled && Flags.bHMDEnabled /* && !GIsEditor*/;
-}
-
-bool FOculusRiftHMD::EnableStereo(bool bStereo)
-{
-	return DoEnableStereo(bStereo, true);
-}
-
 bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 {
+	check(IsInGameThread());
+
 	FSceneViewport* SceneVP = FindSceneViewport();
 	if (bStereo && (!SceneVP || !SceneVP->IsStereoRenderingAllowed()))
 	{
 		return false;
 	}
 
-	bool stereoEnabled = (IsHMDEnabled()) ? bStereo : false;
+	bool stereoToBeEnabled = (Settings->Flags.bHMDEnabled) ? bStereo : false;
 
-	if ((Flags.bStereoEnabled && stereoEnabled) || (!Flags.bStereoEnabled && !stereoEnabled))
+	if ((Settings->Flags.bStereoEnabled && stereoToBeEnabled) || (!Settings->Flags.bStereoEnabled && !stereoToBeEnabled))
 	{
 		// already in the desired mode
-		return Flags.bStereoEnabled;
+		return Settings->Flags.bStereoEnabled;
+	}
+
+	TSharedPtr<SWindow> Window;
+	if (SceneVP)
+	{
+		Window = SceneVP->FindWindow();
+	}
+
+	if (stereoToBeEnabled)
+	{
+		// check if we already have a window; if not, queue enable stereo to the next frames and exit
+		if (!Window.IsValid())
+		{
+			Flags.bNeedEnableStereo = true;
+			Flags.bEnableStereoToHmd = bApplyToHmd || !IsFullscreenAllowed();
+			return Settings->Flags.bStereoEnabled;
+		}
 	}
 
 	bool wasFullscreenAllowed = IsFullscreenAllowed();
-	if (OnOculusStateChange(stereoEnabled))
+	if (OnOculusStateChange(stereoToBeEnabled))
 	{
-		Flags.bStereoEnabled = stereoEnabled;
+		Settings->Flags.bStereoEnabled = stereoToBeEnabled;
 
-		if (SceneVP)
+		if (SceneVP && SceneVP->GetViewportWidget().IsValid())
 		{
-			if (!IsFullscreenAllowed() && stereoEnabled)
+			if (!IsFullscreenAllowed() && stereoToBeEnabled)
 			{
 				if (Hmd)
 				{
@@ -1250,10 +835,9 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 					SceneVP->SetViewportSize(Hmd->Resolution.w, Hmd->Resolution.h);
 				}
 			}
-			else if (!wasFullscreenAllowed && !stereoEnabled)
+			else if (!wasFullscreenAllowed && !stereoToBeEnabled)
 			{
 				// restoring original viewport size (to be equal to window size).
-				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
 				if (Window.IsValid())
 				{
 					FVector2D size = Window->GetSizeInScreen();
@@ -1264,7 +848,6 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 
 			if (SceneVP)
 			{
-				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
 				if (Window.IsValid())
 				{
 					if (bApplyToHmd && IsFullscreenAllowed())
@@ -1275,7 +858,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 							Window->SetViewportSizeDrivenByWindow(true);
 						}
 
-						if (stereoEnabled)
+						if (stereoToBeEnabled)
 						{
 							EWindowMode::Type wm = (!GIsEditor) ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 							FVector2D size = Window->GetSizeInScreen();
@@ -1306,35 +889,18 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 						// a special case when 'stereo on' or 'stereo hmd' is used in Direct mode. We must set proper window mode, otherwise
 						// it will be lost once window loses and regains the focus.
 						FVector2D size = Window->GetSizeInScreen();
-						FSystemResolution::RequestResolutionChange(size.X, size.Y, (stereoEnabled) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
+						FSystemResolution::RequestResolutionChange(size.X, size.Y, (stereoToBeEnabled) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
 					}
 				}
 			}
 		}
 	}
-	return Flags.bStereoEnabled;
-}
-
-void FOculusRiftHMD::ResetControlRotation() const
-{
-	// Switching back to non-stereo mode: reset player rotation and aim.
-	// Should we go through all playercontrollers here?
-	APlayerController* pc = GEngine->GetFirstLocalPlayerController(GWorld);
-	if (pc)
-	{
-		// Reset Aim? @todo
-		FRotator r = pc->GetControlRotation();
-		r.Normalize();
-		// Reset roll and pitch of the player
-		r.Roll = 0;
-		r.Pitch = 0;
-		pc->SetControlRotation(r);
-	}
+	return Settings->Flags.bStereoEnabled;
 }
 
 bool FOculusRiftHMD::OnOculusStateChange(bool bIsEnabledNow)
 {
-	Flags.bHmdDistortion = bIsEnabledNow;
+	Settings->Flags.bHmdDistortion = bIsEnabledNow;
 	if (!bIsEnabledNow)
 	{
 		// Switching from stereo
@@ -1352,35 +918,36 @@ bool FOculusRiftHMD::OnOculusStateChange(bool bIsEnabledNow)
 		if (Hmd)
 		{
 			SaveSystemValues();
-			ApplySystemOverridesOnStereo(bIsEnabledNow);
+			Flags.bApplySystemOverridesOnStereo = true;
 
 			UpdateStereoRenderingParams();
 			return true;
 		}
+		DeltaControlRotation = FRotator::ZeroRotator;
 	}
 	return false;
 }
 
 void FOculusRiftHMD::ApplySystemOverridesOnStereo(bool bForce)
 {
-	if (Flags.bStereoEnabled || bForce)
+	if (Settings->Flags.bStereoEnabled || bForce)
 	{
 		// Set the current VSync state
-		if (Flags.bOverrideVSync)
+		if (Settings->Flags.bOverrideVSync)
 		{
 			static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-			CVSyncVar->Set(Flags.bVSync != 0);
+			CVSyncVar->Set(Settings->Flags.bVSync != 0);
 		}
 		else
 		{
 			static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-			Flags.bVSync = CVSyncVar->GetInt() != 0;
+			Settings->Flags.bVSync = CVSyncVar->GetInt() != 0;
 		}
 		UpdateHmdCaps();
 
 #ifndef OVR_SDK_RENDERING
 		static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
-		CFinishFrameVar->Set(Flags.bAllowFinishCurrentFrame != 0);
+		CFinishFrameVar->Set(Settings->Flags.bAllowFinishCurrentFrame != 0);
 #endif
 	}
 }
@@ -1388,14 +955,14 @@ void FOculusRiftHMD::ApplySystemOverridesOnStereo(bool bForce)
 void FOculusRiftHMD::SaveSystemValues()
 {
 	static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
-	Flags.bSavedVSync = CVSyncVar->GetInt() != 0;
+	Settings->Flags.bSavedVSync = CVSyncVar->GetInt() != 0;
 }
 
 void FOculusRiftHMD::RestoreSystemValues()
 {
 	static IConsoleVariable* CVSyncVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
 	// todo: bad - cvars are a user wish, this should be changed
-	CVSyncVar->Set(Flags.bSavedVSync != 0);
+	CVSyncVar->Set(Settings->Flags.bSavedVSync != 0);
 
 	static IConsoleVariable* CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
 	// todo: bad - cvars are a user wish, this should be changed
@@ -1404,82 +971,77 @@ void FOculusRiftHMD::RestoreSystemValues()
 
 void FOculusRiftHMD::UpdatePostProcessSettings(FPostProcessSettings* Settings)
 {
-	if (Flags.bScreenPercentageEnabled)
+	const auto frame = GetFrame();
+	if (frame && frame->Flags.bScreenPercentageEnabled)
 	{
-		Settings->ScreenPercentage = GetScreenPercentage();
+		Settings->ScreenPercentage = GetActualScreenPercentage();
 	}
-}
-
-void FOculusRiftHMD::AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const
-{
-    SizeX = SizeX / 2;
-    if( StereoPass == eSSP_RIGHT_EYE )
-    {
-        X += SizeX;
-    }
 }
 
 void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
 {
 	check(WorldToMeters != 0.f);
-	check(Hmd);
 
 	const int idx = (StereoPassType == eSSP_LEFT_EYE) ? 0 : 1;
 
 	if (IsInGameThread())
 	{
+		const auto frame = GetFrame();
+		if (!frame)
+		{
+			return;
+		}
+
 		// This method is called from GetProjectionData on a game thread.
 		// The modified ViewLocation is used ONLY for ViewMatrix composition, it is not
 		// stored modified in the ViewInfo. ViewInfo.ViewLocation remains unmodified.
 
-		if( StereoPassType != eSSP_FULL || Flags.bHeadTrackingEnforced )
+		if (StereoPassType != eSSP_FULL || frame->Settings->Flags.bHeadTrackingEnforced)
 		{
-			if (Flags.bNeedUpdateStereoRenderingParams)
-				UpdateStereoRenderingParams();
-
-			// Check if we already have updated the pose for this frame. If not, read it here
-			if (GFrameNumber != LastFrameNumber)
+			if (!frame->Flags.bOrientationChanged)
 			{
-				// Usually, the pose is updated either from ApplyHmdOrientation or from UpdateCameraOrientation methods.
-				// However, in Editor those methods are not called.
-				FQuat	CurrentHmdOrientation;
-				FVector CurrentHmdPosition;
-				GetCurrentPose(CurrentHmdOrientation, CurrentHmdPosition);
+				UE_LOG(LogHMD, Log, TEXT("Orientation wasn't applied to a camera in frame %d"), GFrameCounter);
 			}
 
 			FVector CurEyePosition;
 			FQuat CurEyeOrient;
-			PoseToOrientationAndPosition(EyeRenderPose[idx], CurEyeOrient, CurEyePosition);
+			frame->PoseToOrientationAndPosition(frame->EyeRenderPose[idx], CurEyeOrient, CurEyePosition);
+
+			FVector HeadPosition = FVector::ZeroVector;
+			// If we use PlayerController->bFollowHmd then we must apply full EyePosition (HeadPosition == 0).
+			// Otherwise, we will apply only a difference between EyePosition and HeadPosition, since
+			// HeadPosition is supposedly already applied.
+			if (!frame->Flags.bPlayerControllerFollowsHmd)
+			{
+				FQuat HeadOrient;
+				frame->PoseToOrientationAndPosition(frame->HeadPose, HeadOrient, HeadPosition);
+			}
+
+			// apply stereo disparity to ViewLocation. Note, ViewLocation already contains HeadPose.Position, thus
+			// we just need to apply delta between EyeRenderPose.Position and the HeadPose.Position. 
+			// EyeRenderPose and HeadPose are captured by the same call to GetEyePoses.
+			const FVector HmdToEyeOffset = CurEyePosition - HeadPosition;
+
+			// Calculate the difference between the final ViewRotation and EyeOrientation:
+			// we need to rotate the HmdToEyeOffset by this differential quaternion.
+			// When bPlayerControllerFollowsHmd == true, the DeltaControlOrientation already contains
+			// the proper value (see ApplyHmdRotation)
+			//FRotator r = ViewRotation - CurEyeOrient.Rotator();
+			const FQuat ViewOrient = ViewRotation.Quaternion();
+			const FQuat DeltaControlOrientation =  ViewOrient * CurEyeOrient.Inverse();
+
+			//UE_LOG(LogHMD, Log, TEXT("EYEROT: Yaw %.3f Pitch %.3f Roll %.3f"), CurEyeOrient.Rotator().Yaw, CurEyeOrient.Rotator().Pitch, CurEyeOrient.Rotator().Roll);
+			//UE_LOG(LogHMD, Log, TEXT("VIEROT: Yaw %.3f Pitch %.3f Roll %.3f"), ViewRotation.Yaw, ViewRotation.Pitch, ViewRotation.Roll);
+			//UE_LOG(LogHMD, Log, TEXT("DLTROT: Yaw %.3f Pitch %.3f Roll %.3f"), DeltaControlOrientation.Rotator().Yaw, DeltaControlOrientation.Rotator().Pitch, DeltaControlOrientation.Rotator().Roll);
 
 			// The HMDPosition already has HMD orientation applied.
 			// Apply rotational difference between HMD orientation and ViewRotation
 			// to HMDPosition vector. 
-			const FVector vEyePosition = DeltaControlOrientation.RotateVector(CurEyePosition) + PositionOffset;
+			const FVector vEyePosition = DeltaControlOrientation.RotateVector(HmdToEyeOffset);
 			ViewLocation += vEyePosition;
+			
+			//UE_LOG(LogHMD, Log, TEXT("DLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
 		}
-	}
-	else if (IsInRenderingThread())
-	{
-		// This method is called from UpdateViewMatrix on a render thread.
-		// The modified ViewLocation is used ONLY for ViewMatrix composition, it is not
-		// stored modified in the ViewInfo. ViewInfo.ViewLocation remains unmodified.
-
-		if (StereoPassType != eSSP_FULL)
-		{
-			FVector CurEyePosition;
-			FQuat CurEyeOrient;
-			PoseToOrientationAndPosition(RenderParams_RenderThread.EyeRenderPose[idx], CurEyeOrient, CurEyePosition);
-
-			// The HMDPosition already has HMD orientation applied.
-			// Apply rotational difference between HMD orientation and ViewRotation
-			// to HMDPosition vector. 
-			const FVector vEyePosition = RenderParams_RenderThread.DeltaControlOrientation.RotateVector(CurEyePosition) + PositionOffset;
-			ViewLocation += vEyePosition;
-		}
-	}
-	else
-	{
-		check(0); // huh? neither game nor rendering thread?
 	}
 }
 
@@ -1491,9 +1053,18 @@ void FOculusRiftHMD::ResetOrientationAndPosition(float yaw)
 
 void FOculusRiftHMD::ResetOrientation(float yaw)
 {
-	const ovrTrackingState ss = ovrHmd_GetTrackingState(Hmd, ovr_GetTimeInSeconds());
-	const ovrPosef& pose = ss.HeadPose.ThePose;
-	const OVR::Quatf orientation = OVR::Quatf(pose.Orientation);
+	const auto frame = GetFrame();
+	OVR::Quatf orientation;
+	if (frame)
+	{
+		orientation = OVR::Quatf(frame->CurTrackingState.HeadPose.ThePose.Orientation);
+	}
+	else
+	{
+		const ovrTrackingState ss = ovrHmd_GetTrackingState(Hmd, ovr_GetTimeInSeconds());
+		const ovrPosef& pose = ss.HeadPose.ThePose;
+		orientation = OVR::Quatf(pose.Orientation);
+	}
 
 	FRotator ViewRotation;
 	ViewRotation = FRotator(ToFQuat(orientation));
@@ -1507,73 +1078,43 @@ void FOculusRiftHMD::ResetOrientation(float yaw)
 		ViewRotation.Normalize();
 	}
 
-	BaseOrientation = ViewRotation.Quaternion();
+	Settings->BaseOrientation = ViewRotation.Quaternion();
 }
 
 void FOculusRiftHMD::ResetPosition()
 {
 	// Reset position
-#ifdef OVR_VISION_ENABLED
-	const ovrTrackingState ss = ovrHmd_GetTrackingState(Hmd, ovr_GetTimeInSeconds());
-	const ovrPosef& pose = ss.HeadPose.ThePose;
-	const OVR::Quatf orientation = OVR::Quatf(pose.Orientation);
-
-	BaseOffset = pose.Position;
-#else
-	BaseOffset = OVR::Vector3f(0, 0, 0);
-#endif // #ifdef OVR_VISION_ENABLED
+	auto frame = GetFrame();
+	OVR::Quatf orientation;
+	if (frame)
+	{
+		orientation = OVR::Quatf(frame->CurTrackingState.HeadPose.ThePose.Orientation);
+		Settings->BaseOffset = ToFVector(frame->CurTrackingState.HeadPose.ThePose.Position);
+	}
+	else
+	{
+		const ovrTrackingState ss = ovrHmd_GetTrackingState(Hmd, ovr_GetTimeInSeconds());
+		const ovrPosef& pose = ss.HeadPose.ThePose;
+		orientation = OVR::Quatf(pose.Orientation);
+		Settings->BaseOffset = ToFVector(pose.Position);
+	}
 }
 
-void FOculusRiftHMD::SetClippingPlanes(float NCP, float FCP)
+FMatrix FOculusRiftHMD::GetStereoProjectionMatrix(EStereoscopicPass StereoPassType, const float FOV) const
 {
-	NearClippingPlane = NCP;
-	FarClippingPlane = FCP;
-	Flags.bClippingPlanesOverride = false; // prevents from saving in .ini file
-}
-
-void FOculusRiftHMD::SetBaseRotation(const FRotator& BaseRot)
-{
-	SetBaseOrientation(BaseRot.Quaternion());
-}
-
-FRotator FOculusRiftHMD::GetBaseRotation() const
-{
-	return GetBaseOrientation().Rotator();
-}
-
-void FOculusRiftHMD::SetBaseOrientation(const FQuat& BaseOrient)
-{
-	BaseOrientation = BaseOrient;
-}
-
-FQuat FOculusRiftHMD::GetBaseOrientation() const
-{
-	return BaseOrientation;
-}
-
-void FOculusRiftHMD::SetPositionOffset(const FVector& PosOff)
-{
-	PositionOffset = PosOff;
-}
-
-FVector FOculusRiftHMD::GetPositionOffset() const
-{
-	return PositionOffset;
-}
-
-FMatrix FOculusRiftHMD::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassType, const float FOV) const
-{
-	// Stereo params must be recalculated already, see CalculateStereoViewOffset.
-	check(!Flags.bNeedUpdateStereoRenderingParams);
+	auto frame = GetFrame();
+	check(frame);
 	check(IsStereoEnabled());
+
+	const FSettings* FrameSettings = frame->GetSettings();
 
 	const int idx = (StereoPassType == eSSP_LEFT_EYE) ? 0 : 1;
 
-	FMatrix proj = ToFMatrix(EyeProjectionMatrices[idx]);
+	FMatrix proj = ToFMatrix(FrameSettings->EyeProjectionMatrices[idx]);
 
 	// correct far and near planes for reversed-Z projection matrix
-	const float InNearZ = (NearClippingPlane) ? NearClippingPlane : GNearClippingPlane;
-	const float InFarZ = (FarClippingPlane) ? FarClippingPlane : GNearClippingPlane;
+	const float InNearZ = (FrameSettings->NearClippingPlane) ? FrameSettings->NearClippingPlane : GNearClippingPlane;
+	const float InFarZ = (FrameSettings->FarClippingPlane) ? FrameSettings->FarClippingPlane : GNearClippingPlane;
 	proj.M[3][3] = 0.0f;
 	proj.M[2][3] = 1.0f;
 
@@ -1583,106 +1124,84 @@ FMatrix FOculusRiftHMD::GetStereoProjectionMatrix(enum EStereoscopicPass StereoP
 	return proj;
 }
 
+void FOculusRiftHMD::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const
+{
+	const auto frame = GetFrame();
+	check(frame);
+
+	const FSettings* FrameSettings = frame->GetSettings();
+
+	OrthoDistance /= frame->WorldToMetersScale; // This is meters from the camera (viewer) that we place the ortho plane.
+
+    const OVR::Vector2f orthoScale[2] = 
+	{
+		OVR::Vector2f(1.f) / OVR::Vector2f(FrameSettings->EyeRenderDesc[0].PixelsPerTanAngleAtCenter),
+		OVR::Vector2f(1.f) / OVR::Vector2f(FrameSettings->EyeRenderDesc[1].PixelsPerTanAngleAtCenter)
+    };
+
+	OVR::Matrix4f SubProjection[2];
+	SubProjection[0] = ovrMatrix4f_OrthoSubProjection(FrameSettings->PerspectiveProjection[0], orthoScale[0], OrthoDistance, FrameSettings->EyeRenderDesc[0].HmdToEyeViewOffset.x);
+	SubProjection[1] = ovrMatrix4f_OrthoSubProjection(FrameSettings->PerspectiveProjection[1], orthoScale[1], OrthoDistance, FrameSettings->EyeRenderDesc[1].HmdToEyeViewOffset.x);
+
+    //Translate the subprojection for half of the screen . map it from [0,1] to [-1,1] . The total translation is translated * 0.25.
+	OrthoProjection[0] = FTranslationMatrix(FVector(SubProjection[0].M[0][3] * RTWidth * .25 , 0 , 0));
+    //Right eye gets translated to right half of screen
+	OrthoProjection[1] = FTranslationMatrix(FVector(SubProjection[1].M[0][3] * RTWidth * .25 + RTWidth * .5 + FrameSettings->TexturePaddingPerEye*2, 0 , 0));
+
+	if (FrameSettings->TexturePaddingPerEye > 0)
+	{
+		// Apply scale to compensate the texture padding between two views.
+		FMatrix ScaleMatrix(
+			FPlane(1, 0, 0, 0),
+			FPlane(0, 0, 0, 0),
+			FPlane(0, 0, 0, 0),
+			FPlane(0, 0, 0, 0));
+
+		ScaleMatrix = ScaleMatrix.ApplyScale(float(RTWidth) / (RTWidth + FrameSettings->TexturePaddingPerEye*2));
+		ScaleMatrix.M[1][1] = 1.0f;
+		ScaleMatrix.M[2][2] = 1.0f;
+		ScaleMatrix.M[3][3] = 1.0f;
+
+		OrthoProjection[0] *= ScaleMatrix;
+		OrthoProjection[1] *= ScaleMatrix;
+	}
+}
+
 void FOculusRiftHMD::InitCanvasFromView(FSceneView* InView, UCanvas* Canvas)
 {
 	// This is used for placing small HUDs (with names)
 	// over other players (for example, in Capture Flag).
 	// HmdOrientation should be initialized by GetCurrentOrientation (or
 	// user's own value).
-	FSceneView HmdView(*InView);
-
-	const FQuat DeltaOrient = HmdView.BaseHmdOrientation.Inverse() * Canvas->HmdOrientation;
-	HmdView.ViewRotation = FRotator(HmdView.ViewRotation.Quaternion() * DeltaOrient);
-
-	HmdView.UpdateViewMatrix();
-	Canvas->ViewProjectionMatrix = HmdView.ViewProjectionMatrix;
 }
-
-void FOculusRiftHMD::PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FViewport *InViewport) const
-{
-	if (StereoPass != eSSP_FULL)
-	{
-		int32 SideSizeX = FMath::TruncToInt(InViewport->GetSizeXY().X * 0.5);
-
-		// !AB: temporarily assuming all canvases are at Z = 1.0f and calculating
-		// stereo disparity right here. Stereo disparity should be calculated for each
-		// element separately, considering its actual Z-depth.
-		const float Z = 1.0f;
-		float Disparity = Z * HudOffset + Z * CanvasCenterOffset;
-		if (StereoPass == eSSP_RIGHT_EYE)
-			Disparity = -Disparity;
-
-		if (InCanvasObject)
-		{
-			//InCanvasObject->Init();
-			InCanvasObject->SizeX = SideSizeX;
-			InCanvasObject->SizeY = InViewport->GetSizeXY().Y;
-			InCanvasObject->SetView(NULL);
-			InCanvasObject->Update();
-		}
-
-		float ScaleFactor = 1.0f;
-		FScaleMatrix m(ScaleFactor);
-
-		InCanvas->PushAbsoluteTransform(FTranslationMatrix(
-			FVector(((StereoPass == eSSP_RIGHT_EYE) ? SideSizeX : 0) + Disparity, 0, 0))*m);
-	}
-	else
-	{
-		FMatrix m;
-		m.SetIdentity();
-		InCanvas->PushAbsoluteTransform(m);
-	}
-}
-
-void FOculusRiftHMD::PushViewCanvas(EStereoscopicPass StereoPass, FCanvas *InCanvas, UCanvas *InCanvasObject, FSceneView *InView) const
-{
-	if (StereoPass != eSSP_FULL)
-	{
-		if (InCanvasObject)
-		{
-			//InCanvasObject->Init();
-			InCanvasObject->SizeX = InView->ViewRect.Width();
-			InCanvasObject->SizeY = InView->ViewRect.Height();
-			InCanvasObject->SetView(InView);
-			InCanvasObject->Update();
-		}
-
-		InCanvas->PushAbsoluteTransform(FTranslationMatrix(FVector(InView->ViewRect.Min.X, InView->ViewRect.Min.Y, 0)));
-	}
-	else
-	{
-		FMatrix m;
-		m.SetIdentity();
-		InCanvas->PushAbsoluteTransform(m);
-	}
-}
-
 
 //---------------------------------------------------
 // Oculus Rift ISceneViewExtension Implementation
 //---------------------------------------------------
 
-void FOculusRiftHMD::ModifyShowFlags(FEngineShowFlags& ShowFlags)
+void FOculusRiftHMD::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
-	ShowFlags.MotionBlur = 0;
+	auto frame = GetFrame();
+	check(frame);
+
+	InViewFamily.EngineShowFlags.MotionBlur = 0;
 #ifndef OVR_SDK_RENDERING
-	ShowFlags.HMDDistortion = Flags.bHmdDistortion;
+	InViewFamily.EngineShowFlags.HMDDistortion = frame->Settings->Flags.bHmdDistortion;
 #else
-	ShowFlags.HMDDistortion = false;
+	InViewFamily.EngineShowFlags.HMDDistortion = false;
 #endif
-	ShowFlags.StereoRendering = IsStereoEnabled();
+	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
+
+	frame->Flags.bScreenPercentageEnabled = InViewFamily.EngineShowFlags.ScreenPercentage;
 }
 
 void FOculusRiftHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 {
-	InView.BaseHmdOrientation = LastHmdOrientation;
-	InView.BaseHmdLocation = FVector(0.f);
-	if (!Flags.bWorldToMetersOverride)
-	{
-		WorldToMetersScale = InView.WorldToMetersScale;
-	}
-	Flags.bScreenPercentageEnabled = InViewFamily.EngineShowFlags.ScreenPercentage;
+	auto frame = GetFrame();
+	check(frame);
+
+	InView.BaseHmdOrientation = frame->LastHmdOrientation;
+	InView.BaseHmdLocation = frame->LastHmdPosition;
 
 #ifndef OVR_SDK_RENDERING
 	InViewFamily.bUseSeparateRenderTarget = false;
@@ -1690,27 +1209,40 @@ void FOculusRiftHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InVie
 	// check and save texture size. 
 	if (InView.StereoPass == eSSP_LEFT_EYE)
 	{
-		if (EyeViewportSize != InView.ViewRect.Size())
+		if (Settings->EyeRenderViewport[0].Size() != InView.ViewRect.Size())
 		{
-			EyeViewportSize = InView.ViewRect.Size();
+			Settings->SetEyeRenderViewport(InView.ViewRect.Size().X, InView.ViewRect.Size().Y);
+
+			// patch EyeRenderViewport in the frame's settings as well
+			FMemory::Memcpy(frame->GetSettings()->EyeRenderViewport, Settings->EyeRenderViewport);
 			Flags.bNeedUpdateStereoRenderingParams = true;
 		}
 	}
 #else
 	InViewFamily.bUseSeparateRenderTarget = ShouldUseSeparateRenderTarget();
+
+	if (InView.StereoPass == eSSP_RIGHT_EYE)
+	{
+		InView.ViewRect.Min.X += frame->GetSettings()->GetTexturePaddingPerEye()*2;
+		InView.ViewRect.Max.X += frame->GetSettings()->GetTexturePaddingPerEye()*2;
+	}
+
 #endif
+
+	const int eyeIdx = (InView.StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
+	frame->CachedViewRotation[eyeIdx] = InView.ViewRotation;
 }
 
 bool FOculusRiftHMD::IsHeadTrackingAllowed() const
 {
 #if WITH_EDITOR
-	UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+	if (GIsEditor)
+	{
+		UEditorEngine* EdEngine = Cast<UEditorEngine>(GEngine);
+		return Hmd && (!EdEngine || EdEngine->bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) &&	(Settings->Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
+	}
 #endif//WITH_EDITOR
-	return Hmd && 
-#if WITH_EDITOR
-		(!EdEngine || EdEngine->bUseVRPreviewForPlayWorld || GetDefault<ULevelEditorPlaySettings>()->ViewportGetsHMDControl) &&
-#endif//WITH_EDITOR
-		(Flags.bHeadTrackingEnforced || GEngine->IsStereoscopic3D());
+	return Hmd && FHeadMountedDisplay::IsHeadTrackingAllowed();
 }
 
 //---------------------------------------------------
@@ -1719,61 +1251,18 @@ bool FOculusRiftHMD::IsHeadTrackingAllowed() const
 
 FOculusRiftHMD::FOculusRiftHMD()
 	:
-	SavedScrPerc(100.f)
-	, ScreenPercentage(100.f)
-	, InterpupillaryDistance(OVR_DEFAULT_IPD)
-	, WorldToMetersScale(100.f)
-	, UserDistanceToScreenModifier(0.f)
-	, HFOVInRadians(FMath::DegreesToRadians(90.f))
-	, VFOVInRadians(FMath::DegreesToRadians(90.f))
-	, HudOffset(0.f)
-	, CanvasCenterOffset(0.f)
-	, MirrorWindowSize(0, 0)
-	, NearClippingPlane(0)
-	, FarClippingPlane(0)
-	, DeltaControlRotation(FRotator::ZeroRotator)
-	, DeltaControlOrientation(FQuat::Identity)
-	, LastHmdOrientation(FQuat::Identity)
-	, LastFrameNumber(0)
-	, BaseOffset(0, 0, 0)
-	, BaseOrientation(FQuat::Identity)
-	, PositionOffset(0,0,0)
-	, Hmd(nullptr)
-	, TrackingCaps(0)
-	, DistortionCaps(0)
-	, HmdCaps(0)
-	, EyeViewportSize(0, 0)
-	, RenderParams_RenderThread(getThis())
+	  Hmd(nullptr)
 {
-	Flags.Raw = 0;
+	OCFlags.Raw = 0;
+	DeltaControlRotation = FRotator::ZeroRotator;
 
-	Flags.bHMDEnabled = true;
-	Flags.bNeedUpdateStereoRenderingParams = true;
-	Flags.bOverrideVSync = true;
-	Flags.bVSync = true;
-	Flags.bAllowFinishCurrentFrame = true;
-	Flags.bHmdDistortion = true;
-	Flags.bChromaAbCorrectionEnabled = true;
-	Flags.bYawDriftCorrectionEnabled = true;
-	Flags.bLowPersistenceMode = true; // on by default (DK2+ only)
-	Flags.bUpdateOnRT = true;
-	Flags.bOverdrive = true;
-	Flags.bMirrorToWindow = true;
-	Flags.bTimeWarp = true;
-#ifdef OVR_VISION_ENABLED
-	Flags.bHmdPosTracking = true;
-#endif
-#ifndef OVR_SDK_RENDERING
-	Flags.bTimeWarp = false;
-#else
-	AlternateFrameRateDivider = 1;
-#endif
+	Settings = MakeShareable(new FSettings);
+
 	if (GIsEditor)
 	{
-		Flags.bOverrideScreenPercentage = true;
-		ScreenPercentage = 100;
+		Settings->Flags.bOverrideScreenPercentage = true;
+		Settings->ScreenPercentage = 100;
 	}
-	SupportedTrackingCaps = SupportedDistortionCaps = SupportedHmdCaps = 0;
 	OSWindowHandle = nullptr;
 	Startup();
 }
@@ -1783,35 +1272,23 @@ FOculusRiftHMD::~FOculusRiftHMD()
 	Shutdown();
 }
 
-bool FOculusRiftHMD::IsInitialized() const
-{
-	return (Flags.InitStatus & eInitialized) != 0;
-}
-
 void FOculusRiftHMD::Startup()
 {
-	if ((!IsRunningGame() && !GIsEditor) || (Flags.InitStatus & eStartupExecuted) != 0)
+	if ((!IsRunningGame() && !GIsEditor) || (Settings->Flags.InitStatus & FSettings::eStartupExecuted) != 0)
 	{
 		// do not initialize plugin for server or if it was already initialized
 		return;
 	}
-	Flags.InitStatus |= eStartupExecuted;
+	Settings->Flags.InitStatus |= FSettings::eStartupExecuted;
 
 	// Initializes LibOVR. This LogMask_All enables maximum logging.
 	// Custom allocator can also be specified here.
 	// Actually, most likely, the ovr_Initialize is already called from PreInit.
 	int8 bWasInitialized = ovr_Initialize();
 
-#if !UE_BUILD_SHIPPING
-	// Should be changed to CAPI when available.
-	static OculusLog OcLog;
-	OVR::Log::SetGlobalLog(&OcLog);
-#endif //#if !UE_BUILD_SHIPPING
-
 	if (GIsEditor)
 	{
-		Flags.bHeadTrackingEnforced = true;
-		//AlternateFrameRateDivider = 2;
+		Settings->Flags.bHeadTrackingEnforced = true;
 	}
 
 	bool bForced = FParse::Param(FCommandLine::Get(), TEXT("forcedrift"));
@@ -1824,7 +1301,7 @@ void FOculusRiftHMD::Startup()
 	if (!bInitialized && !bForced)
 	{
 		ovr_Shutdown();
-		Flags.InitStatus = 0;
+		Settings->Flags.InitStatus = 0;
 		return;
 	}
 
@@ -1837,20 +1314,20 @@ void FOculusRiftHMD::Startup()
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 	if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
 	{
-		pD3D11Bridge = new D3D11Bridge(this);
+		pD3D11Bridge = new D3D11Bridge();
 	}
 #endif
 #if defined(OVR_GL)
 	if (IsOpenGLPlatform(GMaxRHIShaderPlatform))
 	{
-		pOGLBridge = new OGLBridge(this);
+		pOGLBridge = new OGLBridge();
 	}
 #endif
 #endif // #ifdef OVR_SDK_RENDERING
 
 	if (bForced || Hmd)
 	{
-		Flags.InitStatus |= eInitialized;
+		Settings->Flags.InitStatus |= FSettings::eInitialized;
 
 		UE_LOG(LogHMD, Log, TEXT("Oculus plugin initialized. Version: %s"), *GetVersionString());
 	}
@@ -1858,7 +1335,7 @@ void FOculusRiftHMD::Startup()
 
 void FOculusRiftHMD::Shutdown()
 {
-	if (!(Flags.InitStatus & eInitialized))
+	if (!(Settings->Flags.InitStatus & FSettings::eInitialized))
 	{
 		return;
 	}
@@ -1875,18 +1352,11 @@ void FOculusRiftHMD::Shutdown()
 #endif // OVR_SDK_RENDERING
 	ReleaseDevice();
 	
-#ifndef OVR_SDK_RENDERING
-	for (unsigned i = 0; i < sizeof(pDistortionMesh) / sizeof(pDistortionMesh[0]); ++i)
-	{
-		pDistortionMesh[i] = NULL;
-	}
-#endif
-	{
-		OVR::Lock::Locker lock(&StereoParamsLock);
-		RenderParams_RenderThread.Clear();
-	}
+	Settings = nullptr;
+	Frame = nullptr;
+	RenderFrame = nullptr;
+
 	ovr_Shutdown();
-	Flags.InitStatus = 0;
 	UE_LOG(LogHMD, Log, TEXT("Oculus shutdown."));
 }
 
@@ -1906,31 +1376,35 @@ bool FOculusRiftHMD::InitDevice()
 	}
 	check(!Hmd);
 
+	FSettings* CurrentSettings = GetSettings();
+
 	Hmd = ovrHmd_Create(0);
 	if (Hmd)
 	{
-		SupportedDistortionCaps = Hmd->DistortionCaps;
-		SupportedHmdCaps = Hmd->HmdCaps;
-		SupportedTrackingCaps = Hmd->TrackingCaps;
+		bDirectModeHack = (Hmd->HmdCaps & ovrHmdCap_ExtendDesktop) == 0;
+
+		CurrentSettings->SupportedDistortionCaps = Hmd->DistortionCaps;
+		CurrentSettings->SupportedHmdCaps = Hmd->HmdCaps;
+		CurrentSettings->SupportedTrackingCaps = Hmd->TrackingCaps;
 
 #ifndef OVR_SDK_RENDERING
-		SupportedDistortionCaps &= ~ovrDistortionCap_Overdrive;
+		CurrentSettings->SupportedDistortionCaps &= ~ovrDistortionCap_Overdrive;
 #endif
 #ifndef OVR_VISION_ENABLED
-		SupportedTrackingCaps &= ~ovrTrackingCap_Position;
+		CurrentSettings->SupportedTrackingCaps &= ~ovrTrackingCap_Position;
 #endif
 
-		DistortionCaps = SupportedDistortionCaps & (ovrDistortionCap_Chromatic | ovrDistortionCap_TimeWarp | ovrDistortionCap_Vignette | ovrDistortionCap_Overdrive);
-		TrackingCaps = SupportedTrackingCaps & (ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position);
-		HmdCaps = SupportedHmdCaps & (ovrHmdCap_DynamicPrediction | ovrHmdCap_LowPersistence);
-		HmdCaps |= (Flags.bVSync ? 0 : ovrHmdCap_NoVSync);
+		CurrentSettings->DistortionCaps = CurrentSettings->SupportedDistortionCaps & (ovrDistortionCap_TimeWarp | ovrDistortionCap_Vignette | ovrDistortionCap_Overdrive);
+		CurrentSettings->TrackingCaps = CurrentSettings->SupportedTrackingCaps & (ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position);
+		CurrentSettings->HmdCaps = CurrentSettings->SupportedHmdCaps & (ovrHmdCap_DynamicPrediction | ovrHmdCap_LowPersistence);
+		CurrentSettings->HmdCaps |= (CurrentSettings->Flags.bVSync ? 0 : ovrHmdCap_NoVSync);
 
-		if (!(SupportedDistortionCaps & ovrDistortionCap_TimeWarp))
+		if (!(CurrentSettings->SupportedDistortionCaps & ovrDistortionCap_TimeWarp))
 		{
-			Flags.bTimeWarp = false;
+			CurrentSettings->Flags.bTimeWarp = false;
 		}
 
-		Flags.bHmdPosTracking = (SupportedTrackingCaps & ovrTrackingCap_Position) != 0;
+		CurrentSettings->Flags.bHmdPosTracking = (CurrentSettings->SupportedTrackingCaps & ovrTrackingCap_Position) != 0;
 
 		LoadFromIni();
 
@@ -1961,9 +1435,9 @@ void FOculusRiftHMD::ReleaseDevice()
 				Plugin->GetActiveRHIBridgeImpl()->Reset();
 			}
 		});
+#endif 
 		// Wait for all resources to be released
 		FlushRenderingCommands();
-#endif 
 
 		ovrHmd_Destroy(Hmd);
 		Hmd = nullptr;
@@ -1972,17 +1446,18 @@ void FOculusRiftHMD::ReleaseDevice()
 
 void FOculusRiftHMD::UpdateDistortionCaps()
 {
+	FSettings* CurrentSettings = GetSettings();
+
 	if (IsOpenGLPlatform(GMaxRHIShaderPlatform))
 	{
-		DistortionCaps &= ~ovrDistortionCap_SRGB;
-		DistortionCaps |= ovrDistortionCap_FlipInput;
+		CurrentSettings->DistortionCaps &= ~ovrDistortionCap_SRGB;
+		CurrentSettings->DistortionCaps |= ovrDistortionCap_FlipInput;
 	}
-	(Flags.bTimeWarp) ? DistortionCaps |= ovrDistortionCap_TimeWarp : DistortionCaps &= ~ovrDistortionCap_TimeWarp;
-	(Flags.bOverdrive) ? DistortionCaps |= ovrDistortionCap_Overdrive : DistortionCaps &= ~ovrDistortionCap_Overdrive;
-	(Flags.bHQDistortion) ? DistortionCaps |= ovrDistortionCap_HqDistortion : DistortionCaps &= ~ovrDistortionCap_HqDistortion;
-	(Flags.bChromaAbCorrectionEnabled) ? DistortionCaps |= ovrDistortionCap_Chromatic : DistortionCaps &= ~ovrDistortionCap_Chromatic;
+	(CurrentSettings->Flags.bTimeWarp) ? CurrentSettings->DistortionCaps |= ovrDistortionCap_TimeWarp : CurrentSettings->DistortionCaps &= ~ovrDistortionCap_TimeWarp;
+	(CurrentSettings->Flags.bOverdrive) ? CurrentSettings->DistortionCaps |= ovrDistortionCap_Overdrive : CurrentSettings->DistortionCaps &= ~ovrDistortionCap_Overdrive;
+	(CurrentSettings->Flags.bHQDistortion) ? CurrentSettings->DistortionCaps |= ovrDistortionCap_HqDistortion : CurrentSettings->DistortionCaps &= ~ovrDistortionCap_HqDistortion;
 #if !UE_BUILD_SHIPPING
-	(Flags.bProfiling) ? DistortionCaps |= ovrDistortionCap_ProfileNoTimewarpSpinWaits : DistortionCaps &= ~ovrDistortionCap_ProfileNoTimewarpSpinWaits;
+	(CurrentSettings->Flags.bProfiling) ? CurrentSettings->DistortionCaps |= ovrDistortionCap_ProfileNoSpinWaits : CurrentSettings->DistortionCaps &= ~ovrDistortionCap_ProfileNoSpinWaits;
 #endif // #if !UE_BUILD_SHIPPING
 
 #ifdef OVR_SDK_RENDERING 
@@ -1991,59 +1466,63 @@ void FOculusRiftHMD::UpdateDistortionCaps()
 		GetActiveRHIBridgeImpl()->SetNeedReinitRendererAPI();
 	}
 #endif // OVR_SDK_RENDERING
+	Flags.bNeedUpdateDistortionCaps = false;
 }
 
 void FOculusRiftHMD::UpdateHmdCaps()
 {
 	if (Hmd)
 	{
-		TrackingCaps = ovrTrackingCap_Orientation;
-		if (Flags.bYawDriftCorrectionEnabled)
+		FSettings* CurrentSettings = GetSettings();
+
+		CurrentSettings->TrackingCaps = ovrTrackingCap_Orientation;
+		if (CurrentSettings->Flags.bYawDriftCorrectionEnabled)
 		{
-			TrackingCaps |= ovrTrackingCap_MagYawCorrection;
+			CurrentSettings->TrackingCaps |= ovrTrackingCap_MagYawCorrection;
 		}
 		else
 		{
-			TrackingCaps &= ~ovrTrackingCap_MagYawCorrection;
+			CurrentSettings->TrackingCaps &= ~ovrTrackingCap_MagYawCorrection;
 		}
-		if (Flags.bHmdPosTracking)
+		if (CurrentSettings->Flags.bHmdPosTracking)
 		{
-			TrackingCaps |= ovrTrackingCap_Position;
+			CurrentSettings->TrackingCaps |= ovrTrackingCap_Position;
 		}
 		else
 		{
-			TrackingCaps &= ~ovrTrackingCap_Position;
+			CurrentSettings->TrackingCaps &= ~ovrTrackingCap_Position;
 		}
 
-		if (Flags.bLowPersistenceMode)
+		if (CurrentSettings->Flags.bLowPersistenceMode)
 		{
-			HmdCaps |= ovrHmdCap_LowPersistence;
+			CurrentSettings->HmdCaps |= ovrHmdCap_LowPersistence;
 		}
 		else
 		{
-			HmdCaps &= ~ovrHmdCap_LowPersistence;
+			CurrentSettings->HmdCaps &= ~ovrHmdCap_LowPersistence;
 		}
 
-		if (Flags.bVSync)
+		if (CurrentSettings->Flags.bVSync)
 		{
-			HmdCaps &= ~ovrHmdCap_NoVSync;
+			CurrentSettings->HmdCaps &= ~ovrHmdCap_NoVSync;
 		}
 		else
 		{
-			HmdCaps |= ovrHmdCap_NoVSync;
+			CurrentSettings->HmdCaps |= ovrHmdCap_NoVSync;
 		}
 
-		if (Flags.bMirrorToWindow)
+		if (CurrentSettings->Flags.bMirrorToWindow)
 		{
-			HmdCaps &= ~ovrHmdCap_NoMirrorToWindow;
+			CurrentSettings->HmdCaps &= ~ovrHmdCap_NoMirrorToWindow;
 		}
 		else
 		{
-			HmdCaps |= ovrHmdCap_NoMirrorToWindow;
+			CurrentSettings->HmdCaps |= ovrHmdCap_NoMirrorToWindow;
 		}
-		ovrHmd_SetEnabledCaps(Hmd, HmdCaps);
+		ovrHmd_SetEnabledCaps(Hmd, CurrentSettings->HmdCaps);
 
-		ovrHmd_ConfigureTracking(Hmd, TrackingCaps, 0);
+		ovrHmd_ConfigureTracking(Hmd, CurrentSettings->TrackingCaps, 0);
+		Flags.bNeedUpdateHmdCaps = false;
 	}
 }
 
@@ -2064,102 +1543,80 @@ void FOculusRiftHMD::UpdateHmdRenderInfo()
 	UE_LOG(LogHMD, Warning, TEXT("HMD %s, Monitor %s, res = %d x %d, windowPos = {%d, %d}"), ANSI_TO_TCHAR(Hmd->ProductName), 
 		ANSI_TO_TCHAR(Hmd->DisplayDeviceName), Hmd->Resolution.w, Hmd->Resolution.h, Hmd->WindowsPos.x, Hmd->WindowsPos.y); 
 
+	FSettings* CurrentSettings = GetSettings();
+
 	// Calc FOV
-	if (!Flags.bOverrideFOV)
+	if (!CurrentSettings->Flags.bOverrideFOV)
 	{
 		// Calc FOV, symmetrical, for each eye. 
-		EyeFov[0] = Hmd->DefaultEyeFov[0];
-		EyeFov[1] = Hmd->DefaultEyeFov[1];
+		CurrentSettings->EyeFov[0] = Hmd->DefaultEyeFov[0];
+		CurrentSettings->EyeFov[1] = Hmd->DefaultEyeFov[1];
 
 		// Calc FOV in radians
-		VFOVInRadians = FMath::Max(GetVerticalFovRadians(EyeFov[0]), GetVerticalFovRadians(EyeFov[1]));
-		HFOVInRadians = FMath::Max(GetHorizontalFovRadians(EyeFov[0]), GetHorizontalFovRadians(EyeFov[1]));
+		CurrentSettings->VFOVInRadians = FMath::Max(GetVerticalFovRadians(CurrentSettings->EyeFov[0]), GetVerticalFovRadians(CurrentSettings->EyeFov[1]));
+		CurrentSettings->HFOVInRadians = FMath::Max(GetHorizontalFovRadians(CurrentSettings->EyeFov[0]), GetHorizontalFovRadians(CurrentSettings->EyeFov[1]));
 	}
 
-	const Sizei recommenedTex0Size = ovrHmd_GetFovTextureSize(Hmd, ovrEye_Left, EyeFov[0], 1.0f);
-	const Sizei recommenedTex1Size = ovrHmd_GetFovTextureSize(Hmd, ovrEye_Right, EyeFov[1], 1.0f);
+	const ovrSizei recommenedTex0Size = ovrHmd_GetFovTextureSize(Hmd, ovrEye_Left, CurrentSettings->EyeFov[0], 1.0f);
+	const ovrSizei recommenedTex1Size = ovrHmd_GetFovTextureSize(Hmd, ovrEye_Right, CurrentSettings->EyeFov[1], 1.0f);
 
-	Sizei idealRenderTargetSize;
+	ovrSizei idealRenderTargetSize;
 	idealRenderTargetSize.w = recommenedTex0Size.w + recommenedTex1Size.w;
 	idealRenderTargetSize.h = FMath::Max(recommenedTex0Size.h, recommenedTex1Size.h);
 
-	IdealScreenPercentage = FMath::Max(float(idealRenderTargetSize.w) / float(Hmd->Resolution.w) * 100.f,
-									   float(idealRenderTargetSize.h) / float(Hmd->Resolution.h) * 100.f);
+	CurrentSettings->IdealScreenPercentage = FMath::Max(float(idealRenderTargetSize.w) / float(Hmd->Resolution.w) * 100.f,
+														float(idealRenderTargetSize.h) / float(Hmd->Resolution.h) * 100.f);
 
 	// Override eye distance by the value from HMDInfo (stored in Profile).
-	if (!Flags.bOverrideIPD)
+	if (!CurrentSettings->Flags.bOverrideIPD)
 	{
-		InterpupillaryDistance = ovrHmd_GetFloat(Hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
+		CurrentSettings->InterpupillaryDistance = ovrHmd_GetFloat(Hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
 	}
 
+	// cache eye to neck distance.
+	float neck2eye[2] = { OVR_DEFAULT_NECK_TO_EYE_HORIZONTAL, OVR_DEFAULT_NECK_TO_EYE_VERTICAL };
+	ovrHmd_GetFloatArray(Hmd, OVR_KEY_NECK_TO_EYE_DISTANCE, neck2eye, 2);
+	CurrentSettings->NeckToEyeInMeters = FVector2D(neck2eye[0], neck2eye[1]);
+
 	// Default texture size (per eye) is equal to half of W x H resolution. Will be overridden in SetupView.
-	EyeViewportSize = FIntPoint(Hmd->Resolution.w / 2, Hmd->Resolution.h);
+	//CurrentSettings->SetViewportSize(Hmd->Resolution.w / 2, Hmd->Resolution.h);
 
 	Flags.bNeedUpdateStereoRenderingParams = true;
 }
 
 void FOculusRiftHMD::UpdateStereoRenderingParams()
 {
-	// If we've manually overridden stereo rendering params for debugging, don't mess with them
-	if (Flags.bOverrideStereo || (!IsStereoEnabled() && !Flags.bHeadTrackingEnforced))
+	check(IsInGameThread());
+
+	FSettings* CurrentSettings = GetSettings();
+
+	if ((!CurrentSettings->IsStereoEnabled() && !CurrentSettings->Flags.bHeadTrackingEnforced))
 	{
 		return;
 	}
 	if (IsInitialized() && Hmd)
 	{
-		Lock::Locker lock(&StereoParamsLock);
-
-		TextureSize = Sizei(EyeViewportSize.X * 2, EyeViewportSize.Y);
-
-		EyeRenderViewport[0].Pos = Vector2i(0, 0);
-		EyeRenderViewport[0].Size = Sizei(EyeViewportSize.X, EyeViewportSize.Y);
-		EyeRenderViewport[1].Pos = Vector2i(EyeViewportSize.X, 0);
-		EyeRenderViewport[1].Size = EyeRenderViewport[0].Size;
-
 		//!AB: note, for Direct Rendering EyeRenderDesc is calculated twice, once
 		// here and another time in BeginRendering_RenderThread. I need to have EyeRenderDesc
 		// on a game thread for ViewAdjust (for StereoViewOffset calculation).
-		EyeRenderDesc[0] = ovrHmd_GetRenderDesc(Hmd, ovrEye_Left, EyeFov[0]);
-		EyeRenderDesc[1] = ovrHmd_GetRenderDesc(Hmd, ovrEye_Right, EyeFov[1]);
-		if (Flags.bOverrideIPD)
+		CurrentSettings->EyeRenderDesc[0] = ovrHmd_GetRenderDesc(Hmd, ovrEye_Left, CurrentSettings->EyeFov[0]);
+		CurrentSettings->EyeRenderDesc[1] = ovrHmd_GetRenderDesc(Hmd, ovrEye_Right, CurrentSettings->EyeFov[1]);
+		if (CurrentSettings->Flags.bOverrideIPD)
 		{
-			EyeRenderDesc[0].HmdToEyeViewOffset.x = InterpupillaryDistance * 0.5f;
-			EyeRenderDesc[1].HmdToEyeViewOffset.x = -InterpupillaryDistance * 0.5f;
+			CurrentSettings->EyeRenderDesc[0].HmdToEyeViewOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
+			CurrentSettings->EyeRenderDesc[1].HmdToEyeViewOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
 		}
 
-		const bool bRightHanded = false;
+		const unsigned int ProjModifiers = ovrProjection_None; //@TODO revise to use ovrProjection_FarClipAtInfinity and/or ovrProjection_FarLessThanNear
 		// Far and Near clipping planes will be modified in GetStereoProjectionMatrix()
-		EyeProjectionMatrices[0] = ovrMatrix4f_Projection(EyeFov[0], 0.01f, 10000.0f, bRightHanded);
-		EyeProjectionMatrices[1] = ovrMatrix4f_Projection(EyeFov[1], 0.01f, 10000.0f, bRightHanded);
+		CurrentSettings->EyeProjectionMatrices[0] = ovrMatrix4f_Projection(CurrentSettings->EyeFov[0], 0.01f, 10000.0f, ProjModifiers);
+		CurrentSettings->EyeProjectionMatrices[1] = ovrMatrix4f_Projection(CurrentSettings->EyeFov[1], 0.01f, 10000.0f, ProjModifiers);
 
-		// 2D elements offset
-		if (!Flags.bOverride2D)
-		{
-			float ScreenSizeInMeters[2]; // 0 - width, 1 - height
-			float LensSeparationInMeters;
-			LensSeparationInMeters = ovrHmd_GetFloat(Hmd, "LensSeparation", 0);
-			ovrHmd_GetFloatArray(Hmd, "ScreenSize", ScreenSizeInMeters, 2);
+		CurrentSettings->PerspectiveProjection[0] = ovrMatrix4f_Projection(CurrentSettings->EyeFov[0], 0.01f, 10000.f, ProjModifiers | ovrProjection_RightHanded);
+		CurrentSettings->PerspectiveProjection[1] = ovrMatrix4f_Projection(CurrentSettings->EyeFov[1], 0.01f, 10000.f, ProjModifiers | ovrProjection_RightHanded);
 
-			// Recenter projection (meters)
-			const float LeftProjCenterM = ScreenSizeInMeters[0] * 0.25f;
-			const float LensRecenterM = LeftProjCenterM - LensSeparationInMeters * 0.5f;
-
-			// Recenter projection (normalized)
-			const float LensRecenter = 4.0f * LensRecenterM / ScreenSizeInMeters[0];
-
-			HudOffset = 0.25f * InterpupillaryDistance * (Hmd->Resolution.w / ScreenSizeInMeters[0]) / 15.0f;
-			CanvasCenterOffset = (0.25f * LensRecenter) * Hmd->Resolution.w;
-		}
-
-		PrecalculatePostProcess_NoLock();
-#ifdef OVR_SDK_RENDERING 
-		GetActiveRHIBridgeImpl()->SetNeedReinitRendererAPI();
-#endif // OVR_SDK_RENDERING
+ 		PrecalculateDistortionMesh();
 		Flags.bNeedUpdateStereoRenderingParams = false;
-	}
-	else
-	{
-		CanvasCenterOffset = 0.f;
 	}
 }
 
@@ -2170,20 +1627,20 @@ void FOculusRiftHMD::LoadFromIni()
 	float f;
 	if (GConfig->GetBool(OculusSettings, TEXT("bChromaAbCorrectionEnabled"), v, GEngineIni))
 	{
-		Flags.bChromaAbCorrectionEnabled = v;
+		Settings->Flags.bChromaAbCorrectionEnabled = v;
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bYawDriftCorrectionEnabled"), v, GEngineIni))
 	{
-		Flags.bYawDriftCorrectionEnabled = v;
+		Settings->Flags.bYawDriftCorrectionEnabled = v;
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bDevSettingsEnabled"), v, GEngineIni))
 	{
-		Flags.bDevSettingsEnabled = v;
+		Settings->Flags.bDevSettingsEnabled = v;
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bOverrideIPD"), v, GEngineIni))
 	{
-		Flags.bOverrideIPD = v;
-		if (Flags.bOverrideIPD)
+		Settings->Flags.bOverrideIPD = v;
+		if (Settings->Flags.bOverrideIPD)
 		{
 			if (GConfig->GetFloat(OculusSettings, TEXT("IPD"), f, GEngineIni))
 			{
@@ -2193,111 +1650,122 @@ void FOculusRiftHMD::LoadFromIni()
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bOverrideStereo"), v, GEngineIni))
 	{
-		Flags.bOverrideStereo = v;
-		if (Flags.bOverrideStereo)
+		Settings->Flags.bOverrideStereo = v;
+		if (Settings->Flags.bOverrideStereo)
 		{
 			if (GConfig->GetFloat(OculusSettings, TEXT("HFOV"), f, GEngineIni))
 			{
-				HFOVInRadians = f;
+				Settings->HFOVInRadians = f;
 			}
 			if (GConfig->GetFloat(OculusSettings, TEXT("VFOV"), f, GEngineIni))
 			{
-				VFOVInRadians = f;
+				Settings->VFOVInRadians = f;
 			}
 		}
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bOverrideVSync"), v, GEngineIni))
 	{
-		Flags.bOverrideVSync = v;
+		Settings->Flags.bOverrideVSync = v;
 		if (GConfig->GetBool(OculusSettings, TEXT("bVSync"), v, GEngineIni))
 		{
-			Flags.bVSync = v;
+			Settings->Flags.bVSync = v;
 		}
 	}
 	if (!GIsEditor)
 	{
 		if (GConfig->GetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), v, GEngineIni))
 		{
-			Flags.bOverrideScreenPercentage = v;
+			Settings->Flags.bOverrideScreenPercentage = v;
 			if (GConfig->GetFloat(OculusSettings, TEXT("ScreenPercentage"), f, GEngineIni))
 			{
-				ScreenPercentage = f;
+				Settings->ScreenPercentage = f;
 			}
 		}
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bAllowFinishCurrentFrame"), v, GEngineIni))
 	{
-		Flags.bAllowFinishCurrentFrame = v;
+		Settings->Flags.bAllowFinishCurrentFrame = v;
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bLowPersistenceMode"), v, GEngineIni))
 	{
-		Flags.bLowPersistenceMode = v;
+		Settings->Flags.bLowPersistenceMode = v;
 	}
 	if (GConfig->GetBool(OculusSettings, TEXT("bUpdateOnRT"), v, GEngineIni))
 	{
-		Flags.bUpdateOnRT = v;
+		Settings->Flags.bUpdateOnRT = v;
 	}
 	if (GConfig->GetFloat(OculusSettings, TEXT("FarClippingPlane"), f, GEngineIni))
 	{
-		FarClippingPlane = f;
+		Settings->FarClippingPlane = f;
 	}
 	if (GConfig->GetFloat(OculusSettings, TEXT("NearClippingPlane"), f, GEngineIni))
 	{
-		NearClippingPlane = f;
+		Settings->NearClippingPlane = f;
 	}
+#if !UE_BUILD_SHIPPING
+	FString s;
+	if (GConfig->GetString(OculusSettings, TEXT("CubeMeshName"), s, GEngineIni))
+	{
+		CubeMeshName = s;
+	}
+	if (GConfig->GetString(OculusSettings, TEXT("CubeMaterialName"), s, GEngineIni))
+	{
+		CubeMaterialName = s;
+	}
+#endif
 }
 
 void FOculusRiftHMD::SaveToIni()
 {
 	const TCHAR* OculusSettings = TEXT("Oculus.Settings");
-	GConfig->SetBool(OculusSettings, TEXT("bChromaAbCorrectionEnabled"), Flags.bChromaAbCorrectionEnabled, GEngineIni);
-	GConfig->SetBool(OculusSettings, TEXT("bYawDriftCorrectionEnabled"), Flags.bYawDriftCorrectionEnabled, GEngineIni);
-	GConfig->SetBool(OculusSettings, TEXT("bDevSettingsEnabled"), Flags.bDevSettingsEnabled, GEngineIni);
+	GConfig->SetBool(OculusSettings, TEXT("bChromaAbCorrectionEnabled"), Settings->Flags.bChromaAbCorrectionEnabled, GEngineIni);
+	GConfig->SetBool(OculusSettings, TEXT("bYawDriftCorrectionEnabled"), Settings->Flags.bYawDriftCorrectionEnabled, GEngineIni);
+	GConfig->SetBool(OculusSettings, TEXT("bDevSettingsEnabled"), Settings->Flags.bDevSettingsEnabled, GEngineIni);
 
-	GConfig->SetBool(OculusSettings, TEXT("bOverrideIPD"), Flags.bOverrideIPD, GEngineIni);
-	if (Flags.bOverrideIPD)
+	GConfig->SetBool(OculusSettings, TEXT("bOverrideIPD"), Settings->Flags.bOverrideIPD, GEngineIni);
+	if (Settings->Flags.bOverrideIPD)
 	{
 		GConfig->SetFloat(OculusSettings, TEXT("IPD"), GetInterpupillaryDistance(), GEngineIni);
 	}
-	GConfig->SetBool(OculusSettings, TEXT("bOverrideStereo"), Flags.bOverrideStereo, GEngineIni);
-	if (Flags.bOverrideStereo)
+	GConfig->SetBool(OculusSettings, TEXT("bOverrideStereo"), Settings->Flags.bOverrideStereo, GEngineIni);
+	if (Settings->Flags.bOverrideStereo)
 	{
-		GConfig->SetFloat(OculusSettings, TEXT("HFOV"), HFOVInRadians, GEngineIni);
-		GConfig->SetFloat(OculusSettings, TEXT("VFOV"), VFOVInRadians, GEngineIni);
+		GConfig->SetFloat(OculusSettings, TEXT("HFOV"), Settings->HFOVInRadians, GEngineIni);
+		GConfig->SetFloat(OculusSettings, TEXT("VFOV"), Settings->VFOVInRadians, GEngineIni);
 	}
 
-	GConfig->SetBool(OculusSettings, TEXT("bOverrideVSync"), Flags.bOverrideVSync, GEngineIni);
-	if (Flags.bOverrideVSync)
+	GConfig->SetBool(OculusSettings, TEXT("bOverrideVSync"), Settings->Flags.bOverrideVSync, GEngineIni);
+	if (Settings->Flags.bOverrideVSync)
 	{
-		GConfig->SetBool(OculusSettings, TEXT("VSync"), Flags.bVSync, GEngineIni);
+		GConfig->SetBool(OculusSettings, TEXT("VSync"), Settings->Flags.bVSync, GEngineIni);
 	}
 
 	if (!GIsEditor)
 	{
-		GConfig->SetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), Flags.bOverrideScreenPercentage, GEngineIni);
-		if (Flags.bOverrideScreenPercentage)
+		GConfig->SetBool(OculusSettings, TEXT("bOverrideScreenPercentage"), Settings->Flags.bOverrideScreenPercentage, GEngineIni);
+		if (Settings->Flags.bOverrideScreenPercentage)
 		{
 			// Save the current ScreenPercentage state
-			GConfig->SetFloat(OculusSettings, TEXT("ScreenPercentage"), ScreenPercentage, GEngineIni);
+			GConfig->SetFloat(OculusSettings, TEXT("ScreenPercentage"), Settings->ScreenPercentage, GEngineIni);
 		}
 	}
-	GConfig->SetBool(OculusSettings, TEXT("bAllowFinishCurrentFrame"), Flags.bAllowFinishCurrentFrame, GEngineIni);
+	GConfig->SetBool(OculusSettings, TEXT("bAllowFinishCurrentFrame"), Settings->Flags.bAllowFinishCurrentFrame, GEngineIni);
 
-	GConfig->SetBool(OculusSettings, TEXT("bLowPersistenceMode"), Flags.bLowPersistenceMode, GEngineIni);
+	GConfig->SetBool(OculusSettings, TEXT("bLowPersistenceMode"), Settings->Flags.bLowPersistenceMode, GEngineIni);
 
-	GConfig->SetBool(OculusSettings, TEXT("bUpdateOnRT"), Flags.bUpdateOnRT, GEngineIni);
+	GConfig->SetBool(OculusSettings, TEXT("bUpdateOnRT"), Settings->Flags.bUpdateOnRT, GEngineIni);
 
-	if (Flags.bClippingPlanesOverride)
+	if (Settings->Flags.bClippingPlanesOverride)
 	{
-		GConfig->SetFloat(OculusSettings, TEXT("FarClippingPlane"), FarClippingPlane, GEngineIni);
-		GConfig->SetFloat(OculusSettings, TEXT("NearClippingPlane"), NearClippingPlane, GEngineIni);
+		GConfig->SetFloat(OculusSettings, TEXT("FarClippingPlane"), Settings->FarClippingPlane, GEngineIni);
+		GConfig->SetFloat(OculusSettings, TEXT("NearClippingPlane"), Settings->NearClippingPlane, GEngineIni);
 	}
 }
 
 bool FOculusRiftHMD::HandleInputKey(UPlayerInput* pPlayerInput,
 	const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
-	if (Hmd && EventType == IE_Pressed && IsStereoEnabled())
+	if (Hmd && EventType == IE_Pressed && Settings->IsStereoEnabled())
 	{
 		if (!Key.IsMouseButton())
 		{
@@ -2313,12 +1781,10 @@ void FOculusRiftHMD::OnBeginPlay()
 	// This call make sense when 'Play' is used from the Editor;
 	if (GIsEditor)
 	{
-		PositionOffset = FVector::ZeroVector;
-		DeltaControlRotation = FRotator::ZeroRotator;
-		BaseOrientation = LastHmdOrientation = DeltaControlOrientation = FQuat::Identity;
-		BaseOffset = OVR::Vector3f(0, 0, 0);
-		WorldToMetersScale = 100.f;
-		Flags.bWorldToMetersOverride = false;
+		Settings->BaseOrientation = FQuat::Identity;
+		Settings->BaseOffset = FVector::ZeroVector;
+		Settings->WorldToMetersScale = 100.f;
+		Settings->Flags.bWorldToMetersOverride = false;
 		InitDevice();
 	}
 }
@@ -2330,6 +1796,68 @@ void FOculusRiftHMD::OnEndPlay()
 		EnableStereo(false);
 		ReleaseDevice();
 	}
+}
+
+void FOculusRiftHMD::GetRawSensorData(SensorData& OutData)
+{
+	FMemory::Memset(OutData, 0);
+	InitDevice();
+	if (Hmd)
+	{
+		const ovrTrackingState ss = ovrHmd_GetTrackingState(Hmd, ovr_GetTimeInSeconds());
+		OutData.Accelerometer	= ToFVector(ss.RawSensorData.Accelerometer);
+		OutData.Gyro			= ToFVector(ss.RawSensorData.Gyro);
+		OutData.Magnetometer	= ToFVector(ss.RawSensorData.Magnetometer);
+		OutData.Temperature		= ss.RawSensorData.Temperature;
+		OutData.TimeInSeconds   = ss.RawSensorData.TimeInSeconds;
+	}
+}
+
+bool FOculusRiftHMD::GetUserProfile(UserProfile& OutProfile) 
+{
+	InitDevice();
+	if (Hmd)
+	{
+		OutProfile.Name = ovrHmd_GetString(Hmd, OVR_KEY_USER, "");
+		OutProfile.Gender = ovrHmd_GetString(Hmd, OVR_KEY_GENDER, OVR_DEFAULT_GENDER);
+		OutProfile.PlayerHeight = ovrHmd_GetFloat(Hmd, OVR_KEY_PLAYER_HEIGHT, OVR_DEFAULT_PLAYER_HEIGHT);
+		OutProfile.EyeHeight = ovrHmd_GetFloat(Hmd, OVR_KEY_EYE_HEIGHT, OVR_DEFAULT_EYE_HEIGHT);
+		OutProfile.IPD = ovrHmd_GetFloat(Hmd, OVR_KEY_IPD, OVR_DEFAULT_IPD);
+		float neck2eye[2] = {OVR_DEFAULT_NECK_TO_EYE_HORIZONTAL, OVR_DEFAULT_NECK_TO_EYE_VERTICAL};
+		ovrHmd_GetFloatArray(Hmd, OVR_KEY_NECK_TO_EYE_DISTANCE, neck2eye, 2);
+		OutProfile.NeckToEyeDistance = FVector2D(neck2eye[0], neck2eye[1]);
+		OutProfile.ExtraFields.Reset();
+
+		int EyeRelief = ovrHmd_GetInt(Hmd, OVR_KEY_EYE_RELIEF_DIAL, OVR_DEFAULT_EYE_RELIEF_DIAL);
+		OutProfile.ExtraFields.Add(FString(OVR_KEY_EYE_RELIEF_DIAL)) = FString::FromInt(EyeRelief);
+		
+		float eye2nose[2] = { 0.f, 0.f };
+		ovrHmd_GetFloatArray(Hmd, OVR_KEY_EYE_TO_NOSE_DISTANCE, eye2nose, 2);
+		OutProfile.ExtraFields.Add(FString(OVR_KEY_EYE_RELIEF_DIAL"Horizontal")) = FString::SanitizeFloat(eye2nose[0]);
+		OutProfile.ExtraFields.Add(FString(OVR_KEY_EYE_RELIEF_DIAL"Vertical")) = FString::SanitizeFloat(eye2nose[1]);
+
+		float maxEye2Plate[2] = { 0.f, 0.f };
+		ovrHmd_GetFloatArray(Hmd, OVR_KEY_MAX_EYE_TO_PLATE_DISTANCE, maxEye2Plate, 2);
+		OutProfile.ExtraFields.Add(FString(OVR_KEY_MAX_EYE_TO_PLATE_DISTANCE"Horizontal")) = FString::SanitizeFloat(maxEye2Plate[0]);
+		OutProfile.ExtraFields.Add(FString(OVR_KEY_MAX_EYE_TO_PLATE_DISTANCE"Vertical")) = FString::SanitizeFloat(maxEye2Plate[1]);
+
+		OutProfile.ExtraFields.Add(FString(ovrHmd_GetString(Hmd, OVR_KEY_EYE_CUP, "")));
+		return true;
+	}
+	return false; 
+}
+
+//////////////////////////////////////////////////////////////////////////
+FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate) 
+	: FHMDViewExtension(InDelegate)
+	, ShowFlags(ESFIM_All0)
+	, bFrameBegun(false)
+{
+	auto OculusHMD = static_cast<FOculusRiftHMD*>(InDelegate);
+	Hmd = OculusHMD->Hmd;
+#ifdef OVR_SDK_RENDERING
+	pPresentBridge = OculusHMD->GetActiveRHIBridgeImpl();
+#endif
 }
 
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
