@@ -22,8 +22,6 @@ public:
 	void Initialize( class FMacApplication* const Application, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FMacWindow >& InParent, const bool bShowImmediately );
 	
 	void OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags);
-	
-	bool OnIMKKeyDown(NSEvent* Event);
 
 public:
 

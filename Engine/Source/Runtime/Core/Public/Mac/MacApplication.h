@@ -12,6 +12,7 @@ struct FDeferredMacEvent
 {
 	FDeferredMacEvent()
 	:	Event(nullptr)
+	,	Window(nullptr)
 	,	Type(0)
 	,	LocationInWindow(FVector2D::ZeroVector)
 	,	ModifierFlags(0)
@@ -92,7 +93,7 @@ struct FDeferredMacEvent
 	// However, in some cases we need the original NSEvent (highlighting menus, resending unhandled key events), so we store it as well.
 	NSEvent* Event;
 
-	TWeakPtr<FMacWindow> Window;
+	FCocoaWindow* Window;
 
 	int32 Type;
 	FVector2D LocationInWindow;
@@ -199,12 +200,12 @@ private:
 	void ProcessEvent(const FDeferredMacEvent& Event);
 	void ResendEvent(NSEvent* Event);
 
-	void ProcessMouseMovedEvent(const FDeferredMacEvent& Event);
-	void ProcessMouseDownEvent(const FDeferredMacEvent& Event);
-	void ProcessMouseUpEvent(const FDeferredMacEvent& Event);
-	void ProcessScrollWheelEvent(const FDeferredMacEvent& Event);
+	void ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow);
+	void ProcessMouseDownEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow);
+	void ProcessMouseUpEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow);
+	void ProcessScrollWheelEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow);
 	void ProcessGestureEvent(const FDeferredMacEvent& Event);
-	void ProcessKeyDownEvent(const FDeferredMacEvent& Event);
+	void ProcessKeyDownEvent(const FDeferredMacEvent& Event, TSharedPtr<FMacWindow> EventWindow);
 	void ProcessKeyUpEvent(const FDeferredMacEvent& Event);
 
 	void OnWindowDidMove(TSharedRef<FMacWindow> Window);
