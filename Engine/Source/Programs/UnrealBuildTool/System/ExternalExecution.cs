@@ -359,15 +359,10 @@ namespace UnrealBuildTool
 
 			foreach( var Module in UObjectModules )
 			{
-				// In Rocket, we skip checking timestamps for modules that don't exist within the project's directory
-				if (UnrealBuildTool.RunningRocket())
+				// If the engine is installed, skip skip checking timestamps for modules that are under the engine directory
+				if (UnrealBuildTool.IsEngineInstalled() && Utils.IsFileUnderDirectory( Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath))
 				{
-					// @todo Rocket: This could be done in a better way I'm sure
-					if (!Utils.IsFileUnderDirectory( Module.ModuleDirectory, UnrealBuildTool.GetUProjectPath() ))
-					{
-						// Engine or engine plugin module - Rocket does not regenerate them so don't compare their timestamps
-						continue;
-					}
+					continue;
 				}
 
 				// Make sure we have an existing folder for generated code.  If not, then we definitely need to generate code!

@@ -1083,7 +1083,7 @@ namespace UnrealBuildTool
 				}
 
 				// Clean the intermediate directory
-				if( !String.IsNullOrEmpty( ProjectIntermediateDirectory ) )
+				if( !String.IsNullOrEmpty( ProjectIntermediateDirectory ) && (!UnrealBuildTool.IsEngineInstalled() || !Utils.IsFileUnderDirectory(ProjectIntermediateDirectory, BuildConfiguration.RelativeEnginePath)))
 				{
 					if (Directory.Exists(ProjectIntermediateDirectory))
 					{
@@ -1784,12 +1784,12 @@ namespace UnrealBuildTool
 				var FilteredBinaries = new List<UEBuildBinary>();
 
 				// Have to do absolute here as this could be a project that is under the root
-				string FullUProjectPath = Path.GetFullPath(UnrealBuildTool.GetUProjectPath());
+				string FullEnginePath = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
 
 				// We only want to build rocket projects...
 				foreach (var DLLBinary in AppBinaries)
 				{
-					if (Utils.IsFileUnderDirectory(DLLBinary.Config.OutputFilePath, FullUProjectPath))
+					if (!Utils.IsFileUnderDirectory(DLLBinary.Config.OutputFilePath, FullEnginePath))
 					{
 						FilteredBinaries.Add(DLLBinary);
 					}
@@ -2996,8 +2996,7 @@ namespace UnrealBuildTool
 					}
 
 					// So all we care about are the game module and/or plugins.
-					//@todo Rocket: This assumes plugins that have source will be under the game folder...
-					if (bDiscoverFiles && (!UnrealBuildTool.RunningRocket() || Utils.IsFileUnderDirectory(ModuleFileName, UnrealBuildTool.GetUProjectPath())))
+					if (bDiscoverFiles && (!UnrealBuildTool.IsEngineInstalled() || !Utils.IsFileUnderDirectory(ModuleFileName, BuildConfiguration.RelativeEnginePath)))
 					{
 						var SourceFilePaths = new List<string>();
 
