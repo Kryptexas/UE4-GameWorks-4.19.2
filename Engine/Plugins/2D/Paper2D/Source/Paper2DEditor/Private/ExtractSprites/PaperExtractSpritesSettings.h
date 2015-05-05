@@ -30,7 +30,7 @@ public:
 	ESpriteExtractMode SpriteExtractMode;
 
 	// The color of the sprite boundary outlines
-	UPROPERTY(Category = Settings, EditAnywhere)
+	UPROPERTY(Category = Settings, EditAnywhere, meta=(HideAlphaChannel))
 	FLinearColor OutlineColor;
 
 	// Apply a tint to the texture in the viewport to improve outline visibility in this editor
@@ -41,12 +41,6 @@ public:
 	UPROPERTY(Category = Settings, EditAnywhere, meta=(HideAlphaChannel))
 	FLinearColor BackgroundColor;
 
-	UPROPERTY()
-	bool bAutoMode;
-
-	UPROPERTY()
-	bool bGridMode;
-
 	// The name of the sprite that will be created. {0} will get replaced by the sprite number.
 	UPROPERTY(Category = Naming, EditAnywhere)
 	FString NamingTemplate;
@@ -56,10 +50,6 @@ public:
 	int32 NamingStartIndex;
 
 	UPaperExtractSpritesSettings(const FObjectInitializer& ObjectInitializer);
-
-	// UObject interface
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End of UObject interface
 };
 
 UCLASS()

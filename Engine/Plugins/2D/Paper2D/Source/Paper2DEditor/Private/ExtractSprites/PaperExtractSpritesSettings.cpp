@@ -11,18 +11,6 @@ UPaperExtractSpritesSettings::UPaperExtractSpritesSettings(const FObjectInitiali
 	BackgroundColor = FLinearColor(0.1f, 0.1f, 0.1f);
 }
 
-void UPaperExtractSpritesSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperExtractSpritesSettings, SpriteExtractMode))
-	{
-		// Update bools
-		bAutoMode = (SpriteExtractMode == ESpriteExtractMode::Auto);
-		bGridMode = (SpriteExtractMode == ESpriteExtractMode::Grid);
-	}
-}
-
-
 UPaperExtractSpriteGridSettings::UPaperExtractSpriteGridSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
