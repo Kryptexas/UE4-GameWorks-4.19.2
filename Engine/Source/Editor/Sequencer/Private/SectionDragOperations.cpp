@@ -29,6 +29,7 @@ void FSequencerDragOperation::EndTransaction()
 	{
 		GEditor->EndTransaction();
 	}
+	Sequencer.UpdateRuntimeInstances();
 }
 
 TRange<float> FSequencerDragOperation::GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FTrackNode> SequencerNode) const
@@ -133,8 +134,9 @@ TOptional<float> FSequencerDragOperation::SnapToTimes(float InitialTime, const T
 }
 
 
-FResizeSection::FResizeSection( UMovieSceneSection& InSection, bool bInDraggingByEnd )
-	: Section( &InSection )
+FResizeSection::FResizeSection( FSequencer& Sequencer, UMovieSceneSection& InSection, bool bInDraggingByEnd )
+	: FSequencerDragOperation( Sequencer )
+	, Section( &InSection )
 	, bDraggingByEnd( bInDraggingByEnd )
 {
 }
@@ -225,8 +227,9 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 	}
 }
 
-FMoveSection::FMoveSection( UMovieSceneSection& InSection )
-	: Section( &InSection )
+FMoveSection::FMoveSection( FSequencer& Sequencer, UMovieSceneSection& InSection )
+	: FSequencerDragOperation( Sequencer )
+	, Section( &InSection )
 	, DragOffset(ForceInit)
 {
 }
@@ -243,10 +246,7 @@ void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrack
 
 void FMoveSection::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
-	if( GEditor->IsTransactionActive() )
-	{
-		GEditor->EndTransaction();
-	}
+	EndTransaction();
 
 	if (Section.IsValid())
 	{
@@ -411,10 +411,7 @@ void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNod
 
 void FMoveKeys::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
-	if( GEditor->IsTransactionActive() )
-	{
-		GEditor->EndTransaction();
-	}
+	EndTransaction();
 }
 
 void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode )
