@@ -22,6 +22,12 @@ void STileLayerItem::Construct(const FArguments& InArgs, int32 Index, class UPap
 	EyeClosed = FPaperStyle::Get()->GetBrush(EyeClosedBrushName);
 	EyeOpened = FPaperStyle::Get()->GetBrush(EyeOpenedBrushName);
 
+	LayerNameWidget = SNew(SInlineEditableTextBlock)
+		.Text(this, &STileLayerItem::GetLayerDisplayName)
+		.ToolTipText(this, &STileLayerItem::GetLayerDisplayName)
+		.OnTextCommitted(this, &STileLayerItem::OnLayerNameCommitted)
+		.IsSelected(InIsSelectedDelegate);
+
 	ChildSlot
 	[
 		SNew(SHorizontalBox)
@@ -48,13 +54,14 @@ void STileLayerItem::Construct(const FArguments& InArgs, int32 Index, class UPap
 		.VAlign(VAlign_Center)
 		.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
 		[
-			SNew(SInlineEditableTextBlock)
-			.Text(this, &STileLayerItem::GetLayerDisplayName)
-			.ToolTipText(this, &STileLayerItem::GetLayerDisplayName)
-			.OnTextCommitted(this, &STileLayerItem::OnLayerNameCommitted)
-			.IsSelected(InIsSelectedDelegate)
+			LayerNameWidget.ToSharedRef()
 		]
 	];
+}
+
+void STileLayerItem::BeginEditingName()
+{
+	LayerNameWidget->EnterEditingMode();
 }
 
 FText STileLayerItem::GetLayerDisplayName() const

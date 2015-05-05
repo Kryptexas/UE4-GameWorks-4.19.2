@@ -48,6 +48,7 @@ protected:
 	void AddNewLayerAbove();
 	void AddNewLayerBelow();
 	void DeleteLayer();
+	void RenameLayer();
 	void DuplicateLayer();
 	void MergeLayerDown();
 	void MoveLayerUp(bool bForceToTop);

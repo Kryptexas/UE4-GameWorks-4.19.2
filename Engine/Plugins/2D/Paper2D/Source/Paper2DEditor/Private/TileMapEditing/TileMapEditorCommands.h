@@ -59,4 +59,5 @@ public:
 	TSharedPtr<FUICommandInfo> MoveLayerToBottom;
 	TSharedPtr<FUICommandInfo> SelectLayerAbove;
 	TSharedPtr<FUICommandInfo> SelectLayerBelow;
+	TSharedPtr<FUICommandInfo> RenameLayer;
 };
