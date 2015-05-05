@@ -2913,6 +2913,21 @@ void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayE
 	}
 }
 
+int32 FActiveGameplayEffectsContainer::GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const
+{
+	int32 Count = 0;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (Query.Matches(Effect))
+		{
+			Count += Effect.Spec.StackCount;
+		}
+	}
+
+	return Count;
+}
+
 FOnGameplayAttributeChange& FActiveGameplayEffectsContainer::RegisterGameplayAttributeEvent(FGameplayAttribute Attribute)
 {
 	return AttributeChangeDelegates.FindOrAdd(Attribute);

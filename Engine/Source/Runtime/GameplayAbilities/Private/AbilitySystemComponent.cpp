@@ -244,6 +244,40 @@ FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContext() const
 	return Context;
 }
 
+int32 UAbilitySystemComponent::GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent)
+{
+	int32 Count = 0;
+
+	if (SourceGameplayEffect)
+	{
+		FActiveGameplayEffectQuery Query;
+		Query.CustomMatch.BindLambda([&](const FActiveGameplayEffect& CurEffect)
+		{
+			bool bMatches = false;
+
+			// First check at matching: backing GE class must be the exact same
+			if (CurEffect.Spec.Def && SourceGameplayEffect == CurEffect.Spec.Def->GetClass())
+			{
+				// If an instigator is specified, matching is dependent upon it
+				if (OptionalInstigatorFilterComponent)
+				{
+					bMatches = (OptionalInstigatorFilterComponent == CurEffect.Spec.GetEffectContext().GetInstigatorAbilitySystemComponent());
+				}
+				else
+				{
+					bMatches = true;
+				}
+			}
+
+			return bMatches;
+		});
+
+		Count = ActiveGameplayEffects.GetActiveEffectCount(Query);
+	}
+
+	return Count;
+}
+
 FActiveGameplayEffectHandle UAbilitySystemComponent::BP_ApplyGameplayEffectToTarget(TSubclassOf<UGameplayEffect> GameplayEffectClass, UAbilitySystemComponent* Target, float Level, FGameplayEffectContextHandle Context)
 {
 	if (Target == nullptr)

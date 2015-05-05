@@ -1491,6 +1491,13 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove);
 
+	/**
+	 * Get the count of the effects matching the specified query (including stack count)
+	 * 
+	 * @return Count of the effects matching the specified query
+	 */
+	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const;
+
 	int32 GetGameStateTime() const;
 
 	float GetWorldTime() const;

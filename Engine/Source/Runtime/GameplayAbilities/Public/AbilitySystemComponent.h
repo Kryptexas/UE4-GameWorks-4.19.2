@@ -287,6 +287,18 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	FGameplayEffectContextHandle GetEffectContext() const;
 
+	/**
+	 * Get the count of the specified source effect on the ability system component. For non-stacking effects, this is the sum of all active instances.
+	 * For stacking effects, this is the sum of all valid stack counts. If an instigator is specified, only effects from that instigator are counted.
+	 * 
+	 * @param SourceGameplayEffect					Effect to get the count of
+	 * @param OptionalInstigatorFilterComponent		If specified, only count effects applied by this ability system component
+	 * 
+	 * @return Count of the specified source effect
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category=GameplayEffects)
+	int32 GetGameplayEffectCount(TSubclassOf<UGameplayEffect> SourceGameplayEffect, UAbilitySystemComponent* OptionalInstigatorFilterComponent);
+
 	/** This only exists so it can be hooked up to a multicast delegate */
 	void RemoveActiveGameplayEffect_NoReturn(FActiveGameplayEffectHandle Handle, int32 StacksToRemove=-1)
 	{
