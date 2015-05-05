@@ -139,6 +139,11 @@ public:
 	const FNavAgentProperties* GetNavAgentProperties() const;
 	DEPRECATED(4.7, "This function is deprecated. Please use GetNavAgentPropertiesRef instead.")
 	FNavAgentProperties* GetNavAgentProperties();
+
+	DEPRECATED(4.8, "This function is deprecated. Please use UpdateNavAgent version that's accepring a reference instead.")
+	void UpdateNavAgent(AActor* Owner);
+	DEPRECATED(4.8, "This function is deprecated. Please use UpdateNavAgent version that's accepring a reference instead.")
+	void UpdateNavAgent(UCapsuleComponent* CapsuleComponent);
 };
 
 
