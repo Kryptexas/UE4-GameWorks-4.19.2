@@ -56,6 +56,10 @@ bool UKismetMathLibrary::BooleanAND(bool A, bool B)
 	return A && B;
 }
 
+bool UKismetMathLibrary::BooleanNAND(bool A, bool B)
+{
+	return !(A && B);
+}
 
 bool UKismetMathLibrary::BooleanOR(bool A, bool B)
 {
@@ -65,6 +69,11 @@ bool UKismetMathLibrary::BooleanOR(bool A, bool B)
 bool UKismetMathLibrary::BooleanXOR(bool A, bool B)
 {
 	return A ^ B;
+}
+
+bool UKismetMathLibrary::BooleanNOR(bool A, bool B)
+{
+	return !(A || B);
 }
 
 uint8 UKismetMathLibrary::Multiply_ByteByte(uint8 A, uint8 B)

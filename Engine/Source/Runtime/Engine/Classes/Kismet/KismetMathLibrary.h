@@ -84,6 +84,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "AND Boolean", CompactNodeTitle = "AND", Keywords = "& and", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Boolean")
 	static bool BooleanAND(bool A, bool B);
 
+	/* Returns the logical NAND of two values (A AND B) */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "NAND Boolean", CompactNodeTitle = "NAND", Keywords = "!& nand", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Boolean")
+	static bool BooleanNAND(bool A, bool B);
+
 	/* Returns the logical OR of two values (A OR B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "OR Boolean", CompactNodeTitle = "OR", Keywords = "| or", CommutativeAssociativeBinaryOperator = "true"), Category="Math|Boolean")
 	static bool BooleanOR(bool A, bool B);
@@ -91,6 +95,10 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/* Returns the logical eXclusive OR of two values (A XOR B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "XOR Boolean", CompactNodeTitle = "XOR", Keywords = "^ xor"), Category="Math|Boolean")
 	static bool BooleanXOR(bool A, bool B);
+
+	/* Returns the logical Not OR of two values (A NOR B) */
+	UFUNCTION(BlueprintPure, meta=(DisplayName = "NOR Boolean", CompactNodeTitle = "NOR", Keywords = "!^ nor"), Category="Math|Boolean")
+	static bool BooleanNOR(bool A, bool B);
 
 	//
 	// Byte functions.
