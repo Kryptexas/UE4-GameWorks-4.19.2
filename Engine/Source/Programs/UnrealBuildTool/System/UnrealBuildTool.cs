@@ -767,6 +767,7 @@ namespace UnrealBuildTool
                     var bGenerateMakefiles = false;
 					var bGenerateCMakefiles = false;
 					var bGenerateQMakefiles = false;
+					var bGenerateKDevelopFiles = false;
                     var bValidPlatformsOnly = false;
                     var bSpecificModulesOnly = false;
 
@@ -832,6 +833,11 @@ namespace UnrealBuildTool
 						else if (LowercaseArg.StartsWith("-qmakefile"))
 						{
 							bGenerateQMakefiles = true;
+							ProjectFileGenerator.bGenerateProjectFiles = true;
+						}
+						else if (LowercaseArg.StartsWith("-kdevelopfile"))
+						{
+							bGenerateKDevelopFiles = true;
 							ProjectFileGenerator.bGenerateProjectFiles = true;
 						}
                         else if (LowercaseArg.StartsWith("-projectfile"))
@@ -1046,9 +1052,11 @@ namespace UnrealBuildTool
 										    ? "GenerateCMakeFiles"
 											: bGenerateQMakefiles
 											    ? "GenerateQMakefiles"
-												: bValidatePlatforms 
-                                                    ? "ValidatePlatfomrs"
-                                                	: "Build",
+												: bGenerateKDevelopFiles
+													? "GenerateKDevelopFiles"
+													: bValidatePlatforms 
+                                                   		? "ValidatePlatforms"
+                                                		: "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
                         "IsRocket", bRunningRocket.ToString(),
@@ -1081,7 +1089,7 @@ namespace UnrealBuildTool
                         JunkDeleter.DeleteJunk();
                     }
 
-					if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles)
+					if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles || bGenerateKDevelopFiles)
                     {
                         bool bGenerationSuccess = true;
                         if (bGenerateVCProjectFiles)
@@ -1103,6 +1111,10 @@ namespace UnrealBuildTool
 						if (bGenerateQMakefiles)
 						{
 							bGenerationSuccess &= GenerateProjectFiles(new QMakefileGenerator(), Arguments);
+						}
+						if (bGenerateKDevelopFiles)
+						{
+							bGenerationSuccess &= GenerateProjectFiles(new KDevelopGenerator(), Arguments);
 						}
 
                         if(!bGenerationSuccess)

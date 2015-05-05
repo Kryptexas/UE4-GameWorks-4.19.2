@@ -268,37 +268,19 @@ namespace UnrealBuildTool
 				foreach (string CurSourceFile in FoundFiles)
 				{
 					string SourceFileRelativeToRoot = Utils.MakePathRelativeTo(CurSourceFile, Path.Combine(EngineRelativePath));
-					// Exclude Windows, Mac, and iOS only files/folders.
-					// This got ugly quick.
-					if (!SourceFileRelativeToRoot.Contains ("Source/ThirdParty/") && 
-						!SourceFileRelativeToRoot.Contains ("/Windows/") && 
-						!SourceFileRelativeToRoot.Contains ("/Mac/") &&
-						!SourceFileRelativeToRoot.Contains ("/IOS/") &&
-						!SourceFileRelativeToRoot.Contains ("/iOS/") &&
-						!SourceFileRelativeToRoot.Contains ("/VisualStudioSourceCodeAccess/") &&
-						!SourceFileRelativeToRoot.Contains ("/XCodeSourceCodeAccess/") &&
-						!SourceFileRelativeToRoot.Contains ("/WmfMedia/") &&
-						!SourceFileRelativeToRoot.Contains ("/IOSDeviceProfileSelector/") &&
-						!SourceFileRelativeToRoot.Contains ("/WindowsDeviceProfileSelector/") &&
-						!SourceFileRelativeToRoot.Contains ("/WindowsMoviePlayer/") &&
-						!SourceFileRelativeToRoot.Contains ("/AppleMoviePlayer/") &&
-						!SourceFileRelativeToRoot.Contains ("/MacGraphicsSwitching/") &&
-						!SourceFileRelativeToRoot.Contains ("/Apple/") &&
-						!SourceFileRelativeToRoot.Contains ("/WinRT/")
-					) 
+					// Exclude some directories that we don't compile (note that we still want Windows/Mac etc for code navigation)
+					if (!SourceFileRelativeToRoot.Contains ("Source/ThirdParty/")) 
 					{
 						if (SourceFileRelativeToRoot.EndsWith (".cpp"))
 						{
 							if (!SourceFileRelativeToRoot.StartsWith ("..") && !Path.IsPathRooted (SourceFileRelativeToRoot))
 							{
-								// SourceFileRelativeToRoot = "Engine/" + SourceFileRelativeToRoot;
 								QMakeSourceFilesList += ("\t\"" + "$$unrealRootPath/Engine/" + SourceFileRelativeToRoot + "\" \\\n");
 							} 
 							else 
 							{
 								if (String.IsNullOrEmpty (GameProjectName)) 
 								{
-									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
 									QMakeSourceFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring (3) + "\" \\\n");
 								} 
 								else if (!String.IsNullOrEmpty (GameProjectName)) 
