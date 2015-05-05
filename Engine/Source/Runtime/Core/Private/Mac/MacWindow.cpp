@@ -153,6 +153,8 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 						WindowHandle.titleVisibility = NSWindowTitleHidden;
 					}
 				}
+
+				SetText(*Definition->Title);
 			}
 			else if(Definition->AppearsInTaskbar)
 			{
