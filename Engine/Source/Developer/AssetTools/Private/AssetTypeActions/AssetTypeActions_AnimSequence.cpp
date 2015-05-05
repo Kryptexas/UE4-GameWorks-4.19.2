@@ -21,7 +21,7 @@ void FAssetTypeActions_AnimSequence::GetActions( const TArray<UObject*>& InObjec
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimSequence_ReimportWithNewSource", "Reimport with New Source"),
 		LOCTEXT("AnimSequence_ReimportWithNewSourceTooltip", "Reimport the selected sequence(s) from a new source file."),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.ReimportAsset"),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.AssetActions.ReimportAnim"),
 		FUIAction(FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource, Sequences))
 		);
 

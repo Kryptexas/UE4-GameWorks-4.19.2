@@ -1793,15 +1793,41 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateSourceControlMenu(TSharedRef<
 	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
 	if (ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable())
 	{
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ChangeSourceControlSettings);
+		MenuBuilder.AddMenuEntry(
+			FLevelEditorCommands::Get().ChangeSourceControlSettings, 
+			NAME_None,
+			TAttribute<FText>(),
+			TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.StatusIcon.Unknown")
+			);
 	}
 	else
 	{
-		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().ConnectToSourceControl);
+		MenuBuilder.AddMenuEntry(
+			FLevelEditorCommands::Get().ConnectToSourceControl,
+			NAME_None,
+			TAttribute<FText>(),
+			TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Connect")
+			);
 	}
 
-	MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().CheckOutModifiedFiles);
-	MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().SubmitToSourceControl);
+	MenuBuilder.AddMenuEntry(
+		FLevelEditorCommands::Get().CheckOutModifiedFiles,
+		NAME_None,
+		TAttribute<FText>(),
+		TAttribute<FText>(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.CheckOut")
+		);
+
+
+	MenuBuilder.AddMenuEntry(
+		FLevelEditorCommands::Get().SubmitToSourceControl,
+		NAME_None,
+		TAttribute<FText>(),
+		TAttribute<FText>(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.Actions.Submit")
+		);
 
 	MenuBuilder.EndSection();
 

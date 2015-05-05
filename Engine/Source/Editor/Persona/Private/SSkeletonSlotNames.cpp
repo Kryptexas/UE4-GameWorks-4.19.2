@@ -104,6 +104,7 @@ FSkeletonSlotNamesSummoner::FSkeletonSlotNamesSummoner(TSharedPtr<class FAssetEd
 	: FWorkflowTabFactory(FPersonaTabs::SkeletonSlotNamesID, InHostingApp)
 {
 	TabLabel = LOCTEXT("AnimSlotManagerTabTitle", "Anim Slot Manager");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.AnimSlotManager");
 
 	EnableTabPadding();
 	bIsSingleton = true;

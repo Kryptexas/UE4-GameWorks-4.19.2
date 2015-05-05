@@ -87,6 +87,7 @@ FSkeletonCurveNameManagerSummoner::FSkeletonCurveNameManagerSummoner(TSharedPtr<
 	:FWorkflowTabFactory(FPersonaTabs::CurveNameManagerID, InHostingApp)
 {
 	TabLabel = LOCTEXT("CurveNameTabTitle", "Skeleton Curves");
+	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.Tabs.SkeletonCurves");
 
 	EnableTabPadding();
 	bIsSingleton = true;
