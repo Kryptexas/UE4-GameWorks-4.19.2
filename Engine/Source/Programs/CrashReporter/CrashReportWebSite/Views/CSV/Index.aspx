@@ -57,7 +57,7 @@
 	</p>
 
 	 <p>
-		 <input type="submit" value="Search" class='SearchButton' />
+		 <input type="submit" value="Generate" class='SearchButton' />
 	 </p>
 	
 	<%} %>
