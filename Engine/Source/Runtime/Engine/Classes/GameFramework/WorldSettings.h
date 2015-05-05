@@ -230,13 +230,12 @@ struct ENGINE_API FHierarchicalSimplification
 	FMeshMergingSettings MergeSetting;
 
 	FHierarchicalSimplification()
-		: bSimplifyMesh(true)
+		: bSimplifyMesh(false)
 		, DrawDistance(3000)
 		, DesiredBoundRadius(3000)
 		, DesiredFillingPercentage(50)
 		, MinNumberOfActorsToBuild(2)
 	{
-		ProxySetting.ScreenSize = 200;
 		MergeSetting.bMergeMaterials = true;
 	}
 };
