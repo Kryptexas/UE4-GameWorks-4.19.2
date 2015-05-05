@@ -189,12 +189,15 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	}
 	
 	// Parse asset types field
-	for (TSharedPtr<FJsonValue> AssetTypesValue : ManifestObject->GetArrayField("SearchTags"))
+	if( ManifestObject->HasField("SearchTags")==true)
 	{
-		TSharedPtr<FJsonObject> LocalizedAssetTypesObject = AssetTypesValue->AsObject();
-		LocalizedSearchTags.Add(FLocalizedTextArray(
-			LocalizedAssetTypesObject->GetStringField("Language"),
-			LocalizedAssetTypesObject->GetStringField("Text")));
+		for (TSharedPtr<FJsonValue> AssetTypesValue : ManifestObject->GetArrayField("SearchTags"))
+		{
+			TSharedPtr<FJsonObject> LocalizedAssetTypesObject = AssetTypesValue->AsObject();
+			LocalizedSearchTags.Add(FLocalizedTextArray(
+				LocalizedAssetTypesObject->GetStringField("Language"),
+				LocalizedAssetTypesObject->GetStringField("Text")));
+		}
 	}
 
 	// Parse class types field
