@@ -53,6 +53,7 @@ public abstract class BaseLinuxPlatform : Platform
 		}
 
 		// stage libLND
+		if (!SC.DedicatedServer)
 		{
 			SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/LinuxNativeDialogs/", SC.PlatformDir, BuildArchitecture), "libLND*.so");
 		}
