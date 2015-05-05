@@ -162,10 +162,8 @@ public:
 			// Close the output file.
 			delete OutputFilePtr;
 
-#if PLATFORM_MAC || PLATFORM_LINUX
 			// Change the output file name to requested one
 			IFileManager::Get().Move(*OutputFilePath, *TempFilePath);
-#endif
 
 #if PLATFORM_SUPPORTS_NAMED_PIPES
 			if (CommunicationMode == ThroughNamedPipeOnce || CommunicationMode == ThroughNamedPipe)
@@ -214,9 +212,7 @@ private:
 
 	const FString InputFilePath;
 	const FString OutputFilePath;
-#if PLATFORM_MAC || PLATFORM_LINUX
 	FString TempFilePath;
-#endif
 
 #if PLATFORM_SUPPORTS_NAMED_PIPES
 	FPlatformNamedPipe Pipe;
@@ -345,7 +341,6 @@ private:
 				}
 			}
 
-#if PLATFORM_MAC || PLATFORM_LINUX
 			// To make sure that the process waiting for results won't read unfinished output file,
 			// we use a temp file name during compilation.
 			do
@@ -355,23 +350,19 @@ private:
 				TempFilePath = WorkingDirectory + Guid.ToString();
 			} while (IFileManager::Get().FileSize(*TempFilePath) != INDEX_NONE);
 
-			// Create the output file.
-			OutputFilePtr = IFileManager::Get().CreateFileWriter(*TempFilePath,FILEWRITE_EvenIfReadOnly | FILEWRITE_NoFail);
-#else
 			const double StartTime2 = FPlatformTime::Seconds();
 
 			do 
 			{
 				// Create the output file.
-				OutputFilePtr = IFileManager::Get().CreateFileWriter(*OutputFilePath,FILEWRITE_EvenIfReadOnly);
+				OutputFilePtr = IFileManager::Get().CreateFileWriter(*TempFilePath,FILEWRITE_EvenIfReadOnly);
 			} 
 			while (!OutputFilePtr && (FPlatformTime::Seconds() - StartTime2 < 2));
 			
 			if (!OutputFilePtr)
 			{
-				UE_LOG(LogShaders, Fatal,TEXT("Couldn't save output file %s"), *OutputFilePath);
+				UE_LOG(LogShaders, Fatal,TEXT("Couldn't save output file %s"), *TempFilePath);
 			}
-#endif
 		}
 		else
 		{

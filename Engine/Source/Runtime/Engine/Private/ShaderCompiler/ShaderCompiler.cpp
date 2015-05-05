@@ -716,7 +716,6 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 
 			const FString WorkingDirectory = Manager->AbsoluteShaderBaseWorkingDirectory + FString::FromInt(WorkerIndex);
 
-#if PLATFORM_MAC || PLATFORM_LINUX
 			// To make sure that the process waiting for input file won't try to read it until it's ready
 			// we use a temp file name during writing.
 			FString TransferFileName;
@@ -726,9 +725,6 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 				FPlatformMisc::CreateGuid(Guid);
 				TransferFileName = WorkingDirectory + Guid.ToString();
 			} while (IFileManager::Get().FileSize(*TransferFileName) != INDEX_NONE);
-#else
-			const FString TransferFileName = WorkingDirectory / TEXT("WorkerInputOnly.in");
-#endif
 
 			// Write out the file that the worker app is waiting for, which has all the information needed to compile the shader.
 			// 'Only' indicates that the worker should keep checking for more tasks after this one
@@ -764,11 +760,9 @@ void FShaderCompileThreadRunnable::WriteNewTasks()
 				DoWriteTasks(CurrentWorkerInfo.QueuedJobs, *TransferFile);
 				delete TransferFile;
 
-#if PLATFORM_MAC || PLATFORM_LINUX
 				// Change the transfer file name to proper one
 				FString ProperTransferFileName = WorkingDirectory / TEXT("WorkerInputOnly.in");
 				IFileManager::Get().Move(*ProperTransferFileName, *TransferFileName);
-#endif
 			}
 		}
 	}
