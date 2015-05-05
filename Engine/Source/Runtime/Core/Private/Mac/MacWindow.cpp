@@ -295,11 +295,7 @@ void FMacWindow::Destroy()
 		bIsClosed = true;
 		[WindowHandle setAlphaValue:0.0f];
 		[WindowHandle setBackgroundColor:[NSColor clearColor]];
-		TSharedPtr<FMacWindow> Window = MacApplication->FindWindowByNSWindow(WindowHandle);
-		if (Window.IsValid())
-		{
-			MacApplication->OnWindowDestroyed(Window.ToSharedRef());
-		}
+		MacApplication->OnWindowDestroyed(SharedThis(this));
 		WindowHandle = nullptr;
 	}
 }
@@ -573,21 +569,5 @@ void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayCh
 				[WindowHandle setDisplayReconfiguring: false];
 			}
 		});
-	}
-}
-
-bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
-{
-	if(WindowHandle && [WindowHandle openGLView])
-	{
-		return MainThreadReturn(^{
-			SCOPED_AUTORELEASE_POOL;
-			FCocoaTextView* View = (FCocoaTextView*)[WindowHandle openGLView];
-			return View && [View imkKeyDown:Event];
-		}, UE4IMEEventMode);
-	}
-	else
-	{
-		return false;
 	}
 }
