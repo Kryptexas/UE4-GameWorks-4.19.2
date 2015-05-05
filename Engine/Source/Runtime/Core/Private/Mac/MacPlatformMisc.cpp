@@ -49,7 +49,7 @@ struct FMacApplicationInfo
 		
 		ExecutableName = FPlatformProcess::ExecutableName();
 		
-		AppPath = FPlatformProcess::GenerateApplicationPath(AppName, FApp::GetBuildConfiguration());
+		AppPath = FString([[NSBundle mainBundle] executablePath]);
 
 		AppBundleID = FString([[NSBundle mainBundle] bundleIdentifier]);
 
