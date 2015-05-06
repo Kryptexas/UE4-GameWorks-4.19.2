@@ -130,7 +130,7 @@ void UProceduralFoliageTile::AgeSeeds()
 		if (Instance->IsAlive())
 		{
 			const UFoliageType_InstancedStaticMesh* Type = Instance->Type;
-			if (SimulationStep <= Type->NumSteps && Type->bGrowsInShade == bSimulateShadeGrowth)
+			if (SimulationStep <= Type->NumSteps && Type->GetSpawnsInShade() == bSimulateOnlyInShade)
 			{
 				const float CurrentAge = Instance->Age;
 				const float NewAge = Type->GetNextAge(Instance->Age, 1);
@@ -172,7 +172,7 @@ void UProceduralFoliageTile::SpreadSeeds(TArray<FProceduralFoliageInstance*>& Ne
 
 		const UFoliageType_InstancedStaticMesh* Type = Inst->Type;
 
-		if (SimulationStep <= Type->NumSteps  && Type->bGrowsInShade == bSimulateShadeGrowth)
+		if (SimulationStep <= Type->NumSteps  && Type->GetSpawnsInShade() == bSimulateOnlyInShade)
 		{
 			for (int32 i = 0; i < Type->SeedsPerStep; ++i)
 			{
@@ -210,7 +210,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 	{
 		if (UserCancelled()){ return; }
 		const UFoliageType_InstancedStaticMesh* TypeInstance = FoliageTypeObject.GetInstance();
-		if (TypeInstance && TypeInstance->bGrowsInShade == bSimulateShadeGrowth)
+		if (TypeInstance && TypeInstance->GetSpawnsInShade() == bSimulateOnlyInShade)
 		{
 			{	//compute the number of initial seeds
 				const int32 NumSeeds = FMath::RoundToInt(TypeInstance->GetSeedDensitySquared() * SizeTenM2);
@@ -277,7 +277,7 @@ void UProceduralFoliageTile::AddRandomSeeds(TArray<FProceduralFoliageInstance*>&
 			float InitY = 0.f;
 			float NeededRadius = 0.f;
 
-			if (bSimulateShadeGrowth && LastShadeCastingIndex >= 0)
+			if (bSimulateOnlyInShade && LastShadeCastingIndex >= 0)
 			{
 				const int32 InstanceSpawnerIdx = TypeRandomStream.FRandRange(0, LastShadeCastingIndex);
 				const FProceduralFoliageInstance& Spawner = InstancesArray[InstanceSpawnerIdx];
@@ -407,14 +407,14 @@ void UProceduralFoliageTile::StepSimulation()
 	FlushPendingRemovals();
 }
 
-void UProceduralFoliageTile::RunSimulation(const int32 MaxNumSteps, bool bShadeGrowth)
+void UProceduralFoliageTile::RunSimulation(const int32 MaxNumSteps, bool bOnlyInShade)
 {
 	int32 MaxSteps = 0;
 
 	for (const FFoliageTypeObject& FoliageTypeObject : FoliageSpawner->GetFoliageTypes())
 	{
 		const UFoliageType_InstancedStaticMesh* TypeInstance = FoliageTypeObject.GetInstance();
-		if (TypeInstance && TypeInstance->bGrowsInShade == bShadeGrowth)
+		if (TypeInstance && TypeInstance->GetSpawnsInShade() == bOnlyInShade)
 		{
 			MaxSteps = FMath::Max(MaxSteps, TypeInstance->NumSteps + 1);
 		}
@@ -426,7 +426,7 @@ void UProceduralFoliageTile::RunSimulation(const int32 MaxNumSteps, bool bShadeG
 	}
 
 	SimulationStep = 0;
-	bSimulateShadeGrowth = bShadeGrowth;
+	bSimulateOnlyInShade = bOnlyInShade;
 	for (int32 Step = 0; Step < MaxSteps; ++Step)
 	{
 		StepSimulation();

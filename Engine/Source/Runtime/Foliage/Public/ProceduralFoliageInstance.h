@@ -76,8 +76,6 @@ public:
 
 	void TerminateInstance();
 
-	bool GrowsInShade() const;
-
 public:
 	UPROPERTY(Category = ProceduralFoliageInstance, EditAnywhere, BlueprintReadWrite)
 	FVector Location;

@@ -63,13 +63,9 @@ FProceduralFoliageInstance* FProceduralFoliageInstance::Domination(FProceduralFo
 
 	FProceduralFoliageInstance* Dominated = GetLessFit(A, B);
 
-	if (OverlapType == ESimulationOverlap::ShadeOverlap)
+	if (OverlapType == ESimulationOverlap::ShadeOverlap && Dominated->Type->bCanGrowInShade)
 	{
-		const UFoliageType_InstancedStaticMesh* DominatedType = Dominated->Type;
-		if (DominatedType->bGrowsInShade)
-		{
-			return nullptr;
-		}
+		return nullptr;
 	}
 
 	return Dominated;
@@ -97,9 +93,4 @@ float FProceduralFoliageInstance::GetCollisionRadius() const
 void FProceduralFoliageInstance::TerminateInstance()
 {
 	bAlive = false;
-}
-
-bool FProceduralFoliageInstance::GrowsInShade() const 
-{ 
-	return Type->bGrowsInShade; 
 }

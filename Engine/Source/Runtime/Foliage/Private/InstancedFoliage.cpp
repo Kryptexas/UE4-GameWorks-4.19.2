@@ -46,6 +46,8 @@ struct FFoliageCustomVersion
 		FoliageTypeCustomization = 6,
 		// FoliageType for details customization continued
 		FoliageTypeCustomizationScaling = 7,
+		// FoliageType procedural scale and shade settings updated
+		FoliageTypeProceduralScaleAndShade = 8,
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,
 		LatestVersion = VersionPlusOne - 1
@@ -305,17 +307,17 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	/** Ecosystem settings*/
 	AverageSpreadDistance = 50;
 	SpreadVariance = 150;
-	bGrowsInShade = false;
+	bCanGrowInShade = false;
+	bSpawnsInShade = false;
 	SeedsPerStep = 3;
 	OverlapPriority = 0.f;
 	NumSteps = 3;
-	MinScale = 1.f;
-	MaxScale = 3.f;
+	ProceduralScale = FFloatInterval(1.f, 3.f);
 	ChangeCount = 0;
 	InitialSeedDensity = 1.f;
 	CollisionRadius = 100.f;
 	ShadeRadius = 100.f;
-	InitialMaxAge = 0.f;
+	MaxInitialAge = 0.f;
 	MaxAge = 10.f;
 
 	FRichCurve* Curve = ScaleCurve.GetRichCurve();
@@ -324,8 +326,8 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 
 	UpdateGuid = FGuid::NewGuid();
 
-	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
 #if WITH_EDITORONLY_DATA
+	// Deprecated since FFoliageCustomVersion::FoliageTypeCustomization
 	ScaleMinX_DEPRECATED = 1.0f;
 	ScaleMinY_DEPRECATED = 1.0f;
 	ScaleMinZ_DEPRECATED = 1.0f;
@@ -338,6 +340,11 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	ZOffsetMax_DEPRECATED = 0.0f;
 	UniformScale_DEPRECATED = true;
 	GroundSlope_DEPRECATED = 45.0f;
+
+	// Deprecated since FFoliageCustomVersion::FoliageTypeProceduralScaleAndShade
+	MinScale_DEPRECATED = 1.f;
+	MaxScale_DEPRECATED = 3.f;
+
 #endif// WITH_EDITORONLY_DATA
 }
 
@@ -383,6 +390,14 @@ void UFoliageType::Serialize(FArchive& Ar)
 			
 			GroundSlopeAngle.Min = MinGroundSlope_DEPRECATED;
 			GroundSlopeAngle.Max = GroundSlope_DEPRECATED;
+		}
+
+		if (Ar.CustomVer(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageTypeProceduralScaleAndShade)
+		{
+			bCanGrowInShade = bSpawnsInShade;
+
+			ProceduralScale.Min = MinScale_DEPRECATED;
+			ProceduralScale.Max = MaxScale_DEPRECATED;
 		}
 	}
 #endif// WITH_EDITORONLY_DATA
@@ -447,12 +462,12 @@ float UFoliageType::GetScaleForAge(const float Age) const
 	const FRichCurve* Curve = ScaleCurve.GetRichCurveConst();
 	const float Time = FMath::Clamp(MaxAge == 0 ? 1.f : Age / MaxAge, 0.f, 1.f);
 	const float Scale = Curve->Eval(Time);
-	return MinScale + (MaxScale - MinScale) * Scale;
+	return ProceduralScale.Min + ProceduralScale.Size() * Scale;
 }
 
 float UFoliageType::GetInitAge(FRandomStream& RandomStream) const
 {
-	return RandomStream.FRandRange(0, InitialMaxAge);
+	return RandomStream.FRandRange(0, MaxInitialAge);
 }
 
 float UFoliageType::GetNextAge(const float CurrentAge, const int32 InNumSteps) const
@@ -472,6 +487,11 @@ float UFoliageType::GetNextAge(const float CurrentAge, const int32 InNumSteps) c
 	}
 
 	return NewAge;
+}
+
+bool UFoliageType::GetSpawnsInShade() const
+{
+	return bCanGrowInShade && bSpawnsInShade;
 }
 
 #if WITH_EDITOR
@@ -1200,17 +1220,17 @@ void AInstancedFoliageActor::GetOverlappingMeshCounts(const FSphere& Sphere, TMa
 
 
 
-UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
+UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo, bool bIncludeAssets)
 {
-	UFoliageType* Type = nullptr;
+	UFoliageType* ReturnType = nullptr;
 	FFoliageMeshInfo* MeshInfo = nullptr;
 
 	for (auto& MeshPair : FoliageMeshes)
 	{
-		UFoliageType* Settings = MeshPair.Key;
-		if (Settings && Settings->GetStaticMesh() == InMesh)
+		UFoliageType* FoliageType = MeshPair.Key;
+		if (FoliageType && (bIncludeAssets || !FoliageType->IsAsset()) && FoliageType->GetStaticMesh() == InMesh)
 		{
-			Type = MeshPair.Key;
+			ReturnType = FoliageType;
 			MeshInfo = &*MeshPair.Value;
 			break;
 		}
@@ -1220,7 +1240,8 @@ UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMe
 	{
 		*OutMeshInfo = MeshInfo;
 	}
-	return Type;
+
+	return ReturnType;
 }
 
 
@@ -1606,9 +1627,9 @@ void UpdateSettingsBounds(const UStaticMesh* InMesh, UFoliageType_InstancedStati
 
 
 #if WITH_EDITORONLY_DATA
-FFoliageMeshInfo* AInstancedFoliageActor::UpdateMeshSettings(const UStaticMesh* InMesh, const UFoliageType_InstancedStaticMesh* DefaultSettings)
+FFoliageMeshInfo* AInstancedFoliageActor::UpdateMeshSettings(const UStaticMesh* InMesh, const UFoliageType_InstancedStaticMesh* DefaultSettings, bool bIncludeAssets)
 {
-	if (UFoliageType* OldSettings = GetSettingsForMesh(InMesh))
+	if (UFoliageType* OldSettings = GetSettingsForMesh(InMesh, nullptr, bIncludeAssets))
 	{
 		MarkPackageDirty();
 

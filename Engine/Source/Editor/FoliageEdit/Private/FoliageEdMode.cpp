@@ -40,6 +40,8 @@
 #define LOCTEXT_NAMESPACE "FoliageEdMode"
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
+DEFINE_LOG_CATEGORY_STATIC(LogFoliage, Log, Warning);
+
 //
 // FFoliageMeshUIInfo
 //
@@ -940,17 +942,28 @@ FFoliageMeshInfo* UpdateMeshSettings(AInstancedFoliageActor* IFA, const FDesired
 {
 	FFoliageMeshInfo* MeshInfo = nullptr;
 
-	//We have to add the foliage type into the foliage actor.
 	if (const UFoliageType_InstancedStaticMesh* FoliageType = Cast<UFoliageType_InstancedStaticMesh>(DesiredInstance.FoliageType))
 	{
-		if (UStaticMesh* StaticMesh = FoliageType->GetStaticMesh())
+		//We have to add the foliage type into the foliage actor.
+		if (FoliageType->IsAsset())
 		{
-			if (UFoliageType* ExistingType = IFA->GetSettingsForMesh(StaticMesh))
+			// Add the foliage type asset
+			IFA->AddFoliageType(FoliageType, &MeshInfo);
+		}
+		else if (UStaticMesh* StaticMesh = FoliageType->GetStaticMesh())
+		{
+			if (IFA->GetSettingsForMesh(StaticMesh, nullptr, false) != nullptr)
 			{
-				MeshInfo = IFA->UpdateMeshSettings(StaticMesh, FoliageType);
+				// @todo: create some unique designation for types added procedurally to prevent them stomping any existing types (or restrict proc foliage to foliage type assets only)
+
+				// A non-asset foliage type using this mesh already exists in the IFA
+				// Only one such type is supported, so the desired instance overrides it
+				MeshInfo = IFA->UpdateMeshSettings(StaticMesh, FoliageType, false);
+				UE_LOG(LogFoliage, Warning, TEXT("Procedurally generated foliage type using Static Mesh \"%s\" conflicts with an existing non-asset foliage type. To prevent clashes, use Foliage Type assets instead."), *StaticMesh->GetName());
 			}
 			else
 			{
+				// No conflict with an existing type, just add normally
 				IFA->AddFoliageType(FoliageType, &MeshInfo);
 			}
 		}
@@ -976,22 +989,21 @@ void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settin
 		//@TODO: actual threaded part coming, need parts of this refactor sooner for content team
 		CalculatePotentialInstances_ThreadSafe(InWorld, Settings, &DesiredInstances, PotentialInstanceBuckets, nullptr, 0, DesiredInstances.Num() - 1);
 
-		TMap<AInstancedFoliageActor*, FFoliageMeshInfo*> UpdatedIFAs;	//we want to override any existing mesh settings with the procedural settings.
-		for (auto& Bucket : PotentialInstanceBuckets)
+		// Existing foliage types in the palette  we want to override any existing mesh settings with the procedural settings.
+		TMap<AInstancedFoliageActor*, TArray<const UFoliageType*>> UpdatedTypesByIFA;
+		for (TArray<FPotentialInstance>& Bucket : PotentialInstanceBuckets)
 		{
-			for (FPotentialInstance& PotentialInst : Bucket)
+			for (auto& PotentialInst : Bucket)
 			{
-				// New foliage instances always go into base component level
+				// Get the IFA for the base component level that contains the component the instance will be placed upon
 				AInstancedFoliageActor* TargetIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(PotentialInst.HitComponent->GetComponentLevel(), true);
-				FFoliageMeshInfo* MeshInfo = nullptr;
-				if (FFoliageMeshInfo** MeshInfoResult = UpdatedIFAs.Find(TargetIFA))
+				
+				// Update the type in the IFA if needed
+				TArray<const UFoliageType*>& UpdatedTypes = UpdatedTypesByIFA.FindOrAdd(TargetIFA);
+				if (!UpdatedTypes.Contains(PotentialInst.DesiredInstance.FoliageType))
 				{
-					MeshInfo = *MeshInfoResult;
-				}
-				else
-				{
-					MeshInfo = UpdateMeshSettings(TargetIFA, PotentialInst.DesiredInstance);
-					UpdatedIFAs.Add(TargetIFA, MeshInfo);
+					UpdatedTypes.Add(PotentialInst.DesiredInstance.FoliageType);
+					UpdateMeshSettings(TargetIFA, PotentialInst.DesiredInstance);
 				}
 			}
 		}
