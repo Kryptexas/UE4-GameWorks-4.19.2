@@ -138,6 +138,10 @@ void UPhysicsSerializer::CreatePhysicsData(const TArray<UBodySetup*>& BodySetups
 					const PxSerialObjectId ObjectId = PCollection->getId(PObject);
 					ActorsMap.Add(ObjectId, PRigidActor);
 				}
+				else if (PxShape* PShape = PObject.is<PxShape>())
+				{
+					PShape->release();	//we do not need to hold on to this reference because our actors always have the reference directly
+				}
 			}
 		}
 
