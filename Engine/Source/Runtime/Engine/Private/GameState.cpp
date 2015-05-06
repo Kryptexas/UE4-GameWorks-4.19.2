@@ -28,6 +28,9 @@ AGameState::AGameState(const FObjectInitializer& ObjectInitializer)
 	bNetLoadOnClient = false;
 	MatchState = MatchState::EnteringMap;
 	PreviousMatchState = MatchState::EnteringMap;
+
+	// Default to every few seconds.
+	ServerWorldTimeSecondsUpdateFrequency = 5.f;
 }
 
 /** Helper to return the default object of the GameMode class corresponding to this GameState. */
@@ -59,10 +62,20 @@ void AGameState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+	FTimerManager& TimerManager = GetWorldTimerManager();
+	TimerManager.SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
 
 	UWorld* World = GetWorld();
 	World->GameState = this;
+
+	if (World->IsGameWorld() && Role == ROLE_Authority)
+	{
+		UpdateServerTimeSeconds();
+		if (ServerWorldTimeSecondsUpdateFrequency > 0.f)
+		{
+			TimerManager.SetTimer(TimerHandle_UpdateServerTimeSeconds, this, &AGameState::UpdateServerTimeSeconds, ServerWorldTimeSecondsUpdateFrequency, true);
+		}
+	}
 
 	for (TActorIterator<APlayerState> It(World); It; ++It)
 	{
@@ -255,6 +268,35 @@ bool AGameState::ShouldShowGore() const
 	return true;
 }
 
+float AGameState::GetServerWorldTimeSeconds() const
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		return World->GetTimeSeconds() + ServerWorldTimeSecondsDelta;
+	}
+
+	return 0.f;
+}
+
+void AGameState::UpdateServerTimeSeconds()
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		ReplicatedWorldTimeSeconds = World->GetTimeSeconds();
+	}
+}
+
+void AGameState::OnRep_ReplicatedWorldTimeSeconds()
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		ServerWorldTimeSecondsDelta = ReplicatedWorldTimeSeconds - World->GetTimeSeconds();
+	}
+}
+
 void AGameState::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
@@ -264,4 +306,6 @@ void AGameState::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 	DOREPLIFETIME_CONDITION( AGameState, GameModeClass,	COND_InitialOnly );
 	DOREPLIFETIME_CONDITION( AGameState, ElapsedTime,	COND_InitialOnly );
+
+	DOREPLIFETIME( AGameState, ReplicatedWorldTimeSeconds );
 }
