@@ -51,7 +51,7 @@ Description:Build a second menu with new functionality.
 
 	[![](SelectAnchor.png)](SelectAnchor.png)
 
-	[REGION:tip]Positioning our anchor at the lower-right corner does not change how size and position values work, so we'll need to make our position values negative in order to be on the screen. Size values remain positive, but we will want to lower our position values to compensate.[/REGION]
+	[REGION:tip]Positioning our anchor at the lower-right corner does not change how size and position values work, so we'll need to make our position values negative in order to be on the screen. Size values will remain positive.[/REGION]
 
 1. We will now add scripting to our new **Buttons**. The Main Menu **Button** will simply reload the Main Menu **Widget**, while the Play Game **Button** will deactivate our menu entirely by having no new **Widget** provided in the call to our _ChangeMenuWidget_ function. This is shown by the phrase "Select Class" being displayed instead of the name of an actual class or asset.
 

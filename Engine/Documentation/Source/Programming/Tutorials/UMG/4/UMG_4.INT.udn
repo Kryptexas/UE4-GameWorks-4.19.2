@@ -22,7 +22,7 @@ Description:Set up our Game Mode to use our Main Menu Widget.
 %Steps%
 
 
-1. In the **Content Browser**, we will add a **Blueprint Class** based on our project's **Game Mode**. This makes it possible to set the initial values of exposed variables to whatever we want. To do this:
+1. In the **Content Browser**, we will add a **Blueprint Class** based on our project's **Game Mode**. This makes it possible to set the exposed variables on those two classes to whatever values we want. To do this:
 
 	* Click the **Add** button in the **Content Browser**.
 
@@ -32,13 +32,29 @@ Description:Set up our Game Mode to use our Main Menu Widget.
 
 	[![](PickParentClassForGameModeBP.png)](PickParentClassForGameModeBP.png)
 
-1. After naming the resulting **Blueprint**, which we will call "MenuGameMode" for this example, right-click it and choose "Edit".
+	* Name the resulting **Blueprint** asset "MenuGameMode".
 
-	[![](EditBP.png)](EditBP.png)
+1. In order to see our mouse cursor in-game, we'll need to create a **Blueprint** of the **Player Controller** as we did with our **Game Mode**.
 
-1. We will configure the **Blueprint** of our **Game Mode** with two changes:
-	* The Starting Widget Class must be set to MainMenu in order to bring up our menu when the game begins.
+	* Click the **Add** button in the **Content Browser** again.
+	
+	* Select **Player Controller** from the "Common Classes" section.
+
+	* Name the **Blueprint** "MenuPlayerController".
+
+1. Edit "MenuPlayerController".
+
+	* Check the "Show Mouse Cursor" box.
+
+	[![](GamePlayerController.png)](GamePlayerController.png)
+
+1. Edit "MenuGameMode".
+
+	* The Starting Widget Class must be set to the "MainMenu" asset in order to bring up our menu when the game begins.
+
 	* The Default Pawn Class should be set to **Pawn** instead of **DefaultPawn** so that our player will not be able to fly around while in the menu.
+
+	* The Player Controller Class should be set to the "MenuPlayerController" asset we created so that the mouse cursor will be shown in-game.
 
 	[![](ConfigureGameMode.png)](ConfigureGameMode.png)
 
@@ -55,7 +71,7 @@ Description:Set up our Game Mode to use our Main Menu Widget.
 
 ----
 
-Our custom **Game Mode** asset is now in effect on our level. If we run the game now, our Quit button will work as expected, and our New Game button will take us to an empty menu screen. Our next step will be to set up the New Game menu.
+Our custom **Game Mode** asset is now in effect on our level, configured to load our Main Menu, and use our **Player Controller** that shows the mouse cursor. If we run the game now, our Quit button will work as expected, and our New Game button will take us to an empty menu screen. Our next step will be to set up the New Game menu.
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
