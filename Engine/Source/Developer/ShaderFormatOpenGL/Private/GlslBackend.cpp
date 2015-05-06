@@ -2856,6 +2856,18 @@ public:
 			ralloc_asprintf_append(buffer, "precision %s sampler2D;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "#endif\n");
+
+			// SGX540 compiler can get upset with some operations that mix highp and mediump.
+			// this results in a shader compile fail with output "compile failed."
+			// Although the actual cause of the failure hasnt been determined this code appears to prevent
+			// compile failure for cases so far seen.
+			ralloc_asprintf_append(buffer, "\n#ifdef TEXCOORDPRECISIONWORKAROUND\n");
+			ralloc_asprintf_append(buffer, "vec4 texture2DTexCoordPrecisionWorkaround(sampler2D p, vec2 tcoord)\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "	return texture2D(p, tcoord);\n");
+			ralloc_asprintf_append(buffer, "}\n");
+			ralloc_asprintf_append(buffer, "#define texture2D texture2DTexCoordPrecisionWorkaround\n");
+			ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
 		if ((state->language_version == 310) && (ShaderTarget == fragment_shader))

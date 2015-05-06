@@ -658,6 +658,12 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 							ReplaceCString(GlslCodeOriginal, "gl_FragCoord.xy", "vec2(400.5,240.5)");
 						}
 					}
+
+					if (FOpenGL::RequiresTexture2DPrecisionHack())
+					{
+						AppendCString(GlslCode,	"#define TEXCOORDPRECISIONWORKAROUND \n");
+					}
+
 				}
 			}
 		}

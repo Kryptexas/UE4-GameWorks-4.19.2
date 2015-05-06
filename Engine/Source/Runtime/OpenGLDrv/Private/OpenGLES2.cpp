@@ -127,6 +127,9 @@ bool FOpenGLES2::bRequiresGLFragCoordVaryingLimitHack = false;
 /** Vertex attributes need remapping if GL_MAX_VERTEX_ATTRIBS < 16 */
 bool FOpenGLES2::bNeedsVertexAttribRemap = false;
 
+/* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
+bool FOpenGLES2::bRequiresTexture2DPrecisionHack = false;
+
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;

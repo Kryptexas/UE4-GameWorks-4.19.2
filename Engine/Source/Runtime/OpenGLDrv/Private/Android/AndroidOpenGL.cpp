@@ -360,6 +360,7 @@ void FAndroidOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	{
 		UE_LOG(LogRHI, Warning, TEXT("Disabling support for GL_OES_packed_depth_stencil on SGX 540"));
 		bSupportsPackedDepthStencil = false;
+		bRequiresTexture2DPrecisionHack = true;
 	}
 
 	if( RendererString.Contains(TEXT("Adreno")) )
