@@ -52,6 +52,9 @@ class FOLIAGE_API UProceduralFoliageComponent : public UActorComponent
 	bool bShowDebugTiles;
 #endif
 
+	// UObject interface
+	virtual void PostEditImport() override;
+
 	/** 
 	 * Runs the procedural foliage simulation to generate a list of desired instances to spawn.
 	 * @return True if the simulation succeeded

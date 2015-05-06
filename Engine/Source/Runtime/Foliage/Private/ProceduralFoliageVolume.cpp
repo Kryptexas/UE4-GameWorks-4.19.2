@@ -24,6 +24,12 @@ AProceduralFoliageVolume::AProceduralFoliageVolume(const FObjectInitializer& Obj
 
 #if WITH_EDITOR
 
+void AProceduralFoliageVolume::PostEditImport()
+{
+	// Make sure that this is the component's spawning volume
+	ProceduralComponent->SetSpawningVolume(this);
+}
+
 bool AProceduralFoliageVolume::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
 	Super::GetReferencedContentObjects(Objects);

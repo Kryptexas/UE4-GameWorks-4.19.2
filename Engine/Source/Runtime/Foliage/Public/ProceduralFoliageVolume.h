@@ -15,6 +15,9 @@ class FOLIAGE_API AProceduralFoliageVolume: public AVolume
 	UPROPERTY(Category = ProceduralFoliage, VisibleAnywhere, BlueprintReadOnly)
 	UProceduralFoliageComponent* ProceduralComponent;
 
+	// UObject interface
+	virtual void PostEditImport() override;
+
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
 #endif
