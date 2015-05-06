@@ -24,10 +24,10 @@ public:
 	/**
 	 * Register an IMergeActorsTool with the module, passing ownership to it
 	 */
-	virtual bool RegisterMergeActorsTool(TUniquePtr<IMergeActorsTool> Tool) = 0;
+	MERGEACTORS_API virtual bool RegisterMergeActorsTool(TUniquePtr<IMergeActorsTool> Tool) = 0;
 
 	/**
 	 * Unregister an IMergeActorsTool with the module
 	 */
-	virtual bool UnregisterMergeActorsTool(IMergeActorsTool* Tool) = 0;
+	MERGEACTORS_API virtual bool UnregisterMergeActorsTool(IMergeActorsTool* Tool) = 0;
 };

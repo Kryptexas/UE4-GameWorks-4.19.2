@@ -71,6 +71,9 @@ void SMergeActorsToolbar::Construct(const FArguments& InArgs)
 	];
 
 	UpdateToolbar();
+
+	// Update selected actor state for the first time
+	GUnrealEd->UpdateFloatingPropertyWindows();
 }
 
 
@@ -84,6 +87,23 @@ SMergeActorsToolbar::~SMergeActorsToolbar()
 void SMergeActorsToolbar::OnActorSelectionChanged(const TArray<UObject*>& NewSelection, bool bForceRefresh)
 {
 	SelectedObjects = NewSelection;
+
+	int32 NumSelectedStaticMeshes = 0;
+	for (UObject* Object : SelectedObjects)
+	{
+		if (AActor* Actor = Cast<AActor>(Object))
+		{
+			TInlineComponentArray<UStaticMeshComponent*> StaticMeshComponents;
+			Actor->GetComponents(StaticMeshComponents);
+			NumSelectedStaticMeshes += StaticMeshComponents.Num();
+			if (NumSelectedStaticMeshes >= 2)
+			{
+				break;
+			}
+		}
+	}
+
+	bIsContentEnabled = (NumSelectedStaticMeshes >= 2);
 }
 
 
@@ -134,21 +154,7 @@ FReply SMergeActorsToolbar::OnMergeActorsClicked()
 
 bool SMergeActorsToolbar::GetContentEnabledState() const
 {
-	int32 NumSelectedStaticMeshes = 0;
-	for (UObject* Object : SelectedObjects)
-	{
-		if (AActor* Actor = Cast<AActor>(Object))
-		{
-			TInlineComponentArray<UStaticMeshComponent*> StaticMeshComponents;
-			Actor->GetComponents(StaticMeshComponents);
-			NumSelectedStaticMeshes += StaticMeshComponents.Num();
-			if (NumSelectedStaticMeshes >= 2)
-			{
-				break;
-			}
-		}
-	}
-	return NumSelectedStaticMeshes >= 2;
+	return bIsContentEnabled;
 }
 
 
