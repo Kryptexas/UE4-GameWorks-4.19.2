@@ -30,7 +30,7 @@
 #include <math.h>
 
 static const unsigned DT_UNSET_PATCH_HEIGHT = 0xffff;
-static const unsigned DT_UNSET_LAYER_HEIGHT = 0xff;
+static const unsigned DT_UNSET_LAYER_HEIGHT = 0xffff;
 
 struct dtHeightPatch
 {
