@@ -45,19 +45,31 @@ DEFINE_LOG_CATEGORY_STATIC(LogFoliage, Log, Warning);
 //
 // FFoliageMeshUIInfo
 //
+FFoliageMeshUIInfo::FFoliageMeshUIInfo(UFoliageType* InSettings)
+	: Settings(InSettings)
+	, InstanceCountCurrentLevel(0)
+	, InstanceCountTotal(0)
+{
+}
+
 FText FFoliageMeshUIInfo::GetNameText() const
 {
+	//@todo: this is redundant with FFoliagePaletteItem::DisplayFName, should probably move sorting implementation over to SFoliagePalette
 	const UFoliageType* FoliageType = Settings;
 	if (FoliageType->IsAsset())
 	{
-		return FText::FromString(FoliageType->GetName());
+		return FText::FromName(FoliageType->GetFName());
+	}
+	else if (UBlueprint* Blueprint = Cast<UBlueprint>(FoliageType->GetClass()->ClassGeneratedBy))
+	{
+		return FText::FromName(Blueprint->GetFName());
 	}
 	else
 	{
 		UStaticMesh* Mesh = FoliageType->GetStaticMesh();
 		if (Mesh)
 		{
-			return FText::FromString(Mesh->GetName());
+			return FText::FromName(Mesh->GetFName());
 		}
 		else
 		{
@@ -273,6 +285,9 @@ void FEdModeFoliage::Enter()
 {
 	FEdMode::Enter();
 
+	// register for any objects replaced
+	GEditor->OnObjectsReplaced().AddRaw(this, &FEdModeFoliage::OnObjectsReplaced);
+
 	// Clear any selection in case the instanced foliage actor is selected
 	GEditor->SelectNone(true, true);
 
@@ -332,6 +347,8 @@ void FEdModeFoliage::Exit()
 	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
+
+	GEditor->OnObjectsReplaced().RemoveAll(this);
 	
 	FoliageMeshList.Empty();
 	
@@ -459,6 +476,46 @@ bool FEdModeFoliage::DisallowMouseDeltaTracking() const
 {
 	// We never want to use the mouse delta tracker while painting
 	return bToolActive;
+}
+
+void FEdModeFoliage::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
+{
+	bool bAnyFoliageTypeReplaced = false;
+
+	UWorld* World = GetWorld();
+	ULevel* CurrentLevel = World->GetCurrentLevel();
+	const int32 NumLevels = World->GetNumLevels();
+
+	// See if any IFA needs to update a foliage type reference
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = World->GetLevel(LevelIdx);
+		if (Level && Level->bIsVisible)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level);
+			if (IFA)
+			{
+				for (auto& ReplacementPair : ReplacementMap)
+				{
+					if (UFoliageType* ReplacedFoliageType = Cast<UFoliageType>(ReplacementPair.Key))
+					{
+						TUniqueObj<FFoliageMeshInfo> MeshInfo;
+						if (IFA->FoliageMeshes.RemoveAndCopyValue(ReplacedFoliageType, MeshInfo))
+						{
+							// Re-add the unique mesh info associated with the replaced foliage type
+							IFA->FoliageMeshes.Add(Cast<UFoliageType>(ReplacementPair.Value), MoveTemp(MeshInfo));
+							bAnyFoliageTypeReplaced = true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (bAnyFoliageTypeReplaced)
+	{
+		PopulateFoliageMeshList();
+	}
 }
 
 /** FEdMode: Called once per frame */
@@ -938,40 +995,6 @@ static void SpawnFoliageInstance(UWorld* InWorld, const UFoliageType* Settings, 
 	MeshInfo->AddInstance(IFA, FoliageSettings, Instance, BaseComponent);
 }
 
-FFoliageMeshInfo* UpdateMeshSettings(AInstancedFoliageActor* IFA, const FDesiredFoliageInstance& DesiredInstance)
-{
-	FFoliageMeshInfo* MeshInfo = nullptr;
-
-	if (const UFoliageType_InstancedStaticMesh* FoliageType = Cast<UFoliageType_InstancedStaticMesh>(DesiredInstance.FoliageType))
-	{
-		//We have to add the foliage type into the foliage actor.
-		if (FoliageType->IsAsset())
-		{
-			// Add the foliage type asset
-			IFA->AddFoliageType(FoliageType, &MeshInfo);
-		}
-		else if (UStaticMesh* StaticMesh = FoliageType->GetStaticMesh())
-		{
-			if (IFA->GetSettingsForMesh(StaticMesh, nullptr, false) != nullptr)
-			{
-				// @todo: create some unique designation for types added procedurally to prevent them stomping any existing types (or restrict proc foliage to foliage type assets only)
-
-				// A non-asset foliage type using this mesh already exists in the IFA
-				// Only one such type is supported, so the desired instance overrides it
-				MeshInfo = IFA->UpdateMeshSettings(StaticMesh, FoliageType, false);
-				UE_LOG(LogFoliage, Warning, TEXT("Procedurally generated foliage type using Static Mesh \"%s\" conflicts with an existing non-asset foliage type. To prevent clashes, use Foliage Type assets instead."), *StaticMesh->GetName());
-			}
-			else
-			{
-				// No conflict with an existing type, just add normally
-				IFA->AddFoliageType(FoliageType, &MeshInfo);
-			}
-		}
-	}
-
-	return MeshInfo;
-}
-
 void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settings, const TArray<FDesiredFoliageInstance>& DesiredInstances, const TArray<int32>& ExistingInstanceBuckets, const float Pressure, LandscapeLayerCacheData* LandscapeLayerCachesPtr, const FFoliageUISettings* UISettings)
 {
 	if (DesiredInstances.Num() == 0)
@@ -1003,7 +1026,7 @@ void FEdModeFoliage::AddInstancesImp(UWorld* InWorld, const UFoliageType* Settin
 				if (!UpdatedTypes.Contains(PotentialInst.DesiredInstance.FoliageType))
 				{
 					UpdatedTypes.Add(PotentialInst.DesiredInstance.FoliageType);
-					UpdateMeshSettings(TargetIFA, PotentialInst.DesiredInstance);
+					TargetIFA->AddFoliageType(PotentialInst.DesiredInstance.FoliageType);
 				}
 			}
 		}
@@ -2343,7 +2366,7 @@ void FEdModeFoliage::PopulateFoliageMeshList()
 {
 	FoliageMeshList.Empty();
 	
-	// Collect set of all available Settings
+	// Collect set of all available foliage types
 	UWorld* World = GetWorld();
 	ULevel* CurrentLevel = World->GetCurrentLevel();
 	const int32 NumLevels = World->GetNumLevels();
@@ -2504,7 +2527,7 @@ UFoliageType* FEdModeFoliage::AddFoliageAsset(UObject* InAsset)
 	if (StaticMesh)
 	{	
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld(), true);
-		FoliageType = IFA->GetSettingsForMesh(StaticMesh);
+		FoliageType = IFA->GetLocalFoliageTypeForMesh(StaticMesh);
 		if (!FoliageType)
 		{
 			IFA->AddMesh(StaticMesh, &FoliageType);

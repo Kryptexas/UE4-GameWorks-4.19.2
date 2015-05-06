@@ -26,9 +26,12 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
+	~SFoliagePalette();
+
+	// SWidget interface
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-	/** Updates the foliage palette, optionally doing a full refresh of the items in the palette as well */
+	/** Updates the foliage palette, optionally doing a full rebuild of the items in the palette as well */
 	void UpdatePalette(bool bRebuildItems = false);
 
 	/** Updates the thumbnail for the given foliage type in the palette */
@@ -197,6 +200,9 @@ private:	// DETAILS
 	/** Refreshes the mesh details widget to match the current selection */
 	void RefreshDetailsWidget();
 
+	/** Gets whether property editing is enabled */
+	bool GetIsPropertyEditingEnabled() const;
+
 	/** Gets the text for the details area header */
 	FText GetDetailsNameAreaText() const;
 
@@ -208,6 +214,12 @@ private:	// DETAILS
 
 	/** Handles the show/hide details button click */
 	FReply OnShowHideDetailsClicked() const;
+
+	/** Gets the visibility of the uneditable blueprint foliage type warning */
+	EVisibility GetUneditableFoliageTypeWarningVisibility() const;
+
+	/** Handles the click for the uneditable blueprint foliage type warning */
+	void OnEditFoliageTypeBlueprintHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
 
 private:
 	/** Active timer handler to update the items in the palette */
@@ -247,5 +259,6 @@ private:
 	FEdModeFoliage* FoliageEditMode;
 
 	bool bItemsNeedRebuild : 1;
+	bool bIsUneditableFoliageTypeSelected : 1;
 	bool bIsActiveTimerRegistered : 1;
 };
