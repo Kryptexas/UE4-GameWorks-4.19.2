@@ -8,6 +8,8 @@
 
 #include "RenderingCompositionGraph.h"
 
+bool UseVolumeTextureLUT(EShaderPlatform Platform);
+
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 class FRCPassPostProcessCombineLUTs : public TRenderingCompositePassBase<0, 1>
 {
