@@ -208,6 +208,9 @@ private:
 	/** The number of references to this shader. */
 	mutable uint32 NumRefs;
 
+	/** A 'canary' used to detect when a stale shader resource is being rendered with. */
+	uint32 Canary;
+
 	/** Initialize the vertex shader RHI resource. */
 	void InitializeVertexShaderRHI();
 
@@ -697,8 +700,11 @@ private:
 	/** A 'canary' used to detect when a stale shader is being rendered with. */
 	uint32 Canary;
 
+public:
 	/** Canary is set to this if the FShader is a valid pointer but uninitialized. */
 	static const uint32 ShaderMagic_Uninitialized = 0xbd9922df;
+	/** Canary is set to this if the FShader is a valid pointer but in the process of being cleaned up. */
+	static const uint32 ShaderMagic_CleaningUp = 0xdc67f93b;
 	/** Canary is set to this if the FShader is a valid pointer and initialized. */
 	static const uint32 ShaderMagic_Initialized = 0x335b43ab;
 };
