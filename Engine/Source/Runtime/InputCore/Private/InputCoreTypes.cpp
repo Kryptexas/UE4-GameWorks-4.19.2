@@ -254,12 +254,12 @@ TMap<FName, EKeys::FCategoryDisplayInfo> EKeys::MenuCategoryDisplayInfo;
 FKeyDetails::FKeyDetails(const FKey InKey, const TAttribute<FText>& InDisplayName, const uint8 InKeyFlags, const FName InMenuCategory)
 	: Key(InKey)
 	, DisplayName(InDisplayName)
+	, MenuCategory(InMenuCategory)
 	, bIsModifierKey((InKeyFlags & EKeyFlags::ModifierKey) != 0)
 	, bIsGamepadKey((InKeyFlags & EKeyFlags::GamepadKey) != 0)
 	, bIsMouseButton((InKeyFlags & EKeyFlags::MouseButton) != 0)
 	, bIsBindableInBlueprints((~InKeyFlags & EKeyFlags::NotBlueprintBindableKey) != 0)
 	, AxisType(EInputAxisType::None)
-	, MenuCategory(InMenuCategory)
 {
 	if ((InKeyFlags & EKeyFlags::FloatAxis) != 0)
 	{
