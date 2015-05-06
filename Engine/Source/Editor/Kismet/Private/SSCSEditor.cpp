@@ -2729,6 +2729,7 @@ void SSCS_RowWidget::OnMakeNewRootDropAction(FSCSEditorTreeNodePtrType DroppedNo
 			if (bWasDefaultSceneRoot)
 			{
 				SCSEditorPtr->RemoveComponentNode(OldSceneRootNodePtr);
+				SCSEditorPtr->GetActorContext()->SetRootComponent(CastChecked<USceneComponent>(DroppedNodePtr->GetComponentTemplate()));
 			}
 			else
 			{
@@ -5106,9 +5107,11 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 				SCSTreeWidget->ClearSelection();
 			}
 
+			const bool bWasDefaultSceneRoot = InNodePtr.IsValid() && InNodePtr->IsDefaultSceneRoot();
+
 			// Destroy the component instance
 			ComponentInstance->Modify();
-			ComponentInstance->DestroyComponent(true);
+			ComponentInstance->DestroyComponent(!bWasDefaultSceneRoot);
 		}
 	}
 }

@@ -644,6 +644,20 @@ void USceneComponent::OnComponentDestroyed()
 
 	ScopedMovementStack.Reset();
 
+	// Detach children before destroying
+	for (int32 Index = AttachChildren.Num()-1; Index >= 0; --Index)
+	{
+		USceneComponent* Child = AttachChildren[Index];
+		if (AttachParent)
+		{
+			Child->AttachTo(AttachParent);
+		}
+		else
+		{
+			Child->DetachFromParent();
+		}
+	}
+
 	// Ensure we are detached before destroying
 	DetachFromParent();
 }
