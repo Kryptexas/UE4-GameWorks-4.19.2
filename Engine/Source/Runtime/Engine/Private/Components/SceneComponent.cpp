@@ -647,14 +647,16 @@ void USceneComponent::OnComponentDestroyed()
 	// Detach children before destroying
 	for (int32 Index = AttachChildren.Num()-1; Index >= 0; --Index)
 	{
-		USceneComponent* Child = AttachChildren[Index];
-		if (AttachParent)
+		if (USceneComponent* Child = AttachChildren[Index])
 		{
-			Child->AttachTo(AttachParent);
-		}
-		else
-		{
-			Child->DetachFromParent();
+			if (AttachParent)
+			{
+				Child->AttachTo(AttachParent);
+			}
+			else
+			{
+				Child->DetachFromParent();
+			}
 		}
 	}
 
