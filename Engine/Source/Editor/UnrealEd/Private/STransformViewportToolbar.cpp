@@ -650,7 +650,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 		{
 			if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 			{
-				SettingsModule->ShowViewer("Project", "Editor", "2D");
+				SettingsModule->ShowViewer("Project", "Editor", "LevelEditor2DSettings");
 			}
 		}
 
