@@ -234,6 +234,7 @@ ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	LayerChunkSplits = 2;
 	MaxSimultaneousTileGenerationJobsCount = 1024;
 	bDoFullyAsyncNavDataGathering = false;
+	TileNumberHardLimit = 1 << 20;
 
 #if RECAST_ASYNC_REBUILDING
 	BatchQueryCounter = 0;
@@ -480,6 +481,7 @@ void ARecastNavMesh::PostLoad()
 	Super::PostLoad();
 	// tilesize validation. This is temporary and should get removed by 4.9
 	TileSizeUU = FMath::Clamp(TileSizeUU, CellSize, ArbitraryMaxVoxelTileSize * CellSize);
+	UpdatePolyRefBitsPreview();
 }
 
 void ARecastNavMesh::PostInitProperties()
@@ -563,6 +565,8 @@ void ARecastNavMesh::PostInitProperties()
 			AgentMaxStepHeight = DefOb->AgentMaxStepHeight;
 		}
 	}
+
+	UpdatePolyRefBitsPreview();
 }
 
 FVector ARecastNavMesh::GetModifiedQueryExtent(const FVector& QueryExtent) const
@@ -1959,6 +1963,7 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 {
 	static const FName NAME_Generation = FName(TEXT("Generation"));
 	static const FName NAME_Display = FName(TEXT("Display"));
+	static const FName NAME_TileNumberHardLimit = GET_MEMBER_NAME_CHECKED(ARecastNavMesh, TileNumberHardLimit);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -1984,6 +1989,11 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 
 				// update config
 				FillConfig(NavDataConfig);
+			}
+			else if (PropName == NAME_TileNumberHardLimit)
+			{
+				TileNumberHardLimit = 1 << (FMath::CeilToInt(FMath::Log2(TileNumberHardLimit)));
+				UpdatePolyRefBitsPreview();
 			}
 
 			if (HasAnyFlags(RF_ClassDefaultObject) == false)
@@ -2080,6 +2090,14 @@ bool ARecastNavMesh::HasValidNavmesh() const
 #else
 	return false;
 #endif // WITH_RECAST
+}
+
+void ARecastNavMesh::UpdatePolyRefBitsPreview()
+{
+	static const int32 TotalBits = (sizeof(dtPolyRef) * 8);
+
+	FRecastNavMeshGenerator::CalcPolyRefBits(this, PolyRefTileBits, PolyRefNavPolyBits);
+	PolyRefSaltBits = TotalBits - PolyRefTileBits - PolyRefNavPolyBits;
 }
 
 //----------------------------------------------------------------------//

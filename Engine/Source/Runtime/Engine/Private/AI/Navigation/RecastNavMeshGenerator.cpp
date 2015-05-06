@@ -3035,7 +3035,7 @@ FRecastNavMeshGenerator::FRecastNavMeshGenerator(ARecastNavMesh& InDestNavMesh)
 			if (!bRecreateNavmesh)
 			{
 				CalcNavMeshProperties(MaxTiles, MaxPolysPerTile);
-				if (MaxTiles > SavedNavParams->maxTiles)
+				if (FMath::Log2(MaxTiles) != FMath::Log2(SavedNavParams->maxTiles))
 				{
 					bRecreateNavmesh = true;
 				}
@@ -3211,15 +3211,26 @@ bool FRecastNavMeshGenerator::ConstructTiledNavMesh()
 	return bSuccess;
 }
 
+void FRecastNavMeshGenerator::CalcPolyRefBits(ARecastNavMesh* NavMeshOwner, int32& MaxTileBits, int32& MaxPolyBits)
+{
+	static const int32 TotalBits = (sizeof(dtPolyRef) * 8);
+#if USE_64BIT_ADDRESS
+	MaxTileBits = NavMeshOwner ? FMath::CeilToFloat(FMath::Log2(NavMeshOwner->GetTileNumberHardLimit())) : 20;
+	MaxPolyBits = FMath::Min<int32>(32, (TotalBits - DT_MIN_SALT_BITS) - MaxTileBits);
+#else
+	MaxTileBits = 14;
+	MaxPolyBits = (TotalBits - DT_MIN_SALT_BITS) - MaxTileBits;
+#endif//USE_64BIT_ADDRESS
+}
+
 void FRecastNavMeshGenerator::CalcNavMeshProperties(int32& MaxTiles, int32& MaxPolys)
 {
-	// limit max amount of tiles
-#if USE_64BIT_ADDRESS
-	const int32 MaxTileBits = 30;
-#else
-	const int32 MaxTileBits = 14;
-#endif//USE_64BIT_ADDRESS
+	int32 MaxTileBits = -1;
+	int32 MaxPolyBits = -1;
 
+	// limit max amount of tiles
+	CalcPolyRefBits(DestNavMesh, MaxTileBits, MaxPolyBits);
+	
 	const int32 MaxTilesFromMask = (1 << MaxTileBits);
 	int32 MaxRequestedTiles = 0;
 	if (DestNavMesh->IsResizable())
@@ -3240,7 +3251,11 @@ void FRecastNavMeshGenerator::CalcNavMeshProperties(int32& MaxTiles, int32& MaxP
 	// Max tiles and max polys affect how the tile IDs are calculated.
 	// There are (sizeof(dtPolyRef)*8 - DT_MIN_SALT_BITS) bits available for 
 	// identifying a tile and a polygon.
-	MaxPolys = 1 << ((sizeof(dtPolyRef)* 8 - DT_MIN_SALT_BITS) - MaxTileBits);
+#if USE_64BIT_ADDRESS
+	MaxPolys = (MaxPolyBits >= 32) ? INT_MAX : (1 << MaxPolyBits);
+#else
+	MaxPolys = 1 << ((sizeof(dtPolyRef) * 8 - DT_MIN_SALT_BITS) - MaxTileBits);
+#endif // USE_64BIT_ADDRESS
 	MaxTiles = MaxRequestedTiles;
 }
 

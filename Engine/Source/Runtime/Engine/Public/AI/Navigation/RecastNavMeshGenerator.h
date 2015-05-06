@@ -458,6 +458,8 @@ public:
 	 *	@mote function does not validate the input parameter - it's on caller */
 	void SetMaxTileGeneratorTasks(int32 NewLimit) { MaxTileGeneratorTasks = NewLimit; }
 
+	static void CalcPolyRefBits(ARecastNavMesh* NavMeshOwner, int32& MaxTileBits, int32& MaxPolyBits);
+
 protected:
 	bool IsInActiveSet(const FIntPoint& Tile) const;
 	void RestrictBuildingToActiveTiles(bool InRestrictBuildingToActiveTiles);
