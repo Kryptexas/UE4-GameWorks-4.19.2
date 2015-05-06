@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2283292
+﻿INTSourceChangelist:2536143
 Availability: Public
 Title:Mesh 타입데이터
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -76,7 +76,7 @@ Description:Mesh 타입데이터 모듈을 통해 사용자는 스프라이트 �
 [EXCERPT:CameraFacingCaveats]
 [REGION:note]모든 잠긴축 카메라 방향 옵션은 _Axis Lock Option_ 이 설정되었다고 간주합니다. EPAL_NONE은 EPAL_X로 간주됩니다.[/REGION]
 
-[REGION:note]모든 속도정렬 옵션은 _Screen Alignment_ 를 PSA_Velocity로 설정하지 **않아도** 됩니다. 그래버리면 잔업을 해버립니다. (메시를 두 번 죽이는 거에요~) [/REGION]
+[REGION:note]모든 속도정렬 옵션은 _Screen Alignment_ 를 PSA_Velocity로 설정하지 **않아도** 됩니다. 그래버리면 필요도 없는 야근을 하게 됩니다 (메시를 두 번 죽이는 거에요~). [/REGION]
 [/EXCERPT:CameraFacingCaveats]
 
 [EXCERPT:MeshAlignmentOption]

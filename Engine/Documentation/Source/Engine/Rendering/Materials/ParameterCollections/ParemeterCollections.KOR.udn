@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2532298
+﻿INTSourceChangelist:2537525
 Availability: Public
 Title: 머티리얼 파라미터 콜렉션
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -150,7 +150,7 @@ _머티리얼 파라미터 콜렉션_ 은 [**콘텐츠 브라우저**](Engine/Co
 	![](MPC_Added_Nodes_To_BP.png)
 
 1. 블루프린트 그래프에 올바른 노드를 추가하였으니 이제 구성해 줄 차례입니다.
-	먼저 **Set Scalar Parameter Value** 부터 구생해 주겠습니다.
+	먼저 **Set Scalar Parameter Value** 부터 구성해 주겠습니다.
 	구성을 위해 해 줘야 하는 작업은, 먼저 사용할 머티리얼 파라미터 콜렉션을 정의하는 것입니다.
 	방법은, **콜렉션** 입력에 **좌클릭** 한 다음 사용하고자 하는 머티리얼 파라미터 콜렉션을 선택하면 됩니다.
 	다음은, 조작하고자 하는 **Parameter Name** 을 선택합니다. 이 경우 **Global_Desaturation** 겠지요. 완료된 **Set Scalar Parameter Value** 노드 모습은 이렇습니다.

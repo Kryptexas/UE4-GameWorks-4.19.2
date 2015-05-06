@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2534209
+﻿INTSourceChangelist:2536219
 Availability: Public
 Title:머티리얼 에디터 - 투명도 사용 비법
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -15,7 +15,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 현실에서 이러한 속성을 일컬어 종종 **Transparency** (투명도) 또는 **Opacity** (오파시티)라 하며, 서로 같은 것을 가리킵니다.
 하지만 언리얼 엔진 4 (UE4) 안에서, 투명도는 표면을 통과해서 볼 수 있느냐 없느냐를 말하는 반면, 오파시티는 표면의 투명한 정도를 정의하는 데 사용됩니다. 이번 비법에서는 언리얼 엔진 4 에서 머티리얼에 투명도를 도입하기 위해 알아야 하는 모든 것에 대해 배워보겠습니다.
 
-## 투명도란
+## 투명도
 
 Transparency, 투명도는 표면이 빛을 막거나 통과시킬 수 있는가를 나타내는 데 사용되는 용어입니다.
 예를 들어, 벽돌은 투명도가 없는 오브젝트인 반면, 색유리는 투명도가 있는 오브젝트입니다.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2314747
+﻿INTSourceChangelist:2537795
 Availability: Public
 Title:색 선택기
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -75,7 +75,7 @@ Description:액터의 컬러 프로퍼티에 할당할 색을 직접 보면서 �
 
 **테마** 는 쉽게 재사용할 수 있는 색 모음입니다. 아티스트나 디자이너가 자주 사용하는 색을 저장하거나, 사용하는 색을 특정 팔레트로 제한시키기는 데 사용됩니다.
 
-![Exmaple Theme](theme_spring.png)
+![Example Theme](theme_spring.png)
 
 ### 테마 만들기
 

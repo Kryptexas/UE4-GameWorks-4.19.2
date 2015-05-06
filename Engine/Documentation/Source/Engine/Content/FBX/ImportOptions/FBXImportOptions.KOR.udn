@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2385966
+﻿INTSourceChangelist:2536028
 Availability:Public
 Title:FBX 임포트 옵션 참고서
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
@@ -193,7 +193,7 @@ FBX 파일에 있는 MorphTarget 노드 이름을 사용합니다.
 [REGION:simpletable]
 	| **옵션** | **설명** |
 	| ---- | ---- |
-	| **Calculate Normals** | 노멀 계산 - 엔진에서 노멀과 탄젠트를 계산합니다. 그무딩 그룹과 노멀 정보는 FBX 정보에서 버립니다. |
+	| **Compute Normals** | 노멀 계산 - 엔진에서 노멀과 탄젠트를 계산합니다. 그무딩 그룹과 노멀 정보는 FBX 정보에서 버립니다. |
 	| **Import Normals** | 노멀 임포트 - FBX 파일에서 노멀을 임포트하며, 탄젠트는 엔진에서 계산합니다. |
 	| **Import Normals and Tangents** | 노멀과 탄젠트 임포트 - 노멀과 탄젠트를 FBX 파일에서 임포트하며, 엔진에서는 아무것도 계산하지 않습니다. |
 [/REGION]
