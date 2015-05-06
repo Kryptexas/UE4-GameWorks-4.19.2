@@ -441,6 +441,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 {
 	if(RootNodes.Num() > 0)
 	{
+		TSet<UActorComponent*> AllComponentsCreatedBySCS;
 		TInlineComponentArray<UActorComponent*> InstancedComponents;
 		for(auto NodeIt = RootNodes.CreateIterator(); NodeIt; ++NodeIt)
 		{
@@ -498,11 +499,23 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 					}
 				}
 
+
 				// Create the new component instance and any child components it may have
 				UActorComponent* InstancedComponent = RootNode->ExecuteNodeOnActor(Actor, ParentComponent != nullptr ? ParentComponent : RootComponent, &RootTransform, bIsDefaultTransform);
 				if(InstancedComponent != nullptr)
 				{
 					InstancedComponents.Add(InstancedComponent);
+				}
+
+				// get list of every component SCS created, in case some of them aren't in the attachment hierarchy any more (e.g. rigid bodies)
+				TInlineComponentArray<USceneComponent*> ComponentsAfterSCS;
+				Actor->GetComponents(ComponentsAfterSCS);
+				for (auto C : ComponentsAfterSCS)
+				{
+					if (Components.Contains(C) == false)
+					{
+						AllComponentsCreatedBySCS.Add(C);
+					}
 				}
 			}
 		}
@@ -512,6 +525,15 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 		for(auto InstancedComponent : InstancedComponents)
 		{
 			RegisterInstancedComponent(InstancedComponent);
+		}
+
+		// now that the instanced components in the attachment hierarchy are registered, register any other components that SCS made but aren't in the attachment hierarchy for whatever reason.
+		for (auto C : AllComponentsCreatedBySCS)
+		{
+			if (C->IsRegistered() == false)
+			{
+				C->RegisterComponent();
+			}
 		}
 	}
 	else if(Actor->GetRootComponent() == NULL) // Must have a root component at the end of SCS, so if we don't have one already (from base class), create a SceneComponent now
