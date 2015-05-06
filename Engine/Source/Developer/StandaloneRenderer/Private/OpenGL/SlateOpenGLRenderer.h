@@ -35,8 +35,6 @@ struct FSlateOpenGLContext
 	NSView* View;
 	NSOpenGLPixelFormat* PixelFormat;
 	NSOpenGLContext* Context;
-	NSOpenGLContext* ViewContext; // context for CALayer
-	struct FSlateOpenGLViewport* Viewport;
 	bool bNeedsUpdate;
 #elif PLATFORM_IOS
 	UIWindow* WindowHandle;
@@ -101,10 +99,6 @@ struct FSlateOpenGLViewport
 	/** Updates the OpenGL context and projection matrix on resize */
 	void Resize( int32 Width, int32 Height, bool bInFullscreen );
 
-#if PLATFORM_MAC
-	void Draw();
-#endif
-
 private:
 
 	/**
@@ -129,12 +123,6 @@ private:
 						 FPlane((Left+Right)/(Left-Right),	(Top+Bottom)/(Bottom-Top),	ZNear/(ZNear-ZFar), 1 ) );
 
 	}
-
-#if PLATFORM_MAC
-	GLuint Framebuffer;
-	GLuint Renderbuffer;
-	FCriticalSection ContextGuard;
-#endif
 };
 
 /**
