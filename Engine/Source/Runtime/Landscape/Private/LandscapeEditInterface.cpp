@@ -3604,6 +3604,33 @@ void FLandscapeEditDataInterface::CopyTextureFromHeightmap(UTexture2D* Dest, int
 	}
 }
 
+void FLandscapeEditDataInterface::CopyTextureFromWeightmap(UTexture2D* Dest, int32 DestChannel, ULandscapeComponent* Comp, ULandscapeLayerInfoObject* LayerInfo)
+{
+	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
+	int32 MipSize = Dest->Source.GetSizeX();
+	check(Dest->Source.GetSizeX() == Dest->Source.GetSizeY());
+
+	// Channel remapping
+	int32 ChannelOffsets[4] = { (int32)STRUCT_OFFSET(FColor, R), (int32)STRUCT_OFFSET(FColor, G), (int32)STRUCT_OFFSET(FColor, B), (int32)STRUCT_OFFSET(FColor, A) };
+
+	for (int32 MipIdx = 0; MipIdx < DestDataInfo->NumMips(); MipIdx++)
+	{
+		FLandscapeComponentDataInterface DataInterface(Comp, MipIdx);
+		TArray<uint8> WeightData;
+		DataInterface.GetWeightmapTextureData(LayerInfo, WeightData);
+
+		uint8* DestTextureData = (uint8*)DestDataInfo->GetMipData(MipIdx) + ChannelOffsets[DestChannel];
+
+		for (int32 i = 0; i < FMath::Square(MipSize); i++)
+		{
+			DestTextureData[i * 4] = WeightData[i];
+		}
+
+		DestDataInfo->AddMipUpdateRegion(MipIdx, 0, 0, MipSize - 1, MipSize - 1);
+		MipSize >>= 1;
+	}
+}
+
 void FLandscapeEditDataInterface::ZeroTextureChannel(UTexture2D* Dest, int32 DestChannel)
 {
 	FLandscapeTextureDataInfo* DestDataInfo = GetTextureDataInfo(Dest);
