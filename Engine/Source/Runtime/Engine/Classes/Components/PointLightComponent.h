@@ -65,7 +65,10 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	void SetLightFalloffExponent(float NewLightFalloffExponent);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
-	void SetSourceRadius(float bNewValue);
+	void SetSourceRadius(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
+	void SetSourceLength(float NewValue);
 
 protected:
 	// Begin UActorComponent Interface
