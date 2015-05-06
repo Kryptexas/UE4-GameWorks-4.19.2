@@ -227,8 +227,6 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 {
 	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_AddTags", "Add Gameplay Tags") );
 
-	bool bRemoveParents = false;
-	
 	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
 
 	for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
@@ -240,6 +238,8 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 		if (Container)
 		{
 			FGameplayTagContainer EditableContainer = *Container;
+
+			bool bRemoveParents = false;
 
 			while (CurNode.IsValid())
 			{
