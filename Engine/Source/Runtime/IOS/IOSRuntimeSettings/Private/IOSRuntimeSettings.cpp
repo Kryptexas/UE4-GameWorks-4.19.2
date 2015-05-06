@@ -23,7 +23,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bShipForArmV7 = true;
 	bShipForArm64 = true;
 	bShipForArmV7S = false;
-	bUseRSync = false;
+	bUseRSync = true;
 	AdditionalPlistData = TEXT("");
 }
 
