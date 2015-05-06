@@ -37,6 +37,14 @@ void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
 	}
 }
 
+void UTextBlock::SetOpacity(float InOpacity)
+{
+	FLinearColor CurrentColor = ColorAndOpacity.GetSpecifiedColor();
+	CurrentColor.A = InOpacity;
+	
+	SetColorAndOpacity(FSlateColor(CurrentColor));
+}
+
 void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;

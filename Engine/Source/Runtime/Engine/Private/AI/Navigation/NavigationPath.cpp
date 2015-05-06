@@ -947,6 +947,15 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
 	const uint32 NumCorridorEdges = CorridorEdges.Num();
 
+	// if we have a valid corridor, but the index is out of bounds, we could
+	// be checking just the last point, but that would be inconsistent with 
+	// FNavMeshPath::DoesPathIntersectBoxImplementation implementation
+	// so in this case we just say "Nope, doesn't intersect"
+	if (NumCorridorEdges <= 0 || StartingIndex > NumCorridorEdges)
+	{
+		return false;
+	}
+
 	// note that it's a bit simplified. It works
 	FVector Start = StartLocation;
 	if (CorridorEdges.IsValidIndex(StartingIndex))
@@ -1039,18 +1048,39 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 
 bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
-	// trivial scenario check:
-	if (Box.IsInside(AgentLocation))
-	{
-		return true;
-	}
-
 	if (IsStringPulled())
 	{
 		return Super::DoesIntersectBox(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
 	}
 
 	return DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
+}
+
+bool FNavMeshPath::GetNodeFlags(int32 NodeIdx, FNavMeshNodeFlags& Flags) const
+{
+	bool bResult = false;
+
+	if (IsStringPulled())
+	{
+		if (PathPoints.IsValidIndex(NodeIdx))
+		{
+			Flags = FNavMeshNodeFlags(PathPoints[NodeIdx].Flags);
+			bResult = true;
+		}
+	}
+	else
+	{
+		if (PathCorridor.IsValidIndex(NodeIdx))
+		{
+#if WITH_RECAST
+			const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
+			MyOwner->GetPolyFlags(PathCorridor[NodeIdx], Flags);
+			bResult = true;
+#endif	// WITH_RECAST
+		}
+	}
+
+	return bResult;
 }
 
 FVector FNavMeshPath::GetSegmentDirection(uint32 SegmentEndIndex) const

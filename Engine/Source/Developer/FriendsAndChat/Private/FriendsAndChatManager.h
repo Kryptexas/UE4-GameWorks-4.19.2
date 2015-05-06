@@ -124,7 +124,7 @@ public:
 
 	// IFriendsAndChatManager
 	virtual void Logout() override;
-	virtual void Login() override;
+	virtual void Login(bool bInIsGame = false) override;
 	virtual bool IsLoggedIn() override;
 	virtual void SetOnline() override;
 	virtual void SetAway() override;
@@ -860,6 +860,9 @@ private:
 	bool bRequiresRecentPlayersRefresh;
 	// Holds the toast notification
 	TSharedPtr<SNotificationList> FriendsNotificationBox;
+
+	// Lets us know if we are in game for invites / join game sessions
+	bool bIsInGame;
 
 public:
 

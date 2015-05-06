@@ -1475,7 +1475,7 @@ void FActiveGameplayEffectsContainer::ExecutePeriodicGameplayEffect(FActiveGamep
 {
 	GAMEPLAYEFFECT_SCOPE_LOCK();
 	FActiveGameplayEffect* ActiveEffect = GetActiveGameplayEffect(Handle);
-	if (ActiveEffect)
+	if (ActiveEffect && !ActiveEffect->bIsInhibited)
 	{
 		if (UE_LOG_ACTIVE(VLogAbilitySystem, Log))
 		{
@@ -2760,7 +2760,7 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 				if (Effect.PeriodHandle.IsValid() && TimerManager.TimerExists(Effect.PeriodHandle))
 				{
 					float PeriodTimeRemaining = TimerManager.GetTimerRemaining(Effect.PeriodHandle);
-					if (PeriodTimeRemaining <= KINDA_SMALL_NUMBER)
+					if (PeriodTimeRemaining <= KINDA_SMALL_NUMBER && !Effect.bIsInhibited)
 					{
 						ExecuteActiveEffectsFrom(Effect.Spec);
 					}

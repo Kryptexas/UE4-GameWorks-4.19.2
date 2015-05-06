@@ -192,6 +192,31 @@ float dtDistancePtSegSqr2D(const float* pt, const float* p, const float* q, floa
 	return dx*dx + dz*dz;
 }
 
+float dtDistancePtSegSqr(const float* pt, const float* p, const float* q)
+{
+	float seg[3], toPt[3], closest[3];
+	dtVsub(seg, q, p);
+	dtVsub(toPt, pt, p);
+
+	const float d1 = dtVdot(toPt, seg);
+	const float d2 = dtVdot(seg, seg);
+	if (d1 <= 0)
+	{
+		dtVcopy(closest, p);
+	}
+	else if (d2 <= d1)
+	{
+		dtVcopy(closest, q);
+	}
+	else
+	{
+		dtVmad(closest, p, seg, d1 / d2);
+	}
+
+	dtVsub(toPt, closest, pt);
+	return dtVlenSqr(toPt);
+}
+
 void dtCalcPolyCenter(float* tc, const unsigned short* idx, int nidx, const float* verts)
 {
 	tc[0] = 0.0f;

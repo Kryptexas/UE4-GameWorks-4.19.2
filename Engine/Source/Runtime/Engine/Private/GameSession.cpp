@@ -95,7 +95,7 @@ void AGameSession::HandleMatchHasEnded()
 			}
 		}
 
-		SessionInt->AddOnEndSessionCompleteDelegate_Handle(FOnEndSessionCompleteDelegate::CreateUObject(this, &AGameSession::OnEndSessionComplete));
+		EndSessionCompleteHandle = SessionInt->AddOnEndSessionCompleteDelegate_Handle(FOnEndSessionCompleteDelegate::CreateUObject(this, &AGameSession::OnEndSessionComplete));
 		SessionInt->EndSession(SessionName);
 	}
 }

@@ -962,7 +962,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 void UGameplayDebuggingComponent::OnRep_UpdateNavmesh()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	NavMeshBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
+	NavMeshBounds = FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1));
 	UpdateBounds();
 	MarkRenderStateDirty();
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1417,7 +1417,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	if (!Replicator || !Replicator->IsDrawEnabled() || GetSelectedActor() == NULL || GetSelectedActor()->IsPendingKill())
+	if (!Replicator || !Replicator->IsDrawEnabled() || Replicator->IsPendingKill() || IsPendingKill() || GetSelectedActor() == NULL || GetSelectedActor()->IsPendingKill())
 	{
 		return NULL;
 	}
@@ -1431,7 +1431,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		NewNavmeshRenderData.bEnableDrawing = false;
 		PrepareNavMeshData(&NewNavmeshRenderData);
 
-		NavMeshBounds = NewNavmeshRenderData.Bounds;
+		NavMeshBounds = NewNavmeshRenderData.Bounds.GetCenter().ContainsNaN() || NewNavmeshRenderData.Bounds.GetExtent().ContainsNaN() ? FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1)) : NewNavmeshRenderData.Bounds;
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, &NewNavmeshRenderData, true));
 	}
@@ -1531,7 +1531,7 @@ FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform& Local
 #if USE_EQS_DEBUGGER
 	if ((EQSRepData.Num() && ShouldReplicateData(EAIDebugDrawDataView::EQS)) || PathCorridorPolygons.Num())
 	{
-		MyBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
+		MyBounds = FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1));
 	}
 #endif // USE_EQS_DEBUGGER
 

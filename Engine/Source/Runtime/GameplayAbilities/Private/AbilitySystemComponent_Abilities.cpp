@@ -1030,11 +1030,16 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		TargetTags = &TriggerEventData->TargetTags;
 	}
 
-	// (Always do a non instanced CanActivate check)
-	if (!Ability->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
 	{
-		NotifyAbilityFailed(Handle, Ability, FailureTags);
-		return false;
+		// If we have an instanced ability, call CanActivateAbility on it.
+		// Otherwise we always do a non instanced CanActivateAbility check using the CDO of the Ability.
+		UGameplayAbility* const CanActivateAbilitySource = InstancedAbility ? InstancedAbility : Ability;
+
+		if (!CanActivateAbilitySource->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
+		{
+			NotifyAbilityFailed(Handle, CanActivateAbilitySource, FailureTags);
+			return false;
+		}
 	}
 
 	// If we're instance per actor and we're already active, don't let us activate again as this breaks the graph

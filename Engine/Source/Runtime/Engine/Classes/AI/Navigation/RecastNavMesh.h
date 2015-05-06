@@ -75,8 +75,10 @@ struct ENGINE_API FNavMeshNodeFlags
 	/** Area flags for this node */
 	uint16 AreaFlags;
 
+	FNavMeshNodeFlags() : PathFlags(0), Area(0), AreaFlags(0) {}
 	FNavMeshNodeFlags(uint32 Flags) : PathFlags(Flags), Area(Flags >> 8), AreaFlags(Flags >> 16) {}
 	uint32 Pack() const { return PathFlags | ((uint32)Area << 8) | ((uint32)AreaFlags << 16); }
+	bool IsNavLink() const { return (PathFlags & 4) != 0;  }
 };
 
 struct ENGINE_API FNavMeshPath : public FNavigationPath
@@ -109,6 +111,9 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	void ApplyFlags(int32 NavDataFlags);
 
 	void Reset();
+
+	/** get flags of path point or corridor poly (depends on bStringPulled flag) */
+	bool GetNodeFlags(int32 NodeIdx, FNavMeshNodeFlags& Flags) const;
 
 	/** get cost of path, starting from next poly in corridor */
 	virtual float GetCostFromNode(NavNodeRef PathNode) const override { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
@@ -855,6 +860,7 @@ public:
 
 	/** Retrieves poly and area flags for specified polygon */
 	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
+	bool GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const;
 
 	/** Finds closest point constrained to given poly */
 	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;

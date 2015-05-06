@@ -323,7 +323,7 @@ struct FGameplayEffectExecutionScopedModifierInfo
  * Custom executions run special logic from an outside class each time the gameplay effect executes.
  */
 USTRUCT()
-struct FGameplayEffectExecutionDefinition
+struct GAMEPLAYABILITIES_API FGameplayEffectExecutionDefinition
 {
 	GENERATED_USTRUCT_BODY()
 

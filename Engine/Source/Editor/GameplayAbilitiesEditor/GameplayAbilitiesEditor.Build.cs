@@ -37,6 +37,7 @@ namespace UnrealBuildTool.Rules
 					"GraphEditor",
 					"MainFrame",
 					"UnrealEd",
+                    "EditorWidgets",
 				}
 			);
 		}

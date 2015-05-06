@@ -512,6 +512,12 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		// Give blueprint a chance to react
 		K2_OnEndAbility();
 
+		// Protect against blueprint causing us to EndAbility already
+		if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+		{
+			return;
+		}
+
 		// Stop any timers or latent actions for the ability
 		UWorld* MyWorld = ActorInfo ? ActorInfo->AbilitySystemComponent->GetOwner()->GetWorld() : nullptr;
 		if (MyWorld)

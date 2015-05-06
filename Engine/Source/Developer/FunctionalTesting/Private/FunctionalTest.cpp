@@ -26,8 +26,6 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	if (SpriteComponent)
 	{
 		SpriteComponent->bHiddenInGame = false;
-		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
 #if WITH_EDITORONLY_DATA
 
 		if (!IsRunningCommandlet())

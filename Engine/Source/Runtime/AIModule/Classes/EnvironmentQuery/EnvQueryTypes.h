@@ -657,7 +657,7 @@ protected:
 	void SortScores();
 
 	/** pick one of items with score equal or higher than specified */
-	void PickBestItem(float MinScore);
+	void PickRandomItemOfScoreAtLeast(float MinScore);
 
 	/** discard all items but one */
 	void PickSingleItem(int32 ItemIndex);

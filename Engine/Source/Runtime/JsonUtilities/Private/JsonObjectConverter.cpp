@@ -188,6 +188,29 @@ bool FJsonObjectConverter::UStructToJsonObjectString(const UStruct* StructDefini
 
 namespace
 {
+
+/** Convert a JSON object into a culture invariant string based on current locale */
+bool GetTextFromObject(const TSharedRef<FJsonObject>& Obj, FText& TextOut)
+{
+	// get the prioritized culture name list
+	FCultureRef CurrentCulture = FInternationalization::Get().GetCurrentCulture();
+	TArray<FString> CultureList = CurrentCulture->GetPrioritizedParentCultureNames();
+
+	// try to follow the fall back chain that the engine uses
+	FString TextString;
+	for (const FString& CultureCode : CultureList)
+	{
+		if (Obj->TryGetStringField(CultureCode, TextString))
+		{
+			TextOut = FText::FromString(TextString);
+			return true;
+		}
+	}
+
+	// no luck, is this possibly an unrelated json object?
+	return false;
+}
+
 /** Convert JSON to property, assuming either the property is not an array or the value is an individual array element */
 bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags)
 {
@@ -202,7 +225,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			int32 IntValue = EnumProperty->FindEnumIndex(FName(*StrValue));
 			if (IntValue == INDEX_NONE)
 			{
-				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s"), *EnumProperty->CppType, *StrValue);
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import enum %s from string value %s for property %s"), *EnumProperty->CppType, *StrValue, *Property->GetNameCPP());
 				return false;
 			}
 			NumericProperty->SetIntPropertyValue(OutValue, (int64)IntValue);
@@ -227,7 +250,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 		}
 		else 
 		{
-			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to set numeric property type %s"), *Property->GetClass()->GetName());
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to set numeric property type %s for property %s"), *Property->GetClass()->GetName(), *Property->GetNameCPP());
 			return false;
 		}
 	}		
@@ -260,7 +283,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 				{
 					if (!FJsonObjectConverter::JsonValueToUProperty(ArrayValueItem, ArrayProperty->Inner, Helper.GetRawPtr(i), CheckFlags & (~CPF_ParmFlags), SkipFlags))
 					{
-						UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize array element [%d]"), i);
+						UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to deserialize array element [%d] for property %s"), i, *Property->GetNameCPP());
 						return false;
 					}
 				}
@@ -268,7 +291,34 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 		}
 		else
 		{
-			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TArray from non-array JSON key"));
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import TArray from non-array JSON key for property %s"), *Property->GetNameCPP());
+			return false;
+		}
+	}
+	else if (UTextProperty *TextProperty = Cast<UTextProperty>(Property))
+	{
+		if (JsonValue->Type == EJson::String)
+		{
+			// assume this string is already localized, so import as invariant
+			TextProperty->SetPropertyValue(OutValue, FText::FromString(JsonValue->AsString()));
+		}
+		else if (JsonValue->Type == EJson::Object)
+		{
+			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
+			check(Obj.IsValid()); // should not fail if Type == EJson::Object
+
+			// import the subvalue as a culture invariant string
+			FText Text;
+			if (!GetTextFromObject(Obj.ToSharedRef(), Text))
+			{
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import FText from JSON object with invalid keys for property %s"), *Property->GetNameCPP());
+				return false;
+			}
+			TextProperty->SetPropertyValue(OutValue, Text);
+		}
+		else
+		{
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import FText from JSON that was neither string nor object for property %s"), *Property->GetNameCPP());
 			return false;
 		}
 	}
@@ -278,17 +328,10 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 		if (JsonValue->Type == EJson::Object)
 		{
 			TSharedPtr<FJsonObject> Obj = JsonValue->AsObject();
-			if (Obj.IsValid()) // should normally always be true
+			check(Obj.IsValid()); // should not fail if Type == EJson::Object
+			if (!FJsonObjectConverter::JsonObjectToUStruct(Obj.ToSharedRef(), StructProperty->Struct, OutValue, CheckFlags & (~CPF_ParmFlags), SkipFlags))
 			{
-				if (!FJsonObjectConverter::JsonObjectToUStruct(Obj.ToSharedRef(), StructProperty->Struct, OutValue, CheckFlags & (~CPF_ParmFlags), SkipFlags))
-				{
-					// error message should have already been logged
-					return false;
-				}
-			}
-			else
-			{
-				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import UStruct from an invalid object JSON key"));
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - FJsonObjectConverter::JsonObjectToUStruct failed for property %s"), *Property->GetNameCPP());
 				return false;
 			}
 		}
@@ -313,13 +356,13 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 			}
 			else if (!FDateTime::ParseIso8601(*DateString, DateTimeOut))
 			{
-				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to import FDateTime from Iso8601 String"));
+				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to import FDateTime from Iso8601 String for property %s"), *Property->GetNameCPP());
 				return false;
 			}
 		}
 		else
 		{
-			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import UStruct from non-object JSON key"));
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Attempted to import UStruct from non-object JSON key for property %s"), *Property->GetNameCPP());
 			return false;
 		}
 	}
@@ -328,7 +371,7 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 		// Default to expect a string for everything else
 		if (Property->ImportText(*JsonValue->AsString(), OutValue, 0, NULL) == NULL)
 		{
-			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import property type %s from string value"), *Property->GetClass()->GetName());
+			UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable import property type %s from string value for property %s"), *Property->GetClass()->GetName(), *Property->GetNameCPP());
 			return false;
 		}
 	}

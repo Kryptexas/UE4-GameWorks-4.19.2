@@ -1292,7 +1292,7 @@ float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayR
 			// Start at a given Section.
 			if( StartSectionName != NAME_None )
 			{
-				AnimInstance->Montage_JumpToSection(StartSectionName);
+				AnimInstance->Montage_JumpToSection(StartSectionName, AnimMontage);
 			}
 
 			return Duration;

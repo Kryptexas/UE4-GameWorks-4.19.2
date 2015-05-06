@@ -1638,9 +1638,17 @@ FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& I
 	FReply Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
 
 	// Process keybindings if the event wasn't already handled
-	if( !Reply.IsEventHandled() && UICommandList->ProcessCommandBindings( InKeyEvent ) )
+	if( !Reply.IsEventHandled() )
 	{
-		Reply = FReply::Handled();
+		if ( UICommandList->ProcessCommandBindings( InKeyEvent ) )
+		{
+			Reply = FReply::Handled();
+		}
+		else
+		{
+			Reply = SLeafWidget::OnKeyDown( MyGeometry, InKeyEvent );
+		}
+
 	}
 
 	return Reply;

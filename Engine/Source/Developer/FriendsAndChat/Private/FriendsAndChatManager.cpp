@@ -46,6 +46,7 @@ FFriendsAndChatManager::FFriendsAndChatManager( )
 	, bRequiresListRefresh(false)
 	, bRequiresRecentPlayersRefresh(false)
 	, FlushChatAnalyticsCountdown(CHAT_ANALYTICS_INTERVAL)
+	, bIsInGame(false)
 {
 }
 
@@ -59,13 +60,13 @@ FFriendsAndChatManager::~FFriendsAndChatManager( )
 /* IFriendsAndChatManager interface
  *****************************************************************************/
 
-void FFriendsAndChatManager::Login()
+void FFriendsAndChatManager::Login(bool bInIsGame)
 {
 	// Clear existing data
 	Logout();
 
 	bIsInited = false;
-
+	bIsInGame = bInIsGame;
 	OnlineSub = IOnlineSubsystem::Get(TEXT("MCP"));
 
 	if (OnlineSub != nullptr &&
@@ -1102,9 +1103,11 @@ bool FFriendsAndChatManager::IsInJoinableGameSession() const
 
 bool FFriendsAndChatManager::JoinGameAllowed(FString ClientID)
 {
-	if (AllowFriendsJoinGame().IsBound())
+	bool bJoinGameAllowed = true;
+
+	if (bIsInGame)
 	{
-		return AllowFriendsJoinGame().Execute();
+		bJoinGameAllowed = true;
 	}
 	else
 	{
@@ -1112,16 +1115,17 @@ bool FFriendsAndChatManager::JoinGameAllowed(FString ClientID)
 		if (FriendsApplicationViewModel != nullptr &&
 			(*FriendsApplicationViewModel).IsValid())
 		{
-			return (*FriendsApplicationViewModel)->IsAppJoinable();
+			bJoinGameAllowed = (*FriendsApplicationViewModel)->IsAppJoinable();
 		}
-	}
-	return false;
+	}	
+		
+	return bJoinGameAllowed;
 }
 
 const bool FFriendsAndChatManager::IsInLauncher() const
 {
 	// ToDo NDavies - Find a better way to identify if we are in game
-	return !AllowFriendsJoinGameDelegate.IsBound();
+	return !bIsInGame;
 }
 
 EOnlinePresenceState::Type FFriendsAndChatManager::GetOnlineStatus()

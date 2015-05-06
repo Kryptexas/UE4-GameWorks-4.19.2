@@ -906,11 +906,15 @@ TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(const FHitResult& H
 	// Cache the location of the hit
 	LastLocalHitLocation = LocalHitLocation;
 
-	TArray<FWidgetAndPointer> ArrangedWidgets = HitTestGrid->GetBubblePath(LocalHitLocation, CursorRadius, bIgnoreEnabledStatus);
-
-	for( FWidgetAndPointer& ArrangedWidget : ArrangedWidgets )
+	TArray<FWidgetAndPointer> ArrangedWidgets;
+	if ( HitTestGrid.IsValid() )
 	{
-		ArrangedWidget.PointerPosition = VirtualMouseCoordinate;
+		ArrangedWidgets = HitTestGrid->GetBubblePath( LocalHitLocation, CursorRadius, bIgnoreEnabledStatus );
+
+		for( FWidgetAndPointer& ArrangedWidget : ArrangedWidgets )
+		{
+			ArrangedWidget.PointerPosition = VirtualMouseCoordinate;
+		}
 	}
 
 	return ArrangedWidgets;

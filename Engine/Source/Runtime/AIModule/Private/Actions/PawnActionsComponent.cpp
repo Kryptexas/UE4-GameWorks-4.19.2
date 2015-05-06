@@ -164,14 +164,17 @@ UPawnActionsComponent::UPawnActionsComponent(const FObjectInitializer& ObjectIni
 
 void UPawnActionsComponent::OnUnregister()
 {
-	// call for every regular priority 
-	for (int32 PriorityIndex = 0; PriorityIndex < EAIRequestPriority::MAX; ++PriorityIndex)
+	if ((ControlledPawn != nullptr) && !ControlledPawn->IsPendingKillPending())
 	{
-		UPawnAction* Action = ActionStacks[PriorityIndex].GetTop();
-		while (Action)
+		// call for every regular priority 
+		for (int32 PriorityIndex = 0; PriorityIndex < EAIRequestPriority::MAX; ++PriorityIndex)
 		{
-			Action->Abort(EAIForceParam::Force);
-			Action = Action->ParentAction;
+			UPawnAction* Action = ActionStacks[PriorityIndex].GetTop();
+			while (Action)
+			{
+				Action->Abort(EAIForceParam::Force);
+				Action = Action->ParentAction;
+			}
 		}
 	}
 

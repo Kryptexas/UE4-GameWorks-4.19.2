@@ -711,7 +711,7 @@ public:
  * Abstraction of a profile service online Id 
  * The class is meant to be opaque (see IOnlinePlatformData)
  */
-class FUniqueNetId : public IOnlinePlatformData
+class FUniqueNetId : public IOnlinePlatformData, public TSharedFromThis<FUniqueNetId>
 {
 protected:
 

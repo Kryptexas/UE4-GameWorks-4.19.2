@@ -19,12 +19,14 @@ public:
 	{
 		if(ItemSelected->GetMessageType() == EChatMessageType::Whisper)
 		{
-			if(ItemSelected->GetSenderID().IsValid())
+			TSharedPtr<FUniqueNetId> FriendID = ItemSelected->IsFromSelf() ? ItemSelected->GetRecipientID() : ItemSelected->GetSenderID();
+			FText FriendName = ItemSelected->IsFromSelf() ? ItemSelected->GetRecipientName() : ItemSelected->GetSenderName();
+			if (FriendID.IsValid())
 			{
-				TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ItemSelected->GetSenderID());
+				TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*FriendID);
 				if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
 				{
-					SetWhisperChannel(GetRecentFriend(ItemSelected->GetSenderName(), ItemSelected->GetSenderID()));
+					SetWhisperChannel(GetRecentFriend(FriendName, FriendID));
 				}
 			}
 		}

@@ -129,11 +129,20 @@ struct FPartyConfiguration
 {
 	FPartyConfiguration()
 		: Permissions(EPartyPermissions::Public)
+		, bShouldPublishToPresence(true)
+		, ClientConfigFlags(0)
 		, MaxMembers(0)
 	{}
 
 	/** Permission for configuring party */
 	EPartyPermissions::Type Permissions;
+	/** should publish info to presence*/
+	bool bShouldPublishToPresence;
+	/**
+	 * client config flags
+	 * clients can add whatever flags they wish here for the party(for example a flag to publish to the client's matchmaking service)
+	 */
+	uint32 ClientConfigFlags;
 	/** Maximum active members allowed. 0 means no maximum. */
 	int32 MaxMembers;
 	/** Human readable nickname */
@@ -183,16 +192,12 @@ public:
 	EPartyState::Type State;
 	/** Current state of configuration */
 	FPartyConfiguration Config;
-	/** (optional) Debug configuration */
-	TSharedPtr<FDebugPartyConfiguration> DebugConfig;
 	/** unique id of the party */
 	TSharedPtr<FOnlinePartyId> PartyId;
-	/** leader of the party */
-	TSharedPtr<FUniqueNetId> PartyLeader;
 	/** access token that changes when you switch from public to invite-only */
 	FString AccessToken;
-	/** password needed for to join the room */
-	FString RoomPassword;
+	/** leader of the party */
+	TSharedPtr<FUniqueNetId> PartyLeader;
 	/** id of chat room associated with the party */
 	FChatRoomId RoomId;
 };
@@ -306,6 +311,14 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnPartyInviteReceived, const FUniqueNetI
 typedef FOnPartyInviteReceived::FDelegate FOnPartyInviteReceivedDelegate;
 
 /**
+ * Notification when the new invite list has changed
+ *
+ * @param RecipientId - id of user that this invite is for
+ */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPartyInvitesChanged, const FUniqueNetId& /*RecipientId*/);
+typedef FOnPartyInvitesChanged::FDelegate FOnPartyInvitesChangedDelegate;
+
+/**
  * Notification when a party has been disbanded 
  *
  * @param PartyId - id associated with the party
@@ -410,7 +423,7 @@ public:
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool UpdateParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyConfiguration& PartyConfig, const FOnUpdatePartyComplete& Delegate = FOnUpdatePartyComplete()) = 0;
+	virtual bool UpdateParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FPartyConfiguration& PartyConfig, bool bShouldRegenerateAccessToken = false, const FOnUpdatePartyComplete& Delegate = FOnUpdatePartyComplete()) = 0;
 
 	/**
 	 * Destroy an existing party. Party members will be disbanded
@@ -431,11 +444,14 @@ public:
 	 *
 	 * @param LocalUserId - user making the request
 	 * @param PartyId - id of an existing party
+	 * @param LeaderId - id of the advertised party leader
+	 * @param AccessToken - the access token to fully join the party
+	 * @param Password - the password for the party
 	 * @param Delegate - called on completion
 	 *
 	 * @return true if task was started
 	 */
-	virtual bool JoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FString& AccessToken, const FString& Password = TEXT(""), const FOnJoinPartyComplete& Delegate = FOnJoinPartyComplete()) = 0;
+	virtual bool JoinParty(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& LeaderId, const FString& AccessToken, const FString& Password = TEXT(""), const FOnJoinPartyComplete& Delegate = FOnJoinPartyComplete()) = 0;
 
 	/**
 	 * Leave an existing party
@@ -463,29 +479,27 @@ public:
 	virtual bool SendInvite(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& RecipientId, const FOnSendPartyInviteComplete& Delegate = FOnSendPartyInviteComplete()) = 0;
 
 	/**
-	* Invite a user to an existing party
-	* Recipient will be notified of the new invite (see FOnPartyInviteReceived)
-	*
-	* @param LocalUserId - user making the request
-	* @param PartyId - id of an existing party
-	* @param RecipientId - id of the user being invited
-	* @param Delegate - called on completion
-	*
-	* @return true if task was started
-	*/
+	 * Accept an invite to a party
+	 *
+	 * @param LocalUserId - user making the request
+	 * @param PartyId - id of an existing party
+	 * @param RecipientId - id of the user being invited
+	 * @param Delegate - called on completion
+	 *
+	 * @return true if task was started
+	 */
 	virtual bool AcceptInvite(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnAcceptPartyInviteComplete& Delegate = FOnAcceptPartyInviteComplete()) = 0;
 
 	/**
-	* Invite a user to an existing party
-	* Recipient will be notified of the new invite (see FOnPartyInviteReceived)
-	*
-	* @param LocalUserId - user making the request
-	* @param PartyId - id of an existing party
-	* @param RecipientId - id of the user being invited
-	* @param Delegate - called on completion
-	*
-	* @return true if task was started
-	*/
+	 * Reject an invite to a party
+	 *
+	 * @param LocalUserId - user making the request
+	 * @param PartyId - id of an existing party
+	 * @param RecipientId - id of the user being invited
+	 * @param Delegate - called on completion
+	 *
+	 * @return true if task was started
+	 */
 	virtual bool RejectInvite(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FOnRejectPartyInviteComplete& Delegate = FOnRejectPartyInviteComplete()) = 0;
 
 	/**
@@ -636,6 +650,13 @@ public:
 	 * @param PartyId - id associated with the party
 	 */
 	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnPartyInviteReceived, const FUniqueNetId& /*RecipientId*/, const FUniqueNetId& /*SenderId*/, const FOnlinePartyId& /*PartyId*/);
+
+	/**
+	 * Notification when a the invite list has changed
+	 *
+	 * @param RecipientId - id of user that this invite is for
+	 */
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnPartyInvitesChanged, const FUniqueNetId& /*RecipientId*/);
 
 	/**
 	 * Notification when a party has been disbanded 

@@ -85,6 +85,7 @@ public:
 	void EnableGoalLocationProjectionToNavigation(bool bEnable) { bProjectGoalToNavigation = bEnable; }
 	void EnableChildAbortionOnPathUpdate(bool bEnable) { bAbortChildActionOnPathChange = bEnable; }
 	void SetFilterClass(TSubclassOf<UNavigationQueryFilter> NewFilterClass) { FilterClass = NewFilterClass; }
+	void SetAllowPartialPath(bool bEnable) { bAllowPartialPath = bEnable; }
 
 protected:
 	/** currently followed path */

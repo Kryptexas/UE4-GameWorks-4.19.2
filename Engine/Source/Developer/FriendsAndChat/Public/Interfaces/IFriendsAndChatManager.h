@@ -104,7 +104,7 @@ public:
 	virtual void Logout() = 0;
 
 	/** Log in and start checking for Friends. */
-	virtual void Login() = 0;
+	virtual void Login(bool bInIsGame = false) = 0;
 
 	/** Is the chat manager logged in. */
 	virtual bool IsLoggedIn() = 0;

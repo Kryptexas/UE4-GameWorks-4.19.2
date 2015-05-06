@@ -464,7 +464,7 @@ void FEnvQueryInstance::StripRedundantData()
 	Items.SetNum(NumValidItems);
 }
 
-void FEnvQueryInstance::PickBestItem(float MinScore)
+void FEnvQueryInstance::PickRandomItemOfScoreAtLeast(float MinScore)
 {
 	// find first valid item with score worse than best range
 	int32 NumBestItems = NumValidItems;
@@ -483,6 +483,16 @@ void FEnvQueryInstance::PickBestItem(float MinScore)
 
 void FEnvQueryInstance::PickSingleItem(int32 ItemIndex)
 {
+	check(Items.Num() > 0);
+
+	if (Items.IsValidIndex(ItemIndex) == false)
+	{
+		UE_LOG(LogEQS, Warning
+			, TEXT("Query [%s] tried to pick item %d as best item, but this index is out of scope (num items: %d). Falling back to item 0.")
+			, *QueryName, ItemIndex, Items.Num());
+		ItemIndex = 0;
+	}
+
 	FEnvQueryItem BestItem;
 	BestItem.Score = 1.0f;
 	BestItem.DataOffset = Items[ItemIndex].DataOffset;
@@ -528,14 +538,14 @@ void FEnvQueryInstance::FinalizeQuery()
 			if (bFoundSingleResult == false && bPassOnSingleResult == false)
 			{
 				SortScores();
-				PickBestItem(Items[0].Score);
+				PickSingleItem(0);
 			}
 		}
 		else if (Mode == EEnvQueryRunMode::RandomBest5Pct || Mode == EEnvQueryRunMode::RandomBest25Pct)
 		{
 			SortScores();
 			const float ScoreRangePct = (Mode == EEnvQueryRunMode::RandomBest5Pct) ? 0.95f : 0.75f;
-			PickBestItem(Items[0].Score * ScoreRangePct);
+			PickRandomItemOfScoreAtLeast(Items[0].Score * ScoreRangePct);
 		}
 		else
 		{

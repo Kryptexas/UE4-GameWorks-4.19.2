@@ -1291,6 +1291,26 @@ bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& 
 	return bFound;
 }
 
+bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const
+{
+	bool bFound = false;
+	if (RecastNavMeshImpl)
+	{
+		uint16 PolyFlags = 0;
+
+		bFound = RecastNavMeshImpl->GetPolyData(PolyID, PolyFlags, Flags.Area);
+		if (bFound)
+		{
+			const UClass* AreaClass = GetAreaClass(Flags.Area);
+			const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
+			Flags.AreaFlags = DefArea ? DefArea->GetAreaFlags() : 0;
+			Flags.PathFlags = (PolyFlags & GetNavLinkFlag()) ? 4 : 0;
+		}
+	}
+
+	return bFound;
+}
+
 bool ARecastNavMesh::GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const
 {
 	bool bFound = false;

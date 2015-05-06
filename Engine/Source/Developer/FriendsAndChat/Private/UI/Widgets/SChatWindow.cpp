@@ -509,6 +509,7 @@ private:
 			return SNew(STableRow< TSharedPtr<SWidget> >, OwnerTable)
 			[
 				SNew(SButton)
+				.IsFocusable(false)
 				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
 				.OnClicked(SharedChatViewModel.Get(), &FChatViewModel::HandleSelectionChanged, ChatMessage)
 				.VAlign(VAlign_Center)
