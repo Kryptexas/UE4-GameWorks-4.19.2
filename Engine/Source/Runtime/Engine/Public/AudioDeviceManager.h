@@ -84,6 +84,9 @@ public:
 	/** Sets which audio device is the active audio device. */
 	void SetActiveDevice(uint32 InAudioDeviceHandle);
 
+	/** Sets an audio device to be solo'd */
+	void SetSoloDevice(uint32 InAudioDeviceHandle);
+
 	/** Links up the resource data indices for looking up and cleaning up. */
 	void TrackResource(USoundWave* SoundWave, FSoundBuffer* Buffer);
 
@@ -149,11 +152,11 @@ private:
 	*/
 	TArray<FAudioDevice* > Devices;
 
-	/** The audio device handle currently in focus */
-	int32 InFocusDeviceHandle;
-
 	/** Next resource ID to assign out to a wave/buffer */
 	int32 NextResourceID;
+
+	/** Which audio device is solo'd */
+	uint32 SoloDeviceHandle;
 };
 
 

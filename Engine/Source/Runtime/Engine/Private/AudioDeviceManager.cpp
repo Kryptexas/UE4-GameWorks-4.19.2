@@ -32,8 +32,8 @@ FAudioDeviceManager::FAudioDeviceManager()
 	, FreeIndicesSize(0)
 	, NumActiveAudioDevices(0)
 	, NumWorldsUsingMainAudioDevice(0)
-	, InFocusDeviceHandle(INDEX_NONE)
 	, NextResourceID(1)
+	, SoloDeviceHandle(INDEX_NONE)
 {
 }
 
@@ -327,21 +327,48 @@ void FAudioDeviceManager::InitSoundClasses()
 
 void FAudioDeviceManager::SetActiveDevice(uint32 InAudioDeviceHandle)
 {
-	for (FAudioDevice* AudioDevice : Devices)
+	// Only change the active device if there are no solo'd audio devices
+	if (SoloDeviceHandle == INDEX_NONE)
 	{
-		if (AudioDevice)
+		for (FAudioDevice* AudioDevice : Devices)
 		{
-			if (AudioDevice->DeviceHandle == InAudioDeviceHandle)
+			if (AudioDevice)
 			{
-				AudioDevice->bIsDeviceMuted = false;
-			}
-			else
-			{
-				AudioDevice->bIsDeviceMuted = true;
+				if (AudioDevice->DeviceHandle == InAudioDeviceHandle)
+				{
+					AudioDevice->bIsDeviceMuted = false;
+				}
+				else
+				{
+					AudioDevice->bIsDeviceMuted = true;
+				}
 			}
 		}
 	}
 }
+
+void FAudioDeviceManager::SetSoloDevice(uint32 InAudioDeviceHandle)
+{
+	SoloDeviceHandle = InAudioDeviceHandle;
+	if (SoloDeviceHandle != INDEX_NONE)
+	{
+		for (FAudioDevice* AudioDevice : Devices)
+		{
+			if (AudioDevice)
+			{
+				if (AudioDevice->DeviceHandle == InAudioDeviceHandle)
+				{
+					AudioDevice->bIsDeviceMuted = false;
+				}
+				else
+				{
+					AudioDevice->bIsDeviceMuted = true;
+				}
+			}
+		}
+	}
+}
+
 
 uint8 FAudioDeviceManager::GetNumActiveAudioDevices() const
 {

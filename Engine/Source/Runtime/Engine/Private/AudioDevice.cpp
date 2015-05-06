@@ -732,6 +732,27 @@ bool FAudioDevice::HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice
 	return true;
 }
 
+bool FAudioDevice::HandleSoloCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	// Apply the solo to the given device
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+	if (DeviceManager)
+	{
+		DeviceManager->SetSoloDevice(DeviceHandle);
+	}
+	return true;
+}
+
+bool FAudioDevice::HandleClearSoloCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+	if (DeviceManager)
+	{
+		DeviceManager->SetSoloDevice(INDEX_NONE);
+	}
+	return true;
+}
+
 #endif // !UE_BUILD_SHIPPING
 
 EDebugState FAudioDevice::GetMixDebugState( void )
@@ -829,6 +850,14 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("ToggleHRTFForAll")))
 	{
 		return HandleEnableHRTFForAllCommand(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("Solo")))
+	{
+		return HandleSoloCommand(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("ClearSolo")))
+	{
+		return HandleClearSoloCommand(Cmd, Ar);
 	}
 #endif // !UE_BUILD_SHIPPING
 
