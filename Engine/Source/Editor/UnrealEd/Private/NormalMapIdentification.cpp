@@ -191,10 +191,9 @@ public:
 				FLinearColor ColorSample = Sampler.DoSampleColor( X, Y );
 				if ( !ColorSample.IsAlmostBlack() )
 				{
+					// Nearly transparent pixels don't contribute to the calculation
 					if (FMath::IsNearlyZero(ColorSample.A, AlphaComponentNearlyZeroThreshold))
 					{
-						AverageColor += FLinearColor::Transparent;
-						NumSamplesTaken++;
 						continue;
 					}
 
