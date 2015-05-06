@@ -56,14 +56,6 @@ void FGestureRecognizer::DetectGestures(const FVector (&Touches)[EKeys::NUM_TOUC
 			}
 		}
 
-		// cancel any 2 finger gestures
-		if (PreviousTouchCount >= 2 && TouchCount < 2)
-		{
-			HandleGesture(PlayerInput, EKeys::Gesture_TwoFingerSwipeLeftRight, false, true);
-			HandleGesture(PlayerInput, EKeys::Gesture_TwoFingerSwipeUpDown, false, true);
-			HandleGesture(PlayerInput, EKeys::Gesture_Pinch, false, true);
-		}
-
 		if (PreviousTouchCount == 0 && TouchCount == 1)
 		{
 			// initialize the flick
@@ -88,13 +80,6 @@ void FGestureRecognizer::DetectGestures(const FVector (&Touches)[EKeys::NUM_TOUC
 				CurrentGestureValues.Add(EKeys::Gesture_Flick, Angle);
 				HandleGesture(PlayerInput, EKeys::Gesture_Flick, true, true);
 			}
-		}
-
-		if (PreviousTouchCount >= 1 && TouchCount == 0)
-		{
-			// cancel other 1 finger gestures
-			HandleGesture(PlayerInput, EKeys::Gesture_SwipeLeftRight, false, true);
-			HandleGesture(PlayerInput, EKeys::Gesture_SwipeUpDown, false, true);
 		}
 	}	
 

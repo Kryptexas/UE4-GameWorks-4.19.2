@@ -193,18 +193,7 @@ FText UK2Node_InputKey::GetTooltipText() const
 
 FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const
 {
-	if (InputKey.IsMouseButton())
-	{
-		return TEXT("GraphEditor.MouseEvent_16x");
-	}
-	else if (InputKey.IsGamepadKey())
-	{
-		return TEXT("GraphEditor.PadEvent_16x");
-	}
-	else
-	{
-		return TEXT("GraphEditor.KeyEvent_16x");
-	}
+	return EKeys::GetMenuCategoryPaletteIcon(InputKey.GetMenuCategory());
 }
 
 bool UK2Node_InputKey::IsCompatibleWithGraph(UEdGraph const* Graph) const
@@ -334,40 +323,18 @@ void UK2Node_InputKey::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionR
 
 FText UK2Node_InputKey::GetMenuCategory() const
 {
-	enum EAxisKeyCategory
-	{
-		GamepadKeyCategory,
-		MouseButtonCategory,
-		KeyEventCategory,
-		AxisKeyCategory_MAX,
-	};
-	static FNodeTextCache CachedCategories[AxisKeyCategory_MAX];
+	static TMap<FName, FNodeTextCache> CachedCategories;
 
-	FText SubCategory;
-	EAxisKeyCategory CategoryIndex = AxisKeyCategory_MAX;
+	const FName KeyCategory = InputKey.GetMenuCategory();
+	const FText SubCategoryDisplayName = FText::Format(LOCTEXT("EventsCategory", "{0} Events"), EKeys::GetMenuCategoryDisplayName(KeyCategory));
+	FNodeTextCache& NodeTextCache = CachedCategories.FindOrAdd(KeyCategory);
 
-	if (InputKey.IsGamepadKey())
-	{
-		SubCategory = LOCTEXT("GamepadCategory", "Gamepad Events");
-		CategoryIndex = GamepadKeyCategory;
-	}
-	else if (InputKey.IsMouseButton())
-	{
-		SubCategory = LOCTEXT("MouseCategory", "Mouse Events");
-		CategoryIndex = MouseButtonCategory;
-	}
-	else
-	{
-		SubCategory = LOCTEXT("KeyEventsCategory", "Key Events");
-		CategoryIndex = KeyEventCategory;
-	}
-
-	if (CachedCategories[CategoryIndex].IsOutOfDate(this))
+	if (NodeTextCache.IsOutOfDate(this))
 	{
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedCategories[CategoryIndex].SetCachedText(FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory), this);
+		NodeTextCache.SetCachedText(FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategoryDisplayName), this);
 	}
-	return CachedCategories[CategoryIndex];
+	return NodeTextCache;
 }
 
 FBlueprintNodeSignature UK2Node_InputKey::GetSignature() const
