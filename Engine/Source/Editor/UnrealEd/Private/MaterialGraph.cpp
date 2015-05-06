@@ -7,6 +7,7 @@
 
 #include "Materials/MaterialExpressionComment.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
+#include "Materials/MaterialExpressionLandscapeGrassOutput.h"
 
 #include "GraphEditor.h"
 #include "MaterialShared.h"
