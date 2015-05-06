@@ -1109,8 +1109,8 @@ void FGameplayEffectAttributeCaptureSpecContainer::UnregisterLinkedAggregatorCal
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 FActiveGameplayEffect::FActiveGameplayEffect()
-	: StartGameStateTime(0)
-	, CachedStartGameStateTime(0)
+	: StartServerWorldTime(0)
+	, CachedStartServerWorldTime(0)
 	, StartWorldTime(0.f)
 	, bIsInhibited(true)
 	, bPendingRepOnActiveGC(false)
@@ -1125,12 +1125,12 @@ FActiveGameplayEffect::FActiveGameplayEffect(const FActiveGameplayEffect& Other)
 	*this = Other;
 }
 
-FActiveGameplayEffect::FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, FPredictionKey InPredictionKey)
+FActiveGameplayEffect::FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, float InStartServerWorldTime, FPredictionKey InPredictionKey)
 	: Handle(InHandle)
 	, Spec(InSpec)
 	, PredictionKey(InPredictionKey)
-	, StartGameStateTime(InStartGameStateTime)
-	, CachedStartGameStateTime(InStartGameStateTime)
+	, StartServerWorldTime(InStartServerWorldTime)
+	, CachedStartServerWorldTime(InStartServerWorldTime)
 	, StartWorldTime(CurrentWorldTime)
 	, bIsInhibited(true)
 	, bPendingRepOnActiveGC(false)
@@ -1144,8 +1144,8 @@ FActiveGameplayEffect::FActiveGameplayEffect(FActiveGameplayEffect&& Other)
 	:Handle(Other.Handle)
 	,Spec(MoveTemp(Other.Spec))
 	,PredictionKey(Other.PredictionKey)
-	,StartGameStateTime(Other.StartGameStateTime)
-	,CachedStartGameStateTime(Other.CachedStartGameStateTime)
+	,StartServerWorldTime(Other.StartServerWorldTime)
+	,CachedStartServerWorldTime(Other.CachedStartServerWorldTime)
 	,StartWorldTime(Other.StartWorldTime)
 	,bIsInhibited(Other.bIsInhibited)
 	,bPendingRepOnActiveGC(Other.bPendingRepOnActiveGC)
@@ -1163,8 +1163,8 @@ FActiveGameplayEffect& FActiveGameplayEffect::operator=(FActiveGameplayEffect&& 
 	Handle = Other.Handle;
 	Spec = MoveTemp(Other.Spec);
 	PredictionKey = Other.PredictionKey;
-	StartGameStateTime = Other.StartGameStateTime;
-	CachedStartGameStateTime = Other.CachedStartGameStateTime;
+	StartServerWorldTime = Other.StartServerWorldTime;
+	CachedStartServerWorldTime = Other.CachedStartServerWorldTime;
 	StartWorldTime = Other.StartWorldTime;
 	bIsInhibited = Other.bIsInhibited;
 	bPendingRepOnActiveGC = Other.bPendingRepOnActiveGC;
@@ -1182,8 +1182,8 @@ FActiveGameplayEffect& FActiveGameplayEffect::operator=(const FActiveGameplayEff
 	Handle = Other.Handle;
 	Spec = Other.Spec;
 	PredictionKey = Other.PredictionKey;
-	StartGameStateTime = Other.StartGameStateTime;
-	CachedStartGameStateTime = Other.CachedStartGameStateTime;
+	StartServerWorldTime = Other.StartServerWorldTime;
+	CachedStartServerWorldTime = Other.CachedStartServerWorldTime;
 	StartWorldTime = Other.StartWorldTime;
 	bIsInhibited = Other.bIsInhibited;
 	bPendingRepOnActiveGC = Other.bPendingRepOnActiveGC;
@@ -1264,22 +1264,22 @@ void FActiveGameplayEffect::PostReplicatedAdd(const struct FActiveGameplayEffect
 
 	const_cast<FActiveGameplayEffectsContainer&>(InArray).InternalOnActiveGameplayEffectAdded(*this);	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
 
-	static const int32 MAX_DELTA_TIME = 3;
+	static const float MAX_DELTA_TIME = 3.f;
 
 	// Was this actually just activated, or are we just finding out about it due to relevancy/join in progress?
 	float WorldTimeSeconds = InArray.GetWorldTime();
-	int32 GameStateTime = InArray.GetGameStateTime();
+	float ServerWorldTime = InArray.GetServerWorldTime();
 
-	int32 DeltaGameStateTime = GameStateTime - StartGameStateTime;	// How long we think the effect has been playing (only 1 second precision!)
+	float DeltaServerWorldTime = ServerWorldTime - StartServerWorldTime;	// How long we think the effect has been playing
 
 	// Set our local start time accordingly
-	StartWorldTime = WorldTimeSeconds - static_cast<float>(DeltaGameStateTime);
-	CachedStartGameStateTime = StartGameStateTime;
+	StartWorldTime = WorldTimeSeconds - DeltaServerWorldTime;
+	CachedStartServerWorldTime = StartServerWorldTime;
 
 	if (ShouldInvokeGameplayCueEvents)
 	{
 		// These events will get invoked if, after the parent array has been completely updated, this GE is still not inhibited
-		bPendingRepOnActiveGC = (GameStateTime > 0 && FMath::Abs(DeltaGameStateTime) < MAX_DELTA_TIME);
+		bPendingRepOnActiveGC = (ServerWorldTime > 0 && FMath::Abs(DeltaServerWorldTime) < MAX_DELTA_TIME);
 		bPendingRepWhileActiveGC = true;
 	}
 }
@@ -1292,11 +1292,10 @@ void FActiveGameplayEffect::PostReplicatedChange(const struct FActiveGameplayEff
 	}
 
 	// Handle potential duration refresh
-	// @todo: Due to precision of gamestate timer, this could be incorrect by just under an entire second; Need more precise replicated timer
-	if (CachedStartGameStateTime != StartGameStateTime)
+	if (CachedStartServerWorldTime != StartServerWorldTime)
 	{
-		StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetGameStateTime() - StartGameStateTime);
-		CachedStartGameStateTime = StartGameStateTime;
+		StartWorldTime = InArray.GetWorldTime() - static_cast<float>(InArray.GetServerWorldTime() - StartServerWorldTime);
+		CachedStartServerWorldTime = StartServerWorldTime;
 	}
 
 	// Const cast is ok. It is there to prevent mutation of the GameplayEffects array, which this wont do.
@@ -2094,8 +2093,8 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		}
 		else
 		{
-			ExistingStackableGE->StartGameStateTime = GetGameStateTime();
-			ExistingStackableGE->CachedStartGameStateTime = ExistingStackableGE->StartGameStateTime;
+			ExistingStackableGE->StartServerWorldTime = GetServerWorldTime();
+			ExistingStackableGE->CachedStartServerWorldTime = ExistingStackableGE->StartServerWorldTime;
 			ExistingStackableGE->StartWorldTime = GetWorldTime();
 		}
 
@@ -2125,14 +2124,14 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 			{
 				// We have no memory allocated to put our next pending GE, so make a new one.
 				// [#1] If you change this, please change #1-3!!!
-				AppliedActiveGE = new FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
+				AppliedActiveGE = new FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetServerWorldTime(), InPredictionKey);
 				*PendingGameplayEffectNext = AppliedActiveGE;
 			}
 			else
 			{
 				// We already had memory allocated to put a pending GE, move in.
 				// [#2] If you change this, please change #1-3!!!
-				**PendingGameplayEffectNext = MoveTemp(FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey));
+				**PendingGameplayEffectNext = MoveTemp(FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetServerWorldTime(), InPredictionKey));
 				AppliedActiveGE = *PendingGameplayEffectNext;
 			}
 
@@ -2143,7 +2142,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		{
 
 			// [#3] If you change this, please change #1-3!!!
-			AppliedActiveGE = new(GameplayEffects_Internal) FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetGameStateTime(), InPredictionKey);
+			AppliedActiveGE = new(GameplayEffects_Internal) FActiveGameplayEffect(NewHandle, Spec, GetWorldTime(), GetServerWorldTime(), InPredictionKey);
 		}
 	}
 
@@ -2719,16 +2718,16 @@ void FActiveGameplayEffectsContainer::PreDestroy()
 	
 }
 
-int32 FActiveGameplayEffectsContainer::GetGameStateTime() const
+float FActiveGameplayEffectsContainer::GetServerWorldTime() const
 {
 	UWorld* World = Owner->GetWorld();
 	AGameState* GameState = World->GetGameState<AGameState>();
 	if (GameState)
 	{
-		return GameState->ElapsedTime;
+		return GameState->GetServerWorldTimeSeconds();
 	}
 
-	return static_cast<int32>(World->GetTimeSeconds());
+	return World->GetTimeSeconds();
 }
 
 float FActiveGameplayEffectsContainer::GetWorldTime() const
@@ -2889,7 +2888,7 @@ void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGamepla
 	if (Effect)
 	{
 		Effect->StartWorldTime += StartTimeDiff;
-		Effect->StartGameStateTime = FMath::RoundToInt((float)Effect->StartGameStateTime + StartTimeDiff);
+		Effect->StartServerWorldTime = FMath::RoundToInt((float)Effect->StartServerWorldTime + StartTimeDiff);
 
 		CheckDuration(Handle);
 

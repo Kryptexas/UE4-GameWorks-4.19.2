@@ -1200,7 +1200,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 
 	FActiveGameplayEffect(const FActiveGameplayEffect& Other);
 
-	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime, FPredictionKey InPredictionKey);
+	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, float InStartServerWorldTime, FPredictionKey InPredictionKey);
 	
 	FActiveGameplayEffect(FActiveGameplayEffect&& Other);
 
@@ -1248,13 +1248,13 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 	UPROPERTY()
 	FPredictionKey	PredictionKey;
 
-	/** Game time this started */
+	/** Server time this started */
 	UPROPERTY()
-	int32 StartGameStateTime;
+	float StartServerWorldTime;
 
 	/** Used for handling duration modifications being replicated */
 	UPROPERTY(NotReplicated)
-	int32 CachedStartGameStateTime;
+	float CachedStartServerWorldTime;
 
 	UPROPERTY(NotReplicated)
 	float StartWorldTime;
@@ -1498,7 +1498,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 */
 	int32 GetActiveEffectCount(const FActiveGameplayEffectQuery Query) const;
 
-	int32 GetGameStateTime() const;
+	float GetServerWorldTime() const;
 
 	float GetWorldTime() const;
 
