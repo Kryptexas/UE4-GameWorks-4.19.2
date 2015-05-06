@@ -1259,8 +1259,9 @@ struct FInitBodiesHelper
 				if (!Instance->bEnableGravity)
 				{
 					PNewDynamic->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, true);
-					bDynamicsUseAsyncScene = Instance->UseAsyncScene(PhysScene);
 				}
+
+				bDynamicsUseAsyncScene = Instance->UseAsyncScene(PhysScene);
 			}
 
 			if (bCompileStatic || bCanDefer)
@@ -1313,7 +1314,7 @@ struct FInitBodiesHelper
 		return true;
 	}
 
-	void AddActorsToScene_PhysX_AssumesLocked(TArray<PxActor*>& PSyncActors, TArray<PxActor*>& PAsyncActors, TArray<PxActor*>& PDynamicActors) const
+	void AddActorsToScene_PhysX_AssumesLocked(TArray<PxActor*>& PSyncActors, TArray<PxActor*>& PAsyncActors, TArray<PxActor*>& PDynamicActors, PxScene* PDyanmicScene) const
 	{
 		SCOPE_CYCLE_COUNTER(STAT_BulkSceneAdd);
 
@@ -1321,8 +1322,7 @@ struct FInitBodiesHelper
 		// Use the aggregate if it exists, has enough slots and is in the correct scene (or no scene)
 		if (InAggregate && PDynamicActors.Num() > 0 && (InAggregate->getMaxNbActors() - InAggregate->getNbActors()) >= (uint32)PDynamicActors.Num())
 		{
-
-			if (InAggregate->getScene() == nullptr || InAggregate->getScene() == PDynamicActors[0]->getScene())
+			if (InAggregate->getScene() == nullptr || InAggregate->getScene() == PDyanmicScene)
 			{
 				for (PxActor* Actor : PDynamicActors)
 				{
@@ -1381,7 +1381,7 @@ struct FInitBodiesHelper
 			SCOPED_SCENE_WRITE_LOCK(bAddingToSyncScene ? PSyncScene : nullptr);
 			SCOPED_SCENE_WRITE_LOCK(bAddingToAsyncScene ? PAsyncScene : nullptr);
 
-			AddActorsToScene_PhysX_AssumesLocked(PSyncActors, PAsyncActors, PDynamicActors);
+			AddActorsToScene_PhysX_AssumesLocked(PSyncActors, PAsyncActors, PDynamicActors, bDynamicsUseAsync ? PAsyncScene : PSyncScene);
 		}
 	}
 #endif

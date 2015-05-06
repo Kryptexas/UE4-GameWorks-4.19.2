@@ -974,7 +974,6 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 	// Create physics body instance.
 	// Aggregates aren't used for static objects
 	auto* Aggregate = (Mobility == EComponentMobility::Movable) ? Aggregates[FMath::DivideAndRoundDown<int32>(InstanceIdx, AggregateMaxSize)] : nullptr;
-	check(Mobility != EComponentMobility::Movable || Aggregate->getNbActors() < Aggregate->getMaxNbActors());
 	InstanceBodyInstance->bAutoWeld = false;	//We don't support this for instanced meshes.
 	InstanceBodyInstance->InitBody(BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
 #endif //WITH_PHYSX
@@ -1102,7 +1101,6 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 	// releasing Aggregates, they shouldn't contain any Bodies now, because they are released above
 	for (auto* Aggregate : Aggregates)
 	{
-		check(!Aggregate->getNbActors());
 		Aggregate->release();
 	}
 	Aggregates.Empty();
