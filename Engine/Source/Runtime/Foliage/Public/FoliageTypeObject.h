@@ -7,7 +7,7 @@
 
 /** A wrapper struct used to allow the use of either FoliageType assets or FoliageType blueprint classes */
 USTRUCT()
-struct FFoliageTypeObject
+struct FOLIAGE_API FFoliageTypeObject
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -24,7 +24,10 @@ struct FFoliageTypeObject
 	const UFoliageType_InstancedStaticMesh* GetInstance() const;
 
 	/** @return Whether this would return a valid instance */
-	bool IsValid() const;
+	bool ContainsValidInstance() const;
+
+	/** @return Whether any foliage type is assigned at all */
+	bool HasFoliageType() const;
 
 	bool IsDirty() const;
 	void SetClean();
