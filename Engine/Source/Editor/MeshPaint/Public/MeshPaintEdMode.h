@@ -791,14 +791,6 @@ private:
 	/** Temporary buffers used when copying/pasting colors */
 	TArray<FPerComponentVertexColorData> CopiedColorsByComponent;
 
-	/**
-	 * Does the work of removing instance vertex colors from a single static mesh component.
-	 *
-	 * @param	StaticMeshComponent		The SMC to remove vertex colors from.
-	 * @param	InstanceMeshLODInfo		The instance's LODInfo which stores the painted information to be cleared.
-	 */
-	void RemoveInstanceVertexColorsWorker(UStaticMeshComponent* StaticMeshComponent, FStaticMeshComponentLODInfo *InstanceMeshLODInfo) const;
-
 	/** Texture paint: Will hold a list of texture items that we can paint on */
 	TArray<FTextureTargetListInfo> TexturePaintTargetList;
 
