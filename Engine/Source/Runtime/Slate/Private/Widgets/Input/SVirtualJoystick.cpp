@@ -115,29 +115,35 @@ int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 		{
 			const FControlInfo& Control = Controls[ControlIndex];
 
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				RetLayerId++,
-				AllottedGeometry.ToPaintGeometry(
-				Control.VisualCenter - FVector2D(Control.VisualSize.X * 0.5f, Control.VisualSize.Y * 0.5f),
-				Control.VisualSize),
-				Control.Image2.Get(),
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				ColorAndOpacitySRGB
-				);
+			if (Control.Image2.IsValid())
+			{
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+					Control.VisualCenter - FVector2D(Control.VisualSize.X * 0.5f, Control.VisualSize.Y * 0.5f),
+					Control.VisualSize),
+					Control.Image2.Get(),
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					ColorAndOpacitySRGB
+					);
+			}
 
-			FSlateDrawElement::MakeBox(
-				OutDrawElements,
-				RetLayerId++,
-				AllottedGeometry.ToPaintGeometry(
-				Control.VisualCenter + Control.ThumbPosition - FVector2D(Control.ThumbSize.X * 0.5f, Control.ThumbSize.Y * 0.5f),
-				Control.ThumbSize),
-				Control.Image1.Get(),
-				MyClippingRect,
-				ESlateDrawEffect::None,
-				ColorAndOpacitySRGB
-				);
+			if (Control.Image1.IsValid())
+			{
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					RetLayerId++,
+					AllottedGeometry.ToPaintGeometry(
+					Control.VisualCenter + Control.ThumbPosition - FVector2D(Control.ThumbSize.X * 0.5f, Control.ThumbSize.Y * 0.5f),
+					Control.ThumbSize),
+					Control.Image1.Get(),
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					ColorAndOpacitySRGB
+					);
+			}
 		}
 	}
 	
