@@ -129,7 +129,7 @@ void FTimeline::AddInterpLinearColor(UCurveLinearColor* LinearColorCurve, FOnTim
 	InterpLinearColors.Add(NewEntry);
 }
 
-void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents)
+void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents, bool bFireUpdate)
 {
 	float OldPosition = Position;
 	Position = NewPosition;
@@ -319,7 +319,10 @@ void FTimeline::SetPlaybackPosition(float NewPosition, bool bFireEvents)
 	}
 
 	// Execute the delegate to say that all properties are updated
-	TimelinePostUpdateFunc.ExecuteIfBound();
+	if (bFireUpdate)
+	{
+		TimelinePostUpdateFunc.ExecuteIfBound();
+	}
 }
 
 
@@ -639,9 +642,9 @@ void UTimelineComponent::AddInterpLinearColor(UCurveLinearColor* LinearColorCurv
 	TheTimeline.AddInterpLinearColor(LinearColorCurve, InterpFunc, PropertyName);
 }
 
-void UTimelineComponent::SetPlaybackPosition(float NewPosition, bool bFireEvents)
+void UTimelineComponent::SetPlaybackPosition(float NewPosition, bool bFireEvents, bool bFireUpdate)
 {
-	TheTimeline.SetPlaybackPosition(NewPosition, bFireEvents);
+	TheTimeline.SetPlaybackPosition(NewPosition, bFireEvents, bFireUpdate);
 }
 
 float UTimelineComponent::GetPlaybackPosition() const
