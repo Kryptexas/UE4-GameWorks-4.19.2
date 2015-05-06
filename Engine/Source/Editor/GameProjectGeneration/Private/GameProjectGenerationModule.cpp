@@ -102,6 +102,11 @@ bool FGameProjectGenerationModule::ProjectHasCodeFiles()
 	return GameProjectUtils::ProjectHasCodeFiles();
 }
 
+bool FGameProjectGenerationModule::ProjectRequiresBuild(const FName InPlatformName)
+{
+	return GameProjectUtils::ProjectRequiresBuild(InPlatformName);
+}
+
 FString FGameProjectGenerationModule::DetermineModuleIncludePath(const FModuleContextInfo& ModuleInfo, const FString& FileRelativeTo)
 {
 	return GameProjectUtils::DetermineModuleIncludePath(ModuleInfo, FileRelativeTo);

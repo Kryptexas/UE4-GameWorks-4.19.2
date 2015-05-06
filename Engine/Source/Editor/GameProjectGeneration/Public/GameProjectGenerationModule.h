@@ -125,6 +125,9 @@ public:
 	/** Clear the list of supported target platforms */
 	virtual void ClearSupportedTargetPlatforms();
 
+	/** Check to see if the project requires a code build */
+	virtual bool ProjectRequiresBuild(const FName InPlatformInfoName);
+
 public:
 
 	/** (Un)register a new type of template category to be shown on the new project page */
