@@ -66,9 +66,9 @@ public:
 	{
 		extern UScriptStruct* Z_Construct_UScriptStruct_FVector();
 		VectorStruct = Z_Construct_UScriptStruct_FVector();
-		RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		TransformStruct = GetBaseStructure(TEXT("Transform"));
-		LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
+		RotatorStruct = TBaseStructure<FRotator>::Get();
+		TransformStruct = TBaseStructure<FTransform>::Get();
+		LinearColorStruct = TBaseStructure<FLinearColor>::Get();
 		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
 

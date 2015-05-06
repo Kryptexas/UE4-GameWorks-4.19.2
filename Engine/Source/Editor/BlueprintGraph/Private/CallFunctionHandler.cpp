@@ -155,9 +155,9 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		int32 LatentTargetParamIndex = INDEX_NONE;
 
 		// Grab the special case structs that use their own literal path
-		UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-		UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
+		UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+		UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
+		UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
 
 		// Check each property
 		bool bMatchedAllParams = true;

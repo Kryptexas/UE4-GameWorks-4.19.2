@@ -309,10 +309,10 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		else if (InPin->PinType.PinCategory == K2Schema->PC_Struct)
 		{
 			// If you update this logic you'll probably need to update UEdGraphSchema_K2::ShouldHidePinDefaultValue!
-			UScriptStruct* ColorStruct = GetBaseStructure(TEXT("LinearColor"));
-			UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-			UScriptStruct* Vector2DStruct = GetBaseStructure(TEXT("Vector2D"));
-			UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
+			UScriptStruct* ColorStruct = TBaseStructure<FLinearColor>::Get();
+			UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+			UScriptStruct* Vector2DStruct = TBaseStructure<FVector2D>::Get();
+			UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
 
 			if (InPin->PinType.PinSubCategoryObject == ColorStruct)
 			{

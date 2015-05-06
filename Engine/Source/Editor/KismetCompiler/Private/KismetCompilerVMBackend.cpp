@@ -319,9 +319,9 @@ public:
 		, bIsUbergraph(bInIsUbergraph)
 		, ReturnStatement(InReturnStatement)
 	{
-		VectorStruct = GetBaseStructure(TEXT("Vector"));
-		RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		TransformStruct = GetBaseStructure(TEXT("Transform"));
+		VectorStruct = TBaseStructure<FVector>::Get();
+		RotatorStruct = TBaseStructure<FRotator>::Get();
+		TransformStruct = TBaseStructure<FTransform>::Get();
 		LatentInfoStruct = FLatentActionInfo::StaticStruct();
 	}
 

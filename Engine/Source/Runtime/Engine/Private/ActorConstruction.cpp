@@ -23,7 +23,7 @@ static TArray<FRandomStream*> FindRandomStreams(AActor* InActor)
 {
 	check(InActor);
 	TArray<FRandomStream*> OutStreams;
-	UScriptStruct* RandomStreamStruct = GetBaseStructure(TEXT("RandomStream"));
+	UScriptStruct* RandomStreamStruct = TBaseStructure<FRandomStream>::Get();
 	for( TFieldIterator<UStructProperty> It(InActor->GetClass()) ; It ; ++It )
 	{
 		UStructProperty* StructProp = *It;

@@ -4984,9 +4984,9 @@ void FBlueprintEditorUtils::ImportKismetDefaultValueToProperty(UEdGraphPin* Sour
 
 	if (UStructProperty* StructProperty = Cast<UStructProperty>(DestinationProperty))
 	{
-		static UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-		static UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		static UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
+		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+		static UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
+		static UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
 
 		if (StructProperty->Struct == VectorStruct)
 		{
@@ -5020,9 +5020,9 @@ void FBlueprintEditorUtils::ExportPropertyToKismetDefaultValue(UEdGraphPin* Targ
 
 	if (UStructProperty* StructProperty = Cast<UStructProperty>(SourceProperty))
 	{
-		static UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-		static UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		static UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
+		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+		static UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
+		static UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
 
 		if (StructProperty->Struct == VectorStruct)
 		{
@@ -7183,10 +7183,10 @@ bool FBlueprintEditorUtils::PropertyValueFromString(const UProperty* Property, c
 	}
 	else 
 	{
-		static UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-		static UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		static UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
-		static UScriptStruct* LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
+		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+		static UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
+		static UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
+		static UScriptStruct* LinearColorStruct = TBaseStructure<FLinearColor>::Get();
 
 		const UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
 
@@ -7240,10 +7240,10 @@ bool FBlueprintEditorUtils::PropertyValueToString(const UProperty* Property, con
 	OutForm.Reset();
 	if (Property->IsA(UStructProperty::StaticClass()))
 	{
-		static UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-		static UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		static UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
-		static UScriptStruct* LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
+		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+		static UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
+		static UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
+		static UScriptStruct* LinearColorStruct = TBaseStructure<FLinearColor>::Get();
 
 		const UStructProperty* StructProperty = CastChecked<UStructProperty>(Property);
 

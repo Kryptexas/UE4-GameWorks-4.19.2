@@ -494,11 +494,11 @@ UEdGraphSchema_K2::UEdGraphSchema_K2(const FObjectInitializer& ObjectInitializer
 	// Initialize cached static references to well-known struct types
 	if (VectorStruct == nullptr)
 	{
-		VectorStruct = GetBaseStructure(TEXT("Vector"));
-		RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		TransformStruct = GetBaseStructure(TEXT("Transform"));
-		LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
-		ColorStruct = GetBaseStructure(TEXT("Color"));
+		VectorStruct = TBaseStructure<FVector>::Get();
+		RotatorStruct = TBaseStructure<FRotator>::Get();
+		TransformStruct = TBaseStructure<FTransform>::Get();
+		LinearColorStruct = TBaseStructure<FLinearColor>::Get();
+		ColorStruct = TBaseStructure<FColor>::Get();
 	}
 }
 
@@ -5502,8 +5502,8 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 	if (Pin->Direction == EGPD_Input)
 	{
 		TArray<FString> OriginalDefaults;
-		if (   StructType == GetBaseStructure(TEXT("Vector"))
-			|| StructType == GetBaseStructure(TEXT("Rotator")))
+		if (   StructType == TBaseStructure<FVector>::Get()
+			|| StructType == TBaseStructure<FRotator>::Get())
 		{
 			Pin->DefaultValue.ParseIntoArray(OriginalDefaults, TEXT(","), false);
 			for (FString& Default : OriginalDefaults)
@@ -5516,7 +5516,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 				OriginalDefaults.Add(TEXT("0.0"));
 			}
 		}
-		else if (StructType == GetBaseStructure(TEXT("Vector2D")))
+		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{
 			FVector2D V2D;
 			V2D.InitFromString(Pin->DefaultValue);
@@ -5524,7 +5524,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 			OriginalDefaults.Add(FString::SanitizeFloat(V2D.X));
 			OriginalDefaults.Add(FString::SanitizeFloat(V2D.Y));
 		}
-		else if (StructType == GetBaseStructure(TEXT("LinearColor")))
+		else if (StructType == TBaseStructure<FLinearColor>::Get())
 		{
 			FLinearColor LC;
 			LC.InitFromString(Pin->DefaultValue);
@@ -5579,14 +5579,14 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 		UScriptStruct* StructType = CastChecked<UScriptStruct>(ParentPin->PinType.PinSubCategoryObject.Get());
 
 		TArray<FString> OriginalDefaults;
-		if (   StructType == GetBaseStructure(TEXT("Vector"))
-			|| StructType == GetBaseStructure(TEXT("Rotator")))
+		if (   StructType == TBaseStructure<FVector>::Get()
+			|| StructType == TBaseStructure<FRotator>::Get())
 		{
 			ParentPin->DefaultValue = ParentPin->SubPins[0]->DefaultValue + TEXT(",") 
 									+ ParentPin->SubPins[1]->DefaultValue + TEXT(",")
 									+ ParentPin->SubPins[2]->DefaultValue;
 		}
-		else if (StructType == GetBaseStructure(TEXT("Vector2D")))
+		else if (StructType == TBaseStructure<FVector2D>::Get())
 		{
 			FVector2D V2D;
 			V2D.X = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);
@@ -5594,7 +5594,7 @@ void UEdGraphSchema_K2::RecombinePin(UEdGraphPin* Pin) const
 			
 			ParentPin->DefaultValue = V2D.ToString();
 		}
-		else if (StructType == GetBaseStructure(TEXT("LinearColor")))
+		else if (StructType == TBaseStructure<FLinearColor>::Get())
 		{
 			FLinearColor LC;
 			LC.R = FCString::Atof(*ParentPin->SubPins[0]->DefaultValue);

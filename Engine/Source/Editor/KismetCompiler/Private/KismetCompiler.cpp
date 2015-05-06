@@ -81,10 +81,10 @@ FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompil
 	MacroSpawnX = MinimumSpawnX;
 	MacroSpawnY = -2000;
 	
-	VectorStruct = GetBaseStructure(TEXT("Vector"));
-	RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-	TransformStruct = GetBaseStructure(TEXT("Transform"));
-	LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
+	VectorStruct = TBaseStructure<FVector>::Get();
+	RotatorStruct = TBaseStructure<FRotator>::Get();
+	TransformStruct = TBaseStructure<FTransform>::Get();
+	LinearColorStruct = TBaseStructure<FLinearColor>::Get();
 }
 
 FKismetCompilerContext::~FKismetCompilerContext()

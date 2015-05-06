@@ -47,7 +47,7 @@ void UK2Node_InputTouch::AllocateDefaultPins()
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Released"));
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, TEXT("Moved"));
 	
-	UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
+	UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
 	CreatePin(EGPD_Output, K2Schema->PC_Struct, TEXT(""), VectorStruct, false, false, TEXT("Location"));
 
 	CreatePin(EGPD_Output, K2Schema->PC_Byte, TEXT(""), GetTouchIndexEnum(), false, false, TEXT("FingerIndex"));
@@ -170,7 +170,7 @@ void UK2Node_InputTouch::ExpandNode(FKismetCompilerContext& CompilerContext, UEd
 	if( ActivePins.Num() > 1 )
 	{
 		// Create a temporary variable to copy location in to
-		static UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
+		static UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
 		UK2Node_TemporaryVariable* TouchLocationVar = CompilerContext.SpawnIntermediateNode<UK2Node_TemporaryVariable>(this, SourceGraph);
 		TouchLocationVar->VariableType.PinCategory = Schema->PC_Struct;
 		TouchLocationVar->VariableType.PinSubCategoryObject = VectorStruct;
