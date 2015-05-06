@@ -697,6 +697,21 @@ void FMaintenance::DeleteOldLogs()
 				IFileManager::Get().Delete(*FullFileName);
 			}
 		}
+
+		// Remove old UE4 crash contexts
+		TArray<FString> Directories;
+		IFileManager::Get().FindFiles( Directories, *FString::Printf( TEXT( "%s/UE4CC*" ), *FPaths::GameLogDir() ), false, true );
+
+		for (auto Dir : Directories)
+		{
+			const FString CrashContextDirectory = FPaths::GameLogDir() / Dir;
+			const FDateTime DirectoryAccessTime = IFileManager::Get().GetTimeStamp( *CrashContextDirectory );
+			if (FDateTime::Now() - DirectoryAccessTime > FTimespan::FromDays( PurgeLogsDays ))
+			{
+				UE_LOG( LogStreaming, Log, TEXT( "Deleting old crash context %s" ), *Dir );
+				IFileManager::Get().DeleteDirectory( *CrashContextDirectory, false, true );
+			}
+		}
 	}
 }
 
