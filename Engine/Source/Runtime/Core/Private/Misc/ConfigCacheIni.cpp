@@ -3160,6 +3160,99 @@ void FConfigFile::UpdateSections(const TCHAR* DiskFilename, const TCHAR* IniRoot
 	Write(DiskFilename, true, NewFile);
 }
 
+bool FConfigFile::UpdateSinglePropertyInSection(const TCHAR* DiskFilename, const TCHAR* PropertyName, const TCHAR* SectionName)
+{
+	// Result of whether the file has been updated on disk.
+	bool bSuccessfullyUpdatedFile = false;
+
+	// Since we don't want any modifications to other sections, or properties, we manually process the file, not read into sections
+	FString DiskFile;
+	if (FFileHelper::LoadFileToString(DiskFile, DiskFilename))
+	{
+		FString NewFile;
+		const FString DecoratedSectionName = FString::Printf(TEXT("[%s]"), SectionName);
+
+		// Track if the these properties belong to the section we are looking for.
+		bool bIsCurrentlyWritingSectionProperty = false;
+		
+		// Track if the section was ever updated.
+		bool bSectionWasUpdated = false;
+		// Track if the property was ever updated.
+		bool bPropertyWasUpdated = false;
+
+		// Iterate through the file, line by line, to find the property we would like to update.
+		FString TheLine;
+		const TCHAR* Ptr = DiskFile.Len() > 0 ? *DiskFile : NULL;
+		while (FParse::Line(&Ptr, TheLine, true))
+		{
+			const bool bIsASectionHeader = (TheLine.Len() > 3) && (TheLine[0] == '[') && (TheLine[TheLine.Len() - 1] == ']');
+			if (bIsASectionHeader)
+			{
+				// Cache off the old value of whether we had been writing a section.
+				const bool bWasWritingSection = bIsCurrentlyWritingSectionProperty;
+
+				if (!bSectionWasUpdated && bWasWritingSection && !bPropertyWasUpdated)
+				{
+					bPropertyWasUpdated = true;
+					// If we have found the property in the file, let's update it with the new value.
+					if (const FConfigSection* LocalSection = this->Find(SectionName))
+					{
+						if (const FString* LocalSectionPropertyStr = LocalSection->Find(PropertyName))
+						{
+							NewFile += FString::Printf(TEXT("%s=%s"), PropertyName, *(*LocalSectionPropertyStr)) + LINE_TERMINATOR + LINE_TERMINATOR;
+						}
+					}
+				}
+
+				bIsCurrentlyWritingSectionProperty = (TheLine == DecoratedSectionName);
+				bSectionWasUpdated |= bIsCurrentlyWritingSectionProperty;
+
+				NewFile += TheLine + LINE_TERMINATOR;
+			}
+			else if (bIsCurrentlyWritingSectionProperty && TheLine.StartsWith(PropertyName))
+			{
+				bPropertyWasUpdated = true;
+				// If we have found the property in the file, let's update it with the new value.
+				if (const FConfigSection* LocalSection = this->Find(SectionName))
+				{
+					if (const FString* LocalSectionPropertyStr = LocalSection->Find(PropertyName))
+					{
+						NewFile += FString::Printf(TEXT("%s=%s"), PropertyName, *(*LocalSectionPropertyStr)) + LINE_TERMINATOR;
+					}
+				}
+			}
+			else
+			{
+				NewFile += TheLine + LINE_TERMINATOR;
+			}
+		}
+
+		if (bSectionWasUpdated == false)
+		{
+			// If we reached the eof without updating the section, write the header
+			NewFile += LINE_TERMINATOR + DecoratedSectionName + LINE_TERMINATOR;
+		}
+
+		if (bPropertyWasUpdated == false)
+		{
+			// If we reached the eof without updating the property, we should write it out.
+			bPropertyWasUpdated = true;
+			if (const FConfigSection* LocalSection = this->Find(SectionName))
+			{
+				if (const FString* LocalSectionPropertyStr = LocalSection->Find(PropertyName))
+				{
+					NewFile += FString::Printf(TEXT("%s=%s"), PropertyName, *(*LocalSectionPropertyStr)) + LINE_TERMINATOR;
+				}
+			}
+		}
+
+		// Write the updated file to disk.
+		bSuccessfullyUpdatedFile = FFileHelper::SaveStringToFile(NewFile, DiskFilename);
+	}
+
+	return bSuccessfullyUpdatedFile;
+}
+
 void ApplyCVarSettingsFromIni(const TCHAR* InSectionName, const TCHAR* InIniFilename, uint32 SetBy)
 {
 	// Lookup the config section for this section and group number
