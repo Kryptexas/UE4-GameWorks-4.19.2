@@ -181,31 +181,7 @@ public:
 	*
 	* @param PackageName async package name.
 	*/
-	void InsertPackage(FAsyncPackage* Package)
-	{
-		checkSlow(IsInAsyncLoadThread());
-
-		// Incremented on the Async Thread, decremented on the game thread
-		AsyncLoadingCounter.Increment();
-
-		// Incemented and decremented on the AsyncThread
-		AsyncPackagesCounter.Increment();
-
-		// Insert new package keeping descending priority order in AsyncPackages
-		auto InsertIndex = AsyncPackages.IndexOfByPredicate([Package](const FAsyncPackage* Element)
-		{
-			return Element->GetPriority() <= Package->GetPriority();
-		});
-
-		InsertIndex = InsertIndex == -1 ? AsyncPackages.Num() : InsertIndex;
-		{
-#if THREADSAFE_UOBJECTS
-			FScopeLock LockAsyncPackages(&AsyncPackagesCritical);
-#endif
-			AsyncPackages.InsertUninitialized(InsertIndex);
-			AsyncPackages[InsertIndex] = Package;
-		}
-	}
+	void InsertPackage(FAsyncPackage* Package);
 
 	/**
 	* [ASYNC THREAD] Finds an existing async package in the LoadedPackages by its name.
