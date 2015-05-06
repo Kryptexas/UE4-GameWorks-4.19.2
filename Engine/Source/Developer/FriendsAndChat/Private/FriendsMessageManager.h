@@ -45,8 +45,8 @@ struct FFriendChatMessage
 	FDateTime MessageTime;
 	FDateTime ExpireTime;
 	TSharedPtr<class FChatMessage> MessageRef;
-	TSharedPtr<FUniqueNetId> SenderId;
-	TSharedPtr<FUniqueNetId> RecipientId;
+	TSharedPtr<const FUniqueNetId> SenderId;
+	TSharedPtr<const FUniqueNetId> RecipientId;
 	bool bIsFromSelf;
 };
 
@@ -66,7 +66,7 @@ public:
 	virtual const TArray<TSharedRef<FFriendChatMessage> >& GetMessages() const = 0;
 	virtual void JoinPublicRoom(const FString& RoomName) = 0;
 	virtual bool SendRoomMessage(const FString& RoomName, const FString& MsgBody) = 0;
-	virtual bool SendPrivateMessage(TSharedPtr<FUniqueNetId> UserID, const FText MessageText) = 0;
+	virtual bool SendPrivateMessage(TSharedPtr<const FUniqueNetId> UserID, const FText MessageText) = 0;
 	virtual void InsertNetworkMessage(const FString& MsgBody) = 0;
 
 	DECLARE_EVENT_OneParam(FFriendsMessageManager, FOnChatMessageReceivedEvent, const TSharedRef<FFriendChatMessage> /*The chat message*/)

@@ -13,7 +13,7 @@ FOnlineFriendSteam::FOnlineFriendSteam(const CSteamID& InUserId)
 {
 }
 
-TSharedRef<FUniqueNetId> FOnlineFriendSteam::GetUserId() const
+TSharedRef<const FUniqueNetId> FOnlineFriendSteam::GetUserId() const
 {
 	return UserId;
 }

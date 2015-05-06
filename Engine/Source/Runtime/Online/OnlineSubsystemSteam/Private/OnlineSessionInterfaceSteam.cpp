@@ -640,7 +640,7 @@ bool FOnlineSessionSteam::IsPlayerInSession(FName SessionName, const FUniqueNetI
 	return IsPlayerInSessionImpl(this, SessionName, UniqueId);
 }
 
-bool FOnlineSessionSteam::StartMatchmaking(const TArray< TSharedRef<FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+bool FOnlineSessionSteam::StartMatchmaking(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	UE_LOG(LogOnline, Warning, TEXT("StartMatchmaking is not supported on this platform. Use FindSessions or FindSessionById."));
 	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
@@ -1039,10 +1039,10 @@ void FOnlineSessionSteam::CheckPendingSessionInvite()
 
 bool FOnlineSessionSteam::SendSessionInviteToFriend(int32 LocalUserNum, FName SessionName, const FUniqueNetId& Friend)
 {
-	TArray< TSharedRef<FUniqueNetId> > Friends;
+	TArray< TSharedRef<const FUniqueNetId> > Friends;
 
 	const FUniqueNetIdSteam& SteamFriend = (const FUniqueNetIdSteam&)Friend;
-	TSharedRef<FUniqueNetId> FriendCopy = MakeShareable(new FUniqueNetIdSteam(SteamFriend));
+	TSharedRef<const FUniqueNetId> FriendCopy = MakeShareable(new FUniqueNetIdSteam(SteamFriend));
 	Friends.Add(FriendCopy);
 	return SendSessionInviteToFriends(LocalUserNum, SessionName, Friends);
 }
@@ -1053,7 +1053,7 @@ bool FOnlineSessionSteam::SendSessionInviteToFriend(const FUniqueNetId& LocalUse
 	return SendSessionInviteToFriend(0, SessionName, Friend);
 }
 
-bool FOnlineSessionSteam::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+bool FOnlineSessionSteam::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Friends)
 {
 	bool bSuccess = false;
 
@@ -1113,7 +1113,7 @@ bool FOnlineSessionSteam::SendSessionInviteToFriends(int32 LocalUserNum, FName S
 	return bSuccess;
 }
 
-bool FOnlineSessionSteam::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+bool FOnlineSessionSteam::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Friends)
 {
 	// @todo: use proper LocalUserId
 	return SendSessionInviteToFriends(0, SessionName, Friends);
@@ -1275,12 +1275,12 @@ void FOnlineSessionSteam::UnregisterVoice(const FUniqueNetId& PlayerId)
 
 bool FOnlineSessionSteam::RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited)
 {
-	TArray< TSharedRef<FUniqueNetId> > Players;
+	TArray< TSharedRef<const FUniqueNetId> > Players;
 	Players.Add(MakeShareable(new FUniqueNetIdSteam(PlayerId)));
 	return RegisterPlayers(SessionName, Players, bWasInvited);
 }
 
-bool FOnlineSessionSteam::RegisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players, bool bWasInvited)
+bool FOnlineSessionSteam::RegisterPlayers(FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Players, bool bWasInvited)
 {
 	bool bSuccess = false;
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
@@ -1293,7 +1293,7 @@ bool FOnlineSessionSteam::RegisterPlayers(FName SessionName, const TArray< TShar
 			ISteamFriends* SteamFriendsPtr = SteamFriends();
 			for (int32 PlayerIdx=0; PlayerIdx < Players.Num(); PlayerIdx++)
 			{
-				const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
+				const TSharedRef<const FUniqueNetId>& PlayerId = Players[PlayerIdx];
 				const FUniqueNetIdSteam& SteamId = (const FUniqueNetIdSteam&)*PlayerId;
 
 				FUniqueNetIdMatcher PlayerMatch(SteamId);
@@ -1352,12 +1352,12 @@ void FOnlineSessionSteam::RegisterLocalPlayers(FNamedOnlineSession* Session)
 
 bool FOnlineSessionSteam::UnregisterPlayer(FName SessionName, const FUniqueNetId& PlayerId)
 {
-	TArray< TSharedRef<FUniqueNetId> > Players;
+	TArray< TSharedRef<const FUniqueNetId> > Players;
 	Players.Add(MakeShareable(new FUniqueNetIdSteam(PlayerId)));
 	return UnregisterPlayers(SessionName, Players);
 }
 
-bool FOnlineSessionSteam::UnregisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players)
+bool FOnlineSessionSteam::UnregisterPlayers(FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Players)
 {
 	bool bSuccess = false;
 
@@ -1370,7 +1370,7 @@ bool FOnlineSessionSteam::UnregisterPlayers(FName SessionName, const TArray< TSh
 
 			for (int32 PlayerIdx=0; PlayerIdx < Players.Num(); PlayerIdx++)
 			{
-				const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
+				const TSharedRef<const FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 				FUniqueNetIdMatcher PlayerMatch(*PlayerId);
 				int32 RegistrantIndex = Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch);
@@ -1448,7 +1448,7 @@ void FOnlineSessionSteam::TickPendingInvites(float DeltaTime)
 void FOnlineSessionSteam::AppendSessionToPacket(FNboSerializeToBufferSteam& Packet, FOnlineSession* Session)
 {
 	/** Owner of the session */
-	Packet << *StaticCastSharedPtr<FUniqueNetIdSteam>(Session->OwningUserId)
+	Packet << *StaticCastSharedPtr<const FUniqueNetIdSteam>(Session->OwningUserId)
 		<< Session->OwningUserName
 		<< Session->NumOpenPrivateConnections
 		<< Session->NumOpenPublicConnections;

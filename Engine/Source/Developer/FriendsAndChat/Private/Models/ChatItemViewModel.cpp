@@ -66,12 +66,12 @@ public:
 		return ChatMessages[0]->ToName;
 	}
 
-	virtual const TSharedPtr<FUniqueNetId> GetSenderID() const override
+	virtual const TSharedPtr<const FUniqueNetId> GetSenderID() const override
 	{
 		return ChatMessages[0]->SenderId;
 	}
 
-	virtual const TSharedPtr<FUniqueNetId> GetRecipientID() const override
+	virtual const TSharedPtr<const FUniqueNetId> GetRecipientID() const override
 	{
 		return ChatMessages[0]->RecipientId;
 	}

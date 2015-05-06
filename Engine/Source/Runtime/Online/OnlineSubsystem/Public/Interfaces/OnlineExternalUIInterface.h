@@ -30,7 +30,7 @@ public:
 	 * @param UniqueId The unique id of the user who signed in. Null if no user signed in.
 	 * @param ControllerIndex The controller index of the controller that activated the login UI.
 	 */
-	DECLARE_DELEGATE_TwoParams(FOnLoginUIClosedDelegate, TSharedPtr<FUniqueNetId>, const int);
+	DECLARE_DELEGATE_TwoParams(FOnLoginUIClosedDelegate, TSharedPtr<const FUniqueNetId>, const int);
 
 	/**
 	 * Displays the UI that prompts the user for their login credentials. Each

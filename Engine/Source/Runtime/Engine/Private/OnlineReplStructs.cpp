@@ -29,7 +29,7 @@ FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
 			IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
 			if (IdentityInt.IsValid())
 			{
-				TSharedPtr<FUniqueNetId> UniqueNetIdPtr = IdentityInt->CreateUniquePlayerId(Contents);
+				TSharedPtr<const FUniqueNetId> UniqueNetIdPtr = IdentityInt->CreateUniquePlayerId(Contents);
 				UniqueNetId.SetUniqueNetId(UniqueNetIdPtr);
 			}
 		}
@@ -64,7 +64,7 @@ void TestUniqueIdRepl(UWorld* InWorld)
 	IOnlineIdentityPtr IdentityPtr = Online::GetIdentityInterface(InWorld);
 	if (IdentityPtr.IsValid())
 	{
-		TSharedPtr<FUniqueNetId> UserId = IdentityPtr->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = IdentityPtr->GetUniquePlayerId(0);
 
 		FUniqueNetIdRepl EmptyIdIn;
 		if (EmptyIdIn.IsValid())

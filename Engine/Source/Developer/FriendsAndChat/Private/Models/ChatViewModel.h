@@ -12,7 +12,7 @@ namespace EChatMessageType
 
 struct FSelectedFriend
 {
-	TSharedPtr<FUniqueNetId> UserID;
+	TSharedPtr<const FUniqueNetId> UserID;
 	FText DisplayName;
 	EChatMessageType::Type MessageType;
 	TSharedPtr<FFriendViewModel> ViewModel;

@@ -23,7 +23,7 @@ FUserOnlineAccountFacebook::FUserOnlineAccountFacebook(const FString& InUserId, 
 	GConfig->GetString(TEXT("OnlineSubsystemFacebook.Login"), TEXT("AuthToken"), AuthTicket, GEngineIni);
 }
 
-TSharedRef<FUniqueNetId> FUserOnlineAccountFacebook::GetUserId() const
+TSharedRef<const FUniqueNetId> FUserOnlineAccountFacebook::GetUserId() const
 {
 	return UserId;
 }
@@ -83,7 +83,7 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityFacebook::GetAllUserAccou
 }
 
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityFacebook::GetUniquePlayerId(int32 LocalUserNum) const
+TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::GetUniquePlayerId(int32 LocalUserNum) const
 {
 	return UserAccount->GetUserId();
 }
@@ -151,7 +151,7 @@ bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCred
 }
 
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(uint8* Bytes, int32 Size)
+TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(uint8* Bytes, int32 Size)
 {
 	if (Bytes != NULL && Size > 0)
 	{
@@ -162,7 +162,7 @@ TSharedPtr<FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(uint8* By
 }
 
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(const FString& Str)
+TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::CreateUniquePlayerId(const FString& Str)
 {
 	return MakeShareable(new FUniqueNetIdString(Str));
 }

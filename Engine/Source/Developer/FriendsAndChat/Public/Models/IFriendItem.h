@@ -45,7 +45,7 @@ public:
 	* Get the player's session id
 	* @return The session id the user is playing in
 	*/
-	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const = 0;
+	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const = 0;
 
 	/**
 	 * Get if the user is online.
@@ -69,13 +69,13 @@ public:
 	 * Get game session id that this friend is currently in
 	 * @return The id of the game session
 	 */
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const = 0;
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const = 0;
 
 	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
-	virtual const TSharedRef< FUniqueNetId > GetUniqueID() const = 0;
+	virtual const TSharedRef< const FUniqueNetId > GetUniqueID() const = 0;
 
 	/**
 	 * Is this friend in the default list.

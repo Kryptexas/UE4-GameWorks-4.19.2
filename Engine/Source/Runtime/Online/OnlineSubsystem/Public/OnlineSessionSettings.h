@@ -308,7 +308,7 @@ class FOnlineSession
 public:
 
 	/** Owner of the session */
-	TSharedPtr<FUniqueNetId> OwningUserId;
+	TSharedPtr<const FUniqueNetId> OwningUserId;
 	/** Owner name of the session */
 	FString OwningUserName;
 	/** The settings associated with this session */
@@ -363,10 +363,10 @@ public:
 	bool bHosting;
 
 	/** NetId of the local player that created this named session.  Could be the host, or a player joining a session. Will entirely replace HostingPlayerNum */
-	TSharedPtr<FUniqueNetId> LocalOwnerId;
+	TSharedPtr<const FUniqueNetId> LocalOwnerId;
 
 	/** List of players registered in the session */
-	TArray< TSharedRef<FUniqueNetId> > RegisteredPlayers;
+	TArray< TSharedRef<const FUniqueNetId> > RegisteredPlayers;
 	/** State of the session (game thread write only) */
 	EOnlineSessionState::Type SessionState;
 

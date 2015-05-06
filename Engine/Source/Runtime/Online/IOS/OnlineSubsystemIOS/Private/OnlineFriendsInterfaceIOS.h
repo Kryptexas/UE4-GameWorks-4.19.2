@@ -18,7 +18,7 @@ public:
 
 	// FOnlineUser
 
-	virtual TSharedRef<FUniqueNetId> GetUserId() const override;
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const override;
 	virtual FString GetRealName() const override;
 	virtual FString GetDisplayName() const override;
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
@@ -65,7 +65,7 @@ public:
 	}
 
 	/** User Id represented as a FUniqueNetId */
-	TSharedRef<FUniqueNetId> UserId;
+	TSharedRef<const FUniqueNetId> UserId;
 	/** Any addition account data associated with the friend */
 	TMap<FString, FString> AccountData;
 	/** @temp presence info */

@@ -790,14 +790,14 @@ private:
 	/** Has this request been started */
 	bool bInit;
 	/** Players to request leaderboard data for */
-	TArray< TSharedRef<FUniqueNetId> > Players;
+	TArray< TSharedRef<const FUniqueNetId> > Players;
 	/** Handle to the read object where the data will be stored */
 	FOnlineLeaderboardReadRef ReadObject;
 	/** Results from callback */
 	LeaderboardScoresDownloaded_t CallbackResults;
 
 public:
-	FOnlineAsyncTaskSteamRetrieveLeaderboardEntries(FOnlineSubsystemSteam* InSteamSubsystem, const TArray< TSharedRef<FUniqueNetId> >& InPlayers, const FOnlineLeaderboardReadRef& InReadObject) :
+	FOnlineAsyncTaskSteamRetrieveLeaderboardEntries(FOnlineSubsystemSteam* InSteamSubsystem, const TArray< TSharedRef<const FUniqueNetId> >& InPlayers, const FOnlineLeaderboardReadRef& InReadObject) :
 		FOnlineAsyncTaskSteam(InSteamSubsystem, k_uAPICallInvalid),
 		bInit(false),
 		Players(InPlayers),
@@ -900,7 +900,7 @@ public:
 				if (UserRow == NULL)
 				{
 					const FString NickName(UTF8_TO_TCHAR(SteamFriends()->GetFriendPersonaName(LeaderboardEntry.m_steamIDUser)));
-					TSharedRef<FUniqueNetId> UserId = MakeShareable(new FUniqueNetIdSteam(LeaderboardEntry.m_steamIDUser));
+					TSharedRef<const FUniqueNetId> UserId = MakeShareable(new FUniqueNetIdSteam(LeaderboardEntry.m_steamIDUser));
 					UserRow = new (ReadObject->Rows) FOnlineStatsRow(NickName, UserId);
 				}
 
@@ -921,7 +921,7 @@ public:
 				{
 					CSteamID SteamId(*(uint64*)CurrentUser.GetBytes());
 					const FString NickName(UTF8_TO_TCHAR(SteamFriends()->GetFriendPersonaName(SteamId)));
-					TSharedRef<FUniqueNetId> UserId = MakeShareable(new FUniqueNetIdSteam(SteamId));
+					TSharedRef<const FUniqueNetId> UserId = MakeShareable(new FUniqueNetIdSteam(SteamId));
 					UserRow = new (ReadObject->Rows) FOnlineStatsRow(NickName, UserId);
 				}
 
@@ -1269,7 +1269,7 @@ public:
 	}
 };
 
-bool FOnlineLeaderboardsSteam::ReadLeaderboards(const TArray< TSharedRef<FUniqueNetId> >& Players, FOnlineLeaderboardReadRef& ReadObject)
+bool FOnlineLeaderboardsSteam::ReadLeaderboards(const TArray< TSharedRef<const FUniqueNetId> >& Players, FOnlineLeaderboardReadRef& ReadObject)
 {
 	ReadObject->ReadState = EOnlineAsyncTaskState::InProgress;
 
@@ -1308,7 +1308,7 @@ bool FOnlineLeaderboardsSteam::ReadLeaderboardsForFriends(int32 LocalUserNum, FO
 	ISteamFriends* SteamFriendsPtr = SteamFriends();
 	check(SteamFriendsPtr);
 
-	TArray< TSharedRef<FUniqueNetId> > FriendsList;
+	TArray< TSharedRef<const FUniqueNetId> > FriendsList;
 
 	// Include current user
 	FriendsList.Add(MakeShareable(new FUniqueNetIdSteam(SteamUser()->GetSteamID())));

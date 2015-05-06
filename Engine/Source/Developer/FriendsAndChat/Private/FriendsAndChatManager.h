@@ -178,7 +178,7 @@ public:
 	 *
 	 * @return True id of game session we are in.
 	 */
-	TSharedPtr<FUniqueNetId> GetGameSessionId() const;
+	TSharedPtr<const FUniqueNetId> GetGameSessionId() const;
 
 	/**
 	 * Get if the current player is in a session.
@@ -320,7 +320,7 @@ public:
 	 * @param InUserName The user name to find.
 	 * @return The unique ID.
 	 */
-	TSharedPtr< FUniqueNetId > FindUserID( const FString& InUsername );
+	TSharedPtr< const FUniqueNetId > FindUserID( const FString& InUsername );
 
 	/**
 	 * Set the user online status
@@ -358,7 +358,7 @@ public:
 	 * @return The Friend ID.
 	 */
 	TSharedPtr< IFriendItem > FindUser(const FUniqueNetId& InUserID);
-	TSharedPtr< IFriendItem > FindUser(const TSharedRef<FUniqueNetId>& InUserID);
+	TSharedPtr< IFriendItem > FindUser(const TSharedRef<const FUniqueNetId>& InUserID);
 
 	TSharedPtr<class FFriendViewModel> GetFriendViewModel(const FUniqueNetId& InUserID);
 
@@ -536,7 +536,7 @@ private:
 	 * @param UserIds			An array of user IDs filled out with info.
 	 * @param ErrorStr			String representing the error condition.
 	 */
-	void OnQueryUserInfoComplete( int32 LocalPlayer, bool bWasSuccessful, const TArray< TSharedRef<class FUniqueNetId> >& UserIds, const FString& ErrorStr );
+	void OnQueryUserInfoComplete( int32 LocalPlayer, bool bWasSuccessful, const TArray< TSharedRef<const FUniqueNetId> >& UserIds, const FString& ErrorStr );
 
 	/**
 	 * Delegate used when a query presence info request has completed.
@@ -671,7 +671,7 @@ private:
 	// Holds the list of user names to send invites to. 
 	TArray< FString > FriendByNameInvites;
 	// Holds the list of Unique Ids found for user names to add as friends
-	TArray< TSharedRef< FUniqueNetId > > QueryUserIds;
+	TArray< TSharedRef< const FUniqueNetId > > QueryUserIds;
 	// Holds the full friends list used to build the UI
 	TArray< TSharedPtr< IFriendItem > > FriendsList;
 	// Holds the recent players list
@@ -689,11 +689,11 @@ private:
 	// Holds the list of incoming game invites that need to be responded to
 	TMap< FString, TSharedPtr< IFriendItem > > PendingGameInvitesList;
 	// Holds the list of invites we have already responded to
-	TArray< TSharedPtr< FUniqueNetId > > NotifiedRequest;
+	TArray< TSharedPtr< const FUniqueNetId > > NotifiedRequest;
 	// Holds the list messages sent out to be responded to
 	TArray<TSharedPtr< FFriendsAndChatMessage > > NotificationMessages;
 	// Holds an array of outgoing invite friend requests
-	TArray< TSharedRef< FUniqueNetId > > PendingOutgoingFriendRequests;
+	TArray< TSharedRef< const FUniqueNetId > > PendingOutgoingFriendRequests;
 	// Holds an array of outgoing delete friend requests
 	TArray< FUniqueNetIdString > PendingOutgoingDeleteFriendRequests;
 	// Holds an array of outgoing accept friend requests
@@ -706,7 +706,7 @@ private:
 	{
 	public:
 		FReceivedGameInvite(
-			const TSharedRef<FUniqueNetId>& InFromId,
+			const TSharedRef<const FUniqueNetId>& InFromId,
 			const FOnlineSessionSearchResult& InInviteResult,
 			const FString& InClientId)
 			: FromId(InFromId)
@@ -714,7 +714,7 @@ private:
 			, ClientId(InClientId)
 		{}
 		// who sent the invite (could be non-friend)
-		TSharedRef<FUniqueNetId> FromId;
+		TSharedRef<const FUniqueNetId> FromId;
 		// session info needed to join the invite
 		TSharedRef<FOnlineSessionSearchResult> InviteResult;
 		// Clietn id for user that sent hte invite

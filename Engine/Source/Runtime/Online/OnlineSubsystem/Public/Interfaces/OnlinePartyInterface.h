@@ -73,7 +73,7 @@ public:
 	/**
 	 * @return id of the party member this data is associated with
 	 */
-	virtual TSharedRef<FUniqueNetId> GetPartyMemberId() const = 0;
+	virtual TSharedRef<const FUniqueNetId> GetPartyMemberId() const = 0;
 };
 
 /**
@@ -98,7 +98,7 @@ public:
 	/**
 	 * @return id of the user this invite is from
 	 */
-	virtual TSharedRef<FUniqueNetId> GetSenderId() const = 0;
+	virtual TSharedRef<const FUniqueNetId> GetSenderId() const = 0;
 
 	/**
 	 * @return id of the party associated with this invite
@@ -197,7 +197,7 @@ public:
 	/** access token that changes when you switch from public to invite-only */
 	FString AccessToken;
 	/** leader of the party */
-	TSharedPtr<FUniqueNetId> PartyLeader;
+	TSharedPtr<const FUniqueNetId> PartyLeader;
 	/** id of chat room associated with the party */
 	FChatRoomId RoomId;
 };

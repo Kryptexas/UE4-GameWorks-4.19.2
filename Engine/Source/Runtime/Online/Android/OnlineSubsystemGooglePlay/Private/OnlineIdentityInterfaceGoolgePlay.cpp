@@ -112,14 +112,14 @@ ELoginStatus::Type FOnlineIdentityGooglePlay::GetLoginStatus(const FUniqueNetId&
 }
 
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityGooglePlay::GetUniquePlayerId(int32 LocalUserNum) const
+TSharedPtr<const FUniqueNetId> FOnlineIdentityGooglePlay::GetUniquePlayerId(int32 LocalUserNum) const
 {
-	TSharedPtr<FUniqueNetId> NewID = MakeShareable(new FUniqueNetIdString(""));
+	TSharedPtr<const FUniqueNetId> NewID = MakeShareable(new FUniqueNetIdString(""));
 	return NewID;
 }
 
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityGooglePlay::CreateUniquePlayerId(uint8* Bytes, int32 Size)
+TSharedPtr<const FUniqueNetId> FOnlineIdentityGooglePlay::CreateUniquePlayerId(uint8* Bytes, int32 Size)
 {
 	if( Bytes && Size == sizeof(uint64) )
 	{
@@ -134,7 +134,7 @@ TSharedPtr<FUniqueNetId> FOnlineIdentityGooglePlay::CreateUniquePlayerId(uint8* 
 }
 
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityGooglePlay::CreateUniquePlayerId(const FString& Str)
+TSharedPtr<const FUniqueNetId> FOnlineIdentityGooglePlay::CreateUniquePlayerId(const FString& Str)
 {
 	return MakeShareable(new FUniqueNetIdString(Str));
 }

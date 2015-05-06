@@ -26,11 +26,11 @@
 	/** Default name of friends list for running tests */
 	FString FriendsListName;
 	/** Filled in after reading friends list. Invites that are pending will be auto-accepted */
-	TArray<TSharedPtr<FUniqueNetId> > InvitesToAccept;
+	TArray<TSharedPtr<const FUniqueNetId> > InvitesToAccept;
 	/** List of friends to send invites to. From test options */
-	TArray<TSharedPtr<FUniqueNetId> > InvitesToSend;
+	TArray<TSharedPtr<const FUniqueNetId> > InvitesToSend;
 	/** List of friends to delete */
-	TArray<TSharedPtr<FUniqueNetId> > FriendsToDelete;
+	TArray<TSharedPtr<const FUniqueNetId> > FriendsToDelete;
 	
 	/** true to enable friends list read */
 	bool bReadFriendsList;

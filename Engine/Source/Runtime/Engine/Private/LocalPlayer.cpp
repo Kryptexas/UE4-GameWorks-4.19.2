@@ -214,7 +214,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		}
 
 		// Get player unique id
-		TSharedPtr<FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
+		TSharedPtr<const FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
 
 		PlayerController = InWorld->SpawnPlayActor(this, ROLE_SimulatedProxy, PlayerURL, UniqueId, OutError, GEngine->GetGamePlayers(InWorld).Find(this));
 	}
@@ -1445,7 +1445,7 @@ FString ULocalPlayer::GetNickname() const
 	return TEXT("");
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
+TSharedPtr<const FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
 {
 	UWorld* World = GetWorld();
 	if (World != NULL)
@@ -1453,7 +1453,7 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() co
 		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
 		if (OnlineIdentityInt.IsValid())
 		{
-			TSharedPtr<FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
+			TSharedPtr<const FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
 			if (UniqueId.IsValid())
 			{
 				return UniqueId;
@@ -1464,17 +1464,17 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() co
 	return NULL;
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const
+TSharedPtr<const FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const
 {
 	return CachedUniqueNetId;
 }
 
-void ULocalPlayer::SetCachedUniqueNetId( TSharedPtr<class FUniqueNetId> NewUniqueNetId )
+void ULocalPlayer::SetCachedUniqueNetId(TSharedPtr<const FUniqueNetId> NewUniqueNetId)
 {
 	CachedUniqueNetId = NewUniqueNetId;
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
+TSharedPtr<const FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
 {
 	// Prefer the cached unique net id (only if it's valid)
 	// This is for backwards compatibility for games that don't yet cache the unique id properly
@@ -1490,7 +1490,7 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
 bool ULocalPlayer::IsCachedUniqueNetIdPairedWithControllerId() const
 {
 	// Get the UniqueNetId that is paired with the controller
-	TSharedPtr<FUniqueNetId> UniqueIdFromController = GetUniqueNetIdFromCachedControllerId();
+	TSharedPtr<const FUniqueNetId> UniqueIdFromController = GetUniqueNetIdFromCachedControllerId();
 
 	if (CachedUniqueNetId.IsValid() != UniqueIdFromController.IsValid())
 	{

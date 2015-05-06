@@ -59,7 +59,7 @@ public:
 		return TEXT("Test Client");
 	}
 
-	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override
+	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override
 	{
 		return nullptr;
 	}
@@ -74,9 +74,9 @@ public:
 		return EOnlinePresenceState::Offline;
 	}
 
-	virtual const TSharedRef< FUniqueNetId > GetUniqueID() const override
+	virtual const TSharedRef<const FUniqueNetId> GetUniqueID() const override
 	{
-		TSharedPtr<FUniqueNetId> TestID = MakeShareable(new FUniqueNetIdString(TEXT("Test")));
+		TSharedPtr<const FUniqueNetId> TestID = MakeShareable(new FUniqueNetIdString(TEXT("Test")));
 		return TestID.ToSharedRef();
 	}
 
@@ -133,7 +133,7 @@ public:
 		return false;
 	}
 
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override
 	{
 		return nullptr;
 	}

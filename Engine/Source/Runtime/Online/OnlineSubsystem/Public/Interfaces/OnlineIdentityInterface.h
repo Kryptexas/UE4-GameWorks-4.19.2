@@ -247,7 +247,7 @@ public:
 	 *
 	 * @return Valid player id object if the call succeeded, NULL otherwise
 	 */
-	virtual TSharedPtr<FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const = 0;
+	virtual TSharedPtr<const FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const = 0;
 
 	/**
 	 * Gets the platform specific unique id for the sponsor of the specified player
@@ -256,7 +256,7 @@ public:
 	 *
 	 * @return Valid player id object if the sponsor exists, NULL otherwise
 	 */
-	virtual TSharedPtr<FUniqueNetId> GetSponsorUniquePlayerId(int32 LocalUserNum) const { return nullptr; }
+	virtual TSharedPtr<const FUniqueNetId> GetSponsorUniquePlayerId(int32 LocalUserNum) const { return nullptr; }
 
 	/**
 	 * Create a unique id from binary data (used during replication)
@@ -266,7 +266,7 @@ public:
 	 *
 	 * @return UniqueId from the given data, NULL otherwise
 	 */
-	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) = 0;
+	virtual TSharedPtr<const FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) = 0;
 
 	/**
 	 * Create a unique id from string
@@ -275,7 +275,7 @@ public:
 	 *
 	 * @return UniqueId from the given data, NULL otherwise
 	 */
-	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(const FString& Str) = 0;
+	virtual TSharedPtr<const FUniqueNetId> CreateUniquePlayerId(const FString& Str) = 0;
 
 	/**
 	 * Fetches the login status for a given player

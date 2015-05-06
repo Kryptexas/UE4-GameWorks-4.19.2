@@ -7,6 +7,7 @@
 #include "GameMode.generated.h"
 
 class FDebugDisplayInfo;
+class FUniqueNetId;
 
 //=============================================================================
 //  GameMode defines the rules and mechanics of the game.  It is only 
@@ -435,7 +436,7 @@ public:
 	 * @param	UniqueId				The unique id the player has passed to the server
 	 * @param	ErrorMessage			When set to a non-empty value, the player will be rejected using the error message set
 	 */
-	virtual void PreLogin(const FString& Options, const FString& Address, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
+	virtual void PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
 	/** 
 	 * Called to login new players by creating a player controller, overridable by the game
@@ -455,7 +456,7 @@ public:
 	 *
 	 * @return a new player controller for the logged in player, NULL if login failed for any reason
 	 */
-	virtual APlayerController* Login(class UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
+	virtual APlayerController* Login(class UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage);
 
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerAController. */
 	virtual void PostLogin( APlayerController* NewPlayer );
@@ -682,7 +683,7 @@ protected:
 	 * @param Options URL options that came at login
 	 *
 	 */
-	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
+	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
 
 
 private:

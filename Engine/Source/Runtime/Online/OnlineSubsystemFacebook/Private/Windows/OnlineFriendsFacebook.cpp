@@ -6,7 +6,7 @@
 
 // FOnlineFriendFacebook
 
-TSharedRef<FUniqueNetId> FOnlineFriendFacebook::GetUserId() const
+TSharedRef<const FUniqueNetId> FOnlineFriendFacebook::GetUserId() const
 {
 	return UserId;
 }

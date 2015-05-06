@@ -163,7 +163,7 @@ public:
 	 * Associate an online unique id with this player
 	 * @param InUniqueId the unique id associated with this player
 	 */
-	virtual void SetUniqueId(const TSharedPtr<FUniqueNetId>& InUniqueId);
+	virtual void SetUniqueId(const TSharedPtr<const FUniqueNetId>& InUniqueId);
 
 	/** 
 	 * Register a player with the online subsystem

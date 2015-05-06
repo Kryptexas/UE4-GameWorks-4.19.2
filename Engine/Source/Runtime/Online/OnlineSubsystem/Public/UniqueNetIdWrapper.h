@@ -3,6 +3,8 @@
 
 #include "OnlineSubsystemTypes.h"
 
+class FUniqueNetId;
+
 // This is not a USTRUCT due to cross module dependencies
 struct FUniqueNetIdWrapper
 {
@@ -12,7 +14,7 @@ public:
 	: UniqueNetId()
 	{
 	}
-	FUniqueNetIdWrapper(const TSharedPtr<FUniqueNetId>& InUniqueNetId)
+	FUniqueNetIdWrapper(const TSharedPtr<const FUniqueNetId>& InUniqueNetId)
 	: UniqueNetId(InUniqueNetId)
 	{
 	}
@@ -59,13 +61,13 @@ public:
 	 *
 	 * @param InUniqueNetId id to associate
 	 */
-	void SetUniqueNetId(const TSharedPtr<FUniqueNetId>& InUniqueNetId)
+	void SetUniqueNetId(const TSharedPtr<const FUniqueNetId>& InUniqueNetId)
 	{
 		UniqueNetId = InUniqueNetId;
 	}
 
 	/** @return unique id associated with this wrapper object */
-	const TSharedPtr<FUniqueNetId>& GetUniqueNetId() const
+	const TSharedPtr<const FUniqueNetId>& GetUniqueNetId() const
 	{
 		return UniqueNetId;
 	}
@@ -77,10 +79,6 @@ public:
 	{
 		return *UniqueNetId;
 	}
-	FUniqueNetId& operator*()
-	{
-		return *UniqueNetId;
-	}
 
 	/**
 	 * Arrow operator returns a pointer to this FUniqueNetId
@@ -89,11 +87,7 @@ public:
 	{
 		return UniqueNetId.Get();
 	}
-	FUniqueNetId* operator->()
-	{
-		return UniqueNetId.Get();
-	}
 
 protected:
-	TSharedPtr<class FUniqueNetId> UniqueNetId;
+	TSharedPtr<const FUniqueNetId> UniqueNetId;
 };

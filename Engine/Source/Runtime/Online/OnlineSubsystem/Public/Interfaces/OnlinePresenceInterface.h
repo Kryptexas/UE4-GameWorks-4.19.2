@@ -78,7 +78,7 @@ public:
 class FOnlineUserPresence
 {
 public:
-	TSharedPtr<FUniqueNetId> SessionId;
+	TSharedPtr<const FUniqueNetId> SessionId;
 	uint32 bIsOnline:1;
 	uint32 bIsPlaying:1;
 	uint32 bIsPlayingThisGame:1;
@@ -146,7 +146,7 @@ public:
 	 * @param Users The list of unique ids of the users to query for presence information.
 	 * @param Delegate The delegate to be executed when the potentially asynchronous query operation completes.
 	 */
-	//@todo samz - interface should be QueryPresence(const FUniqueNetId& User,  const TArray<TSharedRef<class FUniqueNetId> >& UserIds, const FOnPresenceTaskCompleteDelegate& Delegate)
+	//@todo samz - interface should be QueryPresence(const FUniqueNetId& User,  const TArray<TSharedRef<const FUniqueNetId> >& UserIds, const FOnPresenceTaskCompleteDelegate& Delegate)
 	virtual void QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate = FOnPresenceTaskCompleteDelegate()) = 0;
 
 	/**

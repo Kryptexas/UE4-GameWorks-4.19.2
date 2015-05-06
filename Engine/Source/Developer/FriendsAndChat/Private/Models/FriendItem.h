@@ -88,7 +88,7 @@ public:
 	* Get the player's session id
 	* @return The session id the user is playing in
 	*/
-	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override;
+	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override;
 
 	/**
 	 * Get if the user is online.
@@ -118,13 +118,13 @@ public:
 	 * Get if the user is online and his game is joinable
 	 * @return The user joinable game state.
 	 */
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
 
 	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
-	virtual const TSharedRef< FUniqueNetId > GetUniqueID() const override;
+	virtual const TSharedRef<const FUniqueNetId> GetUniqueID() const override;
 
 	/**
 	 * Is this friend in the default list.
@@ -207,7 +207,7 @@ private:
 	TSharedPtr<FOnlineUser> OnlineUser;
 
 	/** Holds the cached user id. */
-	TSharedPtr< FUniqueNetId > UniqueID;
+	TSharedPtr<const FUniqueNetId> UniqueID;
 
 	/** Holds if this is the list type. */
 	EFriendsDisplayLists::Type ListType;

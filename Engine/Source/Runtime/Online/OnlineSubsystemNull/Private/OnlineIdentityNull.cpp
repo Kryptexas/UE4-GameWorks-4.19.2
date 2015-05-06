@@ -64,7 +64,7 @@ bool FOnlineIdentityNull::Login(int32 LocalUserNum, const FOnlineAccountCredenti
 	}
 	else
 	{
-		TSharedPtr<FUniqueNetId>* UserId = UserIds.Find(LocalUserNum);
+		TSharedPtr<const FUniqueNetId>* UserId = UserIds.Find(LocalUserNum);
 		if (UserId == NULL)
 		{
 			FString RandomUserId = GenerateRandomUserId(LocalUserNum);
@@ -101,7 +101,7 @@ bool FOnlineIdentityNull::Login(int32 LocalUserNum, const FOnlineAccountCredenti
 
 bool FOnlineIdentityNull::Logout(int32 LocalUserNum)
 {
-	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
 		// remove cached user account
@@ -183,9 +183,9 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityNull::GetAllUserAccounts(
 	return Result;
 }
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityNull::GetUniquePlayerId(int32 LocalUserNum) const
+TSharedPtr<const FUniqueNetId> FOnlineIdentityNull::GetUniquePlayerId(int32 LocalUserNum) const
 {
-	const TSharedPtr<FUniqueNetId>* FoundId = UserIds.Find(LocalUserNum);
+	const TSharedPtr<const FUniqueNetId>* FoundId = UserIds.Find(LocalUserNum);
 	if (FoundId != NULL)
 	{
 		return *FoundId;
@@ -193,7 +193,7 @@ TSharedPtr<FUniqueNetId> FOnlineIdentityNull::GetUniquePlayerId(int32 LocalUserN
 	return NULL;
 }
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityNull::CreateUniquePlayerId(uint8* Bytes, int32 Size)
+TSharedPtr<const FUniqueNetId> FOnlineIdentityNull::CreateUniquePlayerId(uint8* Bytes, int32 Size)
 {
 	if (Bytes != NULL && Size > 0)
 	{
@@ -203,14 +203,14 @@ TSharedPtr<FUniqueNetId> FOnlineIdentityNull::CreateUniquePlayerId(uint8* Bytes,
 	return NULL;
 }
 
-TSharedPtr<FUniqueNetId> FOnlineIdentityNull::CreateUniquePlayerId(const FString& Str)
+TSharedPtr<const FUniqueNetId> FOnlineIdentityNull::CreateUniquePlayerId(const FString& Str)
 {
 	return MakeShareable(new FUniqueNetIdString(Str));
 }
 
 ELoginStatus::Type FOnlineIdentityNull::GetLoginStatus(int32 LocalUserNum) const
 {
-	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
 		return GetLoginStatus(*UserId);
@@ -231,7 +231,7 @@ ELoginStatus::Type FOnlineIdentityNull::GetLoginStatus(const FUniqueNetId& UserI
 
 FString FOnlineIdentityNull::GetPlayerNickname(int32 LocalUserNum) const
 {
-	TSharedPtr<FUniqueNetId> UniqueId = GetUniquePlayerId(LocalUserNum);
+	TSharedPtr<const FUniqueNetId> UniqueId = GetUniquePlayerId(LocalUserNum);
 	if (UniqueId.IsValid())
 	{
 		return UniqueId->ToString();
@@ -247,7 +247,7 @@ FString FOnlineIdentityNull::GetPlayerNickname(const FUniqueNetId& UserId) const
 
 FString FOnlineIdentityNull::GetAuthToken(int32 LocalUserNum) const
 {
-	TSharedPtr<FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
+	TSharedPtr<const FUniqueNetId> UserId = GetUniquePlayerId(LocalUserNum);
 	if (UserId.IsValid())
 	{
 		TSharedPtr<FUserOnlineAccount> UserAccount = GetUserAccount(*UserId);

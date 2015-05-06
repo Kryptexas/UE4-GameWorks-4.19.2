@@ -40,7 +40,7 @@ const FString FFriendRecentPlayerItem::GetClientName() const
 	return TEXT("");
 }
 
-const TSharedPtr<FUniqueNetId> FFriendRecentPlayerItem::GetSessionId() const
+const TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetSessionId() const
 {
 	return nullptr;
 }
@@ -55,7 +55,7 @@ const EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() cons
 	return EOnlinePresenceState::Offline;
 }
 
-const TSharedRef< FUniqueNetId > FFriendRecentPlayerItem::GetUniqueID() const
+const TSharedRef<const FUniqueNetId> FFriendRecentPlayerItem::GetUniqueID() const
 {
 	return RecentPlayer->GetUserId();
 }
@@ -107,7 +107,7 @@ bool FFriendRecentPlayerItem::CanInvite() const
 	return false;
 }
 
-TSharedPtr<FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
+TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
 {
 	return nullptr;
 }

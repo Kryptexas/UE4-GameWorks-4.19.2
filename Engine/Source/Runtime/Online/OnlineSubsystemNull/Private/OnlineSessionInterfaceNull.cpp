@@ -447,7 +447,7 @@ bool FOnlineSessionNull::IsPlayerInSession(FName SessionName, const FUniqueNetId
 	return IsPlayerInSessionImpl(this, SessionName, UniqueId);
 }
 
-bool FOnlineSessionNull::StartMatchmaking(const TArray< TSharedRef<FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
+bool FOnlineSessionNull::StartMatchmaking(const TArray< TSharedRef<const FUniqueNetId> >& LocalPlayers, FName SessionName, const FOnlineSessionSettings& NewSessionSettings, TSharedRef<FOnlineSessionSearch>& SearchSettings)
 {
 	UE_LOG(LogOnline, Warning, TEXT("StartMatchmaking is not supported on this platform. Use FindSessions or FindSessionById."));
 	TriggerOnMatchmakingCompleteDelegates(SessionName, false);
@@ -647,13 +647,13 @@ bool FOnlineSessionNull::SendSessionInviteToFriend(const FUniqueNetId& LocalUser
 	return false;
 }
 
-bool FOnlineSessionNull::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+bool FOnlineSessionNull::SendSessionInviteToFriends(int32 LocalUserNum, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Friends)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
 	return false;
 };
 
-bool FOnlineSessionNull::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Friends)
+bool FOnlineSessionNull::SendSessionInviteToFriends(const FUniqueNetId& LocalUserId, FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Friends)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
 	return false;
@@ -822,12 +822,12 @@ void FOnlineSessionNull::UnregisterVoice(const FUniqueNetId& PlayerId)
 
 bool FOnlineSessionNull::RegisterPlayer(FName SessionName, const FUniqueNetId& PlayerId, bool bWasInvited)
 {
-	TArray< TSharedRef<FUniqueNetId> > Players;
+	TArray< TSharedRef<const FUniqueNetId> > Players;
 	Players.Add(MakeShareable(new FUniqueNetIdString(PlayerId)));
 	return RegisterPlayers(SessionName, Players, bWasInvited);
 }
 
-bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players, bool bWasInvited)
+bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Players, bool bWasInvited)
 {
 	bool bSuccess = false;
 	FNamedOnlineSession* Session = GetNamedSession(SessionName);
@@ -837,7 +837,7 @@ bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TShare
 
 		for (int32 PlayerIdx=0; PlayerIdx<Players.Num(); PlayerIdx++)
 		{
-			const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
+			const TSharedRef<const FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 			FUniqueNetIdMatcher PlayerMatch(*PlayerId);
 			if (Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch) == INDEX_NONE)
@@ -873,12 +873,12 @@ bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TShare
 
 bool FOnlineSessionNull::UnregisterPlayer(FName SessionName, const FUniqueNetId& PlayerId)
 {
-	TArray< TSharedRef<FUniqueNetId> > Players;
+	TArray< TSharedRef<const FUniqueNetId> > Players;
 	Players.Add(MakeShareable(new FUniqueNetIdString(PlayerId)));
 	return UnregisterPlayers(SessionName, Players);
 }
 
-bool FOnlineSessionNull::UnregisterPlayers(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players)
+bool FOnlineSessionNull::UnregisterPlayers(FName SessionName, const TArray< TSharedRef<const FUniqueNetId> >& Players)
 {
 	bool bSuccess = true;
 
@@ -887,7 +887,7 @@ bool FOnlineSessionNull::UnregisterPlayers(FName SessionName, const TArray< TSha
 	{
 		for (int32 PlayerIdx=0; PlayerIdx < Players.Num(); PlayerIdx++)
 		{
-			const TSharedRef<FUniqueNetId>& PlayerId = Players[PlayerIdx];
+			const TSharedRef<const FUniqueNetId>& PlayerId = Players[PlayerIdx];
 
 			FUniqueNetIdMatcher PlayerMatch(*PlayerId);
 			int32 RegistrantIndex = Session->RegisteredPlayers.IndexOfByPredicate(PlayerMatch);
@@ -936,7 +936,7 @@ void FOnlineSessionNull::TickLanTasks(float DeltaTime)
 void FOnlineSessionNull::AppendSessionToPacket(FNboSerializeToBufferNull& Packet, FOnlineSession* Session)
 {
 	/** Owner of the session */
-	Packet << *StaticCastSharedPtr<FUniqueNetIdString>(Session->OwningUserId)
+	Packet << *StaticCastSharedPtr<const FUniqueNetIdString>(Session->OwningUserId)
 		<< Session->OwningUserName
 		<< Session->NumOpenPrivateConnections
 		<< Session->NumOpenPublicConnections;
@@ -1232,6 +1232,6 @@ bool FOnlineSessionNull::IsHost(const FNamedOnlineSession& Session) const
 		return false;
 	}
 
-	TSharedPtr<FUniqueNetId> UserId = IdentityInt->GetUniquePlayerId(Session.HostingPlayerNum);
+	TSharedPtr<const FUniqueNetId> UserId = IdentityInt->GetUniquePlayerId(Session.HostingPlayerNum);
 	return (UserId.IsValid() && (*UserId == *Session.OwningUserId));
 }

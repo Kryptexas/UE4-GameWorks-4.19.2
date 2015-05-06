@@ -65,7 +65,7 @@ public:
 	* Get the player's session id
 	* @return The session id the user is playing in
 	*/
-	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override;
+	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override;
 
 	/**
 	 * Get if the user is online.
@@ -83,7 +83,7 @@ public:
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
-	virtual const TSharedRef< FUniqueNetId > GetUniqueID() const override;
+	virtual const TSharedRef<const FUniqueNetId> GetUniqueID() const override;
 
 	/**
 	 * Is this friend in the default list.
@@ -132,7 +132,7 @@ public:
 	virtual bool CanInvite() const override;
 
 	/** Get if the user is online and his game is joinable */
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
 
 	/**
 	 * Get the invitation status.

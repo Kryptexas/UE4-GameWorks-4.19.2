@@ -10,6 +10,8 @@
 #include "Player.h"
 #include "LocalPlayer.generated.h"
 
+class FUniqueNetId;
+
 /** A context object that binds to a LocalPlayer. Useful for UI or other things that need to pass around player references */
 struct ENGINE_API FLocalPlayerContext
 {
@@ -146,7 +148,7 @@ class ENGINE_API ULocalPlayer : public UPlayer
 #endif // WITH_HOT_RELOAD_CTORS
 
 	/** The FUniqueNetId which this player is associated with. */
-	TSharedPtr<class FUniqueNetId> CachedUniqueNetId;
+	TSharedPtr<const FUniqueNetId> CachedUniqueNetId;
 
 	/** The master viewport containing this player's view. */
 	UPROPERTY()
@@ -340,24 +342,24 @@ public:
 	 *
 	 * @return unique Id associated with this player
 	 */
-	TSharedPtr<class FUniqueNetId> GetUniqueNetIdFromCachedControllerId() const;
+	TSharedPtr<const FUniqueNetId> GetUniqueNetIdFromCachedControllerId() const;
 
 	/** 
 	 * Retrieves this player's unique net ID that was previously cached
 	 *
 	 * @return unique Id associated with this player
 	 */
-	TSharedPtr<class FUniqueNetId> GetCachedUniqueNetId() const;
+	TSharedPtr<const FUniqueNetId> GetCachedUniqueNetId() const;
 
 	/** Sets the players current cached unique net id */
-	void SetCachedUniqueNetId( TSharedPtr<class FUniqueNetId> NewUniqueNetId );
+	void SetCachedUniqueNetId(TSharedPtr<const FUniqueNetId> NewUniqueNetId);
 
 	/** 
 	 * Retrieves the preferred unique net id. This is for backwards compatibility for games that don't use the cached unique net id logic
 	 *
 	 * @return unique Id associated with this player
 	 */
-	TSharedPtr<FUniqueNetId> GetPreferredUniqueNetId() const;
+	TSharedPtr<const FUniqueNetId> GetPreferredUniqueNetId() const;
 
 	/** Returns true if the cached unique net id, is the one assigned to the controller id from the OSS */
 	bool IsCachedUniqueNetIdPairedWithControllerId() const;

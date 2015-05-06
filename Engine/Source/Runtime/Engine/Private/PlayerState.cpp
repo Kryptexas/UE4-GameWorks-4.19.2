@@ -247,7 +247,7 @@ void APlayerState::OnRep_UniqueId()
 	RegisterPlayerWithSession(false);
 }
 
-void APlayerState::SetUniqueId(const TSharedPtr<FUniqueNetId>& InUniqueId)
+void APlayerState::SetUniqueId(const TSharedPtr<const FUniqueNetId>& InUniqueId)
 {
 	UniqueId.SetUniqueNetId(InUniqueId);
 }

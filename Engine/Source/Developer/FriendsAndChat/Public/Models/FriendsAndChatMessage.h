@@ -102,7 +102,7 @@ public:
 	 * @param InMessage The message content.
 	 * @param InUniqueFriendID The Friend ID.
 	 */
-	FFriendsAndChatMessage( const FString& InMessage, const TSharedRef< FUniqueNetId > InUniqueFriendID )
+	FFriendsAndChatMessage(const FString& InMessage, const TSharedRef<const FUniqueNetId> InUniqueFriendID)
 		: MessageConent( InMessage )
 		, UniqueFriendID( InUniqueFriendID )
 		, bAutoAccept( false )
@@ -123,7 +123,7 @@ public:
 	 *
 	 * @return The net ID.
 	 */
-	const TSharedRef< FUniqueNetId > GetUniqueID()
+	const TSharedRef<const FUniqueNetId> GetUniqueID()
 	{
 		return UniqueFriendID.ToSharedRef();
 	}
@@ -305,7 +305,7 @@ private:
 	FString MessageConent;
 	
 	// Holds the Unique Friend Net ID
-	const TSharedPtr< FUniqueNetId > UniqueFriendID;
+	const TSharedPtr<const FUniqueNetId> UniqueFriendID;
 	
 	// Holds the message type
 	EFriendsRequestType::Type MessageType;

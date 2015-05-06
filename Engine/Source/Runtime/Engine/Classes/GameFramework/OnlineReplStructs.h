@@ -9,6 +9,8 @@
 #include "Runtime/Online/OnlineSubsystem/Public/UniqueNetIdWrapper.h"
 #include "OnlineReplStructs.generated.h"
 
+class FUniqueNetId;
+
 /**
  * Wrapper for opaque type FUniqueNetId
  *
@@ -29,12 +31,12 @@ struct FUniqueNetIdRepl
 	{
 	}
 
-	FUniqueNetIdRepl(const TSharedRef<FUniqueNetId>& InUniqueNetId) :
+	FUniqueNetIdRepl(const TSharedRef<const FUniqueNetId>& InUniqueNetId) :
 		UniqueNetId(InUniqueNetId)
 	{
 	}
 
-	FUniqueNetIdRepl(const TSharedPtr<FUniqueNetId>& InUniqueNetId) :
+	FUniqueNetIdRepl(const TSharedPtr<const FUniqueNetId>& InUniqueNetId) :
 		UniqueNetId(InUniqueNetId)
 	{
 	}
@@ -96,13 +98,13 @@ struct FUniqueNetIdRepl
 	 *
 	 * @param InUniqueNetId id to associate
 	 */
-	void SetUniqueNetId(const TSharedPtr<FUniqueNetId>& InUniqueNetId)
+	void SetUniqueNetId(const TSharedPtr<const FUniqueNetId>& InUniqueNetId)
 	{
 		UniqueNetId = InUniqueNetId;
 	}
 
 	/** @return unique id associated with this wrapper object */
-	const TSharedPtr<FUniqueNetId>& GetUniqueNetId() const
+	const TSharedPtr<const FUniqueNetId>& GetUniqueNetId() const
 	{
 		return UniqueNetId;
 	}
@@ -114,19 +116,11 @@ struct FUniqueNetIdRepl
 	{
 		return *UniqueNetId;
 	}
-	FUniqueNetId& operator*()
-	{
-		return *UniqueNetId;
-	}
 
 	/**
 	 * Arrow operator returns a pointer to this FUniqueNetId
 	 */
 	const FUniqueNetId* operator->() const
-	{
-		return UniqueNetId.Get();
-	}
-	FUniqueNetId* operator->()
 	{
 		return UniqueNetId.Get();
 	}
@@ -150,7 +144,7 @@ struct FUniqueNetIdRepl
 	}
 
 protected:
-	TSharedPtr<class FUniqueNetId> UniqueNetId;
+	TSharedPtr<const FUniqueNetId> UniqueNetId;
 };
 
 /** Specify net delta serializer support for the active skill cooldown array */

@@ -778,7 +778,7 @@ public:
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
-	bool operator()(const TSharedPtr<FUniqueNetId>& Candidate) const
+	bool operator()(const TSharedPtr<const FUniqueNetId>& Candidate) const
 	{
 		return UniqueIdTarget == *Candidate;
 	}
@@ -788,7 +788,7 @@ public:
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
-	bool operator()(const TSharedRef<FUniqueNetId>& Candidate) const
+	bool operator()(const TSharedRef<const FUniqueNetId>& Candidate) const
 	{
 		return UniqueIdTarget == *Candidate;
 	}
@@ -1034,7 +1034,7 @@ public:
 	/** 
 	 * @return Id associated with the user account provided by the online service during registration 
 	 */
-	virtual TSharedRef<FUniqueNetId> GetUserId() const = 0;
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const = 0;
 	/**
 	 * @return the real name for the user if known
 	 */

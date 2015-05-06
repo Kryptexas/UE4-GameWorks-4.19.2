@@ -16,9 +16,9 @@ bool FFriendGameInviteItem::IsGameJoinable() const
 	return !FFriendsAndChatManager::Get()->IsFriendInSameSession(Item);
 }
 
-TSharedPtr<FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const
+TSharedPtr<const FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const
 {
-	TSharedPtr<FUniqueNetId> SessionId = NULL;
+	TSharedPtr<const FUniqueNetId> SessionId = NULL;
 	if (SessionResult->Session.SessionInfo.IsValid())
 	{
 		SessionId = MakeShareable(new FUniqueNetIdString(SessionResult->Session.SessionInfo->GetSessionId().ToString()));

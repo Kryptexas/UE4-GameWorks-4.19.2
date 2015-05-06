@@ -405,7 +405,7 @@ bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString
 			else
 			{
 				// Then send NMT_Login
-				TSharedPtr<FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
+				TSharedPtr<const FUniqueNetId> DudPtr = MakeShareable(new FUniqueNetIdString(TEXT("Dud")));
 				FUniqueNetIdRepl PlayerUID(DudPtr);
 				FString BlankStr = TEXT("");
 				FString ConnectURL = UUnitTest::UnitEnv->GetDefaultClientConnectURL();

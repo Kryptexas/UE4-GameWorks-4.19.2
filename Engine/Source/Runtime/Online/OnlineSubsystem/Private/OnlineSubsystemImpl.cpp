@@ -109,7 +109,7 @@ bool FOnlineSubsystemImpl::IsLocalPlayer(const FUniqueNetId& UniqueId) const
 		{
 			for (int32 LocalUserNum = 0; LocalUserNum < MAX_LOCAL_PLAYERS; LocalUserNum++)
 			{
-				TSharedPtr<FUniqueNetId> LocalUniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+				TSharedPtr<const FUniqueNetId> LocalUniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
 				if (LocalUniqueId.IsValid() && UniqueId == *LocalUniqueId)
 				{
 					return true;

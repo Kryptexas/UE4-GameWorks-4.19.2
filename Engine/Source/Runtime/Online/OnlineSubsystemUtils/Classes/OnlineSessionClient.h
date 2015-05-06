@@ -152,7 +152,7 @@ protected:
 	* @param UserId the user being invited
 	* @param InviteResult the search/settings result for the session we're joining via invite
 	*/
-	void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr<FUniqueNetId> UserId, const FOnlineSessionSearchResult& InviteResult) override;
+	void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr<const FUniqueNetId> UserId, const FOnlineSessionSearchResult& InviteResult) override;
 
 	/**
 	 * Delegate fired when the joining process for an online session has completed

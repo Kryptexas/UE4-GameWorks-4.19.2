@@ -971,8 +971,6 @@ void UCheatManager::DumpOnlineSessionState()
 
 void UCheatManager::DumpVoiceMutingState()
 {
-	TSharedPtr<FUniqueNetId> NetId;
-	
 	UE_LOG(LogCheatManager, Display, TEXT(""));
 	UE_LOG(LogCheatManager, Display, TEXT("-------------------------------------------------------------"));
 	UE_LOG(LogCheatManager, Display, TEXT(""));

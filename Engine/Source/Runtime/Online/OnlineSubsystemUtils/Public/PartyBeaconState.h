@@ -421,7 +421,7 @@ protected:
 	UPROPERTY(Transient)
 	TArray<FPartyReservation> Reservations;
 	/** Players that are expected to join shortly */
-	TArray< TSharedPtr<FUniqueNetId> > PlayersPendingJoin;
+	TArray< TSharedPtr<const FUniqueNetId> > PlayersPendingJoin;
 
 	friend class APartyBeaconHost;
 };

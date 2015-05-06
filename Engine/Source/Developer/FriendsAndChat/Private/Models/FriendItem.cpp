@@ -111,7 +111,7 @@ const FString FFriendItem::GetClientName() const
 	return Result;
 }
 
-const TSharedPtr<FUniqueNetId> FFriendItem::GetSessionId() const
+const TSharedPtr<const FUniqueNetId> FFriendItem::GetSessionId() const
 {
 	if (OnlineFriend.IsValid())
 	{
@@ -161,7 +161,7 @@ bool FFriendItem::CanInvite() const
 	return FriendsClientID == FFriendsAndChatManager::Get()->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
 }
 
-TSharedPtr<FUniqueNetId> FFriendItem::GetGameSessionId() const
+TSharedPtr<const FUniqueNetId> FFriendItem::GetGameSessionId() const
 {
 	if (OnlineFriend.IsValid())
 	{
@@ -174,7 +174,7 @@ TSharedPtr<FUniqueNetId> FFriendItem::GetGameSessionId() const
 	return nullptr;
 }
 
-const TSharedRef< FUniqueNetId > FFriendItem::GetUniqueID() const
+const TSharedRef<const FUniqueNetId> FFriendItem::GetUniqueID() const
 {
 	return UniqueID.ToSharedRef();
 }

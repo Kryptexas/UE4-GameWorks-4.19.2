@@ -23,7 +23,7 @@ FOnlineNotification::FOnlineNotification(const FString& InTypeStr, const TShared
 }
 
 // Notification to a specific user.  FromUserId is optional
-FOnlineNotification::FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId)
+FOnlineNotification::FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<const FUniqueNetId> InToUserId)
 : TypeStr(InTypeStr)
 , Payload(InPayload)
 , ToUserId(InToUserId)
@@ -32,7 +32,7 @@ FOnlineNotification::FOnlineNotification(const FString& InTypeStr, const TShared
 
 }
 
-FOnlineNotification::FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId, TSharedPtr<FUniqueNetId> InFromUserId)
+FOnlineNotification::FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<const FUniqueNetId> InToUserId, TSharedPtr<const FUniqueNetId> InFromUserId)
 : TypeStr(InTypeStr)
 , Payload(InPayload)
 , ToUserId(InToUserId)

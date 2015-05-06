@@ -28,7 +28,7 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		// list of pending users to send invites to
 		for (int32 Idx=0; Idx < Invites.Num(); Idx++)
 		{
-			TSharedPtr<FUniqueNetId> FriendId = OnlineSub->GetIdentityInterface()->CreateUniquePlayerId(Invites[Idx]);
+			TSharedPtr<const FUniqueNetId> FriendId = OnlineSub->GetIdentityInterface()->CreateUniquePlayerId(Invites[Idx]);
 			if (FriendId.IsValid())
 			{
 				InvitesToSend.Add(FriendId);

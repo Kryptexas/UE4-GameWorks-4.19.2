@@ -14,6 +14,7 @@
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;
+class FUniqueNetId;
 
 /*-----------------------------------------------------------------------------
 	Types.
@@ -176,7 +177,7 @@ public:
 	/** Whether this channel needs to byte swap all data or not */
 	bool			bNeedsByteSwapping;
 	/** Net id of remote player on this connection. Only valid on client connections. */
-	TSharedPtr<class FUniqueNetId> PlayerId;
+	TSharedPtr<const FUniqueNetId> PlayerId;
 
 	// Negotiated parameters.
 	int32			PacketOverhead;			// Bytes overhead per packet sent.

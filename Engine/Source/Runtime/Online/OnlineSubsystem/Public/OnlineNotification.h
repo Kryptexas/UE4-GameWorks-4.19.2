@@ -17,9 +17,9 @@ public:
 	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload);
 
 	// Notification to a specific user.  FromUserId is optional
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId);
+	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<const FUniqueNetId> InToUserId);
 
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId, TSharedPtr<FUniqueNetId> InFromUserId);
+	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<const FUniqueNetId> InToUserId, TSharedPtr<const FUniqueNetId> InFromUserId);
 
 public:
 
@@ -60,8 +60,8 @@ public:
 	TSharedPtr<FJsonValue> Payload;
 
 	/** User to deliver the notification to.  Can be null for system notifications. */
-	TSharedPtr<FUniqueNetId> ToUserId;
+	TSharedPtr<const FUniqueNetId> ToUserId;
 
 	/** User who sent the notification, optional. */
-	TSharedPtr<FUniqueNetId> FromUserId;
+	TSharedPtr<const FUniqueNetId> FromUserId;
 };

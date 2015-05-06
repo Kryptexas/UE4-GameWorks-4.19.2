@@ -96,7 +96,7 @@ public:
 		return false;
 	}
 
-	virtual bool SendPrivateMessage(TSharedPtr<FUniqueNetId> UserID, const FText MessageText) override
+	virtual bool SendPrivateMessage(TSharedPtr<const FUniqueNetId> UserID, const FText MessageText) override
 	{
 		if (OnlineSub != nullptr &&
 			LoggedInUser.IsValid())
@@ -472,7 +472,7 @@ private:
 	FOnChatPublicRoomExitedEvent PublicRoomExitedEvent;
 
 	IOnlineSubsystem* OnlineSub;
-	TSharedPtr<FUniqueNetId> LoggedInUser;
+	TSharedPtr<const FUniqueNetId> LoggedInUser;
 	TArray<FString> RoomJoins;
 
 	TArray<TSharedRef<FFriendChatMessage> > ReceivedMessages;
