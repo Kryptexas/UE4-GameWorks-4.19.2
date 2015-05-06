@@ -237,6 +237,7 @@ struct ENGINE_API FHierarchicalSimplification
 		, MinNumberOfActorsToBuild(2)
 	{
 		MergeSetting.bMergeMaterials = true;
+		MergeSetting.bGenerateLightMapUV = true;
 	}
 };
 

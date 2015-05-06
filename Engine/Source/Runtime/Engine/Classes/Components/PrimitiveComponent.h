@@ -998,6 +998,8 @@ public:
 
 #if WITH_EDITOR
 	virtual const int32 GetNumUncachedStaticLightingInteractions() const override; // recursive function
+	/** This function is used to create hierarchical LOD for the level. You can decide to opt out if you don't want. */
+	virtual const bool ShouldGenerateAutoLOD() const;
 #endif
 
 	// Begin UActorComponent Interface
