@@ -734,11 +734,13 @@ void UWidgetComponent::InitWidget()
 			Widget = nullptr;
 		}
 
+#if WITH_EDITOR
 		if ( Widget && !GetWorld()->IsGameWorld() )
 		{
 			// Prevent native ticking of editor component previews
 			Widget->SetDesignerFlags(EWidgetDesignFlags::Designing);
 		}
+#endif
 	}
 }
 

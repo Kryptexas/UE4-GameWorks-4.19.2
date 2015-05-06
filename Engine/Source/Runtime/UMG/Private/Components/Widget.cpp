@@ -483,6 +483,7 @@ TSharedPtr<SWidget> UWidget::GetCachedWidget() const
 
 TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget)
 {
+#if WITH_EDITOR
 	if (IsDesignTime())
 	{
 		return SNew(SOverlay)
@@ -507,6 +508,9 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 	{
 		return WrapWidget;
 	}
+#else
+	return WrapWidget;
+#endif
 }
 
 #if WITH_EDITOR
