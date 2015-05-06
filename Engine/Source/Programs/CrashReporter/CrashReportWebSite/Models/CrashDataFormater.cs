@@ -394,6 +394,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					"FMsg::Logf",
 					"ReportCrash",
 					"NewReportEnsure",
+					"EngineCrashHandler", // Generic crash handler for all platforms
 				} );
 
 				bool Contains = FuncsToRemove.Contains( FuncName, new CustomFuncComparer() );
