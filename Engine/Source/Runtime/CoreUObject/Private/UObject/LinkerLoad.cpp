@@ -2948,6 +2948,23 @@ void FLinkerLoad::Preload( UObject* Object )
 	{
 		if (Object->GetLinker() == this)
 		{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+			// if this is an inherited sub-object on a CDO, and that CDO has had
+			// its initialization deferred, then we shouldn't serialize in data 
+			// for this quite yet... not until the CDO owner has had a chance to
+			// initialize itself (because, as part of CDO initialization, 
+			// inherited sub-objects get filled in with values inherited from 
+			// the parent class... it is expected that this happens prior to 
+			// sub-object serialization)
+			if (Object->HasAnyFlags(RF_DefaultSubObject) && FDeferredObjInitializerTracker::DeferSubObjectPreload(Object))
+			{
+				// don't worry, FDeferredObjInitializerTracker::DeferSubObjectPreload() 
+				// should have cached this object, and it will run Preload() on 
+				// this later (once the super CDO has been initialized)
+				return;
+			}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 			SCOPE_CYCLE_COUNTER(STAT_LinkerPreload);
 			FScopeCycleCounterUObject PreloadScope(Object, GET_STATID(STAT_LinkerPreload));
 			UClass* Cls = NULL;

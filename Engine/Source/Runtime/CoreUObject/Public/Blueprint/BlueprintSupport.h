@@ -84,10 +84,21 @@ public:
 	/** Looks up a FObjectInitializer that was deferred for the specified class (an FObjectInitializer for that class's CDO). */
 	static FObjectInitializer* Find(UClass* LoadClass);
 
+	/** Checks to see if the specified class has been logged as deferred (meaning its CDO hasn't had FObjectInitializer::PostConstructInit() ran on it yet). */
+	static bool IsCdoDeferred(UClass* LoadClass);
+
+	/** Determines if the specified sub-object should have its Preload() skipped; if so, this will cache the sub-object and return true. */
+	static bool DeferSubObjectPreload(UObject* SubObject);
+
 	/** Destroys any FObjectInitializers that were cached corresponding to the specified class. */
 	static void Remove(UClass* LoadClass);
 
+	/** Runs FObjectInitializer::PostConstructInit() on the specified class's CDO (if it was deferred), and preloads any sub-objects that were skipped. */
+	static bool ResolveDeferredInitialization(UClass* LoadClass);
+
 private:
-	/** A map that tracks the relationsship between Blueprint classes and  FObjectInitializers for their CDOs */
+	/** A map that tracks the relationship between Blueprint classes and FObjectInitializers for their CDOs */
 	TMap<UClass*, FObjectInitializer> DeferredInitializers;
+	/** Track default sub-objects that had their Preload() skipped, because the owning CDO's initialization should happen first */
+	TMultiMap<UClass*, UObject*> DeferredSubObjects;
 };

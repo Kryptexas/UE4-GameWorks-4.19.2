@@ -1258,19 +1258,14 @@ void FLinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 			BlueprintCDO->SetLinker(this, DeferredCDOIndex, /*bShouldDetatchExisting =*/false);
 			BlueprintCDO->SetFlags(OldFlags);
 		}
-
-		// Here we could make sure we're up to date with our parent. Alternatively we could guaranatee that
-		// SerializeDefaultObjects was called before we construct other default objects, but that is not easy to
-		// do. Simply moving the call to SerializeDefaultObject next to the call to create the CDO means
-		// the stream order changes...
 		DEFERRED_DEPENDENCY_CHECK(BlueprintCDO->GetClass() == LoadClass);
 
-		if (FObjectInitializer* DeferredInitializer = FDeferredObjInitializerTracker::Find(LoadClass))
-		{
-			FScriptIntegrationObjectHelper::PostConstructInitObject(*DeferredInitializer);
-			FDeferredObjInitializerTracker::Remove(LoadClass);
-		}
- 		DEFERRED_DEPENDENCY_CHECK(BlueprintCDO->GetClass() == LoadClass);
+		// if this class's CDO had its initialization deferred (presumably 
+		// because its super's CDO hadn't been fully serialized), then we want 
+		// to make sure it is ran here before we serialize in the CDO (so it 
+		// gets stocked with inherited values first, that the Preload() may or
+		// may not override)
+		FDeferredObjInitializerTracker::ResolveDeferredInitialization(LoadClass);
 
 		// should load the CDO (ensuring that it has been serialized in by the 
 		// time we get to class regeneration)
@@ -1485,10 +1480,79 @@ FObjectInitializer* FDeferredObjInitializerTracker::Find(UClass* LoadClass)
 	return ThreadInst.DeferredInitializers.Find(LoadClass);
 }
 
+bool FDeferredObjInitializerTracker::IsCdoDeferred(UClass* LoadClass)
+{
+	return (Find(LoadClass) != nullptr);
+}
+
+bool FDeferredObjInitializerTracker::DeferSubObjectPreload(UObject* SubObject)
+{
+	DEFERRED_DEPENDENCY_CHECK(SubObject->HasAnyFlags(RF_DefaultSubObject));
+
+	UObject* CdoOuter = SubObject->GetOuter();
+	UClass* OuterClass = CdoOuter->GetClass();
+
+	if (IsCdoDeferred(OuterClass))
+	{
+		DEFERRED_DEPENDENCY_CHECK(CdoOuter->HasAnyFlags(RF_ClassDefaultObject));
+
+		UObject* SubObjTemplate = SubObject->GetArchetype();
+		// check that this is an inherited sub-object (that it is defined on the 
+		// parent class)... we only need to defer Preload() for inherited 
+		// components because they're what gets filled out in the CDO's InitSubobjectProperties()
+		if (SubObjTemplate && (SubObjTemplate->GetOuter() != CdoOuter))
+		{
+			FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
+			ThreadInst.DeferredSubObjects.AddUnique(OuterClass, SubObject);
+
+			return true;
+		}
+	}
+	return false;
+}
+
 void FDeferredObjInitializerTracker::Remove(UClass* LoadClass)
 {
 	FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
 	ThreadInst.DeferredInitializers.Remove(LoadClass);
+	ThreadInst.DeferredSubObjects.Remove(LoadClass);
+}
+
+bool FDeferredObjInitializerTracker::ResolveDeferredInitialization(UClass* LoadClass)
+{
+	if (FObjectInitializer* DeferredInitializer = FDeferredObjInitializerTracker::Find(LoadClass))
+	{
+		// initializes and instances CDO properties (copies inherited values 
+		// from the super's CDO)
+		FScriptIntegrationObjectHelper::PostConstructInitObject(*DeferredInitializer);
+
+		FDeferredObjInitializerTracker& ThreadInst = FDeferredObjInitializerTracker::Get();
+		TArray<UObject*> DeferredSubObjects;
+		ThreadInst.DeferredSubObjects.MultiFind(LoadClass, DeferredSubObjects);
+
+		// remove before we call Preload() for sub-objects, else we'll end up 
+		// back in DeferSubObjectPreload()
+		FDeferredObjInitializerTracker::Remove(LoadClass);
+
+		FLinkerLoad* ClassLinker = LoadClass->GetLinker();
+		DEFERRED_DEPENDENCY_CHECK(ClassLinker != nullptr);
+		if (ClassLinker != nullptr)
+		{
+			// this all needs to happen after PostConstructInitObject() (above), 
+			// since InitSubObjectProperties() is invoked there (which is where 
+			// we fill this sub-object with values from the super)... here we
+			// account for any Preload() calls that were skipped on account of
+			// the deferred CDO initialization
+			for (UObject* SubObj : DeferredSubObjects)
+			{
+				ClassLinker->Preload(SubObj);
+			}
+		}
+
+		
+		return true;
+	}
+	return false;
 }
 
 // don't want other files ending up with this internal define
