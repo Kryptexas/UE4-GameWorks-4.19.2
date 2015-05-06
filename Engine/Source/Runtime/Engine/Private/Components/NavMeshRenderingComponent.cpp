@@ -41,11 +41,11 @@ bool UNavMeshRenderingComponent::IsNavigationShowFlagSet(const UWorld* World)
 	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(World);
 
 #if WITH_EDITOR
-	if (GEditor && WorldContext && WorldContext->WorldType == EWorldType::Editor)
+	if (GEditor && WorldContext && WorldContext->WorldType != EWorldType::Game)
 	{
 		for (FEditorViewportClient* CurrentViewport : GEditor->AllViewportClients)
 		{
-			if (CurrentViewport && CurrentViewport->EngineShowFlags.Navigation)
+			if (CurrentViewport && CurrentViewport->IsVisible() && CurrentViewport->EngineShowFlags.Navigation)
 			{
 				bShowNavigation = true;
 				break;
