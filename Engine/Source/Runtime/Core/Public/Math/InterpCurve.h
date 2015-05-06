@@ -124,6 +124,24 @@ public:
 	}
 
 	/**
+	 * Compare equality of two FInterpCurves
+	 */
+	friend bool operator==(const FInterpCurve& Curve1, const FInterpCurve& Curve2)
+	{
+		return (Curve1.Points == Curve2.Points &&
+				Curve1.bIsLooped == Curve2.bIsLooped &&
+				(!Curve1.bIsLooped || Curve1.LoopKeyOffset == Curve2.LoopKeyOffset));
+	}
+
+	/**
+	 * Compare inequality of two FInterpCurves
+	 */
+	friend bool operator!=(const FInterpCurve& Curve1, const FInterpCurve& Curve2)
+	{
+		return !(Curve1 == Curve2);
+	}
+
+	/**
 	 * Finds the lower index of the two points whose input values bound the supplied input value.
 	 */
 	int32 GetPointIndexForInputValue(const float InValue) const;
