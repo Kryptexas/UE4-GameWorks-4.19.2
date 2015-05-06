@@ -50,6 +50,29 @@ void UAISystem::PostInitProperties()
 		{
 			PerceptionSystem = NewObject<UAIPerceptionSystem>(ManagersOuter, PerceptionSystemClass);
 		}
+
+		if (WorldOuter)
+		{
+			FOnActorSpawned::FDelegate ActorSpawnedDelegate = FOnActorSpawned::FDelegate::CreateUObject(this, &UAISystem::OnActorSpawned);
+			ActorSpawnedDelegateHandle = WorldOuter->AddOnActorSpawnedHandler(ActorSpawnedDelegate);
+		}
+	}
+}
+
+void UAISystem::StartPlay()
+{
+	if (PerceptionSystem)
+	{
+		PerceptionSystem->StartPlay();
+	}
+}
+
+void UAISystem::OnActorSpawned(AActor* SpawnedActor)
+{
+	APawn* AsPawn = Cast<APawn>(SpawnedActor);
+	if (AsPawn && PerceptionSystem)
+	{
+		PerceptionSystem->OnNewPawn(*AsPawn);
 	}
 }
 

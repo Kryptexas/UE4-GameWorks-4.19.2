@@ -61,10 +61,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
 	void GetAllListenerComponents(TArray<UAIPerceptionComponent*>& ListenerComponents) const;
 
+	/** called when sense's instance gets notified about new pawn that has just been spawned */
+	UFUNCTION(BlueprintImplementableEvent, DisplayName="OnNewPawn")
+	void K2_OnNewPawn(APawn* NewPawn);
+
 	virtual FAISenseID UpdateSenseID() override;
 	virtual void RegisterWrappedEvent(UAISenseEvent& PerceptionEvent) override;
 
 protected:
+	virtual void OnNewPawn(APawn& NewPawn) override;
 	virtual float Update() override;
 	
 	void OnNewListenerImpl(const FPerceptionListener& NewListener);

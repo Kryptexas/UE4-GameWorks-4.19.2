@@ -3038,6 +3038,10 @@ void UWorld::BeginPlay()
 	if (GameMode)
 	{
 		GameMode->StartPlay();
+		if (GetAISystem())
+		{
+			GetAISystem()->StartPlay();
+		}
 	}
 }
 
