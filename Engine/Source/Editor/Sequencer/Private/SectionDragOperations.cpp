@@ -9,6 +9,7 @@
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
 #include "MovieSceneDirectorTrack.h"
+#include "Sequencer.h"
 
 /** How many pixels near the mouse has to be before snapping occurs */
 const float PixelSnapWidth = 10.f;
