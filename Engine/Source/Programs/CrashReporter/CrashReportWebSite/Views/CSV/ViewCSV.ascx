@@ -111,6 +111,9 @@ table, table tr, table th, table td
 		<th>
 			Engine version
 		</th>
+		<th>
+			Crash type
+		</th>
 	</tr>
 
 	<%
@@ -137,7 +140,10 @@ table, table tr, table th, table td
 		</td>
 		<td>
 			<%=CSVRow.EngineVersion%>
-		</td>		
+		</td>	
+		<td>
+			<%=CSVRow.GetCrashTypeAsString()%>
+		</td>	
 	</tr>
 	<%
 		}	
