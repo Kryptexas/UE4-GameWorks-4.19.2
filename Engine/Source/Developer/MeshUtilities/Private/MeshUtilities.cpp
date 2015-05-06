@@ -4747,6 +4747,11 @@ void FMeshUtilities::MergeActors(
 
 		// make sure it has a new lighting guid
 		StaticMesh->LightingGuid = FGuid::NewGuid();
+		if (InSettings.bGenerateLightMapUV)
+		{
+			StaticMesh->LightMapResolution = InSettings.TargetLightMapResolution;
+			StaticMesh->LightMapCoordinateIndex = InSettings.TargetLightMapUVChannel;
+		}
 		
 		for (int32 LODIndex = 0; LODIndex < NumMaxLOD; ++LODIndex)
 		{
