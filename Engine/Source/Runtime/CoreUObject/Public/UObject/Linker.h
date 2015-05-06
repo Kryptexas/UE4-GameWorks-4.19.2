@@ -930,10 +930,6 @@ private:
 
 	ELinkerType::Type LinkerType;
 
-protected:
-
-	bool bDestroyed;
-
 public:
 
 	/** The top-level UPackage object for the package associated with this linker */
