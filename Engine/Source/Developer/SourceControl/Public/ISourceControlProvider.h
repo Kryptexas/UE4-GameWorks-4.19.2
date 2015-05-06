@@ -6,7 +6,7 @@
 #include "SourceControlHelpers.h"
 #include "Runtime/Core/Public/Features/IModularFeature.h"
 
-#define SOURCE_CONTROL_WITH_SLATE			!PLATFORM_LINUX
+#define SOURCE_CONTROL_WITH_SLATE			(!(PLATFORM_LINUX && IS_PROGRAM))
 
 /**
  * Hint for how to execute the operation. Note that asynchronous operations require

@@ -17,8 +17,7 @@
 	[
 		{
 			"Name" : "GitSourceControl",
-			"Type" : "Editor",
-			"BlacklistPlatforms" : [ "Linux" ]
+			"Type" : "Editor"
 		}
 	]
 }
