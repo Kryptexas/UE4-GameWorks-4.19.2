@@ -160,7 +160,7 @@ public:
 	virtual void FinishCleanup();
 
 	/** Finds a matching shader resource in memory if possible. */
-	SHADERCORE_API static FShaderResource* FindShaderResourceById(const FShaderResourceId& Id);
+	SHADERCORE_API static TRefCountPtr<FShaderResource> FindShaderResourceById(const FShaderResourceId& Id);
 
 	/** 
 	 * Finds a matching shader resource in memory or creates a new one with the given compiler output.  
@@ -652,6 +652,12 @@ protected:
 
 private:
 	
+	/** Locks the type's shader id map so that no other thread can add or remove shaders while we're deregistering. */
+	void LockShaderIdMap();
+
+	/** Unlocks the shader type's id map. */
+	void UnlockShaderIdMap();
+
 	/** 
 	 * Hash of the compiled output from this shader and the resulting parameter map.  
 	 * This is used to find a matching resource.
@@ -740,7 +746,7 @@ public:
 	 * Finds a shader of this type by ID.
 	 * @return NULL if no shader with the specified ID was found.
 	 */
-	FShader* FindShaderById(const FShaderId& Id);
+	TRefCountPtr<FShader> FindShaderById(const FShaderId& Id);
 
 	/** Constructs a new instance of the shader type for deserialization. */
 	FShader* ConstructForDeserialization() const;
@@ -813,10 +819,21 @@ public:
 		ShaderIdMap.Add(Id, Shader);
 	}
 
+	/** Locks the ShaderIdMap before deregistration */
+	void LockShaderIdMap()
+	{
+		ShaderIdMapCritical.Lock();
+	}
+
 	void RemoveFromShaderIdMap(FShaderId Id)
 	{
-		FScopeLock MapLock(&ShaderIdMapCritical);
 		ShaderIdMap.Remove(Id);
+	}
+
+	/** Unlocks the ShaderIdMap after deregistration has completed */
+	void UnlockShaderIdMap()
+	{
+		ShaderIdMapCritical.Unlock();
 	}
 
 	bool LimitShaderResourceToThisType()
@@ -1134,12 +1151,12 @@ public:
 					check(Shader != NULL);
 					Shader->SerializeBase(Ar, bInlineShaderResource);
 
-					FShader* ExistingShader = Type->FindShaderById(Shader->GetId());
+					TRefCountPtr<FShader> ExistingShader = Type->FindShaderById(Shader->GetId());
 
-					if (ExistingShader)
+					if (ExistingShader.IsValid())
 					{
 						delete Shader;
-						Shader = ExistingShader;
+						Shader = ExistingShader.GetReference();
 					}
 					else
 					{
