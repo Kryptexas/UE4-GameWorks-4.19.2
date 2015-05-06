@@ -486,7 +486,7 @@ static void simplifyContour(unsigned char area, dtTempContour& cont, const float
 	}
 }
 
-static unsigned char getCornerHeight(dtTileCacheLayer& layer, const int x, const int y, const int z, const int walkableClimb, bool& shouldRemove)
+static unsigned short getCornerHeight(dtTileCacheLayer& layer, const int x, const int y, const int z, const int walkableClimb, bool& shouldRemove)
 {
 	const int w = (int)layer.header->width;
 	const int h = (int)layer.header->height;
@@ -494,7 +494,7 @@ static unsigned char getCornerHeight(dtTileCacheLayer& layer, const int x, const
 	int n = 0;
 
 	unsigned char portal = 0xf;
-	unsigned char height = 0;
+	unsigned short height = 0;
 	unsigned short preg = 0xffff;
 	bool allSameReg = true;
 
@@ -510,7 +510,7 @@ static unsigned char getCornerHeight(dtTileCacheLayer& layer, const int x, const
 				const int lh = (int)layer.heights[idx];
 				if (dtAbs(lh-y) <= walkableClimb && layer.areas[idx] != DT_TILECACHE_NULL_AREA)
 				{
-					height = dtMax(height, (unsigned char)lh);
+					height = dtMax(height, (unsigned short)lh);
 					portal &= (layer.cons[idx] >> 4);
 					if (preg != 0xffff && preg != layer.regs[idx])
 						allSameReg = false;
@@ -811,7 +811,7 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 					unsigned short* vn = &temp.verts[i*5];
 					unsigned short nei = vn[3]; // The neighbour reg is stored at segment vertex of a segment. 
 					bool shouldRemove = false;
-					unsigned char lh = getCornerHeight(layer, (int)v[0], (int)v[1], (int)v[2],
+					unsigned short lh = getCornerHeight(layer, (int)v[0], (int)v[1], (int)v[2],
 						walkableClimb, shouldRemove);
 
 					if ((nei != 0xffff) && ((nei & 0xf800) == 0))
@@ -2517,7 +2517,7 @@ dtStatus dtBuildTileCacheClusters(dtTileCacheAlloc* alloc, dtTileCacheClusterSet
 
 dtStatus dtBuildTileCacheLayer(dtTileCacheCompressor* comp,
 							   dtTileCacheLayerHeader* header,
-							   const unsigned char* heights,
+							   const unsigned short* heights,
 							   const unsigned char* areas,
 							   const unsigned char* cons,
 							   unsigned char** outData, int* outDataSize)
@@ -2534,16 +2534,16 @@ dtStatus dtBuildTileCacheLayer(dtTileCacheCompressor* comp,
 	memcpy(data, header, sizeof(dtTileCacheLayerHeader));
 	
 	// Concatenate grid data for compression.
-	const int bufferSize = gridSize*3;
+	const int bufferSize = gridSize*4;
 	unsigned char* buffer = (unsigned char*)dtAlloc(bufferSize, DT_ALLOC_TEMP);
 	if (!buffer)
 	{
 		dtFree(data);
 		return DT_FAILURE | DT_OUT_OF_MEMORY;
 	}
-	memcpy(buffer, heights, gridSize);
-	memcpy(buffer+gridSize, areas, gridSize);
-	memcpy(buffer+gridSize*2, cons, gridSize);
+	memcpy(buffer, heights, gridSize*2);
+	memcpy(buffer+gridSize*2, areas, gridSize);
+	memcpy(buffer+gridSize*3, cons, gridSize);
 	
 	// Compress
 	unsigned char* compressed = data + headerSize;
@@ -2588,7 +2588,7 @@ dtStatus dtDecompressTileCacheLayer(dtTileCacheAlloc* alloc, dtTileCacheCompress
 	const int layerSize = dtAlign4(sizeof(dtTileCacheLayer));
 	const int headerSize = dtAlign4(sizeof(dtTileCacheLayerHeader));
 	const int gridSize = (int)compressedHeader->width * (int)compressedHeader->height;
-	const int bufferSize = layerSize + headerSize + gridSize*5;
+	const int bufferSize = layerSize + headerSize + gridSize*6;
 	
 	unsigned char* buffer = (unsigned char*)alloc->alloc(bufferSize);
 	if (!buffer)
@@ -2613,10 +2613,10 @@ dtStatus dtDecompressTileCacheLayer(dtTileCacheAlloc* alloc, dtTileCacheCompress
 	}
 	
 	layer->header = header;
-	layer->heights = grids;
-	layer->areas = grids + gridSize;
-	layer->cons = grids + gridSize*2;
-	layer->regs = (unsigned short*)(grids + gridSize*3);
+	layer->heights = (unsigned short*)grids;
+	layer->areas = grids + gridSize*2;
+	layer->cons = grids + gridSize*3;
+	layer->regs = (unsigned short*)(grids + gridSize*4);
 
 	*layerOut = layer;
 	
