@@ -49,6 +49,7 @@ void FGenericPlatformMemory::Init()
 
 void FGenericPlatformMemory::OnOutOfMemory(uint64 Size, uint32 Alignment)
 {
+	// Update memory stats before we enter the crash handler.
 	bIsOOM = true;
 	UE_LOG(LogMemory, Fatal, TEXT("Ran out of memory allocating %llu bytes with alignment %u"), Size, Alignment);
 }
