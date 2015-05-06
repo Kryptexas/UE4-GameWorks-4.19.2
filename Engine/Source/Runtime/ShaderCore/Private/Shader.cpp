@@ -230,10 +230,10 @@ FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 }
 
 
-FShader* FShaderType::FindShaderById(const FShaderId& Id)
+TRefCountPtr<FShader> FShaderType::FindShaderById(const FShaderId& Id)
 {
 	FScopeLock MapLock(&ShaderIdMapCritical);
-	FShader* Result = ShaderIdMap.FindRef(Id);
+	TRefCountPtr<FShader> Result = ShaderIdMap.FindRef(Id);
 	return Result;
 }
 
@@ -374,20 +374,22 @@ void FShaderResource::Serialize(FArchive& Ar)
 
 void FShaderResource::AddRef()
 {
-	check(Canary != FShader::ShaderMagic_CleaningUp);
+	// Lock shader id map to prevent anything from acquiring shaders while we manipulate their references
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
+	check(Canary != FShader::ShaderMagic_CleaningUp);	
 	++NumRefs;
 }
 
 
 void FShaderResource::Release()
 {
+	// We need to lock the resource map so that no resource gets acquired by
+	// FindShaderResourceById while we (potentially) remove this resource
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	check(NumRefs != 0);
 	if(--NumRefs == 0)
 	{
-		{
-			FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
-			ShaderResourceIdMap.Remove(GetId());
-		}
+		ShaderResourceIdMap.Remove(GetId());
 
 		// Send a release message to the rendering thread when the shader loses its last reference.
 		BeginReleaseResource(this);
@@ -398,10 +400,11 @@ void FShaderResource::Release()
 }
 
 
-FShaderResource* FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
+TRefCountPtr<FShaderResource> FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
 {
 	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
-	return ShaderResourceIdMap.FindRef(Id);
+	TRefCountPtr<FShaderResource> Result = ShaderResourceIdMap.FindRef(Id);
+	return Result;
 }
 
 
@@ -898,7 +901,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			FShaderResource* ShaderResource = new FShaderResource();
 			ShaderResource->Serialize(Ar);
 
-			FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(ShaderResource->GetId());
+			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ShaderResource->GetId());
 
 			// Reuse an existing shader resource if a matching one already exists in memory
 			if (ExistingResource)
@@ -926,7 +929,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			ResourceId.OutputHash = OutputHash;
 
 			// use it to look up in the registered resource map
-			FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
+			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
 			SetResource(ExistingResource);
 		}
 	}
@@ -935,20 +938,26 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 }
 
 void FShader::AddRef()
-{
+{	
 	check(Canary != ShaderMagic_CleaningUp);
+	// Lock shader Id maps
+	LockShaderIdMap();
 	++NumRefs;
 	if (NumRefs == 1)
 	{
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderMemory, GetSizeBytes());
 		INC_DWORD_STAT_BY(STAT_Shaders_NumShadersLoaded,1);
 	}
+	UnlockShaderIdMap();
 }
 
 
 void FShader::Release()
 {
-	check(NumRefs != 0);
+	// Lock the shader id map. Note that we don't necessarily have to deregister at this point but
+	// the shader id map has to be locked while we remove references to this shader so that nothing
+	// can find the shader in the map after we remove the final reference but before we deregister the shader
+	LockShaderIdMap();
 	if(--NumRefs == 0)
 	{
 		DEC_DWORD_STAT_BY(STAT_Shaders_ShaderMemory, GetSizeBytes());
@@ -960,6 +969,7 @@ void FShader::Release()
 		Canary = ShaderMagic_CleaningUp;
 		BeginCleanup(this);
 	}
+	UnlockShaderIdMap();
 }
 
 
@@ -972,12 +982,20 @@ void FShader::Register()
 	Type->AddToShaderIdMap(ShaderId, this);
 }
 
+void FShader::LockShaderIdMap()
+{
+	Type->LockShaderIdMap();
+}
 
 void FShader::Deregister()
 {
 	Type->RemoveFromShaderIdMap(GetId());
 }
 
+void FShader::UnlockShaderIdMap()
+{
+	Type->UnlockShaderIdMap();
+}
 
 FShaderId FShader::GetId() const
 {
