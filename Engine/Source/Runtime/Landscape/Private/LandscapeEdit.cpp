@@ -764,13 +764,18 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		AInstancedFoliageActor::MoveInstancesToNewComponent(Proxy->GetWorld(), OldCollisionComponent, CollisionComp);
 	}
 
+	// Set new collision component to pointer
+	CollisionComponent = CollisionComp;
+
+	if (bRebuild)
+	{
+		UpdateCollisionLayerData();
+	}
+
 	if (bRebuild && CollisionProxy)
 	{
 		CollisionProxy->RegisterAllComponents();
 	}
-
-	// Set new collision component to pointer
-	CollisionComponent = CollisionComp;
 
 	if (ChangeType || CreatedNew)
 	{
@@ -3043,7 +3048,8 @@ void ALandscapeProxy::RecreateCollisionComponents()
 			Comp->CollisionMipLevel = CollisionMipLevel;
 			TArray<uint8> CollisionMipData;
 			Comp->HeightmapTexture->Source.GetMipData(CollisionMipData, CollisionMipLevel);
-			Comp->UpdateCollisionHeightData((FColor*)CollisionMipData.GetData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); // Rebuild for new CollisionMipLevel
+			// Rebuild all collision
+			Comp->UpdateCollisionHeightData((FColor*)CollisionMipData.GetData(), 0, 0, MAX_int32, MAX_int32, true, NULL, true); 
 		}
 	}
 }
