@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519485
+﻿INTSourceChangelist:2539492
 Availability:Public
 Title:拡張性のリファレンス
 Crumbs: %ROOT%, Engine, Engine/Performance/Scalability
@@ -7,7 +7,7 @@ Description:拡張性のオプション、プロパティ、コンソール変�
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -26,7 +26,7 @@ Description:拡張性のオプション、プロパティ、コンソール変�
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
