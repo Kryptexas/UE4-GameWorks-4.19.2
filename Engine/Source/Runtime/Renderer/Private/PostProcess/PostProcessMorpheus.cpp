@@ -93,7 +93,7 @@ public:
 
 		{
 			check(GEngine->HMDDevice.IsValid());
-			TSharedPtr< class IHeadMountedDisplay > HMDDevice = GEngine->HMDDevice;
+			TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice = GEngine->HMDDevice;
 
 			check (StereoPass != eSSP_FULL);
 			if (StereoPass == eSSP_LEFT_EYE)

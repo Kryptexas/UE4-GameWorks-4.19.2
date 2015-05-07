@@ -221,6 +221,9 @@ public:
 	/** Should return true, if stereo rendering is allowed in this viewport */
 	virtual bool IsStereoRenderingAllowed() const override;
 
+	/** Returns dimensions of RenderTarget texture. Can be called on a game thread. */
+	virtual FIntPoint GetRenderTargetTextureSizeXY() const { return (RTTSize.X != 0) ? RTTSize : GetSizeXY(); }
+
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() override;
 
 private:
@@ -332,6 +335,8 @@ private:
 	bool bCursorHiddenDueToCapture;
 	/** Position the cursor was at when we hid it due to capture, so we can put it back afterwards */
 	FIntPoint MousePosBeforeHiddenDueToCapture;
+	/** Dimensions of RenderTarget texture. */
+	FIntPoint RTTSize;
 
 	/** Reprojection on some HMD RHI's requires ViewportTargets to be buffered */
 	/** The render target used by Slate to draw the viewport.  Can be null if this viewport renders directly to the backbuffer */

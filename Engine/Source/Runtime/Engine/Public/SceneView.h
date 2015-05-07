@@ -816,8 +816,8 @@ public:
 	/** Editor setting to allow designers to override the automatic expose. 0:Automatic, following indices: -4 .. +4 */
 	FExposureSettings ExposureSettings;
 
-	/** Extensions that can modify view parameters on the render thread. */
-	TArray<class ISceneViewExtension*> ViewExtensions;
+    /** Extensions that can modify view parameters on the render thread. */
+    TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
 
 #if WITH_EDITOR
 	// Override the LOD of landscape in this viewport

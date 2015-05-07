@@ -540,7 +540,7 @@ uint32 FSceneView::GetViewKey() const
 void FSceneView::UpdateViewMatrix()
 {
 	FVector StereoViewLocation = ViewLocation;
-	if (GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL)
+	if (GEngine->StereoRenderingDevice.IsValid() && StereoPass != eSSP_FULL)
 	{
 		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewRotation, WorldToMetersScale, StereoViewLocation);
 		ViewLocation = StereoViewLocation;

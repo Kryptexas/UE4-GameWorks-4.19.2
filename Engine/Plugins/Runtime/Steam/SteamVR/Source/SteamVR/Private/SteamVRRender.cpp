@@ -9,7 +9,7 @@
 
 #if STEAMVR_SUPPORTED_PLATFORMS
 
-void FSteamVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize)
+void FSteamVRHMD::DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize)
 {
 	check(0);
 }

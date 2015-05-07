@@ -12,6 +12,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
+#include "IHeadMountedDisplay.h"
 
 #include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"
@@ -1064,6 +1065,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	SCOPE_CYCLE_COUNTER(STAT_WorldTickTime);
 
+	if (GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnStartGameFrame();
+	}
+
 #if ENABLE_COLLISION_ANALYZER
 	// Tick collision analyzer (only if level is really ticking)
 	if(TickType == LEVELTICK_All || TickType == LEVELTICK_ViewportsOnly)
@@ -1443,6 +1449,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	// Dump the viewpoints with which we were rendered last frame. They will be updated when the world is next rendered.
 	ViewLocationsRenderedLastFrame.Reset();
+
+	if (GEngine->HMDDevice.IsValid())
+	{
+		GEngine->HMDDevice->OnEndGameFrame();
+	}
 }
 
 /**
