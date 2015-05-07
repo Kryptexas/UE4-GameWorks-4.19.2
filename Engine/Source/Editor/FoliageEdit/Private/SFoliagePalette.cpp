@@ -5,6 +5,7 @@
 #include "FoliagePaletteCommands.h"
 #include "SFoliagePalette.h"
 #include "FoliageTypePaintingCustomization.h"
+#include "FoliageType_InstancedStaticMeshPaintingCustomization.h"
 #include "FoliagePaletteItem.h"
 
 #include "LevelEditor.h"
@@ -89,11 +90,66 @@ private:
 };
 
 ////////////////////////////////////////////////
+// SUneditableFoliageTypeWarning
+////////////////////////////////////////////////
+class SUneditableFoliageTypeWarning : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SUneditableFoliageTypeWarning)
+		: _WarningText()
+		, _OnHyperlinkClicked()
+	{}
+
+	/** The rich text to show in the warning */
+	SLATE_ATTRIBUTE(FText, WarningText)
+
+		/** Called when the hyperlink in the rich text is clicked */
+		SLATE_EVENT(FSlateHyperlinkRun::FOnClick, OnHyperlinkClicked)
+
+		SLATE_END_ARGS()
+
+		/** Constructs the widget */
+		void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(2)
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::Get().GetBrush("Icons.Warning"))
+					]
+					+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.Padding(2)
+						[
+							SNew(SRichTextBlock)
+							.DecoratorStyleSet(&FEditorStyle::Get())
+							.Justification(ETextJustify::Left)
+							.TextStyle(FEditorStyle::Get(), "DetailsView.BPMessageTextStyle")
+							.Text(InArgs._WarningText)
+							.AutoWrapText(true)
+							+ SRichTextBlock::HyperlinkDecorator(TEXT("HyperlinkDecorator"), InArgs._OnHyperlinkClicked)
+						]
+				]
+			];
+	}
+};
+
+////////////////////////////////////////////////
 // SFoliagePalette
 ////////////////////////////////////////////////
 void SFoliagePalette::Construct(const FArguments& InArgs)
 {
 	bItemsNeedRebuild = false;
+	bIsUneditableFoliageTypeSelected = false;
 	bIsActiveTimerRegistered = false;
 
 	FoliageEditMode = InArgs._FoliageEdMode;
@@ -112,8 +168,12 @@ void SFoliagePalette::Construct(const FArguments& InArgs)
 	Args.bShowActorLabel = false;
 	DetailsWidget = PropertyModule.CreateDetailView(Args);
 	DetailsWidget->SetVisibility(FoliageEditMode->UISettings.GetShowPaletteItemDetails() ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed);
+	DetailsWidget->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SFoliagePalette::GetIsPropertyEditingEnabled));
 
 	// We want to use our own customization for UFoliageType
+	DetailsWidget->RegisterInstancedCustomPropertyLayout(UFoliageType_InstancedStaticMesh::StaticClass(),
+		FOnGetDetailCustomizationInstance::CreateStatic(&FFoliageType_InstancedStaticMeshPaintingCustomization::MakeInstance, FoliageEditMode)
+		);
 	DetailsWidget->RegisterInstancedCustomPropertyLayout(UFoliageType::StaticClass(), 
 		FOnGetDetailCustomizationInstance::CreateStatic(&FFoliageTypePaintingCustomization::MakeInstance, FoliageEditMode)
 		);
@@ -318,12 +378,31 @@ void SFoliagePalette::Construct(const FArguments& InArgs)
 			// Details
 			+SSplitter::Slot()
 			[
-				DetailsWidget.ToSharedRef()
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.Padding(0, 2)
+				.AutoHeight()
+				[
+					SNew(SUneditableFoliageTypeWarning)
+					.WarningText(LOCTEXT("CannotEditBlueprintFoliageTypeWarning", "Blueprint foliage types must be edited in the <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">Blueprint</>"))
+					.OnHyperlinkClicked(this, &SFoliagePalette::OnEditFoliageTypeBlueprintHyperlinkClicked)
+					.Visibility(this, &SFoliagePalette::GetUneditableFoliageTypeWarningVisibility)
+				]
+
+				+ SVerticalBox::Slot()
+				[
+					DetailsWidget.ToSharedRef()
+				]
 			]
 		]
 	];
 
 	UpdatePalette(true);
+}
+
+SFoliagePalette::~SFoliagePalette()
+{
 }
 
 FReply SFoliagePalette::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
@@ -362,7 +441,9 @@ void SFoliagePalette::UpdateThumbnailForType(UFoliageType* FoliageType)
 				GetActiveViewWidget()->SetItemSelection(Item, true);
 			}
 
-			UpdatePalette();
+			// If a local foliage type changed its mesh, we need to rebuild the palette to ensure a consistent order
+			const bool bRebuild = !Item->IsBlueprint() && !Item->IsAsset();
+			UpdatePalette(bRebuild);
 			break;
 		}
 	}
@@ -370,9 +451,9 @@ void SFoliagePalette::UpdateThumbnailForType(UFoliageType* FoliageType)
 
 bool SFoliagePalette::AnySelectedTileHovered() const
 {
-	for (auto& TypeInfo : GetActiveViewWidget()->GetSelectedItems())
+	for (FFoliagePaletteItemModelPtr& PaletteItem : GetActiveViewWidget()->GetSelectedItems())
 	{
-		TSharedPtr<ITableRow> Tile = TileViewWidget->WidgetFromItem(TypeInfo);
+		TSharedPtr<ITableRow> Tile = TileViewWidget->WidgetFromItem(PaletteItem);
 		if (Tile.IsValid() && Tile->AsWidget()->IsHovered())
 		{
 			return true;
@@ -554,7 +635,7 @@ TSharedRef<SWidgetSwitcher> SFoliagePalette::CreatePaletteViews()
 
 void SFoliagePalette::GetPaletteItemFilterString(FFoliagePaletteItemModelPtr PaletteItemModel, TArray<FString>& OutArray) const
 {
-	OutArray.Add(PaletteItemModel->GetFoliageTypeDisplayNameText().ToString());
+	OutArray.Add(PaletteItemModel->GetDisplayFName().ToString());
 }
 
 void SFoliagePalette::OnSearchTextChanged(const FText& InFilterText)
@@ -639,6 +720,18 @@ FText SFoliagePalette::GetSearchText() const
 void SFoliagePalette::OnSelectionChanged(FFoliagePaletteItemModelPtr Item, ESelectInfo::Type SelectInfo)
 {
 	RefreshDetailsWidget();
+
+	bIsUneditableFoliageTypeSelected = false;
+	for (FFoliagePaletteItemModelPtr& PaletteItem : GetActiveViewWidget()->GetSelectedItems())
+	{
+		// Currently entries from blueprint classes cannot be edited in the palette
+		// as changes do not propagate to the BP class and changes to the BP class stomp any changes made to the instance in the palette item
+		if (PaletteItem->IsBlueprint())
+		{
+			bIsUneditableFoliageTypeSelected = true;
+			break;
+		}
+	}
 }
 
 void SFoliagePalette::OnItemDoubleClicked(FFoliagePaletteItemModelPtr Item) const
@@ -778,7 +871,7 @@ TSharedPtr<SWidget> SFoliagePalette::ConstructFoliageTypeContextMenu()
 	auto SelectedItems = GetActiveViewWidget()->GetSelectedItems();
 	if (SelectedItems.Num() > 0)
 	{
-		const bool bShowSaveAsOption = SelectedItems.Num() == 1 && !SelectedItems[0]->GetFoliageType()->IsAsset();
+		const bool bShowSaveAsOption = SelectedItems.Num() == 1 && !SelectedItems[0]->IsAsset() && !SelectedItems[0]->IsBlueprint();
 		if (bShowSaveAsOption)
 		{
 			MenuBuilder.BeginSection("StaticMeshFoliageTypeOptions", LOCTEXT("StaticMeshFoliageTypeOptionsHeader", "Static Mesh"));
@@ -806,7 +899,9 @@ TSharedPtr<SWidget> SFoliagePalette::ConstructFoliageTypeContextMenu()
 					FSlateIcon(FEditorStyle::GetStyleSetName(), "Level.SaveIcon16x"),
 					FUIAction(
 						FExecuteAction::CreateSP(this, &SFoliagePalette::OnSaveSelected),
-						FCanExecuteAction::CreateSP(this, &SFoliagePalette::OnCanSaveAnySelectedAssets)
+						FCanExecuteAction::CreateSP(this, &SFoliagePalette::OnCanSaveAnySelectedAssets),
+						FIsActionChecked(),
+						FIsActionButtonVisible::CreateSP(this, &SFoliagePalette::GetIsPropertyEditingEnabled)
 						),
 					NAME_None
 					);
@@ -1000,6 +1095,10 @@ void SFoliagePalette::OnShowFoliageTypeInCB()
 		{
 			SelectedAssets.Add(FoliageType);
 		}
+		else if (UBlueprint* FoliageTypeBP = Cast<UBlueprint>(FoliageType->GetClass()->ClassGeneratedBy))
+		{
+			SelectedAssets.Add(FoliageTypeBP);
+		}
 		else
 		{
 			SelectedAssets.Add(FoliageType->GetStaticMesh());
@@ -1160,6 +1259,11 @@ void SFoliagePalette::RefreshDetailsWidget()
 	DetailsWidget->SetObjects(SelectedFoliageTypes, bForceRefresh);
 }
 
+bool SFoliagePalette::GetIsPropertyEditingEnabled() const
+{
+	return !bIsUneditableFoliageTypeSelected;
+}
+
 FText SFoliagePalette::GetDetailsNameAreaText() const
 {
 	FText OutText;
@@ -1167,17 +1271,7 @@ FText SFoliagePalette::GetDetailsNameAreaText() const
 	auto SelectedItems = GetActiveViewWidget()->GetSelectedItems();
 	if (SelectedItems.Num() == 1)
 	{
-		FName DisplayName;
-		UFoliageType* SelectedType = SelectedItems[0]->GetFoliageType();
-		if (SelectedType->IsAsset())
-		{
-			DisplayName = SelectedType->GetFName();
-		}
-		else
-		{
-			DisplayName = SelectedType->GetStaticMesh()->GetFName();
-		}
-		OutText = FText::FromName(DisplayName);
+		OutText = FText::FromName(SelectedItems[0]->GetDisplayFName());
 	}
 	else if (SelectedItems.Num() > 1)
 	{
@@ -1208,6 +1302,32 @@ FReply SFoliagePalette::OnShowHideDetailsClicked() const
 	return FReply::Handled();
 }
 
+EVisibility SFoliagePalette::GetUneditableFoliageTypeWarningVisibility() const
+{
+	return bIsUneditableFoliageTypeSelected ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+void SFoliagePalette::OnEditFoliageTypeBlueprintHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
+{
+	UBlueprint* Blueprint = nullptr; 
+	
+	// Get the first selected foliage type blueprint
+	for (FFoliagePaletteItemModelPtr& PaletteItem : GetActiveViewWidget()->GetSelectedItems())
+	{
+		Blueprint = Cast<UBlueprint>(PaletteItem->GetFoliageType()->GetClass()->ClassGeneratedBy);
+		if (Blueprint != nullptr)
+		{
+			break;
+		}
+	}
+
+	if (Blueprint)
+	{
+		// Open the blueprint
+		GEditor->EditObject(Blueprint);
+	}
+}
+
 EActiveTimerReturnType SFoliagePalette::UpdatePaletteItems(double InCurrentTime, float InDeltaTime)
 {
 	if (bItemsNeedRebuild)
@@ -1217,7 +1337,7 @@ EActiveTimerReturnType SFoliagePalette::UpdatePaletteItems(double InCurrentTime,
 		// Cache the currently selected items
 		auto ActiveViewWidget = GetActiveViewWidget();
 		TArray<FFoliagePaletteItemModelPtr> PreviouslySelectedItems = ActiveViewWidget->GetSelectedItems();
-		
+
 		ActiveViewWidget->ClearSelection();
 
 		// Rebuild the list of palette items
@@ -1231,10 +1351,10 @@ EActiveTimerReturnType SFoliagePalette::UpdatePaletteItems(double InCurrentTime,
 		// Restore the selection
 		for (auto& PrevSelectedItem : PreviouslySelectedItems)
 		{
-			// See if there's a new item for the previously selected item's foliage type
+			// Select any replacements for previously selected foliage types
 			for (auto& Item : PaletteItems)
 			{
-				if (PrevSelectedItem->GetFoliageType() == Item->GetFoliageType())
+				if (Item->GetDisplayFName() == PrevSelectedItem->GetDisplayFName())
 				{
 					ActiveViewWidget->SetItemSelection(Item, true);
 					break;

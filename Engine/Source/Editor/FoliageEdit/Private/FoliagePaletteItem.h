@@ -44,8 +44,8 @@ public:
 	/** @return The save asset button */
 	TSharedRef<class SButton> CreateSaveAssetButton(TAttribute<EVisibility> InVisibility = TAttribute<EVisibility>());
 
-	/** Gets the name to display of the foliage type object as text */
-	FText GetFoliageTypeDisplayNameText() const;
+	/** Gets the FName version of the displayed name of this item */
+	FName GetDisplayFName() const;
 
 	/** Gets the current search filter text */
 	FText GetPaletteSearchText() const;
@@ -58,6 +58,12 @@ public:
 
 	/** Gets whether this foliage type is active in the palette */
 	bool IsActive() const;
+
+	/** @return Whether this palette item represents an instance of a foliage type blueprint class */
+	bool IsBlueprint() const;
+
+	/** @return Whether this palette item represents a foliage type asset */
+	bool IsAsset() const;
 
 private:
 	/** Handles the change in activation of the item in the palette */
@@ -78,9 +84,13 @@ private:
 	/** Gets the visibility of the thumbnail in the tooltip */
 	EVisibility GetTooltipThumbnailVisibility() const;
 
+	/** Gets the source asset type text */
+	FText GetSourceAssetTypeText() const;
+
 private:
 	TSharedPtr<SWidget> ThumbnailWidget;
 
+	FName DisplayFName;
 	FFoliageMeshUIInfoPtr TypeInfo;
 	TWeakPtr<SFoliagePalette> FoliagePalette;
 	FEdModeFoliage* FoliageEditMode;
@@ -116,6 +126,9 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedRef<STableViewBase> InOwnerTableView, TSharedPtr<FFoliagePaletteItemModel>& InModel);
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+
+private:
+	EVisibility GetSaveButtonVisibility() const;
 
 private:
 	TSharedPtr<FFoliagePaletteItemModel> Model;

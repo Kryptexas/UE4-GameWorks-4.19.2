@@ -11,7 +11,7 @@ UFoliageStatistics::UFoliageStatistics(const FObjectInitializer& ObjectInitializ
 {
 }
 
-int32 UFoliageStatistics::FoliageOverlappingSphereCount(UObject* WorldContextObject, const UStaticMesh* Mesh, FVector CenterPosition, float Radius)
+int32 UFoliageStatistics::FoliageOverlappingSphereCount(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FVector CenterPosition, float Radius)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	const FSphere Sphere(CenterPosition, Radius);
@@ -23,8 +23,13 @@ int32 UFoliageStatistics::FoliageOverlappingSphereCount(UObject* WorldContextObj
 		AInstancedFoliageActor* IFA = *It;
 		if (!IFA->IsPendingKill())
 		{
-			const UFoliageType* FoliageType = IFA->GetSettingsForMesh(Mesh);
-			Count += IFA->GetOverlappingSphereCount(FoliageType, Sphere);
+			TArray<const UFoliageType*> FoliageTypes;
+			IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+
+			for (const auto Type : FoliageTypes)
+			{
+				Count += IFA->GetOverlappingSphereCount(Type, Sphere);
+			}
 		}
 	}
 
@@ -42,8 +47,13 @@ int32 UFoliageStatistics::FoliageOverlappingBoxCount(UObject* WorldContextObject
 		AInstancedFoliageActor* IFA = *It;
 		if (!IFA->IsPendingKill())
 		{
-			const UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh);
-			Count += IFA->GetOverlappingBoxCount(Type, Box);
+			TArray<const UFoliageType*> FoliageTypes;
+			IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+
+			for (const auto Type : FoliageTypes)
+			{
+				Count += IFA->GetOverlappingBoxCount(Type, Box);
+			}
 		}
 	}
 
@@ -60,8 +70,13 @@ void UFoliageStatistics::FoliageOverlappingBoxTransforms(UObject* WorldContextOb
 		AInstancedFoliageActor* IFA = *It;
 		if (!IFA->IsPendingKill())
 		{
-			const UFoliageType* Type = IFA->GetSettingsForMesh(StaticMesh);
-			IFA->GetOverlappingBoxTransforms(Type, Box, OutTransforms);
+			TArray<const UFoliageType*> FoliageTypes;
+			IFA->GetAllFoliageTypesForMesh(StaticMesh, FoliageTypes);
+
+			for (const auto Type : FoliageTypes)
+			{
+				IFA->GetOverlappingBoxTransforms(Type, Box, OutTransforms);
+			}
 		}
 	}
 }

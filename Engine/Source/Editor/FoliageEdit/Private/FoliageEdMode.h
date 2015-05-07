@@ -137,11 +137,7 @@ struct FFoliageMeshUIInfo
 	int32			InstanceCountCurrentLevel;
 	int32			InstanceCountTotal;
 	
-	FFoliageMeshUIInfo(UFoliageType* InSettings)
-		: Settings(InSettings)
-		, InstanceCountCurrentLevel(0)
-		, InstanceCountTotal(0)
-	{}
+	FFoliageMeshUIInfo(UFoliageType* InSettings);
 
 	bool operator == (const FFoliageMeshUIInfo& Other) const
 	{
@@ -290,6 +286,9 @@ public:
 	virtual EAxisList::Type GetWidgetAxisToDraw(FWidget::EWidgetMode InWidgetMode) const override;
 
 	virtual bool DisallowMouseDeltaTracking() const override;
+
+	/** Called when objects are replaced (after a BP compile for instance) */
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
 	/** Forces real-time perspective viewports */
 	void ForceRealTimeViewports(const bool bEnable, const bool bStoreCurrentState);

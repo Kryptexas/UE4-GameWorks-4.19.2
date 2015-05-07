@@ -507,7 +507,7 @@ void UFoliageType::PostEditChangeProperty(struct FPropertyChangedEvent& Property
 
 	//@todo: move this into FoliageType_InstancedStaticMesh
 	// Check to see if the mesh is what changed
-	const bool bMeshChanged = PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == "Mesh";
+	const bool bMeshChanged = PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UFoliageType_InstancedStaticMesh, Mesh);
 
 	// Notify any currently-loaded InstancedFoliageActors
 	if (IsFoliageReallocationRequiredForPropertyChange(PropertyChangedEvent))
@@ -612,88 +612,96 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 		bool bNeedsMarkRenderStateDirty = false;
 		bool bNeedsInvalidateLightingCache = false;
 		
-		if (Component->StaticMesh != InSettings->GetStaticMesh())
+		const UFoliageType* FoliageType = InSettings;
+		if (InSettings->GetClass()->ClassGeneratedBy)
 		{
-			Component->StaticMesh = InSettings->GetStaticMesh();
+			// If we're updating settings for a BP foliage type, use the CDO
+			FoliageType = InSettings->GetClass()->GetDefaultObject<UFoliageType>();
+		}
+
+		if (Component->StaticMesh != FoliageType->GetStaticMesh())
+		{
+			Component->StaticMesh = FoliageType->GetStaticMesh();
+
 			bNeedsInvalidateLightingCache = true;
 			bNeedsMarkRenderStateDirty = true;
 		}
 
-		EComponentMobility::Type NewMobility = InSettings->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
+		EComponentMobility::Type NewMobility = FoliageType->bEnableStaticLighting ? EComponentMobility::Static : EComponentMobility::Movable;
 		if (Component->Mobility != NewMobility)
 		{
 			Component->Mobility = NewMobility;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->InstanceStartCullDistance != InSettings->CullDistance.Min)
+		if (Component->InstanceStartCullDistance != FoliageType->CullDistance.Min)
 		{
-			Component->InstanceStartCullDistance = InSettings->CullDistance.Min;
+			Component->InstanceStartCullDistance = FoliageType->CullDistance.Min;
 			bNeedsMarkRenderStateDirty = true;
 		}
-		if (Component->InstanceEndCullDistance != InSettings->CullDistance.Max)
+		if (Component->InstanceEndCullDistance != FoliageType->CullDistance.Max)
 		{
-			Component->InstanceEndCullDistance = InSettings->CullDistance.Max;
+			Component->InstanceEndCullDistance = FoliageType->CullDistance.Max;
 			bNeedsMarkRenderStateDirty = true;
 		}
-		if (Component->CastShadow != InSettings->CastShadow)
+		if (Component->CastShadow != FoliageType->CastShadow)
 		{
-			Component->CastShadow = InSettings->CastShadow;
-			bNeedsMarkRenderStateDirty = true;
-			bNeedsInvalidateLightingCache = true;
-		}
-		if (Component->bCastDynamicShadow != InSettings->bCastDynamicShadow)
-		{
-			Component->bCastDynamicShadow = InSettings->bCastDynamicShadow;
+			Component->CastShadow = FoliageType->CastShadow;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->bCastStaticShadow != InSettings->bCastStaticShadow)
+		if (Component->bCastDynamicShadow != FoliageType->bCastDynamicShadow)
 		{
-			Component->bCastStaticShadow = InSettings->bCastStaticShadow;
+			Component->bCastDynamicShadow = FoliageType->bCastDynamicShadow;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->bAffectDynamicIndirectLighting != InSettings->bAffectDynamicIndirectLighting)
+		if (Component->bCastStaticShadow != FoliageType->bCastStaticShadow)
 		{
-			Component->bAffectDynamicIndirectLighting = InSettings->bAffectDynamicIndirectLighting;
+			Component->bCastStaticShadow = FoliageType->bCastStaticShadow;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->bAffectDistanceFieldLighting != InSettings->bAffectDistanceFieldLighting)
+		if (Component->bAffectDynamicIndirectLighting != FoliageType->bAffectDynamicIndirectLighting)
 		{
-			Component->bAffectDistanceFieldLighting = InSettings->bAffectDistanceFieldLighting;
+			Component->bAffectDynamicIndirectLighting = FoliageType->bAffectDynamicIndirectLighting;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->bCastShadowAsTwoSided != InSettings->bCastShadowAsTwoSided)
+		if (Component->bAffectDistanceFieldLighting != FoliageType->bAffectDistanceFieldLighting)
 		{
-			Component->bCastShadowAsTwoSided = InSettings->bCastShadowAsTwoSided;
+			Component->bAffectDistanceFieldLighting = FoliageType->bAffectDistanceFieldLighting;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->bReceivesDecals != InSettings->bReceivesDecals)
+		if (Component->bCastShadowAsTwoSided != FoliageType->bCastShadowAsTwoSided)
 		{
-			Component->bReceivesDecals = InSettings->bReceivesDecals;
+			Component->bCastShadowAsTwoSided = FoliageType->bCastShadowAsTwoSided;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->bOverrideLightMapRes != InSettings->bOverrideLightMapRes)
+		if (Component->bReceivesDecals != FoliageType->bReceivesDecals)
 		{
-			Component->bOverrideLightMapRes = InSettings->bOverrideLightMapRes;
+			Component->bReceivesDecals = FoliageType->bReceivesDecals;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
-		if (Component->OverriddenLightMapRes != InSettings->OverriddenLightMapRes)
+		if (Component->bOverrideLightMapRes != FoliageType->bOverrideLightMapRes)
 		{
-			Component->OverriddenLightMapRes = InSettings->OverriddenLightMapRes;
+			Component->bOverrideLightMapRes = FoliageType->bOverrideLightMapRes;
+			bNeedsMarkRenderStateDirty = true;
+			bNeedsInvalidateLightingCache = true;
+		}
+		if (Component->OverriddenLightMapRes != FoliageType->OverriddenLightMapRes)
+		{
+			Component->OverriddenLightMapRes = FoliageType->OverriddenLightMapRes;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
 		}
 		
-		Component->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
+		Component->BodyInstance.CopyBodyInstancePropertiesFrom(&FoliageType->BodyInstance);
 
-		Component->SetCustomNavigableGeometry(InSettings->CustomNavigableGeometry);
+		Component->SetCustomNavigableGeometry(FoliageType->CustomNavigableGeometry);
 
 		if (bNeedsInvalidateLightingCache)
 		{
@@ -1220,7 +1228,7 @@ void AInstancedFoliageActor::GetOverlappingMeshCounts(const FSphere& Sphere, TMa
 
 
 
-UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo, bool bIncludeAssets)
+UFoliageType* AInstancedFoliageActor::GetLocalFoliageTypeForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
 {
 	UFoliageType* ReturnType = nullptr;
 	FFoliageMeshInfo* MeshInfo = nullptr;
@@ -1228,7 +1236,8 @@ UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMe
 	for (auto& MeshPair : FoliageMeshes)
 	{
 		UFoliageType* FoliageType = MeshPair.Key;
-		if (FoliageType && (bIncludeAssets || !FoliageType->IsAsset()) && FoliageType->GetStaticMesh() == InMesh)
+		// Check that the type is neither an asset nor blueprint instance
+		if (FoliageType && FoliageType->GetStaticMesh() == InMesh && !FoliageType->IsAsset() && !FoliageType->GetClass()->ClassGeneratedBy)
 		{
 			ReturnType = FoliageType;
 			MeshInfo = &*MeshPair.Value;
@@ -1244,6 +1253,35 @@ UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMe
 	return ReturnType;
 }
 
+void AInstancedFoliageActor::GetAllFoliageTypesForMesh(const UStaticMesh* InMesh, TArray<const UFoliageType*>& OutFoliageTypes)
+{
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		UFoliageType* FoliageType = MeshPair.Key;
+		if (FoliageType && FoliageType->GetStaticMesh() == InMesh)
+		{
+			OutFoliageTypes.Add(FoliageType);
+		}
+	}
+}
+
+
+FFoliageMeshInfo* AInstancedFoliageActor::FindFoliageTypeOfClass(TSubclassOf<UFoliageType_InstancedStaticMesh> Class)
+{
+	FFoliageMeshInfo* MeshInfo = nullptr;
+
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		UFoliageType* FoliageType = MeshPair.Key;
+		if (FoliageType && FoliageType->GetClass() == Class)
+		{
+			MeshInfo = &MeshPair.Value.Get();
+			break;
+		}
+	}
+
+	return MeshInfo;
+}
 
 FFoliageMeshInfo* AInstancedFoliageActor::FindMesh(const UFoliageType* InType)
 {
@@ -1629,7 +1667,7 @@ void UpdateSettingsBounds(const UStaticMesh* InMesh, UFoliageType_InstancedStati
 #if WITH_EDITORONLY_DATA
 FFoliageMeshInfo* AInstancedFoliageActor::UpdateMeshSettings(const UStaticMesh* InMesh, const UFoliageType_InstancedStaticMesh* DefaultSettings, bool bIncludeAssets)
 {
-	if (UFoliageType* OldSettings = GetSettingsForMesh(InMesh, nullptr, bIncludeAssets))
+	if (UFoliageType* OldSettings = GetLocalFoliageTypeForMesh(InMesh, nullptr))
 	{
 		MarkPackageDirty();
 
@@ -1654,22 +1692,36 @@ UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType,
 	
 	if (FoliageType->GetOuter() == this || FoliageType->IsAsset())
 	{
-		auto* MeshInfoPtr = FoliageMeshes.Find(FoliageType);
-		if (!MeshInfoPtr)
+		auto ExistingMeshInfo = FoliageMeshes.Find(FoliageType);
+		if (!ExistingMeshInfo)
 		{
 			Modify();
 			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
 		}
 		else
 		{
-			MeshInfo = &MeshInfoPtr->Get();
+			MeshInfo = &ExistingMeshInfo->Get();
+		}
+	}
+	else if (FoliageType->GetClass()->ClassGeneratedBy)
+	{
+		// Foliage type blueprint
+		FFoliageMeshInfo* ExistingMeshInfo = FindFoliageTypeOfClass(FoliageType->GetClass());
+		if (!ExistingMeshInfo)
+		{
+			Modify();
+			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
+		}
+		else
+		{
+			MeshInfo = ExistingMeshInfo;
 		}
 	}
 	else
 	{
 		// Unique meshes only
 		// Multiple entries for same static mesh can be added using FoliageType as an asset
-		FoliageType = GetSettingsForMesh(FoliageType->GetStaticMesh(), &MeshInfo);
+		FoliageType = GetLocalFoliageTypeForMesh(FoliageType->GetStaticMesh(), &MeshInfo);
 		if (FoliageType == nullptr)
 		{
 			Modify();
@@ -1688,7 +1740,7 @@ UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType,
 
 FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings, const UFoliageType_InstancedStaticMesh* DefaultSettings)
 {
-	check(GetSettingsForMesh(InMesh) == nullptr);
+	check(GetLocalFoliageTypeForMesh(InMesh) == nullptr);
 
 	MarkPackageDirty();
 
@@ -1704,6 +1756,7 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UStaticMesh* InMesh, UFoliageT
 	{
 		Settings = NewObject<UFoliageType_InstancedStaticMesh>(this);
 	}
+	Settings->SetFlags(RF_Transactional);
 	Settings->Mesh = InMesh;
 
 	FFoliageMeshInfo* MeshInfo = AddMesh(Settings);
