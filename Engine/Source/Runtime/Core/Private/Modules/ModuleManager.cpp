@@ -560,6 +560,9 @@ void FModuleManager::AbandonModule( const FName InModuleName )
 		// Only if already loaded
 		if( ModuleInfo->Module.IsValid() )
 		{
+			// Allow the module to shut itself down
+			ModuleInfo->Module->ShutdownModule();
+
 			// Release reference to module interface.  This will actually destroy the module object.
 			// @todo UE4 DLL: Could be dangerous in some cases to reset the module interface while abandoning.  Currently not
 			// a problem because script modules don't implement any functionality here.  Possible, we should keep these references
@@ -942,14 +945,14 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 }
 
 
-void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName, FOutputDevice &Ar )
+void FModuleManager::UnloadOrAbandonModuleWithCallback(const FName InModuleName, FOutputDevice &Ar, bool bAbandonOnly)
 {
 	auto Module = FindModuleChecked(InModuleName);
 	
 	Module->Module->PreUnloadCallback();
 
 	const bool bIsHotReloadable = DoesLoadedModuleHaveUObjects( InModuleName );
-	if( bIsHotReloadable && Module->Module->SupportsDynamicReloading() )
+	if (!bAbandonOnly && bIsHotReloadable && Module->Module->SupportsDynamicReloading())
 	{
 		if( !UnloadModule( InModuleName ))
 		{
@@ -958,7 +961,11 @@ void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName
 	}
 	else
 	{
-		Ar.Logf( TEXT( "Module being reloaded does not support dynamic unloading -- abandoning existing loaded module so that we can load the recompiled version!" ) );
+		// Don't warn if abandoning was the intent here
+		if (!bAbandonOnly)
+		{			
+			Ar.Logf(TEXT("Module being reloaded does not support dynamic unloading -- abandoning existing loaded module so that we can load the recompiled version!"));
+		}
 		AbandonModule( InModuleName );
 	}
 }
