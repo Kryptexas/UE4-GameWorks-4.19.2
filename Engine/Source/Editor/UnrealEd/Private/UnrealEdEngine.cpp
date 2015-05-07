@@ -128,7 +128,11 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 	UEditorExperimentalSettings const* ExperimentalSettings =  GetDefault<UEditorExperimentalSettings>();
 	ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
 	BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
-	if ( ExperimentalSettings->bCookOnTheSide )
+
+	bool bEnableCookOnTheSide = false;
+	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableCookOnTheSide"), bEnableCookOnTheSide, GEngineIni);
+
+	if ( bEnableCookOnTheSide )
 	{
 		CookServer = NewObject<UCookOnTheFlyServer>();
 		CookServer->Initialize( ECookMode::CookOnTheFlyFromTheEditor, BaseCookingFlags );
