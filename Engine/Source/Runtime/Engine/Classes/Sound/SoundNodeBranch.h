@@ -37,7 +37,6 @@ public:
 	{ 
 		return BranchPurpose::MAX;
 	}
-	virtual void CreateStartingConnectors( void ) override;
 
 	virtual void RemoveChildNode( int32 Index ) override
 	{

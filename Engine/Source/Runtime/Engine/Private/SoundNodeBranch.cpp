@@ -33,14 +33,6 @@ void USoundNodeBranch::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT Node
 	}
 }
 
-void USoundNodeBranch::CreateStartingConnectors()
-{
-	// Locality Nodes default with two connectors - Locally instigated and .
-	InsertChildNode( ChildNodes.Num() );
-	InsertChildNode( ChildNodes.Num() );
-	InsertChildNode( ChildNodes.Num() );
-}
-
 #if WITH_EDITOR
 FText USoundNodeBranch::GetInputPinName(int32 PinIndex) const
 {

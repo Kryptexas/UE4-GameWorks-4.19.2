@@ -82,7 +82,12 @@ void USoundNode::GetAllNodes( TArray<USoundNode*>& SoundNodes )
 
 void USoundNode::CreateStartingConnectors()
 {
-	InsertChildNode( ChildNodes.Num() );
+	int32 ConnectorsToMake = FMath::Max(1, GetMinChildNodes());
+	while (ConnectorsToMake > 0)
+	{
+		InsertChildNode( ChildNodes.Num() );
+		--ConnectorsToMake;
+	}
 }
 
 void USoundNode::InsertChildNode( int32 Index )
