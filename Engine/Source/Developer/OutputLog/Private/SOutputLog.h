@@ -67,7 +67,7 @@ protected:
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	// e.g. Tab or Key_Up
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
+	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
 
 	void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 
