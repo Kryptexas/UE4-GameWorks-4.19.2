@@ -299,7 +299,7 @@ Navigation:topic
 	* ワールドに **Player Start** アクタがない場合、以下の順序で選択してマップに追加することができます。**[Modes Panel]** -> **[Placement Mode]** -> **[Basic]** -> 次に、**[Player Start]** をクリックしてワールドにドラッグします。
 
 	[REGION:raw]
-	![](LQS_PlayerStart.png)
+	![](playerStart.png)
 	[/REGION]
 
 	または現在のカメラ位置からプレイするために PIE (Play in Editor) を設定することもできます。
