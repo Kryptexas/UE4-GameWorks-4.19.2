@@ -1,0 +1,167 @@
+﻿INTSourceChangelist:2530673
+Availability:Public
+Title:頂点アニメーションツール - タイムラインメッシュ
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:3Ds Max 頂点アニメーション ツールセットのユーザーガイド
+バージョン：4.8
+
+[TOC(start:2 end:3)]
+
+## 概要
+以下のセクションで、任意の 3D メッシュに頂点の位置を保存する 2D テクスチャを作成するために、 3Ds Max Animation Timeline と連動させる Vertex Animation（頂点アニメーション）ツールの使用方法を紹介します。
+
+## タイムラインアニメートメッシュ用の3Ds Max コンテント作成 & 設定
+
+
+1. まず以下のオプションを使用してワールドの「0,0,0」の位置に **Standard Primitives** から **ティーポット** を作成します。
+	* **半径：** 70.0
+	* **セグメント：** 5
+	![](VAT_Teapot_Setup_00.png)
+
+
+1. 次に Modifier List からティーポットに **Bend** モディファイアを適用して、 **Direction** を **90** に設定します。 
+	![](VAT_Teapot_BendMod_00.png)
+
+
+1. **Auto Key** を有効にして、 **Time Slider** を **10** に移動させて **Bend Modifier** の **Angle** を **-50** に設定します。次に **Time Slider** を **25** に移動させて Bend の **Angle** を **50** に設定します。最後に **Time Slider** を **35** に移動させて、 Bend の **Angle** を **0** に設定します。すべての設定終えたら、誤って余分なキーを追加しないように **Auto Key** を必ずオフにしてください。 
+	![](VAT_Max_Bend_Setup.gif)(convert:false)
+
+
+1. ティーポットが曲がったままの状態で、まだ開いていない場合は頂点アニメーションを開きます。 **Animation Options** を **Animated Meshes** に設定して、 **Anim End** を **35** を設定します。
+	![](VAT_Tool_Settings_Setup.png)
+
+
+1. ツールオプションを正しく設定したら、 **Process Animated Meshes** ボタンを押してテクスチャの作成プロセスを開始します。 
+プロセスの半ばでウィンドウダイアログが表示されて、生成したテクスチャの保存場所を要求されます。
+この例では、フォルダは **Vertex_Anims** というデスクトップのこのフォルダに保存したテクスチャに配置しています。
+デスクトップにフォルダを配置すると、頂点の位置データを含んだ **.EXR** Texture と、
+ティーポットの法線に関する情報を含んだ **.BMP** Texture ファイルが、フォルダ内に作成されます。
+
+	![](VAT_Output_Textures.png)	
+
+1. テクスチャを作成したら 3Ds Max へ戻って、名前に "**_MorphExport**" を追加ｓｈちえティーポットメッシュを選択します。その後テクスチャをエクスポートしたフォルダと同じフォルダに FBX ファイルとしてこのメッシュをエクスポートします。
+メッシュに "**SM_Teapot_Bend_00**" と名前を付けて、 FBX オプションの Smoothing Groups が有効で、その他の値はすべてデフォルト値であることを確認します。
+
+	![](VAT_3DsMax_Teapot_Export.gif)(convert:false)
+
+
+## タイムラインアニメートメッシュ用にUE4 コンテントを設定 & 使用する方法
+3Ds Max からすべてのコンテントをエクスポートしたら、UE4 で正しく機能させるために、コンテントをインポートして設定を行います。 
+以下に示すすべての手順を **必ず** 記載通りに実行しなければ、 UE4 内で正しく機能しないリスクがあります。 
+
+### テクスチャのインポート & 設定
+
+[region:tip]
+UE4 のテクスチャインポートプロセスに慣れていないユーザーは、 [](Engine/Content/Types/Textures/Importing) で詳細を確認してください。
+[/region]
+
+最初に 3Ds Max からエクスポートした両テクスチャを UE4 へインポートしなくてはいけません。 
+Windows エクスプローラーでエクスポート位置からそれぞれのテクスチャを選択して、これらをコンテントブラウザへドラッグします。左マウスボタンをリリースするとインポートプロセスがトリガーされます。
+この作業を行うと、2のべき乗ではないテクスチャはストリーミングやミップマッピングと機能しない由の警告メッセージが表示されます。
+**Yes** ボタンを押してメッセージを閉じて、インポートプロセスを継続します。
+
+![](VAT_Texture_Import.gif)(convert:false)
+
+テクスチャをすべてインポートしたら、正しく動作させるために具体的な方法で設定します。
+最初に頂点位置データを含んでいる「 .EXR 」テクスチャを設定します。
+コンテンツブラウザのテクスチャ上で左マウスボタンをダブルクリックしてこれを開きます。その時に以下のオプションが設定されていることおよび有効になっていることを確認してください。
+
+* Mip Gen 設定を必ず **No Mip Maps** に設定してください。
+* テクスチャグループを **UI** に変更してください。
+* **SRGB** が無効になっていることを確認してください。
+* 圧縮設定を **TC_HDR** に設定してください。
+
+	![](VAT_EXR_Texture_Setup.png)
+
+次に Normal Map Texture を開いて、以下のそれぞれのオプションが設定および有効になっていることを確認してください。
+
+* Mip Gen 設定を必ず **No Mip Maps** に設定してください。
+* テクスチャグループを **UI** に変更してください。
+* **SRGB** が無効になっていることを確認してください。
+* 圧縮設定を **TC_Vector Displacement Map** に設定してください。
+	![](VAT_Normal_Texture_Setup.png)
+
+
+テクスチャを正しく設定したら、変更をすべて保存するためにコンテンツブラウザで必ず **Save All** ボタンを押してください。 
+
+![](VAT_Save_All.png)
+
+### スタティックメッシュのインポート & 設定
+テクスチャをインポートして設定したら、次にティーポットスタティックメッシュをインポートして設定します。 
+最初にWindows エクスプローラーでティーポットメッシュを選択して、テクスチャと同じ方法でティーポットスタティックメッシュをインポートします。その後これらをコンテントブラウザへドラッグして、左マウスボタンをリリースするとインポートプロセスがトリガーされます。 
+この操作を行うと以下のダイアログボックスが表示されます。この時のダイアログボックスに、以下のオプションが設定されていることおよび無効になっていることを確認してください。
+
+[region:tip]
+UE4 へスタティックメッシュをインポートする方法に不明な点がある場合は、詳細を [](Engine/Content/FBX/StaticMeshes) ドキュメントで確認してください。
+[/region]
+
+* **Auto Generate Collision** オプションを無効にします。
+* **Remove Degenerates** オプションを無効にします。
+* **Generate Lightmap UV's** オプションを無効にします。
+* **Combine Meshes** オプションを有効にします。
+* **Import Materials** と **Import Textures** オプションを両方とも無効にします。 
+	![](Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes\VAT_SM_Import_Options.png)
+
+
+上記のオプションをすべて正しく設定したら、 インポートボタンを押してインポートプロセスを開始します。 
+スタティックメッシュをインポートしたら、このメッシュを開いて以下のオプションが有効および無効になっていることを確認します。
+
+* **Use Full Precision UVs** オプションを有効にします。
+* **Distance Field Resolution Scale** を 0.0 に設定します。
+
+	![](VAT_SM_Setup_Options.png)
+
+スタティックメッシュを正しく設定したら、変更をすべて保存するためにスタティックメッシュエディタの **Apply Changes** ボタンとコンテントブラウザの **Save All** ボタンを必ず押してください。 
+
+
+### UE4 のマテリアル設定 & 使用方法
+
+必要なコンテントをインポートして正しく設定したら、コンテントを使用できるマテリアルを作成します。
+
+[region:tip]
+UE4 内のマテリアルの機能方法に不明な点がある場合は、詳細を [](Engine/Rendering/Materials) ドキュメントで確認してください。
+[/region]
+
+1. 右クリックで新規マテリアルを作成してから、 **Create Basic Asset** セクションから **Material** オプションを選択します。マテリアルに **MAT_Vertex_Animation** と名前を付けます。
+
+1. 次に **MAT_Vertex_Animation** マテリアルを開いて、前回の手順でコンテントブラウザにインポートした2つのテクスチャを検索します。両テクスチャを選択してから、これらをコンテントブラウザへドラッグして、マテリアルグラフへドロップします。  
+	![](VAT_Materail_Adding_Textures.gif)(convert:false)
+
+
+1. **Main Material Node** を選択してから、 **詳細パネル** で **Num Customized UVs** を検索します。**Num Customized UVs** 入力を見つけたら、値に **4** を入力します。これでカスタマイズした UV と0から3までの数値が設定されたメインマテリアルノード上に新しい4つの入力が表示されるはずです。
+	![](VAT_Cus_UVs.png)
+
+
+1. 次に Main Material ノードの詳細パネルで **Tangent Space Normal** オプションから **チェックを外して** ください。 
+
+	![](VAT_UnCheck_Tan_Normals.png)
+
+1. キーボードの「1」キーを押しながら左マウスボタンでマテリアルグラフ内をクリックして、 Constant Parameter ノードを配置します。Constant の値に **0.5** を設定して、出力を Main Material ノードの **BaseColor** 入力と接続します。
+	![](VAT_Add_Const.png)
+
+
+1. エフェクトを作成する Material 関数を追加します。マテリアルグラフ内を右クリックして、表示されるメニューに **MS** と入力して「Maxscript Material Functions」を検索します。次に **MS_VertexAnimationTools_MorphTargets** マテリアル関数をクリックして、マテリアルグラフにこれを追加します。 
+
+	![](VAT_Add_MF.gif)(convert:false)
+
+1. 必要な Textures と Material 関数をマテリアルグラフに追加したらこれらを接続していくことができますが、その前に両方の Texture Sampler を選択して片方のテクスチャを右クリックして **Convert To Texture Object** オプションを選択して **Texture Objects** に変換します。
+	![](VAT_Convert_To_TexOBJ.gif)(convert:false)
+
+
+1. 次に Normal Texture Object の出力を **Morph Normal(T2d)** 入力に接続します。その後に .EXR Texture Object を **Morph Texture (T2d)** 入力と接続します。最後に **MS_VertexAnimationTools_MorphTargets** Material 関数の出力を Main Material ノードの関連する入力値と接続します。
+
+	![](VAT_Wired_Up.png)
+
+1. キーボードの「1」キーを押しながらマテリアルグラフへ別の Constant Parameter ノードを追加して、左マウスボタンでマテリアルグラフをクリックしてマテリアルグラフにノードを配置します。Constant ノードを追加したら、値を 51 に設定して、これを**MS_VertexAnimationTools_MorphTargets** Material 関数の **Number of Morph Targets** 入力と接続します。
+
+	![](VAT_Num_Morph_Targets.png)
+
+	[region:note]
+	**Number of Morph Targets** 入力に使用する数値は、.EXR と法線テクスチャの Y 値に由来します。別の設定値を使用すると 3Ds Max でのエフェクトが UE4 で同一のエフェクトにならないため、常にテクスチャに設定されている値を必ず使用してください。 
+	[/region]
+
+1. すべてを接続したらマテリアルをコンパイルするために **Apply** ボタンをおして、これまでの作業を保存するために **Save** ボタンを押したらマテリアルグラフエディタを閉じます。
+
+1. **コンテントブラウザで** インポートしたティーポットメッシュを選択して、これをコンテントブラウザからレベルへドラッグします。レベルにティーポットメッシュを配置したら、作成したマテリアル **MAT_Vertex_Animation** を選択して、コンテンツブラウザからこれをドラッグして、レベルのティーポットメッシュに設置します。
+
+	![](VAT_Final_Effect.gif)(convert:false)
