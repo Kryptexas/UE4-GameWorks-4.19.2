@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521349
+﻿INTSourceChangelist:2539477
 Availability:Public
 Title:拡張性
 Crumbs: %ROOT%, Engine, Engine/Performance
@@ -7,7 +7,7 @@ Description:クオリティとパフォーマンスを調整するためのオ�
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
@@ -26,7 +26,7 @@ Description:クオリティとパフォーマンスを調整するためのオ�
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
-		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/ScalabilityReference/scalability_topic.png)
+		![%Engine/Performance/Scalability/ScalabilityReference:title%](Engine/Performance/Scalability/scalability_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/light_icon.png)(convert:false)
