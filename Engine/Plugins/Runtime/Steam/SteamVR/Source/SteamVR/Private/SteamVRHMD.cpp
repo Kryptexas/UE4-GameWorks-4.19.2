@@ -24,6 +24,11 @@ class FSteamVRPlugin : public ISteamVRPlugin
 	}
 
 public:
+	FSteamVRPlugin::FSteamVRPlugin()
+		: VRSystem(nullptr)
+	{
+	}
+
 	virtual vr::IVRSystem* GetVRSystem() const override
 	{
 		return VRSystem;
