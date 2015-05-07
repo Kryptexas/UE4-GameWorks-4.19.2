@@ -281,7 +281,6 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 	CullDistance.Min = 0;
 	CullDistance.Max = 0;
 	MinimumLayerWeight = 0.5f;
-	DisplayOrder = 0;
 	IsSelected = false;
 	DensityAdjustmentFactor = 1.0f;
 	CollisionWithWorld = false;
@@ -1775,19 +1774,6 @@ FFoliageMeshInfo* AInstancedFoliageActor::AddMesh(UFoliageType* InType)
 	check(FoliageMeshes.Find(InType) == nullptr);
 
 	Modify();
-
-	if (InType->DisplayOrder == 0)
-	{
-		int32 MaxDisplayOrder = 0;
-		for (auto& MeshPair : FoliageMeshes)
-		{
-			if (MeshPair.Key->DisplayOrder > MaxDisplayOrder)
-			{
-				MaxDisplayOrder = MeshPair.Key->DisplayOrder;
-			}
-		}
-		InType->DisplayOrder = MaxDisplayOrder + 1;
-	}
 
 	FFoliageMeshInfo* MeshInfo = &*FoliageMeshes.Add(InType);
 	MeshInfo->FoliageTypeUpdateGuid = InType->UpdateGuid;

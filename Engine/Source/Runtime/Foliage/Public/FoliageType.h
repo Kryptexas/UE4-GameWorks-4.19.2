@@ -227,9 +227,6 @@ public:
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> CustomNavigableGeometry;
 
 	UPROPERTY()
-	int32 DisplayOrder;
-
-	UPROPERTY()
 	uint32 IsSelected:1;
 
 public:
