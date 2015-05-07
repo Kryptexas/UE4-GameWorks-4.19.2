@@ -7192,6 +7192,10 @@ public class GUBP : BuildCommand
 
                     bool Sticky = GUBPNodes[NodeToDo].IsSticky();
                     bool DoParallel = !Sticky;
+                    if(GUBPNodes[NodeToDo].ECProcedure() == "GUBP_UAT_Node_Parallel_AgentShare_Editor")
+                    {
+                        DoParallel = true;
+                    }
                     if (Sticky && GUBPNodes[NodeToDo].ECAgentString() != "")
                     {
                         throw new AutomationException("Node {1} is sticky but has agent requirements.", NodeToDo);
