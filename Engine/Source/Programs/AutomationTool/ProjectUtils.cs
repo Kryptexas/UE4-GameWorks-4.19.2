@@ -726,7 +726,7 @@ namespace AutomationTool
                 }
             }
             var FinishTime = DateTime.Now.ToString();
-            CommandUtils.StepDurations.Add("UAT,SortProjects", String.Format("{0},{1}", StartTime, FinishTime));
+            CommandUtils.PrintCSVFile(String.Format("UAT,SortProjects,{0},{1}", StartTime, FinishTime));            
             if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
             {
                 throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
@@ -746,8 +746,8 @@ namespace AutomationTool
             {
                 Proj.Dump(InHostPlatforms);
             }
-            var BuildDumpFinish = DateTime.Now.ToString();
-            CommandUtils.StepDurations.Add("UAT,Project Dump", String.Format("{0},{1}", StartBranchDump, BuildDumpFinish));
+            var FinishBranchDump = DateTime.Now.ToString();
+            CommandUtils.PrintCSVFile(String.Format("UAT,Project Dump,{0},{1}", StartBranchDump, FinishBranchDump));
         }
 
         public BranchUProject FindGame(string GameName)

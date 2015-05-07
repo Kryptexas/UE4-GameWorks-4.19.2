@@ -1876,9 +1876,17 @@ namespace AutomationTool
 				return UBTTargetPlatforms;
 			}
 		}
-		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms;
-
-        public static Dictionary<string, string> StepDurations = new Dictionary<string,string>();
+		private static UnrealBuildTool.UnrealTargetPlatform[] UBTTargetPlatforms; 
+        public static void PrintCSVFile(string Input)
+        {
+            if (IsBuildMachine && CmdEnv.CSVFile != "")
+            {
+                var CSVBuilder = new StringBuilder();                
+                var CSVLineToAppend = String.Format("{0}{2}", Input, Environment.NewLine);
+                CSVBuilder.Append(CSVLineToAppend);                
+                File.AppendAllText(CmdEnv.CSVFile, CSVBuilder.ToString());
+            }
+        }
 
 		#endregion
 

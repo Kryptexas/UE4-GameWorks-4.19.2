@@ -322,7 +322,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
             var StartScriptCompile = DateTime.Now.ToString();
 			Compiler.FindAndCompileAllScripts(AdditionalScriptsFolders: AdditionalScriptsFolders);
             var FinishScriptCompile = DateTime.Now.ToString();
-            CommandUtils.StepDurations.Add("UAT,ScriptCompile", String.Format("{0},{1}", StartScriptCompile, FinishScriptCompile));
+            CommandUtils.PrintCSVFile(String.Format("UAT,ScriptCompile,{0},{1}", StartScriptCompile, FinishScriptCompile));
 
 			if (GlobalCommandLine.CompileOnly)
 			{
