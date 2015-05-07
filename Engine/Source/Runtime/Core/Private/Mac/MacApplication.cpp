@@ -172,28 +172,24 @@ void FMacApplication::PumpMessages(const float TimeDelta)
 
 void FMacApplication::ProcessDeferredEvents(const float TimeDelta)
 {
-	if (!FPlatformMisc::bIsPumpingMessages)
+	TArray<FDeferredMacEvent> EventsToProcess;
+
+	EventsMutex.Lock();
+	EventsToProcess.Append(DeferredEvents);
+	DeferredEvents.Empty();
+	EventsMutex.Unlock();
+
+	const bool bAlreadyProcessingDeferredEvents = bIsProcessingDeferredEvents;
+	bIsProcessingDeferredEvents = true;
+
+	for (int32 Index = 0; Index < EventsToProcess.Num(); ++Index)
 	{
-		TArray<FDeferredMacEvent> EventsToProcess;
-
-		EventsMutex.Lock();
-		EventsToProcess.Append(DeferredEvents);
-		DeferredEvents.Empty();
-		EventsMutex.Unlock();
-
-		const bool bAlreadyProcessingDeferredEvents = bIsProcessingDeferredEvents;
-		bIsProcessingDeferredEvents = true;
-
-		for (int32 Index = 0; Index < EventsToProcess.Num(); ++Index)
-		{
-			ProcessEvent(EventsToProcess[Index]);
-		}
-
-		bIsProcessingDeferredEvents = bAlreadyProcessingDeferredEvents;
-
-		InvalidateTextLayouts();
-		CloseQueuedWindows();
+		ProcessEvent(EventsToProcess[Index]);
 	}
+
+	bIsProcessingDeferredEvents = bAlreadyProcessingDeferredEvents;
+
+	InvalidateTextLayouts();
 }
 
 TSharedRef<FGenericWindow> FMacApplication::MakeWindow()
