@@ -145,12 +145,22 @@ void UPointLightComponent::SetLightFalloffExponent(float NewLightFalloffExponent
 	}
 }
 
-void UPointLightComponent::SetSourceRadius(float bNewValue)
+void UPointLightComponent::SetSourceRadius(float NewValue)
 {
 	if (AreDynamicDataChangesAllowed()
-		&& SourceRadius != bNewValue)
+		&& SourceRadius != NewValue)
 	{
-		SourceRadius = bNewValue;
+		SourceRadius = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UPointLightComponent::SetSourceLength(float NewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& SourceLength != NewValue)
+	{
+		SourceLength = NewValue;
 		MarkRenderStateDirty();
 	}
 }
