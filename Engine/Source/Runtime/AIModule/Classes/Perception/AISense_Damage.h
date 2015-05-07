@@ -45,7 +45,7 @@ struct AIMODULE_API FAIDamageEvent
 		return DamagedActor != nullptr;
 	}
 
-	IAIPerceptionListenerInterface* FAIDamageEvent::GetDamagedActorAsPerceptionListener() const;
+	IAIPerceptionListenerInterface* GetDamagedActorAsPerceptionListener() const;
 };
 
 UCLASS(ClassGroup=AI)
