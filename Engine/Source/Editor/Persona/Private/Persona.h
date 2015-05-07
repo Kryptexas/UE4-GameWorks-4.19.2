@@ -509,6 +509,24 @@ public:
 		OnGenericDelete.RemoveAll(Widget);
 	}
 
+	/** Broadcasts section changes */
+	FSimpleMulticastDelegate OnSectionsChanged;
+
+	// Called when a section is changed
+	typedef FSimpleMulticastDelegate::FDelegate FOnSectionsChanged;
+
+	// Register a delegate to be called when a montage section changes
+	void RegisterOnSectionsChanged(const FOnSectionsChanged& Delegate)
+	{
+		OnSectionsChanged.Add(Delegate);
+	}
+
+	// Unregister a delegate to be called when a montage section changes
+	void UnregisterOnSectionsChanged(SWidget* Widget)
+	{
+		OnSectionsChanged.RemoveAll(Widget);
+	}
+
 	/** Apply Compression to list of animations */
 	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 	/** Export to FBX files of the list of animations */

@@ -119,12 +119,11 @@ struct FAnimNotifyEvent : public FAnimLinkableElement
 	/** Color of Notify in editor */
 	UPROPERTY()
 	FColor NotifyColor;
+#endif // WITH_EDITORONLY_DATA
 
-	/** Visual position of notify in the vertical 'tracks' of the notify editor panel */
+	/** 'Track' that the notify exists on, used for visual placement in editor and sorting priority in runtime */
 	UPROPERTY()
 	int32 TrackIndex;
-
-#endif // WITH_EDITORONLY_DATA
 
 	FAnimNotifyEvent()
 		: DisplayTime_DEPRECATED(0)
@@ -196,19 +195,15 @@ FORCEINLINE bool FAnimNotifyEvent::operator<(const FAnimNotifyEvent& Other) cons
 	float ATime = GetTriggerTime();
 	float BTime = Other.GetTriggerTime();
 
-#if WITH_EDITORONLY_DATA
-	// this sorting only works if it's saved in editor or loaded with editor data
-	// this is required for gameplay team to have reliable order of notifies
-	// but it was noted that this change will require to resave notifies. 
-	// once you resave, this order will be preserved
-	if (FMath::IsNearlyEqual(ATime, BTime))
+	// When we've got the same time sort on the track index. Explicitly
+	// using SMALL_NUMBER here incase the underlying default changes as
+	// notifies can have an offset of KINDA_SMALL_NUMBER to be consider
+	// distinct
+	if (FMath::IsNearlyEqual(ATime, BTime, SMALL_NUMBER))
 	{
-
-		// if the 2 anim notify events are the same display time sort based off of track index
 		return TrackIndex < Other.TrackIndex;
 	}
 	else
-#endif // WITH_EDITORONLY_DATA
 	{
 		return ATime < BTime;
 	}
@@ -708,6 +703,7 @@ public:
 	ENGINE_API void RegisterOnNotifyChanged(const FOnNotifyChanged& Delegate);
 	ENGINE_API void UnregisterOnNotifyChanged(void* Unregister);
 	ENGINE_API virtual bool IsValidToPlay() const { return true; }
+
 #endif
 
 protected:

@@ -16,6 +16,7 @@
 #include "BlueprintActionDatabase.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "SAnimTimingPanel.h"
 
 // Track Panel drawing
 const float NotificationTrackHeight = 20.0f;
@@ -35,9 +36,9 @@ DECLARE_DELEGATE_RetVal_FiveParams(FReply, FOnNotifyNodesDragStarted, TArray<TSh
 DECLARE_DELEGATE_RetVal( float, FOnGetDraggedNodePos )
 DECLARE_DELEGATE_TwoParams( FPanTrackRequest, int32, FVector2D)
 DECLARE_DELEGATE_FourParams(FPasteNotifies, SAnimNotifyTrack*, float, ENotifyPasteMode::Type, ENotifyPasteMultipleMode::Type)
+DECLARE_DELEGATE_RetVal_OneParam(EVisibility, FOnGetTimingNodeVisibilityForNode, TSharedPtr<SAnimNotifyNode>)
 
 class FNotifyDragDropOp;
-
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimNotifyNode
@@ -62,10 +63,11 @@ public:
 	SLATE_EVENT( FOnNotifyNodeDragStarted, OnNodeDragStarted )
 	SLATE_EVENT( FOnUpdatePanel, OnUpdatePanel )
 	SLATE_EVENT( FPanTrackRequest, PanTrackRequest )
-	SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies)
+	SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies )
 	SLATE_ATTRIBUTE( float, ViewInputMin )
 	SLATE_ATTRIBUTE( float, ViewInputMax )
-	SLATE_ATTRIBUTE( TArray<FTrackMarkerBar>, MarkerBars)
+	SLATE_ATTRIBUTE( TArray<FTrackMarkerBar>, MarkerBars )
+	SLATE_ARGUMENT(TSharedPtr<SAnimTimingNode>, StateEndTimingNode)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& Declaration);
@@ -95,7 +97,7 @@ public:
 	// End of SNodePanel::SNode
 
 	virtual FVector2D ComputeDesiredSize(float) const override;
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const /*override*/;
 
 	/** Helpers to draw scrub handles and snap offsets */
 	void DrawHandleOffset( const float& Offset, const float& HandleCentre, FSlateWindowElementList& OutDrawElements, int32 MarkerLayer, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect ) const;
@@ -193,8 +195,71 @@ private:
 	/** Delegate to deselect notifies and clear the details panel */
 	FDeselectAllNotifies OnDeselectAllNotifies;
 
+	/** Cached owning track geometry */
+	FGeometry CachedTrackGeometry;
+
+	TSharedPtr<SOverlay> EndMarkerNodeOverlay;
+
 	friend class SAnimNotifyTrack;
 };
+
+class SAnimNotifyPair : public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(SAnimNotifyPair)
+	{}
+
+	SLATE_NAMED_SLOT(FArguments, LeftContent)
+	
+	SLATE_ARGUMENT(TSharedPtr<SAnimNotifyNode>, Node);
+	SLATE_EVENT(FOnGetTimingNodeVisibilityForNode, OnGetTimingNodeVisibilityForNode)
+
+	SLATE_END_ARGS()
+
+		void Construct(const FArguments& InArgs);
+
+	float GetWidgetPaddingLeft();
+
+protected:
+	TSharedPtr<SWidget> PairedWidget;
+	TSharedPtr<SAnimNotifyNode> NodePtr;
+};
+
+void SAnimNotifyPair::Construct(const FArguments& InArgs)
+{
+	NodePtr = InArgs._Node;
+	PairedWidget = InArgs._LeftContent.Widget;
+	check(NodePtr.IsValid());
+	check(PairedWidget.IsValid());
+
+	float ScaleMult = 1.0f;
+	FVector2D NodeSize = NodePtr->ComputeDesiredSize(ScaleMult);
+
+	this->ChildSlot
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.HAlign(EHorizontalAlignment::HAlign_Center)
+				.VAlign(EVerticalAlignment::VAlign_Center)
+				[
+					PairedWidget->AsShared()
+				]
+			]
+			+ SHorizontalBox::Slot()
+			[
+				NodePtr->AsShared()
+			]
+		];
+}
+
+float SAnimNotifyPair::GetWidgetPaddingLeft()
+{
+	return NodePtr->GetWidgetPosition().X - PairedWidget->GetDesiredSize().X;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimNotifyTrack
@@ -238,6 +303,8 @@ public:
 		SLATE_ATTRIBUTE( TArray<FTrackMarkerBar>, MarkerBars)
 		SLATE_ARGUMENT( int32, TrackIndex )
 		SLATE_ARGUMENT( FLinearColor, TrackColor )
+		SLATE_ATTRIBUTE(EVisibility, QueuedNotifyTimingNodeVisibility)
+		SLATE_ATTRIBUTE(EVisibility, BranchingPointTimingNodeVisibility)
 		SLATE_EVENT(FOnTrackSelectionChanged, OnSelectionChanged)
 		SLATE_EVENT( FOnUpdatePanel, OnUpdatePanel )
 		SLATE_EVENT( FOnGetBlueprintNotifyData, OnGetNotifyBlueprintData )
@@ -256,7 +323,8 @@ public:
 		SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies)
 		SLATE_EVENT( FCopyNotifies, OnCopyNotifies )
 		SLATE_EVENT( FPasteNotifies, OnPasteNotifies )
-		SLATE_EVENT(FOnSetInputViewRange, OnSetInputViewRange)
+		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
+		SLATE_EVENT( FOnGetTimingNodeVisibility, OnGetTimingNodeVisibility )
 		SLATE_END_ARGS()
 public:
 
@@ -427,6 +495,8 @@ protected:
 	// Handler that is called when the user starts dragging a node
 	FReply OnNotifyNodeDragStarted( TSharedRef<SAnimNotifyNode> NotifyNode, const FPointerEvent& MouseEvent, const FVector2D& ScreenNodePosition, const bool bDragOnMarker, int32 NotifyIndex );
 
+	const EVisibility GetTimingNodeVisibility(TSharedPtr<SAnimNotifyNode> NotifyNode);
+
 private:
 
 	// Data structure for bluprint notify context menu entries
@@ -440,13 +510,13 @@ private:
 	void GetNotifyMenuData(TArray<FAssetData>& NotifyAssetData, TArray<BlueprintNotifyMenuInfo>& OutNotifyMenuData);
 
 	// Store the tracks geometry for later use
-	void UpdateCachedGeometry(const FGeometry& InGeometry) {CachedGeometry = InGeometry;}
+	void UpdateCachedGeometry(const FGeometry& InGeometry);
 
 	// Returns the padding needed to render the notify in the correct track position
 	FMargin GetNotifyTrackPadding(int32 NotifyIndex) const
 	{
-		float LeftMargin = NotifyNodes[NotifyIndex]->GetWidgetPosition().X;
-		float RightMargin = CachedGeometry.Size.X - LeftMargin - NotifyNodes[NotifyIndex]->GetSize().X;
+		float LeftMargin = NotifyPairs[NotifyIndex]->GetWidgetPaddingLeft();
+		float RightMargin = CachedGeometry.Size.X - NotifyNodes[NotifyIndex]->GetWidgetPosition().X - NotifyNodes[NotifyIndex]->GetSize().X;
 		return FMargin(LeftMargin, 0, RightMargin, 0);
 	}
 
@@ -463,11 +533,14 @@ protected:
 
 	class UAnimSequenceBase*				Sequence; // need for menu generation of anim notifies - 
 	TArray<TSharedPtr<SAnimNotifyNode>>		NotifyNodes;
+	TArray<TSharedPtr<SAnimNotifyPair>>		NotifyPairs;
 	TArray<FAnimNotifyEvent*>				AnimNotifies;
 	TAttribute<float>						ViewInputMin;
 	TAttribute<float>						ViewInputMax;
 	TAttribute<FLinearColor>				TrackColor;
 	int32									TrackIndex;
+	TAttribute<EVisibility>					NotifyTimingNodeVisibility;
+	TAttribute<EVisibility>					BranchingPointTimingNodeVisibility;
 	FOnTrackSelectionChanged				OnSelectionChanged;
 	FOnUpdatePanel							OnUpdatePanel;
 	FOnGetBlueprintNotifyData				OnGetNotifyBlueprintData;
@@ -482,6 +555,7 @@ protected:
 	FCopyNotifies							OnCopyNotifies;
 	FPasteNotifies							OnPasteNotifies;
 	FOnSetInputViewRange					OnSetInputViewRange;
+	FOnGetTimingNodeVisibility				OnGetTimingNodeVisibility;
 
 	/** Delegate to call when offsets should be refreshed in a montage */
 	FRefreshOffsetsRequest					OnRequestRefreshOffsets;
@@ -547,6 +621,8 @@ public:
 	SLATE_ATTRIBUTE( float, ViewInputMin )
 	SLATE_ATTRIBUTE( float, ViewInputMax )
 	SLATE_ATTRIBUTE( TArray<FTrackMarkerBar>, MarkerBars)
+	SLATE_ATTRIBUTE( EVisibility, NotifyTimingNodeVisibility )
+	SLATE_ATTRIBUTE( EVisibility, BranchingPointTimingNodeVisibility )
 	SLATE_EVENT( FOnTrackSelectionChanged, OnSelectionChanged)
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
 	SLATE_EVENT( FOnGetDraggedNodePos, OnGetDraggedNodePos )
@@ -561,7 +637,8 @@ public:
 	SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies)
 	SLATE_EVENT( FCopyNotifies, OnCopyNotifies )
 	SLATE_EVENT( FPasteNotifies, OnPasteNotifies )
-	SLATE_EVENT(FOnSetInputViewRange, OnSetInputViewRange)
+	SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
+	SLATE_EVENT( FOnGetTimingNodeVisibility, OnGetTimingNodeVisibility )
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -993,6 +1070,18 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 
 	MarkerBars = InArgs._MarkerBars;
 
+	if(InArgs._StateEndTimingNode.IsValid())
+	{
+		// The overlay will use the desired size to calculate the notify node size,
+		// compute that once here.
+		InArgs._StateEndTimingNode->SlatePrepass(1.0f);
+		SAssignNew(EndMarkerNodeOverlay, SOverlay)
+			+ SOverlay::Slot()
+			[
+				InArgs._StateEndTimingNode.ToSharedRef()
+			];
+	}
+
 	SetToolTipText(TAttribute<FText>(this, &SAnimNotifyNode::GetNodeTooltip));
 }
 
@@ -1181,6 +1270,12 @@ void SAnimNotifyNode::UpdateSizeAndPosition(const FGeometry& AllottedGeometry)
 	WidgetX = bDrawTooltipToRight ? (NotifyTimePositionX - (NotifyHandleBoxWidth / 2.f)) : (NotifyTimePositionX - LabelWidth);
 	WidgetSize = bDrawTooltipToRight ? FVector2D(FMath::Max(LabelWidth, NotifyDurationSizeX), NotifyHeight) : FVector2D((LabelWidth + NotifyDurationSizeX), NotifyHeight);
 	WidgetSize.X += NotifyHandleBoxWidth;
+	
+	if(EndMarkerNodeOverlay.IsValid())
+	{
+		FVector2D OverlaySize = EndMarkerNodeOverlay->ComputeDesiredSize(1.0f);
+		WidgetSize.X += OverlaySize.X;
+	}
 
 	// Widget position of the notify marker
 	NotifyScrubHandleCentre = bDrawTooltipToRight ? NotifyHandleBoxWidth / 2.f : LabelWidth;
@@ -1213,6 +1308,14 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	int32 ScrubHandleID = MarkerLayer + 1;
 	int32 TextLayerID = ScrubHandleID + 1;
 	int32 BranchPointLayerID = TextLayerID + 1;
+
+	// Paint marker node if we have one
+	if(EndMarkerNodeOverlay.IsValid())
+	{
+		FVector2D MarkerSize = EndMarkerNodeOverlay->ComputeDesiredSize(1.0f);
+		FVector2D MarkerOffset(NotifyDurationSizeX + MarkerSize.X * 0.5f + 5.0f, (NotifyHeight - MarkerSize.Y) * 0.5f);
+		EndMarkerNodeOverlay->Paint(Args.WithNewParent(this), AllottedGeometry.MakeChild(MarkerOffset, MarkerSize, 1.0f), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	}
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT("SpecialEditableTextImageNormal") );
 	FSlateDrawElement::MakeBox( 
@@ -1368,7 +1471,8 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 	
 	FTrackScaleInfo ScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0, 0, CachedAllotedGeometrySize);
 	
-	float TrackScreenSpaceXPosition = MyGeometry.AbsolutePosition.X - MyGeometry.Position.X;
+	float XPositionInTrack = MyGeometry.AbsolutePosition.X - CachedTrackGeometry.AbsolutePosition.X + ScrubHandleSize.X;
+	float TrackScreenSpaceXPosition = MyGeometry.AbsolutePosition.X - XPositionInTrack;
 
 	if(CurrentDragHandle == ENotifyStateHandleHit::Start)
 	{
@@ -1377,7 +1481,7 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 
 		if(MouseEvent.GetScreenSpacePosition().X >= TrackScreenSpaceXPosition && MouseEvent.GetScreenSpacePosition().X <= TrackScreenSpaceXPosition + CachedAllotedGeometrySize.X)
 		{
-			float NewDisplayTime = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X);
+			float NewDisplayTime = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + XPositionInTrack).X);
 			float NewDuration = NotifyEvent->GetDuration() + OldDisplayTime - NewDisplayTime;
 
 			// Check to make sure the duration is not less than the minimum allowed
@@ -1434,7 +1538,7 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 	{
 		if(MouseEvent.GetScreenSpacePosition().X >= TrackScreenSpaceXPosition && MouseEvent.GetScreenSpacePosition().X <= TrackScreenSpaceXPosition + CachedAllotedGeometrySize.X)
 		{
-			float NewDuration = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X) - NotifyEvent->GetTime();
+			float NewDuration = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + XPositionInTrack).X) - NotifyEvent->GetTime();
 
 			NotifyEvent->SetDuration(FMath::Max(NewDuration, MinimumStateDuration));
 		}
@@ -1663,6 +1767,7 @@ void SAnimNotifyTrack::Construct(const FArguments& InArgs)
 	OnCopyNotifies = InArgs._OnCopyNotifies;
 	OnPasteNotifies = InArgs._OnPasteNotifies;
 	OnSetInputViewRange = InArgs._OnSetInputViewRange;
+	OnGetTimingNodeVisibility = InArgs._OnGetTimingNodeVisibility;
 
 	this->ChildSlot
 	[
@@ -2810,6 +2915,7 @@ void SAnimNotifyTrack::AddNewNotify(const FText& NewNotifyName, ETextCommit::Typ
 
 void SAnimNotifyTrack::Update()
 {
+	NotifyPairs.Empty();
 	NotifyNodes.Empty();
 
 	TrackArea->SetContent(
@@ -2818,17 +2924,74 @@ void SAnimNotifyTrack::Update()
 
 	if ( AnimNotifies.Num() > 0 )
 	{
+		TArray<TSharedPtr<FTimingRelevantElementBase>> TimingElements;
+		SAnimTimingPanel::GetTimingRelevantElements(Sequence, TimingElements);
 		for (int32 NotifyIndex = 0; NotifyIndex < AnimNotifies.Num(); ++NotifyIndex)
 		{
+			TSharedPtr<FTimingRelevantElementBase> Element;
 			FAnimNotifyEvent* Event = AnimNotifies[NotifyIndex];
 
-			TSharedPtr<SAnimNotifyNode> AnimNotifyNode;
-			
-			NodeSlots->AddSlot()
-			.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SAnimNotifyTrack::GetNotifyTrackPadding, NotifyIndex)))
-			.VAlign(VAlign_Center)
-			[
-				SAssignNew( AnimNotifyNode, SAnimNotifyNode )
+			for(int32 Idx = 0 ; Idx < TimingElements.Num() ; ++Idx)
+			{
+				Element = TimingElements[Idx];
+
+				if(Element->GetType() == ETimingElementType::NotifyStateBegin
+				   || Element->GetType() == ETimingElementType::BranchPointNotify
+				   || Element->GetType() == ETimingElementType::QueuedNotify)
+				{
+					// Only the notify type will return the type flags above
+					FTimingRelevantElement_Notify* NotifyElement = static_cast<FTimingRelevantElement_Notify*>(Element.Get());
+					if(Event == &Sequence->Notifies[NotifyElement->NotifyIndex])
+					{
+						break;
+					}
+				}
+			}
+
+			TSharedPtr<SAnimNotifyNode> AnimNotifyNode = nullptr;
+			TSharedPtr<SAnimNotifyPair> NotifyPair = nullptr;
+			TSharedPtr<SAnimTimingNode> TimingNode = nullptr;
+			TSharedPtr<SAnimTimingNode> EndTimingNode = nullptr;
+
+			// Create visibility attribute to control timing node visibility for notifies
+			TAttribute<EVisibility> TimingNodeVisibility = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateLambda(
+				[this]()
+				{
+					if(OnGetTimingNodeVisibility.IsBound())
+					{
+						return OnGetTimingNodeVisibility.Execute(ETimingElementType::QueuedNotify);
+					}
+					return EVisibility(EVisibility::Hidden);
+				}));
+
+			SAssignNew(TimingNode, SAnimTimingNode)
+				.InElement(Element)
+				.bUseTooltip(false)
+				.Visibility(TimingNodeVisibility);
+
+			if(Event->NotifyStateClass)
+			{
+				TSharedPtr<FTimingRelevantElementBase>* FoundStateEndElement = TimingElements.FindByPredicate([Event](TSharedPtr<FTimingRelevantElementBase>& ElementToTest)
+				{
+					if(ElementToTest.IsValid() && ElementToTest->GetType() == ETimingElementType::NotifyStateEnd)
+					{
+						FTimingRelevantElement_NotifyStateEnd* StateElement = static_cast<FTimingRelevantElement_NotifyStateEnd*>(ElementToTest.Get());
+						return &(StateElement->Sequence->Notifies[StateElement->NotifyIndex]) == Event;
+					}
+					return false;
+				});
+
+				if(FoundStateEndElement)
+				{
+					// Create an end timing node if we have a state
+					SAssignNew(EndTimingNode, SAnimTimingNode)
+						.InElement(*FoundStateEndElement)
+						.bUseTooltip(false)
+						.Visibility(TimingNodeVisibility);
+				}
+			}
+
+			SAssignNew(AnimNotifyNode, SAnimNotifyNode)
 				.Sequence(Sequence)
 				.AnimNotify(Event)
 				.OnNodeDragStarted(this, &SAnimNotifyTrack::OnNotifyNodeDragStarted, NotifyIndex)
@@ -2838,9 +3001,24 @@ void SAnimNotifyTrack::Update()
 				.ViewInputMax(ViewInputMax)
 				.MarkerBars(MarkerBars)
 				.OnDeselectAllNotifies(OnDeselectAllNotifies)
+				.StateEndTimingNode(EndTimingNode);
+
+			SAssignNew(NotifyPair, SAnimNotifyPair)
+			.LeftContent()
+			[
+				TimingNode.ToSharedRef()
+			]
+			.Node(AnimNotifyNode);
+
+			NodeSlots->AddSlot()
+			.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SAnimNotifyTrack::GetNotifyTrackPadding, NotifyIndex)))
+			.VAlign(VAlign_Center)
+			[
+				NotifyPair->AsShared()
 			];
 
 			NotifyNodes.Add(AnimNotifyNode);
+			NotifyPairs.Add(NotifyPair);
 		}
 	}
 }
@@ -2982,7 +3160,8 @@ void SAnimNotifyTrack::DisconnectSelectedNodesForDrag(TArray<TSharedPtr<SAnimNot
 	for(auto Iter = SelectedNotifyIndices.CreateIterator(); Iter; ++Iter)
 	{
 		TSharedPtr<SAnimNotifyNode> Node = NotifyNodes[*Iter];
-		NodeSlots->RemoveSlot(Node->AsShared());
+		TSharedPtr<SAnimNotifyPair> Pair = NotifyPairs[*Iter];
+		NodeSlots->RemoveSlot(Pair->AsShared());
 
 		DragNodes.Add(Node);
 	}
@@ -3251,6 +3430,30 @@ void SAnimNotifyTrack::SetNotifyFrame(const FText& NotifyFrameText, ETextCommit:
 	FSlateApplication::Get().DismissAllMenus();
 }
 
+const EVisibility SAnimNotifyTrack::GetTimingNodeVisibility(TSharedPtr<SAnimNotifyNode> NotifyNode)
+{
+	if(OnGetTimingNodeVisibility.IsBound())
+	{
+		FAnimNotifyEvent* Event = NotifyNode->NotifyEvent;
+		EMontageNotifyTickType::Type TickType = Event->MontageTickType;
+
+		return TickType == EMontageNotifyTickType::BranchingPoint ? OnGetTimingNodeVisibility.Execute(ETimingElementType::BranchPointNotify) : OnGetTimingNodeVisibility.Execute(ETimingElementType::QueuedNotify);
+	}
+
+	// No visibility defined, not visible
+	return EVisibility::Hidden;
+}
+
+void SAnimNotifyTrack::UpdateCachedGeometry(const FGeometry& InGeometry)
+{
+	CachedGeometry = InGeometry;
+
+	for(TSharedPtr<SAnimNotifyNode> Node : NotifyNodes)
+	{
+		Node->CachedTrackGeometry = InGeometry;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // SSequenceEdTrack
 
@@ -3305,6 +3508,7 @@ void SNotifyEdTrack::Construct(const FArguments& InArgs)
 				.OnCopyNotifies(InArgs._OnCopyNotifies)
 				.OnPasteNotifies(InArgs._OnPasteNotifies)
 				.OnSetInputViewRange(InArgs._OnSetInputViewRange)
+				.OnGetTimingNodeVisibility(InArgs._OnGetTimingNodeVisibility)
 			]
 
 			+SHorizontalBox::Slot()
@@ -3396,6 +3600,7 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 	WidgetWidth = InArgs._WidgetWidth;
 	OnGetScrubValue = InArgs._OnGetScrubValue;
 	OnRequestRefreshOffsets = InArgs._OnRequestRefreshOffsets;
+	OnGetTimingNodeVisibility = InArgs._OnGetTimingNodeVisibility;
 
 	this->ChildSlot
 	[
@@ -3547,11 +3752,11 @@ void SAnimNotifyPanel::DeleteNotify(FAnimNotifyEvent* Notify)
 
 void SAnimNotifyPanel::Update()
 {
-	PersonaPtr.Pin()->OnAnimNotifiesChanged.Broadcast();
 	if(Sequence != NULL)
 	{
 		Sequence->UpdateAnimNotifyTrackCache();
 	}
+	PersonaPtr.Pin()->OnAnimNotifiesChanged.Broadcast();
 }
 
 bool SAnimNotifyPanel::ReadNotifyPasteHeader(FString& OutPropertyString, const TCHAR*& OutBuffer, float& OutOriginalTime, float& OutOriginalLength, int32& OutTrackSpan) const
@@ -3629,6 +3834,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 			.OnCopyNotifies(this, &SAnimNotifyPanel::CopySelectedNotifiesToClipboard)
 			.OnPasteNotifies(this, &SAnimNotifyPanel::OnPasteNotifies)
 			.OnSetInputViewRange(this, &SAnimNotifyPanel::InputViewRangeChanged)
+			.OnGetTimingNodeVisibility(OnGetTimingNodeVisibility)
 		];
 
 		NotifyAnimTracks.Add(EdTrack->NotifyTrack);
@@ -3779,6 +3985,13 @@ void SAnimNotifyPanel::DeselectAllNotifies()
 	for(TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
 	{
 		Track->DeselectAllNotifyNodes(false);
+	}
+
+	// Broadcast the change so the editor can update
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+	if(SharedPersona.IsValid())
+	{
+		SharedPersona->OnAnimNotifiesChanged.Broadcast();
 	}
 
 	OnTrackSelectionChanged();
@@ -4048,6 +4261,13 @@ void SAnimNotifyPanel::OnPropertyChanged(UObject* ChangedObject, FPropertyChange
 				RefreshNotifyTracks();
 			}
 		}
+
+		// Broadcast the change so the editor can update
+		TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+		if(SharedPersona.IsValid())
+		{
+			SharedPersona->OnAnimNotifiesChanged.Broadcast();
+		}
 	}
 }
 
@@ -4299,6 +4519,13 @@ void SAnimNotifyPanel::OnNotifyObjectChanged(UObject* EditorBaseObj, bool bRebui
 		if(NotifyAnimTracks.IsValidIndex(WidgetTrackIdx))
 		{
 			NotifyAnimTracks[WidgetTrackIdx]->Update();
+		}
+
+		// Broadcast the change so the editor can update
+		TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+		if(SharedPersona.IsValid())
+		{
+			SharedPersona->OnAnimNotifiesChanged.Broadcast();
 		}
 	}
 }

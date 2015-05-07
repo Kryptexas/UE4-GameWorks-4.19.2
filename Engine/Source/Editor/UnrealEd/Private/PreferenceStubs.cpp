@@ -40,6 +40,10 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 	, DefaultLocalAxesSelection(2)
 {
 	ViewModeIndex = VMI_Lit;
+
+	SectionTimingNodeColour = FLinearColor(0.0f, 1.0f, 0.0f);
+	NotifyTimingNodeColour = FLinearColor(1.0f, 0.0f, 0.0f);
+	BranchingPointTimingNodeColour = FLinearColor(0.5f, 1.0f, 1.0f);
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
@@ -108,3 +112,21 @@ void UPersonaOptions::SetShowMeshStats( int32 InShowMeshStats )
 	SaveConfig();
 }
 
+
+void UPersonaOptions::SetSectionTimingNodeColor(const FLinearColor& InColor)
+{
+	SectionTimingNodeColour = InColor;
+	SaveConfig();
+}
+
+void UPersonaOptions::SetNotifyTimingNodeColor(const FLinearColor& InColor)
+{
+	NotifyTimingNodeColour = InColor;
+	SaveConfig();
+}
+
+void UPersonaOptions::SetBranchingPointTimingNodeColor(const FLinearColor& InColor)
+{
+	BranchingPointTimingNodeColour = InColor;
+	SaveConfig();
+}
