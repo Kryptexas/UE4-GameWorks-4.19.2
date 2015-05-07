@@ -3680,7 +3680,22 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 	if ( World )
 	{
 		// We need a physics scene at save time in case code does traces during onsave events.
-		if (World->GetPhysicsScene() == nullptr)
+		bool bHasPhysicsScene = false;
+
+		// First check if our owning world has a physics scene
+		if (World->PersistentLevel && World->PersistentLevel->OwningWorld)
+		{
+			bHasPhysicsScene = (World->PersistentLevel->OwningWorld->GetPhysicsScene() != nullptr);
+		}
+		
+		// If we didn't already find a physics scene in our owning world, maybe we personally have our own.
+		if (!bHasPhysicsScene)
+		{
+			bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
+		}
+
+		// If we didn't find any physics scene we will synthesize one and remove it after save
+		if (!bHasPhysicsScene)
 		{
 			// Clear world components first so that UpdateWorldComponents below properly adds them all to the physics scene
 			World->ClearWorldComponents();
@@ -3696,7 +3711,7 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 				World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).CreateAISystem(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
 			}
 
-			// Update components now that a phyiscs scene exists.
+			// Update components now that a physics scene exists.
 			World->UpdateWorldComponents(true, true);
 
 			// Set this to true so we can clean up what we just did down below
@@ -3755,6 +3770,9 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			{
 				GPhysCommandHandler->Flush();
 			}
+			
+			// Update world components now that we have restored the world to its original state
+			World->UpdateWorldComponents(true, true);
 		}
 	}
 
