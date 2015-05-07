@@ -118,7 +118,7 @@ void FSimpleHMD::GetCurrentPose(FQuat& CurrentOrientation)
 	}
 }
 
-void FSimpleHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition, bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera, const FVector& PositionScale)
+void FSimpleHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
 	CurrentPosition = FVector(0.0f, 0.0f, 0.0f);
 
@@ -151,7 +151,7 @@ void FSimpleHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation)
 	ViewRotation = FRotator(DeltaControlOrientation * CurHmdOrientation);
 }
 
-void FSimpleHMD::UpdatePlayerCamera(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV)
+void FSimpleHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, struct FMinimalViewInfo& POV)
 {
 	return;
 }
@@ -342,7 +342,7 @@ void FSimpleHMD::SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView)
 	InViewFamily.bUseSeparateRenderTarget = false;
 }
 
-void FSimpleHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& View)
+void FSimpleHMD::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView)
 {
 	check(IsInRenderingThread());
 }
