@@ -2,16 +2,14 @@
 
 #include "StandaloneRendererPrivate.h"
 #include "OpenGL/SlateOpenGLRenderer.h"
+
+#include "SlateOpenGLMac.h"
+
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
-
-@interface FSlateOpenGLLayer : NSOpenGLLayer
-@property (assign) NSOpenGLContext* Context;
-@property (assign) NSOpenGLPixelFormat* PixelFormat;
-@end
 
 @implementation FSlateOpenGLLayer
 
@@ -38,12 +36,6 @@
 
 @end
 
-@interface FSlateCocoaView : FCocoaTextView
-@property (assign) NSOpenGLContext* Context;
-@property (assign) NSOpenGLPixelFormat* PixelFormat;
-@property (assign) FSlateOpenGLViewport* SlateViewport;
-@end
-
 @implementation FSlateCocoaView
 
 - (CALayer*)makeBackingLayer
@@ -51,21 +43,41 @@
 	return [[FSlateOpenGLLayer alloc] initWithContext:self.Context andPixelFormat:self.PixelFormat];
 }
 
-- (id)initWithFrame:(NSRect)frameRect context:(NSOpenGLContext*)context pixelFormat:(NSOpenGLPixelFormat*)pixelFormat andSlateViewport:(FSlateOpenGLViewport*)slateViewport
+- (id)initWithFrame:(NSRect)frameRect context:(NSOpenGLContext*)context pixelFormat:(NSOpenGLPixelFormat*)pixelFormat
 {
 	self = [super initWithFrame:frameRect];
 	if (self)
 	{
 		self.Context = context;
 		self.PixelFormat = pixelFormat;
-		self.SlateViewport = slateViewport;
+		Framebuffer = 0;
+		Renderbuffer = 0;
 	}
 	return self;
 }
 
+-(void)dealloc
+{
+	[super dealloc];
+}
+
 - (void)drawRect:(NSRect)dirtyRect
 {
-	self.SlateViewport->Draw();
+	if (Framebuffer && [(FCocoaWindow*)[self window] isRenderInitialized] && ViewportRect.IsValid())
+	{
+		int32 CurrentReadFramebuffer = 0;
+		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &CurrentReadFramebuffer);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, Framebuffer);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glBlitFramebuffer(0, 0, ViewportRect.Right, ViewportRect.Bottom, 0, 0, self.frame.size.width, self.frame.size.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		CHECK_GL_ERRORS;
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, CurrentReadFramebuffer);
+	}
+	else
+	{
+		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+	}
 }
 
 - (BOOL)isOpaque
@@ -93,7 +105,6 @@ FSlateOpenGLContext::FSlateOpenGLContext()
 :	View(NULL)
 ,	PixelFormat(NULL)
 ,	Context(NULL)
-,	ViewContext(NULL)
 ,	bNeedsUpdate(false)
 {
 }
@@ -122,9 +133,8 @@ void FSlateOpenGLContext::Initialize(void* InWindow, const FSlateOpenGLContext* 
 	NSWindow* Window = (NSWindow*)InWindow;
 	if (Window)
 	{
-		ViewContext = [[NSOpenGLContext alloc] initWithFormat:PixelFormat shareContext:Context];
 		const NSRect ViewRect = NSMakeRect(0, 0, Window.frame.size.width, Window.frame.size.height);
-		View = [[FSlateCocoaView alloc] initWithFrame:ViewRect context:ViewContext pixelFormat:PixelFormat andSlateViewport:Viewport];
+		View = [[FSlateCocoaView alloc] initWithFrame:ViewRect context:Context pixelFormat:PixelFormat];
 		[View setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
 
 		if (FPlatformMisc::IsRunningOnMavericks() && ([Window styleMask] & NSTexturedBackgroundWindowMask))
@@ -163,6 +173,22 @@ void FSlateOpenGLContext::Destroy()
 		{
 			[Window setContentView:NULL];
 		}
+		
+		NSOpenGLContext* Current = [NSOpenGLContext currentContext];
+		[Context makeCurrentContext];
+		FSlateCocoaView* SlateView = ((FSlateCocoaView*)View);
+		if (SlateView->Framebuffer)
+		{
+			glDeleteFramebuffers(1, &SlateView->Framebuffer);
+			SlateView->Framebuffer = 0;
+		}
+		if (SlateView->Renderbuffer)
+		{
+			glDeleteRenderbuffers(1, &SlateView->Renderbuffer);
+			SlateView->Renderbuffer = 0;
+		}
+		[Current makeCurrentContext];
+		
 		[View release];
 		View = NULL;
 
@@ -172,11 +198,8 @@ void FSlateOpenGLContext::Destroy()
 		[PixelFormat release];
 		[Context clearDrawable];
 		[Context release];
-		[ViewContext clearDrawable];
-		[ViewContext release];
 		PixelFormat = NULL;
 		Context = NULL;
-		ViewContext = NULL;
 	}
 }
 
