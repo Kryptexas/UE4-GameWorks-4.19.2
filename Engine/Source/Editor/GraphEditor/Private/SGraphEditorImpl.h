@@ -20,11 +20,13 @@ public:
 	SLATE_BEGIN_ARGS( SGraphEditorImpl )
 		: _AdditionalCommands( TSharedPtr<FUICommandList>() )
 		, _IsEditable(true)
+		, _DisplayAsReadOnly(false)
 		{}
 
 
 		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 		SLATE_ATTRIBUTE( bool, IsEditable )
+		SLATE_ATTRIBUTE( bool, DisplayAsReadOnly )
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )
 		SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 		SLATE_ARGUMENT( UEdGraph*, GraphToEdit )
@@ -57,6 +59,9 @@ private:
 	SGraphEditor::FOnCreateActionMenu OnCreateActionMenu;
 
 	TAttribute<bool> IsEditable;
+
+	/** Attribute for displaying the graph as read-only, which is a visual state only where IsEditable is a functional state */
+	TAttribute<bool> DisplayAsReadOnly;
 
 	bool bAutoExpandActionMenu;
 
@@ -160,6 +165,9 @@ private:
 	FSlateColor GetZoomTextColorAndOpacity() const;
 
 	bool IsGraphEditable() const;
+
+	/** Helper function to decide whether to display the graph in a read-only state */
+	bool DisplayGraphAsReadOnly() const;
 
 	bool IsLocked() const;
 

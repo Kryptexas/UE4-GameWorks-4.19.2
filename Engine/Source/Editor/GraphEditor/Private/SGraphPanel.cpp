@@ -77,6 +77,7 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 	this->GraphObjToDiff = InArgs._GraphObjToDiff;
 	this->SelectionManager.OnSelectionChanged = InArgs._OnSelectionChanged;
 	this->IsEditable = InArgs._IsEditable;
+	this->DisplayAsReadOnly = InArgs._DisplayAsReadOnly;
 	this->OnNodeDoubleClicked = InArgs._OnNodeDoubleClicked;
 	this->OnDropActor = InArgs._OnDropActor;
 	this->OnDropStreamingLevel = InArgs._OnDropStreamingLevel;
@@ -262,7 +263,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					const FWidgetStyle& NodeStyleToUse = (bNodeIsDifferent && !bNodeIsNotUsableInCurrentContext)? InWidgetStyle : FadedStyle;
 
 					// Draw the node.O
-					CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, IsEditable.Get() && ShouldBeEnabled( bParentEnabled ) );
+					CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, !DisplayAsReadOnly.Get() && ShouldBeEnabled( bParentEnabled ) );
 				}
 
 				// Draw the node's overlay, if it has one.

@@ -32,6 +32,7 @@ private:
 	virtual TSharedRef<SGraphEditor> PRIVATE_MakeGraphEditor(
 		const TSharedPtr<FUICommandList>& InAdditionalCommands,
 		const TAttribute<bool>& InIsEditable,
+		const TAttribute<bool>& InDisplayAsReadOnly,
 		const TAttribute<bool>& InIsEmpty,
 		TAttribute<FGraphAppearanceInfo> Appearance,
 		TSharedPtr<SWidget> InTitleBar,

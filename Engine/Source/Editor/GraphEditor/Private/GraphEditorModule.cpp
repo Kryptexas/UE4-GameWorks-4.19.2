@@ -55,7 +55,8 @@ void FGraphEditorModule::ShutdownModule()
  */
 TSharedRef<SGraphEditor> FGraphEditorModule::PRIVATE_MakeGraphEditor( 
 	const TSharedPtr<FUICommandList>& InAdditionalCommands, 
-	const TAttribute<bool>& InIsEditable, 
+	const TAttribute<bool>& InIsEditable,
+	const TAttribute<bool>& InDisplayAsReadOnly,
 	const TAttribute<bool>& InIsEmpty,
 	TAttribute<FGraphAppearanceInfo> Appearance,
 	TSharedPtr<SWidget> InTitleBar,
@@ -71,6 +72,7 @@ TSharedRef<SGraphEditor> FGraphEditorModule::PRIVATE_MakeGraphEditor(
 		SNew(SGraphEditorImpl)
 		.AdditionalCommands(InAdditionalCommands)
 		.IsEditable(InIsEditable)
+		.DisplayAsReadOnly(InDisplayAsReadOnly)
 		.Appearance(Appearance)
 		.TitleBar(InTitleBar)
 		.GraphToEdit(InGraphToEdit)

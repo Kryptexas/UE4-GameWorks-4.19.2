@@ -160,6 +160,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 {
 	Commands = MakeShareable( new FUICommandList() );
 	IsEditable = InArgs._IsEditable;
+	DisplayAsReadOnly = InArgs._DisplayAsReadOnly;
 	Appearance = InArgs._Appearance;
 	TitleBar	= InArgs._TitleBar;
 	bAutoExpandActionMenu = InArgs._AutoExpandActionMenu;
@@ -249,6 +250,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.OnSelectionChanged( InArgs._GraphEvents.OnSelectionChanged )
 			.OnNodeDoubleClicked( InArgs._GraphEvents.OnNodeDoubleClicked )
 			.IsEditable( this, &SGraphEditorImpl::IsGraphEditable )
+			.DisplayAsReadOnly( this, &SGraphEditorImpl::DisplayGraphAsReadOnly )
 			.OnDropActor( InArgs._GraphEvents.OnDropActor )
 			.OnDropStreamingLevel( InArgs._GraphEvents.OnDropStreamingLevel )
 			.OnVerifyTextCommit( InArgs._GraphEvents.OnVerifyTextCommit )
@@ -558,6 +560,11 @@ FSlateColor SGraphEditorImpl::GetZoomTextColorAndOpacity() const
 bool SGraphEditorImpl::IsGraphEditable() const
 {
 	return (EdGraphObj != NULL) && IsEditable.Get();
+}
+
+bool SGraphEditorImpl::DisplayGraphAsReadOnly() const
+{
+	return (EdGraphObj != NULL) && DisplayAsReadOnly.Get();
 }
 
 bool SGraphEditorImpl::IsLocked() const

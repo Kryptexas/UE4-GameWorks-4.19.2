@@ -111,6 +111,7 @@ public:
 	SLATE_BEGIN_ARGS(SGraphEditor)
 		: _AdditionalCommands( static_cast<FUICommandList*>(NULL) )
 		, _IsEditable(true)
+		, _DisplayAsReadOnly(false)
 		, _IsEmpty(false)
 		, _GraphToEdit(NULL)
 		, _GraphToDiff(NULL)
@@ -120,6 +121,7 @@ public:
 
 		SLATE_ARGUMENT( TSharedPtr<FUICommandList>, AdditionalCommands )
 		SLATE_ATTRIBUTE( bool, IsEditable )		
+		SLATE_ATTRIBUTE( bool, DisplayAsReadOnly )		
 		SLATE_ATTRIBUTE( bool, IsEmpty )	
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )
 		SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
