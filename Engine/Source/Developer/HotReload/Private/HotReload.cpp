@@ -645,7 +645,8 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 
 			// Abandon the old module.  We can't unload it because various data structures may be living
 			// that have vtables pointing to code that would become invalidated.
-			FModuleManager::Get().AbandonModule(ShortPackageName);
+			const bool bAbandonModule = true;
+			FModuleManager::Get().UnloadOrAbandonModuleWithCallback(ShortPackageName, HotReloadAr, bAbandonModule);
 
 			// Module should never be loaded at this point
 			check(!FModuleManager::Get().IsModuleLoaded(ShortPackageName));
