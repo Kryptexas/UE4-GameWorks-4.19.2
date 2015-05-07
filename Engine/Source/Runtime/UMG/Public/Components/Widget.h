@@ -279,12 +279,6 @@ public:
 	bool HasKeyboardFocus() const;
 
 	/**
-	 * @return Whether this widget has any descendants with keyboard focus
-	 */
-	UFUNCTION(BlueprintCallable, Category="Widget")
-	bool HasFocusedDescendants() const;
-
-	/**
 	 * Checks to see if this widget is the current mouse captor
 	 * @return  True if this widget has captured the mouse
 	 */
@@ -295,13 +289,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetKeyboardFocus();
 
-	/** Gets the focus to this widget. */
+	/** @return true if this widget is focused by a specific user. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool HasUserFocus(APlayerController* PlayerController) const;
 
-	/** Gets the focus to this widget. */
+	/** @return true if this widget is focused by any user. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool HasAnyUserFocus() const;
+
+	/** @return true if any descendant widget is focused by any user. */
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(DisplayName="HasAnyUserFocusedDescendants"))
+	bool HasFocusedDescendants() const;
+
+	/** @return true if any descendant widget is focused by a specific user. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	bool HasUserFocusedDescendants(APlayerController* PlayerController) const;
 	
 	/** Sets the focus to this widget for a specific user */
 	UFUNCTION(BlueprintCallable, Category="Widget")

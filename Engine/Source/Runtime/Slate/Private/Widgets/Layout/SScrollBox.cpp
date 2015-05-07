@@ -386,11 +386,32 @@ bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSh
 		// @todo: This is a workaround because DesiredScrollOffset can exceed the ScrollMax when mouse dragging on the scroll bar and we need it clamped here or the offset is wrong
 		ScrollBy(MyGeometry, 0, EAllowOverscroll::No, false);
 
-		// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
-		const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition);
-		const float MyPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition);
-		const float ScrollOffset = WidgetPosition - MyPosition;
-		ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
+		// If the scale is 0, we can't really calculate things properly.
+		if ( MyGeometry.Scale != 0 )
+		{
+			// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
+			// NOTE: The scrollbox does all offset calculation using desired sizes which doesn't involve scale,
+			//       so we need to remove the scale from positions so that they are in the same unscaled space.
+			const float WidgetStartPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale);
+			const float WidgetEndPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition / MyGeometry.Scale + WidgetGeometry->Geometry.GetLocalSize());
+			const float ViewStartPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale);
+			const float ViewEndPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition / MyGeometry.Scale + MyGeometry.GetLocalSize());
+
+			const float ViewDelta = ( ViewEndPosition - ViewStartPosition );
+			const float WidgetDelta = ( WidgetEndPosition - WidgetStartPosition );
+
+			if ( WidgetStartPosition < ViewStartPosition )
+			{
+				const float ScrollOffset = WidgetStartPosition - ViewStartPosition;
+				ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
+			}
+			else if ( WidgetEndPosition > ViewEndPosition )
+			{
+				const float ScrollOffset = ( WidgetEndPosition - ViewDelta ) - ViewStartPosition;
+				ScrollBy(MyGeometry, ScrollOffset, EAllowOverscroll::No, InAnimateScroll);
+			}
+		}
+
 		return true;
 	}
 	return false;
@@ -788,6 +809,73 @@ FReply SScrollBox::OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent
 	{
 		return FReply::Handled();
 	}
+}
+
+FNavigationReply SScrollBox::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
+{
+	TSharedPtr<SWidget> FocusedChild;
+	int32 FocusedChildIndex = -1;
+
+	// Find the child with focus currently so that we can find the next logical child we're going to move to.
+	TPanelChildren<SScrollBox::FSlot>& Children = ScrollPanel->Children;
+	for ( int32 SlotIndex=0; SlotIndex < Children.Num(); ++SlotIndex )
+	{
+		if ( Children[SlotIndex].GetWidget()->HasUserFocus(InNavigationEvent.GetUserIndex()).IsSet() ||
+			 Children[SlotIndex].GetWidget()->HasUserFocusedDescendants(InNavigationEvent.GetUserIndex()) )
+		{
+			FocusedChild = Children[SlotIndex].GetWidget();
+			FocusedChildIndex = SlotIndex;
+			break;
+		}
+	}
+
+	if ( FocusedChild.IsValid() )
+	{
+		if ( Orientation == Orient_Vertical )
+		{
+			switch ( InNavigationEvent.GetNavigationType() )
+			{
+			case EUINavigation::Up:
+				FocusedChildIndex--;
+				break;
+			case EUINavigation::Down:
+				FocusedChildIndex++;
+				break;
+			default:
+				// If we don't handle this direction in our current orientation we can 
+				// just allow the behavior of the boundary rule take over.
+				return SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
+			}
+		}
+		else // Orient_Horizontal
+		{
+			switch ( InNavigationEvent.GetNavigationType() )
+			{
+			case EUINavigation::Left:
+				FocusedChildIndex--;
+				break;
+			case EUINavigation::Right:
+				FocusedChildIndex++;
+				break;
+			default:
+				// If we don't handle this direction in our current orientation we can 
+				// just allow the behavior of the boundary rule take over.
+				return SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
+			}
+		}
+
+		// If the focused child index is in a valid range we know we can successfully focus
+		// the new child we're moving focus to.
+		if ( FocusedChildIndex >= 0 && FocusedChildIndex < Children.Num() )
+		{
+			TSharedRef<SWidget> NextFocusedChild = Children[FocusedChildIndex].GetWidget();
+			ScrollDescendantIntoView(MyGeometry, NextFocusedChild, false);
+
+			return FNavigationReply::Explicit(NextFocusedChild);
+		}
+	}
+
+	return SCompoundWidget::OnNavigation(MyGeometry, InNavigationEvent);
 }
 
 int32 SScrollBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const

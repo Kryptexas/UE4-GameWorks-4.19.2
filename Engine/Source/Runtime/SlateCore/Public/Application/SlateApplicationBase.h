@@ -225,6 +225,15 @@ public:
 	virtual FSlateRect GetPreferredWorkArea( ) const = 0;
 
 	/**
+	 * Checks whether the specified widget has any descendants which are currently focused for the specified user user.
+	 *
+	 * @param Widget The widget to check.
+	 * @param InUserIndex Index of the user that we want to check for.
+	 * @return true if any descendants are focused, false otherwise.
+	 */
+	virtual bool HasUserFocusedDescendants(const TSharedRef< const SWidget >& Widget, int32 UserIndex) const = 0;
+
+	/**
 	 * Checks whether the specified widget has any descendants which are currently focused.
 	 *
 	 * @param Widget The widget to check.

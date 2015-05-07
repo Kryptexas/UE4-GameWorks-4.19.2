@@ -280,17 +280,6 @@ bool UWidget::HasKeyboardFocus() const
 	return false;
 }
 
-bool UWidget::HasFocusedDescendants() const
-{
-	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
-	if (SafeWidget.IsValid())
-	{
-		return SafeWidget->HasFocusedDescendants();
-	}
-
-	return false;
-}
-
 bool UWidget::HasMouseCapture() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
@@ -343,6 +332,41 @@ bool UWidget::HasAnyUserFocus() const
 	{
 		TOptional<EFocusCause> FocusCause = SafeWidget->HasAnyUserFocus();
 		return FocusCause.IsSet();
+	}
+
+	return false;
+}
+
+bool UWidget::HasFocusedDescendants() const
+{
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		return SafeWidget->HasFocusedDescendants();
+	}
+
+	return false;
+}
+
+bool UWidget::HasUserFocusedDescendants(APlayerController* PlayerController) const
+{
+	if ( PlayerController == nullptr || !PlayerController->IsLocalPlayerController() )
+	{
+		return false;
+	}
+
+	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
+	if ( SafeWidget.IsValid() )
+	{
+		FLocalPlayerContext Context(PlayerController);
+
+		if ( ULocalPlayer* LocalPlayer = Context.GetLocalPlayer() )
+		{
+			// HACK: We use the controller Id as the local player index for focusing widgets in Slate.
+			int32 UserIndex = LocalPlayer->GetControllerId();
+
+			return SafeWidget->HasUserFocusedDescendants(UserIndex);
+		}
 	}
 
 	return false;

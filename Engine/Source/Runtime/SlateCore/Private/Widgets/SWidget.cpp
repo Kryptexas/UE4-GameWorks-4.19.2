@@ -428,6 +428,11 @@ TOptional<EFocusCause> SWidget::HasAnyUserFocus() const
 	return FSlateApplicationBase::Get().HasAnyUserFocus(SharedThis(this));
 }
 
+bool SWidget::HasUserFocusedDescendants(int32 UserIndex) const
+{
+	return FSlateApplicationBase::Get().HasUserFocusedDescendants(SharedThis(this), UserIndex);
+}
+
 bool SWidget::HasFocusedDescendants() const
 {
 	return FSlateApplicationBase::Get().HasFocusedDescendants(SharedThis(this));

@@ -3552,6 +3552,18 @@ bool FSlateApplication::ShowUserFocus(const TSharedPtr<const SWidget> Widget) co
 	return false;
 }
 
+bool FSlateApplication::HasUserFocusedDescendants(const TSharedRef< const SWidget >& Widget, int32 UserIndex) const
+{
+	const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
+	const FWeakWidgetPath & FocusedWidgetPath = UserFocusEntry.WidgetPath;
+	if ( FocusedWidgetPath.IsValid() && FocusedWidgetPath.GetLastWidget().Pin() != Widget && FocusedWidgetPath.ContainsWidget(Widget) )
+	{
+		return true;
+	}
+
+	return false;
+}
+
 bool FSlateApplication::HasFocusedDescendants( const TSharedRef< const SWidget >& Widget ) const
 {
 	for (int32 UserIndex = 0; UserIndex < SlateApplicationDefs::MaxUsers; ++UserIndex)
@@ -4695,23 +4707,17 @@ bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEven
 	{
 		EUINavigation NavigationType = NavigationEvent.GetNavigationType();
 
-		// If the FocusedWidget is the Boundary widget we don't need to do any complex work. 
-		if (FocusedWidget == NavigationReply.GetHandler())
+		if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Explicit )
 		{
-			if (NavigationReply.GetBoundaryRule() == EUINavigationRule::Explicit)
+			NewFocusedWidget = NavigationReply.GetFocusRecipient();
+		}
+		else if ( NavigationReply.GetBoundaryRule() == EUINavigationRule::Custom )
+		{
+			const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
+			if ( FocusDelegate.IsBound() )
 			{
-				NewFocusedWidget = NavigationReply.GetFocusRecipient();
+				NewFocusedWidget = FocusDelegate.Execute(NavigationType);
 			}
-			else if (NavigationReply.GetBoundaryRule() == EUINavigationRule::Custom)
-			{
-				const FNavigationDelegate& FocusDelegate = NavigationReply.GetFocusDelegate();
-				if (FocusDelegate.IsBound())
-				{
-					NewFocusedWidget = FocusDelegate.Execute(NavigationType);
-				}
-			}
-			// If it's not explicit or custom we do noting.
-			// This is an optimization because wrapping and stopping on the widget that is currently focused can't go anywhere.
 		}
 		else
 		{

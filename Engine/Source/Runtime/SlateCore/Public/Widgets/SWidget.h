@@ -595,6 +595,13 @@ public:
 	TOptional<EFocusCause> HasAnyUserFocus() const;
 
 	/**
+	 * Gets whether or not the specified users has this widget or any descendant focused.
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	bool HasUserFocusedDescendants(int32 UserIndex) const;
+
+	/**
 	 * @return Whether this widget has any descendants with keyboard focus
 	 */
 	bool HasFocusedDescendants() const;
