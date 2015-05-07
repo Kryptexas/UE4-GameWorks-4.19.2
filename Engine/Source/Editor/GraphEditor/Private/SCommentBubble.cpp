@@ -127,7 +127,10 @@ void SCommentBubble::Tick( const FGeometry& AllottedGeometry, const double InCur
 		// Call text commit delegate
 		OnTextCommittedDelegate.ExecuteIfBound( CachedCommentText, ETextCommit::Default );
 		// Reflect changes to the Textblock because it doesn't update itself.
-		TextBlock->SetText( CachedCommentText );
+		if( TextBlock.IsValid() )
+		{
+			TextBlock->SetText( CachedCommentText );
+		}
 		// Toggle the comment on/off, provided it the parent isn't a comment node
 		if( !bInvertLODCulling )
 		{
