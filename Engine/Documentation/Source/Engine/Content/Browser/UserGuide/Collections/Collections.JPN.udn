@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2499033
+﻿INTSourceChangelist:2518095
 Availability:Public
 Title:コレクション
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
@@ -29,13 +29,25 @@ Description:コンテンツ ブラウザでのコレクションの使用方法
 内部では、コレクションは任意のアセットに対するただの参照リストです。アセットそれ自体はコレクションの中へは移動しません。つまり、 1 つのアセットが複数のコレクションに存在したり、好きな数だけコレクションを作成する場合があるということです。
 [/EXCERPT:Collections]
 
+[REGION:note]
+	**注記：**デフォルトでは [Collection] パネルは利用できない場合があります。[Collections] パネルを開くには、**View Options** ドロップダウン メニューから **Show Collections** をクリックします。	
+[/REGION]
+![](ViewCollections.png)
+
+
 ##コレクションの作成
+
+最初のコレクションを作成するには、[Collections] パネルの右上隅の [Add Collection] アイコンを **左クリック** します。 
+
+![](AddNewCollections.png)
+
+最初のコレクションが作成されたら、コレクションの追加は非常に簡単で、 **[Collections]** パネル内で右クリックして、新規コレクション名を入力するだけです。		
 
 ![](Collections_New.png)
 
-コレクションの作成は非常に簡単で、 **[Collections]** パネル内で右クリックして、新規コレクション名を入力するだけです。
 
-##コレクション タイプ
+
+## コレクション タイプ
 
 コレクションは 3 タイプに分けることができます。
 
@@ -44,7 +56,7 @@ Description:コンテンツ ブラウザでのコレクションの使用方法
 * **P** - プライベート コレクション。コレクションの閲覧に特別に招待されたユーザーのみが利用できるコレクションです。
 
 [REGION:note]
-	**シェアード** と **プライベート** コレクションは メイン エディタの [環境設定](Engine/UI/EditorSettings) のソース コントロールがアクティブな場合のみ利用することができます。
+	**Shared** Collection と **Private** Collection は メイン エディタの [環境設定](Engine/UI/EditorSettings) のソース コントロールがアクティブな場合のみ利用することができます。
 [/REGION]
 
 
