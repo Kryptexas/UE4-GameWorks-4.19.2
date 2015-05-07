@@ -1882,7 +1882,7 @@ namespace AutomationTool
             if (IsBuildMachine && CmdEnv.CSVFile != "")
             {
                 var CSVBuilder = new StringBuilder();                
-                var CSVLineToAppend = String.Format("{0}{2}", Input, Environment.NewLine);
+                var CSVLineToAppend = String.Format("{0}{1}", Input, Environment.NewLine);
                 CSVBuilder.Append(CSVLineToAppend);                
                 File.AppendAllText(CmdEnv.CSVFile, CSVBuilder.ToString());
             }
