@@ -3493,6 +3493,36 @@ FString USkeletalMesh::GetDesc()
 	return FString::Printf( TEXT("%d Triangles, %d Bones"), Resource->LODModels[0].GetTotalFaces(), RefSkeleton.GetNum() );
 }
 
+#if WITH_APEX_CLOTHING
+bool USkeletalMesh::IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections) const
+{
+	if(ImportedResource.IsValid())
+	{
+		for(FStaticLODModel& LodModel : ImportedResource->LODModels)
+		{
+			if(LodModel.Sections.IsValidIndex(InSectionIndex))
+			{
+				FSkelMeshSection* SectionToCheck = &LodModel.Sections[InSectionIndex];
+				if(SectionToCheck->bDisabled && bCheckCorrespondingSections)
+				{
+					SectionToCheck = &LodModel.Sections[SectionToCheck->CorrespondClothSectionIndex];
+				}
+
+				int32 ChunkIdx = SectionToCheck->ChunkIndex;
+				check(LodModel.Chunks.IsValidIndex(ChunkIdx)); // Built on import, should be valid at all times
+				
+				FSkelMeshChunk& Chunk = LodModel.Chunks[ChunkIdx];
+				if(Chunk.HasApexClothData())
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+#endif
 
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket

@@ -843,6 +843,17 @@ public:
 	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset);
 	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
 	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
+
+	/** 
+	 * Checks whether the provided section is using APEX cloth. if bCheckCorrespondingSections is true
+	 * disabled sections will defer to correspond sections to see if they use cloth (non-cloth sections
+	 * are disabled and another section added when cloth is enabled, using this flag allows for a check
+	 * on the original section to succeed)
+	 * @param InSectionIndex Index to check
+	 * @param bCheckCorrespondingSections Whether to check corresponding sections for disabled sections
+	 */
+	UFUNCTION(BlueprintCallable, Category="Cloth")
+	ENGINE_API bool IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections = true) const;
 #endif// #if WITH_APEX_CLOTHING
 
 	ENGINE_API void CreateBodySetup();
