@@ -40,9 +40,14 @@ const UFoliageType_InstancedStaticMesh* FFoliageTypeObject::GetInstance() const
 	return TypeInstance;
 }
 
-bool FFoliageTypeObject::IsValid() const
+bool FFoliageTypeObject::ContainsValidInstance() const
 {
 	return TypeInstance != nullptr;
+}
+
+bool FFoliageTypeObject::HasFoliageType() const
+{
+	return FoliageTypeObject != nullptr;
 }
 
 bool FFoliageTypeObject::IsDirty() const
