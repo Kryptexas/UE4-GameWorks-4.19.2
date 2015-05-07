@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2510725
+﻿INTSourceChangelist:2524676
 Availability:Public
-Title: マテリアル エディタUI
+Title: マテリアル エディタ UI
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
-Description:マテリアルエディタUIのユーザーガイド
+Description:マテリアルエディタ UI のユーザーガイド
 
 
 [TOC(start:2)]
 
 ## 概要
 
-マテリアルエディタUIは、メニューバー、ツールバー、そしてデフォルト設定では4つのオープンパネルで構成されています。
+マテリアルエディタ UI は、メニューバー、ツールバー、そしてデフォルト設定では4つのオープンパネルで構成されています。
 
  ![materialEditorAlt.png](materialEditor.png)
 
@@ -20,7 +20,7 @@ Description:マテリアルエディタUIのユーザーガイド
 1. [グラフパネル](#グラフパネル) - マテリアルのシェーダー命令を作成するマテリアル式と関数ノードを表示します。
 1. [パレットパネル](#パレットパネル) - 利用可能なマテリアル式と関数ノード全てをリスト表示します。
 [REGION:note]
-HLSLコードパネルもありますが、デフォルトでは非表示になっています。このパネルを表示するには、 **[Window]** メニューで **[HLSL Code]** をクリックします。詳細は、 [HLSL Code](#hlslcodepanel)を参照してください。
+HLSL コードパネルもありますが、デフォルトでは非表示になっています。このパネルを表示するには、 **[Window]** メニューで **[HLSL Code]** をクリックします。詳細は、 [HLSL Code](#hlslcodepanel)を参照してください。
 [/REGION]
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
@@ -72,7 +72,7 @@ HLSLコードパネルもありますが、デフォルトでは非表示にな�
 | ![toolbar_home.png](toolbar_home.png)| ベースのマテリアル ノードを **[グラフ]** パネルの中央に配置します。 |
 | ![toolbar_clean.png](toolbar_clean.png)| マテリアルと接続していないマテリアルノードを全て削除します。|
 | ![toolbar_show.png](toolbar_show.png)| 何にも接続していないマテリアルノードを表示または非表示にします。|
-| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)|  有効になると、各マテリアルノードのマテリアルをリアルタイムで更新します。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。 [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) セクションも参照してください。|
+| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| 有効になると、それぞれのマテリアルノードのマテリアルをリアルタイムで更新します。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。 [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) セクションも参照してください。|
 | ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|有効になると、ノードが追加、削除、接続、非接続、またはプロパティ値に変更があるたびに全ての副次式のシェーダーがコンパイルされます。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。 [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) セクションも参照してください。|
 | ![toolbar_stats.png](Engine/Rendering/Materials/Editor/toolbar_stats.png)| **[グラフ]** パネルにマテリアル統計値を表示または非表示にします。 |
 | ![toobar_release_stats](Material_Toolbar_Button_Release_Stats.png)| 統計情報の報告に使用するリリースまたは開発シェーダーを切り替えます。 |
