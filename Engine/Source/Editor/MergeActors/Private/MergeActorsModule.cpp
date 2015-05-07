@@ -95,12 +95,9 @@ void FMergeActorsModule::StartupModule()
 {
 	bRegisteredTabSpawner = false;
 
-	if (!GetDefault<UEditorExperimentalSettings>()->bActorMerging)
-	{
-		return;
-	}
-
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(MergeActorsApp, FOnSpawnTab::CreateRaw(this, &FMergeActorsModule::CreateMergeActorsTab))
+	// This is still experimental in the editor, so it's invoked specifically in FMainMenu for now.
+	// When no longer experimental, switch to the nomad spawner registration below
+	FGlobalTabmanager::Get()->RegisterTabSpawner(MergeActorsApp, FOnSpawnTab::CreateRaw(this, &FMergeActorsModule::CreateMergeActorsTab))
 		.SetDisplayName(LOCTEXT("TabTitle", "Merge Actors"))
 		.SetTooltipText(LOCTEXT("TooltipText", "Open the Merge Actors tab."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
@@ -110,7 +107,13 @@ void FMergeActorsModule::StartupModule()
 
 	// Register built-in merging tools straight away
 	ensure(RegisterMergeActorsTool(MakeUnique<FMeshMergingTool>()));
-	ensure(RegisterMergeActorsTool(MakeUnique<FMeshProxyTool>()));
+
+	IMeshUtilities* MeshUtilities = FModuleManager::Get().LoadModulePtr<IMeshUtilities>("MeshUtilities");
+	if (MeshUtilities != nullptr && MeshUtilities->GetMeshMergingInterface() != nullptr)
+	{
+		// Only register MeshProxyTool if Simplygon is available
+		ensure(RegisterMergeActorsTool(MakeUnique<FMeshProxyTool>()));
+	}
 }
 
 
@@ -123,7 +126,7 @@ void FMergeActorsModule::ShutdownModule()
 
 	if (FSlateApplication::IsInitialized())
 	{
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(MergeActorsApp);
+		FGlobalTabmanager::Get()->UnregisterTabSpawner(MergeActorsApp);
 	}
 }
 
