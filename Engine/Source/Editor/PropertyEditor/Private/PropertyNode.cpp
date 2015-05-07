@@ -1956,7 +1956,10 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 						ChangedEvent = FPropertyChangedEvent(CurProperty, InPropertyChangedEvent.ChangeType);
 					}
 					ChangedEvent.ObjectIteratorIndex = CurrentObjectIndex;
-					Object->PostEditChangeProperty( ChangedEvent );
+					if( Object )
+					{
+						Object->PostEditChangeProperty( ChangedEvent );
+					}
 				}
 				else
 				{
@@ -1968,7 +1971,10 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 					}
 					FPropertyChangedChainEvent ChainEvent(*PropertyChain, ChangedEvent);
 					ChainEvent.ObjectIteratorIndex = CurrentObjectIndex;
-					Object->PostEditChangeChainProperty(ChainEvent);
+					if( Object )
+					{
+						Object->PostEditChangeChainProperty(ChainEvent);
+					}
 				}
 				LevelDirtyCallback.Request();
 				++CurrentObjectIndex;
