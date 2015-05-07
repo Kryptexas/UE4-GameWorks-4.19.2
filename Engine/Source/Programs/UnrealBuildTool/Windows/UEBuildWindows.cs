@@ -45,9 +45,10 @@ namespace UnrealBuildTool
 				// First, default based on whether there is a command line override...
 				if (UnrealBuildTool.CommandLineContains("-2012"))
 				{
-					CachedCompiler = WindowsCompiler.VisualStudio2012;
+					// We don't support compiling with VS 2012 on Windows platform, but you can still generate project files that are 2012-compatible.  That's handled elsewhere
 				}
-				else if (UnrealBuildTool.CommandLineContains("-2013"))
+
+				if (UnrealBuildTool.CommandLineContains("-2013"))
 				{
 					CachedCompiler = WindowsCompiler.VisualStudio2013;
 				}
@@ -66,10 +67,6 @@ namespace UnrealBuildTool
 				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
 				{
 					CachedCompiler = WindowsCompiler.VisualStudio2013;
-				}
-				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
-				{
-					CachedCompiler = WindowsCompiler.VisualStudio2012;
 				}
 				else
 				{
