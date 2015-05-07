@@ -580,6 +580,9 @@ namespace ObjectTools
 			}
 		}
 
+		// Reset linker loaders to remove the possibility that any references to 'ObjectsToReplace' exist in the loaders (these can't get picked up by the replace archives)
+		ResetLoaders(nullptr);
+
 		TMap<UObject*, int32> ObjToNumRefsMap;
 		if( ObjectToReplaceWith != NULL )
 		{
