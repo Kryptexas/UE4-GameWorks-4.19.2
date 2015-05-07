@@ -529,7 +529,23 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 
 	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "0", UIMin = "0"), AdvancedDisplay)
 	int32 MaxSimultaneousTileGenerationJobsCount;
-	
+
+	/** Absolute hard limit to number of navmesh tiles. Be very, very careful while modifying it while
+	 *	having big maps with navmesh. A single, empty tile takes 176 bytes and empty tiles are
+	 *	allocated up front (subject to change, but that's where it's at now)
+	 *	@note TileNumberHardLimit is always rounded up to the closest power of 2 */
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "1", UIMin = "1"), AdvancedDisplay)
+	int32 TileNumberHardLimit;
+
+	UPROPERTY(VisibleAnywhere, Category = "Generation|Poly Ref Bits", AdvancedDisplay)
+	int32 PolyRefTileBits;
+
+	UPROPERTY(VisibleAnywhere, Category = Generation, AdvancedDisplay)
+	int32 PolyRefNavPolyBits;
+
+	UPROPERTY(VisibleAnywhere, Category = Generation, AdvancedDisplay)
+	int32 PolyRefSaltBits;
+
 	/** navmesh draw distance in game (always visible in editor) */
 	UPROPERTY(config)
 	float DefaultDrawDistance;
@@ -921,12 +937,15 @@ public:
 	virtual bool SupportsStreaming() const override;
 	virtual void ConditionalConstructGenerator() override;
 	bool ShouldGatherDataOnGameThread() const { return bDoFullyAsyncNavDataGathering == false; }
+	int32 GetTileNumberHardLimit() const { return TileNumberHardLimit; }
 
 	void UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& InvokerLocations);
 	void RemoveTiles(const TArray<FIntPoint>& Tiles);
 	void RebuildTile(const TArray<FIntPoint>& Tiles);
 
 protected:
+
+	void UpdatePolyRefBitsPreview();
 
 	/** Returns query extent including adjustments for voxelization error compensation */
 	FVector GetModifiedQueryExtent(const FVector& QueryExtent) const;
