@@ -20,19 +20,52 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	// so it could be easily downloaded
 	// Removed files older that 7 days
 
+	/*
+	GameName
+	TimeOfCrash
+	BuiltFromCL
+	PlatformName
+	EngineMode
+	MachineId
+	Module
+	BuildVersion
+	Jira
+	Branch
+	CrashType
+	EpicId
+	BuggId
+	*/
+
+
 	/// <summary>CSV data row.</summary>
 	public class FCSVRow
 	{
-		/// <summary>Epic Id.</summary>
-		public string EpicId = "";
-		/// <summary>Bugg Id.</summary>
-		public int BuggId = 0;
-		/// <summary>Engine version.</summary>
-		public string EngineVersion = "";
-		/// <summary>Time of a crash.</summary>
+		/// <summary>GameName.</summary>
+		public string GameName;
+		/// <summary>TimeOfCrash.</summary>
 		public DateTime TimeOfCrash;
-		/// <summary>Crash type.</summary>
+		/// <summary>BuiltFromCL.</summary>
+		public string BuiltFromCL;
+		/// <summary>PlatformName.</summary>
+		public string PlatformName;
+		/// <summary>EngineMode.</summary>
+		public string EngineMode;
+		/// <summary>MachineId.</summary>
+		public string MachineId;
+		/// <summary>Module.</summary>
+		public string Module;
+		/// <summary>BuildVersion.</summary>
+		public string BuildVersion;
+		/// <summary>Jira.</summary>
+		public string Jira;
+		/// <summary>Branch.</summary>
+		public string Branch;
+		/// <summary>CrashType.</summary>
 		public short CrashType;
+		/// <summary>EpicId.</summary>
+		public string EpicId;
+		/// <summary>BuggId.</summary>
+		public int BuggId;
 
 		/// <summary>Returns crash type as a string.</summary>
 		public string GetCrashTypeAsString()
@@ -83,7 +116,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				HashSet<string> UserNamesForUserGroup = FRepository.Get( BuggsRepo ).GetUserNamesFromGroupName( AnonymousGroup );
 
 				// Enable to narrow results and improve debugging performance.
-				//FormData.DateFrom = FormData.DateTo.AddDays( -1 );
+				FormData.DateFrom = FormData.DateTo.AddDays( -1 );
 				FormData.DateTo = FormData.DateTo.AddDays( 1 );
 
 				var FilteringQueryJoin = CrashRepo
@@ -102,11 +135,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						bc => bc.Crash,
 						( c, bc ) => new
 						{
+							GameName = c.GameName,
+							TimeOfCrash = c.TimeOfCrash.Value,
+							BuiltFromCL = c.BuiltFromCL,
+							PlatformName = c.PlatformName,
+							EngineMode = c.EngineMode,
+							MachineId = c.MachineId,
+							Module = c.Module,
+							BuildVersion = c.BuildVersion,
+							Jira = c.Jira,
+							Branch = c.Branch,
+							CrashType = c.CrashType.Value,
 							EpicId = c.EpicAccountId,
 							BuggId = bc.BuggId,
-							TimeOfCrash = c.TimeOfCrash.Value,
-							EngineVersion = c.BuildVersion,
-							CrashType = c.CrashType.Value,
 						}
 					);
 
@@ -157,8 +198,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				// SLOW
 				//var Users = FRepository.Get( BuggsRepo ).GetAnalyticsUsers().ToDictionary( X => X.EpicAccountId, Y => Y );
 
-				
-
 				// Export data to the file.
 				string CSVPathname = Path.Combine( Settings.Default.CrashReporterCSV, DateTime.UtcNow.ToString( "yyyy-MM-dd.HH-mm-ss" ) );
 				CSVPathname += string
@@ -173,20 +212,46 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				using (FAutoScopedLogTimer ExportToCSVTimer = new FAutoScopedLogTimer( "ExportToCSV" ))
 				{
-					CSVFile.WriteLine( "TimeOfCrash; EpicId; BuggId; EngineVersion; CrashType; " );
+					var RowType = FilteringQueryJoin.FirstOrDefault().GetType();
+
+					string AllProperties = "";
+					foreach( var Property in RowType.GetProperties() )
+					{
+						AllProperties += Property.Name;
+						AllProperties += "; ";
+					}
+
+					// Write header
+					CSVFile.WriteLine( AllProperties );
 
 					foreach (var Row in FilteringQueryJoin)
 					{
-						var BVParts = Row.EngineVersion.Split( new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries );
+						var BVParts = Row.BuildVersion.Split( new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries );
 						if (BVParts.Length > 2 && BVParts[0] != "0")
 						{
 							string CleanEngineVersion = string.Format( "{0}.{1}.{2}", BVParts[0], BVParts[1], BVParts[2] );
-							CSVFile.WriteLine( "{0};{1};{2};{3};{4};", 
-								Row.TimeOfCrash, 
-								Row.EpicId, 
-								Row.BuggId, 
+
+							string[] RowProperties = new string[]
+							{
+								Row.GameName,
+								Row.TimeOfCrash.ToString(),
+								Row.BuiltFromCL,
+								Row.PlatformName,
+								Row.EngineMode,
+								Row.MachineId,
+								Row.Module,
 								CleanEngineVersion,
-								Row.CrashType == 1 ? "Crash" : "Assert" );
+								Row.Jira,
+								Row.Branch,
+								Row.CrashType == 1 ? "Crash" : "Assert",
+								Row.EpicId,
+								Row.BuggId.ToString()
+							};
+
+							string JoinedLine = string.Join( "; ", RowProperties );
+							JoinedLine += "; ";
+
+							CSVFile.WriteLine( JoinedLine );
 						}
 					}
 
@@ -197,8 +262,23 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				List<FCSVRow> CSVRows = FilteringQueryJoin
 					.OrderByDescending( X => X.TimeOfCrash )
-					.Take( 100 )
-					.Select( c => new FCSVRow { TimeOfCrash = c.TimeOfCrash, EpicId = c.EpicId, BuggId = c.BuggId, EngineVersion = c.EngineVersion, CrashType = c.CrashType } )
+					.Take( 32 )
+					.Select( c => new FCSVRow 
+					{
+						GameName = c.GameName,
+						TimeOfCrash = c.TimeOfCrash,
+						BuiltFromCL = c.BuiltFromCL,
+						PlatformName = c.PlatformName,
+						EngineMode = c.EngineMode,
+						MachineId = c.MachineId,
+						Module = c.Module,
+						BuildVersion = c.BuildVersion,
+						Jira = c.Jira,
+						Branch = c.Branch,
+						CrashType = c.CrashType,
+						EpicId = c.EpicId,
+						BuggId = c.BuggId,
+					} )
 					.ToList();
 				
 				return new CSV_ViewModel

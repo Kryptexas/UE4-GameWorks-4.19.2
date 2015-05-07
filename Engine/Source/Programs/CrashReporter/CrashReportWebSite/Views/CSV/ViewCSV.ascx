@@ -93,57 +93,43 @@ table, table tr, table th, table td
 </table>
 <br />
 
-<p>Displaying top 100 records, ordered by the date of a crash</p>
+<p>Displaying top 32 records, ordered by the date of a crash</p>
 <table style="width: 100%">
 	<tr>
-		<th>
-			Time of crash
-		</th>
-		<th>
-			EpicId
-		</th>
-		<%--<th>
-			User's email
-		</th>--%>
-		<th>
-			BuggId
-		</th>
-		<th>
-			Engine version
-		</th>
-		<th>
-			Crash type
-		</th>
+		<th>GameName</th>
+		<th>TimeOfCrash</th>
+		<th>BuiltFromCL</th>
+		<th>PlatformName</th>
+		<th>EngineMode</th>
+		<th>MachineId</th>
+		<th>Module</th>
+		<th>BuildVersion</th>
+		<th>Jira</th>
+		<th>Branch</th>
+		<th>CrashType</th>
+		<th>EpicId</th>
+		<th>BuggId</th>
 	</tr>
 
 	<%
 		for (int Index = 0; Index < Model.CSVRows.Count; Index++)
 		{
 			FCSVRow CSVRow = Model.CSVRows[Index];
-			if( Index > 100 )
-			{
-				break;
-			}
 	%>
 	<tr>
-		<td>
-			<%=CSVRow.TimeOfCrash.ToString()%>
-		</td>
-		<td>
-			<%=CSVRow.EpicId%>
-		</td>
-		<%--<td>
-			<%=CSVRow.UserEmail%>
-		</td>--%>
-		<td>
-			<%=CSVRow.BuggId%>
-		</td>
-		<td>
-			<%=CSVRow.EngineVersion%>
-		</td>	
-		<td>
-			<%=CSVRow.GetCrashTypeAsString()%>
-		</td>	
+		<td><%=CSVRow.GameName%></td>
+		<td><%=CSVRow.TimeOfCrash%></td>
+		<td><%=CSVRow.BuiltFromCL%></td>
+		<td><%=CSVRow.PlatformName%></td>
+		<td><%=CSVRow.EngineMode%></td>
+		<td><%=CSVRow.MachineId%></td>
+		<td><%=CSVRow.Module%></td>
+		<td><%=CSVRow.BuildVersion%></td>
+		<td><%=CSVRow.Jira%></td>
+		<td><%=CSVRow.Branch%></td>
+		<td><%=CSVRow.GetCrashTypeAsString()%></td>
+		<td><%=CSVRow.EpicId%></td>
+		<td><%=CSVRow.BuggId%></td>
 	</tr>
 	<%
 		}	
