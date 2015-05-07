@@ -735,7 +735,7 @@ void FOculusRiftHMD::ShutdownRendering()
 #endif
 }
 
-#if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
+
 void FCustomPresent::SetRenderContext(FHMDViewExtension* InRenderContext)
 {
 	if (InRenderContext)
@@ -757,6 +757,7 @@ void FCustomPresent::UpdateViewport(const FViewport& Viewport, FRHIViewport* Vie
 	ViewportRHI->SetCustomPresent(this);
 }
 
+#if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 // FIXME: in Direct mode we must hold DXGIAdapter to avoid a crash at the exit because of shimming.
 // It does cause D3D resources to leak. But it is better than a crash, right?
 // Should be already fixed in the next Oculus SDK version.
