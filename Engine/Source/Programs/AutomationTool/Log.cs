@@ -22,7 +22,13 @@ namespace AutomationTool
 		/// <param name="CommandLine">Command line.</param>
 		public static void InitLogging(string[] CommandLine)
 		{
-            UnrealBuildTool.Log.InitLogging(
+            // ensure UTF8Output flag is respected, since we are initializing logging early in the program.
+            if (CommandLine.Any(Arg => Arg.Equals("-utf8output", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                Console.OutputEncoding = new System.Text.UTF8Encoding(false, false);
+            }
+
+			UnrealBuildTool.Log.InitLogging(
                 bLogTimestamps: CommandUtils.ParseParam(CommandLine, "-Timestamps"),
                 bLogVerbose: CommandUtils.ParseParam(CommandLine, "-Verbose"),
                 bLogSeverity: true,
@@ -36,12 +42,6 @@ namespace AutomationTool
                     //@todo - this is only used by GUBP nodes. Ideally we don't waste this 20MB if we are not running GUBP.
                     new AutomationMemoryLogListener(),
                 });
-
-            // ensure UTF8Output flag is respected, since we are initializing logging early in the program.
-            if (CommandLine.Any(Arg => Arg.Equals("-utf8output", StringComparison.InvariantCultureIgnoreCase)))
-            {
-                Console.OutputEncoding = new System.Text.UTF8Encoding(false, false);
-            }
         }
 
         public static void ShutdownLogging()
