@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536124
+﻿INTSourceChangelist:2539368
 Availability: Public
 Title:1. 필수 프로젝트 구성
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -136,4 +136,5 @@ Description:여기서는 HUD 에 쓸 위젯 블루프린트를 만들고 HUD 에
 다음 단계에서는 HUD 에 Health, Energy, Ammo 변수를 표시하고 게임내에서 작동되도록 구성해 주겠습니다.
 
 %Steps%
+
 

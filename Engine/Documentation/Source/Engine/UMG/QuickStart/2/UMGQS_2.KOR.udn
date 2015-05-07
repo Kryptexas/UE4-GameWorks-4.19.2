@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2536124
+﻿INTSourceChangelist:2539393
 Availability: Public
 Title:2. 생명력, 에너지, 탄창 표시하기
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
@@ -143,7 +143,7 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 
 	![](Step2_26.png)
 
-	기존에는 **Sub-Object Properties** 를 사용하여 같은 유형의 프로퍼티를 바인딩했는데, 별도의 커스텀 바인딩을 만들 수도 있습니다. 여기서는 **Text** 프로퍼티를 **First Person Character** 블루프린트의 **Integer** 프로퍼티에 바인딩하여 현재 탄창 수를 표시하도록 하겠습니다.
+	기존에 **Sub-Object Properties** 를 사용하여 같은 유형의 프로퍼티를 바인딩했던 방식으로, 별도의 커스텀 바인딩을 만들 수도 있습니다. 여기서는 **Text** 프로퍼티를 **First Person Character** 블루프린트의 **Integer** 프로퍼티에 바인딩하여 현재 탄창 수를 표시하도록 하겠습니다.
 
 1.	생성되어 자동으로 열린 함수 안에서 **Ctrl** 키를 누르고 **MyCharacter** 변수를 끌어 그래프에 놓습니다.
 
@@ -170,6 +170,7 @@ Description:이 단계에서는 HUD 에 플레이어의 생명력, 에너지, �
 다음 섹션에서는 지금까지 구성한 게임을 로드하는 데 사용할 수 있는 메인 메뉴를 만들겠습니다.
 
 %Steps%
+
 
 
 
