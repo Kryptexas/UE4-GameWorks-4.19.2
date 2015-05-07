@@ -13,8 +13,6 @@
 #include "KeyState.h"
 #include "PlayerInput.generated.h"
 
-ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
-
 /** Struct containing mappings for legacy method of binding keys to exec commands. */
 USTRUCT()
 struct FKeyBind

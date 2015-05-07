@@ -8,8 +8,6 @@
 #include "GameFramework/PlayerInput.h"
 #include "GameFramework/InputSettings.h"
 
-DEFINE_LOG_CATEGORY(LogInput);
-
 bool bExecutingBindCommand = false;
 
 /** for debug rendering */
