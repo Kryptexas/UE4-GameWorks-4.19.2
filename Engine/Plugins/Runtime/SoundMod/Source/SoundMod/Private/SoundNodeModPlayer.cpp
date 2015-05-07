@@ -53,7 +53,7 @@ float USoundNodeModPlayer::GetDuration()
 }
 
 #if WITH_EDITOR
-FString USoundNodeModPlayer::GetTitle() const
+FText USoundNodeModPlayer::GetTitle() const
 {
 	FText SoundModName;
 	if (SoundMod)
@@ -65,18 +65,19 @@ FString USoundNodeModPlayer::GetTitle() const
 		SoundModName = LOCTEXT("NoSoundMod", "NONE");
 	}
 
-	FString Title;
+	FText Title;
+
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Description"), FText::FromString(Super::GetTitle()));
+	Arguments.Add(TEXT("SoundModName"), SoundModName);
 
 	if (bLooping)
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("Description"), FText::FromString(Super::GetTitle()));
-		Arguments.Add(TEXT("SoundModName"), SoundModName);
-		Title = FText::Format(LOCTEXT("LoopingSoundWaveDescription", "Looping {Description} : {SoundModName}"), Arguments).ToString();
+		Title = FText::Format(LOCTEXT("LoopingSoundModDescription", "Looping {Description} : {SoundModName}"), Arguments);
 	}
 	else
 	{
-		Title = Super::GetTitle() + FString(TEXT(" : ")) + SoundModName.ToString();
+		Title = FText::Format(LOCTEXT("NonLoopingSoundModDescription", "{Description} : {SoundModName}"), Arguments);
 	}
 
 	return Title;

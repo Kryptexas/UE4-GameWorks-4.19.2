@@ -42,27 +42,31 @@ void USoundNodeBranch::CreateStartingConnectors()
 }
 
 #if WITH_EDITOR
-FString USoundNodeBranch::GetInputPinName(int32 PinIndex) const
+FText USoundNodeBranch::GetInputPinName(int32 PinIndex) const
 {
 	const BranchPurpose Branch = (BranchPurpose)PinIndex;
 	switch (Branch)
 	{
 	case BranchPurpose::ParameterTrue:
-		return LOCTEXT("True", "True").ToString();
+		return LOCTEXT("True", "True");
 
 	case BranchPurpose::ParameterFalse:
-		return LOCTEXT("False", "False").ToString();
+		return LOCTEXT("False", "False");
 
 	case BranchPurpose::ParameterUnset:
-		return LOCTEXT("ParamUnset", "Parameter Unset").ToString();
+		return LOCTEXT("ParamUnset", "Parameter Unset");
 	}
 
 	return Super::GetInputPinName(PinIndex);
 }
 
-FString USoundNodeBranch::GetTitle() const
+FText USoundNodeBranch::GetTitle() const
 {
-	return FString::Printf(TEXT("%s (%s)"), *Super::GetTitle(), *BoolParameterName.ToString());
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Description"), Super::GetTitle());
+	Arguments.Add(TEXT("ParameterName"), FText::FromName(BoolParameterName));
+
+	return FText::Format(LOCTEXT("Title", "{Description} ({ParameterName})"), Arguments);
 }
 #endif //WITH_EDITOR
 

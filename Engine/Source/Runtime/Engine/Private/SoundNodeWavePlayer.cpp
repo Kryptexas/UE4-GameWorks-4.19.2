@@ -54,7 +54,7 @@ float USoundNodeWavePlayer::GetDuration()
 }
 
 #if WITH_EDITOR
-FString USoundNodeWavePlayer::GetTitle() const
+FText USoundNodeWavePlayer::GetTitle() const
 {
 	FText SoundWaveName;
 	if (SoundWave)
@@ -66,18 +66,18 @@ FString USoundNodeWavePlayer::GetTitle() const
 		SoundWaveName = LOCTEXT("NoSoundWave", "NONE");
 	}
 
-	FString Title;
+	FText Title;
 
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Description"), Super::GetTitle());
+	Arguments.Add(TEXT("SoundWaveName"), SoundWaveName);
 	if (bLooping)
 	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("Description"), FText::FromString(Super::GetTitle()));
-		Arguments.Add(TEXT("SoundWaveName"), SoundWaveName);
-		Title = FText::Format(LOCTEXT("LoopingSoundWaveDescription", "Looping {Description} : {SoundWaveName}"), Arguments).ToString();
+		Title = FText::Format(LOCTEXT("LoopingSoundWaveDescription", "Looping {Description} : {SoundWaveName}"), Arguments);
 	}
 	else
 	{
-		Title = Super::GetTitle() + FString(TEXT(" : ")) + SoundWaveName.ToString();
+		Title = FText::Format(LOCTEXT("NonLoopingSoundWaveDescription", "{Description} : {SoundWaveName}"), Arguments);
 	}
 
 	return Title;

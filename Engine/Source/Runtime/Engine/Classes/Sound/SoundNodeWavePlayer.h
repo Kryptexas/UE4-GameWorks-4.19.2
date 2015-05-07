@@ -25,7 +25,7 @@ public:
 	virtual float GetDuration() override;
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 #if WITH_EDITOR
-	virtual FString GetTitle() const override;
+	virtual FText GetTitle() const override;
 #endif
 	// End USoundNode Interface
 
