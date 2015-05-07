@@ -31,17 +31,17 @@ void SAnimTimingNode::Construct(const FArguments& InArgs)
 		case ETimingElementType::NotifyStateBegin:
 		case ETimingElementType::NotifyStateEnd:
 		{
-			NodeColour = EditorOptions->NotifyTimingNodeColour;
+			NodeColour = EditorOptions->NotifyTimingNodeColor;
 			break;
 		}
 		case ETimingElementType::BranchPointNotify:
 		{
-			NodeColour = EditorOptions->BranchingPointTimingNodeColour;
+			NodeColour = EditorOptions->BranchingPointTimingNodeColor;
 			break;
 		}
 		case ETimingElementType::Section:
 		{
-			NodeColour = EditorOptions->SectionTimingNodeColour;
+			NodeColour = EditorOptions->SectionTimingNodeColor;
 			break;
 		}
 		default:

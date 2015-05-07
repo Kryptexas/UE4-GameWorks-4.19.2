@@ -41,9 +41,9 @@ UPersonaOptions::UPersonaOptions(const FObjectInitializer& ObjectInitializer)
 {
 	ViewModeIndex = VMI_Lit;
 
-	SectionTimingNodeColour = FLinearColor(0.0f, 1.0f, 0.0f);
-	NotifyTimingNodeColour = FLinearColor(1.0f, 0.0f, 0.0f);
-	BranchingPointTimingNodeColour = FLinearColor(0.5f, 1.0f, 1.0f);
+	SectionTimingNodeColor = FLinearColor(0.0f, 1.0f, 0.0f);
+	NotifyTimingNodeColor = FLinearColor(1.0f, 0.0f, 0.0f);
+	BranchingPointTimingNodeColor = FLinearColor(0.5f, 1.0f, 1.0f);
 }
 
 void UPersonaOptions::SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor)
@@ -115,18 +115,18 @@ void UPersonaOptions::SetShowMeshStats( int32 InShowMeshStats )
 
 void UPersonaOptions::SetSectionTimingNodeColor(const FLinearColor& InColor)
 {
-	SectionTimingNodeColour = InColor;
+	SectionTimingNodeColor = InColor;
 	SaveConfig();
 }
 
 void UPersonaOptions::SetNotifyTimingNodeColor(const FLinearColor& InColor)
 {
-	NotifyTimingNodeColour = InColor;
+	NotifyTimingNodeColor = InColor;
 	SaveConfig();
 }
 
 void UPersonaOptions::SetBranchingPointTimingNodeColor(const FLinearColor& InColor)
 {
-	BranchingPointTimingNodeColour = InColor;
+	BranchingPointTimingNodeColor = InColor;
 	SaveConfig();
 }

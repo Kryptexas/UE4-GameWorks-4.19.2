@@ -50,13 +50,13 @@ class UNREALED_API UPersonaOptions : public UObject
 	uint32 DefaultLocalAxesSelection;
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
-	FLinearColor SectionTimingNodeColour;
+	FLinearColor SectionTimingNodeColor;
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
-	FLinearColor NotifyTimingNodeColour;
+	FLinearColor NotifyTimingNodeColor;
 
 	UPROPERTY(EditAnywhere, config, Category = Options)
-	FLinearColor BranchingPointTimingNodeColour;
+	FLinearColor BranchingPointTimingNodeColor;
 
 public:
 	void SetViewportBackgroundColor( const FLinearColor& InViewportBackgroundColor);
