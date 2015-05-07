@@ -210,6 +210,8 @@ public:
 	bool HandleResetSoundStateCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleSpatializationExtensionCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar);
+	bool HandleSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleClearSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif
 
 	/**
