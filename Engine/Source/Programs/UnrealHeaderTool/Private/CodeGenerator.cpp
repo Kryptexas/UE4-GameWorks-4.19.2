@@ -1348,12 +1348,22 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 	SingletonName.ReplaceInline(TEXT("()"), TEXT(""), ESearchCase::CaseSensitive); // function address
 
 	{	
-		auto ClassNameCPP = NameLookupCPP.GetNameCPP(Class);
+		const TCHAR* ClassNameCPP = NameLookupCPP.GetNameCPP(Class);
 		GeneratedFunctionText.Logf(TEXT("    static FCompiledInDefer Z_CompiledInDefer_UClass_%s(%s, TEXT(\"%s\"));\r\n"), 
 			ClassNameCPP, *SingletonName, ClassNameCPP);
 		
+		// Append base class' CRC at the end of the generated code, this will force update derived classes
+		// when base class changes during hot-reload.
+		uint32 BaseClassCRC = 0;
+		if (Class->GetSuperClass() && !Class->GetSuperClass()->HasAnyClassFlags(CLASS_Intrinsic))
+		{
+			BaseClassCRC = GGeneratedCodeCRCs.FindChecked(Class->GetSuperClass());
+		}
+		GeneratedClassRegisterFunctionText.Logf(TEXT("\r\n// %u\r\n"), BaseClassCRC);
+
 		// Calculate generated class initialization code CRC so that we know when it changes after hot-reload
 		uint32 ClassCrc = GenerateTextCRC(*GeneratedClassRegisterFunctionText);
+		GGeneratedCodeCRCs.Add(Class, ClassCrc);
 		// Emit the IMPLEMENT_CLASS macro to go in the generated cpp file.
 		GeneratedPackageCPP.Logf(TEXT("    IMPLEMENT_CLASS(%s, %u);\r\n"), ClassNameCPP, ClassCrc);
 	}

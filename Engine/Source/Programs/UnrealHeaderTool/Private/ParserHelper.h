@@ -1794,7 +1794,9 @@ struct FNameLookupCPP
 	{
 		TCHAR* NameCPP = StructNameMap.FindRef( Struct );
 		if (NameCPP && !bForceInterface)
+		{
 			return NameCPP;
+		}
 
 		FString DesiredStructName = Struct->GetName();
 		FString	TempName = FString(bForceInterface ? TEXT("I") : Struct->GetPrefixCPP()) + DesiredStructName;
