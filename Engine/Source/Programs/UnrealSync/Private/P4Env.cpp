@@ -412,26 +412,30 @@ public:
 	FP4PathDetectionIterator(const TCHAR* CommandLine)
 		: Step(0), FP4EnvParamDetectionIteratorBase(EP4ParamType::Path, CommandLine)
 	{
-		const TCHAR* LocationsToLook[] =
-		{
-			TEXT("C:\\Program Files\\Perforce"),
-			TEXT("C:\\Program Files (x86)\\Perforce")
-		};
-
 		// Tries to detect in standard environment paths.
 		static const FString WhereCommand = "where"; // TODO Mac: I think 'where' command equivalent on Mac is 'whereis'
 		static const FString P4ExecutableName = "p4.exe";
 
+		TArray<FString> LocationsToLook;
+		LocationsToLook.Add(FPaths::Combine(TEXT("C:\\Program Files\\Perforce"), *P4ExecutableName));
+		LocationsToLook.Add(FPaths::Combine(TEXT("C:\\Program Files (x86)\\Perforce"), *P4ExecutableName));
+
 		FString WhereOutput;
 		if (RunProcessOutput(WhereCommand, P4ExecutableName, WhereOutput))
 		{
-			AddUniqueLocation(FPaths::ConvertRelativePathToFull(
-				WhereOutput.Replace(TEXT("\n"), TEXT("")).Replace(TEXT("\r"), TEXT(""))));
+			TArray<FString> Outputs;
+			if (WhereOutput.ParseIntoArrayLines(Outputs, true))
+			{
+				for (auto& Output : Outputs)
+				{
+					LocationsToLook.Add(Output);
+				}
+			}
 		}
 
-		for (const auto* LocationToLook : LocationsToLook)
+		for (auto& LocationToLook : LocationsToLook)
 		{
-			FString LocationCandidate = FPaths::ConvertRelativePathToFull(FPaths::Combine(LocationToLook, *P4ExecutableName));
+			FString LocationCandidate = FPaths::ConvertRelativePathToFull(LocationToLook);
 			if (FPaths::FileExists(LocationCandidate))
 			{
 				AddUniqueLocation(LocationCandidate);
