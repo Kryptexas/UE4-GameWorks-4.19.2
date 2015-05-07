@@ -2077,8 +2077,8 @@ FObjectInitializer::~FObjectInitializer()
 		UClass* ArchetypeClass = ObjectArchetype->GetClass();
 		// if this is a blueprint CDO that derives from another blueprint, and 
 		// that parent (archetype) CDO isn't fully serialized
-		if ( !Class->HasAnyFlags(RF_Native) && !ArchetypeClass->HasAnyFlags(RF_Native) &&
-			(ObjectArchetype->HasAnyFlags(RF_NeedLoad) || !ObjectArchetype->HasAnyFlags(RF_LoadCompleted)) )
+		if ( !Class->HasAnyFlags(RF_Native) && !ArchetypeClass->HasAnyFlags(RF_Native) && (ObjectArchetype->HasAnyFlags(RF_NeedLoad) ||
+			 !ObjectArchetype->HasAnyFlags(RF_LoadCompleted) || FDeferredObjInitializerTracker::IsCdoDeferred(ArchetypeClass)) )
 		{
 			FLinkerLoad* ClassLinker = Class->GetLinker();
 			if ((ClassLinker != nullptr) && (ClassLinker->LoadFlags & LOAD_DeferDependencyLoads) != 0x00)
