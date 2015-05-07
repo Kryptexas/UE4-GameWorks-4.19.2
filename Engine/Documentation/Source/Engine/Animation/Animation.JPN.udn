@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2488338
-Availability:Public
+﻿Availability:Public
 Title:ペルソナ：スケルタルメッシュのアニメーション
 Crumbs: %ROOT%, Engine
 Description:キーフレーム アニメーション データとモーフ ターゲットに基いてスケルタル メッシュを変形するシステム
@@ -105,6 +104,18 @@ Navigation:topic
 		* [](Engine/Animation/PhysicallyDrivenAnimation "%Engine/Animation/PhysicallyDrivenAnimation:description%")
 		* [](Engine/Animation/RootMotion "%Engine/Animation/RootMotion:description%")
 		* [](Engine/Animation/NonUniformScale "%Engine/Animation/NonUniformScale:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false) 
+	[/PARAM]
+	[PARAM:title]
+		ツール
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine\Animation\Tools\VertexAnimationTool "%Engine\Animation\Tools\VertexAnimationTool:description%")
 	[/PARAM]
 [/OBJECT]
 
