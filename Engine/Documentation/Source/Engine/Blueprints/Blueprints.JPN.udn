@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466035
+﻿INTSourceChangelist:2515048
 Availability:Public
 Title:ブループリント
 Crumbs: %ROOT%, Engine
@@ -197,6 +197,17 @@ _ブループリント_ を使用すれば、デザイナーは以下のよう�
 		[/PARAM]
 		[PARAM:path]
 		[RELATIVE:Engine\Blueprints\UserGuide\CheatSheet]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+		![](BestPractices_Topic.png)
+		[/PARAM]
+		[PARAM:title]
+			ブループリント ベスト プラクティス
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine\Blueprints\BestPractices]
 		[/PARAM]
 	[/OBJECT]
 	[OBJECT:TopicCompact]
