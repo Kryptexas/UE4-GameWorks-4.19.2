@@ -29,8 +29,12 @@ import com.google.android.vending.expansion.downloader.IStub;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.content.Intent;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Messenger;
@@ -84,6 +88,8 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
     private IDownloaderService mRemoteService;
 
     private IStub mDownloaderClientStub;
+	
+	private final CharSequence[] OBBSelectItems = { "Use Store Data", "Use Development Data" };
 
 	
     private void setState(int newState) {
@@ -99,6 +105,8 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
                 R.string.text_button_pause;
         mPauseButton.setText(stringResourceID);
     }
+	
+	static DownloaderActivity _download;
 	
 	private Intent OutputData;
 
@@ -119,12 +127,29 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
             String fileName = Helpers.getExpansionAPKFileName(this, xf.mIsMain, xf.mFileVersion);
 			GameActivity.Log.debug("Checking for file : " + fileName);
 			String fileForNewFile = Helpers.generateSaveFileName(this, fileName);
-			GameActivity.Log.debug("which is really being resolved to : " + fileForNewFile);
-            if (!Helpers.doesFileExist(this, fileName, xf.mFileSize, false))
+			String fileForDevFile = Helpers.generateSaveFileNameDevelopment(this, fileName);
+			GameActivity.Log.debug("which is really being resolved to : " + fileForNewFile + "\n Or : " + fileForDevFile);
+            if (!Helpers.doesFileExist(this, fileName, xf.mFileSize, false) &&
+				!Helpers.doesFileExistDev(this, fileName, xf.mFileSize, false))
                 return false;
         }
         return true;
     }
+	
+	boolean onlySingleExpansionFileFound() {
+		for (OBBData.XAPKFile xf : OBBData.xAPKS) {
+            String fileName = Helpers.getExpansionAPKFileName(this, xf.mIsMain, xf.mFileVersion);
+			GameActivity.Log.debug("Checking for file : " + fileName);
+			String fileForNewFile = Helpers.generateSaveFileName(this, fileName);
+			String fileForDevFile = Helpers.generateSaveFileNameDevelopment(this, fileName);
+			
+			if (Helpers.doesFileExist(this, fileName, xf.mFileSize, false) &&
+				Helpers.doesFileExistDev(this, fileName, xf.mFileSize, false))
+                return false;
+		}
+		
+		return true;		
+	}
 	
 	File getFileDetailsCacheFile() {
 		return new File(this.getExternalFilesDir(null), "cacheFile.txt");
@@ -165,14 +190,50 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
 		for (OBBData.XAPKFile xf : OBBData.xAPKS) {
             String fileName = Helpers.getExpansionAPKFileName(this, xf.mIsMain, xf.mFileVersion);
 			String fileForNewFile = Helpers.generateSaveFileName(this, fileName);
+			String fileForDevFile = Helpers.generateSaveFileNameDevelopment(this, fileName);
 			// check to see if time/data on files match cached version
 			// if not return false
 			File srcFile = new File(fileForNewFile);
+			File srcDevFile = new File(fileForDevFile);
 			long lastModified = srcFile.lastModified();
-			if(!(fileDetailsMap.containsKey(fileName) && lastModified == fileDetailsMap.get(fileName)))
+			long lastModifiedDev = srcDevFile.lastModified();
+			if(!(srcFile.exists() && fileDetailsMap.containsKey(fileName) && lastModified == fileDetailsMap.get(fileName)) 
+				&&
+			   !(srcDevFile.exists() && fileDetailsMap.containsKey(fileName) && lastModifiedDev == fileDetailsMap.get(fileName)))
 				return false;
 		}
 		return true;
+	}
+	
+	static private void RemoveOBBFile(int OBBToDelete) {
+		
+		for (OBBData.XAPKFile xf : OBBData.xAPKS) {
+		    String fileName = Helpers.getExpansionAPKFileName(DownloaderActivity._download, xf.mIsMain, xf.mFileVersion);
+			switch(OBBToDelete)
+			{
+			case 0:
+				String fileForNewFile = Helpers.generateSaveFileName(DownloaderActivity._download, fileName);
+				File srcFile = new File(fileForNewFile);
+				srcFile.delete();
+				break;
+			case 1:
+				String fileForDevFile = Helpers.generateSaveFileNameDevelopment(DownloaderActivity._download, fileName);
+				File srcDevFile = new File(fileForDevFile);
+				srcDevFile.delete();
+				break;
+			}
+		}		
+	}
+	
+	private void ProcessOBBFiles()
+	{
+		if(GameActivity.Get().VerifyOBBOnStartUp && !expansionFilesUptoData()) {
+				validateXAPKZipFiles();
+		} else {
+				OutputData.putExtra(GameActivity.DOWNLOAD_RETURN_NAME, GameActivity.DOWNLOAD_FILES_PRESENT);		
+				setResult(RESULT_OK, OutputData);
+				finish();
+		}
 	}
 
     /**
@@ -217,11 +278,21 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
                     String fileName = Helpers.getExpansionAPKFileName(
                             DownloaderActivity.this,
                             xf.mIsMain, xf.mFileVersion);
-                    if (!Helpers.doesFileExist(DownloaderActivity.this, fileName,
-                            xf.mFileSize, false))
+					boolean normalFile = Helpers.doesFileExist(DownloaderActivity.this, fileName, xf.mFileSize, false);
+					boolean devFile = Helpers.doesFileExistDev(DownloaderActivity.this, fileName, xf.mFileSize, false);
+							
+                    if (!normalFile &&	!devFile )
                         return false;
-                    fileName = Helpers
-                            .generateSaveFileName(DownloaderActivity.this, fileName);
+					
+					if(normalFile)
+                    {
+						fileName = Helpers.generateSaveFileName(DownloaderActivity.this, fileName);
+					}
+					else
+					{
+						fileName = Helpers.generateSaveFileNameDevelopment(DownloaderActivity.this, fileName);
+					}			
+					
                     ZipResourceFile zrf;
                     byte[] buf = new byte[1024 * 256];
                     try {
@@ -329,17 +400,28 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
 						for (OBBData.XAPKFile xf : OBBData.xAPKS) {
 							String fileName = Helpers.getExpansionAPKFileName(DownloaderActivity.this, xf.mIsMain, xf.mFileVersion);
 							String fileForNewFile = Helpers.generateSaveFileName(DownloaderActivity.this, fileName);
-							
+							String fileForDevFile = Helpers.generateSaveFileNameDevelopment(DownloaderActivity.this, fileName);
+														
 							GameActivity.Log.debug("Writing details for file : " + fileName);
-							
+								
 							File srcFile = new File(fileForNewFile);
-							long lastModified = srcFile.lastModified();
-							bufferedFileCache.write(fileName);
-							bufferedFileCache.write(",");
-							bufferedFileCache.write(new Long(lastModified).toString());
-							bufferedFileCache.newLine();
-							
-							GameActivity.Log.debug("Details for file : " + fileName + " with modified time of " + new Long(lastModified).toString() );
+							File srcDevFile = new File(fileForDevFile);
+							if(srcFile.exists()) {
+								long lastModified = srcFile.lastModified();
+								bufferedFileCache.write(fileName);
+								bufferedFileCache.write(",");
+								bufferedFileCache.write(new Long(lastModified).toString());
+								bufferedFileCache.newLine();
+								GameActivity.Log.debug("Details for file : " + fileName + " with modified time of " + new Long(lastModified).toString() );
+							}	
+							else {
+								long lastModified = srcDevFile.lastModified();
+								bufferedFileCache.write(fileName);
+								bufferedFileCache.write(",");
+								bufferedFileCache.write(new Long(lastModified).toString());
+								bufferedFileCache.newLine();
+								GameActivity.Log.debug("Details for file : " + fileName + " with modified time of " + new Long(lastModified).toString() );
+							}							
 						}
 						
 						bufferedFileCache.close();
@@ -457,7 +539,7 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 		GameActivity.Log.debug("Starting DownloaderActivity...");
-		
+		_download = this;
 		// Create somewhere to place the output - we'll check this on 'finish' to make sure we are returning 'something'
 		OutputData = new Intent();
 		
@@ -521,12 +603,25 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
 
         } else {
 			GameActivity.Log.debug("... Can has! Check 'em Dano!");
-            if(GameActivity.Get().VerifyOBBOnStartUp && !expansionFilesUptoData()) {
-				validateXAPKZipFiles();
-			} else {
-				OutputData.putExtra(GameActivity.DOWNLOAD_RETURN_NAME, GameActivity.DOWNLOAD_FILES_PRESENT);		
-				setResult(RESULT_OK, OutputData);
-				finish();
+			if(!onlySingleExpansionFileFound())	{
+				// Do some UI here to figure out which we want to keep
+				
+				AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				
+				builder.setCancelable(false)
+						.setTitle("Select OBB to use")
+					    .setItems(OBBSelectItems, new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog, int item) {
+								DownloaderActivity.RemoveOBBFile(item);
+								ProcessOBBFiles();
+							}
+						});
+				
+				AlertDialog alert = builder.create();
+				alert.show();
+			}
+			else {
+				ProcessOBBFiles();
 			}
         }
     }
