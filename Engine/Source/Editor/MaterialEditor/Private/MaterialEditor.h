@@ -161,7 +161,7 @@ struct FMaterialExpression
 /** Static array of categorized material expression classes. */
 struct FCategorizedMaterialExpressionNode
 {
-	FString	CategoryName;
+	FText	CategoryName;
 	TArray<FMaterialExpression> MaterialExpressions;
 };
 

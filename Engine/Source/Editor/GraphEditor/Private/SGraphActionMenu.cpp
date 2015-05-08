@@ -209,7 +209,7 @@ public:
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
-			GraphDropOp->SetHoveredCategoryName( ActionNode.Pin()->GetDisplayName().ToString() );
+			GraphDropOp->SetHoveredCategoryName( ActionNode.Pin()->GetDisplayName() );
 		}
 	}
 
@@ -218,7 +218,7 @@ public:
 		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
 		if (GraphDropOp.IsValid())
 		{
-			GraphDropOp->SetHoveredCategoryName( FString(TEXT("")) );
+			GraphDropOp->SetHoveredCategoryName( FText::GetEmpty() );
 		}
 	}
 
@@ -543,15 +543,15 @@ bool SGraphActionMenu::SelectItemByName(const FName& ItemName, ESelectInfo::Type
 	return false;
 }
 
-void SGraphActionMenu::ExpandCategory(const FString& CategoryName)
+void SGraphActionMenu::ExpandCategory(const FText& CategoryName)
 {
-	if (CategoryName.Len())
+	if (!CategoryName.IsEmpty())
 	{
 		TArray<TSharedPtr<FGraphActionNode>> GraphNodes;
 		FilteredRootAction->GetAllNodes(GraphNodes);
 		for (int32 i = 0; i < GraphNodes.Num(); ++i)
 		{
-			if (GraphNodes[i]->GetDisplayName().ToString() == CategoryName)
+			if (GraphNodes[i]->GetDisplayName().EqualTo(CategoryName))
 			{
 				GraphNodes[i]->ExpandAllChildren(TreeView);
 			}
@@ -664,7 +664,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 			// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 			// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 			// and keywords, so we only need to use the first one for filtering.
-			FString SearchText = CurrentAction.Actions[0]->GetSearchTitle().ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->GetSearchKeywords().ToString() + LINE_TERMINATOR +CurrentAction.Actions[0]->Category;
+			FString SearchText = CurrentAction.Actions[0]->GetSearchTitle().ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->GetSearchKeywords().ToString() + LINE_TERMINATOR +CurrentAction.Actions[0]->GetSearchCategory().ToString();
 			SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 
 			FString EachTermSanitized;
@@ -774,7 +774,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 		// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 		// and keywords, so we only need to use the first one for filtering.
-		FString SearchText = InCurrentAction.Actions[Action]->GetSearchTitle().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchKeywords().ToString() + LINE_TERMINATOR +InCurrentAction.Actions[Action]->Category;
+		FString SearchText = InCurrentAction.Actions[Action]->GetSearchTitle().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchKeywords().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchCategory().ToString();
 		SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 
 		// First the keywords
@@ -793,7 +793,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		WeightedArrayList.Add( EachEntry );
 
 		// The category
-		InCurrentAction.Actions[Action]->Category.ParseIntoArray( EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->GetSearchCategory().ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = CategoryWeight;
 		WeightedArrayList.Add( EachEntry );
 

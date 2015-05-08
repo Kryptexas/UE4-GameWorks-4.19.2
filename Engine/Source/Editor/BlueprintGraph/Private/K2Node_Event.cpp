@@ -676,14 +676,12 @@ void UK2Node_Event::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& 
 
 FText UK2Node_Event::GetMenuCategory() const
 {
-	FString FuncSubCategory;
+	FText FunctionCategory = LOCTEXT("AddEventCategory", "Add Event");
 	if (UFunction* Function = EventReference.ResolveMember<UFunction>(GetBlueprintClassFromNode()))
 	{
-		FuncSubCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, TEXT(""));
+		FunctionCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(Function, FunctionCategory);
 	}
-
-	FString RootCategory = LOCTEXT("AddEventCategory", "Add Event").ToString();
-	return FText::FromString(RootCategory + TEXT("|") + FuncSubCategory);
+	return FunctionCategory;
 }
 
 bool UK2Node_Event::IsDeprecated() const

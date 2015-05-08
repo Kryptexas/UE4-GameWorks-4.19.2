@@ -144,7 +144,7 @@ public:
 	/** Gets the non-specific tooltip for the function */
 	static FString GetDefaultTooltipForFunction(const UFunction* Function);
 	/** Get default category for this function in action menu */
-	static FString GetDefaultCategoryForFunction(const UFunction* Function, const FString& BaseCategory);
+	static FText GetDefaultCategoryForFunction(const UFunction* Function, const FText& BaseCategory);
 	/** Get keywords for this function in the action menu */
 	static FText GetKeywordsForFunction(const UFunction* Function);
 	/** Should be drawn compact for this function */

@@ -130,10 +130,10 @@ public:
 	void OnRequestRenameOnActionNode();
 
 	/** Expands any category with the associated name */
-	void ExpandCategory(const FString& CategoryName);
+	void ExpandCategory(const FText& CategoryName);
 
 	/** Move the category before the target category */
-	bool MoveCategoryBeforeCategory( const FString& CategoryToMove, const FString& TargetCategory );
+	bool MoveCategoryBeforeCategory( const FText& CategoryToMove, const FText& TargetCategory );
 private:
 	/** Creates widgets for the graph schema actions */
 	TSharedRef<SWidget> OnCreateWidgetForAction(struct FCreateWidgetForActionData* const InCreateData);
@@ -141,8 +141,8 @@ private:
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
 	void CollectStaticSections(TArray<int32>& StaticSectionIDs);
-	void GetChildGraphs(UEdGraph* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FString ParentCategory = FString());
-	void GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FString ParentCategory = FString()) const;
+	void GetChildGraphs(UEdGraph* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FText ParentCategory = FText::GetEmpty());
+	void GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FText ParentCategory = FText::GetEmpty()) const;
 	void GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const;
 	
 	/** Handles the visibility of the local action list */
@@ -150,7 +150,7 @@ private:
 
 	/** Callbacks for the graph action menu */
 	FReply OnActionDragged(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent);
-	FReply OnCategoryDragged(const FString& InCategory, const FPointerEvent& MouseEvent);
+	FReply OnCategoryDragged(const FText& InCategory, const FPointerEvent& MouseEvent);
 	void OnActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	static void OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector);
 	void OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, ESelectInfo::Type InSelectionType);
@@ -218,7 +218,7 @@ private:
 	void UpdateNodeCreation();
 
 	/** Returns the displayed category, if any, of a graph */
-	FString GetGraphCategory(UEdGraph* InGraph) const;
+	FText GetGraphCategory(UEdGraph* InGraph) const;
 
 	/** Helper function to delete a graph in the MyBlueprint window */
 	void OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph::Type);

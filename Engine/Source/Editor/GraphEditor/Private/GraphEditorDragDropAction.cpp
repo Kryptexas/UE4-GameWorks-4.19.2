@@ -60,9 +60,9 @@ void FGraphEditorDragDropAction::SetHoveredGraph(const TSharedPtr<SGraphPanel>& 
 	}
 }
 
-void FGraphEditorDragDropAction::SetHoveredCategoryName(const FString& InHoverCategoryName)
+void FGraphEditorDragDropAction::SetHoveredCategoryName(const FText& InHoverCategoryName)
 {
-	if(HoveredCategoryName != InHoverCategoryName)
+	if(!HoveredCategoryName.EqualTo(InHoverCategoryName))
 	{
 		HoveredCategoryName = InHoverCategoryName;
 		HoverTargetChanged();

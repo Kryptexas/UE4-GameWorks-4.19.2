@@ -81,7 +81,7 @@ public:
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 	
-	static void PopulateCategories(SMyBlueprint* MyBlueprint, TArray<TSharedPtr<FString>>& CategorySource);
+	static void PopulateCategories(SMyBlueprint* MyBlueprint, TArray<TSharedPtr<FText>>& CategorySource);
 
 private:
 	/** Accessors passed to parent */
@@ -124,8 +124,8 @@ private:
 	
 	FText OnGetCategoryText() const;
 	void OnCategoryTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit, FName VarName);
-	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
-	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
+	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FText> Item, const TSharedRef< STableViewBase >& OwnerTable );
+	void OnCategorySelectionChanged( TSharedPtr<FText> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
 	
 	EVisibility ShowEditableCheckboxVisibilty() const;
 	ECheckBoxState OnEditableCheckboxState() const;
@@ -195,10 +195,10 @@ private:
 	bool bIsVarNameInvalid;
 	
 	/** A list of all category names to choose from */
-	TArray<TSharedPtr<FString>> CategorySource;
+	TArray<TSharedPtr<FText>> CategorySource;
 	/** Widgets for the categories */
 	TWeakPtr<SComboButton> CategoryComboButton;
-	TWeakPtr<SListView<TSharedPtr<FString>>> CategoryListView;
+	TWeakPtr<SListView<TSharedPtr<FText>>> CategoryListView;
 
 	/** Array of names of property flags on the selected property */
 	TArray< TSharedPtr< FString > > PropertyFlags;
@@ -315,8 +315,8 @@ private:
 	void OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 	FText OnGetCategoryText() const;
 	void OnCategoryTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
-	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
-	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
+	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FText> Item, const TSharedRef< STableViewBase >& OwnerTable );
+	void OnCategorySelectionChanged( TSharedPtr<FText> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
 
 	void CollectAvailibleSignatures();
 	void OnFunctionSelected(TSharedPtr<FString> FunctionItemData, ESelectInfo::Type SelectInfo);
@@ -325,11 +325,11 @@ private:
 private:
 
 	/** A list of all category names to choose from */
-	TArray<TSharedPtr<FString>> CategorySource;
+	TArray<TSharedPtr<FText>> CategorySource;
 
 	/** Widgets for the categories */
 	TWeakPtr<SComboButton> CategoryComboButton;
-	TWeakPtr<SListView<TSharedPtr<FString>>> CategoryListView;
+	TWeakPtr<SListView<TSharedPtr<FText>>> CategoryListView;
 
 	TArray<TSharedPtr<FString>> FunctionsToCopySignatureFrom;
 	TSharedPtr<STextComboBox> CopySignatureComboButton;
@@ -534,10 +534,10 @@ private:
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);
 
 	/** Callback when a graph category is changed */
-	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
+	void OnCategorySelectionChanged( TSharedPtr<FText> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
 
 	/** Callback to make category widgets */
-	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
+	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FText> Item, const TSharedRef< STableViewBase >& OwnerTable );
 
 private:
 
@@ -551,11 +551,11 @@ private:
 	TSharedPtr<class SColorBlock> ColorBlock;
 
 	/** A list of all category names to choose from */
-	TArray<TSharedPtr<FString>> CategorySource;
+	TArray<TSharedPtr<FText>> CategorySource;
 
 	/** Widgets for the categories */
 	TWeakPtr<SComboButton> CategoryComboButton;
-	TWeakPtr<SListView<TSharedPtr<FString>>> CategoryListView;
+	TWeakPtr<SListView<TSharedPtr<FText>>> CategoryListView;
 };
 
 /** Blueprint Interface List Details */
@@ -714,8 +714,8 @@ protected:
 	bool OnVariableCategoryChangeEnabled() const;
 	FText OnGetVariableCategoryText() const;
 	void OnVariableCategoryTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit, FName VarName);
-	void OnVariableCategorySelectionChanged(TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/);
-	TSharedRef<ITableRow> MakeVariableCategoryViewWidget(TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable);
+	void OnVariableCategorySelectionChanged(TSharedPtr<FText> ProposedSelection, ESelectInfo::Type /*SelectInfo*/);
+	TSharedRef<ITableRow> MakeVariableCategoryViewWidget(TSharedPtr<FText> Item, const TSharedRef< STableViewBase >& OwnerTable);
 
 	FText GetSocketName() const;
 	void OnBrowseSocket();
@@ -739,11 +739,11 @@ private:
 	bool bIsVariableNameInvalid;
 
 	/** A list of all category names to choose from */
-	TArray<TSharedPtr<FString>> VariableCategorySource;
+	TArray<TSharedPtr<FText>> VariableCategorySource;
 
 	/** Widgets for the categories */
 	TSharedPtr<SComboButton> VariableCategoryComboButton;
-	TSharedPtr<SListView<TSharedPtr<FString>>> VariableCategoryListView;
+	TSharedPtr<SListView<TSharedPtr<FText>>> VariableCategoryListView;
 };
 
 /** Details customization for All Graph Nodes */

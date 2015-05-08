@@ -330,12 +330,12 @@ FText const& FGraphActionNode::GetDisplayName() const
 }
 
 //------------------------------------------------------------------------------
-FString FGraphActionNode::GetCategoryPath() const
+FText FGraphActionNode::GetCategoryPath() const
 {
-	FString CategoryPath;
+	FText CategoryPath;
 	if (IsCategoryNode())
 	{
-		CategoryPath = DisplayText.ToString();
+		CategoryPath = DisplayText;
 	}
 
 	TWeakPtr<FGraphActionNode> AncestorNode = ParentNode;
@@ -345,7 +345,7 @@ FString FGraphActionNode::GetCategoryPath() const
 
 		if( !AncestorDisplayText.IsEmpty() )
 		{
-			CategoryPath = AncestorDisplayText.ToString() + TEXT("|") + CategoryPath;
+			CategoryPath = FText::Format(FText::FromString(TEXT("{0}|{1}")), AncestorDisplayText, CategoryPath);
 		}
 		AncestorNode = AncestorNode.Pin()->GetParentNode();
 	}

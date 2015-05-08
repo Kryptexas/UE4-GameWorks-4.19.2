@@ -878,7 +878,7 @@ public:
 	 * @param	VarCategory			The new value of the custom category for the variable
 	 * @param	bDontRecompile		If true, the blueprint will not be marked as modified, and will not be recompiled.  
 	 */
-	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& NewCategory, bool bDontRecompile=false);
+	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FText& NewCategory, bool bDontRecompile=false);
 
 	/**
 	 * Gets the custom category on the variable with the specified name.
@@ -887,7 +887,7 @@ public:
 	 * @param	InLocalVarScope		Local variable's scope, if looking to modify a local variable
 	 * @return						The custom category (None indicates the name will be the same as the blueprint)
 	 */
-	static FName GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope);
+	static FText GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope);
 
 	/** Gets pointer to PropertyFlags of variable */
 	static uint64* GetBlueprintVariablePropertyFlags(UBlueprint* Blueprint, const FName& VarName);
@@ -911,7 +911,7 @@ public:
 	static bool MoveVariableBeforeVariable(UBlueprint* Blueprint, FName VarNameToMove, FName TargetVarName, bool bDontRecompile);
 
 	/** Find first variable of the supplied category */
-	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FName Category);
+	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FText Category);
 
 	/**
 	 * Find the index of a timeline first declared in this blueprint. Returns INDEX_NONE if not found.

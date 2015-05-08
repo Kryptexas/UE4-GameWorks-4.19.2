@@ -373,7 +373,7 @@ FName UK2Node_BaseAsyncTask::GetCornerIcon() const
 FText UK2Node_BaseAsyncTask::GetMenuCategory() const
 {	
 	UFunction* TargetFunction = GetFactoryFunction();
-	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+	return UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, FText::GetEmpty());
 }
 
 void UK2Node_BaseAsyncTask::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

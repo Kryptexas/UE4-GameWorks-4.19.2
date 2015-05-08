@@ -115,7 +115,7 @@ UBlueprintVariableNodeSpawner* UBlueprintVariableNodeSpawner::Create(TSubclassOf
 	//--------------------------------------
 
 	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
-	MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, FText::FromName(VarDesc.Category));
+	MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, VarDesc.Category);
 
 	FText const VarName = NodeSpawner->GetVariableName();
 	// @TODO: NodeClass could be modified post Create()

@@ -620,9 +620,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 				UProperty* NewProperty = CreateVariable(VarName, Type);
 				if (NewProperty != NULL)
 				{
-					const FString CategoryName = Node->CategoryName != NAME_None ? Node->CategoryName.ToString() : Blueprint->GetName();
+					const FText CategoryName = Node->CategoryName.IsEmpty() ? FText::FromString(Blueprint->GetName()) : Node->CategoryName ;
 					
-					NewProperty->SetMetaData(TEXT("Category"), *CategoryName);
+					NewProperty->SetMetaData(TEXT("Category"), *CategoryName.ToString());
 					NewProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_NonTransactional );
 				}
 			}
@@ -1218,7 +1218,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		FKismetUserDeclaredFunctionMetadata& FunctionMetaData = Context.EntryPoint->MetaData;
 		if( !FunctionMetaData.Category.IsEmpty() )
 		{
-			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category);
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category.ToString());
 		}
 		// Set as blutility function
 		if( FunctionMetaData.bCallInEditor )

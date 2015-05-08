@@ -9,17 +9,22 @@
 namespace FObjectEditorUtils
 {
 
-	FString GetCategory( const UProperty* InProperty )
+	FText GetCategoryText( const UProperty* InProperty )
 	{
 		static const FName NAME_Category(TEXT("Category"));
-		if (InProperty->HasMetaData(NAME_Category))
+		if (InProperty && InProperty->HasMetaData(NAME_Category))
 		{
-			return InProperty->GetMetaData(NAME_Category);
+			return InProperty->GetMetaDataText(NAME_Category, TEXT("UObjectCategory"), InProperty->GetFullGroupName(false));
 		}
 		else
 		{
-			return FString();
+			return FText::GetEmpty();
 		}
+	}
+
+	FString GetCategory( const UProperty* InProperty )
+	{
+		return GetCategoryText(InProperty).ToString();
 	}
 
 
@@ -28,7 +33,7 @@ namespace FObjectEditorUtils
 		FName CategoryName(NAME_None);
 		if( InProperty )
 		{
-			CategoryName = *GetCategory( InProperty );
+			CategoryName = *GetCategoryText( InProperty ).ToString();
 		}
 		return CategoryName;
 	}

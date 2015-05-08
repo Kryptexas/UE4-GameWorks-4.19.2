@@ -73,7 +73,7 @@ void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>&
 	{
 		TArray<FString> SubCategoryChain;
 
-		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category);
+		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category.ToString());
 		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
 
 		HierarchyOut.Append(SubCategoryChain);

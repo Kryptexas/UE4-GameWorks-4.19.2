@@ -171,7 +171,7 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 	}
 
 	// Add on category for delegate property
-	const FString EventCategory = FObjectEditorUtils::GetCategory(DelegateProperty);
+	const FText EventCategory = FObjectEditorUtils::GetCategoryText(DelegateProperty);
 
 	UObjectProperty* ComponentProperty = FindField<UObjectProperty>(Blueprint->SkeletonGeneratedClass, ThisComponentName);
 

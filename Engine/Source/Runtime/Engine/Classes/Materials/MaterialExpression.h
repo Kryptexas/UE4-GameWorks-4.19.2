@@ -165,7 +165,7 @@ class ENGINE_API UMaterialExpression : public UObject
 
 	/** Localized categories to sort this expression into... */
 	UPROPERTY()
-	TArray<FString> MenuCategories;
+	TArray<FText> MenuCategories;
 
 	/** The expression's outputs, which are set in default properties by derived classes. */
 	UPROPERTY()

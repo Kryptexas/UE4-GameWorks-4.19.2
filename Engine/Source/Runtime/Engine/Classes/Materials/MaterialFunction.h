@@ -33,8 +33,15 @@ class UMaterialFunction : public UObject
 	 * Categories that this function belongs to in the material function library.  
 	 * Ideally categories should be chosen carefully so that there are not too many.
 	 */
+	UPROPERTY(AssetRegistrySearchable)
+	TArray<FString> LibraryCategories_DEPRECATED;
+
+	/** 
+	 * Categories that this function belongs to in the material function library.  
+	 * Ideally categories should be chosen carefully so that there are not too many.
+	 */
 	UPROPERTY(EditAnywhere, Category=MaterialFunction, AssetRegistrySearchable)
-	TArray<FString> LibraryCategories;
+	TArray<FText> LibraryCategoriesText;
 
 	/** Array of material expressions, excluding Comments.  Used by the material editor. */
 	UPROPERTY()

@@ -208,7 +208,7 @@ FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* 
 	check(Action != nullptr);
 
 	MenuDescription = UiSpec.MenuName;
-	Category = UiSpec.Category.ToString();
+	Category = UiSpec.Category;
 	TooltipDescription = UiSpec.Tooltip.ToString();
 	Keywords = UiSpec.Keywords;
 	DocExcerptRef.DocLink = UiSpec.DocLink;

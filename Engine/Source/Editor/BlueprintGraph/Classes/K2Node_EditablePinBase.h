@@ -63,7 +63,7 @@ struct FKismetUserDeclaredFunctionMetadata
 	FString ToolTip;
 
 	UPROPERTY()
-	FString Category;
+	FText Category;
 
 	UPROPERTY()
 	FLinearColor InstanceTitleColor;

@@ -574,7 +574,7 @@ namespace EditorBuildPromotionTestUtils
 	static UEdGraphNode* CreateNewGraphNodeFromTemplate(UK2Node* NodeTemplate, UEdGraph* InGraph, const FVector2D& GraphLocation, UEdGraphPin* ConnectPin = NULL)
 	{
 		const FString EmptyString(TEXT(""));
-		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = TSharedPtr<FEdGraphSchemaAction_K2NewNode>(new FEdGraphSchemaAction_K2NewNode(EmptyString, FText::FromString(EmptyString), EmptyString, 0));
+		TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = TSharedPtr<FEdGraphSchemaAction_K2NewNode>(new FEdGraphSchemaAction_K2NewNode(FText::GetEmpty(), FText::GetEmpty(), EmptyString, 0));
 		Action->NodeTemplate = NodeTemplate;
 
 		return Action->PerformAction(InGraph, ConnectPin, GraphLocation, false);

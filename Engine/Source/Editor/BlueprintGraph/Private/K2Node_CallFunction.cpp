@@ -1332,24 +1332,34 @@ FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Func
 	}
 }
 
-FString UK2Node_CallFunction::GetDefaultCategoryForFunction(const UFunction* Function, const FString& BaseCategory)
+FText UK2Node_CallFunction::GetDefaultCategoryForFunction(const UFunction* Function, const FText& BaseCategory)
 {
-	FString NodeCategory = BaseCategory;
+	FText NodeCategory = BaseCategory;
 	if( Function->HasMetaData(FBlueprintMetadata::MD_FunctionCategory) )
 	{
-		// Add seperator if base category is supplied
-		if(NodeCategory.Len() > 0)
+		FText FuncCategory;
+		// If we are not showing friendly names, return the metadata stored, without localization
+		if( GEditor && !GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 		{
-			NodeCategory += TEXT("|");
+			FuncCategory = FText::FromString(Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory));
+		}
+		else
+		{
+			// Look for localized metadata
+			FuncCategory = Function->GetMetaDataText(FBlueprintMetadata::MD_FunctionCategory, TEXT("UObjectCategory"), Function->GetFullGroupName(false));
+
+			// If the result is culture invariant, force it into a display string
+			if (FuncCategory.IsCultureInvariant())
+			{
+				FuncCategory = FText::FromString(FName::NameToDisplayString(FuncCategory.ToString(), false));
+			}
 		}
 
-		// Add category from function
-		FString FuncCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
-		if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
+		// Combine with the BaseCategory to form the full category, delimited by "|"
+		if (!FuncCategory.IsEmpty() && !NodeCategory.IsEmpty())
 		{
-			FuncCategory = FName::NameToDisplayString( FuncCategory, false );
+			NodeCategory = FText::Format(FText::FromString(TEXT("{0}|{1}")), NodeCategory, FuncCategory);
 		}
-		NodeCategory += FuncCategory;
 	}
 	return NodeCategory;
 }
@@ -2181,7 +2191,7 @@ FText UK2Node_CallFunction::GetMenuCategory() const
 	UFunction* TargetFunction = GetTargetFunction();
 	if (TargetFunction != nullptr)
 	{
-		return FText::FromString(GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+		return GetDefaultCategoryForFunction(TargetFunction, FText::GetEmpty());
 	}
 	return FText::GetEmpty();
 }

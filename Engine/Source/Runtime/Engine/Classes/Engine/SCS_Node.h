@@ -22,7 +22,7 @@ class USCS_Node : public UObject
 
 	/** If non-None, the assigned category name */
 	UPROPERTY()
-	FName CategoryName;
+	FText CategoryName;
 
 	/** Socket/Bone that Node might attach to */
 	UPROPERTY()

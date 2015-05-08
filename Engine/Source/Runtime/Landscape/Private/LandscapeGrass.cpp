@@ -650,10 +650,10 @@ UMaterialExpressionLandscapeGrassOutput::UMaterialExpressionLandscapeGrassOutput
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString STRING_Landscape;
+		FText STRING_Landscape;
 		FName NAME_Grass;
 		FConstructorStatics()
-			: STRING_Landscape(LOCTEXT("Landscape", "Landscape").ToString())
+			: STRING_Landscape(LOCTEXT("Landscape", "Landscape"))
 			, NAME_Grass("Grass")
 		{
 		}

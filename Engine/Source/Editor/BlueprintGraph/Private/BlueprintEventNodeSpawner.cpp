@@ -98,8 +98,7 @@ UBlueprintEventNodeSpawner* UBlueprintEventNodeSpawner::Create(UFunction const* 
 	FBlueprintActionUiSpec& MenuSignature = NodeSpawner->DefaultMenuSignature;
 	FText const FuncName = UEdGraphSchema_K2::GetFriendlySignatureName(EventFunc);
 	MenuSignature.MenuName = FText::Format(LOCTEXT("EventWithSignatureName", "Event {0}"), FuncName);
-	FString const FuncCategory = UK2Node_CallFunction::GetDefaultCategoryForFunction(EventFunc, TEXT(""));
-	MenuSignature.Category = FText::FromString(LOCTEXT("AddEventCategory", "Add Event").ToString() + TEXT("|") + FuncCategory);
+	MenuSignature.Category = UK2Node_CallFunction::GetDefaultCategoryForFunction(EventFunc, LOCTEXT("AddEventCategory", "Add Event"));
 	//MenuSignature.Tooltip, will be pulled from the node template
 	MenuSignature.Keywords = UK2Node_CallFunction::GetKeywordsForFunction(EventFunc);
 	if (MenuSignature.Keywords.IsEmpty())

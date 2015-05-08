@@ -381,7 +381,7 @@ FText UK2Node_MacroInstance::GetCompactNodeTitle() const
 		else if( MacroName == TEXT("NegateFloat") || 
 				 MacroName == TEXT("NegateInt") )
 		{
-			return LOCTEXT("DecrementCompactNodeTitle", "-");
+			return LOCTEXT("NegateCompactNodeTitle", "-");
 		}
 	}	
 
@@ -535,7 +535,7 @@ FText UK2Node_MacroInstance::GetMenuCategory() const
 		FKismetUserDeclaredFunctionMetadata* MacroGraphMetadata = UK2Node_MacroInstance::GetAssociatedGraphMetadata(MacroGraph);
 		if ((MacroGraphMetadata != nullptr) && !MacroGraphMetadata->Category.IsEmpty())
 		{
-			MenuCategory = FText::FromString(MacroGraphMetadata->Category);
+			MenuCategory = MacroGraphMetadata->Category;
 		}
 	}
 

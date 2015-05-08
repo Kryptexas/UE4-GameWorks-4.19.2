@@ -17,7 +17,7 @@ struct UNREALED_API FSoundClassGraphSchemaAction_NewNode : public FEdGraphSchema
 		, NewSoundClassName(TEXT("ClassName"))
 	{}
 
-	FSoundClassGraphSchemaAction_NewNode(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FSoundClassGraphSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
 		, NewSoundClassName(TEXT("ClassName"))
 	{}

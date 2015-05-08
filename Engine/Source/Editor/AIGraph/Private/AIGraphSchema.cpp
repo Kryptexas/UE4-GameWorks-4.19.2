@@ -121,7 +121,7 @@ UAIGraphSchema::UAIGraphSchema(const FObjectInitializer& ObjectInitializer) : Su
 {
 }
 
-TSharedPtr<FAISchemaAction_NewNode> UAIGraphSchema::AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FAISchemaAction_NewNode> UAIGraphSchema::AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FText& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FAISchemaAction_NewNode> NewAction = TSharedPtr<FAISchemaAction_NewNode>(new FAISchemaAction_NewNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction(NewAction);
@@ -129,7 +129,7 @@ TSharedPtr<FAISchemaAction_NewNode> UAIGraphSchema::AddNewNodeAction(FGraphActio
 	return NewAction;
 }
 
-TSharedPtr<FAISchemaAction_NewSubNode> UAIGraphSchema::AddNewSubNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FAISchemaAction_NewSubNode> UAIGraphSchema::AddNewSubNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FText& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FAISchemaAction_NewSubNode> NewAction = TSharedPtr<FAISchemaAction_NewSubNode>(new FAISchemaAction_NewSubNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction(NewAction);

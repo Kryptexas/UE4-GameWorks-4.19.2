@@ -110,7 +110,7 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const FObjectInitializer& ObjectI
 	PC_Curve = TEXT("curve");
 }
 
-TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FText& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FNiagaraSchemaAction_NewNode> NewAction = TSharedPtr<FNiagaraSchemaAction_NewNode>(new FNiagaraSchemaAction_NewNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction( NewAction );
@@ -133,7 +133,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			Args.Add(TEXT("Attribute"), FText::FromName(Attr.Name));
 			const FText MenuDesc = FText::Format(LOCTEXT("GetAttribute", "Get {Attribute}"), Args);
 
-			TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("Attributes Menu Title", "Attributes").ToString(), MenuDesc, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Attributes Menu Title", "Attributes"), MenuDesc, TEXT(""));
 
 			UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 			InputNode->Input = Attr;
@@ -144,7 +144,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 #define NiagaraOp(OPNAME) \
 		if(const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(FNiagaraOpInfo::OPNAME))\
 		{\
-		TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("Operations Menu Title", "Operations").ToString(), OpInfo->FriendlyName, TEXT("")); \
+		TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Operations Menu Title", "Operations"), OpInfo->FriendlyName, TEXT("")); \
 			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries); \
 			OpNode->OpName = OpInfo->Name; \
 			AddOpAction->NodeTemplate = OpNode; \
@@ -162,7 +162,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		Args.Add(TEXT("Constant"), FText::FromName(SysConst.Name));
 		const FText MenuDesc = FText::Format(LOCTEXT("GetSystemConstant", "Get {Constant}"), Args);
 
-		TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("System Constants Menu Title", "System Constants").ToString(), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("System Constants Menu Title", "System Constants"), MenuDesc, TEXT(""));
 
 		UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 		InputNode->Input = SysConst;
@@ -176,7 +176,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		const FText MenuDesc = LOCTEXT("GetInput", "Input");
 
 		//TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("System Constants Menu Title", "System Constants").ToString(), MenuDesc, TEXT(""));
-		TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
 
 		UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 		InputNode->Input.Name = NAME_None;
@@ -188,7 +188,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 	{
 		const FText MenuDesc = LOCTEXT("NiagaraFunctionCall", "Function Call");
 
-		TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
 
 		UNiagaraNodeFunctionCall* FunctionCallNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
 		FunctionCallAction->NodeTemplate = FunctionCallNode;

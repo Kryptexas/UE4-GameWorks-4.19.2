@@ -121,7 +121,7 @@ public:
 	 *
 	 * @return A category path string, denoting the category hierarchy up to this node.
 	 */
-	FString GetCategoryPath() const;
+	FText GetCategoryPath() const;
 
 	/**
 	 * Checks to see if this node contains at least one valid action.

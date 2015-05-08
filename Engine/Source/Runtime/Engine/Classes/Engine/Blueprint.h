@@ -159,7 +159,7 @@ struct FBPVariableDescription
 
 	/** Category this variable should be in */
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
-	FName Category;
+	FText Category;
 
 	/** Property flags for this variable - Changed from int32 to uint64*/
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)

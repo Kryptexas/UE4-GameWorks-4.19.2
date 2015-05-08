@@ -508,6 +508,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_CONSTRAINT_INSTANCE_MOTOR_FLAGS,
 	// Serialize bIsConst in FEdGraphPinType
 	VER_UE4_SERIALIZE_PINTYPE_CONST,
+	// Change UMaterialFunction::LibraryCategories to LibraryCategoriesText (old assets were saved before auto-conversion of UArrayProperty was possible)
+	VER_UE4_LIBRARY_CATEGORIES_AS_FTEXT,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

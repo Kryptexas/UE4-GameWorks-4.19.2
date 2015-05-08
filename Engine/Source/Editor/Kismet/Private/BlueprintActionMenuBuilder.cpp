@@ -110,7 +110,7 @@ TSharedPtr<FBlueprintActionMenuItem> FBlueprintActionMenuItemFactory::MakeAction
 	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, UiSignature);
 
 	NewMenuItem->Grouping = MenuGrouping;
-	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
+	NewMenuItem->Category = FText::Format(FText::FromString(TEXT("{0}|{1}")), RootCategory, NewMenuItem->Category);
 
 	return MakeShareable(NewMenuItem);
 }
@@ -121,7 +121,7 @@ TSharedPtr<FBlueprintDragDropMenuItem> FBlueprintActionMenuItemFactory::MakeDrag
 	// FBlueprintDragDropMenuItem takes care of its own menu MenuDescription, etc.
 	FBlueprintDragDropMenuItem* NewMenuItem = new FBlueprintDragDropMenuItem(Context, SampleAction, MenuGrouping);
 
-	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
+	NewMenuItem->Category = FText::Format(FText::FromString(TEXT("{0}|{1}")), RootCategory, NewMenuItem->Category);
 	return MakeShareable(NewMenuItem);
 }
 
@@ -134,7 +134,7 @@ TSharedPtr<FBlueprintActionMenuItem> FBlueprintActionMenuItemFactory::MakeBoundM
 	FBlueprintActionMenuItem* NewMenuItem = new FBlueprintActionMenuItem(Action, UiSignature, ActionInfo.GetBindings());
 
 	NewMenuItem->Grouping = MenuGrouping;
-	NewMenuItem->Category = FString::Printf(TEXT("%s|%s"), *RootCategory.ToString(), *NewMenuItem->Category);
+	NewMenuItem->Category = FText::Format(FText::FromString(TEXT("{0}|{1}")), RootCategory, NewMenuItem->Category);
 
 	return MakeShareable(NewMenuItem);
 }
@@ -331,7 +331,7 @@ void FBlueprintActionMenuBuilderImpl::FMenuSectionDefinition::AddBoundMenuItems(
 
 					if (Flags & FBlueprintActionMenuBuilder::FlattenCategoryHierarcy)
 					{
-						LastMadeMenuItem->Category = ItemFactory.RootCategory.ToString();
+						LastMadeMenuItem->Category = ItemFactory.RootCategory;
 					}
 				}
 				else
@@ -396,7 +396,7 @@ FBlueprintActionMenuBuilderImpl::MenuItemList FBlueprintActionMenuBuilderImpl::F
 		UnBoundMenuEntry = ItemFactory.MakeActionMenuItem(EditorContext, DatabaseAction);
 		if (Flags & FBlueprintActionMenuBuilder::FlattenCategoryHierarcy)
 		{
-			UnBoundMenuEntry->Category = ItemFactory.RootCategory.ToString();
+			UnBoundMenuEntry->Category = ItemFactory.RootCategory;
 		}
 	}
 

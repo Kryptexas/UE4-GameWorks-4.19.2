@@ -475,7 +475,7 @@ const FName UEdGraphSchema_K2::FN_UserConstructionScript(TEXT("UserConstructionS
 const FName UEdGraphSchema_K2::FN_ExecuteUbergraphBase(TEXT("ExecuteUbergraph"));
 const FName UEdGraphSchema_K2::GN_EventGraph(TEXT("EventGraph"));
 const FName UEdGraphSchema_K2::GN_AnimGraph(TEXT("AnimGraph"));
-const FName UEdGraphSchema_K2::VR_DefaultCategory(TEXT("Default"));
+const FText UEdGraphSchema_K2::VR_DefaultCategory(LOCTEXT("Default", "Default"));
 
 const int32 UEdGraphSchema_K2::AG_LevelReference = 100;
 

@@ -167,9 +167,9 @@ void USimpleConstructionScript::PostLoad()
 		USCS_Node* Node = Nodes[NodeIndex];
 
 		// Fix up any uninitialized category names
-		if(Node->CategoryName == NAME_None)
+		if(Node->CategoryName.IsEmpty())
 		{
-			Node->CategoryName = TEXT("Default");
+			Node->CategoryName = NSLOCTEXT("SCS", "Default", "Default");
 		}
 
 		// Fix up components that may have switched from scene to non-scene type and vice-versa
@@ -1016,7 +1016,7 @@ USCS_Node* USimpleConstructionScript::CreateNodeImpl(UActorComponent* NewCompone
 	NewNode->VariableName = ComponentVariableName;
 
 	// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
-	NewNode->CategoryName = TEXT("Default");
+	NewNode->CategoryName = NSLOCTEXT("SCS", "Default", "Default");
 	NewNode->VariableGuid = FGuid::NewGuid();
 	return NewNode;
 }

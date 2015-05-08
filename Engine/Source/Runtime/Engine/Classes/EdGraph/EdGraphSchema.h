@@ -66,7 +66,7 @@ struct ENGINE_API FEdGraphSchemaAction
 
 	/** This is the UI centric category the action fits in (e.g., Functions, Variables).  Use this instead of the NodeType.NodeCategory because multiple NodeCategories might visually belong together. */
 	UPROPERTY()
-	FString Category;
+	FText Category;
 
 	/** This is just an arbitrary dump of extra text that search will match on, in addition to the description and tooltip, e.g., Add might have the keyword Math */
 	UPROPERTY()
@@ -88,6 +88,10 @@ struct ENGINE_API FEdGraphSchemaAction
 	UPROPERTY()
 	FText CachedSearchKeywords;
 
+	/** Search categories for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty)*/
+	UPROPERTY()
+	FText CachedSearchCategories;
+
 	FEdGraphSchemaAction() 
 		: Grouping(0)
 		, SectionID(0)
@@ -95,7 +99,7 @@ struct ENGINE_API FEdGraphSchemaAction
 	
 	virtual ~FEdGraphSchemaAction() {}
 
-	FEdGraphSchemaAction(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: MenuDescription(InMenuDesc)
 		, TooltipDescription(InToolTip)
 		, Category(InNodeCategory)
@@ -139,7 +143,7 @@ struct ENGINE_API FEdGraphSchemaAction
 		return CachedSearchTitle;
 	}
 
-	/** Retrieves the full searchable title for this action */
+	/** Retrieves the full searchable keywords for this action */
 	FText GetSearchKeywords()
 	{
 		if(CachedSearchKeywords.IsEmpty())
@@ -150,6 +154,19 @@ struct ENGINE_API FEdGraphSchemaAction
 			CachedSearchKeywords = FText::Format(FText::FromString("{LocalizedKeywords} {SourceKeywords}"), Args);
 		}
 		return CachedSearchKeywords;
+	}
+
+	/** Retrieves the full searchable categories for this action */
+	FText GetSearchCategory()
+	{
+		if(CachedSearchCategories.IsEmpty())
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("LocalizedCategories"), Category);
+			Args.Add(TEXT("SourceCategories"), FText::FromString(Category.BuildSourceString()));
+			CachedSearchCategories = FText::Format(FText::FromString("{LocalizedCategories} {SourceCategories}"), Args);
+		}
+		return CachedSearchCategories;
 	}
 
 	// GC.
@@ -176,7 +193,7 @@ struct ENGINE_API FEdGraphSchemaAction_NewNode : public FEdGraphSchemaAction
 		, NodeTemplate(NULL)
 	{}
 
-	FEdGraphSchemaAction_NewNode(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_NewNode(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
 		, NodeTemplate(NULL)
 	{}
@@ -209,7 +226,7 @@ struct FEdGraphSchemaAction_Dummy : public FEdGraphSchemaAction
 	: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_Dummy(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_Dummy(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)		
 	{}
 };

@@ -32,7 +32,7 @@ public:
 
 		MenuDescription = Title;
 		TooltipDescription = TEXT("Evaluates an animation sequence to produce a pose");
-		Category = TEXT("Animations");
+		Category = LOCTEXT("Animation", "Animations");
 
 		// Grab extra keywords
 		Keywords = FText::FromName(InAssetInfo.ObjectPath);

@@ -33,7 +33,7 @@ struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaA
 		: FEdGraphSchemaAction()
 	{}
 
-	FEdGraphSchemaAction_K2Struct (const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FEdGraphSchemaAction_K2Struct (const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
 	{}
 };
@@ -255,7 +255,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FName GN_AnimGraph;
 
 	// variable names
-	static const FName VR_DefaultCategory;
+	static const FText VR_DefaultCategory;
 
 	// action grouping values
 	static const int32 AG_LevelReference;
