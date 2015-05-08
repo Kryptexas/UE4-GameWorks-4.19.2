@@ -209,7 +209,8 @@ void UPaperTileMap::UpdateBodySetup()
 
 		for (int32 LayerIndex = 0; LayerIndex < TileLayers.Num(); ++LayerIndex)
 		{
-			TileLayers[LayerIndex]->AugmentBodySetup(BodySetup);
+			const float ZSeparation = LayerIndex * SeparationPerLayer;
+			TileLayers[LayerIndex]->AugmentBodySetup(BodySetup, ZSeparation);
 		}
 
 		// Finalize the BodySetup
