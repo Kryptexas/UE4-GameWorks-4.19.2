@@ -227,7 +227,7 @@ BuildLND()
   make $MAKE_ARGS
   local LIB_DIR=../lib/Linux/$TARGET_ARCH/
   mv *.so $LIB_DIR
-  cp -P --remove-destination $LIB_DIR/*.so ${TOP_DIR}/Binaries/ThirdParty/Linux/$TARGET_ARCH/
+  cp -P --remove-destination $LIB_DIR/*.so ${TOP_DIR}/Binaries/ThirdParty/LinuxNativeDialogs/Linux/$TARGET_ARCH/
   set +x
 }
 
