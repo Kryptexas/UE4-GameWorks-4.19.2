@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2469193
+﻿INTSourceChangelist:2533872
 Availability:Public
 Title:マテリアル エディタ - ディテール テクスチャの追加方法
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -17,7 +17,7 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 この問題に対処するには、マテリアルを至近距離で見た場合のテクスチャのピクセル化を隠すのに役立つディテール テクスチャを使用します。 
 
 
-## ディテール テクスチャとは何か？
+##ディテール テクスチャリング
 
 ディテール テクスチャは、オブジェクトの元のディフューズと法線上に、ディフューズと法線マップの組み合わせを何回も繰り返しレイヤーを重ねて、テクスチャ内により多くのディテールがあるかのような錯覚を与えます。 
 これにより通常可能なレベルよりも、近距離でのディテールの錯覚はさらに増します。 
@@ -92,7 +92,7 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 	* **T_Ground_Gravel_D**
 	* **T_Ground_Moss_N**
 
-	完了すると、マテリアル グラフは以下のようになるはずです。 
+	完了すると、マテリアルグラフは以下のようになります。
 
 	![](DT_Adding_Textures.png)
 
@@ -104,7 +104,7 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 
 	![](DT_Adding_DT_MF.png)
 
-1. **Detail Texturing** マテリアル関数を追加した状態で、マテリアルが機能するように必要な入出力の接続を開始します。この例では、**T_Brick_Clay_Old** テクスチャをベース テクスチャとして使用し、**T_Ground_Gravel** をディテール テクスチャとして使用します。つまり、**T_Brick_Clay_Old** の Diffuse と Normal map は、Diffuse および Normal の入力につなげ、**T_Ground_Gravel** のDiffuse と Normal map は、Diffuse および Normal の入力につなげます。完了すると、マテリアル グラフは以下のようになるはずです。
+1. **Detail Texturing** マテリアル関数を追加した状態で、マテリアルが機能するように必要な入出力の接続を開始します。この例では、**T_Brick_Clay_Old** テクスチャをベース テクスチャとして使用し、**T_Ground_Gravel** をディテール テクスチャとして使用します。つまり、**T_Brick_Clay_Old** の Diffuse と Normal map は、Diffuse および Normal の入力につなげ、**T_Ground_Gravel** のDiffuse と Normal map は、Diffuse および Normal の入力につなげます。完了すると、マテリアル グラフは以下のようになります。
 
 	![](DT_Hooked_Up_Textures.png)
 
@@ -116,9 +116,9 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 
 	![](DT_Adding_Constant_Nodes.png)
 
-1. 適切な数の **Constant** マテリアル式をマテリアル グラフに追加した状態で、それらを接続し、データを入れます。これは、**Constant** マテリアル式の出力を **Detail Texturing** マテリアル式の入力に接続するだけでできます。次に **Constant** マテリアル式のそれぞれに 1 の値を入力します。完了すると、マテリアル グラフは以下のようになるはずです。 
-	![](DT_All_Connections_Made.png)
+1. 適切な数の **Constant** マテリアル式をマテリアル グラフに追加した状態で、それらを接続し、データを入れます。これは、**Constant** マテリアル式の出力を **Detail Texturing** マテリアル式の入力に接続するだけでできます。次に **Constant** マテリアル式のそれぞれに 1 の値を入力します。完了すると、マテリアル グラフは以下のようになります。 
 
+	![](DT_All_Connections_Made.png)
 
 1. **Constant** マテリアル式ノードの値を調整することで、ディテール テクスチャの見え方に影響を及ぼすことができます。以下の例は **Scale** の値を 1 から 5 に、最終的には 10 に設定した場合に何が起こるかを表したものです。 
 
@@ -136,7 +136,7 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 
 	![](DT_Duplicate_Materia_Namedl.png)
 
-1. 作成した新規マテリアルを開くには、そのマテリアルを **左マウスボタン** で **ダブルクリック** します。開いたら、テクスチャ以外のものを何もかも削除し、必ず **テクスチャ オブジェクト** を **テクスチャ サンプル** に戻すようにします。これは、まずすべての **テクスチャ オブジェクト** を選択し、その上で右クリックし、メニューから **Convert To Texture Sampler** を選択して行います。完了すると、マテリアル グラフは以下のようになるはずです。 
+1. 作成した新規マテリアルを開くには、そのマテリアルを **左マウスボタン** で **ダブルクリック** します。開いたら、テクスチャ以外のものを何もかも削除し、必ず **テクスチャ オブジェクト** を **テクスチャ サンプル** に戻すようにします。これは、まずすべての **テクスチャ オブジェクト** を選択し、その上で右クリックし、メニューから **Convert To Texture Sampler** を選択して行います。完了すると、マテリアル グラフは以下のようになります。 
 
 	![](DT_New_Material_Setup.png)
 
@@ -146,15 +146,15 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 	* Add x 2
 	* Constant  x 2
 
-	完了すると、マテリアル グラフは以下のようになるはずです。 
+	完了すると、マテリアル グラフは以下のようになります。 
 
 	![](DT_Required_Nodes.png)
 
-1. 必要なマテリアル式ノードがすべて追加されたら、次は全てを接続していきます。最初に接続するセクションは、Base Color 部分です。完了すると、マテリアル グラフは以下のようになるはずです。 
+1. 必要なマテリアル式ノードがすべて追加されたら、次は全てを接続していきます。最初に接続するセクションは、Base Color 部分です。完了すると、マテリアル グラフは以下のようになります。 
+
 	![](DT_Base_Color_Connections.png)
 
-
-1. 次に Base Color をセットアップしたときと同じようにして法線マップを接続する必要があります。完了すると、マテリアル グラフは以下のようになるはずです。 
+1. 次に Base Color をセットアップしたときと同じようにして法線マップを接続する必要があります。完了すると、マテリアル グラフは以下のようになります。 
 
 	![](DT_Normal_Map_Connections.png)
 
@@ -187,7 +187,7 @@ Related:Engine/Rendering/Materials/ExpressionReference/Textures
 
 	![](DT_Distance_Based_Blending_Nodes.png)
 
-1. 距離ベースのブレンディングが完了したらマテリアルの残りに追加することができます。これを行うには最初に 2 つの **LERP** マテリアル式をマテリアル グラフに追加する必要があります。LERP マテリアル式のアルファ入力がテクスチャの切替をする距離を制御するからです。あとはマテリアルの残りを接続するだけです。このマテリアルとオリジナルのマテリアルの唯一の違いは、テクスチャをまとめて最後に追加する代わりに LERP が使用されることです。完了すると、マテリアル グラフは以下のようになるはずです。
+1. 距離ベースのブレンディングが完了したらマテリアルの残りに追加することができます。これを行うには最初に 2 つの **LERP** マテリアル式をマテリアル グラフに追加する必要があります。LERP マテリアル式のアルファ入力がテクスチャの切替をする距離を制御するからです。あとはマテリアルの残りを接続するだけです。このマテリアルとオリジナルのマテリアルの唯一の違いは、テクスチャをまとめて最後に追加する代わりに LERP が使用されることです。完了すると、マテリアル グラフは以下のようになります。
 
 	![](DT_Distance_Based_Completed_Material.png)
 
