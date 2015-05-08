@@ -234,8 +234,8 @@ FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometr
 	}
 	else
 	{
-		// Otherwise let the base class handle it
-		return SGraphNode::OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
+		// Otherwise let the graph handle it, to allow spline interactions to work when they overlap with a comment node
+		return FReply::Unhandled();
 	}
 }
 
