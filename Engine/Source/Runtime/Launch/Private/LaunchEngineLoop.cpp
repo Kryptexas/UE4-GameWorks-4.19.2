@@ -2062,7 +2062,7 @@ int32 FEngineLoop::Init()
 	{
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
 	}
-#endif#endif
+#endif
 
 	GIsRunning = true;
 
