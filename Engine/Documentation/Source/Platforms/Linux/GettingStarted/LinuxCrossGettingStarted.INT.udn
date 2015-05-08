@@ -1,0 +1,95 @@
+﻿Availability:Docs
+Title: Getting Started: Developing Linux Projects
+Crumbs:%ROOT%, Platforms, Platforms/Linux
+Description:Setting up for development for the Linux platform.
+
+[TOC(start:2 end:3)]
+
+## Disclaimer
+
+%Globals:BinarySourceSelectVar%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	binaryinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%binary%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	sourceinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%source%
+	[/PARAM]
+[/OBJECT]
+
+
+[VAR:source]
+## Source and Github Users
+
+Linux as a target platform is supported on Windows host platform and on Linux itself (but not yet on Mac). This guide is geared towards Windows users trying to cross-compile for Linux; if you run Unreal Editor on Linux itself, no separate step is needed at the moment
+(note that on Linux, we currently use the compiler available on the system, although in the future we may bundle it to provide a stable build environment which will allow you to prepare the binaries in a distro-agnostic way).
+
+On Windows, we use the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to cross compile a Linux binary. 
+
+### Installing from Source: 
+
+As this guide assumes that you are running Windows, you will need to install the toolchain first:
+
+* [Clang-3.5.0 based tool chain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
+
+### Toolchain set up
+
+Unzip the above file to a path that does not contain spaces or non-ASCII characters (e.g. C:\CrossToolchain350 is a good example) and set LINUX_ROOT environment variable so it contains the absolute path to the "toolchain" directory of the toolchain (e.g. C:\CrossToolchain350\toolchain\).
+More information: https://wiki.unrealengine.com/Compiling_For_Linux
+
+### Unreal Engine 4 Setup. 
+
+* Fork and clone the Unreal Engine 4 repository \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
+
+* Within a shell run `Setup.bat -include=Linux`
+
+Follow the instuctions on [https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) to build the editor.  Set your solution configuration to **Development** and your solution platform to **Linux** to build Linux targets.
+
+[/VAR]
+
+
+
+
+
+
+[VAR:binary]
+
+## Binary and Launcher Users
+
+Linux as a target platform is supported on Windows host platform and on Linux itself (but not yet on Mac). This guide is geared towards Windows users trying to cross-compile for Linux; if you run Unreal Editor on Linux itself, no separate step is needed at the moment
+(note that on Linux, we currently use the compiler available on the system, although in the future we may bundle it to provide a stable build environment which will allow you to prepare the binaries in a distro-agnostic way).
+
+On Windows, we use the [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to cross compile a Linux binary. 
+
+### Installing 
+
+As this guide assumes that you are running Windows, you will need to install the toolchain first:
+
+* [Clang-3.5.0 based tool chain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
+
+### Toolchain set up
+
+Unzip the above file to a path that does not contain spaces or non-ASCII characters (e.g. C:\CrossToolchain350 is a good example) and set LINUX_ROOT environment variable so it contains the absolute path to the "toolchain" directory of the toolchain (e.g. C:\CrossToolchain350\toolchain\).
+More information: https://wiki.unrealengine.com/Compiling_For_Linux
+
+[/VAR]

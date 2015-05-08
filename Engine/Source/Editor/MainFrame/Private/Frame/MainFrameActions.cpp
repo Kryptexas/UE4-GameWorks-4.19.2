@@ -435,18 +435,16 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			// report to main frame
 			bool UnrecoverableError = false;
 
-#if PLATFORM_WINDOWS
 			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
 				UnrecoverableError = true;
 			}
 			else if ((Result & ETargetPlatformReadyStatus::PluginsUnsupported) != 0)
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
 				UnrecoverableError = true;
 			}
-#endif
 
 			if (UnrecoverableError)
 			{
