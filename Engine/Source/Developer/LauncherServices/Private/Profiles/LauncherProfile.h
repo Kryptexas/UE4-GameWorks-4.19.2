@@ -1224,7 +1224,7 @@ protected:
 			}
 		}
 
-		if ( CookUnversioned && CookIncremental )
+		if (CookUnversioned && CookIncremental && ((CookMode == ELauncherProfileCookModes::ByTheBook) || (CookMode == ELauncherProfileCookModes::ByTheBookInEditor)))
 		{
 			ValidationErrors.Add(ELauncherProfileValidationErrors::UnversionedAndIncrimental);
 		}
