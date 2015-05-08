@@ -126,6 +126,28 @@ private:
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(AllowPrivateAccess="true"))
 	uint32 bHiddenInGame:1;
 
+	// Should this layer generate collision?
+	// Note: This only has an effect if the owning tile map has collision enabled
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(AllowPrivateAccess="true"))
+	uint32 bLayerCollides:1;
+
+	// Should this layer use a custom thickness for generated collision instead of the thickness setting in the tile map?
+	UPROPERTY(BlueprintReadOnly, Category=Sprite, meta=(AllowPrivateAccess="true"))
+	uint32 bOverrideCollisionThickness:1;
+
+	// Should this layer use a custom offset for generated collision instead of the layer drawing offset?
+	UPROPERTY(BlueprintReadOnly, Category=Sprite, meta=(AllowPrivateAccess="true"))
+	uint32 bOverrideCollisionOffset:1;
+
+	// The override thickness of the collision for this layer (when bOverrideCollisionThickness is set)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(EditCondition=bOverrideCollisionThickness, AllowPrivateAccess="true"))
+	float CollisionThicknessOverride;
+
+	// The override offset of the collision for this layer (when bOverrideCollisionOffset is set)
+	// Note: This is measured in Unreal Units (cm) from the center of the tile map component, not from the previous layer.
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(EditCondition=bOverrideCollisionOffset, AllowPrivateAccess="true"))
+	float CollisionOffsetOverride;
+
 	// The color of this layer (multiplied with the tile map color and passed to the material as a vertex color)
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(AllowPrivateAccess="true"))
 	FLinearColor LayerColor;
@@ -179,7 +201,7 @@ public:
 	void ResizeMap(int32 NewWidth, int32 NewHeight);
 
 	// Adds collision to the specified body setup
-	void AugmentBodySetup(UBodySetup* ShapeBodySetup);
+	void AugmentBodySetup(UBodySetup* ShapeBodySetup, float RenderSeparation);
 
 	// Gets the layer-specific color multiplier
 	FLinearColor GetLayerColor() const;
