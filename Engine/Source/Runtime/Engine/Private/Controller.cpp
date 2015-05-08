@@ -103,11 +103,18 @@ FRotator AController::GetControlRotation() const
 
 void AController::SetControlRotation(const FRotator& NewRotation)
 {
-	ControlRotation = NewRotation;
-
-	if (RootComponent && RootComponent->bAbsoluteRotation)
+	if (!ControlRotation.Equals(NewRotation, 1e-3f))
 	{
-		RootComponent->SetWorldRotation(GetControlRotation());
+		ControlRotation = NewRotation;
+
+		if (RootComponent && RootComponent->bAbsoluteRotation)
+		{
+			RootComponent->SetWorldRotation(GetControlRotation());
+		}
+	}
+	else
+	{
+		//UE_LOG(LogPlayerController, Log, TEXT("Skipping SetControlRotation for %s (Pawn %s)"), *GetNameSafe(this), *GetNameSafe(GetPawn()));
 	}
 }
 
@@ -211,6 +218,13 @@ void AController::PostInitializeComponents()
 	if ( !IsPendingKill() )
 	{
 		GetWorld()->AddController( this );
+
+		// Since we avoid updating rotation in SetControlRotation() if it hasn't changed,
+		// we should make sure that the initial RootComponent rotation matches it if ControlRotation was set directly.
+		if (RootComponent && RootComponent->bAbsoluteRotation)
+		{
+			RootComponent->SetWorldRotation(GetControlRotation());
+		}
 	}
 }
 

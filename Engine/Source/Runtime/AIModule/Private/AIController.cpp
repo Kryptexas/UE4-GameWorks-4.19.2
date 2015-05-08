@@ -419,7 +419,6 @@ void AAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 		{
 			NewControlRotation.Pitch = 0.f;
 		}
-		NewControlRotation.Yaw = FRotator::ClampAxis(NewControlRotation.Yaw);
 
 		if (GetControlRotation().Equals(NewControlRotation, 1e-3f) == false)
 		{
