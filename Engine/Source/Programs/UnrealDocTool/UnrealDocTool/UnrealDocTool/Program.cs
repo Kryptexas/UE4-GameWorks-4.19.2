@@ -1053,7 +1053,7 @@ namespace UnrealDocTool
 
         static void CleanMetaDataRecursiveDirectory(string sourcePath)
         {
-            DoRecursively(sourcePath, recursivePath => CleanMetaDataDirectory(recursivePath));
+            DoRecursivelyIgnored(sourcePath, recursivePath => CleanMetaDataDirectory(recursivePath));
         }
 
         private static readonly string[] IgnoredFolders = new[] { "include", "javascript", "images", "attachments", "css", "templates" };
@@ -1083,9 +1083,27 @@ namespace UnrealDocTool
 
             foreach (var subDirectory in Directory.GetDirectories(sourcePath))
             {
+                //if (!IsIgnoredDirectory(subDirectory))
+                //{
+                    DoRecursively(subDirectory, action);
+                //}
+            }
+        }
+
+        private static void DoRecursivelyIgnored(string sourcePath, Action<string> action)
+        {
+            if (!Directory.Exists(sourcePath))
+            {
+                return;
+            }
+
+            action(sourcePath);
+
+            foreach (var subDirectory in Directory.GetDirectories(sourcePath))
+            {
                 if (!IsIgnoredDirectory(subDirectory))
                 {
-                    DoRecursively(subDirectory, action);
+                    DoRecursivelyIgnored(subDirectory, action);
                 }
             }
         }

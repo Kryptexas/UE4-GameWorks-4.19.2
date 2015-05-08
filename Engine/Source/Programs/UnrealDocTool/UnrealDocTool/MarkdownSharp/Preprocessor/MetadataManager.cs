@@ -64,10 +64,15 @@ namespace MarkdownSharp.Preprocessor
                     DocumentTitle = metaValue;
                 }
 
-                if (metaDataCategoryLowerCase == "crumbs")
+                if (metaDataCategoryLowerCase == "seo-title")
                 {
-                    CrumbsLinks.Add(metaValue);
+                    SEOTitle = metaValue;
                 }
+
+                //if (metaDataCategoryLowerCase == "crumbs")
+                //{
+                //    CrumbsLinks.Add(metaValue);
+                //}
 
                 if (metaDataCategoryLowerCase == "related" && full)
                 {
@@ -83,10 +88,16 @@ namespace MarkdownSharp.Preprocessor
                 {
                     EngineVersions.Add(metaValue);
                 }
+
+                if (metaDataCategoryLowerCase == "skilllevel")
+                {
+                    SkillLevels.Add(metaValue);
+                }
             }
 
             // Add meta data to the list, we require some specific meta data keys to be unique others can be duplicates
-            if (metaDataCategoryLowerCase.Equals("title") || metaDataCategoryLowerCase.Equals("description")
+            if (metaDataCategoryLowerCase.Equals("title") || metaDataCategoryLowerCase.Equals("seo-title")
+                || metaDataCategoryLowerCase.Equals("description") || metaDataCategoryLowerCase.Equals("seo-description")
                 || metaDataCategoryLowerCase.Equals("template") || metaDataCategoryLowerCase.Equals("forcepublishfiles"))
             {
                 if (MetadataMap.ContainsKey(metaDataCategoryLowerCase))
@@ -145,6 +156,7 @@ namespace MarkdownSharp.Preprocessor
             RelatedLinks = new List<Hash>();
             PrereqLinks = new List<Hash>();
             EngineVersions = new List<String>();
+            SkillLevels = new List<String>();
 
             var changes = new List<PreprocessingTextChange>();
 
@@ -207,7 +219,9 @@ namespace MarkdownSharp.Preprocessor
         public List<Hash> RelatedLinks { get; set; }
         public List<Hash> PrereqLinks { get; set; }
         public List<String> EngineVersions { get; set; }
+        public List<String> SkillLevels { get; set; }
         public string DocumentTitle { get; set; }
+        public string SEOTitle { get; set; }
 
         public Dictionary<string, List<string>> MetadataMap { get; private set; }
     }

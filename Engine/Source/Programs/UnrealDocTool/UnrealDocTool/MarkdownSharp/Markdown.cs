@@ -1060,13 +1060,31 @@ namespace MarkdownSharp
                         break;
                 }
 
-                metadata = metadataRow.Value.Aggregate(metadata,
-                    (current, metadataValue) =>
-                    current + Templates.Metadata.Render(Hash.FromAnonymousObject(new
+                if (metadataRow.Key == "description" && data.ProcessedDocumentCache.Metadata.MetadataMap.ContainsKey("seo-description"))
+                {
+                    continue;
+                }
+                
+                if (metadataRow.Key == "seo-description")
+                {
+                    metadata = metadataRow.Value.Aggregate(metadata,
+                        (current, metadataValue) =>
+                        current + Templates.Metadata.Render(Hash.FromAnonymousObject(new
                         {
-                            key = metadataRow.Key,
+                            key = "description",
                             value = metadataValue
                         })));
+                }
+                else
+                {
+                    metadata = metadataRow.Value.Aggregate(metadata,
+                        (current, metadataValue) =>
+                        current + Templates.Metadata.Render(Hash.FromAnonymousObject(new
+                            {
+                                key = metadataRow.Key,
+                                value = metadataValue
+                            })));
+                }
             }
 
             var translatedPageLinks = "";
@@ -1128,6 +1146,7 @@ namespace MarkdownSharp
                                          ? ""
                                          : Templates.GetCached("crumbsDiv.html").Render(Hash.FromAnonymousObject(new { crumbs })),
                         title = data.ProcessedDocumentCache.CurrentFileDocument.Metadata.DocumentTitle,
+                        seotitle = (data.ProcessedDocumentCache.CurrentFileDocument.Metadata.SEOTitle != null) ? data.ProcessedDocumentCache.CurrentFileDocument.Metadata.SEOTitle : data.ProcessedDocumentCache.CurrentFileDocument.Metadata.DocumentTitle,
                         metadata = metadata,
                         translatedPages = translatedPageLinks,
                         relatedPagesMenu = Templates.RelatedPages.Render(Hash.FromAnonymousObject(
@@ -1155,6 +1174,12 @@ namespace MarkdownSharp
                             {
                                 versions = data.ProcessedDocumentCache.Metadata.EngineVersions,
                                 versionCount = data.ProcessedDocumentCache.Metadata.EngineVersions.Count
+                            })),
+                        skilllevels = Templates.SkillLevels.Render(Hash.FromAnonymousObject(
+                            new
+                            {
+                                skilllevels = data.ProcessedDocumentCache.Metadata.SkillLevels,
+                                skilllevelCount = data.ProcessedDocumentCache.Metadata.SkillLevels.Count
                             })),
                         errors = ThisIsPreview
                                      ? Templates.ErrorDetails.Render(Hash.FromAnonymousObject(
