@@ -1,9 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
-
 #include "OculusFunctionLibrary.generated.h"
 
 USTRUCT(BlueprintType, meta = (DisplayName = "HMD User Profile Data Field"))
@@ -159,5 +156,3 @@ class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 protected:
 	static class FOculusRiftHMD* GetOculusHMD();
 };
-
-#endif // OCULUS_RIFT_SUPPORTED_PLATFORMS
