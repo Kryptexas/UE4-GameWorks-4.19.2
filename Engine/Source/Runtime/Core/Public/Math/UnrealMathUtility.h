@@ -476,17 +476,22 @@ struct FMath : public FPlatformMath
 	static CORE_API float FixedTurn(float InCurrent, float InDesired, float InDeltaRate);
 
 	/** Converts given Cartesian coordinate pair to Polar coordinate system. */
-	static FORCEINLINE void CartesianToPolar(float X, float Y, float& OutRad, float& OutAng)
+	static FORCEINLINE void CartesianToPolar(const float X, const float Y, float& OutRad, float& OutAng)
 	{
 		OutRad = Sqrt(Square(X) + Square(Y));
 		OutAng = Atan2(Y, X);
 	}
+	/** Converts given Cartesian coordinate pair to Polar coordinate system. */
+	static FORCEINLINE void CartesianToPolar(const FVector2D InCart, FVector2D& OutPolar);
+
 	/** Converts given Polar coordinate pair to Cartesian coordinate system. */
-	static FORCEINLINE void PolarToCartesian(float Rad, float Ang, float& OutX, float& OutY)
+	static FORCEINLINE void PolarToCartesian(const float Rad, const float Ang, float& OutX, float& OutY)
 	{
 		OutX = Rad * Cos(Ang);
 		OutY = Rad * Sin(Ang);
 	}
+	/** Converts given Polar coordinate pair to Cartesian coordinate system. */
+	static FORCEINLINE void PolarToCartesian(const FVector2D InPolar, FVector2D& OutCart);
 
 	/**
 	 * Calculates the dotted distance of vector 'Direction' to coordinate system O(AxisX,AxisY,AxisZ).

@@ -3022,3 +3022,15 @@ void FMath::ApplyScaleToFloat(float& Dst, const FVector& DeltaScale, float Magni
 	Dst += Multiplier * DeltaScale.Size();
 	Dst = FMath::Max( 0.0f, Dst );
 }
+
+void FMath::CartesianToPolar(const FVector2D InCart, FVector2D& OutPolar)
+{
+	OutPolar.X = Sqrt(Square(InCart.X) + Square(InCart.Y));
+	OutPolar.Y = Atan2(InCart.Y, InCart.X);
+}
+
+void FMath::PolarToCartesian(const FVector2D InPolar, FVector2D& OutCart)
+{
+	OutCart.X = InPolar.X * Cos(InPolar.Y);
+	OutCart.Y = InPolar.X * Sin(InPolar.Y);
+}
