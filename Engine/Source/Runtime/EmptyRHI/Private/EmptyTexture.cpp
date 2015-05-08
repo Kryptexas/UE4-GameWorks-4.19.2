@@ -241,3 +241,27 @@ void FEmptyDynamicRHI::RHIVirtualTextureSetFirstMipInMemory(FTexture2DRHIParamRe
 void FEmptyDynamicRHI::RHIVirtualTextureSetFirstMipVisible(FTexture2DRHIParamRef TextureRHI, uint32 FirstMip)
 {
 }
+
+uint64 FEmptyDynamicRHI::RHICalcTexture2DPlatformSize(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, uint32& OutAlign)
+{
+	return 0;
+}
+
+uint64 FEmptyDynamicRHI::RHICalcTexture3DPlatformSize(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign)
+{
+	return 0;
+}
+
+uint64 FEmptyDynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign)
+{
+	return 0;
+}
+
+FTextureReferenceRHIRef FEmptyDynamicRHI::RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime)
+{
+	return nullptr;
+}
+
+void FEmptyDynamicRHI::RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture)
+{
+}
