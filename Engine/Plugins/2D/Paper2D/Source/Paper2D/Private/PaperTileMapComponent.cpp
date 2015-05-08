@@ -16,6 +16,8 @@
 UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, TileMapColor(FLinearColor::White)
+	, UseSingleLayerIndex(0)
+	, bUseSingleLayer(false)
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
@@ -126,6 +128,25 @@ void UPaperTileMapComponent::PostLoad()
 	}
 }
 
+#if WITH_EDITOR
+void UPaperTileMapComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (TileMap != nullptr)
+	{
+		if (TileMap->TileLayers.Num() > 0)
+		{
+			UseSingleLayerIndex = FMath::Clamp(UseSingleLayerIndex, 0, TileMap->TileLayers.Num() - 1);
+		}
+		else
+		{
+			UseSingleLayerIndex = 0;
+		}
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif
+
 UBodySetup* UPaperTileMapComponent::GetBodySetup()
 {
 	return (TileMap != nullptr) ? TileMap->BodySetup : nullptr;
@@ -235,6 +256,14 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		if (Layer == nullptr)
 		{
 			continue;
+		}
+
+		if (bUseSingleLayer)
+		{
+			if (Z != UseSingleLayerIndex)
+			{
+				continue;
+			}
 		}
 
 		FLinearColor DrawColor = TileMapColor * Layer->GetLayerColor();
