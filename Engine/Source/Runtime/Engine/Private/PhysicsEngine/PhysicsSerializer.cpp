@@ -16,7 +16,7 @@ UPhysicsSerializer::UPhysicsSerializer(const FObjectInitializer& ObjectInitializ
 
 FByteBulkData* UPhysicsSerializer::GetBinaryData(FName Format, const TArray<FBodyInstance*>& Bodies, const TArray<class UBodySetup*>& BodySetups, const TArray<class UPhysicalMaterial*>& PhysicalMaterials)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("NoPhysxSerialization")))
+	if (!FParse::Param(FCommandLine::Get(), TEXT("PhysxSerialization")))
 	{
 		return nullptr;
 	}
@@ -100,7 +100,7 @@ void UPhysicsSerializer::SerializePhysics(const TArray<FBodyInstance*>& Bodies, 
 
 void UPhysicsSerializer::CreatePhysicsData(const TArray<UBodySetup*>& BodySetups, const TArray<UPhysicalMaterial*>& PhysicalMaterials)
 {
-	if (FParse::Param(FCommandLine::Get(), TEXT("NoPhysxSerialization")))
+	if (!FParse::Param(FCommandLine::Get(), TEXT("PhysxSerialization")))
 	{
 		return;
 	}
