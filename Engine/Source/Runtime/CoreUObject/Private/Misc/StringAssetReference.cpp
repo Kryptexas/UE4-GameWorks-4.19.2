@@ -124,7 +124,7 @@ UObject* FStringAssetReference::TryLoad() const
 		}
 	}
 
-	return nullptr;
+	return LoadedObject;
 }
 
 UObject* FStringAssetReference::ResolveObject() const
