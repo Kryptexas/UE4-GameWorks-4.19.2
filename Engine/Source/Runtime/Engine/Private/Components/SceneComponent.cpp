@@ -521,7 +521,6 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 		{
 			// Combine with next item on the stack
 			FScopedMovementUpdate* OuterScopedUpdate = ScopedMovementStack.Last();
-			check(OuterScopedUpdate == CurrentScopedUpdate->OuterScope);
 			OuterScopedUpdate->OnInnerScopeComplete(*CurrentScopedUpdate);
 		}
 	}
