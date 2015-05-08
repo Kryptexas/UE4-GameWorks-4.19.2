@@ -94,7 +94,6 @@ FName FLinkerTables::GetExportClassName( int32 i )
 ----------------------------------------------------------------------------*/
 FLinker::FLinker(ELinkerType::Type InType, UPackage* InRoot, const TCHAR* InFilename)
 : LinkerType(InType)
-, bDestroyed(false)
 , LinkerRoot( InRoot )
 , Filename( InFilename )
 , FilterClientButNotServer(false)
@@ -308,13 +307,6 @@ void FLinker::GetScriptSHAKey(uint8* OutKey)
 
 FLinker::~FLinker()
 {
-	if (bDestroyed)
-	{
-		static volatile int32 xx = 0;
-		xx++;
-	}
-	bDestroyed = true;
-
 	// free any SHA memory
 	delete ScriptSHA;
 }
