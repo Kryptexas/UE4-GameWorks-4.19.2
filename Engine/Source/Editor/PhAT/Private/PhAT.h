@@ -252,6 +252,9 @@ private:
 	/** Preview Viewport */
 	TSharedPtr<SPhATPreviewViewport> PreviewViewport;
 
+	/** Ticks until forcing viewport refresh */
+	int32 TickCountUntilViewportRefresh;
+
 	/** Properties Tab */
 	TSharedPtr<class IDetailsView> Properties;
 

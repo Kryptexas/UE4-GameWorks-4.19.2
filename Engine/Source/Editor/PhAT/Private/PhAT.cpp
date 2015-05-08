@@ -202,6 +202,7 @@ void FPhAT::InitPhAT(const EToolkitMode::Type Mode, const TSharedPtr< class IToo
 	SelectedAnimation = NULL;
 	SelectedSimulation = false;
 	BeforeSimulationWidgetMode = FWidget::EWidgetMode::WM_None;
+	TickCountUntilViewportRefresh = 0;
 
 	SharedData = MakeShareable(new FPhATSharedData);
 
@@ -2461,6 +2462,9 @@ void FPhAT::OnMeshRenderingMode(FPhATSharedData::EPhATRenderMode Mode)
 		SharedData->ConstraintEdit_MeshViewMode = Mode;
 	}
 
+	// Changing the mesh rendering mode requires the skeletal mesh component to change its render state, which is an operation
+	// which is deferred until after render. Hence we need to trigger another viewport refresh on the following frame.
+	TickCountUntilViewportRefresh = 2;
 	RefreshPreviewViewport();
 }
 
@@ -3261,6 +3265,14 @@ void FPhAT::RecordAnimation()
 
 void FPhAT::Tick(float DeltaTime)
 {
+	if (TickCountUntilViewportRefresh > 0)
+	{
+		TickCountUntilViewportRefresh--;
+		if (TickCountUntilViewportRefresh == 0)
+		{
+			RefreshPreviewViewport();
+		}
+	}
 }
 
 TStatId FPhAT::GetStatId() const
