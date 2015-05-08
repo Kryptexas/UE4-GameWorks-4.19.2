@@ -25,6 +25,7 @@ FPaperTileMapRenderSceneProxy::FPaperTileMapRenderSceneProxy(const UPaperTileMap
 	, bShowOutlineWhenUnselected(false)
 #endif
 	, TileMap(nullptr)
+	, OnlyLayerIndex(InComponent->bUseSingleLayer ? InComponent->UseSingleLayerIndex : INDEX_NONE)
 	, WireDepthBias(0.0001f)
 {
 	check(InComponent);
@@ -281,17 +282,24 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 				// Draw the debug outline
 				if (bEffectivelySelected)
 				{
-					const int32 SelectedLayerIndex = TileMap->SelectedLayerIndex;
+					const int32 SelectedLayerIndex = (OnlyLayerIndex != INDEX_NONE) ? OnlyLayerIndex : TileMap->SelectedLayerIndex;
 
 					if (bShowPerLayerGrid)
 					{
-						// Draw a bound for every layer but the selected one (and even that one if the per-tile grid is off)
-						for (int32 LayerIndex = 0; LayerIndex < TileMap->TileLayers.Num(); ++LayerIndex)
+						if (OnlyLayerIndex == INDEX_NONE)
 						{
-							if ((LayerIndex != SelectedLayerIndex) || !bShowPerTileGrid)
+							// Draw a bound for every layer but the selected one (and even that one if the per-tile grid is off)
+							for (int32 LayerIndex = 0; LayerIndex < TileMap->TileLayers.Num(); ++LayerIndex)
 							{
-								DrawBoundsForLayer(PDI, OverrideColor, LayerIndex);
+								if ((LayerIndex != SelectedLayerIndex) || !bShowPerTileGrid)
+								{
+									DrawBoundsForLayer(PDI, OverrideColor, LayerIndex);
+								}
 							}
+						}
+						else if (!bShowPerTileGrid)
+						{
+							DrawBoundsForLayer(PDI, OverrideColor, OnlyLayerIndex);
 						}
 					}
 
@@ -315,8 +323,8 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 				}
 				else if (View->Family->EngineShowFlags.Grid && bShowOutlineWhenUnselected)
 				{
-					// Draw layer 0 even when not selected, so you can see where the tile map is in the editor
-					DrawBoundsForLayer(PDI, WireframeColor, /*LayerIndex=*/ 0);
+					// Draw a layer rectangle even when not selected, so you can see where the tile map is in the editor
+					DrawBoundsForLayer(PDI, WireframeColor, /*LayerIndex=*/ (OnlyLayerIndex != INDEX_NONE) ? OnlyLayerIndex : 0);
 				}
 #endif
 			}

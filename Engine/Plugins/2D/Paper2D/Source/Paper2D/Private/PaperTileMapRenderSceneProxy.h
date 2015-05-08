@@ -38,6 +38,9 @@ protected:
 	//@TODO: Not thread safe
 	const class UPaperTileMap* TileMap;
 
+	// The only layer to draw, or INDEX_NONE if the filter is unset
+	const int32 OnlyLayerIndex;
+
 	// Slight depth bias so that the wireframe grid overlay doesn't z-fight with the tiles themselves
 	const float WireDepthBias;
 };

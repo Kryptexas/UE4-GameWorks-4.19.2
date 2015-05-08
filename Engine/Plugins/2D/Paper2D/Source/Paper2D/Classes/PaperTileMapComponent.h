@@ -56,6 +56,14 @@ private:
 	UPROPERTY(EditAnywhere, Category=Materials)
 	FLinearColor TileMapColor;
 
+	// The index of the single layer to use if enabled
+	UPROPERTY(EditAnywhere, Category=Rendering, meta=(EditCondition=bUseSingleLayer))
+	int32 UseSingleLayerIndex;
+
+	// Should we draw a single layer?
+	UPROPERTY()
+	bool bUseSingleLayer;
+
 #if WITH_EDITOR
 	// The number of batches required to render this tile map
 	int32 NumBatches;
@@ -93,6 +101,9 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 	// End of UObject interface
 
 	// UActorComponent interface
