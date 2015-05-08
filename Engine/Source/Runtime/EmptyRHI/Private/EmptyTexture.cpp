@@ -191,7 +191,7 @@ void FEmptyDynamicRHI::RHIUnlockTexture2DArray(FTexture2DArrayRHIParamRef Textur
 
 void FEmptyDynamicRHI::RHIUpdateTexture2D(FTexture2DRHIParamRef TextureRHI, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
 {	
-	FEmptyTexture3D* Texture = ResourceCast(TextureRHI);
+	FEmptyTexture2D* Texture = ResourceCast(TextureRHI);
 
 }
 
