@@ -341,7 +341,10 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	
 	// Minimize accumulation of errors after many composed transforms.
 	NewTransform.NormalizeRotation();
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ensureOnce(NewTransform.IsValid());
+#endif
 
 	// If transform has changed..
 	if (!ComponentToWorld.Equals(NewTransform, SMALL_NUMBER))
