@@ -1303,7 +1303,7 @@ namespace UnrealBuildTool
         public void GenerateManifest()
 		{
 			string ManifestPath;
-			if (UnrealBuildTool.RunningRocket())
+			if (UnrealBuildTool.RunningRocket() && UnrealBuildTool.HasUProjectFile())
 			{
 				ManifestPath = Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder, "Manifest.xml");
 			}
