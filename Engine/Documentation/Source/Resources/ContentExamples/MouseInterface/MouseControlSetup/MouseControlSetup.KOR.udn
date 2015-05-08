@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419781
+﻿INTSourceChangelist:2541382
 Availability: Public
 Title:마우스 콘트롤 셋업
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
@@ -26,7 +26,7 @@ Description:게임의 마우스 콘트롤 셋업 방법입니다.
 	이 안내는 마우스 콘트롤 활성화를 위한 기본적인 단계에 지나지 않는다는 점에 유의하세요. 대부분의 경우 만들고자 하는 게임 유형에 따라 PlayerController 나 GameMode 를 커스터마이징해 주는 작업이 필요할 것입니다.
 [/REGION]
 
-1. _콘텐츠 브라우저_ 에서 (편의를 위해 Developer 폴더 사용) 우클릭한 다음 맥락 메뉴에서 **블루프린트** 를 선택합니다.
+1. _콘텐츠 브라우저_ 에서 (편의를 위해 Developer 폴더 사용) 우클릭한 다음 맥락 메뉴에서 **블루프린트 클래스** 를 선택합니다.
 
 	[REGION:raw]![](CreateNewBlueprint.png)[/REGION]
 
@@ -38,7 +38,7 @@ Description:게임의 마우스 콘트롤 셋업 방법입니다.
 
 	![](MousePlayerController_CB.png)
 
-1. 콘텐츠 브라우저에서 새 블루프린트에 우클릭한 다음 **디폴트 편집** 을 선택합니다. **클래스 디폴트** 창이 열립니다.
+1. 콘텐츠 브라우저에서 새 블루프린트에 우클릭한 다음 **편집...** 을 선택합니다. **클래스 디폴트** 창이 열립니다.
 
 	![](EditDefaultsBlueprint.png)
 
@@ -53,7 +53,7 @@ Description:게임의 마우스 콘트롤 셋업 방법입니다.
 
 PlayerController 와 마우스 입력을 켰으니, 다음 단계는 이 새로운 PlayerController 를 활용하는 커스텀 GameMode 를 만드는 것입니다. 참고로 여기 설명된 단계는 위에 설명한 대로 커스텀 PlayerController 클래스를 생성하지 않았다면 _작동하지 않을_ 것입니다.
 
-1. _콘텐츠 브라우저_ 에서 (편의를 위해 Developer 폴더 사용) 우클릭한 후 맥락 메뉴에서 **블루프린트** 를 선택합니다.
+1. _콘텐츠 브라우저_ 에서 (편의를 위해 Developer 폴더 사용) 우클릭한 후 맥락 메뉴에서 **블루프린트 클래스** 를 선택합니다.
 
 	[REGION:raw]![](CreateNewBlueprint.png)[/REGION]
 
@@ -65,11 +65,11 @@ PlayerController 와 마우스 입력을 켰으니, 다음 단계는 이 새로�
 
 	![](Mouse_GameInfoBlueprint.png)
 
-1. 콘텐츠 브라우저에서 새 블루프린트에 우클릭한 다음 **디폴트 편집** 을 선택합니다. **클래스 디폴트** 창이 열립니다.
+1. 콘텐츠 브라우저에서 새 블루프린트에 우클릭한 다음 **편집...** 을 선택합니다. **클래스 디폴트** 창이 열립니다.
 
-	![](EditDefaultsBlueprint.png)
+	![](EditDefaultsBlueprint2.png)
 
-1. Game Mode 카테고리에서 **Player Controller Class** 옆의 드롭다운을 선택합니다. 예전에 만든 _Mouse_PlayerController_ 클래스가 보일 것입니다. 리스트에서 선택합니다.
+1. Classes 카테고리에서 **Player Controller Class** 옆의 드롭다운을 선택합니다. 예전에 만든 _Mouse_PlayerController_ 클래스가 보일 것입니다. 리스트에서 선택합니다.
 
 	![](SelectingPlayerControllerClass.png)
 
@@ -80,7 +80,7 @@ PlayerController 와 마우스 입력을 켰으니, 다음 단계는 이 새로�
 
 커스텀 PlayerController 와 GameMode 블루프린트가 완성되었으니, 월드 세팅에서 사용하라 일러주기만 하면 됩니다.
 
-1. 툴바에 위치한 **월드 세팅** 버튼을 클릭합니다. 디테일 패널에 월드 세팅이 열립니다.
+1. 툴바에 위치한 **세팅** 버튼을 클릭합니다. 그 드롭다운에서 **월드 세팅** 을 선택합니다. 디테일 패널에 월드 세팅이 열립니다.
 
 	![](WorldSettings.png)
 
