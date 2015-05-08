@@ -190,6 +190,7 @@ void FMacApplication::ProcessDeferredEvents(const float TimeDelta)
 	bIsProcessingDeferredEvents = bAlreadyProcessingDeferredEvents;
 
 	InvalidateTextLayouts();
+	CloseQueuedWindows();
 }
 
 TSharedRef<FGenericWindow> FMacApplication::MakeWindow()
