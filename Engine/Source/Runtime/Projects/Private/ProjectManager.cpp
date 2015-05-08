@@ -275,7 +275,7 @@ bool FProjectManager::IsNonDefaultPluginEnabled() const
 	return false;
 }
 
-bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason)
+bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason, const FString& MarketplaceURL)
 {
 	// Don't go any further if there's no project loaded
 	if(!CurrentProject.IsValid())
@@ -290,7 +290,7 @@ bool FProjectManager::SetPluginEnabled(const FString& PluginName, bool bEnabled,
 	{
 		if(PluginRefIdx == CurrentProject->Plugins.Num())
 		{
-			PluginRefIdx = CurrentProject->Plugins.Add(FPluginReferenceDescriptor(PluginName, bEnabled));
+			PluginRefIdx = CurrentProject->Plugins.Add(FPluginReferenceDescriptor(PluginName, MarketplaceURL, bEnabled));
 			break;
 		}
 		else if(CurrentProject->Plugins[PluginRefIdx].Name == PluginName)

@@ -89,6 +89,7 @@ bool FPluginDescriptor::Read(const FString& Text, FText& OutFailReason)
 	Object.TryGetStringField(TEXT("CreatedBy"), CreatedBy);
 	Object.TryGetStringField(TEXT("CreatedByURL"), CreatedByURL);
 	Object.TryGetStringField(TEXT("DocsURL"), DocsURL);
+	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
 
 	if (!FModuleDescriptor::ReadArray(Object, TEXT("Modules"), Modules, OutFailReason))
 	{
@@ -135,6 +136,7 @@ FString FPluginDescriptor::ToString() const
 	Writer.WriteValue(TEXT("CreatedBy"), CreatedBy);
 	Writer.WriteValue(TEXT("CreatedByURL"), CreatedByURL);
 	Writer.WriteValue(TEXT("DocsURL"), DocsURL);
+	Writer.WriteValue(TEXT("MarketplaceURL"), MarketplaceURL);
 
 	FModuleDescriptor::WriteArray(Writer, TEXT("Modules"), Modules);
 
@@ -151,8 +153,9 @@ FString FPluginDescriptor::ToString() const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString &InName, bool bInEnabled )
+FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, const FString& InMarketplaceURL, bool bInEnabled )
 	: Name(InName)
+	, MarketplaceURL(InMarketplaceURL)
 	, bEnabled(bInEnabled)
 { }
 
@@ -197,8 +200,9 @@ bool FPluginReferenceDescriptor::Read( const FJsonObject& Object, FText& OutFail
 		return false;
 	}
 
-	// Read the description
+	// Read the metadata for users that don't have the plugin installed
 	Object.TryGetStringField(TEXT("Description"), Description);
+	Object.TryGetStringField(TEXT("MarketplaceURL"), MarketplaceURL);
 
 	// Get the platform lists
 	Object.TryGetStringArrayField(TEXT("WhitelistPlatforms"), WhitelistPlatforms);
@@ -245,6 +249,11 @@ void FPluginReferenceDescriptor::Write( TJsonWriter<>& Writer ) const
 	if (Description.Len() > 0)
 	{
 		Writer.WriteValue(TEXT("Description"), Description);
+	}
+
+	if (MarketplaceURL.Len() > 0)
+	{
+		Writer.WriteValue(TEXT("MarketplaceURL"), MarketplaceURL);
 	}
 
 	if (WhitelistPlatforms.Num() > 0)

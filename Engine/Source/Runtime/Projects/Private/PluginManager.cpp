@@ -343,8 +343,20 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
 				{
 					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
-					FString Description = (Plugin.Description.Len() > 0)? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
-					FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
+					if(Plugin.MarketplaceURL.Len() > 0)
+					{
+						if(FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin.\n\nWould you like to download it from the the Marketplace?"), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::Yes)
+						{
+							FString Error;
+							FPlatformProcess::LaunchURL(*Plugin.MarketplaceURL, nullptr, &Error);
+							if(Error.Len() > 0) FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Error));
+						}
+					}
+					else
+					{
+						FString Description = (Plugin.Description.Len() > 0)? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
+						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
+					}
 					return false;
 				}
 			}

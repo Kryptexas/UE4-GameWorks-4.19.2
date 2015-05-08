@@ -58,6 +58,9 @@ struct PROJECTS_API FPluginDescriptor
 	/** Documentation URL string. */
 	FString DocsURL;
 
+	/** Marketplace URL for this plugin. This URL will be embedded into projects that enable this plugin, so we can redirect to the marketplace if a user doesn't have it installed. */
+	FString MarketplaceURL;
+
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 
@@ -103,6 +106,9 @@ struct PROJECTS_API FPluginReferenceDescriptor
 	/** Description of the plugin for users that do not have it installed. */
 	FString Description;
 
+	/** URL for this plugin on the marketplace, if the user doesn't have it installed. */
+	FString MarketplaceURL;
+
 	/** If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank). */
 	TArray<FString> WhitelistPlatforms;
 
@@ -110,7 +116,7 @@ struct PROJECTS_API FPluginReferenceDescriptor
 	TArray<FString> BlacklistPlatforms;
 
 	/** Constructor */
-	FPluginReferenceDescriptor(const FString& InName = TEXT(""), bool bInEnabled = false);
+	FPluginReferenceDescriptor(const FString& InName = TEXT(""), const FString& InMarketplaceURL = TEXT(""), bool bInEnabled = false);
 
 	/** Determines whether the plugin is enabled for the given platform */
 	bool IsEnabledForPlatform(const FString& Platform) const;
