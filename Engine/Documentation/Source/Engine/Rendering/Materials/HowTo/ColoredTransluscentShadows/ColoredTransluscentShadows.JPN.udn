@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2469080
+﻿INTSourceChangelist:2533832
 Availability:Public
 Title:マテリアル エディタ - 色付きの透過シャドウの操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -20,7 +20,7 @@ Related:Engine/Rendering/LightingAndShadows/LitTranslucency
  ![](translucent_T.JPG)(w:450)
 
 
-## 透過シャドウの色とは何か？
+## 透過シャドウの色
 
 透過シャドウの色とは、シャドウが通過するオブジェクトの色をどのようにとらえるかを表す言葉です。**透過** ともいいます。 
 マテリアルを通過するライトの量は、0 から 1 の間のオパシティ値およびどれくらいの量のライトがマテリアルにキャストされているかによって直接決まります。 
