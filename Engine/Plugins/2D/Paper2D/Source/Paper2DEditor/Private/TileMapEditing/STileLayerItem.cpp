@@ -86,14 +86,14 @@ FReply STileLayerItem::OnToggleVisibility()
 	UPaperTileLayer* MyLayer = GetMyLayer();
 	MyLayer->SetFlags(RF_Transactional);
 	MyLayer->Modify();
-	MyLayer->bHiddenInEditor = !MyLayer->bHiddenInEditor;
+	MyLayer->SetShouldRenderInEditor(!MyLayer->ShouldRenderInEditor());
 	MyLayer->PostEditChange();
 	return FReply::Handled();
 }
 
 const FSlateBrush* STileLayerItem::GetVisibilityBrushForLayer() const
 {
-	return GetMyLayer()->bHiddenInEditor ? EyeClosed : EyeOpened;
+	return GetMyLayer()->ShouldRenderInEditor() ? EyeOpened : EyeClosed;
 }
 
 FSlateColor STileLayerItem::GetForegroundColorForVisibilityButton() const

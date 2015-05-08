@@ -238,13 +238,12 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		}
 
 		FLinearColor DrawColor = TileMapColor * Layer->GetLayerColor();
+
 #if WITH_EDITORONLY_DATA
-		if (Layer->bHiddenInEditor)
+		if (!Layer->ShouldRenderInEditor())
 		{
 			continue;
 		}
-
-		DrawColor.A *= Layer->LayerOpacity;
 #endif
 
 		FSpriteDrawCallRecord* CurrentBatch = nullptr;
