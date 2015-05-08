@@ -6762,9 +6762,19 @@ public class GUBP : BuildCommand
                 var Fringe = new HashSet<string>(); 
                 foreach (var NodeToDo in NodesToDo)
                 {
-                    if (BranchOptions.NodesToRemovePseudoDependencies.Contains(NodeToDo))
+                    if (BranchOptions.NodesToRemovePseudoDependencies.Count > 0)
                     {
-                        RemoveAllPseudodependenciesFromNode(NodeToDo);
+                        var ListOfRetainedNodesToRemovePseudoDependencies = BranchOptions.NodesToRemovePseudoDependencies;
+                        foreach (var NodeToRemovePseudoDependencies in BranchOptions.NodesToRemovePseudoDependencies)
+                        {
+                            if (NodeToDo == NodeToRemovePseudoDependencies)
+                            {
+                                RemoveAllPseudodependenciesFromNode(NodeToDo);
+                                ListOfRetainedNodesToRemovePseudoDependencies.Remove(NodeToDo);
+                                break;
+                            }
+                        }
+                        BranchOptions.NodesToRemovePseudoDependencies = ListOfRetainedNodesToRemovePseudoDependencies;
                     }
                     foreach (var Dep in GUBPNodes[NodeToDo].FullNamesOfDependencies)
                     {
