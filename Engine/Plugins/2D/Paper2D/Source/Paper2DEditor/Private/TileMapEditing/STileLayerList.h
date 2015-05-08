@@ -9,6 +9,7 @@ class STileLayerList : public SCompoundWidget, public FEditorUndoClient
 {
 public:
 	SLATE_BEGIN_ARGS(STileLayerList) {}
+		SLATE_EVENT(FSimpleDelegate, OnSelectedLayerChanged)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UPaperTileMap* TileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InCommandList);
@@ -30,6 +31,7 @@ protected:
 	TSharedPtr<class FUICommandList> CommandList;
 	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
 	FNotifyHook* NotifyHook;
+	FSimpleDelegate OnSelectedLayerChanged;
 protected:
 	TSharedRef<ITableRow> OnGenerateLayerListRow(FMirrorEntry Item, const TSharedRef<STableViewBase>& OwnerTable);
 

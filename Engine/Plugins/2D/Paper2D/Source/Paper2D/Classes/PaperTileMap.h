@@ -79,7 +79,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 	UMaterialInterface* Material;
 
 	// The list of layers
-	UPROPERTY(Instanced, Category=Sprite, BlueprintReadOnly)
+	UPROPERTY(Instanced, Category=Sprite, BlueprintReadOnly, EditAnywhere)
 	TArray<UPaperTileLayer*> TileLayers;
 
 protected:

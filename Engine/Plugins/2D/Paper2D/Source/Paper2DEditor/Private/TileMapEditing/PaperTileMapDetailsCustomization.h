@@ -39,4 +39,8 @@ private:
 
 	bool InLevelEditorContext() const;
 	bool IsInstanced() const;
+
+	void OnSelectedLayerChanged();
+
+	FText GetLayerSettingsHeadingText() const;
 };

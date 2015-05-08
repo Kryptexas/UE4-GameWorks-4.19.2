@@ -27,7 +27,7 @@ TSharedRef<IDetailCustomization> FPaperTileMapDetailsCustomization::MakeInstance
 void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
-	MyDetailLayout = &DetailLayout;
+	MyDetailLayout = nullptr;
 	
 	FNotifyHook* NotifyHook = DetailLayout.GetPropertyUtilities()->GetNotifyHook();
 
@@ -65,9 +65,6 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 	// Make sure the Tile Map category is right below the Transform
 	IDetailCategoryBuilder& TileMapCategory = DetailLayout.EditCategory("Tile Map", FText::GetEmpty(), ECategoryPriority::Important);
-
-	// Make sure the setup category is near the top
-	IDetailCategoryBuilder& SetupCategory = DetailLayout.EditCategory("Setup", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Add the 'instanced' versus 'asset' indicator to the tile map header
 	TileMapCategory.HeaderContent
@@ -212,9 +209,61 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			+SVerticalBox::Slot()
 			[
 				SNew(STileLayerList, TileMap, NotifyHook, CommandList)
+				.OnSelectedLayerChanged(this, &FPaperTileMapDetailsCustomization::OnSelectedLayerChanged)
 			]
 		];
 	}
+
+	// Hide the layers since they'll get visualized directly
+	TSharedRef<IPropertyHandle> TileLayersProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UPaperTileMap, TileLayers));
+	DetailLayout.HideProperty(TileLayersProperty);
+
+	// Add properties for the currently selected layer
+	if ((TileMap != nullptr) && ((TileComponent == nullptr) || (TileComponent->OwnsTileMap())))
+	{
+		if (TileMap->TileLayers.IsValidIndex(TileMap->SelectedLayerIndex))
+		{
+			UPaperTileLayer* SelectedLayer = TileMap->TileLayers[TileMap->SelectedLayerIndex];
+
+			const FText LayerCategoryDisplayName = LOCTEXT("LayerCategoryHeading", "Selected Layer");
+			IDetailCategoryBuilder& LayerCategory = DetailLayout.EditCategory(TEXT("SelectedLayer"), LayerCategoryDisplayName, ECategoryPriority::Important);
+
+			LayerCategory.HeaderContent
+			(
+				SNew(SBox)
+				.HAlign(HAlign_Right)
+				[
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
+					.Padding(FMargin(5.0f, 0.0f))
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("TinyText"))
+						.Text(this, &FPaperTileMapDetailsCustomization::GetLayerSettingsHeadingText)
+						.ToolTipText(LOCTEXT("LayerSettingsTooltip", "Properties specific to the currently selected layer"))
+					]
+				]
+			);
+
+			TArray<UObject*> ListOfSelectedLayers;
+			ListOfSelectedLayers.Add(SelectedLayer);
+
+			for (const UProperty* TestProperty : TFieldRange<UProperty>(SelectedLayer->GetClass()))
+			{
+				if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
+				{
+					const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
+					const EPropertyLocation::Type PropertyLocation = bAdvancedDisplay ? EPropertyLocation::Advanced : EPropertyLocation::Common;
+
+					LayerCategory.AddExternalProperty(ListOfSelectedLayers, TestProperty->GetFName(), PropertyLocation);
+				}
+			}
+		}
+	}
+
+	// Make sure the setup category is near the top (just below the layer browser and layer-specific stuff)
+	IDetailCategoryBuilder& SetupCategory = DetailLayout.EditCategory("Setup", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Add all of the properties from the inline tilemap
 	if ((TileComponent != nullptr) && (TileComponent->OwnsTileMap()))
@@ -222,10 +271,8 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 		TArray<UObject*> ListOfTileMaps;
 		ListOfTileMaps.Add(TileMap);
 
-		for (TFieldIterator<UProperty> PropIt(UPaperTileMap::StaticClass()); PropIt; ++PropIt)
+		for (const UProperty* TestProperty : TFieldRange<UProperty>(TileMap->GetClass()))
 		{
-			UProperty* TestProperty = *PropIt;
-
 			if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
 			{
 				const bool bAdvancedDisplay = TestProperty->HasAnyPropertyFlags(CPF_AdvancedDisplay);
@@ -241,6 +288,8 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 			}
 		}
 	}
+
+	MyDetailLayout = &DetailLayout;
 }
 
 FReply FPaperTileMapDetailsCustomization::EnterTileMapEditingMode()
@@ -367,6 +416,31 @@ bool FPaperTileMapDetailsCustomization::IsInstanced() const
 	}
 
 	return false;
+}
+
+void FPaperTileMapDetailsCustomization::OnSelectedLayerChanged()
+{
+	if (MyDetailLayout != nullptr)
+	{
+		IDetailLayoutBuilder* OldLayout = MyDetailLayout;
+		MyDetailLayout = nullptr;
+
+		OldLayout->ForceRefreshDetails();
+	}
+}
+
+FText FPaperTileMapDetailsCustomization::GetLayerSettingsHeadingText() const
+{
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		if (TileMap->TileLayers.IsValidIndex(TileMap->SelectedLayerIndex))
+		{
+			UPaperTileLayer* SelectedLayer = TileMap->TileLayers[TileMap->SelectedLayerIndex];
+			return SelectedLayer->LayerName;
+		}
+	}
+
+	return FText::GetEmpty();
 }
 
 //////////////////////////////////////////////////////////////////////////

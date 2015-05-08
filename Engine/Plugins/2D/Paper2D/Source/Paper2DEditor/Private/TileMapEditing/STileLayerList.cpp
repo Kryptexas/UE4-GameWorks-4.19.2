@@ -48,6 +48,7 @@ public:
 
 void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMap, FNotifyHook* InNotifyHook, TSharedPtr<class FUICommandList> InParentCommandList)
 {
+	OnSelectedLayerChanged = InArgs._OnSelectedLayerChanged;
 	TileMapPtr = InTileMap;
 	NotifyHook = InNotifyHook;
 
@@ -684,6 +685,8 @@ void STileLayerList::PostEditNotfications()
 		NotifyHook->NotifyPreChange(TileMapProperty);
 		NotifyHook->NotifyPostChange(FPropertyChangedEvent(TileMapProperty), TileMapProperty);
 	}
+
+	OnSelectedLayerChanged.Execute();
 }
 
 void STileLayerList::RefreshMirrorList()
