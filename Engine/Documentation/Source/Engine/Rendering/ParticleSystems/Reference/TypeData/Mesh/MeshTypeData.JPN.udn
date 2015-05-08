@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2283292
+﻿INTSourceChangelist:2536143
 Availability:Public
 Title:Mesh Type Data
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -27,7 +27,7 @@ Mesh Type Data モジュールには、以下のプロパティがあります�
 |**Yaw**| 使用するスタティックメッシュに適用する「'pre'」回転ヨー (左右回転) (度数) です。 |
 |**Axis Lock Option**| メッシュを固定する軸です。これは TypeSpecific メッシュの割り当てに加えて、 LockAxis モジュールもオーバーライドします。以下のオプションが提供されます: [INCLUDE:#CameraFacingOption]|
 |[REGION:tablesection]CameraFacing[/REGION]||
-|**Camera Facing**| _true_の場合、メッシュの X 軸は常にカメラ方向へ向きます。このプロパティが設定されると、_Axis Lock Option_ と他の固定された軸 / スクリーンの割り当て設定が全て無視されます。|
+|**Camera Facing**| _true_ の場合、メッシュの X 軸は常にカメラ方向へ向きます。このプロパティが設定されると、_Axis Lock Option_ と他の固定された軸 / スクリーンの割り当て設定が全て無視されます。|
 |**Camera Facing Option**| _Camera Facing_ オプションの有効時にメッシュが向く角度を決定します。以下のオプションが提供されます: [INCLUDE:#CameraFacingOption]|
 |**Apply Particle Rotation As Spin**| _true_ の場合、「スプライト」パーティクル回転は配置軸周辺のメッシュに適用されます (メッシュが示す方向)。もしくは、「スプライト」パーティクル回転は、カメラに対面する軸周辺のメッシュに適用されます。|
 |**Face Camera Direction Rather Than Position**| _true_ の場合、カメラが対向するすべてのオプションはカメラ位置に向かずに、カメラのビュー方向に反してメッシュに向きます。.|
