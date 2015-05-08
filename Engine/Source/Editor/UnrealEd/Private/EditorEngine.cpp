@@ -3770,9 +3770,6 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			{
 				GPhysCommandHandler->Flush();
 			}
-			
-			// Update world components now that we have restored the world to its original state
-			World->UpdateWorldComponents(true, true);
 		}
 	}
 
