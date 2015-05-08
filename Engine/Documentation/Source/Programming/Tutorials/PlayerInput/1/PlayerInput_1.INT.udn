@@ -30,19 +30,19 @@ Description:Introduction to Pawns
 
 	[![](NameYourNewPawn.png)](NameYourNewPawn.png)
 
-1. The first thing we're going to do is set our MyPawn to respond to player input automatically upon the game starting. The **Pawn** class provides a variable we can set during initialization that handles this for us. In "MyPawn.cpp", add the following code to **AMyPawn::AMyPawn**:
+1. The first thing we're going to do is set our MyPawn to respond to player input automatically upon the game starting. The **Pawn** class provides a variable we can set during initialization that handles this for us. In `MyPawn.cpp`, add the following code to **AMyPawn::AMyPawn**:
 
 		// Set this pawn to be controlled by the lowest-numbered player
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-1. Next, we'll build a few basic **Components**. If you want to learn more about adding and managing **Components** in code, as well as some common types of **Components** you will encounter, try reading our [%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components). In order to keep track of the **Component** we will create, we should add the following code to "MyPawn.h", at the bottom of our class definition:
+1. Next, we'll build a few basic **Components**. If you want to learn more about adding and managing **Components** in code, as well as some common types of **Components** you will encounter, try reading our [%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components). In order to keep track of the **Component** we will create, we should add the following code to `MyPawn.h`, at the bottom of our class definition:
 
 		UPROPERTY()
 		USceneComponent* OurVisibleComponent;
 
 	[REGION:note]This variable is tagged as a **UPROPERTY** so that it will be visible to **Unreal Engine**. This is important because it prevents the variable from being reset when the game is launched, or when the project or level is closed and reloaded.[/REGION]
 
-	And back in "MyPawn.cpp", we should add the following code to **AMyPawn::AMyPawn**:
+	And back in `MyPawn.cpp`, we should add the following code to **AMyPawn::AMyPawn**:
 
 		// Create a dummy root component we can attach things to.
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));

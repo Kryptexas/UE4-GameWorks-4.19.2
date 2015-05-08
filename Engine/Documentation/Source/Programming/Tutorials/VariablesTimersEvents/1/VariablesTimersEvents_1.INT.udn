@@ -28,7 +28,7 @@ Description:Starting and stopping a timer that runs code at a fixed rate.
 
 	[![](NameYourActor.png)](NameYourActor.png)
 
-1. We'll start by creating a simple countdown timer that we can see in-game. In "Countdown.h", add the following lines to the end of our class definition:
+1. We'll start by creating a simple countdown timer that we can see in-game. In `Countdown.h`, add the following lines to the end of our class definition:
 
 		int32 CountdownTime;
 
@@ -36,7 +36,7 @@ Description:Starting and stopping a timer that runs code at a fixed rate.
 
 		void UpdateTimerDisplay();
 
-1. In "Countdown.cpp", we can create our renderable text **Component** and initialize our countdown time to 3 seconds. We can also turn **Ticking** off for this type of **Actor**, since we will not need it. **ACountdown::ACountdown** should look like this:
+1. In `Countdown.cpp`, we can create our renderable text **Component** and initialize our countdown time to 3 seconds. We can also turn **Ticking** off for this type of **Actor**, since we will not need it. **ACountdown::ACountdown** should look like this:
 
 		PrimaryActorTick.bCanEverTick = false;
 
@@ -55,7 +55,7 @@ Description:Starting and stopping a timer that runs code at a fixed rate.
 			CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
 		}
 
-1. Whenever we assign a **Timer** to run a function, we are given a **Timer Handle**. We need to hold onto that handle so that we can shut the **Timer** down when the countdown finishes. Let's add the function to count time down, and the **Timer Handle** we'll need to control it, to the class definition in "Countdown.h". While we're there, let's also add a function to do something special when the countdown ends:
+1. Whenever we assign a **Timer** to run a function, we are given a **Timer Handle**. We need to hold onto that handle so that we can shut the **Timer** down when the countdown finishes. Let's add the function to count time down, and the **Timer Handle** we'll need to control it, to the class definition in `Countdown.h`. While we're there, let's also add a function to do something special when the countdown ends:
 
 		void AdvanceTimer();
 
@@ -63,7 +63,7 @@ Description:Starting and stopping a timer that runs code at a fixed rate.
 
 		FTimerHandle CountdownTimerHandle;
 
-	We can also write the body of **ACountdown::AdvanceTimer** and **ACountdown::CountdownHasFinished** in "Countdown.cpp" now:
+	We can also write the body of **ACountdown::AdvanceTimer** and **ACountdown::CountdownHasFinished** in `Countdown.cpp` now:
 
 		void ACountdown::AdvanceTimer()
 		{

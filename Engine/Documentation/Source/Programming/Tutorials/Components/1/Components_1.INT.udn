@@ -28,13 +28,13 @@ Description:Creating a variety of components and attaching them to a customized 
 
 	[![](NamePawnClass.png)](NamePawnClass.png)
 
-1. In **Visual Studio**, we should open "CollidingPawn.h" and add the following code to the bottom of our class definition:
+1. In **Visual Studio**, we should open `CollidingPawn.h` and add the following code to the bottom of our class definition:
 
 		UParticleSystemComponent *OurParticleSystem;
 
 	We will use this variable to keep track of a **Particle System Component** that we will create later. We can create **Components** without making variables to track them, but if we want to use those **Components** in our code, we should store them in class member variables like this.
 
-1. We can now open "CollidingPawn.cpp" and edit the constructor function, **ACollidingPawn::ACollidingPawn**, by adding code that will spawn a variety of useful **Components** and arrange them in a hierarchy. We will create a **Sphere Component** to interact with the physical world, a **Static Mesh Component** to represent our collision shape visually, a **Particle System Component** that we can turn on or off at will, and a **Spring Arm Component** that we can use to attach a **Camera Component** to control our in-game perspective.
+1. We can now open `CollidingPawn.cpp` and edit the constructor function, **ACollidingPawn::ACollidingPawn**, by adding code that will spawn a variety of useful **Components** and arrange them in a hierarchy. We will create a **Sphere Component** to interact with the physical world, a **Static Mesh Component** to represent our collision shape visually, a **Particle System Component** that we can turn on or off at will, and a **Spring Arm Component** that we can use to attach a **Camera Component** to control our in-game perspective.
 
 1. First up is deciding which **Component** will be the root of our hierarchy. In this tutorial, we'll go with the **Sphere Component**, since it is the physical presence that can interact and collide with our game world. Note that an **Actor** can have multiple physics-enabled **Components** in its hierarchy, but for this tutorial, we only need one.
 			// Our root component will be a sphere that reacts to physics

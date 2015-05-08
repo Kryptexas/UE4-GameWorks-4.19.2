@@ -21,7 +21,7 @@ Description:Implementing code to control a pawn and a camera with input.
 
 %Steps%
 
-1. Our game now has input mappings that we can use, so let's set up some member variables to store the data we receive. During our update, we'll need to know the values of our movement and mouse-looking axes, each of which are two-dimensional vectors. We'll also want to know whether we should be moving toward our zoomed-in or zoomed-out view, and how far between those two states we currently are. To accomplish this, we should add the following code to our class definition in "PawnWithCamera.h":
+1. Our game now has input mappings that we can use, so let's set up some member variables to store the data we receive. During our update, we'll need to know the values of our movement and mouse-looking axes, each of which are two-dimensional vectors. We'll also want to know whether we should be moving toward our zoomed-in or zoomed-out view, and how far between those two states we currently are. To accomplish this, we should add the following code to our class definition in `PawnWithCamera.h`:
 
 		//Input variables
 		FVector2D MovementInput;
@@ -29,7 +29,7 @@ Description:Implementing code to control a pawn and a camera with input.
 		float ZoomFactor;
 		bool bZoomingIn;
 
-1. We'll need to create functions to track our input, so let's add the following to our class definition in "PawnWithCamera.h" as well:
+1. We'll need to create functions to track our input, so let's add the following to our class definition in `PawnWithCamera.h` as well:
 
 		//Input functions
 		void MoveForward(float AxisValue);
@@ -39,7 +39,7 @@ Description:Implementing code to control a pawn and a camera with input.
 		void ZoomIn();
 		void ZoomOut();
 
-	And we can now fill these functions out in "PawnWithCamera.cpp" with the following code:
+	And we can now fill these functions out in `PawnWithCamera.cpp` with the following code:
 
 		//Input functions
 		void APawnWithCamera::MoveForward(float AxisValue)
@@ -86,7 +86,7 @@ Description:Implementing code to control a pawn and a camera with input.
 		InputComponent->BindAxis("CameraPitch", this, &APawnWithCamera::PitchCamera);
 		InputComponent->BindAxis("CameraYaw", this, &APawnWithCamera::YawCamera);
 
-1. Finally, we can use those values in our **Tick** function to update our **Pawn** and **Camera** each frame. The following code blocks should all be added to **APawnWithCamera::Tick** in "PawnWithCamera.cpp":
+1. Finally, we can use those values in our **Tick** function to update our **Pawn** and **Camera** each frame. The following code blocks should all be added to **APawnWithCamera::Tick** in `PawnWithCamera.cpp`:
 
 		//Zoom in if ZoomIn button is down, zoom back out if it's not
 		{

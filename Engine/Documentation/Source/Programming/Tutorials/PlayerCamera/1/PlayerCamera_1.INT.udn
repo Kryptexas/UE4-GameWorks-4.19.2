@@ -26,7 +26,7 @@ Description:Creating a spring arm and a camera.
 
 	[![](NamePawnClass.png)](NamePawnClass.png)
 
-1. Next, in **Visual Studio**, we should open "PawnWithCamera.h" and add the following code to the bottom of our class definition:
+1. Next, in **Visual Studio**, we should open `PawnWithCamera.h` and add the following code to the bottom of our class definition:
 
 		protected:
 			USpringArmComponent* OurCameraSpringArm;
@@ -34,7 +34,7 @@ Description:Creating a spring arm and a camera.
 
 	We will use these variables to create a **SpringArmComponent** with a **CameraComponent** attached to the end. Spring arms are a good, simple way to attach cameras (or other **Components**) so that they're not overly rigid and feel more fluid as they move.
 
-1. After that, we actually need to create our **Components** in our constructor. Add the following code to "PawnWithCamera.cpp" inside of **APawnWithCamera::APawnWithCamera**:
+1. After that, we actually need to create our **Components** in our constructor. Add the following code to `PawnWithCamera.cpp` inside of **APawnWithCamera::APawnWithCamera**:
 
 		//Create our components
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));

@@ -22,7 +22,7 @@ Description:Extending the project's Game Mode to add and remove menus from the s
 %Steps%
 
 
-1. The menus we create will be made from **User Widgets**. We'll need to write a function that creates and displays a new **User Widget**, and then call that function when the game starts. We'll also need to keep track of what we have created so that we can remove it later. Since each project already comes with a custom **Game Mode** class, we can simply open ours, which is defined in "HowTo_UMGGameMode.h". The following functions and properties will need to be added to the bottom of the class:
+1. The menus we create will be made from **User Widgets**. We'll need to write a function that creates and displays a new **User Widget**, and then call that function when the game starts. We'll also need to keep track of what we have created so that we can remove it later. Since each project already comes with a custom **Game Mode** class, we can simply open ours, which is defined in `HowTo_UMGGameMode.h`. The following functions and properties will need to be added to the bottom of the class:
 
 		public:
 			/** Called when the game starts. */
@@ -45,7 +45,7 @@ Description:Extending the project's Game Mode to add and remove menus from the s
 
 		#include "Blueprint/UserWidget.h"
 
-1. Moving to "HowTo_UMGGameMode.cpp" now, we need to fill out the bodies of the two functions we declared. We'll start with overriding BeginPlay():
+1. Moving to `HowTo_UMGGameMode.cpp` now, we need to fill out the bodies of the two functions we declared. We'll start with overriding BeginPlay():
 
 		void AHowTo_UMGGameMode::BeginPlay()
 		{
@@ -55,7 +55,7 @@ Description:Extending the project's Game Mode to add and remove menus from the s
 
 	[REGION:note]When overriding functions from a parent class (referenced by the word Super), as we do here with _BeginPlay_, it is often important to call the parent class' version of that function. Since our version of the function is only meant to add one step to the end of the existing procedure, we call _Super::BeginPlay_ in the first line of the function.[/REGION]
 
-1. Next, still in "HowTo_UMGGameMode.cpp", we need to define how we change between menus. We will need to remove whatever **User Widget** we have active from the viewport, if any, first. After that, we can create and a new **User Widget** and add it to the viewport.
+1. Next, still in `HowTo_UMGGameMode.cpp`, we need to define how we change between menus. We will need to remove whatever **User Widget** we have active from the viewport, if any, first. After that, we can create and a new **User Widget** and add it to the viewport.
 
 		void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 		{

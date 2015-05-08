@@ -21,17 +21,17 @@ Description:Writing a C++ class and compiling it with Unreal Engine
 
 %Steps%
 
-1. In **Visual Studio**, we'll use the **Solution Explorer** pane to find our newly-created C++ files. In our example, they will be named "FloatingActor.cpp" and "FloatingActor.h" and will be inside the "QuickStart" project.
+1. In **Visual Studio**, we'll use the **Solution Explorer** pane to find our newly-created C++ files. In our example, they will be named `FloatingActor.cpp` and `FloatingActor.h` and will be inside the "QuickStart" project.
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
 	[REGION:note]We're about to add code. All code used in this tutorial will be found at bottom of the page in its current state as of completing that page's instructions.[/REGION]
 
-2. In "FloatingActor.h", we'll add the following code just before the closing brace and semicolon at the end of the file:
+2. In `FloatingActor.h`, we'll add the following code just before the closing brace and semicolon at the end of the file:
 
 		float RunningTime;
 
-3. Switching to "FloatingActor.cpp", we'll add the following code just before the closing brace at the bottom of **AFloatingActor::Tick**:
+3. Switching to `FloatingActor.cpp`, we'll add the following code just before the closing brace at the bottom of **AFloatingActor::Tick**:
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));

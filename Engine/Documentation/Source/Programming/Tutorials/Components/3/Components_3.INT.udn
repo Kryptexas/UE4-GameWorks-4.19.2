@@ -21,12 +21,12 @@ Description:Writing the code that will define how our Pawn Movement Component wi
 
 %Steps%
 
-1. We can go back to **Visual Studio** now and program our customized **Pawn Movement Component**. All we really need to write is a TickComponent function (similar to an **Actor's** Tick function) to tell us how to move each frame. In "CollidingPawnMovementComponent.h", we'll need to override TickComponent in the class definition:
+1. We can go back to **Visual Studio** now and program our customized **Pawn Movement Component**. All we really need to write is a TickComponent function (similar to an **Actor's** Tick function) to tell us how to move each frame. In `CollidingPawnMovementComponent.h`, we'll need to override TickComponent in the class definition:
 
 		public:
 			virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;	
 
-	We'll define this function in "CollidingPawnMovementComponent.cpp":
+	We'll define this function in `CollidingPawnMovementComponent.cpp`:
 
 		void UCollidingPawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 		{
