@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2485959
+﻿INTSourceChangelist:2521845
 Availability:Public
 Title:スポットライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -85,7 +85,7 @@ Description:スポットライトの基礎
 ![](spacer.png)
 [/REGION]
 
-以下は、レベル内に配置された **スポットライト** の 2 つの例であり、ライトの半径とコーン エフェクタを決定する方法を示しています。
+以下はレベルに配置された **スポットライト** の 2 つの例であり、ライトの半径とコーン エフェクタを決定する方法を示します。
 
 ![](spotlight_example.png)
 
