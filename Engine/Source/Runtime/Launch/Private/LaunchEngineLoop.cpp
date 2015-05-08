@@ -2056,12 +2056,13 @@ int32 FEngineLoop::Init()
 #endif
 
 #if WITH_EDITOR
-	if( GIsEditor )
+	FModuleManager::Get().LoadModule("AutomationController");
+	FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").Init();
+	if (GIsEditor)
 	{
-		FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").Init();
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
 	}
-#endif
+#endif#endif
 
 	GIsRunning = true;
 
@@ -2411,17 +2412,14 @@ void FEngineLoop::Tick()
 #endif
 
 #if WITH_EDITOR
-		if( GIsEditor )
-		{
 #if WITH_ENGINE
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationController);
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationController);
 #endif
-			static FName AutomationController("AutomationController");
-			//Check if module loaded to support the change to allow this to be hot compilable.
-			if (FModuleManager::Get().IsModuleLoaded(AutomationController))
-			{
-				FModuleManager::GetModuleChecked<IAutomationControllerModule>(AutomationController).Tick();
-			}
+		static FName AutomationController("AutomationController");
+		//Check if module loaded to support the change to allow this to be hot compilable.
+		if (FModuleManager::Get().IsModuleLoaded(AutomationController))
+		{
+			FModuleManager::GetModuleChecked<IAutomationControllerModule>(AutomationController).Tick();
 		}
 #endif
 

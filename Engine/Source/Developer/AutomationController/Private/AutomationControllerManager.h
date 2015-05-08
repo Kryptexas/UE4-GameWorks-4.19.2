@@ -53,6 +53,12 @@ public:
 		bScreenshotsEnabled = bNewValue;
 	}
 
+	virtual void SetPrintResults(const bool bNewValue) override
+	{
+		bPrintResults = bNewValue;
+	}
+
+
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) override
 	{
 		ReportManager.SetFilter( InFilter );
@@ -357,6 +363,9 @@ private:
 
 	/** If we should request full screen screen shots. */
 	bool bRequestFullScreenScreenshots;
+
+	/** If we want to echo results to the console */
+	bool bPrintResults;
 
 	/** If we should track any test history for the next run. */
 	bool bTrackHistory;

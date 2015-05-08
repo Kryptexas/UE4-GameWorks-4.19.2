@@ -99,7 +99,6 @@ public class UnrealEd : ModuleRules
 				"InputCore",
 				"InputBindingEditor",
 				"Internationalization",
-				"LauncherAutomatedService",
 				"LauncherServices",
 				"MaterialEditor",
 				"MessageLog",

@@ -356,7 +356,7 @@ bool FCinematicFPSPerfTest::RunTest(const FString& Parameters)
 
 	//Check we are running from commandline
 	const FString CommandLine(FCommandLine::Get());
-	if (CommandLine.Contains(TEXT("AutomationTests")))
+	if (CommandLine.Contains(TEXT("Automation")))
 	{
 		//Get the name of the matinee to be used.
 		//If the game was not launched with the -MatineeName argument then this test will be ran based on time.

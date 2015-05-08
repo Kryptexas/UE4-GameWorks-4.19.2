@@ -23,7 +23,7 @@ public:
 	 * @param	InRoleIndex			Identifier for which worker in this group that should execute a command
 	 * @param	InStopTestEvent		Delegate to fire when the command is finished
 	 */
-	virtual void RunTest(const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent) = 0;
+	//virtual void RunTest(const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent) = 0;
 
 
 protected:

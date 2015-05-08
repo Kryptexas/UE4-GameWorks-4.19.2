@@ -26,8 +26,6 @@ public:
 
 	virtual void Tick() override;
 
-	virtual void RunTest( const FString& InTestToRun, const int32 InRoleIndex, FStopTestEvent const& InStopTestEvent ) override;
-
 	// End IAutomationWorkerModule interface
 
 protected:
@@ -68,6 +66,9 @@ private:
 
 	// Handles FAutomationWorkerFindWorkers messages.
 	void HandleFindWorkersMessage( const FAutomationWorkerFindWorkers& Message, const IMessageContextRef& Context );
+
+	//deferred handler for sending "find worker" response in case the asset registry isn't loaded yet
+	void SendWorkerFound();
 
 	// Handles message endpoint shutdowns.
 	void HandleMessageEndpointShutdown();
@@ -129,7 +130,4 @@ private:
 
 	// Holds the automation command line arguments.
 	TArray<FString> DeferredAutomationCommands;
-
-	// Cycles through and executes the automation commands in the deferred array.
-	void RunDeferredAutomationCommands();
 };

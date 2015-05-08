@@ -223,6 +223,11 @@ public:
 	virtual void SetScreenshotsEnabled( const bool bNewValue ) = 0;
 
 	/**
+	 * Sets if the results of tests should be echoed to the console
+	 */
+	virtual void SetPrintResults(const bool bNewValue) = 0;
+
+	/**
 	 * Filters the visible list of tests.
 	 */
 	virtual void SetFilter( TSharedPtr< AutomationFilterCollection > InFilter ) = 0;
