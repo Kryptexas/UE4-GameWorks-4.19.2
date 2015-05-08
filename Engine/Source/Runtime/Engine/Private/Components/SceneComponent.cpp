@@ -521,6 +521,7 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 		{
 			// Combine with next item on the stack
 			FScopedMovementUpdate* OuterScopedUpdate = ScopedMovementStack.Last();
+			check(OuterScopedUpdate == CurrentScopedUpdate->OuterScope);
 			OuterScopedUpdate->OnInnerScopeComplete(*CurrentScopedUpdate);
 		}
 	}
@@ -2240,11 +2241,13 @@ static uint32 s_ScopedWarningCount = 0;
 
 FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior )
 : Owner(Component)
+, OuterScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
 , bHasValidOverlapsAtEnd(false)
 {
 	if (IsValid(Component))
 	{
+		OuterScope = Component->GetCurrentScopedMovement();
 		InitialTransform = Component->GetComponentToWorld();
 		InitialRelativeLocation = Component->RelativeLocation;
 		InitialRelativeRotation = Component->RelativeRotation;
@@ -2253,7 +2256,6 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 		if (ScopeBehavior == EScopedUpdate::ImmediateUpdates)
 		{
 			// We only allow ScopeUpdateImmediately if there is no outer scope, or if the outer scope is also ScopeUpdateImmediately.
-			FScopedMovementUpdate* OuterScope = Component->GetCurrentScopedMovement();
 			if (OuterScope && OuterScope->bDeferUpdates)
 			{
 				if (s_ScopedWarningCount < 100 || (GFrameCounter & 31) == 0)
@@ -2340,13 +2342,13 @@ void FScopedMovementUpdate::AppendOverlaps(const TArray<struct FOverlapInfo>& Ot
 	}
 }
 
-
 void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& InnerScope)
 {
 	if (IsValid(Owner))
 	{
 		checkSlow(IsDeferringUpdates());
 		checkSlow(InnerScope.IsDeferringUpdates());
+		checkSlow(InnerScope.OuterScope == this);
 
 		// Combine with the next item on the stack
 		AppendOverlaps(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());

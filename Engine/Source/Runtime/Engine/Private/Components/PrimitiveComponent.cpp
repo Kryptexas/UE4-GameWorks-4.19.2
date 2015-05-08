@@ -1565,15 +1565,19 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 		else if (DeltaSizeSq == 0.f && bCollisionEnabled)
 		{
 			// We didn't move, and any rotation that doesn't change our overlap bounds means we already know what we are overlapping at this point.
-			// Can only do this if current known overlaps are valid (not deferring updates)
-			if (CVarAllowCachedOverlaps->GetInt() && Actor && Actor->GetRootComponent() == this && !IsDeferringMovementUpdates())
+			if (Actor && Actor->GetRootComponent() == this && CVarAllowCachedOverlaps->GetInt())
 			{
-				// Only if we know that we won't change our overlap status with children by moving.
-				if (AreSymmetricRotations(NewRotationQuat, ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&
-					AreAllCollideableDescendantsRelative())
+				// Can only do this if current known overlaps are valid (not deferring updates, or we know there are no new pending overlaps).
+				const FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
+				if (ScopedUpdate == nullptr || (OverlappingComponents.Num() == 0 && !ScopedUpdate->HasPendingOverlapsInAncestorOrSelf()))
 				{
-					OverlapsAtEndLocation = OverlappingComponents;
-					OverlapsAtEndLocationPtr = &OverlapsAtEndLocation;
+					// Only if we know that we won't change our overlap status with children by moving.
+					if (AreSymmetricRotations(NewRotationQuat, ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&
+						AreAllCollideableDescendantsRelative())
+					{
+						OverlapsAtEndLocation = OverlappingComponents;
+						OverlapsAtEndLocationPtr = &OverlapsAtEndLocation;
+					}
 				}
 			}
 		}

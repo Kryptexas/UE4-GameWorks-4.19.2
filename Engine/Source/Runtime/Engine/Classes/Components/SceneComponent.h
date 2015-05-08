@@ -970,8 +970,11 @@ public:
 	/** Returns true if the Component's transform has changed since the start of the scoped update. */
 	bool IsTransformDirty() const;
 
-	/** Returns true if there are pending overlaps queued up in this scope. */
+	/** Returns true if there are pending overlaps queued in this scope. */
 	bool HasPendingOverlaps() const;
+
+	/** Returns true if there are pending overlaps queued in this scope or any outer scope. */
+	bool HasPendingOverlapsInAncestorOrSelf() const;
 
 	/** Returns the pending overlaps within this scope. */
 	const TArray<struct FOverlapInfo>& GetPendingOverlaps() const;
@@ -1003,6 +1006,7 @@ private:
 private:
 
 	class USceneComponent* Owner;
+	FScopedMovementUpdate* OuterScope;
 	uint32 bDeferUpdates:1;
 	uint32 bHasValidOverlapsAtEnd:1;
 	FTransform InitialTransform;
@@ -1028,6 +1032,22 @@ FORCEINLINE bool FScopedMovementUpdate::IsDeferringUpdates() const
 FORCEINLINE bool FScopedMovementUpdate::HasPendingOverlaps() const
 {
 	return PendingOverlaps.Num() > 0;
+}
+
+FORCEINLINE_DEBUGGABLE bool FScopedMovementUpdate::HasPendingOverlapsInAncestorOrSelf() const
+{
+	const FScopedMovementUpdate* Scope = this;
+	do
+	{
+		if (Scope->HasPendingOverlaps())
+		{
+			return true;
+		}
+		Scope = Scope->OuterScope;
+	}
+	while (Scope != nullptr);
+
+	return false;
 }
 
 FORCEINLINE const TArray<struct FOverlapInfo>& FScopedMovementUpdate::GetPendingOverlaps() const
