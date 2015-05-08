@@ -116,7 +116,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				HashSet<string> UserNamesForUserGroup = FRepository.Get( BuggsRepo ).GetUserNamesFromGroupName( AnonymousGroup );
 
 				// Enable to narrow results and improve debugging performance.
-				FormData.DateFrom = FormData.DateTo.AddDays( -1 );
+				//FormData.DateFrom = FormData.DateTo.AddDays( -1 );
 				FormData.DateTo = FormData.DateTo.AddDays( 1 );
 
 				var FilteringQueryJoin = CrashRepo
