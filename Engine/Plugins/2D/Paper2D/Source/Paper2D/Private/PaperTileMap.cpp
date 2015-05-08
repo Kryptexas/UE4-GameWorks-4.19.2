@@ -529,6 +529,37 @@ UPaperTileLayer* UPaperTileMap::AddNewLayer(int32 InsertionIndex)
 	return NewLayer;
 }
 
+void UPaperTileMap::AddExistingLayer(UPaperTileLayer* NewLayer, int32 InsertionIndex)
+{
+	NewLayer->SetFlags(RF_Transactional);
+	NewLayer->Modify();
+
+	// Make sure the layer has the correct outer
+	if (NewLayer->GetOuter() != this)
+	{
+		NewLayer->Rename(nullptr, this);
+	}
+
+	// And correct size
+	NewLayer->ResizeMap(MapWidth, MapHeight);
+
+	// And a unique name
+	if (IsLayerNameInUse(NewLayer->LayerName))
+	{
+		NewLayer->LayerName = GenerateNewLayerName(this);
+	}
+
+	// Insert the new layer
+	if (TileLayers.IsValidIndex(InsertionIndex))
+	{
+		TileLayers.Insert(NewLayer, InsertionIndex);
+	}
+	else
+	{
+		TileLayers.Add(NewLayer);
+	}
+}
+
 FText UPaperTileMap::GenerateNewLayerName(UPaperTileMap* TileMap)
 {
 	// Create a set of existing names
@@ -547,6 +578,19 @@ FText UPaperTileMap::GenerateNewLayerName(UPaperTileMap* TileMap)
 	} while (ExistingNames.Contains(TestLayerName.ToString()));
 
 	return TestLayerName;
+}
+
+bool UPaperTileMap::IsLayerNameInUse(const FText& LayerName) const
+{
+	for (UPaperTileLayer* ExistingLayer : TileLayers)
+	{
+		if (ExistingLayer->LayerName.EqualToCaseIgnored(LayerName))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void UPaperTileMap::ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize)

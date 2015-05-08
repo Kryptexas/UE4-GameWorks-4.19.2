@@ -47,14 +47,24 @@ protected:
 
 	void AddNewLayerAbove();
 	void AddNewLayerBelow();
+
+	void CutLayer();
+	void CopyLayer();
+	void PasteLayerAbove();
+	bool CanPasteLayer() const;
+
+	void DuplicateLayer();
 	void DeleteLayer();
 	void RenameLayer();
-	void DuplicateLayer();
+
+	void DeleteSelectedLayerWithNoTransaction();
+
 	void MergeLayerDown();
 	void MoveLayerUp(bool bForceToTop);
 	void MoveLayerDown(bool bForceToBottom);
 	void SelectLayerAbove(bool bTopmost);
 	void SelectLayerBelow(bool bBottommost);
+
 
 	void SetSelectedLayerIndex(int32 NewIndex);
 

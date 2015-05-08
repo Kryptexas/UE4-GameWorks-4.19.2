@@ -7,6 +7,11 @@
 #include "PaperSprite.h"
 #include "PaperTileMap.generated.h"
 
+class UPaperTileSet;
+class UPaperTileLayer;
+class UBodySetup;
+class UAssetImportData;
+
 // The different kinds of projection modes supported
 UENUM()
 namespace ETileMapProjectionMode
@@ -67,7 +72,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 
 	// Last tile set that was selected when editing the tile map
 	UPROPERTY()
-	TAssetPtr<class UPaperTileSet> SelectedTileSet;
+	TAssetPtr<UPaperTileSet> SelectedTileSet;
 
 	// The material to use on a tile map instance if not overridden
 	UPROPERTY(Category=Setup, EditAnywhere, BlueprintReadOnly)
@@ -75,7 +80,7 @@ class PAPER2D_API UPaperTileMap : public UObject
 
 	// The list of layers
 	UPROPERTY(Instanced, Category=Sprite, BlueprintReadOnly)
-	TArray<class UPaperTileLayer*> TileLayers;
+	TArray<UPaperTileLayer*> TileLayers;
 
 protected:
 	// The extrusion thickness of collision geometry when using a 3D collision domain
@@ -98,13 +103,13 @@ public:
 
 	// Baked physics data.
 	UPROPERTY()
-	class UBodySetup* BodySetup;
+	UBodySetup* BodySetup;
 
 public:
 #if WITH_EDITORONLY_DATA
 	/** Importing data and options used for this tile map */
 	UPROPERTY(Category=ImportSettings, VisibleAnywhere, Instanced)
-	class UAssetImportData* AssetImportData;
+	UAssetImportData* AssetImportData;
 
 	/** The currently selected layer index */
 	UPROPERTY()
@@ -163,10 +168,16 @@ public:
 	FBoxSphereBounds GetRenderBounds() const;
 
 	// Creates and adds a new layer and returns it
-	class UPaperTileLayer* AddNewLayer(int32 InsertionIndex = INDEX_NONE);
+	UPaperTileLayer* AddNewLayer(int32 InsertionIndex = INDEX_NONE);
+
+	// Handles adding an existing layer that does *not* belong to any existing tile map
+	void AddExistingLayer(UPaperTileLayer* NewLayer, int32 InsertionIndex = INDEX_NONE);
 
 	// Creates a reasonable new layer name
 	static FText GenerateNewLayerName(UPaperTileMap* TileMap);
+
+	// Returns true if the specified name is already in use as a layer name
+	bool IsLayerNameInUse(const FText& LayerName) const;
 
 	// Resize the tile map and all layers
 	void ResizeMap(int32 NewWidth, int32 NewHeight, bool bForceResize = true);
