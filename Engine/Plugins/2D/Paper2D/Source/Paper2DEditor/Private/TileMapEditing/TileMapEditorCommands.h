@@ -51,7 +51,6 @@ public:
 	TSharedPtr<FUICommandInfo> AddNewLayerAbove;
 	TSharedPtr<FUICommandInfo> AddNewLayerBelow;
 	TSharedPtr<FUICommandInfo> DeleteLayer;
-	TSharedPtr<FUICommandInfo> DuplicateLayer;
 	TSharedPtr<FUICommandInfo> MergeLayerDown;
 	TSharedPtr<FUICommandInfo> MoveLayerUp;
 	TSharedPtr<FUICommandInfo> MoveLayerDown;
@@ -59,5 +58,4 @@ public:
 	TSharedPtr<FUICommandInfo> MoveLayerToBottom;
 	TSharedPtr<FUICommandInfo> SelectLayerAbove;
 	TSharedPtr<FUICommandInfo> SelectLayerBelow;
-	TSharedPtr<FUICommandInfo> RenameLayer;
 };

@@ -20,6 +20,12 @@ FString FPaperStyle::InContent(const FString& RelativePath, const ANSICHAR* Exte
 TSharedPtr< FSlateStyleSet > FPaperStyle::StyleSet = nullptr;
 TSharedPtr< class ISlateStyle > FPaperStyle::Get() { return StyleSet; }
 
+FName FPaperStyle::GetStyleSetName()
+{
+	static FName PaperStyleName(TEXT("PaperStyle"));
+	return PaperStyleName;
+}
+
 void FPaperStyle::Initialize()
 {
 	// Const icon sizes
@@ -34,7 +40,7 @@ void FPaperStyle::Initialize()
 		return;
 	}
 
-	StyleSet = MakeShareable(new FSlateStyleSet("PaperStyle"));
+	StyleSet = MakeShareable(new FSlateStyleSet(GetStyleSetName()));
 	StyleSet->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate"));
 	StyleSet->SetCoreContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
 

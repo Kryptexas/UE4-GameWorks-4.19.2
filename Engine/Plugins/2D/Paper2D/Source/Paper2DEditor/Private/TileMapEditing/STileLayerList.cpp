@@ -8,8 +8,40 @@
 #include "ScopedTransaction.h"
 
 #include "TileMapEditorCommands.h"
+#include "GenericCommands.h"
+
+#include "UnrealExporter.h"
+#include "Factories.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
+
+//////////////////////////////////////////////////////////////////////////
+// FLayerTextFactory
+
+// Text object factory for pasting layers
+struct FLayerTextFactory : public FCustomizableTextObjectFactory
+{
+public:
+	TArray<UPaperTileLayer*> CreatedLayers;
+public:
+	FLayerTextFactory()
+		: FCustomizableTextObjectFactory(GWarn)
+	{
+	}
+
+	// FCustomizableTextObjectFactory interface
+	virtual bool CanCreateClass(UClass* ObjectClass) const override
+	{
+		// Only allow layers to be created
+		return ObjectClass->IsChildOf(UPaperTileLayer::StaticClass());
+	}
+
+	virtual void ProcessConstructedObject(UObject* NewObject) override
+	{
+		CreatedLayers.Add(CastChecked<UPaperTileLayer>(NewObject));
+	}
+	// End of FCustomizableTextObjectFactory interface
+};
 
 //////////////////////////////////////////////////////////////////////////
 // STileLayerList
@@ -20,75 +52,97 @@ void STileLayerList::Construct(const FArguments& InArgs, UPaperTileMap* InTileMa
 	NotifyHook = InNotifyHook;
 
 	FTileMapEditorCommands::Register();
-	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
+	FGenericCommands::Register();
+	const FTileMapEditorCommands& TileMapCommands = FTileMapEditorCommands::Get();
+	const FGenericCommands& GenericCommands = FGenericCommands::Get();
 
 	CommandList = MakeShareable(new FUICommandList);
 	InParentCommandList->Append(CommandList.ToSharedRef());
 
 	CommandList->MapAction(
-		Commands.AddNewLayerAbove,
+		TileMapCommands.AddNewLayerAbove,
 		FExecuteAction::CreateSP(this, &STileLayerList::AddNewLayerAbove));
 
 	CommandList->MapAction(
-		Commands.AddNewLayerBelow,
+		TileMapCommands.AddNewLayerBelow,
 		FExecuteAction::CreateSP(this, &STileLayerList::AddNewLayerBelow));
 
 	CommandList->MapAction(
-		Commands.DeleteLayer,
-		FExecuteAction::CreateSP(this, &STileLayerList::DeleteLayer),
+		GenericCommands.Cut,
+		FExecuteAction::CreateSP(this, &STileLayerList::CutLayer),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
 
 	CommandList->MapAction(
-		Commands.RenameLayer,
-		FExecuteAction::CreateSP(this, &STileLayerList::RenameLayer),
+		GenericCommands.Copy,
+		FExecuteAction::CreateSP(this, &STileLayerList::CopyLayer),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
 
 	CommandList->MapAction(
-		Commands.DuplicateLayer,
+		GenericCommands.Paste,
+		FExecuteAction::CreateSP(this, &STileLayerList::PasteLayerAbove),
+		FCanExecuteAction::CreateSP(this, &STileLayerList::CanPasteLayer));
+
+	CommandList->MapAction(
+		GenericCommands.Duplicate,
 		FExecuteAction::CreateSP(this, &STileLayerList::DuplicateLayer),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
 
 	CommandList->MapAction(
-		Commands.MergeLayerDown,
+		GenericCommands.Delete,
+		FExecuteAction::CreateSP(this, &STileLayerList::DeleteLayer),
+		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
+
+	CommandList->MapAction(
+		GenericCommands.Rename,
+		FExecuteAction::CreateSP(this, &STileLayerList::RenameLayer),
+		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingSelectedLayer));
+
+	CommandList->MapAction(
+		TileMapCommands.MergeLayerDown,
 		FExecuteAction::CreateSP(this, &STileLayerList::MergeLayerDown),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerBelow));
 
 	CommandList->MapAction(
-		Commands.MoveLayerUp,
+		TileMapCommands.MoveLayerUp,
 		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerUp, /*bForceToTop=*/ false),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerAbove));
 
 	CommandList->MapAction(
-		Commands.MoveLayerDown,
+		TileMapCommands.MoveLayerDown,
 		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerDown, /*bForceToBottom=*/ false),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerBelow));
 
 	CommandList->MapAction(
-		Commands.MoveLayerToTop,
+		TileMapCommands.MoveLayerToTop,
 		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerUp, /*bForceToTop=*/ true),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerAbove));
 
 	CommandList->MapAction(
-		Commands.MoveLayerToBottom,
+		TileMapCommands.MoveLayerToBottom,
 		FExecuteAction::CreateSP(this, &STileLayerList::MoveLayerDown, /*bForceToBottom=*/ true),
 		FCanExecuteAction::CreateSP(this, &STileLayerList::CanExecuteActionNeedingLayerBelow));
 
 	CommandList->MapAction(
-		Commands.SelectLayerAbove,
+		TileMapCommands.SelectLayerAbove,
 		FExecuteAction::CreateSP(this, &STileLayerList::SelectLayerAbove, /*bTopmost=*/ false));
 
 	CommandList->MapAction(
-		Commands.SelectLayerBelow,
+		TileMapCommands.SelectLayerBelow,
 		FExecuteAction::CreateSP(this, &STileLayerList::SelectLayerBelow, /*bBottommost=*/ false));
 
+	//
 	FToolBarBuilder ToolbarBuilder(CommandList, FMultiBoxCustomization("TileLayerBrowserToolbar"), TSharedPtr<FExtender>(), Orient_Horizontal, /*InForceSmallIcons=*/ true);
 	ToolbarBuilder.SetLabelVisibility(EVisibility::Collapsed);
 
-	ToolbarBuilder.AddToolBarButton(Commands.AddNewLayerAbove);
-	ToolbarBuilder.AddToolBarButton(Commands.MoveLayerUp);
-	ToolbarBuilder.AddToolBarButton(Commands.MoveLayerDown);
-	ToolbarBuilder.AddToolBarButton(Commands.DuplicateLayer);
-	ToolbarBuilder.AddToolBarButton(Commands.DeleteLayer);
+	ToolbarBuilder.AddToolBarButton(TileMapCommands.AddNewLayerAbove);
+	ToolbarBuilder.AddToolBarButton(TileMapCommands.MoveLayerUp);
+	ToolbarBuilder.AddToolBarButton(TileMapCommands.MoveLayerDown);
+
+	FSlateIcon DuplicateIcon(FPaperStyle::GetStyleSetName(), "TileMapEditor.DuplicateLayer");
+	ToolbarBuilder.AddToolBarButton(GenericCommands.Duplicate, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DuplicateIcon);
+
+	FSlateIcon DeleteIcon(FPaperStyle::GetStyleSetName(), "TileMapEditor.DeleteLayer");
+	ToolbarBuilder.AddToolBarButton(GenericCommands.Delete, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DeleteIcon);
 
 	TSharedRef<SWidget> Toolbar = ToolbarBuilder.MakeWidget();
 
@@ -165,10 +219,23 @@ UPaperTileLayer* STileLayerList::GetSelectedLayer() const
 FText STileLayerList::GenerateDuplicatedLayerName(const FString& InputNameRaw, UPaperTileMap* TileMap)
 {
 	// Create a set of existing names
+	bool bFoundName = false;
 	TSet<FString> ExistingNames;
 	for (UPaperTileLayer* ExistingLayer : TileMap->TileLayers)
 	{
-		ExistingNames.Add(ExistingLayer->LayerName.ToString());
+		const FString LayerName = ExistingLayer->LayerName.ToString();
+		ExistingNames.Add(LayerName);
+
+		if (LayerName == InputNameRaw)
+		{
+			bFoundName = true;
+		}
+	}
+
+	// If the name doesn't already exist, then we're done (can happen when pasting a cut layer, etc...)
+	if (!bFoundName)
+	{
+		return FText::FromString(InputNameRaw);
 	}
 
 	FString BaseName = InputNameRaw;
@@ -291,17 +358,13 @@ int32 STileLayerList::GetSelectionIndex() const
 	return SelectionIndex;
 }
 
-void STileLayerList::DeleteLayer()
+void STileLayerList::DeleteSelectedLayerWithNoTransaction()
 {
 	if (UPaperTileMap* TileMap = TileMapPtr.Get())
 	{
 		const int32 DeleteIndex = GetSelectionIndex();
 		if (DeleteIndex != INDEX_NONE)
 		{
-			const FScopedTransaction Transaction(LOCTEXT("TileMapDeleteLayer", "Delete Layer"));
-			TileMap->SetFlags(RF_Transactional);
-			TileMap->Modify();
-
 			TileMap->TileLayers.RemoveAt(DeleteIndex);
 
 			PostEditNotfications();
@@ -313,6 +376,18 @@ void STileLayerList::DeleteLayer()
 				SetSelectedLayer(TileMap->TileLayers[NewSelectionIndex]);
 			}
 		}
+	}
+}
+
+void STileLayerList::DeleteLayer()
+{
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("TileMapDeleteLayer", "Delete Layer"));
+		TileMap->SetFlags(RF_Transactional);
+		TileMap->Modify();
+
+		DeleteSelectedLayerWithNoTransaction();
 	}
 }
 
@@ -431,6 +506,70 @@ void STileLayerList::SelectLayerBelow(bool bBottommost)
 	SetSelectedLayerIndex(NewIndex);
 }
 
+void STileLayerList::CutLayer()
+{
+	CopyLayer();
+
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("TileMapCutLayer", "Cut Layer"));
+		TileMap->SetFlags(RF_Transactional);
+		TileMap->Modify();
+
+		DeleteSelectedLayerWithNoTransaction();
+	}
+}
+
+void STileLayerList::CopyLayer()
+{
+	if (UPaperTileLayer* SelectedLayer = GetSelectedLayer())
+	{
+		UnMarkAllObjects(EObjectMark(OBJECTMARK_TagExp | OBJECTMARK_TagImp));
+		FStringOutputDevice ExportArchive;
+		const FExportObjectInnerContext Context;
+		UExporter::ExportToOutputDevice(&Context, SelectedLayer, nullptr, ExportArchive, TEXT("copy"), 0, PPF_Copy, false, nullptr);
+
+		FPlatformMisc::ClipboardCopy(*ExportArchive);
+	}
+}
+
+void STileLayerList::PasteLayerAbove()
+{
+	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+	{
+		FString ClipboardContent;
+		FPlatformMisc::ClipboardPaste(ClipboardContent);
+
+		if (!ClipboardContent.IsEmpty())
+		{
+			const FScopedTransaction Transaction(LOCTEXT("TileMapPasteLayer", "Paste Layer"));
+			TileMap->SetFlags(RF_Transactional);
+			TileMap->Modify();
+
+			// Turn the text buffer into objects
+			FLayerTextFactory Factory;
+			Factory.ProcessBuffer(TileMap, RF_Transactional, ClipboardContent);
+
+			// Add them to the map and select them (there will currently only ever be 0 or 1)
+			for (UPaperTileLayer* NewLayer : Factory.CreatedLayers)
+			{
+				NewLayer->LayerName = GenerateDuplicatedLayerName(NewLayer->LayerName.ToString(), TileMap);
+				TileMap->AddExistingLayer(NewLayer, GetSelectionIndex());
+				PostEditNotfications();
+				SetSelectedLayer(NewLayer);
+			}
+		}
+	}
+}
+
+bool STileLayerList::CanPasteLayer() const
+{
+	FString ClipboardContent;
+	FPlatformMisc::ClipboardPaste(ClipboardContent);
+
+	return !ClipboardContent.IsEmpty();
+}
+
 void STileLayerList::SetSelectedLayerIndex(int32 NewIndex)
 {
 	if (UPaperTileMap* TileMap = TileMapPtr.Get())
@@ -498,28 +637,32 @@ TSharedPtr<SWidget> STileLayerList::OnConstructContextMenu()
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, CommandList);
 
-	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
+	const FTileMapEditorCommands& TileMapCommands = FTileMapEditorCommands::Get();
+	const FGenericCommands& GenericCommands = FGenericCommands::Get();
 
 	FSlateIcon DummyIcon(NAME_None, NAME_None);
 
 	MenuBuilder.BeginSection("BasicOperations", LOCTEXT("BasicOperationsHeader", "Layer actions"));
  	{
-		MenuBuilder.AddMenuEntry(Commands.DuplicateLayer, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.DeleteLayer, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.RenameLayer, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.MergeLayerDown, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(GenericCommands.Cut, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(GenericCommands.Copy, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(GenericCommands.Paste, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(GenericCommands.Duplicate, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(GenericCommands.Delete, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(GenericCommands.Rename, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.MergeLayerDown, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
 		MenuBuilder.AddMenuSeparator();
-		MenuBuilder.AddMenuEntry(Commands.SelectLayerAbove, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.SelectLayerBelow, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.SelectLayerAbove, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.SelectLayerBelow, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
 	}
 	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("OrderingOperations", LOCTEXT("OrderingOperationsHeader", "Order actions"));
 	{
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerToTop, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerUp, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerDown, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
-		MenuBuilder.AddMenuEntry(Commands.MoveLayerToBottom, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.MoveLayerToTop, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.MoveLayerUp, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.MoveLayerDown, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
+		MenuBuilder.AddMenuEntry(TileMapCommands.MoveLayerToBottom, NAME_None, TAttribute<FText>(), TAttribute<FText>(), DummyIcon);
 	}
 	MenuBuilder.EndSection();
 
