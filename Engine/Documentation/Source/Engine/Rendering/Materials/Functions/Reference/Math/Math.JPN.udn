@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2281823
+﻿INTSourceChangelist:2527026
 Availability:Public
 title:数学
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -78,7 +78,7 @@ LinearSine 関数はスカラー値を受け取り、その値の 0 から 1 の
 |[REGION:tablesection]出力値[/REGION] ||
 | **Radial Coordinates** | 入力値のラジアル座標を返します。このベクターの場合、角度は一つのチャンネルに出力されて、距離は別のチャンネルに出力されます。|
 | **Vector Converted to Angle** | 入力ベクターの角度、または UV の場合、ラジアル グラディエントを返します。|
-| **Linear Distance** | 入力ベクターの線形の長さ、またはUVの場合、ラジアル グラディエントの距離を出力します。|
+| **Linear Distance** | 入力ベクターの線形の長さ、または UV の場合、ラジアル グラディエントの距離を出力します。|
 
 
 ![Vector To Radial Value](VectorToRadialValue_Demo.png)
