@@ -204,10 +204,10 @@ void FTileMapEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& V
 				YPos = (int32)TextItem.Position.Y;
 			}
 		}
-	}
 
-	// Draw the render bounds
-	DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
+		// Draw the render bounds
+		DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
+	}
 }
 
 void FTileMapEditorViewportClient::Tick(float DeltaSeconds)
