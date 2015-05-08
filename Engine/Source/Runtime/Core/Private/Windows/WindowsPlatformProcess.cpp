@@ -252,10 +252,10 @@ static void LaunchWebURL( const FString& URLParams, FString* Error )
 	}
 }
 
-static void LaunchMailToURL( const TCHAR* MailTo, FString* Error )
+static void LaunchDefaultHandlerForURL( const TCHAR* URL, FString* Error )
 {
-	// ShellExecute will open the default mail app with a "mailto:" link
-	const HINSTANCE Code = ::ShellExecuteW(NULL, TEXT("open"), MailTo, NULL, NULL, SW_SHOWNORMAL);
+	// ShellExecute will open the default handler for a URL
+	const HINSTANCE Code = ::ShellExecuteW(NULL, TEXT("open"), URL, NULL, NULL, SW_SHOWNORMAL);
 	if (Error)
 	{
 		*Error = ((PTRINT)Code <= 32) ? NSLOCTEXT("Core", "UrlFailed", "Failed launching URL").ToString() : TEXT("");
@@ -272,9 +272,11 @@ void FWindowsPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, F
 		*Error = TEXT("");
 	}
 
-	if( FString(URL).StartsWith(TEXT("mailto:")) )
+	// Use the default handler if we have a URI scheme name that doesn't look like a Windows path, and is not http: or https:
+	FString SchemeName;
+	if(FParse::SchemeNameFromURI(URL, SchemeName) && SchemeName.Len() > 1 && SchemeName != TEXT("http") && SchemeName != TEXT("https"))
 	{
-		LaunchMailToURL( URL, Error );
+		LaunchDefaultHandlerForURL(URL, Error);
 	}
 	else
 	{

@@ -1210,3 +1210,19 @@ bool FParse::Resolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY )
 	int32 WindowModeDummy;
 	return Resolution(InResolution, OutX, OutY, WindowModeDummy);
 }
+
+bool FParse::SchemeNameFromURI(const TCHAR* URI, FString& OutSchemeName)
+{
+	for(int32 Idx = 0;;Idx++)
+	{
+		if(!FChar::IsAlpha(URI[Idx]) && !FChar::IsDigit(URI[Idx]) && URI[Idx] != TEXT('+') && URI[Idx] != TEXT('.') && URI[Idx] != TEXT('-'))
+		{
+			if(URI[Idx] == TEXT(':') && Idx > 0)
+			{
+				OutSchemeName = FString(Idx, URI);
+				return true;
+			}
+			return false;
+		}
+	}
+}
