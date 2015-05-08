@@ -137,16 +137,14 @@ protected:
 
 UPaperTileLayer::UPaperTileLayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, LayerWidth(4)
+	, LayerHeight(4)
+#if WITH_EDITORONLY_DATA
+	, bHiddenInEditor(false)
+#endif
+	, bHiddenInGame(false)
 	, LayerColor(FLinearColor::White)
 {
-	LayerWidth = 4;
-	LayerHeight = 4;
-
-#if WITH_EDITORONLY_DATA
-	LayerOpacity = 1.0f;
-
-	bHiddenInEditor = false;
-#endif
 
 	DestructiveAllocateMap(LayerWidth, LayerHeight);
 }
@@ -154,6 +152,8 @@ UPaperTileLayer::UPaperTileLayer(const FObjectInitializer& ObjectInitializer)
 void UPaperTileLayer::DestructiveAllocateMap(int32 NewWidth, int32 NewHeight)
 {
 	check((NewWidth > 0) && (NewHeight > 0));
+	LayerWidth = NewWidth;
+	LayerHeight = NewHeight;
 
 	const int32 NumCells = NewWidth * NewHeight;
 	AllocatedCells.Empty(NumCells);
@@ -232,24 +232,19 @@ int32 UPaperTileLayer::GetLayerIndex() const
 	return GetTileMap()->TileLayers.Find(const_cast<UPaperTileLayer*>(this));
 }
 
+bool UPaperTileLayer::InBounds(int32 X, int32 Y) const
+{
+	return (X >= 0) && (X < LayerWidth) && (Y >= 0) && (Y < LayerHeight);
+}
+
 FPaperTileInfo UPaperTileLayer::GetCell(int32 X, int32 Y) const
 {
-	if ((X < 0) || (X >= LayerWidth) || (Y < 0) || (Y >= LayerHeight))
-	{
-		return FPaperTileInfo();
-	}
-	else
-	{
-		return AllocatedCells[X + (Y*LayerWidth)];
-	}
+	return InBounds(X, Y) ? AllocatedCells[X + (Y*LayerWidth)] : FPaperTileInfo();
 }
 
 void UPaperTileLayer::SetCell(int32 X, int32 Y, const FPaperTileInfo& NewValue)
 {
-	if ((X < 0) || (X >= LayerWidth) || (Y < 0) || (Y >= LayerHeight))
-	{
-	}
-	else
+	if (InBounds(X, Y))
 	{
 		AllocatedCells[X + (Y*LayerWidth)] = NewValue;
 	}

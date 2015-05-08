@@ -160,7 +160,7 @@ void UPaperTileMap::ValidateSelectedLayerIndex()
 		SelectedLayerIndex = INDEX_NONE;
 		for (int32 LayerIndex = 0; (LayerIndex < TileLayers.Num()) && (SelectedLayerIndex == INDEX_NONE); ++LayerIndex)
 		{
-			if (!TileLayers[LayerIndex]->bHiddenInEditor)
+			if (TileLayers[LayerIndex]->ShouldRenderInEditor())
 			{
 				SelectedLayerIndex = LayerIndex;
 			}
@@ -511,9 +511,7 @@ UPaperTileLayer* UPaperTileMap::AddNewLayer(int32 InsertionIndex)
 	UPaperTileLayer* NewLayer = NewObject<UPaperTileLayer>(this);
 	NewLayer->SetFlags(RF_Transactional);
 
-	NewLayer->LayerWidth = MapWidth;
-	NewLayer->LayerHeight = MapHeight;
-	NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
+	NewLayer->DestructiveAllocateMap(MapWidth, MapHeight);
 	NewLayer->LayerName = GenerateNewLayerName(this);
 
 	// Insert the new layer

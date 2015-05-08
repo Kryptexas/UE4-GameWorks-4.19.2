@@ -77,7 +77,7 @@ struct FHorizontalSpan
 	// Indexes a bit in the reachability array
 	static FBitReference Reach(UPaperTileLayer* Layer, TBitArray<>& Reachability, int32 X, int32 Y)
 	{
-		const int32 Index = (Layer->LayerWidth * Y) + X;
+		const int32 Index = (Layer->GetLayerWidth() * Y) + X;
 		return Reachability[Index];
 	}
 
@@ -100,7 +100,7 @@ struct FHorizontalSpan
 		}
 
 		// Go right
-		for (int32 TestX = X1 + 1; TestX < Layer->LayerWidth; ++TestX)
+		for (int32 TestX = X1 + 1; TestX < Layer->GetLayerWidth(); ++TestX)
 		{
 			const FPaperTileInfo ExistingCell = Layer->GetCell(TestX, Y);
 			const bool bCellMatches = (ExistingCell == RequiredInk) || (!ExistingCell.IsValid() && !RequiredInk.IsValid());
@@ -516,7 +516,7 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 			NoCommas.UseGrouping = false;
 
 			const FPaperTileInfo Cell = LastLayer->GetCell(LastCursorTileX, LastCursorTileY);
-			const bool bInBounds = (LastCursorTileX >= 0) && (LastCursorTileX < LastLayer->LayerWidth) && (LastCursorTileY >= 0) && (LastCursorTileY < LastLayer->LayerHeight);
+			const bool bInBounds = LastLayer->InBounds(LastCursorTileX, LastCursorTileY);
 
 			FText TileIndexDescription;
 			if (!bInBounds)
@@ -692,20 +692,20 @@ bool FEdModeTileMap::BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* Ta
 	bool bPaintedOnSomething = false;
 	bool bChangedSomething = false;
 
-	for (int32 SourceY = 0; SourceY < SourceLayer->LayerHeight; ++SourceY)
+	for (int32 SourceY = 0; SourceY < SourceLayer->GetLayerHeight(); ++SourceY)
 	{
 		const int32 TargetY = OffsetY + SourceY;
 
-		if ((TargetY < 0) || (TargetY >= TargetLayer->LayerHeight))
+		if ((TargetY < 0) || (TargetY >= TargetLayer->GetLayerHeight()))
 		{
 			continue;
 		}
 
-		for (int32 SourceX = 0; SourceX < SourceLayer->LayerWidth; ++SourceX)
+		for (int32 SourceX = 0; SourceX < SourceLayer->GetLayerWidth(); ++SourceX)
 		{
 			const int32 TargetX = OffsetX + SourceX;
 
-			if ((TargetX < 0) || (TargetX >= TargetLayer->LayerWidth))
+			if ((TargetX < 0) || (TargetX >= TargetLayer->GetLayerWidth()))
 			{
 				continue;
 			}
@@ -929,7 +929,7 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 			for (int32 DY = -1; DY <= 1; DY += 2)
 			{
 				const int32 Y = Span.Y + DY;
-				if ((Y < 0) || (Y >= TargetLayer->LayerHeight))
+				if ((Y < 0) || (Y >= TargetLayer->GetLayerHeight()))
 				{
 					continue;
 				}
@@ -954,8 +954,8 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 
 		// Figure out where the top left square of the map starts in the pattern, based on the seed point
 		UPaperTileLayer* SourceLayer = GetSourceInkLayer();
-		const int32 BrushWidth = SourceLayer->LayerWidth;
-		const int32 BrushHeight = SourceLayer->LayerHeight;
+		const int32 BrushWidth = SourceLayer->GetLayerWidth();
+		const int32 BrushHeight = SourceLayer->GetLayerHeight();
 
 		int32 BrushPatternOffsetX = (BrushWidth - ((DestTileX + BrushWidth) % BrushWidth));
 		int32 BrushPatternOffsetY = (BrushHeight - ((DestTileY + BrushHeight) % BrushHeight));
@@ -1235,15 +1235,15 @@ void FEdModeTileMap::RotateTilesInSelection(bool bIsClockwise)
 	static const uint8 CounterclockwiseRotationMap[8] = { 3, 2, 7, 6, 1, 0, 5, 4 };
 	const uint8* RotationTable = bIsClockwise ? ClockwiseRotationMap : CounterclockwiseRotationMap;
 
-	const int32 OldWidth = PreviewLayer->LayerWidth;
-	const int32 OldHeight = PreviewLayer->LayerHeight;
+	const int32 OldWidth = PreviewLayer->GetLayerWidth();
+	const int32 OldHeight = PreviewLayer->GetLayerHeight();
 
 	// Copy off the tiles and rotate within each tile
 	TArray<FPaperTileInfo> OldTiles;
-	OldTiles.Empty(PreviewLayer->LayerWidth * PreviewLayer->LayerHeight);
-	for (int32 Y = 0; Y < PreviewLayer->LayerHeight; ++Y)
+	OldTiles.Empty(PreviewLayer->GetLayerWidth() * PreviewLayer->GetLayerHeight());
+	for (int32 Y = 0; Y < PreviewLayer->GetLayerHeight(); ++Y)
 	{
-		for (int32 X = 0; X < PreviewLayer->LayerWidth; ++X)
+		for (int32 X = 0; X < PreviewLayer->GetLayerWidth(); ++X)
 		{
 			FPaperTileInfo Cell = PreviewLayer->GetCell(X, Y);
 			if (Cell.IsValid())
@@ -1256,12 +1256,12 @@ void FEdModeTileMap::RotateTilesInSelection(bool bIsClockwise)
 	}
 
 	// Resize, transposing width and height
-	DestructiveResizePreviewComponent(PreviewLayer->LayerHeight, PreviewLayer->LayerWidth);
+	DestructiveResizePreviewComponent(PreviewLayer->GetLayerHeight(), PreviewLayer->GetLayerWidth());
 
 	// Place the tiles back in the rotated layout
-	for (int32 NewY = 0; NewY < PreviewLayer->LayerHeight; ++NewY)
+	for (int32 NewY = 0; NewY < PreviewLayer->GetLayerHeight(); ++NewY)
 	{
-		for (int32 NewX = 0; NewX < PreviewLayer->LayerWidth; ++NewX)
+		for (int32 NewX = 0; NewX < PreviewLayer->GetLayerWidth(); ++NewX)
 		{
 			const int32 OldX = bIsClockwise ? NewY : (OldWidth - 1 - NewY);
 			const int32 OldY = bIsClockwise ? (OldHeight - 1 - NewX) : NewX;
@@ -1314,7 +1314,7 @@ void FEdModeTileMap::RotateSelectionCCW()
 bool FEdModeTileMap::HasValidSelection() const
 {
 	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
-	return (PreviewLayer->LayerWidth > 0) && (PreviewLayer->LayerHeight > 0) && bHasValidInkSource;
+	return (PreviewLayer->GetLayerWidth() > 0) && (PreviewLayer->GetLayerHeight() > 0) && bHasValidInkSource;
 }
 
 void FEdModeTileMap::SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap)
@@ -1438,13 +1438,13 @@ int32 FEdModeTileMap::GetBrushWidth() const
 		BrushWidth = FMath::Max<int32>(LastEyeDropperBounds.Width(), 1);
 		break;
 	case ETileMapEditorTool::Paintbrush:
-		BrushWidth = GetSourceInkLayer()->LayerWidth;
+		BrushWidth = GetSourceInkLayer()->GetLayerWidth();
 		break;
 	case ETileMapEditorTool::Eraser:
 		BrushWidth = EraseBrushSize;
 		break;
 	case ETileMapEditorTool::PaintBucket:
-		BrushWidth = GetSourceInkLayer()->LayerWidth;
+		BrushWidth = GetSourceInkLayer()->GetLayerWidth();
 		break;
 	case ETileMapEditorTool::TerrainBrush:
 		BrushWidth = 1;
@@ -1467,13 +1467,13 @@ int32 FEdModeTileMap::GetBrushHeight() const
 		BrushHeight = FMath::Max<int32>(LastEyeDropperBounds.Height(), 1);
 		break;
 	case ETileMapEditorTool::Paintbrush:
-		BrushHeight = GetSourceInkLayer()->LayerHeight;
+		BrushHeight = GetSourceInkLayer()->GetLayerHeight();
 		break;
 	case ETileMapEditorTool::Eraser:
 		BrushHeight = EraseBrushSize;
 		break;
 	case ETileMapEditorTool::PaintBucket:
-		BrushHeight = GetSourceInkLayer()->LayerHeight;
+		BrushHeight = GetSourceInkLayer()->GetLayerHeight();
 		break;
 	case ETileMapEditorTool::TerrainBrush:
 		BrushHeight = 1;

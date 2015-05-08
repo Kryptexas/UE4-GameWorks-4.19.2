@@ -232,13 +232,14 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 				NewLayer->SetFlags(RF_Transactional);
 
 				NewLayer->LayerName = FText::FromString(LayerData.Name);
-				NewLayer->bHiddenInEditor = !LayerData.bVisible;
-				NewLayer->LayerOpacity = FMath::Clamp<float>(LayerData.Opacity, 0.0f, 1.0f);
+				NewLayer->SetShouldRenderInEditor(LayerData.bVisible);
+
+				FLinearColor LayerColor = FLinearColor::White;
+				LayerColor.A = FMath::Clamp<float>(LayerData.Opacity, 0.0f, 1.0f);
+				NewLayer->SetLayerColor(LayerColor);
 
 				//@TODO: No support for Objects (and thus Color, ObjectDrawOrder), Properties, OffsetX, or OffsetY
 
-				NewLayer->LayerWidth = LayerData.Width;
-				NewLayer->LayerHeight = LayerData.Height;
 				NewLayer->DestructiveAllocateMap(LayerData.Width, LayerData.Height);
 
 				int32 SourceIndex = 0;

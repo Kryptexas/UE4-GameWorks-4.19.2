@@ -104,34 +104,30 @@ class PAPER2D_API UPaperTileLayer : public UObject
 	GENERATED_UCLASS_BODY()
 
 	// Name of the layer
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category=Sprite)
 	FText LayerName;
 
+private:
 	// Width of the layer (in tiles)
-	UPROPERTY(BlueprintReadOnly, Category=Sprite)
+	UPROPERTY(BlueprintReadOnly, Category=Sprite, meta=(AllowPrivateAccess="true"))
 	int32 LayerWidth;
 
 	// Height of the layer (in tiles)
-	UPROPERTY(BlueprintReadOnly, Category=Sprite)
+	UPROPERTY(BlueprintReadOnly, Category=Sprite, meta=(AllowPrivateAccess="true"))
 	int32 LayerHeight;
 
 #if WITH_EDITORONLY_DATA
-	// Opacity of the layer (editor only)
-	UPROPERTY()
-	float LayerOpacity;
-
 	// Is this layer currently hidden in the editor?
-	UPROPERTY()
-	bool bHiddenInEditor;
+	UPROPERTY(EditAnywhere, Category=Sprite, meta=(AllowPrivateAccess="true"))
+	uint32 bHiddenInEditor:1;
 #endif
 
 	// Should this layer be hidden in the game?
-	UPROPERTY(BlueprintReadOnly, Category=Sprite)
-	bool bHiddenInGame;
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(AllowPrivateAccess="true"))
+	uint32 bHiddenInGame:1;
 
-protected:
 	// The color of this layer (multiplied with the tile map color and passed to the material as a vertex color)
-	UPROPERTY(EditAnywhere, Category=Sprite)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category=Sprite, meta=(AllowPrivateAccess="true"))
 	FLinearColor LayerColor;
 
 	// The allocated width of the tile data (used to handle resizing without data loss)
@@ -146,7 +142,6 @@ protected:
 	UPROPERTY()
 	TArray<FPaperTileInfo> AllocatedCells;
 
-private:
 	UPROPERTY()
 	UPaperTileSet* TileSet_DEPRECATED;
 
@@ -167,6 +162,9 @@ public:
 
 	// Returns the index of this layer in the parent tile map
 	int32 GetLayerIndex() const;
+
+	// Returns whether the specified coordinates are in bounds for the layer
+	bool InBounds(int32 X, int32 Y) const;
 
 	// Returns the tile information about the specified cell
 	FPaperTileInfo GetCell(int32 X, int32 Y) const;
@@ -192,6 +190,23 @@ public:
 	// Checks to see if this layer uses the specified tile set
 	// Note: This is a slow operation, it scans each tile!
 	bool UsesTileSet(UPaperTileSet* TileSet) const;
+
+#if WITH_EDITORONLY_DATA
+	// Should this layer be drawn (in the editor)?
+	bool ShouldRenderInEditor() const { return !bHiddenInEditor; }
+
+	// Set whether this layer should be drawn (in the editor)
+	void SetShouldRenderInEditor(bool bShouldRender) { bHiddenInEditor = !bShouldRender; }
+#endif
+
+	// Should this layer be drawn (in game)?
+	bool ShouldRenderInGame() const { return !bHiddenInGame; }
+
+	// Returns the width of the layer (in tiles)
+	int32 GetLayerWidth() const { return LayerWidth; }
+
+	// Returns the height of the layer (in tiles)
+	int32 GetLayerHeight() const { return LayerHeight; }
 
 protected:
 	void ReallocateAndCopyMap();

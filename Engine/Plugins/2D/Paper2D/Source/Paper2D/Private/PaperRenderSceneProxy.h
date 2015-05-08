@@ -71,27 +71,29 @@ struct PAPER2D_API FSpriteRenderSection
 		return (NumVertices > 0) && (GetBaseTextureResource() != nullptr);
 	}
 
-#if 0
+#if 1
 	template <typename SourceArrayType>
 	void AddTriangles(const FSpriteDrawCallRecord& Record, SourceArrayType& Vertices)
 	{
 		if (NumVertices == 0)
 		{
 			VertexOffset = Vertices.Num();
-			Texture = Record.Texture;
+			BaseTexture = Record.BaseTexture;
+			AdditionalTextures = Record.AdditionalTextures;
 		}
 		else
 		{
 			checkSlow((VertexOffset + NumVertices) == Vertices.Num());
+			checkSlow(BaseTexture == Record.BaseTexture);
+			// Note: Not checking AdditionalTextures for now, since checking BaseTexture should catch most bugs
 		}
 
-		NumVertices += Record.RenderVerts.Num();
-		Vertices.Reserve(NumVertices);
+		const int32 NumNewVerts = Record.RenderVerts.Num();
+		NumVertices += NumNewVerts;
+		Vertices.Reserve(Vertices.Num() + NumNewVerts);
 
-		for (int32 SVI = 0; SVI < Record.RenderVerts.Num(); ++SVI)
+		for (const FVector4& SourceVert : Record.RenderVerts)
 		{
-			const FVector4& SourceVert = Record.RenderVerts[SVI];
-
 			const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y) + Record.Destination);
 			const FVector2D UV(SourceVert.Z, SourceVert.W);
 

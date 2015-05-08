@@ -455,9 +455,9 @@ void STileLayerList::MergeLayerDown()
 			TargetLayer->Modify();
 
 			// Copy the non-empty tiles from the source to the target layer
-			for (int32 Y = 0; Y < SourceLayer->LayerWidth; ++Y)
+			for (int32 Y = 0; Y < SourceLayer->GetLayerHeight(); ++Y)
 			{
-				for (int32 X = 0; X < SourceLayer->LayerWidth; ++X)
+				for (int32 X = 0; X < SourceLayer->GetLayerWidth(); ++X)
 				{
 					FPaperTileInfo TileInfo = SourceLayer->GetCell(X, Y);
 					if (TileInfo.IsValid())
