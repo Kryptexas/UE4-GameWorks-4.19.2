@@ -739,9 +739,10 @@ public class GUBP : BuildCommand
                 bool ReallyDeleteBuildProducts = DeleteBuildProducts() && !GUBP.bForceIncrementalCompile;
                 Agenda.DoRetries = false; // these would delete build products
                 UE4Build.Build(Agenda, InDeleteBuildProducts: ReallyDeleteBuildProducts, InUpdateVersionFiles: false, InForceUnity: true);
-				
+                var StartPostBuild = DateTime.Now.ToString();
                 PostBuild(bp, UE4Build);
-
+                var FinishPostBuild = DateTime.Now.ToString();
+                PrintCSVFile(String.Format("UAT,PostBuild,{0},{1}", StartPostBuild, FinishPostBuild));
                 UE4Build.CheckBuildProducts(UE4Build.BuildProductFiles);
                 foreach (var Product in UE4Build.BuildProductFiles)
                 {
@@ -751,7 +752,10 @@ public class GUBP : BuildCommand
                 if (bp.bSignBuildProducts)
                 {
                     // Sign everything we built
+                    var StartSign = DateTime.Now.ToString();
                     CodeSign.SignMultipleIfEXEOrDLL(bp, BuildProducts);
+                    var FinishSign = DateTime.Now.ToString();
+                    PrintCSVFile(String.Format("UAT,SignBuildProducts,{0},{1}", StartSign, FinishSign));
                 }
                 PostBuildProducts(bp);
             }
@@ -2783,9 +2787,10 @@ public class GUBP : BuildCommand
             {
                 // not sure if we need something here or if the cook commandlet will automatically convert the exe name
             }
-
+            var StartCook = DateTime.Now.ToString();
 			CommandUtils.CookCommandlet(GameProj.FilePath, "UE4Editor-Cmd.exe", null, null, null, null, CookPlatform);
-		
+            var FinishCook = DateTime.Now.ToString();
+            PrintCSVFile(String.Format("UAT,Cook.{0}.{1},{2},{3}", GameProj.GameName, CookPlatform, StartCook, FinishCook));
             var CookedPath = RootIfAnyForTempStorage();
             var CookedFiles = CommandUtils.FindFiles("*", true, CookedPath);
             if (CookedFiles.GetLength(0) < 1)
