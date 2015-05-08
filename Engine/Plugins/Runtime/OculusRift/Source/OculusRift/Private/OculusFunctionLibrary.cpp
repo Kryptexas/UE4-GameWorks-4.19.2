@@ -1,7 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#if OCULUS_RIFT_SUPPORTED_PLATFORMS
-
 #include "HMDPrivatePCH.h"
 #include "OculusFunctionLibrary.h"
 #include "OculusRiftHMD.h"
@@ -156,5 +154,3 @@ void UOculusFunctionLibrary::GetPlayerCameraManagerFollowHmd(bool& bFollowHmdOri
 		bFollowHmdPosition = OculusHMD->GetSettings()->Flags.bPlayerCameraManagerFollowsHmdPosition;
 	}
 }
-
-#endif // OCULUS_RIFT_SUPPORTED_PLATFORMS
