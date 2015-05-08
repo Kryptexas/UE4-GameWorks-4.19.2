@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2225739
+﻿INTSourceChangelist:2523128
 Availability:Public
 Title:マテリアル エディタのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -34,7 +34,7 @@ Description:シェーダー作成のためにマテリアル エディタを使�
 [/EXCERPT:Intro]
 
 このドキュメントではアンリアル エディタのマテリアル エディタの使用法を説明します。様々なマテリアル式の説明に関しては、 
-[Materials Compendium](Engine/Rendering/Materials/ExpressionReference).を参照してください。
+[マテリアルの概要](Engine/Rendering/Materials/ExpressionReference) を参照してください。
 
 [PUBLISH:Licensee]
 新しいマテリアル式の作成方法の説明に関しては、[](Programming/Rendering/MaterialExpressions) を参照してください。
@@ -45,7 +45,7 @@ Description:シェーダー作成のためにマテリアル エディタを使�
 ## マテリアル エディタを開く
 
 マテリアル エディタを開くには、いずれかのマテリアル アセットを **ダブルクリック**、もしくは  
-**コンテンツ ブラウザ** 内のマテリアル アセットのコンテクストメニューを **右クリック** します。いずれかの操作で、マテリアル エディタで特定のマテリアルが編集のために開きます。 
+**コンテンツ ブラウザ** 内のマテリアル アセットのコンテキスト メニューを **右クリック** します。いずれかの操作で、マテリアル エディタで特定のマテリアルが編集のために開きます。 
 
 マテリアル エディタは、**コンテンツ ブラウザ** で新しいマテリアルを作成する度に開きます。これは、以下のいずれかの方法で行われます。 
 **右クリック** してコンテキスト メニューから新規マテリアルを選択する、またはコンテンツ ブラウザの上部にある **[新規]** ボタンをクリックして、 
@@ -130,8 +130,8 @@ _Live Update_ が非アクティブな場合、「スペースバー」を押し
 ##コンパイラ エラー
 
 マテリアル ネットワークに変更が加えられるたびに、マテリアルをコンパイルしなければなりません。ネットワーク内の式の必須インプットが、 
-コネクションを持たないか、誤ったタイプのデータを渡されると、コンパイラ エラーが発生します。こうしたエラーは以下に表示されます。 
-[グラフパネル](Engine/Rendering/Materials/Editor/Interface/#[グラフ]パネル)
+コネクションを持たないか、誤ったタイプのデータを渡されると、コンパイラ エラーが発生します。こうしたエラーは 
+[グラフパネル](Engine/Rendering/Materials/Editor/Interface/#グラフパネル) に表示されます。
 
 ![error_message.png](error_message.png)
 
