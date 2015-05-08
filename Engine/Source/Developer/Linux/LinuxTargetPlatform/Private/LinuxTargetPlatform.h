@@ -67,12 +67,17 @@ public:
 
 	virtual bool AddDevice(const FString& DeviceName, bool bDefault) override
 	{
-		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceName);
-		FLinuxTargetDevicePtr Device = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceName));
+		FLinuxTargetDevicePtr& Device = Devices.FindOrAdd(DeviceName);
+
 		if (Device.IsValid())
 		{
-			DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
+			// do not allow duplicates
+			return false;
 		}
+
+		FTargetDeviceId UATFriendlyId(TEXT("Linux"), DeviceName);
+		Device = MakeShareable(new FLinuxTargetDevice(*this, UATFriendlyId, DeviceName));
+		DeviceDiscoveredEvent.Broadcast(Device.ToSharedRef());
 		return true;
 	}
 
@@ -83,6 +88,11 @@ public:
 		if (LocalDevice.IsValid())
 		{
 			OutDevices.Add(LocalDevice);
+		}
+
+		for (const auto & DeviceIter : Devices)
+		{
+			OutDevices.Add(DeviceIter.Value);
 		}
 	}
 
@@ -112,6 +122,15 @@ public:
 		{
 			return LocalDevice;
 		}
+
+		for (const auto & DeviceIter : Devices)
+		{
+			if (DeviceId == DeviceIter.Value->GetId())
+			{
+				return DeviceIter.Value;
+			}
+		}
+
 		return nullptr;
 	}
 
@@ -246,6 +265,9 @@ private:
 
 	// Holds the local device.
 	FLinuxTargetDevicePtr LocalDevice;
+	// Holds a map of valid devices.
+	TMap<FString, FLinuxTargetDevicePtr> Devices;
+
 
 #if WITH_ENGINE
 	// Holds the Engine INI settings for quick use.
