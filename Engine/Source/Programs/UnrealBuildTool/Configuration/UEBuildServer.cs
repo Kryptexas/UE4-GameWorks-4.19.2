@@ -10,8 +10,8 @@ namespace UnrealBuildTool
 	[Serializable]
 	public class UEBuildServer : UEBuildTarget
 	{
-		public UEBuildServer(TargetDescriptor InDesc, TargetRules InRulesObject)
-			: base(InDesc, InRulesObject, "UE4Server")
+		public UEBuildServer(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
+			: base(InDesc, InRulesObject, "UE4Server", InTargetCsFilename)
 		{
 		}
 

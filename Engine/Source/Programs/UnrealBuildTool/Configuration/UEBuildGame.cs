@@ -10,8 +10,8 @@ namespace UnrealBuildTool
 	[Serializable]
 	public class UEBuildGame : UEBuildTarget
 	{
-		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject)
-			: base(InDesc, InRulesObject, "UE4")
+		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
+			: base(InDesc, InRulesObject, "UE4", InTargetCsFilename)
 		{
 			if (ShouldCompileMonolithic())
 			{

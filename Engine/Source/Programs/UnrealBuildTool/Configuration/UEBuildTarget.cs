@@ -187,6 +187,11 @@ namespace UnrealBuildTool
 			{
 				OnlyModules = new List<OnlyModule>();
 			}
+
+			if (ModuleCsMap == null)
+			{
+				ModuleCsMap = new Dictionary<string,string>();
+			}
 		}
 
 		public string GetAppName()
@@ -772,12 +777,28 @@ namespace UnrealBuildTool
 		[NonSerialized]
 		private Dictionary<string, UEBuildModule> Modules = new Dictionary<string, UEBuildModule>(StringComparer.InvariantCultureIgnoreCase);
 
+		/** Used to map names of modules to their .Build.cs filename */
+		private Dictionary<string, string> ModuleCsMap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+
 		/** The receipt for this target, which contains a record of this build. */
 		private BuildReceipt Receipt;
 
 		/** Force output of the receipt to an additional filename */
 		[NonSerialized]
 		private string ForceReceiptFileName;
+
+		/** The name of the .Target.cs file, if the target was created with one */
+		private readonly string TargetCsFilenameField;
+		public string TargetCsFilename { get { return TargetCsFilenameField; } }
+
+		/// <summary>
+		/// A list of the module filenames which were used to build this target.
+		/// </summary>
+		/// <returns></returns>
+		public List<string> GetAllModuleBuildCsFilenames()
+		{
+			return new List<string>(ModuleCsMap.Values);
+		}
 
 		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
@@ -794,7 +815,8 @@ namespace UnrealBuildTool
 		/// <param name="InDesc">Target descriptor</param>
 		/// <param name="InRules">The target rules, as created by RulesCompiler.</param>
 		/// <param name="InPossibleAppName">The AppName for shared binaries of this target type, if used (null if there is none).</param>
-		public UEBuildTarget(TargetDescriptor InDesc, TargetRules InRules, string InPossibleAppName)
+		/// <param name="InTargetCsFilename">The name of the target </param>
+		public UEBuildTarget(TargetDescriptor InDesc, TargetRules InRules, string InPossibleAppName, string InTargetCsFilename)
 		{
 			AppName = InDesc.TargetName;
 			TargetName = InDesc.TargetName;
@@ -807,6 +829,9 @@ namespace UnrealBuildTool
 			bUsePrecompiled = InDesc.bUsePrecompiled;
 			ForeignPlugins = InDesc.ForeignPlugins;
 			ForceReceiptFileName = InDesc.ForceReceiptFileName;
+
+			Debug.Assert(InTargetCsFilename == null || InTargetCsFilename.EndsWith(".Target.cs", StringComparison.InvariantCultureIgnoreCase));
+			TargetCsFilenameField = InTargetCsFilename;
 
 			{
 				bCompileMonolithic = Rules.ShouldCompileMonolithic(InDesc.Platform, InDesc.Configuration);
@@ -2105,7 +2130,8 @@ namespace UnrealBuildTool
 				InFasterWithoutUnity: true,
 				InMinFilesUsingPrecompiledHeaderOverride: 0,
 				InEnableExceptions: false,
-				bInBuildSourceFiles: true);
+				bInBuildSourceFiles: true,
+				InBuildCsFilename: null);
 		}
 
 
@@ -2888,6 +2914,7 @@ namespace UnrealBuildTool
 		{
 			Debug.Assert(Module.Target == this);
 			Modules.Add(Module.Name, Module);
+			ModuleCsMap.Add(Module.Name, Module.BuildCsFilename);
 		}
 
 		/** Finds a module given its name.  Throws an exception if the module couldn't be found. */
@@ -3037,11 +3064,7 @@ namespace UnrealBuildTool
 				}
 
 				// Now, go ahead and create the module builder instance
-				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles);
-				if(Module == null)
-				{
-					throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());
-				}
+				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles, ModuleFileName);
 
 				UnrealTargetPlatform Only = UnrealBuildTool.GetOnlyPlatformSpecificFor();
 
@@ -3063,10 +3086,11 @@ namespace UnrealBuildTool
 			string               ModuleName,
 			UEBuildModuleType    ModuleType,
 			string               ModuleDirectory,
-			string				 GeneratedCodeDirectory,
+			string               GeneratedCodeDirectory,
 			IntelliSenseGatherer IntelliSenseGatherer,
 			List<FileItem>       ModuleSourceFiles,
-			bool                 bBuildSourceFiles)
+			bool                 bBuildSourceFiles,
+			string               InBuildCsFile)
 		{
 			switch (RulesObject.Type)
 			{
@@ -3108,7 +3132,8 @@ namespace UnrealBuildTool
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
-							bInBuildSourceFiles: bBuildSourceFiles
+							bInBuildSourceFiles: bBuildSourceFiles,
+							InBuildCsFilename: InBuildCsFile
 						);
 
 				case ModuleRules.ModuleType.CPlusPlusCLR:
@@ -3149,7 +3174,8 @@ namespace UnrealBuildTool
 							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
 							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
 							InEnableExceptions: RulesObject.bEnableExceptions,
-							bInBuildSourceFiles : bBuildSourceFiles
+							bInBuildSourceFiles : bBuildSourceFiles,
+							InBuildCsFilename: InBuildCsFile
 						);
 
 				case ModuleRules.ModuleType.External:
@@ -3171,11 +3197,12 @@ namespace UnrealBuildTool
 							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
 							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
 							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
-							InRuntimeDependencies: RulesObject.RuntimeDependencies
+							InRuntimeDependencies: RulesObject.RuntimeDependencies,
+							InBuildCsFilename: InBuildCsFile
 						);
 
 				default:
-					return null;
+					throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());
 			}
 		}
 

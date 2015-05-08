@@ -177,6 +177,10 @@ namespace UnrealBuildTool
 		/** Is this module allowed to be redistributed. */
 		private readonly bool? IsRedistributableOverride;
 
+		/** The name of the .Build.cs file this module was created from, if any */
+		private readonly string BuildCsFilenameField;
+		public string BuildCsFilename { get { return BuildCsFilenameField; } }
+
 		/**
 		 * Tells if this module can be redistributed.
 		 * 
@@ -244,26 +248,27 @@ namespace UnrealBuildTool
 			UEBuildModuleType InType,
 			string InModuleDirectory,
 			bool? InIsRedistributableOverride,
-			IEnumerable<string> InPublicDefinitions = null,
-			IEnumerable<string> InPublicIncludePaths = null,
-			IEnumerable<string> InPublicSystemIncludePaths = null,
-			IEnumerable<string> InPublicLibraryPaths = null,
-			IEnumerable<string> InPublicAdditionalLibraries = null,
-			IEnumerable<string> InPublicFrameworks = null,
-			IEnumerable<string> InPublicWeakFrameworks = null,
-			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
-			IEnumerable<string> InPublicAdditionalShadowFiles = null,
-			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources = null,
-			IEnumerable<string> InPublicIncludePathModuleNames = null,
-			IEnumerable<string> InPublicDependencyModuleNames = null,
-			IEnumerable<string> InPublicDelayLoadDLLs = null,
-			IEnumerable<string> InPrivateIncludePaths = null,
-			IEnumerable<string> InPrivateIncludePathModuleNames = null,
-			IEnumerable<string> InPrivateDependencyModuleNames = null,
-			IEnumerable<string> InCircularlyReferencedDependentModules = null,
-			IEnumerable<string> InDynamicallyLoadedModuleNames = null,
-            IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames = null,
-			IEnumerable<RuntimeDependency> InRuntimeDependencies = null
+			IEnumerable<string> InPublicDefinitions,
+			IEnumerable<string> InPublicIncludePaths,
+			IEnumerable<string> InPublicSystemIncludePaths,
+			IEnumerable<string> InPublicLibraryPaths,
+			IEnumerable<string> InPublicAdditionalLibraries,
+			IEnumerable<string> InPublicFrameworks,
+			IEnumerable<string> InPublicWeakFrameworks,
+			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
+			IEnumerable<string> InPublicAdditionalShadowFiles,
+			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources,
+			IEnumerable<string> InPublicIncludePathModuleNames,
+			IEnumerable<string> InPublicDependencyModuleNames,
+			IEnumerable<string> InPublicDelayLoadDLLs,
+			IEnumerable<string> InPrivateIncludePaths,
+			IEnumerable<string> InPrivateIncludePathModuleNames,
+			IEnumerable<string> InPrivateDependencyModuleNames,
+			IEnumerable<string> InCircularlyReferencedDependentModules,
+			IEnumerable<string> InDynamicallyLoadedModuleNames,
+            IEnumerable<string> InPlatformSpecificDynamicallyLoadedModuleNames,
+			IEnumerable<RuntimeDependency> InRuntimeDependencies,
+			string InBuildCsFilename
 			)
 		{
 			Target = InTarget;
@@ -291,6 +296,9 @@ namespace UnrealBuildTool
             PlatformSpecificDynamicallyLoadedModuleNames = HashSetFromOptionalEnumerableStringParameter(InPlatformSpecificDynamicallyLoadedModuleNames);
 			RuntimeDependencies = (InRuntimeDependencies == null)? new List<RuntimeDependency>() : new List<RuntimeDependency>(InRuntimeDependencies);
 			IsRedistributableOverride = InIsRedistributableOverride;
+
+			Debug.Assert(InBuildCsFilename == null || InBuildCsFilename.EndsWith(".Build.cs", StringComparison.InvariantCultureIgnoreCase));
+			BuildCsFilenameField = InBuildCsFilename;
 
 			SetupModuleDistributionLevel();
 
@@ -882,39 +890,48 @@ namespace UnrealBuildTool
 			string InName,
 			string InModuleDirectory,
 			bool? InIsRedistributableOverride,
-			IEnumerable<string> InPublicDefinitions = null,
-			IEnumerable<string> InPublicIncludePaths = null,
-			IEnumerable<string> InPublicSystemIncludePaths = null,
-			IEnumerable<string> InPublicLibraryPaths = null,
-			IEnumerable<string> InPublicAdditionalLibraries = null,
-			IEnumerable<string> InPublicFrameworks = null,
-			IEnumerable<string> InPublicWeakFrameworks = null,
-			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks = null,
-			IEnumerable<string> InPublicAdditionalShadowFiles = null,
-			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources = null,
-			IEnumerable<string> InPublicDependencyModuleNames = null,
-			IEnumerable<string> InPublicDelayLoadDLLs = null,		// Delay loaded DLLs that should be setup when including this module
-			IEnumerable<RuntimeDependency> InRuntimeDependencies = null
+			IEnumerable<string> InPublicDefinitions,
+			IEnumerable<string> InPublicIncludePaths,
+			IEnumerable<string> InPublicSystemIncludePaths,
+			IEnumerable<string> InPublicLibraryPaths,
+			IEnumerable<string> InPublicAdditionalLibraries,
+			IEnumerable<string> InPublicFrameworks,
+			IEnumerable<string> InPublicWeakFrameworks,
+			IEnumerable<UEBuildFramework> InPublicAdditionalFrameworks,
+			IEnumerable<string> InPublicAdditionalShadowFiles,
+			IEnumerable<UEBuildBundleResource> InPublicAdditionalBundleResources,
+			IEnumerable<string> InPublicDependencyModuleNames,
+			IEnumerable<string> InPublicDelayLoadDLLs,		// Delay loaded DLLs that should be setup when including this module
+			IEnumerable<RuntimeDependency> InRuntimeDependencies,
+			string InBuildCsFilename
 			)
 		: base(
-			InTarget:						InTarget,
-			InType:							InType,
-			InName:							InName,
-			InModuleDirectory:				InModuleDirectory,
-			InIsRedistributableOverride:	InIsRedistributableOverride,
-			InPublicDefinitions:			InPublicDefinitions,
-			InPublicIncludePaths:			InPublicIncludePaths,
-			InPublicSystemIncludePaths:		InPublicSystemIncludePaths,
-			InPublicLibraryPaths:			InPublicLibraryPaths,
-			InPublicAdditionalLibraries:	InPublicAdditionalLibraries,
-			InPublicFrameworks:             InPublicFrameworks,
-			InPublicWeakFrameworks:			InPublicWeakFrameworks,
-			InPublicAdditionalFrameworks: 	InPublicAdditionalFrameworks,
-			InPublicAdditionalShadowFiles:  InPublicAdditionalShadowFiles,
-			InPublicAdditionalBundleResources: InPublicAdditionalBundleResources,
-			InPublicDependencyModuleNames:	InPublicDependencyModuleNames,
-			InPublicDelayLoadDLLs:			InPublicDelayLoadDLLs,
-			InRuntimeDependencies:			InRuntimeDependencies
+			InTarget:										InTarget,
+			InType:											InType,
+			InName:											InName,
+			InModuleDirectory:								InModuleDirectory,
+			InIsRedistributableOverride:					InIsRedistributableOverride,
+			InPublicDefinitions:							InPublicDefinitions,
+			InPublicIncludePaths:							InPublicIncludePaths,
+			InPublicSystemIncludePaths:						InPublicSystemIncludePaths,
+			InPublicLibraryPaths:							InPublicLibraryPaths,
+			InPublicAdditionalLibraries:					InPublicAdditionalLibraries,
+			InPublicFrameworks:								InPublicFrameworks,
+			InPublicWeakFrameworks:							InPublicWeakFrameworks,
+			InPublicAdditionalFrameworks:					InPublicAdditionalFrameworks,
+			InPublicAdditionalShadowFiles:					InPublicAdditionalShadowFiles,
+			InPublicAdditionalBundleResources:				InPublicAdditionalBundleResources,
+			InPublicIncludePathModuleNames:					null,
+			InPublicDependencyModuleNames:					InPublicDependencyModuleNames,
+			InPublicDelayLoadDLLs:							InPublicDelayLoadDLLs,
+			InPrivateIncludePaths:							null,
+			InPrivateIncludePathModuleNames:				null,
+			InPrivateDependencyModuleNames:					null,
+			InCircularlyReferencedDependentModules:			null,
+			InDynamicallyLoadedModuleNames:					null,
+			InPlatformSpecificDynamicallyLoadedModuleNames: null,
+			InRuntimeDependencies:							InRuntimeDependencies,
+			InBuildCsFilename:								InBuildCsFilename
 			)
 		{
 			bIncludedInTarget = true;
@@ -1118,7 +1135,8 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool bInBuildSourceFiles
+			bool bInBuildSourceFiles,
+			string InBuildCsFilename
 			)
 			: base(	InTarget,
 					InName, 
@@ -1144,7 +1162,8 @@ namespace UnrealBuildTool
 					InCircularlyReferencedDependentModules,
 					InDynamicallyLoadedModuleNames,
                     InPlatformSpecificDynamicallyLoadedModuleNames,
-					InRuntimeDependencies
+					InRuntimeDependencies,
+					InBuildCsFilename
 				)
 		{
 			GeneratedCodeDirectory = InGeneratedCodeDirectory;
@@ -2100,7 +2119,8 @@ namespace UnrealBuildTool
 			bool InFasterWithoutUnity,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
-			bool bInBuildSourceFiles
+			bool bInBuildSourceFiles,
+			string InBuildCsFilename
 			)
 			: base(InTarget,InName,InType,InModuleDirectory,InGeneratedCodeDirectory,InIsRedistributableOverride,InIntelliSenseGatherer,
 			InSourceFiles,InPublicIncludePaths,InPublicSystemIncludePaths,null,InDefinitions,
@@ -2108,7 +2128,7 @@ namespace UnrealBuildTool
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InRuntimeDependencies, InOptimizeCode,
 			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
-			InEnableExceptions, bInBuildSourceFiles)
+			InEnableExceptions, bInBuildSourceFiles, InBuildCsFilename)
 		{
 			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
 		}

@@ -1498,16 +1498,14 @@ namespace UnrealBuildTool
 				if (UnrealBuildTool.bIsInvalidatingMakefilesOnly)
 				{
 					Log.TraceInformation("Invalidating makefiles only in this run.");
-					if (TargetDescs != null && TargetDescs.Count == 1)
-					{
-						InvalidateMakefiles(TargetDescs[0]);
-						return ECompilationResult.Succeeded;
-					}
-					else
+					if (TargetDescs.Count != 1)
 					{
 						Log.TraceError("You have to provide one target name for makefile invalidation.");
 						return ECompilationResult.OtherCompilationError;
 					}
+
+					InvalidateMakefiles(TargetDescs[0]);
+					return ECompilationResult.Succeeded;
 				}
 
 				UEBuildConfiguration.bHotReloadFromIDE = UEBuildConfiguration.bAllowHotReloadFromIDE && TargetDescs.Count == 1 && !TargetDescs[0].bIsEditorRecompile && ShouldDoHotReloadFromIDE(TargetDescs[0]);
@@ -2267,8 +2265,6 @@ namespace UnrealBuildTool
 						ReasonNotLoaded = "UnrealBuildTool.exe is newer";
 						bForceOutOfDate = true;
 					}
-
-
 				}
 			}
 			else
@@ -2312,6 +2308,46 @@ namespace UnrealBuildTool
                     LoadedUBTMakefile = null;
 					ReasonNotLoaded = "existing makefile appears to be invalid";
                 }
+
+				if( LoadedUBTMakefile != null )
+				{
+					// Check if any of the target's Build.cs files are newer than the makefile
+					foreach (var Target in LoadedUBTMakefile.Targets)
+					{
+						string TargetCsFilename = Target.TargetCsFilename;
+						if (TargetCsFilename != null)
+						{
+							var TargetCsFile = new FileInfo(TargetCsFilename);
+							bool bTargetCsFileExists = TargetCsFile.Exists;
+							if (!bTargetCsFileExists || TargetCsFile.LastWriteTime > UBTMakefileItem.LastWriteTime)
+							{
+								Log.TraceWarning("{0} has been {1} since makefile was built, ignoring it ({2})", TargetCsFilename, bTargetCsFileExists ? "changed" : "deleted", UBTMakefileItem.AbsolutePath);
+								LoadedUBTMakefile = null;
+								ReasonNotLoaded = string.Format("changes to target files");
+								goto SkipRemainingTimestampChecks;
+							}
+						}
+
+						List<string> BuildCsFilenames = Target.GetAllModuleBuildCsFilenames();
+						foreach (var BuildCsFilename in BuildCsFilenames)
+						{
+							if (BuildCsFilename != null)
+							{
+								var BuildCsFile = new FileInfo(BuildCsFilename);
+								bool bBuildCsFileExists = BuildCsFile.Exists;
+								if (!bBuildCsFileExists || BuildCsFile.LastWriteTime > UBTMakefileItem.LastWriteTime)
+								{
+									Log.TraceWarning("{0} has been {1} since makefile was built, ignoring it ({2})", BuildCsFilename, bBuildCsFileExists ? "changed" : "deleted", UBTMakefileItem.AbsolutePath);
+									LoadedUBTMakefile = null;
+									ReasonNotLoaded = string.Format("changes to module files");
+									goto SkipRemainingTimestampChecks;
+								}
+							}
+						}
+					}
+
+				SkipRemainingTimestampChecks:;
+				}
             }
 
             return LoadedUBTMakefile;

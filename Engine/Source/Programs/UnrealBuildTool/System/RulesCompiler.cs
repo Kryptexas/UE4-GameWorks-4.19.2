@@ -1274,10 +1274,21 @@ namespace UnrealBuildTool
 		/// Maps target names to their actual xxx.Target.cs file on disk
 		private static Dictionary<string, string> TargetNameToTargetFileMap = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
 
-		/// Map of assembly names we've already compiled and loaded to their list of game folders.  This is used to prevent
-		/// trying to recompile the same assembly when ping-ponging between different types of targets
-		private static Dictionary<Assembly, List<string>> LoadedAssemblyMap = new Dictionary<Assembly, List<string>>();
+		private class LoadedAssemblyData
+		{
+			public LoadedAssemblyData(Assembly InAssembly, List<string> InGameFolders)
+			{
+				ExistingAssembly    = InAssembly;
+				ExistingGameFolders = InGameFolders;
+			}
 
+			public Assembly     ExistingAssembly     { get; private set; }
+			public List<string> ExistingGameFolders  { get; private set; }
+		}
+
+		/// Map of assembly names we've already compiled and loaded to their Assembly and list of game folders.  This is used to prevent
+		/// trying to recompile the same assembly when ping-ponging between different types of targets
+		private static Dictionary<string, LoadedAssemblyData> LoadedAssemblyMap = new Dictionary<string, LoadedAssemblyData>(StringComparer.InvariantCultureIgnoreCase);
 
 		private static void ConditionallyCompileAndLoadRulesAssembly()
 		{
@@ -1286,127 +1297,118 @@ namespace UnrealBuildTool
 				throw new BuildException( "Module or target rules data was requested, but not rules assembly name was set yet!" );
 			}
 
-			RulesAssembly = null;
-
 			// Did we already have a RulesAssembly and cached data about rules files and modules?  If so, then we'll
 			// check to see if we need to flush everything and start over.  This can happen if UBT wants to built
 			// different targets in a single invocation, or when generating project files before or after building
 			// a target
-			foreach( var ExistingAssembly in LoadedAssemblyMap.Keys )
+			LoadedAssemblyData LoadedAssembly;
+			if (LoadedAssemblyMap.TryGetValue(AssemblyName, out LoadedAssembly))
 			{
-				var ExistingAssemblyName = Path.GetFileNameWithoutExtension( ExistingAssembly.Location );
-				if( ExistingAssemblyName.Equals( AssemblyName, StringComparison.InvariantCultureIgnoreCase ) )
+				Assembly     ExistingAssembly    = LoadedAssembly.ExistingAssembly;
+				List<string> ExistingGameFolders = LoadedAssembly.ExistingGameFolders;
+
+				RulesAssembly = ExistingAssembly;
+
+				// Make sure the game folder list wasn't changed since we last compiled this assembly
+				if( ExistingGameFolders != AllGameFolders )	// Quick-check pointers first to avoid iterating
 				{
-					// We already have this assembly!
-					RulesAssembly = ExistingAssembly;
-
-					var ExistingGameFolders = LoadedAssemblyMap[ ExistingAssembly ];
-
-					// Make sure the game folder list wasn't changed since we last compiled this assembly
-					if( ExistingGameFolders != AllGameFolders )	// Quick-check pointers first to avoid iterating
+					var AnyGameFoldersDifferent = false;
+					if( ExistingGameFolders.Count != AllGameFolders.Count )
 					{
-						var AnyGameFoldersDifferent = false;
-						if( ExistingGameFolders.Count != AllGameFolders.Count )
+						AnyGameFoldersDifferent = true;
+					}
+					else
+					{
+						foreach( var NewGameFolder in AllGameFolders )
 						{
-							AnyGameFoldersDifferent = true;
-						}
-						else
-						{
-							foreach( var NewGameFolder in AllGameFolders )
+							if( !ExistingGameFolders.Contains( NewGameFolder ) )
 							{
-								if( !ExistingGameFolders.Contains( NewGameFolder ) )
-								{
-									AnyGameFoldersDifferent = true;
-									break;
-								}
-							}
-							foreach( var OldGameFolder in ExistingGameFolders )
-							{
-								if( !AllGameFolders.Contains( OldGameFolder ) )
-								{
-									AnyGameFoldersDifferent = true;
-									break;
-								}
+								AnyGameFoldersDifferent = true;
+								break;
 							}
 						}
-
-						if( AnyGameFoldersDifferent )
+						foreach( var OldGameFolder in ExistingGameFolders )
 						{
-							throw new BuildException( "SetAssemblyNameAndGameFolders() was called with an assembly name that had already been compiled, but with DIFFERENT game folders.  This is not allowed." );
+							if( !AllGameFolders.Contains( OldGameFolder ) )
+							{
+								AnyGameFoldersDifferent = true;
+								break;
+							}
 						}
 					}
 
-					break;
+					if( AnyGameFoldersDifferent )
+					{
+						throw new BuildException( "SetAssemblyNameAndGameFolders() was called with an assembly name that had already been compiled, but with DIFFERENT game folders.  This is not allowed." );
+					}
+				}
+
+				return;
+			}
+
+			RulesAssembly = null;
+
+			var AdditionalSearchPaths = new List<string>();
+
+			if (UnrealBuildTool.HasUProjectFile())
+			{
+				// Add the game project's source folder
+				var ProjectSourceDirectory = Path.Combine( UnrealBuildTool.GetUProjectPath(), "Source" );
+				if( Directory.Exists( ProjectSourceDirectory ) )
+				{
+					AdditionalSearchPaths.Add( ProjectSourceDirectory );
+				}
+				// Add the games project's intermediate source folder
+				var ProjectIntermediateSourceDirectory = Path.Combine(UnrealBuildTool.GetUProjectPath(), "Intermediate", "Source");
+				if (Directory.Exists(ProjectIntermediateSourceDirectory))
+				{
+					AdditionalSearchPaths.Add(ProjectIntermediateSourceDirectory);
+				}
+			}
+			var ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, AdditionalSearchPaths);
+
+			var AssemblySourceFiles = new List<string>();
+			AssemblySourceFiles.AddRange( ModuleFileNames );
+			if( AssemblySourceFiles.Count == 0 )
+			{
+				throw new BuildException("No module rules source files were found in any of the module base directories!");
+			}
+			var TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, AdditionalSearchPaths);
+			AssemblySourceFiles.AddRange( TargetFileNames );
+
+			// Create a path to the assembly that we'll either load or compile
+			string BaseIntermediatePath = UnrealBuildTool.HasUProjectFile() ?
+				Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) : BuildConfiguration.BaseIntermediatePath;
+
+			string OutputAssemblyPath = Path.GetFullPath(Path.Combine(BaseIntermediatePath, "BuildRules", AssemblyName + ".dll"));
+
+			RulesAssembly = DynamicCompilation.CompileAndLoadAssembly( OutputAssemblyPath, AssemblySourceFiles );
+
+			// Setup the module map
+			foreach( var CurModuleFileName in ModuleFileNames )
+			{
+				var CleanFileName = Utils.CleanDirectorySeparators( CurModuleFileName );
+				var ModuleName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
+				if( !ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
+				{
+					ModuleNameToModuleFileMap.Add( ModuleName, CurModuleFileName );
 				}
 			}
 
-
-			// Does anything need to be compiled?
-			if( RulesAssembly == null )
+			// Setup the target map
+			foreach( var CurTargetFileName in TargetFileNames )
 			{
-				var AdditionalSearchPaths = new List<string>();
-
-				if (UnrealBuildTool.HasUProjectFile())
+				var CleanFileName = Utils.CleanDirectorySeparators( CurTargetFileName );
+				var TargetName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
+				if( !TargetNameToTargetFileMap.ContainsKey( TargetName ) )
 				{
-					// Add the game project's source folder
-					var ProjectSourceDirectory = Path.Combine( UnrealBuildTool.GetUProjectPath(), "Source" );
-					if( Directory.Exists( ProjectSourceDirectory ) )
-					{
-						AdditionalSearchPaths.Add( ProjectSourceDirectory );
-					}
-					// Add the games project's intermediate source folder
-					var ProjectIntermediateSourceDirectory = Path.Combine(UnrealBuildTool.GetUProjectPath(), "Intermediate", "Source");
-					if (Directory.Exists(ProjectIntermediateSourceDirectory))
-					{
-						AdditionalSearchPaths.Add(ProjectIntermediateSourceDirectory);
-					}
+					TargetNameToTargetFileMap.Add( TargetName, CurTargetFileName );
 				}
-				var ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, AdditionalSearchPaths);
-
-				var AssemblySourceFiles = new List<string>();
-				AssemblySourceFiles.AddRange( ModuleFileNames );
-				if( AssemblySourceFiles.Count == 0 )
-				{
-					throw new BuildException("No module rules source files were found in any of the module base directories!");
-				}
-				var TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, AdditionalSearchPaths);
-				AssemblySourceFiles.AddRange( TargetFileNames );
-
-				// Create a path to the assembly that we'll either load or compile
-				string BaseIntermediatePath = UnrealBuildTool.HasUProjectFile() ?
-					Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) : BuildConfiguration.BaseIntermediatePath;
-
-				string OutputAssemblyPath = Path.GetFullPath(Path.Combine(BaseIntermediatePath, "BuildRules", AssemblyName + ".dll"));
-
-				RulesAssembly = DynamicCompilation.CompileAndLoadAssembly( OutputAssemblyPath, AssemblySourceFiles );
-
-				{
-					// Setup the module map
-					foreach( var CurModuleFileName in ModuleFileNames )
-					{
-						var CleanFileName = Utils.CleanDirectorySeparators( CurModuleFileName );
-						var ModuleName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
-						if( !ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
-						{
-							ModuleNameToModuleFileMap.Add( ModuleName, CurModuleFileName );
-						}
-					}
-
-					// Setup the target map
-					foreach( var CurTargetFileName in TargetFileNames )
-					{
-						var CleanFileName = Utils.CleanDirectorySeparators( CurTargetFileName );
-						var TargetName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
-						if( !TargetNameToTargetFileMap.ContainsKey( TargetName ) )
-						{
-							TargetNameToTargetFileMap.Add( TargetName, CurTargetFileName );
-						}
-					}
-				}
-
-				// Remember that we loaded this assembly
-				LoadedAssemblyMap[ RulesAssembly ] = AllGameFolders;
 			}
+
+			// Remember that we loaded this assembly
+			var RulesAssemblyName = Path.GetFileNameWithoutExtension( RulesAssembly.Location );
+			LoadedAssemblyMap[RulesAssemblyName] = new LoadedAssemblyData(RulesAssembly, AllGameFolders);
 		}
 
 		/// <summary>
@@ -1936,19 +1938,19 @@ namespace UnrealBuildTool
 			switch (RulesObject.Type)
 			{
 				case TargetRules.TargetType.Game:
-					BuildTarget = new UEBuildGame(Desc, RulesObject);
+					BuildTarget = new UEBuildGame(Desc, RulesObject, TargetFileName);
 					break;
 				case TargetRules.TargetType.Editor:
-					BuildTarget = new UEBuildEditor(Desc, RulesObject);
+					BuildTarget = new UEBuildEditor(Desc, RulesObject, TargetFileName);
 					break;
                 case TargetRules.TargetType.Client:
-                    BuildTarget = new UEBuildClient(Desc, RulesObject);
+                    BuildTarget = new UEBuildClient(Desc, RulesObject, TargetFileName);
                     break;
 				case TargetRules.TargetType.Server:
-					BuildTarget = new UEBuildServer(Desc, RulesObject);
+					BuildTarget = new UEBuildServer(Desc, RulesObject, TargetFileName);
 					break;
 				case TargetRules.TargetType.Program:
-					BuildTarget = new UEBuildTarget(Desc, RulesObject, null);
+					BuildTarget = new UEBuildTarget(Desc, RulesObject, null, TargetFileName);
 					break;
 			}
 

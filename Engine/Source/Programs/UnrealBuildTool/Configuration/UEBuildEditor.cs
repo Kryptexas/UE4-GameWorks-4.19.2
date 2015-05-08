@@ -10,8 +10,8 @@ namespace UnrealBuildTool
 	[Serializable]
 	public class UEBuildEditor : UEBuildTarget
 	{
-		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject)
-			: base(InDesc, InRulesObject, "UE4Editor")
+		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
+			: base(InDesc, InRulesObject, "UE4Editor", InTargetCsFilename)
 		{
 		}
 
