@@ -12,6 +12,35 @@ USoundNodeWavePlayer::USoundNodeWavePlayer(const FObjectInitializer& ObjectIniti
 {
 }
 
+void USoundNodeWavePlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	USoundNodeWavePlayer* This = CastChecked<USoundNodeWavePlayer>(InThis);
+	Super::AddReferencedObjects(This, Collector);
+
+	Collector.AddReferencedObject(This->SoundWave);
+}
+
+void USoundNodeWavePlayer::LoadSoundWave()
+{
+	SoundWave = SoundWaveAssetPtr.LoadSynchronous();
+}
+
+void USoundNodeWavePlayer::SetSoundWave(USoundWave* InSoundWave)
+{
+	SoundWave = InSoundWave;
+	SoundWaveAssetPtr = InSoundWave;
+}
+
+#if WITH_EDITOR
+void USoundNodeWavePlayer::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(USoundNodeWavePlayer, SoundWaveAssetPtr))
+	{
+		LoadSoundWave();
+	}
+}
+#endif
+
 void USoundNodeWavePlayer::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {
 	if (SoundWave)

@@ -13,13 +13,30 @@ class USoundNodeWavePlayer : public USoundNode
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=WavePlayer)
-	TAssetPtr<USoundWave> SoundWave;
+private:
+	UPROPERTY(EditAnywhere, Category=WavePlayer, meta=(DisplayName="Sound Wave"))
+	TAssetPtr<USoundWave> SoundWaveAssetPtr;
+
+	USoundWave* SoundWave;
+
+public:	
 
 	UPROPERTY(EditAnywhere, Category=WavePlayer)
 	uint32 bLooping:1;
 
-public:	
+	ENGINE_API USoundWave* GetSoundWave() const { return SoundWave; }
+	ENGINE_API void SetSoundWave(USoundWave* SoundWave);
+	void LoadSoundWave();
+
+
+	// Begin UObject Interface
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+	// End UObject Interface
+
 	// Begin USoundNode Interface
 	virtual int32 GetMaxChildNodes() const override;
 	virtual float GetDuration() override;

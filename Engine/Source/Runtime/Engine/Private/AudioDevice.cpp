@@ -315,7 +315,7 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
 		{
 			// Presume one class per sound node wave
-			USoundWave *SoundWave = WavePlayers[ WaveIndex ]->SoundWave.Get();
+			USoundWave *SoundWave = WavePlayers[ WaveIndex ]->GetSoundWave();
 			if (SoundWave && SoundCue->GetSoundClass())
 			{
 				SoundWaveClasses.Add( SoundWave, SoundCue->GetSoundClass()->GetFName() );
@@ -594,7 +594,7 @@ bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& A
 			Cue->RecursiveFindNode<USoundNodeWavePlayer>( Cue->FirstNode, WavePlayers );
 			for( int32 i = 0; i < WavePlayers.Num(); ++i )
 			{
-				USoundWave* SoundWave = WavePlayers[ i ]->SoundWave.Get();
+				USoundWave* SoundWave = WavePlayers[ i ]->GetSoundWave();
 				if (SoundWave)
 				{
 					SoundWave->LogSubtitle( Ar );

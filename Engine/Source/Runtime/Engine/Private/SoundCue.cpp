@@ -81,7 +81,7 @@ void USoundCue::PostLoad()
 		{
 			if (USoundNodeWavePlayer* WavePlayerNode = Cast<USoundNodeWavePlayer>(SoundNode))
 			{
-				WavePlayerNode->SoundWave.LoadSynchronous();
+				WavePlayerNode->LoadSoundWave();
 			}
 		}
 	}
@@ -97,7 +97,7 @@ void USoundCue::PostLoad()
 			{
 				if (USoundNodeWavePlayer* WavePlayerNode = Cast<USoundNodeWavePlayer>(SoundNode))
 				{
-					WavePlayerNode->SoundWave.LoadSynchronous();
+					WavePlayerNode->LoadSoundWave();
 				}
 				/* else if USoundNodeQuality
 				{
@@ -241,7 +241,7 @@ SIZE_T USoundCue::GetResourceSize(EResourceSizeMode::Type Mode)
 
 		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
 		{
-			USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave.Get();
+			USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
 			if (SoundWave)
 			{
 				ResourceSize += SoundWave->GetResourceSize(Mode);
@@ -260,7 +260,7 @@ int32 USoundCue::GetResourceSizeForFormat(FName Format)
 	int32 ResourceSize = 0;
 	for (int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex)
 	{
-		USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave.Get();
+		USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
 		if (SoundWave)
 		{
 			ResourceSize += SoundWave->GetResourceSizeForFormat(Format);

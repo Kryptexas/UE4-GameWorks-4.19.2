@@ -62,7 +62,7 @@ USoundWave* DeriveSoundWave(UMovieSceneAudioSection* AudioSection)
 		{
 			if (AllNodes[i]->IsA<USoundNodeWavePlayer>())
 			{
-				SoundWave = Cast<USoundNodeWavePlayer>(AllNodes[i])->SoundWave.Get();
+				SoundWave = Cast<USoundNodeWavePlayer>(AllNodes[i])->GetSoundWave();
 			}
 		}
 	}

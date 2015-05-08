@@ -1572,7 +1572,7 @@ void CreateSoundCue( USoundWave* Sound, UObject* InParent, EObjectFlags Flags, b
 	// Apply the initial volume.
 	SoundCue->VolumeMultiplier = CueVolume;
 
-	WavePlayer->SoundWave = Sound;
+	WavePlayer->SetSoundWave(Sound);
 	SoundCue->FirstNode = WavePlayer;
 	SoundCue->LinkGraphNodesFromSoundNodes();
 
@@ -2397,7 +2397,7 @@ UObject* USoundCueFactoryNew::FactoryCreateNew( UClass* Class, UObject* InParent
 		USoundNodeWavePlayer* WavePlayer = SoundCue->ConstructSoundNode<USoundNodeWavePlayer>();
 		SoundCue->FirstNode = WavePlayer;
 		SoundCue->LinkGraphNodesFromSoundNodes();
-		WavePlayer->SoundWave = InitialSoundWave;
+		WavePlayer->SetSoundWave(InitialSoundWave);
 		WavePlayer->GraphNode->NodePosX = -250;
 		WavePlayer->GraphNode->NodePosY = -35;
 	}
