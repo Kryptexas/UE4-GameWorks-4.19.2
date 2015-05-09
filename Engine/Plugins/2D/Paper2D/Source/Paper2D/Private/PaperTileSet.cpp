@@ -123,10 +123,10 @@ FIntPoint UPaperTileSet::GetTileXYFromTextureUV(const FVector2D& TextureUV, bool
 {
 	const float DividendX = TextureUV.X - BorderMargin.Left;
 	const float DividendY = TextureUV.Y - BorderMargin.Top;
-	const float DivisorX = TileSize.X + PerTileSpacing.X;
-	const float DivisorY = TileSize.Y + PerTileSpacing.Y;
-	const int32 X = bRoundUp ? FMath::DivideAndRoundUp<int32>(DividendX, DivisorX) : FMath::DivideAndRoundDown<int32>(DividendX, DivisorX);
-	const int32 Y = bRoundUp ? FMath::DivideAndRoundUp<int32>(DividendY, DivisorY) : FMath::DivideAndRoundDown<int32>(DividendY, DivisorY);
+	const int32 DivisorX = TileSize.X + PerTileSpacing.X;
+	const int32 DivisorY = TileSize.Y + PerTileSpacing.Y;
+	const int32 X = bRoundUp ? FMath::DivideAndRoundUp<int32>(FMath::CeilToInt(DividendX), DivisorX) : FMath::DivideAndRoundDown<int32>(DividendX, DivisorX);
+	const int32 Y = bRoundUp ? FMath::DivideAndRoundUp<int32>(FMath::CeilToInt(DividendY), DivisorY) : FMath::DivideAndRoundDown<int32>(DividendY, DivisorY);
 	return FIntPoint(X, Y);
 }
 
