@@ -12,13 +12,11 @@ UPluginDescriptorObject::UPluginDescriptorObject(const FObjectInitializer& Objec
 	Version = 1;
 	VersionName = TEXT("1.0");
 	Category = TEXT("Other");
-	bEnabledByDefault = true;
 }
 
 void UPluginDescriptorObject::FillDescriptor(FPluginDescriptor& OutDescriptor)
 {
 	OutDescriptor.bCanContainContent = bCanContainContent;
-	OutDescriptor.bEnabledByDefault = bEnabledByDefault;
 	OutDescriptor.bIsBetaVersion = bIsBetaVersion;
 	OutDescriptor.Category = Category;
 	OutDescriptor.CreatedBy = CreatedBy;
