@@ -52,6 +52,9 @@ namespace UnrealBuildTool
 		// Documentation URL string.
 		public string DocsURL;
 
+		// Marketplace URL for this plugin. This URL will be embedded into projects that enable this plugin, so we can redirect to the marketplace if a user doesn't have it installed.
+		public string MarketplaceURL;
+
 		// List of all modules associated with this plugin
 		public ModuleDescriptor[] Modules;
 
@@ -124,6 +127,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("CreatedBy", out Descriptor.CreatedBy);
 				RawObject.TryGetStringField("CreatedByURL", out Descriptor.CreatedByURL);
 				RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
+				RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 
 				JsonObject[] ModulesArray;
 				if(RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
@@ -163,6 +167,7 @@ namespace UnrealBuildTool
 				Writer.WriteValue("CreatedBy", CreatedBy);
 				Writer.WriteValue("CreatedByURL", CreatedByURL);
 				Writer.WriteValue("DocsURL", DocsURL);
+				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
 
 				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
 
@@ -188,6 +193,9 @@ namespace UnrealBuildTool
 		// Description of the plugin for users that do not have it installed.
 		public string Description;
 
+		// URL for this plugin on the marketplace, if the user doesn't have it installed.
+		public string MarketplaceURL;
+
 		// If enabled, list of platforms for which the plugin should be enabled (or all platforms if blank).
 		UnrealTargetPlatform[] WhitelistPlatforms;
 
@@ -199,9 +207,10 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InName">Name of the plugin</param>
 		/// <param name="bInEnabled">Whether the plugin is enabled</param>
-		public PluginReferenceDescriptor(string InName, bool bInEnabled)
+		public PluginReferenceDescriptor(string InName, string InMarketplaceURL, bool bInEnabled)
 		{
 			Name = InName;
+			MarketplaceURL = InMarketplaceURL;
 			bEnabled = bInEnabled;
 		}
 
@@ -212,8 +221,9 @@ namespace UnrealBuildTool
 		/// <returns>New PluginReferenceDescriptor object</returns>
 		public static PluginReferenceDescriptor FromJsonObject(JsonObject RawObject)
 		{
-			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor(RawObject.GetStringField("Name"), RawObject.GetBoolField("Enabled"));
+			PluginReferenceDescriptor Descriptor = new PluginReferenceDescriptor(RawObject.GetStringField("Name"), null, RawObject.GetBoolField("Enabled"));
 			RawObject.TryGetStringField("Description", out Descriptor.Description);
+			RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("WhitelistPlatforms", out Descriptor.WhitelistPlatforms);
 			RawObject.TryGetEnumArrayField<UnrealTargetPlatform>("BlacklistPlatforms", out Descriptor.BlacklistPlatforms);
 			return Descriptor;

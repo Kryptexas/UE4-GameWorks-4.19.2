@@ -198,7 +198,8 @@ public:
 	 * @param	PluginName		Name of the plugin
 	 * @param	bEnabled		Whether to enable or disable the plugin
 	 * @param	OutFailReason	On failure, gives an error message
+	 * @param	MarketplaceURL	Marketplace URL to open if the user does not have this plugin installed
 	 * @return	True if the plugin has been marked as enabled, and the project descriptor has been saved.
 	 */
-	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason) = 0;
+	virtual bool SetPluginEnabled(const FString& PluginName, bool bEnabled, FText& OutFailReason, const FString& MarketplaceURL = TEXT("")) = 0;
 };
