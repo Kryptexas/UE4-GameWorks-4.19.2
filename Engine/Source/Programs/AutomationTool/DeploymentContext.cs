@@ -367,7 +367,7 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageFilesInReceipt(BuildReceipt Receipt)
+	public void StageBuildProductsFromReceipt(BuildReceipt Receipt)
 	{
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
@@ -387,7 +387,10 @@ public class DeploymentContext //: ProjectParams
 				StageFile(StagedFileType.DebugNonUFS, BuildProduct.Path);
 			}
 		}
+	}
 
+	public void StageRuntimeDependenciesFromReceipt(BuildReceipt Receipt)
+	{
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
