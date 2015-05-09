@@ -4,14 +4,12 @@
 #include "EnginePrivate.h"
 #include "Components/PawnNoiseEmitterComponent.h"
 
-
-
-
 UPawnNoiseEmitterComponent::UPawnNoiseEmitterComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	NoiseLifetime = 1.0f;
 	PrimaryComponentTick.bCanEverTick = false;
+	bAIPerceptionSystemCompatibilityMode = true;
 }
 
 
@@ -62,6 +60,11 @@ void UPawnNoiseEmitterComponent::MakeNoise(AActor* NoiseMaker, float Loudness, c
 			LastRemoteNoisePosition = NoiseLocation;
 			LastRemoteNoiseTime = GetWorld()->GetTimeSeconds();
 		}
+	}
+
+	if (bAIPerceptionSystemCompatibilityMode)
+	{
+		NoiseMaker->MakeNoise(Loudness, PawnOwner, NoiseLocation);
 	}
 }
 
