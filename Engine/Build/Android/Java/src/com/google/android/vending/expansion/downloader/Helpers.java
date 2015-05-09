@@ -223,6 +223,18 @@ public class Helpers {
         String path = root.toString() + Constants.EXP_PATH + c.getPackageName();
         return path;
     }
+	
+	static public String generateSaveFileNameDevelopment(Context c, String fileName) {
+        String path = getSaveFilePathDevelopment(c)
+                + File.separator + fileName;
+        return path;
+    }
+
+    static public String getSaveFilePathDevelopment(Context c) {
+        File root = Environment.getExternalStorageDirectory();
+        String path = root.toString() + Constants.EXP_PATH_DEV + c.getPackageName();
+        return path;
+    }
 
     /**
      * Helper function to ascertain the existence of a file and return
@@ -240,6 +252,21 @@ public class Helpers {
         // the file may have been delivered by Market --- let's make sure
         // it's the size we expect
         File fileForNewFile = new File(Helpers.generateSaveFileName(c, fileName));
+        return doesFileExistInternal(c, fileForNewFile, fileSize, deleteFileOnMismatch);
+    }
+	
+	static public boolean doesFileExistDev(Context c, String fileName, long fileSize,
+            boolean deleteFileOnMismatch) {
+        // the file may have been delivered by Market --- let's make sure
+        // it's the size we expect
+        File fileForNewFile = new File(Helpers.generateSaveFileNameDevelopment(c, fileName));
+        return doesFileExistInternal(c, fileForNewFile, fileSize, deleteFileOnMismatch);
+    }
+	
+	static public boolean doesFileExistInternal(Context c, File fileForNewFile, long fileSize,
+            boolean deleteFileOnMismatch) {
+        // the file may have been delivered by Market --- let's make sure
+        // it's the size we expect
         if (fileForNewFile.exists()) {
             if (fileForNewFile.length() == fileSize) {
                 return true;
