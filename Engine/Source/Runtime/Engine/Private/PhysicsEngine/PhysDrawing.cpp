@@ -596,7 +596,7 @@ void FKAggregateGeom::GetAggGeom(const FTransform& Transform, const FColor Color
 				for(int32 i=0; i<ConvexElems.Num(); i++)
 				{
 					// Get vertices/triangles from this hull.
-					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, Scale3D.X, FColor::White);
+					ConvexElems[i].AddCachedSolidConvexGeom(ThisGeom.RenderInfo->VertexBuffer->Vertices, ThisGeom.RenderInfo->IndexBuffer->Indices, 1.0f, FColor::White);
 				}
 
 				// Only continue if we actually got some valid geometry
