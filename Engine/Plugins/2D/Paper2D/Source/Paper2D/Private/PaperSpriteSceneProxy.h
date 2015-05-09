@@ -4,13 +4,16 @@
 
 #include "PaperRenderSceneProxy.h"
 
+struct FSpriteDrawCallRecord;
+class UPaperSpriteComponent;
+
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteSceneProxy
 
 class FPaperSpriteSceneProxy : public FPaperRenderSceneProxy
 {
 public:
-	FPaperSpriteSceneProxy(const class UPaperSpriteComponent* InComponent);
+	FPaperSpriteSceneProxy(UPaperSpriteComponent* InComponent);
 
 	// FPrimitiveSceneProxy interface
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
@@ -24,8 +27,9 @@ protected:
 	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const override;
 	// End of FPaperRenderSceneProxy interface
 
+protected:
 	UMaterialInterface* AlternateMaterial;
 	int32 MaterialSplitIndex;
-	const class UPaperSprite* SourceSprite;
-	TArray<struct FSpriteDrawCallRecord> AlternateBatchedSprites;
+	const UBodySetup* BodySetup;
+	TArray<FSpriteDrawCallRecord> AlternateBatchedSprites;
 };
