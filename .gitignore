@@ -118,6 +118,9 @@
 # Ignore any saved local files
 /Engine/Saved/**
 
+# Ignore any build receipts
+/Engine/Build/Receipts/**
+
 # Install stamp linux dependencies
 /Engine/Build/BatchFiles/Linux/dependencies.sha1sums.installed
 
