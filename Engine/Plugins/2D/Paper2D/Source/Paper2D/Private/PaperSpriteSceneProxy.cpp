@@ -1,3 +1,4 @@
+
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
@@ -12,9 +13,9 @@
 //////////////////////////////////////////////////////////////////////////
 // FPaperSpriteSceneProxy
 
-FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InComponent)
+FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(UPaperSpriteComponent* InComponent)
 	: FPaperRenderSceneProxy(InComponent)
-	, SourceSprite(nullptr)
+	, BodySetup(InComponent->GetBodySetup())
 {
 	WireframeColor = InComponent->GetWireframeColor();
 
@@ -32,22 +33,20 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InCo
 
 	MaterialSplitIndex = INDEX_NONE;
 	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
-
-	SourceSprite = InComponent->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
 }
 
 void FPaperSpriteSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
-	if (SourceSprite != nullptr)
+	if (BodySetup != nullptr)
 	{
 		// Show 3D physics
 		if ((ViewFamily.EngineShowFlags.Collision /*@TODO: && bIsCollisionEnabled*/) && AllowDebugViewmodes())
 		{
-			if (UBodySetup2D* BodySetup2D = Cast<UBodySetup2D>(SourceSprite->BodySetup))
+			if (const UBodySetup2D* BodySetup2D = Cast<const UBodySetup2D>(BodySetup))
 			{
 				//@TODO: Draw 2D debugging geometry
 			}
-			else if (UBodySetup* BodySetup = SourceSprite->BodySetup)
+			else
 			{
 				if (FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
 				{
@@ -72,7 +71,7 @@ void FPaperSpriteSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 
 							Collector.RegisterOneFrameMaterialProxy(CollisionMaterialInstance);
 
-							// Draw the static mesh's body setup.
+							// Draw the sprite body setup.
 
 							// Get transform without scaling.
 							FTransform GeomTransform(GetLocalToWorld());
