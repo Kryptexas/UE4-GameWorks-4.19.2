@@ -67,10 +67,6 @@ public:
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 
-	/** Whether this plugin should be enabled by default for all projects */
-	UPROPERTY(EditAnywhere, Category = "PluginDescription")
-	bool bEnabledByDefault;
-
 	/** Can this plugin contain content? */
 	UPROPERTY(EditAnywhere, Category = "PluginDescription")
 	bool bCanContainContent;
