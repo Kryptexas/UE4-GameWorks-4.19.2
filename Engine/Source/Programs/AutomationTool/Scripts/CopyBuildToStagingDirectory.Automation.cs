@@ -263,6 +263,13 @@ public partial class Project : CommandUtils
 
 		ThisPlatform.GetFilesToDeployOrStage(Params, SC);
 
+
+		// Stage any extra runtime dependencies from the receipts
+		foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
+		{
+			SC.StageRuntimeDependenciesFromReceipt(Receipt);
+		}
+
 		// Get the build.properties file
 		// this file needs to be treated as a UFS file for casing, but NonUFS for being put into the .pak file
 		// @todo: Maybe there should be a new category - UFSNotForPak

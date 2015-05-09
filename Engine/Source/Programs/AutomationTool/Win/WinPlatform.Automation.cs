@@ -35,10 +35,10 @@ public abstract class BaseWinPlatform : Platform
 			StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient.");
 		}
 
-		// Loop through all the things to stage
+		// Stage all the build products
 		foreach(BuildReceipt Receipt in SC.StageTargetReceipts)
 		{
-			SC.StageFilesInReceipt(Receipt);
+			SC.StageBuildProductsFromReceipt(Receipt);
 		}
 
 		// Copy the splash screen, windows specific
