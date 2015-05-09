@@ -2049,7 +2049,10 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 		TArray<UClass*> ChildrenOfClass;
 		if (UClass* SkelClass = Blueprint->SkeletonGeneratedClass)
 		{
-			GetDerivedClasses(SkelClass, ChildrenOfClass, false);
+			if (!Blueprint->bIsRegeneratingOnLoad)
+			{
+				GetDerivedClasses(SkelClass, ChildrenOfClass, false);
+			}
 		}
 
 		{
