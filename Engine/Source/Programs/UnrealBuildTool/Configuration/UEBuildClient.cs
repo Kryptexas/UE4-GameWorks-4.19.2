@@ -10,8 +10,8 @@ namespace UnrealBuildTool
 	[Serializable]
     public class UEBuildClient : UEBuildTarget
 	{
-		public UEBuildClient(TargetDescriptor InDesc, TargetRules InRulesObject)
-            : base(InDesc, InRulesObject, "UE4Client")
+		public UEBuildClient(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
+            : base(InDesc, InRulesObject, "UE4Client", InTargetCsFilename)
         {
             if (ShouldCompileMonolithic())
             {
