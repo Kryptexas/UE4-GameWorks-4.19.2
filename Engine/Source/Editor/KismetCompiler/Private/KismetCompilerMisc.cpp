@@ -1128,6 +1128,8 @@ void FKismetCompilerUtilities::ValidateProperEndExecutionPath(FKismetFunctionCon
 
 void FKismetCompilerUtilities::DetectValuesReturnedByRef(const UFunction* Func, const UK2Node * Node, FCompilerResultsLog& MessageLog)
 {
+	// this warning works properly with the fix from cl#2536849. Since this change-list wasn't included into 4.8, the warning is temporarily disabled.
+	/*
 	for (TFieldIterator<UProperty> PropIt(Func); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
 		UProperty* FuncParam = *PropIt;
@@ -1146,6 +1148,7 @@ void FKismetCompilerUtilities::DetectValuesReturnedByRef(const UFunction* Func, 
 			}
 		}
 	}
+	*/
 }
 
 //////////////////////////////////////////////////////////////////////////
