@@ -294,6 +294,11 @@ namespace UnrealBuildTool
 					StartInfo.Arguments = String.Format("/U /C \"{0}\"", EnvReaderBatchFileName);
 					StartInfo.CreateNoWindow = true;
 					StartInfo.UseShellExecute = false;
+
+					// The engine adds a lot of DLL search paths to the PATH environment variable, and this gets propagated through to UBT. MSVC wants
+					// to add a lot more, so reset it to the user default before spawning the batch file, otherwise we can overflow the max length and fail.
+					StartInfo.EnvironmentVariables["PATH"] = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
+
 					StartInfo.RedirectStandardOutput = true;
 					StartInfo.RedirectStandardError = true;
 					StartInfo.RedirectStandardInput = true;
