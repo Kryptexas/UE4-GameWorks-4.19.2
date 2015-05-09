@@ -17,8 +17,19 @@ FPaperSpriteSceneProxy::FPaperSpriteSceneProxy(const UPaperSpriteComponent* InCo
 	, SourceSprite(nullptr)
 {
 	WireframeColor = InComponent->GetWireframeColor();
+
 	Material = InComponent->GetMaterial(0);
+	if (Material == nullptr)
+	{
+		Material = UMaterial::GetDefaultMaterial(MD_Surface);
+	}
+
 	AlternateMaterial = InComponent->GetMaterial(1);
+	if (AlternateMaterial == nullptr)
+	{
+		AlternateMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+	}
+
 	MaterialSplitIndex = INDEX_NONE;
 	MaterialRelevance = InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel());
 
