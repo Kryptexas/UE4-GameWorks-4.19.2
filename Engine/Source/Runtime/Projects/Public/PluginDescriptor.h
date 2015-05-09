@@ -116,7 +116,7 @@ struct PROJECTS_API FPluginReferenceDescriptor
 	TArray<FString> BlacklistPlatforms;
 
 	/** Constructor */
-	FPluginReferenceDescriptor(const FString& InName = TEXT(""), const FString& InMarketplaceURL = TEXT(""), bool bInEnabled = false);
+	FPluginReferenceDescriptor(const FString& InName = TEXT(""), bool bInEnabled = false, const FString& InMarketplaceURL = TEXT(""));
 
 	/** Determines whether the plugin is enabled for the given platform */
 	bool IsEnabledForPlatform(const FString& Platform) const;
