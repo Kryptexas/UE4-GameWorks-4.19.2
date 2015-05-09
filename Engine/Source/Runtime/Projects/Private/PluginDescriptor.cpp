@@ -153,10 +153,10 @@ FString FPluginDescriptor::ToString() const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, const FString& InMarketplaceURL, bool bInEnabled )
+FPluginReferenceDescriptor::FPluginReferenceDescriptor( const FString& InName, bool bInEnabled, const FString& InMarketplaceURL )
 	: Name(InName)
-	, MarketplaceURL(InMarketplaceURL)
 	, bEnabled(bInEnabled)
+	, MarketplaceURL(InMarketplaceURL)
 { }
 
 
