@@ -1569,7 +1569,9 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			{
 				// Can only do this if current known overlaps are valid (not deferring updates, or we know there are no new pending overlaps).
 				const FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
-				if (ScopedUpdate == nullptr || (OverlappingComponents.Num() == 0 && !ScopedUpdate->HasPendingOverlapsInAncestorOrSelf()))
+				if (ScopedUpdate == nullptr
+					|| (OverlappingComponents.Num() == 0 && !ScopedUpdate->HasPendingOverlapsInAncestorOrSelf())
+					|| (!ScopedUpdate->GetOuterDeferredScope()))
 				{
 					// Only if we know that we won't change our overlap status with children by moving.
 					if (AreSymmetricRotations(NewRotationQuat, ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&

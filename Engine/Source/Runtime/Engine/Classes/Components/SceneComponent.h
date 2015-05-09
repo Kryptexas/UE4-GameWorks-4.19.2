@@ -961,6 +961,9 @@ public:
 	FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior = EScopedUpdate::DeferredUpdates );
 	~FScopedMovementUpdate();
 
+	/** Get the scope containing this scope. A scope only has an outer scope if they both defer updates. */
+	const FScopedMovementUpdate* GetOuterDeferredScope() const;
+
 	/** Return true if deferring updates, false if updates are applied immediately. */
 	bool IsDeferringUpdates() const;
 	
@@ -981,6 +984,9 @@ public:
 	
 	/** Add overlaps to the queued overlaps array. This is intended for use only by SceneComponent and its derived classes. */
 	void AppendOverlaps(const TArray<struct FOverlapInfo>& OtherOverlaps, const TArray<FOverlapInfo>* OverlapsAtEndLocation);
+
+	/** Returns whether there are valid pending overlaps at the end location. */
+	bool HasValidOverlapsAtEnd() const;
 
 	/** Returns the list of overlaps at the end location, or null if the list is invalid. */
 	const TArray<struct FOverlapInfo>* GetOverlapsAtEnd() const;
@@ -1006,7 +1012,7 @@ private:
 private:
 
 	class USceneComponent* Owner;
-	FScopedMovementUpdate* OuterScope;
+	FScopedMovementUpdate* OuterDeferredScope;
 	uint32 bDeferUpdates:1;
 	uint32 bHasValidOverlapsAtEnd:1;
 	FTransform InitialTransform;
@@ -1023,6 +1029,11 @@ private:
 
 //////////////////////////////////////////////////////////////////////////
 // FScopedMovementUpdate inlines
+
+FORCEINLINE const FScopedMovementUpdate* FScopedMovementUpdate::GetOuterDeferredScope() const
+{
+	return OuterDeferredScope;
+}
 
 FORCEINLINE bool FScopedMovementUpdate::IsDeferringUpdates() const
 {
@@ -1043,7 +1054,7 @@ FORCEINLINE_DEBUGGABLE bool FScopedMovementUpdate::HasPendingOverlapsInAncestorO
 		{
 			return true;
 		}
-		Scope = Scope->OuterScope;
+		Scope = Scope->OuterDeferredScope;
 	}
 	while (Scope != nullptr);
 
@@ -1053,6 +1064,11 @@ FORCEINLINE_DEBUGGABLE bool FScopedMovementUpdate::HasPendingOverlapsInAncestorO
 FORCEINLINE const TArray<struct FOverlapInfo>& FScopedMovementUpdate::GetPendingOverlaps() const
 {
 	return PendingOverlaps;
+}
+
+FORCEINLINE bool FScopedMovementUpdate::HasValidOverlapsAtEnd() const
+{
+	return bHasValidOverlapsAtEnd;
 }
 
 FORCEINLINE const TArray<struct FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd() const
