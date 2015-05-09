@@ -23,6 +23,12 @@ namespace AutomationTool
 		/// <param name="CommandLine">Command line.</param>
 		public static void InitLogging(string[] CommandLine)
 		{
+            // ensure UTF8Output flag is respected, since we are initializing logging early in the program.
+            if (CommandLine.Any(Arg => Arg.Equals("-utf8output", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                Console.OutputEncoding = new System.Text.UTF8Encoding(false, false);
+            }
+
 			Timer = (CommandUtils.ParseParam(CommandLine, "-Timestamps"))? Stopwatch.StartNew() : null;
 			var VerbosityLevel = CommandUtils.ParseParam(CommandLine, "-Verbose") ? TraceEventType.Verbose : TraceEventType.Information;
 			var Filter = new VerbosityFilter(VerbosityLevel);

@@ -165,13 +165,21 @@ namespace AutomationTool
 
 			string LocalLogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.EngineSavedFolder, Commandlet));
 			Log("Commandlet log file is {0}", LocalLogFile);
-			var RunResult = Run(EditorExe, String.Format("{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended -AllowStdOutLogVerbosity {4}", 
-                (ProjectName == null)? "" : CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName), 
-                Commandlet, 
-				String.IsNullOrEmpty(Parameters) ? "" : Parameters, 
+			string Args = String.Format(
+				"{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended -AllowStdOutLogVerbosity {4}",
+				(ProjectName == null) ? "" : CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName),
+				Commandlet,
+				String.IsNullOrEmpty(Parameters) ? "" : Parameters,
 				CommandUtils.MakePathSafeToUseWithCommandLine(LocalLogFile),
-                IsBuildMachine ? "-buildmachine" : ""
-                ));
+				IsBuildMachine ? "-buildmachine" : ""
+			);
+			ERunOptions Opts = ERunOptions.Default;
+			if (GlobalCommandLine.UTF8Output)
+			{
+				Args += " -UTF8Output";
+				Opts |= ERunOptions.UTF8Output;
+			}
+			var RunResult = Run(EditorExe, Args, Options: Opts);
 			PopDir();
 
 			// Copy the local commandlet log to the destination folder.

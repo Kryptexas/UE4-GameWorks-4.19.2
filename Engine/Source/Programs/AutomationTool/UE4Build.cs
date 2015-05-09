@@ -1267,10 +1267,10 @@ namespace AutomationTool
 			}
 
 			Log("************************* UE4Build:");
-			Log("************************* ForceMonolithic: ", bForceMonolithic);
-			Log("************************* ForceNonUnity: ", bForceNonUnity);
-			Log("************************* ForceDebugInfo: ", bForceDebugInfo);
-			Log("************************* UseXGE: ", bCanUseXGE);
+			Log("************************* ForceMonolithic: {0}", bForceMonolithic);
+			Log("************************* ForceNonUnity:{0} ", bForceNonUnity);
+			Log("************************* ForceDebugInfo: {0}", bForceDebugInfo);
+			Log("************************* UseXGE: {0}", bCanUseXGE);
 
 			if (bCanUseXGE)
 			{
