@@ -56,6 +56,8 @@ public:
 	 */
 	virtual FText GetEnumText(int32 InIndex) const override;
 
+	virtual bool SetEnums(TArray<FName>& InNames, ECppForm InCppForm) override;
+
 #if WITH_EDITOR
 	// Begin UObject interface
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;

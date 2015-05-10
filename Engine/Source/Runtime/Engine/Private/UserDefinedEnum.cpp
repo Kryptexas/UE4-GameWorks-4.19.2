@@ -96,3 +96,34 @@ FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 
 	return Super::GetEnumText(InIndex);
 }
+
+bool UUserDefinedEnum::SetEnums(TArray<FName>& InNames, ECppForm InCppForm)
+{
+	if (Names.Num() > 0)
+	{
+		RemoveNamesFromMasterList();
+	}
+	Names = InNames;
+	CppForm = InCppForm;
+
+	const FString BaseEnumPrefix = GenerateEnumPrefix();
+	checkSlow(BaseEnumPrefix.Len());
+
+	const int32 MaxTryNum = 1024;
+	for (int32 TryNum = 0; TryNum < MaxTryNum; ++TryNum)
+	{
+		const FString EnumPrefix = (TryNum == 0) ? BaseEnumPrefix : FString::Printf(TEXT("%s_%d"), *BaseEnumPrefix, TryNum - 1);
+		const FName MaxEnumItem = *GenerateFullEnumName(*(EnumPrefix + TEXT("_MAX")));
+		const int32 MaxEnumItemIndex = Names.Find(MaxEnumItem);
+		if ((MaxEnumItemIndex == INDEX_NONE) && (LookupEnumName(MaxEnumItem) == INDEX_NONE))
+		{
+			Names.Add(MaxEnumItem);
+			AddNamesToMasterList();
+			return true;
+		}
+	}
+
+	UE_LOG(LogClass, Error, TEXT("Unable to generate enum MAX entry due to name collision. Enum: %s"), *GetPathName());
+
+	return false;
+}

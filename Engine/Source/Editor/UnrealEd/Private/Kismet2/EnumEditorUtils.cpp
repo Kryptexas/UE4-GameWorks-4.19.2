@@ -374,7 +374,7 @@ void FEnumEditorUtils::EnsureAllDisplayNamesExist(UUserDefinedEnum* Enum)
 {
 	if (Enum)
 	{
-		const int32 EnumeratorsToEnsure = Enum->NumEnums() - 1;
+		const int32 EnumeratorsToEnsure = (Enum->NumEnums() > 0) ? (Enum->NumEnums() - 1) : 0;
 		Enum->DisplayNames.Empty(EnumeratorsToEnsure);
 		for	(int32 Index = 0; Index < EnumeratorsToEnsure; Index++)
 		{

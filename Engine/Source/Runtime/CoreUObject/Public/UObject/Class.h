@@ -1381,12 +1381,12 @@ protected:
 protected: 
 	
 	/** adds the Names in this enum to the master AllEnumNames list */
-	void AddNamesToMasterList();
+	COREUOBJECT_API void AddNamesToMasterList();
 
 public:
 
 	/** removes the Names in this enum from the master AllEnumNames list */
-	void RemoveNamesFromMasterList();
+	COREUOBJECT_API void RemoveNamesFromMasterList();
 
 	// UObject interface.
 	COREUOBJECT_API virtual void Serialize(FArchive& Ar) override;
@@ -1497,7 +1497,7 @@ public:
 	 * @param InCppForm The form of enum.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	COREUOBJECT_API bool SetEnums(TArray<FName>& InNames, ECppForm InCppForm);
+	COREUOBJECT_API virtual bool SetEnums(TArray<FName>& InNames, ECppForm InCppForm);
 
 	/**
 	 * @return	The enum name at the specified Index.
@@ -1570,14 +1570,6 @@ public:
 	 *			cannot be found, returns the full name of the enum.
 	 */
 	COREUOBJECT_API FString GenerateEnumPrefix() const;
-
-	/**
-	 * Adds a virtual _MAX entry to the enum's list of names, unless the
-	 * enum already contains one.
-	 *
-	 * @return	true unless the MAX enum already exists and isn't the last enum.
-	 */
-	bool GenerateMaxEnum();
 
 #if WITH_EDITOR
 	/**

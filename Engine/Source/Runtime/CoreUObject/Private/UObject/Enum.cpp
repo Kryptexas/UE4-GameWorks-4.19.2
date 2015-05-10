@@ -277,23 +277,13 @@ bool UEnum::SetEnums(TArray<FName>& InNames, UEnum::ECppForm InCppForm)
 	}
 	Names   = InNames;
 	CppForm = InCppForm;
-	return GenerateMaxEnum();
-}
 
-/**
- * Adds a virtual _MAX entry to the enum's list of names, unless the
- * enum already contains one.
- *
- * @return	true unless the MAX enum already exists and isn't the last enum.
- */
-bool UEnum::GenerateMaxEnum()
-{
 	const FString EnumPrefix = GenerateEnumPrefix();
 	checkSlow(EnumPrefix.Len());
 
 	const FName MaxEnumItem = *GenerateFullEnumName(*(EnumPrefix + TEXT("_MAX")));
 	const int32 MaxEnumItemIndex = Names.Find(MaxEnumItem);
-	if ( MaxEnumItemIndex == INDEX_NONE )
+	if (MaxEnumItemIndex == INDEX_NONE)
 	{
 		if (LookupEnumName(MaxEnumItem) != INDEX_NONE)
 		{
@@ -306,7 +296,7 @@ bool UEnum::GenerateMaxEnum()
 
 	AddNamesToMasterList();
 
-	if ( MaxEnumItemIndex != INDEX_NONE && MaxEnumItemIndex != Names.Num() - 1 )
+	if (MaxEnumItemIndex != INDEX_NONE && MaxEnumItemIndex != Names.Num() - 1)
 	{
 		// The MAX enum already exists, but isn't the last enum.
 		return false;
