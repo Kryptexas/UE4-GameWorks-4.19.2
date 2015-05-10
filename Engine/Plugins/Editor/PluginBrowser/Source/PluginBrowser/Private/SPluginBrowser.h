@@ -16,6 +16,8 @@ class SPluginBrowser : public SCompoundWidget
 
 	SLATE_END_ARGS()
 
+	/** Destructor */
+	virtual ~SPluginBrowser();
 
 	/** Widget constructor */
 	void Construct( const FArguments& Args );
@@ -37,6 +39,12 @@ class SPluginBrowser : public SCompoundWidget
 
 private:
 
+	/** Called with notification that one of the plugin directories has changed */
+	void OnPluginDirectoryChanged(const TArray<struct FFileChangeData>& );
+
+	/** Timer callback for when */
+	EActiveTimerReturnType UpdatePluginsTimerCallback(double InCurrentTime, float InDeltaTime);
+
 	/** @return Is the "restart required" notice visible? */
 	EVisibility HandleRestartEditorNoticeVisibility() const;
 
@@ -56,6 +64,11 @@ private:
 	EActiveTimerReturnType TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime);
 
 private:
+	/** Handles to the directory changed delegates */
+	TMap<FString, FDelegateHandle> WatchDirectories;
+
+	/** Handles to the directory changed delegates */
+	TSharedPtr<FActiveTimerHandle> UpdatePluginsTimerHandle;
 
 	/** The plugin categories widget */
 	TSharedPtr< class SPluginCategoryTree > PluginCategories;

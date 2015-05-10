@@ -129,6 +129,11 @@ class IPluginManager
 {
 public:
 
+	/** 
+	 * Updates the list of plugins.
+	 */
+	virtual void RefreshPluginsList() = 0;
+
 	/**
 	 * Loads all plug-ins
 	 *

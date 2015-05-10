@@ -7,16 +7,39 @@
 #include "SPluginCategoryTree.h"
 #include "SSearchBox.h"
 #include "PluginBrowserModule.h"
+#include "DirectoryWatcherModule.h"
 
 #define LOCTEXT_NAMESPACE "PluginsEditor"
 
-
-// @todo plugedit: Intro anim!!!
-
+SPluginBrowser::~SPluginBrowser()
+{
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	for(auto& Pair: WatchDirectories)
+	{
+		DirectoryWatcherModule.Get()->UnregisterDirectoryChangedCallback_Handle(Pair.Key, Pair.Value);
+	}
+}
 
 void SPluginBrowser::Construct( const FArguments& Args )
 {
-	// @todo plugedit: Should we save/restore category selection and other view settings?  Splitter position, etc.
+	// Get the root directories which contain plugins
+	TArray<FString> WatchDirectoryNames;
+	WatchDirectoryNames.Add(FPaths::EnginePluginsDir());
+	if(FApp::HasGameName())
+	{
+		WatchDirectoryNames.Add(FPaths::GamePluginsDir());
+	}
+
+	// Add watchers for any change events on those directories
+	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
+	for(const FString& WatchDirectoryName: WatchDirectoryNames)
+	{
+		FDelegateHandle Handle;
+		if(DirectoryWatcherModule.Get()->RegisterDirectoryChangedCallback_Handle(WatchDirectoryName, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &SPluginBrowser::OnPluginDirectoryChanged), Handle))
+		{
+			WatchDirectories.Add(WatchDirectoryName, Handle);
+		}
+	}
 
 	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginBrowser::TriggerBreadcrumbRefresh));
 
@@ -177,6 +200,22 @@ void SPluginBrowser::SetNeedsRefresh()
 
 	// Breadcrumbs will need to be refreshed
 	RegisterActiveTimer (0.f, FWidgetActiveTimerDelegate::CreateSP (this, &SPluginBrowser::TriggerBreadcrumbRefresh));
+}
+
+void SPluginBrowser::OnPluginDirectoryChanged(const TArray<struct FFileChangeData>&)
+{
+	if(UpdatePluginsTimerHandle.IsValid())
+	{
+		UnRegisterActiveTimer(UpdatePluginsTimerHandle.ToSharedRef());
+	}
+	UpdatePluginsTimerHandle = RegisterActiveTimer(2.0f, FWidgetActiveTimerDelegate::CreateSP(this, &SPluginBrowser::UpdatePluginsTimerCallback));
+}
+
+EActiveTimerReturnType SPluginBrowser::UpdatePluginsTimerCallback(double InCurrentTime, float InDeltaTime)
+{
+	IPluginManager::Get().RefreshPluginsList();
+	SetNeedsRefresh();
+	return EActiveTimerReturnType::Stop;
 }
 
 EActiveTimerReturnType SPluginBrowser::TriggerBreadcrumbRefresh(double InCurrentTime, float InDeltaTime)
