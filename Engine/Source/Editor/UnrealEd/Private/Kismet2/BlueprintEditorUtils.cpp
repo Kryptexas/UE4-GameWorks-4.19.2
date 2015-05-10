@@ -1426,7 +1426,12 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		const bool bHasPendingUberGraphFrame = BPGClassToRegenerate
 			&& (BPGClassToRegenerate->UberGraphFramePointerProperty || BPGClassToRegenerate->UberGraphFunction);
 
-		const bool bShouldBeRecompiled = bHasCode || bDataOnlyClassThatMustBeRecompiled || bHasPendingUberGraphFrame;
+		const bool bDefaultComponentMustBeAdded = !bHasCode 
+			&& BPGClassToRegenerate
+			&& SupportsConstructionScript(Blueprint) 
+			&& BPGClassToRegenerate->SimpleConstructionScript
+			&& (nullptr == BPGClassToRegenerate->SimpleConstructionScript->GetSceneRootComponentTemplate());
+		const bool bShouldBeRecompiled = bHasCode || bDataOnlyClassThatMustBeRecompiled || bHasPendingUberGraphFrame || bDefaultComponentMustBeAdded;
 
 		if (bShouldBeRecompiled)
 		{

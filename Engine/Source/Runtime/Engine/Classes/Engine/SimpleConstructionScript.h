@@ -32,6 +32,9 @@ class USimpleConstructionScript : public UObject
 #if WITH_EDITOR
 	/** Return the Blueprint associated with this SCS instance */
 	ENGINE_API class UBlueprint* GetBlueprint() const;
+
+	/** Helper function to find the current scene root component template and/or owning SCS node */
+	ENGINE_API USceneComponent* GetSceneRootComponentTemplate(USCS_Node** OutSCSNode = nullptr) const;
 #endif
 
 	/** Return the Blueprint associated with this SCS instance */
@@ -100,9 +103,6 @@ private:
 	void FixupSceneNodeHierarchy();
 
 #if WITH_EDITOR
-	/** Helper function to find the current scene root component template and/or owning SCS node */
-	USceneComponent* GetSceneRootComponentTemplate(USCS_Node** OutSCSNode = nullptr) const;
-
 	/** Helper function for generating list of currently used names */
 	void GenerateListOfExistingNames(TArray<FName>& CurrentNames) const;
 
