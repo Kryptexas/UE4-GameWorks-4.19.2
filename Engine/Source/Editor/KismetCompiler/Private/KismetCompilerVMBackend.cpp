@@ -253,7 +253,8 @@ protected:
 		{
 			bInContext = true;
 
-			if (bUnsafeToSkip)
+			static const FBoolConfigValueHelper CanSuppressAccessViolation(TEXT("Kismet"), TEXT("bCanSuppressAccessViolation"), GEngineIni);
+			if (bUnsafeToSkip || !CanSuppressAccessViolation)
 			{
 				Writer << EX_Context;
 			}

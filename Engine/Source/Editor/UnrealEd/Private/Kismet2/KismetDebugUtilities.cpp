@@ -126,6 +126,8 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 					->AddToken(FTextToken::Create(FText::FromString(MsgInBlueprintStr)))
 					->AddToken(FUObjectToken::Create(BlueprintObj, FText::FromString(BlueprintObj->GetName()))->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated)));
 			}
+			bForceToCurrentObject = true;
+			bShouldBreakExecution = GetDefault<UEditorExperimentalSettings>()->bBreakOnExceptions;
 			break;
 		case EBlueprintExceptionType::InfiniteLoop:
 			bForceToCurrentObject = true;
