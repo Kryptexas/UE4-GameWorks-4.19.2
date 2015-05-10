@@ -167,7 +167,13 @@ FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 FTransaction::FObjectRecord::FReferencedObject::FReferencedObject(UObject* InObject)
 {
 	UActorComponent* Component = Cast<UActorComponent>(InObject);
-	if (Component && Component->IsCreatedByConstructionScript())
+	UObject* CDO = nullptr;
+	if (Component && OuterIsCDO(Component, CDO))
+	{
+		Object = CDO;
+		ComponentName = Component->GetFName();
+	}
+	else if (Component && Component->IsCreatedByConstructionScript())
 	{
 		Object = Component->GetOuter();
 		ComponentName = Component->GetFName();
@@ -190,9 +196,12 @@ void FTransaction::FObjectRecord::FReferencedObject::AddReferencedObjects(FRefer
 
 void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	UObject* Obj = Object.Get();
-	Collector.AddReferencedObject(Obj);
-	Object = Obj;
+	if (Object.ShouldAddReference())
+	{
+		UObject* Obj = Object.Get();
+		Collector.AddReferencedObject(Obj);
+		Object = Obj;
+	}
 	for( FReferencedObject& ReferencedObject : ReferencedObjects )
 	{
 		ReferencedObject.AddReferencedObjects(Collector);
