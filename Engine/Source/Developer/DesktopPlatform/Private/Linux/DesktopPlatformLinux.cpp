@@ -14,6 +14,31 @@
 #define MAX_FILETYPES_STR 4096
 #define MAX_FILENAME_STR 65536
 
+FDesktopPlatformLinux::FDesktopPlatformLinux()
+	:	FDesktopPlatformBase()
+{
+#if WITH_LINUX_NATIVE_DIALOGS
+	bool bLNDInit = ULinuxNativeDialogs_Initialize();
+	if (bLNDInit)
+	{
+		UE_LOG(LogDesktopPlatform, Log, TEXT("LinuxNativeDialogs have been successfully initialized."));
+	}
+	else
+	{
+		UE_LOG(LogDesktopPlatform, Warning, TEXT("DesktopPlatformLinux could not initialize LinuxNativeDialogs - it will not work properly."));
+	}
+#else
+	UE_LOG(LogDesktopPlatform, Warning, TEXT("DesktopPlatformLinux is not using LinuxNativeDialogs - it will not work properly."));
+#endif
+}
+
+FDesktopPlatformLinux::~FDesktopPlatformLinux()
+{
+#if WITH_LINUX_NATIVE_DIALOGS
+	ULinuxNativeDialogs_Shutdown();
+#endif
+}
+
 bool FDesktopPlatformLinux::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
 	return FileDialogShared(false, ParentWindowHandle, DialogTitle, DefaultPath, DefaultFile, FileTypes, Flags, OutFilenames, OutFilterIndex);
@@ -49,7 +74,7 @@ bool FDesktopPlatformLinux::OpenDirectoryDialog(const void* ParentWindowHandle, 
 
 	while(UFileDialog_ProcessEvents(dialog)) 
 	{
-		FPlatformProcess::Sleep(0.05f);
+		FPlatformMisc::PumpMessages(true);	// pretend that we're the main loop
 	}
 
 	const UFileDialogResult* result = UFileDialog_Result(dialog);
@@ -153,7 +178,7 @@ bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindo
 	AllExtensionsLumpedTogether += TEXT(")");
 
 	char FileTypesBuf[MAX_FILETYPES_STR * 2] = {0,};
-	FTCHARToUTF8_Convert::Convert(FileTypesBuf, sizeof(FileTypesBuf), *AllExtensionsSpaceDelim, AllExtensionsSpaceDelim.Len());
+	FTCHARToUTF8_Convert::Convert(FileTypesBuf, sizeof(FileTypesBuf), *AllExtensionsLumpedTogether, AllExtensionsLumpedTogether.Len());
 	hints.NameFilter = FileTypesBuf;
 
 	char DefPathBuf[MAX_FILENAME_STR * 2] = {0,};
@@ -177,7 +202,7 @@ bool FDesktopPlatformLinux::FileDialogShared(bool bSave, const void* ParentWindo
 
 	while(UFileDialog_ProcessEvents(dialog))
 	{
-		FPlatformProcess::Sleep(0.05f);
+		FPlatformMisc::PumpMessages(true);	// pretend that we're the main loop
 	}
 
 	const UFileDialogResult* result = UFileDialog_Result(dialog);

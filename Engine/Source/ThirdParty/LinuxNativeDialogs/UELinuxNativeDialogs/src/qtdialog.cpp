@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "UNativeDialogs.h"
 
 #include <QApplication>
@@ -8,6 +9,30 @@
 // KDE integration fails after QApplication is destroyed
 // leave it as singleton and lazy initialize
 //static QApplication* qApp;
+
+bool ULinuxNativeDialogs_Initialize() {
+  /*
+    FAT NOTE. This plugin shouldn't be unloaded as things
+    could break. Doing multiple QApplication initializations
+    and destructions as long as there is only one at a time
+    alive is perfectly valid for Qt but unfortunately KDE
+    integration is not as forthcoming and a single instance
+    of QApplication needs to be left alive
+    */
+  if(!qApp) {
+    static int argc;
+    new QApplication(argc, nullptr);
+  }
+
+  return true;
+}
+
+void ULinuxNativeDialogs_Shutdown() {
+  if (qApp) {
+    qApp->quit();
+    delete qApp;
+  }
+}
 
 struct UFileDialog
 {
@@ -33,19 +58,7 @@ public:
 
 UFileDialog* UFileDialog_Create(UFileDialogHints *hints)
 {
-  /*
-    FAT NOTE. This plugin shouldn't be unloaded as things
-    could break. Doing multiple QApplication initializations
-    and destructions as long as there is only one at a time
-    alive is perfectly valid for Qt but unfortunately KDE
-    integration is not as forthcoming and a single instance
-    of QApplication needs to be left alive
-    */
-  if(!qApp)
-  { //lazy initialize QApplication
-    static int argc;
-    new QApplication(argc, NULL);
-  }
+  assert(qApp);
 
   if(hints == NULL)
   {
@@ -111,6 +124,7 @@ UFileDialog* UFileDialog_Create(UFileDialogHints *hints)
 
 bool UFileDialog_ProcessEvents(UFileDialog* handle)
 {
+  assert(qApp);
   qApp->processEvents();
 
   int result = handle->dialog.result();
@@ -169,20 +183,6 @@ public:
 
 UFontDialog* UFontDialog_Create(UFontDialogHints *hints)
 {
-  /*
-    FAT NOTE. This plugin shouldn't be unloaded as things
-    could break. Doing multiple QApplication initializations
-    and destructions as long as there is only one at a time
-    alive is perfectly valid for Qt but unfortunately KDE
-    integration is not as forthcoming and a single instance
-    of QApplication needs to be left alive
-    */
-  if(!qApp)
-  { //lazy initialize QApplication
-    static int argc;
-    new QApplication(argc, NULL);
-  }
-
   if(hints == NULL)
   {
     return NULL;
@@ -210,6 +210,7 @@ UFontDialog* UFontDialog_Create(UFontDialogHints *hints)
 
 bool UFontDialog_ProcessEvents(UFontDialog* handle)
 {
+  assert(qApp);
   qApp->processEvents();
   int result = handle->dialog.result();
   handle->dialog.setWindowState( (handle->dialog.windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);

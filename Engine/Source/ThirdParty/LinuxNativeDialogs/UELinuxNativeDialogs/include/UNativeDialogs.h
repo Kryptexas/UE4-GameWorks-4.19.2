@@ -69,6 +69,12 @@ typedef struct UFileDialogResult
 	const char** selection;
 } UFileDialogResult;
 
+/**
+ * Initializes the library
+ */
+bool ULinuxNativeDialogs_Initialize();
+void ULinuxNativeDialogs_Shutdown();
+
 UFileDialog* UFileDialog_Create(struct UFileDialogHints* hints);
 bool UFileDialog_ProcessEvents(UFileDialog* handle);
 // valid after Process returning false
