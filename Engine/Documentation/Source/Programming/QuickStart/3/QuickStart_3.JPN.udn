@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:3.C++ コードの記述とコンパイル
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -22,17 +22,17 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 
 %Steps%
 
-1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は "FloatingActor.cpp" と "FloatingActor.h" 、保存場所は「QuickStart」プロジェクトです。
+1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は `FloatingActor.cpp` と `FloatingActor.h` 、保存場所は「QuickStart」プロジェクトです。
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
 	[REGION:note] コードを追加するところです。このチュートリアルで使用するすべてのコードは、ページの説明を完了した時点の現在のステートで、ページの下に表示されます。[/REGION]
 
-2. "FloatingActor.h" に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
+2. `FloatingActor.h` に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
 
 		float RunningTime;
 
-3. "FloatingActor.cpp" へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
+3. `FloatingActor.cpp` へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
@@ -45,8 +45,8 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 4. コーディングが終わったので、**Solution Browser** のプロジェクトを右クリックして **Build** コマンドを選択するか、 **アンリアル エディタ** の**[Compile]** ボタンをクリックします。正常にコンパイルされたら、 **アンリアル エンジン** が自動的に変更をロードします。
 
 	[![](CompileFromVS.png)](CompileFromVS.png)
-
-	(in **Visual Studio**)
+	
+(in **Visual Studio**)
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
@@ -84,10 +84,10 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 				// Called when the game starts or when spawned
 				virtual void BeginPlay() override;
 
-	// Called every frame
+				// Called every frame
 				virtual void Tick( float DeltaSeconds ) override;
-
-	float RunningTime;
+	
+				float RunningTime;
 			};
 
 		**FloatingActor.cpp**
@@ -109,7 +109,7 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 			{
 				Super::BeginPlay();
 
-	}
+			}
 
 			// Called every frame
 			void AFloatingActor::Tick( float DeltaTime )
