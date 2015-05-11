@@ -305,6 +305,7 @@ public:
 
 	void OnMaterialSelected(UObject *Asset)
 	{
+		TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
 		MaterialThumbnail->SetAsset(Asset);
 		MaterialThumbnail->RefreshThumbnail();
 		MaterialThumbnail->GetViewportRenderTargetTexture(); // Access the texture once to trigger it to render
@@ -312,7 +313,6 @@ public:
 		CurMaterial = Cast<UMaterial>(Asset);
 		Emitter->GetEffectRenderer()->SetMaterial(CurMaterial, ERHIFeatureLevel::SM5);
 		Emitter->GetProperties()->Material = CurMaterial;
-		TComponentReregisterContext<UNiagaraComponent> ComponentReregisterContext;
 	}
 
 	UObject *GetMaterial() const
