@@ -25,10 +25,10 @@ public:
 	static FTransform GetTileTransform(FPaperTileInfo Tile);
 
 	// Breaks out the information for a tile
-	UFUNCTION(BlueprintPure, Category=Sprite)
+	UFUNCTION(BlueprintPure, Category=Sprite, meta=(AdvancedDisplay=2))
 	static void BreakTile(FPaperTileInfo Tile, int32& TileIndex, UPaperTileSet*& TileSet, bool& bFlipH, bool& bFlipV, bool& bFlipD);
 
 	// Creates a tile from the specified information
-	UFUNCTION(BlueprintPure, Category=Sprite)
+	UFUNCTION(BlueprintPure, Category=Sprite, meta=(AdvancedDisplay=2))
 	static FPaperTileInfo MakeTile(int32 TileIndex, UPaperTileSet* TileSet, bool bFlipH, bool bFlipV, bool bFlipD);
 };
