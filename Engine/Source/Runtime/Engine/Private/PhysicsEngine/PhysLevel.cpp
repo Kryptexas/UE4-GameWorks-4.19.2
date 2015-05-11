@@ -257,6 +257,15 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 		// it was already done, so let just do it.
 		Target->FinishPhysicsSim();
 	}
+
+#if PHYSX_MEMORY_VALIDATION
+	static int32 Frequency = 0;
+	if (Frequency++ > 10)
+	{
+		Frequency = 0;
+		GPhysXAllocator->ValidateHeaders();
+	}
+#endif
 }
 
 FString FEndPhysicsTickFunction::DiagnosticMessage()
