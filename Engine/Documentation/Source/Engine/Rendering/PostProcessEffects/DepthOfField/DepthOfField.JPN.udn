@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2536392
 Availability:Public
 Title: 被写界深度
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
@@ -9,8 +9,8 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [/REGION]
 
 [EXCERPT:DepthOfField_Desc]
-被写界深度 (DoF) は、焦点の前後の距離に応じてブラーをシーンに適用します。現実の世界のカメラで起こることをシミュレーションします。エフェクトを使用すると、見る側の注意を引き付け、レンダリングを写真や映画にさらに近づけることができます。
-
+被写界深度 (DoF) は、焦点の前後の距離に応じてブラーをシーンに適用します。現実の世界のカメラで起こることをシミュレーションします。エフェクトを使用すると、見る側の注意を引き付け、
+レンダリングを写真や映画にさらに近づけることができます。
 [/EXCERPT:DepthOfField_Desc]
 
 ##被写界深度のタイプ
@@ -48,12 +48,12 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 * 遷移領域内のオブジェクトは、遷移領域内の位置に基づき、ブラーしていないシーンとブラーしているレイヤとの間で線形にブレンドされます。
 
 
-これらのレイヤは、遷移領域を含めて、 **Depth of Field Layers** 表示フラグを使って可視化することができます (**[表示] > [視覚化]** の下) 。近距離レイヤは緑、遠距離レイヤは青、焦点領域は黒で示されます。
+これらのレイヤは、遷移領域を含めて、 **Depth of Field Layers** 表示フラグを使って可視化することができます (**[Show] > [Visualize]** の下) 。近距離レイヤは緑、遠距離レイヤは青、焦点領域は黒で示されます。
 
 [REGION:imagetable]
 | ![Scene](dof_layers.png)(w:455) | ![Layer Visualization](dof_layers_visualize.png)(w:455) |
 | :----: | :----: |
-|被写界深度のシーン|被写界深度レイヤを可視化 |
+| 被写界深度のシーン | 被写界深度レイヤを可視化 |
 [/REGION]
 
 ## プロパティ
@@ -156,7 +156,7 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 
 ダウンサンプルの被写界深度テクニックのみを使用すると、バックグラウンドでブラーされているキャラクターにムラが生じていることが分かります。フォアグランドのキャラクターの角の周辺にもアーティファクトが生じています。アーティファクトは適応被写界深度を使用して取り除くと、バックグラウンドのキャラクターの外観がだいぶ滑らかになります。
 
-適応被写界深度は、 **Adaptive Depth of Field** 表示フラグ (**Show > Visualize**) で表示できます。有効にすると、ダウンサンプルしたエフェクト (緑) と元の解像度のエフェクト (赤) が使用されている場所がオーバーレイに表示されます。通常のシーンカラーは、ブラーが適用されていない箇所に表示されます。
+適応被写界深度は、 **Adaptive Depth of Field** 表示フラグ (**[Show] > [Visualize]**) で表示できます。有効にすると、ダウンサンプルしたエフェクト (緑) と元の解像度のエフェクト (赤) が使用されている場所がオーバーレイに表示されます。通常のシーンカラーは、ブラーが適用されていない箇所に表示されます。
 
 [REGION:fullwidth]
 ![Adaptive DoF Visualization](dof_adaptive_visualize.png)
@@ -167,5 +167,5 @@ Description: 深度に応じてシーンをブラーして、焦点をシミュ�
 [REGION:imagetable]
 | ![Adaptive Reoslution - Optimized](dof_adaptive_good.png)(w:455) | ![Adaptive Reoslution - Expensive](dof_adaptive_bad.png)(w:455) |
 | :----: | :----: |
-| Optimized | Expensive |
+| 最適化された状態 | 負荷が高い状態 |
 [/REGION]
