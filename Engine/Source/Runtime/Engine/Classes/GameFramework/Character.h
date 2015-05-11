@@ -335,6 +335,10 @@ public:
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;
 
+	/** Disable root motion on the server. When receiving a DualServerMove, where the first move is not root motion and the second is. */
+	UPROPERTY(Transient)
+	uint32 bServerMoveIgnoreRootMotion:1;
+
 	/** 
 	 * Jump key Held Time.
 	 * This is the time that the player has held the jump key, in seconds.

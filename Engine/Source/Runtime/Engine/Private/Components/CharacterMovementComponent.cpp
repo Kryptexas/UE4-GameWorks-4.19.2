@@ -1537,7 +1537,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		HandlePendingLaunch();
 
 		// If using RootMotion, tick animations before running physics.
-		if( !CharacterOwner->bClientUpdating && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh() )
+		if (!CharacterOwner->bClientUpdating && !CharacterOwner->bServerMoveIgnoreRootMotion && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->GetMesh())
 		{
 			TickCharacterPose(DeltaSeconds);
 
@@ -1562,16 +1562,22 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 			{
 				// Convert Local Space Root Motion to world space. Do it right before used by physics to make sure we use up to date transforms, as translation is relative to rotation.
 				RootMotionParams.Set( SkelMeshComp->ConvertLocalRootMotionToWorld(RootMotionParams.RootMotionTransform) );
-				UE_LOG(LogRootMotion, Log,  TEXT("PerformMovement WorldSpaceRootMotion Translation: %s, Rotation: %s, Actor Facing: %s"),
 					*RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotionParams.RootMotionTransform.GetRotation().Rotator().ToCompactString(), *UpdatedComponent->GetForwardVector().ToCompactString());
-			}
 
-			// Then turn root motion to velocity to be used by various physics modes.
-			if( DeltaSeconds > 0.f )
-			{
-				const FVector RootMotionVelocity = RootMotionParams.RootMotionTransform.GetTranslation() / DeltaSeconds;
-				// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
-				Velocity = FVector(RootMotionVelocity.X, RootMotionVelocity.Y, (MovementMode == MOVE_Falling ? Velocity.Z : RootMotionVelocity.Z));
+				// Then turn root motion to velocity to be used by various physics modes.
+				if (DeltaSeconds > 0.f)
+				{
+					const FVector RootMotionVelocity = RootMotionParams.RootMotionTransform.GetTranslation() / DeltaSeconds;
+					// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
+					Velocity = FVector(RootMotionVelocity.X, RootMotionVelocity.Y, (MovementMode == MOVE_Falling ? Velocity.Z : RootMotionVelocity.Z));
+				}
+
+				UE_LOG(LogRootMotion, Log,  TEXT("PerformMovement WorldSpaceRootMotion Translation: %s, Rotation: %s, Actor Facing: %s, Velocity: %s")
+					, *RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString()
+					, *RootMotionParams.RootMotionTransform.GetRotation().Rotator().ToCompactString()
+					, *CharacterOwner->GetActorForwardVector().ToCompactString()
+					, *Velocity.ToCompactString()
+					);
 			}
 		}
 
@@ -6022,23 +6028,47 @@ void UCharacterMovementComponent::CallServerMove
 	{
 		const uint32 OldClientYawPitchINT = PackYawAndPitchTo32(ClientData->PendingMove->SavedControlRotation.Yaw, ClientData->PendingMove->SavedControlRotation.Pitch);
 
-		// send two moves simultaneously
-		ServerMoveDual
-			(
-			ClientData->PendingMove->TimeStamp,
-			ClientData->PendingMove->Acceleration,
-			ClientData->PendingMove->GetCompressedFlags(),
-			OldClientYawPitchINT,
-			NewMove->TimeStamp,
-			NewMove->Acceleration,
-			SendLocation,
-			NewMove->GetCompressedFlags(),
-			ClientRollBYTE,
-			ClientYawPitchINT,
-			ClientMovementBase,
-			ClientBaseBone,
-			NewMove->MovementMode
-			);
+		// If we delayed a move without root motion, and our new move has root motion, send these through a special function, so the server knows how to process them.
+		if ((ClientData->PendingMove->RootMotionMontage == NULL) && (NewMove->RootMotionMontage != NULL))
+		{
+			// send two moves simultaneously
+			ServerMoveDualHybridRootMotion
+				(
+				ClientData->PendingMove->TimeStamp,
+				ClientData->PendingMove->Acceleration,
+				ClientData->PendingMove->GetCompressedFlags(),
+				OldClientYawPitchINT,
+				NewMove->TimeStamp,
+				NewMove->Acceleration,
+				SendLocation,
+				NewMove->GetCompressedFlags(),
+				ClientRollBYTE,
+				ClientYawPitchINT,
+				ClientMovementBase,
+				ClientBaseBone,
+				NewMove->MovementMode
+				);
+		}
+		else
+		{
+			// send two moves simultaneously
+			ServerMoveDual
+				(
+				ClientData->PendingMove->TimeStamp,
+				ClientData->PendingMove->Acceleration,
+				ClientData->PendingMove->GetCompressedFlags(),
+				OldClientYawPitchINT,
+				NewMove->TimeStamp,
+				NewMove->Acceleration,
+				SendLocation,
+				NewMove->GetCompressedFlags(),
+				ClientRollBYTE,
+				ClientYawPitchINT,
+				ClientMovementBase,
+				ClientBaseBone,
+				NewMove->MovementMode
+				);
+		}
 	}
 	else
 	{
@@ -6112,6 +6142,29 @@ void UCharacterMovementComponent::ServerMoveDual_Implementation(
 	uint8 ClientMovementMode)
 {
 	ServerMove_Implementation(TimeStamp0, InAccel0, FVector(1.f,2.f,3.f), PendingFlags, ClientRoll, View0, ClientMovementBase, ClientBaseBone, ClientMovementMode);
+	ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientBaseBone, ClientMovementMode);
+}
+
+void UCharacterMovementComponent::ServerMoveDualHybridRootMotion_Implementation(
+	float TimeStamp0,
+	FVector_NetQuantize10 InAccel0,
+	uint8 PendingFlags,
+	uint32 View0,
+	float TimeStamp,
+	FVector_NetQuantize10 InAccel,
+	FVector_NetQuantize100 ClientLoc,
+	uint8 NewFlags,
+	uint8 ClientRoll,
+	uint32 View,
+	UPrimitiveComponent* ClientMovementBase,
+	FName ClientBaseBone,
+	uint8 ClientMovementMode)
+{
+	// First move received didn't use root motion, process it as such.
+	CharacterOwner->bServerMoveIgnoreRootMotion = CharacterOwner->IsPlayingNetworkedRootMotionMontage();
+	ServerMove_Implementation(TimeStamp0, InAccel0, FVector(1.f, 2.f, 3.f), PendingFlags, ClientRoll, View0, ClientMovementBase, ClientBaseBone, ClientMovementMode);
+	CharacterOwner->bServerMoveIgnoreRootMotion = false;
+
 	ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientBaseBone, ClientMovementMode);
 }
 
@@ -6350,6 +6403,11 @@ bool UCharacterMovementComponent::ServerMove_Validate(float TimeStamp, FVector_N
 }
 
 bool UCharacterMovementComponent::ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
+{
+	return true;
+}
+
+bool UCharacterMovementComponent::ServerMoveDualHybridRootMotion_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode)
 {
 	return true;
 }
@@ -6672,13 +6730,13 @@ void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(
 	// Server disagrees with Client on the Root Motion AnimMontage Track position.
 	if( CharacterOwner->bClientResimulateRootMotion || (ServerMontageTrackPosition != ClientData->LastAckedMove->RootMotionTrackPosition) )
 	{
-		UE_LOG(LogRootMotion, Warning,  TEXT("\tServer disagrees with Client's track position!! ServerTrackPosition: %f, ClientTrackPosition: %f, DeltaTrackPosition: %f. TimeStamp: %f"),
-			ServerMontageTrackPosition, ClientData->LastAckedMove->RootMotionTrackPosition, (ServerMontageTrackPosition - ClientData->LastAckedMove->RootMotionTrackPosition), TimeStamp);
-
 		// Not much we can do there unfortunately, just jump to server's track position.
 		FAnimMontageInstance * RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
 		if( RootMotionMontageInstance )
 		{
+			UE_LOG(LogRootMotion, Warning, TEXT("\tServer disagrees with Client's track position!! ServerTrackPosition: %f, ClientTrackPosition: %f, DeltaTrackPosition: %f. TimeStamp: %f, Character: %s, Montage: %s"),
+					ServerMontageTrackPosition, ClientData->LastAckedMove->RootMotionTrackPosition, (ServerMontageTrackPosition - ClientData->LastAckedMove->RootMotionTrackPosition), TimeStamp, *GetNameSafe(CharacterOwner), *GetNameSafe(RootMotionMontageInstance->Montage));
+	
 			RootMotionMontageInstance->SetPosition(ServerMontageTrackPosition);
 			CharacterOwner->bClientResimulateRootMotion = true;
 		}
@@ -6961,15 +7019,31 @@ void UCharacterMovementComponent::TickCharacterPose(float DeltaTime)
 {
 	check(CharacterOwner && CharacterOwner->GetMesh());
 
+	// Keep track of if we're playing root motion, just in case the root motion montage ends this frame.
+	bool bWasPlayingRootMotion = CharacterOwner->IsPlayingRootMotion();
+
 	CharacterOwner->GetMesh()->TickPose(DeltaTime, true);
 
 	// Grab root motion now that we have ticked the pose
-	if (CharacterOwner->IsPlayingRootMotion())
+	if (CharacterOwner->IsPlayingRootMotion() || bWasPlayingRootMotion)
 	{
 		FRootMotionMovementParams RootMotion = CharacterOwner->GetMesh()->ConsumeRootMotion();
 		if (RootMotion.bHasRootMotion)
 		{
 			RootMotionParams.Accumulate(RootMotion);
+		}
+
+		// Debugging
+		{
+			FAnimMontageInstance* RootMotionMontageInstance = CharacterOwner->GetRootMotionAnimMontageInstance();
+			UE_LOG(LogRootMotion, Log, TEXT("UCharacterMovementComponent::TickCharacterPose Role: %s, RootMotionMontage: %s, MontagePos: %f, DeltaTime: %f, ExtractedRootMotion: %s, AccumulatedRootMotion: %s")
+				, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), CharacterOwner->Role)
+				, *GetNameSafe(RootMotionMontageInstance ? RootMotionMontageInstance->Montage : NULL)
+				, RootMotionMontageInstance ? RootMotionMontageInstance->GetPosition() : -1.f
+				, DeltaTime
+				, *RootMotion.RootMotionTransform.GetTranslation().ToCompactString()
+				, *RootMotionParams.RootMotionTransform.GetTranslation().ToCompactString()
+				);
 		}
 	}
 }

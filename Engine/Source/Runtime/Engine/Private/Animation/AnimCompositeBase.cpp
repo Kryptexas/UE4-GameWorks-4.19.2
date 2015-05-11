@@ -505,7 +505,7 @@ void UAnimCompositeBase::ExtractRootMotionFromTrack(const FAnimTrack &SlotAnimTr
 	TArray<FRootMotionExtractionStep> RootMotionExtractionSteps;
 	SlotAnimTrack.GetRootMotionExtractionStepsForTrackRange(RootMotionExtractionSteps, StartTrackPosition, EndTrackPosition);
 
-	UE_LOG(LogRootMotion, Log, TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange, NumSteps: %d, StartTrackPosition: %.3f, EndTrackPosition: %.3f"),
+	UE_LOG(LogRootMotion, Verbose, TEXT("\tUAnimCompositeBase::ExtractRootMotionFromTrack, NumSteps: %d, StartTrackPosition: %.3f, EndTrackPosition: %.3f"),
 		RootMotionExtractionSteps.Num(), StartTrackPosition, EndTrackPosition);
 
 	// Go through steps sequentially, extract root motion, and accumulate it.

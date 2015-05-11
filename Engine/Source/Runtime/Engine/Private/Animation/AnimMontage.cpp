@@ -740,8 +740,10 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 
 	}
 
-	UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange RootMotionTransform: Translation: %s, Rotation: %s"),
-		*RootMotion.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotion.RootMotionTransform.GetRotation().Rotator().ToCompactString() );
+	UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange RootMotionTransform: Translation: %s, Rotation: %s")
+		, *RootMotion.RootMotionTransform.GetTranslation().ToCompactString()
+		, *RootMotion.RootMotionTransform.GetRotation().Rotator().ToCompactString() 
+		);
 
 	return RootMotion.RootMotionTransform;
 }
@@ -1382,6 +1384,12 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 							{
 								OutRootMotionParams->Accumulate(RootMotion);
 							}
+
+							UE_LOG(LogRootMotion, Log, TEXT("\tFAnimMontageInstance::Advance ExtractedRootMotion: %s, AccumulatedRootMotion: %s, bBlendRootMotion: %d")
+								, *RootMotion.GetTranslation().ToCompactString()
+								, *OutRootMotionParams->RootMotionTransform.GetTranslation().ToCompactString()
+								, bBlendRootMotion
+								);
 						}
 					}
 

@@ -2084,6 +2084,14 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 				// For now, we expect it to end itself when this happens.
 			}
 
+			if (NewAnimMontage->HasRootMotion() && AnimInstance->GetOwningActor())
+			{
+				UE_LOG(LogRootMotion, Log, TEXT("UAbilitySystemComponent::PlayMontage %s, Role: %s")
+					, *GetNameSafe(NewAnimMontage)
+					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), AnimInstance->GetOwningActor()->Role)
+					);
+			}
+
 			LocalAnimMontageInfo.AnimMontage = NewAnimMontage;
 			LocalAnimMontageInfo.AnimatingAbility = InAnimatingAbility;
 			
