@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:1.ポーンのカスタマイズ
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -21,29 +21,29 @@ Description:ポーン入門
 
 %Steps%
 
-[REGION:tip] **Unreal Engine 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 プロジェクトの作成、プロジェクトにC++コードを追加、またコードをコンパイルできる方を想定しています。[/REGION]
+[REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 プロジェクトの作成、プロジェクトにC++コードを追加、またコードをコンパイルできる方を想定しています。[/REGION]
 
 1. まず「HowTo_PlayerInput」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。その後「MyPawn」と名前を付けたカスタマイズした **Pawn** クラスをプロジェクトに追加します。
 
-	[REGION:note]**ポーン** はヒューマンまたはAIによる制御が設定されている **アクタ** の一種です。[/REGION]
+	[REGION:note]**ポーン** は人間のプレイヤーまたはAIによる制御が設定されている **アクタ** の一種です。[/REGION]
 
 	[![](AddPawn.png)](AddPawn.png)
 
 	[![](NameYourNewPawn.png)](NameYourNewPawn.png)
 
-1. まず、ゲーム開始時にMyPawnがプレイヤー入力に対し自動的に反応するように設定します。**Pawn** クラスから初期化中に設定できる変数を得ることができます。この変数はプレイヤー入力の自動対応を処理します。「MyPawn.cpp」ファイルの **AMyPawn::AMyPawn** に以下のコードを追加します：
+1. まず、ゲーム開始時にMyPawnがプレイヤー入力に対し自動的に反応するように設定します。**Pawn** クラスから初期化中に設定できる変数を得ることができます。この変数はプレイヤー入力の自動対応を処理します。「 `MyPawn.cpp` 」ファイルの **AMyPawn::AMyPawn** に以下のコードを追加します：
 
 		// Set this pawn to be controlled by the lowest-numbered player（このポーンが最小値のプレイヤーで制御されるように設定）
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-1. 次に基本的な **コンポーネント** をいくつか構成します。コードによる **コンポーネント** の追加や管理に加えて **コンポーネント** の共通タイプに関する詳細を知りたいユーザーは、[%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components) を参照してください。作成する **コンポーネント** を追跡するには、クラス定義の下にある「MyPawn.h」へ以下のコードを追加してください。
+1. 次に基本的な **コンポーネント** をいくつか構成します。コードによる **コンポーネント** の追加や管理に加えて **コンポーネント** の共通タイプに関する詳細を知りたいユーザーは、[%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components) を参照してください。作成する **コンポーネント** を追跡するには、クラス定義の下にある「 `MyPawn.h` 」へ以下のコードを追加してください。
 
 		UPROPERTY()
 		USceneComponent* OurVisibleComponent;
 
 	[REGION:note]この変数は **アンリアルエンジン** で表示されるように **UPROPERTY** とタグが付けられています。ゲームの起動時や、プロジェクトまたはレベルが閉じられて再ロードされた時に変数のリセットを防ぐために、これは重要です。[/REGION]
 
-	「MyPawn.cpp」ファイルへ戻って、以下のコードを **AMyPawn::AMyPawn** に追加します：
+	「 `MyPawn.cpp` 」ファイルへ戻って、以下のコードを **AMyPawn::AMyPawn** に追加します：
 
 		// Create a dummy root component we can attach things to.（親子付け可能なダミーのルートコンポーネントを作成）
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
@@ -56,11 +56,11 @@ Description:ポーン入門
 		OurCamera->SetRelativeRotation(FRotator(-45.0f, 0.0f, 0.0f));
 		OurVisibleComponent->AttachTo(RootComponent);
 
-1. 変更を保存してコンパイルできる状態になりました。 **Visual Studio** の **Build** コマンドか、**アンリアルエンジン** エディタの **Compile（コンパイル）** ボタンで実行します。
+1. 変更を保存してコンパイルできる状態になりました。 **Visual Studio** の **Build** コマンドか、**アンリアルエンジン** エディタの **Compile（コンパイル）** ボタンでコンパイルを実行します。
 
 ----
 
-ゲーム入力に対応するカスタマイズ **ポーン** を作成したので、入力を定義しなくてはいけません。入力は **アンリアルエンジン** エディタの **Input Settings（入力設定）** で定義します。
+ゲーム入力に対応するカスタマイズ **ポーン** を作成したので、入力規則を定義しなくてはいけません。入力は **アンリアルエンジン** エディタの **Input Settings（入力設定）** で定義します。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
