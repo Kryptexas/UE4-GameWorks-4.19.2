@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466292
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:2.C++コードでカメラビューをコントロールする
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -26,7 +26,7 @@ Description:カメラビューを変更するクラスのコーディング
 
 	[![](NameActorClass.png)](NameActorClass.png)
 
-1. "CameraDirector.h" ファイル内の **ACameraDirector** クラス定義の下部に次のコードを追加します：
+1. 「 `CameraDirector.h` 」ファイル内の **ACameraDirector** クラス定義の下部に次のコードを追加します：
 
 		UPROPERTY(EditAnywhere)
 		AActor* CameraOne;
@@ -38,7 +38,7 @@ Description:カメラビューを変更するクラスのコーディング
 
 	[REGION:note] **UPROPERTY** マクロは **アンリアルエンジン** に変数を表示します。これによりこれらの変数に設定された値は、今後のセッションでゲームをロンチ、レベルまたはプロジェクトをリロードした時にリセットされません。**アンリアルエディタ** に CameraOne と CameraTwo の設定を有効にする **EditAnywhere** キーワードも追加されました。[/REGION]
 
-1. "CameraDirector.cpp" ファイル上部の "#include" のすぐ下に以下のコード行を追加します：
+1. 「 `CameraDirector.cpp` 」ファイル上部の "#include" のすぐ下に以下のコード行を追加します：
 
 		#include "Kismet/GameplayStatics.h"
 
