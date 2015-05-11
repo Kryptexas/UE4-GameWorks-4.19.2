@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2170859
+﻿INTSourceChangelist:2532379
 Availability:Public
 Title:カスケードのパーティクルエディタのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -30,29 +30,29 @@ Description:各主要領域に分類したカスケードエディタの UIの�
 
 ## 概要
 
-カスケードは、アンリアル・エンジンでエミッタを使用してモジュール式のパーティクル ベースのエフェクトを作成するためのツールです。
+カスケードは、アンリアル エンジンでエミッタを使用してモジュール式のパーティクル ベースのエフェクトを作成するためのツールです。
 
 
 
 ##カスケードを開く
 
-カスケードパーティクル エディタを開くには、パーティクル システムのアセットを **ダブルクリック**、または **コンテンツ ブラウザ** でパーティクル システム アセットのコンテキスト メニューを **右クリック** します。上記のいずれかの方法によって、特定のパーティクル システムがカスケードで開き編集できます。
+カスケードのパーティクル エディタを開くには、パーティクル システムのアセットを **ダブルクリック**、または **コンテンツ ブラウザ** でパーティクル システム アセットのコンテキスト メニューを **右クリック** します。上記のいずれかの方法によって、特定のパーティクル システムがカスケードで開き編集できます。
 
 
 
 ## カスケードのインタフェース
 
-カスケードには、6 つの主要領域があります。
+カスケードには、以下の 6 つの主要領域があります。
 
 ![](Cascade_Interface.png)(w:720)
 
 
 1. [メニューバー](#メニューバー) - **コンテンツ ブラウザ** でアセットの保存、現在のパーティクル システムの検索にアクセスします。
 1. [ツールバー](#ツールバー) -可視化とナビゲーションのツールです。
-1. [ビューポートパネル](#ビューポートパネル) - 現在のパーティクル システムを表示します (そのシステムにあるすべてのエミッタを含みます)。_Sim_ ツールバーのオプション設定のシミュレーション速度で制御します。
-1. [エミッタ パネル](#エミッタパネル) -このペインには、現在のパーティクル システム内にあるすべてのエミッタのリストと、これらのエミッタ内のすべてのモジュールのリストがあります。 
-1. [詳細パネル](#詳細パネル) -このペインでは、現在のパーティクル システム、パーティクル エミッタ、パーティクル モジュールを表示したり、修正できます。
-1. [カーブエディタ](#カーブエディタ) -このグラフ エディタでは、相対時間または絶対時間のいずれかで修正されているプロパティが表示されます。グラフ エディタにはモジュールが追加されるので、表示コントロールがあります (このドキュメントの後半で説明します)。 
+1. [ビューポート パネル](#ビューポートパネル) - 現在のパーティクル システムを表示します (そのシステムにあるすべてのエミッタを含みます)。_Sim_ ツールバーのオプション設定のシミュレーション速度で制御します。
+1. [エミッタ パネル](#エミッタパネル) -現在のパーティクル システム内にあるすべてのエミッタのリストと、これらのエミッタ内のすべてのモジュールのリストがあります。 
+1. [詳細パネル](#詳細パネル) -現在のパーティクル システム、パーティクル エミッタ、パーティクル モジュールを表示したり、修正できます。
+1. [カーブ エディタ](#カーブエディタ) -このグラフ エディタでは、相対時間または絶対時間のいずれかで修正されているプロパティが表示されます。グラフ エディタにはモジュールが追加されるので、表示コントロールがあります (このドキュメントの後半で説明します)。 
 
 
 
@@ -113,25 +113,25 @@ Description:各主要領域に分類したカスケードエディタの UIの�
 
 | **アイコン** | **名前** | **説明** |
 | --- | --- | --- |
-|![](Cascade_Toolbar_Save.png) | **Save** | 現在のパーティクル システムのアセットを保存 |
+|![](Cascade_Toolbar_Save.png) | **保存** | 現在のパーティクル システムのアセットを保存 |
 |![](Cascade_Toolbar_FindInCB.png)| **コンテンツ ブラウザで検索** |**コンテンツ ブラウザ** で現在のパーティクル システムを検索します。|
-| ![Cascade_Toolbar_RestartSim.png](Cascade_Toolbar_RestartSim.png)| **Restart Sim** | ビューポート ウィンドウのシミュレーションをリセットします。同じ操作を **スペースバー** を押して行うこともできます。 |
-| ![Cascade_Toolbar_RestartLevel.png](Cascade_Toolbar_RestartLevel.png)| **Restart in Level** | レベル内のパーティクル システムとシステムのインスタンスをリセットします。 |
+| ![Cascade_Toolbar_RestartSim.png](Cascade_Toolbar_RestartSim.png)| **シミュレーションをリスタート** | ビューポート ウィンドウのシミュレーションをリセットします。同じ操作を **スペースバー** を押して行うこともできます。 |
+| ![Cascade_Toolbar_RestartLevel.png](Cascade_Toolbar_RestartLevel.png)| **レベル内でリスタート** | レベル内のパーティクル システムとシステムのインスタンスをリセットします。 |
 | ![Cascade_Toolbar_Undo.png](Cascade_Toolbar_Undo.png)| **Undo** | 直前の操作を元に戻します。**Ctrl + Z** を使用しても同じ操作を行うことができます。 |
 | ![Cascade_Toolbar_Redo.png](Cascade_Toolbar_Redo.png)| **Redo** | 直前の元に戻した操作をやり直します。**Ctrl + Y** を使用しても同じ操作を行うことができます。 
 | ![Cascade_Toolbar_Thumbnail.png](Cascade_Toolbar_Thumbnail.png)| **サムネイル画像を保存** | ビューポート ペインのカメラからのビューポイントをコンテンツ ブラウザのパーティクル システムとして保存します。 |
-|![](Cascade_Toolbar_Bounds.png)|**Toggle Bounds**| ビューポート ペインで、パーティクル システムの現在の境界の表示をトグルします。|
-|![](Cascade_Toolbar_BoundsOptions.png)|**Bounds Options**| クリックすると、GPU スプライトパーティクル システムに対する固定の境界をセットアップできます。固定の境界は、GPU スプライトパーティクルが移動可能な距離を制限します。|
-|![](Cascade_Toolbar_OriginAxis.png)|**Toggle Origin Axis**| パーティクル ビューポート ウィンドウで、原点軸の表示、非表示を切り替えます。 |
-| ![Cascade_Toolbar_RegenLOD.png](Cascade_Toolbar_RegenLOD.png)| **Regenerate lowest LOD duplicating highest** | 最高 LOD を複製して最低 LOD を再生成します。 |
-| ![Cascade_Toolbar_RegenLODPer.png](Cascade_Toolbar_RegenLODPer.png)| **Regenerate lowest LOD** | 最高 LOD の値のプリセットしたパーセント値を使用して、最低 LOD を再生成します。 |
-| ![Cascade_Toolbar_HighestLOD.png](Cascade_Toolbar_HighestLOD.png)| **Jump to Highest LOD Level** | 最高 LOD をロードします。 |
-| ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)| **Add LOD before current** | 現在ロードした LOD の直前に新しい LOD を追加します。 |
-| ![Cascade_Toolbar_AddLOD_After.png](Cascade_Toolbar_AddLOD_After.png)| **Add LOD after current** | 現在ロードした LOD の直後に新しい LODを追加します。 |
-| ![Cascade_Toolbar_LowerLOD.png](Cascade_Toolbar_LowerLOD.png)| **Jump to Lower LOD Level** | 次に低い LOD をロードします。 |
-| ![Cascade_Toolbar_LowestLOD.png](Cascade_Toolbar_LowestLOD.png)| **Jump to Lowest LOD Level** |最低 LOD をロードします。 |
-| ![Cascade_Toolbar_DeleteLOD.png](Cascade_Toolbar_DeleteLOD.png)| **Delete LOD** | 現在ロードした LOD を削除します。 |
-| ![Cascade_Toolbar_CurrentLOD.png](Cascade_Toolbar_CurrentLOD.png)| **Current LOD Slider** | プレビューしたい現在の LOD を選択できます。この数値の編集は、手動入力またはマウスをドラッグして値を入力します。|
+|![](Cascade_Toolbar_Bounds.png)|**境界の切替え**| ビューポート ペインで、パーティクル システムの現在の境界の表示を切り替えます。|
+|![](Cascade_Toolbar_BoundsOptions.png)|**境界のオプション**| クリックすると、GPU スプライトパーティクル システムに対する固定の境界をセットアップできます。固定の境界は、GPU スプライトパーティクルが移動可能な距離を制限します。|
+|![](Cascade_Toolbar_OriginAxis.png)|**原点軸の切替え**| パーティクル ビューポート ウィンドウで、原点軸の表示、非表示を切り替えます。 |
+| ![Cascade_Toolbar_RegenLOD.png](Cascade_Toolbar_RegenLOD.png)| **最高 LOD を複製して最低 LOD を再生成** | 最高 LOD を複製して最低 LOD を再生成します。 |
+| ![Cascade_Toolbar_RegenLODPer.png](Cascade_Toolbar_RegenLODPer.png)| **最低 LOD を再生成** | 最高 LOD の値のプリセットしたパーセント値を使用して、最低 LOD を再生成します。 |
+| ![Cascade_Toolbar_HighestLOD.png](Cascade_Toolbar_HighestLOD.png)| **最高 LOD レベルにジャンプ** | 最高 LOD をロードします。 |
+| ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)| **現在の LOD の前に LOD を追加** | 現在ロードした LOD の直前に新しい LOD を追加します。 |
+| ![Cascade_Toolbar_AddLOD_After.png](Cascade_Toolbar_AddLOD_After.png)| **現在の LOD の後に LOD を追加** | 現在ロードした LOD の直後に新しい LODを追加します。 |
+| ![Cascade_Toolbar_LowerLOD.png](Cascade_Toolbar_LowerLOD.png)| **より低い LOD レベルにジャンプ** | 次に低い LOD をロードします。 |
+| ![Cascade_Toolbar_LowestLOD.png](Cascade_Toolbar_LowestLOD.png)| **最低 LOD レベルにジャンプ** |最低 LOD をロードします。 |
+| ![Cascade_Toolbar_DeleteLOD.png](Cascade_Toolbar_DeleteLOD.png)| **LOD を削除** | 現在ロードした LOD を削除します。 |
+| ![Cascade_Toolbar_CurrentLOD.png](Cascade_Toolbar_CurrentLOD.png)| **現在の LOD のスライダー** | プレビューしたい現在の LOD を選択できます。この数値の編集は、手動入力またはマウスをドラッグして値を入力します。|
 
 
 
@@ -313,8 +313,8 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 <!--
 [EXCERPT:Emitters]
 1. **エミッタ カラム** - 各カラムは別個のエミッタを表します。
-2. **エミッタ ブロック** - 各エミッタの上部にあるこのボックスには、他の主要プロパティと共に、エミッタのタイプ、名前などそのエミッタ自体の主要プロパティと制御が含まれます。
-3. **モジュール リスト** - エミッタ ブロックの下に当該エミッタの外観と動作を定義するすべてのモジュールのリストが表示されます。すべてのエミッタは、**Required** モジュールを持ち、その後はさらに動作を定義する任意の数のモジュールが存在する場合があります。
+2.**エミッタ ブロック** - 各エミッタの上部にあるこのボックスには、他の主要プロパティと共に、エミッタのタイプ、名前などそのエミッタ自体の主要プロパティと制御が含まれます。
+3.**モジュール リスト** - エミッタ ブロックの下に当該エミッタの外観と動作を定義するすべてのモジュールのリストが表示されます。すべてのエミッタは、**Required** モジュールを持ち、その後はさらに動作を定義する任意の数のモジュールが存在する場合があります。
 [/EXCERPT:Emitters]
 -->
 
@@ -326,7 +326,7 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 エミッタの使用に関する詳細は、エミッタに関する作業のセクションのTODO を参照してください。
 -->
 
-パーティクル モジュールに関する詳細は、[Module Reference section](Engine/Rendering/ParticleSystems/Reference) を参照してください。
+パーティクル モジュールに関する詳細は、 [モジュール リファレンスのセクション](Engine/Rendering/ParticleSystems/Reference) を参照してください。
 
 
 
@@ -390,9 +390,9 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 
 ![](Curve_Editor.png)(w:720)
 
-カスケード インターフェイスには、標準のアンリアル エディタの [カーブ エディタ] ウィンドウが含まれます。このウィンドウで、ユーザーはパーティクルの寿命中またはエミッタの寿命中にわたり変更する必要がある値があれば調整することができます。つまり、時間の経過に伴い変化する値を定義します。カーブ エディタ内でプロパティを (一般的にパーティクル モジュール内から) 編集可能にするには、そのプロパティは DistributionFloatConstantCurve などのカーブを利用する Distribution タイプを持つ必要があります。Distributions(ディストリビューション) の作業については、[Distributions section](Engine/Basics/Distributions) を参照してください。
+カスケード インターフェイスには、標準のアンリアル エディタの [カーブ エディタ] ウィンドウが含まれます。このウィンドウで、ユーザーはパーティクルの寿命中またはエミッタの寿命中にわたり変更する必要がある値があれば調整することができます。つまり、時間の経過に伴い変化する値を定義します。カーブ エディタ内でプロパティを (一般的にパーティクル モジュール内から) 編集可能にするには、そのプロパティは DistributionFloatConstantCurve などのカーブを利用する Distribution タイプを持つ必要があります。Distributions(ディストリビューション) の作業については、 [ディストリビューションのセクション](Engine/Basics/Distributions) を参照してください。
 
-詳細は [Curve Editor User Guide](Engine/UI/CurveEditor) ドキュメントを参照してください。 
+詳細は [カーブ エディタのユーザーガイド](Engine/UI/CurveEditor) ドキュメントを参照してください。 
 
 [REGION:note]
 	カーブ エディタにモジュールを追加するには、モジュールの左側に表示される緑色のボックスをクリックしてください。グラフ エディタに現れるモジュールの色は、モジュールの作成時にランダムに決められることに注意してください。これを変更するには、各モジュールの [プロパティ] ウィンドウで *Module Editor Color* プロパティを開き、そこで色を変更します。   
@@ -454,13 +454,13 @@ Shader Complexity (シェーダの複雑度) では、特定のシェーダに�
 
 この計算は、エミッタのスタック内で上から下に実行されます。例えば、パーティクルの色に影響を与えるモジュールは、その上に存在する類似モジュールをオーバーライドします。従って、最も重要なモジュールをスタックの最上部により近い場所で維持することは一般的に得策です。
 
-### Distribution (分布) のタイプ
+### Distribution (ディストリビューション) のタイプ
 
-Distribution (分布) は特殊なデータ型であり、非常に専門的な方法で数を定めるように設計されています。パーティクル モジュール内で利用可能な主要プロパティのほとんどは、割り当てられた分布を持ちます。こうした分布は、プロパティが単一の値、範囲を持つ、またはカーブに沿って補間されるものとして定義する場合があります。
+Distribution (ディストリビューション) は特殊なデータ型であり、非常に専門的な方法で数を定めるように設計されています。パーティクル モジュール内で利用可能な主要プロパティのほとんどは、割り当てられたディストリビューションを持ちます。こうしたディストリビューションは、プロパティが単一の値、範囲を持つ、またはカーブに沿って補間されるものとして定義する場合があります。
 
-使用する分布のタイプは、プロパティに基づき変わります。例として、すべてのパーティクルのライフタイムを 5 秒にしたい場合、 _DistributionFloatConstant_ の分布では、単一の値を保持できます。しかし、パーティクルのライフタイムを 2 秒から 5 秒の間のランダムな値にしたい場合、 そうした範囲を指定できる _DistributionFloatUniform_ に切り替えます。 
+使用するディストリビューションのタイプは、プロパティに基づき変わります。例として、すべてのパーティクルのライフタイムを 5 秒にしたい場合、 _DistributionFloatConstant_ のディストリビューションでは、単一の値を保持できます。しかし、パーティクルのライフタイムを 2 秒から 5 秒の間のランダムな値にしたい場合、 そうした範囲を指定できる _DistributionFloatUniform_ に切り替えます。 
 
-新規ユーザーにとっては、最初は分布はわかりずらいと感じるかもしれません。しかし、パーティクル システム内で様々なプロパティを扱ううえで分布がもたらす自由度の高さをすぐに実感するでしょう。詳細は [Distributions Reference](Engine/Basics/Distributions) ページを参照してください。
+新規ユーザーにとっては、最初は分布はわかりずらいと感じるかもしれません。しかし、パーティクル システム内で様々なプロパティを扱ううえで分布がもたらす自由度の高さをすぐに実感するでしょう。詳細は [ディストリビューションのリファレンス](Engine/Basics/Distributions) ページを参照してください。
 
 (#PartileSystemLODs)
 
