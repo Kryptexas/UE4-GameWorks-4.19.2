@@ -65,6 +65,9 @@ namespace iPhonePackager
 		Error_LauncherFailed = 100,
         Error_UATLaunchFailure = 101,
         Error_FailedToDeleteStagingDirectory = 102,
+		Error_MissingExecutable = 103,
+		Error_DeviceNotSetupForDevelopment = 150,
+		Error_DeviceOSNewerThanSDK = 151,
 	};
 
 	public partial class Program

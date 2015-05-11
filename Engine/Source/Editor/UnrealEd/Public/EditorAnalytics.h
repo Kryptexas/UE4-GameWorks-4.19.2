@@ -53,10 +53,13 @@ namespace EAnalyticsErrorCodes
 		ObbNotFound = 53,
 		AndroidBuildToolsPathNotFound = 54,
 		NoApkSuitableForArchitecture = 55,
+		FilesInstallFailed = 56,
 		LauncherFailed = 100,
 		UATLaunchFailure = 101,
 		FailedToDeleteStagingDirectory = 102,
 		MissingExecutable = 103,
+		DeviceNotSetupForDevelopment = 150,
+		DeviceOSNewerThanSDK = 151,
 	};
 };
 
