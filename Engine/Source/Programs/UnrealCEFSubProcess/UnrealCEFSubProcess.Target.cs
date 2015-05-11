@@ -69,10 +69,15 @@ public class UnrealCEFSubProcessTarget : TargetRules
 		// Disable logging, as the sub processes are spawned often and logging will just slow them down
 		OutCPPEnvironmentConfiguration.Definitions.Add("ALLOW_LOG_FILE=0");
 	}
-    public override bool GUBP_AlwaysBuildWithBaseEditor()
+
+    public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
     {
+        bInternalToolOnly = false;
+        SeparateNode = false;
+        CrossCompile = false;
         return true;
     }
+
     public override bool GUBP_NeedsPlatformSpecificDLLs()
     {
         return true;
