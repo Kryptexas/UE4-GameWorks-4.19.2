@@ -1379,7 +1379,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	bool bMoved = false;
 	TArray<FOverlapInfo> PendingOverlaps;
 	TArray<FOverlapInfo> OverlapsAtEndLocation;
-	TArray<FOverlapInfo>* OverlapsAtEndLocationPtr = NULL; // When non-null, used as optimization to avoid work in UpdateOverlaps.
+	const TArray<FOverlapInfo>* OverlapsAtEndLocationPtr = nullptr; // When non-null, used as optimization to avoid work in UpdateOverlaps.
 	AActor* const Actor = GetOwner();
 
 	if ( !bSweep )
@@ -1569,16 +1569,13 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			{
 				// Can only do this if current known overlaps are valid (not deferring updates, or we know there are no new pending overlaps).
 				const FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
-				if (ScopedUpdate == nullptr
-					|| (OverlappingComponents.Num() == 0 && !ScopedUpdate->HasPendingOverlapsInAncestorOrSelf())
-					|| (!ScopedUpdate->GetOuterDeferredScope()))
+				if (ScopedUpdate == nullptr || ScopedUpdate->HasKnownOverlapStateAtEnd())
 				{
 					// Only if we know that we won't change our overlap status with children by moving.
 					if (AreSymmetricRotations(NewRotationQuat, ComponentToWorld.GetRotation(), ComponentToWorld.GetScale3D()) &&
 						AreAllCollideableDescendantsRelative())
 					{
-						OverlapsAtEndLocation = OverlappingComponents;
-						OverlapsAtEndLocationPtr = &OverlapsAtEndLocation;
+						OverlapsAtEndLocationPtr = (ScopedUpdate ? ScopedUpdate->GetKnownOverlapsAtEnd(&OverlappingComponents) : &OverlappingComponents);
 					}
 				}
 			}
@@ -1597,7 +1594,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 			// Defer UpdateOverlaps until the scoped move ends.
 			FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
 			checkSlow(ScopedUpdate != NULL);
-			ScopedUpdate->AppendOverlaps(PendingOverlaps, OverlapsAtEndLocationPtr);
+			ScopedUpdate->AppendOverlapsAfterMove(PendingOverlaps, OverlapsAtEndLocationPtr);
 		}
 		else
 		{
@@ -1613,7 +1610,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 		{
 			FScopedMovementUpdate* ScopedUpdate = GetCurrentScopedMovement();
 			checkSlow(ScopedUpdate != NULL);
-			ScopedUpdate->AppendBlockingHit(BlockingHit);
+			ScopedUpdate->AppendBlockingHitAfterMove(BlockingHit);
 		}
 		else
 		{
@@ -2128,7 +2125,7 @@ void UPrimitiveComponent::ClearMoveIgnoreActors()
 }
 
 
-void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
+void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 

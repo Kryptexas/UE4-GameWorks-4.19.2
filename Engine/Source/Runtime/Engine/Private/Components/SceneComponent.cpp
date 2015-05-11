@@ -483,34 +483,33 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 	// Process top of the stack
 	FScopedMovementUpdate* CurrentScopedUpdate = ScopedMovementStack.Pop(false);
 	check(CurrentScopedUpdate == &CompletedScope);
-
-	if (CurrentScopedUpdate)
 	{
 		checkSlow(CurrentScopedUpdate->IsDeferringUpdates());
 		if (ScopedMovementStack.Num() == 0)
 		{
 			// This was the last item on the stack, time to apply the updates if necessary
-			const bool bMoved = CurrentScopedUpdate->IsTransformDirty();
-			if (bMoved)
+			const bool bTransformChanged = CurrentScopedUpdate->IsTransformDirty();
+			if (bTransformChanged)
 			{
 				PropagateTransformUpdate(true);
 			}
 
 			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
-			if (bMoved || CurrentScopedUpdate->HasPendingOverlaps() || CurrentScopedUpdate->HasValidOverlapsAtEnd())
+			// If no movement and no change in transform, nothing changed.
+			if (bTransformChanged || CurrentScopedUpdate->bHasMoved)
 			{
 				UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, CurrentScopedUpdate->GetOverlapsAtEnd());
 			}
 
 			// Dispatch all deferred blocking hits
-			if (CompletedScope.BlockingHits.Num() > 0)
+			if (CurrentScopedUpdate->BlockingHits.Num() > 0)
 			{
 				AActor* const Owner = GetOwner();
 				if (Owner)
 				{
 					// If we have blocking hits, we must be a primitive component.
 					UPrimitiveComponent* PrimitiveThis = CastChecked<UPrimitiveComponent>(this);
-					for (const FHitResult& Hit : CompletedScope.BlockingHits)
+					for (const FHitResult& Hit : CurrentScopedUpdate->BlockingHits)
 					{
 						PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
 					}
@@ -2242,7 +2241,8 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 : Owner(Component)
 , OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
-, bHasValidOverlapsAtEnd(false)
+, bHasStoredOverlapsAtEnd(false)
+, bHasMoved(false)
 {
 	if (IsValid(Component))
 	{
@@ -2305,7 +2305,7 @@ void FScopedMovementUpdate::RevertMove()
 	USceneComponent* Component = Owner;
 	if (IsValid(Component))
 	{
-		bHasValidOverlapsAtEnd = false;
+		bHasStoredOverlapsAtEnd = false;
 		PendingOverlaps.Reset();
 		OverlapsAtEnd.Reset();
 		BlockingHits.Reset();
@@ -2325,20 +2325,24 @@ void FScopedMovementUpdate::RevertMove()
 			}
 		}
 	}
+	bHasMoved = false;
 }
 
 
-void FScopedMovementUpdate::AppendOverlaps(const TArray<struct FOverlapInfo>& OtherOverlaps, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
+void FScopedMovementUpdate::AppendOverlapsAfterMove(const TArray<FOverlapInfo>& NewPendingOverlaps, const TArray<FOverlapInfo>* NewOverlapsAtEndLocation)
 {
-	PendingOverlaps.Append(OtherOverlaps);
-	if (OverlapsAtEndLocation)
+	bHasMoved = true;
+	PendingOverlaps.Append(NewPendingOverlaps);
+	if (NewOverlapsAtEndLocation)
 	{
-		bHasValidOverlapsAtEnd = true;
-		OverlapsAtEnd = *OverlapsAtEndLocation;		
+		bHasStoredOverlapsAtEnd = true;
+		OverlapsAtEnd = *NewOverlapsAtEndLocation;		
 	}
 	else
 	{
-		bHasValidOverlapsAtEnd = false;
+		// null indicates unknown overlap state at the end.
+		bHasStoredOverlapsAtEnd = false;
+		OverlapsAtEnd.Reset();
 	}
 }
 
@@ -2350,11 +2354,57 @@ void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& In
 		checkSlow(InnerScope.IsDeferringUpdates());
 		checkSlow(InnerScope.OuterDeferredScope == this);
 
-		// Combine with the next item on the stack
-		AppendOverlaps(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());
+		// Combine with the next item on the stack.
+		if (InnerScope.HasMoved(EHasMovedTransformOption::eTestTransform))
+		{
+			bHasMoved = true;
+			AppendOverlapsAfterMove(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());
+		}
+		else
+		{
+			// Don't want to invalidate a parent scope when nothing changed in the child.
+		}
+
 		BlockingHits.Append(InnerScope.GetPendingBlockingHits());
 	}	
 }
+
+bool FScopedMovementUpdate::HasKnownOverlapStateAtEnd() const
+{
+	const FScopedMovementUpdate* CurrentScope = this;
+	do
+	{
+		if (CurrentScope->HasMoved(EHasMovedTransformOption::eTestTransform))
+		{
+			return bHasStoredOverlapsAtEnd;
+		}
+
+		CurrentScope = CurrentScope->GetOuterDeferredScope();
+	}
+	while (CurrentScope != nullptr);
+
+	// Top level scope that has not moved. Current state of overlaps is same as component.
+	return true;
+}
+
+const TArray<FOverlapInfo>* FScopedMovementUpdate::GetKnownOverlapsAtEnd(const TArray<FOverlapInfo>* DefaultOverlaps) const
+{
+	const FScopedMovementUpdate* CurrentScope = this;
+	do
+	{
+		if (CurrentScope->HasMoved(EHasMovedTransformOption::eTestTransform))
+		{
+			return CurrentScope->GetOverlapsAtEnd();
+		}
+
+		CurrentScope = CurrentScope->GetOuterDeferredScope();
+	}
+	while (CurrentScope != nullptr);
+
+	// Top level scope that has not moved.
+	return DefaultOverlaps;
+}
+
 
 #if WITH_EDITOR
 const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
