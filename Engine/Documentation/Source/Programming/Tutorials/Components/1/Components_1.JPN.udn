@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2543301
+Availability:Public
 Title:1.コンポーネントの作成と親子付け
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:さまざまなコンポーネントを作成してカスタマイズしたポーンに親子付けする
@@ -10,7 +11,7 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Programming Tutorials Home](Programming\Tutorials\)
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\Components\2 "%Programming\Tutorials\Components\2:title%")
@@ -20,21 +21,21 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 
 %Steps%
 
-[REGION:tip]**アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 **アンリアルエディタ** でプロジェクトを作成、プロジェクトにC++コードを追加、および 入力値の設定ができる方を想定しています。独自の **Pawn** クラス作成や入力設定に不慣れなユーザーは、 [%Programming\Tutorials\PlayerInput:title% tutorial](Programming\Tutorials\PlayerInput) から開始されると良いでしょう。[/REGION]
+[REGION:tip]**アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 **アンリアルエディタ** でプロジェクトを作成、プロジェクトにC++コードを追加、および 入力値の設定ができる方を想定しています。独自の **Pawn** クラス作成や入力設定に不慣れなユーザーは、 [%Programming\Tutorials\PlayerInput:title% tutorial](Programming\Tutorials\PlayerInput) から始めてください。[/REGION]
 
-1. まず「HowTo_Components」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。まず必要なことは、プロジェクトに **コンポーネント** を保持し、レベルの移動、そしてソリッドなオブジェクトと衝突するカスタマイズした **ポーン** をプロジェクトに追加することです。このチュートリアルでは「CollidingPawn」と名前を付けます。
+1. まず「HowTo_Components」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。まず必要なのは、 **コンポーネント** を保持、レベル内を移動、そしてソリッドなオブジェクトと衝突するカスタマイズした **ポーン** をプロジェクトに追加することです。このチュートリアルでは「CollidingPawn」と名前を付けます。
 
 	[![](ChooseParentClass.png)](ChooseParentClass.png)
 
 	[![](NamePawnClass.png)](NamePawnClass.png)
 
-1. **Visual Studio** で 「CollidingPawn.h」 ファイルを開いて、以下のコードをクラス定義の下に追加します：
+1. **Visual Studio** で `CollidingPawn.h` を開いて、以下のコードをクラス定義の下に追加します：
 
 		UParticleSystemComponent *OurParticleSystem;
 
 	この変数は後に作成する **Particle System Component** の追跡に使用します。変数で追跡を行わない **コンポーネント** も作成できますが、コードでこの **コンポーネント** を使用する場合は、以下のようにクラスメンバ変数に保存しなくてはいけません。
 
-1. さまざまな有用な **コンポーネント** のスポーンとこれらの階層をアレンジするコードを追加することにより、"CollidingPawn.cpp" ファイルを開いてコンストクション関数 **ACollidingPawn::ACollidingPawn** を編集します。物理ワールドとインタラクションを行う **スフィアコンポーネント** 、コリジョン形状を視覚的に表現する **スタティックメッシュコンポーネント** 、意図的にオン/オフに出来る **パーティクルシステムコンポーネント** 、またインゲームパースペクティブをコントロールするために **カメラコンポーネント** を親子付けして使用できる **スプリングアームコンポーネント** を作成します。
+1.  `CollidingPawn.cpp` を開いて、さまざまな用途に役立つ **コンポーネント** をスポーンするコードを追加することにより、コンストラクタ関数、 **ACollidingPawn::ACollidingPawn** の編集が可能になり、コンポーネントを階層に配置します。物理ワールドとインタラクションを行う **スフィアコンポーネント** 、コリジョン形状を視覚的に表現する **スタティックメッシュコンポーネント** 、意図的にオン/オフに出来る **パーティクルシステムコンポーネント** 、またインゲームパースペクティブをコントロールするために **カメラコンポーネント** を親子付けして使用できる **スプリングアームコンポーネント** を作成します。
 
 1. 最初に階層のルートとなる **コンポーネント** を決めます。このチュートリアルは、ゲームワールドとのインタラクションや衝突が可能な物理プレゼンスである **スフィアコンポーネント** をルートに使用します。**アクタ** は複数の物理が有効な **コンポーネント** を階層に設定できますが、チュートリアルでは1つのみを有効にします。
 			// Our root component will be a sphere that reacts to physics（ルートコンポーネントは物理に反応するスフィアコンポーネント）
@@ -55,9 +56,9 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 				SphereVisual->SetWorldScale3D(FVector(0.8f));
 			}
 
-	[REGION:note]**Static Mesh** アセットのアセット位置をコードで確認することができますが、パスコードのハードコーディングは一般的にアセットのロードに最適な方法とを言えません。クラスでコンポーネントを使用するには、コードに **コンポーネント** 自体を作成して、 **アンリアルエディタ** でアセットを選択することが一般的に望ましいとされます。しかしながら、コードで直接アセットをロードすることも可能で、プログラマーのデバッグ作業や新規機能の作成を高速に行える場合もあります。[/REGION]
+	[REGION:note]**Static Mesh** アセットのアセット位置をコードで確認することができますが、パスコードのハードコーディングは一般的にアセットのロードに最適な方法とを言えません。クラスでコンポーネントを使用するには、コードに **コンポーネント** 自体を作成して、 **アンリアルエディタ** でアセットを選択することが一般的に望ましいとされます。一方でコードで直接アセットをロードすることも可能で、プログラマーが行うデバッグ作業や新規機能の作成を高速に処理できます。[/REGION]
 
-1. 階層に非アクティブな **パーティクルシステムコンポーネント** を親子付けが出来るようになりました。このコンポーネントはコードで操作可能で、後にオン/オフを切り替える入力を設定出来ます。**パーティクルシステムコンポーネント** は **スタティックメッシュコンポーネント** に直接親子付けできることに注目してください。プレイ中の表示をより良くするために、メッシュの下部中央から少しだけオフセットも行います。
+1. 階層に非アクティブな **パーティクルシステムコンポーネント** を親子付けが出来るようになりました。このコンポーネントはコードで操作可能で、後にオン/オフを切り替える入力を設定出来ます。**パーティクルシステムコンポーネント** は **スタティックメッシュコンポーネント** に直接親子付けできることに注目してください。プレイ中の表示をより良くするために、メッシュの下部中央から少しだけオフセットしいます。
 			// Create a particle system that we can activate or deactivate（アクティベートにしたり非アクティベートが可能なパーティクルシステムを作成）
 			OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
 			OurParticleSystem->AttachTo(SphereVisual);
@@ -69,7 +70,7 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 				OurParticleSystem->SetTemplate(ParticleAsset.Object);
 			}
 
-1. **スプリングアームコンポーネント** は、追跡している **ポーン** よりもゆっくりとカメラを加速したり減速させるためによりスムーズな固定点を提供します。サードパーソンゲームでプレイヤーがコーナーへ追いつめられるシチュエーションなど、カメラがソリッドなオブジェクトを通り抜けてしまうことを防止する内蔵機能も備わっています。必須ではありませんが、ゲーム内のカメラワークにスムースな感覚を作成する迅速かつ簡単な方法です。
+1. **スプリングアームコンポーネント** は、追跡している **ポーン** よりもゆっくりとカメラを加速したり減速させるため、よりスムーズな固定点を作成します。サードパーソンゲームでプレイヤーがコーナーへ追いつめられるシチュエーションなど、カメラがソリッドなオブジェクトを通り抜けてしまうことを防止する内蔵機能も備わっています。必須ではありませんが、ゲーム内のカメラワークにスムースな感覚を作成する迅速かつ簡単な方法です。
 			// Use a spring arm to give the camera smooth, natural-feeling motion（カメラにスムースで自然な移動を再現するためにスプリングアームを使用）
 			USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
 			SpringArm->AttachTo(RootComponent);
