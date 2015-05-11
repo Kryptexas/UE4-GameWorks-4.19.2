@@ -58,7 +58,7 @@ class GAMEPLAYABILITIES_API AGameplayCueNotify_Actor : public AActor
 	UFUNCTION(BlueprintNativeEvent, Category = "GameplayCueNotify")
 	bool OnRemove(AActor* MyTarget, FGameplayCueParameters Parameters);
 
-	UPROPERTY(EditDefaultsOnly, Category = GameplayCue)
+	UPROPERTY(EditDefaultsOnly, Category=GameplayCue, meta=(Categories="GameplayCue"))
 	FGameplayTag	GameplayCueTag;
 
 	/** Mirrors GameplayCueTag in order to be asset registry searchable */
