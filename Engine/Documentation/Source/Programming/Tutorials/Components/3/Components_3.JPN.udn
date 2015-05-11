@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:3.Pawn Movement Component のビヘイビアのコーディング
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -22,12 +22,12 @@ Description:Pawn Movement Component でコントロールするポーンがフ�
 
 %Steps%
 
-1. **Visual Studio** に戻ってカスタム仕様の **Pawn Movement Component** をプログラミングします。ここで必要な記述は、フレーム間を移動するための TickComponent 関数です（ **アクタ** のTick 関数と類似）「CollidingPawnMovementComponent.h」ファイルのクラス定義で TickComponent をオーバーライドしなくてはいけません：
+1. **Visual Studio** に戻ってカスタム仕様の **Pawn Movement Component** をプログラミングします。ここで必要な記述は、フレーム間を移動するための TickComponent 関数です（ **アクタ** のTick 関数と類似）「 `CollidingPawnMovementComponent.h` 」ファイルのクラス定義で、 TickComponent をオーバーライドしなくてはいけません：
 
 		public:
 			virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;	
 
-	「CollidingPawnMovementComponent.cpp」 ファイルいこの関数を定義します：
+	「 `CollidingPawnMovementComponent.cpp` 」ファイルにこの関数を定義します：
 
 		void UCollidingPawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 		{
