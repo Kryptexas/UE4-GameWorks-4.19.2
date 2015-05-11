@@ -18,7 +18,7 @@
 
 // Whether to track PhysX memory allocations
 #ifndef PHYSX_MEMORY_VALIDATION
-#define PHYSX_MEMORY_VALIDATION		1
+#define PHYSX_MEMORY_VALIDATION		0
 #endif
 
 // Whether to track PhysX memory allocations
