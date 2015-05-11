@@ -182,8 +182,7 @@ FProcHandle FBuildActionExecutor::CreateChildProcess(const FString& FileName, co
 void FBuildActionExecutor::WaitForOutput(FProcHandle ProcessHandle, void* ReadPipe)
 {
 	#if PLATFORM_WINDOWS
-		HANDLE Handles[] = { ProcessHandle.Get(), ReadPipe };
-		::WaitForMultipleObjects(ARRAY_COUNT(Handles), Handles, false, INFINITE);
+		::WaitForSingleObject(ProcessHandle.Get(), 500);
 	#else
 		#error WaitForOutput is not implemented for this platform
 	#endif

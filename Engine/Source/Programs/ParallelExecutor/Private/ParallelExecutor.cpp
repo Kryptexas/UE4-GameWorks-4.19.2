@@ -28,5 +28,5 @@ int main(int ArgC, const char* ArgV[])
 		return 1;
 	}
 
-	return Graph.ExecuteInParallel(1);//FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+	return Graph.ExecuteInParallel(FPlatformMisc::NumberOfCoresIncludingHyperthreads());
 }
