@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:1.タイマーを使用するアクタを作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -29,7 +29,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 	[![](NameYourActor.png)](NameYourActor.png)
 
-1. ゲームに表示するシンプルなカウントダウンタイマーの作成からとりかかります。「Countdown.h」ファイル内のクラス定義の最後に以下の行を追加します：
+1. ゲームに表示するシンプルなカウントダウンタイマーの作成からとりかかります。「 `Countdown.h` 」ファイルのクラス定義の最後に以下の行を追加します：
 
 		int32 CountdownTime;
 
@@ -37,7 +37,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 		void UpdateTimerDisplay();
 
-1. 「Countdown.cpp」ファイルに、レンダリング可能なテキスト **コンポーネント** を作成して、カウントダウン時間を3秒に初期化します。このタイプの **アクタ** には必要ないため **Ticking** をオフにします。 **ACountdown::ACountdown** は以下のような表示になります：
+1. 「 `Countdown.cpp` 」ファイルに、レンダリング可能なテキスト **コンポーネント** を作成して、カウントダウン時間を3秒に初期化します。このタイプの **アクタ** には必要ないため **Ticking** をオフにします。 **ACountdown::ACountdown** は以下のような表示になります：
 
 		PrimaryActorTick.bCanEverTick = false;
 
@@ -56,7 +56,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 			CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
 		}
 
-1. 関数の実行に **Timer** を割り当てると、必ず **Timer Handle** が与えられます。カウントダウン終了時に **Timer** をシャットダウンするためにこのハンドルをしっかりと維持します。「Countdown.h」ファイルのクラス定義にカウントダウンを行う関数と、これを制御する **Timer Handle** を追加しましょう。ここで、カウントダウンの終了時に何か特別なことを行う関数も追加しましょう。
+1. 関数の実行に **Timer** を割り当てると、必ず **Timer Handle** が与えられます。カウントダウン終了時に **Timer** をシャットダウンするためにこのハンドルをしっかりと維持します。「 `Countdown.h` 」ファイルのクラス定義にカウントダウンを行う関数と、これを制御する **Timer Handle** を追加しましょう。ここで、カウントダウンの終了時に何か特別なことを行う関数も追加しましょう。
 
 		void AdvanceTimer();
 
@@ -64,7 +64,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 		FTimerHandle CountdownTimerHandle;
 
-	「Countdown.cpp」ファイルに **ACountdown::AdvanceTimer** と **ACountdown::CountdownHasFinished** のボディを記述することもできます：
+	「 `Countdown.cpp` 」ファイルに **ACountdown::AdvanceTimer** と **ACountdown::CountdownHasFinished** のボディを記述することもできます：
 
 		void ACountdown::AdvanceTimer()
 		{
