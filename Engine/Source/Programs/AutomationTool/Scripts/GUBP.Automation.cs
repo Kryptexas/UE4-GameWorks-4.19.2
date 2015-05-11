@@ -1164,6 +1164,17 @@ public class GUBP : BuildCommand
 						}
                     );
 				}
+
+				bool WithHTML5 = !bp.BranchOptions.PlatformsToRemove.Contains(UnrealTargetPlatform.HTML5);
+				if (WithHTML5)
+				{
+					Agenda.HTML5DotNetProjects.AddRange(
+						new string[]
+						{
+							CombinePaths(@"Engine\Source\Programs\HTML5\HTML5LaunchHelper\HTML5LaunchHelper.csproj"),
+						}
+					);
+				}
             }
 
             string AddArgs = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice";
