@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2503046
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:4.ポーンとコンポーネントの併用
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -22,11 +22,11 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 
 %Steps%
 
-1. カスタム仕様の **Pawn Movement Component** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の、「CollidingPawn.h」ファイルのクラス定義下部に以下のコードを追加します：
+1. カスタム仕様の **Pawn Movement Component** を使用するために、まずコンポーネントを追跡する **Pawn** クラスを追加します。"OurParticleSystem" 変数を追加した付近の「 `CollidingPawn.h` 」ファイルのクラス定義下部に以下のコードを追加します：
 
 		class UCollidingPawnMovementComponent* OurMovementComponent;
 
-1. コンポーネントを追跡するクラスを配置したら、新規変数に格納する **Colliding Pawn Movement Component** を作成しなくてはいけません。 "CollidingPawn.cpp" ファイルを開いて、コードで新規クラスの参照が出来るようにファイル上にある "#include" 行の下に以下を追加します：
+1. コンポーネントを追跡するクラスを配置したら、新規変数に格納する **Colliding Pawn Movement Component** を作成しなくてはいけません。 「 `CollidingPawn.cpp` 」ファイルを開いて、コードで新規クラスの参照が出来るようにファイル上にある "#include" 行の下に以下を追加します：
 
 		#include "CollidingPawnMovementComponent.h"
 
@@ -38,25 +38,25 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 
 	[REGION:note]これまでの **コンポーネント** と違って、この **コンポーネント** を独自の **Component** 階層に親子付けする必要はありません。理由は、その他の **コンポーネント** は本質的に物理ロケーションを必要とするあらゆる種類の **Scene Components** だからです。しかし **Movement Controllers** は **Scene Components** ではないため物理オブジェクトを表現しません。そのためコントローラーには物理位置に存在したり、別の **コンポーネント** に親子付けするという概念があてはまりません。[/REGION]
 
-1. **Pawns** には "GetMovementComponent" と言う関数があります。この関数は **Pawn** が現在使用中の **Pawn Movement Component** にアクセスするために、エンジン内のその他のクラスの有効化に使用します。カスタム **Pawn Movement Component** を返すようにこの関数をオーバーライドする必要があります。クラス定義に以下のコードを追加します：
+1. **Pawns** には "GetMovementComponent" と言う関数があります。この関数は **Pawn** が現在使用中の **Pawn Movement Component** にアクセスするために、エンジン内のその他のクラスの有効化に使用します。カスタム **Pawn Movement Component** を返すようにこの関数をオーバーライドする必要があります。「`CollidingPawn.h`」ファイルのクラス定義に以下のコードを追加します：
 
 		virtual UPawnMovementComponent* GetMovementComponent() const override;
 
-	そして「CollidingPawn.cpp」ファイルにオーバーライド関数の定義を以下のように追加します：
+	そして「 `CollidingPawn.cpp` 」ファイルにオーバーライド関数の定義を以下のように追加します：
 
 		UPawnMovementComponent* ACollidingPawn::GetMovementComponent() const
 		{
 			return OurMovementComponent;
 		}
 
-1. 新規 **Pawn Movement Component** を追加したので、 **Pawn** が受け取る入力を処理するコードを作成します。「CollidingPawn.h」ファイルのクラス定義にいくつかの関数を定義することからスタートします：
+1. 新規 **Pawn Movement Component** を追加したので、 **Pawn** が受け取る入力を処理するコードを作成します。「 `CollidingPawn.h` 」ファイルのクラス定義にいくつかの関数を定義することからスタートします：
 
 		void MoveForward(float AxisValue);
 		void MoveRight(float AxisValue);
 		void Turn(float AxisValue);
 		void ParticleToggle();
 
-	「CollidingPawn.cpp」ファイルでこれらの関数の定義を以下のように追加します：
+	「 `CollidingPawn.cpp` 」ファイルでこれらの関数の定義を以下のように追加します：
 
 			void ACollidingPawn::MoveForward(float AxisValue)
 			{
