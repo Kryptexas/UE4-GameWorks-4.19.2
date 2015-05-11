@@ -90,9 +90,9 @@ public:
 			float FracScale = 1.0f;
 
 			// w * almost_1 to avoid frac(1) => 0
-			VisualizeParamValue[0] = FVector4(Data.RGBMul, Data.AMul, Add, FracScale * 0.9999f);
+			VisualizeParamValue[0] = FVector4(Data.RGBMul, Data.SingleChannelMul, Add, FracScale * 0.9999f);
 			VisualizeParamValue[1] = FVector4(BlinkState, Data.bSaturateInsteadOfFrac ? 1.0f : 0.0f, Data.ArrayIndex, Data.CustomMip);
-			VisualizeParamValue[2] = FVector4(Data.InputValueMapping, 0, 0,0);
+			VisualizeParamValue[2] = FVector4(Data.InputValueMapping, 0.0f, Data.SingleChannel );
 
 			SetShaderValueArray(RHICmdList, ShaderRHI, VisualizeParam, VisualizeParamValue, 3);
 		}
@@ -261,6 +261,8 @@ FVisualizeTexture::FVisualizeTexture()
 {
 	Mode = 0;
 	RGBMul = 1.0f;
+	SingleChannelMul = 0.0f;
+	SingleChannel = -1;
 	AMul = 0.0f;
 	UVInputMapping = 3;
 	Flags = 0;
@@ -406,6 +408,8 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
 	
 	VisualizeTextureData.RGBMul = RGBMul;
+	VisualizeTextureData.SingleChannelMul = SingleChannelMul;
+	VisualizeTextureData.SingleChannel = SingleChannel;
 	VisualizeTextureData.AMul = AMul;
 	VisualizeTextureData.Tex00 = Tex00;
 	VisualizeTextureData.Tex11 = Tex11;
@@ -580,12 +584,23 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 			ExtendedName = FString::Printf(TEXT("%s"), Desc.DebugName);
 		}
 
-		FString Line = FString::Printf(TEXT("VisualizeTexture: %d \"%s\" RGB*%g+A*%g UV%d"),
+		FString Channels = TEXT("RGB");
+		switch( SingleChannel )
+		{
+			case 0: Channels = TEXT("R"); break;
+			case 1: Channels = TEXT("G"); break;
+			case 2: Channels = TEXT("B"); break;
+			case 3: Channels = TEXT("A"); break;
+		} 
+		float Multiplier = ( SingleChannel == -1 ) ? RGBMul : SingleChannelMul;
+
+		FString Line = FString::Printf(TEXT("VisualizeTexture: %d \"%s\" %s*%g UV%d"),
 			Mode,
 			*ExtendedName,
-			RGBMul,
-			AMul,
+			*Channels,
+			Multiplier,
 			UVInputMapping);
+
 		Canvas.DrawShadowedString( X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 	}
 	{

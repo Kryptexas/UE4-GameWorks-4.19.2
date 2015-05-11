@@ -26,9 +26,9 @@ TextureCubeArray VisualizeTextureCubeArray;
 SamplerState VisualizeTextureCubeArraySampler;
 #endif
 
-// [0]: r:RGBAdd, g:AMul, b:Add, a:FracScale
+// [0]: r:RGBAdd, g:SingleChannelMul, b:Add, a:FracScale
 // [1]: r:BlinkState=0/1, g:Frac when 0, saturate when 1, b:array index, a:custom mip
-// [2]: r:0=normal 1=depth  gba:unused
+// [2]: r:0=normal 1=depth, g:unwrapcubemap, b:singlechannel(0-3), a:unused
 float4 VisualizeParam[3];
 // x, y (0 for 2D textures), z(only !=0 if 3d texture), w unused
 float4 TextureExtent;
@@ -118,7 +118,19 @@ void VisualizeTexturePS(
 #endif
 	}	
 
-	float Add = TexLookup.a * VisualizeParam[0].y + VisualizeParam[0].z;
+	float4 RGBAMask = 0;
+	int SingleChannel = (int)VisualizeParam[2].z;
+	switch (SingleChannel)
+	{
+		case 0: RGBAMask = float4(1,0,0,0); break;
+		case 1: RGBAMask = float4(0,1,0,0); break;
+		case 2: RGBAMask = float4(0,0,1,0); break;
+		case 3: RGBAMask = float4(0,0,0,1); break;
+		default: RGBAMask = float4(0,0,0,0); break;
+	}
+	float Add = dot( TexLookup, RGBAMask ) * VisualizeParam[0].y + VisualizeParam[0].z;
+
+
 	OutColor.rgb = TexLookup.rgb * VisualizeParam[0].xxx + Add.xxx;
 
 	float3 ScaledColor = OutColor.rgb * VisualizeParam[0].w;
