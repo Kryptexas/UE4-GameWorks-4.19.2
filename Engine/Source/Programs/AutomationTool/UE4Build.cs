@@ -642,6 +642,11 @@ namespace AutomationTool
 			/// the solution file base name, but with various binary file extensions
 			public List<string> IOSDotNetProjects = new List<string>();
 
+			/// These are .NET project binary files that are specific to HTML5.  We define these build products as existing in the 
+			/// DotNET directory and assume that the output binary file names match
+			/// the solution file base name, but with various binary file extensions
+			public List<string> HTML5DotNetProjects = new List<string>();
+
 			public string SwarmProject = "";
 
 
@@ -1246,6 +1251,17 @@ namespace AutomationTool
 				BuildCSharpProject(CmdEnv, IOSCsProj);
 
 				AddIOSBuildProductsForCSharpProj(IOSCsProj);
+			}
+
+			foreach (var HTML5DotNetProject in Agenda.HTML5DotNetProjects)
+			{
+				string CsProj = Path.Combine(CmdEnv.LocalRoot, HTML5DotNetProject);
+
+				PrepareBuildProductsForCSharpProj(CsProj);
+
+				BuildCSharpProject(CmdEnv, CsProj);
+
+				AddBuildProductsForCSharpProj(CsProj);
 			}
 
 			foreach (var File in Agenda.ExtraDotNetFiles)
