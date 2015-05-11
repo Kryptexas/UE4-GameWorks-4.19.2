@@ -164,6 +164,9 @@ public:
 	// Returns the tile metadata for the specified tile index
 	const FPaperTileMetadata* GetTileMetadata(int32 TileIndex) const;
 
+	// Returns the user data name for the specified tile, or NAME_None if there is no user-specified data
+	FName GetTileUserData(int32 TileIndex) const;
+
 	// Returns the texture-space coordinates of the top left corner of the specified tile index
 	bool GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) const;
 

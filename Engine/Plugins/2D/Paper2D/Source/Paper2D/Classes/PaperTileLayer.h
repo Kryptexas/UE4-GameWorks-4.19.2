@@ -230,6 +230,8 @@ public:
 	// Returns the height of the layer (in tiles)
 	int32 GetLayerHeight() const { return LayerHeight; }
 
+	// Returns the transform for the given packed flag index (0..7)
+	static FTransform GetTileTransform(int32 FlagIndex);
 protected:
 	void ReallocateAndCopyMap();
 };

@@ -130,6 +130,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	virtual bool SetTileMap(class UPaperTileMap* NewTileMap);
 
+	// Returns the size of the tile map
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	void GetMapSize(int32& MapWidth, int32& MapHeight, int32& NumLayers);
+
 	// Returns the contents of a specified tile cell
 	UFUNCTION(BlueprintPure, Category="Sprite", meta=(Layer="0"))
 	FPaperTileInfo GetTile(int32 X, int32 Y, int32 Layer) const;
@@ -171,6 +175,18 @@ public:
 	// if the tile map is an asset reference, it is cloned to make a unique instance.
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	void MakeTileMapEditable();
+
+	// Returns the position of the top left corner of the specified tile
+	UFUNCTION(BlueprintPure, Category="Sprite")
+	FVector GetTileCornerPosition(int32 TileX, int32 TileY, int32 LayerIndex = 0, bool bWorldSpace = false) const;
+
+	// Returns the position of the center of the specified tile
+	UFUNCTION(BlueprintPure, Category="Sprite")
+	FVector GetTileCenterPosition(int32 TileX, int32 TileY, int32 LayerIndex = 0, bool bWorldSpace = false) const;
+
+	// Returns the polygon for the specified tile (will be 4 or 6 vertices as a rectangle, diamond, or hexagon)
+	UFUNCTION(BlueprintPure, Category="Sprite")
+	void GetTilePolygon(int32 TileX, int32 TileY, TArray<FVector>& Points, int32 LayerIndex = 0, bool bWorldSpace = false) const;
 
 #if WITH_EDITOR
 	// Returns the rendering stats for this component

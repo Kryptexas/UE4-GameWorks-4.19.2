@@ -290,3 +290,9 @@ bool UPaperTileLayer::UsesTileSet(UPaperTileSet* TileSet) const
 
 	return false;
 }
+
+FTransform UPaperTileLayer::GetTileTransform(int32 FlagIndex)
+{
+	checkSlow((FlagIndex >= 0) && (FlagIndex < 8));
+	return TilePermutationTransforms[FlagIndex];
+}
