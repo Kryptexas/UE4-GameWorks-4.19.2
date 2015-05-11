@@ -122,6 +122,18 @@ public:
 	// Creates a new tile map internally, replacing the TileMap reference (or dropping the previous owned one)
 	void CreateNewOwnedTileMap();
 
+	/**
+	 * Creates a new tile map of the specified size, replacing the TileMap reference (or dropping the previous owned one)
+	 *
+	 * @param MapWidth Width of the map (in tiles)
+	 * @param MapHeight Height of the map (in tiles)
+	 * @param TileWidth Width of one tile (in pixels)
+	 * @param TileHeight Height of one tile (in pixels)
+	 * @param bCreateLayer Should an empty layer be created?
+	 */
+	UFUNCTION(BlueprintCallable, Category="Sprite")
+	void CreateNewTileMap(int32 MapWidth = 4, int32 MapHeight = 4, int32 TileWidth = 32, int32 TileHeight = 32, float PixelsPerUnrealUnit = 1.0f, bool bCreateLayer = true);
+
 	// Does this component own the tile map (is it instanced instead of being an asset reference)?
 	UFUNCTION(BlueprintCallable, Category="Sprite")
 	bool OwnsTileMap() const;
