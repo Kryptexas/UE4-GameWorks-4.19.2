@@ -711,6 +711,7 @@ public:
 	/**  */
 	static void Reset(const FLinkerLoad* Linker)
 	{
+		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		TArray<UObject*> ToRemove;
 		for (UObject* UnresolvedObj : UnresolvedStructs)
 		{
@@ -719,7 +720,6 @@ public:
 				ToRemove.Add(UnresolvedObj);
 			}
 		}
-		FScopeLock UnresolvedStructsLock(&UnresolvedStructsCritical);
 		for (UObject* ResetingObj : ToRemove)
 		{
 			UnresolvedStructs.Remove(ResetingObj);
