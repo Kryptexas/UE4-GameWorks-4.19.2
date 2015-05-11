@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2537337
+Availability:Public
+Title:6.応用編
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
+Description:詳細を追求するためのアイデア
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\UMG\5 "%Programming\Tutorials\UMG\5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+これまでに学んだ知識を活かして、以下の操作をしてみましょう。
+
+* 同時に複数のメニューを開く。
+* 単に表示する代わりに、 **ウィジェット** をスクリーン上にスライドしたりフェードさせる。
+* **Widgets** でサポートするさまざまなサウンド、スタイル、カラーを詳しく調べる。
+* メニューから困難なレベルやキャラクタークラスなど、 **Game Mode** に変数を設定する。
+* プレイヤーがキーを押した時にゲームに表示したりゲームを一時停止させてから、メニューを閉じたらゲームプレイを再開するインゲームメニューを作成する。
+* これまでに構成した機能と接続するか、前回のチュートリアルで **UMG** に構成したメニューを学習する。
+
+以下はこのチュートリアルで取り扱う詳細です。
+
+* UMG にゲームプレイスクリーンをデザインしたり、利用できる **ウィジェット** に関する詳細は、 [%Engine/UMG/UserGuide:title%](Engine/UMG/UserGuide) または [%Engine/UMG/UserGuide/WidgetTypeReference:title%](Engine/UMG/UserGuide/WidgetTypeReference) ページを参照してください。
+* 変数や関数を公開したり、メニューで **タイマー** や **イベント** を使用する方法に関しては、 [%Programming/Tutorials/VariablesTimersEvents:title%](Programming/Tutorials/VariablesTimersEvents) ページを参照してください。
+* さらに詳しいチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページを参照してください。
+
+
+%Steps%
