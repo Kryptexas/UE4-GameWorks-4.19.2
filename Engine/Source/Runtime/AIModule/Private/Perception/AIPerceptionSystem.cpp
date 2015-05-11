@@ -100,15 +100,6 @@ UWorld* UAIPerceptionSystem::GetWorld() const
 void UAIPerceptionSystem::PostInitProperties() 
 {
 	Super::PostInitProperties();
-
-	if (HasAnyFlags(RF_ClassDefaultObject) == false)
-	{
-		UWorld* World = GEngine->GetWorldFromContextObject(GetOuter());
-		if (World)
-		{
-			World->GetTimerManager().SetTimer(AgeStimuliTimerHandle, this, &UAIPerceptionSystem::AgeStimuli, PerceptionAgingRate, /*inbLoop=*/true);
-		}
-	}
 }
 
 TStatId UAIPerceptionSystem::GetStatId() const
@@ -509,6 +500,12 @@ void UAIPerceptionSystem::StartPlay()
 			FAISenseID SenseID = Sense->GetSenseID();
 			RegisterAllPawnsAsSourcesForSense(SenseID);
 		}
+	}
+
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().SetTimer(AgeStimuliTimerHandle, this, &UAIPerceptionSystem::AgeStimuli, PerceptionAgingRate, /*inbLoop=*/true);
 	}
 }
 
