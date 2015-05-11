@@ -57,6 +57,8 @@ static FGraphEventArray WaitOutstandingTasks;
 static FGraphEventRef RHIThreadTask;
 static FGraphEventRef RenderThreadSublistDispatchTask;
 static FGraphEventRef RenderThreadExecutionTask;
+// Used by AsyncCompute
+RHI_API FRHICommandListFenceAllocator GRHIFenceAllocator;
 
 DECLARE_CYCLE_STAT(TEXT("RHI Thread Execute"), STAT_RHIThreadExecute, STATGROUP_RHICMDLIST);
 

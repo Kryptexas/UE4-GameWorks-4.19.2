@@ -918,6 +918,14 @@ public:
 
 	virtual void RHIPopEvent() = 0;
 
+	/** Start AsyncCompute command stream recording (no effect if not supported) */
+	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) = 0;
+
+	/** End AsyncCompute command stream recording (no effect if not supported) */
+	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) = 0;
+
+	/** Wait for AsyncCompute command stream to finish (no effect if not supported) */
+	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) = 0;
 };
 
 

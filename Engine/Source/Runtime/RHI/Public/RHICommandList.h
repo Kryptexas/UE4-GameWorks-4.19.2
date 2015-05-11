@@ -52,6 +52,46 @@ struct FRHICommandBase
 	}
 };
 
+// Thread-safe allocator for GPU fences used in deferred command list execution
+// Fences are stored in a ringbuffer
+class RHI_API FRHICommandListFenceAllocator
+{
+public:
+	static const int MAX_FENCE_INDICES		= 4096;
+	FRHICommandListFenceAllocator()
+	{
+		CurrentFenceIndex = 0;
+		for ( int i=0; i<MAX_FENCE_INDICES; i++)
+		{
+			FenceIDs[i] = 0xffffffffffffffffull;
+			FenceFrameNumber[i] = 0xffffffff;
+		}
+	}
+
+	uint32 AllocFenceIndex()
+	{
+		check(IsInRenderingThread());
+		uint32 FenceIndex = ( FPlatformAtomics::InterlockedIncrement(&CurrentFenceIndex)-1 ) % MAX_FENCE_INDICES;
+		check(FenceFrameNumber[FenceIndex] != GFrameNumberRenderThread);
+		FenceFrameNumber[FenceIndex] = GFrameNumberRenderThread;
+
+		return FenceIndex;
+	}
+
+	volatile uint64& GetFenceID( int32 FenceIndex )
+	{
+		check( FenceIndex < MAX_FENCE_INDICES );
+		return FenceIDs[ FenceIndex ];
+	}
+
+private:
+	volatile int32 CurrentFenceIndex;
+	uint64 FenceIDs[MAX_FENCE_INDICES];
+	uint32 FenceFrameNumber[MAX_FENCE_INDICES];
+};
+
+extern RHI_API FRHICommandListFenceAllocator GRHIFenceAllocator;
+
 class RHI_API FRHICommandListBase : public FNoncopyable
 {
 public:
@@ -1196,6 +1236,28 @@ struct FRHICommandDebugBreak : public FRHICommand<FRHICommandDebugBreak>
 
 #define CMD_CONTEXT(Method) GetContext().RHI##Method
 
+struct FRHIBeginAsyncComputeJob_DrawThread : public FRHICommand<FRHIBeginAsyncComputeJob_DrawThread>
+{
+	EAsyncComputePriority Priority; 
+	FORCEINLINE_DEBUGGABLE FRHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority InPriority) : Priority(InPriority) {}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHIEndAsyncComputeJob_DrawThread : public FRHICommand<FRHIEndAsyncComputeJob_DrawThread>
+{
+	uint32 FenceIndex;
+
+	FORCEINLINE_DEBUGGABLE FRHIEndAsyncComputeJob_DrawThread(uint32 InFenceIndex) : FenceIndex(InFenceIndex) {}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHIGraphicsWaitOnAsyncComputeJob : public FRHICommand<FRHIGraphicsWaitOnAsyncComputeJob>
+{
+	uint32 FenceIndex;
+
+	FORCEINLINE_DEBUGGABLE FRHIGraphicsWaitOnAsyncComputeJob(uint32 InFenceIndex) : FenceIndex(InFenceIndex) {}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
 
 class RHI_API FRHICommandList : public FRHICommandListBase
 {
@@ -1875,6 +1937,39 @@ public:
 		}
 		new (AllocCommand<FRHICommandDebugBreak>()) FRHICommandDebugBreak();
 #endif
+	}
+
+	FORCEINLINE_DEBUGGABLE void BeginAsyncComputeJob_DrawThread( EAsyncComputePriority Priority )
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(BeginAsyncComputeJob_DrawThread)(Priority);
+			return;
+		}
+		new (AllocCommand<FRHIBeginAsyncComputeJob_DrawThread>()) FRHIBeginAsyncComputeJob_DrawThread(Priority);
+	}
+
+	FORCEINLINE_DEBUGGABLE uint32 EndAsyncComputeJob_DrawThread()
+	{
+		uint32 FenceIndex = GRHIFenceAllocator.AllocFenceIndex();
+
+		if (Bypass())
+		{
+			CMD_CONTEXT(EndAsyncComputeJob_DrawThread)(FenceIndex);
+			return FenceIndex;
+		}
+		new (AllocCommand<FRHIEndAsyncComputeJob_DrawThread>()) FRHIEndAsyncComputeJob_DrawThread(FenceIndex);
+		return FenceIndex;
+	}
+
+	FORCEINLINE_DEBUGGABLE void GraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(GraphicsWaitOnAsyncComputeJob)(FenceIndex);
+			return;
+		}
+		new (AllocCommand<FRHIGraphicsWaitOnAsyncComputeJob>()) FRHIGraphicsWaitOnAsyncComputeJob(FenceIndex);
 	}
 };
 

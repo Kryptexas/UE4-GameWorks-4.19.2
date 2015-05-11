@@ -836,6 +836,16 @@ public:
 	{ 
 		return nullptr; 
 	}
+	
+	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) override
+	{
+	}
+	virtual void RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex) override
+	{
+	}
+	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) override
+	{
+	}
 
 private:
 

@@ -20,6 +20,15 @@ enum EShaderFrequency
 	SF_Compute			= 5,
 
 	SF_NumFrequencies	= 6,
+
+#if USE_ASYNC_COMPUTE_CONTEXT 
+	SF_AsyncCompute		= 6, // "Special" frequency to distinguish between Device Contexts, 
+							 // TODO: maybe have a separate enum for this
+	SF_NumFrequenciesIncludingAsync,
+#else
+	SF_NumFrequenciesIncludingAsync = SF_NumFrequencies,
+#endif
+
 	SF_NumBits			= 3,
 };
 static_assert(SF_NumFrequencies <= (1 << SF_NumBits), "SF_NumFrequencies will not fit on SF_NumBits");
@@ -533,6 +542,11 @@ enum ETextureCreateFlags
 	TexCreate_NoFastClear = 1 << 25,
 };
 
+enum EAsyncComputePriority
+{
+	AsyncComputePriority_Default = 0,
+	AsyncComputePriority_High,
+};
 /**
  * Async texture reallocation status, returned by RHIGetReallocateTexture2DStatus().
  */

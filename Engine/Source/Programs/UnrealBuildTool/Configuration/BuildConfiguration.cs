@@ -43,6 +43,11 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseFastMonoCalls;
 
+        /// Async Compute context support. Requires Mono and Fastcalls
+        /// </summary>
+        [XmlConfig]
+        public static bool bUseAsyncComputeContext;
+
         /// <summary>
 		/// An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
 		/// </summary>
@@ -532,7 +537,8 @@ namespace UnrealBuildTool
 			//IMPORTANT THIS IS THE MAIN SWITCH FOR MONO FAST CALLS
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
-			bUseFastMonoCalls = false;
+            bUseFastMonoCalls = true;
+            bUseAsyncComputeContext = bUseFastMonoCalls;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces

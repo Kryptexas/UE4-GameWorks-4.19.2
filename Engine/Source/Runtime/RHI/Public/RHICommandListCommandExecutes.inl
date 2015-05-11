@@ -291,6 +291,24 @@ void FRHICommandClearMRT::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(ClearMRT)(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
+void FRHIBeginAsyncComputeJob_DrawThread::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginAsyncComputeJob_DrawThread);
+	INTERNAL_DECORATOR(BeginAsyncComputeJob_DrawThread)(Priority);
+}
+
+void FRHIEndAsyncComputeJob_DrawThread::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndAsyncComputeJob_DrawThread);
+	INTERNAL_DECORATOR(EndAsyncComputeJob_DrawThread)(FenceIndex);
+}
+
+void FRHIGraphicsWaitOnAsyncComputeJob::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(GraphicsWaitOnAsyncComputeJob);
+	INTERNAL_DECORATOR(GraphicsWaitOnAsyncComputeJob)(FenceIndex);
+}
+
 void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BuildLocalBoundShaderState);

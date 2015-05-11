@@ -11,6 +11,13 @@
 #include "RHIDefinitions.h"
 #include "StaticArray.h"
 
+#define INVALID_FENCE_ID (0xffffffffffffffffull)
+
+inline const bool IsValidFenceID( const uint64 FenceID )
+{
+	return ( ( FenceID & 0x8000000000000000ull ) == 0 );
+}
+
 /** Uniform buffer structs must be aligned to 16-byte boundaries. */
 #define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
 
@@ -204,6 +211,15 @@ Requirements for RHI thread
 * BeginDrawingViewport, and 5 or so other frame advance methods are queued with an RHIThread. Without an RHIThread, these just flush internally.
 ***/
 extern RHI_API bool GRHISupportsRHIThread;
+
+inline bool IsAsyncComputeEnabled()
+{
+#if USE_ASYNC_COMPUTE_CONTEXT
+	extern int32 GAllowAsyncComputeJobs;
+	return GAllowAsyncComputeJobs != 0;
+#endif
+	return false;
+}
 
 /** Whether or not the RHI supports parallel RHIThread executes / translates
 Requirements:
