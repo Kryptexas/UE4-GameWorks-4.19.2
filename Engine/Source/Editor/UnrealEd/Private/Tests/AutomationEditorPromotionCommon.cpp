@@ -2,6 +2,7 @@
 
 #include "UnrealEd.h"
 #include "AutomationEditorPromotionCommon.h"
+#include "AssetRegistryModule.h"
 
 /**
 * Gets the base path for this asset
