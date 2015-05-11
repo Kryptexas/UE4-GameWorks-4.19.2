@@ -389,7 +389,7 @@ private:
 	FCriticalSection CriticalSection;
 
 	/** Maps class names to instance providers. */
-	TMap<const TCHAR*, TSharedPtr<IInstanceProvider>> Providers;
+	TMap<FString, TSharedPtr<IInstanceProvider>> Providers;
 };
 
 
