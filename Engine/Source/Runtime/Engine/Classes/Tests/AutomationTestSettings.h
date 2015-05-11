@@ -242,6 +242,28 @@ struct FBuildPromotionNewProjectSettings
 };
 
 /**
+* Holds settings for the material editor build promotion tests
+*/
+USTRUCT()
+struct FMaterialEditorPromotionSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Default material asset to apply to static meshes **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FFilePath DefaultMaterialAsset;
+
+	/** Default material asset to apply to static meshes **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FFilePath DefaultDiffuseTexture;
+
+	/** Default material asset to apply to static meshes **/
+	UPROPERTY(EditAnywhere, Category = Automation)
+	FFilePath DefaultNormalTexture;
+
+};
+
+/**
 * Holds settings for the editor build promotion test
 */
 USTRUCT()
@@ -335,6 +357,12 @@ public:
 	*/
 	UPROPERTY(EditAnywhere, config, Category = Automation)
 	FBuildPromotionTestSettings BuildPromotionTest;
+
+	/**
+	* Material editor promotion test settings
+	*/
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	FMaterialEditorPromotionSettings MaterialEditorPromotionTest;
 
 	/**
 	* Modules to load that have engine tests

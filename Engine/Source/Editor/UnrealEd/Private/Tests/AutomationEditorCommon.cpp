@@ -68,36 +68,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
 
 namespace AutomationEditorCommonUtils
 {
-	/**
-	* Converts a package path to an asset path
-	*
-	* @param PackagePath - The package path to convert
-	*/
-	FString ConvertPackagePathToAssetPath(const FString& PackagePath)
-	{
-		const FString Filename = FPaths::ConvertRelativePathToFull(PackagePath);
-		FString EngineFileName = Filename;
-		FString GameFileName = Filename;
-		if (FPaths::MakePathRelativeTo(EngineFileName, *FPaths::EngineContentDir()) && !EngineFileName.Contains(TEXT("../")))
-		{
-			const FString ShortName = FPaths::GetBaseFilename(EngineFileName);
-			const FString PathName = FPaths::GetPath(EngineFileName);
-			const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-			return AssetName;
-		}
-		else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
-		{
-			const FString ShortName = FPaths::GetBaseFilename(GameFileName);
-			const FString PathName = FPaths::GetPath(GameFileName);
-			const FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-			return AssetName;
-		}
-		else
-		{
-			UE_LOG(LogAutomationEditorCommon, Error, TEXT("PackagePath (%s) is invalid for the current project"), *PackagePath);
-			return TEXT("");
-		}
-	}
 
 	/**
 	* Imports an object using a given factory
@@ -782,6 +752,57 @@ bool FWaitToFinishBuildDeployCommand::Update()
 		return true;
 	}
 	return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+//Asset Path Commands
+
+/**
+* Converts a package path to an asset path
+*
+* @param PackagePath - The package path to convert
+*/
+FString FEditorAutomationTestUtilities::ConvertPackagePathToAssetPath(const FString& PackagePath)
+{
+	const FString Filename = FPaths::ConvertRelativePathToFull(PackagePath);
+	FString EngineFileName = Filename;
+	FString GameFileName = Filename;
+	if (FPaths::MakePathRelativeTo(EngineFileName, *FPaths::EngineContentDir()) && !EngineFileName.Contains(TEXT("../")))
+	{
+		const FString ShortName = FPaths::GetBaseFilename(EngineFileName);
+		const FString PathName = FPaths::GetPath(EngineFileName);
+		const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+		return AssetName;
+	}
+	else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
+	{
+		const FString ShortName = FPaths::GetBaseFilename(GameFileName);
+		const FString PathName = FPaths::GetPath(GameFileName);
+		const FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+		return AssetName;
+	}
+	else
+	{
+		UE_LOG(LogAutomationEditorCommon, Error, TEXT("PackagePath (%s) is invalid for the current project"), *PackagePath);
+		return TEXT("");
+	}
+}
+
+/**
+* Gets the asset data from a package path
+*
+* @param PackagePath - The package path used to look up the asset data
+*/
+FAssetData FEditorAutomationTestUtilities::GetAssetDataFromPackagePath(const FString& PackagePath)
+{
+	FString AssetPath = FEditorAutomationTestUtilities::ConvertPackagePathToAssetPath(PackagePath);
+	if (AssetPath.Len() > 0)
+	{
+		IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+		return AssetRegistry.GetAssetByObjectPath(*AssetPath);
+	}
+
+	return FAssetData();
 }
 
 //////////////////////////////////////////////////////////////////////

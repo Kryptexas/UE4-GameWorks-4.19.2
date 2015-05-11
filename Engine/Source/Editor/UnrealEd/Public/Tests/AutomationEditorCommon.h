@@ -47,13 +47,6 @@ namespace AutomationEditorCommonUtils
 	}
 
 	/**
-	* Converts a package path to an asset path
-	*
-	* @param PackagePath - The package path to convert
-	*/
-	FString ConvertPackagePathToAssetPath(const FString& PackagePath);
-
-	/**
 	* Imports an object using a given factory
 	*
 	* @param ImportFactory - The factory to use to import the object
@@ -242,6 +235,21 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FDeleteDirCommand, FString, InFol
 class FEditorAutomationTestUtilities
 {
 public:
+	
+	/**
+	* Converts a package path to an asset path
+	*
+	* @param PackagePath - The package path to convert
+	*/
+	UNREALED_API static FString ConvertPackagePathToAssetPath(const FString& PackagePath);
+
+	/**
+	* Gets the asset data from a package path
+	*
+	* @param PackagePath - The package path used to look up the asset data
+	*/
+	UNREALED_API static FAssetData GetAssetDataFromPackagePath(const FString& PackagePath);
+
 	/**
 	* Loads the map specified by an automation test
 	*
