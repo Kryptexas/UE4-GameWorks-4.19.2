@@ -5104,7 +5104,9 @@ TSharedPtr<FEdGraphSchemaAction> UEdGraphSchema_K2::GetCreateDocumentNodeAction(
 
 bool UEdGraphSchema_K2::CanDuplicateGraph(UEdGraph* InSourceGraph) const
 {
-	if(GetGraphType(InSourceGraph) == GT_Function)
+	EGraphType GraphType = GetGraphType(InSourceGraph);
+
+	if(GraphType == GT_Function)
 	{
 		UBlueprint* SourceBP = FBlueprintEditorUtils::FindBlueprintForGraph(InSourceGraph);
 
@@ -5127,7 +5129,7 @@ bool UEdGraphSchema_K2::CanDuplicateGraph(UEdGraph* InSourceGraph) const
 		}
 	}
 
-	return true;
+	return GraphType == GT_Function || GraphType == GT_Macro;
 }
 
 UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
