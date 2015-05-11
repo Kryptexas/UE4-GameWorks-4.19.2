@@ -11,6 +11,8 @@
 #include "NotificationManager.h"
 #include "ISettingsModule.h"
 
+#include "SourceCodeNavigation.h"
+
 #define LOCTEXT_NAMESPACE "SettingsClasses"
 
 /* UContentBrowserSettings interface
@@ -346,8 +348,16 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	PlayNetDedicated = false;
 	RunUnderOneProcess = true;
 	RouteGamepadToSecondWindow = false;
+	BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Default;
 }
 
+void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (BuildGameBeforeLaunch != EPlayOnBuildMode::PlayOnBuild_Always && !FSourceCodeNavigation::IsCompilerAvailable())
+	{
+		BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Never;
+	}
+}
 /* ULevelEditorViewportSettings interface
  *****************************************************************************/
 
