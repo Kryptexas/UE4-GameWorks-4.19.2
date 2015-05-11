@@ -555,12 +555,22 @@ class ULandscapeEditorObject : public UObject
 	void ClearImportLandscapeData() { ImportLandscape_Data.Empty(); }
 
 	void RefreshImportLayersList();
+	
+	int32 ClampLandscapeSize(int32 InComponenetsCount) const
+	{
+		// Max size is either whole components below 8192 verts, or 32 components 
+		return FMath::Clamp(InComponenetsCount, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
+	}
+	
+	int32 CalcComponentsCount(int32 InResolution) const
+	{
+		return ClampLandscapeSize(InResolution / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection));
+	}
 
 	void NewLandscape_ClampSize()
 	{
-		// Max size is either whole components below 8192 verts, or 32 components
-		NewLandscape_ComponentCount.X = FMath::Clamp(NewLandscape_ComponentCount.X, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
-		NewLandscape_ComponentCount.Y = FMath::Clamp(NewLandscape_ComponentCount.Y, 1, FMath::Min(32, FMath::FloorToInt(8191 / (NewLandscape_SectionsPerComponent * NewLandscape_QuadsPerSection))));
+		NewLandscape_ComponentCount.X = ClampLandscapeSize(NewLandscape_ComponentCount.X);
+		NewLandscape_ComponentCount.Y = ClampLandscapeSize(NewLandscape_ComponentCount.Y);
 	}
 
 	void UpdateComponentCount()

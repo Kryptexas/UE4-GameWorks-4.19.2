@@ -371,12 +371,13 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
 		[
-			SNew(SSpinBox<int32>)
+			SNew(SNumericEntryBox<int32>)
 			.Font(DetailBuilder.GetDetailFont())
 			.MinValue(1)
 			.MaxValue(8192)
 			.MinSliderValue(1)
 			.MaxSliderValue(8192)
+			.AllowSpin(true)
 			//.MinSliderValue(TAttribute<TOptional<int32> >(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetMinLandscapeResolution))
 			//.MaxSliderValue(TAttribute<TOptional<int32> >(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetMaxLandscapeResolution))
 			.Value(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetLandscapeResolutionX)
@@ -396,12 +397,13 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		.FillWidth(1)
 		.Padding(0,0,12,0) // Line up with the other properties due to having no reset to default button
 		[
-			SNew(SSpinBox<int32>)
+			SNew(SNumericEntryBox<int32>)
 			.Font(DetailBuilder.GetDetailFont())
 			.MinValue(1)
 			.MaxValue(8192)
 			.MinSliderValue(1)
 			.MaxSliderValue(8192)
+			.AllowSpin(true)
 			//.MinSliderValue(TAttribute<TOptional<int32> >(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetMinLandscapeResolution))
 			//.MaxSliderValue(TAttribute<TOptional<int32> >(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetMaxLandscapeResolution))
 			.Value(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetLandscapeResolutionY)
@@ -591,7 +593,7 @@ FText FLandscapeEditorDetailCustomization_NewLandscape::GetSectionsPerComponent(
 	return FText::Format(SectionsPerComponent == 1 ? LOCTEXT("1x1Section", "{Width}\u00D7{Height} Section") : LOCTEXT("NxNSections", "{Width}\u00D7{Height} Sections"), Args);
 }
 
-int32 FLandscapeEditorDetailCustomization_NewLandscape::GetLandscapeResolutionX() const
+TOptional<int32> FLandscapeEditorDetailCustomization_NewLandscape::GetLandscapeResolutionX() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
@@ -607,13 +609,17 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnChangeLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		if (!GEditor->IsTransactionActive())
+		int32 NewComponentCountX = LandscapeEdMode->UISettings->CalcComponentsCount(NewValue);
+		if (NewComponentCountX != LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X)
 		{
-			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
+			if (!GEditor->IsTransactionActive())
+			{
+				GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
+			}
+
+			LandscapeEdMode->UISettings->Modify();
+			LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = NewComponentCountX;
 		}
-		LandscapeEdMode->UISettings->Modify();
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
-		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
 }
 
@@ -627,13 +633,12 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnCommitLandscapeResoluti
 			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionX_Transaction", "Change Landscape Resolution X"));
 		}
 		LandscapeEdMode->UISettings->Modify();
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
-		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
+		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = LandscapeEdMode->UISettings->CalcComponentsCount(NewValue);
 		GEditor->EndTransaction();
 	}
 }
 
-int32 FLandscapeEditorDetailCustomization_NewLandscape::GetLandscapeResolutionY() const
+TOptional<int32> FLandscapeEditorDetailCustomization_NewLandscape::GetLandscapeResolutionY() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
@@ -649,13 +654,17 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnChangeLandscapeResoluti
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		if (!GEditor->IsTransactionActive())
+		int32 NewComponentCountY = LandscapeEdMode->UISettings->CalcComponentsCount(NewValue);
+		if (NewComponentCountY != LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y)
 		{
-			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
+			if (!GEditor->IsTransactionActive())
+			{
+				GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
+			}
+			
+			LandscapeEdMode->UISettings->Modify();
+			LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = NewComponentCountY;
 		}
-		LandscapeEdMode->UISettings->Modify();
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
-		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
 }
 
@@ -669,8 +678,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnCommitLandscapeResoluti
 			GEditor->BeginTransaction(LOCTEXT("ChangeResolutionY_Transaction", "Change Landscape Resolution Y"));
 		}
 		LandscapeEdMode->UISettings->Modify();
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = (NewValue / (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection));
-		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
+		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = LandscapeEdMode->UISettings->CalcComponentsCount(NewValue);
 		GEditor->EndTransaction();
 	}
 }
