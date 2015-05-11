@@ -75,8 +75,6 @@ bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<E
 
 bool FGameplayTagContainer::RemoveTagByExplicitName(const FName& TagName)
 {
-	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
-	//for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 	for (auto GameplayTag : this->GameplayTags)
 	{
 		if (GameplayTag.GetTagName() == TagName)

@@ -161,7 +161,10 @@ void UGameplayTagsManager::ConstructNetIndex()
 {
 	NetworkGameplayTagNodeIndex.Empty();
 
-	GameplayTagNodeMap.GenerateValueArray(NetworkGameplayTagNodeIndex);
+	{
+		FScopeLock Lock(&GameplayTagNodeMapCritical);
+		GameplayTagNodeMap.GenerateValueArray(NetworkGameplayTagNodeIndex);
+	}
 
 	NetworkGameplayTagNodeIndex.Sort(FCompareFGameplayTagNodeByTag());
 
@@ -196,7 +199,11 @@ FName UGameplayTagsManager::GetTagNameFromNetIndex(FGameplayTagNetIndex Index)
 
 FGameplayTagNetIndex UGameplayTagsManager::GetNetIndexFromTag(const FGameplayTag &InTag)
 {
-	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(InTag);
+	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = nullptr;
+	{
+		FScopeLock Lock(&GameplayTagNodeMapCritical);
+		GameplayTagNode = GameplayTagNodeMap.Find(InTag);
+	}
 
 	if (GameplayTagNode && GameplayTagNode->IsValid())
 	{
@@ -381,8 +388,16 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 		InsertionIdx = NodeArray.Add(TagNode);
 
 		FGameplayTag GameplayTag = FGameplayTag(TagNode->GetCompleteTag());
-		GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
-		GameplayTagNodeMap.Add(GameplayTag, TagNode);
+
+		{
+			FScopeLock Lock(&GameplayTagMapCritical);
+			GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
+		}
+
+		{
+			FScopeLock Lock(&GameplayTagNodeMapCritical);
+			GameplayTagNodeMap.Add(GameplayTag, TagNode);
+		}
 	}
 	else if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
 	{
@@ -478,7 +493,11 @@ void UGameplayTagsManager::OnObjectReimported(UFactory* ImportFactory, UObject* 
 
 FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorIfNotFound) const
 {
-	const FGameplayTag* Tag = GameplayTagMap.Find(TagName);
+	const FGameplayTag* Tag = nullptr;
+	{
+		FScopeLock Lock(&GameplayTagMapCritical);
+		Tag = GameplayTagMap.Find(TagName);
+	}
 	if (!Tag)
 	{ 
 		if (ErrorIfNotFound)
@@ -508,6 +527,7 @@ FGameplayTagContainer UGameplayTagsManager::RequestGameplayTagChildren(const FGa
 
 FGameplayTag UGameplayTagsManager::RequestGameplayTagDirectParent(const FGameplayTag& GameplayTag) const
 {
+	FScopeLock Lock(&GameplayTagNodeMapCritical);
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
 	{
@@ -559,6 +579,7 @@ bool UGameplayTagsManager::AddLeafTagToContainer(FGameplayTagContainer& TagConta
 
 void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag) const
 {
+	FScopeLock Lock(&GameplayTagNodeMapCritical);
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
 	{
@@ -577,6 +598,7 @@ void UGameplayTagsManager::AddParentTags(FGameplayTagContainer& TagContainer, co
 
 void UGameplayTagsManager::AddChildrenTags(FGameplayTagContainer& TagContainer, const FGameplayTag& GameplayTag, bool RecurseAll) const
 {
+	FScopeLock Lock(&GameplayTagNodeMapCritical);
 	const TSharedPtr<FGameplayTagNode>* GameplayTagNode = GameplayTagNodeMap.Find(GameplayTag);
 	if (GameplayTagNode)
 	{
@@ -604,38 +626,43 @@ bool UGameplayTagsManager::GameplayTagsMatch(const FGameplayTag& GameplayTagOne,
 {
 	TSet<FName> Tags1;
 	TSet<FName> Tags2;
-	if (MatchTypeOne == EGameplayTagMatchType::Explicit)
+
 	{
-		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
-		if (TagNode)
+		FScopeLock Lock(&GameplayTagNodeMapCritical);
+		if (MatchTypeOne == EGameplayTagMatchType::Explicit)
 		{
-			Tags1.Add((*TagNode)->GetCompleteTag());
+			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
+			if (TagNode)
+			{
+				Tags1.Add((*TagNode)->GetCompleteTag());
+			}
+		}
+		if (MatchTypeTwo == EGameplayTagMatchType::Explicit)
+		{
+			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
+			if (TagNode)
+			{
+				Tags2.Add((*TagNode)->GetCompleteTag());
+			}
+		}
+		if (MatchTypeOne == EGameplayTagMatchType::IncludeParentTags)
+		{
+			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
+			if (TagNode)
+			{
+				GetAllParentNodeNames(Tags1, *TagNode);
+			}
+		}
+		if (MatchTypeTwo == EGameplayTagMatchType::IncludeParentTags)
+		{
+			const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
+			if (TagNode)
+			{
+				GetAllParentNodeNames(Tags2, *TagNode);
+			}
 		}
 	}
-	if (MatchTypeTwo == EGameplayTagMatchType::Explicit)
-	{
-		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
-		if (TagNode)
-		{
-			Tags2.Add((*TagNode)->GetCompleteTag());
-		}
-	}
-	if (MatchTypeOne == EGameplayTagMatchType::IncludeParentTags)
-	{
-		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagOne);
-		if (TagNode)
-		{
-			GetAllParentNodeNames(Tags1, *TagNode);
-		}
-	}
-	if (MatchTypeTwo == EGameplayTagMatchType::IncludeParentTags)
-	{
-		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTagTwo);
-		if (TagNode)
-		{
-			GetAllParentNodeNames(Tags2, *TagNode);
-		}
-	}
+
 	return Tags1.Intersect(Tags2).Num() > 0;
 }
 
