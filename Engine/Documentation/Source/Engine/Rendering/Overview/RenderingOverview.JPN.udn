@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2532339
+Availability:Public
 Title:レンダリングの概要
 Crumbs: %ROOT%, Engine
 Description:レンダリング サブシステムの主な機能の概要
@@ -79,7 +80,7 @@ UE4 には以下の 3 つのライティング パスがあります。
 | | |
 [/REGION]
 
-詳細は [Lit translucency](Engine/Rendering/LightingAndShadows/LitTranslucency) を参照してください。
+詳細は [lit (ライティング有り)透過](Engine/Rendering/LightingAndShadows/LitTranslucency) を参照してください。
 
 ## サブサーフェス・シェーディング
 
@@ -163,7 +164,7 @@ UE4 は GPU パーティクルのシミュレーションをサポートしま�
 
 ### ビネット効果
 
-**ビネット** 効果は、ビューポート中心から距離が増加する際にレンダリング場面の輝度が低下します。
+**ビネット** 効果は、ビューポート中心からの距離が離れるほどレンダリングされたシーンの輝度が低下します。
 
 [REGION:fullwidth]
 ![Vignette Effect](vignette.png)
