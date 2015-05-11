@@ -107,200 +107,129 @@ FPluginManager::~FPluginManager()
 	//  explicitly unload your module somewhere.  We should be able to handle most cases automatically though!
 }
 
+void FPluginManager::RefreshPluginsList()
+{
+	// Read a new list of all plugins
+	TArray<TSharedRef<FPlugin>> NewPlugins;
+	ReadAllPlugins(NewPlugins);
+
+	// Build a list of filenames for plugins which are enabled, and remove the rest
+	TArray<FString> EnabledPluginFileNames;
+	for(int32 Idx = 0; Idx < AllPlugins.Num(); Idx++)
+	{
+		const TSharedRef<FPlugin>& Plugin = AllPlugins[Idx];
+		if(Plugin->bEnabled)
+		{
+			EnabledPluginFileNames.Add(Plugin->FileName);
+		}
+		else
+		{
+			AllPlugins.RemoveAt(Idx--);
+		}
+	}
+
+	// Add all the plugins which aren't already enabled
+	for(TSharedRef<FPlugin>& NewPlugin: NewPlugins)
+	{
+		if(!EnabledPluginFileNames.Contains(NewPlugin->FileName))
+		{
+			AllPlugins.Add(NewPlugin);
+		}
+	}
+}
+
 void FPluginManager::DiscoverAllPlugins()
 {
-	struct Local
+	ensure( AllPlugins.Num() == 0 );		// Should not have already been initialized!
+	ReadAllPlugins(AllPlugins);
+
+	// Add the plugin binaries directory
+	for(const TSharedRef<FPlugin>& Plugin: AllPlugins)
 	{
+		const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
+		FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
+	}
+}
 
-	private:
-		/**
-		 * Recursively searches for plugins and generates a list of plugin descriptors
-		 *
-		 * @param	PluginsDirectory	Directory we're currently searching
-		 * @param	LoadedFrom			Where we're loading these plugins from (game, engine, etc)
-		 * @param	Plugins				The array to be filled in with new plugins including descriptors
-		 */
-		static void FindPluginsRecursively( const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray< TSharedRef<FPlugin> >& Plugins )
+void FPluginManager::ReadAllPlugins(TArray<TSharedRef<FPlugin>>& Plugins)
+{
+#if (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
+	// Find "built-in" plugins.  That is, plugins situated right within the Engine directory.
+	ReadPluginsInDirectory(FPaths::EnginePluginsDir(), EPluginLoadedFrom::Engine, Plugins);
+
+	// Find plugins in the game project directory (<MyGameProject>/Plugins)
+	if( FApp::HasGameName() )
+	{
+		ReadPluginsInDirectory(FPaths::GamePluginsDir(), EPluginLoadedFrom::GameProject, Plugins);
+	}
+#endif
+}
+
+void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray<TSharedRef<FPlugin>>& Plugins)
+{
+	// Make sure the directory even exists
+	if(FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*PluginsDirectory))
+	{
+		TArray<FString> FileNames;
+		FindPluginsInDirectory(PluginsDirectory, FileNames);
+
+		for(const FString& FileName: FileNames)
 		{
-			// NOTE: The logic in this function generally matches that of the C# code for FindPluginsRecursively
-			//       in UnrealBuildTool.  These routines should be kept in sync.
-
-			// This directory scanning needs to be fast because it will happen every time at startup!  We don't
-			// want to blindly recurse down every subdirectory, because plugin content and code directories could
-			// contain a lot of files in total!
-
-			// Each sub-directory is possibly a plugin.  If we find that it contains a plugin, we won't recurse any
-			// further -- you can't have plugins within plugins.  If we didn't find a plugin, we'll keep recursing.
-			TArray<FString> PossiblePluginDirectories;
+			FPluginDescriptor Descriptor;
+			FText FailureReason;
+			if(Descriptor.Load(FileName, FailureReason))
 			{
-				class FPluginDirectoryVisitor : public IPlatformFile::FDirectoryVisitor
-				{
-				public:
-					FPluginDirectoryVisitor( TArray<FString>& InitFoundDirectories )
-						: FoundDirectories( InitFoundDirectories )
-					{
-					}
-
-					virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
-					{
-						if( bIsDirectory )
-						{
-							FoundDirectories.Add( FString( FilenameOrDirectory ) );
-						}
-
-						const bool bShouldContinue = true;
-						return bShouldContinue;
-					}
-
-					TArray<FString>& FoundDirectories;
-				};
-
-				FPluginDirectoryVisitor PluginDirectoryVisitor( PossiblePluginDirectories );
-				FPlatformFileManager::Get().GetPlatformFile().IterateDirectory( *PluginsDirectory, PluginDirectoryVisitor );
+				Plugins.Add(MakeShareable(new FPlugin(FileName, Descriptor, LoadedFrom)));
 			}
-				
-			for( auto PossiblePluginDirectoryIter( PossiblePluginDirectories.CreateConstIterator() ); PossiblePluginDirectoryIter; ++PossiblePluginDirectoryIter )
+			else
 			{
-				const FString PossiblePluginDirectory = *PossiblePluginDirectoryIter;
-
-				FString PluginDescriptorFilename;
-				{
-					// Usually the plugin descriptor is named the same as the directory.  It doesn't have to match the directory
-					// name but we'll check that first because its much faster than scanning!
-					const FString ProbablePluginDescriptorFilename = PossiblePluginDirectory / (FPaths::GetCleanFilename(PossiblePluginDirectory) + PluginSystemDefs::PluginDescriptorFileExtension);
-					if( FPlatformFileManager::Get().GetPlatformFile().FileExists( *ProbablePluginDescriptorFilename ) )
-					{
-						PluginDescriptorFilename = ProbablePluginDescriptorFilename;
-					}
-					else
-					{
-						// Scan the directory for a plugin descriptor.
-						TArray<FString> PluginDescriptorFilenames;
-						{
-							class FPluginDescriptorFileVisitor : public IPlatformFile::FDirectoryVisitor
-							{
-							public:
-								FPluginDescriptorFileVisitor( const FWildcardString& InitSearchPattern, TArray<FString>& InitFoundPluginDescriptorFilenames )
-									: SearchPattern( InitSearchPattern ),
-									  FoundPluginDescriptorFilenames( InitFoundPluginDescriptorFilenames )
-								{
-								}
-
-								virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
-								{
-									bool bShouldContinue = true;
-									if( !bIsDirectory )
-									{
-										if( SearchPattern.IsMatch( FilenameOrDirectory ) )
-										{
-											FoundPluginDescriptorFilenames.Add( FString( FilenameOrDirectory ) );
-											bShouldContinue = false;
-										}
-									}
-									return bShouldContinue;
-								}
-
-								const FWildcardString& SearchPattern;
-								TArray<FString>& FoundPluginDescriptorFilenames;
-							};
-
-							const FWildcardString PluginDescriptorSearchString = PossiblePluginDirectory / FString(TEXT("*")) + PluginSystemDefs::PluginDescriptorFileExtension;
-
-							FPluginDescriptorFileVisitor PluginDescriptorFileVisitor( PluginDescriptorSearchString, PluginDescriptorFilenames );
-							FPlatformFileManager::Get().GetPlatformFile().IterateDirectory( *PossiblePluginDirectory, PluginDescriptorFileVisitor );
-						}
-
-						// Did we find any plugin descriptor files?
-						if( PluginDescriptorFilenames.Num() > 0 )
-						{
-							PluginDescriptorFilename = PluginDescriptorFilenames[ 0 ];;
-						}
-					}
-				}
-
-				if( !PluginDescriptorFilename.IsEmpty() )
-				{
-					// Found a plugin directory!  No need to recurse any further.
-					FPluginDescriptor Descriptor;
-
-					// Load the descriptor
-					FText FailureReason;
-					if(Descriptor.Load(PluginDescriptorFilename, FailureReason))
-					{
-						TSharedRef< FPlugin > NewPlugin = MakeShareable( new FPlugin(PluginDescriptorFilename, Descriptor, LoadedFrom) );
-
-						if (FPaths::IsProjectFilePathSet())
-						{
-							FString GameProjectFolder = FPaths::GetPath(FPaths::GetProjectFilePath());
-							if (PluginDescriptorFilename.StartsWith(GameProjectFolder))
-							{
-								FString PluginBinariesFolder = FPaths::Combine(*FPaths::GetPath(PluginDescriptorFilename), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
-								FModuleManager::Get().AddBinariesDirectory(*PluginBinariesFolder, (LoadedFrom == EPluginLoadedFrom::GameProject));
-							}
-						}
-
-						Plugins.Add(NewPlugin);
-					}
-					else
-					{
-						// NOTE: Even though loading of this plugin failed, we'll keep processing other plugins
-						UE_LOG(LogPluginManager, Error, TEXT("%s (%s)"), *FailureReason.ToString(), *PluginDescriptorFilename);
-					}
-				}
-				else
-				{
-					// Didn't find a plugin in this directory.  Continue to look in subfolders.
-					FindPluginsRecursively( PossiblePluginDirectory, LoadedFrom, Plugins );
-				}
+				// NOTE: Even though loading of this plugin failed, we'll keep processing other plugins
+				UE_LOG(LogPluginManager, Error, TEXT("%s (%s)"), *FailureReason.ToString(), *FileName);
 			}
 		}
+	}
+}
 
+void FPluginManager::FindPluginsInDirectory(const FString& PluginsDirectory, TArray<FString>& FileNames)
+{
+	// Class to enumerate the contents of a directory, and find all sub-directories and plugin descriptors within it
+	struct FPluginDirectoryVisitor : public IPlatformFile::FDirectoryVisitor
+	{
+		TArray<FString> SubDirectories;
+		TArray<FString> PluginDescriptors;
 
-	public:
-
-		/**
-		 * Searches for plugins and generates a list of plugin descriptors
-		 *
-		 * @param	PluginsDirectory	The base directory to search for plugins
-		 * @param	LoadedFrom			Where we're loading these plugins from (game, engine, etc)
-		 * @param	Plugins				The array to be filled in with loaded plugin descriptors
-		 */
-		static void FindPluginsIn( const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray< TSharedRef<FPlugin> >& Plugins )
+		virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) override
 		{
-			// Make sure the directory even exists
-			if( FPlatformFileManager::Get().GetPlatformFile().DirectoryExists( *PluginsDirectory ) )
+			FString FilenameOrDirectoryStr = FilenameOrDirectory;
+			if(bIsDirectory)
 			{
-				FindPluginsRecursively( PluginsDirectory, LoadedFrom, Plugins );
+				SubDirectories.Add(FilenameOrDirectoryStr);
 			}
+			else if(FilenameOrDirectoryStr.EndsWith(TEXT(".uplugin")))
+			{
+				PluginDescriptors.Add(FilenameOrDirectoryStr);
+			}
+			return true;
 		}
 	};
 
+	// Enumerate the contents of the current directory
+	FPluginDirectoryVisitor Visitor;
+	FPlatformFileManager::Get().GetPlatformFile().IterateDirectory(*PluginsDirectory, Visitor);
 
+	// If there's no plugins in this directory, recurse through all the child directories
+	if(Visitor.PluginDescriptors.Num() == 0)
 	{
-		TArray< TSharedRef<FPlugin> > Plugins;
-
-#if (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
-		// Find "built-in" plugins.  That is, plugins situated right within the Engine directory.
-		Local::FindPluginsIn( FPaths::EnginePluginsDir(), EPluginLoadedFrom::Engine, Plugins );
-
-		// Find plugins in the game project directory (<MyGameProject>/Plugins)
-		if( FApp::HasGameName() )
+		for(const FString& SubDirectory: Visitor.SubDirectories)
 		{
-			Local::FindPluginsIn( FPaths::GamePluginsDir(), EPluginLoadedFrom::GameProject, Plugins );
+			FindPluginsInDirectory(SubDirectory, FileNames);
 		}
-#endif		// (WITH_ENGINE && !IS_PROGRAM) || WITH_PLUGIN_SUPPORT
-
-
-		// Create plugin objects for all of the plugins that we found
-		ensure( AllPlugins.Num() == 0 );		// Should not have already been initialized!
-		AllPlugins = Plugins;
-		for( auto PluginIt( Plugins.CreateConstIterator() ); PluginIt; ++PluginIt )
+	}
+	else
+	{
+		for(const FString& PluginDescriptor: Visitor.PluginDescriptors)
 		{
-			const TSharedRef<FPlugin>& Plugin = *PluginIt;
-
-			// Add the plugin binaries directory
-			const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
-			FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
+			FileNames.Add(PluginDescriptor);
 		}
 	}
 }

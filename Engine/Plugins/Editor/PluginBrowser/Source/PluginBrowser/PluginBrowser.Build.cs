@@ -23,7 +23,8 @@ namespace UnrealBuildTool.Rules
 					"Projects",
 					"UnrealEd",
 					"PropertyEditor",
-					"SharedSettingsWidgets"
+					"SharedSettingsWidgets",
+					"DirectoryWatcher"
 				}
 			);
 

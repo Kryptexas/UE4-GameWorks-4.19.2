@@ -61,6 +61,7 @@ public:
 	~FPluginManager();
 
 	/** IPluginManager interface */
+	virtual void RefreshPluginsList();
 	virtual bool LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) override;
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) override;
 	virtual bool AreRequiredPluginsAvailable() override;
@@ -75,6 +76,15 @@ private:
 	/** Searches for all plugins on disk and builds up the array of plugin objects.  Doesn't load any plugins. 
 	    This is called when the plugin manager singleton is first accessed. */
 	void DiscoverAllPlugins();
+
+	/** Reads all the plugin descriptors */
+	static void ReadAllPlugins(TArray<TSharedRef<FPlugin>>& Plugins);
+
+	/** Reads all the plugin descriptors from disk */
+	static void ReadPluginsInDirectory(const FString& PluginsDirectory, const EPluginLoadedFrom LoadedFrom, TArray<TSharedRef<FPlugin>>& Plugins);
+
+	/** Finds all the plugin descriptors underneath a given directory */
+	static void FindPluginsInDirectory(const FString& PluginsDirectory, TArray<FString>& FileNames);
 
 	/** Sets the bPluginEnabled flag on all plugins found from DiscoverAllPlugins that are enabled in config */
 	bool ConfigureEnabledPlugins();

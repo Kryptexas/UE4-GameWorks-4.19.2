@@ -36,12 +36,6 @@ void SPluginCategoryTree::Construct( const FArguments& Args, const TSharedRef< S
 
 	RebuildAndFilterCategoryTree();
 
-	// Expand all the root categories by default
-	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
-	{
-		TreeView->SetItemExpansion( RootCategory, true );
-	}
-
 	ChildSlot.AttachWidget( TreeView.ToSharedRef() );
 }
 
@@ -77,6 +71,7 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 		for(TSharedPtr<FPluginCategory> Category: RootCategory->SubCategories)
 		{
 			Category->Plugins.Reset();
+			Category->SubCategories.Reset();
 		}
 	}
 
@@ -165,6 +160,12 @@ void SPluginCategoryTree::RebuildAndFilterCategoryTree()
 	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
 	{
 		RootCategory->SubCategories.Sort([](const TSharedPtr<FPluginCategory>& A, const TSharedPtr<FPluginCategory>& B) -> bool { return A->DisplayName.CompareTo(B->DisplayName) < 0; });
+	}
+
+	// Expand all the root categories by default
+	for(TSharedPtr<FPluginCategory> RootCategory: RootCategories)
+	{
+		TreeView->SetItemExpansion(RootCategory, true);
 	}
 
 	// Refresh the view
