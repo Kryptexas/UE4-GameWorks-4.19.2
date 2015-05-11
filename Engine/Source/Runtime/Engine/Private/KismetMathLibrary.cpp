@@ -1308,6 +1308,13 @@ bool UKismetMathLibrary::IsMorning( FDateTime A )
 
 int32 UKismetMathLibrary::DaysInMonth( int32 Year, int32 Month )
 {
+	if ((Month < 1) || (Month > 12))
+	{
+		//@TODO: EXCEPTION: Throw script exception
+		FFrame::KismetExecutionMessage(TEXT("Invalid month (must be between 1 and 12): DaysInMonth"), ELogVerbosity::Warning);
+		return 0;
+	}
+
 	return FDateTime::DaysInMonth(Year, Month);
 }
 
