@@ -236,7 +236,7 @@ void UGameplayCueSet::BuildAccelerationMap_Internal()
 	for (FGameplayCueNotifyData& Data : GameplayCueData)
 	{
 		FGameplayTag Parent = Data.GameplayCueTag.RequestDirectParent();
-		while (Parent != BaseGameplayCueTag())
+		while (Parent != BaseGameplayCueTag() && Parent.IsValid())
 		{
 			int32* idxPtr = GameplayCueDataMap.Find(Parent);
 			if (idxPtr)
