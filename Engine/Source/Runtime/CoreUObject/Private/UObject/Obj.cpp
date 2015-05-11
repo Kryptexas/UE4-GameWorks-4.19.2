@@ -331,14 +331,47 @@ void UObject::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyCh
 		PropertyEvent.SetActiveMemberProperty( PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue() );
 	}
 
-	if ( HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && PropertyChangedEvent.PropertyChain.GetActiveMemberNode() == PropertyChangedEvent.PropertyChain.GetHead() && !FApp::IsGame() )
+	// Propagate change to archetype instances first if necessary.
+	if (!FApp::IsGame())
 	{
-		// Get a list of all objects which will be affected by this change; 
-		TArray<UObject*> Objects;
-		GetArchetypeInstances(Objects);
+		if (HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && PropertyChangedEvent.PropertyChain.GetActiveMemberNode() == PropertyChangedEvent.PropertyChain.GetHead())
+	{
+			// Get a list of all archetype instances
+			TArray<UObject*> ArchetypeInstances;
+			GetArchetypeInstances(ArchetypeInstances);
 
 		// Propagate the editchange call to archetype instances
-		PropagatePostEditChange(Objects, PropertyChangedEvent);
+			PropagatePostEditChange(ArchetypeInstances, PropertyChangedEvent);
+		}
+		else if (GetOuter()->HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject))
+		{
+			// Get a list of all outer's archetype instances
+			TArray<UObject*> ArchetypeInstances;
+			GetOuter()->GetArchetypeInstances(ArchetypeInstances);
+
+			// Find UProperty describing this in Outer.
+			for (UProperty* Property = GetOuter()->GetClass()->RefLink; Property != nullptr; Property = Property->NextRef)
+			{
+				if (this != *Property->ContainerPtrToValuePtr<UObject*>(GetOuter()))
+				{
+					continue;
+				}
+
+				// Since we found property, propagate PostEditChange to all relevant components of archetype instances.
+				TArray<UObject*> ArchetypeComponentInstances;
+				for (auto ArchetypeInstance : ArchetypeInstances)
+				{
+					if (UObject* ComponentInstance = *Property->ContainerPtrToValuePtr<UObject*>(ArchetypeInstance))
+					{
+						ArchetypeComponentInstances.Add(ComponentInstance);
+					}
+				}
+
+				GetOuter()->PropagatePostEditChange(ArchetypeComponentInstances, PropertyChangedEvent);
+
+				break;
+			}
+		}
 	}
 
 	PostEditChangeProperty(PropertyEvent);
@@ -395,7 +428,7 @@ void UObject::PropagatePostEditChange( TArray<UObject*>& AffectedObjects, FPrope
 
 		// in order to ensure that all objects are re-initialized properly, only process the objects which have this object as their
 		// ObjectArchetype
-		if ( Obj->GetArchetype() == this )
+		if ( Obj->GetArchetype() == this || Obj->GetOuter()->GetArchetype() == this )
 		{
 			// add this object to the list that we're going to process
 			Instances.Add(Obj);
