@@ -66,6 +66,12 @@ struct FKismetUserDeclaredFunctionMetadata
 	FText Category;
 
 	UPROPERTY()
+	FText Keywords;
+
+	UPROPERTY()
+	FText CompactNodeTitle;
+
+	UPROPERTY()
 	FLinearColor InstanceTitleColor;
 
 	UPROPERTY()

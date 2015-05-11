@@ -1220,6 +1220,19 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category.ToString());
 		}
+
+		// Set up the function keywords
+		if( !FunctionMetaData.Keywords.IsEmpty() )
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionKeywords, *FunctionMetaData.Keywords.ToString());
+		}
+
+		// Set up the function compact node title
+		if( !FunctionMetaData.CompactNodeTitle.IsEmpty() )
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_CompactNodeTitle, *FunctionMetaData.CompactNodeTitle.ToString());
+		}
+
 		// Set as blutility function
 		if( FunctionMetaData.bCallInEditor )
 		{

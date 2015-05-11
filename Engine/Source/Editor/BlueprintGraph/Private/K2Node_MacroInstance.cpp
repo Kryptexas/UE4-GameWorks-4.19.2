@@ -138,13 +138,14 @@ FText UK2Node_MacroInstance::GetTooltipText() const
 
 FText UK2Node_MacroInstance::GetKeywords() const
 {
-	// This might need to be refined, but seems better than providing no keywords:
-	UBlueprint* MacroBP = MacroGraphReference.GetBlueprint();
-	if (MacroBP)
+	FText Keywords = GetAssociatedGraphMetadata(GetMacroGraph())->Keywords;
+
+	// If the Macro has Compact Node Title data, append the compact node title as a Keyword so it can be searched.
+	if (ShouldDrawCompact())
 	{
-		return FText::FromString(MacroBP->BlueprintDescription);
+		Keywords = FText::Format(FText::FromString(TEXT("{0} {1}")), Keywords, GetCompactNodeTitle());
 	}
-	return UK2Node_Tunnel::GetKeywords();
+	return Keywords;
 }
 
 FText UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -362,52 +363,12 @@ FName UK2Node_MacroInstance::GetPaletteIcon(FLinearColor& OutColor) const
 
 FText UK2Node_MacroInstance::GetCompactNodeTitle() const
 {
-	// Special case handling for standard macros
-	// @TODO Change this to use metadata by allowing macros to specify CompactNodeTitle metadata
-	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
-	if(MacroGraph != nullptr && MacroGraph->GetOuter()->GetName() == TEXT("StandardMacros"))
-	{
-		FName MacroName = FName(*MacroGraph->GetName());
-		if(	MacroName == TEXT("IncrementFloat" ) ||
-			MacroName == TEXT("IncrementInt"))
-		{
-			return LOCTEXT("IncrementCompactNodeTitle", "++");
-		}
-		else if( MacroName == TEXT("DecrementFloat") || 
-				 MacroName == TEXT("DecrementInt"))
-		{
-			return LOCTEXT("DecrementCompactNodeTitle", "--");
-		}
-		else if( MacroName == TEXT("NegateFloat") || 
-				 MacroName == TEXT("NegateInt") )
-		{
-			return LOCTEXT("NegateCompactNodeTitle", "-");
-		}
-	}	
-
-	return Super::GetCompactNodeTitle();
+	return GetAssociatedGraphMetadata(GetMacroGraph())->CompactNodeTitle;	
 }
 
 bool UK2Node_MacroInstance::ShouldDrawCompact() const
 {
-	// Special case handling for standard macros
-	// @TODO Change this to use metadata by allowing macros to specify CompactNodeTitle metadata
-	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
-	if(MacroGraph != nullptr && MacroGraph->GetOuter()->GetName() == TEXT("StandardMacros"))
-	{
-		FName MacroName = FName(*MacroGraph->GetName());
-		if(	MacroName == TEXT("IncrementFloat" ) ||
-			MacroName == TEXT("IncrementInt") || 
-			MacroName == TEXT("DecrementFloat") || 
-			MacroName == TEXT("DecrementInt") || 
-			MacroName == TEXT("NegateFloat") || 
-			MacroName == TEXT("NegateInt") )
-		{
-			return true;
-		}
-	}
-
-	return Super::ShouldDrawCompact();
+	return !GetCompactNodeTitle().IsEmpty();
 }
 
 bool UK2Node_MacroInstance::CanPasteHere(const UEdGraph* TargetGraph) const

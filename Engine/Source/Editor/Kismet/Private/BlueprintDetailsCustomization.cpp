@@ -2341,8 +2341,8 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				TSharedPtr<SComboButton> NewComboButton;
 				TSharedPtr<SListView<TSharedPtr<FText>>> NewListView;
 
-				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
-				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
+				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/GraphDetails");
+				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the graph; editing this will place the graph into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
 				Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 					.NameContent()
@@ -2389,6 +2389,44 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 				CategoryComboButton = NewComboButton;
 				CategoryListView = NewListView;
+
+				TSharedPtr<SToolTip> KeywordsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditKeywords_Tooltip", "Keywords for searching for the function or macro."), NULL, DocLink, TEXT("Keywords"));
+				Category.AddCustomRow( LOCTEXT("KeywordsLabel", "Keywords") )
+					.NameContent()
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("KeywordsLabel", "Keywords") )
+						.ToolTip(CategoryTooltip)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					]
+				.ValueContent()
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &FBlueprintGraphActionDetails::OnGetKeywordsText)
+						.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnKeywordsTextCommitted )
+						.ToolTip(KeywordsTooltip)
+						.RevertTextOnEscape(true)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					];
+
+				TSharedPtr<SToolTip> CompactNodeTitleTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCompactNodeTitle_Tooltip", "Sets the compact node title for calls to this function or macro. Compact node titles convert a node to display as a compact node and are used as a keyword for searching."), NULL, DocLink, TEXT("Compact Node Title"));
+				Category.AddCustomRow( LOCTEXT("CompactNodeTitleLabel", "Compact Node Title") )
+					.NameContent()
+					[
+						SNew(STextBlock)
+						.Text( LOCTEXT("CompactNodeTitleLabel", "Compact Node Title") )
+						.ToolTip(CategoryTooltip)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					]
+				.ValueContent()
+					[
+						SNew(SEditableTextBox)
+						.Text(this, &FBlueprintGraphActionDetails::OnGetCompactNodeTitleText)
+						.OnTextCommitted(this, &FBlueprintGraphActionDetails::OnCompactNodeTitleTextCommitted )
+						.ToolTip(CompactNodeTitleTooltip)
+						.RevertTextOnEscape(true)
+						.Font( IDetailLayoutBuilder::GetDetailFont() )
+					];
 			}
 
 			if (IsAccessSpecifierVisible())
@@ -3468,6 +3506,85 @@ TSharedRef< ITableRow > FBlueprintGraphActionDetails::MakeCategoryViewWidget( TS
 		[
 			SNew(STextBlock) .Text(*Item.Get())
 		];
+}
+
+FText FBlueprintGraphActionDetails::OnGetKeywordsText() const
+{
+	FText ResultKeywords;
+	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
+	{
+		ResultKeywords = Metadata->Keywords;
+	}
+	return ResultKeywords;
+}
+
+void FBlueprintGraphActionDetails::OnKeywordsTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
+{
+	if (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus)
+	{
+		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
+		{
+			// Remove excess whitespace and prevent keywords with just spaces
+			FText Keywords = FText::TrimPrecedingAndTrailing(NewText);
+
+			if (!Keywords.EqualTo(Metadata->Keywords))
+			{
+				Metadata->Keywords = Keywords;
+
+				if(auto Function = FindFunction())
+				{
+					Function->Modify();
+					Function->SetMetaData(FBlueprintMetadata::MD_FunctionKeywords, *Keywords.ToString());
+				}
+				OnParamsChanged(GetFunctionEntryNode().Get(), true);
+				FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
+			}
+		}
+	}
+}
+
+FText FBlueprintGraphActionDetails::OnGetCompactNodeTitleText() const
+{
+	FText ResultKeywords;
+	if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
+	{
+		ResultKeywords = Metadata->CompactNodeTitle;
+	}
+	return ResultKeywords;
+}
+
+void FBlueprintGraphActionDetails::OnCompactNodeTitleTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
+{
+	if (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus)
+	{
+		if (FKismetUserDeclaredFunctionMetadata* Metadata = GetMetadataBlock())
+		{
+			// Remove excess whitespace and prevent CompactNodeTitle with just spaces
+			FText CompactNodeTitle = FText::TrimPrecedingAndTrailing(NewText);
+
+			if (!CompactNodeTitle.EqualTo(Metadata->CompactNodeTitle))
+			{
+				Metadata->CompactNodeTitle = CompactNodeTitle;
+
+				if(auto Function = FindFunction())
+				{
+					Function->Modify();
+
+					if (CompactNodeTitle.IsEmpty())
+					{
+						// Remove the metadata from the function, empty listings will still display the node as Compact
+						Function->RemoveMetaData(FBlueprintMetadata::MD_FunctionKeywords);
+					}
+					else
+					{
+						Function->SetMetaData(FBlueprintMetadata::MD_CompactNodeTitle, *CompactNodeTitle.ToString());
+					}
+				}
+				OnParamsChanged(GetFunctionEntryNode().Get(), true);
+				FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
+			}
+		}
+	}
 }
 
 FText FBlueprintGraphActionDetails::AccessSpecifierProperName( uint32 AccessSpecifierFlag ) const

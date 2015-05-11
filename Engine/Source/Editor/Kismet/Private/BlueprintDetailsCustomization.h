@@ -480,6 +480,12 @@ private:
 	
 	FText OnGetCategoryText() const;
 	void OnCategoryTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
+
+	FText OnGetKeywordsText() const;
+	void OnKeywordsTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
+
+	FText OnGetCompactNodeTitleText() const;
+	void OnCompactNodeTitleTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 	
 	FText AccessSpecifierProperName( uint32 AccessSpecifierFlag ) const;
 	bool IsAccessSpecifierVisible() const;
