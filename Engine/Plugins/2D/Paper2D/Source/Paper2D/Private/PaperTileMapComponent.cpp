@@ -458,6 +458,22 @@ bool UPaperTileMapComponent::SetTileMap(class UPaperTileMap* NewTileMap)
 	return false;
 }
 
+void UPaperTileMapComponent::GetMapSize(int32& MapWidth, int32& MapHeight, int32& NumLayers)
+{
+	if (TileMap != nullptr)
+	{
+		MapWidth = TileMap->MapWidth;
+		MapHeight = TileMap->MapHeight;
+		NumLayers = TileMap->TileLayers.Num();
+	}
+	else
+	{
+		MapWidth = 1;
+		MapHeight = 1;
+		NumLayers = 1;
+	}
+}
+
 FPaperTileInfo UPaperTileMapComponent::GetTile(int32 X, int32 Y, int32 Layer) const
 {
 	FPaperTileInfo Result;
@@ -568,5 +584,57 @@ void UPaperTileMapComponent::GetRenderingStats(int32& OutNumTriangles, int32& Ou
 	OutNumTriangles = NumTriangles;
 }
 #endif
+
+FVector UPaperTileMapComponent::GetTileCornerPosition(int32 TileX, int32 TileY, int32 LayerIndex, bool bWorldSpace) const
+{
+	FVector Result(ForceInitToZero);
+
+	if (TileMap != nullptr)
+	{
+		Result = TileMap->GetTilePositionInLocalSpace(TileX, TileY, LayerIndex);
+	}
+
+	if (bWorldSpace)
+	{
+		Result = ComponentToWorld.TransformPosition(Result);
+	}
+	return Result;
+}
+
+FVector UPaperTileMapComponent::GetTileCenterPosition(int32 TileX, int32 TileY, int32 LayerIndex, bool bWorldSpace) const
+{
+	FVector Result(ForceInitToZero);
+
+	if (TileMap != nullptr)
+	{
+		Result = TileMap->GetTileCenterInLocalSpace(TileX, TileY, LayerIndex);
+	}
+
+	if (bWorldSpace)
+	{
+		Result = ComponentToWorld.TransformPosition(Result);
+	}
+	return Result;
+}
+
+void UPaperTileMapComponent::GetTilePolygon(int32 TileX, int32 TileY, TArray<FVector>& Points, int32 LayerIndex, bool bWorldSpace) const
+{
+	Points.Reset();
+
+	if (TileMap != nullptr)
+	{
+		TileMap->GetTilePolygon(TileX, TileY, LayerIndex, /*out*/ Points);
+	}
+
+	if (bWorldSpace)
+	{
+		for (FVector& Point : Points)
+		{
+			Point = ComponentToWorld.TransformPosition(Point);
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

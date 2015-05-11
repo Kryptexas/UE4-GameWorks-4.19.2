@@ -253,3 +253,15 @@ void UPaperTileSet::ReallocateAndCopyTileData()
 		}
 	}
 }
+
+FName UPaperTileSet::GetTileUserData(int32 TileIndex) const
+{
+	if (const FPaperTileMetadata* Metadata = GetTileMetadata(TileIndex))
+	{
+		return Metadata->UserDataName;
+	}
+	else
+	{
+		return NAME_None;
+	}
+}
