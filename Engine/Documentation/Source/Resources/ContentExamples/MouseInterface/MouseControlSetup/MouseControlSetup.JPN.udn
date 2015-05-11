@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2541382
 Availability:Public
 Title:マウス操作の設定
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
@@ -26,7 +26,7 @@ PlayerController クラスは、デフォルト設定でマウス インター�
 	これから紹介する手順は、マウス制御を有効にするための基本手順であることを理解してください。大抵の場合、ユーザーが作成中の特定タイプのゲームの PlayerController とGameMode をカスタマイズするには、その他の手順が必要となります。
 [/REGION]
 
-1. **コンテンツ ブラウザ** (単純化のため Developer フォルダを使用) を **右クリック** してコンテキスト メニューから **ブループリント** を選択します。
+1. **コンテンツ ブラウザ** (単純化のため Developer フォルダを使用) を **右クリック** してコンテキスト メニューから **Blueprint Class** を選択します。
 
 	[REGION:raw]![](CreateNewBlueprint.png)[/REGION]
 
@@ -38,7 +38,7 @@ PlayerController クラスは、デフォルト設定でマウス インター�
 
 	![](MousePlayerController_CB.png)
 
-1. **コンテンツ ブラウザ** で新しいブループリントを **右クリック** して、**Edit Defaults** を選択します。**Class Defaults** ウィンドウが開きます。
+1. **コンテンツ ブラウザ** で新ブループリントを **右クリック** して、 **Edit...** を選択します。**Class Defaults** ウィンドウが開きます。
 
 	![](EditDefaultsBlueprint.png)
 
@@ -53,7 +53,7 @@ PlayerController クラスは、デフォルト設定でマウス インター�
 
 Mouse Input が有効となった PlayerController が作成されたので、次に PlayerController を利用するカスタム仕様の GameMode を作成します。上記で紹介したカスタムの Player Controller クラスを作成していないと、以下に説明する手順は _機能しません_ 。
 
-1. **コンテンツ ブラウザ** (単純化のため Developer フォルダを使用) を **右クリック** してコンテキスト メニューから **ブループリント** を選択します。
+1. **コンテンツ ブラウザ** (単純化のため Developer フォルダを使用) を **右クリック** してコンテキスト メニューから **Blueprint Class** を選択します。
 
 	[REGION:raw]![](CreateNewBlueprint.png)[/REGION]
 
@@ -65,11 +65,11 @@ Mouse Input が有効となった PlayerController が作成されたので、�
 
 	![](Mouse_GameInfoBlueprint.png)
 
-1. **コンテンツ ブラウザ** で新しいブループリントを **右クリック** して、**Edit Defaults** を選択します。**Class Defaults** ウィンドウが開きます。
+1. **コンテンツ ブラウザ** で新ブループリントを **右クリック** して、 **Edit...** を選択します。**Class Defaults** ウィンドウが開きます。
 
-	![](EditDefaultsBlueprint.png)
+	![](EditDefaultsBlueprint2.png)
 
-1. Game Mode カテゴリの **Player Controller Class** の横にあるドロップダウンリストをクリックします。予め作成されている **Mouse_PlayerController** がリストに表示されます。リストからこれを選択します。
+1. Classes カテゴリの **Player Controller Class** の横にあるドロップダウンリストをクリックします。予め作成されている **Mouse_PlayerController** がリストに表示されます。リストからこれを選択します。
 
 	![](SelectingPlayerControllerClass.png)
 
@@ -80,7 +80,7 @@ Mouse Input が有効となった PlayerController が作成されたので、�
 
 カスタム仕様の PlayerController と GameMode が設定されたブループリントが作成されたので、次に World Settings でこれを利用する設定をします。
 
-1. ツールバーにある **World Settings** ボタンをクリックします。**[詳細]** パネルで World Settings が開きます。
+1. ツールバーにある **Settings** ボタンをクリックします。次にドロップダウンから **World Settings** を選択します。**[詳細]** パネルで World Settings が開きます。
 
 	![](WorldSettings.png)
 
