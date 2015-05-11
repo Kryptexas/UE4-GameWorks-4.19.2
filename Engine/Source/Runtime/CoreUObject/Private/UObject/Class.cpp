@@ -3150,11 +3150,18 @@ void UClass::SetSuperStruct(UStruct* NewSuperStruct)
 void UClass::SerializeSuperStruct(FArchive& Ar)
 {
 #if UCLASS_FAST_ISA_IMPL & 2
-	FFastIndexingClassTree::Unregister(this);
+	bool bIsLoading = Ar.IsLoading();
+	if (bIsLoading)
+	{
+		FFastIndexingClassTree::Unregister(this);
+	}
 #endif
 	Super::SerializeSuperStruct(Ar);
 #if UCLASS_FAST_ISA_IMPL & 2
-	FFastIndexingClassTree::Register(this);
+	if (bIsLoading)
+	{
+		FFastIndexingClassTree::Register(this);
+	}
 #endif
 }
 
