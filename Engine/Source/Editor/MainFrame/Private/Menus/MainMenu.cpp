@@ -195,11 +195,12 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		bool bMessagingDebugger = GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger;
 		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
 		bool bLocalizationDashboard = GetDefault<UEditorExperimentalSettings>()->bEnableLocalizationDashboard;
+		bool bTranslationPicker = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationPicker;
 		bool bTranslationEditor = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor;
 		bool bMergeActors = GetDefault<UEditorExperimentalSettings>()->bActorMerging;
 
 		// Make sure at least one is enabled before creating the section
-		if (bMessagingDebugger || bBlutility || bLocalizationDashboard || bTranslationEditor || bMergeActors)
+		if (bMessagingDebugger || bBlutility || bLocalizationDashboard || bTranslationEditor || bTranslationPicker || bMergeActors)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{
@@ -239,11 +240,21 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 				// Translation Editor
 				if (bTranslationEditor)
 				{
+					MenuBuilder.AddMenuEntry(
+						LOCTEXT("TranslationEditorMenuDeprecated", "Please use Localization Dashboard"),
+						LOCTEXT("TranslationEditorMenuDeprecatedToolTip", "The Translation Editor is now accessible from the Localization Dashboard (experimental). \nPlease access it from there, as the Translation Editor menu below will be removed in a future update."),
+						FSlateIcon(),
+						FUIAction()
+						);
+
 					MenuBuilder.AddSubMenu(
 						LOCTEXT("TranslationEditorSubMenuLabel", "Translation Editor"),
-						LOCTEXT("EditorPreferencesSubMenuToolTip", "Open the Translation Editor for a Given Project and Language"),
+						LOCTEXT("TranslationEditorSubMenuToolTip", "Open the Translation Editor for a Given Project and Language"),
 						FNewMenuDelegate::CreateStatic(&FMainFrameTranslationEditorMenu::MakeMainFrameTranslationEditorSubMenu)
 						);
+				}
+				if (bTranslationPicker)
+				{
 					MenuBuilder.AddMenuEntry(
 						LOCTEXT("TranslationPickerMenuItem", "Translation Picker"),
 						LOCTEXT("TranslationPickerMenuItemToolTip", "Launch the Translation Picker to Modify Editor Translations"),
