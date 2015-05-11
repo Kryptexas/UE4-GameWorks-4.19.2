@@ -280,3 +280,18 @@ void* FMetalDynamicRHI::RHIGetNativeDevice()
 {
 	return NULL;
 }
+
+void FMetalDynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority)
+{
+	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
+}
+
+void FMetalDynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
+{
+	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
+}
+
+void FMetalDynamicRHI::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
+{
+	UE_LOG(LogRHI, Fatal, TEXT("%s not implemented yet"), ANSI_TO_TCHAR(__FUNCTION__));
+}
