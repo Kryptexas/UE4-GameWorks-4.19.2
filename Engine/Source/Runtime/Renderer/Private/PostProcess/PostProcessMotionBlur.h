@@ -78,12 +78,17 @@ public:
 class FRCPassPostProcessVelocityFlatten : public TRenderingCompositePassBase<2, 2>
 {
 public:
+	FRCPassPostProcessVelocityFlatten();
+
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 
 	// -------------------------------------------
+
+	// -1 if not set yet (AsyncCompute wasn't started, we need another Process to finish it)
+	uint32 AsyncJobFenceID;
 
 	static const uint32 TileSizeX = 16;
 	static const uint32 TileSizeY = 16;

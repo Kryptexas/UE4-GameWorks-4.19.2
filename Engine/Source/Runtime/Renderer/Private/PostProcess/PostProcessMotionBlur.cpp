@@ -759,6 +759,15 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessVelocityFlatten);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
+	if (AsyncJobFenceID != -1)
+	{
+		// If we run with AsyncCompute we use the same node twice, once to start the AsyncCompute and once to wait for the result.
+		// The later one is happening here.
+		Context.RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
+		AsyncJobFenceID = -1;
+		return;
+	}
+
 	if(!InputDesc)
 	{
 		// input is not hooked up correctly
@@ -774,27 +783,63 @@ void FRCPassPostProcessVelocityFlatten::Process(FRenderingCompositePassContext& 
 
 	TShaderMapRef< FPostProcessVelocityFlattenCS > ComputeShader( Context.GetShaderMap() );
 
-	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+	const bool bAsyncComputeEnabled = IsAsyncComputeEnabled();
+
 	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
 
-	// set destination
-	Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutVelocityFlat.GetBaseIndex(), DestRenderTarget0.UAV );
-	//Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutPackedVelocityDepth.GetBaseIndex(), DestRenderTarget1.UAV );
-	Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutMaxTileVelocity.GetBaseIndex(), DestRenderTarget1.UAV );
+	if(bAsyncComputeEnabled)
+	{
+		// If AsyncCompute is enabled we start recording the commands for that
+		Context.RHICmdList.BeginAsyncComputeJob_DrawThread(AsyncComputePriority_Default);
+	}
 
-	ComputeShader->SetCS(Context.RHICmdList, Context, View );
-	
-	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount( View.ViewRect.Size() );
+	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+
+	// set destination
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutVelocityFlat.GetBaseIndex(), DestRenderTarget0.UAV);
+	//Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutPackedVelocityDepth.GetBaseIndex(), DestRenderTarget1.UAV);
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutMaxTileVelocity.GetBaseIndex(), DestRenderTarget1.UAV);
+
+	ComputeShader->SetCS(Context.RHICmdList, Context, View);
+
+	FIntPoint ThreadGroupCountValue = ComputeThreadGroupCount(View.ViewRect.Size());
 	DispatchComputeShader(Context.RHICmdList, *ComputeShader, ThreadGroupCountValue.X, ThreadGroupCountValue.Y, 1);
 
+#if USE_ASYNC_COMPUTE_CONTEXT
+	if ( AsyncJobFenceID != -1 )
+	{
+		Context.RHICmdList.GraphicsWaitOnAsyncComputeJob(AsyncJobFenceID);
+		AsyncJobFenceID = -1;
+	}
+#endif
+
+	//	void FD3D11DynamicRHI::RHIGraphicsWaitOnAsyncComputeJob( uint32 FenceIndex )
+	Context.RHICmdList.FlushComputeShaderCache();
+
 	// un-set destination
-	Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutVelocityFlat.GetBaseIndex(), NULL );
-	//Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutPackedVelocityDepth.GetBaseIndex(), NULL );
-	Context.RHICmdList.SetUAVParameter( ComputeShader->GetComputeShader(), ComputeShader->OutMaxTileVelocity.GetBaseIndex(), NULL );
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutVelocityFlat.GetBaseIndex(), NULL);
+	//Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutPackedVelocityDepth.GetBaseIndex(), NULL);
+	Context.RHICmdList.SetUAVParameter(ComputeShader->GetComputeShader(), ComputeShader->OutMaxTileVelocity.GetBaseIndex(), NULL);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget0.TargetableTexture, DestRenderTarget0.ShaderResourceTexture, false, FResolveParams());
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget1.TargetableTexture, DestRenderTarget1.ShaderResourceTexture, false, FResolveParams());
 	//Context.RHICmdList.CopyToResolveTarget(DestRenderTarget1.TargetableTexture, DestRenderTarget2.ShaderResourceTexture, false, FResolveParams());
+
+	// we want this pass to be executed another time
+	// so we do this: CompositeContext.Process(VelocityFlattenPass, TEXT("VelocityFlattenPass"));
+	// and this: bProcessWasCalled = false;
+	if(bAsyncComputeEnabled)
+	{
+		// we end recording the commands for AsyncCompute and get back a number to wait for it with GraphicsWaitOnAsyncComputeJob()
+		AsyncJobFenceID = Context.RHICmdList.EndAsyncComputeJob_DrawThread();
+
+		// mark it not processed so it gets executed a second time
+		bProcessWasCalled = false;
+
+		// we run this Process() two times and want to not get the dependencies processed twice (could be moved into the ComposingGraph iteration, slower but easier coding)
+		SetInput(ePId_Input0, FRenderingCompositeOutputRef());
+		SetInput(ePId_Input1, FRenderingCompositeOutputRef());
+	}
 }
 
 FIntPoint FRCPassPostProcessVelocityFlatten::ComputeThreadGroupCount(FIntPoint PixelExtent)
@@ -976,6 +1021,10 @@ public:
 IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterVS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterVS"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(,FPostProcessVelocityScatterPS,TEXT("PostProcessMotionBlur"),TEXT("VelocityScatterPS"),SF_Pixel);
 
+FRCPassPostProcessVelocityFlatten::FRCPassPostProcessVelocityFlatten()
+	: AsyncJobFenceID(-1)
+{
+}
 
 void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& Context)
 {
