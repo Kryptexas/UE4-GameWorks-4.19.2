@@ -29,9 +29,14 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Localization Dashboard"))
 	bool bEnableLocalizationDashboard;
 
-	/** Allows usage of the Translation Editor */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))
+	/** (DEPRECATED) Allows usage of the Translation Editor */
+	DEPRECATED(4.8, "The Translation Editor menu will be removed. The Translation Editor is now accessed from the Localization Dashboard.")
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor (Menu deprecated, please access from Localization Dashboard)"))
 	bool bEnableTranslationEditor;
+
+	/** Allows usage of the Translation Picker */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Picker"))
+	bool bEnableTranslationPicker;
 
 	/** The Blutility shelf holds editor utility Blueprints. Summon from the Workspace menu. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
