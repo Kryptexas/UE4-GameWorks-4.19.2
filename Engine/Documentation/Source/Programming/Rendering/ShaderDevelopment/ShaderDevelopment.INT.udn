@@ -150,3 +150,9 @@ If you are working on a material shader, like BasePassPixelShader.usf, it is muc
 ## Cross compiler
 
 The [HLSL Cross Compiler](Programming/Rendering/ShaderDevelopment/HLSLCrossCompiler) is used to automatically convert HLSL into GLSL for OpenGL platforms, allowing shaders to be authored only once for all platforms.  It is run during offline shader compilation and performs various optimizations to the code that OpenGL drivers are frequently missing.
+
+## AsyncCompute
+
+[AsyncCompute](Programming/Rendering/ShaderDevelopment/AsyncCompute) is a hardware feature that is available on some API and only exists one some GPUs.
+It allows to interleave different GPU work to better utilize the hardware units on the GPU more efficiently.
+
