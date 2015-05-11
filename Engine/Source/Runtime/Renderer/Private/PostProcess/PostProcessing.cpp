@@ -1614,10 +1614,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 			OverrideRenderTarget(Context.FinalOutput, Temp, Desc);
 
-			// you can add multiple dependencies
-			CompositeContext.Root->AddDependency(Context.FinalOutput);
-
-			CompositeContext.Process(TEXT("PostProcessing"));
+			CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("PostProcessing"));
 		}
 	}
 
@@ -2000,10 +1997,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 
 			OverrideRenderTarget(Context.FinalOutput, Temp, Desc);
 
-			// you can add multiple dependencies
-			CompositeContext.Root->AddDependency(Context.FinalOutput);
-
-			CompositeContext.Process(TEXT("PostProcessingES2"));
+			CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("PostProcessingES2"));
 		}
 	}
 }

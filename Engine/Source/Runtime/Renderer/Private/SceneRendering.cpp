@@ -1109,10 +1109,8 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 		
 		if(BusyWait.IsValid())
 		{
-			CompositeContext.Root->AddDependency(BusyWait);
+			CompositeContext.Process(BusyWait.GetPass(), TEXT("RenderFinish"));
 		}
-
-		CompositeContext.Process(TEXT("RenderFinish"));
 	}
 	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

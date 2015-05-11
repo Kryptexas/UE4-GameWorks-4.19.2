@@ -106,7 +106,6 @@ FAutoConsoleCommand CmdCompositionGraphDebug(
 FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListImmediate& InRHICmdList, FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
 	: View(InView)
 	, ViewState((FSceneViewState*)InView.State)
-	//		, CompositingOutputRTItem(InRenderTargetItem)
 	, Pass(0)
 	, RHICmdList(InRHICmdList)
 	, ViewPortRect(0, 0, 0 ,0)
@@ -114,10 +113,6 @@ FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListIm
 	, ShaderMap(InView.ShaderMap)
 {
 	check(!IsViewportValid());
-
-	Root = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessRoot());
-
-	Graph.ResetDependencies();
 }
 
 FRenderingCompositePassContext::~FRenderingCompositePassContext()
@@ -125,7 +120,7 @@ FRenderingCompositePassContext::~FRenderingCompositePassContext()
 	Graph.Free();
 }
 
-void FRenderingCompositePassContext::Process(const TCHAR *GraphDebugName)
+void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
 {
 	if(Root)
 	{
@@ -194,12 +189,12 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingC
 {
 	FRenderingCompositePass *Pass = InOutputRef.GetPass();
 
-	if(Pass->bGraphMarker)
+	if(Pass->bComputeOutputDescWasCalled)
 	{
 		// already processed
 		return;
 	}
-	Pass->bGraphMarker = true;
+	Pass->bComputeOutputDescWasCalled = true;
 
 	// iterate through all inputs and additional dependencies of this pass
 	uint32 Index = 0;
@@ -311,12 +306,12 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 	check(Pass);
 	check(Output);
 
-	if(!Pass->bGraphMarker)
+	if(Pass->bProcessWasCalled)
 	{
 		// already processed
 		return;
 	}
-	Pass->bGraphMarker = false;
+	Pass->bProcessWasCalled = true;
 
 	// iterate through all inputs and additional dependencies of this pass
 	{
@@ -337,7 +332,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 				// to track down an issue, should never happen
 				check(OutputRefIt->GetPass());
 
-				if(GRenderTargetPool.IsEventRecordingEnabled() && Pass != Context.Root)
+				if(GRenderTargetPool.IsEventRecordingEnabled())
 				{
 					GRenderTargetPool.AddPhaseEvent(*Pass->ConstructDebugName());
 				}
@@ -618,24 +613,6 @@ int32 FRenderingCompositionGraph::ComputeUniqueOutputId(FRenderingCompositePass*
 	}
 
 	return -1;
-}
-
-
-void FRenderingCompositionGraph::ResetDependencies()
-{
-	for(uint32 i = 0; i < (uint32)Nodes.Num(); ++i)
-	{
-		FRenderingCompositePass *Element = Nodes[i];
-
-		Element->bGraphMarker = false;
-
-		uint32 OutputId = 0;
-
-		while(FRenderingCompositeOutput* Output = Element->GetOutput((EPassOutputId)(OutputId++)))
-		{
-			Output->ResetDependency();
-		}
-	}
 }
 
 FRenderingCompositeOutput *FRenderingCompositeOutputRef::GetOutput() const

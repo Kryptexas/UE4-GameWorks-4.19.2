@@ -322,6 +322,5 @@ void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& Vie
 		Context.FinalOutput = FRenderingCompositeOutputRef( ReflectionOutput );
 	}
 
-	CompositeContext.Root->AddDependency( Context.FinalOutput );
-	CompositeContext.Process(TEXT("ReflectionEnvironments"));
+	CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("ReflectionEnvironments"));
 }

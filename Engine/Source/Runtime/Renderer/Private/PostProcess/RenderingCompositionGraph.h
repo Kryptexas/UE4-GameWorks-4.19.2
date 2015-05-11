@@ -48,9 +48,6 @@ private:
 	/** */
 	void Free();
 
-	/** calls ResetDependency() in OutputId in each pass */
-	void ResetDependencies();
-
 	/** */
 	void ProcessGatherDependency(const FRenderingCompositeOutputRef* OutputRefIt);
 
@@ -84,7 +81,7 @@ struct FRenderingCompositePassContext
 	~FRenderingCompositePassContext();
 
 	// @param GraphDebugName must not be 0
-	void Process(const TCHAR *GraphDebugName);
+	void Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName);
 
 	//
 	FViewInfo& View;
@@ -135,8 +132,6 @@ struct FRenderingCompositePassContext
 	EShaderPlatform GetShaderPlatform() const { return GShaderPlatformForFeatureLevel[FeatureLevel]; }
 	TShaderMap<FGlobalShaderType>* GetShaderMap() const { check(ShaderMap); return ShaderMap; }
 
-	FRenderingCompositePass* Root;
-
 	FRenderingCompositionGraph Graph;
 
 	FRHICommandListImmediate& RHICmdList;
@@ -154,7 +149,9 @@ private:
 struct FRenderingCompositePass
 {
 	/** constructor */
-	FRenderingCompositePass() : bGraphMarker(false)
+	FRenderingCompositePass() 
+		: bComputeOutputDescWasCalled(false)
+		, bProcessWasCalled(false)
 	{
 	}
 
@@ -162,6 +159,12 @@ struct FRenderingCompositePass
 
 	/** @return 0 if outside the range */
 	virtual FRenderingCompositeOutputRef* GetInput(EPassInputId InPassInputId) = 0;
+
+	/**
+	 * const version of GetInput()
+	 * @return 0 if outside the range
+	 */
+	virtual const FRenderingCompositeOutputRef* GetInput(EPassInputId InPassInputId) const = 0;
 
 	/**
 	 * Each input is a dependency and will be processed before the node itself (don't generate cycles)
@@ -242,10 +245,12 @@ struct FRenderingCompositePass
 	/** */
 	virtual void Release() = 0;
 
-private:
+protected:
 
-	/** to allow the graph to mark already processed nodes */
-	bool bGraphMarker;
+	/** to avoid wasteful recomputation and to support graph/DAG traversal, if ComputeOutputDesc() was called */
+	bool bComputeOutputDescWasCalled;
+	/** to allows reuse and to support graph/DAG traversal, if Process() was called */
+	bool bProcessWasCalled;
 
 	friend class FRenderingCompositionGraph;
 };
@@ -367,6 +372,17 @@ struct TRenderingCompositePassBase :public FRenderingCompositePass
 		return 0;
 	}
 	
+	// const version of GetInput()
+	virtual const FRenderingCompositeOutputRef* GetInput(EPassInputId InPassInputId) const
+	{
+		if((int32)InPassInputId < InputCount)
+		{
+			return &PassInputs[InPassInputId];
+		}
+
+		return 0;
+	}
+
 	virtual void SetInput(EPassInputId InPassInputId, const FRenderingCompositeOutputRef& VirtualBuffer)
 	{
 		if((int32)InPassInputId < InputCount)
@@ -466,17 +482,6 @@ protected:
 	TArray<FColor>* PassOutputColorArrays[OutputCount];
 	/** All dependencies: PassInputs and all objects in this container */
 	TArray<FRenderingCompositeOutputRef> AdditionalDependencies;
-};
-
-
-// derives from TRenderingCompositePassBase<InputCount, OutputCount>
-class FRCPassPostProcessRoot : public TRenderingCompositePassBase<0, 1>
-{
-public:
-	// interface FRenderingCompositePass ---------
-	virtual void Process(FRenderingCompositePassContext& Context) override {}
-	virtual void Release() override { delete this; }
-	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override { FPooledRenderTargetDesc Desc; Desc.DebugName = TEXT("Root"); return Desc; }
 };
 
 void CompositionGraph_OnStartFrame();

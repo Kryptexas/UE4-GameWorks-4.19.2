@@ -262,10 +262,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 
 		SCOPED_DRAW_EVENT(RHICmdList, CompositionBeforeBasePass);
 
-		// you can add multiple dependencies
-		CompositeContext.Root->AddDependency(Context.FinalOutput);
-
-		CompositeContext.Process(TEXT("Composition_BeforeBasePass"));
+		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("Composition_BeforeBasePass"));
 	}
 }
 
@@ -323,10 +320,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
 		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
 
-		// you can add multiple dependencies
-		CompositeContext.Root->AddDependency(Context.FinalOutput);
-
-		CompositeContext.Process(TEXT("CompositionLighting_AfterBasePass"));
+		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("CompositionLighting_AfterBasePass"));
 	}
 }
 
@@ -382,7 +376,10 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 				FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine());
 				RecombinePass->SetInput(ePId_Input0, Pass1);
 				RecombinePass->SetInput(ePId_Input1, PassExtractSpecular);
-				CompositeContext.Root->AddDependency(RecombinePass);
+				
+				SCOPED_DRAW_EVENT(RHICmdList, CompositionLighting_SSSSS);
+
+				CompositeContext.Process(RecombinePass, TEXT("CompositionLighting_SSSSS"));
 			}
 		}
 
@@ -392,10 +389,7 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
-		// you can add multiple dependencies
-		CompositeContext.Root->AddDependency(Context.FinalOutput);
-
-		CompositeContext.Process(TEXT("CompositionLighting_Lighting"));
+		CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("CompositionLighting"));
 	}
 
 	// We only release the after the last view was processed (SplitScreen)

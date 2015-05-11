@@ -557,10 +557,8 @@ void ApplyTemporalAA(
 			Context.FinalOutput.GetOutput()->RenderTargetDesc = NewHistory->GetDesc();
 			Context.FinalOutput.GetOutput()->PooledRenderTarget = NewHistory;
 
-			CompositeContext.Root->AddDependency(Context.FinalOutput);
-
 			// Execute Temporal AA
-			CompositeContext.Process(TEXT("LightShaftTemporalAA"));
+			CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("LightShaftTemporalAA"));
 
 			// Update the view state's render target reference with the new history
 			*HistoryState = NewHistory;

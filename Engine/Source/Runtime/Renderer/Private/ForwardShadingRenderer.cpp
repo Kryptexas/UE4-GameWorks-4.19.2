@@ -180,8 +180,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FRenderingCompositePass* PostProcessSunMask = CompositeContext.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSunMaskES2(PrePostSourceViewportSize, true));
-		CompositeContext.Root->AddDependency(FRenderingCompositeOutputRef(PostProcessSunMask));
-		CompositeContext.Process(TEXT("OnChipAlphaTransform"));
+		CompositeContext.Process(PostProcessSunMask, TEXT("OnChipAlphaTransform"));
 	}
 
 	if (!bGammaSpace || bRenderToScene)
@@ -270,6 +269,5 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 	Context.FinalOutput.GetOutput()->PooledRenderTarget = Temp;
 	Context.FinalOutput.GetOutput()->RenderTargetDesc = Desc;
 
-	CompositeContext.Root->AddDependency(Context.FinalOutput);
-	CompositeContext.Process(TEXT("ES2BasicPostProcess"));
+	CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("ES2BasicPostProcess"));
 }
