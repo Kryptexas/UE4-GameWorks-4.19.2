@@ -1077,7 +1077,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 		const bool bLocalOnePassPointLightShadow = Context.ShadowInfo->CascadeSettings.bOnePassPointLightShadow;
 		const bool bReflectiveShadowmap = Context.ShadowInfo->bReflectiveShadowmap && !bLocalOnePassPointLightShadow;
 
-		if ( (!IsTranslucentBlendMode(BlendMode) || bReflectiveShadowmap ) && ShadingModel != MSM_Unlit
+		if ( ((!IsTranslucentBlendMode(BlendMode) || bReflectiveShadowmap ) && ShadingModel != MSM_Unlit)
 			|| (Material->ShouldInjectEmissiveIntoLPV() && bReflectiveShadowmap) )
 		{
 			const bool bLocalDirectionalLight = Context.ShadowInfo->bDirectionalLight;

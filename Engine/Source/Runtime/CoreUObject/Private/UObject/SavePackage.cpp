@@ -1809,7 +1809,7 @@ public:
 	 * Constructor
 	 */
 	FExportReferenceSorter()
-		: FArchiveUObject(), CurrentInsertIndex(INDEX_NONE), CurrentClass(NULL), bIgnoreFieldReferences(false), CoreReferencesOffset(INDEX_NONE)
+		: FArchiveUObject(), CurrentInsertIndex(INDEX_NONE), CoreReferencesOffset(INDEX_NONE), bIgnoreFieldReferences(false), CurrentClass(nullptr)
 	{
 		ArIsObjectReferenceCollector = true;
 		ArIsPersistent = true;
