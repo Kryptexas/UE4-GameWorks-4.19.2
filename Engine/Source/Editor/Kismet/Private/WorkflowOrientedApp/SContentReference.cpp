@@ -61,6 +61,7 @@ void SContentReference::Construct(const FArguments& InArgs)
 			.BorderBackgroundColor( FLinearColor::White )
 			.ForegroundColor(FEditorStyle::GetSlateColor(InvertedForegroundName))
 			.ToolTipText(this, &SContentReference::GetAssetFullName)
+			.OnMouseDoubleClick(this, &SContentReference::OnDoubleClickedOnAssetName)
 			[
 				SNew(SBox)
 				.WidthOverride(InArgs._WidthOverride)
@@ -250,6 +251,20 @@ FText SContentReference::GetAssetFullName() const
 	else
 	{
 		return LOCTEXT("NullReferenceTooltip", "(None)");
+	}
+}
+
+FReply SContentReference::OnDoubleClickedOnAssetName(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
+{
+	OpenAssetToEdit();
+	return FReply::Handled();
+}
+
+void SContentReference::OpenAssetToEdit()
+{
+	if (UObject* Asset = AssetReference.Get())
+	{
+		GEditor->EditObject(Asset);
 	}
 }
 

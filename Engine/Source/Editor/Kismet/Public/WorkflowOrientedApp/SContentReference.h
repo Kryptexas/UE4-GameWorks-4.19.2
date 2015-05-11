@@ -91,6 +91,9 @@ protected:
 	FText GetAssetShortName() const;
 	FText GetAssetFullName() const;
 
+	FReply OnDoubleClickedOnAssetName(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
+	void OpenAssetToEdit();
+
 	const FSlateBrush* GetBorderImage() const;
 
 	static void FindObjectInContentBrowser(UObject* Object);
