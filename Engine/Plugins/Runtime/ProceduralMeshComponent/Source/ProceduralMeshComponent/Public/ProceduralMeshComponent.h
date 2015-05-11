@@ -138,7 +138,7 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	// End Interface_CollisionDataProvider Interface
 
 	/** Collision data */
-	UPROPERTY()
+	UPROPERTY(transient, duplicatetransient)
 	class UBodySetup* ProcMeshBodySetup;
 
 private:
