@@ -2346,11 +2346,8 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 
 		if (bInvokeGameplayCueEvents)
 		{
-			// TODO: Optimize this so only one batched RPC is called
-			for (auto It = Cue.GameplayCueTags.CreateConstIterator(); It; ++It)
-			{
-				Owner->AddGameplayCue(*It);
-			}
+			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
+			Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
 		}
 	}
 }
@@ -2699,14 +2696,16 @@ bool FActiveGameplayEffectsContainer::NetDeltaSerialize(FNetDeltaSerializeInfo& 
 				if (Effect.bPendingRepOnActiveGC)
 				{
 					Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::OnActive);
-					Effect.bPendingRepOnActiveGC = false;
+					
 				}
 				if (Effect.bPendingRepWhileActiveGC)
 				{
 					Owner->InvokeGameplayCueEvent(Effect.Spec, EGameplayCueEvent::WhileActive);
-					Effect.bPendingRepWhileActiveGC = false;
 				}
 			}
+
+			Effect.bPendingRepOnActiveGC = false;
+			Effect.bPendingRepWhileActiveGC = false;
 		}
 	}
 
