@@ -144,7 +144,7 @@ Below you will find steps for setting up a **Multi Line Trace by Channel**.
 
 	![](GHT2B_18.png)
 
-	Since multiple Actors are hit, For Each of them we want to do something (in this example, print the Actors to the screen). 
+	Since multiple Actors are hit, for each of them we want to do something (in this example, print the Actors to the screen). 
 
 1.  Drag off the **Array Element** and add a **Break Hit Result**, then off the **Hit Actor**, add a **To String (Object)** and connect to a **Print String**. 
 	
