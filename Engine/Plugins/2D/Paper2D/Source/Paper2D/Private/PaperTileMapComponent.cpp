@@ -427,6 +427,26 @@ void UPaperTileMapComponent::CreateNewOwnedTileMap()
 	SetTileMap(NewTileMap);
 }
 
+void UPaperTileMapComponent::CreateNewTileMap(int32 MapWidth, int32 MapHeight, int32 TileWidth, int32 TileHeight, float PixelsPerUnrealUnit, bool bCreateLayer)
+{
+	TGuardValue<TEnumAsByte<EComponentMobility::Type>> MobilitySaver(Mobility, EComponentMobility::Movable);
+
+	UPaperTileMap* NewTileMap = NewObject<UPaperTileMap>(this);
+	NewTileMap->SetFlags(RF_Transactional);
+	NewTileMap->MapWidth = MapWidth;
+	NewTileMap->MapHeight = MapHeight;
+	NewTileMap->TileWidth = TileWidth;
+	NewTileMap->TileHeight = TileHeight;
+	NewTileMap->PixelsPerUnrealUnit = PixelsPerUnrealUnit;
+
+	if (bCreateLayer)
+	{
+		NewTileMap->AddNewLayer();
+	}
+
+	SetTileMap(NewTileMap);
+}
+
 bool UPaperTileMapComponent::OwnsTileMap() const
 {
 	return (TileMap != nullptr) && (TileMap->GetOuter() == this);
@@ -497,6 +517,10 @@ void UPaperTileMapComponent::SetTile(int32 X, int32 Y, int32 Layer, FPaperTileIn
 			TileMap->TileLayers[Layer]->SetCell(X, Y, NewValue);
 
 			MarkRenderStateDirty();
+		}
+		else
+		{
+			UE_LOG(LogPaper2D, Warning, TEXT("Invalid layer index %d for %s"), Layer, *TileMap->GetPathName());
 		}
 	}
 }
