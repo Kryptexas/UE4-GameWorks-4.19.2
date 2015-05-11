@@ -252,9 +252,8 @@ public:
 #endif
 
 #if WITH_EDITOR
-	bool bRegisteredObjectReimport;
-	// Called via delegate when an object is re-imported in the editor
-	void OnObjectReimported(UObject* InObject);
+	// Called when an object is re-imported in the editor
+	void OnObjectReimported(UTexture2D* InObject);
 #endif
 
 #if WITH_EDITOR

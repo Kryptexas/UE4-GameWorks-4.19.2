@@ -96,8 +96,8 @@ private:
 	TSharedPtr<IComponentAssetBroker> PaperTileMapBroker;
 
 	TSharedPtr<IMeshPaintGeometryAdapterFactory> SpriteMeshPaintAdapterFactory;
-	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
-	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
+	FDelegateHandle OnPropertyChangedDelegateHandle;
+	FDelegateHandle OnAssetReimportDelegateHandle;
 
 	EAssetTypeCategories::Type Paper2DAssetCategoryBit;
 
@@ -153,8 +153,10 @@ public:
 		}
 
 		// Register to be notified when properties are edited
-		OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPaper2DEditor::OnPropertyChanged);
-		OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+		OnPropertyChangedDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.AddRaw(this, &FPaper2DEditor::OnPropertyChanged);
+
+		// Register to be notified when an asset is reimported
+		OnAssetReimportDelegateHandle = FEditorDelegates::OnAssetReimport.AddRaw(this, &FPaper2DEditor::OnObjectReimported);
 
 		// Register the thumbnail renderers
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperSprite::StaticClass(), UPaperSpriteThumbnailRenderer::StaticClass());
@@ -225,7 +227,10 @@ public:
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperFlipbook::StaticClass());
 
 			// Unregister the property modification handler
-			FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
+			FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedDelegateHandle);
+
+			// Unregister the asset reimport handler
+			FEditorDelegates::OnAssetReimport.Remove(OnAssetReimportDelegateHandle);
 		}
 
 		// Unregister the details customization
@@ -265,6 +270,17 @@ private:
 		else if (UPaperRuntimeSettings* Settings = Cast<UPaperRuntimeSettings>(ObjectBeingModified))
 		{
 			// Handle changes to experimental flags here
+		}
+	}
+
+	void OnObjectReimported(UObject* InObject)
+	{
+		if (UTexture2D* Texture = Cast<UTexture2D>(InObject))
+		{
+			for (TObjectIterator<UPaperSprite> SpriteIt; SpriteIt; ++SpriteIt)
+			{
+				SpriteIt->OnObjectReimported(Texture);
+			}
 		}
 	}
 
