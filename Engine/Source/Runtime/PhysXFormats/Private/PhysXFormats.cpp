@@ -260,10 +260,17 @@ public:
 		FPhysXOutputStream Buffer(&OutBuffer);
 		PxSerialization::complete(*PCollection, *PRegistry, PExceptFor);
 		PxSerialization::serializeCollectionToBinary(Buffer, *PCollection, *PRegistry, PExceptFor);
+
+#if PHYSX_MEMORY_VALIDATION
+		GPhysXAllocator->ValidateHeaders();
+#endif
 		PCollection->release();
 		PExceptFor->release();
 		PRegistry->release();
-		
+
+#if PHYSX_MEMORY_VALIDATION
+		GPhysXAllocator->ValidateHeaders();
+#endif
 		return true;
 #endif
 		return false;
