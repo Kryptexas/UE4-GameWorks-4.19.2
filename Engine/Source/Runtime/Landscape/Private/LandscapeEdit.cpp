@@ -2020,7 +2020,7 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 			// Weightmap is sized the same as the component
 			int32 WeightmapSize = (SubsectionSizeQuads + 1) * NumSubsections;
 			// Should be power of two
-			check(((WeightmapSize - 1) & WeightmapSize) == 0);
+			check(FMath::IsPowerOfTwo(WeightmapSize));
 
 			LandscapeComponent->WeightmapScaleBias = FVector4(1.0f / (float)WeightmapSize, 1.0f / (float)WeightmapSize, 0.5f / (float)WeightmapSize, 0.5f / (float)WeightmapSize);
 			LandscapeComponent->WeightmapSubsectionOffset = (float)(SubsectionSizeQuads + 1) / (float)WeightmapSize;

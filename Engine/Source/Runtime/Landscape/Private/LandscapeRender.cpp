@@ -945,9 +945,9 @@ namespace DebugColorMask
 void FLandscapeComponentSceneProxy::OnTransformChanged()
 {
 	// Set Lightmap ScaleBias
-	int32 PatchExpandCountX = 1;
-	int32 PatchExpandCountY = 1;
-	int32 DesiredSize = 1;
+	int32 PatchExpandCountX = 0;
+	int32 PatchExpandCountY = 0;
+	int32 DesiredSize = 1; // output by GetTerrainExpandPatchCount but not used below
 	const float LightMapRatio = ::GetTerrainExpandPatchCount(StaticLightingResolution, PatchExpandCountX, PatchExpandCountY, ComponentSizeQuads, (NumSubsections * (SubsectionSizeQuads + 1)), DesiredSize, StaticLightingLOD);
 	const float LightmapLODScaleX = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountX);
 	const float LightmapLODScaleY = LightMapRatio / ((ComponentSizeVerts >> StaticLightingLOD) + 2 * PatchExpandCountY);
