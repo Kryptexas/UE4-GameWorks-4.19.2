@@ -155,66 +155,70 @@ void URecastNavMeshDataChunk::SerializeRecastData(FArchive& Ar, int32 NavMeshVer
 }
 #endif// WITH_RECAST
 
-TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh* NavMeshImpl)
+TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh& NavMeshImpl)
 {
 	TArray<uint32> Result;
 	Result.Reserve(Tiles.Num());
 
 #if WITH_RECAST	
-	const bool bIsGame = NavMeshImpl->NavMeshOwner->GetWorld()->IsGameWorld();
-	dtNavMesh* NavMesh = NavMeshImpl->DetourNavMesh;
+	check(NavMeshImpl.NavMeshOwner && NavMeshImpl.NavMeshOwner->GetWorld());
+	const bool bIsGame = NavMeshImpl.NavMeshOwner->GetWorld()->IsGameWorld();
+	dtNavMesh* NavMesh = NavMeshImpl.DetourNavMesh;
 
-	for (FRecastTileData& TileData : Tiles)
+	if (NavMesh != nullptr)
 	{
-		if (TileData.TileRawData.IsValid())
+		for (FRecastTileData& TileData : Tiles)
 		{
-			// Attach mesh tile to target nav mesh 
-			dtStatus status = NavMesh->addTile(TileData.TileRawData->RawData, TileData.TileDataSize, DT_TILE_FREE_DATA, 0, &TileData.TileRef);
-			if (dtStatusFailed(status))
+			if (TileData.TileRawData.IsValid())
 			{
-				TileData.TileRef = 0;
-				continue;
-			}
-			
-			if (bIsGame)
-			{
-				// We don't own tile data anymore it will be released by recast navmesh 
-				TileData.TileDataSize = 0;
-				TileData.TileRawData->RawData = nullptr;
-			}
-			else
-			{
-				// In the editor we still need to own data, so make a copy of it
-				TileData.TileRawData->RawData = DuplicateRecastRawData(TileData.TileRawData->RawData, TileData.TileDataSize);
-			}
-			
-			// Attach tile cache layer to target nav mesh
-			if (TileData.TileCacheDataSize > 0)
-			{
-				const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
-				check(MeshTile);
-				int32 TileX = MeshTile->header->x;
-				int32 TileY = MeshTile->header->y;
-				int32 TileLayerIdx = MeshTile->header->layer;
-				FBox TileBBox = Recast2UnrealBox(MeshTile->header->bmin, MeshTile->header->bmax);
-				
-				FNavMeshTileData LayerData(TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize, TileLayerIdx, TileBBox);
-				NavMeshImpl->AddTileCacheLayer(TileX, TileY, TileLayerIdx, LayerData);
+				// Attach mesh tile to target nav mesh 
+				dtStatus status = NavMesh->addTile(TileData.TileRawData->RawData, TileData.TileDataSize, DT_TILE_FREE_DATA, 0, &TileData.TileRef);
+				if (dtStatusFailed(status))
+				{
+					TileData.TileRef = 0;
+					continue;
+				}
 
 				if (bIsGame)
 				{
-					// We don't own tile cache data anymore it will be released by navmesh
-					TileData.TileCacheDataSize = 0;
-					TileData.TileCacheRawData->RawData = nullptr;
+					// We don't own tile data anymore it will be released by recast navmesh 
+					TileData.TileDataSize = 0;
+					TileData.TileRawData->RawData = nullptr;
 				}
 				else
 				{
 					// In the editor we still need to own data, so make a copy of it
-					TileData.TileCacheRawData->RawData = DuplicateRecastRawData(TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize);
+					TileData.TileRawData->RawData = DuplicateRecastRawData(TileData.TileRawData->RawData, TileData.TileDataSize);
 				}
+
+				// Attach tile cache layer to target nav mesh
+				if (TileData.TileCacheDataSize > 0)
+				{
+					const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
+					check(MeshTile);
+					int32 TileX = MeshTile->header->x;
+					int32 TileY = MeshTile->header->y;
+					int32 TileLayerIdx = MeshTile->header->layer;
+					FBox TileBBox = Recast2UnrealBox(MeshTile->header->bmin, MeshTile->header->bmax);
+
+					FNavMeshTileData LayerData(TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize, TileLayerIdx, TileBBox);
+					NavMeshImpl.AddTileCacheLayer(TileX, TileY, TileLayerIdx, LayerData);
+
+					if (bIsGame)
+					{
+						// We don't own tile cache data anymore it will be released by navmesh
+						TileData.TileCacheDataSize = 0;
+						TileData.TileCacheRawData->RawData = nullptr;
+					}
+					else
+					{
+						// In the editor we still need to own data, so make a copy of it
+						TileData.TileCacheRawData->RawData = DuplicateRecastRawData(TileData.TileCacheRawData->RawData, TileData.TileCacheDataSize);
+					}
+				}
+
+				Result.Add(NavMesh->decodePolyIdTile(TileData.TileRef));
 			}
-			
-			Result.Add(NavMesh->decodePolyIdTile(TileData.TileRef));
 		}
 	}
 #endif// WITH_RECAST
@@ -223,48 +227,52 @@ TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh* NavMesh
 	return Result;
 }
 
-TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh* NavMeshImpl)
+TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh& NavMeshImpl)
 {
 	TArray<uint32> Result;
 	Result.Reserve(Tiles.Num());
 
-#if WITH_RECAST	
-	const bool bIsGame = NavMeshImpl->NavMeshOwner->GetWorld()->IsGameWorld();
-	dtNavMesh* NavMesh = NavMeshImpl->DetourNavMesh;
+#if WITH_RECAST
+	check(NavMeshImpl.NavMeshOwner && NavMeshImpl.NavMeshOwner->GetWorld());
+	const bool bIsGame = NavMeshImpl.NavMeshOwner->GetWorld()->IsGameWorld();
+	dtNavMesh* NavMesh = NavMeshImpl.DetourNavMesh;
 
-	for (FRecastTileData& TileData : Tiles)
+	if (NavMesh != nullptr)
 	{
-		if (TileData.TileRef != 0)
+		for (FRecastTileData& TileData : Tiles)
 		{
-			// Detach tile cache layer and take ownership over compressed data
-			const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
-			if (MeshTile)
+			if (TileData.TileRef != 0)
 			{
+				// Detach tile cache layer and take ownership over compressed data
+				const dtMeshTile* MeshTile = NavMesh->getTileByRef(TileData.TileRef);
+				if (MeshTile)
+				{
+					if (bIsGame)
+					{
+						FNavMeshTileData TileCacheData = NavMeshImpl.GetTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
+						if (TileCacheData.IsValid())
+						{
+							TileData.TileCacheDataSize = TileCacheData.DataSize;
+							TileData.TileCacheRawData->RawData = TileCacheData.Release();
+						}
+					}
+				
+					NavMeshImpl.RemoveTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
+				}
+						
 				if (bIsGame)
 				{
-					FNavMeshTileData TileCacheData = NavMeshImpl->GetTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
-					if (TileCacheData.IsValid())
-					{
-						TileData.TileCacheDataSize = TileCacheData.DataSize;
-						TileData.TileCacheRawData->RawData = TileCacheData.Release();
-					}
+					// Remove tile from navmesh and take ownership of tile raw data
+					NavMesh->removeTile(TileData.TileRef, &TileData.TileRawData->RawData, &TileData.TileDataSize);
 				}
-				
-				NavMeshImpl->RemoveTileCacheLayer(MeshTile->header->x, MeshTile->header->y, MeshTile->header->layer);
-			}
+				else
+				{
+					// In the editor we have a copy of tile data so just release tile in navmesh
+					NavMesh->removeTile(TileData.TileRef, nullptr, nullptr);
+				}
 						
-			if (bIsGame)
-			{
-				// Remove tile from navmesh and take ownership of tile raw data
-				NavMesh->removeTile(TileData.TileRef, &TileData.TileRawData->RawData, &TileData.TileDataSize);
+				Result.Add(NavMesh->decodePolyIdTile(TileData.TileRef));
 			}
-			else
-			{
-				// In the editor we have a copy of tile data so just release tile in navmesh
-				NavMesh->removeTile(TileData.TileRef, nullptr, nullptr);
-			}
-						
-			Result.Add(NavMesh->decodePolyIdTile(TileData.TileRef));
 		}
 	}
 #endif// WITH_RECAST
@@ -317,3 +325,26 @@ void URecastNavMeshDataChunk::GatherTiles(const FPImplRecastNavMesh* NavMeshImpl
 	}
 }
 #endif// WITH_EDITOR
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+TArray<uint32> URecastNavMeshDataChunk::AttachTiles(FPImplRecastNavMesh* NavMeshImpl)
+{
+	if (NavMeshImpl)
+	{
+		return AttachTiles(*NavMeshImpl);
+	}
+
+	return TArray<uint32>();
+}
+
+TArray<uint32> URecastNavMeshDataChunk::DetachTiles(FPImplRecastNavMesh* NavMeshImpl)
+{
+	if (NavMeshImpl)
+	{
+		return DetachTiles(*NavMeshImpl);
+	}
+
+	return TArray<uint32>();
+}

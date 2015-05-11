@@ -1655,12 +1655,12 @@ void ARecastNavMesh::OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld)
 	
 	bWantsUpdate = true;
 
-	if (SupportsStreaming())
+	if (SupportsStreaming() && RecastNavMeshImpl)
 	{
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
 		{
-			TArray<uint32> AttachedIndices = NavDataChunk->AttachTiles(RecastNavMeshImpl);
+			TArray<uint32> AttachedIndices = NavDataChunk->AttachTiles(*RecastNavMeshImpl);
 			if (AttachedIndices.Num() > 0)
 			{
 				InvalidateAffectedPaths(AttachedIndices);
@@ -1674,12 +1674,12 @@ void ARecastNavMesh::OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMesh_OnStreamingLevelRemoved);
 	
-	if (SupportsStreaming())
+	if (SupportsStreaming() && RecastNavMeshImpl)
 	{
 		URecastNavMeshDataChunk* NavDataChunk = GetNavigationDataChunk(InLevel);
 		if (NavDataChunk)
 		{
-			TArray<uint32> DetachedIndices = NavDataChunk->DetachTiles(RecastNavMeshImpl);
+			TArray<uint32> DetachedIndices = NavDataChunk->DetachTiles(*RecastNavMeshImpl);
 			if (DetachedIndices.Num() > 0)
 			{
 				InvalidateAffectedPaths(DetachedIndices);
