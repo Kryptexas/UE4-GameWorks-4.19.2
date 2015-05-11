@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2421236
+﻿INTSourceChangelist:2524674
 Availability:Public
 Title:Utility 表現式
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -97,7 +97,7 @@ Desaturation 表現式は入力をデサチュレート (非飽和) にする、
 ![DesaturationExample.png](DesaturationExample.png)
 
 [REGION:note]
-**プログラマー:** デサチュレーション色の 「D」、入力カラー 「I」、および輝度係数 「L」 を定義します。次の出力が得られます。 O = (1-Percent)*(D.dot(I)) + Percent*I
+**プログラマー:** デサチュレーション色の 「D」、入力カラー 「I」、および輝度係数 「L」 を定義します。次の出力が得られます。 `O = (1-Percent)*(D.dot(I)) + Percent*I`
 [/REGION]
 [/EXCERPT:Desaturation]
 
@@ -122,10 +122,10 @@ Distance 表現式は 2 つのポイント、カラー、位置、ベクター�
 	Result = length(A - B)
 
 **Low level HLSL code:**
+
 	float Result = sqrt(dot(A-B, A-B))
 
-	[/EXCERPT:Distance]
-
+[/EXCERPT:Distance]
 
 
 
