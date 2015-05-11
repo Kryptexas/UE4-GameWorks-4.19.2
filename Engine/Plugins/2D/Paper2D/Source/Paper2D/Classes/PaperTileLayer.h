@@ -17,17 +17,17 @@ enum class EPaperTileFlags : uint32
 };
 
 // This is the contents of a tile map cell
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(HasNativeBreak="Paper2D.TileMapBlueprintLibrary.BreakTile", HasNativeMake="Paper2D.TileMapBlueprintLibrary.MakeTile"))
 struct FPaperTileInfo
 {
 	GENERATED_USTRUCT_BODY()
 
 	// The tile set that this tile comes from
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
+	UPROPERTY(EditAnywhere, Category=Sprite)
 	UPaperTileSet* TileSet;
 
 	// This is the index of the current tile within the tile set
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
+	UPROPERTY(EditAnywhere, Category=Sprite)
 	int32 PackedTileIndex;
 
 	FPaperTileInfo()
