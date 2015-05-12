@@ -78,6 +78,20 @@ enum EPlayNetMode
 };
 
 
+UENUM()
+enum EPlayOnBuildMode
+{
+	/** Always build */
+	PlayOnBuild_Always UMETA(DisplayName="Always Build"),
+
+	/** Never build. */
+	PlayOnBuild_Never UMETA(DisplayName="Never Build"),
+
+	/** Build based on project type */
+	PlayOnBuild_Default UMETA(DisplayName="Only Build Code Projects"),
+};
+
+
 /**
  * Holds information about a screen resolution to be used for playing.
  */
@@ -194,7 +208,7 @@ public:
 
 	/** The width of the new view port window in pixels (0 = use the desktop's screen resolution). */
 	UPROPERTY(config, EditAnywhere, Category = PlayOnDevice)
-	bool BuildGameBeforeLaunch;
+	TEnumAsByte<EPlayOnBuildMode> BuildGameBeforeLaunch;
 
 private:
 
@@ -344,4 +358,11 @@ public:
 	/** Collection of common screen resolutions on television screens. */
 	UPROPERTY(config)
 	TArray<FPlayScreenResolution> TelevisionScreenResolutions;
+
+protected:
+
+	// UObject overrides
+
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
 };
