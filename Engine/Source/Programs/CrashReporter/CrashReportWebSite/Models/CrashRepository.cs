@@ -618,7 +618,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				{
 					NewCrash.CrashType = 2;
 				}
-				else if (NewCrash.RawCallStack.Contains( "FDebug::EnsureFailed" ))
+				else if (NewCrash.RawCallStack.Contains( "FDebug::Ensure" ))
 				{
 					NewCrash.CrashType = 3;
 				}
