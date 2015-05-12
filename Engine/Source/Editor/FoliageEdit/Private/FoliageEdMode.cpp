@@ -299,6 +299,9 @@ void FEdModeFoliage::Enter()
 	FWorldDelegates::LevelAddedToWorld.AddSP(this, &FEdModeFoliage::NotifyLevelAddedToWorld);
 	FWorldDelegates::LevelRemovedFromWorld.AddSP(this, &FEdModeFoliage::NotifyLevelRemovedFromWorld);
 
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnAssetRemoved().AddSP(this, &FEdModeFoliage::NotifyAssetRemoved);
+
 	// Force real-time viewports.  We'll back up the current viewport state so we can restore it when the
 	// user exits this mode.
 	const bool bWantRealTime = true;
@@ -347,6 +350,12 @@ void FEdModeFoliage::Exit()
 	FEditorDelegates::NewCurrentLevel.RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
+
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("AssetRegistry")))
+	{
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+	}
 
 	GEditor->OnObjectsReplaced().RemoveAll(this);
 	
@@ -411,6 +420,14 @@ void FEdModeFoliage::NotifyLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 void FEdModeFoliage::NotifyLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
 {
 	PopulateFoliageMeshList();
+}
+
+void FEdModeFoliage::NotifyAssetRemoved(const FAssetData& AssetInfo)
+{
+	if(UFoliageType* FoliageType = Cast<UFoliageType>(AssetInfo.GetAsset()))
+	{
+		PopulateFoliageMeshList();	//serialization already removes the asset from foliage actor. We just need to update the UI
+	}
 }
 
 /** When the user changes the current tool in the UI */
@@ -2517,6 +2534,11 @@ bool FEdModeFoliage::CanPaint(const ULevel* InLevel)
 
 bool FEdModeFoliage::CanPaint(const UFoliageType* FoliageType, const ULevel* InLevel)
 {
+	if(FoliageType == nullptr)	//if asset has already been deleted we can't paint
+	{
+		return false;
+	}
+
 	// Non-shared objects can be painted only into their own level
 	// Assets can be painted everywhere
 	if (FoliageType->IsAsset() || FoliageType->GetOutermost() == InLevel->GetOutermost())
