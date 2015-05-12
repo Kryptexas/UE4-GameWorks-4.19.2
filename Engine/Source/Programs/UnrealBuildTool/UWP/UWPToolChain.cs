@@ -11,15 +11,15 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	public class WinUAPToolChain : UEToolChain
+	public class UWPToolChain : UEToolChain
 	{
 		public override void RegisterToolChain()
 		{
-			if( WinUAPPlatform.bEnableUAPSupport )
+			if( UWPPlatform.bEnableUWPSupport )
 			{ 
-				// Register this tool chain for WinUAP
-				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.WinUAP.ToString());
-				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.WinUAP, this);
+				// Register this tool chain for UWP
+				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.UWP.ToString());
+				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.UWP, this);
 			}
 		}
 
@@ -69,10 +69,10 @@ namespace UnrealBuildTool
 			// Disable "The file contains a character that cannot be represented in the current code page" warning for non-US windows.
 			Arguments.Append(" /wd4819");
 
-			// @todo UAP: Disable "unreachable code" warning since auto-included vccorlib.h triggers it
+			// @todo UWP: Disable "unreachable code" warning since auto-included vccorlib.h triggers it
 			Arguments.Append(" /wd4702");
 
-			// @todo UAP: Silence the hash_map deprecation errors for now. This should be replaced with unordered_map for the real fix.
+			// @todo UWP: Silence the hash_map deprecation errors for now. This should be replaced with unordered_map for the real fix.
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
 				Arguments.Append(" /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS");
@@ -119,7 +119,7 @@ namespace UnrealBuildTool
 				// Allow inline method expansion unless E&C support is requested
 				if( !BuildConfiguration.bSupportEditAndContinue )
 				{
-					// @todo UAP: No inlining in Debug builds except in the editor where DLL exports/imports aren't handled properly in module _API macros.
+					// @todo UWP: No inlining in Debug builds except in the editor where DLL exports/imports aren't handled properly in module _API macros.
 					if (UEBuildConfiguration.bBuildEditor)
 					{
 						Arguments.Append(" /Ob2");
@@ -152,7 +152,7 @@ namespace UnrealBuildTool
 
 				// Only omit frame pointers on the PC (which is implied by /Ox) if wanted.
 				if ( BuildConfiguration.bOmitFramePointers == false
-				&& (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.WinUAP))
+				&& (CompileEnvironment.Config.Target.Platform == CPPTargetPlatform.UWP))
 				{
 					Arguments.Append(" /Oy-");
 				}
@@ -239,14 +239,14 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (WinUAPPlatform.bBuildForStore)
+			if (UWPPlatform.bBuildForStore)
 			{
 				Arguments.Append(" /D_BUILD_FOR_STORE=1");
 			}
 
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
-				// @todo UAP: These must be appended to the end of the system include list, lest they override some of the third party sources includes
+				// @todo UWP: These must be appended to the end of the system include list, lest they override some of the third party sources includes
 				if (Directory.Exists(EnvVars.WindowsSDKExtensionDir))
 				{
 					CompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add(string.Format(@"{0}\Include\{1}\ucrt", EnvVars.WindowsSDKExtensionDir, EnvVars.WindowsSDKExtensionHeaderLibVersion));
@@ -336,7 +336,7 @@ namespace UnrealBuildTool
 			//	PC
 			//
 			// Set machine type/ architecture to be 64 bit, and set as a store app
-			if (WinUAPPlatform.bBuildForStore)
+			if (UWPPlatform.bBuildForStore)
 			{
 				Arguments.Append(" /MACHINE:x64");
 				Arguments.Append(" /APPCONTAINER");
@@ -580,7 +580,7 @@ namespace UnrealBuildTool
 					string OriginalPCHHeaderDirectory = Path.GetDirectoryName( SourceFile.AbsolutePath );
 					FileArguments.AppendFormat(" /I \"{0}\"", OriginalPCHHeaderDirectory);
 
-					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.WinUAP].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
+					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.UWP].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 					// Add the precompiled header file to the produced items list.
 					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
 						Path.Combine(
@@ -641,7 +641,7 @@ namespace UnrealBuildTool
 
 				if( bEmitsObjectFile )
 				{
-					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.WinUAP].GetBinaryExtension(UEBuildBinaryType.Object);
+					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.UWP].GetBinaryExtension(UEBuildBinaryType.Object);
 					// Add the object file to the produced item list.
 					FileItem ObjectFile = FileItem.GetItemByPath(
 						Path.Combine(
@@ -1025,7 +1025,7 @@ namespace UnrealBuildTool
 		/** Gets the default include paths for the given platform. */
 		public static string GetVCIncludePaths(CPPTargetPlatform Platform)
 		{
-			Debug.Assert(Platform == CPPTargetPlatform.WinUAP);
+			Debug.Assert(Platform == CPPTargetPlatform.UWP);
 
 			// Make sure we've got the environment variables set up for this target
 			VCEnvironment.SetEnvironment(Platform);

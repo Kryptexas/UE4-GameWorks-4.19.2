@@ -1483,8 +1483,8 @@ namespace UnrealBuildTool
 					{
 						if (UnrealBuildTool.IsValidPlatform(Platform))
 						{
-							// @todo UAP: Why would we exclude UAP from project files based on SDK install status?  We don't do this with anything else, right?
-                            if (BuildPlatform is WinUAPPlatform && ((WinUAPPlatform)BuildPlatform).HasRequiredSDKsInstalled() != SDKStatus.Valid)
+							// @todo UWP: Why would we exclude UWP from project files based on SDK install status?  We don't do this with anything else, right?
+                            if (BuildPlatform is UWPPlatform && ((UWPPlatform)BuildPlatform).HasRequiredSDKsInstalled() != SDKStatus.Valid)
                                 continue;
 
 							SupportedPlatforms.Add(Platform);

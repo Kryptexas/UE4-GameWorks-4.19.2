@@ -331,9 +331,9 @@ namespace UnrealBuildTool
 				{
 					VCIncludeSearchPaths.Append(CurPath + ";");
 				}
-				if (InPlatforms.Contains(UnrealTargetPlatform.WinUAP))
+				if (InPlatforms.Contains(UnrealTargetPlatform.UWP))
 				{
-					VCIncludeSearchPaths.Append(WinUAPToolChain.GetVCIncludePaths(CPPTargetPlatform.WinUAP) + ";");
+					VCIncludeSearchPaths.Append(UWPToolChain.GetVCIncludePaths(CPPTargetPlatform.UWP) + ";");
 				}
 				else if (InPlatforms.Contains(UnrealTargetPlatform.Win64))
 				{
@@ -1015,7 +1015,7 @@ namespace UnrealBuildTool
 					}
 					string BatchFilesDirectoryName = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Build", "BatchFiles");
 
-					// @todo UAP: For the MS toolchains, if an override was set for project generation, push that into the build strings to override the build toolchain as well
+					// @todo UWP: For the MS toolchains, if an override was set for project generation, push that into the build strings to override the build toolchain as well
 					string BuildToolOverride = "";
 					if (UnrealBuildTool.CommandLineContains("-2012"))
 					{
@@ -1059,7 +1059,7 @@ namespace UnrealBuildTool
 				{
 					TargetRules TargetRulesObject = Combination.ProjectTarget.TargetRules;
 
-					if ((Platform == UnrealTargetPlatform.Win32) || (Platform == UnrealTargetPlatform.Win64) || (Platform == UnrealTargetPlatform.WinUAP))
+					if ((Platform == UnrealTargetPlatform.Win32) || (Platform == UnrealTargetPlatform.Win64) || (Platform == UnrealTargetPlatform.UWP))
 					{
 						VCUserFileContent.Append(
 							"	<PropertyGroup " + ConditionString + ">" + ProjectFileGenerator.NewLine);

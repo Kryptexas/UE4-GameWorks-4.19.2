@@ -91,8 +91,8 @@ namespace UnrealBuildTool
 
 		static void AppendCLArguments_Global(CPPEnvironment CompileEnvironment, VCEnvironment EnvVars, StringBuilder Arguments)
 		{
-			// @todo UAP: Why do we ever need WinRT headers when building regular Win32?  Is this just needed for the Windows 10 SDK?
-			// @todo UAP: These include paths should be added in SetUpEnvironment(), not here.  Do they need to be the last includes or something?
+			// @todo UWP: Why do we ever need WinRT headers when building regular Win32?  Is this just needed for the Windows 10 SDK?
+			// @todo UWP: These include paths should be added in SetUpEnvironment(), not here.  Do they need to be the last includes or something?
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 			{
 				if (Directory.Exists(EnvVars.WindowsSDKExtensionDir))
@@ -220,7 +220,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /wd4819");
 			}
 
-			// @todo UAP: UE4 is non-compliant when it comes to use of %s and %S
+			// @todo UWP: UE4 is non-compliant when it comes to use of %s and %S
 			// Previously %s meant "the current character set" and %S meant "the other one".
 			// Now %s means multibyte and %S means wide. %Ts means "natural width".
 			// Reverting this behaviour until the UE4 source catches up.
@@ -229,7 +229,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /D_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1");
 			}
 
-			// @todo UAP: Silence the hash_map deprecation errors for now. This should be replaced with unordered_map for the real fix.
+			// @todo UWP: Silence the hash_map deprecation errors for now. This should be replaced with unordered_map for the real fix.
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015)
 			{
 				Arguments.Append(" /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS");
@@ -397,8 +397,8 @@ namespace UnrealBuildTool
 						(CompileEnvironment.Config.bEnableExceptions || UEBuildConfiguration.bBuildEditor || UEBuildConfiguration.bForceEnableExceptions))
 					{
 						// Enable C++ exception handling, but not C exceptions.
-						Arguments.Append(" /EHsc");
-					}
+							Arguments.Append(" /EHsc");
+						}
 					else
 					{
 						// This is required to disable exception handling in VC platform headers.
@@ -1440,7 +1440,7 @@ namespace UnrealBuildTool
 		{
 			var EnvVars = VCEnvironment.SetEnvironment(LinkEnvironment.Config.Target.Platform);
 
-			// @todo UAP: These paths should be added in SetUpEnvironment(), not here.  Also is this actually needed for classic desktop targets or only UAP?
+			// @todo UWP: These paths should be added in SetUpEnvironment(), not here.  Also is this actually needed for classic desktop targets or only UWP?
 			if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 			{
 				if (LinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Win64)

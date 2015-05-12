@@ -309,7 +309,7 @@ namespace UnrealBuildTool
 					}
 					StartInfo.EnvironmentVariables["PATH"] = NewPathVariable;
 
-					// @todo UAP: Win10-beta issue, sometimes the process hangs if standard I/O is redirected, and there's bytes
+					// @todo UWP: Win10-beta issue, sometimes the process hangs if standard I/O is redirected, and there's bytes
 					// in the buffer and there is no reader for those streams.  Loop back with a later Win10 build
 					if (System.Environment.OSVersion.Platform != PlatformID.Win32NT ||
 						System.Environment.OSVersion.Version.Major < 10)

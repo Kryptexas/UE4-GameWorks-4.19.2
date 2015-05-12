@@ -58,7 +58,7 @@ namespace UnrealBuildTool
 				}
 
 				// Second, default based on what's installed, from newest to oldest
-				// @todo UAP: Currently we default to VS 2013, even if VS 2015 is installed, until the engine is fully updated to
+				// @todo UWP: Currently we default to VS 2013, even if VS 2015 is installed, until the engine is fully updated to
 				// support compiling with VS 2015.  You can override this with the "-2015" command-line switch.
 // 				else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2015)))
 // 				{
@@ -95,7 +95,7 @@ namespace UnrealBuildTool
 
 		/// Whether to compile against the Windows 10 SDK, instead of the Windows 8.1 SDK.  This requires the Visual Studio 2015
 		/// compiler or later, and the Windows 10 SDK must be installed.  The application will require at least Windows 8.x to run.
-		// @todo UAP: Expose this to be enabled more easily for building Windows 10 desktop apps
+		// @todo UWP: Expose this to be enabled more easily for building Windows 10 desktop apps
 		public static readonly bool bUseWindowsSDK10 = false;
 
 

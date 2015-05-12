@@ -6,30 +6,30 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
-// @todo UAP: this file is a work in progress and is not yet complete for the F5 scenario for WinUAP
+// @todo UWP: this file is a work in progress and is not yet complete for the F5 scenario for UWP
 
 namespace UnrealBuildTool
 {
 	/**
 	 *	Base class for platform-specific project generators 
 	 */
-	public class WinUAPProjectGenerator : UEPlatformProjectGenerator
+	public class UWPProjectGenerator : UEPlatformProjectGenerator
 	{
 		/**
 		 *	Register the platform with the UEPlatformProjectGenerator class
 		 */
 		public override void RegisterPlatformProjectGenerator()
 		{
-			if( WinUAPPlatform.bEnableUAPSupport )
+			if( UWPPlatform.bEnableUWPSupport )
 			{ 
-				// Register this project generator for WinUAP
-				Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinUAP.ToString());
+				// Register this project generator for UWP
+				Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
 			
-				UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.WinUAP, this);
+				UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.UWP, this);
 			}
 		}
 
-		public static void GetTargetWinUAPPaths(string InTargetName, TargetRules InTargetRules,
+		public static void GetTargetUWPPaths(string InTargetName, TargetRules InTargetRules,
 			out string OutEngineSourceRelativeBinaryPath, out string OutRelativeTargetPath)
 		{
 			OutEngineSourceRelativeBinaryPath = "";
@@ -67,7 +67,7 @@ namespace UnrealBuildTool
 			{
 				RelativeTargetFilename = EnginePath;
 			}
-			OutEngineSourceRelativeBinaryPath = Path.Combine(RelativeTargetFilename, "Binaries/WinUAP/");
+			OutEngineSourceRelativeBinaryPath = Path.Combine(RelativeTargetFilename, "Binaries/UWP/");
 			OutEngineSourceRelativeBinaryPath = OutEngineSourceRelativeBinaryPath.Replace("\\", "/");
 		}
 
@@ -102,7 +102,7 @@ namespace UnrealBuildTool
 
 		protected void GeneratePackageAppXManifest(string InGameName, bool bIsUE4Game, string InManifestType, string InGameBinaries, string InGameIntermediates, string InOutputPath)
 		{
-			string BuildFolder = Path.Combine(InOutputPath, "../../Build/WinUAP");
+			string BuildFolder = Path.Combine(InOutputPath, "../../Build/UWP");
 			string CheckPath;
 			if (GameToBuildFolder.TryGetValue(InGameName, out CheckPath) == false)
 			{
@@ -117,7 +117,7 @@ namespace UnrealBuildTool
 			if (!File.Exists(PackageAppXManifestPath))
 			{
 				// then fallback to shared template
-				PackageAppXManifestPath = "../../Engine/Build/WinUAP/Templates/" + InManifestType + ".appxmanifest.template";
+				PackageAppXManifestPath = "../../Engine/Build/UWP/Templates/" + InManifestType + ".appxmanifest.template";
 			}
 
 			GenerateFileFromTemplate(PackageAppXManifestPath, OutputPackageAppXManifestPath, bIsUE4Game, InGameName, "", InGameBinaries, InGameIntermediates);
@@ -140,7 +140,7 @@ namespace UnrealBuildTool
 
 		protected void GeneratePackagePriConfig(string InGameName, bool bIsUE4Game, string InGameBinaries, string InGameIntermediates, string InOutputPath)
 		{
-			string BuildFolder = Path.Combine(InOutputPath, "../../Build/WinUAP");
+			string BuildFolder = Path.Combine(InOutputPath, "../../Build/UWP");
 
 			string OutputPackagePriConfigPath = Path.Combine(BuildFolder, "Package.PriConfig");
 
@@ -149,7 +149,7 @@ namespace UnrealBuildTool
 			if (!File.Exists(PackagePriConfigPath))
 			{
 				// then fallback to shared template
-				PackagePriConfigPath = "../../Engine/Build/WinUAP/Templates/Package.priconfig.template";
+				PackagePriConfigPath = "../../Engine/Build/UWP/Templates/Package.priconfig.template";
 			}
 
 			GenerateFileFromTemplate(PackagePriConfigPath, OutputPackagePriConfigPath, bIsUE4Game, InGameName, "", InGameBinaries, InGameIntermediates);
@@ -157,7 +157,7 @@ namespace UnrealBuildTool
 
 		protected void GeneratePackageResources(string InGameName, bool bIsUE4Game, string InGameBinaries, string InGameIntermediates, string InOutputPath)
 		{
-			string BuildFolder = Path.Combine(InOutputPath, "../../Build/WinUAP");
+			string BuildFolder = Path.Combine(InOutputPath, "../../Build/UWP");
 
 			string OutputPackageResourcesPath = Path.Combine(BuildFolder, "Resources", "Resources.resw");
 
@@ -166,7 +166,7 @@ namespace UnrealBuildTool
 			if (!File.Exists(PackageResourcesPath))
 			{
 				// then fallback to shared template
-				PackageResourcesPath = "../../Engine/Build/WinUAP/Templates/Package.resources.template";
+				PackageResourcesPath = "../../Engine/Build/UWP/Templates/Package.resources.template";
 			}
 
 			// Only generate the example language if the resources haven't been setup at all previously
@@ -322,7 +322,7 @@ namespace UnrealBuildTool
 
 		protected void CopyDefaultImageFiles(string InOutputPath)
 		{
-			string OutputImageFolder = Path.Combine(InOutputPath, "../../Build/WinUAP/Resources");
+			string OutputImageFolder = Path.Combine(InOutputPath, "../../Build/UWP/Resources");
 			if (Directory.Exists(OutputImageFolder) == false)
 			{
 				Directory.CreateDirectory(OutputImageFolder);
@@ -335,7 +335,7 @@ namespace UnrealBuildTool
 				string OutputImageFilePath = Path.Combine(OutputImageFolder, ImageName);
 				if (File.Exists(OutputImageFilePath) == false)
 				{
-					string SourceImagePath = "../../Engine/Build/WinUAP/DefaultImages/" + ImageName;
+					string SourceImagePath = "../../Engine/Build/UWP/DefaultImages/" + ImageName;
 					File.Copy(SourceImagePath, OutputImageFilePath);
 
 					string OutputEnglishImageFilePath = Path.Combine(OutputImageFolder, "en-US", ImageName);
@@ -363,16 +363,16 @@ namespace UnrealBuildTool
 				if (LastSourceIndex != -1)
 				{
 					OutTargetPath = OutTargetPath.Substring(0, LastSourceIndex + SourceFolderString.Length);
-					OutTargetPath = Path.Combine(OutTargetPath, "WinUAP");
+					OutTargetPath = Path.Combine(OutTargetPath, "UWP");
 				}
 				else
 				{
-					// @todo UAP: This is bad... throw a build exception?
+					// @todo UWP: This is bad... throw a build exception?
 				}
 			}
 			else
 			{
-				OutTargetPath = Path.Combine((new FileInfo(InTargetFilepath)).DirectoryName, "WinUAP");
+				OutTargetPath = Path.Combine((new FileInfo(InTargetFilepath)).DirectoryName, "UWP");
 			}
 
 			string GameBinariesFolder = Utils.MakePathRelativeTo(EngineSourceRelativeBinaryPath, OutTargetPath);
@@ -400,7 +400,8 @@ namespace UnrealBuildTool
 
 		public override void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, string RootDirectory, string TargetFilePath)
 		{
-			VCProjectFileContent.Append("		<NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);PLATFORM_WINUAP=1;WINUAP=1;</NMakePreprocessorDefinitions>" + ProjectFileGenerator.NewLine);
+			// @todo UWP: This used to be "WINUAP=1".  Need to verify that 'UWP' is the correct define that we want here.
+			VCProjectFileContent.Append("		<NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);PLATFORM_UWP=1;UWP=1;</NMakePreprocessorDefinitions>" + ProjectFileGenerator.NewLine);
 		}
 
 	}

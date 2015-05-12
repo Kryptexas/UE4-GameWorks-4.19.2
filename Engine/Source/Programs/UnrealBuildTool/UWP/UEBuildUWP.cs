@@ -9,12 +9,12 @@ using Microsoft.Win32;
 
 namespace UnrealBuildTool
 {
-	public class WinUAPPlatform : UEBuildPlatform
+	public class UWPPlatform : UEBuildPlatform
 	{
 		/// Property caching.
 		private static WindowsCompiler? CachedCompiler;
 
-		/// Version of the compiler toolchain to use for Windows Universal Applications (WinUAPs)
+		/// Version of the compiler toolchain to use for Universal Windows Platform apps (UWP)
 		public static WindowsCompiler Compiler
 		{
 			get
@@ -45,9 +45,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		// Enables the UAP platform and project file support in Unreal Build Tool
-		// @todo UAP: Remove this variable when UAP support is fully implemented
-		public static readonly bool bEnableUAPSupport = UnrealBuildTool.CommandLineContains("-uap");
+		// Enables the UWP platform and project file support in Unreal Build Tool
+		// @todo UWP: Remove this variable when UWP support is fully implemented
+		public static readonly bool bEnableUWPSupport = UnrealBuildTool.CommandLineContains("-uwp");
 
 		/// True if we should only build against the app-local CRT and /APPCONTAINER linker flag
 		public static readonly bool bBuildForStore = true;
@@ -73,8 +73,8 @@ namespace UnrealBuildTool
 		{
 			try
 			{
-				// @todo UAP: wire this up once the rest of cleanup has been resolved. right now, just leaving this to always return valid, like VC does.
-				//WinUAPToolChain.FindBaseVSToolPath();
+				// @todo UWP: wire this up once the rest of cleanup has been resolved. right now, just leaving this to always return valid, like VC does.
+				//WinUWPToolChain.FindBaseVSToolPath();
 				return SDKStatus.Valid;
 			}
 			catch (BuildException)
@@ -146,10 +146,10 @@ namespace UnrealBuildTool
 		 */
 		protected override void RegisterBuildPlatformInternal()
 		{
-			// Register this build platform for WinUAP
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinUAP.ToString());
-			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.WinUAP, this);
-			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.WinUAP, UnrealPlatformGroup.Microsoft);
+			// Register this build platform for UWP
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
+			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.UWP, this);
+			UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.UWP, UnrealPlatformGroup.Microsoft);
 		}
 
 		/**
@@ -163,10 +163,10 @@ namespace UnrealBuildTool
 		{
 			switch (InUnrealTargetPlatform)
 			{
-				case UnrealTargetPlatform.WinUAP:
-					return CPPTargetPlatform.WinUAP;
+				case UnrealTargetPlatform.UWP:
+					return CPPTargetPlatform.UWP;
 			}
-			throw new BuildException("WinUAPPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
+			throw new BuildException("UWPPlatform::GetCPPTargetPlatform: Invalid request for {0}", InUnrealTargetPlatform.ToString());
 		}
 
 		/**
@@ -286,11 +286,11 @@ namespace UnrealBuildTool
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.WinUAP))
+			if ((Target.Platform == UnrealTargetPlatform.UWP))
 			{
 				if (InModule.ToString() == "Core")
 				{
-					InModule.AddPrivateDependencyModule("WinUAPSDK");
+					InModule.AddPrivateDependencyModule("UWPSDK");
 				}
 				else if (InModule.ToString() == "Engine")
 				{
@@ -307,7 +307,7 @@ namespace UnrealBuildTool
 				else if (InModule.ToString() == "DX11")
 				{
 					// Clear out all the Windows include paths and libraries...
-					// The WinUAPSDK module handles proper paths and libs for UAP.
+					// The UWPSDK module handles proper paths and libs for UWP.
 					// However, the D3D11RHI module will include the DX11 module.
 					InModule.ClearPublicIncludePaths();
 					InModule.ClearPublicLibraryPaths();
@@ -348,21 +348,21 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0A00");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0A00");
 
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINUAP=1");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINUAP=1");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_UWP=1");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UWP=1");	// @todo UWP: This used to be "WINUAP=1".  Need to verify that 'UWP' is the correct define that we want here.
 
 			if (bWinApiFamilyApp)
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINAPI_FAMILY=WINAPI_FAMILY_APP");
 			}
 
-			// @todo UAP: UE4 is non-compliant when it comes to use of %s and %S
+			// @todo UWP: UE4 is non-compliant when it comes to use of %s and %S
 			// Previously %s meant "the current character set" and %S meant "the other one".
 			// Now %s means multibyte and %S means wide. %Ts means "natural width".
 			// Reverting this behavior until the UE4 source catches up.
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1");
 
-			// No D3DX on WinUAP!
+			// No D3DX on UWP!
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NO_D3DX_LIBS=1");
 
 

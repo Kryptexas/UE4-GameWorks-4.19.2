@@ -76,8 +76,8 @@ namespace UnrealBuildTool
 			ResourceCompilerPath = GetResourceCompilerToolPath(Platform);
 
 			var VCVarsBatchFile = Path.Combine(BaseVSToolPath, 
-				(Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.WinUAP) ? "../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" : "vsvars32.bat");
-			if (Platform == CPPTargetPlatform.WinUAP && WinUAPPlatform.bBuildForStore)
+				(Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP) ? "../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" : "vsvars32.bat");
+			if (Platform == CPPTargetPlatform.UWP && UWPPlatform.bBuildForStore)
 			{
 				Utils.SetEnvironmentVariablesFromBatchFile(VCVarsBatchFile, "store");
 			}
@@ -263,7 +263,7 @@ namespace UnrealBuildTool
 		{
 			// Regardless of the target, if we're linking on a 64 bit machine, we want to use the 64 bit linker (it's faster than the 32 bit linker)
 			//@todo.WIN32: Using the 64-bit linker appears to be broken at the moment.
-			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.WinUAP)
+			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP)
 			{
 				// Use the native 64-bit compiler if present, otherwise use the amd64-on-x86 compiler. VS2012 Express only includes the latter.
 				var Result = Path.Combine(BaseVSToolPath, "../../VC/bin/amd64");
@@ -348,7 +348,7 @@ namespace UnrealBuildTool
 		string GetResourceCompilerToolPath(CPPTargetPlatform Platform)
 		{
 			// 64 bit -- we can use the 32 bit version to target 64 bit on 32 bit OS.
-			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.WinUAP)
+			if (Platform == CPPTargetPlatform.Win64 || Platform == CPPTargetPlatform.UWP)
 			{
 				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)
 				{
@@ -360,7 +360,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// @todo UAP: Verify that Windows XP will compile using VS 2015 (it should be supported)
+			// @todo UWP: Verify that Windows XP will compile using VS 2015 (it should be supported)
 			if (!WindowsPlatform.IsWindowsXPSupported())	// Windows XP requires use to force Windows SDK 7.1 even on the newer compiler, so we need the old path RC.exe
 			{
 				if (WindowsPlatform.Compiler == WindowsCompiler.VisualStudio2015 && WindowsPlatform.bUseWindowsSDK10)

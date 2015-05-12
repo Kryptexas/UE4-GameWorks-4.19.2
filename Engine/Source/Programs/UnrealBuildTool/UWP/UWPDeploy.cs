@@ -6,23 +6,23 @@ using System.Text;
 using System.IO;
 using System.Diagnostics;
 
-// @todo UAP: this file is a work in progress and is not yet complete for the F5 scenario for WinUAP
+// @todo UWP: this file is a work in progress and is not yet complete for the F5 scenario for UWP
 
 namespace UnrealBuildTool
 {
 	/// <summary>
 	///  Base class to handle deploy of a target for a given platform
 	/// </summary>
-	class WinUAPDeploy : UEBuildDeploy
+	class UWPDeploy : UEBuildDeploy
 	{
 		/**
 		 *	Register the platform with the UEBuildDeploy class
 		 */
 		public override void RegisterBuildDeploy()
 		{
-			// Register this deployment handle for WinUAP
-			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.WinUAP.ToString());
-			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.WinUAP, this);
+			// Register this deployment handle for UWP
+			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
+			UEBuildDeploy.RegisterBuildDeploy(UnrealTargetPlatform.UWP, this);
 		}
 
 		/**
@@ -30,7 +30,7 @@ namespace UnrealBuildTool
 		 */
 		void DeployHelper_DeleteFile(string InFileToDelete)
 		{
-			Log.TraceInformation("WinUAPDeploy.DeployHelper_DeleteFile({0})", InFileToDelete);
+			Log.TraceInformation("UWPDeploy.DeployHelper_DeleteFile({0})", InFileToDelete);
 			if (File.Exists(InFileToDelete) == true)
 			{
 				FileAttributes attributes = File.GetAttributes(InFileToDelete);
@@ -50,7 +50,7 @@ namespace UnrealBuildTool
 		bool CopySourceToDestDir(string InSourceDirectory, string InDestinationDirectory, string InWildCard,
 			bool bInIncludeSubDirectories, bool bInRemoveDestinationOrphans)
 		{
-			Log.TraceInformation("WinUAPDeploy.CopySourceToDestDir({0}, {1}, {2},...)", InSourceDirectory, InDestinationDirectory, InWildCard);
+			Log.TraceInformation("UWPDeploy.CopySourceToDestDir({0}, {1}, {2},...)", InSourceDirectory, InDestinationDirectory, InWildCard);
 			if (Directory.Exists(InSourceDirectory) == false)
 			{
 				Log.TraceInformation("Warning: CopySourceToDestDir - SourceDirectory does not exist: {0}", InSourceDirectory);
@@ -132,7 +132,7 @@ namespace UnrealBuildTool
 		 */
 		void CopyFile(string InSource, string InDest, bool bForce)
 		{
-			Log.TraceInformation("WinUAPDeploy.CopyFile({0}, {1}, {2},...)", InSource, InDest, bForce);
+			Log.TraceInformation("UWPDeploy.CopyFile({0}, {1}, {2},...)", InSource, InDest, bForce);
 			if (File.Exists(InSource) == true)
 			{
 				if (bForce == true)
@@ -146,7 +146,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				Log.TraceInformation("WinUAPDeploy: File didn't exist - {0}", InSource);
+				Log.TraceInformation("UWPDeploy: File didn't exist - {0}", InSource);
 			}
 		}
 
@@ -191,7 +191,7 @@ namespace UnrealBuildTool
 
 		public bool PrepForUATPackageOrDeploy(string InProjectName, string InProjectDirectory, string InExecutablePath, string InEngineDir, bool bForDistribution, string CookFlavor)
 		{
-			// Much of the WinUAPProjectGenerator code assumes that the path will be set to Engine/Source
+			// Much of the UWPProjectGenerator code assumes that the path will be set to Engine/Source
 			string PreviousDirectory = Directory.GetCurrentDirectory();
 			string PreviousRelativeEnginePath = BuildConfiguration.RelativeEnginePath;
 
@@ -202,7 +202,7 @@ namespace UnrealBuildTool
 			string EngineSourceRelativeBinaryPath = Utils.MakePathRelativeTo(ProjectBinaryFolder, Path.Combine(InEngineDir, "Source"));
 			bool bIsUE4Game = new FileInfo(InExecutablePath).Name.StartsWith("UE4Game", StringComparison.InvariantCultureIgnoreCase);
 
-			WinUAPProjectGenerator ProjectGen = new WinUAPProjectGenerator();
+			UWPProjectGenerator ProjectGen = new UWPProjectGenerator();
 			ProjectGen.GenerateDeployFiles(InProjectName, ProjectBinaryFolder, bIsUE4Game, EngineSourceRelativeBinaryPath);
 
 			// back to root for UAT
@@ -225,7 +225,7 @@ namespace UnrealBuildTool
 
 			string RelativeTargetDirectory;
 			string EngineSourceRelativeBinaryPath;
-			WinUAPProjectGenerator.GetTargetWinUAPPaths(InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
+			UWPProjectGenerator.GetTargetUWPPaths(InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
 
 			PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false, "");
 
@@ -264,7 +264,7 @@ namespace UnrealBuildTool
 
 			// Log out the time taken to deploy...
 			double PrepDeployDuration = (DateTime.UtcNow - PrepDeployStartTime).TotalSeconds;
-			Log.TraceInformation("WinUAP deployment preparation took {0:0.00} seconds", PrepDeployDuration);
+			Log.TraceInformation("UWP deployment preparation took {0:0.00} seconds", PrepDeployDuration);
 
 			return true;
 		}

@@ -258,7 +258,7 @@ namespace UnrealBuildTool
 		static public bool PlatformSupportsCrashReporter(UnrealTargetPlatform InPlatform)
 		{
 			return (
-				(InPlatform == UnrealTargetPlatform.WinUAP) ||
+				(InPlatform == UnrealTargetPlatform.UWP) ||
 				(InPlatform == UnrealTargetPlatform.Win64) ||
 				(InPlatform == UnrealTargetPlatform.Win32) ||
 				(InPlatform == UnrealTargetPlatform.Linux) ||
