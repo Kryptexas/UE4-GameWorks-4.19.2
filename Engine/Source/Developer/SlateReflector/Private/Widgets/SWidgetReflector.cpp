@@ -49,10 +49,10 @@ namespace WidgetReflectorImpl
 /**
  * Widget reflector implementation
  */
-class SWidgetReflector : public ::SWidgetReflector
+class SWidgetReflector : public ::SWidgetReflector, public FGCObject
 {
-	// The reflector uses a tree that observes FReflectorNodes.
-	typedef STreeView<TSharedPtr<FReflectorNode>> SReflectorTree;
+	// The reflector uses a tree that observes UWidgetReflectorNodeBase objects.
+	typedef STreeView<UWidgetReflectorNodeBase*> SReflectorTree;
 
 private:
 
@@ -107,14 +107,14 @@ private:
 	 * @param InReflectorNode The node to generate the tool tip for.
 	 * @return The tool tip widget.
 	 */
-	TSharedRef<SToolTip> GenerateToolTipForReflectorNode( TSharedPtr<FReflectorNode> InReflectorNode );
+	TSharedRef<SToolTip> GenerateToolTipForReflectorNode( UWidgetReflectorNodeBase* InReflectorNode );
 
 	/**
 	 * Mark the provided reflector nodes such that they stand out in the tree and are visible.
 	 *
 	 * @param WidgetPathToObserve The nodes to mark.
 	 */
-	void VisualizeAsTree( const TArray< TSharedPtr<FReflectorNode> >& WidgetPathToVisualize );
+	void VisualizeAsTree( const TArray< UWidgetReflectorNodeBase* >& WidgetPathToVisualize );
 
 	/**
 	 * Draw the widget path to the picked widget as the widgets' outlines.
@@ -135,7 +135,7 @@ private:
 	 * @param LayerId the maximum layer achieved in OutDrawElements so far.
 	 * @return The maximum layer ID we achieved while painting.
 	 */
-	int32 VisualizeSelectedNodesAsRectangles( const TArray<TSharedPtr<FReflectorNode>>& InNodesToDraw, const TSharedRef<SWindow>& VisualizeInWindow, FSlateWindowElementList& OutDrawElements, int32 LayerId );
+	int32 VisualizeSelectedNodesAsRectangles( const TArray<UWidgetReflectorNodeBase*>& InNodesToDraw, const TSharedRef<SWindow>& VisualizeInWindow, FSlateWindowElementList& OutDrawElements, int32 LayerId );
 
 	/** Callback for changing the application scale slider. */
 	void HandleAppScaleSliderChanged( float NewValue )
@@ -191,28 +191,40 @@ private:
 	/** Callback for getting the text of the pick button. */
 	FText HandlePickButtonText() const;
 
+	/** Callback for clicking the snapshot button. */
+	FReply HandleSnapshotButtonClicked();
+
 	/** Callback for generating a row in the reflector tree view. */
-	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( TSharedPtr<FReflectorNode> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
+	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( UWidgetReflectorNodeBase* InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the child items of the given reflector tree node. */
-	void HandleReflectorTreeGetChildren( TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren );
+	void HandleReflectorTreeGetChildren( UWidgetReflectorNodeBase* InWidgetGeometry, TArray<UWidgetReflectorNodeBase*>& OutChildren );
 
 	/** Callback for when the selection in the reflector tree has changed. */
-	void HandleReflectorTreeSelectionChanged( TSharedPtr< FReflectorNode >, ESelectInfo::Type /*SelectInfo*/ )
+	void HandleReflectorTreeSelectionChanged( UWidgetReflectorNodeBase*, ESelectInfo::Type /*SelectInfo*/ )
 	{
 		SelectedNodes = ReflectorTree->GetSelectedItems();
 	}
 
 	TSharedRef<ITableRow> GenerateEventLogRow( TSharedRef<FLoggedEvent> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
 
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
+	{
+		// STreeView only references items that are currently visible, but we need to prevent the entire tree from being GC'd
+		for (UWidgetReflectorNodeBase* NodeRootItem : ReflectorTreeRoot)
+		{
+			Collector.AddReferencedObject(NodeRootItem);
+		}
+	}
+
 	TArray< TSharedRef<FLoggedEvent> > LoggedEvents;
 	TSharedPtr< SListView< TSharedRef< FLoggedEvent > > > EventListView;
 	TSharedPtr< SHorizontalBox > StatsToolsBox;
 	TSharedPtr<SReflectorTree> ReflectorTree;
 
-	TArray<TSharedPtr<FReflectorNode>> SelectedNodes;
-	TArray<TSharedPtr<FReflectorNode>> ReflectorTreeRoot;
-	TArray<TSharedPtr<FReflectorNode>> PickedPath;
+	TArray<UWidgetReflectorNodeBase*> SelectedNodes;
+	TArray<UWidgetReflectorNodeBase*> ReflectorTreeRoot;
+	TArray<UWidgetReflectorNodeBase*> PickedPath;
 
 	SSplitter::FSlot* WidgetInfoLocation;
 
@@ -356,6 +368,22 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 									.Text(this, &SWidgetReflector::HandlePickButtonText)
 							]
 					]
+
+					/*
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f)
+					[
+						// Button that controls taking a snapshot of the current window(s)
+						SNew(SButton)
+							.OnClicked(this, &SWidgetReflector::HandleSnapshotButtonClicked)
+							[
+								SNew(STextBlock)
+									.Text(LOCTEXT("SnapshotButtonText", "Snapshot"))
+							]
+					]
+					*/
+
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(5.0f)
@@ -611,7 +639,7 @@ void SWidgetReflector::Construct( const FArguments& InArgs )
 
 							+ SHeaderRow::Column("Address")
 							.DefaultLabel( LOCTEXT("Address", "Address") )
-							.FillWidth( 0.10f )
+							.FixedWidth(140.0f)
 						)
 					]
 
@@ -683,7 +711,7 @@ void SWidgetReflector::OnEventProcessed( const FInputEvent& Event, const FReplyB
 
 bool SWidgetReflector::ReflectorNeedsToDrawIn( TSharedRef<SWindow> ThisWindow ) const
 {
-	return ((SelectedNodes.Num() > 0) && (ReflectorTreeRoot.Num() > 0) && (ReflectorTreeRoot[0]->Widget.Pin() == ThisWindow));
+	return ((SelectedNodes.Num() > 0) && (ReflectorTreeRoot.Num() > 0) && (ReflectorTreeRoot[0]->GetLiveWidget() == ThisWindow));
 }
 
 
@@ -693,13 +721,13 @@ void SWidgetReflector::SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisu
 
 	if (InWidgetsToVisualize.IsValid())
 	{
-		ReflectorTreeRoot.Add(FReflectorNode::NewTreeFrom(InWidgetsToVisualize.Widgets[0]));
+		ReflectorTreeRoot.Add(FWidgetReflectorNodeUtils::NewLiveNodeTreeFrom(InWidgetsToVisualize.Widgets[0]));
 		PickedPath.Empty();
 
-		FReflectorNode::FindWidgetPath( ReflectorTreeRoot, InWidgetsToVisualize, PickedPath );
+		FWidgetReflectorNodeUtils::FindLiveWidgetPath(ReflectorTreeRoot, InWidgetsToVisualize, PickedPath);
 		VisualizeAsTree(PickedPath);
 	}
-	
+
 	ReflectorTree->RequestTreeRefresh();
 }
 
@@ -708,20 +736,21 @@ int32 SWidgetReflector::Visualize( const FWidgetPath& InWidgetsToVisualize, FSla
 {
 	const bool bAttemptingToVisualizeReflector = InWidgetsToVisualize.ContainsWidget(ReflectorTree.ToSharedRef());
 
-	if (!InWidgetsToVisualize.IsValid())
+	if (!InWidgetsToVisualize.IsValid() && SelectedNodes.Num() > 0 && ReflectorTreeRoot.Num() > 0)
 	{
-		TSharedPtr<SWidget> WindowWidget = ReflectorTreeRoot[0]->Widget.Pin();
-		TSharedPtr<SWindow> Window = StaticCastSharedPtr<SWindow>(WindowWidget);
-
-		return VisualizeSelectedNodesAsRectangles(SelectedNodes, Window.ToSharedRef(), OutDrawElements, LayerId);
+		TSharedPtr<SWidget> WindowWidget = ReflectorTreeRoot[0]->GetLiveWidget();
+		if (WindowWidget.IsValid())
+		{
+			TSharedPtr<SWindow> Window = StaticCastSharedPtr<SWindow>(WindowWidget);
+			return VisualizeSelectedNodesAsRectangles(SelectedNodes, Window.ToSharedRef(), OutDrawElements, LayerId);
+		}
 	}
 
 	if (!bAttemptingToVisualizeReflector)
 	{
 		SetWidgetsToVisualize(InWidgetsToVisualize);
-
 		return VisualizePickAsRectangles(InWidgetsToVisualize, OutDrawElements, LayerId);
-	}		
+	}
 
 	return LayerId;
 }
@@ -767,7 +796,7 @@ int32 SWidgetReflector::VisualizeCursorAndKeys(FSlateWindowElementList& OutDrawE
 /* SWidgetReflector implementation
  *****************************************************************************/
 
-TSharedRef<SToolTip> SWidgetReflector::GenerateToolTipForReflectorNode( TSharedPtr<FReflectorNode> InReflectorNode )
+TSharedRef<SToolTip> SWidgetReflector::GenerateToolTipForReflectorNode( UWidgetReflectorNodeBase* InReflectorNode )
 {
 	return SNew(SToolTip)
 		[
@@ -777,18 +806,18 @@ TSharedRef<SToolTip> SWidgetReflector::GenerateToolTipForReflectorNode( TSharedP
 }
 
 
-void SWidgetReflector::VisualizeAsTree( const TArray<TSharedPtr<FReflectorNode>>& WidgetPathToVisualize )
+void SWidgetReflector::VisualizeAsTree( const TArray<UWidgetReflectorNodeBase*>& WidgetPathToVisualize )
 {
 	const FLinearColor TopmostWidgetColor(1.0f, 0.0f, 0.0f);
 	const FLinearColor LeafmostWidgetColor(0.0f, 1.0f, 0.0f);
 
 	for (int32 WidgetIndex = 0; WidgetIndex<WidgetPathToVisualize.Num(); ++WidgetIndex)
 	{
-		TSharedPtr<FReflectorNode> CurWidget = WidgetPathToVisualize[WidgetIndex];
+		UWidgetReflectorNodeBase* CurWidget = WidgetPathToVisualize[WidgetIndex];
 
 		// Tint the item based on depth in picked path
 		const float ColorFactor = static_cast<float>(WidgetIndex)/WidgetPathToVisualize.Num();
-		CurWidget->Tint = FMath::Lerp(TopmostWidgetColor, LeafmostWidgetColor, ColorFactor);
+		CurWidget->SetTint(FMath::Lerp(TopmostWidgetColor, LeafmostWidgetColor, ColorFactor));
 
 		// Make sure the user can see the picked path in the tree.
 		ReflectorTree->SetItemExpansion(CurWidget, true);
@@ -833,11 +862,11 @@ int32 SWidgetReflector::VisualizePickAsRectangles( const FWidgetPath& InWidgetsT
 }
 
 
-int32 SWidgetReflector::VisualizeSelectedNodesAsRectangles( const TArray<TSharedPtr<FReflectorNode>>& InNodesToDraw, const TSharedRef<SWindow>& VisualizeInWindow, FSlateWindowElementList& OutDrawElements, int32 LayerId )
+int32 SWidgetReflector::VisualizeSelectedNodesAsRectangles( const TArray<UWidgetReflectorNodeBase*>& InNodesToDraw, const TSharedRef<SWindow>& VisualizeInWindow, FSlateWindowElementList& OutDrawElements, int32 LayerId )
 {
 	for (int32 NodeIndex = 0; NodeIndex < InNodesToDraw.Num(); ++NodeIndex)
 	{
-		const TSharedPtr<FReflectorNode>& NodeToDraw = InNodesToDraw[NodeIndex];
+		const UWidgetReflectorNodeBase* NodeToDraw = InNodesToDraw[NodeIndex];
 		const FLinearColor Tint(0.0f, 1.0f, 0.0f);
 
 		// The FGeometry we get is from a WidgetPath, so it's rooted in desktop space.
@@ -845,7 +874,7 @@ int32 SWidgetReflector::VisualizeSelectedNodesAsRectangles( const TArray<TShared
 		// and get us back into Window Space.
 		// This is nonstandard so we have to go through some hoops and a specially exposed method 
 		// in FPaintGeometry to allow appending layout transforms.
-		FPaintGeometry WindowSpaceGeometry = NodeToDraw->Geometry.ToPaintGeometry();
+		FPaintGeometry WindowSpaceGeometry = NodeToDraw->GetGeometry().ToPaintGeometry();
 		WindowSpaceGeometry.AppendTransform(TransformCast<FSlateLayoutTransform>(Inverse(VisualizeInWindow->GetPositionInScreen())));
 
 		FSlateDrawElement::MakeBox(
@@ -855,7 +884,7 @@ int32 SWidgetReflector::VisualizeSelectedNodesAsRectangles( const TArray<TShared
 			FCoreStyle::Get().GetBrush(TEXT("Debug.Border")),
 			VisualizeInWindow->GetClippingRectangleInWindow(),
 			ESlateDrawEffect::None,
-			NodeToDraw->Tint
+			NodeToDraw->GetTint()
 		);
 	}
 
@@ -911,7 +940,26 @@ FText SWidgetReflector::HandlePickButtonText() const
 }
 
 
-TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( TSharedPtr<FReflectorNode> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable )
+FReply SWidgetReflector::HandleSnapshotButtonClicked()
+{
+	// Clean out the current tree and replace it with the snapshotted state of any window(s) that are currently open
+	ReflectorTreeRoot.Empty();
+
+	TArray<TSharedRef<SWindow>> VisibleWindows;
+	FSlateApplication::Get().GetAllVisibleWindowsOrdered(VisibleWindows);
+
+	for (const auto& VisibleWindow : VisibleWindows)
+	{
+		ReflectorTreeRoot.Add(FWidgetReflectorNodeUtils::NewSnapshotNodeTreeFrom(FArrangedWidget(VisibleWindow, VisibleWindow->GetWindowGeometryInScreen())));
+	}
+
+	ReflectorTree->RequestTreeRefresh();
+
+	return FReply::Handled();
+}
+
+
+TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( UWidgetReflectorNodeBase* InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return SNew(SReflectorTreeWidgetItem, OwnerTable)
 		.WidgetInfoToVisualize(InReflectorNode)
@@ -921,9 +969,9 @@ TSharedRef<ITableRow> SWidgetReflector::HandleReflectorTreeGenerateRow( TSharedP
 }
 
 
-void SWidgetReflector::HandleReflectorTreeGetChildren(TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren)
+void SWidgetReflector::HandleReflectorTreeGetChildren(UWidgetReflectorNodeBase* InWidgetGeometry, TArray<UWidgetReflectorNodeBase*>& OutChildren)
 {
-	OutChildren = InWidgetGeometry->ChildNodes;
+	OutChildren = InWidgetGeometry->GetChildNodes();
 }
 
 
