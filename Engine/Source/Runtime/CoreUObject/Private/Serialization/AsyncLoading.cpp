@@ -2220,6 +2220,10 @@ void FArchiveAsync::Serialize(void* Data, int64 Count)
 			do
 			{
 				SHUTDOWN_IF_EXIT_REQUESTED;
+				if (PlatformIsSinglethreaded)
+				{
+					FIOSystem::Get().TickSingleThreaded();
+				}
 				FPlatformProcess::SleepNoStats(0.0f);
 			} while (!Precache(CurrentPos, Count));
 		}
