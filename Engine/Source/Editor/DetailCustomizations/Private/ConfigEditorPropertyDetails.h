@@ -62,7 +62,6 @@ private:
 private:
 	void AddEditablePropertyForConfig(IDetailLayoutBuilder& DetailBuilder, const class UPropertyConfigFileDisplayRow* ConfigFileProperty);
 
-	void OnConfigFileListChanged();
 
 	//////////////////////////////////////////////////////////////////////////
 	/// Misc properties...
@@ -71,13 +70,23 @@ private:
 	// Keep track of the property handle for the config files.
 	TSharedPtr<IPropertyHandle> ConfigFilesHandle;
 
-	// The property we wish to edit on a per config basis.
-	UProperty* Property;
+	// A copy of the edit property we use with our helper class to update values on a per-config basis.
+	UProperty* ConfigEditorCopyOfEditProperty;
+
+	// The original property from the Project settings, that we have chosen to edit.
+	UProperty* OriginalProperty;
+
+	// A runtime class generated with the Original property as a member.
+	// This allows us to edit a property on a per config basis.
+	UClass* ConfigEditorPropertyViewClass;
+
+	// The 'Class Default Object' of the runtime class we generate.
+	// We duplicate this for each config file instance.
+	UObject* ConfigEditorPropertyViewCDO;
 
 	// Coupling of Config files and their editable objects.
 	TMap<FString, UObject*> AssociatedConfigFileAndObjectPairings;
 
+	// Mapping of Config Files and ConfigEditorPropertyViewClass objects.
 	TMap<FString, UObject*> ConfigFileAndPropertySourcePairings;
-
-	TMap<FString, TSharedPtr<SWidget>> ExternalPropertyValueWidgetAndConfigPairings;
 };
