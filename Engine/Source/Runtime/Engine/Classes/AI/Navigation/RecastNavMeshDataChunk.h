@@ -43,10 +43,10 @@ class ENGINE_API URecastNavMeshDataChunk : public UNavigationDataChunk
 	// End UObject Interface
 
 	/** Attaches tiles to specified navmesh, transferring tile ownership to navmesh */
-	TArray<uint32> AttachTiles(FPImplRecastNavMesh* NavMeshImpl);
+	TArray<uint32> AttachTiles(FPImplRecastNavMesh& NavMeshImpl);
 	
 	/** Detaches tiles from specified navmesh, taking tile ownership */
-	TArray<uint32> DetachTiles(FPImplRecastNavMesh* NavMeshImpl);
+	TArray<uint32> DetachTiles(FPImplRecastNavMesh& NavMeshImpl);
 	
 	/** Number of tiles in this chunk */
 	int32 GetNumTiles() const;
@@ -63,6 +63,12 @@ private:
 #if WITH_RECAST
 	void SerializeRecastData(FArchive& Ar, int32 NavMeshVersion);
 #endif//WITH_RECAST
+
+	
+	DEPRECATED(4.8, "AttachTiles is deprecated. Use the version takin a reference instead.")
+	TArray<uint32> AttachTiles(FPImplRecastNavMesh* NavMeshImpl);
+	DEPRECATED(4.8, "DetachTiles is deprecated. Use the version takin a reference instead.")
+	TArray<uint32> DetachTiles(FPImplRecastNavMesh* NavMeshImpl);
 
 private:
 	TArray<FRecastTileData> Tiles;
