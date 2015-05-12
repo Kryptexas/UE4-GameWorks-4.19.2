@@ -4851,6 +4851,38 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		NameContent = LOCTEXT("GraphNodeDetail_ContentTitle", "Name");
 	}
 
+	bool bNameAllowsMultiLine = false;
+	if( GraphNodePtr.IsValid() && GraphNodePtr.Get()->IsA<UEdGraphNode_Comment>() )
+	{
+		bNameAllowsMultiLine = true;
+	}
+
+	TSharedPtr<SWidget> EditNameWidget;
+	if( bNameAllowsMultiLine )
+	{
+		SAssignNew(MultiLineNameEditableTextBox, SMultiLineEditableTextBox)
+		.Text(this, &FBlueprintGraphNodeDetails::OnGetName)
+		.OnTextChanged(this, &FBlueprintGraphNodeDetails::OnNameChanged)
+		.OnTextCommitted(this, &FBlueprintGraphNodeDetails::OnNameCommitted)
+		.ClearKeyboardFocusOnCommit(true)
+		.ModiferKeyForNewLine(EModifierKey::Shift)
+		.RevertTextOnEscape(true)
+		.SelectAllTextWhenFocused(true)
+		.IsReadOnly(this, &FBlueprintGraphNodeDetails::IsNameReadOnly)
+		.Font(DetailFontInfo);
+
+		EditNameWidget = MultiLineNameEditableTextBox;
+	}
+	else
+	{
+		SAssignNew(NameEditableTextBox, SEditableTextBox)
+		.Text(this, &FBlueprintGraphNodeDetails::OnGetName)
+		.OnTextChanged(this, &FBlueprintGraphNodeDetails::OnNameChanged)
+		.OnTextCommitted(this, &FBlueprintGraphNodeDetails::OnNameCommitted)
+		.Font(DetailFontInfo);
+
+		EditNameWidget = NameEditableTextBox;
+	}
 
 	Category.AddCustomRow( RowHeader )
 	.NameContent()
@@ -4861,14 +4893,22 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	]
 	.ValueContent()
 	[
-		SAssignNew(NameEditableTextBox, SEditableTextBox)
-		.Text(this, &FBlueprintGraphNodeDetails::OnGetName)
-		.OnTextChanged(this, &FBlueprintGraphNodeDetails::OnNameChanged)
-		.OnTextCommitted(this, &FBlueprintGraphNodeDetails::OnNameCommitted)
-		.Font(DetailFontInfo)
+		EditNameWidget.ToSharedRef()
 	];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void FBlueprintGraphNodeDetails::SetNameError( const FText& Error )
+{
+	if( NameEditableTextBox.IsValid() )
+	{
+		NameEditableTextBox->SetError( Error );
+	}
+	if( MultiLineNameEditableTextBox.IsValid() )
+	{
+		MultiLineNameEditableTextBox->SetError( Error );
+	}
+}
 
 bool FBlueprintGraphNodeDetails::IsNameReadOnly() const
 {
@@ -4912,19 +4952,19 @@ void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
 		const EValidatorResult ValidatorResult = FGraphNodeNameValidatorHelper::Validate(GraphNodePtr, BlueprintEditorPtr, InNewText.ToString());
 		if(ValidatorResult == EValidatorResult::AlreadyInUse)
 		{
-			NameEditableTextBox->SetError(FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText));
+			SetNameError(FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText));
 		}
 		else if(ValidatorResult == EValidatorResult::EmptyName)
 		{
-			NameEditableTextBox->SetError(LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!"));
+			SetNameError(LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!"));
 		}
 		else if(ValidatorResult == EValidatorResult::TooLong)
 		{
-			NameEditableTextBox->SetError(FText::Format( LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than {0} characters!"), FText::AsNumber( FKismetNameValidator::GetMaximumNameLength())));
+			SetNameError(FText::Format( LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than {0} characters!"), FText::AsNumber( FKismetNameValidator::GetMaximumNameLength())));
 		}
 		else
 		{
-			NameEditableTextBox->SetError(FText::GetEmpty());
+			SetNameError(FText::GetEmpty());
 		}
 	}
 }

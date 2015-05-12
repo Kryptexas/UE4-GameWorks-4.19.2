@@ -780,14 +780,19 @@ protected:
 
 private:
 
+	/** Set error to name textbox */
+	void SetNameError( const FText& Error );
+
 	// Callbacks for uproperty details customization
 	FText OnGetName() const;
 	bool IsNameReadOnly() const;
 	void OnNameChanged(const FText& InNewText);
 	void OnNameCommitted(const FText& InNewName, ETextCommit::Type InTextCommit);
 
-	/** The widget used when editing the name */ 
+	/** The widget used when editing a singleline name */ 
 	TSharedPtr<SEditableTextBox> NameEditableTextBox;
+	/** The widget used when editing a multiline name */ 
+	TSharedPtr<SMultiLineEditableTextBox> MultiLineNameEditableTextBox;
 	/** The target GraphNode */
 	TWeakObjectPtr<UEdGraphNode> GraphNodePtr;
 	/** Weak reference to the Blueprint editor */

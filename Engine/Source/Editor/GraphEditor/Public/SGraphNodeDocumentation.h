@@ -24,7 +24,7 @@ public:
 	virtual FVector2D GetNodeMinimumSize() const override;
 	virtual FVector2D GetNodeMaximumSize() const override;
 	virtual float GetTitleBarHeight() const override;
-	virtual FSlateRect GetHitTestingBorder( float InverseZoomFactor ) const override;
+	virtual FSlateRect GetHitTestingBorder() const override;
 	// End SGraphNodeResizable Interface
 
 protected:

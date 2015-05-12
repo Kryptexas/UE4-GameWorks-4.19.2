@@ -60,7 +60,7 @@ protected:
 	virtual FVector2D GetNodeMaximumSize() const;
 
 	//** Return slate rect border for hit testing */
-	virtual FSlateRect GetHitTestingBorder( float InverseZoomFactor ) const;
+	virtual FSlateRect GetHitTestingBorder() const;
 
 protected:
 
