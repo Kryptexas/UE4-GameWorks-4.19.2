@@ -203,6 +203,7 @@ public class GUBP : BuildCommand
             public List<UnrealTargetPlatform> RemovePlatformFromPromotable = new List<UnrealTargetPlatform>();
             public List<string> PromotablesWithoutTools = new List<string>();
             public List<string> NodesToRemovePseudoDependencies = new List<string>();
+            public List<string> EnhanceAgentRequirements = new List<string>();
 			public bool bNoAutomatedTesting = false;
 			public bool bNoDocumentation = false;
 			public bool bNoInstalledEngine = false;
@@ -1768,7 +1769,15 @@ public class GUBP : BuildCommand
         public override bool DeleteBuildProducts()
         {
             return true;
-        }  
+        }
+        public override int AgentMemoryRequirement(GUBP bp)
+        {
+            if(bp.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled)))
+            {
+                return 64;
+            }
+            return base.AgentMemoryRequirement(bp);
+        }
 
         public override int CISFrequencyQuantumShift(GUBP bp)
         {            
