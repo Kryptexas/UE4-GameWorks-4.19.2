@@ -63,7 +63,7 @@ struct FComponentObjectTextFactory : public FCustomizableTextObjectFactory
 			EObjectFlags ObjectFlags = RF_Transactional;
 			if (bPasteAsArchetypes)
 			{
-				ObjectFlags |= RF_ArchetypeObject;
+				ObjectFlags |= RF_ArchetypeObject | RF_Public;
 			}
 
 			// Use the transient package initially for creating the objects, since the variable name is used when copying
