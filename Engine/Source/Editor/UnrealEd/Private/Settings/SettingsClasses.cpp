@@ -10,6 +10,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "ISettingsModule.h"
+#include "EditorProjectSettings.h"
 
 #include "SourceCodeNavigation.h"
 
