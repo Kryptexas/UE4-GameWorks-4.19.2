@@ -332,6 +332,7 @@ namespace UnrealBuildTool
 				{
 					Log.TraceError("Remote compiling requires a server name. Use the editor to set up your remote compilation settings.");
 					InitializationErrorCode = 99;
+					return InitializationErrorCode;
 				}
 
 				if (!bUseRPCUtil)
