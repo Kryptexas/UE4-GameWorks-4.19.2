@@ -81,6 +81,11 @@
 		__pragma (warning(push))
 #endif // PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 
+#ifndef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+	#define PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS \
+		__pragma(warning(pop))
+#endif // PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+
 #ifndef PRAGMA_POP
 	#define PRAGMA_POP \
 		__pragma(warning(pop))

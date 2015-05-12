@@ -15,7 +15,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "ThirdParty/openexr/Deploy/include/ImfStdIO.h"
 #include "ThirdParty/openexr/Deploy/include/ImfChannelList.h"
 #include "ThirdParty/openexr/Deploy/include/ImfRgbaFile.h"
-PRAGMA_POP
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 /**
  * OpenEXR implementation of the helper class

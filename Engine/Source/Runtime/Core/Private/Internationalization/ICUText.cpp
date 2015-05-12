@@ -12,7 +12,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/sortkey.h>
 #include <unicode/numfmt.h>
 #include <unicode/msgfmt.h>
-PRAGMA_POP
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 #include "ICUUtilities.h"
 #include "ICUTextCharacterIterator.h"
