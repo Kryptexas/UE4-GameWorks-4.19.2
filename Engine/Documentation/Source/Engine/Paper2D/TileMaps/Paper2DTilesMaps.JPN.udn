@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2514961
+﻿INTSourceChangelist:2520578
+Availability:Public
 Title:Paper 2D Tile Sets / Tile Maps
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Paper 2Dで使用する Tile Set と Tile Map 作成の概要 
-Availability:Docs
 Related:Engine\Paper2D\Sprites\Collision
 Related:Engine\Paper2D\Flipbooks
 Related:Engine/Rendering/Materials
 Related:Engine/Content/Types/Textures
 
 [REGION:warning]
-このページで紹介する機能は、現時点では開発の **実験段階** です。完全にサポートしていない部分もあるので、ご利用は自己責任でお願い致します。 
+このページで紹介する機能は、ある側面が完全にサポートされていない機能など、現時点では開発の **実験段階** にある場合があります。 
 [/REGION]
 
 
@@ -94,7 +94,7 @@ Tile Map (タイルに幅と高さが定義されている 2D グリッド) と�
 
 ![](CurrentlySelectedTile.png)
 
-この例は、 Tile Width と Tile Height の値を 128 に増加しています。 
+この例は、 Tile Width と Tile Height の値を 64 に増やしてタイルサイズと一致させています。 
 
 [REGION:lightbox]
 [![](UpdatedTileSheet.png)(w:800)](UpdatedTileSheet.png)
@@ -102,7 +102,7 @@ Tile Map (タイルに幅と高さが定義されている 2D グリッド) と�
 
 _クリックしてフルサイズで表示_
 
-ビューポートで、白いタイルの選択枠が Tile Sheet の個別タイル全体をハイライトします（Tile Sheet の設定次第では別の値を試してみてください）。Tile Sheet で選択したタイルを1つ表示するために、Tile Editor ウィンドウも更新されます。 
+ビューポートで、白いタイルの選択枠が Tile Sheet の個別タイル全体をハイライトします（Tile Sheet の設定によって別の値を試してみてください）。Tile Sheet で選択したタイルを1つ表示するために、Tile Editor ウィンドウも更新されます。 
 
 Tile Width と Tile Height の設定に加えて、Tile Set をさらに調整するために **詳細** パネルから以下の設定を使用することも出来ます。 
 
@@ -116,25 +116,46 @@ Tile Width と Tile Height の設定に加えて、Tile Set をさらに調整�
 | **Drawing Offset** | このセットのタイルの描画オフセット (ピクセル単位)。 |
 | **Background Color** | タイルセットビューアーに表示される背景カラー。 |
 
-[REGION:note]
-タイルごとに調整を行う追加の設定が **詳細** パネルにありますが、現時点でのリリースバージョンでは **実験的** な設定です。
-[/REGION]
+### タイルごとの設定 / タイルコリジョンの適用
+
+**詳細** パネルでタイルごとの設定を指定することもできます（特定のタイルにコリジョンを適用するなど）。 
+
+**タイルにコリジョンを適用する方法**: 
+
+1. ビューポートでタイルを選択してから (1) 、コリジョンに使用する形状のタイプをクリックします (2)。 
+
+	![](Collision_1.png)
+
+1. 形状が適用されて、 **タイルエディタ** ウィンドウで更なる編集が可能になります。 
+
+	![](Collision_2.png)
+
+	編集中のタイルの番号に注目してください（上の緑のボックス）。この特定タイルに設定を行うためにこの番号が必要です。 
+
+1. **スプライト** セクションの **詳細** パネルで選択したタイルを検索して、設定したい **Geometry Type（ジオメトリタイプ）** に変更します。 
+
+	![](Collision_3.png)
+
+	[REGION:note]
+	スプライトコリジョンタイプに関する詳細は、 [](Engine\Paper2D\Sprites\Collision) ページを参照してください。 
+	[/REGION]
+	この設定を行うと、指定したジオメトリタイプと形状に基づいたコリジョン向けにタイルを設定します。ゲーム内に設定を反映させるには、 **Tile Map** の作成時に **Sprite Collision Domain** を設定する必要があります(以下の Tile Map（タイルマップ）使用/作成方法を参照）。 
 
 
 
 ## Tile Maps の作成
 
-Tile Maps も **コンテンツブラウザ** で作成して、 **Tile Map Editor** 内で編集します。 
+Tile Maps は **コンテンツブラウザ** で作成して、 **Tile Map Editor** 内で編集します。 
 
 ### 新規の Tile Map アセットを作成
 
 **Tile Map アセットを作成する方法:**
 
- 1. **コンテンツブラウザ** で ![](addNewButton.png)(h:24) ボタンをクリックした後に _Miscellaneous_ から **Tile Map** を選択します。
+1. **コンテンツブラウザ** で ![](addNewButton.png)(h:24) ボタンをクリックした後に _Miscellaneous_ から **Tile Map** を選択します。
 	![](NewTileMap.png)
 
 
- 1. 新規 Tile Map アセットに名前を付けます。 
+1. 新規 Tile Map アセットに名前を付けます。 
 
 	![](NewPaperTileMap.png)
 
@@ -147,7 +168,7 @@ Tile Maps も **コンテンツブラウザ** で作成して、 **Tile Map Edit
 
 新規の Tile Map アセットを開いた後は、 Tile Map エディタで作業を開始する前に、連携させる **Active Tile Set** を割り当てなくてはいけません。 
 
- 1. **Selection** 指定枠をクリックして、 **Toolbox** 内部で使用する **Active Tile Set** を指定できます。 
+1. **Selection** 指定枠をクリックして、 **Toolbox** 内部で使用する **Active Tile Set** を指定できます。 
 
 	![](SelectTileSetWindow.png)
 
@@ -155,9 +176,9 @@ Tile Maps も **コンテンツブラウザ** で作成して、 **Tile Map Edit
 
 	![](SelectTileSet.png)
 
-	ユーザーが作成した Tile Sets はすべて上記のウィンドウに表示されます。ここで "Active Tile Set" を切り替えることができます。 
+	ユーザーが作成した Tile Sets はすべて上記のウィンドウに表示されます。ここで "Active Tile Set" の切り替えができます。 
 
- 1. Tile Set を選択すると、ビューアーは選択内容を表示するように更新されます。 
+1. Tile Set を選択すると、ビューアーは新しい選択内容で更新されます。 
 
 	![](TileMapReadyToEdit.png)(w:640)
 
@@ -169,8 +190,25 @@ Tile Map エディタを構成する3つのウィンドウの概要は以下の�
 
 中央ウィンドウの **Viewport** (2)は、マップレイアウトの書き込みに使用します。 ツールボックスのツールを使用して、Tile Map を構成するタイルをペイント、消去、フィルすることにより、エフェクトを作成するためにマップ上のタイルを埋めることができますここでインゲームに表示されるマップを「ペイント」します。 
 
-**詳細** パネル (3) で、 Tile Map を構成するレイヤーの数や、 Tile Map の幅/高さ、マップを構成するタイルの幅/高さ、ピクセルとアンリアル単位のスケーリング係数などさまざまな設定の調整を行うことができます。 
+**詳細** パネル (3) で、 Tile Map を構成するレイヤーの数や、 Tile Map の幅/高さ、マップを構成するタイルの幅/高さ、ピクセルとアンリアル単位のスケーリング係数、使用するコリジョンのタイプなどさまざまな設定の調整を行うことができます。 
 
+### Tile Map にコリジョンを有効にする方法
+
+Tile Set セクションで述べたように、コリジョンを使用するタイルの選別を行ったら、コリジョンタイプを使用するために Tile Map を設定しなくてはいけません。この設定は **コリジョン** セクションの **詳細** パネルで行います。 
+
+![](Collision_4.png)
+
+コリジョンの厚さに加えて（3D コリジョンドメインを使用時のコリジョンジオメトリの押し出しの厚み）、コリジョンドメイン自体（Tile Map にコリジョンジオメトリの設定と物理ワールドへの参加を判断）を設定することができます。 
+
+[REGION:warning]
+**Use 2D Physics** オプションは、現時点で実験的であるため正しく機能しない可能性があります。このオプションの代わりに **Use 3D Physics** オプションの使用を推奨しています。 
+[/REGION]
+
+レベルのプレイ時に、 **Show Collision** コンソールコマンドでコリジョンが設定されているタイルと設定されていないタイルをチェックすることができます。
+ 
+![](ShowCollision.png)
+
+プレイヤーが歩く一番上のグラウンドタイルにはコリジョンが設定されていますが、下のグラウンドや水のタイルには設定されていません。 
 
 ## Tile Map ワークフロー活用例
 
@@ -214,8 +252,28 @@ Tile Map エディタを構成する3つのウィンドウの概要は以下の�
 
 	![](ExampleMap.png)(w:800)
 
-1.	Tile Map アセットをレベルにドラッグして、必要に応じてスケーリングしたり移動させます。 
+1.	**詳細** パネルの **コリジョン** セクションで必ずコリジョンを有効にしてください。 
+
+	![](Collision_4.png)
+
+	[REGION:note]
+	コリジョンを作用させるには、コリジョンを設定するタイルとしないタイルを Tile Set で指定しなくてはいけません。 
+	[/REGION]
+	1.	Tile Map アセットをレベルにドラッグして、必要に応じてスケーリングしたり移動させます。 
 
 	![](ExampleGameImage.png)(w:800)
+
+
+	
+
+
+
+
+
+
+
+
+
+
 
 
