@@ -131,9 +131,6 @@ private:
 	/** Weak reference to the editor hosting the viewport */
 	TWeakPtr<class FBlueprintEditor> BlueprintEditorPtr;
 
-	/** The preview actor from last tick so we can tell if it changed. */
-	TWeakObjectPtr<AActor> LastPreviewActor;
-
 	/** The full bounds of the preview scene (encompasses all visible components) */
 	FBoxSphereBounds PreviewActorBounds;
 

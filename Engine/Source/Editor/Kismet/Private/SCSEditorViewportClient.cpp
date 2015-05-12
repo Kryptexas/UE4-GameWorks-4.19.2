@@ -183,14 +183,6 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 		InvalidatePreview(false);
 	}
 
-	if ( PreviewActor != LastPreviewActor.Get() || PreviewActor == nullptr || IsRealtime() )
-	{
-		LastPreviewActor = PreviewActor;
-
-		Invalidate();
-		RefreshPreviewBounds();
-	}
-
 	// Tick the preview scene world.
 	if (!GIntraFrameDebuggingGameThread)
 	{
@@ -661,8 +653,16 @@ void FSCSEditorViewportClient::InvalidatePreview(bool bResetCamera)
 		return;
 	}
 
-	// Destroy the preview
-	BlueprintEditorPtr.Pin()->DestroyPreview();
+	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
+	check(Blueprint);
+
+	const bool bIsPreviewActorValid = GetPreviewActor() != nullptr;
+
+	// Create or update the Blueprint actor instance in the preview scene
+	BlueprintEditorPtr.Pin()->UpdatePreviewActor(Blueprint, !bIsPreviewActorValid);
+
+	Invalidate();
+	RefreshPreviewBounds();
 	
 	if( bResetCamera )
 	{
@@ -755,7 +755,6 @@ void FSCSEditorViewportClient::ToggleIsSimulateEnabled()
 	PreviewScene->GetWorld()->bBegunPlay = bIsSimulateEnabled;
 	PreviewScene->GetWorld()->bShouldSimulatePhysics = bIsSimulateEnabled;
 
-	AActor* PreviewActor = GetPreviewActor();
 	TSharedPtr<SWidget> SCSEditor = BlueprintEditorPtr.Pin()->GetSCSEditor();
 	TSharedRef<SWidget> Inspector = BlueprintEditorPtr.Pin()->GetInspector();
 
