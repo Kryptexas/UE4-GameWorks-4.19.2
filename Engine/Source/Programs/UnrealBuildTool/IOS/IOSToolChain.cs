@@ -230,7 +230,7 @@ namespace UnrealBuildTool
 
 			Result += " -Wall -Werror";
 				
-			if (BuildConfiguration.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
 				Result += " -Wshadow";
 			}

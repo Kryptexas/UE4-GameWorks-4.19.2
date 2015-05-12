@@ -827,12 +827,6 @@ namespace UnrealBuildTool
 			{
 				UEBuildConfiguration.bCompileCEF3 = bValue;
 			}
-
-			bValue = BuildConfiguration.bEnableShadowVariableWarning;
-			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bEnableShadowVariableWarning", out bValue))
-			{
-				BuildConfiguration.bEnableShadowVariableWarning = bValue;
-			}
 		}
 
 		/**

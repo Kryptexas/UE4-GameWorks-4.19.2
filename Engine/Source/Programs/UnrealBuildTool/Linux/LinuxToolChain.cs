@@ -351,7 +351,7 @@ namespace UnrealBuildTool
             Result += " -Wno-unknown-pragmas";			// Slate triggers this (with its optimize on/off pragmas)
 			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 
-			if (BuildConfiguration.bEnableShadowVariableWarning)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
 				Result += " -Wshadow";
 			}

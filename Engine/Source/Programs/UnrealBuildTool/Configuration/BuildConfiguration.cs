@@ -78,12 +78,6 @@ namespace UnrealBuildTool
 		public static bool bOmitPCDebugInfoInDevelopment;
 
 		/// <summary>
-		/// Whether shadow variable warning should be enabled
-		/// </summary>
-		[XmlConfig]
-		public static bool bEnableShadowVariableWarning;
-
-		/// <summary>
 		/// Whether PDB files should be used for Visual C++ builds.
 		/// </summary>
 		[XmlConfig]
@@ -463,8 +457,6 @@ namespace UnrealBuildTool
 			bStressTestUnity = false;
 			bSupportEditAndContinue = false;
 			bUseActionHistory = true;
-
-			bEnableShadowVariableWarning = false;
 
 			// Incremental linking can yield faster iteration times when making small changes
 			// NOTE: We currently don't use incremental linking because it tends to behave a bit buggy on some computers (PDB-related compile errors)
