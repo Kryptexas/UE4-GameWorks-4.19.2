@@ -31,6 +31,10 @@ public class OBBDownloaderService extends DownloaderService {
             -100, -12, 43, 2, -8, -4, 9, 5, -106, -108, -33, 45, -1, 84
     };
 
+	public static int getPublicKeyLength() {
+		return BASE64_PUBLIC_KEY.length();
+	}
+	
     /**
      * This public key comes from your Android Market publisher account, and it
      * used by the LVL to validate responses from Market on your behalf.
