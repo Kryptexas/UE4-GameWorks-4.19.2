@@ -556,7 +556,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	const FName CPPClassName(Name);
 #if WITH_HOT_RELOAD
 	// Check for existing classes
-	auto ExistingClassInfo = GetDeferRegisterClassMap().Find(CPPClassName);
+	FFieldCompiledInInfo** ExistingClassInfo = GetDeferRegisterClassMap().Find(CPPClassName);
 	ClassInfo->bHasChanged = !ExistingClassInfo || (*ExistingClassInfo)->Size != ClassInfo->Size || (*ExistingClassInfo)->Crc != ClassInfo->Crc;
 	if (ExistingClassInfo)
 	{
@@ -565,7 +565,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 
 		// Get the native name
 		FString NameWithoutPrefix(RemoveClassPrefix(Name));
-		auto ExistingClass = FindObjectChecked<UClass>(ANY_PACKAGE, *NameWithoutPrefix);
+		UClass* ExistingClass = FindObjectChecked<UClass>(ANY_PACKAGE, *NameWithoutPrefix);
 
 		if (ClassInfo->bHasChanged)
 		{

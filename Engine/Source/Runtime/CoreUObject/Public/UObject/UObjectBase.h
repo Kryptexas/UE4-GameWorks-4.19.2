@@ -283,7 +283,7 @@ struct FFieldCompiledInInfo
 	FFieldCompiledInInfo(SIZE_T InClassSize, uint32 InCrc)
 		: Size(InClassSize)
 		, Crc(InCrc)
-		, OldClass(NULL)
+		, OldClass(nullptr)
 		, bHasChanged(false)
 	{
 	}
