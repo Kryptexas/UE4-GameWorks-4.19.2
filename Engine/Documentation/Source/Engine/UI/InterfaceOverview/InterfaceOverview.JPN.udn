@@ -1,4 +1,4 @@
-﻿NTSourceChangelist:2227541
+﻿INTSourceChangelist:2537897
 Availability:Public
 Title:レイアウトのカスタマイズ
 Crumbs: %ROOT%, Engine, Engine/UI
@@ -139,7 +139,7 @@ Navigation:topic
 ![](DockingPanels.png)(w:900)
 [/REGION]
 
-浮動ウィンドウを含め、エディタのタブのレイアウトはセッション間で一貫していて、 
+フローティング ウィンドウを含め、エディタのタブのレイアウトはセッション間で一貫していて、 
 エディタを閉じると自動的に保存されます。タブは最終位置を記憶し、次に開かれると同位置で開きます。
 
 [REGION:raw]
