@@ -1298,9 +1298,7 @@ void SGraphPanel::OnGraphChanged(const FEdGraphEditAction& EditAction)
 	{
 		if ((EditAction.Graph == GraphObj) &&
 			(EditAction.Nodes.Num() > 0) &&
-			// We do not want to mark it as a UserAddedNode for graphs that do not currently have focus,
-			// this causes each one to want to do the effects and rename, which causes problems.
-			(HasKeyboardFocus() || HasFocusedDescendants()))
+			EditAction.bUserInvoked)
 		{
 			int32 ActionIndex = UserActions.Num();
 			if (EditAction.Action & GRAPHACTION_AddNode)
