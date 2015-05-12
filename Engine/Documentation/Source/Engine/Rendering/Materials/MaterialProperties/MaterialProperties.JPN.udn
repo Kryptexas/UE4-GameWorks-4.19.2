@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2422766
+﻿INTSourceChangelist:2532173
 Availability:Public
 Title:マテリアル プロパティ
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
@@ -16,11 +16,11 @@ Description:UE4 のマテリアルとその機能に関する入門書
 ![](PropertiesPanelMaterialEditor_Mat.png)(h:445) 
 
 
-* プロパティマトリックスへのアクセス：
+* [Property Matrix (プロパティマトリックス)] へのアクセス：
 
-![](PropertiesContextMenu_Mat.png)(h:445)
+![](PropertiesContextMenu_Mat.png)(h:445) 
 
-* プロパティマトリックス
+* プロパティマトリックス:
 
 ![](PropertyMatrix.png)(h:445)
 
@@ -46,7 +46,7 @@ Description:UE4 のマテリアルとその機能に関する入門書
 | **Decal Blend Mode**| デカール マテリアル パスによる GBuffer チャンネルの操作方法を定義します (Only with MaterialDomain == MD_DeferredDecal) |
 | **Decal Response**| DBuffer デカール上のマテリアルの反応方法を定義します (外観、パフォーマンス、テクスチャ / サンプルの使用に影響を及ぼします)。非 DBuffer デカールは、プリミティブで無効にすることができます (例えばスタティックメッシュ)。|
 | **Shading Model** | [INCLUDE:#ShadingModels] |
-| **Opacity Mask Clip Value** | マスクされたマテリアルの OpacityMask 入力値がピクセル単位でクリップする基準値です。OpacityMaskClipValue よりも高い値は通過してピクセルが描画されます (不透明)。OpacityMaskClipValue より低い値は失敗とみなされピクセルは破棄されます (透明)。 |
+| **Opacity Mask Clip Value** | マスク付きマテリアルの OpacityMask 入力値がピクセル単位でクリップする基準値です。OpacityMaskClipValue よりも高い値は通過してピクセルが描画されます (不透明)。OpacityMaskClipValue より低い値は失敗とみなされピクセルは破棄されます (透明)。 |
 | **TwoSided** | 法線は裏面で反転します。つまり光源処理は表面および裏面両方に対して計算されます。ポリゴン数の倍加を避けるために、フォーリッジによく利用します。メッシュはライトマッピングに未だ単一 UV セットのみを使用するため、 Two Sided マテリアルと静的な光源処理は上手く機能しません。結果として静的な光源処理を伴う Two Sided マテリアルは、両面に同一のシェーディングが作成されます。|
 | **Tangent Space Normal** | タンジェント空間法線は、 Z 軸 (青) が常に表面から離れた方向を直接指し示して、オブジェクトの表面から計算されます。ワールド空間法線は、ピクセルの角度の計算にワールド座標システムを使用します。この時表面の元の方向は無視します。タンジェント空間の計算はパフォーマンスの観点から多少コストが高くなりますが、これらは通常は Photoshop など 2D アプリケーションで作成出来る法線マップタイプであるため、一般的に利便性にたけています。   タンジェント空間マップは視覚的に主に青っぽく見える傾向があり、ワールド空間マップは鮮やかな虹色に見えます。|
 | **Decal Blend Mode** | [INCLUDE:#DecalBlendModes] |
@@ -165,7 +165,7 @@ Usage フラグは、マテリアルを使用するオブジェクトタイプ�
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Preview Mesh** | **[プレビュー]** ペインでマテリアルをプレビューするために使用する静的メッシュを設定します。 |
+| **Preview Mesh** | **[Preview]** ペインでマテリアルをプレビューするために使用する静的メッシュを設定します。 |
 
 ##サムネイル
 
@@ -242,7 +242,7 @@ Blend モードは、現在のマテリアルの出力と既に描画されて�
 | **Translucent** | デカールとベースカラー、メタリック、スペキュラ、ラフネス、エミッシブカラー、オパシティ、そして法線をブレンドさせます。これにより、波打った水たまりの周りに法線マップベースの泥だらけの建物など、全く別のマテリアルをブレンドすることができます。|
 | **Stain** | ベースカラーとオパシティのみをブレンドします。壁に描かれた乾いたスプレー式塗料など、色のみを変更するデカールに実用的です。 |
 | **Normal** | ノーマルとオパシティのブレンドのみをします。表面に割れ目を追加する際に実用的です。 |
-| **Emissive** | エミッシブとオパシティチャンネルのみをブレンドします。もともとはそうでなかったものの発光において有益です。 |
+| **Emissive** | エミッシブとオパシティチャンネルのみをブレンドします。発光していなかったものを発光させる場合に便利です。 |
 [/REGION]
 [/EXCERPT:DecalBlendModes]
 
