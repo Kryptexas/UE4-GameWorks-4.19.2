@@ -3944,6 +3944,9 @@ void FMatinee::UpdateLevelViewport(AActor* InActor, FLevelEditorViewportClient* 
 			}
 		}
 	}
+
+	// Update ControllingActorViewInfo, so it is in sync with the updated viewport
+	InViewportClient->UpdateViewForLockedActor();
 }
 
 /** Restores a viewports' settings that were overridden by UpdateLevelViewport, where necessary. */
