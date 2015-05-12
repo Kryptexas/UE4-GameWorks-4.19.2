@@ -1034,7 +1034,6 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
 		ActiveGameplayCues.PredictiveRemove(GameplayCueTag);
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
 }
 

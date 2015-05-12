@@ -172,7 +172,11 @@ void FActiveGameplayCueContainer::PredictiveRemove(const FGameplayTag& Tag)
 		FActiveGameplayCue& Cue = GameplayCues[idx];
 		if (Cue.GameplayCueTag == Tag)
 		{			
+			// Predictive remove: mark the cue as predictive remove, invoke remove event, update tag map.
+			// DONT remove from the replicated array.
 			Cue.bPredictivelyRemoved = true;
+			Owner->InvokeGameplayCueEvent(Tag, EGameplayCueEvent::Removed);
+			Owner->UpdateTagMap(Tag, -1);
 			return;
 		}
 	}
