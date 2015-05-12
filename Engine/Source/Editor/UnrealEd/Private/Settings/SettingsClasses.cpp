@@ -378,7 +378,7 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 		? PropertyChangedEvent.Property->GetFName()
 		: NAME_None;
 
-	if (Name == FName(TEXT("bAllowTranslateRotateZWidget")))
+	if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bAllowTranslateRotateZWidget))
 	{
 		if (bAllowTranslateRotateZWidget)
 		{
@@ -389,31 +389,31 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			GLevelEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
 		}
 	}
-	else if (Name == FName(TEXT("bHighlightWithBrackets")))
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bHighlightWithBrackets))
 	{
 		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets
 			? FLinearColor::Black
 			: GetDefault<UEditorStyleSettings>()->SelectionColor);
 	}
-	else if (Name == FName(TEXT("HoverHighlightIntensity")))
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, HoverHighlightIntensity))
 	{
 		GEngine->HoverHighlightIntensity = HoverHighlightIntensity;
 	}
-	else if (Name == FName(TEXT("SelectionHighlightIntensity")))
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, SelectionHighlightIntensity))
 	{
 		GEngine->SelectionHighlightIntensity = SelectionHighlightIntensity;
 	}
-	else if (Name == FName(TEXT("BSPSelectionHighlightIntensity")))
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, BSPSelectionHighlightIntensity))
 	{
 		GEngine->BSPSelectionHighlightIntensity = BSPSelectionHighlightIntensity;
 	}
-	else if ((Name == FName(TEXT("UserDefinedPosGridSizes"))) || (Name == FName(TEXT("UserDefinedRotGridSizes"))) || (Name == FName(TEXT("ScalingGridSizes"))) || (Name == FName(TEXT("GridIntervals"))))
+	else if ((Name == FName(TEXT("UserDefinedPosGridSizes"))) || (Name == FName(TEXT("UserDefinedRotGridSizes"))) || (Name == FName(TEXT("ScalingGridSizes"))) || (Name == FName(TEXT("GridIntervals")))) //@TODO: This should use GET_MEMBER_NAME_CHECKED
 	{
-		const float MinGridSize = (Name == FName(TEXT("GridIntervals"))) ? 4.0f : 0.0001f;
+		const float MinGridSize = (Name == FName(TEXT("GridIntervals"))) ? 4.0f : 0.0001f; //@TODO: This should use GET_MEMBER_NAME_CHECKED
 		TArray<float>* ArrayRef = nullptr;
 		int32* IndexRef = nullptr;
 
-		if (Name == FName(TEXT("ScalingGridSizes")))
+		if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, ScalingGridSizes))
 		{
 			ArrayRef = &(ScalingGridSizes);
 			IndexRef = &(CurrentScalingGridSize);
@@ -434,15 +434,23 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 			}
 		}
 	}
-	else if (Name == FName(TEXT("bUsePowerOf2SnapSize")))
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bUsePowerOf2SnapSize))
 	{
 		const float BSPSnapSize = bUsePowerOf2SnapSize ? 128.0f : 100.0f;
 		UModel::SetGlobalBSPTexelScale(BSPSnapSize);
 	}
-	else if (Name == FName(TEXT("BillboardScale")))
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, BillboardScale))
 	{
 		UBillboardComponent::SetEditorScale(BillboardScale);
 		UArrowComponent::SetEditorScale(BillboardScale);
+	}
+	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bEnableLayerSnap))
+	{
+		ULevelEditor2DSettings* Settings2D = GetMutableDefault<ULevelEditor2DSettings>();
+		if (bEnableLayerSnap && !Settings2D->bMode2DEnabled)
+		{
+			Settings2D->bMode2DEnabled = true;
+		}
 	}
 
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
