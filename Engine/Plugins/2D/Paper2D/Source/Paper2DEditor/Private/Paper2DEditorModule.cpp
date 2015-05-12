@@ -306,7 +306,7 @@ private:
 			SettingsModule->RegisterSettings("Editor", "ContentEditors", "TileMapEditor",
 				LOCTEXT("TileMapEditorSettingsName", "Tile Map Editor"),
 				LOCTEXT("TileMapEditorSettingsDescription", "Configure the look and feel of the Tile Map Editor."),
-				GetMutableDefault<UFlipbookEditorSettings>());
+				GetMutableDefault<UTileMapEditorSettings>());
 
 			SettingsModule->RegisterSettings("Editor", "ContentEditors", "TileSetEditor",
 				LOCTEXT("TileSetEditorSettingsName", "Tile Set Editor"),
