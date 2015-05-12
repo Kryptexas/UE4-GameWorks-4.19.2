@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PackageTools.h"
@@ -607,7 +607,7 @@ void UGatherTextFromAssetsCommandlet::ProcessTextProperty(UTextProperty* InTextP
 		if( !ExistingEntry.IsValid() )
 		{
 			FString FileInfo;
-			ExistingEntry = ManifestInfo->FindDependencyEntrybyContext( Namespace, SearchContext, FileInfo );
+			ExistingEntry = ManifestInfo->FindDependencyEntryByContext( Namespace, SearchContext, FileInfo );
 		}
 
 		// Entry already exists, check for conflict.

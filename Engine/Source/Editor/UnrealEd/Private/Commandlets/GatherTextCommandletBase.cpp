@@ -275,7 +275,7 @@ bool FManifestInfo::AddManifestDependencies( const TArray< FString >& InManifest
 }
 
 
-TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntrybyContext( const FString& Namespace, const FContext& Context, FString& OutFileName )
+TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntryByContext( const FString& Namespace, const FContext& Context, FString& OutFileName )
 {
 	TSharedPtr<FManifestEntry> DependencyEntry = NULL;
 	OutFileName = TEXT("");
@@ -292,7 +292,7 @@ TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntrybyContext( const 
 	return DependencyEntry;
 }
 
-TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntrybySource( const FString& Namespace, const FLocItem& Source, FString& OutFileName )
+TSharedPtr< FManifestEntry > FManifestInfo::FindDependencyEntryBySource( const FString& Namespace, const FLocItem& Source, FString& OutFileName )
 {
 	TSharedPtr<FManifestEntry> DependencyEntry = NULL;
 	OutFileName = TEXT("");
@@ -323,7 +323,7 @@ void FManifestInfo::ApplyManifestDependencies()
 			{
 				FString DependencyFileName;
 
-				const TSharedPtr<FManifestEntry> DependencyEntry = FindDependencyEntrybyContext( ManifestEntry->Namespace, *ContextIt, DependencyFileName );
+				const TSharedPtr<FManifestEntry> DependencyEntry = FindDependencyEntryByContext( ManifestEntry->Namespace, *ContextIt, DependencyFileName );
 				
 				if( DependencyEntry.IsValid() )
 				{
@@ -378,7 +378,7 @@ bool FManifestInfo::AddEntry( const FString& EntryDescription, const FString& Na
 	TSharedPtr< FManifestEntry > ExistingEntry = Manifest->FindEntryByContext( Namespace, Context );
 	if( !ExistingEntry.IsValid() )
 	{
-		ExistingEntry = FindDependencyEntrybyContext( Namespace, Context, ExistingEntryFileName );
+		ExistingEntry = FindDependencyEntryByContext( Namespace, Context, ExistingEntryFileName );
 	}
 
 	if( ExistingEntry.IsValid() )
