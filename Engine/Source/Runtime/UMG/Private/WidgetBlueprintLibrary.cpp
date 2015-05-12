@@ -183,7 +183,28 @@ FEventReply UWidgetBlueprintLibrary::ReleaseMouseCapture(UPARAM(ref) FEventReply
 	return Reply;
 }
 
-FEventReply UWidgetBlueprintLibrary::SetUserFocus(UPARAM(ref) FEventReply& Reply, UWidget* FocusWidget, bool bInAllUsers/* = false*/)
+FEventReply UWidgetBlueprintLibrary::LockMouse( UPARAM( ref ) FEventReply& Reply, UWidget* CapturingWidget )
+{
+	if ( CapturingWidget )
+	{
+		TSharedPtr< SWidget > SlateWidget = CapturingWidget->GetCachedWidget();
+		if ( SlateWidget.IsValid() )
+		{
+			Reply.NativeReply = Reply.NativeReply.LockMouseToWidget( SlateWidget.ToSharedRef() );
+		}
+	}
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::UnlockMouse( UPARAM( ref ) FEventReply& Reply )
+{
+	Reply.NativeReply = Reply.NativeReply.ReleaseMouseLock();
+
+	return Reply;
+}
+
+FEventReply UWidgetBlueprintLibrary::SetUserFocus( UPARAM( ref ) FEventReply& Reply, UWidget* FocusWidget, bool bInAllUsers/* = false*/ )
 {
 	if (FocusWidget)
 	{

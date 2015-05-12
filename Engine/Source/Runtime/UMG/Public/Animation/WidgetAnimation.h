@@ -45,7 +45,7 @@ public:
 };
 
 
-UCLASS(MinimalAPI)
+UCLASS( BlueprintType, MinimalAPI )
 class UWidgetAnimation : public UObject
 {
 	GENERATED_UCLASS_BODY()

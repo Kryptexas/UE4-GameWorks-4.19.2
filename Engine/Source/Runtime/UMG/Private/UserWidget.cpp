@@ -887,6 +887,11 @@ FReply UUserWidget::NativeOnMotionDetected( const FGeometry& InGeometry, const F
 	return OnMotionDetected( InGeometry, InMotionEvent ).NativeReply;
 }
 
+FCursorReply UUserWidget::NativeOnCursorQuery( const FGeometry& InGeometry, const FPointerEvent& InCursorEvent )
+{
+	return FCursorReply::Unhandled();
+}
+
 void UUserWidget::PostLoad()
 {
 	Super::PostLoad();

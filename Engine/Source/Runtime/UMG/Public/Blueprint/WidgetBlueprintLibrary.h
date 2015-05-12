@@ -87,6 +87,12 @@ public:
 	UFUNCTION(BlueprintPure, Category="Widget|Event Reply")
 	static FEventReply ReleaseMouseCapture(UPARAM(ref) FEventReply& Reply);
 
+	UFUNCTION( BlueprintPure, Category = "Widget|Event Reply", meta = ( HidePin = "CapturingWidget", DefaultToSelf = "CapturingWidget" ) )
+	static FEventReply LockMouse( UPARAM( ref ) FEventReply& Reply, UWidget* CapturingWidget );
+
+	UFUNCTION( BlueprintPure, Category = "Widget|Event Reply" )
+	static FEventReply UnlockMouse( UPARAM( ref ) FEventReply& Reply );
+
 	/**  */
 	UFUNCTION(BlueprintPure, meta= (HidePin="CapturingWidget", DefaultToSelf="CapturingWidget"), Category="Widget|Event Reply")
 	static FEventReply SetUserFocus(UPARAM(ref) FEventReply& Reply, UWidget* FocusWidget, bool bInAllUsers = false);

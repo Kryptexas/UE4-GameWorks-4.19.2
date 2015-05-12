@@ -256,7 +256,11 @@ FReply SObjectWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEv
 
 FCursorReply SObjectWidget::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
-	// TODO UMG  Allow conditional overriding of the cursor logic.
+	if ( CanRouteEvent() )
+	{
+		return WidgetObject->NativeOnCursorQuery( MyGeometry, CursorEvent );
+	}
+
 	return FCursorReply::Unhandled();
 }
 

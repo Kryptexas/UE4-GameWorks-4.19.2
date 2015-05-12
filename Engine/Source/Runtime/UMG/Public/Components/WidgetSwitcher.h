@@ -34,6 +34,10 @@ public:
 	/** Activates the widget and makes it the active index. */
 	UFUNCTION(BlueprintCallable, Category="Switcher")
 	void SetActiveWidget(UWidget* Widget);
+
+	/** Get a widget at the provided index */
+	UFUNCTION( BlueprintCallable, Category = "Switcher" )
+	UWidget* GetWidgetAtIndex( int32 Index ) const;
 	
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

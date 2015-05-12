@@ -66,6 +66,16 @@ void UWidgetSwitcher::SetActiveWidget(UWidget* Widget)
 	}
 }
 
+UWidget* UWidgetSwitcher::GetWidgetAtIndex( int32 Index ) const
+{
+	if ( Slots.IsValidIndex( Index ) )
+	{
+		return Slots[ Index ]->Content;
+	}
+
+	return nullptr;
+}
+
 UClass* UWidgetSwitcher::GetSlotClass() const
 {
 	return UWidgetSwitcherSlot::StaticClass();
