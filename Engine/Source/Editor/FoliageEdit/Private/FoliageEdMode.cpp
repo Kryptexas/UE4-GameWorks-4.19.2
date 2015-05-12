@@ -2302,7 +2302,13 @@ void FEdModeFoliage::HandleOnActorSpawned(AActor* Actor)
 
 void FEdModeFoliage::HandleOnFoliageTypeMeshChanged(UFoliageType* FoliageType)
 {
-	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->NotifyFoliageTypeMeshChanged(FoliageType);
+	if(FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr)
+	{
+		RemoveFoliageType(&FoliageType, 1);
+	}else
+	{
+		StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->NotifyFoliageTypeMeshChanged(FoliageType);
+	}
 }
 
 bool FEdModeFoliage::SnapInstanceToGround(AInstancedFoliageActor* InIFA, float AlignMaxAngle, FFoliageMeshInfo& Mesh, int32 InstanceIdx)

@@ -46,6 +46,8 @@ class UFoliageType : public UObject
 
 	virtual void Serialize(FArchive& Ar) override;
 
+	virtual bool IsNotAssetOrBlueprint() const;
+
 	FOLIAGE_API FVector GetRandomScale() const;
 
 #if WITH_EDITOR

@@ -402,6 +402,11 @@ void UFoliageType::Serialize(FArchive& Ar)
 #endif// WITH_EDITORONLY_DATA
 }
 
+bool UFoliageType::IsNotAssetOrBlueprint() const
+{
+	return IsAsset() == false && Cast<UBlueprint>(GetClass()->ClassGeneratedBy) == nullptr;
+}
+
 FVector UFoliageType::GetRandomScale() const
 {
 	FVector Result(1.0f);
@@ -2288,6 +2293,13 @@ void AInstancedFoliageActor::PostLoad()
 					MeshInfo.Component->ClearFlags(RF_Transactional);
 				}
 			}
+
+			//Clean up case where embeded instances had their static mesh deleted
+			if (FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr)
+			{
+				OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
+				RemoveFoliageType(&FoliageType, 1);
+			}
 		}
 
 		// Clean up dead cross-level references
@@ -2311,6 +2323,11 @@ void AInstancedFoliageActor::NotifyFoliageTypeChanged(UFoliageType* FoliageType,
 		{
 			// If the type's mesh has changed, the UI needs to be notified so it can update thumbnails accordingly
 			OnFoliageTypeMeshChangedEvent.Broadcast(FoliageType);
+
+			if(FoliageType->IsNotAssetOrBlueprint() && FoliageType->GetStaticMesh() == nullptr) //If the mesh has been deleted and we're a per foliage actor instance we must remove all instances of the mesh
+			{
+				RemoveFoliageType(&FoliageType, 1);
+			}
 		}
 	}
 }
