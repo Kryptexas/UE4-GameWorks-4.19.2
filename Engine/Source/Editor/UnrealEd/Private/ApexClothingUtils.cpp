@@ -186,14 +186,21 @@ NxClothingAsset* CreateApexClothingAssetFromFile(FString& Filename)
 {
 	NxClothingAsset* ApexClothingAsset = NULL;
 
-	// Create a stream to read the file
-	physx::PxFileBuf* Stream = GApexSDK->createStream(TCHAR_TO_ANSI(*Filename), PxFileBuf::OPEN_READ_ONLY);
-
-	if (Stream != NULL)
+	TArray<uint8> FileBuffer;
+	if(FFileHelper::LoadFileToArray(FileBuffer, *Filename, FILEREAD_Silent))
 	{
-		ApexClothingAsset = CreateApexClothingAssetFromPxStream(*Stream);
-		// Release our stream
-		Stream->release();
+		physx::PxFileBuf* Stream = GApexSDK->createMemoryReadStream((void*)FileBuffer.GetData(), FileBuffer.Num());
+
+		if(Stream != NULL)
+		{
+			ApexClothingAsset = CreateApexClothingAssetFromPxStream(*Stream);
+			// Release our stream
+			Stream->release();
+		}
+	}
+	else
+	{
+		UE_LOG(LogApexClothingUtils, Warning, TEXT("Could not open APEX clothing file: %s"), *Filename);
 	}
 
 	return ApexClothingAsset;
