@@ -83,7 +83,9 @@ FSceneViewState::FSceneViewState()
 	MIDUsedCount = 0;
 	TemporalAASampleIndex = 0;
 	TemporalAASampleCount = 1;
+	DistanceFieldTemporalSampleIndex = 0;
 	AOTileIntersectionResources = NULL;
+	AOScreenGridResources = NULL;
 	bBokehDOFHistory = true;
 	bBokehDOFHistory2 = true;
 
@@ -94,6 +96,9 @@ FSceneViewState::FSceneViewState()
 	{
 		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
 	}
+
+	bIntializedGlobalDistanceFieldOrigins = false;
+	GlobalDistanceFieldUpdateIndex = 0;
 
 #if BUFFERED_OCCLUSION_QUERIES
 	NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
@@ -129,6 +134,8 @@ FSceneViewState::~FSceneViewState()
 	DestroyRenderResource(HeightfieldLightingAtlas);
 	DestroyRenderResource(AOTileIntersectionResources);
 	AOTileIntersectionResources = NULL;
+	DestroyRenderResource(AOScreenGridResources);
+	AOScreenGridResources = NULL;
 	DestroyLightPropagationVolume();
 }
 

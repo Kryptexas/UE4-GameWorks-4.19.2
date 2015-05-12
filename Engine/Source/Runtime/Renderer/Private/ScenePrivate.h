@@ -340,6 +340,21 @@ public:
 	bool bValid;
 };
 
+class FGlobalDistanceFieldClipmapState
+{
+public:
+
+	FGlobalDistanceFieldClipmapState()
+	{
+		FullUpdateOrigin = FIntVector::ZeroValue;
+		LastPartialUpdateOrigin = FIntVector::ZeroValue;
+	}
+
+	FIntVector FullUpdateOrigin;
+	FIntVector LastPartialUpdateOrigin;
+	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
+};
+
 /** Maps a single primitive to it's per-view fading state data */
 typedef TMap<FPrimitiveComponentId, FPrimitiveFadingState> FPrimitiveFadingStateMap;
 
@@ -381,6 +396,9 @@ private:
 
 /** Random table for occlusion **/
 extern FOcclusionRandomStream GOcclusionRandomStream;
+
+/** Must match global distance field shaders. */
+const int32 GMaxGlobalDistanceFieldClipmaps = 4;
 
 /**
  * The scene manager's private implementation of persistent view state.
@@ -498,6 +516,8 @@ private:
 	// >= 1, 1 means there is no TemporalAA
 	uint8 TemporalAASampleCount;
 
+	int32 DistanceFieldTemporalSampleIndex;
+
 	// can be 0
 	FLightPropagationVolume* LightPropagationVolume;
 
@@ -532,6 +552,12 @@ public:
 
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
+
+	class FAOScreenGridResources* AOScreenGridResources;
+
+	bool bIntializedGlobalDistanceFieldOrigins;
+	FGlobalDistanceFieldClipmapState GlobalDistanceFieldClipmapState[GMaxGlobalDistanceFieldClipmaps];
+	int32 GlobalDistanceFieldUpdateIndex;
 
 	// Is DOFHistoryRT set from Bokeh DOF?
 	bool bBokehDOFHistory;
@@ -570,6 +596,24 @@ public:
 		{
 			TemporalAASampleIndex = 0;
 		}
+	}
+
+	void SetupDistanceFieldTemporalOffset(const FSceneViewFamily& Family)
+	{
+		if (!Family.bWorldIsPaused)
+		{
+			DistanceFieldTemporalSampleIndex++;
+		}
+
+		if(DistanceFieldTemporalSampleIndex >= 4)
+		{
+			DistanceFieldTemporalSampleIndex = 0;
+		}
+	}
+
+	int32 GetDistanceFieldTemporalSampleIndex() const
+	{
+		return DistanceFieldTemporalSampleIndex;
 	}
 
 	void FreeSeparateTranslucency()
@@ -690,6 +734,11 @@ public:
 		MobileAaColor1.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
+
+		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(GlobalDistanceFieldClipmapState); CascadeIndex++)
+		{
+			GlobalDistanceFieldClipmapState[CascadeIndex].VolumeTexture.SafeRelease();
+		}
 	}
 
 	// FSceneViewStateInterface
@@ -894,11 +943,13 @@ class FPrimitiveAndInstance
 {
 public:
 
-	FPrimitiveAndInstance(FPrimitiveSceneInfo* InPrimitive, int32 InInstanceIndex) :
+	FPrimitiveAndInstance(const FVector4& InBoundingSphere, FPrimitiveSceneInfo* InPrimitive, int32 InInstanceIndex) :
+		BoundingSphere(InBoundingSphere),
 		Primitive(InPrimitive),
 		InstanceIndex(InInstanceIndex)
 	{}
 
+	FVector4 BoundingSphere;
 	FPrimitiveSceneInfo* Primitive;
 	int32 InstanceIndex;
 };
@@ -1036,6 +1087,7 @@ public:
 	TArray<FPrimitiveSceneInfo*> PendingAddOperations;
 	TSet<FPrimitiveSceneInfo*> PendingUpdateOperations;
 	TArray<FPrimitiveRemoveInfo> PendingRemoveOperations;
+	TArray<FVector4> PrimitiveModifiedBounds;
 
 	/** Used to detect atlas reallocations, since objects store UVs into the atlas and need to be updated when it changes. */
 	int32 AtlasGeneration;
@@ -1211,6 +1263,8 @@ private:
 
 	/** Tracks used sections of the volume texture atlas. */
 	FTextureLayout3d BlockAllocator;
+
+	int32 NextPointId;
 
 	/** Tracks primitive allocations by component, so that they persist across re-registers. */
 	TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*> PrimitiveAllocations;

@@ -107,6 +107,20 @@ public:
 		int32 DepthLevel,
 		const class FDistanceFieldAOParameters& Parameters) const;
 
+	void ComputeOcclusionForScreenGrid(
+		const FViewInfo& View, 
+		FRHICommandListImmediate& RHICmdList, 
+		FSceneRenderTargetItem& DistanceFieldNormal,
+		const class FAOScreenGridResources& ScreenGridResources,
+		const class FDistanceFieldAOParameters& Parameters) const;
+
+	void ComputeIrradianceForScreenGrid(
+		const FViewInfo& View, 
+		FRHICommandListImmediate& RHICmdList, 
+		FSceneRenderTargetItem& DistanceFieldNormal, 
+		const FAOScreenGridResources& ScreenGridResources,
+		const FDistanceFieldAOParameters& Parameters) const;
+
 private:
 
 	FHeightfieldDescription Heightfield;

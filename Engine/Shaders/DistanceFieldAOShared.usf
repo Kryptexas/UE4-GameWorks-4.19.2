@@ -12,10 +12,6 @@
 #define SORTTHREADGROUP_SIZEY 1
 #endif
 
-#ifndef NUM_CONE_DIRECTIONS
-#define NUM_CONE_DIRECTIONS 1
-#endif
-
 #ifndef CONE_TRACE_PHASE
 #define CONE_TRACE_PHASE -1
 #endif
@@ -23,14 +19,28 @@
 // Must match C++
 #define NUM_CONE_STEPS 10
 
-float AOMaxDistance;
+// Must match C++
+#define NUM_CONE_DIRECTIONS 9
+
+// Must match C++
+#define AO_DOWNSAMPLE_FACTOR 2
+
+float AOObjectMaxDistance;
 float AOStepScale;
 float AOStepExponentScale;
 float AOMaxViewDistance;
 
+float AOGlobalMaxOcclusionDistance;
+
+// Gives the max occlusion distance regardless of whether the global distance field is in use
+float GetAOMaxDistance()
+{
+	return max(AOObjectMaxDistance, AOGlobalMaxOcclusionDistance);
+}
+
 #define NUM_CULLED_OBJECT_LISTS 3
 
-#define FADE_RECORDS_OVER_TIME 0
+#define USE_DEPTH_RANGE_LISTS 1
 
 void GetPhaseParameters(uint Phase, out uint StartIndex, out uint EndIndex)
 {
@@ -183,4 +193,33 @@ float3 ComputeBentNormal(float3 RecordWorldNormal, uint RelativeRecordIndex)
 	UnoccludedDirection = UnoccludedDirection * (BentNormalNormalizeFactor * InvNumSamples);
 
 	return UnoccludedDirection;
+}
+
+#ifndef CULLED_TILE_SIZEX
+#define CULLED_TILE_SIZEX 4
+#endif
+
+#ifndef TRACE_DOWNSAMPLE_FACTOR
+#define TRACE_DOWNSAMPLE_FACTOR 1
+#endif
+
+uint2 ScreenGridConeVisibilitySize;
+float2 JitterOffset;
+
+uint2 ComputeTileCoordinateFromScreenGrid(uint2 OutputCoordinate)
+{
+	uint2 TileCoordinate = OutputCoordinate * TRACE_DOWNSAMPLE_FACTOR / CULLED_TILE_SIZEX;
+	return TileCoordinate;
+}
+
+float2 GetBaseLevelScreenUVFromScreenGrid(uint2 OutputCoordinate)
+{
+	float2 BaseLevelScreenUV = (OutputCoordinate * TRACE_DOWNSAMPLE_FACTOR + JitterOffset + float2(.5f, .5f)) * BaseLevelTexelSize;
+	return BaseLevelScreenUV;
+}
+
+float2 GetScreenUVFromScreenGrid(uint2 OutputCoordinate)
+{
+	float2 ScreenUV = ((OutputCoordinate * TRACE_DOWNSAMPLE_FACTOR + JitterOffset) * AO_DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw;
+	return ScreenUV;
 }

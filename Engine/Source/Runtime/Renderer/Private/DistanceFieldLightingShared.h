@@ -17,7 +17,6 @@ const int32 GDistanceFieldAOTileSizeY = 16;
 const int32 GAODownsampleFactor = 2;
 /** Must match usf */
 static const int32 GMaxNumObjectsPerTile = 512;
-extern uint32 UpdateObjectsGroupSize;
 
 extern int32 GDistanceFieldGI;
 
@@ -32,6 +31,8 @@ inline bool SupportsDistanceFieldGI(ERHIFeatureLevel::Type FeatureLevel, EShader
 		&& FeatureLevel >= ERHIFeatureLevel::SM5
 		&& DoesPlatformSupportDistanceFieldGI(ShaderPlatform);
 }
+
+extern bool IsDistanceFieldGIAllowed(const FViewInfo& View);
 
 extern FIntPoint GetBufferSizeForAO();
 

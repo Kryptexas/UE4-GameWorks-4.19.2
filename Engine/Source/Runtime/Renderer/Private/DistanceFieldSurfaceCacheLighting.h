@@ -11,18 +11,23 @@
 const static int32 GAOMaxSupportedLevel = 6;
 /** Number of cone traced directions. */
 const int32 NumConeSampleDirections = 9;
+extern const uint32 UpdateObjectsGroupSize;
+
+const float GDefaultDFAOMaxOcclusionDistance = 600.0f;
+
+inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
+{
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4;
+}
 
 class FDistanceFieldAOParameters
 {
 public:
-	float OcclusionMaxDistance;
+	float GlobalMaxOcclusionDistance;
+	float ObjectMaxOcclusionDistance;
 	float Contrast;
 
-	FDistanceFieldAOParameters(float InOcclusionMaxDistance, float InContrast = 0)
-	{
-		Contrast = FMath::Clamp(InContrast, .01f, 2.0f);
-		OcclusionMaxDistance = FMath::Clamp(InOcclusionMaxDistance, 200.0f, 3000.0f);
-	}
+	FDistanceFieldAOParameters(float InOcclusionMaxDistance, float InContrast = 0);
 };
 
 /**  */
@@ -43,7 +48,10 @@ public:
 			PositionAndRadius.Initialize(sizeof(float) * 4, MaxIrradianceCacheSamples, PF_A32B32G32R32F, BUF_Static);
 			OccluderRadius.Initialize(sizeof(float), MaxIrradianceCacheSamples, PF_R32_FLOAT, BUF_Static);
 			Normal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
-			BentNormal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
+			
+			// Must match usf
+			const int32 NumGradients = 0;
+			BentNormal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples * (1 + NumGradients), PF_FloatRGBA, BUF_Static);
 			Irradiance.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 			ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
@@ -210,10 +218,44 @@ private:
 	int32 MaxLevel;
 };
 
-inline bool DoesPlatformSupportDistanceFieldAO(EShaderPlatform Platform)
+class FIrradianceCacheParameters
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PS4;
-}
+public:
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		IrradianceCachePositionRadius.Bind(ParameterMap, TEXT("IrradianceCachePositionRadius"));
+		IrradianceCacheOccluderRadius.Bind(ParameterMap, TEXT("IrradianceCacheOccluderRadius"));
+		IrradianceCacheNormal.Bind(ParameterMap, TEXT("IrradianceCacheNormal"));
+		IrradianceCacheBentNormal.Bind(ParameterMap, TEXT("IrradianceCacheBentNormal"));
+		IrradianceCacheIrradiance.Bind(ParameterMap, TEXT("IrradianceCacheIrradiance"));
+		IrradianceCacheTileCoordinate.Bind(ParameterMap, TEXT("IrradianceCacheTileCoordinate"));
+	}
+
+	template<typename TParamRef>
+	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FRefinementLevelResources& LevelResources)
+	{
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCachePositionRadius, LevelResources.PositionAndRadius.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheOccluderRadius, LevelResources.OccluderRadius.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheNormal, LevelResources.Normal.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheBentNormal, LevelResources.BentNormal.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheIrradiance, LevelResources.Irradiance.SRV);
+		SetSRVParameter(RHICmdList, ShaderRHI, IrradianceCacheTileCoordinate, LevelResources.TileCoordinate.SRV);
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FIrradianceCacheParameters& P)
+	{
+		Ar << P.IrradianceCachePositionRadius << P.IrradianceCacheOccluderRadius << P.IrradianceCacheNormal << P.IrradianceCacheBentNormal << P.IrradianceCacheIrradiance << P.IrradianceCacheTileCoordinate;
+		return Ar;
+	}
+
+private:
+	FShaderResourceParameter IrradianceCachePositionRadius;
+	FShaderResourceParameter IrradianceCacheOccluderRadius;
+	FShaderResourceParameter IrradianceCacheNormal;
+	FShaderResourceParameter IrradianceCacheBentNormal;
+	FShaderResourceParameter IrradianceCacheIrradiance;
+	FShaderResourceParameter IrradianceCacheTileCoordinate;
+};
 
 template<bool bOneGroupPerRecord>
 class TSetupFinalGatherIndirectArgumentsCS : public FGlobalShader
@@ -314,6 +356,46 @@ public:
 	}
 };
 
+class FAOScreenGridResources : public FRenderResource
+{
+public:
+
+	FAOScreenGridResources() :
+		bAllocateResourceForGI(false)
+	{}
+
+	virtual void InitDynamicRHI() override;
+
+	virtual void ReleaseDynamicRHI() override
+	{
+		ScreenGridConeVisibility.Release();
+		ConeDepthVisibilityFunction.Release();
+		StepBentNormal.Release();
+		SurfelIrradiance.Release();
+		HeightfieldIrradiance.Release();
+	}
+
+	FIntPoint ScreenGridDimensions;
+
+	FRWBuffer ScreenGridConeVisibility;
+
+	bool bAllocateResourceForGI;
+	FRWBuffer ConeDepthVisibilityFunction;
+	FRWBuffer StepBentNormal;
+	FRWBuffer SurfelIrradiance;
+	FRWBuffer HeightfieldIrradiance;
+
+	size_t GetSizeBytesForAO() const
+	{
+		return ScreenGridConeVisibility.NumBytes;
+	}
+
+	size_t GetSizeBytesForGI() const
+	{
+		return ConeDepthVisibilityFunction.NumBytes + StepBentNormal.NumBytes + SurfelIrradiance.NumBytes + HeightfieldIrradiance.NumBytes;
+	}
+};
+
 extern void GetSpacedVectors(TArray<FVector, TInlineAllocator<9> >& OutVectors);
 
 BEGIN_UNIFORM_BUFFER_STRUCT(FAOSampleData2,)
@@ -325,28 +407,30 @@ class FAOParameters
 public:
 	void Bind(const FShaderParameterMap& ParameterMap)
 	{
-		AOMaxDistance.Bind(ParameterMap,TEXT("AOMaxDistance"));
+		AOObjectMaxDistance.Bind(ParameterMap,TEXT("AOObjectMaxDistance"));
 		AOStepScale.Bind(ParameterMap,TEXT("AOStepScale"));
 		AOStepExponentScale.Bind(ParameterMap,TEXT("AOStepExponentScale"));
 		AOMaxViewDistance.Bind(ParameterMap,TEXT("AOMaxViewDistance"));
+		AOGlobalMaxOcclusionDistance.Bind(ParameterMap,TEXT("AOGlobalMaxOcclusionDistance"));
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FAOParameters& Parameters)
 	{
-		Ar << Parameters.AOMaxDistance;
+		Ar << Parameters.AOObjectMaxDistance;
 		Ar << Parameters.AOStepScale;
 		Ar << Parameters.AOStepExponentScale;
 		Ar << Parameters.AOMaxViewDistance;
+		Ar << Parameters.AOGlobalMaxOcclusionDistance;
 		return Ar;
 	}
 
 	template<typename ShaderRHIParamRef>
 	void Set(FRHICommandList& RHICmdList, const ShaderRHIParamRef ShaderRHI, const FDistanceFieldAOParameters& Parameters)
 	{
-		SetShaderValue(RHICmdList, ShaderRHI, AOMaxDistance, Parameters.OcclusionMaxDistance);
+		SetShaderValue(RHICmdList, ShaderRHI, AOObjectMaxDistance, Parameters.ObjectMaxOcclusionDistance);
 
 		extern float GAOConeHalfAngle;
-		const float AOLargestSampleOffset = Parameters.OcclusionMaxDistance / (1 + FMath::Tan(GAOConeHalfAngle));
+		const float AOLargestSampleOffset = Parameters.ObjectMaxOcclusionDistance / (1 + FMath::Tan(GAOConeHalfAngle));
 
 		extern float GAOStepExponentScale;
 		extern uint32 GAONumConeSteps;
@@ -357,13 +441,17 @@ public:
 
 		extern float GetMaxAOViewDistance();
 		SetShaderValue(RHICmdList, ShaderRHI, AOMaxViewDistance, GetMaxAOViewDistance());
+
+		const float GlobalMaxOcclusionDistance = Parameters.GlobalMaxOcclusionDistance;
+		SetShaderValue(RHICmdList, ShaderRHI, AOGlobalMaxOcclusionDistance, GlobalMaxOcclusionDistance);
 	}
 
 private:
-	FShaderParameter AOMaxDistance;
+	FShaderParameter AOObjectMaxDistance;
 	FShaderParameter AOStepScale;
 	FShaderParameter AOStepExponentScale;
 	FShaderParameter AOMaxViewDistance;
+	FShaderParameter AOGlobalMaxOcclusionDistance;
 };
 
 inline float GetMaxAOViewDistance()
@@ -451,7 +539,7 @@ public:
 
 	size_t GetSizeBytes() const
 	{
-		return ConeVisibility.NumBytes + ConeData.NumBytes + StepBentNormal.NumBytes;
+		return ConeVisibility.NumBytes + ConeData.NumBytes + StepBentNormal.NumBytes + SurfelIrradiance.NumBytes + HeightfieldIrradiance.NumBytes;
 	}
 
 	FRWBuffer ConeVisibility;
@@ -461,54 +549,94 @@ public:
 	FRWBuffer HeightfieldIrradiance;
 };
 
-extern FRWBuffer* GDebugBuffer2;
-
-class FTrackGPUProgressCS : public FGlobalShader
+class FAOLevelParameters
 {
-	DECLARE_SHADER_TYPE(FTrackGPUProgressCS,Global)
 public:
-
-	static bool ShouldCache(EShaderPlatform Platform)
+	void Bind(const FShaderParameterMap& ParameterMap)
 	{
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && DoesPlatformSupportDistanceFieldAO(Platform);
+		CurrentLevelDownsampleFactor.Bind(ParameterMap, TEXT("CurrentLevelDownsampleFactor"));
+		AOBufferSize.Bind(ParameterMap, TEXT("AOBufferSize"));
+		DownsampleFactorToBaseLevel.Bind(ParameterMap, TEXT("DownsampleFactorToBaseLevel"));
+		BaseLevelTexelSize.Bind(ParameterMap, TEXT("BaseLevelTexelSize"));
 	}
 
-	FTrackGPUProgressCS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
-		: FGlobalShader(Initializer)
+	template<typename TParamRef>
+	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FSceneView& View, int32 CurrentLevelDownsampleFactorValue)
 	{
-		DebugBuffer.Bind(Initializer.ParameterMap, TEXT("DebugBuffer"));
-		DebugId.Bind(Initializer.ParameterMap, TEXT("DebugId"));
+		SetShaderValue(RHICmdList, ShaderRHI, CurrentLevelDownsampleFactor, CurrentLevelDownsampleFactorValue);
+
+		// Round up, to match render target allocation
+		const FVector2D AOBufferSizeValue = FIntPoint::DivideAndRoundUp(GSceneRenderTargets.GetBufferSizeXY(), CurrentLevelDownsampleFactorValue);
+		SetShaderValue(RHICmdList, ShaderRHI, AOBufferSize, AOBufferSizeValue);
+
+		SetShaderValue(RHICmdList, ShaderRHI, DownsampleFactorToBaseLevel, CurrentLevelDownsampleFactorValue / GAODownsampleFactor);
+
+		const FIntPoint DownsampledBufferSize = GetBufferSizeForAO();
+		const FVector2D BaseLevelBufferSizeValue(1.0f / DownsampledBufferSize.X, 1.0f / DownsampledBufferSize.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, BaseLevelTexelSize, BaseLevelBufferSizeValue);
 	}
 
-	FTrackGPUProgressCS()
+	friend FArchive& operator<<(FArchive& Ar,FAOLevelParameters& P)
 	{
-	}
-
-	void SetParameters(FRHICommandList& RHICmdList, uint32 DebugIdValue)
-	{
-		FComputeShaderRHIParamRef ShaderRHI = GetComputeShader();
-
-		DebugBuffer.SetBuffer(RHICmdList, ShaderRHI, *GDebugBuffer2);
-		SetShaderValue(RHICmdList, ShaderRHI, DebugId, DebugIdValue);
-	}
-
-	void UnsetParameters(FRHICommandListImmediate& RHICmdList)
-	{
-		DebugBuffer.UnsetUAV(RHICmdList, GetComputeShader());
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{		
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << DebugBuffer;
-		Ar << DebugId;
-		return bShaderHasOutdatedParameters;
+		Ar << P.CurrentLevelDownsampleFactor << P.AOBufferSize << P.DownsampleFactorToBaseLevel << P.BaseLevelTexelSize;
+		return Ar;
 	}
 
 private:
+	FShaderParameter CurrentLevelDownsampleFactor;
+	FShaderParameter AOBufferSize;
+	FShaderParameter DownsampleFactorToBaseLevel;
+	FShaderParameter BaseLevelTexelSize;
+};
 
-	FRWShaderParameter DebugBuffer;
-	FShaderParameter DebugId;
+class FScreenGridParameters
+{
+public:
+	void Bind(const FShaderParameterMap& ParameterMap)
+	{
+		BaseLevelTexelSize.Bind(ParameterMap, TEXT("BaseLevelTexelSize"));
+		JitterOffset.Bind(ParameterMap, TEXT("JitterOffset"));
+		ScreenGridConeVisibilitySize.Bind(ParameterMap, TEXT("ScreenGridConeVisibilitySize"));
+		DistanceFieldNormalTexture.Bind(ParameterMap, TEXT("DistanceFieldNormalTexture"));
+		DistanceFieldNormalSampler.Bind(ParameterMap, TEXT("DistanceFieldNormalSampler"));
+	}
+
+	template<typename TParamRef>
+	void Set(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FViewInfo& View, FSceneRenderTargetItem& DistanceFieldNormal)
+	{
+		const FIntPoint DownsampledBufferSize = GetBufferSizeForAO();
+		const FVector2D BaseLevelTexelSizeValue(1.0f / DownsampledBufferSize.X, 1.0f / DownsampledBufferSize.Y);
+		SetShaderValue(RHICmdList, ShaderRHI, BaseLevelTexelSize, BaseLevelTexelSizeValue);
+
+		extern FVector2D GetJitterOffset(int32 SampleIndex);
+		SetShaderValue(RHICmdList, ShaderRHI, JitterOffset, GetJitterOffset(View.ViewState->GetDistanceFieldTemporalSampleIndex()));
+
+		FAOScreenGridResources* ScreenGridResources = View.ViewState->AOScreenGridResources;
+
+		SetShaderValue(RHICmdList, ShaderRHI, ScreenGridConeVisibilitySize, ScreenGridResources->ScreenGridDimensions);
+
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			DistanceFieldNormalTexture,
+			DistanceFieldNormalSampler,
+			TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(),
+			DistanceFieldNormal.ShaderResourceTexture
+			);
+	}
+
+	friend FArchive& operator<<(FArchive& Ar,FScreenGridParameters& P)
+	{
+		Ar << P.BaseLevelTexelSize << P.JitterOffset << P.ScreenGridConeVisibilitySize << P.DistanceFieldNormalTexture << P.DistanceFieldNormalSampler;
+		return Ar;
+	}
+
+private:
+	FShaderParameter BaseLevelTexelSize;
+	FShaderParameter JitterOffset;
+	FShaderParameter ScreenGridConeVisibilitySize;
+	FShaderResourceParameter DistanceFieldNormalTexture;
+	FShaderResourceParameter DistanceFieldNormalSampler;
 };
 
 extern void TrackGPUProgress(FRHICommandListImmediate& RHICmdList, uint32 DebugId);

@@ -346,10 +346,49 @@ public:
 	}
 };
 
+class FVolumeUpdateRegion
+{
+public:
+	/** World space bounds. */
+	FBox Bounds;
+
+	/** Number of texels in each dimension to update. */
+	FIntVector CellsSize;
+};
+
+class FGlobalDistanceFieldClipmap
+{
+public:
+	/** World space bounds. */
+	FBox Bounds;
+
+	/** Offset applied to UVs so that only new or dirty areas of the volume texture have to be updated. */
+	FVector ScrollOffset;
+
+	/** Regions in the volume texture to update. */
+	TArray<FVolumeUpdateRegion, TInlineAllocator<3> > UpdateRegions;
+
+	/** Volume texture for this clipmap. */
+	TRefCountPtr<IPooledRenderTarget> RenderTarget;
+};
+
+class FGlobalDistanceFieldInfo
+{
+public:
+
+	TArray<FGlobalDistanceFieldClipmap> Clipmaps;
+};
+
 /** A FSceneView with additional state used by the scene renderer. */
 class FViewInfo : public FSceneView
 {
 public:
+
+	/** 
+	 * The view's state, or NULL if no state exists.
+	 * This should be used internally to the renderer module to avoid having to cast View.State to an FSceneViewState*
+	 */
+	FSceneViewState* ViewState;
 
 	/** A map from primitive ID to a boolean visibility value. */
 	FSceneBitArray PrimitiveVisibilityMap;
@@ -393,6 +432,9 @@ public:
 
 	/** The dynamic editor primitives visible in this view. */
 	TArray<const FPrimitiveSceneInfo*,SceneRenderingAllocator> VisibleEditorPrimitives;
+
+	/** View dependent global distance field clipmap info. */
+	FGlobalDistanceFieldInfo GlobalDistanceFieldInfo;
 
 	/** Set of translucent prims for this view */
 	FTranslucentPrimSet TranslucentPrimSet;

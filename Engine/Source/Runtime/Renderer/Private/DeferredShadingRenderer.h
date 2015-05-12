@@ -191,7 +191,7 @@ private:
 	void RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& VelocityTexture, TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
 	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
-	bool RenderDistanceFieldAOSurfaceCache(
+	bool RenderDistanceFieldLighting(
 		FRHICommandListImmediate& RHICmdList, 
 		const class FDistanceFieldAOParameters& Parameters, 
 		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
@@ -199,6 +199,17 @@ private:
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance,
 		bool bVisualizeAmbientOcclusion,
 		bool bVisualizeGlobalIllumination);
+
+	/** Render Ambient Occlusion using mesh distance fields on a screen based grid. */
+	void RenderDistanceFieldAOScreenGrid(
+		FRHICommandListImmediate& RHICmdList, 
+		const FViewInfo& View,
+		FIntPoint TileListGroupSize,
+		const FDistanceFieldAOParameters& Parameters, 
+		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
+		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
+		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
+		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 

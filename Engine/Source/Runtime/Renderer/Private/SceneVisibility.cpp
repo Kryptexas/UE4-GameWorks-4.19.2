@@ -1440,7 +1440,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
-		FSceneViewState* ViewState = (FSceneViewState*) View.State;
+		FSceneViewState* ViewState = View.ViewState;
 		static bool bEnableTimeScale = true;
 
 		// Once per render increment the occlusion frame counter.
@@ -1467,6 +1467,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 		// Still need no jitter to be set for temporal feedback on SSR (it is enabled even when temporal AA is off).
 		View.TemporalJitterPixelsX = 0.0f;
 		View.TemporalJitterPixelsY = 0.0f;
+
+		if (ViewState)
+		{
+			ViewState->SetupDistanceFieldTemporalOffset(ViewFamily);
+		}
 
 		if( View.FinalPostProcessSettings.AntiAliasingMethod == AAM_TemporalAA && ViewState )
 		{

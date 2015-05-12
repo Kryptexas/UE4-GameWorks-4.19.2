@@ -114,7 +114,7 @@ public:
 
 TGlobalResource<FDistanceFieldRemoveIndicesResource> GDistanceFieldRemoveIndices;
 
-uint32 UpdateObjectsGroupSize = 64;
+const uint32 UpdateObjectsGroupSize = 64;
 
 class FUploadObjectsToBufferCS : public FGlobalShader
 {
@@ -542,7 +542,14 @@ void UpdateGlobalDistanceFieldObjectRemoves(FRHICommandListImmediate& RHICmdList
 			const FPrimitiveSceneInfo* Primitive = DistanceFieldSceneData.PendingRemoveOperations[RemoveIndex].Primitive;
 			DistanceFieldSceneData.SurfelAllocations.RemovePrimitive(Primitive);
 			DistanceFieldSceneData.InstancedSurfelAllocations.RemovePrimitive(Primitive);
-			PendingRemoveOperations.Append(DistanceFieldSceneData.PendingRemoveOperations[RemoveIndex].DistanceFieldInstanceIndices);
+			const TArray<int32, TInlineAllocator<1>>& DistanceFieldInstanceIndices = DistanceFieldSceneData.PendingRemoveOperations[RemoveIndex].DistanceFieldInstanceIndices;
+			PendingRemoveOperations.Append(DistanceFieldInstanceIndices);
+
+			for (int32 RemoveInstanceIndex = 0; RemoveInstanceIndex < DistanceFieldInstanceIndices.Num(); RemoveInstanceIndex++)
+			{
+				const int32 InstanceIndex = DistanceFieldInstanceIndices[RemoveInstanceIndex];
+				DistanceFieldSceneData.PrimitiveModifiedBounds.Add(DistanceFieldSceneData.PrimitiveInstanceMapping[InstanceIndex].BoundingSphere);
+			}
 		}
 
 		check(DistanceFieldSceneData.NumObjectsInBuffer >= PendingRemoveOperations.Num());
@@ -761,13 +768,6 @@ void ProcessPrimitiveUpdate(
 			{
 				const uint32 UploadIndex = bIsAddOperation ? OriginalNumObjects + UploadObjectIndices.Num() : PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex];
 
-				if (bIsAddOperation)
-				{
-					const int32 AddIndex = OriginalNumObjects + UploadObjectIndices.Num();
-					DistanceFieldSceneData.PrimitiveInstanceMapping.Add(FPrimitiveAndInstance(PrimitiveSceneInfo, TransformIndex));
-					PrimitiveSceneInfo->DistanceFieldInstanceIndices.Add(AddIndex);
-				}
-
 				UploadObjectIndices.Add(UploadIndex);
 
 				FMatrix LocalToWorld = ObjectLocalToWorldTransforms[TransformIndex];
@@ -837,6 +837,19 @@ void ProcessPrimitiveUpdate(
 				UploadObjectData.Add(FVector4(Allocation.Offset, Allocation.NumLOD0, Allocation.NumSurfels, InstancedAllocation.Offset + InstancedAllocation.NumSurfels * TransformIndex));
 
 				checkSlow(UploadObjectData.Num() % UploadObjectDataStride == 0);
+
+				if (bIsAddOperation)
+				{
+					const int32 AddIndex = UploadIndex;
+					DistanceFieldSceneData.PrimitiveInstanceMapping.Add(FPrimitiveAndInstance(ObjectBoundingSphere, PrimitiveSceneInfo, TransformIndex));
+					PrimitiveSceneInfo->DistanceFieldInstanceIndices.Add(AddIndex);
+				}
+				else 
+				{
+					DistanceFieldSceneData.PrimitiveInstanceMapping[PrimitiveSceneInfo->DistanceFieldInstanceIndices[TransformIndex]].BoundingSphere = ObjectBoundingSphere;
+				}
+
+				DistanceFieldSceneData.PrimitiveModifiedBounds.Add(ObjectBoundingSphere);
 			}
 		}
 		else
@@ -849,6 +862,8 @@ void ProcessPrimitiveUpdate(
 void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList) 
 {
 	FDistanceFieldSceneData& DistanceFieldSceneData = Scene->DistanceFieldSceneData;
+
+	DistanceFieldSceneData.PrimitiveModifiedBounds.Reset();
 
 	if (GDistanceFieldVolumeTextureAtlas.VolumeTextureRHI
 		&& (DistanceFieldSceneData.HasPendingOperations() || DistanceFieldSceneData.AtlasGeneration != GDistanceFieldVolumeTextureAtlas.GetGeneration()))
@@ -892,6 +907,7 @@ void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHIC
 
 		// Process removes before adds, as the adds will overwrite primitive allocation info in DistanceFieldSceneData.SurfelAllocations
 		UpdateGlobalDistanceFieldObjectRemoves(RHICmdList, Scene);
+
 		extern int32 GVPLMeshGlobalIllumination;
 		TArray<uint32> UploadObjectIndices;
 		TArray<FVector4> UploadObjectData;
@@ -914,7 +930,6 @@ void FDeferredShadingSceneRenderer::UpdateGlobalDistanceFieldObjectBuffers(FRHIC
 			int32 OriginalNumSurfels = DistanceFieldSceneData.SurfelAllocations.GetNumSurfelsInBuffer();
 			int32 OriginalNumInstancedSurfels = DistanceFieldSceneData.InstancedSurfelAllocations.GetNumSurfelsInBuffer();
 			
-
 			if (bPrepareForDistanceFieldGI)
 			{
 				for (int32 UploadPrimitiveIndex = 0; UploadPrimitiveIndex < DistanceFieldSceneData.PendingAddOperations.Num(); UploadPrimitiveIndex++)
