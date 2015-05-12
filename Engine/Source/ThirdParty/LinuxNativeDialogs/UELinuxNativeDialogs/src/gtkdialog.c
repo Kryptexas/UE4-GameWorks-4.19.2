@@ -19,6 +19,15 @@ static void file_selected(GtkDialog *dialog, gint response_id, gpointer user_dat
   ((UFileDialog*)user_data)->gtk_response = response_id;
 }
 
+bool ULinuxNativeDialogs_Initialize() {
+    return true;
+}
+
+void ULinuxNativeDialogs_Shutdown() {
+    // no-op
+}
+
+
 struct UFileDialog* UFileDialog_Create(struct UFileDialogHints *hints)
 {
   if(!hints)
@@ -183,8 +192,11 @@ bool UFileDialog_ProcessEvents(UFileDialog* handle)
     return false;
   }
 
+  while(gtk_events_pending()) {
+    gtk_main_iteration_do(false);
+  }
 
-  return gtk_main_iteration_do(false);
+  return true;
 }
 
 const UFileDialogResult* UFileDialog_Result(UFileDialog* handle)
@@ -200,7 +212,9 @@ void UFileDialog_Destroy(UFileDialog* handle)
   if(GTK_IS_FILE_CHOOSER(handle->dialog))
   {
     gtk_widget_hide(handle->dialog);
-    gtk_main_iteration_do(false);
+    while(gtk_events_pending()) {
+      gtk_main_iteration_do(false);
+    }
     gtk_widget_destroy (handle->dialog);
   }
   // in laggy environment this is necessary - WHY?
@@ -325,7 +339,12 @@ bool UFontDialog_ProcessEvents(UFontDialog* handle)
     }
     return false;
   }
-  return gtk_main_iteration_do(false);
+
+  while(gtk_events_pending()) {
+    gtk_main_iteration_do(false);
+  }
+
+  return true;
 }
 
 void UFontDialog_Destroy(UFontDialog* handle)
@@ -334,7 +353,9 @@ void UFontDialog_Destroy(UFontDialog* handle)
   if(GTK_IS_FONT_SELECTION_DIALOG(handle->dialog))
   {
     gtk_widget_hide(handle->dialog);
-    gtk_main_iteration_do(false);
+    while(gtk_events_pending()) {
+      gtk_main_iteration_do(false);
+    }
     gtk_widget_destroy (handle->dialog);
   }
   // in laggy environment this is necessary - WHY?

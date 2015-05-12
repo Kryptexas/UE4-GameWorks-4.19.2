@@ -144,6 +144,13 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -reuseconn - allow libcurl to reuse HTTP connections (only matters if compiled with libcurl)"));
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
 
+	UE_LOG(LogInit, Log, TEXT("Setting LC_NUMERIC to en_US"));
+	if (setenv("LC_NUMERIC", "en_US", 1) != 0)
+	{
+		int ErrNo = errno;
+		UE_LOG(LogInit, Warning, TEXT("Unable to setenv(): errno=%d (%s)"), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+	}
+
 	// skip for servers and programs, unless they request later
 	if (!UE_SERVER && !IS_PROGRAM)
 	{
