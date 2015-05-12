@@ -124,18 +124,6 @@ void FHierarchicalLODBuilder::Build()
 {
 	check (World);
 
-	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem == false)
-	{
-		if (EAppReturnType::No == 
-			FMessageDialog::Open( EAppMsgType::YesNo, LOCTEXT("HierarchicalLOD_Warning", 
-			"Enable Hierarchical LOD System is disabled in World Setting. This process will delete previously generated LODActors if exists.\n\nWould you like to continue?")) )
-		{
-			// has been canceled, return
-			GEditor->SetMapBuildCancelled(true);
-			return;
-		}
-	}
-	
 	const TArray<class ULevel*>& Levels = World->GetLevels();
 
 	for (const auto& LevelIter : Levels)
