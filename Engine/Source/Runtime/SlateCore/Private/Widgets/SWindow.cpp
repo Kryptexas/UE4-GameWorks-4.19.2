@@ -1321,6 +1321,34 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 	}
 	else
 	{
+		if (SupportsKeyboardFocus())
+		{
+			TArray< TSharedRef<SWindow> > JustThisWindow;
+			JustThisWindow.Add( SharedThis(this) );
+			
+			// If we're becoming active and we were set to restore keyboard focus to a specific widget
+			// after reactivating, then do so now
+			TSharedPtr< SWidget > PinnedWidgetToFocus( WidgetToFocusOnActivate.Pin() );
+			
+			if (PinnedWidgetToFocus.IsValid())
+			{
+				FWidgetPath WidgetToFocusPath;
+				if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocus.ToSharedRef(), WidgetToFocusPath ) )
+				{
+					FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
+				}
+			}
+			else
+			{
+				FWidgetPath WindowWidgetPath;
+				if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, AsShared(), WindowWidgetPath ) )
+				{
+					FWeakWidgetPath WeakWindowPath(WindowWidgetPath);
+					FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EUINavigation::Next), EFocusCause::SetDirectly );
+				}
+			}
+		}
+
 		OnWindowActivated.ExecuteIfBound();
 	}
 
@@ -1364,36 +1392,6 @@ bool SWindow::SupportsKeyboardFocus() const
 
 FReply SWindow::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
-	if (InFocusEvent.GetCause() == EFocusCause::WindowActivate || FSlateApplicationBase::Get().IsExternalUIOpened())
-	{
-		TArray< TSharedRef<SWindow> > JustThisWindow;
-		{
-			JustThisWindow.Add( SharedThis(this) );
-		}
-		
-		// If we're becoming active and we were set to restore keyboard focus to a specific widget
-		// after reactivating, then do so now
-		TSharedPtr< SWidget > PinnedWidgetToFocusOnActivate( WidgetToFocusOnActivate.Pin() );
-		
-		if(PinnedWidgetToFocusOnActivate.IsValid())
-		{
-			FWidgetPath WidgetToFocusPath;
-			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
-			{
-				FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EFocusCause::SetDirectly );
-			}
-		}
-		else
-		{
-			FWidgetPath WindowWidgetPath;
-			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, AsShared(), WindowWidgetPath ) )
-			{
-				FWeakWidgetPath WeakWindowPath(WindowWidgetPath);
-				FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EUINavigation::Next), EFocusCause::SetDirectly );
-			}
-		}
-	}
-
 	return FReply::Handled();
 }
 

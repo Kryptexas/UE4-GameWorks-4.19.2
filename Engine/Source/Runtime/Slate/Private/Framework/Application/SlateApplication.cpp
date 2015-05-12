@@ -2204,6 +2204,15 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 	{
 		TSharedPtr<SWindow> FocusedWindow = NewFocusedWidgetPath.GetWindow();
 		
+		// Set the windows restore state - we do this before calling OnFocusReceived to ensure that if
+		// OnFocusReceived returns a new UserFocus, the WidgetToFocusOnActivate will get set correctly
+		//@Todo Slate: We need to store the full focus state
+		//@Todo Slate: Why are we checking FocusedWindow != NewFocusedWidget?
+		if (FocusedWindow.IsValid() && FocusedWindow != NewFocusedWidget)
+		{
+			FocusedWindow->SetWidgetToFocusOnActivate(NewFocusedWidget);
+		}
+
 		// Switch worlds for widgets in the new path
 		FScopedSwitchWorldHack SwitchWorld(FocusedWindow);
 		
@@ -2213,14 +2222,6 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 		if (Reply.IsEventHandled())
 		{
 			ProcessReply(InFocusPath, Reply, nullptr, nullptr);
-		}
-		
-		// Set the windows restore state.
-		//@Todo Slate: We need to store the full focus state 
-		//@Todo Slate: Why are we checking FocusedWindow != NewFocusedWidget?
-		if (FocusedWindow.IsValid() && FocusedWindow != NewFocusedWidget)
-		{
-			FocusedWindow->SetWidgetToFocusOnActivate(NewFocusedWidget);
 		}
 	}
 
@@ -5064,24 +5065,6 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 			// A Slate window was activated
 			bSlateWindowActive = true;
 
-			if (ActivateEvent.GetAffectedWindow()->IsFocusedInitially() && ActivateEvent.GetAffectedWindow()->SupportsKeyboardFocus() )
-			{
-				// Set keyboard focus on the window being activated.
-				{
-					FWidgetPath PathToWindowBeingActivated;
-					GeneratePathToWidgetChecked( ActivateEvent.GetAffectedWindow(), PathToWindowBeingActivated );
-
-					if( ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_ActivateByMouse )
-					{
-						SetKeyboardFocus(PathToWindowBeingActivated, EFocusCause::Mouse);
-					}
-					else
-					{
-						SetKeyboardFocus(PathToWindowBeingActivated, EFocusCause::WindowActivate);
-					}
-				}
-
-			}
 
 			{
 				FScopedSwitchWorldHack SwitchWorld( ActivateEvent.GetAffectedWindow() );
