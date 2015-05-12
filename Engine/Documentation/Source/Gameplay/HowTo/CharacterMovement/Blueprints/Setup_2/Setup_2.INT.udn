@@ -47,7 +47,7 @@ In this section, we will finish setting up the Character by implementing the scr
 
 1.	**Right-click** in the graph and add the **InputAction Jog** Event. 
 
-1.	In the **MyBlueprint** window, click the **Show inherited variables** checkbox and drag the **CharacterMovement** into the graph. 
+1.	In the **MyBlueprint** window, click the **Show inherited variables** checkbox and **Control** + drag the **CharacterMovement** into the graph. 
 
 	![](Character_JogA.png)
 
