@@ -33,7 +33,7 @@ C++ 파일은 모듈 디렉토리의 `Private` 폴더, 즉 `[게임명]\Source\[
 	// 모듈을 Primary 로 지정
 	IMPLEMENT_PRIMARY_GAME_MODULE( <ModuleName>, "<GameName>" );
 
-빌드 파일은 게임플레이 모듈의 루트 디렉토리, 즉 `[게이명]\Source\[모듈명]` 에 들어가며, UnrealBuildTool 이 모듈을 컴파일하는 데 사용되는 약간의 정보를 정의합니다.
+빌드 파일은 게임플레이 모듈의 루트 디렉토리, 즉 `[게임명]\Source\[모듈명]` 에 들어가며, UnrealBuildTool 이 모듈을 컴파일하는 데 사용되는 약간의 정보를 정의합니다.
 
 	using UnrealBuildTool;
 
