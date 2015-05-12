@@ -15,6 +15,7 @@
 #include "KismetEditorUtilities.h"
 #endif //WITH_EDITOR
 
+DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
 
 UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -600,7 +601,9 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 			const bool bUberGraphFunctionIsReady = UberGraphFunction->HasAllFlags(RF_LoadCompleted); // is fully loaded
 			if (bUberGraphFunctionIsReady)
 			{
+				INC_MEMORY_STAT_BY(STAT_PersistentUberGraphFrameMemory, UberGraphFunction->GetStructureSize());
 				FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
+
 				FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
 				for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
 				{
@@ -637,6 +640,7 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) con
 				Property->DestroyValue_InContainer(FrameMemory);
 			}
 			FMemory::Free(FrameMemory);
+			DEC_MEMORY_STAT_BY(STAT_PersistentUberGraphFrameMemory, UberGraphFunction->GetStructureSize());
 		}
 		else
 		{

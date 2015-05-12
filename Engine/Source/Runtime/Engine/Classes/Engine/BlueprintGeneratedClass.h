@@ -5,6 +5,7 @@
 #include "MeshBatch.h"
 #include "BlueprintGeneratedClass.generated.h"
 
+DECLARE_MEMORY_STAT_EXTERN(TEXT("Persistent Uber Graph Frame memory"), STAT_PersistentUberGraphFrameMemory, STATGROUP_Memory, );
 
 class UEdGraphPin;
 
