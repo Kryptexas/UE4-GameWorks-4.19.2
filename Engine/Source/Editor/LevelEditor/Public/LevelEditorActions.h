@@ -136,6 +136,9 @@ public:
 	/** Aligns the actor to the grid at its pivot*/
 	TSharedPtr< FUICommandInfo > AlignOriginToGrid;
 
+	/** Snaps the actor to the 2D layer */
+	TSharedPtr< FUICommandInfo > SnapToLayer2D;
+
 	/** Snaps the actor to the floor*/
 	TSharedPtr< FUICommandInfo > SnapToFloor;
 
@@ -1144,6 +1147,17 @@ public:
 	 * Moves an actor to another actor.
 	 */
 	static void MoveActorToActor_Clicked( bool InAlign );
+
+	/** 
+	 * Snaps an actor to the currently selected 2D snap layer
+	 */
+	static void SnapToLayer2D_Clicked();
+
+	/**
+	 * Checks to see if at least a single actor is selected and the 2D editor mode is enabled
+	 *	@return true if it can execute.
+	 */
+	static bool CanSnapToLayer2D();
 
 	/** 
 	 * Snaps an actor to the floor.  Optionally will align with the trace normal.

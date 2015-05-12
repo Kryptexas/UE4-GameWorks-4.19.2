@@ -11,6 +11,8 @@
 #include "SNumericEntryBox.h"
 #include "ScopedTransaction.h"
 #include "Settings/EditorProjectSettings.h"
+#include "LevelEditor.h"
+#include "LevelEditorActions.h"
 
 #define LOCTEXT_NAMESPACE "TransformToolBar"
 
@@ -656,51 +658,6 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 				SettingsModule->ShowViewer("Project", "Editor", "LevelEditor2DSettings");
 			}
 		}
-
-		static FReply SnapSelectionToSelectedOffset()
-		{
-			const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
-			const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
-			if (Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex))
-			{
-				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "SnapSelection2D", "Snap Selection to 2D Layer"));
-
-				float SnapDepth = Settings2D->SnapLayers[ViewportSettings->ActiveSnapLayerIndex].Depth;
-				USelection* SelectedActors = GEditor->GetSelectedActors();
-				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
-				{
-					AActor* Actor = CastChecked<AActor>(*Iter);
-
-					// Only snap actors that are not attached to something else
-					if (Actor->GetAttachParentActor() == nullptr)
-					{
-						FTransform Transform = Actor->GetTransform();
-						FVector CurrentLocation = Transform.GetLocation();
-
-						switch (Settings2D->SnapAxis)
-						{
-						case ELevelEditor2DAxis::X: CurrentLocation.X = SnapDepth; break;
-						case ELevelEditor2DAxis::Y: CurrentLocation.Y = SnapDepth; break;
-						case ELevelEditor2DAxis::Z: CurrentLocation.Z = SnapDepth; break;
-						}
-						
-						Transform.SetLocation(CurrentLocation);
-						Actor->Modify();
-						Actor->SetActorTransform(Transform);
-					}
-				}
-
-				GEditor->RedrawLevelEditingViewports(true);
-			}
-
-			return FReply::Handled();
-		}
-
-		static bool IsSnapSelectedActorsEnabled()
-		{
-			const ULevelEditor2DSettings* Settings = GetDefault<ULevelEditor2DSettings>();
-			return Settings->SnapLayers.IsValidIndex(GetDefault<ULevelEditorViewportSettings>()->ActiveSnapLayerIndex) && (GEditor->GetSelectedActorCount() > 0);
-		}
 	};
 
 	FUIAction ShowSettingsAction(FExecuteAction::CreateStatic(&FLocalFunctions::ShowSettingsViewer));
@@ -709,17 +666,9 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 	// -------------------------------------------------------
 	ShowMenuBuilder.AddMenuSeparator();
 
-	ShowMenuBuilder.AddWidget(
-		SNew(SButton)
-		.Text(LOCTEXT("2DSnap_SnapSelection", "Snap Selected Actors"))
-		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(FLocalFunctions::IsSnapSelectedActorsEnabled)))
-		.OnClicked(FOnClicked::CreateStatic(FLocalFunctions::SnapSelectionToSelectedOffset))
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Fill),
 
-		FText::GetEmpty(),
-		true
-		);
+	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().SnapToLayer2D);
 
 	return ShowMenuBuilder.MakeWidget();
 }

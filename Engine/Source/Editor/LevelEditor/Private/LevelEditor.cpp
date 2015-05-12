@@ -743,6 +743,12 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorsSelected_CanExecute)
 		);
 
+	ActionList.MapAction(
+		Commands.SnapToLayer2D,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToLayer2D_Clicked),
+		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::CanSnapToLayer2D)
+		);
+
 	bAlign = false;
 	bool bUseLineTrace = false;
 	bool bUseBounds = false;

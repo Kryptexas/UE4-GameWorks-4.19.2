@@ -63,6 +63,7 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "Editor/Persona/Public/AnimationRecorder.h"
 #include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
+#include "EditorProjectSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -2528,6 +2529,59 @@ void FLevelEditorActionCallbacks::MoveActorTo_Clicked( const bool InAlign, const
 	GEditor->RebuildAlteredBSP(); // Update the Bsp of any levels containing a modified brush
 }
 
+void FLevelEditorActionCallbacks::SnapToLayer2D_Clicked()
+{
+	// Fires ULevel::LevelDirtiedEvent when falling out of scope.
+	FScopedLevelDirtied LevelDirtyCallback;
+
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	if (Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex))
+	{
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "SnapSelection2D", "Snap Selection to 2D Layer"));
+
+		float SnapDepth = Settings2D->SnapLayers[ViewportSettings->ActiveSnapLayerIndex].Depth;
+		USelection* SelectedActors = GEditor->GetSelectedActors();
+		for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+		{
+			AActor* Actor = CastChecked<AActor>(*Iter);
+
+			// Only snap actors that are not attached to something else
+			if (Actor->GetAttachParentActor() == nullptr)
+			{
+				FTransform Transform = Actor->GetTransform();
+				FVector CurrentLocation = Transform.GetLocation();
+
+				switch (Settings2D->SnapAxis)
+				{
+				case ELevelEditor2DAxis::X: CurrentLocation.X = SnapDepth; break;
+				case ELevelEditor2DAxis::Y: CurrentLocation.Y = SnapDepth; break;
+				case ELevelEditor2DAxis::Z: CurrentLocation.Z = SnapDepth; break;
+				}
+
+				Transform.SetLocation(CurrentLocation);
+				Actor->Modify();
+				Actor->SetActorTransform(Transform);
+
+				Actor->InvalidateLightingCache();
+				Actor->UpdateComponentTransforms();
+
+				Actor->MarkPackageDirty();
+				LevelDirtyCallback.Request();
+			}
+		}
+
+		GEditor->RedrawLevelEditingViewports(true);
+		GEditor->RebuildAlteredBSP();
+	}
+}
+
+bool FLevelEditorActionCallbacks::CanSnapToLayer2D()
+{
+	const ULevelEditor2DSettings* Settings = GetDefault<ULevelEditor2DSettings>();
+	return Settings->SnapLayers.IsValidIndex(GetDefault<ULevelEditorViewportSettings>()->ActiveSnapLayerIndex) && (GEditor->GetSelectedActorCount() > 0);
+}
+
 void FLevelEditorActionCallbacks::SnapToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SnapActorsToFloor", "Snap Actors To Floor") );
@@ -2829,6 +2883,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SnapOriginToGrid, "Snap Origin to Grid", "Snaps the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::End ) );
 	UI_COMMAND( SnapOriginToGridPerActor, "Snap Origin to Grid Per Actor", "Snaps each selected actor separately to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( AlignOriginToGrid, "Align Origin to Grid", "Aligns the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( SnapToLayer2D, "Snap to 2D Layer", "Snaps the actor to the current 2D snap layer", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::SpaceBar ) );
 	UI_COMMAND( SnapToFloor, "Snap to Floor", "Snaps the actor or component to the floor below it", EUserInterfaceActionType::Button, FInputChord( EKeys::End ) );
 	UI_COMMAND( AlignToFloor, "Align to Floor", "Aligns the actor or component with the floor", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( SnapPivotToFloor, "Snap Pivot to Floor", "Snaps the actor to the floor at its pivot point", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Alt, EKeys::End ) );	
