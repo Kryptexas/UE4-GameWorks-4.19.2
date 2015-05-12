@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2418790
+﻿INTSourceChangelist:2535990
 Availability:Public
 Title:デフォルト設定で必須のモジュールと Spawn モジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -41,7 +41,7 @@ Description:エミッタに同梱されている各関数に必須のモジュ�
 | **Delay First Loop Only** | _true_ であり、エミッタに値 0 以上の EmitterDelay および値 1 以上の EmitterLoops が設定されている場合、最初のループに限り遅延を実行します。 |
 | [REGION:tablesection]Sub UV[/REGION] ||
 | [REGION:note]Sub UV データは適用されたテクスチャのサブイメージを利用すべきであることを示します。パーティクルにシンプルなアニメーションを実装する際に実用的です。[/REGION] ||
-| **Interpolation Method** | サブイメージ間の補間に利用するメソッドを示す列挙型変数です。以下のどれかになります: [INCLUDE:#InterpMethod] |
+| **Interpolation Method** | サブイメージ間の補間に利用するメソッドを示す列挙型変数です。以下のいずれかになります。 [INCLUDE:#InterpMethod] |
 | **Sub Images_Horizontal** | テクスチャの平行（X）軸上のテクスチャにあるサブイメージの数です。|
 | **Sub Images_Vertical** | テクスチャの垂直（Y）軸上のテクスチャにあるサブイメージの数です。|
 | **Scale UV** | UV 値がサブイメージサイズに正確に「一致」してスケーリングされることを示します。メッシュ エミッタのみに使用されます。|
