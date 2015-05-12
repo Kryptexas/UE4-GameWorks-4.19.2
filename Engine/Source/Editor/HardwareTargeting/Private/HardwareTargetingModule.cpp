@@ -12,7 +12,7 @@
 #include "Editor/Documentation/Public/IDocumentation.h"
 #include "GameFramework/InputSettings.h"
 #include "GameMapsSettings.h"
-
+#include "EditorProjectSettings.h"
 
 #define LOCTEXT_NAMESPACE "HardwareTargeting"
 
@@ -196,6 +196,7 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 		Builder.CategoryNames.Add(GetMutableDefault<URendererSettings>(), LOCTEXT("RenderingCategoryHeader", "Engine - Rendering"));
 		Builder.CategoryNames.Add(GetMutableDefault<UInputSettings>(), LOCTEXT("InputCategoryHeader", "Engine - Input"));
 		Builder.CategoryNames.Add(GetMutableDefault<UGameMapsSettings>(), LOCTEXT("MapsAndModesCategoryHeader", "Project - Maps & Modes"));
+		Builder.CategoryNames.Add(GetMutableDefault<ULevelEditor2DSettings>(), LOCTEXT("EditorSettings2D", "Editor - 2D"));
 	}
 
 
@@ -204,6 +205,7 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 	const bool bHighEndMobile = (Settings->TargetedHardwareClass == EHardwareClass::Mobile) && (Settings->DefaultGraphicsPerformance == EGraphicsPreset::Maximum);
 	const bool bAnyPC = (Settings->TargetedHardwareClass == EHardwareClass::Desktop);
 	const bool bHighEndPC = (Settings->TargetedHardwareClass == EHardwareClass::Desktop) && (Settings->DefaultGraphicsPerformance == EGraphicsPreset::Maximum);
+	const bool bAnyScalable = Settings->DefaultGraphicsPerformance == EGraphicsPreset::Scalable;
 
 	{
 		// Based roughly on https://docs.unrealengine.com/latest/INT/Platforms/Mobile/PostProcessEffects/index.html
@@ -231,6 +233,11 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 		// Mobile uses touch
 		UE_META_SETTING_ENTRY(Builder, UInputSettings, bUseMouseForTouch, bAnyMobile);
 		//@TODO: Use bAlwaysShowTouchInterface (sorta implied by bUseMouseForTouch)?
+	}
+
+	{
+		// Scalable automatically enables the availability of the 2D editor mode
+		UE_META_SETTING_ENTRY(Builder, ULevelEditor2DSettings, bMode2DEnabled, bAnyScalable);
 	}
 
 	{
