@@ -5,6 +5,7 @@
 #include "FoliageType_InstancedStaticMesh.h"
 #include "FoliageType_InstancedStaticMeshPaintingCustomization.h"
 #include "FoliageEdMode.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 
