@@ -1392,12 +1392,12 @@ FString FFindInBlueprintSearchManager::ConvertFTextToHexString(FText InValue)
 	return BytesToHex(SerializedData.GetData(), SerializedData.Num());
 }
 
-void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceControlActive)
+void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bCheckoutAndSave)
 {
 	// Multiple threads can be adding to this at the same time
 	FScopeLock ScopeLock(&SafeModifyCacheCriticalSection);
 
-	if(ISourceControlModule::Get().IsEnabled())
+	if(ISourceControlModule::Get().IsEnabled() && bCheckoutAndSave)
 	{
 		FEditorFileUtils::CheckoutPackages(UncachedBlueprints);
 	}
@@ -1423,17 +1423,18 @@ void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindIn
 			UncachedBlueprints.Append(FailedToCachePaths);
 			FailedToCachePaths.Empty();
 
-			CachingObject = new FCacheAllBlueprintsTickableObject(UncachedBlueprints, ReturnValue == EAppReturnType::Yes);
+			const bool bCheckoutAndSave = ReturnValue == EAppReturnType::Yes;
+			CachingObject = new FCacheAllBlueprintsTickableObject(UncachedBlueprints, bCheckoutAndSave);
 			OutActiveTimerDelegate.BindRaw(CachingObject, &FCacheAllBlueprintsTickableObject::Tick);
 
-			if(!ISourceControlModule::Get().IsEnabled() && ReturnValue == EAppReturnType::Yes)
+			if(!ISourceControlModule::Get().IsEnabled() && bCheckoutAndSave)
 			{
 				// Offer to start up Source Control
-				ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed::CreateRaw(this, &FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
+				ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed::CreateRaw(this, &FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints, bCheckoutAndSave), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
 			}
 			else
 			{
-				OnCacheAllUncachedBlueprints(true);
+				OnCacheAllUncachedBlueprints(true, bCheckoutAndSave);
 			}
 
 			SourceCachingWidget = InSourceWidget;

@@ -175,7 +175,7 @@ public:
 	 * @param InSourceWidget		The source FindInBlueprints widget, this widget will be informed when caching is complete
 	 */
 	void CacheAllUncachedBlueprints(TWeakPtr< class SFindInBlueprints > InSourceWidgetm, FWidgetActiveTimerDelegate& OutActiveTimerDelegate);
-	void OnCacheAllUncachedBlueprints(bool bInSourceControlActive);
+	void OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bCheckoutAndSave);
 
 	/** Stops the caching process where it currently is at, the rest can be continued later */
 	void CancelCacheAll(SFindInBlueprints* InFindInBlueprintWidget);
