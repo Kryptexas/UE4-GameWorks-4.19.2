@@ -6257,6 +6257,26 @@ UWorld::InitializationValues UEditorEngine::GetEditorWorldInitializationValues()
 		.EnableTraceCollision(true);
 }
 
+void UEditorEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+{
+	// If the failure occurred during PIE while connected to another process, simply end the PIE session before
+	// trying to travel anywhere.
+	if (PlayOnLocalPCSessions.Num() > 0)
+	{
+		for (const FWorldContext& WorldContext : WorldList)
+		{
+			if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() == World)
+			{
+				RequestEndPlayMap();
+				return;
+			}
+		}
+	}
+
+	// Otherwise, perform normal engine failure handling.
+	Super::HandleNetworkFailure(World, NetDriver, FailureType, ErrorString);
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FActorLabelUtilities
 
