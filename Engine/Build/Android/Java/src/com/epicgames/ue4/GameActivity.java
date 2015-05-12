@@ -89,6 +89,7 @@ public class GameActivity extends NativeActivity
 	public static final int DOWNLOAD_USER_QUIT = 3;    // user aborted the download
 	public static final int DOWNLOAD_FAILED = 4;
 	public static final int DOWNLOAD_INVALID = 5;
+	public static final int DOWNLOAD_NO_PLAY_KEY = 6;
 	public static final String DOWNLOAD_RETURN_NAME = "Result";
 	
 	static GameActivity _activity;
@@ -1038,6 +1039,9 @@ public class GameActivity extends NativeActivity
 			case DOWNLOAD_INVALID:
 				logMsg += "Download Invalid";
 				break;
+			case DOWNLOAD_NO_PLAY_KEY:
+				logMsg +="Download No Play Key";
+				break;
 			default:
 				logMsg += "Unknown message!";
 				break;
@@ -1050,7 +1054,8 @@ public class GameActivity extends NativeActivity
 			if(errorCode == DOWNLOAD_NO_RETURN_CODE 
 			|| errorCode == DOWNLOAD_USER_QUIT 
 			|| errorCode == DOWNLOAD_FAILED 
-			|| errorCode == DOWNLOAD_INVALID)
+			|| errorCode == DOWNLOAD_INVALID
+			|| errorCode == DOWNLOAD_NO_PLAY_KEY)
 				finish();
 		}
 		else if( IapStoreHelper != null )

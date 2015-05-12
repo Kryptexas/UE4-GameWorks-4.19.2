@@ -558,42 +558,65 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
 				GameActivity.Log.debug("... Whoops... missing; go go go download system!");
 				
             try {
-                Intent launchIntent = DownloaderActivity.this
-                        .getIntent();
-                Intent intentToLaunchThisActivityFromNotification = new Intent(
-                        DownloaderActivity
-                        .this, DownloaderActivity.this.getClass());
-                intentToLaunchThisActivityFromNotification.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                intentToLaunchThisActivityFromNotification.setAction(launchIntent.getAction());
-
-                if (launchIntent.getCategories() != null) {
-                    for (String category : launchIntent.getCategories()) {
-                        intentToLaunchThisActivityFromNotification.addCategory(category);
-                    }
-                }
-
-                // Build PendingIntent used to open this activity from
-                // Notification
-                PendingIntent pendingIntent = PendingIntent.getActivity(
-                        DownloaderActivity.this,
-                        0, intentToLaunchThisActivityFromNotification,
-                        PendingIntent.FLAG_UPDATE_CURRENT);
-                // Request to start the download
-                int startResult = DownloaderClientMarshaller.startDownloadServiceIfRequired(this,
-                        pendingIntent, OBBDownloaderService.class);
-
-                if (startResult != DownloaderClientMarshaller.NO_DOWNLOAD_REQUIRED) {
-                    // The DownloaderService has started downloading the files,
-                    // show progress
-                    initializeDownloadUI();
-                    return;
-                } // otherwise, download not needed so we fall through to saying all is OK
+			
+				// Make sure we have a key before we try to start the service
+				if(OBBDownloaderService.getPublicKeyLength() == 0) {
+					AlertDialog.Builder builder = new AlertDialog.Builder(this);
+				
+					builder.setCancelable(false)
+							.setTitle("No Google Play Store Key")
+							.setMessage("No OBB found and no store key to try to download. Please set one up in Android Project Settings")
+							.setPositiveButton("Exit", new DialogInterface.OnClickListener() {
+								public void onClick(DialogInterface dialog, int item) {
+									OutputData.putExtra(GameActivity.DOWNLOAD_RETURN_NAME, GameActivity.DOWNLOAD_NO_PLAY_KEY);
+									setResult(RESULT_OK, OutputData);
+									finish();
+								}
+							});
+					
+					AlertDialog alert = builder.create();
+					alert.show();
+				}
 				else
 				{
-					OutputData.putExtra(GameActivity.DOWNLOAD_RETURN_NAME, GameActivity.DOWNLOAD_FILES_PRESENT);
-					setResult(RESULT_OK, OutputData);
-					finish();
+			
+					Intent launchIntent = DownloaderActivity.this
+							.getIntent();
+					Intent intentToLaunchThisActivityFromNotification = new Intent(
+							DownloaderActivity
+							.this, DownloaderActivity.this.getClass());
+					intentToLaunchThisActivityFromNotification.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+							Intent.FLAG_ACTIVITY_CLEAR_TOP);
+					intentToLaunchThisActivityFromNotification.setAction(launchIntent.getAction());
+
+					if (launchIntent.getCategories() != null) {
+						for (String category : launchIntent.getCategories()) {
+							intentToLaunchThisActivityFromNotification.addCategory(category);
+						}
+					}
+
+					// Build PendingIntent used to open this activity from
+					// Notification
+					PendingIntent pendingIntent = PendingIntent.getActivity(
+							DownloaderActivity.this,
+							0, intentToLaunchThisActivityFromNotification,
+							PendingIntent.FLAG_UPDATE_CURRENT);
+					// Request to start the download
+					int startResult = DownloaderClientMarshaller.startDownloadServiceIfRequired(this,
+							pendingIntent, OBBDownloaderService.class);
+
+					if (startResult != DownloaderClientMarshaller.NO_DOWNLOAD_REQUIRED) {
+						// The DownloaderService has started downloading the files,
+						// show progress
+						initializeDownloadUI();
+						return;
+					} // otherwise, download not needed so we fall through to saying all is OK
+					else
+					{
+						OutputData.putExtra(GameActivity.DOWNLOAD_RETURN_NAME, GameActivity.DOWNLOAD_FILES_PRESENT);
+						setResult(RESULT_OK, OutputData);
+						finish();
+					}
 				}
                   
             } catch (NameNotFoundException e) {
