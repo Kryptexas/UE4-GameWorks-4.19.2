@@ -624,13 +624,8 @@ void FLevelEditorActionCallbacks::BuildPathsOnly_Execute()
 
 void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 {
-	// Build paths!
+	// Build HLOD
 	FEditorBuildUtils::EditorBuild(GetWorld(), EBuildOptions::BuildHierarchicalLOD);
-
-	if (BuildLighting_CanExecute())
-	{
-		BuildLightingOnly_Execute();
-	}
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )
