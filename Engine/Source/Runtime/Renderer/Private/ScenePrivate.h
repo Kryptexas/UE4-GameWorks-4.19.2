@@ -352,6 +352,7 @@ public:
 
 	FIntVector FullUpdateOrigin;
 	FIntVector LastPartialUpdateOrigin;
+	TArray<FVector4> PrimitiveModifiedBounds;
 	TRefCountPtr<IPooledRenderTarget> VolumeTexture;
 };
 
