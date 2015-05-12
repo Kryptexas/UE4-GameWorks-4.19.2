@@ -392,26 +392,16 @@ UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial"));
 	AlternateMaterial = OpaqueMaterialRef.Object;
-
-#if WITH_EDITOR
-	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
-	if (GIsEditor && !bRegisteredObjectReimport)
-	{
-		bRegisteredObjectReimport = true;
-		FEditorDelegates::OnAssetReimport.AddUObject(this, &UPaperSprite::OnObjectReimported);
-	}
-#endif
 }
 
 #if WITH_EDITOR
 
-void UPaperSprite::OnObjectReimported(UObject* InObject)
+void UPaperSprite::OnObjectReimported(UTexture2D* Texture)
 {
 	// Check if its our source texture, and if its dimensions have changed
 	// If SourceTetxureDimension == 0, we don't have a previous dimension to work off, so can't
 	// rescale sensibly
-	UTexture2D* Texture = Cast<UTexture2D>(InObject);
-	if ((Texture != nullptr) && (Texture == GetSourceTexture()))
+	if (Texture == GetSourceTexture())
 	{
 		if (NeedRescaleSpriteData())
 		{
