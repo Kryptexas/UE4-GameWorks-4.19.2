@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2423931
+﻿INTSourceChangelist:2533524
 Availability:Public
 Title:Particle System クラス
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -20,8 +20,8 @@ ParticleSystem クラスは以下のパブリック変数を格納します。�
 | **Orient ZAxis Toward Camera** | _true_ の場合、ParticleSystem のローカル Z 軸は常にカメラの方向に向きます。 |
 | **SecondsBeforeInactive** | パーティクル システムがこの期間（秒数）レンダリングされないと、非アクティブとなりその後ティックされません。今後システムが強制的に非アクティブ状態になることを防ぐにはこの値に 0 を指定します。 |
 | [REGION:tablesection]サムネイル[/REGION] ||
-| **ThumbnailWarmup** | _Use Realtime Thumbnail_ がチェックされた時、サムネイルのレンダリングをキャッシュする前にシステムがウォーミングアップする時間です。 |
-| **Use Realtime Thumbnail** | _true_ の場合、**コンテンツ ブラウザ** の ParticleSystem アセットに表示されるサムネイルはデフォルトのカメラ位置で自動的にキャプチャされ、保存したサムネイルを使用せずに現在の設定と ParticleSystem の外観を反映します。[REGION:note]リアルタイムのサムネイル レンダリングを使用すると、**コンテンツ ブラウザ** のパフォーマンスが低下します。[/REGION] |
+| **ThumbnailWarmup** | _Use Real-Time Thumbnail_ がチェックされた時、サムネイルのレンダリングをキャッシュする前にシステムがウォーミングアップする時間です。 |
+| **Use Real-Time Thumbnail** | _true_ の場合、**コンテンツ ブラウザ** の ParticleSystem アセットに表示されるサムネイルはデフォルトのカメラ位置で自動的にキャプチャされ、保存したサムネイルを使用せずに現在の設定と ParticleSystem の外観を反映します。Real-Time のサムネイルレンダリングを使用すると、**コンテンツ ブラウザ** のパフォーマンスが低下します。[/REGION] |
 | [REGION:tablesection]LOD[/REGION] ||
 | **LOD Distance Check Time** | 使用する LOD レベルを決定するためにシステムが距離チェックを実行する間隔 (秒) です(LODMethod が Automatic に設定時のみ使用します)。 |
 | **LOD Method** | システムが適切な LOD レベルの選択に利用するメソッドを示す列挙型変数です。利用可能なメソッドがいくつかあります。 [INCLUDE:#LODMethod] |
@@ -67,7 +67,7 @@ ParticleSystem クラスは以下のパブリック変数を格納します。�
 | メソッド | 説明 |
 | --- | --- |
 | `EPSOBM_None` | Particlesystem に対してオクルージョンは計算されません。 |
-| `EPSOBM_ParticleBounds` | ParticleSystem のオクルージョンの計算に使用するParticleSystemComponentの範囲です。 |
+| `EPSOBM_ParticleBounds` | ParticleSystem のオクルージョンの計算に使用する ParticleSystemComponent の範囲です。 |
 | `EPSOBM_CUsomtBounds` |  _Custom Occlusion Bounds_ 値はParticleSystem のオクルージョンの計算に使用します。 |
 [/REGION]
 [/EXCERPT:OcclusionBounds]
