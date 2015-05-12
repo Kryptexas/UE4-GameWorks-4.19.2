@@ -640,7 +640,6 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	if(State)
 	{
 		// safe to cast on the renderer side
-		FSceneViewState* ViewState = (FSceneViewState*)State;
 		ViewUniformShaderParameters.TemporalAAParams = FVector4(
 			ViewState->GetCurrentTemporalAASampleIndex(), 
 			ViewState->GetCurrentTemporalAASampleCount(),
@@ -946,7 +945,7 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 
 IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
 {
-	FSceneViewState* ViewState = (FSceneViewState*)State;
+	FSceneViewState* EffectiveViewState = ViewState;
 
 	// When rendering in stereo we want to use the same exposure for both eyes.
 	if (StereoPass == eSSP_RIGHT_EYE)
@@ -961,15 +960,15 @@ IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
 				const FSceneView* PrimaryView = Family->Views[ViewIndex];
 				if (PrimaryView->StereoPass == eSSP_LEFT_EYE)
 				{
-					ViewState = (FSceneViewState*)PrimaryView->State;
+					EffectiveViewState = (FSceneViewState*)PrimaryView->State;
 				}
 			}
 		}
 	}
 
-	if (ViewState)
+	if (EffectiveViewState)
 	{
-		TRefCountPtr<IPooledRenderTarget>& EyeAdaptRef = ViewState->GetEyeAdaptation();
+		TRefCountPtr<IPooledRenderTarget>& EyeAdaptRef = EffectiveViewState->GetEyeAdaptation();
 		if( IsValidRef(EyeAdaptRef) )
 		{
 			return EyeAdaptRef.GetReference();

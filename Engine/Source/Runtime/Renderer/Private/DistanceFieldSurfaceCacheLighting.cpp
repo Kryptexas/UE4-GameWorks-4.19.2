@@ -2690,8 +2690,6 @@ void RenderDistanceFieldAOSurfaceCache(
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, TrimRecords);
 
-		FSurfaceCacheResources& SurfaceCacheResources = *Scene->SurfaceCacheResources;
-
 		// Copy and trim last frame's surface cache samples
 		for (int32 DepthLevel = GAOMaxLevel; DepthLevel >= GAOMinLevel; DepthLevel--)
 		{

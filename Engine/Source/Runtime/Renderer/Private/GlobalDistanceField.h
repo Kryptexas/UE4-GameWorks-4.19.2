@@ -48,8 +48,9 @@ public:
 				);
 		}
 
-		FVector4 CenterAndExtent[GMaxGlobalDistanceFieldClipmaps] = {FVector4(0)};
-		FVector4 WorldToUVAddAndMul[GMaxGlobalDistanceFieldClipmaps] = {FVector4(0)};
+		FVector4 CenterAndExtent[GMaxGlobalDistanceFieldClipmaps];
+		FVector4 WorldToUVAddAndMul[GMaxGlobalDistanceFieldClipmaps];
+
 		const int32 NumToSet = GlobalVolumeCenterAndExtent.GetNumBytes() / sizeof(FVector4);
 
 		for (int32 ClipmapIndex = 0; ClipmapIndex < NumToSet; ClipmapIndex++)
@@ -64,6 +65,11 @@ public:
 				// WorldToUVAdd = (GlobalVolumeScollOffset[ClipmapIndex].xyz - GlobalVolumeCenterAndExtent[ClipmapIndex].xyz) / (GlobalVolumeCenterAndExtent[ClipmapIndex].w * 2) + .5f
 				const FVector WorldToUVAdd = (Clipmap.ScrollOffset - Clipmap.Bounds.GetCenter()) / (Clipmap.Bounds.GetExtent().X * 2) + FVector(.5f);
 				WorldToUVAddAndMul[ClipmapIndex] = FVector4(WorldToUVAdd, 1.0f / (Clipmap.Bounds.GetExtent().X * 2));
+			}
+			else
+			{
+				CenterAndExtent[ClipmapIndex] = FVector4(0);
+				WorldToUVAddAndMul[ClipmapIndex] = FVector4(0);
 			}
 		}
 
