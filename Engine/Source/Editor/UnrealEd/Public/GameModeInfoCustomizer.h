@@ -19,6 +19,7 @@ public:
 	{
 		OwningObject = InOwningObject;
 		GameModePropertyName = InGameModePropertyName;
+		CachedGameModeClass = nullptr;
 	}
 
 	/** Create widget for the name of a default class property */
@@ -164,15 +165,34 @@ public:
 	/** Get the currently set GameMode class */
 	const UClass* GetCurrentGameModeClass() const
 	{
-		UObject* ClassValue = nullptr;
-		DefaultGameModeClassHandle->GetValue(ClassValue);
-		const UClass* GameModeClass = Cast<UClass>(ClassValue);
-		return GameModeClass;
+		FString ClassName;
+		DefaultGameModeClassHandle->GetValueAsFormattedString(ClassName);
+
+		if (ClassName.IsEmpty() || ClassName == "None")
+		{
+			CachedGameModeClass = nullptr;
+			return nullptr;
+		}
+
+		FString StrippedClassName = ClassName;
+		ConstructorHelpers::StripObjectClass(StrippedClassName);
+
+		// Just returned the cached value if it's already up-to-date, or if we're saving packages since we can't search for the object while a save is happening
+		if ((CachedGameModeClass && CachedGameModeClass->GetPathName() == StrippedClassName) || GIsSavingPackage)
+		{
+			return CachedGameModeClass;
+		}
+
+		CachedGameModeClass = FindObject<UClass>(ANY_PACKAGE, *StrippedClassName);
+		return CachedGameModeClass;
 	}
 
 	void SetCurrentGameModeClass(const UClass* NewGameModeClass)
 	{
-		DefaultGameModeClassHandle->SetValueFromFormattedString((NewGameModeClass) ? NewGameModeClass->GetPathName() : "None");
+		if (DefaultGameModeClassHandle->SetValueFromFormattedString((NewGameModeClass) ? NewGameModeClass->GetPathName() : TEXT("None")) == FPropertyAccess::Success)
+		{
+			CachedGameModeClass = NewGameModeClass;
+		}
 	}
 
 	/** Get the CDO from the currently set GameMode class */
@@ -325,6 +345,8 @@ private:
 	FName GameModePropertyName;
 	/** Handle to the DefaultGameMode property */
 	TSharedPtr<IPropertyHandle> DefaultGameModeClassHandle;
+	/** Cached class pointer from the DefaultGameModeClassHandle */
+	mutable const UClass* CachedGameModeClass;
 };
 
 #undef LOCTEXT_NAMESPACE
