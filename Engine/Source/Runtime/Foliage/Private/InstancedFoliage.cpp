@@ -1714,6 +1714,7 @@ UFoliageType* AInstancedFoliageActor::AddFoliageType(const UFoliageType* InType,
 		if (!ExistingMeshInfo)
 		{
 			Modify();
+			FoliageType = DuplicateObject<UFoliageType>(InType, this);
 			MeshInfo = &FoliageMeshes.Add(FoliageType).Get();
 		}
 		else
