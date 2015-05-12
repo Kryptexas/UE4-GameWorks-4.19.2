@@ -44,6 +44,8 @@ private:
 	EVisibility GetNativeComponentWarningVisibility() const;
 	void OnBlueprintedComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
 	void OnNativeComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
+	void OnBlueprintRecompiled(UBlueprint* CompiledBlueprint);
+	void ClearNotificationDelegates();
 
 private:
 	TSharedPtr<SSplitter> DetailsSplitter;
@@ -53,6 +55,7 @@ private:
 
 	// The actor selected when the details panel was locked
 	TWeakObjectPtr<AActor> LockedActorSelection;
+	uint32 CrcLastCompiledSignature;
 
 	// Used to prevent reentrant changes
 	bool bSelectionGuard;
