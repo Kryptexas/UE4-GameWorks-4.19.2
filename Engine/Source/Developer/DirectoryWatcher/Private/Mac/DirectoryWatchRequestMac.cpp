@@ -13,9 +13,10 @@ void DirectoryWatchMacCallback( ConstFSEventStreamRef StreamRef, void* WatchRequ
 
 // ============================================================================================================================
 
-FDirectoryWatchRequestMac::FDirectoryWatchRequestMac()
+FDirectoryWatchRequestMac::FDirectoryWatchRequestMac(bool bInIncludeDirectoryEvents)
 :	bRunning(false)
 ,	bEndWatchRequestInvoked(false)
+,	bIncludeDirectoryEvents(bInIncludeDirectoryEvents)
 {
 }
 
@@ -161,8 +162,11 @@ void FDirectoryWatchRequestMac::ProcessChanges( size_t EventCount, void* EventPa
 		const FSEventStreamEventFlags Flags = EventFlags[EventIndex];
 		if( !(Flags & kFSEventStreamEventFlagItemIsFile) )
 		{
-			// events about directories and symlinks don't concern us
-			continue;
+			if( !bIncludeDirectoryEvents || !(Flags & kFSEventStreamEventFlagItemIsDir))
+			{
+				// events about directories and symlinks don't concern us
+				continue;
+			}
 		}
 
 		// Warning: some events have more than one of created, removed nd modified flag.
