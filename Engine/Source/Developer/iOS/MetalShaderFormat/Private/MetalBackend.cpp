@@ -10,7 +10,7 @@
 
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
-PRAGMA_POP
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 #include "hash_table.h"
 #include "ir_rvalue_visitor.h"

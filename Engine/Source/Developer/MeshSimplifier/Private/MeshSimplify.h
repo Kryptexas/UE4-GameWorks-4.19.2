@@ -1401,7 +1401,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 			
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 			TSimpVert<T>* v = top->v1;
-			PRAGMA_POP
+			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 			do {
 				vertList[ vertListNum++ ] = v;
 				v = v->next;
@@ -1412,7 +1412,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 			for( uint32 i = 0; i < vertListNum; i++ ) {
 				PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 				TSimpVert<T>* v = vertList[i];
-				PRAGMA_POP
+				PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 				if( v->TestFlags( SIMP_REMOVED ) ) {
 					// ungroup
@@ -1429,7 +1429,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 			uint32 flags = 0;
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 			TSimpVert<T>* v;
-			PRAGMA_POP
+			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 			v = top->v1;
 			do {
@@ -1507,7 +1507,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 		for( int i = 0; i < edges.Num(); i++ ) {
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 			TSimpEdge<T>* edge = &edges[i];
-			PRAGMA_POP
+			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 			if( edge->TestFlags( SIMP_REMOVED ) )
 				continue;
@@ -1525,7 +1525,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 			for( int i = 0; i < edges.Num(); i++ ) {
 				PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 				TSimpEdge<T>* edge = &edges[i];
-				PRAGMA_POP
+				PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 				if( edge->TestFlags( SIMP_REMOVED ) )
 					continue;
@@ -1582,7 +1582,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 		for( uint32 i = 0; i < updateEdgesNum; i++ ) {
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 			TSimpEdge<T>* edge = updateEdges[i];
-			PRAGMA_POP
+			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 
 			edge->DisableFlags( SIMP_UPDATE );
 
@@ -1593,7 +1593,7 @@ void TMeshSimplifier<T, NumAttributes>::SimplifyMesh( float maxError, int minTri
 
 			PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 			TSimpEdge<T>* e = edge;
-			PRAGMA_POP
+			PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 			do {
 				uint32 EdgeIndex = GetEdgeIndex(e);
 				if( edgeHeap.IsPresent( EdgeIndex ) )
