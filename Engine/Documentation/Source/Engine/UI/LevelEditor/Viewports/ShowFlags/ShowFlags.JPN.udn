@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2489350
+﻿INTSourceChangelist:2539111
 Availability:Public
 Title:ビューポートの [Show Flag] 機能
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
@@ -54,7 +54,7 @@ Description:ビューポートで利用できる全ての Show Flags の説明
 
 ## 概要
 
-Show Flags はビューポートの**[Show]** メニューの下にあります。Show Flags はビューポート内に表示できる色々なアセットを表示したり非表示するための手段です。例えば、全パーティクルやランドスケープ オブジェクトを非表示にしたり、スプライトのアイコン画像を全て非表示にするなど少し高度な設定もできます。
+Show Flags はビューポートの**[Show]** メニューの下にあります。Show Flags はビューポート内に表示できる色々なアセットを表示/非表示にするための手段です。例えば、全パーティクルやランドスケープ オブジェクトを非表示にしたり、スプライトのアイコン画像を全て非表示にするなど少し高度な設定もできます。
 
 
 ## 共通
@@ -64,7 +64,7 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |[REGION:tablesection]名前[/REGION]|[REGION:tablesection]説明[/REGION]|
 |**Anti-aliasing**|アンチエイリアス エフェクトを表示 / 非表示にします。|
 |**Atmosphere**|レベル内の Atmospheric Fog を表示 / 非表示にします。|
-|**BSP** |レベルのブラシを表示 / 非表示にします。  _(**Alt + Q**)_ |
+|**BSP** |レベルのブラシを表示 / 非表示にします。 _(**Alt + Q**)_ |
 |**Collision**|レベルのコリジョン オブジェクトを表示 / 非表示にします。 _(**Alt + C**)_ |
 |**Decals**|シーンのデカールを表示 / 非表示にします。|
 |**Fog**|Height Fog エフェクトを表示 / 非表示にします。 _(**Alt + F**)_ |
@@ -180,7 +180,7 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |**LOD Parenting**|Lod ペアレンティング や MinDrawDistance を使用します。無効の場合、LOD ペアレンティング ラインを表示します。|
 |**Mesh Edges**|ビューの上にメッシュ ワイヤーフレームをオーバーレイします。|
 |**Mode Widgets**|Move ツールなどの変形ウィジェットを表示 / 非表示にします。|
-|**Render (3D) Text**|シーンに入る場合のある Text Actor またはコンポーネントのレンダリングの実施を決定します。|
+|**Render (3D) Text**|シーンに存在しうる Text Actor またはコンポーネントをレンダリングするか否かを決定します。|
 |**Safe Frames**|カメラ アクタを通して見た場合に、そのカメラに対するセーフ フレームを表示します。セーフ フレームとは、画面が確実に表示できるエッジからの規定距離です。 |
 |**Selection**|Selection Highlight の結果を表示 / 非表示にします。|
 |**Separate Translucency**|マテリアルの Separate Translucency を活用するオブジェクトをすべて表示 / 非表示にします。|
@@ -224,7 +224,7 @@ Show Flags はビューポートの**[Show]** メニューの下にあります�
 |[REGION:tablesection]名前[/REGION]|[REGION:tablesection]説明[/REGION]|
 |**Show All**|全てのレイヤーがシーンで表示されるように設定します。|
 |**Hide All**|シーンの全てのタイプのボリュームを非表示にします。|
-|**Layer Names**|シーンに作成したレイヤー名を追加するため、個別に表示/非表示にすることできます。|
+|**Layer Names**|シーンに作成したレイヤー名を追加し、個別に表示/非表示にすることできます。|
 
 
 ## スプライト
