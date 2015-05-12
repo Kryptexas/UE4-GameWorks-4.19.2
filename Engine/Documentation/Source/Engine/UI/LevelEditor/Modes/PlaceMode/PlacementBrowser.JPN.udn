@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2228446
+﻿INTSourceChangelist:2538157
 Availability:Public
 Title:Place モード
 Crumbs:%ROOT%, Engine
@@ -87,8 +87,8 @@ Place モードは効率性と利便性を促進するツールであり、コ�
 
 アセットビューは、フィルタリングと検索基準が設定されると、現時点で配置が可能なさまざまなアセットのアイコンを表示します。この領域は右マウスのドラッグ、またはパネルの右側にあるスクロールバーでスクロールできます。
 
-## [Place]モードでアクタを配置する
+## 配置モードでアクタを配置する
 
 [INCLUDE:Engine/Actors/Placement#placemode]
 
-このパネルからアイテムをドラッグしてビューポートに入れると、そのインスタンスを配置します。アクタを配置する他の方法については、以下をご覧ください。 [](Engine/Actors/Placement)
+このパネルからアイテムをドラッグしてビューポートに入れると、そのインスタンスを配置します。アクタを配置する他の方法については、[](Engine/Actors/Placement) をご覧ください。 
