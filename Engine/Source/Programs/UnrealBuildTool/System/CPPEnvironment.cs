@@ -212,6 +212,9 @@ namespace UnrealBuildTool
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
 
+		/** Whether to warn about the use of shadow variables */
+		public bool bEnableShadowVariableWarning = false;
+
 		/** True if the environment contains performance critical code. */
 		public ModuleRules.CodeOptimization OptimizeCode = ModuleRules.CodeOptimization.Default;
 
@@ -270,6 +273,7 @@ namespace UnrealBuildTool
 			bFasterWithoutUnity                    = InCopyEnvironment.bFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InCopyEnvironment.bEnableExceptions;
+			bEnableShadowVariableWarning          = InCopyEnvironment.bEnableShadowVariableWarning;
 			OptimizeCode                           = InCopyEnvironment.OptimizeCode;
 			bCreateDebugInfo                       = InCopyEnvironment.bCreateDebugInfo;
 			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;

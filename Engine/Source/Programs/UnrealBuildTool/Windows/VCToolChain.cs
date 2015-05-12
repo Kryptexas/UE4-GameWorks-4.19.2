@@ -675,7 +675,7 @@ namespace UnrealBuildTool
 				// @todo clang: Hack due to how we have our 'DummyPCH' wrappers setup when using unity builds.  This warning should not be disabled!!
 				Arguments.Append(" -Wno-msvc-include");
 
-				if (BuildConfiguration.bEnableShadowVariableWarning)
+				if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 				{
 					Arguments.Append(" -Wshadow");
 				}

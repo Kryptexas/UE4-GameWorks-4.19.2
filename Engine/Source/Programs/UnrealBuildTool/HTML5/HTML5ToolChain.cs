@@ -39,7 +39,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture)
+		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
 		{
             string Result = " ";
 
@@ -64,7 +64,7 @@ namespace UnrealBuildTool
             Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
             Result += " -Wno-invalid-offsetof"; // too many warnings kills windows clang. 
 
-			if (BuildConfiguration.bEnableShadowVariableWarning)
+			if (bEnableShadowVariableWarning)
 			{
 				Result += " -Wshadow";
 			}
@@ -100,7 +100,7 @@ namespace UnrealBuildTool
 		
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture, CompileEnvironment.Config.bEnableShadowVariableWarning);
 
 			if (CompileEnvironment.Config.Target.Architecture != "-win32")
 			{
@@ -169,7 +169,7 @@ namespace UnrealBuildTool
 
 		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture, false);
 
 			if (LinkEnvironment.Config.Target.Architecture != "-win32")
 			{
