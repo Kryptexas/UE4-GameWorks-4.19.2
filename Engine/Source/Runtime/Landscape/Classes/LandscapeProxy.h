@@ -609,7 +609,9 @@ public:
 
 	// Copy properties from parent Landscape actor
 	LANDSCAPE_API void GetSharedProperties(ALandscapeProxy* Landscape);
-
+	// Assign only mismatched properties and mark proxy package dirty
+	LANDSCAPE_API void ConditionalAssignCommonProperties(ALandscape* Landscape);
+	
 	/** Get the LandcapeActor-to-world transform with respect to landscape section offset*/
 	LANDSCAPE_API FTransform LandscapeActorToWorld() const;
 	

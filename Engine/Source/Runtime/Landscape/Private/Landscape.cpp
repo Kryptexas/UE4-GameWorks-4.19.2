@@ -1425,6 +1425,39 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 	}
 }
 
+void ALandscapeProxy::ConditionalAssignCommonProperties(ALandscape* Landscape)
+{
+	if (Landscape == nullptr)
+	{
+		return;
+	}
+	
+	bool bUpdated = false;
+	
+	if (MaxLODLevel != Landscape->MaxLODLevel)
+	{
+		MaxLODLevel = Landscape->MaxLODLevel;
+		bUpdated = true;
+	}
+	
+	if (LODDistanceFactor != Landscape->LODDistanceFactor)
+	{
+		LODDistanceFactor = Landscape->LODDistanceFactor;
+		bUpdated = true;
+	}
+	
+	if (LODFalloff != Landscape->LODFalloff)
+	{
+		LODFalloff = Landscape->LODFalloff;
+		bUpdated = true;
+	}
+
+	if (bUpdated)
+	{
+		MarkPackageDirty();
+	}
+}
+
 FTransform ALandscapeProxy::LandscapeActorToWorld() const
 {
 	FTransform TM = ActorToWorld();
@@ -1684,12 +1717,14 @@ void ULandscapeInfo::RegisterActor(ALandscapeProxy* Proxy, bool bMapCheck)
 		for (auto It = Proxies.CreateConstIterator(); It; ++It)
 		{
 			(*It)->LandscapeActor = LandscapeActor;
+			(*It)->ConditionalAssignCommonProperties(Landscape);
 		}
 	}
 	else
 	{
 		Proxies.Add(Proxy);
 		Proxy->LandscapeActor = LandscapeActor;
+		Proxy->ConditionalAssignCommonProperties(LandscapeActor.Get());
 	}
 
 	//
