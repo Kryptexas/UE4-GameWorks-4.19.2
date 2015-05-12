@@ -63,7 +63,6 @@ void FConfigPropertyHelperDetails::OnPropertyValueChanged(UObject* Object, FProp
 }
 
 
-// TPMB - This didnt work... why?
 void FConfigPropertyHelperDetails::OnConfigFileListChanged()
 {
 	PropertyTable->RequestRefresh();
