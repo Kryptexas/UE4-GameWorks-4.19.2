@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2227566
+﻿INTSourceChangelist:2537893
 Availability:Public
 Title:マテリアル カテゴリ
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
@@ -11,9 +11,9 @@ Description:アクタの全コンポーネントに適用されたマテリア�
 
 | 制御 | 説明 |
 | ------- | ----------- |
-| ![](Details_Mat_ObjRef.png)| ベース マテリアルに割り当てられたマテリアルの設定、検索、リセットをする標準の[Object reference](Engine/UI/LevelEditor/Details/Properties/ObjectReference) プロパティ制御です。マテリアル名が入っているドロップダウン リストをクリックしてから、コンテクスト メニュー上の **Edit** をクリックして修正用のマテリアル インスタンス エディタを開きます。|
+| ![](Details_Mat_ObjRef.png)| ベース マテリアルに割り当てられたマテリアルの設定、検索、リセットをする標準の [オブジェクトのリファレンス](Engine/UI/LevelEditor/Details/Properties/ObjectReference) プロパティ制御です。マテリアル名が入っているドロップダウン リストをクリックしてから、コンテクスト メニュー上の **Edit** をクリックして修正用のマテリアル インスタンス エディタを開きます。|
 | ![Material Thumbnail](button_Details_Mat_Image.png)| マテリアルのサムネイル表示です。**ダブルクリック** してマテリアル インスタンス エディタにある修正するマテリアル インスタンスを開きます。 |
-| ![Find Texture](button_textures.png) | マテリアル内で使用するテクスチャのリストです。リストからテクスチャを選択すると、**コンテンツブラウザ** でテクスチャを検索します。 |
+| ![Find Texture](button_textures.png) | マテリアル内で使用するテクスチャのリストです。リストからテクスチャを選択すると、**コンテンツ ブラウザ** でテクスチャを検索します。 |
 
 エレメントに対してさまざまなマテリアルを含むアクタが多数選択されると、空間の節約を目的にリンクが表示され、 
 エレメントの全マテリアルの表示をトグルします。
