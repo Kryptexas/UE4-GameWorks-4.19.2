@@ -42,7 +42,7 @@ namespace EBrowseReturnVal
 {
 	enum Type
 	{
-		Success,		// Sucessfully browsed to a new map
+		Success,		// Successfully browsed to a new map
 		Failure,		// Immediately failed to browse
 		Pending,		// A connection is pending
 	};
@@ -54,9 +54,17 @@ namespace EAttachLocation
 {
 	enum Type
 	{
+		/** Keeps current relative transform as the relative transform to the new parent. */
 		KeepRelativeOffset,
+		
+		/** Automatically calculates the relative transform such that the attached component maintains the same world transform. */
 		KeepWorldPosition,
-		SnapToTarget
+
+		/** Snaps location and rotation to the attach point. Calculates the relative scale so that the final world scale of the component remains the same. */
+		SnapToTarget					UMETA(DisplayName = "Snap to Target, Keep World Scale"),
+		
+		/** Snaps entire transform to target, including scale. */
+		SnapToTargetIncludingScale		UMETA(DisplayName = "Snap to Target, Including Scale"),
 	};
 }
 

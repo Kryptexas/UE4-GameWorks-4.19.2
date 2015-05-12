@@ -29,7 +29,7 @@ void UChildActorComponent::OnRegister()
 			// we can't attach in CreateChildActor since it has intermediate Mobility set up
 			// causing spam with inconsistent mobility set up
 			// so moving Attach to happen in Register
-			ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
+			ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
 		}
 	}
 	else if (ChildActorClass)
@@ -272,7 +272,7 @@ void UChildActorComponent::CreateChildActor()
 					// Remember which actor spawned it (for selection in editor etc)
 					ChildActor->ParentComponentActor = MyOwner;
 
-					ChildActor->AttachRootComponentTo(this);
+					ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTargetIncludingScale);
 
 					// Parts that we deferred from SpawnActor
 					ChildActor->FinishSpawning(ComponentToWorld);

@@ -1255,7 +1255,13 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 				}
 			}
 			break;
-
+		case EAttachLocation::SnapToTargetIncludingScale:
+			{
+				RelativeLocation = FVector::ZeroVector;
+				RelativeRotation = FRotator::ZeroRotator;
+				RelativeScale3D = FVector(1.f, 1.f, 1.f);
+			}
+			break;
 		default:
 			// Leave the transform alone (relative offset to parent stays the same)
 			break;
