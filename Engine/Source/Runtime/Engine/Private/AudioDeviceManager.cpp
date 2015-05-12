@@ -34,6 +34,7 @@ FAudioDeviceManager::FAudioDeviceManager()
 	, NumWorldsUsingMainAudioDevice(0)
 	, NextResourceID(1)
 	, SoloDeviceHandle(INDEX_NONE)
+	, ActiveAudioDeviceHandle(INDEX_NONE)
 {
 }
 
@@ -248,6 +249,15 @@ class FAudioDevice* FAudioDeviceManager::GetAudioDevice(uint32 Handle)
 	return AudioDevice;
 }
 
+class FAudioDevice* FAudioDeviceManager::GetActiveAudioDevice()
+{
+	if (ActiveAudioDeviceHandle != INDEX_NONE)
+	{
+		return GetAudioDevice(ActiveAudioDeviceHandle);
+	}
+	return GEngine->GetMainAudioDevice();
+}
+
 void FAudioDeviceManager::UpdateActiveAudioDevices(bool bGameTicking)
 {
 	for (FAudioDevice* AudioDevice : Devices)
@@ -337,6 +347,7 @@ void FAudioDeviceManager::SetActiveDevice(uint32 InAudioDeviceHandle)
 			{
 				if (AudioDevice->DeviceHandle == InAudioDeviceHandle)
 				{
+					ActiveAudioDeviceHandle = InAudioDeviceHandle;
 					AudioDevice->bIsDeviceMuted = false;
 				}
 				else
@@ -357,8 +368,10 @@ void FAudioDeviceManager::SetSoloDevice(uint32 InAudioDeviceHandle)
 		{
 			if (AudioDevice)
 			{
+				// Un-mute the active audio device and mute non-active device, as long as its not the main audio device (which is used to play UI sounds)
 				if (AudioDevice->DeviceHandle == InAudioDeviceHandle)
 				{
+					ActiveAudioDeviceHandle = InAudioDeviceHandle;
 					AudioDevice->bIsDeviceMuted = false;
 				}
 				else

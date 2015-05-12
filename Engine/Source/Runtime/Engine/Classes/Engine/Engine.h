@@ -2049,6 +2049,9 @@ public:
 	/** @return the main audio device. */
 	class FAudioDevice* GetMainAudioDevice();
 
+	/** @return the currently active audio device */
+	class FAudioDevice* GetActiveAudioDevice();
+
 	DEPRECATED(4.8, "GetAudioDevice is deprecated UEngine::GetMainAudioDevice instead.")
 	/** @return the main audio device. */
 	class FAudioDevice* GetAudioDevice();

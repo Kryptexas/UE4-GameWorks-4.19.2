@@ -1656,6 +1656,15 @@ FAudioDevice* UEngine::GetMainAudioDevice()
 	return nullptr;
 }
 
+FAudioDevice* UEngine::GetActiveAudioDevice()
+{
+	if (AudioDeviceManager != nullptr)
+	{
+		return AudioDeviceManager->GetActiveAudioDevice();
+	}
+	return nullptr;
+}
+
 FAudioDevice* UEngine::GetAudioDevice()
 {
 	return GetMainAudioDevice();
