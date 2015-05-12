@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537337
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:2. 게임 모드 확장
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -23,7 +23,7 @@ Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 �
 %Steps%
 
 
-1. 앞으로 생성할 메뉴는 **User Widget** (유저 위젯)으로 만듭니다. **유저 위젯** 을 새로 만들어 표시하는 함수를 작성한 뒤, 게임이 시작되면 그 함수를 호출하겠습니다. 나중에 제거할 수 있도록 만든 것들을 기록할 필요도 있습니다. 각 프로젝트에는 커스텀 **Game Mode** (게임 모드) 클래스가 딸려오므로, 그냥 "HowTo_UMGGameMode.h" 에 정의된 것을 열면 됩니다. 클래스 하단에 다음 함수와 프로퍼티를 추가해 줘야 합니다:
+1. 앞으로 생성할 메뉴는 **User Widget** (유저 위젯)으로 만듭니다. **유저 위젯** 을 새로 만들어 표시하는 함수를 작성한 뒤, 게임이 시작되면 그 함수를 호출하겠습니다. 나중에 제거할 수 있도록 만든 것들을 기록할 필요도 있습니다. 각 프로젝트에는 커스텀 **Game Mode** (게임 모드) 클래스가 딸려오므로, 그냥 `HowTo_UMGGameMode.h` 에 정의된 것을 열면 됩니다. 클래스 하단에 다음 함수와 프로퍼티를 추가해 줘야 합니다:
 
 		public:
 			/** Called when the game starts. */
@@ -46,7 +46,7 @@ Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 �
 
 		#include "Blueprint/UserWidget.h"
 
-1. 이제 "HowTo_UMGGameMode.cpp" 로 가서, 선언한 두 함수의 본문을 채워줘야 합니다. BeginPlay() 를 덮어쓰는 것으로 시작하겠습니다:
+1. 이제 `HowTo_UMGGameMode.cpp` 로 가서, 선언한 두 함수의 본문을 채워줘야 합니다. BeginPlay() 를 덮어쓰는 것으로 시작하겠습니다:
 
 		void AHowTo_UMGGameMode::BeginPlay()
 		{
@@ -56,7 +56,7 @@ Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 �
 
 	[REGION:note](Super 라는 단어로 레퍼런싱되는) 부모 클래스에서의 함수를 덮어쓸 때는, 여기 _BeginPlay_ 에서 하듯이, 종종 해당 함수의 부모 클래스 버전을 호출하는 것이 중요합니다. 함수 우리 버전은 그저 기존 절차의 끝에 한 단계를 추가하기 위한 것이므로, 함수 첫 줄에 _Super::BeginPlay_ 호출을 합니다.[/REGION]
 
-1. 다음으로 계속 "HowTo_UMGGameMode.cpp" 에서, 메뉴간의 전환 방식을 정의해 줘야 합니다. 뷰포트에 활성화된 **유저 위젯** 이 있다면, 먼저 제거해 줘야 합니다. 그 후 **유저 위젯** 을 새로 만들어 뷰포트에 추가해 주면 됩니다.
+1. 다음으로 계속 `HowTo_UMGGameMode.cpp` 에서, 메뉴간의 전환 방식을 정의해 줘야 합니다. 뷰포트에 활성화된 **유저 위젯** 이 있다면, 먼저 제거해 줘야 합니다. 그 후 **유저 위젯** 을 새로 만들어 뷰포트에 추가해 주면 됩니다.
 
 		void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 		{

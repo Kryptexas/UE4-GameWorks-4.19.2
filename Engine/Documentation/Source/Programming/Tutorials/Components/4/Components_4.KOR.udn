@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2503046
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:4. 폰과 컴포넌트 함께 사용하기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -22,11 +22,11 @@ Description:폰의 함수성, 입력 환경설정, 컴포넌트를 함께 묶는
 
 %Steps%
 
-1. 우리 커스텀 **Pawn Movement Component** 를 사용하기 위해서는 먼저 그에 대한 기록을 유지할 변수를 **Pawn** 클래스에 추가해 줘야 합니다. "CollidingPawn.h" 의 클래스 정의 끝, "OurParticleSystem" 변수를 추가한 곳 근처에 다음과 같이 추가해 줘야 합니다:
+1. 우리 커스텀 **Pawn Movement Component** 를 사용하기 위해서는 먼저 그에 대한 기록을 유지할 변수를 **Pawn** 클래스에 추가해 줘야 합니다. `CollidingPawn.h` 의 클래스 정의 끝, "OurParticleSystem" 변수를 추가한 곳 근처에 다음과 같이 추가해 줘야 합니다:
 
 		class UCollidingPawnMovementComponent* OurMovementComponent;
 
-1. 기록을 유지할 곳이 생겼으면, 새로운 변수를 저장할 **Colliding Pawn Movement Component** 를 만들어 줘야 하니, "CollidingPawn.cpp" 를 열고 파일 상단 "#include" 줄 아래에 다음과 같이 추가하여 코드가 새 클래스를 레퍼런싱할 수 있도록 합니다:
+1. 기록을 유지할 곳이 생겼으면, 새로운 변수를 저장할 **Colliding Pawn Movement Component** 를 만들어 줘야 하니, `CollidingPawn.cpp` 를 열고 파일 상단 "#include" 줄 아래에 다음과 같이 추가하여 코드가 새 클래스를 레퍼런싱할 수 있도록 합니다:
 
 		#include "CollidingPawnMovementComponent.h"
 
@@ -38,25 +38,25 @@ Description:폰의 함수성, 입력 환경설정, 컴포넌트를 함께 묶는
 
 	[REGION:note]지금까지 봐 온 다른 **컴포넌트** 와는 달리, 이 **컴포넌트** 는 우리 **컴포넌트** 계층구조에 붙일 필요가 없습니다. 왜냐면 우리 **컴포넌트** 는 모두 **씬 컴포넌트** 유형이었는데, 애초부터 물리적 위치가 필요한 것들이기 때문입니다. 하지만 **Movement Controller** 는 **씬 컴포넌트** 가 아니라, 물리적 오브젝트를 나타내지 않기에, 물리적 위치에 존재한다든가 다른 **컴포넌트** 에 물리적으로 붙인다든가 하는 개념은 적용되지 않습니다.[/REGION]
 
-1. **Pawn** 에는 "GetMovementComponent" 라는 함수가 있는데, 엔진의 다른 클래스가 현재 **Pawn** 이 사용중인 **Pawn Movement Component** 에 접근할 수 있도록 하는 데 사용됩니다. 이것이 우리 커스텀 **Pawn Movement Component** 를 반환할 수 있도록 하려면 그 함수를 덮어써 줘야 할 것입니다. 클래스 정의에서 다음과 같이 추가해 줍니다:
+1. **Pawn** 에는 "GetMovementComponent" 라는 함수가 있는데, 엔진의 다른 클래스가 현재 **Pawn** 이 사용중인 **Pawn Movement Component** 에 접근할 수 있도록 하는 데 사용됩니다. 이것이 우리 커스텀 **Pawn Movement Component** 를 반환할 수 있도록 하려면 그 함수를 덮어써 줘야 할 것입니다. `CollidingPawn.h` 의 클래스 정의에 다음과 같이 추가해 줍니다:
 
 		virtual UPawnMovementComponent* GetMovementComponent() const override;
 
-	그리고 "CollidingPawn.cpp" 에서, 다음과 같이 덮어쓴 함수의 정의를 추가해 줘야 합니다:
+	그리고 `CollidingPawn.cpp` 에서, 다음과 같이 덮어쓴 함수의 정의를 추가해 줘야 합니다:
 
 		UPawnMovementComponent* ACollidingPawn::GetMovementComponent() const
 		{
 			return OurMovementComponent;
 		}
 
-1. 새로운 **Pawn Movement Component** 구성이 완료되었으니, 우리 **Pawn** 이 받을 입력 처리를 위한 코드를 만들면 되겠습니다. "CollidingPawn.h" 의 클래스 정의에 함수를 몇 개 선언해 주는 것으로 시작합니다:
+1. 새로운 **Pawn Movement Component** 구성이 완료되었으니, 우리 **Pawn** 이 받을 입력 처리를 위한 코드를 만들면 되겠습니다. `CollidingPawn.h` 의 클래스 정의에 함수를 몇 개 선언해 주는 것으로 시작합니다:
 
 		void MoveForward(float AxisValue);
 		void MoveRight(float AxisValue);
 		void Turn(float AxisValue);
 		void ParticleToggle();
 
-	"CollidingPawn.cpp" 에서 그 함수에 대한 정의를 다음과 같이 추가합니다:
+	`CollidingPawn.cpp` 에서 그 함수에 대한 정의를 다음과 같이 추가합니다:
 
 			void ACollidingPawn::MoveForward(float AxisValue)
 			{

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2510275
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:3. 게임 액션 프로그래밍 및 바인딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -22,7 +22,7 @@ Description:C++ 코드에 입력을 바인딩합니다.
 
 %Steps%
 
-1. **Visual Studio** 에서 "MyPawn.h" 를 열고 다음 코드를 MyPawn 클래스 정의 하단에 추가합니다:
+1. **Visual Studio** 에서 `MyPawn.h` 를 열고 다음 코드를 MyPawn 클래스 정의 하단에 추가합니다:
 
 		//입력 함수
 		void Move_XAxis(float AxisValue);
@@ -36,7 +36,7 @@ Description:C++ 코드에 입력을 바인딩합니다.
 
 	[REGION:note]네 개의 입력 함수를 우리 입력 이벤트에 바인딩할 것입니다. 실행되면 새 입력 변수에 저장된 값을 업데이트하고, MyPawn 에서는 이 변수를 사용하여 게임 도중 할 일을 결정합니다.[/REGION]
 
-1. "MyPawn.cpp" 로 전환하여 방금 선언한 함수 넷을 프로그래밍해 주겠습니다. 다음 코드를 추가합니다:
+1. `MyPawn.cpp` 로 전환하여 방금 선언한 함수 넷을 프로그래밍해 주겠습니다. 다음 코드를 추가합니다:
 
 		void AMyPawn::Move_XAxis(float AxisValue)
 		{

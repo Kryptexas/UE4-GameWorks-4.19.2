@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:1. 폰 커스터마이즈
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -31,19 +31,19 @@ Description:폰에 대한 소개입니다.
 
 	[![](NameYourNewPawn.png)](NameYourNewPawn.png)
 
-1. 우선 게임 시작시 MyPawn 이 자동으로 플레이어 입력에 반응하도록 설정해 주겠습니다. **Pawn** 클래스에는 초기화 도중 그 작업을 대신해 주는 설정가능 변수가 제공됩니다. "MyPawn.cpp" 에서 다음 코드를 **AMyPawn::AMyPawn** 에 추가합니다:
+1. 우선 게임 시작시 MyPawn 이 자동으로 플레이어 입력에 반응하도록 설정해 주겠습니다. **Pawn** 클래스에는 초기화 도중 그 작업을 대신해 주는 설정가능 변수가 제공됩니다. `MyPawn.cpp` 에서 다음 코드를 **AMyPawn::AMyPawn** 에 추가합니다:
 
 		// 이 폰을 가장 빠른 번호의 플레이어가 조종하도록 설정합니다
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-1. 다음으로 기본적인 **컴포넌트** 를 몇 가지 만듭니다. 코드로 **컴포넌트** 를 추가 및 관리하는 법은 물론 자주 보이게 되는 **컴포넌트** 유형에 대해서는 [](Programming\Tutorials\Components) 문서를 참고하세요. **컴포넌트** 의 기록 유지를 위해 다음 코드를 "MyPawn.h" 내 클래스 정의 아래 추가해 주겠습니다:
+1. 다음으로 기본적인 **컴포넌트** 를 몇 가지 만듭니다. 코드로 **컴포넌트** 를 추가 및 관리하는 법은 물론 자주 보이게 되는 **컴포넌트** 유형에 대해서는 [](Programming\Tutorials\Components) 문서를 참고하세요. **컴포넌트** 의 기록 유지를 위해 다음 코드를 `MyPawn.h` 내 클래스 정의 아래 추가해 주겠습니다:
 
 		UPROPERTY()
 		USceneComponent* OurVisibleComponent;
 
 	[REGION:note]이 변수에는 **UPROPERTY** 가 붙어있어 **언리얼 엔진** 에서 볼 수 있습니다. 이것이 중요한 이유는, 게임이 실행되거나, 프로젝트 또는 레벨을 닫고 다시 로드해도 변수가 리셋되지 않기 때문입니다.[/REGION]
 
-	그리고 "MyPawn.cpp" 로 돌아와서 다음 코드를 **AMyPawn::AMyPawn** 에 추가합니다:
+	그리고 `MyPawn.cpp` 로 돌아와서 다음 코드를 **AMyPawn::AMyPawn** 에 추가합니다:
 
 		// 무언가를 붙일 더미 루트 컴포넌트를 만듭니다
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));

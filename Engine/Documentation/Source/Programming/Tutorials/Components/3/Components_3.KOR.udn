@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:3. 폰 무브먼트 컴포넌트의 작동방식 코딩
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
-Description:
-Writing the code that will define how our Pawn Movement Component will determine where the Pawn it controls will go each frame.
+Description:폰 무브먼트 컴포넌트 조종하는 폰의 매 프레임 위치를 어떻게 결정하는지 정의하는 코드를 작성합니다.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,12 +22,12 @@ Writing the code that will define how our Pawn Movement Component will determine
 
 %Steps%
 
-1. 이제 **Visual Studio** 로 돌아가 커스텀 **Pawn Movement Component** 프로그래밍을 하면 됩니다. 작성해야 할 것은 (**Actor** 의 Tick 함수와 비슷하게) TickComponent 함수로 각 프레임 어떻게 이동할지를 알려주면 됩니다. "CollidingPawnMovementComponent.h" 에서, 클래스 정의의 TickComponent 를 덮어써야 합니다:
+1. 이제 **Visual Studio** 로 돌아가 커스텀 **Pawn Movement Component** 프로그래밍을 하면 됩니다. 작성해야 할 것은 (**Actor** 의 Tick 함수와 비슷하게) TickComponent 함수로 각 프레임 어떻게 이동할지를 알려주면 됩니다. `CollidingPawnMovementComponent.h` 에서, 클래스 정의의 TickComponent 를 덮어써야 합니다:
 
 		public:
 			virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;	
 
-	이 함수를 "CollidingPawnMovementComponent.cpp" 에 정의해 줍니다:
+	이 함수를 `CollidingPawnMovementComponent.cpp` 에 정의해 줍니다:
 
 		void UCollidingPawnMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 		{

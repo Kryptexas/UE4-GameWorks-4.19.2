@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2490420
+﻿INTSourceChangelist:2474065
 Availability: Public
 Title:1. 캐릭터 셋업
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -31,7 +31,7 @@ Description:여기서는 캐릭터를 셋업한 다음 가이드 후반에 필�
 [/REGION]
 
 
-1.	프로젝트를 열고 **콘텐츠 브라우저** 에 **우클릭** 한 다음 **애니메이션** - **애니메이션 블루프린트** 를 선택합니다.
+1.	프로젝트를 열고 **콘텐츠 브라우저** 에 **우클릭** 한 다음 **신규 추가** - **애니메이션** - **애니메이션 블루프린트** 를 선택합니다.
 
 	![](Characters_1b.png)
 

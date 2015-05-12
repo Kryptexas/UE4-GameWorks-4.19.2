@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2474040
+﻿INTSourceChangelist:2545631
 Availability: Public
 Title:블루프린트로 액터에 입력 구성 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\ActorInput
@@ -19,7 +19,7 @@ Description:블루프린트로 액터에 입력을 구성하는 비법 안내서
 
 액터에 대한 입력 활성화 방법은 다음과 같습니다:
 
-1.	**Game/Blueprints** 폴더에서 **Blueprint_Effect_Fire** 애셋을 엽니다.
+1.	**StarterContent/Blueprints** 폴더에서 **Blueprint_Effect_Fire** 애셋을 엽니다.
 
 1.	**이벤트 그래프** 탭에서 그래프에 **우클릭** 한 다음 **Event Begin Play** 노드를 추가합니다.
 
@@ -57,9 +57,9 @@ Description:블루프린트로 액터에 입력을 구성하는 비법 안내서
 
 보통은 플레이어가 라이트 근처에 있을 때만 입력 활성화/비활성화 시키고 싶을 것입니다:
 
-1.	**Game/Blueprints** 폴더에서 **Blueprint_CeilingLight** 애셋을 엽니다.
+1.	**StarterContent/Blueprints** 폴더에서 **Blueprint_CeilingLight** 애셋을 엽니다.
 
-1.	**컴포넌트** 패널에서 **컴포넌트 추가** 에 클릭한 다음 **Sphere** (구체)를 검색 추가합니다.
+1.	**컴포넌트** 패널에서 **컴포넌트 추가** 에 클릭한 다음 **Sphere Collision** (구체 콜리전)을 검색 추가합니다.
 
 	![](input_3.png)
 
@@ -69,7 +69,7 @@ Description:블루프린트로 액터에 입력을 구성하는 비법 안내서
 
 	구체의 입력 활성화 (플레이어가 안에 있을 때) 또는 입력 비활성화 (플레이어가 밖에 있을 때) 해주도록 하겠습니다.
 
-1.	창 우상단의 **그래프** 탭을 클릭하여 **이벤트 그래프** 로 돌아갑니다.
+1.	**이벤트 그래프** 로 돌아갑니다.
 
 1.	**내 블루프린트** 창에서 **Trigger** 에 우클릭한 다음 **이벤트 추가 -> OnComponentBeginOverlap 추가** 를 선택합니다.
 
@@ -81,13 +81,13 @@ Description:블루프린트로 액터에 입력을 구성하는 비법 안내서
 
 	이와 같은 이벤트 노드 둘이 그래프에 추가되었을 것입니다.
 
-1.	Begin Overlap 노드의 **Other Actor** 핀을 끌어 놓은 다음 **Cast To MyCharacter** 노드를 검색 추가합니다.
+1.	Begin Overlap 노드의 **Other Actor** 핀을 끌어 놓은 다음 **FirstPersonCharacter 에 형변환** 노드를 검색 추가합니다.
 
 	![](input_6.png)
 
-	여기서는 (프로젝트 템플릿의 기존 플레이어 캐릭터인) **MyCharacter** 라는 액터가 **트리거** 에 겹치면, 무언가를 하라는 뜻입니다.
+	여기서는 (프로젝트 템플릿의 기존 플레이어 캐릭터인) **FirstPersonCharacter** 라는 액터가 **트리거** 에 겹치면, 무언가를 하라는 뜻입니다.
 
-1.	End Overlap 노드의 **Other Actor** 핀을 끌어 놓은 다음 **Cast To MyCharacter** 노드를 추가합니다.
+1.	End Overlap 노드의 **Other Actor** 핀을 끌어 놓은 다음 **FirstPersonCharacter 에 형변환** 노드를 추가합니다.
 
 1.	**우클릭** 한 다음 **Get Player Controller**, **Enable Input**, **Disable Input** 노드를 추가합니다.
 
@@ -101,7 +101,7 @@ Description:블루프린트로 액터에 입력을 구성하는 비법 안내서
 
 	![](input_8.png)
 
-1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
+1.	**컴파일**, **저장** 후 블루프린트를 닫습니다 (경고창이 뜨면 무시하고 다음 단계로 진행합니다).
 
 1.	**Blueprint_CeilingLight** 를 끌어 레벨에 놓은 다음, **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:1. 타이머를 사용하는 액터 만들기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -29,7 +29,7 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 
 	[![](NameYourActor.png)](NameYourActor.png)
 
-1. 게임내에서 볼 수 있는 간단한 카운드다운 타이머를 만드는 것으로 시작하겠습니다. "Countdown.h" 에서 클래스 정의 끝에 다음 줄을 추가합니다:
+1. 게임내에서 볼 수 있는 간단한 카운드다운 타이머를 만드는 것으로 시작하겠습니다. `Countdown.h` 에서 클래스 정의 끝에 다음 줄을 추가합니다:
 
 		int32 CountdownTime;
 
@@ -37,7 +37,7 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 
 		void UpdateTimerDisplay();
 
-1. "Countdown.cpp" 에서, 렌더러블 텍스트 **컴포넌트** 를 만들어 카운트다운 시간을 3 초로 초기화시키면 됩니다. 이러한 **액터** 유형에는 **Ticking** 이 필요치 않으니 꺼도 됩니다. **ACountdown::ACountdown** 는 이렇게 보일 것입니다:
+1. `Countdown.cpp` 에서, 렌더러블 텍스트 **컴포넌트** 를 만들어 카운트다운 시간을 3 초로 초기화시키면 됩니다. 이러한 **액터** 유형에는 **Ticking** 이 필요치 않으니 꺼도 됩니다. **ACountdown::ACountdown** 는 이렇게 보일 것입니다:
 
 		PrimaryActorTick.bCanEverTick = false;
 
@@ -56,7 +56,7 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 			CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
 		}
 
-1. **Timer** 에 함수 실행을 할당할 때마다, **Timer Handle** 이 주어집니다. 카운트다운이 완료되면 **Timer** 를 종료시킬 수 있도록 그 핸들을 계속 유지해야 합니다. 카운트 다운을 하는 함수와, 그 제어에 필요할 **Timer Handle** 을 "Countdown.h" 의 클래스 정의에 추가시킵시다. 거기서 카운트다운이 종료되면 무언가 특별한 작업을 하는 함수도 하나 추가시킵시다:
+1. **Timer** 에 함수 실행을 할당할 때마다, **Timer Handle** 이 주어집니다. 카운트다운이 완료되면 **Timer** 를 종료시킬 수 있도록 그 핸들을 계속 유지해야 합니다. 카운트 다운을 하는 함수와, 그 제어에 필요할 **Timer Handle** 을 `Countdown.h` 의 클래스 정의에 추가시킵시다. 거기서 카운트다운이 종료되면 무언가 특별한 작업을 하는 함수도 하나 추가시킵시다:
 
 		void AdvanceTimer();
 
@@ -64,7 +64,7 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 
 		FTimerHandle CountdownTimerHandle;
 
-	이제 "Countdown.cpp" 의 **ACountdown::AdvanceTimer** 와 **ACountdown::CountdownHasFinished** 본문을 작성할 수도 있습니다:
+	이제 `Countdown.cpp` 의 **ACountdown::AdvanceTimer** 와 **ACountdown::CountdownHasFinished** 본문을 작성할 수도 있습니다:
 
 		void ACountdown::AdvanceTimer()
 		{

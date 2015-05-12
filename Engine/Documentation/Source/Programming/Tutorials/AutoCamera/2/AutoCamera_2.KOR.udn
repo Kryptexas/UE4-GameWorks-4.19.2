@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466292
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:2. C++ 에서 카메라 뷰 제어
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -26,7 +26,7 @@ Description:카메라 뷰 제어를 위한 클래스 코딩입니다.
 
 	[![](NameActorClass.png)](NameActorClass.png)
 
-1. "CameraDirector.h" 에서 **ACameraDirector** 클래스 정의 아래 다음 코드를 추가합니다:
+1. `CameraDirector.h` 에서 **ACameraDirector** 클래스 정의 아래 다음 코드를 추가합니다:
 
 		UPROPERTY(EditAnywhere)
 		AActor* CameraOne;
@@ -38,7 +38,7 @@ Description:카메라 뷰 제어를 위한 클래스 코딩입니다.
 
 	[REGION:note]**UPROPERTY** 매크로는 이 변수가 **언리얼 엔진** 에 보이도록 만듭니다. 이런 식으로 이 변수에 설정된 값은 게임을 실행하거나 앞으로의 작업 동안 레벨이나 프로젝트를 다시 로드한다 해도 리셋되지 않을 것입니다. **EditAnywhere** 키워드도 붙였는데, **언리얼 에디터** 에서 CameraOne 과 CameraTwo 를 설정할 수 있을 것입니다.[/REGION]
 
-1. "CameraDirector.cpp" 에서 파일 상단 다른 "#include" 줄 바로 아래에 다음 코드줄을 추가합니다:
+1. `CameraDirector.cpp` 에서 파일 상단 다른 "#include" 줄 바로 아래에 다음 코드줄을 추가합니다:
 
 		#include "Kismet/GameplayStatics.h"
 

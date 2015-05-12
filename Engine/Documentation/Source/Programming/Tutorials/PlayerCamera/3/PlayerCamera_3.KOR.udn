@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2486757
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:3. 입력에 반응하는 C++ 코드 작성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -22,7 +22,7 @@ Description:입력으로 폰과 카메라를 제어하는 코드를 구현합니
 
 %Steps%
 
-1. 이제 우리 게임에 사용할 수 있는 입력 매핑이 생겼으니, 받은 데이터를 저장할 멤버 변수를 구성해 줍시다. 업데이트 도중, 이동 및 마우스 방향 축 값을 알아야 하며, 둘 다 2차원 벡터입니다. 줌인 또는 줌아웃 뷰로 이동중인지도 알아야 하며, 현재 그 두 상태의 어디쯤 와 있는지도 알아야 합니다. 그러기 위해서는 "PawnWithCamera.h" 의 클래스 정의에 다음 코드를 추가해 줘야 합니다:
+1. 이제 우리 게임에 사용할 수 있는 입력 매핑이 생겼으니, 받은 데이터를 저장할 멤버 변수를 구성해 줍시다. 업데이트 도중, 이동 및 마우스 방향 축 값을 알아야 하며, 둘 다 2차원 벡터입니다. 줌인 또는 줌아웃 뷰로 이동중인지도 알아야 하며, 현재 그 두 상태의 어디쯤 와 있는지도 알아야 합니다. 그러기 위해서는 `PawnWithCamera.h` 의 클래스 정의에 다음 코드를 추가해 줘야 합니다:
 
 		//입력 변수
 		FVector2D MovementInput;
@@ -30,7 +30,7 @@ Description:입력으로 폰과 카메라를 제어하는 코드를 구현합니
 		float ZoomFactor;
 		bool bZoomingIn;
 
-1. 그런 다음 입력에 대한 기록을 유지할 함수를 만들어 줘야 하니, "PawnWithCamera.h" 의 클래스 정의에 다음의 코드줄 역시도 추가해 줍시다:
+1. 그런 다음 입력에 대한 기록을 유지할 함수를 만들어 줘야 하니, `PawnWithCamera.h` 의 클래스 정의에 다음의 코드줄 역시도 추가해 줍시다:
 
 		//입력 함수
 		void MoveForward(float AxisValue);
@@ -40,7 +40,7 @@ Description:입력으로 폰과 카메라를 제어하는 코드를 구현합니
 		void ZoomIn();
 		void ZoomOut();
 
-	이제 "PawnWithCamera.cpp" 의 이 함수를 다음 코드로 채워주면 됩니다:
+	이제 `PawnWithCamera.cpp` 의 이 함수를 다음 코드로 채워주면 됩니다:
 
 		//입력 함수
 		void APawnWithCamera::MoveForward(float AxisValue)
@@ -87,7 +87,7 @@ Description:입력으로 폰과 카메라를 제어하는 코드를 구현합니
 		InputComponent->BindAxis("CameraPitch", this, &APawnWithCamera::PitchCamera);
 		InputComponent->BindAxis("CameraYaw", this, &APawnWithCamera::YawCamera);
 
-1. 마지막으로 **Tick** 함수에서 그 값을 사용하여 매 프레임 **Pawn** 과 **Camera** 를 업데이트하면 됩니다. "PawnWithCamera.cpp" 의 **APawnWithCamera::Tick** 에 다음 코드 블록을 모두 추가하면 될 것입니다:
+1. 마지막으로 **Tick** 함수에서 그 값을 사용하여 매 프레임 **Pawn** 과 **Camera** 를 업데이트하면 됩니다. `PawnWithCamera.cpp` 의 **APawnWithCamera::Tick** 에 다음 코드 블록을 모두 추가하면 될 것입니다:
 
 		//ZoomIn 버튼이 눌렸으면 줌인, 아니면 도로 줌아웃 시킵니다
 		{

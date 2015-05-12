@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2543338
+Availability:Docs
+Title: 리눅스 프로젝트 개발 시작하기
+Crumbs:%ROOT%, Platforms, Platforms/Linux
+Description:리눅스 플랫폼용 개발을 위한 구성하기 입니다.
+
+[TOC(start:2 end:3)]
+
+## 기권
+
+%Globals:BinarySourceSelectVar%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	binaryinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%binary%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	sourceinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%source%
+	[/PARAM]
+[/OBJECT]
+
+
+[VAR:source]
+## 소스 및 깃허브 사용자
+
+타겟 플랫폼으로써의 리눅스는 윈도우 호스트 플랫폼과 리눅스 자체상에서 지원됩니다 (아직 맥은 안됩니다). 이 안내서는 리눅스 크로스 컴파일을 하려는 사용자에게 초점이 맞춰져 있으며, 리눅스에서 언리얼 에디터를 실행하는 경우 현재 별도의 단계가 필요치는 않습니다 
+(참고로 리눅스에서는 현재 시스템에 제공되는 컴파일러를 사용하는데, 앞으로 안정적인 빌드 환경 제공을 위해 번들에 포함시키게 되면 배포방식과 무관하게 바이너리 파일 준비가 가능해 질 것입니다).
+
+윈도우에서는 [크로스 컴파일러 툴체인](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) 을 사용하여 리눅스 라이브러리를 크로스 컴파일합니다.
+
+### 소스에서 설치:
+
+여기서는 윈도우에서 실행중이라 가정하므로, 다음 툴체인을 먼저 설치해야 합니다:
+
+* [Clang-3.5.0 기반 툴 체인](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
+
+### 툴체인 셋업
+
+위 파일 압축을 공백 없이 ASCII 글자로만 된 경로(, 좋은 예로 C:\CrossToolchain350 정도)에 풀고, LINUX_ROOT 환경 변수를 위 툴체인의 "toolchain" 디렉토리 경로(C:\CrossToolchain350\toolchain\)로 설정해 줍니다.
+상세 정보: https://wiki.unrealengine.com/Compiling_For_Linux
+
+### 언리얼 엔진 4 셋업
+
+* Unreal Engine 4 리포지터리 \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\] 를 Fork 및 Clone 합니다.
+
+* 셸에서 `Setup.bat -include=Linux` 를 실행합니다.
+
+[https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) 의 안내에 따라 에디터를 빌드합니다. 솔루션 환경설정을 **Development** 로, 솔루션 플랫폼을 **Linux** 로 설정하여 리눅스 타겟을 빌드합니다.
+
+[/VAR]
+
+
+
+
+
+
+[VAR:binary]
+
+## 바이너리 및 런처 사용자
+
+타겟 플랫폼으로써의 리눅스는 윈도우 호스트 플랫폼과 리눅스 자체상에서 지원됩니다 (아직 맥은 안됩니다). 이 안내서는 리눅스 크로스 컴파일을 하려는 사용자에게 초점이 맞춰져 있으며, 리눅스에서 언리얼 에디터를 실행하는 경우 현재 별도의 단계가 필요치는 않습니다 
+(참고로 리눅스에서는 현재 시스템에 제공되는 컴파일러를 사용하는데, 앞으로 안정적인 빌드 환경 제공을 위해 번들에 포함시키게 되면 배포방식과 무관하게 바이너리 파일 준비가 가능해 질 것입니다).
+
+윈도우에서는 [크로스 컴파일러 툴체인](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) 을 사용하여 리눅스 라이브러리를 크로스 컴파일합니다.
+
+### 설치 
+
+여기서는 윈도우에서 실행중이라 가정하므로, 다음 툴체인을 먼저 설치해야 합니다:
+
+* [Clang-3.5.0 기반 툴 체인](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
+
+### 툴체인 셋업
+
+위 파일 압축을 공백 없이 ASCII 글자로만 된 경로(, 좋은 예로 C:\CrossToolchain350 정도)에 풀고, LINUX_ROOT 환경 변수를 위 툴체인의 "toolchain" 디렉토리 경로(C:\CrossToolchain350\toolchain\)로 설정해 줍니다.
+상세 정보: https://wiki.unrealengine.com/Compiling_For_Linux
+
+[/VAR]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:1. 컴포넌트 만들고 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -29,13 +29,13 @@ Description:다양한 컴포넌트를 만들어 커스텀 폰에 붙여봅니다
 
 	[![](NamePawnClass.png)](NamePawnClass.png)
 
-1. **Visual Studio** 에서 "CollidingPawn.h" 를 열고 클래스 정의 하단에 다음 코드를 추가해 줍니다:
+1. **Visual Studio** 에서 `CollidingPawn.h` 를 열고 클래스 정의 하단에 다음 코드를 추가해 줍니다:
 
 		UParticleSystemComponent *OurParticleSystem;
 
 	이 변수를 사용해서 나중에 만들 **Particle System** 컴포넌트의 기록을 유지하도록 하겠습니다. 기록할 변수를 만들지 않고 **컴포넌트** 를 만들 수는 있지만, 코드에서 그 **컴포넌트** 를 사용하려면, 이렇게 클래스 멤버 변수에 저장해야 합니다.
 
-1. 이제 "CollidingPawn.cpp" 를 열고 **ACollidingPawn::ACollidingPawn** 생성자 함수를 편집, 여러가지 유용한 **컴포넌트** 를 스폰시킬 코드를 추가하고, 계층구조로 배치합니다. 물리 월드와의 상호작용을 위한 **Sphere** 컴포넌트, 콜리전 모양을 시각적으로 나타내 줄 **Static Mesh** 컴포넌트, 마음대로 켜고 끌 수 있는 **Particle System** 컴포넌트, 게임내 시점 제어를 위해 **Camera** 컴포넌트에 붙일 **Spring Arm** 컴포넌트를 만들겠습니다.
+1. 이제 `CollidingPawn.cpp` 를 열고 **ACollidingPawn::ACollidingPawn** 생성자 함수를 편집, 여러가지 유용한 **컴포넌트** 를 스폰시킬 코드를 추가하고, 계층구조로 배치합니다. 물리 월드와의 상호작용을 위한 **Sphere** 컴포넌트, 콜리전 모양을 시각적으로 나타내 줄 **Static Mesh** 컴포넌트, 마음대로 켜고 끌 수 있는 **Particle System** 컴포넌트, 게임내 시점 제어를 위해 **Camera** 컴포넌트에 붙일 **Spring Arm** 컴포넌트를 만들겠습니다.
 
 1. 먼저 계층구조의 루트가 될 **컴포넌트** 를 결정해야 합니다. 이 튜토리얼에서는 **Sphere** 컴포넌트로 갈텐데, 물리적 실존이 있고 게임 월드와의 상호작용 및 충돌이 가능하기 때문입니다. 참고로 **액터** 에는 계층구조 내 다수의 물리 기반 **컴포넌트** 가 있을 수 있지만, 이 튜토리얼에서는 하나면 됩니다.
 			// 루트 컴포넌트는 물리에 반응하는 구체가 됩니다

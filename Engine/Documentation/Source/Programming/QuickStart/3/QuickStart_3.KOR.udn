@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2543301
 Availability: Public
 Title:3. C++ 코드 작성 및 컴파일
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -22,17 +22,17 @@ Description:C++ 클래스를 작성하고 언리얼 엔진으로 컴파일합니
 
 %Steps%
 
-1. **Visual Studio** 에서 **Solution Explorer** 패널을 사용하여 새로 만든 C++ 파일을 찾아보겠습니다. 우리 예제에서는 이름이 "FloatingActor.cpp", "FloatingActor.h" 식으로 되어있으며, "QuickStart" 프로젝트 안에 있을 것입니다.
+1. **Visual Studio** 에서 **Solution Explorer** 패널을 사용하여 새로 만든 C++ 파일을 찾아보겠습니다. 우리 예제에서는 이름이 `FloatingActor.cpp`, `FloatingActor.h` 식으로 되어있으며, "QuickStart" 프로젝트 안에 있을 것입니다.
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
 	[REGION:note]이제 코드를 추가하려는 시점입니다. 이 페이지 하단에서 종료 시점 상태의 사용된 모든 코드를 찾아보실 수 있습니다.[/REGION]
 
-2. "FloatingActor.h" 에서 닫힌 괄호와 파일 끝의 세미콜론 바로 앞에 다음 코드를 추가하겠습니다:
+2. `FloatingActor.h` 에서 닫힌 괄호와 파일 끝의 세미콜론 바로 앞에 다음 코드를 추가하겠습니다:
 
 		float RunningTime;
 
-3. "FloatingActor.cpp" 로 전환하여, **AFloatingActor::Tick** 끝의 닫힌 괄호 직전에 다음 코드를 추가합니다:
+3. `FloatingActor.cpp` 로 전환하여, **AFloatingActor::Tick** 끝의 닫힌 괄호 직전에 다음 코드를 추가합니다:
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));

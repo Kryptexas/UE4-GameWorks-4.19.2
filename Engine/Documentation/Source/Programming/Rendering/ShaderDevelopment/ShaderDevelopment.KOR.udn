@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2433764
+﻿INTSourceChangelist:2545715
 Availability:Public
 Title:셰이더 개발
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -151,3 +151,8 @@ BasePassPixelShader.usf 와 같은 머티리얼 셰이더 작업중인 경우, �
 ## 크로스 컴파일러
 
 [HLSL 크로스 컴파일러](Programming/Rendering/ShaderDevelopment/HLSLCrossCompiler) 를 사용하면 HSLS 을 OpenGL 플랫폼용 GLSL 로 자동 변환시켜, 셰이더를 한 번만 만들어도 모든 플랫폼에 사용할 수 있도록 합니다. 오프라인 셰이더 컴파일 도중 실행되며, OpenGL 드라이버에는 종종 빠져있는 여러가지 최적화를 코드에 수행하기도 합니다.
+
+## AsyncCompute
+
+[AsyncCompute](Programming/Rendering/ShaderDevelopment/AsyncCompute) 특정 GPU 에만 존재하는 일부 API 에서 사용가능한 하드웨어 기능입니다.
+GPU 상의 하드웨어 유닛을 보다 효율적으로 더욱 잘 활용하기 위해 다양한 GPU 작업을 끼워넣는 것이 가능합니다.
