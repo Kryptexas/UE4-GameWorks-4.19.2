@@ -253,11 +253,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 			case 2:
 				bSkipping = true;
-				LineToSkipUpto = "FDebug::AssertFailed()";
+				LineToSkipUpto = "FDebug::AssertFailed";
 				break;
 			case 3:
 				bSkipping = true;
-				LineToSkipUpto = "FDebug::EnsureFailed()";
+				LineToSkipUpto = "FDebug::Ensure";
 				break;
 			}
 

@@ -147,7 +147,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>The crash with the requested id.</returns>
 		public Crash GetCrash( int Id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId" + Id + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + Id + ")" ) )
 			{
 				try
 				{
