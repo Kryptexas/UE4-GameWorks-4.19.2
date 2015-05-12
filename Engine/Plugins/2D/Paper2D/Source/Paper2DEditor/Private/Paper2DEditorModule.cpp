@@ -297,7 +297,7 @@ private:
 				LOCTEXT("TileSetEditorSettingsDescription", "Configure the look and feel of the Tile Set Editor."),
 				GetMutableDefault<UTileSetEditorSettings>());
 
-			SettingsModule->RegisterSettings("Editor", "General", "Paper2DImport",
+			SettingsModule->RegisterSettings("Project", "Editor", "Paper2DImport",
 				LOCTEXT("PaperImporterSettingsName", "Paper2D - Import"),
 				LOCTEXT("PaperImporterSettingsDescription", "Configure how assets get imported or converted to sprites."),
 				GetMutableDefault<UPaperImporterSettings>());
@@ -308,7 +308,7 @@ private:
 	{
 		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
-			SettingsModule->UnregisterSettings("Editor", "General", "Paper2DImport");
+			SettingsModule->UnregisterSettings("Project", "Editor", "Paper2DImport");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "TileSetEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "TileMapEditor");
 			SettingsModule->UnregisterSettings("Editor", "ContentEditors", "FlipbookEditor");

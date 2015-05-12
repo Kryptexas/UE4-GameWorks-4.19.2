@@ -245,7 +245,7 @@ public:
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites", "Apply Paper2D Texture Settings"),
-			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites_Tooltip", "Sets compression settings and sampling modes to the defaults specified in the 'Paper2D - Import' editor preferences"),
+			LOCTEXT("CB_Extension_Texture_ConfigureTextureForSprites_Tooltip", "Sets compression settings and sampling modes to the defaults specified in the 'Paper2D - Import' project settings"),
 			FSlateIcon(PaperStyleSetName, "AssetActions.ConfigureForRetroSprites"),
 			Action_ConfigureTexturesForSprites,
 			NAME_None,

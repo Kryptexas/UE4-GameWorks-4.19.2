@@ -223,7 +223,7 @@ UMaterialInterface* UPaperImporterSettings::GetDefaultMaterial(ESpriteInitMateri
 
 	if (Result == nullptr)
 	{
-		UE_LOG(LogPaper2DEditor, Warning, TEXT("Failed to load material specified in Paper2D import editor preferences (%s %d)"), bUseLitMaterial ? TEXT("lit") : TEXT("unlit"), (int32)MaterialType);
+		UE_LOG(LogPaper2DEditor, Warning, TEXT("Failed to load material specified in Paper2D import settings (%s %d)"), bUseLitMaterial ? TEXT("lit") : TEXT("unlit"), (int32)MaterialType);
 	}
 
 	return Result;
