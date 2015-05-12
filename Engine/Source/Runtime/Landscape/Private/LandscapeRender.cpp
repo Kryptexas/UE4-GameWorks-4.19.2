@@ -22,6 +22,7 @@ LandscapeRender.cpp: New terrain rendering
 #include "Engine/Engine.h"
 #include "EngineGlobals.h"
 #include "UnrealEngine.h"
+#include "LandscapeLight.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, TEXT("LandscapeParameters"));
 
