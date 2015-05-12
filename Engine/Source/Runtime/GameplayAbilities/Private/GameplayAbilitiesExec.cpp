@@ -25,16 +25,17 @@ bool FGameplayAbilitiesExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevi
 		return false;
 	}
 
-	UAbilitySystemGlobals& AbilitySystemGlobals = UAbilitySystemGlobals::Get();
 	bool bHandled = false;
 
 	if (FParse::Command(&Cmd, TEXT("ToggleIgnoreAbilitySystemCooldowns")))
 	{
+		UAbilitySystemGlobals& AbilitySystemGlobals = UAbilitySystemGlobals::Get();
 		AbilitySystemGlobals.ToggleIgnoreAbilitySystemCooldowns();
 		bHandled = true;
 	}
 	else if (FParse::Command(&Cmd, TEXT("ToggleIgnoreAbilitySystemCosts")))
 	{
+		UAbilitySystemGlobals& AbilitySystemGlobals = UAbilitySystemGlobals::Get();
 		AbilitySystemGlobals.ToggleIgnoreAbilitySystemCosts();
 		bHandled = true;
 	}

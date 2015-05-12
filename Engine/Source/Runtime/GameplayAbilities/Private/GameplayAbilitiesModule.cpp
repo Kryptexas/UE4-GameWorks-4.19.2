@@ -31,6 +31,8 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 
 	UAbilitySystemGlobals *AbilitySystemGlobals;
 
+	void GetActiveAbilitiesDebugDataForActor(AActor* Actor, FString& AbilityString, bool& bIsUsingAbilities);
+
 private:
 	
 };
@@ -49,4 +51,39 @@ void FGameplayAbilitiesModule::ShutdownModule()
 	// we call this function before unloading the module.
 
 	AbilitySystemGlobals = NULL;
+}
+
+void FGameplayAbilitiesModule::GetActiveAbilitiesDebugDataForActor(AActor* Actor, FString& AbilityString, bool& bIsUsingAbilities)
+{
+	UAbilitySystemComponent* AbilityComp = Actor->FindComponentByClass<UAbilitySystemComponent>();
+	bIsUsingAbilities = (AbilityComp != nullptr);
+	  
+	int32 NumActive = 0;
+	if (AbilityComp)
+	{
+		AbilityString = TEXT("");
+	  
+		for (const FGameplayAbilitySpec& AbilitySpec : AbilityComp->GetActivatableAbilities())
+		{
+	  		if (AbilitySpec.Ability && AbilitySpec.IsActive())
+	  		{
+	  			if (NumActive)
+	  			{
+					AbilityString += TEXT(", ");
+	  			}
+	  
+	  			UClass* AbilityClass = AbilitySpec.Ability->GetClass();
+	  			FString AbClassName = GetNameSafe(AbilityClass);
+	  			AbClassName.RemoveFromEnd(TEXT("_c"));
+	  
+				AbilityString += AbClassName;
+	  			NumActive++;
+	  		}
+		}
+	}
+	  
+	if (NumActive == 0)
+	{
+		AbilityString = TEXT("None");
+	}
 }

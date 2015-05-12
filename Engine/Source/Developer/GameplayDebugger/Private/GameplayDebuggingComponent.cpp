@@ -20,6 +20,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Channel.h"
 #include "Animation/AnimMontage.h"
+#include "GameplayAbilitiesModule.h"
 
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
@@ -536,35 +537,16 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 void UGameplayDebuggingComponent::CollectBasicAbilityData(APawn* MyPawn)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	UAbilitySystemComponent* AbilityComp = MyPawn->FindComponentByClass<UAbilitySystemComponent>();
-	bIsUsingAbilities = (AbilityComp != nullptr);
-
-	int32 NumActive = 0;
-	if (AbilityComp)
+	if (IGameplayAbilitiesModule::IsAvailable())
 	{
-		AbilityInfo = TEXT("");
-
-		for (const FGameplayAbilitySpec& AbilitySpec : AbilityComp->GetActivatableAbilities())
-		{
-			if (AbilitySpec.Ability && AbilitySpec.IsActive())
-			{
-				if (NumActive)
-				{
-					AbilityInfo += TEXT(", ");
-				}
-
-				UClass* AbilityClass = AbilitySpec.Ability->GetClass();
-				FString AbClassName = GetNameSafe(AbilityClass);
-				AbClassName.RemoveFromEnd(TEXT("_c"));
-
-				AbilityInfo += AbClassName;
-				NumActive++;
-			}
-		}
+		bool bUsingAbilities;
+		IGameplayAbilitiesModule& AbilitiesModule = FModuleManager::LoadModuleChecked<IGameplayAbilitiesModule>("GameplayAbilities");
+		AbilitiesModule.GetActiveAbilitiesDebugDataForActor(MyPawn, AbilityInfo, bUsingAbilities);
+		bIsUsingAbilities = bUsingAbilities;
 	}
-
-	if (NumActive == 0)
+	else
 	{
+		bIsUsingAbilities = false;
 		AbilityInfo = TEXT("None");
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
