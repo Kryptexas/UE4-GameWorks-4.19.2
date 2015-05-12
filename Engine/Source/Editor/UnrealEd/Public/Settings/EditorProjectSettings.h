@@ -84,6 +84,11 @@ struct UNREALED_API FMode2DLayer
 	, Depth(0)
 	{ }
 
+	FMode2DLayer(FString InName, float InDepth)
+		: Name(InName)
+		, Depth(InDepth)
+	{ }
+
 	/** Whether snapping to surfaces in the world is enabled */
 	UPROPERTY(EditAnywhere, config, Category = Layer)
 	FString Name;
@@ -104,7 +109,7 @@ enum class ELevelEditor2DAxis : uint8
 /**
  * Configure settings for the 2D Level Editor
  */
-UCLASS(config=Editor, meta=(DisplayName="2D"))
+UCLASS(config=Editor, meta=(DisplayName="2D"), defaultconfig)
 class UNREALED_API ULevelEditor2DSettings : public UDeveloperSettings
 {
 	GENERATED_UCLASS_BODY()
@@ -113,14 +118,6 @@ public:
 	/** If enabled will allow 2D mode */
 	UPROPERTY(EditAnywhere, config, Category = General, meta = (DisplayName = "Enable 2D Mode"))
 	bool bMode2DEnabled;
-
-	/** When enabled and active snap layer is valid, items dropped in the viewport will be dropped on the appropriate Y distance away */
-	UPROPERTY(EditAnywhere, config, Category = LayerSnapping, AdvancedDisplay)
-	bool bEnableLayerSnap;
-
-	/** Will try to use snap settings from SnapLayers */
-	UPROPERTY(EditAnywhere, config, Category = LayerSnapping, AdvancedDisplay)
-	int32 ActiveSnapLayerIndex;
 
 	/** Snap axis */
 	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)

@@ -417,10 +417,11 @@ FText STransformViewportToolBar::GetRotationGridLabel() const
 
 FText STransformViewportToolBar::GetLayer2DLabel() const
 {
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
-	if (Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex))
+	if (Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex))
 	{
-		return FText::FromString(Settings2D->SnapLayers[Settings2D->ActiveSnapLayerIndex].Name);
+		return FText::FromString(Settings2D->SnapLayers[ViewportSettings->ActiveSnapLayerIndex].Name);
 	}
 	
 	return FText();
@@ -505,16 +506,16 @@ void STransformViewportToolBar::SetScaleGridSize( int32 InIndex )
 }
 
 /**
-	* Sets the scale grid size
-	*
-	* @param	InIndex	The new index of the scale grid size to use
-	*/
+ * Sets the active 2d snap layer 
+ *
+ * @param	InIndex	The new index of the 2d layer to use
+ */
 void STransformViewportToolBar::SetLayer2D( int32 Layer2DIndex )
 {
-	ULevelEditor2DSettings* Settings2D = GetMutableDefault<ULevelEditor2DSettings>();
-	Settings2D->bEnableLayerSnap = true;
-	Settings2D->ActiveSnapLayerIndex = Layer2DIndex;
-	Settings2D->PostEditChange();
+	ULevelEditorViewportSettings* ViewportSettings = GetMutableDefault<ULevelEditorViewportSettings>();
+	ViewportSettings->bEnableLayerSnap = true;
+	ViewportSettings->ActiveSnapLayerIndex = Layer2DIndex;
+	ViewportSettings->PostEditChange();
 }
 
 		
@@ -562,7 +563,8 @@ bool STransformViewportToolBar::IsScaleGridSizeChecked(int32 GridSizeIndex)
 
 bool STransformViewportToolBar::IsLayer2DSelected(int32 LayerIndex)
 {
-	return (GetDefault<ULevelEditor2DSettings>()->ActiveSnapLayerIndex == LayerIndex);
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
+	return (ViewportSettings->ActiveSnapLayerIndex == LayerIndex);
 }
 
 void STransformViewportToolBar::TogglePreserveNonUniformScale()
@@ -629,6 +631,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillRotationGridSnapMenu()
 
 TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 {
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
 	int32 LayerCount = Settings2D->SnapLayers.Num();
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
@@ -654,14 +657,15 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 			}
 		}
 
-		static FReply SnapSelectionToSelectedOffset(int32 SnapLayerIndex)
+		static FReply SnapSelectionToSelectedOffset()
 		{
-			auto Settings = GetDefault<ULevelEditor2DSettings>();
-			if (Settings->SnapLayers.IsValidIndex(SnapLayerIndex))
+			const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
+			const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+			if (Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex))
 			{
 				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "SnapSelection2D", "Snap Selection to 2D Layer"));
 
-				float SnapDepth = Settings->SnapLayers[Settings->ActiveSnapLayerIndex].Depth;
+				float SnapDepth = Settings2D->SnapLayers[ViewportSettings->ActiveSnapLayerIndex].Depth;
 				USelection* SelectedActors = GEditor->GetSelectedActors();
 				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 				{
@@ -673,7 +677,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 						FTransform Transform = Actor->GetTransform();
 						FVector CurrentLocation = Transform.GetLocation();
 
-						switch (Settings->SnapAxis)
+						switch (Settings2D->SnapAxis)
 						{
 						case ELevelEditor2DAxis::X: CurrentLocation.X = SnapDepth; break;
 						case ELevelEditor2DAxis::Y: CurrentLocation.Y = SnapDepth; break;
@@ -694,8 +698,8 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 
 		static bool IsSnapSelectedActorsEnabled()
 		{
-			auto Settings = GetDefault<ULevelEditor2DSettings>();
-			return Settings->SnapLayers.IsValidIndex(Settings->ActiveSnapLayerIndex) && GEditor->GetSelectedActorCount() > 0;
+			const ULevelEditor2DSettings* Settings = GetDefault<ULevelEditor2DSettings>();
+			return Settings->SnapLayers.IsValidIndex(GetDefault<ULevelEditorViewportSettings>()->ActiveSnapLayerIndex) && (GEditor->GetSelectedActorCount() > 0);
 		}
 	};
 
@@ -709,7 +713,7 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 		SNew(SButton)
 		.Text(LOCTEXT("2DSnap_SnapSelection", "Snap Selected Actors"))
 		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(FLocalFunctions::IsSnapSelectedActorsEnabled)))
-		.OnClicked(FOnClicked::CreateStatic(FLocalFunctions::SnapSelectionToSelectedOffset, Settings2D->ActiveSnapLayerIndex))
+		.OnClicked(FOnClicked::CreateStatic(FLocalFunctions::SnapSelectionToSelectedOffset))
 		.VAlign(VAlign_Center)
 		.HAlign(HAlign_Fill),
 
@@ -818,8 +822,9 @@ ECheckBoxState STransformViewportToolBar::IsRotationGridSnapChecked() const
 
 ECheckBoxState STransformViewportToolBar::IsLayer2DSnapChecked() const
 {
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
-	bool bChecked = Settings2D->bEnableLayerSnap && Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex);
+	const bool bChecked = ViewportSettings->bEnableLayerSnap && Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex);
 	return bChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
@@ -846,17 +851,18 @@ void STransformViewportToolBar::HandleToggleRotationGridSnap(ECheckBoxState InSt
 
 void STransformViewportToolBar::HandleToggleLayer2DSnap(ECheckBoxState InState)
 {
-	ULevelEditor2DSettings* Settings2D = GetMutableDefault<ULevelEditor2DSettings>();
-	if (!Settings2D->bEnableLayerSnap && Settings2D->SnapLayers.Num() > 0)
+	ULevelEditorViewportSettings* ViewportSettings = GetMutableDefault<ULevelEditorViewportSettings>();
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	if (!ViewportSettings->bEnableLayerSnap && (Settings2D->SnapLayers.Num() > 0))
 	{
-		Settings2D->bEnableLayerSnap = true;
-		Settings2D->ActiveSnapLayerIndex = FMath::Clamp(Settings2D->ActiveSnapLayerIndex, 0, Settings2D->SnapLayers.Num() - 1);
+		ViewportSettings->bEnableLayerSnap = true;
+		ViewportSettings->ActiveSnapLayerIndex = FMath::Clamp(ViewportSettings->ActiveSnapLayerIndex, 0, Settings2D->SnapLayers.Num() - 1);
 	}
 	else
 	{
-		Settings2D->bEnableLayerSnap = false;
+		ViewportSettings->bEnableLayerSnap = false;
 	}
-	Settings2D->PostEditChange();
+	ViewportSettings->PostEditChange();
 }
 
 void STransformViewportToolBar::HandleToggleScaleGridSnap(ECheckBoxState InState)

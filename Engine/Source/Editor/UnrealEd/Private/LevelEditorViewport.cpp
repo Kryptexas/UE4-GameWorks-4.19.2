@@ -990,16 +990,18 @@ bool FLevelEditorViewportClient::HasDropPreviewActors() const
 
 static bool IsDroppingOn2DLayer()
 {
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
-	return Settings2D->bEnableLayerSnap && Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex);
+	return ViewportSettings->bEnableLayerSnap && Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex);
 }
 
 static FActorPositionTraceResult TraceForPositionOn2DLayer(const FViewportCursorLocation& Cursor)
 {
+	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
-	check(Settings2D->SnapLayers.IsValidIndex(Settings2D->ActiveSnapLayerIndex));
+	check(Settings2D->SnapLayers.IsValidIndex(ViewportSettings->ActiveSnapLayerIndex));
 
-	float Offset = Settings2D->SnapLayers[Settings2D->ActiveSnapLayerIndex].Depth;
+	const float Offset = Settings2D->SnapLayers[ViewportSettings->ActiveSnapLayerIndex].Depth;
 	FVector PlaneCenter(0, 0, 0);
 	FVector PlaneNormal(0, 0, 0);
 
@@ -1011,8 +1013,8 @@ static FActorPositionTraceResult TraceForPositionOn2DLayer(const FViewportCursor
 	}
 
 	FActorPositionTraceResult Result;
-	float Numerator = FVector::DotProduct(PlaneCenter - Cursor.GetOrigin(), PlaneNormal);
-	float Denominator = FVector::DotProduct(PlaneNormal, Cursor.GetDirection());
+	const float Numerator = FVector::DotProduct(PlaneCenter - Cursor.GetOrigin(), PlaneNormal);
+	const float Denominator = FVector::DotProduct(PlaneNormal, Cursor.GetDirection());
 	if (FMath::Abs(Denominator) < SMALL_NUMBER)
 	{
 		Result.State = FActorPositionTraceResult::Failed;

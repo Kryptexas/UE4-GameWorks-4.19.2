@@ -142,8 +142,10 @@ void UEditorProjectAppearanceSettings::PostInitProperties()
 *****************************************************************************/
 
 ULevelEditor2DSettings::ULevelEditor2DSettings(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	  SnapAxis(ELevelEditor2DAxis::Y)
+	: Super(ObjectInitializer)
+	, SnapAxis(ELevelEditor2DAxis::Y)
 {
+	SnapLayers.Emplace(TEXT("Foreground"), 100.0f);
+	SnapLayers.Emplace(TEXT("Default"), 0.0f);
+	SnapLayers.Emplace(TEXT("Background"), -100.0f);
 }
-
