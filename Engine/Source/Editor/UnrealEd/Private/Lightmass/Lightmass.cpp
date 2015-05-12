@@ -447,10 +447,18 @@ FLightmassExporter::~FLightmassExporter()
 	}
 }
 
-void FLightmassExporter::AddMaterial(UMaterialInterface* InMaterialInterface)
+void FLightmassExporter::AddMaterial(UMaterialInterface* InMaterialInterface, const FStaticLightingMesh* InStaticLightingMesh /*= nullptr*/)
 {
 	if (InMaterialInterface)
 	{
+		FLightmassMaterialExportSettings ExportSettings = { InStaticLightingMesh };
+
+		if (auto* ExistingExportSettings = MaterialExportSettings.Find(InMaterialInterface))
+		{
+			checkf(ExportSettings == *ExistingExportSettings, TEXT("Attempting to add the same material twice with different export settings, this is not (currently) supported"));
+			return;
+		}
+
 		// Check for material texture changes...
 		//@TODO: Add package to warning list if it needs to be resaved (perf warning)
 		InMaterialInterface->UpdateLightmassTextureTracking();
@@ -470,7 +478,8 @@ void FLightmassExporter::AddMaterial(UMaterialInterface* InMaterialInterface)
 			}
 		}
 
-		Materials.AddUnique(InMaterialInterface);
+		Materials.Add(InMaterialInterface);
+		MaterialExportSettings.Add(InMaterialInterface, ExportSettings);
 	}
 }
 
@@ -663,7 +672,8 @@ bool FLightmassExporter::WriteToMaterialChannel(FLightmassStatistics& Stats)
 					}
 					else
 					{
-						ExportMaterial(Materials[CurrentAmortizationIndex]);
+						auto* CurrentMaterial = Materials[CurrentAmortizationIndex];
+						ExportMaterial(CurrentMaterial, MaterialExportSettings.FindChecked(CurrentMaterial));
 						++CurrentAmortizationIndex;
 					}
 				}
@@ -1117,7 +1127,7 @@ void FLightmassExporter::WriteStaticMeshes()
 
 void FLightmassExporter::BuildMaterialMap(UMaterialInterface* Material)
 {
-	if (Material)
+	if (ensure(Material))
 	{
 		FGuid LightingGuid = Material->GetLightingGuid();
 
@@ -1162,12 +1172,12 @@ void FLightmassExporter::BlockOnShaderCompilation()
 	GShaderCompilingManager->FinishAllCompilation();
 }
 
-void FLightmassExporter::ExportMaterial(UMaterialInterface* Material)
+void FLightmassExporter::ExportMaterial(UMaterialInterface* Material, const FLightmassMaterialExportSettings& ExportSettings)
 {
 	FMaterialExportDataEntry* ExportEntry = MaterialExportData.Find(Material);
 
 	// Only create the Swarm channel if there is something to export
-	if (Material && ExportEntry)
+	if (ensure(Material) && ExportEntry)
 	{
 		Lightmass::FBaseMaterialData BaseMaterialData;
 		BaseMaterialData.Guid = Material->GetLightingGuid();
@@ -1177,8 +1187,8 @@ void FLightmassExporter::ExportMaterial(UMaterialInterface* Material)
 		FMemory::Memzero(&MaterialData,sizeof(MaterialData));
 		UMaterial* BaseMaterial = Material->GetMaterial();
 		MaterialData.bTwoSided = (uint32)Material->IsTwoSided();
-		MaterialData.EmissiveBoost =  Material->GetEmissiveBoost();
-		MaterialData.DiffuseBoost =  Material->GetDiffuseBoost();
+		MaterialData.EmissiveBoost = Material->GetEmissiveBoost();
+		MaterialData.DiffuseBoost = Material->GetDiffuseBoost();
 
 		TArray<FFloat16Color> MaterialEmissive;
 		TArray<FFloat16Color> MaterialDiffuse;
@@ -1186,12 +1196,13 @@ void FLightmassExporter::ExportMaterial(UMaterialInterface* Material)
 		TArray<FFloat16Color> MaterialNormal;
 
 		if (MaterialRenderer.GenerateMaterialData(
-			*Material, 
-			MaterialData, 
-			*ExportEntry, 
+			*Material,
+			ExportSettings,
+			MaterialData,
+			*ExportEntry,
 			MaterialDiffuse,
 			MaterialEmissive,
-			MaterialTransmission, 
+			MaterialTransmission,
 			MaterialNormal))
 		{
 			// open the channel
@@ -1208,7 +1219,7 @@ void FLightmassExporter::ExportMaterial(UMaterialInterface* Material)
 				uint8* OutData;
 				int32 OutSize;
 
-				OutSize = FMath::Square(MaterialData.EmissiveSize) * sizeof(FFloat16Color);  
+				OutSize = FMath::Square(MaterialData.EmissiveSize) * sizeof(FFloat16Color);
 				if (OutSize > 0)
 				{
 					OutData = (uint8*)(MaterialEmissive.GetData());
