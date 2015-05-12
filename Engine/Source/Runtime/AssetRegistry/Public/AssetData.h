@@ -274,7 +274,7 @@ public:
 		Ar << AssetData.AssetName;
 
 		static FName BlueprintClassName = TEXT("Blueprint");
-		if (AssetData.AssetClass == BlueprintClassName)
+		if (Ar.IsFilterEditorOnly() && AssetData.AssetClass == BlueprintClassName)
 		{
 			// Exclude FiB data from serialization
 			static FName FiBName = TEXT("FiB");
