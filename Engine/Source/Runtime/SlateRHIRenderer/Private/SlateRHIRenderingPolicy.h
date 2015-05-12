@@ -64,36 +64,68 @@ public:
 	/** Resets the usage of the buffer */
 	void ResetBufferUsage() { BufferUsageSize = 0; }
 
-	/** Fills the buffer with slate vertices */
-	void FillBuffer( const TArray<VertexType>& InVertices, bool bShrinkToFit )
+	/** Resizes buffer, accumulates states safely on render thread */
+	void PreFillBuffer(const TArray<VertexType>& InVertices, bool bShrinkToFit)
+	{
+		check(IsInRenderingThread());
+		check(IsInRenderingThread());
+
+		if (InVertices.Num())
+		{
+			uint32 NumVertices = InVertices.Num();
+
+#if !SLATE_USE_32BIT_INDICES
+			// make sure our index buffer can handle this
+			checkf(NumVertices < 0xFFFF, TEXT("Slate vertex buffer is too large (%d) to work with uint16 indices"), NumVertices);
+#endif
+
+			uint32 RequiredBufferSize = NumVertices*sizeof(VertexType);
+
+			// resize if needed
+			if (RequiredBufferSize > GetBufferSize() || bShrinkToFit)
+			{
+				// Use array resize techniques for the vertex buffer
+				ResizeBuffer(InVertices.GetAllocatedSize());
+			}
+
+			BufferUsageSize += RequiredBufferSize;
+		}
+
+	}
+
+	/** Fills the buffer with slate vertices on renderthread. */
+	void FillBuffer_RenderThread( const TArray<VertexType>& InVertices)
 	{
 		check( IsInRenderingThread() );
 
 		if( InVertices.Num() )
 		{
 			uint32 NumVertices = InVertices.Num();
-
-	#if !SLATE_USE_32BIT_INDICES
-			// make sure our index buffer can handle this
-			checkf(NumVertices < 0xFFFF, TEXT("Slate vertex buffer is too large (%d) to work with uint16 indices"), NumVertices);
-	#endif
-
-			uint32 RequiredBufferSize = NumVertices*sizeof(VertexType);
-
-			// resize if needed
-			if( RequiredBufferSize > GetBufferSize() || bShrinkToFit )
-			{
-				// Use array resize techniques for the vertex buffer
-				ResizeBuffer( InVertices.GetAllocatedSize() );
-			}
-
-			BufferUsageSize += RequiredBufferSize;
+			uint32 RequiredBufferSize = NumVertices*sizeof(VertexType);			
 
 			void* VerticesPtr = RHILockVertexBuffer( VertexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
 
 			FMemory::Memcpy( VerticesPtr, InVertices.GetData(), RequiredBufferSize );
 
 			RHIUnlockVertexBuffer( VertexBufferRHI );
+		}
+	}
+
+	
+	void FillBuffer_RHIThread(const TArray<VertexType>& InVertices)
+	{
+		check(IsInRHIThread() || (!IsInRenderingThread() && !IsInGameThread()));
+
+		if (InVertices.Num())
+		{
+			uint32 NumVertices = InVertices.Num();
+
+			uint32 RequiredBufferSize = NumVertices*sizeof(VertexType);
+
+			//use non-flushing DynamicRHI version when on RHIThread.
+			void* VerticesPtr = GDynamicRHI->RHILockVertexBuffer(VertexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly);
+			FMemory::Memcpy(VerticesPtr, InVertices.GetData(), RequiredBufferSize);
+			GDynamicRHI->RHIUnlockVertexBuffer(VertexBufferRHI);			
 		}
 	}
 
@@ -152,8 +184,15 @@ public:
 	/** Resets the usage of the buffer */
 	void ResetBufferUsage() { BufferUsageSize = 0; }
 
+	/** Resizes buffer, accumulates states safely on render thread */
+	void PreFillBuffer(const TArray<SlateIndex>& InIndices, bool bShrinkToFit);
+
 	/** Fills the buffer with slate vertices */
-	void FillBuffer( const TArray<SlateIndex>& InIndices, bool bShrinkToFit );
+	void FillBuffer_RenderThread( const TArray<SlateIndex>& InIndices );
+
+	/** Fills the buffer with slate vertices */
+	void FillBuffer_RHIThread(const TArray<SlateIndex>& InIndices);
+
 private:
 	/** Resizes the buffer to the passed in size.  Preserves internal data */
 	void ResizeBuffer( uint32 NewSizeBytes );
@@ -177,6 +216,7 @@ public:
 	~FSlateRHIRenderingPolicy();
 
 	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) override;
+	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, const FSlateWindowElementList& WindowElementList);
 	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwtichVerticalAxis=true);
 
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }

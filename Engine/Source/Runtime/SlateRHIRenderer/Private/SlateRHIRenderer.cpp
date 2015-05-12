@@ -400,8 +400,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
-		// Update the vertex and index buffer
-		RenderingPolicy->UpdateBuffers( WindowElementList );
+		// Update the vertex and index buffer		
+		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, WindowElementList);
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
