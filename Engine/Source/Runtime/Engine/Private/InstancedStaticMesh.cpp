@@ -988,7 +988,8 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
 
 	    const int32 NumBodies = PerInstanceSMData.Num();
-	    InstanceBodies.SetNumUninitialized(NumBodies);
+		check(InstanceBodies.Num() == 0);
+		InstanceBodies.SetNumUninitialized(NumBodies);
     
 	    TArray<FTransform> Transforms;
 	    Transforms.Reserve(NumBodies);
