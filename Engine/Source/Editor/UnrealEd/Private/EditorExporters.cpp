@@ -2612,8 +2612,7 @@ namespace MaterialExportUtils
 
 		// Render normal property
 		if (OutFlattenMaterial.NormalSize.X > 0 && 
-			OutFlattenMaterial.NormalSize.Y > 0 &&
-			InMaterial->GetMaterial()->HasNormalConnected())
+			OutFlattenMaterial.NormalSize.Y > 0)
 		{
 			// Create temporary render target
 			auto RenderTargetNormal = NewObject<UTextureRenderTarget2D>();
