@@ -1308,7 +1308,10 @@ void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, FString Destin
 
 void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString DestinationPath)
 {
-	ContentBrowserUtils::CopyFolders(PathNames, DestinationPath);
+	if (!ContentBrowserUtils::CopyFolders(PathNames, DestinationPath))
+	{
+		return;
+	}
 
 	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
 	if (RootItem.IsValid())
@@ -1334,7 +1337,10 @@ void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString Des
 
 void SPathView::ExecuteTreeDropMoveFolder(TArray<FString> PathNames, FString DestinationPath)
 {
-	ContentBrowserUtils::MoveFolders(PathNames, DestinationPath);
+	if (!ContentBrowserUtils::MoveFolders(PathNames, DestinationPath))
+	{
+		return;
+	}
 
 	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
 	if (RootItem.IsValid())

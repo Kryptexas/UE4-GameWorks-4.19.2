@@ -98,10 +98,10 @@ namespace ContentBrowserUtils
 	void DisplayConfirmationPopup(const FText& Message, const FText& YesString, const FText& NoString, const TSharedRef<SWidget>& ParentContent, const FOnClicked& OnYesClicked, const FOnClicked& OnNoClicked = FOnClicked());
 
 	/** Copies all assets in all source paths to the destination path, preserving path structure */
-	void CopyFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath);
+	bool CopyFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath);
 
 	/** Moves all assets in all source paths to the destination path, preserving path structure */
-	void MoveFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath);
+	bool MoveFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath);
 
 	/**
 	  * A helper function for folder drag/drop which loads all assets in a path (including sub-paths) and returns the assets found
@@ -109,7 +109,7 @@ namespace ContentBrowserUtils
 	  * @param SourcePathNames				The paths to the folders to drag/drop
 	  * @param OutSourcePathToLoadedAssets	The map of source folder paths to assets found
 	  */
-	void PrepareFoldersForDragDrop(const TArray<FString>& SourcePathNames, TMap< FString, TArray<UObject*> >& OutSourcePathToLoadedAssets);
+	bool PrepareFoldersForDragDrop(const TArray<FString>& SourcePathNames, TMap< FString, TArray<UObject*> >& OutSourcePathToLoadedAssets);
 
 	/** Copies references to the specified assets to the clipboard */
 	void CopyAssetReferencesToClipboard(const TArray<FAssetData>& AssetsToCopy);

@@ -698,7 +698,7 @@ void ContentBrowserUtils::DisplayConfirmationPopup(const FText& Message, const F
 	Popup->OpenPopup(ParentContent);
 }
 
-void ContentBrowserUtils::CopyFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath)
+bool ContentBrowserUtils::CopyFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath)
 {
 	TMap<FString, TArray<UObject*> > SourcePathToLoadedAssets;
 
@@ -707,7 +707,10 @@ void ContentBrowserUtils::CopyFolders(const TArray<FString>& InSourcePathNames, 
 	SourcePathNames.Remove(DestPath);
 
 	// Load all assets in the source paths
-	PrepareFoldersForDragDrop(SourcePathNames, SourcePathToLoadedAssets);
+	if (!PrepareFoldersForDragDrop(SourcePathNames, SourcePathToLoadedAssets))
+	{
+		return false;
+	}
 
 	// Load the Asset Registry to update paths during the copy
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -729,9 +732,11 @@ void ContentBrowserUtils::CopyFolders(const TArray<FString>& InSourcePathNames, 
 			ObjectTools::DuplicateObjects( PathIt.Value(), PathIt.Key(), Destination, /*bOpenDialog=*/false );
 		}
 	}
+
+	return true;
 }
 
-void ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath)
+bool ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, const FString& DestPath)
 {
 	TMap<FString, TArray<UObject*> > SourcePathToLoadedAssets;
 	FString DestPathWithTrailingSlash = DestPath / "";
@@ -752,7 +757,10 @@ void ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, 
 	}
 
 	// Load all assets in the source paths
-	PrepareFoldersForDragDrop(SourcePathNames, SourcePathToLoadedAssets);
+	if (!PrepareFoldersForDragDrop(SourcePathNames, SourcePathToLoadedAssets))
+	{
+		return false;
+	}
 	
 	// Load the Asset Registry to update paths during the move
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -778,13 +786,13 @@ void ContentBrowserUtils::MoveFolders(const TArray<FString>& InSourcePathNames, 
 		// Attempt to remove the old paths. This operation will silently fail if any assets failed to move.
 		AssetRegistryModule.Get().RemovePath(SourcePath);
 	}
+
+	return true;
 }
 
-void ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& SourcePathNames, TMap< FString, TArray<UObject*> >& OutSourcePathToLoadedAssets)
+bool ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& SourcePathNames, TMap< FString, TArray<UObject*> >& OutSourcePathToLoadedAssets)
 {
 	TSet<UObject*> AllFoundObjects;
-
-	GWarn->BeginSlowTask( LOCTEXT("FolderDragDrop_Loading", "Loading folders"), true);
 
 	// Load the Asset Registry to update paths during the move
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
@@ -807,8 +815,14 @@ void ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 	TArray<FString> UnloadedObjects;
 	if(ShouldPromptToLoadAssets(ObjectPathsToWarnAbout, UnloadedObjects))
 	{
-		PromptToLoadAssets(UnloadedObjects);
+		const bool bShouldLoadAssets = PromptToLoadAssets(UnloadedObjects);
+		if (!bShouldLoadAssets)
+		{
+			return false;
+		}
 	}
+
+	GWarn->BeginSlowTask(LOCTEXT("FolderDragDrop_Loading", "Loading folders"), true);
 
 	// For every source path, load every package in the path (if necessary) and keep track of the assets that were loaded
 	for ( auto PathIt = SourcePathNames.CreateConstIterator(); PathIt; ++PathIt )
@@ -858,6 +872,7 @@ void ContentBrowserUtils::PrepareFoldersForDragDrop(const TArray<FString>& Sourc
 	GWarn->EndSlowTask();
 
 	ensure(SourcePathNames.Num() == OutSourcePathToLoadedAssets.Num());
+	return true;
 }
 
 void ContentBrowserUtils::CopyAssetReferencesToClipboard(const TArray<FAssetData>& AssetsToCopy)
