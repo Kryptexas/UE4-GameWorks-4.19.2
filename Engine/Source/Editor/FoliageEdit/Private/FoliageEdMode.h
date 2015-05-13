@@ -220,6 +220,9 @@ public:
 	void NotifyNewCurrentLevel();
 	void NotifyLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
 	void NotifyLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
+
+	/** Called when asset is removed */
+	void NotifyAssetRemoved(const FAssetData& AssetInfo);
 	
 	/**
 	 * Called when the mouse is moved over the viewport
