@@ -829,7 +829,12 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		for (const auto& RootPath : RootContentPaths)
 		{
 			const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);
-			ContentFolders.Add(ContentFolder);
+
+			FString ConnectedContentFolder = ContentFolder;
+			ConnectedContentFolder.ReplaceInline(*LocalEngineDir, *ConnectedEngineDir);
+			ConnectedContentFolder.ReplaceInline(*LocalGameDir, *ConnectedGameDir);
+
+			ContentFolders.Add(ConnectedContentFolder);
 		}
 		Out << ContentFolders;
 
