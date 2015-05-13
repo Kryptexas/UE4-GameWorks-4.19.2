@@ -1581,12 +1581,6 @@ bool UAnimSequence::CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff)
 		}
 	}
 
-	// Only bother doing anything if we have some keys!
-	if( NumFrames == 1 )
-	{
-		return bRemovedKeys;
-	}
-
 	CompressedTrackOffsets.Empty();
 	CompressedScaleOffsets.Empty();
 #endif
