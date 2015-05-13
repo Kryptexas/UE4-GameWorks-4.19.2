@@ -598,6 +598,17 @@ void UMaterialGraphNode::PostPlacedNewNode()
 	}
 }
 
+void UMaterialGraphNode::NodeConnectionListChanged()
+{
+	Super::NodeConnectionListChanged();
+
+	const UEdGraphSchema* Schema = GetSchema();
+	if (Schema != nullptr)
+	{
+		Schema->ForceVisualizationCacheClear();
+	}
+}
+
 void UMaterialGraphNode::OnRenameNode(const FString& NewName)
 {
 	MaterialExpression->Modify();

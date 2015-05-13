@@ -652,6 +652,8 @@ void UK2Node_Select::SetEnum(UEnum* InEnum, bool bForceRegenerate)
 
 void UK2Node_Select::NodeConnectionListChanged()
 {
+	Super::NodeConnectionListChanged();
+
 	if (bReconstructNode)
 	{
 		ReconstructNode();
