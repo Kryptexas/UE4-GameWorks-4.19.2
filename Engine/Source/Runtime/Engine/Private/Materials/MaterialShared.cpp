@@ -348,6 +348,8 @@ const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >& FMaterial::GetUn
 		// If we are accessing uniform texture expressions on the game thread, use results from a shader map whose compile is in flight that matches this material
 		// This allows querying what textures a material uses even when it is being asynchronously compiled
 		ShaderMapToUse = GetGameThreadShaderMap() ? GetGameThreadShaderMap() : FMaterialShaderMap::GetShaderMapBeingCompiled(this);
+
+		checkf(!ShaderMapToUse || ShaderMapToUse->GetNumRefs() > 0, TEXT("NumRefs %i, GameThreadShaderMap 0x%08x"), ShaderMapToUse->GetNumRefs(), GetGameThreadShaderMap());
 	}
 	else 
 	{
@@ -642,11 +644,11 @@ void FMaterial::SerializeInlineShaderMap(FArchive& Ar)
 				//@todo - don't cook it in the first place
 				if (FApp::CanEverRender())
 				{
-				GameThreadShaderMap = RenderingThreadShaderMap = LoadedShaderMap;
+					GameThreadShaderMap = RenderingThreadShaderMap = LoadedShaderMap;
+				}
 			}
 		}
 	}
-}
 }
 
 void FMaterialResource::LegacySerialize(FArchive& Ar)

@@ -1505,7 +1505,7 @@ void FMaterialShaderMap::AddRef()
 
 void FMaterialShaderMap::Release()
 {
-	check(NumRefs != 0);
+	check(NumRefs > 0);
 	if(--NumRefs == 0)
 	{
 		if (bRegistered)

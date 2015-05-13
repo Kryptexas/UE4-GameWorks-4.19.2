@@ -667,6 +667,8 @@ public:
 
 	const FUniformExpressionSet& GetUniformExpressionSet() const { return MaterialCompilationOutput.UniformExpressionSet; }
 
+	int32 GetNumRefs() const { return NumRefs; }
+
 private:
 
 	/** 
@@ -712,7 +714,7 @@ private:
 	/** Uniquely identifies this shader map during compilation, needed for deferred compilation where shaders from multiple shader maps are compiled together. */
 	uint32 CompilingId;
 
-	mutable uint32 NumRefs;
+	mutable int32 NumRefs;
 
 	/** Used to catch errors where the shader map is deleted directly. */
 	bool bDeletedThroughDeferredCleanup;
