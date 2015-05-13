@@ -327,7 +327,7 @@ public:
 			}
 
 			// Check the LayerInfoObjects are same package with Landscape
-			for (int i = 0; i < LandscapeInfo->Layers.Num(); ++i)
+			for (int32 i = 0; i < LandscapeInfo->Layers.Num(); ++i)
 			{
 				ULandscapeLayerInfoObject* LayerInfo = LandscapeInfo->Layers[i].LayerInfoObj;
 				if (LayerInfo && LayerInfo->GetOutermost() == Landscape->GetOutermost())

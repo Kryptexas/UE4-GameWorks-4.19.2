@@ -713,7 +713,7 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 		SharedBuffers->AdjacencyIndexBuffers->AddRef();
 
 		// Delayed Initialize for IndexBuffers
-		for (int i = 0; i < SharedBuffers->NumIndexBuffers; i++)
+		for (int32 i = 0; i < SharedBuffers->NumIndexBuffers; i++)
 		{
 			SharedBuffers->IndexBuffers[i]->InitResource();
 		}
@@ -1866,7 +1866,7 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 		else
 		{
 			// non-ES2 version
-			int SubOffset = 0;
+			int32 SubOffset = 0;
 			for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 			{
 				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
@@ -2143,7 +2143,7 @@ FLandscapeSharedAdjacencyIndexBuffer::FLandscapeSharedAdjacencyIndexBuffer(FLand
 
 FLandscapeSharedAdjacencyIndexBuffer::~FLandscapeSharedAdjacencyIndexBuffer()
 {
-	for (int i = 0; i < IndexBuffers.Num(); ++i)
+	for (int32 i = 0; i < IndexBuffers.Num(); ++i)
 	{
 		IndexBuffers[i]->ReleaseResource();
 		delete IndexBuffers[i];

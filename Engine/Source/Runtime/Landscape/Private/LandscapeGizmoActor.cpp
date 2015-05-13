@@ -1166,7 +1166,7 @@ void ALandscapeGizmoActiveActor::ImportFromClipboard()
 				while( !FParse::Command(&Str,TEXT("Region=")) )
 				{
 					FParse::Next(&Str);
-					int i = 0;
+					int32 i = 0;
 					while (!FChar::IsWhitespace(*Str))
 					{
 						StrBuf[i++] = *Str;
