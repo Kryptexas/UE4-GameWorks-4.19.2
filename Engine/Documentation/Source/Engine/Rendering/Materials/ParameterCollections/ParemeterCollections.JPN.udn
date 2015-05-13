@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537525
+﻿INTSourceChangelist:2547514
 Availability:Public
 Title:Material Parameter Collections
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -44,7 +44,7 @@ MaterialParameterCollection は [コンテンツ ブラウザ](Engine/Content/Br
 
 1. Material Parameter Collection は他のアクタと同様に **コンテンツ ブラウザ** へ追加および保存ができます。 
 
-	![](MPC_Saved_In_CB.png)
+![](MPC_Saved_In_CB.png)
 
 1. Material Parameter Collection を編集するには、まず **マウスの左ボタン** で **ダブル クリック** して、プロパティ ウィンドウを開きます。  
 
@@ -71,8 +71,8 @@ MaterialParameterCollection は [コンテンツ ブラウザ](Engine/Content/Br
 	![](MPC_Create_New_MPC.png)
 
 1. Material Collection Parameter が作成されたら、その上で **マウスの左ボタン** を **ダブルクリック** して開きます。 
-	Material Collection Parameter が開いたら、Scalar Parameter を 1 つ追加して **Global_Desatration** と名付けます。 
-	Global_Desatration のデフォルト値は 0.0 のままにしておきます。完了すると、Material Collection Parameter は以下のようになるはずです。 
+	Material Collection Parameter が開いたら、Scalar Parameter を 1 つ追加して **Global_Desaturation** と名付けます。 
+	Global_Desaturation のデフォルト値は 0.0 のままにしておきます。完了すると、Material Collection Parameter は以下のようになるはずです。 
 	![](MPC_Setup_MPC.png)
 
 1. Material Collection Parameter が作成されたので、次はそれを使うためのシンプルなマテリアルを作成する必要があります。 
@@ -183,7 +183,6 @@ Material Collection Parameter パラメータの操作方法の 1 つは、ブ�
 1. **タイムライン** を正しく設定したら、 Timeline メニューを閉じて **Level ブループリント** の **Event Graph** に戻ります。 
 	Level ブループリントが利用できるようになったので、次は全てのノードを接続していきます。 
 	完了すると、ブループリントは以下のようになるはずです。 
-
 	![](MPC_Connecting_Nodes.png)
 
 1. 接続がすべて完了したら、 **[Compile]** ボタンを押し、必ず Level ブループリントを **コンパイル** してからブループリント エディタを終了してください。
