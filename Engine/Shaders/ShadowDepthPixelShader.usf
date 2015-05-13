@@ -20,7 +20,6 @@
 	#include "LPVWriteVplCommon.usf"
 
 	#if RSM_TRANSMISSION
-		float TransmissionStrength;
 		float2 ReflectiveShadowMapTextureResolution;
 		row_major float4x4 ProjectionMatrix;
 	#endif
