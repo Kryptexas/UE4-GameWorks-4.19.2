@@ -190,6 +190,7 @@ protected:
 	/** The server game dir */
 	FString ServerGameDir;
 
+
 	/** This is the "TOC" of the server */
 	FServerTOC ServerFiles;
 
