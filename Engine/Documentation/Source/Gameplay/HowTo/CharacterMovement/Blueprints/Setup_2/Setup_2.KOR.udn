@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543250
+﻿INTSourceChangelist:2547516
 Availability: Public
 Title:3. 캐릭터 셋업 마무리
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -48,7 +48,7 @@ Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 �
 
 1.	그래프에 **우클릭** 한 다음 **InputAction Jog** 이벤트를 추가합니다.
 
-1.	**내 블루프린트** 창에서 **상속된 변수 표시** 체크박스를 체크한 다음 **CharacterMovement** 를 그래프에 끌어 놓습니다.
+1.	**내 블루프린트** 창에서 **상속된 변수 표시** 체크박스를 체크한 다음 **Ctrl** 키를 누른 채 **CharacterMovement** 를 그래프에 끌어 놓습니다.
 
 	![](Character_JogA.png)
 

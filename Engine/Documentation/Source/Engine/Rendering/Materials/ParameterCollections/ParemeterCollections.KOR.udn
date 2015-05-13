@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2537525
+﻿INTSourceChangelist:2547514
 Availability: Public
 Title: 머티리얼 파라미터 콜렉션
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -71,8 +71,8 @@ _머티리얼 파라미터 콜렉션_ 은 [**콘텐츠 브라우저**](Engine/Co
 	![](MPC_Create_New_MPC.png)
 
 1. 머티리얼 콜렉션 파라미터가 생성되었으면 **더블클릭** 하여 엽니다.
-	머티리얼 콜렉션 파라미터가 열렸으면 스칼라 파라미터를 하나 추가하여 이름을 **Global_Desatration** 라 짓습니다. 
-	Global_Desatration 기본값은 0.0 으로 놔둡니다. 완료되면, 머티리얼 콜렉션 파라미터의 모습은 이렇습니다.
+	머티리얼 콜렉션 파라미터가 열렸으면 스칼라 파라미터를 하나 추가하여 이름을 **Global_Desaturation** 라 짓습니다. 
+	Global_Desaturation 기본값은 0.0 으로 놔둡니다. 완료되면, 머티리얼 콜렉션 파라미터의 모습은 이렇습니다.
 	![](MPC_Setup_MPC.png)
 
 1. 머티리얼 콜렉션 파라미터가 생성되었으니 거기에 사용할 간단한 머티리얼을 만들어 줘야 합니다.
@@ -101,7 +101,7 @@ _머티리얼 파라미터 콜렉션_ 은 [**콘텐츠 브라우저**](Engine/Co
 
 1. 작동중인 머티리얼 콜렉션 파라미터를 확인하려면, 먼저 머티리얼 콜렉션 파라미터를 사용중인 머티리얼을 월드에 있는 오브젝트에 적용해야 합니다.
 	머티리얼이 적용된 이후, **콘텐츠 브라우저** 안에서 머티리얼 콜렉션 파라미터를 **더블클릭** 하여 엽니다.
-	열고나서 Global_Desatration 의 기본값을 0 에서 1 로 변경하면, 이 경우 머티리얼이 적용된 오브젝트가 다음 예제처럼 파랑에서 하양으로 갑니다.
+	열고나서 Global_Desaturation 의 기본값을 0 에서 1 로 변경하면, 이 경우 머티리얼이 적용된 오브젝트가 다음 예제처럼 파랑에서 하양으로 갑니다.
 
 	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
