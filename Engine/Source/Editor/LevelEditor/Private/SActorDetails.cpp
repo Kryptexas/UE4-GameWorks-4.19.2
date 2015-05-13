@@ -186,7 +186,8 @@ SActorDetails::~SActorDetails()
 {
 	GEditor->UnregisterForUndo(this);
 	USelection::SelectionChangedEvent.RemoveAll(this);
-	
+	ClearNotificationDelegates();
+
 	auto LevelEditor = FModuleManager::GetModulePtr<FLevelEditorModule>("LevelEditor");
 	if (LevelEditor != nullptr)
 	{
@@ -198,6 +199,7 @@ void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRef
 {
 	if(!DetailsView->IsLocked())
 	{
+		ClearNotificationDelegates();
 		DetailsView->SetObjects(InObjects, bForceRefresh);
 
 		bool bShowingComponents = false;
@@ -209,6 +211,19 @@ void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRef
 			{
 				LockedActorSelection = Actor;
 				bShowingComponents = true;
+
+				// Register for component blueprint compiled events
+				for( auto Component : Actor->GetComponents() )
+				{
+					if(UBlueprintGeneratedClass* ComponentBPGC = Cast<UBlueprintGeneratedClass>(Component->GetClass()))
+					{
+						UBlueprint* ComponentBlueprint = Cast<UBlueprint>(ComponentBPGC->ClassGeneratedBy);
+						if(!ComponentBlueprint->OnCompiled().IsBoundToObject( this ))
+						{
+							ComponentBlueprint->OnCompiled().AddSP(this, &SActorDetails::OnBlueprintRecompiled);
+						}
+					}
+				}
 
 				// Update the tree if a new actor is selected
 				if(GEditor->GetSelectedComponentCount() == 0)
@@ -496,12 +511,25 @@ void SActorDetails::UpdateComponentTreeFromEditorSelection()
 
 		auto& SCSTreeWidget = SCSEditor->SCSTreeWidget;
 		TArray<UObject*> DetailsObjects;
+		bool bForceRefresh = false;
 
 		// Update the tree selection to match the level editor component selection
 		SCSTreeWidget->ClearSelection();
 		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 		{
 			UActorComponent* Component = CastChecked<UActorComponent>(*It);
+
+			if(!bForceRefresh)
+			{
+				if(UBlueprintGeneratedClass* ComponentBPGC = Cast<UBlueprintGeneratedClass>(Component->GetClass()))
+				{
+					UBlueprint* ComponentBlueprint = Cast<UBlueprint>(ComponentBPGC->ClassGeneratedBy);
+					if(ComponentBlueprint->CrcLastCompiledSignature == CrcLastCompiledSignature )
+					{
+						bForceRefresh = true;
+					}
+				}
+			}
 
 			auto SCSTreeNode = SCSEditor->GetNodeFromActorComponent(Component, false);
 			if (SCSTreeNode.IsValid() && SCSTreeNode->GetComponentTemplate())
@@ -514,10 +542,11 @@ void SActorDetails::UpdateComponentTreeFromEditorSelection()
 				DetailsObjects.Add(Component);
 			}
 		}
+		CrcLastCompiledSignature = 0;
 
 		if (DetailsObjects.Num() > 0)
 		{
-			DetailsView->SetObjects(DetailsObjects);
+			DetailsView->SetObjects(DetailsObjects,bForceRefresh);
 		}
 		else
 		{
@@ -682,4 +711,27 @@ EVisibility SActorDetails::GetNativeComponentWarningVisibility() const
 	}
 	
 	return bIsUneditableNative ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+void SActorDetails::ClearNotificationDelegates()
+{
+	if(LockedActorSelection.IsValid())
+	{
+		AActor* SelectedActor = LockedActorSelection.Get();
+		// Unregister for component blueprint compiled events
+		for( auto Component : SelectedActor->GetComponents() )
+		{
+			if(UBlueprintGeneratedClass* ComponentBPGC = Cast<UBlueprintGeneratedClass>(Component->GetClass()))
+			{
+				UBlueprint* ComponentBlueprint = Cast<UBlueprint>(ComponentBPGC->ClassGeneratedBy);
+				ComponentBlueprint->OnCompiled().RemoveAll(this);
+			}
+		}
+	}
+}
+
+void SActorDetails::OnBlueprintRecompiled(UBlueprint* CompiledBlueprint)
+{
+	CrcLastCompiledSignature = CompiledBlueprint->CrcLastCompiledSignature;
+	UpdateComponentTreeFromEditorSelection();
 }
