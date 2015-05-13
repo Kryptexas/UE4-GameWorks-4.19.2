@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2406382
+﻿INTSourceChangelist:2548416
 Availability:Docs
 Title: 소스에서 Emscripten 빌드하기
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
@@ -77,4 +77,4 @@ CMake 명령으로 `LLVM.sln` 이 출력됩니다. Visual Studio 2010 SP1 에서
 
 Emscripten 의 일반 설치 프로세스와 마찬가지로, 모든 환경 변수가 올바른 값으로 설정되었는지 확인해 줘야 합니다. 소스에서의 Emscripten 빌드가 수동적인 속성을 지니기 때문에, 아마도 이 변수 대부분을 변경해 줘야 할 것입니다.
 
-보다 자세한 내용은 [](Platforms/HTML5/GettingStarted) 문서의 [환경 변수](Platforms/HTML5/GettingStarted#환경변수) 부분을 참고하시기 바랍니다.
+보다 자세한 내용은 [](Platforms/HTML5/GettingStarted) 문서를 참고하시기 바랍니다.
