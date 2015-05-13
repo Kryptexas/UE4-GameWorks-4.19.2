@@ -1667,20 +1667,8 @@ void FActiveGameplayEffectsContainer::UpdateAggregatorModMagnitudes(const TSet<F
 		FAggregator* Aggregator = FindOrCreateAttributeAggregator(Attribute).Get();
 		check(Aggregator);
 
-		// Remove ALL of our mods (this is all we can do! We don't keep track of aggregator mods <=> spec mod mappings)
-		// Todo: it would be nice to have a better way of updating this. Some ideas: instead of remove, call an 'invalidate' to NAN out all floats for a given handle, then call an 'update' to set real values.
-		Aggregator->RemoveAggregatorMod(ActiveEffect.Handle);
-
-		// Now re-add ALL of our mods
-		for(int32 ModIdx = 0; ModIdx < Spec.Modifiers.Num(); ++ModIdx)
-		{
-			const FGameplayModifierInfo& ModDef = Spec.Def->Modifiers[ModIdx];
-
-			if (ModDef.Attribute == Attribute)
-			{
-				Aggregator->AddAggregatorMod(Spec.GetModifierMagnitude(ModIdx, true), ModDef.ModifierOp, &ModDef.SourceTags, &ModDef.TargetTags, ActiveEffect.PredictionKey.WasLocallyGenerated(), ActiveEffect.Handle);
-			}
-		}
+		// Update the aggregator Mods.
+		Aggregator->UpdateAggregatorMod(ActiveEffect.Handle, Attribute, Spec, ActiveEffect.PredictionKey.WasLocallyGenerated(), ActiveEffect.Handle);
 	}
 }
 
