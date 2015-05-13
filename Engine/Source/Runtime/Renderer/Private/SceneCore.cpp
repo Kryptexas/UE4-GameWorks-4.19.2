@@ -172,6 +172,8 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 		// Determine the type of dynamic shadow produced by this light.
 		if (PrimitiveSceneInfo->Proxy->HasStaticLighting()
 			&& PrimitiveSceneInfo->Proxy->CastsStaticShadow()
+			// Don't mark unbuilt for movable primitives which were built with lightmaps but moved into a new light's influence
+			&& !PrimitiveSceneInfo->Proxy->LightAsIfStatic()
 			&& (LightSceneInfo->Proxy->HasStaticLighting() || (LightSceneInfo->Proxy->HasStaticShadowing() && !bInIsShadowMapped)))
 		{
 			// Update the game thread's counter of number of uncached static lighting interactions.

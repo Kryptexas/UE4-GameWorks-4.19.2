@@ -48,6 +48,7 @@ FPrimitiveSceneProxy::FPrimitiveSceneProxy(const UPrimitiveComponent* InComponen
 ,	bCastInsetShadow(InComponent->bSelfShadowOnly ? true : InComponent->bCastInsetShadow)	// Assumed to be enabled if bSelfShadowOnly is enabled.
 ,	bCastCinematicShadow(InComponent->bCastCinematicShadow)
 ,	bCastFarShadow(InComponent->bCastFarShadow)
+,	bLightAsIfStatic(InComponent->bLightAsIfStatic)
 ,	bLightAttachmentsAsGroup(InComponent->bLightAttachmentsAsGroup)
 ,	bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer(false)
 ,	bAlwaysHasVelocity(false)

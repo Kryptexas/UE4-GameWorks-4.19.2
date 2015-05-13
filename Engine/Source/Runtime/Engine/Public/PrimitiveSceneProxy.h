@@ -399,6 +399,7 @@ public:
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
 	inline bool CastsCinematicShadow() const { return bCastCinematicShadow; }
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
+	inline bool LightAsIfStatic() const { return bLightAsIfStatic; }
 	inline bool LightAttachmentsAsGroup() const { return bLightAttachmentsAsGroup; }
 	inline bool StaticElementsAlwaysUseProxyPrimitiveUniformBuffer() const { return bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer; }
 	inline bool ShouldUseAsOccluder() const { return bUseAsOccluder; }
@@ -595,6 +596,12 @@ protected:
 
 	/* When enabled, the component will be rendering into the distant shadow cascades (only for directional lights). */
 	uint32 bCastFarShadow : 1;
+
+	/** 
+	 * This has to be known by the rendering thread to avoid marking lighting dirty when new interactions are created,
+	 * Which happens when a movable mesh with bLightAsIfStatic moves into the influence of a light it was not baked against.
+	 */
+	uint32 bLightAsIfStatic : 1;
 
 	/** 
 	 * Whether to light this component and any attachments as a group.  This only has effect on the root component of an attachment tree.
