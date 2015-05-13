@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2490420
+﻿INTSourceChangelist:2545993
 Availability:Public
 Title:1.キャラクター設定
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -31,7 +31,7 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 [/REGION]
 
 
-1.	プロジェクトを開いたら、 **コンテンツブラウザ** を **右クリック** して、 **[Animation]** そして **[Animation ブループリント]** を選択します。 
+1.	プロジェクトを開いたら、 **コンテンツブラウザ** を **右クリック** して、 **[Animation]** そして **[Animation Blueprint]** を選択します。 
 
 	![](Characters_1b.png)
 
@@ -41,7 +41,7 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 1.	**Animation ブループリント** に「 **MyAnimationBlueprint** 」などの名前を付けます。 
 
-1.	**コンテンツブラウザ** を **右クリック** して、 **[ブループリント]** から **[Character]** をクラスとして選択します。 
+1.	**コンテンツブラウザ** を **右クリック** して、 **[Blueprint Class]** から **[Character]** をクラスとして選択します。 
 
 1.	「 **MyCharacter** 」などの名前を付けて開き、 [Component] タブをクリックします。 
 
@@ -60,8 +60,8 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 1.	**[Add Component]** ボタンをクリックして、 **Spring Arm** を追加します。 
 
 1.	**[Details]** パネルで **Z** に対する **Location** を **50** に、 **Z** に対する **Socket Offset** を **30** に設定して、 **[Use Pawn Control Rotation]** にチェックを入れます。 
-	![](Characters_4.png)
 
+	![](Characters_4.png)
 
 	**Spring Arm** コンポーネントは、 **Camera** と一緒に使ってサードパーソン視点を作成します。
 
@@ -81,7 +81,7 @@ Description:キャラクターに設定を行い、このガイドで後に必�
 
 	![](Characters_6.png)
 
-1.	次に **Walk Speed** を件sカウして、 **Max Walk Speed** を **200** に、 **Max Walk Speed Crouched** を **160** に設定します。 
+1.	次に **Walk Speed** を検索して、 **Max Walk Speed** を **200** に、 **Max Walk Speed Crouched** を **160** に設定します。 
 
 	![](Characters_7.png)
 
