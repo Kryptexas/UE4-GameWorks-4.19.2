@@ -54,6 +54,12 @@ public:
 	*/
 	class FAudioDevice* GetAudioDevice(uint32 Handle);
 
+	/**
+	* Returns a ptr to the active audio device. If there is no active 
+	* device then it will return the main audio device.
+	*/
+	class FAudioDevice* GetActiveAudioDevice();
+
 	/** Returns the current number of active audio devices. */
 	uint8 GetNumActiveAudioDevices() const;
 
@@ -157,6 +163,9 @@ private:
 
 	/** Which audio device is solo'd */
 	uint32 SoloDeviceHandle;
+
+	/** Which audio device is currently active */
+	uint32 ActiveAudioDeviceHandle;
 };
 
 
