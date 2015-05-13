@@ -135,6 +135,14 @@ bool UBlueprintBoundEventNodeSpawner::IsBindingCompatible(UObject const* Binding
 	}
 
 	const UMulticastDelegateProperty* Delegate = GetEventDelegate();
+
+	if ( !ensureMsgf(!FBlueprintNodeSpawnerUtils::IsStaleFieldAction(this), 
+			TEXT("Invalid BlueprintBoundEventNodeSpawner (for %s). Was the action database properly updated when this class was compiled?"), 
+			*Delegate->GetOwnerClass()->GetName()))
+	{
+		return false;
+	}
+
 	UClass* DelegateOwner = Delegate->GetOwnerClass()->GetAuthoritativeClass();
 	UClass* BindingClass  = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingCandidate)->GetAuthoritativeClass();
 

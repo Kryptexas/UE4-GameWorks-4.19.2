@@ -428,6 +428,13 @@ bool UBlueprintFunctionNodeSpawner::IsBindingCompatible(UObject const* BindingCa
 	UFunction const* Function = GetFunction();
 	checkSlow(Function != nullptr);
 
+	if ( !ensureMsgf(!FBlueprintNodeSpawnerUtils::IsStaleFieldAction(this), 
+			TEXT("Invalid BlueprintFunctionNodeSpawner (for %s). Was the action database properly updated when this class was compiled?"), 
+			*Function->GetOwnerClass()->GetName()) )
+	{
+		return false;
+	}
+
 	bool const bNodeTypeMatches = (NodeClass == UK2Node_CallFunction::StaticClass());
 	bool bClassOwnerMatches = false;
 

@@ -2015,6 +2015,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 					CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 					Compiler.CompileBlueprint(SkelBlueprint, CompileOptions, Results);
 
+					SkelBlueprint->BroadcastCompiled();
+
 					SkeletalRecompileChildren(ChildrenOfClass);
 				}
 			}
