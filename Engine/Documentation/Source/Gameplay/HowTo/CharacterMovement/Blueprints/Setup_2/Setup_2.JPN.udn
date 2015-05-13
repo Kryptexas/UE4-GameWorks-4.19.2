@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2474082
+﻿INTSourceChangelist:2547516
 Availability:Public
 Title:3.キャラクター設定の完了
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -38,7 +38,7 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 
 	_画像をクリックしてフルサイズで表示_
 
-	**DisableMovement** が _False_ の場合のみ、キャラクターの移動が可能になります。アニメーションが存在しないのに、キャラクターが移動してしまうことを防ぐためです。例えば、 Prone Idle アニメーションはあっても、 Prone Crawl アニメーションはありません。前かがみになった時にプレイヤーが地面に滑り落ちないようにするために、移動を無効にするのです。 
+	**DisableMovement** が _False_ の場合のみ、キャラクターの移動が可能になります。これは、アニメーションが存在しないのに、キャラクターが移動してしまうことを防ぐためです。例えば、 Prone Idle アニメーションはあっても、 Prone Crawl アニメーションはありません。前かがみになった時にプレイヤーが地面に滑り落ちないようにするために、移動を無効にするのです。 
 
 1.	**右クリック** して **InputAxis Turn** Event と **InputAxis LookUp** Event を追加します。
 
@@ -59,8 +59,8 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 	![](Character_JogB.png)(w:720)
 
 	Jog が押されると **Jog Pressed** が True に設定され、 **Character Movement** コンポーネントでキャラクターの **Max Walk Speed** を **375** に設定します (この値を調整して Jog 速度を増減することができます)。 
-
 	Jog を放す時に、しゃがんでいるかどうか、Walk Speed が **160** (しゃがんで歩く速度) に設定されているかどうかを確認します。しゃがんでいなければ、 Walk Speed を **200** (デフォルトの歩行速度) に設定します。これにより、ステートが Jog から Crouch または Walking になり、適宜元に戻るようになります。 
+
 
 1.	グラフ内を **右クリック** して、 **InputAction Jog** イベントを追加します。 
 
@@ -96,7 +96,7 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 
 	1 回目に押す時は、 **Prone Pressed** と **DisableMovement** が両方 True に設定されて、Prone ステートになりキャラクターの移動は無効にされます。2 度目を押すと、Prone ステートを終了するために **DisableMovement** が False に設定されて、再度移動が可能になるまで若干遅れ (**1.4** に設定) が加わります (立っている状態にアニメーションが戻る途中でプレイヤーが移動しないようにするためです)。 
 
-	1.	グラフ内を **右クリック** して、 **InputAction Jump** イベントを追加し、 **[MyBlueprint]** ウィンドウから **CharacterMovement** をドラッグします。
+1.	グラフ内を **右クリック** して、 **InputAction Jump** イベントを追加し、 **[MyBlueprint]** ウィンドウから **CharacterMovement** をドラッグします。
 
 1.	**Alt** を押しながら **Jump Pressed** 変数をドラッグしたら、 **Control** を押しながら **DisableMovement** 変数と **CrouchPressed** 変数をドラッグします。 
 
@@ -108,7 +108,7 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 
 	_画像をクリックしてフルサイズで表示_
 
-	Jump スクリプトの場合は、まずステートが Prone か Crouched のいずれかになっているかを確認します。両方とも True ではなければ、 **CharacterMovement** コンポーネントを使って現在の速度を判断します。 0 より大きければ、移動していることになります。 
+	Jump スクリプトの場合は、まずステートが Prone か Crouched のいずれかになっているかを確認します。両方とも _true_ ではなければ、 **CharacterMovement** コンポーネントを使って現在の速度を判断します。 0 より大きければ、移動していることになります。 
 
 	移動しているかどうかに応じて、まだ固定状態のうちに **JumpZVelocity** を **365** (キャラクターが移動している場合) または **340** に設定して、キャラクターがジャンプできる高さを設定します。どちらの場合も **Jump Pressed** は True に設定し、 Jump が解除されると **Jump Pressed** を False に設定します。 
 
