@@ -180,6 +180,7 @@ static void MergeDefaultArgumentsIntoCommandLine(FString& CommandLine, FString D
 		NewCommandLine.AppendChar(TEXT(' '));
 		NewCommandLine.Append(*DefaultArguments, ProjectNameLength);
 		NewCommandLine.Append(*CommandLine + AppNameLength);
+		NewCommandLine.AppendChar(TEXT(' '));
 		NewCommandLine.Append(*DefaultArguments + ProjectNameLength);
 		CommandLine = NewCommandLine;
 	}
