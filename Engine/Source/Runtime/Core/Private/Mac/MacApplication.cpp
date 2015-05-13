@@ -144,12 +144,12 @@ void FMacApplication::PollGameDeviceState(const float TimeDelta)
 		for( auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt )
 		{
 			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
-            if (Device.IsValid())
-            {
-                UE_LOG(LogInit, Log, TEXT("Adding external input plugin."));
-                ExternalInputDevices.Add(Device);
-            }
-        }
+			if (Device.IsValid())
+			{
+				UE_LOG(LogInit, Log, TEXT("Adding external input plugin."));
+				ExternalInputDevices.Add(Device);
+			}
+		}
 
 		bHasLoadedInputPlugins = true;
 	}
@@ -219,7 +219,7 @@ FModifierKeysState FMacApplication::GetModifierKeys() const
 	const bool bIsRightAltDown			= (CurrentFlags & (1 << 5)) != 0;
 	const bool bIsLeftCommandDown		= (CurrentFlags & (1 << 2)) != 0; // Mac pretends the Control key is Command
 	const bool bIsRightCommandDown		= (CurrentFlags & (1 << 3)) != 0; // Mac pretends the Control key is Command
-	const bool bAreCapsLocked           = (CurrentFlags & (1 << 8)) != 0;
+	const bool bAreCapsLocked			= (CurrentFlags & (1 << 8)) != 0;
 
 	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown, bAreCapsLocked);
 }
@@ -386,13 +386,13 @@ void FMacApplication::DeferEvent(NSObject* Object)
 		}
 		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
 		{
-            NSWindow* NotificationWindow = [(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
-            
-            if (NotificationWindow && [NotificationWindow isKindOfClass:[FCocoaWindow class]])
-            {
-           		DeferredEvent.Window = (FCocoaWindow*)NotificationWindow;
-            }
-            
+			NSWindow* NotificationWindow = [(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
+
+			if (NotificationWindow && [NotificationWindow isKindOfClass:[FCocoaWindow class]])
+			{
+				DeferredEvent.Window = (FCocoaWindow*)NotificationWindow;
+			}
+
 			if (DeferredEvent.NotificationName == NSPrepareForDragOperation)
 			{
 				DeferredEvent.DraggingPasteboard = [[(id<NSDraggingInfo>)[Notification object] draggingPasteboard] retain];
