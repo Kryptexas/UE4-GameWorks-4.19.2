@@ -254,7 +254,7 @@ namespace PropertyCustomizationHelpers
 			SNew(SPropertyEditorButton)
 			.Text(LOCTEXT("EditConfigHierarchyButtonLabel", "Edit Config Hierarchy"))
 			.ToolTipText(OptionalToolTipText.Get().IsEmpty() ? LOCTEXT("EditConfigHierarchyButtonToolTipText", "Edit the config values of this property") : OptionalToolTipText)
-			.Image(FEditorStyle::GetBrush("DetailsView.EditRawProperties"))
+			.Image(FEditorStyle::GetBrush("DetailsView.EditConfigProperties"))
 			.OnClickAction(OnEditConfigClicked)
 			.IsEnabled(IsEnabled)
 			.IsFocusable(false);
