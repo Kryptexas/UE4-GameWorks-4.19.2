@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2247420
+﻿INTSourceChangelist:2548430
 Availability: Docs
 Title:1.7 - 디스트럭션 사운드
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
@@ -36,6 +36,6 @@ Description:Destructibility 예제 레벨에 대한 개요로, 예제 1.7: Destr
 Needs to point out either blueprint use or how this actually works, would be nice 
 [/REGION]
 
-[REGION:lightbox]
+<!--[REGION:lightbox]
 [![](1_5_solid.png)(w:300)](1_5_solid.png)
-[/REGION]
+[/REGION]-->

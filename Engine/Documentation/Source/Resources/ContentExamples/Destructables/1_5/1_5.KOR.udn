@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2092049
+﻿INTSourceChangelist:2548430
 Availability: Docs
 Title:1.5 - 월드 지지대
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
@@ -32,6 +32,6 @@ Description:Destructibility 예제 레벨에 대한 개요로, 예제 1.5: World
 
 이렇게 하면 디스트럭터블 메시가 스태틱 월드 지오메트리 조각에 묶입니다. **스타틱 메시** 에 접한 디스트럭터블 메시의 모든 부분은 환경에 고정된 것처럼 작동합니다.
 
-[REGION:lightbox]
+<!--[REGION:lightbox]
 [![](1_3_solid.png)(w:300)](1_3_solid.png) [![](1_3_fractured.png)(w:300)](1_3_fractured.png) [![](1_3_blown.png)(w:300)](1_3_blown.png)
-[/REGION]
+[/REGION]-->
