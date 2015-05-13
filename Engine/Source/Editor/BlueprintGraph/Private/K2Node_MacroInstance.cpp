@@ -288,6 +288,8 @@ void UK2Node_MacroInstance::NotifyPinConnectionListChanged(UEdGraphPin* ChangedP
 
 void UK2Node_MacroInstance::NodeConnectionListChanged()
 {
+	Super::NodeConnectionListChanged();
+
 	if (bReconstructNode)
 	{
 		ReconstructNode();

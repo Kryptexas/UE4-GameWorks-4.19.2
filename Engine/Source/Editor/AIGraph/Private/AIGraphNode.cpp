@@ -221,6 +221,8 @@ bool UAIGraphNode::IsSubNode() const
 
 void UAIGraphNode::NodeConnectionListChanged()
 {
+	Super::NodeConnectionListChanged();
+
 	GetAIGraph()->UpdateAsset();
 }
 
