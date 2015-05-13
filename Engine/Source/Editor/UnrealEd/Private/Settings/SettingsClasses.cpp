@@ -356,7 +356,7 @@ void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEve
 {
 	if (BuildGameBeforeLaunch != EPlayOnBuildMode::PlayOnBuild_Always && !FSourceCodeNavigation::IsCompilerAvailable())
 	{
-		BuildGameBeforeLaunch == EPlayOnBuildMode::PlayOnBuild_Never;
+		BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Never;
 	}
 }
 /* ULevelEditorViewportSettings interface
