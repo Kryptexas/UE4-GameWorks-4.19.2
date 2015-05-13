@@ -11,6 +11,7 @@
 #include "ScreenRendering.h"
 #include "SceneFilterRendering.h"
 #include "SceneUtils.h"
+#include "PostProcessing.h"
 
 /*-----------------------------------------------------------------------------
 	Globals
