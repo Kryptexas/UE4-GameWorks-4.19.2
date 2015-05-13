@@ -823,6 +823,16 @@ bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	// Do it again, preventing access to non-cooked files
 	if( bIsStreamingRequest == false )
 	{
+		TArray<FString> RootContentPaths;
+		FPackageName::QueryRootContentPaths(RootContentPaths); 
+		TArray<FString> ContentFolders;
+		for (const auto& RootPath : RootContentPaths)
+		{
+			const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);
+			ContentFolders.Add(ContentFolder);
+		}
+		Out << ContentFolders;
+
 		// Do it again, preventing access to non-cooked files
 		const int32 NUM_EXCLUSION_WILDCARDS = 2;
 		FString ExclusionWildcard[NUM_EXCLUSION_WILDCARDS];

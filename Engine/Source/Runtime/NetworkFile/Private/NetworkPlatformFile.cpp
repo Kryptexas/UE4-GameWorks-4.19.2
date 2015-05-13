@@ -172,6 +172,11 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 			int32 ServerPackageLicenseeVersion = 0;
 			ProcessServerInitialResponse(Response, ServerPackageVersion, ServerPackageLicenseeVersion);
 
+
+			/* The server root content directories */
+			TArray<FString> ServerRootContentDirectories;
+			Response << ServerRootContentDirectories;
+
 			// receive a list of the cache files and their timestamps
 			TMap<FString, FDateTime> ServerCachedFiles;
 			Response << ServerCachedFiles;
@@ -234,13 +239,13 @@ void FNetworkPlatformFile::InitializeAfterSetActive()
 			// use the timestamp grabbing visitor to get all the content times
 			FLocalTimestampDirectoryVisitor Visitor(*InnerPlatformFile, DirectoriesToSkip, DirectoriesToNotRecurse, false);
 
-			TArray<FString> RootContentPaths;
-			FPackageName::QueryRootContentPaths( RootContentPaths );
-			for( TArray<FString>::TConstIterator RootPathIt( RootContentPaths ); RootPathIt; ++RootPathIt )
+			/*TArray<FString> RootContentPaths;
+			FPackageName::QueryRootContentPaths(RootContentPaths); */
+			for (TArray<FString>::TConstIterator RootPathIt(ServerRootContentDirectories); RootPathIt; ++RootPathIt)
 			{
-				const FString& RootPath = *RootPathIt;
-				const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);
-
+				/*const FString& RootPath = *RootPathIt;
+				const FString& ContentFolder = FPackageName::LongPackageNameToFilename(RootPath);*/
+				const FString& ContentFolder = *RootPathIt;
 				InnerPlatformFile->IterateDirectory( *ContentFolder, Visitor);
 			}
 
