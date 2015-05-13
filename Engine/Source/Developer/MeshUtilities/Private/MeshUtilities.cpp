@@ -994,6 +994,8 @@ void FMeshUtilities::BuildSkeletalModelFromChunks(FStaticLODModel& LODModel,cons
 			LODModel.ActiveBoneIndices.AddUnique(Chunk.BoneMap[BoneIndex]);
 		}
 	}
+	
+	LODModel.ActiveBoneIndices.Sort();
 
 	// Reset 'final vertex to import vertex' map info
 	LODModel.MeshToImportVertexMap.Empty();
