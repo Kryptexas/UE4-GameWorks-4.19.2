@@ -413,7 +413,7 @@ public:
 		return !(IsDesignTime() || GIntraFrameDebuggingGameThread || HasAnyFlags(RF_Unreachable) || FUObjectThreadContext::Get().IsRoutingPostLoad);
 	}
 #else
-	FORCEINLINE bool CanSafelyRouteEvent() { return true; }
+	FORCEINLINE bool CanSafelyRouteEvent() { return !(HasAnyFlags(RF_Unreachable) || FUObjectThreadContext::Get().IsRoutingPostLoad); }
 #endif
 
 #if WITH_EDITOR
