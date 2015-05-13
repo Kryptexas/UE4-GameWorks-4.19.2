@@ -243,40 +243,50 @@ class FStreamedAudioCacheDerivedDataWorker : public FNonAbandonableTask
 			DerivedData->AudioFormat = AudioFormatName;
 
 			FByteBulkData* CompressedData = SoundWave.GetCompressedData(AudioFormatName);
-			TArray<uint8> CompressedBuffer;
-			CompressedBuffer.Empty(CompressedData->GetBulkDataSize());
-			CompressedBuffer.AddUninitialized(CompressedData->GetBulkDataSize());
-			void* BufferData = CompressedBuffer.GetData();
-			CompressedData->GetCopy(&BufferData, false);
-			TArray<TArray<uint8>> ChunkBuffers;
-
-			if (AudioFormat->SplitDataForStreaming(CompressedBuffer, ChunkBuffers))
+			if (CompressedData)
 			{
-				for (int32 ChunkIndex = 0; ChunkIndex < ChunkBuffers.Num(); ++ChunkIndex)
+				TArray<uint8> CompressedBuffer;
+				CompressedBuffer.Empty(CompressedData->GetBulkDataSize());
+				CompressedBuffer.AddUninitialized(CompressedData->GetBulkDataSize());
+				void* BufferData = CompressedBuffer.GetData();
+				CompressedData->GetCopy(&BufferData, false);
+				TArray<TArray<uint8>> ChunkBuffers;
+
+				if (AudioFormat->SplitDataForStreaming(CompressedBuffer, ChunkBuffers))
 				{
+					for (int32 ChunkIndex = 0; ChunkIndex < ChunkBuffers.Num(); ++ChunkIndex)
+					{
+						FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
+						NewChunk->DataSize = ChunkBuffers[ChunkIndex].Num();
+						NewChunk->BulkData.Lock(LOCK_READ_WRITE);
+						void* NewChunkData = NewChunk->BulkData.Realloc(ChunkBuffers[ChunkIndex].Num());
+						FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetData(), ChunkBuffers[ChunkIndex].Num());
+						NewChunk->BulkData.Unlock();
+					}
+				}
+				else
+				{
+					// Could not split so copy compressed data into a single chunk
 					FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
-					NewChunk->DataSize = ChunkBuffers[ChunkIndex].Num();
+					NewChunk->DataSize = CompressedBuffer.Num();
 					NewChunk->BulkData.Lock(LOCK_READ_WRITE);
-					void* NewChunkData = NewChunk->BulkData.Realloc(ChunkBuffers[ChunkIndex].Num());
-					FMemory::Memcpy(NewChunkData, ChunkBuffers[ChunkIndex].GetData(), ChunkBuffers[ChunkIndex].Num());
+					void* NewChunkData = NewChunk->BulkData.Realloc(CompressedBuffer.Num());
+					FMemory::Memcpy(NewChunkData, CompressedBuffer.GetData(), CompressedBuffer.Num());
 					NewChunk->BulkData.Unlock();
 				}
+
+				DerivedData->NumChunks = DerivedData->Chunks.Num();
+
+				// Store it in the cache.
+				PutDerivedDataInCache(DerivedData, KeySuffix);
 			}
 			else
 			{
-				// Could not split so copy compressed data into a single chunk
-				FStreamedAudioChunk* NewChunk = new(DerivedData->Chunks) FStreamedAudioChunk();
-				NewChunk->DataSize = CompressedBuffer.Num();
-				NewChunk->BulkData.Lock(LOCK_READ_WRITE);
-				void* NewChunkData = NewChunk->BulkData.Realloc(CompressedBuffer.Num());
-				FMemory::Memcpy(NewChunkData, CompressedBuffer.GetData(), CompressedBuffer.Num());
-				NewChunk->BulkData.Unlock();
+				UE_LOG(LogAudio, Warning, TEXT("Failed to retrieve compressed data for format %s and soundwave %s"),
+					   *AudioFormatName.GetPlainNameString(),
+					   *SoundWave.GetPathName()
+					);
 			}
-
-			DerivedData->NumChunks = DerivedData->Chunks.Num();
-
-			// Store it in the cache.
-			PutDerivedDataInCache(DerivedData, KeySuffix);
 		}
 		
 		if (DerivedData->Chunks.Num())
