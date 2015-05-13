@@ -93,6 +93,7 @@ void FConfigPropertyHelperDetails::OnPropertyValueChanged(UObject* Object, FProp
 			FString	Value;
 			ConfigEditorCopyOfEditProperty->ExportText_InContainer(0, Value, Object, Object, Object, 0);
 			NewFile.SetString(*SectionName, *PropertyName, *Value);
+			GConfig->SetString(*SectionName, *PropertyName, *Value, ConfigIniName);
 
 			NewFile.UpdateSinglePropertyInSection(*ConfigIniName, *PropertyName, *SectionName);
 
