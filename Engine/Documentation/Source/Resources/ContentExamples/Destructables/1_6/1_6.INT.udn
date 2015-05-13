@@ -1,4 +1,4 @@
-Availability: Docs
+﻿Availability: Docs
 Title:1.6 - Destruction Particle Effects
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
 Description:An overview of the Destructibility example level, example 1.6: Destruction Particle Effects
@@ -35,6 +35,6 @@ Spawn a particle effect when mesh gets destroyed.
 Some brief rules about where the emitter is spawned would be nice. Content example is lacking a particle effect for this section.
 [/REGION]
 
-[REGION:lightbox]
+<!--[REGION:lightbox]
 [![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
-[/REGION]
+[/REGION]-->

@@ -1,4 +1,4 @@
-Availability: Docs
+﻿Availability: Docs
 Title:1.7 - Destruction Sounds
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
 Description:An overview of the Destructibility example level, example 1.7: Destruction Sounds
@@ -35,6 +35,6 @@ Plays sound on Destruction event.
 Needs to point out either blueprint use or how this actually works, would be nice 
 [/REGION]
 
-[REGION:lightbox]
+<!--[REGION:lightbox]
 [![](1_5_solid.png)(w:300)](1_5_solid.png)
-[/REGION]
+[/REGION]-->
