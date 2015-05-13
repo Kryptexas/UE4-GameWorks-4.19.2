@@ -20,6 +20,15 @@ static TAutoConsoleVariable<int32> CVarAmbientOcclusionSampleSetQuality(
 	TEXT("1: high sample count (defined in shader, 6 * 2 per pixel)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarAmbientOcclusionStepMipLevelFactor(
+	TEXT("r.AmbientOcclusionMipLevelFactor"),
+	0.5f,
+	TEXT("Controle mipmap level according to the SSAO step id\n")
+	TEXT("0: always look into the HZB mipmap level 0 (memory cache trashing)\n")
+	TEXT("0.5: sample count depends on post process settings (default)\n")
+	TEXT("1: Go into higher mipmap level (quality loss)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters,TEXT("CameraMotion"));
 
 /** Encapsulates the post processing ambient occlusion pixel shader. */
@@ -141,6 +150,7 @@ class FPostProcessAmbientOcclusionPS : public FGlobalShader
 	FPostProcessAmbientOcclusionPS() {}
 
 public:
+	FShaderParameter HzbUvAndStepMipLevelFactor;
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FScreenSpaceAOandSSRShaderParameters ScreenSpaceAOandSSRShaderParams;
@@ -156,6 +166,7 @@ public:
 		ScreenSpaceAOandSSRShaderParams.Bind(Initializer.ParameterMap);
 		RandomNormalTexture.Bind(Initializer.ParameterMap, TEXT("RandomNormalTexture"));
 		RandomNormalTextureSampler.Bind(Initializer.ParameterMap, TEXT("RandomNormalTextureSampler"));
+		HzbUvAndStepMipLevelFactor.Bind(Initializer.ParameterMap, TEXT("HzbUvAndStepMipLevelFactor"));
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context, FIntPoint InputTextureSize)
@@ -174,13 +185,22 @@ public:
 		SetTextureParameter(Context.RHICmdList, ShaderRHI, RandomNormalTexture, RandomNormalTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), SSAORandomization.ShaderResourceTexture);
 
 		ScreenSpaceAOandSSRShaderParams.Set(Context.RHICmdList, Context.View, ShaderRHI, InputTextureSize);
+		
+		const float HzbStepMipLevelFactorValue = FMath::Clamp(CVarAmbientOcclusionStepMipLevelFactor.GetValueOnRenderThread(), 0.0f, 1.0f);
+		const FVector HzbUvAndStepMipLevelFactorValue(
+			float(Context.View.ViewRect.Width()) / float(2 * Context.View.HZBMipmap0Size.X),
+			float(Context.View.ViewRect.Height()) / float(2 * Context.View.HZBMipmap0Size.Y),
+			HzbStepMipLevelFactorValue
+			);
+		
+		SetShaderValue(Context.RHICmdList, ShaderRHI, HzbUvAndStepMipLevelFactor, HzbStepMipLevelFactorValue );
 	}
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << ScreenSpaceAOandSSRShaderParams << RandomNormalTexture << RandomNormalTextureSampler;
+		Ar << HzbUvAndStepMipLevelFactor << PostprocessParameter << DeferredParameters << ScreenSpaceAOandSSRShaderParams << RandomNormalTexture << RandomNormalTextureSampler;
 		return bShaderHasOutdatedParameters;
 	}
 

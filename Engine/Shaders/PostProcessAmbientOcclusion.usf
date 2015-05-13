@@ -130,6 +130,7 @@ float4 NoiseScale;
 Texture2D RandomNormalTexture;
 SamplerState RandomNormalTextureSampler;
 
+float3 HzbUvAndStepMipLevelFactor;
 
 // could be moved to a more central spot
 // @param ScreenPos -1 .. 1
@@ -337,10 +338,10 @@ float2 Wedge(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, f
 
 	float2 ScreenSpacePos = ReconstructSSPosFromCS(SamplePosition2 * FovFix);
 
-#if USE_HZB
+#if USE_estmap 
 	float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-	float Abs = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, UV, MipLevel).r);
+	float Abs = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 #else
 	float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
 
@@ -385,7 +386,7 @@ float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, 
 	#if USE_HZB
 		float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, UV, MipLevel).r);
+		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 	#else
 		float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
 
@@ -418,7 +419,7 @@ float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, 
 	#if USE_HZB
 		float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-		AbsRight = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, UV, MipLevel).r);
+		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 	#else
 		float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
 
@@ -559,7 +560,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 					// constant at run time
 					float Scale = (step + 1) / (float)SAMPLE_STEPS;
 					// constant at run time (higher is better for texture cache / performance, lower is better quality
-					float MipLevel = max(step, (uint)1);
+					float MipLevel = log2(1.0f + HzbUvAndStepMipLevelFactor.z * step);
 
 					float2 StepSample = Wedge2(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
 
@@ -581,7 +582,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 						// constant at run time
 						float Scale = (step + 1) / (float)SAMPLE_STEPS * mirror;
 						// constant at run time (higher is better for texture cache / performance, lower is better quality
-						float MipLevel = max(step, (uint)1);
+						float MipLevel = log2(1.0f + HzbUvAndStepMipLevelFactor.z * step);
 
 						float2 StepSample = Wedge(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
 

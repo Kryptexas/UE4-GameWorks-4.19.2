@@ -625,7 +625,8 @@ class FHZBTestPS : public FGlobalShader
 	FHZBTestPS() {}
 
 public:
-	FShaderParameter				InvSizeParameter;
+	FShaderParameter				HZBUvFactor;
+	FShaderParameter				HZBSize;
 	FShaderResourceParameter		HZBTexture;
 	FShaderResourceParameter		HZBSampler;
 	FShaderResourceParameter		BoundsCenterTexture;
@@ -636,7 +637,8 @@ public:
 	FHZBTestPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FGlobalShader(Initializer)
 	{
-		InvSizeParameter.Bind( Initializer.ParameterMap, TEXT("InvSize") );
+		HZBUvFactor.Bind( Initializer.ParameterMap, TEXT("HZBUvFactor") );
+		HZBSize.Bind( Initializer.ParameterMap, TEXT("HZBSize") );
 		HZBTexture.Bind( Initializer.ParameterMap, TEXT("HZBTexture") );
 		HZBSampler.Bind( Initializer.ParameterMap, TEXT("HZBSampler") );
 		BoundsCenterTexture.Bind( Initializer.ParameterMap, TEXT("BoundsCenterTexture") );
@@ -651,8 +653,26 @@ public:
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
 
-		const FVector2D InvSize( 1.0f / 512.0f, 1.0f / 256.0f );
-		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
+		/*
+		 * Defines the maximum number of mipmaps the HZB test is considering
+		 * to avoid memory cache trashing when rendering on high resolution.
+		 */
+		const float kHZBTestMaxMipmap = 9.0f;
+
+		const float HZBMipmapCounts = FMath::Log2(FMath::Max(View.HZBMipmap0Size.X, View.HZBMipmap0Size.Y));
+		const FVector HZBUvFactorValue(
+			float(View.ViewRect.Width()) / float(2 * View.HZBMipmap0Size.X),
+			float(View.ViewRect.Height()) / float(2 * View.HZBMipmap0Size.Y),
+			FMath::Max(HZBMipmapCounts - kHZBTestMaxMipmap, 0.0f)
+			);
+		const FVector4 HZBSizeValue(
+			View.HZBMipmap0Size.X,
+			View.HZBMipmap0Size.Y,
+			1.0f / float(View.HZBMipmap0Size.X),
+			1.0f / float(View.HZBMipmap0Size.Y)
+			);
+		SetShaderValue(RHICmdList, ShaderRHI, HZBUvFactor, HZBUvFactorValue);
+		SetShaderValue(RHICmdList, ShaderRHI, HZBSize, HZBSizeValue);
 
 		SetTextureParameter(RHICmdList, ShaderRHI, HZBTexture, HZBSampler, TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), View.HZB->GetRenderTargetItem().ShaderResourceTexture );
 
@@ -663,7 +683,8 @@ public:
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << InvSizeParameter;
+		Ar << HZBUvFactor;
+		Ar << HZBSize;
 		Ar << HZBTexture;
 		Ar << HZBSampler;
 		Ar << BoundsCenterTexture;
@@ -876,6 +897,8 @@ class THZBBuildPS : public FGlobalShader
 
 public:
 	FShaderParameter				InvSizeParameter;
+	FShaderParameter				InputUvFactorAndOffsetParameter;
+	FShaderParameter				InputViewportMaxBoundParameter;
 	FSceneTextureShaderParameters	SceneTextureParameters;
 	FShaderResourceParameter		TextureParameter;
 	FShaderResourceParameter		TextureParameterSampler;
@@ -884,19 +907,34 @@ public:
 		: FGlobalShader(Initializer)
 	{
 		InvSizeParameter.Bind( Initializer.ParameterMap, TEXT("InvSize") );
+		InputUvFactorAndOffsetParameter.Bind( Initializer.ParameterMap, TEXT("InputUvFactorAndOffset") );
+		InputViewportMaxBoundParameter.Bind( Initializer.ParameterMap, TEXT("InputViewportMaxBound") );
 		SceneTextureParameters.Bind( Initializer.ParameterMap );
 		TextureParameter.Bind( Initializer.ParameterMap, TEXT("Texture") );
 		TextureParameterSampler.Bind( Initializer.ParameterMap, TEXT("TextureSampler") );
 	}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FIntPoint& Size )
+	void SetParameters(FRHICommandList& RHICmdList, const FViewInfo& View)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View );
-
-		const FVector2D InvSize( 1.0f / Size.X, 1.0f / Size.Y );
+		
+		const FIntPoint GBufferSize = GSceneRenderTargets.GetBufferSizeXY();
+		const FVector2D InvSize( 1.0f / float(GBufferSize.X), 1.0f / float(GBufferSize.Y) );
+		const FVector4 InputUvFactorAndOffset (
+			float(2 * View.HZBMipmap0Size.X) / float(GBufferSize.X),
+			float(2 * View.HZBMipmap0Size.Y) / float(GBufferSize.Y),
+			float(View.ViewRect.Min.X) / float(GBufferSize.X),
+			float(View.ViewRect.Min.Y) / float(GBufferSize.Y)
+			);
+		const FVector2D InputViewportMaxBound (
+			float(View.ViewRect.Max.X) / float(GBufferSize.X) - 0.5f * InvSize.X,
+			float(View.ViewRect.Max.Y) / float(GBufferSize.Y) - 0.5f * InvSize.Y
+			);
 		SetShaderValue(RHICmdList, ShaderRHI, InvSizeParameter, InvSize );
+		SetShaderValue(RHICmdList, ShaderRHI, InputUvFactorAndOffsetParameter, InputUvFactorAndOffset );
+		SetShaderValue(RHICmdList, ShaderRHI, InputViewportMaxBoundParameter, InputViewportMaxBound );
 		
 		SceneTextureParameters.Set(RHICmdList, ShaderRHI, View );
 	}
@@ -920,6 +958,8 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << InvSizeParameter;
+		Ar << InputUvFactorAndOffsetParameter;
+		Ar << InputViewportMaxBoundParameter;
 		Ar << SceneTextureParameters;
 		Ar << TextureParameter;
 		Ar << TextureParameterSampler;
@@ -934,10 +974,16 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHZB);
 	SCOPED_DRAW_EVENT(RHICmdList, BuildHZB);
+	
+	// View.ViewRect.{Width,Height}() are most likely to be < 2^24, so the float
+	// conversion won't loss any precision (assuming float have 23bits for mantissa)
+	const uint32 NumMipsX = FPlatformMath::CeilToInt(FMath::Log2(float(View.ViewRect.Width()))) - 1;
+	const uint32 NumMipsY = FPlatformMath::CeilToInt(FMath::Log2(float(View.ViewRect.Height()))) - 1;
+	const uint32 NumMips = FMath::Max(NumMipsX, NumMipsY);
 
 	// Must be power of 2
-	const FIntPoint HZBSize( 512, 256 );
-	const uint32 NumMips = 8;
+	const FIntPoint HZBSize( 1 << NumMipsX, 1 << NumMipsY );
+	View.HZBMipmap0Size = HZBSize;
 
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
 	Desc.Flags |= TexCreate_FastVRAM;
@@ -953,7 +999,7 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	{
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, 0, NULL);
 
-		TShaderMapRef< FScreenVS >		VertexShader(View.ShaderMap);
+		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< THZBBuildPS<0> >	PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;
@@ -961,7 +1007,7 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 		SetGlobalBoundShaderState(RHICmdList, View.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 		// Imperfect sampling, doesn't matter too much
-		PixelShader->SetParameters( RHICmdList, View, HZBSize );
+		PixelShader->SetParameters( RHICmdList, View );
 
 		RHICmdList.SetViewport(0, 0, 0.0f, HZBSize.X, HZBSize.Y, 1.0f);
 
@@ -982,12 +1028,15 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 	FIntPoint SrcSize = HZBSize;
 	FIntPoint DstSize = SrcSize / 2;
 	
-	// Mip 1-7
+	// Downsampling...
 	for( uint8 MipIndex = 1; MipIndex < NumMips; MipIndex++ )
 	{
+		DstSize.X = FMath::Max(DstSize.X, 1);
+		DstSize.Y = FMath::Max(DstSize.Y, 1);
+
 		SetRenderTarget(RHICmdList, HZBRenderTarget.TargetableTexture, MipIndex, NULL);
 
-		TShaderMapRef< FScreenVS >		VertexShader(View.ShaderMap);
+		TShaderMapRef< FPostProcessVS >	VertexShader(View.ShaderMap);
 		TShaderMapRef< THZBBuildPS<1> >	PixelShader(View.ShaderMap);
 
 		static FGlobalBoundShaderState BoundShaderState;

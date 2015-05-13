@@ -89,6 +89,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter SSRParams;
+	FShaderParameter HZBUvFactorAndInvFactor;
 
 	/** Initialization constructor. */
 	FPostProcessScreenSpaceReflectionsPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
@@ -97,6 +98,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		SSRParams.Bind(Initializer.ParameterMap, TEXT("SSRParams"));
+		HZBUvFactorAndInvFactor.Bind(Initializer.ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
@@ -127,13 +129,28 @@ public:
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, SSRParams, Value);
 		}
+
+		{
+			const FVector2D HZBUvFactor(
+				float(Context.View.ViewRect.Width()) / float(2 * Context.View.HZBMipmap0Size.X),
+				float(Context.View.ViewRect.Height()) / float(2 * Context.View.HZBMipmap0Size.Y)
+				);
+			const FVector4 HZBUvFactorAndInvFactorValue(
+				HZBUvFactor.X,
+				HZBUvFactor.Y,
+				1.0f / HZBUvFactor.X,
+				1.0f / HZBUvFactor.Y
+				);
+			
+			SetShaderValue(Context.RHICmdList, ShaderRHI, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
+		}
 	}
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << SSRParams;
+		Ar << PostprocessParameter << DeferredParameters << SSRParams << HZBUvFactorAndInvFactor;
 		return bShaderHasOutdatedParameters;
 	}
 };

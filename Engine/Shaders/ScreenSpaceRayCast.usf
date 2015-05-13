@@ -11,10 +11,20 @@
 #define VECTORIZED_BRANCHLESS	0
 #define VECTORIZED_EARLY_OUT	1
 
+#if USE_HZB
+#define HZB_LEVEL_OFFSET 1.0
+
+float4 HZBUvFactorAndInvFactor;
+#else
+#define HZB_LEVEL_OFFSET 0.0
+
+#endif
+
 float4 SampleDepthTexture( Texture2D Texture, SamplerState Sampler, float Level, float4 SampleUV0, float4 SampleUV1 )
 {
 	float4 SampleDepth;
 #if USE_HZB
+	// SampleUV{0,1}.{xy,zw} should already be in the HZB UV frame using HZBUvFactorAndInvFactor.xy
 	SampleDepth.x = Texture2DSampleLevel( Texture, Sampler, SampleUV0.xy, Level ).r;
 	SampleDepth.y = Texture2DSampleLevel( Texture, Sampler, SampleUV0.zw, Level ).r;
 	SampleDepth.z = Texture2DSampleLevel( Texture, Sampler, SampleUV1.xy, Level ).r;
@@ -40,14 +50,25 @@ float4 RayCast( Texture2D Texture, SamplerState Sampler, float3 R, float Roughne
 
 	float3 RayStartScreen = RayStartClip.xyz / RayStartClip.w;
 	float3 RayEndScreen = RayEndClip.xyz / RayEndClip.w;
+	
+	// Make sure the RayStepScreen has a length of 2 in order to have the end point ouside of the viewport
+	float3 RayStepScreen = ( RayEndScreen - RayStartScreen ) / (0.5 * length( RayEndScreen.xy - RayStartScreen.xy ));
 
-	// Normalize 2D length
-	float3 RayStepScreen = ( RayEndScreen - RayStartScreen ) / length( RayEndScreen.xy - RayStartScreen.xy );
-	RayStepScreen *= 1.5;
+	{
+		// Computes the scale down factor for RayStepScreen required to fit on the X and Y axis in order to clip it in the viewport
+		float2 AbsRayStepScreen = abs(RayStepScreen);
+		float2 S = (AbsRayStepScreen - max(abs(RayStepScreen.xy + RayStartScreen.xy) - 1.0f, 0.0f)) / AbsRayStepScreen;
+
+		// Rescales RayStepScreen accordingly
+		RayStepScreen *= min(S.x, S.y);
+	}
 
 #if USE_HZB
 	float3 RayStartUVz = float3( RayStartScreen.xy * float2( 0.5, -0.5 ) + 0.5, RayStartScreen.z );
 	float3 RayStepUVz = float3( RayStepScreen.xy * float2( 0.5, -0.5 ), RayStepScreen.z );
+
+	RayStartUVz.xy *= HZBUvFactorAndInvFactor.xy;
+	RayStepUVz.xy *= HZBUvFactorAndInvFactor.xy;
 #else
 	float3 RayStartUVz = float3( RayStartScreen.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz, RayStartScreen.z );
 	float3 RayStepUVz = float3( RayStepScreen.xy * View.ScreenPositionScaleBias.xy, RayStepScreen.z );
@@ -74,7 +95,7 @@ float4 RayCast( Texture2D Texture, SamplerState Sampler, float3 R, float Roughne
 		float3 SampleUVz = RayStartUVz + RayStepUVz * SampleTime;
 		
 		// Use lower res for farther samples
-		float Level = Roughness * (i * 4.0 / NumSteps);
+		float Level = Roughness * (i * 4.0 / NumSteps) + HZB_LEVEL_OFFSET;
 		float SampleDepth = Texture.SampleLevel( Sampler, SampleUVz.xy, Level ).r;
 
 		float DepthDiff = SampleUVz.z - SampleDepth;
@@ -92,17 +113,14 @@ float4 RayCast( Texture2D Texture, SamplerState Sampler, float3 R, float Roughne
 	}
 
 	float3 HitUVz = RayStartUVz + RayStepUVz * MinHitTime;
-#if USE_HZB
-	HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
-	HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-#endif
+
 	Result = float4( HitUVz, MinHitTime );
 
 #elif VECTORIZED_BRANCHLESS
 
 	float MinHitTime = 1;
 	float LastDiff = 0;
-	float Level = 0;
+	float Level = HZB_LEVEL_OFFSET;
 	
 	// Vectorized to group fetches
 	float4 SampleTime = ( StepOffset + float4( 1, 2, 3, 4 ) ) * Step;
@@ -155,16 +173,13 @@ float4 RayCast( Texture2D Texture, SamplerState Sampler, float3 R, float Roughne
 	}
 
 	float3 HitUVz = RayStartUVz + RayStepUVz * MinHitTime;
-#if USE_HZB
-	HitUVz.xy = HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
-	HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-#endif
+
 	Result = float4( HitUVz, MinHitTime );
 
 #else // VECTORIZED_EARLY_OUT
 
 	float LastDiff = 0;
-	float Level = 0;
+	float Level = HZB_LEVEL_OFFSET;
 
 	float4 SampleTime = ( StepOffset + float4( 1, 2, 3, 4 ) ) * Step;
 
@@ -195,10 +210,7 @@ float4 RayCast( Texture2D Texture, SamplerState Sampler, float3 R, float Roughne
 			float MinHitTime = min( HitTime.x, HitTime.y );
 			
 			float3 HitUVz = RayStartUVz + RayStepUVz * MinHitTime;
-#if USE_HZB
-			HitUVz.xy = HitUVz.xy * float2( 2, -2 ) + float2( -1, 1 );
-			HitUVz.xy = HitUVz.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
-#endif
+
 			Result = float4( HitUVz, MinHitTime );
 			break;
 		}
@@ -209,6 +221,12 @@ float4 RayCast( Texture2D Texture, SamplerState Sampler, float3 R, float Roughne
 		SampleTime += 4.0 / (NumSteps + 1);
 	}
 
+#endif
+	
+#if USE_HZB
+	Result.xy *= HZBUvFactorAndInvFactor.zw;
+	Result.xy = Result.xy * float2( 2, -2 ) + float2( -1, 1 );
+	Result.xy = Result.xy * View.ScreenPositionScaleBias.xy + View.ScreenPositionScaleBias.wz;
 #endif
 
 	return Result;

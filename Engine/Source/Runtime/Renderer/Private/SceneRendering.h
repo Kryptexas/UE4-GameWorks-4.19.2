@@ -522,6 +522,10 @@ public:
 	// Hierarchical Z Buffer
 	TRefCountPtr<IPooledRenderTarget> HZB;
 
+	// Size of the HZB's mipmap 0
+	// NOTE: the mipmap 0 is downsampled version of the depth buffer
+	FIntPoint HZBMipmap0Size;
+
 	/** Used by occlusion for percent unoccluded calculations. */
 	float OneOverNumPossiblePixels;
 
