@@ -2938,8 +2938,6 @@ void FBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJ
 {
 	if (InBlueprint)
 	{
-		DestroyPreview();
-
 		// Notify that the blueprint has been changed (update Content browser, etc)
 		InBlueprint->PostEditChange();
 
@@ -6688,8 +6686,8 @@ void FBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyCha
 		FBlueprintEditorUtils::PostEditChangeBlueprintActors(Blueprint);
 	}
 
-	// Force updates to occur immediately, so the change is inside a transaction scope. See: UE-11802
-	UpdateSCSPreview(true);
+	// Force updates to occur immediately during interactive mode (otherwise the preview won't refresh because it won't be ticking)
+	UpdateSCSPreview(PropertyChangedEvent.ChangeType == EPropertyChangeType::Interactive);
 }
 
 void FBlueprintEditor::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
@@ -7338,6 +7336,7 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 	}
 	else if ( PreviewActor )
 	{
+		PreviewActor->ReregisterAllComponents();
 		PreviewActor->RerunConstructionScripts();
 	}
 
@@ -7345,12 +7344,6 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 	if ( InBlueprint != nullptr && InBlueprint->SimpleConstructionScript != nullptr )
 	{
 		InBlueprint->SimpleConstructionScript->EndEditorComponentConstruction();
-	}
-
-	// Update the tree to include any UCS-constructed components
-	if ( SCSEditor.IsValid() )
-	{
-		SCSEditor->UpdateTree();
 	}
 }
 
@@ -7366,7 +7359,7 @@ void FBlueprintEditor::DestroyPreview()
 	if ( PreviewActor != nullptr )
 	{
 		check(PreviewScene.GetWorld());
-		PreviewScene.GetWorld()->EditorDestroyActor(PreviewActor, true);
+		PreviewScene.GetWorld()->EditorDestroyActor(PreviewActor, false);
 	}
 
 	UBlueprint* PreviewBlueprint = GetBlueprintObj();

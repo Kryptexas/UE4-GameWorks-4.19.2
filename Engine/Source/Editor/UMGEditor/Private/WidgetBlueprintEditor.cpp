@@ -225,6 +225,8 @@ void FWidgetBlueprintEditor::InvalidatePreview()
 
 void FWidgetBlueprintEditor::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled )
 {
+	DestroyPreview();
+
 	FBlueprintEditor::OnBlueprintChangedImpl(InBlueprint, bIsJustBeingCompiled);
 
 	if ( InBlueprint )

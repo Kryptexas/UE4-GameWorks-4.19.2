@@ -442,8 +442,6 @@ void SSCSEditorViewport::RequestRefresh(bool bResetCamera, bool bRefreshNow)
 {
 	if(bRefreshNow)
 	{
-		Invalidate();
-
 		if(ViewportClient.IsValid())
 		{
 			ViewportClient->InvalidatePreview(bResetCamera);
@@ -496,8 +494,6 @@ EActiveTimerReturnType SSCSEditorViewport::DeferredUpdatePreview(double InCurren
 {
 	if (ViewportClient.IsValid())
 	{
-		Invalidate();
-
 		ViewportClient->InvalidatePreview(bResetCamera);
 	}
 

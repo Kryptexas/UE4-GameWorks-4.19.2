@@ -3519,60 +3519,60 @@ void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
-	if (EditorMode == EComponentEditorMode::ActorInstance)
+	TFunction<bool (const TArray<FSCSEditorTreeNodePtrType>&, int32&)> AreAnyNodesInvalidLambda = [&](const TArray<FSCSEditorTreeNodePtrType>& InNodes, int32& OutNumValidNodes) -> bool
 	{
-		TFunction<bool (const TArray<FSCSEditorTreeNodePtrType>&, int32&)> AreAnyNodesInvalidLambda = [&](const TArray<FSCSEditorTreeNodePtrType>& InNodes, int32& OutNumValidNodes) -> bool
+		bool bFoundInvalidNode = false;
+		for(auto NodeIt = InNodes.CreateConstIterator(); NodeIt && !bFoundInvalidNode && !AreAnyNodesInvalidLambda((*NodeIt)->GetChildren(), OutNumValidNodes); ++NodeIt)
 		{
-			bool bFoundInvalidNode = false;
-			for(auto NodeIt = InNodes.CreateConstIterator(); NodeIt && !bFoundInvalidNode && !AreAnyNodesInvalidLambda((*NodeIt)->GetChildren(), OutNumValidNodes); ++NodeIt)
+			const FSCSEditorTreeNodePtrType Node = *NodeIt;
+			bool bIsComponent = Node->GetNodeType() == FSCSEditorTreeNode::ComponentNode;
+			if (bIsComponent)
 			{
-				bool bIsComponent = (*NodeIt)->GetNodeType() == FSCSEditorTreeNode::ComponentNode;
-				if (bIsComponent)
-				{
-					// A component node is considered to be invalid if one of the following conditions holds true:
-					//	(a) The component instance is invalid (i.e. NULL).
-					//	(b) The component instance is pending garbage collection.
-					//	(c) The component instance is a USceneComponent derivative and either is not the scene "root" node or otherwise is not contained within the scene component node hierarchy.
-					//	(d) The component instance is not a USceneComponent derivative and either matches the scene "root" node or is otherwise contained within the scene component node hierarchy.
-					//		=> (c) and (d) could happen if the user changes the parent class of a custom component's Blueprint class, for example.
-					//
-					FSCSEditorTreeNodePtrType ParentNodePtr = (*NodeIt)->GetParent();
-					const UActorComponent* InstancedComponent = (*NodeIt)->GetComponentTemplate();
-					bFoundInvalidNode = !InstancedComponent
-						|| InstancedComponent->IsPendingKill()
-						|| (InstancedComponent->IsA<USceneComponent>() && (*NodeIt != SceneRootNodePtr && (!ParentNodePtr.IsValid() || ParentNodePtr->GetNodeType() != FSCSEditorTreeNode::ComponentNode)))
-						|| (!InstancedComponent->IsA<USceneComponent>() && (*NodeIt == SceneRootNodePtr || (ParentNodePtr.IsValid() && ParentNodePtr->GetNodeType() == FSCSEditorTreeNode::ComponentNode)));
+				// A component node is considered to be invalid if one of the following conditions holds true:
+				//	(a) The component instance is invalid (i.e. NULL).
+				//	(b) The component instance is pending garbage collection.
+				//	(c) The component instance is a USceneComponent derivative and either is not the scene "root" node or otherwise is not contained within the scene component node hierarchy.
+				//	(d) The component instance is not a USceneComponent derivative and either matches the scene "root" node or is otherwise contained within the scene component node hierarchy.
+				//		=> (c) and (d) could happen if the user changes the parent class of a custom component's Blueprint class, for example.
+				//
+				FSCSEditorTreeNodePtrType ParentNodePtr = Node->GetParent();
+				const UActorComponent* InstancedComponent = Node->GetComponentTemplate();
+				bFoundInvalidNode = !InstancedComponent
+					|| InstancedComponent->IsPendingKill()
+					|| (InstancedComponent->IsA<USceneComponent>() && (Node != SceneRootNodePtr && (!ParentNodePtr.IsValid() || ParentNodePtr->GetNodeType() != FSCSEditorTreeNode::ComponentNode)))
+					|| (!InstancedComponent->IsA<USceneComponent>() && (Node == SceneRootNodePtr || (ParentNodePtr.IsValid() && ParentNodePtr->GetNodeType() == FSCSEditorTreeNode::ComponentNode)));
 					
-					if(!bFoundInvalidNode)
-					{
-						++OutNumValidNodes;
-					}
-				}
-			}
-
-			return bFoundInvalidNode;
-		};
-
-		if (const AActor* ActorInstance = GetActorContext())
-		{
-			int32 NumComponentInstances = 0;
-			for (auto CompIt = ActorInstance->GetComponents().CreateConstIterator(); CompIt; ++CompIt)
-			{
-				// Don't count editor-only components, because we don't show them. Also, don't count UCS-added components if the option to hide them is enabled.
-				if (!(*CompIt)->IsEditorOnly()
-					&& ((*CompIt)->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView))
+				if(!bFoundInvalidNode)
 				{
-					++NumComponentInstances;
+					++OutNumValidNodes;
 				}
 			}
+		}
 
-			int32 NumComponentNodes = 0;
-			if (AreAnyNodesInvalidLambda(GetRootNodes(), NumComponentNodes) || NumComponentNodes != NumComponentInstances)
+		return bFoundInvalidNode;
+	};
+
+	const AActor* ActorInstance = (EditorMode == EComponentEditorMode::ActorInstance) ? GetActorContext() : PreviewActor.Get(nullptr);
+	if (ActorInstance)
+	{
+		int32 NumComponentInstances = 0;
+		for (auto CompIt = ActorInstance->GetComponents().CreateConstIterator(); CompIt; ++CompIt)
+		{
+			// Don't count editor-only components in instanced mode, because we don't show them. Also, don't count UCS-added components if the option to hide them is enabled.
+			const UActorComponent* CompInst = *CompIt;
+			if ((!CompInst->IsEditorOnly() || (EditorMode != EComponentEditorMode::ActorInstance && CompInst->GetArchetype() != CompInst->GetClass()->GetDefaultObject()))
+				&& (CompInst->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView))
 			{
-				UE_LOG(LogSCSEditor, Log, TEXT("Calling UpdateTree() from Tick()."));
-
-				UpdateTree();
+				++NumComponentInstances;
 			}
+		}
+
+		int32 NumComponentNodes = 0;
+		if (AreAnyNodesInvalidLambda(GetRootNodes(), NumComponentNodes) || NumComponentNodes != NumComponentInstances)
+		{
+			UE_LOG(LogSCSEditor, Log, TEXT("Calling UpdateTree() from Tick()."));
+
+			UpdateTree();
 		}
 	}
 }
