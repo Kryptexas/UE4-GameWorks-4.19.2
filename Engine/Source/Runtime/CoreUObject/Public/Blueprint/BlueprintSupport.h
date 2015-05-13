@@ -26,6 +26,7 @@ struct FBlueprintSupport
 	static bool IsResolvingDeferredDependenciesDisabled();
 	static bool IsDeferredCDOSerializationDisabled();
 	static bool IsDeferredExportCreationDisabled();
+	static bool IsDeferredCDOInitializationDisabled();
 };
 
 #if WITH_EDITOR
@@ -78,6 +79,8 @@ private:
 struct FDeferredObjInitializerTracker : TThreadSingleton<FDeferredObjInitializerTracker>
 {
 public:
+	FDeferredObjInitializerTracker() : ResolvingClass(nullptr) {}
+
 	/** Stores a copy of the specified FObjectInitializer and returns a pointer to it (could be null if a corresponding class could not be determined). */
 	static FObjectInitializer* Add(const FObjectInitializer& DeferringInitializer);
 
@@ -96,9 +99,19 @@ public:
 	/** Runs FObjectInitializer::PostConstructInit() on the specified class's CDO (if it was deferred), and preloads any sub-objects that were skipped. */
 	static bool ResolveDeferredInitialization(UClass* LoadClass);
 
+	/**  */
+	static void ResolveDeferredSubObjects(UObject* CDO);
+
+	/**  */
+	static void ResolveDeferredSubClassObjects(UClass* SuperClass);
+
 private:
 	/** A map that tracks the relationship between Blueprint classes and FObjectInitializers for their CDOs */
 	TMap<UClass*, FObjectInitializer> DeferredInitializers;
 	/** Track default sub-objects that had their Preload() skipped, because the owning CDO's initialization should happen first */
 	TMultiMap<UClass*, UObject*> DeferredSubObjects;
+	/** Used to keep ResolveDeferredSubObjects() from re-adding sub-objects via DeferSubObjectPreload() */
+	UClass* ResolvingClass;
+	/** Tracks sub-classes that have had their CDO deferred as a result of the super not being fully serialized */
+	TMultiMap<UClass*, UClass*> SuperClassMap;
 };
