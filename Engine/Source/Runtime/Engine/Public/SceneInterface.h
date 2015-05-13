@@ -171,6 +171,13 @@ public:
 	 */	
 	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) = 0;
 
+	/** 
+	 * Removes a atmospheric fog resource from the scene...this is just a double check to make sure we don't have stale stuff hanging around; should already be gone.
+	 * 
+	 * @param FogResource - fog resource to remove
+	 */	
+	virtual void RemoveAtmosphericFogResource_RenderThread(FRenderResource* FogResource) = 0;
+
 	/**
 	 * Returns the scene's FAtmosphericFogSceneInfo if it exists
 	 */

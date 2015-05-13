@@ -1428,50 +1428,6 @@ void FScene::RemoveExponentialHeightFog(UExponentialHeightFogComponent* FogCompo
 		});
 }
 
-void FScene::AddAtmosphericFog(UAtmosphericFogComponent* FogComponent)
-{
-	check(FogComponent);
-
-	FAtmosphericFogSceneInfo* FogSceneInfo = new FAtmosphericFogSceneInfo(FogComponent, this);
-
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FAddAtmosphericFogCommand,
-		FScene*,Scene,this,
-		FAtmosphericFogSceneInfo*,FogSceneInfo,FogSceneInfo,
-	{
-		if (Scene->AtmosphericFog && Scene->AtmosphericFog->Component != FogSceneInfo->Component)
-		{
-			delete Scene->AtmosphericFog;
-			Scene->AtmosphericFog = NULL;
-		}
-
-		if (Scene->AtmosphericFog == NULL)
-		{
-			Scene->AtmosphericFog = FogSceneInfo;
-		}
-		else
-		{
-			delete FogSceneInfo;
-		}
-	});
-}
-
-void FScene::RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		FRemoveAtmosphericFogCommand,
-		FScene*,Scene,this,
-		UAtmosphericFogComponent*,FogComponent,FogComponent,
-	{
-		// Remove the given component's FExponentialHeightFogSceneInfo from the scene's fog array.
-		if (Scene->AtmosphericFog && Scene->AtmosphericFog->Component == FogComponent)
-		{
-			delete Scene->AtmosphericFog;
-			Scene->AtmosphericFog = NULL;
-		}
-	});
-}
-
 void FScene::AddWindSource(UWindDirectionalSourceComponent* WindComponent)
 {
 	// if this wind component is not activated (or Auto Active is set to false), then don't add to WindSources
@@ -2385,6 +2341,7 @@ public:
 	virtual void RemoveExponentialHeightFog(class UExponentialHeightFogComponent* FogComponent) override {}
 	virtual void AddAtmosphericFog(class UAtmosphericFogComponent* FogComponent) override {}
 	virtual void RemoveAtmosphericFog(class UAtmosphericFogComponent* FogComponent) override {}
+	virtual void RemoveAtmosphericFogResource_RenderThread(FRenderResource* FogResource) override {}
 	virtual FAtmosphericFogSceneInfo* GetAtmosphericFogSceneInfo() override { return NULL; }
 	virtual void AddWindSource(class UWindDirectionalSourceComponent* WindComponent) override {}
 	virtual void RemoveWindSource(class UWindDirectionalSourceComponent* WindComponent) override {}

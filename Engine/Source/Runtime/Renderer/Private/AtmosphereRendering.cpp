@@ -324,21 +324,10 @@ void FSceneRenderer::InitAtmosphereConstants()
 			{
 				const FAtmosphericFogSceneInfo& FogInfo = *Scene->AtmosphericFog;
 
-				if (FogInfo.Component->PrecomputeCounter.GetValue() >= UAtmosphericFogComponent::EValid)
-				{
-					View.AtmosphereTransmittanceTexture = FogInfo.Component->TransmittanceResource
-						? (FTextureRHIRef)FogInfo.Component->TransmittanceResource->TextureRHI
-						: (FogInfo.Component->TransmittanceTexture_DEPRECATED && FogInfo.Component->TransmittanceTexture_DEPRECATED->Resource) 
-								? FogInfo.Component->TransmittanceTexture_DEPRECATED->Resource->TextureRHI  : GBlackTexture->TextureRHI;  
-					View.AtmosphereIrradianceTexture = FogInfo.Component->IrradianceResource
-						? (FTextureRHIRef)FogInfo.Component->IrradianceResource->TextureRHI
-						: (FogInfo.Component->IrradianceTexture_DEPRECATED && FogInfo.Component->IrradianceTexture_DEPRECATED->Resource)
-								? FogInfo.Component->IrradianceTexture_DEPRECATED->Resource->TextureRHI : GBlackTexture->TextureRHI;
-					View.AtmosphereInscatterTexture = FogInfo.Component->InscatterResource 
-						? FogInfo.Component->InscatterResource->TextureRHI : (FTextureRHIRef)GBlackVolumeTexture->TextureRHI;
-
-					bInitTextures = true;
-				}
+				View.AtmosphereTransmittanceTexture = (FogInfo.TransmittanceResource && FogInfo.TransmittanceResource->TextureRHI.GetReference()) ? (FTextureRHIRef)FogInfo.TransmittanceResource->TextureRHI : GBlackTexture->TextureRHI;
+				View.AtmosphereIrradianceTexture = (FogInfo.IrradianceResource && FogInfo.IrradianceResource->TextureRHI.GetReference()) ? (FTextureRHIRef)FogInfo.IrradianceResource->TextureRHI : GBlackTexture->TextureRHI;
+				View.AtmosphereInscatterTexture = (FogInfo.InscatterResource && FogInfo.InscatterResource->TextureRHI.GetReference()) ? (FTextureRHIRef)FogInfo.InscatterResource->TextureRHI : GBlackVolumeTexture->TextureRHI;
+				bInitTextures = true;
 			}
 		}
 
@@ -1029,6 +1018,9 @@ namespace
 void FAtmosphericFogSceneInfo::StartPrecompute()
 {
 	bNeedRecompute = false;
+	bPrecomputationStarted = true;
+	check(!bPrecomputationFinished);
+	check(!bPrecomputationAcceptedByGameThread);
 	AtmospherePhase = 0;
 	Atmosphere3DTextureIndex = 0;
 	AtmoshpereOrder = 2;
@@ -1461,13 +1453,21 @@ void FAtmosphericFogSceneInfo::PrecomputeTextures(FRHICommandListImmediate& RHIC
 		AtmosphereTextures = new FAtmosphereTextures(&Component->PrecomputeParams);
 	}
 
-	if (bNeedRecompute)
+	if (bPrecomputationAcceptedByGameThread)
+	{
+		// we finished everything and so now can start a new one if another one came in
+		bPrecomputationStarted = false;
+		bPrecomputationFinished = false;
+		bPrecomputationAcceptedByGameThread = false;
+	}
+
+	if (bNeedRecompute && !bPrecomputationStarted)
 	{
 		StartPrecompute();
 	}
 
 	// Atmosphere 
-	if (PrecomputeCounter.GetValue() < UAtmosphericFogComponent::EFinishedComputation)
+	if (bPrecomputationStarted && !bPrecomputationFinished)
 	{
 		PrecomputeAtmosphereData(RHICmdList, View, *ViewFamily);
 
@@ -1555,7 +1555,8 @@ void FAtmosphericFogSceneInfo::PrecomputeTextures(FRHICommandListImmediate& RHIC
 			AtmosphereTextures = NULL;
 
 			// Save to bulk data is done
-			PrecomputeCounter.Increment(); // Notice to component that pre-computation is done...
+			bPrecomputationFinished = true;
+			Component->GameThreadServiceRequest.Increment();
 		}
 	}
 }
@@ -1577,14 +1578,17 @@ FAtmosphericFogSceneInfo::FAtmosphericFogSceneInfo(UAtmosphericFogComponent* InC
 	, SunDiscScale(InComponent->SunDiscScale)
 	, RenderFlag(EAtmosphereRenderFlag::E_EnableAll)
 	, InscatterAltitudeSampleNum(InComponent->PrecomputeParams.InscatterAltitudeSampleNum)
+
 #if WITH_EDITORONLY_DATA
 	, bNeedRecompute(false)
+	, bPrecomputationStarted(false)
+	, bPrecomputationFinished(false)
+	, bPrecomputationAcceptedByGameThread(false)
 	, MaxScatteringOrder(InComponent->PrecomputeParams.MaxScatteringOrder)
 	, AtmospherePhase(0)
 	, Atmosphere3DTextureIndex(0)
 	, AtmoshpereOrder(2)
 	, AtmosphereTextures(NULL)
-	, PrecomputeCounter(InComponent->PrecomputeCounter)
 #endif
 {
 	StartDistance *= DistanceScale * 0.00001f; // Convert to km in Atmospheric fog shader
@@ -1596,6 +1600,15 @@ FAtmosphericFogSceneInfo::FAtmosphericFogSceneInfo(UAtmosphericFogComponent* InC
 	GroundOffset += InComponent->GetComponentLocation().Z;
 	FMatrix WorldToLight = InComponent->ComponentToWorld.ToMatrixNoScale().InverseFast();
 	DefaultSunDirection = FVector(WorldToLight.M[0][0],WorldToLight.M[1][0],WorldToLight.M[2][0]);
+
+	if (Component->PrecomputeCounter != UAtmosphericFogComponent::EValid)
+	{
+		bNeedRecompute = true;
+	}
+
+	TransmittanceResource = Component->TransmittanceResource;
+	IrradianceResource = Component->IrradianceResource;
+	InscatterResource = Component->InscatterResource;
 }
 
 FAtmosphericFogSceneInfo::~FAtmosphericFogSceneInfo()
@@ -1616,4 +1629,51 @@ bool ShouldRenderAtmosphere(const FSceneViewFamily& Family)
 	return GSupportsVolumeTextureRendering
 		&& EngineShowFlags.AtmosphericFog
 		&& EngineShowFlags.Fog;
+}
+
+void FScene::AddAtmosphericFog(UAtmosphericFogComponent* FogComponent)
+{
+	check(FogComponent);
+
+	FAtmosphericFogSceneInfo* FogSceneInfo = new FAtmosphericFogSceneInfo(FogComponent, this);
+
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		FAddAtmosphericFogCommand,
+		FScene*,Scene,this,
+		FAtmosphericFogSceneInfo*,FogSceneInfo,FogSceneInfo,
+	{
+		delete Scene->AtmosphericFog;
+		Scene->AtmosphericFog = FogSceneInfo;
+	});
+}
+
+void FScene::RemoveAtmosphericFog(UAtmosphericFogComponent* FogComponent)
+{
+	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		FRemoveAtmosphericFogCommand,
+		FScene*,Scene,this,
+		UAtmosphericFogComponent*,FogComponent,FogComponent,
+	{
+		// Remove the given component's FExponentialHeightFogSceneInfo from the scene's fog array.
+		if (Scene->AtmosphericFog && Scene->AtmosphericFog->Component == FogComponent)
+		{
+			delete Scene->AtmosphericFog;
+			Scene->AtmosphericFog = NULL;
+		}
+	});
+}
+
+
+void FScene::RemoveAtmosphericFogResource_RenderThread(FRenderResource* FogResource)
+{
+	check(IsInRenderingThread());
+
+	if (AtmosphericFog)
+	{
+		if (AtmosphericFog->TransmittanceResource == FogResource || AtmosphericFog->IrradianceResource == FogResource || AtmosphericFog->InscatterResource == FogResource)
+		{
+			delete AtmosphericFog;
+			AtmosphericFog = NULL;
+		}
+	}
 }
