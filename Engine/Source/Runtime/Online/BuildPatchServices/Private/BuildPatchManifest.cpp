@@ -1153,6 +1153,13 @@ int64 FBuildPatchAppManifest::GetBuildSize() const
 	return TotalBuildSize;
 }
 
+TArray<FString> FBuildPatchAppManifest::GetBuildFileList() const
+{
+	TArray<FString> Filenames;
+	GetFileList(Filenames);
+	return MoveTemp(Filenames);
+}
+
 int64 FBuildPatchAppManifest::GetFileSize(const TArray<FString>& Filenames) const
 {
 	int64 TotalSize = 0;
