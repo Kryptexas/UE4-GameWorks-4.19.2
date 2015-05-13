@@ -66,13 +66,15 @@ struct FBTPendingExecutionInfo
 	void Unlock() { bLocked = false; }
 };
 
-struct FBTPendingInitializeInfo
+struct FBTTreeStartInfo
 {
 	UBehaviorTree* Asset;
 	EBTExecutionMode::Type ExecuteMode;
+	uint8 bPendingInitialize : 1;
 
-	FBTPendingInitializeInfo() : Asset(nullptr), ExecuteMode(EBTExecutionMode::Looped) {}
+	FBTTreeStartInfo() : Asset(nullptr), ExecuteMode(EBTExecutionMode::Looped), bPendingInitialize(0) {}
 	bool IsSet() const { return Asset != nullptr; }
+	bool HasPendingInitialize() const { return bPendingInitialize && IsSet(); }
 };
 
 UCLASS()
@@ -226,7 +228,7 @@ protected:
 	FBTPendingExecutionInfo PendingExecution;
 
 	/** stored data for starting new tree, waits until previously running finishes aborting */
-	FBTPendingInitializeInfo PendingInitialize;
+	FBTTreeStartInfo TreeStartInfo;
 
 	/** message observers mapped by instance & execution index */
 	TMultiMap<FBTNodeIndex,FAIMessageObserverHandle> TaskMessageObservers;
