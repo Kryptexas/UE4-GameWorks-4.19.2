@@ -16,7 +16,7 @@ UMaterialInstanceDynamic* UMaterialInstanceDynamic::Create(UMaterialInterface* P
 {
 	UObject* Outer = InOuter ? InOuter : GetTransientPackage();
 	UMaterialInstanceDynamic* MID = NewObject<UMaterialInstanceDynamic>(Outer);
-	MID->SetParentInternal(ParentMaterial);
+	MID->SetParentInternal(ParentMaterial, false);
 	return MID;
 }
 

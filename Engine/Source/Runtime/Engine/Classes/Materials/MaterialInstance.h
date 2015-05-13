@@ -376,7 +376,7 @@ protected:
 	 */
 	bool UpdateParameters();
 
-	ENGINE_API void SetParentInternal(class UMaterialInterface* NewParent);
+	ENGINE_API void SetParentInternal(class UMaterialInterface* NewParent, bool RecacheShaders);
 
 	void GetTextureExpressionValues(const FMaterialResource* MaterialResource, TArray<UTexture*>& OutTextures) const;
 

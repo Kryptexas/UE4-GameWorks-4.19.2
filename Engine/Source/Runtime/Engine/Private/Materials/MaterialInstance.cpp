@@ -1833,12 +1833,13 @@ void UMaterialInstance::AddReferencedObjects(UObject* InThis, FReferenceCollecto
 	Super::AddReferencedObjects(This, Collector);
 }
 
-void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent)
+void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent, bool RecacheShaders)
 {
 	if (Parent == NULL || Parent != NewParent)
 	{
 		// Check if the new parent is already an existing child
 		UMaterialInstance* ParentAsMaterialInstance = Cast<UMaterialInstance>(NewParent);
+		bool bSetParent = false;
 
 		if (ParentAsMaterialInstance != nullptr && ParentAsMaterialInstance->IsChildOf(this))
 		{
@@ -1857,6 +1858,7 @@ void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent)
 		else
 		{
 			Parent = NewParent;
+			bSetParent = true;
 
 			if( Parent )
 			{
@@ -1866,7 +1868,16 @@ void UMaterialInstance::SetParentInternal(UMaterialInterface* NewParent)
 				Parent->ConditionalPostLoad();
 			}
 		}
-		InitResources();
+
+		if (bSetParent && RecacheShaders)
+		{
+			//If we have static permutations, we may need a recache.
+			CacheResourceShadersForRendering();
+		}
+		else
+		{
+			InitResources();
+		}
 	}
 }
 
