@@ -636,12 +636,13 @@ void FBlueprintEditor::RefreshEditors(ERefreshBlueprintEditorReason::Type Reason
 		StartEditingDefaults(/*bAutoFocus=*/ false, true);
 	}
 
+	// Remove any tabs are that are pending kill or otherwise invalid UObject pointers.
+	DocumentManager->CleanInvalidTabs();
+
 	//@TODO: Should determine when we need to do the invalid/refresh business and if the graph node selection change
 	// under non-compiles is necessary (except when the selection mode is appropriate, as already detected above)
 	if (Reason != ERefreshBlueprintEditorReason::BlueprintCompiled)
 	{
-		DocumentManager->CleanInvalidTabs();
-
 		DocumentManager->RefreshAllTabs();
 
 		bForceFocusOnSelectedNodes = true;
