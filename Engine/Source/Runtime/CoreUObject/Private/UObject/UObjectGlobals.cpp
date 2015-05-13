@@ -2072,7 +2072,7 @@ FObjectInitializer::~FObjectInitializer()
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	bool bIsPostConstructInitDeferred = false;
-	if (bIsCDO && (ObjectArchetype != nullptr) && FBlueprintSupport::UseDeferredDependencyLoading())
+	if (bIsCDO && (ObjectArchetype != nullptr) && !FBlueprintSupport::IsDeferredCDOInitializationDisabled())
 	{
 		UClass* ArchetypeClass = ObjectArchetype->GetClass();
 		// if this is a blueprint CDO that derives from another blueprint, and 
@@ -2130,33 +2130,46 @@ void FObjectInitializer::PostConstructInit()
 
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	// if this is a deferred initializer (implying that it's for a CDO), and the 
-	// ObjectArchetype (super CDO) has since been regenerated, then we need 
-	// to update the cached archetypes (so their not pointing to TRASH/REINST 
-	// versions)
-	if (bIsDeferredInitializer && SuperClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+	// ObjectArchetype (super CDO) has since been regenerated, then we cannot
+	// reliably initialize and instance properties (if we were to use the 
+	// regenerated ObjectArchetype, the property layouts could differ and that's
+	// not viable for InitProperties())
+	// 
+	// However, this case is handled in FLinkerLoad::ResolveDeferredExports(), 
+	// where we forcefully recreate and separately init this CDO (hence it being 
+	// moved to the transient package) 
+	if (bIsDeferredInitializer)
 	{
+		const bool bSuperHasBeenRegenerated = SuperClass->HasAnyClassFlags(CLASS_NewerVersionExists);
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 		check(bIsCDO);
+		check(ObjectArchetype->GetOutermost() != GetTransientPackage());
+		check(ObjectArchetype->GetClass() == SuperClass && !bSuperHasBeenRegenerated);
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
-		SuperClass = SuperClass->GetAuthoritativeClass();
-		Class->SetSuperStruct(SuperClass);
-		ObjectArchetype = SuperClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
-
-		// iterate backwards, so we can remove elements as we go
-		for (int32 SubObjIndex = ComponentInits.SubobjectInits.Num()-1; SubObjIndex >= 0; --SubObjIndex)
+		if ( !ensureMsgf(!bSuperHasBeenRegenerated, TEXT("The super class for %s has been regenerated, we cannot properly initialize inherited properties, as the class layout may have changed."), *Obj->GetName()) )
 		{
-			FSubobjectsToInit::FSubobjectInit& SubObjInitInfo = ComponentInits.SubobjectInits[SubObjIndex];
-			const FName SubObjName = SubObjInitInfo.Subobject->GetFName();
+			// attempt to complete initialization/instancing as best we can, but
+			// it would not be surprising if our CDO was improperly initialized 
+			// as a result...
 
-			UObject* OuterArchetype = SubObjInitInfo.Subobject->GetOuter()->GetArchetype();
-			UObject* NewTemplate = OuterArchetype->GetClass()->GetDefaultSubobjectByName(SubObjName);
+			// iterate backwards, so we can remove elements as we go
+			for (int32 SubObjIndex = ComponentInits.SubobjectInits.Num() - 1; SubObjIndex >= 0; --SubObjIndex)
+			{
+				FSubobjectsToInit::FSubobjectInit& SubObjInitInfo = ComponentInits.SubobjectInits[SubObjIndex];
+				const FName SubObjName = SubObjInitInfo.Subobject->GetFName();
 
-			if (ensure(NewTemplate != nullptr))
-			{
-				SubObjInitInfo.Template = NewTemplate;
-			}
-			else
-			{
-				ComponentInits.SubobjectInits.RemoveAtSwap(SubObjIndex);
+				UObject* OuterArchetype = SubObjInitInfo.Subobject->GetOuter()->GetArchetype();
+				UObject* NewTemplate = OuterArchetype->GetClass()->GetDefaultSubobjectByName(SubObjName);
+
+				if (ensure(NewTemplate != nullptr))
+				{
+					SubObjInitInfo.Template = NewTemplate;
+				}
+				else
+				{
+					ComponentInits.SubobjectInits.RemoveAtSwap(SubObjIndex);
+				}
 			}
 		}
 	}
