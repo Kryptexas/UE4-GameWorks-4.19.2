@@ -671,6 +671,8 @@ void UMaterialInstance::GetTextureExpressionValues(const FMaterialResource* Mate
 {
 	const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >* ExpressionsByType[2];
 
+	check(MaterialResource);
+
 	ExpressionsByType[0] = &MaterialResource->GetUniform2DTextureExpressions();
 	ExpressionsByType[1] = &MaterialResource->GetUniformCubeTextureExpressions();
 
