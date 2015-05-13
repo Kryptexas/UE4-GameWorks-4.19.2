@@ -6,6 +6,7 @@
 #include "PropertyEditorHelpers.h"
 #include "IDetailKeyframeHandler.h"
 #include "IDetailPropertyExtensionHandler.h"
+#include "DetailPropertyRow.h"
 
 namespace DetailWidgetConstants
 {
@@ -79,7 +80,22 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	if( InCustomization->IsValidCustomization() )
 	{
 		FDetailWidgetRow Row = InCustomization->GetWidgetRow();
-			
+		TSharedPtr<FPropertyEditor> PropertyEditor;
+		auto bRequiresEditConfigHierarchy = false;
+		auto PropertyNode = InCustomization->GetPropertyNode();
+		if (PropertyNode.IsValid() && PropertyNode->GetProperty())
+		{
+			auto Prop = PropertyNode->GetProperty();
+			if (Prop->HasAnyPropertyFlags(CPF_GlobalConfig | CPF_Config))
+			{
+				if (Prop->HasMetaData(TEXT("ConfigHierarchyEditable")))
+				{
+					PropertyEditor = InCustomization->PropertyRow->GetPropertyEditor();
+					bRequiresEditConfigHierarchy = true;
+				}
+			}
+		}
+
 		TSharedPtr<SWidget> NameWidget;
 		TSharedPtr<SWidget> ValueWidget;
 	
@@ -110,7 +126,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		if( bHasMultipleColumns )
 		{
 			NameWidget->SetEnabled(IsPropertyEditingEnabled);
-			Widget = 
+			TSharedPtr<SHorizontalBox> HBox;
+			TSharedRef<SSplitter> Splitter = 
 				SNew( SSplitter )
 				.Style( FEditorStyle::Get(), "DetailsView.Splitter" )
 				.PhysicalSplitterHandleSize( 1.0f )
@@ -150,15 +167,34 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.OnSlotResized( ColumnSizeData.OnWidthChanged )
 				[
 					SNew( SHorizontalBox )
-					.IsEnabled(IsPropertyEditingEnabled)
 					+ SHorizontalBox::Slot()
-					.Padding( DetailWidgetConstants::RightRowPadding )
-					.HAlign( Row.ValueWidget.HorizontalAlignment )
-					.VAlign( Row.ValueWidget.VerticalAlignment )
 					[
-						ValueWidget.ToSharedRef()
+						SAssignNew(HBox, SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.Padding(DetailWidgetConstants::RightRowPadding)
+						.HAlign(Row.ValueWidget.HorizontalAlignment)
+						.VAlign(Row.ValueWidget.VerticalAlignment)
+						[
+							SNew(SBox)
+							.IsEnabled(IsPropertyEditingEnabled)
+							[
+								ValueWidget.ToSharedRef()
+							]
+						]
 					]
 				];
+				if (bRequiresEditConfigHierarchy && PropertyEditor.IsValid())
+				{
+					HBox->AddSlot()
+					.AutoWidth()
+					.Padding(0)
+					//.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					[
+						PropertyCustomizationHelpers::MakeEditConfigHierarchyButton(FSimpleDelegate::CreateSP(PropertyEditor.ToSharedRef(), &FPropertyEditor::EditConfigHierarchy))
+					];
+				}
+				Widget = Splitter;
 		}
 		else
 		{

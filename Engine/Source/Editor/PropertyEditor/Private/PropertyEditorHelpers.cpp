@@ -491,14 +491,6 @@ namespace PropertyEditorHelpers
 		// If the property is an item of a const array, don't create any buttons.
 		const UArrayProperty* OuterArrayProp = Cast<UArrayProperty>( NodeProperty->GetOuter() );
 
-		if (NodeProperty->HasAnyPropertyFlags(CPF_GlobalConfig|CPF_Config))
-		{
-			if (NodeProperty->HasMetaData(TEXT("ConfigHierarchyEditable")))
-			{
-				OutRequiredButtons.Add( EPropertyButton::EditConfigHierarchy );
-			}
-		}
-
 		//////////////////////////////
 		// Handle an array property.
 		if( NodeProperty->IsA(UArrayProperty::StaticClass() ) )

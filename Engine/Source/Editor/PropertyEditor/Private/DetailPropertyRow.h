@@ -50,6 +50,11 @@ public:
 	TSharedPtr<FPropertyNode> GetPropertyNode() { return PropertyNode; }
 
 	/**
+	 * @return The property node for this row
+	 */
+	TSharedPtr<FPropertyEditor> GetPropertyEditor() { return PropertyEditor; }
+
+	/**
 	 * Called when children of this row should be generated
 	 *
 	 * @param OutChildren	The list of children created
