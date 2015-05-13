@@ -877,7 +877,7 @@ void FSceneViewport::OnViewportClosed()
 
 FSlateShaderResource* FSceneViewport::GetViewportRenderTargetTexture() const
 { 
-	check(IsInGameThread());
+	check(IsThreadSafeForSlateRendering());
 	return (BufferedSlateHandles.Num() != 0) ? BufferedSlateHandles[CurrentBufferedTargetIndex] : nullptr;
 }
 
