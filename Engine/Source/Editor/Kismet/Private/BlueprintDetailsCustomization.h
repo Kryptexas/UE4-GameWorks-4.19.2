@@ -181,6 +181,11 @@ private:
 	/** Refreshes cached data that changes after a Blueprint recompile */
 	void OnPostEditorRefresh();
 
+	/** Returns the Property's Blueprint */
+	UBlueprint* GetPropertyOwnerBlueprint() const { return PropertyOwnerBlueprint.Get(); }
+
+	/** Returns TRUE if the Variable is in the current Blueprint */
+	bool IsVariableInBlueprint() const { return GetPropertyOwnerBlueprint() == GetBlueprintObj(); }
 private:
 	/** Pointer back to my parent tab */
 	TWeakPtr<SMyBlueprint> MyBlueprint;
@@ -211,6 +216,9 @@ private:
 
 	/** Cached name for the variable we are affecting */
 	FName CachedVariableName;
+
+	/** Pointer back to the variable's Blueprint */
+	TWeakObjectPtr<UBlueprint> PropertyOwnerBlueprint;
 };
 
 class FBaseBlueprintGraphActionDetails : public IDetailCustomization
