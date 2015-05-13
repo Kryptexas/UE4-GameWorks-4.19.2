@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2486757
+﻿INTSourceChangelist:2543301
 Availability:Public
 Title:3.入力に対応するC++コードの記述
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
-Description:入力を伴うポーンとカメラをコントロールするコードの実装
+Description:入力でポーンとカメラをコントロールするコードの実装
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +12,7 @@ Description:入力を伴うポーンとカメラをコントロールするコ�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ][Programming Tutorials Home](Programming\Tutorials\)
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\PlayerCamera\4 "%Programming\Tutorials\PlayerCamera\4:title%")
@@ -73,9 +73,9 @@ Description:入力を伴うポーンとカメラをコントロールするコ�
 			bZoomingIn = false;
 		}
 
-	[REGION:note]ZoomFactor にはまだ何もしていません。この変数はボタンのステートに基づいて時間経過と共に常に変化するため、 **ポーン** の **Tick** 関数を実行中に更新されます。[/REGION]
+	[REGION:note]ZoomFactor にはまだ何もしていません。この変数はボタンのステートに基づいて時間の経過と共に常に変化するため、 **ポーン** の **Tick** 関数を実行中に更新されます。[/REGION]
 
-1. 入力データを格納するコードを作成したので、あとは **アンリアルエンジン** にコードをいつ呼び出すタイミングを伝えるのみです。**ポーン** に対応するイベントを入力するバインディング関数は **APawnWithCamera::SetupPlayerInputComponent** にバインディングコードを追加するのみのシンプルな作業です。以下のように追加します：
+1. 入力データを格納するコードを作成したので、あとは **アンリアルエンジン** にコードを呼び出すタイミングを伝えるのみです。**ポーン** に対応するイベントを入力するバインディング関数は **APawnWithCamera::SetupPlayerInputComponent** にバインディングコードを追加するのみのシンプルな作業です。以下のように追加します：
 
 		//Hook up events for "ZoomIn"（ZoomInのHook up イベント）
 		InputComponent->BindAction("ZoomIn", IE_Pressed, this, &APawnWithCamera::ZoomIn);
@@ -133,7 +133,7 @@ Description:入力を伴うポーンとカメラをコントロールするコ�
 				SetActorLocation(NewLocation);
 			}
 		}
-	**GetActorForwardVector** と **GetActorRightVector** を使用すると、アクタが対面している方向と相対的な動きになります。カメラはアクタと同じ方向に対面するため、前進キーはプレイヤーから見える対象物と相対的に常に前進することになります。
+	**GetActorForwardVector** と **GetActorRightVector** を使用すると、アクタが対面している方向と相対的な動きになります。カメラはアクタと同じ方向に対面するため、前進キーはプレイヤーから見える対象物と相対的に常に前進します。
 
 
 1. コーディングはこれで終了です。コードをコンパイルして、**アンリアルエンジン** エディタの **レベルエディタ** へ **コンテンツブラウザ** から新規クラスをドラッグできるようになりました。
@@ -208,7 +208,7 @@ Description:入力を伴うポーンとカメラをコントロールするコ�
 			// Sets default values（デフォルト値を設定）
 			APawnWithCamera::APawnWithCamera()
 			{
- 				// Set this pawn to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+ 				// Set this pawn to call Tick() every frame.（フレームごとに Tick() を呼び出すためこのポーンを設定）You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
 				PrimaryActorTick.bCanEverTick = true;
 
 				//Create our components（コンポーネントを作成）
