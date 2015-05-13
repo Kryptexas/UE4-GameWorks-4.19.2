@@ -257,6 +257,9 @@ private:
 	/** Handler for delete command */
 	void OnDeletePressed();
 
+	/** Deletes all currently selected notifies in the panel */
+	void DeleteSelectedNotifies();
+
 	/** We support keyboard focus to detect when we should process key commands like delete */
 	virtual bool SupportsKeyboardFocus() const override
 	{

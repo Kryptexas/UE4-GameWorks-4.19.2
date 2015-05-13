@@ -3829,7 +3829,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 			.OnNodeDragStarted(this, &SAnimNotifyPanel::OnNotifyNodeDragStarted)
 			.MarkerBars(MarkerBars)
 			.OnRequestRefreshOffsets(OnRequestRefreshOffsets)
-			.OnDeleteNotify(this, &SAnimNotifyPanel::OnDeletePressed)
+			.OnDeleteNotify(this, &SAnimNotifyPanel::DeleteSelectedNotifies)
 			.OnDeselectAllNotifies(this, &SAnimNotifyPanel::DeselectAllNotifies)
 			.OnCopyNotifies(this, &SAnimNotifyPanel::CopySelectedNotifiesToClipboard)
 			.OnPasteNotifies(this, &SAnimNotifyPanel::OnPasteNotifies)
@@ -3915,32 +3915,37 @@ void SAnimNotifyPanel::OnDeletePressed()
 	// so don't delete anything when the key is pressed.
 	if(HasKeyboardFocus() || HasFocusedDescendants()) 
 	{
-		TArray<FAnimNotifyEvent*> SelectedNotifies;
-		for (TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
-		{
-			Track->AppendSelectionToArray(SelectedNotifies);
-		}
-
-		if(SelectedNotifies.Num() > 0)
-		{
-			FScopedTransaction Transaction(LOCTEXT("DeleteNotifies", "Delete Animation Notifies"));
-			Sequence->Modify(true);
-
-			// Delete from highest index to lowest
-			SelectedNotifies.Sort();
-			for (int NotifyIndex = SelectedNotifies.Num()-1; NotifyIndex >= 0 ; --NotifyIndex)
-			{
-				FAnimNotifyEvent* Notify = SelectedNotifies[NotifyIndex];
-				DeleteNotify(Notify);
-			}
-		}
-
-		// clear selection and update the panel
-		FGraphPanelSelectionSet ObjectSet;
-		OnSelectionChanged.ExecuteIfBound(ObjectSet);
-
-		Update();
+		DeleteSelectedNotifies();
 	}
+}
+
+void SAnimNotifyPanel::DeleteSelectedNotifies()
+{
+	TArray<FAnimNotifyEvent*> SelectedNotifies;
+	for(TSharedPtr<SAnimNotifyTrack> Track : NotifyAnimTracks)
+	{
+		Track->AppendSelectionToArray(SelectedNotifies);
+	}
+
+	if(SelectedNotifies.Num() > 0)
+	{
+		FScopedTransaction Transaction(LOCTEXT("DeleteNotifies", "Delete Animation Notifies"));
+		Sequence->Modify(true);
+
+		// Delete from highest index to lowest
+		SelectedNotifies.Sort();
+		for(int NotifyIndex = SelectedNotifies.Num() - 1; NotifyIndex >= 0 ; --NotifyIndex)
+		{
+			FAnimNotifyEvent* Notify = SelectedNotifies[NotifyIndex];
+			DeleteNotify(Notify);
+		}
+	}
+
+	// clear selection and update the panel
+	FGraphPanelSelectionSet ObjectSet;
+	OnSelectionChanged.ExecuteIfBound(ObjectSet);
+
+	Update();
 }
 
 void SAnimNotifyPanel::SetSequence(class UAnimSequenceBase *	InSequence)
