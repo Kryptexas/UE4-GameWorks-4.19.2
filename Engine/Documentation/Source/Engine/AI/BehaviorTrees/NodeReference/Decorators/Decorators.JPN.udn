@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2545629
+﻿INTSourceChangelist:2546942
+Availability:Public
 Title:Behavior Tree ノードのリファレンス:デコレーター ノード
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:ビヘイビアツリーのデコレーター ノードの説明です。
-Availability:Public
 
 [TOC(start:2 end:2)]
 
@@ -163,7 +163,7 @@ Force Success デコレーターはノード結果を成功に変更します。
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Actor to Check** | 確認するアクタへのリファレンスを含む Blackboard Key です。 |
+| **Actor to Check** | チェックするアクタへのリファレンスを含む Blackboard Key です。 |
 | **Tags to Match** |  デコレーターを **Gameplay Tags** プロパティにリストされているタグの **どれか** あるいは **すべて** に一致させるかどうかです。. |
 | **Gameplay Tags** | この デコレーターに使われているタグを選択するために Gameplay Tag エディタをロードします。 |
 | **Inverse Condition** | このデコレーターの結果を逆にしますか? (false を true に、 true は falseに) |
@@ -193,8 +193,8 @@ Force Success デコレーターはノード結果を成功に変更します。
 | **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
 
 ## Loop 
+	![](Loop.png)
 
-![](Loop.png)
 
 ノードあるいはブランチを回数分、あるいは無限にループさせます。
 
