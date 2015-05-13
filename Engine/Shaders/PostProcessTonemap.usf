@@ -43,22 +43,6 @@ half GrainFromUV(float2 GrainUV)
 
 static const float LUTSize = 32;
 
-half4 UnwrappedTexture3DSample( Texture2D Texture, SamplerState Sampler, float3 UVW, float Size )
-{
-	// a volume texture 16x16x16 would be unwrapped to a 2d texture 256x16
-
-	float IntW = floor( UVW.z * Size - 0.5 );
-	half FracW = UVW.z * Size - 0.5 - IntW;
-
-	float U = ( UVW.x + IntW ) / Size;
-	float V = UVW.y;
-
-	half4 RG0 = Texture.Sample( Sampler, float2(U, V) );
-	half4 RG1 = Texture.Sample( Sampler, float2(U + 1.0f / Size, V) );
-
-	return lerp(RG0, RG1, FracW);
-}
-
 half3 ColorLookupTable( half3 LinearColor )
 {
 	float LinearRange = 14;
