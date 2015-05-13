@@ -6398,7 +6398,7 @@ public class GUBP : BuildCommand
 			{
 				//AddNode(new IOSOnPCTestNode(this)); - Disable IOSOnPCTest until a1011 crash is fixed
 			}
-			AddNode(new VSExpressTestNode(this));
+			//AddNode(new VSExpressTestNode(this));
 			if (ActivePlatforms.Contains(UnrealTargetPlatform.Linux) && !BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
 			{
 				AddNode(new RootEditorCrossCompileLinuxNode(UnrealTargetPlatform.Win64));
