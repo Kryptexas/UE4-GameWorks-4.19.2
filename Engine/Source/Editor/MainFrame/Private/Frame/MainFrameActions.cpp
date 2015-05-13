@@ -549,7 +549,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("MinimumOSVersion"), MinumumSupportedWindowsOS, GEngineIni);
 		if (MinumumSupportedWindowsOS == TEXT("MSOS_XP"))
 		{
-			OptionalParams += TEXT(" -OverrideMinimumOS=WinXP");
+			OptionalParams += TEXT(" -SpecifiedArchitecture=_xp");
 			bTargetPlatformCanUseCrashReporter = false;
 		}
 	}
