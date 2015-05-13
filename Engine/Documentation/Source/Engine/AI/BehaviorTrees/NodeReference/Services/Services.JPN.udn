@@ -1,14 +1,14 @@
-﻿INTSourceChangelist:2545629
-Title:Behavior Tree ノードのリファレンス:サービス ノード
+﻿INTSourceChangelist:2546941
+Availability:Public
+Title:Behavior Tree ノードのリファレンス:Services
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:ビヘイビアツリーのサービス ノードの説明です。
-Availability:Public
 
 [TOC(start:2 end:2)]
 
 ## 概要
 
-**サービス ノード** は [**コンポジット**](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
+**Services** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
 
 
 ## Default Focus
