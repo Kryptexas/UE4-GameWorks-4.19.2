@@ -386,6 +386,13 @@ void FMacApplication::DeferEvent(NSObject* Object)
 		}
 		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
 		{
+            NSWindow* NotificationWindow = [(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
+            
+            if (NotificationWindow && [NotificationWindow isKindOfClass:[FCocoaWindow class]])
+            {
+           		DeferredEvent.Window = (FCocoaWindow*)NotificationWindow;
+            }
+            
 			if (DeferredEvent.NotificationName == NSPrepareForDragOperation)
 			{
 				DeferredEvent.DraggingPasteboard = [[(id<NSDraggingInfo>)[Notification object] draggingPasteboard] retain];
