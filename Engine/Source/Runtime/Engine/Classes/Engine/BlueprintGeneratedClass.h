@@ -505,6 +505,9 @@ public:
 	/** Bind functions on supplied actor to delegates */
 	void BindDynamicDelegates(UObject* InInstance) const;
 
+	/** Unbind functions on supplied actor from delegates tied to a specific property */
+	void UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty);
+	
 	// Finds the desired dynamic binding object for this blueprint generated class
 	UDynamicBlueprintBinding* GetDynamicBindingObject(UClass* Class) const;
 

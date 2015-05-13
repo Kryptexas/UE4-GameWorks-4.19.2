@@ -407,6 +407,17 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(UObject* InInstance) const
 	}
 }
 
+void UBlueprintGeneratedClass::UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty)
+{
+	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
+	{
+		if ( ensure(DynamicBindingObjects[Index] != NULL) )
+		{
+			DynamicBindingObjects[Index]->UnbindDynamicDelegatesForProperty(InInstance, InObjectProperty);
+		}
+	}
+}
+
 bool UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(const UClass* InClass, TArray<const UBlueprintGeneratedClass*>& OutBPGClasses)
 {
 	OutBPGClasses.Empty();
