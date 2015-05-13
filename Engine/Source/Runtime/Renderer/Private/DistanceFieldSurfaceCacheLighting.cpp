@@ -2880,7 +2880,7 @@ void RenderDistanceFieldAOSurfaceCache(
 		RHICmdList, 
 		Parameters, 
 		View, 
-		VelocityTexture->GetRenderTargetItem(), 
+		VelocityTexture, 
 		BentNormalAccumulation->GetRenderTargetItem(), 
 		IrradianceAccumulation, 
 		DistanceFieldNormal->GetRenderTargetItem(), 
