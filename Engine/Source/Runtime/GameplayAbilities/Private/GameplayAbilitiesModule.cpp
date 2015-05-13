@@ -2,7 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemGlobals.h"
-
+#include "AbilitySystemComponent.h"
 
 class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 {
