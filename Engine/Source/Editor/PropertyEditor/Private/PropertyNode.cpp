@@ -321,7 +321,7 @@ FObjectPropertyNode* FPropertyNode::FindRootObjectItemParent()
  */
 FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 {
-	bool bValidateChildren = true;
+	bool bValidateChildren = !HasNodeFlags(EPropertyNodeFlags::SkipChildValidation);
 
 	// The root must always be validated
 	if( GetParentNode() == NULL || HasNodeFlags(EPropertyNodeFlags::RequiresValidation) != 0 )

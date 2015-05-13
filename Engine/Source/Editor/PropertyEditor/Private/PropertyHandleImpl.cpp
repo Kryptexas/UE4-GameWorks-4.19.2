@@ -2035,6 +2035,15 @@ bool FPropertyHandleBase::GenerateRestrictionToolTip(const FString& Value, FText
 	return false;
 }
 
+void FPropertyHandleBase::SetIgnoreValidation(bool bInIgnore)
+{
+	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
+	if( PropertyNode.IsValid() )
+	{
+		PropertyNode->SetNodeFlags( EPropertyNodeFlags::SkipChildValidation, bInIgnore); 
+	}
+}
+
 /** Implements common property value functions */
 #define IMPLEMENT_PROPERTY_VALUE( ClassName ) \
 	ClassName::ClassName( TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities ) \
