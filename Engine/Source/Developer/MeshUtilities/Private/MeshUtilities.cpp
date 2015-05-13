@@ -3773,6 +3773,15 @@ void FMeshUtilities::CreateProxyMesh(
 	// Construct proxy material
 	UMaterial* ProxyMaterial = MaterialExportUtils::CreateMaterial(ProxyFlattenMaterial, InOuter, ProxyBasePackageName, RF_Public|RF_Standalone, OutAssetsToSync);
 	
+	// Set material static lighting usage flag if project has static lighting enabled
+	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
+	if (bAllowStaticLighting)
+	{
+		bool bNeedsRecompile;
+		ProxyMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_StaticLighting);
+	}
+		
 	// Construct proxy static mesh
 	UPackage* MeshPackage = InOuter;
 	FString MeshAssetName = TEXT("SM_") + AssetBaseName;
@@ -4632,6 +4641,16 @@ void FMeshUtilities::MergeActors(
 		}
 
 		UMaterial* MergedMaterial = CreateMaterial(MergedFlatMaterial, MaterialPackage, MaterialAssetName, RF_Public|RF_Standalone, OutAssetsToSync);
+		
+		// Set material static lighting usage flag if project has static lighting enabled
+		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
+		if (bAllowStaticLighting)
+		{
+			bool bNeedsRecompile;
+			MergedMaterial->SetMaterialUsage(bNeedsRecompile, MATUSAGE_StaticLighting);
+		}
+
 		UniqueMaterials.Add(MergedMaterial);
 	}
 		
