@@ -2393,8 +2393,34 @@ void AInstancedFoliageActor::OnPostApplyLevelOffset(ULevel* InLevel, UWorld* InW
 	}
 }
 
-#endif
 
+void AInstancedFoliageActor::CleanupDeletedFoliageType()
+{
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		if(MeshPair.Key == nullptr)
+		{
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+			TArray<int32> InstancesToRemove;
+			for (int32 InstanceIdx = 0; InstanceIdx < MeshInfo.Instances.Num(); InstanceIdx++)
+			{
+				InstancesToRemove.Add(InstanceIdx);
+			}
+
+			if (InstancesToRemove.Num())
+			{
+				MeshInfo.RemoveInstances(this, InstancesToRemove);
+			}
+		}
+		
+	}
+
+	while(FoliageMeshes.Remove(nullptr)){}	//remove entries from the map
+
+}
+
+
+#endif
 //
 // Serialize all our UObjects for RTGC 
 //
