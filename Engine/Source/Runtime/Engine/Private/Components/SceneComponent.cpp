@@ -1911,6 +1911,8 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 
 bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags )
 {
+	SCOPE_CYCLE_COUNTER(STAT_MoveComponentSceneComponentTime);
+
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
 	static const FText WarnText = LOCTEXT("InvalidMove", "move");
 	if (CheckStaticMobilityAndWarn(WarnText))
