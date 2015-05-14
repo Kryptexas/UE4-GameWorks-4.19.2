@@ -105,8 +105,8 @@ public:
 	virtual void RenderTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef BackBuffer, FTexture2DRHIParamRef SrcTexture) const override;
 	virtual void GetEyeRenderParams_RenderThread(const FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
 
-	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) const override;
-	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const override;
+	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
+	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) override;
 	virtual bool ShouldUseSeparateRenderTarget() const override
 	{
 		check(IsInGameThread());
@@ -154,7 +154,7 @@ public:
 		D3D11Bridge(FSteamVRHMD* plugin);
 
 		virtual void OnBackBufferResize() override;
-		virtual bool Present(int SyncInterval) override;
+		virtual bool Present(int& SyncInterval) override;
 
 		virtual void BeginRendering() override;
 		void FinishRendering();

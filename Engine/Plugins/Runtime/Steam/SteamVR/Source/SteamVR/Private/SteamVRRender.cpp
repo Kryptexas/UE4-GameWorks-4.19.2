@@ -142,7 +142,7 @@ void FSteamVRHMD::D3D11Bridge::OnBackBufferResize()
 {
 }
 
-bool FSteamVRHMD::D3D11Bridge::Present(int SyncInterval)
+bool FSteamVRHMD::D3D11Bridge::Present(int& SyncInterval)
 {
 	check(IsInRenderingThread());
 
