@@ -23,40 +23,6 @@ struct FProfilerServiceAuthorize
 	FGuid InstanceId;
 
 	/**
-	 * Default constructor.
-	 */
-	FProfilerServiceAuthorize( ) { }
-
-	/**
-	 * Creates and initializes a new instance.
-	 */
-	FProfilerServiceAuthorize( const FGuid& InSessionId, const FGuid& InInstanceId )
-		: SessionId(InSessionId)
-		, InstanceId(InInstanceId)
-	{
-	}
-
-};
-
-
-/**
- */
-USTRUCT()
-struct FProfilerServiceAuthorize2
-{
-	GENERATED_USTRUCT_BODY()
-
-	/**
-	 */
-	UPROPERTY()
-	FGuid SessionId;
-
-	/**
-	 */
-	UPROPERTY()
-	FGuid InstanceId;
-
-	/**
 	 */
 	UPROPERTY()
 	TArray<uint8> Data;
@@ -64,12 +30,12 @@ struct FProfilerServiceAuthorize2
 	/**
 	 * Default constructor.
 	 */
-	FProfilerServiceAuthorize2( ) { }
+	FProfilerServiceAuthorize( ) { }
 
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FProfilerServiceAuthorize2( const FGuid& InSessionId, const FGuid& InInstanceId, const TArray<uint8>& InData )
+	FProfilerServiceAuthorize( const FGuid& InSessionId, const FGuid& InInstanceId, const TArray<uint8>& InData )
 		: SessionId(InSessionId)
 		, InstanceId(InInstanceId)
 	{
@@ -163,10 +129,6 @@ struct FProfilerServicePreviewAck
 	UPROPERTY()
 	FGuid InstanceId;
 
-	UPROPERTY()
-	int64 Frame;
-
-
 	/**
 	 * Default constructor.
 	 */
@@ -175,9 +137,8 @@ struct FProfilerServicePreviewAck
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FProfilerServicePreviewAck( const FGuid& InInstance, int64 InFrame )
+	FProfilerServicePreviewAck( const FGuid& InInstance )
 		: InstanceId(InInstance)
-		, Frame(InFrame)
 	{
 	}
 };

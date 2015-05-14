@@ -2,7 +2,7 @@
 
 #pragma once
 
-
+// #YRX_Profiler: 2015-05-13 Remove it later.
 #define PROFILER_THREADED_LOAD 1
 
 
@@ -14,7 +14,6 @@ struct FServiceConnection
 		, ReadMessages(0)
 	{
 		MetaData.CriticalSection = &CriticalSection;
-		CurrentFrame = 0;
 	}
 
 	~FServiceConnection()
@@ -25,14 +24,13 @@ struct FServiceConnection
 	FServiceConnection(const FServiceConnection& InConnnection)
 	{
 		MetaData.CriticalSection = &CriticalSection;
-		CurrentFrame = 0;
 	}
 
 	/** Instance Id */
 	FGuid InstanceId;
 
 	/** Service endpoint */
-	FMessageAddress ServiceAddress;
+	FMessageAddress ProfilerServiceAddress;
 
 	/** Descriptions for the stats */
 	FStatMetaData MetaData;
@@ -41,7 +39,7 @@ struct FServiceConnection
 	FProfilerDataFrame CurrentData;
 
 	/** Initialize the connection from the given authorization message and context */
-	void Initialize( const FProfilerServiceAuthorize2& Message, const IMessageContextRef& Context );
+	void Initialize( const FProfilerServiceAuthorize& Message, const IMessageContextRef& Context );
 
 #if STATS
 	/** Current stats data */
@@ -67,9 +65,6 @@ struct FServiceConnection
 
 	/** Current data loading progress. */
 	float DataLoadingProgress;
-
-	/** Current frame of data to process */
-	int64 CurrentFrame;
 
 	/** Current number of read messages. */
 	uint64 ReadMessages;
@@ -221,7 +216,7 @@ private:
 	void HandleMessageBusShutdown();
 
 	// Handles FProfilerServiceAuthorize2 messages.
-	void HandleServiceAuthorize2Message( const FProfilerServiceAuthorize2& Message, const IMessageContextRef& Context );
+	void HandleServiceAuthorizeMessage( const FProfilerServiceAuthorize& Message, const IMessageContextRef& Context );
 
 	// Handles FProfilerServiceFileChunk messages.
 	void HandleServiceFileChunk( const FProfilerServiceFileChunk& FileChunk, const IMessageContextRef& Context );
@@ -233,7 +228,7 @@ private:
 	bool HandleTicker( float DeltaTime );
 
 	// Handles FProfilerServiceData2 messages.
-	void HandleServiceData2Message( const FProfilerServiceData2& Message, const IMessageContextRef& Context );
+	void HandleProfilerServiceData2Message( const FProfilerServiceData2& Message, const IMessageContextRef& Context );
 
 	// Handles FProfilerServicePreviewAck messages
 	void HandleServicePreviewAckMessage( const FProfilerServicePreviewAck& Messsage, const IMessageContextRef& Context );
@@ -341,6 +336,9 @@ private:
 
 	/** Handle to the registered MessageDelegate. */
 	FDelegateHandle MessageDelegateHandle;
+
+	/** Handle to the registered OnShutdown for Message Bus. */
+	FDelegateHandle OnShutdownMessageBusDelegateHandle;
 
 #if PROFILER_THREADED_LOAD
 	/** Loads a file asynchronously */

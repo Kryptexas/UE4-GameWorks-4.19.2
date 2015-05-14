@@ -3,26 +3,34 @@
 #pragma once
 
 
+#if STATS
+
 /**
  * struct that holds the client information
  */
 struct FClientData
 {
-	/** Connection is active */
-	bool Active;
-	/** Connection is previewing */
-	bool Preview;
-
-#if STATS
+	/** Stats data. */
 	FStatsWriteFile StatsWriteFile;
 
-	/** Current frame of data sent */
-	int64 CurrentFrame;
+	/** Frame. */
+	int64 Frame;
 
-	/** Stats metadata size. */
-	int32 MetadataSize;
-#endif
+	/** Connection is active. */
+	bool Active;
+
+	/** Connection is previewing. */
+	bool Preview;
+
+	/** Default constructor. */
+	FClientData()
+		: Frame(-1)
+		, Active( false )
+		, Preview( false )
+	{}
 };
+
+#endif //STATS
 
 
 /**
@@ -42,20 +50,8 @@ public:
 public:
 
 	// Begin IProfilerServiceManager interface
-
 	virtual void StartCapture() override;
-	
 	virtual void StopCapture() override;
-
-	virtual FStatMetaData& GetStatMetaData() override
-	{
-		return MetaData;
-	}
-
-	virtual FProfilerDataDelegate& OnProfilerData() override
-	{
-		return ProfilerDataDelegate;
-	}
 	// End IProfilerServiceManager interface
 
 	/**
@@ -83,7 +79,6 @@ private:
 	/** Callback for a tick, used to ping the clients */
 	bool HandlePing( float DeltaTime );
 
-private:
 
 	// Handles FProfilerServiceCapture messages.
 	void HandleServiceCaptureMessage( const FProfilerServiceCapture& Message, const IMessageContextRef& Context );
@@ -108,12 +103,13 @@ private:
 
 	/** Handles a new frame from the stats system. Called from the stats thread. */
 	void HandleNewFrame(int64 Frame);
+
+	/** Handles a new frame from the stats system. Called from the game thread. */
+	void HandleNewFrameGT( FClientData* ToGameThread );
 	
 	void AddNewFrameHandleStatsThread();
 
 	void RemoveNewFrameHandleStatsThread();
-
-private:
 
 	/** Holds the messaging endpoint. */
 	FMessageEndpointPtr MessageEndpoint;
@@ -125,8 +121,10 @@ private:
 	/** Holds the message addresses for registered clients */
 	TArray<FMessageAddress> PreviewClients;
 
+#if	STATS
 	/** Holds the client data for registered clients */
 	TMap<FMessageAddress, FClientData> ClientData;
+#endif // STATS
 
 	/** Thread used to read, prepare and send file chunks through the message bus. */
 	class FFileTransferRunnable* FileTransferRunnable;
@@ -134,14 +132,8 @@ private:
 	/** Filename of last capture file. */
 	FString LastStatsFilename;
 
-	/** Stat meta data */
-	FStatMetaData MetaData;
-
-	/** Delegate for notifying clients of received data */
-	FProfilerDataDelegate ProfilerDataDelegate;
-
-	/** Frame of data */
-	FProfilerDataFrame DataFrame;
+	/** Size of the stats metadata. */
+	int32 MetadataSize;
 
 	/** Holds a delegate to be invoked for client pings */
 	FTickerDelegate PingDelegate;
