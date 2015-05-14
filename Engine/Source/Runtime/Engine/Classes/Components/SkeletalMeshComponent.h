@@ -611,6 +611,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void ResetClothTeleportMode();
 
+	/** 
+	 * If this component has a valid MasterPoseComponent then this function makes cloth items on the slave component
+	 * take the transforms of the cloth items on the master component instead of simulating separately.
+	 * @Note This will FORCE any cloth actor on the master component to simulate in local space. Also
+	 * The meshes used in the components must be identical for the cloth to bind correctly
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
+	void BindClothToMasterPoseComponent();
+
+	/** 
+	 * If this component has a valid MasterPoseComponent and has previously had its cloth bound to the
+	 * MCP, this function will unbind the cloth and resume simulation.
+	 * @param bRestoreSimulationSpace if true and the master pose cloth was originally simulating in world
+	 * space, we will restore this setting. This will cause the master component to reset which may be
+	 * undesirable.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
+	void UnbindClothFromMasterPoseComponent(bool bRestoreSimulationSpace = true);
+
 	/** We detach the Component once we are done playing it.
 	 *
 	 * @param	ParticleSystemComponent that finished
@@ -697,6 +716,11 @@ public:
 	/** precomputed actual cloth morph target data */
 	TArray<FClothMorphTargetData> ClothMorphTargets;
 
+	/** Whether or not we're taking cloth sim information from our master component */
+	bool bBindClothToMasterComponent;
+	/** The previous state of the master component simulation coord space, so we can restore on unbind */
+	bool bPrevMasterSimulateLocalSpace;
+
 #if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
 	uint32 ClothingCollisionRevision; 
@@ -728,7 +752,7 @@ public:
 	void TickClothing(float DeltaTime);
 
 	/** Store cloth simulation data into OutClothSimData */
-	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData);
+	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
 	void ApplyWindForCloth(FClothingActor& ClothingActor);
 	void RemoveAllClothingActors();
 	void ReleaseAllClothingResources();

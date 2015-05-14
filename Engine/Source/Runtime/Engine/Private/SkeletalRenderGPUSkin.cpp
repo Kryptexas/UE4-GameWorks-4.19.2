@@ -1058,6 +1058,21 @@ bool FDynamicSkelMeshObjectDataGPUSkin::ActiveVertexAnimsEqual( const TArray<FAc
 bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshComponent* InMeshComponent)
 {
 	USkeletalMeshComponent * SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
+
+	if(InMeshComponent->MasterPoseComponent.IsValid() && SkelMeshComponent->bBindClothToMasterComponent)
+	{
+		USkeletalMeshComponent* OriginalComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
+		SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent->MasterPoseComponent.Get());
+
+		// If either component is invalid, don't attempt to update
+		if(!OriginalComponent || !SkelMeshComponent) return false;
+
+		ClothBlendWeight = OriginalComponent->ClothBlendWeight;
+		SkelMeshComponent->GetUpdateClothSimulationData(ClothSimulUpdateData, OriginalComponent);
+
+		return true;
+	}
+
 	if(SkelMeshComponent)
 	{
 		ClothBlendWeight = SkelMeshComponent->ClothBlendWeight;
