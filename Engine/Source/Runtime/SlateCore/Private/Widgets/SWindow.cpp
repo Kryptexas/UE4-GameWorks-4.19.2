@@ -178,7 +178,9 @@ private:
 
 FVector2D SWindow::GetWindowSizeFromClientSize(FVector2D InClientSize)
 {
-	if (!HasOSWindowBorder())
+	// If this is a regular non-OS window, we need to compensate for the border and title bar area that we will add
+	// Note: Windows with an OS border do this in ReshapeWindow
+	if (IsRegularWindow() && !HasOSWindowBorder())
 	{
 		const FMargin BorderSize = GetWindowBorderSize();
 
