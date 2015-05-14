@@ -8,15 +8,14 @@ set(CMAKE_CXX_FLAGS "-std=c++11")
 find_package(Qt4 QUIET COMPONENTS QtGui)
 find_package(Qt5Widgets QUIET)
 find_package(GTK2 QUIET)
+find_package(SDL2 QUIET)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK3 gtk+-3.0)
-pkg_check_modules(SDL2 sdl2)
 
-find_package(OpenGL REQUIRED)
 if(SDL2_FOUND)
 	message(STATUS "SDL2 found")
-
+	find_package(OpenGL REQUIRED)
 endif()
 
 macro(add_sdl_test name linkto)

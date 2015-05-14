@@ -7,10 +7,11 @@ Linux file dialog implementations dedicated for Unreal Engine. Purpose of this p
 * Gtk+2
 * Gtk+3
 
-
 ## Building
 
 ```
+# Ubuntu
+sudo apt-get install libgtk2.0-dev libgtk-3-dev libqt4-dev qtbase5-dev
 mkdir build
 cd build
 cmake ..
