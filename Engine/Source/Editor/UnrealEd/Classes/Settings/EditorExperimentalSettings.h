@@ -29,10 +29,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Localization Dashboard"))
 	bool bEnableLocalizationDashboard;
 
-	/** (DEPRECATED) Allows usage of the Translation Editor */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor (Menu deprecated, please access from Localization Dashboard)"))
-	bool bEnableTranslationEditor;
-
 	/** Allows usage of the Translation Picker */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Picker"))
 	bool bEnableTranslationPicker;
