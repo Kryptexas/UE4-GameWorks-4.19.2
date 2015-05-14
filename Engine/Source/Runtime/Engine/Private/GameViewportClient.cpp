@@ -259,26 +259,18 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 			FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle, bCreateNewAudioDevice);
 			if (NewAudioDevice)
 			{
-				if (NewAudioDevice->Init())
+				// Set the base mix of the new device based on the world settings of the world
+				if (World)
 				{
-					// Set the base mix of the new device based on the world settings of the world
-					if (World)
-					{
-						NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
+					NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
 
-						// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
-						World->SetAudioDeviceHandle(AudioDeviceHandle);
-					}
+					// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
+					World->SetAudioDeviceHandle(AudioDeviceHandle);
+				}
 
-					// Set this audio device handle on the world context so future world's set onto the world context
-					// will pass the audio device handle to them and audio will play on the correct audio device
-					WorldContext.AudioDeviceHandle = AudioDeviceHandle;
-				}
-				else
-				{
-					// Shut it down if we failed to initialize
-					AudioDeviceManager->ShutdownAudioDevice(AudioDeviceHandle);
-				}
+				// Set this audio device handle on the world context so future world's set onto the world context
+				// will pass the audio device handle to them and audio will play on the correct audio device
+				WorldContext.AudioDeviceHandle = AudioDeviceHandle;
 			}
 		}
 	}

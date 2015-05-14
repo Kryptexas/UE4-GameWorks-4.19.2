@@ -1699,27 +1699,13 @@ bool UEngine::InitializeAudioDeviceManager()
 					AudioDeviceManager = new FAudioDeviceManager();
 					AudioDeviceManager->RegisterAudioDeviceModule(AudioDeviceModule);
 
-					bool bSucceeded = false;
-
 					// Create a new audio device.
 					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle, true);
 					if (NewAudioDevice)
 					{
-						// Initialize the audio device
-						if (NewAudioDevice->Init())
-						{
-							bSucceeded = true;
-							AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
-						}
-						else
-						{
-							// Shut it down if we failed to initialize
-							AudioDeviceManager->ShutdownAudioDevice(MainAudioDeviceHandle);
-						}
+						AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
 					}
-
-					// if we failed to create or init a main audio device, shut down the audio device manager
-					if (!bSucceeded)
+					else
 					{
 						ShutdownAudioDeviceManager();
 					}

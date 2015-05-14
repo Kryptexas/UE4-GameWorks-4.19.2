@@ -137,6 +137,14 @@ FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut, bool bCr
 
 	++NumActiveAudioDevices;
 
+	const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
+	if (!NewAudioDevice->Init())
+	{
+		ShutdownAudioDevice(HandleOut);
+		HandleOut = AUDIO_DEVICE_HANDLE_INVALID;
+		NewAudioDevice = nullptr;
+	}
+
 	return NewAudioDevice;
 }
 
