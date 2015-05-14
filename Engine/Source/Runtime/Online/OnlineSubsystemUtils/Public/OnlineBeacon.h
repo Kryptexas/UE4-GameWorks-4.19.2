@@ -36,6 +36,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	virtual const AActor* GetNetOwner() const override { return nullptr; }
 	virtual UNetConnection* GetNetConnection() const override { return nullptr; }
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 	// End AActor Interface
 
 	// Begin FNetworkNotify Interface

@@ -6,7 +6,9 @@
 DEFINE_LOG_CATEGORY(LogBeacon);
 
 AOnlineBeacon::AOnlineBeacon(const FObjectInitializer& ObjectInitializer) :
-	Super(ObjectInitializer)
+	Super(ObjectInitializer),
+	NetDriver(nullptr),
+	BeaconState(EBeaconState::DenyRequests)
 {
 	NetDriverName = FName(TEXT("BeaconDriver"));
 }
@@ -24,6 +26,17 @@ bool AOnlineBeacon::InitBase()
 	return false;
 }
 
+void AOnlineBeacon::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (NetDriver)
+	{
+		GEngine->DestroyNamedNetDriver(GetWorld(), NetDriverName);
+		NetDriver = nullptr;
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 bool AOnlineBeacon::HasNetOwner() const
 {
     // Beacons are their own net owners
@@ -34,8 +47,12 @@ void AOnlineBeacon::DestroyBeacon()
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Destroying beacon %s, netdriver %s"), *GetName(), NetDriver ? *NetDriver->GetDescription() : TEXT("NULL"));
 	GEngine->OnNetworkFailure().Remove(HandleNetworkFailureDelegateHandle);
-	GEngine->DestroyNamedNetDriver(GetWorld(), NetDriverName);
-	NetDriver = NULL;
+
+	if (NetDriver)
+	{
+		GEngine->DestroyNamedNetDriver(GetWorld(), NetDriverName);
+		NetDriver = nullptr;
+	}
 
 	Destroy();
 }
@@ -51,8 +68,12 @@ void AOnlineBeacon::HandleNetworkFailure(UWorld *World, UNetDriver *InNetDriver,
 void AOnlineBeacon::OnFailure()
 {
 	GEngine->OnNetworkFailure().Remove(HandleNetworkFailureDelegateHandle);
-	GEngine->DestroyNamedNetDriver(GetWorld(), NetDriverName);
-	NetDriver = NULL;
+	
+	if (NetDriver)
+	{
+		GEngine->DestroyNamedNetDriver(GetWorld(), NetDriverName);
+		NetDriver = nullptr;
+	}
 }
 
 void AOnlineBeacon::OnActorChannelOpen(FInBunch& Bunch, UNetConnection* Connection)
@@ -100,8 +121,8 @@ EAcceptConnection::Type AOnlineBeacon::NotifyAcceptingConnection()
 
 void AOnlineBeacon::NotifyAcceptedConnection(UNetConnection* Connection)
 {
-	check(NetDriver != NULL);
-	check(NetDriver->ServerConnection == NULL);
+	check(NetDriver != nullptr);
+	check(NetDriver->ServerConnection == nullptr);
 	UE_LOG(LogNet, Log, TEXT("Open %s %s %s"), *GetName(), FPlatformTime::StrTimestamp(), *Connection->LowLevelGetRemoteAddress());
 }
 
@@ -111,6 +132,7 @@ bool AOnlineBeacon::NotifyAcceptingChannel(UChannel* Channel)
 	check(Channel->Connection);
 	check(Channel->Connection->Driver);
 	UNetDriver* Driver = Channel->Connection->Driver;
+	check(NetDriver == Driver);
 
 	if (Driver->ServerConnection)
 	{
