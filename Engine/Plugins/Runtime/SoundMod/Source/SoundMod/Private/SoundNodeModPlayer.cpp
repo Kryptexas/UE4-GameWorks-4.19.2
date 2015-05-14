@@ -6,10 +6,34 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeModPlayer"
 
-USoundNodeModPlayer::USoundNodeModPlayer(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+void USoundNodeModPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
+	USoundNodeModPlayer* This = CastChecked<USoundNodeModPlayer>(InThis);
+	Super::AddReferencedObjects(This, Collector);
+
+	Collector.AddReferencedObject(This->SoundMod);
 }
+
+void USoundNodeModPlayer::LoadAsset()
+{
+	SoundMod = SoundModAssetPtr.LoadSynchronous();
+}
+
+void USoundNodeModPlayer::SetSoundMod(USoundMod* InSoundMod)
+{
+	SoundMod = InSoundMod;
+	SoundModAssetPtr = InSoundMod;
+}
+
+#if WITH_EDITOR
+void USoundNodeModPlayer::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(USoundNodeModPlayer, SoundModAssetPtr))
+	{
+		LoadAsset();
+	}
+}
+#endif
 
 void USoundNodeModPlayer::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {

@@ -5,6 +5,7 @@
 #include "Sound/SoundNodeMixer.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeAttenuation.h"
+#include "Sound/SoundNodeQualityLevel.h"
 #include "Sound/SoundWave.h"
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -79,9 +80,9 @@ void USoundCue::PostLoad()
 		// Always load all sound waves in the editor
 		for (USoundNode* SoundNode : AllNodes)
 		{
-			if (USoundNodeWavePlayer* WavePlayerNode = Cast<USoundNodeWavePlayer>(SoundNode))
+			if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
 			{
-				WavePlayerNode->LoadSoundWave();
+				AssetReferencerNode->LoadAsset();
 			}
 		}
 	}
@@ -95,15 +96,19 @@ void USoundCue::PostLoad()
 		{
 			if (USoundNode* SoundNode = NodesToEvaluate.Pop(false))
 			{
-				if (USoundNodeWavePlayer* WavePlayerNode = Cast<USoundNodeWavePlayer>(SoundNode))
+				if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
 				{
-					WavePlayerNode->LoadSoundWave();
+					AssetReferencerNode->LoadAsset();
 				}
-				/* else if USoundNodeQuality
+				else if (USoundNodeQualityLevel* QualityLevelNode = Cast<USoundNodeQualityLevel>(SoundNode))
 				{
-					// Only pick the node connected for current quality
+					// Only pick the node connected for current quality, currently don't support changing audio quality on the fly
+					static const int32 CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
+					if (CachedQualityLevel < QualityLevelNode->ChildNodes.Num())
+					{
+						NodesToEvaluate.Add(QualityLevelNode->ChildNodes[CachedQualityLevel]);
+					}
 				}
-				*/
 				else
 				{
 					NodesToEvaluate.Append(SoundNode->ChildNodes);

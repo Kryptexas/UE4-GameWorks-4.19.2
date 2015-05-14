@@ -150,7 +150,7 @@ public:
 	TEnumAsByte<ELabelAnchorMode> MouseControlLabelPosition;
 
 	/** Should Play-in-Viewport respect HMD orientations (default = false) */
-	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (ToolTip = "Whether or not HMD orientation should be used when playing in viewport"))
+	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Whether or not HMD orientation should be used when playing in viewport"))
 	bool ViewportGetsHMDControl;
 
 	/** Whether to automatically recompile blueprints on PIE */
@@ -158,8 +158,12 @@ public:
 	bool AutoRecompileBlueprints;
 
 	/** Whether to play sounds during PIE */
-	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (ToolTip = "Whether to play sounds when in a Play In Editor session"))
+	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Whether to play sounds when in a Play In Editor session"))
 	bool EnableSound;
+
+	/** Which quality level to use when playing in editor */
+	UPROPERTY(config, EditAnywhere, Category=PlayInEditor)
+	int32 PlayInEditorSoundQuality;
 
 	/** True if Play In Editor should only load currently-visible levels in PIE. */
 	UPROPERTY(config)

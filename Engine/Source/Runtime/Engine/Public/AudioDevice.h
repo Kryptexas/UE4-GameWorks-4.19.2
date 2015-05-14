@@ -226,7 +226,7 @@ public:
 	/**
 	 * Basic initialisation of the platform agnostic layer of the audio system
 	 */
-	bool Init( void );
+	bool Init(int32 InMaxChannels);
 
 	/**
 	 * Tears down the audio device

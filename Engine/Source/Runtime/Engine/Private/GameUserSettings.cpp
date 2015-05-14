@@ -383,3 +383,7 @@ void UGameUserSettings::SetBenchmarkFallbackValues()
 	ScalabilityQuality.SetBenchmarkFallback();
 }
 
+void UGameUserSettings::SetAudioQualityLevel(int32 QualityLevel)
+{
+	AudioQualityLevel = QualityLevel;
+}

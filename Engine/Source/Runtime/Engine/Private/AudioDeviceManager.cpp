@@ -138,7 +138,7 @@ FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut, bool bCr
 	++NumActiveAudioDevices;
 
 	const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
-	if (!NewAudioDevice->Init())
+	if (!NewAudioDevice->Init(AudioSettings->GetQualityLevelSettings(GEngine->GetGameUserSettings()->GetAudioQualityLevel()).MaxChannels))
 	{
 		ShutdownAudioDevice(HandleOut);
 		HandleOut = AUDIO_DEVICE_HANDLE_INVALID;

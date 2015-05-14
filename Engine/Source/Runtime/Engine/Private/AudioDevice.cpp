@@ -48,7 +48,7 @@ FAudioEffectsManager* FAudioDevice::CreateEffectsManager()
 	return new FAudioEffectsManager(this);
 }
 
-bool FAudioDevice::Init()
+bool FAudioDevice::Init(int32 InMaxChannels)
 {
 	if (bIsInitialized)
 	{
@@ -57,7 +57,7 @@ bool FAudioDevice::Init()
 
 	bool bDeferStartupPrecache = false;
 	// initialize config variables
-	verify(GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), MaxChannels, GEngineIni));
+	MaxChannels = InMaxChannels;
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
 	
 	// If this is true, skip the initial startup precache so we can do it later in the flow

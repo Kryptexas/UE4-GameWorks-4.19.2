@@ -2,16 +2,16 @@
 
 
 #pragma once
-#include "Sound/SoundNode.h"
+#include "Sound/SoundNodeAssetReferencer.h"
 #include "SoundNodeWavePlayer.generated.h"
 
 /** 
  * Sound node that contains a reference to the raw wave file to be played
  */
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Wave Player" ))
-class USoundNodeWavePlayer : public USoundNode
+class USoundNodeWavePlayer : public USoundNodeAssetReferencer
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 private:
 	UPROPERTY(EditAnywhere, Category=WavePlayer, meta=(DisplayName="Sound Wave"))
@@ -26,8 +26,6 @@ public:
 
 	ENGINE_API USoundWave* GetSoundWave() const { return SoundWave; }
 	ENGINE_API void SetSoundWave(USoundWave* SoundWave);
-	void LoadSoundWave();
-
 
 	// Begin UObject Interface
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
@@ -44,6 +42,10 @@ public:
 #if WITH_EDITOR
 	virtual FText GetTitle() const override;
 #endif
+	// End USoundNode Interface
+
+	// Begin USoundNodeAssetReferencer Interface
+	virtual void LoadAsset() override;
 	// End USoundNode Interface
 
 };

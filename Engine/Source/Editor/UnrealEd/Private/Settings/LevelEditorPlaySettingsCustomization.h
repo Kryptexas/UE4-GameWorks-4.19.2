@@ -4,6 +4,7 @@
 
 #include "PropertyEditing.h"
 #include "PropertyCustomizationHelpers.h"
+#include "Runtime/Engine/Classes/Sound/AudioSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "FLevelEditorPlaySettingsCustomization"
@@ -295,6 +296,49 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& LayoutBuilder ) override
 	{
 		const float MaxPropertyWidth = 400.0f;
+
+		// play in editor settings
+		IDetailCategoryBuilder& PlayInEditorCategory = LayoutBuilder.EditCategory("PlayInEditor");
+		{
+			TArray<TSharedRef<IPropertyHandle>> PIECategoryProperties;
+			PlayInEditorCategory.GetDefaultProperties(PIECategoryProperties, true, false);
+
+			TSharedPtr<IPropertyHandle> PIEEnableSoundHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, EnableSound));
+			PIESoundQualityLevelHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, PlayInEditorSoundQuality));
+			PIESoundQualityLevelHandle->MarkHiddenByCustomization();
+
+			for (TSharedRef<IPropertyHandle>& PropertyHandle : PIECategoryProperties)
+			{
+				if (PropertyHandle->GetProperty() != PIESoundQualityLevelHandle->GetProperty())
+				{
+					PlayInEditorCategory.AddProperty(PropertyHandle);
+				}
+
+				if (PropertyHandle->GetProperty() == PIEEnableSoundHandle->GetProperty())
+				{
+					PlayInEditorCategory.AddCustomRow(PIESoundQualityLevelHandle->GetPropertyDisplayName(), false)
+						.NameContent()
+						[
+							PIESoundQualityLevelHandle->CreatePropertyNameWidget()
+						]
+						.ValueContent()
+						.MaxDesiredWidth(MaxPropertyWidth)
+						[
+							SAssignNew(QualityLevelComboBox, SComboBox<TSharedPtr<FString>>)
+							.OptionsSource(&AvailableQualityLevels)
+							.OnComboBoxOpening(this, &FLevelEditorPlaySettingsCustomization::HandleQualityLevelComboBoxOpening)
+							.OnGenerateWidget(this, &FLevelEditorPlaySettingsCustomization::HandleQualityLevelComboBoxGenerateWidget)
+							.OnSelectionChanged(this, &FLevelEditorPlaySettingsCustomization::HandleQualityLevelSelectionChanged)
+							[
+								SNew(STextBlock)
+								.Text(this, &FLevelEditorPlaySettingsCustomization::GetSelectedQualityLevelName)
+							]
+						];
+				}
+			}
+
+
+		}
 
 		// play in new window settings
 		IDetailCategoryBuilder& PlayInNewWindowCategory = LayoutBuilder.EditCategory("PlayInNewWindow");
@@ -634,6 +678,55 @@ private:
 	{
 		return GetDefault<ULevelEditorPlaySettings>()->GetAdditionalLaunchOptionsVisibility();
 	}
+
+	void HandleQualityLevelComboBoxOpening()
+	{
+		const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
+		AvailableQualityLevels.Empty(AudioSettings->QualityLevels.Num());
+		for (const FAudioQualitySettings& AQSettings : AudioSettings->QualityLevels)
+		{
+			AvailableQualityLevels.Add(MakeShareable(new FString(AQSettings.DisplayName.ToString())));
+		}
+		QualityLevelComboBox->RefreshOptions();
+	}
+
+	TSharedRef<SWidget> HandleQualityLevelComboBoxGenerateWidget(TSharedPtr<FString> InItem)
+	{
+		return SNew(STextBlock)
+				.Text(FText::FromString(*InItem));
+	}
+
+	void HandleQualityLevelSelectionChanged(TSharedPtr<FString> InSelection, ESelectInfo::Type SelectInfo)
+	{
+		if (InSelection.IsValid())
+		{
+			const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
+			for (int32 QualityLevel = 0; QualityLevel < AudioSettings->QualityLevels.Num(); ++QualityLevel)
+			{
+				if (AudioSettings->QualityLevels[QualityLevel].DisplayName.ToString() == *InSelection)
+				{
+					PIESoundQualityLevelHandle->SetValue(QualityLevel);
+					break;
+				}
+			}
+		}
+	}
+
+	FText GetSelectedQualityLevelName() const
+	{
+		int32 QualityLevel = 0;
+		PIESoundQualityLevelHandle->GetValue(QualityLevel);
+		const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
+		return (QualityLevel >= 0 && QualityLevel < AudioSettings->QualityLevels.Num() ? AudioSettings->QualityLevels[QualityLevel].DisplayName : FText::GetEmpty());
+	}
+
+private:
+
+	/** Collection of possible quality levels we can use as a parent for this profile */
+	TArray<TSharedPtr<FString>> AvailableQualityLevels;
+	TSharedPtr<IPropertyHandle> PIESoundQualityLevelHandle;
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> QualityLevelComboBox;
+
 };
 
 
