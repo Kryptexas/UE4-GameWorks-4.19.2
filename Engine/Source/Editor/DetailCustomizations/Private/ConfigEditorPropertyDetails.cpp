@@ -156,6 +156,7 @@ TSharedRef<SWidget> FConfigPropertyHelperDetails::ConstructPropertyTable(IDetail
 
 	PropertyTable = PropertyEditorModule.CreatePropertyTable();
 	PropertyTable->SetSelectionMode(ESelectionMode::None);
+	PropertyTable->SetSelectionUnit(EPropertyTableSelectionUnit::None);
 	PropertyTable->SetIsUserAllowedToChangeRoot(false);
 	PropertyTable->SetShowObjectName(false);
 
