@@ -134,6 +134,7 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
 	if ( TemplateDragDropOp.IsValid() )
 	{
+		TemplateDragDropOp->ResetToDefaultToolTip();
 		TemplateDragDropOp->SetCursorOverride(TOptional<EMouseCursor::Type>());
 
 		// Are we adding to the root?
@@ -151,32 +152,40 @@ TOptional<EItemDropZone> ProcessHierarchyDragDrop(const FDragDropEvent& DragDrop
 		// Are we adding to a panel?
 		else if ( UPanelWidget* Parent = Cast<UPanelWidget>(TargetItem.GetTemplate()) )
 		{
-			// TODO UMG Allow showing a preview of this.
-			if ( bIsDrop )
+			if (!Parent->CanAddMoreChildren())
 			{
-				UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
-
-				UPanelSlot* NewSlot = nullptr;
-				if ( Index.IsSet() )
-				{
-					NewSlot = Parent->InsertChildAt(Index.GetValue(), Widget);
-				}
-				else
-				{
-					NewSlot = Parent->AddChild(Widget);
-				}
-				check(NewSlot);
-
-				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+				TemplateDragDropOp->CurrentHoverText = LOCTEXT("NoAdditionalChildren", "Widget can't accept additional children.");
 			}
+			else
+			{
+				// TODO UMG Allow showing a preview of this.
+				if (bIsDrop)
+				{
+					UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
 
-			return EItemDropZone::OntoItem;
+					UPanelSlot* NewSlot = nullptr;
+					if (Index.IsSet())
+					{
+						NewSlot = Parent->InsertChildAt(Index.GetValue(), Widget);
+					}
+					else
+					{
+						NewSlot = Parent->AddChild(Widget);
+					}
+					check(NewSlot);
+
+					FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+				}
+
+				return EItemDropZone::OntoItem;
+			}
 		}
 		else
 		{
-			TemplateDragDropOp->SetCursorOverride(EMouseCursor::SlashedCircle);
+			TemplateDragDropOp->CurrentHoverText = LOCTEXT("CantHaveChildren", "Widget can't have children.");
 		}
 
+		TemplateDragDropOp->SetCursorOverride(EMouseCursor::SlashedCircle);
 		return TOptional<EItemDropZone>();
 	}
 
