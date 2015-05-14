@@ -581,6 +581,16 @@ void UAtmosphericFogComponent::StartPrecompute()
 	}
 #endif
 }
+UAtmosphericFogComponent::~UAtmosphericFogComponent()
+{
+#if WITH_EDITOR
+	if (PrecomputeDataHandler)
+	{
+		delete PrecomputeDataHandler;
+		PrecomputeDataHandler = NULL;
+	}
+#endif
+}
 
 #if WITH_EDITOR
 // Prepare render targets when new actor spawned
@@ -594,17 +604,6 @@ void AAtmosphericFog::PostActorCreated()
 			AtmosphericFogComponent->InitResource();
 		}
 	}
-}
-
-UAtmosphericFogComponent::~UAtmosphericFogComponent()
-{
-#if WITH_EDITOR
-	if (PrecomputeDataHandler)
-	{
-		delete PrecomputeDataHandler;
-		PrecomputeDataHandler = NULL;
-	}
-#endif
 }
 
 void UAtmosphericFogComponent::UpdatePrecomputedData()
