@@ -4443,18 +4443,23 @@ void physx::PxsSolverCreateFinalizeConstraintsTask::runInternal()
 		PxsConstraintBatchHeader& header = mThreadContext.contactConstraintBatchHeaders[numHeaders++];
 		header.mStartIndex = a;
 
-		PxU16 j = 1;
+		
 		PxU32 loopMax = PxMin(maxJ - a, 4u);
-		//PxU32 loopMax = PxMin(maxJ - a, 1u);
-		PxcSolverConstraintDesc& desc = mThreadContext.orderedContactConstraints[a];
-		if(!isArticulationConstraint(desc) && (desc.constraintLengthOver16 == PXS_SC_TYPE_RB_CONTACT || 
-			desc.constraintLengthOver16 == PXS_SC_TYPE_RB_1D) && currentPartition < maxBatchPartition)
+		PxU16 j = 0;
+		if(loopMax > 0)
 		{
-			for(; j < loopMax && desc.constraintLengthOver16 == mThreadContext.orderedContactConstraints[a+j].constraintLengthOver16 && 
-				!isArticulationConstraint(mThreadContext.orderedContactConstraints[a+j]); ++j);
+			j=1;
+			//PxU32 loopMax = PxMin(maxJ - a, 1u);
+			PxcSolverConstraintDesc& desc = mThreadContext.orderedContactConstraints[a];
+			if(!isArticulationConstraint(desc) && (desc.constraintLengthOver16 == PXS_SC_TYPE_RB_CONTACT || 
+				desc.constraintLengthOver16 == PXS_SC_TYPE_RB_1D) && currentPartition < maxBatchPartition)
+			{
+				for(; j < loopMax && desc.constraintLengthOver16 == mThreadContext.orderedContactConstraints[a+j].constraintLengthOver16 && 
+					!isArticulationConstraint(mThreadContext.orderedContactConstraints[a+j]); ++j);
+			}
+			header.mStride = j;
+			headersPerPartition++;
 		}
-		header.mStride = j;
-		headersPerPartition++;
 		if(maxJ == (a + j) && maxJ != descCount)
 		{
 			//Go to next partition!

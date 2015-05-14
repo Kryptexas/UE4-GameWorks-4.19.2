@@ -364,7 +364,7 @@ void DestructibleContactModify::onContactModify(PxContactModifyPair* const pairs
 		const int externalRBIndex = (int)(moduleOwnsActor[1] == 0);
 
 		destructibleScene->mApexScene->getPhysXScene()->lockRead();
-		const bool externalActorDynamic = pair.shape[externalRBIndex]->getActor()->isRigidDynamic() != NULL;
+		const bool externalActorDynamic = pair.actor[externalRBIndex]->isRigidDynamic() != NULL;
 		destructibleScene->mApexScene->getPhysXScene()->unlockRead();
 
 		if (!externalActorDynamic)
