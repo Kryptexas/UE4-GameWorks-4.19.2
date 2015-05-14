@@ -110,6 +110,10 @@ int main( int argc, char *argv[] )
 		GSavedCommandLine += Argument;
 	}
 
+	FCommandLine::Set(*GSavedCommandLine);
+	GSavedCommandLine = FPlatformMisc::GetCompleteCommandLine();
+
+
 	SCOPED_AUTORELEASE_POOL;
 	[NSApplication sharedApplication];
 	[NSApp setDelegate:[UE4AppDelegate new]];
