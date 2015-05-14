@@ -15,6 +15,8 @@
 #include "Materials/MaterialInstance.h"
 #include "CanvasTypes.h"
 #include "LightmassLandscapeRender.h"
+#include "LandscapeMaterialInstanceConstant.h"
+#include "LandscapeLight.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightmassRender, Error, All);
 
