@@ -166,7 +166,7 @@ class FD3D11BaseShaderResource : public IRefCountedObject
 };
 
 /** Texture base class. */
-class FD3D11TextureBase : public FD3D11BaseShaderResource
+class D3D11RHI_API FD3D11TextureBase : public FD3D11BaseShaderResource
 {
 public:
 
@@ -291,7 +291,7 @@ protected:
 
 /** 2D texture (vanilla, cubemap or 2D array) */
 template<typename BaseResourceType>
-class TD3D11Texture2D : public BaseResourceType, public FD3D11TextureBase
+class D3D11RHI_API TD3D11Texture2D : public BaseResourceType, public FD3D11TextureBase
 {
 public:
 

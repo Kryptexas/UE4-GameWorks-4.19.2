@@ -577,6 +577,11 @@ public:
 	 * Sets custom Present handler on the viewport
 	 */
 	virtual void SetCustomPresent(class FRHICustomPresent*) {}
+
+	/**
+	 * Returns currently set custom present handler.
+	 */
+	virtual class FRHICustomPresent* GetCustomPresent() const { return nullptr; }
 };
 
 //
@@ -1044,8 +1049,10 @@ public:
 	// Called when viewport is resized.
 	virtual void OnBackBufferResize() = 0;
 
-	// @return	true if normal Present should be performed; false otherwise.
-	virtual bool Present(int32 SyncInterval) = 0;
+	// @param InOutSyncInterval - in out param, indicates if vsync is on (>0) or off (==0).
+	// @return	true if normal Present should be performed; false otherwise. If it returns
+	// true, then InOutSyncInterval could be modified to switch between VSync/NoVSync for the normal Present.
+	virtual bool Present(int32& InOutSyncInterval) = 0;
 
 protected:
 	// Weak reference, don't create a circular dependency that would prevent the viewport from being destroyed.

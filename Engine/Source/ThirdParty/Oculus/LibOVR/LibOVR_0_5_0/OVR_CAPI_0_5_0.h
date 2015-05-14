@@ -464,19 +464,6 @@ typedef struct ovrSensorData_
 } ovrSensorData;
 
 
-///@cond DoxygenIgnoreCode
-// Deprecated struct. Will be remove in a future version.
-typedef struct ovrTrackingStateInternal_
-{
-    #if !defined(_MSC_VER) && defined(__i386__) // 32 bit Unix ABIs
-    uint32_t InternalData[60];
-    #else
-    uint64_t InternalData[30];
-    #endif
-} ovrTrackingStateInternal;
-///@endcond
-
-
 /// Tracking state at a given absolute time (describes predicted HMD pose etc).
 /// Returned by ovrHmd_GetTrackingState.
 typedef struct ovrTrackingState_
@@ -504,9 +491,8 @@ typedef struct ovrTrackingState_
     /// Tag the vision processing results to a certain frame counter number.
     uint32_t LastCameraFrameCounter;
 
-    /// Will be removed in a future version.
-    ovrTrackingStateInternal InternalData;
-
+    /// Unused struct padding.
+    uint32_t Pad;
 } ovrTrackingState;
 
 
@@ -621,7 +607,6 @@ typedef struct ovrTextureHeader_
     ovrRenderAPIType API;             ///< The graphics API in use.
     ovrSizei         TextureSize;     ///< The size of the texture.
     ovrRecti         RenderViewport;  ///< Pixel viewport in texture that holds eye image.
-    uint32_t         Pad;             ///< Unused struct padding
 } ovrTextureHeader;
 
 /// Contains platform-specific information about a texture.

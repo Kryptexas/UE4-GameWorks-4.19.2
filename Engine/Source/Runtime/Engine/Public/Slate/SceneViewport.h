@@ -349,6 +349,7 @@ private:
 
 	int32 NumBufferedFrames;
 	int32 CurrentBufferedTargetIndex;
+	int32 NextBufferedTargetIndex;
 };
 
 

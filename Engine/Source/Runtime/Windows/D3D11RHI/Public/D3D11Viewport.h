@@ -92,6 +92,7 @@ public:
 	{
 		CustomPresent = InCustomPresent;
 	}
+	virtual FRHICustomPresent* GetCustomPresent() const { return CustomPresent; }
 
 	virtual void* GetNativeWindow(void** AddParam = nullptr) const override { return (void*)WindowHandle; }
 

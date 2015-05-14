@@ -34,6 +34,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, RTTSize( 0, 0 )
 	, NumBufferedFrames(1)
 	, CurrentBufferedTargetIndex(0)
+	, NextBufferedTargetIndex(0)
 {
 	bIsSlateViewport = true;
 	RenderThreadSlateTexture = new FSlateRenderTargetRHI(nullptr, 0, 0);
@@ -1173,8 +1174,12 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 {
 	check( IsInGameThread() );
 
-	CurrentBufferedTargetIndex = (CurrentBufferedTargetIndex + 1) % BufferedSlateHandles.Num();
-	RenderTargetTextureRHI = BufferedRenderTargetsRHI[CurrentBufferedTargetIndex];
+	CurrentBufferedTargetIndex = NextBufferedTargetIndex;
+	NextBufferedTargetIndex = (CurrentBufferedTargetIndex + 1) % BufferedSlateHandles.Num();
+	if (BufferedRenderTargetsRHI[CurrentBufferedTargetIndex])
+	{
+		RenderTargetTextureRHI = BufferedRenderTargetsRHI[CurrentBufferedTargetIndex];
+	}
 
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
 	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
@@ -1361,28 +1366,31 @@ void FSceneViewport::InitDynamicRHI()
 	{
 		NumBufferedFrames = 1;
 		
-		if (GEngine->IsStereoscopic3D(this) && GEngine->StereoRenderingDevice.IsValid())
+		const bool bStereo = (IsStereoRenderingAllowed() && GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabledOnNextFrame());
+		bool bUseCustomPresentTexture = false;
+
+		if (bStereo)
 		{
 			GEngine->StereoRenderingDevice->CalculateRenderTargetSize(*this, TexSizeX, TexSizeY);
-			//todo, get from HMD
-			NumBufferedFrames = 3;
+			
+			NumBufferedFrames = GEngine->StereoRenderingDevice->GetNumberOfBufferedFrames();
 		}
-				
+		
 		check(BufferedSlateHandles.Num() == BufferedRenderTargetsRHI.Num() && BufferedSlateHandles.Num() == BufferedShaderResourceTexturesRHI.Num());
 
-		if (BufferedSlateHandles.Num() != NumBufferedFrames)
+		//clear existing entries
+		for (int32 i = 0; i < BufferedSlateHandles.Num(); ++i)
 		{
-			//clear existing entries
-			for (int32 i = 0; i < BufferedSlateHandles.Num(); ++i)
+			if (!BufferedSlateHandles[i])
 			{
-				if (!BufferedSlateHandles[i])
-				{
-					BufferedSlateHandles[i] = new FSlateRenderTargetRHI(nullptr, 0, 0);
-				}
-				BufferedRenderTargetsRHI[i] = nullptr;
-				BufferedShaderResourceTexturesRHI[i] = nullptr;
+				BufferedSlateHandles[i] = new FSlateRenderTargetRHI(nullptr, 0, 0);
 			}
+			BufferedRenderTargetsRHI[i] = nullptr;
+			BufferedShaderResourceTexturesRHI[i] = nullptr;
+		}
 
+		if (BufferedSlateHandles.Num() < NumBufferedFrames)
+		{
 			//add sufficient entires for buffering.
 			for (int32 i = BufferedSlateHandles.Num(); i < NumBufferedFrames; i++)
 			{
@@ -1391,33 +1399,48 @@ void FSceneViewport::InitDynamicRHI()
 				BufferedShaderResourceTexturesRHI.Add(nullptr);
 			}
 		}
+		else if (BufferedSlateHandles.Num() > NumBufferedFrames)
+		{
+			BufferedSlateHandles.SetNum(NumBufferedFrames);
+			BufferedRenderTargetsRHI.SetNum(NumBufferedFrames);
+			BufferedShaderResourceTexturesRHI.SetNum(NumBufferedFrames);
+		}
+		check(BufferedSlateHandles.Num() == BufferedRenderTargetsRHI.Num() && BufferedSlateHandles.Num() == BufferedShaderResourceTexturesRHI.Num());
 
 		FRHIResourceCreateInfo CreateInfo;
 		FTexture2DRHIRef BufferedRTRHI;
 		FTexture2DRHIRef BufferedSRVRHI;
 
-		
 		for (int32 i = 0; i < NumBufferedFrames; ++i)
 		{
-			RHICreateTargetableShaderResource2D(TexSizeX, TexSizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, BufferedRTRHI, BufferedSRVRHI);
+			// try to allocate texture via StereoRenderingDevice; if not successful, use the default way
+			if (!bStereo || !GEngine->StereoRenderingDevice->AllocateRenderTargetTexture(i, TexSizeX, TexSizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, BufferedRTRHI, BufferedSRVRHI))
+			{
+				RHICreateTargetableShaderResource2D(TexSizeX, TexSizeY, PF_B8G8R8A8, 1, TexCreate_None, TexCreate_RenderTargetable, false, CreateInfo, BufferedRTRHI, BufferedSRVRHI);
+			}
 			BufferedRenderTargetsRHI[i] = BufferedRTRHI;
 			BufferedShaderResourceTexturesRHI[i] = BufferedSRVRHI;
 
-			BufferedSlateHandles[i]->SetRHIRef(BufferedShaderResourceTexturesRHI[0], TexSizeX, TexSizeY);
+			if (BufferedSlateHandles[i])
+			{
+				BufferedSlateHandles[i]->SetRHIRef(BufferedShaderResourceTexturesRHI[0], TexSizeX, TexSizeY);
+			}
 		}
 
 		// clear out any extra entries we have hanging around
 		for (int32 i = NumBufferedFrames; i < BufferedSlateHandles.Num(); ++i)
 		{
-			BufferedSlateHandles[i]->SetRHIRef(nullptr, 0, 0);
+			if (BufferedSlateHandles[i])
+			{
+				BufferedSlateHandles[i]->SetRHIRef(nullptr, 0, 0);
+			}
 			BufferedRenderTargetsRHI[i] = nullptr;
 			BufferedShaderResourceTexturesRHI[i] = nullptr;
 		}
 
 		CurrentBufferedTargetIndex = 0;
+		NextBufferedTargetIndex = (CurrentBufferedTargetIndex + 1) % BufferedSlateHandles.Num();
 		RenderTargetTextureRHI = BufferedShaderResourceTexturesRHI[CurrentBufferedTargetIndex];
-
-		
 	}
 	else
 	{
@@ -1431,6 +1454,7 @@ void FSceneViewport::InitDynamicRHI()
 		NumBufferedFrames = 1;
 
 		RenderTargetTextureRHI = nullptr;		
+		CurrentBufferedTargetIndex = NextBufferedTargetIndex = 0;
 	}
 
 	//how is this useful at all?  Pinning a weakptr to get a non-threadsafe shared ptr?  Pinning a weakptr is supposed to be protecting me from my weakptr dying underneath me...
