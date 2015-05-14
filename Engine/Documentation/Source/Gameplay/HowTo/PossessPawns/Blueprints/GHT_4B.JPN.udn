@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2476977
+﻿INTSourceChangelist:2543373
 Availability:Public
 Title:ブループリントでポーンを所有する方法
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
@@ -171,7 +171,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	グラフ内で **右クリック** して、**E** キー イベントを追加し、それを **Set Actor Transform** ノードに接続します。 
 
-1.	**SpawnLocation** 変数からドラッグし、**Context Senstive** のチェックを外し、**Get World Transform** ノードを追加します。 
+1.	**SpawnLocation** 変数からドラッグし、**Context Sensitive** のチェックを外し、**Get World Transform** ノードを追加します。 
 
 1.	**Get World Transform** を、**Set Actor Transform** ノードに接続します。 
 
@@ -215,7 +215,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**Possess** ノードの後に **Set Actor Hidden in Game** ノード (_True_ に設定) を追加します。続いて **Set Actor Enable Collision** (_False_ に設定) を追加します。 
 
-1.	**Car** 変数からドラッグして **Context Senstive** オプションに再度チェックを入れます。 
+1.	**Car** 変数からドラッグして **Context Sensitive** オプションに再度チェックを入れます。 
 
 1.	 **Cast To Sedan** ノードを探して **Set Actor Enable Collision** ノードの後に追加します。 
 
