@@ -2436,8 +2436,7 @@ const TCHAR* FWindowsPlatformMisc::GetCompleteCommandLine()
 	static FString CommandLine;
 	if (CommandLine.Len() == 0)
 	{
-		const TCHAR* OrgCmdLine = ::GetCommandLine();
-		CommandLine = FCommandLine::RemoveExeName(OrgCmdLine);
+		CommandLine = ::GetCommandLine();
 
 		// Get the path to the arguments file
 		FString ArgsFileName = FPaths::RootDir() / TEXT("UE4CommandLine.txt");

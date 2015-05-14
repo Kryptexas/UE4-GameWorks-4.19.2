@@ -308,6 +308,7 @@ namespace iPhonePackager
 			string TempKeychain = "$HOME/Library/Keychains/UE4TempKeychain.keychain";
 			string Certificate = "XcodeSupportFiles/" + MacSigningIdentityFilename;
 			string LoginKeychain = "$HOME/Library/Keychains/login.keychain";
+			ErrorCodes Error = ErrorCodes.Error_Unknown;
 
 			switch (RPCCommand.ToLowerInvariant())
 			{
@@ -365,6 +366,7 @@ namespace iPhonePackager
 				DisplayCommandLine = CurrentBaseXCodeCommandLine;
 				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
+				Error = ErrorCodes.Error_RemoteCertificatesNotFound;
 				break;
 
 			case "createkeychain":
@@ -494,6 +496,11 @@ namespace iPhonePackager
 			{
 				Program.Log("Running SSH on " + MacName + " ... ");
 				bSuccess = SSHCommandHelper.Command(MacName, DisplayCommandLine, WorkingFolder);
+				if (bSuccess == false)
+				{
+					Program.Error("RPCCommand {0} failed with return code {1}", RPCCommand, Error);
+					Program.ReturnCode = (int)Error;
+				}
 			}
 
 
