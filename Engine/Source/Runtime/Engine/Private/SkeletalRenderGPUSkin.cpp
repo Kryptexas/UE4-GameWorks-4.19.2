@@ -1059,6 +1059,7 @@ bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 {
 	USkeletalMeshComponent * SkelMeshComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
 
+#if WITH_APEX_CLOTHING
 	if(InMeshComponent->MasterPoseComponent.IsValid() && SkelMeshComponent->bBindClothToMasterComponent)
 	{
 		USkeletalMeshComponent* OriginalComponent = Cast<USkeletalMeshComponent>(InMeshComponent);
@@ -1072,6 +1073,7 @@ bool FDynamicSkelMeshObjectDataGPUSkin::UpdateClothSimulationData(USkinnedMeshCo
 
 		return true;
 	}
+#endif
 
 	if(SkelMeshComponent)
 	{
