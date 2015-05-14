@@ -472,6 +472,10 @@ void UInterpToMovementComponent::AddControlPointPosition(FVector Pos)
 void UInterpToMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-	UpdateControlPoints(true);
+
+	if (ControlPoints.Num() != 0)
+	{
+		UpdateControlPoints(true);
+	}
 }
 #endif // WITH_EDITOR
