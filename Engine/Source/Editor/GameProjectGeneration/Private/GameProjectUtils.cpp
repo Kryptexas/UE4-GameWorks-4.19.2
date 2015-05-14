@@ -2966,12 +2966,15 @@ bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 	}
 
 	bool bRequiresBuild = false;
-	// check to see if the default build settings have changed
-	bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);
 
-	// check to see if any plugins beyond the defaults have been enabled
-	bRequiresBuild |= IProjectManager::Get().IsNonDefaultPluginEnabled();
+	if (!FRocketSupport::IsRocket())
+	{
+		// check to see if the default build settings have changed
+		bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);
 
+		// check to see if any plugins beyond the defaults have been enabled
+		bRequiresBuild |= IProjectManager::Get().IsNonDefaultPluginEnabled();
+	}
 	return bRequiresBuild;
 }
 
