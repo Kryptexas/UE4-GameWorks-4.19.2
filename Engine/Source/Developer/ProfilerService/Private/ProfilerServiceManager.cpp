@@ -316,40 +316,8 @@ FProfilerServiceManager::FProfilerServiceManager()
 	DataFrame.Frame = 0;
 }
 
-
-FProfilerServiceManager::~FProfilerServiceManager()
-{}
-
-
 /* IProfilerServiceManager interface
  *****************************************************************************/
-
-void FProfilerServiceManager::SendData(FProfilerCycleCounter& Data)
-{
-	// add the data to the data frame
-	DataFrame.CycleCounters.FindOrAdd(Data.ThreadId).Add(Data);
-}
-
-
-void FProfilerServiceManager::SendData(FProfilerFloatAccumulator& Data)
-{
-	// add the data to the data frame
-	DataFrame.FloatAccumulators.Add(Data);
-}
-
-
-void FProfilerServiceManager::SendData(FProfilerCountAccumulator& Data)
-{
-	// add the data to the data frame
-	DataFrame.CountAccumulators.Add(Data);
-}
-
-
-void FProfilerServiceManager::SendData(FProfilerCycleGraph& Data)
-{
-	// add the data to the data frame
-	DataFrame.CycleGraphs.FindOrAdd(Data.ThreadId) = Data;
-}
 
 void FProfilerServiceManager::StartCapture()
 {
@@ -366,40 +334,6 @@ void FProfilerServiceManager::StopCapture()
 	// Not thread-safe, but in this case it is ok, because we are waiting for completion.
 	LastStatsFilename = FCommandStatsFile::Get().LastFileSaved;
 #endif
-}
-
-void FProfilerServiceManager::SendMetaData(const FMessageAddress& client)
-{
-	if (MessageEndpoint.IsValid())
-	{
-		FArrayWriter ArrayWriter(true);
-		ArrayWriter << MetaData;
-		MessageEndpoint->Send(new FProfilerServiceMetaData(InstanceId, ArrayWriter), client);
-	}
-}
-
-void FProfilerServiceManager::StartFrame(uint32 FrameNumber, double FrameStart)
-{
-	// send data to the clients
-	if (DataFrame.Frame > 0)
-	{
-		if (MessageEndpoint.IsValid() && PreviewClients.Num() > 0)
-		{
-			FArrayWriter ArrayWriter(true);
-			ArrayWriter << DataFrame;
-			MessageEndpoint->Send(new FProfilerServiceData(InstanceId, ArrayWriter), PreviewClients );
-		}
-
-		ProfilerDataDelegate.Broadcast(FGuid(), DataFrame);
-	}
-
-	// update the data frame
-	DataFrame.CycleCounters.Reset();
-	DataFrame.CycleGraphs.Reset();
-	DataFrame.CountAccumulators.Reset();
-	DataFrame.FloatAccumulators.Reset();
-	DataFrame.Frame = FrameNumber;
-	DataFrame.FrameStart = FrameStart;
 }
 
 /* FProfilerServiceManager implementation
@@ -496,9 +430,9 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				Client->Preview = true;
 				if (MessageEndpoint.IsValid())
 				{
-					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, 0 ), ClientAddress );
+					Client->CurrentFrame = FStats::GameThreadStatsFrame;
+					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, FStats::GameThreadStatsFrame ), ClientAddress );
 				}
-				SendMetaData(ClientAddress);
 			}
 			else
 			{
@@ -602,11 +536,7 @@ void FProfilerServiceManager::HandleServicePreviewMessage( const FProfilerServic
 
 void FProfilerServiceManager::HandleServiceRequestMessage( const FProfilerServiceRequest& Message, const IMessageContextRef& Context )
 {
-	if (Message.Request == EProfilerRequestType::PRT_MetaData)
-	{
-		SendMetaData(Context->GetSender());
-	}
-	else if( Message.Request == EProfilerRequestType::PRT_SendLastCapturedFile )
+	if( Message.Request == EProfilerRequestType::PRT_SendLastCapturedFile )
 	{
 		if( LastStatsFilename.IsEmpty() == false )
 		{

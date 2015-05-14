@@ -31,11 +31,9 @@ FProfilerClientManager::FProfilerClientManager( const IMessageBusRef& InMessageB
 #if STATS
 	MessageBus = InMessageBus;
 	MessageEndpoint = FMessageEndpoint::Builder("FProfilerClientModule", InMessageBus)
-		.Handling<FProfilerServiceAuthorize>(this, &FProfilerClientManager::HandleServiceAuthorizeMessage)
 		.Handling<FProfilerServiceAuthorize2>(this, &FProfilerClientManager::HandleServiceAuthorize2Message)
 		.Handling<FProfilerServiceData2>(this, &FProfilerClientManager::HandleServiceData2Message)
 		.Handling<FProfilerServicePreviewAck>(this, &FProfilerClientManager::HandleServicePreviewAckMessage)
-		.Handling<FProfilerServiceMetaData>(this, &FProfilerClientManager::HandleServiceMetaDataMessage)
 		.Handling<FProfilerServiceFileChunk>(this, &FProfilerClientManager::HandleServiceFileChunk)  
 		.Handling<FProfilerServicePing>(this, &FProfilerClientManager::HandleServicePingMessage);
 
@@ -309,21 +307,6 @@ void FProfilerClientManager::LoadCapture( const FString& DataFilepath, const FGu
 }
 
 
-void FProfilerClientManager::RequestMetaData()
-{
-#if STATS
-	if (MessageEndpoint.IsValid() && ActiveSessionId.IsValid())
-	{
-		TArray<FMessageAddress> Instances;
-		for (auto It = Connections.CreateConstIterator(); It; ++It)
-		{
-			Instances.Add(It.Value().ServiceAddress);
-		}
-		MessageEndpoint->Send(new FProfilerServiceRequest(EProfilerRequestType::PRT_MetaData), Instances);
-	}
-#endif
-}
-
 void FProfilerClientManager::RequestLastCapturedFile( const FGuid& InstanceId /*= FGuid()*/ )
 {
 #if STATS
@@ -362,25 +345,6 @@ void FProfilerClientManager::HandleMessageBusShutdown()
 	MessageBus.Reset();
 #endif
 }
-
-
-void FProfilerClientManager::HandleServiceAuthorizeMessage( const FProfilerServiceAuthorize& Message, const IMessageContextRef& Context )
-{
-#if STATS
-	if (ActiveSessionId == Message.SessionId && PendingInstances.Contains(Message.InstanceId))
-	{
-		PendingInstances.Remove(Message.InstanceId);
-		FServiceConnection& Connection = Connections.FindOrAdd(Message.InstanceId);
-		Connection.ServiceAddress = Context->GetSender();
-		Connection.InstanceId = Message.InstanceId;
-		Connection.CurrentData.Frame = 0;
-	}
-
-	// Fire the client connection event
-	ProfilerClientConnectedDelegate.Broadcast(ActiveSessionId, Message.InstanceId);
-#endif
-}
-
 
 void FProfilerClientManager::HandleServiceAuthorize2Message( const FProfilerServiceAuthorize2& Message, const IMessageContextRef& Context )
 {
@@ -439,41 +403,6 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 	UpdateMetaData();
 #endif
 }
-
-void FProfilerClientManager::HandleServiceMetaDataMessage( const FProfilerServiceMetaData& Message, const IMessageContextRef& Context )
-{
-#if STATS
-	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != nullptr)
-	{
-		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);
-
-		FArrayReader ArrayReader(true);
-		ArrayReader.Append(Message.Data);
-
-		FStatMetaData NewData;
-		ArrayReader << NewData;
-
-		// add in the new data
-		if (NewData.StatDescriptions.Num() > 0)
-		{
-			Connection.MetaData.StatDescriptions.Append(NewData.StatDescriptions);
-		}
-		if (NewData.GroupDescriptions.Num() > 0)
-		{
-			Connection.MetaData.GroupDescriptions.Append(NewData.GroupDescriptions);
-		}
-		if (NewData.ThreadDescriptions.Num() > 0)
-		{
-			Connection.MetaData.ThreadDescriptions.Append(NewData.ThreadDescriptions);
-		}
-		Connection.MetaData.SecondsPerCycle = NewData.SecondsPerCycle;
-
-		// Fire a meta data update message
-		ProfilerMetaDataUpdatedDelegate.Broadcast(Message.InstanceId);
-	}
-#endif
-}
-
 
 bool FProfilerClientManager::CheckHashAndWrite( const FProfilerServiceFileChunk& FileChunk, const FProfilerFileChunkHeader& FileChunkHeader, FArchive* Writer )
 {
@@ -748,6 +677,7 @@ void FProfilerClientManager::HandleServicePreviewAckMessage( const FProfilerServ
 	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != NULL)
 	{
 		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);
+		Connection.CurrentFrame = Message.Frame;//
 	}
 #endif
 }

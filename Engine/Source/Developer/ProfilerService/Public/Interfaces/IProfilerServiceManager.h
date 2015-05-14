@@ -366,8 +366,6 @@ namespace EProfilerRequestType
 {
 	enum Type
 	{
-		/** Metadata request. */
-		PRT_MetaData,
 		/** Send last captured file. */
 		PRT_SendLastCapturedFile,
 	};
@@ -473,42 +471,11 @@ class IProfilerServiceManager
 {
 public:
 
-	/**
-	 * Sends profiler cycle counter to registered clients.
-	 *
-	 * @param Data The profiler data to be sent.
-	 */
-	virtual void SendData(FProfilerCycleCounter& Data) = 0;
-
-	/**
-	 * Sends profiler float accumulator to registered clients.
-	 *
-	 * @param Data The profiler data to be sent.
-	 */
-	virtual void SendData(FProfilerFloatAccumulator& Data) = 0;
-
-	/**
-	 * Sends profiler count accumulator to registered clients.
-	 *
-	 * @param Data The profiler data to be sent.
-	 */
-	virtual void SendData(FProfilerCountAccumulator& Data) = 0;
-
-	/**
-	 * Sends profiler cycle graph to registered clients.
-	 *
-	 * @param Data The profiler data to be sent.
-	 */
-	virtual void SendData(FProfilerCycleGraph& Data) = 0;
-
 	/** Starts a file capture. */
 	virtual void StartCapture() = 0;
 
 	/** Stops a file capture. */
 	virtual void StopCapture() = 0;
-
-	/** Starts a new frame of data and sends the previous if it exists. */
-	virtual void StartFrame(uint32 FrameNumber, double FrameStart) = 0;
 
 	/**
 	 * Gets the description for the given stat id.
