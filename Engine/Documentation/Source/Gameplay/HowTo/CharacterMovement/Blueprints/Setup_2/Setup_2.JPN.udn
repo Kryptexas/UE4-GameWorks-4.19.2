@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2547516
+﻿INTSourceChangelist:2548852
 Availability:Public
 Title:3.キャラクター設定の完了
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -54,19 +54,19 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 
 1.	**Alt** を押しながら **Jog Pressed** 変数をドラッグしたら、 **Control** を押しながら **Crouch Pressed** 変数をドラッグします。 
 
-1.	ノード ネットワークを以下のように設定します。 
+1.	適切な **Set** ノードの "Jog Pressed" がチェックされるように、ノード ネットワークを以下のように設定します:
 
 	![](Character_JogB.png)(w:720)
 
 	Jog が押されると **Jog Pressed** が True に設定され、 **Character Movement** コンポーネントでキャラクターの **Max Walk Speed** を **375** に設定します (この値を調整して Jog 速度を増減することができます)。 
-	Jog を放す時に、しゃがんでいるかどうか、Walk Speed が **160** (しゃがんで歩く速度) に設定されているかどうかを確認します。しゃがんでいなければ、 Walk Speed を **200** (デフォルトの歩行速度) に設定します。これにより、ステートが Jog から Crouch または Walking になり、適宜元に戻るようになります。 
 
+	Jog を放す時に、しゃがんでいるかどうか、Walk Speed が **160** (しゃがんで歩く速度) に設定されているかどうかを確認します。しゃがんでいなければ、 Walk Speed を **200** (デフォルトの歩行速度) に設定します。これにより、ステートが Jog から Crouch または Walking になり、適宜元に戻るようになります。 
 
 1.	グラフ内を **右クリック** して、 **InputAction Jog** イベントを追加します。 
 
 1.	**Alt** を押しながら **Crouch Pressed** 変数をドラッグしたら、 **Control** を押しながら **Jog Pressed** 変数と **Prone Pressed** 変数をドラッグします。 
 
-1.	ノード ネットワークを以下のように設定します。 
+1.	適切な **Set** ノードの "Crouch Pressed" がチェックされるように、ノード ネットワークを以下のように設定します: 
 
 	[REGION:lightbox]
 	[![](Character_Crouch.png)(w:720)](Character_Crouch.png)
@@ -84,7 +84,7 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 
 1.	**Control** を押しながら、**Crouch Pressed** 変数をドラッグします。 
 
-1.	ノード ネットワークを以下のように設定します。 
+1.	適切な **Set** ノードの "Prone Pressed" がチェックされるように、ノード ネットワークを以下のように設定します: 
 
 	[REGION:lightbox]
 	[![](Character_Prone.png)(w:720)](Character_Prone.png)
@@ -100,7 +100,7 @@ Description:Character Input Mapping に反応してキャラクターが移動�
 
 1.	**Alt** を押しながら **Jump Pressed** 変数をドラッグしたら、 **Control** を押しながら **DisableMovement** 変数と **CrouchPressed** 変数をドラッグします。 
 
-1.	ノード ネットワークを以下のように設定します。 
+1.	適切な **Set** ノードの "Jump Pressed" がチェックされるように、ノード ネットワークを以下のように設定します: 
 
 	[REGION:lightbox]
 	[![](Character_Jump.png)(w:720)](Character_Jump.png)
