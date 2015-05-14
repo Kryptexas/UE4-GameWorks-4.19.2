@@ -64,7 +64,7 @@ protected:
 	TArray<FPaperTerrainSpriteGeometry> DrawingData;
 protected:
 	// FPaperRenderSceneProxy interface
-	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const override;
+	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const override;
 	// End of FPaperRenderSceneProxy interface
 };
 
@@ -81,7 +81,7 @@ FPaperTerrainSceneProxy::FPaperTerrainSceneProxy(const UPaperTerrainComponent* I
 	}
 }
 
-void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const
+void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_TerrainSpline_GetDynamicMeshElements);
 
@@ -89,7 +89,7 @@ void FPaperTerrainSceneProxy::GetDynamicMeshElementsForView(const FSceneView* Vi
 	{
 		if (Batch.Material != nullptr)
 		{
-			GetBatchMesh(View, bUseOverrideColor, OverrideColor, Batch.Material, Batch.Records, ViewIndex, Collector);
+			GetBatchMesh(View, Batch.Material, Batch.Records, ViewIndex, Collector);
 		}
 	}
 }

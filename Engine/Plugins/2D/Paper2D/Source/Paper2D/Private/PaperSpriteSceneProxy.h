@@ -24,7 +24,7 @@ public:
 protected:
 
 	// FPaperRenderSceneProxy interface
-	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const override;
+	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const override;
 	// End of FPaperRenderSceneProxy interface
 
 protected:

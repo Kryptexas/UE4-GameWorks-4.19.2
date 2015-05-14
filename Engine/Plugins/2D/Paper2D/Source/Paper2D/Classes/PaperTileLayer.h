@@ -6,6 +6,8 @@
 
 #include "PaperTileLayer.generated.h"
 
+class UPaperTileMap;
+
 // Flags used in the packed tile index
 enum class EPaperTileFlags : uint32
 {
@@ -180,7 +182,7 @@ public:
 	// End of UObject interface
 
 	// Returns the parent tile map
-	class UPaperTileMap* GetTileMap() const;
+	UPaperTileMap* GetTileMap() const;
 
 	// Returns the index of this layer in the parent tile map
 	int32 GetLayerIndex() const;
@@ -232,6 +234,17 @@ public:
 
 	// Returns the transform for the given packed flag index (0..7)
 	static FTransform GetTileTransform(int32 FlagIndex);
+
+	// Returns the number of occupied cells in the layer
+	int32 GetNumOccupiedCells() const;
+
+	// Returns the raw pointer to the allocated cells, only for use when rendering the tile map and should never be held onto
+	const FPaperTileInfo* PRIVATE_GetAllocatedCells() const
+	{
+		return AllocatedCells.GetData();
+	}
+
 protected:
 	void ReallocateAndCopyMap();
+
 };

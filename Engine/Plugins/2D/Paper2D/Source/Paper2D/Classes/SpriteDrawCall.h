@@ -12,16 +12,16 @@ struct FSpriteDrawCallRecord
 public:
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(Category=Sprite, EditAnywhere)
+	UPROPERTY()
 	FVector Destination;
 
-	UPROPERTY(Category=Sprite, EditAnywhere)
+	UPROPERTY()
 	UTexture* BaseTexture;
 
 	FAdditionalSpriteTextureArray AdditionalTextures;
 
-	UPROPERTY(Category=Sprite, EditAnywhere)
-	FLinearColor Color;
+	UPROPERTY()
+	FColor Color;
 
 	//@TODO: The rest of this struct doesn't need to be properties either, but has to be due to serialization for now
 	// Render triangle list (stored as loose vertices)
@@ -31,7 +31,7 @@ public:
 
 	FSpriteDrawCallRecord()
 		: BaseTexture(nullptr)
-		, Color(FLinearColor::White)
+		, Color(FColor::White)
 	{
 	}
 

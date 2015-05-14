@@ -29,7 +29,7 @@ struct PAPER2D_API FPaperSpriteVertex
 
 	FPaperSpriteVertex() {}
 
-	FPaperSpriteVertex(const FVector& InPosition, const FVector2D& InTextureCoordinate, const FLinearColor& InColor)
+	FPaperSpriteVertex(const FVector& InPosition, const FVector2D& InTextureCoordinate, const FColor& InColor)
 		: Position(InPosition)
 		, TangentX(PackedNormalX)
 		, TangentZ(PackedNormalZ)
@@ -41,6 +41,29 @@ struct PAPER2D_API FPaperSpriteVertex
 
 	static FPackedNormal PackedNormalX;
 	static FPackedNormal PackedNormalZ;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FPaperSpriteVertexBuffer
+
+class FPaperSpriteVertexBuffer : public FVertexBuffer
+{
+public:
+	TArray<FPaperSpriteVertex> Vertices;
+
+	// FRenderResource interface
+	virtual void InitRHI() override;
+	// End of FRenderResource interface
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FPaperSpriteVertexFactory
+
+class FPaperSpriteVertexFactory : public FLocalVertexFactory
+{
+public:
+	FPaperSpriteVertexFactory();
+	void Init(const FPaperSpriteVertexBuffer* VertexBuffer);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -56,7 +79,9 @@ struct PAPER2D_API FSpriteRenderSection
 	int32 NumVertices;
 
 	FSpriteRenderSection()
-		: VertexOffset(INDEX_NONE)
+		: Material(nullptr)
+		, BaseTexture(nullptr)
+		, VertexOffset(INDEX_NONE)
 		, NumVertices(0)
 	{
 	}
@@ -68,10 +93,9 @@ struct PAPER2D_API FSpriteRenderSection
 
 	bool IsValid() const
 	{
-		return (NumVertices > 0) && (GetBaseTextureResource() != nullptr);
+		return (Material != nullptr) && (NumVertices > 0) && (GetBaseTextureResource() != nullptr);
 	}
 
-#if 1
 	template <typename SourceArrayType>
 	void AddTriangles(const FSpriteDrawCallRecord& Record, SourceArrayType& Vertices)
 	{
@@ -92,15 +116,24 @@ struct PAPER2D_API FSpriteRenderSection
 		NumVertices += NumNewVerts;
 		Vertices.Reserve(Vertices.Num() + NumNewVerts);
 
+		const FColor VertColor(Record.Color);
 		for (const FVector4& SourceVert : Record.RenderVerts)
 		{
 			const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y) + Record.Destination);
 			const FVector2D UV(SourceVert.Z, SourceVert.W);
 
-			new (Vertices) FPaperSpriteVertex(Pos, UV, Record.Color);
+			new (Vertices) FPaperSpriteVertex(Pos, UV, VertColor);
 		}
 	}
-#endif
+
+	template <typename SourceArrayType>
+	inline void AddVertex(float X, float Y, float U, float V, const FVector& Origin, const FColor& Color, SourceArrayType& Vertices)
+	{
+		const FVector Pos((PaperAxisX * X) + (PaperAxisY * Y) + Origin);
+
+		new (Vertices) FPaperSpriteVertex(Pos, FVector2D(U, V), Color);
+		++NumVertices;
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -110,12 +143,11 @@ class PAPER2D_API FPaperRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 	FPaperRenderSceneProxy(const UPrimitiveComponent* InComponent);
-	~FPaperRenderSceneProxy();
+	virtual ~FPaperRenderSceneProxy();
 
 	// FPrimitiveSceneProxy interface.
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
-	virtual void OnTransformChanged() override;
 	virtual uint32 GetMemoryFootprint() const override;
 	virtual bool CanBeOccluded() const override;
 	virtual void CreateRenderThreadResources() override;
@@ -134,10 +166,10 @@ public:
 	}
 
 protected:
-	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const;
+	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const;
 
-	void GetBatchMesh(const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor, class UMaterialInterface* BatchMaterial, const TArray<FSpriteDrawCallRecord>& Batch, int32 ViewIndex, FMeshElementCollector& Collector) const;
-	void GetNewBatchMeshes(const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor, int32 ViewIndex, FMeshElementCollector& Collector) const;
+	void GetBatchMesh(const FSceneView* View, UMaterialInterface* BatchMaterial, const TArray<FSpriteDrawCallRecord>& Batch, int32 ViewIndex, FMeshElementCollector& Collector) const;
+	void GetNewBatchMeshes(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const;
 
 	bool IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const;
 
@@ -145,13 +177,19 @@ protected:
 
 	FVertexFactory* GetPaperSpriteVertexFactory() const;
 
+	void ConvertBatchesToNewStyle(TArray<FSpriteDrawCallRecord>& SourceBatches);
+
 protected:
-	TArray<FPaperSpriteVertex> BatchedVertices;
+	// New style
+	FPaperSpriteVertexBuffer VertexBuffer;
+	FPaperSpriteVertexFactory MyVertexFactory;
 	TArray<FSpriteRenderSection> BatchedSections;
 
+	// Old style
 	TArray<FSpriteDrawCallRecord> BatchedSprites;
 	class UMaterialInterface* Material;
-	FVector Origin;
+
+	//
 	AActor* Owner;
 	UBodySetup* BodySetup;
 
