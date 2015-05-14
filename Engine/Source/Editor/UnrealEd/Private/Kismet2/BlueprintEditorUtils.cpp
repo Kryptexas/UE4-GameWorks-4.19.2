@@ -5367,7 +5367,6 @@ void FBlueprintEditorUtils::ConformCallsToParentFunctions(UBlueprint* Blueprint)
 					{
 						// Cache a reference to the output exec pin
 						UEdGraphPin* OutputPin = CallFunctionNode->GetThenPin();
-						check(NULL != OutputPin);
 
 						// We're going to destroy the existing parent function call node, but first we need to persist any existing connections
 						for(int PinIndex = 0; PinIndex < CallFunctionNode->Pins.Num(); ++PinIndex)
