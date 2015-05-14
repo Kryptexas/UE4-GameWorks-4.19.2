@@ -19,7 +19,7 @@ _The steps below are based off using the **Blueprint Side Scroller Template** pr
 
 	![](GHT4B_1.png)
 
-	Here we added two **SideScrollerCharacter** Blueprints to the level and a third character is spawned via the **PlayerStart**. 
+	Here we added two **SideScrollerCharacter** Blueprints to the level. 
 
 1.	Select each of your characters in the level (the two we added to the level). 
 
