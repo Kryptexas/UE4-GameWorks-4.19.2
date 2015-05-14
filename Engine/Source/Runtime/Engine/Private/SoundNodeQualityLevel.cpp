@@ -5,6 +5,7 @@
 #include "ActiveSound.h"
 #include "Sound/SoundNodeQualityLevel.h"
 #include "Sound/AudioSettings.h"
+#include "GameFramework/GameUserSettings.h"
 
 #if WITH_EDITORONLY_DATA
 #include "Editor.h"

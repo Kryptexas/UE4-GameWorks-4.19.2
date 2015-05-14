@@ -58,9 +58,9 @@ void UAudioSettings::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pro
 						{
 							bFoundDuplicate = false;
 							NewLevelName = FText::Format(LOCTEXT("NewQualityLevelName","New Level{0}"), (NewQualityLevelIndex > 0 ? FText::FromString(FString::Printf(TEXT(" %d"),NewQualityLevelIndex)) : FText::GetEmpty()));
-							for (const FAudioQualitySettings& AQSettings : QualityLevels)
+							for (const FAudioQualitySettings& QualityLevelSettings : QualityLevels)
 							{
-								if (AQSettings.DisplayName.EqualTo(NewLevelName))
+								if (QualityLevelSettings.DisplayName.EqualTo(NewLevelName))
 								{
 									bFoundDuplicate = true;
 									break;
