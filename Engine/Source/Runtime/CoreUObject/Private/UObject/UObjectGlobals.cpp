@@ -2296,15 +2296,17 @@ void FObjectInitializer::InstanceSubobjects(UClass* Class, bool bNeedInstancing,
 {
 	FObjectInstancingGraph TempInstancingGraph;
 	FObjectInstancingGraph* UseInstancingGraph = InstanceGraph ? InstanceGraph : &TempInstancingGraph;
-	UseInstancingGraph->AddNewObject(Obj);
-	// Add any default subobjects
-	for (int32 Index = 0; Index < ComponentInits.SubobjectInits.Num(); Index++)
 	{
-		UseInstancingGraph->AddNewObject(ComponentInits.SubobjectInits[Index].Subobject);
+		UseInstancingGraph->AddNewObject(Obj, ObjectArchetype);
+	}
+	// Add any default subobjects
+	for (auto& SubobjectInit : ComponentInits.SubobjectInits)
+	{
+		UseInstancingGraph->AddNewObject(SubobjectInit.Subobject, SubobjectInit.Template);
 	}
 	if (bNeedInstancing)
 	{
-		UObject* Archetype = Obj->GetArchetype();
+		UObject* Archetype = ObjectArchetype ? ObjectArchetype : Obj->GetArchetype();
 		Class->InstanceSubobjectTemplates(Obj, Archetype, Archetype ? Archetype->GetClass() : NULL, Obj, UseInstancingGraph);
 	}
 	if (bNeedSubobjectInstancing)

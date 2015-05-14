@@ -2484,8 +2484,9 @@ public:
 	 * Sets the DestinationRoot for this instancing graph.
 	 *
 	 * @param	DestinationSubobjectRoot	the top-level object that is being created
+	 * @param	InSourceRoot	Archetype of DestinationSubobjectRoot
 	 */
-	void SetDestinationRoot( class UObject* DestinationSubobjectRoot );
+	void SetDestinationRoot( class UObject* DestinationSubobjectRoot, class UObject* InSourceRoot = nullptr );
 
 	/**
 	 * Finds the destination object instance corresponding to the specified source object.
@@ -2513,17 +2514,19 @@ public:
 
 	/**
 	 * Adds a partially built object instance to the map(s) of source objects to their instances.
-	 * @param	ObjectInstance			Object that was just allocated, but has not been constructed yet
+	 * @param	ObjectInstance  Object that was just allocated, but has not been constructed yet
+	 * @param	InArchetype     Archetype of ObjectInstance
 	 */
-	void AddNewObject(class UObject* ObjectInstance);
+	void AddNewObject(class UObject* ObjectInstance, class UObject* InArchetype = nullptr);
 
 	/**
 	 * Adds an object instance to the map of source objects to their instances.  If there is already a mapping for this object, it will be replaced
 	 * and the value corresponding to ObjectInstance's archetype will now point to ObjectInstance.
 	 *
-	 * @param	ObjectInstance	the object that should be added as the corresopnding instance for ObjectSource
+	 * @param	ObjectInstance  the object that should be added as the corresopnding instance for ObjectSource
+	 * @param	InArchetype     Archetype of ObjectInstance
 	 */
-	void AddNewInstance(class UObject* ObjectInstance);
+	void AddNewInstance(class UObject* ObjectInstance, class UObject* InArchetype = nullptr);
 
 	/**
 	 * Retrieves a list of objects that have the specified Outer
