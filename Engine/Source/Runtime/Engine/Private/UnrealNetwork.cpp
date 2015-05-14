@@ -21,9 +21,9 @@ enum ENetworkVersionHistory
 
 const uint32 FNetworkVersion::InternalProtocolVersion = HISTORY_REPLAY_RPC_CHECKSUMS;
 
-uint32 FNetworkVersion::GetLocalNetworkVersion()
+uint32 FNetworkVersion::GetLocalNetworkVersion(bool AllowOverrideDelegate /*=true*/)
 {
-	if ( GetLocalNetworkVersionOverride.IsBound() )
+	if ( AllowOverrideDelegate && GetLocalNetworkVersionOverride.IsBound() )
 	{
 		const uint32 LocalNetworkVersion = GetLocalNetworkVersionOverride.Execute();
 
