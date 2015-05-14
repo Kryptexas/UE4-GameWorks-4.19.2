@@ -673,6 +673,9 @@ public:
 		return bIsHovered;
 	}
 
+	/** @return True if this widget is directly hovered */
+	virtual bool IsDirectlyHovered() const;
+
 	/** @return is this widget visible, hidden or collapsed */
 	EVisibility GetVisibility() const;
 

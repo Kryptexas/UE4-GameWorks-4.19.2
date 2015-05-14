@@ -678,6 +678,7 @@ protected:
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
 	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const override;
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
+	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const override;
 	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 
 	/** 

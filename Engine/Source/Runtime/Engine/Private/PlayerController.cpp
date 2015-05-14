@@ -1955,18 +1955,26 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 
 	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
 	{
+		UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
+
+		// Early out if were over hit testable slate widgets other then this viewport
+		if (!(ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered()))
+		{
+			return false;
+		}
+
 		// Create a view family for the game viewport
 		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
+			ViewportClient->Viewport,
 			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags )
+			ViewportClient->EngineShowFlags)
 			.SetRealtimeUpdate(true) );
 
 
 		// Calculate a view where the player is to update the streaming from the players start location
 		FVector ViewLocation;
 		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
+		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, ViewportClient->Viewport);
 
 		if (SceneView)
 		{

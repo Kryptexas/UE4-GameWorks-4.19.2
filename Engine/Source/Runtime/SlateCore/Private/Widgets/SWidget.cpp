@@ -616,6 +616,10 @@ void SWidget::EnableToolTipForceField( const bool bEnableForceField )
 	bToolTipForceFieldEnabled = bEnableForceField;
 }
 
+bool SWidget::IsDirectlyHovered() const
+{
+	return FSlateApplicationBase::Get().IsWidgetDirectlyHovered(SharedThis(this));
+}
 
 void SWidget::SetCursor( const TAttribute< TOptional<EMouseCursor::Type> >& InCursor )
 {

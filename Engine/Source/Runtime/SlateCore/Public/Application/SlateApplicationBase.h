@@ -406,6 +406,14 @@ protected:
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
 
 	/**
+	 * Gets whether or not a particular widget is directly hovered.
+	 * Directly hovered means that the widget is directly under the pointer, is not true for ancestors tho they are Hovered.
+	 *
+	 * @return True if the widget is directly hovered, otherwise false.
+	 */
+	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const = 0;
+
+	/**
 	 * Gets whether or not a particular widget should show user focus.
 	 *
 	 * @return True if we should show user focus
