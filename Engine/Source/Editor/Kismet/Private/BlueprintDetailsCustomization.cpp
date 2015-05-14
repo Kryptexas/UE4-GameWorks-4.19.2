@@ -720,7 +720,10 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 				TArray<UObject*> ObjectList;
 				ObjectList.Add(GetPropertyOwnerBlueprint()->GeneratedClass->GetDefaultObject());
 				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
-				Row->IsEnabled(IsVariableInBlueprint());
+				if (Row != nullptr)
+				{
+					Row->IsEnabled(IsVariableInBlueprint());
+				}
 			}
 		}
 
