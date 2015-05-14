@@ -537,7 +537,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "1", UIMin = "1"), AdvancedDisplay)
 	int32 TileNumberHardLimit;
 
-	UPROPERTY(VisibleAnywhere, Category = "Generation|Poly Ref Bits", AdvancedDisplay)
+	UPROPERTY(VisibleAnywhere, Category = Generation, AdvancedDisplay)
 	int32 PolyRefTileBits;
 
 	UPROPERTY(VisibleAnywhere, Category = Generation, AdvancedDisplay)
