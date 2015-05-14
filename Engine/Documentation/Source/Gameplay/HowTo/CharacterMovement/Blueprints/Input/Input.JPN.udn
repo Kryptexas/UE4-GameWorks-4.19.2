@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2453154
+﻿INTSourceChangelist:2547516
 Availability:Public
 Title:2.入力とゲームモード
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -30,7 +30,7 @@ Description:このステップでは、キャラクターの制御だけでな�
 
 	![](SelectClassDefaults.png)
 
-1.	**[Details]** パネルの **[Classess]** で、 **Default Pawn Class** を **MyCharacter** ブループリントを使用する設定にします。 
+1.	**[Details]** パネルの **[Classes]** で、 **Default Pawn Class** を **MyCharacter** ブループリントを使用する設定にします。 
 
 	![](GameMode_1.png)
 
@@ -58,7 +58,7 @@ Description:このステップでは、キャラクターの制御だけでな�
 	このプロセスに関する詳細は、 [](Gameplay\HowTo\SetUpInput\Blueprints) を参照してください。 
 	[/REGION]
 
-1.	Project Settings の **[Game]** セクションの **[Maps & Modes]** オプションをクリックします。 
+1.	Project Settings の **[Project]** セクションの **[Maps & Modes]** オプションをクリックします。 
 
 1.	Maps & Modes の **Default Modes** で、 **Default GameMode** に **MyGame** ゲームモードを設定します。 
 
