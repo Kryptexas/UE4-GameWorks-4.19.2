@@ -1790,6 +1790,24 @@ public:
 	/** The delta time of the last tick */
 	float ThisTickDelta;
 
+	/** Rate of animation evaluation when non rendered (off screen and dedicated servers).
+	 * a value of 4 means evaluated 1 frame, then 3 frames skipped */
+	UPROPERTY()
+	int32 BaseNonRenderedUpdateRate;
+
+	/** Array of MaxDistanceFactor to use for AnimUpdateRate when mesh is visible (rendered).
+	 * MaxDistanceFactor is size on screen, as used by LODs
+	 * Example:
+	 *		BaseVisibleDistanceFactorThesholds.Add(0.4f)
+	 *		BaseVisibleDistanceFactorThesholds.Add(0.2f)
+	 * means:
+	 *		0 frame skip, MaxDistanceFactor > 0.4f
+	 *		1 frame skip, MaxDistanceFactor > 0.2f
+	 *		2 frame skip, MaxDistanceFactor > 0.0f
+	 */
+	UPROPERTY()
+	TArray<float> BaseVisibleDistanceFactorThesholds;
+
 public:
 
 	/** Default constructor. */
@@ -1802,7 +1820,11 @@ public:
 		, TickedPoseOffestTime(0.f)
 		, AdditionalTime(0.f)
 		, ThisTickDelta(0.f)
-	{ }
+		, BaseNonRenderedUpdateRate(4)
+	{ 
+		BaseVisibleDistanceFactorThesholds.Add(0.4f);
+		BaseVisibleDistanceFactorThesholds.Add(0.2f);
+	}
 
 	/** Set parameters and verify inputs for Trail Mode (original behaviour - skip frames, track skipped time and then catch up afterwards).
 	 * @param : UpdateShiftRate. Shift our update frames so that updates across all skinned components are staggered
@@ -1851,12 +1873,12 @@ public:
 	{
 		if (OptimizeMode == TrailMode)
 		{
-			/*switch (UpdateRate)
+			switch (UpdateRate)
 			{
 			case 1: return FColor::Red;
 			case 2: return FColor::Green;
 			case 3: return FColor::Blue;
-			}*/
+			}
 			return FColor::Black;
 		}
 		else

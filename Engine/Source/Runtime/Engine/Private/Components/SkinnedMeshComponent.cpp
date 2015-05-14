@@ -83,22 +83,29 @@ namespace FAnimUpdateRateManager
 
 	FAnimUpdateRateParameters* GetUpdateRateParameters(USkinnedMeshComponent* SkinnedComponent)
 	{
+		if (!SkinnedComponent)
+		{
+			return NULL;
+		}
 		UObject* TrackerIndex = GetMapIndexForComponent(SkinnedComponent);
 
-		FAnimUpdateRateParametersTracker** ExistingTracker = ActorToUpdateRateParams.Find(TrackerIndex);
-		if (!ExistingTracker)
+		FAnimUpdateRateParametersTracker** ExistingTrackerPtr = ActorToUpdateRateParams.Find(TrackerIndex);
+		if (!ExistingTrackerPtr)
 		{
-			ExistingTracker = &ActorToUpdateRateParams.Add(TrackerIndex);
-			(*ExistingTracker) = new FAnimUpdateRateParametersTracker();
+			ExistingTrackerPtr = &ActorToUpdateRateParams.Add(TrackerIndex);
+			(*ExistingTrackerPtr) = new FAnimUpdateRateParametersTracker();
 		}
 		
+		check(ExistingTrackerPtr);
+		FAnimUpdateRateParametersTracker* ExistingTracker = *ExistingTrackerPtr;
 		check(ExistingTracker);
-		check(*ExistingTracker);
+		checkSlow(!ExistingTracker->RegisteredComponents.Contains(SkinnedComponent)); // We have already been registered? Something has gone very wrong!
 
-		checkSlow(!(*ExistingTracker)->RegisteredComponents.Contains(SkinnedComponent)); // We have already been registered? Something has gone very wrong!
+		ExistingTracker->RegisteredComponents.Add(SkinnedComponent);
+		FAnimUpdateRateParameters* UpdateRateParams = &ExistingTracker->UpdateRateParameters;
+		SkinnedComponent->OnAnimUpdateRateParamsCreated.ExecuteIfBound(UpdateRateParams);
 
-		(*ExistingTracker)->RegisteredComponents.Add(SkinnedComponent);
-		return &(*ExistingTracker)->UpdateRateParameters;
+		return UpdateRateParams;
 	}
 
 	void CleanupUpdateRateParametersRef(USkinnedMeshComponent* SkinnedComponent)
@@ -126,7 +133,9 @@ namespace FAnimUpdateRateManager
 		// Not rendered, including dedicated servers. we can skip the Evaluation part.
 		if (!bRecentlyRendered)
 		{
-			Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), ((bHumanControlled || bNeedsEveryFrame) ? 1 : 4), 4, false);
+			const int32 NewUpdateRate = (((bHumanControlled || bNeedsEveryFrame) ? 1 : Tracker->UpdateRateParameters.BaseNonRenderedUpdateRate);
+			const int32 NewEvaluationRate = Tracker->UpdateRateParameters.BaseNonRenderedUpdateRate;
+			Tracker->UpdateRateParameters.SetTrailMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), NewUpdateRate, NewEvaluationRate, false);
 		}
 		// Visible controlled characters or playing root motion. Need evaluation and ticking done every frame.
 		else  if (bHumanControlled || bNeedsEveryFrame)
@@ -135,20 +144,15 @@ namespace FAnimUpdateRateManager
 		}
 		else
 		{
-			// For visible meshes, figure out how often bones should be evaluated VS interpolated to previous evaluation.
-			// This is based on screen size and makes sense for a 3D FPS game, different games or Actors can implement different rules.
-			int32 DesiredEvaluationRate;
-			if (MaxDistanceFactor > 0.4f)
+			int32 DesiredEvaluationRate = Tracker->UpdateRateParameters.BaseVisibleDistanceFactorThesholds.Num() + 1;
+			for (int32 Index = 0; Index < Tracker->UpdateRateParameters.BaseVisibleDistanceFactorThesholds.Num(); Index++)
 			{
-				DesiredEvaluationRate = 1;
-			}
-			else if (MaxDistanceFactor > .2f)
-			{
-				DesiredEvaluationRate = 2;
-			}
-			else
-			{
-				DesiredEvaluationRate = 3;
+				const float& DistanceFactorThreadhold = Tracker->UpdateRateParameters.BaseVisibleDistanceFactorThesholds[Index];
+				if (MaxDistanceFactor > DistanceFactorThreadhold)
+				{
+					DesiredEvaluationRate = Index + 1;
+					break;
+				}
 			}
 
 			if (bUsingRootMotionFromEverything && DesiredEvaluationRate > 1)

@@ -11,6 +11,9 @@
 class FSkeletalMeshResource;
 struct FSkelMeshChunk;
 class FSkeletalMeshVertexBuffer;
+
+DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
+
 //
 // Bone Visibility.
 //
@@ -894,6 +897,9 @@ private:
 public:
 	/** Animation Update Rate optimization parameters. */
 	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
+
+	/** Delegate when AnimUpdateRateParams is created, to override its default settings. */
+	FOnAnimUpdateRateParamsCreated OnAnimUpdateRateParamsCreated;
 
 	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
 	* 
