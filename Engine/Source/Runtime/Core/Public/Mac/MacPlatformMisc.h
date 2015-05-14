@@ -203,6 +203,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static id<NSObject> CommandletActivity;
 
 	static const TCHAR* GetCompleteCommandLine();
+    
+    static void MergeDefaultArgumentsIntoCommandLine(FString& CommandLine, FString DefaultArguments);
 };
 
 #ifdef __OBJC__
