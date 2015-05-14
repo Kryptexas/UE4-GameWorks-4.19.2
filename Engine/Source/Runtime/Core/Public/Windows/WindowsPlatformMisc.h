@@ -263,6 +263,8 @@ struct CORE_API FWindowsPlatformMisc
 	static EConvertibleLaptopMode GetConvertibleLaptopMode();
 
 	static IPlatformChunkInstall* GetPlatformChunkInstall();
+
+	static const TCHAR* GetCompleteCommandLine();
 };
 
 

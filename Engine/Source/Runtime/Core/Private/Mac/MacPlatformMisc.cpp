@@ -1721,3 +1721,41 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 	
 	_Exit(0);
 }
+
+const TCHAR* FMacPlatformMisc::GetCompleteCommandLine()
+{
+    static FString CommandLine;
+    if (CommandLine.Len() == 0)
+    {
+        CommandLine = FCommandLine::Get();
+        FString CommandLineFile = FPaths::RootDir() / TEXT("UE4CommandLine.txt");
+        FPaths::NormalizeFilename(CommandLineFile);
+
+        int32 FileHandle = open(TCHAR_TO_UTF8(*CommandLineFile), O_RDONLY);
+        if (FileHandle != -1)
+        {
+            int32 FileLength = lseek(FileHandle, 0, SEEK_END);
+            if (FileLength < 0 || lseek(FileHandle, 0, SEEK_SET) != 0)
+            {
+                FPlatformMisc::LowLevelOutputDebugString(TEXT("WARNING: Failed to seek in UE4CommandLine.txt"));
+            }
+            else
+            {
+                TArray<uint8> Buffer;
+                Buffer.AddZeroed(FileLength + 1);
+
+                int ReadSize = read(FileHandle, Buffer.GetData(), FileLength);
+                if (ReadSize == FileLength)
+                {
+                    MergeDefaultArgumentsIntoCommandLine(CommandLine, UTF8_TO_TCHAR((const ANSICHAR*)Buffer.GetData()));
+                }
+                else
+                {
+                    FPlatformMisc::LowLevelOutputDebugString(TEXT("WARNING: Failed to read UE4CommandLine.txt"));
+                }
+            }
+            close(FileHandle);
+        }
+    }
+	return *CommandLine;
+}

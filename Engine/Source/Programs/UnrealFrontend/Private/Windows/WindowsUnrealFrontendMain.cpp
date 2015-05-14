@@ -5,7 +5,6 @@
 #include "ExceptionHandling.h"
 #include "LaunchEngineLoop.h"
 
-
 /**
  * The main application entry point for Windows platforms.
  *
@@ -19,8 +18,7 @@ int32 WINAPI WinMain( HINSTANCE hInInstance, HINSTANCE hPrevInstance, char* lpCm
 {
 	hInstance = hInInstance;
 
-	const TCHAR* OrgCmdLine = GetCommandLineW();
-	const TCHAR* CmdLine = FCommandLine::RemoveExeName(OrgCmdLine);
+	const TCHAR* CmdLine = FPlatformMisc::GetCompleteCommandLine();
 
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(CmdLine, TEXT("crashreports")))

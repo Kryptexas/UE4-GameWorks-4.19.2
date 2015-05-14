@@ -252,38 +252,6 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 
 @end
 
-static void MergeDefaultArgumentsIntoCommandLine(FString& CommandLine, FString DefaultArguments)
-{
-	// Normalize the arguments by removing any newlines and unnecessary spaces
-	DefaultArguments.ReplaceInline(TEXT("\r"), TEXT(" "));
-	DefaultArguments.ReplaceInline(TEXT("\n"), TEXT(" "));
-	DefaultArguments = DefaultArguments.Trim();
-
-	// We need to make sure that the project is always the first argument, otherwise it's not parsed correctly in LaunchEngineLoop (which also
-	// interferes with passing a map name on the command-line). It's possible that UE4CommandLine.txt contains the game name (for packaged games) 
-	// or that the command line contains the game name (for the editor), so we have to be careful in which order they're stitched together.
-	if(DefaultArguments.Len() > 0)
-	{
-		// Measure the length of the project name in the default command line.
-		int32 ProjectNameLength = 0;
-		const TCHAR* RemainingArguments = *DefaultArguments;
-		FString FirstArgument;
-		if(FParse::Token(RemainingArguments, FirstArgument, false) && !FirstArgument.StartsWith("-"))
-		{
-			ProjectNameLength = RemainingArguments - *DefaultArguments;
-		}
-
-		// Build a new command line consisting of the application name, project name, command line arguments, and default arguments.
-		FString NewCommandLine;
-		NewCommandLine.Append(*DefaultArguments, ProjectNameLength);
-		NewCommandLine.AppendChar(TEXT(' '));
-		NewCommandLine.Append(*CommandLine);
-		NewCommandLine.AppendChar(TEXT(' '));
-		NewCommandLine.Append(*DefaultArguments + ProjectNameLength);
-		CommandLine = NewCommandLine;
-	}
-}
-
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	for (int32 Option = 1; Option < ArgC; Option++)
@@ -306,35 +274,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		}
 		GSavedCommandLine += Argument;
 	}
-	
-	FString CommandLineFile = FPaths::RootDir() / TEXT("UE4CommandLine.txt");
-	FPaths::NormalizeFilename(CommandLineFile);
 
-	int32 FileHandle = open(TCHAR_TO_UTF8(*CommandLineFile), O_RDONLY);
-	if (FileHandle != -1)
-	{
-		int32 FileLength = lseek(FileHandle, 0, SEEK_END);
-		if(FileLength < 0 || lseek(FileHandle, 0, SEEK_SET) != 0)
-		{
-			FPlatformMisc::LowLevelOutputDebugString(TEXT("WARNING: Failed to seek in UE4CommandLine.txt"));
-		}
-		else
-		{
-			TArray<uint8> Buffer;
-			Buffer.AddZeroed(FileLength + 1);
-
-			int ReadSize = read(FileHandle, Buffer.GetData(), FileLength);
-			if(ReadSize == FileLength)
-			{
-				MergeDefaultArgumentsIntoCommandLine(GSavedCommandLine, UTF8_TO_TCHAR((const ANSICHAR*)Buffer.GetData()));
-			}
-			else
-			{
-				FPlatformMisc::LowLevelOutputDebugString(TEXT("WARNING: Failed to read UE4CommandLine.txt"));
-			}
-		}
-		close(FileHandle);
-	}
+	FCommandLine::Set(*GSavedCommandLine);
+	GSavedCommandLine = FPlatformMisc::GetCompleteCommandLine();
 
 	SCOPED_AUTORELEASE_POOL;
 	[NSApplication sharedApplication];

@@ -201,6 +201,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static bool bChachedMacMenuStateNeedsUpdate;
 
 	static id<NSObject> CommandletActivity;
+
+	static const TCHAR* GetCompleteCommandLine();
 };
 
 #ifdef __OBJC__

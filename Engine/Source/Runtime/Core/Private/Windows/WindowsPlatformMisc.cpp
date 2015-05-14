@@ -2430,3 +2430,51 @@ IPlatformChunkInstall* FWindowsPlatformMisc::GetPlatformChunkInstall()
 
 	return ChunkInstall;
 }
+
+const TCHAR* FWindowsPlatformMisc::GetCompleteCommandLine()
+{
+	static FString CommandLine;
+	if (CommandLine.Len() == 0)
+	{
+		const TCHAR* OrgCmdLine = ::GetCommandLine();
+		CommandLine = FCommandLine::RemoveExeName(OrgCmdLine);
+
+		// Get the path to the arguments file
+		FString ArgsFileName = FPaths::RootDir() / TEXT("UE4CommandLine.txt");
+
+		// Try to read the default arguments
+		HANDLE FileHandle = CreateFile(*ArgsFileName, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (FileHandle == INVALID_HANDLE_VALUE)
+		{
+			if (GetLastError() != ERROR_FILE_NOT_FOUND)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(*FString::Printf(TEXT("WARNING: Failed to open UE4CommandLine.txt - %08X\n"), GetLastError()));
+			}
+		}
+		else
+		{
+			::DWORD FileSize = ::GetFileSize(FileHandle, NULL);
+			if (FileSize == (::DWORD)0xffffffff)
+			{
+				FPlatformMisc::LowLevelOutputDebugString(*FString::Printf(TEXT("WARNING: Failed to get file size for UE4CommandLine.txt (%08x)\n"), GetLastError()));
+			}
+			else
+			{
+				TArray<BYTE> Buffer;
+				Buffer.AddZeroed(FileSize + 1);
+
+				::DWORD FileSizeRead = 0;
+				if (!ReadFile(FileHandle, Buffer.GetData(), FileSize, &FileSizeRead, NULL) || FileSizeRead < FileSize)
+				{
+					FPlatformMisc::LowLevelOutputDebugString(*FString::Printf(TEXT("WARNING: Failed to read UE4CommandLine.txt file (%08x)\n"), GetLastError()));
+				}
+				else
+				{
+					MergeDefaultArgumentsIntoCommandLine(CommandLine, FString(UTF8_TO_TCHAR((const ANSICHAR*)Buffer.GetData())));
+				}
+			}
+			CloseHandle(FileHandle);
+		}
+	}
+	return *CommandLine;
+}

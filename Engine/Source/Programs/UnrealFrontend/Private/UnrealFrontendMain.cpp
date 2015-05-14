@@ -20,6 +20,8 @@ IMPLEMENT_APPLICATION(UnrealFrontend, "UnrealFrontend");
  */
 int32 UnrealFrontendMain( const TCHAR* CommandLine )
 {
+	FCommandLine::Set(CommandLine);
+
 	FString Command;
 	FString Params;
 	FString NewCommandLine = CommandLine;

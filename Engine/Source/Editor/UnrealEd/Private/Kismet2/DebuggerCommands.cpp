@@ -1567,12 +1567,12 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 		{
 		case ETargetPlatformReadyStatus::CodeUnsupported:
 			// show the message
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, launching a code-based project for the selected platform is currently not supported. This feature may be available in a future release."));
 			return false;
 
 		case ETargetPlatformReadyStatus::PluginsUnsupported:
 			// show the message
-			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, packaging a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("NotSupported", "Sorry, launching a project with third-party plugins is currently not supported for the selected platform. This feature may be available in a future release."));
 			return false;
 		default:
 			break;
