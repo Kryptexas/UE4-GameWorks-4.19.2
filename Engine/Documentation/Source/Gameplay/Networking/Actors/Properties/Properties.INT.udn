@@ -41,4 +41,4 @@ In the actor's constructor, make sure you have the bReplicates flag set to true:
 		bReplicates = true;
 	}
 
-That's about it.The member variable `Owner` will now be synchronized to all connected clients for every copy of this actor type that is currently instantiated (in this case, the base actor class).
+That's about it. The member variable `Owner` will now be synchronized to all connected clients for every copy of this actor type that is currently instantiated (in this case, the base actor class).
