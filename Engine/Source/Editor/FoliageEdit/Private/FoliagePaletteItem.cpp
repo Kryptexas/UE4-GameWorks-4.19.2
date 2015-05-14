@@ -11,6 +11,7 @@
 #include "Editor/UnrealEd/Public/AssetThumbnail.h"
 #include "Engine/StaticMesh.h"
 #include "AssetToolsModule.h"
+#include "FoliageType_InstancedStaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 
