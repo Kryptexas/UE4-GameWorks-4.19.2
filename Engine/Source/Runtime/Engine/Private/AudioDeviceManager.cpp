@@ -5,6 +5,8 @@
 #include "AudioDevice.h"
 #include "AudioDeviceManager.h"
 #include "Sound/SoundWave.h"
+#include "Sound/AudioSettings.h"
+#include "GameFramework/GameUserSettings.h"
 
 // Private consts for helping with index/generation determination in audio device manager
 static const uint32 AUDIO_DEVICE_HANDLE_INDEX_BITS		= 24;

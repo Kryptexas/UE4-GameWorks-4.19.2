@@ -304,7 +304,7 @@ public:
 			PlayInEditorCategory.GetDefaultProperties(PIECategoryProperties, true, false);
 
 			TSharedPtr<IPropertyHandle> PIEEnableSoundHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, EnableSound));
-			PIESoundQualityLevelHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, PlayInEditorSoundQuality));
+			PIESoundQualityLevelHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, PlayInEditorSoundQualityLevel));
 			PIESoundQualityLevelHandle->MarkHiddenByCustomization();
 
 			for (TSharedRef<IPropertyHandle>& PropertyHandle : PIECategoryProperties)

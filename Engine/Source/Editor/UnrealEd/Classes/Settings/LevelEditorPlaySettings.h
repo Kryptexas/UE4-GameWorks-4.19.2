@@ -163,7 +163,7 @@ public:
 
 	/** Which quality level to use when playing in editor */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor)
-	int32 PlayInEditorSoundQuality;
+	int32 PlayInEditorSoundQualityLevel;
 
 	/** True if Play In Editor should only load currently-visible levels in PIE. */
 	UPROPERTY(config)

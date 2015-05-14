@@ -4,6 +4,13 @@
 #include "EnginePrivate.h"
 #include "ActiveSound.h"
 #include "Sound/SoundNodeQualityLevel.h"
+#include "Sound/AudioSettings.h"
+
+#if WITH_EDITORONLY_DATA
+#include "Editor.h"
+#include "EdGraph/EdGraph.h"
+#include "Settings/LevelEditorPlaySettings.h"
+#endif
 
 #if WITH_EDITOR
 void USoundNodeQualityLevel::PostLoad()
@@ -63,7 +70,7 @@ void USoundNodeQualityLevel::ParseNodes( FAudioDevice* AudioDevice, const UPTRIN
 			const bool bIsPIESound = ((GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL) && ActiveSound.World != NULL);
 			if (bIsPIESound)
 			{
-				QualityLevel = GetDefault<ULevelEditorPlaySettings>()->PlayInEditorSoundQuality;
+				QualityLevel = GetDefault<ULevelEditorPlaySettings>()->PlayInEditorSoundQualityLevel;
 			}
 		}
 	}
