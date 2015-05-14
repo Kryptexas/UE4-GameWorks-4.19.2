@@ -54,6 +54,7 @@ namespace EAnalyticsErrorCodes
 		AndroidBuildToolsPathNotFound = 54,
 		NoApkSuitableForArchitecture = 55,
 		FilesInstallFailed = 56,
+		RemoteCertificatesNotFound = 57,
 		LauncherFailed = 100,
 		UATLaunchFailure = 101,
 		FailedToDeleteStagingDirectory = 102,

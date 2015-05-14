@@ -174,6 +174,8 @@ FString FEditorAnalytics::TranslateErrorCode(int32 ErrorCode)
 		return TEXT("Failed to launch on device.  Make sure your device has been enabled for development from within the Xcode Devices window.");
 	case EAnalyticsErrorCodes::DeviceOSNewerThanSDK:
 		return TEXT("Failed to launch on device.  Make sure your install of Xcode matches or is newer than the OS on your device.");
+	case EAnalyticsErrorCodes::RemoteCertificatesNotFound:
+		return TEXT("Failed to sign executable.  Make sure your developer certificates have been installed in the System Keychain on the remote Mac.");
 	}
 	return TEXT("Unknown Error");
 }

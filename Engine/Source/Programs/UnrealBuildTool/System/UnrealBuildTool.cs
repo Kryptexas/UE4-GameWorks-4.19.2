@@ -1357,9 +1357,14 @@ namespace UnrealBuildTool
             // Print some performance info
             Log.TraceVerbose("Execution time: {0}", (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds);
 
+			if (ExtendedErrorCode != 0)
+			{
+				return ExtendedErrorCode;
+			}
             return (int)Result; 
         }
 
+		public static int ExtendedErrorCode = 0;
         private static int Main(string[] Arguments)
         {
             // make sure we catch any exceptions and return an appropriate error code.
@@ -1383,6 +1388,10 @@ namespace UnrealBuildTool
                 {
                     Log.TraceError("UnrealBuildTool Exception: " + Exception.ToString());
                 }
+				if (ExtendedErrorCode != 0)
+				{
+					return ExtendedErrorCode;
+				}
                 return (int)ECompilationResult.OtherCompilationError;
             }
         }
