@@ -19,7 +19,7 @@ _The steps below are based off using the **Blueprint Side Scroller Template** pr
 
 	![](GHT4B_1.png)
 
-	Here we added two **MyCharacter** Blueprints to the level and a third character is spawned via the **PlayerStart**. 
+	Here we added two **SideScrollerCharacter** Blueprints to the level and a third character is spawned via the **PlayerStart**. 
 
 1.	Select each of your characters in the level (the two we added to the level). 
 
@@ -37,13 +37,13 @@ _The steps below are based off using the **Blueprint Side Scroller Template** pr
 
 1.	**Right-click** in the graph and add an **Event Begin Play** node, **Right-click** again and add a **Get Player Character** node.  
 
-1.	Drag off the **Return Value** of the **Get Player Character** and add the **Cast To MyCharacter** node. 
+1.	Drag off the **Return Value** of the **Get Player Character** and add the **Cast To SideScrollerCharacter** node. 
 
 	![](GHT4B_5.png)
 
 	We are going to store a reference to the default character so that we may switch back to them when we press a button. 
 
-1.	Drag off the **As My Character C** pin and select **Promote to variable** and call the variable **DefaultCharacter**. 
+1.	Drag off the **As SideScrollerCharacter** pin and select **Promote to variable** and call the variable **DefaultCharacter**. 
 
 	![](GHT4B_6.png)
 
