@@ -59,6 +59,15 @@ void FNiagaraOpInfo::Init()
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Multiply);
 
+	Op = &OpInfos.Add(Divide);
+	Op->Name = Divide;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Divide Name", "Divide");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Divide Desc", "Result = A / B = {{A.x / B.x, A.y / B.y, A.z / B.z, A.w / B.w}}");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
+	Op->OpDelegate.BindStatic(&INiagaraCompiler::Divide);
+
 	Op = &OpInfos.Add(MultiplyAdd);
 	Op->Name = MultiplyAdd;
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "MultiplyAdd Name", "MultiplyAdd");

@@ -298,6 +298,11 @@ void FNiagaraCompiler_VectorVM::Multiply_Internal(TArray<TNiagaraExprPtr>& Input
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::mul, InputExpressions));
 }
 
+void FNiagaraCompiler_VectorVM::Divide_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+{
+	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::div, InputExpressions));
+}
+
 void FNiagaraCompiler_VectorVM::MultiplyAdd_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::mad, InputExpressions));

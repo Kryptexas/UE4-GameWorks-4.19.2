@@ -139,12 +139,12 @@ void NiagaraEffectRendererSprites::GetDynamicMeshElements(const TArray<const FSc
 				PerViewUniformParameters.RotationScale = 1.0f;
 				PerViewUniformParameters.RotationBias = 0.0f;
 				PerViewUniformParameters.TangentSelector = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
-				PerViewUniformParameters.InvDeltaSeconds = 0.0f;
+				PerViewUniformParameters.InvDeltaSeconds = 30.0f;
 				if (Properties)
 				{
 					PerViewUniformParameters.SubImageSize = FVector4(Properties->SubImageInfo.X, Properties->SubImageInfo.Y, 1.0f / Properties->SubImageInfo.X, 1.0f / Properties->SubImageInfo.Y);
 				}
-				PerViewUniformParameters.NormalsType = 0;
+				PerViewUniformParameters.NormalsType = 0.0f;
 				PerViewUniformParameters.NormalsSphereCenter = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 				PerViewUniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
 				PerViewUniformParameters.PivotOffset = FVector2D(-0.5f, -0.5f);
@@ -223,6 +223,7 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	CachedBounds.Init();
 
 	const FVector4 *PosPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
+	const FVector4 *VelPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Velocity")), ENiagaraDataType::Vector));
 	const FVector4 *ColPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
 	const FVector4 *AgePtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
 	const FVector4 *RotPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
@@ -244,7 +245,10 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	{
 		FParticleSpriteVertex& NewVertex = RenderData[ParticleIndex];
 		NewVertex.Position = PosPtr[ParticleIndex];
-		NewVertex.OldPosition = NewVertex.Position;
+		if (VelPtr)
+		{
+			NewVertex.OldPosition = NewVertex.Position - VelPtr[ParticleIndex];
+		}
 		NewVertex.Color = FLinearColor(ColPtr[ParticleIndex]);
 		NewVertex.Color.A = ColPtr[ParticleIndex].W;
 		NewVertex.ParticleId = ParticleId;
@@ -390,8 +394,8 @@ void NiagaraEffectRendererRibbon::GetDynamicMeshElements(const TArray<const FSce
 
 				FNiagaraMeshCollectorResourcesRibbon& CollectorResources = Collector.AllocateOneFrameResource<FNiagaraMeshCollectorResourcesRibbon>();
 				FParticleBeamTrailUniformParameters PerViewUniformParameters;// = UniformParameters;
-				PerViewUniformParameters.CameraUp = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
-				PerViewUniformParameters.CameraRight = FVector4(1.0f, 0.0f, 0.0f, 0.0f);
+				PerViewUniformParameters.CameraUp = View->GetViewUp(); // FVector4(0.0f, 0.0f, 1.0f, 0.0f);
+				PerViewUniformParameters.CameraRight = View->GetViewRight();//	FVector4(1.0f, 0.0f, 0.0f, 0.0f);
 				PerViewUniformParameters.ScreenAlignment = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 
 				// Collector.AllocateOneFrameResource uses default ctor, initialize the vertex factory

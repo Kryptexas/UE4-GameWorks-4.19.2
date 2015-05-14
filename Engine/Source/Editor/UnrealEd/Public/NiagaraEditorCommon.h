@@ -11,6 +11,7 @@
 	NiagaraOp(Add)\
 	NiagaraOp(Subtract)\
 	NiagaraOp(Multiply)\
+	NiagaraOp(Divide)\
 	NiagaraOp(MultiplyAdd)\
 	NiagaraOp(Lerp)\
 	NiagaraOp(Reciprocal)\

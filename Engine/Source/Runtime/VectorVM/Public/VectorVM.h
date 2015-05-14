@@ -88,6 +88,7 @@ namespace VectorVM
 			eventbroadcast,
 			easein,
 			easeinout,
+			div,
 			NumOpcodes
 	};
 
