@@ -1372,6 +1372,11 @@ TArray< TSharedPtr< ILevelViewport > > SLevelEditor::GetViewports() const
 	return OutViewports;
 }
  
+TSharedPtr<ILevelViewport> SLevelEditor::GetActiveViewportInterface()
+{
+	return GetActiveViewport();
+}
+
 TSharedPtr< class FAssetThumbnailPool > SLevelEditor::GetThumbnailPool() const
 {
 	return ThumbnailPool;
