@@ -11,6 +11,8 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Batches"), STAT_SlateNumBatches, STATGROUP_
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROUP_Slate);
 DECLARE_MEMORY_STAT(TEXT("Batch Vertex Memory"), STAT_SlateVertexBatchMemory, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Batch Index Memory"), STAT_SlateIndexBatchMemory, STATGROUP_SlateMemory);
+DECLARE_CYCLE_STAT(TEXT("FillBatchBuffers Time"), STAT_SlateFillBatchBuffers, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("AddElements Time"), STAT_SlateAddElements, STATGROUP_Slate);
 
 SLATE_DECLARE_CYCLE_COUNTER(GSlateAddElements, "Add Elements");
 SLATE_DECLARE_CYCLE_COUNTER(GSlateFindBatchTime, "FindElementForBatch");
@@ -65,6 +67,7 @@ FSlateElementBatcher::~FSlateElementBatcher()
 void FSlateElementBatcher::AddElements( const TArray<FSlateDrawElement>& DrawElements )
 {
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateAddElements);
+	SCOPE_CYCLE_COUNTER(STAT_SlateAddElements);
 	// This stuff is just for the counters. Could be scoped by an #ifdef if necessary.
 	static_assert(
 		FSlateDrawElement::EElementType::ET_Box == 0 &&
@@ -1545,6 +1548,7 @@ void FSlateElementBatcher::AddIndices( TArray<SlateIndex>& OutIndices, FSlateEle
 void FSlateElementBatcher::FillBatchBuffers( FSlateWindowElementList& WindowElementList, bool& bRequiresStencilTest )
 {
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateFillBatchBuffers);
+	SCOPE_CYCLE_COUNTER(STAT_SlateFillBatchBuffers);
 
 	TArray<FSlateRenderBatch>& OutRenderBatches = WindowElementList.RenderBatches;
 	TArray<FSlateVertex>& OutBatchedVertices = WindowElementList.BatchedVertices;
