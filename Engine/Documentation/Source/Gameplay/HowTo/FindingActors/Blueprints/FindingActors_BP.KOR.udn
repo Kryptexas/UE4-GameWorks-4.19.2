@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543291
+﻿INTSourceChangelist:2549207
 Availability: Public
 Title:블루프린트에서 액터 검색 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
@@ -47,17 +47,7 @@ Description:블루프린트에서 액터를 검색하는 비법 안내입니다.
 
 	**Out Actors** 는 (지정한 클래스의) 모든 액터로 이루어진 **배열** 로, 그 "각각에 대해" (For Each) 어떤 작업을 할 수 있습니다.
 
-1.	**ForEachLoop** 노드에서 **Array Element** 를 끌어 놓은 다음 **Cast To Blueprint_Effect_Fire** 노드를 추가합니다.
-
-	![](Actors6.png)
-
-	**Blueprint_Effect_Fire** 애셋에 접근/변경하려면, 블루프린트에 액터 레퍼런스를 연관시켜 줘야 합니다. 액터 레퍼런스를 잡아 연관시켜주려는 오브젝트로 **Cast To** (형변환)해 주면, "그래 액터야, 너는 이제 동족이니 접근하여 변경할 수 있도록 해 주렴" 하는 것입니다.
-
-	[REGION:note]
-	**형변환** 및 **블루프린트 통신** 관련 상세 정보는 [](Engine/Blueprints/UserGuide/BlueprintCommsUsage) 문서를 참고하시기 바랍니다.
-	[/REGION]
-
-1.	Cast 노드의 **As Blueprint Effect Fire C** 핀을 끌어놓고, **P_Fire** 와 **Fire Audio** 를 구합니다. 
+1.	**ForEachLoop** 노드의 **Array Element** 를 끌어놓고 **P_Fire** 와 **Fire Audio** 를 **Get** 합니다. 
 
 1.	그래프에 **우클릭** 한 다음 **Deactivate** 노드를 추가한 뒤 화염과 오디오 핀을 **Target** 에 연결합니다. 
 
@@ -92,7 +82,7 @@ Description:블루프린트에서 액터를 검색하는 비법 안내입니다.
 
 	![](Actors9.png)
 
-1.	**MyCharacter** 블루프린트 안에서, **As Blueprint Effect Fire C** 핀을 끌어놓고 **Get Tags** 노드를 추가합니다.
+1.	**MyCharacter** 블루프린트 안에서 **ForEachLoop** 의 **Array Element** 를 끌어놓고 **Get Tags** 노드를 추가합니다.
 
 	![](Actors10.png)
 
@@ -108,11 +98,11 @@ Description:블루프린트에서 액터를 검색하는 비법 안내입니다.
 
 1.	**Get** 노드의 출력 핀을 **Actor Has Tag** 노드의 **Tag** 핀에 연결합니다.
 
-1.	**As Blueprint Effect Fire C** 핀을 **Actor Has Tag** 노드의 **Target** 핀에 연결합니다.
+1.	**ForEachLoop** 의 **Array Element** 핀을 **Actor Has Tag** 노드의 **Target** 핀에 연결합니다.
 
 	![](Actors12.png)(w:800)
 
-1.	**As Blueprint Effect Fire C** 핀을 끌어놓고 **P_Fire** 와 **Fire Audio** 를 구한 다음 **Deactivate** 노드에 연결합니다.
+1.	**ForEachLoop** 의 **Array Element** 핀을 끌어놓고 **Get P_Fire** 와 **Get Fire Audio** 를 추가한 뒤, **Deactivate** 노드에 연결합니다.
 
 	[REGION:lightbox]
 	[![](Actors13.png)(w:800)](Actors13.png)
@@ -141,8 +131,6 @@ _이미지를 클릭하면 원래 크기로 봅니다._
 _이미지를 클릭하면 원래 크기로 봅니다._
 
 여기서는 레벨에 **TriggerBox** 클래스의 모든 액터를 구한 다음 그 콜리전을 끄고 있습니다 (레벨의 모든 트리거를 끕니다). TriggerBox 로 **Cast To** 하지는 않았는데, TriggerBox 의 컴포넌트에 접근하는 것이 아니라 TriggerBox 액터 자체에 접근하는 것이기 때문입니다. 액터를 이루는 컴포넌트에 접근하고자 할 때 바로 **Cast To** 노드를 쓰면 됩니다.
-
-
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2547516
+﻿INTSourceChangelist:2548852
 Availability: Public
 Title:3. 캐릭터 셋업 마무리
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -54,7 +54,7 @@ Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 �
 
 1.	**Alt** 키를 누른 채 **Jog Pressed** 변수를 끌어놓은 뒤, **Ctrl** 키를 누른 채 **Crouch Pressed** 변수를 끌어 놓습니다.
 
-1.	노드 망을 아래와 같이 구성합니다.
+1.	아래와 같이 "Jog Pressed" 적합한 **Set** 노드에 되어있도록 망을 구성합니다.
 
 	![](Character_JogB.png)(w:720)
 
@@ -66,7 +66,7 @@ Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 �
 
 1.	**Alt** 키를 누른 채 **Crouch Pressed** 변수를 끌어놓은 뒤, **Ctrl** 키를 누른 채 **Jog Pressed** 와 **Prone Pressed** 변수를 끌어 놓습니다.
 
-1.	노드 망을 아래와 같이 구성합니다. 
+1.	아래와 같이 "Crouch Pressed" 가 적합한 **Set** 노드에 되어있도록 망을 구성합니다.
 
 	[REGION:lightbox]
 	[![](Character_Crouch.png)(w:720)](Character_Crouch.png)
@@ -84,7 +84,7 @@ Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 �
 
 1.	**Ctrl** 키를 누른 채 **Crouch Pressed** 변수를 끌어 놓습니다.
 
-1.	노드 망을 아래와 같이 구성합니다. 
+1.	아래와 같이 "Prone Pressed" 가 적합한 **Set** 노드에 되어있도록 망을 구성합니다.
 
 	[REGION:lightbox]
 	[![](Character_Prone.png)(w:720)](Character_Prone.png)
@@ -100,7 +100,7 @@ Description:여기서는 캐릭터 이동이 가능하도록 입력 매핑에 �
 
 1.	**Alt** 키를 누르고 **Jump Pressed** 변수를, **Ctrl** 키를 누르고 **DisableMovement** 및 **CrouchPressed** 변수를 끌어 놓습니다.
 
-1.	노드 망을 아래와 같이 구성합니다. 
+1.	아래와 같이 "Jump Pressed" 가 적합한 **Set** 노드에 되어있도록 노드 망을 구성합니다. 
 
 	[REGION:lightbox]
 	[![](Character_Jump.png)(w:720)](Character_Jump.png)
