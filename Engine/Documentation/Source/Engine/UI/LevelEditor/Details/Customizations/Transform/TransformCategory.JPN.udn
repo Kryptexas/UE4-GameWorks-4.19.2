@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2537910
+Availability:Public
 Title:Transform (変形) カテゴリ
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
 Description:アクタの位置、回転、スケーリングを修正するための特別制御
