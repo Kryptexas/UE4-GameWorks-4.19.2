@@ -15,7 +15,7 @@
 
 
 /** A pixel shader which filters a texture. */
-// @param TextureType 0:Cube, 1:1D(not yet supported), 2:2D, 3:3D, 4:Cube[], 5:2D MSAA
+// @param TextureType 0:Cube, 1:1D(not yet supported), 2:2D no MSAA, 3:3D, 4:Cube[], 5:2D MSAA, 6:2D DepthStencil no MSAA (needed to avoid D3DDebug error)
 template<uint32 TextureType>
 class VisualizeTexturePS : public FGlobalShader
 {
@@ -141,7 +141,7 @@ protected:
 #define VARIATION1(A) typedef VisualizeTexturePS<A> VisualizeTexturePS##A; \
 	IMPLEMENT_SHADER_TYPE2(VisualizeTexturePS##A, SF_Pixel);
 
-VARIATION1(0)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)
+VARIATION1(0)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)			VARIATION1(6)
 #undef VARIATION1
 
 
@@ -234,8 +234,16 @@ void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLev
 		}
 		else
 		{
-			// non MSAA
-			VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
+			if(Data.Desc.Format == PF_DepthStencil)
+			{
+				// DepthStencil non MSAA (needed to avoid D3DDebug error)
+				VisualizeTextureForTextureType<6>(RHICmdList, FeatureLevel, Data);
+			}
+			else
+			{
+				// non MSAA
+				VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
+			}
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
