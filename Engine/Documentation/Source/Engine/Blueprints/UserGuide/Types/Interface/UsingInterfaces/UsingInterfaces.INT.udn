@@ -45,11 +45,13 @@ Description:Blueprint Interfaces allow Blueprints to call functions in different
 
 ## Using Interfaces in Blueprints
 
+[EXCERPT:intro]
 The use of _Blueprint Interfaces_ allows for a common method of interacting with multiple different types of objects that all share 
 some specific functionality. This means you can have completely different types of objects, such as a car and a tree, that 
 share one specific thing, like they can both be shot by weapon fire and take damage. By creating a _Blueprint Interface_ that 
 contains an `OnTakeWeaponFire` function, and having both the car and the tree implement that _Blueprint Interface_, you can treat the 
 car and the tree as the same type and simply call the `OnTakeWeaponFire` function when either of them is shot.
+[/EXCERPT:intro]
 
 
 ### Adding Interfaces

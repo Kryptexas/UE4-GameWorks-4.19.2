@@ -6,7 +6,7 @@ Related: Engine/Blueprints/UserGuide/BlueprintComms
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
 
-This page covers how to directly communicate between two Blueprints and pass information between them. 
+This page covers using [Direct Blueprint Communication](Engine/Blueprints/UserGuide/BlueprintComms) to communicate between two Blueprints and pass information between them. 
 
 For this example we will allow the player to pass through a box and communicate with and activate a particle effect. 
 

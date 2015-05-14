@@ -2,6 +2,10 @@ Availability:Public
 Title:Blueprint Communication Usage
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Overview of when to use different methods of Blueprint Communications. 
+Related: Engine\Blueprints\UserGuide\BlueprintComms
+Related: Engine/Blueprints/UserGuide/EventDispatcher
+Related: Engine/Blueprints/UserGuide/CastNodes
+Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -72,7 +76,7 @@ Below are some examples when you might use **Blueprint Comms**:
 *	**You have an Actor in your level that you want to communicate with another Actor in your level.**
 	*	Interacting with a switch in your level opens a specific door or turns on a specific light (each of which are separate Blueprints). 
 
-Refer to [Setting Up Direct Blueprint Communications](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#directblueprintcommunications) for a walk through of how to set one up. 
+Refer to [Setting Up Direct Blueprint Communications](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) for a walk through of how to set one up. 
 
 
 	
@@ -105,7 +109,7 @@ The examples below would be a case where an **Event Dispatcher** could be used:
 	*	You spawn a boss and an Event is fired when the boss is killed which spawns a reward in the world.
 	*	You spawn an item in your level (weapon, health, boost, etc.) and through an Event, notify the item and character when it is picked up.
 
-Refer to [Setting Up Event Dispatchers](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#eventdispatchers) for a walk through of how to set one up. 
+Refer to [Setting Up Event Dispatchers](Engine\Blueprints\BP_HowTo\EventDispatcher) for a walk through of how to set one up. 
 
 
 ## Blueprint Interfaces
@@ -134,7 +138,7 @@ Each of the examples below are scenarios where a **Blueprint Interface** might b
 	*	Player has a "use" button, pressing the use button opens doors, turns off lights, picks up items, etc. 
 	*	Enemy has a special ability that changes based on player health. 
 
-Refer to [Setting Up Blueprint Interfaces](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#blueprintinterfaces) for a walkthrough of how to set one up. 
+Refer to [Setting Up Blueprint Interfaces](Engine\Blueprints\BP_HowTo\Interfaces) for a walkthrough of how to set one up. 
 
 
 ## Casting For Communications
@@ -167,7 +171,7 @@ Here are a few examples when you could use **Blueprint Casting**:
 	*	You have several lights in your level and you want them all to turn on or off when an event occurs. 
 [/EXCERPT:Castusage]
 
-Refer to [Setting Up Blueprint Casts](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#blueprintcasting) for a walk through of how to set one up. 
+Refer to [Setting Up Blueprint Casts](Engine\Blueprints\BP_HowTo\Casting) for a walk through of how to set one up. 
 
 
 
