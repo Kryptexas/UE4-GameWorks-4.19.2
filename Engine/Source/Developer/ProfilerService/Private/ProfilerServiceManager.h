@@ -104,9 +104,11 @@ private:
 	/** Handles a new frame from the stats system. Called from the stats thread. */
 	void HandleNewFrame(int64 Frame);
 
+#if STATS
 	/** Handles a new frame from the stats system. Called from the game thread. */
 	void HandleNewFrameGT( FClientData* ToGameThread );
-	
+#endif // STATS
+
 	void AddNewFrameHandleStatsThread();
 
 	void RemoveNewFrameHandleStatsThread();
