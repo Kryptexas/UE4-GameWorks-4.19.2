@@ -1111,6 +1111,14 @@ public:
 #if LOG_ANDROID_FILE_MANIFEST
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find time stamp in NonUFSManifest for file '%s'"), Filename);
 #endif
+
+			// pak file outside of obb may not be in manifest so check if it exists
+			if (AssetPath.EndsWith(".pak"))
+			{
+				// return local file access timestamp (if exists)
+				return GetAccessTimeStamp(Filename, true);
+			}
+
 			return FDateTime::MinValue();
 
 #endif
