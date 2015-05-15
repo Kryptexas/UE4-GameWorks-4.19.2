@@ -27,7 +27,7 @@ This page shows how to use the **Replicates** option on Actors in order to have 
 
 	![](HowTo2.png)
 
-1.	Open the **Fire_NoReplicate** Blueprint and click the **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) button to open the Blueprint Defaults in the **Details** Panel, then un-check **Net Load on Client**. 
+1.	Open the **Fire_NoReplicate** Blueprint and click the ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) button, then in the **Details** Panel, un-check **Net Load on Client**. 
 
 	![](HowTo3.png)
 
@@ -35,11 +35,9 @@ This page shows how to use the **Replicates** option on Actors in order to have 
 
 1.	**Compile** and **Save**, then close the Blueprint and open the **Fire_Replicate** Blueprint. 
 
-1.	Click the **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) button to open the Blueprint Defaults in the **Details** Panel, then check the **Replicates** checkbox.
+1.	Click the ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) button to open the Blueprint Defaults in the **Details** Panel, then check the **Replicates** checkbox.
 
-	[REGION:raw]
-	![](HowTo4.png)
-	[/REGION]
+	![](HowTo4.png)	
 
 	By checking **Replicates**, we are saying that this Actor can be replicated on client machines. With **Net Load on Client** also checked, the Actor is automatically loaded when the map loads and is displayed on client's machines. Where **Replicates** comes into play is, say you wanted to spawn in this Actor during gameplay at some point instead of on map load, you would need **Replicates** enabled to say that when the Actor is spawned, go ahead and spawn a replicated copy on client machines. 
 
@@ -52,12 +50,6 @@ This page shows how to use the **Replicates** option on Actors in order to have 
 1.	From the **Content Browser**, drag-and-drop the **Fire_Replicate** Blueprint in your level. 
 
 	![](HowTo6.png)(w:700)
-
-1.	Select the **PlayerStart** in the level, press **Control+W** to copy it, then press **W** and move it over a bit. 
-
-	![](HowTo7.png)
-
-	This will create an additional spawn point for multiplayer when the game is launched. 
 
 1.	Click the down-arrow next to the **Play** Button and change the **Number of Players** option to **2**. 
 
@@ -80,9 +72,9 @@ The steps below showcase how to dynamically spawn Actors during gameplay using *
 
 1.	In the level viewport, delete the **Fire_Replicate** and **Fire_NoReplicate** Actors from the level.
 
-1.	From the **Modes** menu, drag in two **Target Points** and place them in your level. 
+1.	From the **Modes** menu under **All Classess**, drag two **Target Points** into your level. 
 
-	![](Switch1.png)
+	![](Switch1.png)(w:820)
 
 1.	Rename one Target Point to **No_Replicate** and the other to **Replicate** and select both in the **World Outliner**. 
 
