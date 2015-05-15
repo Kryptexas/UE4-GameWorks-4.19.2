@@ -97,6 +97,23 @@ public:
 		return Index != Other.Index;
 	}
 
+	/** Compare package indecies **/
+	FORCEINLINE bool operator<(const FPackageIndex& Other) const
+	{
+		return Index < Other.Index;
+	}
+	FORCEINLINE bool operator>(const FPackageIndex& Other) const
+	{
+		return Index > Other.Index;
+	}
+	FORCEINLINE bool operator<=(const FPackageIndex& Other) const
+	{
+		return Index <= Other.Index;
+	}
+	FORCEINLINE bool operator>=(const FPackageIndex& Other) const
+	{
+		return Index >= Other.Index;
+	}
 	/**
 	 * Serializes a package index value from or into an archive.
 	 *
@@ -159,6 +176,13 @@ struct FObjectExport : public FObjectResource
 	 * Serialized
 	 */
 	FPackageIndex  	ClassIndex;
+
+	/**
+	* Location of this resource in export map. Used for export fixups while loading packages.
+	* Value of zero indicates resource is invalid and shouldn't be loaded.
+	* Not serialized.
+	*/
+	FPackageIndex ThisIndex;
 
 	/**
 	 * Location of the resource for this export's SuperField (parent).  Only valid if
@@ -1166,6 +1190,10 @@ public:
 		{
 			return true;
 		}
+		if (Export.ThisIndex.IsNull()) // Export is invalid and shouldn't be processed.
+		{
+			return true;
+		}
 		return false;
 	}
 
@@ -1629,6 +1657,19 @@ public:
 	COREUOBJECT_API static FName FindSubobjectRedirectName(const FName& Name);
 
 private:
+#if WITH_EDITOR
+
+	/**
+	 * Nulls duplicated exports and fixes indexes in ExportMap to point to original objects instead of duplicates.
+	 */
+	void FixupDuplicateExports();
+
+	/**
+	 * Replaces all instances of OldIndex in ExportMap with NewIndex.
+	 */
+	void ReplaceExportIndexes(const FPackageIndex& OldIndex, const FPackageIndex& NewIndex);
+
+#endif // WITH_EDITOR
 
 	UObject* CreateExport( int32 Index );
 

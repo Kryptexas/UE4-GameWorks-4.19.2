@@ -577,6 +577,14 @@ public:
 		return Compare(Other) < 0;
 	}
 
+	/**
+	 * Comparison operator used for sorting alphabetically.
+	 */
+	FORCEINLINE bool operator>(const FName& Other) const
+	{
+		return Compare(Other) > 0;
+	}
+
 	FORCEINLINE bool IsNone() const
 	{
 		return GetComparisonIndexFast() == 0 && GetNumber() == 0;

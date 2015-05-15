@@ -1401,6 +1401,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeExportMap()
 	{
 		FObjectExport* Export = new(ExportMap)FObjectExport;
 		*this << *Export;
+		Export->ThisIndex = FPackageIndex::FromExport(ExportMapIndex);
 		ExportMapIndex++;
 	}
 
@@ -4342,6 +4343,101 @@ FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 	return NAME_None;
 }
 
+#if WITH_EDITOR
+
+/**
+* Checks if exports' indexes and names are equal.
+*/
+bool AreObjectExportsEqualForDuplicateChecks(const FObjectExport& Lhs, const FObjectExport& Rhs)
+{
+	return Lhs.ObjectName == Rhs.ObjectName
+		&& Lhs.ClassIndex == Rhs.ClassIndex
+		&& Lhs.OuterIndex == Rhs.OuterIndex;
+}
+
+/**
+ * Helper function to sort ExportMap for duplicate checks.
+ */
+bool ExportMapSorter(const FObjectExport& Lhs, const FObjectExport& Rhs)
+{
+	// Check names first.
+	if (Lhs.ObjectName < Rhs.ObjectName)
+	{
+		return true;
+	}
+
+	if (Rhs.ObjectName > Rhs.ObjectName)
+	{
+		return false;
+	}
+
+	// Names are equal, check classes.
+	if (Lhs.ClassIndex < Rhs.ClassIndex)
+	{
+		return true;
+	}
+
+	if (Lhs.ClassIndex > Rhs.ClassIndex)
+	{
+		return false;
+	}
+
+	// Class names are equal as well, check outers.
+	return Lhs.OuterIndex < Rhs.OuterIndex;
+}
+
+void FLinkerLoad::ReplaceExportIndexes(const FPackageIndex& OldIndex, const FPackageIndex& NewIndex)
+{
+	for (auto& Export : ExportMap)
+	{
+		if (Export.ClassIndex == OldIndex)
+		{
+			Export.ClassIndex = NewIndex;
+		}
+
+		if (Export.SuperIndex == OldIndex)
+		{
+			Export.SuperIndex = NewIndex;
+		}
+
+		if (Export.OuterIndex == OldIndex)
+		{
+			Export.OuterIndex = NewIndex;
+		}
+	}
+}
+
+void FLinkerLoad::FixupDuplicateExports()
+{
+	// We need to operate on copy to avoid incorrect indexes after sorting
+	auto ExportMapSorted = ExportMap;
+	ExportMapSorted.Sort(ExportMapSorter);
+
+	// ClassIndex, SuperIndex, OuterIndex
+	int32 LastUniqueExportIndex = 0;
+	for (int32 SortedIndex = 1; SortedIndex < ExportMapSorted.Num(); ++SortedIndex)
+	{
+		const FObjectExport& Original = ExportMapSorted[LastUniqueExportIndex];
+		const FObjectExport& Duplicate = ExportMapSorted[SortedIndex];
+
+		if (AreObjectExportsEqualForDuplicateChecks(Original, Duplicate))
+		{
+			// Duplicate entry found. Look through all Exports and update their ClassIndex, SuperIndex and OuterIndex
+			// to point on original export instead of duplicate.
+			const FPackageIndex& DuplicateIndex = Duplicate.ThisIndex;
+			const FPackageIndex& OriginalIndex = Original.ThisIndex;
+			ReplaceExportIndexes(DuplicateIndex, OriginalIndex);
+
+			// Mark Duplicate as null, so we don't load it.
+			Exp(Duplicate.ThisIndex).ThisIndex = FPackageIndex();
+		}
+		else
+		{
+			LastUniqueExportIndex = SortedIndex;
+		}
+	}
+}
+#endif // WITH_EDITOR
 
 /**
 * Allows object instances to be converted to other classes upon loading a package
@@ -4349,6 +4445,13 @@ FName FLinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
 FLinkerLoad::ELinkerStatus FLinkerLoad::FixupExportMap()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FLinkerLoad::FixupExportMap" ), STAT_LinkerLoad_FixupExportMap, STATGROUP_LinkerLoad );
+
+#if WITH_EDITOR
+	if (UE4Ver() < VER_UE4_SKIP_DUPLICATE_EXPORTS_ON_SAVE_PACKAGE)
+	{
+		FixupDuplicateExports();
+	}
+#endif // WITH_EDITOR
 
 	// No need to fixup exports if everything is cooked.
 	if (!FPlatformProperties::RequiresCookedData())
