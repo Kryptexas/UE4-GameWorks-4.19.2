@@ -110,6 +110,13 @@ void SEditableText::Construct( const FArguments& InArgs )
 		FExecuteAction::CreateSP( this, &SEditableText::SelectAllText ),
 		FCanExecuteAction::CreateSP( this, &SEditableText::CanExecuteSelectAll ) );
 
+	// Append any additional commands that a consumer of EditableText wants us to be aware of.
+	const TSharedPtr<FUICommandList>& AdditionalCommands = InArgs._AdditionalCommands;
+	if ( AdditionalCommands.IsValid() )
+	{
+		UICommandList->Append( AdditionalCommands.ToSharedRef() );
+	}
+
 	// build context menu extender
 	MenuExtender = MakeShareable(new FExtender);
 	MenuExtender->AddMenuExtension("EditText", EExtensionHook::Before, TSharedPtr<FUICommandList>(), InArgs._ContextMenuExtender);

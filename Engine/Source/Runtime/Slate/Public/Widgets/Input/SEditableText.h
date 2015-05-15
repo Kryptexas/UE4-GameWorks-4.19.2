@@ -33,6 +33,7 @@ public:
 		, _ClearKeyboardFocusOnCommit(true)
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
+		, _AdditionalCommands()
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
 		{}
 
@@ -103,6 +104,9 @@ public:
 
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
+
+		/** Additional UI commands. */
+		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )

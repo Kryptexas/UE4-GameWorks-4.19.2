@@ -25,6 +25,7 @@ public:
 		, _ClearKeyboardFocusOnCommit( true )
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
+		, _AdditionalCommands()
 		, _BackgroundColor()		
 		, _Padding()
 		, _ErrorReporting()
@@ -80,6 +81,9 @@ public:
 
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
+
+		/** Additional UI commands. */
+		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 
 		/** The color of the background/border around the editable text (overrides Style) */
 		SLATE_ATTRIBUTE( FSlateColor, BackgroundColor )

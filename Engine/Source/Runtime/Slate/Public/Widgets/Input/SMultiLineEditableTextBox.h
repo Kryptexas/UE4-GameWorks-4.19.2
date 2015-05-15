@@ -35,6 +35,7 @@ public:
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
 		, _SelectAllTextOnCommit( false )
+		, _AdditionalCommands()
 		, _BackgroundColor()		
 		, _Padding()
 		, _Margin()
@@ -122,6 +123,9 @@ public:
 
 		/** Called when the cursor is moved within the text area */
 		SLATE_EVENT( SMultiLineEditableText::FOnCursorMoved, OnCursorMoved )
+
+		/** Additional UI commands. */
+		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )

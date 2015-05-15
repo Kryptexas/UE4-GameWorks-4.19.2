@@ -37,6 +37,7 @@ public:
 		, _RevertTextOnEscape(false)
 		, _ClearKeyboardFocusOnCommit(true)
 		, _OnCursorMoved()
+		, _AdditionalCommands()
 		, _ContextMenuExtender()
 		, _ModiferKeyForNewLine(EModifierKey::None)
 	{}
@@ -107,6 +108,9 @@ public:
 
 		/** Called when the cursor is moved within the text area */
 		SLATE_EVENT(FOnCursorMoved, OnCursorMoved)
+
+		/** Additional UI commands. */
+		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT(FMenuExtensionDelegate, ContextMenuExtender)
