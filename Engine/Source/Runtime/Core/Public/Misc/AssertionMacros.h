@@ -307,7 +307,7 @@ struct FTCharArrayTester
 			{ \
 				if (!CategoryName.IsSuppressed(ELogVerbosity::Verbosity)) \
 				{ \
-					FMsg::Logf_Internal(__FILE__, __LINE__, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, Format, ##__VA_ARGS__); \
+					FMsg::Logf(__FILE__, __LINE__, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, Format, ##__VA_ARGS__); \
 					if (ELogVerbosity::Verbosity == ELogVerbosity::Fatal) \
 					{\
 						_DebugBreakAndPromptForRemote(); \
@@ -328,7 +328,7 @@ struct FTCharArrayTester
 				{ \
 					if (Condition) \
 					{ \
-						FMsg::Logf_Internal(__FILE__, __LINE__, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, Format, ##__VA_ARGS__); \
+						FMsg::Logf(__FILE__, __LINE__, CategoryName.GetCategoryName(), ELogVerbosity::Verbosity, Format, ##__VA_ARGS__); \
 						if (ELogVerbosity::Verbosity == ELogVerbosity::Fatal) \
 						{\
 							_DebugBreakAndPromptForRemote(); \
