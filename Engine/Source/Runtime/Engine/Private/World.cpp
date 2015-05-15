@@ -1320,9 +1320,9 @@ void UWorld::UpdateCullDistanceVolumes(AActor* ActorToUpdate, UPrimitiveComponen
 		}
 		else
 		{
-			for( FActorIterator It(this); It; ++It )
+			for( AActor* Actor : FActorRange(this) )
 			{
-				TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(*It);
+				TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(Actor);
 				for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
 				{
 					if (ACullDistanceVolume::CanBeAffectedByVolumes(PrimitiveComponent))
@@ -1331,7 +1331,7 @@ void UWorld::UpdateCullDistanceVolumes(AActor* ActorToUpdate, UPrimitiveComponen
 					}
 				}
 
-				ACullDistanceVolume* CullDistanceVolume = Cast<ACullDistanceVolume>(*It);
+				ACullDistanceVolume* CullDistanceVolume = Cast<ACullDistanceVolume>(Actor);
 				if (CullDistanceVolume)
 				{
 					CullDistanceVolumes.Add(CullDistanceVolume);

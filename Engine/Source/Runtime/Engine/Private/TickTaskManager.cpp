@@ -721,7 +721,7 @@ private:
 		for( int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); LevelIndex++ )
 		{
 			ULevel* Level = World->GetLevel(LevelIndex);
-			if (FTickableLevelFilter::CanIterateLevel(Level))
+			if (Level->bIsVisible)
 			{
 				check(Level->TickTaskLevel);
 				LevelList.Add(Level->TickTaskLevel);
@@ -751,7 +751,7 @@ private:
 		for( int32 LevelIndex = 0; LevelIndex < InWorld->GetNumLevels(); LevelIndex++ )
 		{
 			ULevel* Level = InWorld->GetLevel(LevelIndex);
-			if (FTickableLevelFilter::CanIterateLevel(Level))
+			if (Level->bIsVisible)
 			{
 				check(Level->TickTaskLevel);
 				Level->TickTaskLevel->DumpAllTickFunctions(Ar, EnabledCount, DisabledCount, bEnabled, bDisabled);
