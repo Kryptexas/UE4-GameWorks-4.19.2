@@ -54,7 +54,7 @@ FVector2D FSlateTextRun::Measure( int32 BeginIndex, int32 EndIndex, float Scale 
 int8 FSlateTextRun::GetKerning(int32 CurrentIndex, float Scale) const
 {
 	const int32 PreviousIndex = CurrentIndex - 1;
-	if ( PreviousIndex < 0 )
+	if ( PreviousIndex < 0 || CurrentIndex == Text->Len() )
 	{
 		return 0;
 	}

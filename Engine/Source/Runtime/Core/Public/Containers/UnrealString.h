@@ -200,7 +200,8 @@ public:
 	 */
 	FORCEINLINE TCHAR& operator[]( int32 Index )
 	{
-		return Data[Index];
+		checkf(IsValidIndex(Index), TEXT("String index out of bounds: Index %i from a string with a length of %i"), Index, Len());
+		return Data.GetData()[Index];
 	}
 
 	/**
@@ -211,7 +212,8 @@ public:
 	 */
 	FORCEINLINE const TCHAR& operator[]( int32 Index ) const
 	{
-		return Data[Index];
+		checkf(IsValidIndex(Index), TEXT("String index out of bounds: Index %i from a string with a length of %i"), Index, Len());
+		return Data.GetData()[Index];
 	}
 
 	/**
@@ -298,6 +300,17 @@ public:
 		Data.Shrink();
 	}
 
+	/**
+	 * Tests if index is valid, i.e. greater than or equal to zero, and less than the number of characters in this string (excluding the null terminator).
+	 *
+	 * @param Index Index to test.
+	 *
+	 * @returns True if index is valid. False otherwise.
+	 */
+	FORCEINLINE bool IsValidIndex(int32 Index) const
+	{
+		return Index >= 0 && Index < Len();
+	}
 
 	/**
 	 * Get pointer to the string
@@ -308,7 +321,6 @@ public:
 	{
 		return Data.Num() ? Data.GetData() : TEXT("");
 	}
-
 
 	/** 
 	 *Get string as array of TCHARS 

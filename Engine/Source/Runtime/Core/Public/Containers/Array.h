@@ -680,8 +680,7 @@ public:
 	}
 
 	/**
-	 * Tests if index is valid, i.e. greater than zero and less than number of
-	 * elements in array.
+	 * Tests if index is valid, i.e. than or equal to zero, and less than the number of elements in the array.
 	 *
 	 * @param Index Index to test.
 	 *
