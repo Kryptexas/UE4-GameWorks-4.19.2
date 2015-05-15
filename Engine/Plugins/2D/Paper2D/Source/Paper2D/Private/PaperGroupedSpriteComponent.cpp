@@ -6,6 +6,8 @@
 
 #include "PaperGroupedSpriteComponent.h"
 #include "GroupedSpriteSceneProxy.h"
+#include "NavigationSystemHelpers.h"
+#include "NavigationOctree.h"
 
 #include "PaperSprite.h"
 #include "PhysicsPublic.h"
@@ -25,6 +27,7 @@ UPaperGroupedSpriteComponent::UPaperGroupedSpriteComponent(const FObjectInitiali
 
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
+	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 }
 
 int32 UPaperGroupedSpriteComponent::AddInstance(const FTransform& Transform, UPaperSprite* Sprite, bool bWorldSpace, FLinearColor Color)
@@ -336,7 +339,7 @@ void UPaperGroupedSpriteComponent::CreateAllInstanceBodies()
 		const FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
 		FBodyInstance* InstanceBody = InitInstanceBody(InstanceIndex, InstanceData, PhysScene);
 		InstanceBodies[InstanceIndex] = InstanceBody;
-		BodySetups.Add(InstanceBody->BodySetup);
+		BodySetups.Add((InstanceBody != nullptr) ? InstanceBody->BodySetup : TWeakObjectPtr<UBodySetup>());
 	}
 
 	if (SceneProxy != nullptr)
@@ -498,6 +501,45 @@ UMaterialInterface* UPaperGroupedSpriteComponent::GetMaterial(int32 MaterialInde
 int32 UPaperGroupedSpriteComponent::GetNumMaterials() const
 {
 	return FMath::Max<int32>(OverrideMaterials.Num(), FMath::Max<int32>(InstanceMaterials.Num(), 1));
+}
+
+bool UPaperGroupedSpriteComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
+{
+	for (FBodyInstance* InstanceBody : InstanceBodies)
+	{
+		if (InstanceBody != nullptr)
+		{
+			if (UBodySetup* BodySetup = InstanceBody->BodySetup.Get())
+			{
+				GeomExport.ExportRigidBodySetup(*BodySetup, FTransform::Identity);
+			}
+		}
+
+		// Hook per instance transform delegate
+		GeomExport.SetNavDataPerInstanceTransformDelegate(FNavDataPerInstanceTransformDelegate::CreateUObject(this, &UPaperGroupedSpriteComponent::GetNavigationPerInstanceTransforms));
+	}
+
+	// we don't want "regular" collision export for this component
+	return false;
+}
+
+void UPaperGroupedSpriteComponent::GetNavigationData(FNavigationRelevantData& Data) const
+{
+	// Hook per instance transform delegate
+	Data.NavDataPerInstanceTransformDelegate = FNavDataPerInstanceTransformDelegate::CreateUObject(this, &UPaperGroupedSpriteComponent::GetNavigationPerInstanceTransforms);
+}
+
+void UPaperGroupedSpriteComponent::GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& OutInstanceTransforms) const
+{
+	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
+	{
+		//TODO: Is it worth doing per instance bounds check here ?
+		const FTransform InstanceToComponent(InstanceData.Transform);
+		if (!InstanceToComponent.GetScale3D().IsZero())
+		{
+			OutInstanceTransforms.Add(InstanceToComponent * ComponentToWorld);
+		}
+	}
 }
 
 bool UPaperGroupedSpriteComponent::ContainsSprite(UPaperSprite* SpriteAsset) const
