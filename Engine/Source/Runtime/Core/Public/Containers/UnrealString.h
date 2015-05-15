@@ -1386,7 +1386,7 @@ public:
 	bool ToBool() const;
 
 	/**
-	 * Converts a buffer to a string by hex-ifying the elements
+	 * Converts a buffer to a string
 	 *
 	 * @param SrcBuffer the buffer to stringify
 	 * @param SrcSize the number of bytes to convert
@@ -1399,11 +1399,31 @@ public:
 	 * Converts a string into a buffer
 	 *
 	 * @param DestBuffer the buffer to fill with the string data
-	 * @param DestSize the size of the buffer in bytes (must be at least string len / 2)
+	 * @param DestSize the size of the buffer in bytes (must be at least string len / 3)
 	 *
 	 * @return true if the conversion happened, false otherwise
 	 */
 	static bool ToBlob(const FString& Source,uint8* DestBuffer,const uint32 DestSize);
+
+	/**
+	 * Converts a buffer to a string by hex-ifying the elements
+	 *
+	 * @param SrcBuffer the buffer to stringify
+	 * @param SrcSize the number of bytes to convert
+	 *
+	 * @return the blob in string form
+	 */
+	static FString FromHexBlob(const uint8* SrcBuffer,const uint32 SrcSize);
+
+	/**
+	 * Converts a string into a buffer
+	 *
+	 * @param DestBuffer the buffer to fill with the string data
+	 * @param DestSize the size of the buffer in bytes (must be at least string len / 2)
+	 *
+	 * @return true if the conversion happened, false otherwise
+	 */
+	static bool ToHexBlob(const FString& Source,uint8* DestBuffer,const uint32 DestSize);
 
 	/**
 	 * Converts a float string with the trailing zeros stripped

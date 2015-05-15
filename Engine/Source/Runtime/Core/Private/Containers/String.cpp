@@ -336,47 +336,24 @@ void FString::AppendInt( int32 InNum )
 	*this += TempNum + TempAt;
 }
 
-/**
- * Converts a string into a boolean value
- *   1, "True", "Yes", GTrue, GYes, and non-zero integers become true
- *   0, "False", "No", GFalse, GNo, and unparsable values become false
- *
- * @param Source the string to parse
- *
- * @return The boolean value
- */
+
 bool FString::ToBool() const
 {
 	return FCString::ToBool(**this);
 }
 
-/**
- * Converts a buffer to a string by hex-ifying the elements
- *
- * @param SrcBuffer the buffer to stringify
- * @param SrcSize the number of bytes to convert
- *
- * @return the blob in string form
- */
 FString FString::FromBlob(const uint8* SrcBuffer,const uint32 SrcSize)
 {
 	FString Result;
+	Result.Reserve( SrcSize * 3 );
 	// Convert and append each byte in the buffer
 	for (uint32 Count = 0; Count < SrcSize; Count++)
 	{
-		Result += FString::Printf(TEXT("%03d"),(uint32)SrcBuffer[Count]);
+		Result += FString::Printf(TEXT("%03d"),(uint8)SrcBuffer[Count]);
 	}
 	return Result;
 }
 
-/**
- * Converts a string into a buffer
- *
- * @param DestBuffer the buffer to fill with the string data
- * @param DestSize the size of the buffer in bytes (must be at least string len / 2)
- *
- * @return true if the conversion happened, false otherwise
- */
 bool FString::ToBlob(const FString& Source,uint8* DestBuffer,const uint32 DestSize)
 {
 	// Make sure the buffer is at least half the size and that the string is an
@@ -387,13 +364,48 @@ bool FString::ToBlob(const FString& Source,uint8* DestBuffer,const uint32 DestSi
 		TCHAR ConvBuffer[4];
 		ConvBuffer[3] = TEXT('\0');
 		int32 WriteIndex = 0;
-		// Walk the string 2 chars at a time
+		// Walk the string 3 chars at a time
 		for (int32 Index = 0; Index < Source.Len(); Index += 3, WriteIndex++)
 		{
 			ConvBuffer[0] = Source[Index];
 			ConvBuffer[1] = Source[Index + 1];
 			ConvBuffer[2] = Source[Index + 2];
 			DestBuffer[WriteIndex] = FCString::Atoi(ConvBuffer);
+		}
+		return true;
+	}
+	return false;
+}
+
+FString FString::FromHexBlob( const uint8* SrcBuffer, const uint32 SrcSize )
+{
+	FString Result;
+	Result.Reserve( SrcSize * 2 );
+	// Convert and append each byte in the buffer
+	for (uint32 Count = 0; Count < SrcSize; Count++)
+	{
+		Result += FString::Printf( TEXT( "%02X" ), (uint8)SrcBuffer[Count] );
+	}
+	return Result;
+}
+
+bool FString::ToHexBlob( const FString& Source, uint8* DestBuffer, const uint32 DestSize )
+{
+	// Make sure the buffer is at least half the size and that the string is an
+	// even number of characters long
+	if (DestSize >= (uint32)(Source.Len() / 2) &&
+		 (Source.Len() % 2) == 0)
+	{
+		TCHAR ConvBuffer[3];
+		ConvBuffer[2] = TEXT( '\0' );
+		int32 WriteIndex = 0;
+		// Walk the string 2 chars at a time
+		TCHAR* End = nullptr;
+		for (int32 Index = 0; Index < Source.Len(); Index += 2, WriteIndex++)
+		{
+			ConvBuffer[0] = Source[Index];
+			ConvBuffer[1] = Source[Index + 1];
+			DestBuffer[WriteIndex] = FCString::Strtoi( ConvBuffer, &End, 16 );
 		}
 		return true;
 	}
