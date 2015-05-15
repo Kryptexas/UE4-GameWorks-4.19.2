@@ -5,9 +5,9 @@
 #include "PropertyEditing.h"
 
 //////////////////////////////////////////////////////////////////////////
-// FSpriteComponentDetailsCustomization
+// FGroupedSpriteComponentDetailsCustomization
 
-class FSpriteComponentDetailsCustomization : public IDetailCustomization
+class FGroupedSpriteComponentDetailsCustomization : public IDetailCustomization
 {
 public:
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
@@ -17,10 +17,12 @@ public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
 	// End of IDetailCustomization interface
 
-protected:
-	FReply MergeSprites();
+	static void BuildHarvestList(const TArray<TWeakObjectPtr<UObject>>& ObjectsToConsider, TSubclassOf<UActorComponent> HarvestClassType, TArray<UActorComponent*>& OutComponentsToHarvest, TArray<AActor*>& OutActorsToDelete);
 
-	static FBox ComputeBoundsForComponents(const TArray<UActorComponent*>& ComponentList);
+protected:
+	FGroupedSpriteComponentDetailsCustomization();
+
+	FReply SplitSprites();
 
 protected:
 	TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;

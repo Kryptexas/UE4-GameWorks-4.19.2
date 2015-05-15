@@ -9,6 +9,7 @@
 #include "PaperGeomTools.h"
 #include "PaperSpriteComponent.h"
 #include "PaperFlipbookComponent.h"
+#include "PaperGroupedSpriteComponent.h"
 #include "SpriteDrawCall.h"
 
 #if WITH_EDITOR
@@ -428,29 +429,32 @@ public:
 	FSpriteReregisterContext(UPaperSprite* TargetAsset)
 	{
 		// Look at sprite components
-		for (TObjectIterator<UPaperSpriteComponent> SpriteIt; SpriteIt; ++SpriteIt)
+		for (UPaperSpriteComponent* TestComponent : TObjectRange<UPaperSpriteComponent>())
 		{
-			if (UPaperSpriteComponent* TestComponent = *SpriteIt)
+			if (TestComponent->GetSprite() == TargetAsset)
 			{
-				if (TestComponent->GetSprite() == TargetAsset)
+				AddComponentToRefresh(TestComponent);
+			}
+		}
+
+		// Look at flipbook components
+		for (UPaperFlipbookComponent* TestComponent : TObjectRange<UPaperFlipbookComponent>())
+		{
+			if (UPaperFlipbook* Flipbook = TestComponent->GetFlipbook())
+			{
+				if (Flipbook->ContainsSprite(TargetAsset))
 				{
 					AddComponentToRefresh(TestComponent);
 				}
 			}
 		}
 
-		// Look at flipbook components
-		for (TObjectIterator<UPaperFlipbookComponent> FlipbookIt; FlipbookIt; ++FlipbookIt)
+		// Look at grouped sprite components
+		for (UPaperGroupedSpriteComponent* TestComponent : TObjectRange<UPaperGroupedSpriteComponent>())
 		{
-			if (UPaperFlipbookComponent* TestComponent = *FlipbookIt)
+			if (TestComponent->ContainsSprite(TargetAsset))
 			{
-				if (UPaperFlipbook* Flipbook = TestComponent->GetFlipbook())
-				{
-					if (Flipbook->ContainsSprite(TargetAsset))
-					{
-						AddComponentToRefresh(TestComponent);
-					}
-				}
+				AddComponentToRefresh(TestComponent);
 			}
 		}
 	}
