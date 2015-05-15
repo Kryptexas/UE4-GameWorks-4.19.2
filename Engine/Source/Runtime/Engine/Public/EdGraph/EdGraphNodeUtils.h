@@ -104,7 +104,7 @@ private:
 	 *  node and pin titles localized and updates the cache accordingly */
 	FORCEINLINE void UpdateCacheIternal(FText const& InText) const
 	{
-		bool bShowNodesAndPinsUnlocalized;
+		bool bShowNodesAndPinsUnlocalized = false;
 		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
 
 		if (bShowNodesAndPinsUnlocalized)
