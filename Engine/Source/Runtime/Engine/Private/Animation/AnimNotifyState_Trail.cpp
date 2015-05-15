@@ -38,6 +38,11 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 {
 	bool bError = ValidateInput(MeshComp);
 
+	if (MeshComp->GetWorld()->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(false, Children);
 	
@@ -49,9 +54,9 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 	}
 
 	UParticleSystem* ParticleSystemTemplate = OverridePSTemplate(MeshComp, Animation);
-	if (ParticleSystemTemplate == nullptr)
+	if (ParticleSystemTemplate != nullptr)
 	{
-		ParticleSystemTemplate = PSTemplate;
+		PSTemplate = ParticleSystemTemplate;
 	}
 
 	bool bFoundExistingTrail = false;
@@ -129,6 +134,11 @@ void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp,
 {
 	bool bError = ValidateInput(MeshComp, true);
 
+	if (MeshComp->GetWorld()->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(false, Children);
 
@@ -169,6 +179,11 @@ void UAnimNotifyState_Trail::NotifyTick(class USkeletalMeshComponent * MeshComp,
 
 void UAnimNotifyState_Trail::NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
+	if (MeshComp->GetWorld()->GetNetMode() == NM_DedicatedServer)
+	{
+		return;
+	}
+
 	TArray<USceneComponent*> Children;
 	MeshComp->GetChildrenComponents(false, Children);
 
