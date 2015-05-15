@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2515048
+﻿INTSourceChangelist:2550597
 Availability:Public
 Title:ブループリント通信の使用方法
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:ブループリント通信の様々な方法の使用事例の概要 
+Related:Engine\Blueprints\UserGuide\BlueprintComms
+Related:Engine/Blueprints/UserGuide/EventDispatcher
+Related:Engine/Blueprints/UserGuide/CastNodes
+Related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -60,7 +64,9 @@ Description:ブループリント通信の様々な方法の使用事例の概�
 **ダイレクト ブループリント通信** (すなわち **Blueprint Comms**) は、非常に一般的な通信方法であり、任意のポイントで対話させたい 2 つの **Blueprint Actors** を 
 持つ場合に優れた手段です。 
 
-このタイプの通信は常に 1 対 1 です。つまり、あるブループリント (**Working Blueprint (作業ブループリント)**) が、別のブループリント (**Target Blueprint (ターゲット ブループリント))  にアクセスするリクエストをします。**Blueprint Comms** の最も簡単な使用方法は、公開されているオブジェクト変数を通して **ターゲット ブループリント** を参照し、 
+このタイプの通信は常に 1 対 1 です。つまり、あるブループリント (**Working Blueprint (作業ブループリント)**) が、別のブループリント (**Target Blueprint (ターゲット ブループリント))  
+
+にアクセスするリクエストをします。**Blueprint Comms** の最も簡単な使用方法は、公開されているオブジェクト変数を通して **ターゲット ブループリント** を参照し、 
 次にアクセスしたいブループリントのインスタンスを指定するものです。
 
 詳しい情報については [](Engine\Blueprints\UserGuide\BlueprintComms) をご覧ください。 
@@ -72,7 +78,8 @@ Description:ブループリント通信の様々な方法の使用事例の概�
 *	**レベルにレベル内の他のアクタと通信させたいアクタがある**
 	*	レベル内のスイッチとインタラクションすることで特定のドアを開いたり、特定のライトを点灯します (それぞれ別のブループリント)。 
 
-セットアップ方法については、[ダイレクト ブループリント通信のセットアップ](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#ダイレクトブループリント通信) をご覧ください。 
+セットアップ方法については、 [ブループリントのキャストのセットアップ方法](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) をご覧ください。 
+
 
 ## イベント ディスパッチャー
 
@@ -103,7 +110,7 @@ Description:ブループリント通信の様々な方法の使用事例の概�
 	*	ボスをスポーンし、ボスがキルされ、その結果ワールドで報酬がスポーンするときにイベントが発行する場合
 	*	レベルでアイテム (武器ヘルス、ブーストなど) をスポーンし、イベントを通して、ピックアップされた場合にアイテムとキャラクターに通知する場合
 
-セットアップ方法については、[イベントディスパッチャーのセットアップ](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#イベントディスパッチャー) をご覧ください。 
+セットアップ方法については、 [ブループリントのキャストのセットアップ方法](Engine\Blueprints\BP_HowTo\EventDispatcher) をご覧ください。 
 
 
 ## ブループリント インターフェース
@@ -132,7 +139,7 @@ Description:ブループリント通信の様々な方法の使用事例の概�
 	*	プレイヤーが "use" ボタンを持ち、ボタンを押すとドアが開く、ライトをオフにする、アイテムをピックアップするなどを行う場合。 
 	*	敵がプレイヤーのヘルスに応じて変化する特殊能力を持つ場合。 
 
-セットアップ方法については、[ブループリント インタフェースのセットアップ](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#ブループリントインターフェース) をご覧ください。 
+セットアップ方法については、[ブループリント インタフェースのセットアップ](Engine\Blueprints\BP_HowTo\Interfaces) をご覧ください。 
 
 
 ## 通信のためのキャスト
@@ -165,7 +172,7 @@ Description:ブループリント通信の様々な方法の使用事例の概�
 	*	レベルにいくつか照明があり、イベント発生時に一度に点灯、消灯したい場合 
 [/EXCERPT:Castusage]
 
-セットアップ方法については、 [ブループリントのキャストのセットアップ方法](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#ブループリントのキャスティング) をご覧ください。 
+セットアップ方法については、 [ブループリントのキャストのセットアップ方法](Engine\Blueprints\BP_HowTo\Casting) をご覧ください。 
 
 
 
