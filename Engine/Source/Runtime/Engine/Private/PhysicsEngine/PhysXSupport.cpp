@@ -473,8 +473,11 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 	FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 	check(PhysScene);
 
-	uint32 PreAddingCollisionNotify = PhysScene->PendingCollisionNotifies.Num() - 1;
-	TArray<int32> PairNotifyMapping = FBodyInstance::AddCollisionNotifyInfo(BodyInst0, BodyInst1, Pairs, NumPairs, PhysScene->PendingCollisionNotifies);
+	const EPhysicsSceneType SceneType = PhysScene->GetPhysXScene(PST_Sync) == PScene ? PST_Sync : PST_Async;
+	TArray<FCollisionNotifyInfo>& PendingCollisionNotifies = PhysScene->GetPendingCollisionNotifies(SceneType);
+
+	uint32 PreAddingCollisionNotify = PendingCollisionNotifies.Num() - 1;
+	TArray<int32> PairNotifyMapping = FBodyInstance::AddCollisionNotifyInfo(BodyInst0, BodyInst1, Pairs, NumPairs, PendingCollisionNotifies);
 
 	// Iterate through contact points
 	for(uint32 PairIdx=0; PairIdx<NumPairs; PairIdx++)
@@ -485,7 +488,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 			continue;
 		}
 
-		FCollisionNotifyInfo * NotifyInfo = &PhysScene->PendingCollisionNotifies[NotifyIdx];
+		FCollisionNotifyInfo * NotifyInfo = &PendingCollisionNotifies[NotifyIdx];
 		FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
 
 		const PxContactPair* Pair = Pairs + PairIdx;
@@ -525,14 +528,14 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 		}	
 	}
 
-	for (int32 NotifyIdx = PreAddingCollisionNotify + 1; NotifyIdx < PhysScene->PendingCollisionNotifies.Num(); NotifyIdx++)
+	for (int32 NotifyIdx = PreAddingCollisionNotify + 1; NotifyIdx < PendingCollisionNotifies.Num(); NotifyIdx++)
 	{
-		FCollisionNotifyInfo * NotifyInfo = &PhysScene->PendingCollisionNotifies[NotifyIdx];
+		FCollisionNotifyInfo * NotifyInfo = &PendingCollisionNotifies[NotifyIdx];
 		FCollisionImpactData* ImpactInfo = &(NotifyInfo->RigidCollisionData);
 		// Discard pairs that don't generate any force (eg. have been rejected through a modify contact callback).
 		if (ImpactInfo->TotalNormalImpulse.SizeSquared() < KINDA_SMALL_NUMBER)
 		{
-			PhysScene->PendingCollisionNotifies.RemoveAt(NotifyIdx);
+			PendingCollisionNotifies.RemoveAt(NotifyIdx);
 			NotifyIdx--;
 		}
 	}

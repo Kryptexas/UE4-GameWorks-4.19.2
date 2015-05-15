@@ -820,8 +820,10 @@ void FPhysScene::DispatchPhysNotifications_AssumesLocked()
 {
 	SCOPE_CYCLE_COUNTER(STAT_PhysicsEventTime);
 
-	//Collision notification
+	for(int32 SceneType = 0; SceneType < PST_MAX; ++SceneType)
 	{
+		TArray<FCollisionNotifyInfo>& PendingCollisionNotifies = GetPendingCollisionNotifies(SceneType);
+
 		// Let the game-specific PhysicsCollisionHandler process any physics collisions that took place
 		if (OwningWorld != NULL && OwningWorld->PhysicsCollisionHandler != NULL)
 		{
