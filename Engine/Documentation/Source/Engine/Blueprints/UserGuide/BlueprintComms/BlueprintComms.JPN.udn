@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:2446184
+﻿INTSourceChangelist:2550597
 Availability:Public
 Title:ダイレクト ブループリント通信
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:ブループリントの関数、イベント、変数を別のブループリントから使用する方法。
 related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
-related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
 related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 related:Engine/Blueprints/UserGuide/EventDispatcher
 
@@ -53,9 +52,9 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 ## 概要
 
-ブループリントで作業していると、他のブループリントに含まれている関数、イベント、変数を利用したくなる場合があります。その場合は、「ターゲット」ブループリントを公開されているオブジェクト変数を使って参照してから、使用したいブループリント インスタンスを指定する方法が一番簡単です。
+ブループリントで作業する場合、他のブループリントに含まれる関数、イベント、変数にアクセスしたいと考えることがあるかもしれません。その場合、まず公開されているオブジェクト変数を使って「ターゲット」のブループリントを参照してから、使用したいブループリント インスタンスを指定する方法が最も簡単です。
 
-##ターゲット ブループリントを簡単に参照する方法
+##ターゲット ブループリントを参照する簡単な方法
 
 以下のセクションでは、作業中のブループリント (「作業」ブループリント) からターゲット ブループリントを参照する最も簡単で一般的な方法例を示します。
 
@@ -71,7 +70,7 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 1. 作成した新しい変数に「TargetBlueprint」など、ターゲット ブループリントに関連した名前を付けます。
 
-1. **[詳細]** パネルで **[Variable Type]** の隣にあるドロップダウン ボックスをクリックします。**[Object Reference]** セクションを展開します。
+1. **[Details]** パネルで **[Variable Type]** の隣にあるドロップダウン ボックスをクリックします。**[Object Reference]** セクションを展開します。
 
 	[REGION:raw]
 	![Variable Type](BP_VarType.png)
@@ -81,7 +80,7 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 	![Blueprint Reference](BP_Blueprint2Ref.png)
 
-1. ベストプラクティスは、 **[ツールチップ]** ボックスにテキストを入力して作成した新しいオブジェクト変数にツールチップを追加することです。例えば、 "Reference to the Blueprint we want to talk to." (通信するブループリントのへの参照) などがあります。
+1. ベストプラクティスは、 **[Tooltip]** ボックスにテキストを入力して作成した新しいオブジェクト変数にツールチップを追加することです。例えば、 "Reference to the Blueprint we want to talk to." (通信するブループリントのへの参照) などがあります。
 
 	[REGION:raw]
 	![Tooltip](BP_Tooltip.png)
