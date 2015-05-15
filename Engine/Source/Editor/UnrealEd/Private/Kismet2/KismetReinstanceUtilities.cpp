@@ -921,7 +921,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	TArray<UObject*> PotentialEditorsForRefreshing;
 
 	// A list of component owners that need their construction scripts re-ran (because a component of theirs has been reinstanced)
-	TSet<AActor*> OwnersToReconstruct;
+	TSet<AActor*> OwnersToRerunConstructionScript;
 
 	// Set global flag to let system know we are reconstructing blueprint instances
 	TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
@@ -1098,7 +1098,12 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 						// we need to keep track of actor instances that need 
 						// their construction scripts re-ran (since we've just 
 						// replaced a component they own)
-						OwnersToReconstruct.Add(OwningActor);
+						
+						// Skipping CDOs as CSs are not allowed for them.
+						if (!OwningActor->HasAnyFlags(RF_ClassDefaultObject))
+						{
+							OwnersToRerunConstructionScript.Add(OwningActor);
+						}
 					}
 				}
 			}
@@ -1177,7 +1182,7 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 
 	// in the case where we're replacing component instances, we need to make 
 	// sure to re-run their owner's construction scripts
-	for (AActor* ActorInstance : OwnersToReconstruct)
+	for (AActor* ActorInstance : OwnersToRerunConstructionScript)
 	{
 		ActorInstance->RerunConstructionScripts();
 	}
