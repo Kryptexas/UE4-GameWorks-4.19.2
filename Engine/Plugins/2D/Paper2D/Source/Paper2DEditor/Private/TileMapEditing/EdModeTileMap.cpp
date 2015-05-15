@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "EdModeTileMap.h"
+#include "PaperTileMapComponent.h"
 #include "TileMapEdModeToolkit.h"
 #include "Toolkits/ToolkitManager.h"
 #include "../PaperEditorCommands.h"

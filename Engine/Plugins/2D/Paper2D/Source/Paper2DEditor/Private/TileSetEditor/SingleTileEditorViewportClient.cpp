@@ -2,6 +2,9 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SingleTileEditorViewportClient.h"
+#include "PaperSpriteComponent.h"
+#include "PaperTileMap.h"
+#include "PaperTileSet.h"
 #include "PaperEditorShared/SpriteGeometryEditCommands.h"
 #include "PaperEditorShared/SpriteGeometryEditMode.h"
 #include "ScopedTransaction.h"

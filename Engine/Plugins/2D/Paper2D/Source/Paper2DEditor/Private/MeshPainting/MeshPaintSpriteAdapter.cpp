@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "MeshPaintSpriteAdapter.h"
 #include "MeshPaintEdMode.h"
+#include "PaperSpriteComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintSpriteAdapter

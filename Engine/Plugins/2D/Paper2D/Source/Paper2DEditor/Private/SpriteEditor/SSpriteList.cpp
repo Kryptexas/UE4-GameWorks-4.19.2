@@ -5,6 +5,7 @@
 #include "AssetRegistryModule.h"
 #include "ContentBrowserModule.h"
 #include "SpriteEditor.h"
+#include "PaperSprite.h"
 
 //////////////////////////////////////////////////////////////////////////
 // SSpriteList

@@ -7,6 +7,7 @@
 #include "PropertyEditing.h"
 #include "ScopedTransaction.h"
 #include "IPropertyUtilities.h"
+#include "PaperTileSet.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperImporterSettings.h"
 #include "PaperSpriteFactory.h"
+#include "PaperSprite.h"
 #include "AssetRegistryModule.h"
 #include "PackageTools.h"
 

@@ -9,6 +9,7 @@
 #include "PropertyRestriction.h"
 #include "PropertyCustomizationHelpers.h"
 #include "MaterialExpressionSpriteTextureSampler.h"
+#include "PaperRuntimeSettings.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 

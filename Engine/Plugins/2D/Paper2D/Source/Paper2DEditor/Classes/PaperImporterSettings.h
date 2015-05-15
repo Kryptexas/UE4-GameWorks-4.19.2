@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "SpriteEditorOnlyTypes.h"
 #include "PaperImporterSettings.generated.h"
 
 class UPaperTileSet;

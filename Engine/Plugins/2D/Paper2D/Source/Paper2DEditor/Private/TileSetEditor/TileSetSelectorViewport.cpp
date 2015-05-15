@@ -5,6 +5,7 @@
 #include "TileSetSelectorViewport.h"
 #include "TileSetEditorViewportClient.h"
 #include "TileSetEditorCommands.h"
+#include "PaperTileSet.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 

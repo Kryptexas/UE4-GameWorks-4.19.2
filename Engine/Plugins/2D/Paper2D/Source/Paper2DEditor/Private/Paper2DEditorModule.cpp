@@ -46,6 +46,7 @@
 // Atlas support
 #include "Atlasing/AtlasAssetTypeActions.h"
 #include "Atlasing/PaperAtlasGenerator.h"
+#include "PaperSpriteAtlas.h"
 
 // Settings
 #include "PaperRuntimeSettings.h"

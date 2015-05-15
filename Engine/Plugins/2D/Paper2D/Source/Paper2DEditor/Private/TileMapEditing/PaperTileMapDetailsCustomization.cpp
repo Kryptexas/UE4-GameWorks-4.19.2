@@ -1,6 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
+#include "PaperTileMapComponent.h"
+#include "PaperTileMap.h"
+#include "PaperTileLayer.h"
+
 #include "PaperTileMapDetailsCustomization.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"

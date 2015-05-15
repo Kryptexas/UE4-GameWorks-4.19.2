@@ -2,6 +2,8 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperImporterSettings.h"
+#include "PaperTileMap.h"
+#include "PaperTileSet.h"
 #include "AlphaBitmap.h"
 #include "TileMapEditing/TileMapEditorSettings.h"
 

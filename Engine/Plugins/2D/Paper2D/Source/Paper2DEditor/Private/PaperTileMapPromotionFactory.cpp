@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperTileMapPromotionFactory.h"
+#include "PaperTileMap.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 

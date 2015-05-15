@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "CanvasTypes.h"
 #include "PaperTileSetThumbnailRenderer.h"
+#include "PaperTileSet.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileSetThumbnailRenderer

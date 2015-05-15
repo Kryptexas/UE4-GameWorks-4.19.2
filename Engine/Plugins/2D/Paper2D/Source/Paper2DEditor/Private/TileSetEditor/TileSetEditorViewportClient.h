@@ -4,6 +4,8 @@
 
 #include "PaperEditorViewportClient.h"
 
+class UPaperTileSet;
+
 //////////////////////////////////////////////////////////////////////////
 // FTileSetEditorViewportClient
 

@@ -5,6 +5,7 @@
 
 #include "AssetRegistryModule.h"
 #include "Textures/TextureAtlas.h"
+#include "PaperSprite.h"
 
 //////////////////////////////////////////////////////////////////////////
 // 

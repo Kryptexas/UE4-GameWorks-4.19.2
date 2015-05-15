@@ -4,6 +4,7 @@
 
 #include "ScopedTransaction.h"
 #include "SFlipbookTimeline.h"
+#include "PaperFlipbook.h"
 
 namespace FFlipbookUIConstants
 {

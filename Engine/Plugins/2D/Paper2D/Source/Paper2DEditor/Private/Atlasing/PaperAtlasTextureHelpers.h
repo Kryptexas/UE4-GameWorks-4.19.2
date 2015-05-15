@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperSpriteAtlas.h"
+
 struct FPaperAtlasTextureHelpers
 {
 public:

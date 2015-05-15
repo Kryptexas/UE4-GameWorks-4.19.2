@@ -3,7 +3,10 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
 #include "TileMapActorFactory.h"
+#include "PaperTileMapActor.h"
 #include "PaperImporterSettings.h"
+#include "PaperTileMapComponent.h"
+#include "PaperTileMapActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UTileMapActorFactory

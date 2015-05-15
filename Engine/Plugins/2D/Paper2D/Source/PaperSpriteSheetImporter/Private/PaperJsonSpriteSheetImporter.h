@@ -3,7 +3,6 @@
 #pragma once
 
 #include "PaperSpriteSheetImporterPrivatePCH.h"
-#include "Paper2DClasses.h"
 
 class UPaperSpriteSheet;
 

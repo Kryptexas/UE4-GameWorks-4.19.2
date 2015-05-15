@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperSpriteSheetImporterPrivatePCH.h"
-#include "Paper2DClasses.h"
+#include "PaperFlipbook.h"
 #include "PaperSpriteSheet.h"
 #include "PaperSpriteSheetAssetTypeActions.h"
 #include "AssetToolsModule.h"

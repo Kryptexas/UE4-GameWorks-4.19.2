@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
 #include "TileMapAssetImportData.h"
+#include "PaperTileMap.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UTileMapAssetImportData

@@ -8,6 +8,8 @@
 #include "ContentBrowserModule.h"
 #include "PaperFlipbookHelpers.h"
 #include "PaperFlipbookFactory.h"
+#include "PaperSprite.h"
+#include "PaperFlipbook.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

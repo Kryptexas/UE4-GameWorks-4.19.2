@@ -3,6 +3,7 @@
 #pragma once
 
 #include "PaperEditorShared/AssetEditorSelectedItem.h"
+#include "PaperSprite.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FSelectionTypes
