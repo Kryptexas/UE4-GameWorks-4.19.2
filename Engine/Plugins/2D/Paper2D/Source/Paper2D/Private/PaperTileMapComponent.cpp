@@ -10,6 +10,8 @@
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
+DECLARE_CYCLE_STAT(TEXT("Rebuild Tile Map"), STAT_PaperRender_TileMapRebuild, STATGROUP_Paper2D);
+
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileMapComponent
 
@@ -47,8 +49,15 @@ UPaperTileMapComponent::UPaperTileMapComponent(const FObjectInitializer& ObjectI
 
 FPrimitiveSceneProxy* UPaperTileMapComponent::CreateSceneProxy()
 {
-	FPaperTileMapRenderSceneProxy* Proxy = new FPaperTileMapRenderSceneProxy(this);
-	RebuildRenderData(Proxy);
+	SCOPE_CYCLE_COUNTER(STAT_PaperRender_TileMapRebuild);
+
+	TArray<FSpriteRenderSection>* Sections;
+	TArray<FPaperSpriteVertex>* Vertices;
+	FPaperTileMapRenderSceneProxy* Proxy = FPaperTileMapRenderSceneProxy::CreateTileMapProxy(this, /*out*/ Sections, /*out*/ Vertices);
+
+	RebuildRenderData(*Sections, *Vertices);
+
+	Proxy->FinishConstruction_GameThread();
 
 	return Proxy;
 }
@@ -212,10 +221,8 @@ const UObject* UPaperTileMapComponent::AdditionalStatObject() const
 	return nullptr;
 }
 
-void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Proxy)
+void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sections, TArray<FPaperSpriteVertex>& Vertices)
 {
-	TArray<FSpriteDrawCallRecord> BatchedSprites;
-	
 	if (TileMap == nullptr)
 	{
 		return;
@@ -249,6 +256,30 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 	const float UnrealUnitsPerPixel = TileMap->GetUnrealUnitsPerPixel();
 
+
+	// Run thru the layers and estimate how big of an allocation we will need
+	int32 EstimatedNumVerts = 0;
+
+	for (int32 Z = TileMap->TileLayers.Num() - 1; Z >= 0; --Z)
+	{
+		UPaperTileLayer* Layer = TileMap->TileLayers[Z];
+
+		if ((Layer != nullptr) && (!bUseSingleLayer || (Z == UseSingleLayerIndex)))
+		{
+			const int32 NumOccupiedCells = Layer->GetNumOccupiedCells();
+			EstimatedNumVerts += 6 * NumOccupiedCells;
+		}
+	}
+
+ 	Vertices.Empty(EstimatedNumVerts);
+
+	UMaterialInterface* TileMapMaterial = GetMaterial(0);
+	if (TileMapMaterial == nullptr)
+	{
+		TileMapMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
+	}
+
+	// Actual pass
 	for (int32 Z = TileMap->TileLayers.Num() - 1; Z >= 0; --Z)
 	{
 		UPaperTileLayer* Layer = TileMap->TileLayers[Z];
@@ -266,7 +297,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 			}
 		}
 
-		FLinearColor DrawColor = TileMapColor * Layer->GetLayerColor();
+		const FColor DrawColor(TileMapColor * Layer->GetLayerColor());
 
 #if WITH_EDITORONLY_DATA
 		if (!Layer->ShouldRenderInEditor())
@@ -275,7 +306,9 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		}
 #endif
 
-		FSpriteDrawCallRecord* CurrentBatch = nullptr;
+		FSpriteRenderSection* CurrentBatch = nullptr;
+		FVector CurrentDestinationOrigin;
+		const FPaperTileInfo* CurrentCellPtr = Layer->PRIVATE_GetAllocatedCells();
 
 		for (int32 Y = 0; Y < TileMap->MapHeight; ++Y)
 		{
@@ -299,7 +332,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 			for (int32 X = 0; X < TileMap->MapWidth; ++X)
 			{
-				const FPaperTileInfo TileInfo = Layer->GetCell(X, Y);
+				const FPaperTileInfo& TileInfo = *CurrentCellPtr++;
 
 				// do stuff
 				const float TotalSeparation = (TileMap->SeparationPerLayer * Z) + (TileMap->SeparationPerTileX * X) + (TileMap->SeparationPerTileY * Y);
@@ -333,12 +366,13 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 
 					if ((SourceTexture != LastSourceTexture) || (CurrentBatch == nullptr))
 					{
-						CurrentBatch = (new (BatchedSprites) FSpriteDrawCallRecord());
+						CurrentBatch = new (Sections) FSpriteRenderSection();
 						CurrentBatch->BaseTexture = SourceTexture;
 						//CurrentBatch->AdditionalTextures = ?; //@TODO: PAPER2D: Need to add multi-texture support to tile sets / tile maps
 						// Probably also need to change the batch check here to TileSet changing to avoid checking each texture in the array
-						CurrentBatch->Color = DrawColor;
-						CurrentBatch->Destination = TopLeftCornerOfTile.ProjectOnTo(PaperAxisZ);
+						CurrentBatch->Material = TileMapMaterial;
+						CurrentBatch->VertexOffset = Vertices.Num();
+						CurrentDestinationOrigin = TopLeftCornerOfTile.ProjectOnTo(PaperAxisZ);
 					}
 
 					if (SourceTexture != LastSourceTexture)
@@ -371,8 +405,6 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 					SourceUV.X *= InverseTextureSize.X;
 					SourceUV.Y *= InverseTextureSize.Y;
 
-					FSpriteDrawCallRecord& NewTile = *CurrentBatch;
-
 					const float WX0 = FVector::DotProduct(TopLeftCornerOfTile, PaperAxisX);
 					const float WY0 = FVector::DotProduct(TopLeftCornerOfTile, PaperAxisY);
 
@@ -392,28 +424,22 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 					const FVector4 TopRight(WX0 + TileSizeWithFlip.X, WY0, UValues[UVIndex2], VValues[UVIndex2]);
 					const FVector4 TopLeft(WX0, WY0, UValues[UVIndex3], VValues[UVIndex3]);
 
-					new (NewTile.RenderVerts) FVector4(BottomLeft);
-					new (NewTile.RenderVerts) FVector4(TopRight);
-					new (NewTile.RenderVerts) FVector4(BottomRight);
+					CurrentBatch->AddVertex(BottomLeft.X, BottomLeft.Y, BottomLeft.Z, BottomLeft.W, CurrentDestinationOrigin, DrawColor, Vertices);
+					CurrentBatch->AddVertex(TopRight.X, TopRight.Y, TopRight.Z, TopRight.W, CurrentDestinationOrigin, DrawColor, Vertices);
+					CurrentBatch->AddVertex(BottomRight.X, BottomRight.Y, BottomRight.Z, BottomRight.W, CurrentDestinationOrigin, DrawColor, Vertices);
 
-					new (NewTile.RenderVerts) FVector4(BottomLeft);
-					new (NewTile.RenderVerts) FVector4(TopLeft);
-					new (NewTile.RenderVerts) FVector4(TopRight);
+					CurrentBatch->AddVertex(BottomLeft.X, BottomLeft.Y, BottomLeft.Z, BottomLeft.W, CurrentDestinationOrigin, DrawColor, Vertices);
+					CurrentBatch->AddVertex(TopLeft.X, TopLeft.Y, TopLeft.Z, TopLeft.W, CurrentDestinationOrigin, DrawColor, Vertices);
+					CurrentBatch->AddVertex(TopRight.X, TopRight.Y, TopRight.Z, TopRight.W, CurrentDestinationOrigin, DrawColor, Vertices);
 				}
 			}
 		}
 	}
 
 #if WITH_EDITOR
-	NumBatches = BatchedSprites.Num();
-	NumTriangles = 0;
-	for (const FSpriteDrawCallRecord& Batch : BatchedSprites)
-	{
-		NumTriangles += Batch.RenderVerts.Num() / 3;
-	}
+	NumBatches = Sections.Num();
+	NumTriangles = Vertices.Num() / 3;
 #endif
-
-	Proxy->SetBatchesHack(BatchedSprites);
 }
 
 void UPaperTileMapComponent::CreateNewOwnedTileMap()

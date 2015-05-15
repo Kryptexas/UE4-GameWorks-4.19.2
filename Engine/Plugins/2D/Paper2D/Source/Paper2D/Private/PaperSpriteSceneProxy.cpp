@@ -130,15 +130,15 @@ void FPaperSpriteSceneProxy::SetSprite_RenderThread(const FSpriteDrawCallRecord&
 	}
 }
 
-void FPaperSpriteSceneProxy::GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, bool bUseOverrideColor, const FLinearColor& OverrideColor, FMeshElementCollector& Collector) const
+void FPaperSpriteSceneProxy::GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const
 {
 	if (Material != nullptr)
 	{
-		GetBatchMesh(View, bUseOverrideColor, OverrideColor, Material, BatchedSprites, ViewIndex, Collector);
+		GetBatchMesh(View, Material, BatchedSprites, ViewIndex, Collector);
 	}
 
 	if ((AlternateMaterial != nullptr) && (AlternateBatchedSprites.Num() > 0))
 	{
-		GetBatchMesh(View, bUseOverrideColor, OverrideColor, AlternateMaterial, AlternateBatchedSprites, ViewIndex, Collector);
+		GetBatchMesh(View, AlternateMaterial, AlternateBatchedSprites, ViewIndex, Collector);
 	}
 }

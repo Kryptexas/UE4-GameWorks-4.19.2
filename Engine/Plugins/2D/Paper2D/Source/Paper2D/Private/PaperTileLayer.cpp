@@ -296,3 +296,18 @@ FTransform UPaperTileLayer::GetTileTransform(int32 FlagIndex)
 	checkSlow((FlagIndex >= 0) && (FlagIndex < 8));
 	return TilePermutationTransforms[FlagIndex];
 }
+
+int32 UPaperTileLayer::GetNumOccupiedCells() const
+{
+	int32 NumOccupiedCells = 0;
+
+	for (const FPaperTileInfo& TileInfo : AllocatedCells)
+	{
+		if (TileInfo.IsValid())
+		{
+			++NumOccupiedCells;
+		}
+	}
+
+	return NumOccupiedCells;
+}
