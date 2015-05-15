@@ -245,6 +245,9 @@ public:
 	/** Allows a component to replicate other subobject on the actor  */
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags);
 
+	/** Called on the component right before replication occurs */
+	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker);
+
 	virtual bool GetComponentClassCanReplicate() const;
 
 	/** Returns whether this component is an editor-only object or not */

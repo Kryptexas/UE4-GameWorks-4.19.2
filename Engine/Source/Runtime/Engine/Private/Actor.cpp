@@ -10,6 +10,7 @@
 #include "LatentActions.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
+#include "Net/RepLayout.h"
 #include "DisplayDebugHelpers.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpGroup.h"
@@ -730,6 +731,16 @@ void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker
 	if (BPClass != NULL)
 	{
 		BPClass->InstancePreReplication(ChangedPropertyTracker);
+	}
+
+	// Call PreReplication on all owned components that are replicated
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		// Only call on components that aren't pending kill
+		if (Component && !Component->IsPendingKill() && Component->GetIsReplicated())
+		{
+			Component->PreReplication(*GetNetDriver()->FindOrCreateRepChangedPropertyTracker(Component).Get());
+		}
 	}
 }
 

@@ -1409,6 +1409,15 @@ bool UActorComponent::ReplicateSubobjects(class UActorChannel *Channel, class FO
 	return false;
 }
 
+void UActorComponent::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
+{
+	UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(GetClass());
+	if (BPClass != NULL)
+	{
+		BPClass->InstancePreReplication(ChangedPropertyTracker);
+	}
+}
+
 bool UActorComponent::GetComponentClassCanReplicate() const
 {
 	return true;
