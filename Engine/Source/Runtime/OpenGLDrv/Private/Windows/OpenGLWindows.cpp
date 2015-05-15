@@ -404,6 +404,10 @@ void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 
 	check(Context->DeviceContext);
 
+	if (wglGetCurrentDC() == Context->DeviceContext)
+	{
+		wglMakeCurrent( NULL, NULL );
+	}
 	ReleaseDC(Context->WindowHandle, Context->DeviceContext);
 	Context->DeviceContext = NULL;
 
@@ -535,8 +539,11 @@ void PlatformSharedContextSetup(FPlatformOpenGLDevice* Device)
 
 void PlatformNULLContextSetup()
 {
-	// no need to glFlush() on Windows, it does flush by itself before switching contexts
-	ContextMakeCurrent(NULL, NULL);
+	if (wglGetCurrentDC())
+	{
+		// no need to glFlush() on Windows, it does flush by itself before switching contexts
+		ContextMakeCurrent(NULL, NULL);
+	}
 }
 
 /**

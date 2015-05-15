@@ -439,7 +439,7 @@ void FOpenGLBufferedGPUTiming::EndTiming()
 				TimerQuery->bInvalidResource = true;
 			}
 
-			if (TimerQuery->bInvalidResource)
+			if (TimerQuery->bInvalidResource && PlatformOpenGLContextValid())
 			{
 				PlatformGetNewRenderQuery(&TimerQuery->Resource, &TimerQuery->ResourceContext);
 				TimerQuery->bInvalidResource = false;
