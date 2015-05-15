@@ -160,11 +160,6 @@ public:
 	void SetTransientTextureOverride_RenderThread(const UTexture* InTextureToModifyOverrideFor, UTexture* InOverrideTexture);
 #endif
 
-// 	class UMaterialInterface* GetMaterial() const
-// 	{
-// 		return Material;
-// 	}
-
 protected:
 	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const;
 
@@ -179,6 +174,8 @@ protected:
 
 	void ConvertBatchesToNewStyle(TArray<FSpriteDrawCallRecord>& SourceBatches);
 
+	virtual void DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const;
+	virtual void DebugDrawBodySetup(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, UBodySetup* BodySetup, const FMatrix& GeomTransform, const FLinearColor& CollisionColor, bool bDrawSolid) const;
 protected:
 	// New style
 	FPaperSpriteVertexBuffer VertexBuffer;
@@ -191,7 +188,7 @@ protected:
 
 	//
 	AActor* Owner;
-	UBodySetup* BodySetup;
+	UBodySetup* MyBodySetup;
 
 	bool bCastShadow;
 
