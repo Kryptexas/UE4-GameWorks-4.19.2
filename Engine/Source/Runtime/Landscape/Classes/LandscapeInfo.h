@@ -13,26 +13,17 @@ struct FLandscapeEditorLayerSettings;
 struct FLandscapeDataInterface;
 
 /** Structure storing Collision for LandscapeComponent Add */
-USTRUCT()
+#if WITH_EDITORONLY_DATA
 struct FLandscapeAddCollision
 {
-	GENERATED_USTRUCT_BODY()
-
-#if WITH_EDITORONLY_DATA
-	UPROPERTY()
 	FVector Corners[4];
 
-#endif // WITH_EDITORONLY_DATA
-
-
-		FLandscapeAddCollision()
-		{
-			#if WITH_EDITORONLY_DATA
-			Corners[0] = Corners[1] = Corners[2] = Corners[3] = FVector::ZeroVector;
-			#endif // WITH_EDITORONLY_DATA
-		}
-	
+	FLandscapeAddCollision()
+	{
+		Corners[0] = Corners[1] = Corners[2] = Corners[3] = FVector::ZeroVector;
+	}
 };
+#endif // WITH_EDITORONLY_DATA
 
 USTRUCT()
 struct FLandscapeInfoLayerSettings
@@ -129,8 +120,11 @@ public:
 	/** Map of the offsets (in component space) to the component. Valid in editor only. */
 	TMap<FIntPoint, ULandscapeComponent*> XYtoComponentMap;
 
-	/** Map of the offsets to the newly added collision components. Only available near valid LandscapeComponents. Valid in editor only. */
+#if WITH_EDITORONLY_DATA
+	/** Lookup map used by the "add component" tool. Only available near valid LandscapeComponents.
+	    only for use by the "add component" tool. Todo - move into the tool? */
 	TMap<FIntPoint, FLandscapeAddCollision> XYtoAddCollisionMap;
+#endif
 
 	TSet<ALandscapeProxy*> Proxies;
 
@@ -178,8 +172,9 @@ public:
 	LANDSCAPE_API void SortSelectedComponents();
 	LANDSCAPE_API void ClearSelectedRegion(bool bIsComponentwise = true);
 
+	// only for use by the "add component" tool. Todo - move into the tool?
 	LANDSCAPE_API void UpdateAllAddCollisions();
-	void UpdateAddCollision(FIntPoint LandscapeKey);
+	LANDSCAPE_API void UpdateAddCollision(FIntPoint LandscapeKey);
 
 	LANDSCAPE_API FLandscapeEditorLayerSettings& GetLayerEditorSettings(ULandscapeLayerInfoObject* LayerInfo) const;
 	LANDSCAPE_API void CreateLayerEditorSettingsFor(ULandscapeLayerInfoObject* LayerInfo);
