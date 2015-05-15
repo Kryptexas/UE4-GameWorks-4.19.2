@@ -74,7 +74,9 @@ public:
 
 		// @todo JohnB: See if there are any other good net categories to add here
 		TempLogCategories.Add(TEXT("LogNet"));
+		TempLogCategories.Add(TEXT("LogRep"));
 		TempLogCategories.Add(TEXT("LogNetTraffic"));
+		TempLogCategories.Add(TEXT("LogRepTraffic"));
 		TempLogCategories.Add(TEXT("LogNetSerialization"));
 		TempLogCategories.Add(TEXT("LogNetPackageMap"));
 		TempLogCategories.Add(TEXT("LogNetPlayerMovement"));
