@@ -8,15 +8,6 @@
 
 #include "ObjectBase.h"
 
-// 1 = old behavior
-// 2 = new behavior
-// 3 = old behavior with checks against the new behavior
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	#define UCLASS_FAST_ISA_IMPL 3
-#else
-	#define UCLASS_FAST_ISA_IMPL 2
-#endif
-
 /*-----------------------------------------------------------------------------
 	Mirrors of mirror structures in Object.h. These are used by generated code 
 	to facilitate correct offsets and alignments for structures containing these '

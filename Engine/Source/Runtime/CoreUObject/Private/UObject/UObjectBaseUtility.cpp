@@ -248,6 +248,7 @@ bool UObjectBaseUtility::RootPackageHasAnyFlags( uint32 CheckFlagMask ) const
 /**
  * @return	true if this object is of the specified type.
  */
+#if UCLASS_FAST_ISA_IMPL != 2
 bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
 {
 	UE_CLOG(!SomeBase, LogObj, Fatal, TEXT("IsA(NULL) cannot yield meaningful results"));
@@ -278,6 +279,7 @@ bool UObjectBaseUtility::IsA( const UClass* SomeBase ) const
 		return bNewResult;
 	#endif
 }
+#endif
 
 
 /**

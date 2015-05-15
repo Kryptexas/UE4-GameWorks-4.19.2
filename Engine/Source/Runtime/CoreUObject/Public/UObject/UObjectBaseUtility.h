@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include "Templates/PointerIsConvertibleFromTo.h"
+
 class COREUOBJECT_API UObjectBaseUtility : public UObjectBase
 {
 public:
@@ -278,7 +280,37 @@ public:
 	/**
 	 * @return	true if this object is of the specified type.
 	 */
-	bool IsA( const UClass* SomeBaseClass ) const;
+	#if UCLASS_FAST_ISA_IMPL == 2
+	private:
+		template <typename ClassType>
+		static FORCEINLINE bool IsAWorkaround(const ClassType* ObjClass, const ClassType* TestCls)
+		{
+			return ObjClass->IsAUsingFastTree(*TestCls);
+		}
+
+	public:
+		template <typename OtherClassType>
+		FORCEINLINE bool IsA( OtherClassType SomeBase ) const
+		{
+			// We have a cyclic dependency between UObjectBaseUtility and UClass,
+			// so we use a template to allow inlining of something we haven't yet seen, because it delays compilation until the function is called.
+
+			// 'static_assert' that this thing is actually a UClass pointer or convertible to it.
+			const UClass* SomeBaseClass = SomeBase;
+			(void)SomeBaseClass;
+			checkfSlow(SomeBaseClass, TEXT("IsA(NULL) cannot yield meaningful results"));
+
+			const UClass* ThisClass = GetClass();
+
+			// Stop the compiler doing some unnecessary branching for nullptr checks
+			ASSUME(SomeBaseClass);
+			ASSUME(ThisClass);
+
+			return IsAWorkaround(ThisClass, SomeBaseClass);
+		}
+	#else
+		bool IsA( const UClass* SomeBase ) const;
+	#endif
 
 	/**
 	 * @return	true if this object is of the template type.
