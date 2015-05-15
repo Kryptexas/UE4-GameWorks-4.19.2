@@ -188,6 +188,19 @@ void UPaperGroupedSpriteComponent::DestroyPhysicsState()
 	ClearAllInstanceBodies();
 }
 
+const UObject* UPaperGroupedSpriteComponent::AdditionalStatObject() const
+{
+	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
+	{
+		if (InstanceData.SourceSprite != nullptr)
+		{
+			return InstanceData.SourceSprite;
+		}
+	}
+
+	return nullptr;
+}
+
 #if WITH_EDITOR
 void UPaperGroupedSpriteComponent::CheckForErrors()
 {
@@ -482,6 +495,17 @@ bool UPaperGroupedSpriteComponent::ContainsSprite(UPaperSprite* SpriteAsset) con
 	}
 
 	return false;
+}
+
+void UPaperGroupedSpriteComponent::GetReferencedSpriteAssets(TArray<UObject*>& InOutObjects) const
+{
+	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
+	{
+		if (InstanceData.SourceSprite != nullptr)
+		{
+			InOutObjects.AddUnique(InstanceData.SourceSprite);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

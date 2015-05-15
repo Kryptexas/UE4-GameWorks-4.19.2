@@ -100,6 +100,7 @@ public:
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
+	virtual const UObject* AdditionalStatObject() const override;
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
@@ -124,6 +125,9 @@ public:
 
 	// Returns true if this component references the specified sprite asset
 	bool ContainsSprite(UPaperSprite* SpriteAsset) const;
+
+	// Adds all referenced sprite assets to the specified list
+	void GetReferencedSpriteAssets(TArray<UObject*>& InOutObjects) const;
 
 protected:
 	/**
