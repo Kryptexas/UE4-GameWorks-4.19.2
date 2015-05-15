@@ -160,10 +160,10 @@ public:
 	void SetTransientTextureOverride_RenderThread(const UTexture* InTextureToModifyOverrideFor, UTexture* InOverrideTexture);
 #endif
 
-	class UMaterialInterface* GetMaterial() const
-	{
-		return Material;
-	}
+// 	class UMaterialInterface* GetMaterial() const
+// 	{
+// 		return Material;
+// 	}
 
 protected:
 	virtual void GetDynamicMeshElementsForView(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector) const;
