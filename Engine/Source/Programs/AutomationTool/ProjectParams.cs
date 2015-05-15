@@ -390,7 +390,7 @@ namespace AutomationTool
 			bool? Distribution = null,
             bool? Prebuilt = null,
             int? RunTimeoutSeconds = null,
-			string OverrideMinimumOS = null,
+			string SpecifiedArchitecture = null,
             bool? IterativeDeploy = null
 			)
 		{
@@ -559,7 +559,7 @@ namespace AutomationTool
 			this.DeviceUsername = ParseParamValueIfNotSpecified(Command, DeviceUsername, "deviceuser", String.Empty);
 			this.DevicePassword = ParseParamValueIfNotSpecified(Command, DevicePassword, "devicepass", String.Empty);
 			this.CrashReporter = GetParamValueIfNotSpecified(Command, CrashReporter, this.CrashReporter, "crashreporter");
-			this.OverrideMinimumOS = ParseParamValueIfNotSpecified(Command, OverrideMinimumOS, "OverrideMinimumOS", String.Empty);
+			this.SpecifiedArchitecture = ParseParamValueIfNotSpecified(Command, SpecifiedArchitecture, "specifiedarchitecture", String.Empty);
 			if (ClientConfigsToBuild == null)
 			{
 				if (Command != null)
@@ -1339,8 +1339,8 @@ namespace AutomationTool
         [Help("RunTimeoutSeconds", "timeout to wait after we lunch the game")]
         public int RunTimeoutSeconds;
 
-		[Help("OverrideMinimumOS", "Determine a specific Minimum OS")]
-		public string OverrideMinimumOS;
+		[Help("SpecifiedArchitecture", "Determine a specific Minimum OS")]
+		public string SpecifiedArchitecture;
 
 		#endregion
 
