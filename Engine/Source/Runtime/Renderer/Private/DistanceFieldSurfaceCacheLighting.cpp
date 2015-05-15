@@ -2355,7 +2355,7 @@ public:
 		TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryRT, 
 		FSceneRenderTargetItem& DistanceFieldAOBentNormal, 
 		IPooledRenderTarget* DistanceFieldIrradiance,
-		FSceneRenderTargetItem& VelocityTextureValue)
+		IPooledRenderTarget* VelocityTextureValue)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
@@ -2416,7 +2416,7 @@ public:
 			VelocityTexture,
 			VelocityTextureSampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			VelocityTextureValue.ShaderResourceTexture
+			VelocityTextureValue ? VelocityTextureValue->GetRenderTargetItem().ShaderResourceTexture : GBlackTexture->TextureRHI
 			);
 	}
 	// FShader interface.
@@ -2577,7 +2577,7 @@ void UpdateHistory(
 	const FViewInfo& View, 
 	const TCHAR* BentNormalHistoryRTName,
 	const TCHAR* IrradianceHistoryRTName,
-	FSceneRenderTargetItem& VelocityTexture,
+	IPooledRenderTarget* VelocityTexture,
 	/** Contains last frame's history, if non-NULL.  This will be updated with the new frame's history. */
 	TRefCountPtr<IPooledRenderTarget>* BentNormalHistoryState,
 	TRefCountPtr<IPooledRenderTarget>* IrradianceHistoryState,
@@ -2773,7 +2773,7 @@ void PostProcessBentNormalAO(
 	FRHICommandList& RHICmdList, 
 	const FDistanceFieldAOParameters& Parameters, 
 	const FViewInfo& View, 
-	FSceneRenderTargetItem& VelocityTexture,
+	IPooledRenderTarget* VelocityTexture,
 	FSceneRenderTargetItem& BentNormalInterpolation, 
 	IPooledRenderTarget* IrradianceInterpolation,
 	FSceneRenderTargetItem& DistanceFieldNormal,
@@ -4124,7 +4124,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldAOSurfaceCache(
 				RHICmdList, 
 				Parameters, 
 				View, 
-				VelocityTexture->GetRenderTargetItem(), 
+				VelocityTexture, 
 				BentNormalAccumulation->GetRenderTargetItem(), 
 				IrradianceAccumulation, 
 				DistanceFieldNormal->GetRenderTargetItem(), 
