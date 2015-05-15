@@ -48,6 +48,10 @@
 #include "Atlasing/PaperAtlasGenerator.h"
 #include "PaperSpriteAtlas.h"
 
+// Grouped sprite support
+#include "PaperGroupedSpriteComponent.h"
+#include "GroupedSpriteDetailsCustomization.h"
+
 // Settings
 #include "PaperRuntimeSettings.h"
 #include "ISettingsModule.h"
@@ -146,6 +150,7 @@ public:
 			PropertyModule.RegisterCustomClassLayout(UPaperSprite::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(UPaperSpriteComponent::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteComponentDetailsCustomization::MakeInstance));
 			PropertyModule.RegisterCustomClassLayout(UPaperFlipbookComponent::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FFlipbookComponentDetailsCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(UPaperGroupedSpriteComponent::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FGroupedSpriteComponentDetailsCustomization::MakeInstance));
 
 			//@TODO: Struct registration should happen using ::StaticStruct, not by string!!!
 			//PropertyModule.RegisterCustomPropertyTypeLayout( "SpritePolygonCollection", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FSpritePolygonCollectionCustomization::MakeInstance ) );
