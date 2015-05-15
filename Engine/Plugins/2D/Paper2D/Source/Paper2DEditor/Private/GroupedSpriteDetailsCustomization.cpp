@@ -147,6 +147,12 @@ FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
 
 							UGameplayStatics::FinishSpawningActor(SpawnedActor, InstanceTransform);
 							ActorsCreated.Add(SpawnedActor);
+
+							// Give it a good name
+							if (InstanceData.SourceSprite != nullptr)
+							{
+								FActorLabelUtilities::SetActorLabelUnique(SpawnedActor, InstanceData.SourceSprite->GetName());
+							}
 						}
 					}
 				}
