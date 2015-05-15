@@ -100,7 +100,9 @@ public:
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
+#if WITH_EDITOR
 	virtual void CheckForErrors() override;
+#endif
 	// End of UActorComponent interface 
 
 	// UPrimitiveComponent interface
