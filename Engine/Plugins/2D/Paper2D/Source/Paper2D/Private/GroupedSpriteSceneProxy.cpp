@@ -44,8 +44,14 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 
 	NumInstances = InComponent->PerInstanceSpriteData.Num();
 
-	for (const FSpriteInstanceData InstanceData : InComponent->PerInstanceSpriteData)
+	BodySetupTransforms.Reserve(NumInstances);
+	BodySetups.Reserve(NumInstances);
+
+	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; ++InstanceIndex)
 	{
+		const FSpriteInstanceData InstanceData = InComponent->PerInstanceSpriteData[InstanceIndex];
+
+		TWeakObjectPtr<class UBodySetup> BodySetup;
 		if (InstanceData.SourceSprite != nullptr)
 		{
 			FSpriteDrawCallRecord Record;
@@ -68,7 +74,18 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 
 				new (VertexBuffer.Vertices) FPaperSpriteVertex(ComponentSpacePos, UV, VertColor);
 			}
+
+			if (InComponent->InstanceBodies.IsValidIndex(InstanceIndex))
+			{
+				if (FBodyInstance* BodyInstance = InComponent->InstanceBodies[InstanceIndex])
+				{
+					BodySetup = BodyInstance->BodySetup;
+				}
+			}
 		}
+
+		BodySetupTransforms.Add(InstanceData.Transform);
+		BodySetups.Add(BodySetup);
 	}
 	
 	if (VertexBuffer.Vertices.Num() > 0)
@@ -80,4 +97,28 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 		BeginInitResource(&VertexBuffer);
 		BeginInitResource(&MyVertexFactory);
 	}
+}
+
+void FGroupedSpriteSceneProxy::DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const
+{
+	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; ++InstanceIndex)
+	{
+		if (UBodySetup* BodySetup = BodySetups[InstanceIndex].Get())
+		{
+			const FColor CollisionColor = FColor(157, 149, 223, 255);
+			const FMatrix GeomTransform = BodySetupTransforms[InstanceIndex] * GetLocalToWorld();
+			DebugDrawBodySetup(View, ViewIndex, Collector, BodySetup, GeomTransform, CollisionColor, bDrawSolid);
+		}
+	}
+}
+
+void FGroupedSpriteSceneProxy::SetOneBodySetup_RenderThread(int32 InstanceIndex, UBodySetup* NewSetup)
+{
+	BodySetups[InstanceIndex] = NewSetup;
+}
+
+void FGroupedSpriteSceneProxy::SetAllBodySetups_RenderThread(TArray<TWeakObjectPtr<UBodySetup>> Setups)
+{
+	check(Setups.Num() == NumInstances);
+	BodySetups = Setups;
 }

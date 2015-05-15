@@ -264,7 +264,7 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	: FPrimitiveSceneProxy(InComponent)
 	, Material(nullptr)
 	, Owner(InComponent->GetOwner())
-	, BodySetup(const_cast<UPrimitiveComponent*>(InComponent)->GetBodySetup())
+	, MyBodySetup(const_cast<UPrimitiveComponent*>(InComponent)->GetBodySetup())
 	, bCastShadow(InComponent->CastShadow)
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
@@ -292,6 +292,47 @@ void FPaperRenderSceneProxy::CreateRenderThreadResources()
 		Batcher->RegisterManagedProxy(this);
 	}
 #endif
+}
+
+void FPaperRenderSceneProxy::DebugDrawBodySetup(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, UBodySetup* BodySetup, const FMatrix& GeomTransformMatrix, const FLinearColor& CollisionColor, bool bDrawSolid) const
+{
+	if (FMath::Abs(GeomTransformMatrix.Determinant()) < SMALL_NUMBER)
+	{
+		// Catch this here or otherwise GeomTransform below will assert
+		// This spams so commented out
+		//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
+	}
+	else
+	{
+		FTransform GeomTransform(GeomTransformMatrix);
+
+		if (bDrawSolid)
+		{
+			// Make a material for drawing solid collision stuff
+			auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
+				GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
+				WireframeColor
+				);
+
+			Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
+
+			BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor, SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
+		}
+		else
+		{
+			// wireframe
+			BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, IsSelected(), IsHovered()), nullptr, (Owner == nullptr), false, UseEditorDepthTest(), ViewIndex, Collector);
+		}
+	}
+}
+
+void FPaperRenderSceneProxy::DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const
+{
+	if (MyBodySetup != nullptr)
+	{
+		const FColor CollisionColor = FColor(157, 149, 223, 255);
+		DebugDrawBodySetup(View, ViewIndex, Collector, MyBodySetup, GetLocalToWorld(), CollisionColor, bDrawSolid);
+	}
 }
 
 void FPaperRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
@@ -336,40 +377,9 @@ void FPaperRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 		{
 			if ((bDrawSimpleCollision || bDrawWireframeCollision) && AllowDebugViewmodes())
 			{
-				if (BodySetup)
-				{
-					if (FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
-					{
-						// Catch this here or otherwise GeomTransform below will assert
-						// This spams so commented out
-						//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
-					}
-					else
-					{
-						const bool bDrawSolid = !bDrawWireframeCollision;
-
-						if (bDrawSolid)
-						{
-							// Make a material for drawing solid collision stuff
-							auto SolidMaterialInstance = new FColoredMaterialRenderProxy(
-								GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-								WireframeColor
-								);
-
-							Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
-
-							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor, SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
-						}
-						else
-						{
-							// wireframe
-							FColor CollisionColor = FColor(157, 149, 223, 255);
-							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, IsSelected(), IsHovered()), nullptr, (Owner == nullptr), false, UseEditorDepthTest(), ViewIndex, Collector);
-						}
-					}
-				}
+				const FSceneView* View = Views[ViewIndex];
+				const bool bDrawSolid = !bDrawWireframeCollision;
+				DebugDrawCollision(View, ViewIndex, Collector, bDrawSolid);
 			}
 
 			// Draw bounds
@@ -630,7 +640,7 @@ void FPaperRenderSceneProxy::SetDrawCall_RenderThread(const FSpriteDrawCallRecor
 
 void FPaperRenderSceneProxy::SetBodySetup_RenderThread(UBodySetup* NewSetup)
 {
-	BodySetup = NewSetup;
+	MyBodySetup = NewSetup;
 }
 
 bool FPaperRenderSceneProxy::IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const

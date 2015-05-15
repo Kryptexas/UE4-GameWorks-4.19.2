@@ -14,9 +14,13 @@ class FGroupedSpriteSceneProxy : public FPaperRenderSceneProxy
 public:
 	FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent* InComponent);
 
-	// FPrimitiveSceneProxy interface.
-	//virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-	// End of FPrimitiveSceneProxy interface.
+	void SetOneBodySetup_RenderThread(int32 InstanceIndex, UBodySetup* NewSetup);
+	void SetAllBodySetups_RenderThread(TArray<TWeakObjectPtr<UBodySetup>> Setups);
+
+protected:
+	// FPaperRenderSceneProxy interface
+	virtual void DebugDrawCollision(const FSceneView* View, int32 ViewIndex, FMeshElementCollector& Collector, bool bDrawSolid) const override;
+	// End of FPaperRenderSceneProxy interface
 
 private:
 	const UPaperGroupedSpriteComponent* MyComponent;
@@ -27,6 +31,9 @@ private:
 	/** Number of instances */
 	int32 NumInstances;
 
+	TArray<FMatrix> BodySetupTransforms;
+	TArray<TWeakObjectPtr<UBodySetup>> BodySetups;
 
+private:
 	FSpriteRenderSection& FindOrAddSection(FSpriteDrawCallRecord& InBatch, UMaterialInterface* InMaterial);
 };
