@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+#include "BreakIterator.h"
 #include "TextEditHelper.h"
 #include "GenericCommands.h"
 
@@ -1807,43 +1808,54 @@ int32 SEditableText::FindClickedCharacterIndex( const FVector2D& InLocalCursorPo
 
 int32 SEditableText::ScanForWordBoundary( const int32 Location, int8 Direction ) const
 {
-	const FString& EditedTextString = EditedText.ToString();
-	const int32 StringLength = EditedTextString.Len();
+	// We delay creating the iterator until we actually need it
+	if (!WordBreakIterator.IsValid())
+	{
+		WordBreakIterator = FBreakIterator::CreateWordBreakIterator();
+	}
 
+	const FString& EditedTextString = EditedText.ToString();
+	WordBreakIterator->SetString(EditedTextString);
+
+	int32 NewLocation = Location;
 	if (Direction > 0)
 	{
-		// Scan right for text
-		int32 CurCharIndex = Location;
-		while( CurCharIndex < StringLength && !FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
+		// First move right to the next break candidate
+		NewLocation = WordBreakIterator->MoveToCandidateAfter(NewLocation);
+
+		// Then step over any whitespace
+		while (EditedTextString.IsValidIndex(NewLocation) && FText::IsWhitespace(EditedTextString[NewLocation]))
 		{
-			++CurCharIndex;
+			++NewLocation;
 		}
 
-		// Scan right for whitespace
-		while( CurCharIndex < StringLength && FText::IsWhitespace( EditedTextString[ CurCharIndex ] ) )
+		// No subsequent break candidate, just set to the upper-range
+		if (NewLocation == INDEX_NONE)
 		{
-			++CurCharIndex;
+			NewLocation = EditedTextString.Len();
 		}
-
-		return CurCharIndex;
 	}
 	else
 	{
-		// Scan left for whitespace
-		int32 CurCharIndex = Location;
-		while( CurCharIndex > 0 && FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
+		// First step over any whitespace
+		while (EditedTextString.IsValidIndex(NewLocation-1) && FText::IsWhitespace(EditedTextString[NewLocation-1]))
 		{
-			--CurCharIndex;
+			--NewLocation;
 		}
 
-		// Scan left for text
-		while( CurCharIndex > 0 && !FText::IsWhitespace( EditedTextString[ CurCharIndex - 1 ] ) )
-		{
-			--CurCharIndex;
-		}
+		// Then move left to the next previous candidate
+		NewLocation = WordBreakIterator->MoveToCandidateBefore(NewLocation);
 
-		return CurCharIndex;
+		// No previous break candidate, just set to the lower-range
+		if (NewLocation == INDEX_NONE)
+		{
+			NewLocation = 0;
+		}
 	}
+
+	WordBreakIterator->ClearString();
+
+	return NewLocation;
 }
 
 

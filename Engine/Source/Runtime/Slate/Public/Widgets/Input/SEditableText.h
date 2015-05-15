@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "IBreakIterator.h"
 #include "ITextEditorWidget.h"
 #include "ITextInputMethodSystem.h"
 #include "IVirtualKeyboardEntry.h"
@@ -671,4 +672,6 @@ private:
 	/** True if a spring animation is currently in progress */
 	bool bIsSpringing;
 
+	/** The iterator to use to detect word boundaries */
+	mutable TSharedPtr<IBreakIterator> WordBreakIterator;
 };
