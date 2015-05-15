@@ -355,8 +355,15 @@ void FEnvQueryInstance::ItemIterator::StoreTestResult()
 	if (Instance->IsInSingleItemFinalSearch())
 	{
 		// handle SingleResult mode
-		if (bPassed && !bSkipped)
-		{
+		if (bPassed || bSkipped) // It's perfectly fine to pick the result item from things that skip the final test!
+		{						 // It's also consistent with any previous test-filters, where 'skip' was equivalent to
+								 // bPassed (i.e. !Failed)
+			if (bSkipped)
+			{	// Store "Skipped Item Value" so the debug data will correctly read "SKIP"
+				ItemScore = UEnvQueryTypes::SkippedItemValue;
+				Instance->ItemDetails[CurrentItem].TestResults[Instance->CurrentTest] = ItemScore;
+			}
+
 			Instance->PickSingleItem(CurrentItem);
 			Instance->bFoundSingleResult = true;
 		}
@@ -494,7 +501,9 @@ void FEnvQueryInstance::PickSingleItem(int32 ItemIndex)
 	}
 
 	FEnvQueryItem BestItem;
-	BestItem.Score = 1.0f;
+	// Copy the score from the actual item rather than just putting "1".  That way, it will correctly show cases where
+	// the final filtering test was skipped by an item (and therefore not failed, i.e. passed).
+	BestItem.Score = Items[ItemIndex].Score;
 	BestItem.DataOffset = Items[ItemIndex].DataOffset;
 
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Items.GetAllocatedSize());
