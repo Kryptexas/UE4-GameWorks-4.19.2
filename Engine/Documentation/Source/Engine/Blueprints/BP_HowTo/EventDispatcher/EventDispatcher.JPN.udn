@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2541615
+﻿INTSourceChangelist:2550597
 Availability:Public
 Title:イベントディスパッチャー
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -7,7 +7,7 @@ Related:Engine/Blueprints/UserGuide/EventDispatcher
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
 
-**イベントディスパッチャー** が呼び出されると、イベントを実装したブループリントや、イベントディスパッチャーに結びついているイベントが設定されたブループリントも呼び出し時に実行されます。つまり、Event Dispatcher が呼び出されると、結びついているイベントも呼び出されて、1 つのソースから複数のイベントを一度に実行することができます。 
+[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) が呼び出されると、イベントを実装したブループリントや、イベントディスパッチャーに結びついているイベントが設定されたブループリントも呼び出し時に実行されます。つまり、Event Dispatcher が呼び出されると、結びついているイベントも呼び出されて、1 つのソースから複数のイベントを一度に実行することができます。 
 
 このページは、イベントディスパッチャーの設定方法およびイベントとイベントディスパッチャーをバインドする方法を紹介します。 
 
