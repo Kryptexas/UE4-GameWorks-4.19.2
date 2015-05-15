@@ -41,7 +41,7 @@ Related:Engine/Blueprints/UserGuide
 
 	![](DirectCom4.png)
 
-	通信相手となるブループリントを設定し、変数を公的に編集可能 (このブループリント外での編集が可能) にしました。 
+	通信相手となるブループリントを設定し、変数を公開して編集可能 (このブループリント外での編集が可能) にしました。 
 
 1. **[My Blueprint]** ウィンドウで **[Static Mesh]** を選択し、次に **[Details]** パネルに **On Component Begin Overlap** Event を追加します。 
 
