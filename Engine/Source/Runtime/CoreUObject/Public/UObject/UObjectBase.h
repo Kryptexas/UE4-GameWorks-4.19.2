@@ -378,6 +378,11 @@ COREUOBJECT_API bool AnyNewlyLoadedUObjects();
 /** Must be called after a module has been loaded that contains UObject classes */
 COREUOBJECT_API void ProcessNewlyLoadedUObjects();
 
+#if WITH_HOT_RELOAD
+/** Map of duplicated CDOs for reinstancing during hot-reload purposes. */
+COREUOBJECT_API TMap<UClass*, UObject*>& GetDuplicatedCDOMap();
+#endif // WITH_HOT_RELOAD
+
 /**
  * Final phase of UObject initialization. all auto register objects are added to the main data structures.
  */

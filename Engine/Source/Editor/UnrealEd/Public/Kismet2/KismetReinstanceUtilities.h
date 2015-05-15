@@ -14,6 +14,17 @@ class FReinstanceFinalizer;
 
 class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBlueprintCompileReinstancer>, public FGCObject
 {
+public:
+	/**
+	 * CDO duplicates provider delegate type.
+	 */
+	DECLARE_DELEGATE_RetVal_TwoParams(UObject*, FCDODuplicatesProvider, UClass*, FName);
+
+	/**
+	 * Gets CDO duplicates provider delegate.
+	 */
+	static FCDODuplicatesProvider& GetCDODuplicatesProviderDelegate();
+
 protected:
 
 	static TSet<TWeakObjectPtr<UBlueprint>> DependentBlueprintsToRefresh;
@@ -131,6 +142,16 @@ protected:
 
 	/** Determine whether reinstancing actors should preserve the root component of the new actor */
 	virtual bool ShouldPreserveRootComponentOfReinstancedActor() const { return true; }
+
+private:
+	/**
+	 * Gets class CDO duplicate from cache (or creates it if not available or not
+	 * during hot-reload) for given class.
+	 *
+	 * @param Class Class to get (or create) CDO for.
+	 * @param Name The name that CDO has to be renamed with (or created with).
+	 */
+	static UObject* GetClassCDODuplicate(UClass* Class, FName Name);
 };
 
 

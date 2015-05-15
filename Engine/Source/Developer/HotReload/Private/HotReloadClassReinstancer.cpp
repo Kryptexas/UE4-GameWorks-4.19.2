@@ -177,43 +177,22 @@ void FHotReloadClassReinstancer::SerializeCDOProperties(UObject* InObject, FHotR
 	FCDOWriter Ar(OutData, InObject, VisitedObjects);
 }
 
-void FHotReloadClassReinstancer::ReconstructClassDefaultObject(UClass* InOldClass)
+void FHotReloadClassReinstancer::ReconstructClassDefaultObject(UClass* InClass, UObject* InOuter, FName InName, EObjectFlags InFlags)
 {
-	// Remember all the basic info about the object before we destroy it
-	UObject* OldCDO = InOldClass->GetDefaultObject();
-	EObjectFlags CDOFlags = OldCDO->GetFlags();
-	UObject* CDOOuter = OldCDO->GetOuter();
-	FName CDOName = OldCDO->GetFName();
-
 	// Get the parent CDO
-	UClass* ParentClass = InOldClass->GetSuperClass();
+	UClass* ParentClass = InClass->GetSuperClass();
 	UObject* ParentDefaultObject = NULL;
 	if (ParentClass != NULL)
 	{
 		ParentDefaultObject = ParentClass->GetDefaultObject(); // Force the default object to be constructed if it isn't already
 	}
 
-	if (!OldCDO->HasAnyFlags(RF_FinishDestroyed))
-	{
-		// Begin the asynchronous object cleanup.
-		OldCDO->ConditionalBeginDestroy();
-
-		// Wait for the object's asynchronous cleanup to finish.
-		while (!OldCDO->IsReadyForFinishDestroy())
-		{
-			FPlatformProcess::Sleep(0);
-		}
-		// Finish destroying the object.
-		OldCDO->ConditionalFinishDestroy();
-	}
-	OldCDO->~UObject();
-
 	// Re-create
-	FMemory::Memzero((void*)OldCDO, InOldClass->GetPropertiesSize());
-	new ((void *)OldCDO) UObjectBase(InOldClass, CDOFlags, CDOOuter, CDOName);
+	InClass->ClassDefaultObject = StaticAllocateObject(InClass, InOuter, InName, InFlags, false);
+	check(InClass->ClassDefaultObject);
 	const bool bShouldInitilizeProperties = false;
 	const bool bCopyTransientsFromClassDefaults = false;
-	(*InOldClass->ClassConstructor)(FObjectInitializer(OldCDO, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
+	(*InClass->ClassConstructor)(FObjectInitializer(InClass->ClassDefaultObject, ParentDefaultObject, bCopyTransientsFromClassDefaults, bShouldInitilizeProperties));
 }
 
 void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass* InOldClass)
@@ -229,17 +208,25 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 
 	// Collect the original property values
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), OriginalCDOProperties);
-	
-	FObjectDuplicationParameters Parameters(OriginalCDO, GetTransientPackage());
-	Parameters.DestClass = InOldClass;
-	Parameters.ApplyFlags |= RF_Transient | RF_ArchetypeObject;
-	{
-		TGuardValue<bool> GuardGIsDuplicatingClassForReinstancing(GIsDuplicatingClassForReinstancing, true);
-		CopyOfPreviousCDO = StaticDuplicateObjectEx(Parameters);
-	}
 
-	// Destroy and re-create the CDO, re-running its constructor
-	ReconstructClassDefaultObject(InOldClass);
+	// Remember all the basic info about the object before we rename it
+	EObjectFlags CDOFlags = OriginalCDO->GetFlags();
+	UObject* CDOOuter = OriginalCDO->GetOuter();
+	FName CDOName = OriginalCDO->GetFName();
+
+	// Rename original CDO, so we can store this one as OverridenArchetypeForCDO
+	// and create new one with the same name and outer.
+	OriginalCDO->Rename(
+		*MakeUniqueObjectName(
+			GetTransientPackage(),
+			OriginalCDO->GetClass(),
+			*FString::Printf(TEXT("BPGC_ARCH_FOR_CDO_%s"), *InOldClass->GetName())
+		).ToString(),
+		GetTransientPackage(),
+		REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional | REN_SkipGeneratedClasses | REN_ForceNoResetLoaders);
+	
+	// Re-create the CDO, re-running its constructor
+	ReconstructClassDefaultObject(InOldClass, CDOOuter, CDOName, CDOFlags);
 
 	// Collect the property values after re-constructing the CDO
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), ReconstructedCDOProperties);
@@ -265,7 +252,7 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 					auto CurrentCDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
 					if (CurrentCDO && (OriginalCDO == CurrentCDO->GetArchetype()))
 					{
-						BPGC->OverridenArchetypeForCDO = CopyOfPreviousCDO;
+						BPGC->OverridenArchetypeForCDO = OriginalCDO;
 					}
 				}
 			}
