@@ -238,10 +238,10 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	// desired client area space.
 	ReshapeWindow( X, Y, ClientWidth, ClientHeight );
 
-	if( HWnd == NULL )
+	if (HWnd == nullptr)
 	{
 		// @todo Error message should be localized!
-		checkf(0, TEXT("Window Creation Failed (%d)"), SDL_GetError() );
+		checkf(false, TEXT("Window creation failed (%s)"), UTF8_TO_TCHAR(SDL_GetError()));
 		return;
 	}
 
