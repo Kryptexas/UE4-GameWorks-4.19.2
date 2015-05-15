@@ -944,6 +944,18 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	{
 		AActor* Actor = World->NetworkActors[i];
 
+		if ( Actor->IsPendingKill() )
+		{
+			World->NetworkActors.RemoveAtSwap( i );
+			continue;
+		}
+
+		if ( Actor->GetRemoteRole() == ROLE_None )
+		{
+			World->NetworkActors.RemoveAtSwap( i );
+			continue;
+		}
+
 		Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
 		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient );
 	}
