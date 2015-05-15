@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2452696
+﻿INTSourceChangelist:2547516
 Availability:Public
 Title:5.Animation ブループリント - Idle ステートと Walk ステート
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -50,27 +50,27 @@ Animation ブループリントは以下の方法で設定します。
 
 	上のグラフでは、プレイヤー キャラクターの方向と速度を取得し、Animation ブループリント内で使用する変数にそれらを割り当てます。プレイヤーが取るアクションに対応する **MyCharacter** ブループリントからも変数を取得します (**Try Get Pawn Owner** ノードをドラッグし、Character ブループリントへ **キャスト** します)。そしてこれらの変数は、いつ Animation ステートに移行するかを判断する Animation ブループリント内の変数にパスされます。 
 
-1.	**[Anim Graph]** タブをクリックし、グラフ内を **右クリック** して **ステートマシン** を探して追加します。 
+1.	**[Anim Graph]** タブをクリックし、グラフ内を **右クリック** して **State Machine** を見つけて追加します。 
 
 	![](AnimBP_AnimGraph2.png)
 
-1.	ステートマシンに名前を付けて、 **Final Animation Pose** ノードに接続します。 
+1.	State Machine に名前を付けて、 **Final Animation Pose** ノードに接続します。 
 
 	![](AnimBP_AnimGraph3.png)
 
-1.	ステートマシンを **ダブルクリック** して開きます。 
+1.	State Machine を **ダブルクリック** して開きます。 
 
 1.	**Asset Browser** ウィンドウで、 **Idle** を探して **Idle_Rifle_Hip** アセットをグラフにドラッグします。 
 
 	![](AnimBP_AnimGraph4.png)
 
-1.	**Entry** ノードを **Idle_Rifle_Hip** ノードに接続して、 **[コンパイル]** をクリックします。 
+1.	**Entry** ノードを **Idle_Rifle_Hip** ノードに接続して、 **[Compile]** をクリックします。 
 
 	![](AnimBP_AnimGraph5.png)
 
-	コンパイルをクリックすると、プレビュー ウィンドウでキャラクターがアイドルになっていることが確認できます。 
+	プレビュー ウィンドウでキャラクターがアイドルになっていることが確認できます。 
 
-1.	**アセットブラウザ** ウィンドウで、 **Idle** を探して Idle_Rifle_Hip アセットをグラフにドラッグします。
+1.	**[Asset Browser]** ウィンドウで、 **Idle** を検索し Idle_Rifle_Hip アセットをグラフにドラッグします。
 
 	![](AnimBP_Walk1.png)
 
@@ -84,21 +84,21 @@ Animation ブループリントは以下の方法で設定します。
 
 	![](AnimBP_Walk3.png)
 
-1.	**Walk_BS** から **Idle_Rifle_Hip** への **移行** を作成し、 **Idle_Rifle_Hip** から **Walk_BS** への **移行ルール** を **ダブルクリック** します。 
+1.	**Walk_BS** から **Idle_Rifle_Hip** への **Transition** を作成し、 **Idle_Rifle_Hip** から **Walk_BS** への **Transition Rule (移行ルール)** を **ダブルクリック** します。 
 
 	![](AnimBP_Walk4.png)
 
-	**移行ルール** は、ステートマシンがいつアニメーション ステート間を移動するか判断します。
+	**Transition Rule** は、ステートマシンがいつアニメーション ステート間を移動するか判断します。
 
-1.	**移行ルール** 内のグラフを、以下のように作り直します。 
+1.	**Transition Rule** 内のグラフを、以下のように作り直します。 
 
 	![](AnimBP_Walk5.png)(w:800)
 
 	上記のスクリプトで、プレイヤー キャラクターが宙に浮いていないこと、そして現在の速度が 160 より大きくなっていることを確認し、そうなっていれば Idle から Walk へ移行できるようにします。 
 
-1.	ステートマシン グラフに戻り、 **Walk_BS** から **Idle_Rifle_Hip** への **移行ルール** を開きます。 
+1.	ステートマシン グラフに戻り、 **Walk_BS** から **Idle_Rifle_Hip** への **Transition Rule** を開きます。 
 
-1.	**移行ルール** 内のグラフを、以下のように作り直します。 
+1.	**Transition Rule** 内のグラフを、以下のように作り直します。 
 
 	![](AnimBP_Walk6.png)
 
