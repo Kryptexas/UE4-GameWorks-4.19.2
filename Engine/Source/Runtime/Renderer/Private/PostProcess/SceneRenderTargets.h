@@ -130,6 +130,7 @@ protected:
 		CurrentSceneColorFormat(0),
 		bAllowStaticLighting(true),
 		CurrentMaxShadowResolution(0),
+		CurrentRSMResolution(0),
 		CurrentTranslucencyLightingVolumeDim(64),
 		CurrentMobile32bpp(0),
 		bCurrentLightPropagationVolume(false),
@@ -355,6 +356,11 @@ public:
 		return (const FTexture2DRHIRef&)AuxiliarySceneDepthZ->GetRenderTargetItem().TargetableTexture; 
 	}
 
+	const FTexture2DRHIRef& GetDirectionalOcclusionTexture() const 
+	{	
+		return (const FTexture2DRHIRef&)DirectionalOcclusion->GetRenderTargetItem().TargetableTexture; 
+	}
+
 	IPooledRenderTarget* GetGBufferVelocityRT();
 
 	int32 GetGBufferEIndex() const
@@ -412,7 +418,7 @@ public:
 	int32 GetTranslucentShadowDownsampleFactor() const { return 2; }
 
 	/** Returns the size of the RSM buffer, taking into account platform limitations and game specific resolution limits. */
-	FIntPoint GetReflectiveShadowMapTextureResolution() const;
+	int32 GetReflectiveShadowMapResolution() const;
 
 	int32 GetNumGBufferTargets() const;
 
@@ -468,7 +474,11 @@ private: // Get...() methods instead of direct access
 	// also used as LDR scene color
 	TRefCountPtr<IPooledRenderTarget> LightAttenuation;
 public:
+	// Reflection Environment: Bringing back light accumulation buffer to apply indirect reflections
+	TRefCountPtr<IPooledRenderTarget> LightAccumulation;
 
+	// Reflection Environment: Bringing back light accumulation buffer to apply indirect reflections
+	TRefCountPtr<IPooledRenderTarget> DirectionalOcclusion;
 	//
 	TRefCountPtr<IPooledRenderTarget> SceneDepthZ;
 	// Mobile without frame buffer fetch (to get depth from alpha).
@@ -626,6 +636,8 @@ private:
 	bool bAllowStaticLighting;
 	/** To detect a change of the CVar r.Shadow.MaxResolution */
 	int32 CurrentMaxShadowResolution;
+	/** To detect a change of the CVar r.Shadow.RsmResolution*/
+	int32 CurrentRSMResolution;
 	/** To detect a change of the CVar r.TranslucencyLightingVolumeDim */
 	int32 CurrentTranslucencyLightingVolumeDim;
 	/** To detect a change of the CVar r.MobileHDR / r.MobileHDR32bpp */

@@ -902,6 +902,7 @@ public:
 	virtual bool IsDitheredLODTransition() const = 0;
 	virtual bool IsTangentSpaceNormal() const { return false; }
 	virtual bool ShouldInjectEmissiveIntoLPV() const { return false; }
+	virtual bool ShouldBlockGI() const { return false; }
 	virtual bool ShouldGenerateSphericalParticleNormals() const { return false; }
 	virtual	bool ShouldDisableDepthTest() const { return false; }
 	virtual	bool ShouldEnableResponsiveAA() const { return false; }
@@ -1458,6 +1459,7 @@ public:
 	ENGINE_API virtual bool IsDitheredLODTransition() const override;
 	ENGINE_API virtual bool IsTangentSpaceNormal() const override;
 	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const override;
+	ENGINE_API virtual bool ShouldBlockGI() const override;
 	ENGINE_API virtual bool ShouldGenerateSphericalParticleNormals() const override;
 	ENGINE_API virtual bool ShouldDisableDepthTest() const override;
 	ENGINE_API virtual bool ShouldEnableResponsiveAA() const override;

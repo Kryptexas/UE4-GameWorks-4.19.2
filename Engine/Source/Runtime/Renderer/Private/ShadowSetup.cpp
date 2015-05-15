@@ -537,9 +537,9 @@ void FProjectedShadowInfo::SetupWholeSceneProjection(
 		static bool bQuantize = true;
 		if ( bQuantize )
 		{
-			const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapTextureResolution();
-			uint32 ShadowDepthBufferSizeX = ShadowBufferResolution.X;
-			uint32 ShadowDepthBufferSizeY = ShadowBufferResolution.Y;
+			const int32 ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapResolution();
+			uint32 ShadowDepthBufferSizeX = ShadowBufferResolution;
+			uint32 ShadowDepthBufferSizeY = ShadowBufferResolution;
 			// Transform the shadow's position into shadowmap space
 			const FVector TransformedPosition = WorldToFace.TransformPosition(-PreShadowTranslation);
 
@@ -859,16 +859,57 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 		}
 
 		// Add translucent shadow casting primitives to SubjectTranslucentPrimitives
-		if (bTranslucentRelevance && bShadowRelevance && bTranslucentShadow)
+		if (bTranslucentRelevance && bShadowRelevance)
 		{
-			SubjectTranslucentPrimitives.Add(PrimitiveSceneInfo);
+			if (bTranslucentShadow)
+			{
+				SubjectTranslucentPrimitives.Add(PrimitiveSceneInfo);
+			}
+			else if (bReflectiveShadowmap)
+			{
+				if (PrimitiveSceneInfo->StaticMeshes.Num() > 0)
+				{
+					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+					{
+						FViewInfo& CurrentView = *Views[ViewIndex];
+						// Add the primitive's static mesh elements to the draw lists.
+						for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
+						{
+							FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[MeshIndex];
+							const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh.MaterialRenderProxy;
+							const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
+							const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
+    
+							if (Material->ShouldBlockGI())
+							{
+								CurrentView.StaticMeshShadowDepthMap[StaticMesh.Id] = true;
+								GIBlockingMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
+							}
+							else if (Material->ShouldInjectEmissiveIntoLPV())
+							{
+								CurrentView.StaticMeshShadowDepthMap[StaticMesh.Id] = true;
+								EmissiveOnlyMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
+							}
+						}
+					}
+				}
+    			else
+				{
+					EmissiveOnlyPrimitives.Add(PrimitiveSceneInfo);
+				}
+			}
 		}
 	}
 }
 
 bool FProjectedShadowInfo::HasSubjectPrims() const
 {
-	return SubjectPrimitives.Num() > 0 || SubjectMeshElements.Num() > 0;
+	return SubjectPrimitives.Num() > 0
+		|| SubjectMeshElements.Num() > 0
+		|| EmissiveOnlyPrimitives.Num() > 0 
+		|| EmissiveOnlyMeshElements.Num() > 0
+		|| GIBlockingMeshElements.Num() > 0
+		|| GIBlockingPrimitives.Num() > 0;
 }
 
 void FProjectedShadowInfo::AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo)
@@ -1021,6 +1062,8 @@ void FProjectedShadowInfo::ClearTransientArrays()
 	SubjectPrimitives.Empty();
 	ReceiverPrimitives.Empty();
 	SubjectMeshElements.Empty();
+	EmissiveOnlyPrimitives.Empty();
+	EmissiveOnlyMeshElements.Empty();
 	DynamicSubjectMeshElements.Empty();
 	DynamicReceiverMeshElements.Empty();
 	DynamicSubjectTranslucentMeshElements.Empty();
@@ -2204,7 +2247,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 			{
 				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
 
-				if (LightPropagationVolume && View.FinalPostProcessSettings.LPVIntensity > 0)
+				if (LightPropagationVolume && LightPropagationVolume->bInitialized && View.FinalPostProcessSettings.LPVIntensity > 0)
 				{
 					// Generate the RSM shadow info
 					FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;
@@ -2215,7 +2258,7 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 						// moved out from the FProjectedShadowInfo constructor
 						ProjectedShadowInitializer.CascadeSettings.ShadowSplitIndex = 0;
 
-						const FIntPoint ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapTextureResolution();
+						const int32 ShadowBufferResolution = GSceneRenderTargets.GetReflectiveShadowMapResolution();
 
 						// Create the projected shadow info.
 						FProjectedShadowInfo* ProjectedShadowInfo = new(FMemStack::Get(), 1, 16) FProjectedShadowInfo;
@@ -2224,8 +2267,8 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 							&LightSceneInfo,
 							&View,
 							ProjectedShadowInitializer,
-							ShadowBufferResolution.X,
-							ShadowBufferResolution.Y,
+							ShadowBufferResolution,
+							ShadowBufferResolution,
 							true);		// RSM
 
 						FVisibleLightInfo& LightViewInfo = VisibleLightInfos[LightSceneInfo.Id];

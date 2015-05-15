@@ -698,6 +698,7 @@ bool IsTranslucentBlendMode(EBlendMode BlendMode)
 int32 FMaterialResource::GetMaterialDomain() const { return Material->MaterialDomain; }
 bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || Material->Normal.Expression == NULL; }
 bool FMaterialResource::ShouldInjectEmissiveIntoLPV() const { return Material->bUseEmissiveForDynamicAreaLighting; }
+bool FMaterialResource::ShouldBlockGI() const { return Material->bBlockGI; }
 bool FMaterialResource::ShouldGenerateSphericalParticleNormals() const { return Material->bGenerateSphericalParticleNormals; }
 bool FMaterialResource::ShouldDisableDepthTest() const { return Material->bDisableDepthTest; }
 bool FMaterialResource::ShouldEnableResponsiveAA() const { return Material->bEnableResponsiveAA; }
@@ -1203,6 +1204,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_SSR"), ShouldDoSSR() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_BLOCK_GI"), ShouldBlockGI() ? TEXT("1") : TEXT("0"));
 
 	{
 		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();
@@ -1756,8 +1758,12 @@ FString FMaterialResource::GetMaterialUsageDescription() const
 
 	// this changed from ",SpecialEngine, TwoSided" to ",SpecialEngine=1, TwoSided=1, TSNormal=0, ..." to be more readable
 	BaseDescription += FString::Printf(
-		TEXT("SpecialEngine=%d, TwoSided=%d, TSNormal=%d, InjectEmissiveIntoLPV=%d, Masked=%d, Distorted=%d, Usage={"),
-		(int32)IsSpecialEngineMaterial(), (int32)IsTwoSided(), (int32)IsTangentSpaceNormal(), (int32)ShouldInjectEmissiveIntoLPV(), (int32)IsMasked(), (int32)IsDistorted());
+		TEXT("SpecialEngine=%d, TwoSided=%d, TSNormal=%d, InjectEmissiveIntoLPV=%d, Masked=%d, Distorted=%d")
+		TEXT(", BlockGI=%d")
+		TEXT(", Usage={"),
+		(int32)IsSpecialEngineMaterial(), (int32)IsTwoSided(), (int32)IsTangentSpaceNormal(), (int32)ShouldInjectEmissiveIntoLPV(), (int32)IsMasked(), (int32)IsDistorted()
+		, (int32)ShouldBlockGI()
+		);
 
 	bool bFirst = true;
 	for (int32 MaterialUsageIndex = 0; MaterialUsageIndex < MATUSAGE_MAX; MaterialUsageIndex++)

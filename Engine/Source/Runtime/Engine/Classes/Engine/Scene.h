@@ -266,8 +266,23 @@ struct FPostProcessSettings
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_LPVIntensity:1;
 
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_LPVWarpIntensity:1;
+	UPROPERTY()
+	uint32 bOverride_LPVDirectionalOcclusionIntensity:1;
+
+	UPROPERTY()
+	uint32 bOverride_LPVDirectionalOcclusionRadius:1;
+
+	UPROPERTY()
+	uint32 bOverride_LPVDiffuseOcclusionExponent:1;
+
+	UPROPERTY()
+	uint32 bOverride_LPVSpecularOcclusionExponent:1;
+
+	UPROPERTY()
+	uint32 bOverride_LPVDiffuseOcclusionIntensity:1;
+
+	UPROPERTY()
+	uint32 bOverride_LPVSpecularOcclusionIntensity:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_LPVSize:1;
@@ -286,9 +301,6 @@ struct FPostProcessSettings
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_LPVEmissiveInjectionIntensity:1;
-
-	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
-	uint32 bOverride_LPVTransmissionIntensity:1;
 
 	UPROPERTY(BlueprintReadWrite, Category=Overrides, meta=(PinHiddenByDefault))
 	uint32 bOverride_IndirectLightingColor:1;
@@ -545,12 +557,8 @@ struct FPostProcessSettings
 	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVIntensity", UIMin = "0", UIMax = "20", DisplayName = "Intensity") )
 	float LPVIntensity;
 
-	/** CURRENTLY DISABLED - The strength of the warp offset for reducing light bleeding. 0.0 is off, 1.0 is the "normal" value, but higher values can be used to boost the effect*/
-	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVWarpIntensity", UIMin = "0", UIMax = "1", DisplayName = "(DISABLED) Grid Warp Intensity"))
-	float LPVWarpIntensity;
-
 	/** Bias applied to light injected into the LPV in cell units. Increase to reduce bleeding through thin walls*/
-	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVVplInjectionBias", UIMin = "0", UIMax = "2", DisplayName = "Light Injection Bias") )
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVVplInjectionBias", UIMin = "0", UIMax = "2", DisplayName = "Light Injection Bias") )
 	float LPVVplInjectionBias;
 
 	/** The size of the LPV volume, in Unreal units*/
@@ -562,20 +570,40 @@ struct FPostProcessSettings
 	float LPVSecondaryOcclusionIntensity;
 
 	/** Secondary bounce light strength (bounce light shadows). Set to 0 to disable*/
-	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVSecondaryBounceIntensity", UIMin = "0", UIMax = "1", DisplayName = "Secondary Bounce Intensity") )
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVSecondaryBounceIntensity", UIMin = "0", UIMax = "1", DisplayName = "Secondary Bounce Intensity") )
 	float LPVSecondaryBounceIntensity;
 
 	/** Bias applied to the geometry volume in cell units. Increase to reduce darkening due to secondary occlusion */
 	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVGeometryVolumeBias", UIMin = "0", UIMax = "2", DisplayName = "Geometry Volume Bias"))
 	float LPVGeometryVolumeBias;
 
-	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVEmissiveInjectionIntensity", UIMin = "0", UIMax = "20", DisplayName = "Emissive Injection Intensity") )
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVEmissiveInjectionIntensity", UIMin = "0", UIMax = "20", DisplayName = "Emissive Injection Intensity") )
 	float LPVEmissiveInjectionIntensity;
 
-	/** How strong light transmission from the LPV should be. 0.0 is off, 1.0 is the "normal" value, but higher values can be used to boost the effect*/
-	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVTransmissionIntensity", UIMin = "0", UIMax = "2", DisplayName = "Transmission Intensity") )
-	float LPVTransmissionIntensity;
+	/** Controls the amount of directional occlusion. Requires LPV. Values very close to 1.0 are recommended */
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVDirectionalOcclusionIntensity", UIMin = "0", UIMax = "1", DisplayName = "Occlusion Intensity") )
+	float LPVDirectionalOcclusionIntensity;
 
+	/** Occlusion Radius - 16 is recommended for most scenes */
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVDirectionalOcclusionRadius", UIMin = "1", UIMax = "16", DisplayName = "Occlusion Radius") )
+	float LPVDirectionalOcclusionRadius;
+
+	/** Diffuse occlusion exponent - increase for more contrast. 1 to 2 is recommended */
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVDiffuseOcclusionExponent", UIMin = "0.5", UIMax = "5", DisplayName = "Diffuse occlusion exponent") )
+	float LPVDiffuseOcclusionExponent;
+
+	/** Specular occlusion exponent - increase for more contrast. 6 to 9 is recommended */
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, meta=(editcondition = "bOverride_LPVSpecularOcclusionExponent", UIMin = "1", UIMax = "16", DisplayName = "Specular occlusion exponent") )
+	float LPVSpecularOcclusionExponent;
+
+	/** Diffuse occlusion intensity - higher values provide increased diffuse occlusion.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVDiffuseOcclusionIntensity", UIMin = "0", UIMax = "4", DisplayName = "Diffuse occlusion intensity") )
+	float LPVDiffuseOcclusionIntensity;
+
+	/** Specular occlusion intensity - higher values provide increased specular occlusion.*/
+	UPROPERTY(interp, BlueprintReadWrite, Category=LightPropagationVolume, AdvancedDisplay, meta=(editcondition = "bOverride_LPVSpecularOcclusionIntensity", UIMin = "0", UIMax = "4", DisplayName = "Specular occlusion intensity") )
+	float LPVSpecularOcclusionIntensity;
+	
 	/** AmbientCubemap tint color */
 	UPROPERTY(interp, BlueprintReadWrite, Category=AmbientCubemap, AdvancedDisplay, meta=(editcondition = "bOverride_AmbientCubemapTint", DisplayName = "Tint", HideAlphaChannel))
 	FLinearColor AmbientCubemapTint;
@@ -932,14 +960,12 @@ struct FPostProcessSettings
 		AmbientCubemapIntensity = 1.0f;
 		AmbientCubemapTint = FLinearColor(1, 1, 1);
 		LPVIntensity = 1.0f;
-		LPVWarpIntensity = 0.0f;
 		LPVSize = 5312.0f;
 		LPVSecondaryOcclusionIntensity = 0.0f;
 		LPVSecondaryBounceIntensity = 0.0f;
 		LPVVplInjectionBias = 0.64f;
 		LPVGeometryVolumeBias = 0.384f;
 		LPVEmissiveInjectionIntensity = 1.0f;
-		LPVTransmissionIntensity = 1.0f;
 		AutoExposureLowPercent = 80.0f;
 		AutoExposureHighPercent = 98.3f;
 		// next value might get overwritten by r.DefaultFeature.AutoExposure
@@ -949,6 +975,12 @@ struct FPostProcessSettings
 		AutoExposureBias = 0.0f;
 		AutoExposureSpeedUp = 3.0f;
 		AutoExposureSpeedDown = 1.0f;
+		LPVDirectionalOcclusionIntensity = 0.0f;
+		LPVDirectionalOcclusionRadius = 8.0f;
+		LPVDiffuseOcclusionExponent = 1.0f;
+		LPVSpecularOcclusionExponent = 7.0f;
+		LPVDiffuseOcclusionIntensity = 1.0f;
+		LPVSpecularOcclusionIntensity = 1.0f;
 		HistogramLogMin = -8.0f;
 		HistogramLogMax = 4.0f;
 		// next value might get overwritten by r.DefaultFeature.LensFlare

@@ -48,7 +48,7 @@ public:
 	void ClearLPVs(FRHICommandListImmediate& RHICmdList);
 
 	/** Propagates LPVs for all views */
-	void PropagateLPVs(FRHICommandListImmediate& RHICmdList);
+	void UpdateLPVs(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Renders the dynamic scene's prepass for a particular view

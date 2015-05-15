@@ -274,7 +274,6 @@ private:
 		SetVisualizeHDR(false);
 		SetOverrideDiffuseAndSpecular(false);
 		SetReflectionOverride(false);
-		SetLpvLightingOnly(false);
 		SetVisualizeBuffer(false);
 		SetVectorFields(false);
 		SetGBufferHints(false);

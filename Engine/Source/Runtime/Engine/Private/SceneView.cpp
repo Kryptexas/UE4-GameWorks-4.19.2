@@ -802,8 +802,12 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(AmbientCubemapIntensity);
 	LERP_PP(AmbientCubemapTint);
 	LERP_PP(LPVIntensity);
-	LERP_PP(LPVWarpIntensity);
-	LERP_PP(LPVTransmissionIntensity);
+	LERP_PP(LPVDirectionalOcclusionIntensity);
+	LERP_PP(LPVDirectionalOcclusionRadius);
+	LERP_PP(LPVSpecularOcclusionExponent);
+	LERP_PP(LPVDiffuseOcclusionExponent);
+	LERP_PP(LPVDiffuseOcclusionIntensity);
+	LERP_PP(LPVSpecularOcclusionIntensity);
 	LERP_PP(AutoExposureLowPercent);
 	LERP_PP(AutoExposureHighPercent);
 	LERP_PP(AutoExposureMinBrightness);
@@ -1078,6 +1082,16 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 
 void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions)
 {
+	if(FinalPostProcessSettings.LPVDirectionalOcclusionIntensity < 0.001f)
+	{
+		FinalPostProcessSettings.LPVDirectionalOcclusionIntensity = 0.0f;
+	}
+
+	if(FinalPostProcessSettings.LPVIntensity < 0.001f)
+	{
+		FinalPostProcessSettings.LPVIntensity = 0.0f;
+	}
+
 	{
 		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
 		if(CVarMobileMSAA ? CVarMobileMSAA->GetValueOnGameThread() > 1 : false)

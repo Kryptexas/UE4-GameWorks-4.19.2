@@ -38,7 +38,7 @@ struct FMaterialsWithDirtyUsageFlags
 
 	/** Query the annotation to see if the specified flag has been changed */	
 	bool IsUsageFlagDirty(EMaterialUsage UsageFlag);
-	
+
 	/** Default state for annotations (no flags changed)*/
 	static const FMaterialsWithDirtyUsageFlags DefaultAnnotation;
 };
@@ -482,6 +482,12 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, meta=(DisplayName = "Emissive (Dynamic Area Light)"), AdvancedDisplay)
 	uint32 bUseEmissiveForDynamicAreaLighting : 1;
+
+	/**
+	 * If enabled, the material's opacity defines how much GI is blocked when using the LightPropagationVolume feature
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, meta=(DisplayName = "Block Global Illumination"), AdvancedDisplay)
+	uint32 bBlockGI : 1;
 
 	/** 
 	 * This is a special usage flag that allows a material to be assignable to any primitive type.

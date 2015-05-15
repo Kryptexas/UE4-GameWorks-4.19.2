@@ -1012,27 +1012,29 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Filter the translucency lighting volume now that it is complete
 		FilterTranslucentVolumeLighting(RHICmdList);
 
-		// Clear LPVs for all views
-		if ( FeatureLevel >= ERHIFeatureLevel::SM5 )
-		{
-			PropagateLPVs(RHICmdList);
+		// Pre-lighting composition lighting stage
+		// e.g. LPV indirect
+		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
+		{	
+			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
+			GCompositionLighting.ProcessLpvIndirect(RHICmdList, Views[ViewIndex]);
 		}
 
 		TRefCountPtr<IPooledRenderTarget> DynamicBentNormalAO;
 		RenderDynamicSkyLighting(RHICmdList, VelocityRT, DynamicBentNormalAO);
 
-		//SSR and SSS need the SceneColor finalized as an SRV.
+		// SSS need the SceneColor finalized as an SRV.
 		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, true);
 
 		// Render reflections that only operate on opaque pixels
 		RenderDeferredReflections(RHICmdList, DynamicBentNormalAO);
 
 		// Post-lighting composition lighting stage
-		// e.g. ambient cubemaps, ambient occlusion, LPV indirect
+		// e.g. ScreenSpaceSubsurfaceScattering
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{	
 			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView,Views.Num() > 1, TEXT("View%d"), ViewIndex);
-			GCompositionLighting.ProcessLighting(RHICmdList, Views[ViewIndex]);
+			GCompositionLighting.ProcessAfterLighting(RHICmdList, Views[ViewIndex]);
 		}
 	}
 
@@ -1467,10 +1469,15 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdList)
 {
+	SCOPED_DRAW_EVENT(RHICmdList, ClearLPVs);
+	SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
+
 	// clear light propagation volumes
 
 	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
+		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+
 		FViewInfo& View = Views[ViewIndex];
 
 		FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
@@ -1489,13 +1496,18 @@ void FDeferredShadingSceneRenderer::ClearLPVs(FRHICommandListImmediate& RHICmdLi
 	}
 }
 
-void FDeferredShadingSceneRenderer::PropagateLPVs(FRHICommandListImmediate& RHICmdList)
+void FDeferredShadingSceneRenderer::UpdateLPVs(FRHICommandListImmediate& RHICmdList)
 {
+	SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
+	SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
+
 	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		FViewInfo& View = Views[ViewIndex];
+		SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 
+		FViewInfo& View = Views[ViewIndex];
 		FSceneViewState* ViewState = (FSceneViewState*)Views[ViewIndex].State;
+
 		if(ViewState)
 		{
 			FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
@@ -1504,8 +1516,8 @@ void FDeferredShadingSceneRenderer::PropagateLPVs(FRHICommandListImmediate& RHIC
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, UpdateLPVs);
 				SCOPE_CYCLE_COUNTER(STAT_UpdateLPVs);
-				
-				LightPropagationVolume->Propagate(RHICmdList, View);
+
+				LightPropagationVolume->Update(RHICmdList, View);
 			}
 		}
 	}

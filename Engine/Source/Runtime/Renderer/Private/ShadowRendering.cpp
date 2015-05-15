@@ -161,7 +161,8 @@ public:
 			// Reflective shadow map shaders must be compiled for every material because they access the material normal
 			return !bUsePositionOnlyStream
 				// Don't render ShadowDepth for translucent unlit materials, unless we're injecting emissive
-				&& ((!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() )
+				&& ((!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() 
+					|| Material->ShouldBlockGI() )
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 		}
 		else
@@ -446,7 +447,9 @@ public:
 		if(bRenderReflectiveShadowMap)
 		{
 			// LPV also propagates light transmission (for transmissive materials)
-			SetShaderValue(RHICmdList, ShaderRHI,ReflectiveShadowMapTextureResolution,FVector2D(GSceneRenderTargets.GetReflectiveShadowMapTextureResolution()));
+			SetShaderValue(RHICmdList, ShaderRHI,ReflectiveShadowMapTextureResolution,
+				FVector2D(GSceneRenderTargets.GetReflectiveShadowMapResolution(),
+					GSceneRenderTargets.GetReflectiveShadowMapResolution()));
 			SetShaderValue(
 				RHICmdList, 
 				ShaderRHI,
@@ -533,7 +536,7 @@ public:
 			// Reflective shadow map shaders must be compiled for every material because they access the material normal
 			return 
 				// Only compile one pass point light shaders for feature levels >= SM4
-				( (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() )
+				( (!IsTranslucentBlendMode(Material->GetBlendMode()) && Material->GetShadingModel() != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() || Material->ShouldBlockGI() )
 				&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 		}
 		else
@@ -1002,7 +1005,7 @@ void FShadowDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* 
 		const bool bLightPropagationVolume = UseLightPropagationVolumeRT(FeatureLevel);
 		const bool bTwoSided  = Material->IsTwoSided() || StaticMesh->PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
 		const bool bLitOpaque = !IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit;
-		if(bLightPropagationVolume && (bLitOpaque || Material->ShouldInjectEmissiveIntoLPV()))
+		if (bLightPropagationVolume && ((!IsTranslucentBlendMode(BlendMode) && ShadingModel != MSM_Unlit) || Material->ShouldInjectEmissiveIntoLPV() || Material->ShouldBlockGI()))
 		{
 			// Add the static mesh to the shadow's subject draw list.
 			if ( StaticMesh->PrimitiveSceneInfo->Proxy->AffectsDynamicIndirectLighting() )
@@ -1447,7 +1450,7 @@ public:
 	}
 };
 
-void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
+void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode)
 {
 	check(bAllocated);
 
@@ -1490,7 +1493,20 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
 		}
 	}
 
-	if (bReflectiveShadowmap && !CascadeSettings.bOnePassPointLightShadow)
+	// GIBlockingVolumes render mode only affects the reflective shadow map, using the opacity of the material to multiply against the existing color.
+	if (RenderMode == ShadowDepthRenderMode_GIBlockingVolumes)
+	{
+		RHICmdList.SetBlendState(TStaticBlendState<CW_NONE, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One,
+			CW_RGBA, BO_Add, BF_Zero, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
+	}
+
+	// The EmissiveOnly render mode shouldn't write into the reflective shadow map, only into the LPV.
+	else if (RenderMode == ShadowDepthRenderMode_EmissiveOnly)
+	{
+		RHICmdList.SetBlendState(TStaticBlendState<CW_NONE, BO_Add, BF_Zero, BF_One, BO_Add, BF_Zero, BF_One, CW_NONE>::GetRHI());
+	}
+
+	else if (bReflectiveShadowmap && !CascadeSettings.bOnePassPointLightShadow)
 	{
 		// Enable color writes to the reflective shadow map targets with opaque blending
 		RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_RGBA, CW_RGBA>::GetRHI());
@@ -1501,7 +1517,15 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
 		RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
 	}
 
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_LessEqual>::GetRHI());
+
+	if (RenderMode == ShadowDepthRenderMode_EmissiveOnly || RenderMode == ShadowDepthRenderMode_GIBlockingVolumes)
+	{
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_LessEqual>::GetRHI());
+	}
+	else
+	{
+		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_LessEqual>::GetRHI());
+	}
 }
 
 
@@ -1521,12 +1545,16 @@ class FShadowParallelCommandListSet : public FParallelCommandListSet
 {
 	FProjectedShadowInfo& ProjectedShadowInfo;
 	TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets;
+	EShadowDepthRenderMode RenderMode;
+
 public:
-	FShadowParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, FProjectedShadowInfo& InProjectedShadowInfo, TFunctionRef<void (FRHICommandList& RHICmdList)> InSetShadowRenderTargets)
+	FShadowParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, FProjectedShadowInfo& InProjectedShadowInfo, TFunctionRef<void (FRHICommandList& RHICmdList)> InSetShadowRenderTargets
+		, EShadowDepthRenderMode RenderModeIn )
 		: FParallelCommandListSet(InView, InParentCmdList, InOutDirty, bInParallelExecute)
 		, ProjectedShadowInfo(InProjectedShadowInfo)
 		, SetShadowRenderTargets(InSetShadowRenderTargets)
-	{
+		, RenderMode(RenderModeIn)
+		{
 		SetStateOnCommandList(ParentCmdList);
 	}
 
@@ -1538,11 +1566,11 @@ public:
 	virtual void SetStateOnCommandList(FRHICommandList& CmdList) override
 	{	
 		SetShadowRenderTargets(CmdList);
-		ProjectedShadowInfo.SetStateForDepth(CmdList);
+		ProjectedShadowInfo.SetStateForDepth(CmdList,RenderMode);
 	}
 };
 
-void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets)
+void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode)
 {
 	FShadowDepthDrawingPolicyContext PolicyContext(this);
 
@@ -1553,10 +1581,10 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 		FScopedCommandListWaitForTasks Flusher;
 
 		{
-			FShadowParallelCommandListSet ParallelCommandListSet(*FoundView, RHICmdList, nullptr, CVarRHICmdShadowDeferredContexts.GetValueOnRenderThread() > 0, *this, SetShadowRenderTargets);
+			FShadowParallelCommandListSet ParallelCommandListSet(*FoundView, RHICmdList, nullptr, CVarRHICmdShadowDeferredContexts.GetValueOnRenderThread() > 0, *this, SetShadowRenderTargets, RenderMode);
 
 			// Draw the subject's static elements using static draw lists
-			if (IsWholeSceneDirectionalShadow())
+			if (IsWholeSceneDirectionalShadow() && RenderMode != ShadowDepthRenderMode_EmissiveOnly && RenderMode != ShadowDepthRenderMode_GIBlockingVolumes)
 			{
 				SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
 
@@ -1594,10 +1622,10 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 	else
 	{
 		// single threaded version
-		SetStateForDepth(RHICmdList);
+		SetStateForDepth(RHICmdList, RenderMode);
 
 		// Draw the subject's static elements using static draw lists
-		if (IsWholeSceneDirectionalShadow())
+		if (IsWholeSceneDirectionalShadow() && RenderMode != ShadowDepthRenderMode_EmissiveOnly && RenderMode != ShadowDepthRenderMode_GIBlockingVolumes)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticDrawListShadowDepthsTime);
 
@@ -1631,8 +1659,32 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 	}
 }
 
-void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets)
+void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode)
 {
+	// Select the correct set of arrays for the current render mode
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator>* PtrCurrentMeshElements = nullptr;
+	PrimitiveArrayType* PtrCurrentPrimitives = nullptr;
+
+	switch(RenderMode)
+	{
+	case ShadowDepthRenderMode_Dynamic:
+		PtrCurrentMeshElements = &SubjectMeshElements;
+		PtrCurrentPrimitives = &SubjectPrimitives;
+		break;
+	case ShadowDepthRenderMode_EmissiveOnly:
+		PtrCurrentMeshElements = &EmissiveOnlyMeshElements;
+		PtrCurrentPrimitives = &EmissiveOnlyPrimitives;
+		break;
+	case ShadowDepthRenderMode_GIBlockingVolumes:
+		PtrCurrentMeshElements = &GIBlockingMeshElements;
+		PtrCurrentPrimitives = &GIBlockingPrimitives;
+		break;
+	default:
+		check(0);
+	}
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator>& CurrentMeshElements = *PtrCurrentMeshElements;
+	PrimitiveArrayType& CurrentPrimitives = *PtrCurrentPrimitives;
+
 #if WANTS_DRAW_MESH_EVENTS
 	FString EventName;
 	GetShadowTypeNameForDrawEvent(EventName);
@@ -1641,6 +1693,12 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_RenderWholeSceneShadowDepthsTime, bWholeSceneShadow);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_RenderPerObjectShadowDepthsTime, !bWholeSceneShadow);
+
+	// Exit early if there are no meshes or primitives to render in the emissive ony render mode.
+	if (RenderMode != ShadowDepthRenderMode_Dynamic && CurrentMeshElements.Num() == 0 && CurrentPrimitives.Num() == 0)
+	{
+		return;
+	}
 
 	// Choose an arbitrary view where this shadow's subject is relevant.
 	FViewInfo* FoundView = NULL;
@@ -1705,7 +1763,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	// Lighting only should only affect the material used with direct lighting, not the indirect lighting
 	FoundView->bForceShowMaterials = true;
 
-	RenderDepthInner(RHICmdList, SceneRenderer, FoundView, SetShadowRenderTargets);
+	RenderDepthInner(RHICmdList, SceneRenderer, FoundView, SetShadowRenderTargets, RenderMode);
 
 	FoundView->bForceShowMaterials = false;
 	FoundView->UniformBuffer = OriginalUniformBuffer;
@@ -3089,6 +3147,11 @@ bool FDeferredShadingSceneRenderer::RenderReflectiveShadowMaps(FRHICommandListIm
 				{
 					ProjectedShadowInfo->ClearDepth(RHICmdList, this, true);
 					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets);
+
+					// Render emissive only meshes as they are held in a separate list.
+					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_EmissiveOnly);
+					// Render gi blocking volume meshes.
+					ProjectedShadowInfo->RenderDepth(RHICmdList, this, SetShadowRenderTargets, ShadowDepthRenderMode_GIBlockingVolumes);
 				}
 
 				GSceneRenderTargets.FinishRenderingReflectiveShadowMap(RHICmdList);

@@ -315,6 +315,8 @@ struct FScreenSpaceData
 	FGBufferData GBuffer;
 	// 0..1, only valid in some passes, 1 if off
 	float AmbientOcclusion;
+
+	float2 DirectionalOcclusion;
 };
 
 /** Populates OutGBufferA, B and C */
@@ -526,6 +528,9 @@ SamplerState ScreenSpaceAOTextureSampler;
 Texture2D CustomDepthTexture;
 SamplerState CustomDepthTextureSampler;
 
+Texture2D		DirectionalOcclusionTexture;
+SamplerState	DirectionalOcclusionSampler;
+
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	// In all but SM5 we need to explicitly declare how many samples are in a multisampled texture.
 	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
@@ -596,6 +601,14 @@ SamplerState CustomDepthTextureSampler;
 			Out.AmbientOcclusion = ScreenSpaceAO.r;
 		}
 
+		{
+			uint width;
+			uint height;
+			uint levels;
+
+			DirectionalOcclusionTexture.GetDimensions(0, width, height, levels);
+			Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, (PixelPos + 0.5f) / float2(width, height), 0 ).rg;
+		}
 		return Out;
 	}
 #endif
@@ -676,6 +689,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 
 	Out.AmbientOcclusion = ScreenSpaceAO.r;
 
+	Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, UV, 0 ).rg;
 	return Out;
 }
 

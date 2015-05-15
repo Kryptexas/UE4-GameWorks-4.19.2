@@ -12,20 +12,22 @@
 #include "SceneUtils.h"
 #include "HdrCustomResolveShaders.h"
 
-
-// for LightPropagationVolume feature, could be exposed
-const int ReflectiveShadowMapResolution = 256;
-
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
 static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocityDebug(
 	TEXT("r.BasePassOutputsVelocityDebug"),
 	0,
-	TEXT("Debug settings for Base Pass outputting velocity.\n") \
-	TEXT("0 - Regular rendering\n") \
-	TEXT("1 - Skip setting GBufferVelocity RT\n") \
+	TEXT("Debug settings for Base Pass outputting velocity.\n")
+	TEXT("0 - Regular rendering\n")
+	TEXT("1 - Skip setting GBufferVelocity RT\n")
 	TEXT("2 - Set Color Mask 0 for GBufferVelocity RT\n"),
 	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarRSMResolution(
+	TEXT("r.LPV.RSMResolution"),
+	360,
+	TEXT("Reflective Shadow Map resolution (used for LPV) - higher values result in less aliasing artifacts, at the cost of performance"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static int32 GBasePassOutputsVelocityDebug = 0;
 
@@ -235,6 +237,8 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 
 	int32 MaxShadowResolution = GetCachedScalabilityCVars().MaxShadowResolution;
 
+	int32 RSMResolution = FMath::Clamp(CVarRSMResolution.GetValueOnRenderThread(), 1, 2048);
+
 	if (ViewFamily.Scene->ShouldUseDeferredRenderer() == false)
 	{
 		// ensure there is always enough space for forward renderer's tiled shadow maps
@@ -269,6 +273,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		(bAllowStaticLighting != bNewAllowStaticLighting) ||
 		(bUseDownsizedOcclusionQueries != bDownsampledOcclusionQueries) ||
 		(CurrentMaxShadowResolution != MaxShadowResolution) ||
+ 		(CurrentRSMResolution != RSMResolution) ||
 		(CurrentTranslucencyLightingVolumeDim != TranslucencyLightingVolumeDim) ||
 		(CurrentMobile32bpp != Mobile32bpp) ||
 		(CurrentMobileMSAA != MobileMSAA) ||
@@ -280,6 +285,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		bAllowStaticLighting = bNewAllowStaticLighting;
 		bUseDownsizedOcclusionQueries = bDownsampledOcclusionQueries;
 		CurrentMaxShadowResolution = MaxShadowResolution;
+		CurrentRSMResolution = RSMResolution;
 		CurrentTranslucencyLightingVolumeDim = TranslucencyLightingVolumeDim;
 		CurrentMobile32bpp = Mobile32bpp;
 		CurrentMobileMSAA = MobileMSAA;
@@ -1508,6 +1514,18 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		}
 	}
 
+	// LPV : Dynamic directional occlusion for diffuse and specular
+	if(UseLightPropagationVolumeRT(CurrentFeatureLevel))
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_R8G8, TexCreate_None, TexCreate_RenderTargetable, false));
+		GRenderTargetPool.FindFreeElement(Desc, DirectionalOcclusion, TEXT("DirectionalOcclusion"));
+	}
+
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, GetSceneColorFormat(), TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+		GRenderTargetPool.FindFreeElement(Desc, LightAccumulation, TEXT("LightAccumulation"));
+	}
+
 	AllocateReflectionTargets();
 
 	if (CurrentFeatureLevel >= ERHIFeatureLevel::SM5)
@@ -1515,18 +1533,21 @@ void FSceneRenderTargets::AllocateDeferredShadingPathRenderTargets()
 		// Create the reflective shadow map textures for LightPropagationVolume feature
 		if(bCurrentLightPropagationVolume)
 		{
+			int32 Res = GetReflectiveShadowMapResolution();
+			FIntPoint Extent = FIntPoint(Res, Res);
+
 			{
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GetReflectiveShadowMapTextureResolution(), PF_R8G8B8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Extent, PF_R8G8B8A8, TexCreate_None, TexCreate_RenderTargetable, false));
 				GRenderTargetPool.FindFreeElement(Desc, ReflectiveShadowMapNormal, TEXT("RSMNormal"));
 			}
 
 			{
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GetReflectiveShadowMapTextureResolution(), PF_FloatR11G11B10, TexCreate_None, TexCreate_RenderTargetable, false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Extent, PF_FloatR11G11B10, TexCreate_None, TexCreate_RenderTargetable, false));
 				GRenderTargetPool.FindFreeElement(Desc, ReflectiveShadowMapDiffuse, TEXT("RSMDiffuse"));
 			}
 
 			{
-				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GetReflectiveShadowMapTextureResolution(), PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable , false));
+				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Extent, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable , false));
 				GRenderTargetPool.FindFreeElement(Desc, ReflectiveShadowMapDepth, TEXT("RSMDepth"));
 			}
 		}
@@ -1614,6 +1635,8 @@ void FSceneRenderTargets::ReleaseAllTargets()
 	DBufferC.SafeRelease();
 	ScreenSpaceAO.SafeRelease();
 	LightAttenuation.SafeRelease();
+	LightAccumulation.SafeRelease();
+	DirectionalOcclusion.SafeRelease();
 	CustomDepth.SafeRelease();
 	ReflectiveShadowMapNormal.SafeRelease();
 	ReflectiveShadowMapDiffuse.SafeRelease();
@@ -1625,6 +1648,8 @@ void FSceneRenderTargets::ReleaseAllTargets()
 	}
 
 	ShadowDepthZ.SafeRelease();
+	OptionalShadowDepthColor.SafeRelease();
+
 	PreShadowCacheDepthZ.SafeRelease();
 	
 	for(int32 Index = 0; Index < NumCubeShadowDepthSurfaces; ++Index)
@@ -1674,9 +1699,11 @@ FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const
 	return ShadowBufferResolution;
 }
 
-FIntPoint FSceneRenderTargets::GetReflectiveShadowMapTextureResolution() const
+int32 FSceneRenderTargets::GetReflectiveShadowMapResolution() const
 {
-	return FIntPoint( ReflectiveShadowMapResolution, ReflectiveShadowMapResolution );
+	check(IsInRenderingThread());
+
+	return CurrentRSMResolution;
 }
 
 FIntPoint FSceneRenderTargets::GetPreShadowCacheTextureResolution() const
@@ -1834,6 +1861,8 @@ void FSceneTextureShaderParameters::Bind(const FShaderParameterMap& ParameterMap
 	SceneColorSurfaceParameter.Bind(ParameterMap,TEXT("SceneColorSurface"));
 	// only used if Material has an expression that requires SceneColorTextureMSAA
 	SceneDepthSurfaceParameter.Bind(ParameterMap,TEXT("SceneDepthSurface"));
+	DirectionalOcclusionSampler.Bind(ParameterMap, TEXT("DirectionalOcclusionSampler"));
+	DirectionalOcclusionTexture.Bind(ParameterMap, TEXT("DirectionalOcclusionTexture"));
 }
 
 template< typename ShaderRHIParamRef >
@@ -1965,6 +1994,40 @@ void FSceneTextureShaderParameters::Set(
 		SetTextureParameter(RHICmdList, ShaderRHI, SceneColorSurfaceParameter, GBlackTexture->TextureRHI);
 		SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, GBlackTexture->TextureRHI);
 	}
+
+	if( DirectionalOcclusionSampler.IsBound() )
+	{
+		bool bDirectionalOcclusion = false;
+		FSceneViewState* ViewState = (FSceneViewState*)View.State;
+		if ( ViewState != nullptr && ViewState->GetLightPropagationVolume() != nullptr && View.FinalPostProcessSettings.LPVIntensity > 0.0f )
+		{
+			if ( View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
+			{
+				bDirectionalOcclusion = true;
+			}
+		}
+
+		FTextureRHIParamRef DirectionalOcclusion = nullptr;
+		if( bDirectionalOcclusion )
+		{
+			DirectionalOcclusion = GSceneRenderTargets.GetDirectionalOcclusionTexture();
+		}
+		else
+		{
+			DirectionalOcclusion = GWhiteTexture->TextureRHI;
+		}
+
+		FSamplerStateRHIRef Filter;
+		Filter = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
+		SetTextureParameter(
+			RHICmdList,
+			ShaderRHI,
+			DirectionalOcclusionTexture,
+			DirectionalOcclusionSampler,
+			Filter,
+			DirectionalOcclusion
+			);
+	}
 }
 
 #define IMPLEMENT_SCENE_TEXTURE_PARAM_SET( ShaderRHIParamRef ) \
@@ -1994,6 +2057,8 @@ FArchive& operator<<(FArchive& Ar,FSceneTextureShaderParameters& Parameters)
 	Ar << Parameters.SceneDepthTextureParameterSampler;
 	Ar << Parameters.SceneDepthSurfaceParameter;
 	Ar << Parameters.SceneDepthTextureNonMS;
+	Ar << Parameters.DirectionalOcclusionSampler;
+	Ar << Parameters.DirectionalOcclusionTexture;
 	return Ar;
 }
 

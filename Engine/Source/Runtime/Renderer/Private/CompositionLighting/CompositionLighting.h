@@ -18,7 +18,9 @@ public:
 
 	void ProcessAfterBasePass(FRHICommandListImmediate& RHICmdList,  FViewInfo& View);
 
-	void ProcessLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+	void ProcessLpvIndirect(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+
+	void ProcessAfterLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
 };
 
 /** The global used for deferred lighting. */

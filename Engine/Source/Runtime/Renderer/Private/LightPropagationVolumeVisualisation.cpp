@@ -36,7 +36,7 @@ public:
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )				
 	{ 
 		OutEnvironment.SetDefine( TEXT("LPV_MULTIPLE_BOUNCES"), (uint32)LPV_MULTIPLE_BOUNCES );
-		OutEnvironment.SetDefine( TEXT("LPV_GV_VOLUME_TEXTURE"),	(uint32)LPV_GV_VOLUME_TEXTURE );
+		OutEnvironment.SetDefine( TEXT("LPV_GV_SH_ORDER"),		(uint32)LPV_GV_SH_ORDER );
 
 		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment ); 
 	}
@@ -98,27 +98,16 @@ public:
 	FLpvVisualisePS()	{	}
 	explicit FLpvVisualisePS( const ShaderMetaType::CompiledShaderInitializerType& Initializer ) : FLpvVisualiseBase(Initializer) 
 	{
-#if LPV_VOLUME_TEXTURE
-		for ( int i=0; i<7; i++ )
+		for ( int i = 0; i < 7; i++ )
 		{
 			LpvBufferSRVParameters[i].Bind( Initializer.ParameterMap, LpvVolumeTextureSRVNames[i] );
 		}
-#else
-		InLpvBuffer.Bind( Initializer.ParameterMap, TEXT("gLpvBuffer") );
-#endif
 
-#if LPV_VOLUME_TEXTURE || LPV_GV_VOLUME_TEXTURE
 		LpvVolumeTextureSampler.Bind(Initializer.ParameterMap, TEXT("gLpv3DTextureSampler"));
-#endif
-
-#if LPV_GV_VOLUME_TEXTURE
 		for ( int i=0; i<3; i++ )
 		{
 			GvBufferSRVParameters[i].Bind( Initializer.ParameterMap, LpvGvVolumeTextureSRVNames[i] );
 		}
-#else
-		InGvBuffer.Bind(			Initializer.ParameterMap, TEXT("gGvBuffer") );
-#endif
 	}
 
 	//@todo-rco: Remove this when reenabling for OpenGL
@@ -133,7 +122,6 @@ public:
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View); 
 
-#if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
 		{
 			FTextureRHIParamRef LpvBufferSrv = LPV->LpvVolumeTextures[ 1-LPV->mWriteBufferIndex ][i]->GetRenderTargetItem().ShaderResourceTexture;
@@ -143,14 +131,7 @@ public:
 			}
 			SetTextureParameter(RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), LpvBufferSrv );
 		}
-#else
-		if ( InLpvBuffer.IsBound() ) 
-		{
-			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InLpvBuffer.GetBaseIndex(), LPV->mLpvBuffers[ LPV->mWriteBufferIndex ]->SRV ); 
-		}
-#endif
 
-#if LPV_GV_VOLUME_TEXTURE
 		for ( int i=0; i<3; i++ )
 		{
 			FTextureRHIParamRef GvBufferSrv = LPV->GvVolumeTextures[i]->GetRenderTargetItem().ShaderResourceTexture;
@@ -161,12 +142,6 @@ public:
 			SetTextureParameter(RHICmdList, ShaderRHI, GvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GvBufferSrv );
 		}
 
-#else
-		if ( InGvBuffer.IsBound() ) 
-		{
-			RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InGvBuffer.GetBaseIndex(), LPV->GvBuffer->SRV ); 
-		}
-#endif
 	}
 
 
@@ -175,50 +150,29 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FLpvVisualiseBase::Serialize( Ar );
 
-#if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
 		{
 			Ar << LpvBufferSRVParameters[i];
 		}
-#else
-		Ar << InLpvBuffer;
-#endif
 
-#if LPV_VOLUME_TEXTURE | LPV_GV_VOLUME_TEXTURE
 		Ar << LpvVolumeTextureSampler;
-#endif
 
-#if LPV_GV_VOLUME_TEXTURE
 		for ( int i=0; i<3; i++ )
 		{
 			Ar << GvBufferSRVParameters[i];
 		}
-#else
-		Ar << InGvBuffer;
-#endif
 		return bShaderHasOutdatedParameters;
 	}
-#if LPV_VOLUME_TEXTURE
 	FShaderResourceParameter LpvBufferSRVParameters[7];
-#else
-	FShaderResourceParameter InLpvBuffer;
-#endif 
 
-#if LPV_VOLUME_TEXTURE | LPV_GV_VOLUME_TEXTURE
 	FShaderResourceParameter LpvVolumeTextureSampler;
-#endif
 
-#if LPV_GV_VOLUME_TEXTURE
 	FShaderResourceParameter GvBufferSRVParameters[3];
-#else
-	FShaderResourceParameter InGvBuffer;
-#endif
 
 	void UnbindBuffers(FRHICommandList& RHICmdList)
 	{
 		// TODO: Is this necessary here?
 		FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-#if LPV_VOLUME_TEXTURE
 		for ( int i=0;i<7; i++ )
 		{
 			if ( LpvBufferSRVParameters[i].IsBound() )
@@ -226,11 +180,7 @@ public:
 				RHICmdList.SetShaderTexture(ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef());
 			}
 		}
-#else
-		if ( InLpvBuffer.IsBound() ) RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InLpvBuffer.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
-#endif
 
-#if LPV_GV_VOLUME_TEXTURE
 		for ( int i=0;i<3; i++ )
 		{
 			if ( GvBufferSRVParameters[i].IsBound() )
@@ -238,9 +188,6 @@ public:
 				RHICmdList.SetShaderTexture(ShaderRHI, GvBufferSRVParameters[i].GetBaseIndex(), FTextureRHIParamRef());
 			}
 		}
-#else
-		if ( InGvBuffer.IsBound() ) RHICmdList.SetShaderResourceViewParameter( ShaderRHI, InGvBuffer.GetBaseIndex(), FShaderResourceViewRHIParamRef() );
-#endif
 	}
 
 };

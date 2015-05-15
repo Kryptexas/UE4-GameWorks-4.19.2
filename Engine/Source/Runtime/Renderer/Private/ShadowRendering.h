@@ -487,6 +487,18 @@ public:
 	bool bIsTwoSided;
 };
 
+enum EShadowDepthRenderMode
+{
+	/** The render mode used by regular shadows */
+	ShadowDepthRenderMode_Dynamic,
+
+	/** The render mode used when injecting emissive-only objects into the RSM. */
+	ShadowDepthRenderMode_EmissiveOnly,
+
+	/** The render mode used when rendering volumes which block global illumination. */
+	ShadowDepthRenderMode_GIBlockingVolumes,
+};
+
 /**
  * Information about a projected shadow.
  */
@@ -630,10 +642,10 @@ public:
 	/**
 	 * Renders the shadow subject depth.
 	 */
-	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets);
+	void RenderDepth(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode = ShadowDepthRenderMode_Dynamic);
 
 	/** Set state for depth rendering */
-	void SetStateForDepth(FRHICommandList& RHICmdList);
+	void SetStateForDepth(FRHICommandList& RHICmdList, EShadowDepthRenderMode RenderMode );
 
 	void ClearDepth(FRHICommandList& RHICmdList, class FDeferredShadingSceneRenderer* SceneRenderer, bool bPerformClear);
 
@@ -743,6 +755,16 @@ private:
 	/** Subject primitives with translucent relevance. */
 	PrimitiveArrayType SubjectTranslucentPrimitives;
 
+	/** Translucent LPV injection: dynamic shadow casting elements */
+	PrimitiveArrayType EmissiveOnlyPrimitives;
+	/** Translucent LPV injection: Static shadow casting elements. */
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> EmissiveOnlyMeshElements;
+
+	/** GI blocking volume: dynamic shadow casting elements */
+	PrimitiveArrayType GIBlockingPrimitives;
+	/** GI blocking volume: Static shadow casting elements. */
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> GIBlockingMeshElements;
+
 	/** Static shadow casting elements. */
 	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
 
@@ -762,7 +784,7 @@ private:
 	/**
 	* Renders the shadow subject depth, to a particular hacked view
 	*/
-	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets);
+	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode );
 
 	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view

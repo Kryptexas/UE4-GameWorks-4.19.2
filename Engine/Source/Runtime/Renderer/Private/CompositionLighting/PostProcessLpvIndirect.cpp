@@ -22,6 +22,15 @@
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLpvReadUniformBufferParameters,TEXT("LpvRead"));
 typedef TUniformBufferRef<FLpvReadUniformBufferParameters> FLpvReadUniformBufferRef;
 
+
+TAutoConsoleVariable<int32> CVarLPVMixing(
+	TEXT("r.LPV.Mixing"),
+	1,
+	TEXT("Reflection environment mixes with indirect shading (Ambient + LPV).\n")
+	TEXT(" 0 is off, 1 is on (default)"),
+	ECVF_RenderThreadSafe | ECVF_Cheat);
+
+
 /** Encapsulates the post processing ambient pixel shader. */
 class FPostProcessLpvIndirectPS : public FGlobalShader
 {
@@ -35,14 +44,9 @@ class FPostProcessLpvIndirectPS : public FGlobalShader
 
 public:
 	FPostProcessPassParameters PostprocessParameter;
-
-#if LPV_VOLUME_TEXTURE
 	FShaderResourceParameter LpvBufferSRVParameters[7];
 	FShaderResourceParameter LpvVolumeTextureSampler;
-#else
-	FShaderResourceParameter LpvBufferSRV;
-#endif 
-
+	FShaderResourceParameter AOVolumeTextureSRVParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter PreIntegratedGF;
 	FShaderResourceParameter PreIntegratedGFSampler;
@@ -53,27 +57,21 @@ public:
 	{
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
-#if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
 		{
 			LpvBufferSRVParameters[i].Bind( Initializer.ParameterMap, LpvVolumeTextureSRVNames[i] );
 		}
 		LpvVolumeTextureSampler.Bind(Initializer.ParameterMap, TEXT("gLpv3DTextureSampler"));
-#else
-		LpvBufferSRV.Bind( Initializer.ParameterMap, TEXT("gLpvBuffer") );
-#endif
+
+		AOVolumeTextureSRVParameter.Bind( Initializer.ParameterMap, TEXT("gAOVolumeTexture") );
 
 		PreIntegratedGF.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGF"));
 		PreIntegratedGFSampler.Bind(Initializer.ParameterMap, TEXT("PreIntegratedGFSampler"));
 	}
 
 	void SetParameters(	
-#if LPV_VOLUME_TEXTURE
 		FTextureRHIParamRef* LpvBufferSRVsIn, 
-#else
-		FShaderResourceViewRHIParamRef LpvBufferSRVIn, 
-#endif 
-
+		FTextureRHIParamRef AOVolumeTextureSRVIn, 
 		FLpvReadUniformBufferRef LpvUniformBuffer, 
 		const FRenderingCompositePassContext& Context )
 	{
@@ -81,21 +79,19 @@ public:
 
 		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvReadUniformBufferParameters>(), LpvUniformBuffer);
 
-#if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
 		{
 			if ( LpvBufferSRVParameters[i].IsBound() )
 			{
 				Context.RHICmdList.SetShaderTexture(ShaderRHI, LpvBufferSRVParameters[i].GetBaseIndex(), LpvBufferSRVsIn[i]);
-				SetTextureParameter(Context.RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), LpvBufferSRVsIn[i]);
+				SetTextureParameter(Context.RHICmdList, ShaderRHI, LpvBufferSRVParameters[i], LpvVolumeTextureSampler, TStaticSamplerState<SF_Bilinear, AM_Border, AM_Border, AM_Border>::GetRHI(), LpvBufferSRVsIn[i]);
 			}
 		}
-#else
-		if ( LpvBufferSRV.IsBound() )
+
+		if ( AOVolumeTextureSRVParameter.IsBound() )
 		{
-			Context.RHICmdList.SetShaderResourceViewParameter( ShaderRHI, LpvBufferSRV.GetBaseIndex(), LpvBufferSRVIn );
+			Context.RHICmdList.SetShaderTexture(ShaderRHI, AOVolumeTextureSRVParameter.GetBaseIndex(), AOVolumeTextureSRVIn );
 		}
-#endif
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
@@ -108,30 +104,106 @@ public:
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << PostprocessParameter;
 
-#if LPV_VOLUME_TEXTURE
 		for ( int i=0; i<7; i++ )
 		{
 			Ar << LpvBufferSRVParameters[i];
 		}
 		Ar << LpvVolumeTextureSampler;
-#else
-		Ar << LpvBufferSRV;
-#endif
 		Ar << DeferredParameters;
 		Ar << PreIntegratedGF;
 		Ar << PreIntegratedGFSampler;
-
+		Ar << AOVolumeTextureSRVParameter;
 		return bShaderHasOutdatedParameters;
 	}
 };
 
-IMPLEMENT_SHADER_TYPE(,FPostProcessLpvIndirectPS,TEXT("PostProcessLpvIndirect"),TEXT("MainPS"),SF_Pixel);
+template<bool bApplySeparateSpecularRT>
+class TPostProcessLpvIndirectPS : public FPostProcessLpvIndirectPS
+{
+	DECLARE_SHADER_TYPE(TPostProcessLpvIndirectPS, Global);
 
+	/** Default constructor. */
+	TPostProcessLpvIndirectPS() {}
+
+public:
+
+	TPostProcessLpvIndirectPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FPostProcessLpvIndirectPS(Initializer)
+	{}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FPostProcessLpvIndirectPS::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("APPLY_SEPARATE_SPECULAR_RT"), (uint32)(bApplySeparateSpecularRT ? 1 : 0));
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(template<>,TPostProcessLpvIndirectPS<false>,TEXT("PostProcessLpvIndirect"),TEXT("MainPS"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TPostProcessLpvIndirectPS<true>,TEXT("PostProcessLpvIndirect"),TEXT("MainPS"),SF_Pixel);
+
+class FPostProcessLpvDirectionalOcclusionPS : public FGlobalShader
+{
+	DECLARE_SHADER_TYPE(FPostProcessLpvDirectionalOcclusionPS, Global);
+
+	//@todo-rco: Remove this when reenabling for OpenGL
+	static bool ShouldCache( EShaderPlatform Platform )		{ return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) && !IsOpenGLPlatform(Platform); }
+
+	/** Default constructor. */
+	FPostProcessLpvDirectionalOcclusionPS() {}
+
+public:
+	FPostProcessPassParameters PostprocessParameter;
+	FShaderResourceParameter LpvVolumeTextureSampler;
+	FShaderResourceParameter AOVolumeTextureSRVParameter;
+
+	FDeferredPixelShaderParameters DeferredParameters;
+
+	/** Initialization constructor. */
+	FPostProcessLpvDirectionalOcclusionPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FGlobalShader(Initializer)
+	{
+		PostprocessParameter.Bind(Initializer.ParameterMap);
+		DeferredParameters.Bind(Initializer.ParameterMap);
+		LpvVolumeTextureSampler.Bind(Initializer.ParameterMap, TEXT("gLpv3DTextureSampler"));
+		AOVolumeTextureSRVParameter.Bind( Initializer.ParameterMap, TEXT("gAOVolumeTexture") );
+	}
+
+	void SetParameters(	
+		FTextureRHIParamRef AOVolumeTextureSRVIn, 
+		FLpvReadUniformBufferRef LpvUniformBuffer, 
+		const FRenderingCompositePassContext& Context )
+	{
+		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
+
+		SetUniformBufferParameter(Context.RHICmdList, ShaderRHI, GetUniformBufferParameter<FLpvReadUniformBufferParameters>(), LpvUniformBuffer);
+
+		if ( AOVolumeTextureSRVParameter.IsBound() )
+		{
+			Context.RHICmdList.SetShaderTexture(ShaderRHI, AOVolumeTextureSRVParameter.GetBaseIndex(), AOVolumeTextureSRVIn );
+		}
+		Context.RHICmdList.SetShaderSampler(ShaderRHI, LpvVolumeTextureSampler.GetBaseIndex(), TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI() );
+
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
+	}
+
+	// FShader interface.
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
+		Ar << LpvVolumeTextureSampler;
+		Ar << DeferredParameters;
+		Ar << AOVolumeTextureSRVParameter;
+		Ar << PostprocessParameter;
+		return bShaderHasOutdatedParameters;
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(,FPostProcessLpvDirectionalOcclusionPS,TEXT("PostProcessLpvIndirect"),TEXT("DirectionalOcclusionPS"),SF_Pixel);
 
 void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessLpvIndirect);
-
 	{
 		FRenderingCompositeOutput* OutputOfMyInput = GetInput(ePId_Input0)->GetOutput();
 		PassOutputs[0].PooledRenderTarget = OutputOfMyInput->PooledRenderTarget;
@@ -144,6 +216,14 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 
 	const FPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
 	const FSceneView& View = Context.View;
+
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || PostprocessSettings.LPVIntensity == 0.0f )
+	{
+		return;
+	}
+	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntRect SrcRect = View.ViewRect;
@@ -151,58 +231,65 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	FIntRect DestRect = View.ViewRect;
 	FIntPoint DestSize = DestRect.Size();
 
-	uint32 NumReflectionCaptures = ViewFamily.Scene->GetRenderScene()->ReflectionSceneData.RegisteredReflectionCaptures.Num();
+	const bool bMixing = CVarLPVMixing.GetValueOnRenderThread() != 0;
+	// Apply specular separately if we're mixing reflection environment with indirect lighting
+	const bool bApplySeparateSpecularRT = View.Family->EngineShowFlags.ReflectionEnvironment && bMixing;
 
 	const FSceneRenderTargetItem& DestColorRenderTarget = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestSpecularRenderTarget = GSceneRenderTargets.LightAccumulation->GetRenderTargetItem();
 
-	// Set the view family's render target/viewport.
-	FTextureRHIParamRef RenderTargets[] =
+	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = GSceneRenderTargets.DirectionalOcclusion->GetRenderTargetItem();
+
+	// Make sure the LPV Update has completed
+	Lpv->InsertGPUWaitForAsyncUpdate(Context.RHICmdList);
+
+	if ( Context.View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
 	{
-		DestColorRenderTarget.TargetableTexture,
-	};
+		DoDirectionalOcclusionPass(Context);
+	}
+
+	FTextureRHIParamRef RenderTargets[2];
+	RenderTargets[0] = DestColorRenderTarget.TargetableTexture;
+	RenderTargets[1] = DestSpecularRenderTarget.TargetableTexture;
 
 	// Set the view family's render target/viewport.
-	SetRenderTargets(Context.RHICmdList, 1, RenderTargets, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+	// If specular not applied: set only color target
+	uint32 NumRenderTargets = 1; 
+	if ( bApplySeparateSpecularRT ) 
+	{
+		NumRenderTargets = 2;
+	}
+
+	SetRenderTargets(Context.RHICmdList, NumRenderTargets, RenderTargets, 0, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
 
 	Context.SetViewportAndCallRHI(View.ViewRect);
 
 	// set the state
-	if ( ViewFamily.EngineShowFlags.LpvLightingOnly )
-	{
-		Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-	}
-	else
-	{
-		// additive blending
-		Context.RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_One, BF_One>::GetRHI());
-	}
+	Context.RHICmdList.SetBlendState(TStaticBlendState<CW_RGB,BO_Add,BF_One,BF_One,BO_Add,BF_One,BF_One>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
-	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	FLightPropagationVolume* Lpv = NULL;
-	bool bUseLpv = false;
-	if ( ViewState )
+	TShaderMapRef< TPostProcessLpvIndirectPS<false> >	  PixelShaderNoSpecular(Context.GetShaderMap());
+	TShaderMapRef< TPostProcessLpvIndirectPS<true> >	  PixelShaderWithSpecular(Context.GetShaderMap());
+
+	FPostProcessLpvIndirectPS* PixelShader = NULL;
+	int BoundShaderIndex = -1;
+	if ( bApplySeparateSpecularRT )
 	{
-		Lpv = ViewState->GetLightPropagationVolume();
-
-		bUseLpv = Lpv && PostprocessSettings.LPVIntensity > 0.0f;
+		PixelShader = (FPostProcessLpvIndirectPS*)*PixelShaderWithSpecular;
+		BoundShaderIndex = 0;
 	}
-
-	if ( !bUseLpv )
+	else
 	{
-		return;
+		PixelShader = (FPostProcessLpvIndirectPS*)*PixelShaderNoSpecular;
+		BoundShaderIndex = 1;
 	}
-
-	TShaderMapRef<FPostProcessLpvIndirectPS> PixelShader(Context.GetShaderMap());
-
-	static FGlobalBoundShaderState BoundShaderState;
-	
+	static FGlobalBoundShaderState BoundShaderState[2];
 
 	// call it once after setting up the shader data to avoid the warnings in the function
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState[BoundShaderIndex], GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
 
 	FLpvReadUniformBufferParameters	LpvReadUniformBufferParams;
 	FLpvReadUniformBufferRef LpvReadUniformBuffer;
@@ -210,17 +297,78 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	LpvReadUniformBufferParams = Lpv->GetReadUniformBufferParams();
 	LpvReadUniformBuffer = FLpvReadUniformBufferRef::CreateUniformBufferImmediate( LpvReadUniformBufferParams, UniformBuffer_SingleDraw ); 
 
-#if LPV_VOLUME_TEXTURE
 	FTextureRHIParamRef LpvBufferSrvs[7];
 	for ( int i = 0; i < 7; i++ ) 
 	{
 		LpvBufferSrvs[i] = Lpv->GetLpvBufferSrv(i);
 	}
-	PixelShader->SetParameters(LpvBufferSrvs, LpvReadUniformBuffer, Context);
-#else
-	FShaderResourceViewRHIParamRef LpvBufferSrv = Lpv->GetLpvBufferSrv();
-	PixelShader->SetParameters(LpvBufferSrv, LpvReadUniformBuffer, Context);
-#endif
+
+	PixelShader->SetParameters( LpvBufferSrvs, Lpv->GetAOVolumeTextureSRV(), LpvReadUniformBuffer, Context );
+
+	{
+		SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessLpvIndirect );
+
+	    // Draw a quad mapping scene color to the view's render target
+	    DrawRectangle( 
+		    Context.RHICmdList,
+		    0, 0,
+		    View.ViewRect.Width(), View.ViewRect.Height(),
+		    View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+		    View.ViewRect.Width(), View.ViewRect.Height(),
+		    View.ViewRect.Size(),
+		    GSceneRenderTargets.GetBufferSizeXY(),
+		    *VertexShader);
+
+		Context.RHICmdList.CopyToResolveTarget(DestColorRenderTarget.TargetableTexture, DestColorRenderTarget.ShaderResourceTexture, false, FResolveParams());
+		if(bApplySeparateSpecularRT)
+		{
+			Context.RHICmdList.CopyToResolveTarget(DestSpecularRenderTarget.TargetableTexture, DestSpecularRenderTarget.ShaderResourceTexture, false, FResolveParams());
+		}
+	}
+
+	if ( Context.View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
+	{
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, GSceneRenderTargets.DirectionalOcclusion);
+	}
+}
+
+void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingCompositePassContext& Context) const
+{
+	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessLpvDirectionalOcclusion );
+	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = GSceneRenderTargets.DirectionalOcclusion->GetRenderTargetItem();
+	FViewInfo& View = Context.View;
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+	const FPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
+	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || PostprocessSettings.LPVIntensity == 0.0f )
+	{
+		return;
+	}
+	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+
+	FTextureRHIParamRef RenderTarget = DestDirectionalOcclusionRenderTarget.TargetableTexture;
+
+	SetRenderTargets(Context.RHICmdList, 1, &RenderTarget, NULL, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
+	
+	Context.SetViewportAndCallRHI(View.ViewRect);
+	Context.RHICmdList.SetBlendState( TStaticBlendState<>::GetRHI() );
+	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
+	TShaderMapRef<FPostProcessVS> VertexShader(View.ShaderMap);
+
+	FLpvReadUniformBufferParameters	LpvReadUniformBufferParams;
+	FLpvReadUniformBufferRef LpvReadUniformBuffer;
+
+	TShaderMapRef< FPostProcessLpvDirectionalOcclusionPS > PixelShader(View.ShaderMap);
+
+	static FGlobalBoundShaderState BoundShaderState;
+
+	// call it once after setting up the shader data to avoid the warnings in the function
+	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+	LpvReadUniformBufferParams = Lpv->GetReadUniformBufferParams();
+	LpvReadUniformBuffer = FLpvReadUniformBufferRef::CreateUniformBufferImmediate( LpvReadUniformBufferParams, UniformBuffer_SingleDraw ); 
+
+	PixelShader->SetParameters( Lpv->GetAOVolumeTextureSRV(), LpvReadUniformBuffer, Context );
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
@@ -232,8 +380,6 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 		View.ViewRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
 		*VertexShader);
-
-	Context.RHICmdList.CopyToResolveTarget(DestColorRenderTarget.TargetableTexture, DestColorRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessLpvIndirect::ComputeOutputDesc(EPassOutputId InPassOutputId) const

@@ -473,144 +473,170 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 		}
 
-		bool bDirectLighting = ViewFamily.EngineShowFlags.DirectLighting;
+		EShaderPlatform ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel]; 
 
-		// Draw shadowed and light function lights
-		for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
+//INTEGRATETODO4_5: Equivalent Epic code changed from 'if ( IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5) )' to 'if( FeatureLevel >= ERHIFeatureLevel::SM5 )'
+		if ( IsFeatureLevelSupported(ShaderPlatform, ERHIFeatureLevel::SM5) )
 		{
-			const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-			const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-			const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
-			bool bDrawShadows = SortedLightInfo.SortKey.Fields.bShadowed;
-			bool bDrawLightFunction = SortedLightInfo.SortKey.Fields.bLightFunction;
-			bool bInjectedTranslucentVolume = false;
-			bool bUsedLightAttenuation = false;
-			FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
-
-			FString LightNameWithLevel;
-			GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
-			SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
-
-			// Do not resolve to scene color texture, this is done lazily
-			GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
-
-			if (bDrawShadows)
+			SCOPED_DRAW_EVENT(RHICmdList, IndirectLighting);
+			bool bRenderedRSM = false;
+			// Render Reflective shadow maps
+			// Draw shadowed and light function lights
+			for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
 			{
-				INC_DWORD_STAT(STAT_NumShadowedLights);
+				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
+				const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
+				const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
+				// Render any reflective shadow maps (if necessary)
+				if ( LightSceneInfo.Proxy && LightSceneInfo.Proxy->NeedsLPVInjection() )
+				{
+					if ( LightSceneInfo.Proxy->HasReflectiveShadowMap() )
+					{
+						INC_DWORD_STAT(STAT_NumReflectiveShadowMapLights);
+						RenderReflectiveShadowMaps( RHICmdList, &LightSceneInfo );
+						bRenderedRSM = true;
+					}
+				}
+			}
+
+			// LPV Direct Light Injection
+			if ( bRenderedRSM )
+			{
+				for (int32 LightIndex = 0; LightIndex < SortedLights.Num(); LightIndex++)
+				{
+					const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
+					const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
+					const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
+
+					// Render any reflective shadow maps (if necessary)
+					if ( LightSceneInfo && LightSceneInfo->Proxy && LightSceneInfo->Proxy->NeedsLPVInjection() )
+					{
+						if ( !LightSceneInfo->Proxy->HasReflectiveShadowMap() )
+						{
+							// Inject the light directly into all relevant LPVs
+							for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+							{
+								FViewInfo& View = Views[ViewIndex];
+
+								if (LightSceneInfo->ShouldRenderLight(View))
+								{
+									FSceneViewState* ViewState = (FSceneViewState*)View.State;
+									FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+									if ( Lpv && LightSceneInfo->Proxy )
+									{
+										Lpv->InjectLightDirect( RHICmdList, *LightSceneInfo->Proxy, View );
+									}
+								}
+							}					
+						}
+					}
+				}
+			}
+
+			// Kickoff the LPV update (asynchronously if possible)
+			UpdateLPVs(RHICmdList);
+		}
+
+		
+		{
+			SCOPED_DRAW_EVENT(RHICmdList, ShadowedLights);
+
+			bool bDirectLighting = ViewFamily.EngineShowFlags.DirectLighting;
+
+			// Draw shadowed and light function lights
+			for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
+			{
+				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
+				const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
+				const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
+				bool bDrawShadows = SortedLightInfo.SortKey.Fields.bShadowed;
+				bool bDrawLightFunction = SortedLightInfo.SortKey.Fields.bLightFunction;
+				bool bInjectedTranslucentVolume = false;
+				bool bUsedLightAttenuation = false;
+				FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
+
+				FString LightNameWithLevel;
+				GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
+				SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
+
+				// Do not resolve to scene color texture, this is done lazily
+				GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
+
+				if (bDrawShadows)
+				{
+					INC_DWORD_STAT(STAT_NumShadowedLights);
+
+					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+					{
+						const FViewInfo& View = Views[ViewIndex];
+						View.HeightfieldLightingViewInfo.ClearShadowing(View, RHICmdList, LightSceneInfo);
+					}
+
+					// All shadows render with min blending
+					bool bClearToWhite = true;
+					GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
+
+					bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
+					// Render non-modulated projected shadows to the attenuation buffer.
+					RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
+				
+					bUsedLightAttenuation = true;
+				}
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 				{
 					const FViewInfo& View = Views[ViewIndex];
-					View.HeightfieldLightingViewInfo.ClearShadowing(View, RHICmdList, LightSceneInfo);
+					View.HeightfieldLightingViewInfo.ComputeLighting(View, RHICmdList, LightSceneInfo);
 				}
-
-				// All shadows render with min blending
-				bool bClearToWhite = true;
-				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
-
-				bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
-				// Render non-modulated projected shadows to the attenuation buffer.
-				RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
-				
-				bUsedLightAttenuation = true;
-			}
-
-			// Render any reflective shadow maps (if necessary)
-			if(ViewFamily.EngineShowFlags.GlobalIllumination && LightSceneInfo.Proxy->NeedsLPVInjection())
-			{
-				if ( LightSceneInfo.Proxy->HasReflectiveShadowMap() )
-				{
-					INC_DWORD_STAT(STAT_NumReflectiveShadowMapLights);
-					RenderReflectiveShadowMaps(RHICmdList, &LightSceneInfo );
-				}
-			}
-
-			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-			{
-				const FViewInfo& View = Views[ViewIndex];
-				View.HeightfieldLightingViewInfo.ComputeLighting(View, RHICmdList, LightSceneInfo);
-			}
 			
-			// Render light function to the attenuation buffer.
-			if (bDirectLighting)
-			{
-				const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
-				bUsedLightAttenuation |= bLightFunctionRendered;
-
-				if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
-					&& !LightSceneInfo.IsPrecomputedLightingValid() 
-					&& LightSceneInfo.Proxy->HasStaticShadowing())
+				// Render light function to the attenuation buffer.
+				if (bDirectLighting)
 				{
-					RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);
-				}
+					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
+					bUsedLightAttenuation |= bLightFunctionRendered;
 
-				if (!bDrawShadows)
-				{
-					INC_DWORD_STAT(STAT_NumLightFunctionOnlyLights);
-				}
-			}
-			
-			if( bUsedLightAttenuation )
-			{
-				// Resolve light attenuation buffer
-				GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
-			}
-			
-			if(bDirectLighting && !bInjectedTranslucentVolume)
-			{
-				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume);
-				// Accumulate this light's unshadowed contribution to the translucency lighting volume
-				InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
-			}
-
-			GSceneRenderTargets.SetLightAttenuationMode(bUsedLightAttenuation);
-			GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
-
-			// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
-			if(bDirectLighting)
-			{
-				RenderLight(RHICmdList, &LightSceneInfo, false, true);
-			}
-		}
-
-		// Do not resolve to scene color texture, this is done lazily
-		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
-
-		// Restore the default mode
-		GSceneRenderTargets.SetLightAttenuationMode(true);
-
-		// LPV Direct Light Injection
-		for (int32 LightIndex = 0; LightIndex < SortedLights.Num(); LightIndex++)
-		{
-			const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-			const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-			const FLightSceneInfo* const LightSceneInfo = LightSceneInfoCompact.LightSceneInfo;
-
-			// Render any reflective shadow maps (if necessary)
-			if ( LightSceneInfo && LightSceneInfo->Proxy && LightSceneInfo->Proxy->NeedsLPVInjection() )
-			{
-				if ( !LightSceneInfo->Proxy->HasReflectiveShadowMap() )
-				{
-					// Inject the light directly into all relevant LPVs
-					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+					if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
+						&& !LightSceneInfo.IsPrecomputedLightingValid() 
+						&& LightSceneInfo.Proxy->HasStaticShadowing())
 					{
-						FViewInfo& View = Views[ViewIndex];
-						FSceneViewState* ViewState = (FSceneViewState*)View.State;
+						RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);
+					}
 
-						if (ViewState)
-						{
-							if (LightSceneInfo->ShouldRenderLight(View))
-							{
-								FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
-								if (Lpv && LightSceneInfo->Proxy)
-								{
-									Lpv->InjectLightDirect(RHICmdList, *LightSceneInfo->Proxy, View);
-								}
-							}
-						}
-					}					
+					if (!bDrawShadows)
+					{
+						INC_DWORD_STAT(STAT_NumLightFunctionOnlyLights);
+					}
+				}
+			
+				if( bUsedLightAttenuation )
+				{
+					// Resolve light attenuation buffer
+					GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
+				}
+			
+				if(bDirectLighting && !bInjectedTranslucentVolume)
+				{
+					SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume);
+					// Accumulate this light's unshadowed contribution to the translucency lighting volume
+					InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
+				}
+
+				GSceneRenderTargets.SetLightAttenuationMode(bUsedLightAttenuation);
+				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+
+				// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
+				if(bDirectLighting)
+				{
+					RenderLight(RHICmdList, &LightSceneInfo, false, true);
 				}
 			}
+
+			// Do not resolve to scene color texture, this is done lazily
+			GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
+
+			// Restore the default mode
+			GSceneRenderTargets.SetLightAttenuationMode(true);
+
 		}
 	}
 }

@@ -631,8 +631,10 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.Random = FMath::Rand();
 	ViewUniformShaderParameters.FrameNumber = Family->FrameNumber;
 
+	// Lets not use Lightmaps if we don't allow static lighting, shall we?
+	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.AllowStaticLighting"));
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
-	const bool bUseLightmaps = CVar->GetInt() == 0;
+	const bool bUseLightmaps = (AllowStaticLightingVar->GetInt() == 1) && (CVar->GetInt() == 0);
 
 	ViewUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
 	ViewUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;

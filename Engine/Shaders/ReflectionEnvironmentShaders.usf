@@ -508,6 +508,8 @@ void ReflectionApplyPS(
 			// So, we combine the two for the best of both. This is done by removing the low spatial frequencies from the envmap and replacing them with the lightmap data.
 			// This is only done with luma so as to not get odd color shifting.
 			// Note: make sure this matches the lightmap mixing done for translucency (BasePassPixelShader.usf)
+
+			// NOTE: this breaks LPV specular if r.allowstaticlighting is enabled
 			SpecularLighting.rgb *= GBuffer.IndirectIrradiance;
 		}
 #endif
@@ -522,6 +524,9 @@ void ReflectionApplyPS(
 			// Normalize for static skylight types which mix with lightmaps
 			bool bNormalize = SkyLightParameters.z < 1 && View.UseLightmaps > 0 && !ALLOW_STATIC_LIGHTING;
 			float3 SkyLighting = GetSkyLightReflection(ReflectionVector, GBuffer.Roughness, bNormalize);
+
+		    float DirectionalOcclusion = ScreenSpaceData.DirectionalOcclusion.g;
+		    SkyLighting *= DirectionalOcclusion;
 
 			FLATTEN
 			if (bNormalize)

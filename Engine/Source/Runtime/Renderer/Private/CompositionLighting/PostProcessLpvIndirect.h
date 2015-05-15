@@ -25,6 +25,9 @@ public:
 	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() override { delete this; }
 	virtual FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
+
+private:
+	void DoDirectionalOcclusionPass(FRenderingCompositePassContext& Context) const;
 };
 
 

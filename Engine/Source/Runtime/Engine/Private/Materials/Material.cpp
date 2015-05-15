@@ -553,6 +553,7 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	BlendablePriority = 0;
 
 	bUseEmissiveForDynamicAreaLighting = false;
+	bBlockGI = false;
 	RefractionDepthBias = 0.0f;
 	MaterialDecalResponse = MDR_ColorNormalRoughness;
 

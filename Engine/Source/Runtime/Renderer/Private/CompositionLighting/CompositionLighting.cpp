@@ -65,15 +65,6 @@ static bool IsLpvIndirectPassRequired(FPostprocessContext& Context)
 	return false;
 }
 
-static void AddPostProcessingLpvIndirect(FPostprocessContext& Context, FRenderingCompositePass* SSAO )
-{
-	FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new FRCPassPostProcessLpvIndirect());
-	Pass->SetInput(ePId_Input0, Context.FinalOutput);
-	Pass->SetInput(ePId_Input1, SSAO );
-
-	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
-}
-
 static bool IsReflectionEnvironmentActive(FPostprocessContext& Context)
 {
 	FScene* Scene = (FScene*)Context.View.Family->Scene;
@@ -325,7 +316,35 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 }
 
 
-void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
+void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
+{
+	check(IsInRenderingThread());
+	
+	FMemMark Mark(FMemStack::Get());
+	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
+	FPostprocessContext Context(CompositeContext.Graph, View);
+
+	if(IsLpvIndirectPassRequired(Context))
+	{
+		FRenderingCompositePass* SSAO = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSceneRenderTargets.ScreenSpaceAO));
+
+		FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new FRCPassPostProcessLpvIndirect());
+		Pass->SetInput(ePId_Input0, Context.FinalOutput);
+		Pass->SetInput(ePId_Input1, SSAO );
+
+		Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
+	}
+
+	// The graph setup should be finished before this line ----------------------------------------
+
+	SCOPED_DRAW_EVENT(RHICmdList, CompositionLpvIndirect);
+
+	// we don't replace the final element with the scenecolor because this is what those passes should do by themself
+
+	CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("CompositionLighting"));
+}
+
+void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	check(IsInRenderingThread());
 	
@@ -336,16 +355,8 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 	{
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-
 		FPostprocessContext Context(CompositeContext.Graph, View);
-
 		FRenderingCompositeOutputRef AmbientOcclusion;
-
-		if(IsLpvIndirectPassRequired(Context))
-		{
-			FRenderingCompositePass* SSAO = Context.Graph.RegisterPass(new FRCPassPostProcessInput(GSceneRenderTargets.ScreenSpaceAO));
-			AddPostProcessingLpvIndirect( Context, SSAO );
-		}
 
 		// Screen Space Subsurface Scattering
 		{
@@ -385,7 +396,7 @@ void FCompositionLighting::ProcessLighting(FRHICommandListImmediate& RHICmdList,
 
 		// The graph setup should be finished before this line ----------------------------------------
 
-		SCOPED_DRAW_EVENT(RHICmdList, CompositionLighting);
+		SCOPED_DRAW_EVENT(RHICmdList, CompositionAfterLighting);
 
 		// we don't replace the final element with the scenecolor because this is what those passes should do by themself
 
