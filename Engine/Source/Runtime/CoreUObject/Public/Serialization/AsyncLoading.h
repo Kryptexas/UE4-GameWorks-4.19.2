@@ -161,7 +161,8 @@ private:
 	float						LoadPercentage;
 	/** Objects to be post loaded on the game thread */
 	TArray<UObject*> DeferredPostLoadObjects;
-
+	/** Objects to be finalized on the game thread */
+	TArray<UObject*> DeferredFinalizeObjects;
 public:
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 	/** Number of times Tick function has been called.													*/
