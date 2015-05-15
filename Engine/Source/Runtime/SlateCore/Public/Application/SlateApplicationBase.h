@@ -40,6 +40,15 @@ private:
 };
 
 /**
+ * Design constraints for Slate applications
+ */
+namespace SlateApplicationDefs
+{
+	/** How many users can we support at once? */
+	static const int32 MaxUsers = 8;
+}
+
+/**
  * Base class for Slate applications.
  *
  * This class currently serves a temporary workaround for solving SlateCore dependencies to FSlateApplication.
@@ -335,6 +344,14 @@ public:
 	 * @return true if the widget is now focused, false otherwise.
 	 */
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
+
+	/**
+	 * Sets the focus for all users to the specified widget.  The widget must be allowed to receive focus.
+	 *
+	 * @param InWidget WidgetPath to the Widget to being focused.
+	 * @param InCause The reason that focus is changing.
+	 */
+	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
 
 private:
 	/**

@@ -2013,6 +2013,25 @@ void FSlateApplication::SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>
 	}
 }
 
+void FSlateApplication::SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging /*= EFocusCause::SetDirectly*/)
+{
+	const bool bValidWidget = WidgetToFocus.IsValid();
+	ensureMsgf(bValidWidget, TEXT("Attempting to focus an invalid widget. If your intent is to clear focus use ClearAllUserFocus()"));
+	if (bValidWidget)
+	{
+		FWidgetPath PathToWidget;
+		const bool bFound = FSlateWindowHelper::FindPathToWidget(SlateWindows, WidgetToFocus.ToSharedRef(), /*OUT*/ PathToWidget);
+		if (bFound)
+		{
+			SetAllUserFocus(PathToWidget, ReasonFocusIsChanging);
+		}
+		else
+		{
+			//ensureMsgf(bFound, TEXT("Attempting to focus a widget that isn't in the tree and visible: %s. If your intent is to clear focus use ClearAllUserFocus()"), WidgetToFocus->ToString());
+		}
+	}
+}
+
 TSharedPtr<SWidget> FSlateApplication::GetUserFocusedWidget(uint32 UserIndex) const
 {
 	const FUserFocusEntry& UserFocusEntry = UserFocusEntries[UserIndex];
@@ -2027,6 +2046,11 @@ TSharedPtr<SWidget> FSlateApplication::GetJoystickCaptor(uint32 UserIndex) const
 void FSlateApplication::ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging /* = EFocusCause::SetDirectly*/)
 {
 	SetUserFocus(UserIndex, FWidgetPath(), ReasonFocusIsChanging);
+}
+
+void FSlateApplication::ClearAllUserFocus(EFocusCause ReasonFocusIsChanging /*= EFocusCause::SetDirectly*/)
+{
+	SetAllUserFocus(FWidgetPath(), ReasonFocusIsChanging);
 }
 
 void FSlateApplication::ReleaseJoystickCapture(uint32 UserIndex)
@@ -2226,6 +2250,15 @@ bool FSlateApplication::SetUserFocus(const uint32 InUserIndex, const FWidgetPath
 	}
 
 	return true;
+}
+
+
+void FSlateApplication::SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause)
+{
+	for (int32 SlateUserIndex = 0; SlateUserIndex < SlateApplicationDefs::MaxUsers; ++SlateUserIndex)
+	{
+		SetUserFocus(SlateUserIndex, InFocusPath, InCause);
+	}
 }
 
 

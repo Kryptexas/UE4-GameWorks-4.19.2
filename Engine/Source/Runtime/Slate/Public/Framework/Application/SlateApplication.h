@@ -29,16 +29,6 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 extern SLATE_API const FName NAME_UnrealOS;
 
 
-/**
- * Design constraints for Slate applications
- */
-namespace SlateApplicationDefs
-{
-	/** How many users can we support at once? */
-	static const int32 MaxUsers = 8;
-}
-
-
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
 class SLATE_API FPopupSupport
 {
@@ -379,6 +369,14 @@ public:
 	 */
 	void SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
+	/**
+	 * Sets focus for all users to the SWidget passed in.
+	 *
+	 * @param WidgetToFocus the widget to set focus to
+	 * @param ReasonFocusIsChanging the contextual reason for the focus change
+	 */
+	void SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
 	/** @return a pointer to the Widget that currently has the users focus; Empty pointer when the user has no focus. */
 	TSharedPtr< SWidget > GetUserFocusedWidget(uint32 UserIndex) const;
 
@@ -387,6 +385,9 @@ public:
 
 	/** Releases the users focus from whatever it currently is on. */
 	void ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	/** Releases the focus for all users from whatever it currently is on. */
+	void ClearAllUserFocus(EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	DEPRECATED(4.6, "FSlateApplication::ReleaseJoystickCapture() is deprecated, use FSlateApplication::ClearUserFocus() instead.")
 	void ReleaseJoystickCapture(uint32 UserIndex);
@@ -1011,6 +1012,7 @@ public:
 	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) override;
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) override;
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
+	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
 public:
 
