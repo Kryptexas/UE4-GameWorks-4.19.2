@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543291
+﻿INTSourceChangelist:2549207
 Availability:Public
 Title:ブループリントでアクタを検索する方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
@@ -17,25 +17,25 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
  _この例では、 **Starter Content が含まれる Blueprint Third Person Template** を使用します。_
 
-1.	「 **Game/Props** 」フォルダの **コンテンツ ブラウザ** で 3 つの **Blueprint_Effect_Fire** アセットをドラッグします。 
+1.	**コンテンツ ブラウザ** の「 **Game/Blueprints** 」フォルダから 3 つの **Blueprint_Effect_Fire** アセットをドラッグします。 
 
 	![](Actors1.png)(w:800)
 
 	これらを好きな場所に置きます。検索を試すために置いてみます。 
 
-1.	「 **Game/Props** 」フォルダの **コンテンツ ブラウザ** で **MyCharacter** アセットを開きます。 
+1.	**コンテンツ ブラウザ** の「 **Game/Blueprints** 」フォルダので **MyCharacter** アセットを開きます。 
 
-1.	**ブループリント ** のグラフで、**F** Key Event を **右クリック** して追加します。 
+1.	**Blueprint Editor ウィンドウ** のグラフで、**F** Key Event を **右クリック** して追加します。 
 
 	![](Actors2.png)
 
 	**F** を押すと、シーン内のアクタの検索が始まります。 
 
-1.	**F** Key Event の **押されている** ピンを引き出して、 **Get All Actors Of Class** ノードを追加します。 
+1.	**F** Key Event の **Pressed** ピンを引き出して、 **Get All Actors Of Class** ノードを追加します。 
 
 	![](Actors3.png)
 
-	名前が示すように、指定したクラスの全てのアクタを取得しようとします。 
+	名前の通り、このノードは指定したクラスの全てのアクタを取得しようとします。 
 
 1.	**Get All Actors of Class** ノードで、 **Actor Class** ドロップダウンをクリックし、 **Blueprint_Effect_Fire** クラスを追加します。 
 
@@ -47,19 +47,9 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 	**Out Actors** は (指定されたクラスの) すべてのアクタの **配列** で、それらの「それぞれに対して」何かをすることができます。
 
-1.	**ForEachLoop** 上で、 **Array Element** を引き出して **Cast To Blueprint_Effect_Fire** ノードを追加します。 
+1.	**ForEachLoop** ノードの **Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を追加します。 
 
-	![](Actors6.png)
-
-	**Blueprint_Effect_Fire** アセットのアクセス / 編集を行うには、 Actor Reference をブループリントと関連づける必要があります。「実際はこの種類のアクタなので、アクセスおよび修正をさせてもらいます」 という意味で、Actor Reference を受け取り、関連づけたいオブジェクトへ **キャスト** しています。
-
-	[REGION:note]
-	**キャスティング** と **ブループリント通信** の詳細については、 [](Engine/Blueprints/UserGuide) を参照してください。 
-	[/REGION]
-
-1.	Cast ノードの **As Blueprint Effect Fire C** ピンを引き出して **P_Fire** と **Fire Audio** を取得します。 
-
-1.	グラフを **右クリック** して **Deactivate** ノードを追加し、 Fire と Audio のピンを **Target** に接続します。 
+1.	グラフを **右クリック** して **Deactivate** ノードを追加したら、 Fire と Audio のピンを **Target** に接続します。 
 
 	[REGION:lightbox]
 	[![](Actors7.png)(w:800)](Actors7.png)
@@ -88,11 +78,11 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 	![](Actors8.png)
 
-1.	タグ用に「 **Target** 」などを **0** フィールドに入力します。 
+1.	タグ用に「 **Target** 」などテキストを **0** フィールドに入力します。 
 
 	![](Actors9.png)
 
-1.	**MyCharacter** ブループリント内で、 **As Blueprint Effect Fire C** ピンを引き出して **Get Tags** ノードを追加します。 
+1.	**MyCharacter** ブループリント内で、**ForEachLoop** の **Array Element** ピンを引き出して **Get Tags** ノードを追加します。 
 
 	![](Actors10.png)
 
@@ -108,11 +98,11 @@ Description:ブループリントでアクタを検索するための操作ガ�
 
 1.	**Get** ノードの出力ピンを **Actor Has Tag** ノードの **Tag** ピンに接続します。 
 
-1.	**As Blueprint Effect Fire C** ピンを **Actor Has Tag** ノードの **Target** ピンに接続します。 
+1.	**ForEachLoop** の **Array Element** ピンを **Actor Has Tag** ノードの **Target** ピンに接続します。 
 
 	![](Actors12.png)(w:800)
 
-1.	**As Blueprint Effect Fire C** ピンを引き出して **P_Fire** と **Fire Audio** を追加し、それらを **Deactivate** ノードに接続します。 
+1.	**Array Element** ピンを引き出して **P_Fire** と **Fire Audio** を追加して、**Deactivate** ノードへ接続します。 
 
 	[REGION:lightbox]
 	[![](Actors13.png)(w:800)](Actors13.png)
@@ -141,7 +131,6 @@ _画像をクリックしてフルサイズで表示_
 _画像をクリックしてフルサイズで表示_
 
 クラス **TriggerBox** のレベル内のすべてのアクタを取得し、それらのコリジョンを無効にします (レベル内の全てのトリガーをオフにします)。アクセスするのは TriggerBox のコンポーネントではなく TriggerBox Actor そのものなので、 TriggerBox **に対してキャストする** 必要はありません。アクタで構成されるコンポーネントへアクセスしたい場合は、 **Cast To** ノードを使います。 
-
 
 
 
