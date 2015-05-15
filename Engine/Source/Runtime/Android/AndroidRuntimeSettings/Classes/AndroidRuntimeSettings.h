@@ -112,6 +112,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Store Version (1-65535)", ClampMin="1", ClampMax="65535"))
 	int32 StoreVersion;
 
+	// The visual application name displayed for end users
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Application Display Name (app_name), project name if blank"))
+	FString ApplicationDisplayName;
+
 	// The visual version displayed for end users
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Version Display Name (usually x.y)"))
 	FString VersionDisplayName;
