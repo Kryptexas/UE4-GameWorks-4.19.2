@@ -86,13 +86,13 @@ Serializer::ErrorType PlatformABI::GetPredefinedABI(const SerializePlatform &pla
 		return Serializer::ERROR_NONE;
 	}
 
-	NX_BOOL_ERR_CHECK_RETURN( GetPlatform("GccLinux32", knownPlatform), Serializer::ERROR_UNKNOWN );
+	NX_BOOL_ERR_CHECK_RETURN( GetPlatform("GccLinuxX86", knownPlatform), Serializer::ERROR_UNKNOWN );
 	if( knownPlatform == platform )
 	{
 		return Serializer::ERROR_NONE;
 	}
 
-	NX_BOOL_ERR_CHECK_RETURN( GetPlatform("GccLinux64", knownPlatform), Serializer::ERROR_UNKNOWN );
+	NX_BOOL_ERR_CHECK_RETURN( GetPlatform("GccLinuxX86_64", knownPlatform), Serializer::ERROR_UNKNOWN );
 	if( knownPlatform == platform )
 	{
 		params.sizes.pointer = params.aligns.pointer = 8;
@@ -104,6 +104,14 @@ Serializer::ErrorType PlatformABI::GetPredefinedABI(const SerializePlatform &pla
 	if( knownPlatform == platform )
 	{
 		params.doReuseParentPadding = true; // TODO (JPB): Is this correct?
+		return Serializer::ERROR_NONE;
+	}
+
+	NX_BOOL_ERR_CHECK_RETURN( GetPlatform("GccOsX64", knownPlatform), Serializer::ERROR_UNKNOWN );
+	if( knownPlatform == platform )
+	{
+		params.doReuseParentPadding = true; // TODO (JPB): Is this correct?
+		params.sizes.pointer = params.aligns.pointer = 8;
 		return Serializer::ERROR_NONE;
 	}
 
