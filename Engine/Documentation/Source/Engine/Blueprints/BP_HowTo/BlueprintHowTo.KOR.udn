@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2541615
+﻿INTSourceChangelist:2550597
 Availability: Public
 Title:블루프린트 - 비법
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -28,6 +28,7 @@ Related: Gameplay
 | **[](Engine/Blueprints/UserGuide/Variables)** | The entire user guide for Variables. |
 | **[](Engine\Blueprints\BP_HowTo\DirectBlueprintComs)** | %Engine\Blueprints\BP_HowTo\DirectBlueprintComs:description% |
 | **[](Engine\Blueprints\BP_HowTo\Casting)** | %Engine\Blueprints\BP_HowTo\Casting:description% |
+| **[](Engine\Blueprints\BP_HowTo\Interfaces)** | %Engine\Blueprints\BP_HowTo\Interfaces:description% |
 | **[](Engine\Blueprints\BP_HowTo\EventDispatcher)** | %Engine\Blueprints\BP_HowTo\EventDispatcher:description% |
 | **[](Engine/Blueprints/BP_HowTo/MakingMacros)** | %Engine/Blueprints/BP_HowTo/MakingMacros:description% |
 | **[](Engine/Blueprints/BP_HowTo/Debugging)** | %Engine/Blueprints/BP_HowTo/Debugging:description% |

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2541080
+﻿INTSourceChangelist:2550597
 Availability: Public
 Title:직접 블루프린트 통신
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -7,7 +7,7 @@ Related: Engine/Blueprints/UserGuide/BlueprintComms
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
 
-여기서는 두 블루프린트 사이에 직접 통신하여 정보를 전달하는 법을 다루겠습니다.
+여기서는 [직접 블루프린트 통신](Engine/Blueprints/UserGuide/BlueprintComms) 을 통해 두 블루프린트 사이에 직접 정보를 전달하는 법을 다루겠습니다.
 
 이 예제에서는 플레이어가 박스를 통과하면서 통신하여 파티클 이펙트가 발동되도록 하겠습니다.
 

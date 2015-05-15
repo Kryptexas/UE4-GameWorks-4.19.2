@@ -1,8 +1,12 @@
-﻿INTSourceChangelist:2515048
+﻿INTSourceChangelist:2550597
 Availability:Public
 Title:블루프린트 통신 방법
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:블루프린트 통신의 여러가지 방법을 언제 사용할지에 대한 개요입니다.
+Related: Engine\Blueprints\UserGuide\BlueprintComms
+Related: Engine/Blueprints/UserGuide/EventDispatcher
+Related: Engine/Blueprints/UserGuide/CastNodes
+Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -73,7 +77,7 @@ Description:블루프린트 통신의 여러가지 방법을 언제 사용할지
 *	**레벨의 한 액터가 다른 액터와 통신하도록 하고자 할 때.**
 	*	레벨에 있는 스위치를 조작하면 특정 문을 열거나 라이트를 켭니다 (이들 각각은 별도의 블루프린트입니다).
 
-직접 블루프린트 통신 셋업 길잡이는 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo) 문서를 참고하세요.
+직접 블루프린트 통신 셋업 길잡이는 [](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) 문서를 참고하세요.
 
 
 	
@@ -81,11 +85,17 @@ Description:블루프린트 통신의 여러가지 방법을 언제 사용할지
 
 ![](OpenDoorEventDispatch.png)
 
-**이벤트 디스패처** 에 하나 이상의 이벤트를 바인딩하면, **이벤트 디스패처** 호출시 그 디스패처에 바인딩된 모든 이벤트가 한 번에 발동되도록 할 수 있습니다.
+**Event Dispatcher**, 이벤트 디스패처는 월드에 무언가가 벌어졌음을 알릴 때, 그 정보를 가지고 무얼 하든 상관 없을 때 최적입니다. 이 패턴이 (항상은 아니더라도) 종종 사용되는 경우는,
+어떤 것이 무언가를 (예로 레벨 블루프린트가 보스를) 스폰했는데, 그 스폰된 것에 대해 무언가 중요한 일이 벌어졌을 때 알림을 받기 위해 이벤트 디스패처에 걸어주는 것입니다.
 
-예를 들어 플레이어 캐릭터 블루프린트 안에 SpawnEnemy 라는 **이벤트 디스패처** 를 생성하고, 플레이어가 **F** 키를 누르면 실행되도록 합니다. 레벨 안에 적이 스폰되는 스폰 지점을 여럿 배치한 다음, 레벨 블루프린트에서 캐릭트 블루프린트의 SpawnEnemy **이벤트 디스패처** 를 임의의 스폰 지점을 선택하여 적을 스폰하는 ExecuteSpawn 이라는 레벨 블루프린트의 이벤트로 바인딩합니다.
+보스 예제에서, 플레이어가 보스를 처치하면 문을 열도록 하고싶은 경우, 레벨 블루프린트가 보스를 스폰시킨 이후, 거기서 OnDied 이벤트 디스패처를 문열림 이벤트에 걸어주면 됩니다.
+그렇게 하면 보스는 그냥 어느 레벨에 배치되어 있든지 상관없이, 그 처치 여부를 알고싶은 애들이 걸어줄 수 있도록 갈고리만 주면 되는 것입니다.
+굳이 잠긴 문일 필요도 없지요. 부하 전부에 OnDied 델리게이트를 걸어두고, 보스를 처치하면 뿔뿔히 흩어지도록 할 수도 있겠지요. 하나의 이벤트 디스패처에 원하는 수 만큼 걸어줄 수 있고, 
+그러면 그 이벤트 디스패처 호출시 거기 바인딩된 모든 이벤트가 발동되는 것입니다.
 
-플레이어가 **F** 키를 누를 때마다 **이벤트 디스패처** 가 호출되고, 레벨 블루프린트의 ExecuteSpawn 이벤트에 바인딩되어 있기 때문에, 그 이벤트가 호출되면서 적이 스폰되는 결과가 납니다.
+정리하자면 이벤트 디스패처는, 누군가 연관된 것에 어떤 일이 벌어졌다고 알리는 데 쓰는 것입니다. 이벤트 디스패처에 호출되는 이벤트는 여러가지 블루프린트 인스턴스 
+또는 게임플레이 일정 시점마다 각기 다를 수 있습니다.
+
 
 좀 더 자세한 정보는 [](Engine/Blueprints/UserGuide/EventDispatcher) 문서를 참고하세요.
 
@@ -100,7 +110,7 @@ Description:블루프린트 통신의 여러가지 방법을 언제 사용할지
 	*	보스를 스폰하고, 보스가 죽으면 월드에 보상이 스폰되는 이벤트가 발동됩니다.
 	*	레벨에 (웨폰, 헬쓰, 부스트 등의) 아이템을 스폰하고, 이벤트를 통해 아이템과 캐릭터에게 픽업되었음을 알립니다.
 
-이벤트 디스패처 셋업 관련 길잡이는 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo) 문서를 참고하세요.
+이벤트 디스패처 셋업 관련 길잡이는 [](Engine\Blueprints\BP_HowTo\EventDispatcher) 문서를 참고하세요.
 
 
 ## 블루프린트 인터페이스
@@ -129,7 +139,7 @@ OnTakeWeaponFire 함수가 들어있는 **블루프린트 인터페이스** 를 
 	*	플레이어가 "사용" 버튼이 있는데, 누르면 문이 열리고, 불이 꺼지고, 아이템을 줍고 등등의 동작을 합니다.
 	*	적이 플레이어의 생명력에 따라 변하는 특수 동작이 있습니다.
 
-블루프린트 인터페이스 셋업 방법 안내는 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo) 문서를 참고하세요.
+블루프린트 인터페이스 셋업 방법 안내는 [](Engine\Blueprints\BP_HowTo\Interfaces) 문서를 참고하세요.
 
 
 ## 통신을 위한 형변환
@@ -162,7 +172,7 @@ OnTakeWeaponFire 함수가 들어있는 **블루프린트 인터페이스** 를 
 	*	레벨에 라이트가 여러개 있는데, 이벤트 발생시 전부 켜거나 끄고 싶습니다.
 [/EXCERPT:Castusage]
 
-블루프린트 형변환 셋업 관련 길잡이는 [](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo) 문서를 참고하세요.
+블루프린트 형변환 셋업 관련 길잡이는 [](Engine\Blueprints\BP_HowTo\Casting) 문서를 참고하세요.
 
 
 

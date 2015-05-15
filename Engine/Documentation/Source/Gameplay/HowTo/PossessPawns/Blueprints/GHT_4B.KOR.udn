@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543373
+﻿INTSourceChangelist:2551223
 Availability: Public
 Title:블루프린트로 폰 빙의 비법
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
@@ -20,7 +20,7 @@ _여기서는 **블루프린트 횡스크롤 템플릿** 프로젝트를 사용�
 
 	![](GHT4B_1.png)
 
-	여기서는 **MyCharacter** 블루프린트를 레벨에 두 개 추가하고, 세 번째 캐릭터는 **PlayerStart** 를 통해 스폰됩니다.
+	여기서는 **SideScrollerCharacter** 블루프린트를 레벨에 두 개 추가합니다.
 
 1.	레벨에 (추가했던 두 개의) 캐릭터 각각을 선택합니다.
 
@@ -38,13 +38,13 @@ _여기서는 **블루프린트 횡스크롤 템플릿** 프로젝트를 사용�
 
 1.	그래프에 **우클릭** 한 다음 **Event Begin Play** 노드를 추가하고, 다시 **우클릭** 한 다음 **Get Player Character** 노드를 추가합니다.
 
-1.	**Get Player Character** 의 **Return Value** 를 끌어 놓은 다음, **Cast To MyCharacter** 노드를 추가합니다.
+1.	**Get Player Character** 의 **Return Value** 를 끌어 놓은 다음, **SideScrollerCharacter 에 형변환** 노드를 추가합니다.
 
 	![](GHT4B_5.png)
 
 	버튼을 누르면 기본 캐릭터로 되돌아갈 수 있게끔 기본 캐릭터로의 레퍼런스를 저장하겠습니다.
 
-1.	**As My Character C** 핀을 끌어놓은 다음 **변수로 승격** 시키고 **DefaultCharacter** 라 합니다. 
+1.	**As SideScrollerCharacter** 핀을 끌어놓은 다음 **변수로 승격** 시키고 **DefaultCharacter** 라 합니다. 
 
 	![](GHT4B_6.png)
 

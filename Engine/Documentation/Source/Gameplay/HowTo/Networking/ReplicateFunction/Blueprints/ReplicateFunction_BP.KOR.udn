@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2428609
+﻿INTSourceChangelist:2551156
 Availability: Public
 Title:블루프린트에서 함수 리플리케이트 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
@@ -35,7 +35,7 @@ Related: Resources/ContentExamples/Networking
 	**고급 세팅** 옵션 안에서 멀티플레이용으로 생성되는 창의 크기를 변경할 수 있습니다.
 	[/REGION]
 
-1.	다음으로 **Game/Blueprints** 폴더를 찾아 **MyCharacter** 블루프린트를 엽니다.
+1.	다음으로 **Game/Blueprints** 폴더를 찾아 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
 1.	그래프에 **우클릭** 한 다음 **Space Bar** Key Event 를 추가하고 **Spawn Actor from Class** 노드에 연결합니다.
 
@@ -53,7 +53,7 @@ Related: Resources/ContentExamples/Networking
 
 	서버 창에서만 화염 이펙트가 스폰되고 다른 플레이어게는 그 이펙트 스폰이 안보이는 것이 보일 것입니다. 다른 플레이어를 가지고 점프 시도를 하면, 마찬가지로 로컬에서는 화염 이펙트가 스폰되지만 다른 플레이어들은 그 이펙트 스폰 여부를 알지 못합니다.
 
-1.	**MyCharacter** 블루프린트로 돌아와 **Space Bar** Key Event 의 핀에 **우클릭** 한 다음 연결을 끊습니다.
+1.	**ThirdPersonCharacter** 블루프린트로 돌아와 **Space Bar** Key Event 의 핀에 **우클릭** 한 다음 연결을 끊습니다.
 
 1.	**우클릭** 후 **Custom Event** 를 검색 추가한 다음 **MulticastSpawn** 이벤트 또는 직접 설정한 이름을 호출합니다.
 
@@ -88,7 +88,7 @@ Related: Resources/ContentExamples/Networking
 
  **Run on Server** (서버에서 실행) 리플리케이티드 함수 구성 방법은 다음과 같습니다.
  
-1.	**Game/Blueprints** 폴더의 **MyCharacter** 블루프린트를 엽니다.
+1.	**Game/Blueprints** 폴더의 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
 1.	**Spawn Actor from Class** 노드에 묶인 커스텀 이벤트를 선택한 다음 **Replicates** (리플리케이트) 드롭다운 옵션을 **Run on Server** (서버에서 실행)으로 변경합니다.
 
@@ -127,7 +127,7 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
  **Run on owning Client** (소유 클라이언트에서 실행) 리플리케이티드 함수 구성 방법은 다음과 같습니다.
  
-1.	**Game/Blueprints** 폴더의 **MyCharacter** 블루프린트를 엽니다.
+1.	**Game/Blueprints** 폴더의 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
 1.	**그래프 탭** 의 **내 블루프린트** 창에서 **스트링** 유형 변수를 새로 만든 다음 이름을 짓습니다 (여기서는 **Inventory** 입니다).
 
@@ -143,7 +143,7 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
 	![](HowTo13.png)
 
-1.	**컴파일**, **저장** 후 **MyCharacter** 블루프린트를 닫습니다.
+1.	**컴파일**, **저장** 후 **ThirdPersonCharacter** 블루프린트를 닫습니다.
 
 1.	다음, **모드** 창의 **기본** 탭에서 **박스 트리거** 를 끌어놓은 다음 플레이어 스타트 가운데 배치합니다.
 
@@ -185,7 +185,7 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
 	여기서는 트리거에 겹칠 때, 서버에서 오버랩이 발생한 경우, 서버에서 **Add Item** 이벤트를 실행한 뒤 (트리거에 겹치는 캐릭터인) 소유 클라이언트에 리플리케이트시킵니다. 여기서 리플리케이트시키는 것은 **Add Item** 이 발동되면 호출되는 스크립트로, 서버에서만 실행되나 클라이언트에 리플리케이트되는 것입니다. 캐릭터가 트리거 박스를 떠나면, 다시금 서버에 의해 결정되고, 서버에서 **Remove Item** 이벤트를 실행한 다음 소유 클라이언트에 리플리케이트 시킵니다.
 
-1.	**Add Item** 이벤트에서 **Print String** 를 추가하고 (텍스트는 **Item Added** 로 설정), **Character** 를 끌어놓은 뒤 **Cast To MyCharacter** 합니다. 
+1.	**Add Item** 이벤트에서 **Print String** 를 추가하고 (텍스트는 **Item Added** 로 설정), **Character** 를 끌어놓은 뒤 **Cast To ThirdPersonCharacter** 합니다. 
 
 	![](HowTo20.png)
 
@@ -212,6 +212,7 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 	위 비디오에서 게임이 시작되면, **P** 를 눌러 텍스트 변수를 화면에 출력하여 각 캐릭터에 대해 "empty" 라 표시합니다. 하지만 캐릭터 중 하나가 트리거 박스에 들어서면, "Item Added" 텍스트가 표시됩니다. 캐릭터가 **P** 를 누르면 텍스트가 **Has the Item** 으로 바뀌는 반면 다른 캐릭터 각각은 여전히 "empty" 로 표시됩니다. 캐릭터가 박스를 떠나면, "Item Removed" 텍스트가 표시되고, **P** 를 다시 누르면 텍스트가 다시 **empty** 로 변경됩니다.
 
 	이 예제는 서버에서 이벤트를 실행하고 그 이벤트를 개별 클라이언트에 리플리케이트시키는 방법을 보여줍니다.
+
 
 
 
