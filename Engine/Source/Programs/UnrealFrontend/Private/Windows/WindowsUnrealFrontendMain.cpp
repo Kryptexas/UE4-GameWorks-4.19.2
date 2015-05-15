@@ -18,7 +18,7 @@ int32 WINAPI WinMain( HINSTANCE hInInstance, HINSTANCE hPrevInstance, char* lpCm
 {
 	hInstance = hInInstance;
 
-	const TCHAR* CmdLine = FPlatformMisc::GetCompleteCommandLine();
+	const TCHAR* CmdLine = ::GetCommandLine();
 	CmdLine = FCommandLine::RemoveExeName(CmdLine);
 
 #if !UE_BUILD_SHIPPING
