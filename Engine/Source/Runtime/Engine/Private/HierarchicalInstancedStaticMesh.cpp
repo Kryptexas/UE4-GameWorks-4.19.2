@@ -1183,8 +1183,6 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 #endif
 }
 
-
-
 void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
 	if (Views[0]->bRenderFirstInstanceOnly)
@@ -1545,6 +1543,19 @@ UHierarchicalInstancedStaticMeshComponent::~UHierarchicalInstancedStaticMeshComp
 	ProxySize = 0;
 	FlushAsyncBuildInstanceBufferTask();
 }
+
+#if WITH_EDITOR
+void UHierarchicalInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	if ((PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetFName() == "PerInstanceSMData") ||
+		(PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetFName() == "Transform"))
+	{
+		BuildTree();
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+#endif
 
 void UHierarchicalInstancedStaticMeshComponent::FlushAsyncBuildInstanceBufferTask()
 {

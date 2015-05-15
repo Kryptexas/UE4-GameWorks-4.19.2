@@ -1683,6 +1683,11 @@ void UInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChanged
 		ReleasePerInstanceRenderData();
 		MarkRenderStateDirty();
 	}
+	else if (PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetFName() == "Transform")
+	{
+		ReleasePerInstanceRenderData();
+		MarkRenderStateDirty();
+	}
 
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
 }
