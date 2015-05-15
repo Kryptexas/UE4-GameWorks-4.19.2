@@ -100,7 +100,13 @@ FReply FSpriteComponentDetailsCustomization::MergeSprites()
 						const FLinearColor SpriteColor = SourceSpriteComponent->GetSpriteColor();
 						const FTransform RelativeSpriteTransform = SourceSpriteComponent->GetComponentTransform().GetRelativeTransform(MergedWorldTM);
 
-						MergedSpriteComponent->AddInstance(RelativeSpriteTransform, Sprite, /*bWorldSpace=*/ false, SpriteColor);
+						UMaterialInterface* OverrideMaterial = SourceSpriteComponent->GetMaterial(0);
+						if ((Sprite == nullptr) || (OverrideMaterial == Sprite->GetMaterial(0)))
+						{
+							OverrideMaterial = nullptr;
+						}
+
+						MergedSpriteComponent->AddInstanceWithMaterial(RelativeSpriteTransform, Sprite, OverrideMaterial, /*bWorldSpace=*/ false, SpriteColor);
 					}
 				}
 
