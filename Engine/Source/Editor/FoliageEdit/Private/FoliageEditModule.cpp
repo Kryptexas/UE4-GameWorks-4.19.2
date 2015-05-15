@@ -3,6 +3,7 @@
 
 #include "UnrealEd.h"
 #include "FoliageEditModule.h"
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 
 const FName FoliageEditAppIdentifier = FName(TEXT("FoliageEdApp"));
 
@@ -102,10 +103,23 @@ public:
 		}
 	}
 
+	void NotifyAssetRemoved(const FAssetData& AssetInfo)
+	{
+		// Go through all FoliageActors in the world and delete 
+		for(TObjectIterator<AInstancedFoliageActor> It; It; ++It)
+		{
+			AInstancedFoliageActor* IFA = *It;
+			IFA->CleanupDeletedFoliageType();
+		}
+	}
+
 	void SubscribeEvents()
 	{
 		GEngine->OnLevelActorDeleted().Remove(OnLevelActorDeletedDelegateHandle);
 		OnLevelActorDeletedDelegateHandle = GEngine->OnLevelActorDeleted().AddRaw(this, &FFoliageEditModule::OnLevelActorDeleted);
+
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+		AssetRegistryModule.Get().OnAssetRemoved().AddRaw(this, &FFoliageEditModule::NotifyAssetRemoved);
 
 		auto ExperimentalSettings = GetMutableDefault<UEditorExperimentalSettings>();
 		ExperimentalSettings->OnSettingChanged().Remove(OnExperimentalSettingChangedDelegateHandle);
@@ -116,6 +130,12 @@ public:
 	{
 		GEngine->OnLevelActorDeleted().Remove(OnLevelActorDeletedDelegateHandle);
 		GetMutableDefault<UEditorExperimentalSettings>()->OnSettingChanged().Remove(OnExperimentalSettingChangedDelegateHandle);
+
+		if (FModuleManager::Get().IsModuleLoaded(TEXT("AssetRegistry")))
+		{
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			AssetRegistryModule.Get().OnAssetRemoved().RemoveAll(this);
+		}
 	}
 
 	void HandleExperimentalSettingChanged(FName PropertyName)

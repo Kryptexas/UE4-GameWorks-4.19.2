@@ -48,6 +48,7 @@ public:
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
 #if WITH_EDITOR
 	virtual void Destroyed() override;
+	FOLIAGE_API void CleanupDeletedFoliageType();
 #endif
 	// End AActor interface.
 
