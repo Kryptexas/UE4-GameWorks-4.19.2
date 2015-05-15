@@ -113,6 +113,8 @@ public:
 	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel) override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual int32 GetNumMaterials() const override;
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	// End of UPrimitiveComponent interface
 
 	// UObject interface
@@ -128,6 +130,9 @@ public:
 
 	// Adds all referenced sprite assets to the specified list
 	void GetReferencedSpriteAssets(TArray<UObject*>& InOutObjects) const;
+
+	/** Handles request from navigation system to gather instance transforms in a specific area box */
+	void GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& OutInstanceTransforms) const;
 
 protected:
 	/**
