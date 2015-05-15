@@ -767,7 +767,7 @@ FSteamVRHMD::BridgeBaseImpl* FSteamVRHMD::GetActiveRHIBridgeImpl()
 	return nullptr;
 }
 
-void FSteamVRHMD::CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) const
+void FSteamVRHMD::CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
 {
 	check(IsInGameThread());
 
@@ -783,7 +783,7 @@ void FSteamVRHMD::CalculateRenderTargetSize(const class FViewport& Viewport, uin
 	}
 }
 
-bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const
+bool FSteamVRHMD::NeedReAllocateViewportRenderTarget(const FViewport& Viewport)
 {
 	check(IsInGameThread());
 

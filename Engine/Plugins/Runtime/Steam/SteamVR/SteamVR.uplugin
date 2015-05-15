@@ -9,7 +9,7 @@
 	"EngineVersion" : "4.2.0",
 	"Description" : "Support for the SteamVR API",
 	"Category" : "Virtual Reality",
-	"EnabledByDefault" : false,
+	"EnabledByDefault" : true,
 
 	"Modules" :
 	[

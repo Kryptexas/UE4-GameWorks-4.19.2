@@ -952,7 +952,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	}
 }
 
-void FGearVR::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) const
+void FGearVR::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
 {
 	check(IsInGameThread());
 
@@ -968,7 +968,7 @@ void FGearVR::GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDista
 	OrthoProjection[1] = FTranslationMatrix(FVector(OrthoProjection[1].M[0][3] * RTWidth * .25 + RTWidth * .5, 0 , 0));
 }
 
-bool FGearVR::NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const
+bool FGearVR::NeedReAllocateViewportRenderTarget(const FViewport& Viewport)
 {
 	check(IsInGameThread());
 
@@ -1263,7 +1263,7 @@ void FGearVRCustomPresent::UpdateViewport(const FViewport& Viewport, FRHIViewpor
 
 
 
-bool FGearVRCustomPresent::Present(int SyncInterval)
+bool FGearVRCustomPresent::Present(int& SyncInterval)
 {
 	check(IsInRenderingThread());
 

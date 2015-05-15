@@ -202,7 +202,7 @@ public:
 	// Resets Viewport-specific resources.
 	virtual void OnBackBufferResize() override;
 	// Returns true if Engine should perform its own Present.
-	virtual bool Present(int SyncInterval) override;
+	virtual bool Present(int& SyncInterval) override;
 
 private:
 	void DicedBlit(uint32 SourceX, uint32 SourceY, uint32 DestX, uint32 DestY, uint32 Width, uint32 Height, uint32 NumXSteps, uint32 NumYSteps);
@@ -254,8 +254,8 @@ public:
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
 
 	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport* ViewportWidget) override;
-	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) const override;
-	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) const override;
+	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
+	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) override;
 
 	virtual bool ShouldUseSeparateRenderTarget() const override
 	{
