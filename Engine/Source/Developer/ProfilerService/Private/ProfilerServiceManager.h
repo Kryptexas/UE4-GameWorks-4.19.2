@@ -10,12 +10,6 @@
  */
 struct FClientData
 {
-	/** Stats data. */
-	FStatsWriteFile StatsWriteFile;
-
-	/** Frame. */
-	int64 Frame;
-
 	/** Connection is active. */
 	bool Active;
 
@@ -24,8 +18,7 @@ struct FClientData
 
 	/** Default constructor. */
 	FClientData()
-		: Frame(-1)
-		, Active( false )
+		: Active( false )
 		, Preview( false )
 	{}
 };
@@ -105,8 +98,11 @@ private:
 	void HandleNewFrame(int64 Frame);
 
 #if STATS
+	/** Compresses all stats data and send to the game thread. */
+	void CompressDataAndSendToGame( TArray<uint8>* DataToTask, int64 Frame );
+
 	/** Handles a new frame from the stats system. Called from the game thread. */
-	void HandleNewFrameGT( FClientData* ToGameThread );
+	void HandleNewFrameGT( FProfilerServiceData2* ToGameThread );
 #endif // STATS
 
 	void AddNewFrameHandleStatsThread();

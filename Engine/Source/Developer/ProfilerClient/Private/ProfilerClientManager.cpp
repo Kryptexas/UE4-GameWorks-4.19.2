@@ -391,7 +391,7 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize& Message, c
 	int64 Size = MemoryReader.TotalSize();
 
 	const bool bVerifyHeader = Stream.ReadHeader( MemoryReader );
-	check( bVerifyHeader );
+	//check( bVerifyHeader );
 
 	// Read in the data.
 	TArray<FStatMessage> StatMessages;
@@ -713,14 +713,61 @@ void FProfilerClientManager::HandleProfilerServiceData2Message( const FProfilerS
 	SCOPE_CYCLE_COUNTER(STAT_PC_HandleDataReceived);
 	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != nullptr)
 	{
-		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);
+		// Create a temporary profiler data and prepare all data.
+		FProfilerServiceData2* ToProcess = new FProfilerServiceData2( Message.InstanceId, Message.Frame, Message.HexData, Message.CompressedSize, Message.UncompressedSize );
 
-		// Add the message to the connections queue.
-		Connection.PendingMessages.Add( Message.Frame, Message.Data );
-
-		UE_LOG( LogProfilerClient, VeryVerbose, TEXT( "Frame:%i, Data.Num:%i, InstanceId:%s" ), Message.Frame, Message.Data.Num(), *Message.InstanceId.ToString() );
+		// Decompression and decoding is done on the task graph.
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+		(
+			FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerClientManager::DecompressDataAndSendToGame, ToProcess ), 
+			TStatId()
+		);
 	}
 #endif
+}
+
+void FProfilerClientManager::DecompressDataAndSendToGame( FProfilerServiceData2* ToProcess )
+{
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FProfilerClientManager::DecompressDataAndSendToGame" ), STAT_FProfilerClientManager_DecompressDataAndSendToGame, STATGROUP_Profiler );
+
+	// De-hex string into TArray<uint8>
+	TArray<uint8> CompressedData;
+	CompressedData.Reset( ToProcess->CompressedSize );
+	CompressedData.AddUninitialized( ToProcess->CompressedSize );
+	FString::ToHexBlob( ToProcess->HexData, CompressedData.GetData(), ToProcess->CompressedSize );
+
+	// Decompress data.
+	TArray<uint8> UncompressedData;
+	UncompressedData.Reset( ToProcess->UncompressedSize );
+	UncompressedData.AddUninitialized( ToProcess->UncompressedSize );
+
+	bool bResult = FCompression::UncompressMemory( COMPRESS_ZLIB, UncompressedData.GetData(), ToProcess->UncompressedSize, CompressedData.GetData(), ToProcess->CompressedSize );
+	check( bResult );
+
+	// Send to the game thread. Connections is not thread-safe, so we cannot add the data here.
+	TArray<uint8>* DateToGame = new TArray<uint8>( MoveTemp( UncompressedData ) );
+
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+	(
+		FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerClientManager::SendToGame, DateToGame, ToProcess->Frame, ToProcess->InstanceId ), 
+		TStatId(), nullptr, ENamedThreads::GameThread
+	);
+
+	delete ToProcess;
+}
+
+void FProfilerClientManager::SendToGame( TArray<uint8>* DataToGame, int64 Frame, const FGuid InstanceId )
+{
+	if (ActiveSessionId.IsValid() && Connections.Find( InstanceId ) != nullptr)
+	{
+		FServiceConnection& Connection = *Connections.Find( InstanceId );
+
+		// Add the message to the connections queue.
+		UE_LOG( LogProfilerClient, VeryVerbose, TEXT( "Frame: %i, UncompressedSize: %i, InstanceId: %s" ), Frame, DataToGame->Num(), *InstanceId.ToString() );
+		Connection.PendingMessages.Add( Frame, MoveTemp( *DataToGame ) );
+	}
+
+	delete DataToGame;
 }
 
 void FProfilerClientManager::BroadcastMetadataUpdate()

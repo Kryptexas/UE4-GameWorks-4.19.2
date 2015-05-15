@@ -245,6 +245,12 @@ private:
 	/** Broadcast that loading has completed and cleans internal structures. */
 	void FinalizeLoading();
 
+	/** Decompress all stats data and send to the game thread. */
+	void DecompressDataAndSendToGame( FProfilerServiceData2* ToProcess );
+
+	/** Sends decompressed data to the game thread. */
+	void SendToGame( TArray<uint8>* DataToGame, int64 Frame, const FGuid InstanceId );
+
 private:
 
 	/** Session this client is currently communicating with */

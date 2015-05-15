@@ -48,40 +48,6 @@ struct FProfilerServiceAuthorize
 /**
  */
 USTRUCT()
-struct FProfilerServiceData
-{
-	GENERATED_USTRUCT_BODY()
-
-	/**
-	 */
-	UPROPERTY()
-	FGuid InstanceId;
-
-	/**
-	 */
-	UPROPERTY()
-	TArray<uint8> Data;
-
-
-	/**
-	 * Default constructor.
-	 */
-	FProfilerServiceData( ) { }
-
-	/**
-	 * Creates and initializes a new instance.
-	 */
-	FProfilerServiceData( const FGuid& InInstance, const TArray<uint8>& InData )
-		: InstanceId(InInstance)
-	{
-		Data.Append(InData);
-	}
-};
-
-
-/**
- */
-USTRUCT()
 struct FProfilerServiceData2
 {
 	GENERATED_USTRUCT_BODY()
@@ -94,10 +60,15 @@ struct FProfilerServiceData2
 	UPROPERTY()
 	int64 Frame;
 
-	/**
-	 */
 	UPROPERTY()
-	TArray<uint8> Data;
+	int32 CompressedSize;
+	
+	UPROPERTY()
+	int32 UncompressedSize;
+
+	/** Profiler data encoded as string of hexes, cannot use TArray<uint8> because of the Message Bus limitation. */
+	UPROPERTY()
+	FString HexData;
 
 
 	/**
@@ -108,11 +79,13 @@ struct FProfilerServiceData2
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FProfilerServiceData2( const FGuid& InInstance, int64 InFrame, const TArray<uint8>& InData )
-		: InstanceId(InInstance)
-		, Frame(InFrame)
+	FProfilerServiceData2( const FGuid& InInstance, int64 InFrame, const FString& InHexData, int32 InCompressedSize, int32 InUncompressedSize )
+		: InstanceId( InInstance )
+		, Frame( InFrame )
+		, CompressedSize( InCompressedSize )
+		, UncompressedSize( InUncompressedSize )
+		, HexData( MoveTemp( InHexData ) )
 	{
-		Data.Append(InData);
 	}
 };
 
