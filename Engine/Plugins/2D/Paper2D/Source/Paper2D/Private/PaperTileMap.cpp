@@ -149,6 +149,15 @@ bool UPaperTileMap::CanEditChange(const UProperty* InProperty) const
 void UPaperTileMap::PostLoad()
 {
 	Super::PostLoad();
+
+	// Make sure that the layers are all of the right size (there was a bug at one point when undoing resizes that could cause the layers to get stuck at a bad size)
+	for (UPaperTileLayer* TileLayer : TileLayers)
+	{
+		TileLayer->ConditionalPostLoad();
+
+		TileLayer->ResizeMap(MapWidth, MapHeight);
+	}
+
 	ValidateSelectedLayerIndex();
 }
 
