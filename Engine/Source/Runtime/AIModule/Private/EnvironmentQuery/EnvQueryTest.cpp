@@ -140,7 +140,8 @@ void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
 			}
 			else
 			{
-				TestValue = 0.0f;
+				// Do NOT clear TestValue to 0, because the SkippedItemValue is used to display "SKIP" when debugging.
+				// TestValue = 0.0f;
 				WeightedScore = 0.0f;
 			}
 
