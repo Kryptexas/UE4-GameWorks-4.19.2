@@ -506,17 +506,6 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 			OptionalParams += TEXT(" -CookMapsOnly");
 		}
 	}
-	else if ( PackagingSettings->MapsToCook.Num() )
-	{
-		OptionalParams += TEXT(" -mapstocook=");
-		for ( const auto& Map : PackagingSettings->MapsToCook )
-		{
-			OptionalParams += FString::Printf(TEXT("%s+"), *Map.FilePath);
-		}
-		OptionalParams.RemoveFromEnd("+");
-	}
-	
-	
 
 	if (PackagingSettings->UsePakFile)
 	{

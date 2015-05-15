@@ -1059,35 +1059,39 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FString CreateReleaseVersion;
 	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
 
-	/*FString AssetRegistry;
-	if (FParse::Value(*Params, TEXT("SHIPPEDASSETREGISTRY="), AssetRegistry))
-	{
-		TArray<FName> TargetPlatformNames;
-		for (const auto &Platform : Platforms)
-		{
-			FName PlatformName = FName(*Platform->PlatformName());
-			TargetPlatformNames.Add(PlatformName); // build list of all target platform names
-		}
-		CookOnTheFlyServer->WarmCookedPackages(FPaths::GameContentDir() / AssetRegistry, TargetPlatformNames);
-	}*/
+	// Add any map sections specified on command line
+	TArray<FString> AlwaysCookMapList;
 
-	TArray<FString> CmdLineIniSections;
-	FString SectionStr;
-	if (FParse::Value(*Params, TEXT("MAPINISECTION="), SectionStr))
+	// Add the default map section
+	GEditor->LoadMapListFromIni(TEXT("AlwaysCookMaps"), AlwaysCookMapList);
+
+	TArray<FString> MapList;
+	// Add any map sections specified on command line
+	GEditor->ParseMapSectionIni(*Params, MapList);
+
+	if (MapList.Num() == 0)
 	{
-		if (SectionStr.Contains(TEXT("+")))
+		// if we didn't find any maps look in the project settings for maps
+
+		UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
+
+		for (const auto& MapToCook : PackagingSettings->MapsToCook)
 		{
-			SectionStr.ParseIntoArray(CmdLineIniSections,TEXT("+"),true);
-		}
-		else
-		{
-			CmdLineIniSections.Add(SectionStr);
+			MapList.Add(MapToCook.FilePath);
 		}
 	}
 
-	// Add any map sections specified on command line
-	TArray<FString> MapList;
-	GEditor->ParseMapSectionIni(*Params, MapList);
+	// if we still don't have any mapsList check if the allmaps ini section is filled out
+	// this is for backwards compatibility
+	if (MapList.Num() == 0)
+	{
+		GEditor->ParseMapSectionIni(TEXT("-MAPINISECTION=AllMaps"), MapList);
+	}
+
+
+	// put the always cook map list at the front of the map list
+	AlwaysCookMapList.Append(MapList);
+	Swap(MapList, AlwaysCookMapList);
 
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
