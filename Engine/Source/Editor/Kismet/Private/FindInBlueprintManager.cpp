@@ -673,19 +673,22 @@ public:
 	/** Cancels caching and destroys this object */
 	void OnCancelCaching(bool bIsImmediate)
 	{
-		ProgressNotification.Pin()->SetText(LOCTEXT("BlueprintIndexCancelled", "Cancelled Indexing Blueprints!"));
-
-		ProgressNotification.Pin()->SetCompletionState(SNotificationItem::CS_Fail);
-		ProgressNotification.Pin()->ExpireAndFadeout();
-
-		// Sometimes we can't wait another tick to shutdown, so make the callback immediately.
-		if (bIsImmediate)
+		if (!bIsCancelled)
 		{
-			FFindInBlueprintSearchManager::Get().FinishedCachingBlueprints(TickCacheIndex, FailedToCacheList);
-		}
-		else
-		{
-			bIsCancelled = true;
+			ProgressNotification.Pin()->SetText(LOCTEXT("BlueprintIndexCancelled", "Cancelled Indexing Blueprints!"));
+
+			ProgressNotification.Pin()->SetCompletionState(SNotificationItem::CS_Fail);
+			ProgressNotification.Pin()->ExpireAndFadeout();
+
+			// Sometimes we can't wait another tick to shutdown, so make the callback immediately.
+			if (bIsImmediate)
+			{
+				FFindInBlueprintSearchManager::Get().FinishedCachingBlueprints(TickCacheIndex, FailedToCacheList);
+			}
+			else
+			{
+				bIsCancelled = true;
+			}
 		}
 	}
 
