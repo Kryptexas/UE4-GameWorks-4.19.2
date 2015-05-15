@@ -275,9 +275,6 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		GSavedCommandLine += Argument;
 	}
 
-	FCommandLine::Set(*GSavedCommandLine);
-	GSavedCommandLine = FPlatformMisc::GetCompleteCommandLine();
-
 	SCOPED_AUTORELEASE_POOL;
 	[NSApplication sharedApplication];
 	[NSApp setDelegate:[UE4AppDelegate new]];

@@ -769,9 +769,9 @@ namespace Rocket
 			BuildDerivedDataCacheNode DerivedDataCacheNode = (BuildDerivedDataCacheNode)bp.FindNode(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
 			CopyManifestFilesToOutput(DerivedDataCacheNode.SavedManifestPath, DerivedDataCacheNode.SavedDir, OutputDir);
 
-			// Write the UE4CommandLine.txt file with the 
-			string CommandLineFile = CommandUtils.CombinePaths(OutputDir, "UE4CommandLine.txt");
-			CommandUtils.WriteAllText(CommandLineFile, "-installedengine -rocket");
+			// Write the Rocket.txt file with the 
+			string RocketFile = CommandUtils.CombinePaths(OutputDir, "Engine/Build/Rocket.txt");
+			CommandUtils.WriteAllText(RocketFile, "-installedengine -rocket");
 
 			// Create a dummy build product
 			BuildProducts = new List<string>();

@@ -835,11 +835,6 @@ public:
 	static const void PreLoadMap(FString&, FString&, void*)
 	{}
 
-	/**
-	 * Get a completed commandline which includes reading UE4CommandLine.txt from root
-	 */
-	static const TCHAR* GetCompleteCommandLine();
-
 #if !UE_BUILD_SHIPPING
 protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached */
@@ -847,9 +842,4 @@ protected:
 	/** Whether the user should be prompted to allow for a remote debugger to be attached on an ensure */
 	static bool bPromptForRemoteDebugOnEnsure;
 #endif	//#if !UE_BUILD_SHIPPING
-
-	/**
-	 * Merge the additional arguments in to the commandline
-	 */
-	static void MergeDefaultArgumentsIntoCommandLine(FString& CommandLine, FString DefaultArguments);
 };
