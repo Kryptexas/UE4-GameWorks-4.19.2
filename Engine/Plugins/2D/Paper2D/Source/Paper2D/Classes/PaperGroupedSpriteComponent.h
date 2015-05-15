@@ -68,13 +68,9 @@ protected:
 
 public:
 
-	/** Add an instance to this component. Transform is given in local space of this component.  */
+	/** Add an instance to this component. Transform can be given either in the local space of this component or world space.  */
 	UFUNCTION(BlueprintCallable, Category="Components|Sprite")
-	virtual int32 AddInstance(const FTransform& LocalTransform, UPaperSprite* Sprite, FColor Color = FColor(255, 255, 255));
-
-	/** Add an instance to this component. Transform is given in world space. */
-	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
-	int32 AddInstanceWorldSpace(const FTransform& WorldTransform, UPaperSprite* Sprite, FColor Color = FColor(255, 255, 255));
+	virtual int32 AddInstance(const FTransform& LocalTransform, UPaperSprite* Sprite, bool bWorldSpace = false, FLinearColor Color = FLinearColor::White);
 
 	/** Get the transform for the instance specified. Instance is returned in local space of this component unless bWorldSpace is set.  Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
@@ -82,7 +78,11 @@ public:
 	
 	/** Update the transform for the instance specified. Instance is given in local space of this component unless bWorldSpace is set.  Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
-	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace = false, bool bMarkRenderStateDirty = false);
+	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace = false, bool bMarkRenderStateDirty = true);
+
+	/** Update the color for the instance specified. Returns True on success. */
+	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
+	virtual bool UpdateInstanceColor(int32 InstanceIndex, FLinearColor NewInstanceColor, bool bMarkRenderStateDirty = true);
 
 	/** Remove the instance specified. Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
@@ -100,6 +100,7 @@ public:
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
+	virtual const UObject* AdditionalStatObject() const override;
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
@@ -124,6 +125,9 @@ public:
 
 	// Returns true if this component references the specified sprite asset
 	bool ContainsSprite(UPaperSprite* SpriteAsset) const;
+
+	// Adds all referenced sprite assets to the specified list
+	void GetReferencedSpriteAssets(TArray<UObject*>& InOutObjects) const;
 
 protected:
 	/**

@@ -2,7 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperSpriteComponent.h"
-#include "PaperGroupedSpriteComponent.h"
+#include "PaperGroupedSpriteActor.h"
 #include "SpriteComponentDetailsCustomization.h"
 #include "ScopedTransaction.h"
 #include "ILayers.h"
@@ -82,30 +82,29 @@ FReply FSpriteComponentDetailsCustomization::MergeSprites()
 
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.bDeferConstruction = true;
-			if (AActor* SpawnedActor = World->SpawnActor<AActor>(SpawnParams))
+			if (APaperGroupedSpriteActor* SpawnedActor = World->SpawnActor<APaperGroupedSpriteActor>(SpawnParams))
 			{
 				const FScopedTransaction Transaction(LOCTEXT("MergeSprites", "Merge sprite instances"));
 
 				// Create a merged sprite component
-				UPaperGroupedSpriteComponent* MergedSpriteComponent = NewObject<UPaperGroupedSpriteComponent>(SpawnedActor);
-
-				// Create an instance from each sprite component that we're harvesting
-				for (UActorComponent* SourceComponent : ComponentsToHarvest)
 				{
-					UPaperSpriteComponent* SourceSpriteComponent = CastChecked<UPaperSpriteComponent>(SourceComponent);
+					UPaperGroupedSpriteComponent* MergedSpriteComponent = SpawnedActor->GetRenderComponent();
+					FComponentReregisterContext ReregisterContext(MergedSpriteComponent);
 
-					UPaperSprite* Sprite = SourceSpriteComponent->GetSprite();
-					const FLinearColor SpriteColor = SourceSpriteComponent->GetSpriteColor();
-					const FTransform RelativeSpriteTransform = SourceSpriteComponent->GetComponentTransform().GetRelativeTransform(MergedWorldTM);
+					// Create an instance from each sprite component that we're harvesting
+					for (UActorComponent* SourceComponent : ComponentsToHarvest)
+					{
+						UPaperSpriteComponent* SourceSpriteComponent = CastChecked<UPaperSpriteComponent>(SourceComponent);
 
-					MergedSpriteComponent->AddInstance(RelativeSpriteTransform, Sprite, FColor(SpriteColor));
+						UPaperSprite* Sprite = SourceSpriteComponent->GetSprite();
+						const FLinearColor SpriteColor = SourceSpriteComponent->GetSpriteColor();
+						const FTransform RelativeSpriteTransform = SourceSpriteComponent->GetComponentTransform().GetRelativeTransform(MergedWorldTM);
+
+						MergedSpriteComponent->AddInstance(RelativeSpriteTransform, Sprite, /*bWorldSpace=*/ false, SpriteColor);
+					}
 				}
 
 				// Finalize the new component
-				SpawnedActor->AddInstanceComponent(MergedSpriteComponent);
-				SpawnedActor->SetRootComponent(MergedSpriteComponent);
-				MergedSpriteComponent->OnComponentCreated();
-				MergedSpriteComponent->RegisterComponent();
 				UGameplayStatics::FinishSpawningActor(SpawnedActor, MergedWorldTM);
 
 				// Delete the existing actor instances

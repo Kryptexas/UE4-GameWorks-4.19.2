@@ -27,9 +27,11 @@ UPaperGroupedSpriteComponent::UPaperGroupedSpriteComponent(const FObjectInitiali
 	BodyInstance.bSimulatePhysics = false;
 }
 
-int32 UPaperGroupedSpriteComponent::AddInstance(const FTransform& LocalTransform, UPaperSprite* Sprite, FColor Color)
+int32 UPaperGroupedSpriteComponent::AddInstance(const FTransform& Transform, UPaperSprite* Sprite, bool bWorldSpace, FLinearColor Color)
 {
 	const int32 NewInstanceIndex = PerInstanceSpriteData.Num();
+
+	const FTransform LocalTransform(bWorldSpace ? Transform.GetRelativeTransform(ComponentToWorld) : Transform);
 
 	FSpriteInstanceData& NewInstanceData = *new (PerInstanceSpriteData) FSpriteInstanceData();
 	SetupNewInstanceData(NewInstanceData, NewInstanceIndex, LocalTransform, Sprite, Color);
@@ -39,13 +41,6 @@ int32 UPaperGroupedSpriteComponent::AddInstance(const FTransform& LocalTransform
 	UNavigationSystem::UpdateNavOctree(this);
 
 	return NewInstanceIndex;
-}
-
-int32 UPaperGroupedSpriteComponent::AddInstanceWorldSpace(const FTransform& WorldTransform, UPaperSprite* Sprite, FColor Color)
-{
-	// Transform from world space to local space
-	const FTransform RelativeTM = WorldTransform.GetRelativeTransform(ComponentToWorld);
-	return AddInstance(RelativeTM, Sprite, Color);
 }
 
 bool UPaperGroupedSpriteComponent::GetInstanceTransform(int32 InstanceIndex, FTransform& OutInstanceTransform, bool bWorldSpace) const
@@ -104,6 +99,25 @@ bool UPaperGroupedSpriteComponent::UpdateInstanceTransform(int32 InstanceIndex, 
 
 	return true;
 }
+
+bool UPaperGroupedSpriteComponent::UpdateInstanceColor(int32 InstanceIndex, FLinearColor NewInstanceColor, bool bMarkRenderStateDirty)
+{
+	if (PerInstanceSpriteData.IsValidIndex(InstanceIndex))
+	{
+		FSpriteInstanceData& InstanceData = PerInstanceSpriteData[InstanceIndex];
+		InstanceData.VertexColor = NewInstanceColor;
+
+		if (bMarkRenderStateDirty)
+		{
+			MarkRenderStateDirty();
+		}
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}	
 
 bool UPaperGroupedSpriteComponent::RemoveInstance(int32 InstanceIndex)
 {
@@ -172,6 +186,19 @@ void UPaperGroupedSpriteComponent::DestroyPhysicsState()
 
 	// Release all physics representations
 	ClearAllInstanceBodies();
+}
+
+const UObject* UPaperGroupedSpriteComponent::AdditionalStatObject() const
+{
+	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
+	{
+		if (InstanceData.SourceSprite != nullptr)
+		{
+			return InstanceData.SourceSprite;
+		}
+	}
+
+	return nullptr;
 }
 
 #if WITH_EDITOR
@@ -468,6 +495,17 @@ bool UPaperGroupedSpriteComponent::ContainsSprite(UPaperSprite* SpriteAsset) con
 	}
 
 	return false;
+}
+
+void UPaperGroupedSpriteComponent::GetReferencedSpriteAssets(TArray<UObject*>& InOutObjects) const
+{
+	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
+	{
+		if (InstanceData.SourceSprite != nullptr)
+		{
+			InOutObjects.AddUnique(InstanceData.SourceSprite);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
