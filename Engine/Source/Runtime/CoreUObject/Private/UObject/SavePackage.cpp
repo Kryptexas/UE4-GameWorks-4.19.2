@@ -2333,6 +2333,95 @@ EObjectMark UPackage::GetObjectMarksForTargetPlatform( const class ITargetPlatfo
 	return ObjectMarks;
 }
 
+#if WITH_EDITOR
+/**
+ * Helper function to sort export objects by fully qualified names.
+ */
+bool ExportObjectSorter(const UObject& Lhs, const UObject& Rhs)
+{
+	// Check names first.
+	if (Lhs.GetFName() < Rhs.GetFName())
+	{
+		return true;
+	}
+
+	if (Lhs.GetFName() > Rhs.GetFName())
+	{
+		return false;
+	}
+
+	// Names equal, compare class names.
+	if (Lhs.GetClass()->GetFName() < Rhs.GetClass()->GetFName())
+	{
+		return true;
+	}
+
+	if (Lhs.GetClass()->GetFName() > Rhs.GetClass()->GetFName())
+	{
+		return false;
+	}
+
+	// Compare by outers if they exist.
+	if (Lhs.GetOuter() && Rhs.GetOuter())
+	{
+		return Lhs.GetOuter()->GetFName() < Rhs.GetOuter()->GetFName();
+	}
+
+	if (Lhs.GetOuter())
+	{
+		return true;
+	}
+
+	return false;
+}
+
+/**
+* Helper equality comparator for export objects. Compares by names, class names and outer names.
+*/
+bool ExportEqualityComparator(UObject* Lhs, UObject* Rhs)
+{
+	check(Lhs && Rhs);
+	return Lhs->GetOuter() == Rhs->GetOuter()
+		&& Lhs->GetClass() == Rhs->GetClass()
+		&& Lhs->GetFName() == Rhs->GetFName();
+}
+
+/**
+ * Remove OBJECTMARK_TagExp from duplicated objects.
+ */
+TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
+{
+	TMap<UObject*, UObject*> RedirectDuplicatesToOriginals;
+	TArray<UObject*> Objects;
+	GetObjectsWithAnyMarks(Objects, OBJECTMARK_TagExp);
+
+	Objects.Sort(ExportObjectSorter);
+
+	int32 LastUniqueObjectIndex = 0;
+	for (int32 CurrentObjectIndex = 1; CurrentObjectIndex < Objects.Num(); ++CurrentObjectIndex)
+	{
+		UObject* LastUniqueObject = Objects[LastUniqueObjectIndex];
+		UObject* CurrentObject = Objects[CurrentObjectIndex];
+
+		// Check if duplicates with different pointers
+		if (LastUniqueObject != CurrentObject
+			// but matching names
+			&& ExportEqualityComparator(LastUniqueObject, CurrentObject))
+		{
+			// Don't export duplicates.
+			CurrentObject->UnMark(OBJECTMARK_TagExp);
+			RedirectDuplicatesToOriginals.Add(CurrentObject, LastUniqueObject);
+		}
+		else
+		{
+			LastUniqueObjectIndex = CurrentObjectIndex;
+		}
+	}
+
+	return RedirectDuplicatesToOriginals;
+}
+#endif // WITH_EDITOR
+
 /**
  * Save one specific object (along with any objects it references contained within the same Outer) into an Unreal package.
  * 
@@ -2771,6 +2860,11 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
+#if WITH_EDITOR
+				// Remove TagExp from duplicate objects.
+				TMap<UObject*, UObject*> DuplicateRedirects = UnmarkExportTagFromDuplicates();
+#endif // WITH_EDITOR
+
 				UE_LOG_COOK_TIME(TEXT("Serialize Imports"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
@@ -3201,6 +3295,14 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 								DependencyIndex = ImportToIndexMap.FindRef(DependentObject);
 							}
 					
+#if WITH_EDITOR
+							// If we still didn't find index, maybe it was a duplicate export which got removed.
+							// Check if we have a redirect to original.
+							if (DependencyIndex.IsNull())
+							{
+								DependencyIndex = ExportToIndexMap.FindRef(DuplicateRedirects[DependentObject]);
+							}
+#endif
 							// if we didn't find it (FindRef returns 0 on failure, which is good in this case), then we are in trouble, something went wrong somewhere
 							checkf(!DependencyIndex.IsNull(), TEXT("Failed to find dependency index for %s (%s)"), *DependentObject->GetFullName(), *Object->GetFullName());
 
