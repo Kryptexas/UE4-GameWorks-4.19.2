@@ -174,6 +174,7 @@ void UPaperGroupedSpriteComponent::DestroyPhysicsState()
 	ClearAllInstanceBodies();
 }
 
+#if WITH_EDITOR
 void UPaperGroupedSpriteComponent::CheckForErrors()
 {
 	AActor* Owner = GetOwner();
@@ -197,6 +198,7 @@ void UPaperGroupedSpriteComponent::CheckForErrors()
 
 	Super::CheckForErrors();
 }
+#endif
 
 FPrimitiveSceneProxy* UPaperGroupedSpriteComponent::CreateSceneProxy()
 {
