@@ -18,6 +18,7 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	ReallocatePins();
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void UNiagaraNodeInput::ReallocatePins()
@@ -117,8 +118,6 @@ void UNiagaraNodeInput::ReallocatePins()
 #endif
 	}
 	OldPins.Empty();
-
-	GetGraph()->NotifyGraphChanged();
 }
 
 void UNiagaraNodeInput::AllocateDefaultPins()
@@ -128,7 +127,7 @@ void UNiagaraNodeInput::AllocateDefaultPins()
 
 FText UNiagaraNodeInput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return Input.Name == NAME_None ? NSLOCTEXT("NiagaraNodeInput", "Input", "Input") : FText::FromName(Input.Name);
+	return NSLOCTEXT("NiagaraNodeInput", "Input", "Input");
 }
 
 FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
@@ -143,6 +142,27 @@ FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
 	else
 	{
 		return CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Attribute;
+	}
+}
+
+void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	if (FromPin != nullptr)
+	{
+		const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
+		check(Schema);
+		if (Input.Name == NAME_None)
+		{
+			Input.Name = FName(*FromPin->PinName);
+			Input.Type = Schema->GetPinType(FromPin);
+			ReallocatePins();
+		}
+		check(Pins.Num() == 1 && Pins[0] != NULL);
+		
+		if (GetSchema()->TryCreateConnection(FromPin, Pins[0]))
+		{
+			FromPin->GetOwningNode()->NodeConnectionListChanged();
+		}
 	}
 }
 

@@ -10,6 +10,8 @@
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "ScopedTransaction.h"
+#include "BlueprintEditorUtils.h"
  
 #define LOCTEXT_NAMESPACE "NiagaraEditor"
 
@@ -282,19 +284,26 @@ void FNiagaraEditor::DeleteSelectedNodes()
 		return;
 	}
 
-	const FGraphPanelSelectionSet SelectedNodes = NodeGraphEditor->GetSelectedNodes();
-	NodeGraphEditor->ClearSelectionSet();
-
-	for (FGraphPanelSelectionSet::TConstIterator NodeIt( SelectedNodes ); NodeIt; ++NodeIt)
 	{
-		if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
+		const FScopedTransaction Transaction(FGenericCommands::Get().Delete->GetDescription());
+
+		NodeGraphEditor->GetCurrentGraph()->Modify();
+
+		const FGraphPanelSelectionSet SelectedNodes = NodeGraphEditor->GetSelectedNodes();
+
+		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
 		{
-			if (Node->CanUserDeleteNode())
+			if (UEdGraphNode* Node = Cast<UEdGraphNode>(*NodeIt))
 			{
-				Node->DestroyNode();
+				if (Node->CanUserDeleteNode())
+				{
+					FBlueprintEditorUtils::RemoveNode(NULL, Node, true);
+				}
 			}
 		}
+		NodeGraphEditor->ClearSelectionSet();
 	}
+	NodeGraphEditor->NotifyGraphChanged();
 }
 
 bool FNiagaraEditor::CanDeleteNodes() const

@@ -4,6 +4,8 @@
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorSettings.h"
 
+#define LOCTEXT_NAMESPACE "NiagaraNodeOutput"
+
 UNiagaraNodeOutput::UNiagaraNodeOutput(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -12,6 +14,7 @@ UNiagaraNodeOutput::UNiagaraNodeOutput(const FObjectInitializer& ObjectInitializ
 void UNiagaraNodeOutput::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	ReallocatePins();
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void UNiagaraNodeOutput::ReallocatePins()
@@ -137,6 +140,7 @@ void UNiagaraNodeOutput::Compile(class INiagaraCompiler* Compiler, TArray<FNiaga
 {
 	TArray<TNiagaraExprPtr> InputExpressions;
 
+	bool bError = false;
 	for (int32 i = 0; i < Outputs.Num(); ++i)
 	{
 		const FNiagaraVariableInfo& Out = Outputs[i];
@@ -146,16 +150,21 @@ void UNiagaraNodeOutput::Compile(class INiagaraCompiler* Compiler, TArray<FNiaga
 		TNiagaraExprPtr Result = Compiler->CompilePin(Pin);
 		if (!Result.IsValid())
 		{
-			//The pin was not connected so pass through the initial value of the attribute.
-			Result = Compiler->GetAttribute(Out);
+			bError = true;
+			Compiler->Error(FText::Format(LOCTEXT("OutputErrorFormat", "Error compiling attriubte {0}"), Pin->PinFriendlyName), this, Pin);
 		}
 
 		InputExpressions.Add(Result);
 	}
 
-	check(Outputs.Num() == InputExpressions.Num());
-	for (int32 i = 0; i < Outputs.Num(); ++i)
+	if (!bError)
 	{
-		OutputExpressions.Add(FNiagaraNodeResult(Compiler->Output(Outputs[i], InputExpressions[i]), Pins[i]));
+		check(Outputs.Num() == InputExpressions.Num());
+		for (int32 i = 0; i < Outputs.Num(); ++i)
+		{
+			OutputExpressions.Add(FNiagaraNodeResult(Compiler->Output(Outputs[i], InputExpressions[i]), Pins[i]));
+		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

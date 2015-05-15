@@ -614,7 +614,7 @@ TMap<FName, FNiagaraOpInfo>& FNiagaraOpInfo::GetOpInfoMap()
 
 //Debugging variant that checks inputs and outputs match expectations of FNiagaraOpInfo.
 #if DO_CHECK
-#define NiagaraOp(OpName) void INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
+#define NiagaraOp(OpName) bool INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
 {\
 	Compiler->CheckInputs(FNiagaraOpInfo::OpName, InputExpressions); \
 	return Compiler->OpName##_Internal(InputExpressions, OutputExpressions); \
@@ -625,7 +625,7 @@ NiagaraOpList
 
 #else//DO_CHECK
 
-#define NiagaraOp(OpName) void INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
+#define NiagaraOp(OpName) bool INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
 { \
 	return Compiler->OpName##_Internal(InputExpressions, OutputExpressions); \
 }
