@@ -1327,20 +1327,29 @@ FConstraintInstance* USkeletalMeshComponent::FindConstraintInstance(FName ConNam
 	return NULL;
 }
 
-void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+#ifndef OLD_FORCE_UPDATE_BEHAVIOR
+#define OLD_FORCE_UPDATE_BEHAVIOR 0
+#endif
+
+void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true);
+	Super::OnUpdateTransform(true, bTeleport);
 
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove)
 	{
-		UpdateKinematicBonesToAnim(GetSpaceBases(), false, false, true);
+#if !OLD_FORCE_UPDATE_BEHAVIOR
+		UpdateKinematicBonesToAnim(GetSpaceBases(), bTeleport, false);
+#else
+		UpdateKinematicBonesToAnim(GetSpaceBases(), true, false);
+#endif
 	}
 
 #if WITH_APEX_CLOTHING
 	if(ClothingActors.Num() > 0)
 	{
+		//@todo: Should cloth know whether we're teleporting?
 		// Updates cloth animation states because transform is updated
 		UpdateClothTransform();
 	}

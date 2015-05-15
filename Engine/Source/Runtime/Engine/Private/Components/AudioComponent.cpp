@@ -92,9 +92,9 @@ void UAudioComponent::SetSound( USoundBase* NewSound )
 	}
 }
 
-void UAudioComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+void UAudioComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
 {
-	Super::OnUpdateTransform(bSkipPhysicsMove);
+	Super::OnUpdateTransform(bSkipPhysicsMove, bTeleport);
 
 	if (bIsActive && !bPreviewComponent)
 	{

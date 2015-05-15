@@ -270,7 +270,7 @@ public:
 	// Begin USceneComponent Interface
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport = false) override;
 	// do nothing! on purpose
 	virtual void UpdateNavigationData() override {}
 	// End USceneComponent Interface

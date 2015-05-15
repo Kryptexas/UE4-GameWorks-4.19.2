@@ -127,10 +127,10 @@ bool IsImpactDamageEnabled(const UDestructibleMesh* TheDestructibleMesh, int32 L
 	}
 }
 
-void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true);
+	Super::OnUpdateTransform(true, bTeleport);
 
 	if (SkeletalMesh == NULL)
 	{
@@ -165,7 +165,7 @@ void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 		PxMat44 GlobalPose(PxMat33(U2PQuat(CurrentLocalToWorld.GetRotation())), U2PVector(CurrentLocalToWorld.GetTranslation()));
 		if(!PRootActor || PRootActor->getScene())	//either root chunk is null meaning fractured (so there's a scene), or the root has a scene
 		{
-			ApexDestructibleActor->setGlobalPose(GlobalPose);
+			ApexDestructibleActor->setGlobalPose(GlobalPose);	//this assumes ignores bTeleport and treats it like it's true 
 		}else
 		{
 			PRootActor->setGlobalPose(PxTransform(GlobalPose));	//we're not in a scene yet, so place the root actor in this new position

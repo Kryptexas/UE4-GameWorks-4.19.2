@@ -517,7 +517,7 @@ public:
 	{
 		return true;
 	}
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, bool bTeleport = false) override final;
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
@@ -545,17 +545,17 @@ protected:
 	 * Internal helper, for use from MoveComponent().  Special codepath since the normal setters call MoveComponent.
 	 * @return: true if location or rotation was changed.
 	 */
-	bool InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewQuat, bool bNoPhysics=false);
+	bool InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewQuat, bool bNoPhysics=false, bool bTeleport = false);
 
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove);
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport = false);
 
 	/** Check if mobility is set to non-static. If it's static we trigger a PIE warning and return true*/
 	bool CheckStaticMobilityAndWarn(const FText& ActionText) const;
 
 private:
 
-	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false);
-	void UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat);
+	void PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove = false, bool bTeleport = false);
+	void UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, bool bTeleport = false);
 
 
 public:
@@ -670,7 +670,7 @@ public:
 	}
 
 	/** Update transforms of any components attached to this one. */
-	void UpdateChildTransforms();
+	void UpdateChildTransforms(bool bSkipPhysicsMove = false, bool bTeleport = false);
 
 	/** Calculate the bounds of this component. Default behavior is a bounding box/sphere of zero size. */
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const;

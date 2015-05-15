@@ -315,11 +315,11 @@ FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativ
 	}
 }
 
-void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTeleport)
 {
 }
 
-void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat)
+void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, bool bTeleport)
 {
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
 	if (Parent && !Parent->bWorldToComponentUpdated)
@@ -352,7 +352,7 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 		// Update transform
 		ComponentToWorld = NewTransform;
 
-		PropagateTransformUpdate(true, bSkipPhysicsMove);
+		PropagateTransformUpdate(true, bSkipPhysicsMove, bTeleport);
 	}
 	else
 	{
@@ -392,13 +392,13 @@ void USceneComponent::OnRegister()
 #endif
 }
 
-void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
+void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove, bool bTeleport)
 {
-	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotation.Quaternion());
+	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotation.Quaternion(), bTeleport);
 }
 
 
-void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove)
+void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove, bool bTeleport)
 {
 	if (IsDeferringMovementUpdates())
 	{
@@ -412,13 +412,13 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		UpdateBounds();
 
 		// Always send new transform to physics
-		OnUpdateTransform(bSkipPhysicsMove);
+		OnUpdateTransform(bSkipPhysicsMove, bTeleport);
 
 		// Flag render transform as dirty
 		MarkRenderTransformDirty();
 		
 		// Now go and update children
-		UpdateChildTransforms();
+		UpdateChildTransforms(bSkipPhysicsMove, bTeleport);
 
 		// Refresh navigation
 		UpdateNavigationData();
@@ -1487,14 +1487,14 @@ FName USceneComponent::GetComponentInstanceDataType() const
 	return SceneComponentInstanceDataTypeName;
 }
 
-void USceneComponent::UpdateChildTransforms()
+void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, bool bTeleport)
 {
 	for(int32 i=0; i<AttachChildren.Num(); i++)
 	{
 		USceneComponent* ChildComp = AttachChildren[i];
 		if(ChildComp != NULL)
 		{
-			ChildComp->UpdateComponentToWorld();
+			ChildComp->UpdateComponentToWorld(bSkipPhysicsMove, bTeleport);
 		}
 	}
 }
@@ -1826,7 +1826,7 @@ void USceneComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics)
+bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics, bool bTeleport)
 {
 	FQuat NewRotationQuat(RotationQuat);
 
@@ -1852,7 +1852,7 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 	{
 		RelativeLocation = NewLocation;
 		RelativeRotation = NewRotator;
-		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat);
+		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat, bTeleport);
 		return true;
 	}
 
@@ -1943,7 +1943,7 @@ bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewR
 	}
 
 	// just teleport, sweep is supported for PrimitiveComponents. This will update child components as well.
-	const bool bMoved = InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation);
+	const bool bMoved = InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation, false, !bSweep);
 
 	// Only update overlaps if not deferring updates within a scope
 	if (bMoved && !IsDeferringMovementUpdates())
