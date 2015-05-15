@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using UnrealBuildTool;
+using System.IO;
 
 // Example Command Lines
 // HTML5LaunchHelper -m -h -b /Applications/Safari.app localhost:8000
@@ -25,10 +25,23 @@ namespace HTML5LaunchHelper
 		static private List<Process> ProcessesToKill = new List<Process>();
 		static private List<Process> ProcessesToWatch = new List<Process>();
 
+		static bool IsRunningOnMac()
+		{
+			PlatformID Platform = Environment.OSVersion.Platform;
+			switch (Platform)
+			{
+				case PlatformID.Unix:
+					return System.IO.File.Exists("/System/Library/CoreServices/SystemVersion.plist");
+				case PlatformID.MacOSX:
+					return true;
+			}
+			return false;
+		}
+
 		static Process SpawnBrowserProcess(string bpath, string args)
 		{
 			var Result = new Process();
-			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			if (IsRunningOnMac())
 			{
 	            Result.StartInfo.FileName = "/usr/bin/open";
 				Result.StartInfo.UseShellExecute = false;
