@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Paper2DEditorPrivatePCH.h"
+#include "PaperSpriteComponent.h"
 #include "SpriteEditor.h"
 #include "SSingleObjectDetailsPanel.h"
 #include "SceneViewport.h"

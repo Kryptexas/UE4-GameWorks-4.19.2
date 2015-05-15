@@ -4,6 +4,7 @@
 
 #include "AtlasAssetTypeActions.h"
 #include "AssetData.h"
+#include "PaperSpriteAtlas.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

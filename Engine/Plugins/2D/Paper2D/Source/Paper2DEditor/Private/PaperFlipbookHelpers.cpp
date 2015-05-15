@@ -4,6 +4,7 @@
 #include "PaperFlipbookHelpers.h"
 #include "Json.h"
 #include "ObjectTools.h"
+#include "PaperFlipbook.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperFlipbookHelpers

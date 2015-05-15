@@ -6,6 +6,11 @@
 #include "PaperEditorViewportClient.h"
 #include "SpriteEditor/SpriteEditorSelections.h"
 
+class UPaperSpriteComponent;
+class SEditorViewport;
+class FScopedTranaction;
+class UPaperTileSet;
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSingleTileIndexChanged, int32 /*NewIndex*/, int32 /*OldIndex*/);
 
 //////////////////////////////////////////////////////////////////////////
@@ -22,7 +27,7 @@ public:
 
 	// FEditorViewportClient interface
 	virtual FLinearColor GetBackgroundColor() const override;
-	virtual void TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge) override;
+	virtual void TrackingStarted(const FInputEventState& InInputState, bool bIsDragging, bool bNudge) override;
 	virtual void TrackingStopped() override;
 	virtual void DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas) override;
 	// End of FEditorViewportClient interface
@@ -77,10 +82,10 @@ private:
 	bool bShowStats;
 
 	// Pointer back to the sprite editor viewport control that owns us
-	TWeakPtr<class SEditorViewport> SpriteEditorViewportPtr;
+	TWeakPtr<SEditorViewport> SpriteEditorViewportPtr;
 
 	// The current transaction for undo/redo
-	class FScopedTransaction* ScopedTransaction;
+	FScopedTransaction* ScopedTransaction;
 
 	// The preview scene
 	FPreviewScene OwnedPreviewScene;

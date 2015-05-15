@@ -4,6 +4,9 @@
 
 #include "MeshPaintModule.h"
 
+class UMeshComponent;
+class UPaperSpriteComponent;
+
 //////////////////////////////////////////////////////////////////////////
 // FMeshPaintSpriteAdapter
 
@@ -30,5 +33,5 @@ protected:
 class FMeshPaintSpriteAdapterFactory : public IMeshPaintGeometryAdapterFactory
 {
 public:
-	virtual TSharedPtr<IMeshPaintGeometryAdapter> Construct(class UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) const override;
+	virtual TSharedPtr<IMeshPaintGeometryAdapter> Construct(UMeshComponent* InComponent, int32 InPaintingMeshLODIndex, int32 InUVChannelIndex) const override;
 };

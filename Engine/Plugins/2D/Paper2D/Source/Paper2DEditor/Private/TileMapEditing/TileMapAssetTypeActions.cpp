@@ -4,6 +4,7 @@
 
 #include "TileMapAssetTypeActions.h"
 #include "TileMapEditor.h"
+#include "PaperTileMap.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

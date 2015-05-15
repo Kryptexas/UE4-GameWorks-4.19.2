@@ -10,6 +10,7 @@
 #include "ContentBrowserModule.h"
 #include "AssetToolsModule.h"
 #include "CanvasTypes.h"
+#include "PaperSprite.h"
 #include "PaperSpriteFactory.h"
 
 #define LOCTEXT_NAMESPACE "PaperEditor"

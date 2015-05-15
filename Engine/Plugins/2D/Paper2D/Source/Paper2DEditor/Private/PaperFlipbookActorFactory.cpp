@@ -3,6 +3,7 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
 #include "PaperFlipbookActorFactory.h"
+#include "PaperFlipbookActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperFlipbookActorFactory

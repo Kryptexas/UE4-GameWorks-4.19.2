@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileSetEditorViewportClient.h"
+#include "PaperTileSet.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 

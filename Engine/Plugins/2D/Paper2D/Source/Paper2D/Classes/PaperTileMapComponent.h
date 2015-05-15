@@ -3,6 +3,7 @@
 #pragma once
 
 #include "PaperSprite.h"
+#include "PaperTileMap.h"
 #include "PaperTileLayer.h"
 #include "PaperTileMapComponent.generated.h"
 
@@ -142,7 +143,7 @@ public:
 
 	/** Change the PaperTileMap used by this instance. */
 	UFUNCTION(BlueprintCallable, Category="Sprite")
-	virtual bool SetTileMap(class UPaperTileMap* NewTileMap);
+	virtual bool SetTileMap(UPaperTileMap* NewTileMap);
 
 	// Returns the size of the tile map
 	UFUNCTION(BlueprintCallable, Category="Sprite")

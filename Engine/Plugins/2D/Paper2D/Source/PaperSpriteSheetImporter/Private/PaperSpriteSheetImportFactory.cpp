@@ -1,7 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperSpriteSheetImporterPrivatePCH.h"
-#include "Paper2DClasses.h"
 #include "Json.h"
 #include "PaperJSONHelpers.h"
 #include "AssetToolsModule.h"

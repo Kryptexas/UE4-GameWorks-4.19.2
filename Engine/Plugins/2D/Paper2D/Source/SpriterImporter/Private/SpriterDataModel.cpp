@@ -1,8 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SpriterImporterPrivatePCH.h"
-#include "Paper2DClasses.h"
-#include "Paper2DEditorClasses.h"
 #include "Json.h"
 #include "PaperJSONHelpers.h"
 #include "SpriterDataModel.h"

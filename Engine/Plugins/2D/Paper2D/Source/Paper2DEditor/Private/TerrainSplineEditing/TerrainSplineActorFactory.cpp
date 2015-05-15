@@ -3,6 +3,10 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
 #include "TerrainSplineActorFactory.h"
+#include "PaperTerrainActor.h"
+#include "PaperTerrainMaterial.h"
+#include "PaperTerrainComponent.h"
+#include "PaperRuntimeSettings.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UTerrainSplineActorFactory

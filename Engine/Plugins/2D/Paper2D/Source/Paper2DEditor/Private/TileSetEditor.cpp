@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileSetEditor.h"
+#include "PaperTileSet.h"
 #include "SSingleObjectDetailsPanel.h"
 #include "SceneViewport.h"
 #include "PaperEditorViewportClient.h"

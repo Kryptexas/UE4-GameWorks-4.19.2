@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "PaperTileMap.h"
+#include "PaperTileLayer.h"
+
 //////////////////////////////////////////////////////////////////////////
 // STileLayerItem
 
@@ -17,8 +20,8 @@ public:
 
 protected:
 	int32 MyIndex;
-	class UPaperTileMap* MyMap;
-	class UPaperTileLayer* GetMyLayer() const { return MyMap->TileLayers[MyIndex]; }
+	UPaperTileMap* MyMap;
+	UPaperTileLayer* GetMyLayer() const { return MyMap->TileLayers[MyIndex]; }
 
 	TSharedPtr<SButton> VisibilityButton;
 

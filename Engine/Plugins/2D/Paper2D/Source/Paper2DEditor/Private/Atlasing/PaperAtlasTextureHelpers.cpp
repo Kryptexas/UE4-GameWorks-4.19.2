@@ -2,6 +2,7 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperAtlasTextureHelpers.h"
+#include "PaperSprite.h"
 
 //////////////////////////////////////////////////////////////////////////
 // 

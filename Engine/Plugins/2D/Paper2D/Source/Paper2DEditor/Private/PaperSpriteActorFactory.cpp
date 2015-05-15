@@ -4,6 +4,7 @@
 #include "AssetData.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperSpriteActorFactory.h"
+#include "PaperSpriteActor.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperSpriteActorFactory

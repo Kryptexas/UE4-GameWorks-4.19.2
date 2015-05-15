@@ -1,6 +1,7 @@
 	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
+#include "PaperSpriteComponent.h"
 #include "SocketEditing.h"
 #include "SpriteGeometryEditMode.h"
 #include "CanvasItem.h"

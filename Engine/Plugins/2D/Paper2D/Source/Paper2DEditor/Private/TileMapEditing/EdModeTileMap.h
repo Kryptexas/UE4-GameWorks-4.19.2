@@ -1,7 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "PaperTileSet.h"
+
+class UPaperTileSet;
+class UPaperTileLayer;
+class UPaperTileMap;
+class UPaperTileMapComponent;
 
 namespace ETileMapEditorTool
 {

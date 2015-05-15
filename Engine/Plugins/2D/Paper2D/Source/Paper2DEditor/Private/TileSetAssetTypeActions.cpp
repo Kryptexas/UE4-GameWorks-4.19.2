@@ -3,6 +3,8 @@
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileSetAssetTypeActions.h"
 #include "TileSetEditor.h"
+#include "PaperTileSet.h"
+#include "PaperTileMap.h"
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
 #include "PaperTileMapFactory.h"

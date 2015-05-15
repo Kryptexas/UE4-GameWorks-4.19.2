@@ -10,6 +10,10 @@
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 
+class UPaperTileMapComponent;
+class STileMapEditorViewport;
+class FScopedTransaction;
+
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEditorViewportClient
 
@@ -17,7 +21,7 @@ class FTileMapEditorViewportClient : public FPaperEditorViewportClient
 {
 public:
 	/** Constructor */
-	FTileMapEditorViewportClient(TWeakPtr<FTileMapEditor> InTileMapEditor, TWeakPtr<class STileMapEditorViewport> InTileMapEditorViewportPtr);
+	FTileMapEditorViewportClient(TWeakPtr<FTileMapEditor> InTileMapEditor, TWeakPtr<STileMapEditorViewport> InTileMapEditorViewportPtr);
 
 	// FViewportClient interface
 	virtual void Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
@@ -75,10 +79,10 @@ private:
 	bool bShowTileMapStats;
 
 	// Pointer back to the tile map editor viewport control that owns us
-	TWeakPtr<class STileMapEditorViewport> TileMapEditorViewportPtr;
+	TWeakPtr<STileMapEditorViewport> TileMapEditorViewportPtr;
 
 	// The current transaction for undo/redo
-	class FScopedTransaction* ScopedTransaction;
+	FScopedTransaction* ScopedTransaction;
 
 	// Should we show the sprite pivot?
 	bool bShowPivot;

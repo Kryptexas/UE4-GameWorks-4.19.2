@@ -1,9 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperTiledImporterPrivatePCH.h"
-#include "Paper2DClasses.h"
-#include "Paper2DEditorClasses.h"
 #include "Json.h"
+#include "TileMapAssetImportData.h"
 #include "PaperJSONHelpers.h"
 #include "AssetToolsModule.h"
 #include "AssetRegistryModule.h"

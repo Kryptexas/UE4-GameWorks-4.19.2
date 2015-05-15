@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Paper2DEditorPrivatePCH.h"
+#include "PaperFlipbookComponent.h"
 #include "FlipbookEditor.h"
 #include "SceneViewport.h"
 #include "PaperEditorViewportClient.h"
