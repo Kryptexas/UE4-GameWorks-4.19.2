@@ -137,11 +137,12 @@ FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
 								SpawnedSpriteComponent->SetSpriteColor(InstanceData.VertexColor);
 								SpawnedSpriteComponent->SetSprite(InstanceData.SourceSprite);
 
-								//@TODO: Sprite component material!
-								// if (SourceBatchComponent->GetMaterial() != InstanceData.SourceSprite->GetMaterial(0))
-								// {
-								//SpawnedSpriteComponent->SetMaterial();
-								// }
+								// Apply the material override if there is one
+								UMaterialInterface* InstanceMaterial = SourceBatchComponent->GetMaterial(InstanceData.MaterialIndex);
+								if (InstanceMaterial != InstanceData.SourceSprite->GetMaterial(0))
+								{
+									SpawnedSpriteComponent->SetMaterial(0, InstanceMaterial);
+								}
 							}
 
 							UGameplayStatics::FinishSpawningActor(SpawnedActor, InstanceTransform);

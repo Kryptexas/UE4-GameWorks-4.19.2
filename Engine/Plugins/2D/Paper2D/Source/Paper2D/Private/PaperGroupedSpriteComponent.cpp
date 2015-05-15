@@ -32,12 +32,17 @@ UPaperGroupedSpriteComponent::UPaperGroupedSpriteComponent(const FObjectInitiali
 
 int32 UPaperGroupedSpriteComponent::AddInstance(const FTransform& Transform, UPaperSprite* Sprite, bool bWorldSpace, FLinearColor Color)
 {
+	return AddInstanceWithMaterial(Transform, Sprite, nullptr, bWorldSpace, Color);
+}
+
+int32 UPaperGroupedSpriteComponent::AddInstanceWithMaterial(const FTransform& Transform, UPaperSprite* Sprite, UMaterialInterface* MaterialOverride, bool bWorldSpace, FLinearColor Color)
+{
 	const int32 NewInstanceIndex = PerInstanceSpriteData.Num();
 
 	const FTransform LocalTransform(bWorldSpace ? Transform.GetRelativeTransform(ComponentToWorld) : Transform);
 
-	FSpriteInstanceData& NewInstanceData = *new (PerInstanceSpriteData) FSpriteInstanceData();
-	SetupNewInstanceData(NewInstanceData, NewInstanceIndex, LocalTransform, Sprite, Color);
+	FSpriteInstanceData& NewInstanceData = *new (PerInstanceSpriteData)FSpriteInstanceData();
+	SetupNewInstanceData(NewInstanceData, NewInstanceIndex, LocalTransform, Sprite, MaterialOverride, Color);
 
 	MarkRenderStateDirty();
 
@@ -301,7 +306,7 @@ void UPaperGroupedSpriteComponent::PostEditChangeChainProperty(FPropertyChangedC
 		{
 			const int32 AddedAtIndex = PropertyChangedEvent.GetArrayIndex(PropertyChangedEvent.Property->GetFName().ToString());
 			check(AddedAtIndex != INDEX_NONE);
-			SetupNewInstanceData(PerInstanceSpriteData[AddedAtIndex], AddedAtIndex, FTransform::Identity, nullptr, FColor::White); //@TODO: Need to pull the sprite from somewhere
+			SetupNewInstanceData(PerInstanceSpriteData[AddedAtIndex], AddedAtIndex, FTransform::Identity, nullptr, nullptr, FColor::White); //@TODO: Need to pull the sprite from somewhere
 		}
 
 		MarkRenderStateDirty();
@@ -370,12 +375,12 @@ void UPaperGroupedSpriteComponent::ClearAllInstanceBodies()
 	InstanceBodies.Empty();
 }
 
-void UPaperGroupedSpriteComponent::SetupNewInstanceData(FSpriteInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform, UPaperSprite* InSprite, const FColor& InColor)
+void UPaperGroupedSpriteComponent::SetupNewInstanceData(FSpriteInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform, UPaperSprite* InSprite, UMaterialInterface* MaterialOverride, const FColor& InColor)
 {
 	InOutNewInstanceData.Transform = InInstanceTransform.ToMatrixWithScale();
 	InOutNewInstanceData.SourceSprite = InSprite;
 	InOutNewInstanceData.VertexColor = InColor;
-	InOutNewInstanceData.MaterialIndex = UpdateMaterialList(InSprite);
+	InOutNewInstanceData.MaterialIndex = UpdateMaterialList(InSprite, MaterialOverride);
 
 	if (bPhysicsStateCreated && (InSprite != nullptr) && (InSprite->BodySetup != nullptr))
 	{
@@ -433,20 +438,14 @@ void UPaperGroupedSpriteComponent::RebuildMaterialList()
 	for (FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
 	{
 		const int32 OldMaterialIndex = InstanceData.MaterialIndex;
-		const int32 NewMaterialIndex = UpdateMaterialList(InstanceData.SourceSprite);
-		InstanceData.MaterialIndex = NewMaterialIndex;
-
-		// Remap the overrides
 		UMaterialInterface* OldOverride = OldOverrides.IsValidIndex(OldMaterialIndex) ? OldOverrides[OldMaterialIndex] : nullptr;
-		
-		if ((OldOverride != nullptr) && (NewMaterialIndex >= 0))
-		{
-			SetMaterial(NewMaterialIndex, OldOverride);
-		}
+
+		const int32 NewMaterialIndex = UpdateMaterialList(InstanceData.SourceSprite, OldOverride);
+		InstanceData.MaterialIndex = NewMaterialIndex;
 	}
 }
 
-int32 UPaperGroupedSpriteComponent::UpdateMaterialList(UPaperSprite* Sprite)
+int32 UPaperGroupedSpriteComponent::UpdateMaterialList(UPaperSprite* Sprite, UMaterialInterface* MaterialOverride)
 {
 	int32 Result = INDEX_NONE;
 
@@ -455,6 +454,11 @@ int32 UPaperGroupedSpriteComponent::UpdateMaterialList(UPaperSprite* Sprite)
 		if (UMaterialInterface* SpriteMaterial = Sprite->GetMaterial(0))
 		{
 			Result = InstanceMaterials.AddUnique(SpriteMaterial);
+		}
+
+		if (MaterialOverride != nullptr)
+		{
+			SetMaterial(Result, MaterialOverride);
 		}
 	}
 

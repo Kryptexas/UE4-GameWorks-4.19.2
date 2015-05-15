@@ -70,7 +70,9 @@ public:
 
 	/** Add an instance to this component. Transform can be given either in the local space of this component or world space.  */
 	UFUNCTION(BlueprintCallable, Category="Components|Sprite")
-	virtual int32 AddInstance(const FTransform& LocalTransform, UPaperSprite* Sprite, bool bWorldSpace = false, FLinearColor Color = FLinearColor::White);
+	int32 AddInstance(const FTransform& Transform, UPaperSprite* Sprite, bool bWorldSpace = false, FLinearColor Color = FLinearColor::White);
+
+	virtual int32 AddInstanceWithMaterial(const FTransform& Transform, UPaperSprite* Sprite, UMaterialInterface* MaterialOverride = nullptr, bool bWorldSpace = false, FLinearColor Color = FLinearColor::White);
 
 	/** Get the transform for the instance specified. Instance is returned in local space of this component unless bWorldSpace is set.  Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
@@ -148,7 +150,7 @@ protected:
 	void ClearAllInstanceBodies();
 
 	/** Sets up new instance data to sensible defaults, creates physics counterparts if possible */
-	void SetupNewInstanceData(FSpriteInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform, UPaperSprite* InSprite, const FColor& InColor);
+	void SetupNewInstanceData(FSpriteInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform, UPaperSprite* InSprite, UMaterialInterface* MaterialOverride, const FColor& InColor);
 
 	/** Creates a body instance for the specified instance data if that sprite has defined collision */
 	FBodyInstance* InitInstanceBody(int32 InstanceIndex, const FSpriteInstanceData& InstanceData, FPhysScene* PhysScene);
@@ -160,7 +162,7 @@ protected:
 	void RebuildMaterialList();
 
 	/** Adds to the material list from a single sprite */
-	int32 UpdateMaterialList(UPaperSprite* Sprite);
+	int32 UpdateMaterialList(UPaperSprite* Sprite, UMaterialInterface* MaterialOverride);
 
 	friend FGroupedSpriteSceneProxy;
 	friend FGroupedSpriteComponentDetailsCustomization;
