@@ -7,9 +7,39 @@
 #endif //WITH_EDITOR
 #include "Engine/UserDefinedStruct.h"
 
+#if WITH_EDITORONLY_DATA
+namespace
+{
+	void GatherUserDefinedStructForLocalization(const UObject* const Object, TArray<FGatherableTextData>& GatherableTextDataArray)
+	{
+		const UUserDefinedStruct* const UserDefinedStruct = CastChecked<UUserDefinedStruct>(Object);
+
+		const FString PathToObject = UserDefinedStruct->GetPathName();
+
+		FStructOnScope StructData(UserDefinedStruct);
+		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct, StructData.GetStructMemory());
+
+		// Iterate over all fields of the object's class.
+		for (TFieldIterator<UProperty> PropIt(StructData.GetStruct(), EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
+		{
+			GatherLocalizationDataFromChildTextProperies(PathToObject, *PropIt, PropIt->ContainerPtrToValuePtr<void>(StructData.GetStructMemory()), GatherableTextDataArray, false);
+		}
+	}
+}
+#endif
+
 UUserDefinedStruct::UUserDefinedStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
+	struct FAutomaticRegistrationOfLocalizationGatherer
+	{
+		FAutomaticRegistrationOfLocalizationGatherer()
+		{
+			UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UUserDefinedStruct::StaticClass(), &GatherUserDefinedStructForLocalization);
+		}
+	} AutomaticRegistrationOfLocalizationGatherer;
+#endif
 }
 
 #if WITH_EDITOR

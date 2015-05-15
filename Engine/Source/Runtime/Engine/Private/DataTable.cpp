@@ -11,9 +11,38 @@ DEFINE_LOG_CATEGORY(LogDataTable);
 ENGINE_API const FString FDataTableRowHandle::Unknown(TEXT("UNKNOWN"));
 ENGINE_API const FString FDataTableCategoryHandle::Unknown(TEXT("UNKNOWN"));
 
+#if WITH_EDITORONLY_DATA
+namespace
+{
+	void GatherDataTableForLocalization(const UObject* const Object, TArray<FGatherableTextData>& GatherableTextDataArray)
+	{
+		const UDataTable* const DataTable = CastChecked<UDataTable>(Object);
+
+		const FString PathToObject = DataTable->GetPathName();
+		for (const auto& Pair : DataTable->RowMap)
+		{
+			const FString PathToRow = PathToObject + TEXT(".") + Pair.Key.ToString();
+			for (TFieldIterator<UProperty> PropIt(DataTable->RowStruct, EFieldIteratorFlags::IncludeSuper, EFieldIteratorFlags::ExcludeDeprecated, EFieldIteratorFlags::IncludeInterfaces); PropIt; ++PropIt)
+			{
+				GatherLocalizationDataFromChildTextProperies(PathToRow, *PropIt, PropIt->ContainerPtrToValuePtr<void>(Pair.Value), GatherableTextDataArray, false);
+			}
+		}
+	}
+}
+#endif
+
 UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
+	struct FAutomaticRegistrationOfLocalizationGatherer
+	{
+		FAutomaticRegistrationOfLocalizationGatherer()
+		{
+			UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDataTable::StaticClass(), &GatherDataTableForLocalization);
+		}
+	} AutomaticRegistrationOfLocalizationGatherer;
+#endif
 }
 
 void UDataTable::LoadStructData(FArchive& Ar)

@@ -685,7 +685,6 @@ FArchive& FArchiveSaveTagImports::operator<<( FAssetPtr& AssetPtr)
 	return *this << ID;
 }
 
-
 /**
  * Helper class for package compression.
  */
@@ -2890,7 +2889,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		FText StatusMessage = FText::Format( NSLOCTEXT("Core", "SavingFile", "Saving file: {CleanFilename}..."), Args );
 
-		const int32 TotalSaveSteps = 31;
+		const int32 TotalSaveSteps = 33;
 		FScopedSlowTask SlowTask(TotalSaveSteps, StatusMessage, bSlowTask);
 		SlowTask.MakeDialog(SaveFlags & SAVE_FromAutosave ? true : false);
 
@@ -3123,6 +3122,33 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 #endif // WITH_EDITOR
 
 				UE_LOG_COOK_TIME(TEXT("Serialize Imports"));
+				
+				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
+				SlowTask.EnterProgressFrame();
+
+				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
+				{
+					TArray<UObject*> TagExpObjects;
+					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+					for (UObject* const Object : TagExpObjects)
+					{
+						if( !Object->HasAnyFlags( RF_Transient | RF_PendingKill ) )
+						{
+							GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object, Linker->GatherableTextDataMap);
+
+							for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
+							{
+								FLocalizationDataGatheringCallback* const CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
+								if (CustomCallback)
+								{
+									(*CustomCallback)(Object, Linker->GatherableTextDataMap);
+								}
+							}
+						}
+					}
+				}
+
+				UE_LOG_COOK_TIME(TEXT("Gather Localizable Text Data"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3407,8 +3433,26 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->NameIndices.Add(Linker->NameMap[i], i);
 				}
 
-				
 				UE_LOG_COOK_TIME(TEXT("Serialize Names"));
+
+				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
+				SlowTask.EnterProgressFrame();
+
+				Linker->Summary.GatherableTextDataOffset = 0;
+				Linker->Summary.GatherableTextDataCount = 0;
+				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
+				{
+					Linker->Summary.GatherableTextDataOffset = Linker->Tell();
+
+					// Save gatherable text data.
+					Linker->Summary.GatherableTextDataCount = Linker->GatherableTextDataMap.Num();
+					for (FGatherableTextData& GatherableTextData : Linker->GatherableTextDataMap)
+					{
+						*Linker << GatherableTextData;
+					}
+				}
+
+				UE_LOG_COOK_TIME(TEXT("Serialize Gatherable Text Data"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();

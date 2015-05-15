@@ -1167,6 +1167,38 @@ void FPkgInfoReporter_Log::GeneratePackageReport( FLinkerLoad* InLinker/*=NULL*/
 		}
 	}
 
+	if( (InfoFlags&PKGINFO_Text) != 0 )
+	{
+		UE_LOG(LogPackageUtilities, Warning, TEXT("--------------------------------------------") );
+		GWarn->Log ( TEXT("Gatherable Text Data Map"));
+		GWarn->Log ( TEXT("=========="));
+
+		if (Linker->SerializeGatherableTextDataMap(true))
+		{
+			UE_LOG(LogPackageUtilities, Display, TEXT("Number of Text Data Entries: %d"), Linker->GatherableTextDataMap.Num());
+
+			for (int32 i = 0; i < Linker->GatherableTextDataMap.Num(); ++i)
+			{
+				const FGatherableTextData& GatherableTextData = Linker->GatherableTextDataMap[i];
+				UE_LOG(LogPackageUtilities, Display, TEXT("Entry %d:"), 1 + i);
+				UE_LOG(LogPackageUtilities, Display, TEXT("\t   String: %s"), *GatherableTextData.SourceData.SourceString.ReplaceCharWithEscapedChar());
+				UE_LOG(LogPackageUtilities, Display, TEXT("\tNamespace: %s"), *GatherableTextData.NamespaceName);
+				UE_LOG(LogPackageUtilities, Display, TEXT("\t   Key(s): %d"), GatherableTextData.SourceSiteContexts.Num());
+				for (const FTextSourceSiteContext& TextSourceSiteContext : GatherableTextData.SourceSiteContexts)
+				{
+					UE_LOG(LogPackageUtilities, Display, TEXT("\t\t%s from %s"), *TextSourceSiteContext.KeyName, *TextSourceSiteContext.SiteDescription);
+				}
+			}
+		}
+		else
+		{
+			if ( Linker->Summary.GatherableTextDataOffset > 0 )
+			{
+				UE_LOG(LogPackageUtilities, Warning,TEXT("Failed to load gatherable text data for package %s!"), *LinkerName.ToString());
+			}
+		}
+	}
+
 
 	if( (InfoFlags&PKGINFO_Thumbs) != 0 )
 	{

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -512,6 +512,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_LIBRARY_CATEGORIES_AS_FTEXT,
 	// Check for duplicate exports while saving packages.
 	VER_UE4_SKIP_DUPLICATE_EXPORTS_ON_SAVE_PACKAGE,
+	// Pre-gathering of gatherable, localizable text in packages to optimize text gathering operation times
+	VER_UE4_SERIALIZE_TEXT_IN_PACKAGES,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -11,6 +11,7 @@
 #include "LinkerManager.h"
 #include "Serialization/DeferredMessageLog.h"
 #include "UObject/UObjectThreadContext.h"
+#include "GatherableTextData.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -573,6 +574,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 				Status = SerializeNameMap();
 			}
 
+			// Serialize the gatherable text data map.
+			if( Status == LINKER_Loaded )
+			{
+				Status = SerializeGatherableTextDataMap();
+			}
+
 			// Serialize the import map.
 			if( Status == LINKER_Loaded )
 			{
@@ -667,6 +674,7 @@ FLinkerLoad::FLinkerLoad(UPackage* InParent, const TCHAR* InFilename, uint32 InL
 , bHaveImportsBeenVerified(false)
 , Loader(nullptr)
 , NameMapIndex(0)
+, GatherableTextDataMapIndex(0)
 , ImportMapIndex(0)
 , ExportMapIndex(0)
 , DependsMapIndex(0)
@@ -1099,9 +1107,10 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		}
 
 		// Slack everything according to summary.
-		ImportMap   .Empty( Summary.ImportCount   );
-		ExportMap   .Empty( Summary.ExportCount   );
-		NameMap		.Empty( Summary.NameCount     );
+		ImportMap					.Empty( Summary.ImportCount				);
+		ExportMap					.Empty( Summary.ExportCount				);
+		GatherableTextDataMap		.Empty( Summary.GatherableTextDataCount );
+		NameMap						.Empty( Summary.NameCount				);
 		// Depends map gets pre-sized in SerializeDependsMap if used.
 
 		// Avoid serializing it again.
@@ -1161,6 +1170,38 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeNameMap()
 
 	// Return whether we finished this step and it's safe to start with the next.
 	return ((NameMapIndex == Summary.NameCount) && !IsTimeLimitExceeded( TEXT("serializing name map") )) ? LINKER_Loaded : LINKER_TimedOut;
+}
+
+/**
+ * Serializes the gatherable text data container.
+ */
+FLinkerLoad::ELinkerStatus FLinkerLoad::SerializeGatherableTextDataMap(bool bForceEnableForCommandlet)
+{
+#if WITH_EDITORONLY_DATA
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FLinkerLoad::SerializeGatherableTextDataMap" ), STAT_LinkerLoad_SerializeGatherableTextDataMap, STATGROUP_LinkerLoad );
+
+	// Skip serializing gatherable text data if we are using seekfree loading
+	if( !bForceEnableForCommandlet && !GIsEditor )
+	{
+		return LINKER_Loaded;
+	}
+
+	if( GatherableTextDataMapIndex == 0 && Summary.GatherableTextDataCount > 0 )
+	{
+		Seek( Summary.GatherableTextDataOffset );
+	}
+
+	while( GatherableTextDataMapIndex < Summary.GatherableTextDataCount && !IsTimeLimitExceeded(TEXT("serializing gatherable text data map"),100) )
+	{
+		FGatherableTextData* GatherableTextData = new(GatherableTextDataMap)FGatherableTextData;
+		*this << *GatherableTextData;
+		GatherableTextDataMapIndex++;
+	}
+
+	return ((GatherableTextDataMapIndex == Summary.GatherableTextDataCount) && !IsTimeLimitExceeded( TEXT("serializing gatherable text data map") )) ? LINKER_Loaded : LINKER_TimedOut;
+#endif
+
+	return LINKER_Loaded;
 }
 
 /**
@@ -3956,6 +3997,7 @@ void FLinkerLoad::Detach()
 
 	// Empty out no longer used arrays.
 	NameMap.Empty();
+	GatherableTextDataMap.Empty();
 	ImportMap.Empty();
 	ExportMap.Empty();
 

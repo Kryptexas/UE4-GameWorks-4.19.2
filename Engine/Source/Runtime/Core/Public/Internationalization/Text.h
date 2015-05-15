@@ -321,6 +321,8 @@ public:
 	bool IsTransient() const { return (Flags & ETextFlag::Transient) != 0; }
 	bool IsCultureInvariant() const { return (Flags & ETextFlag::CultureInvariant) != 0; }
 
+	bool ShouldGatherForLocalization() const;
+
 private:
 
 	/** Special constructor used to create StaticEmptyText without also allocating a history object */
@@ -359,8 +361,6 @@ private:
 	static FText FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
 	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
 	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
-
-	bool ShouldGatherForLocalization() const;
 
 private:
 	template<typename T1, typename T2>

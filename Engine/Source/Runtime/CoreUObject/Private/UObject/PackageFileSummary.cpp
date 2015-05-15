@@ -118,9 +118,13 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		{
 			Ar.SetFilterEditorOnly(true);
 		}
-		Ar << Sum.NameCount     << Sum.NameOffset;
-		Ar << Sum.ExportCount   << Sum.ExportOffset;
-		Ar << Sum.ImportCount   << Sum.ImportOffset;
+		Ar << Sum.NameCount					<< Sum.NameOffset;
+		if (Sum.FileVersionUE4 >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+		{
+			Ar << Sum.GatherableTextDataCount	<< Sum.GatherableTextDataOffset;
+		}
+		Ar << Sum.ExportCount				<< Sum.ExportOffset;
+		Ar << Sum.ImportCount				<< Sum.ImportOffset;
 		Ar << Sum.DependsOffset;
 
 		if (Ar.IsLoading() && (Sum.FileVersionUE4 < VER_UE4_OLDEST_LOADABLE_PACKAGE || Sum.FileVersionUE4 > GPackageFileUE4Version))

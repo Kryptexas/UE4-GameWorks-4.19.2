@@ -4,6 +4,7 @@
 
 #include "ObjectBase.h"
 #include "EngineVersion.h"
+#include "GatherableTextData.h"
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogLinker, Log, All);
@@ -590,6 +591,16 @@ public:
 	int32 	NameOffset;
 
 	/**
+	 * Number of gatherable text data items in this package
+	 */
+	int32		GatherableTextDataCount;
+
+	/**
+	 * Location into the file on disk for the gatherable text data items
+	 */
+	int32 	GatherableTextDataOffset;
+	
+	/**
 	 * Number of exports contained in this package
 	 */
 	int32		ExportCount;
@@ -964,6 +975,9 @@ public:
 
 	/** Names used by objects contained within this package */
 	TArray<FName>			NameMap;
+
+	/** Gatherable text data contained within this package */
+	TArray<FGatherableTextData> GatherableTextDataMap;
 
 	/** The name of the file for this package */
 	FString					Filename;
@@ -1340,15 +1354,17 @@ public:
 private:
 	// Variables used during async linker creation.
 
-	/** Current index into name map, used by async linker creation for spreading out serializing name entries.				*/
+	/** Current index into name map, used by async linker creation for spreading out serializing name entries.					*/
 	int32						NameMapIndex;
-	/** Current index into import map, used by async linker creation for spreading out serializing importmap entries.		*/	
+	/** Current index into gatherable text data map, used by async linker creation for spreading out serializing text entries.	*/
+	int32						GatherableTextDataMapIndex;
+	/** Current index into import map, used by async linker creation for spreading out serializing importmap entries.			*/	
 	int32						ImportMapIndex;
-	/** Current index into export map, used by async linker creation for spreading out serializing exportmap entries.		*/
+	/** Current index into export map, used by async linker creation for spreading out serializing exportmap entries.			*/
 	int32						ExportMapIndex;
-	/** Current index into depends map, used by async linker creation for spreading out serializing dependsmap entries.		*/
+	/** Current index into depends map, used by async linker creation for spreading out serializing dependsmap entries.			*/
 	int32						DependsMapIndex;
-	/** Current index into export hash map, used by async linker creation for spreading out hashing exports.				*/
+	/** Current index into export hash map, used by async linker creation for spreading out hashing exports.					*/
 	int32						ExportHashIndex;
 
 
@@ -1899,6 +1915,11 @@ private:
 	ELinkerStatus SerializeDependsMap();
 
 public:
+	/**
+	 * Serializes the gatherable text data container.
+	 */
+	COREUOBJECT_API ELinkerStatus SerializeGatherableTextDataMap(bool bForceEnableForCommandlet = false);
+
 	/**
 	 * Serializes thumbnails
 	 */
