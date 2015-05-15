@@ -1986,6 +1986,11 @@ public:
 private:
 
 	/**
+	* Calculates the range of FPS values for the given bucket index
+	*/
+	void CalcQuantisedFPSRange(int32 BucketIndex, int32& StartFPS, int32& EndFPS);
+
+	/**
 	 * Dumps the FPS chart information to HTML.
 	 */
 	virtual void DumpFPSChartToHTML( float TotalTime, float DeltaTime, int32 NumFrames, const FString& InMapName  );

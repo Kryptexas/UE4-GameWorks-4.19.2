@@ -45,9 +45,6 @@ enum FPSChartStats
 	STAT_FPSChart_110_120,
 	STAT_FPSChart_120_INF,
 	STAT_FPSChartLastBucketStat,
-	STAT_FPSChart_30Plus,
-	STAT_FPSChart_UnaccountedTime,
-	STAT_FPSChart_FrameCount,
 
 	/** Hitch stats */
 	STAT_FPSChart_FirstHitchStat,
@@ -65,18 +62,6 @@ enum FPSChartStats
 	STAT_FPSChart_Hitch_60_100,
 	STAT_FPSChart_LastHitchBucketStat,
 	STAT_FPSChart_TotalHitchCount,
-
-	/** Unit time stats */
-	STAT_FPSChart_UnitFrame,
-	STAT_FPSChart_UnitRender,
-	STAT_FPSChart_UnitGame,
-	STAT_FPSChart_UnitGPU,
-
-	STAT_FPSChart_TotalFrameCount,
-	STAT_FPSChart_TotalUnitFrame,
-	STAT_FPSChart_TotalUnitRender,
-	STAT_FPSChart_TotalUnitGame,
-	STAT_FPSChart_TotalUnitGPU,
 };
 
 /** Start time of current FPS chart.										*/

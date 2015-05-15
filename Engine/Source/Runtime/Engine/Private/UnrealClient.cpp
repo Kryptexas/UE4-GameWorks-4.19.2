@@ -306,10 +306,10 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	RawGPUFrameTime = FPlatformTime::ToMilliseconds(GPUCycles);
 	GPUFrameTime = 0.9 * GPUFrameTime + 0.1 * RawGPUFrameTime;
 
-	SET_FLOAT_STAT(STAT_FPSChart_UnitFrame, FrameTime);
-	SET_FLOAT_STAT(STAT_FPSChart_UnitRender, RenderThreadTime);
-	SET_FLOAT_STAT(STAT_FPSChart_UnitGame, GameThreadTime);
-	SET_FLOAT_STAT(STAT_FPSChart_UnitGPU, GPUFrameTime);
+	SET_FLOAT_STAT(STAT_UnitFrame, FrameTime);
+	SET_FLOAT_STAT(STAT_UnitRender, RenderThreadTime);
+	SET_FLOAT_STAT(STAT_UnitGame, GameThreadTime);
+	SET_FLOAT_STAT(STAT_UnitGPU, GPUFrameTime);
 
 	GEngine->SetAverageUnitTimes(FrameTime, RenderThreadTime, GameThreadTime, GPUFrameTime);
 
