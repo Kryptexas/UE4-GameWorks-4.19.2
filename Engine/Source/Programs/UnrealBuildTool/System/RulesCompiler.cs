@@ -443,6 +443,13 @@ namespace UnrealBuildTool
 		/// </summary>
         public bool bUseStaticCRT = false;
 
+		
+        /// <summary>
+		/// Allow a target to specify a preferred sub-platform.
+		/// Can be used to target a build using sub platform specifics.
+		/// </summary>
+		public string PreferredSubPlatform = String.Empty;
+
         /// <summary>
         /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
         /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
