@@ -1,0 +1,178 @@
+Availability:Public
+Title: Open World Tools Overview
+Crumbs:
+Description: A system for procedurally placing Static Meshes in your levels.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[TOC (start:2 end:3)]
+
+![](T_Kite_Demo_00.png)
+
+During the 2015 Games Developer Conference(GDC) Epic showed off to the world UE4's ability to render massive open worlds full of both flora and fauna.
+With the release of Unreal Engine 4.8 (UE4) the tools used to create this demo, referred to as the Open World Tools, are now available for use in your UE4 projects. 
+In the following set of tutorials we will be taking a look at these tools and how you can use them in your UE4 projects.
+
+## Prerequisites
+
+Before you can use the Procedural Foliage tools in your project, you must first enable them by going to the **Main Toolbar** and then going to **Edit** > **Editor Preferences** > **Experimental**. 
+Once you are in the Experimental section enable Procedural Foliage option by clicking on the checkmark box next to the word **Procedural Foliage**. 
+
+![](T_Enable_PFT.gif)(convert:false)
+
+## Types of Procedural Tools 
+The Procedural Tools that come with the 4.8 release of Unreal Engine 4 allow you to place Static Meshes inside your levels using a computer algorithm to determine placement instead having to do this work manually. 
+These tools are great if you want to quickly generate a natural looking forest comprised of many different species of trees, or have a certain species of bush spawn whenever a certain Texture is painted on the Landscape Terrain.
+
+When talking about the Procedural Foliage tools inside UE4, we are actually referring to the two different tool sets. 
+The tool set that you use depends on what you want to accomplish. 
+For example if you want to make an expansive pine and birch tree forest then you're going to want to use the **Procedural Foliage Tools**. 
+If you want to densely populate the Landscape Terrain used in that pine and birch tree forest with some grass, flowers and small rocks then you would use the **Grass Tools**.
+
+### Procedural Foliage Tool 
+The Procedural Foliage Tool is used for simulating huge forests that are filled with lots of different kinds of trees and bushes. 
+This tool works by simulating how a forest grows over the years using **Steps** to define years of growth. 
+At each Step in the simulation new virtual seeds are cast into the level to act as spawn locations for other Foliage Type Actors. 
+By tweaking the various Foliage Types options like **Spread**, **Size**, and **Priority Settings**, you will affect how those Foliage Types spread and compete for spawn locations through the level the Procedural Foliage Spawner in placed in.
+To learn more about how to use the Procedural Foliage Tool, check out the Procedural Foliage Quick Start that is linked below.
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](T_PFT_Trees_00.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Procedural Foliage Tool Quick Start
+	[/PARAM]
+	[PARAM:description]
+		A comprehensive guide for getting the Procedural Foliage Tool setup and working.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/ProceduralFoliage/QuickStart]
+	[/PARAM]
+[/OBJECT]
+[/region]
+
+#### Foliage Type Actors
+The Procedural Foliage Tools makes use of Actors called **Foliage Types**. 
+Foliage Types allow you to define various properties the Foliage should have like what Static Mesh to use or how big Static Mesh should be spawned.
+The chart below gives a very high level explanation of the four main sets of properties that the Foliage Type Actor are broken down into and what those options do.
+
+![](T_Foliage_Type_Actor.png)
+
+| Property Name| Description |
+| ------------ | ----------- |
+|**Mesh**| The Mesh section is where you define which Static Mesh to use for the foliage.|
+|**Placement**| The Placement section is where you can adjust how the Static Mesh specified in the Mesh section are placed on objects through out the level.|
+|**Growth**| The Growth section helps define how big the trees will be at the beginning of the simulation and how big they will "Grow" to by the end of the simulation.|
+|**Instance Settings**| The Instance Settings allows you to adjust how the Static Mesh used for the Foliage Type will be displayed in the level.|
+
+### Grass Tool
+[region:note]
+Currently the Grass Tools will only work in conjunction with the Landscape Terrain system. 
+[/region]
+The Grass Tools are used to densely cover the Landscape Terrain in things Static Mesh to simulate things like grass, flowers, and small rocks. 
+You can use the Grass Tools to define a Static Mesh that will spawn when a certain Landscape Layer is painted on the Landscape Terrain. 
+This tool does not use any kind of simulation like the Procedural Foliage Spawner does, it simply fills the specified area at the specified density with the specified Static Mesh. 
+To lean more about how to use the Grass Tool, check out the Grass Tool Quick Start that is lined below.
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](T_PFT_Grass_00.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Grass Tool Quick Start
+	[/PARAM]
+	[PARAM:description]
+		A comprehensive guide for getting the Grass Tool setup and working.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/Grass/QuickStart]
+	[/PARAM]
+[/OBJECT]
+[/region]
+
+#### Grass Type Actors
+The Grass Tool makes use of Actors called **Landscape Grass Types**.
+Landscape Grass Types allow you to define various properties the Grass should have like what Static Mesh to use for the grass and how many of those Static Meshes should be spawned.
+The chart below gives a very high level explanation of the main sets of properties that the Landscape Grass Type Actor is broken down into and what those options do.
+
+![](T_LS_Grass_Type_Actor.png)
+
+| Property Name| Description |
+| ------------ | ----------- |
+|**Grass Varieties**| Inside of Grass Varieties you can specify what type of Static Mesh to use for the grass as well as grass density and cull distance settings.|
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

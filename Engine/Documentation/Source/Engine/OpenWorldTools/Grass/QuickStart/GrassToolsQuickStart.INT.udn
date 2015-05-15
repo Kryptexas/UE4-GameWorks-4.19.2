@@ -1,0 +1,125 @@
+Availability:Public
+Title: Grass Tool Quick Start
+Crumbs:
+Description:A Quick Start guide for setting up and using the Grass Tools.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+## Overview
+
+While the Procedural Foliage tools are great a simulating a huge forest that has many different species of trees and bushes in it, the one thing that it can not do very well is spawn the thousands and thousands of Static Meshes that would be needed to make the Landscape look like it was densely covered in grass or rocks. 
+To accomplish this a new tool was introduced to UE4, the **Grass Tool**. 
+The Grass Tool allows you to define a Static Mesh and amount to spawn on the Landscape Terrain whenever a certain Texture is painted on the Landscape. 
+In the following How - To we will cover all you need to know about using the Grass Tool in your levels.
+
+![](T_Grass_Intro.png)
+
+[region:note]
+Currently the Grass system will only work with the Landscape Terrain actor. Trying to use the Grass system to spawn grass on any other actor type will not work.
+[/region]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\OpenWorldTools\Grass\QuickStart\1)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\2)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\3)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\4)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

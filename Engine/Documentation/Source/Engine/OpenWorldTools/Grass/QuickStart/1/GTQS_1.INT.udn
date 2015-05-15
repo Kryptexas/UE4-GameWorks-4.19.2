@@ -1,0 +1,119 @@
+Availability:Public
+Title:1. Grass Tool Initial Setup
+Crumbs:
+Description: How To set up the Initial Actors the Grass Tool needs to work.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[How-To Home](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[Next Step](Engine\OpenWorldTools\Grass\QuickStart\2 "%Engine\OpenWorldTools\Grass\QuickStart\2:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+In the following section we will create a new level and all of the required Actors the Grass Tool requires to function correctly inside of a UE4 level.
+
+1. First create a new level inside UE4 by going to the **Main Toolbar** then going to **File** and clicking on the **New Level** option. When prompted pick the **Default Template** as a base level.
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1\T_New_Level.png)
+
+1. After the new level has loaded, add a new Landscape actor to the level by first clicking on the **Landscape Tool** icon and then pressing the **Create** button to add the Landscape Actor to the level.
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1\T_Create_Landscape.gif)(convert:false)
+
+1. Next in the **Landscape Tools** under the **Landscape Editor** section click on the **Sculpt Tool** icon to expose the available tools then pick the **Noise** tool from the tool list and adjust the following properties with the following values.
+	
+	![](T_Sculpt_Tool_Settings.png)
+
+	* **Brush Size:** 65536.0
+	* **Tool Strength:** 0.01
+	* ** Noise Scale:** 256
+
+1. Now position the Landscape Brush in the viewport so that it covers the entire Landscape Terrain then click the **Left Mouse Button**	three to four times to add some very subtle noise to the Landscape surface. 
+	When completed you should have something that looks similar to the following image.
+
+	![](T_Noise_On_Landscape.png)
+
+1. Exit the Landscape Tools by clicking on the **Place** icon in the **Modes** panel.
+
+	![](T_Exit_LS_Tools.png)
+
+1. Finally save your work and level by pressing the **Save All** button to save all content and the ** Save** button to save the level. 
+	When prompted for a level name use the name **GT_00**.
+
+	![](T_Save_All.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%

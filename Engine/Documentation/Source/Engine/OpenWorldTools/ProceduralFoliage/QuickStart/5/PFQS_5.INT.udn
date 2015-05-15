@@ -1,0 +1,65 @@
+Availability:Public
+Title: 5. Using the Procedural Foliage Blocking Volume
+Crumbs:
+Description:In this step we will set up a blocking volume to restrict where foliage can spawn.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[Previous Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[How-To Home](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+The **Procedural Foliage Blocking Volume** is an Volume Actor that can be placed in a level and scaled to a desired size which will prevent the Procedural Foliage Spawner 
+form spawning any Foliage Actors inside of the bounds of the Procedural Foliage Blocking Volume.
+In the following section we will go over how you can add a **Procedural Foliage Blocking Volume** to your level and use it to prevent Foliage meshes from spawning.
+We will be continue to work with the **PFT_00** level that was used in the last step.
+If you have closed down this level please re-open it inside of UE4 before going any further.
+
+1. First find the Procedural Foliage Blocking Volume by searching for it in the **Modes** panel using **Proc** as the search term.  
+
+	![](T_Find_ProcF_Blocking_Volume.png)
+
+1. Once the Procedural Foliage Blocking Volume has been located in the Modes panel, select it by clicking on it with the mouse and then drag it from the Modes panel into the level.
+
+	![](T_Adding_PFV_To_Level.gif)(convert:false)
+
+1. Next input the following values for the Procedural Foliage Blocking Volume location and scale. When completed you should have something that looks similar to the image below.
+
+	* **Location X:** 5430.0 cm
+	* **Location Y:** -3900.0 cm
+	* **Location Z:** 200.0 cm
+	* **Scale    X:** 41.75
+	* **Scale    Y:** 65.5
+	* **Scale    X:** 41.75
+	
+	![](T_PFBV_Postion.png)
+
+1. Now select the **Procedural Foliage Spawner** in the level and then in the **Details** panel press the **Resimulate** button. 
+   When the Resimulate is completed you should now be missing the entire back section of trees that where intersecting with the Procedural Foliage Blocking Volume.
+   In the following image we can see the before and after results. 
+
+	   ![](T_PFV_Before_After.png)
+
+	   * 1: Before
+	   * 2: After
+
+1. Finally save your work and level by pressing the **Save All** button to save all content and the ** Save** button to save the level. 
+	
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+%Steps%

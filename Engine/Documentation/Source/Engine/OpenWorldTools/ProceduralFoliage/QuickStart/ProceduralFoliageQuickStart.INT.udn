@@ -1,0 +1,51 @@
+Availability:Public
+Title: Procedural Foliage Tools Quick Start
+Crumbs:
+Description:How to set up and use the Procedural Foliage tools.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+
+## Overview
+In this Procedural Foliage Quick Start we will take a look at how the **Procedural Foliage Tools** that are available with the 4.8 release of Unreal Engine 4 (UE4) work. 
+Over the course of this Quick Start you will learn how to use the Procedural Foliage Tools in the manner they are intended to be used as well as how the Procedural Foliage Tools work in conjunction with other tools inside UE4.
+You will also be introduced to key tool properties that will help you achieve constant results that you are happy with.
+When you have completed this Quick Start you will have a new level that should look similar to the image below. 
+
+![](T_PF_QS_Final_Product.png)
+
+After completing this Quick Start you should gain a better understanding of what Actor types are required for the Procedural Foliage Tools and how to set them up to work correctly.
+You will also be introduced to any caveats the tools have and how to adjust workflows accordingly.
+
+
+[region:note]
+If you have not done so already, make sure to enable the Procedural Foliage tools in your project by first going to the Main Toolbar and then going to **Edit** > **Editor Preferences** > **Experimental**. 
+Once you are in the Experimental section enable the Procedural Foliage option by clicking on the checkmark box next to the word **Procedural Foliage**. 
+[/region]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Steps
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+

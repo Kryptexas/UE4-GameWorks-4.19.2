@@ -1,0 +1,75 @@
+Availability:Public
+Title: 4. Using Multiple Foliage Types
+Crumbs:
+Description:In this step we will set up our Foliage Spawner to work with multiple Foliage Types.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[Previous Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[How-To Home](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[Next Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+Having a single species of tree does not make our virtual forest look very interesting nor realistic. 
+Luckily for us the **Procedural Foliage Spawner** allows for you to spawn multiple **Foliage Types** resulting in one single **Procedural Foliage Spawner** being able to spawn an entire forest with a multitude of different trees. 
+In the following section we will take a look at how you can set up a Procedural Foliage Spawner to work with multiple Foliage Types.
+We will be continuing to work with the **PFT_00** level that was used in the last step.
+If you have closed down this level please re-open before going any further.
+
+1. First inside of the **Content Browser** select the **Tree_00** Foliage Type by clicking on it with the mouse then press **Ctrl + W** on the Keyboard to duplicate it and name it **Tree_01**.
+
+	![](T_Dup_FT.png)
+
+1. Then open the newly created **Tree_01** Foliage Type up and under the **Mesh** section change the mesh to the **ScotsPineTall_01** Static Mesh.
+
+	![](T_New_Mesh.png)
+
+1. Next open up the **Procedural Foliage Spawner** from the **Content Browser** and expand the **Foliage Types** section.
+
+	![](T_Expand_FT.png)
+
+1. Now click on the **Plus** sign icon to add the option to input another Foliage Type.
+
+	![](T_Add_New_FT.png)
+
+1. Next from the **Content Browser** select the **Tree_01** Foliage Type and then in the Procedural Foliage Spawner under the **Foliage Types** add the **Tree_01** Foliage Type to the empty **Foliage Type Object** by pressing the white **Arrow** icon.
+
+	![](T_Add_New_FT_Type.gif)(convert:false)
+
+1. Then select the **Procedural Foliage Spawner** that was placed in the level and press the **Resimulate** button and you should now have something that looks like this in your level.
+
+	![](T_2_FT_In_Level.png)
+
+1. While this does look very interesting the results could be better. Open up the **Tree_01** Foliage Type and adjust the following settings.
+	* **Num Steps:** 4
+	* **Initial Seed Density:** 0.125
+	* **Average Spread Distance:** 100
+	* **Can Grow in Shade:** Enabled
+	* **Spawns in Shade:** Enabled
+	* **Max Age:** 15
+	* **Overlap Priority:** 1
+	* **Procedural Scale:** Max 5.0
+
+1. Once the settings have been adjusted press the **Re-Simulate** button on the Procedural Foliage Spawner.
+
+	![](T_FT01_Adjust_Settings.png)
+
+1. Finally make sure to save all of you work by pressing both the **Save All** and **Save** buttons.
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+%Steps%

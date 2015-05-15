@@ -1,0 +1,124 @@
+Availability:Public
+Title: 3. Procedural Foliage Tool tweaking Actor properties
+Crumbs:
+Description:In this step we tweak the settings of the Procedural Foliage Actors.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[Previous Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[How-To Home](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[Next Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+In the following section we will take a look at the various options of the **Foliage Type Actor**, what those options do, and how you can use them to tweak how your Foliage Meshes are placed through the level.
+We will continue to work with the **PFT_00** level that was used in the last step.
+If you have closed down this level please re-open it inside of UE4 before going any further.
+
+1. First open up the **Tree_00** Foliage Type if not already open and expand the **Placement** section to make sure that both **Align to Normal** and **Random Yaw** are enabled.
+
+	![](T_Placement_Options.png)
+
+	[region:note]
+	The Placement section is where you can adjust how the Static Meshes used in the Foliage Type are placed on objects in the level. 
+	[/region]
+
+1. Next expanded the **Procedural** section of the Foliage Type and then expand the **Collision** section and set the **Shade Radius** to **50** then press the **Resimulate** button on the Procedural Foliage Spawner that was placed in the level. 
+
+	![](T_Shade_Radius.png)
+
+	[region:note]
+	The Collision section determines which Foliage Types should be removed when two Foliage Types are competing for the same spawn location or relative space. When a Virtual Seed's collision radius overlaps an existing collision or shade radius from another Foliage Type's Virtual Seed, the Virtual Seed will be replace or killed based which Foliage Type has the higher propriety.
+	[/region]
+
+1. Now collapse the **Collision** section and expand the **Clustering** section, then set the **Num Steps**  to **0** and press the **Resimulate** button. 
+
+	![](T_Num_Steps_0.png)
+
+	[region:note]
+	Clustering uses a number of properties such as, density, age, and proximity to help determine how the specified Static Meshes should placed and grouped in the level. 
+	[/region]
+
+1. While we now have some space in between our trees, the over all density is still a little to high. 
+	To fix this set the **Initial Seed Density** to **0.25** and then press the **Resimulate** button.
+
+	![](T_Num_ISD_0.125.png)
+
+1. As you can see, setting the **Initial Seed Density** to **0.25** greatly reduced the density of our forest, all most a little to much. 
+	To address this set the **Num Steps** back to **three** and then press the **Resimulate** button.
+
+	![](T_Num_Steps_3.png)
+
+1. Now collapse the **Clustering** section and expand the **Growth** section then 
+	set the **Max Age** to **20.0** and under **Procedural Scale** set the Max value to **10.0** then press the **Resimulate** button. 
+
+	![](T_Set_Growth.png)
+
+1. Next collapse the **Growth** section and expand the ** Instance Settings** options and then under the **Cull Distance** option set the **Max** value to **20,000**. 
+	
+	![](T_Cull_Distance.png)
+
+	[region:note]
+	The Instance Settings allows you to adjust how the Static Mesh used for the Foliage type will be displayed in the level. Inside the Instance Settings you can set or adjust many different properties like Cull Distance, Shadowing, and Collision. Which properties you adjust here depend on how you are using the Foliage in your level. 
+	[/region]
+
+1. Finally make sure to save the level and content by pressing the **Save** button on the **Main Tool Bar** and **Save All** button on the **Content Browser**.
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%

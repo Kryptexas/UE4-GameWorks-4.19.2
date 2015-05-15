@@ -1,0 +1,63 @@
+Availability:Public
+Title: 2. Procedural Foliage Tool Actors Setup
+Crumbs:
+Description:In this step we setup all of the required Actors.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[Previous Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[How-To Home](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[Next Step](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+In the following section we will cover how to set up the **Foliage Type Actors** to work with the Procedural Foliage Spawner. 
+We will continue to work with the **PFT_00** level that was created in the last step so if you have closed down this level please re-open it before going any further.
+
+1. First open up the **Procedural Foliage Spawner** by **Double - Clicking** on it with the **Left Mouse Button** inside of the Content Browser. 
+
+	![](T_PFS_Opened.png)
+
+1. Next add a new item to the **Foliage Types** array by pressing the **Plus Sign** icon that is to the right of the **Foliage Types** menu option.
+
+	![](T_PFS_Add_FT.png)
+
+1. Then in the Content Browser select the **Tree_00** Foliage Type and in the **Foliage Types** section of the Procedural Foliage Spawner press the **Arrow** icon to load the selected Foliage Type into the Procedural Foliage Spawner.
+
+	![](T_Assign_PFT_To_PFS.gif)(convert:false)
+
+1. With a Foliage Type now set for Procedural Foliage Spawner open up the **Tree_00** Foliage Type so that we can do a very basic setup to ensure everything is working.
+
+	![](T_PFT_Window.png)
+
+1. At the top of the Tree_00 Foliage Type locate the **Mesh** section and then click on the drop down menu that says **None** with the **Left Mouse Button**. 
+	Use the search menu locate  **HillTree_02** Static Mesh from the **Open World Demo Collection** by inputting **HillTree_02** as the search term. 
+	Once the **HillTree_02** is located, load it by clicking on it with the **Left Mouse Button**. 
+
+	![](T_Set_Tree_Mesh.gif)(convert:false)
+
+1. Next inside the viewport select the **Procedural Foliage Spawner** that was placed in the level and then expand the **Procedural Foliage** section. 
+	
+	![](T_PFV_Select_In_Level.png)
+
+1. Under the **Procedural Foliage** section press the **Resimulate** button and you should now have something that looks like this in your level.
+
+	![](T_Final_Results.png)
+
+1. Finally save your work and level by pressing the **Save All** button to save all content and the ** Save** button to save the level.  
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+%Steps%
