@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2541080
+﻿INTSourceChangelist:2550597
 Availability:Public
 Title:ダイレクト ブループリント通信
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:別のブループリントと直接データを受け渡しする方法のデモ 
+Description:別のブループリントと直接データを受け渡しする方法 
 Related:Engine/Blueprints/UserGuide/BlueprintComms
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
 
-2 つのブループリント間での直接通信方法およびデータの受け渡し方法を説明します。 
+このページでは、[Direct Blueprint Communication](Engine/Blueprints/UserGuide/BlueprintComms) を使用して2 つのブループリント間で直接通信したりデータの受け渡しを行方法を説明します。 
 
 この例では、プレイヤーはボックス経由で渡して通信しパーティクルエフェクトをアクティベートすることができます。 
 
@@ -15,13 +15,13 @@ Related:Engine/Blueprints/UserGuide
 このガイドでは、**Starter Content** を有効にした状態で **Blueprint Third Person** テンプレートを使用します。 
 [/REGION]
 
-1. **コンテンツ ブラウザ** で、 **Content/StarterContent/Shapes** フォルダを開きます。 
+1. **コンテンツ ブラウザ** で、「 **Content/StarterContent/Shapes** 」フォルダを開きます。 
 
-1. on the **Shape_Cube** を **右クリック** し、 _Asset Actions_ から **[Create Blueprint Using This...]** を選択します。
+1. **Shape_Cube** を **右クリック** し、 _Asset Actions_ から **[Create Blueprint Using This...]** を選択します。
 
 	![](DirectCom1.png)
 
-	表示された確認ボックスの **Ok** をクリックしてブループリントを作成します。 
+	表示された確認ボックスの **[Ok]** をクリックしてブループリントを作成します。 
 
 1. Shape_Cube ブループリントの左上の **[Components]** の **[Static Mesh]** を選択します。 
 
@@ -37,7 +37,7 @@ Related:Engine/Blueprints/UserGuide
 
 	これが直接通信を行いたい相手のブループリントになります。 
 
-1. 変数の **[Details]** パネルで **Variable Type** を **[Blueprint_Effect_Fire]** に設定し、**Editable** にします。 
+1. 変数の **[Details]** パネルで **Variable Type** を **[Blueprint_Effect_Fire]** に設定し、**編集可能** にします。 
 
 	![](DirectCom4.png)
 
@@ -55,7 +55,7 @@ Related:Engine/Blueprints/UserGuide
 
 	ここで Target Blueprint の Particle Effect コンポーネントと Audio コンポーネントへアクセスして、それらを有効にします。 
 
-1. **コンテンツ ブラウザ** の **コンテンツ ブラウザ** で、**Shape_Cube** ブループリントをレベルへドラッグします。 
+1. **コンテンツ ブラウザ** の **Blueprint** で、**Shape_Cube** ブループリントをレベルへドラッグします。 
 
 	![](DirectCom5.png)(w:720)
 
@@ -69,7 +69,7 @@ Related:Engine/Blueprints/UserGuide
 
 1. **Blueprint_Effect_Fire** ブループリントをレベルへドラッグします。 
 
-1. **Shape_Cube** ブループリントを選択し、次に **Details** パネルのドロップダウン メニューで **Blueprint_Effect_Fire** ブループリントを選択します。 
+1. **Shape_Cube** ブループリントを選択し、次に **[Details]** パネルのドロップダウン メニューで **Blueprint_Effect_Fire** ブループリントを選択します。 
 
 	![](DirectCom7.png)
 
@@ -79,7 +79,7 @@ Related:Engine/Blueprints/UserGuide
 	**Eye Dropper** アイコンをクリックすれば、ドロップダウン メニューを使わなくてもレベル内の **Target Bluperint** のインスタンスを選択することができます。指定した変数タイプに基づいたブループリントしかターゲットとして選択できないのでご注意ください。 
 	[/REGION]
 
-1. **Play** ボタンをクリックしてエディタで再生し、キャラクターがボックスを走利抜けるテストをします。 
+1. **[Play]** ボタンをクリックしてエディタで再生し、キャラクターがボックスを走利抜けるテストをします。 
 
 キャラクターがボックスへ入ると、レベル内で炎のエフェクトがアクティベートするのが分かります。別のブループリントからブループリントのプロパティを変えるためだけでなく、関数やイベントといったブループリントでの通常処理の呼び出しにも **Direct Bluperint Communcation*** を使用できます。 
 
