@@ -5,6 +5,7 @@
 #include "Engine/LatentActionManager.h"
 #include "BlueprintFunctionLibrary.h"
 #include "Engine/CollisionProfile.h"
+#include "AssetPtr.h"
 #include "KismetSystemLibrary.generated.h"
 
 UENUM(BlueprintType)
@@ -134,6 +135,12 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintPure, meta=(DisplayName = "ToObject (interface)", CompactNodeTitle = "->"), Category="Utilities")
 	static UObject* Conv_InterfaceToObject(const FScriptInterface& Interface); 
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static UObject* Conv_AssetToObject(const TAssetPtr<UObject>& Asset);
+
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static TSubclassOf<UObject> Conv_AssetClassToClass(const TAssetSubclassOf<UObject>& AssetClass);
 
 	/**
 	 * Creates a literal integer
@@ -447,6 +454,14 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/** Set a NAME property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetNamePropertyByName(UObject* Object, FName PropertyName, const FName& Value);
+
+	/** Set a ASSET property by name */
+	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value"))
+	static void SetAssetPropertyByName(UObject* Object, FName PropertyName, const TAssetPtr<UObject>& Value);
+
+	/** Set a ASSETCLASS property by name */
+	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value"))
+	static void SetAssetClassPropertyByName(UObject* Object, FName PropertyName, const TAssetSubclassOf<UObject>& Value);
 
 	/** Set a STRING property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))

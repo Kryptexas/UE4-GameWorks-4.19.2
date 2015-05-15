@@ -296,6 +296,11 @@
 
 			break;
 		}
+		case EX_AssetConst:
+		{
+			SerializeExpr(iCode, Ar);
+			break;
+		}
 		case EX_NameConst:
 		{
 			XFERNAME();

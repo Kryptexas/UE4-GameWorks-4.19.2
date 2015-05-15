@@ -16,6 +16,11 @@ FString UAssetObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("ASSETOBJECT");
 }
 
+FString UAssetObjectProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString::Printf(TEXT("class %s%s;"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName());
+}
+
 FName UAssetObjectProperty::GetID() const
 {
 	return NAME_AssetObjectProperty;

@@ -545,9 +545,9 @@ public:
 					{
 						NewTerm.TextLiteral = FText::FromString(NewTerm.Name);
 					}
-					else if (InnerProp->IsA(UObjectProperty::StaticClass()))
+					else if (InnerProp->IsA(UObjectPropertyBase::StaticClass()))
 					{
-						NewTerm.ObjectLiteral = Cast<UObjectProperty>(InnerProp)->GetObjectPropertyValue(RawElemData);
+						NewTerm.ObjectLiteral = Cast<UObjectPropertyBase>(InnerProp)->GetObjectPropertyValue(RawElemData);
 					}
 					EmitTermExpr(&NewTerm, InnerProp);
 				}
@@ -566,6 +566,12 @@ public:
 					Writer << EX_InstanceDelegate;
 					Writer << FunctionName;
 				}
+			}
+			else if (CoerceProperty->IsA(UAssetObjectProperty::StaticClass()))
+			{
+				Writer << EX_AssetConst;
+				FAssetPtr AssetPtr(Term->ObjectLiteral);
+				EmitStringLiteral(AssetPtr.GetUniqueID().AssetLongPathname);
 			}
 			else if (CoerceProperty->IsA(UObjectPropertyBase::StaticClass()))
 			{
@@ -880,6 +886,7 @@ public:
 		const bool bIsMulticastDelegate = Cast<UMulticastDelegateProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
 		const bool bIsBoolean = Cast<UBoolProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
 		const bool bIsObj = Cast<UObjectPropertyBase>(DestinationExpression->AssociatedVarProperty) != NULL;
+		const bool bIsAsset = Cast<UAssetObjectProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
 		const bool bIsWeakObjPtr = Cast<UWeakObjectProperty>(DestinationExpression->AssociatedVarProperty) != NULL;
 		if (bIsMulticastDelegate)
 		{
@@ -893,7 +900,7 @@ public:
 		{
 			Writer << EX_LetBool;
 		}
-		else if (bIsObj)
+		else if (bIsObj && !bIsAsset)
 		{
 			if( !bIsWeakObjPtr )
 			{

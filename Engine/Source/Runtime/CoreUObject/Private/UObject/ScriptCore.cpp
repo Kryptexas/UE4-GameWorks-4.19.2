@@ -1815,6 +1815,14 @@ void UObject::execObjectConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 
+void UObject::execAssetConst(FFrame& Stack, RESULT_DECL)
+{
+	FString LongPath;
+	Stack.Step(Stack.Object, &LongPath);
+	*(FAssetPtr*)RESULT_PARAM = FStringAssetReference(LongPath);
+}
+IMPLEMENT_VM_FUNCTION(EX_AssetConst, execAssetConst);
+
 void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
 {
 	FName FunctionName = Stack.ReadName();

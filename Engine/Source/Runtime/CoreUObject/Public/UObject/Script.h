@@ -238,6 +238,7 @@ enum EExprToken
 	Ex_LetValueOnPersistentFrame = 0x64,
 	EX_ArrayConst			= 0x65,
 	EX_EndArrayConst		= 0x66,
+	EX_AssetConst			= 0x67,
 	EX_Max					= 0x100,
 };
 

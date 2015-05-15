@@ -723,6 +723,7 @@ namespace
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
 			|| Property->IsA<UClassProperty>()
+			|| Property->IsA<UAssetObjectProperty>()
 			|| Property->IsA<UObjectProperty>()
 			|| Property->IsA<UStructProperty>()
 			|| Property->IsA<UFloatProperty>()
@@ -3768,9 +3769,9 @@ UProperty* FHeaderParser::GetVarNameAndDim
 		// UFunctions with a smart pointer as input parameter wont compile anyway, because of missing P_GET_... macro.
 		// UFunctions with a smart pointer as return type will crash when called via blueprint, because they are not supported in VM.
 		// WeakPointer is supported by VM as return type (see UObject::execLetWeakObjPtr), but there is no P_GET_... macro for WeakPointer.
-		if ((VarProperty.Type == CPT_LazyObjectReference) || (VarProperty.Type == CPT_AssetObjectReference))
+		if ((VarProperty.Type == CPT_LazyObjectReference))
 		{
-			FError::Throwf(TEXT("UFunctions cannot take a smart pointer (LazyPtr, AssetPtr, etc) as a parameter."));
+			FError::Throwf(TEXT("UFunctions cannot take a lazy pointer as a parameter."));
 		}
 	}
 

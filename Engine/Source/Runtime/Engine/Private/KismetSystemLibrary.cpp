@@ -666,6 +666,36 @@ void UKismetSystemLibrary::SetNamePropertyByName(UObject* Object, FName Property
 	}
 }
 
+void UKismetSystemLibrary::SetAssetPropertyByName(UObject* Object, FName PropertyName, const TAssetPtr<UObject>& Value)
+{
+	if (Object != NULL)
+	{
+		auto ObjectProp = FindField<UAssetObjectProperty>(Object->GetClass(), PropertyName);
+		auto AssetPtr = (const FAssetPtr*)(&Value);
+		ObjectProp->SetPropertyValue_InContainer(Object, *AssetPtr);
+	}
+}
+
+void UKismetSystemLibrary::SetAssetClassPropertyByName(UObject* Object, FName PropertyName, const TAssetSubclassOf<UObject>& Value)
+{
+	if (Object != NULL)
+	{
+		auto ObjectProp = FindField<UAssetClassProperty>(Object->GetClass(), PropertyName);
+		auto AssetPtr = (const FAssetPtr*)(&Value);
+		ObjectProp->SetPropertyValue_InContainer(Object, *AssetPtr);
+	}
+}
+
+UObject* UKismetSystemLibrary::Conv_AssetToObject(const TAssetPtr<UObject>& Asset)
+{
+	return ((const FAssetPtr*)&Asset)->Get();
+}
+
+TSubclassOf<UObject> UKismetSystemLibrary::Conv_AssetClassToClass(const TAssetSubclassOf<UObject>& AssetClass)
+{
+	return Cast<UClass>(((const FAssetPtr*)&AssetClass)->Get());
+}
+
 void UKismetSystemLibrary::SetTextPropertyByName(UObject* Object, FName PropertyName, const FText& Value)
 {
 	if(Object != NULL)
@@ -768,7 +798,6 @@ void UKismetSystemLibrary::GetActorListFromComponentList(const TArray<UPrimitive
 		}
 	}
 }
-
 
 bool UKismetSystemLibrary::SphereOverlapActors_DEPRECATED(UObject* WorldContextObject, const FVector SpherePos, float SphereRadius, EOverlapFilterOption Filter, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<AActor*>& OutActors)
 {

@@ -290,7 +290,15 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinObject, InPin);
 		}
+		else if (InPin->PinType.PinCategory == K2Schema->PC_Asset)
+		{
+			return SNew(SGraphPinObject, InPin);
+		}
 		else if (InPin->PinType.PinCategory == K2Schema->PC_Class)
+		{
+			return SNew(SGraphPinClass, InPin);
+		}
+		else if (InPin->PinType.PinCategory == K2Schema->PC_AssetClass)
 		{
 			return SNew(SGraphPinClass, InPin);
 		}

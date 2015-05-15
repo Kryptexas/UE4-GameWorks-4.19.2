@@ -16,6 +16,11 @@ FString UAssetClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("ASSETOBJECT");
 }
 
+FString UAssetClassProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString::Printf(TEXT("class %s%s;"), MetaClass->GetPrefixCPP(), *MetaClass->GetName());
+}
+
 void UAssetClassProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );

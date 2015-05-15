@@ -201,6 +201,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FString PC_Boolean;
 	static const FString PC_Byte;
 	static const FString PC_Class;    // SubCategoryObject is the MetaClass of the Class passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	static const FString PC_AssetClass;
 	static const FString PC_Int;
 	static const FString PC_Float;
 	static const FString PC_Name;
@@ -208,6 +209,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
 	static const FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
 	static const FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
+	static const FString PC_Asset;		// SubCategoryObject is the Class of the AssetPtr passed thru this pin.
 	static const FString PC_String;
 	static const FString PC_Text;
 	static const FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.

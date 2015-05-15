@@ -30,6 +30,7 @@
 #include "K2Node_GetEnumeratorNameAsString.h"
 #include "K2Node_Tunnel.h"
 #include "K2Node_SetFieldsInStruct.h"
+#include "K2Node_ConvertAsset.h"
 #include "GenericCommands.h"
 
 
@@ -153,7 +154,7 @@ private:
 				}
 			}
 		}
-		else if (Type == UEdGraphSchema_K2::PC_Class)
+		else if (Type == UEdGraphSchema_K2::PC_Class || Type == UEdGraphSchema_K2::PC_AssetClass)
 		{
 			// Generate a list of all potential objects which have "BlueprintType=true" in their metadata
 			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -165,7 +166,7 @@ private:
 				}
 			}
 		}
-		else if (Type == UEdGraphSchema_K2::PC_Object)
+		else if (Type == UEdGraphSchema_K2::PC_Object || Type == UEdGraphSchema_K2::PC_Asset)
 		{
 			// Generate a list of all potential objects which have "BlueprintType=true" in their metadata (that aren't interfaces)
 			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
@@ -244,7 +245,7 @@ public:
 		{
 			AssetRegistrySearchClass = UUserDefinedEnum::StaticClass();
 		}
-		else if(Schema->PC_Object == CategoryName || Schema->PC_Class == CategoryName || Schema->PC_Interface == CategoryName)
+		else if (Schema->PC_Object == CategoryName || Schema->PC_Class == CategoryName || Schema->PC_Interface == CategoryName || Schema->PC_Asset == CategoryName || Schema->PC_AssetClass == CategoryName)
 		{
 			AssetRegistrySearchClass = UBlueprint::StaticClass();
 		}
@@ -266,7 +267,7 @@ public:
 				}
 			}
 		}
-		else if(Schema->PC_Object == CategoryName || Schema->PC_Class == CategoryName || Schema->PC_Interface == CategoryName)
+		else if (Schema->PC_Object == CategoryName || Schema->PC_Class == CategoryName || Schema->PC_Interface == CategoryName || Schema->PC_Asset == CategoryName || Schema->PC_AssetClass == CategoryName)
 		{
 			const FString BPTypeAllowed = (Schema->PC_Interface == CategoryName)? TEXT("BPTYPE_Interface") : TEXT("BPTYPE_Normal");
 
@@ -448,6 +449,8 @@ const FString UEdGraphSchema_K2::PC_Text(TEXT("text"));
 const FString UEdGraphSchema_K2::PC_Struct(TEXT("struct"));
 const FString UEdGraphSchema_K2::PC_Wildcard(TEXT("wildcard"));
 const FString UEdGraphSchema_K2::PC_Enum(TEXT("enum"));
+const FString UEdGraphSchema_K2::PC_Asset(TEXT("asset"));
+const FString UEdGraphSchema_K2::PC_AssetClass(TEXT("assetclass"));
 const FString UEdGraphSchema_K2::PSC_Self(TEXT("self"));
 const FString UEdGraphSchema_K2::PSC_Index(TEXT("index"));
 const FString UEdGraphSchema_K2::PN_Execute(TEXT("execute"));
@@ -2221,7 +2224,7 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 		else
 		{
 			UClass* InputClass  = Cast<UClass>(InputType.PinSubCategoryObject.Get());
-			UClass* OutputClass = Cast<UClass>(InputType.PinSubCategoryObject.Get());
+			UClass* OutputClass = Cast<UClass>(OutputType.PinSubCategoryObject.Get());
 
 			if ((OutputType.PinCategory == PC_Interface) && (InputType.PinCategory == PC_Object))
 			{
@@ -2242,6 +2245,23 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 				DynCastNode->TargetType = InputClass;
 				DynCastNode->SetPurity(true);
 				TargetNode = DynCastNode;
+			}
+
+			if (!bCanConvert && InputClass && OutputClass && OutputClass->IsChildOf(InputClass))
+			{
+				const bool ConvertAsset = (OutputType.PinCategory == PC_Asset) && (InputType.PinCategory == PC_Object);
+				const bool ConvertAssetClass = (OutputType.PinCategory == PC_AssetClass) && (InputType.PinCategory == PC_Class);
+				if (ConvertAsset || ConvertAssetClass)
+				{
+					bCanConvert = true;
+					if (bCreateNode)
+					{
+						UK2Node_ConvertAsset* ConvertAsset = NewObject<UK2Node_ConvertAsset>();
+						ConvertAsset->TargetType = InputClass;
+						ConvertAsset->bIsAssetClass = ConvertAssetClass;
+						TargetNode = ConvertAsset;
+					}
+				}
 			}
 		}
 	}
@@ -2419,7 +2439,7 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 			}
 		}
 	}
-	else if (PinCategory == PC_Class)
+	else if ((PinCategory == PC_Class) || (PinCategory == PC_AssetClass))
 	{
 		// Should have an object set but no string
 		if(!NewDefaultValue.IsEmpty())
@@ -2482,9 +2502,9 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 	{
 		// Anything is allowed
 	}
-	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface))
+	else if ((PinCategory == PC_Object) || (PinCategory == PC_Interface) || (PinCategory == PC_Asset))
 	{
-		if(PinSubCategoryObject == NULL && PinSubCategory != PSC_Self)
+		if (PinSubCategoryObject == NULL && (PinSubCategory != PSC_Self))
 		{
 			DVSV_RETURN_MSG( FString::Printf(TEXT("PinSubCategoryObject on pin '%s' is NULL and PinSubCategory is '%s' not 'self'"), *(PinName), *PinSubCategory) );
 		}
@@ -2505,6 +2525,11 @@ bool UEdGraphSchema_K2::DefaultValueSimpleValidation(const FEdGraphPinType& PinT
 		if(NewDefaultObject != NULL && ObjectClass != NULL && !NewDefaultObject->IsA(ObjectClass))
 		{
 			DVSV_RETURN_MSG( FString::Printf(TEXT("%s isn't a %s (specified on pin %s)"), *NewDefaultObject->GetPathName(), *ObjectClass->GetName(), *(PinName)) );		
+		}
+
+		if ((PinCategory == PC_Asset) && NewDefaultObject && !NewDefaultObject->IsAsset())
+		{
+			DVSV_RETURN_MSG(FString::Printf(TEXT("%s is not an asset (specified on pin %s)"), *NewDefaultObject->GetPathName(), *(PinName)));
 		}
 	}
 	else if (PinCategory == PC_String)
@@ -2666,6 +2691,14 @@ FLinearColor UEdGraphSchema_K2::GetPinTypeColor(const FEdGraphPinType& PinType) 
 	else if (TypeString == PC_Name)
 	{
 		return Settings->NamePinTypeColor;
+	}
+	else if (TypeString == PC_Asset)
+	{
+		return Settings->AssetPinTypeColor;
+	}
+	else if (TypeString == PC_AssetClass)
+	{
+		return Settings->AssetClassPinTypeColor;
 	}
 	else if (TypeString == PC_Delegate)
 	{
@@ -3008,8 +3041,13 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	}
 	else if (const UAssetClassProperty* AssetClassProperty = Cast<const UAssetClassProperty>(TestProperty))
 	{
-		TypeOut.PinCategory = PC_Class;
+		TypeOut.PinCategory = PC_AssetClass;
 		TypeOut.PinSubCategoryObject = AssetClassProperty->MetaClass;
+	}
+	else if (const UAssetObjectProperty* AssetObjectProperty = Cast<const UAssetObjectProperty>(TestProperty))
+	{
+		TypeOut.PinCategory = PC_Asset;
+		TypeOut.PinSubCategoryObject = AssetObjectProperty->PropertyClass;
 	}
 	else if (const UObjectPropertyBase* ObjectProperty = Cast<const UObjectPropertyBase>(TestProperty))
 	{
@@ -3164,6 +3202,8 @@ FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bFo
 		CategoryDescriptions.Add(PC_Struct, LOCTEXT("StructCategory","Structure"));
 		CategoryDescriptions.Add(PC_Wildcard, LOCTEXT("WildcardCategory","Wildcard"));
 		CategoryDescriptions.Add(PC_Enum, LOCTEXT("EnumCategory","Enum"));
+		CategoryDescriptions.Add(PC_Asset, LOCTEXT("AssetCategory", "Asset"));
+		CategoryDescriptions.Add(PC_AssetClass, LOCTEXT("AssetClassCategory", "Class Asset"));
 	}
 
 	if (bForMenu)
@@ -3294,6 +3334,8 @@ void UEdGraphSchema_K2::GetVariableTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo
 	// Add the types that have subtrees
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Struct, true), PC_Struct, this, LOCTEXT("StructType", "Struct (value) types."), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Object, true), PC_Object, this, LOCTEXT("ObjectType", "Object pointer."), true) ) );
+	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Asset, true), PC_Asset, this, LOCTEXT("AssetType", "Asset pointer."), true) ) );
+	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_AssetClass, true), PC_AssetClass, this, LOCTEXT("ClassAssetType", "Class asset."), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Interface, true), PC_Interface, this, LOCTEXT("InterfaceType", "Interface pointer."), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Class, true), PC_Class, this, LOCTEXT("ClassType", "Class pointers."), true) ) );
 	TypeTree.Add( MakeShareable( new FPinTypeTreeInfo(GetCategoryText(PC_Enum, true), PC_Enum, this, LOCTEXT("EnumType", "Enumeration types."), true) ) );
@@ -3325,7 +3367,7 @@ void UEdGraphSchema_K2::GetVariableIndexTypeTree( TArray< TSharedPtr<FPinTypeTre
 
 bool UEdGraphSchema_K2::DoesTypeHaveSubtypes(const FString& Category) const
 {
-	return (Category == PC_Struct) || (Category == PC_Object) || (Category == PC_Interface) || (Category == PC_Class) || (Category == PC_Enum);
+	return (Category == PC_Struct) || (Category == PC_Object) || (Category == PC_Asset) || (Category == PC_AssetClass) || (Category == PC_Interface) || (Category == PC_Class) || (Category == PC_Enum);
 }
 
 struct FWildcardArrayPinHelper
@@ -3391,6 +3433,16 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			check(InputClass && InputClass->IsChildOf(UInterface::StaticClass()));
 			
 			return OutputClass->IsChildOf(InputClass);
+		}
+		else if (((Output.PinCategory == PC_Asset) && (Input.PinCategory == PC_Asset))
+			|| ((Output.PinCategory == PC_AssetClass) && (Input.PinCategory == PC_AssetClass)))
+		{
+			const UClass* OutputObject = (Output.PinSubCategory == PSC_Self) ? CallingContext : Cast<const UClass>(Output.PinSubCategoryObject.Get());
+			const UClass* InputObject = (Input.PinSubCategory == PSC_Self) ? CallingContext : Cast<const UClass>(Input.PinSubCategoryObject.Get());
+			if ((OutputObject != NULL) && (InputObject != NULL))
+			{
+				return OutputObject->IsChildOf(InputObject);
+			}
 		}
 		else if ((Output.PinCategory == PC_Object) || (Output.PinCategory == PC_Struct) || (Output.PinCategory == PC_Class))
 		{
@@ -3995,6 +4047,16 @@ UFunction* UEdGraphSchema_K2::FindSetVariableByNameFunction(const FEdGraphPinTyp
 	{
 		static FName SetTextName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetTextPropertyByName));
 		SetFunctionName = SetTextName;
+	}
+	else if (PinType.PinCategory == K2Schema->PC_Asset)
+	{
+		static FName SetAssetName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetAssetPropertyByName));
+		SetFunctionName = SetAssetName;
+	}
+	else if (PinType.PinCategory == K2Schema->PC_AssetClass)
+	{
+		static FName SetAssetClassName(GET_FUNCTION_NAME_CHECKED(UKismetSystemLibrary, SetAssetClassPropertyByName));
+		SetFunctionName = SetAssetClassName;
 	}
 	else if(PinType.PinCategory == K2Schema->PC_Name)
 	{

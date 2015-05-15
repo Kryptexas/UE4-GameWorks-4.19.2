@@ -106,7 +106,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 		UByteProperty* SpecificProperty = Cast<UByteProperty>(TestProperty);
 		bTypeMismatch = (SpecificProperty == NULL);
 	}
-	else if (PinCategory == Schema->PC_Class)
+	else if ((PinCategory == Schema->PC_Class) || (PinCategory == Schema->PC_AssetClass))
 	{
 		const UClass* ClassType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -135,6 +135,11 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 
 				// It matches if it's an exact match or if the output class is more derived than the input class
 				bTypeMismatch = bSubtypeMismatch = !((OutputClass == InputClass) || (OutputClass->IsChildOf(InputClass)));
+
+				if ((PinCategory == Schema->PC_AssetClass) && (!TestProperty->IsA<UAssetClassProperty>()))
+				{
+					bTypeMismatch = true;
+				}
 			}
 			else
 			{
@@ -166,7 +171,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			&& PropertyDelegate->SignatureFunction 
 			&& PropertyDelegate->SignatureFunction->IsSignatureCompatibleWith(SignatureFunction));
 	}
-	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface))
+	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface) || (PinCategory == Schema->PC_Asset))
 	{
 		const UClass* ObjectType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -186,6 +191,11 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 
 				// It matches if it's an exact match or if the output class is more derived than the input class
 				bTypeMismatch = bSubtypeMismatch = !((OutputClass == InputClass) || (OutputClass->IsChildOf(InputClass)));
+
+				if ((PinCategory == Schema->PC_Asset) && (!TestProperty->IsA<UAssetObjectProperty>()))
+				{
+					bTypeMismatch = true;
+				}
 			}
 			else if (UInterfaceProperty* IntefaceProperty = Cast<UInterfaceProperty>(TestProperty))
 			{
@@ -742,7 +752,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 
 	//@TODO: Nasty string if-else tree
-	if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Interface))
+	if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Interface) || (Type.PinCategory == Schema->PC_Asset))
 	{
 		UClass* SubType = (Type.PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(Type.PinSubCategoryObject.Get());
 
@@ -767,7 +777,11 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			{
 				UObjectPropertyBase* NewPropertyObj = NULL;
 
-				if( Type.bIsWeakPointer )
+				if (Type.PinCategory == Schema->PC_Asset)
+				{
+					NewPropertyObj = NewObject<UAssetObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				}
+				else if( Type.bIsWeakPointer )
 				{
 					NewPropertyObj = NewObject<UWeakObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
@@ -807,7 +821,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			}
 		}
 	}
-	else if (Type.PinCategory == Schema->PC_Class)
+	else if ((Type.PinCategory == Schema->PC_Class) || (Type.PinCategory == Schema->PC_AssetClass))
 	{
 		UClass* SubType = Cast<UClass>(Type.PinSubCategoryObject.Get());
 		
@@ -825,13 +839,22 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 
 		if (SubType != NULL)
 		{
-			UClassProperty* NewPropertyClass = NewObject<UClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
-			// we want to use this setter function instead of setting the 
-			// MetaClass member directly, because it properly handles  
-			// placeholder classes (classes that are stubbed in during load)
-			NewPropertyClass->SetMetaClass(SubType);
-			NewPropertyClass->PropertyClass = UClass::StaticClass();
-			NewProperty = NewPropertyClass;
+			if (Type.PinCategory == Schema->PC_AssetClass)
+			{
+				auto AssetClassProperty = NewObject<UAssetClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				AssetClassProperty->MetaClass = SubType;
+				NewProperty = AssetClassProperty;
+			}
+			else
+			{
+				UClassProperty* NewPropertyClass = NewObject<UClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
+				// we want to use this setter function instead of setting the 
+				// MetaClass member directly, because it properly handles  
+				// placeholder classes (classes that are stubbed in during load)
+				NewPropertyClass->SetMetaClass(SubType);
+				NewPropertyClass->PropertyClass = UClass::StaticClass();
+				NewProperty = NewPropertyClass;
+			}
 		}
 	}
 	else if (Type.PinCategory == Schema->PC_Delegate)

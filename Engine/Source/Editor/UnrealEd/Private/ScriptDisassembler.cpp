@@ -586,6 +586,12 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: EX_ObjectConst (%p:%s)"), *Indents, (int32)Opcode, Pointer, *Pointer->GetFullName());
 			break;
 		}
+	case EX_AssetConst:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_AssetConst"), *Indents, (int32)Opcode);
+			SerializeExpr(ScriptIndex);
+			break;
+		}
 	case EX_NameConst:
 		{
 			FString ConstValue = ReadName(ScriptIndex);
