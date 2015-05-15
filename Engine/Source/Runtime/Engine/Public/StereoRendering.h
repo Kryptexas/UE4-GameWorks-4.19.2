@@ -10,9 +10,15 @@ class IStereoRendering
 {
 public:
 	/** 
-	 * Whether or not stereo rendering is on.
+	 * Whether or not stereo rendering is on this frame.
 	 */
 	virtual bool IsStereoEnabled() const = 0;
+
+	/** 
+	 * Whether or not stereo rendering is on on next frame. Useful to determine if some preparation work
+	 * should be done before stereo got enabled in next frame. 
+	 */
+	virtual bool IsStereoEnabledOnNextFrame() const { return IsStereoEnabled(); }
 
 	/** 
 	 * Switches stereo rendering on / off. Returns current state of stereo.
@@ -66,12 +72,12 @@ public:
 	/**
 	 * Calculates dimensions of the render target texture for direct rendering of distortion.
 	 */
-	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) const {}
+	virtual void CalculateRenderTargetSize(const class FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) {}
 
 	/**
 	 * Returns true, if render target texture must be re-calculated. 
 	 */
-	virtual bool NeedReAllocateViewportRenderTarget(const class FViewport& Viewport) const { return false; }
+	virtual bool NeedReAllocateViewportRenderTarget(const class FViewport& Viewport) { return false; }
 
 	// Whether separate render target should be used or not.
 	virtual bool ShouldUseSeparateRenderTarget() const { return false; }
@@ -117,4 +123,24 @@ public:
 	 */
 	virtual void SetClippingPlanes(float NCP, float FCP) {}
 
+	/**
+	 * Returns currently active custom present. 
+	 */
+	virtual FRHICustomPresent* GetCustomPresent() { return nullptr; }
+
+	/**
+	 * Returns number of required buffered frames.
+	 */
+	virtual uint32 GetNumberOfBufferedFrames() const { return 3;  }
+
+	/**
+	 * Allocates a render target texture. 
+	 *
+	 * @param Index			(in) index of the buffer, changing from 0 to GetNumberOfBufferedFrames()
+	 * @return				true, if texture was allocated; false, if the default texture allocation should be used.
+	 */
+	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1)
+	{
+		return false;
+	}
 };

@@ -92,12 +92,6 @@ public:
 			*/
 			uint64 bUpdateOnRT : 1;
 
-			/** Overdrive brightness transitions to reduce artifacts on DK2+ displays */
-			uint64 bOverdrive : 1;
-
-			/** High-quality sampling of distortion buffer for anti-aliasing */
-			uint64 bHQDistortion : 1;
-
 			/** Enforces headtracking to work even in non-stereo mode (for debugging or screenshots). 
 				See 'MOTION ENFORCE' console command. */
 			uint64 bHeadTrackingEnforced : 1;
@@ -311,6 +305,8 @@ public:
 	virtual bool IsHMDEnabled() const override;
 	virtual void EnableHMD(bool allow = true) override;
 
+	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
+
 	virtual bool DoesSupportPositionalTracking() const override;
 	virtual bool HasValidTrackingPosition() override;
 	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
@@ -331,6 +327,7 @@ public:
 
 	virtual bool EnableStereo(bool stereo = true) override;
 	virtual bool IsStereoEnabled() const override;
+	virtual bool IsStereoEnabledOnNextFrame() const override;
 	virtual void AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int32& Y, uint32& SizeX, uint32& SizeY) const override;
 
 	virtual void SetClippingPlanes(float NCP, float FCP) override;
@@ -350,7 +347,7 @@ public:
 	* @param PositionScale			(in) The 3D scale that will be applied to position.
 	* @return			The estimated neck position, calculated using NeckToEye vector from User Profile. Same coordinate space as CurrentPosition.
 	*/
-	virtual FVector GetNeckPosition(const FQuat& CurrentOrientation, const FVector& CurrentPosition, const FVector& PositionScale) { return FVector::ZeroVector; }
+	virtual FVector GetNeckPosition(const FQuat& CurrentOrientation, const FVector& CurrentPosition, const FVector& PositionScale);
 
 	/**
 	* Sets base position offset (in meters). The base position offset is the distance from the physical (0, 0, 0) position
@@ -379,6 +376,10 @@ public:
 
 	virtual void ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotation) override;
 	virtual void UpdatePlayerCameraRotation(APlayerCameraManager*, struct FMinimalViewInfo& POV) override;
+
+	// An improved version of GetCurrentOrientationAndPostion, used from blueprints by OculusLibrary.
+	virtual void GetCurrentHMDPose(FQuat& CurrentOrientation, FVector& CurrentPosition,
+		bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera, const FVector& PositionScale = FVector::ZeroVector);
 
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const = 0;
@@ -463,9 +464,13 @@ protected:
 	}
 
 #if !UE_BUILD_SHIPPING
-	TWeakObjectPtr<AStaticMeshActor> SeaOfCubesActorPtr;
+	TWeakObjectPtr<class AStaticMeshActor> SeaOfCubesActorPtr;
 	FVector							 CachedViewLocation;
 	FString							 CubeMeshName, CubeMaterialName;
+	float							 SideOfSingleCubeInMeters;
+	float							 SeaOfCubesVolumeSizeInMeters;
+	int								 NumberOfCubesInOneSide;
+	FVector							 CenterOffsetInMeters; // offset from the center of 'sea of cubes'
 #endif
 };
 

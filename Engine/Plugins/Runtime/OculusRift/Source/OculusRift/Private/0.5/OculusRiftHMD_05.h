@@ -1,9 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+// Mac uses 0.5.0 SDK, while PC - 0.6.0. This version supports 0.5.0 (Mac/Linux).
 #if PLATFORM_MAC
-#include "0.5/OculusRiftHMD_05.h"
-#else
+
 #include "IOculusRiftPlugin.h"
 #include "IHeadMountedDisplay.h"
 #include "HeadMountedDisplayCommon.h"
@@ -17,24 +17,51 @@
 #endif
 
 #if PLATFORM_WINDOWS
+	#define OVR_VISION_ENABLED
+	#define OVR_SDK_RENDERING
 	#define OVR_D3D_VERSION 11
-//	#define OVR_GL
+	#define OVR_GL
 #elif PLATFORM_MAC
 	#define OVR_VISION_ENABLED
+    #define OVR_SDK_RENDERING
     #define OVR_GL
+#endif
+
+#ifdef OVR_VISION_ENABLED
+	#ifndef OVR_CAPI_VISIONSUPPORT
+		#define OVR_CAPI_VISIONSUPPORT
+	#endif
 #endif
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	#include <OVR_Version.h>
-	#include <OVR_CAPI_0_6_0.h>
+	#include <OVR_CAPI.h>
 	#include <OVR_CAPI_Keys.h>
 	#include <Extras/OVR_Math.h>
     #include <OVR_CAPI_Util.h>
+
+#if PLATFORM_WINDOWS
+#include "AllowWindowsPlatformTypes.h"
+#endif
+#ifdef OVR_SDK_RENDERING
+	#ifdef OVR_D3D_VERSION
+		#include "OVR_CAPI_D3D.h"
+	#endif // OVR_D3D_VERSION
+	#ifdef OVR_GL
+		#include "OVR_CAPI_GL.h"
+	#endif
+#endif // OVR_SDK_RENDERING
+
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (pop)
 #endif
+
+// #ifdef UE_BUILD_DEBUG
+// 	#undef FORCEINLINE
+// 	#define FORCEINLINE
+// #endif
 
 struct FDistortionVertex;
 class FOculusRiftHMD;
@@ -102,6 +129,8 @@ namespace OculusRift
 		return OVR::Recti(rect.Min.X, rect.Min.Y, rect.Size().X, rect.Size().Y);
 	}
 
+typedef uint64 bool64;
+
 class FSettings : public FHMDSettings
 {
 public:
@@ -111,34 +140,40 @@ public:
 	ovrMatrix4f				EyeProjectionMatrices[2];	// 0 - left, 1 - right, same as Views
 	ovrMatrix4f				PerspectiveProjection[2];	// used for calc ortho projection matrices
 	ovrFovPort				EyeFov[2];					// 0 - left, 1 - right, same as Views
-	ovrLayer_Union			EyeLayer;
-
-	FIntPoint				RenderTargetSize;
-	float					PixelDensity;
-
-	bool					bQueueAheadEnabled;
 
 	unsigned				SupportedTrackingCaps;
+	unsigned				SupportedDistortionCaps;
 	unsigned				SupportedHmdCaps;
 
 	unsigned				TrackingCaps;
+	unsigned				DistortionCaps;
 	unsigned				HmdCaps;
 
-	enum MirrorWindowModeType
+#ifndef OVR_SDK_RENDERING
+	struct FDistortionMesh : public TSharedFromThis<FDistortionMesh>
 	{
-		eMirrorWindow_Distorted,
-		eMirrorWindow_Undistorted,
-		eMirrorWindow_SingleEye,
+		FDistortionVertex*	pVertices;
+		uint16*				pIndices;
+		unsigned			NumVertices;
+		unsigned			NumIndices;
+		unsigned			NumTriangles;
 
-		eMirrorWindow_Total_
+		FDistortionMesh() :pVertices(NULL), pIndices(NULL), NumVertices(0), NumIndices(0), NumTriangles(0) {}
+		~FDistortionMesh() { Reset(); }
+		void Reset();
 	};
-	MirrorWindowModeType	MirrorWindowMode;
+	// U,V scale and offset needed for timewarp.
+	ovrVector2f				UVScaleOffset[2][2];	// scale UVScaleOffset[x][0], offset UVScaleOffset[x][1], where x is eye idx
+	TSharedPtr<FDistortionMesh>	pDistortionMesh[2];		// 
+#endif
 
 	FSettings();
 	virtual ~FSettings() override {}
 
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> Clone() const override;
 
+	virtual void SetEyeRenderViewport(int OneEyeVPw, int OneEyeVPh) override;
+	
 	float GetTexturePaddingPerEye() const { return TexturePaddingPerEye * GetActualScreenPercentage()/100.f; }
 };
 
@@ -167,9 +202,6 @@ public:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> Clone() const override;
 
 	void PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat& OutOrientation, FVector& OutPosition) const;
-
-	// Returns eye poses calculated from head pose. Head pose is available via ovrTrackingState.
-	void GetEyePoses(ovrHmd Hmd, ovrPosef outEyePoses[2], ovrTrackingState& outTrackingState) const;
 };
 
 // View extension class that contains all the rendering-specific data (also referred as 'RenderContext').
@@ -183,11 +215,9 @@ public:
  	virtual void PreRenderView_RenderThread(FRHICommandListImmediate& RHICmdList, FSceneView& InView) override;
 
 	FGameFrame* GetRenderFrame() const { return static_cast<FGameFrame*>(RenderFrame.Get()); }
-	FSettings* GetFrameSettings() const { return static_cast<FSettings*>(RenderFrame->GetSettings()); }
-
+	FSettings* GetFrameSetting() const { return static_cast<FSettings*>(RenderFrame->GetSettings()); }
 public:
 	class FCustomPresent* pPresentBridge;
-	IRendererModule*	RendererModule;
 	ovrHmd				Hmd;
 	ovrPosef			CurEyeRenderPose[2];// most recent eye render poses
 	ovrPosef			CurHeadPose;		// current position of head
@@ -201,47 +231,31 @@ class FCustomPresent : public FRHICustomPresent
 public:
 	FCustomPresent()
 		: FRHICustomPresent(nullptr)
-		, Hmd(nullptr)
+		, bNeedReinitRendererAPI(true)
 		, bInitialized(false)
-		, bNeedReAllocateTextureSet(true)
-		, bNeedReAllocateMirrorTexture(true)
 	{}
 
 	// Returns true if it is initialized and used.
 	bool IsInitialized() const { return bInitialized; }
 
 	virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) = 0;
+	virtual void SetNeedReinitRendererAPI() { bNeedReinitRendererAPI = true; }
 
 	virtual void Reset() = 0;
 	virtual void Shutdown() = 0;
 
-	virtual FTexture2DRHIRef GetMirrorTexture() = 0;
-
-	virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI, FGameFrame* InRenderFrame);
+	void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI, FGameFrame* InRenderFrame);
 	FGameFrame* GetRenderFrame() const { check(IsInRenderingThread()); return static_cast<FGameFrame*>(RenderContext->RenderFrame.Get()); }
 	FViewExtension* GetRenderContext() const { return static_cast<FViewExtension*>(RenderContext.Get()); }
 	FSettings* GetFrameSetting() const { check(IsInRenderingThread()); return static_cast<FSettings*>(RenderContext->RenderFrame->GetSettings()); }
-
-	virtual void SetHmd(ovrHmd InHmd) { Hmd = InHmd; }
-
-	// marking textures invalid, that will force re-allocation of ones
-	void MarkTexturesInvalid();
-
-	bool AreTexturesMarkedAsInvalid() const { return bNeedReAllocateTextureSet; }
-
-	// Allocates render target texture
-	// If returns false then a default RT texture will be used.
-	virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples) = 0;
 
 protected:
 	void SetRenderContext(FHMDViewExtension* InRenderContext);
 
 protected: // data
-	ovrHmd				Hmd;
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
+	bool				bNeedReinitRendererAPI : 1;
 	bool				bInitialized : 1;
-	bool				bNeedReAllocateTextureSet : 1;
-	bool				bNeedReAllocateMirrorTexture : 1;
 };
 
 } // namespace OculusRift
@@ -256,6 +270,8 @@ class FOculusRiftHMD : public FHeadMountedDisplay
 	friend class FViewExtension;
 	friend class UOculusFunctionLibrary;
 public:
+	static void PreInit();
+
 	/** IHeadMountedDisplay interface */
 	virtual bool OnStartGameFrame() override;
 
@@ -267,6 +283,10 @@ public:
 	virtual bool HasValidTrackingPosition() override;
 	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
 
+	virtual void GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition) override;
+
+	virtual FVector GetNeckPosition(const FQuat& CurrentOrientation, const FVector& CurrentPosition, const FVector& PositionScale) override;
+
 	virtual TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> GetViewExtension() override;
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
@@ -274,29 +294,34 @@ public:
 	virtual void RecordAnalytics() override;
 
 	/** IStereoRendering interface */
-	virtual void RenderTexture_RenderThread(class FRHICommandListImmediate& RHICmdList, class FRHITexture2D* BackBuffer, class FRHITexture2D* SrcTexture) const override;
 	virtual void CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, 
 										   const float MetersToWorld, FVector& ViewLocation) override;
 	virtual FMatrix GetStereoProjectionMatrix(const EStereoscopicPass StereoPassType, const float FOV) const override;
 	virtual void GetOrthoProjection(int32 RTWidth, int32 RTHeight, float OrthoDistance, FMatrix OrthoProjection[2]) const override;
 	virtual void InitCanvasFromView(FSceneView* InView, UCanvas* Canvas) override;
+	virtual void GetEyeRenderParams_RenderThread(const struct FRenderingCompositePassContext& Context, FVector2D& EyeToSrcUVScaleValue, FVector2D& EyeToSrcUVOffsetValue) const override;
+	virtual void GetTimewarpMatrices_RenderThread(const struct FRenderingCompositePassContext& Context, FMatrix& EyeRotationStart, FMatrix& EyeRotationEnd) const override;
 
 	virtual void UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& Viewport, SViewport*) override;
 
+#ifdef OVR_SDK_RENDERING
 	virtual void CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY) override;
 	virtual bool NeedReAllocateViewportRenderTarget(const FViewport& Viewport) override;
+#endif//OVR_SDK_RENDERING
 
 	virtual bool ShouldUseSeparateRenderTarget() const override
 	{
+#ifdef OVR_SDK_RENDERING
 		check(IsInGameThread());
 		return IsStereoEnabled();
+#else
+		return false;
+#endif//OVR_SDK_RENDERING
 	}
 
 	virtual void SetupViewFamily(FSceneViewFamily& InViewFamily) override;
     virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
-	virtual FRHICustomPresent* GetCustomPresent() override { return pCustomPresent; }
 	virtual uint32 GetNumberOfBufferedFrames() const override { return 1; }
-	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
 
 	/** Positional tracking control methods */
 	virtual bool IsHeadTrackingAllowed() const override;
@@ -310,6 +335,9 @@ public:
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 	virtual void ResetOrientation(float Yaw = 0.f) override;
 	virtual void ResetPosition() override;
+
+	virtual void DrawDistortionMesh_RenderThread(struct FRenderingCompositePassContext& Context, const FIntPoint& TextureSize) override;
+	virtual void UpdatePostProcessSettings(FPostProcessSettings*) override;
 
 	virtual bool HandleInputKey(class UPlayerInput*, const FKey& Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
@@ -352,6 +380,10 @@ public:
 
 	virtual FString GetVersionString() const override;
 
+	// An improved version of GetCurrentOrientationAndPostion, used from blueprints by OculusLibrary.
+	void GetCurrentHMDPose(FQuat& CurrentOrientation, FVector& CurrentPosition,
+		bool bUseOrienationForPlayerCamera, bool bUsePositionForPlayerCamera, const FVector& PositionScale);
+
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
 	virtual TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> CreateNewSettings() const override;
@@ -363,42 +395,31 @@ protected:
 
 public:
 
+#ifdef OVR_SDK_RENDERING
+
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 	class D3D11Bridge : public FCustomPresent
 	{
 	public:
-		D3D11Bridge(ovrHmd Hmd);
+		D3D11Bridge();
 
 		// Implementation of FRHICustomPresent
 		// Resets Viewport-specific pointers (BackBufferRT, SwapChain).
 		virtual void OnBackBufferResize() override;
 		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int32& SyncInterval) override;
+		virtual bool Present(int& SyncInterval) override;
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
 		void FinishRendering();
 		virtual void Reset() override;
-		virtual void Shutdown() override
-		{
-			Reset();
-		}
+		virtual void Shutdown() override;
 
-		virtual FTexture2DRHIRef GetMirrorTexture() override { return MirrorTextureRHI; }
-
-		virtual void SetHmd(ovrHmd InHmd) override;
-
-		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 	protected:
-		void Init(ovrHmd InHmd);
 		void Reset_RenderThread();
 	protected: // data
-		TRefCountPtr<class FD3D11Texture2DSet>	ColorTextureSet;
-		TRefCountPtr<class FD3D11Texture2DSet>	DepthTextureSet;
-
-		// Mirror texture
-		ovrTexture*							MirrorTexture;
-		FTexture2DRHIRef					MirrorTextureRHI;
+		ovrD3D11Config		Cfg;
+		ovrD3D11Texture		EyeTexture[2];				
 	};
 
 #endif
@@ -429,8 +450,15 @@ public:
 		ovrGLTexture		EyeTexture[2];
 	};
 #endif // OVR_GL
+	FCustomPresent* GetActiveRHIBridgeImpl() const;
 
 	void ShutdownRendering();
+
+#else
+
+	virtual void FinishRenderingFrame_RenderThread(FRHICommandListImmediate& RHICmdList) override;
+
+#endif // #ifdef OVR_SDK_RENDERING
 
 	/** Constructor */
 	FOculusRiftHMD();
@@ -460,7 +488,10 @@ private:
 	 */
 	virtual void UpdateStereoRenderingParams() override;
 	virtual void UpdateHmdRenderInfo() override;
+	virtual void UpdateDistortionCaps() override;
 	virtual void UpdateHmdCaps() override;
+
+	virtual void ApplySystemOverridesOnStereo(bool force = false) override;
 
 	/**
 	 * Called when state changes from 'stereo' to 'non-stereo'. Suppose to distribute
@@ -473,28 +504,48 @@ private:
 	void LoadFromIni();
 	void SaveToIni();
 
+	/** Saves system values before applying overrides. */
+	void SaveSystemValues();
+	/** Restores system values after overrides applied. */
+	void RestoreSystemValues();
+
+	void PrecalculateDistortionMesh();
+
 	class FSceneViewport* FindSceneViewport();
 
 	FGameFrame* GetFrame();
 	const FGameFrame* GetFrame() const;
 
-	// Copies one texture to another
-	void CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef DstTexture, FTexture2DRHIParamRef SrcTexture, FIntRect DstRect = FIntRect(), FIntRect SrcRect = FIntRect()) const;
-
 private: // data
 
-	TRefCountPtr<FCustomPresent>pCustomPresent;
-	IRendererModule*			RendererModule;
-	ovrHmd						Hmd;
+	ovrHmd			Hmd;
 
 	union
 	{
 		struct
 		{
-			uint64	_PlaceHolder_ : 1;
+			bool64	_PlaceHolder_ : 1;
 		};
 		uint64 Raw;
 	} OCFlags;
+
+#ifdef OVR_SDK_RENDERING
+
+#if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
+	TRefCountPtr<D3D11Bridge>	pD3D11Bridge;
+#endif
+#if defined(OVR_GL)
+	TRefCountPtr<OGLBridge>		pOGLBridge;
+#endif
+#else // !OVR_SDK_RENDERING
+	// this can be set and accessed only from renderthread!
+	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
+
+	//TSharedPtr<FViewExtension, ESPMode::ThreadSafe> FindRenderContext(const FSceneViewFamily& ViewFamily) const;
+	FGameFrame* GetRenderFrameFromContext() const;
+#endif // OVR_SDK_RENDERING
+	
+	void*						OSWindowHandle;
 
 	FGameFrame* GetGameFrame()
 	{
@@ -515,6 +566,9 @@ private: // data
 	{
 		return (const FSettings*)(Settings.Get());
 	}
+
+public:
+	static bool bDirectModeHack; // a hack to allow quickly check if Oculus is in Direct mode
 };
 
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS

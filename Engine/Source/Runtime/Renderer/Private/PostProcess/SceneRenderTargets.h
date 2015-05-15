@@ -106,7 +106,7 @@ END_UNIFORM_BUFFER_STRUCT( FGBufferResourceStruct )
 /**
  * Encapsulates the render targets used for scene rendering.
  */
-class FSceneRenderTargets : public FRenderResource
+class RENDERER_API FSceneRenderTargets : public FRenderResource
 {
 public:
 	/** Destructor. */
@@ -453,6 +453,13 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
+	/**
+	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
+	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
+	 * be halved in size several times.
+	 */
+	static void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY);
+
 private: // Get...() methods instead of direct access
 
 	// 0 before BeginRenderingSceneColor and after tone mapping in deferred shading
@@ -553,13 +560,6 @@ private:
 	uint32 ThisFrameNumber;
 
 	/**
-	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
-	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
-	 * be halved in size several times.
-	 */
-	void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY) const;
-
-	/**
 	 * Initializes the editor primitive color render target
 	 */
 	void InitEditorPrimitivesColor();
@@ -654,4 +654,4 @@ private:
 };
 
 /** The global render targets used for scene rendering. */
-extern TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;
+extern RENDERER_API TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;
