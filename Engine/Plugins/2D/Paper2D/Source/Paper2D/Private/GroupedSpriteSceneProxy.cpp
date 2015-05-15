@@ -57,7 +57,7 @@ FGroupedSpriteSceneProxy::FGroupedSpriteSceneProxy(UPaperGroupedSpriteComponent*
 			FSpriteDrawCallRecord Record;
 			Record.BuildFromSprite(InstanceData.SourceSprite);
 
-			UMaterialInterface* SpriteMaterial = InstanceData.SourceSprite->GetMaterial(0); //@TODO: Should query from the component due to overrides, but that requires an index per item, etc...
+			UMaterialInterface* SpriteMaterial = InComponent->GetMaterial(InstanceData.MaterialIndex);
 
 			FSpriteRenderSection& Section = FindOrAddSection(Record, SpriteMaterial);
 			

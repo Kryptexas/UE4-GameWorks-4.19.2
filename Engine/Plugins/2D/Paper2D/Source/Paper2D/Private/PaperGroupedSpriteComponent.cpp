@@ -427,13 +427,22 @@ void UPaperGroupedSpriteComponent::RebuildInstances()
 
 void UPaperGroupedSpriteComponent::RebuildMaterialList()
 {
-	InstanceMaterials.Reset();
+	TArray<UMaterialInterface*> OldOverrides(OverrideMaterials);
+	OverrideMaterials.Empty();
 
-	//@TODO: Need to rebuild the OverrideMaterials array and update the per-sprite material indices as part of this process
-
-	for (const FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
+	for (FSpriteInstanceData& InstanceData : PerInstanceSpriteData)
 	{
-		UpdateMaterialList(InstanceData.SourceSprite);
+		const int32 OldMaterialIndex = InstanceData.MaterialIndex;
+		const int32 NewMaterialIndex = UpdateMaterialList(InstanceData.SourceSprite);
+		InstanceData.MaterialIndex = NewMaterialIndex;
+
+		// Remap the overrides
+		UMaterialInterface* OldOverride = OldOverrides.IsValidIndex(OldMaterialIndex) ? OldOverrides[OldMaterialIndex] : nullptr;
+		
+		if ((OldOverride != nullptr) && (NewMaterialIndex >= 0))
+		{
+			SetMaterial(NewMaterialIndex, OldOverride);
+		}
 	}
 }
 
