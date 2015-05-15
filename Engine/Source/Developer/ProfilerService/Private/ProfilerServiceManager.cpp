@@ -583,13 +583,13 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 		FClientData Data;
 		Data.Active = true;
 		Data.Preview = false;
-		Data.StatsWriteFile.WriteHeader();
+		//Data.StatsWriteFile.WriteHeader();
 
 		// Add to the client list.
 		ClientData.Add( SenderAddress, Data );
 
 		// Send authorized and stat descriptions.
-		const TArray<uint8>& OutData = ClientData.Find( SenderAddress )->StatsWriteFile.GetOutData();
+		const TArray<uint8> OutData;// = ClientData.Find( SenderAddress )->StatsWriteFile.GetOutData();
 		MessageEndpoint->Send( new FProfilerServiceAuthorize( SessionId, InstanceId, OutData ), SenderAddress );
 
 		// Initiate the ping callback
@@ -633,6 +633,8 @@ void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 {
 	// Called from the stats thread.
 #if STATS
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FProfilerServiceManager::HandleNewFrame" ), STAT_FProfilerServiceManager_HandleNewFrame, STATGROUP_Profiler );
+	
 	const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	const int32 CurrentMetadataSize = Stats.ShortNameToLongName.Num();
 
@@ -644,11 +646,47 @@ void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 		MetadataSize = CurrentMetadataSize;
 	}
 
-	// Create a temporary client data and prepare all data.
-	FClientData* ToGameThread = new FClientData;
-	ToGameThread->StatsWriteFile.ResetData();
-	ToGameThread->StatsWriteFile.WriteFrame( Frame, bNeedFullMetadata );
-	ToGameThread->Frame = Frame;
+	// Write frame.
+	FStatsWriteFile StatsWriteFile;
+	StatsWriteFile.WriteFrame( Frame, bNeedFullMetadata );
+
+	// Task graph
+	TArray<uint8>* DataToTask = new TArray<uint8>( MoveTemp( StatsWriteFile.GetOutData() ) );
+
+	// Compression and encoding is done on the task graph
+	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+	(
+		FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerServiceManager::CompressDataAndSendToGame, DataToTask, Frame ),
+		TStatId()
+	);
+#endif
+}
+
+#if STATS
+
+void FProfilerServiceManager::CompressDataAndSendToGame( TArray<uint8>* DataToTask, int64 Frame )
+{
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FProfilerServiceManager::CompressDataAndSendToGame" ), STAT_FProfilerServiceManager_CompressDataAndSendToGame, STATGROUP_Profiler );
+
+	const uint8* UncompressedPtr = DataToTask->GetData();
+	const int32 UncompressedSize = DataToTask->Num();
+
+	TArray<uint8> CompressedBuffer;
+	CompressedBuffer.Reserve( UncompressedSize );
+	int32 CompressedSize = UncompressedSize;
+
+	// We assume that compression cannot fail.
+	const bool bResult = FCompression::CompressMemory( COMPRESS_ZLIB, CompressedBuffer.GetData(), CompressedSize, UncompressedPtr, UncompressedSize );
+	check( bResult );
+
+	// Convert to hex.
+	FString HexData = FString::FromHexBlob( CompressedBuffer.GetData(), CompressedSize );
+
+	// Create a temporary profiler data and prepare all data.
+	FProfilerServiceData2* ToGameThread = new FProfilerServiceData2( InstanceId, Frame, HexData, CompressedSize, UncompressedSize );
+
+	const float CompressionRatio = (float)UncompressedSize / (float)CompressedSize;
+	UE_LOG( LogProfilerService, VeryVerbose, TEXT( "Frame: %i, UncompressedSize: %i/%f, InstanceId: %i" ), ToGameThread->Frame, UncompressedSize, CompressionRatio, *InstanceId.ToString() );
 
 	// Send to the game thread. PreviewClients is not thread-safe, so we cannot send the data here.
 	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
@@ -656,19 +694,16 @@ void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 		FSimpleDelegateGraphTask::FDelegate::CreateRaw( this, &FProfilerServiceManager::HandleNewFrameGT, ToGameThread ),
 		TStatId(), nullptr, ENamedThreads::GameThread
 	);
-#endif
+
+	delete DataToTask;
 }
 
-#if STATS
-void FProfilerServiceManager::HandleNewFrameGT( FClientData* ToGameThread )
+void FProfilerServiceManager::HandleNewFrameGT( FProfilerServiceData2* ToGameThread )
 {
 	if (MessageEndpoint.IsValid())
 	{
-		// Update preview clients with the current data.
-		UE_LOG( LogProfilerService, VeryVerbose, TEXT( "Frame: %i, MetadataSize: %i, PreviewClients: %i" ), ToGameThread->Frame, MetadataSize, PreviewClients.Num() );
-		MessageEndpoint->Send( new FProfilerServiceData2( InstanceId, ToGameThread->Frame, ToGameThread->StatsWriteFile.GetOutData() ), PreviewClients );
+		// Send through the Message Bus.
+		MessageEndpoint->Send( ToGameThread, PreviewClients );
 	}
-
-	delete ToGameThread;
 }
 #endif
