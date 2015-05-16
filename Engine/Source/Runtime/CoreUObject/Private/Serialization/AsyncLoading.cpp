@@ -1498,6 +1498,8 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadObjects()
 		{
 			DeferredPostLoadObjects.Add(Object);
 		}
+		// All object must be finalized on the game thread
+		DeferredFinalizeObjects.Add(Object);
 	}
 
 	// New objects might have been loaded during PostLoad.
@@ -1536,7 +1538,7 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 	if (Result == EAsyncPackageState::Complete)
 	{
 		// Clear async loading flags (we still want RF_Async, but RF_AsyncLoading can be cleared)
-		for (UObject* Object : DeferredPostLoadObjects)
+		for (UObject* Object : DeferredFinalizeObjects)
 		{
 			Object->AtomicallyClearFlags(RF_AsyncLoading);
 		}
