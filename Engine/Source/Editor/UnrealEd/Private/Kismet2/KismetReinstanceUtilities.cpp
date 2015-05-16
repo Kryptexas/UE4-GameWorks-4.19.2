@@ -178,16 +178,13 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		DuplicatedClass->StaticLink(true);
 
 		// Copy over the ComponentNametoDefaultObjectMap, which tells CopyPropertiesForUnrelatedObjects which components are instanced and which aren't
-
-		GIsDuplicatingClassForReinstancing = true;
-		UObject* OldCDO = ClassToReinstance->GetDefaultObject();
-		DuplicatedClass->ClassDefaultObject = (UObject*)StaticDuplicateObject(OldCDO, GetTransientPackage(), *DuplicatedClass->GetDefaultObjectName().ToString());
-		GIsDuplicatingClassForReinstancing = false;
+		
+		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance, DuplicatedClass->GetDefaultObjectName());
 
 		DuplicatedClass->ClassDefaultObject->SetFlags(RF_ClassDefaultObject);
 		DuplicatedClass->ClassDefaultObject->SetClass(DuplicatedClass);
 
-		OldCDO->SetClass(DuplicatedClass);
+		ClassToReinstance->GetDefaultObject()->SetClass(DuplicatedClass);
 		ObjectsThatShouldUseOldStuff.Add(DuplicatedClass); //CDO of REINST_ class can be used as archetype
 
 		if( !bIsBytecodeOnly )
@@ -1280,4 +1277,26 @@ void FBlueprintCompileReinstancer::ReparentChild(UClass* ChildClass)
 	ChildClass->SetSuperStruct(DuplicatedClass);
 	ChildClass->Bind();
 	ChildClass->StaticLink(true);
+}
+
+UObject* FBlueprintCompileReinstancer::GetClassCDODuplicate(UClass* Class, FName Name)
+{
+	UObject* DupCDO = nullptr;
+
+	FCDODuplicatesProvider& CDODupProvider = GetCDODuplicatesProviderDelegate();
+
+	if (!CDODupProvider.IsBound() || (DupCDO = CDODupProvider.Execute(Class, Name)) == nullptr)
+	{
+		GIsDuplicatingClassForReinstancing = true;
+		DupCDO = (UObject*)StaticDuplicateObject(Class->GetDefaultObject(), GetTransientPackage(), *Name.ToString());
+		GIsDuplicatingClassForReinstancing = false;
+	}
+
+	return DupCDO;
+}
+
+FBlueprintCompileReinstancer::FCDODuplicatesProvider& FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate()
+{
+	static FCDODuplicatesProvider Delegate;
+	return Delegate;
 }

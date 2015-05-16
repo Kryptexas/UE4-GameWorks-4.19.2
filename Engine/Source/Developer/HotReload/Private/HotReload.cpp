@@ -620,10 +620,34 @@ void FHotReloadModule::DoHotReloadCallback(bool bRecompileFinished, ECompilation
 	DoHotReloadInternal(bRecompileFinished, CompilationResult, Packages, InDependentModules, HotReloadAr);
 }
 
+#if WITH_HOT_RELOAD
+/**
+ * Gets duplicated CDO from the cache, renames it and returns.
+ */
+UObject* GetCachedCDODuplicate(UClass* Class, FName Name)
+{
+	UObject* DupCDO = nullptr;
+
+	UObject** DupCDOPtr = GetDuplicatedCDOMap().Find(Class);
+	if (DupCDOPtr != nullptr)
+	{
+		DupCDO = *DupCDOPtr;
+		DupCDO->Rename(*Name.ToString(), GetTransientPackage(),
+			REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional | REN_SkipGeneratedClasses);
+	}
+
+	return DupCDO;
+}
+#endif // WITH_HOT_RELOAD
+
 ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFinished, ECompilationResult::Type CompilationResult, TArray<UPackage*> Packages, TArray< FName > InDependentModules, FOutputDevice &HotReloadAr)
 {
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 #if WITH_HOT_RELOAD
+	FBlueprintCompileReinstancer::FCDODuplicatesProvider& CDODuplicatesProvider = FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate();
+
+	CDODuplicatesProvider.BindStatic(&GetCachedCDODuplicate);
+
 	if (CompilationResult == ECompilationResult::Succeeded)
 	{
 		FFeedbackContext& ErrorsFC = UClass::GetDefaultPropertiesFeedbackContext();
@@ -741,6 +765,9 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 		HotReloadAr.Logf(ELogVerbosity::Warning, TEXT("HotReload failed, recompile failed"));
 		Result = ECompilationResult::OtherCompilationError;
 	}
+
+	CDODuplicatesProvider.Unbind();
+	GetDuplicatedCDOMap().Empty();
 #endif
 	bIsHotReloadingFromEditor = false;
 	return Result;

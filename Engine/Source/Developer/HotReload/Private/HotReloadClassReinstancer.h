@@ -72,11 +72,14 @@ class FHotReloadClassReinstancer : public FBlueprintCompileReinstancer
 	void SerializeCDOProperties(UObject* InObject, FCDOPropertyData& OutData);
 
 	/**
-	* Re-creates class default object
-	*
-	* @param InOldClass Class that has NOT changed after hot-reload
-	*/
-	void ReconstructClassDefaultObject(UClass* InOldClass);
+	 * Re-creates class default object.
+	 *
+	 * @param InClass Class that has NOT changed after hot-reload.
+	 * @param InOuter Outer for the new CDO.
+	 * @param InName Name of the new CDO.
+	 * @param InFlags Flags of the new CDO.
+	 */
+	void ReconstructClassDefaultObject(UClass* InClass, UObject* InOuter, FName InName, EObjectFlags InFlags);
 
 	/** Updates property values on instances of the hot-reloaded class */
 	void UpdateDefaultProperties();

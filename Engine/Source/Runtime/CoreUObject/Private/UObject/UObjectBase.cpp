@@ -523,6 +523,12 @@ static TArray<FFieldCompiledInInfo*>& GetDeferredClassRegistration()
 }
 
 #if WITH_HOT_RELOAD
+TMap<UClass*, UObject*>& GetDuplicatedCDOMap()
+{
+	static TMap<UClass*, UObject*> Map;
+	return Map;
+}
+
 /** Map of deferred class registration info (including size and reflection info) */
 static TMap<FName, FFieldCompiledInInfo*>& GetDeferRegisterClassMap()
 {
@@ -645,6 +651,37 @@ void UClassReplaceHotReloadClasses()
 	}
 	GetHotReloadClasses().Empty();
 }
+
+/**
+ * Creates a cache of cpp-only-changed UClasses' CDOs, which are going to be
+ * used later during BP reinstancing.
+ */
+static void UClassGenerateCDODuplicatesForHotReload()
+{
+	if (!GIsHotReload)
+	{
+		return;
+	}
+
+	for (FObjectIterator It(UClass::StaticClass()); It; ++It)
+	{
+		UClass* Class = (UClass*)*It;
+
+		for (auto* HotReloadedClass : GetHotReloadClasses())
+		{
+			if (!HotReloadedClass->bHasChanged && Class->IsChildOf(HotReloadedClass->OldClass))
+			{
+				GIsDuplicatingClassForReinstancing = true;
+				UObject* DupCDO = (UObject*)StaticDuplicateObject(
+					Class->GetDefaultObject(), GetTransientPackage(),
+					*MakeUniqueObjectName(GetTransientPackage(), Class, TEXT("HOTRELOAD_CDO_DUPLICATE")).ToString()
+					);
+				GIsDuplicatingClassForReinstancing = false;
+				GetDuplicatedCDOMap().Add(Class, DupCDO);
+			}
+		}
+	}
+}
 #endif
 
 /**
@@ -747,6 +784,9 @@ void ProcessNewlyLoadedUObjects()
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("ProcessNewlyLoadedUObjects"), STAT_ProcessNewlyLoadedUObjects, STATGROUP_ObjectVerbose);
 
+#if WITH_HOT_RELOAD
+	UClassGenerateCDODuplicatesForHotReload();
+#endif
 	UClassRegisterAllCompiledInClasses();
 
 	while( AnyNewlyLoadedUObjects() )
