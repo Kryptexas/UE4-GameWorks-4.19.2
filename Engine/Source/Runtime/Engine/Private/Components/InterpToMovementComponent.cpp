@@ -32,6 +32,17 @@ void UInterpToMovementComponent::InitializeComponent()
 }
 
 
+void UInterpToMovementComponent::StopMovementImmediately()
+{
+	bStopped = true;
+	FHitResult FakeHit;
+	OnInterpToStop.Broadcast(FakeHit, CurrentTime);
+	// Not calling StopSimulating here (that nulls UpdatedComponent). Users can call that explicitly instead if they wish.
+
+	Super::StopMovementImmediately();
+}
+
+
 void UInterpToMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_InterpToMovementComponent_TickComponent);

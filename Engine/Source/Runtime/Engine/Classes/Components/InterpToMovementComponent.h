@@ -114,6 +114,7 @@ class ENGINE_API UInterpToMovementComponent : public UMovementComponent
 
 	//Begin UMovementComponent Interface
 	virtual void InitializeComponent() override;
+	virtual void StopMovementImmediately() override;
 	//End UMovementComponent Interface
 
 	/**
