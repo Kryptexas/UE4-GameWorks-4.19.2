@@ -4,6 +4,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "K2Node_ClassDynamicCast.h"
+#include "KismetCompiler.h"
 #include "K2Node_ConvertAsset.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_ConvertAsset"
