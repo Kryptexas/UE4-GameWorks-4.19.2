@@ -2303,6 +2303,11 @@ namespace UnrealBuildTool
 							TargetModule.RecursivelyAddPrecompiledModules(TargetModules);
 						}
 					}
+					foreach(string ExtraModuleName in ExtraModuleNames)
+					{
+						UEBuildModule ExtraModule = FindOrCreateModuleByName(ExtraModuleName);
+						ExtraModule.RecursivelyAddPrecompiledModules(TargetModules);
+					}
 					foreach(UEBuildModuleCPP TargetModule in TargetModules)
 					{
 						if(TargetModule is UEBuildModuleCPP && !RulesCompiler.IsGameModule(TargetModule.Name))
