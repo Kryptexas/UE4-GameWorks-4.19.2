@@ -111,7 +111,7 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 			{
 				for (auto CurrentBP : StoredDependentBlueprints)
 				{
-					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !CurrentBP->IsPossiblyDirty());
+					Reinstancer->EnlistDependentBlueprintToRecompile(CurrentBP, !(CurrentBP->IsPossiblyDirty() || CurrentBP->Status == BS_Error));
 				}
 			}
 		}
