@@ -47,12 +47,15 @@ FLinuxApplication* FLinuxApplication::CreateLinuxApplication()
 
 	LinuxApplication = new FLinuxApplication();
 
-	SDLControllerState *controllerState = LinuxApplication->ControllerStates;
-	for (int i = 0; i < SDL_NumJoysticks(); ++i) {
-	    if (SDL_IsGameController(i)) {
-		    controllerState->controller = SDL_GameControllerOpen(i);
-			if ( controllerState++->controller == NULL ) {
-				UE_LOG(LogLoad, Warning, TEXT("Could not open gamecontroller %i: %s\n"), i, SDL_GetError() );
+	SDLControllerState* ControllerState = LinuxApplication->ControllerStates;
+	for (int i = 0; i < SDL_NumJoysticks(); ++i)
+	{
+		if (SDL_IsGameController(i))
+		{
+			ControllerState->controller = SDL_GameControllerOpen(i);
+			if (ControllerState++->controller == nullptr)
+			{
+				UE_LOG(LogLoad, Warning, TEXT("Could not open gamecontroller %i: %s\n"), i, UTF8_TO_TCHAR(SDL_GetError()));
 			}
 		}
 	}
