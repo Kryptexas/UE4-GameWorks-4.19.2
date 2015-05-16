@@ -273,9 +273,9 @@ public:
 	/** Stores the number of valid scenes we are working with. This will be PST_MAX or PST_Async, 
 		depending on whether the async scene is enabled or not*/
 	uint32							NumPhysScenes;
-
-	/** Array of collision notifications, pending execution at the end of the physics engine run. */
-	TArray<FCollisionNotifyInfo>	PendingCollisionNotifies;
+	
+	/** Gets the array of collision notifications, pending execution at the end of the physics engine run. */
+	TArray<FCollisionNotifyInfo>& GetPendingCollisionNotifies(int32 SceneType){ return PendingCollisionData[SceneType].PendingCollisionNotifies; }
 
 	/** World that owns this physics scene */
 	UWorld*							OwningWorld;
@@ -378,6 +378,14 @@ private:
 	class FPhysXVehicleManager*			VehicleManager;
 #endif
 #endif	//
+
+	struct FPendingCollisionData
+	{
+		/** Array of collision notifications, pending execution at the end of the physics engine run. */
+		TArray<FCollisionNotifyInfo>	PendingCollisionNotifies;
+	};
+
+	FPendingCollisionData PendingCollisionData[PST_MAX];
 
 public:
 
