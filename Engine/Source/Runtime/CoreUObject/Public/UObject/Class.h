@@ -260,6 +260,7 @@ class COREUOBJECT_API UStruct : public UField
 	// Variables.
 protected:
 	friend COREUOBJECT_API UClass* Z_Construct_UClass_UStruct();
+private:
 	UStruct* SuperStruct;
 public:
 	UField* Children;
@@ -1272,8 +1273,9 @@ public:
 	// UFunction interface.
 	UFunction* GetSuperFunction() const
 	{
-		checkSlow(!SuperStruct||SuperStruct->IsA<UFunction>());
-		return (UFunction*)SuperStruct;
+		UStruct* Result = GetSuperStruct();
+		checkSlow(!Result || Result->IsA<UFunction>());
+		return (UFunction*)Result;
 	}
 
 	UProperty* GetReturnProperty() const;
@@ -2063,7 +2065,7 @@ public:
 
 	UClass* GetSuperClass() const
 	{
-		return (UClass*)SuperStruct;
+		return (UClass*)GetSuperStruct();
 	}
 
 	/** Feedback context for default property import **/

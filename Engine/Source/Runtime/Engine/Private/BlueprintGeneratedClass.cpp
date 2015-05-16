@@ -400,7 +400,7 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(UObject* InInstance) const
 	}
 
 	// call on super class, if it's a BlueprintGeneratedClass
-	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(SuperStruct);
+	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetSuperStruct());
 	if(BGClass != NULL)
 	{
 		BGClass->BindDynamicDelegates(InInstance);
