@@ -898,14 +898,12 @@ FArchive& operator<<(FArchive& Ar, FLandscapeWeightmapUsage& U)
 	return Ar << U.ChannelUsage[0] << U.ChannelUsage[1] << U.ChannelUsage[2] << U.ChannelUsage[3];
 }
 
+#if WITH_EDITORONLY_DATA
 FArchive& operator<<(FArchive& Ar, FLandscapeAddCollision& U)
 {
-#if WITH_EDITORONLY_DATA
 	return Ar << U.Corners[0] << U.Corners[1] << U.Corners[2] << U.Corners[3];
-#else
-	return Ar;
-#endif // WITH_EDITORONLY_DATA
 }
+#endif // WITH_EDITORONLY_DATA
 
 FArchive& operator<<(FArchive& Ar, FLandscapeLayerStruct*& L)
 {
@@ -930,7 +928,9 @@ void ULandscapeInfo::Serialize(FArchive& Ar)
 	if (Ar.IsTransacting())
 	{
 		Ar << XYtoComponentMap;
+#if WITH_EDITORONLY_DATA
 		Ar << XYtoAddCollisionMap;
+#endif
 		Ar << SelectedComponents;
 		Ar << SelectedRegion;
 		Ar << SelectedRegionComponents;
@@ -1516,9 +1516,6 @@ void ALandscapeProxy::RecreateComponentsState()
 		if (Comp)
 		{
 			Comp->UpdateComponentToWorld();
-#if WITH_EDITOR
-			Comp->UpdateAddCollisions();
-#endif
 			Comp->RecreatePhysicsState();
 		}
 	}

@@ -589,7 +589,7 @@ bool ULandscapeInfo::ApplySplinesInternal(bool bOnlySelected, ALandscapeProxy* L
 		ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
 		if (CollisionComponent)
 		{
-			CollisionComponent->RecreateCollision(false);
+			CollisionComponent->RecreateCollision();
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 			if (NavSys)
 			{
@@ -684,7 +684,7 @@ namespace LandscapeSplineRaster
 			ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
 			if (CollisionComponent)
 			{
-				CollisionComponent->RecreateCollision(false);
+				CollisionComponent->RecreateCollision();
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 				if (NavSys)
 				{

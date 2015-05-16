@@ -94,7 +94,7 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 
 	// Begin ULandscapeHeightfieldCollisionComponent Interface
 	virtual void CreateCollisionObject() override;
-	virtual void RecreateCollision(bool bUpdateAddCollision = true) override;
+	virtual void RecreateCollision() override;
 	// End ULandscapeHeightfieldCollisionComponent Interface
 };
 

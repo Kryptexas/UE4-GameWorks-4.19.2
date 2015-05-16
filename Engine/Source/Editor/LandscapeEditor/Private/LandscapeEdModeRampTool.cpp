@@ -554,7 +554,7 @@ public:
 					ULandscapeHeightfieldCollisionComponent* CollisionComponent = Component->CollisionComponent.Get();
 					if (CollisionComponent)
 					{
-						CollisionComponent->RecreateCollision(false);
+						CollisionComponent->RecreateCollision();
 						UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(Component);
 						if (NavSys)
 						{

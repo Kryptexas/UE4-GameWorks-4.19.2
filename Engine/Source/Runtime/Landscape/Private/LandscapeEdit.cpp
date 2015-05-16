@@ -733,7 +733,7 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		if (MeshCollisionComponent)
 		{
 			// Will be done once for XY Offset data update in FXYOffsetmapAccessor() destructor with UpdateCachedBounds()
-			//MeshCollisionComponent->RecreateCollision(false);
+			//MeshCollisionComponent->RecreateCollision();
 		}
 		else if (CollisionMipLevel == 0)
 		{
@@ -2842,7 +2842,7 @@ void ALandscapeProxy::EditorApplyScale(const FVector& DeltaScale, const FVector*
 	{
 		if (Comp)
 		{
-			Comp->RecreateCollision(false);
+			Comp->RecreateCollision();
 		}
 	}
 }
@@ -2856,7 +2856,7 @@ void ALandscapeProxy::EditorApplyMirror(const FVector& MirrorScale, const FVecto
 	{
 		if (Comp)
 		{
-			Comp->RecreateCollision(false);
+			Comp->RecreateCollision();
 		}
 	}
 }
@@ -3283,7 +3283,7 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 				ULandscapeHeightfieldCollisionComponent* Comp = CollisionComponents[ComponentIndex];
 				if (Comp)
 				{
-					Comp->RecreateCollision(false);
+					Comp->RecreateCollision();
 				}
 			}
 		}
@@ -3466,7 +3466,7 @@ void ALandscapeProxy::ChangedPhysMaterial()
 			{
 				Comp->UpdateCollisionLayerData();
 				// Physical materials cooked into collision object, so we need to recreate it
-				CollisionComponent->RecreateCollision(false);
+				CollisionComponent->RecreateCollision();
 			}
 		}
 	}

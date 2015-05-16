@@ -183,9 +183,6 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	virtual void PostEditUndo() override;
 	// End UObject Interface.
 
-	// Update Collision object for add LandscapeComponent tool
-	LANDSCAPE_API void UpdateAddCollisions();
-
 	// @todo document
 	class ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
 
@@ -215,7 +212,7 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	LANDSCAPE_API void SetSectionBase(FIntPoint InSectionBase);
 
 	/** Recreate heightfield and restart physics */
-	LANDSCAPE_API virtual void RecreateCollision(bool bUpdateAddCollision = true);
+	LANDSCAPE_API virtual void RecreateCollision();
 
 #if WITH_EDITORONLY_DATA
 	// Called from editor code to manage foliage instances on landscape.
