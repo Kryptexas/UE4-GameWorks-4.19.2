@@ -26,7 +26,7 @@ namespace AutomationTool
 			string MapsToCook = "";
 			if (IsNullOrEmpty(Maps))
 			{
-				MapsToCook = "-MapIniSection=AllMaps";
+				// MapsToCook = "-MapIniSection=AllMaps";
 			}
 			else
 			{
