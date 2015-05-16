@@ -318,7 +318,12 @@ void FBehaviorTreeEditor::HandleBlackboardEntrySelected(const FBlackboardEntry* 
 {
 	// refresh details view
 	const bool bForceRefresh = true;
-	BlackboardDetailsView->SetObject(GetBlackboardData(), bForceRefresh);
+
+	if (ensure(BlackboardDetailsView.IsValid()))
+	{
+		// the opposite should never happen, we weren't able to internally repro it, but it seems someone was crashing on this line
+		BlackboardDetailsView->SetObject(GetBlackboardData(), bForceRefresh);
+	}
 }
 
 int32 FBehaviorTreeEditor::HandleGetSelectedBlackboardItemIndex(bool& bIsInherited)
