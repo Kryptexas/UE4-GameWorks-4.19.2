@@ -8,6 +8,7 @@
 #include "SubtitleManager.h"
 #include "GatherableTextData.h"
 #include "InternationalizationMetadata.h"
+#include "Sound/DialogueVoice.h"
 
 #if WITH_EDITORONLY_DATA
 namespace
