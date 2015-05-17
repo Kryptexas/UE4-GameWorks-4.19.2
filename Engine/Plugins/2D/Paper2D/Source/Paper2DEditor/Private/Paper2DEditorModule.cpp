@@ -12,6 +12,7 @@
 #include "AssetEditorToolkit.h"
 #include "ModuleManager.h"
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
+#include "LevelEditorMenuExtensions/Paper2DLevelEditorExtensions.h"
 #include "PaperImporterSettings.h"
 
 // Sprite support
@@ -50,7 +51,7 @@
 
 // Grouped sprite support
 #include "PaperGroupedSpriteComponent.h"
-#include "GroupedSpriteDetailsCustomization.h"
+#include "GroupedSprites/GroupedSpriteDetailsCustomization.h"
 
 // Settings
 #include "PaperRuntimeSettings.h"
@@ -183,8 +184,9 @@ public:
 			FSlateIcon(),
 			false);
 
-		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
+		// Integrate Paper2D actions into existing editor context menus
 		FPaperContentBrowserExtensions::InstallHooks();
+		FPaperLevelEditorMenuExtensions::InstallHooks();
 
 		// Register with the mesh paint module
 		if (IMeshPaintModule* MeshPaintModule = FModuleManager::LoadModulePtr<IMeshPaintModule>("MeshPaint"))
@@ -216,6 +218,7 @@ public:
 				SpriteMeshPaintAdapterFactory.Reset();
 			}
 
+			FPaperLevelEditorMenuExtensions::RemoveHooks();
 			FPaperContentBrowserExtensions::RemoveHooks();
 
 			FComponentAssetBrokerage::UnregisterBroker(PaperTileMapBroker);

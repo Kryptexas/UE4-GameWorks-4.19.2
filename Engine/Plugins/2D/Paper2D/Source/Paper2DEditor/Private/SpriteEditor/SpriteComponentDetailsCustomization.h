@@ -20,8 +20,6 @@ public:
 protected:
 	FReply MergeSprites();
 
-	static FBox ComputeBoundsForComponents(const TArray<UActorComponent*>& ComponentList);
-
 protected:
 	TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
 };

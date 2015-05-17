@@ -1,11 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
-#include "GroupedSpriteDetailsCustomization.h"
-
-#include "PaperSpriteActor.h"
-#include "PaperSpriteComponent.h"
-#include "PaperGroupedSpriteComponent.h"
+#include "AssetData.h"
+#include "PaperGroupedSpriteActor.h"
+#include "PaperGroupedSpriteUtilities.h"
 #include "ScopedTransaction.h"
 #include "ILayers.h"
 #include "ComponentReregisterContext.h"
@@ -13,52 +11,13 @@
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
 //////////////////////////////////////////////////////////////////////////
-// FGroupedSpriteComponentDetailsCustomization
+// FPaperGroupedSpriteUtilities
 
-TSharedRef<IDetailCustomization> FGroupedSpriteComponentDetailsCustomization::MakeInstance()
-{
-	return MakeShareable(new FGroupedSpriteComponentDetailsCustomization());
-}
-
-FGroupedSpriteComponentDetailsCustomization::FGroupedSpriteComponentDetailsCustomization()
-{
-}
-
-void FGroupedSpriteComponentDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
-{
-	// Create a category so this is displayed early in the properties
-	IDetailCategoryBuilder& SpriteCategory = DetailBuilder.EditCategory("Sprite", FText::GetEmpty(), ECategoryPriority::Important);
-
-	ObjectsBeingCustomized.Empty();
-	DetailBuilder.GetObjectsBeingCustomized(/*out*/ ObjectsBeingCustomized);
-
-	{
-		// Expose split buttons
-		FDetailWidgetRow& SplitRow = SpriteCategory.AddCustomRow(LOCTEXT("SplitSearchText", "Split"))
-			.WholeRowContent()
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
-				[
-					SNew(SButton)
-					.Text(LOCTEXT("SplitSprites", "Split Sprites"))
-					.ToolTipText(LOCTEXT("SplitSprites_Tooltip", "Splits all sprite instances into separate sprite actors or components"))
-					.OnClicked(this, &FGroupedSpriteComponentDetailsCustomization::SplitSprites)
-				]
-			];
-	}
-}
-
-void FGroupedSpriteComponentDetailsCustomization::BuildHarvestList(const TArray<TWeakObjectPtr<UObject>>& ObjectsToConsider, TSubclassOf<UActorComponent> HarvestClassType, TArray<UActorComponent*>& OutComponentsToHarvest, TArray<AActor*>& OutActorsToDelete)
+void FPaperGroupedSpriteUtilities::BuildHarvestList(const TArray<UObject*>& ObjectsToConsider, TSubclassOf<UActorComponent> HarvestClassType, TArray<UActorComponent*>& OutComponentsToHarvest, TArray<AActor*>& OutActorsToDelete)
 {
 	// Determine the components to harvest
-	for (TWeakObjectPtr<UObject> WeakObject : ObjectsToConsider)
+	for (UObject* Object : ObjectsToConsider)
 	{
-		UObject* Object = WeakObject.Get();
 		if (Object == nullptr)
 		{
 			continue;
@@ -98,14 +57,29 @@ void FGroupedSpriteComponentDetailsCustomization::BuildHarvestList(const TArray<
 	}
 }
 
-FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
+FBox FPaperGroupedSpriteUtilities::ComputeBoundsForComponents(const TArray<UActorComponent*>& ComponentList)
+{
+	FBox BoundsOfList(ForceInit);
+
+	for (const UActorComponent* Component : ComponentList)
+	{
+		if (const USceneComponent* SceneComponent = Cast<const USceneComponent>(Component))
+		{
+			BoundsOfList += SceneComponent->Bounds.GetBox();
+		}
+	}
+
+	return BoundsOfList;
+}
+
+void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObjectList)
 {
 	TArray<UActorComponent*> ComponentsToHarvest;
 	TSubclassOf<UActorComponent> HarvestClassType = UPaperSpriteComponent::StaticClass();
 	TArray<AActor*> ActorsToDelete;
 	TArray<AActor*> ActorsCreated;
-	
-	FGroupedSpriteComponentDetailsCustomization::BuildHarvestList(ObjectsBeingCustomized, UPaperGroupedSpriteComponent::StaticClass(), /*out*/ ComponentsToHarvest, /*out*/ ActorsToDelete);
+
+	FPaperGroupedSpriteUtilities::BuildHarvestList(InObjectList, UPaperGroupedSpriteComponent::StaticClass(), /*out*/ ComponentsToHarvest, /*out*/ ActorsToDelete);
 
 	if (ComponentsToHarvest.Num() > 0)
 	{
@@ -118,7 +92,7 @@ FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
 			{
 				UPaperGroupedSpriteComponent* SourceBatchComponent = CastChecked<UPaperGroupedSpriteComponent>(SourceComponent);
 
-				for (FSpriteInstanceData& InstanceData : SourceBatchComponent->PerInstanceSpriteData)
+				for (const FSpriteInstanceData& InstanceData : SourceBatchComponent->GetPerInstanceSpriteData())
 				{
 					if (InstanceData.SourceSprite != nullptr)
 					{
@@ -181,8 +155,76 @@ FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
 			UE_LOG(LogPaper2DEditor, Warning, TEXT("Splitting sprites in the Blueprint editor is not currently supported"));
 		}
 	}
+}
 
-	return FReply::Handled();
+void FPaperGroupedSpriteUtilities::MergeSprites(const TArray<UObject*>& InObjectList)
+{
+	TArray<UActorComponent*> ComponentsToHarvest;
+	TSubclassOf<UActorComponent> HarvestClassType = UPaperSpriteComponent::StaticClass();
+	TArray<AActor*> ActorsToDelete;
+
+	FPaperGroupedSpriteUtilities::BuildHarvestList(InObjectList, UPaperSpriteComponent::StaticClass(), /*out*/ ComponentsToHarvest, /*out*/ ActorsToDelete);
+
+	if (ComponentsToHarvest.Num() > 0)
+	{
+		if (UWorld* World = ComponentsToHarvest[0]->GetWorld())
+		{
+			const FBox ComponentBounds = ComputeBoundsForComponents(ComponentsToHarvest);
+			const FTransform MergedWorldTM(ComponentBounds.GetCenter());
+
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.bDeferConstruction = true;
+
+			if (APaperGroupedSpriteActor* SpawnedActor = World->SpawnActor<APaperGroupedSpriteActor>(SpawnParams))
+			{
+				const FScopedTransaction Transaction(LOCTEXT("MergeSprites", "Merge sprite instances"));
+
+				// Create a merged sprite component
+				{
+					UPaperGroupedSpriteComponent* MergedSpriteComponent = SpawnedActor->GetRenderComponent();
+					FComponentReregisterContext ReregisterContext(MergedSpriteComponent);
+
+					// Create an instance from each sprite component that we're harvesting
+					for (UActorComponent* SourceComponent : ComponentsToHarvest)
+					{
+						UPaperSpriteComponent* SourceSpriteComponent = CastChecked<UPaperSpriteComponent>(SourceComponent);
+
+						UPaperSprite* Sprite = SourceSpriteComponent->GetSprite();
+						const FLinearColor SpriteColor = SourceSpriteComponent->GetSpriteColor();
+						const FTransform RelativeSpriteTransform = SourceSpriteComponent->GetComponentTransform().GetRelativeTransform(MergedWorldTM);
+
+						UMaterialInterface* OverrideMaterial = SourceSpriteComponent->GetMaterial(0);
+						if ((Sprite == nullptr) || (OverrideMaterial == Sprite->GetMaterial(0)))
+						{
+							OverrideMaterial = nullptr;
+						}
+
+						MergedSpriteComponent->AddInstanceWithMaterial(RelativeSpriteTransform, Sprite, OverrideMaterial, /*bWorldSpace=*/ false, SpriteColor);
+					}
+				}
+
+				// Finalize the new component
+				UGameplayStatics::FinishSpawningActor(SpawnedActor, MergedWorldTM);
+
+				// Delete the existing actor instances
+				for (AActor* ActorToDelete : ActorsToDelete)
+				{
+					// Remove from active selection in editor
+					GEditor->SelectActor(ActorToDelete, /*bSelected=*/ false, /*bNotify=*/ false);
+					GEditor->Layers->DisassociateActorFromLayers(ActorToDelete);
+					World->EditorDestroyActor(ActorToDelete, /*bShouldModifyLevel=*/ true);
+				}
+
+				// Select the new replacement instance
+				GEditor->SelectActor(SpawnedActor, /*bSelected=*/ true, /*bNotify=*/ true);
+			}
+			else
+			{
+				// We're in the BP editor and don't currently support merging here!
+				UE_LOG(LogPaper2DEditor, Warning, TEXT("Merging sprites in the Blueprint editor is not currently supported"));
+			}
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////

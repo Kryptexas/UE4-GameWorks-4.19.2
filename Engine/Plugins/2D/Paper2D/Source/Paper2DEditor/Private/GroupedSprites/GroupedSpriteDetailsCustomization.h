@@ -17,8 +17,6 @@ public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override;
 	// End of IDetailCustomization interface
 
-	static void BuildHarvestList(const TArray<TWeakObjectPtr<UObject>>& ObjectsToConsider, TSubclassOf<UActorComponent> HarvestClassType, TArray<UActorComponent*>& OutComponentsToHarvest, TArray<AActor*>& OutActorsToDelete);
-
 protected:
 	FGroupedSpriteComponentDetailsCustomization();
 

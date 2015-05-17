@@ -2,13 +2,11 @@
 
 #pragma once
 
+class FGroupedSpriteSceneProxy;
+
 #include "PaperSprite.h"
 
 #include "PaperGroupedSpriteComponent.generated.h"
-
-class UPaperGroupedSpriteComponent;
-class FGroupedSpriteSceneProxy;
-class FGroupedSpriteComponentDetailsCustomization;
 
 USTRUCT()
 struct FSpriteInstanceData
@@ -136,6 +134,11 @@ public:
 	/** Handles request from navigation system to gather instance transforms in a specific area box */
 	void GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& OutInstanceTransforms) const;
 
+	const TArray<FSpriteInstanceData>& GetPerInstanceSpriteData() const
+	{
+		return PerInstanceSpriteData;
+	}
+
 protected:
 	/**
 	 * Transfers ownership of instance render data to a render thread
@@ -165,5 +168,4 @@ protected:
 	int32 UpdateMaterialList(UPaperSprite* Sprite, UMaterialInterface* MaterialOverride);
 
 	friend FGroupedSpriteSceneProxy;
-	friend FGroupedSpriteComponentDetailsCustomization;
 };
