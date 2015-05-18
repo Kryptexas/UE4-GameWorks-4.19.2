@@ -255,7 +255,7 @@ public:
 			PF_B8G8R8A8,
 			/*NumMips=*/ 1,
 			TexCreate_None,
-			TexCreate_RenderTargetable,
+			TexCreate_RenderTargetable | TexCreate_NoFastClear,
 			/*bForceSeparateTargetAndShaderResource=*/ false,
 			CreateInfo,
 			TextureTargetRHI,

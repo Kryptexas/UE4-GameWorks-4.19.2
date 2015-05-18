@@ -844,6 +844,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 		FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
 		Desc.TargetableFlags |= TexCreate_UAV;
+		Desc.TargetableFlags |= TexCreate_NoFastClear;
 
 		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
 		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
