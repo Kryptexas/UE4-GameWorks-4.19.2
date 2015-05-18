@@ -726,6 +726,7 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 	LandscapeUniformShaderParameters.InitResource();
 
 	// Create MeshBatch for grass rendering
+	if(SharedBuffers->GrassIndexBuffer)
 	{
 		GrassMeshBatch.Elements.Empty(1);
 
