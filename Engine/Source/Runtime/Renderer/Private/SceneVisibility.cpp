@@ -803,6 +803,7 @@ struct FRelevancePacket
 	FRelevancePrimSet<FPrimitiveSceneInfo*> UpdateStaticMeshes;
 	FRelevancePrimSet<FPrimitiveSceneInfo*> VisibleEditorPrimitives;
 	uint16 CombinedShadingModelMask;
+	bool bUsesGlobalDistanceField;
 
 	FRelevancePacket(
 		FRHICommandListImmediate& InRHICmdList,
@@ -825,6 +826,7 @@ struct FRelevancePacket
 		, OutHasDynamicEditorMeshElementsMasks(InOutHasDynamicEditorMeshElementsMasks)
 		, MarkMasks(InMarkMasks)
 		, CombinedShadingModelMask(0)
+		, bUsesGlobalDistanceField(false)
 	{
 	}
 
@@ -837,6 +839,8 @@ struct FRelevancePacket
 	void ComputeRelevance()
 	{
 		CombinedShadingModelMask = 0;
+		bUsesGlobalDistanceField = false;
+
 		SCOPE_CYCLE_COUNTER(STAT_ComputeViewRelevance);
 		for (int32 Index = 0; Index < Input.NumPrims; Index++)
 		{
@@ -897,6 +901,7 @@ struct FRelevancePacket
 			}
 
 			CombinedShadingModelMask |= ViewRelevance.ShadingModelMaskRelevance;			
+			bUsesGlobalDistanceField |= ViewRelevance.bUsesGlobalDistanceField;
 
 			if (ViewRelevance.bRenderCustomDepth)
 			{
@@ -1033,6 +1038,7 @@ struct FRelevancePacket
 			WriteView.PrimitiveVisibilityMap[NotDrawRelevant.Prims[Index]] = false;
 		}
 		WriteView.ShadingModelMaskInView |= CombinedShadingModelMask;
+		WriteView.bUsesGlobalDistanceField |= bUsesGlobalDistanceField;
 		VisibleEditorPrimitives.AppendTo(WriteView.VisibleEditorPrimitives);
 		VisibleDynamicPrimitives.AppendTo(WriteView.VisibleDynamicPrimitives);
 		WriteView.TranslucentPrimSet.AppendScenePrimitives(SortedTranslucencyPrims.Prims, SortedTranslucencyPrims.NumPrims, SortedSeparateTranslucencyPrims.Prims, SortedSeparateTranslucencyPrims.NumPrims);

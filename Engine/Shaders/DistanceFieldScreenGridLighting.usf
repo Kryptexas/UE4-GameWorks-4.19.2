@@ -8,6 +8,7 @@
 #include "DeferredShadingCommon.usf"
 #include "DistanceFieldLightingShared.usf"
 #include "DistanceFieldAOShared.usf"
+#include "GlobalDistanceFieldShared.usf"
 
 #define NUM_THREADS_PER_RECORD 4
 #define CONE_TRACE_DISPATCH_SIZEX (CULLED_TILE_SIZEX / TRACE_DOWNSAMPLE_FACTOR)

@@ -183,6 +183,15 @@ enum ETrailWidthMode
 	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
 };
 
+UENUM()
+namespace EParticleCollisionMode
+{
+	enum Type
+	{
+		SceneDepth UMETA(DisplayName="Scene Depth"),
+		DistanceField UMETA(DisplayName="Distance Field")
+	};
+}
 
 // Note: Check UMaterialInstance::Serialize if changed!!
 UENUM()

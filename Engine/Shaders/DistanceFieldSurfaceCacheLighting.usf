@@ -8,6 +8,7 @@
 #include "DeferredShadingCommon.usf"
 #include "DistanceFieldLightingShared.usf"
 #include "DistanceFieldAOShared.usf"
+#include "GlobalDistanceFieldShared.usf"
 
 struct FObjectCullVertexOutput
 {

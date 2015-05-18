@@ -69,6 +69,7 @@ bool IsMobileHDR32bpp();
 #include "ScopedPointer.h"
 #include "ClearQuad.h"
 #include "AtmosphereRendering.h"
+#include "GlobalDistanceFieldParameters.h"
 
 #if WITH_SLI || PLATFORM_SHOULD_BUFFER_QUERIES
 #define BUFFERED_OCCLUSION_QUERIES 1
@@ -397,9 +398,6 @@ private:
 
 /** Random table for occlusion **/
 extern FOcclusionRandomStream GOcclusionRandomStream;
-
-/** Must match global distance field shaders. */
-const int32 GMaxGlobalDistanceFieldClipmaps = 4;
 
 /**
  * The scene manager's private implementation of persistent view state.

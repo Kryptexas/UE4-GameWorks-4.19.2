@@ -10,6 +10,7 @@
 #include "DistortionRendering.h"
 #include "CustomDepthRendering.h"
 #include "HeightfieldLighting.h"
+#include "GlobalDistanceFieldParameters.h"
 
 // Forward declarations.
 class FPostprocessContext;
@@ -377,6 +378,9 @@ class FGlobalDistanceFieldInfo
 public:
 
 	TArray<FGlobalDistanceFieldClipmap> Clipmaps;
+	FGlobalDistanceFieldParameterData ParameterData;
+
+	void UpdateParameterData(float MaxOcclusionDistance);
 };
 
 /** A FSceneView with additional state used by the scene renderer. */
@@ -499,6 +503,8 @@ public:
 	uint32 bDisableQuerySubmissions : 1;
 	/** Whether we should disable distance-based fade transitions for this frame (usually after a large camera movement.) */
 	uint32 bDisableDistanceBasedFadeTransitions : 1;
+	/** Whether the view has any materials that use the global distance field. */
+	uint32 bUsesGlobalDistanceField : 1;
 	/** Bitmask of all shading models used by primitives in this view */
 	uint16 ShadingModelMaskInView;
 

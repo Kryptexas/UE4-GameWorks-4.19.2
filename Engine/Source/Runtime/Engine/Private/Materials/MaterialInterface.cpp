@@ -22,6 +22,7 @@ void FMaterialRelevance::SetPrimitiveViewRelevance(FPrimitiveViewRelevance& OutV
 	OutViewRelevance.bSeparateTranslucencyRelevance = bSeparateTranslucency;
 	OutViewRelevance.bNormalTranslucencyRelevance = bNormalTranslucency;
 	OutViewRelevance.ShadingModelMaskRelevance = ShadingModelMask;
+	OutViewRelevance.bUsesGlobalDistanceField = bUsesGlobalDistanceField;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -64,7 +65,8 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bSeparateTranslucency = bIsTranslucent && Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;		
-		MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;		
+		MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;	
+		MaterialRelevance.bUsesGlobalDistanceField = MaterialResource->GetGameThreadShaderMap() ? MaterialResource->GetGameThreadShaderMap()->UsesGlobalDistanceField() : false;
 		return MaterialRelevance;
 	}
 	else

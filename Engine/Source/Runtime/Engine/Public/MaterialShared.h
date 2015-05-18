@@ -280,7 +280,8 @@ public:
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
 		bModifiesMeshPosition(false),
-		bNeedsGBuffer(false)
+		bNeedsGBuffer(false),
+		bUsesGlobalDistanceField(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -303,6 +304,9 @@ public:
 
 	/** true if the material uses any GBuffer textures */
 	bool bNeedsGBuffer;
+
+	/** true if material uses the global distance field */
+	bool bUsesGlobalDistanceField;
 };
 
 
@@ -656,6 +660,7 @@ public:
 	const FString& GetDebugDescription() const { return DebugDescription; }
 	bool RequiresSceneColorCopy() const { return MaterialCompilationOutput.bRequiresSceneColorCopy; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
+	bool UsesGlobalDistanceField() const { return MaterialCompilationOutput.bUsesGlobalDistanceField; }
 	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }

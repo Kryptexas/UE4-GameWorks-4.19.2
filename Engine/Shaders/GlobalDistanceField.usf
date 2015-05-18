@@ -8,6 +8,7 @@
 #include "DeferredShadingCommon.usf"
 #include "DistanceFieldLightingShared.usf"
 #include "DistanceFieldAOShared.usf"
+#include "GlobalDistanceFieldShared.usf"
 
 RWBuffer<float4> RWCulledObjectBounds;
 RWBuffer<float4> RWCulledObjectData;
@@ -161,11 +162,11 @@ void CullObjectsToGridCS(
 		for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumCulledObjects; ObjectIndex += GRID_CULL_THREADGORUP_TOTALSIZE)
 		{
 			float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
-			float BoxDistance = ComputeDistanceFromBoxToPoint(TileBoxCenter - TileBoxExtent, TileBoxCenter + TileBoxExtent, ObjectPositionAndRadius.xyz);
-			//float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(TileBoxCenter, TileBoxExtent, ObjectPositionAndRadius.xyz);
+			//float BoxDistance = ComputeDistanceFromBoxToPoint(TileBoxCenter - TileBoxExtent, TileBoxCenter + TileBoxExtent, ObjectPositionAndRadius.xyz);
+			float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(TileBoxCenter, TileBoxExtent, ObjectPositionAndRadius.xyz);
 			float CombinedDistance = ObjectPositionAndRadius.w + AOGlobalMaxSphereQueryRadius;
 
-			if (BoxDistance < CombinedDistance)
+			if (BoxDistanceSq < CombinedDistance * CombinedDistance)
 			{
 				uint DestIndex;
 				// Allocate space in the array for one more object
@@ -235,13 +236,13 @@ void CompositeObjectDistanceFieldsCS(
 		#endif
 
 		float4 ObjectPositionAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
-		float BoxDistance = ComputeDistanceFromBoxToPoint(TileBoxCenter - TileBoxExtent, TileBoxCenter + TileBoxExtent, ObjectPositionAndRadius.xyz);
+		//float BoxDistance = ComputeDistanceFromBoxToPoint(TileBoxCenter - TileBoxExtent, TileBoxCenter + TileBoxExtent, ObjectPositionAndRadius.xyz);
 
 		// ComputeSquaredDistanceFromBoxToPoint is correct but adds a lot to the final cost
-		//float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(TileBoxCenter, TileBoxExtent, ObjectPositionAndRadius.xyz);
+		float BoxDistanceSq = ComputeSquaredDistanceFromBoxToPoint(TileBoxCenter, TileBoxExtent, ObjectPositionAndRadius.xyz);
 		float CombinedDistance = ObjectPositionAndRadius.w + AOGlobalMaxSphereQueryRadius;
 
-		if (BoxDistance < CombinedDistance)
+		if (BoxDistanceSq < CombinedDistance * CombinedDistance)
 		{
 			uint DestIndex;
 			InterlockedAdd(NumTileCulledObjects, 1U, DestIndex);

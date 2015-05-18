@@ -10,6 +10,7 @@
 #include "AtmosphereTextureParameters.h"
 #include "SceneRenderTargetParameters.h"
 #include "PostProcessParameters.h"
+#include "GlobalDistanceFieldParameters.h"
 
 template<typename ParameterType> 
 struct TUniformParameter
@@ -158,6 +159,8 @@ private:
 	/** The PerlinNoise3DTexture parameter for materials that use GradientNoise */
 	FShaderResourceParameter PerlinNoise3DTexture;
 	FShaderResourceParameter PerlinNoise3DTextureSampler;
+
+	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
 
 	FDebugUniformExpressionSet DebugUniformExpressionSet;
 	FString DebugDescription;

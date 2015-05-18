@@ -100,7 +100,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{
-		Scene->FXSystem->PreRender(RHICmdList);
+		Scene->FXSystem->PreRender(RHICmdList, NULL);
 	}
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);

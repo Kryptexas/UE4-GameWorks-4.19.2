@@ -73,6 +73,8 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 	// only used it Material has expression that requires PerlinNoise3DTexture
 	PerlinNoise3DTexture.Bind(Initializer.ParameterMap,TEXT("PerlinNoise3DTexture"));
 	PerlinNoise3DTextureSampler.Bind(Initializer.ParameterMap,TEXT("PerlinNoise3DTextureSampler"));
+
+	GlobalDistanceFieldParameters.Bind(Initializer.ParameterMap);
 }
 
 FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const
@@ -300,6 +302,8 @@ void FMaterialShader::SetParameters(
 			Texture
 			);
 	}
+
+	GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, static_cast<const FViewInfo&>(View).GlobalDistanceFieldInfo.ParameterData);
 }
 
 // Doxygen struggles to parse these explicit specializations. Just ignore them for now.
@@ -333,19 +337,8 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << DeferredParameters;
 	Ar << LightAttenuation;
 	Ar << LightAttenuationSampler;
-	if (Ar.UE4Ver() >= VER_UE4_SMALLER_DEBUG_MATERIALSHADER_UNIFORM_EXPRESSIONS)
-	{
-		Ar << DebugUniformExpressionSet;
-		Ar << DebugDescription;
-	}
-	else if (Ar.IsLoading())
-	{
-		FUniformExpressionSet TempExpressionSet;
-		TempExpressionSet.Serialize(Ar);
-		DebugUniformExpressionSet.InitFromExpressionSet(TempExpressionSet);
-
-		Ar << DebugDescription;
-	}
+	Ar << DebugUniformExpressionSet;
+	Ar << DebugDescription;
 	Ar << AtmosphericFogTextureParameters;
 	Ar << EyeAdaptation;
 	Ar << PerlinNoiseGradientTexture;
@@ -357,6 +350,7 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << PerFrameVectorExpressions;
 	Ar << PerFramePrevScalarExpressions;
 	Ar << PerFramePrevVectorExpressions;
+	Ar << GlobalDistanceFieldParameters;
 
 	return bShaderHasOutdatedParameters;
 }

@@ -58,6 +58,9 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bOutputsVelocityInBasePass : 1;
 
 	UPROPERTY()
+	uint32 bUsesGlobalDistanceField : 1;
+
+	UPROPERTY()
 	uint16 ShadingModelMask;
 
 	/** Default constructor. */
@@ -69,6 +72,7 @@ struct ENGINE_API FMaterialRelevance
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)		
 		, bOutputsVelocityInBasePass(true)
+		, bUsesGlobalDistanceField(false)
 		, ShadingModelMask(0)
 	{}
 
@@ -83,6 +87,7 @@ struct ENGINE_API FMaterialRelevance
 		bDisableDepthTest |= B.bDisableDepthTest;
 		ShadingModelMask |= B.ShadingModelMask;
 		bOutputsVelocityInBasePass |= B.bOutputsVelocityInBasePass;
+		bUsesGlobalDistanceField |= B.bUsesGlobalDistanceField;
 		return *this;
 	}
 

@@ -169,6 +169,9 @@ struct FGPUSpriteEmitterInfo
 	UPROPERTY()
 	uint32 bEnableCollision : 1;
 
+	UPROPERTY()
+	TEnumAsByte<EParticleCollisionMode::Type> CollisionMode;
+
 	/** Dynamic color scale from the ColorOverLife module. */
 	UPROPERTY()
 	FRawDistributionVector DynamicColor;
@@ -201,6 +204,7 @@ struct FGPUSpriteEmitterInfo
 		, ScreenAlignment(0)
 		, LockAxisFlag(0)
 		, bEnableCollision(false)
+		, CollisionMode(EParticleCollisionMode::SceneDepth)
 	{
 	}
 

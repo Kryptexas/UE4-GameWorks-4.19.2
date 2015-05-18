@@ -21,6 +21,7 @@
 #include "BasePassRendering.h"
 #include "HeightfieldLighting.h"
 #include "GlobalDistanceField.h"
+#include "FXSystem.h"
 
 int32 GDistanceFieldAO = 1;
 FAutoConsoleVariableRef CVarDistanceFieldAO(
@@ -2637,6 +2638,15 @@ bool FDeferredShadingSceneRenderer::ShouldPrepareForDistanceFieldAO() const
 			|| ViewFamily.EngineShowFlags.VisualizeDistanceFieldGI);
 }
 
+bool FDeferredShadingSceneRenderer::ShouldPrepareDistanceFields() const
+{
+	return SupportsDistanceFieldAO(Scene->GetFeatureLevel(), Scene->GetShaderPlatform())
+		&& (ShouldPrepareForDistanceFieldAO() 
+			|| ShouldPrepareForDistanceFieldShadows() 
+			|| Views[0].bUsesGlobalDistanceField
+			|| Scene->FXSystem->UsesGlobalDistanceField());
+}
+
 void RenderDistanceFieldAOSurfaceCache(
 	FRHICommandListImmediate& RHICmdList, 
 	const FViewInfo& View,
@@ -3304,7 +3314,7 @@ public:
 
 		if (bUseGlobalDistanceField)
 		{
-			GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, GlobalDistanceFieldInfo);
+			GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, GlobalDistanceFieldInfo.ParameterData);
 		}
 
 		SetShaderValue(RHICmdList, ShaderRHI, NumGroups, NumGroupsValue);

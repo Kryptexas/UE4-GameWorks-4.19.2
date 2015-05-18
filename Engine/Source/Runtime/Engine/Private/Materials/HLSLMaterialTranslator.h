@@ -262,10 +262,6 @@ public:
 			Material->CompileErrors.Empty();
 			Material->ErrorExpressions.Empty();
 
-			MaterialCompilationOutput.bRequiresSceneColorCopy = false;
-			check(!MaterialCompilationOutput.bNeedsSceneTextures);
-			MaterialCompilationOutput.bUsesEyeAdaptation = false;
-
 			bCompileForComputeShader = Material->IsLightFunction();
 
 			// Generate code
@@ -3639,6 +3635,30 @@ protected:
 		}
 
 		return AddCodeChunk( MCT_Float3, TEXT("MaterialExpressionBlackBody(%s)"), *GetParameterCode(Temp) );
+	}
+
+	virtual int32 DistanceToNearestSurface() override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		MaterialCompilationOutput.bUsesGlobalDistanceField = true;
+
+		return AddCodeChunk(MCT_Float, TEXT("GetDistanceToNearestSurfaceGlobal(Parameters.WorldPosition)"));
+	}
+
+	virtual int32 DistanceFieldGradient() override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		MaterialCompilationOutput.bUsesGlobalDistanceField = true;
+
+		return AddCodeChunk(MCT_Float3, TEXT("GetDistanceFieldGradientGlobal(Parameters.WorldPosition)"));
 	}
 
 	virtual int32 AtmosphericFogColor( int32 WorldPosition ) override
