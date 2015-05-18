@@ -7174,22 +7174,31 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				DebugProperties.RemoveAt(i--, 1);
 			}
 		}
-		TArray<UObject*> RelevantObjects;
-		if (DebugClasses.Num() > 0)
-		{
-			for (TObjectIterator<UObject> It(true); It; ++It)
-			{
-				if (It->GetWorld() && It->GetWorld() != World)
-				{
-					continue;
-				}
 
-				for (int32 i = 0; i < DebugClasses.Num(); i++)
+		TArray<UObject*> RelevantObjects;
+		for (const FDebugClass& DebugClass : DebugClasses)
+		{
+			if (DebugClass.Class)
+			{
+				TArray<UObject*> DebugObjectsOfClass;
+				const bool bIncludeDerivedClasses = true;
+				GetObjectsOfClass(DebugClass.Class, DebugObjectsOfClass, bIncludeDerivedClasses);
+				for (UObject* Obj : DebugObjectsOfClass)
 				{
-					if ( It->IsA(DebugClasses[i].Class) && !It->IsTemplate() &&
-						(DebugClasses[i].WithinClass == NULL || (It->GetOuter() != NULL && It->GetOuter()->GetClass()->IsChildOf(DebugClasses[i].WithinClass))) )
+					if (!Obj)
 					{
-						RelevantObjects.Add(*It);
+						continue;
+					}
+
+					if (Obj->GetWorld() && Obj->GetWorld() != World)
+					{
+						continue;
+					}
+
+					if ( !Obj->IsTemplate() &&
+						(DebugClass.WithinClass == NULL || (Obj->GetOuter() != NULL && Obj->GetOuter()->GetClass()->IsChildOf(DebugClass.WithinClass))) )
+					{
+						RelevantObjects.Add(Obj);
 						break;
 					}
 				}
