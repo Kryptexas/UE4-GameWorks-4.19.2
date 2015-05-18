@@ -496,12 +496,23 @@ void UAbilitySystemComponent::RemoveLooseGameplayTags(const FGameplayTagContaine
 
 void UAbilitySystemComponent::UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta)
 {
+	const bool bHadTag = GameplayTagCountContainer.HasMatchingGameplayTag(BaseTag);
 	GameplayTagCountContainer.UpdateTagCount(BaseTag, CountDelta);
+	const bool bHasTag = GameplayTagCountContainer.HasMatchingGameplayTag(BaseTag);
+
+	if (bHadTag != bHasTag)
+	{
+		OnTagUpdated(BaseTag, bHasTag);
+	}
 }
 
 void UAbilitySystemComponent::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
 {
-	GameplayTagCountContainer.UpdateTagCount(Container, CountDelta);
+	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
+	{
+		const FGameplayTag& Tag = *TagIt;
+		UpdateTagMap(Tag, CountDelta);
+	}
 }
 
 // ------------------------------------------------------------------------

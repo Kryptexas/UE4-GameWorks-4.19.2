@@ -1076,6 +1076,8 @@ protected:
 	void UpdateTagMap(const FGameplayTag& BaseTag, int32 CountDelta);
 	
 	void UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta);
+
+	virtual void OnTagUpdated(const FGameplayTag& Tag, bool TagExists) {};
 	
 	// ---------------------------------------------
 
