@@ -358,7 +358,7 @@ FText UEnum::GetToolTipText(int32 NameIndex) const
 		?			GetFullGroupName(false)
 		:			GetFullGroupName(false) + TEXT(".") + GetEnumName(NameIndex);
 		
-	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
+	if ( !FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip, &NativeToolTip ) )
 	{
 		static const FString DoxygenSee(TEXT("@see"));
 		if (NativeToolTip.Split(DoxygenSee, &NativeToolTip, nullptr, ESearchCase::IgnoreCase, ESearchDir::FromStart))

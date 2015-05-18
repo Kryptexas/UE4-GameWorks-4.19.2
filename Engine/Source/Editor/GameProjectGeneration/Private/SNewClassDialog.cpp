@@ -814,8 +814,9 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 		return SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable );
 	}
 
-	const FString ClassName = ParentClassItem->ParentClassInfo.GetClassName();
-	const FString ClassDescription = ParentClassItem->ParentClassInfo.GetClassDescription();
+	const FText ClassName = ParentClassItem->ParentClassInfo.GetClassName();
+	const FText ClassFullDescription = ParentClassItem->ParentClassInfo.GetClassDescription(/*bFullDescription*/true);
+	const FText ClassShortDescription = ParentClassItem->ParentClassInfo.GetClassDescription(/*bFullDescription*/false);
 	const FSlateBrush* const ClassBrush = ParentClassItem->ParentClassInfo.GetClassIcon();
 	const UClass* Class = ParentClassItem->ParentClassInfo.BaseClass;
 
@@ -824,7 +825,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 	return
 		SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable )
 		.Style(FEditorStyle::Get(), "NewClassDialog.ParentClassListView.TableRow")
-		.ToolTip(IDocumentation::Get()->CreateToolTip(FText::FromString(ClassDescription), nullptr, FEditorClassUtils::GetDocumentationPage(Class), FEditorClassUtils::GetDocumentationExcerpt(Class)))
+		.ToolTip(IDocumentation::Get()->CreateToolTip(ClassFullDescription, nullptr, FEditorClassUtils::GetDocumentationPage(Class), FEditorClassUtils::GetDocumentationExcerpt(Class)))
 		[
 			SNew(SBox).HeightOverride(ItemHeight)
 			[
@@ -850,7 +851,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 					[
 						SNew(STextBlock)
 						.TextStyle( FEditorStyle::Get(), "NewClassDialog.ParentClassItemTitle" )
-						.Text(FText::FromString(ClassName))
+						.Text(ClassName)
 					]
 				]
 
@@ -860,7 +861,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 				[
 					SNew(STextBlock)
 					//.AutoWrapText(true)
-					.Text(FText::FromString(ClassDescription))
+					.Text(ClassShortDescription)
 				]
 			]
 		];
@@ -868,7 +869,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 
 FText SNewClassDialog::GetSelectedParentClassName() const
 {
-	return ParentClassInfo.IsSet() ? FText::FromString(ParentClassInfo.GetClassName()) : FText::GetEmpty();
+	return ParentClassInfo.IsSet() ? ParentClassInfo.GetClassName() : FText::GetEmpty();
 }
 
 FString GetClassHeaderPath(const UClass* Class)

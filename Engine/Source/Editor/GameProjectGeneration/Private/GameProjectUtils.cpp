@@ -44,29 +44,30 @@ static_assert(PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE > 0, 
 TWeakPtr<SNotificationItem> GameProjectUtils::UpdateGameProjectNotification = NULL;
 TWeakPtr<SNotificationItem> GameProjectUtils::WarningProjectNameNotification = NULL;
 
-FString FNewClassInfo::GetClassName() const
+FText FNewClassInfo::GetClassName() const
 {
 	switch(ClassType)
 	{
 	case EClassType::UObject:
-		return BaseClass ? FName::NameToDisplayString(BaseClass->GetName(), false) : TEXT("");
+		return BaseClass ? BaseClass->GetDisplayNameText() : FText::GetEmpty();
 
 	case EClassType::EmptyCpp:
-		return TEXT("None");
+		return LOCTEXT("NoParentClass", "None");
 
 	case EClassType::SlateWidget:
-		return TEXT("Slate Widget");
+		return LOCTEXT("SlateWidgetParentClass", "Slate Widget");
 
 	case EClassType::SlateWidgetStyle:
-		return TEXT("Slate Widget Style");
+		return LOCTEXT("SlateWidgetStyleParentClass", "Slate Widget Style");
 
 	default:
 		break;
 	}
-	return TEXT("");
+
+	return FText::GetEmpty();
 }
 
-FString FNewClassInfo::GetClassDescription() const
+FText FNewClassInfo::GetClassDescription(const bool bFullDescription/* = true*/) const
 {
 	switch(ClassType)
 	{
@@ -74,34 +75,40 @@ FString FNewClassInfo::GetClassDescription() const
 		{
 			if(BaseClass)
 			{
-				FString ClassDescription = BaseClass->GetToolTipText().ToString();
-				int32 FullStopIndex = 0;
-				if(ClassDescription.FindChar('.', FullStopIndex))
+				FString ClassDescription = BaseClass->GetToolTipText(/*bShortTooltip=*/!bFullDescription).ToString();
+
+				if(!bFullDescription)
 				{
-					// Only show the first sentence so as not to clutter up the UI with a detailed description of implementation details
-					ClassDescription = ClassDescription.Left(FullStopIndex + 1);
+					int32 FullStopIndex = 0;
+					if(ClassDescription.FindChar('.', FullStopIndex))
+					{
+						// Only show the first sentence so as not to clutter up the UI with a detailed description of implementation details
+						ClassDescription = ClassDescription.Left(FullStopIndex + 1);
+					}
+
+					// Strip out any new-lines in the description
+					ClassDescription.ReplaceInline(TEXT("\n"), TEXT(" "));	
 				}
 
-				// Strip out any new-lines in the description
-				ClassDescription = ClassDescription.Replace(TEXT("\n"), TEXT(" "));
-				return ClassDescription;
+				return FText::FromString(ClassDescription);
 			}
 		}
 		break;
 
 	case EClassType::EmptyCpp:
-		return TEXT("An empty C++ class with a default constructor and destructor");
+		return LOCTEXT("EmptyClassDescription", "An empty C++ class with a default constructor and destructor");
 
 	case EClassType::SlateWidget:
-		return TEXT("A custom Slate widget, deriving from SCompoundWidget");
+		return LOCTEXT("SlateWidgetClassDescription", "A custom Slate widget, deriving from SCompoundWidget");
 
 	case EClassType::SlateWidgetStyle:
-		return TEXT("A custom Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class");
+		return LOCTEXT("SlateWidgetStyleClassDescription", "A custom Slate widget style, deriving from FSlateWidgetStyle, along with its associated UObject wrapper class");
 
 	default:
 		break;
 	}
-	return TEXT("");
+
+	return FText::GetEmpty();
 }
 
 const FSlateBrush* FNewClassInfo::GetClassIcon() const
