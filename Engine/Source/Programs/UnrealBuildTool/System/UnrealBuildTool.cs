@@ -1179,7 +1179,6 @@ namespace UnrealBuildTool
                                                 		: "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
-                        "IsRocket", bRunningRocket.ToString(),
                         "EngineVersion", Utils.GetEngineVersionFromObjVersionCPP().ToString()
                         );
 

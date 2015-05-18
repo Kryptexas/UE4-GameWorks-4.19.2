@@ -932,22 +932,19 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public static int GetEngineVersionFromObjVersionCPP()
 		{
-			if(UnrealBuildTool.RunningRocket() == false)
+			try
 			{
-				try
-				{
-					return
-						(from line in File.ReadLines("Runtime/Core/Private/UObject/ObjectVersion.cpp", Encoding.ASCII)
-						 where line.StartsWith("#define	ENGINE_VERSION")
-						 select int.Parse(line.Split()[2])).Single();
-				}
-				catch (Exception ex)
-				{
-					// Don't do a stack trace so we don't pollute the logs with spurious exception data, as we don't crash on this case.
-					Log.TraceWarning("Could not parse Engine Version from ObjectVersion.cpp: {0}", ex.Message);
-				}
+				return
+					(from line in File.ReadLines("Runtime/Core/Private/UObject/ObjectVersion.cpp", Encoding.ASCII)
+						where line.StartsWith("#define	ENGINE_VERSION")
+						select int.Parse(line.Split()[2])).Single();
 			}
-			return 0;
+			catch (Exception ex)
+			{
+				// Don't do a stack trace so we don't pollute the logs with spurious exception data, as we don't crash on this case.
+				Log.TraceWarning("Could not parse Engine Version from ObjectVersion.cpp: {0}", ex.Message);
+				return 0;
+			}
 		}
 
 		/// <summary>
