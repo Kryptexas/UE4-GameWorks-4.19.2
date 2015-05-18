@@ -244,21 +244,53 @@ if (!isBrowser64Bit()) {
 // setup global error handling. 
 // make exceptions more visible. 
 window.onerror  = function(msg, url, line, column, error) {
-	UE4.on_fatal(msg, error);
-  
 	// remove everything. 
 	$('#mainarea').empty(); 
 	// add alert! 
 	
 	// clean up the message.
-	msg = msg.replace(/(?:\r\n|\r|\n)/g, '<br />');
-	$ ('#mainarea').append ( '<div class="alert alert-danger text-left" style ="min-height: 10px; z-index: 2" role="alert" ><h4><small>' + msg + '</small></h4></div>');
+	var htmlmsg = msg.replace(/(?:\r\n|\r|\n)/g, '<br />');
+	$ ('#mainarea').append ( '<div class="alert alert-danger text-left" style ="min-height: 10px; z-index: 2" role="alert" ><h4><small>' + htmlmsg + '</small></h4></div>');
 	
 	if ( msg.indexOf("memory") > -1 ) { 
 			  var message = !isBrowser64Bit() ? " We are running on a 32 bit browser, please use a 64 bit browser to avoid memory constraints "
 			  : " Looks like the game needs more than the allocated " + TOTAL_GAME_MEMORY + " bytes, please edit HTML5Engine.ini and repackage "; 
 			  console.log(message);
 	}
+    else
+    {
+        addLog( " downloading symbols file ");
+        // get non minified symbols and demangle the callstack. 
+		$.ajax({
+			  url : "%CONFIG%.js.symbols",
+			  dataType: "text",
+			  success : function (data) {	
+                  addLog(" symbols file downloaded, demangling..");
+				  var mangledcallstack = msg; 
+				  var maplines = data.match(/[^\r\n]+/g);
+				  var msglines = mangledcallstack.match(/[^\r\n]+/g);
+				  var sourcemap = {};
+				  for (var i = 0; i < maplines.length; i++) {
+					  var tokens =  maplines[i].split(":"); 
+					  sourcemap[tokens[0]] = tokens[1];
+				  }
+				  var callstack = "";
+				  
+				  for (var i = 0; i < msglines.length; i++) {
+					  var tokens =  msglines[i].split("@"); 
+					  if(typeof sourcemap[tokens[0]] !== 'undefined') {
+						  callstack  += demangle(sourcemap[tokens[0]]) + "\n";
+					  }
+				  }
+				  
+				  $('#mainarea').empty(); 
+				  var htmlmsg = callstack.replace(/(?:\r\n|\r|\n)/g, '<br />');
+				  $ ('#mainarea').append ( '<div class="alert alert-danger text-left" style ="min-height: 10px; z-index: 2" role="alert" ><h4><small>' + htmlmsg + '</small></h4></div>');
+				  
+				  addLog( " callstack ready ..");
+			  }
+		  });
+    }
 };
 
 function preInitEmscripten(){
