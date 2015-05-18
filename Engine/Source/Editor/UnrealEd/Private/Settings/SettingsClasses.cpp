@@ -458,9 +458,9 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	else if (Name == GET_MEMBER_NAME_CHECKED(ULevelEditorViewportSettings, bEnableLayerSnap))
 	{
 		ULevelEditor2DSettings* Settings2D = GetMutableDefault<ULevelEditor2DSettings>();
-		if (bEnableLayerSnap && !Settings2D->bMode2DEnabled)
+		if (bEnableLayerSnap && !Settings2D->bEnableSnapLayers)
 		{
-			Settings2D->bMode2DEnabled = true;
+			Settings2D->bEnableSnapLayers = true;
 		}
 	}
 

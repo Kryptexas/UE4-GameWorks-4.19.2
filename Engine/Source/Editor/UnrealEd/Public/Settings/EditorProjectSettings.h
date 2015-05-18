@@ -116,15 +116,19 @@ class UNREALED_API ULevelEditor2DSettings : public UDeveloperSettings
 
 public:
 	/** If enabled will allow 2D mode */
-	UPROPERTY(EditAnywhere, config, Category = General, meta = (DisplayName = "Enable 2D Mode"))
-	bool bMode2DEnabled;
+	UPROPERTY(EditAnywhere, config, Category=General, meta=(DisplayName="Enable 2D combined translate + rotate widget"))
+	bool bEnable2DWidget;
+
+	/** If enabled will allow 2D mode */
+	UPROPERTY(EditAnywhere, config, Category=LayerSnapping)
+	bool bEnableSnapLayers;
 
 	/** Snap axis */
-	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)
+	UPROPERTY(EditAnywhere, config, Category=LayerSnapping, meta=(EditCondition=bEnableSnapLayers))
 	ELevelEditor2DAxis SnapAxis;
 
 	/** Snap layers that are displayed in the viewport toolbar */
-	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)
+	UPROPERTY(EditAnywhere, config, Category=LayerSnapping, meta=(EditCondition=bEnableSnapLayers))
 	TArray<FMode2DLayer> SnapLayers;
 
 public:

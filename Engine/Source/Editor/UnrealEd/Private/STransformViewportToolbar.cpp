@@ -793,7 +793,7 @@ ECheckBoxState STransformViewportToolBar::IsLayer2DSnapChecked() const
 EVisibility STransformViewportToolBar::IsLayer2DSnapVisible() const
 {
 	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
-	return Settings2D->bMode2DEnabled ? EVisibility::Visible : EVisibility::Collapsed;
+	return Settings2D->bEnableSnapLayers ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 ECheckBoxState STransformViewportToolBar::IsScaleGridSnapChecked() const

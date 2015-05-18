@@ -506,7 +506,7 @@ bool SEditorViewport::IsTranslateRotateModeVisible() const
 
 bool SEditorViewport::Is2DModeVisible() const
 {
-	return GetDefault<ULevelEditor2DSettings>()->bMode2DEnabled;
+	return GetDefault<ULevelEditor2DSettings>()->bEnable2DWidget;
 }
 
 bool SEditorViewport::IsCoordSystemActive(ECoordSystem CoordSystem) const
@@ -529,7 +529,7 @@ void SEditorViewport::OnCycleWidgetMode()
 			++WidgetModeAsInt;
 		}
 
-		if ((WidgetModeAsInt == FWidget::WM_2D) && (!GetDefault<ULevelEditor2DSettings>()->bMode2DEnabled))
+		if ((WidgetModeAsInt == FWidget::WM_2D) && (!GetDefault<ULevelEditor2DSettings>()->bEnable2DWidget))
 		{
 			++WidgetModeAsInt;
 		}
