@@ -671,9 +671,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			var Results = ListAll();
 
 			// Grab Results 
-			if (!string.IsNullOrEmpty( FormData.SearchQuery ))
+			string QueryString = HttpUtility.HtmlDecode( FormData.SearchQuery );
+			if (!string.IsNullOrEmpty( QueryString ))
 			{
-				if (!string.IsNullOrEmpty( FormData.UsernameQuery ))
+				if (!string.IsNullOrEmpty( QueryString ))
 				{
 					//We only use SearchQuery now for CallStack searching - if there's a SearchQuery value and a Username value, we need to get rid of the 
 					//Username so that we can create a broader search range

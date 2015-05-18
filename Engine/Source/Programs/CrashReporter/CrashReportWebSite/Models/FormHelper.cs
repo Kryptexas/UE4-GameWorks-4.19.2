@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using System.Web.Helpers;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -99,6 +100,40 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary>
+		/// Same as GetFormParameter, but ignores validation. Only used for search query.
+		/// </summary>
+		/// <param name="Request">The owning HttpRequest.</param>
+		/// <param name="Form">The form passed to the controller.</param>
+		/// <param name="Key">The parameter we wish to retrieve a value for.</param>
+		/// <param name="DefaultValue">The default value to set if the parameter is null or empty.</param>
+		/// <param name="Result">The value of the requested parameter.</param>
+		/// <returns>true if the parameter was found to be not null or empty.</returns>
+		private bool GetFormParameterUnvalidated( HttpRequestBase Request, FormCollection Form, string Key, string DefaultValue, out string Result )
+		{
+			var Collection = Request.Unvalidated;
+
+			Result = DefaultValue;
+
+			string Value = "";
+			if (Form.Count == 0)
+			{
+				Value = Collection.QueryString[Key];
+			}
+			else
+			{
+				Value = Form[Key];
+			}
+
+			if (!string.IsNullOrEmpty( Value ))
+			{
+				Result = Value.Trim();
+				return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
 		/// Attempt to read a form item as a date in milliseconds since 1970
 		/// </summary>
 		/// <param name="Request">The request that contains parameters if the form does not.</param>
@@ -131,7 +166,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public FormHelper( HttpRequestBase Request, FormCollection Form, string DefaultSortTerm )
 		{
 			// Set up Default values if there is no QueryString and set values to the Query string if it is there.
-			GetFormParameter( Request, Form, "SearchQuery", SearchQuery, out SearchQuery );
+			GetFormParameterUnvalidated( Request, Form, "SearchQuery", SearchQuery, out SearchQuery );
 			GetFormParameter( Request, Form, "UsernameQuery", UsernameQuery, out UsernameQuery );
 			GetFormParameter( Request, Form, "EpicIdOrMachineQuery", EpicIdOrMachineQuery, out EpicIdOrMachineQuery );
 			GetFormParameter( Request, Form, "JiraQuery", JiraQuery, out JiraQuery );
