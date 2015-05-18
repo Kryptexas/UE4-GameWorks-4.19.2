@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivatePch.h"
+#include "CorePrivatePCH.h"
 #include "Internationalization/GatherableTextData.h"
 
 FArchive& operator<<(FArchive& Archive, FTextSourceSiteContext& This)
