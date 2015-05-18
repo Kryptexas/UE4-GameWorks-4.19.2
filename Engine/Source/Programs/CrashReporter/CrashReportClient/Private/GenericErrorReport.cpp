@@ -1,11 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
-
 #include "GenericErrorReport.h"
 #include "XmlFile.h"
 #include "CrashReportUtil.h"
 #include "CrashDescription.h"
+#include "EngineBuildSettings.h"
 
 // ----------------------------------------------------------------
 // Helpers
@@ -79,7 +79,8 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment, bool bAllowTo
 
 	MachineIDandUserID = FString::Printf( TEXT( "!MachineId:%s!EpicAccountId:%s" ), *GetCrashDescription().MachineId, *GetCrashDescription().EpicAccountId );
 
-	if (!FApp::IsEngineInstalled())
+	const bool bSendName = FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+	if (bSendName)
 	{
 		MachineIDandUserID += FString::Printf( TEXT( "!Name:%s" ), *GetCrashDescription().UserName );
 	}

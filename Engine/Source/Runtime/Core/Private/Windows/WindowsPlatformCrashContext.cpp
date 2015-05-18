@@ -332,13 +332,6 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 			CrashReportClientArguments += TEXT( " -Unattended" );
 		}
 
-		if( FApp::IsInstalled() )
-		{
-			// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
-			// following ensures that logs are saved to the user directory when UE4 is installed.
-			CrashReportClientArguments += TEXT( " -Installed" );
-		}
-
 		CrashReportClientArguments += FString( TEXT( " -AppName=" ) ) + ReportInformation.wzApplicationName;
 
 		static const TCHAR CrashReportClientExeName[] = TEXT( "CrashReportClient.exe" );
