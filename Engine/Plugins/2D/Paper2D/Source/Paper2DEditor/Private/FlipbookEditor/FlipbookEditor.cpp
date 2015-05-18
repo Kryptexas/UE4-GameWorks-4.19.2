@@ -247,25 +247,7 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 			
 			+SVerticalBox::Slot()
 			[
-				SNew(SOverlay)
-
-				// The flipbook editor viewport
-				+SOverlay::Slot()
-				[
-					ViewportPtr.ToSharedRef()
-				]
-
-				// Bottom-right corner text indicating the preview nature of the sprite editor
-				+SOverlay::Slot()
-				.Padding(10)
-				.VAlign(VAlign_Bottom)
-				.HAlign(HAlign_Right)
-				[
-					SNew(STextBlock)
-					.Visibility( EVisibility::HitTestInvisible )
-					.TextStyle( FEditorStyle::Get(), "Graph.CornerText" )
-					.Text(LOCTEXT("FlipbookEditorViewportExperimentalWarning", "Early access preview"))
-				]
+				ViewportPtr.ToSharedRef()
 			]
 
 			+SVerticalBox::Slot()
