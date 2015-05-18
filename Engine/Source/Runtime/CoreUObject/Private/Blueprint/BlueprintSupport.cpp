@@ -1020,6 +1020,50 @@ int32 FLinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* Placehol
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
+void FLinkerLoad::PRIVATE_ForceLoadAllDependencies(UPackage* Package)
+{
+	if (FLinkerLoad* PkgLinker = FindExistingLinkerForPackage(Package))
+	{
+		PkgLinker->ResolveAllImports();
+	}
+}
+
+void FLinkerLoad::ResolveAllImports()
+{
+	for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num() && IsBlueprintFinalizationPending(); ++ImportIndex)
+	{
+		// first, make sure every import object is available... just because 
+		// it isn't present in the map already, doesn't mean it isn't in the 
+		// middle of a resolve (the CreateImport() brings in an export 
+		// object from another package, which could be resolving itself)... 
+		// 
+		// don't fret, all these imports were bound to get created sooner or 
+		// later (like when the blueprint was regenerated)
+		//
+		// NOTE: this is a possible root point for recursion... accessing a 
+		//       separate package could continue its loading process which
+		//       in turn, could end us back in this function before we ever  
+		//       returned from this
+		FObjectImport& Import = ImportMap[ImportIndex];
+		UObject* ImportObject = CreateImport(ImportIndex);
+
+		// see if this import is currently being resolved (presumably somewhere 
+		// up the callstack)... if it is, we need to ensure that this dependency 
+		// is fully resolved before we get to regenerating the blueprint (else,
+		// we could end up with placeholder classes in our script-code)
+		if (FUnresolvedStructTracker::IsImportStructUnresolved(ImportObject))
+		{
+			// because it is tracked by FUnresolvedStructTracker, it must be a struct
+			DEFERRED_DEPENDENCY_CHECK(Cast<UStruct>(ImportObject) != nullptr);
+			auto SourceLinker = FindExistingLinkerForImport(ImportIndex);
+			if (SourceLinker)
+			{
+				SourceLinker->ResolveDeferredDependencies((UStruct*)ImportObject);
+			}
+		}
+	}
+}
+
 void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
@@ -1067,38 +1111,7 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 	// do, otherwise other linkers could want to finish this off when they don't
 	// have to)... we do however need it here in FinalizeBlueprint(), because
 	// we need it ran for any super-classes before we regen
-	for (int32 ImportIndex = 0; ImportIndex < ImportMap.Num() && IsBlueprintFinalizationPending(); ++ImportIndex)
-	{
-		// first, make sure every import object is available... just because 
-		// it isn't present in the map already, doesn't mean it isn't in the 
-		// middle of a resolve (the CreateImport() brings in an export 
-		// object from another package, which could be resolving itself)... 
-		// 
-		// don't fret, all these imports were bound to get created sooner or 
-		// later (like when the blueprint was regenerated)
-		//
-		// NOTE: this is a possible root point for recursion... accessing a 
-		//       separate package could continue its loading process which
-		//       in turn, could end us back in this function before we ever  
-		//       returned from this
-		FObjectImport& Import = ImportMap[ImportIndex];
-		UObject* ImportObject = CreateImport(ImportIndex);
-
-		// see if this import is currently being resolved (presumably somewhere 
-		// up the callstack)... if it is, we need to ensure that this dependency 
-		// is fully resolved before we get to regenerating the blueprint (else,
-		// we could end up with placeholder classes in our script-code)
-		if (FUnresolvedStructTracker::IsImportStructUnresolved(ImportObject))
-		{
-			// because it is tracked by FUnresolvedStructTracker, it must be a struct
-			DEFERRED_DEPENDENCY_CHECK(Cast<UStruct>(ImportObject) != nullptr);
-			auto SourceLinker = FindExistingLinkerForImport(ImportIndex);
-			if (SourceLinker)
-			{
-				SourceLinker->ResolveDeferredDependencies((UStruct*)ImportObject);
-			}
-		}
-	}
+	ResolveAllImports();
 
 	// the above loop could have caused some recursion... if it ended up 
 	// finalizing a sub-class (of LoadClass), then that would have finalized

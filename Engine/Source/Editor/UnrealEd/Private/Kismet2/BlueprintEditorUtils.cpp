@@ -952,6 +952,14 @@ struct FRegenerationHelper
 						Linker->Preload(BP);
 					}
 				}
+				// at the point of blueprint regeneration (on load), we are guaranteed that blueprint dependencies (like this macro) have
+				// fully formed classes (meaning the blueprint class and all its direct dependencies have been loaded)... however, we do not 
+				// get the guarantee that all of that blueprint's graph dependencies are loaded (hence, why we have to force load 
+				// everything here); in the case of cyclic dependencies, macro dependencies could already be loaded, but in the midst of 
+				// resolving thier own dependency placeholders (why a ForcedLoad() call is not enough); this ensures that 
+				// placeholder objects are properly resolved on nodes that will be injected by macro expansion
+				FLinkerLoad::PRIVATE_ForceLoadAllDependencies(BP->GetOutermost());
+				
 				ForcedLoadMembers(BP);
 			}
 		}

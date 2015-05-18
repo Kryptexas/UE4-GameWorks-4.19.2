@@ -1664,6 +1664,18 @@ public:
 	COREUOBJECT_API static void PRIVATE_PatchNewObjectIntoExport(UObject* OldObject, UObject* NewObject);
 
 	/**
+	 * Wraps a call to the package linker's ResolveAllImports().
+	 * 
+	 * @param  Package    The package whose imports you want all loaded.
+	 * 
+	 * WARNING!!!	This function shouldn't be used carelessly, and serves as a
+	 *				hacky entrypoint to FLinkerLoad's privates. It should only 
+	 *				be used at very specific times, and in very specific cases.
+	 *				If you're unsure, DON'T TRY TO USE IT!!!
+	 */
+	COREUOBJECT_API static void PRIVATE_ForceLoadAllDependencies(UPackage* Package);
+
+	/**
 	 * Invalidates the future loading of a specific object, so that subsequent loads will fail
 	 * This is used to invalidate sub objects of a replaced object that may no longer be valid
 	 */
@@ -1993,6 +2005,14 @@ private:
 	 * @return True if ResolveDependencyPlaceholder() is being ran on a placeholder that has yet to be resolved. 
 	 */
 	bool HasUnresolvedDependencies() const;
+
+	/**
+	 * Iterates through the ImportMap and calls CreateImport() for every entry, 
+	 * creating/loading each import as we go. This also makes sure that class 
+	 * imports have had ResolveDeferredDependencies() completely executed for 
+	 * them (even those already running through it earlier in the callstack).
+	 */
+	void ResolveAllImports();
 
 	/**
 	 * Takes the supplied serialized class and serializes in its CDO, then 
