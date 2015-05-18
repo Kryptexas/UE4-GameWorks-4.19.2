@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2508659
-Title:サムスン Gear VR のデバッグ方法
+﻿Availability:Public
+Title:Samsung Gear VR のデバッグ方法
 Crumbs:%ROOT%, Platforms
 Description:Gear VR ヘッドセット用アプリケーションのデバッグ方法
-Availability:Public
 Navigation:platform
 Platform:Gear VR
 Related:Platforms/Mobile/Performance
@@ -56,7 +55,7 @@ UE4 コンソールは、UE4 で現在表示されているデータを見たり
 モバイル デバイス上で UE4 コンソールにアクセスする場合は、PC からアクセスする方法と若干異なります。以下が手順です。
 
 [region:tip]
-PC とアンリアルではコンソールに使用できるすべてのコンソール コマンドがリストされmasuga、 **DumpConsoleCommands** をコンソールに入力すると使用できるコンソール コマンドの一覧を出すことができます。
+PC とアンリアルではコンソールに使用できるすべてのコンソール コマンドがリストされますが、 **DumpConsoleCommands** をコンソールに入力すると使用できるコンソール コマンドの一覧を出すことができます。
 [/region]
 
 1. まず最初に、スマートフォンの Gear VR Developer モードが有効になっていることを確認してください。 
@@ -110,11 +109,10 @@ Android の公式文書に [Logcat](http://developer.android.com/tools/help/logc
 	![](T_Windows_CMD.png)
 
 1. **ADB Devices** をコマンドライン ウィンドウに入力して PC でスマートフォンが見えることを確認します。それから **Enter** キーを押して PC に付随しているディスプレイ デバイスを表示させます。
-
 	![](T_Windows_ADB_Devices.png)
 
 	[region:tip]
-	**ADB Devices** を入力しても何も表示されない場合は、[Gear VR Headset Prerequisites](Platforms/GearVR) のセットアップ セクションにリスおされているものをすべてインストール / 設定し、再度この手順を行ってください。 
+	**ADB Devices** を入力しても何も表示されない場合は、[](Platforms/GearVR) のセットアップ セクションにリスおされているものをすべてインストール / 設定し、再度この手順を行ってください。 
 	[/region]
 
 1. ADB Devices で対象のスマートフォンの表示が確認できたら、スマートフォンからログ情報を取得する用意ができました。 
@@ -126,7 +124,7 @@ Android の公式文書に [Logcat](http://developer.android.com/tools/help/logc
 
 1. ログから古いデータがクリアされたので、スマートフォン上でアプリケーションを起動し、以下のコマンドを入力してログ情報を取得します。
 
-	adb logcat -s UE4 OVR VrApi VrLib VRSVC HmdInfo >logoutput.txt
+		adb logcat -s UE4 OVR VrApi VrLib VRSVC HmdInfo >logoutput.txt
 	![](T_ADB_Get_Log.png)
  [region:note]
  ログがライブで出力されているか確認するために、**>logoutput.txt** の部分を省略すると、すべてのログ更新がコマンドライン ウィンドウで行われます。
@@ -196,7 +194,7 @@ Wifi で接続すればプロジェクトのデプロイも可能ですが、USB
 ### デプロイ＆デバッグを再びワイヤー接続で行う
 1. デバッグとデプロイを再び USB ケーブルで行うには、以下のコマンドをコマンド ウィンドウに入力します。
 
-	adb usb
+		adb usb
 
 	![](T_ADB_Detached.png)
 
