@@ -1404,11 +1404,7 @@ namespace AutomationTool
                             {
                                 break;
                             }                            
-                            string File = Work.Substring(0, MinMatch).Trim();
-                            if (AlreadyDone.Contains(File))
-                            {
-                                continue;
-                            }
+                            string File = Work.Substring(0, MinMatch).Trim();                            
                             if (File.IndexOf(SlashSlashStr) != File.LastIndexOf(SlashSlashStr))
                             {
                                 // this is some other line about the same line, we ignore it, removing the first // so we advance
@@ -1417,6 +1413,10 @@ namespace AutomationTool
                             else
                             {
                                 Work = Work.Substring(MinMatch);
+                                if (AlreadyDone.Contains(File))
+                                {
+                                    continue;
+                                }
 								CommandUtils.Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
 								Revert(CL, "-k " + CommandUtils.MakePathSafeToUseWithCommandLine(File));  // revert the file without overwriting the local one
 								Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File + "#head"), false); // sync the file without overwriting local one
