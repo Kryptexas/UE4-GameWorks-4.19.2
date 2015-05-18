@@ -15,28 +15,118 @@ namespace UK2Node_ConvertAssetImpl
 	static const FString OutputPinName("Object");
 }
 
-void UK2Node_ConvertAsset::AllocateDefaultPins()
+UClass* UK2Node_ConvertAsset::GetTargetClass() const
+{
+	auto InutPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
+	bool bIsConnected = InutPin && InutPin->LinkedTo.Num() && InutPin->LinkedTo[0];
+	auto SourcePin = bIsConnected ? InutPin->LinkedTo[0] : nullptr;
+	return SourcePin
+		? Cast<UClass>(SourcePin->PinType.PinSubCategoryObject.Get())
+		: nullptr;
+}
+
+bool UK2Node_ConvertAsset::IsAssetClassType() const
 {
 	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
-	const bool bReferenceObsoleteClass = !TargetType || TargetType->HasAnyClassFlags(CLASS_NewerVersionExists);
-	if (bReferenceObsoleteClass)
-	{
-		Message_Error(FString::Printf(TEXT("Node '%s' references obsolete class '%s'"), *GetPathName(), *GetPathNameSafe(TargetType)));
-	}
-	ensure(!bReferenceObsoleteClass);
 
-	if (TargetType && K2Schema)
+	// get first input, return if class asset
+	auto InutPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
+	bool bIsConnected = InutPin && InutPin->LinkedTo.Num() && InutPin->LinkedTo[0];
+	auto SourcePin = bIsConnected ? InutPin->LinkedTo[0] : nullptr;
+	return (SourcePin && K2Schema)
+		? (SourcePin->PinType.PinCategory == K2Schema->PC_AssetClass)
+		: false;
+}
+
+bool UK2Node_ConvertAsset::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+{
+	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
+	auto InutPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
+	if (K2Schema && InutPin && OtherPin && (InutPin == MyPin) && (MyPin->PinType.PinCategory == K2Schema->PC_Wildcard))
 	{
-		if (bIsAssetClass)
+		if ((OtherPin->PinType.PinCategory != K2Schema->PC_Asset) &&
+			(OtherPin->PinType.PinCategory != K2Schema->PC_AssetClass))
 		{
-			CreatePin(EGPD_Input, K2Schema->PC_AssetClass, TEXT(""), *TargetType, false, false, UK2Node_ConvertAssetImpl::InputPinName);
-			CreatePin(EGPD_Output, K2Schema->PC_Class, TEXT(""), *TargetType, false, false, UK2Node_ConvertAssetImpl::OutputPinName);
+			return true;
 		}
-		else
+	}
+	return false;
+}
+
+void UK2Node_ConvertAsset::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
+{
+	Super::NotifyPinConnectionListChanged(Pin);
+
+	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+	auto InutPin = FindPin(UK2Node_ConvertAssetImpl::InputPinName);
+	auto OutputPin = FindPin(UK2Node_ConvertAssetImpl::OutputPinName);
+	ensure(InutPin && OutputPin);
+	if (InutPin && OutputPin && (InutPin == Pin))
+	{
+		const bool bIsConnected = InutPin->LinkedTo.Num() > 0;
+		UClass* TargetType = bIsConnected ? GetTargetClass() : nullptr;
+		const bool bIsAssetClass = bIsConnected ? IsAssetClassType() : false;
+
+		const FString InputCategory = bIsConnected
+			? (bIsAssetClass ? K2Schema->PC_AssetClass : K2Schema->PC_Asset)
+			: K2Schema->PC_Wildcard;
+		InutPin->PinType = FEdGraphPinType(InputCategory,FString(), TargetType, false, false);
+
+		const FString OutputCategory = bIsConnected
+			? (bIsAssetClass ? K2Schema->PC_Class : K2Schema->PC_Object)
+			: K2Schema->PC_Wildcard;
+		OutputPin->PinType = FEdGraphPinType(OutputCategory, FString(), TargetType, false, false);
+
+		PinTypeChanged(InutPin);
+		PinTypeChanged(OutputPin);
+
+		if (OutputPin->LinkedTo.Num())
 		{
-			CreatePin(EGPD_Input, K2Schema->PC_Asset, TEXT(""), *TargetType, false, false, UK2Node_ConvertAssetImpl::InputPinName);
-			CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), *TargetType, false, false, UK2Node_ConvertAssetImpl::OutputPinName);
+			UClass const* CallingContext = NULL;
+			if (UBlueprint const* Blueprint = GetBlueprint())
+			{
+				CallingContext = Blueprint->GeneratedClass;
+				if (CallingContext == NULL)
+				{
+					CallingContext = Blueprint->ParentClass;
+				}
+			}
+
+			for (auto TargetPin : OutputPin->LinkedTo)
+			{
+				if (TargetPin && !K2Schema->ArePinsCompatible(OutputPin, TargetPin, CallingContext))
+				{
+					OutputPin->BreakLinkTo(TargetPin);
+				}
+			}
 		}
+	}
+}
+
+void UK2Node_ConvertAsset::AllocateDefaultPins()
+{
+	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+	CreatePin(EGPD_Input, K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, UK2Node_ConvertAssetImpl::InputPinName);
+	CreatePin(EGPD_Output, K2Schema->PC_Wildcard, TEXT(""), nullptr, false, false, UK2Node_ConvertAssetImpl::OutputPinName);
+}
+
+void UK2Node_ConvertAsset::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	// actions get registered under specific object-keys; the idea is that 
+	// actions might have to be updated (or deleted) if their object-key is  
+	// mutated (or removed)... here we use the node's class (so if the node 
+	// type disappears, then the action should go with it)
+	UClass* ActionKey = GetClass();
+	// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
+	// check to make sure that the registrar is looking for actions of this type
+	// (could be regenerating actions for a specific asset, and therefore the 
+	// registrar would only accept actions corresponding to that asset)
+	if (ActionRegistrar.IsOpenForRegistration(ActionKey))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
 }
 
@@ -44,7 +134,9 @@ void UK2Node_ConvertAsset::ExpandNode(class FKismetCompilerContext& CompilerCont
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
+	
+	UClass* TargetType = GetTargetClass();
+	const bool bIsAssetClass = IsAssetClassType();
 	bool bIsErrorFree = TargetType && Schema && (2 == Pins.Num());
 	if (bIsErrorFree)
 	{
@@ -91,22 +183,24 @@ void UK2Node_ConvertAsset::ExpandNode(class FKismetCompilerContext& CompilerCont
 	BreakAllNodeLinks();
 }
 
-bool UK2Node_ConvertAsset::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
-{
-	const UBlueprint* SourceBlueprint = GetBlueprint();
-	UClass* SourceClass = *TargetType;
-	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
-	if (bResult && OptionalOutput)
-	{
-		OptionalOutput->AddUnique(SourceClass);
-	}
-	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
-	return bSuperResult || bResult;
-}
-
 FText UK2Node_ConvertAsset::GetCompactNodeTitle() const
 {
 	return FText::FromString(TEXT("\x2022"));
+}
+
+FText UK2Node_ConvertAsset::GetMenuCategory() const
+{
+	return FText(LOCTEXT("UK2Node_LoadAssetGetMenuCategory", "Utilities"));
+}
+
+FText UK2Node_ConvertAsset::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	return FText(LOCTEXT("UK2Node_ConvertAssetGetNodeTitle", "Resolve Asset"));
+}
+
+FText UK2Node_ConvertAsset::GetTooltipText() const
+{
+	return FText(LOCTEXT("UK2Node_ConvertAssetGetTooltipText", "Resolves an asset/assetclass into an object/class. If the asset wasn't loaded it returns none."));
 }
 
 #undef LOCTEXT_NAMESPACE

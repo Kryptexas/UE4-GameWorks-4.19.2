@@ -2257,8 +2257,6 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 					if (bCreateNode)
 					{
 						UK2Node_ConvertAsset* ConvertAssetNode = NewObject<UK2Node_ConvertAsset>();
-						ConvertAssetNode->TargetType = InputClass;
-						ConvertAssetNode->bIsAssetClass = bConvertAssetClass;
 						TargetNode = ConvertAssetNode;
 					}
 				}
