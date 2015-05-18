@@ -144,6 +144,9 @@ public:
 	/** Loads localizations for the current culture based on a configuration file specifying which manifests and archives to use. Effectively generates a localization resource in memory. */
 	void LoadFromManifestAndArchives(const FString& ConfigFilePath, IInternationalizationArchiveSerializer& ArchiveSerializer, IInternationalizationManifestSerializer& ManifestSerializer);
 
+	/** Updates display string entries and adds new display string entries based on localizations found in a specified localization resource. */
+	void UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath);
+
 	/**	Returns the current text revision number. This value can be cached when caching information from the text localization manager.
 	 *	If the revision does not match, cached information may be invalid and should be recached. */
 	int32 GetTextRevision() const { return TextRevisionCounter; }
@@ -159,7 +162,7 @@ private:
 	/** Loads localization resources for the specified culture, optionally loading localization resources that are editor-specific or game-specific. */
 	void LoadLocalizationResourcesForCulture(const FString& CultureName, const bool ShouldLoadEditor, const bool ShouldLoadGame);
 
-	/** Updates display string entries based on specified localizations and adds new display string entries. */
+	/** Updates display string entries and adds new display string entries based on provided localizations. */
 	void UpdateFromLocalizations(const TArray<FLocalizationEntryTracker>& LocalizationEntryTrackers);
 
 	/** Dirties the text revision counter by incrementing it, causing a revision mismatch for any information cached before this happens.  */

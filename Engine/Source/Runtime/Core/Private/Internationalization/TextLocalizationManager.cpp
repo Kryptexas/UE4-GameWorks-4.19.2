@@ -651,6 +651,17 @@ void FTextLocalizationManager::LoadFromManifestAndArchives( const FString& Confi
 	UpdateFromLocalizations(LocalizationEntryTrackers);
 }
 
+void FTextLocalizationManager::UpdateFromLocalizationResource(const FString& LocalizationResourceFilePath)
+{
+	TArray<FLocalizationEntryTracker> LocalizationEntryTrackers;
+	
+	FLocalizationEntryTracker LocalizationEntryTracker = LocalizationEntryTrackers[LocalizationEntryTrackers.Add(FLocalizationEntryTracker())];
+	LocalizationEntryTracker.LoadFromFile(LocalizationResourceFilePath);
+	LocalizationEntryTracker.DetectAndLogConflicts();
+
+	UpdateFromLocalizations(LocalizationEntryTrackers);
+}
+
 void FTextLocalizationManager::OnCultureChanged()
 {
 	const bool ShouldLoadEditor = bIsInitialized && WITH_EDITOR;
