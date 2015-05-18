@@ -1,0 +1,121 @@
+﻿INTSourceChangelist:2554119
+Availability:Docs
+Title:2.Grass ツールアクタの作成と設定
+Crumbs:
+Description:Grass ツールに必要なアクタを作成および設定する方法
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\1 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\3 "%Engine\OpenWorldTools\Grass\QuickStart\3:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+次のセクションで、 Grass ツールを正しく機能させるために必要なアクタとマテリアルを作成します。
+前の手順で作成した **GT_00** レベルを引き続き使用するので、レベルを閉じてしまった場合は再度レベルを開いてください。
+
+1. 最初にランドスケープにスポーンするスタティックメッシュとスポーンする量を伝えるために **Landscape Grass Type** を作成しなくてはいけません。 
+	**コンテンツブラウザ** を **右クリック** して、表示されるメニューを **Create Advanced Asset** > **Miscellaneous** > **Landscape Grass Type** の順に選択して、 **Grass_00** と名前を入力します。
+
+	![](T_Create_LS_Grass.png)
+
+1. **左マウスボタン** で Landscape Grass Type を **ダブル クリック** してこれを開いて、 
+	**Grass Varieties** 配列の右側にある **+** アイコンを押して、 **Grass Varieties** に新規アイテムを追加します。
+
+	![](T_Add_New_GV.png)
+
+
+1. **Grass Mesh** セクションを探して、 **None** の入力ボックスをクリックしてから、検索用語に **SM_FieldGrass_01** と入力して **SM_FieldGrass_01** スタティックメッシュを検索します。 
+
+	![](T_Set_Grass_Type.gif)(convert:false)
+
+1. スタティックメッシュをインポートしたら、以下のプロパティをかならず有効にしてください。
+
+	* **Grass Density（草の密度）:** 400.0
+	* **Use Grid（グリッドの使用）:** 有効
+	* **Random Rotation（ランダムな回転）:** 有効
+	* **Align to Surface（サーフェスに揃える）:** 有効
+
+	![](T_Grass_Props.png)
+
+1. 最後にこれまでに行った作業をすべて保存するために **Save All（すべて保存）** と **Save（保存）** ボタンを両方クリックします。
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%
