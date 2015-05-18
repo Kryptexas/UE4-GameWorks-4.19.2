@@ -1238,6 +1238,13 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Rendering|Material", meta=(UnsafeDuringActorConstruction = "true"))
 	static int32 GetRenderingMaterialQualityLevel();
 
+	/**
+	 * Gets the list of support fullscreen resolutions.
+	 * @return true if successfully queried the device for available resolutions.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Rendering")
+	static bool GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions);
+
 	// Opens the specified URL in the platform's web browser of choice
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void LaunchURL(const FString& URL);

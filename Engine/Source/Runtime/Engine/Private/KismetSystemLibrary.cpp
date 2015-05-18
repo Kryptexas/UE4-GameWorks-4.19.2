@@ -2043,7 +2043,7 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 		{
 			// no hit means all red
 			::DrawDebugSweptSphere(World, Start, End, Radius, FColor::Red, bPersistent, LifeTime);
-        }
+		}
 	}
 
 	return bHit;
@@ -2872,11 +2872,31 @@ int32 UKismetSystemLibrary::GetRenderingMaterialQualityLevel()
 	return Ret;
 }
 
+bool UKismetSystemLibrary::GetSupportedFullscreenResolutions(TArray<FIntPoint>& Resolutions)
+{
+	FScreenResolutionArray SupportedResolutions;
+	if ( RHIGetAvailableResolutions(SupportedResolutions, true) )
+	{
+		for ( const FScreenResolutionRHI& SupportedResolution : SupportedResolutions )
+		{
+			FIntPoint Resolution;
+			Resolution.X = SupportedResolution.Width;
+			Resolution.Y = SupportedResolution.Height;
+
+			Resolutions.Add(Resolution);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
 void UKismetSystemLibrary::LaunchURL(const FString& URL)
 {
 	if (!URL.IsEmpty())
 	{
-		FPlatformProcess::LaunchURL(*URL, NULL, NULL);
+		FPlatformProcess::LaunchURL(*URL, nullptr, nullptr);
 	}
 }
 
@@ -2966,4 +2986,3 @@ void UKismetSystemLibrary::SetSupressViewportTransitionMessage(UObject* WorldCon
 		World->GetFirstLocalPlayerFromController()->ViewportClient->SetSuppressTransitionMessage(bState);
 	}
 }
-
