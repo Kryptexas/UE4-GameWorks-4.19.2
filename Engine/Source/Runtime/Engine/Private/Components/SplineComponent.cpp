@@ -674,6 +674,27 @@ void USplineComponent::PreEditChange(UProperty* PropertyAboutToChange)
 	}
 }
 
+void USplineComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedChainEvent)
+{
+	if (PropertyChangedChainEvent.Property != nullptr)
+	{
+		const FName PropertyName(PropertyChangedChainEvent.Property->GetFName());
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(USplineComponent, bClosedLoop))
+		{
+			if (bClosedLoop)
+			{
+				// Spline is guaranteed to be non-looping when we get here (due to PreEditChange).
+				// Now just force the loop endpoint to be added if bClosedLoop == true.
+				AddLoopEndpoint();
+			}
+
+			UpdateSpline();
+		}
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedChainEvent);
+}
+
 void USplineComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if (PropertyChangedEvent.Property != nullptr)
