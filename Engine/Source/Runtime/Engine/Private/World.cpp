@@ -51,6 +51,7 @@
 	#include "SlateBasics.h"
 	#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 	#include "Editor/UnrealEd/Classes/Editor/UnrealEdTypes.h"
+	#include "Editor/UnrealEd/Classes/Settings/LevelEditorPlaySettings.h"
 #endif
 
 #include "MallocProfiler.h"
@@ -5362,8 +5363,88 @@ ENetMode UWorld::GetNetMode() const
 		return DemoNetDriver->GetNetMode();
 	}
 
+// PIE: NetDriver is not initialized so use PlayInSettings
+// to determine the Net Mode
+#if WITH_EDITOR
+	return AttemptDeriveFromPlayInSettings();
+#endif
+
+	// Use NextURL or PendingNetURL to derive NetMode
+	return AttemptDeriveFromURL();
+
+	//return NM_Standalone;
+}
+
+ENetMode UWorld::AttemptDeriveFromPlayInSettings() const
+{
+	if (WorldType == EWorldType::PIE)
+	{
+		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
+		if (PlayInSettings)
+		{
+			EPlayNetMode PlayNetMode;
+			PlayInSettings->GetPlayNetMode(PlayNetMode);
+
+			switch (PlayNetMode)
+			{
+			case EPlayNetMode::PIE_Client:
+				return NM_Client;
+			case EPlayNetMode::PIE_ListenServer:
+				return NM_ListenServer;
+			case EPlayNetMode::PIE_Standalone:
+				return NM_Standalone;
+			default:
+				break;
+			}
+		}
+	}
+
 	return NM_Standalone;
 }
+
+ENetMode UWorld::AttemptDeriveFromURL() const
+{
+	if (GEngine != nullptr)
+	{
+		FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(this);
+
+		if (WorldContext != nullptr)
+		{
+			// NetMode can be derived from the NextURL if it exists
+			if (NextURL.Len() > 0)
+			{
+				FURL NextLevelURL(&WorldContext->LastURL, *NextURL, NextTravelType);
+
+				if (NextLevelURL.Valid)
+				{
+					if (NextLevelURL.HasOption(TEXT("listen")))
+					{
+						return NM_ListenServer;
+					}
+					else if (NextLevelURL.Host.Len() > 0)
+					{
+						return NM_Client;
+					}
+				}
+			}
+			// NetMode can be derived from the PendingNetURL if it exists
+			else if (WorldContext->PendingNetGame != nullptr && WorldContext->PendingNetGame->URL.Valid)
+			{
+				if (WorldContext->PendingNetGame->URL.HasOption(TEXT("listen")))
+				{
+					return NM_ListenServer;
+				}
+				else if (WorldContext->PendingNetGame->URL.Host.Len() > 0)
+				{
+					return NM_Client;
+				}
+			}
+		}
+	}
+
+	return NM_Standalone;
+}
+
 
 void UWorld::CopyGameState(AGameMode* FromGameMode, AGameState* FromGameState)
 {

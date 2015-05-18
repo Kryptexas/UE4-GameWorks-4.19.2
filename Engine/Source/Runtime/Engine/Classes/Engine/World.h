@@ -2937,6 +2937,12 @@ public:
 	/** Returns the net mode this world is running under */
 	ENetMode GetNetMode() const;
 
+	/** Attempts to derive the net mode from PlayInSettings for PIE*/
+	ENetMode AttemptDeriveFromPlayInSettings() const;
+
+	/** Attempts to derive the net mode from URL */
+	ENetMode AttemptDeriveFromURL() const;
+
 	/**
 	 * Sets the net driver to use for this world
 	 * @param NewDriver the new net driver to use
