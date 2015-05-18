@@ -4,6 +4,8 @@
 	GlobalDistanceFieldShared.usf
 =============================================================================*/
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
+
 // Must match C++
 #define MAX_GLOBAL_DF_CLIPMAPS 4
 
@@ -124,3 +126,5 @@ float3 GetDistanceFieldGradientGlobal(float3 WorldPosition)
 
 	return Gradient;
 }
+
+#endif
