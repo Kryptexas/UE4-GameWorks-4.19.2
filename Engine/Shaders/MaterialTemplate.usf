@@ -405,6 +405,18 @@ MaterialFloat3 TransformViewVectorToLocal(MaterialFloat3 InViewVector)
 	return mul(mul(InViewVector, (MaterialFloat3x3)View.ViewToTranslatedWorld), (MaterialFloat3x3)Primitive.WorldToLocal);
 }
 
+/** Transforms a vector from view space to world space */
+MaterialFloat3 TransformViewVectorToWorld(MaterialFloat3 InViewVector)
+{
+	return mul(InViewVector, (MaterialFloat3x3)View.ViewToTranslatedWorld);
+}
+
+/** Transforms a vector from world space to view space */
+MaterialFloat3 TransformWorldVectorToView(MaterialFloat3 InWorldVector)
+{
+	return mul(InWorldVector, (MaterialFloat3x3)View.TranslatedWorldToView);
+}
+
 /** Transforms a position from local space to absolute world space */
 float3 TransformLocalPositionToWorld(FMaterialPixelParameters Parameters,float3 InLocalPosition)
 {
@@ -425,6 +437,18 @@ float3 TransformLocalPositionToWorld(FMaterialVertexParameters Parameters,float3
 float3 TransformWorldPositionToLocal(float3 InWorldPosition)
 {
 	return mul(float4(InWorldPosition, 1), Primitive.WorldToLocal).xyz;
+}
+
+/** Transforms a position from view space to world space */
+MaterialFloat3 TransformViewPositionToWorld(MaterialFloat3 InViewPosition)
+{
+	return mul(MaterialFloat4(InViewPosition, 1), View.ViewToTranslatedWorld).xyz - View.PreViewTranslation.xyz;
+}
+
+/** Transforms a position from world space to view space */
+MaterialFloat3 TransformWorldPositionToView(MaterialFloat3 InWorldPosition)
+{
+	return mul(MaterialFloat4(InWorldPosition + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
 }
 
 /** Return the object's position in world space */
@@ -494,18 +518,6 @@ MaterialFloat GetDistanceCullFade()
 }
 
 #endif // #if HAS_PRIMITIVE_UNIFORM_BUFFER
-
-/** Transforms a vector from view space to world space */
-MaterialFloat3 TransformViewVectorToWorld(MaterialFloat3 InViewVector)
-{
-	return mul(InViewVector, (MaterialFloat3x3)View.ViewToTranslatedWorld);
-}
-
-/** Transforms a vector from world space to view space */
-MaterialFloat3 TransformWorldVectorToView(MaterialFloat3 InWorldVector)
-{
-	return mul(InWorldVector, (MaterialFloat3x3)View.TranslatedWorldToView);
-}
 
 /** Rotates Position about the given axis by the given angle, in radians, and returns the offset to Position. */
 float3 RotateAboutAxis(float4 NormalizedRotationAxisAndAngle, float3 PositionOnAxis, float3 Position)

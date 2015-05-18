@@ -10,6 +10,7 @@ enum EMaterialPositionTransformSource
 {
 	TRANSFORMPOSSOURCE_Local UMETA(DisplayName="Local"),
 	TRANSFORMPOSSOURCE_World UMETA(DisplayName="World"),
+	TRANSFORMPOSSOURCE_View  UMETA(DisplayName="View"),
 	TRANSFORMPOSSOURCE_MAX,
 };
 
