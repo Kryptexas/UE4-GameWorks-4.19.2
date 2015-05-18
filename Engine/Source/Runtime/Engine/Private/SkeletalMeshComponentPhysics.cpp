@@ -1356,6 +1356,12 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, bool bTele
 #endif //#if WITH_APEX_CLOTHING
 }
 
+void USkeletalMeshComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
+{
+	// Parent class (USkinnedMeshComponent) routes only to children, but we really do want to test our own bodies for overlaps.
+	UPrimitiveComponent::UpdateOverlaps(PendingOverlaps, bDoNotifies, OverlapsAtEndLocation);
+}
+
 void USkeletalMeshComponent::CreatePhysicsState()
 {
 	//	UE_LOG(LogSkeletalMesh, Warning, TEXT("Creating Physics State (%s : %s)"), *GetNameSafe(GetOuter()),  *GetName());
