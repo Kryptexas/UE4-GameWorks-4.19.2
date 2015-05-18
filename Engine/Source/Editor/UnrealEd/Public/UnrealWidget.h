@@ -16,9 +16,9 @@ public:
 		WM_None			= -1,
 		WM_Translate,
 		WM_TranslateRotateZ,
+		WM_2D,
 		WM_Rotate,
 		WM_Scale,
-		WM_2D,
 		WM_Max,
 	};
 
