@@ -199,10 +199,9 @@
 			<div>
 				<%foreach( CallStackEntry CallStackLine in Model.CallStack.CallStackEntries )
 					{%>
-					<span class="module-name"><%=Html.DisplayFor( m => CallStackLine.ModuleName )%>!</span>
-					<span class="function-name"><%=Html.DisplayFor( m => CallStackLine.FunctionName )%></span>
-					<span class="file-name"><%=Html.DisplayFor( m => CallStackLine.FileName )%></span>
-					<span class="file-path" style='display:none'><%=Html.DisplayFor( m => CallStackLine.FilePath )%></span>
+						<span class="module-name"><%=Html.DisplayFor( m => CallStackLine.ModuleName )%>!</span><span class="function-name"><%=Html.DisplayFor( m => CallStackLine.FunctionName )%></span>
+						<span class="file-name"><%=Html.DisplayFor( m => CallStackLine.FileName )%></span>
+						<span class="file-path" style='display: none'><%=Html.DisplayFor( m => CallStackLine.FilePath )%></span>
 					<br />
 				<%}%>
 			</div>
