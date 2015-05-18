@@ -137,7 +137,25 @@ public:
 	TSharedPtr< FUICommandInfo > AlignOriginToGrid;
 
 	/** Snaps the actor to the 2D layer */
-	TSharedPtr< FUICommandInfo > SnapToLayer2D;
+	TSharedPtr< FUICommandInfo > SnapTo2DLayer;
+
+	/** Moves the selected actors up one 2D layer (changing the active layer at the same time) */
+	TSharedPtr< FUICommandInfo > MoveSelectionUpIn2DLayers;
+
+	/** Moves the selected actors down one 2D layer (changing the active layer at the same time) */
+	TSharedPtr< FUICommandInfo > MoveSelectionDownIn2DLayers;
+
+	/** Moves the selected actors to the top 2D layer (changing the active layer at the same time) */
+	TSharedPtr< FUICommandInfo > MoveSelectionToTop2DLayer;
+
+	/** Moves the selected actors to the bottom 2D layer (changing the active layer at the same time) */
+	TSharedPtr< FUICommandInfo > MoveSelectionToBottom2DLayer;
+
+	/** Changes the active 2D layer to one above the current one */
+	TSharedPtr< FUICommandInfo > Select2DLayerAbove;
+
+	/** Changes the active 2D layer to one below the current one */
+	TSharedPtr< FUICommandInfo > Select2DLayerBelow;
 
 	/** Snaps the actor to the floor*/
 	TSharedPtr< FUICommandInfo > SnapToFloor;
@@ -1151,13 +1169,29 @@ public:
 	/** 
 	 * Snaps an actor to the currently selected 2D snap layer
 	 */
-	static void SnapToLayer2D_Clicked();
+	static void SnapTo2DLayer_Clicked();
 
 	/**
 	 * Checks to see if at least a single actor is selected and the 2D editor mode is enabled
 	 *	@return true if it can execute.
 	 */
-	static bool CanSnapToLayer2D();
+	static bool CanSnapTo2DLayer();
+
+	/** 
+	 * Snaps an actor to the currently selected 2D snap layer
+	 */
+	static void MoveSelectionToDifferent2DLayer_Clicked(bool bGoingUp, bool bForceToTopOrBottom);
+
+	/**
+	 * Checks to see if at least a single actor is selected and the 2D editor mode is enabled and there is a layer above/below the current setting
+	 *	@return true if it can execute.
+	 */
+	static bool CanMoveSelectionToDifferent2DLayer(bool bGoingUp);
+
+	/**
+	 * Changes the active 2D snap layer to one a delta above or below the current layer
+	 */
+	static void Select2DLayerDeltaAway_Clicked(int32 Delta);
 
 	/** 
 	 * Snaps an actor to the floor.  Optionally will align with the trace normal.

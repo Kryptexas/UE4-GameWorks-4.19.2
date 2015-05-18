@@ -864,7 +864,7 @@ void FLevelEditorContextMenuImpl::FillSnapAlignMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapOriginToGrid );
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapOriginToGridPerActor );
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AlignOriginToGrid );
-	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapToLayer2D );
+	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapTo2DLayer );
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapToFloor );
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().AlignToFloor );
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().SnapPivotToFloor );
