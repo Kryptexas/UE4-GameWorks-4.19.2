@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2551223
+﻿INTSourceChangelist:2553123
 Availability:Public
 Title:ブループリントでポーンを所有する方法
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
@@ -89,7 +89,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**Blueprint Vehicle Template** と **Blueprint 3rd Person Template** プロジェクトを作成します。 
 
-1.	**Blueprint 3rd Person** プロジェクト内の **Game/Blueprints** で **MyCharacter** ブループリント上で **右クリック** し、**Migrate** (**Asset Actions** 内にあります) を選択します。 
+1.	**Blueprint 3rd Person** プロジェクト内の **Game/Blueprints** で **ThirdPersonCharacter** ブループリント上で **右クリック** し、**Migrate** (**Asset Actions** 内にあります) を選択します。 
 
 	![](GHT4B_12.png)
 
@@ -97,7 +97,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**Vehicle プロジェクト** 内でメインツールバーから **World Settings** オプションを開きます。 
 
-1.	**Game Mode** で、**MyCharacter** ブループリントを使用するように **Default Pawn Class** を設定します。
+1.	**Game Mode** で、**ThirdPersonCharacter** ブループリントを使用するように **Default Pawn Class** を設定します。
 
 	![](GHT4B_13.png)
 
@@ -125,7 +125,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**SpawnLocation** (矢印) について 、**[詳細]** パネルの **Location** で **Z** を **131.0** に設定します。 
 
-1.	**コンテンツ ブラウザ** で、**「ゲーム / ブループリント」** フォルダで **MyCharacter** ブループリントを開きます。 
+1.	**コンテンツ ブラウザ** で、**「ゲーム / ブループリント」** フォルダで **ThirdPersonCharacter** ブループリントを開きます。 
 
 1.	**WheeledVehicle** タイプの **Car** と呼ばれる変数と、**NearCar** と呼ばれる **Bool** 変数を追加します。 
 
@@ -141,13 +141,13 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	![](GHT4B_19.png)
 
-1.	グラフ内で **OnComponentBeginOverlap** ノードの **Other Actor** ピンからドラッグして、**Cast To MyCharacter** ノードを追加します。 
+1.	グラフ内で **OnComponentBeginOverlap** ノードの **Other Actor** ピンからドラッグして、**Cast To ThirdPersonCharacter** ノードを追加します。 
 
 1.	**As My Character C** ピンから **Set Near Car** 変数を追加し、チェックボックスをクリックしてそれを **True** に set します。 
 
 	![](GHT4B_20.png)(w:780)
 
-	**Cast To** ノードを使用して **MyCharacter** ブループリントにある変数にアクセスし、更新することができます。 
+	**Cast To** ノードを使用して **ThirdPersonCharacter** ブループリントにある変数にアクセスし、更新することができます。 
 
 1.	再度 **As My Character C** からドラッグして、**Set Car** ノードを追加し、**Car** ピンをドラッグして、**Get Reference To Self** ノードを追加します。 
 
@@ -157,9 +157,9 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	_画像をクリックしてフルサイズで表示_
 
-	ここでは、**Sedan** ブループリントへの参照を作成し、それを **MyCharacter** ブループリント内の変数に割り当てます。**Trigger** ボックス内にいることを示すテキストと合わせて最後の部分に **Print String** ノードも追加できます (これを **車に入るため** に設定します)。 
+	ここでは、**Sedan** ブループリントへの参照を作成し、それを **ThirdPersonCharacter** ブループリント内の変数に割り当てます。**Trigger** ボックス内にいることを示すテキストと合わせて最後の部分に **Print String** ノードも追加できます (これを **車に入るため** に設定します)。 
 
-1.	**OnComponentEndOverlap** ノードの **Other Actor** ピンから、**Cast To MyCharacter** にドラッグします。 
+1.	**OnComponentEndOverlap** ノードの **Other Actor** ピンから、**Cast To ThirdPersonCharacter** にドラッグします。 
 
 1.	**As My Character C** ピンから **Set Near Car** ノードを追加し、チェックボックスにチェックを入れないままにしてそれを **False** に set します。 
 
@@ -201,7 +201,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	_画像をクリックしてフルサイズで表示_
 
-1.	**MyCharacter** ブループリントを開き、グラフで **E** キーイベントを追加し、**Pressed** ピンを **Branch** ノードに追加します。 
+1.	**ThirdPersonCharacter** ブループリントを開き、グラフで **E** キーイベントを追加し、**Pressed** ピンを **Branch** ノードに追加します。 
 
 1.	**Control** を押した状態で **NearCar** 変数内でドラッグしてそれを **Branch** condition に接続します。 
 
@@ -221,7 +221,7 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 1.	**As Sedan C** ピンからドラッグして **Set Player** ノードを追加します。次に、**Player** からドラッグして **Get Reference To Self** ノードを追加します。
 
-1.	**MyCharacter** のフルシーケンスは次のようになるはずです。 
+1.	**ThirdPersonCharacter** のフルシーケンスは次のようになるはずです。 
 
 	[REGION:lightbox]
 	[![](GHT4B_26.png)(w:780)](GHT4B_26.png)
@@ -229,9 +229,9 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 
 	_画像をクリックしてフルサイズで表示_
 
-	ここでは、**E** を押すと (**NearCar** が _True_ の場合。これは **Sedan** ブループリントでトリガーボックスを入力して設定)、車を 所有し、**MyCharacter** アクタをゲーム内で非表示にし、コリジョンを取り除きます。これで **Sedan** ブループリントに対して、ブループリントの **Player** 変数が **MyCharacter** ブループリントを参照し、ビークルから出るときに **MyCharacter** に戻ることができるように指示します。 
+	ここでは、**E** を押すと (**NearCar** が _True_ の場合。これは **Sedan** ブループリントでトリガーボックスを入力して設定)、車を 所有し、**ThirdPersonCharacter** アクタをゲーム内で非表示にし、コリジョンを取り除きます。これで **Sedan** ブループリントに対して、ブループリントの **Player** 変数が **ThirdPersonCharacter** ブループリントを参照し、ビークルから出るときに **ThirdPersonCharacter** に戻ることができるように指示します。 
 
-1. **コンテンツ ブラウザ** から **Sedan** ブループリントをレベルにドラッグします。 
+1. レベル内に既に Sedan が存在する場合は、削除してください。次に、**コンテンツ ブラウザ** から **Sedan** ブループリントをレベルにドラッグします。 
 
 1.	メインツールバーから **Compile** をクリックし、**Play** を押してエディタで再生します。以下のように再生されるはずです。 
 
@@ -242,8 +242,8 @@ _この例は、**Blueprint 3rd Person and Vehicle Template** プロジェクト
 	[/REGION]
 
 	**Sedan** ブループリント内で、**Break Transform** にスクリプトのセクションを追加し、**Spawn Location** マーカーの **Pitch** と **Roll** をゼロにします。これは、傾斜していたり、飛行中のビークルを出るときのキャラクターの向きを調整するのに役立ちます。 
-	[REGION:lightbox]
 
+	[REGION:lightbox]
 	[![](GHT4B_Add.png)(w:780)](GHT4B_Add.png)
 	[/REGION]
 
