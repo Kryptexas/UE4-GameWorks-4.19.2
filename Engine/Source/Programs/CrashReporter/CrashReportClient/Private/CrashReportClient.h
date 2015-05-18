@@ -113,7 +113,8 @@ public:
 	/** Whether the throbber should be visible while processing the callstack. */
 	EVisibility IsThrobberVisible() const;
 
-	void SCrashReportClient_OnCheckStateChanged( ECheckBoxState NewRadioState );
+	void AllowToBeContacted_OnCheckStateChanged( ECheckBoxState NewRadioState );
+	void SendLogFile_OnCheckStateChanged( ECheckBoxState NewRadioState );
 
 private:
 	/**
@@ -161,9 +162,6 @@ private:
 
 	/** Whether the main window should be hidden. */
 	bool bShouldWindowBeHidden;
-
-	/** Whether the user allowed us to be contacted. */
-	bool bAllowToBeContacted;
 
 	/** Whether we send the data. */
 	bool bSendData;

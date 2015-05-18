@@ -27,12 +27,32 @@ struct FCrashReportClientConfig
 		return DiagnosticsFilename;
 	}
 
+	const bool& GetAllowToBeContacted() const
+	{
+		return bAllowToBeContacted;
+	}
+
+	const bool& GetSendLogFile() const
+	{
+		return bSendLogFile;
+	}
+
+	void SetAllowToBeContacted( bool bNewValue );
+
+	void SetSendLogFile( bool bNewValue );
+
 protected:
 	/** IP address of crash report receiver. */
 	FString CrashReportReceiverIP;
 
 	/** Filename to use when saving diagnostics report, if generated locally. */
 	FString DiagnosticsFilename;
+
+	/** Whether the user allowed us to be contacted. */
+	bool bAllowToBeContacted;
+
+	/** Whether the user allowed us to send the log file. */
+	bool bSendLogFile;
 };
 
 

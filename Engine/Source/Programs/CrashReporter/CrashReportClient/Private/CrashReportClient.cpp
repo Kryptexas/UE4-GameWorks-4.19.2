@@ -27,7 +27,6 @@ FCrashReportClient::FCrashReportClient(const FPlatformErrorReport& InErrorReport
 	, Uploader( FCrashReportClientConfig::Get().GetReceiverAddress() )
 	, bBeginUploadCalled(false)
 	, bShouldWindowBeHidden(false)
-	, bAllowToBeContacted(true)
 	, bSendData(false)
 {
 
@@ -115,9 +114,14 @@ EVisibility FCrashReportClient::IsThrobberVisible() const
 	return IsProcessingCallstack() ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void FCrashReportClient::SCrashReportClient_OnCheckStateChanged( ECheckBoxState NewRadioState )
+void FCrashReportClient::AllowToBeContacted_OnCheckStateChanged( ECheckBoxState NewRadioState )
 {
-	bAllowToBeContacted = NewRadioState == ECheckBoxState::Checked;
+	FCrashReportClientConfig::Get().SetAllowToBeContacted( NewRadioState == ECheckBoxState::Checked );
+}
+
+void FCrashReportClient::SendLogFile_OnCheckStateChanged( ECheckBoxState NewRadioState )
+{
+	FCrashReportClientConfig::Get().SetSendLogFile( NewRadioState == ECheckBoxState::Checked );
 }
 
 void FCrashReportClient::StartTicker()
@@ -128,7 +132,7 @@ void FCrashReportClient::StartTicker()
 void FCrashReportClient::StoreCommentAndUpload()
 {
 	// Call upload even if the report is empty: pending reports will be sent if any
-	ErrorReport.SetUserComment(UserComment, bAllowToBeContacted);
+	ErrorReport.SetUserComment( UserComment, FCrashReportClientConfig::Get().GetAllowToBeContacted() );
 	StartTicker();
 }
 

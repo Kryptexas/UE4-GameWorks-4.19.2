@@ -172,7 +172,32 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 
 			+SVerticalBox::Slot()
 			.AutoHeight()
-			.Padding( FMargin( 4, 12 ) )
+			.Padding( FMargin( 4, 12, 4, 4 ) )
+			[
+				SNew( SHorizontalBox )
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign( VAlign_Center )
+				[
+					SNew( SCheckBox )
+					.IsChecked( FCrashReportClientConfig::Get().GetSendLogFile() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
+					.OnCheckStateChanged( CrashReportClient.ToSharedRef(), &FCrashReportClient::SendLogFile_OnCheckStateChanged )
+				]
+
+				+ SHorizontalBox::Slot()
+				.FillWidth( 1.0f )
+				.VAlign( VAlign_Center )
+				[
+					SNew( STextBlock )
+					.AutoWrapText( true )
+					.Text( LOCTEXT( "IncludeLogs", "Include log files with submission. I understand that logs contain some personal information such as my system and user name." ) )
+				]
+			]
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( FMargin( 4, 4 ) )
 			[
 				SNew(SHorizontalBox)
 
@@ -181,10 +206,11 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 				.VAlign(VAlign_Center)
 				[
 					SNew(SCheckBox)
-					.IsChecked(ECheckBoxState::Checked)
-					.OnCheckStateChanged(CrashReportClient.ToSharedRef(), &FCrashReportClient::SCrashReportClient_OnCheckStateChanged)
+					.IsChecked( FCrashReportClientConfig::Get().GetAllowToBeContacted() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
+					.OnCheckStateChanged(CrashReportClient.ToSharedRef(), &FCrashReportClient::AllowToBeContacted_OnCheckStateChanged)
 				]
 
+				
 				+SHorizontalBox::Slot()
 				.FillWidth(1.0f)
 				.VAlign(VAlign_Center)
