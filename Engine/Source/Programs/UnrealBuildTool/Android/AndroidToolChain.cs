@@ -811,7 +811,7 @@ namespace UnrealBuildTool
 					int OutputPathIndex = ArchIndex * GPUArchitectures.Length + GPUArchIndex;
 
 					// Android will have an array of outputs
-					if (LinkEnvironment.Config.OutputFilePaths.Length < OutputPathIndex ||
+					if (LinkEnvironment.Config.OutputFilePaths.Count < OutputPathIndex ||
 						!Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]).EndsWith(Arch + GPUArchitecture))
 					{
 						throw new BuildException("The OutputFilePaths array didn't match the Arches array in AndroidToolChain.LinkAllFiles");

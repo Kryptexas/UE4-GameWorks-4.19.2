@@ -1476,7 +1476,7 @@ namespace UnrealBuildTool.Android
 				bMakeSeparateApks:ShouldMakeSeparateApks(), bIncrementalPackage:true, bDisallowPackagingDataInApk:false);
 
 			// if we made any non-standard .apk files, the generated debugger settings may be wrong
-			if (ShouldMakeSeparateApks() && (InTarget.OutputPaths.Length > 1 || !InTarget.OutputPaths[0].Contains("-armv7-es2")))
+			if (ShouldMakeSeparateApks() && (InTarget.OutputPaths.Count > 1 || !InTarget.OutputPaths[0].Contains("-armv7-es2")))
 			{
 				Console.WriteLine("================================================================================================================================");
 				Console.WriteLine("Non-default apk(s) have been made: If you are debugging, you will need to manually select one to run in the debugger properties!");

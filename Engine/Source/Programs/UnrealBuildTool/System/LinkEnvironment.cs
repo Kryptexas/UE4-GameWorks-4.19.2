@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace UnrealBuildTool
@@ -21,16 +22,16 @@ namespace UnrealBuildTool
 		public string LocalShadowDirectory = null;
 
 		/** The file path for the executable file that is output by the linker. */
-		public string[] OutputFilePaths = null;
+		public List<string> OutputFilePaths = new List<string>();
 
 		/** Returns the OutputFilePath is there is only one entry in OutputFilePaths */
 		public string OutputFilePath
 		{
 			get
 			{
-				if (OutputFilePaths.Length != 1)
+				if (OutputFilePaths.Count != 1)
 				{
-					throw new BuildException("Attempted to use LinkEnvironmentConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+					throw new BuildException("Attempted to use LinkEnvironmentConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Count);
 				}
 				return OutputFilePaths[0];
 			}
@@ -118,7 +119,7 @@ namespace UnrealBuildTool
 			OutputDirectory = InCopyEnvironment.OutputDirectory;
 			IntermediateDirectory = InCopyEnvironment.IntermediateDirectory;
 			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
-			OutputFilePaths = InCopyEnvironment.OutputFilePaths != null ? (string[])InCopyEnvironment.OutputFilePaths.Clone() : null;
+			OutputFilePaths = InCopyEnvironment.OutputFilePaths.ToList();
 			LibraryPaths.AddRange(InCopyEnvironment.LibraryPaths);
 			ExcludedLibraries.AddRange(InCopyEnvironment.ExcludedLibraries);
 			AdditionalLibraries.AddRange(InCopyEnvironment.AdditionalLibraries);

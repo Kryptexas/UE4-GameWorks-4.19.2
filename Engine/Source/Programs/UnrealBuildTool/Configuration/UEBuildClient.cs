@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace UnrealBuildTool
@@ -15,18 +16,13 @@ namespace UnrealBuildTool
         {
             if (ShouldCompileMonolithic())
             {
-                if ((UnrealBuildTool.IsDesktopPlatform(Platform) == false) ||
-                    (Platform == UnrealTargetPlatform.WinRT) ||
-                    (Platform == UnrealTargetPlatform.WinRT_ARM))
+                if (!UnrealBuildTool.IsDesktopPlatform(Platform) || Platform == UnrealTargetPlatform.WinRT || Platform == UnrealTargetPlatform.WinRT_ARM)
                 {
                     // We are compiling for a console...
                     // We want the output to go into the <GAME>\Binaries folder
-                    if (InRulesObject.bOutputToEngineBinaries == false)
+                    if (!InRulesObject.bOutputToEngineBinaries)
                     {
-						for (int Index = 0; Index < OutputPaths.Length; Index++ )
-						{
-							OutputPaths[Index] = OutputPaths[Index].Replace("Engine\\Binaries", InDesc.TargetName + "\\Binaries");
-						}
+						OutputPaths = OutputPaths.Select(Path => Path.Replace("Engine\\Binaries", InDesc.TargetName + "\\Binaries")).ToList();
                     }
                 }
             }

@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The output file path. This must be set before a binary can be built using it.
 		/// </summary>
-		public string[] OutputFilePaths;
+		public List<string> OutputFilePaths = new List<string>();
 
 		/// <summary>
 		/// Returns the OutputFilePath if there is only one entry in OutputFilePaths
@@ -47,9 +47,9 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if (OutputFilePaths.Length != 1)
+				if (OutputFilePaths.Count != 1)
 				{
-					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Count);
 				}
 				return OutputFilePaths[0];
 			}
@@ -58,7 +58,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Original output filepath. This is the original binary name before hot-reload suffix has been appended to it.
 		/// </summary>
-		public string[] OriginalOutputFilePaths;
+		public List<string> OriginalOutputFilePaths;
 
 		/// <summary>
 		/// Returns the OriginalOutputFilePath if there is only one entry in OriginalOutputFilePaths
@@ -67,9 +67,9 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if (OriginalOutputFilePaths.Length != 1)
+				if (OriginalOutputFilePaths.Count != 1)
 				{
-					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OriginalOutputFilePath property, but there are multiple (or no) OriginalOutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OriginalOutputFilePaths.Length);
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OriginalOutputFilePath property, but there are multiple (or no) OriginalOutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OriginalOutputFilePaths.Count);
 				}
 				return OriginalOutputFilePaths[0];
 			}
@@ -138,7 +138,7 @@ namespace UnrealBuildTool
 		/// <param name="InModuleNames"></param>
 		public UEBuildBinaryConfiguration(
 				UEBuildBinaryType InType,
-				string[] InOutputFilePaths = null,
+				IEnumerable<string> InOutputFilePaths = null,
 				string InIntermediateDirectory = null,
 				bool bInAllowExports = false,
 				bool bInCreateImportLibrarySeparately = false,
@@ -147,11 +147,14 @@ namespace UnrealBuildTool
 				bool bInHasModuleRules = true,
                 bool bInIsCrossTarget = false,
 				string InProjectFilePath = "",
-				List<string> InModuleNames = null
+				IEnumerable<string> InModuleNames = null
 			)
 		{
 			Type = InType;
-			OutputFilePaths = InOutputFilePaths != null ? (string[])InOutputFilePaths.Clone() : null;
+			if (InOutputFilePaths != null)
+			{
+				OutputFilePaths.AddRange(InOutputFilePaths);
+			}
 			IntermediateDirectory = InIntermediateDirectory;
 			bAllowExports = bInAllowExports;
 			bCreateImportLibrarySeparately = bInCreateImportLibrarySeparately;
@@ -745,7 +748,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set the link output file.
-			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths != null ? (string[])Config.OutputFilePaths.Clone() : null;
+			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths.ToList();
 
 			// Set whether the link is allowed to have exports.
 			BinaryLinkEnvironment.Config.bHasExports = Config.bAllowExports;
@@ -817,10 +820,7 @@ namespace UnrealBuildTool
 				var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
 				ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
 				ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
-				for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
-				{
-					ConsoleAppLinkEvironment.Config.OutputFilePaths[Index] = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePaths[Index]);
-				}
+				ConsoleAppLinkEvironment.Config.OutputFilePaths = ConsoleAppLinkEvironment.Config.OutputFilePaths.Select(Path => GetAdditionalConsoleAppPath(Path)).ToList();
 
 				// Link the console app executable
 				OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));

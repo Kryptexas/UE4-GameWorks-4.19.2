@@ -2087,7 +2087,7 @@ namespace UnrealBuildTool
 			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && bIsEditorTarget )
 			{
 				var EditorProcessFilenames = UEBuildTarget.MakeExecutablePaths("..", "UE4Editor", TargetDesc.Platform, TargetDesc.Configuration, UnrealTargetConfiguration.Development, false, null);
-				if (EditorProcessFilenames.Length != 1)
+				if (EditorProcessFilenames.Count != 1)
 				{
 					throw new BuildException("ShouldDoHotReload cannot handle multiple binaries returning from UEBuildTarget.MakeExecutablePaths");
 				}
@@ -2348,8 +2348,6 @@ namespace UnrealBuildTool
 
 				ReasonNotLoaded = "no existing makefile";
 			}
-
-
 
             UBTMakefile LoadedUBTMakefile = null;
             if( !bForceOutOfDate )

@@ -180,7 +180,7 @@ namespace UnrealBuildTool
 		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
 		 * this will emit multiple paths. By default, it simply makes an array from the input
 		 */
-		string[] FinalizeBinaryPaths(string BinaryName);
+		List<string> FinalizeBinaryPaths(string BinaryName);
 
 		/**
 		 * Setup the configuration environment for building
@@ -682,10 +682,10 @@ namespace UnrealBuildTool
 		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
 		 * this will emit multiple paths. By default, it simply makes an array from the input
 		 */
-		public virtual string[] FinalizeBinaryPaths(string BinaryName)
+		public virtual List<string> FinalizeBinaryPaths(string BinaryName)
 		{
 			List<string> TempList = new List<string>() { BinaryName };
-			return TempList.ToArray();
+			return TempList;
 		}
 
 		/**
