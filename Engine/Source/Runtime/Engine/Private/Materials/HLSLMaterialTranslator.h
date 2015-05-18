@@ -239,6 +239,7 @@ public:
 	,	bNeedsWorldPositionExcludingShaderOffsets(false)
 	,	bNeedsParticleSize(false)
 	,	bNeedsSceneTexturePostProcessInputs(false)
+	,	bUsesAtmosphericFog(false)
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
