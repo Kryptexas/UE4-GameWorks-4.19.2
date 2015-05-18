@@ -142,6 +142,17 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"), Category = "Utilities")
 	static TSubclassOf<UObject> Conv_AssetClassToClass(const TAssetSubclassOf<UObject>& AssetClass);
 
+	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetLoaded, class UObject*, Loaded);
+
+	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static void LoadAsset(UObject* WorldContextObject, const TAssetPtr<UObject>& Asset, FOnAssetLoaded OnLoaded, FLatentActionInfo LatentInfo);
+
+	DECLARE_DYNAMIC_DELEGATE_OneParam(FOnAssetClassLoaded, TSubclassOf<UObject>, Loaded);
+
+	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentInfo", WorldContext = "WorldContextObject", BlueprintInternalUseOnly = "true"), Category = "Utilities")
+	static void LoadAssetClass(UObject* WorldContextObject, const TAssetSubclassOf<UObject>& AssetClass, FOnAssetClassLoaded OnLoaded, FLatentActionInfo LatentInfo);
+
+
 	/**
 	 * Creates a literal integer
 	 * @param	Value	value to set the integer to
