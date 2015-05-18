@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:2554119
+Availability:Docs
+Title:2. 그래스 툴 액터 생성 및 구성
+Crumbs:
+Description: 그래스 툴용 필수 액터 생성 및 구성 방법입니다.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[예전 단계](Engine\OpenWorldTools\Grass\QuickStart\1 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[비법 홈](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[다음 단계](Engine\OpenWorldTools\Grass\QuickStart\3 "%Engine\OpenWorldTools\Grass\QuickStart\3:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+여기서는 그래스 툴의 정상 작동에 필요한 액터와 머티리얼을 만들어 보겠습니다.
+예전 단계에서 만들던 **GT_00** 레벨 작업을 이어갈테니, 레벨을 닫으신 경우 먼저 다시 열어주시기 바랍니다.
+
+1. 먼저 해 줘야 하는 작업은, 랜드스케이프더러 어떤 스태틱 메시를 얼마나 스폰시킬 것인지 알려주는 **Landscape Grass Type** (랜드스케이프 그래스 타입)을 만드는 것입니다.
+	그 방법은 **콘텐츠 브라우저** 에서 **우클릭** 하여 뜨는 메뉴에서 **고급 애셋 생성** > **기타** > **랜드스케이프 그래스 타입** 을 선택한 다음 이름을 **Grass_00** 라 합니다.
+
+	![](T_Create_LS_Grass.png)
+
+1. 다음으로 랜드스케이프 그래스 타입에 **더블클릭** 하고,
+	열리면 **Grass Varieties** 배열에 이름 오른쪽의 **더하기** 아이콘을 눌러 항목을 새로 추가합니다.
+	
+	![](T_Add_New_GV.png)
+
+1. 이제 **Grass Mesh** 섹션을 찾은 다음 **None** 이라 되어있는 입력창을 클릭하고 **SM_FieldGrass_01** 스태틱 메시를 검색합니다.
+
+	![](T_Set_Grass_Type.gif)(convert:false)
+
+1. 스태틱 메시를 추가한 이후 프로퍼티 설정이 다음과 같이 되었는지 확인합니다.
+
+	* **Grass Density:** 그래스 밀도 - 400.0
+	* **Use Grid:** 그리드 사용 - Enabled
+	* **Random Rotation:** 임의 회전 - Enabled
+	* **Align to Surface:** 표면에 정렬 - Enabled
+
+	![](T_Grass_Props.png)
+
+1. 마지막으로 **모두 저장** 및 **저장** 버튼을 둘 다 눌러 작업 내용을 전부 저장합니다.
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%
