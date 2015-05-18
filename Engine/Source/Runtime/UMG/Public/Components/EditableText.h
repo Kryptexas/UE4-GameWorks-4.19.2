@@ -50,10 +50,6 @@ public:
 	UPROPERTY()
 	USlateBrushAsset* BackgroundImageSelected_DEPRECATED;
 
-	/** Background image for the selection targeting effect (overrides Style) */
-	UPROPERTY()
-	USlateBrushAsset* BackgroundImageSelectionTarget_DEPRECATED;
-
 	/** Background image for the composing text (overrides Style) */
 	UPROPERTY()
 	USlateBrushAsset* BackgroundImageComposing_DEPRECATED;

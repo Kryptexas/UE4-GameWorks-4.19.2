@@ -150,12 +150,6 @@ void UEditableText::PostLoad()
 			BackgroundImageSelected_DEPRECATED = nullptr;
 		}
 
-		if ( BackgroundImageSelectionTarget_DEPRECATED != nullptr )
-		{
-			WidgetStyle.BackgroundImageSelectionTarget = BackgroundImageSelectionTarget_DEPRECATED->Brush;
-			BackgroundImageSelectionTarget_DEPRECATED = nullptr;
-		}
-
 		if ( BackgroundImageComposing_DEPRECATED != nullptr )
 		{
 			WidgetStyle.BackgroundImageComposing = BackgroundImageComposing_DEPRECATED->Brush;

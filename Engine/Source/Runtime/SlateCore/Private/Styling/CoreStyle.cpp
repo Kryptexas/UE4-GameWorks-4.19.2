@@ -413,7 +413,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 
 		const FEditableTextStyle NormalEditableTextStyle = FEditableTextStyle()
 			.SetBackgroundImageSelected( *SelectionBackground )
-			.SetBackgroundImageSelectionTarget( *SelectionTarget )
 			.SetBackgroundImageComposing( *CompositionBackground )
 			.SetCaretImage( *GenericWhiteBox );
 		Style->Set( "NormalEditableText", NormalEditableTextStyle );

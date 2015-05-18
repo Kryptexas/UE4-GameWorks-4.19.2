@@ -191,7 +191,6 @@ FEditableTextStyle::FEditableTextStyle()
 	: Font(FStyleDefaults::GetFontInfo(9))
 	, ColorAndOpacity(FSlateColor::UseForeground())
 	, BackgroundImageSelected()
-	, BackgroundImageSelectionTarget()
 	, CaretImage()
 {
 }
@@ -199,7 +198,6 @@ FEditableTextStyle::FEditableTextStyle()
 void FEditableTextStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) const
 {
 	OutBrushes.Add( &BackgroundImageSelected );
-	OutBrushes.Add( &BackgroundImageSelectionTarget );
 	OutBrushes.Add( &CaretImage );
 }
 

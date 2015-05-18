@@ -497,11 +497,6 @@ struct SLATECORE_API FEditableTextStyle : public FSlateWidgetStyle
 	FSlateBrush BackgroundImageSelected;
 	FEditableTextStyle& SetBackgroundImageSelected( const FSlateBrush& InBackgroundImageSelected ){ BackgroundImageSelected = InBackgroundImageSelected; return *this; }
 
-	/** Background image for the selection targeting effect */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
-	FSlateBrush BackgroundImageSelectionTarget;
-	FEditableTextStyle& SetBackgroundImageSelectionTarget( const FSlateBrush& InBackgroundImageSelectionTarget ){ BackgroundImageSelectionTarget = InBackgroundImageSelectionTarget; return *this; }
-
 	/** Background image for the selected text */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush BackgroundImageComposing;

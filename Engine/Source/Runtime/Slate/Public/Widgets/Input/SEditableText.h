@@ -23,7 +23,6 @@ public:
 		, _Font()
 		, _ColorAndOpacity()
 		, _BackgroundImageSelected()
-		, _BackgroundImageSelectionTarget()
 		, _BackgroundImageComposing()
 		, _CaretImage()
 		, _IsReadOnly( false )
@@ -55,9 +54,6 @@ public:
 
 		/** Background image for the selected text (overrides Style) */
 		SLATE_ATTRIBUTE( const FSlateBrush*, BackgroundImageSelected )
-
-		/** Background image for the selection targeting effect (overrides Style) */
-		SLATE_ATTRIBUTE( const FSlateBrush*, BackgroundImageSelectionTarget )
 
 		/** Background image for the composing text (overrides Style) */
 		SLATE_ATTRIBUTE( const FSlateBrush*, BackgroundImageComposing )
@@ -503,19 +499,11 @@ protected:
 	void SetCaretPosition( int32 Position );
 
 	/**
-	 * Called to restart selection target animation after most types of text selection changes
-	 */
-	void RestartSelectionTargetAnimation();
-
-	/**
 	 * Called when the content menu window is closed
 	 */
 	void OnWindowClosed(const TSharedRef<SWindow>&);
 
 private:
-	/** Animates the caret and highlight selection springs */
-	EActiveTimerReturnType AnimateSpringsWhileFocused(double InCurrentTime, float InDeltaTime);
-	
 	/** @return Whether the editable text should appear focused */
 	bool ShouldAppearFocused() const;
 
@@ -528,6 +516,12 @@ private:
 	 * @return  the string that needs to be rendered
 	 */
 	FString GetStringToRender() const;
+
+	/**
+	 * Ensure that we will get a Tick() soon (either due to having active focus, or something having changed progmatically and requiring an update)
+	 * Does nothing if the active tick timer is already enabled
+	 */
+	void EnsureActiveTick();
 
 private:
 
@@ -548,9 +542,6 @@ private:
 
 	/** Background image for the selected text */
 	TAttribute< const FSlateBrush* > BackgroundImageSelected;
-
-	/** Background image for the selection targeting effect */
-	TAttribute< const FSlateBrush* > BackgroundImageSelectionTarget;
 
 	/** Background image for the composing text */
 	TAttribute< const FSlateBrush* > BackgroundImageComposing;
@@ -603,23 +594,11 @@ private:
 	/** Caret position as an index into the editable text string's character array */
 	int32 CaretPosition;
 
-	/** Horizontal visual position of caret along the scrolling canvas */
-	FFloatSpring1D CaretVisualPositionSpring;
-
 	/** Stores the last time that the caret was moved by the user.  Used to prevent the caret from blinking. */
 	double LastCaretInteractionTime;
 
 	/** Current selection state */
 	FTextSelection Selection;
-
-	/** Selection "targeting" visual effect left position */
-	FFloatSpring1D SelectionTargetLeftSpring;
-
-	/** Selection "targeting" visual effect right position */
-	FFloatSpring1D SelectionTargetRightSpring;
-
-	/** Last time that the user had a major interaction with the selection */
-	double LastSelectionInteractionTime;
 
 	/** True if we're currently selecting text by dragging the mouse cursor with the left button held down */
 	bool bIsDragSelecting;
@@ -669,8 +648,8 @@ private:
 	/** True if the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
 
-	/** True if a spring animation is currently in progress */
-	bool bIsSpringing;
+	/** The timer that is actively driving this widget to Tick() even when Slate is idle */
+	TWeakPtr<FActiveTimerHandle> ActiveTickTimer;
 
 	/** The iterator to use to detect word boundaries */
 	mutable TSharedPtr<IBreakIterator> WordBreakIterator;
