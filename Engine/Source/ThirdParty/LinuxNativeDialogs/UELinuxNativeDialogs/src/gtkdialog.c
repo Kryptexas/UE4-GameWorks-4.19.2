@@ -105,7 +105,17 @@ struct UFileDialog* UFileDialog_Create(struct UFileDialogHints *hints)
         {
           *pattern_end = 0;
         }
-        gtk_file_filter_add_pattern(filter, pattern);
+
+        if(!strcmp(pattern, "*.*"))
+        {
+          // replace *.* with * as otherwise selecting folders can be broken
+          gtk_file_filter_add_pattern(filter, "*");
+        }
+        else
+        {
+          gtk_file_filter_add_pattern(filter, pattern);
+        }
+
         if(!pattern_end)
         {
           break;
