@@ -1715,7 +1715,12 @@ void FBlueprintEditorUtils::RecreateClassMetaData(UBlueprint* Blueprint, UClass*
 		Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
 	}
 
-	AllHideCategories.Append(Blueprint->HideCategories);
+	for (FString HideCategory : Blueprint->HideCategories)
+	{
+		HideCategory.ReplaceInline(TEXT(" "), TEXT(""));
+		AllHideCategories.Add(HideCategory);
+	}
+
 	if (AllHideCategories.Num())
 	{
 		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));

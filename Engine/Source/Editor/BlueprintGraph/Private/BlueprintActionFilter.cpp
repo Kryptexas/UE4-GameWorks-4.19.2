@@ -774,23 +774,13 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 	DECLARE_DELEGATE_RetVal_OneParam(bool, FIsFieldHiddenDelegate, UClass*);
 	FIsFieldHiddenDelegate IsFieldHiddenDelegate;
 
-	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
+	// Use the UiSpec to get the category
+	FBlueprintActionUiSpec UiSpec = BlueprintAction.NodeSpawner->GetUiSpec(Filter.Context, BlueprintAction.GetBindings());
+	auto IsNodeHiddenLambda = [](UClass* Class, FText InCategory)->bool
 	{
-		auto IsFunctionHiddenLambda = [](UClass* Class, UFunction const* InFunction)->bool
-		{
-			// Only hide functions that are not static
-			return !InFunction->HasAnyFunctionFlags(FUNC_Static) && FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, Class->GetAuthoritativeClass());
-		};
-		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsFunctionHiddenLambda, Function);
-	}
-	else if (UProperty const* Property = BlueprintAction.GetAssociatedProperty())
-	{
-		auto IsPropertyHiddenLambda = [](UClass* Class, UProperty const* InProperty)->bool
-		{
-			return FObjectEditorUtils::IsVariableCategoryHiddenFromClass(InProperty, Class->GetAuthoritativeClass());
-		};
-		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsPropertyHiddenLambda, Property);
-	}
+		return FEditorCategoryUtils::IsCategoryHiddenFromClass(Class->GetAuthoritativeClass(), InCategory.ToString());
+	};
+	IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsNodeHiddenLambda, UiSpec.Category);
 
 	if (IsFieldHiddenDelegate.IsBound())
 	{
