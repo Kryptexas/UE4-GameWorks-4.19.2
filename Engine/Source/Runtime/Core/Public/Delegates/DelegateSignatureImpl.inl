@@ -1303,6 +1303,38 @@ public:
 	}
 
 	/**
+	 * Adds a C++ lambda delegate
+	 * technically this works for any functor types, but lambdas are the primary use case
+	 *
+	 * @param	InFunctor	Functor (e.g. Lambda)
+	 */
+	template<typename FunctorType>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor)));
+	}
+	template<typename FunctorType, PAYLOAD_TEMPLATE_DECL_OneVar>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor, PAYLOAD_TEMPLATE_ARGS_OneVar)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor), PAYLOAD_TEMPLATE_PASSIN_OneVar));
+	}
+	template<typename FunctorType, PAYLOAD_TEMPLATE_DECL_TwoVars>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor, PAYLOAD_TEMPLATE_ARGS_TwoVars)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor), PAYLOAD_TEMPLATE_PASSIN_TwoVars));
+	}
+	template<typename FunctorType, PAYLOAD_TEMPLATE_DECL_ThreeVars>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor, PAYLOAD_TEMPLATE_ARGS_ThreeVars)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor), PAYLOAD_TEMPLATE_PASSIN_ThreeVars));
+	}
+	template<typename FunctorType, PAYLOAD_TEMPLATE_DECL_FourVars>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor, PAYLOAD_TEMPLATE_ARGS_FourVars)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor), PAYLOAD_TEMPLATE_PASSIN_FourVars));
+	}
+
+	/**
 	 * Adds a raw C++ pointer delegate.
 	 *
 	 * Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was

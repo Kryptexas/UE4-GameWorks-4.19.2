@@ -600,6 +600,18 @@ public:
 	}
 
 	/**
+	 * Adds a C++ lambda delegate
+	 * technically this works for any functor types, but lambdas are the primary use case
+	 *
+	 * @param	InFunctor	Functor (e.g. Lambda)
+	 */
+	template<typename FunctorType, typename... VarTypes>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor, VarTypes... Vars)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor), Vars...));
+	}
+
+	/**
 	 * Adds a raw C++ pointer delegate.
 	 *
 	 * Raw pointer doesn't use any sort of reference, so may be unsafe to call if the object was
