@@ -515,6 +515,10 @@ protected:
 	// Storage for static draw list batch params
 	TArray<FLandscapeBatchElementParams> StaticBatchParamArray;
 
+	// Precomputed grass rendering MeshBatch
+	FMeshBatch					GrassMeshBatch;
+	FLandscapeBatchElementParams GrassBatchParams;
+
 	// Precomputed values
 	float					LODDistance;
 	float					DistDiff;
@@ -588,6 +592,8 @@ public:
 	int32 CalcLODForSubsection(const FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
 	void CalcLODParamsForSubsection(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, int32 BatchLOD, float& OutfLOD, FVector4& OutNeighborLODs) const;
 	uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const;
+	const FMeshBatch& GetGrassMeshBatch() const { return GrassMeshBatch; }
+
 
 	// FLandcapeSceneProxy
 	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
