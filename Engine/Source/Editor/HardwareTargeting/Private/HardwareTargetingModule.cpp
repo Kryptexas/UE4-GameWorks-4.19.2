@@ -236,11 +236,6 @@ void FHardwareTargetingModule::GatherSettings(FMetaSettingGatherer& Builder)
 	}
 
 	{
-		// Scalable automatically enables the availability of the 2D editor mode
-		UE_META_SETTING_ENTRY(Builder, ULevelEditor2DSettings, bMode2DEnabled, bAnyScalable);
-	}
-
-	{
 		// Tablets or phones are usually shared-screen multiplayer instead of split-screen
 		UE_META_SETTING_ENTRY(Builder, UGameMapsSettings, bUseSplitscreen, bAnyPC);
 	}
