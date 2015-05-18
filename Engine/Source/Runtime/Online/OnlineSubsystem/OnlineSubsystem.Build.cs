@@ -27,5 +27,11 @@ public class OnlineSubsystem : ModuleRules
 				"JsonUtilities"
 			}
 		);
+
+        PublicIncludePathModuleNames.Add("Engine"); 
+
+
 	}
+
+  
 }

@@ -17,8 +17,6 @@ Notes:
 	Declarations.
 -----------------------------------------------------------------------------*/
 
-/** Size of the network recv buffer */
-#define NETWORK_MAX_PACKET (576)
 
 UIpNetDriver::UIpNetDriver(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -171,7 +169,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	ISocketSubsystem* SocketSubsystem = GetSocketSubsystem();
 
 	// Process all incoming packets.
-	uint8 Data[NETWORK_MAX_PACKET];
+	uint8 Data[MAX_PACKET_SIZE];
 	TSharedRef<FInternetAddr> FromAddr = SocketSubsystem->CreateInternetAddr();
 	for( ; Socket != NULL; )
 	{

@@ -137,7 +137,7 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 {
 	Driver = InDriver;
 	// We won't be sending any packets, so use a default size
-	MaxPacket = 512;
+	MaxPacket = MAX_PACKET_SIZE;
 	PacketOverhead = 0;
 	State = InState;
 

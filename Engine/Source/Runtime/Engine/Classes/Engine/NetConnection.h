@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Net/NetConstants.h"
 #include "Net/DataBunch.h"
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
@@ -19,14 +20,6 @@ class FUniqueNetId;
 /*-----------------------------------------------------------------------------
 	Types.
 -----------------------------------------------------------------------------*/
-
-// Up to this many reliable channel bunches may be buffered.
-enum {RELIABLE_BUFFER         = 256   }; // Power of 2 >= 1.
-enum {MAX_PACKETID            = 16384 }; // Power of 2 >= 1, covering guaranteed loss/misorder time.
-enum {MAX_CHSEQUENCE          = 1024  }; // Power of 2 >RELIABLE_BUFFER, covering loss/misorder time.
-enum {MAX_BUNCH_HEADER_BITS   = 64    };
-enum {MAX_PACKET_HEADER_BITS  = 16    };
-enum {MAX_PACKET_TRAILER_BITS = 1     };
 
 
 class UNetDriver;

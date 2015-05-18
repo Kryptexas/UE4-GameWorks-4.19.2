@@ -22,7 +22,6 @@ Notes:
 #define IP_HEADER_SIZE     (20)
 #define UDP_HEADER_SIZE    (IP_HEADER_SIZE+8)
 #define SLIP_HEADER_SIZE   (UDP_HEADER_SIZE+4)
-#define WINSOCK_MAX_PACKET (512)
 
 UIpConnection::UIpConnection(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
@@ -37,7 +36,7 @@ void UIpConnection::InitBase(UNetDriver* InDriver, class FSocket* InSocket, cons
 	// Pass the call up the chain
 	Super::InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
-		InMaxPacket == 0 ? WINSOCK_MAX_PACKET : InMaxPacket,
+		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
 		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
 
 	Socket = InSocket;
@@ -48,7 +47,7 @@ void UIpConnection::InitLocalConnection(UNetDriver* InDriver, class FSocket* InS
 {
 	InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
-		InMaxPacket == 0 ? WINSOCK_MAX_PACKET : InMaxPacket,
+		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
 		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
 
 	// Figure out IP address from the host URL
@@ -78,7 +77,7 @@ void UIpConnection::InitRemoteConnection(UNetDriver* InDriver, class FSocket* In
 {
 	InitBase(InDriver, InSocket, InURL, InState, 
 		// Use the default packet size/overhead unless overridden by a child class
-		InMaxPacket == 0 ? WINSOCK_MAX_PACKET : InMaxPacket,
+		InMaxPacket == 0 ? MAX_PACKET_SIZE : InMaxPacket,
 		InPacketOverhead == 0 ? SLIP_HEADER_SIZE : InPacketOverhead);
 
 	// Copy the remote IPAddress passed in

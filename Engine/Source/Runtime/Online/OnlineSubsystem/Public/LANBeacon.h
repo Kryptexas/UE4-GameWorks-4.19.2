@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Net/NetConstants.h"
+
 /**
  * This value indicates which packet version the server is sending. Clients with
  * differing versions will ignore these packets. This prevents crashing when
@@ -16,8 +18,8 @@
 #define LAN_BEACON_PACKET_HEADER_SIZE 16
 
 /** The max size expected in a lan beacon packet */
-#define LAN_BEACON_MAX_PACKET_SIZE 512
-
+#define LAN_BEACON_MAX_PACKET_SIZE MAX_PACKET_SIZE
+	
 // Offsets for various fields
 #define LAN_BEACON_VER_OFFSET 0
 #define LAN_BEACON_PLATFORM_OFFSET 1
