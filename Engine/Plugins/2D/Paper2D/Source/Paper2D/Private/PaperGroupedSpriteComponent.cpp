@@ -421,7 +421,6 @@ void UPaperGroupedSpriteComponent::RebuildInstances()
 	// update the physics state
 	if (bPhysicsStateCreated)
 	{
-		// TODO: it may be possible to instead just update the BodyInstanceIndex for all bodies after the removed instance. 
 		ClearAllInstanceBodies();
 		CreateAllInstanceBodies();
 	}
@@ -577,6 +576,45 @@ void UPaperGroupedSpriteComponent::GetReferencedSpriteAssets(TArray<UObject*>& I
 			InOutObjects.AddUnique(InstanceData.SourceSprite);
 		}
 	}
+}
+
+void UPaperGroupedSpriteComponent::SortInstancesAlongAxis(FVector WorldSpaceSortAxis)
+{
+	struct FSortStruct
+	{
+		int32 OldIndex;
+		float SortKey;
+
+		FSortStruct(int32 InIndex, float InDepth)
+			: OldIndex(InIndex)
+			, SortKey(InDepth)
+		{
+		}
+	};
+
+	// Figure out the sort order
+	TArray<FSortStruct> SortArray;
+	SortArray.Empty(PerInstanceSpriteData.Num());
+	for (int32 Index = 0; Index < PerInstanceSpriteData.Num(); ++Index)
+	{
+		const FVector InstanceWorldPos = ComponentToWorld.TransformPosition(PerInstanceSpriteData[Index].Transform.GetOrigin());
+		const float SortKey = FVector::DotProduct(InstanceWorldPos, WorldSpaceSortAxis);
+		SortArray.Emplace(Index, SortKey);
+	}
+
+	SortArray.Sort([](const FSortStruct& LHS, const FSortStruct& RHS)  { return LHS.SortKey > RHS.SortKey; });
+
+	// Reorganize the array to match
+	TArray<FSpriteInstanceData> OldData(PerInstanceSpriteData);
+	PerInstanceSpriteData.Reset();
+
+	for (const FSortStruct& SortedItem : SortArray)
+	{
+		PerInstanceSpriteData.Add(OldData[SortedItem.OldIndex]);
+	}
+
+	// Rebuild, as the rendering scene proxy and body setup orderings are both out of date
+	RebuildInstances();
 }
 
 //////////////////////////////////////////////////////////////////////////
