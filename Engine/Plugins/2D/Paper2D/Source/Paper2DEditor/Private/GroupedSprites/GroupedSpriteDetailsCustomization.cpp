@@ -7,6 +7,9 @@
 #include "PaperSpriteComponent.h"
 #include "PaperGroupedSpriteComponent.h"
 #include "PaperGroupedSpriteUtilities.h"
+#include "ScopedTransaction.h"
+
+#include "Engine/RendererSettings.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
@@ -30,25 +33,55 @@ void FGroupedSpriteComponentDetailsCustomization::CustomizeDetails(IDetailLayout
 	ObjectsBeingCustomized.Empty();
 	DetailBuilder.GetObjectsBeingCustomized(/*out*/ ObjectsBeingCustomized);
 
-	{
-		// Expose split buttons
-		FDetailWidgetRow& SplitRow = SpriteCategory.AddCustomRow(LOCTEXT("SplitSearchText", "Split"))
-			.WholeRowContent()
+
+	TSharedRef<SWrapBox> ButtonBox = SNew(SWrapBox).UseAllottedWidth(true);
+
+	const float MinButtonSize = 100.0f;
+	const FMargin ButtonPadding(0.0f, 2.0f, 2.0f, 0.0f);
+
+	// Split button
+	ButtonBox->AddSlot()
+	.Padding(ButtonPadding)
+	[
+		SNew(SBox)
+		.MinDesiredWidth(MinButtonSize)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("SplitSprites", "Split Sprites"))
+			.ToolTipText(LOCTEXT("SplitSprites_Tooltip", "Splits all sprite instances into separate sprite actors or components"))
+			.OnClicked(this, &FGroupedSpriteComponentDetailsCustomization::SplitSprites)
+		]
+	];
+
+	// Sort button
+	ButtonBox->AddSlot()
+	.Padding(ButtonPadding)
+	[
+		SNew(SBox)
+		.MinDesiredWidth(MinButtonSize)
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			.Text(LOCTEXT("SortSprites", "Sort Sprites"))
+			.ToolTipText(LOCTEXT("SortSprites_Tooltip", "Sorts all sprite instances according to the Translucency Sort Axis in the Rendering project settings"))
+			.OnClicked(this, &FGroupedSpriteComponentDetailsCustomization::SortSprites)
+		]
+	];
+
+	// Add the action buttons
+	FDetailWidgetRow& GroupActionsRow = SpriteCategory.AddCustomRow(LOCTEXT("GroupActionsSearchText", "Split Sort"))
+		.WholeRowContent()
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(1.0f)
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(2.0f, 0.0f)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Left)
-				[
-					SNew(SButton)
-					.Text(LOCTEXT("SplitSprites", "Split Sprites"))
-					.ToolTipText(LOCTEXT("SplitSprites_Tooltip", "Splits all sprite instances into separate sprite actors or components"))
-					.OnClicked(this, &FGroupedSpriteComponentDetailsCustomization::SplitSprites)
-				]
-			];
-	}
+				ButtonBox
+			]
+		];
 }
 
 FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
@@ -57,6 +90,29 @@ FReply FGroupedSpriteComponentDetailsCustomization::SplitSprites()
 	CopyFromWeakArray(StrongObjects, ObjectsBeingCustomized);
 
 	FPaperGroupedSpriteUtilities::SplitSprites(StrongObjects);
+
+	return FReply::Handled();
+}
+
+FReply FGroupedSpriteComponentDetailsCustomization::SortSprites()
+{
+	TArray<UObject*> StrongObjects;
+	CopyFromWeakArray(StrongObjects, ObjectsBeingCustomized);
+
+	TArray<UActorComponent*> ComponentList;
+	TArray<AActor*> IgnoredList;
+	FPaperGroupedSpriteUtilities::BuildHarvestList(StrongObjects, UPaperGroupedSpriteComponent::StaticClass(), /*out*/ ComponentList, /*out*/ IgnoredList);
+
+	const FVector SortAxis = GetDefault<URendererSettings>()->TranslucentSortAxis;
+
+	const FScopedTransaction Transaction(LOCTEXT("SortSprites", "Sort instances in group"));
+	for (UActorComponent* Component : ComponentList)
+	{
+		UPaperGroupedSpriteComponent* GroupedComponent = CastChecked<UPaperGroupedSpriteComponent>(Component);
+		GroupedComponent->SortInstancesAlongAxis(SortAxis);
+	}
+
+	GEditor->RedrawLevelEditingViewports(true);
 
 	return FReply::Handled();
 }

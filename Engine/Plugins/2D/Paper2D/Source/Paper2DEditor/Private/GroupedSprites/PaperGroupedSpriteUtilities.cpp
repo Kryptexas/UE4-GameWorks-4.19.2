@@ -155,6 +155,8 @@ void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObject
 			UE_LOG(LogPaper2DEditor, Warning, TEXT("Splitting sprites in the Blueprint editor is not currently supported"));
 		}
 	}
+
+	GEditor->RedrawLevelEditingViewports(true);
 }
 
 void FPaperGroupedSpriteUtilities::MergeSprites(const TArray<UObject*>& InObjectList)
@@ -225,6 +227,8 @@ void FPaperGroupedSpriteUtilities::MergeSprites(const TArray<UObject*>& InObject
 			}
 		}
 	}
+
+	GEditor->RedrawLevelEditingViewports(true);
 }
 
 //////////////////////////////////////////////////////////////////////////

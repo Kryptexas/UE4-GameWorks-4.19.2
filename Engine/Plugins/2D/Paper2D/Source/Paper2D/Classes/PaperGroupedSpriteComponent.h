@@ -96,6 +96,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
 	int32 GetInstanceCount() const;
 
+	/** Sort all instances by their world space position along the specified axis */
+	UFUNCTION(BlueprintCallable, Category = "Components|Sprite")
+	void SortInstancesAlongAxis(FVector WorldSpaceSortAxis);
+
 	// UActorComponent interface
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual void CreatePhysicsState() override;

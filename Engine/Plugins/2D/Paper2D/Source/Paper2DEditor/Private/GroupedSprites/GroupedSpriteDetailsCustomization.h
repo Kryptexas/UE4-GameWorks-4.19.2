@@ -21,6 +21,7 @@ protected:
 	FGroupedSpriteComponentDetailsCustomization();
 
 	FReply SplitSprites();
+	FReply SortSprites();
 
 protected:
 	TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized;
