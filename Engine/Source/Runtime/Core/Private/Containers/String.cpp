@@ -465,7 +465,7 @@ FString FString::ChrN( int32 NumCharacters, TCHAR Char )
 	{
 		Temp[Cx] = Char;
 	}
-	Temp[NumCharacters]=0;
+	Temp.Data[NumCharacters]=0;
 	return Temp;
 }
 
