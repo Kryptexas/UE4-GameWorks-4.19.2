@@ -81,6 +81,15 @@ void UTextBlock::SetJustification( ETextJustify::Type InJustification )
 	}
 }
 
+void UTextBlock::SetFont( FSlateFontInfo FontInfo )
+{
+	Font = FontInfo;
+	if ( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetFont( Font );
+	}
+}
+
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
 	MyTextBlock = SNew(STextBlock);

@@ -64,6 +64,14 @@ public:
 	UFUNCTION( BlueprintCallable, Category = "Appearance" )
 	void SetJustification( ETextJustify::Type InJustification );
 
+	/**
+	 * Set the font information struct
+	 *
+	 * @param FontInfo new font info
+	 */
+	UFUNCTION( BlueprintCallable, Category = "Appearance" )
+	void SetFont( FSlateFontInfo FontInfo );
+
 public:
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
