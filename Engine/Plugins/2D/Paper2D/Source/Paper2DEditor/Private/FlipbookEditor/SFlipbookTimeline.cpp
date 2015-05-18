@@ -27,7 +27,7 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<FUIComman
 	OnSelectionChanged = InArgs._OnSelectionChanged;
 	CommandList = InCommandList;
 
-	SlateUnitsPerFrame = 64.0f;
+	SlateUnitsPerFrame = 120.0f;
 
 	BackgroundPerFrameSlices = SNew(SHorizontalBox);
 
