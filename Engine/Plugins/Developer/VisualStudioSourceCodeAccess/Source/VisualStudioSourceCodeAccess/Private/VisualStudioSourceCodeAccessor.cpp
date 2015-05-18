@@ -501,27 +501,28 @@ bool GetProcessCommandLine(const ::DWORD InProcessID, FString& OutCommandLine)
 						::ULONG uReturn = 0;
 						if (SUCCEEDED(pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn)))
 						{
-							check(uReturn == 1);
-
-							::VARIANT vtProp;
-
-							::DWORD CurProcessID = 0;
-							if (SUCCEEDED(pclsObj->Get(TEXT("ProcessId"), 0, &vtProp, 0, 0)))
+							if (uReturn == 1)
 							{
-								CurProcessID = vtProp.ulVal;
-								::VariantClear(&vtProp);
+								::VARIANT vtProp;
+
+								::DWORD CurProcessID = 0;
+								if (SUCCEEDED(pclsObj->Get(TEXT("ProcessId"), 0, &vtProp, 0, 0)))
+								{
+									CurProcessID = vtProp.ulVal;
+									::VariantClear(&vtProp);
+								}
+
+								check(CurProcessID == InProcessID);
+								if (SUCCEEDED(pclsObj->Get(TEXT("CommandLine"), 0, &vtProp, 0, 0)))
+								{
+									OutCommandLine = vtProp.bstrVal;
+									::VariantClear(&vtProp);
+
+									bSuccess = true;
+								}
+
+								pclsObj->Release();
 							}
-
-							check(CurProcessID == InProcessID);
-							if (SUCCEEDED(pclsObj->Get(TEXT("CommandLine"), 0, &vtProp, 0, 0)))
-							{
-								OutCommandLine = vtProp.bstrVal;
-								::VariantClear(&vtProp);
-
-								bSuccess = true;
-							}
-
-							pclsObj->Release();
 						}
 					}
 
