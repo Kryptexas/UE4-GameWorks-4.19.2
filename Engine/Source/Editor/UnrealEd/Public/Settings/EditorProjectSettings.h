@@ -126,5 +126,11 @@ public:
 	/** Snap layers that are displayed in the viewport toolbar */
 	UPROPERTY(EditAnywhere, config, Category = LayerSnapping)
 	TArray<FMode2DLayer> SnapLayers;
+
+public:
+	// UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End of UObject interface
+
 };
 

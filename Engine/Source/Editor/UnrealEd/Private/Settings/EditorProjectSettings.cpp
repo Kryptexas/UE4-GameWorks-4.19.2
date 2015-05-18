@@ -149,3 +149,11 @@ ULevelEditor2DSettings::ULevelEditor2DSettings(const FObjectInitializer& ObjectI
 	SnapLayers.Emplace(TEXT("Default"), 0.0f);
 	SnapLayers.Emplace(TEXT("Background"), -100.0f);
 }
+
+void ULevelEditor2DSettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	// Sort the snap layers
+	SnapLayers.Sort([](const FMode2DLayer& LHS, const FMode2DLayer& RHS){ return LHS.Depth > RHS.Depth; });
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}

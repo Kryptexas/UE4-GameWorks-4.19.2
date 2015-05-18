@@ -290,7 +290,8 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 
 		static FName Layer2DSnapName = FName(TEXT("Layer2DSnap"));
 
-		ToolbarBuilder.AddWidget(SNew(SViewportToolBarComboMenu)
+		TSharedRef<SWidget> SnapLayerPickerWidget =
+			SNew(SViewportToolBarComboMenu)
 			.Cursor(EMouseCursor::Default)
 			.Style(ToolBarStyle)
 			.Visibility(this, &STransformViewportToolBar::IsLayer2DSnapVisible)
@@ -302,7 +303,9 @@ TSharedRef< SWidget > STransformViewportToolBar::MakeTransformToolBar( const TSh
 			.MenuButtonToolTip(LOCTEXT("Layer2DSnap_ToolTip", "Set the 2d layer snap value"))
 			.Icon(Command->GetIcon())
 			.ParentToolBar(SharedThis(this))
-			, Layer2DSnapName);
+			.MinDesiredButtonWidth(88.0f);
+
+		ToolbarBuilder.AddWidget(SnapLayerPickerWidget, Layer2DSnapName);
 	}
 	ToolbarBuilder.EndSection();
 
@@ -668,7 +671,17 @@ TSharedRef<SWidget> STransformViewportToolBar::FillLayer2DSnapMenu()
 
 
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().SnapToLayer2D);
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().SnapTo2DLayer);
+
+	ShowMenuBuilder.AddMenuSeparator();
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().MoveSelectionToTop2DLayer);
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().MoveSelectionUpIn2DLayers);
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().MoveSelectionDownIn2DLayers);
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().MoveSelectionToBottom2DLayer);
+	
+	ShowMenuBuilder.AddMenuSeparator();
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().Select2DLayerAbove);
+	ShowMenuBuilder.AddMenuEntry(LevelEditor.GetLevelEditorCommands().Select2DLayerBelow);
 
 	return ShowMenuBuilder.MakeWidget();
 }

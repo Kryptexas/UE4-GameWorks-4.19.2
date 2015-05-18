@@ -2524,7 +2524,7 @@ void FLevelEditorActionCallbacks::MoveActorTo_Clicked( const bool InAlign, const
 	GEditor->RebuildAlteredBSP(); // Update the Bsp of any levels containing a modified brush
 }
 
-void FLevelEditorActionCallbacks::SnapToLayer2D_Clicked()
+void FLevelEditorActionCallbacks::SnapTo2DLayer_Clicked()
 {
 	// Fires ULevel::LevelDirtiedEvent when falling out of scope.
 	FScopedLevelDirtied LevelDirtyCallback;
@@ -2571,10 +2571,65 @@ void FLevelEditorActionCallbacks::SnapToLayer2D_Clicked()
 	}
 }
 
-bool FLevelEditorActionCallbacks::CanSnapToLayer2D()
+bool FLevelEditorActionCallbacks::CanSnapTo2DLayer()
 {
 	const ULevelEditor2DSettings* Settings = GetDefault<ULevelEditor2DSettings>();
 	return Settings->SnapLayers.IsValidIndex(GetDefault<ULevelEditorViewportSettings>()->ActiveSnapLayerIndex) && (GEditor->GetSelectedActorCount() > 0);
+}
+
+void FLevelEditorActionCallbacks::MoveSelectionToDifferent2DLayer_Clicked(bool bGoingUp, bool bForceToTopOrBottom)
+{
+	// Change the active layer first
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	ULevelEditorViewportSettings* SettingsVP = GetMutableDefault<ULevelEditorViewportSettings>();
+
+	const int32 NumLayers = Settings2D->SnapLayers.Num();
+
+	if (NumLayers > 0)
+	{
+		if (bGoingUp)
+		{
+			SettingsVP->ActiveSnapLayerIndex = bForceToTopOrBottom ? 0 : (SettingsVP->ActiveSnapLayerIndex - 1);
+		}
+		else
+		{
+			SettingsVP->ActiveSnapLayerIndex = bForceToTopOrBottom ? (NumLayers - 1) : (SettingsVP->ActiveSnapLayerIndex + 1);
+		}
+		SettingsVP->ActiveSnapLayerIndex = FMath::Clamp<int32>(SettingsVP->ActiveSnapLayerIndex, 0, NumLayers - 1);
+
+		SettingsVP->PostEditChange();
+	}
+
+	// Snap the selection to the new active layer
+	SnapTo2DLayer_Clicked();
+}
+
+bool FLevelEditorActionCallbacks::CanMoveSelectionToDifferent2DLayer(bool bGoingUp)
+{
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	const ULevelEditorViewportSettings* SettingsVP = GetMutableDefault<ULevelEditorViewportSettings>();
+
+	const int32 SelectedIndex = SettingsVP->ActiveSnapLayerIndex;
+	const int32 NumLayers = Settings2D->SnapLayers.Num();
+
+	return bGoingUp ? (SelectedIndex > 0) : (SelectedIndex + 1 < NumLayers);
+}
+
+void FLevelEditorActionCallbacks::Select2DLayerDeltaAway_Clicked(int32 Delta)
+{
+	const ULevelEditor2DSettings* Settings2D = GetDefault<ULevelEditor2DSettings>();
+	ULevelEditorViewportSettings* SettingsVP = GetMutableDefault<ULevelEditorViewportSettings>();
+
+	const int32 SelectedIndex = SettingsVP->ActiveSnapLayerIndex;
+	const int32 NumLayers = Settings2D->SnapLayers.Num();
+
+	if (NumLayers > 0)
+	{
+		const int32 NewIndex = ((NumLayers + SelectedIndex + Delta) % NumLayers);
+
+		SettingsVP->ActiveSnapLayerIndex = NewIndex;
+		SettingsVP->PostEditChange();
+	}
 }
 
 void FLevelEditorActionCallbacks::SnapToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
@@ -2878,7 +2933,16 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SnapOriginToGrid, "Snap Origin to Grid", "Snaps the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::End ) );
 	UI_COMMAND( SnapOriginToGridPerActor, "Snap Origin to Grid Per Actor", "Snaps each selected actor separately to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( AlignOriginToGrid, "Align Origin to Grid", "Aligns the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( SnapToLayer2D, "Snap to 2D Layer", "Snaps the actor to the current 2D snap layer", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::SpaceBar ) );
+
+	UI_COMMAND( SnapTo2DLayer, "Snap to 2D Layer", "Snaps the actor to the current 2D snap layer", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::SpaceBar ) );
+	UI_COMMAND( MoveSelectionUpIn2DLayers, "Bring selection forward a snap layer", "Bring selection forward a snap layer", EUserInterfaceActionType::Button, FInputChord(EKeys::PageUp, EModifierKey::Control) );
+	UI_COMMAND( MoveSelectionDownIn2DLayers, "Send selection backward a snap layer", "Send selection backward a snap layer", EUserInterfaceActionType::Button, FInputChord(EKeys::PageDown, EModifierKey::Control) );
+	UI_COMMAND( MoveSelectionToTop2DLayer, "Bring selection to the front snap layer", "Bring selection to the front snap layer", EUserInterfaceActionType::Button, FInputChord(EKeys::PageUp, EModifierKey::Shift | EModifierKey::Control) );
+	UI_COMMAND( MoveSelectionToBottom2DLayer, "Send selection to the back snap layer", "Send selection to the back snap layer", EUserInterfaceActionType::Button, FInputChord(EKeys::PageDown, EModifierKey::Shift | EModifierKey::Control) );
+	UI_COMMAND( Select2DLayerAbove, "Select next 2D layer", "Changes the active layer to the next 2D layer", EUserInterfaceActionType::Button, FInputChord(EKeys::PageUp, EModifierKey::Alt) );
+	UI_COMMAND( Select2DLayerBelow, "Select previous 2D layer", "Changes the active layer to the previous 2D layer", EUserInterfaceActionType::Button, FInputChord(EKeys::PageDown, EModifierKey::Alt) );
+
+
 	UI_COMMAND( SnapToFloor, "Snap to Floor", "Snaps the actor or component to the floor below it", EUserInterfaceActionType::Button, FInputChord( EKeys::End ) );
 	UI_COMMAND( AlignToFloor, "Align to Floor", "Aligns the actor or component with the floor", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( SnapPivotToFloor, "Snap Pivot to Floor", "Snaps the actor to the floor at its pivot point", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Alt, EKeys::End ) );	
