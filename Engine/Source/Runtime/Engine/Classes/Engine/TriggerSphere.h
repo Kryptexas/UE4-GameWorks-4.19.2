@@ -6,15 +6,15 @@
 #include "TriggerSphere.generated.h"
 
 /** A sphere shaped trigger, used to generate overlap events in the level */
-UCLASS(MinimalAPI)
-class ATriggerSphere : public ATriggerBase
+UCLASS()
+class ENGINE_API ATriggerSphere : public ATriggerBase
 {
 	GENERATED_UCLASS_BODY()
 
 
 #if WITH_EDITOR
 	// Begin AActor interface.
-	ENGINE_API virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
+	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
 	// End AActor interface.
 #endif
 };
