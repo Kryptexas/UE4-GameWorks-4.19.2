@@ -8,7 +8,7 @@
 // Event for a non-looping flipbook finishing play
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFlipbookFinishedPlaySignature);
 
-UCLASS(ShowCategories=(Mobility, ComponentReplication), ClassGroup=Paper2D, EarlyAccessPreview, meta=(BlueprintSpawnableComponent))
+UCLASS(ShowCategories=(Mobility, ComponentReplication), ClassGroup=Paper2D, meta=(BlueprintSpawnableComponent))
 class PAPER2D_API UPaperFlipbookComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
