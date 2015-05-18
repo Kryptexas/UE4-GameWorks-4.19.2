@@ -5377,6 +5377,7 @@ ENetMode UWorld::GetNetMode() const
 
 ENetMode UWorld::AttemptDeriveFromPlayInSettings() const
 {
+#if WITH_EDITOR
 	if (WorldType == EWorldType::PIE)
 	{
 		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
@@ -5398,7 +5399,7 @@ ENetMode UWorld::AttemptDeriveFromPlayInSettings() const
 			}
 		}
 	}
-
+#endif
 	return NM_Standalone;
 }
 
