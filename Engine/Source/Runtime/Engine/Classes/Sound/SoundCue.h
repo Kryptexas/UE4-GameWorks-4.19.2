@@ -80,8 +80,8 @@ public:
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	virtual void PostLoad() override;
 #endif
+	virtual void PostLoad() override;
 	// End UObject interface.
 
 	// Begin USoundBase interface.
