@@ -765,9 +765,9 @@ FLightPropagationVolume::FLightPropagationVolume() :
 	, SecondaryBounceStrength( 0.0f )
 	, CubeSize( 5312.0f )
 	, bEnabled( false )
+	, bGeometryVolumeNeeded( false )
 	, mWriteBufferIndex( 0 )
 	, GeometryVolumeGenerated( false )
-	, bGeometryVolumeNeeded( false )
 	, AsyncJobFenceID(-1)
 {
 	bNeedsBufferClear = true;
