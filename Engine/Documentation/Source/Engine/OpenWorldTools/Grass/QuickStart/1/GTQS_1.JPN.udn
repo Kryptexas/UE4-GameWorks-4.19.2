@@ -1,0 +1,119 @@
+﻿INTSourceChangelist:2554119
+Availability:Docs
+Title:1.Grass ツールの初期設定
+Crumbs:
+Description:Grass ツールの作業に必要な初期アクタの設定方法
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\2 "%Engine\OpenWorldTools\Grass\QuickStart\2:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+次のセクションで、 Grass ツールを UE4 のレベル内で正しく機能させるために必要な新規レベルと必須アクタすべてを作成します。
+
+1. まず **メインツールバー** へ移動して UE4 内に新規レベルを作成してから、 **ファイル** から **New Level** オプションをクリックします。プロンプトが表示されたら、ベースレベルに **Default 点プレテート** を選択します。
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1\T_New_Level.png)
+
+1. 新しいレベルをロードした後に、まず **Landscape Tool** をクリックして新規 Landscape アクタを追加して、次にレベルに Landscape アクタを追加するために **Create(作成）** ボタンを押します。
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1\T_Create_Landscape.gif)(convert:false)
+
+1. **ランドスケープエディタ** の **ランドスケープツール** で、使用可能なツールを表示するために **Sculpt Tool（スカルプトツール）** アイコンをクリックして、ツールリストから **Noise（ノイズ）** ツールを選んでプロパティを以下の値に設定します。
+	![](T_Sculpt_Tool_Settings.png) 
+
+	* **Brush Size（ブラシサイズ）:** 65536.0
+	* **Tool Strength（ツール強度）:** 0.01
+	* ** Noise Scale（ノイズスケール）:** 256
+
+1. ランドスケープテレイン 全体を覆うようにランドスケープブラシをビューポートの位置に合わせてから、 **左マウスボタン**	を3、4回押して、わずかなノイズをランドスケープサーフェスに追加します。 
+	操作が完了したら、以下の画像に似たような結果となります。
+
+	![](T_Noise_On_Landscape.png)
+
+1. **モード** パネルの **Place** アイコンをクリックしてランドスケープツールを終了します。
+
+	![](T_Exit_LS_Tools.png)
+
+1. 最後にこれまでの作業とレベルを保存します。 **Save All（すべて保存）** ボタンをクリックして全コンテンツを保存して、レベルを保存するために ** Save（保存）** ボタンを押します。 
+	レベル名の入力画面が表示されたら、 **GT_00** と入力します。
+
+	![](T_Save_All.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%
