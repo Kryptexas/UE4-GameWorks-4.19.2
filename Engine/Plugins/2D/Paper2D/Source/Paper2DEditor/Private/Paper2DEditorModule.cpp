@@ -185,9 +185,11 @@ public:
 			false);
 
 		// Integrate Paper2D actions into existing editor context menus
-		FPaperContentBrowserExtensions::InstallHooks();
-		FPaperLevelEditorMenuExtensions::InstallHooks();
-
+		if (!IsRunningCommandlet())
+		{
+			FPaperContentBrowserExtensions::InstallHooks();
+			FPaperLevelEditorMenuExtensions::InstallHooks();
+		}
 		// Register with the mesh paint module
 		if (IMeshPaintModule* MeshPaintModule = FModuleManager::LoadModulePtr<IMeshPaintModule>("MeshPaint"))
 		{
