@@ -69,10 +69,10 @@ namespace MarkdownSharp.Preprocessor
                     SEOTitle = metaValue;
                 }
 
-                //if (metaDataCategoryLowerCase == "crumbs")
-                //{
-                //    CrumbsLinks.Add(metaValue);
-                //}
+                if (metaDataCategoryLowerCase == "crumbs")
+                {
+                    CrumbsLinks.Add(metaValue);
+                }
 
                 if (metaDataCategoryLowerCase == "related" && full)
                 {
