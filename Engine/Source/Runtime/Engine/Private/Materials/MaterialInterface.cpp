@@ -66,7 +66,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 		MaterialRelevance.bNormalTranslucency = bIsTranslucent && !Material->bEnableSeparateTranslucency;
 		MaterialRelevance.bDisableDepthTest = bIsTranslucent && Material->bDisableDepthTest;		
 		MaterialRelevance.bOutputsVelocityInBasePass = Material->bOutputVelocityOnBasePass;	
-		MaterialRelevance.bUsesGlobalDistanceField = false;//MaterialResource->GetGameThreadShaderMap() ? MaterialResource->GetGameThreadShaderMap()->UsesGlobalDistanceField() : false;
+		MaterialRelevance.bUsesGlobalDistanceField = MaterialResource->UsesGlobalDistanceField_GameThread();
 		return MaterialRelevance;
 	}
 	else

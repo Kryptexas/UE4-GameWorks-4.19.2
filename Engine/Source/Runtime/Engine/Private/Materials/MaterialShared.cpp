@@ -500,6 +500,11 @@ bool FMaterial::UsesEyeAdaptation() const
 	return false;
 }
 
+bool FMaterial::UsesGlobalDistanceField_GameThread() const 
+{ 
+	return GameThreadShaderMap.GetReference() ? GameThreadShaderMap->UsesGlobalDistanceField() : false; 
+}
+
 bool FMaterial::MaterialModifiesMeshPosition_RenderThread() const
 { 
 	check(IsInParallelRenderingThread());
