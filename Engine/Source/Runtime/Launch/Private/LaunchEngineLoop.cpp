@@ -1298,8 +1298,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
-	IStreamingManager::Get();
-
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{
 		FPlatformSplash::Show();
@@ -1337,6 +1335,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		check(!GDistanceFieldAsyncQueue);
 		GDistanceFieldAsyncQueue = new FDistanceFieldAsyncQueue();
 	}
+
+	// Initialize the texture streaming system (needs to happen after RHIInit).
+	IStreamingManager::Get();
 
 	{
 		DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Initial UObject load"), STAT_InitialUObjectLoad, STATGROUP_LoadTime);
