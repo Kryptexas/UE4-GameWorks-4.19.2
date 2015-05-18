@@ -20,6 +20,7 @@
 #include "Engine/TextureRenderTarget2D.h"
 #include "ContentStreaming.h"
 #include "LandscapeDataAccess.h"
+#include "LandscapeRender.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -296,13 +297,13 @@ public:
 		ULandscapeComponent* Component;
 		FVector2D ViewOffset;
 		int32 PixelOffsetX;
-		FPrimitiveSceneInfo* PrimitiveSceneInfo;
+		FLandscapeComponentSceneProxy* SceneProxy;
 
 		FComponentInfo(ULandscapeComponent* InComponent, FVector2D& InViewOffset, int32 InPixelOffsetX)
 			: Component(InComponent)
 			, ViewOffset(InViewOffset)
 			, PixelOffsetX(InPixelOffsetX)
-			, PrimitiveSceneInfo(InComponent->SceneProxy->GetPrimitiveSceneInfo())
+			, SceneProxy((FLandscapeComponentSceneProxy*)InComponent->SceneProxy)
 		{}
 	};
 
@@ -341,23 +342,17 @@ public:
 
 		for (auto& ComponentInfo : ComponentInfos)
 		{
-			FPrimitiveSceneInfo* PrimitiveSceneInfo = ComponentInfo.PrimitiveSceneInfo;
+			const FMeshBatch& Mesh = ComponentInfo.SceneProxy->GetGrassMeshBatch();
+
 			for (int32 PassIdx = 0; PassIdx < NumPasses; PassIdx++)
 			{
-				for (int32 StaticMeshIdx = 0; StaticMeshIdx < PrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++)
-				{
-					FMeshBatch Mesh = *(FMeshBatch*)(&PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx]);
-					// Grass maps don't render with tessellation enabled but the StaticMesh is set up to use PT_12_ControlPointPatchList
-					Mesh.Type = PT_TriangleList; 
+				FLandscapeGrassWeightDrawingPolicy DrawingPolicy(Mesh.VertexFactory, Mesh.MaterialRenderProxy, *Mesh.MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel));
+				RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(GMaxRHIFeatureLevel));
+				DrawingPolicy.SetSharedState(RHICmdList, View, FLandscapeGrassWeightDrawingPolicy::ContextDataType(), PassIdx, ComponentInfo.ViewOffset + FVector2D(PassOffsetX * PassIdx, 0));
 
-					FLandscapeGrassWeightDrawingPolicy DrawingPolicy(Mesh.VertexFactory, Mesh.MaterialRenderProxy, *Mesh.MaterialRenderProxy->GetMaterial(GMaxRHIFeatureLevel));
-					RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(GMaxRHIFeatureLevel));
-					DrawingPolicy.SetSharedState(RHICmdList, View, FLandscapeGrassWeightDrawingPolicy::ContextDataType(), PassIdx, ComponentInfo.ViewOffset + FVector2D(PassOffsetX * PassIdx, 0));
-
-					// The first batch element contains the grass batch for the entire component
-					DrawingPolicy.SetMeshRenderState(RHICmdList, *View, PrimitiveSceneInfo->Proxy, Mesh, 0, false, FMeshDrawingPolicy::ElementDataType(), FLandscapeGrassWeightDrawingPolicy::ContextDataType());
-					DrawingPolicy.DrawMesh(RHICmdList, Mesh, 0);
-				}
+				// The first batch element contains the grass batch for the entire component
+				DrawingPolicy.SetMeshRenderState(RHICmdList, *View, ComponentInfo.SceneProxy, Mesh, 0, false, FMeshDrawingPolicy::ElementDataType(), FLandscapeGrassWeightDrawingPolicy::ContextDataType());
+				DrawingPolicy.DrawMesh(RHICmdList, Mesh, 0);
 			}
 		}
 	}
