@@ -43,7 +43,6 @@ Description:Starting and stopping a timer that runs code at a fixed rate.
 		CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 		CountdownText->SetHorizontalAlignment(EHTA_Center);
 		CountdownText->SetWorldSize(150.0f);
-		CountdownText->AttachTo(RootComponent);
 		RootComponent = CountdownText;
 
 		CountdownTime = 3;
@@ -168,7 +167,6 @@ At this point, we've already created a simple class that uses a timer. Non-progr
 				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 				CountdownText->SetHorizontalAlignment(EHTA_Center);
 				CountdownText->SetWorldSize(150.0f);
-				CountdownText->AttachTo(RootComponent);
 				RootComponent = CountdownText;
 
 				CountdownTime = 3;
