@@ -23,6 +23,7 @@ public:
 	virtual FName GetCornerIcon() const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual bool NodeCausesStructuralBlueprintChange() const { return true; }
 	// End of UK2Node interface
 
 protected:
