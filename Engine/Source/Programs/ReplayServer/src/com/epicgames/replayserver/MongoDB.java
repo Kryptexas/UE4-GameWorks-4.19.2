@@ -41,22 +41,22 @@ public class MongoDB implements BaseDB
 
 	public MongoDB() throws UnknownHostException
 	{
-		mongoClient = new MongoClient( "localhost" , 27017 );
+		mongoClient = new MongoClient( ReplayProps.getString( "mongoDB_Host", "localhost" ) , ReplayProps.getInt( "mongoDB_Port", "27017" ) );
 
 		final boolean bResetDB 		= false;
 		final boolean bResetIndexes = false;
 
 		if ( bResetDB )
 		{
-			mongoClient.dropDatabase( "replayDB" );
+			mongoClient.dropDatabase( ReplayProps.getString( "mongoDB_DBName", "replayDB" ) );
 		}
 
-		db 			= mongoClient.getDB( "replayDB" );
-		grid 		= new GridFS( db, "replayFS" );
-		replayColl 	= db.getCollection( "replayCollection" );
-		viewerColl 	= db.getCollection( "viewerCollection" );
-		eventColl 	= db.getCollection( "eventCollection" );
-		logColl 	= db.getCollection( "logCollection" );
+		db 			= mongoClient.getDB( ReplayProps.getString( "mongoDB_DBName", "replayDB" ) );
+		grid 		= new GridFS( db, ReplayProps.getString( "mongoDB_GridFSBucket", "replayFS" ) );
+		replayColl 	= db.getCollection( ReplayProps.getString( "mongoDB_ReplayCollection", "replayCollection" ) );
+		viewerColl 	= db.getCollection( ReplayProps.getString( "mongoDB_ViewerCollection", "viewerCollection" ) );
+		eventColl 	= db.getCollection( ReplayProps.getString( "mongoDB_EventCollection", "eventCollection" ) );
+		logColl 	= db.getCollection( ReplayProps.getString( "mongoDB_LogCollection", "logCollection" ) );
 				
 		if ( bResetIndexes )
 		{

@@ -114,7 +114,11 @@ public class ReplayServer
         context.addServlet( new ServletHolder( new EnumEvents() ), "/enumevents/*" );
         context.addServlet( new ServletHolder( new RefreshViewer() ), "/refreshviewer/*" );
         context.addServlet( new ServletHolder( new ViewFile() ), "/viewfile/*" );
-        context.addServlet( new ServletHolder( new Index() ), "/*" );
+        
+        if ( ReplayProps.getInt( "enableBuiltInWebServer", "1" ) == 1 )
+        {
+            context.addServlet( new ServletHolder( new Index() ), "/*" );
+        }
         
         // Password protect the delete session page
         context.addServlet(new ServletHolder(new HttpServlet() 
