@@ -434,8 +434,10 @@ bool FChunkManifestGenerator::LoadAssetRegistry(const FString& SandboxPath, cons
 		}
 		for (FAssetData LoadedAssetData : AssetRegistryData)
 		{
+			
+			FName ShortPackageName = FName(*FPaths::GetBaseFilename(LoadedAssetData.PackageName.ToString()));
 			if (PackagesToKeep &&
-				PackagesToKeep->Contains(LoadedAssetData.PackageName) == false)
+				PackagesToKeep->Contains(ShortPackageName) == false)
 			{
 				continue;
 			}
