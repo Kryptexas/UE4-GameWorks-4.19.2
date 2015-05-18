@@ -28,17 +28,32 @@ public class ReplayServer
 	
 	public static void main( String[] args ) throws Exception
     {
+		ReplayProps.Init();
+
 		ReplayDB.init();
 
 		ReplayLogger.log( Level.INFO, "Log opened..." );
 
 		org.eclipse.jetty.util.log.Log.setLog( ReplayLogger.replayLogger );
+
+		final int quickTaskFrequencyInSeconds 	= ReplayProps.getInt( "quickTaskFrequencyInSeconds", "10" );
+		final int longTaskFrequencyInHours 		= ReplayProps.getInt( "longTaskFrequencyInHours", "1" );
 	
 		timer = new Timer();
-	    timer.schedule( new CleanupTask.QuickTask(), 5 * 1000, 10 * 1000 );		
-	    timer.schedule( new CleanupTask.LongTask(), 10 * 1000, 60 * 60 * 1000 * 1 );	// Run once after 10 seconds, then once every hour		
+
+		if ( quickTaskFrequencyInSeconds != 0 )
+		{
+			timer.schedule( new CleanupTask.QuickTask(), quickTaskFrequencyInSeconds * 1000, quickTaskFrequencyInSeconds * 1000 );		
+		}
+
+		if ( quickTaskFrequencyInSeconds != 0 )
+		{
+			timer.schedule( new CleanupTask.LongTask(), 60 * 60 * 1000 * longTaskFrequencyInHours, 60 * 60 * 1000 * longTaskFrequencyInHours );		
+		}
 		
-		final Server server = new Server( 80 );
+		final int httpPort = ReplayProps.getInt( "httpPort", "80" );
+
+		final Server server = new Server( httpPort );
  
         ServletContextHandler context = new ServletContextHandler( ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY );
         context.setContextPath( "/" );
@@ -48,7 +63,7 @@ public class ReplayServer
         /*
         ServerConnector http = new ServerConnector( server );
         //http.setHost( "localhost" );
-        http.setPort( 80 );
+        http.setPort( httpPort );
         http.setIdleTimeout( 45000 );
 
         server.addConnector( http );
