@@ -1,0 +1,111 @@
+﻿INTSourceChangelist:2555212
+Availability:Docs
+Title:4.Grass ツールの使用
+Crumbs:
+Description:Grass ツールの使用方法
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\3 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Grass システムの動作を確認するには、前回の手順で作成したマテリアルをランドスケープに適用してから、グラスをスポーンさせる位置を定義するためにランドスケープペインティングツールを使用します。
+次のセクションではマテリアルをランドスケープに適用する方法を実践してから、草をスポーンする領域を定義するランドスケープペインティングツールの使用方法を説明します。
+前の手順で作成した **GT_00** レベルを引き続き使用するので、レベルを閉じてしまった場合はレベルをもう一度開いてください。
+
+1. ビューポートで **左マウスボタン** でクリックして、レベルに配置したランドスケープアクタを選択します。
+
+	![](T_Selected_Landscape.png)
+
+1. 次に **コンテンツブラウザ** で **MAT_GT_Grass** マテリアルを見つけて、 **左マウスボタン** でこのマテリアルをクリックして選択します。
+	**Landscape Material** セクション内の **詳細** パネルにあるランドスケープテレインで **矢印** アイコンを押して、ランドスケープテレインに **MAT_GT_Grass** マテリアルを適用します。
+
+	![](T_Apply_Material.png)
+
+1. **Modes（モード）** パネル内で **Landscape** アイコンをクリックして **Landscape** セクションへ移動してから、 **Paint** アイコンをクリックして **Paint** モードにします。
+
+	![](T_Landscape_Paint_Mode.png)
+
+1. **ターゲットレイヤー** セクションで、レイヤー名の右側にある **+** アイコンをクリックして新しく **Layer Info** を追加して、プロンプトが表示されたら、 
+	**Weight- Blended Layer(normal)** オプションを選んで、コンテンツブラウザ内に新しく保存するレイヤーブレンドの保存場所を選択します。 
+	必ず Rock と Grass 両方に対して **Layer Info** を作成してください。
+
+	![](T_Add_LWB.gif)(convert:false)
+
+1. **Landscape Layers** を作成したら、これらを **Target Layers** で機能させるために追加しなくてはいけません。 
+	コンテンツブラウザで **Rock_Layerinfo** を選んで、現在選択中のオブジェクトをロードするために、 **Target Layers** で **矢印** アイコンを押して 
+	 **Rock_Layerinfo** をロックセクションへ入力します。
+
+	![](T_Load_Layer_Info.png)
+
+1. 次に **Grass** ターゲットレイヤーを選択してから、ビューポート内で **左マウスボタン** を押しながら、Grass マテリアルをランドスケープテレインにペインティングしていきます。
+	この作業を行う時にランドスケープを完全にカバーすると以下のような結果となります。
+	![](T_Painting_Grass.png)
+
+	[region:note]
+	開発 PC のスペック次第で、ランドスケープのペイントを開始すると、草がスポーンされる時にエディタでタイムラグが多少発生する場合があります。 
+	ペイントを終了すると、草は動的にスポーンされるため、これは通常の動作です。 
+	タイムラグの発生で作業が大変な場合は、 **Landscape Grass Type** 設定の **Grass Density** を弱めて、作業が終了したら再度元の設定に戻してみてください。
+	[/region]
+
+1. ランドスケープテレインから草を取り除くには、 **Rock Target Layer** を選んでからビューポート内で **左マウスボタン** を押しながら、 
+	Rock テクスチャのペイントを開始すると、草が削除されます。
+	**Brush Size（ブラシサイズ）** と **Tool Strength（ツールの強度）** を調整すると、ランドスケープにペイント中に草の位置や削除する草をよりきれいに設定することができます。
+
+	![](T_Painting_Removing_Grass.gif)(convert:false)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%
