@@ -31,30 +31,34 @@ void FAnimNode_TwoBoneIK::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
+
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 
 	// Get indices of the lower and upper limb bones and check validity.
 	bool bInvalidLimb = false;
 
-	const int32 EndBoneIndex = IKBone.BoneIndex;
-	const int32 LowerLimbIndex = RequiredBones.GetParentBoneIndex(EndBoneIndex);
+	FCompactPoseBoneIndex IKBoneCompactPoseIndex = IKBone.GetCompactPoseIndex(BoneContainer);
+
+	const FCompactPoseBoneIndex LowerLimbIndex = BoneContainer.GetParentBoneIndex(IKBoneCompactPoseIndex);
 	if (LowerLimbIndex == INDEX_NONE)
 	{
 		bInvalidLimb = true;
 	}
 
-	const int32 UpperLimbIndex = RequiredBones.GetParentBoneIndex(LowerLimbIndex);
+	const FCompactPoseBoneIndex UpperLimbIndex = BoneContainer.GetParentBoneIndex(LowerLimbIndex);
 	if (UpperLimbIndex == INDEX_NONE)
 	{
 		bInvalidLimb = true;
 	}
 
 	const bool bInBoneSpace = (EffectorLocationSpace == BCS_ParentBoneSpace) || (EffectorLocationSpace == BCS_BoneSpace);
-	const int32 EffectorSpaceBoneIndex = bInBoneSpace ? RequiredBones.GetPoseBoneIndexForBoneName(EffectorSpaceBoneName) : INDEX_NONE;
+	const int32 EffectorBoneIndex = bInBoneSpace ? BoneContainer.GetPoseBoneIndexForBoneName(EffectorSpaceBoneName) : INDEX_NONE;
+	const FCompactPoseBoneIndex EffectorSpaceBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(EffectorBoneIndex));
 
-	if (bInBoneSpace && ((EffectorSpaceBoneIndex == INDEX_NONE) || !RequiredBones.Contains(EffectorSpaceBoneIndex)))
+	if (bInBoneSpace && (EffectorSpaceBoneIndex == INDEX_NONE))
 	{
 		bInvalidLimb = true;
 	}
@@ -68,12 +72,12 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 	// Get Local Space transforms for our bones. We do this first in case they already are local.
 	// As right after we get them in component space. (And that does the auto conversion).
 	// We might save one transform by doing local first...
-	const FTransform EndBoneLocalTransform = MeshBases.GetLocalSpaceTransform(IKBone.BoneIndex);
+	const FTransform EndBoneLocalTransform = MeshBases.GetLocalSpaceTransform(IKBoneCompactPoseIndex);
 
 	// Now get those in component space...
-	FTransform UpperLimbCSTransform = MeshBases.GetComponentSpaceTransform(UpperLimbIndex);
 	FTransform LowerLimbCSTransform = MeshBases.GetComponentSpaceTransform(LowerLimbIndex);
-	FTransform EndBoneCSTransform = MeshBases.GetComponentSpaceTransform(IKBone.BoneIndex);
+	FTransform UpperLimbCSTransform = MeshBases.GetComponentSpaceTransform(UpperLimbIndex);
+	FTransform EndBoneCSTransform = MeshBases.GetComponentSpaceTransform(IKBoneCompactPoseIndex);
 
 	// Get current position of root of limb.
 	// All position are in Component space.
@@ -104,7 +108,14 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 	// Get joint target (used for defining plane that joint should be in).
 	FTransform JointTargetTransform(JointTargetLocation);
-	const int32 JointTargetSpaceBoneIndex = (JointTargetLocationSpace == BCS_ParentBoneSpace || JointTargetLocationSpace == BCS_BoneSpace) ? RequiredBones.GetPoseBoneIndexForBoneName(JointTargetSpaceBoneName) : INDEX_NONE;
+	FCompactPoseBoneIndex JointTargetSpaceBoneIndex(INDEX_NONE);
+
+	if (JointTargetLocationSpace == BCS_ParentBoneSpace || JointTargetLocationSpace == BCS_BoneSpace)
+	{
+		int32 Index = BoneContainer.GetPoseBoneIndexForBoneName(JointTargetSpaceBoneName);
+		JointTargetSpaceBoneIndex = BoneContainer.MakeCompactPoseIndex(FMeshPoseBoneIndex(Index));
+	}
+	
 	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, JointTargetTransform, JointTargetSpaceBoneIndex, JointTargetLocationSpace);
 
 	FVector	JointTargetPos = JointTargetTransform.GetTranslation();
@@ -270,7 +281,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 		EndBoneCSTransform.SetTranslation(OutEndPos);
 
 		// Order important. Third bone is End Bone.
-		OutBoneTransforms.Add( FBoneTransform(IKBone.BoneIndex, EndBoneCSTransform) );
+		OutBoneTransforms.Add(FBoneTransform(IKBoneCompactPoseIndex, EndBoneCSTransform));
 	}
 
 	// Make sure we have correct number of bones

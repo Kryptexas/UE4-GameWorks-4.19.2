@@ -123,12 +123,12 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 		USkeletalMeshComponent* MeshComponent = GetSkelMeshComponent();
 		if(MeshComponent && MeshComponent->SkeletalMesh)
 		{
-			FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose.Bones, GetSkelMeshComponent()->SkeletalMesh, RequiredBones);
+			FAnimationRuntime::FillWithRetargetBaseRefPose(Output.Pose, GetSkelMeshComponent()->SkeletalMesh);
 		}
 		else
 		{
 			// ideally we'll return just ref pose, but not sure if this will work with LODs
-			FAnimationRuntime::FillWithRefPose(Output.Pose.Bones, RequiredBones);
+			Output.Pose.ResetToRefPose();
 		}
 	}
 	else
@@ -149,16 +149,16 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 			// create bone controllers from 
 			if(BoneControllers.Num() > 0 || CurveBoneControllers.Num() > 0)
 			{
-				TArray<FTransform> PreController, PostController;
+				FCompactPose PreController, PostController;
 				// if set key is true, we should save pre controller local space transform 
 				// so that we can calculate the delta correctly
 				if(bSetKey)
 				{
-					PreController = Output.Pose.Bones;
+					PreController = Output.Pose;
 				}
 
-				FA2CSPose OutMeshPose;
-				OutMeshPose.AllocateLocalPoses(RequiredBones, Output.Pose);
+				FCSPose<FCompactPose> OutMeshPose;
+				OutMeshPose.InitPose(&RequiredBones);
 
 				// apply curve data first
 				ApplyBoneControllers(Component, CurveBoneControllers, OutMeshPose);
@@ -173,7 +173,7 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 				if(bSetKey)
 				{
 					// now we have post controller, and calculate delta now
-					PostController = Output.Pose.Bones;
+					PostController = Output.Pose;
 					SetKeyImplementation(PreController, PostController);
 				}
 			}
@@ -183,7 +183,7 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 				if(bSetKey)
 				{
 					// in this case, pose is same
-					SetKeyImplementation(Output.Pose.Bones, Output.Pose.Bones);
+					SetKeyImplementation(Output.Pose, Output.Pose);
 				}
 			}
 		}
@@ -198,7 +198,7 @@ bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
 	return true;
 }
 
-void UAnimPreviewInstance::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FA2CSPose& OutMeshPose)
+void UAnimPreviewInstance::ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &InBoneControllers, FCSPose<FCompactPose>& OutMeshPose)
 {
 	for(auto& SingleBoneController : InBoneControllers)
 	{
@@ -206,7 +206,7 @@ void UAnimPreviewInstance::ApplyBoneControllers(USkeletalMeshComponent* Componen
 		if(SingleBoneController.BoneToModify.BoneIndex != INDEX_NONE)
 		{
 			TArray<FBoneTransform> BoneTransforms;
-			SingleBoneController.EvaluateBoneTransforms(Component, RequiredBones, OutMeshPose, BoneTransforms);
+			SingleBoneController.EvaluateBoneTransforms(Component, OutMeshPose, BoneTransforms);
 			if(BoneTransforms.Num() > 0)
 			{
 				OutMeshPose.LocalBlendCSBoneTransforms(BoneTransforms, 1.0f);
@@ -215,7 +215,7 @@ void UAnimPreviewInstance::ApplyBoneControllers(USkeletalMeshComponent* Componen
 	}
 }
 
-void UAnimPreviewInstance::SetKeyImplementation(const TArray<FTransform>& PreControllerInLocalSpace, const TArray<FTransform>& PostControllerInLocalSpace)
+void UAnimPreviewInstance::SetKeyImplementation(const FCompactPose& PreControllerInLocalSpace, const FCompactPose& PostControllerInLocalSpace)
 {
 #if WITH_EDITOR
 	// evaluate the curve data first
@@ -240,7 +240,8 @@ void UAnimPreviewInstance::SetKeyImplementation(const TArray<FTransform>& PreCon
 			// find if this already exists, then just add curve data only
 			FName BoneName = SingleBoneController.BoneToModify.BoneName;
 			// now convert data
-			const int32 BoneIndex = Component->GetBoneIndex(BoneName);
+			const FMeshPoseBoneIndex MeshBoneIndex(Component->GetBoneIndex(BoneName));
+			const FCompactPoseBoneIndex BoneIndex = RequiredBones.MakeCompactPoseIndex(MeshBoneIndex);
 			FTransform  LocalTransform = PostControllerInLocalSpace[BoneIndex];
 
 			// now we have LocalTransform and get additive data

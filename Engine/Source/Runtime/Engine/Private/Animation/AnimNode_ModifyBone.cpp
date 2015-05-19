@@ -32,18 +32,22 @@ void FAnimNode_ModifyBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
 	// the way we apply transform is same as FMatrix or FTransform
 	// we apply scale first, and rotation, and translation
-	// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate. 
-	FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(BoneToModify.BoneIndex);
+	// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate.
+	const FBoneContainer BoneContainer = MeshBases.GetPose().GetBoneContainer();
+
+	FCompactPoseBoneIndex CompactPoseBoneToModify = BoneToModify.GetCompactPoseIndex(BoneContainer);
+	FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(CompactPoseBoneToModify);
+	
 	if (ScaleMode != BMM_Ignore)
 	{
 		// Convert to Bone Space.
-		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, BoneToModify.BoneIndex, ScaleSpace);
+		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, CompactPoseBoneToModify, ScaleSpace);
 
 		if (ScaleMode == BMM_Additive)
 		{
@@ -55,13 +59,13 @@ void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		}
 
 		// Convert back to Component Space.
-		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, BoneToModify.BoneIndex, ScaleSpace);
+		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, CompactPoseBoneToModify, ScaleSpace);
 	}
 
 	if (RotationMode != BMM_Ignore)
 	{
 		// Convert to Bone Space.
-		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, BoneToModify.BoneIndex, RotationSpace);
+		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, CompactPoseBoneToModify, RotationSpace);
 
 		const FQuat BoneQuat(Rotation);
 		if (RotationMode == BMM_Additive)
@@ -74,13 +78,13 @@ void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		}
 
 		// Convert back to Component Space.
-		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, BoneToModify.BoneIndex, RotationSpace);
+		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, CompactPoseBoneToModify, RotationSpace);
 	}
-
+	
 	if (TranslationMode != BMM_Ignore)
 	{
 		// Convert to Bone Space.
-		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, BoneToModify.BoneIndex, TranslationSpace);
+		FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, CompactPoseBoneToModify, TranslationSpace);
 
 		if (TranslationMode == BMM_Additive)
 		{
@@ -92,10 +96,10 @@ void FAnimNode_ModifyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		}
 
 		// Convert back to Component Space.
-		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, BoneToModify.BoneIndex, TranslationSpace);
+		FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, CompactPoseBoneToModify, TranslationSpace);
 	}
-
-	OutBoneTransforms.Add( FBoneTransform(BoneToModify.BoneIndex, NewBoneTM) );
+	
+	OutBoneTransforms.Add( FBoneTransform(BoneToModify.GetCompactPoseIndex(BoneContainer), NewBoneTM) );
 }
 
 bool FAnimNode_ModifyBone::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 

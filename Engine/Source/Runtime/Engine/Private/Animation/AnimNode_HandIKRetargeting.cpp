@@ -28,15 +28,16 @@ void FAnimNode_HandIKRetargeting::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_HandIKRetargeting::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_HandIKRetargeting::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	checkSlow(OutBoneTransforms.Num() == 0);
 
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	// Get component space transforms for all of our IK and FK bones.
-	FTransform const RightHandFKTM = MeshBases.GetComponentSpaceTransform(RightHandFK.BoneIndex);
-	FTransform const LeftHandFKTM = MeshBases.GetComponentSpaceTransform(LeftHandFK.BoneIndex);
-	FTransform const RightHandIKTM = MeshBases.GetComponentSpaceTransform(RightHandIK.BoneIndex);
-	FTransform const LeftHandIKTM = MeshBases.GetComponentSpaceTransform(LeftHandIK.BoneIndex);
+	const FTransform& RightHandFKTM = MeshBases.GetComponentSpaceTransform(RightHandFK.GetCompactPoseIndex(BoneContainer));
+	const FTransform& LeftHandFKTM = MeshBases.GetComponentSpaceTransform(LeftHandFK.GetCompactPoseIndex(BoneContainer));
+	const FTransform& RightHandIKTM = MeshBases.GetComponentSpaceTransform(RightHandIK.GetCompactPoseIndex(BoneContainer));
+	const FTransform& LeftHandIKTM = MeshBases.GetComponentSpaceTransform(LeftHandIK.GetCompactPoseIndex(BoneContainer));
 	
 	// Compute weight FK and IK hand location. And translation from IK to FK.
 	FVector const FKLocation = FMath::Lerp<FVector>(LeftHandFKTM.GetTranslation(), RightHandFKTM.GetTranslation(), HandFKWeight);
@@ -50,12 +51,13 @@ void FAnimNode_HandIKRetargeting::EvaluateBoneTransforms(USkeletalMeshComponent*
 		for (int32 BoneIndex = 0; BoneIndex < IKBonesToMove.Num(); BoneIndex++)
 		{
 			FBoneReference const & BoneReference = IKBonesToMove[BoneIndex];
-			if (BoneReference.IsValid(RequiredBones))
+			if (BoneReference.IsValid(BoneContainer))
 			{
-				FTransform BoneTransform = MeshBases.GetComponentSpaceTransform(BoneReference.BoneIndex);
+				FCompactPoseBoneIndex BoneIndex = BoneReference.GetCompactPoseIndex(BoneContainer);
+				FTransform BoneTransform = MeshBases.GetComponentSpaceTransform(BoneIndex);
 				BoneTransform.AddToTranslation(IK_To_FK_Translation);
 
-				OutBoneTransforms.Add(FBoneTransform(BoneReference.BoneIndex, BoneTransform));
+				OutBoneTransforms.Add(FBoneTransform(BoneIndex, BoneTransform));
 			}
 		}
 	}

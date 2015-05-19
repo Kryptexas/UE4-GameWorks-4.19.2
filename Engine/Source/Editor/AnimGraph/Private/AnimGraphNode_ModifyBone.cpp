@@ -59,18 +59,20 @@ FVector UAnimGraphNode_ModifyBone::GetWidgetLocation(const USkeletalMeshComponen
 	// if the current widget mode is translate, then shows the widget according to translation space
 	if (CurWidgetMode == FWidget::WM_Translate)
 	{
-		FA2CSPose& MeshBases = AnimNode->ForwardedPose;
+		FCSPose<FCompactPose>& MeshBases = AnimNode->ForwardedPose;
 		WidgetLoc = ConvertWidgetLocation(SkelComp, MeshBases, Node.BoneToModify.BoneName, GetNodeValue(FString("Translation"), Node.Translation), Node.TranslationSpace);
 
-		if (MeshBases.IsValid() && Node.TranslationMode == BMM_Additive)
+		if (MeshBases.GetPose().IsValid() && Node.TranslationMode == BMM_Additive)
 		{
 			if(Node.TranslationSpace == EBoneControlSpace::BCS_WorldSpace ||
 				Node.TranslationSpace == EBoneControlSpace::BCS_ComponentSpace)
 			{
-				int32 MeshBoneIndex = SkelComp->GetBoneIndex(Node.BoneToModify.BoneName);
-				if(MeshBoneIndex != INDEX_NONE)
+				const FMeshPoseBoneIndex MeshBoneIndex(SkelComp->GetBoneIndex(Node.BoneToModify.BoneName));
+				const FCompactPoseBoneIndex BoneIndex = MeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
+
+				if (BoneIndex != INDEX_NONE)
 				{
-					FTransform BoneTM = MeshBases.GetComponentSpaceTransform(MeshBoneIndex);
+					const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
 					WidgetLoc += BoneTM.GetLocation();
 				}
 			}

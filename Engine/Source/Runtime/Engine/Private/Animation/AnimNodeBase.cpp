@@ -152,73 +152,16 @@ void FComponentSpacePoseLink::EvaluateComponentSpace(FComponentSpacePoseContext&
 }
 
 /////////////////////////////////////////////////////
-// FPoseContext
-
-bool FPoseContext::ContainsNaN() const
-{
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if (Pose.Bones[BoneIndex].ContainsNaN())
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool FPoseContext::IsNormalized() const
-{
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if( !Pose.Bones[BoneIndex].IsRotationNormalized() )
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-/////////////////////////////////////////////////////
 // FComponentSpacePoseContext
 
 bool FComponentSpacePoseContext::ContainsNaN() const
 {
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if (Pose.Bones[BoneIndex].ContainsNaN())
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return Pose.GetPose().ContainsNaN();
 }
 
 bool FComponentSpacePoseContext::IsNormalized() const
 {
-	checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-	const TArray<FBoneIndexType> & RequiredBoneIndices = AnimInstance->RequiredBones.GetBoneIndicesArray();
-	for (int32 Iter = 0; Iter < RequiredBoneIndices.Num(); ++Iter)
-	{
-		const int32 BoneIndex = RequiredBoneIndices[Iter];
-		if( !Pose.Bones[BoneIndex].IsRotationNormalized() )
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return Pose.GetPose().IsNormalized();
 }
 
 /////////////////////////////////////////////////////

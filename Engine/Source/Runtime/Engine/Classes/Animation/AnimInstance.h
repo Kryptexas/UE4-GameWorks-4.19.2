@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "AnimStateMachineTypes.h"
+#include "BonePose.h"
 #include "AnimInstance.generated.h"
 
 struct FAnimMontageInstance;
@@ -135,23 +136,6 @@ public:
 	/** convert to local poses **/
 	void ConvertToLocalPoses(FA2Pose & LocalPoses) const;
 
-	/** 
-	 * Set a bunch of Component Space Bone Transforms.
-	 * Do this safely by insuring that Parents are already in Component Space,
-	 * and any Component Space children are converted back to Local Space before hand.
-	 */
-	void SafeSetCSBoneTransforms(const TArray<struct FBoneTransform> & BoneTransforms);
-
-	/** 
-	 * Blends Component Space transforms to MeshPose in Local Space. 
-	 * Used by SkelControls to apply their transforms.
-	 *
-	 * The tricky bit is that SkelControls deliver their transforms in Component Space,
-	 * But the blending is done in Local Space. Also we need to refresh any Children they have
-	 * that has been previously converted to Component Space.
-	 */
-	void LocalBlendCSBoneTransforms(const TArray<struct FBoneTransform> & BoneTransforms, float Alpha);
-
 private:
 	/** Calculate all transform till parent **/
 	void CalculateComponentSpaceTransform(int32 Index);
@@ -170,24 +154,19 @@ private:
 	friend class FAnimationRuntime;
 };
 
-USTRUCT(BlueprintType)
 struct FBoneTransform
 {
-	GENERATED_USTRUCT_BODY()
-
-	/** @todo anim: should be Skeleton bone index in the future, but right now it's Mesh BoneIndex **/
-	UPROPERTY()
-	int32 BoneIndex;
+	/** @todo anim: should be Skeleton bone index in the future, but right now it's CompactBoneIndex **/
+	FCompactPoseBoneIndex BoneIndex;
 
 	/** Transform to apply **/
-	UPROPERTY()
 	FTransform Transform;
 
 	FBoneTransform() 
 		: BoneIndex(INDEX_NONE)
 	{}
 
-	FBoneTransform( int32 InBoneIndex, const FTransform& InTransform) 
+	FBoneTransform(FCompactPoseBoneIndex InBoneIndex, const FTransform& InTransform)
 		: BoneIndex(InBoneIndex)
 		, Transform(InTransform)
 	{}
@@ -237,8 +216,7 @@ struct FSlotEvaluationPose
 	float Weight;
 
 	/** Pose */
-	UPROPERTY()
-	FA2Pose Pose;
+	FCompactPose Pose;
 	
 	FSlotEvaluationPose()
 	{
@@ -405,22 +383,22 @@ public:
 	// Creates an uninitialized tick record in the list for the correct group or the ungrouped array.  If the group is valid, OutSyncGroupPtr will point to the group.
 	FAnimTickRecord& CreateUninitializedTickRecord(int32 GroupIndex, FAnimGroupInstance*& OutSyncGroupPtr);
 
-	void SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FA2Pose& Pose, const FAnimExtractContext& ExtractionContext);
+	void SequenceEvaluatePose(UAnimSequenceBase* Sequence, struct FCompactPose& Pose, const FAnimExtractContext& ExtractionContext);
 
-	void BlendSequences(const struct FA2Pose& Pose1, const struct FA2Pose& Pose2, float Alpha, struct FA2Pose& Blended);
+	void BlendSequences(const FCompactPose& Pose1, const FCompactPose& Pose2, float Alpha, FCompactPose& Result);
 
-	static void CopyPose(const struct FA2Pose& Source, struct FA2Pose& Destination);
+	static void CopyPose(const struct FCompactPose& Source, struct FCompactPose& Destination);
 
-	void ApplyAdditiveSequence(const struct FA2Pose& BasePose, const struct FA2Pose& AdditivePose, float Alpha, struct FA2Pose& Blended);
+	void ApplyAdditiveSequence(const struct FCompactPose& BasePose, const struct FCompactPose& AdditivePose, float Alpha, struct FCompactPose& Blended);
 
-	void BlendSpaceEvaluatePose(UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose);
+	void BlendSpaceEvaluatePose(UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FCompactPose& OutPose);
 
 	// skeletal control related functions
-	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
+	void BlendRotationOffset(const FCompactPose& BasePose/* local space base pose */, const FCompactPose& RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FCompactPose& OutPose /** local space blended pose **/);
 
 	// slotnode interfaces
 	void GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const;
-	void SlotEvaluatePose(FName SlotNodeName, const struct FA2Pose & SourcePose, struct FA2Pose & BlendedPose, float SlotNodeWeight);
+	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, FCompactPose& BlendedPose, float SlotNodeWeight);
 
 	// slot node run-time functions
 	void ReinitializeSlotNodes();

@@ -120,18 +120,22 @@ FQuat FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const FTransf
 	return OutQuat;
 }
 
-void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
 	if ( Multiplier != 0.f )
 	{
 		// Reference bone
-		const TArray<FTransform> & LocalRefPose = RequiredBones.GetRefPoseArray();
-		const FQuat RefQuat = LocalRefPose[TargetBone.BoneIndex].GetRotation();
-		FQuat NewQuat = MultiplyQuatBasedOnSourceIndex(LocalRefPose[SourceBone.BoneIndex], MeshBases.GetLocalSpaceTransform(SourceBone.BoneIndex), RotationAxisToRefer, Multiplier, RefQuat);
+		const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+		const FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
+		const FCompactPoseBoneIndex SourceBoneIndex = SourceBone.GetCompactPoseIndex(BoneContainer);
 
-		FTransform NewLocalTransform = MeshBases.GetLocalSpaceTransform(TargetBone.BoneIndex);
+		const FQuat RefQuat = MeshBases.GetPose().GetRefPose(TargetBoneIndex).GetRotation();
+		const FTransform& SourceRefPose = MeshBases.GetPose().GetRefPose(SourceBoneIndex);
+		FQuat NewQuat = MultiplyQuatBasedOnSourceIndex(SourceRefPose, MeshBases.GetLocalSpaceTransform(SourceBoneIndex), RotationAxisToRefer, Multiplier, RefQuat);
+
+		FTransform NewLocalTransform = MeshBases.GetLocalSpaceTransform(TargetBoneIndex);
 		
 		if (bIsAdditive)
 		{
@@ -140,16 +144,16 @@ void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent
 		
 		NewLocalTransform.SetRotation(NewQuat);
 
-		const int32 ParentIndex = RequiredBones.GetParentBoneIndex(TargetBone.BoneIndex);
+		const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(TargetBoneIndex);
 		if( ParentIndex != INDEX_NONE )
 		{
-			const FTransform ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+			const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
 			FTransform NewTransform = NewLocalTransform * ParentTM;
-			OutBoneTransforms.Add( FBoneTransform(TargetBone.BoneIndex, NewTransform) );
+			OutBoneTransforms.Add( FBoneTransform(TargetBoneIndex, NewTransform) );
 		}
 		else
 		{
-			OutBoneTransforms.Add( FBoneTransform(TargetBone.BoneIndex, NewLocalTransform) );
+			OutBoneTransforms.Add( FBoneTransform(TargetBoneIndex, NewLocalTransform) );
 		}
 	}
 }

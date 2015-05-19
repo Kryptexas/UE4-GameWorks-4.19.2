@@ -31,7 +31,7 @@ void FAnimNode_ConvertComponentToLocalSpace::Evaluate(FPoseContext & Output)
 	FComponentSpacePoseContext InputCSPose(Output.AnimInstance);
 	ComponentPose.EvaluateComponentSpace(InputCSPose);
 
-	checkSlow( InputCSPose.Pose.IsValid() );
+	checkSlow( InputCSPose.Pose.GetPose().IsValid() );
 	InputCSPose.Pose.ConvertToLocalPoses(Output.Pose);
 }
 
@@ -77,5 +77,5 @@ void FAnimNode_ConvertLocalToComponentSpace::EvaluateComponentSpace(FComponentSp
 	FPoseContext InputPose(OutputCSPose.AnimInstance);
 	LocalPose.Evaluate(InputPose);
 
-	OutputCSPose.Pose.AllocateLocalPoses(OutputCSPose.AnimInstance->RequiredBones, InputPose.Pose);
+	OutputCSPose.Pose.InitPose(InputPose.Pose);
 }

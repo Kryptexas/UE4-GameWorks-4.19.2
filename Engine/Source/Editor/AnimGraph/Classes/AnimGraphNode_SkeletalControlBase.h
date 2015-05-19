@@ -75,11 +75,11 @@ protected:
 	// local conversion function for drawing
 	void ConvertToComponentSpaceTransform(const USkeletalMeshComponent* SkelComp, const FTransform & InTransform, FTransform & OutCSTransform, int32 BoneIndex, EBoneControlSpace Space) const;
 	// convert drag vector in component space to bone space 
-	FVector ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FA2CSPose& MeshBases, const FName& BoneName, const EBoneControlSpace Space);
+	FVector ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FCSPose<FCompactPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space);
 	// convert rotator in component space to bone space 
-	FQuat ConvertCSRotationToBoneSpace(const USkeletalMeshComponent* SkelComp, FRotator& InCSRotator, FA2CSPose& MeshBases, const FName& BoneName, const EBoneControlSpace Space);
+	FQuat ConvertCSRotationToBoneSpace(const USkeletalMeshComponent* SkelComp, FRotator& InCSRotator, FCSPose<FCompactPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space);
 	// convert widget location according to bone control space
-	FVector ConvertWidgetLocation(const USkeletalMeshComponent* InSkelComp, FA2CSPose& InMeshBases, const FName& BoneName, const FVector& InLocation, const EBoneControlSpace Space);
+	FVector ConvertWidgetLocation(const USkeletalMeshComponent* InSkelComp, FCSPose<FCompactPose>& InMeshBases, const FName& BoneName, const FVector& InLocation, const EBoneControlSpace Space);
 	// set literal value for FVector
 	void SetDefaultValue(const FString& InDefaultValueName, const FVector& InValue);
 	// get literal value for vector

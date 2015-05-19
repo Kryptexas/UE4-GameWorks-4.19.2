@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Animation/AnimNodeBase.h"
+#include "BonePose.h"
 #include "AnimNode_TransitionPoseEvaluator.generated.h"
 
 // Indicates which state is being evaluated by this node (source or destination)
@@ -49,8 +50,7 @@ struct ENGINE_API FAnimNode_TransitionPoseEvaluator : public FAnimNode_Base
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Pose, meta=(NeverAsPin, ClampMin="1", UIMin="1"))
 	int32 FramesToCachePose;
 
-	UPROPERTY(transient)
-	FA2Pose CachedPose;
+	FCompactPose CachedPose;
 
 	UPROPERTY(transient)
 	int32 CacheFramesRemaining;
@@ -68,5 +68,5 @@ public:
 
 	bool InputNodeNeedsUpdate() const;
 	bool InputNodeNeedsEvaluate() const;
-	void CachePose(FPoseContext& Output, FA2Pose& PoseToCache);
+	void CachePose(FPoseContext& Output, FCompactPose& PoseToCache);
 };

@@ -25,7 +25,8 @@ struct ENGINE_API FAnimNode_SaveCachedPose : public FAnimNode_Base
 	FPoseLink Pose;
 
 protected:
-	FA2Pose CachedPose;
+	FCompactPose CachedPose;
+
 public:	
 	FAnimNode_SaveCachedPose();
 

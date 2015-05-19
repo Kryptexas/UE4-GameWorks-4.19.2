@@ -18,19 +18,19 @@ FAnimNode_Fabrik::FAnimNode_Fabrik()
 {
 }
 
-FVector FAnimNode_Fabrik::GetCurrentLocation(FA2CSPose & MeshBases, int32 const & BoneIndex)
+FVector FAnimNode_Fabrik::GetCurrentLocation(FCSPose<FCompactPose>& MeshBases, const FCompactPoseBoneIndex& BoneIndex)
 {
 	return MeshBases.GetComponentSpaceTransform(BoneIndex).GetLocation();
 }
 
-void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
-	// IsValidToEvaluate validated our inputs, we don't need to check pre-requisites again.
-	int32 const RootIndex = RootBone.BoneIndex;
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 
 	// Update EffectorLocation if it is based off a bone position
-	FTransform CSEffectorTransform = FTransform(EffectorTransform);
-	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, CSEffectorTransform, EffectorTransformBone.BoneIndex, EffectorTransformSpace);
+	FTransform CSEffectorTransform = EffectorTransform;
+	FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, CSEffectorTransform, EffectorTransformBone.GetCompactPoseIndex(BoneContainer), EffectorTransformSpace);
+	
 	FVector const CSEffectorLocation = CSEffectorTransform.GetLocation();
 
 	// @fixme - we need better to draw widgets and debug information in editor.
@@ -44,13 +44,15 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 #endif
 
 	// Gather all bone indices between root and tip.
-	TArray<int32> BoneIndices;
+	TArray<FCompactPoseBoneIndex> BoneIndices;
+	
 	{
-		int32 BoneIndex = TipBone.BoneIndex;
-		do 
+		const FCompactPoseBoneIndex RootIndex = RootBone.GetCompactPoseIndex(BoneContainer);
+		FCompactPoseBoneIndex BoneIndex = TipBone.GetCompactPoseIndex(BoneContainer);
+		do
 		{
 			BoneIndices.Insert(BoneIndex, 0);
-			BoneIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
+			BoneIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
 		} while (BoneIndex != RootIndex);
 		BoneIndices.Insert(BoneIndex, 0);
 	}
@@ -68,20 +70,21 @@ void FAnimNode_Fabrik::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 
 	// Start with Root Bone
 	{
-		int32 const & RootBoneIndex = BoneIndices[0];
-		FTransform const BoneCSTransform = MeshBases.GetComponentSpaceTransform(RootBoneIndex);
-		OutBoneTransforms[0] = FBoneTransform(RootBoneIndex, BoneCSTransform);
+		const FCompactPoseBoneIndex& RootBoneIndex = BoneIndices[0];
+		const FTransform& BoneCSTransform = MeshBases.GetComponentSpaceTransform(RootBoneIndex);
 
+		OutBoneTransforms[0] = FBoneTransform(RootBoneIndex, BoneCSTransform);
 		Chain.Add(FABRIKChainLink(BoneCSTransform.GetLocation(), 0.f, RootBoneIndex, 0));
 	}
 
 	// Go through remaining transforms
 	for (int32 TransformIndex = 1; TransformIndex < NumTransforms; TransformIndex++)
 	{
-		int32 const & BoneIndex = BoneIndices[TransformIndex];
+		const FCompactPoseBoneIndex& BoneIndex = BoneIndices[TransformIndex];
 
-		FTransform const BoneCSTransform = MeshBases.GetComponentSpaceTransform(BoneIndex);
+		const FTransform& BoneCSTransform = MeshBases.GetComponentSpaceTransform(BoneIndex);
 		FVector const BoneCSPosition = BoneCSTransform.GetLocation();
+
 		OutBoneTransforms[TransformIndex] = FBoneTransform(BoneIndex, BoneCSTransform);
 
 		// Calculate the combined length of this segment of skeleton

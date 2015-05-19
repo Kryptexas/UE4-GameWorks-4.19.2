@@ -46,6 +46,8 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 	const int NumPoses = BlendPose.Num();
 	checkSlow((BlendTime.Num() == NumPoses) && (BlendWeights.Num() == NumPoses));
 
+	PosesToEvaluate.Empty(NumPoses);
+
 	if (NumPoses > 0)
 	{
 		// Handle a change in the active child index; adjusting the target weights
@@ -103,6 +105,7 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 			if (BlendWeight > ZERO_ANIMWEIGHT_THRESH)
 			{
 				BlendPose[i].Update(Context.FractionalWeight(BlendWeight));
+				PosesToEvaluate.Add(i);
 			}
 		}
 	}
@@ -112,38 +115,32 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
 
-	const int32 MaxNumPoses = BlendPose.Num();
+	const int32 NumPoses = PosesToEvaluate.Num();
 
-	//@TODO: This is currently using O(NumPoses) memory but doesn't need to
-	if ((MaxNumPoses > 0) && (BlendPose.Num() == BlendWeights.Num()))
+	if ((NumPoses > 0) && (BlendPose.Num() == BlendWeights.Num()))
 	{
-		TArray<FPoseContext> FilteredPoseContexts;
-		FilteredPoseContexts.Empty(MaxNumPoses);
+		TArray<FCompactPose> FilteredPoses;
+		FilteredPoses.SetNum(NumPoses);
 
-		FTransformArrayA2** FilteredPoses = new FTransformArrayA2*[MaxNumPoses];
-		float* FilteredWeights = new float[MaxNumPoses];
+		TArray<float> FilteredWeights;
+		FilteredWeights.AddUninitialized(NumPoses);
 
 		int32 NumActivePoses = 0;
-		for (int32 i = 0; i < BlendPose.Num(); ++i)
+		for (int32 i = 0; i < PosesToEvaluate.Num(); ++i)
 		{
-			const float BlendWeight = BlendWeights[i];
-			if (BlendWeight > ZERO_ANIMWEIGHT_THRESH)
-			{
-				FPoseContext& CurrentPoseContext = *(new (FilteredPoseContexts) FPoseContext(Output));
+			int32 PoseIndex = PosesToEvaluate[i];
 
-				FPoseLink& CurrentPose = BlendPose[i];
-				CurrentPose.Evaluate(CurrentPoseContext);
+			const float BlendWeight = BlendWeights[PoseIndex];
+			FPoseContext EvaluateContext(Output);
 
-				FilteredPoses[NumActivePoses] = &(CurrentPoseContext.Pose.Bones);
-				FilteredWeights[NumActivePoses] = BlendWeight;
-				NumActivePoses++;
-			}
+			FPoseLink& CurrentPose = BlendPose[PoseIndex];
+			CurrentPose.Evaluate(EvaluateContext);
+
+			FilteredPoses[i].MoveBonesFrom(EvaluateContext.Pose);
+			FilteredWeights[i] = BlendWeight;
 		}
 
-		FAnimationRuntime::BlendPosesTogether(NumActivePoses, (const FTransformArrayA2**)FilteredPoses, (const float*)FilteredWeights, Output.AnimInstance->RequiredBones, Output.Pose.Bones);
-
-		delete[] FilteredPoses;
-		delete[] FilteredWeights;
+		FAnimationRuntime::BlendPosesTogether(FilteredPoses, FilteredWeights, Output.Pose);
 	}
 	else
 	{

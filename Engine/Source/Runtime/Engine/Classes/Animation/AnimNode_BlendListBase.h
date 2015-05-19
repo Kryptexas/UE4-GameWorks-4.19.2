@@ -26,6 +26,10 @@ protected:
 
 	UPROPERTY()
 	int32 LastActiveChildIndex;
+
+	//Store which poses we need to evaluate
+	TArray<int32> PosesToEvaluate;
+
 public:	
 	FAnimNode_BlendListBase()
 		: LastActiveChildIndex(0)

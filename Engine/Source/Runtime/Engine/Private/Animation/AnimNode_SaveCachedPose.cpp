@@ -55,7 +55,7 @@ void FAnimNode_SaveCachedPose::Evaluate(FPoseContext& Output)
 
 		FPoseContext CachingContext(Output);
 		Pose.Evaluate(CachingContext);
-		CachedPose = CachingContext.Pose;
+		CachedPose.MoveBonesFrom(CachingContext.Pose);
 	}
 
 	// Return the cached result

@@ -30,8 +30,7 @@ void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeCon
 
 void FAnimNode_TransitionPoseEvaluator::CacheBones(const FAnimationCacheBonesContext& Context) 
 {
-	const int32 NumBones = Context.AnimInstance->RequiredBones.GetNumBones();
-	CachedPose.Bones.Empty(NumBones);
+	CachedPose.SetBoneContainer(&Context.AnimInstance->RequiredBones);
 }
 
 void FAnimNode_TransitionPoseEvaluator::Update(const FAnimationUpdateContext& Context)
@@ -70,7 +69,7 @@ bool FAnimNode_TransitionPoseEvaluator::InputNodeNeedsEvaluate() const
 	return (EvaluatorMode == EEvaluatorMode::EM_Standard) || (CacheFramesRemaining > 0);
 }
 
-void FAnimNode_TransitionPoseEvaluator::CachePose(FPoseContext& Output, FA2Pose& PoseToCache)
+void FAnimNode_TransitionPoseEvaluator::CachePose(FPoseContext& Output, FCompactPose& PoseToCache)
 {
 	Output.AnimInstance->CopyPose(PoseToCache, CachedPose);
 }

@@ -13,6 +13,8 @@
 typedef TArray<FTransform> FTransformArrayA2;
 
 class USkeletalMesh;
+struct FCompactPose;
+
 
 /**
  * Indicates animation data compression format.
@@ -581,64 +583,61 @@ public:
 
 	// Begin Transform related functions 
 
-	/** 
-	 * Get Bone Transform of the Time given, relative to Parent for all RequiredBones
-	 * This returns different transform based on additive or not. Or what kind of additive.
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	void GetAnimationPose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the Time given, relative to Parent for all RequiredBones
+	* This returns different transform based on additive or not. Or what kind of additive.
+	*
+	* @param	OutPose				Pose object to fill
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	void GetAnimationPose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
 
-	/** 
-	 * Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones 
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	ENGINE_API void GetBonePose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones
+	*
+	* @param	OutPose				[out] Array of output bone transforms
+	* @param	RequiredBones		Array of Desired Tracks
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	ENGINE_API void GetBonePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
 
 private:
 	/** 
 	 * Utility function.
 	 * When extracting root motion, this function resets the root bone to the first frame of the animation.
 	 * 
-	 * @param	BoneTransforms		Bone Transforms to read/write root bone transform.
+	 * @param	BoneTransform		Root Bone Transform
 	 * @param	RequiredBones		BoneContainer
 	 * @param	ExtractionContext	Extraction Context to access root motion extraction information.
 	 */
-	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const;
-	
-	/** 
-	 * Retarget a single bone transform, to apply right after extraction.
-	 * 
-	 * @param	BoneTransform		BoneTransform to read/write from.
-	 * @param	SkeletonBoneIndex	Bone Index in USkeleton.
-	 * @param	PoseBoneIndex		Bone Index in Bone Transform array.
-	 * @param	RequiredBones		BoneContainer
-	 */	
-	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const int32& PoseBoneIndex, const FBoneContainer& RequiredBones) const;
+	void ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const;
+
+	/**
+	* Retarget a single bone transform, to apply right after extraction.
+	*
+	* @param	BoneTransform		BoneTransform to read/write from.
+	* @param	SkeletonBoneIndex	Bone Index in USkeleton.
+	* @param	BoneIndex			Bone Index in Bone Transform array.
+	* @param	RequiredBones		BoneContainer
+	*/
+	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones) const;
 
 public:
-	/** 
-	 * Get Bone Transform of the additive animation for the Time given, relative to Parent for all RequiredBones 
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	ENGINE_API void GetBonePose_Additive( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the additive animation for the Time given, relative to Parent for all RequiredBones
+	*
+	* @param	OutPose				[out] Output bone transforms
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	ENGINE_API void GetBonePose_Additive(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
 
-	/** 
-	 * Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones 
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	ENGINE_API void GetAdditiveBasePose(FTransformArrayA2 & OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones
+	*
+	* @param	OutPose			[out] Output bone transforms
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	ENGINE_API void GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
 
 	/**
 	 * Get Bone Transform of the Time given, relative to Parent for the Track Given
@@ -808,15 +807,14 @@ public:
 #endif
 
 private:
-	/** 
-	 * Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones 
-	 * This return mesh rotation only additive pose
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	void GetBonePose_AdditiveMeshRotationOnly( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones
+	* This return mesh rotation only additive pose
+	*
+	* @param	OutPose				[out] Output bone transforms
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	void GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const;
 
 #if WITH_EDITOR
 	/**

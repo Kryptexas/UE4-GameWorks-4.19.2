@@ -150,7 +150,7 @@ private:
 	 * @param	BoneControllers	 List of Bone Controllers to apply
 	 * @param 	OutMeshPose	Outpose in Mesh Space once applied
 	 */
-	void ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &BoneControllers, FA2CSPose& OutMeshPose);
+	void ApplyBoneControllers(USkeletalMeshComponent* Component, TArray<FAnimNode_ModifyBone> &BoneControllers, FCSPose<FCompactPose>& OutMeshPose);
 	/** 
 	 * Update CurveControllers based on TransformCurves of Animation
 	 */
@@ -160,7 +160,7 @@ private:
 	 * Set Key Implementation function
 	 * It gets Pre Controller Local Space and gets Post Controller Local Space, and add the key to the curve 
 	 */
-	void SetKeyImplementation(const TArray<FTransform>& PreControllerInLocalSpace, const TArray<FTransform>& PostControllerInLocalSpace);
+	void SetKeyImplementation(const FCompactPose& PreControllerInLocalSpace, const FCompactPose& PostControllerInLocalSpace);
 	/** 
 	 * Add Key to the Sequence
 	 * Now Additive Key is generated, add to the curves

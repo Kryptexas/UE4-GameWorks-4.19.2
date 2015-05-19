@@ -57,13 +57,16 @@ void FAnimNode_SpringBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
 	// Location of our bone in world space
-	FTransform SpaceBase = MeshBases.GetComponentSpaceTransform(SpringBone.BoneIndex);
-	FTransform  BoneTransformInWorldSpace = (SkelComp != NULL) ? SpaceBase * SkelComp->GetComponentToWorld() : SpaceBase;
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+
+	const FCompactPoseBoneIndex SpringBoneIndex = SpringBone.GetCompactPoseIndex(BoneContainer);
+	const FTransform& SpaceBase = MeshBases.GetComponentSpaceTransform(SpringBoneIndex);
+	FTransform BoneTransformInWorldSpace = (SkelComp != NULL) ? SpaceBase * SkelComp->GetComponentToWorld() : SpaceBase;
 
 	FVector const TargetPos = BoneTransformInWorldSpace.GetLocation();
 
@@ -158,7 +161,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 	OutBoneTM.SetLocation( SkelComp->GetComponentToWorld().InverseTransformPosition(BoneLocation) );
 
 	// Output new transform for current bone.
-	OutBoneTransforms.Add( FBoneTransform(SpringBone.BoneIndex, OutBoneTM) );
+	OutBoneTransforms.Add(FBoneTransform(SpringBoneIndex, OutBoneTM));
 }
 
 

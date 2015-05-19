@@ -126,13 +126,14 @@ void UAnimGraphNode_SkeletalControlBase::ConvertToComponentSpaceTransform(const 
 }
 
 
-FVector UAnimGraphNode_SkeletalControlBase::ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FA2CSPose& MeshBases, const FName& BoneName, const EBoneControlSpace Space)
+FVector UAnimGraphNode_SkeletalControlBase::ConvertCSVectorToBoneSpace(const USkeletalMeshComponent* SkelComp, FVector& InCSVector, FCSPose<FCompactPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space)
 {
 	FVector OutVector = InCSVector;
 
-	if (MeshBases.IsValid())
+	if (MeshBases.GetPose().IsValid())
 	{
-		int32 MeshBoneIndex = SkelComp->GetBoneIndex(BoneName);
+		const FMeshPoseBoneIndex MeshBoneIndex(SkelComp->GetBoneIndex(BoneName));
+		const FCompactPoseBoneIndex BoneIndex = MeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
 
 		switch (Space)
 		{
@@ -144,10 +145,10 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertCSVectorToBoneSpace(const USk
 
 		case BCS_ParentBoneSpace:
 		{
-			const int32 ParentIndex = MeshBases.GetParentBoneIndex(MeshBoneIndex);
+			const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
 			if (ParentIndex != INDEX_NONE)
 			{
-				FTransform ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+				const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
 				OutVector = ParentTM.InverseTransformVector(InCSVector);
 			}
 		}
@@ -155,7 +156,7 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertCSVectorToBoneSpace(const USk
 
 		case BCS_BoneSpace:
 		{
-			FTransform BoneTM = MeshBases.GetComponentSpaceTransform(MeshBoneIndex);
+			const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
 			OutVector = BoneTM.InverseTransformVector(InCSVector);
 		}
 			break;
@@ -165,13 +166,14 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertCSVectorToBoneSpace(const USk
 	return OutVector;
 }
 
-FQuat UAnimGraphNode_SkeletalControlBase::ConvertCSRotationToBoneSpace(const USkeletalMeshComponent* SkelComp, FRotator& InCSRotator, FA2CSPose& MeshBases, const FName& BoneName, const EBoneControlSpace Space)
+FQuat UAnimGraphNode_SkeletalControlBase::ConvertCSRotationToBoneSpace(const USkeletalMeshComponent* SkelComp, FRotator& InCSRotator, FCSPose<FCompactPose>& MeshBases, const FName& BoneName, const EBoneControlSpace Space)
 {
 	FQuat OutQuat = FQuat::Identity;
 
-	if (MeshBases.IsValid())
+	if (MeshBases.GetPose().IsValid())
 	{
-		int32 MeshBoneIndex = SkelComp->GetBoneIndex(BoneName);
+		const FMeshPoseBoneIndex MeshBoneIndex(SkelComp->GetBoneIndex(BoneName));
+		const FCompactPoseBoneIndex BoneIndex = MeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
 
 		FVector RotAxis;
 		float RotAngle;
@@ -188,13 +190,13 @@ FQuat UAnimGraphNode_SkeletalControlBase::ConvertCSRotationToBoneSpace(const USk
 
 		case BCS_ParentBoneSpace:
 		{
-			const int32 ParentIndex = MeshBases.GetParentBoneIndex(MeshBoneIndex);
+			const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(BoneIndex);
 			if (ParentIndex != INDEX_NONE)
 			{
-				FTransform ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
-				ParentTM = ParentTM.Inverse();
+				const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
+				FTransform InverseParentTM = ParentTM.Inverse();
 				//Calculate the new delta rotation
-				FVector4 BoneSpaceAxis = ParentTM.TransformVector(RotAxis);
+				FVector4 BoneSpaceAxis = InverseParentTM.TransformVector(RotAxis);
 				FQuat DeltaQuat(BoneSpaceAxis, RotAngle);
 				DeltaQuat.Normalize();
 				OutQuat = DeltaQuat;
@@ -204,9 +206,9 @@ FQuat UAnimGraphNode_SkeletalControlBase::ConvertCSRotationToBoneSpace(const USk
 
 		case BCS_BoneSpace:
 		{
-			FTransform BoneTM = MeshBases.GetComponentSpaceTransform(MeshBoneIndex);
-			BoneTM = BoneTM.Inverse();
-			FVector4 BoneSpaceAxis = BoneTM.TransformVector(RotAxis);
+			const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(BoneIndex);
+			FTransform InverseBoneTM = BoneTM.Inverse();
+			FVector4 BoneSpaceAxis = InverseBoneTM.TransformVector(RotAxis);
 			//Calculate the new delta rotation
 			FQuat DeltaQuat(BoneSpaceAxis, RotAngle);
 			DeltaQuat.Normalize();
@@ -219,14 +221,15 @@ FQuat UAnimGraphNode_SkeletalControlBase::ConvertCSRotationToBoneSpace(const USk
 	return OutQuat;
 }
 
-FVector UAnimGraphNode_SkeletalControlBase::ConvertWidgetLocation(const USkeletalMeshComponent* SkelComp, FA2CSPose& MeshBases, const FName& BoneName, const FVector& Location, const EBoneControlSpace Space)
+FVector UAnimGraphNode_SkeletalControlBase::ConvertWidgetLocation(const USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, const FName& BoneName, const FVector& Location, const EBoneControlSpace Space)
 {
 	FVector WidgetLoc = FVector::ZeroVector;
 
-	if (MeshBases.IsValid())
+	if (MeshBases.GetPose().IsValid())
 	{
 		USkeleton * Skeleton = SkelComp->SkeletalMesh->Skeleton;
-		int32 MeshBoneIndex = SkelComp->GetBoneIndex(BoneName);
+		const FMeshPoseBoneIndex MeshBoneIndex(SkelComp->GetBoneIndex(BoneName));
+		const FCompactPoseBoneIndex CompactBoneIndex = MeshBases.GetPose().GetBoneContainer().MakeCompactPoseIndex(MeshBoneIndex);
 
 		switch (Space)
 		{
@@ -241,12 +244,12 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertWidgetLocation(const USkeleta
 
 		case BCS_ParentBoneSpace:
 
-			if (MeshBoneIndex != INDEX_NONE)
+			if (CompactBoneIndex != INDEX_NONE)
 			{
-				const int32 MeshParentIndex = MeshBases.GetParentBoneIndex(MeshBoneIndex);
-				if (MeshParentIndex != INDEX_NONE)
+				const FCompactPoseBoneIndex CompactParentIndex = MeshBases.GetPose().GetParentBoneIndex(CompactBoneIndex);
+				if (CompactParentIndex != INDEX_NONE)
 				{
-					const FTransform ParentTM = MeshBases.GetComponentSpaceTransform(MeshParentIndex);
+					const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(CompactParentIndex);
 					WidgetLoc = ParentTM.TransformPosition(Location);
 				}
 			}
@@ -254,9 +257,9 @@ FVector UAnimGraphNode_SkeletalControlBase::ConvertWidgetLocation(const USkeleta
 
 		case BCS_BoneSpace:
 
-			if (MeshBoneIndex != INDEX_NONE)
+			if (CompactBoneIndex != INDEX_NONE)
 			{
-				FTransform BoneTM = MeshBases.GetComponentSpaceTransform(MeshBoneIndex);
+				const FTransform& BoneTM = MeshBases.GetComponentSpaceTransform(CompactBoneIndex);
 				WidgetLoc = BoneTM.TransformPosition(Location);
 			}
 		}

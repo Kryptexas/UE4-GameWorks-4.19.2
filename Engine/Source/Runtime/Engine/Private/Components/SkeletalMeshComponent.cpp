@@ -956,12 +956,16 @@ void USkeletalMeshComponent::EvaluateAnimation(const USkeletalMesh* InSkeletalMe
 			InAnimInstance->EvaluateAnimation(EvaluationContext);
 
 			// can we avoid that copy?
-			if( EvaluationContext.Pose.Bones.Num() > 0 )
+			if( EvaluationContext.Pose.GetNumBones() > 0 )
 			{
-				OutLocalAtoms = EvaluationContext.Pose.Bones;
-
 				// Make sure rotations are normalized to account for accumulation of errors.
-				FAnimationRuntime::NormalizeRotations(OutLocalAtoms);
+				EvaluationContext.Pose.NormalizeRotations();
+
+				for (const FCompactPoseBoneIndex BoneIndex : EvaluationContext.Pose.ForEachBoneIndex())
+				{
+					FMeshPoseBoneIndex MeshPoseBoneIndex = EvaluationContext.Pose.GetBoneContainer().MakeMeshPoseIndex(BoneIndex);
+					OutLocalAtoms[MeshPoseBoneIndex.GetInt()] = EvaluationContext.Pose[BoneIndex];
+				}
 			}
 			else
 			{

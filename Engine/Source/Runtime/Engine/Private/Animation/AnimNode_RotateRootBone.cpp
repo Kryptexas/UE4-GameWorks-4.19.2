@@ -39,7 +39,8 @@ void FAnimNode_RotateRootBone::Evaluate(FPoseContext& Output)
 	const FQuat MeshSpaceDeltaQuat = MeshToComponentQuat.Inverse() * DeltaQuat * MeshToComponentQuat;
 
 	// Apply rotation to root bone.
-	Output.Pose.Bones[0].SetRotation(Output.Pose.Bones[0].GetRotation() * MeshSpaceDeltaQuat);
+	FCompactPoseBoneIndex RootBone(0);
+	Output.Pose[RootBone].SetRotation(Output.Pose[RootBone].GetRotation() * MeshSpaceDeltaQuat);
 }
 
 

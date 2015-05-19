@@ -25,7 +25,7 @@ void FAnimNode_CopyBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -36,8 +36,11 @@ void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 	}
 
 	// Get component space transform for source and current bone.
-	FTransform SourceBoneTM = MeshBases.GetComponentSpaceTransform(SourceBone.BoneIndex);
-	FTransform CurrentBoneTM = MeshBases.GetComponentSpaceTransform(TargetBone.BoneIndex);
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
+
+	const FTransform& SourceBoneTM = MeshBases.GetComponentSpaceTransform(SourceBone.GetCompactPoseIndex(BoneContainer));
+	FTransform CurrentBoneTM = MeshBases.GetComponentSpaceTransform(TargetBoneIndex);
 
 	// Copy individual components
 	if (bCopyTranslation)
@@ -56,7 +59,7 @@ void FAnimNode_CopyBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp
 	}
 
 	// Output new transform for current bone.
-	OutBoneTransforms.Add( FBoneTransform(TargetBone.BoneIndex, CurrentBoneTM) );
+	OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, CurrentBoneTM));
 }
 
 bool FAnimNode_CopyBone::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 

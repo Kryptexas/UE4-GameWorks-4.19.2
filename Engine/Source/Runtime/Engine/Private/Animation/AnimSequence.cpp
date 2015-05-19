@@ -843,45 +843,49 @@ FTransform UAnimSequence::ExtractRootMotionFromRange(float StartTrackPosition, f
 	return EndTransform.GetRelativeTransform(StartTransform);
 }
 
-void UAnimSequence::GetAnimationPose(FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetAnimationPose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
 {
 	// @todo anim: if compressed and baked in the future, we don't have to do this 
-	if( IsValidAdditive() ) 
+	if (IsValidAdditive())
 	{
 		if (AdditiveAnimType == AAT_LocalSpaceBase)
 		{
-			GetBonePose_Additive(OutAtoms, RequiredBones, ExtractionContext);
+			GetBonePose_Additive(OutPose, ExtractionContext);
 		}
-		else if ( AdditiveAnimType == AAT_RotationOffsetMeshSpace )
+		else if (AdditiveAnimType == AAT_RotationOffsetMeshSpace)
 		{
-			GetBonePose_AdditiveMeshRotationOnly(OutAtoms, RequiredBones, ExtractionContext);
+			GetBonePose_AdditiveMeshRotationOnly(OutPose, ExtractionContext);
 		}
 	}
 	else
 	{
-		GetBonePose(OutAtoms, RequiredBones, ExtractionContext);
+		GetBonePose(OutPose, ExtractionContext);
 	}
 }
 
-void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2& BoneTransforms, const FBoneContainer& RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const
+void UAnimSequence::ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer& RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const
 {
 	switch (InRootMotionRootLock)
 	{
-		case ERootMotionRootLock::AnimFirstFrame: BoneTransforms[0] = ExtractRootTrackTransform(0.f, &RequiredBones); break;
-		case ERootMotionRootLock::Zero: BoneTransforms[0] = FTransform::Identity; break;
+		case ERootMotionRootLock::AnimFirstFrame: BoneTransform = ExtractRootTrackTransform(0.f, &RequiredBones); break;
+		case ERootMotionRootLock::Zero: BoneTransform = FTransform::Identity; break;
 		default:
-		case ERootMotionRootLock::RefPose: BoneTransforms[0] = RequiredBones.GetRefPoseArray()[0]; break;
+		case ERootMotionRootLock::RefPose: BoneTransform = RequiredBones.GetRefPoseArray()[0]; break;
 	}
 }
 
-void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetBonePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE);
+
 	USkeleton* MySkeleton = GetSkeleton();
 	if (!MySkeleton)
 	{
-		FAnimationRuntime::FillWithRefPose(OutAtoms, RequiredBones);
+		OutPose.ResetToRefPose();
 		return;
 	}
+
+	const FBoneContainer& RequiredBones = OutPose.GetBoneContainer();
 
 	// if retargeting is disabled, we initialize pose with 'Retargeting Source' ref pose.
 	bool const bDisableRetargeting = RequiredBones.GetDisableRetargeting();
@@ -889,28 +893,21 @@ void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContaine
 	{
 		TArray<FTransform> const& AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
 		TArray<FBoneIndexType> const& RequireBonesIndexArray = RequiredBones.GetBoneIndicesArray();
-		TArray<int32> const& PoseToSkeletonBoneIndexArray = RequiredBones.GetPoseToSkeletonBoneIndexArray();
-	
-		// Allocate output and make sure it's the right size.
-		int32 const NumPoseBones = RequiredBones.GetNumBones();
-		OutAtoms.Empty(NumPoseBones);
-		OutAtoms.AddUninitialized(NumPoseBones);
 
 		int32 const NumRequiredBones = RequireBonesIndexArray.Num();
-		for (int32 ArrayIndex = 0; ArrayIndex < NumRequiredBones; ArrayIndex++)
+		for (FCompactPoseBoneIndex PoseBoneIndex : OutPose.ForEachBoneIndex())
 		{
-			int32 const& PoseBoneIndex = RequireBonesIndexArray[ArrayIndex];
-			int32 const& SkeletonBoneIndex = PoseToSkeletonBoneIndexArray[PoseBoneIndex];
+			int32 const& SkeletonBoneIndex = RequiredBones.GetSkeletonIndex(PoseBoneIndex);
 
 			// Pose bone index should always exist in Skeleton
 			checkSlow(SkeletonBoneIndex != INDEX_NONE);
-			OutAtoms[PoseBoneIndex] = AuthoredOnRefSkeleton[SkeletonBoneIndex];
+			OutPose[PoseBoneIndex] = AuthoredOnRefSkeleton[SkeletonBoneIndex];
 		}
 	}
 	else
 	{
 		// initialize with ref-pose
-		FAnimationRuntime::FillWithRefPose(OutAtoms, RequiredBones);
+		OutPose.ResetToRefPose();
 	}
 
 	int32 const NumTracks = GetNumberOfTracks();
@@ -924,9 +921,8 @@ void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContaine
 	// Slower path for disable retargeting, that's only used in editor and for debugging.
 	if (bDisableRetargeting || RequiredBones.ShouldUseRawData() || RequiredBones.ShouldUseSourceData())
 	{
-		TArray<int32> const& SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 		const TArray<FRawAnimSequenceTrack>* AnimationData = NULL;
-		
+
 		if (RequiredBones.ShouldUseSourceData() && SourceRawAnimationData.Num() > 0)
 		{
 			AnimationData = &SourceRawAnimationData;
@@ -936,29 +932,29 @@ void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContaine
 			AnimationData = &RawAnimationData;
 		}
 
-		for(int32 TrackIndex=0; TrackIndex<NumTracks; TrackIndex++)
+		for (int32 TrackIndex = 0; TrackIndex < NumTracks; TrackIndex++)
 		{
 			const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
 			// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
-			if( (SkeletonBoneIndex != INDEX_NONE) && (SkeletonBoneIndex < MAX_BONES) )
+			if ((SkeletonBoneIndex != INDEX_NONE) && (SkeletonBoneIndex < MAX_BONES))
 			{
-				const int32 PoseBoneIndex = SkeletonToPoseBoneIndexArray[SkeletonBoneIndex];
-				if(PoseBoneIndex != INDEX_NONE)
+				const FCompactPoseBoneIndex PoseBoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
+				if (PoseBoneIndex != INDEX_NONE)
 				{
 					// extract animation
-					ExtractBoneTransform(*AnimationData, OutAtoms[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime);
+					ExtractBoneTransform(*AnimationData, OutPose[PoseBoneIndex], TrackIndex, ExtractionContext.CurrentTime);
 
-					if(!bDisableRetargeting)
+					if (!bDisableRetargeting)
 					{
-						RetargetBoneTransform(OutAtoms[PoseBoneIndex], SkeletonBoneIndex, PoseBoneIndex, RequiredBones);
+						RetargetBoneTransform(OutPose[PoseBoneIndex], SkeletonBoneIndex, PoseBoneIndex, RequiredBones);
 					}
 				}
 			}
 		}
 
-		if( ExtractionContext.bExtractRootMotion && bEnableRootMotion )
+		if (ExtractionContext.bExtractRootMotion && bEnableRootMotion)
 		{
-			ResetRootBoneForRootMotion(OutAtoms, RequiredBones, RootMotionRootLock);
+			ResetRootBoneForRootMotion(OutPose[FCompactPoseBoneIndex(0)], RequiredBones, RootMotionRootLock);
 		}
 		return;
 	}
@@ -980,74 +976,84 @@ void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContaine
 	AnimRelativeRetargetingPairs.Empty(NumTracks);
 
 	// Optimization: assuming first index is root bone. That should always be the case in Skeletons.
-	checkSlow( (SkeletonToPoseBoneIndexArray[0] == 0) );
+	checkSlow((SkeletonToPoseBoneIndexArray[0] == 0));
 	// this is not guaranteed for AnimSequences though... If Root is not animated, Track will not exist.
 	const bool bFirstTrackIsRootBone = (GetSkeletonIndexFromTrackIndex(0) == 0);
 
 	// Handle root bone separately if it is track 0. so we start w/ Index 1.
-	for(int32 TrackIndex=(bFirstTrackIsRootBone ? 1 : 0); TrackIndex<NumTracks; TrackIndex++)
+	for (int32 TrackIndex = (bFirstTrackIsRootBone ? 1 : 0); TrackIndex < NumTracks; TrackIndex++)
 	{
 		const int32 SkeletonBoneIndex = GetSkeletonIndexFromTrackIndex(TrackIndex);
 		// not sure it's safe to assume that SkeletonBoneIndex can never be INDEX_NONE
-		if( SkeletonBoneIndex != INDEX_NONE )
+		if (SkeletonBoneIndex != INDEX_NONE)
 		{
-			const int32 PoseBoneIndex = SkeletonToPoseBoneIndexArray[SkeletonBoneIndex];
-			if(PoseBoneIndex != INDEX_NONE)
+			const FCompactPoseBoneIndex BoneIndex = RequiredBones.GetCompactPoseIndexFromSkeletonIndex(SkeletonBoneIndex);
+			//Nasty, we break our type safety, code in the lower levels should be adjusted for this
+			const int32 CompactPoseBoneIndex = BoneIndex.GetInt();
+			if (CompactPoseBoneIndex != INDEX_NONE)
 			{
-				checkSlow(PoseBoneIndex < RequiredBones.GetNumBones());
-				RotationScalePairs.Add(BoneTrackPair(PoseBoneIndex, TrackIndex));
+				RotationScalePairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
 
 				// Skip extracting translation component for EBoneTranslationRetargetingMode::Skeleton.
-				switch(BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
+				switch (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode)
 				{
 				case EBoneTranslationRetargetingMode::Animation:
-				TranslationPairs.Add(BoneTrackPair(PoseBoneIndex, TrackIndex));
-				break;
+					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+					break;
 				case EBoneTranslationRetargetingMode::AnimationScaled:
-				TranslationPairs.Add(BoneTrackPair(PoseBoneIndex, TrackIndex));
-				AnimScaleRetargetingPairs.Add(BoneTrackPair(PoseBoneIndex, SkeletonBoneIndex));
-				break;
+					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+					AnimScaleRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+					break;
 				case EBoneTranslationRetargetingMode::AnimationRelative:
-				TranslationPairs.Add(BoneTrackPair(PoseBoneIndex, TrackIndex));
-				AnimRelativeRetargetingPairs.Add(BoneTrackPair(PoseBoneIndex, SkeletonBoneIndex));
-				break;
+					TranslationPairs.Add(BoneTrackPair(CompactPoseBoneIndex, TrackIndex));
+					AnimRelativeRetargetingPairs.Add(BoneTrackPair(CompactPoseBoneIndex, SkeletonBoneIndex));
+					break;
 				}
 			}
 		}
 	}
 
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_GETBONEPOSE_FORREALZ);
 	// Handle Root Bone separately
-	if( bFirstTrackIsRootBone )
+	if (bFirstTrackIsRootBone)
 	{
 		const int32 TrackIndex = 0;
-		FTransform& RootAtom = OutAtoms[0];
+		FCompactPoseBoneIndex RootBone(0);
+		FTransform& RootAtom = OutPose[RootBone];
 
-		AnimationFormat_GetBoneAtom(	
+		AnimationFormat_GetBoneAtom(
 			RootAtom,
 			*this,
 			TrackIndex,
 			ExtractionContext.CurrentTime);
 
 		// @laurent - we should look into splitting rotation and translation tracks, so we don't have to process translation twice.
-		RetargetBoneTransform(RootAtom, 0, 0, RequiredBones);
+		RetargetBoneTransform(RootAtom, 0, RootBone, RequiredBones);
 	}
 
 	if (RotationScalePairs.Num() > 0)
 	{
 		// get the remaining bone atoms
-		AnimationFormat_GetAnimationPose(
-			*((FTransformArray*)&OutAtoms), //@TODO:@ANIMATION: Nasty hack
+		OutPose.PopulateFromAnimation( //@TODO:@ANIMATION: Nasty hack, be good to not have this function on the pose
+			*this,
+			RotationScalePairs,
+			TranslationPairs,
+			RotationScalePairs,
+			ExtractionContext.CurrentTime);
+
+		/*AnimationFormat_GetAnimationPose(
+			*((FTransformArray*)&OutAtoms), 
 			RotationScalePairs,
 			TranslationPairs,
 			RotationScalePairs,
 			*this,
-			ExtractionContext.CurrentTime);
+			ExtractionContext.CurrentTime);*/
 	}
 
 	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.
-	if( ExtractionContext.bExtractRootMotion && bEnableRootMotion)
+	if (ExtractionContext.bExtractRootMotion && bEnableRootMotion)
 	{
-		ResetRootBoneForRootMotion(OutAtoms, RequiredBones, RootMotionRootLock);
+		ResetRootBoneForRootMotion(OutPose[FCompactPoseBoneIndex(0)], RequiredBones, RootMotionRootLock);
 	}
 
 	// Anim Scale Retargeting
@@ -1055,20 +1061,18 @@ void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContaine
 	if (NumBonesToScaleRetarget > 0)
 	{
 		TArray<FTransform> const& AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
-		TArray<FTransform> const& PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
 
-		for (int32 Index = 0; Index<NumBonesToScaleRetarget; Index++)
+		for (const BoneTrackPair& BonePair : AnimScaleRetargetingPairs)
 		{
-			BoneTrackPair const& BonePair = AnimScaleRetargetingPairs[Index];
-			int32 const& PoseBoneIndex = BonePair.AtomIndex;
-			int32 const& SkeletonBoneIndex = BonePair.TrackIndex; 
+			const FCompactPoseBoneIndex BoneIndex(BonePair.AtomIndex); //Nasty, we break our type safety, code in the lower levels should be adjusted for this
+			int32 const& SkeletonBoneIndex = BonePair.TrackIndex;
 
 			// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
 			float const SourceTranslationLength = AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation().Size();
 			if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
 			{
-				float const TargetTranslationLength = PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation().Size();
-				OutAtoms[PoseBoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
+				float const TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
+				OutPose[BoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
 			}
 		}
 	}
@@ -1078,119 +1082,120 @@ void UAnimSequence::GetBonePose(FTransformArrayA2& OutAtoms, const FBoneContaine
 	if (NumBonesToRelativeRetarget > 0)
 	{
 		TArray<FTransform> const& AuthoredOnRefSkeleton = MySkeleton->GetRefLocalPoses(RetargetSource);
-		TArray<FTransform> const& PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
-
-		for (int32 Index = 0; Index < NumBonesToRelativeRetarget; Index++)
+	
+		for (const BoneTrackPair& BonePair : AnimRelativeRetargetingPairs)
 		{
-			BoneTrackPair const& BonePair = AnimRelativeRetargetingPairs[Index];
-			int32 const& PoseBoneIndex = BonePair.AtomIndex;
+			const FCompactPoseBoneIndex BoneIndex(BonePair.AtomIndex); //Nasty, we break our type safety, code in the lower levels should be adjusted for this
 			int32 const& SkeletonBoneIndex = BonePair.TrackIndex;
 
+			const FTransform& RefPose = RequiredBones.GetRefPoseTransform(BoneIndex);
+
 			// Apply the retargeting as if it were an additive difference between the current skeleton and the retarget skeleton. 
-			OutAtoms[PoseBoneIndex].SetRotation(OutAtoms[PoseBoneIndex].GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * PlayingOnRefSkeleton[PoseBoneIndex].GetRotation() );
-			OutAtoms[PoseBoneIndex].SetTranslation(OutAtoms[PoseBoneIndex].GetTranslation() + (PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
-			OutAtoms[PoseBoneIndex].SetScale3D(OutAtoms[PoseBoneIndex].GetScale3D() * (PlayingOnRefSkeleton[PoseBoneIndex].GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
-			OutAtoms[PoseBoneIndex].NormalizeRotation();
+			OutPose[BoneIndex].SetRotation(OutPose[BoneIndex].GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * RefPose.GetRotation());
+			OutPose[BoneIndex].SetTranslation(OutPose[BoneIndex].GetTranslation() + (RefPose.GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
+			OutPose[BoneIndex].SetScale3D(OutPose[BoneIndex].GetScale3D() * (RefPose.GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
+			OutPose[BoneIndex].NormalizeRotation();
 		}
 	}
 }
 
-void UAnimSequence::GetBonePose_Additive(FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetBonePose_Additive(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
 {
-	if( !IsValidAdditive() )
+	if (!IsValidAdditive())
 	{
-		FAnimationRuntime::InitializeTransform(RequiredBones, OutAtoms);
+		OutPose.ResetToIdentity();
 		return;
 	}
 
 	// Extract target pose
-	GetBonePose(OutAtoms, RequiredBones, ExtractionContext);
+	GetBonePose(OutPose, ExtractionContext);
 
 	// Extract base pose
-	FTransformArrayA2 BasePoseAtoms;
-	GetAdditiveBasePose(BasePoseAtoms, RequiredBones, ExtractionContext);
+	FCompactPose BasePose;
+	BasePose.SetBoneContainer(&OutPose.GetBoneContainer());
+
+	GetAdditiveBasePose(BasePose, ExtractionContext);
 
 	// Create Additive animation
-	FAnimationRuntime::ConvertPoseToAdditive(OutAtoms, BasePoseAtoms, RequiredBones);
+	FAnimationRuntime::ConvertPoseToAdditive(OutPose, BasePose);
 }
 
-void UAnimSequence::GetAdditiveBasePose(FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetAdditiveBasePose(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
 {
 	switch (RefPoseType)
 	{
 		// use whole animation as a base pose. Need BasePoseSeq.
-	case ABPT_AnimScaled:	
-		{
-			// normalize time to fit base seq
-			const float Fraction = FMath::Clamp<float>(ExtractionContext.CurrentTime / SequenceLength, 0.f, 1.f);
-			const float BasePoseTime = RefPoseSeq->SequenceLength * Fraction;
+	case ABPT_AnimScaled:
+	{
+		// normalize time to fit base seq
+		const float Fraction = FMath::Clamp<float>(ExtractionContext.CurrentTime / SequenceLength, 0.f, 1.f);
+		const float BasePoseTime = RefPoseSeq->SequenceLength * Fraction;
 
-			FAnimExtractContext BasePoseExtractionContext(ExtractionContext);
-			BasePoseExtractionContext.CurrentTime = BasePoseTime;
-			RefPoseSeq->GetBonePose(OutAtoms, RequiredBones, BasePoseExtractionContext);
-			break;
-		}
+		FAnimExtractContext BasePoseExtractionContext(ExtractionContext);
+		BasePoseExtractionContext.CurrentTime = BasePoseTime;
+		RefPoseSeq->GetBonePose(OutPose, BasePoseExtractionContext);
+		break;
+	}
 		// use animation as a base pose. Need BasePoseSeq and RefFrameIndex (will clamp if outside).
-	case ABPT_AnimFrame:		
-		{
-			const float Fraction = (RefPoseSeq->NumFrames > 0) ? FMath::Clamp<float>((float)RefFrameIndex/(float)RefPoseSeq->NumFrames, 0.f, 1.f) : 0.f;
-			const float BasePoseTime = RefPoseSeq->SequenceLength * Fraction;
+	case ABPT_AnimFrame:
+	{
+		const float Fraction = (RefPoseSeq->NumFrames > 0) ? FMath::Clamp<float>((float)RefFrameIndex / (float)RefPoseSeq->NumFrames, 0.f, 1.f) : 0.f;
+		const float BasePoseTime = RefPoseSeq->SequenceLength * Fraction;
 
-			FAnimExtractContext BasePoseExtractionContext(ExtractionContext);
-			BasePoseExtractionContext.CurrentTime = BasePoseTime;
-			RefPoseSeq->GetBonePose(OutAtoms, RequiredBones, BasePoseExtractionContext);
-			break;
-		}
+		FAnimExtractContext BasePoseExtractionContext(ExtractionContext);
+		BasePoseExtractionContext.CurrentTime = BasePoseTime;
+		RefPoseSeq->GetBonePose(OutPose, BasePoseExtractionContext);
+		break;
+	}
 		// use ref pose of Skeleton as base
-	case ABPT_RefPose:		
+	case ABPT_RefPose:
 	default:
-		FAnimationRuntime::FillWithRefPose(OutAtoms, RequiredBones);
+		OutPose.ResetToRefPose();
 		break;
 	}
 }
 
-void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const
+void UAnimSequence::GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, const FAnimExtractContext& ExtractionContext) const
 {
-	if( !IsValidAdditive() )
+	if (!IsValidAdditive())
 	{
 		// since this is additive, need to initialize to identity
-		FAnimationRuntime::InitializeTransform(RequiredBones, OutAtoms);
+		OutPose.ResetToIdentity();
 		return;
 	}
 
 	// Get target pose
-	GetBonePose(OutAtoms, RequiredBones, ExtractionContext);
+	GetBonePose(OutPose, ExtractionContext);
 
 	// get base pose
-	FTransformArrayA2 BasePoseAtoms;
-	GetAdditiveBasePose(BasePoseAtoms, RequiredBones, ExtractionContext);
+	FCompactPose BasePose;
+	BasePose.SetBoneContainer(&OutPose.GetBoneContainer());
+	GetAdditiveBasePose(BasePose, ExtractionContext);
 
 	// Convert them to mesh rotation.
-	FAnimationRuntime::ConvertPoseToMeshRotation(OutAtoms, RequiredBones);
-	FAnimationRuntime::ConvertPoseToMeshRotation(BasePoseAtoms, RequiredBones);
+	FAnimationRuntime::ConvertPoseToMeshRotation(OutPose);
+	FAnimationRuntime::ConvertPoseToMeshRotation(BasePose);
 
 	// Turn into Additive
-	FAnimationRuntime::ConvertPoseToAdditive(OutAtoms, BasePoseAtoms, RequiredBones);
+	FAnimationRuntime::ConvertPoseToAdditive(OutPose, BasePose);
 }
 
-void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const int32& PoseBoneIndex, const FBoneContainer& RequiredBones) const
+void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones) const
 {
 	const USkeleton* MySkeleton = GetSkeleton();
 	const TArray<FBoneNode>& BoneTree = MySkeleton->GetBoneTree();
-	if( BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton )
+	if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::Skeleton)
 	{
-		const TArray<FTransform>& TargetRefPoseArray = RequiredBones.GetRefPoseArray();
-		BoneTransform.SetTranslation( TargetRefPoseArray[PoseBoneIndex].GetTranslation() );
+		BoneTransform.SetTranslation(RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation());
 	}
-	else if( BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationScaled )
+	else if (BoneTree[SkeletonBoneIndex].TranslationRetargetingMode == EBoneTranslationRetargetingMode::AnimationScaled)
 	{
 		// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
 		const TArray<FTransform>& SkeletonRefPoseArray = GetSkeleton()->GetRefLocalPoses(RetargetSource);
 		const float SourceTranslationLength = SkeletonRefPoseArray[SkeletonBoneIndex].GetTranslation().Size();
-		if( FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER )
+		if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
 		{
-			const TArray<FTransform>& TargetRefPoseArray = RequiredBones.GetRefPoseArray();
-			const float TargetTranslationLength = TargetRefPoseArray[PoseBoneIndex].GetTranslation().Size();
+			const float TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
 			BoneTransform.ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
 		}
 	}
@@ -1199,10 +1204,12 @@ void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32
 		const TArray<FTransform>& AuthoredOnRefSkeleton = GetSkeleton()->GetRefLocalPoses(RetargetSource);
 		const TArray<FTransform>& PlayingOnRefSkeleton = RequiredBones.GetRefPoseArray();
 
+		const FTransform& RefPoseTransform = RequiredBones.GetRefPoseTransform(BoneIndex);
+
 		// Apply the retargeting as if it were an additive difference between the current skeleton and the retarget skeleton. 
-		BoneTransform.SetRotation(BoneTransform.GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * PlayingOnRefSkeleton[PoseBoneIndex].GetRotation());
-		BoneTransform.SetTranslation(BoneTransform.GetTranslation() + (PlayingOnRefSkeleton[PoseBoneIndex].GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
-		BoneTransform.SetScale3D(BoneTransform.GetScale3D() * (PlayingOnRefSkeleton[PoseBoneIndex].GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
+		BoneTransform.SetRotation(BoneTransform.GetRotation() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetRotation().Inverse() * RefPoseTransform.GetRotation());
+		BoneTransform.SetTranslation(BoneTransform.GetTranslation() + (RefPoseTransform.GetTranslation() - AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation()));
+		BoneTransform.SetScale3D(BoneTransform.GetScale3D() * (RefPoseTransform.GetScale3D() * AuthoredOnRefSkeleton[SkeletonBoneIndex].GetSafeScaleReciprocal(AuthoredOnRefSkeleton[SkeletonBoneIndex].GetScale3D())));
 		BoneTransform.NormalizeRotation();
 	}
 }

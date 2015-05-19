@@ -87,7 +87,9 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 		// evaluate children
 		BasePose.Evaluate(BasePoseContext);
 
-		TArray<FA2Pose> TargetBlendPoses;
+		TArray<FCompactPose> TargetBlendPoses;
+		TargetBlendPoses.SetNum(NumPoses);
+
 		for (int32 ChildIndex = 0; ChildIndex < NumPoses; ++ChildIndex)
 		{
 			if (BlendWeights[ChildIndex] > ZERO_ANIMWEIGHT_THRESH)
@@ -95,19 +97,15 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 				FPoseContext CurrentPoseContext(Output);
 				BlendPoses[ChildIndex].Evaluate(CurrentPoseContext);
 
-				// @todo fixme : change this to not copy
-				TargetBlendPoses.Add(CurrentPoseContext.Pose);
+				TargetBlendPoses[ChildIndex].MoveBonesFrom(CurrentPoseContext.Pose);
 			}
 			else
 			{
-				//Add something here so that array ordering is maintained
-				FA2Pose Pose;
-				FAnimationRuntime::FillWithRefPose(Pose.Bones, Output.AnimInstance->RequiredBones);
-				TargetBlendPoses.Add(Pose);
+				TargetBlendPoses[ChildIndex].ResetToRefPose(BasePoseContext.Pose.GetBoneContainer());
 			}
 		}
 
-		FAnimationRuntime::BlendPosesPerBoneFilter(BasePoseContext.Pose, TargetBlendPoses, Output.Pose, CurrentBoneBlendWeights, bMeshSpaceRotationBlend, Output.AnimInstance->RequiredBones, Output.AnimInstance->CurrentSkeleton);
+		FAnimationRuntime::BlendPosesPerBoneFilter(BasePoseContext.Pose, TargetBlendPoses, Output.Pose, CurrentBoneBlendWeights, bMeshSpaceRotationBlend);
 	}
 }
 

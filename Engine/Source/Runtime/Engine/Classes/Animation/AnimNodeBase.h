@@ -6,8 +6,8 @@
 #include "AnimBlueprintGeneratedClass.h"
 #include "AnimInstance.h"
 #include "AnimationRuntime.h"
+#include "BonePose.h"
 #include "AnimNodeBase.generated.h"
-
 
 // Base class for update/evaluate contexts
 struct FAnimationBaseContext
@@ -104,7 +104,7 @@ public:
 struct FPoseContext : public FAnimationBaseContext
 {
 public:
-	FA2Pose Pose;
+	FCompactPose Pose;
 
 public:
 	// This constructor allocates a new uninitialized pose for the specified anim instance
@@ -112,9 +112,7 @@ public:
 		: FAnimationBaseContext(InAnimInstance)
 	{
 		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-		const int32 NumBones = AnimInstance->RequiredBones.GetNumBones();
-		Pose.Bones.Empty(NumBones);
-		Pose.Bones.AddUninitialized(NumBones);
+		Pose.SetBoneContainer(&AnimInstance->RequiredBones);
 	}
 
 	// This constructor allocates a new uninitialized pose, copying non-pose state from the source context
@@ -122,25 +120,28 @@ public:
 		: FAnimationBaseContext(SourceContext.AnimInstance)
 	{
 		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-		const int32 NumBones = AnimInstance->RequiredBones.GetNumBones();
-		Pose.Bones.Empty(NumBones);
-		Pose.Bones.AddUninitialized(NumBones);
+		Pose.SetBoneContainer(&AnimInstance->RequiredBones);
 	}
 
 	void ResetToRefPose()
 	{
-		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-		FAnimationRuntime::FillWithRefPose(Pose.Bones, AnimInstance->RequiredBones);
+		Pose.ResetToRefPose();	
 	}
 
 	void ResetToIdentity()
 	{
-		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-		FAnimationRuntime::InitializeTransform(AnimInstance->RequiredBones, Pose.Bones);
+		Pose.ResetToIdentity();
 	}
 
-	bool ContainsNaN() const;
-	bool IsNormalized() const;
+	bool ContainsNaN() const
+	{
+		return Pose.ContainsNaN();
+	}
+
+	bool IsNormalized() const
+	{
+		return Pose.IsNormalized();
+	}
 };
 
 
@@ -148,7 +149,7 @@ public:
 struct FComponentSpacePoseContext : public FAnimationBaseContext
 {
 public:
-	FA2CSPose Pose;
+	FCSPose<FCompactPose> Pose;
 
 public:
 	// This constructor allocates a new uninitialized pose for the specified anim instance
@@ -168,7 +169,7 @@ public:
 	void ResetToRefPose()
 	{
 		checkSlow( AnimInstance && AnimInstance->RequiredBones.IsValid() );
-		Pose.AllocateLocalPoses(AnimInstance->RequiredBones, AnimInstance->RequiredBones.GetRefPoseArray());
+		Pose.InitPose(&AnimInstance->RequiredBones);
 	}
 
 	bool ContainsNaN() const;

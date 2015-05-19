@@ -319,15 +319,14 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 		{
 			if (Sequence->IsValidAdditive())
 			{
-				FA2Pose BasePose;
-				FA2Pose AdditivePose;
-
-				BasePose.Bones.AddUninitialized(Output.Pose.Bones.Num());
-				AdditivePose.Bones.AddUninitialized(Output.Pose.Bones.Num());
+				FCompactPose BasePose;
+				BasePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
+				FCompactPose AdditivePose;
+				AdditivePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
 
 				FAnimExtractContext ExtractionContext(CurrentTime);
-				Sequence->GetAdditiveBasePose(BasePose.Bones, RequiredBones, ExtractionContext);
-				Sequence->GetAnimationPose(AdditivePose.Bones, RequiredBones, ExtractionContext);
+				Sequence->GetAdditiveBasePose(BasePose, ExtractionContext);
+				Sequence->GetAnimationPose(AdditivePose, ExtractionContext);
 				if (Sequence->AdditiveAnimType == AAT_LocalSpaceBase)
 				{
 					ApplyAdditiveSequence(BasePose, AdditivePose, 1.0f, Output.Pose);
@@ -340,7 +339,7 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 			else
 			{
 				// if sekeltalmesh isn't there, we'll need to use skeleton
-				FAnimationRuntime::GetPoseFromSequence(Sequence, RequiredBones, Output.Pose.Bones, FAnimExtractContext(CurrentTime, Sequence->bEnableRootMotion));
+				FAnimationRuntime::GetPoseFromSequence(Sequence, Output.Pose, FAnimExtractContext(CurrentTime, Sequence->bEnableRootMotion));
 			}
 		}
 		else if (UAnimComposite* Composite = Cast<UAnimComposite>(CurrentAsset))
@@ -351,18 +350,18 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 			EAdditiveAnimationType AdditiveAnimType = AAT_None;
 			if (AnimTrack.IsAdditive())
 			{
-				FA2Pose AdditivePose;
-				FA2Pose BasePose;
+				FCompactPose BasePose;
+				BasePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
+				FCompactPose AdditivePose;
+				AdditivePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
 
-				BasePose.Bones.AddUninitialized(Output.Pose.Bones.Num());
-				AdditivePose.Bones.AddUninitialized(Output.Pose.Bones.Num());
 				AdditiveAnimType = AnimTrack.IsRotationOffsetAdditive()? AAT_RotationOffsetMeshSpace : AAT_LocalSpaceBase;
 				
 				// get base pose - for now we only support ref pose as base
-				FAnimationRuntime::FillWithRefPose(BasePose.Bones, RequiredBones);
+				BasePose.ResetToRefPose();
 				
 				//get the additive pose
-				FAnimationRuntime::GetPoseFromAnimTrack(AnimTrack, RequiredBones, AdditivePose.Bones, FAnimExtractContext(CurrentTime, RootMotionMode == ERootMotionMode::RootMotionFromEverything));
+				FAnimationRuntime::GetPoseFromAnimTrack(AnimTrack, AdditivePose, FAnimExtractContext(CurrentTime, RootMotionMode == ERootMotionMode::RootMotionFromEverything));
 
 				// if additive, we should blend with source to make it fullbody
 				if (AdditiveAnimType == AAT_LocalSpaceBase)
@@ -377,7 +376,7 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 			else
 			{
 				//doesn't handle additive yet
-				FAnimationRuntime::GetPoseFromAnimTrack(AnimTrack, RequiredBones, Output.Pose.Bones, FAnimExtractContext(CurrentTime, RootMotionMode == ERootMotionMode::RootMotionFromEverything));
+				FAnimationRuntime::GetPoseFromAnimTrack(AnimTrack, Output.Pose, FAnimExtractContext(CurrentTime, RootMotionMode == ERootMotionMode::RootMotionFromEverything));
 			}
 		}
 		else if (UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset))
@@ -386,25 +385,26 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 			// in the future, add option to see which slot to see
 			if (Montage->SlotAnimTracks.Num() > 0)
 			{
-				FA2Pose SourcePose;
-				SourcePose.Bones.AddUninitialized(Output.Pose.Bones.Num());
+				FCompactPose SourcePose;
+				SourcePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
+			
 				if (Montage->IsValidAdditive())
 				{
 #if WITH_EDITORONLY_DATA
 					// if montage is additive, we need to have base pose for the slot pose evaluate
 					if (Montage->PreviewBasePose && Montage->SequenceLength > 0.f)
 					{
-						Montage->PreviewBasePose->GetBonePose(SourcePose.Bones, RequiredBones, FAnimExtractContext(CurrentTime));
+						Montage->PreviewBasePose->GetBonePose(SourcePose, FAnimExtractContext(CurrentTime));
 					}
 					else
 #endif // WITH_EDITORONLY_DATA
 					{
-						FAnimationRuntime::FillWithRefPose(SourcePose.Bones, RequiredBones);				
+						SourcePose.ResetToRefPose();				
 					}
 				}
 				else
 				{
-					FAnimationRuntime::FillWithRefPose(SourcePose.Bones, RequiredBones);				
+					SourcePose.ResetToRefPose();			
 				}
 
 				SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, SourcePose, Output.Pose, 1.f);
@@ -562,52 +562,50 @@ void UAnimSingleNodeInstance::SetBlendSpaceInput(const FVector& InBlendInput)
 	BlendSpaceInput = InBlendInput;
 }
 
-void UAnimSingleNodeInstance::InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose)
+void UAnimSingleNodeInstance::InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FCompactPose& OutPose)
 {
 	USkeletalMeshComponent* Component = GetSkelMeshComponent();
 
 	if (BlendSpace->IsValidAdditive())
 	{
-		FA2Pose BasePose;
-		FA2Pose AdditivePose;
-		BasePose.Bones.AddUninitialized(Pose.Bones.Num());
-		AdditivePose.Bones.AddUninitialized(Pose.Bones.Num());
+		FCompactPose BasePose;
+		BasePose.SetBoneContainer(&OutPose.GetBoneContainer());
+		FCompactPose AdditivePose;
+		AdditivePose.SetBoneContainer(&OutPose.GetBoneContainer());
 
 #if WITH_EDITORONLY_DATA
 		if (BlendSpace->PreviewBasePose)
 		{
-			BlendSpace->PreviewBasePose->GetBonePose(/*out*/ BasePose.Bones, RequiredBones, FAnimExtractContext(PreviewPoseCurrentTime));
+			BlendSpace->PreviewBasePose->GetBonePose(/*out*/ BasePose, FAnimExtractContext(PreviewPoseCurrentTime));
 		}
 		else
 #endif // WITH_EDITORONLY_DATA
 		{
 			// otherwise, get ref pose
-			FAnimationRuntime::FillWithRefPose(BasePose.Bones, RequiredBones);
+			BasePose.ResetToRefPose();
 		}
 
 		FAnimationRuntime::GetPoseFromBlendSpace(
 			BlendSpace,
-			BlendSampleDataCache, 
-			RequiredBones,
-			/*out*/ AdditivePose.Bones);
+			BlendSampleDataCache,
+			/*out*/ AdditivePose);
 
 		if (BlendSpace->IsA(UAimOffsetBlendSpace::StaticClass()) ||
 			BlendSpace->IsA(UAimOffsetBlendSpace1D::StaticClass()) )
 		{
-			BlendRotationOffset(BasePose, AdditivePose, 1.f, Pose);
+			BlendRotationOffset(BasePose, AdditivePose, 1.f, OutPose);
 		}
 		else
 		{
-			ApplyAdditiveSequence(BasePose, AdditivePose, 1.f, Pose);
+			ApplyAdditiveSequence(BasePose, AdditivePose, 1.f, OutPose);
 		}
 	}
 	else
 	{
 		FAnimationRuntime::GetPoseFromBlendSpace(
 			BlendSpace,
-			BlendSampleDataCache, 
-			RequiredBones,
-			/*out*/ Pose.Bones);
+			BlendSampleDataCache,
+			/*out*/ OutPose);
 	}
 }
 

@@ -38,7 +38,7 @@ public:
 public:
 #if WITH_EDITORONLY_DATA
 	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
-	FA2CSPose ForwardedPose;
+	FCSPose<FCompactPose> ForwardedPose;
 #endif //#if WITH_EDITORONLY_DATA
 
 	// FAnimNode_Base interface
@@ -52,7 +52,7 @@ protected:
 	// Interface for derived skeletal controls to implement
 
 	// Evaluate the new component-space transforms for the affected bones.
-	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
+	virtual void EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms) {}
 	// return true if it is valid to Evaluate
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) { return false; }
 	// initialize any bone references you have

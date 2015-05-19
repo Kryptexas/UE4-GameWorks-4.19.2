@@ -46,17 +46,19 @@ void DrawDebugData(UWorld* World, const FTransform& TransformVector, const FVect
 	DrawDebugLine(World, Start, End, Color);
 }
 
-void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
-	FTransform ComponentBoneTransform = MeshBases.GetComponentSpaceTransform(BoneToModify.BoneIndex);
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FCompactPoseBoneIndex ModifyBoneIndex = BoneToModify.GetCompactPoseIndex(BoneContainer);
+	FTransform ComponentBoneTransform = MeshBases.GetComponentSpaceTransform(ModifyBoneIndex);
 
 	// get target location
 	FVector TargetLocationInComponentSpace;
-	if (LookAtBone.IsValid(RequiredBones))
+	if (LookAtBone.IsValid(BoneContainer))
 	{
-		FTransform LookAtTransform  = MeshBases.GetComponentSpaceTransform(LookAtBone.BoneIndex);
+		const FTransform& LookAtTransform  = MeshBases.GetComponentSpaceTransform(LookAtBone.GetCompactPoseIndex(BoneContainer));
 		TargetLocationInComponentSpace = LookAtTransform.GetLocation();
 	}
 	else
@@ -145,7 +147,7 @@ void FAnimNode_LookAt::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, 
 	FQuat NewRotation = DeltaRot * CurrentRot;
 	ComponentBoneTransform.SetRotation(NewRotation);
 
-	OutBoneTransforms.Add( FBoneTransform(BoneToModify.BoneIndex, ComponentBoneTransform) );
+	OutBoneTransforms.Add(FBoneTransform(ModifyBoneIndex, ComponentBoneTransform));
 }
 
 bool FAnimNode_LookAt::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
@@ -164,7 +166,7 @@ void FAnimNode_LookAt::InitializeBoneReferences(const FBoneContainer& RequiredBo
 	LookAtBone.Initialize(RequiredBones);
 }
 
-FVector FAnimNode_LookAt::GetAlignVector(FTransform& Transform, EAxisOption::Type AxisOption)
+FVector FAnimNode_LookAt::GetAlignVector(const FTransform& Transform, EAxisOption::Type AxisOption)
 {
 	switch (AxisOption)
 	{

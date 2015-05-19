@@ -38,7 +38,7 @@ void FAnimNode_Trail::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 
@@ -50,9 +50,10 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 	// The incoming BoneIndex is the 'end' of the spline chain. We need to find the 'start' by walking SplineLength bones up hierarchy.
 	// Fail if we walk past the root bone.
 
-	int32 WalkBoneIndex = TrailBone.BoneIndex;
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	FCompactPoseBoneIndex WalkBoneIndex = TrailBone.GetCompactPoseIndex(BoneContainer);
 
-	TArray<int32> ChainBoneIndices;
+	TArray<FCompactPoseBoneIndex> ChainBoneIndices;
 	ChainBoneIndices.AddZeroed(ChainLength);
 
 	ChainBoneIndices[ChainLength - 1] = WalkBoneIndex;
@@ -67,7 +68,7 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 		}
 
 		// Get parent bone.
-		WalkBoneIndex = RequiredBones.GetParentBoneIndex(WalkBoneIndex);
+		WalkBoneIndex = BoneContainer.GetParentBoneIndex(WalkBoneIndex);
 
 		//Insert indices at the start of array, so that parents are before children in the array.
 		int32 TransformIndex = ChainLength - (i + 1);
@@ -86,8 +87,8 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 
 		for(int32 i=0; i<ChainBoneIndices.Num(); i++)
 		{
-			int32 ChildIndex = ChainBoneIndices[i];
-			FTransform ChainTransform = MeshBases.GetComponentSpaceTransform(ChildIndex);
+			FCompactPoseBoneIndex ChildIndex = ChainBoneIndices[i];
+			const FTransform& ChainTransform = MeshBases.GetComponentSpaceTransform(ChildIndex);
 			TrailBoneLocations[i] = ChainTransform.GetTranslation();
 		}
 		OldLocalToWorld = SkelComp->GetTransformMatrix();
@@ -117,8 +118,8 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 	}
 
 	// Root bone of trail is not modified.
-	int32 RootIndex = ChainBoneIndices[0]; 
-	FTransform ChainTransform = MeshBases.GetComponentSpaceTransform(RootIndex);
+	FCompactPoseBoneIndex RootIndex = ChainBoneIndices[0]; 
+	const FTransform& ChainTransform = MeshBases.GetComponentSpaceTransform(RootIndex);
 	OutBoneTransforms[0] = FBoneTransform(RootIndex, ChainTransform);
 	TrailBoneLocations[0] = ChainTransform.GetTranslation();
 
@@ -126,12 +127,12 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, c
 	for(int32 i=1; i<ChainBoneIndices.Num(); i++)
 	{
 		// Parent bone position in component space.
-		int32 ParentIndex = ChainBoneIndices[i-1];
+		FCompactPoseBoneIndex ParentIndex = ChainBoneIndices[i - 1];
 		FVector ParentPos = TrailBoneLocations[i-1];
 		FVector ParentAnimPos = MeshBases.GetComponentSpaceTransform(ParentIndex).GetTranslation();
 
 		// Child bone position in component space.
-		int32 ChildIndex = ChainBoneIndices[i];
+		FCompactPoseBoneIndex ChildIndex = ChainBoneIndices[i];
 		FVector ChildPos = OldToNewTM.TransformPosition(TrailBoneLocations[i]); // move from 'last frames component' frame to 'this frames component' frame
 		FVector ChildAnimPos = MeshBases.GetComponentSpaceTransform(ChildIndex).GetTranslation();
 

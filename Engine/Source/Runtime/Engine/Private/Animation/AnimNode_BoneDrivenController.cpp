@@ -25,7 +25,7 @@ void FAnimNode_BoneDrivenController::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
-void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, const FBoneContainer& RequiredBones, FA2CSPose& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
 	
@@ -36,9 +36,9 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	}
 
 	// Get the Local space transform and the ref pose transform to see how the transform for the source bone has changed
-	const TArray<FTransform>& RefPose = RequiredBones.GetRefPoseArray();
-	FTransform SourceOrigRef = RefPose[SourceBone.BoneIndex];
-	FTransform SourceCurr = MeshBases.GetLocalSpaceTransform(SourceBone.BoneIndex);
+	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
+	const FTransform& SourceOrigRef = BoneContainer.GetRefPoseArray()[SourceBone.BoneIndex];
+	FTransform SourceCurr = MeshBases.GetLocalSpaceTransform(SourceBone.GetCompactPoseIndex(BoneContainer));
 
 	// Difference from the ref pose
 	FVector RotationDiff = (SourceCurr.GetRotation() * SourceOrigRef.GetRotation().Inverse()).Euler();
@@ -46,9 +46,6 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	FVector CurrentScale = SourceCurr.GetScale3D();
 	FVector RefScale = SourceOrigRef.GetScale3D();
 	float ScaleDiff = FMath::Max3(CurrentScale[0], CurrentScale[1], CurrentScale[2]) - FMath::Max3(RefScale[0], RefScale[1], RefScale[2]);
-
-	// Starting point for the new transform
-	FTransform NewLocal = MeshBases.GetLocalSpaceTransform(TargetBone.BoneIndex);
 	
 	// Difference to apply after processing
 	FVector NewRotDiff(FVector::ZeroVector);
@@ -98,19 +95,25 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 
 	// Build final transform difference
 	FTransform FinalDiff(FQuat::MakeFromEuler(NewRotDiff), NewTransDiff, FVector(NewScaleDiff));
+
+	FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
+
+	// Starting point for the new transform
+	FTransform NewLocal = MeshBases.GetLocalSpaceTransform(TargetBoneIndex);
 	NewLocal.AccumulateWithAdditiveScale3D(FinalDiff);
 
 	// If we have a parent, concatenate the transform, otherwise just take the new transform
-	int32 PIdx = RequiredBones.GetParentBoneIndex(TargetBone.BoneIndex);
+	FCompactPoseBoneIndex PIdx = MeshBases.GetPose().GetParentBoneIndex(TargetBoneIndex);
+
 	if(PIdx != INDEX_NONE)
 	{
-		FTransform ParentTM = MeshBases.GetComponentSpaceTransform(PIdx);
+		const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(PIdx);
 		
-		OutBoneTransforms.Add(FBoneTransform(TargetBone.BoneIndex, NewLocal * ParentTM));
+		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, NewLocal * ParentTM));
 	}
 	else
 	{
-		OutBoneTransforms.Add(FBoneTransform(TargetBone.BoneIndex, NewLocal));
+		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, NewLocal));
 	}
 
 }
