@@ -342,7 +342,6 @@ public:
 		TileConeAxisAndCos.Release();
 		TileConeDepthRanges.Release();
 		TileHeadDataUnpacked.Release();
-		TileHeadData.Release();
 		TileArrayData.Release();
 		TileArrayNextAllocation.Release();
 	}
@@ -352,13 +351,12 @@ public:
 	FRWBuffer TileConeAxisAndCos;
 	FRWBuffer TileConeDepthRanges;
 	FRWBuffer TileHeadDataUnpacked;
-	FRWBuffer TileHeadData;
 	FRWBuffer TileArrayData;
 	FRWBuffer TileArrayNextAllocation;
 
 	size_t GetSizeBytes() const
 	{
-		return TileConeAxisAndCos.NumBytes + TileConeDepthRanges.NumBytes + TileHeadDataUnpacked.NumBytes + TileHeadData.NumBytes + TileArrayData.NumBytes + TileArrayNextAllocation.NumBytes;
+		return TileConeAxisAndCos.NumBytes + TileConeDepthRanges.NumBytes + TileHeadDataUnpacked.NumBytes + TileArrayData.NumBytes + TileArrayNextAllocation.NumBytes;
 	}
 };
 

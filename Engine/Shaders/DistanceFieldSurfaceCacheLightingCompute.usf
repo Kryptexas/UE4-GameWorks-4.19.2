@@ -259,7 +259,6 @@ float2 NumGroups;
 
 RWBuffer<float4> RWTileConeAxisAndCos;
 RWBuffer<float4> RWTileConeDepthRanges;
-RWBuffer<uint> RWTileHeadDataUnpacked;
 
 /** Builds tile depth ranges and bounding cones. */
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
@@ -378,9 +377,7 @@ groupshared uint MediumTileNumObjects;
 groupshared uint LargeTileNumObjects;
 groupshared uint TileArrayDataStart;
 
-RWBuffer<uint> RWTileArrayData;
 RWBuffer<uint> RWTileArrayNextAllocation;
-RWBuffer<uint4> RWTileHeadData;
 
 [numthreads(THREADGROUP_SIZEX, THREADGROUP_SIZEY, 1)]
 void DistanceFieldAOBuildTileListMain(
@@ -472,6 +469,39 @@ void DistanceFieldAOBuildTileListMain(
 		TileConeVertex = float3(0, 0, 0) - TileConeAxis * VertexPullbackLength;
 	}
 	
+#if USE_DEPTH_RANGE_LISTS
+
+	// A value of 1 is conservative, but has a huge impact on performance
+	float RadiusScale = .5f;
+	uint TileIndex = GroupId.y * (uint)NumGroups.x + GroupId.x;
+	uint NumCulledObjects = GetCulledNumObjects();
+
+	// Compute per-tile lists of affecting objects through bounds culling
+	// Each thread now operates on a sample instead of a pixel
+	LOOP
+	for (uint ObjectIndex = ThreadIndex; ObjectIndex < NumCulledObjects; ObjectIndex += THREADGROUP_TOTALSIZE)
+	{
+		float4 WorldSphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
+		float3 ViewSpaceSphereCenter = mul(float4(WorldSphereCenterAndRadius.xyz + View.PreViewTranslation.xyz, 1), View.TranslatedWorldToView).xyz;
+		float4 SphereCenterAndRadius = float4(ViewSpaceSphereCenter, WorldSphereCenterAndRadius.w + RadiusScale * AOObjectMaxDistance);
+
+		if (SphereIntersectCone(SphereCenterAndRadius, TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin))
+		{
+			float ConeAxisDistance = dot(SphereCenterAndRadius.xyz - TileConeVertex, TileConeAxis);
+			float2 ConeAxisDistanceMinMax = float2(ConeAxisDistance + SphereCenterAndRadius.w, ConeAxisDistance - SphereCenterAndRadius.w);
+
+			uint TotalNumGroups = (uint)(NumGroups.x * NumGroups.y + .5f);
+			IntersectObjectWithConeDepthRange(TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges.xy, ConeAxisDistanceMinMax, TileIndex, 0, ObjectIndex, TotalNumGroups);
+			IntersectObjectWithConeDepthRange(TileConeVertex, TileConeAxis, TileConeAngleCos, TileConeAngleSin, ConeAxisDepthRanges.zw, ConeAxisDistanceMinMax, TileIndex, 1, ObjectIndex, TotalNumGroups);
+		}
+	}
+
+	if (ThreadIndex == 0)
+	{
+		RWTileHeadDataUnpacked[TileIndex * 4 + 0] = TileIndex;
+	}
+
+#else
 	// A value of 1 is conservative, but has huge impact on performance
 	float RadiusScale = .5f;
 	float SmallGroupMaxSampleRadius;
@@ -573,6 +603,7 @@ void DistanceFieldAOBuildTileListMain(
 	{
 		RWTileArrayData[ArrayDataStart + LargeListIndex] = LargeTileObjectIndices[LargeListIndex];
 	}
+#endif
 }
 
 /** View rect min in xy, max in zw. */
