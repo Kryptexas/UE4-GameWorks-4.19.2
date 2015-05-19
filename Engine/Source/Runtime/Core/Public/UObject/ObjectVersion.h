@@ -514,6 +514,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SKIP_DUPLICATE_EXPORTS_ON_SAVE_PACKAGE,
 	// Pre-gathering of gatherable, localizable text in packages to optimize text gathering operation times
 	VER_UE4_SERIALIZE_TEXT_IN_PACKAGES,
+	// Added pivot to widget components, need to load old versions as a 0,0 pivot, new default is 0.5,0.5
+	VER_UE4_ADD_BLEND_MODE_TO_WIDGET_COMPONENT,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

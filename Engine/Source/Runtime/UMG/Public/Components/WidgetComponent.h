@@ -15,6 +15,14 @@ enum class EWidgetSpace : uint8
 	Screen
 };
 
+UENUM()
+enum class EWidgetBlendMode : uint8
+{
+	Opaque,
+	Masked,
+	Transparent
+};
+
 /**
  * Beware! This feature is experimental and may be substantially changed or removed in future releases.
  * A 3D instance of a Widget Blueprint that can be interacted with in the world.
@@ -117,8 +125,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category=UI)
 	void SetMaxInteractionDistance(float Distance);
 
-	/** @return True if the component is opaque */
-	bool IsOpaque() const { return bIsOpaque; }
+	/** Gets the blend mode for the widget. */
+	EWidgetBlendMode GetBlendMode() const { return BlendMode; }
 
 	/** @return The pivot point where the UI is rendered about the origin. */
 	FVector2D GetPivot() const { return Pivot; }
@@ -159,16 +167,20 @@ private:
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	FLinearColor BackgroundColor;
 
-	/** 
-	 * Should the component be rendered opaque? 
-	 * This improves aliasing of the UI in the world.
-	 */
+	/** The blend mode for the widget. */
 	UPROPERTY(EditAnywhere, Category=Rendering)
-	bool bIsOpaque;
+	EWidgetBlendMode BlendMode;
+
+	UPROPERTY()
+	bool bIsOpaque_DEPRECATED;
 
 	/** Is the component visible from behind? */
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	bool bIsTwoSided;
+
+	/** Should the component tick the widget when it's off screen? */
+	UPROPERTY(EditAnywhere, Category=Animation)
+	bool TickWhenOffscreen;
 
 	/** The User Widget object displayed and managed by this component */
 	UPROPERTY(transient, duplicatetransient)
@@ -193,6 +205,14 @@ private:
 	/** The material instance for opaque, one-sided widget components */
 	UPROPERTY()
 	UMaterialInterface* OpaqueMaterial_OneSided;
+
+	/** The material instance for masked widget components. */
+	UPROPERTY()
+	UMaterialInterface* MaskedMaterial;
+
+	/** The material instance for masked, one-sided widget components. */
+	UPROPERTY()
+	UMaterialInterface* MaskedMaterial_OneSided;
 
 	/** The target to which the user widget is rendered */
 	UPROPERTY(transient, duplicatetransient)
