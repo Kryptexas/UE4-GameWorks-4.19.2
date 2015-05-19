@@ -2494,7 +2494,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// Components are all there and we've begun play, init overlapping state
-	if (GetWorld()->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
+	if (!deferBeginPlayAndUpdateOverlaps)
 	{
 		UpdateOverlaps();
 	}
