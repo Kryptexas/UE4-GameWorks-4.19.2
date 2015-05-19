@@ -78,6 +78,18 @@ public class UnrealCEFSubProcessTarget : TargetRules
         return true;
     }
 
+    public override List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
+    {
+		if(InHostPlatform == UnrealTargetPlatform.Win64)
+		{
+			return new List<UnrealTargetPlatform>{ UnrealTargetPlatform.Win32, UnrealTargetPlatform.Win64 };
+		}
+		else
+		{
+			return new List<UnrealTargetPlatform> { InHostPlatform };
+		}
+    }
+
     public override bool GUBP_NeedsPlatformSpecificDLLs()
     {
         return true;
