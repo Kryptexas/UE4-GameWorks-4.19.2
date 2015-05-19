@@ -5,6 +5,8 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "K2Node_ClassDynamicCast.h"
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 #include "K2Node_ConvertAsset.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_ConvertAsset"
