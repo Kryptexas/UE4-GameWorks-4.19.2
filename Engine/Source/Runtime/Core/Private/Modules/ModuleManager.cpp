@@ -5,7 +5,7 @@
 #include "ModuleVersion.h"
 #include "EngineBuildSettings.h"
 #include "UProjectInfo.h"
-
+#include "ScopeExit.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogModuleManager, Log, All);
 
@@ -203,21 +203,10 @@ void FModuleManager::AddModule(const FName InModuleName)
 	TSharedRef<FModuleInfo> ModuleInfo(new FModuleInfo());
 	
 	// Make sure module info is added to known modules and proper delegates are fired on exit.
-	struct FAtExit
+	ON_SCOPE_EXIT
 	{
-		FAtExit(const FName InModule_Name, const TSharedRef<FModuleInfo>& InModuleInfo)
-			: ModuleName(InModule_Name)
-			, ModuleInfo(InModuleInfo)
-		{ }
-
-		~FAtExit()
-		{
-			FModuleManager::Get().AddModuleToModulesList(ModuleName, ModuleInfo);
-		}
-
-		FName ModuleName;
-		TSharedRef<FModuleInfo> ModuleInfo;
-	} AtExit(InModuleName, ModuleInfo);
+		FModuleManager::Get().AddModuleToModulesList(InModuleName, ModuleInfo);
+	};
 
 #if !IS_MONOLITHIC
 	FString ModuleNameString = InModuleName.ToString();

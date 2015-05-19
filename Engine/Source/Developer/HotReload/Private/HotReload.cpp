@@ -1117,28 +1117,16 @@ bool FHotReloadModule::RecompileModulesAsync( const TArray< FName > ModuleNames,
 
 	TArray< FModuleToRecompile > ModulesToRecompile;
 
-	for( TArray< FName >::TConstIterator CurModuleIt( ModuleNames ); CurModuleIt; ++CurModuleIt )
+	for( FName CurModuleName : ModuleNames )
 	{
-		const FName CurModuleName = *CurModuleIt;
-
 		// Update our set of known modules, in case we don't already know about this module
 		FModuleManager::Get().AddModule( CurModuleName );
 
-		FString NewModuleFileNameOnSuccess = FModuleManager::Get().GetModuleFilename(CurModuleName);
-
 		// Find a unique file name for the module
-		FString UniqueSuffix;
-		FString UniqueModuleFileName;
-		FModuleManager::Get().MakeUniqueModuleFilename( CurModuleName, UniqueSuffix, UniqueModuleFileName );
-
-		// If the recompile succeeds, we'll update our cached file name to use the new unique file name
-		// that we setup for the module
-		NewModuleFileNameOnSuccess = UniqueModuleFileName;
-
 		FModuleToRecompile ModuleToRecompile;
 		ModuleToRecompile.ModuleName = CurModuleName.ToString();
-		ModuleToRecompile.ModuleFileSuffix = UniqueSuffix;
-		ModuleToRecompile.NewModuleFilename = UniqueModuleFileName;
+		FModuleManager::Get().MakeUniqueModuleFilename( CurModuleName, ModuleToRecompile.ModuleFileSuffix, ModuleToRecompile.NewModuleFilename );
+
 		ModulesToRecompile.Add( ModuleToRecompile );
 	}
 
@@ -1253,20 +1241,20 @@ bool FHotReloadModule::StartCompilingModuleDLLs(const FString& GameName, const T
 
 	// Pass a module file suffix to UBT if we have one
 	FString ModuleArg;
-	for( int32 CurModuleIndex = 0; CurModuleIndex < ModuleNames.Num(); ++CurModuleIndex )
+	for( const FModuleToRecompile& Module : ModuleNames )
 	{
-		if( !ModuleNames[ CurModuleIndex ].ModuleFileSuffix.IsEmpty() )
+		if( !Module.ModuleFileSuffix.IsEmpty() )
 		{
-			ModuleArg += FString::Printf( TEXT( " -ModuleWithSuffix %s %s" ), *ModuleNames[ CurModuleIndex ].ModuleName, *ModuleNames[ CurModuleIndex ].ModuleFileSuffix );
+			ModuleArg += FString::Printf( TEXT( " -ModuleWithSuffix %s %s" ), *Module.ModuleName, *Module.ModuleFileSuffix );
 		}
 		else
 		{
-			ModuleArg += FString::Printf( TEXT( " -Module %s" ), *ModuleNames[ CurModuleIndex ].ModuleName );
+			ModuleArg += FString::Printf( TEXT( " -Module %s" ), *Module.ModuleName );
 		}
-		Ar.Logf( TEXT( "Recompiling %s..." ), *ModuleNames[ CurModuleIndex ].ModuleName );
+		Ar.Logf( TEXT( "Recompiling %s..." ), *Module.ModuleName );
 
 		// prepare the compile info in the FModuleInfo so that it can be compared after compiling
-		FName ModuleFName(*ModuleNames[ CurModuleIndex ].ModuleName);
+		FName ModuleFName(*Module.ModuleName);
 		UpdateModuleCompileData(ModuleFName);
 	}
 
