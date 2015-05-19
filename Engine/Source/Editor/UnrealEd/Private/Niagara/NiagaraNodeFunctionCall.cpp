@@ -17,7 +17,10 @@ void UNiagaraNodeFunctionCall::PostLoad()
 
 void UNiagaraNodeFunctionCall::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	ReallocatePins();
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		ReallocatePins();
+	}
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 

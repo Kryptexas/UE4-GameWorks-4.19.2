@@ -7,7 +7,7 @@
 
 
 /** Viewer/editor for a DataTable */
-class FNiagaraEditor : public INiagaraEditor, public FNotifyHook
+class FNiagaraEditor : public INiagaraEditor, public FNotifyHook, public FEditorUndoClient
 {
 
 public:
@@ -28,10 +28,10 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	// End IToolkit interface
 
-	// Delegates
-	FReply OnCompileClicked();
-	void DeleteSelectedNodes();
-	bool CanDeleteNodes() const;
+	// Begin FEditorUndoClient Interface
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
+	// End of FEditorUndoClient
 
 	// Widget Accessors
 	TSharedRef<class IDetailsView> GetDetailView() const { return NiagaraDetailsView.ToSharedRef(); }
@@ -52,6 +52,25 @@ private:
 
 	/** Builds the toolbar widget */
 	void ExtendToolbar();
+
+
+	// Delegates for graph editor commands
+	FReply OnCompileClicked();
+	void SelectAllNodes();
+	bool CanSelectAllNodes() const;
+	void DeleteSelectedNodes();
+	bool CanDeleteNodes() const;
+	void DeleteSelectedDuplicatableNodes();
+	void CutSelectedNodes();
+	bool CanCutNodes() const;
+	void CopySelectedNodes();
+	bool CanCopyNodes() const;
+	void PasteNodes();
+	void PasteNodesHere(const FVector2D& Location);
+	bool CanPasteNodes() const;
+	void DuplicateNodes();
+	bool CanDuplicateNodes() const;
+
 private:
 
 	/* The Script being edited */

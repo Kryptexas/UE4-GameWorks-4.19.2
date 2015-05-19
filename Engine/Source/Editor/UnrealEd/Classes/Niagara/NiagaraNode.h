@@ -9,9 +9,6 @@ class UNREALED_API UNiagaraNode : public UEdGraphNode
 	GENERATED_UCLASS_BODY()
 
 public:
-	// Begin UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)override;
-	// End UObject interface
 
 	// Begin EdGraphNode interface
 	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;

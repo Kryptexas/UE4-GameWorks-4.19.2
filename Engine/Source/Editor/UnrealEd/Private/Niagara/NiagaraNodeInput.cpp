@@ -17,7 +17,11 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 
 void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	ReallocatePins();
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		ReallocatePins();
+	}
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
