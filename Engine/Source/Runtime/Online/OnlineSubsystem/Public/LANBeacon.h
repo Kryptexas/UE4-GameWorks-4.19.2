@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Net/NetConstants.h"
+#include "CoreNet.h"
 
 /**
  * This value indicates which packet version the server is sending. Clients with

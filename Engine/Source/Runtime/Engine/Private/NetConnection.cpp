@@ -1898,3 +1898,10 @@ void UNetConnection::ResetPacketBitCounts()
 	NumAckBits = 0;
 	NumPaddingBits = 0;
 }
+
+
+
+void SecurityLog::SecurityEvent(const char* string)
+{
+	UE_LOG(LogNet, Warning, TEXT("GHI"));
+}

@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include "Net/NetConstants.h"
 #include "Net/DataBunch.h"
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
@@ -91,6 +90,13 @@ struct DelayedPacket
 #define PING_ACK_DELAY 0.5
 
 
+class SecurityLog
+{
+	void SecurityEvent(const char* string);
+};
+
+
+
 UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
 {
@@ -102,7 +108,9 @@ class UNetConnection : public UPlayer
 
 	/** Owning net driver */
 	UPROPERTY()
-	class UNetDriver* Driver;					
+	class UNetDriver* Driver;	
+
+	class SecurityLog Log;
 
 	UPROPERTY()
 	/** Package map between local and remote. (negotiates net serialization) */

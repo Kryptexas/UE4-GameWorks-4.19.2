@@ -28,8 +28,6 @@ public class OnlineSubsystem : ModuleRules
 			}
 		);
 
-        PublicIncludePathModuleNames.Add("Engine"); 
-
 
 	}
 
