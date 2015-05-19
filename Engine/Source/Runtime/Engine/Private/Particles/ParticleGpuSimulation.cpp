@@ -2624,7 +2624,19 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		}
 		else if (Simulation->bWantsCollision && Simulation->CollisionMode == EParticleCollisionMode::DistanceField)
 		{
-			Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDistanceField;
+			if (IsParticleCollisionModeSupported(FXSystem->GetShaderPlatform(), PCM_DistanceField))
+			{
+				Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDistanceField;
+			}
+			else if (bTranslucent)
+			{
+				// Fall back to scene depth collision if translucent
+				Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDepthBuffer;
+			}
+			else
+			{
+				Simulation->SimulationPhase = EParticleSimulatePhase::Main;
+			}
 		}
 	}
 
