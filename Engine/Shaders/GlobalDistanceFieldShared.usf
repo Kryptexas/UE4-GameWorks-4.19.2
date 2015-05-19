@@ -6,6 +6,21 @@
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
 
+//@todo - get the clipmap branches to compile under gl
+#if GL4_PROFILE
+
+float GetDistanceToNearestSurfaceGlobal(float3 WorldPosition)
+{
+	return 0;
+}
+
+float3 GetDistanceFieldGradientGlobal(float3 WorldPosition)
+{
+	return 0;
+}
+
+#else
+
 // Must match C++
 #define MAX_GLOBAL_DF_CLIPMAPS 4
 
@@ -128,3 +143,4 @@ float3 GetDistanceFieldGradientGlobal(float3 WorldPosition)
 }
 
 #endif
+#endif // FEATURE_LEVEL >= FEATURE_LEVEL_SM5
