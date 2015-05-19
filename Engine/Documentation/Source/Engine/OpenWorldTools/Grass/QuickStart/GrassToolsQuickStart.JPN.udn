@@ -1,0 +1,126 @@
+﻿INTSourceChangelist:2555085
+Availability:Public
+Title:Grass ツールのクイック スタート
+Crumbs:
+Description:Grass ツールの設定と使用に関するクイックスタートガイド
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+## 概要
+
+Procedural Foliage（プロシージャルフォーリッジ）ツールは巨大なフォレストの木や茂みに生息するさまざまな生物のシミュレーションに最適なツールですが、草や岩で密に覆われた状態のランドスケープ作成に必要な数十万個のスタティックメッシュをうまくスポーンすることが唯一できません。 
+これを実現するために UE4 は新しいツール、 **Grass ツール** を導入しました。 
+Grass ツールは、ランドスケープ上にいくらかのテクスチャがペイントされた時は、常にランドスケープテレインにスタティックメッシュとスポーン量を定義します。 
+以下の操作ガイドでは、レベルで Grass ツールを使用するうえでの必要事項を説明しています。
+
+![](T_Grass_Intro.png)
+
+[region:note]
+現時点の Grass ツールは Landscape Terrain アクタとのみ機能します。他のタイプのアクタに草をスポーンさせるために Grass システムを使用しても機能しません。
+[/region]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\OpenWorldTools\Grass\QuickStart\1)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\2)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\3)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\4)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
