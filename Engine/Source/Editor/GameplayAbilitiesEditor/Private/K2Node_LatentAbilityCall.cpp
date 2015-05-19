@@ -192,6 +192,8 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 	// (For example, hide Instigator in situations where instigator is not relevant to your task)
 	
 	TArray<FString> IgnorePropertyList;
+
+	if (ProxyFactoryClass)
 	{
 		UFunction* ProxyFunction = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
 
