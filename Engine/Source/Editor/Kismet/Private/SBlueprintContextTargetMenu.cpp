@@ -419,7 +419,14 @@ bool FContextMenuTargetProfile::IsTargetEnabled(EContextTargetFlags::Type Flag) 
 //------------------------------------------------------------------------------
 void FContextMenuTargetProfile::SaveProfile() const
 {
-	GConfig->SetInt(*ContextMenuTargetProfileImpl::ConfigSection, *ProfileSaveName, SavedTargetFlags, GEditorIni);
+	// want to save with all bits set (except for ones matching flags that
+	// currently exist)... this is so we can later add flags, and a user's 
+	// saved value doesn't immediately disable them (default to on)
+	uint32 const GreatestUsedFlag = (EContextTargetFlags::ContextTargetFlagsEnd & ~1);
+	uint32 const UnusedFlasgMask  = ((0xFFFFFFFF & GreatestUsedFlag) & ~GreatestUsedFlag);
+	uint32 const SaveValue = UnusedFlasgMask | SavedTargetFlags;
+
+	GConfig->SetInt(*ContextMenuTargetProfileImpl::ConfigSection, *ProfileSaveName, SaveValue, GEditorIni);
 }
 
 //------------------------------------------------------------------------------
@@ -429,6 +436,19 @@ bool FContextMenuTargetProfile::LoadProfile()
 	if (GConfig->GetInt(*ContextMenuTargetProfileImpl::ConfigSection, *ProfileSaveName, SavedFlags, GEditorIni))
 	{
 		SavedTargetFlags = SavedFlags;
+
+		uint32 const GreatestUsedFlag = (EContextTargetFlags::ContextTargetFlagsEnd & ~1);
+		uint32 const LowestUnusedFlag = GreatestUsedFlag << 1;
+		// before we saved values with the unused bits all set (to support future
+		// flags), we saved only the bits that were explicitly set by the user
+		if ((SavedFlags & LowestUnusedFlag) == 0)
+		{
+			uint32 const OriginalFlagsMask = EContextTargetFlags::TARGET_Blueprint | EContextTargetFlags::TARGET_SubComponents |
+				EContextTargetFlags::TARGET_NodeTarget | EContextTargetFlags::TARGET_PinObject | EContextTargetFlags::TARGET_SiblingPinObjects;
+			// add in any new flags that have been added since this profile was last saved
+			SavedTargetFlags = (0xFFFFFFFF & ~OriginalFlagsMask) | SavedFlags;
+
+		}
 		return true;
 	}
 	return false;

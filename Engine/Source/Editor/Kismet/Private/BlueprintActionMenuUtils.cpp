@@ -441,7 +441,13 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	// Composing Filters
 	//--------------------------------------
 
-	FBlueprintActionFilter MainMenuFilter;
+	uint32 FilterFlags = 0x00;
+	if ((ClassTargetMask & EContextTargetFlags::TARGET_BlueprintLibraries) == 0)
+	{
+		FilterFlags |= FBlueprintActionFilter::BPFILTER_RejectGlobalFields;
+	}
+
+	FBlueprintActionFilter MainMenuFilter(FilterFlags);
 	MainMenuFilter.Context = Context;
 	MainMenuFilter.Context.SelectedObjects.Empty();
 
