@@ -165,9 +165,6 @@ FVector2D STextBlock::ComputeDesiredSize(float LayoutScaleMultiplier) const
 {
 #if WITH_FANCY_TEXT
 
-	// todo: jdale - The scale needs to be passed to ComputeDesiredSize
-	//const float Scale = CachedScale;
-
 	// ComputeDesiredSize will also update the text layout cache if required
 	const FVector2D TextSize = TextLayoutCache->ComputeDesiredSize(
 		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
