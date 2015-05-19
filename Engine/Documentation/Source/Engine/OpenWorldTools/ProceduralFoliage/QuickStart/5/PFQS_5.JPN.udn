@@ -1,0 +1,66 @@
+﻿INTSourceChangelist:2555334
+Availability:Docs
+Title:5. Procedural Foliage Blocking Volume を使用する
+Crumbs:
+Description:フォーリッジのスポーン範囲を制限するブロック ボリュームを設定しましょう。
+Navigation:topic
+SkillLevel:Intermediate
+バージョン：4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[前のステップ](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[How-To ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+**Procedural Foliage Blocking Volume** は、好きなサイズでレベル内に配置することができる Volume アクタです。 
+このアクタは、Procedural Foliage が Procedural Foliage Blocking Volume の領域で Foliage アクタをスポーンしてしまうことを防ぎます。
+次のセクションでは、 **Procedural Foliage Blocking Volume** のレベルへの追加方法および Foliage meshes のスポーンを防ぐための使用方法について説明します。
+前のステップで作成した **PFT_00** レベルを引き続き使用します。
+一旦終了してしまった場合は再度ここで開いてから、次のステップへ進んでください。
+
+1. まず **Proc** というワードで **[Modes]** パネル内を検索して Procedural Foliage Blocking Volume を探します。  
+
+	![](T_Find_ProcF_Blocking_Volume.png)
+
+1. [Modes] パネルで見つかった Procedural Foliage Blocking Volume をマウスでクリックして、[Modes] パネルからレベルへドラッグします。
+
+	![](T_Adding_PFV_To_Level.gif)(convert:false)
+
+1. 次に以下の値を Procedural Foliage Blocking Volume の Locaiton と Scale に入力します。入力すると、以下のようになります。
+
+	* **Location X:** 5430.0 cm
+	* **Location Y:** -3900.0 cm
+	* **Location Z:** 200.0 cm
+	* **Scale    X:** 41.75
+	* **Scale    Y:** 65.5
+	* **Scale    X:** 41.75
+
+	![](T_PFBV_Postion.png)
+
+1. 次にレベルで **Procedural Foliage Spawner** を選択して、**[Details]** パネルの **[Resimulate]** ボタンを押します。 
+   再シミュレーションが完了すると、Procedural Foliage Blocking Volume と交わる部分全体の木が消えています。
+   以下の画像で、設定前と後の違いが分かります。 
+
+	   ![](T_PFV_Before_After.png)
+
+	   * 1:設定前
+	   * 2:設定後
+
+1. 最後に作業とレベルを保存します。 **[Save All]** ボタンはすべてのコンテンツが保存され、 **[Save]** ボタンを押すとレベルが保存されます。 
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+%Steps%
