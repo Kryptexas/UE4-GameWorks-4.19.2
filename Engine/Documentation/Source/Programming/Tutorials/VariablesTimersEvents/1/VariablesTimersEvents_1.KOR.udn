@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2555570
 Availability: Public
 Title:1. 타이머를 사용하는 액터 만들기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -44,7 +44,6 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 		CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 		CountdownText->SetHorizontalAlignment(EHTA_Center);
 		CountdownText->SetWorldSize(150.0f);
-		CountdownText->AttachTo(RootComponent);
 		RootComponent = CountdownText;
 
 		CountdownTime = 3;
@@ -169,7 +168,6 @@ Description:타이머를 사용하여 고정된 속도로 코드를 실행 시�
 				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 				CountdownText->SetHorizontalAlignment(EHTA_Center);
 				CountdownText->SetWorldSize(150.0f);
-				CountdownText->AttachTo(RootComponent);
 				RootComponent = CountdownText;
 
 				CountdownTime = 3;

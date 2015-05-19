@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454757
+﻿INTSourceChangelist:2552957
 Availability: Public
 Title:블루프린트에서 액터 리플리케이트 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking/ReplicateActor
@@ -28,7 +28,7 @@ Related: Resources/ContentExamples/Networking
 
 	![](HowTo2.png)
 
-1.	**Fire_NoReplicate** 블루프린트를 열고 **클래스 디폴트** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) 버튼을 눌러 **디테일** 패널에서 블루프린트 디폴트를 연 다음, **Net Load on Client** 체크를 해제합니다. 
+1.	**Fire_NoReplicate** 블루프린트를 열고 ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) 버튼을 눌러 **디테일** 패널에서 **Net Load on Client** 체크를 해제합니다. 
 
 	![](HowTo3.png)
 
@@ -36,11 +36,9 @@ Related: Resources/ContentExamples/Networking
 
 1.	블루프린트를 **컴파일**, **저장** 후 닫은 뒤 **Fire_Replicate** 블루프린트를 엽니다.
 
-1.	**클래스 디폴트** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) 버튼을 클릭하여 **디테일** 패널에서 블루프린트 디폴트를 연 다음, **Replicates** (리플리케이트) 옵션을 체크합니다.
+1.	![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) 버튼을 클릭하고 **디테일** 패널에서 **Replicates** (리플리케이트) 옵션을 체크합니다.
 
-	[REGION:raw]
-	![](HowTo4.png)
-	[/REGION]
+	![](HowTo4.png)	
 
 	**리플리케이트** 를 체크하면, 이 액터가 클라이언트 머신에 리플리케이트 가능함을 나타냅니다. **Net Load on Client** 역시도 체크해 두면, 맵 로드시 액터도 자동으로 로드외어 클라이언트 머신에 표시됩니다. **리플리케이트** 옵션이 쓰이는 곳은, 맵 로드 시점이 아니라 게임플레이 도중 일정 시점에 이 액터를 스폰하고자 한다면, **리플리케이트** 옵션을 켜 두어야 액터를 스폰하라 했을 때 클라이언트 머신에서도 리플리케이트된 사본이 스폰됩니다.
 
@@ -53,12 +51,6 @@ Related: Resources/ContentExamples/Networking
 1.	**콘텐츠 브라우저** 에서 **Fire_Replicate** 블루프린트를 레벨에 끌어 놓습니다.
 
 	![](HowTo6.png)(w:700)
-
-1.	레벨의 **PlayerStart** 를 선택하고 **Control+W** 를 눌러 복사한 다음, **W** 키를 눌러 약간 움직입니다.
-
-	![](HowTo7.png)
-
-	이렇게 하면 게임 실행시 멀티플레이어에 대한 추가 스폰 지점이 생성됩니다.
 
 1.	**플레이** 버튼 옆의 아래 화살표를 클릭한 다음 **플레이어 수** 옵션을 **2** 로 변경합니다.
 
@@ -81,9 +73,9 @@ Related: Resources/ContentExamples/Networking
 
 1.	레벨 뷰포트에서, **Fire_Replicate** 와 **Fire_NoReplicate** 액터를 레벨에서 삭제합니다.
 
-1.	**모드** 메뉴에서 **타겟 포인트** 를 두 개 끌어 레벨에 놓습니다.
+1.	**모드** 메뉴에서 **모든 클래스** 아래 **타겟 포인트** 를 두 개 끌어 레벨에 놓습니다.
 
-	![](Switch1.png)
+	![](Switch1.png)(w:820)
 
 1.	타겟 포인트 하나의 이름을 **No_Replicate** 로, 다른 하나를 **Replicate** 로 변경하고, **월드 아웃라이너** 에서 둘 다 선택합니다.
 

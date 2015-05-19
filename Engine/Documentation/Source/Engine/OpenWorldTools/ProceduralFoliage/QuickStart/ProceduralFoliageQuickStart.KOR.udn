@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:2554119
+Availability:Docs
+Title: 프로시저럴 폴리지 툴 퀵스타트
+Crumbs:
+Description:프로시저럴 폴리지 툴 구성 및 사용법입니다.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+
+## 개요
+프로시저럴 폴리지 퀵스타트 안내에서는 언리얼 엔진 4 (UE4) 4.8 릴리즈부터 사용할 수 있게 된 **프로시저럴 폴리지 툴** 작동법에 대해 살펴보겠습니다.
+이 퀵스타트 전반에 걸쳐 프로시저럴 폴리지 툴을 어떤 의도로 사용해야 할 것인지와, UE4 내 다른 툴과 어떻게 사용할 것인지를 배워볼 것입니다.
+항상 만족스런 결과를 얻는 데 도움이 되는 핵심 툴 프로퍼티에 대해서도 소개해 드릴 것입니다.
+이 퀵스타트를 완료할 무렵이면 아래 그림과 같은 레벨이 새로 생겨있을 것입니다.
+
+![](T_PF_QS_Final_Product.png)
+
+이 퀵스타트를 마치고나면 프로시저럴 폴리지 툴에 필요한 액터 유형은 어떤 것이고, 어떻게 구성해야 정상 작동할 것인지 더욱 잘 이해할 수 있을 것입니다.
+툴 사용시 주의할 점과 그에 맞는 작업방식 조절 방법에 대해서도 소개해 드리겠습니다.
+
+
+[region:note]
+프로시저럴 폴리지 툴을 이미 활성화시키지 않은 경우, 메인 툴바의 **편집** > **에디터 개인설정** > **실험단계** 기능으로 갑니다.
+거기서 Prodecural Foliage 옵션 옆의 박스를 체크해 주면 됩니다.
+[/region]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		단계
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+

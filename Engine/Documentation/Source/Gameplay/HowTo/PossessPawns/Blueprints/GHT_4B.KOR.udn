@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2551223
+﻿INTSourceChangelist:2553123
 Availability: Public
 Title:블루프린트로 폰 빙의 비법
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
@@ -89,7 +89,7 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 1.	**블루프린트 비히클 템플릿** 및 **블루프린트 삼인칭 템플릿** 프로젝트를 만듭니다.
 
-1.	**블루프린트 삼인칭** 프로젝트 안에서 **Game/Blueprints** 아래 **MyCharacter** 블루프린트에 우클릭한 다음 (**애셋 동작** 아래) **이주** 를 선택합니다.
+1.	**블루프린트 삼인칭** 프로젝트 안에서 **Game/Blueprints** 아래 **ThirdPersonCharacter** 블루프린트에 우클릭한 다음 (**애셋 동작** 아래) **이주** 를 선택합니다.
 
 	![](GHT4B_12.png)
 
@@ -97,7 +97,7 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 1.	**비히클 프로젝트** 안에서 메인 툴바의 **월드 세팅** 옵션을 엽니다.
 
-1.	**Game Mode** 아래 **Default Pawn Class** 를 **MyCharacter** 블루프린트로 설정합니다.
+1.	**Game Mode** 아래 **Default Pawn Class** 를 **ThirdPersonCharacter** 블루프린트로 설정합니다.
 
 	![](GHT4B_13.png)
 
@@ -125,7 +125,7 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 1.	**SpawnLocation** (화살표)에 대한 **디테일** 패널에서 **위치** 아래 **Z** 를 **131.0** 으로 설정합니다.
 
-1.	**콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **MyCharacter** 블루프린트를 엽니다.
+1.	**콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
 1.	**WheeledVehicle** 유형 변수 **Car**, **Bool** 변수 **NearCar** 를 추가합니다.
 
@@ -141,13 +141,13 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 	![](GHT4B_19.png)
 
-1.	그래프에서 **OnComponentBeginOverlap** 노드의 **Other Actor** 핀을 끌어놓고 **Cast To MyCharacter** 노드를 추가합니다.
+1.	그래프에서 **OnComponentBeginOverlap** 노드의 **Other Actor** 핀을 끌어놓고 **Cast To ThirdPersonCharacter** 노드를 추가합니다.
 
 1.	**As My Character C** 핀을 끌어놓고, **Set Near Car** 변수를 추가한 다음 박스를 체크하여 **True** 로 설정합니다.
 
 	![](GHT4B_20.png)(w:780)
 
-	**Cast To** 노드를 사용하여 **MyCharacter** 블루프린트의 변수에 접근하고 업데이트할 수 있습니다.
+	**Cast To** 노드를 사용하여 **ThirdPersonCharacter** 블루프린트의 변수에 접근하고 업데이트할 수 있습니다.
 
 1.	**As My Character C** 핀을 다시 끌어놓고 **Set Car** 노드를 추가한 다음, **Car** 핀을 끌어놓고 **Get Reference To Self** 노드를 추가합니다.
 
@@ -157,9 +157,9 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 	_이미지를 클릭하면 원래 크기로 봅니다._
 
-	여기서는 **Sedan** 블루프린트로의 레퍼런스를 만들어 **MyCharacter** 블루프린트의 변수에 할당했습니다. 마지막에 **Print String** 노드에다 약간의 텍스트를 추가하여 **Trigger** 박스 안에 들어왔음을 알릴 수도 있습니다 (여기서는 **Enter Car** 라고 설정했습니다).
+	여기서는 **Sedan** 블루프린트로의 레퍼런스를 만들어 **ThirdPersonCharacter** 블루프린트의 변수에 할당했습니다. 마지막에 **Print String** 노드에다 약간의 텍스트를 추가하여 **Trigger** 박스 안에 들어왔음을 알릴 수도 있습니다 (여기서는 **Enter Car** 라고 설정했습니다).
 
-1.	**OnComponentEndOverlap** 노드의 **Other Actor** 핀을 끌어놓은 다음 **Cast To MyCharacter** 합니다.
+1.	**OnComponentEndOverlap** 노드의 **Other Actor** 핀을 끌어놓은 다음 **Cast To ThirdPersonCharacter** 합니다.
 
 1.	**As My Character C** 핀을 끌어놓고 **Set Near Car** 노드를 추가한 다음, 박스는 체크하지 말고 **False** 로 놔둡니다.
 
@@ -201,7 +201,7 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 	_이미지를 클릭하면 원래 크기로 봅니다._
 		
-1.	**MyCharacter** 블루프린트를 열고, 그래프에서 **E** Key Event 를 추가한 다음 **Branch** (분기) 노드를 추가합니다.
+1.	**ThirdPersonCharacter** 블루프린트를 열고, 그래프에서 **E** Key Event 를 추가한 다음 **Branch** (분기) 노드를 추가합니다.
 
 1.	**Crl** 키를 누르고 **NearCar** 변수를 끌어놓은 다음 **분기** 조건에 연결합니다.
 
@@ -221,7 +221,7 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 1.	**As Sedan C** 핀을 끌어놓고 **Set Player** 노드를 추가한 다음 **Player** 를 끌어놓고 **Get Reference To Self** 노드를 추가합니다.
 
-1.	**MyCharacter** 의 전체 시퀀스는 아래와 같을 것입니다.
+1.	**ThirdPersonCharacter** 의 전체 시퀀스는 아래와 같을 것입니다.
 
 	[REGION:lightbox]
 	[![](GHT4B_26.png)(w:780)](GHT4B_26.png)
@@ -229,9 +229,9 @@ _이 예제는 **블루프린트 삼인칭 및 비히클 템플릿** 프로젝�
 
 	_이미지를 클릭하면 원래 크기로 봅니다._
 
-	여기서는 **E** 키가 눌리면, (**Sedan** 블루프린트의 트리거 박스에 들어서면 설정되는 **NearCar** 가 _True_ 인 경우) 차를 빙의한 뒤, **MyCharacter** 액터를 게임에서 숨기도록 설정하고 그 콜리전을 제거합니다. 그런 다음 **Sedan** 블루프린트더러, 비히클을 나설 때 **MyCharacter** 에 돌아갈 수 있도록 블루프린트의 **Player** 변수가 **MyCharacter** 블루프린트를 가리키도록 합니다.
+	여기서는 **E** 키가 눌리면, (**Sedan** 블루프린트의 트리거 박스에 들어서면 설정되는 **NearCar** 가 _True_ 인 경우) 차를 빙의한 뒤, **ThirdPersonCharacter** 액터를 게임에서 숨기도록 설정하고 그 콜리전을 제거합니다. 그런 다음 **Sedan** 블루프린트더러, 비히클을 나설 때 **ThirdPersonCharacter** 에 돌아갈 수 있도록 블루프린트의 **Player** 변수가 **ThirdPersonCharacter** 블루프린트를 가리키도록 합니다.
 
-1. **콘텐츠 브라우저** 에서 **Sedan** 블루프린트를 끌어 레벨에 놓습니다.
+1. 레벨에 세단이 이미 배지된 경우 지웁니다. 그리고 **콘텐츠 브라우저** 에서 **Sedan** 블루프린트를 끌어 레벨에 놓습니다.
 
 1.	**컴파일** 을 클릭한 다음 메인 툴바에서 **플레이** 를 눌러 에디터에서 플레이합니다. 결과가 아래와 같을 것입니다.
 

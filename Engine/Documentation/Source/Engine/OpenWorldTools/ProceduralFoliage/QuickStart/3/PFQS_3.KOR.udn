@@ -1,0 +1,125 @@
+﻿INTSourceChangelist:2555278
+Availability:Docs
+Title: 3. 프로시저럴 폴리지 툴 액터 프로퍼티 조정
+Crumbs:
+Description:이번 단계에서는 프로시저럴 폴리지 액터 세팅을 조정해 봅니다.
+Navigation:topic
+SkillLevel:Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[예전 단계](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[비법 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[다음 단계](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+다음 섹션에서는 **폴리지 타입** 액터의 다양한 옵션과 그 옵션의 역할, 그리고 그를 통해 레벨에 폴리지 메시 배치 방식을 조정하는 법을 살펴보겠습니다.
+예전 단계에서 사용했던 **PFT_00** 레벨 작업을 이어가겠습니다.
+이미 닫힌 경우 다시 열어주시기 바랍니다.
+
+1. 먼저 **Tree_00** 폴리지 타입을 연 다음, **Placement** 섹션을 펼쳐 **Align to Normal** (노멀에 정렬)과 **Random Yaw** (랜덤 요) 옵션을 켜도록 합니다.
+
+	![](T_Placement_Options.png)
+
+	[region:note]
+	Placement 섹션에서는 레벨의 오브젝트에 폴리지 타입에 사용된 스태틱 메시가 배치되는 방식을 조절할 수 있습니다.
+	[/region]
+
+1. 다음, 폴리지 타입의 **Procedural** 섹션을 펼친 뒤 **Collision** 섹션을 펼치고 **Shade Radius** (그늘 반경)을 **50** 으로 설정한 뒤 레벨에 배치된 프로시저럴 폴리지 스포너의 **재시뮬레이션** 버튼을 누릅니다.
+
+	![](T_Shade_Radius.png)
+
+	[region:note]
+	Collisio 섹션은 같은 스폰 위치 또는 상대적 공간에 두 가지 폴리지 타입이 겹칠 때 어떤 것을 제거할 것인지 결정하는 부분입니다. Virtual Seed (가상 씨앗)의 콜리전 반경이 기존 콜리전 또는 다른 폴리지 타입의 가상 씨앗 그늘 반경에 겹치는 경우, 그 폴리지 타입의 우선권에 따라 가상 씨앗이 대체 또는 삭제됩니다.
+	[/region]
+
+1. 이제 **Collision** 섹션을 닫고 **Clustering** 섹션을 펼친 다음 **Num Steps** 를 **0** 으로 설정한 뒤 **재시뮬레이션** 버튼을 누릅니다.
+
+	![](T_Num_Steps_0.png)
+
+	[region:note]
+	Clustering 은 밀도, 나이, 근접 여부 등 여러가지 속성을 사용하여 지정된 스태틱 메시를 레벨에 어떻게 배치하고 군집을 이룰지 결정하는 데 도움을 줍니다.
+	[/region]
+
+1. 나무 사이에 약간의 공간이 생겼지만, 전체적인 밀도가 아직 약간 좀 높습니다.
+	수정을 위해 **Initial Seed Density** 를 **0.25** 로 설정한 뒤 **재시뮬레이션** 버튼을 누릅니다.
+
+	![](T_Num_ISD_0.125.png)
+
+1. 보시듯이 **Initial Seed Density** 를 **0.25** 로 설정했더니 숲의 밀도가 약간 심하다 싶을 정도로 크게 줄었습니다.
+	해결을 위해 **Num Steps** 를 다시 **3** 으로 설정하고 **재시뮬레이션** 버튼을 누릅니다.
+
+	![](T_Num_Steps_3.png)
+
+1. 이제 **Clustering** 섹션을 접고 **Growth** 섹션을 펼친 다음 
+	**Max Age** 를 **20.0** 으로, **Procedural Scale** 아래 **Max** 값을 **10.0** 으로 설정한 뒤 **재시뮬레이션** 버튼을 누릅니다.
+
+	![](T_Set_Growth.png)
+
+1. 다음, **Growth** 섹션을 접고 ** Instance Settings** 옵션을 펼친 다음 **Cull Distance** 옵션 아래 **Max** 값을 **20,000** 으로 설정합니다. 
+	
+	![](T_Cull_Distance.png)
+
+	[region:note]
+	Instance Settings 는 폴리지 타입에 사용되는 스태틱 메시가 레벨에 어떻게 표시되는지를 조정할 수 있습니다. Instance Settings 안에서 Cull Distance, Shadowing, Collision 같은 여러가지 프로퍼티를 설정 또는 조정할 수 있습니다. 여기서 어떤 프로퍼티를 조정할지는 레벨에 폴리지를 사용한 방식에 따라 달라집니다.
+	[/region]
+
+1. 마지막으로, **메인 툴바** 의 **저장** 버튼과 **콘텐츠 브라우저** 의 **모두 저장** 버튼을 눌러 레벨과 콘텐츠를 저장하도록 합니다.
+
+	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%Steps%

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2489335
+﻿INTSourceChangelist:2555570
 Availability: Public
 Title:3. 블루프린트로 C++ 확장 및 덮어쓰기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -146,7 +146,6 @@ Description:블루프린트를 사용하여 C++ 함수성을 보조하거나 덮
 				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 				CountdownText->SetHorizontalAlignment(EHTA_Center);
 				CountdownText->SetWorldSize(150.0f);
-				CountdownText->AttachTo(RootComponent);
 				RootComponent = CountdownText;
 
 				CountdownTime = 3;
