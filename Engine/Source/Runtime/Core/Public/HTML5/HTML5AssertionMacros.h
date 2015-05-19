@@ -34,6 +34,8 @@ inline void html5_break_msg(const char* msg, const char* file, int line) {
 		var InMsg = Pointer_stringify($0);
 		var InFile = Pointer_stringify($1);
 		alert('Expression ('+InMsg+') failed in '+InFile+':'+$2+'!\nCheck console for details.\n'); 
+		var callstack = new Error; 
+		throw callstack.stack; 
 	}, msg, file, line);
 }
 

@@ -94,6 +94,7 @@ public class HTML5Platform : Platform
         {
             File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe), Path.Combine(PackagePath, GameExe), true);
             File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".mem", true);
+			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbols", true);
         }
         File.SetAttributes(Path.Combine(PackagePath, GameExe), FileAttributes.Normal);
         File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".mem", FileAttributes.Normal);
@@ -171,9 +172,10 @@ public class HTML5Platform : Platform
 
 				if (LineStr.Contains("%CONFIG%"))
 				{
+					string TempGameName = InGameName;
 					if (IsContentOnly)
-						InGameName = "UE4Game";
-					LineStr = LineStr.Replace("%CONFIG%", (InGameConfiguration != "Development" ? (InGameName + "-HTML5-" + InGameConfiguration) : InGameName));
+						TempGameName = "UE4Game";
+					LineStr = LineStr.Replace("%CONFIG%", (InGameConfiguration != "Development" ? (TempGameName + "-HTML5-" + InGameConfiguration) : TempGameName));
 				}
 
 				if (LineStr.Contains("%UE4CMDLINE%"))
@@ -246,6 +248,7 @@ public class HTML5Platform : Platform
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("json2.js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("jStorage.js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("moz_binarystring.js"));

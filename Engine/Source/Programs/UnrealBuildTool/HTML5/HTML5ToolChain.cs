@@ -198,7 +198,7 @@ namespace UnrealBuildTool
 				}
 				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
-					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000   -g2 ";
+					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000 ";
 				}
 				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
@@ -516,7 +516,7 @@ namespace UnrealBuildTool
 
 		    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
 		    LinkAction.ProducedItems.Add(OutputBC);
-		    LinkAction.CommandArguments += string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
+			LinkAction.CommandArguments += " --emit-symbol-map " + string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
 
      		LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
