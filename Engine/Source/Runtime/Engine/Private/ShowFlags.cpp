@@ -345,6 +345,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 		if(ICVar->GetValueOnGameThread() == 0)
 		{
 			EngineShowFlags.AmbientOcclusion = 0;
+			EngineShowFlags.ScreenSpaceAO = 0;
 			EngineShowFlags.Decals = 0;
 			EngineShowFlags.DynamicShadows = 0;
 			EngineShowFlags.GlobalIllumination = 0;

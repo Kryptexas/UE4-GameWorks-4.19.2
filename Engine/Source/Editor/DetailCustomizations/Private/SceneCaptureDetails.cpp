@@ -148,6 +148,9 @@ void FSceneCaptureDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 			case SFG_Visualize:
 				GroupName = LOCTEXT("VisualizeShowFlagsMenu", "Visualize Show Flags");
 				break;
+			case SFG_LightTypes:
+				GroupName = LOCTEXT("LightTypesShowFlagsMenu", "Light Types Show Flags");
+				break;
 			case SFG_LightingComponents:
 				GroupName = LOCTEXT("LightingComponentsShowFlagsMenu", "Lighting Components Show Flags");
 				break;

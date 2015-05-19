@@ -1219,7 +1219,7 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		FinalPostProcessSettings.ScreenPercentage = 100;
 	}
 
-	if(!Family->EngineShowFlags.AmbientOcclusion)
+	if(!Family->EngineShowFlags.AmbientOcclusion || !Family->EngineShowFlags.ScreenSpaceAO)
 	{
 		FinalPostProcessSettings.AmbientOcclusionIntensity = 0;
 	}
