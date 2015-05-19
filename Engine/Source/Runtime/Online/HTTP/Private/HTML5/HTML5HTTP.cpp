@@ -306,7 +306,7 @@ bool FHTML5HttpRequest::StartRequest()
 	TArray<FString> AllHeaders = GetAllHeaders();
 
 	// Create a String which emscripten can understand. 
-	FString Headers = FString::Join(AllHeaders, TEXT("%"));
+	FString RequestHeaders = FString::Join(AllHeaders, TEXT("%"));
 	
 	// set up verb (note that Verb is expected to be uppercase only)
 	if (Verb == TEXT("POST"))
@@ -316,7 +316,7 @@ bool FHTML5HttpRequest::StartRequest()
 		check(!GetHeader("Content-Type").IsEmpty() || IsURLEncoded(RequestPayload));
 
 #if PLATFORM_HTML5_BROWSER
-		UE_MakeHTTPDataRequest(this, TCHAR_TO_ANSI(*URL), "POST", (char*)RequestPayload.GetData(), RequestPayload.Num(),TCHAR_TO_ANSI(*Headers), 0, StaticReceiveCallback, StaticErrorCallback, StaticProgressCallback);
+		UE_MakeHTTPDataRequest(this, TCHAR_TO_ANSI(*URL), "POST", (char*)RequestPayload.GetData(), RequestPayload.Num(),TCHAR_TO_ANSI(*RequestHeaders), 0, StaticReceiveCallback, StaticErrorCallback, StaticProgressCallback);
 #else
 		return false;
 #endif
@@ -335,7 +335,7 @@ bool FHTML5HttpRequest::StartRequest()
 	else if (Verb == TEXT("GET"))
 	{
 #if PLATFORM_HTML5_BROWSER
-		UE_MakeHTTPDataRequest(this, TCHAR_TO_ANSI(*URL), "GET", NULL, 0,TCHAR_TO_ANSI(*Headers), 1, StaticReceiveCallback, StaticErrorCallback, StaticProgressCallback);
+		UE_MakeHTTPDataRequest(this, TCHAR_TO_ANSI(*URL), "GET", NULL, 0,TCHAR_TO_ANSI(*RequestHeaders), 1, StaticReceiveCallback, StaticErrorCallback, StaticProgressCallback);
 #else
 		return false;
 #endif
