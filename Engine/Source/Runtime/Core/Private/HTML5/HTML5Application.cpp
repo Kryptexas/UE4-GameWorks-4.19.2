@@ -123,20 +123,20 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 					case SDL_WINDOWEVENT_ENTER:
 						{
 							UE_LOG(LogHTML5Application, Verbose, TEXT("WindowEnter"));
-							MessageHandler->OnCursorSet();
-							MessageHandler->OnWindowActivationChanged(ApplicationWindow, EWindowActivation::Activate); 
+						//	MessageHandler->OnWindowActivationChanged(ApplicationWindow, EWindowActivation::Activate); 
 							WarmUpTicks = 0; 
 						}
 						break;
 					case SDL_WINDOWEVENT_LEAVE:
 						{
 							UE_LOG(LogHTML5Application, Verbose, TEXT("WindowLeave"));
-							MessageHandler->OnWindowActivationChanged(ApplicationWindow, EWindowActivation::Deactivate);
+						 //	MessageHandler->OnWindowActivationChanged(ApplicationWindow, EWindowActivation::Deactivate);
 						}
 						break;
 					case SDL_WINDOWEVENT_FOCUS_GAINED:
 						{
 							UE_LOG(LogHTML5Application, Verbose, TEXT("WindowFocusGained"));
+							MessageHandler->OnCursorSet();
 							MessageHandler->OnWindowActivationChanged(ApplicationWindow, EWindowActivation::Activate);
 									WarmUpTicks = 0;
 						}
@@ -195,7 +195,7 @@ void FHTML5Application::PollGameDeviceState( const float TimeDelta )
 		else
 		{
 			UE_LOG(LogHTML5Application, Verbose, TEXT("Exit pointer lock"));
-			emscripten_exit_pointerlock(); 
+			//emscripten_exit_pointerlock(); 
 		}
 #endif 
 
