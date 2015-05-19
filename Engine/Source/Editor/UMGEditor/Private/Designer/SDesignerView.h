@@ -47,6 +47,7 @@ public:
 	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
@@ -138,6 +139,9 @@ private:
 
 	/** @return Formatted text for the given resolution params */
 	FText GetResolutionText(int32 Width, int32 Height, const FString& AspectRatio) const;
+
+	/** Move the selected widget by the nudge amount. */
+	FReply NudgeSelectedWidget(FVector2D Nudge);
 
 	FText GetCurrentResolutionText() const;
 	FText GetCurrentDPIScaleText() const;
