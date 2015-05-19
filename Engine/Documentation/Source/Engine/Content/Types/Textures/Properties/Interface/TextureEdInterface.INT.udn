@@ -78,6 +78,7 @@ You can open the Texture Editor by **double-clicking** a Texture asset in the **
 ### Asset
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetViewReference]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
 
 

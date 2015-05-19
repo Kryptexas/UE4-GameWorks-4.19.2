@@ -36,6 +36,10 @@ Crumbs:
 * **Find in Content Browser** - Locates and selects the current asset in the **Content Browser**.
 [/EXCERPT:MenuAssetContentBrowser]
 
+[EXCERPT:MenuAssetViewReference]
+* **View Reference** - Launches the reference viewer showing the selected assets' references. 
+[/EXCERPT:MenuAssetViewReference]
+
 [EXCERPT:MenuAssetReimport]
 * **Reimport _filename_** - Reimports the current asset from its original location on disk.
 [/EXCERPT:MenuAssetReimport]
@@ -64,15 +68,20 @@ Crumbs:
 [EXCERPT:MenuWindow]
 * **Content Browser** - Brings up the **Content Browser** in a separate window.
 * **Developer Tools** - Brings up the selected **Developer Tool** in a separate window (Camera Debugger, Collision Analyzer, Debug Tools, Modules, Widget Reflector).
-* **Blueprint Debugger** - Brings up the **Blueprint Debugger** in a separate window.
-* **Class Viewer** - Brings up the **Class Viewer** in a separate window.
-* **Device Profile Editor** - Brings up the **Device Profile Editor** in a separate window.
-* **Message Log** - Brings up the **Message Log** in a separate window.
-* **Output Log** - Brings up the **Output Log** in a separate window.
+	* **Blueprint Debugger** - Brings up the **Blueprint Debugger** in a separate window.
+	* **Collision Analyzer** - Brings up the **Collision Analyzer** in a separate window.
+	* **Debug Tool** - Brings up the **Debug Tool** in a seperate window. 
+	* **Message Log** - Brings up the **Message Log** in a separate window.
+	* **Output Log** - Brings up the **Output Log** in a separate window.
+	* **Visual Logger** - Bring up the **Visual Logger** tool in a seperate window. 
+	* **Class Viewer** - Brings up the **Class Viewer** in a separate window.
+	* **Device Manager** - Brings up **Device Manager** in a separate window.
+	* **Device Profiles** - Brings up the **Device Profiles** in a separate window.
+	* **Modules** - Brings up **Modules** in a seperate window. 
+	* **Session Frontend** - Brings up **Unreal Frontend** in a separate window.
+	* **Widget Reflector** - Brings up **Widget Reflector** in a seperate window. 
 * **Undo History** - Brings up the **Undo History** panel in a separate window.
 * **Plugins** - Brings up the **Plugins** window.
-* **Device Manager** - Brings up **Device Manager** in a separate window.
-* **Session Frontend** - Brings up **Unreal Frontend** in a separate window.
 * **Reset Layout** - Resets your layout to a default arrangement. Requires the editor to restart after saving your changes and creating a backup of your settings. 
 * **Save Layout** - Saves the current layout of the panels as the new default layout.
 * **Enable Fullscreen** - Enables fullscreen mode for the application, expanding across the entire monitor.
