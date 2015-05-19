@@ -1526,6 +1526,8 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList, EShadow
 	{
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_LessEqual>::GetRHI());
 	}
+
+	RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 }
 
 
