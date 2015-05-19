@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "BonePose.h"
+#include "AnimationRuntime.h"
 
 void FMeshPose::ResetToRefPose()
 {

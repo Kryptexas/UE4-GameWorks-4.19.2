@@ -4,6 +4,7 @@
 
 #include "Perception/AIPerceptionSystem.h"
 #include "Perception/AISense.h"
+#include "Perception/AIPerceptionListenerInterface.h"
 #include "AISense_Damage.generated.h"
 
 USTRUCT()
