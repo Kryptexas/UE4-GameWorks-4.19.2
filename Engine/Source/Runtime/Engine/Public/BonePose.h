@@ -164,23 +164,23 @@ public:
 		typedef FBasePose<FCompactPoseBoneIndex>::FRangedForSupport<FCompactPose, FCompactPoseBoneIndexIterator> RangedForBoneIndexFwd;
 		typedef FBasePose<FCompactPoseBoneIndex>::FRangedForReverseSupport<FCompactPose, FCompactPoseBoneIndexReverseIterator> RangedForBoneIndexBwd;
 
-		RangedForBoneIndexFwd ForEachBoneIndex() const
+		FORCEINLINE RangedForBoneIndexFwd ForEachBoneIndex() const
 		{
 			return RangedForBoneIndexFwd(*this);
 		}
 
-		RangedForBoneIndexBwd ForEachBoneIndexReverse() const
+		FORCEINLINE RangedForBoneIndexBwd ForEachBoneIndexReverse() const
 		{
 			return RangedForBoneIndexBwd(*this);
 		}
 
-		FCompactPoseBoneIndexIterator MakeBeginIter() const { return FCompactPoseBoneIndexIterator(0); }
+		FORCEINLINE FCompactPoseBoneIndexIterator MakeBeginIter() const { return FCompactPoseBoneIndexIterator(0); }
 
-		FCompactPoseBoneIndexIterator MakeEndIter() const { return FCompactPoseBoneIndexIterator(GetNumBones()); }
+		FORCEINLINE FCompactPoseBoneIndexIterator MakeEndIter() const { return FCompactPoseBoneIndexIterator(GetNumBones()); }
 
-		FCompactPoseBoneIndexReverseIterator MakeBeginIterReverse() const { return FCompactPoseBoneIndexReverseIterator(GetNumBones() - 1); }
+		FORCEINLINE FCompactPoseBoneIndexReverseIterator MakeBeginIterReverse() const { return FCompactPoseBoneIndexReverseIterator(GetNumBones() - 1); }
 
-		FCompactPoseBoneIndexReverseIterator MakeEndIterReverse() const { return FCompactPoseBoneIndexReverseIterator(-1); }
+		FORCEINLINE FCompactPoseBoneIndexReverseIterator MakeEndIterReverse() const { return FCompactPoseBoneIndexReverseIterator(-1); }
 	//--------------------------------------------------------------------------
 
 	const FBoneContainer& GetBoneContainer() const 
