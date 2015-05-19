@@ -265,6 +265,7 @@ public:
 		SkyLightReflectionParameters.Bind(ParameterMap);
 		HZBTexture.Bind(ParameterMap, TEXT("HZBTexture"));
 		HZBSampler.Bind(ParameterMap, TEXT("HZBSampler"));
+		HZBUvFactorAndInvFactor.Bind(ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
 		PrevSceneColor.Bind(ParameterMap, TEXT("PrevSceneColor"));
 		PrevSceneColorSampler.Bind(ParameterMap, TEXT("PrevSceneColorSampler"));
 	}
@@ -290,6 +291,7 @@ public:
 		Ar << P.SkyLightReflectionParameters;
 		Ar << P.HZBTexture;
 		Ar << P.HZBSampler;
+		Ar << P.HZBUvFactorAndInvFactor;
 		Ar << P.PrevSceneColor;
 		Ar << P.PrevSceneColorSampler;
 		return Ar;
@@ -311,6 +313,7 @@ private:
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
 	FShaderResourceParameter HZBTexture;
 	FShaderResourceParameter HZBSampler;
+	FShaderParameter HZBUvFactorAndInvFactor;
 	FShaderResourceParameter PrevSceneColor;
 	FShaderResourceParameter PrevSceneColorSampler;
 };
