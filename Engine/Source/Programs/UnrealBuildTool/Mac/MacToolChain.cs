@@ -1363,7 +1363,7 @@ namespace UnrealBuildTool
 				string LibName = Path.GetFileName(AdditionalLibrary);
 				if (LibName.StartsWith("lib"))
 				{
-					if (Path.GetExtension(AdditionalLibrary) == ".dylib")
+					if (Path.GetExtension(AdditionalLibrary) == ".dylib" && !String.IsNullOrEmpty(BundleContentsDirectory))
 					{
 						string Entry = BundleContentsDirectory + "MacOS/" + LibName;
 						Receipt.AddBuildProduct(Entry, BuildProductType.DynamicLibrary);
