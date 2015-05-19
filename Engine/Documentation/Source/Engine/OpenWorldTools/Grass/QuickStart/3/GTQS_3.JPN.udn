@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2554119
+Availability:Docs
+Title:3.Grass ツールマテリアルの設定
+Crumbs:
+Description:Grass システムと連動するマテリアルの設定方法
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\1 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\Grass\QuickStart\4:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Grass ツールの使用を開始する前に、ランドスケープテレインと **Landscape Grass Type** 両方と機能するマテリアルを作成しなくてはいけません。 
+次のセクションでこのマテリアルの作成および設定方法に加えて、Landscape Grass Type と連動させる接続方法を紹介します。 
+
+[region:tip]
+UE4 のランドスケープテレインがどのように動作するか詳細を知りたい方は、 [Landscape](https://docs.unrealengine.com/latest/INT/Engine/Landscape/index.html) ページを参照してください。
+[/region]
+
+1. 最初に **コンテンツブラウザ** を **右クリック** してランドスケープテレイン用に新規マテリアルを作成してから、 **Create Basic Asset** セクションから **マテリアル** オプションを選択します。 
+	新規マテリアルは **MAT_GT_Grass** と名前を付けます。
+
+	![](T_Create_New_Material.png)
+
+1. **コンテンツブラウザ** の **MAT_GT_Grass** マテリアルを **左マウスボタン** で **ダブルクリック** して開いてから、以下のテクスチャ2つを **Open World Demo Collection** からマテリアルグラフへ追加します。
+
+	* **T_AlpinePatch001_D_alt_R**
+	* **T_GDC_Grass01_D_NoisyAlpha**
+
+	![](T_Added_Textures.png)
+
+1. 次に **パレット** 検索機能を使用して以下の Material Expression ノードを検索します。
+	必要な Material Expression ノードを見つけたら、パレット内で **左マウスボタン** ボタンでこれをクリックしてマテリアルグラフへドラッグした後に、 **左マウスボタン** をリリースして、ノードをマテリアルグラフに配置します。 
+
+	* **Landscape Layer Blend（ランドスケープレイヤーブレンド）** x 1
+	* **Landscape Layer Sample（ランドスケープレイヤーサンプル）** x 1
+	* **Landscape Grass Output（ランドスケープの草の出力）** x 1
+
+	![](T_Add_Material_Nodes.gif)(convert:false)
+
+1. マテリアルグラフで **Landscape Layer Blend** ノードを選択して、 **+** アイコンを2回押して新規 **レイヤー** を2つ追加します。 
+	レイヤーを2つ追加したら、片方の **Layer Name(レイヤー名)** を **Grass** 、もう一つの **レイヤー名** に **Rock** と名前を付けて、 Grass と Rock の **Preview Weight** を両方とも値1.0 に設定します。 
+
+	![](T_LS_LayerBlend_Setup.png)
+
+1. 次に **T_AlpinePatch001_D_alt_R** を **Landscape Layer Blend** ノードの **Layer Rock** 入力と接続してから、 **T_GDC_Grass01_D_NoisyAlpha** を **Later Grass** 入力と接続します。 
+	この操作が完了したら、 **Landscape Layer Blend** ノードの **Output** を **Main Material Node** の **Base Color** 入力と接続します。
+
+	![](T_Hook_Up_Textures.png)
+	1. マテリアルグラフ内の **Landscape Grass Output** ノードを選んでから、 **詳細** パネルの **Grass Types** セクションで **+** アイコンを押して、 Grass Types 配列に新規エレメントを追加します。 
+
+	![](T_Grass_Out_SetUp.gif)(convert:false)
+
+
+1. **コンテンツブラウザ** で最後の手順で作成した **Grass_00** Landscape Grass Type を選んで、 **Grass Type** オプションの **マテリアル** で 
+	**矢印** アイコンを押して、現在コンテンツブラウザで選択しているアクタをロードします。 
+
+	![](T_Input_Grass_Type.png)
+
+1. 次に **Parameter Name（パラメータ名）** に **Grass** と入力して表示される **Landscape Layer Sample** ノードを選んで、 **Landscape Layer Sample** の出力と **Landscape Grass Output** ノードの入力を接続します。 
+
+	![](T_LLW_Setup.png)
+
+1. 最後に **Apply（適用）** と **Save（保存）** ボタンを押してマテリアルをコンパイルおよび保存します。
+
+	![](T_Final_Material.png)
+
+
+
+
+%Steps%
