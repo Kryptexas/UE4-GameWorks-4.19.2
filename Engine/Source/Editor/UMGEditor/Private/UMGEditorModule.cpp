@@ -105,14 +105,9 @@ public:
 		return Cast<UWidgetBlueprint>(Blueprint) != nullptr;
 	}
 
-	void PreCompile(UBlueprint* Blueprint) override
+	void PreCompile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions) override
 	{
-		if (!CanCompile(Blueprint))
-		{
-			return;
-		}
-
-		if ( CompileCount == 0 )
+		if ( ReRegister == nullptr && CanCompile(Blueprint) && CompileOptions.CompileType == EKismetCompileType::Full )
 		{
 			ReRegister = new TComponentReregisterContext<UWidgetComponent>();
 		}
@@ -130,19 +125,19 @@ public:
 		}
 	}
 
-	void PostCompile(UBlueprint* Blueprint) override
+	void PostCompile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions) override
 	{
 		CompileCount--;
 
-		if ( ReRegister && CompileCount == 0 )
+		if ( CompileCount == 0 && ReRegister )
 		{
 			delete ReRegister;
 			ReRegister = nullptr;
-		}
-		
-		if ( GIsEditor && GEditor )
-		{
-			GEditor->RedrawAllViewports(true);
+
+			if ( GIsEditor && GEditor )
+			{
+				GEditor->RedrawAllViewports(true);
+			}
 		}
 	}
 

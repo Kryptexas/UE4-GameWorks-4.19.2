@@ -140,7 +140,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	for ( IBlueprintCompiler* Compiler : Compilers )
 	{
-		Compiler->PreCompile(Blueprint);
+		Compiler->PreCompile(Blueprint, CompileOptions);
 	}
 
 	if (CompileOptions.CompileType != EKismetCompileType::Cpp)
@@ -218,7 +218,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	for ( IBlueprintCompiler* Compiler : Compilers )
 	{
-		Compiler->PostCompile(Blueprint);
+		Compiler->PostCompile(Blueprint, CompileOptions);
 	}
 
 	UPackage* Package = Blueprint->GetOutermost();

@@ -15,12 +15,22 @@ class UBlueprint;
 class IBlueprintCompiler
 {
 public:
-	virtual void PreCompile(UBlueprint* Blueprint) = 0;
+	virtual void PreCompile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions)
+	{
+		PreCompile(Blueprint);
+	}
 
 	virtual bool CanCompile(const UBlueprint* Blueprint) = 0;
 	virtual void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded) = 0;
 	
-	virtual void PostCompile(UBlueprint* Blueprint) = 0;
+	virtual void PostCompile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions)
+	{
+		PostCompile(Blueprint);
+	}
+
+protected:
+	virtual void PreCompile(UBlueprint* Blueprint) { }
+	virtual void PostCompile(UBlueprint* Blueprint) { }
 };
 
 class IKismetCompilerInterface : public IModuleInterface
