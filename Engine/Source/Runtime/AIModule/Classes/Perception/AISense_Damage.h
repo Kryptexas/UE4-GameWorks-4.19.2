@@ -4,8 +4,9 @@
 
 #include "Perception/AIPerceptionSystem.h"
 #include "Perception/AISense.h"
-#include "Perception/AIPerceptionListenerInterface.h"
 #include "AISense_Damage.generated.h"
+
+class IAIPerceptionListenerInterface;
 
 USTRUCT()
 struct AIMODULE_API FAIDamageEvent
