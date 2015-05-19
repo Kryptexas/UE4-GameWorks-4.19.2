@@ -187,6 +187,10 @@ public:
 	}
 	virtual bool Close() final;
 	virtual void Serialize( void* V, int64 Length ) final;
+	virtual FString GetArchiveName() const override
+	{
+		return Filename;
+	}
 
 protected:
 	bool InternalPrecache( int64 PrecacheOffset, int64 PrecacheSize );
