@@ -190,10 +190,12 @@ void FHierarchicalLODBuilder::BuildClusters(class ULevel* InLevel)
 
 			// since to show progress of initialization, I'm scoping it
 			{
+				FString LevelName = FPackageName::GetShortName(InLevel->GetOutermost()->GetName());
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("LODIndex"), FText::AsNumber(LODId+1));
+				Arguments.Add(TEXT("LevelName"), FText::FromString(LevelName));
 
-				FScopedSlowTask SlowTask(100, FText::Format(LOCTEXT("HierarchicalLOD_InitializeCluster", "Initializing Clusters for LOD {LODIndex}..."), Arguments));
+				FScopedSlowTask SlowTask(100, FText::Format(LOCTEXT("HierarchicalLOD_InitializeCluster", "Initializing Clusters for LOD {LODIndex} of {LevelName}..."), Arguments));
 				SlowTask.MakeDialog();
 
 				// initialize Clusters
@@ -237,15 +239,16 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(class ULevel* InLevel,
 {
 	if (Clusters.Num() > 0)
 	{
+		FString LevelName = FPackageName::GetShortName(InLevel->GetOutermost()->GetName());
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("LODIndex"), FText::AsNumber(LODIdx+1));
-
+		Arguments.Add(TEXT("LevelName"), FText::FromString(LevelName));
 		// merge clusters first
 		{
 			static int32 TotalIteration=3;
 			const int32 TotalCluster = Clusters.Num();
 
-			FScopedSlowTask SlowTask(TotalIteration*TotalCluster, FText::Format( LOCTEXT("HierarchicalLOD_BuildClusters", "Building Clusters for LOD {LODIndex}..."), Arguments) );
+			FScopedSlowTask SlowTask(TotalIteration*TotalCluster, FText::Format( LOCTEXT("HierarchicalLOD_BuildClusters", "Building Clusters for LOD {LODIndex} of {LevelName}..."), Arguments) );
 			SlowTask.MakeDialog();
 
 			for(int32 Iteration=0; Iteration<TotalIteration; ++Iteration)
@@ -314,7 +317,7 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(class ULevel* InLevel,
 				}
 			}
 
-			FScopedSlowTask SlowTask(TotalValidCluster, FText::Format( LOCTEXT("HierarchicalLOD_MergeActors", "Merging Actors for LOD {LODIndex}..."), Arguments) );
+			FScopedSlowTask SlowTask(TotalValidCluster, FText::Format( LOCTEXT("HierarchicalLOD_MergeActors", "Merging Actors for LOD {LODIndex} of {LevelName}..."), Arguments) );
 			SlowTask.MakeDialog();
 
 			for(auto& Cluster: Clusters)
@@ -409,9 +412,10 @@ void FHierarchicalLODBuilder::InitializeClusters(class ULevel* InLevel, const in
 						if(ShouldGenerateCluster(Actor2))
 						{
 							FLODCluster NewClusterCandidate = FLODCluster(Actor1, Actor2);
+							float NewClusterCost = NewClusterCandidate.GetCost();
 							// @todo optimization : filter first - this might create disconnected tree - 
 							//@Todo debug but it's too slow to have full tree 
-							if (NewClusterCandidate.GetCost() <= CullCost)
+							if ( NewClusterCost <= CullCost)
 							{
 								Clusters.Add(NewClusterCandidate);
 							}
@@ -506,7 +510,8 @@ FSphere FLODCluster::AddActor(class AActor* NewActor)
 	FVector Origin, Extent;
 	NewActor->GetActorBounds(false, Origin, Extent);
 	
-	FSphere NewBound = FSphere(Origin, Extent.Size());
+	// scale 0.01 (change to meter from centermeter)
+	FSphere NewBound = FSphere(Origin*CM_TO_METER, Extent.Size()*CM_TO_METER);
 	Bound += NewBound;
 
 	return NewBound;
@@ -659,7 +664,7 @@ void FLODCluster::BuildActor(class ULevel* InLevel, const int32 LODIdx)
 					MeshUtilities.MergeActors(Actors, LODSetup.MergeSetting, AssetsOuter, PackageName, LODIdx+1, OutAssets, OutProxyLocation, true );
 				}
 
-				// this is ideally the way we should do, but 
+				// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
 				for (auto& AssetIter : OutAssets)
 				{
 					AssetIter->ClearFlags(RF_Public | RF_Standalone);
