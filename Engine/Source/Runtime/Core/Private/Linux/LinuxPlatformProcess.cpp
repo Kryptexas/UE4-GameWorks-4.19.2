@@ -1064,8 +1064,8 @@ FLinuxPlatformProcess::FProcEnumerator::FProcEnumerator()
 	class FPIDsCollector : public IPlatformFile::FDirectoryVisitor
 	{
 	public:
-		FPIDsCollector(TArray<uint32>& PIDs)
-			: PIDs(PIDs)
+		FPIDsCollector(TArray<uint32>& InPIDsToCollect)
+			: PIDsToCollect(InPIDsToCollect)
 		{ }
 
 		bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
@@ -1080,7 +1080,7 @@ FLinuxPlatformProcess::FProcEnumerator::FProcEnumerator()
 			return true;
 		}
 
-		TArray<uint32>& PIDs;
+		TArray<uint32>& PIDsToCollect;
 	} PIDsCollector(PIDs);
 
 	IPlatformFile::GetPlatformPhysical().IterateDirectory(TEXT("/proc"), PIDsCollector);
@@ -1113,8 +1113,8 @@ bool FLinuxPlatformProcess::FProcEnumerator::MoveNext()
 	return true;
 }
 
-FLinuxPlatformProcess::FProcEnumInfo::FProcEnumInfo(uint32 PID)
-	: PID(PID)
+FLinuxPlatformProcess::FProcEnumInfo::FProcEnumInfo(uint32 InPID)
+	: PID(InPID)
 {
 
 }

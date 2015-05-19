@@ -109,7 +109,7 @@ struct CORE_API FWindowsPlatformProcess
 
 	private:
 		// Private constructor.
-		FProcEnumInfo(const PROCESSENTRY32& Info);
+		FProcEnumInfo(const PROCESSENTRY32& InInfo);
 
 		// Process info structure.
 		PROCESSENTRY32 Info;

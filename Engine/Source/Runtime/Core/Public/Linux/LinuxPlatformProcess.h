@@ -234,7 +234,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 
 	private:
 		// Private constructor.
-		FProcEnumInfo(uint32 PID);
+		FProcEnumInfo(uint32 InPID);
 
 		// Current process PID.
 		uint32 PID;

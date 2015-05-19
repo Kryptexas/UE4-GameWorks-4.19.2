@@ -1257,8 +1257,8 @@ FWindowsPlatformProcess::FProcEnumerator::~FProcEnumerator()
 	::CloseHandle(SnapshotHandle);
 }
 
-FWindowsPlatformProcess::FProcEnumInfo::FProcEnumInfo(const PROCESSENTRY32& Info)
-	: Info(Info)
+FWindowsPlatformProcess::FProcEnumInfo::FProcEnumInfo(const PROCESSENTRY32& InInfo)
+	: Info(InInfo)
 {
 
 }
