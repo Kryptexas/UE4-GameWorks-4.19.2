@@ -4393,7 +4393,9 @@ bool FSeamlessTravelHandler::StartTravel(UWorld* InCurrentWorld, const FURL& InU
 
 				// first, load the entry level package
 				LoadPackageAsync(TransitionMap, 
-					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback)
+					FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback),
+					0, 
+					(CurrentWorld->WorldType == EWorldType::PIE ? PKG_PlayInEditor : PKG_None)
 					);
 			}
 
@@ -4497,17 +4499,20 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 		// In PIE we might want to mangle MapPackageName when traveling to a map loaded in the editor
 		FString URLMapPackageName = PendingTravelURL.Map;
 		FString URLMapPackageToLoadFrom = PendingTravelURL.Map;
-		uint32 PackageFlags = 0;
+		EPackageFlags PackageFlags = PKG_None;
 		int32 PIEInstanceID = INDEX_NONE;
 		
 #if WITH_EDITOR
 		if (GIsEditor)
 		{
+			FWorldContext &WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
+			if (WorldContext.WorldType == EWorldType::PIE)
+			{
+				PackageFlags |= PKG_PlayInEditor;
+			}
 			UPackage* EditorLevelPackage = (UPackage*)StaticFindObjectFast(UPackage::StaticClass(), NULL, URLMapFName, 0, 0, RF_PendingKill);
 			if (EditorLevelPackage)
 			{
-				FWorldContext &WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
-				PackageFlags |= PKG_PlayInEditor;
 				PIEInstanceID = WorldContext.PIEInstance;
 				URLMapPackageName = UWorld::ConvertToPIEPackageName(URLMapPackageName, PIEInstanceID);
 			}

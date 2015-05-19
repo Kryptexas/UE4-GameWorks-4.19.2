@@ -1026,7 +1026,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 		FScopeCycleCounterUObject ConstructorScope(Package, GET_STATID(STAT_FAsyncPackage_CreateLinker));
 
 		// Set package specific data 
-		Package->PackageFlags |= Desc.Flags;
+		Package->PackageFlags |= Desc.PackageFlags;
 #if WITH_EDITOR
 		Package->PIEInstanceID = Desc.PIEInstanceID;
 #endif
@@ -1049,7 +1049,18 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 			}
 
 			// Create raw async linker, requiring to be ticked till finished creating.
-			Linker = FLinkerLoad::CreateLinkerAsync( Package, *PackageFileName, (FApp::IsGame() && !GIsEditor) ? (LOAD_SeekFree | LOAD_NoVerify) : LOAD_None  );
+			uint32 LinkerFlags = LOAD_None;
+			if (FApp::IsGame() && !GIsEditor)
+			{
+				LinkerFlags |= (LOAD_SeekFree | LOAD_NoVerify);
+			}
+#if WITH_EDITOR
+			else if ((Desc.PackageFlags & PKG_PlayInEditor) != 0)
+			{
+				LinkerFlags |= LOAD_PackageForPIE;
+			}
+#endif
+			Linker = FLinkerLoad::CreateLinkerAsync( Package, *PackageFileName, LinkerFlags );
 		}
 
 		UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::CreateLinker for %s finished."), *Desc.NameToLoad.ToString());
@@ -1682,7 +1693,7 @@ void FAsyncPackage::UpdateLoadPercentage()
 /*-----------------------------------------------------------------------------
 	UObject async (pre)loading.
 -----------------------------------------------------------------------------*/
-void LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, FName InType /*= NAME_None*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, uint32 InFlags /*= 0*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
+void LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, FName InType /*= NAME_None*/, const TCHAR* InPackageToLoadFrom /*= nullptr*/, FLoadPackageAsyncDelegate InCompletionDelegate /*= FLoadPackageAsyncDelegate()*/, EPackageFlags InPackageFlags /*= PKG_None*/, int32 InPIEInstanceID /*= INDEX_NONE*/, uint32 InPackagePriority /*= 0*/)
 {
 	// The comments clearly state that it should be a package name but we also handle it being a filename as this function is not perf critical
 	// and LoadPackage handles having a filename being passed in as well.
@@ -1714,15 +1725,15 @@ void LoadPackageAsync(const FString& InName, const FGuid* InGuid /*= nullptr*/, 
 		UE_LOG(LogStreaming, Fatal, TEXT("Async loading code requires long package names (%s)."), *PackageNameToLoad);
 	}
 
-	FAsyncPackageDesc PackageDesc(*PackageName, *PackageNameToLoad, InGuid ? *InGuid : FGuid(), InType, InCompletionDelegate, InFlags, InPIEInstanceID, InPackagePriority);
+	FAsyncPackageDesc PackageDesc(*PackageName, *PackageNameToLoad, InGuid ? *InGuid : FGuid(), InType, InCompletionDelegate, InPackageFlags, InPIEInstanceID, InPackagePriority);
 	FAsyncLoadingThread::Get().QueuePackage(PackageDesc);
 }
 
-void LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, uint32 InPackagePriority /*= 0*/)
+void LoadPackageAsync(const FString& PackageName, FLoadPackageAsyncDelegate CompletionDelegate, uint32 InPackagePriority /*= 0*/, EPackageFlags InPackageFlags /*= PKG_None*/)
 {
 	const FGuid* Guid = nullptr;
 	const TCHAR* PackageToLoadFrom = nullptr;
-	LoadPackageAsync(PackageName, Guid, NAME_None, PackageToLoadFrom, CompletionDelegate, InPackagePriority);
+	LoadPackageAsync(PackageName, Guid, NAME_None, PackageToLoadFrom, CompletionDelegate, InPackageFlags, -1, InPackagePriority );
 }
 
 void CancelAsyncLoading()

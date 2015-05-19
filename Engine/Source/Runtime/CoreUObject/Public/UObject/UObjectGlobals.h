@@ -292,7 +292,7 @@ DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageNa
  * @param	InPIEInstanceID			PIE instance ID
  * @param	InPackagePriority		Loading priority
  */
-COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, FName InType = NAME_None, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), uint32 InFlags = 0, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
+COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, FName InType = NAME_None, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
 
 /**
 * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -301,7 +301,7 @@ COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid
 * @param	InCompletionDelegate	Delegate to be invoked when the packages has finished streaming
 * @param	InPackagePriority		Loading priority
 */
-COREUOBJECT_API void LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, uint32 InPackagePriority = 0);
+COREUOBJECT_API void LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, uint32 InPackagePriority = 0, EPackageFlags InPackageFlags = PKG_None);
 
 /**
 * Cancels all async package loading requests.
