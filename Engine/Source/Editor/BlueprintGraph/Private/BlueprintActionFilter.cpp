@@ -22,6 +22,7 @@
 #include "K2Node_ExecutionSequence.h"
 #include "K2Node_DynamicCast.h"
 #include "K2Node_BaseAsyncTask.h"
+#include "EditorCategoryUtils.h"
 
 /*******************************************************************************
  * Static BlueprintActionFilter Helpers
