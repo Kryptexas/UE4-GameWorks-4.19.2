@@ -77,7 +77,8 @@ void SEditableText::Construct( const FArguments& InArgs )
 	// Map UI commands to delegates which are called when the command should be executed
 	UICommandList->MapAction( FGenericCommands::Get().Undo,
 		FExecuteAction::CreateSP( this, &SEditableText::Undo ),
-		FCanExecuteAction::CreateSP( this, &SEditableText::CanExecuteUndo ) );
+		FCanExecuteAction::CreateSP( this, &SEditableText::CanExecuteUndo ),
+		EUIActionRepeatMode::RepeatEnabled );
 
 	UICommandList->MapAction( FGenericCommands::Get().Cut,
 		FExecuteAction::CreateSP( this, &SEditableText::CutSelectedTextToClipboard ),
@@ -85,7 +86,8 @@ void SEditableText::Construct( const FArguments& InArgs )
 
 	UICommandList->MapAction( FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP( this, &SEditableText::PasteTextFromClipboard ),
-		FCanExecuteAction::CreateSP( this, &SEditableText::CanExecutePaste ) );
+		FCanExecuteAction::CreateSP( this, &SEditableText::CanExecutePaste ),
+		EUIActionRepeatMode::RepeatEnabled );
 
 	UICommandList->MapAction( FGenericCommands::Get().Copy,
 		FExecuteAction::CreateSP( this, &SEditableText::CopySelectedTextToClipboard ),

@@ -16,6 +16,14 @@ DECLARE_DELEGATE_RetVal(bool, FIsActionChecked);
 DECLARE_DELEGATE_RetVal(bool, FIsActionButtonVisible);
 
 
+/** Enum controlling whether a given UI action can be repeated if the chord used to call it is held down */
+enum class EUIActionRepeatMode
+{
+	RepeatDisabled,
+	RepeatEnabled,
+};
+
+
 /**
  * Implements an UI action.
  */
@@ -33,21 +41,32 @@ struct FUIAction
 	/** Holds a delegate that is executed when determining whether this action is visible. */
 	FIsActionButtonVisible IsActionVisibleDelegate;
 
+	/** Can this action can be repeated if the chord used to call it is held down? */
+	EUIActionRepeatMode RepeatMode;
+
 public:
 
 	/** Default constructor. */
-	FUIAction( ) { }
+	FUIAction( )
+		: ExecuteAction()
+		, CanExecuteAction()
+		, IsCheckedDelegate()
+		, IsActionVisibleDelegate()
+		, RepeatMode(EUIActionRepeatMode::RepeatDisabled)
+	{ }
 
 	/**
 	 * Constructor that takes delegates to initialize the action with
 	 *
 	 * @param	ExecuteAction		The delegate to call when the action should be executed
+	 * @param	RepeatMode			Can this action can be repeated if the chord used to call it is held down?
 	 */
-	FUIAction( FExecuteAction InitExecuteAction )
+	FUIAction( FExecuteAction InitExecuteAction, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction)
 		, CanExecuteAction(FCanExecuteAction::CreateRaw(&FSlateApplication::Get(), &FSlateApplication::IsNormalExecution))
 		, IsCheckedDelegate()
 		, IsActionVisibleDelegate()
+		, RepeatMode(InitRepeatMode)
 	{ }
 
 	/**
@@ -55,12 +74,14 @@ public:
 	 *
 	 * @param	ExecuteAction		The delegate to call when the action should be executed
 	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
+	 * @param	RepeatMode			Can this action can be repeated if the chord used to call it is held down?
 	 */
-	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction )
+	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction )
 		, CanExecuteAction(InitCanExecuteAction)
 		, IsCheckedDelegate()
 		, IsActionVisibleDelegate()
+		, RepeatMode(InitRepeatMode)
 	{ }
 
 	/**
@@ -69,12 +90,14 @@ public:
 	 * @param	ExecuteAction		The delegate to call when the action should be executed
 	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
 	 * @param	IsCheckedDelegate	The delegate to call to see if the action should appear checked when visualized
+	 * @param	RepeatMode			Can this action can be repeated if the chord used to call it is held down?
 	 */
-	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate )
+	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction)
 		, CanExecuteAction(InitCanExecuteAction)
 		, IsCheckedDelegate(InitIsCheckedDelegate)
 		, IsActionVisibleDelegate()
+		, RepeatMode(InitRepeatMode)
 	{ }
 
 	/**
@@ -84,12 +107,14 @@ public:
 	 * @param	CanExecuteAction		The delegate to call to see if the action can be executed
 	 * @param	IsCheckedDelegate		The delegate to call to see if the action should appear checked when visualized
 	 * @param	IsActionVisibleDelegate	The delegate to call to see if the action should be visible
+	 * @param	RepeatMode				Can this action can be repeated if the chord used to call it is held down?
 	 */
-	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate, FIsActionButtonVisible InitIsActionVisibleDelegate )
+	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate, FIsActionButtonVisible InitIsActionVisibleDelegate, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction)
 		, CanExecuteAction(InitCanExecuteAction)
 		, IsCheckedDelegate(InitIsCheckedDelegate)
 		, IsActionVisibleDelegate(InitIsActionVisibleDelegate)
+		, RepeatMode(InitRepeatMode)
 	{ }
 
 public:
@@ -164,5 +189,15 @@ public:
 		}
 
 		return EVisibility::Visible;
+	}
+
+	/**
+	 * Checks whether this action can be repeated if the chord used to call it is held down.
+	 *
+	 * @return true if the delegate can be repeated, false otherwise.
+	 */
+	bool CanRepeat( ) const
+	{
+		return RepeatMode == EUIActionRepeatMode::RepeatEnabled;
 	}
 };

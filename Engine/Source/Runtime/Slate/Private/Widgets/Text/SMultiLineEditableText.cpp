@@ -318,7 +318,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	// Map UI commands to delegates which are called when the command should be executed
 	UICommandList->MapAction(FGenericCommands::Get().Undo,
 		FExecuteAction::CreateSP(this, &SMultiLineEditableText::Undo),
-		FCanExecuteAction::CreateSP(this, &SMultiLineEditableText::CanExecuteUndo));
+		FCanExecuteAction::CreateSP(this, &SMultiLineEditableText::CanExecuteUndo),
+		EUIActionRepeatMode::RepeatEnabled);
 
 	UICommandList->MapAction(FGenericCommands::Get().Cut,
 		FExecuteAction::CreateSP(this, &SMultiLineEditableText::CutSelectedTextToClipboard),
@@ -326,7 +327,8 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 
 	UICommandList->MapAction(FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP(this, &SMultiLineEditableText::PasteTextFromClipboard),
-		FCanExecuteAction::CreateSP(this, &SMultiLineEditableText::CanExecutePaste));
+		FCanExecuteAction::CreateSP(this, &SMultiLineEditableText::CanExecutePaste),
+		EUIActionRepeatMode::RepeatEnabled);
 
 	UICommandList->MapAction(FGenericCommands::Get().Copy,
 		FExecuteAction::CreateSP(this, &SMultiLineEditableText::CopySelectedTextToClipboard),
