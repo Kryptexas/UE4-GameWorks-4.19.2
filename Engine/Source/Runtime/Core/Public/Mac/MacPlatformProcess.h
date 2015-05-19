@@ -83,7 +83,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 
 	private:
 		// Private constructor.
-		FProcEnumInfo(struct kinfo_proc ProcInfo);
+		FProcEnumInfo(struct kinfo_proc InProcInfo);
 
 		// Process info struct.
 		struct kinfo_proc ProcInfo;

@@ -1015,8 +1015,8 @@ FMacPlatformProcess::FProcEnumerator::~FProcEnumerator()
 	}
 }
 
-FMacPlatformProcess::FProcEnumInfo::FProcEnumInfo(struct kinfo_proc ProcInfo)
-	: ProcInfo(ProcInfo)
+FMacPlatformProcess::FProcEnumInfo::FProcEnumInfo(struct kinfo_proc InProcInfo)
+	: ProcInfo(InProcInfo)
 {
 
 }
