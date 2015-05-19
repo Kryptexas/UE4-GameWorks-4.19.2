@@ -154,24 +154,6 @@ private:
 	friend class FAnimationRuntime;
 };
 
-struct FBoneTransform
-{
-	/** @todo anim: should be Skeleton bone index in the future, but right now it's CompactBoneIndex **/
-	FCompactPoseBoneIndex BoneIndex;
-
-	/** Transform to apply **/
-	FTransform Transform;
-
-	FBoneTransform() 
-		: BoneIndex(INDEX_NONE)
-	{}
-
-	FBoneTransform(FCompactPoseBoneIndex InBoneIndex, const FTransform& InTransform)
-		: BoneIndex(InBoneIndex)
-		, Transform(InTransform)
-	{}
-};
-
 USTRUCT(BlueprintType)
 struct FPerBoneBlendWeight
 {
