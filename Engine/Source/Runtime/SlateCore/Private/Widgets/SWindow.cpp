@@ -1448,11 +1448,6 @@ FVector2D SWindow::ComputeDesiredSize(float LayoutScaleMultiplier) const
 	return SCompoundWidget::ComputeDesiredSize(LayoutScaleMultiplier) * LayoutScaleMultiplier;
 }
 
-float SWindow::GetRelativeLayoutScale(const FSlotBase& Child) const
-{
-	return FSlateApplicationBase::Get().GetApplicationScale();
-}
-
 const TArray< TSharedRef<SWindow> >& SWindow::GetChildWindows() const
 {
 	return ChildWindows;
