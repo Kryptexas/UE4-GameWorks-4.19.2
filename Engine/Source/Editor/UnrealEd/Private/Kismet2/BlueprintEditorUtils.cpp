@@ -1999,8 +1999,7 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 				if (SkelBlueprint
 					&& SkelBlueprint->Status != BS_BeingCreated
 					&& !SkelBlueprint->bBeingCompiled
-					&& !SkelBlueprint->bIsRegeneratingOnLoad
-					&& SkelBlueprint->bHasBeenRegenerated)
+					&& !SkelBlueprint->bIsRegeneratingOnLoad)
 				{
 					TArray<UClass*> ChildrenOfClass;
 					GetDerivedClasses(SkelClass, ChildrenOfClass, false);
@@ -2011,10 +2010,9 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 					Results.bSilentMode = true;
 					Results.bLogInfoOnly = true;
 
-					//if (!SkelBlueprint->bHasBeenRegenerated)
 					{
 						bool const bWasRegenerating = SkelBlueprint->bIsRegeneratingOnLoad;
-						SkelBlueprint->bIsRegeneratingOnLoad = bIsCompilingOnLoad;
+						SkelBlueprint->bIsRegeneratingOnLoad |= bIsCompilingOnLoad;
 
 						FKismetCompilerOptions CompileOptions;
 						CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
