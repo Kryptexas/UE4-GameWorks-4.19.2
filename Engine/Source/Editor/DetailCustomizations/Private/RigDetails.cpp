@@ -271,7 +271,11 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 	// we add them on demand since the array can expand or reduce
 	if(!ParentSpaceOptionList.IsValidIndex(ArrayIndex))
 	{
-		ParentSpaceOptionList.AddZeroed(ArrayIndex-ParentSpaceOptionList.Num()+1);
+		int32 NumToAdd = ArrayIndex-ParentSpaceOptionList.Num()+1;
+		for(int32 Idx = 0 ; Idx < NumToAdd ; ++Idx)
+		{
+			ParentSpaceOptionList.Add(new TArray<TSharedPtr<FString>>);
+		}
 	}
 
 	// ParentSpaceComboBoxees creates 2 per element - one for translation, and one for rotation
