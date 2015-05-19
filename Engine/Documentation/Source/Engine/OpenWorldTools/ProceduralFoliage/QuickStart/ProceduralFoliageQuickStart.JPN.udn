@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:2554119
+Availability:Docs
+Title:Procedural Foliage ツール クイックスタート
+Crumbs:
+Description:Procedural Foliage ツールの設定および使用方法
+Navigation:topic
+SkillLevel:Intermediate
+バージョン：4.8
+
+
+## 概要
+Procedural Foliage クイックスタートは、アンリアル エンジン 4 (UE4) のリリース 4.8 で利用可能となる **Procedural Foliage ツール** についての説明です。 
+Procedural Foliage ツールを UE4 の他のツールと連携して使用する方法を学習します。
+満足のいく結果を出しやすい主要なツール プロパティも紹介します。
+このクイックスタートを完了すると、以下のようなレベルが出来あがります。 
+
+![](T_PF_QS_Final_Product.png)
+
+また、Procedural Foliage ツールに必要なアクタ タイプや、正しく作業するための設定方法を深く理解できるようになります。
+さらに、ツールに関する注意事項およびワークフローの調整方法についても説明します。
+
+
+[region:note]
+まずメイン ツールバーから **[Edit]** > **[Editor Preferences]** > **[Experimental]** を選択します。プロジェクトの Procedural Foliage を必ず有効にしておいてください。 
+Experimental セクションの「 **Procedural Foliage** 」の文字の横にあるチェックマーク ボックスをクリックして、Procedural Foliage オプションを有効にします。 
+[/region]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5)
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
