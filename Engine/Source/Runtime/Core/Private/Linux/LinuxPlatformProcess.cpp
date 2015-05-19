@@ -1041,3 +1041,111 @@ void FLinuxPlatformProcess::ExploreFolder( const TCHAR* FilePath )
 	// TODO This is broken, not an explore action but should be fine if called on a directory
 	FLinuxPlatformProcess::LaunchFileInDefaultExternalApplication(FilePath, NULL, ELaunchVerb::Edit);
 }
+
+/**
+ * Private struct to store implementation specific data.
+ */
+struct FProcEnumData
+{
+	// Array of processes.
+	TArray<FLinuxPlatformProcess::FProcEnumInfo> Processes;
+
+	// Current process id.
+	uint32 CurrentProcIndex;
+};
+
+FLinuxPlatformProcess::FProcEnumerator::FProcEnumerator()
+{
+  	Data = new FProcEnumData;
+	Data->CurrentProcIndex = -1;
+	
+	TArray<uint32> PIDs;
+	
+	class FPIDsCollector : public IPlatformFile::FDirectoryVisitor
+	{
+	public:
+		FPIDsCollector(TArray<uint32>& PIDs)
+			: PIDs(PIDs)
+		{ }
+
+		bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+		{
+			FString StrPID = FPaths::GetBaseFilename(FilenameOrDirectory);
+		  
+			if (bIsDirectory && FCString::IsNumeric(*StrPID))
+			{
+				PIDs.Add(FCString::Atoi(*StrPID));
+			}
+			
+			return true;
+		}
+
+		TArray<uint32>& PIDs;
+	} PIDsCollector(PIDs);
+
+	IPlatformFile::GetPlatformPhysical().IterateDirectory(TEXT("/proc"), PIDsCollector);
+	
+	for(auto PID : PIDsCollector.PIDs)
+	{
+		Data->Processes.Add(FProcEnumInfo(PID));
+	}
+}
+
+FLinuxPlatformProcess::FProcEnumerator::~FProcEnumerator()
+{
+	delete Data;
+}
+
+FLinuxPlatformProcess::FProcEnumInfo FLinuxPlatformProcess::FProcEnumerator::GetCurrent() const
+{
+	return Data->Processes[Data->CurrentProcIndex];
+}
+
+bool FLinuxPlatformProcess::FProcEnumerator::MoveNext()
+{
+	if (Data->CurrentProcIndex + 1 == Data->Processes.Num())
+	{
+		return false;
+	}
+
+	++Data->CurrentProcIndex;
+
+	return true;
+}
+
+FLinuxPlatformProcess::FProcEnumInfo::FProcEnumInfo(uint32 PID)
+	: PID(PID)
+{
+
+}
+
+uint32 FLinuxPlatformProcess::FProcEnumInfo::GetPID() const
+{
+	return PID;
+}
+
+uint32 FLinuxPlatformProcess::FProcEnumInfo::GetParentPID() const
+{
+	char Buf[256];
+	uint32 DummyNumber;
+	char DummyChar;
+	uint32 ParentPID;
+	
+	sprintf(Buf, "/proc/%d/stat", GetPID());
+	
+	FILE* FilePtr = fopen(Buf, "r");
+	fscanf(FilePtr, "%d %s %c %d", &DummyNumber, Buf, &DummyChar, &ParentPID);	
+	fclose(FilePtr);
+
+	return ParentPID;
+}
+
+FString FLinuxPlatformProcess::FProcEnumInfo::GetFullPath() const
+{
+	return GetApplicationName(GetPID());
+}
+
+FString FLinuxPlatformProcess::FProcEnumInfo::GetName() const
+{
+	return FPaths::GetCleanFilename(GetFullPath());
+}

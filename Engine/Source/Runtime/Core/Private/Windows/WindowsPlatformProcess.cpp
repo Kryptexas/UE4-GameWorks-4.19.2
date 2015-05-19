@@ -8,7 +8,6 @@
 	#include <shellapi.h>
 	#include <shlobj.h>
 	#include <LM.h>
-	#include <tlhelp32.h>
 	#include <Psapi.h>
 
 	namespace ProcessConstants
@@ -1245,6 +1244,60 @@ bool FWindowsPlatformProcess::Daemonize()
 FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
 {
 	return FProcHandle(::OpenProcess(PROCESS_ALL_ACCESS, 0, ProcessID));
+}
+
+FWindowsPlatformProcess::FProcEnumerator::FProcEnumerator()
+{
+	SnapshotHandle = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	CurrentEntry.dwSize = 0;
+}
+
+FWindowsPlatformProcess::FProcEnumerator::~FProcEnumerator()
+{
+	::CloseHandle(SnapshotHandle);
+}
+
+FWindowsPlatformProcess::FProcEnumInfo::FProcEnumInfo(const PROCESSENTRY32& Info)
+	: Info(Info)
+{
+
+}
+
+bool FWindowsPlatformProcess::FProcEnumerator::MoveNext()
+{
+	if (CurrentEntry.dwSize == 0)
+	{
+		CurrentEntry.dwSize = sizeof(PROCESSENTRY32);
+
+		return ::Process32First(SnapshotHandle, &CurrentEntry) == TRUE;
+	}
+
+	return ::Process32Next(SnapshotHandle, &CurrentEntry) == TRUE;
+}
+
+FWindowsPlatformProcess::FProcEnumInfo FWindowsPlatformProcess::FProcEnumerator::GetCurrent() const
+{
+	return FProcEnumInfo(CurrentEntry);
+}
+
+uint32 FWindowsPlatformProcess::FProcEnumInfo::GetPID() const
+{
+	return Info.th32ProcessID;
+}
+
+uint32 FWindowsPlatformProcess::FProcEnumInfo::GetParentPID() const
+{
+	return Info.th32ParentProcessID;
+}
+
+FString FWindowsPlatformProcess::FProcEnumInfo::GetName() const
+{
+	return Info.szExeFile;
+}
+
+FString FWindowsPlatformProcess::FProcEnumInfo::GetFullPath() const
+{
+	return GetApplicationName(GetPID());
 }
 
 #include "HideWindowsPlatformTypes.h"
