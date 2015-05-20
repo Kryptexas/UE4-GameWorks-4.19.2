@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2555570
 Availability:Public
-Title:1.タイマーを使用するアクタを作成
+Title:1.タイマーを使用したアクタの作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
-Description:一定速度でコードを実行するタイマーを開始/停止
+Description:一定速度でコードを実行するタイマーを開始/停止する
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,7 +21,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 %Steps%
 
-[REGION:tip] **Unreal Engine 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルは、 プロジェクトの作成とプロジェクトにC++コードを追加できる方を想定しています。[/REGION]
+[REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルは、 プロジェクトの作成とプロジェクトにC++コードを追加できる方を想定しています。[/REGION]
 
 1. まず「HowTo_VTE」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。このチュートリアルでは「Countdown」と名前を付けます。
 
@@ -29,7 +29,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 	[![](NameYourActor.png)](NameYourActor.png)
 
-1. ゲームに表示するシンプルなカウントダウンタイマーの作成からとりかかります。「 `Countdown.h` 」ファイルのクラス定義の最後に以下の行を追加します：
+1. ゲームに表示するシンプルなカウントダウンタイマーの作成から始めます。「 `Countdown.h` 」ファイルのクラス定義の最後に以下の行を追加します：
 
 		int32 CountdownTime;
 
@@ -37,26 +37,25 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 		void UpdateTimerDisplay();
 
-1. 「 `Countdown.cpp` 」ファイルに、レンダリング可能なテキスト **コンポーネント** を作成して、カウントダウン時間を3秒に初期化します。このタイプの **アクタ** には必要ないため **Ticking** をオフにします。 **ACountdown::ACountdown** は以下のような表示になります：
+1. 「 `Countdown.cpp` 」ファイルに、レンダリング可能なテキスト **コンポーネント** を作成して、カウントダウン時間を3秒に初期化します。このタイプの **アクタ** には必要ないため **Ticking** はオフにします。 **ACountdown::ACountdown** は以下のような表示になります：
 
 		PrimaryActorTick.bCanEverTick = false;
 
 		CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 		CountdownText->SetHorizontalAlignment(EHTA_Center);
 		CountdownText->SetWorldSize(150.0f);
-		CountdownText->AttachTo(RootComponent);
 		RootComponent = CountdownText;
 
 		CountdownTime = 3;
 
-1. **ACountdown::UpdateTimerDisplay** は残り時間を示すテキスト、または時間切れの場合はゼロを表示しなくてはいけません。初めてゲームに **ACountdown** をスポーンした時にこのコードを実行して、CountdownTime変数がゼロになるまで1秒に一回コードを実行します。
+1. **ACountdown::UpdateTimerDisplay** は残り時間を示すテキスト、または時間切れの場合はゼロを表示しなくてはいけません。ゲームに **ACountdown** を初めてスポーンした時にこのコードを実行して、CountdownTime変数がゼロになるまで1秒に一回コードを実行します。
 
 		void ACountdown::UpdateTimerDisplay()
 		{
 			CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
 		}
 
-1. 関数の実行に **Timer** を割り当てると、必ず **Timer Handle** が与えられます。カウントダウン終了時に **Timer** をシャットダウンするためにこのハンドルをしっかりと維持します。「 `Countdown.h` 」ファイルのクラス定義にカウントダウンを行う関数と、これを制御する **Timer Handle** を追加しましょう。ここで、カウントダウンの終了時に何か特別なことを行う関数も追加しましょう。
+1. 関数の実行に **Timer** を割り当てると、必ず **Timer Handle** が与えられます。カウントダウン終了時に **Timer** をシャットダウンするためにこのハンドルをしっかりと維持します。時間をカウントダウンする関数と、この関数をコントロールする **Timer Handle** を「 `Countdown.h` 」ファイルのクラス定義に追加しましょう。この作業を行うついでに、カウントダウンの終了時に何か特別なことを行う関数も追加しましょう。
 
 		void AdvanceTimer();
 
@@ -84,7 +83,7 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 			CountdownText->SetText(TEXT("GO!"));
 		}
 
-1. 新規のupdate関数コールを追加して、 **ACountdown::BeginPlay** のテキスト表示を初期化します。そして1秒に一回カウントダウンと更新を行うタイマーを設定します：
+1. 新しく更新した関数にコールを追加して、 **ACountdown::BeginPlay** のテキスト表示を初期化します。そして1秒に一回カウントダウンと更新を行うタイマーを設定します：
 
 		UpdateTimerDisplay();
 		GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
@@ -169,7 +168,6 @@ Description:一定速度でコードを実行するタイマーを開始/停止
 
 				CountdownText->SetHorizontalAlignment(EHTA_Center);
 				CountdownText->SetWorldSize(150.0f);
-				CountdownText->AttachTo(RootComponent);
 				RootComponent = CountdownText;
 
 				CountdownTime = 3;
