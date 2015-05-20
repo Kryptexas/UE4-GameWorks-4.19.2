@@ -91,14 +91,13 @@ FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
 		{
 			Obj = LoadObject<UObject>(NULL, *LoadedString);
 		}
-
-		return InnerArchive;
 	}
 	else
 	{
 		// save out the fully qualified object name
 		FString SavedString(Obj->GetPathName());
-		return InnerArchive << SavedString;
+		InnerArchive << SavedString;
 	}
+	return *this;
 }
 
