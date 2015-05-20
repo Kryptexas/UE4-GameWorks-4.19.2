@@ -36,13 +36,13 @@ void FAnimNode_ApplyAdditive::Evaluate(FPoseContext& Output)
 	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
 	if (ActualAlpha > ZERO_ANIMWEIGHT_THRESH)
 	{
-		FPoseContext BaseEvalContext(Output);
 		FPoseContext AdditiveEvalContext(Output);
 
-		Base.Evaluate(BaseEvalContext);
+		Base.Evaluate(Output);
 		Additive.Evaluate(AdditiveEvalContext);
 
-		Output.AnimInstance->ApplyAdditiveSequence(BaseEvalContext.Pose, AdditiveEvalContext.Pose, ActualAlpha, Output.Pose);
+		FAnimationRuntime::AccumulateAdditivePose(Output.Pose, AdditiveEvalContext.Pose, ActualAlpha);
+		Output.Pose.NormalizeRotations();
 	}
 	else
 	{

@@ -1045,90 +1045,6 @@ void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TA
 		/*out*/ OutPose);
 }
 
-void UAnimInstance::BlendRotationOffset(const FCompactPose& BasePose/* local space base pose */, const FCompactPose& RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FCompactPose& OutPose /** local space blended pose **/)
-{
-	//MDW TODO: Can this be improved? Lots of pose creation
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
-
-	check(RotationOffsetPose.GetNumBones() == RequiredBones.GetCompactPoseNumBones());
-	check(BasePose.GetNumBones() == RotationOffsetPose.GetNumBones());
-	check(OutPose.GetNumBones() == RotationOffsetPose.GetNumBones());
-
-	// now Pose has Mesh based BasePose
-	// apply additive
-	if (Alpha > ZERO_ANIMWEIGHT_THRESH)
-	{
-		FCompactPose BlendedPose;
-		BlendedPose.SetBoneContainer(&RequiredBones);
-
-		FCompactPose MeshBasePose;
-		MeshBasePose.SetBoneContainer(&RequiredBones);
-
-		// note that RotationOffsetPose has MeshSpaceRotation additive but everything else (translation/scale) is local space
-		// First calculate Mesh space for Base Pose
-		for (const FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
-		{
-			const FCompactPoseBoneIndex ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
-
-			if (ParentIndex != INDEX_NONE)
-			{
-				MeshBasePose[BoneIndex] = BasePose[BoneIndex] * MeshBasePose[ParentIndex];
-			}
-			else
-			{
-				MeshBasePose[BoneIndex] = BasePose[BoneIndex];
-			}
-		}
-
-		const ScalarRegister VBlendWeight(Alpha);
-		for (const FCompactPoseBoneIndex BoneIndex : BlendedPose.ForEachBoneIndex())
-		{
-			FTransform& Result = BlendedPose[BoneIndex];
-
-			// We want Base pose (local Pose)
-			Result = BasePose[BoneIndex];
-
-			// set result rotation to be mesh space rotation, so that it applys to mesh space rotation
-			Result.SetRotation(MeshBasePose[BoneIndex].GetRotation());
-
-			// @fixme laurent - we should make a read only version so we can avoid the copy.
-			FTransform Additive = RotationOffsetPose[BoneIndex];
-			FTransform::BlendFromIdentityAndAccumulate(Result, Additive, VBlendWeight);
-		}
-
-		// Ensure that all of the resulting rotations are normalized
-		BlendedPose.NormalizeRotations();
-
-		// now convert back to Local
-		for (const FCompactPoseBoneIndex BoneIndex : BlendedPose.ForEachBoneIndex())
-		{
-			FCompactPoseBoneIndex ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
-
-			OutPose[BoneIndex] = BlendedPose[BoneIndex];
-
-			if (ParentIndex != INDEX_NONE)
-			{
-				// convert to local space first
-				FQuat Rotation = BlendedPose[ParentIndex].GetRotation().Inverse() * BlendedPose[BoneIndex].GetRotation();
-				OutPose[BoneIndex].SetRotation(Rotation);
-			}
-		}
-	}
-	else
-	{
-		OutPose = BasePose;
-	}
-}
-
-void UAnimInstance::ApplyAdditiveSequence(const struct FCompactPose& BasePose, const struct FCompactPose& AdditivePose, float Alpha, struct FCompactPose& Blended)
-{
-	check(BasePose.GetNumBones() == Blended.GetNumBones());
-	
-	float BlendWeight = FMath::Clamp<float>(Alpha, 0.f, 1.f);
-
-	FAnimationRuntime::BlendAdditivePose(BasePose, AdditivePose, BlendWeight, Blended);
-}
-
 void UAnimInstance::RecalcRequiredBones()
 {
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();
@@ -1578,6 +1494,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 	}
 
 	// Third pass, layer on weighted additive poses.
+	if (AdditivePoses.Num() > 0)
 	{
 		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
 		{
@@ -1585,11 +1502,11 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 			// if additive, we should blend with source to make it full body
 			if (AdditivePose.AdditiveType == AAT_LocalSpaceBase)
 			{
-				ApplyAdditiveSequence(BlendedPose, AdditivePose.Pose, AdditivePose.Weight, BlendedPose);
+				FAnimationRuntime::AccumulateAdditivePose(BlendedPose, AdditivePose.Pose, AdditivePose.Weight);
 			}
 			else if (AdditivePose.AdditiveType == AAT_RotationOffsetMeshSpace)
 			{
-				BlendRotationOffset(BlendedPose, AdditivePose.Pose, AdditivePose.Weight, BlendedPose);
+				FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(BlendedPose, AdditivePose.Pose, AdditivePose.Weight);
 			}
 			else
 			{
@@ -1597,6 +1514,9 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 			}
 		}
 	}
+
+	// Normalize rotations after blending/accumulation
+	BlendedPose.NormalizeRotations();
 }
 
 void UAnimInstance::ReinitializeSlotNodes()

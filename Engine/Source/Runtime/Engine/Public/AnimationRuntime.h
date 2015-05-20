@@ -153,8 +153,17 @@ public:
 	/** Convert TargetPose into an AdditivePose, by doing TargetPose = TargetPose - BasePose */
 	static void ConvertPoseToAdditive(FCompactPose& TargetPose, const FCompactPose& BasePose);
 
-	/** Convert LocalPose into MeshSpaceRotations. */
+	/** Convert LocalPose into MeshSpaceRotations. Rotations are NOT normalized. */
 	static void ConvertPoseToMeshRotation(FCompactPose& LocalPose);
+
+	/** Convert a MeshSpaceRotation pose to Local Space. Rotations are NOT normalized. */
+	static void ConvertMeshRotationPoseToLocalSpace(FCompactPose& Pose);
+
+	/** Accumulates weighted AdditivePose to BasePose. Rotations are NOT normalized. */
+	static void AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, float Weight);
+
+	/** Accumulate a MeshSpaceRotation Additive pose to a local pose. Rotations are NOT normalized */
+	static void AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, float Weight);
 
 	/**
 	 * Accumulates BlendPoses to ResultAtoms with BlendWeight. 
@@ -169,19 +178,6 @@ public:
 		const FCompactPose& SourcePose,
 		const float BlendWeight,
 		/*inout*/ FCompactPose& ResultPose);
-
-	/**
-	* Blends SourcePose + BlendPose*BlendWeight = ResultAtoms. As it states, this accumulates to the SourcePose
-	*
-	* Right now this came from BlendPosesTogether, light weight blend, no slerp or anything.
-	*
-	* @param	ResultPose		Output array of relative bone transforms.
-	*/
-	static void BlendAdditivePose(
-		const FCompactPose& SourcePose,
-		const FCompactPose& AdditiveBlendPose,
-		const float BlendWeight,
-		/*out*/ FCompactPose& ResultPose);
 
 	/** Lerp for BoneTransforms. Stores results in A. Performs A = Lerp(A, B, Alpha);
 	 * @param A : In/Out transform array.

@@ -326,23 +326,6 @@ void FAnimationRuntime::LerpBoneTransforms(TArray<FTransform> & A, const TArray<
 	}
 }
 
-void FAnimationRuntime::BlendAdditivePose(const FCompactPose& SourcePose, const FCompactPose& AdditiveBlendPose, const float BlendWeight,/*out*/ FCompactPose& ResultPose)
-{
-	const ScalarRegister VBlendWeight(BlendWeight);
-	// Subsequent poses need to be blended in
-
-	for (FCompactPoseBoneIndex BoneIndex : SourcePose.ForEachBoneIndex())
-	{
-		FTransform Additive = AdditiveBlendPose[BoneIndex];
-		ResultPose[BoneIndex] = SourcePose[BoneIndex];
-		FTransform::BlendFromIdentityAndAccumulate(ResultPose[BoneIndex], Additive, VBlendWeight);
-	}
-
-	// Ensure that all of the resulting rotations are normalized
-	ResultPose.NormalizeRotations();
-}
-
-
 void FAnimationRuntime::CombineWithAdditiveAnimations(int32 NumAdditivePoses, const FTransformArrayA2** SourceAdditivePoses, const float* SourceAdditiveWeights, const FBoneContainer& RequiredBones, /*inout*/ FTransformArrayA2& Atoms)
 {
 	const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
@@ -466,20 +449,69 @@ void FAnimationRuntime::ConvertPoseToAdditive(FCompactPose& TargetPose, const FC
 void FAnimationRuntime::ConvertPoseToMeshRotation(FCompactPose& LocalPose)
 {
 	// Convert all rotations to mesh space
-	for (FCompactPoseBoneIndex BoneIndex : LocalPose.ForEachBoneIndex())
+	// only the root bone doesn't have a parent. So skip it to save a branch in the iteration.
+	for (FCompactPoseBoneIndex BoneIndex(1); BoneIndex < LocalPose.GetNumBones(); ++BoneIndex)
 	{
-		if (!BoneIndex.IsRootBone()) // Skip root
+		const FCompactPoseBoneIndex ParentIndex = LocalPose.GetParentBoneIndex(BoneIndex);
+
+		const FQuat MeshSpaceRotation = LocalPose[ParentIndex].GetRotation() * LocalPose[BoneIndex].GetRotation();
+		LocalPose[BoneIndex].SetRotation(MeshSpaceRotation);
+	}
+}
+
+void FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(FCompactPose& Pose)
+{
+	// Convert all rotations to mesh space
+	// only the root bone doesn't have a parent. So skip it to save a branch in the iteration.
+	for (FCompactPoseBoneIndex BoneIndex(Pose.GetNumBones()-1); BoneIndex > 0; --BoneIndex)
+	{
+		const FCompactPoseBoneIndex ParentIndex = Pose.GetParentBoneIndex(BoneIndex);
+
+		FQuat LocalSpaceRotation = Pose[ParentIndex].GetRotation().Inverse() * Pose[BoneIndex].GetRotation();
+		Pose[BoneIndex].SetRotation(LocalSpaceRotation);
+	}
+}
+
+void FAnimationRuntime::AccumulateAdditivePose(FCompactPose& BasePose, const FCompactPose& AdditivePose, float Weight)
+{
+	if (Weight > ZERO_ANIMWEIGHT_THRESH)
+	{
+		if (Weight >= (1.f - ZERO_ANIMWEIGHT_THRESH))
 		{
-			const FCompactPoseBoneIndex ParentIndex = LocalPose.GetParentBoneIndex(BoneIndex);
-
-			FTransform& LocalTransform = LocalPose[BoneIndex];
-			const FTransform& LocalParentTransform = LocalPose[ParentIndex];
-
-			LocalTransform.SetRotation(LocalParentTransform.GetRotation() * LocalTransform.GetRotation());
+			// fast path, no need to weight additive.
+			for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
+			{
+				BasePose[BoneIndex].Accumulate(AdditivePose[BoneIndex]);
+			}
+		}
+		else
+		{
+			// Slower path w/ weighting
+			const ScalarRegister VBlendWeight(Weight);
+			for (FCompactPoseBoneIndex BoneIndex : BasePose.ForEachBoneIndex())
+			{
+				// copy additive, because BlendFromIdentityAndAccumulate modifies it.
+				FTransform Additive = AdditivePose[BoneIndex];
+				FTransform::BlendFromIdentityAndAccumulate(BasePose[BoneIndex], Additive, VBlendWeight);
+			}
 		}
 	}
 }
 
+void FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(FCompactPose& BasePose, const FCompactPose& MeshSpaceRotationAdditive, float Weight)
+{
+	if (Weight > ZERO_ANIMWEIGHT_THRESH)
+	{
+		// Convert base pose from local space to mesh space rotation.
+		FAnimationRuntime::ConvertPoseToMeshRotation(BasePose);
+
+		// Add MeshSpaceRotAdditive to it
+		FAnimationRuntime::AccumulateAdditivePose(BasePose, MeshSpaceRotationAdditive, Weight);
+
+		// Convert back to local space
+		FAnimationRuntime::ConvertMeshRotationPoseToLocalSpace(BasePose);
+	}
+}
 
 /** 
  * return ETypeAdvanceAnim type

@@ -371,12 +371,7 @@ public:
 
 	static void CopyPose(const struct FCompactPose& Source, struct FCompactPose& Destination);
 
-	void ApplyAdditiveSequence(const struct FCompactPose& BasePose, const struct FCompactPose& AdditivePose, float Alpha, struct FCompactPose& Blended);
-
 	void BlendSpaceEvaluatePose(UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FCompactPose& OutPose);
-
-	// skeletal control related functions
-	void BlendRotationOffset(const FCompactPose& BasePose/* local space base pose */, const FCompactPose& RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FCompactPose& OutPose /** local space blended pose **/);
 
 	// slotnode interfaces
 	void GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const;
