@@ -25,7 +25,7 @@ Description:Writing a C++ class and compiling it with Unreal Engine
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
-	[REGION:note]We're about to add code. All code used in this tutorial will be found at bottom of the page in its current state as of completing that page's instructions.[/REGION]
+	[REGION:note]We're about to write code. All code used in this tutorial will be found at bottom of the page in its current state as of completing that page's instructions.[/REGION]
 
 2. In `FloatingActor.h`, we'll add the following code just before the closing brace and semicolon at the end of the file:
 

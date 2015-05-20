@@ -36,6 +36,6 @@ Version: 4.7
 
 ----
 
-**Unreal Engine** will now open **Visual Studio** for you and load your new project.
+Now that we have created a C++ class, we can switch to **Visual Studio** to program it. `FloatingActor.cpp` will be opened for us automatically, and **Unreal Engine** will automatically compile and reload the code with our new class.
 
 %Steps%

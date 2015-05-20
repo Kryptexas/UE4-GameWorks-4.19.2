@@ -27,6 +27,6 @@ Description:Creating a new project with the specifications we need
 
 ----
 
-The **Unreal Editor** will now open our new project.
+The **Unreal Editor** will now open our new project. **Visual Studio** will also open and load the solution file that our project has created.
 
 %Steps%
