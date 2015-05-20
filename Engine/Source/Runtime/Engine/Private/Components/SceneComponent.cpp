@@ -437,38 +437,6 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 }
 
 
-class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const
-{
-	if (ScopedMovementStack.Num() > 0)
-	{
-		return ScopedMovementStack.Last();
-	}
-
-	return NULL;
-}
-
-
-bool USceneComponent::IsDeferringMovementUpdates() const
-{
-	if (ScopedMovementStack.Num() > 0)
-	{
-		checkSlow(ScopedMovementStack.Last()->IsDeferringUpdates());
-		return true;
-	}
-	
-	return false;
-}
-
-
-void USceneComponent::BeginScopedMovementUpdate(class FScopedMovementUpdate& ScopedUpdate)
-{
-	checkSlow(IsInGameThread());
-	checkSlow(ScopedUpdate.IsDeferringUpdates());
-	
-	ScopedMovementStack.Push(&ScopedUpdate);
-}
-
-
 void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& CompletedScope)
 {
 	SCOPE_CYCLE_COUNTER(STAT_EndScopedMovementUpdate);
@@ -491,6 +459,7 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 			const bool bTransformChanged = CurrentScopedUpdate->IsTransformDirty();
 			if (bTransformChanged)
 			{
+				// TODO: handle teleporting flag when it differs between accumulated moves.
 				PropagateTransformUpdate(true);
 			}
 
@@ -498,7 +467,17 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 			// If no movement and no change in transform, nothing changed.
 			if (bTransformChanged || CurrentScopedUpdate->bHasMoved)
 			{
-				UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, CurrentScopedUpdate->GetOverlapsAtEnd());
+				UPrimitiveComponent* PrimitiveThis = Cast<UPrimitiveComponent>(this);
+				if (PrimitiveThis)
+				{
+					TArray<FOverlapInfo> EndOverlaps;
+					const TArray<FOverlapInfo>* EndOverlapsPtr = CurrentScopedUpdate->GetOverlapsAtEnd(*PrimitiveThis, EndOverlaps, bTransformChanged);
+					UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, EndOverlapsPtr);
+				}
+				else
+				{
+					UpdateOverlaps(nullptr, true, nullptr);
+				}
 			}
 
 			// Dispatch all deferred blocking hits
@@ -798,7 +777,16 @@ void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
 		
 		if (IsRegistered())
 		{
-			UpdateOverlaps();
+			if (!IsDeferringMovementUpdates())
+			{
+				UpdateOverlaps();
+			}
+			else
+			{
+				// Invalidate cached overlap state at this location.
+				TArray<FOverlapInfo> EmptyOverlaps;
+				GetCurrentScopedMovement()->AppendOverlapsAfterMove(EmptyOverlaps, false, false);
+			}
 		}
 	}
 }
@@ -1865,14 +1853,10 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 
 	if (IsDeferringMovementUpdates())
 	{
+		GetCurrentScopedMovement()->ForceOverlapUpdate();
 		return;
 	}
 	
-	if (bShouldUpdatePhysicsVolume)
-	{
-		UpdatePhysicsVolume(bDoNotifies);
-	}
-
 	// SceneComponent has no physical representation, so no overlaps to test for/
 	// But, we need to test down the attachment chain since there might be PrimitiveComponents below.
 	for (int32 ChildIdx=0; ChildIdx<AttachChildren.Num(); ++ChildIdx)
@@ -1882,6 +1866,11 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 			// Do not pass on OverlapsAtEndLocation, it only applied to this component.
 			AttachChildren[ChildIdx]->UpdateOverlaps(NULL, bDoNotifies);
 		}
+	}
+
+	if (bShouldUpdatePhysicsVolume)
+	{
+		UpdatePhysicsVolume(bDoNotifies);
 	}
 }
 
@@ -2249,8 +2238,9 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 : Owner(Component)
 , OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
-, bHasStoredOverlapsAtEnd(false)
 , bHasMoved(false)
+, CurrentOverlapState(EOverlapState::eUseParent)
+, FinalOverlapCandidatesIndex(INDEX_NONE)
 {
 	if (IsValid(Component))
 	{
@@ -2313,9 +2303,8 @@ void FScopedMovementUpdate::RevertMove()
 	USceneComponent* Component = Owner;
 	if (IsValid(Component))
 	{
-		bHasStoredOverlapsAtEnd = false;
+		FinalOverlapCandidatesIndex = INDEX_NONE;
 		PendingOverlaps.Reset();
-		OverlapsAtEnd.Reset();
 		BlockingHits.Reset();
 		
 		if (IsTransformDirty())
@@ -2334,25 +2323,43 @@ void FScopedMovementUpdate::RevertMove()
 		}
 	}
 	bHasMoved = false;
+	CurrentOverlapState = EOverlapState::eUseParent;
 }
 
-
-void FScopedMovementUpdate::AppendOverlapsAfterMove(const TArray<FOverlapInfo>& NewPendingOverlaps, const TArray<FOverlapInfo>* NewOverlapsAtEndLocation)
+void FScopedMovementUpdate::AppendOverlapsAfterMove(const TArray<FOverlapInfo>& NewPendingOverlaps, bool bSweep, bool bIncludesOverlapsAtEnd)
 {
 	bHasMoved = true;
-	PendingOverlaps.Append(NewPendingOverlaps);
-	if (NewOverlapsAtEndLocation)
+	const bool bWasForcing = (CurrentOverlapState == EOverlapState::eForceUpdate);
+
+	if (bIncludesOverlapsAtEnd)
 	{
-		bHasStoredOverlapsAtEnd = true;
-		OverlapsAtEnd = *NewOverlapsAtEndLocation;		
+		CurrentOverlapState = EOverlapState::eIncludesOverlaps;
+		if (NewPendingOverlaps.Num())
+		{
+			FinalOverlapCandidatesIndex = PendingOverlaps.Num();
+			PendingOverlaps.Append(NewPendingOverlaps);
+		}
+		else
+		{
+			// No new pending overlaps means we're not overlapping anything at the end location.
+			FinalOverlapCandidatesIndex = INDEX_NONE;
+		}
 	}
 	else
 	{
-		// null indicates unknown overlap state at the end.
-		bHasStoredOverlapsAtEnd = false;
-		OverlapsAtEnd.Reset();
+		// We don't expect any pending overlaps in the case of a teleport.
+		checkSlow(!bSweep);
+		checkSlow(NewPendingOverlaps.Num() == 0);
+		CurrentOverlapState = EOverlapState::eUnknown;
+		FinalOverlapCandidatesIndex = INDEX_NONE;
+	}
+
+	if (bWasForcing)
+	{
+		CurrentOverlapState = EOverlapState::eForceUpdate;
 	}
 }
+
 
 void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& InnerScope)
 {
@@ -2366,51 +2373,91 @@ void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& In
 		if (InnerScope.HasMoved(EHasMovedTransformOption::eTestTransform))
 		{
 			bHasMoved = true;
-			AppendOverlapsAfterMove(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());
+			
+			if (InnerScope.CurrentOverlapState == EOverlapState::eUseParent)
+			{
+				// Unchanged, use our own
+			}
+			else
+			{
+				// Bubble up from inner scope.
+				CurrentOverlapState = InnerScope.CurrentOverlapState;
+				if (InnerScope.FinalOverlapCandidatesIndex == INDEX_NONE)
+				{
+					FinalOverlapCandidatesIndex = INDEX_NONE;
+				}
+				else
+				{
+					checkSlow(InnerScope.GetPendingOverlaps().Num() > 0);
+					FinalOverlapCandidatesIndex = PendingOverlaps.Num() + InnerScope.FinalOverlapCandidatesIndex;
+				}
+				PendingOverlaps.Append(InnerScope.GetPendingOverlaps());
+				checkSlow(FinalOverlapCandidatesIndex < PendingOverlaps.Num());
+			}
 		}
 		else
 		{
 			// Don't want to invalidate a parent scope when nothing changed in the child.
+			checkSlow(InnerScope.CurrentOverlapState == EOverlapState::eUseParent);
 		}
 
 		BlockingHits.Append(InnerScope.GetPendingBlockingHits());
 	}	
 }
 
-bool FScopedMovementUpdate::HasKnownOverlapStateAtEnd() const
+const TArray<FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd(class UPrimitiveComponent& PrimComponent, TArray<FOverlapInfo>& EndOverlaps, bool bTransformChanged) const
 {
-	const FScopedMovementUpdate* CurrentScope = this;
-	do
+	const TArray<FOverlapInfo>* EndOverlapsPtr = nullptr;
+	switch (CurrentOverlapState)
 	{
-		if (CurrentScope->HasMoved(EHasMovedTransformOption::eTestTransform))
+		case FScopedMovementUpdate::EOverlapState::eUseParent:
 		{
-			return bHasStoredOverlapsAtEnd;
+			// Only rotation could have possibly changed
+			if (bTransformChanged && PrimComponent.AreSymmetricRotations(InitialTransform.GetRotation(), PrimComponent.GetComponentQuat(), PrimComponent.GetComponentScale()))
+			{
+				EndOverlapsPtr = PrimComponent.ConvertRotationOverlapsToCurrentOverlaps(EndOverlaps, PrimComponent.GetOverlapInfos());
+			}
+			else
+			{
+				// Use current overlaps (unchanged)
+				EndOverlapsPtr = &PrimComponent.GetOverlapInfos();
+			}
+			break;
 		}
-
-		CurrentScope = CurrentScope->GetOuterDeferredScope();
-	}
-	while (CurrentScope != nullptr);
-
-	// Top level scope that has not moved. Current state of overlaps is same as component.
-	return true;
-}
-
-const TArray<FOverlapInfo>* FScopedMovementUpdate::GetKnownOverlapsAtEnd(const TArray<FOverlapInfo>* DefaultOverlaps) const
-{
-	const FScopedMovementUpdate* CurrentScope = this;
-	do
-	{
-		if (CurrentScope->HasMoved(EHasMovedTransformOption::eTestTransform))
+		case FScopedMovementUpdate::EOverlapState::eUnknown:
+		case FScopedMovementUpdate::EOverlapState::eForceUpdate:
 		{
-			return CurrentScope->GetOverlapsAtEnd();
+			EndOverlapsPtr = nullptr;
+			break;
 		}
-
-		CurrentScope = CurrentScope->GetOuterDeferredScope();
+		case FScopedMovementUpdate::EOverlapState::eIncludesOverlaps:
+		{
+			if (FinalOverlapCandidatesIndex == INDEX_NONE)
+			{
+				// Overlapping nothing
+				EndOverlapsPtr = &EndOverlaps;
+			}
+			else
+			{
+				// Fill in EndOverlaps with overlaps valid at the end location.
+				const bool bMatchingScale = InitialTransform.GetScale3D().Equals(PrimComponent.GetComponentScale());
+				if (bMatchingScale)
+				{
+					EndOverlapsPtr = PrimComponent.ConvertSweptOverlapsToCurrentOverlaps(
+						EndOverlaps, GetPendingOverlaps(), FinalOverlapCandidatesIndex,
+						PrimComponent.GetComponentLocation(), PrimComponent.GetComponentQuat());
+				}
+			}
+			break;
+		}
+		default:
+		{
+			checkf(false, TEXT("Unknown FScopedMovementUpdate::EOverlapState value"));
+			break;
+		}
 	}
-	while (CurrentScope != nullptr);
 
-	// Top level scope that has not moved.
-	return DefaultOverlaps;
+	return EndOverlapsPtr;
 }
 
 

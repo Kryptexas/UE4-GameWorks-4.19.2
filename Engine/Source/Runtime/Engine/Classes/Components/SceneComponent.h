@@ -561,7 +561,7 @@ private:
 public:
 
 	/** Queries world and updates overlap tracking state for this component */
-	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL);
+	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=nullptr, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=nullptr);
 
 	/**
 	 * Tries to move the component by a movement vector (Delta) and sets rotation to NewRotation.
@@ -962,6 +962,20 @@ public:
 	FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior = EScopedUpdate::DeferredUpdates );
 	~FScopedMovementUpdate();
 
+	enum class EHasMovedTransformOption
+	{
+		eTestTransform,
+		eIgnoreTransform
+	};
+
+	enum class EOverlapState
+	{
+		eUseParent,
+		eUnknown,
+		eIncludesOverlaps,
+		eForceUpdate,
+	};
+
 	/** Get the scope containing this scope. A scope only has an outer scope if they both defer updates. */
 	const FScopedMovementUpdate* GetOuterDeferredScope() const;
 
@@ -970,12 +984,6 @@ public:
 	
 	/** Revert movement to the initial location of the Component at the start of the scoped update. Also clears pending overlaps and sets bHasMoved to false. */
 	void RevertMove();
-
-	enum class EHasMovedTransformOption
-	{
-		eTestTransform,
-		eIgnoreTransform
-	};
 
 	/** Returns whether movement has occurred at all during this scope, optionally checking if the transform is different (since changing scale does not go through a move). RevertMove() sets this back to false. */
 	bool HasMoved(EHasMovedTransformOption CheckTransform) const;
@@ -986,44 +994,36 @@ public:
 	/** Returns true if there are pending overlaps queued in this scope. */
 	bool HasPendingOverlaps() const;
 
-	/** Returns true if there are pending overlaps queued in this scope or any outer scope. */
-	bool HasPendingOverlapsInAncestorOrSelf() const;
-
 	/** Returns the pending overlaps within this scope. */
 	const TArray<FOverlapInfo>& GetPendingOverlaps() const;
 
-	/** Returns whether the overlaps at the current location are completely known. May walk the outer scope chain to compute this if no movement has occurred. */
-	bool HasKnownOverlapStateAtEnd() const;
-
-	/** Returns the overlaps at the current location if they are known, or null otherwise. See HasKnownOverlapStateAtEnd(). */
-	const TArray<FOverlapInfo>* GetKnownOverlapsAtEnd(const TArray<struct FOverlapInfo>* DefaultOverlaps) const;
-
-	/** Add overlaps to the queued overlaps array. This is intended for use only by SceneComponent and its derived classes whenever movement is performed. Null NewOverlapsAtEndLocation indicates an unknown overlap state. */
-	void AppendOverlapsAfterMove(const TArray<FOverlapInfo>& NewPendingOverlaps, const TArray<FOverlapInfo>* NewOverlapsAtEndLocation);
-
-	/** Add blocking hit that will get processed once the move is committed. This is intended for use only by SceneComponent and its derived classes. */
-	void AppendBlockingHitAfterMove(const FHitResult& Hit);
-	
 	/** Returns the list of pending blocking hits, which will be used for notifications once the move is committed. */
 	const TBlockingHitArray& GetPendingBlockingHits() const;
 
+	//--------------------------------------------------------------------------------------------------------//
+	// These methods are intended only to be used by SceneComponent and derived classes.
 
-	DEPRECATED(4.9, "This function has been renamed to AppendOverlapsAfterMove.")
-	void AppendOverlaps(const TArray<FOverlapInfo>& NewPendingOverlaps, const TArray<FOverlapInfo>* NewOverlapsAtEndLocation);
+	/** Add overlaps to the queued overlaps array. This is intended for use only by SceneComponent and its derived classes whenever movement is performed. */
+	void AppendOverlapsAfterMove(const TArray<FOverlapInfo>& NewPendingOverlaps, bool bSweep, bool bIncludesOverlapsAtEnd);
 
-	DEPRECATED(4.9, "This function has been renamed to AppendOverlapsAfterMove.")
-	void AppendBlockingHit(const FHitResult& Hit);
+	/** Keep current pending overlaps after a move but make note that there was movement (just a symmetric rotation). */
+	void KeepCurrentOverlapsAfterRotation(bool bSweep);
 
-	DEPRECATED(4.9, "This function is ambiguous. Use either HasStoredOverlapsAtEnd() or HasKnownOverlapStateAtEnd().")
-	bool HasValidOverlapsAtEnd() const;
+	/** Add blocking hit that will get processed once the move is committed. This is intended for use only by SceneComponent and its derived classes. */
+	void AppendBlockingHitAfterMove(const FHitResult& Hit);
+
+	/** Clear overlap state at current location, we don't know what it is. */
+	void InvalidateCurrentOverlaps();
+
+	/** Force full overlap update once this scope finishes. */
+	void ForceOverlapUpdate();
+
+	//--------------------------------------------------------------------------------------------------------//
 
 private:
 
-	/** Returns whether there are stored pending overlaps at the end location. If there has been no movement, this returns false, but overlaps may be extracted from the outer scope. */
-	bool HasStoredOverlapsAtEnd() const;
-
-	/** Returns the list of overlaps at the end location, or null if HasStoredOverlapsAtEnd() is false. */
-	const TArray<FOverlapInfo>* GetOverlapsAtEnd() const;
+	/** Fills in the list of overlaps at the end location (in EndOverlaps). Returns pointer to the list, or null if it can't be computed. */
+	const TArray<FOverlapInfo>* GetOverlapsAtEnd(class UPrimitiveComponent& PrimComponent, TArray<FOverlapInfo>& EndOverlaps, bool bTransformChanged) const;
 
 	/** Notify this scope that the given inner scope completed its update (ie is going out of scope). Only occurs for deferred updates. */
 	void OnInnerScopeComplete(const FScopedMovementUpdate& InnerScope);
@@ -1040,15 +1040,16 @@ private:
 	class USceneComponent* Owner;
 	FScopedMovementUpdate* OuterDeferredScope;
 	uint32 bDeferUpdates:1;
-	uint32 bHasStoredOverlapsAtEnd:1;
 	uint32 bHasMoved:1;
+	EOverlapState CurrentOverlapState;
+
 	FTransform InitialTransform;
 	FVector InitialRelativeLocation;
 	FRotator InitialRelativeRotation;
 	FVector InitialRelativeScale;
 
+	int32 FinalOverlapCandidatesIndex;
 	TArray<FOverlapInfo> PendingOverlaps;
-	TArray<FOverlapInfo> OverlapsAtEnd;
 	TBlockingHitArray BlockingHits;
 
 	friend class USceneComponent;
@@ -1077,35 +1078,9 @@ FORCEINLINE bool FScopedMovementUpdate::HasPendingOverlaps() const
 	return PendingOverlaps.Num() > 0;
 }
 
-FORCEINLINE_DEBUGGABLE bool FScopedMovementUpdate::HasPendingOverlapsInAncestorOrSelf() const
-{
-	const FScopedMovementUpdate* Scope = this;
-	do
-	{
-		if (Scope->HasPendingOverlaps())
-		{
-			return true;
-		}
-		Scope = Scope->OuterDeferredScope;
-	}
-	while (Scope != nullptr);
-
-	return false;
-}
-
 FORCEINLINE const TArray<struct FOverlapInfo>& FScopedMovementUpdate::GetPendingOverlaps() const
 {
 	return PendingOverlaps;
-}
-
-FORCEINLINE bool FScopedMovementUpdate::HasStoredOverlapsAtEnd() const
-{
-	return bHasStoredOverlapsAtEnd;
-}
-
-FORCEINLINE const TArray<struct FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd() const
-{
-	return bHasStoredOverlapsAtEnd ? &OverlapsAtEnd : nullptr;
 }
 
 FORCEINLINE const FScopedMovementUpdate::TBlockingHitArray& FScopedMovementUpdate::GetPendingBlockingHits() const
@@ -1118,18 +1093,54 @@ FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::AppendBlockingHitAfterMove(co
 	BlockingHits.Add(Hit);
 }
 
-FORCEINLINE void FScopedMovementUpdate::AppendOverlaps(const TArray<FOverlapInfo>& NewPendingOverlaps, const TArray<FOverlapInfo>* NewOverlapsAtEndLocation)
+FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::KeepCurrentOverlapsAfterRotation(bool bSweep)
 {
-	AppendOverlapsAfterMove(NewPendingOverlaps, NewOverlapsAtEndLocation);
+	bHasMoved = true;
+	// CurrentOverlapState is unchanged
 }
 
-FORCEINLINE void FScopedMovementUpdate::AppendBlockingHit(const FHitResult& Hit)
+FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::InvalidateCurrentOverlaps()
 {
-	AppendBlockingHitAfterMove(Hit);
+	bHasMoved = true;
+	CurrentOverlapState = EOverlapState::eUnknown;
+	FinalOverlapCandidatesIndex = INDEX_NONE;
 }
 
-FORCEINLINE bool FScopedMovementUpdate::HasValidOverlapsAtEnd() const
+FORCEINLINE_DEBUGGABLE void FScopedMovementUpdate::ForceOverlapUpdate()
 {
-	// This was the old behavior, but should be re-evaluated by calling code.
-	return HasStoredOverlapsAtEnd();
+	bHasMoved = true;
+	CurrentOverlapState = EOverlapState::eForceUpdate;
+	FinalOverlapCandidatesIndex = INDEX_NONE;
 }
+
+
+
+FORCEINLINE_DEBUGGABLE class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const
+{
+	if (ScopedMovementStack.Num() > 0)
+	{
+		return ScopedMovementStack.Last();
+	}
+	return nullptr;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// SceneComponent inlines that depend on FScopedMovementUpdate
+
+FORCEINLINE_DEBUGGABLE bool USceneComponent::IsDeferringMovementUpdates() const
+{
+	if (ScopedMovementStack.Num() > 0)
+	{
+		checkSlow(ScopedMovementStack.Last()->IsDeferringUpdates());
+		return true;
+	}
+	return false;
+}
+
+FORCEINLINE_DEBUGGABLE void USceneComponent::BeginScopedMovementUpdate(class FScopedMovementUpdate& ScopedUpdate)
+{
+	checkSlow(IsInGameThread());
+	checkSlow(ScopedUpdate.IsDeferringUpdates());
+	ScopedMovementStack.Push(&ScopedUpdate);
+}
+
