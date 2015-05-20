@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2286662
+﻿INTSourceChangelist:2557083
 Availability:Licensee
 Title:Perforce の自動マージツール
 Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
@@ -142,13 +142,13 @@ Python および P4Python をインストールしたら、以下を実行しま
     オプション：
       --version             プログラムのバージョン番号を表示して終了
       -h, --help            このヘルプメッセージを表示して終了
-      -p PORT, --port=PORT  使用する P4 ポート。つまり、 p4-server:1666。デフォルトでは、p4 環境で P4PORT を検索します。
-                            
-      -u USER, --user=USER  使用する P4 ユーザー。デフォルトでは p4 環境で P4USER を検索します。
-                            
+      -p PORT, --port=PORT  使用する P4 ポート。つまり、 p4-server:1666。デフォルトでは、
+                            p4 環境で P4PORT を検索します。
+      -u USER, --user=USER  使用する P4 ユーザー。デフォルトでは
+                             p4 環境で P4USER を検索します。
       -c CLIENT, --client=CLIENT
-                            使用する p4 クライアント。デフォルトでは p4 環境で P4CLIENT を検索します。
-                            
+                            使用する p4 クライアント。デフォルトでは
+                             p4 環境で P4CLIENT を検索します。
       -r, --reverse         指定した場合、branchspec をリバースします。Default = False
       -b BRANCHSPEC, --branchspec=BRANCHSPEC
                             <Required> 使用する Branchspec。
