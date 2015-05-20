@@ -474,6 +474,7 @@ bool UCookOnTheFlyServer::StartNetworkFileServer( const bool BindAnyPort )
 
 		// write it out to a memory archive
 		FArrayWriter SerializedAssetRegistry;
+		SerializedAssetRegistry.SetFilterEditorOnly(true);
 		AssetRegistry.Serialize(SerializedAssetRegistry);
 		UE_LOG(LogCook, Display, TEXT("Generated asset registry size is %5.2fkb"), (float)SerializedAssetRegistry.Num() / 1024.f);
 

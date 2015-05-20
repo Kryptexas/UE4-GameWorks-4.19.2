@@ -464,6 +464,7 @@ bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath)
 
 	// Create asset registry data
 	FArrayWriter SerializedAssetRegistry;
+	SerializedAssetRegistry.SetFilterEditorOnly(true);
 	TMap<FName, FAssetData*> GeneratedAssetRegistryData;
 	for (auto& AssetData : AssetRegistryData)
 	{

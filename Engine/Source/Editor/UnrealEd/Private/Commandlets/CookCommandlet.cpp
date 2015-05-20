@@ -696,6 +696,7 @@ void UCookCommandlet::GenerateAssetRegistry(const TArray<ITargetPlatform*>& Plat
 		{
 			// write it out to a memory archive
 			FArrayWriter SerializedAssetRegistry;
+			SerializedAssetRegistry.SetFilterEditorOnly(true);
 			AssetRegistry.Serialize(SerializedAssetRegistry);
 			UE_LOG(LogCookCommandlet, Display, TEXT("Generated asset registry size is %5.2fkb"), (float)SerializedAssetRegistry.Num() / 1024.f);
 
