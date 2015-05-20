@@ -228,9 +228,6 @@ public:
 	static void SetDepotIndex( FString& PathToChange );
 
 protected:
-	/** Depot root, only used in conjunction with the PDB Cache. */
-	FString DepotRoot;
-
 	/**
 	 *	Pattern to search in source control for the label.
 	 *	This somehow works for older crashes, before 4.2 and for the newest one,

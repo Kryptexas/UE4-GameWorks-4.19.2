@@ -94,6 +94,9 @@ protected:
 	/** Path to the folder where the PDB cache is stored. */
 	FString PDBCachePath;
 
+	/** Depot root. */
+	FString DepotRoot;
+
 	/** Age of file when it should be deleted from the PDB cache. */
 	int32 DaysToDeleteUnusedFilesFromPDBCache;
 
@@ -130,6 +133,12 @@ public:
 		return bUsePDBCache;
 	}
 
+	/** @return the path the depot root. */
+	const FString& GetDepotRoot() const
+	{
+		return DepotRoot;
+	}
+
 	/** Accesses the singleton. */
 	CRASHDEBUGHELPER_API static FPDBCache& Get()
 	{
@@ -158,7 +167,7 @@ public:
 	/**
 	*	Creates a new PDB Cache entry, initializes it and adds to the database.
 	*/
-	FPDBCacheEntryRef CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotRoot, const FString& DepotName, const TArray<FString>& FilesToBeCached );
+	FPDBCacheEntryRef CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotName, const TArray<FString>& FilesToBeCached );
 
 	/**
 	*	Creates a new PDB Cache entry, initializes it and adds to the database.
