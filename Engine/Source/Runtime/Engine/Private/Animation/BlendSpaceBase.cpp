@@ -644,7 +644,7 @@ bool UBlendSpaceBase::ValidateSampleInput(FBlendSample & BlendSample, int32 Orig
 
 void UBlendSpaceBase::ValidateSampleData()
 {
-	bool bMarkPackageDirty=false;
+	bool bSampleDataChanged=false;
 	AnimLength = 0.f;
 
 	for (int32 I=0; I<SampleData.Num(); ++I)
@@ -654,7 +654,7 @@ void UBlendSpaceBase::ValidateSampleData()
 			SampleData.RemoveAt(I);
 			--I;
 
-			bMarkPackageDirty = true;
+			bSampleDataChanged = true;
 			continue;
 		}
 
@@ -672,7 +672,7 @@ void UBlendSpaceBase::ValidateSampleData()
 				SampleData.RemoveAt(J);
 				--J;
 
-				bMarkPackageDirty = true;
+				bSampleDataChanged = true;
 			}
 		}
 
@@ -683,8 +683,9 @@ void UBlendSpaceBase::ValidateSampleData()
 		}
 	}
 
-	if (bMarkPackageDirty)
+	if (bSampleDataChanged)
 	{
+		GridSamples.Empty();
 		MarkPackageDirty();
 	}
 }

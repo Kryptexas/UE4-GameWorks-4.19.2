@@ -355,6 +355,9 @@ public:
 	/** return true if all sample data is additive **/
 	virtual bool IsValidAdditive() const {check(false); return false;}
 
+	/** 1) Remove data if redundant 2) Remove data if animation isn't found **/
+	ENGINE_API void ValidateSampleData();
+
 protected:
 	/** Initialize Per Bone Blend **/
 	void InitializePerBoneBlend();
@@ -367,9 +370,6 @@ protected:
 
 	/** Validates supplied blend sample against current contents of blendspace */
 	virtual bool ValidateSampleInput(FBlendSample & BlendSample, int32 OriginalIndex=INDEX_NONE) const;
-
-	/** 1) Remove data if redundant 2) Remove data if animation isn't found **/
-	void ValidateSampleData();
 
 	/** Returns where blend space sample animations are valid for the supplied AdditiveType */
 	bool IsValidAdditiveInternal(EAdditiveAnimationType AdditiveType) const;

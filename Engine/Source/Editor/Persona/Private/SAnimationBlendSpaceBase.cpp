@@ -893,6 +893,7 @@ void SBlendSpaceWidget::HandleSampleDrop(const FGeometry& MyGeometry, const FVec
 
 void SBlendSpaceWidget::ResampleData()
 {
+	BlendSpace->ValidateSampleData();
 	CachedSamples.Empty();
 	BlendSpace->GetBlendSamplePoints(CachedSamples);
 	ValidateSamplePositions();
