@@ -1999,6 +1999,28 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	{
 		return true;
 	}
+
+	// ScriptVM should store Asset as FAssetPtr not as UObject.
+
+	virtual void CopySingleValueToScriptVM(void* Dest, void const* Src) const override
+	{
+		CopySingleValue(Dest, Src);
+	}
+
+	virtual void CopyCompleteValueToScriptVM(void* Dest, void const* Src) const override
+	{
+		CopyCompleteValue(Dest, Src);
+	}
+
+	virtual void CopySingleValueFromScriptVM(void* Dest, void const* Src) const override
+	{
+		CopySingleValue(Dest, Src);
+	}
+
+	virtual void CopyCompleteValueFromScriptVM(void* Dest, void const* Src) const override
+	{
+		CopyCompleteValue(Dest, Src);
+	}
 	// End of UObjectProperty interface
 };
 
