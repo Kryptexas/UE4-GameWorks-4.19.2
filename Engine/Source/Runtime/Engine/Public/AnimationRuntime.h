@@ -114,9 +114,9 @@ public:
 	**/
 	static void BlendPosesPerBoneFilter(struct FCompactPose& BasePose, const TArray<struct FCompactPose>& BlendPoses, struct FCompactPose& OutPose, TArray<FPerBoneBlendWeight>& BoneBlendWeights, bool bMeshSpaceRotationBlending);
 
-	static void UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights, const FBoneContainer& RequiredBones, USkeleton* Skeleton);
+	static void UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights);
 
-	static void CreateMaskWeights(int32 NumOfBones, 
+	static void CreateMaskWeights(
 			TArray<FPerBoneBlendWeight> & BoneBlendWeights, 
 			const TArray<FInputBlendPose>	&BlendFilters, 
 			const FBoneContainer& RequiredBones, 

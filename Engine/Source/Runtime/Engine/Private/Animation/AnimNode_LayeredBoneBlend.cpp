@@ -31,8 +31,7 @@ void FAnimNode_LayeredBoneBlend::Initialize(const FAnimationInitializeContext& C
 
 void FAnimNode_LayeredBoneBlend::ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
 {
-	const int32 NumBones = RequiredBones.GetNumBones();
-	FAnimationRuntime::CreateMaskWeights(NumBones, DesiredBoneBlendWeights, LayerSetup, RequiredBones, Skeleton);
+	FAnimationRuntime::CreateMaskWeights(DesiredBoneBlendWeights, LayerSetup, RequiredBones, Skeleton);
 
 	CurrentBoneBlendWeights.Empty(DesiredBoneBlendWeights.Num());
 	CurrentBoneBlendWeights.AddZeroed(DesiredBoneBlendWeights.Num());
@@ -44,6 +43,11 @@ void FAnimNode_LayeredBoneBlend::CacheBones(const FAnimationCacheBonesContext& C
 	for(int32 ChildIndex=0; ChildIndex<BlendPoses.Num(); ChildIndex++)
 	{
 		BlendPoses[ChildIndex].CacheBones(Context);
+	}
+
+	if (Context.AnimInstance->RequiredBones.GetBoneIndicesArray().Num() != DesiredBoneBlendWeights.Num())
+	{
+		ReinitializeBoneBlendWeights(Context.AnimInstance->RequiredBones, Context.AnimInstance->CurrentSkeleton);
 	}
 }
 
@@ -61,13 +65,6 @@ void FAnimNode_LayeredBoneBlend::Update(const FAnimationUpdateContext& Context)
 		{
 			BlendPoses[ChildIndex].Update(Context);
 		}
-
-		if ( Context.AnimInstance->RequiredBones.GetNumBones() != DesiredBoneBlendWeights.Num() )
-		{
-			ReinitializeBoneBlendWeights(Context.AnimInstance->RequiredBones, Context.AnimInstance->CurrentSkeleton);
-		}
-
-		FAnimationRuntime::UpdateDesiredBoneWeight(DesiredBoneBlendWeights, CurrentBoneBlendWeights, BlendWeights, Context.AnimInstance->RequiredBones, Context.AnimInstance->CurrentSkeleton);
 	}
 }
 
@@ -82,6 +79,8 @@ void FAnimNode_LayeredBoneBlend::Evaluate(FPoseContext& Output)
 	}
 	else
 	{
+		FAnimationRuntime::UpdateDesiredBoneWeight(DesiredBoneBlendWeights, CurrentBoneBlendWeights, BlendWeights);
+
 		FPoseContext BasePoseContext(Output);
 
 		// evaluate children

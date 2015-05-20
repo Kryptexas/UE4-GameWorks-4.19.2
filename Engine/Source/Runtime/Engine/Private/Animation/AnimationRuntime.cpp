@@ -932,18 +932,15 @@ void FAnimationRuntime::BlendLocalPosesPerBoneWeights(
 	}
 }
 
-void FAnimationRuntime::UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights, const FBoneContainer& RequiredBones, USkeleton* Skeleton)
+void FAnimationRuntime::UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight>& SrcBoneBlendWeights, TArray<FPerBoneBlendWeight>& TargetBoneBlendWeights, const TArray<float>& BlendWeights)
 {
 	// in the future, cache this outside
 	ensure (TargetBoneBlendWeights.Num() == SrcBoneBlendWeights.Num());
 
 	FMemory::Memset(TargetBoneBlendWeights.GetData(), 0, TargetBoneBlendWeights.Num() * sizeof(FPerBoneBlendWeight));
 
-	// go through skeleton tree requiredboneindices
-	const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
-	for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
+	for (int32 BoneIndex = 0; BoneIndex < SrcBoneBlendWeights.Num(); ++BoneIndex)
 	{
-		int32 BoneIndex = RequiredBoneIndices[I];
 		int32 PoseIndex = SrcBoneBlendWeights[BoneIndex].SourceIndex;
 		float TargetBlendWeight = BlendWeights[PoseIndex]*SrcBoneBlendWeights[BoneIndex].BlendWeight;
 		// if relevant, otherwise all initialized as zero
@@ -976,14 +973,15 @@ void FAnimationRuntime::BlendPosesPerBoneFilter(struct FCompactPose& BasePose, c
 	}
 }
 
-void FAnimationRuntime::CreateMaskWeights(int32 NumOfBones, TArray<FPerBoneBlendWeight> & BoneBlendWeights, const TArray<FInputBlendPose>	&BlendFilters, const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
+void FAnimationRuntime::CreateMaskWeights(TArray<FPerBoneBlendWeight> & BoneBlendWeights, const TArray<FInputBlendPose>	&BlendFilters, const FBoneContainer& RequiredBones, const USkeleton* Skeleton)
 {
 	if ( Skeleton )
 	{
-		BoneBlendWeights.Empty(NumOfBones);
-		BoneBlendWeights.AddZeroed(NumOfBones);
-
 		const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
+		
+		BoneBlendWeights.Empty(RequiredBoneIndices.Num());
+		BoneBlendWeights.AddZeroed(RequiredBoneIndices.Num());
+
 		// base mask bone
 		for (int32 PoseIndex=0; PoseIndex<BlendFilters.Num(); ++PoseIndex)
 		{
@@ -999,10 +997,10 @@ void FAnimationRuntime::CreateMaskWeights(int32 NumOfBones, TArray<FPerBoneBlend
 				float IncreaseWeightPerDepth = (BranchFilter.BlendDepth != 0) ? (1.f/((float)BranchFilter.BlendDepth)) : 1.f;
 	
 				// go through skeleton tree requiredboneindices
-				for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
+				for (int32 BoneIndex = 0; BoneIndex<RequiredBoneIndices.Num(); ++BoneIndex)
 				{
-					int32 BoneIndex = RequiredBoneIndices[I];
-					int32 Depth = RequiredBones.GetDepthBetweenBones(BoneIndex, MaskBoneIndex);
+					int32 MeshBoneIndex = RequiredBoneIndices[BoneIndex];
+					int32 Depth = RequiredBones.GetDepthBetweenBones(MeshBoneIndex, MaskBoneIndex);
 
 					// if Depth == -1, it's not a child
 					if( Depth != -1 )
