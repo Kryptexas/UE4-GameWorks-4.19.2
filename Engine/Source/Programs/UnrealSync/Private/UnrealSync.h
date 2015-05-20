@@ -6,8 +6,6 @@
 #include "CoreUObject.h"
 #include "P4DataCache.h"
 
-#define LOCTEXT_NAMESPACE "UnrealSync"
-
 /**
  * Class to store date needed for sync monitoring thread.
  */
@@ -98,11 +96,11 @@ struct FSyncSettings
 	/* Override sync step. If set then it overrides collecting sync steps and uses this one instead. */
 	FString OverrideSyncStep;
 
-	FSyncSettings(bool bArtist, bool bPreview, bool bAutoClobber, FString OverrideSyncStep = FString())
-		: bArtist(bArtist)
-		, bPreview(bPreview)
-		, bAutoClobber(bAutoClobber)
-		, OverrideSyncStep(MoveTemp(OverrideSyncStep))
+	FSyncSettings(bool bInArtist, bool bInPreview, bool bInAutoClobber, FString InOverrideSyncStep = FString())
+		: bArtist(bInArtist)
+		, bPreview(bInPreview)
+		, bAutoClobber(bInAutoClobber)
+		, OverrideSyncStep(MoveTemp(InOverrideSyncStep))
 	{ }
 
 	FSyncSettings(const FSyncSettings&& Other)
@@ -201,16 +199,16 @@ public:
 	/**
 	 * Registers event that will be trigger when data is loaded.
 	 *
-	 * @param OnDataLoaded Delegate to call when event happens.
+	 * @param InOnDataLoaded Delegate to call when event happens.
 	 */
-	static void RegisterOnDataLoaded(const FOnDataLoaded& OnDataLoaded);
+	static void RegisterOnDataLoaded(const FOnDataLoaded& InOnDataLoaded);
 
 	/**
 	 * Registers event that will be trigger when data is reset.
 	 *
-	 * @param OnDataReset Delegate to call when event happens.
+	 * @param InOnDataReset Delegate to call when event happens.
 	 */
-	static void RegisterOnDataReset(const FOnDataReset& OnDataReset);
+	static void RegisterOnDataReset(const FOnDataReset& InOnDataReset);
 
 	/**
 	 * Start async loading of the P4 label data in case user wants it.
@@ -261,9 +259,9 @@ public:
 	/**
 	 * Method to receive p4 data loading finished event.
 	 *
-	 * @param Data Loaded data.
+	 * @param InData Loaded data.
 	 */
-	static void OnP4DataLoadingFinished(TSharedPtr<FP4DataCache> Data);
+	static void OnP4DataLoadingFinished(TSharedPtr<FP4DataCache> InData);
 
 	/**
 	 * Tells if has valid P4 data loaded.
@@ -323,15 +321,15 @@ private:
 	static bool UpdateOriginalUS(const FString& OriginalUSPath);
 
 	/**
-	 * This function copies file from From to To location and deletes
-	 * if To exists.
+	 * This function deletes To location if exists and copies file (or
+	 * directory) from From to To location.
 	 *
 	 * @param To Location to which copy the file.
 	 * @param From Location from which copy the file.
 	 *
 	 * @returns True if succeeded. False otherwise.
 	 */
-	static bool DeleteIfExistsAndCopyFile(const FString& To, const FString& From);
+	static bool DeleteIfExistsAndCopy(const FString& To, const FString& From);
 
 	/* Tells if loading has finished. */
 	static bool bLoadingFinished;

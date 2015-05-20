@@ -16,6 +16,10 @@
 #include "SMultiLineEditableTextBox.h"
 #include "BaseTextLayoutMarshaller.h"
 
+#define LOCTEXT_NAMESPACE "UnrealSync"
+
+DECLARE_LOG_CATEGORY_CLASS(LogGUI, Log, All);
+
 /**
  * Syncing log.
  */
@@ -265,9 +269,9 @@ private:
 	/**
 	 * Handles button click on any dialog button.
 	 */
-	FReply HandleButtonClicked(EResponse Response)
+	FReply HandleButtonClicked(EResponse InResponse)
 	{
-		this->Response = Response;
+		Response = InResponse;
 
 		ParentWindow->RequestDestroyWindow();
 
@@ -420,13 +424,13 @@ public:
 		/**
 		 * Constructor
 		 *
-		 * @param Parent Parent SRadioContentSelection widget reference.
-		 * @param Id Id of the item.
-		 * @param Name Name of the item.
-		 * @param Content Content widget to store by this item.
+		 * @param InParent Parent SRadioContentSelection widget reference.
+		 * @param InId Id of the item.
+		 * @param InName Name of the item.
+		 * @param InContent Content widget to store by this item.
 		 */
-		FItem(SRadioContentSelection& Parent, int32 Id, FText Name, TSharedRef<SWidget> Content)
-			: Parent(Parent), Id(Id), Name(Name), Content(Content)
+		FItem(SRadioContentSelection& InParent, int32 InId, FText InName, TSharedRef<SWidget> InContent)
+			: Id(InId), Name(InName), Content(InContent), Parent(InParent)
 		{
 
 		}
@@ -649,11 +653,19 @@ public:
 	SLATE_BEGIN_ARGS(SLatestPromoted) {}
 	SLATE_END_ARGS()
 
+	SLatestPromoted()
+	{
+		DataReady = MakeShareable(FPlatformProcess::GetSynchEventFromPool(true));
+	}
+
+	~SLatestPromoted()
+	{
+		FPlatformProcess::ReturnSynchEventToPool(DataReady.Get());
+	}
+
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void Construct(const FArguments& InArgs)
 	{
-		DataReady = MakeShareable(FPlatformProcess::CreateSynchEvent(true));
-
 		this->ChildSlot
 			[
 				SNew(STextBlock).Text(FText::FromString("This option will sync to the latest promoted label for given game."))
@@ -1351,13 +1363,17 @@ private:
 	 */
 	FReply RunUE4()
 	{
+		auto ProcessPath = FPaths::Combine(*FPaths::GetPath(FPlatformProcess::GetApplicationName(FPlatformProcess::GetCurrentProcessId())), TEXT("UE4Editor"));
+	  
 #if PLATFORM_WINDOWS
-		auto ProcessPath = FPaths::Combine(*FPaths::GetPath(FPlatformProcess::GetApplicationName(FPlatformProcess::GetCurrentProcessId())), TEXT("UE4Editor.exe"));
-#else
-		// Needs to be implemented on other platforms.
+		auto* ProcessPathPostfix = TEXT(".exe");
+#elif PLATFORM_MAC
+		auto* ProcessPathPostfix = TEXT(".app");
+#elif PLATFORM_LINUX
+		auto* ProcessPathPostfix = TEXT("");
 #endif
 
-		RunProcess(ProcessPath);
+		RunProcess(ProcessPath + ProcessPathPostfix);
 
 		return FReply::Handled();
 	}
@@ -1396,20 +1412,20 @@ private:
 	/**
 	 * Function that is called whenever monitoring thread will update its log.
 	 *
-	 * @param Log Log of the operation up to this moment.
+	 * @param InLog Log of the operation up to this moment.
 	 *
 	 * @returns True if process should continue, false otherwise.
 	 */
-	bool SyncingProgress(const FString& Log)
+	bool SyncingProgress(const FString& InLog)
 	{
-		if (Log.IsEmpty())
+		if (InLog.IsEmpty())
 		{
 			return true;
 		}
 
 		static FString Buffer;
 
-		Buffer += Log.Replace(TEXT("\r"), TEXT(""));
+		Buffer += InLog.Replace(TEXT("\r"), TEXT(""));
 
 		FString Line;
 		FString Rest;
@@ -1537,18 +1553,52 @@ private:
 	 */
 	bool CheckForEditorProcess()
 	{
+		TArray<FString> PossibleNormalizedPaths;
 		for (const auto& PossibleExecutablePath : GetPossibleExecutablePaths())
 		{
-			if (IsRunningProcess(PossibleExecutablePath))
+#if PLATFORM_WINDOWS
+			auto PossibleProcImagePath = PossibleExecutablePath.ToUpper();
+#else
+			auto PossibleProcImagePath = PossibleExecutablePath;
+#endif
+			FPaths::NormalizeFilename(PossibleProcImagePath);
+
+			PossibleNormalizedPaths.Add(MoveTemp(PossibleProcImagePath));
+		}
+
+		auto ProcessEnumerator = FPlatformProcess::FProcEnumerator();
+
+		while (ProcessEnumerator.MoveNext())
+		{
+			auto ProcInfo = ProcessEnumerator.GetCurrent();
+
+#if PLATFORM_WINDOWS
+			FString ProcFullImagePath = ProcInfo.GetFullPath().ToUpper();
+#elif PLATFORM_MAC
+			FString ProcFullImagePath = FPaths::GetPath(FPaths::GetPath(FPaths::GetPath(ProcInfo.GetFullPath())));
+#elif PLATFORM_LINUX
+			FString ProcFullImagePath = ProcInfo.GetFullPath();
+#endif
+
+			if (ProcFullImagePath.IsEmpty())
 			{
-				return true;
+				continue;
+			}
+
+			FPaths::NormalizeFilename(ProcFullImagePath);
+
+			for (auto PossibleNormalizedPath : PossibleNormalizedPaths)
+			{
+				if (PossibleNormalizedPath.Equals(ProcFullImagePath))
+				{
+					return true;
+				}
 			}
 		}
 
 		return false;
 	}
 
-#if PLATFORM_WINDOWS
 	/**
 	 * Returns possible colliding UE4Editor executables.
 	 *
@@ -1556,17 +1606,28 @@ private:
 	 */
 	static TArray<FString> GetPossibleExecutablePaths()
 	{
-		FString BasePath = FPaths::GetPath(FPlatformProcess::GetApplicationName(FPlatformProcess::GetCurrentProcessId()));
-
 		TArray<FString> Out;
 
+		FString BasePath = FPaths::GetPath(FPlatformProcess::GetApplicationName(FPlatformProcess::GetCurrentProcessId()));
+
+#if PLATFORM_WINDOWS
 		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor.exe")));
 		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor-Win32-Debug.exe")));
 		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor-Win64-Debug.exe")));
+#elif PLATFORM_MAC
+		BasePath = FPaths::GetPath(FPaths::GetPath(FPaths::GetPath(BasePath)));
+
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor.app")));
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor-Mac-Debug.app")));
+#elif PLATFORM_LINUX
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor")));
+		Out.Add(FPaths::Combine(*BasePath, TEXT("UE4Editor-Linux-Debug")));
+#else
+		static_assert(false, "Not implemented yet for this platform. Please fix it.");
+#endif
 
 		return Out;
 	}
-#endif
 
 	/* Main widget switcher. */
 	TSharedPtr<SWidgetSwitcher> Switcher;
@@ -1677,19 +1738,37 @@ void InitGUI(const TCHAR* CommandLine, bool bP4EnvTabOnly)
 	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("UnrealSyncLayout")
 		->AddArea(
 			FTabManager::NewArea(720, 370)
-			->SetWindow(FVector2D(420, 10), false)
+			->SetWindow(FVector2D(720, 370), false)
 			->Split(TabStack)
 		);
 
 	FGlobalTabmanager::Get()->RestoreFrom(Layout, TSharedPtr<SWindow>());
-	
-	// loop while the server does the rest
+
+	// enter main loop
+	double DeltaTime = 0.0;
+	double LastTime = FPlatformTime::Seconds();
+	const float IdealFrameTime = 1.0f / 60;
+
 	while (!GIsRequestingExit)
 	{
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+
 		FSlateApplication::Get().PumpMessages();
 		FSlateApplication::Get().Tick();
-		FPlatformProcess::Sleep(0);
+
+		// throttle frame rate
+		FPlatformProcess::Sleep(FMath::Max<float>(0.0f, IdealFrameTime - (FPlatformTime::Seconds() - LastTime)));
+
+		double CurrentTime = FPlatformTime::Seconds();
+		DeltaTime = CurrentTime - LastTime;
+		LastTime = CurrentTime;
+
+		FStats::AdvanceFrame(false);
+
+		GLog->FlushThreadedLogs();
 	}
 
 	FSlateApplication::Shutdown();
 }
+
+#undef LOCTEXT_NAMESPACE

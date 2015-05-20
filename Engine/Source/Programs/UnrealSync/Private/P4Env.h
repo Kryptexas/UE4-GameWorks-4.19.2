@@ -59,9 +59,9 @@ private:
 		/**
 		 * Constructor
 		 *
-		 * @param Type The type for this option.
+		 * @param InType The type for this option.
 		 */
-		FP4Option(EP4ParamType Type);
+		FP4Option(EP4ParamType InType);
 
 		/**
 		 * Gets the type of this option.

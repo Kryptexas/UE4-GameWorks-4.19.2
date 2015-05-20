@@ -11,10 +11,10 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param Name Name of the label.
-	 * @param Date Date and time of label last modification.
+	 * @param InName Name of the label.
+	 * @param InDate Date and time of label last modification.
 	 */
-	FP4Label(const FString& Name, const FDateTime& Date);
+	FP4Label(const FString& InName, const FDateTime& InDate);
 
 	/**
 	 * Gets label name.
@@ -75,9 +75,9 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param OnLoadingFinished Delegate to run when loading finished.
+	 * @param InOnLoadingFinished Delegate to run when loading finished.
 	 */
-	FP4DataLoader(const FOnLoadingFinished& OnLoadingFinished);
+	FP4DataLoader(const FOnLoadingFinished& InOnLoadingFinished);
 
 	virtual ~FP4DataLoader();
 

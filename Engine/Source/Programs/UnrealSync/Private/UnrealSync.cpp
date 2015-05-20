@@ -29,7 +29,7 @@ bool FUnrealSync::RunDetachedUS(const FString& USPath, bool bDoNotRunFromCopy, b
 	return RunProcess(USPath, CommandLine);
 }
 
-bool FUnrealSync::DeleteIfExistsAndCopyFile(const FString& To, const FString& From)
+bool FUnrealSync::DeleteIfExistsAndCopy(const FString& To, const FString& From)
 {
 	auto& PlatformPhysical = IPlatformFile::GetPlatformPhysical();
 
@@ -38,8 +38,21 @@ bool FUnrealSync::DeleteIfExistsAndCopyFile(const FString& To, const FString& Fr
 		UE_LOG(LogUnrealSync, Warning, TEXT("Deleting existing file '%s' failed."), *To);
 		return false;
 	}
+	else if (PlatformPhysical.DirectoryExists(*To) && !PlatformPhysical.DeleteDirectoryRecursively(*To))
+	{
+		return false;
+	}
 
-	return PlatformPhysical.CopyFile(*To, *From);
+	if (PlatformPhysical.FileExists(*From))
+	{
+		return PlatformPhysical.CopyFile(*To, *From);
+	}
+	else if (PlatformPhysical.DirectoryExists(*From))
+	{
+		return PlatformPhysical.CopyDirectoryTree(*To, *From, true);
+	}
+
+	return false;
 }
 
 void FUnrealSync::RunUnrealSync(const TCHAR* CommandLine)
@@ -62,6 +75,10 @@ void FUnrealSync::RunUnrealSync(const TCHAR* CommandLine)
 		if (!FUnrealSync::GetInitializationError().IsEmpty())
 		{
 			UE_LOG(LogUnrealSync, Fatal, TEXT("Error: %s"), *FUnrealSync::GetInitializationError());
+		}
+		else
+		{
+			GIsRequestingExit = true;
 		}
 	}
 }
@@ -154,11 +171,11 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetPromotedLabelsForGame(const FString
 {
 	struct TFillLabelsPolicy 
 	{
-		static void Fill(TArray<FString>& OutLabelNames, const FString& GameName, const TArray<FP4Label>& Labels)
+		static void Fill(TArray<FString>& OutLabelNames, const FString& InGameName, const TArray<FP4Label>& InLabels)
 		{
-			for (auto Label : Labels)
+			for (auto Label : InLabels)
 			{
-				if (IsPromotedGameLabelName(Label.GetName(), GameName))
+				if (IsPromotedGameLabelName(Label.GetName(), InGameName))
 				{
 					OutLabelNames.Add(Label.GetName());
 				}
@@ -173,16 +190,16 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetPromotableLabelsForGame(const FStri
 {
 	struct TFillLabelsPolicy
 	{
-		static void Fill(TArray<FString>& OutLabelNames, const FString& GameName, const TArray<FP4Label>& Labels)
+		static void Fill(TArray<FString>& OutLabelNames, const FString& InGameName, const TArray<FP4Label>& InLabels)
 		{
-			for (auto Label : Labels)
+			for (auto Label : InLabels)
 			{
-				if (IsPromotedGameLabelName(Label.GetName(), GameName))
+				if (IsPromotedGameLabelName(Label.GetName(), InGameName))
 				{
 					break;
 				}
 
-				if (IsPromotableGameLabelName(Label.GetName(), GameName))
+				if (IsPromotableGameLabelName(Label.GetName(), InGameName))
 				{
 					OutLabelNames.Add(Label.GetName());
 				}
@@ -197,9 +214,9 @@ TSharedPtr<TArray<FString> > FUnrealSync::GetAllLabels()
 {
 	struct TFillLabelsPolicy
 	{
-		static void Fill(TArray<FString>& OutLabelNames, const FString& GameName, const TArray<FP4Label>& Labels)
+		static void Fill(TArray<FString>& OutLabelNames, const FString& InGameName, const TArray<FP4Label>& InLabels)
 		{
-			for (auto Label : Labels)
+			for (auto Label : InLabels)
 			{
 				OutLabelNames.Add(Label.GetName());
 			}
@@ -261,14 +278,14 @@ const FString& FUnrealSync::GetSharedPromotableP4FolderName()
 	return DispName;
 }
 
-void FUnrealSync::RegisterOnDataLoaded(const FOnDataLoaded& OnDataLoaded)
+void FUnrealSync::RegisterOnDataLoaded(const FOnDataLoaded& InOnDataLoaded)
 {
-	FUnrealSync::OnDataLoaded = OnDataLoaded;
+	FUnrealSync::OnDataLoaded = InOnDataLoaded;
 }
 
-void FUnrealSync::RegisterOnDataReset(const FOnDataReset& OnDataReset)
+void FUnrealSync::RegisterOnDataReset(const FOnDataReset& InOnDataReset)
 {
-	FUnrealSync::OnDataReset = OnDataReset;
+	FUnrealSync::OnDataReset = InOnDataReset;
 }
 
 void FUnrealSync::StartLoadingData()
@@ -292,9 +309,9 @@ void FUnrealSync::TerminateLoadingProcess()
 	}
 }
 
-void FUnrealSync::OnP4DataLoadingFinished(TSharedPtr<FP4DataCache> Data)
+void FUnrealSync::OnP4DataLoadingFinished(TSharedPtr<FP4DataCache> InData)
 {
-	FUnrealSync::Data = Data;
+	FUnrealSync::Data = InData;
 
 	bLoadingFinished = true;
 
@@ -320,13 +337,13 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param Settings Sync settings.
-	 * @param LabelNameProvider Label name provider.
-	 * @param OnSyncFinished Delegate to run when syncing process has finished.
-	 * @param OnSyncProgress Delegate to run when syncing process has made progress.
+	 * @param InSettings Sync settings.
+	 * @param InLabelNameProvider Label name provider.
+	 * @param InOnSyncFinished Delegate to run when syncing process has finished.
+	 * @param InOnSyncProgress Delegate to run when syncing process has made progress.
 	 */
-	FSyncingThread(FSyncSettings Settings, ILabelNameProvider& LabelNameProvider, const FUnrealSync::FOnSyncFinished& OnSyncFinished, const FUnrealSync::FOnSyncProgress& OnSyncProgress)
-		: Settings(MoveTemp(Settings)), LabelNameProvider(LabelNameProvider), OnSyncFinished(OnSyncFinished), OnSyncProgress(OnSyncProgress), bTerminate(false)
+	FSyncingThread(FSyncSettings InSettings, ILabelNameProvider& InLabelNameProvider, const FUnrealSync::FOnSyncFinished& InOnSyncFinished, const FUnrealSync::FOnSyncProgress& InOnSyncProgress)
+		: bTerminate(false), Settings(MoveTemp(InSettings)), LabelNameProvider(InLabelNameProvider), OnSyncFinished(InOnSyncFinished), OnSyncProgress(InOnSyncProgress)
 	{
 		Thread = FRunnableThread::Create(this, TEXT("Syncing thread"));
 	}
@@ -346,8 +363,8 @@ public:
 
 		struct FProcessStopper
 		{
-			FProcessStopper(bool& bStop, FUnrealSync::FOnSyncProgress& OuterSyncProgress)
-				: bStop(bStop), OuterSyncProgress(OuterSyncProgress) {}
+			FProcessStopper(bool& bInStop, FUnrealSync::FOnSyncProgress& InOuterSyncProgress)
+				: bStop(bInStop), OuterSyncProgress(InOuterSyncProgress) {}
 
 			bool OnProgress(const FString& Text)
 			{
@@ -442,8 +459,8 @@ void SyncingMessage(const FUnrealSync::FOnSyncProgress& OnSyncProgress, const FS
  */
 struct FSyncStep
 {
-	FSyncStep(FString FileSpec, FString RevSpec)
-		: FileSpec(MoveTemp(FileSpec)), RevSpec(MoveTemp(RevSpec))
+	FSyncStep(FString InFileSpec, FString InRevSpec)
+		: FileSpec(MoveTemp(InFileSpec)), RevSpec(MoveTemp(InRevSpec))
 	{}
 
 	const FString& GetFileSpec() const { return FileSpec; }
@@ -577,8 +594,8 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 	class FSyncCollectAndPassThrough
 	{
 	public:
-		FSyncCollectAndPassThrough(const FOnSyncProgress& Progress)
-			: Progress(Progress)
+		FSyncCollectAndPassThrough(const FOnSyncProgress& InProgress)
+			: Progress(InProgress)
 		{ }
 
 		operator FOnSyncProgress() const
@@ -652,25 +669,49 @@ bool FUnrealSync::IsDebugParameterSet()
 
 bool FUnrealSync::Initialization(const TCHAR* CommandLine)
 {
+	const TCHAR* Platform =
+#if PLATFORM_WINDOWS
+	#if PLATFORM_64BITS
+		TEXT("Win64")
+	#else
+		TEXT("Win32")
+	#endif
+#elif PLATFORM_MAC
+		TEXT("Mac")
+#elif PLATFORM_LINUX
+		TEXT("Linux")
+#endif
+		;
+
 	FString CommonExecutablePath =
 		FPaths::ConvertRelativePathToFull(
-		FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Win64"),
+		FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), Platform,
 #if !UE_BUILD_DEBUG
 		TEXT("UnrealSync")
 #else
-		TEXT("UnrealSync-Win64-Debug")
+		*FString::Printf(TEXT("UnrealSync-%s-Debug"), Platform)
 #endif
 		));
 
-	FString OriginalExecutablePath = CommonExecutablePath + TEXT(".exe");
-	FString TemporaryExecutablePath = CommonExecutablePath + TEXT(".Temporary.exe");
+	const TCHAR* AppPostfix =
+#if PLATFORM_WINDOWS
+		TEXT(".exe")
+#elif PLATFORM_MAC
+		TEXT(".app")
+#elif PLATFORM_LINUX
+		TEXT("")
+#endif
+		;
+
+	FString OriginalExecutablePath = CommonExecutablePath + AppPostfix;
+	FString TemporaryExecutablePath = CommonExecutablePath + TEXT(".Temporary") + AppPostfix;
 
 	bool bDoNotRunFromCopy = FParse::Param(CommandLine, TEXT("DoNotRunFromCopy"));
 	bool bDoNotUpdateOnStartUp = FParse::Param(CommandLine, TEXT("DoNotUpdateOnStartUp"));
 
 	if (!bDoNotRunFromCopy)
 	{
-		if (!DeleteIfExistsAndCopyFile(*TemporaryExecutablePath, *OriginalExecutablePath))
+		if (!DeleteIfExistsAndCopy(*TemporaryExecutablePath, *OriginalExecutablePath))
 		{
 			InitializationError = TEXT("Copying UnrealSync to temp location failed.");
 		}

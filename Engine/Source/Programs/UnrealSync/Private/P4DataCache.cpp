@@ -41,8 +41,8 @@ const TArray<FP4Label>& FP4DataCache::GetLabels()
 	return Labels;
 }
 
-FP4Label::FP4Label(const FString& Name, const FDateTime& Date)
-	: Name(Name), Date(Date)
+FP4Label::FP4Label(const FString& InName, const FDateTime& InDate)
+	: Name(InName), Date(InDate)
 {
 
 }
@@ -57,8 +57,8 @@ const FDateTime& FP4Label::GetDate() const
 	return Date;
 }
 
-FP4DataLoader::FP4DataLoader(const FOnLoadingFinished& OnLoadingFinished)
-	: OnLoadingFinished(OnLoadingFinished), bTerminate(false)
+FP4DataLoader::FP4DataLoader(const FOnLoadingFinished& InOnLoadingFinished)
+	: OnLoadingFinished(InOnLoadingFinished), bTerminate(false)
 {
 	Thread = FRunnableThread::Create(this, TEXT("P4 Data Loading"));
 }
@@ -70,8 +70,8 @@ uint32 FP4DataLoader::Run()
 	class P4Progress
 	{
 	public:
-		P4Progress(const bool& bTerminate)
-			: bTerminate(bTerminate)
+		P4Progress(const bool& bInTerminate)
+			: bTerminate(bInTerminate)
 		{
 		}
 
