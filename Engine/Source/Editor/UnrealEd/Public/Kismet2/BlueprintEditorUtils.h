@@ -898,6 +898,9 @@ public:
 	/** Set RepNotify function of variable */
 	static void SetBlueprintVariableRepNotifyFunc(UBlueprint* Blueprint, const FName& VarName, const FName& RepNotifyFunc);
 
+	/** Returns TRUE if the variable was created by the Blueprint */
+	static bool IsVariableCreatedByBlueprint(UBlueprint* InBlueprint, UProperty* InVariableProperty);
+
 	/**
 	 * Find the index of a variable first declared in this blueprint. Returns INDEX_NONE if not found.
 	 *

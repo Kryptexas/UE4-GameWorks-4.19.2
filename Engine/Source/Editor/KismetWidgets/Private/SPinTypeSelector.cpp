@@ -28,10 +28,33 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 	TreeViewHeight = InArgs._TreeViewHeight;
 
 	TargetPinType = InArgs._TargetPinType;
+	bIsCompactSelector = InArgs._bCompactSelector;
 
-	this->ChildSlot
-	[
-		SNew(SHorizontalBox)
+	bIsRightMousePressed = false;
+
+	// Depending on if this is a compact selector or not, we generate a different compoound widget
+	TSharedPtr<SWidget> Widget;
+
+	if (InArgs._bCompactSelector)
+	{
+		// Only have a combo button with an icon
+		Widget = SAssignNew( TypeComboButton, SComboButton )
+			.OnGetMenuContent(this, &SPinTypeSelector::GetMenuContent)
+			.ContentPadding(0)
+			.ToolTipText(this, &SPinTypeSelector::GetToolTipForComboBoxType)
+			.HasDownArrow(!InArgs._bCompactSelector)
+			.ButtonStyle(FEditorStyle::Get(),  "BlueprintEditor.CompactPinTypeSelector")
+			.ButtonContent()
+			[
+				SNew(SImage)
+				.Image( this, &SPinTypeSelector::GetTypeIconImage )
+				.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
+			];
+	}
+	else
+	{
+		// Traditional Pin Type Selector with a combo button, the icon, the current type name, and a toggle button for being an array
+		Widget = SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
 		[
 			SAssignNew( TypeComboButton, SComboButton )
@@ -80,7 +103,11 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 				.Image( FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon")) )
 				.ColorAndOpacity( this, &SPinTypeSelector::GetTypeIconColor )
 			]
-		]
+		];
+	}
+	this->ChildSlot
+	[
+		Widget.ToSharedRef()
 	];
 }
 
@@ -125,6 +152,11 @@ void SPinTypeSelector::OnArrayCheckStateChanged(ECheckBoxState NewState)
 	NewTargetPinType.bIsArray = (NewState == ECheckBoxState::Checked)? true : false;
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
+}
+
+void SPinTypeSelector::OnArrayStateToggled()
+{
+	OnArrayCheckStateChanged((IsArrayChecked() == ECheckBoxState::Checked)? ECheckBoxState::Unchecked : ECheckBoxState::Checked);
 }
 
 //=======================================================================
@@ -392,10 +424,17 @@ FText SPinTypeSelector::GetToolTipForComboBoxType() const
 {
 	if(IsEnabled())
 	{
-		return LOCTEXT("PinTypeSelector", "Select the variable's pin type.");
+		if (bIsCompactSelector)
+		{
+			return LOCTEXT("CompactPinTypeSelector", "Left click to select the variable's pin type. Right click to toggle the type as an array.");
+		}
+		else
+		{
+			return LOCTEXT("PinTypeSelector", "Select the variable's pin type.");
+		}
 	}
 
-	return LOCTEXT("PinTypeSelector_Disabled", "Cannot edit variable type while the variable is placed in a graph or inherited from parent.");
+	return LOCTEXT("PinTypeSelector_Disabled", "Cannot edit variable type when they are inherited from parent.");
 }
 
 FText SPinTypeSelector::GetToolTipForArrayWidget() const
@@ -412,4 +451,35 @@ FText SPinTypeSelector::GetToolTipForArrayWidget() const
 
 	return LOCTEXT("ArrayCheckBox_Disabled", "Cannot edit variable type while the variable is placed in a graph or inherited from parent.");
 }
+
+FReply SPinTypeSelector::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if(bIsCompactSelector && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		bIsRightMousePressed = true;
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+FReply SPinTypeSelector::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if(bIsCompactSelector && MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
+	{
+		if (bIsRightMousePressed)
+		{
+			OnArrayStateToggled();
+		}
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void SPinTypeSelector::OnMouseLeave( const FPointerEvent& MouseEvent )
+{
+	bIsRightMousePressed = false;
+}
+
 #undef LOCTEXT_NAMESPACE

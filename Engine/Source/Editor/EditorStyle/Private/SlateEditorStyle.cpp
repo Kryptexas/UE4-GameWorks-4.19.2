@@ -4971,6 +4971,14 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 // 			.SetCheckedHoveredImage(IMAGE_BRUSH("Common/TreeArrow_Collapsed_Hovered", Icon10x10, FLinearColor(0.4f, 0.4f, 0.4f, 1.f)))
 // 			.SetCheckedPressedImage(IMAGE_BRUSH("Common/TreeArrow_Collapsed_Hovered", Icon10x10, FLinearColor(0.2f, 0.2f, 0.2f, 1.f)));
 		Set("BlueprintEditor.ContextMenu.TargetsButton", BlueprintContextTargetsButtonStyle);
+
+		Set( "BlueprintEditor.CompactPinTypeSelector", FButtonStyle()
+			.SetNormal        ( FSlateNoResource() )
+			.SetPressed       ( BOX_BRUSH( "Common/Button_Pressed", 8.0f/32.0f, SelectionColor_Pressed ) )
+			.SetHovered       ( BOX_BRUSH( "Common/Button_Hovered", 8.0f/32.0f, SelectionColor ) )
+			.SetNormalPadding ( FMargin( 0,0,0,0 ) )
+			.SetPressedPadding( FMargin( 1,1,2,2 ) )
+			);
 	}
 
 	// Kismet linear expression display

@@ -28,6 +28,7 @@ public:
 		, _TreeViewWidth(300.f)
 		, _TreeViewHeight(400.f)
 		, _Font( FEditorStyle::GetFontStyle( TEXT("NormalFont") ) )
+		, _bCompactSelector( false )
 		{}
 		SLATE_ATTRIBUTE( FEdGraphPinType, TargetPinType )
 		SLATE_ARGUMENT( const UEdGraphSchema_K2*, Schema )
@@ -39,9 +40,16 @@ public:
 		SLATE_EVENT( FOnPinTypeChanged, OnPinTypePreChanged )
 		SLATE_EVENT( FOnPinTypeChanged, OnPinTypeChanged )
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
+		SLATE_ARGUMENT( bool, bCompactSelector )
 	SLATE_END_ARGS()
 public:
 	void Construct(const FArguments& InArgs, FGetPinTypeTree GetPinTypeTreeFunc);
+
+	// SWidget interface
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override;
+	// End of SWidget interface
 
 protected:
 	/** Gets the icon (pin or array) for the type being manipulated */
@@ -82,9 +90,18 @@ protected:
 	/** Desired height of the tree view widget */
 	TAttribute<FOptionalSize>	TreeViewHeight;
 
+	/** TRUE when the right mouse button is pressed, keeps from handling a right click that does not begin in the widget */
+	bool bIsRightMousePressed;
+
+	/** TRUE if displaying a compact selector widget, some functionality is enabled in different ways if this is TRUE */
+	bool bIsCompactSelector;
+
 	/** Array checkbox support functions */
 	ECheckBoxState IsArrayChecked() const;
 	void OnArrayCheckStateChanged(ECheckBoxState NewState);
+
+	/** Toggles the variable type as an array */
+	void OnArrayStateToggled();
 
 	/** Array containing the unfiltered list of all supported types this pin could possibly have */
 	TArray<FPinTypeTreeItem>		TypeTreeRoot;
