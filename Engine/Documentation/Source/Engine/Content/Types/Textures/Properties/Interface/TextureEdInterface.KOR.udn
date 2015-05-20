@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2219885
+﻿INTSourceChangelist:2557570
 Availability: Public
 Title:텍스처 에디터 UI
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
@@ -79,6 +79,7 @@ Description:텍스처 에디터 UI 에 대한 설명입니다.
 ### 애셋
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetViewReference]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2286776
+﻿INTSourceChangelist:2556992
 Availability:Public
 Title:언리얼 엔진 실행하기
 Crumbs: %ROOT%, GettingStarted
@@ -63,11 +63,11 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	명령줄에서 `[RocketInstall]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
+	1.	명령줄에서 `[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
 
-	1.	`RocketEditor.exe` 에 프로젝트 경로를 인수로 붙여 실행합니다.
+	1.	`UE4Editor.exe` 에 프로젝트 경로를 인수로 붙여 실행합니다.
 
-			RocketEditor.exe "[ProjectPath]\[ProjectName].uproject"
+			UE4Editor.exe "[ProjectPath]\[ProjectName].uproject"
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -80,11 +80,11 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	명령줄에서 `[RocketInstall]/Engine/Binaries/Mac` 디렉토리로 이동합니다.
+	1.	명령줄에서 `[LauncherInstall]\[VersionNumber]/Engine/Binaries/Mac` 디렉토리로 이동합니다.
 
-	1.	`RocketEditor.app` 에 프로젝트 경로를 붙여서 실행합니다.
+	1.	`UE4Editor.app` 에 프로젝트 경로를 붙여서 실행합니다.
 
-			open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject"
+			open UE4Editor.app --args "[ProjectPath]/[ProjectName].uproject"
 	[/PARAM]
 [/OBJECT]
 [/PUBLISH:Rocket]
@@ -129,9 +129,9 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	`[RocketInstall]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
+	1.	`[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
 
-	1.	`RocketEditor.exe` 실행파일에 우클릭한 다음 **바로 가기 만들기** 를 선택합니다.
+	1.	`UE4Editor.exe` 실행파일에 우클릭한 다음 **바로 가기 만들기** 를 선택합니다.
 
 	1.	실행시킬 게임 이름과 에디터를 실행시킨다는 사실을 반영하여 바로 가기 이름을 **MyProject - Editor.exe** 식으로 바꿔줍니다.
 
@@ -139,7 +139,7 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 
 	1.	**대상** 칸 끝에 실행시킬 게임 이름을 인수로 추가해 줍니다:
 
-			[RocketInstall]\Engine\Binaries\Win64\RocketEditor.exe "[ProjectPath]\[ProjectName].uproject"
+			[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64\UE4Editor.exe "[ProjectPath]\[ProjectName].uproject"
 
 	1. **OK** 를 눌러 변경내용을 저장합니다.
 
@@ -214,11 +214,11 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 	active_button_content
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	명령줄에서 `[RocketInstall]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
+	1.	명령줄에서 `[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
 
-	1.	**RocketEditor.exe** 에 실행시킬 프로젝트 경로와 아울러 `-game` 파라미터를 붙여 실행합니다:
+	1.	**UE4Editor.exe** 에 실행시킬 프로젝트 경로와 아울러 `-game` 파라미터를 붙여 실행합니다:
 
-			RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" -game
+			UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" -game
 	[/PARAM]
 [/OBJECT]
 [OBJECT:ToggleButtonContent]
@@ -231,11 +231,11 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 	[PARAMLITERAL:active]
 	[/PARAMLITERAL]
 	[PARAM:content]
-	1.	명령줄에서 `[RocketInstall]/Engine/Binaries/Mac` 디렉토리로 이동합니다.
+	1.	명령줄에서 `[LauncherInstall]/[VersionNumber]/Engine/Binaries/Mac` 디렉토리로 이동합니다.
 
-	1.	**RocketEditor.exe** 에 실행시킬 프로젝트 경로와 아울러 `-game` 파라미터를 붙여 실행합니다:
+	1.	**UE4Editor.app** 에 실행시킬 프로젝트 경로와 아울러 `-game` 파라미터를 붙여 실행합니다:
 
-			open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject" -game
+			open UE4Editor.app --args "[ProjectPath]/[ProjectName].uproject" -game
 	[/PARAM]
 [/OBJECT]
 [/PUBLISH:Rocket]
@@ -285,9 +285,9 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 	실행파일을 실행할 때, 바로가기의 **대상** 칸을 통해 실행시키고자 하는 프로젝트의 경로와 아울러 `-game` 스위치를 
 	실행파일의 인수로 전해줘야 합니다.
 
-	1.	`[RocketInstall]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
+	1.	`[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64` 디렉토리로 이동합니다.
 
-	1.	**RocketEditor.exe** 실행파일에 우클릭한 다음 **바로가기 생성** 을 클릭합니다.
+	1.	**UE4Editor.exe** 실행파일에 우클릭한 다음 **바로가기 생성** 을 클릭합니다.
 
 	1.	바로가기 이름을 실행시킬 게임을 반영시켜 **MyProject.exe** 식으로 바꿔줍니다.
 
@@ -295,7 +295,7 @@ Description:엔진을 게임이나 에디터로 실행하는 법은 물론, 특�
 
 	1.	**대상** 프로퍼티 끝에 실행시킬 프로젝트의 전체 경로를 인수로 추가한 다음, `-game` 인수를 지정하여 게임으로 실행되도록 합니다:
 
-			[RocketInstall]\Engine\Binaries\Win64\RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" -game
+			[LauncherInstall]\[VersionNumber]\Engine\Binaries\Win64\UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" -game
 
 		**OK** 를 눌러 변경내용을 저장합니다.
 
@@ -397,7 +397,7 @@ $ VIEWMODE [Mode] :
 	[/PARAMLITERAL]
 	[PARAM:content]
 	~~~
-	RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" ExampleMap -game
+	UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" ExampleMap -game
 	~~~
 	[/PARAM]
 [/OBJECT]
@@ -412,7 +412,7 @@ $ VIEWMODE [Mode] :
 	[/PARAMLITERAL]
 	[PARAM:content]
 	~~~
-	open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject" ExampleMap -game
+	open UE4Editor.app --args "[ProjectPath]/[ProjectName].uproject" ExampleMap -game
 	~~~
 	[/PARAM]
 [/OBJECT]
@@ -443,7 +443,7 @@ $ VIEWMODE [Mode] :
 	[/PARAMLITERAL]
 	[PARAM:content]
 	~~~
-	RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" ExampleMap
+	UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" ExampleMap
 	~~~
 	[/PARAM]
 [/OBJECT]
@@ -458,7 +458,7 @@ $ VIEWMODE [Mode] :
 	[/PARAMLITERAL]
 	[PARAM:content]
 	~~~
-	open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject" ExampleMap
+	open UE4Editor.app --args "[ProjectPath]/[ProjectName].uproject" ExampleMap
 	~~~
 	[/PARAM]
 [/OBJECT]

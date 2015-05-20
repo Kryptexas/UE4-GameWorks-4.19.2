@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2555212
+﻿INTSourceChangelist:2557547
 Availability:Docs
 Title:4. 그래스 툴 사용하기
 Crumbs:
@@ -64,9 +64,8 @@ Version: 4.8
 	랙으로 인해 작업이 힘든 경우, **랜드스케이프 그래스 타입** 세팅에서 **Grass Density** 를 낮춘 상태로 칠한 뒤 나중에 다시 올려주면 됩니다.
 	[/region]
 
-1. 랜드스케이프 터레인에서 풀을 제거하려면, **Rock 타겟 레이어** 를 선택한 다음 뷰포트 안에서 **좌클릭** 하고 있으면 
-	Rock 텍스처 칠이 시작되어 풀은 제거될 것입니다.
-	**Brush Size** 와 **Tool Strength** 를 조절하면 랜드스케이프에 풀을 추가/제거하는 방법을 더욱 잘 정의할 수 있습니다.
+1. 랜드스케이프 터레인에서 풀을 제거하려면, **Rock 타겟 레이어** 를 선택한 다음 뷰포트 안에서 **좌클릭** 하고 있으면 Rock 텍스처 칠이 시작되며 풀이 대체됩니다.
+   **Brush Size** 와 **Tool Strength** 를 조절하면 랜드스케이프에 풀을 추가/제거하는 방법을 더욱 잘 정의할 수 있습니다.
 
 	![](T_Painting_Removing_Grass.gif)(convert:false)
 
