@@ -1221,8 +1221,8 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 		return;
 	}
 
-	check( RepState->RepNotifies.Num() == 0 );
-	check( RepNotifies.Num() == 0 );
+	checkf( RepState->RepNotifies.Num() == 0, TEXT("Failed RepState RepNotifies check on object %s"), *Object->GetPathName() );
+	checkf( RepNotifies.Num() == 0, TEXT("Failed replicator RepNotifies check on object %s"), *Object->GetPathName() );
 
 	bool bSomeObjectsWereMapped = false;
 
