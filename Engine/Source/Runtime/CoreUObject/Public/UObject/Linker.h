@@ -1394,6 +1394,10 @@ private:
 	/** Used for ActiveClassRedirects functionality */
 	bool					bFixupExportMapDone;
 
+#if WITH_EDITOR
+	/** Check to avoid multiple export duplicate fixups in case we don't save asset. */
+	bool bExportsDuplicatesFixed;
+#endif // WITH_EDITOR
 	/** Id of the thread that created this linker. This is to guard against using this linker on other threads than the one it was created on **/
 	int32					OwnerThread;
 
