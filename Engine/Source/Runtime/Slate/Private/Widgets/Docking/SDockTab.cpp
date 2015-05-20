@@ -511,7 +511,8 @@ void SDockTab::Construct( const FArguments& InArgs )
 			[
 				SNew(SHorizontalBox)
 				.Visibility(EVisibility::Visible)
-				.ToolTip( InArgs._ToolTip.IsValid() ? InArgs._ToolTip : SNew( SToolTip ).Text( this, &SDockTab::GetTabLabel ) )
+				.ToolTip( InArgs._ToolTip )
+				.ToolTipText( InArgs._ToolTipText.IsSet() ? InArgs._ToolTipText : TAttribute<FText>( this, &SDockTab::GetTabLabel ) )
 
 				// Tab Icon
 				+ SHorizontalBox::Slot()
