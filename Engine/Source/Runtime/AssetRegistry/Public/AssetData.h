@@ -277,9 +277,9 @@ public:
 			static FName FiBName = TEXT("FiB");
 			if (Ar.IsSaving())
 			{
-				TMap<FName, FString> TagsAndValues = AssetData.TagsAndValues;
-				TagsAndValues.Remove(FiBName);
-				Ar << TagsAndValues;
+				TMap<FName, FString> LocalTagsAndValues = AssetData.TagsAndValues;
+				LocalTagsAndValues.Remove(FiBName);
+				Ar << LocalTagsAndValues;
 			}
 			else if (Ar.IsLoading())
 			{
