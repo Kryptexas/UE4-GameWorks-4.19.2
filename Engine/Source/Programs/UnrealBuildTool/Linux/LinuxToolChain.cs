@@ -371,8 +371,8 @@ namespace UnrealBuildTool
                 Result += " -fno-inline";                   // disable inlining for better debuggability (e.g. callstacks, "skip file" in gdb)
             }
 
-            // debug info (bCreateDebugInfo is normally set for all configurations, and we don't want it to affect Development/Shipping performance)
-            if (CompileEnvironment.Config.bCreateDebugInfo && CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+            // debug info (bCreateDebugInfo is normally set for all configurations, and we don't want it to affect Shipping performance)
+            if (CompileEnvironment.Config.bCreateDebugInfo && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
             {
                 Result += " -g3";
                 Result += " -fno-omit-frame-pointer";
