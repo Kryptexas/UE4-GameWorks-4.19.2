@@ -244,6 +244,8 @@ public:
 	FDelegateHandle DebugTextDrawingDelegateHandle;
 	EDrawType DrawType;
 	uint32 DrawAlpha;
+
+	TWeakObjectPtr<class UMaterial> SolidMeshMaterial;
 };
 
 #endif

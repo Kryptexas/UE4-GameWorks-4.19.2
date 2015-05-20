@@ -12,7 +12,9 @@
 
 FCategoryFiltersManager FCategoryFiltersManager::StaticManager;
 
-ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
+	, DebugMeshMaterialFakeLightName(TEXT("/Engine/EngineDebugMaterials/DebugMeshMaterialFakeLight.DebugMeshMaterialFakeLight"))
 {
 	TrivialLogsThreshold = 1;
 	DefaultCameraDistance = 150;
@@ -21,6 +23,16 @@ ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectI
 	bResetDataWithNewSession = false;
 	bDrawExtremesOnGraphs = false;
 	bUsePlayersOnlyForPause = true;
+}
+
+class UMaterial* ULogVisualizerSettings::GetDebugMeshMaterial()
+{
+	if (DebugMeshMaterialFakeLight == nullptr)
+	{
+		DebugMeshMaterialFakeLight = LoadObject<UMaterial>(NULL, *DebugMeshMaterialFakeLightName, NULL, LOAD_None, NULL);
+	}
+
+	return DebugMeshMaterialFakeLight;
 }
 
 #if WITH_EDITOR

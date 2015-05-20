@@ -249,6 +249,24 @@ void FVisualLogger::EventLog(const class UObject* Object, const FName EventTag1,
 	CurrentEntry->Events[Index].EventTags.Remove(NAME_None);
 }
 
+void FVisualLogger::NavOctreeShapeLog(const class UObject* Object, const struct FLogCategoryBase& Category, ELogVerbosity::Type Verbosity, int32 UniqueLogId, const FBox& Box)
+{
+	SCOPE_CYCLE_COUNTER(STAT_VisualLog);
+	UWorld *World = nullptr;
+	FVisualLogEntry *CurrentEntry = nullptr;
+	if (CheckVisualLogInputInternal(Object, Category, Verbosity, &World, &CurrentEntry) == false)
+	{
+		return;
+	}
+
+	const ANavigationData* MainNavData = World ? UNavigationSystem::GetNavigationSystem(World)->GetMainNavData(FNavigationSystem::ECreateIfEmpty::DontCreate) : nullptr;
+	const FNavDataGenerator* Generator = MainNavData ? MainNavData->GetGenerator() : nullptr;
+	if (Generator)
+	{
+		Generator->GrabDebugSnapshot(CurrentEntry, Box, Category, Verbosity);
+	}
+}
+
 
 FVisualLogger::FVisualLogger()
 {
@@ -448,7 +466,7 @@ public:
 				{
 					FString Category = FParse::Token(Cmd, 1);
 					FVisualLogger::Get().BlockAllCategories(true);
-					FVisualLogger::Get().GetWhiteList().AddUnique(*Category);
+					FVisualLogger::Get().AddCategortyToWhiteList(*Category);
 					return true;
 				}
 #if WITH_EDITOR

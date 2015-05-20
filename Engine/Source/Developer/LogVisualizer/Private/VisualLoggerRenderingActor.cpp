@@ -4,6 +4,7 @@
 #include "Engine/GameInstance.h"
 #include "Debug/DebugDrawService.h"
 #include "GameFramework/HUD.h"
+#include "AI/Navigation/RecastHelpers.h"
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
 #include "GeomTools.h"
@@ -54,7 +55,9 @@ FPrimitiveSceneProxy* UVisualLoggerRenderingComponent::CreateSceneProxy()
 		return NULL;
 	}
 
+	ULogVisualizerSettings *Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
 	FVisualLoggerSceneProxy *VLogSceneProxy = new FVisualLoggerSceneProxy(this);
+	VLogSceneProxy->SolidMeshMaterial = Settings->GetDebugMeshMaterial();
 	VLogSceneProxy->Spheres = RenderingActor->Points;
 	VLogSceneProxy->Lines = RenderingActor->Lines;
 	VLogSceneProxy->Cones = RenderingActor->Cones;
@@ -184,6 +187,39 @@ void AVisualLoggerRenderingActor::ObjectSelectionChanged(TSharedPtr<class STimel
 	}
 }
 
+namespace
+{
+	static void GetPolygonMesh(const FVisualLogShapeElement* ElementToDraw, FDebugRenderSceneProxy::FMesh& TestMesh, const FVector& VertexOffset = FVector::ZeroVector)
+	{
+		TestMesh.Color = ElementToDraw->GetFColor();
+
+		FClipSMPolygon InPoly(ElementToDraw->Points.Num());
+		for (int32 Index = 0; Index < ElementToDraw->Points.Num(); Index++)
+		{
+			FClipSMVertex v1;
+			v1.Pos = ElementToDraw->Points[Index];
+			InPoly.Vertices.Add(v1);
+		}
+
+		TArray<FClipSMTriangle> OutTris;
+		if (TriangulatePoly(OutTris, InPoly, false))
+		{
+			int32 LastIndex = 0;
+
+			RemoveRedundantTriangles(OutTris);
+			for (const auto& CurrentTri : OutTris)
+			{
+				TestMesh.Vertices.Add(FDynamicMeshVertex(CurrentTri.Vertices[0].Pos + VertexOffset));
+				TestMesh.Vertices.Add(FDynamicMeshVertex(CurrentTri.Vertices[1].Pos + VertexOffset));
+				TestMesh.Vertices.Add(FDynamicMeshVertex(CurrentTri.Vertices[2].Pos + VertexOffset));
+				TestMesh.Indices.Add(LastIndex++);
+				TestMesh.Indices.Add(LastIndex++);
+				TestMesh.Indices.Add(LastIndex++);
+			}
+		}
+	}
+}
+
 void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& EntryItem)
 {
 	const FVisualLogEntry* Entry = &EntryItem.Entry;
@@ -222,7 +258,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 		}
 	}
 
-	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
+	const TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
 	for (auto& Extension : AllExtensions)
 	{
 		Extension.Value->OnTimestampChange(Entry->TimeStamp, GetWorld(), this);
@@ -265,7 +301,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 		{
 			const float Radius = float(ElementToDraw->Radius);
 			const bool bDrawLabel = ElementToDraw->Description.IsEmpty() == false;
-			for (int32 Index=0; Index < ElementToDraw->Points.Num(); ++Index)
+			for (int32 Index = 0; Index < ElementToDraw->Points.Num(); ++Index)
 			{
 				const FVector& Point = ElementToDraw->Points[Index];
 				Points.Add(FDebugRenderSceneProxy::FSphere(Radius, Point, Color));
@@ -276,47 +312,53 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 				}
 			}
 		}
-		break;
+			break;
 		case EVisualLoggerShapeElement::Polygon:
 		{
-			FClipSMPolygon InPoly(ElementToDraw->Points.Num());
-			for (int32 Index = 0; Index < ElementToDraw->Points.Num(); Index++)
-			{
-				FClipSMVertex v1;
-				v1.Pos = ElementToDraw->Points[Index];
-				InPoly.Vertices.Add(v1);
-			}
-
-			TArray<FClipSMTriangle> OutTris;
-			if (TriangulatePoly(OutTris, InPoly, false))
-			{
-				int32 LastIndex = 0;
-				FDebugRenderSceneProxy::FMesh TestMesh;
-				TestMesh.Color = Color;
-
-				RemoveRedundantTriangles(OutTris);
-				for (const auto& CurrentTri : OutTris)
-				{
-					TestMesh.Vertices.Add(FDynamicMeshVertex(CurrentTri.Vertices[0].Pos + CorridorOffset));
-					TestMesh.Vertices.Add(FDynamicMeshVertex(CurrentTri.Vertices[1].Pos + CorridorOffset));
-					TestMesh.Vertices.Add(FDynamicMeshVertex(CurrentTri.Vertices[2].Pos + CorridorOffset));
-					TestMesh.Indices.Add(LastIndex++);
-					TestMesh.Indices.Add(LastIndex++);
-					TestMesh.Indices.Add(LastIndex++);
-				}
-				Meshes.Add(TestMesh);
-			}
+			FDebugRenderSceneProxy::FMesh TestMesh;
+			GetPolygonMesh(ElementToDraw, TestMesh, CorridorOffset);
+			Meshes.Add(TestMesh);
 
 			for (int32 VIdx = 0; VIdx < ElementToDraw->Points.Num(); VIdx++)
 			{
 				Lines.Add(FDebugRenderSceneProxy::FDebugLine(
 					ElementToDraw->Points[VIdx] + CorridorOffset,
 					ElementToDraw->Points[(VIdx + 1) % ElementToDraw->Points.Num()] + CorridorOffset,
-					FColor::Cyan, 
+					FColor::Cyan,
 					2)
-				);
+					);
+			}
+		}
+			break;
+		case EVisualLoggerShapeElement::Mesh:
+		{
+			struct FHeaderData
+			{
+				float VerticesNum, FacesNum;
+				FHeaderData(const FVector& InVector) : VerticesNum(InVector.X), FacesNum(InVector.Y) {}
+			};
+			const FHeaderData HeaderData(ElementToDraw->Points[0]);
+
+			FDebugRenderSceneProxy::FMesh TestMesh;
+			TestMesh.Color = ElementToDraw->GetFColor();
+			int32 StartIndex = 1;
+			int32 EndIndex = StartIndex + HeaderData.VerticesNum;
+			for (int32 VIdx = StartIndex; VIdx < EndIndex; VIdx++)
+			{
+				TestMesh.Vertices.Add(ElementToDraw->Points[VIdx]);
 			}
 
+
+			StartIndex = EndIndex;
+			EndIndex = StartIndex + HeaderData.FacesNum;
+			for (int32 VIdx = StartIndex; VIdx < EndIndex; VIdx++)
+			{
+				const FVector &CurrentFace = ElementToDraw->Points[VIdx];
+				TestMesh.Indices.Add(CurrentFace.X);
+				TestMesh.Indices.Add(CurrentFace.Y);
+				TestMesh.Indices.Add(CurrentFace.Z);
+			}
+			Meshes.Add(TestMesh);
 		}
 			break;
 		case EVisualLoggerShapeElement::Segment:
@@ -351,7 +393,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 				Location = CurrentLocation;
 			}
 		}
-		break;
+			break;
 		case EVisualLoggerShapeElement::Box:
 		{
 			const float Thickness = float(ElementToDraw->Thicknes);
@@ -373,7 +415,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 				Texts.Add(FDebugRenderSceneProxy::FText3d(ElementToDraw->Description, ElementToDraw->Points[0] + (ElementToDraw->Points[1] - ElementToDraw->Points[0]) / 2, Color));
 			}
 		}
-		break;
+			break;
 		case EVisualLoggerShapeElement::Cone:
 		{
 			const float Thickness = float(ElementToDraw->Thicknes);
@@ -425,7 +467,7 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 				const float HalfHeight = FirstData.X;
 				const float Radius = FirstData.Y;
 				const FQuat Rotation = FQuat(FirstData.Z, SecondData.X, SecondData.Y, SecondData.Z);
-				
+
 				const FMatrix Axes = FQuatRotationTranslationMatrix(Rotation, FVector::ZeroVector);
 				const FVector XAxis = Axes.GetScaledAxis(EAxis::X);
 				const FVector YAxis = Axes.GetScaledAxis(EAxis::Y);
@@ -438,7 +480,73 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 				}
 			}
 		}
-			break;
+		break;
+		case EVisualLoggerShapeElement::NavAreaMesh:
+		{
+			if (ElementToDraw->Points.Num() == 0)
+				continue;
+
+			struct FHeaderData
+			{
+				float MinZ, MaxZ;
+				FHeaderData(const FVector& InVector) : MinZ(InVector.X), MaxZ(InVector.Y) {}
+			};
+			const FHeaderData HeaderData(ElementToDraw->Points[0]);
+
+			TArray<FVector> AreaMeshPoints = ElementToDraw->Points;
+			AreaMeshPoints.RemoveAt(0, 1, false);
+			AreaMeshPoints.Add(ElementToDraw->Points[1]);
+			TArray<FVector> Vertices;
+			TNavStatArray<FVector> Faces;
+			int32 CurrentIndex = 0;
+			FDebugRenderSceneProxy::FMesh TestMesh;
+			TestMesh.Color = ElementToDraw->GetFColor();
+
+			for (int32 PointIndex = 0; PointIndex < AreaMeshPoints.Num() - 1; PointIndex++)
+			{
+				FVector Point = AreaMeshPoints[PointIndex];
+				FVector NextPoint = AreaMeshPoints[PointIndex + 1];
+
+				FVector P1(Point.X, Point.Y, HeaderData.MinZ);
+				FVector P2(Point.X, Point.Y, HeaderData.MaxZ);
+				FVector P3(NextPoint.X, NextPoint.Y, HeaderData.MinZ);
+				FVector P4(NextPoint.X, NextPoint.Y, HeaderData.MaxZ);
+
+				TestMesh.Vertices.Add(P1); TestMesh.Vertices.Add(P2); TestMesh.Vertices.Add(P3);
+				TestMesh.Indices.Add(CurrentIndex + 0);
+				TestMesh.Indices.Add(CurrentIndex + 1);
+				TestMesh.Indices.Add(CurrentIndex + 2);
+				CurrentIndex += 3;
+				TestMesh.Vertices.Add(P3); TestMesh.Vertices.Add(P2); TestMesh.Vertices.Add(P4);
+				TestMesh.Indices.Add(CurrentIndex + 0);
+				TestMesh.Indices.Add(CurrentIndex + 1);
+				TestMesh.Indices.Add(CurrentIndex + 2);
+				CurrentIndex += 3;
+			}
+			Meshes.Add(TestMesh);
+
+			{
+				FDebugRenderSceneProxy::FMesh PolygonMesh;
+				FVisualLogShapeElement PolygonToDraw(EVisualLoggerShapeElement::Polygon);
+				PolygonToDraw.SetColor(ElementToDraw->GetFColor());
+				PolygonToDraw.Points.Reserve(AreaMeshPoints.Num());
+				PolygonToDraw.Points = AreaMeshPoints;
+				GetPolygonMesh(&PolygonToDraw, PolygonMesh, FVector(0,0,HeaderData.MaxZ));
+				Meshes.Add(PolygonMesh);
+			}
+
+			for (int32 VIdx = 0; VIdx < AreaMeshPoints.Num(); VIdx++)
+			{
+				Lines.Add(FDebugRenderSceneProxy::FDebugLine(
+					AreaMeshPoints[VIdx] + FVector(0, 0, HeaderData.MaxZ),
+					AreaMeshPoints[(VIdx + 1) % AreaMeshPoints.Num()] + FVector(0, 0, HeaderData.MaxZ),
+					ElementToDraw->GetFColor(),
+					2)
+				);
+			}
+
+		}
+		break;
 		}
 	}
 

@@ -1129,8 +1129,9 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	// draw corridor
 #if WITH_RECAST
 	FVisualLogShapeElement CorridorPoly(EVisualLoggerShapeElement::Polygon);
-	CorridorPoly.SetColor(FColorList::Cyan);
+	CorridorPoly.SetColor(FColorList::Cyan.WithAlpha(100));
 	CorridorPoly.Category = LogNavigation.GetCategoryName();
+	CorridorPoly.Verbosity = ELogVerbosity::Verbose;
 	CorridorPoly.Points.Reserve(PathCorridor.Num() * 6);
 
 	const FVector CorridorOffset = NavigationDebugDrawing::PathOffset * 1.25f;
@@ -1151,7 +1152,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 		const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::Cyan;
 
-		CorridorPoly.SetColor(PolygonColor);
+		CorridorPoly.SetColor(PolygonColor.WithAlpha(100));
 		CorridorPoly.Points.Reset();
 		CorridorPoly.Points.Append(Verts);
 		Snapshot->ElementsToDraw.Add(CorridorPoly);
@@ -1168,6 +1169,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 			FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
 			AreaMarkElem.SetColor(FColorList::Orange);
 			AreaMarkElem.Category = LogNavigation.GetCategoryName();
+			AreaMarkElem.Verbosity = ELogVerbosity::Verbose;
 			AreaMarkElem.Thicknes = 2;
 			AreaMarkElem.Description = AreaClass->GetName();
 

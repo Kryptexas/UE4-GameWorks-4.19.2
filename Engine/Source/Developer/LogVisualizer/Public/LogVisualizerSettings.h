@@ -102,12 +102,21 @@ public:
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	class UMaterial* GetDebugMeshMaterial();
+
 protected:
 	FVisualLoggerFilters CurrentFilters;
 	
 	UPROPERTY(config)
 	FVisualLoggerFilters PresistentFilters;
 
+	/** A material used to render debug meshes with kind of flat shading, mostly used by Visual Logger tool. */
+	UPROPERTY()
+	class UMaterial* DebugMeshMaterialFakeLight;
+
+	/** @todo document */
+	UPROPERTY(config)
+	FString DebugMeshMaterialFakeLightName;
 private:
 
 	// Holds an event delegate that is executed when a setting has changed.

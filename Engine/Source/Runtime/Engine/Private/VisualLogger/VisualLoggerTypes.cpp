@@ -193,6 +193,47 @@ void FVisualLogEntry::AddElement(const FVector& Center, float HalfHeight, float 
 	ElementsToDraw.Add(Element);
 }
 
+void FVisualLogEntry::AddElement(const TArray<FVector>& ConvexPoints, float MinZ, float MaxZ, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color, const FString& Description)
+{
+	FVisualLogShapeElement Element(Description, Color, 0, CategoryName);
+	Element.Points.Reserve(1 + ConvexPoints.Num());
+	Element.Points.Add(FVector(MinZ, MaxZ, 0));
+	Element.Points.Append(ConvexPoints);
+	Element.Type = EVisualLoggerShapeElement::NavAreaMesh;
+	Element.Verbosity = Verbosity;
+	ElementsToDraw.Add(Element);
+}
+
+void FVisualLogEntry::AddElement(const TArray<FVector>& Vertices, const TArray<int32>& Indices, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color, const FString& Description)
+{
+	FVisualLogShapeElement Element(Description, Color, 0, CategoryName);
+	uint32 FacesNum = Indices.Num() / 3;
+	Element.Points.Reserve(1 + Vertices.Num() + FacesNum);
+	Element.Points.Add(FVector(Vertices.Num(), FacesNum, 0)); //add header data
+	Element.Points.Append(Vertices);
+	TArray<FVector> Faces;
+	Faces.Reserve(FacesNum);
+	for (int32 i = 0; i < Indices.Num(); i += 3)
+	{
+		Faces.Add(FVector(Indices[i + 0], Indices[i + 1], Indices[i + 2]));
+	}
+	Element.Points.Append(Faces);
+
+	Element.Type = EVisualLoggerShapeElement::Mesh;
+	Element.Verbosity = Verbosity;
+	ElementsToDraw.Add(Element);
+}
+
+void FVisualLogEntry::AddConvexElement(const TArray<FVector>& Points, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FColor& Color, const FString& Description)
+{
+	FVisualLogShapeElement Element(Description, Color, 0, CategoryName);
+	Element.Points = Points;
+	Element.Verbosity = Verbosity;
+	Element.Type = EVisualLoggerShapeElement::Polygon;
+	ElementsToDraw.Add(Element);
+}
+
+
 void FVisualLogEntry::AddHistogramData(const FVector2D& DataSample, const FName& CategoryName, ELogVerbosity::Type Verbosity, const FName& GraphName, const FName& DataName)
 {
 	FVisualLogHistogramSample Sample;
