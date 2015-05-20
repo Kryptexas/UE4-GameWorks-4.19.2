@@ -15,6 +15,9 @@ public:
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Blueprint | EAssetTypeCategories::Gameplay; }
 	// End IAssetTypeActions Implementation
 
+	// FAssetTypeActions_Blueprint interface
+	virtual UFactory* GetFactoryForBlueprintType(UBlueprint* InBlueprint) const override;
+
 private:
 	/** Returns true if the blueprint is data only */
 	bool ShouldUseDataOnlyEditor(const UBlueprint* Blueprint) const;
