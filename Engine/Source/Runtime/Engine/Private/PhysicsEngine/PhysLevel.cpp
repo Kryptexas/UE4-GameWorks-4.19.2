@@ -347,6 +347,8 @@ void InitGamePhys()
 	GPhysXSDK = PxCreatePhysics(PX_PHYSICS_VERSION, *GPhysXFoundation, PScale, false, GPhysXProfileZoneManager);
 	check(GPhysXSDK);
 
+	FPhysxSharedData::Initialize();
+
 	GPhysCommandHandler = new FPhysCommandHandler();
 
 	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
@@ -464,6 +466,8 @@ void TermGamePhys()
 #endif
 
 #if WITH_PHYSX
+	FPhysxSharedData::Terminate();
+
 	// Do nothing if they were never initialized
 	if(GPhysXFoundation == NULL)
 	{

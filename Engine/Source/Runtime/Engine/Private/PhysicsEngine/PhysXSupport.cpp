@@ -786,11 +786,21 @@ physx::PxPairFlags FApexPhysX3Interface::getContactReportFlags(const physx::PxSh
 
 #endif	// WITH_APEX
 
+FPhysxSharedData* FPhysxSharedData::Singleton = nullptr;
 
-FPhysxSharedData& FPhysxSharedData::Get()
+void FPhysxSharedData::Initialize()
 {
-	static FPhysxSharedData s_SharedData; 
-	return s_SharedData;
+	check(Singleton == nullptr);
+	Singleton = new FPhysxSharedData();
+}
+
+void FPhysxSharedData::Terminate()
+{
+	if (Singleton)
+	{
+		delete Singleton;
+		Singleton = nullptr;
+	}
 }
 
 void FPhysxSharedData::Add( PxBase* Obj )
