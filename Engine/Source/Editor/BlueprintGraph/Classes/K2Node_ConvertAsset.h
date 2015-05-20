@@ -21,6 +21,7 @@ public:
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
+	virtual void PostReconstructNode() override;
 	virtual bool IsNodePure() const override { return true; }
 	virtual bool ShouldDrawCompact() const override { return true; }
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
@@ -33,4 +34,7 @@ public:
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	// End of UK2Node interface
+
+protected:
+	void RefreshPinTypes();
 };
