@@ -19,7 +19,7 @@ struct FAsyncPackageDesc
 	/** Delegate called on completion of loading */
 	FLoadPackageAsyncDelegate PackageLoadedDelegate;
 	/** The flags that should be applied to the package */
-	uint32 Flags;
+	EPackageFlags PackageFlags;
 	/** Package loading priority. Higher number is higher priority. */
 	uint32 Priority;
 #if WITH_EDITOR
@@ -28,13 +28,13 @@ struct FAsyncPackageDesc
 #endif
 
 
-	FAsyncPackageDesc(const FName& InName, FName InPackageToLoadFrom = NAME_None, const FGuid& InGuid = FGuid(), FName InType = NAME_None, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), uint32 InFlags = 0, int32 InPIEInstanceID = INDEX_NONE, uint32 InPriority = 0)
+	FAsyncPackageDesc(const FName& InName, FName InPackageToLoadFrom = NAME_None, const FGuid& InGuid = FGuid(), FName InType = NAME_None, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPriority = 0)
 		: Name(InName)
 		, NameToLoad(InPackageToLoadFrom)
 		, Type(InType)	
 		, Guid(InGuid)
 		, PackageLoadedDelegate(InCompletionDelegate)
-		, Flags(InFlags)
+		, PackageFlags(InPackageFlags)
 		, Priority(InPriority)
 #if WITH_EDITOR
 		, PIEInstanceID(InPIEInstanceID)

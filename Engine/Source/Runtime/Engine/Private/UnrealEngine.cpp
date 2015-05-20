@@ -6275,12 +6275,17 @@ void UEngine::AddTextureStreamingSlaveLoc(FVector InLoc, float BoostFactor, bool
 /** Looks up the GUID of a package on disk. The package must NOT be in the autodownload cache.
  * This may require loading the header of the package in question and is therefore slow.
  */
-FGuid UEngine::GetPackageGuid(FName PackageName)
+FGuid UEngine::GetPackageGuid(FName PackageName, bool bForPIE)
 {
 	FGuid Result(0,0,0,0);
 
 	BeginLoad();
-	FLinkerLoad* Linker = GetPackageLinker(NULL, *PackageName.ToString(), LOAD_NoWarn | LOAD_NoVerify, NULL, NULL);
+	uint32 LoadFlags = LOAD_NoWarn | LOAD_NoVerify;
+	if (bForPIE)
+	{
+		LoadFlags |= LOAD_PackageForPIE;
+	}
+	FLinkerLoad* Linker = GetPackageLinker(NULL, *PackageName.ToString(), LoadFlags, NULL, NULL);
 	if (Linker != NULL && Linker->LinkerRoot != NULL)
 	{
 		Result = Linker->LinkerRoot->GetGuid();

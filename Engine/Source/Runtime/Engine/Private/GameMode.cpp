@@ -954,7 +954,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 		return;
 	}
 	
-	FGuid NextMapGuid = UEngine::GetPackageGuid(FName(*NextMap));
+	FGuid NextMapGuid = UEngine::GetPackageGuid(FName(*NextMap), GetWorld()->IsPlayInEditor());
 
 	// Notify clients we're switching level and give them time to receive.
 	FString URLMod = URL;

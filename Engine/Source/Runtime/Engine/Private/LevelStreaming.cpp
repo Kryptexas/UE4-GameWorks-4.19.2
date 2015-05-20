@@ -401,7 +401,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 		}
 	}
 
-	uint32 PackageFlags = 0;
+	EPackageFlags PackageFlags = PKG_None;
 	int32 PIEInstanceID = INDEX_NONE;
 
 	// copy streaming level on demand if we are in PIE

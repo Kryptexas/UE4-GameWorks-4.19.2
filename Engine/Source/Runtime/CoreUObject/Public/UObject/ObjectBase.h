@@ -68,6 +68,7 @@ enum ESaveFlags
 //
 enum EPackageFlags
 {
+	PKG_None						= 0x00000000,	// No flags
 	PKG_NewlyCreated				= 0x00000001,	// Newly created package, not saved yet. In editor only.
 	PKG_ClientOptional				= 0x00000002,	// Purely optional for clients.
 	PKG_ServerSideOnly				= 0x00000004,   // Only needed on the server side.
@@ -93,6 +94,7 @@ enum EPackageFlags
 
 	PKG_InMemoryOnly				= PKG_CompiledIn | PKG_NewlyCreated, // Flag mask that indicates if this package is a package that exists in memory only.
 };
+ENUM_CLASS_FLAGS(EPackageFlags);
 
 //
 // Internal enums.
