@@ -4537,6 +4537,8 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 
 void FSeamlessTravelHandler::CopyWorldData()
 {
+	CurrentWorld->DestroyDemoNetDriver();
+
 	UNetDriver* const NetDriver = CurrentWorld->GetNetDriver();
 	LoadedWorld->SetNetDriver(NetDriver);
 	if (NetDriver != NULL)
