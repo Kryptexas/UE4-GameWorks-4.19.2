@@ -29,7 +29,7 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 {
 	SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI, GSlateTextBlockLayoutComputeDesiredSize);
 	TextLayout->SetWrappingWidth(CalculateWrappingWidth(InWidgetArgs));
-	TextLayout->SetMargin(InWidgetArgs.Margin.Get());
+	TextLayout->SetMargin(InWidgetArgs.Margin.Get() * InScale);
 	TextLayout->SetJustification(InWidgetArgs.Justification.Get());
 	TextLayout->SetLineHeightPercentage(InWidgetArgs.LineHeightPercentage.Get());
 	TextLayout->SetScale(InScale);

@@ -2592,8 +2592,6 @@ void SMultiLineEditableText::CacheDesiredSize(float LayoutScaleMultiplier)
 	// Get the wrapping width and font to see if they have changed
 	float WrappingWidth = WrapTextAt.Get();
 
-	const FMargin& OurMargin = Margin.Get();
-
 	// Text wrapping can either be used defined (WrapTextAt), automatic (AutoWrapText), or a mixture of both
 	// Take whichever has the smallest value (>1)
 	if(AutoWrapText.Get() && CachedSize.X >= 1.0f)
@@ -2603,7 +2601,7 @@ void SMultiLineEditableText::CacheDesiredSize(float LayoutScaleMultiplier)
 
 	TextLayout->SetScale( LayoutScaleMultiplier );
 	TextLayout->SetWrappingWidth( WrappingWidth );
-	TextLayout->SetMargin( OurMargin );
+	TextLayout->SetMargin( Margin.Get() * TextLayout->GetScale() );
 	TextLayout->SetLineHeightPercentage( LineHeightPercentage.Get() );
 	TextLayout->SetJustification( Justification.Get() );
 	TextLayout->SetVisibleRegion( CachedSize, ScrollOffset * TextLayout->GetScale() );
