@@ -12,6 +12,7 @@
 #define ARG_DIRECTORY_WATCHER_TEST			"dirwatcher"
 #define ARG_THREAD_SINGLETON_TEST			"threadsingleton"
 #define ARG_SYSINFO_TEST					"sysinfo"
+#define ARG_CRASH_TEST						"crash"
 
 // this module headers
 #include "Parent.h"
