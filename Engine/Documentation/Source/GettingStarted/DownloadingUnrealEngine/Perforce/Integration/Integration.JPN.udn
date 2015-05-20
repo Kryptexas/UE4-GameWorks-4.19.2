@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2456724
+﻿INTSourceChangelist:2557119
 Availability:Licensee
 Title:Perforce 統合に関する FAQ
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
@@ -70,7 +70,7 @@ P4V に 1 つの変更を統合するには以下の手順を行います。
 
 
 * 既存の変更がこのマージで絶対に混ざらないように、 _新規の_ チェンジリストを選択します。
-* _[完了]_ をクリックしてチェンジリストを新規作成します。 
+* _[Finish]_ をクリックしてチェンジリストを新規作成します。 
 * [以下のインストラクション](#Resolve) に従って、統合されたファイルを解決します。 
 * サブミットする前に 一通りテストしてください。
 * このページで後ほど出てくる [チェンジリスト説明ガイドライン](#ChangeDesc) の使用を覚えておいてください。
