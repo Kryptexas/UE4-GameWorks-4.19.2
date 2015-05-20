@@ -1,4 +1,5 @@
-﻿Availability:Licensee
+﻿INTSourceChangelist:2557124
+Availability:Licensee
 Title: 一般的なマージの問題
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:エンジンの新規ビルドをマージする際によく発生する問題についての説明
@@ -75,34 +76,32 @@ Description:エンジンの新規ビルドをマージする際によく発生�
 1. 新しい QA ビルドがでたらダウンロードし、デポにサブミットします。 
 
 	ファイルの追加 / 削除 / 編集のすべてのサブミットを行う場合、以下のコマンドを使用するのが良い方法です。
-
 	REM PURPOSE: デフォルトのクライアントスペックにあるデフォルトのチェンジリストが空であることを確認してください。
 
 		REM takes 2 variables
 
 		REM %1 == the hard drive PATH (under the depot root) to the dir with the new version (e.g. c:/foo/bar/baz)
 		REM %2 == the depot path to the build (e.g. //depot_foo/bar/baz/...
-
 		REM USAGE:  p4ModifiedFiles.bat c:/foo/bar/baz //depot_foo/bar/baz/...
 
 		REM save state
 
 		set MODFILES_FIND_ORIG=%MODFILES_FIND%
 		set MODFILES_FIND=C:\bin\cygwin\bin\find.exe
-
 		REM find all of the new files and add them
+
 		%MODFILES_FIND% %1 -type f | p4 -x - add
-
 		REM open all changed files for edit
+
 		p4 diff -se %2 | p4 -x - edit
-
 		REM open all removed files for delete
+
 		p4 diff -sd %2 | p4 -x - delete
-
 		REM restore state
-		set MODFILES_FIND=%MODFILES_FIND_ORIG%
 
-1. Perforce の統合 (`p4 integ`) を使用して、//depot/UE4Builds/... から Perforce のご利用のエンジンに統合します (例、 //depot/MyEngine/...) 。
+		set MODFILES_FIND=%MODFILES_FIND_ORIG%
+	1. Perforce の統合 (`p4 integ`) を使用して、//depot/UE4Builds/... から Perforce のご利用のエンジンに統合します (例、 //depot/MyEngine/...) 。
+
 
 1. Perforce の Safe Automatic Resolve を使用して、ユーザーがローカルで変更していないファイルを自動的に解決 (resolve) します。(例、著作権の更新は基本的にすべてのファイルに影響します。その多くは、ローカルでは変更されません。)
 
