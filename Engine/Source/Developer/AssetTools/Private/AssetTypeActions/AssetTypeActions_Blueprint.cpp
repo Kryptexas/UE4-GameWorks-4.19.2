@@ -122,6 +122,13 @@ bool FAssetTypeActions_Blueprint::CanCreateNewDerivedBlueprint() const
 	return true;
 }
 
+UFactory* FAssetTypeActions_Blueprint::GetFactoryForBlueprintType(UBlueprint* InBlueprint) const
+{
+	UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
+	BlueprintFactory->ParentClass = InBlueprint->GeneratedClass;
+	return BlueprintFactory;
+}
+
 void FAssetTypeActions_Blueprint::ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlueprint>> Objects)
 {
 	TArray< UBlueprint* > Blueprints;
@@ -178,11 +185,10 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 		CreateUniqueAssetName(Object->GetOutermost()->GetName(), TEXT("_Child"), PackageName, Name);
 		const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
 
-		UBlueprintFactory* BlueprintFactory = NewObject<UBlueprintFactory>();
-		BlueprintFactory->ParentClass = TargetParentClass;
+		UFactory* Factory = GetFactoryForBlueprintType(TargetParentBP);
 
 		FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-		ContentBrowserModule.Get().CreateNewAsset(Name, PackagePath, UBlueprint::StaticClass(), BlueprintFactory);
+		ContentBrowserModule.Get().CreateNewAsset(Name, PackagePath, TargetParentBP->GetClass(), Factory);
 	}
 }
 

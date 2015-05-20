@@ -14,6 +14,7 @@
 #include "AssetTypeActions_GameplayAbilitiesBlueprint.h"
 #include "GameplayAbilitiesEditor.h"
 #include "GameplayAbilityBlueprint.h"
+#include "GameplayAbilitiesBlueprintFactory.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -62,6 +63,13 @@ bool FAssetTypeActions_GameplayAbilitiesBlueprint::ShouldUseDataOnlyEditor(const
 UClass* FAssetTypeActions_GameplayAbilitiesBlueprint::GetSupportedClass() const
 { 
 	return UGameplayAbilityBlueprint::StaticClass(); 
+}
+
+UFactory* FAssetTypeActions_GameplayAbilitiesBlueprint::GetFactoryForBlueprintType(UBlueprint* InBlueprint) const
+{
+	UGameplayAbilitiesBlueprintFactory* GameplayAbilitiesBlueprintFactory = NewObject<UGameplayAbilitiesBlueprintFactory>();
+	GameplayAbilitiesBlueprintFactory->ParentClass = TSubclassOf<UGameplayAbility>(*InBlueprint->GeneratedClass);
+	return GameplayAbilitiesBlueprintFactory;
 }
 
 #undef LOCTEXT_NAMESPACE

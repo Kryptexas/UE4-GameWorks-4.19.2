@@ -29,6 +29,9 @@ protected:
 	/** Whether or not this asset can create derived blueprints */
 	virtual bool CanCreateNewDerivedBlueprint() const;
 
+	/** Return the factory responsible for creating this type of Blueprint */
+	virtual UFactory* GetFactoryForBlueprintType(UBlueprint* InBlueprint) const;
+
 private:
 	/** Handler for when EditDefaults is selected */
 	void ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlueprint>> Objects);
