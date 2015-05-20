@@ -362,6 +362,8 @@ public:
 		return Entries.CreateConstIterator();
 	}
 
+	void SortEntries();
+
 private:
 	/** Copying is not supported */
 	FPortableObjectFormatDOM( const FPortableObjectFormatDOM& ); 
