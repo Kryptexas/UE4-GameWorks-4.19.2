@@ -1671,6 +1671,12 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 	{
 		FActiveSound* ActiveSound = ActiveSoundsCopy[i];
 
+		if (!ActiveSound)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Null sound at index %d in ActiveSounds Array!"), i);
+			continue;
+		}
+		
 		if( !ActiveSound->Sound )
 		{
 			// No sound - cleanup and remove
