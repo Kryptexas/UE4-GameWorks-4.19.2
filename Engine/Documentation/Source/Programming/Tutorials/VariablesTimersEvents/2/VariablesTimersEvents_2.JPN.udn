@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2555570
 Availability:Public
 Title:2.変数と関数をエディタに公開する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
@@ -26,7 +26,7 @@ Description:UPROPERTY と UFUNCTION マクロを使用して変数と関数を�
 
 		int32 CountdownTime;
 
-	この変数を **アンリアルエンジン** に公開するには、変数を **UPROPERTY** に変更しなくてはいけません。変更により、ゲームの起動時や保存レベルのロード時に変数の値をエンジンに保存出来るようになります。影響を与える変数の真上に空の丸括弧を伴った **UPROPERTY** タグを追加します：
+	この変数を **アンリアルエンジン** に公開するには、変数を **UPROPERTY** に変更しなくてはいけません。変更後は、ゲームの起動時や保存レベルのロード時に変数の値をエンジンに保存出来るようになります。影響を与える変数の真上に空の丸括弧を伴って **UPROPERTY** タグを追加します：
 
 		UPROPERTY()
 		int32 CountdownTime;
@@ -46,9 +46,9 @@ Description:UPROPERTY と UFUNCTION マクロを使用して変数と関数を�
 
 	[![](CommentingVariable.png)](CommentingVariable.png)
 
-	[REGION:tip]**UPROPERTY** でもっとたくさんの設定が可能です。 **BlueprintReadWrite** と **Category** など他の引数も使用できますが、現時点では必要ないので省きます。[/REGION]
-	**アンリアルエディタ** に戻って **Compile（コンパイル）** ボタンを押すと、既に配置した **ACountdown** の変数が **詳細パネル** に表示されます。タイマー値を色々な値に変更しながら **Play** を押してテストを行ってみてください。 
+	[REGION:tip]**UPROPERTY** でもっとたくさんの設定が可能です。 **BlueprintReadWrite** と **Category** など他の引数も使用できますが、現時点では必要ないので省きます。
 
+	**アンリアルエディタ** に戻って **Compile（コンパイル）** ボタンを押すと、既に配置した **ACountdown** の変数が **詳細パネル** に表示されます。タイマー値を色々な値に変更しながら **Play** を押してテストを行ってみてください。[/REGION] 
 
 1. タイマー値の変更に加えて、非プログラマもタイマー終了時に起きるイベントの変更が行えるようにしましょう。**Visual Studio** で 「 `Countdown.h` 」 ファイルを開いて以下の行を探します：
 
@@ -60,9 +60,9 @@ Description:UPROPERTY と UFUNCTION マクロを使用して変数と関数を�
 		void CountdownHasFinished();
 
 	[REGION:note]
-	**UPROPERTY** マクロのように、より多くの機能を有効にしたり非プログラマがアクセス出来るように、動作に関する情報を追加しなくてはいけません。オプションは3つあります：
-
-	1.  **BlueprintCallable** 関数は C++ コードで記述されていて **ブループリントグラフ** で呼び出しが可能ですが、C++コードを編集せずに変更またはオーバーライドすることができません。このようにマークされた関数は、通常は非プログラマが使用するためにプログラミングされた機能ですが、変更を想定していなかったり、変更自体に意味をなしません。例えばmath関数が分かりやすい例えでしょう。
+	**UPROPERTY** マクロのように、より多くの機能を有効にしたり非プログラマがアクセス出来るように、動作に関する情報を追加しなくてはいけません。これを行うために考えられるオプションは3つあります：
+	
+	1.  **BlueprintCallable** 関数は C++ コードで記述されていて **ブループリントグラフ** で呼び出しが可能ですが、C++コードを編集せずに変更またはオーバーライドすることができません。このようにマークされた関数は、通常は非プログラマが使用するためにプログラミングされた機能ですが、変更を想定していなかったり、変更自体に意味をなしません。例えば分かりやすい例に math 関数を見てみましょう。
 
 	1. **BlueprintImplementableEvent** 関数は C++ ヘッダ (`.h`) ファイルに設定されていますが、関数のボディ全体はC++コードではなく **Blueprint Graph** に記述されます。期待していたデフォルトアクションや標準のビヘイビアが存在しないなど、非プログラマが特別な状況にカスタム仕様のリアクションを作成して対応できるようになっています。スペースシップゲームでパワーアップがプレイヤーのシップに触れた時のイベントなどが例にあげられます。
 
@@ -107,15 +107,15 @@ C++コードに独自の値と機能を記述したままで、非プログラ�
 			class HOWTO_VTE_API ACountdown : public AActor
 			{
 				GENERATED_BODY()
-	public:
-
+	
+			public:
 				// Sets default values for this actor's properties（このアクタのプロパティのデフォルト値を設定）
 				ACountdown();
 
 				// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
 				virtual void BeginPlay() override;
+	
 	// Called every frame（フレームごとに呼ばれます）
-
 				virtual void Tick( float DeltaSeconds ) override;
 
 				//How long, in seconds, the countdown will run（カウントダウンの実行時間（秒））
@@ -147,11 +147,11 @@ C++コードに独自の値と機能を記述したままで、非プログラ�
 			{
  				// Set this actor to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
 				PrimaryActorTick.bCanEverTick = false;
-	CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
+	
+				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 
 				CountdownText->SetHorizontalAlignment(EHTA_Center);
 				CountdownText->SetWorldSize(150.0f);
-				CountdownText->AttachTo(RootComponent);
 				RootComponent = CountdownText;
 
 				CountdownTime = 3;
