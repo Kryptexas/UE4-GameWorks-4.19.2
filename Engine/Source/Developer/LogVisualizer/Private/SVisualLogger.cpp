@@ -785,6 +785,7 @@ void SVisualLogger::OnFiltersChanged()
 		HelperActor->OnItemSelectionChanged(LogsList->GetCurrentLogEntry());
 		HelperActor->MarkComponentsRenderStateDirty();
 	}
+	VisualLoggerCanvasRenderer->OnItemSelectionChanged(LogsList->GetCurrentLogEntry().Entry);
 }
 
 void SVisualLogger::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)

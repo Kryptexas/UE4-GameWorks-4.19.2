@@ -7,7 +7,7 @@
 struct FVisualLoggerTimeSliderArgs : FTimeSliderArgs
 {
 	FVisualLoggerTimeSliderArgs()
-		: CursorSize(0.1f)
+		: CursorSize(0.05f)
 	{
 		ViewRange = TRange<float>(0.0f, 5.0f);
 	}

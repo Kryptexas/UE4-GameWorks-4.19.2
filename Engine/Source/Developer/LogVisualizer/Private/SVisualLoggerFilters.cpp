@@ -150,6 +150,7 @@ void SVisualLoggerFilters::GraphFilterCategoryClicked(FName MenuCategory)
 
 		if (bChanged)
 		{
+			FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
 			InvalidateCanvas();
 		}
 	}
@@ -211,6 +212,7 @@ void SVisualLoggerFilters::FilterByTypeClicked(FName InGraphName, FName InDataNa
 
 		if (bChanged)
 		{
+			FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
 			InvalidateCanvas();
 		}
 	}

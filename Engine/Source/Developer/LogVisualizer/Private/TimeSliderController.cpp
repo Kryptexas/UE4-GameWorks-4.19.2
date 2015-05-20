@@ -562,7 +562,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> Widg
 
 	if (MouseEvent.IsLeftShiftDown())
 	{
-		const float ZoomDelta = 0.1f * MouseEvent.GetWheelDelta();
+		const float ZoomDelta = 0.025f * MouseEvent.GetWheelDelta();
 		TimeSliderArgs.CursorSize.Set(FMath::Clamp(TimeSliderArgs.CursorSize.Get() + ZoomDelta, 0.0f, 1.0f));
 
 		ReturnValue = FReply::Handled();
