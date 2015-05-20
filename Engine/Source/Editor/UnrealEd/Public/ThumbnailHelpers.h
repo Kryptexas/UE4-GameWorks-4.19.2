@@ -260,7 +260,7 @@ public:
 
 protected:
 	/** Creates instances of template components found in a blueprint's simple construction script */
-	void InstanceComponents(USCS_Node* CurrentNode, USceneComponent* ParentComponent, const TMap<UActorComponent*, UActorComponent*>& NativeInstanceMap, TArray<UActorComponent*>& OutComponents);
+	void InstanceComponents(USCS_Node* CurrentNode, USceneComponent* ParentComponent, const TMap<UActorComponent*, UActorComponent*>& NativeInstanceMap, TArray<UActorComponent*>& OutComponents, UBlueprintGeneratedClass* ActualBPGC);
 
 	/** Get/Release for the component pool */
 	virtual TArray<UPrimitiveComponent*> GetPooledVisualizableComponents(UObject* Obj) override;

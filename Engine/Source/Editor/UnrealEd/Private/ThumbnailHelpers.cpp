@@ -1132,13 +1132,13 @@ void FBlueprintThumbnailScene::BlueprintChanged(class UBlueprint* Blueprint)
 	ClearComponentsPool();
 }
 
-void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, USceneComponent* ParentComponent, const TMap<UActorComponent*, UActorComponent*>& NativeInstanceMap, TArray<UActorComponent*>& OutComponents)
+void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, USceneComponent* ParentComponent, const TMap<UActorComponent*, UActorComponent*>& NativeInstanceMap, TArray<UActorComponent*>& OutComponents, UBlueprintGeneratedClass* ActualBPGC)
 {
 	check(CurrentNode != NULL);
 
 	// Get the instanced actor component for this node. This is either an instance made from the native components, or a new instance we create using the current node's template.
 	UActorComponent* CurrentActorComp = NULL;
-	UActorComponent* ComponentTemplate = CurrentNode->ComponentTemplate;
+	UActorComponent* ComponentTemplate = CurrentNode->GetActualComponentTemplate(ActualBPGC);
 	if ( ComponentTemplate != NULL )
 	{
 		// Try to find the template in the list of native components we processed. If we find it, use the corresponding instance instead of making a new one.
@@ -1187,7 +1187,7 @@ void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, UScene
 		{
 			USCS_Node* Node = CurrentNode->ChildNodes[NodeIdx];
 			check(Node != NULL);
-			InstanceComponents(Node, ParentSceneComponentOfChildren, NativeInstanceMap, OutComponents);
+			InstanceComponents(Node, ParentSceneComponentOfChildren, NativeInstanceMap, OutComponents, ActualBPGC);
 		}
 	}
 }
@@ -1306,7 +1306,7 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 								}
 							}
 
-							InstanceComponents(RootNode, ParentComponent, NativeInstanceMap, AllCreatedActorComponents);
+							InstanceComponents(RootNode, ParentComponent, NativeInstanceMap, AllCreatedActorComponents, Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 						}
 					}
 				}
