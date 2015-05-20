@@ -1,0 +1,179 @@
+﻿INTSourceChangelist:2557362
+Availability:Docs
+Title:Open World ツールの概要
+Crumbs:
+Description:レベルにスタティックメッシュをプロシージャルに配置するシステム
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+[TOC (start:2 end:3)]
+
+![](T_Kite_Demo_00.png)
+
+2015年に開催された Games Developer Conference(GDC) で、エピックは動植物でいっぱいの壮大なオープンワールドタイプのゲームデモを発表しました。
+Open World ツールと呼ばれるこのデモ作成に使用したツールが、アンリアルエンジン 4.8 (UE4) のリリースから UE4 プロジェクトで利用可能になりました。 
+このツールの紹介および UE4 プロジェクトでの使用方法を次のチュートリアルで説明していきます。
+
+## 前提条件
+
+プロジェクトで Procedural Foliage ツールを使用する前に、 **メインツールバー** から **Edit** > **Editor Preferences** > **Experimental** の順に選択してツールを有効にしなくてはいけません。 
+Experimental セクションへ移動したら、 **Procedural Foliage** の横にあるチェックボックスをクリックして Procedural Foliage オプションを有効にします。 
+
+![](T_Enable_PFT.gif)(convert:false)
+
+## Procedural ツールの種類 
+アンリアルエンジン 4.8 でリリースされる Procedural ツールは、スタティックメッシュを手動でレベルに配置する代わりに、コンピューターアルゴリズムを使用してレベルへの配置位置を判断するツールです。 
+特定のテクスチャがランドスケープテレインにペイントされると、さまざまな種類の木々で構成される自然な森林や、特定の種類の茂みのスポーン操作を素早く作成するのに便利なツールです。
+
+UE4 内蔵の Procedural Foliage ツールについて触れるときは、実際には2つの異なるツールセットを指しています。 
+使用するツールセットは、ユーザーがこれから達成したい具体的な目標によって異なります。 
+例えば、広大な松や樺の木々で構成される森林を作成したい場合は、 **Procedural Foliage ツール** を使用してください。 
+草、花、小さな岩石を少しだけ表現しながら松や樺の木々で構成された森林に活用する密度の高いランドスケープテレインを追加したい場合は、 **Grass ツール** を使用してください。
+
+### Procedural Foliage ツール 
+Procedural Foliage ツールは、さまざまな種類の木々や低木が生い茂った広大な森林のシミュレーションに使用します。 
+このツールは **Steps** で時間経過と共に育つ森林の成長率を定義して、シミュレーションさせることで機能します。 
+シミュレーションの各 Step で、他の Foliage Type アクタのスポーン位置として、新しいバーチャルシードがレベルにキャストされます。 
+**Spread**、 **Size**、 または **Priority Settings** など色々な Foliage Types オプションに調整することで、 Procedural Foliage スポーナーを配置したレベル全体のフォーリッジタイプの広がり方やスポーン位置を競合させる方法に影響を与えます。
+Procedural Foliage ツールの使用に関する詳細は、以下のリンクから Procedural Foliage クイックスタートを参照してください。
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](T_PFT_Trees_00.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Procedural Foliage ツールのクイックスタート
+	[/PARAM]
+	[PARAM:description]
+		Procedural Foliage ツールの設定と操作に関する包括的なガイドです。
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/ProceduralFoliage/QuickStart]
+	[/PARAM]
+[/OBJECT]
+[/region]
+
+#### Foliage Type アクタ
+Procedural Foliage ツールは **Foliage Types** と呼ばれるアクタを使用します。 
+Foliage Types は例えば利用するスタティックメッシュやスタティックメッシュをスポーンする大きさなど、フォーリッジに設定するさまざまなプロパティを定義します。
+以下のチャートは、 Foliage Type Actor を分類して、利用可能なオプションを示しながら、4つの主要プロパティをおおまかに説明したものです。
+
+![](T_Foliage_Type_Actor.png)
+
+| プロパティ名| 説明 |
+| ------------ | ----------- |
+|**Mesh**| Mesh セクションは、フォーリッジに使用するスタティックメッシュを定義するセクションです。|
+|**Placement**| Placement セクションは、 Mesh セクションで指定したスタティックメッシュをレベル全域のオブジェクトに配置する方法を調整するセクションです。|
+|**Growth**| Growth セクションは、シミュレーションの開始時の木々の大きさと、シミュレーションの終了時までに木々が「Grow（成長）」する大きさを定義します。|
+|**Instance Settings**| Instance Settings（インスタンス設定） は Foliage Type に使用したスタティックメッシュをレベルに表示する方法を調整します。|
+
+### Grass ツール
+[region:note]
+現時点の Grass ツールはランドスケープテレインシステムとのみ連動して動作します。 
+[/region]
+Grass ツールは、草、花、小さな岩石などをシミュレーションするために、ランドスケープテレインをスタティックメッシュなどで覆いつくすために使用します。 
+ランドスケープテレイン上に特定のランドスケープレイヤーがペイントされた時にスポーンされるスタティックメッシュの定義に Grass ツールを使用することができます。 
+このツールは Procedural Foliage スポーナーのようにシミュレーションを一切使用しません。指定したスタティックメッシュで、指定した密度に、指定した領域を埋めるのみです。 
+Grass ツールの使用に関する詳細は、以下のリンクから Grass ツールのクイックスタートを参照してください。
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](T_PFT_Grass_00.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Grass ツールのクイックスタート
+	[/PARAM]
+	[PARAM:description]
+		Grass ツールの設定と操作に関する包括的なガイドです。
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/Grass/QuickStart]
+	[/PARAM]
+[/OBJECT]
+[/region]
+
+#### Grass Type アクタ
+Grass ツールは **Landscape Grass Types** と呼ばれるアクタを使用します。
+Landscape Grass Types は、例えば草に利用するスタティックメッシュやスタティックメッシュをスポーンする数など、 Grass に設定できるさまざまなプロパティを定義します。
+Landscape Grass Type Actor を分類して利用できるオプションを示しながら、主要プロパティをおおまかに説明したチャートがこちらです。
+
+![](T_LS_Grass_Type_Actor.png)
+
+| プロパティ名| 説明 |
+| ------------ | ----------- |
+|**Grass Varieties**| Grass Varieties 内で、草に使用するスタティックメッシュのタイプや草の密度、またはカリング距離設定を指定することができます。|
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
