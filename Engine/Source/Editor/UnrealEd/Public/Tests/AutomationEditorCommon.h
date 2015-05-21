@@ -147,6 +147,14 @@ namespace AutomationEditorCommonUtils
 	* @param InDeviceName - Device Name 
 	*/
 	void GetLaunchOnDeviceID(FString& OutDeviceID, const FString& InMapName, const FString& InDeviceName);
+
+	/**
+	* Sets the first found ortho viewport camera to the desired location and rotation.
+
+	* @param ViewLocation - Desired location for the viewport view.
+	* @param ViewRotation - Desired rotation of the viewport view.
+	*/
+	bool SetOrthoViewportView(const FVector& ViewLocation, const FRotator& ViewRotation);
 }
 
 

@@ -472,6 +472,24 @@ namespace AutomationEditorCommonUtils
 			}
 		}
 	}
+
+	bool SetOrthoViewportView(const FVector& ViewLocation, const FRotator& ViewRotation)
+	{
+		for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++)
+		{
+			FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[i];
+			if (!ViewportClient->IsOrtho())
+			{
+				ViewportClient->SetViewLocation(ViewLocation);
+				ViewportClient->SetViewRotation(ViewRotation);
+				return true;
+			}
+		}
+
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("An ortho viewport was not found.  May affect the test results."));
+		return false;
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -644,7 +662,7 @@ bool FAddStaticMeshCommand::Update()
 
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Static Mesh cube has been added to 0, 0, 0."))
 
-		return true;
+	return true;
 }
 
 /**
