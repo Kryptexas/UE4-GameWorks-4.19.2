@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2222449
+﻿INTSourceChangelist:2457516
 Availability:Public
 Title:ビルド
 Crumbs:%ROOT%
 Description:アンリアル エンジン ビルドのリリースノート
 
 
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
@@ -14,6 +14,10 @@ Description:アンリアル エンジン ビルドのリリースノート
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2015/4_7)
+	* [](Support/Builds/ReleaseNotes/2014/4_6)
+	* [](Support/Builds/ReleaseNotes/2014/4_5)
+	* [](Support/Builds/ReleaseNotes/2014/4_4)
 	* [](Support/Builds/ReleaseNotes/2014/4_3)
 	* [](Support/Builds/ReleaseNotes/2014/4_2)
 	* [](Support/Builds/ReleaseNotes/2014/4_1)
@@ -25,7 +29,7 @@ Description:アンリアル エンジン ビルドのリリースノート
 [/OBJECT]
 
 [PUBLISH:Licensee]
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
