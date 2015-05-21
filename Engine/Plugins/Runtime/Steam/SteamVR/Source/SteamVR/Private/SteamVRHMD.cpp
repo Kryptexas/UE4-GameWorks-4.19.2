@@ -967,7 +967,7 @@ void FSteamVRHMD::Startup()
 	}
 	else
 	{
-		UE_LOG(LogHMD, Warning, TEXT("SteamVR failed to initialize.  Error: %d"), (int32)HmdErr);
+		UE_LOG(LogHMD, Log, TEXT("SteamVR failed to initialize.  Err: %d"), (int32)HmdErr);
 
 		VRSystem = nullptr;
 	}
