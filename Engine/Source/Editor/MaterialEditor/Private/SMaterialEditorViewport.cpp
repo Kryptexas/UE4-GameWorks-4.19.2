@@ -108,17 +108,20 @@ bool FMaterialEditorViewportClient::ShouldOrbitCamera() const
 FLinearColor FMaterialEditorViewportClient::GetBackgroundColor() const
 {
 	FLinearColor BackgroundColor = FLinearColor::Black;
-	UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface();
-	if (MaterialInterface)
+	if( MaterialEditorPtr.IsValid() )
 	{
-		const EBlendMode PreviewBlendMode = (EBlendMode)MaterialInterface->GetBlendMode();
-		if (PreviewBlendMode == BLEND_Modulate)
+		UMaterialInterface* MaterialInterface = MaterialEditorPtr.Pin()->GetMaterialInterface();
+		if(MaterialInterface)
 		{
-			BackgroundColor = FLinearColor::White;
-		}
-		else if (PreviewBlendMode == BLEND_Translucent)
-		{
-			BackgroundColor = FColor(64, 64, 64);
+			const EBlendMode PreviewBlendMode = (EBlendMode)MaterialInterface->GetBlendMode();
+			if(PreviewBlendMode == BLEND_Modulate)
+			{
+				BackgroundColor = FLinearColor::White;
+			}
+			else if(PreviewBlendMode == BLEND_Translucent)
+			{
+				BackgroundColor = FColor(64, 64, 64);
+			}
 		}
 	}
 	return BackgroundColor;
