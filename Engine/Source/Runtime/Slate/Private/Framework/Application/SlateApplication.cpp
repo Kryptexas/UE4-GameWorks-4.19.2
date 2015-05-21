@@ -1195,9 +1195,9 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 	// Some windows may have been destroyed/removed.
 	// Do not attempt to draw any windows that have been removed.
 	TArray<TSharedRef<SWindow>> AllWindows = GatherAllDescendants(SlateWindows);
-	DrawWindowArgs.OutDrawBuffer.GetWindowElementLists().RemoveAll([&]( FSlateWindowElementList& Candidate )
+	DrawWindowArgs.OutDrawBuffer.GetWindowElementLists().RemoveAll([&]( TSharedPtr<FSlateWindowElementList>& Candidate )
 	{
-		TSharedPtr<SWindow> CandidateWindow = Candidate.GetWindow();
+		TSharedPtr<SWindow> CandidateWindow = Candidate->GetWindow();
 		return !CandidateWindow.IsValid() || !AllWindows.Contains(CandidateWindow.ToSharedRef());
 	});
 

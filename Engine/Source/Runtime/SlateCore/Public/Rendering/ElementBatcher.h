@@ -5,7 +5,6 @@
 
 class FSlateShaderResource;
 
-
 /**
  * A class which batches Slate elements for rendering
  */
@@ -21,15 +20,7 @@ public:
 	 * 
 	 * @param DrawElements	The elements to batch
 	 */
-	void AddElements( const TArray<FSlateDrawElement>& DrawElements );
-
-	/**
-	 * Populates the window element list with batched data for use in rendering
-	 *
-	 * @param WindowElementList		The window element list to update
-	 * @param bRequiresStencilTest	Will be set to true if stencil testing should be enabled when drawing this viewport (currently for anti-aliased lines)
-	 */
-	void FillBatchBuffers(FSlateWindowElementList& WindowElementList, bool& bRequiresStencilTest);
+	void AddElements( FSlateWindowElementList& ElementList );
 
 	/**
 	 * Returns true if the elements in this batcher require v-sync.
@@ -40,15 +31,12 @@ public:
 	 * Resets all stored data accumulated during the batching process
 	 */
 	void ResetBatches();
-
-	void ResetStats();
-
 private:
 
 	/** 
 	 * Creates vertices necessary to draw a Quad element 
 	 */
-	void AddQuadElement( const FSlateDrawElement& DrawElement, FColor Color = FColor(255,255,255));
+	void AddQuadElement( const FSlateDrawElement& DrawElement, FColor Color = FColor::White);
 
 	/** 
 	 * Creates vertices necessary to draw a 3x3 element
@@ -116,26 +104,9 @@ private:
 											 ESlateDrawEffect::Type DrawEffects, 
 											 ESlateBatchDrawFlag::Type DrawFlags,
 											 const TOptional<FShortRect>& ScissorRect);
-
-	void AddVertices( TArray<FSlateVertex>& OutVertices, FSlateElementBatch& ElementBatch, const TArray<FSlateVertex>& VertexBatch );
-
-	void AddIndices( TArray<SlateIndex>& OutIndices, FSlateElementBatch& ElementBatch, const TArray<SlateIndex>& IndexBatch );
-
 private:
-	// Element batch maps sorted by layer.
-	TMap<uint32, TSet<FSlateElementBatch>> LayerToElementBatches;
-
-	// Array of vertex lists that are currently free (have no elements in them).
-	TArray<uint32> VertexArrayFreeList;
-
-	// Array of index lists that are currently free (have no elements in them).
-	TArray<uint32> IndexArrayFreeList;
-
-	// Array of vertex lists for batching vertices. We use this method for quickly resetting the arrays without deleting memory.
-	TArray<TArray<FSlateVertex>> BatchVertexArrays;
-
-	// Array of vertex lists for batching indices. We use this method for quickly resetting the arrays without deleting memory.
-	TArray<TArray<SlateIndex>> BatchIndexArrays;
+	/** Batch data currently being filled in */
+	FSlateBatchData* BatchData;
 
 	/** Resource manager for accessing shader resources */
 	FSlateShaderResourceManager& ResourceManager;
@@ -148,12 +119,4 @@ private:
 
 	// true if any element in the batch requires vsync.
 	bool bRequiresVsync;
-
-	uint32 NumVertices;
-	uint32 NumBatches;
-	uint32 NumLayers;
-	uint32 TotalVertexMemory;
-	uint32 RequiredVertexMemory;
-	uint32 TotalIndexMemory;
-	uint32 RequiredIndexMemory;
 };

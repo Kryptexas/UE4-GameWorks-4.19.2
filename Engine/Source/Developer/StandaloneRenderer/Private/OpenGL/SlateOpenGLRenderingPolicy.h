@@ -14,10 +14,10 @@ public:
 	/**
 	 * Updates vertex and index buffers used in drawing
 	 *
-	 * @param InVertices	The vertices to copy to the vertex buffer
-	 * @param InIndices		The indices to copy to the index buffer
+	 * @param BatchData	The batch data that contains rendering data we need to upload to the buffers
 	 */
-	void UpdateBuffers( const FSlateWindowElementList& InElementList );
+	void UpdateVertexAndIndexBuffers(FSlateBatchData& BatchData);
+
 	
 	/**
 	 * Draws Slate elements

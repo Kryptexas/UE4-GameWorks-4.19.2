@@ -27,13 +27,11 @@ public:
 	/** Virtual constructor. */
 	virtual ~FSlateRenderingPolicy( ) { }
 
-	virtual void UpdateBuffers( const FSlateWindowElementList& WindowElementList ) = 0;
-
-	virtual TSharedRef<class FSlateFontCache> GetFontCache( ) = 0;
+	virtual TSharedRef<class FSlateFontCache> GetFontCache() = 0;
 
 	virtual TSharedRef<class FSlateShaderResourceManager> GetResourceManager() = 0;
 
-	float GetPixelCenterOffset( ) const
+	float GetPixelCenterOffset() const
 	{
 		return PixelCenterOffset;
 	}

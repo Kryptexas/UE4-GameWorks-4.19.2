@@ -95,11 +95,11 @@ void FSlateOpenGLRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 	FontCache->UpdateCache();
 
 	// Draw each window.  For performance.  All elements are batched before anything is rendered
-	TArray<FSlateWindowElementList>& WindowElementLists = InWindowDrawBuffer.GetWindowElementLists();
+	TArray< TSharedPtr<FSlateWindowElementList> >& WindowElementLists = InWindowDrawBuffer.GetWindowElementLists();
 
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
 	{
-		FSlateWindowElementList& ElementList = WindowElementLists[ListIndex];
+		FSlateWindowElementList& ElementList = *WindowElementLists[ListIndex];
 
 		if ( ElementList.GetWindow().IsValid() )
 		{
@@ -120,22 +120,25 @@ void FSlateOpenGLRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			Viewport->MakeCurrent();
 
 			// Batch elements.  Note that we must set the current viewport before doing this so we have a valid rendering context when calling OpenGL functions
-			ElementBatcher->AddElements( ElementList.GetDrawElements() );
+			ElementBatcher->AddElements( ElementList );
 
 			//@ todo Slate: implement for opengl
 			bool bRequiresStencilTest = false;
-			ElementBatcher->FillBatchBuffers( ElementList, bRequiresStencilTest );
 
 			ElementBatcher->ResetBatches();
+			
+			FSlateBatchData& BatchData = ElementList.GetBatchData();
 
-			RenderingPolicy->UpdateBuffers( ElementList );
+			BatchData.CreateRenderBatches();
+
+			RenderingPolicy->UpdateVertexAndIndexBuffers( BatchData );
 
 			check(Viewport);
 
 			glViewport( Viewport->ViewportRect.Left, Viewport->ViewportRect.Top, Viewport->ViewportRect.Right, Viewport->ViewportRect.Bottom );
 
 			// Draw all elements
-			RenderingPolicy->DrawElements( ViewMatrix*Viewport->ProjectionMatrix, ElementList.GetRenderBatches() );
+			RenderingPolicy->DrawElements( ViewMatrix*Viewport->ProjectionMatrix, BatchData.GetRenderBatches() );
 
 			Viewport->SwapBuffers();
 

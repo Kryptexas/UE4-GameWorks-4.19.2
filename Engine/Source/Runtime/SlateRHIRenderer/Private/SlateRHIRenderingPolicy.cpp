@@ -12,13 +12,20 @@
 #include "SlateMaterialResource.h"
 
 DECLARE_CYCLE_STAT(TEXT("Update Buffers RT"), STAT_SlateUpdateBufferRTTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("PreFill Buffers RT"), STAT_SlatePreFullBufferRTTime, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("Draw Time RT"), STAT_SlateDrawTime, STATGROUP_Slate);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Layers"), STAT_SlateNumLayers, STATGROUP_Slate);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Batches"), STAT_SlateNumBatches, STATGROUP_Slate);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROUP_Slate);
 
+DECLARE_MEMORY_STAT(TEXT("Batch Vertex Memory"), STAT_SlateVertexBatchMemory, STATGROUP_SlateMemory);
+DECLARE_MEMORY_STAT(TEXT("Batch Index Memory"), STAT_SlateIndexBatchMemory, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Vertex Buffer Memory"), STAT_SlateVertexBufferMemory, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMemory, STATGROUP_SlateMemory);
 
 FSlateElementIndexBuffer::FSlateElementIndexBuffer()
 	: BufferSize(0)	 
+	, MinBufferSize(0)
 	, BufferUsageSize(0)
 {
 
@@ -29,91 +36,92 @@ FSlateElementIndexBuffer::~FSlateElementIndexBuffer()
 
 }
 
+void FSlateElementIndexBuffer::Init( int32 MinNumIndices )
+{
+	MinBufferSize = sizeof(SlateIndex) * FMath::Max( MinNumIndices, 200 );
+
+	BeginInitResource(this);
+}
+
+void FSlateElementIndexBuffer::Destroy()
+{
+	BeginReleaseResource(this);
+}
+
+
 /** Initializes the index buffers RHI resource. */
 void FSlateElementIndexBuffer::InitDynamicRHI()
 {
-	check( IsInRenderingThread() );
+	checkSlow( IsInRenderingThread() );
 
-	if( BufferSize == 0 )
-	{
-		BufferSize = 200 * sizeof(SlateIndex);
-	}
+	check( MinBufferSize > 0 );
+
+	BufferSize = MinBufferSize;
 
 	FRHIResourceCreateInfo CreateInfo;
-	IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), BufferSize, BUF_Dynamic, CreateInfo );
+	IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), MinBufferSize, BUF_Dynamic, CreateInfo );
 	check( IsValidRef(IndexBufferRHI) );
 }
 
 /** Resizes the buffer to the passed in size.  Preserves internal data */
-void FSlateElementIndexBuffer::ResizeBuffer( uint32 NewSizeBytes )
+void FSlateElementIndexBuffer::ResizeBuffer( int32 NewSizeBytes )
 {
-	check( IsInRenderingThread() );
+	checkSlow( IsInRenderingThread() );
 
-	if( NewSizeBytes != 0 && NewSizeBytes != BufferSize)
+	int32 FinalSize = FMath::Max( NewSizeBytes, MinBufferSize );
+
+	if( FinalSize != 0 && FinalSize != BufferSize )
 	{
 		IndexBufferRHI.SafeRelease();
 		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), NewSizeBytes, BUF_Dynamic, CreateInfo );
+		IndexBufferRHI = RHICreateIndexBuffer( sizeof(SlateIndex), FinalSize, BUF_Dynamic, CreateInfo );
 		check(IsValidRef(IndexBufferRHI));
 
-		BufferSize = NewSizeBytes;
+		BufferSize = FinalSize;
 	}
 }
 
-void FSlateElementIndexBuffer::PreFillBuffer(const TArray<SlateIndex>& InIndices, bool bShrinkToFit)
+void FSlateElementIndexBuffer::PreFillBuffer(int32 RequiredIndexCount, bool bShrinkToMinSize)
 {
-	check(IsInRenderingThread());
+	//SCOPE_CYCLE_COUNTER( STAT_SlatePreFullBufferRTTime );
 
-	if (InIndices.Num())
+	checkSlow(IsInRenderingThread());
+
+	if (RequiredIndexCount > 0)
 	{
-		uint32 NumIndices = InIndices.Num();
-
-		uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);
+		int32 RequiredBufferSize = RequiredIndexCount*sizeof(SlateIndex);
 
 		// resize if needed
-		if (RequiredBufferSize > GetBufferSize() || bShrinkToFit)
+		if (RequiredBufferSize > GetBufferSize() || bShrinkToMinSize)
 		{
 			// Use array resize techniques for the vertex buffer
-			ResizeBuffer(InIndices.GetAllocatedSize());
+			ResizeBuffer(RequiredBufferSize);
 		}
 
-		BufferUsageSize += RequiredBufferSize;		
+		BufferUsageSize = RequiredBufferSize;		
 	}
 }
 
-void FSlateElementIndexBuffer::FillBuffer_RenderThread( const TArray<SlateIndex>& InIndices )
+void* FSlateElementIndexBuffer::LockBuffer_RenderThread(int32 NumIndices)
 {
-	check( IsInRenderingThread() );
-
-	if( InIndices.Num() )
-	{
-		uint32 NumIndices = InIndices.Num();
-
-		uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
-
-		void* IndicesPtr = RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
-
-		FMemory::Memcpy( IndicesPtr, InIndices.GetData(), RequiredBufferSize );
-
-		RHIUnlockIndexBuffer(IndexBufferRHI);
-	}
+	uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
+	return RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
 }
 
-void FSlateElementIndexBuffer::FillBuffer_RHIThread(const TArray<SlateIndex>& InIndices )
+void FSlateElementIndexBuffer::UnlockBuffer_RenderThread()
 {
-	check(IsInRHIThread() || (!IsInRenderingThread() && !IsInGameThread()));
+	RHIUnlockIndexBuffer( IndexBufferRHI );
+}
 
-	if (InIndices.Num())
-	{
-		uint32 NumIndices = InIndices.Num();
+void* FSlateElementIndexBuffer::LockBuffer_RHIThread(int32 NumIndices)
+{
+	uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
+	return GDynamicRHI->RHILockIndexBuffer( IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly );
+}
 
-		uint32 RequiredBufferSize = NumIndices*sizeof(SlateIndex);		
-
-		//use non-flushing DynamicRHI version when on RHIThread.
-		void* IndicesPtr = GDynamicRHI->RHILockIndexBuffer(IndexBufferRHI, 0, RequiredBufferSize, RLM_WriteOnly);
-		FMemory::Memcpy(IndicesPtr, InIndices.GetData(), RequiredBufferSize);
-		GDynamicRHI->RHIUnlockIndexBuffer(IndexBufferRHI);		
-	}
+void FSlateElementIndexBuffer::UnlockBuffer_RHIThread()
+{
+	GDynamicRHI->RHIUnlockIndexBuffer( IndexBufferRHI );
 }
 
 /** Releases the index buffers RHI resource. */
@@ -140,38 +148,46 @@ FSlateRHIRenderingPolicy::~FSlateRHIRenderingPolicy()
 
 void FSlateRHIRenderingPolicy::InitResources()
 {
-	for( int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex )
+	int32 NumVertices = 200;
+	if( GConfig )
 	{
-		BeginInitResource(&VertexBuffers[BufferIndex]);
-		BeginInitResource(&IndexBuffers[BufferIndex]);
+		int32 NumVertsInConfig = 0;
+		GConfig->GetInt( TEXT("SlateRenderer"), TEXT("NumPreallocatedVertices"), NumVertsInConfig, GEngineIni);
+		// Always create a little space but never allow it to get too high
+
+#if !SLATE_USE_32BIT_INDICES
+		NumVertices = FMath::Clamp(NumVertsInConfig, 200, 65535);
+#else
+		NumVertices = FMath::Clamp(NumVertsInConfig, 200, 1000000);
+#endif
+
+		UE_LOG(LogSlate, Verbose, TEXT("Allocating space for %d vertices"), NumVertices);
+	}
+
+	for( int32 BufferIndex = 0; BufferIndex < SlateRHIConstants::NumBuffers; ++BufferIndex )
+	{
+		VertexBuffers[BufferIndex].Init(NumVertices);
+		IndexBuffers[BufferIndex].Init(NumVertices);
 	}
 }
 
 void FSlateRHIRenderingPolicy::ReleaseResources()
 {
-	for( int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex )
+	for( int32 BufferIndex = 0; BufferIndex < SlateRHIConstants::NumBuffers; ++BufferIndex )
 	{
-		BeginReleaseResource(&VertexBuffers[BufferIndex]);
-		BeginReleaseResource(&IndexBuffers[BufferIndex]);
+		VertexBuffers[BufferIndex].Destroy();
+		IndexBuffers[BufferIndex].Destroy();
 	}
 }
 
 void FSlateRHIRenderingPolicy::BeginDrawingWindows()
 {
 	check( IsInRenderingThread() );
-
-	for( int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex )
-	{
-		VertexBuffers[CurrentBufferIndex].ResetBufferUsage();
-		IndexBuffers[CurrentBufferIndex].ResetBufferUsage();
-	}
 }
 
 void FSlateRHIRenderingPolicy::EndDrawingWindows()
 {
 	check( IsInRenderingThread() );
-
-	bShouldShrinkResources = false;
 
 	uint32 TotalVertexBufferMemory = 0;
 	uint32 TotalIndexBufferMemory = 0;
@@ -179,23 +195,16 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 	uint32 TotalVertexBufferUsage = 0;
 	uint32 TotalIndexBufferUsage = 0;
 
-	for( int32 BufferIndex = 0; BufferIndex < 2; ++BufferIndex )
+	uint32 MinVertexBufferSize = VertexBuffers[0].GetMinBufferSize();
+	uint32 MinIndexBufferSize = IndexBuffers[0].GetMinBufferSize();
+
+	for( int32 BufferIndex = 0; BufferIndex < SlateRHIConstants::NumBuffers; ++BufferIndex )
 	{
 		TotalVertexBufferMemory += VertexBuffers[BufferIndex].GetBufferSize();
 		TotalVertexBufferUsage += VertexBuffers[BufferIndex].GetBufferUsageSize();
 		
 		TotalIndexBufferMemory += IndexBuffers[BufferIndex].GetBufferSize();
 		TotalIndexBufferUsage += IndexBuffers[BufferIndex].GetBufferUsageSize();
-	}
-
-	// How much larger the buffers can be than the required size. 
-	// @todo Slate probably could be more intelligent about this
-	const uint32 MaxSizeMultiplier = 2;
-
-	if( TotalVertexBufferMemory > TotalVertexBufferUsage*MaxSizeMultiplier || TotalIndexBufferMemory > TotalIndexBufferUsage*MaxSizeMultiplier )
-	{
-		// The vertex buffer or index is more than twice the size of what is required.  Shrink it
-		bShouldShrinkResources = true;
 	}
 
 
@@ -207,69 +216,67 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 {
 	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer;
 	FSlateElementIndexBuffer& IndexBuffer;
-	const TArray<FSlateVertex>& Vertices;
-	const TArray<SlateIndex>& Indices;	
+	FSlateBatchData& BatchData;
 
-	FSlateUpdateVertexAndIndexBuffers(TSlateElementVertexBuffer<FSlateVertex>& InVertexBuffer, const TArray<FSlateVertex>& InVertices, FSlateElementIndexBuffer& InIndexBuffer, const TArray<SlateIndex>& InIndices)
+	FSlateUpdateVertexAndIndexBuffers(TSlateElementVertexBuffer<FSlateVertex>& InVertexBuffer, FSlateElementIndexBuffer& InIndexBuffer, FSlateBatchData& InBatchData)
 		: VertexBuffer(InVertexBuffer)
 		, IndexBuffer(InIndexBuffer)
-		, Vertices(InVertices)
-		, Indices(InIndices)		
+		, BatchData(InBatchData)
 	{}
 
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		VertexBuffer.FillBuffer_RHIThread(Vertices);
-		IndexBuffer.FillBuffer_RHIThread(Indices);
+		SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferRTTime );
+
+		uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedVertices());
+		uint8* IndexBufferData = (uint8*)IndexBuffer.LockBuffer_RHIThread(BatchData.GetNumBatchedIndices());
+
+		BatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+	
+		VertexBuffer.UnlockBuffer_RHIThread();
+		IndexBuffer.UnlockBuffer_RHIThread();
 	}
 };
 
-void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, const FSlateWindowElementList& WindowElementList)
+void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData)
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferRTTime );
 
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
-	const TArray<FSlateVertex>& Vertices = WindowElementList.GetBatchedVertices();
-	const TArray<SlateIndex>& Indices = WindowElementList.GetBatchedIndices();
+	const int32 NumVertices = InBatchData.GetNumBatchedVertices();
+	const int32 NumIndices = InBatchData.GetNumBatchedIndices();
 
-	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
-	FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
-	VertexBuffer.PreFillBuffer(Vertices, bShouldShrinkResources);
-	IndexBuffer.PreFillBuffer(Indices, bShouldShrinkResources);
-
-	if (!GRHIThread || RHICmdList.Bypass())
+	if( InBatchData.GetRenderBatches().Num() > 0  && NumVertices > 0 && NumIndices > 0)
 	{
-		VertexBuffer.FillBuffer_RenderThread(Vertices);
-		IndexBuffer.FillBuffer_RenderThread(Indices);		
-	}
-	else
-	{
-		new (RHICmdList.AllocCommand<FSlateUpdateVertexAndIndexBuffers>()) FSlateUpdateVertexAndIndexBuffers(VertexBuffer, Vertices, IndexBuffer, Indices);
-	}
-
-}
-
-void FSlateRHIRenderingPolicy::UpdateBuffers( const FSlateWindowElementList& WindowElementList )
-{
-	SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferRTTime );
-	// Should only be called by the rendering thread
-	check(IsInRenderingThread());
-
-	{
-		const TArray<FSlateVertex>& Vertices = WindowElementList.GetBatchedVertices();
-		const TArray<SlateIndex>& Indices = WindowElementList.GetBatchedIndices();
-
 		TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
 		FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
-		
-		VertexBuffer.PreFillBuffer(Vertices, bShouldShrinkResources);
-		IndexBuffer.PreFillBuffer(Indices, bShouldShrinkResources);
 
-		VertexBuffer.FillBuffer_RenderThread(Vertices);
-		IndexBuffer.FillBuffer_RenderThread(Indices);
+		bool bShouldShrinkResources = false;
+
+		VertexBuffer.PreFillBuffer(NumVertices, bShouldShrinkResources);
+		IndexBuffer.PreFillBuffer(NumIndices, bShouldShrinkResources);
+
+		if(!GRHIThread || RHICmdList.Bypass())
+		{
+			uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RenderThread(NumVertices);
+			uint8* IndexBufferData =  (uint8*)IndexBuffer.LockBuffer_RenderThread(NumIndices);
+
+			InBatchData.FillVertexAndIndexBuffer( VertexBufferData, IndexBufferData );
+	
+			VertexBuffer.UnlockBuffer_RenderThread();
+			IndexBuffer.UnlockBuffer_RenderThread();
+		}
+		else
+		{
+			new (RHICmdList.AllocCommand<FSlateUpdateVertexAndIndexBuffers>()) FSlateUpdateVertexAndIndexBuffers(VertexBuffer, IndexBuffer, InBatchData);
+		}
 	}
+
+	SET_DWORD_STAT( STAT_SlateNumLayers, InBatchData.GetNumLayers() );
+	SET_DWORD_STAT( STAT_SlateNumBatches, InBatchData.GetRenderBatches().Num() );
+	SET_DWORD_STAT( STAT_SlateVertexCount, InBatchData.GetNumBatchedVertices() );
 }
 
 static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix )
@@ -565,7 +572,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	}
 
-	CurrentBufferIndex = (CurrentBufferIndex + 1) % 2;
+	CurrentBufferIndex = (CurrentBufferIndex + 1) % SlateRHIConstants::NumBuffers;
 }
 
 
@@ -701,6 +708,4 @@ EPrimitiveType FSlateRHIRenderingPolicy::GetRHIPrimitiveType(ESlateDrawPrimitive
 	}
 
 };
-
-
 

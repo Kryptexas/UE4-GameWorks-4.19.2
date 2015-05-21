@@ -9,7 +9,7 @@ public:
 	FSlateD3D11RenderingPolicy( TSharedPtr<FSlateFontCache> InFontCache, TSharedRef<FSlateD3DTextureManager> InTextureManager );
 	~FSlateD3D11RenderingPolicy();
 
-	void UpdateBuffers( const FSlateWindowElementList& InElementList );
+	void UpdateVertexAndIndexBuffers( FSlateBatchData& InBatchData );
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override;

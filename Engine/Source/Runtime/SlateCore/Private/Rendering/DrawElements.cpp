@@ -174,6 +174,139 @@ FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometr
 	return RotationPoint;
 }
 
+void FSlateBatchData::Reset()
+{
+	RenderBatches.Reset();
+	
+	// note: LayerToElementBatches is not reset here as the same layers are 
+	// more than likely reused and we can save memory allocations by not resetting the map every frame
+
+	NumBatchedVertices = 0;
+	NumBatchedIndices = 0;
+	NumLayers = 0;
+}
+
+void FSlateBatchData::AssignVertexArrayToBatch( FSlateElementBatch& Batch )
+{
+	// Get a free vertex array
+	if (VertexArrayFreeList.Num() > 0)
+	{
+		Batch.VertexArrayIndex = VertexArrayFreeList.Pop(/*bAllowShrinking=*/ false);
+		BatchVertexArrays[Batch.VertexArrayIndex].Reserve(200);
+	}
+	else
+	{
+		// There are no free vertex arrays so we must add one		
+		uint32 NewIndex = BatchVertexArrays.Add(TArray<FSlateVertex>());
+		BatchVertexArrays[NewIndex].Reserve(200);
+
+		Batch.VertexArrayIndex = NewIndex;
+	}
+}
+
+void FSlateBatchData::AssignIndexArrayToBatch( FSlateElementBatch& Batch )
+{
+	// Get a free index array
+	if (IndexArrayFreeList.Num() > 0)
+	{
+		Batch.IndexArrayIndex = IndexArrayFreeList.Pop(/*bAllowShrinking=*/ false);
+		BatchIndexArrays[Batch.IndexArrayIndex].Reserve(200);
+	}
+	else
+	{
+		// There are no free index arrays so we must add one
+		uint32 NewIndex = BatchIndexArrays.Add(TArray<SlateIndex>());
+		BatchIndexArrays[NewIndex].Reserve(500);
+
+		Batch.IndexArrayIndex = NewIndex;
+	}
+
+}
+
+void FSlateBatchData::FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* IndexBuffer )
+{
+	int32 IndexOffset = 0;
+	int32 VertexOffset = 0;
+	for( const FSlateRenderBatch& Batch : RenderBatches )
+	{
+		if( Batch.VertexArrayIndex != INDEX_NONE && Batch.IndexArrayIndex != INDEX_NONE )
+		{
+			TArray<FSlateVertex>& Vertices = BatchVertexArrays[Batch.VertexArrayIndex];
+			TArray<SlateIndex>& Indices = BatchIndexArrays[Batch.IndexArrayIndex];
+
+			if(Vertices.Num() && Indices.Num())
+			{
+				uint32 RequiredVertexSize = Vertices.Num() * Vertices.GetTypeSize();
+				uint32 RequiredIndexSize = Indices.Num() * Indices.GetTypeSize();
+
+				FMemory::Memcpy(VertexBuffer+VertexOffset, Vertices.GetData(), RequiredVertexSize);
+				FMemory::Memcpy(IndexBuffer+IndexOffset, Indices.GetData(), RequiredIndexSize);
+
+				VertexArrayFreeList.Add(Batch.VertexArrayIndex);
+				IndexArrayFreeList.Add(Batch.IndexArrayIndex);
+
+				IndexOffset += (Indices.Num()*sizeof(SlateIndex));
+				VertexOffset += (Vertices.Num()*sizeof(FSlateVertex));
+
+				Vertices.Empty(Vertices.Num());
+				Indices.Empty(Indices.Num());
+			}
+		}
+	}
+}
+
+void FSlateBatchData::CreateRenderBatches()
+{
+	checkSlow( IsInRenderingThread() );
+
+	LayerToElementBatches.KeySort( TLess<uint32>() );
+
+	uint32 VertexOffset = 0;
+	uint32 IndexOffset = 0;
+	// For each element batch add its vertices and indices to the bulk lists.
+	for (FElementBatchMap::TIterator It(LayerToElementBatches); It; ++It)
+	{
+		FElementBatchArray& ElementBatches = It.Value();
+
+		if( ElementBatches.Num() > 0 )
+		{
+			++NumLayers;
+			for (FElementBatchArray::TIterator BatchIt(ElementBatches); BatchIt; ++BatchIt)
+			{
+				FSlateElementBatch& ElementBatch = *BatchIt;
+
+				bool bIsMaterial = ElementBatch.GetShaderResource() && ElementBatch.GetShaderResource()->GetType() == ESlateShaderResource::Material;
+
+				if (!ElementBatch.GetCustomDrawer().IsValid())
+				{
+					TArray<FSlateVertex>& BatchVertices = GetBatchVertexList(ElementBatch);
+					TArray<SlateIndex>& BatchIndices = GetBatchIndexList(ElementBatch);
+	
+					// We should have at least some vertices and indices in the batch or none at all
+					check(BatchVertices.Num() > 0 && BatchIndices.Num() > 0 || BatchVertices.Num() == 0 && BatchIndices.Num() == 0);
+
+					if (BatchVertices.Num() > 0 && BatchIndices.Num() > 0)
+					{
+						int32 NumVertices = BatchVertices.Num();
+						int32 NumIndices = BatchIndices.Num();
+
+						AddRenderBatch( ElementBatch, NumVertices, NumIndices, VertexOffset, IndexOffset );
+				
+						VertexOffset += BatchVertices.Num();
+						IndexOffset += BatchIndices.Num();
+					}
+				}
+				else
+				{
+					AddRenderBatch( ElementBatch, 0, 0, 0, 0 );
+				}
+			}
+		}
+		ElementBatches.Empty( ElementBatches.Num() );
+	}
+
+}
+
 FSlateWindowElementList::FDeferredPaint::FDeferredPaint( const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled )
 : WidgetToPaintPtr( InWidgetToPaint )
 , Args( InArgs )

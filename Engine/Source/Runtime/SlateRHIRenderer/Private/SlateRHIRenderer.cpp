@@ -390,7 +390,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 }
 
 /** Draws windows from a FSlateDrawBuffer on the render thread */
-void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
+void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
@@ -400,8 +400,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
-		// Update the vertex and index buffer		
-		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, WindowElementList);
+		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
+
+		// Update the vertex and index buffer	
+		BatchData.CreateRenderBatches();	
+		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
@@ -437,7 +440,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 #if DEBUG_OVERDRAW
 		RHIClear(true, FLinearColor::Black, false, 0.0f, true, 0x00, FIntRect());
 #endif
-		if( WindowElementList.GetRenderBatches().Num() > 0 )
+		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
 
@@ -446,7 +449,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				RHICmdList,
 				BackBufferTarget,
 				ViewMatrix*ViewportInfo.ProjectionMatrix,
-				WindowElementList.GetRenderBatches()
+				BatchData.GetRenderBatches()
 			);
 		}
 	}
@@ -568,10 +571,10 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 	ResourceManager->UpdateTextureAtlases();
 
 	// Iterate through each element list and set up an RHI window for it if needed
-	TArray<FSlateWindowElementList>& WindowElementLists = WindowDrawBuffer.GetWindowElementLists();
+	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = WindowDrawBuffer.GetWindowElementLists();
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
 	{
-		FSlateWindowElementList& ElementList = WindowElementLists[ListIndex];
+		FSlateWindowElementList& ElementList = *WindowElementLists[ListIndex];
 
 		TSharedPtr<SWindow> Window = ElementList.GetWindow();
 
@@ -581,16 +584,14 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 			if ( WindowSize.X > 0 && WindowSize.Y > 0 )
 			{
 				// Add all elements for this window to the element batcher
-				ElementBatcher->AddElements( ElementList.GetDrawElements() );
+				ElementBatcher->AddElements( ElementList );
 
 				// Update the font cache with new text after elements are batched
 				FontCache->UpdateCache();
 
 				bool bRequiresStencilTest = false;
 				bool bLockToVsync = false;
-				bool temp = false;
-				// Populate the element list with batched vertices and indicies
-				ElementBatcher->FillBatchBuffers( ElementList, temp );
+
 				bLockToVsync = ElementBatcher->RequiresVsync();
 
 				if( !GIsEditor )
@@ -688,8 +689,6 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 	// flush the cache if needed
 	FontCache->ConditionalFlushCache();
-
-	ElementBatcher->ResetStats();
 }
 
 
@@ -923,10 +922,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			FSlateRect(0, 0, VirtualScreenSize.X, VirtualScreenSize.Y));
 	}
 	
-	ElementBatcher->AddElements(WindowElementList->GetDrawElements());
-	bool bRequiresStencilTest = false;
-	ElementBatcher->FillBatchBuffers(*WindowElementList, bRequiresStencilTest );
-	check(!bRequiresStencilTest);
+	ElementBatcher->AddElements(*WindowElementList);
 	ElementBatcher->ResetBatches();
 	
 	struct FWriteMouseCursorAndKeyPressesContext
@@ -951,13 +947,17 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 	{
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		
-		Context.RenderPolicy->UpdateBuffers(*Context.SlateElementList);
-		if( Context.SlateElementList->GetRenderBatches().Num() > 0 )
+		FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+
+		BatchData.CreateRenderBatches();
+
+		Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			FTexture2DRHIRef UnusedTargetTexture;
 			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
-			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
+			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y),BatchData.GetRenderBatches());
 		}
 	});
 

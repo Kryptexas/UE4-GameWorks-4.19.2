@@ -51,12 +51,12 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 {
 	check( IsInGameThread() );
 
-	TArray<FSlateWindowElementList>& WindowElementLists = DrawBuffer.GetWindowElementLists();
+	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = DrawBuffer.GetWindowElementLists();
 
 	// Only one window element list for now.
 	check( WindowElementLists.Num() == 1);
 
-	FSlateWindowElementList& ElementList = WindowElementLists[0];
+	FSlateWindowElementList& ElementList = *WindowElementLists[0];
 
 	TSharedPtr<SWindow> Window = ElementList.GetWindow();
 
@@ -66,14 +66,12 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 		if (WindowSize.X > 0 && WindowSize.Y > 0)
 		{
 			// Add all elements for this window to the element batcher
-			ElementBatcher->AddElements(ElementList.GetDrawElements());
+			ElementBatcher->AddElements(ElementList);
 
 			// Update the font cache with new text after elements are batched
 			FontCache->UpdateCache();
 
 			bool temp = false;
-			// Populate the element list with batched vertices and indices
-			ElementBatcher->FillBatchBuffers(ElementList, temp);
 
 
 			// All elements for this window have been batched and rendering data updated
@@ -82,25 +80,23 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 	}
 
 	FontCache->ConditionalFlushCache();
-
-	ElementBatcher->ResetStats();
-
 }
 
 void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& RHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& InDrawBuffer )
 {
-	const FSlateWindowElementList& WindowElementList = InDrawBuffer.GetWindowElementLists()[0];
+	FSlateBatchData& BatchData = InDrawBuffer.GetWindowElementLists()[0]->GetBatchData();
 
+	BatchData.CreateRenderBatches();
 	RenderTargetPolicy->BeginDrawingWindows();
 
-	RenderTargetPolicy->UpdateBuffers( WindowElementList );
+	RenderTargetPolicy->UpdateVertexAndIndexBuffers( RHICmdList, BatchData );
 	FTextureRenderTarget2DResource* RenderTargetResource = static_cast<FTextureRenderTarget2DResource*>( RenderTarget->GetRenderTargetResource() );
 	
 	SetRenderTarget( RHICmdList, RenderTargetResource->GetTextureRHI(), FTextureRHIParamRef() );
 	RHICmdList.Clear( true, RenderTarget->ClearColor, false, 0.0f, false, 0x00, FIntRect() );
 
 	FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix( RenderTarget->SizeX, RenderTarget->SizeY );
-	if (WindowElementList.GetRenderBatches().Num() > 0)
+	if (BatchData.GetRenderBatches().Num() > 0)
 	{
 		FSlateBackBuffer BackBufferTarget(RenderTargetResource->GetTextureRHI(), FIntPoint(RenderTarget->SizeX, RenderTarget->SizeY ) );
 
@@ -112,9 +108,9 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 			RHICmdList,
 			BackBufferTarget,
 			ProjectionMatrix,
-			WindowElementList.GetRenderBatches(),
+			BatchData.GetRenderBatches(),
 			bAllowSwitchVerticalAxis
-			);
+		);
 	}
 
 	InDrawBuffer.Unlock();

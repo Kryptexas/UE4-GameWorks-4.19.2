@@ -380,10 +380,6 @@ public:
 	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect )
 		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect )
 		, ShaderResource(InShaderResource)
-		, VertexOffset(0)
-		, IndexOffset(0)
-		, NumVertices(0)
-		, NumIndices(0)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
 		, IndexArrayIndex(INDEX_NONE)
@@ -392,10 +388,6 @@ public:
 	FSlateElementBatch( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer, const TOptional<FShortRect>& ScissorRect )
 		: BatchKey( InCustomDrawer, ScissorRect )
 		, ShaderResource( nullptr )
-		, VertexOffset(0)
-		, IndexOffset(0)
-		, NumVertices(0)
-		, NumIndices(0)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
 		, IndexArrayIndex(INDEX_NONE)
@@ -483,14 +475,6 @@ private:
 	const FSlateShaderResource* ShaderResource;
 
 public:
-	/** How far into the vertex buffer is this batch*/
-	uint32 VertexOffset;
-	/** How far into the index buffer this batch is*/	
-	uint32 IndexOffset;
-	/** Number of vertices in the batch */
-	uint32 NumVertices;
-	/** Number of indices in the batch */
-	uint32 NumIndices;
 	/** Number of elements in the batch */
 	uint32 NumElementsInBatch;
 	/** Index into an array of vertex arrays where this batches vertices are found (before submitting to the vertex buffer)*/
@@ -502,7 +486,7 @@ public:
 class FSlateRenderBatch
 {
 public:
-	FSlateRenderBatch( const FSlateElementBatch& InBatch )
+	FSlateRenderBatch( const FSlateElementBatch& InBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
 		: ShaderParams( InBatch.GetShaderParams() )
 		, Texture( InBatch.GetShaderResource() )
 		, CustomDrawer( InBatch.GetCustomDrawer() )
@@ -511,10 +495,12 @@ public:
 		, DrawPrimitiveType( InBatch.GetPrimitiveType() )
 		, DrawEffects( InBatch.GetDrawEffects() )
 		, ScissorRect( InBatch.GetScissorRect() )
-		, VertexOffset( InBatch.VertexOffset )
-		, IndexOffset( InBatch.IndexOffset )
-		, NumVertices( InBatch.NumVertices )
-		, NumIndices( InBatch.NumIndices )
+		, VertexArrayIndex( InBatch.VertexArrayIndex )
+		, IndexArrayIndex( InBatch.IndexArrayIndex )
+		, VertexOffset( InVertexOffset )
+		, IndexOffset( InIndexOffset )
+		, NumVertices( InNumVertices )
+		, NumIndices( InNumIndices )
 	{}
 
 public:
@@ -534,7 +520,11 @@ public:
 	const ESlateDrawEffect::Type DrawEffects;
 
 	const TOptional<FShortRect> ScissorRect;
-
+	
+	/** Index into the vertex array pool */
+	const int32 VertexArrayIndex;
+	/** Index into the index array pool */
+	const int32 IndexArrayIndex;
 	/** How far into the vertex buffer is this batch*/
 	const uint32 VertexOffset;
 	/** How far into the index buffer this batch is*/	
@@ -543,6 +533,103 @@ public:
 	const uint32 NumVertices;
 	/** Number of indices in the batch */
 	const uint32 NumIndices;
+};
+
+
+typedef TArray<FSlateElementBatch, TInlineAllocator<1>> FElementBatchArray;
+
+typedef TMap<uint32,FElementBatchArray> FElementBatchMap ;
+
+class FSlateBatchData
+{
+public:
+	FSlateBatchData()
+		: NumBatchedVertices(0)
+		, NumBatchedIndices(0)
+		, NumLayers(0)
+	{}
+
+	void Reset();
+
+	FElementBatchMap& GetElementBatchMap() { return LayerToElementBatches; }
+
+	/**
+	 * Returns a list of element batches for this window
+	 */
+	const TArray<FSlateRenderBatch>& GetRenderBatches() const { return RenderBatches; }
+
+	/**
+	 * Assigns a vertex array from the pool which is appropriate for the batch.  Creates a new array if needed
+	 */
+	void AssignVertexArrayToBatch( FSlateElementBatch& Batch );
+
+	/**
+	 * Assigns an index array from the pool which is appropriate for the batch.  Creates a new array if needed
+	 */
+	void AssignIndexArrayToBatch( FSlateElementBatch& Batch );
+
+	/** @return the list of vertices for a batch */
+	TArray<FSlateVertex>& GetBatchVertexList( FSlateElementBatch& Batch ) { return BatchVertexArrays[Batch.VertexArrayIndex]; }
+
+	/** @return the list of indices for a batch */
+	TArray<SlateIndex>& GetBatchIndexList( FSlateElementBatch& Batch ) { return BatchIndexArrays[Batch.IndexArrayIndex]; }
+
+	/** @return The total number of batched vertices */
+	int32 GetNumBatchedVertices() const { return NumBatchedVertices; }
+
+	/** @return The total number of batched indices */
+	int32 GetNumBatchedIndices() const { return NumBatchedIndices; }
+
+	/** @return Total number of batched layers */
+	int32 GetNumLayers() const { return NumLayers; }
+
+	/** 
+	 * Fills batch data into the actual vertex and index buffer
+	 *
+	 * @param VertexBuffer	Pointer to the actual memory for the vertex buffer 
+	 * @param IndexBuffer	Pointer to the actual memory for an index buffer
+	 */
+	SLATECORE_API void FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* IndexBuffer );
+
+	/** 
+	 * Creates rendering data from batched elements
+	 */
+	SLATECORE_API void CreateRenderBatches();
+
+private:
+	void AddRenderBatch( const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
+	{
+		NumBatchedVertices += InNumVertices;
+		NumBatchedIndices += InNumIndices;
+
+		RenderBatches.Add( FSlateRenderBatch(InElementBatch, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset) );
+	}
+private:
+
+	// Element batch maps sorted by layer.
+	FElementBatchMap LayerToElementBatches;
+
+	// Array of vertex lists that are currently free (have no elements in them).
+	TArray<uint32> VertexArrayFreeList;
+
+	// Array of index lists that are currently free (have no elements in them).
+	TArray<uint32> IndexArrayFreeList;
+
+	// Array of vertex lists for batching vertices. We use this method for quickly resetting the arrays without deleting memory.
+	TArray<TArray<FSlateVertex>> BatchVertexArrays;
+
+	// Array of vertex lists for batching indices. We use this method for quickly resetting the arrays without deleting memory.
+	TArray<TArray<SlateIndex>> BatchIndexArrays;
+
+	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
+	TArray<FSlateRenderBatch> RenderBatches;
+
+	int32 NumBatchedVertices;
+
+	int32 NumBatchedIndices;
+
+	int32 NumLayers;
+
 };
 
 /**
@@ -624,44 +711,24 @@ public:
 	/**
 	 * Remove all the elements from this draw list.
 	 */
-	void Empty()
+	void Reset()
 	{
-		DrawElements.Empty();
-		RenderBatches.Empty();
-		BatchedVertices.Empty();
-		BatchedIndices.Empty();
+		DrawElements.Reset();
+		BatchData.Reset();
+		DeferredPaintList.Reset();
 	}
-	
-	/**
-	 * Returns a list of element batches for this window
-	 */
-	const TArray<FSlateRenderBatch>& GetRenderBatches() const { return RenderBatches; }
 
-	/**
-	 * Returns all the vertices for every draw element in this window
-	 */
-	const TArray<FSlateVertex>& GetBatchedVertices() const { return BatchedVertices; }
+	FSlateBatchData& GetBatchData() { return BatchData; }
 
-	/**
-	 * Returns all the indices for every draw element in this window
-	 */
-	const TArray<SlateIndex>& GetBatchedIndices() const { return BatchedIndices; }
+private:
+	/** Batched data used for rendering */
+	FSlateBatchData BatchData;
 
-protected:
 	/** The top level window which these elements are being drawn on */
 	TWeakPtr<SWindow> TopLevelWindow;
 	
 	/** List of draw elements for the window */
 	TArray<FSlateDrawElement> DrawElements;
-
-	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
-	TArray<FSlateRenderBatch> RenderBatches;
-
-	/** All the vertices for every batch. */
-	TArray<FSlateVertex> BatchedVertices;
-
-	/** All the indices for every batch. */
-	TArray<SlateIndex> BatchedIndices;
 
 	/**
 	 * Some widgets want their logical children to appear at a different "layer" in the physical hierarchy.

@@ -334,10 +334,10 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 	FontCache->UpdateCache();
 
 	// Iterate through each element list and set up an RHI window for it if needed
-	TArray<FSlateWindowElementList>& WindowElementLists = InWindowDrawBuffer.GetWindowElementLists();
+	TArray< TSharedPtr<FSlateWindowElementList> >& WindowElementLists = InWindowDrawBuffer.GetWindowElementLists();
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
 	{
-		FSlateWindowElementList& ElementList = WindowElementLists[ListIndex];
+		FSlateWindowElementList& ElementList = *WindowElementLists[ListIndex];
 		SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GRendererDrawElementList, ElementList.GetWindow()->GetCreatedInLocation());
 
 		if ( ElementList.GetWindow().IsValid() )
@@ -345,22 +345,18 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			TSharedRef<SWindow> WindowToDraw = ElementList.GetWindow().ToSharedRef();
 
 			// Add all elements for this window to the element batcher
-			ElementBatcher->AddElements( ElementList.GetDrawElements() );
-
-			bool bUnused = false;
-			ElementBatcher->FillBatchBuffers( ElementList, bUnused );
-
-			// All elements for this window have been batched and rendering data updated
-			ElementBatcher->ResetBatches();
+			ElementBatcher->AddElements( ElementList );
 
 			FVector2D WindowSize = WindowToDraw->GetSizeInScreen();
 
 			FSlateD3DViewport* Viewport = WindowToViewportMap.Find( &WindowToDraw.Get() );
 			check(Viewport);
 
+			FSlateBatchData& BatchData = ElementList.GetBatchData();
 			{
 				SLATE_CYCLE_COUNTER_SCOPE(GRendererUpdateBuffers);
-				RenderingPolicy->UpdateBuffers(ElementList);
+				BatchData.CreateRenderBatches();
+				RenderingPolicy->UpdateVertexAndIndexBuffers(BatchData);
 			}
 
 			check(Viewport);
@@ -379,7 +375,7 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 
 			{
 				SLATE_CYCLE_COUNTER_SCOPE(GRendererDrawElements);
-				RenderingPolicy->DrawElements(ViewMatrix*Viewport->ProjectionMatrix, ElementList.GetRenderBatches());
+				RenderingPolicy->DrawElements(ViewMatrix*Viewport->ProjectionMatrix, BatchData.GetRenderBatches());
 			}
 
 			GD3DDeviceContext->OMSetRenderTargets(0, NULL, NULL);
