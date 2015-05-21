@@ -234,6 +234,50 @@ namespace AutomationTool
 
 		#endregion
 
+		#region Progress Logging
+
+		public static void LogPushProgress(bool bShowProgress, int Numerator, int Denominator)
+		{
+			if(bShowProgress)
+			{
+				Log("[@progress push {0}/{1} skipline]", Numerator, Denominator);
+			}
+		}
+
+		public static void LogPopProgress(bool bShowProgress)
+		{
+			if(bShowProgress)
+			{
+				Log("[@progress pop skipline]");
+			}
+		}
+
+		public static void LogIncrementProgress(bool bShowProgress, int Numerator, int Denominator)
+		{
+			if(bShowProgress)
+			{
+				Log("[@progress increment {0}/{1} skipline]", Numerator, Denominator);
+			}
+		}
+
+		public static void LogSetProgress(bool bShowProgress, string Format, params string[] Args)
+		{
+			if(bShowProgress)
+			{
+				Log("[@progress '{0}' skipline]", String.Format(Format, Args));
+			}
+		}
+
+		public static void LogSetProgress(bool bShowProgress, int Numerator, int Denominator, string Format, params string[] Args)
+		{
+			if(bShowProgress)
+			{
+				Log("[@progress {0}/{1} '{2}' skipline]", Numerator, Denominator, String.Format(Format, Args));
+			}
+		}
+
+		#endregion
+
 		#region IO
 
 		/// <summary>
