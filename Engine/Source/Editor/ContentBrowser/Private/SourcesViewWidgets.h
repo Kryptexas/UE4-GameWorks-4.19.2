@@ -187,6 +187,9 @@ public:
 		/** True if the item is read-only. It will not be able to be renamed if read-only */
 		SLATE_ATTRIBUTE( bool, IsReadOnly )
 
+		/** Text to highlight for this item */
+		SLATE_ATTRIBUTE( FText, HighlightText )
+
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */

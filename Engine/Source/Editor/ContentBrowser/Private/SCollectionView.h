@@ -115,6 +115,16 @@ private:
 
 	/** Updates the collections shown in the list view */
 	void UpdateCollectionItems();
+
+	/** Update the visible collections based on the active search text */
+	void ApplyCollectionsSearchFilter();
+
+	/** Update the visible collections based on the given search text */
+	void ApplyCollectionsSearchFilter( const FText& InSearchText );
+
+	/** Get the currently filter text */
+	FText GetFilterText() const;
+
 private:
 
 	/** A helper class to manage PreventSelectionChangedDelegateCount by incrementing it when constructed (on the stack) and decrementing when destroyed */
@@ -137,11 +147,17 @@ private:
 		TSharedRef<SCollectionView> CollectionView;
 	};
 
+	/** The collection list search box */
+	TSharedPtr< SSearchBox > SearchBoxPtr;
+
 	/** The collection list widget */
 	TSharedPtr< SListView< TSharedPtr<FCollectionItem>> > CollectionListPtr;
 
-	/** The list of collections */
+	/** The list of available collections */
 	TArray< TSharedPtr<FCollectionItem> > CollectionItems;
+
+	/** The list of visible collections based on the current filter */
+	TArray< TSharedPtr<FCollectionItem> > FilteredCollectionItems;
 
 	/** The context menu logic and data */
 	TSharedPtr<class FCollectionContextMenu> CollectionContextMenu;

@@ -374,6 +374,7 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 			[
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
 					.Text( this, &SCollectionListItem::GetNameText )
+					.HighlightText( InArgs._HighlightText )
 					.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceListItemFont") )
 					.OnBeginTextEdit(this, &SCollectionListItem::HandleBeginNameChange)
 					.OnTextCommitted(this, &SCollectionListItem::HandleNameCommitted)
