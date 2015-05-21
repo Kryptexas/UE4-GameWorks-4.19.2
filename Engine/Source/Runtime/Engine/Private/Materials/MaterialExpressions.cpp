@@ -8274,7 +8274,18 @@ UMaterialExpressionDistanceToNearestSurface::UMaterialExpressionDistanceToNeares
 
 int32 UMaterialExpressionDistanceToNearestSurface::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->DistanceToNearestSurface();
+	int32 PositionArg = INDEX_NONE;
+
+	if (Position.Expression)
+	{
+		PositionArg = Position.Compile(Compiler);
+	}
+	else 
+	{
+		PositionArg = Compiler->WorldPosition(WPT_Default);
+	}
+
+	return Compiler->DistanceToNearestSurface(PositionArg);
 }
 
 void UMaterialExpressionDistanceToNearestSurface::GetCaption(TArray<FString>& OutCaptions) const
@@ -8305,7 +8316,18 @@ UMaterialExpressionDistanceFieldGradient::UMaterialExpressionDistanceFieldGradie
 
 int32 UMaterialExpressionDistanceFieldGradient::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->DistanceFieldGradient();
+	int32 PositionArg = INDEX_NONE;
+
+	if (Position.Expression)
+	{
+		PositionArg = Position.Compile(Compiler);
+	}
+	else 
+	{
+		PositionArg = Compiler->WorldPosition(WPT_Default);
+	}
+
+	return Compiler->DistanceFieldGradient(PositionArg);
 }
 
 void UMaterialExpressionDistanceFieldGradient::GetCaption(TArray<FString>& OutCaptions) const

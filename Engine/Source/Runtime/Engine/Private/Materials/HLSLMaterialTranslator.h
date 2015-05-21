@@ -3638,28 +3638,38 @@ protected:
 		return AddCodeChunk( MCT_Float3, TEXT("MaterialExpressionBlackBody(%s)"), *GetParameterCode(Temp) );
 	}
 
-	virtual int32 DistanceToNearestSurface() override
+	virtual int32 DistanceToNearestSurface(int32 PositionArg) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
 
+		if (PositionArg == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
 		MaterialCompilationOutput.bUsesGlobalDistanceField = true;
 
-		return AddCodeChunk(MCT_Float, TEXT("GetDistanceToNearestSurfaceGlobal(Parameters.WorldPosition)"));
+		return AddCodeChunk(MCT_Float, TEXT("GetDistanceToNearestSurfaceGlobal(%s)"), *GetParameterCode(PositionArg));
 	}
 
-	virtual int32 DistanceFieldGradient() override
+	virtual int32 DistanceFieldGradient(int32 PositionArg) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
 		{
 			return INDEX_NONE;
 		}
 
+		if (PositionArg == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
 		MaterialCompilationOutput.bUsesGlobalDistanceField = true;
 
-		return AddCodeChunk(MCT_Float3, TEXT("GetDistanceFieldGradientGlobal(Parameters.WorldPosition)"));
+		return AddCodeChunk(MCT_Float3, TEXT("GetDistanceFieldGradientGlobal(%s)"), *GetParameterCode(PositionArg));
 	}
 
 	virtual int32 AtmosphericFogColor( int32 WorldPosition ) override
