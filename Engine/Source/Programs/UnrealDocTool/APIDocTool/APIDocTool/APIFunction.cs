@@ -720,7 +720,7 @@ namespace APIDocTool
 						// Fix spacing around pointer/reference punctuation to match Epic code standards.
 						if (Definition != null)
 						{
-							Definition = Definition.Replace(" * ", "* ").Replace(" & ", "& ");
+							Definition = Definition.Replace(" *", "*").Replace(" &", "&");
 						}
 						Writer.WriteLine(UdnWriter.TabSpaces + Definition + Separator + "  ");
 					}
