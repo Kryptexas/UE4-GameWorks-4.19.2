@@ -911,6 +911,7 @@ public:
 	 *  @return true if any of the bodies passed in overlap with this
 	 */
 	bool OverlapTestForBodies(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const;
+	bool OverlapTestForBody(const FVector& Position, const FQuat& Rotation, FBodyInstance* Body) const;
 
 	/**
 	 *  Determines the set of components that this body instance would overlap with at the supplied location/rotation
@@ -1011,6 +1012,9 @@ private:
 	 */
 	static bool IsValidCollisionProfileName(FName InCollisionProfileName);
 
+	template<typename AllocatorType>
+	bool OverlapTestForBodiesImpl(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*, AllocatorType>& Bodies) const;
+
 	friend class UCollisionProfile;
 	friend class FBodyInstanceCustomization;
 	
@@ -1054,9 +1058,20 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // BodyInstance inlines
 
-inline bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapMulti(TArray<struct FOverlapResult>& InOutOverlaps, const class UWorld* World, const FTransform* pWorldToComponent, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionResponseParams& ResponseParams, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 	// Pass on to FQuat version
 	return OverlapMulti(InOutOverlaps, World, pWorldToComponent, Pos, Rot.Quaternion(), TestChannel, Params, ResponseParams, ObjectQueryParams);
 }
 
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBodies(const FVector& Position, const FQuat& Rotation, const TArray<FBodyInstance*>& Bodies) const
+{
+	return OverlapTestForBodiesImpl(Position, Rotation, Bodies);
+}
+
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBody(const FVector& Position, const FQuat& Rotation, FBodyInstance* Body) const
+{
+	TArray<FBodyInstance*, TInlineAllocator<1>> InlineArray;
+	InlineArray.Add(Body);
+	return OverlapTestForBodiesImpl(Position, Rotation, InlineArray);
+}

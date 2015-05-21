@@ -4017,7 +4017,8 @@ float FBodyInstance::GetDistanceToBody(const FVector& Point, FVector& OutPointOn
 	//@TODO: BOX2D: Implement DistanceToBody
 }
 
-bool FBodyInstance::OverlapTestForBodies(const FVector& Pos, const FQuat& Rot, const TArray<FBodyInstance*>& Bodies) const
+template <typename AllocatorType>
+bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Rot, const TArray<FBodyInstance*, AllocatorType>& Bodies) const
 {
 	bool bHaveOverlap = false;
 #if WITH_PHYSX
@@ -4057,6 +4058,11 @@ bool FBodyInstance::OverlapTestForBodies(const FVector& Pos, const FQuat& Rot, c
 #endif //WITH_PHYSX
 	return bHaveOverlap;
 }
+
+// Explicit template instantiation for the above.
+template bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Rot, const TArray<FBodyInstance*>& Bodies) const;
+template bool FBodyInstance::OverlapTestForBodiesImpl(const FVector& Pos, const FQuat& Rot, const TArray<FBodyInstance*, TInlineAllocator<1>>& Bodies) const;
+
 
 bool FBodyInstance::OverlapTest(const FVector& Position, const FQuat& Rotation, const struct FCollisionShape& CollisionShape, FMTDResult* OutMTD) const
 {

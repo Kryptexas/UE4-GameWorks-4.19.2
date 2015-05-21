@@ -1785,9 +1785,7 @@ bool UPrimitiveComponent::ComponentOverlapComponentImpl(class UPrimitiveComponen
 
 	if(FBodyInstance* BI = PrimComp->GetBodyInstance())
 	{
-		TArray<FBodyInstance*> Bodies;
-		Bodies.Add(GetBodyInstance());
-		return BI->OverlapTestForBodies(Pos, Quat, Bodies);
+		return BI->OverlapTestForBody(Pos, Quat, GetBodyInstance());
 	}
 
 	return false;
