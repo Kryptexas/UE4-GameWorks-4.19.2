@@ -741,87 +741,94 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 				}
 			}
 
-			PShape->setSimulationFilterData(PSimFilterData);
 
-			// If query collision is enabled..
-			if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
+			ExecuteOnPxShapeWrite(this, PShape, [&](PxShape* PGivenShape)
 			{
-				const bool bQueryEnabled = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly));
+				PGivenShape->setSimulationFilterData(PSimFilterData);
 
-				// Only perform scene queries in the synchronous scene for static shapes
-				if (bPhysicsStatic)
+				// If query collision is enabled..
+				if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 				{
-					bool bIsSyncShape = (ShapeIdx < NumSyncShapes);
-					PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bIsSyncShape && bQueryEnabled);
-				}
-				// If non-static, enable scene queries if requested
-				else
-				{
-					PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bQueryEnabled);
-				}
+					const bool bQueryEnabled = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::QueryOnly));
 
-				// See if we want physics collision
-				const bool bSimCollision = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::PhysicsOnly));
-
-				// Triangle mesh is 'complex' geom
-				if (PShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
-				{
-					PShape->setQueryFilterData(PComplexQueryData);
-
-					// on dynamic objects and objects which don't use complex as simple, tri mesh not used for sim
-					if (!bSimCollision || !bUseComplexAsSimple)
+					// Only perform scene queries in the synchronous scene for static shapes
+					if (bPhysicsStatic)
 					{
-						PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+						bool bIsSyncShape = (ShapeIdx < NumSyncShapes);
+						PGivenShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bIsSyncShape && bQueryEnabled);
 					}
+					// If non-static, enable scene queries if requested
 					else
 					{
-						PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+						PGivenShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, bQueryEnabled);
 					}
 
-					if (OwnerPrimitiveComponent == NULL || !OwnerPrimitiveComponent->IsA(UModelComponent::StaticClass()))
+					// See if we want physics collision
+					const bool bSimCollision = ((UseCollisionEnabled == ECollisionEnabled::QueryAndPhysics) || (UseCollisionEnabled == ECollisionEnabled::PhysicsOnly));
+
+					// Triangle mesh is 'complex' geom
+					if (PGivenShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
 					{
-						PShape->setFlag(PxShapeFlag::eVISUALIZATION, false); // dont draw the tri mesh, we can see it anyway, and its slow
+						PGivenShape->setQueryFilterData(PComplexQueryData);
+
+						// on dynamic objects and objects which don't use complex as simple, tri mesh not used for sim
+						if (!bSimCollision || !bUseComplexAsSimple)
+						{
+							PGivenShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+						}
+						else
+						{
+							PGivenShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+						}
+
+						if (OwnerPrimitiveComponent == NULL || !OwnerPrimitiveComponent->IsA(UModelComponent::StaticClass()))
+						{
+							PGivenShape->setFlag(PxShapeFlag::eVISUALIZATION, false); // dont draw the tri mesh, we can see it anyway, and its slow
+						}
+					}
+					// Everything else is 'simple'
+					else
+					{
+						PGivenShape->setQueryFilterData(PSimpleQueryData);
+
+						// See if we currently have sim collision
+						const bool bCurrentSimCollision = (PGivenShape->getFlags() & PxShapeFlag::eSIMULATION_SHAPE);
+						// Enable sim collision
+						if (bSimCollision && !bCurrentSimCollision)
+						{
+							bUpdateMassProperties = true;
+							PGivenShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
+						}
+						// Disable sim collision
+						else if (!bSimCollision && bCurrentSimCollision)
+						{
+							bUpdateMassProperties = true;
+							PGivenShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+						}
+
+						// enable swept bounds for CCD for this shape
+						PxRigidBody* PBody = PActor->is<PxRigidBody>();
+						if (bSimCollision && !bPhysicsStatic && bUseCCD && PBody)
+						{
+							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
+						}
+						else if (PBody)
+						{
+
+							PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
+						}
 					}
 				}
-				// Everything else is 'simple'
+				// No collision enabled
 				else
 				{
-					PShape->setQueryFilterData(PSimpleQueryData);
-
-					// See if we currently have sim collision
-					const bool bCurrentSimCollision = (PShape->getFlags() & PxShapeFlag::eSIMULATION_SHAPE);
-					// Enable sim collision
-					if (bSimCollision && !bCurrentSimCollision)
-					{
-						bUpdateMassProperties = true;
-						PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
-					}
-					// Disable sim collision
-					else if (!bSimCollision && bCurrentSimCollision)
-					{
-						bUpdateMassProperties = true;
-						PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
-					}
-
-					// enable swept bounds for CCD for this shape
-					PxRigidBody* PBody = PActor->is<PxRigidBody>();
-					if (bSimCollision && !bPhysicsStatic && bUseCCD && PBody)
-					{
-						PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, true);
-					}
-					else if (PBody)
-					{
-
-						PBody->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, false);
-					}
+					PGivenShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
+					PGivenShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
 				}
-			}
-			// No collision enabled
-			else
-			{
-				PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, false);
-				PShape->setFlag(PxShapeFlag::eSCENE_QUERY_SHAPE, false);
-			}
+			});
+
+
+			
 		}
 
 		if (bUpdateMassProperties)
