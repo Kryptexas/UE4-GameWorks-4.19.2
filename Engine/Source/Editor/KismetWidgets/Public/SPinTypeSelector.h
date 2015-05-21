@@ -123,7 +123,7 @@ protected:
 	void OnFilterTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo);
 
 	/** Helper to generate the filtered list of types, based on the search string matching */
-	bool GetChildrenMatchingSearch(const FString& SearchText, const TArray<FPinTypeTreeItem>& UnfilteredList, TArray<FPinTypeTreeItem>& OutFilteredList);
+	bool GetChildrenMatchingSearch(const FText& SearchText, const TArray<FPinTypeTreeItem>& UnfilteredList, TArray<FPinTypeTreeItem>& OutFilteredList);
 
 	/** 
 	 * Determine the best icon to represent the given pin.
