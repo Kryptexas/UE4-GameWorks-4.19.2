@@ -251,7 +251,7 @@ public class FileDB implements BaseDB
 		return FileUtils.fileExists( getSessionViewerFilename( sessionName, viewerName ) );
 	}
 
-	public void createViewer( final String sessionName, final String viewerName ) throws ReplayException
+	public void createViewer( final String sessionName, final String viewerName, final String userName ) throws ReplayException
 	{
 		if ( ViewerExists( sessionName, viewerName ) )
 		{
@@ -416,6 +416,11 @@ public class FileDB implements BaseDB
 		});
 
         return sessions;
+	}
+
+	public List<ReplaySessionInfo> getRecentSessions( final String appName, final int version, final int changelist, final String userName, final int limit )
+	{
+		return new ArrayList<ReplaySessionInfo>();	
 	}
 
 	public void log( final Level level, final String str )

@@ -37,6 +37,7 @@ public class MongoDB implements BaseDB
 	static DBCollection replayColl	= null;
 	static DBCollection viewerColl	= null;
 	static DBCollection eventColl	= null;
+	static DBCollection recentColl	= null;
 	static DBCollection logColl		= null;
 
 	public MongoDB() throws UnknownHostException
@@ -56,6 +57,7 @@ public class MongoDB implements BaseDB
 		replayColl 	= db.getCollection( ReplayProps.getString( "mongoDB_ReplayCollection", "replayCollection" ) );
 		viewerColl 	= db.getCollection( ReplayProps.getString( "mongoDB_ViewerCollection", "viewerCollection" ) );
 		eventColl 	= db.getCollection( ReplayProps.getString( "mongoDB_EventCollection", "eventCollection" ) );
+		recentColl 	= db.getCollection( ReplayProps.getString( "mongoDB_RecentCollection", "recentCollection" ) );
 		logColl 	= db.getCollection( ReplayProps.getString( "mongoDB_LogCollection", "logCollection" ) );
 				
 		if ( bResetIndexes )
@@ -79,6 +81,8 @@ public class MongoDB implements BaseDB
 			//eventColl.createIndex( new BasicDBObject( "time1", 1 ), new BasicDBObject( "name", "ETime1Index" ) );
 			//eventColl.createIndex( new BasicDBObject( "group" , 1 ), new BasicDBObject( "name", "EGroupIndex" ) );			
 			eventColl.createIndex( new BasicDBObject( "modified", 1 ), new BasicDBObject( "name", "EModifiedIndex" ) );
+
+			recentColl.createIndex( new BasicDBObject( "user", 1 ), new BasicDBObject( "name", "RecentUserIndex" ) );
 
 			//logColl.createIndex( new BasicDBObject( "level", 1 ), new BasicDBObject( "name", "LevelIndex" ) );
 			logColl.createIndex( new BasicDBObject( "level", 1 ).append( "created", 1 ), new BasicDBObject( "name", "LevelIndex" ) );
@@ -232,7 +236,7 @@ public class MongoDB implements BaseDB
 							.append( "sizeInBytes", 	(int)0 );
 
 		
-			replayColl.insert( WriteConcern.SAFE, newSession );
+			replayColl.insert( WriteConcern.ACKNOWLEDGED, newSession );
 		}
 		catch ( Exception e )
 		{
@@ -462,7 +466,7 @@ public class MongoDB implements BaseDB
 				obj.put( "meta", eventMeta );
 			}
 
-			eventColl.insert( WriteConcern.SAFE, obj );
+			eventColl.insert( WriteConcern.ACKNOWLEDGED, obj );
         }
         catch ( Exception e )
         {
@@ -516,7 +520,7 @@ public class MongoDB implements BaseDB
         }
         catch ( Exception e )
         {
-        	throw new ReplayException( "MongoDB.EnumerateEvents: There was an error reading the event" );
+        	throw new ReplayException( "MongoDB.enumerateEvents: There was an error reading the event" );
         }
 	}
 
@@ -525,20 +529,65 @@ public class MongoDB implements BaseDB
 		return viewerColl.count( getSpecificViewerQuery( sessionName, viewerName ) ) > 0;
 	}
 
-	public void createViewer( final String sessionName, final String viewerName ) throws ReplayException
+	public void createViewer( final String sessionName, final String viewerName, final String userName ) throws ReplayException
 	{
 		if ( viewerExists( sessionName, viewerName ) )
 		{
-			throw new ReplayException( "MongoDB.CreateViewer: Viewer already exists." );        
+			throw new ReplayException( "MongoDB.createViewer: Viewer already exists." );        
 		}
 		
 		try
 		{
-			viewerColl.insert( WriteConcern.SAFE, getSpecificViewerQuery( sessionName, viewerName ).append( "modified", System.currentTimeMillis() ) );		
+			viewerColl.insert( WriteConcern.ACKNOWLEDGED, getSpecificViewerQuery( sessionName, viewerName ).append( "modified", System.currentTimeMillis() ) );
 		}
 		catch ( Exception e )
 		{
-			throw new ReplayException( "MongoDB.CreateViewer: Insert failed." );        
+			throw new ReplayException( "MongoDB.createViewer: Insert failed." );        
+		}
+		
+		addToRecentList( sessionName, userName );
+	}
+	
+	public void addToRecentList( final String sessionName, final String userName ) throws ReplayException
+	{
+		if ( userName == null || userName.equals( "" ) )
+		{
+			ReplayLogger.log( Level.WARNING, "addToRecentList: Ignoring null name." );
+			return;
+		}
+
+		try
+		{
+	 		// This is probably slow, but is proof of concept feature, need to make faster
+			final int count 	= (int)recentColl.count( new BasicDBObject( "user", userName ) ) + 1;
+	 		final int maxCount	= 2;
+	 		
+	 		if ( count > maxCount )
+	 		{
+	 			final int numToRemove = count - maxCount;
+
+	 			ReplayLogger.log( Level.INFO, "addToRecentList: Removing: " + numToRemove );
+	 			
+	 			DBCursor cursor = recentColl.find( new BasicDBObject( "user", userName ) );
+
+		 		cursor.sort( new BasicDBObject( "_id", -1 ) );
+		 		cursor.limit( numToRemove );
+ 		
+	 			while ( cursor.hasNext() ) 
+	 			{
+	 				recentColl.remove( cursor.next() );
+	 			}
+	 		}
+	 		
+			final BasicDBObject newObj = new BasicDBObject( "user", userName ).append( "session", UUID.fromString( sessionName ) );
+
+			ReplayLogger.log( Level.INFO, "addToRecentList: Adding: " + sessionName + " : " + userName );
+			
+			recentColl.insert( WriteConcern.ACKNOWLEDGED, newObj );
+		}
+		catch ( Exception e )
+		{
+			throw new ReplayException( "MongoDB.addToRecentList: Insert failed." );        
 		}
 	}
 
@@ -689,8 +738,63 @@ public class MongoDB implements BaseDB
 		    }
 		    catch ( Exception e )
 		    {
-				ReplayLogger.log( Level.SEVERE, "MongoDB.DiscoverSessions. Exception while reading. Deleting: " + getSessionStringSafe( doc ) );
+				ReplayLogger.log( Level.SEVERE, "MongoDB.discoverSessions. Exception while reading. Deleting: " + getSessionStringSafe( doc ) );
 				safeDeleteSessionWithDocument( getSessionStringSafe( doc ), doc );
+		    }
+		}				 
+
+		return sessions;
+	}
+
+	public List<ReplaySessionInfo> getRecentSessions( final String appName, final int version, final int changelist, final String userName, final int limit )
+	{
+		List<ReplaySessionInfo> sessions = new ArrayList<ReplaySessionInfo>();
+		
+ 		DBCursor cursor = recentColl.find( new BasicDBObject( "user", userName ) );
+ 		
+ 		cursor.sort( new BasicDBObject( "_id", -1 ) );
+	
+ 		if ( limit != 0 )
+		{
+ 			cursor.limit( limit );
+		}
+
+		while ( cursor.hasNext() ) 
+		{
+		    final DBObject doc = (DBObject)cursor.next();
+
+		    try
+		    {	    	
+		    	final String sessionName = getSessionString( doc );
+		    	
+		    	final DBObject sessionObj = replayColl.findOne( getSessionQuery( sessionName ) );
+		    	
+		    	if ( sessionObj == null )
+		    	{
+					ReplayLogger.log( Level.WARNING, "MongoDB.getRecentSessions. Session not found: " + sessionName );
+					recentColl.remove( doc );
+		    		continue;
+		    	}
+
+		    	ReplaySessionInfo sessionInfo = getSessionInfoFromDoc( sessionObj );
+
+		    	// FIXME: Make this part of the insert/search/schema flow
+		    	if ( version != 0 && sessionInfo.version != version )
+		    	{
+		    		continue;
+		    	}
+
+		    	if ( appName != null && !sessionInfo.appName.equals( appName ) )
+		    	{
+		    		continue;
+		    	}
+
+		    	sessions.add( sessionInfo );
+		    }
+		    catch ( Exception e )
+		    {
+				ReplayLogger.log( Level.SEVERE, "MongoDB.getRecentSessions. Exception while reading. Deleting: " + getSessionStringSafe( doc ) );
+				recentColl.remove( doc );
 		    }
 		}				 
 

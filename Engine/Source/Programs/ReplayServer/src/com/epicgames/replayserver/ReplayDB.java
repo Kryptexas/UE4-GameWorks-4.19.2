@@ -40,7 +40,7 @@ public class ReplayDB
 				{
 					for ( int t = 0; t < 10; t++ )
 					{
-						createViewer( sessionName );
+						createViewer( sessionName, "fakeUser" );
 					}
 				}
 
@@ -157,14 +157,12 @@ public class ReplayDB
 		refreshSession( SessionName, false, false, NumChunks, DemoTimeInMS, 0 );
 	}
 
-	static String createViewer( final String sessionName ) throws ReplayException
+	static String createViewer( final String sessionName, final String userName ) throws ReplayException
 	{
-		final UUID sessionId = java.util.UUID.randomUUID();
-		final String viewerName = sessionId.toString();
-
 		try
 		{				
-			baseDB.createViewer( sessionName, viewerName );
+			final String viewerName = java.util.UUID.randomUUID().toString();
+			baseDB.createViewer( sessionName, viewerName, userName );
 			return viewerName; 
 		}
 		catch ( ReplayException e )
@@ -236,6 +234,11 @@ public class ReplayDB
 	static List<ReplaySessionInfo> discoverSessions(  final String appName, final int version, final int changelist, final int limit )
 	{
 		return baseDB.discoverSessions( appName, version, changelist, limit );
+	}
+
+	static List<ReplaySessionInfo> getRecentSessions( final String appName, final int version, final int changelist, final String userName, final int limit )
+	{
+		return baseDB.getRecentSessions( appName, version, changelist, userName, limit );
 	}
 	
 	static void log( final Level level, final String str )

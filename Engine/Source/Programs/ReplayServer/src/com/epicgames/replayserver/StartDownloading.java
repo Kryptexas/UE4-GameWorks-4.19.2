@@ -25,6 +25,7 @@ public class StartDownloading extends HttpServlet
     	try
     	{
     		final String sessionName = request.getParameter( "Session" );
+    		final String userName = request.getParameter( "User" );
 
             if ( !ReplayDB.sessionExists( sessionName, false, false ) )
         	{
@@ -44,7 +45,7 @@ public class StartDownloading extends HttpServlet
                 response.setHeader( "State", "Final" );
             }
 
-            final String viewerName = ReplayDB.createViewer( sessionName );
+            final String viewerName = ReplayDB.createViewer( sessionName, userName );
     		
     		response.setHeader( "NumChunks", "" + session.numChunks );
     		response.setHeader( "Time", "" + session.demoTimeInMS );
