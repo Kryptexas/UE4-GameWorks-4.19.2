@@ -36,6 +36,14 @@ struct FBoundingQuad
 	FVector Corners[4];
 };
 
+//@todo steamvr: remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
+typedef vr::IVRSystem*(VR_CALLTYPE *pVRInit)(vr::HmdError* peError);
+typedef void(VR_CALLTYPE *pVRShutdown)();
+typedef bool(VR_CALLTYPE *pVRIsHmdPresent)();
+typedef const char*(VR_CALLTYPE *pVRGetStringForHmdError)(vr::HmdError error);
+typedef void*(VR_CALLTYPE *pVRGetGenericInterface)(const char* pchInterfaceVersion, vr::HmdError* peError);
+
+
 /**
  * SteamVR Head Mounted Display
  */
@@ -383,6 +391,13 @@ private:
 	vr::IVRChaperone* VRChaperone;
 
 	void* OpenVRDLLHandle;
+
+	//@todo steamvr: Remove GetProcAddress() workaround once we have updated to Steamworks 1.33 or higher
+	pVRInit VRInitFn;
+	pVRShutdown VRShutdownFn;
+	pVRIsHmdPresent VRIsHmdPresentFn;
+	pVRGetStringForHmdError VRGetStringForHmdErrorFn;
+	pVRGetGenericInterface VRGetGenericInterfaceFn;
 	
 	FString DisplayId;
 

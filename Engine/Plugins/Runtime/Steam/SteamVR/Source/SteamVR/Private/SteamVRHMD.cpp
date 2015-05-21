@@ -849,17 +849,23 @@ void FSteamVRHMD::Startup()
 	// grab a pointer to the renderer module for displaying our mirror window
 	static const FName RendererModuleName("Renderer");
 	RendererModule = FModuleManager::GetModulePtr<IRendererModule>(RendererModuleName);
-	
+
 	vr::HmdError HmdErr = vr::HmdError_None;
-	VRSystem = vr::VR_Init(&HmdErr);
-	
+	//VRSystem = vr::VR_Init(&HmdErr);
+	VRSystem = (*VRInitFn)(&HmdErr);
+
 	// make sure that the version of the HMD we're compiled against is correct
-	VRSystem = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
+	if ((VRSystem != nullptr) && (HmdErr == vr::HmdError_None))
+	{
+		//VRSystem = (vr::IVRSystem*)vr::VR_GetGenericInterface(vr::IVRSystem_Version, &HmdErr);	//@todo steamvr: verify init error handling
+		VRSystem = (vr::IVRSystem*)(*VRGetGenericInterfaceFn)(vr::IVRSystem_Version, &HmdErr);
+	}
 
 	// attach to the compositor
 	if ((VRSystem != nullptr) && (HmdErr == vr::HmdError_None))
 	{
-		VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
+		//VRCompositor = (vr::IVRCompositor*)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &HmdErr);
+		VRCompositor = (vr::IVRCompositor*)(*VRGetGenericInterfaceFn)(vr::IVRCompositor_Version, &HmdErr);
 
 		if ((VRCompositor != nullptr) && (HmdErr == vr::HmdError_None))
 		{
@@ -931,7 +937,8 @@ void FSteamVRHMD::Startup()
 
 		// Grab the chaperone
 		vr::HmdError ChaperoneErr = vr::HmdError_None;
-		VRChaperone = (vr::IVRChaperone*)vr::VR_GetGenericInterface(vr::IVRChaperone_Version, &ChaperoneErr);
+		//VRChaperone = (vr::IVRChaperone*)vr::VR_GetGenericInterface(vr::IVRChaperone_Version, &ChaperoneErr);
+		VRChaperone = (vr::IVRChaperone*)(*VRGetGenericInterfaceFn)(vr::IVRChaperone_Version, &ChaperoneErr);
 		if ((VRChaperone != nullptr) && (ChaperoneErr == vr::HmdError_None))
 		{
 			ChaperoneBounds = FChaperoneBounds(VRChaperone);
@@ -988,13 +995,17 @@ void FSteamVRHMD::SaveToIni()
 
 void FSteamVRHMD::Shutdown()
 {
-	// save any runtime configuration changes to the .ini
-	SaveToIni();
+	if (VRSystem != nullptr)
+	{
+		// save any runtime configuration changes to the .ini
+		SaveToIni();
 
-	// shut down our headset
-	VRSystem = nullptr;
-	SteamVRPlugin->SetVRSystem(nullptr);
-	vr::VR_Shutdown();
+		// shut down our headset
+		VRSystem = nullptr;
+		SteamVRPlugin->SetVRSystem(nullptr);
+		//vr::VR_Shutdown();
+		(*VRShutdownFn)();
+	}
 
 	// unload OpenVR library
 	UnloadOpenVRModule();
@@ -1020,7 +1031,7 @@ bool FSteamVRHMD::LoadOpenVRModule()
 		FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
 		OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
 		FPlatformProcess::PopDllDirectory(*RootOpenVRPath);
-	#else
+#else
 		FString RootOpenVRPath = FPaths::EngineDir() / FString::Printf(TEXT("Binaries/ThirdParty/OpenVR/%s/Win32/"), OPENVR_SDK_VER); 
 		FPlatformProcess::PushDllDirectory(*RootOpenVRPath);
 		OpenVRDLLHandle = FPlatformProcess::GetDllHandle(*(RootOpenVRPath + "openvr_api.dll"));
@@ -1033,6 +1044,20 @@ bool FSteamVRHMD::LoadOpenVRModule()
 	if (!OpenVRDLLHandle)
 	{
 		UE_LOG(LogHMD, Warning, TEXT("Failed to load OpenVR library."));
+		return false;
+	}
+
+	//@todo steamvr: Remove GetProcAddress() workaround once we update to Steamworks 1.33 or higher
+	VRInitFn = (pVRInit)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Init"));
+	VRShutdownFn = (pVRShutdown)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_Shutdown"));
+	VRIsHmdPresentFn = (pVRIsHmdPresent)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_IsHmdPresent"));
+	VRGetStringForHmdErrorFn = (pVRGetStringForHmdError)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetStringForHmdError"));
+	VRGetGenericInterfaceFn = (pVRGetGenericInterface)FPlatformProcess::GetDllExport(OpenVRDLLHandle, TEXT("VR_GetGenericInterface"));
+
+	if (!VRInitFn || !VRShutdownFn || !VRIsHmdPresentFn || !VRGetStringForHmdErrorFn || !VRGetGenericInterfaceFn)
+	{
+		UE_LOG(LogHMD, Warning, TEXT("Failed to GetProcAddress() on openvr_api.dll"));
+		UnloadOpenVRModule();
 		return false;
 	}
 
