@@ -1,6 +1,6 @@
 Availability: Public
 Title:Package Saving Procedure in UnrealEd
-Crumbs: %ROOT%, Engine, Engine/Basics, Engine/Basics/AssetsAndPackages
+Crumbs: %ROOT%, Engine, Engine/Basics/AssetsAndPackages
 Description:Guide to saving content packages inside of Unreal Editor.
 
 [TOC (start:2 end:3)]

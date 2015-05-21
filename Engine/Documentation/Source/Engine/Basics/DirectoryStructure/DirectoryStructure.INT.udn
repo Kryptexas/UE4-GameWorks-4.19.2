@@ -1,6 +1,6 @@
 Availability:Public
 Title:Directory Structure
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:Overview of the directories that make up the engine and game projects.
 
 [TOC(start:2)]

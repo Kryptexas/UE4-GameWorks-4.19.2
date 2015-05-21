@@ -1,6 +1,6 @@
 Availability: Public
 Title:System Settings
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:Platform-specific collection of settings that control certain aspects of the game and engine based on the hardware capabilities.
 
 

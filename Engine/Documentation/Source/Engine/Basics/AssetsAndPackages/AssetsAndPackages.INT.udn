@@ -1,6 +1,6 @@
 Availability:Public
 Title: Assets and Packages
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:Overview of the asset and package system used in Unreal Engine 4.
 
 [VAR:Topic]

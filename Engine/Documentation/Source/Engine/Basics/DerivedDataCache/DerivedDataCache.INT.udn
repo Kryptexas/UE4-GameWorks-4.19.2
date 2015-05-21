@@ -1,6 +1,6 @@
 Availability:Public
 Title:Derived Data Cache
-Crumbs:%ROOT%, Engine, Engine/Basics
+Crumbs:%ROOT%, Engine
 Description: Overview of the Derived Data Cache and the storage of assets in formats used by UE4 and its target platforms. 
 
 The **Derived Data Cache** (DDC) stores versions of assets in the formats used by the engine and its 
