@@ -3558,9 +3558,9 @@ void SSCSEditor::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 		int32 NumComponentInstances = 0;
 		for (auto CompIt = ActorInstance->GetComponents().CreateConstIterator(); CompIt; ++CompIt)
 		{
-			// Don't count editor-only components in instanced mode, because we don't show them. Also, don't count UCS-added components if the option to hide them is enabled.
+			// Don't count editor-only components in instanced mode, because we don't show them. Also, don't count components that aren't based on a non-default template, and don't count UCS-added components if the option to hide them is enabled.
 			const UActorComponent* CompInst = *CompIt;
-			if ((!CompInst->IsEditorOnly() || (EditorMode != EComponentEditorMode::ActorInstance && CompInst->GetArchetype() != CompInst->GetClass()->GetDefaultObject()))
+			if ((!CompInst->IsEditorOnly() || EditorMode != EComponentEditorMode::ActorInstance) && (CompInst->GetArchetype() != CompInst->GetClass()->GetDefaultObject())
 				&& (CompInst->CreationMethod != EComponentCreationMethod::UserConstructionScript || !GetDefault<UBlueprintEditorSettings>()->bHideConstructionScriptComponentsInDetailsView))
 			{
 				++NumComponentInstances;
