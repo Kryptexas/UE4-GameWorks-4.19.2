@@ -48,6 +48,7 @@ void SExpandableArea::Construct( const FArguments& InArgs )
 			[
 				SNew( SButton )
 				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+				.ContentPadding(InArgs._HeaderPadding)
 				.ForegroundColor(FSlateColor::UseForeground())
 				.OnClicked( this, &SExpandableArea::OnHeaderClicked )
 				[
