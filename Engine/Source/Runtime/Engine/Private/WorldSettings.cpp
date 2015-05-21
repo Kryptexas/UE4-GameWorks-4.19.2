@@ -116,6 +116,12 @@ float AWorldSettings::GetGravityZ() const
 	return WorldGravityZ;
 }
 
+float AWorldSettings::FixupDeltaSeconds(float DeltaSeconds, float RealDeltaSeconds)
+{
+	// Clamp time between 2000 fps and 2.5 fps.
+	return FMath::Clamp(DeltaSeconds, 0.0005f, 0.4f);	
+}
+
 void AWorldSettings::NotifyBeginPlay()
 {
 	UWorld* World = GetWorld();

@@ -1119,8 +1119,12 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 	// apply time multipliers
 	DeltaSeconds *= Info->GetEffectiveTimeDilation();
-	// Clamp time between 2000 fps and 2.5 fps.
-	DeltaSeconds = FMath::Clamp(DeltaSeconds,0.0005f,0.40f);
+
+	// Handle clamping of time to an acceptable value
+	const float GameDeltaSeconds = Info->FixupDeltaSeconds(DeltaSeconds, RealDeltaSeconds);
+	check(GameDeltaSeconds >= 0.0f);
+
+	DeltaSeconds = GameDeltaSeconds;
 	DeltaTimeSeconds = DeltaSeconds;
 
 	if ( !bIsPaused )

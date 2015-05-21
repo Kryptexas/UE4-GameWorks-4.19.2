@@ -494,7 +494,12 @@ public:
 		return TimeDilation * MatineeTimeDilation * DemoPlayTimeDilation;
 	}
 
-	/** 
+	/**
+	 * Returns the delta time to be used by the tick. Can be overridden if game specific logic is needed.
+	 */
+	virtual float FixupDeltaSeconds(float DeltaSeconds, float RealDeltaSeconds);
+
+	/**
 	 * Called by GameMode.HandleMatchIsWaitingToStart, calls BeginPlay on all actors
 	 */
 	virtual void NotifyBeginPlay();
