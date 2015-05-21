@@ -7204,7 +7204,6 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 						(DebugClass.WithinClass == NULL || (Obj->GetOuter() != NULL && Obj->GetOuter()->GetClass()->IsChildOf(DebugClass.WithinClass))) )
 					{
 						RelevantObjects.Add(Obj);
-						break;
 					}
 				}
 			}
