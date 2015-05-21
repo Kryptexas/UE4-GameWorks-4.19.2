@@ -1575,7 +1575,18 @@ FText FBehaviorTreeEditor::GetToolkitName() const
 	const UObject* EditingObject = GetCurrentMode() == BehaviorTreeMode ? (UObject*)BehaviorTree : (UObject*)GetBlackboardData();
 	if(EditingObject != nullptr)
 	{
-		return FAssetEditorToolkit::GetDescriptionForObject(EditingObject);
+		return FAssetEditorToolkit::GetLabelForObject(EditingObject);
+	}
+
+	return FText();
+}
+
+FText FBehaviorTreeEditor::GetToolkitToolTipText() const
+{
+	const UObject* EditingObject = GetCurrentMode() == BehaviorTreeMode ? (UObject*)BehaviorTree : (UObject*)GetBlackboardData();
+	if(EditingObject != nullptr)
+	{
+		return FAssetEditorToolkit::GetToolTipTextForObject(EditingObject);
 	}
 
 	return FText();

@@ -7,6 +7,7 @@
 #include "AssetViewTypes.h"
 #include "AssetViewWidgets.h"
 #include "SThumbnailEditModeTools.h"
+#include "CollectionManagerModule.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "DragDropHandler.h"
@@ -392,6 +393,18 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 
 			// Add Path
 			AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipPath", "Path"), FText::FromName(AssetData.PackagePath), false );
+			
+			// Add Collections
+			{
+				static const FName CollectionManagerModuleName = "CollectionManager";
+				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+
+				const FString CollectionNames = CollectionManagerModule.Get().GetCollectionsStringForObject(AssetData.ObjectPath, ECollectionShareType::CST_All);
+				if (!CollectionNames.IsEmpty())
+				{
+					AddToToolTipInfoBox(InfoBox, LOCTEXT("AssetToolTipKey_Collections", "Collections"), FText::FromString(CollectionNames), false);
+				}
+			}
 
 			// If we are using a loaded class, find all the hidden tags so we don't display them
 			TMap<FName, UObject::FAssetRegistryTagMetadata> MetadataMap;

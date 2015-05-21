@@ -28,6 +28,9 @@ public:
 	/** Returns a list of collections in which the specified object exists of the specified share type */
 	virtual void GetCollectionsContainingObject(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const = 0;
 
+	/** Returns a string containing a comma separated list of collections in which the specified object exists of the specified share type */
+	virtual FString GetCollectionsStringForObject(FName ObjectPath, ECollectionShareType::Type ShareType) const = 0;
+
 	/** Creates a unique collection name for the given type taking the form BaseName+(unique number) */
 	virtual void CreateUniqueCollectionName(const FName& BaseName, ECollectionShareType::Type ShareType, FName& OutCollectionName) const = 0;
 

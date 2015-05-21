@@ -156,6 +156,29 @@ void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, EColle
 	}
 }
 
+FString FCollectionManager::GetCollectionsStringForObject(FName ObjectPath, ECollectionShareType::Type ShareType) const
+{
+	TArray<FString> CollectionNameStrings;
+
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
+		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
+		if ((ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type) && Collection->IsObjectInCollection(ObjectPath))
+		{
+			CollectionNameStrings.Add(CollectionKey.Name.ToString());
+		}
+	}
+	
+	if (CollectionNameStrings.Num() > 0)
+	{
+		CollectionNameStrings.Sort();
+		return FString::Join(CollectionNameStrings, TEXT(", "));
+	}
+
+	return FString();
+}
+
 void FCollectionManager::CreateUniqueCollectionName(const FName& BaseName, ECollectionShareType::Type ShareType, FName& OutCollectionName) const
 {
 	if (!ensure(ShareType != ECollectionShareType::CST_All))

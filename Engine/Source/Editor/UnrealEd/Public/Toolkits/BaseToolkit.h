@@ -93,6 +93,7 @@ public:
 
 	/** IToolkit interface */
 	virtual FText GetToolkitName() const override { return GetBaseToolkitName(); }
+	virtual FText GetToolkitToolTipText() const override { return GetBaseToolkitName(); }
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual bool IsAssetEditor() const override;
 	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const override;
