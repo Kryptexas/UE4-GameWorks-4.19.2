@@ -1065,6 +1065,9 @@ void FSceneRenderTargets::BeginRenderingTranslucency(FRHICommandList& RHICmdList
 	// Use the scene color buffer.
 	GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	
+	// Clear the stencil buffer for ResponsiveAA
+	RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+		
 	// viewport to match view size
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 }
@@ -1098,7 +1101,9 @@ bool FSceneRenderTargets::BeginRenderingSeparateTranslucency(FRHICommandList& RH
 		if (!bFirstTimeThisFrame)
 		{
 			FLinearColor ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			RHICmdList.BindClearMRTValues(true, 1, &ClearColor, false, (float)ERHIZBuffer::FarPlane, false, 0);
+			
+			// Clear the stencil buffer for ResponsiveAA
+			RHICmdList.BindClearMRTValues(true, 1, &ClearColor, false, (float)ERHIZBuffer::FarPlane, true, 0);
 		}
 
 		RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);

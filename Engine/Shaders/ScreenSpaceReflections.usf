@@ -38,17 +38,8 @@ uint ReverseUIntBits( uint bits )
 	return bits;
 }
 
-void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+float GetRoughness(const in FGBufferData GBuffer)
 {
-	float2 UV = UVAndScreenPos.xy;
-	float2 ScreenPos = UVAndScreenPos.zw;
-	int2 PixelPos = int2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
-
-	OutColor = 0;
-
-	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
-	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
-	
 	float Roughness = GBuffer.Roughness;
 
 #if USE_CLEARCOAT
@@ -62,16 +53,65 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	}
 #endif
 
-	// mask SSR to reduce noise and for better performance, roughness of 0 should have SSR, at MaxRoughness we fade to 0
-	float RoughnessFade = saturate(Roughness * SSRParams.y + 2);
+	return Roughness;
+}
 
-#if 1
-	// Early out
-	BRANCH if( RoughnessFade == 0 || GBuffer.ShadingModelID == 0 )
+float GetRoughnessFade(in float Roughness)
+{
+	// mask SSR to reduce noise and for better performance, roughness of 0 should have SSR, at MaxRoughness we fade to 0
+	return min(Roughness * SSRParams.y + 2, 1.0);
+}
+
+// Used only if r.SSR.Stencil = 1
+//
+// This shader generate the stencil buffer according to if a pixel needs to
+// compute SSR. If it doesn't, it initializes the pixel's color.
+//
+// This optimization use the stencil to test to prunes out the pixel
+// that dones't need to compute SSR, before pixel shader invocation are
+// packed into front lines.
+void ScreenSpaceReflectionsStencilPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	const float2 UV = UVAndScreenPos.xy;
+	
+	const FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	const FGBufferData GBuffer = ScreenSpaceData.GBuffer;
+	
+	const float Roughness = GetRoughness(GBuffer);
+	const float RoughnessFade = GetRoughnessFade(Roughness);
+	
+	if (RoughnessFade > 0.0 && GBuffer.ShadingModelID != 0)
+	{
+		// we are going to compute SSR for this pixel, so we discard this
+		// pixel shader invocation to not overwrite the stencil buffer and
+		// tehrefore execute ScreenSpaceReflectionsPS() for this pixel. 
+		discard;
+	}
+	
+	// we are not going to compute SSR for this pixel, so we clear the color
+	// since ScreenSpaceReflectionsPS() won't be executed in this pixel.
+	OutColor = 0;
+}
+
+void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+{
+	float2 UV = UVAndScreenPos.xy;
+	float2 ScreenPos = UVAndScreenPos.zw;
+	int2 PixelPos = int2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+
+	OutColor = 0;
+
+	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
+	FGBufferData GBuffer = ScreenSpaceData.GBuffer;
+	
+	float Roughness = GetRoughness(GBuffer);
+	float RoughnessFade = GetRoughnessFade(Roughness);
+
+	// Early out. Useless if using the stencil prepass.
+	BRANCH if( RoughnessFade <= 0.0 || GBuffer.ShadingModelID == 0 )
 	{
 		return;
 	}
-#endif
 
 #if SSR_QUALITY == 0
 	// visualize SSR
