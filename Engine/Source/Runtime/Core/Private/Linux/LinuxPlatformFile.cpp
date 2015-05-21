@@ -781,10 +781,6 @@ IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrit
 IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
 {
 	int Flags = O_CREAT | O_CLOEXEC;	// prevent children from inheriting this
-	if (bAppend)
-	{
-		Flags |= O_APPEND;
-	}
 
 	if (bAllowRead)
 	{

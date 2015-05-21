@@ -436,11 +436,7 @@ IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrit
 IFileHandle* FApplePlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
 {
 	int Flags = O_CREAT;
-	if (bAppend)
-	{
-		Flags |= O_APPEND;
-	}
-	else
+	if (!bAppend)
 	{
 		Flags |= O_TRUNC;
 	}
