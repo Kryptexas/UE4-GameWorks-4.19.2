@@ -127,8 +127,8 @@ public:
 		Result.bDrawRelevance = IsShown(View) && bVisible;
 		Result.bOpaqueRelevance = BlendMode == EWidgetBlendMode::Opaque;
 		Result.bMaskedRelevance = BlendMode == EWidgetBlendMode::Masked;
-		Result.bNormalTranslucencyRelevance = BlendMode == EWidgetBlendMode::Transparent;
-		Result.bSeparateTranslucencyRelevance = BlendMode == EWidgetBlendMode::Transparent;
+		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+		Result.bSeparateTranslucencyRelevance = Result.bSeparateTranslucencyRelevance = (BlendMode == EWidgetBlendMode::Transparent);
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = IsShadowCast(View);
 		Result.bEditorPrimitiveRelevance = false;

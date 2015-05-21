@@ -1383,7 +1383,8 @@ public:
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);// IsShown(View);
 		Result.bDynamicRelevance = true;
-		Result.bNormalTranslucencyRelevance = IsShown(View);
+		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+		Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = IsShown(View);
 		return Result;
 	}
 

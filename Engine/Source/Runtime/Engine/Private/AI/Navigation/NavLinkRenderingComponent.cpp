@@ -422,7 +422,8 @@ FPrimitiveViewRelevance FNavLinkRenderingProxy::GetViewRelevance(const FSceneVie
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && IsSelected() && (View && View->Family && View->Family->EngineShowFlags.Navigation);
 	Result.bDynamicRelevance = true;
-	Result.bNormalTranslucencyRelevance = IsShown(View);
+	// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+	Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = IsShown(View);
 	Result.bShadowRelevance = IsShadowCast(View);
 	Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
 	return Result;

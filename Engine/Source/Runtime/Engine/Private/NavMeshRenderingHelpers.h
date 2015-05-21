@@ -567,7 +567,8 @@ public:
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = bVisible && IsShown(View);
 		Result.bDynamicRelevance = true;
-		Result.bNormalTranslucencyRelevance = bVisible && IsShown(View);
+		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+		Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = bVisible && IsShown(View);
 		return Result;
 	}
 

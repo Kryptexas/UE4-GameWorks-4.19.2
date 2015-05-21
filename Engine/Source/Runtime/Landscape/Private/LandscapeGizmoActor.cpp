@@ -330,7 +330,8 @@ public:
 		const bool bVisible = View->Family->EngineShowFlags.Landscape;
 		Result.bDrawRelevance = IsShown(View) && bVisible && !View->bIsGameView && GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo;
 		Result.bDynamicRelevance = true;
-		Result.bNormalTranslucencyRelevance = true;
+		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+		Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = true;
 #endif
 		return Result;
 	}
