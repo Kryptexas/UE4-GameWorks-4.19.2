@@ -25,6 +25,8 @@ public:
 	 */
 	void InitMaterialInstanceEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit );
 
+	FMaterialInstanceEditor();
+
 	virtual ~FMaterialInstanceEditor();
 
 	/** FGCObject interface */
@@ -72,6 +74,10 @@ public:
 
 	/** Returns true if hidden parameters should be shown */
 	void GetShowHiddenParameters(bool& bShowHiddenParameters);
+
+	/** Gets the extensibility managers for outside entities to extend material editor's menus and toolbars */
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() { return MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() { return ToolBarExtensibilityManager; }
 
 protected:
 	/** Saves editor settings. */
@@ -169,6 +175,9 @@ private:
 
 	/** Whether to show mobile material stats. */
 	bool bShowMobileStats;
+
+	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
+	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 
 	/**	The ids for the tabs spawned by this toolkit */
 	static const FName PreviewTabId;		

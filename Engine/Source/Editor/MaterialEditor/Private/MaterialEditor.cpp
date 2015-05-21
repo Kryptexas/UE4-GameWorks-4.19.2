@@ -214,6 +214,8 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& T
 		.SetDisplayName( LOCTEXT("HLSLCodeTab", "HLSL Code") )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "MaterialEditor.Tabs.HLSLCode"));
+
+	OnRegisterTabSpawners().Broadcast(TabManager);
 }
 
 
@@ -228,6 +230,8 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	TabManager->UnregisterTabSpawner( StatsTabId );
 	TabManager->UnregisterTabSpawner( FindTabId );
 	TabManager->UnregisterTabSpawner( HLSLCodeTabId );
+
+	OnUnregisterTabSpawners().Broadcast(TabManager);
 }
 
 void FMaterialEditor::InitEditorForMaterial(UMaterial* InMaterial)
@@ -415,6 +419,8 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	ObjectsToEdit.Add(Material);
 	FAssetEditorToolkit::InitAssetEditor( Mode, InitToolkitHost, MaterialEditorAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ObjectsToEdit, false );
 
+	AddMenuExtender(GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
+
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
 	AddMenuExtender(MaterialEditorModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
@@ -530,11 +536,16 @@ FMaterialEditor::FMaterialEditor()
 	, bShowStats(true)
 	, bShowBuiltinStats(false)
 	, bShowMobileStats(false)
+	, MenuExtensibilityManager(new FExtensibilityManager)
+	, ToolBarExtensibilityManager(new FExtensibilityManager)
 {
 }
 
 FMaterialEditor::~FMaterialEditor()
 {
+	// Broadcast that this editor is going down to all listeners
+	OnMaterialEditorClosed().Broadcast();
+
 	for (int32 ParameterIndex = 0; ParameterIndex < OverriddenVectorParametersToRevert.Num(); ParameterIndex++)
 	{
 		SetVectorParameterDefaultOnDependentMaterials(OverriddenVectorParametersToRevert[ParameterIndex], FLinearColor::Black, false);
@@ -792,6 +803,8 @@ void FMaterialEditor::ExtendToolbar()
 		);
 	
 	AddToolbarExtender(ToolbarExtender);
+
+	AddToolbarExtender(GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
 	AddToolbarExtender(MaterialEditorModule->GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));

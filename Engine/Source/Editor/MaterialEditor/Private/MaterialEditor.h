@@ -326,6 +326,10 @@ public:
 
 	void UpdateStatsMaterials();
 
+	/** Gets the extensibility managers for outside entities to extend material editor's menus and toolbars */
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() { return MenuExtensibilityManager; }
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() { return ToolBarExtensibilityManager; }
+
 public:
 	/** Set to true when modifications have been made to the material */
 	bool bMaterialDirty;
@@ -692,6 +696,9 @@ private:
 
 	/** Command list for this editor */
 	TSharedPtr<FUICommandList> GraphEditorCommands;
+
+	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
+	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 
 	/**	The tab ids for the material editor */
 	static const FName PreviewTabId;		

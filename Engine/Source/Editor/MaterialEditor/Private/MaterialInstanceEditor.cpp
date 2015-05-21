@@ -130,6 +130,8 @@ void FMaterialInstanceEditor::RegisterTabSpawners(const TSharedRef<class FTabMan
 		.SetDisplayName( LOCTEXT("ParentsTab", "Parents") )
 		.SetGroup( WorkspaceMenuCategoryRef )
 		.SetIcon( FSlateIcon( FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette" ) );
+
+	OnRegisterTabSpawners().Broadcast(TabManager);
 }
 
 void FMaterialInstanceEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -139,6 +141,8 @@ void FMaterialInstanceEditor::UnregisterTabSpawners(const TSharedRef<class FTabM
 	TabManager->UnregisterTabSpawner( PreviewTabId );		
 	TabManager->UnregisterTabSpawner( PropertiesTabId );	
 	TabManager->UnregisterTabSpawner( ParentsTabId );		
+
+	OnUnregisterTabSpawners().Broadcast(TabManager);
 }
 
 
@@ -234,9 +238,17 @@ void FMaterialInstanceEditor::InitMaterialInstanceEditor( const EToolkitMode::Ty
 	}
 	SetPreviewAssetByName(*InstanceConstant->PreviewMesh.ToString());
 }
+FMaterialInstanceEditor::FMaterialInstanceEditor()
+: MenuExtensibilityManager(new FExtensibilityManager)
+, ToolBarExtensibilityManager(new FExtensibilityManager)
+{
+}
 
 FMaterialInstanceEditor::~FMaterialInstanceEditor()
 {
+	// Broadcast that this editor is going down to all listeners
+	OnMaterialEditorClosed().Broadcast();
+
 	GEditor->UnregisterForUndo( this );
 
 	MaterialEditorInstance = NULL;
@@ -498,6 +510,8 @@ void FMaterialInstanceEditor::ExtendToolbar()
 		);
 
 	AddToolbarExtender(ToolbarExtender);
+
+	AddToolbarExtender(GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 
 	IMaterialEditorModule* MaterialEditorModule = &FModuleManager::LoadModuleChecked<IMaterialEditorModule>( "MaterialEditor" );
 	AddToolbarExtender(MaterialEditorModule->GetToolBarExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
