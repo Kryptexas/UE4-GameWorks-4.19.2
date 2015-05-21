@@ -3,6 +3,7 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintNodeTemplateCache.h"
+#include "BlueprintNodeSpawnerUtils.h"
 
 /*******************************************************************************
  * Static UBlueprintNodeSpawner Helpers
@@ -68,6 +69,13 @@ void UBlueprintNodeSpawner::BeginDestroy()
 //------------------------------------------------------------------------------
 void UBlueprintNodeSpawner::Prime()
 {
+	if (FBlueprintNodeSpawnerUtils::IsStaleFieldAction(this))
+	{
+		UField const* AssociatedField = FBlueprintNodeSpawnerUtils::GetAssociatedField(this);
+		ensureMsgf(false, TEXT("Priming invalid BlueprintActionDatabase entry (for %s). Was the database properly updated when this class was compiled?"), *AssociatedField->GetPathName());
+		return;
+	}
+
 	if (UEdGraphNode* CachedTemplateNode = GetTemplateNode())
 	{
 		// since we're priming incrementally, someone could have already
