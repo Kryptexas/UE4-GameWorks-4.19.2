@@ -98,6 +98,8 @@ public class HTML5Platform : Platform
         }
         File.SetAttributes(Path.Combine(PackagePath, GameExe), FileAttributes.Normal);
         File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".mem", FileAttributes.Normal);
+		File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".symbols", FileAttributes.Normal);
+
 
         // put the HTML file to the package directory
 
