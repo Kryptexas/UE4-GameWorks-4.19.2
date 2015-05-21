@@ -14,17 +14,17 @@ public:
 	virtual bool GetAssetsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& AssetPaths) const override;
 	virtual bool GetObjectsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ObjectPaths) const override;
 	virtual bool GetClassesInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ClassPaths) const override;
-	virtual void GetCollectionsContainingAsset(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const override;
+	virtual void GetCollectionsContainingObject(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const override;
 	virtual void CreateUniqueCollectionName(const FName& BaseName, ECollectionShareType::Type ShareType, FName& OutCollectionName) const override;
 	virtual bool CreateCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
 	virtual bool RenameCollection(FName CurrentCollectionName, ECollectionShareType::Type CurrentShareType, FName NewCollectionName, ECollectionShareType::Type NewShareType) override;
 	virtual bool DestroyCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
 	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) override;
-	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumAdded = NULL) override;
+	virtual bool AddToCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumAdded = nullptr) override;
 	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ObjectPath) override;
-	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumRemoved = NULL) override;
+	virtual bool RemoveFromCollection(FName CollectionName, ECollectionShareType::Type ShareType, const TArray<FName>& ObjectPaths, int32* OutNumRemoved = nullptr) override;
 	virtual bool EmptyCollection(FName CollectionName, ECollectionShareType::Type ShareType) override;
-	virtual bool IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) override;
+	virtual bool IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) const override;
 	virtual FText GetLastError() const override { return LastError; }
 
 	/** Event for when collections are created */
@@ -55,10 +55,10 @@ private:
 	bool ShouldUseSCC(ECollectionShareType::Type ShareType) const;
 
 	/** Adds a collection to the lookup maps */
-	class FCollection* AddCollection(const FCollection& Collection, ECollectionShareType::Type ShareType);
+	bool AddCollection(const TSharedRef<FCollection>& CollectionRef, ECollectionShareType::Type ShareType);
 
 	/** Removes a collection from the lookup maps */
-	bool RemoveCollection(FCollection* Collection, ECollectionShareType::Type ShareType);
+	bool RemoveCollection(const TSharedRef<FCollection>& CollectionRef, ECollectionShareType::Type ShareType);
 
 private:
 	/** The folders that contain collections */
@@ -68,13 +68,10 @@ private:
 	FString CollectionExtension;
 
 	/** A map of collection names to FCollection objects */
-	TMap<FName, FCollection*> CachedCollections[ECollectionShareType::CST_All];
-
-	/** A count of the number of collections created so we can be sure they are all destroyed when we shut down */
-	int32 NumCollections;
+	TMap<FCollectionNameType, TSharedRef<FCollection>> CachedCollections;
 
 	/** The most recent error that occurred */
-	FText LastError;
+	mutable FText LastError;
 
 	/** Event for when assets are added to a collection */
 	FAssetsAddedEvent AssetsAddedEvent;

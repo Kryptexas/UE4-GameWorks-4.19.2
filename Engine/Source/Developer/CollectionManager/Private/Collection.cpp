@@ -15,6 +15,25 @@ enum ECollectionFileVersion
 	COLLECTION_VER_AUTOMATIC_VERSION_PLUS_ONE
 };
 
+struct FCollectionUtils
+{
+	static void AppendCollectionToArray(const TSet<FName>& InAssetSet, TArray<FName>& OutAssetArray)
+	{
+		OutAssetArray.Reserve(OutAssetArray.Num() + InAssetSet.Num());
+		for (const FName& AssetName : InAssetSet)
+		{
+			OutAssetArray.Add(AssetName);
+		}
+	}
+
+	static TArray<FName> CreateCollectionArray(const TSet<FName>& InAssetSet)
+	{
+		TArray<FName> AssetArray;
+		AppendCollectionToArray(InAssetSet, AssetArray);
+		return AssetArray;
+	}
+};
+
 FCollection::FCollection()
 {
 
@@ -98,9 +117,10 @@ bool FCollection::LoadFromFile(const FString& InFilename, bool InUseSCC)
 	else
 	{
 		// Static collection, a flat list of asset paths
-		for (int32 LineIdx = 0; LineIdx < FileContents.Num(); ++LineIdx)
+		for (FString Line : FileContents)
 		{
-			const FString Line = FileContents[LineIdx].Trim().TrimTrailing();
+			Line.Trim();
+			Line.TrimTrailing();
 
 			if ( Line.Len() )
 			{
@@ -108,7 +128,7 @@ bool FCollection::LoadFromFile(const FString& InFilename, bool InUseSCC)
 			}
 		}
 
-		DiskAssetList = AssetList;
+		DiskAssetSet = AssetSet;
 	}
 
 	return true;
@@ -152,9 +172,9 @@ bool FCollection::Save(FText& OutError)
 	// Start with the header
 	TMap<FString,FString> HeaderPairs;
 	GenerateHeaderPairs(HeaderPairs);
-	for (TMap<FString,FString>::TConstIterator HeaderIt(HeaderPairs); HeaderIt; ++HeaderIt)
+	for (const auto& HeaderPair : HeaderPairs)
 	{
-		FileOutput += HeaderIt.Key() + TEXT(":") + HeaderIt.Value() + LINE_TERMINATOR;
+		FileOutput += HeaderPair.Key + TEXT(":") + HeaderPair.Value + LINE_TERMINATOR;
 	}
 	FileOutput += LINE_TERMINATOR;
 
@@ -165,10 +185,14 @@ bool FCollection::Save(FText& OutError)
 	}
 	else
 	{
+		// Write out the set as a sorted array to keep things in a known order for diffing
+		TArray<FName> AssetList = FCollectionUtils::CreateCollectionArray(AssetSet);
+		AssetList.Sort();
+
 		// Static collection. Save a flat list of all assets in the collection.
-		for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
+		for (const FName& AssetName : AssetList)
 		{
-			FileOutput += AssetList[AssetIdx].ToString() + LINE_TERMINATOR;
+			FileOutput += AssetName.ToString() + LINE_TERMINATOR;
 		}
 	}
 
@@ -227,7 +251,7 @@ bool FCollection::Save(FText& OutError)
 
 	if ( bSaveSuccessful )
 	{
-		DiskAssetList = AssetList;
+		DiskAssetSet = AssetSet;
 	}
 
 	GWarn->EndSlowTask();
@@ -264,18 +288,17 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 
 	if ( bSuccessfullyDeleted )
 	{
-		DiskAssetList.Empty();
+		DiskAssetSet.Empty();
 	}
 
 	return bSuccessfullyDeleted;
 }
 
-bool FCollection::AddAssetToCollection (FName ObjectPath)
+bool FCollection::AddAssetToCollection(FName ObjectPath)
 {
 	// @todo collection Does this apply to dynamic collections?
 	if ( !AssetSet.Contains(ObjectPath) )
 	{
-		AssetList.Add(ObjectPath);
 		AssetSet.Add(ObjectPath);
 
 		return true;
@@ -284,21 +307,20 @@ bool FCollection::AddAssetToCollection (FName ObjectPath)
 	return false;
 }
 
-bool FCollection::RemoveAssetFromCollection (FName ObjectPath)
+bool FCollection::RemoveAssetFromCollection(FName ObjectPath)
 {
 	// @todo collection Does this apply to dynamic collections?
-	AssetSet.Remove(ObjectPath);
-	return AssetList.Remove(ObjectPath) > 0;
+	return AssetSet.Remove(ObjectPath) > 0;
 }
 
 void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	for (int Index = 0; Index < AssetList.Num(); Index++)
+	for (const FName& AssetName : AssetSet)
 	{
-		if ( !AssetList[ Index ].ToString().StartsWith( TEXT("/Script/") ) )
+		if (!AssetName.ToString().StartsWith(TEXT("/Script/")))
 		{
-			Assets.Add( AssetList[ Index ] );
+			Assets.Add(AssetName);
 		}
 	}
 }
@@ -306,11 +328,11 @@ void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	for (int Index = 0; Index < AssetList.Num(); Index++)
+	for (const FName& AssetName : AssetSet)
 	{
-		if ( AssetList[ Index ].ToString().StartsWith( TEXT("/Script/") ) )
+		if (AssetName.ToString().StartsWith(TEXT("/Script/")))
 		{
-			Classes.Add( AssetList[ Index ] );
+			Classes.Add(AssetName);
 		}
 	}
 }
@@ -318,10 +340,10 @@ void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 void FCollection::GetObjectsInCollection(TArray<FName>& Objects) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	Objects.Append(AssetList);
+	FCollectionUtils::AppendCollectionToArray(AssetSet, Objects);
 }
 
-bool FCollection::IsAssetInCollection(FName ObjectPath) const
+bool FCollection::IsObjectInCollection(FName ObjectPath) const
 {
 	// @todo collection Does this apply to dynamic collections?
 	return AssetSet.Contains(ObjectPath);
@@ -332,9 +354,8 @@ void FCollection::Clear()
 	CollectionName = NAME_None;
 	bUseSCC = false;
 	SourceFilename = TEXT("");
-	AssetList.Empty();
 	AssetSet.Empty();
-	DiskAssetList.Empty();
+	DiskAssetSet.Empty();
 }
 
 bool FCollection::IsDynamic() const
@@ -345,7 +366,7 @@ bool FCollection::IsDynamic() const
 	
 bool FCollection::IsEmpty() const
 {
-	return AssetList.Num() == 0;
+	return AssetSet.Num() == 0;
 }
 
 void FCollection::PrintCollection() const
@@ -359,9 +380,13 @@ void FCollection::PrintCollection() const
 		UE_LOG(LogCollectionManager, Log, TEXT("    Printing static elements of collection %s"), *CollectionName.ToString());
 		UE_LOG(LogCollectionManager, Log, TEXT("    ============================="));
 
-		for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
+		// Print the set as a sorted array to keep things in a sane order
+		TArray<FName> AssetList = FCollectionUtils::CreateCollectionArray(AssetSet);
+		AssetList.Sort();
+
+		for (const FName& AssetName : AssetList)
 		{
-			UE_LOG(LogCollectionManager, Log, TEXT("        %s"), *AssetList[AssetIdx].ToString());
+			UE_LOG(LogCollectionManager, Log, TEXT("        %s"), *AssetName.ToString());
 		}
 	}
 }
@@ -416,26 +441,19 @@ void FCollection::MergeWithCollection(const FCollection& Other)
 		GetDifferencesFromDisk(AssetsAdded, AssetsRemoved);
 
 		// Copy asset list from other collection
-		DiskAssetList = Other.DiskAssetList;
-		AssetList = DiskAssetList;
+		DiskAssetSet = Other.DiskAssetSet;
+		AssetSet = DiskAssetSet;
 
 		// Add the assets that were added before the merge
-		for (int32 AssetIdx = 0; AssetIdx < AssetsAdded.Num(); ++AssetIdx)
+		for (const FName& AddedAssetName : AssetsAdded)
 		{
-			AssetList.AddUnique(AssetsAdded[AssetIdx]);
+			AssetSet.Add(AddedAssetName);
 		}
 
 		// Remove the assets that were removed before the merge
-		for (int32 AssetIdx = 0; AssetIdx < AssetsRemoved.Num(); ++AssetIdx)
+		for (const FName& RemovedAssetName : AssetsRemoved)
 		{
-			AssetList.Remove(AssetsRemoved[AssetIdx]);
-		}
-
-		// Update the set
-		AssetSet.Empty();
-		for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
-		{
-			AssetSet.Add(AssetList[AssetIdx]);
+			AssetSet.Remove(RemovedAssetName);
 		}
 	}
 }
@@ -443,24 +461,20 @@ void FCollection::MergeWithCollection(const FCollection& Other)
 void FCollection::GetDifferencesFromDisk(TArray<FName>& AssetsAdded, TArray<FName>& AssetsRemoved)
 {
 	// Find the assets that were removed since the disk list
-	for (int32 AssetIdx = 0; AssetIdx < DiskAssetList.Num(); ++AssetIdx)
+	for (const FName& DiskAssetName : DiskAssetSet)
 	{
-		const FName& DiskAsset = DiskAssetList[AssetIdx];
-
-		if ( !AssetSet.Contains(DiskAsset) )
+		if (!AssetSet.Contains(DiskAssetName))
 		{
-			AssetsRemoved.Add(DiskAsset);
+			AssetsRemoved.Add(DiskAssetName);
 		}
 	}
 
 	// Find the assets that were added since the disk list
-	for (int32 AssetIdx = 0; AssetIdx < AssetList.Num(); ++AssetIdx)
+	for (const FName& MemoryAssetName : AssetSet)
 	{
-		const FName& MemoryAsset = AssetList[AssetIdx];
-
-		if ( !DiskAssetList.Contains(MemoryAsset) )
+		if (!DiskAssetSet.Contains(MemoryAssetName))
 		{
-			AssetsAdded.Add(MemoryAsset);
+			AssetsAdded.Add(MemoryAssetName);
 		}
 	}
 }
@@ -635,6 +649,9 @@ bool FCollection::CheckinCollection(FText& OutError)
 		TArray<FName> AssetsAdded;
 		TArray<FName> AssetsRemoved;
 		GetDifferencesFromDisk(AssetsAdded, AssetsRemoved);
+
+		AssetsAdded.Sort();
+		AssetsRemoved.Sort();
 
 		// Clear description
 		ChangelistDesc = FText::GetEmpty();

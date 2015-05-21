@@ -26,8 +26,8 @@ public:
 	void GetClassesInCollection(TArray<FName>& Classes) const;
 	/** Gets a list of objects in the collection. Static collections only. */
 	void GetObjectsInCollection(TArray<FName>& Objects) const;
-	/** Returns true when the specified asset is in the collection. Static collections only. */
-	bool IsAssetInCollection(FName ObjectPath) const;
+	/** Returns true when the specified object is in the collection. Static collections only. */
+	bool IsObjectInCollection(FName ObjectPath) const;
 	/** Resets a collection to its default values */
 	void Clear();
 
@@ -78,14 +78,11 @@ private:
 	/** The filename used to load this collection. Empty if it is new or never loaded from disk. */
 	FString SourceFilename;
 
-	/** A list of assets in the collection. Takes the form PackageName.AssetName */
-	TArray<FName> AssetList;
-
-	/** A set of assets in the collection. This mirrors AssetList entirely and is just used for fast lookups */
+	/** The set of assets in the collection. Takes the form PackageName.AssetName */
 	TSet<FName> AssetSet;
 
-	/** The list of assets that were in the collection last time it was loaded from or saved to disk */
-	TArray<FName> DiskAssetList;
+	/** The set of assets that were in the collection last time it was loaded from or saved to disk. Takes the form PackageName.AssetName */
+	TSet<FName> DiskAssetSet;
 
 	/** The file version for this collection */
 	int32 FileVersion;

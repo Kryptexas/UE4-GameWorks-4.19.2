@@ -28,6 +28,14 @@ struct FCollectionNameType
 		return Name == Other.Name && Type == Other.Type;
 	}
 
+	friend inline uint32 GetTypeHash( const FCollectionNameType& Key )
+	{
+		uint32 Hash = 0;
+		HashCombine(Hash, GetTypeHash(Key.Name));
+		HashCombine(Hash, GetTypeHash(Key.Type));
+		return Hash;
+	}
+
 	FName Name;
 	ECollectionShareType::Type Type;
 };
