@@ -1276,11 +1276,7 @@ public:
 		PathToAndroidPaths(LocalPath, AssetPath, Filename, AllowLocal);
 
 		int Flags = O_CREAT;
-		if (bAppend)
-		{
-			Flags |= O_APPEND;
-		}
-		else
+		if (!bAppend)
 		{
 			Flags |= O_TRUNC;
 		}
