@@ -92,8 +92,12 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 	RenderTargetPolicy->UpdateVertexAndIndexBuffers( RHICmdList, BatchData );
 	FTextureRenderTarget2DResource* RenderTargetResource = static_cast<FTextureRenderTarget2DResource*>( RenderTarget->GetRenderTargetResource() );
 	
-	SetRenderTarget( RHICmdList, RenderTargetResource->GetTextureRHI(), FTextureRHIParamRef() );
-	RHICmdList.Clear( true, RenderTarget->ClearColor, false, 0.0f, false, 0x00, FIntRect() );
+	// Set render target and clear.
+	FRHIRenderTargetView ColorRTV(RenderTargetResource->GetTextureRHI());
+	FRHISetRenderTargetsInfo Info(1, &ColorRTV, FTextureRHIParamRef());
+	Info.ClearColors[0] = RenderTarget->ClearColor;
+
+	RHICmdList.SetRenderTargetsAndClear(Info);
 
 	FMatrix ProjectionMatrix = FSlateRHIRenderer::CreateProjectionMatrix( RenderTarget->SizeX, RenderTarget->SizeY );
 	if (BatchData.GetRenderBatches().Num() > 0)
