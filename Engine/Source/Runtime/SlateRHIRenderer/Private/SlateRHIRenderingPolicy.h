@@ -85,7 +85,7 @@ public:
 		{
 #if !SLATE_USE_32BIT_INDICES
 			// make sure our index buffer can handle this
-			checkf(RequiredVertexCount < 0xFFFF, TEXT("Slate vertex buffer is too large (%d) to work with uint16 indices"), NumVertices);
+			checkf(RequiredVertexCount < 0xFFFF, TEXT("Slate vertex buffer is too large (%d) to work with uint16 indices"), RequiredVertexCount);
 #endif
 			int32 RequiredBufferSize = RequiredVertexCount*sizeof(VertexType);
 
@@ -268,9 +268,6 @@ private:
 
 	uint8 CurrentBufferIndex;
 	
-	/** If we should shrink resources that are no longer used (do not set this from the game thread)*/
-	bool bShouldShrinkResources;
-
 	bool bGammaCorrect;
 };
 

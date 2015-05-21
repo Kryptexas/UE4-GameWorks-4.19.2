@@ -136,7 +136,6 @@ FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> 
 	, ResourceManager( InResourceManager )
 	, FontCache( InFontCache )
 	, CurrentBufferIndex(0)
-	, bShouldShrinkResources(false)
 	, bGammaCorrect(true)
 {
 	InitResources();
