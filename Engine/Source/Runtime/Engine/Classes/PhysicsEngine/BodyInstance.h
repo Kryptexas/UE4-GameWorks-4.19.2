@@ -19,6 +19,13 @@ class UPhysicsConstraintComponent;
   * Do not expect this callback to be called from the main game thread! It may get called from a physics simulation thread. */
 DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
 
+/** Delegate for applying custom physics projection upon the body. When this is set for the body instance,
+  * it will be called whenever component transformation is requested from the physics engine. If
+  * projection is required (for example, visual position of an object must be different to the one in physics engine,
+  * e.g. the box should not penetrate the wall visually) the transformation of body must be updated to account for it.
+  * Since this could be called many times by GetWorldTransform any expensive computations should be cached if possible.*/
+DECLARE_DELEGATE_TwoParams(FCalculateCustomProjection, const FBodyInstance*, FTransform&);
+
 #if WITH_PHYSX
 struct FShapeData;
 
@@ -711,14 +718,17 @@ public:
 	/** Enables/disables whether this body is affected by gravity. */
 	void SetEnableGravity(bool bGravityEnabled);
 
+	/** Custom projection for physics (callback to update component transform based on physics data) */
+	FCalculateCustomProjection OnCalculateCustomProjection;
+
 	/** See if this body is valid. */
 	bool IsValidBodyInstance() const;
 
 	/** Get current transform in world space from physics body. */
-	FTransform GetUnrealWorldTransform() const;
+	FTransform GetUnrealWorldTransform(bool bWithProjection = true) const;
 
 	/** Get current transform in world space from physics body. */
-	FTransform GetUnrealWorldTransform_AssumesLocked() const;
+	FTransform GetUnrealWorldTransform_AssumesLocked(bool bWithProjection = true) const;
 
 	/**
 	 *	Move the physics body to a new pose.

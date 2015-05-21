@@ -587,7 +587,7 @@ void FBodyInstance::CreateDOFLock()
 		DOFConstraint->bTwistLimitSoft = false;
 		DOFConstraint->bLinearLimitSoft = false;
 
-		const FTransform TM = GetUnrealWorldTransform();
+		const FTransform TM = GetUnrealWorldTransform(false);
 		FVector Normal = FVector(1, 0, 0);
 		FVector Sec = FVector(0, 1, 0);
 
@@ -1839,7 +1839,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 #if WITH_PHYSX
 	TArray<PxShape *> PNewShapes;
 
-	FTransform MyTM = GetUnrealWorldTransform();
+	FTransform MyTM = GetUnrealWorldTransform(false);
 	MyTM.SetScale3D(Scale3D);	//physx doesn't store 3d so set it here
 
 	FTransform RelativeTM = TheirTM.GetRelativeTransform(MyTM);
@@ -2523,7 +2523,7 @@ bool FBodyInstance::IsValidBodyInstance() const
 }
 
 template <bool NeedsLock>
-FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance)
+FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance, bool bWithProjection)
 {
 	FTransform WorldTM = FTransform::Identity;
 #if WITH_PHYSX
@@ -2531,6 +2531,11 @@ FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance)
 	{
 		PxTransform PTM = PActor->getGlobalPose();
 		WorldTM = P2UTransform(PTM);
+
+		if(bWithProjection)
+		{
+			BodyInstance->OnCalculateCustomProjection.ExecuteIfBound(BodyInstance, WorldTM);
+		}
 	});
 #endif // WITH_PHYSX
 
@@ -2544,21 +2549,26 @@ FTransform GetUnrealWorldTransformImp(const FBodyInstance* BodyInstance)
 		const FRotator Rotation3D(FMath::RadiansToDegrees(RotationInRadians), 0.0f, 0.0f); //@TODO: BOX2D: Should be moved to FPhysicsIntegration2D
 
 		WorldTM = FTransform(Rotation3D, Translation3D, BodyInstance->Scale3D);
+
+		if (bWithProjection)
+		{
+			BodyInstance->OnCalculateCustomProjection.ExecuteIfBound(BodyInstance, WorldTM);
+		}
 	}
 #endif
 
 	return WorldTM;
 }
 
-FTransform FBodyInstance::GetUnrealWorldTransform() const
+FTransform FBodyInstance::GetUnrealWorldTransform(bool bWithProjection /* = true*/) const
 {
-	return GetUnrealWorldTransformImp<true>(this);
+	return GetUnrealWorldTransformImp<true>(this, bWithProjection);
 }
 
 
-FTransform FBodyInstance::GetUnrealWorldTransform_AssumesLocked() const
+FTransform FBodyInstance::GetUnrealWorldTransform_AssumesLocked(bool bWithProjection /* = true*/) const
 {
-	return GetUnrealWorldTransformImp<false>(this);
+	return GetUnrealWorldTransformImp<false>(this, bWithProjection);
 }
 
 void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTeleport)
