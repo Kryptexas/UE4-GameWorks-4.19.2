@@ -27,7 +27,6 @@ FPrimitiveViewRelevance FPaperBatchSceneProxy::GetViewRelevance(const FSceneView
 	Result.bRenderInMainPass = ShouldRenderInMainPass();
 
 	Result.bMaskedRelevance = true;
-	//Result.bNormalTranslucencyRelevance = true;
 	Result.bDynamicRelevance = true;
 	Result.bOpaqueRelevance = true;
 
