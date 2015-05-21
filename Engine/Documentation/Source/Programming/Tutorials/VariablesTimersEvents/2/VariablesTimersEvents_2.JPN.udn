@@ -46,9 +46,9 @@ Description:UPROPERTY と UFUNCTION マクロを使用して変数と関数を�
 
 	[![](CommentingVariable.png)](CommentingVariable.png)
 
-	[REGION:tip]**UPROPERTY** でもっとたくさんの設定が可能です。 **BlueprintReadWrite** と **Category** など他の引数も使用できますが、現時点では必要ないので省きます。
+	[REGION:tip]**UPROPERTY** でもっとたくさんの設定が可能です。 **BlueprintReadWrite** と **Category** など他の引数も使用できますが、現時点では必要ないので省きます。[/REGION]
 
-	**アンリアルエディタ** に戻って **Compile（コンパイル）** ボタンを押すと、既に配置した **ACountdown** の変数が **詳細パネル** に表示されます。タイマー値を色々な値に変更しながら **Play** を押してテストを行ってみてください。[/REGION] 
+	**アンリアルエディタ** に戻って **Compile（コンパイル）** ボタンを押すと、既に配置した **ACountdown** の変数が **詳細パネル** に表示されます。タイマー値を色々な値に変更しながら **Play** を押してテストを行ってみてください。
 
 1. タイマー値の変更に加えて、非プログラマもタイマー終了時に起きるイベントの変更が行えるようにしましょう。**Visual Studio** で 「 `Countdown.h` 」 ファイルを開いて以下の行を探します：
 
