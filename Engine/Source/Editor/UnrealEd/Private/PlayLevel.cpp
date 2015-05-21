@@ -322,7 +322,7 @@ void UEditorEngine::EndPlayMap()
 	bUseVRPreviewForPlayWorld = false;
 
 	// display any info if required.
-	FMessageLog("PIE").Notify( LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."), EMessageSeverity::Warning );
+	FMessageLog("PIE").Notify(LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."));
 }
 
 void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
