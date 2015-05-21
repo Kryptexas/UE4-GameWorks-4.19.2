@@ -256,6 +256,16 @@ public:
 		return AssetPtr.GetUniqueID();
 	}
 
+	FORCEINLINE const FString& ToString() const
+	{
+		return ToStringReference().ToString();
+	}
+
+	FORCEINLINE FString GetLongPackageName() const
+	{
+		return ToStringReference().GetLongPackageName();
+	}
+
 	/**  
 	 * Dereference lazy pointer to see if it points somewhere valid.
 	 */
