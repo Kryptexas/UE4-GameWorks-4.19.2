@@ -66,7 +66,7 @@ namespace UnrealBuildTool
 
 			if (bEnableShadowVariableWarning)
 			{
-				Result += " -Wshadow";
+				Result += " -Wshadow -Wno-error=shadow";
 			}
 
             // JavsScript option overrides (see src/settings.js)

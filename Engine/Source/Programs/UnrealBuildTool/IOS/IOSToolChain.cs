@@ -232,7 +232,7 @@ namespace UnrealBuildTool
 				
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
-				Result += " -Wshadow";
+				Result += " -Wshadow -Wno-error=shadow";
 			}
 
 			Result += " -Wno-unused-variable";
