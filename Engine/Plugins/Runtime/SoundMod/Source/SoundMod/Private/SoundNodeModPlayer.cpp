@@ -16,7 +16,26 @@ void USoundNodeModPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollec
 
 void USoundNodeModPlayer::LoadAsset()
 {
-	SoundMod = SoundModAssetPtr.LoadSynchronous();
+	if (IsAsyncLoading())
+	{
+		SoundMod = SoundModAssetPtr.Get();
+		if (SoundMod == nullptr)
+		{
+			LoadPackageAsync(SoundModAssetPtr.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeModPlayer::OnSoundModLoaded));
+		}
+	}
+	else
+	{
+		SoundMod = SoundModAssetPtr.LoadSynchronous();
+	}
+}
+
+void USoundNodeModPlayer::OnSoundModLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result)
+{
+	if (Result == EAsyncLoadingResult::Succeeded)
+	{
+		SoundMod = SoundModAssetPtr.Get();
+	}
 }
 
 void USoundNodeModPlayer::SetSoundMod(USoundMod* InSoundMod)

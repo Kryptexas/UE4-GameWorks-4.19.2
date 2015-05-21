@@ -17,7 +17,26 @@ void USoundNodeWavePlayer::AddReferencedObjects(UObject* InThis, FReferenceColle
 
 void USoundNodeWavePlayer::LoadAsset()
 {
-	SoundWave = SoundWaveAssetPtr.LoadSynchronous();
+	if (IsAsyncLoading())
+	{
+		SoundWave = SoundWaveAssetPtr.Get();
+		if (SoundWave == nullptr)
+		{
+			LoadPackageAsync(SoundWaveAssetPtr.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeWavePlayer::OnSoundWaveLoaded));
+		}
+	}
+	else
+	{
+		SoundWave = SoundWaveAssetPtr.LoadSynchronous();
+	}
+}
+
+void USoundNodeWavePlayer::OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result)
+{
+	if (Result == EAsyncLoadingResult::Succeeded)
+	{
+		SoundWave = SoundWaveAssetPtr.Get();
+	}
 }
 
 void USoundNodeWavePlayer::SetSoundWave(USoundWave* InSoundWave)

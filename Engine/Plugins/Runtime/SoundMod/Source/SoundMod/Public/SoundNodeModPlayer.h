@@ -22,6 +22,8 @@ private:
 	UPROPERTY(EditAnywhere, Category=ModPlayer)
 	uint32 bLooping:1;
 
+	void OnSoundModLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
+
 public:	
 
 	USoundMod* GetSoundMod() const { return SoundMod; }

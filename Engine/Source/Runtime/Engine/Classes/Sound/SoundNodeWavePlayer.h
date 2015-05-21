@@ -19,6 +19,8 @@ private:
 
 	USoundWave* SoundWave;
 
+	void OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
+
 public:	
 
 	UPROPERTY(EditAnywhere, Category=WavePlayer)
