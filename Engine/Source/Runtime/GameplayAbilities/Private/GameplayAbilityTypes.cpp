@@ -84,6 +84,16 @@ bool FGameplayAbilityActorInfo::IsLocallyControlled() const
 	return false;
 }
 
+bool FGameplayAbilityActorInfo::IsLocallyControlledPlayer() const
+{
+	if (PlayerController.IsValid())
+	{
+		return PlayerController->IsLocalController();
+	}
+
+	return false;
+}
+
 bool FGameplayAbilityActorInfo::IsNetAuthority() const
 {
 	// Make sure this works on pending kill actors

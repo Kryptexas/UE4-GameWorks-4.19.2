@@ -188,6 +188,20 @@ bool FGameplayEffectContext::IsLocallyControlled() const
 	return false;
 }
 
+bool FGameplayEffectContext::IsLocallyControlledPlayer() const
+{
+	APawn* Pawn = Cast<APawn>(Instigator.Get());
+	if (!Pawn)
+	{
+		Pawn = Cast<APawn>(EffectCauser.Get());
+	}
+	if (Pawn && Pawn->Controller)
+	{
+		return Pawn->Controller->IsLocalPlayerController();
+	}
+	return false;
+}
+
 void FGameplayEffectContext::AddOrigin(FVector InOrigin)
 {
 	bHasWorldOrigin = true;

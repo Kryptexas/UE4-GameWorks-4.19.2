@@ -141,6 +141,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintPure, Category="Ability|GameplayCue")
 	static bool IsInstigatorLocallyControlled(FGameplayCueParameters Parameters);
 
+	UFUNCTION(BlueprintPure, Category="Ability|GameplayCue")
+	static bool IsInstigatorLocallyControlledPlayer(FGameplayCueParameters Parameters);
+
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static int32 GetActorCount(FGameplayCueParameters Parameters);
 

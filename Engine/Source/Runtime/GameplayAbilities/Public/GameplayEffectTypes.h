@@ -379,6 +379,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 
 	virtual bool IsLocallyControlled() const;
 
+	virtual bool IsLocallyControlledPlayer() const;
+
 	virtual bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 protected:
@@ -560,6 +562,15 @@ struct FGameplayEffectContextHandle
 		if (IsValid())
 		{
 			return Data->IsLocallyControlled();
+		}
+		return false;
+	}
+
+	bool IsLocallyControlledPlayer() const
+	{
+		if (IsValid())
+		{
+			return Data->IsLocallyControlledPlayer();
 		}
 		return false;
 	}

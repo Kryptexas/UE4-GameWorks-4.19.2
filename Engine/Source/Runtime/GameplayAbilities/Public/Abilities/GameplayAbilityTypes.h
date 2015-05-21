@@ -146,6 +146,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityActorInfo
 	/** Returns true if this actor is locally controlled. Only true for players on the client that owns them */
 	bool IsLocallyControlled() const;
 
+	bool IsLocallyControlledPlayer() const;
+
 	/** Returns true if the owning actor has net authority */
 	bool IsNetAuthority() const;
 

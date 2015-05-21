@@ -398,6 +398,11 @@ bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueP
 	return Parameters.EffectContext.IsLocallyControlled();
 }
 
+bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlledPlayer(FGameplayCueParameters Parameters)
+{
+	return Parameters.EffectContext.IsLocallyControlledPlayer();
+}
+
 int32 UAbilitySystemBlueprintLibrary::GetActorCount(FGameplayCueParameters Parameters)
 {
 	return Parameters.EffectContext.GetActors().Num();
