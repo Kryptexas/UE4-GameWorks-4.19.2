@@ -271,7 +271,11 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(config)
 	uint32 bRecompileOnLoad:1;
 
-	/** Pointer to the parent class that the generated class should derive from */
+	/** 
+		Pointer to the parent class that the generated class should derive from. This *can* be null under rare circumstances, 
+		one such case can be created by creating a blueprint (A) based on another blueprint (B), shutting down the editor, and
+		deleting the parent blueprint.
+	*/
 	UPROPERTY(AssetRegistrySearchable)
 	TSubclassOf<class UObject> ParentClass;
 
