@@ -313,6 +313,8 @@ class FAsyncTask
 		check(QueuedPool);
 		if (DoneEvent)
 		{
+			FScopeCycleCounter Scope( Task.GetStatId(), true );
+			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FAsyncTask::FinishThreadedWork" ), STAT_FAsyncTask_FinishThreadedWork, STATGROUP_ThreadPoolAsyncTasks );		
 			DoneEvent->Trigger();
 		}
 	}
