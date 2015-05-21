@@ -717,8 +717,8 @@ namespace
 		}
 		if (auto ArrayProperty = Cast<const UArrayProperty>(Property))
 		{
-			// Inner Property can be handled as a member variable
-			return IsPropertySupportedByBlueprint(ArrayProperty->Inner, true);
+			// Script VM doesn't support array of weak ptrs.
+			return IsPropertySupportedByBlueprint(ArrayProperty->Inner, false);
 		}
 
 		const bool bSupportedType = Property->IsA<UInterfaceProperty>()
@@ -733,10 +733,9 @@ namespace
 			|| Property->IsA<UBoolProperty>()
 			|| Property->IsA<UStrProperty>()
 			|| Property->IsA<UTextProperty>()
-			|| Property->IsA<UMulticastDelegateProperty>()
 			|| Property->IsA<UDelegateProperty>();
 
-		const bool bIsSupportedMemberVariable = Property->IsA<UObjectPropertyBase>();
+		const bool bIsSupportedMemberVariable = Property->IsA<UWeakObjectProperty>() || Property->IsA<UMulticastDelegateProperty>();
 
 		return bSupportedType || (bIsSupportedMemberVariable && bMemberVariable);
 	}

@@ -423,7 +423,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 	FGameplayAbilityTargetingLocationInfo SourceLocation;
 
 	/** Rather than targeting a single point, this type of targeting selects multiple actors. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
+	UPROPERTY(EditAnywhere, Category = Targeting)
 	TArray<TWeakObjectPtr<AActor> > TargetActorArray;
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const override

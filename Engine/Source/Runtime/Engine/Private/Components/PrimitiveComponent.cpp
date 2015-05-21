@@ -2223,6 +2223,26 @@ void UPrimitiveComponent::IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnor
 	}
 }
 
+TArray<AActor*> UPrimitiveComponent::CopyArrayOfMoveIgnoreActors()
+{
+	TArray<AActor*> TempMoveIgnoreActors;
+	for (int32 Idx = 0; Idx < MoveIgnoreActors.Num();)
+	{
+		AActor* Actor = MoveIgnoreActors[Idx].Get();
+		if (Actor)
+		{
+			TempMoveIgnoreActors.Add(Actor);
+			Idx++;
+		}
+		else
+		{
+			MoveIgnoreActors.RemoveAtSwap(Idx, 1, false);
+		}
+	}
+	MoveIgnoreActors.Shrink();
+	return TempMoveIgnoreActors;
+}
+
 TArray<TWeakObjectPtr<AActor> > & UPrimitiveComponent::GetMoveIgnoreActors()
 {
 	// Clean up stale references

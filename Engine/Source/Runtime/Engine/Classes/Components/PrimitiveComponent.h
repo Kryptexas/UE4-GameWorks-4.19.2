@@ -489,7 +489,12 @@ public:
 	/**
 	 * Returns the list of actors we currently ignore when moving.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Collision")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreActors"), Category = "Collision")
+	TArray<AActor*> CopyArrayOfMoveIgnoreActors();
+
+	/**
+	 * Returns the list of actors (as WeakObjectPtr) we currently ignore when moving.
+	 */
 	TArray<TWeakObjectPtr<AActor> > & GetMoveIgnoreActors();
 
 	/**
