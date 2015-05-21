@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2554119
+﻿INTSourceChangelist:2557751
 Availability:Docs
 Title:1. Procedural Foliage ツールでアクタを作成する
 Crumbs:
@@ -43,7 +43,7 @@ SkillLevel:Intermediate
 	Landscape Terrain アクタは多数のスタティックメッシュをスポーンする広い領域をすぐに与えてくれるので、Landscape Terrain を使用します。
 	[/region]
 
-1. 次にマウスで **コンテンツ ブラウザ** を **右クリック** し、 **[Create Advanced Asset]** から **[Miscellaneous]** > **[Procedural Foliage Spawner]** を選択して Procedural Foliage Spawner を作成します。 
+1. 次にマウスで **コンテンツ ブラウザ** をマウスで **右クリック** し、 **[Create Advanced Asset]** から **[Miscellaneous]** > **[Procedural Foliage Spawner]** を選択して Procedural Foliage Spawner を作成します。 
 
 	![](T_Create_PFS.png)
 
