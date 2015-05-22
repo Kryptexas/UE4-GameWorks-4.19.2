@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2330558
-Availability:Docs
+﻿Availability:Docs
 Keywords:メタデータはセミコロンでドキュメントの上部に追加します。
 Title:Epic で使用している Markdown 記法と拡張機能
 Crumbs:DocumentationGuidelines
@@ -8,23 +7,23 @@ Description:Epic がカスタマイズした Markdown 拡張機能を用いた�
 [TOC (start:2 end:3)]
 
 [REGION:note]
-**注記：**本ドキュメントも Epic の Markdown で書かれています。[こちらを参照してください](DocumentationGuidelines\SyntaxSource)
+**注記：**本ドキュメントは Epic の Markdown を使用して [こちら](DocumentationGuidelines\SyntaxSource) でも記載しています。
 [/REGION]
 
 ## 概要
 
 Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/) をベースとしています。MarkdownSharp は [PHP Markdown Extra](http://michelf.com/projects/php-markdown/) の機能をいくつか備えた [Markdown](http://daringfireball.net/projects/markdown/) をベースとしています。
 
-本ドキュメントの目的は Epic の機能に対応するための拡張機能、特にMarkdown Extra のどの機能が対応しているのかを説明することです。本ドキュメントはオリジナルドキュメント[Markdown Syntax](http://daringfireball.net/projects/markdown/syntax) の補足資料です。
+本ドキュメントの目的は Epic の機能に対応するための拡張機能、特に Markdown Extra で対応する機能を説明することです。本ドキュメントはオリジナルドキュメント [Markdown Syntax](http://daringfireball.net/projects/markdown/syntax) の補足資料です。
 
 ## Epic 版の機能
 
 ### 目次と見出しの自動生成
 
 ヘッダ生成を変更して、スペースを削除した見出しとなるブックマークが含まれるようにしました。複数のヘッダ名が同じ場合は、後続のヘッダに 2 で開始するインデックスを付け足して対応します。
-正しいインデントのヘッダリストを生成してドキュメントの上部のタグ \[TOC\] に置き換えます。
+正しいインデントでヘッダリストを生成し、ドキュメント上部にあるタグの \[TOC\] を置き換えます。
 
-\[TOC (start:HeadingStartLevel end:HeadingEndLevel)\] を指定すると、目次に含まれる見出しレベルを設定することができます。開始と終了をオプションの変数で、指定のない場合、開始は 1 、終了は 6 が与えられます。両方設定する場合は、終了変数は開始変数の後にきます。
+ \[TOC (start:HeadingStartLevel end:HeadingEndLevel)\] を指定すると、目次に含まれる見出しレベルを設定することができます。開始と終了をオプションの変数で、指定のない場合、開始は 1 、終了は 6 が与えられます。開始と終了はオプションの変数です。指定のない場合、開始は 1 、終了は 6 が与えられます。両方設定する場合は、終了変数は開始変数の後にきます。
 
 スペースを削除した見出しにブックマークが含まれるように、ヘッダ生成を変更します。ヘッダの最初の文字が !! の時、目次にヘッダは含まれません。
 
@@ -45,26 +44,26 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 ユーザはドキュメント内へリンクするブックマークを付けるだけでなく、ドキュメント内のヘッダにもリンクを付けることができます。
 
 #### Markdown 記法
-	ファイル [Auto generation of Table of Contents](#AutogenerationofTableofContentsandHeadings) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 1 つ以上のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます [Markdown Syntax 1](#MarkdownSyntax) [Markdown Syntax 2](#MarkdownSyntax2) [Markdown Syntax 3](#MarkdownSyntax3) 
-	ドキュメント内にユーザー定義のブックマークをリンク付けした例です[Bookmark 1](#Bookmark1)。
+	ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2 、 3 などを付けて参照できます。 [Markdown Syntax 1]（#MarkdownSyntax）、 [Markdown Syntax 2]（#MarkdownSyntax2）、 [Markdown Syntax 3]（#MarkdownSyntax3） 
+	[こちら](#Bookmark1) は、ドキュメント内にユーザー定義のブックマークをリンク付けした例です。
 	(#Bookmark1) ブックマーク テキストは行頭文字でなければなりません。
 
 #### HTML 出力
-	<p> ファイル内の見出しにリンク付けした例です <a href="#AutogenerationofTableofContents">Auto generation of Table of Contents</a>.ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 1 つ以上のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます <a href="#MarkdownSyntax">Markdown Syntax 1</a> <a href="#MarkdownSyntax2">Markdown Syntax 2</a> <a href="#MarkdownSyntax3">Markdown Syntax 3</a> </p>
+	<p> ファイル内の見出しにリンク付けした例です <a href="#AutogenerationofTableofContents">Auto generation of Table of Contents</a>.ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます <a href="#MarkdownSyntax">Markdown Syntax 1</a> <a href="#MarkdownSyntax2">Markdown Syntax 2</a> <a href="#MarkdownSyntax3">Markdown Syntax 3</a> </p>
 	<p>ドキュメント内にユーザー定義のブックマークをリンク付けした例です <a href="#Bookmark1">Bookmark 1</a>.</p>
 	<p><a id="Bookmark1"/> ブックマーク テキストは行頭文字でなければなりません。</p>
+	#### 結果
 
-#### 結果
 
-ファイル[目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 1 つ以上のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます [Markdown Syntax 1]（#MarkdownSyntax） [Markdown Syntax 2] （#MarkdownMarkdownSyntax2） [Markdown Syntax 3] （#MarkdownMarkdownSyntax3）
+ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2 、 3 などを付けて参照できます。. [Markdown Syntax 1]（#MarkdownSyntax） [Markdown Syntax 2]（#MarkdownSyntax2） [Markdown Syntax 3]（#MarkdownSyntax3） 
 
-ドキュメント内にユーザー定義のブックマークをリンク付けした例です[Bookmark 1](#Bookmark1)。
+[こちら](#Bookmark1) は、ドキュメント内にユーザー定義のブックマークをリンク付けした例です。
 
 (#Bookmark1) ブックマーク テキストは行頭文字でなければなりません。
 
 ### ドキュメントの他のページへのリンク付け
 
-他のページへは相対リンクを使用します。 「markdown」 フォルダにあるドキュメントは、\%ROOT\% を使って参照します。リンク内では言語は指定されていません。今ご覧頂いている言語のファイルへリンク付けを前提としています。
+他のページへは相対リンクを使用します。「markdown」フォルダにあるドキュメントは、 \%ROOT\% を使って参照します。リンク内では言語は指定されていません。今ご覧頂いている言語のファイルへリンク付けを前提としています。
 
 #### Markdown 記法
 	[UE4 Home](%ROOT%)
@@ -107,14 +106,14 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 *	**a:**左、右、通常（初期値）のフロートスタイルが画像に指定されていることを表します。デフォルトはなしです。
 *   **convert:**画像を異なるタイプに圧縮 / 変換すべきかを false または true 値で表します。デフォルトは true です。クオリティを維持したい場合、または GIF がアニメートされている場合などリソース形式が重要な場合には false に設定します。
 *	**type:**画像形式は jpg、png、gif のいずれかに変換できます。デフォルトは jpg です。
-* 	**quality:**圧縮クオリティが jpeg となります (1 - 100)。圧縮クオリティのデフォルトは 80 です。デフォルト値のアッシュでは画像レベルを劣化させるアーティファクトが発生する場合は、この値を下げると便利です。
-*	**fill:*** jpg 形式に変換されている場合、画像の背景色番号を示す 16 進数で入力したカラー (#0088FF 形式を使用)。デフォルトは #FFFFFF です。
+* 	**クオリティ**圧縮クオリティが jpeg となります (1 - 100)。圧縮クオリティのデフォルトは 80 です。デフォルト値のアッシュでは画像レベルを劣化させるアーティファクトが発生する場合は、この値を下げると便利です。
+*	**fill:*** jpg 形式に変換されている場合、画像の背景色番号を示す 16 進数で入力したカラー (#0088FF 形式を使用)。デフォルトは `#FFFFFF`です。
 
 [REGION:note]
 	* オプションの順番は重要ですが、それぞれ任意で省略可能、または画像情報の後ろのブラケットをまるまる省略することが可能です。
-	*  変換パラメータがない場合、「 app.config 」ファイルのデフォルト値が使用されます。
+	* 変換パラメータがない場合、「 app.config 」ファイルのデフォルト値が使用されます。
 	* 既存の Markdown 画像包含方法であるインライン方法と参照方法は、両方とも拡張して初期化に対応しています。
-	* 画像を右または左に並べると、新しいセクションの開始時にヘッダが関係のない画像の横に流れるなど、関係のないコンテンツに画像が囲まれてしまうことがあります。段落内のテキストは画像に平行になります。スタイルシート要素を使用していつ "clear"[region](#リージョン) を追加してフロートスタイルを解除するかを操作すると、、レベル 1 、2  と hr 要素の回り込みが解除されます。
+	* 画像を右または左に並べると、関係のないコンテンツに画像が囲まれてしまうことがあります。* 例えば、新しいセクションの開始時にヘッダが関係のない画像の横に流れてしまうことがあります。段落内のテキストは画像に平行になります。スタイルシート要素を使用して「クリアな」 [リージョン](#リージョン) の追加することでフロートスタイルをクリアするタイミングを操作し、レベル 1 、2 と hr 要素の回り込みが停止します。
 [/REGION]
 
 
@@ -125,8 +124,8 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 	段落内のテキストは画像に平行になります。特別な div エレメントをフロートの終わりに置きます。
 	[REGION:clear]
 		<!-- clear float -->
-	[/REGION]    
 
+	[/REGION]    
 #### HTML 出力
 	<p>右 <img style="float: right;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> フロートを指定、高さ、幅をブランクのままにしたインライン イメージです。</p>
 	<p>幅、高さ、左をフローとにしたリファレンス イメージ <img width="50" height="50" style="float: left;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> です。</p>
@@ -149,7 +148,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 [/REGION]
 
 ### テーブル
-テーブルが実装されています。MultiMarkdown 記法で利用できるフォーマットはかなり融通がききますので、Epic のベースとして選びました。
+テーブルが実装されています。MultiMarkdown 記法で利用できるフォーマットはかなり融通がききますので、 Epic のベースとして選びました。
 
 *	 ヘッダ行のテーブルデータのアライメントを示すためにコロンを記述します。
 *	 行の最初と最後にパイプ文字を記述することもできますし、省略することもできます。
@@ -159,7 +158,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 
 
 #### Markdown 記法
-	[Table 1 - Headers to top]				    
+	[表 1 - ヘッダー上部]				    
 	|             | Grouping                      ||   
 	 First Header | Second Header  | Third Header  |  
 	 ------------ | :------------: | ------------: |  
@@ -175,7 +174,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 	 New section  |     More       |         Data  |  
 	     ^        |            And more           || 
 
-	[Table 2 - Headers to the right] 				   
+	[表 2 - ヘッダー右側] 				   
 	| ------------ | :------------: | ------------: |  
 	|  Content      |          *Long Cell*          ||  
 	|  Content      |      **Cell**  |         Cell  |  
@@ -255,7 +254,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 
 #### 結果
 
-[Table 1 - Headers to top]			    
+[表 1 - ヘッダー上部]			    
 |	          | Grouping                      ||   
  First Header | Second Header  | Third Header  |  
  ------------ | :-----------:  | -----------:  |  
@@ -266,7 +265,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 
 アライメント行上にヘッダ情報を持たない場合、一番左のカラムをヘッダと見なします。
 
-[Table 2 - Headers to the right]
+[表 2 - ヘッダー右側]
 | ------------ | :------------: | ------------: |  
 |  Content      |          *Long Cell*          ||  
 |  Content      |      **Cell**  |         Cell  |  
@@ -278,7 +277,7 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 
 *	 メタデータはドキュメントの一番上から開始します。前に行を挿入しないでください。
 *	 メタデータはキーと値で構成されます。
-*	 メタデータキーは行頭から開始します。先頭文字は文字まはた数字とします。ただし、2 文字目以降は文字、数字、スペース、ハイフン、下線で組み合わせることができます。
+*	 メタデータキーは行頭から開始します。先頭文字は文字まはた数字とします。ただし、 2 文字目以降は文字、数字、スペース、ハイフン、下線で組み合わせることができます。
 *	 メタデータキーの終わりをコロンで指定します。
 *	 コロンの後にメタデータ値を入れます。この値はほぼどんな文字の組み合わせでも大丈夫です（新しい行を除く） 
 *	 メタデータが完了したら、ブランク行が残りの文書の開始をトリガーします。
@@ -316,8 +315,8 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 	$ 定義 1 :説明 1
 	$ 定義 2 :説明 2
 		* リスト要素 1
-			1.Ordered
-			1.Ordered
+			1. Ordered
+			1. Ordered
 		* リスト要素 2
 	$ 定義 3:説明 3
 
@@ -370,8 +369,8 @@ Epic 版の Markdown は [MarkdownSharp](http://code.google.com/p/markdownsharp/
 $ 定義 1 :説明 1
 $ 定義 2 :説明 2
 	* リスト要素 1
-		1.Ordered
-		1.Ordered
+		1. Ordered
+		1. Ordered
 	* リスト要素 2
 $ 定義 3:説明 3
 
@@ -385,7 +384,7 @@ $ 定義 3:説明 3
 
 ###バックスラッシュ以外に使用できるエスケープ文字
 
-Markdown 記法で使用できるエスケープ文字に加えて、以下の文字も可能です：
+Markdown 記法で使用できるエスケープ文字に加えて、以下の文字も可能です。
 
     > より大きい
     |	パイプ
@@ -395,7 +394,7 @@ Markdown 記法で使用できるエスケープ文字に加えて、以下の�
 
 ### ボールドとイタリック
 
-File_names_including_underscores で使用する場合の誤検出をなくすため、 _italics_と__bold__ 記法の左右にはスペースを入れてください。
+_斜体_ と _太字_ 記法の左右にはスペースを入れてください。File_names_including_underscores で使用する場合の誤検出をなくすためです。
 
 ### フェンスド コード ブロック
 
@@ -409,8 +408,8 @@ File_names_including_underscores で使用する場合の誤検出をなくす�
 #### HTML 出力
 	<pre class="prettyprint"><code> 3 つ以上のフェンスラインで囲まれたコード
 	</code></pre>
-	#### 結果
 
+#### 結果
 ~~~
 3 つ以上のフェンスラインで囲まれたコード
 ~~~
@@ -477,15 +476,15 @@ css ファイルのスタイル ルールに従って作成しなければなり
 
 オブジェクト システムは上述のリージョンに対し、より柔軟かつ多用途です。スタイルシートでスタイルにリージョンが対応するのと同じように、オブジェクトもテンプレートに保存されているマークアップのブロックに対応します。これにより、任意のマークアップがドキュメント内に挿入できるようになります。
 
-オブジェクトは OBJECT タグを使って作成されます。オブジェクト名は色でタブとは別に指定します。最も基本的なオブジェクトがこれです。
+オブジェクトは `OBJECT` タグを使って作成されます。オブジェクト名は色 (`:`) でタブとは別に指定します。最も基本的なオブジェクトがこれです。
 
 	[OBJECT:TemplateName][/OBJECT]
 
-一致するテンプレートには、どのドキュメントでもオブジェクト タグのインスタンスを置き換える HTML マークアップ、javascript などの種類が含まれることがあります。
+一致するテンプレートには、どのドキュメントでもオブジェクト タグのインスタンスを置き換える HTML マークアップ、 javascript などの種類が含まれることがあります。
 
 #### テンプレート
 
-テンプレートは Include/Template/Objects ディレクトリに格納されている HTML ファイルです。オブジェクトはテンプレート名でテンプレートにマッチするので、テンプレート名は重要です。例えば、「VideoPlayer」というオブジェクト名は「VideoPlayer.html」テンプレート内にあるマークアップに置き換わります。
+テンプレートは `Include/Template/Objects` ディレクトリに格納されている HTML ファイルです。オブジェクトはテンプレート名でテンプレートにマッチするので、テンプレート名は重要です。例えば、 `VideoPlayer` というオブジェクト名は `VideoPlayer.html` テンプレート内にあるマークアップに置き換わります。
 
 	[OBJECT:VideoPlayer][/OBJECT] <-> VideoPlayer.html
 
@@ -495,7 +494,7 @@ css ファイルのスタイル ルールに従って作成しなければなり
 
 ノーマルとリテラルという 2 種類のパラメータが利用できます。ノーマル パラメータはページ内でノーマル コンテンツとしてパースされます。つまり、マークダウン記法を含むことができるので、マークダウンとして処理されます。リテラル パラメータは全くパースされません。ドキュメント内に表示されたとおりにテンプレートへそのまま簡単にコピーされます。
 
-パラメータをテンプレートへ渡すには、PARAM タグと PARAMLITERAL タグをオブジェクト内で使用します。パラメータ名は色でタブとは別に指定します。以下は最もシンプルなパラメータの形です。
+パラメータをテンプレートへ渡すには、 `PARAM` タグと `PARAMLITERAL` タグをオブジェクト内で使用します。パラメータ名は色 (`:`)でタブとは別に指定します。以下は最もシンプルなパラメータの形です。
 
 	[PARAM:ParamName]ParamData[/PARAM]
 
@@ -551,7 +550,7 @@ HTML ページ出力をすると、VideoPlayer Object は以下のように置�
 
 ### Lightboxes
 
-画像およびその他のコンテンツは、Lightbox [リージョン](#リージョン) 内でリンクを囲むと、ページ上に重ねられたLightbox で表示されます。
+画像およびその他のコンテンツは、「Lightbox の」 [リージョン](#リージョン) 内でリンクを囲むと、ページ上に重ねられた Lightbox で表示されます。
 
 ### 画像を Lightbox に表示する
 
