@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2558633
 Availability:Public
 Title:2.C++ クラスを作成する
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -37,6 +37,6 @@ Version:4.7
 
 ----
 
-**アンリアル エンジン** が **Visual Studio** を開いて、新規プロジェクトをロードします。
+C++ クラスが作成されたので、プログラミングを行うために **Visual Studio** へ切り替えることができます。 `FloatingActor.cpp` が自動的に開き、 **Unreal Engine** が自動的に新規クラスをコンパイルおよびリロードしてくれます。
 
 %Steps%
