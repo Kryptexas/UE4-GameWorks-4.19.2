@@ -159,7 +159,7 @@ void UDestructibleComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 #endif
 
 #if WITH_APEX
-	if (ApexDestructibleActor != NULL && !BodyInstance.bSimulatePhysics)
+	if (ApexDestructibleActor)
 	{
 		PxRigidDynamic* PRootActor = ApexDestructibleActor->getChunkPhysXActor(0);
 		PxMat44 GlobalPose(PxMat33(U2PQuat(CurrentLocalToWorld.GetRotation())), U2PVector(CurrentLocalToWorld.GetTranslation()));
