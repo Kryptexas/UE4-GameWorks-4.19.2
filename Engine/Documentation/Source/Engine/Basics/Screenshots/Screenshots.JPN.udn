@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2375194
+﻿INTSourceChangelist:2560162
 Availability:Public
 Title:スクリーンショットの撮り方
-Crumbs:%ROOT%, Engine, Engine/Basics
-Description:環境やゲームプレイのインゲームスクリーンショット撮影方法
+Crumbs:%ROOT%, Engine
+Description:インゲームの背景やゲームプレイのスクリーンショットを撮る方法
 
 [TOC (start:2 end:3)]
 
@@ -43,7 +43,7 @@ Description:環境やゲームプレイのインゲームスクリーンショ�
 
 ### パラメータ
 
-HighResShot コンソールコマンドは、現在のゲームの解像度の乗数となる整数、または明示的に幅と高さを設定する「WxH」値の任意のパラメータを使用します。
+HighResShot コンソールコマンドは、現在のゲームの解像度の乗数となる整数、または明示的に幅と高さを設定する 'WxH' 値の任意のパラメータを使用します。
 
 以下のコマンドを入力すると、スクリーン解像度の 2 倍の大きさでスクリーンショットが撮影されます。
     
@@ -119,7 +119,7 @@ HRSST ツールは、以下の手順に従って使用します。
 		[/PARAMLITERAL]
 	[/OBJECT]
 
-1. **Screenshot Size Multiplier** で調整してキャプチャ領域のスクリーンショット サイズを設定したら、[カメラ] アイコンを押してスクリーンショットを撮ります。スクリーンショットは **「Saved\Screenshots\Windows」** フォルダに保存されます。 
+1. **Screenshot Size Multiplier** で調整してキャプチャ領域のスクリーンショット サイズを設定したら、[Camera] アイコンを押してスクリーンショットを撮ります。スクリーンショットは **「Saved\Screenshots\Windows」** フォルダに保存されます。 
   	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
 		640
@@ -134,7 +134,7 @@ HRSST ツールは、以下の手順に従って使用します。
 
 
 ### バッファ表示
-HRSST は G-Buffer のバッファを 1 つずつ出力する機能をサポートしています。[キャプチャ] ボタンをクリックして、次のバッファを書き出します。
+HRSST は G-Buffer のバッファを 1 つずつ出力する機能をサポートしています。キャプチャ ボタンをクリックして、次のバッファを書き出します。
 
 * **DiffuseColor**
 * **LightingModel**
@@ -168,7 +168,7 @@ G-Buffer を画像としてエクスポートするために HRSST を有効に�
 
 HRSST は、 OpenEXR 画像フォーマットでの画像エクスポートをサポートするようになりました。 
 これにより、有効の場合、中間のレンダリング ステージで利用できるものは全て 16 ビット カラー深度でエクスポートすることができます。 
-[キャプチャ] ボタンをクリックして、次のバッファを OpenEXR 画像フォーマットに書き出します。 
+キャプチャ ボタンをクリックして、次のバッファを OpenEXR 画像フォーマットに書き出します。 
 
 * **DiffuseColor**
 * **LightingModel**
@@ -185,7 +185,7 @@ HRSST は、 OpenEXR 画像フォーマットでの画像エクスポートを�
 * **SubsurfaceColor**
 * **WorldNormal**
 
-OpenEXR 画像サポートを有効にするには、 **Write HDR format visualization targets** を有効にしてから [キャプチャ] ボタンを押します。こうすると、キャプチャ フォルダには上記の G-Buffer のスクリーンショットが 1 つずつ入ります。 
+OpenEXR 画像サポートを有効にするには、 **Write HDR format visualization targets** を有効にしてからキャプチャ ボタンを押します。こうすると、キャプチャ フォルダには上記の G-Buffer のスクリーンショットが 1 つずつ入ります。 
  
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
@@ -220,8 +220,8 @@ HRSST の **Use custom depth as mask** という、ワールド内でオブジ�
 
 1. Render Custom Depth をメッシュ上で有効にして、 HRSST を開いてキャプチャしたい領域を選択します。 
    有効にした Render Custom Depth がキャプチャ対象領域に必ず含まれるようにしてください。 
-   スクリーンショット領域を設定したら、 **Use custom depth as mask** オプションを有効にして、[キャプチャ] ボタンを押してスクリーンショットを撮ります。 
-   [キャプチャ] ボタンを押した後、画面の右下隅に表示されるメッセージをクリックするとスクリーンショットを表示することができます。 
+   スクリーンショット領域を設定したら、 **Use custom depth as mask** オプションを有効にして、キャプチャ ボタンを押してスクリーンショットを撮ります。 
+   キャプチャ ボタンを押した後、画面の右下隅に表示されるメッセージをクリックするとスクリーンショットを表示することができます。 
    	[OBJECT:EmbeddedVideo]
 		[PARAMLITERAL:width]
 		640
