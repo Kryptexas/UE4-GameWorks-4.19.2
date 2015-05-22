@@ -2539,9 +2539,7 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 	Owner->UpdateTagMap(Effect.Spec.DynamicGrantedTags, -1);
 
 	for (const FGameplayEffectCue& Cue : Effect.Spec.Def->GameplayCues)
-	{
-		Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
-
+	{		
 		if (bInvokeGameplayCueEvents)
 		{
 			// TODO: Optimize this so only one batched RPC is called
@@ -2550,6 +2548,8 @@ void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndMo
 				Owner->RemoveGameplayCue(*It);
 			}
 		}
+
+		Owner->UpdateTagMap(Cue.GameplayCueTags, -1);
 	}
 }
 
