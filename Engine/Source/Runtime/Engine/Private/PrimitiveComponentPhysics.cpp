@@ -164,9 +164,18 @@ void UPrimitiveComponent::WarnInvalidPhysicsOperations_Internal(const FText& Act
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!CheckStaticMobilityAndWarn(ActionText))	//all physics operations require non-static mobility
 	{
-		if (BI && BI->bSimulatePhysics == false)	//some require to be simulating too
+		if (BI)
 		{
-			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperation", "{0} has to have 'Simulate Physics' enabled if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
+			ECollisionEnabled::Type CollisionEnabled = BI->GetCollisionEnabled();
+
+			if(BI->bSimulatePhysics == false)	//some require to be simulating too
+			{
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperation", "{0} has to have 'Simulate Physics' enabled if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
+			}
+			else if (CollisionEnabled == ECollisionEnabled::NoCollision || CollisionEnabled == ECollisionEnabled::QueryOnly)	//shapes need to be simulating
+			{
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidPhysicsOperation", "{0} has to have 'CollisionEnabled' set to 'Query and Physics' or 'Physics only' if you'd like to {1}. "), FText::FromString(GetReadableName()), ActionText));
+			}
 		}
 	}
 #endif
@@ -437,9 +446,9 @@ float UPrimitiveComponent::GetAngularDamping() const
 
 void UPrimitiveComponent::SetMassScale(FName BoneName, float InMassScale)
 {
-	FBodyInstance* BI = GetBodyInstance(BoneName);
-	if (BI)
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
+		WarnInvalidPhysicsOperations(LOCTEXT("SetMassScale", "SetMassScale"), BI);
 		BI->SetMassScale(InMassScale);
 	}
 }
@@ -451,9 +460,9 @@ void UPrimitiveComponent::SetAllMassScale(float InMassScale)
 
 float UPrimitiveComponent::GetMass() const
 {
-	FBodyInstance* BI = GetBodyInstance();
-	if (BI)
+	if (FBodyInstance* BI = GetBodyInstance())
 	{
+		WarnInvalidPhysicsOperations(LOCTEXT("GetMass", "GetMass"), BI);
 		return BI->GetBodyMass();
 	}
 
