@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543485
+﻿INTSourceChangelist:2561242
 Availability: Public
 Title:블루프린트로 게임 모드 구성 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
@@ -28,7 +28,7 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하지만
 
 	![](GameMode_5.png)
 
-	여기서는 **MyCharacter** 라는 캐릭터 블루프린트를 게임에서 플레이어가 사용할 **Default Pawn Class** 로 할당하고 있습니다.
+	여기서는 **ThirdPersonCharacter** 라는 캐릭터 블루프린트를 게임에서 플레이어가 사용할 **Default Pawn Class** 로 할당하고 있습니다.
 
 	[REGION:note]
 	**게임 모드** 블루프린트는 기존의 **Character**, **HUD**, **PlayerController**, **Spectator**, **Game State** 클래스의 블루프린트를 가리키고 있습니다. 실제로 게임에서 사용하기 위해서는 각각을 별도로 만든 다음 **게임 모드** 블루프린트에서 사용하도록 지정해 줘야 합니다.
@@ -57,7 +57,7 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하지만
 
 	![](GameMode_9.png)
 
-	여기서는 **MyCharacter** 가 **Default Pawn Class** 로 사용되는 것을 볼 수 있습니다. 
+	여기서는 **ThirdPersonCharacter** 가 **Default Pawn Class** 로 사용되는 것을 볼 수 있습니다. 
 
 	
 ## 디폴트 게임 모드 덮어쓰기

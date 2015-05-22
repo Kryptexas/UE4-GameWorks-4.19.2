@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2545632
+﻿INTSourceChangelist:2561449
 Availability: Public
 Title:블루프린트에서 레이캐스트 (트레이싱) 사용 비법
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
@@ -20,7 +20,7 @@ Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 �
 
 1.  **블루프린트 일인칭** 템플릿에 **시작용 콘텐츠 포함** 시켜 새 프로젝트를 만들고 프로젝트를 엽니다.
 
-1.  **Game/Blueprints** 폴더에서 **MyCharacter** 블루프린트를 엽니다.
+1.  **FirstPersonBP/Blueprints** 폴더에서 **FirstPersonCharacter** 블루프린트를 엽니다.
 
 1.  그래프에 **우클릭** 한 다음 **Event Tick** 노드를 검색 추가합니다.
 

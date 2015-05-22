@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2428704
+﻿INTSourceChangelist:2560913
 Availability: Public
 Title:블루프린트에서 액터 레퍼런싱 비법
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/ReferenceAssets
@@ -28,7 +28,7 @@ Description:블루프린트에서 액터를 레퍼런싱하는 비법 안내서�
 
 	![](GHT5B_2.png)
 
-1.	**블루프린트 에디터** 창이 열린 채, 그래프 창에 **우클릭** 한 다음 **TriggerBox 로의 레퍼런스 추가** 를 선택합니다.
+1.	**블루프린트 에디터** 창이 열린 채, 그래프 창에 **우클릭** 한 다음 **TriggerBox 로의 레퍼런스 생성** 을 선택합니다.
 
 	![](GHT5B_3.png)
 
@@ -46,7 +46,7 @@ Description:블루프린트에서 액터를 레퍼런싱하는 비법 안내서�
 
 액터의 레퍼런스를 구하는 방법 한 가지 더, 레벨에 액터를 스폰시킬 때 가능합니다. 아래 예제를 살펴봅시다.
 
-1.	프로젝트에서 플레이어 캐릭터의 블루프린트를 엽니다 (**MyCharacter** 를 사용합니다). 
+1.	프로젝트에서 플레이어 캐릭터의 블루프린트를 엽니다 (**ThirdPersonCharacter** 를 사용합니다). 
 
 1.	그래프 안에서 **우클릭** 한 다음 **Event Begin Play** 노드를 추가하고, **Spawn Actor from Class** 에 연결합니다.
 
@@ -66,7 +66,7 @@ Description:블루프린트에서 액터를 레퍼런싱하는 비법 안내서�
 
 	![](GHT5B_7.png)
 
-	Spawned Actor 에서 파티클 이펙트 컴포넌트 (위에서 노랑 박스로 나타낸 **P_Fire**) 에 접근하여, **MyCharacter** 블루프린트에서 플레이어가 **F** 키를 누르면 **Deactivate** 비활성화시키고 있습니다.
+	Spawned Actor 에서 파티클 이펙트 컴포넌트 (위에서 노랑 박스로 나타낸 **P_Fire**) 에 접근하여, **ThirdPersonCharacter** 블루프린트에서 플레이어가 **F** 키를 누르면 **Deactivate** 비활성화시키고 있습니다.
 
 
 ## 직접 블루프린트 통신 레퍼런싱
@@ -148,7 +148,7 @@ Description:블루프린트에서 액터를 레퍼런싱하는 비법 안내서�
 
 	![](GHT5B_2.png)
 
-1.	**우클릭** 한 다음 **...로의 레퍼런스 추가** 옵션을 선택합니다.
+1.	**우클릭** 한 다음 **...로의 레퍼런스 생성** 옵션을 선택합니다.
 
 	![](GHT5B_19.png)
 
@@ -158,7 +158,7 @@ Description:블루프린트에서 액터를 레퍼런싱하는 비법 안내서�
 
 	![](GHT5B_21.png)
 
-	여기서는 **MyCharacter** 안에 (레퍼런싱하고자 하는 것이 화염 이펙트이므로) **Blueprint_Effect_Fire_C** 유형의 변수를 새로 만들어 **TargetBlueprint** 라 했습니다. 게임이 시작되면 **레벨 블루프린트** 는 레벨에 있는 액터로의 레퍼런스를 구한 다음, **MyCharacter** 블루프린트로 전달하여 그 프로퍼티에 접근할 수 있도록 합니다.
+	여기서는 **ThirdPersonCharacter** 안에 (레퍼런싱하고자 하는 것이 화염 이펙트이므로) **Blueprint_Effect_Fire_C** 유형의 변수를 새로 만들어 **TargetBlueprint** 라 했습니다. 게임이 시작되면 **레벨 블루프린트** 는 레벨에 있는 액터로의 레퍼런스를 구한 다음, **ThirdPersonCharacter** 블루프린트로 전달하여 그 프로퍼티에 접근할 수 있도록 합니다.
 
 1.	변수를 그래프에 **Ctrl** 드래그한 다음, 거기서 끌어 프로퍼티에 접근합니다.
 

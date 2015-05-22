@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2428873
+﻿INTSourceChangelist:2561549
 Availability: Public
 Title:블루프린트에서 타이머 사용 비법
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
@@ -16,7 +16,7 @@ Description:블루프린트에서 타이머를 사용하는 비법 안내입니�
 
 _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하여, 플레이어에게 지속적인 화염 대미지를 입힙니다._
 
-1.	프로젝트 안에서 **MyCharacter** 블루프린트를 엽니다.
+1.	프로젝트 안에서 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
 1.	그래프에 **우클릭** 한 다음 **PlayerInFire** 와 **PlayerNotInFire** 라는 **Custom Event** 를 두 개 추가합니다.
 
@@ -66,15 +66,15 @@ _이 예제에서는 **블루프린트 삼인칭 템플릿** 을 사용하여, �
 
 	![](GHT6B_7.png)
 
-	플레이어가 이 트리거에 들어서고/나가면, **MyCharacter** 블루프린트에서 이벤트를 호출합니다.
+	플레이어가 이 트리거에 들어서고/나가면, **ThirdPersonCharacter** 블루프린트에서 이벤트를 호출합니다.
 
 1.	**그래프** 탭으로 돌아가 **Trigger** 에 **우클릭** 한 다음 **OnComponentBegin** / **OnComponentEnd** Overlap 이벤트를 추가합니다.
 
 	![](GHT6B_8.png)
 
-1.	각각의 **Other Actor** 핀을 끌어 놓고 **Cast To MyCharacter** 노드를 추가합니다.
+1.	각각의 **Other Actor** 핀을 끌어 놓고 **Cast To ThirdPersonCharacter** 노드를 추가합니다.
 
-1.	**As My Character C** 핀을 끌어놓고 (Begin 노드에 대해) **PlayerInFire** 이벤트를, (End 노드에 대해) **PlayerIsNotInFire** 이벤트를 추가합니다.
+1.	**As ThirdPersonCharacter C** 핀을 끌어놓고 (Begin 노드에 대해) **PlayerInFire** 이벤트를, (End 노드에 대해) **PlayerIsNotInFire** 이벤트를 추가합니다.
 
 	![](GHT6B_8b.png)
 
