@@ -491,7 +491,6 @@ public:
 	TArray< PxConvexMesh* > ConvexMeshes;
 	TArray< PxConvexMesh* > ConvexMeshesNegX;
 	PxTriangleMesh* TriMesh;
-	PxTriangleMesh* TriMeshNegX;
 
 	FPhysXFormatDataReader( FByteBulkData& InBulkData );
 

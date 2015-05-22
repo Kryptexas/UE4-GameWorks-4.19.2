@@ -2272,32 +2272,19 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 					PShape->getTriangleMeshGeometry(PTriMeshGeom);
 
 					// Create tri-mesh shape
-					if (BodySetup.IsValid() && (BodySetup->TriMesh != NULL || BodySetup->TriMeshNegX != NULL))
+					if (BodySetup.IsValid() && BodySetup->TriMesh)
 					{
 						// Please note that this one we don't inverse old scale, but just set new one (but still adjust for scale mode)
 						FVector NewScale3D = RelativeScale3D * OldScale3D;
-						FVector Scale3DAbs(FMath::Abs(NewScale3D.X), FMath::Abs(NewScale3D.Y), FMath::Abs(NewScale3D.Z)); // magnitude of scale (sign removed)
-
-						PxTransform PNewLocalPose;
-						bool bUseNegX = CalcMeshNegScaleCompensation(NewScale3D, PNewLocalPose);
-
-						// Only case where TriMeshNegX should be null is BSP, which should not require negX version
-						if (bUseNegX && BodySetup->TriMeshNegX == NULL)
+						if (BodySetup->TriMesh)
 						{
-							UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::UpdateBodyScale: Want to use NegX but it doesn't exist! %s"), *BodySetup->GetPathName());
-						}
-
-						PxTriangleMesh* UseTriMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-						if (UseTriMesh != NULL)
-						{
-							PTriMeshGeom.triangleMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-							PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
+							PTriMeshGeom.triangleMesh = BodySetup->TriMesh;
+							PTriMeshGeom.scale.scale = U2PVector(Scale3D);
 
 							if (PTriMeshGeom.isValid())
 							{
 								UpdatedGeometry = &PTriMeshGeom;
 								bSuccess = true;
-
 							}
 							else
 							{

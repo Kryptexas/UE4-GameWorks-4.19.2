@@ -645,7 +645,6 @@ PxU32 FPhysXCPUDispatcherSingleThread::getWorkerCount() const
 
 FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
 	: TriMesh( NULL )
-	, TriMeshNegX( NULL )
 {
 	// Read cooked physics data
 	uint8* DataPtr = (uint8*)InBulkData.Lock( LOCK_READ_ONLY );
@@ -655,14 +654,12 @@ FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
 	int32 NumConvexElementsCooked = 0;
 	int32 NumMirroredElementsCooked = 0;
 	uint8 bTriMeshCooked = false;
-	uint8 bMirroredTriMeshCooked = false;
 
 	Ar << bLittleEndian;
 	Ar.SetByteSwapping( PLATFORM_LITTLE_ENDIAN ? !bLittleEndian : !!bLittleEndian );
 	Ar << NumConvexElementsCooked;	
 	Ar << NumMirroredElementsCooked;
 	Ar << bTriMeshCooked;
-	Ar << bMirroredTriMeshCooked;
 	
 	ConvexMeshes.Empty( NumConvexElementsCooked );
 	ConvexMeshesNegX.Empty( NumMirroredElementsCooked );
@@ -683,12 +680,6 @@ FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
 	{
 		TriMesh = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
 		check(TriMesh);	
-	}
-
-	if( bMirroredTriMeshCooked )
-	{
-		TriMeshNegX = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
-		check(TriMeshNegX);	
 	}
 
 	InBulkData.Unlock();
@@ -924,7 +915,6 @@ PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMate
 	for (UBodySetup* BodySetup : BodySetups)
 	{
 		AddToCollection(PCollection, BodySetup->TriMesh);
-		AddToCollection(PCollection, BodySetup->TriMeshNegX);
 
 		for (const FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 		{

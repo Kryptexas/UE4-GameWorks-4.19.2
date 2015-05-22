@@ -122,9 +122,6 @@ class UBodySetup : public UObject
 #if WITH_PHYSX
 	/** Physics triangle mesh, created from cooked data in CreatePhysicsMeshes */
 	physx::PxTriangleMesh* TriMesh;
-
-	/** Physics triangle mesh, flipped across X, created from cooked data in CreatePhysicsMeshes */
-	physx::PxTriangleMesh* TriMeshNegX;
 #endif
 
 	/** Flag used to know if we have created the physics convex and tri meshes from the cooked data yet */

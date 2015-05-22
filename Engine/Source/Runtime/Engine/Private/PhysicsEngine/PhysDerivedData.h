@@ -38,7 +38,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("{1F0627AE-ABEB-4206-8D78-E16BEB5DDC7E}");
+		return TEXT("7F9691E5320E4745AE426E72F60B484D");
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override
@@ -83,7 +83,6 @@ private:
 	int32 BuildConvex( TArray<uint8>& OutData, bool InMirrored );
 	bool BuildTriMesh( TArray<uint8>& OutData, bool InMirrored, bool InUseAllTriData );
 	bool ShouldGenerateTriMeshData(bool InUseAllTriData);
-	bool ShouldGenerateNegXTriMeshData();
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -168,17 +168,8 @@ void UBodySetup::CreatePhysicsMeshes()
 			}
 		}
 
-		if(bGenerateNonMirroredCollision)
-		{
-			TriMesh = CookedDataReader.TriMesh;
-			FPhysxSharedData::Get().Add(TriMesh);
-		}
-
-		if(bGenerateMirroredCollision)
-		{
-			TriMeshNegX = CookedDataReader.TriMeshNegX;
-			FPhysxSharedData::Get().Add(TriMeshNegX);
-		}
+		TriMesh = CookedDataReader.TriMesh;
+		FPhysxSharedData::Get().Add(TriMesh);
 	}
 	else
 	{
@@ -225,13 +216,6 @@ void UBodySetup::ClearPhysicsMeshes()
 		GPhysXPendingKillTriMesh.Add(TriMesh);
 		FPhysxSharedData::Get().Remove(TriMesh);
 		TriMesh = NULL;
-	}
-
-	if(TriMeshNegX != NULL)
-	{
-		GPhysXPendingKillTriMesh.Add(TriMeshNegX);
-		FPhysxSharedData::Get().Remove(TriMeshNegX);
-		TriMeshNegX = NULL;
 	}
 
 	bCreatedPhysicsMeshes = false;
@@ -537,45 +521,31 @@ public:
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
 
-		if (BodySetup->TriMesh || BodySetup->TriMeshNegX)
+		if (BodySetup->TriMesh)
 		{
-			PxTransform PLocalPose;
-			bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
-
-			// Only case where TriMeshNegX should be null is BSP, which should not require negX version
-			if (bUseNegX && BodySetup->TriMeshNegX == NULL)
+			PxTriangleMeshGeometry PTriMeshGeom;
+			PTriMeshGeom.triangleMesh = BodySetup->TriMesh;
+			PTriMeshGeom.scale.scale = U2PVector(Scale3D);
+			if (BodySetup->bDoubleSidedGeometry)
 			{
-				UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: Want to use NegX but it doesn't exist! %s"), *BodySetup->GetPathName());
+				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
 			}
 
-			PxTriangleMesh* UseTriMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-			if (UseTriMesh != NULL)
+
+			if (PTriMeshGeom.isValid())
 			{
-				PxTriangleMeshGeometry PTriMeshGeom;
-				PTriMeshGeom.triangleMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-				PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
-				if (BodySetup->bDoubleSidedGeometry)
+
+				// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
 				{
-					PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
-				}
-
-
-				if (PTriMeshGeom.isValid())
-				{
-					ensure(PLocalPose.isValid());
-
-					// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
+					if (!AttachShape_AssumesLocked(PTriMeshGeom, PxTransform::createIdentity(), MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
 					{
-						if (!AttachShape_AssumesLocked(PTriMeshGeom, PLocalPose, MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
-						{
-							UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
-						}
+						UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
 					}
 				}
-				else
-				{
-					UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: TriMesh invalid"));
-				}
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: TriMesh invalid"));
 			}
 		}
 	}
@@ -995,11 +965,6 @@ SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 	if (TriMesh != NULL)
 	{
 		ResourceSize += GetPhysxObjectSize(TriMesh, NULL);
-	}
-
-	if (TriMeshNegX != NULL)
-	{
-		ResourceSize += GetPhysxObjectSize(TriMeshNegX, NULL);
 	}
 
 	// Count PhysX convex mem usage

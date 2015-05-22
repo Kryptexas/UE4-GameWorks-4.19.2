@@ -57,13 +57,11 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 	int32 NumConvexElementsCooked = 0;
 	int32 NumMirroredElementsCooked = 0;
 	uint8 bTriMeshCooked = false;
-	uint8 bMirroredTriMeshCooked = false;
 	Ar << bLittleEndian;
 	int64 CookedMeshInfoOffset = Ar.Tell();
 	Ar << NumConvexElementsCooked;	
 	Ar << NumMirroredElementsCooked;
 	Ar << bTriMeshCooked;
-	Ar << bMirroredTriMeshCooked;
 
 	//TODO: we must save an id with convex and tri meshes for serialization. We must save this here and patch it up at runtime somehow
 
@@ -84,14 +82,7 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 	bool bUsingAllTriData = BodySetup != NULL ? BodySetup->bMeshCollideAll : false;
 	if( (BodySetup == NULL || BodySetup->CollisionTraceFlag != CTF_UseSimpleAsComplex) && ShouldGenerateTriMeshData(bUsingAllTriData) )
 	{
-		if( bGenerateNormalMesh )
-		{
-			bTriMeshCooked = (uint8)BuildTriMesh( OutData, false, bUsingAllTriData );
-		}
-		if( bGenerateMirroredMesh && ShouldGenerateNegXTriMeshData() )
-		{
-			bMirroredTriMeshCooked = (uint8)BuildTriMesh( OutData, true, bUsingAllTriData );
-		}
+		bTriMeshCooked = (uint8)BuildTriMesh( OutData, false, bUsingAllTriData );
 	}
 
 	// Update info on what actually got cooked
@@ -99,7 +90,6 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 	Ar << NumConvexElementsCooked;	
 	Ar << NumMirroredElementsCooked;
 	Ar << bTriMeshCooked;
-	Ar << bMirroredTriMeshCooked;
 
 	// Whatever got cached return true. We want to cache 'failure' too.
 	return true;
@@ -152,14 +142,6 @@ bool FDerivedDataPhysXCooker::ShouldGenerateTriMeshData(bool InUseAllTriData)
 	const bool bPerformCook = ( CDP != NULL ) ? CDP->ContainsPhysicsTriMeshData(InUseAllTriData) : false;
 	return bPerformCook;
 }
-
-bool FDerivedDataPhysXCooker::ShouldGenerateNegXTriMeshData()
-{
-	IInterface_CollisionDataProvider* CDP = Cast<IInterface_CollisionDataProvider>(CollisionDataProvider);
-	const bool bWantsNegX = ( CDP != NULL ) ? CDP->WantsNegXTriMesh() : false;
-	return bWantsNegX;
-}
-
 
 bool FDerivedDataPhysXCooker::BuildTriMesh( TArray<uint8>& OutData, bool bInMirrored, bool InUseAllTriData )
 {
