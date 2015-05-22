@@ -129,6 +129,9 @@ done
 CreateLinkIfNoneExists ../../engine/shaders/Fxaa3_11.usf  ../Engine/Shaders/Fxaa3_11.usf
 CreateLinkIfNoneExists ../../Engine/shaders/Fxaa3_11.usf  ../Engine/Shaders/Fxaa3_11.usf
 
+echo Removing a stable libLND.so binary that was relocated in 4.8
+rm -f ../Engine/Binaries/Linux/libLND.so
+
 echo
 pushd Build/BatchFiles/Linux > /dev/null
 ./BuildThirdParty.sh
