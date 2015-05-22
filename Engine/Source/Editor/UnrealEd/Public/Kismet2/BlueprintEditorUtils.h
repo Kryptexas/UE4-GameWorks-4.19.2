@@ -96,6 +96,11 @@ public:
 	static void RefreshAllNodes(UBlueprint* Blueprint);
 
 	/**
+	 * Reconstructs all nodes in the blueprint, node reconstruction order determined by FCompareNodePriority.
+	 */
+	static void ReconstructAllNodes(UBlueprint* Blueprint);
+
+	/**
 	 * Optimized refresh of nodes that depend on external blueprints.  Refreshes the nodes, but does not recompile the skeleton class
 	 */
 	static void RefreshExternalBlueprintDependencyNodes(UBlueprint* Blueprint, UStruct* RefreshOnlyChild = NULL);
