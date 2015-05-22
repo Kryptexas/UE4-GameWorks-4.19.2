@@ -32,9 +32,9 @@ Description:破壊性能事例レベルの概要、例 1.6:破壊パーティク
 メッシュ破壊時にパーティクル エフェクトをスポーンします。
 
 [REGION:todo]
-エミッタをスポーンする場所について、ある程度ルールがあると便利です。コンテンツの例には、このセクション用のパーティクル エフェクトがありません。
+エミッタをスポーンする場所について、ある程度ルールがあると便利です。コンテンツ サンプルには、このセクション用のパーティクル エフェクトがありません。
 [/REGION]
 
-[REGION:lightbox]
-<!--[![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
+<!--[REGION:lightbox]
+[![](1_4_solid.png)(w:300)](1_4_solid.png) [![](1_4_fractured.png)(w:300)](1_4_fractured.png) [![](1_4_blown.png)(w:300)](1_4_blown.png)
 [/REGION]-->
