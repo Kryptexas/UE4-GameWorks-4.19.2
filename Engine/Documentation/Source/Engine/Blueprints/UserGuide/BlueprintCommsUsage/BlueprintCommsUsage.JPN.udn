@@ -1,4 +1,5 @@
 ﻿INTSourceChangelist:2550597
+INTSourceChangelist:2550597
 Availability:Public
 Title:ブループリント通信の使用方法
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -64,7 +65,7 @@ Related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 **ダイレクト ブループリント通信** (すなわち **Blueprint Comms**) は、非常に一般的な通信方法であり、任意のポイントで対話させたい 2 つの **Blueprint Actors** を 
 持つ場合に優れた手段です。 
 
-このタイプの通信は常に 1 対 1 です。つまり、あるブループリント (**Working Blueprint (作業ブループリント)**) が、別のブループリント (**Target Blueprint (ターゲット ブループリント))  
+このタイプの通信は常に 1 対 1 です。つまり、あるブループリント (**Working Blueprint (作業ブループリント)**) が、別のブループリント (**Target Blueprint (ターゲット ブループリント)**)  
 
 にアクセスするリクエストをします。**Blueprint Comms** の最も簡単な使用方法は、公開されているオブジェクト変数を通して **ターゲット ブループリント** を参照し、 
 次にアクセスしたいブループリントのインスタンスを指定するものです。
