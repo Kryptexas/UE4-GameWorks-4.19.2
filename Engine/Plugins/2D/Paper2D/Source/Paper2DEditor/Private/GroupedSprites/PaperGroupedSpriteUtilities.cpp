@@ -177,13 +177,15 @@ void FPaperGroupedSpriteUtilities::MergeSprites(const TArray<UObject*>& InObject
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.bDeferConstruction = true;
 
+			const FScopedTransaction Transaction(LOCTEXT("MergeSprites", "Merge sprite instances"));
+
 			if (APaperGroupedSpriteActor* SpawnedActor = World->SpawnActor<APaperGroupedSpriteActor>(SpawnParams))
 			{
-				const FScopedTransaction Transaction(LOCTEXT("MergeSprites", "Merge sprite instances"));
-
+				SpawnedActor->Modify();
 				// Create a merged sprite component
 				{
 					UPaperGroupedSpriteComponent* MergedSpriteComponent = SpawnedActor->GetRenderComponent();
+					MergedSpriteComponent->Modify();
 					FComponentReregisterContext ReregisterContext(MergedSpriteComponent);
 
 					// Create an instance from each sprite component that we're harvesting
