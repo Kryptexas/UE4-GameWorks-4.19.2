@@ -160,7 +160,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Platform">The platform being compiled for</param>
 		/// <param name="TargetType">The type of the target being compiled</param>
-		public bool IsCompiledInConfiguration(UnrealTargetPlatform Platform, TargetRules.TargetType TargetType)
+		/// <param name="bBuildDeveloperTools">Whether the configuration includes developer tools (typically UEBuildConfiguration.bBuildDeveloperTools for UBT callers)</param>
+		/// <param name="bBuildEditor">Whether the configuration includes the editor (typically UEBuildConfiguration.bBuildEditor for UBT callers)</param>
+		public bool IsCompiledInConfiguration(UnrealTargetPlatform Platform, TargetRules.TargetType TargetType, bool bBuildDeveloperTools, bool bBuildEditor)
 		{
 			// Check the platform is whitelisted
 			if(WhitelistPlatforms != null && WhitelistPlatforms.Length > 0 && !WhitelistPlatforms.Contains(Platform))
@@ -181,10 +183,10 @@ namespace UnrealBuildTool
 				case ModuleHostType.RuntimeNoCommandlet:
 					return true;
 				case ModuleHostType.Developer:
-					return UEBuildConfiguration.bBuildDeveloperTools;
+					return bBuildDeveloperTools;
 				case ModuleHostType.Editor:
 				case ModuleHostType.EditorNoCommandlet:
-					return TargetType == TargetRules.TargetType.Editor || UEBuildConfiguration.bBuildEditor;
+					return TargetType == TargetRules.TargetType.Editor || bBuildEditor;
 				case ModuleHostType.Program:
 					return TargetType == TargetRules.TargetType.Program;
 			}

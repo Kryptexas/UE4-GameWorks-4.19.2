@@ -80,7 +80,9 @@ class BuildPlugin : BuildCommand
 		List<string> ModuleNames = new List<string>();
 		foreach(ModuleDescriptor Module in Plugin.Modules)
 		{
-			if(Module.IsCompiledInConfiguration(Platform, TargetType))
+			bool bBuildDeveloperTools = (TargetType == TargetRules.TargetType.Editor || TargetType == TargetRules.TargetType.Program);
+			bool bBuildEditor = (TargetType == TargetRules.TargetType.Editor);
+			if(Module.IsCompiledInConfiguration(Platform, TargetType, bBuildDeveloperTools, bBuildEditor))
 			{
 				ModuleNames.Add(Module.Name);
 			}
