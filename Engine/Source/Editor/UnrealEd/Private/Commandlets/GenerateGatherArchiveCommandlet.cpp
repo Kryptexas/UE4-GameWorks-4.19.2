@@ -66,14 +66,36 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
-	// Get source culture.
-	FString SourceCulture;
-	if( GetStringFromConfig( *SectionName, TEXT("SourceCulture"), SourceCulture, GatherTextConfigPath ) )
+	// Get native culture.
+	FString NativeCulture;
 	{
-		if( I18N.GetCulture( SourceCulture ).IsValid() )
+		const bool WasNativeCultureSpecified = GetStringFromConfig( *SectionName, TEXT("NativeCulture"), NativeCulture, GatherTextConfigPath );
+
+		// Get source culture (DEPRECATED).
+		FString SourceCulture;
+		const bool WasSourceCultureSpecified = GetStringFromConfig( *SectionName, TEXT("SourceCulture"), SourceCulture, GatherTextConfigPath );
+		if (WasSourceCultureSpecified)
 		{
-			UE_LOG(LogGenerateArchiveCommandlet, Verbose, TEXT("Specified culture is not a valid runtime culture, but may be a valid base language: %s"), *(SourceCulture) );
+			UE_LOG(LogGatherTextFromSourceCommandlet, Warning, TEXT("SourceCulture detected in section %s. SourceCulture is deprecated, please use NativeCulture."), *SectionName);
 		}
+
+		// Use SourceCulture if NativeCulture isn't specified.
+		if (!WasNativeCultureSpecified && WasSourceCultureSpecified)
+		{
+			NativeCulture = SourceCulture;
+		}
+	}
+
+	if (!NativeCulture.IsEmpty())
+	{
+		if (!I18N.GetCulture(NativeCulture).IsValid())
+		{
+			UE_LOG(LogGenerateArchiveCommandlet, Verbose, TEXT("Specified native culture is not a valid runtime culture, but may be a valid base language: %s"), *(NativeCulture) );
+		}
+	}
+	else
+	{
+		UE_LOG(LogGenerateArchiveCommandlet, Warning, TEXT("No native culture specified. If the actual native culture is specified for generation, its archive entries may lack default translations."));
 	}
 
 	// Get cultures to generate.
@@ -134,7 +156,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
 	{
 		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
-		BuildArchiveFromManifest( InternationalizationManifest, InternationalizationArchive, SourceCulture, CulturesToGenerate[Culture] );
+		BuildArchiveFromManifest( InternationalizationManifest, InternationalizationArchive, NativeCulture, CulturesToGenerate[Culture] );
 
 		const FString CulturePath = DestinationPath / CulturesToGenerate[Culture];
 		FJsonInternationalizationArchiveSerializer ArchiveSerializer;

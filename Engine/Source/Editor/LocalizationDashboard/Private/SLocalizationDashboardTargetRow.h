@@ -29,12 +29,11 @@ private:
 
 	void UpdateTargetFromReports();
 
-	FReply RefreshWordCount();
-
 	FReply Gather();
 	FReply ImportAll();
 	FReply ExportAll();
-	FReply Compile();
+	FReply CountWords();
+	FReply CompileAll();
 
 	FReply EnqueueDeletion();
 	void Delete();

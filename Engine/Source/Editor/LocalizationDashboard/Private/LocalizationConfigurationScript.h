@@ -46,6 +46,6 @@ namespace LocalizationConfigurationScript
 	FLocalizationConfigurationScript GenerateWordCountReportScript(const ULocalizationTarget* const Target);
 	FString GetWordCountReportScriptPath(const ULocalizationTarget* const Target);
 
-	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target);
-	FString GetCompileScriptPath(const ULocalizationTarget* const Target);
+	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
+	FString GetCompileScriptPath(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
 }

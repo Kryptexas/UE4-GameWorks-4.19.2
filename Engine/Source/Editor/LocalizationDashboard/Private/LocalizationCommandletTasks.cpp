@@ -258,4 +258,31 @@ bool LocalizationCommandletTasks::CompileTarget(const TSharedRef<SWindow>& Paren
 	return LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
 }
 
+bool LocalizationCommandletTasks::CompileCulture(const TSharedRef<SWindow>& ParentWindow, ULocalizationTarget* const Target, const FString& CultureName)
+{
+	FCulturePtr Culture = FInternationalization::Get().GetCulture(CultureName);
+	if (!Culture.IsValid())
+	{
+		return false;
+	}
+
+	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
+
+	const FString DefaultCompileScriptPath = LocalizationConfigurationScript::GetCompileScriptPath(Target, TOptional<FString>(CultureName));
+	const FString CompileScriptPath = FPaths::CreateTempFilename(*FPaths::GetPath(DefaultCompileScriptPath), *FPaths::GetBaseFilename(DefaultCompileScriptPath), *FPaths::GetExtension(DefaultCompileScriptPath, true));
+	LocalizationConfigurationScript::GenerateCompileScript(Target, TOptional<FString>(CultureName)).Write(CompileScriptPath);
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("CompileTaskName", "Compile Translations"), CompileScriptPath, ShouldUseProjectFile));
+
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("CultureName"), FText::FromString(Culture->GetDisplayName()));
+	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
+
+	const FText WindowTitle = FText::Format(LOCTEXT("CompileCultureForTargetWindowTitle", "Compile {CultureName} Translations for Target {TargetName}"), Arguments);
+
+	bool HasSucceeeded = LocalizationCommandletExecution::Execute(ParentWindow, WindowTitle, Tasks);
+	IFileManager::Get().Delete(*CompileScriptPath); // Don't clutter up the loc config directory with scripts for individual cultures.
+	return HasSucceeeded;
+}
+
 #undef LOCTEXT_NAMESPACE

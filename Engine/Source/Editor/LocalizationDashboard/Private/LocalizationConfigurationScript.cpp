@@ -130,7 +130,10 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("ManifestName"), FPaths::GetCleanFilename(GetManifestPath(Target)) );
 			ConfigSection.Add( TEXT("ArchiveName"), FPaths::GetCleanFilename(GetArchivePath(Target, FString())) );
 
-			ConfigSection.Add( TEXT("SourceCulture"), Target->Settings.SupportedCulturesStatistics[Target->Settings.NativeCultureIndex].CultureName );
+			if (Target->Settings.SupportedCulturesStatistics.IsValidIndex(Target->Settings.NativeCultureIndex))
+			{
+			ConfigSection.Add( TEXT("NativeCulture"), Target->Settings.SupportedCulturesStatistics[Target->Settings.NativeCultureIndex].CultureName );
+			}
 			for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
 			{
 				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
@@ -508,7 +511,7 @@ namespace LocalizationConfigurationScript
 		return GetScriptDirectory(Target) / FString::Printf( TEXT("%s_GenerateReports.%s"), *(Target->Settings.Name), TEXT("ini") );
 	}
 
-	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target)
+	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target, const TOptional<FString> CultureName)
 	{
 		FLocalizationConfigurationScript Script;
 
@@ -529,9 +532,24 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("ManifestName"), FString::Printf( TEXT("%s.%s"), *Target->Settings.Name, TEXT("manifest") ) );
 			ConfigSection.Add( TEXT("ResourceName"), FString::Printf( TEXT("%s.%s"), *Target->Settings.Name, TEXT("locres") ) );
 
-			for (const FCultureStatistics& CultureStatistics : Target->Settings.SupportedCulturesStatistics)
+			const auto& AddCultureToGenerate = [&](const int32 Index)
 			{
-				ConfigSection.Add( TEXT("CulturesToGenerate"), CultureStatistics.CultureName );
+				ConfigSection.Add( TEXT("CulturesToGenerate"), Target->Settings.SupportedCulturesStatistics[Index].CultureName );
+			};
+
+			// Compile a specific culture.
+			if (CultureName.IsSet())
+			{
+				const int32 CultureIndex = Target->Settings.SupportedCulturesStatistics.IndexOfByPredicate([CultureName](const FCultureStatistics& Culture) { return Culture.CultureName == CultureName.GetValue(); });
+				AddCultureToGenerate(CultureIndex);
+			}
+			// Compile all cultures.
+			else
+			{
+				for (int32 CultureIndex = 0; CultureIndex < Target->Settings.SupportedCulturesStatistics.Num(); ++CultureIndex)
+			{
+					AddCultureToGenerate(CultureIndex);
+				}
 			}
 		}
 
@@ -540,8 +558,18 @@ namespace LocalizationConfigurationScript
 		return Script;
 	}
 
-	FString GetCompileScriptPath(const ULocalizationTarget* const Target)
+	FString GetCompileScriptPath(const ULocalizationTarget* const Target, const TOptional<FString> CultureName)
 	{
-		return GetScriptDirectory(Target) / FString::Printf( TEXT("%s_Compile.%s"), *(Target->Settings.Name), TEXT("ini") );
+		const FString ConfigFileDirectory = GetScriptDirectory(Target);
+		FString ConfigFilePath;
+		if (CultureName.IsSet())
+		{
+			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Compile_%s.%s"), *Target->Settings.Name, *CultureName.GetValue(), TEXT("ini") );
+		}
+		else
+	{
+			ConfigFilePath = ConfigFileDirectory / FString::Printf( TEXT("%s_Compile.%s"), *Target->Settings.Name, TEXT("ini") );
+		}
+		return ConfigFilePath;
 	}
 }
