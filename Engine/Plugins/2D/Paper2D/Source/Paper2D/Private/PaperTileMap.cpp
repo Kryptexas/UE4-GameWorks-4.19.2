@@ -45,6 +45,8 @@ void UPaperTileMap::PreEditChange(UProperty* PropertyAboutToChange)
 		// Subtract out the hex side length; we'll add it back (along with any changes) in PostEditChangeProperty
 		TileHeight -= HexSideLength;
 	}
+
+	Super::PreEditChange(PropertyAboutToChange);
 }
 #endif
 
