@@ -441,7 +441,7 @@ UPrimitiveComponent* ARecastNavMesh::ConstructRenderingComponentImpl()
 
 	return NULL;
 #else
-	return NewObject<UNavMeshRenderingComponent>(this, TEXT("NavMeshRenderer"));
+	return NewObject<UNavMeshRenderingComponent>(this, TEXT("NavMeshRenderer"), RF_Transient);
 #endif // DO_NAVMESH_DEBUG_DRAWING_PER_TILE
 }
 
