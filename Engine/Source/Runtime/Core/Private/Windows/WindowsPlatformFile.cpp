@@ -609,7 +609,12 @@ public:
 		HANDLE Handle    = CreateFileW(*NormalizeFilename(Filename), Access, WinFlags, NULL, Create, FILE_ATTRIBUTE_NORMAL, NULL);
 		if(Handle != INVALID_HANDLE_VALUE)
 		{
-			return new FFileHandleWindows(Handle);
+			FFileHandleWindows *PlatformFileHandle = new FFileHandleWindows(Handle);
+			if (bAppend)
+			{
+				PlatformFileHandle->SeekFromEnd(0);
+			}
+			return PlatformFileHandle;
 		}
 		return NULL;
 	}
