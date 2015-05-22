@@ -383,6 +383,15 @@ void FWebBrowserWindow::StopLoad()
 	}
 }
 
+void FWebBrowserWindow::ExecuteJavascript(const FString& Script)
+{
+	if (IsValid())
+	{
+		CefRefPtr<CefFrame> frame = InternalCefBrowser->GetMainFrame();
+		frame->ExecuteJavaScript(TCHAR_TO_ANSI(*Script), frame->GetURL(), 0);
+	}
+}
+
 void FWebBrowserWindow::SetHandler(CefRefPtr<FWebBrowserHandler> InHandler)
 {
 	if (InHandler.get())
@@ -581,6 +590,47 @@ int32 FWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 	}*/
 
 	return Modifiers;
+}
+
+bool FWebBrowserWindow::OnQuery(int64 QueryId, const CefString& Request, bool Persistent, CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback)
+{
+	if (OnJSQueryReceived().IsBound())
+	{
+		FString QueryString = Request.ToWString().c_str();
+		FJSQueryResultDelegate Delegate = FJSQueryResultDelegate::CreateLambda(
+			[Callback](int ErrorCode, FString Message)
+		{
+			CefString MessageString = *Message;
+			if (ErrorCode == 0)
+			{
+				Callback->Success(MessageString);
+			}
+			else
+			{
+				Callback->Failure(ErrorCode, MessageString);
+			}
+		}
+		);
+		return OnJSQueryReceived().Execute(QueryId, QueryString, Persistent, Delegate);
+	}
+	return false;
+}
+
+void FWebBrowserWindow::OnQueryCanceled(int64 QueryId)
+{
+	OnJSQueryCanceled().ExecuteIfBound(QueryId);
+}
+
+bool FWebBrowserWindow::OnCefBeforePopup(const CefString& Target_Url, const CefString& Target_Frame_Name)
+{
+	if (OnBeforePopup().IsBound())
+	{
+		FString URL = Target_Url.ToWString().c_str();
+		FString FrameName = Target_Frame_Name.ToWString().c_str();
+		return OnBeforePopup().Execute(URL, FrameName);
+	}
+
+	return false;
 }
 
 #endif

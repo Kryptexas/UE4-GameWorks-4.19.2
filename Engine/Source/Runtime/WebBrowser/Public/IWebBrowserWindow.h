@@ -181,6 +181,9 @@ public:
 	/** Stop loading the page. */
 	virtual void StopLoad() = 0;
 
+	/** Execute Javascript on the page. */
+	virtual void ExecuteJavascript(const FString& Script) = 0;
+
 public:
 
 	/** A delegate that is invoked when the loading state of a document changed. */
@@ -198,6 +201,20 @@ public:
 	/** A delegate that is invoked when the off-screen window has been repainted and requires an update. */
 	DECLARE_EVENT(IWebBrowserWindow, FOnNeedsRedraw)
 	virtual FOnNeedsRedraw& OnNeedsRedraw() = 0;
+
+	/** A delegate that is invoked when a popup window is attempting to open. */
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
+	virtual FOnBeforePopupDelegate& OnBeforePopup() = 0;
+	
+	/** A delegate that is invoked when JS code sends a query to the front end. The result delegate can either be executed immediately or saved and executed later (multiple times if the boolean persistent argument is true).
+	 * The arguments are an integer error code (0 for success) and a reply string. If you need pass more complex data to the JS code, you will have to pack the data in some way (such as JSON encoding it). */
+	DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
+	DECLARE_DELEGATE_RetVal_FourParams(bool, FONJSQueryReceived, int64, FString, bool, FJSQueryResultDelegate)
+	virtual FONJSQueryReceived& OnJSQueryReceived() = 0;
+
+	/** A delegate that is invoked when an outstanding query is canceled. Implement this if you are saving delegates passed to OnQueryReceived. */
+	DECLARE_DELEGATE_OneParam(FONJSQueryCanceled, int64)
+	virtual FONJSQueryCanceled& OnJSQueryCanceled() = 0;
 
 protected:
 

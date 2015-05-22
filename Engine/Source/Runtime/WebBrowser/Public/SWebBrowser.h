@@ -10,6 +10,11 @@ class IWebBrowserWindow;
 class FWebBrowserViewport;
 
 
+DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
+DECLARE_DELEGATE_RetVal_FourParams(bool, FOnJSQueryReceivedDelegate, int64, FString, bool, FJSQueryResultDelegate);
+DECLARE_DELEGATE_OneParam(FOnJSQueryCanceledDelegate, int64);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
+
 class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget
 {
@@ -60,6 +65,16 @@ public:
 		SLATE_EVENT(FOnTextChanged, OnTitleChanged)
 
 		SLATE_EVENT(FOnTextChanged, OnUrlChanged)
+		
+		/** Called when a custom Javascript message is received from the browser process. */
+		SLATE_EVENT(FOnJSQueryReceivedDelegate, OnJSQueryReceived)
+
+		/** Called when a pending Javascript message has been canceled, either explicitly or by navigating away from the page containing the script. */
+		SLATE_EVENT(FOnJSQueryCanceledDelegate, OnJSQueryCanceled)
+		
+		/** Called before a popup window happens */
+		SLATE_EVENT(FOnBeforePopupDelegate, OnBeforePopup)
+
 	SLATE_END_ARGS()
 
 
@@ -111,6 +126,9 @@ public:
 	/** Whether the document is currently being loaded. */
 	bool IsLoading() const; 
 
+	/** Execute javascript on the current window */
+	void ExecuteJavascript(const FString& ScriptText);
+
 private:
 
 	/** Returns true if the browser can navigate backwards. */
@@ -152,6 +170,15 @@ private:
 	/** Callback for loaded url changes. */
 	void HandleUrlChanged(FString NewUrl);
 
+	/** Callback for received JS queries. */
+	bool HandleJSQueryReceived(int64 QueryId, FString QueryString, bool Persistent, FJSQueryResultDelegate ResultDelegate);
+
+	/** Callback for cancelled JS queries. */
+	void HandleJSQueryCanceled(int64 QueryId);
+
+	/** Callback for popup window permission */
+	bool HandleBeforePopup(FString URL, FString Target);
+
 private:
 
 	/** Interface for dealing with a web browser window. */
@@ -180,6 +207,15 @@ private:
 
 	/** A delegate that is invoked when document address changed. */
 	FOnTextChanged OnUrlChanged;
+
+	/** A delegate that is invoked when render process Javascript code sends a query message to the client. */
+	FOnJSQueryReceivedDelegate OnJSQueryReceived;
+
+	/** A delegate that is invoked when render process cancels an ongoing query. Handler must clean up corresponding result delegate. */
+	FOnJSQueryCanceledDelegate OnJSQueryCanceled;
+	
+	/** A delegate that is invoked when the browser attempts to pop up a new window */
+	FOnBeforePopupDelegate OnBeforePopup;
 
 	/** A flag to avoid having more than one active timer delegate in flight at the same time */
 	bool IsHandlingRedraw;

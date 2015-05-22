@@ -21,6 +21,10 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 	OnLoadStarted = InArgs._OnLoadStarted;
 	OnTitleChanged = InArgs._OnTitleChanged;
 	OnUrlChanged = InArgs._OnUrlChanged;
+	OnJSQueryReceived = InArgs._OnJSQueryReceived;
+	OnJSQueryCanceled = InArgs._OnJSQueryCanceled;
+	OnBeforePopup = InArgs._OnBeforePopup;
+
 	AddressBarUrl = FText::FromString(InArgs._InitialURL);
 	IsHandlingRedraw = false;
 	
@@ -138,6 +142,9 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 		BrowserWindow->OnNeedsRedraw().AddSP(this, &SWebBrowser::HandleBrowserWindowNeedsRedraw);
 		BrowserWindow->OnTitleChanged().AddSP(this, &SWebBrowser::HandleTitleChanged);
 		BrowserWindow->OnUrlChanged().AddSP(this, &SWebBrowser::HandleUrlChanged);
+		BrowserWindow->OnJSQueryReceived().BindSP(this, &SWebBrowser::HandleJSQueryReceived);
+		BrowserWindow->OnJSQueryCanceled().BindSP(this, &SWebBrowser::HandleJSQueryCanceled);
+		BrowserWindow->OnBeforePopup().BindSP(this, &SWebBrowser::HandleBeforePopup);
 		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, ViewportWidget));
 		ViewportWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
 	}
@@ -342,4 +349,37 @@ void SWebBrowser::HandleUrlChanged( FString NewUrl )
 	OnTitleChanged.ExecuteIfBound(AddressBarUrl);
 }
 
+bool SWebBrowser::HandleJSQueryReceived(int64 QueryId, FString QueryString, bool Persistent, FJSQueryResultDelegate Delegate)
+{
+	if (OnJSQueryReceived.IsBound())
+	{
+		return OnJSQueryReceived.Execute(QueryId, QueryString, Persistent, Delegate);
+	}
+	return false;
+}
+
+void SWebBrowser::HandleJSQueryCanceled(int64 QueryId)
+{
+	OnJSQueryCanceled.ExecuteIfBound(QueryId);
+}
+
+bool SWebBrowser::HandleBeforePopup(FString URL, FString Target)
+{
+	if (OnBeforePopup.IsBound())
+	{
+		return OnBeforePopup.Execute(URL, Target);
+	}
+
+	return false;
+}
+
+void SWebBrowser::ExecuteJavascript(const FString& ScriptText)
+{
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->ExecuteJavascript(ScriptText);
+	}
+}
+
 #undef LOCTEXT_NAMESPACE
+
