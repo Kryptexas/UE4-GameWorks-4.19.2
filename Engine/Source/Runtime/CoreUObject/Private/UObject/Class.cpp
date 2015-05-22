@@ -4222,6 +4222,60 @@ bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction) const
 	return IsSignatureCompatibleWith(OtherFunction, IgnoreFlags);
 }
 
+bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B, bool bCheckPropertiesNames)
+{
+	if (A == B)
+	{
+		return true;
+	}
+
+	if (!A != !B) //one of properties is null
+	{
+		return false;
+	}
+
+	if (bCheckPropertiesNames && (A->GetFName() != B->GetFName()))
+	{
+		return false;
+	}
+
+	if (A->GetSize() != B->GetSize())
+	{
+		return false;
+	}
+
+	if (A->GetOffset_ForGC() != B->GetOffset_ForGC())
+	{
+		return false;
+	}
+
+	if (!A->SameType(B))
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames)
+{
+	bool bResult = false;
+	if (StructA && StructB)
+	{
+		const UProperty* PropertyA = StructA->PropertyLink;
+		const UProperty* PropertyB = StructB->PropertyLink;
+
+		bResult = true;
+		while (bResult && (PropertyA != PropertyB))
+		{
+			bResult = ArePropertiesTheSame(PropertyA, PropertyB, bCheckPropertiesNames);
+			PropertyA = PropertyA ? PropertyA->PropertyLinkNext : NULL;
+			PropertyB = PropertyB ? PropertyB->PropertyLinkNext : NULL;
+		}
+	}
+	return bResult;
+}
+
 bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const
 {
 	// Early out if they're exactly the same function
