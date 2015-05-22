@@ -997,6 +997,12 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 	    /* Light Accumulation moved to SceneRenderTargets */
 	    TRefCountPtr<IPooledRenderTarget> LightAccumulation = GSceneRenderTargets.LightAccumulation;
 
+		if (!LightAccumulation)
+		{
+			// should never be used but during debugging it can happen
+			LightAccumulation = GSystemTextures.WhiteDummy;
+		}
+
 		if (bReflectionEnv)
 		{
 			bRequiresApply = true;
@@ -1086,12 +1092,6 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 			TShaderMapRef< FPostProcessVS >		VertexShader(View.ShaderMap);
 
-			if (!LightAccumulation)
-			{
-				// should never be used but during debugging it can happen
-				LightAccumulation = GSystemTextures.WhiteDummy;
-			}
-			
 			// Activate Reflection Environment if we choose to mix it with indirect lighting (Ambient + LPV)
 			// todo: refactor (we abuse another boolean to pass the data through)
 			bReflectionEnv = bReflectionEnv || bEnvironmentMixing;
