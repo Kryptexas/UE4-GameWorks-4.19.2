@@ -516,6 +516,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SERIALIZE_TEXT_IN_PACKAGES,
 	// Added pivot to widget components, need to load old versions as a 0,0 pivot, new default is 0.5,0.5
 	VER_UE4_ADD_BLEND_MODE_TO_WIDGET_COMPONENT,
+	// Added lightmass primitive setting
+	VER_UE4_NEW_LIGHTMASS_PRIMITIVE_SETTING,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -1191,6 +1191,13 @@ struct FLightmassPrimitiveSettings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bUseEmissiveForStaticLighting:1;
 
+	/** 
+	 * Typically the triangle normal is used for hemisphere gathering which prevents incorrect self-shadowing from artist-tweaked vertex normals. 
+	 * However in the case of foliage whose vertex normal has been setup to match the underlying terrain, gathering in the direction of the vertex normal is desired.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
+	uint32 bUseVertexNormalForHemisphereGather:1;
+
 	/** Direct lighting falloff exponent for mesh area lights created from emissive areas on this primitive. */
 	UPROPERTY()
 	float EmissiveLightFalloffExponent;
@@ -1220,6 +1227,7 @@ struct FLightmassPrimitiveSettings
 		bUseTwoSidedLighting = false;
 		bShadowIndirectOnly = false;
 		bUseEmissiveForStaticLighting = false;
+		bUseVertexNormalForHemisphereGather = false;
 		EmissiveLightFalloffExponent = 8.0f;
 		EmissiveLightExplicitInfluenceRadius = 0.0f;
 		EmissiveBoost = 1.0f;
@@ -1233,6 +1241,7 @@ struct FLightmassPrimitiveSettings
 		if ((A.bUseTwoSidedLighting != B.bUseTwoSidedLighting) ||
 			(A.bShadowIndirectOnly != B.bShadowIndirectOnly) || 
 			(A.bUseEmissiveForStaticLighting != B.bUseEmissiveForStaticLighting) || 
+			(A.bUseVertexNormalForHemisphereGather != B.bUseVertexNormalForHemisphereGather) || 
 			(fabsf(A.EmissiveLightFalloffExponent - B.EmissiveLightFalloffExponent) > SMALL_NUMBER) ||
 			(fabsf(A.EmissiveLightExplicitInfluenceRadius - B.EmissiveLightExplicitInfluenceRadius) > SMALL_NUMBER) ||
 			(fabsf(A.EmissiveBoost - B.EmissiveBoost) > SMALL_NUMBER) ||

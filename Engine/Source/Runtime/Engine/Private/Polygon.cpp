@@ -37,6 +37,13 @@ FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings)
 	Ar << Temp;
 	Settings.bUseEmissiveForStaticLighting = Temp;
 
+	if (Ar.UE4Ver() >= VER_UE4_NEW_LIGHTMASS_PRIMITIVE_SETTING)
+	{
+		Temp = Settings.bUseVertexNormalForHemisphereGather;
+		Ar << Temp;
+		Settings.bUseVertexNormalForHemisphereGather = Temp;
+	}
+	
 	Ar << Settings.EmissiveLightFalloffExponent;
 	Ar << Settings.EmissiveLightExplicitInfluenceRadius;
 	

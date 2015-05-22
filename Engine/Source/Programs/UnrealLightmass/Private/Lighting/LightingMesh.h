@@ -315,6 +315,7 @@ public:
 	inline int32 GetNumElements() const { return MaterialElements.Num(); }
 	inline bool ShouldColorInvalidTexels() const { return bColorInvalidTexels; }
 	inline bool HasImportedNormal(int32 ElementIndex) const { return MaterialElements[ElementIndex].Material->NormalSize > 0; }
+	inline bool UseVertexNormalForHemisphereGather(int32 ElementIndex) const { return MaterialElements[ElementIndex].bUseVertexNormalForHemisphereGather; }
 
 	/**
 	 *	Returns the Guid for the object associated with this lighting mesh.
