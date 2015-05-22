@@ -36,9 +36,9 @@ bool FALSoundSource::Init( FWaveInstance* InWaveInstance )
 			// Always queue up the first buffer
 			alSourceQueueBuffers(SourceId, 1, &Buffer->BufferId);
 			if( WaveInstance->LoopingMode == LOOP_WithNotification )
-			{		
-				// We queue the sound twice for wave instances that use seamless looping so we can have smooth 
-				// loop transitions. The downside is that we might play at most one frame worth of audio from the 
+			{
+				// We queue the sound twice for wave instances that use seamless looping so we can have smooth
+				// loop transitions. The downside is that we might play at most one frame worth of audio from the
 				// beginning of the wave after the wave stops looping.
 				alSourceQueueBuffers(SourceId, 1, &Buffer->BufferId);
 			}
@@ -72,7 +72,7 @@ FALSoundSource::~FALSoundSource( void )
 
 /**
  * Updates the source specific parameter like e.g. volume and pitch based on the associated
- * wave instance.	
+ * wave instance.
  */
 void FALSoundSource::Update( void )
 {
@@ -103,7 +103,7 @@ void FALSoundSource::Update( void )
 		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	}
 
-	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH ); 
+	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
 
 	// Set whether to apply reverb
 	SetReverbApplied( true );
@@ -118,7 +118,7 @@ void FALSoundSource::Update( void )
 	Location.X = WaveInstance->Location.X;
 	Location.Y = WaveInstance->Location.Z; // Z/Y swapped on purpose, see file header
 	Location.Z = WaveInstance->Location.Y; // Z/Y swapped on purpose, see file header
-	
+
 	Velocity.X = WaveInstance->Velocity.X;
 	Velocity.Y = WaveInstance->Velocity.Z; // Z/Y swapped on purpose, see file header
 	Velocity.Z = WaveInstance->Velocity.Y; // Z/Y swapped on purpose, see file header
@@ -133,8 +133,8 @@ void FALSoundSource::Update( void )
 		Location = FVector( 0.f, 0.f, 0.f );
 	}
 
-	alSourcef( SourceId, AL_GAIN, Volume );	
-	alSourcef( SourceId, AL_PITCH, Pitch );		
+	alSourcef( SourceId, AL_GAIN, Volume );
+	alSourcef( SourceId, AL_PITCH, Pitch );
 
 	alSourcefv( SourceId, AL_POSITION, ( ALfloat* )&Location );
 	alSourcefv( SourceId, AL_VELOCITY, ( ALfloat* )&Velocity );
@@ -145,7 +145,7 @@ void FALSoundSource::Update( void )
 }
 
 /**
- * Plays the current wave instance.	
+ * Plays the current wave instance.
  */
 void FALSoundSource::Play( void )
 {
@@ -160,7 +160,7 @@ void FALSoundSource::Play( void )
 }
 
 /**
- * Stops the current wave instance and detaches it from the source.	
+ * Stops the current wave instance and detaches it from the source.
  */
 void FALSoundSource::Stop( void )
 {
@@ -193,7 +193,7 @@ void FALSoundSource::Pause( void )
 	}
 }
 
-/** 
+/**
  * Returns TRUE if an OpenAL source has finished playing
  */
 bool FALSoundSource::IsSourceFinished( void )
@@ -212,7 +212,7 @@ bool FALSoundSource::IsSourceFinished( void )
 	return true;
 }
 
-/** 
+/**
  * Handle dequeuing and requeuing of a single buffer
  */
 void FALSoundSource::HandleQueuedBuffer( void )
@@ -234,7 +234,7 @@ void FALSoundSource::HandleQueuedBuffer( void )
 /**
  * Queries the status of the currently associated wave instance.
  *
- * @return	TRUE if the wave instance/ source has finished playback and FALSE if it is 
+ * @return	TRUE if the wave instance/ source has finished playback and FALSE if it is
  *			currently playing or paused.
  */
 bool FALSoundSource::IsFinished( void )
@@ -250,7 +250,7 @@ bool FALSoundSource::IsFinished( void )
 			WaveInstance->NotifyFinished();
 			return( true );
 		}
-		else 
+		else
 		{
 			// Check to see if any complete buffers have been processed
 			ALint BuffersProcessed;
@@ -268,7 +268,7 @@ bool FALSoundSource::IsFinished( void )
 				break;
 
 			case 2:
-				// Starvation case when the source has stopped 
+				// Starvation case when the source has stopped
 				HandleQueuedBuffer();
 				HandleQueuedBuffer();
 
