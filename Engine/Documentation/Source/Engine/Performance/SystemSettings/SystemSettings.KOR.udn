@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2277674
+﻿INTSourceChangelist:2560162
 Availability: Public
 Title:시스템 세팅
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:하드웨어 사양에 따라 게임과 엔진의 특정한 면을 제어하는 플랫폼 전용 세팅 모음입니다.
 
 

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2230378
+﻿INTSourceChangelist:2560162
 Availability:Public
 Title:프로젝트를 템플릿으로 변환하기
-Crumbs: %ROOT%, Engine, Engine/Basics, Engine/Basics/Projects
+Crumbs: %ROOT%, Engine, Engine/Basics/Projects
 Description:기존 프로젝트를 템플릿으로 변환하는 방법입니다.
 
 [EXCERPT:ConvertDesc]
@@ -32,4 +32,5 @@ Description:기존 프로젝트를 템플릿으로 변환하는 방법입니다.
 참고로 새 템플릿을 확인하려면 새 프로젝트 대화창을 닫았다 열어주기만 하면 됩니다. 그러나 기존 템플릿을 (LocalizedDisplayNames 같은 것을) 변경한 경우 에디터를 재시작해야
 변경내용이 적용됩니다.
 [/REGION:tip]
+
 [/EXCERPT:ConvertDesc]

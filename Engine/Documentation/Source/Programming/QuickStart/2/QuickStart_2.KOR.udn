@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2558633
 Availability: Public
 Title:2. C++ 클래스 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -37,6 +37,6 @@ Version: 4.7
 
 ----
 
-**언리얼 엔진** 이 **Visual Studio** 를 열어 새 프로젝트를 로드합니다.
+C++ 클래스를 작성했으니, **Visual Studio** 로 전환하여 프로그래밍을 하면 됩니다. `FloatingActor.cpp` 가 자동으로 열리고, **언리얼 엔진** 은 새 클래스가 포함된 코드를 자동으로 컴파일하고 리로드합니다.
 
 %Steps%

@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2253322
+﻿INTSourceChangelist:2560162
 Availability:Public
 Title: 애셋과 패키지
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:언리얼 엔진 4 에 사용되는 애셋과 패키지 시스템에 대한 개요입니다.
 
 [VAR:Topic]
@@ -63,6 +63,7 @@ Description:언리얼 엔진 4 에 사용되는 애셋과 패키지 시스템에
 다른 프로젝트에서 사용하기 위해 애셋(과 거기에 의존된 애셋)의 사본을 만들고자 하는 경우, 콘텐츠 브라우저의 Migrate Tool(이주 툴)을 사용하면 됩니다.
 
 이주 툴 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\Migrate) 문서를 확인해 주시기 바랍니다.
+
 ### 애셋 팩
 
 런처를 통해 애셋 팩을 다운로드한 경우, 특정 애셋을 열거나 이주시킬 필요 없이 팩에 있는 콘텐츠 전체를 프로젝트에 추가시킬 수 있습니다.

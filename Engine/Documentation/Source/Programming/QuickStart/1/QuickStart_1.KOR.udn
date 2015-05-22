@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2478927
+﻿INTSourceChangelist:2558633
 Availability: Public
 Title:1. 필수 프로젝트 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -28,6 +28,6 @@ Description:지정한 사양으로 새로운 C++ 프로젝트를 만듭니다.
 
 ----
 
-**언리얼 에디터** 에 새로 만든 프로젝트가 열립니다.
+이제 **언리얼 에디터** 가 새 프로젝트를 열 것입니다. **Visual Studio** 역시 프로젝트가 만든 솔루션 파일을 열어 로드할 것입니다.
 
 %Steps%

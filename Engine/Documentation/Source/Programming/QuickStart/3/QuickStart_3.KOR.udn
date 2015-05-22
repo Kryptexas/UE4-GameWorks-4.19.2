@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2558633
 Availability: Public
 Title:3. C++ 코드 작성 및 컴파일
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -26,7 +26,7 @@ Description:C++ 클래스를 작성하고 언리얼 엔진으로 컴파일합니
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
-	[REGION:note]이제 코드를 추가하려는 시점입니다. 이 페이지 하단에서 종료 시점 상태의 사용된 모든 코드를 찾아보실 수 있습니다.[/REGION]
+	[REGION:note]이제 코드를 작성하려는 시점입니다. 이 페이지 하단에서 종료 시점 상태의 사용된 모든 코드를 찾아보실 수 있습니다.[/REGION]
 
 2. `FloatingActor.h` 에서 닫힌 괄호와 파일 끝의 세미콜론 바로 앞에 다음 코드를 추가하겠습니다:
 

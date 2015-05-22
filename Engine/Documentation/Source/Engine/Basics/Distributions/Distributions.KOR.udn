@@ -1,7 +1,7 @@
-INTSourceChangelist:2085731
+﻿INTSourceChangelist:2560162
 Availability: Public
 Title: 분포 (Distributions)
-Crumbs: %ROOT%, Engine, Engine/Basics
+Crumbs: %ROOT%, Engine
 Description:상수값, 일정 범위 내 난수값, 곡선을 따라 보간되는 값, 파라미터로 구동되는 값 등의 유연성이 제공되는 데이터 유형입니다.
 
 
