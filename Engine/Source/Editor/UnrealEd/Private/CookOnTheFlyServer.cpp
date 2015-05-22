@@ -2019,7 +2019,15 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 		EObjectFlags Flags = RF_NoFlags;
 		bool bPackageFullyLoaded = false;
 
-		if (IsCookFlagSet(ECookInitializationFlags::Compressed) )
+		bool bShouldCompressPackage = IsCookFlagSet(ECookInitializationFlags::Compressed);
+
+		if (CookByTheBookOptions)
+		{
+			bShouldCompressPackage &= (CookByTheBookOptions->bForceDisableCompressedPackages == false);
+			bShouldCompressPackage |= CookByTheBookOptions->bForceEnableCompressedPackages;
+		}
+
+		if (bShouldCompressPackage)
 		{
 			Package->PackageFlags |= PKG_StoreCompressed;
 		}
@@ -3413,6 +3421,8 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->bGenerateStreamingInstallManifests = CookByTheBookStartupOptions.bGenerateStreamingInstallManifests;
 	CookByTheBookOptions->bGenerateDependenciesForMaps = CookByTheBookStartupOptions.bGenerateDependenciesForMaps;
 	CookByTheBookOptions->CreateReleaseVersion = CreateReleaseVersion;	
+	CookByTheBookOptions->bForceEnableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceEnableCompressed);
+	CookByTheBookOptions->bForceDisableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceDisableCompressed);
 
 	bool bCookAll = (CookOptions & ECookByTheBookOptions::CookAll) != ECookByTheBookOptions::None;
 	bool bMapsOnly = (CookOptions & ECookByTheBookOptions::MapsOnly) != ECookByTheBookOptions::None;
