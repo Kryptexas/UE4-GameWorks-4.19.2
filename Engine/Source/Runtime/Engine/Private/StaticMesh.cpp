@@ -2684,8 +2684,11 @@ bool UStaticMeshSocket::AttachActor(AActor* Actor,  UStaticMeshComponent* MeshCo
 			Actor->GetRootComponent()->SnapTo( MeshComp, SocketName );
 
 #if WITH_EDITOR
-			Actor->PreEditChange( NULL );
-			Actor->PostEditChange();
+			if (GIsEditor)
+			{
+				Actor->PreEditChange(NULL);
+				Actor->PostEditChange();
+			}
 #endif // WITH_EDITOR
 
 			bAttached = true;
