@@ -121,6 +121,18 @@ void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 	{
 		ResizeMap(MapWidth, MapHeight, /*bForceResize=*/ true);
 	}
+	else
+	{
+		// Make sure that the layers are all of the right size
+		for (UPaperTileLayer* TileLayer : TileLayers)
+		{
+			if ((TileLayer->GetLayerWidth() != MapWidth) || (TileLayer->GetLayerHeight() != MapHeight))
+			{
+				TileLayer->Modify();
+				TileLayer->ResizeMap(MapWidth, MapHeight);
+			}
+		}
+	}
 
 	if (!IsTemplate())
 	{

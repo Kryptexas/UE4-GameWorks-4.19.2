@@ -309,6 +309,9 @@ void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sec
 		FSpriteRenderSection* CurrentBatch = nullptr;
 		FVector CurrentDestinationOrigin;
 		const FPaperTileInfo* CurrentCellPtr = Layer->PRIVATE_GetAllocatedCells();
+		check(Layer->GetLayerWidth() == TileMap->MapWidth);
+		check(Layer->GetLayerHeight() == TileMap->MapHeight);
+
 
 		for (int32 Y = 0; Y < TileMap->MapHeight; ++Y)
 		{
