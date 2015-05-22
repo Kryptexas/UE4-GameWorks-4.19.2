@@ -426,6 +426,11 @@ namespace Rocket
 			AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
 
+		public override float Priority()
+		{
+			return 1000000.0f;
+		}
+
 		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
 		{
 			return "Strip" + GUBP.RootEditorNode.StaticGetFullName(InHostPlatform);
