@@ -153,7 +153,24 @@ namespace AutomationTool
 					CommandUtils.LogVerbose("Script module {0} filtered by the Host Platform and will not be compiled.", ModuleFilename);
 				}
 			}
-			CompileModules(ModulesToCompile);
+
+			if ((UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64) ||
+				(UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Win32))
+			{
+				string Modules = string.Join(";", ModulesToCompile.ToArray());
+				var UATProj = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Programs\AutomationTool\Scripts\UAT.proj");
+				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2}", UATProj, Modules, BuildConfig);
+				var Result = CommandUtils.Run(CommandUtils.CmdEnv.MsBuildExe, CmdLine);
+				if (Result.ExitCode != 0)
+				{
+					throw new AutomationException(String.Format("Failed to build \"{0}\":{1}{2}", UATProj, Environment.NewLine, Result.Output));
+				}
+			}
+			else
+			{
+				CompileModules(ModulesToCompile);
+			}
+			
 
 			Environment.CurrentDirectory = OldCWD;
 		}
