@@ -518,6 +518,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_BLEND_MODE_TO_WIDGET_COMPONENT,
 	// Added lightmass primitive setting
 	VER_UE4_NEW_LIGHTMASS_PRIMITIVE_SETTING,
+	// Deprecate NoZSpring property on spring nodes to be replaced with TranslateZ property
+	VER_UE4_REPLACE_SPRING_NOZ_PROPERTY,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

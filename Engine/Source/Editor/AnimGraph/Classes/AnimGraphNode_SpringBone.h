@@ -14,6 +14,10 @@ class UAnimGraphNode_SpringBone : public UAnimGraphNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_SpringBone Node;
 
+	// Begin UObject interface
+	virtual void PostLoad();
+	// End UObject interface
+
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

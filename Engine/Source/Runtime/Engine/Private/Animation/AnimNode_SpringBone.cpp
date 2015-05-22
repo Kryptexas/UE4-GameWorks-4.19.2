@@ -12,11 +12,17 @@ FAnimNode_SpringBone::FAnimNode_SpringBone()
 	, SpringStiffness(50.0f)
 	, SpringDamping(4.0f)
 	, ErrorResetThresh(256.0f)
-	, bNoZSpring(false)
+	, bNoZSpring_DEPRECATED(false)
 	, RemainingTime(0.f)
 	, bHadValidStrength(false)
 	, BoneLocation(FVector::ZeroVector)
 	, BoneVelocity(FVector::ZeroVector)
+	, bTranslateX(true)
+	, bTranslateY(true)
+	, bTranslateZ(true)
+	, bRotateX(false)
+	, bRotateY(false)
+	, bRotateZ(false)
 {
 }
 
@@ -57,9 +63,31 @@ void FAnimNode_SpringBone::GatherDebugData(FNodeDebugData& DebugData)
 	ComponentPose.GatherDebugData(DebugData);
 }
 
+FORCEINLINE void CopyToVectorByFlags(FVector& DestVec, const FVector& SrcVec, bool bX, bool bY, bool bZ)
+{
+	if (bX)
+	{
+		DestVec.X = SrcVec.X;
+	}
+	if (bY)
+	{
+		DestVec.Y = SrcVec.Y;
+	}
+	if (bZ)
+	{
+		DestVec.Z = SrcVec.Z;
+	}
+}
+
 void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 	check(OutBoneTransforms.Num() == 0);
+
+	const bool bNoOffset = !bTranslateX && !bTranslateY && !bTranslateZ;
+	if (bNoOffset)
+	{
+		return;
+	}
 
 	// Location of our bone in world space
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
@@ -129,11 +157,9 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		FVector const DeltaMove = (BoneVelocity * FixedTimeStep);
 		BoneLocation += DeltaMove;
 
-		// Force z to be correct if desired
-		if (bNoZSpring)
-		{
-			BoneLocation.Z = TargetPos.Z;
-		}
+		// Filter out spring translation based on our filter properties
+		CopyToVectorByFlags(BoneLocation, TargetPos, !bTranslateX, !bTranslateY, !bTranslateZ);
+
 
 		// If desired, limit error
 		if (bLimitDisplacement)
@@ -159,6 +185,24 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 	// Now convert back into component space and output - rotation is unchanged.
 	FTransform OutBoneTM = SpaceBase;
 	OutBoneTM.SetLocation( SkelComp->GetComponentToWorld().InverseTransformPosition(BoneLocation) );
+
+	const bool bUseRotation = bRotateX || bRotateY || bRotateZ;
+	if (bUseRotation)
+	{
+		FCompactPoseBoneIndex ParentBoneIndex = MeshBases.GetPose().GetParentBoneIndex(SpringBoneIndex);
+		const FTransform& ParentSpaceBase = MeshBases.GetComponentSpaceTransform(ParentBoneIndex);
+
+		FVector ParentToTarget = (TargetPos - ParentSpaceBase.GetLocation()).GetSafeNormal();
+		FVector ParentToCurrent = (BoneLocation - ParentSpaceBase.GetLocation()).GetSafeNormal();
+
+		FQuat AdditionalRotation = FQuat::FindBetween(ParentToTarget, ParentToCurrent);
+
+		// Filter rotation based on our filter properties
+		FVector EularRot = AdditionalRotation.Euler();
+		CopyToVectorByFlags(EularRot, FVector::ZeroVector, !bRotateX, !bRotateY, !bRotateZ);
+
+		OutBoneTM.SetRotation(FQuat::MakeFromEuler(EularRot) * OutBoneTM.GetRotation());
+	}
 
 	// Output new transform for current bone.
 	OutBoneTransforms.Add(FBoneTransform(SpringBoneIndex, OutBoneTM));

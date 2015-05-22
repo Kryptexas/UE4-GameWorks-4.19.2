@@ -39,8 +39,32 @@ struct ENGINE_API FAnimNode_SpringBone : public FAnimNode_SkeletalControlBase
 	float ErrorResetThresh;
 
 	/** If true, Z position is always correct, no spring applied */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Spring)
-	bool bNoZSpring;
+	UPROPERTY()
+	bool bNoZSpring_DEPRECATED;
+
+	/** If true take the spring calculation for translation in X */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	bool bTranslateX;
+
+	/** If true take the spring calculation for translation in Y */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	bool bTranslateY;
+
+	/** If true take the spring calculation for translation in Z */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	bool bTranslateZ;
+
+	/** If true take the spring calculation for rotation in X */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	bool bRotateX;
+
+	/** If true take the spring calculation for rotation in Y */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	bool bRotateY;
+
+	/** If true take the spring calculation for rotation in Z */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FilterChannels)
+	bool bRotateZ;
 
 	/** Internal use - Amount of time we need to simulate. */
 	float RemainingTime;
