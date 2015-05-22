@@ -33,11 +33,16 @@ private:
 	void OnTargetDependencyCheckStateChanged(ULocalizationTarget* const OtherLocalizationTarget, const ECheckBoxState State);
 	ECheckBoxState IsTargetDependencyChecked(ULocalizationTarget* const OtherLocalizationTarget) const;
 
+	bool CanGather() const;
 	void Gather();
+	bool CanImportAllCultures() const;
 	void ImportAllCultures();
+	bool CanExportAllCultures() const;
 	void ExportAllCultures();
-	void Compile();
-	void RefreshWordCounts();
+	bool CanCountWords() const;
+	void CountWords();
+	bool CanCompileAllCultures() const;
+	void CompileAllCultures();
 	void UpdateTargetFromReports();
 
 	void BuildListedCulturesList();
@@ -68,6 +73,7 @@ private:
 	TSharedPtr<IPropertyHandle> SupportedCulturesStatisticsPropertyHandle;
 	FSimpleDelegate SupportedCulturesStatisticsPropertyHandle_OnNumElementsChanged;
 	TSharedPtr< SListView< TSharedPtr<IPropertyHandle> > > SupportedCultureListView;
+	TSharedPtr<SErrorText> NoSupportedCulturesErrorText;
 	TSharedPtr<SComboButton> AddNewSupportedCultureComboButton;
 	TSharedPtr<SCulturePicker> SupportedCulturePicker;
 	TArray< TSharedPtr<IPropertyHandle> > ListedCultureStatisticProperties;

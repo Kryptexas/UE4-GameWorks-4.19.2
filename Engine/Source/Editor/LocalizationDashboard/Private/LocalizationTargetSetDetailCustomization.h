@@ -32,11 +32,17 @@ private:
 	//TSharedRef<SWidget> ServiceProviderComboBox_OnGenerateWidget(TSharedPtr<FLocalizationServiceProviderWrapper> LSPWrapper) const;
 	//void ServiceProviderComboBox_OnSelectionChanged(TSharedPtr<FLocalizationServiceProviderWrapper> LSPWrapper, ESelectInfo::Type SelectInfo);
 
+	bool CanGatherAllTargets() const;
 	void GatherAllTargets();
+	bool CanImportAllTargets() const;
 	void ImportAllTargets();
+	bool CanExportAllTargets() const;
 	void ExportAllTargets();
-	void UpdateTargetFromReports(ULocalizationTarget* const LocalizationTarget);
+	bool CanCountWordsForAllTargets() const;
+	void CountWordsForAllTargets();
+	bool CanCompileAllTargets() const;
 	void CompileAllTargets();
+	void UpdateTargetFromReports(ULocalizationTarget* const LocalizationTarget);
 
 	TSharedRef<ITableRow> OnGenerateRow(TSharedPtr<IPropertyHandle> TargetObjectPropertyHandle, const TSharedRef<STableViewBase>& Table);
 	FReply OnNewTargetButtonClicked();

@@ -34,6 +34,7 @@ private:
 	FReply Edit();
 	FReply Import();
 	FReply Export();
+	FReply Compile();
 	bool CanDelete() const;
 	FReply EnqueueDeletion();
 	void Delete();

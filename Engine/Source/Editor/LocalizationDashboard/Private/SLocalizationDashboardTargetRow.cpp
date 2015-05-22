@@ -56,6 +56,14 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 		TSharedRef<SHorizontalBox> HorizontalBox = SNew(SHorizontalBox);
 		Return = HorizontalBox;
 
+		const TSharedRef<SLocalizationDashboardTargetRow> LocalSharedThis = SharedThis(this);
+
+		const auto& CanGather = [=]() -> bool
+		{
+			ULocalizationTarget* const LocalizationTarget = LocalSharedThis->GetTarget();
+			return LocalizationTarget && LocalizationTarget->Settings.SupportedCulturesStatistics.Num() > 0 && LocalizationTarget->Settings.SupportedCulturesStatistics.IsValidIndex(LocalizationTarget->Settings.NativeCultureIndex);
+		};
+
 		// Gather
 		HorizontalBox->AddSlot()
 			.FillWidth(1.0f)
@@ -64,29 +72,16 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( LOCTEXT("GatherButtonLabel", "Gather") )
+				.ToolTipText_Lambda([=]() -> FText
+				{
+					return CanGather() ? LOCTEXT("GatherButtonLabel", "Gather") : LOCTEXT("DisabledGatherButtonLabel", "Must have a native culture specified in order to gather.");
+				})
 				.OnClicked(this, &SLocalizationDashboardTargetRow::Gather)
+				.IsEnabled_Lambda(CanGather)
 				.Content()
 				[
 					SNew(SImage)
 					.Image( FEditorStyle::GetBrush("LocalizationDashboard.GatherTarget") )
-				]
-			];
-
-		// Refresh Word Counts
-		HorizontalBox->AddSlot()
-			.FillWidth(1.0f)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SButton)
-				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( LOCTEXT("RefreshWordCountButtonLabel", "Refresh") )
-				.OnClicked(this, &SLocalizationDashboardTargetRow::RefreshWordCount)
-				.Content()
-				[
-					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("LocalizationDashboard.RefreshWordCount"))
 				]
 			];
 
@@ -100,10 +95,15 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
 				.ToolTipText( LOCTEXT("ImportAllButtonLabel", "Import All") )
 				.OnClicked(this, &SLocalizationDashboardTargetRow::ImportAll)
+				.IsEnabled_Lambda([this]() -> bool
+				{
+					ULocalizationTarget* const LocalizationTarget = GetTarget();
+					return LocalizationTarget && LocalizationTarget->Settings.SupportedCulturesStatistics.Num() > 0;
+				})
 				.Content()
 				[
 					SNew(SImage)
-					.Image( FEditorStyle::GetBrush("LocalizationDashboard.ImportForAllCultures") )
+					.Image( FEditorStyle::GetBrush("LocalizationDashboard.ImportAllCultures") )
 				]
 			];
 
@@ -117,10 +117,37 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
 				.ToolTipText(LOCTEXT("ExportAllButtonLabel", "Export All"))
 				.OnClicked(this, &SLocalizationDashboardTargetRow::ExportAll)
+				.IsEnabled_Lambda([this]() -> bool
+				{
+					ULocalizationTarget* const LocalizationTarget = GetTarget();
+					return LocalizationTarget && LocalizationTarget->Settings.SupportedCulturesStatistics.Num() > 0;
+				})
 				.Content()
 				[
 					SNew(SImage)
-					.Image(FEditorStyle::GetBrush("LocalizationDashboard.ExportForAllCultures"))
+					.Image(FEditorStyle::GetBrush("LocalizationDashboard.ExportAllCultures"))
+				]
+			];
+
+		// Count Words
+		HorizontalBox->AddSlot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
+				.ToolTipText( LOCTEXT("RefreshWordCountButtonLabel", "Count Words for All") )
+				.OnClicked(this, &SLocalizationDashboardTargetRow::CountWords)
+				.IsEnabled_Lambda([this]() -> bool
+				{
+					ULocalizationTarget* const LocalizationTarget = GetTarget();
+					return LocalizationTarget && LocalizationTarget->Settings.SupportedCulturesStatistics.Num() > 0;
+				})
+				.Content()
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("LocalizationDashboard.CountWordsForTarget"))
 				]
 			];
 
@@ -132,12 +159,17 @@ TSharedRef<SWidget> SLocalizationDashboardTargetRow::GenerateWidgetForColumn( co
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), TEXT("HoverHintOnly") )
-				.ToolTipText( LOCTEXT("CompileButtonLabel", "Compile") )
-				.OnClicked(this, &SLocalizationDashboardTargetRow::Compile)
+				.ToolTipText( LOCTEXT("CompileButtonLabel", "Compile All") )
+				.OnClicked(this, &SLocalizationDashboardTargetRow::CompileAll)
+				.IsEnabled_Lambda([this]() -> bool
+				{
+					ULocalizationTarget* const LocalizationTarget = GetTarget();
+					return LocalizationTarget && LocalizationTarget->Settings.SupportedCulturesStatistics.Num() > 0;
+				})
 				.Content()
 				[
 					SNew(SImage)
-					.Image( FEditorStyle::GetBrush("LocalizationDashboard.CompileTarget") )
+					.Image( FEditorStyle::GetBrush("LocalizationDashboard.CompileAllCultures") )
 				]
 			];
 
@@ -305,22 +337,6 @@ void SLocalizationDashboardTargetRow::UpdateTargetFromReports()
 	}
 }
 
-FReply SLocalizationDashboardTargetRow::RefreshWordCount()
-{
-	bool HasSucceeded = false;
-
-	ULocalizationTarget* const LocalizationTarget = GetTarget();
-	if (LocalizationTarget)
-	{
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-		LocalizationCommandletTasks::GenerateWordCountReportForTarget(ParentWindow.ToSharedRef(), LocalizationTarget);
-
-		UpdateTargetFromReports();
-	}
-
-	return FReply::Handled();
-}
-
 FReply SLocalizationDashboardTargetRow::Gather()
 {
 	ULocalizationTarget* const LocalizationTarget = GetTarget();
@@ -428,7 +444,23 @@ FReply SLocalizationDashboardTargetRow::ExportAll()
 	return FReply::Handled();
 }
 
-FReply SLocalizationDashboardTargetRow::Compile()
+FReply SLocalizationDashboardTargetRow::CountWords()
+{
+	bool HasSucceeded = false;
+
+	ULocalizationTarget* const LocalizationTarget = GetTarget();
+	if (LocalizationTarget)
+	{
+		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		LocalizationCommandletTasks::GenerateWordCountReportForTarget(ParentWindow.ToSharedRef(), LocalizationTarget);
+
+		UpdateTargetFromReports();
+	}
+
+	return FReply::Handled();
+}
+
+FReply SLocalizationDashboardTargetRow::CompileAll()
 {
 	ULocalizationTarget* const LocalizationTarget = GetTarget();
 	if (LocalizationTarget)
