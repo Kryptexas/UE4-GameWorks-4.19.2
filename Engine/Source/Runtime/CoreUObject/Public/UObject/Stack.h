@@ -416,6 +416,5 @@ FORCEINLINE_DEBUGGABLE TNativeType& FFrame::StepCompiledInRef(void*const Tempora
 		StepExplicitProperty(TemporaryBuffer, Property);
 	}
 
-	check(MostRecentPropertyAddress);
-	return *(TNativeType*)(MostRecentPropertyAddress);
+	return (MostRecentPropertyAddress != NULL) ? *(TNativeType*)(MostRecentPropertyAddress) : *(TNativeType*)TemporaryBuffer;
 }
