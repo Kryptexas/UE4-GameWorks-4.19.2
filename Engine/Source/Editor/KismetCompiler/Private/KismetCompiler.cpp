@@ -1353,6 +1353,9 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		Context.Function->FunctionFlags |= Context.GetNetFlags();
 
+		// Parameter list needs to be linked before signatures are compared. 
+		Context.Function->StaticLink(true);
+
 		// Make sure the function signature is valid if this is an override
 		if (ParentFunction)
 		{

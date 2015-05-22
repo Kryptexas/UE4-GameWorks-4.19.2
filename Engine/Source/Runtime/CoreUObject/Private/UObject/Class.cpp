@@ -4244,12 +4244,9 @@ bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64
 			UProperty* PropA = *IteratorA;
 			UProperty* PropB = *IteratorB;
 
-			FString TypeA(PropA->GetCPPType());
-			FString TypeB(PropB->GetCPPType());
-
 			// Check the flags as well
 			const uint64 PropertyMash = PropA->PropertyFlags ^ PropB->PropertyFlags;
-			if ((TypeA != TypeB) || ((PropertyMash & ~IgnoreFlags) != 0))
+			if (!FStructUtils::ArePropertiesTheSame(PropA, PropB, false) || ((PropertyMash & ~IgnoreFlags) != 0))
 			{
 				// Type mismatch between an argument of A and B
 				return false;
