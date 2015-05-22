@@ -2232,7 +2232,7 @@ namespace UnrealBuildTool
 			{
 				foreach(ModuleDescriptor Module in Plugin.Descriptor.Modules)
 				{
-					if (Module.IsCompiledInConfiguration(Platform, TargetType))
+					if (Module.IsCompiledInConfiguration(Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
 					{
 						// Add the corresponding binary for it
 						string ModuleFileName = RulesCompiler.GetModuleFilename(Module.Name);
@@ -2277,7 +2277,7 @@ namespace UnrealBuildTool
 				{
 					foreach(ModuleDescriptor Module in Plugin.Descriptor.Modules)
 					{
-						if (Module.IsCompiledInConfiguration(Platform, TargetType))
+						if (Module.IsCompiledInConfiguration(Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
 						{
 							PrecompiledModuleNames.Add(Module.Name);
 						}
