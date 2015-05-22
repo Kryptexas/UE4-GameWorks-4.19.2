@@ -1053,7 +1053,7 @@ struct FInitBodiesHelper
 
 	physx::PxRigidActor* CreateActor_PhysX_AssumesLocked(FBodyInstance* Instance, const PxTransform& PTransform) const
 	{
-		physx::PxRigidActor* PNewDynamic = nullptr;
+		physx::PxRigidDynamic* PNewDynamic = nullptr;
 
 		if (bCompileStatic || bStatic)
 		{
@@ -1073,6 +1073,11 @@ struct FInitBodiesHelper
 			else
 			{
 				Instance->RigidActorSync = PNewDynamic;
+			}
+
+			if(!Instance->ShouldInstanceSimulatingPhysics())
+			{
+				PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, true);
 			}
 		}
 
