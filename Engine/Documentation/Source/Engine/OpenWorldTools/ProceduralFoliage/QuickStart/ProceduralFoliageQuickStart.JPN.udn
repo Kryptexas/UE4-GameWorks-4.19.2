@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2554119
+﻿INTSourceChangelist:2557359
 Availability:Docs
 Title:Procedural Foliage ツール クイックスタート
 Crumbs:
@@ -19,11 +19,14 @@ Procedural Foliage ツールを UE4 の他のツールと連携して使用す�
 また、Procedural Foliage ツールに必要なアクタ タイプや、正しく作業するための設定方法を深く理解できるようになります。
 さらに、ツールに関する注意事項およびワークフローの調整方法についても説明します。
 
+## 前提条件
+プロジェクトで Procedural Foliage ツールを使うには、まずメイン ツールバーから **[Edit]** > **[Editor Preferences]** > **[Experimental]** を選択して、プロジェクトの Procedural Foliage を必ず有効にしておいてください。 
+Experimental セクションの「 **Procedural Foliage** 」の文字の横にあるチェックマーク ボックスをクリックして、Procedural Foliage オプションを有効にします。
+コレクションのコンテンツの中には、Open World ツール クイックスタートで使われていものもあるので、アンリアル エンジン 4 から **Open World Demo Collection** コンテンツ パックもダウンロードしてください。
 
-[region:note]
-まずメイン ツールバーから **[Edit]** > **[Editor Preferences]** > **[Experimental]** を選択します。プロジェクトの Procedural Foliage を必ず有効にしておいてください。 
-Experimental セクションの「 **Procedural Foliage** 」の文字の横にあるチェックマーク ボックスをクリックして、Procedural Foliage オプションを有効にします。 
-[/region]
+Open World Demo Collection をダウンロードしたら、このクイックスタートで使用するプロジェクトに追加してください。方法は、UE 4 ランチャーの **Vault** セクションにある Open World Demo Collection を探して **[Add to Project]** ボタンをクリックします。追加先に選択可能なプロジェクトの一覧が表示されます。このクイックスタートで使用するプロジェクトを選んで、**[Add to Project]** を押してコンテンツを追加します。再度プロジェクトを開くと、「 **Kite Demo** 」というフォルダが出来ています。必要なコンテンツはこのフォルダの中にあります。
+
+
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
