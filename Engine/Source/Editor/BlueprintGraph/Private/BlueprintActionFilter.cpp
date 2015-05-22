@@ -927,7 +927,7 @@ static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActio
 			UEdGraph const* VarOuter = Cast<UEdGraph const>(VarSpawner->GetVarOuter());
 			for (UEdGraph* Graph : Filter.Context.Graphs)
 			{
-				if (Graph != VarOuter)
+				if (FBlueprintEditorUtils::GetTopLevelGraph(Graph) != VarOuter)
 				{
 					bIsFilteredOut = true;
 					break;
