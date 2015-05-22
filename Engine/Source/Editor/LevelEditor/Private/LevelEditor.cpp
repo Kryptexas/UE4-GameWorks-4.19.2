@@ -270,22 +270,6 @@ void FLevelEditorModule::ShutdownModule()
 	FLevelViewportCommands::Unregister();
 }
 
-void FLevelEditorModule::PreUnloadCallback()
-{
-	// Disable the "tab closed" delegate that closes the editor if the level editor tab is closed
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( MainFrame );
-	MainFrameModule.DisableTabClosedDelegate();
-}
-
-void FLevelEditorModule::PostLoadCallback()
-{
-	// Re-open the level editor tab and re-enable the "tab closed" delegate
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( MainFrame );
-	TSharedRef<SDockTab> LevelEditorTab = FGlobalTabmanager::Get()->InvokeTab(FTabId("LevelEditor"));
-	MainFrameModule.SetMainTab(LevelEditorTab);
-	MainFrameModule.EnableTabClosedDelegate();
-}
-
 /**
  * Spawns a new property viewer
  * @todo This only works with the first level editor. Fix it.

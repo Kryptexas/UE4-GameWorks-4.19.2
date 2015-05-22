@@ -32,6 +32,7 @@ public:
 	/**
 	 * Called before the module has been unloaded
 	 */
+	DEPRECATED(4.9, "PreUnloadCallback() was deprecated because it was not called in all expected cases and generally was not useful.  Override the ShutdownModule() function instead.")
 	virtual void PreUnloadCallback()
 	{
 	}
@@ -39,6 +40,7 @@ public:
 	/**
 	 * Called after the module has been reloaded
 	 */
+	DEPRECATED(4.9, "PostLoadCallback() was deprecated because it was not called in all expected cases and generally was not useful.  Override the StartupModule() function instead.")
 	virtual void PostLoadCallback()
 	{
 	}

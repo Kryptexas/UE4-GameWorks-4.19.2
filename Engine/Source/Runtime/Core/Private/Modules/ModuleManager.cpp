@@ -939,7 +939,9 @@ void FModuleManager::UnloadOrAbandonModuleWithCallback(const FName InModuleName,
 {
 	auto Module = FindModuleChecked(InModuleName);
 	
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	Module->Module->PreUnloadCallback();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
 	const bool bIsHotReloadable = DoesLoadedModuleHaveUObjects( InModuleName );
 	if (!bAbandonOnly && bIsHotReloadable && Module->Module->SupportsDynamicReloading())
@@ -968,7 +970,9 @@ bool FModuleManager::LoadModuleWithCallback( const FName InModuleName, FOutputDe
 
 	if (bWasSuccessful && LoadedModule.IsValid())
 	{
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
 		LoadedModule->PostLoadCallback();
+PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	}
 	else
 	{
