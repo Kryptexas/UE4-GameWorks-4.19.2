@@ -290,6 +290,11 @@ EVisibility SWidgetDetailsView::GetNameAreaVisibility() const
 
 EVisibility SWidgetDetailsView::GetCategoryAreaVisibility() const
 {
+	if ( SelectedObjects.Num() == 0 )
+	{
+		return EVisibility::Collapsed;
+	}
+
 	return IsWidgetCDOSelected() ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
