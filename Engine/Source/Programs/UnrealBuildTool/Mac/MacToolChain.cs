@@ -1373,7 +1373,7 @@ namespace UnrealBuildTool
 			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
 			foreach (var Module in Modules)
 			{
-				Module.SetupPrivateLinkEnvironment(BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);
+				Module.SetupPrivateLinkEnvironment(Binary, BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);
 			}
 
 			foreach (string AdditionalLibrary in BinaryLinkEnvironment.Config.AdditionalLibraries)
