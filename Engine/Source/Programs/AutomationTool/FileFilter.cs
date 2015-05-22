@@ -213,15 +213,6 @@ public class FileFilter
 	/// Adds several exclude rules to the filter
 	/// </summary>
 	/// <param name="Patterns">Patterns to match. See CreateRegex() for details.</param>
-	public void Include(params string[] Patterns)
-	{
-		Include(Patterns);
-	}
-
-	/// <summary>
-	/// Adds several exclude rules to the filter
-	/// </summary>
-	/// <param name="Patterns">Patterns to match. See CreateRegex() for details.</param>
 	public void Include(IEnumerable<string> Patterns)
 	{
 		foreach (string Pattern in Patterns)
@@ -237,15 +228,6 @@ public class FileFilter
 	public void Exclude(string Pattern)
 	{
 		AddRule(Pattern, FileFilterType.Exclude);
-	}
-
-	/// <summary>
-	/// Adds several exclude rules to the filter
-	/// </summary>
-	/// <param name="Patterns">Patterns to match. See CreateRegex() for details.</param>
-	public void Exclude(params string[] Patterns)
-	{
-		Exclude(Patterns);
 	}
 
 	/// <summary>
