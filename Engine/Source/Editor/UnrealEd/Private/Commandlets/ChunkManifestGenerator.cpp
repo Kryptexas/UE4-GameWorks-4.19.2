@@ -434,10 +434,8 @@ bool FChunkManifestGenerator::LoadAssetRegistry(const FString& SandboxPath, cons
 		}
 		for (auto& LoadedAssetData : AssetRegistryData)
 		{
-			
-			FName ShortPackageName = FName(*FPaths::GetBaseFilename(LoadedAssetData.PackageName.ToString()));
 			if (PackagesToKeep &&
-				PackagesToKeep->Contains(ShortPackageName) == false)
+				PackagesToKeep->Contains(LoadedAssetData.PackageName) == false)
 			{
 				continue;
 			}
@@ -454,9 +452,7 @@ bool FChunkManifestGenerator::LoadAssetRegistry(const FString& SandboxPath, cons
 
 		for (const auto& SavedAsset : SavedAssetRegistryData)
 		{
-			FName ShortPackageName = FName(*FPaths::GetBaseFilename(SavedAsset.Value->PackageName.ToString()));
-
-			if (PackagesToKeep && PackagesToKeep->Contains(ShortPackageName))
+			if (PackagesToKeep && PackagesToKeep->Contains(SavedAsset.Value->PackageName))
 			{ 
 				AssetRegistryData.Add(*SavedAsset.Value);
 			}

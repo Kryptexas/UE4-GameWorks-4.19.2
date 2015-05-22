@@ -2680,6 +2680,8 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 					FDateTime DependentTimestamp;
 					FName StandardCookedFileFName = FName(*StandardCookedFilename);
 
+					bool bShouldKeep = true;
+
 					if (PDInfoModule.DeterminePackageDependentTimeStamp(*(FPaths::GetBaseFilename(StandardCookedFilename, false)), DependentTimestamp) == true)
 					{
 						double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
@@ -2692,17 +2694,25 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 							IFileManager::Get().Delete(*CookedFilename);
 
 							CookedPackages.RemoveFileForPlatform(StandardCookedFileFName, PlatformFName);
+
+							bShouldKeep = false;
+						}
+					}
+
+					if (bShouldKeep)
+					{
+						FString LongPackageName;
+						FString FailureReason;
+						if (FPackageName::TryConvertFilenameToLongPackageName(StandardCookedFilename, LongPackageName, &FailureReason))
+						{
+							const FName LongPackageFName(*LongPackageName);
+							PackagesKeptFromPreviousCook.Add(LongPackageFName);
 						}
 						else
 						{
-							FName ShortPackageName = FName(*FPaths::GetBaseFilename(StandardCookedFileFName.ToString()));
-							PackagesKeptFromPreviousCook.Add(ShortPackageName);
+							LogCookerMessage(FString::Printf(TEXT("Unable to generate long package name for %s because %s"), *StandardCookedFilename, *FailureReason), EMessageSeverity::Warning);
+							UE_LOG(LogCook, Warning, TEXT("Unable to generate long package name for %s because %s"), *StandardCookedFilename, *FailureReason);
 						}
-					}
-					else
-					{
-						FName ShortPackageName = FName(*FPaths::GetBaseFilename(StandardCookedFileFName.ToString()));
-						PackagesKeptFromPreviousCook.Add(ShortPackageName);
 					}
 				}
 			}
