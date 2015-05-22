@@ -7284,7 +7284,7 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.bNoCollisionFail = true;
 			SpawnInfo.bNoFail = true;
-			SpawnInfo.ObjectFlags = RF_Transient;
+			SpawnInfo.ObjectFlags = RF_Transient|RF_Transactional;
 
 			// Temporarily remove the deprecated flag so we can respawn the Blueprint in the viewport
 			bool bIsClassDeprecated = PreviewBlueprint->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
