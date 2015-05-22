@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2219885
+﻿INTSourceChangelist:2557570
 Availability:Public
 Title:テクスチャ エディタ UI
 Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
@@ -55,7 +55,7 @@ Description:テクスチャ エディタ UI の説明
 
 [/EXCERPT:Intro]
 
-**コンテンツ ブラウザ** のテクスチャ アセットを **ダブルクリック** するか、テクスチャ アセットを **右クリック** し、次に表示されるコンテクスト メニューの **[編集]** をクリックするとテクスチャ エディタを開くことができます。
+**コンテンツ ブラウザ** のテクスチャ アセットを **ダブルクリック** するか、テクスチャ アセットを **右クリック** し、次に表示されるコンテキストメニューの **[Edit]** をクリックするとテクスチャ エディタを開くことができます。
 
 ![Texture Editor UI](Texture_UI.png)
 
@@ -79,6 +79,7 @@ Description:テクスチャ エディタ UI の説明
 ###アセット
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetViewReference]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
 
 
@@ -96,7 +97,7 @@ Description:テクスチャ エディタ UI の説明
 | ---- | ----------- |
 | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
 | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
-| ![](TextureUI_Toolbar_Compress.png) | **[詳細]** パネルの **[Compression]** セクションにある設定に従い、テクスチャを圧縮します。 |
+| ![](TextureUI_Toolbar_Compress.png) | **[Details]** パネルの **[Compression]** セクションにある設定に従い、テクスチャを圧縮します。 |
 | ![](TextureUI_Toolbar_Reimport.png) | ディスク上にある元の場所から現在のアセットを再インポートします。 |
 | ![](TextureUI_Toolbar_Mip.png) | チェック ボックスをクリックし、スライダーバーをドラッグする (またはプラス ボタンまたはマイナス ボタンをクリックする) ことでテクスチャのミップレベルを変更できます。 |
 
@@ -107,7 +108,7 @@ Description:テクスチャ エディタ UI の説明
 
 ビューポートにはテクスチャ アセットのプレビューが表示されます。
 
-ビューポートの左上隅にはドロップダウンの **[表示]** メニューがあります。このメニューは様々なチャンネルや設定を切り替えるオプション、テクスチャがどのように表示されるかを変更するためのオプションがあります。
+ビューポートの左上隅にはドロップダウンの **[View]** メニューがあります。このメニューは様々なチャンネルや設定を切り替えるオプション、テクスチャがどのように表示されるかを変更するためのオプションがあります。
 
 ![](TextureUI_Viewport_ViewMenu.png)
 
@@ -115,6 +116,6 @@ Description:テクスチャ エディタ UI の説明
 
 ## 詳細パネル
 
-**[詳細]** パネルはテクスチャの様々なプロパティを表示し、変更できるようにします。テクスチャ エディタの **[詳細]** パネルに関する詳細は、 [](Engine/Content/Types/Textures\Properties) を参照してください。
+**[Details]** パネルはテクスチャの様々なプロパティを表示し、変更できるようにします。テクスチャ エディタの **[Details]** パネルに関する詳細は、 [](Engine/Content/Types/Textures\Properties) を参照してください。
 
-アンリアル エンジンの [詳細] パネルに関する詳細は、 [](Engine/UI/LevelEditor\Details) を参照してください。
+アンリアル エンジンの **[Details]** パネルに関する詳細は、 [](Engine/UI/LevelEditor\Details) を参照してください。
