@@ -62,7 +62,5 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	// Returns pin for the automatically added WorldContext parameter (used only by BlueprintFunctionLibrary).
 	BLUEPRINTGRAPH_API UEdGraphPin* GetAutoWorldContextPin() const;
-
-	BLUEPRINTGRAPH_API void RemoveUnnecessaryAutoWorldContext();
 };
 

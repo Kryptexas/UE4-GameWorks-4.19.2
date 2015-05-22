@@ -1166,9 +1166,6 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			TransformNodes(Context);
 		}
 
-		//Now we can safely remove automatically added WorldContext pin from static function.
-		Context.EntryPoint->RemoveUnnecessaryAutoWorldContext();
-
 		// Create the function stub
 		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
 		if(Context.IsDelegateSignature())
@@ -2536,7 +2533,7 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraphExpansions)
 {
 	// Node expansion may affect the signature of a static function
-	if (bIsFullCompile || Schema->IsStaticFunctionGraph(Graph))
+	if (bIsFullCompile)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_Expansion);
 
