@@ -137,48 +137,9 @@ var gWasFullScreen = false;
 var gOldWidth, gOldHeight;
 
 function fullScreenChange() {
-  var fsElem = document['fullScreenElement'] ||
-               document['mozFullScreenElement'] ||
-               document['webkitFullScreenElement'] ||
-               document['msFullScreenElement'] ||
-               document['webkitCurrentFullScreenElement'];
-  var canvas = document.getElementById("canvas");
-
-  if (fsElem == canvas || fsElem == canvas.parentNode) {
-    // we just went full screen
-    gWasFullScreen = true;
-
-    // update the canvas size
-    gOldWidth = canvas.width;
-    gOldHeight = canvas.height;
-
-    var width = window.screen.width;
-    var height = window.screen.height;
-
-    canvas.width = width;
-    canvas.height = height;
-    canvas.setAttribute("fullscreen", "true");
-
-    console.log("Resize: (to fullscreen)", canvas.width, canvas.height);
-    UE4.resize_game(canvas.width, canvas.height); 
-  } else if (gWasFullScreen) {
-    // we just left full screen
-    gWasFullScreen = false;
-
-    canvas.width = gOldWidth;
-    canvas.height = gOldHeight;
-    canvas.removeAttribute("fullscreen");
-
-    console.log("Resize: (to windowed) ", canvas.width, canvas.height);
-    UE4.resize_game(canvas.width, canvas.height); 
-  }
 }
 
 function preRunHandler() {
-  document.addEventListener('fullscreenchange', fullScreenChange, false);
-  document.addEventListener('mozfullscreenchange', fullScreenChange, false);
-  document.addEventListener('webkitfullscreenchange', fullScreenChange, false);
-  document.addEventListener('MSFullscreenChange', fullScreenChange, false);
 }
 
 function loadJavaScriptFile(filename,isAsync){ 
