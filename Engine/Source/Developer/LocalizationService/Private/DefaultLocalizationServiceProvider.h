@@ -25,7 +25,7 @@ public:
 	virtual void Tick() override;
 #if LOCALIZATION_SERVICES_WITH_SLATE
 	virtual void CustomizeSettingsDetails(IDetailCategoryBuilder& DetailCategoryBuilder) const override;
-	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, ULocalizationTarget& Target) const override;
+	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const override;
 #endif // LOCALIZATION_SERVICES_WITH_SLATE
 };
 

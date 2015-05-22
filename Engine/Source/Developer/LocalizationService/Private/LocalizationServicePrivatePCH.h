@@ -24,3 +24,11 @@
 #include "MessageLogModule.h"
 #endif
  
+#include "ILocalizationServiceModule.h"
+#include "LocalizationServiceModule.h"
+#include "LocalizationServiceSettings.h"
+#include "ILocalizationServiceProvider.h"
+#include "ILocalizationServiceRevision.h"
+#include "ILocalizationServiceOperation.h" 
+#include "ILocalizationServiceState.h"
+#include "LocalizationServiceOperations.h" 

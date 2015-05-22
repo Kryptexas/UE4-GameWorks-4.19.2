@@ -12,13 +12,15 @@ struct FLocalizationServiceTranslationIdentifier //: TSharedFromThis<FLocalizati
 	{}
 
 	FLocalizationServiceTranslationIdentifier(FCulturePtr InCulturePtr, const FString& InNamespace, const FString& InSource)
-		: Culture(InCulturePtr)
+		: LocalizationTargetGuid()
+		, Culture(InCulturePtr)
 		, Namespace(InNamespace)
 		, Source(InSource)
 	{
 
 	}
 
+	FGuid LocalizationTargetGuid;
 	FCulturePtr Culture;
 	FString Namespace;
 	FString Source;

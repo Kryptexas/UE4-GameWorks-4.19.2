@@ -202,7 +202,7 @@ public:
 	* Create a settings widget for display in the localization target editor.
 	* @returns a widget used to edit target-specific localization service settings.
 	*/
-	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, ULocalizationTarget& Target) const = 0;
+	virtual void CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const = 0;
 #endif //LOCALIZATION_SERVICES_WITH_SLATE
 };
 

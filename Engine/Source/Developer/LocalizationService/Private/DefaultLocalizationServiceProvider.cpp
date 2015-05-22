@@ -67,14 +67,16 @@ void FDefaultLocalizationServiceProvider::Tick()
 
 }
 
+#if LOCALIZATION_SERVICES_WITH_SLATE
 void FDefaultLocalizationServiceProvider::CustomizeSettingsDetails(IDetailCategoryBuilder& DetailCategoryBuilder) const
 {
 
 }
 
-void FDefaultLocalizationServiceProvider::CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, ULocalizationTarget& Target) const
+void FDefaultLocalizationServiceProvider::CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const
 {
 
 }
+#endif //LOCALIZATION_SERVICES_WITH_SLATE
 
 #undef LOCTEXT_NAMESPACE
