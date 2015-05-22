@@ -165,9 +165,9 @@ public:
 	 *
 	 * @return Resource name, or NAME_None if the resource object is not set.
 	 */
-	const FName GetResourceName( ) const
+	const FName GetResourceName() const
 	{
-		return ((ResourceName != NAME_None) || (ResourceObject == nullptr))
+		return ( ( ResourceName != NAME_None ) || ( ResourceObject == nullptr ) )
 			? ResourceName
 			: ResourceObject->GetFName();
 	}
@@ -185,8 +185,8 @@ public:
 	}
 
 	/**
-	* Sets the UObject that represents the brush resource.
-	*/
+	 * Sets the UObject that represents the brush resource.
+	 */
 	void SetResourceObject(class UObject* InResourceObject)
 	{
 		ResourceObject = InResourceObject;
@@ -255,6 +255,8 @@ public:
 		return !(*this == Other);
 	}
 
+	void PostSerialize(const FArchive& Ar);
+
 public:
 
 	/**
@@ -269,7 +271,7 @@ protected:
 	/**
 	 * The image to render for this brush, can be a UTexture2D or Material.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Brush, meta=( DisplayThumbnail="true", ThumbnailSize="X=40 Y=40", DisplayName="Image", AllowedClasses="Texture2D,MaterialInterface" ))
+	UPROPERTY(EditAnywhere, Category=Brush, meta=( DisplayThumbnail="true", ThumbnailSize="X=40 Y=40", DisplayName="Image", AllowedClasses="Texture2D,MaterialInterface" ))
 	UObject* ResourceObject;
 
 	/** The name of the rendering resource to use */

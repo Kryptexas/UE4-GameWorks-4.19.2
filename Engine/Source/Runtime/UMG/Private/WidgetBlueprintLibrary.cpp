@@ -340,6 +340,21 @@ FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromMaterial(UMaterialInterface* M
 	return FSlateNoResource();
 }
 
+UObject* UWidgetBlueprintLibrary::GetBrushResource(FSlateBrush& Brush)
+{
+	return Brush.GetResourceObject();
+}
+
+void UWidgetBlueprintLibrary::SetBrushResourceToTexture(FSlateBrush& Brush, UTexture2D* Texture)
+{
+	Brush.SetResourceObject(Texture);
+}
+
+void UWidgetBlueprintLibrary::SetBrushResourceToMaterial(FSlateBrush& Brush, UMaterialInterface* Material)
+{
+	Brush.SetResourceObject(Material);
+}
+
 FSlateBrush UWidgetBlueprintLibrary::NoResourceBrush()
 {
 	return FSlateNoResource();
