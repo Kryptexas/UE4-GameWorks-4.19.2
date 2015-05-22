@@ -277,6 +277,7 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	bRevertTextOnEscape = InArgs._RevertTextOnEscape;
 	OnHScrollBarUserScrolled = InArgs._OnHScrollBarUserScrolled;
 	OnVScrollBarUserScrolled = InArgs._OnVScrollBarUserScrolled;
+	OnKeyDownHandler = InArgs._OnKeyDownHandler;
 
 	Marshaller = InArgs._Marshaller;
 	if (!Marshaller.IsValid())
@@ -343,13 +344,6 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	UICommandList->MapAction(FGenericCommands::Get().SelectAll,
 		FExecuteAction::CreateSP(this, &SMultiLineEditableText::SelectAllText),
 		FCanExecuteAction::CreateSP(this, &SMultiLineEditableText::CanExecuteSelectAll));
-
-	// Append any additional commands that a consumer of MultiLineEditableText wants us to be aware of.
-	const TSharedPtr<FUICommandList>& AdditionalCommands = InArgs._AdditionalCommands;
-	if ( AdditionalCommands.IsValid() )
-	{
-		UICommandList->Append( AdditionalCommands.ToSharedRef() );
-	}
 
 	// build context menu extender
 	MenuExtender = MakeShareable(new FExtender);
@@ -2680,12 +2674,23 @@ FReply SMultiLineEditableText::OnKeyChar( const FGeometry& MyGeometry,const FCha
 
 FReply SMultiLineEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
+	FReply Reply = FReply::Unhandled();
 
-	// Process keybindings if the event wasn't already handled
-	if (!Reply.IsEventHandled() && UICommandList->ProcessCommandBindings(InKeyEvent))
+	// First call the user defined key handler, there might be overrides to normal functionality
+	if (OnKeyDownHandler.IsBound())
 	{
-		Reply = FReply::Handled();
+		Reply = OnKeyDownHandler.Execute(MyGeometry, InKeyEvent);
+	}
+
+	if( !Reply.IsEventHandled() )
+	{
+		Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
+
+		// Process keybindings if the event wasn't already handled
+		if (!Reply.IsEventHandled() && UICommandList->ProcessCommandBindings(InKeyEvent))
+		{
+			Reply = FReply::Handled();
+		}
 	}
 
 	return Reply;

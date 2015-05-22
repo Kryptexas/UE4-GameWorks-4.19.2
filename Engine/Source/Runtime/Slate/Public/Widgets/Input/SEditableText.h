@@ -33,7 +33,6 @@ public:
 		, _ClearKeyboardFocusOnCommit(true)
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
-		, _AdditionalCommands()
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
 		{}
 
@@ -102,8 +101,8 @@ public:
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 
-		/** Additional UI commands. */
-		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
+		/** Callback delegate to have first chance handling of the OnKeyDown event */
+		SLATE_EVENT(FOnKeyDown, OnKeyDownHandler)
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )
@@ -201,6 +200,16 @@ public:
 	 * @param  InSelectAllTextOnCommit		Select all text when pressing enter?
 	 */
 	void SetSelectAllTextOnCommit(const TAttribute<bool>& InSelectAllTextOnCommit);
+
+	/**
+	 * Sets the OnKeyDownHandler to provide first chance handling of the OnKeyDown event
+	 *
+	 * @param InOnKeyDownHandler			Delegate to call during OnKeyDown event
+	 */
+	void SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler)
+	{
+		OnKeyDownHandler = InOnKeyDownHandler;
+	}
 
 protected:
 
@@ -653,4 +662,7 @@ private:
 
 	/** The iterator to use to detect word boundaries */
 	mutable TSharedPtr<IBreakIterator> WordBreakIterator;
+
+	/** Callback delegate to have first chance handling of the OnKeyDown event */
+	FOnKeyDown OnKeyDownHandler;
 };

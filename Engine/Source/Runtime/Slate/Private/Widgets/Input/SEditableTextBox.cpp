@@ -50,7 +50,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.OnTextCommitted( InArgs._OnTextCommitted )
 					.MinDesiredWidth( InArgs._MinDesiredWidth )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
-					.AdditionalCommands( InArgs._AdditionalCommands )
+					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
 				]
 			]
 		]
@@ -119,6 +119,10 @@ void SEditableTextBox::SetError( const FString& InError )
 	ErrorReporting->SetError( InError );
 }
 
+void SEditableTextBox::SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler)
+{
+	EditableText->SetOnKeyDownHandler(InOnKeyDownHandler);
+}
 
 /** @return Border image for the text box based on the hovered and focused state */
 const FSlateBrush* SEditableTextBox::GetBorderImage() const

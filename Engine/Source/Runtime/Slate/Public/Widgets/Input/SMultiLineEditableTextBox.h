@@ -32,7 +32,6 @@ public:
 		, _AlwaysShowScrollbars( false )
 		, _HScrollBar()
 		, _VScrollBar()
-		, _AdditionalCommands()
 		, _WrapTextAt(0.0f)
 		, _AutoWrapText(false)
 		, _SelectAllTextOnCommit( false )
@@ -124,8 +123,8 @@ public:
 		/** Called when the cursor is moved within the text area */
 		SLATE_EVENT( SMultiLineEditableText::FOnCursorMoved, OnCursorMoved )
 
-		/** Additional UI commands. */
-		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
+		/** Callback delegate to have first chance handling of the OnKeyDown event */
+		SLATE_EVENT(FOnKeyDown, OnKeyDownHandler)
 
 		/** Menu extender for the right-click context menu */
 		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )
@@ -272,6 +271,13 @@ public:
 
 	/** Refresh this text box immediately, rather than wait for the usual caching mechanisms to take affect on the text Tick */
 	void Refresh();
+
+	/**
+	 * Sets the OnKeyDownHandler to provide first chance handling of the SMultiLineEditableText's OnKeyDown event
+	 *
+	 * @param InOnKeyDownHandler			Delegate to call during OnKeyDown event
+	 */
+	void SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler);
 
 protected:
 

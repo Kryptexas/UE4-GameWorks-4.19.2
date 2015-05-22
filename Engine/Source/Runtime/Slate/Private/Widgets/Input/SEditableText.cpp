@@ -73,6 +73,7 @@ void SEditableText::Construct( const FArguments& InArgs )
 	MinDesiredWidth = InArgs._MinDesiredWidth;
 	SelectAllTextOnCommit = InArgs._SelectAllTextOnCommit;
 	VirtualKeyboardType = IsPassword.Get() ? EKeyboardType::Keyboard_Password : InArgs._VirtualKeyboardType;
+	OnKeyDownHandler = InArgs._OnKeyDownHandler;
 
 	// Map UI commands to delegates which are called when the command should be executed
 	UICommandList->MapAction( FGenericCommands::Get().Undo,
@@ -100,13 +101,6 @@ void SEditableText::Construct( const FArguments& InArgs )
 	UICommandList->MapAction( FGenericCommands::Get().SelectAll,
 		FExecuteAction::CreateSP( this, &SEditableText::SelectAllText ),
 		FCanExecuteAction::CreateSP( this, &SEditableText::CanExecuteSelectAll ) );
-
-	// Append any additional commands that a consumer of EditableText wants us to be aware of.
-	const TSharedPtr<FUICommandList>& AdditionalCommands = InArgs._AdditionalCommands;
-	if ( AdditionalCommands.IsValid() )
-	{
-		UICommandList->Append( AdditionalCommands.ToSharedRef() );
-	}
 
 	// build context menu extender
 	MenuExtender = MakeShareable(new FExtender);
@@ -1495,18 +1489,29 @@ FReply SEditableText::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEv
 
 FReply SEditableText::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
 {
-	FReply Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
+	FReply Reply = FReply::Unhandled();
 
-	// Process keybindings if the event wasn't already handled
+	// First call the user defined key handler, there might be overrides to normal functionality
+	if (OnKeyDownHandler.IsBound())
+	{
+		Reply = OnKeyDownHandler.Execute(MyGeometry, InKeyEvent);
+	}
+
 	if( !Reply.IsEventHandled() )
 	{
-		if ( UICommandList->ProcessCommandBindings( InKeyEvent ) )
+		Reply = FTextEditHelper::OnKeyDown( InKeyEvent, SharedThis( this ) );
+		
+		if (!Reply.IsEventHandled())
 		{
-			Reply = FReply::Handled();
-		}
-		else
-		{
-			Reply = SLeafWidget::OnKeyDown( MyGeometry, InKeyEvent );
+			// Process keybindings if the event wasn't already handled
+			if ( UICommandList->ProcessCommandBindings( InKeyEvent ) )
+			{
+				Reply = FReply::Handled();
+			}
+			else
+			{
+				Reply = SLeafWidget::OnKeyDown( MyGeometry, InKeyEvent );
+			}
 		}
 
 	}

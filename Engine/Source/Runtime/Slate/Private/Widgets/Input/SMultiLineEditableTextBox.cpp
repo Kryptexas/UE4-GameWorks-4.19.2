@@ -109,7 +109,7 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 					.VScrollBar(VScrollBar)
 					.OnHScrollBarUserScrolled(InArgs._OnHScrollBarUserScrolled)
 					.OnVScrollBarUserScrolled(InArgs._OnVScrollBarUserScrolled)
-					.AdditionalCommands( InArgs._AdditionalCommands)
+					.OnKeyDownHandler( InArgs._OnKeyDownHandler)
 					.ModiferKeyForNewLine(InArgs._ModiferKeyForNewLine)
 				]
 
@@ -303,6 +303,11 @@ TSharedPtr<const SScrollBar> SMultiLineEditableTextBox::GetVScrollBar() const
 void SMultiLineEditableTextBox::Refresh()
 {
 	return EditableText->Refresh();
+}
+
+void SMultiLineEditableTextBox::SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler)
+{
+	EditableText->SetOnKeyDownHandler(InOnKeyDownHandler);
 }
 
 #endif //WITH_FANCY_TEXT

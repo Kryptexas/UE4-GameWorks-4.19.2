@@ -25,7 +25,6 @@ public:
 		, _ClearKeyboardFocusOnCommit( true )
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
-		, _AdditionalCommands()
 		, _BackgroundColor()		
 		, _Padding()
 		, _ErrorReporting()
@@ -82,8 +81,8 @@ public:
 		/** Whether to select all text when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, SelectAllTextOnCommit )
 
-		/** Additional UI commands. */
-		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
+		/** Callback delegate to have first chance handling of the OnKeyDown event */
+		SLATE_EVENT(FOnKeyDown, OnKeyDownHandler)
 
 		/** The color of the background/border around the editable text (overrides Style) */
 		SLATE_ATTRIBUTE( FSlateColor, BackgroundColor )
@@ -208,6 +207,13 @@ public:
 	 */
 	void SetError( const FText& InError );
 	void SetError( const FString& InError );
+
+	/**
+	 * Sets the OnKeyDownHandler to provide first chance handling of the SEditableText's OnKeyDown event
+	 *
+	 * @param InOnKeyDownHandler			Delegate to call during OnKeyDown event
+	 */
+	void SetOnKeyDownHandler(FOnKeyDown InOnKeyDownHandler);
 
 	// SWidget overrides
 	virtual bool SupportsKeyboardFocus() const override;
