@@ -102,8 +102,11 @@ struct FProcMeshSection
 	}
 };
 
-/** Component that allows you to specify custom triangle mesh geometry */
-UCLASS(hidecategories=(Object,LOD), meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
+/** 
+ *	Component that allows you to specify custom triangle mesh geometry 
+ *	Beware! This feature is experimental and may be substantially changed in future releases.
+ */
+UCLASS(hidecategories=(Object,LOD), meta=(BlueprintSpawnableComponent), Experimental, ClassGroup=Experimental)
 class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
