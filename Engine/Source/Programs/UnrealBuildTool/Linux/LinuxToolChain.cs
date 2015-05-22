@@ -407,6 +407,11 @@ namespace UnrealBuildTool
                 Result += " -ftls-model=local-dynamic";
             }
 
+            if (CompileEnvironment.Config.bEnableExceptions)
+            {
+                Result += " -fexceptions";
+            }
+
             //Result += " -v";                            // for better error diagnosis
 
 			Result += ArchitectureSpecificDefines(CompileEnvironment.Config.Target.Architecture);
