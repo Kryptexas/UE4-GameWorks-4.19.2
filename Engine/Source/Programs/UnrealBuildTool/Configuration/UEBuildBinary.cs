@@ -730,7 +730,7 @@ namespace UnrealBuildTool
 				if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
 				{
 					// Allow the module to modify the link environment for the binary.
-					Module.SetupPrivateLinkEnvironment(BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);
+					Module.SetupPrivateLinkEnvironment(this, BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);
 				}
 			}
 
