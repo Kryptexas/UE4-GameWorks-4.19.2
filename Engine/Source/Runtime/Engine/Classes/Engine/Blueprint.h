@@ -530,6 +530,11 @@ public:
 
 	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const;
 
+	/**
+	* Allows derived blueprints to require compilation on load, otherwise they may get treated as data only and not compiled on load.
+	*/
+	virtual bool AlwaysCompileOnLoad() const { return false; }
+
 private:
 
 	/** Sets the current object being debugged */

@@ -2770,6 +2770,10 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 		return false;
 	}
 
+	if (Blueprint->AlwaysCompileOnLoad())
+	{
+		return false;
+	}
 
 	if( Blueprint->ParentClass->IsChildOf( UActorComponent::StaticClass() ) )
 	{

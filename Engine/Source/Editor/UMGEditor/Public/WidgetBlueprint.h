@@ -220,6 +220,9 @@ public:
 	}
 
 	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const override;
+
+	/** UWidget blueprints are never data only, should always compile on load (data only blueprints cannot declare new variables) */
+	virtual bool AlwaysCompileOnLoad() const override { return true; }
 	// End of UBlueprint interface
 
 	static bool ValidateGeneratedClass(const UClass* InClass);
