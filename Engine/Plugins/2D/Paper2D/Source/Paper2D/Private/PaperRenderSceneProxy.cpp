@@ -13,6 +13,8 @@
 #include "Engine/Engine.h"
 #include "SpriteDrawCall.h"
 
+static TAutoConsoleVariable<int32> CVarDrawSpritesAsTwoSided(TEXT("r.Paper2D.DrawTwoSided"), 1, TEXT("Draw sprites as two sided."));
+
 DECLARE_CYCLE_STAT(TEXT("Get Batch Mesh"), STAT_PaperRender_GetBatchMesh, STATGROUP_Paper2D);
 DECLARE_CYCLE_STAT(TEXT("Get New Batch Meshes"), STAT_PaperRender_GetNewBatchMeshes, STATGROUP_Paper2D);
 DECLARE_CYCLE_STAT(TEXT("Convert Batches"), STAT_PaperRender_ConvertBatches, STATGROUP_Paper2D);
@@ -27,7 +29,7 @@ FPackedNormal FPaperSpriteVertex::PackedNormalZ(FVector(0.0f, -1.0f, 0.0f));
 void FPaperSpriteVertex::SetTangentsFromPaperAxes()
 {
 	PackedNormalX = PaperAxisX;
-	PackedNormalZ = PaperAxisZ;
+	PackedNormalZ = -PaperAxisZ;
 	// store determinant of basis in w component of normal vector
 	PackedNormalZ.Vector.W = (GetBasisDeterminantSign(PaperAxisX, PaperAxisY, PaperAxisZ) < 0.0f) ? 0 : 255;
 }
@@ -269,6 +271,8 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
 	WireframeColor = FLinearColor::White;
+
+	bDrawTwoSided = CVarDrawSpritesAsTwoSided.GetValueOnGameThread() != 0;
 }
 
 FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
@@ -467,7 +471,7 @@ void FPaperRenderSceneProxy::GetNewBatchMeshes(const FSceneView* View, int32 Vie
 			Mesh.CastShadow = bCastShadow;
 			Mesh.DepthPriorityGroup = DPG;
 			Mesh.Type = PT_TriangleList;
-			Mesh.bDisableBackfaceCulling = true;
+			Mesh.bDisableBackfaceCulling = bDrawTwoSided;
 			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;
 
 			// Set up the FMeshBatchElement.
@@ -561,7 +565,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, class UMateria
 			Mesh.CastShadow = bCastShadow;
 			Mesh.DepthPriorityGroup = DPG;
 			Mesh.Type = PT_TriangleList;
-			Mesh.bDisableBackfaceCulling = true;
+			Mesh.bDisableBackfaceCulling = bDrawTwoSided;
 
 			// Set up the FMeshBatchElement.
 			FMeshBatchElement& BatchElement = Mesh.Elements[0];

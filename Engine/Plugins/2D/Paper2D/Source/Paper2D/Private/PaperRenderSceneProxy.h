@@ -190,6 +190,7 @@ protected:
 	AActor* Owner;
 	UBodySetup* MyBodySetup;
 
+	bool bDrawTwoSided;
 	bool bCastShadow;
 
 	// The view relevance for the associated material
