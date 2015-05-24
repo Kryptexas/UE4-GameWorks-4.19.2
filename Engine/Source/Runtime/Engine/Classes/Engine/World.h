@@ -2937,8 +2937,10 @@ public:
 	/** Returns the net mode this world is running under */
 	ENetMode GetNetMode() const;
 
+#if WITH_EDITOR
 	/** Attempts to derive the net mode from PlayInSettings for PIE*/
 	ENetMode AttemptDeriveFromPlayInSettings() const;
+#endif
 
 	/** Attempts to derive the net mode from URL */
 	ENetMode AttemptDeriveFromURL() const;
