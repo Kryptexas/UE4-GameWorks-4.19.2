@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2100292
+﻿INTSourceChangelist:2559121
 Availability:Public
 Title:デバイス プロファイルの設定
 Crumbs:%ROOT%, Platforms
@@ -44,11 +44,11 @@ Retina iPad の実際の解像度は 2048x1536 ですが名目上は 1024x768 �
 	[iPadAir DeviceProfile]
 	+CVars=r.MobileContentScaleFactor=2
 
-iOS デバイスのプロファイルは、 Engine\Config の BaseDeviceProfiles で確認することができます。これらのカテゴリは、デフォルトが **iOSDeviceProfileSelector** プラグインに設定されているプラグイン システムで設定します。
-IOS デバイス カテゴリは単にデバイス名です。
+iOS デバイスのプロファイルは、 Engine\Config の BaseDeviceProfiles で確認することができます。これらのカテゴリは、デフォルトが **iOSDeviceProfileSelector** プラグインに設定されている
+プラグイン システムで設定します。IOS デバイス カテゴリは単にデバイス名です。
 
 ### Android 
 
-Android のデバイス プロファイル カテゴリは階層的になっています (Engine\Config の BaseDeviceProfiles.ini を例に見てください)。これらのカテゴリは、デフォルトが iOSDeviceProfileSelector プラグインに設定されているプラグイン システムで設定します。
-
+Android のデバイス プロファイル カテゴリは階層的になっています (Engine\Config の BaseDeviceProfiles.ini を例に見てください)。これらのカテゴリは、デフォルトが **AndroidDeviceProfileSelector** プラグインに設定されている
+プラグイン システムで設定します。
 
