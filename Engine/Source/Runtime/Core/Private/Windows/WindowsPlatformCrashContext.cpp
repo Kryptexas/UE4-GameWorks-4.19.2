@@ -466,7 +466,6 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
-	// Note: ReportCrashUsingCrashReportClient reads the callstack from GErrorHist
 	const SIZE_T StackTraceSize = 65535;
 	ANSICHAR* StackTrace = (ANSICHAR*) GMalloc->Malloc( StackTraceSize );
 	StackTrace[0] = 0;
