@@ -325,7 +325,7 @@ FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 	else
 	{
 		// Something wrong.
-		check( 0 );
+		checkf( 0, TEXT( "Invalid symbol cache entry: %s" ), *EntryDirectory );
 	}
 
 	return NewEntry.ToSharedRef();
