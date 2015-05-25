@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2491917
+﻿INTSourceChangelist:2550828
 Availability:Public
 Title:プロパティのレプリケーション
 Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -15,7 +15,7 @@ Related:Gameplay/Networking/Actors/RPCs
 
 いくつかのプロパティはデフォルトでレプリケートします（Location、Rotation、Ownerなど）これらのプロパティは基本的なマルチプレイヤーゲームを機能させるために、一般的にフレームワークが依存するプロパティです。必要に応じてレプリケートする追加のプロパティをマークすることができます。
 
-アクタのプロパティのレプリケーションは信頼性の高い機能です。つまりクライアントバージョンのアクタプロパティは、最終的にサーバー側の値を反映します。しかし個々のプロパティ値の一部の変更はスキップされる可能性もあります。
+アクタのプロパティのレプリケーションはとても安定しています。つまりクライアントバージョンのアクタプロパティは、最終的に値をサーバーに反映します。しかし個々のプロパティ値の一部の変更はスキップされる可能性もあります。
 
 ## レプリケーション用のプロパティを設定
 
@@ -35,7 +35,7 @@ Related:Gameplay/Networking/Actors/RPCs
 		DOREPLIFETIME( AActor, Owner );
 	}
 
-アクタのコンストラクタで bReplicates を true に設定していることを確認してください：
+アクタのコンストラクタで bReplicates フラグを true に設定していることを確認してください：
 
 	AActor::AActor( const class FPostConstructInitializeProperties & PCIP ) :Super( PCIP )
 	{ 
