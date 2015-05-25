@@ -51,6 +51,67 @@ protected:
 	FText OutErrorText;
 };
 
+/**
+ * Operation used to commit localization(s) to localization service
+ */
+class FDownloadLocalizationTargetFile : public ILocalizationServiceOperation
+{
+public:
+
+	// ILocalizationServiceOperation interface
+	virtual FName GetName() const override
+	{
+		return "DownloadLocalizationTargetFile";
+	}
+
+	virtual FText GetInProgressString() const override
+	{ 
+		return LOCTEXT("LocalizationService_FLocalizationServicerDownloadLocalizationTargetFile", "Getting Localization Target File from localization Service..."); 
+	}
+
+
+	void SetInTargetGuid(const FGuid& NewInTargetGuid)
+	{
+		InTargetGuid = NewInTargetGuid;
+	}
+
+	const FGuid& GetInTargetGuid() const
+	{
+		return InTargetGuid;
+	}
+
+	void SetInRelativeOutputFilePathAndName(const FString& NewInRelativeOutputFilePathAndName)
+	{
+		InRelativeOutputFilePathAndName = NewInRelativeOutputFilePathAndName;
+	}
+
+	const FString& GetInRelativeOutputFilePathAndName() const
+	{
+		return InRelativeOutputFilePathAndName;
+	}
+
+	FString GetInLocale()
+	{
+		return InLocale;
+	}
+
+	void SetInLocale(FString NewLocale)
+	{
+		InLocale = NewLocale;
+	}
+
+protected:
+
+	/** The GUID of the Localization Target */
+	FGuid InTargetGuid;
+
+	/** The locale (culture code, for example "fr" or "en-us" or "ja-jp") to download the translations for */
+	FString InLocale;
+
+	/** The path and name to the file downloaded, relative to project directory */
+	FString InRelativeOutputFilePathAndName;
+};
+
 ///**
 // * Operation used to commit localization(s) to localization service
 // */

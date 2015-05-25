@@ -13,6 +13,8 @@ struct FOneSkyLocalizationTargetSetting
 {
 	GENERATED_USTRUCT_BODY()
 
+		FOneSkyLocalizationTargetSetting() : OneSkyProjectId(INDEX_NONE) {}
+
 	/**
 	* The GUID of the LocalizationTarget that these OneSky settings are for
 	*/
@@ -20,16 +22,10 @@ struct FOneSkyLocalizationTargetSetting
 		FGuid TargetGuid;
 
 	/**
-	* The name of the OneSky Project Group this target belongs to
+	* The id of the OneSky Project  this target belongs to
 	*/
 	UPROPERTY()
-		FString OneSkyProjectGroupName;
-
-	/**
-	* The name of the OneSky Project  this target belongs to
-	*/
-	UPROPERTY()
-		FString OneSkyProjectName;
+		int32 OneSkyProjectId;
 
 	/**
 	* The name of the file that corresponds to this target
@@ -100,9 +96,14 @@ public:
 		return bSaveSecretKey;
 	}
 
-	FOneSkyLocalizationTargetSetting* GetSettingsForTarget(FGuid TargetGuid);
+	/** Get settings for a specific localization target by it's Guid
+	*	@param TargetGuid - the GUID to search for
+	*	@param bCreateIfNotFound - Add a new blank settings entry to the array if not found
+	*/
+	FOneSkyLocalizationTargetSetting* GetSettingsForTarget(FGuid TargetGuid, bool bCreateIfNotFound = false);
 
-	void SetSettingsForTarget(FGuid TargetGuid, FString ProjectGroupName, FString ProjectName, FString FileName);
+	/** Set settings for a specific localization target by it's Guid */
+	void SetSettingsForTarget(FGuid TargetGuid, int32 ProjectId, FString FileName);
 
 public:
 	/** Object that contains array of OneSky settings for a given targets, used to serialize to .ini file */

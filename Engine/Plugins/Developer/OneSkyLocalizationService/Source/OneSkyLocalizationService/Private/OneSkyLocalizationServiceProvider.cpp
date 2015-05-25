@@ -26,12 +26,8 @@ static FName ProviderName("OneSky");
 /** Init of connection with source control server */
 void FOneSkyLocalizationServiceProvider::Init(bool bForceConnection)
 {
-	// TODO: Test if connection works
+	// TODO: Test if connection works?
 	bServerAvailable = true;
-
-	// TODO: this is called on startup, delay until we need it
-	// Move to EstablishConnection?
-	RetrieveProjectGroups(ELocalizationServiceOperationConcurrency::Asynchronous);
 }
 
 /** API Specific close the connection with localization provider server*/
@@ -46,8 +42,6 @@ void FOneSkyLocalizationServiceProvider::Close()
 
 	// clear the cache
 	StateCache.Empty();
-	ProjectGroupCache.Empty();
-	ProjectCachePerGroupId.Empty();
 
 	bServerAvailable = false;
 }
@@ -67,103 +61,6 @@ TSharedRef<FOneSkyLocalizationServiceState, ESPMode::ThreadSafe> FOneSkyLocaliza
 		StateCache.Add(InTranslationId, NewState);
 		return NewState;
 	}
-}
-
-bool FOneSkyLocalizationServiceProvider::RetrieveProjectGroups(ELocalizationServiceOperationConcurrency::Type InConcurrency)
-{
-	// TODO: This should do the same thing as GetStateInternal but for project groups
-	// Create a data type to hold the information from a project group
-	// This logic should be moved to a function similar to GetState, but for projects
-	if (!IsEnabled())
-	{
-		return ELocalizationServiceOperationCommandResult::Failed;
-	}
-
-	// LIST PROJECT GROUPS TEST
-	//Execute(ILocalizationServiceOperation::Create<FOneSkyListProjectGroupsOperation>(), TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-	//TSharedRef<FOneSkyListProjectGroupsOperation, ESPMode::ThreadSafe> ListProjectGroupsOperation = ILocalizationServiceOperation::Create<FOneSkyListProjectGroupsOperation>();
-	//ListProjectGroupsOperation->SetInStartPage(1);
-	//ListProjectGroupsOperation->SetInItemsPerPage(1);
-	//Execute(ListProjectGroupsOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// SHOW PROJECT GROUP TEST
-	//TSharedRef<FOneSkyShowProjectGroupOperation, ESPMode::ThreadSafe> ShowProjectGroupOperation = ILocalizationServiceOperation::Create<FOneSkyShowProjectGroupOperation>();
-	//ShowProjectGroupOperation->SetInProjectGroupId(10222);
-	//Execute(ShowProjectGroupOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// CREATE PROJECT GROUP TEST
-	//TSharedRef<FOneSkyCreateProjectGroupOperation, ESPMode::ThreadSafe> CreateProjectGroupOperation = ILocalizationServiceOperation::Create<FOneSkyCreateProjectGroupOperation>();
-	//CreateProjectGroupOperation->SetInProjectGroupName("test group");
-	//CreateProjectGroupOperation->SetInInProjectGroupBaseLocale("zh-TW");
-	//Execute(CreateProjectGroupOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// LIST PROJECT GROUP LANGUAGES TEST
-	//TSharedRef<FOneSkyListProjectGroupLanguagesOperation, ESPMode::ThreadSafe> ListProjectGroupLanguagesOperation = ILocalizationServiceOperation::Create<FOneSkyListProjectGroupLanguagesOperation>();
-	//ListProjectGroupLanguagesOperation->SetInProjectGroupId(10222);
-	//Execute(ListProjectGroupLanguagesOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// LIST PROJECTS IN GROUP TEST
-	//TSharedRef<FOneSkyListProjectsInGroupOperation, ESPMode::ThreadSafe> ListProjectsInGroupOperation = ILocalizationServiceOperation::Create<FOneSkyListProjectsInGroupOperation>();
-	//ListProjectsInGroupOperation->SetInProjectGroupId(10222);
-	//Execute(ListProjectsInGroupOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// SHOW PROJECT test
-	//TSharedRef<FOneSkyShowProjectOperation, ESPMode::ThreadSafe> ShowProjectOperation = ILocalizationServiceOperation::Create<FOneSkyShowProjectOperation>();
-	//ShowProjectOperation->SetInProjectId(27922);
-	//Execute(ShowProjectOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// CREATE PROJECT test
-	//TSharedRef<FOneSkyCreateProjectOperation, ESPMode::ThreadSafe> CreateProjectOperation = ILocalizationServiceOperation::Create<FOneSkyCreateProjectOperation>();
-	//CreateProjectOperation->SetInProjectGroupId(10222);
-	//CreateProjectOperation->SetInProjectGroupName("test create project");
-	//CreateProjectOperation->SetInInProjectDescription("test project description");
-	//CreateProjectOperation->SetInInProjectType("website");
-	//Execute(CreateProjectOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// LIST PROJECT LANGUAGES TEST
-	//TSharedRef<FOneSkyListProjectLanguagesOperation, ESPMode::ThreadSafe> ListProjectLanguagesOperation = ILocalizationServiceOperation::Create<FOneSkyListProjectLanguagesOperation>();
-	//ListProjectLanguagesOperation->SetInProjectId(27922);
-	//Execute(ListProjectLanguagesOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// TRANSLATION STATUS TEST
-	//TSharedRef<FOneSkyTranslationStatusOperation, ESPMode::ThreadSafe> TranslationStatusOperation = ILocalizationServiceOperation::Create<FOneSkyTranslationStatusOperation>();
-	//TranslationStatusOperation->SetInProjectId(27922);
-	//TranslationStatusOperation->SetInFileName("en.po");
-	//TranslationStatusOperation->SetInLocale("ko");
-	//Execute(TranslationStatusOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// TRANSLATION EXPORT TEST
-	//TSharedRef<FOneSkyTranslationExportOperation, ESPMode::ThreadSafe> TranslationExportLanguagesOperation = ILocalizationServiceOperation::Create<FOneSkyTranslationExportOperation>();
-	//TranslationExportLanguagesOperation->SetInProjectId(27922);
-	//TranslationExportLanguagesOperation->SetInSourceFileName("en.po");
-	//TranslationExportLanguagesOperation->SetInExportFileName("D:\\out-ko.po");
-	//TranslationExportLanguagesOperation->SetInLocale("ko");
-	//Execute(TranslationExportLanguagesOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// LIST UPLOADED FILES
-	//TSharedRef<FOneSkyListUploadedFilesOperation, ESPMode::ThreadSafe> ListUploadedFilesOperation = ILocalizationServiceOperation::Create<FOneSkyListUploadedFilesOperation>();
-	//ListUploadedFilesOperation->SetInProjectId(27922);
-	//ListUploadedFilesOperation->SetInItemsPerPage(1);
-	//ListUploadedFilesOperation->SetInStartPage(1);
-	//Execute(ListUploadedFilesOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// UPLOAD FILE
-	//TSharedRef<FOneSkyUploadFileOperation, ESPMode::ThreadSafe> UploadFileOperation = ILocalizationServiceOperation::Create<FOneSkyUploadFileOperation>();
-	//UploadFileOperation->SetInProjectId(27922);
-	//UploadFileOperation->SetInLocalFilePathAndName("D:\\zh_CN.po");
-	//UploadFileOperation->SetInOneSkyTargetFileName("en.po");
-	//UploadFileOperation->SetInLocale("zh_CN");
-	//UploadFileOperation->SetInIsKeepingAllStrings(false);
-	//Execute(UploadFileOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	// LIST UPLOADED FILES
-	//TSharedRef<FOneSkyListPhraseCollectionsOperation, ESPMode::ThreadSafe> ListPhraseCollectionsOperation = ILocalizationServiceOperation::Create<FOneSkyListPhraseCollectionsOperation>();
-	//ListPhraseCollectionsOperation->SetInProjectId(27922);
-	//ListPhraseCollectionsOperation->SetInItemsPerPage(1);
-	//ListPhraseCollectionsOperation->SetInPage(1);
-	//Execute(ListPhraseCollectionsOperation, TArray<FLocalizationServiceTranslationIdentifier>(), InConcurrency);
-
-	return ELocalizationServiceOperationCommandResult::Succeeded;
 }
 
 FText FOneSkyLocalizationServiceProvider::GetStatusText() const
@@ -458,44 +355,30 @@ void FOneSkyLocalizationServiceProvider::CustomizeSettingsDetails(IDetailCategor
 		];
 }
 
-static void ProjectGroupChanged(const FText& NewText, ETextCommit::Type CommitType, FGuid TargetGuid)
-{
-	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid);
-	FOneSkyLocalizationServiceModule::Get().AccessSettings().SetSettingsForTarget(TargetGuid, NewText.ToString(), Settings->OneSkyProjectName, Settings->OneSkyFileName);
-}
-
 static void ProjectChanged(const FText& NewText, ETextCommit::Type CommitType, FGuid TargetGuid)
 {
-	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid);
-	FOneSkyLocalizationServiceModule::Get().AccessSettings().SetSettingsForTarget(TargetGuid, Settings->OneSkyProjectGroupName, NewText.ToString(), Settings->OneSkyFileName);
+	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid, true);
+	int32 NewProjectId = INDEX_NONE;	// Default to -1
+	FString StringId = NewText.ToString();
+	// Don't allow this to be set to a non-numeric value.
+	if (StringId.IsNumeric())
+	{
+		NewProjectId = FCString::Atoi(*StringId);
+	}
+	FOneSkyLocalizationServiceModule::Get().AccessSettings().SetSettingsForTarget(TargetGuid, NewProjectId, Settings->OneSkyFileName);
 }
 
 static void FileNameChanged(const FText& NewText, ETextCommit::Type CommitType, FGuid TargetGuid)
 {
-	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid);
-	FOneSkyLocalizationServiceModule::Get().AccessSettings().SetSettingsForTarget(TargetGuid, Settings->OneSkyProjectGroupName, Settings->OneSkyProjectName, NewText.ToString());
+	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid, true);
+	FOneSkyLocalizationServiceModule::Get().AccessSettings().SetSettingsForTarget(TargetGuid, Settings->OneSkyProjectId, NewText.ToString());
 }
 
 void FOneSkyLocalizationServiceProvider::CustomizeTargetDetails(IDetailCategoryBuilder& DetailCategoryBuilder, const FGuid& TargetGuid) const
 {
-	//Target.Settings.Guid.ToString();
-	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid);
+	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(TargetGuid, true);
 
-	FText ProjectGroupText = LOCTEXT("OneSkyProjectGroupLabel", "OneSky Project Group");
-	FDetailWidgetRow& ProjectGroupRow = DetailCategoryBuilder.AddCustomRow(ProjectGroupText);
-	ProjectGroupRow.NameContent()
-		[
-			SNew(STextBlock)
-			.Text(ProjectGroupText)
-		];
-	ProjectGroupRow.ValueContent()
-		[
-			SNew(SEditableTextBox)
-			.OnTextCommitted(FOnTextCommitted::CreateStatic(&ProjectGroupChanged, TargetGuid))
-			.Text(FText::FromString(Settings->OneSkyProjectGroupName))
-		];
-
-	FText ProjectText = LOCTEXT("OneSkyProjectLabel", "OneSky Project");
+	FText ProjectText = LOCTEXT("OneSkyProjectIdLabel", "OneSky Project ID");
 	FDetailWidgetRow& ProjectRow = DetailCategoryBuilder.AddCustomRow(ProjectText);
 	ProjectRow.NameContent()
 		[
@@ -506,7 +389,18 @@ void FOneSkyLocalizationServiceProvider::CustomizeTargetDetails(IDetailCategoryB
 		[
 			SNew(SEditableTextBox)
 			.OnTextCommitted(FOnTextCommitted::CreateStatic(&ProjectChanged, TargetGuid))
-			.Text(FText::FromString(Settings->OneSkyProjectName))
+			.Text_Lambda([Settings]
+			{
+				int32 SavedProjectId = Settings->OneSkyProjectId;
+				if (SavedProjectId >= 0)
+				{
+					return (const FText&) FText::FromString(FString::FromInt(SavedProjectId));
+				}
+				
+				// Show empty string if value is default (-1)
+				return FText::GetEmpty();
+			}
+			)
 		];
 
 	FText FileText = LOCTEXT("OneSkyFileNameLabel", "OneSky File Name");

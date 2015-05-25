@@ -691,19 +691,31 @@ bool FOneSkyTranslationExportWorker::Execute(class FOneSkyLocalizationServiceCom
 {
 	// Store pointer to command so we can access it in the http request callback
 	Command = &InCommand;
-	TSharedPtr<FOneSkyTranslationExportOperation, ESPMode::ThreadSafe> TranslationExportOp = StaticCastSharedRef<FOneSkyTranslationExportOperation>(InCommand.Operation);
+	TSharedPtr<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> DownloadLocTargetOp = StaticCastSharedRef<FDownloadLocalizationTargetFile>(InCommand.Operation);
+
+	FGuid InTargetGuid;
+	FString InLocale;
+	FString InRelativeOutputFilePathAndName;
+
+	if (DownloadLocTargetOp.IsValid())
+	{
+		InTargetGuid = DownloadLocTargetOp->GetInTargetGuid();
+		InLocale = FGenericPlatformHttp::UrlEncode(DownloadLocTargetOp->GetInLocale());
+		InRelativeOutputFilePathAndName = DownloadLocTargetOp->GetInRelativeOutputFilePathAndName();
+	}
 
 	int32 InProjectId = -1;
 	FString InSourceFileName = "";
 	FString InExportFileName = "";
-	FString InLocale = "";
 
-	if (TranslationExportOp.IsValid())
+	// OneSky project settings are accessed by their localization target guid. These settings are set in the Localization Dashboard
+	FOneSkyLocalizationTargetSetting* Settings = FOneSkyLocalizationServiceModule::Get().AccessSettings().GetSettingsForTarget(InTargetGuid);
+	if (Settings != nullptr)
 	{
-		InProjectId = TranslationExportOp->GetInProjectId();
-		InSourceFileName = FGenericPlatformHttp::UrlEncode(TranslationExportOp->GetInSourceFileName());
-		InExportFileName = FGenericPlatformHttp::UrlEncode(TranslationExportOp->GetInExportFileName());
-		InLocale = FGenericPlatformHttp::UrlEncode(TranslationExportOp->GetInLocale());
+		ILocalizationServiceProvider& Provider = ILocalizationServiceModule::Get().GetProvider();
+		InProjectId = Settings->OneSkyProjectId;
+		InSourceFileName = FGenericPlatformHttp::UrlEncode(Settings->OneSkyFileName);
+		InExportFileName = FGenericPlatformHttp::UrlEncode(FPaths::ConvertRelativePathToFull(InRelativeOutputFilePathAndName));
 	}
 
 	FString Url = AddAuthenticationParameters(InCommand.ConnectionInfo, "https://platform.api.onesky.io/1/projects/" + FString::FromInt(InProjectId) / "translations");
@@ -746,16 +758,20 @@ void FOneSkyTranslationExportWorker::Query_HttpRequestComplete(FHttpRequestPtr H
 				{
 					if (Command != nullptr)
 					{
-						TSharedPtr<FOneSkyTranslationExportOperation, ESPMode::ThreadSafe> TranslationExportOp = StaticCastSharedRef<FOneSkyTranslationExportOperation>(Command->Operation);
+						TSharedPtr<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> TranslationExportOp = StaticCastSharedRef<FDownloadLocalizationTargetFile>(Command->Operation);
 						if (TranslationExportOp.IsValid())
 						{
 							// The file is not ready, try again
-							TSharedRef<FOneSkyTranslationExportOperation, ESPMode::ThreadSafe> NewTranslationExportLanguagesOp = ILocalizationServiceOperation::Create<FOneSkyTranslationExportOperation>();
-							NewTranslationExportLanguagesOp->SetInProjectId(TranslationExportOp->GetInProjectId());
-							NewTranslationExportLanguagesOp->SetInSourceFileName(TranslationExportOp->GetInSourceFileName());
+							TSharedRef<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> NewTranslationExportLanguagesOp = ILocalizationServiceOperation::Create<FDownloadLocalizationTargetFile>();
+							NewTranslationExportLanguagesOp->SetInTargetGuid(TranslationExportOp->GetInTargetGuid());
 							NewTranslationExportLanguagesOp->SetInLocale(TranslationExportOp->GetInLocale());
-							NewTranslationExportLanguagesOp->SetInExportFileName(TranslationExportOp->GetInExportFileName());
-							ILocalizationServiceModule::Get().GetProvider().Execute(NewTranslationExportLanguagesOp, TArray<FLocalizationServiceTranslationIdentifier>(), ELocalizationServiceOperationConcurrency::Asynchronous);
+							NewTranslationExportLanguagesOp->SetInRelativeOutputFilePathAndName(TranslationExportOp->GetInRelativeOutputFilePathAndName());
+							// TODO: Can't spawn a new Worker here, as it tries to access the OneSky Connection Info from a thread that is not the main thread.
+							// Instead spawn in callback?
+							//ILocalizationServiceModule::Get().GetProvider().Execute(NewTranslationExportLanguagesOp, TArray<FLocalizationServiceTranslationIdentifier>(), ELocalizationServiceOperationConcurrency::Asynchronous);
+							// For now, error
+							ErrorText = LOCTEXT("TranslationExportQueryFailedRetryNotImplemented", "Translation Export Query Failed: Retry not yet implemented.");
+							bResult = false;
 						}
 						else
 						{
@@ -778,10 +794,11 @@ void FOneSkyTranslationExportWorker::Query_HttpRequestComplete(FHttpRequestPtr H
 				{
 					if (Command != nullptr)
 					{
-						TSharedPtr<FOneSkyTranslationExportOperation, ESPMode::ThreadSafe> TranslationExportOp = StaticCastSharedRef<FOneSkyTranslationExportOperation>(Command->Operation);
+						TSharedPtr<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> TranslationExportOp = StaticCastSharedRef<FDownloadLocalizationTargetFile>(Command->Operation);
 						if (TranslationExportOp.IsValid())
 						{
-							FString Filename = TranslationExportOp->GetInExportFileName();
+							// Path is relative to game directory
+							FString Filename = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / TranslationExportOp->GetInRelativeOutputFilePathAndName());
 
 							if (Filename.IsEmpty())
 							{
@@ -815,6 +832,7 @@ void FOneSkyTranslationExportWorker::Query_HttpRequestComplete(FHttpRequestPtr H
 		if (!bResult)
 		{
 			UE_LOG(LogLocalizationService, Warning, TEXT("%s"), *(ErrorText.ToString()));
+			Command->ErrorMessages.Add(ErrorText);
 		}
 	}
 
@@ -1089,4 +1107,5 @@ void FOneSkyListPhraseCollectionsWorker::Query_HttpRequestComplete(FHttpRequestP
 
 
 #undef LOCTEXT_NAMESPACE
+
 

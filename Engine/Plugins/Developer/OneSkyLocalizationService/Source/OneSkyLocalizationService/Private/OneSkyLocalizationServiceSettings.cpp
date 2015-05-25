@@ -158,14 +158,14 @@ FOneSkyConnectionInfo FOneSkyLocalizationServiceSettings::GetConnectionInfo() co
 	return OutConnectionInfo;
 }
 
-FOneSkyLocalizationTargetSetting* FOneSkyLocalizationServiceSettings::GetSettingsForTarget(FGuid TargetGuid)
+FOneSkyLocalizationTargetSetting* FOneSkyLocalizationServiceSettings::GetSettingsForTarget(FGuid TargetGuid, bool bCreateIfNotFound /* = false */)
 {
 	FOneSkyLocalizationTargetSetting* Settings = TargetSettingsObject->TargetSettings.FindByPredicate([&](const FOneSkyLocalizationTargetSetting& Setting)
 	{
 		return Setting.TargetGuid == TargetGuid;
 	});
 
-	if (!Settings)
+	if (!Settings && bCreateIfNotFound)
 	{
 		FOneSkyLocalizationTargetSetting NewSettings;
 		NewSettings.TargetGuid = TargetGuid;
@@ -176,7 +176,7 @@ FOneSkyLocalizationTargetSetting* FOneSkyLocalizationServiceSettings::GetSetting
 	return Settings;
 }
 
-void FOneSkyLocalizationServiceSettings::SetSettingsForTarget(FGuid TargetGuid, FString ProjectGroupName, FString ProjectName, FString FileName)
+void FOneSkyLocalizationServiceSettings::SetSettingsForTarget(FGuid TargetGuid, int32 ProjectId, FString FileName)
 {
 	FOneSkyLocalizationTargetSetting* Settings = TargetSettingsObject->TargetSettings.FindByPredicate([&](const FOneSkyLocalizationTargetSetting& Setting)
 	{
@@ -191,8 +191,7 @@ void FOneSkyLocalizationServiceSettings::SetSettingsForTarget(FGuid TargetGuid, 
 		Settings = &(TargetSettingsObject->TargetSettings[NewIndex]);
 	}
 
-	Settings->OneSkyProjectGroupName = ProjectGroupName;
-	Settings->OneSkyProjectName = ProjectName;
+	Settings->OneSkyProjectId = ProjectId;
 	Settings->OneSkyFileName = FileName;
 
 	TargetSettingsObject->SaveConfig();

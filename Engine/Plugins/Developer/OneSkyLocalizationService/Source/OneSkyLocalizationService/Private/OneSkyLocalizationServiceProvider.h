@@ -83,9 +83,6 @@ public:
 	/** Helper function used to update state cache */
 	TSharedRef<FOneSkyLocalizationServiceState, ESPMode::ThreadSafe> GetStateInternal(const FLocalizationServiceTranslationIdentifier& InTranslationId);
 
-	/** Helper function used to update project groups cache */
-	bool RetrieveProjectGroups(ELocalizationServiceOperationConcurrency::Type InConcurrency);
-
 	/**
 	 * Connects to the Localization service server if the persistent connection is not already established.
 	 *
@@ -128,12 +125,6 @@ private:
 
 	/** A pointer to the persistent P4 connection for synchronous operations */
 	class FOneSkyConnection* PersistentConnection;
-
-	/** Project Group Cache (group name to group id) */
-	TMap<FString, int32> ProjectGroupCache;
-
-	/** Project Cache (project name to project id) per group id */
-	TMap<int32, TMap<FString, int32>> ProjectCachePerGroupId;
 	
 	/** State cache */
 	TMap<FLocalizationServiceTranslationIdentifier, TSharedRef<class FOneSkyLocalizationServiceState, ESPMode::ThreadSafe>, FDefaultSetAllocator, FLocalizationServiceTranslationIdentifierKeyFuncs<TSharedRef<class FOneSkyLocalizationServiceState, ESPMode::ThreadSafe>> >  StateCache;
