@@ -46,6 +46,7 @@ FMacApplication::FMacApplication()
 ,	bSystemModalMode(false)
 ,	ModifierKeysFlags(0)
 ,	CurrentModifierFlags(0)
+,	bEmulatingRightClick(false)
 ,	bIsWorkspaceSessionActive(true)
 {
 	TextInputMethodSystem = MakeShareable(new FMacTextInputMethodSystem);
@@ -329,6 +330,18 @@ void FMacApplication::DeferEvent(NSObject* Object)
 			case NSOtherMouseUp:
 				DeferredEvent.ButtonNumber = [Event buttonNumber];
 				DeferredEvent.ClickCount = [Event clickCount];
+				if (DeferredEvent.Type == NSLeftMouseDown && (DeferredEvent.ModifierFlags & NSControlKeyMask))
+				{
+					bEmulatingRightClick = true;
+					DeferredEvent.Type = NSRightMouseDown;
+					DeferredEvent.ButtonNumber = 2;
+				}
+				else if (DeferredEvent.Type == NSLeftMouseUp && bEmulatingRightClick)
+				{
+					bEmulatingRightClick = false;
+					DeferredEvent.Type = NSRightMouseUp;
+					DeferredEvent.ButtonNumber = 2;
+				}
 				break;
 
 			case NSScrollWheel:

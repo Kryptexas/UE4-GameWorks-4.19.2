@@ -276,6 +276,8 @@ private:
 	/** The current set of Cocoa modifier flags, used to detect when Mission Control has been invoked & returned so that we can synthesis the modifier events it steals */
 	NSUInteger CurrentModifierFlags;
 
+	bool bEmulatingRightClick;
+
 	TArray<FCocoaWindow*> WindowsToClose;
 
 	TArray<FCocoaWindow*> WindowsRequiringTextInvalidation;
