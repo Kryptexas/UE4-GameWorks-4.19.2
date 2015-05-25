@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2508448
+﻿INTSourceChangelist:2559390
 Availability:Public
 Title:プラットフォーム開発
 Crumbs:%ROOT%
@@ -92,6 +92,20 @@ Navigation:platform
 		* [](Platforms/GearVR "%Platforms/GearVR:Description%")
 			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR:Description%")
 			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/Linux)
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
 	[/PARAM]
 [/OBJECT]
 
