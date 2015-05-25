@@ -1,35 +1,35 @@
-﻿Availability:Docs
-Title: デストラクタブル アクタの入門書
+﻿INTSourceChangelist:2223412
+Availability:Docs
+Title: Destructible アクタの入門
 Crumbs: %ROOT%, Engine
-Description: デストラクタブル アクタの基本
-Navigation:topic
+Description: Destructible アクタの基本
 
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
-		![%Engine/Subsystems/Physics/Destructibles/Intro:title%](Engine/Subsystems/Physics/physics_topic.png)
+		![%Engine/Physics/Destructibles/Intro:title%](Engine/Physics/physics_topic.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/physics_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		%Engine/Subsystems/Physics/Destructibles/Intro:title%
+		%Engine/Physics/Destructibles/Intro:title%
 	[/PARAM]
 	[PARAM:description]
-		%Engine/Subsystems/Physics/Destructibles/Intro:description%
+		%Engine/Physics/Destructibles/Intro:description%
 	[/PARAM]
 	[PARAMLITERAL:path]
-		Engine/Subsystems/Physics/Destructibles/Intro
+		Engine/Physics/Destructibles/Intro
 	[/PARAMLITERAL]
 [/OBJECT]
 [/VAR]
 
 [REGION:banner]
-![Physics](Engine/Subsystems/Physics/physics_landing_banner.png)
+![Physics](Engine/Physics/physics_landing_banner.png)
 [/REGION]
 
-##  デストラクタブル アクタ
+## Destructible アクタ
 
-デストラクタブル アクタは**スタティックメッシュ** および **スケルタルメッシュ**アクタと同種で、**デストラクタブル アクタ**はその両者の組み合わせです。デストラクタブル アクタは**スタティック メッシュ**を基盤として受け取りますが、破砕された数多くのピースを全て 1 つのドローコールにして、破砕されたチャンクを全て制御する _fracturing_ プロセスが**スケルタル メッシュ**を作成します。**スタティック アクタ**と同様に**デストラクタブル アクタ**を配置し、スタティック アクタと同様に物理シミュレーションを設定したり、粉々になるくらいのダメージを受けるまでは、アニメーションに従って、あるいは別の移動オブジェクトに固定してキネマティックにすることができます。
+Destructible (被破壊) アクタは、 **Static Mesh** アクタ、および **Skeletal Mesh** アクタと同種で、実のところ **Destructible アクタ** はこの両者の組み合わせです。Destructible アクタは、**Static Mesh** を基盤として受け取りますが、破砕された数多くのピースを全て 1 つのドローコールにして、破砕されたチャンクすべてを制御する _破砕_ プロセスが **Skeletal Mesh** を作成します。**Static アクタ** と同様に **Destructible アクタ** を配置し、粉々になるくらいのダメージを受けるまでは、Static アクタのように物理シミュレーションを設定したり、アニメーションに従って、あるいは別の移動オブジェクトにくっつけて、キネマティックにすることができます。
 
-デストラクタブルとはなにか、どのように使用されるのか、作成概要に関する入門書
+被破壊性とは何か、使用方法、作成概要に関する入門書です。
