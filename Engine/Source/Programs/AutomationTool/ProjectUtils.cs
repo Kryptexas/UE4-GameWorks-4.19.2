@@ -265,7 +265,7 @@ namespace AutomationTool
 
 			// detect if the project is content only, but has non-default build settings
 			List<string> ExtraSearchPaths = null;
-			if (!string.IsNullOrEmpty(RawProjectPath) && !GlobalCommandLine.Rocket)
+			if (!string.IsNullOrEmpty(RawProjectPath))
 			{
 				if (RequiresTempTarget(RawProjectPath, ClientTargetPlatforms))
 				{
