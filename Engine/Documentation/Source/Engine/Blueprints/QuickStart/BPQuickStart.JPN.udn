@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2465824
-Availability:Public
+﻿Availability:Public
 Title:ブループリントのクイックスタートガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description:初めてのブループリント作成
@@ -51,7 +50,7 @@ Description:初めてのブループリント作成
 [/OBJECT]
 
 このクイックスタートガイドはさまざまなコンポーネントでレベルにアクタを作成します。キャラクターがレベル内で飛行できるように、起動ビヘイビアを追加することができる Blueprint クラスへ変換する方法を説明します！
-Blueprint クラスへの変換は、 **コンテンツブラウザ** からレベルへドラッグするだけでたくさんの Launchpad を作成できることも意味します。
+Blueprint クラスへの変換は、 **コンテンツブラウザ** からレベルへドラッグするだけでたくさんのジャンプ台（Launchpad）を作成できることも意味します。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
