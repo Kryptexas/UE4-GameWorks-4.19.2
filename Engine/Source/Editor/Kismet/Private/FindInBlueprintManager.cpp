@@ -1299,7 +1299,7 @@ void FFindInBlueprintSearchManager::CleanCache()
 		if( !SearchArray[SearchValuePair.Value].bMarkedForDeletion && !(SearchArray[SearchValuePair.Value].Blueprint.IsValid() && SearchArray[SearchValuePair.Value].Blueprint->HasAllFlags(RF_PendingKill)) )
 		{
 			// Build the new map/array
-			NewSearchMap.Add(SearchValuePair.Key, NewSearchArray.Add(SearchArray[SearchValuePair.Value]) );
+			NewSearchMap.Add(SearchValuePair.Key, NewSearchArray.Add(MoveTemp(SearchArray[SearchValuePair.Value])) );
 		}
 		else
 		{
@@ -1325,8 +1325,8 @@ void FFindInBlueprintSearchManager::CleanCache()
 		}
 	}
 
-	SearchMap = NewSearchMap;
-	SearchArray = NewSearchArray;
+	SearchMap = MoveTemp( NewSearchMap );
+	SearchArray = MoveTemp( NewSearchArray );
 
 	// After the search, we have to place the active search queries where they belong
 	for( auto& CacheQuery : CacheQueries )

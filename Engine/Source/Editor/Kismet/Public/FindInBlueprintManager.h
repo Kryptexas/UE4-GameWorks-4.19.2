@@ -85,7 +85,57 @@ struct FSearchData
 		: Blueprint(nullptr)
 		, bMarkedForDeletion(false)
 	{
+	}
 
+	// Adding move semantics (on Mac this counts as a user defined constructor, so I have to reimplement the default
+	// copy constructor. PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS is not true on all compilers yet, so I'm implementing manually:
+	FSearchData(FSearchData&& Other)
+		: Blueprint(Other.Blueprint)
+		, BlueprintPath(MoveTemp(Other.BlueprintPath))
+		, Value(MoveTemp(Other.Value))
+		, bMarkedForDeletion(Other.bMarkedForDeletion)
+	{
+	}
+
+	FSearchData& operator=(FSearchData&& RHS)
+	{
+		if (this == &RHS)
+		{
+			return *this;
+		}
+
+		Blueprint = RHS.Blueprint;
+		BlueprintPath = MoveTemp(RHS.BlueprintPath);
+		Value = MoveTemp(RHS.Value);
+		bMarkedForDeletion = RHS.bMarkedForDeletion;
+		return *this;
+	}
+
+	FSearchData(const FSearchData& Other)
+		: Blueprint(Other.Blueprint)
+		, BlueprintPath(Other.BlueprintPath)
+		, Value(Other.Value)
+		, bMarkedForDeletion(Other.bMarkedForDeletion)
+	{
+	}
+
+	FSearchData& operator=(const FSearchData& RHS)
+	{
+		if (this == &RHS)
+		{
+			return *this;
+		}
+
+		Blueprint = RHS.Blueprint;
+		BlueprintPath = RHS.BlueprintPath;
+		Value = RHS.Value;
+		bMarkedForDeletion = RHS.bMarkedForDeletion;
+		return *this;
+	}
+
+
+	~FSearchData()
+	{
 	}
 };
 
