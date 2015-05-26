@@ -47,7 +47,7 @@ public:
 		, BodySetup( InComponent->GetBodySetup() )
 		, BlendMode( InComponent->GetBlendMode() )
 	{
-		bWillEverBeLit = false;	
+		bWillEverBeLit = false;
 	}
 
 	~FWidget3DSceneProxy()
@@ -198,7 +198,7 @@ public:
 								// Make sure the player is close enough to the widget to interact with it
 								if ( FVector::DistSquared(CachedHitResult.TraceStart, CachedHitResult.ImpactPoint) <= FMath::Square(WidgetComponent->GetMaxInteractionDistance()) )
 								{
-									return WidgetComponent->GetHitWidgetPath(CachedHitResult, bIgnoreEnabledStatus);
+									return WidgetComponent->GetHitWidgetPath(CachedHitResult.Location, bIgnoreEnabledStatus);
 								}
 							}
 						}
@@ -248,7 +248,7 @@ public:
 								TSharedPtr<FVirtualPointerPosition> VirtualCursorPos = MakeShareable(new FVirtualPointerPosition);
 
 								FVector2D LocalHitLocation;
-								WidgetComponent->GetLocalHitLocation(CachedHitResult, LocalHitLocation);
+								WidgetComponent->GetLocalHitLocation(CachedHitResult.Location, LocalHitLocation);
 
 								VirtualCursorPos->CurrentCursorPosition = LocalHitLocation;
 								VirtualCursorPos->LastCursorPosition = LocalHitLocation;
@@ -321,6 +321,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, BlendMode( EWidgetBlendMode::Masked )
 	, bIsOpaque_DEPRECATED( false )
 	, bIsTwoSided( false )
+	, ParabolaDistortion( 0 )
 	, TickWhenOffscreen( false )
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -710,6 +711,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 		static FName IsOpaqueName("bIsOpaque");
 		static FName IsTwoSidedName("bIsTwoSided");
 		static FName BackgroundColorName("BackgroundColor");
+		static FName ParabolaDistortionName(TEXT("ParabolaDistortion"));
 
 		auto PropertyName = Property->GetFName();
 
@@ -724,7 +726,7 @@ void UWidgetComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 			MarkRenderStateDirty();
 		}
-		else if ( PropertyName == IsOpaqueName  || PropertyName == BackgroundColorName || PropertyName == IsTwoSidedName)
+		else if ( PropertyName == IsOpaqueName || PropertyName == BackgroundColorName || PropertyName == IsTwoSidedName || PropertyName == ParabolaDistortionName)
 		{
 			MarkRenderStateDirty();
 		}
@@ -815,6 +817,7 @@ void UWidgetComponent::UpdateWidget()
 
 void UWidgetComponent::UpdateRenderTarget()
 {
+	bool bRenderStateDirty = false;
 	bool bClearColorChanged = false;
 
 	FLinearColor ActualBackgroundColor = BackgroundColor;
@@ -831,12 +834,11 @@ void UWidgetComponent::UpdateRenderTarget()
 		RenderTarget = NewObject<UTextureRenderTarget2D>(this);
 		RenderTarget->ClearColor = ActualBackgroundColor;
 
-		bClearColorChanged = true;
+		bClearColorChanged = bRenderStateDirty = true;
 
 		RenderTarget->InitCustomFormat(DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false);
 
 		MaterialInstance->SetTextureParameterValue( "SlateUI", RenderTarget );
-		MarkRenderStateDirty();
 	}
 	else if ( DrawSize != FIntPoint::ZeroValue )
 	{
@@ -844,14 +846,14 @@ void UWidgetComponent::UpdateRenderTarget()
 		if ( RenderTarget->SizeX != DrawSize.X || RenderTarget->SizeY != DrawSize.Y )
 		{
 			RenderTarget->InitCustomFormat( DrawSize.X, DrawSize.Y, PF_B8G8R8A8, false );
-			MarkRenderStateDirty();
+			bRenderStateDirty = true;
 		}
 
 		// Update the clear color
 		if ( RenderTarget->ClearColor != ActualBackgroundColor )
 		{
 			RenderTarget->ClearColor = ActualBackgroundColor;
-			bClearColorChanged = true;
+			bClearColorChanged = bRenderStateDirty = true;
 		}
 	}
 
@@ -859,6 +861,19 @@ void UWidgetComponent::UpdateRenderTarget()
 	if ( bClearColorChanged )
 	{
 		MaterialInstance->SetVectorParameterValue( "BackColor", RenderTarget->ClearColor );
+	}
+
+	static FName ParabolaDistortionName(TEXT("ParabolaDistortion"));
+
+	float CurrentParabolaValue;
+	if ( MaterialInstance->GetScalarParameterValue(ParabolaDistortionName, CurrentParabolaValue) && CurrentParabolaValue != ParabolaDistortion )
+	{
+		MaterialInstance->SetScalarParameterValue(ParabolaDistortionName, ParabolaDistortion);
+		bRenderStateDirty = true;
+	}
+
+	if ( bRenderStateDirty )
+	{
 		MarkRenderStateDirty();
 	}
 }
@@ -885,14 +900,20 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 	}	
 }
 
-void UWidgetComponent::GetLocalHitLocation(const FHitResult& HitResult, FVector2D& OutLocalHitLocation) const
+void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalWidgetHitLocation) const
 {
 	// Find the hit location on the component
-	OutLocalHitLocation = FVector2D(ComponentToWorld.InverseTransformPosition(HitResult.Location));
+	OutLocalWidgetHitLocation = FVector2D(ComponentToWorld.InverseTransformPosition(WorldHitLocation));
 
 	// Offset the position by the pivot to get the position in widget space.
-	OutLocalHitLocation.X += DrawSize.X * Pivot.X;
-	OutLocalHitLocation.Y += DrawSize.Y * Pivot.Y;
+	OutLocalWidgetHitLocation.X += DrawSize.X * Pivot.X;
+	OutLocalWidgetHitLocation.Y += DrawSize.Y * Pivot.Y;
+
+	// Apply the parabola distortion
+	FVector2D NormalizedLocation = OutLocalWidgetHitLocation / DrawSize;
+	NormalizedLocation.Y += ParabolaDistortion * ( -2.0f * NormalizedLocation.Y + 1.0f ) * NormalizedLocation.X * ( NormalizedLocation.X - 1.0f );
+
+	OutLocalWidgetHitLocation.Y = DrawSize.Y * NormalizedLocation.Y;
 }
 
 UUserWidget* UWidgetComponent::GetUserWidgetObject() const
@@ -900,10 +921,10 @@ UUserWidget* UWidgetComponent::GetUserWidgetObject() const
 	return Widget;
 }
 
-TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(const FHitResult& HitResult, bool bIgnoreEnabledStatus, float CursorRadius )
+TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath(FVector WorldHitLocation, bool bIgnoreEnabledStatus, float CursorRadius)
 {
 	FVector2D LocalHitLocation;
-	GetLocalHitLocation(HitResult, LocalHitLocation);
+	GetLocalHitLocation(WorldHitLocation, LocalHitLocation);
 
 	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable( new FVirtualPointerPosition );
 
@@ -950,6 +971,11 @@ float UWidgetComponent::GetMaxInteractionDistance() const
 void UWidgetComponent::SetMaxInteractionDistance(float Distance)
 {
 	MaxInteractionDistance = Distance;
+}
+
+TSharedPtr< SWindow > UWidgetComponent::GetVirtualWindow() const
+{
+	return StaticCastSharedPtr<SWindow>(SlateWidget);
 }
 
 void UWidgetComponent::PostLoad()
