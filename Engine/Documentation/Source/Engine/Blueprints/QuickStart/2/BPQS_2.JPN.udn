@@ -1,6 +1,5 @@
-﻿INTSourceChangelist:2492474
-Availability:Public
-Title:2.Launchpad を構成する
+﻿Availability:Public
+Title:2.ジャンプ台（Launchpad） を構成する
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
 Description:最も一般的に使われるビューポートのナビゲーション制御の概要
 
@@ -25,13 +24,13 @@ Description:最も一般的に使われるビューポートのナビゲーシ�
 
 ---
 
-Launchpadはレベルエディタでビルドして、ゲームプレイビヘイビアを追加するためにその後 Blueprint クラスに変換します。 
+ジャンプ台（Launchpad）はレベルエディタでビルドして、ゲームプレイビヘイビアを追加するためにその後 Blueprint クラスに変換します。 
 
 1. まずレベルの一番上のプラットフォームが見えるまで、ビューポートを移動します。
 
 	![](TopPlatforms.png)(w:500)
 
-	Empty Actor（空のアクタ）を使用してLaunchpadの要素すべてを保持するコンテナを作成します。必要となる2つの要素（またはコンポーネント）は、Launchpadを表す形状とキャラクターがこれにオーバーラップした時の
+	Empty Actor（空のアクタ）を使用してジャンプ台の要素すべてを保持するコンテナを作成します。必要となる2つの要素（またはコンポーネント）は、ジャンプ台を表す形状とキャラクターがこれにオーバーラップした時の
 	トリガーです。 
 
 1. **[モード]** パネルで **[Basic]** をクリック、そして **[Empty Actor]** を探します。
@@ -53,7 +52,7 @@ Launchpadはレベルエディタでビルドして、ゲームプレイビヘ�
 1. ボックスのXとYのサイズをプラットフォームのサイズに変更して、Zのサイズを少しだけプラットフォームの上へ拡張します。直接 **スケール** を入力する場合は、（1.25、1.25、15.0）と入力します。
 
 [REGION:tip]
-例えばLaunchpad全体を拡張するなどアクタのプロパティを変更する時は、 **詳細** パネルの **Add Components（コンポーネントを追加）** ボタン真下にある **LaunchPad (Instance)** をクリックします。
+例えばジャンプ台全体を拡張するなどアクタのプロパティを変更する時は、 **詳細** パネルの **Add Components（コンポーネントを追加）** ボタン真下にある **LaunchPad (Instance)** をクリックします。
 [/REGION]
 
 
