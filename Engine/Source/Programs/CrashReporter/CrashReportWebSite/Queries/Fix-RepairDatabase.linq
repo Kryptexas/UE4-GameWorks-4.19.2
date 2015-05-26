@@ -33,7 +33,7 @@ HashSet<int> GetInvalidFuncIds()
 }
 
 static Stopwatch Timer = Stopwatch.StartNew();
-static DateTime Date = DateTime.UtcNow.AddMonths(-1);   // From
+static DateTime Date = DateTime.UtcNow.AddMonths(-6);   // From
 static DateTime UtcNow = DateTime.UtcNow.AddHours(-2); // To
 static TimeSpan Tick = TimeSpan.FromDays(1);
 const int NUM_OPS_PER_BATCH = 16;
@@ -338,6 +338,44 @@ void SetNoPatternForInvalidPattern()
 	}
 }
 
+void ClearErrorMessageForCrashesWithAssertMessage()
+{
+	//Assertion failed:
+	
+	var CrashesBatch = new List<Crashes>(NUM_OPS_PER_BATCH);
+	DateTime StartDate = Date;
+	DateTime EndDate = Date.Add( Tick );	
+	int Total = 0;
+	
+	while( EndDate <= UtcNow )
+	{
+		var CrashesWithAssertMessage = Crashes
+		.Where( c => c.TimeOfCrash > StartDate && c.TimeOfCrash <= EndDate )
+		.Where( c => c.CrashType == 1 )
+		.Where( c => c.Summary.Contains("Assertion failed:") )
+		.ToList();
+	
+		Total += CrashesWithAssertMessage.Count;
+		WriteLine( string.Format( "CrashesWithAssertMessage: {0}/{1} {2} -> {3}", CrashesWithAssertMessage.Count, Total, StartDate.ToString("yyyy-MM-dd"), EndDate.ToString("yyyy-MM-dd") ) );		
+		StartDate = EndDate;
+	 	EndDate = EndDate.Add( Tick );
+	
+		for (int n = 0; n < CrashesWithAssertMessage.Count; n ++)
+		{
+			CrashesBatch.Add(CrashesWithAssertMessage[n]);		
+			CrashesWithAssertMessage[n].Summary = "";
+			
+			if (CrashesBatch.Count == NUM_OPS_PER_BATCH)
+			{
+				SumbitChanges(CrashesBatch);
+			}
+		}
+	}
+	
+	// Last batch
+	SumbitChanges(CrashesBatch);
+}
+
 void SetNoPatternForEnsureForCrashes()
 {
 	var EnsuresMarkedAsAssertsBatch = new List<Crashes>(NUM_OPS_PER_BATCH);
@@ -445,12 +483,12 @@ void FindAndDeleteEmptyBuggs()
 			{
 				EmptyBuggIds.Add(Bugg.Id);
 			}
-		}
-	
-		if (EmptyBuggIds.Count == NUM_OPS_PER_BATCH)
-		{
-			DeleteBuggs(EmptyBuggIds);
-		}
+			
+			if (EmptyBuggIds.Count == NUM_OPS_PER_BATCH)
+			{
+				DeleteBuggs(EmptyBuggIds);
+			}
+		}		
 	}
 	
 	// Last batch
@@ -473,6 +511,7 @@ void Main()
 {	
 	PrintStats();
 
+	ClearErrorMessageForCrashesWithAssertMessage();
 	SetNoPatternForEnsureForCrashes();
 	SetNoPatternForNoBranchAll();
 	SetNoPatternForInvalidPattern();

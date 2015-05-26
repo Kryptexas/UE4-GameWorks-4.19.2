@@ -10,12 +10,13 @@
 
 void Main()
 {
-	var Remove = Buggs_Crashes.Where (bc => bc.BuggId==53425);
-	Buggs.Where (b => b.Id==53425).First ().CrashType=3;
+	const int BuggId = 53425;
+	var Remove = Buggs_Crashes.Where (bc => bc.BuggId==BuggId);
+	Buggs.Where (b => b.Id==BuggId).First ().CrashType=3; // Ensure
 	Buggs.Context.SubmitChanges();
 	foreach( var it in Remove )
 	{
-		it.Crash.CrashType=3;
+		it.Crash.CrashType=3; // Ensure
 		Debug.WriteLine( "{0}", it.CrashId );
 	}
 	Buggs_Crashes.Context.SubmitChanges();
