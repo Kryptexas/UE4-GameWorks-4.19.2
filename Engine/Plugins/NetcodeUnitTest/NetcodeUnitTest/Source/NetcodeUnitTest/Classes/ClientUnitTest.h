@@ -63,8 +63,8 @@ enum class EUnitTestFlags : uint32 // NOTE: If you change from uint32, you need 
 	IgnoreDisconnect		= 0x00080000,	// Whether or not minimal/fake client disconnects, should be treated as a unit test failure
 
 	/** Unit test events */
-	NotifyAllowNetActor		= 0x00100000,	// Whether or not to trigger 'NotifyAllowNetActor', which whitelist actor channels by class
 	NotifyNetActors			= 0x00200000,	// Whether or not to trigger a 'NotifyNetActor' event, AFTER creation of actor channel actor
+	NotifyProcessEvent		= 0x00400000,	// Whether or not to trigger 'NotifyScriptProcessEvent' for every executed local function
 
 	/** Debugging */
 	CaptureReceivedRaw		= 0x01000000,	// Whether or not to capture raw (clientside) packet receives
@@ -72,8 +72,8 @@ enum class EUnitTestFlags : uint32 // NOTE: If you change from uint32, you need 
 	DumpReceivedRaw			= 0x04000000,	// Whether or not to also hex-dump the raw packet receives to the log/log-window
 	DumpSendRaw				= 0x08000000,	// Whether or not to also hex-dump the raw packet sends to the log/log-window
 	DumpControlMessages		= 0x10000000,	// Whether or not to dump control channel messages, and their raw hex content
-	DumpReceivedRPC			= 0x20000000,	// Whether or not to dump RPC receives
-	DumpSendRPC				= 0x40000000,	// Whether or not to dump RPC sends
+	DumpReceivedRPC			= 0x20000000,	// Whether or not to dump RPC receives (with LogNetTraffic, detects ProcessEvent RPC fail)
+	DumpSendRPC				= 0x40000000	// Whether or not to dump RPC sends
 };
 
 // Required for bitwise operations with the above enum
@@ -107,8 +107,8 @@ inline FString GetUnitTestFlagName(EUnitTestFlags Flag)
 		EUTF_CASE(IgnoreServerCrash);
 		EUTF_CASE(IgnoreClientCrash);
 		EUTF_CASE(IgnoreDisconnect);
-		EUTF_CASE(NotifyAllowNetActor);
 		EUTF_CASE(NotifyNetActors);
+		EUTF_CASE(NotifyProcessEvent);
 		EUTF_CASE(CaptureReceivedRaw);
 		EUTF_CASE(CaptureSendRaw);
 		EUTF_CASE(DumpReceivedRaw);
@@ -300,6 +300,12 @@ protected:
 	/** The (non-URL) commandline parameters clients should be launched with */
 	FString BaseClientParameters;
 
+	/** Actors the server is allowed replicate to client (requires AllowActors flag). Use NotifyAllowNetActor for conditional allows. */
+	TArray<UClass*> AllowedClientActors;
+
+	/** Clientside RPC's that should be allowed to execute (requires NotifyProcessEvent flag; other flags also allow specific RPC's) */
+	TArray<FString> AllowedClientRPCs;
+
 
 	/** Runtime variables */
 protected:
@@ -413,12 +419,13 @@ public:
 	virtual void NotifyHandleClientPlayer(APlayerController* PC, UNetConnection* Connection);
 
 	/**
-	 * Override this, to receive notification BEFORE an actor channel actor has been created (allowing you to block, based on class)
+	 * Override this, to receive notification BEFORE a replicated actor has been created (allowing you to block, based on class)
 	 *
 	 * @param ActorClass	The actor class that is about to be created
+	 * @param bActorChannel	Whether or not this actor is being created within an actor channel
 	 * @return				Whether or not to allow creation of that actor
 	 */
-	virtual bool NotifyAllowNetActor(UClass* ActorClass);
+	virtual bool NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel);
 
 	/**
 	 * Override this, to receive notification AFTER an actor channel actor has been created
@@ -471,10 +478,9 @@ public:
 	 * @param Actor			The actor the event is being executed on
 	 * @param Function		The script function being executed
 	 * @param Parameters	The raw unparsed parameters, being passed into the function
-	 * @param HookOrigin	Reference to the unit test that the event is associated with
 	 * @return				Whether or not to block the event from executing
 	 */
-	virtual bool NotifyScriptProcessEvent(AActor* Actor, UFunction* Function, void* Parameters, void* HookOrigin);
+	virtual bool NotifyScriptProcessEvent(AActor* Actor, UFunction* Function, void* Parameters);
 #endif
 
 	/**
@@ -549,12 +555,14 @@ public:
 	/**
 	 * Sends the specified RPC for the specified actor, and verifies that the RPC was sent (triggering a unit test failure if not)
 	 *
-	 * @param Target		The actor which will send the RPC
-	 * @param FunctionName	The name of the RPC
-	 * @param Parms			The RPC parameters (same as would be specified to ProcessEvent)
-	 * @return				Whether or not the RPC was sent successfully
+	 * @param Target				The actor which will send the RPC
+	 * @param FunctionName			The name of the RPC
+	 * @param Parms					The RPC parameters (same as would be specified to ProcessEvent)
+	 * @param ParmsSize				The size of the RPC parameters, for verifying binary compatibility
+	 * @param ParmsSizeCorrection	Some parameters are compressed to a different size. Verify Parms matches, and use this to correct.
+	 * @return						Whether or not the RPC was sent successfully
 	 */
-	bool SendRPCChecked(AActor* Target, const TCHAR* FunctionName, void* Parms);
+	bool SendRPCChecked(AActor* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize, int16 ParmsSizeCorrection=0);
 
 	/**
 	 * As above, except the RPC is called within a lambda
@@ -608,10 +616,12 @@ protected:
 	/**
 	 * Whether or not all 'requirements' flag conditions have been met
 	 *
-	 * @return	Whether or not all requirements are met
+	 * @param bIgnoreCustom		If true, checks all requirements other than custom requirements
+	 * @return					Whether or not all requirements are met
 	 */
-	bool HasAllRequirements();
+	bool HasAllRequirements(bool bIgnoreCustom=false);
 
+public:
 	/**
 	 * Optionally, if the 'RequireCustom' flag is set, this returns whether custom conditions have been met.
 	 *
@@ -633,7 +643,7 @@ protected:
 	 */
 	virtual ELogType GetExpectedLogTypes() override;
 
-
+protected:
 	virtual bool ExecuteUnitTest() override;
 
 	virtual void CleanupUnitTest() override;

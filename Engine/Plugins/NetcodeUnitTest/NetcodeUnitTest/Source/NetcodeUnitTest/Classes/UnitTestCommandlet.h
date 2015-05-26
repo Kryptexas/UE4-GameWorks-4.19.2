@@ -14,7 +14,20 @@
  *	"UE4Editor.exe shootergame -run=NetcodeUnitTest.UnitTestCommandlet"
  *
  * Parameters:
- *	"-UnitTest=UnitTestName"	- Launches only the specified unit test
+ *	-UnitTest=UnitTestName
+ *		- Launches only the specified unit test
+ *
+ *	-UnitTestNoAutoClose
+ *		- Sets the default option for the 'AutoClose' button to False
+ *
+ *	-UnitTestServerParms="CommandlineParameters"
+ *		- Adds additional commandline parameters to unit test server instances (useful for e.g. unsuppressing specific logs)
+ *
+ *	-UnitTestClientParms="CommandlineParameters"
+ *		- Adds additional commandline parameters to unit test client instances
+ *
+ *	-UnitTestCap=x
+ *		- Caps the maximum number of unit tests that can run at the same time
  */
 UCLASS()
 class UUnitTestCommandlet : public UCommandlet

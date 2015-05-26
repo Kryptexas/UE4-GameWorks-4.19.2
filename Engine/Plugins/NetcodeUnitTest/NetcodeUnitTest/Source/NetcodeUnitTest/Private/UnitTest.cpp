@@ -10,6 +10,7 @@
 
 
 FUnitTestEnvironment* UUnitTest::UnitEnv = NULL;
+FUnitTestEnvironment* UUnitTest::NullUnitEnv = NULL;
 
 
 /**
@@ -221,7 +222,9 @@ void UUnitTest::NotifyLocalLog(ELogType LogType, const TCHAR* Data, ELogVerbosit
 					CurLogColor = FLinearColor(1.f, 1.f, 0.f);
 				}
 
-				LogWidget->AddLine(LogType, MakeShareable(new FString(LogLine)), CurLogColor);
+				bool bRequestFocus = !!(LogOrigin & ELogType::FocusMask);
+
+				LogWidget->AddLine(LogType, MakeShareable(new FString(LogLine)), CurLogColor, bRequestFocus);
 			}
 		}
 	}

@@ -8,13 +8,18 @@
 #include "NUTUtilNet.h"
 #include "NUTUtil.h"
 
+#if TARGET_UE4_CL < CL_BEACONHOST
 const FName NAME_BeaconDriver = FName(TEXT("BeaconDriver"));
+#else
+const FName NAME_BeaconDriver = FName(TEXT("BeaconNetDriver"));
+#endif
 
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(NUTControl);
 
 
 ANUTActor::ANUTActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, BeaconDriverName(NAME_None)
 	, LastAliveTime(0.f)
 	, bMonitorForBeacon(false)
 {
@@ -46,7 +51,11 @@ void ANUTActor::PostActorCreated()
 	}
 }
 
+#if TARGET_UE4_CL < CL_CONSTNETCONN
+UNetConnection* ANUTActor::GetNetConnection()
+#else
 UNetConnection* ANUTActor::GetNetConnection() const
+#endif
 {
 	UNetConnection* ReturnVal = Super::GetNetConnection();
 
@@ -62,7 +71,7 @@ UNetConnection* ANUTActor::GetNetConnection() const
 		}
 		// If this is the server, set based on beacon driver client connection.
 		// Only the server has a net driver of name NAME_BeaconDriver (clientside the name is chosen dynamically)
-		else if (NetDriver != NULL && NetDriver->NetDriverName == NAME_BeaconDriver && NetDriver->ClientConnections.Num() > 0)
+		else if (NetDriver != NULL && NetDriver->NetDriverName == BeaconDriverName && NetDriver->ClientConnections.Num() > 0)
 		{
 			ReturnVal = NetDriver->ClientConnections[0];
 		}
@@ -174,7 +183,7 @@ bool ANUTActor::NotifyControlMessage(UNetConnection* Connection, uint8 MessageTy
 				{
 					UE_LOG(LogUnitTest, Log, TEXT("Successfully summoned actor of class '%s'"), *SpawnClassName);
 
-					if (bForceBeginPlay)
+					if (bForceBeginPlay && !NewActor->HasActorBegunPlay())
 					{
 						UE_LOG(LogUnitTest, Log, TEXT("Forcing call to 'BeginPlay' on newly spawned actor."));
 
@@ -371,7 +380,26 @@ void ANUTActor::Tick(float DeltaSeconds)
 		// Monitor for the beacon net driver, so it can be hooked
 		if (bMonitorForBeacon)
 		{
+#if TARGET_UE4_CL < CL_BEACONHOST
 			UNetDriver* BeaconDriver = GEngine->FindNamedNetDriver(CurWorld, NAME_BeaconDriver);
+#else
+			// Somehow, the beacon driver name got messed up in a subsequent checkin, so now has to be found manually
+			UNetDriver* BeaconDriver = NULL;
+
+			FWorldContext* CurContext = GEngine->GetWorldContextFromWorld(CurWorld);
+
+			if (CurContext != NULL)
+			{
+				for (auto CurDriverRef : CurContext->ActiveNetDrivers)
+				{
+					if (CurDriverRef.NetDriverDef->DefName == NAME_BeaconDriver)
+					{
+						BeaconDriver = CurDriverRef.NetDriver;
+						break;
+					}
+				}
+			}
+#endif
 
 			// Only hook when a client is connected
 			if (BeaconDriver != NULL && BeaconDriver->ClientConnections.Num() > 0)
@@ -385,7 +413,8 @@ void ANUTActor::Tick(float DeltaSeconds)
 				Role = ROLE_None;
 				SetReplicates(false);
 
-				NetDriverName = NAME_BeaconDriver;
+				BeaconDriverName = BeaconDriver->NetDriverName;
+				NetDriverName = BeaconDriverName;
 
 				Role = ROLE_Authority;
 				SetReplicates(true);

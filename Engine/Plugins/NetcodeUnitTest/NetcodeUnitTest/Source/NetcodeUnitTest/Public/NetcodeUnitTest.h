@@ -23,14 +23,18 @@
 #define CL_UT_4_6 CL_4_6
 
 /** List of Fortnite mainline merges (number represents merged mainline CL) */
+#define CL_FORT_4_8_APRIL 2509925
 #define CL_FORT_4_8 2415178
 #define CL_FORT_4_7 2349525
 
 
 /** List of mainline UE4 engine changelists, that required a NetcodeUnitTest compatibility adjustment (newest first) */
+#define CL_CONSTUNIQUEID	2540329
+#define CL_CONSTNETCONN		2501704
 #define CL_INPUTCHORD		2481648
 #define CL_CLOSEPROC		2476050
 #define CL_STRINGPARSEARRAY	2466824
+#define CL_BEACONHOST		2456855
 #define CL_GETSELECTIONMODE	2425976
 #define CL_DEPRECATENEW		2425600
 #define CL_FNETWORKVERSION	2384479
@@ -45,7 +49,7 @@
  *
  * If in doubt, set to the top CL from list above ('List of mainline UE4 engine changelists'), and work your way down until it compiles.
  */
-#define TARGET_UE4_CL 2480893	// IMPORTANT: If you're hovering over this because compiling failed, you need to adjust this value.
+#define TARGET_UE4_CL 2554937	// IMPORTANT: If you're hovering over this because compiling failed, you need to adjust this value.
 
 
 /**
@@ -117,6 +121,10 @@ enum class ELogType : uint32
 	StyleMonospace		= 0x01000000,					// Output monospaced text (e.g. for list tab formatting); can't use bold/italic
 
 	All					= 0xFFFFFFFF,
+
+
+	/** Log lines that should request focus when logged (i.e. if not displayed in the current tab, switch to a tab that does display) */
+	FocusMask			= OriginConsole,
 };
 
 ENUM_CLASS_FLAGS(ELogType);

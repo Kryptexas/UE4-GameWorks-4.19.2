@@ -262,6 +262,11 @@ public:
 	 * FOutputDevice methods
 	 */
 
+	// We're hiding UObject::Serialize() by declaring this.  That's OK, but Clang will warn about it.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
 	/**
 	 * Write text to the console
 	 *
@@ -269,10 +274,6 @@ public:
 	 * @param Verbosity	The log level verbosity for the message
 	 * @param Category	The log category for the message
 	 */
-#if defined(__clang__)	// We're hiding UObject::Serialize() by declaring this.  That's OK, but Clang will warn about it.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-#endif
 	virtual void Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
 #if defined(__clang__)
 #pragma clang diagnostic pop

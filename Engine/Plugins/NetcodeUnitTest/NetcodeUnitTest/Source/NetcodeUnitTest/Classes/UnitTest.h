@@ -137,6 +137,9 @@ protected:
 	/** The unit test environment (not set until the current games unit test module is loaded - not set at all, if no such module) */
 	static FUnitTestEnvironment* UnitEnv;
 
+	/** The null unit test environment - for unit tests which support all games, due to requiring no game-specific features */
+	static FUnitTestEnvironment* NullUnitEnv;
+
 	/** The time of the last NetTick event */
 	double LastNetTick;
 
@@ -227,7 +230,14 @@ public:
 
 		FString CurGame = FApp::GetGameName();
 
-		Result = ExpectedResult[CurGame];
+		if (ExpectedResult.Contains(CurGame))
+		{
+			Result = ExpectedResult[CurGame];
+		}
+		else if (ExpectedResult.Contains(TEXT("NullUnitEnv")))
+		{
+			Result = ExpectedResult[TEXT("NullUnitEnv")];
+		}
 
 		return Result;
 	}
@@ -305,7 +315,7 @@ public:
 	/**
 	 * Executes the main unit test
 	 *
-	 * @return	Whether or not the unit test was executed successfully
+	 * @return	Whether or not the unit test kicked off execution successfully
 	 */
 	virtual bool ExecuteUnitTest() PURE_VIRTUAL(UUnitTest::ExecuteUnitTest, return false;)
 

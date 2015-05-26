@@ -46,12 +46,13 @@ class UUnitTestNetConnection : public UIpConnection
 	DECLARE_DELEGATE_TwoParams(FReceivedRawPacketDel, void* /*Data*/, int32& /*Count*/);
 
 	/**
-	 * Delegate for notifying on (and optionally blocking) actor channel creation
+	 * Delegate for notifying on (and optionally blocking) replicated actor creation
 	 *
 	 * @param ActorClass	The class of the actor being replicated
-	 * @return				Whether or not to allow creation of the actor channel
+	 * @param bActorChannel	Whether or not this actor creation is from an actor channel
+	 * @return				Whether or not to allow creation of the actor
 	 */
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnActorChannelSpawn, UClass* /*ActorClass*/);
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnReplicatedActorSpawn, UClass* /*ActorClass*/, bool /*bActorChannel*/);
 
 
 	/** Delegate for hooking LowLevelSend */
@@ -60,8 +61,8 @@ class UUnitTestNetConnection : public UIpConnection
 	/** Delegate for hooking ReceivedRawPacket */
 	FReceivedRawPacketDel	ReceivedRawPacketDel;
 
-	/** Delegate for notifying on actor channel creation */
-	FOnActorChannelSpawn	ActorChannelSpawnDel;
+	/** Delegate for notifying on replicated actor creation */
+	FOnReplicatedActorSpawn	ReplicatedActorSpawnDel;
 };
 
 

@@ -71,6 +71,9 @@ struct FLogTabInfo
 	/** The log line filter the tab should use */
 	ELogType	Filter;
 
+	/** When a logged line requests focus, this determines the priority for selecting what tab to focus (lower = higher priority) */
+	uint8		Priority;
+
 	/** Whether or not the tab is presently open (some tabs, such as the 'debug' tab, start off closed if not explicitly enabled) */
 	bool		bTabOpen;
 
@@ -104,10 +107,11 @@ struct FLogTabInfo
 	// @todo JohnB: Add an extended filter eventually (perhaps an FString for simple String.Contains filter?)
 
 
-	FLogTabInfo(FString InLabel, FString InToolTip, ELogType InFilter=ELogType::All, bool bInTabOpen=true)
+	FLogTabInfo(FString InLabel, FString InToolTip, ELogType InFilter=ELogType::All, uint8 InPriority=255, bool bInTabOpen=true)
 		: Label(InLabel)
 		, ToolTip(InToolTip)
 		, Filter(InFilter)
+		, Priority(InPriority)
 		, bTabOpen(bInTabOpen)
 		, TabLogLines()
 		, LogListView()
@@ -188,11 +192,13 @@ public:
 	/**
 	 * Adds a log line to the log window
 	 *
-	 * @param LogType	The type of log output this is (for filtering)
-	 * @param LogLine	The log line
-	 * @param LogColor	The colour to apply to the log line
+	 * @param LogType			The type of log output this is (for filtering)
+	 * @param LogLine			The log line
+	 * @param LogColor			The colour to apply to the log line
+	 * @param bTakeTabFocus		If this log line isn't displayed on the currently focused tab, switch focus to a tab that does show it
 	 */
-	void AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateColor LogColor=FSlateColor::UseForeground());
+	void AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateColor LogColor=FSlateColor::UseForeground(),
+					bool bTakeTabFocus=false);
 
 
 	/**

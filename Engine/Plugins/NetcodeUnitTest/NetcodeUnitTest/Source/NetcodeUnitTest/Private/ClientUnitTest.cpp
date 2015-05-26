@@ -14,6 +14,7 @@
 #include "UnitTestEnvironment.h"
 #include "Net/NUTUtilNet.h"
 #include "NUTUtilDebug.h"
+#include "NUTUtilReflection.h"
 
 #include "LogWindowManager.h"
 #include "SLogWindow.h"
@@ -35,6 +36,8 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	, BaseServerParameters(TEXT(""))
 	, BaseClientURL(TEXT(""))
 	, BaseClientParameters(TEXT(""))
+	, AllowedClientActors()
+	, AllowedClientRPCs()
 	, ActiveProcesses()
 	, ServerHandle(NULL)
 	, ServerAddress(TEXT(""))
@@ -105,7 +108,7 @@ void UClientUnitTest::NotifyHandleClientPlayer(APlayerController* PC, UNetConnec
 	}
 }
 
-bool UClientUnitTest::NotifyAllowNetActor(UClass* ActorClass)
+bool UClientUnitTest::NotifyAllowNetActor(UClass* ActorClass, bool bActorChannel)
 {
 	bool bAllow = false;
 
@@ -126,6 +129,24 @@ bool UClientUnitTest::NotifyAllowNetActor(UClass* ActorClass)
 		bAllow = true;
 	}
 
+	if (!!(UnitTestFlags & EUnitTestFlags::RequireBeacon) && ActorClass->IsChildOf(AOnlineBeaconClient::StaticClass()) &&
+		UnitBeacon == NULL)
+	{
+		bAllow = true;
+	}
+
+	if (!bAllow && AllowedClientActors.Num() > 0)
+	{
+		const auto CheckIsChildOf =
+			[&](const UClass* CurEntry)
+			{
+				return ActorClass->IsChildOf(CurEntry);
+			};
+
+		// Use 'ContainsByPredicate' as iterator
+		bAllow = AllowedClientActors.ContainsByPredicate(CheckIsChildOf);
+	}
+
 	return bAllow;
 }
 
@@ -133,14 +154,18 @@ void UClientUnitTest::NotifyNetActor(UActorChannel* ActorChannel, AActor* Actor)
 {
 	if (!UnitNUTActor.IsValid())
 	{
+		// Set this even if not required, as it's needed for some UI elements to function
 		UnitNUTActor = Cast<ANUTActor>(Actor);
 
-		ResetTimeout(TEXT("NotifyNetActor - UnitNUTActor"));
-
-		if (UnitNUTActor.IsValid() && !!(UnitTestFlags & EUnitTestFlags::RequireNUTActor) && HasAllRequirements())
+		if (UnitNUTActor.IsValid())
 		{
-			ResetTimeout(TEXT("ExecuteClientUnitTest (NotifyNetActor - UnitNUTActor)"));
-			ExecuteClientUnitTest();
+			ResetTimeout(TEXT("NotifyNetActor - UnitNUTActor"));
+
+			if (!!(UnitTestFlags & EUnitTestFlags::RequireNUTActor) && HasAllRequirements())
+			{
+				ResetTimeout(TEXT("ExecuteClientUnitTest (NotifyNetActor - UnitNUTActor)"));
+				ExecuteClientUnitTest();
+			}
 		}
 	}
 
@@ -273,26 +298,26 @@ void UClientUnitTest::ReceivedControlBunch(FInBunch& Bunch)
 }
 
 #if !UE_BUILD_SHIPPING
-bool UClientUnitTest::NotifyScriptProcessEvent(AActor* Actor, UFunction* Function, void* Parameters, void* HookOrigin)
+bool UClientUnitTest::NotifyScriptProcessEvent(AActor* Actor, UFunction* Function, void* Parameters)
 {
 	bool bBlockEvent = false;
 
 	// Handle UnitTestFlags that require RPC monitoring
-	if (!(UnitTestFlags & EUnitTestFlags::AcceptRPCs) || !!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) ||
+	if (AllowedClientRPCs.Num() > 0 || !(UnitTestFlags & EUnitTestFlags::AcceptRPCs) || !!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) ||
 		!!(UnitTestFlags & EUnitTestFlags::RequirePawn))
 	{
 		bool bNetClientRPC = !!(Function->FunctionFlags & FUNC_Net) && !!(Function->FunctionFlags & FUNC_NetClient);
 
 		if (bNetClientRPC)
 		{
+			FString FuncName = Function->GetName();
+
 			// Whether or not to force acceptance of this RPC
 			bool bForceAccept = false;
 
 			// Handle detection and proper setup of the PlayerController's pawn
 			if (!!(UnitTestFlags & EUnitTestFlags::RequirePawn) && !bUnitPawnSetup && UnitPC != NULL)
 			{
-				FString FuncName = Function->GetName();
-
 				if (FuncName == TEXT("ClientRestart"))
 				{
 					UNIT_LOG(ELogType::StatusImportant, TEXT("Got ClientRestart"));
@@ -337,17 +362,33 @@ bool UClientUnitTest::NotifyScriptProcessEvent(AActor* Actor, UFunction* Functio
 			}
 
 
+			bForceAccept = bForceAccept && AllowedClientRPCs.Contains(FuncName);
+
 			// Block RPC's, if they are not accepted
 			if (!(UnitTestFlags & EUnitTestFlags::AcceptRPCs) && !bForceAccept)
 			{
-				UNIT_LOG(, TEXT("Blocking receive RPC '%s' for actor '%s'"), *Function->GetName(), *Actor->GetFullName());
+				FString FuncParms = NUTUtilRefl::FunctionParmsToString(Function, Parameters);
+
+				UNIT_LOG(, TEXT("Blocking receive RPC '%s' for actor '%s'"), *FuncName, *Actor->GetFullName());
+
+				if (FuncParms.Len() > 0)
+				{
+					UNIT_LOG(, TEXT("     '%s' parameters: %s"), *FuncName, *FuncParms);
+				}
 
 				bBlockEvent = true;
 			}
 
 			if (!!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) && !bBlockEvent)
 			{
-				UNIT_LOG(ELogType::StatusDebug, TEXT("Received RPC '%s' for actor '%s'"), *Function->GetName(), *Actor->GetFullName());
+				FString FuncParms = NUTUtilRefl::FunctionParmsToString(Function, Parameters);
+
+				UNIT_LOG(ELogType::StatusDebug, TEXT("Received RPC '%s' for actor '%s'"), *FuncName, *Actor->GetFullName());
+
+				if (FuncParms.Len() > 0)
+				{
+					UNIT_LOG(, TEXT("     '%s' parameters: %s"), *FuncName, *FuncParms);
+				}
 			}
 		}
 	}
@@ -383,36 +424,37 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 	const TArray<FString>* ServerStartProgressLogs = NULL;
 	const TArray<FString>* ServerReadyLogs = NULL;
 	const TArray<FString>* ServerTimeoutResetLogs = NULL;
+	const TArray<FString>* ClientTimeoutResetLogs = NULL;
 
 	UnitEnv->GetServerProgressLogs(ServerStartProgressLogs, ServerReadyLogs, ServerTimeoutResetLogs);
+	UnitEnv->GetClientProgressLogs(ClientTimeoutResetLogs);
 
+	// Using 'ContainsByPredicate' as an iterator
+	FString MatchedLine;
+
+	const auto SearchInLogLine =
+		[&](const FString& ProgressLine)
+		{
+			bool bFound = false;
+
+			for (auto CurLine : InLogLines)
+			{
+				if (CurLine.Contains(ProgressLine))
+				{
+					MatchedLine = CurLine;
+					bFound = true;
+
+					break;
+				}
+			}
+
+			return bFound;
+		};
 
 	// If launching a server, delay joining by the fake client, until the server has fully setup, and reset the unit test timeout,
 	// each time there is a server log event, that indicates progress in starting up
 	if (!!(UnitTestFlags & EUnitTestFlags::LaunchServer) && ServerHandle.IsValid() && InProcess.HasSameObject(ServerHandle.Pin().Get()))
 	{
-		// Using 'ContainsByPredicate' as an iterator
-		FString MatchedLine;
-
-		const auto SearchInLogLine =
-			[&](const FString& ProgressLine)
-			{
-				bool bFound = false;
-
-				for (auto CurLine : InLogLines)
-				{
-					if (CurLine.Contains(ProgressLine))
-					{
-						MatchedLine = CurLine;
-						bFound = true;
-
-						break;
-					}
-				}
-
-				return bFound;
-			};
-
 		if (UnitConn == NULL || UnitConn->State == EConnectionState::USOCK_Pending)
 		{
 			if (ServerReadyLogs->ContainsByPredicate(SearchInLogLine))
@@ -445,7 +487,16 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 		}
 	}
 
-	// @todo JohnB: Consider adding a progress-checker for launched clients as well
+	if (!!(UnitTestFlags & EUnitTestFlags::LaunchClient) && ClientHandle.IsValid() && InProcess.HasSameObject(ClientHandle.Pin().Get()))
+	{
+		if (ClientTimeoutResetLogs->Num() > 0)
+		{
+			if (ClientTimeoutResetLogs->ContainsByPredicate(SearchInLogLine))
+			{
+				ResetTimeout(FString(TEXT("ClientTimeoutReset: ")) + MatchedLine, true);
+			}
+		}
+	}
 
 	// @todo JohnB: Consider also, adding a way to communicate with launched clients,
 	//				to reset their connection timeout upon server progress, if they fully startup before the server does
@@ -568,12 +619,19 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 		}
 		else
 		{
-			UNIT_LOG(, TEXT("Can't execute command '%s', it's in the 'bad commands' list (i.e. probably crashes)"), *Command);
+			UNIT_LOG(ELogType::OriginConsole,
+						TEXT("Can't execute command '%s', it's in the 'bad commands' list (i.e. probably crashes)"), *Command);
 		}
 	}
 	else if (CommandContext == TEXT("Server"))
 	{
 		// @todo JohnB: Perhaps add extra checks here, to be sure we're ready to send console commands?
+		//
+		//				UPDATE: Yes, this is a good idea, because if the client hasn't gotten to the correct login stage
+		//				(NMT_Join or such, need to check when server rejects non-login control commands),
+		//				then it leads to an early disconnect when you try to spam-send a command early.
+		//
+		//				It's easy to test this, just type in a command before join, and hold down enter on the edit box to spam it.
 		if (UnitConn != NULL)
 		{
 			FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
@@ -589,25 +647,25 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
 
 
-			UNIT_LOG(, TEXT("Sent command '%s' to server."), *Command);
+			UNIT_LOG(ELogType::OriginConsole, TEXT("Sent command '%s' to server."), *Command);
 
 			bHandled = true;
 		}
 		else
 		{
-			UNIT_LOG(, TEXT("Failed to send console command '%s', no server connection."), *Command);
+			UNIT_LOG(ELogType::OriginConsole, TEXT("Failed to send console command '%s', no server connection."), *Command);
 		}
 	}
 	else if (CommandContext == TEXT("Client"))
 	{
 		// @todo JohnB
 
-		UNIT_LOG(, TEXT("Client console commands not yet implemented"));
+		UNIT_LOG(ELogType::OriginConsole, TEXT("Client console commands not yet implemented"));
 	}
 	else
 	{
-		UNIT_LOG(ELogType::StatusFailure, TEXT("Unknown console command context '%s' - this is a bug that should be fixed."),
-					*CommandContext);
+		UNIT_LOG(ELogType::StatusFailure | ELogType::OriginConsole,
+					TEXT("Unknown console command context '%s' - this is a bug that should be fixed."), *CommandContext);
 	}
 
 	return bHandled;
@@ -632,7 +690,8 @@ void UClientUnitTest::GetCommandContextList(TArray<TSharedPtr<FString>>& OutList
 }
 
 
-bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, void* Parms)
+bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, void* Parms, int16 ParmsSize,
+										int16 ParmsSizeCorrection/*=0*/)
 {
 	bool bSuccess = false;
 	UFunction* TargetFunc = Target->FindFunction(FName(FunctionName));
@@ -641,7 +700,15 @@ bool UClientUnitTest::SendRPCChecked(AActor* Target, const TCHAR* FunctionName, 
 
 	if (TargetFunc != NULL)
 	{
-		Target->ProcessEvent(TargetFunc, Parms);
+		if (TargetFunc->ParmsSize == ParmsSize + ParmsSizeCorrection)
+		{
+			Target->ProcessEvent(TargetFunc, Parms);
+		}
+		else
+		{
+			UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to send RPC '%s', mismatched parameters: '%i' vs '%i' (%i - %i)."),
+						FunctionName, TargetFunc->ParmsSize, ParmsSize + ParmsSizeCorrection, ParmsSize, -ParmsSizeCorrection);
+		}
 	}
 
 	bSuccess = PostSendRPC(FunctionName, Target);
@@ -698,6 +765,7 @@ bool UClientUnitTest::PostSendRPC(FString RPCName, AActor* Target/*=NULL*/)
 }
 
 
+// @todo JohnB: This should be changed to work as compile-time conditionals, if possible
 bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 {
 	bool bSuccess = Super::ValidateUnitTestSettings();
@@ -712,6 +780,9 @@ bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::LaunchClient) || BaseClientParameters.Len() > 0);
 
 
+	// You can't specify an allowed actors whitelist, without the AcceptActors flag
+	UNIT_ASSERT(AllowedClientActors.Num() == 0 || !!(UnitTestFlags & EUnitTestFlags::AcceptActors));
+
 	// If you require a player/NUTActor, you need to accept actor channels
 	UNIT_ASSERT((!(UnitTestFlags & EUnitTestFlags::AcceptPlayerController) && !(UnitTestFlags & EUnitTestFlags::RequireNUTActor)) ||
 					!!(UnitTestFlags & EUnitTestFlags::AcceptActors));
@@ -723,9 +794,23 @@ bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 	// If you require a pawn, you must require a PlayerController
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePawn) || !!(UnitTestFlags & EUnitTestFlags::RequirePlayerController));
 
+	// If you require a pawn, you must enable NotifyProcessEvent
+	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePawn) || !!(UnitTestFlags & EUnitTestFlags::NotifyProcessEvent));
+
+	// If you want to dump received RPC's, you need to hook NotifyProcessEvent
+	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::DumpReceivedRPC) || !!(UnitTestFlags & EUnitTestFlags::NotifyProcessEvent));
+
+	// You can't whitelist client RPC's (i.e. unblock whitelisted RPC's), unless all RPC's are blocked by default
+	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::AcceptRPCs) || AllowedClientRPCs.Num() == 0);
+
 #if UE_BUILD_SHIPPING
-	// You can't detect pawns in shipping builds, as you need to hook ProcessEvent for RPC notifications
-	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequirePawn));
+	// You can't hook ProcessEvent or block RPCs in shipping builds, as the main engine hook is not available in shipping; soft-fail
+	if (!!(UnitTestFlags & EUnitTestFlags::NotifyProcessEvent) || !(UnitTestFlags & EUnitTestFlags::AcceptRPCs))
+	{
+		UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("Unit tests run in shipping mode, can't hook ProcessEvent."));
+
+		bSuccess = false;
+	}
 #endif
 
 	// If you require a pawn, validate the existence of certain RPC's that are needed for pawn setup and verification
@@ -768,16 +853,6 @@ bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 	// Don't require a beacon, if you're not connecting to a beacon
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::RequireBeacon) || !!(UnitTestFlags & EUnitTestFlags::BeaconConnect));
 
-	// In shipping builds, you MUST accept RPC's, as there is no way to filter them out (can't hook ProcessEvent); soft-fail
-#if UE_BUILD_SHIPPING
-	if (!(UnitTestFlags & EUnitTestFlags::AcceptRPCs))
-	{
-		UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("Unit tests run in shipping mode, must accept RPC's"));
-
-		bSuccess = false;
-	}
-#endif
-
 	// Don't specify server-dependent flags, if not auto-launching a server
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::LaunchClient) || !!(UnitTestFlags & EUnitTestFlags::LaunchServer));
 
@@ -786,9 +861,6 @@ bool UClientUnitTest::ValidateUnitTestSettings(bool bCDOCheck/*=false*/)
 
 	// If DumpSendRaw is set, make sure hooking of SendRawPacket is enabled too
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::DumpSendRaw) || !!(UnitTestFlags & EUnitTestFlags::CaptureSendRaw));
-
-	// You can't get net actor allow notifications, unless you accept actors
-	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::NotifyAllowNetActor) || !!(UnitTestFlags & EUnitTestFlags::AcceptActors));
 
 	// You can't get net actor notifications, unless you accept actors
 	UNIT_ASSERT(!(UnitTestFlags & EUnitTestFlags::NotifyNetActors) || !!(UnitTestFlags & EUnitTestFlags::AcceptActors));
@@ -842,7 +914,7 @@ EUnitTestFlags UClientUnitTest::GetMetRequirements()
 	return ReturnVal;
 }
 
-bool UClientUnitTest::HasAllRequirements()
+bool UClientUnitTest::HasAllRequirements(bool bIgnoreCustom/*=false*/)
 {
 	bool bReturnVal = true;
 
@@ -853,6 +925,11 @@ bool UClientUnitTest::HasAllRequirements()
 	}
 
 	EUnitTestFlags RequiredFlags = (UnitTestFlags & EUnitTestFlags::RequirementsMask);
+
+	if (bIgnoreCustom)
+	{
+		RequiredFlags &= ~EUnitTestFlags::RequireCustom;
+	}
 
 	if ((RequiredFlags & GetMetRequirements()) != RequiredFlags)
 	{
@@ -990,7 +1067,7 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 
 			bool bFailedScriptHook = false;
 
-			if (!(UnitTestFlags & EUnitTestFlags::AcceptRPCs))
+			if (!(UnitTestFlags & EUnitTestFlags::AcceptRPCs) || !!(UnitTestFlags & EUnitTestFlags::NotifyProcessEvent))
 			{
 #if !UE_BUILD_SHIPPING
 				AddProcessEventCallback(this, &UClientUnitTest::InternalScriptProcessEvent);
@@ -1049,10 +1126,7 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 						CurUnitConn->LowLevelSendDel.BindUObject(this, &UClientUnitTest::NotifySendRawPacket);
 					}
 
-					if (!!(UnitTestFlags & EUnitTestFlags::NotifyAllowNetActor))
-					{
-						CurUnitConn->ActorChannelSpawnDel.BindUObject(this, &UClientUnitTest::NotifyAllowNetActor);
-					}
+					CurUnitConn->ReplicatedActorSpawnDel.BindUObject(this, &UClientUnitTest::NotifyAllowNetActor);
 
 					// If you don't have to wait for any requirements, execute immediately
 					if (!(UnitTestFlags & (EUnitTestFlags::RequirementsMask)))
@@ -1296,10 +1370,11 @@ void UClientUnitTest::ShutdownUnitTestProcess(TSharedPtr<FUnitTestProcess> InHan
 		FString LogMsg = FString::Printf(TEXT("Shutting down process '%s'."), *InHandle->ProcessTag);
 
 		UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg)
+		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
 
 
-		FPlatformProcess::TerminateProc(InHandle->ProcessHandle, true);
+		// @todo JohnB: Restore 'true' here, once the issue where killing child processes sometimes kills all processes, is fixed
+		FPlatformProcess::TerminateProc(InHandle->ProcessHandle);//, true);
 
 #if TARGET_UE4_CL < CL_CLOSEPROC
 		InHandle->ProcessHandle.Close();
@@ -1463,8 +1538,15 @@ void UClientUnitTest::CheckOutputForError(TSharedPtr<FUnitTestProcess> InProcess
 
 		if (InProcess->ErrorLogStage != EErrorLogStage::ELS_NoError)
 		{
-			// Regex pattern for matching callstack logs - matches: " (0x000007fefe22cacd) + 0 bytes ["
-			const FRegexPattern CallstackPattern(TEXT("\\s\\(0x[0-9,a-f]+\\) \\+ [0-9]+ bytes \\["));
+			// Regex pattern for matching callstack logs - matches:
+			//	" (0x000007fefe22cacd) + 0 bytes"
+			//	" {0x000007fefe22cacd} + 0 bytes"
+			const FRegexPattern CallstackPattern(TEXT("\\s[\\(|\\{]0x[0-9,a-f]+[\\)|\\}] \\+ [0-9]+ bytes"));
+
+			// Matches:
+			//	"ntldll.dll"
+			const FRegexPattern AltCallstackPattern(TEXT("^[a-z,A-Z,0-9,\\-,_]+\\.[exe|dll]"));
+
 
 			// Check for the beginning of description logs
 			if (InProcess->ErrorLogStage == EErrorLogStage::ELS_ErrorStart &&
@@ -1478,8 +1560,9 @@ void UClientUnitTest::CheckOutputForError(TSharedPtr<FUnitTestProcess> InProcess
 				InProcess->ErrorLogStage == EErrorLogStage::ELS_ErrorCallstack)
 			{
 				FRegexMatcher CallstackMatcher(CallstackPattern, CurLine);
+				FRegexMatcher AltCallstackMatcher(AltCallstackPattern, CurLine);
 
-				if (CallstackMatcher.FindNext())
+				if (CallstackMatcher.FindNext() || AltCallstackMatcher.FindNext())
 				{
 					InProcess->ErrorLogStage = EErrorLogStage::ELS_ErrorCallstack;
 				}
@@ -1539,7 +1622,7 @@ bool UClientUnitTest::InternalScriptProcessEvent(AActor* Actor, UFunction* Funct
 			{
 				UNIT_EVENT_BEGIN(OriginUnitTest);
 
-				bBlockEvent = OriginUnitTest->NotifyScriptProcessEvent(Actor, Function, Parameters, HookOrigin);
+				bBlockEvent = OriginUnitTest->NotifyScriptProcessEvent(Actor, Function, Parameters);
 
 				UNIT_EVENT_END;
 			}
