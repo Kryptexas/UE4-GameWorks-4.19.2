@@ -143,7 +143,8 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 		Compiler->PreCompile(Blueprint, CompileOptions);
 	}
 
-	if (CompileOptions.CompileType != EKismetCompileType::Cpp)
+	if (CompileOptions.CompileType != EKismetCompileType::Cpp
+		&& CompileOptions.CompileType != EKismetCompileType::BytecodeOnly )
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileSkeletonClass);
 		auto SkeletonReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->SkeletonGeneratedClass);
