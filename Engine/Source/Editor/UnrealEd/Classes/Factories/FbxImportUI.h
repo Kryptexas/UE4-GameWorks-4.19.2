@@ -83,10 +83,6 @@ class UFbxImportUI : public UObject
 	UPROPERTY()
 	uint32 bImportRigidMesh:1;
 
-	/** Enable this option to use default sample rate for the imported animation at 30 frames per second */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition = "bImportAnimations", ToolTip="If enabled, samples all animation curves to 30 FPS", ImportType="SkeletalMesh|Animation"))
-	uint32 bUseDefaultSampleRate:1;
-
 	/** Whether to automatically create Unreal materials for materials found in the FBX scene */
 	UPROPERTY(EditAnywhere, config, Category = Material, meta = (OBJRestrict="true"))
 	uint32 bImportMaterials:1;

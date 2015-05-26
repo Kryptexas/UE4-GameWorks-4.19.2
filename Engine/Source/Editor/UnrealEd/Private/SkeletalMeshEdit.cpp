@@ -185,7 +185,11 @@ bool UEditorEngine::ReimportFbxAnimation( USkeleton* Skeleton, UAnimSequence* An
 			if (CurAnimStack)
 			{
 				// set current anim stack
-				int32 ResampleRate = FbxImporter->GetMaxSampleRate(SortedLinks, FBXMeshNodeArray);
+				int32 ResampleRate = DEFAULT_SAMPLERATE;
+				if (FbxImporter->ImportOptions->bResample)
+				{
+					ResampleRate = FbxImporter->GetMaxSampleRate(SortedLinks, FBXMeshNodeArray);
+				}
 				FbxTimeSpan AnimTimeSpan = FbxImporter->GetAnimationTimeSpan(SortedLinks[0], CurAnimStack);
 				// for now it's not importing morph - in the future, this should be optional or saved with asset
 				if (FbxImporter->ValidateAnimStack(SortedLinks, FBXMeshNodeArray, CurAnimStack, ResampleRate, bImportMorphTracks, AnimTimeSpan))

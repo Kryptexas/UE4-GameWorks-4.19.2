@@ -5871,7 +5871,6 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	ReimportUI->bImportAnimations = false;
 	ReimportUI->AnimationName = TEXT("");
 	ReimportUI->bImportRigidMesh = false;
-	ReimportUI->bUseDefaultSampleRate = false;
 
 	bool bSuccess = false;
 
