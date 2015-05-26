@@ -721,6 +721,14 @@ FText FMaterialEditor::GetToolkitName() const
 	return FText::Format( LOCTEXT("MaterialEditorAppLabel", "{ObjectName}{DirtyState}"), Args );
 }
 
+FText FMaterialEditor::GetToolkitToolTipText() const
+{
+	const UObject* EditingObject = GetEditingObjects()[0];
+
+	// Overridden to accommodate editing of multiple objects (original and preview materials)
+	return FAssetEditorToolkit::GetToolTipTextForObject(EditingObject);
+}
+
 FString FMaterialEditor::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("WorldCentricTabPrefix", "Material ").ToString();

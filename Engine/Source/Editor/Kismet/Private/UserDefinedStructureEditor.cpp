@@ -243,6 +243,15 @@ FText FUserDefinedStructureEditor::GetToolkitName() const
 	return GetBaseToolkitName();
 }
 
+FText FUserDefinedStructureEditor::GetToolkitToolTipText() const
+{
+	if (1 == GetEditingObjects().Num())
+	{
+		return FAssetEditorToolkit::GetToolkitToolTipText();
+	}
+	return GetBaseToolkitName();
+}
+
 FString FUserDefinedStructureEditor::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("UDStructWorldCentricTabPrefix", "Struct ").ToString();

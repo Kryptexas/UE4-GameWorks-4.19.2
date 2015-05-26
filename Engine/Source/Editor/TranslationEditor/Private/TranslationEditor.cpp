@@ -229,6 +229,19 @@ FText FTranslationEditor::GetToolkitName() const
 	return FText::Format( LOCTEXT("TranslationEditorAppLabel", "{Language}{DirtyState} - {ProjectName} - {ToolkitName}"), Args );
 }
 
+FText FTranslationEditor::GetToolkitToolTipText() const
+{
+	const UObject* EditingObject = GetEditingObject();
+
+	check (EditingObject != NULL);
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Language"), FText::FromString(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath))));
+	Args.Add(TEXT("ProjectName"), FText::FromString(FPaths::GetBaseFilename(ManifestFilePath)));
+	Args.Add( TEXT("ToolkitName"), GetBaseToolkitName() );
+	return FText::Format( LOCTEXT("TranslationEditorAppToolTip", "{Language} - {ProjectName} - {ToolkitName}"), Args );
+}
+
 FString FTranslationEditor::GetWorldCentricTabPrefix() const
 {
 	return LOCTEXT("WorldCentricTabPrefix", "Translation ").ToString();

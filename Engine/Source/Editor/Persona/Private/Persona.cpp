@@ -1746,6 +1746,18 @@ FText FPersona::GetToolkitName() const
 	}
 }
 
+FText FPersona::GetToolkitToolTipText() const
+{
+	if (IsEditingSingleBlueprint())
+	{
+		return FAssetEditorToolkit::GetToolTipTextForObject(GetBlueprintObj());
+	}
+	else
+	{
+		check(TargetSkeleton != NULL);
+		return FAssetEditorToolkit::GetToolTipTextForObject(TargetSkeleton);
+	}
+}
 
 FString FPersona::GetWorldCentricTabPrefix() const
 {

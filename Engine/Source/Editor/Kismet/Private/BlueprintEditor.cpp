@@ -6780,6 +6780,52 @@ FText FBlueprintEditor::GetToolkitName() const
 	return FText::Format( NSLOCTEXT("KismetEditor", "ToolkitTitle_UniqueLayerName", "{NumberOfObjects} {ClassName} - Class Defaults"), Args );
 }
 
+FText FBlueprintEditor::GetToolkitToolTipText() const
+{
+	const auto EditingObjects = GetEditingObjects();
+
+	if( IsEditingSingleBlueprint() )
+	{
+		if (FBlueprintEditorUtils::IsLevelScriptBlueprint(GetBlueprintObj()))
+		{
+			const FString& LevelName = FPackageName::GetShortFName( GetBlueprintObj()->GetOutermost()->GetFName().GetPlainNameString() ).GetPlainNameString();	
+
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("LevelName"), FText::FromString( LevelName ) );
+			return FText::Format( NSLOCTEXT("KismetEditor", "LevelScriptAppToolTip", "{LevelName} - Level Blueprint Editor"), Args );
+		}
+		else
+		{
+			return FAssetEditorToolkit::GetToolTipTextForObject( GetBlueprintObj() );
+		}
+	}
+
+	TSubclassOf< UObject > SharedParentClass = NULL;
+
+	for( auto ObjectIter = EditingObjects.CreateConstIterator(); ObjectIter; ++ObjectIter )
+	{
+		UBlueprint* Blueprint = Cast<UBlueprint>( *ObjectIter );;
+		check( Blueprint );
+
+		// Initialize with the class of the first object we encounter.
+		if( *SharedParentClass == NULL )
+		{
+			SharedParentClass = Blueprint->ParentClass;
+		}
+
+		// If we've encountered an object that's not a subclass of the current best baseclass,
+		// climb up a step in the class hierarchy.
+		while( !Blueprint->ParentClass->IsChildOf( SharedParentClass ) )
+		{
+			SharedParentClass = SharedParentClass->GetSuperClass();
+		}
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add( TEXT("NumberOfObjects"), EditingObjects.Num() );
+	Args.Add( TEXT("ObjectName"), FText::FromString( SharedParentClass->GetName() ) );
+	return FText::Format( NSLOCTEXT("KismetEditor", "ToolkitTitle_UniqueLayerName", "{NumberOfObjects} {ClassName} - Class Defaults"), Args );
+}
 
 FLinearColor FBlueprintEditor::GetWorldCentricTabColorScale() const
 {
