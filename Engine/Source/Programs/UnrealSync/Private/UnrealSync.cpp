@@ -5,6 +5,7 @@
 #include "P4DataCache.h"
 #include "P4Env.h"
 #include "XmlParser.h"
+#include "SettingsCache.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -83,187 +84,6 @@ void FUnrealSync::RunUnrealSync(const TCHAR* CommandLine)
 	}
 }
 
-FString FUnrealSync::GetLatestLabelForGame(const FString& GameName)
-{
-	auto Labels = GetPromotedLabelsForGame(GameName);
-	return Labels->Num() == 0 ? "" : (*Labels)[0];
-}
-
-/**
- * Tells if label is in the format: <BranchPath>/<Prefix>-<GameNameIfNotEmpty>-CL-*
- *
- * @param LabelName Label name to check.
- * @param LabelNamePrefix Prefix to use.
- * @param GameName Game name to use.
- *
- * @returns True if label is in the format. False otherwise.
- */
-bool IsPrefixedGameLabelName(const FString& LabelName, const FString& LabelNamePrefix, const FString& GameName)
-{
-	int32 BranchNameEnd = 0;
-
-	if (!LabelName.FindLastChar('/', BranchNameEnd))
-	{
-		return false;
-	}
-
-	FString Rest = LabelName.Mid(BranchNameEnd + 1);
-
-	FString LabelNameGamePart;
-	if (!GameName.Equals(""))
-	{
-		LabelNameGamePart = "-" + GameName;
-	}
-
-	return Rest.StartsWith(LabelNamePrefix + LabelNameGamePart + "-CL-", ESearchCase::CaseSensitive);
-}
-
-/**
- * Tells if label is in the format: <BranchPath>/Promoted-<GameNameIfNotEmpty>-CL-*
- *
- * @param LabelName Label name to check.
- * @param GameName Game name to use.
- *
- * @returns True if label is in the format. False otherwise.
- */
-bool IsPromotedGameLabelName(const FString& LabelName, const FString& GameName)
-{
-	return IsPrefixedGameLabelName(LabelName, "Promoted", GameName);
-}
-
-/**
- * Tells if label is in the format: <BranchPath>/Promotable-<GameNameIfNotEmpty>-CL-*
- *
- * @param LabelName Label name to check.
- * @param GameName Game name to use.
- *
- * @returns True if label is in the format. False otherwise.
- */
-bool IsPromotableGameLabelName(const FString& LabelName, const FString& GameName)
-{
-	return IsPrefixedGameLabelName(LabelName, "Promotable", GameName);
-}
-
-/**
- * Helper function to construct and get array of labels if data is fetched from the P4
- * using given policy.
- *
- * @template_param TFillLabelsPolicy Policy class that has to implement:
- *     static void Fill(TArray<FString>& OutLabelNames, const FString& GameName, const TArray<FP4Label>& Labels)
- *     that will fill the array on request.
- * @param GameName Game name to pass to the Fill method from policy.
- * @returns Filled out labels.
- */
-template <class TFillLabelsPolicy>
-TSharedPtr<TArray<FString> > GetLabelsForGame(const FString& GameName)
-{
-	TSharedPtr<TArray<FString> > OutputLabels = MakeShareable(new TArray<FString>());
-
-	if (FUnrealSync::HasValidData())
-	{
-		TFillLabelsPolicy::Fill(*OutputLabels, GameName, FUnrealSync::GetLabels());
-	}
-
-	return OutputLabels;
-}
-
-TSharedPtr<TArray<FString> > FUnrealSync::GetPromotedLabelsForGame(const FString& GameName)
-{
-	struct TFillLabelsPolicy 
-	{
-		static void Fill(TArray<FString>& OutLabelNames, const FString& InGameName, const TArray<FP4Label>& InLabels)
-		{
-			for (auto Label : InLabels)
-			{
-				if (IsPromotedGameLabelName(Label.GetName(), InGameName))
-				{
-					OutLabelNames.Add(Label.GetName());
-				}
-			}
-		}
-	};
-
-	return GetLabelsForGame<TFillLabelsPolicy>(GameName);
-}
-
-TSharedPtr<TArray<FString> > FUnrealSync::GetPromotableLabelsForGame(const FString& GameName)
-{
-	struct TFillLabelsPolicy
-	{
-		static void Fill(TArray<FString>& OutLabelNames, const FString& InGameName, const TArray<FP4Label>& InLabels)
-		{
-			for (auto Label : InLabels)
-			{
-				if (IsPromotedGameLabelName(Label.GetName(), InGameName))
-				{
-					break;
-				}
-
-				if (IsPromotableGameLabelName(Label.GetName(), InGameName))
-				{
-					OutLabelNames.Add(Label.GetName());
-				}
-			}
-		}
-	};
-
-	return GetLabelsForGame<TFillLabelsPolicy>(GameName);
-}
-
-TSharedPtr<TArray<FString> > FUnrealSync::GetAllLabels()
-{
-	struct TFillLabelsPolicy
-	{
-		static void Fill(TArray<FString>& OutLabelNames, const FString& InGameName, const TArray<FP4Label>& InLabels)
-		{
-			for (auto Label : InLabels)
-			{
-				OutLabelNames.Add(Label.GetName());
-			}
-		}
-	};
-
-	return GetLabelsForGame<TFillLabelsPolicy>("");
-}
-
-TSharedPtr<TArray<FString> > FUnrealSync::GetPossibleGameNames()
-{
-	TSharedPtr<TArray<FString> > PossibleGames = MakeShareable(new TArray<FString>());
-
-	FP4Env& Env = FP4Env::Get();
-
-	FString FileList;
-	if (!Env.RunP4Output(FString::Printf(TEXT("files -e %s/.../Build/ArtistSyncRules.xml"), *Env.GetBranch()), FileList) || FileList.IsEmpty())
-	{
-		return PossibleGames;
-	}
-
-	FString Line, Rest = FileList;
-	while (Rest.Split(LINE_TERMINATOR, &Line, &Rest, ESearchCase::CaseSensitive))
-	{
-		if (!Line.StartsWith(Env.GetBranch()))
-		{
-			continue;
-		}
-
-		int32 ArtistSyncRulesPos = Line.Find("/Build/ArtistSyncRules.xml#", ESearchCase::IgnoreCase);
-
-		if (ArtistSyncRulesPos == INDEX_NONE)
-		{
-			continue;
-		}
-
-		FString MiddlePart = Line.Mid(Env.GetBranch().Len(), ArtistSyncRulesPos - Env.GetBranch().Len());
-
-		int32 LastSlash = INDEX_NONE;
-		MiddlePart.FindLastChar('/', LastSlash);
-
-		PossibleGames->Add(MiddlePart.Mid(LastSlash + 1));
-	}
-
-	return PossibleGames;
-}
-
 const FString& FUnrealSync::GetSharedPromotableDisplayName()
 {
 	static const FString DispName = "Shared Promotable";
@@ -276,168 +96,6 @@ const FString& FUnrealSync::GetSharedPromotableP4FolderName()
 	static const FString DispName = "Samples";
 
 	return DispName;
-}
-
-void FUnrealSync::RegisterOnDataLoaded(const FOnDataLoaded& InOnDataLoaded)
-{
-	FUnrealSync::OnDataLoaded = InOnDataLoaded;
-}
-
-void FUnrealSync::RegisterOnDataReset(const FOnDataReset& InOnDataReset)
-{
-	FUnrealSync::OnDataReset = InOnDataReset;
-}
-
-void FUnrealSync::StartLoadingData()
-{
-	bLoadingFinished = false;
-	Data.Reset();
-	LoaderThread.Reset();
-
-	OnDataReset.ExecuteIfBound();
-
-	LoaderThread = MakeShareable(new FP4DataLoader(
-		FP4DataLoader::FOnLoadingFinished::CreateStatic(&FUnrealSync::OnP4DataLoadingFinished)
-		));
-}
-
-void FUnrealSync::TerminateLoadingProcess()
-{
-	if (LoaderThread.IsValid())
-	{
-		LoaderThread->Terminate();
-	}
-}
-
-void FUnrealSync::OnP4DataLoadingFinished(TSharedPtr<FP4DataCache> InData)
-{
-	FUnrealSync::Data = InData;
-
-	bLoadingFinished = true;
-
-	OnDataLoaded.ExecuteIfBound();
-}
-
-bool FUnrealSync::LoadingFinished()
-{
-	return bLoadingFinished;
-}
-
-bool FUnrealSync::HasValidData()
-{
-	return Data.IsValid();
-}
-
-/**
- * Class to store info of syncing thread.
- */
-class FSyncingThread : public FRunnable
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param InSettings Sync settings.
-	 * @param InLabelNameProvider Label name provider.
-	 * @param InOnSyncFinished Delegate to run when syncing process has finished.
-	 * @param InOnSyncProgress Delegate to run when syncing process has made progress.
-	 */
-	FSyncingThread(FSyncSettings InSettings, ILabelNameProvider& InLabelNameProvider, const FUnrealSync::FOnSyncFinished& InOnSyncFinished, const FUnrealSync::FOnSyncProgress& InOnSyncProgress)
-		: bTerminate(false), Settings(MoveTemp(InSettings)), LabelNameProvider(InLabelNameProvider), OnSyncFinished(InOnSyncFinished), OnSyncProgress(InOnSyncProgress)
-	{
-		Thread = FRunnableThread::Create(this, TEXT("Syncing thread"));
-	}
-
-	/**
-	 * Main thread function.
-	 */
-	uint32 Run() override
-	{
-		if (OnSyncProgress.IsBound())
-		{
-			OnSyncProgress.Execute(LabelNameProvider.GetStartedMessage() + "\n");
-		}
-
-		FString Label = LabelNameProvider.GetLabelName();
-		FString Game = LabelNameProvider.GetGameName();
-
-		struct FProcessStopper
-		{
-			FProcessStopper(bool& bInStop, FUnrealSync::FOnSyncProgress& InOuterSyncProgress)
-				: bStop(bInStop), OuterSyncProgress(InOuterSyncProgress) {}
-
-			bool OnProgress(const FString& Text)
-			{
-				if (OuterSyncProgress.IsBound())
-				{
-					if (!OuterSyncProgress.Execute(Text))
-					{
-						bStop = true;
-					}
-				}
-
-				return !bStop;
-			}
-
-		private:
-			bool& bStop;
-			FUnrealSync::FOnSyncProgress& OuterSyncProgress;
-		};
-		
-		FProcessStopper Stopper(bTerminate, OnSyncProgress);
-		bool bSuccess = FUnrealSync::Sync(Settings, Label, Game, FUnrealSync::FOnSyncProgress::CreateRaw(&Stopper, &FProcessStopper::OnProgress));
-
-		if (OnSyncProgress.IsBound())
-		{
-			OnSyncProgress.Execute(LabelNameProvider.GetFinishedMessage() + "\n");
-		}
-
-		OnSyncFinished.ExecuteIfBound(bSuccess);
-
-		return 0;
-	}
-
-	/**
-	 * Stops process runnning in the background and terminates wait for the
-	 * watcher thread to finish.
-	 */
-	void Terminate()
-	{
-		bTerminate = true;
-		Thread->WaitForCompletion();
-	}
-
-private:
-	/* Tells the thread to terminate the process. */
-	bool bTerminate;
-
-	/* Handle for thread object. */
-	FRunnableThread* Thread;
-
-	/* Sync settings. */
-	FSyncSettings Settings;
-
-	/* Label name provider. */
-	ILabelNameProvider& LabelNameProvider;
-
-	/* Delegate that will be run when syncing process has finished. */
-	FUnrealSync::FOnSyncFinished OnSyncFinished;
-
-	/* Delegate that will be run when syncing process has finished. */
-	FUnrealSync::FOnSyncProgress OnSyncProgress;
-};
-
-void FUnrealSync::TerminateSyncingProcess()
-{
-	if (SyncingThread.IsValid())
-	{
-		SyncingThread->Terminate();
-	}
-}
-
-void FUnrealSync::LaunchSync(FSyncSettings Settings, ILabelNameProvider& LabelNameProvider, const FOnSyncFinished& OnSyncFinished, const FOnSyncProgress& OnSyncProgress)
-{
-	SyncingThread = MakeShareable(new FSyncingThread(MoveTemp(Settings), LabelNameProvider, OnSyncFinished, OnSyncProgress));
 }
 
 /**
@@ -660,6 +318,35 @@ bool FUnrealSync::Sync(const FSyncSettings& Settings, const FString& Label, cons
 	return true;
 }
 
+void FUnrealSync::SaveGUISettingsToCache()
+{
+	SaveGUISettings();
+}
+
+void FUnrealSync::SaveSettings()
+{
+	FSettingsCache::Get().Save();
+}
+
+void FUnrealSync::SaveSettingsAndClose()
+{
+	SaveGUISettingsToCache();
+
+	SaveSettings();
+
+	FPlatformMisc::RequestExit(false);
+}
+
+void FUnrealSync::SaveSettingsAndRestart()
+{
+	SaveGUISettingsToCache();
+
+	SaveSettings();
+
+	FUnrealSync::RunDetachedUS(FPlatformProcess::ExecutableName(false), true, true, false);
+	FPlatformMisc::RequestExit(false);
+}
+
 bool FUnrealSync::IsDebugParameterSet()
 {
 	const auto bDebug = FParse::Param(FCommandLine::Get(), TEXT("Debug"));
@@ -742,10 +429,4 @@ bool FUnrealSync::Initialization(const TCHAR* CommandLine)
 
 
 /* Static fields initialization. */
-FUnrealSync::FOnDataLoaded FUnrealSync::OnDataLoaded;
-FUnrealSync::FOnDataReset FUnrealSync::OnDataReset;
-TSharedPtr<FP4DataCache> FUnrealSync::Data;
-bool FUnrealSync::bLoadingFinished = false;
-TSharedPtr<FP4DataLoader> FUnrealSync::LoaderThread;
-TSharedPtr<FSyncingThread> FUnrealSync::SyncingThread;
 FString FUnrealSync::InitializationError;

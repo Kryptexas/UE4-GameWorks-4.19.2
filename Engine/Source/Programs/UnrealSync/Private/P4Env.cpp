@@ -5,12 +5,9 @@
 #include "P4Env.h"
 #include "ProcessHelper.h"
 #include "Regex.h"
-#include "Map.h"
-#include "JsonSerializer.h"
-#include "JsonObject.h"
-#include "JsonReader.h"
 #include "SEditableTextBox.h"
 #include "SGridPanel.h"
+#include "SettingsCache.h"
 
 #define LOCTEXT_NAMESPACE "UnrealSync"
 
@@ -29,151 +26,6 @@ bool GetCommandLineParam(FString& Value, const TCHAR* CommandLine, EP4ParamType 
 {
 	return FParse::Value(CommandLine, *(FP4Env::GetParamName(Type) + "="), Value);
 }
-
-/**
- * Cache class for file settings.
- */
-class FSettingsCache
-{
-public:
-	/**
-	 * Instance getter.
-	 */
-	static FSettingsCache& Get()
-	{
-		static FSettingsCache Cache;
-		return Cache;
-	}
-
-	/**
-	 * Gets setting of given type.
-	 *
-	 * @param Value Output parameter. If succeeded this parameter will be overwritten with setting value.
-	 * @param Type Type to look for.
-	 *
-	 * @returns True if setting was found. False otherwise.
-	 */
-	bool GetSetting(FString& Value, EP4ParamType Type)
-	{
-		auto* ParamPtr = Settings.Find(FP4Env::GetParamName(Type));
-		if (ParamPtr == nullptr)
-		{
-			return false;
-		}
-
-		Value = *ParamPtr;
-		return true;
-	}
-
-	/**
-	 * Sets setting of given type to given value.
-	 *
-	 * @param Type Type of the setting.
-	 * @param Value Value of the setting.
-	 */
-	void SetSetting(EP4ParamType Type, const FString& Value)
-	{
-		auto* ParamPtr = Settings.Find(FP4Env::GetParamName(Type));
-		if (ParamPtr != nullptr)
-		{
-			*ParamPtr = Value;
-		}
-
-		Settings.Add(FP4Env::GetParamName(Type), Value);
-	}
-
-	/**
-	 * Saves setting to file.
-	 */
-	void Save()
-	{
-		TSharedRef<FJsonObject> Object(new FJsonObject());
-
-		for (const auto& Setting : Settings)
-		{
-			if (!Setting.Value.IsEmpty())
-			{
-				Object->SetStringField(Setting.Key, Setting.Value);
-			}
-		}
-
-		FString Buffer;
-		TSharedRef<TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Buffer);
-		if (!FJsonSerializer::Serialize(Object, Writer))
-		{
-			UE_LOG(LogP4Env, Error, TEXT("Failed serializing settings using JSON."));
-			return;
-		}
-
-		auto bNeedsWrite = true;
-
-		if (FPaths::FileExists(GetSettingsFileName()))
-		{
-			// Read the file to a string.
-			FString FileContents;
-			bNeedsWrite = !(FFileHelper::LoadFileToString(FileContents, *GetSettingsFileName()) && FileContents == Buffer);
-		}
-
-		if (bNeedsWrite && !FFileHelper::SaveStringToFile(Buffer, *GetSettingsFileName()))
-		{
-			UE_LOG(LogP4Env, Error, TEXT("Failed writing settings to file: \"%s\"."), *GetSettingsFileName());
-			return;
-		}
-	}
-
-private:
-	/**
-	 * Constructor.
-	 *
-	 * Creates the cache from value read from settings file if it exists.
-	 */
-	FSettingsCache()
-	{
-		// Read the file to a string.
-		FString FileContents;
-		if (!FFileHelper::LoadFileToString(FileContents, *GetSettingsFileName()))
-		{
-			UE_LOG(LogP4Env, Log, TEXT("Couldn't find settings file \"%s\"."), *GetSettingsFileName());
-			return;
-		}
-
-		// Deserialize a JSON object from the string
-		TSharedPtr<FJsonObject> Object;
-		TSharedRef<TJsonReader<> > Reader = TJsonReaderFactory<>::Create(FileContents);
-		if (!FJsonSerializer::Deserialize(Reader, Object) || !Object.IsValid())
-		{
-			UE_LOG(LogP4Env, Error, TEXT("Settings file JSON parsing failed: \"%s\"."), *Reader->GetErrorMessage());
-			return;
-		}
-
-		for (const auto& Value : Object->Values)
-		{
-			FString Text;
-			if (!Value.Value->TryGetString(Text))
-			{
-				Settings.Empty();
-				break;
-			}
-
-			Settings.Add(Value.Key, Text);
-		}
-	}
-
-	/**
-	 * Gets settings file name. For now it's hardcoded.
-	 *
-	 * @returns Settings file name.
-	 */
-	static const FString& GetSettingsFileName()
-	{
-		const static FString HardCodedSettingsFileName = "UnrealSync.settings";
-
-		return HardCodedSettingsFileName;
-	}
-
-	/** Value map of settings. */
-	TMap<FString, FString> Settings;
-};
 
 /**
  * Gets param from environment variables.
@@ -300,7 +152,7 @@ public:
 			OverriddenSetting(Type, HardParam, true);
 		}
 
-		if (FSettingsCache::Get().GetSetting(HardParam, Type))
+		if (FP4Env::GetSetting(HardParam, Type))
 		{
 			OverriddenSetting(Type, HardParam, false);
 		}
@@ -1108,6 +960,18 @@ bool FP4Env::CheckIfFileNeedsUpdate(const FString& FilePath)
 	return HaveRev < HeadRev;
 }
 
+bool FP4Env::GetSetting(FString& Value, EP4ParamType Type)
+{
+	TSharedPtr<FJsonValue> JSONValue;
+	if (!FSettingsCache::Get().GetSetting(JSONValue, TEXT("Perforce"))
+		|| JSONValue->Type != EJson::Object)
+	{
+		return false;
+	}
+
+	return JSONValue->AsObject()->TryGetStringField(GetParamName(Type), Value);
+}
+
 bool FP4Env::IsValid()
 {
 	return Env.IsValid();
@@ -1409,16 +1273,19 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 FReply SP4EnvTabWidget::OnSaveAndRestartButtonClick()
 {
 	auto& Settings = FSettingsCache::Get();
+	TSharedPtr<FJsonObject> Object(new FJsonObject());
 
 	for (auto Option : Options)
 	{
-		Settings.SetSetting(Option->GetType(), Option->GetText().ToString());
+		if (!Option->GetText().IsEmpty())
+		{
+			Object->SetStringField(FP4Env::GetParamName(Option->GetType()), Option->GetText().ToString());
+		}
 	}
 
-	Settings.Save();
+	Settings.SetSetting(TEXT("Perforce"), MakeShareable(new FJsonValueObject(Object)));
 
-	FUnrealSync::RunDetachedUS(FPlatformProcess::ExecutableName(false), true, true, false);
-	FPlatformMisc::RequestExit(false);
+	FUnrealSync::SaveSettingsAndRestart();
 
 	return FReply::Handled();
 }
@@ -1434,7 +1301,7 @@ SP4EnvTabWidget::FP4Option::FP4Option(EP4ParamType InType)
 	: Type(InType)
 {
 	FString Param;
-	if (FSettingsCache::Get().GetSetting(Param, Type))
+	if (FP4Env::Get().GetSetting(Param, Type))
 	{
 		Text = FText::FromString(Param);
 	}

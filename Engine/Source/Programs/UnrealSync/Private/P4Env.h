@@ -234,6 +234,16 @@ public:
 	 */
 	static bool CheckIfFileNeedsUpdate(const FString& FilePath);
 
+	/**
+	 * Gets setting of given type.
+	 *
+	 * @param Value Output parameter. If succeeded this parameter will be overwritten with setting value.
+	 * @param Type Type to look for.
+	 *
+	 * @returns True if setting was found. False otherwise.
+	 */
+	static bool GetSetting(FString& Value, EP4ParamType Type);
+
 private:
 	/* Param serialization delegate. */
 	DECLARE_DELEGATE_TwoParams(FSerializationTask, FString&, EP4ParamType);
@@ -284,4 +294,7 @@ private:
 
 	/* P4 current branch. */
 	FString Branch;
+
+	/** Value map of P4 settings. */
+	TMap<FString, FString> P4FileSettingsCache;
 };

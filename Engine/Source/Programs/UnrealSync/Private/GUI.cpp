@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealSync.h"
+#include "SyncingThread.h"
 
 #include "SlateBasics.h"
 #include "StandaloneRenderer.h"
@@ -17,6 +18,7 @@
 #include "BaseTextLayoutMarshaller.h"
 #include "DesktopPlatformModule.h"
 #include "IDesktopPlatform.h"
+#include "SettingsCache.h"
 
 #define LOCTEXT_NAMESPACE "UnrealSync"
 
@@ -140,6 +142,55 @@ private:
 
 	/** Number of currently logged lines. */
 	int32 NumberOfLines = 0;
+};
+
+/**
+ * A checkbox with JSON preservable state.
+ */
+class SPreservableCheckBox : public SCheckBox
+{
+public:
+	SLATE_BEGIN_ARGS(SPreservableCheckBox)	{}
+		SLATE_DEFAULT_SLOT(FArguments, Content)
+	SLATE_END_ARGS()
+
+	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+	void Construct(const FArguments& InArgs)
+	{
+		SCheckBox::FArguments BaseArgs;
+		BaseArgs._Content = InArgs._Content;
+
+		SCheckBox::Construct(BaseArgs);
+	}
+	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+	/**
+	 * Converts current object state to JSON value.
+	 *
+	 * @returns JSON value object with current state.
+	 */
+	TSharedRef<FJsonValue> GetStateAsJSON() const
+	{
+		check(GetCheckedState() != ECheckBoxState::Undetermined);
+
+		return TSharedRef<FJsonValue>(new FJsonValueBoolean(GetCheckedState() == ECheckBoxState::Checked));
+	}
+
+	/**
+	 * Loads state from JSON value object.
+	 *
+	 * @param Value JSON value object.
+	 */
+	void LoadStateFromJSON(const FJsonValue& Value)
+	{
+		bool BoolValue;
+		check(Value.TryGetBool(BoolValue) && GetCheckedState() != ECheckBoxState::Undetermined);
+
+		if ((GetCheckedState() == ECheckBoxState::Checked) != BoolValue)
+		{
+			ToggleCheckedState();
+		}
+	}
 };
 
 /**
@@ -348,6 +399,22 @@ public:
 	}
 
 	/**
+	 * Sets current option for this combo box.
+	 *
+	 * @param Value Value to set combo box to.
+	 */
+	void SetCurrentOption(const FString& Value)
+	{
+		for (int32 OptionId = 0; OptionId < OptionsSource.Num(); ++OptionId)
+		{
+			if (OptionsSource[OptionId]->Equals(Value))
+			{
+				CurrentOption = OptionId;
+			}
+		}
+	}
+
+	/**
 	 * Checks if options source is empty.
 	 *
 	 * @returns True if options source is empty. False otherwise.
@@ -376,13 +443,7 @@ private:
 	void ComboBoxSelectionChanged(TSharedPtr<FString> Value, ESelectInfo::Type SelectInfo)
 	{
 		CurrentOption = -1;
-		for (int32 OptionId = 0; OptionId < OptionsSource.Num(); ++OptionId)
-		{
-			if (OptionsSource[OptionId]->Equals(*Value))
-			{
-				CurrentOption = OptionId;
-			}
-		}
+		SetCurrentOption(*Value);
 
 		OnSelectionChanged.ExecuteIfBound(CurrentOption, SelectInfo);
 	}
@@ -621,6 +682,31 @@ public:
 		return Items[ItemId]->GetContent();
 	}
 
+	/**
+	 * Converts current object state to JSON value.
+	 *
+	 * @returns JSON value object with current state.
+	 */
+	TSharedRef<FJsonValue> GetStateAsJSON() const
+	{
+		return MakeShareable(new FJsonValueNumber(GetChosen()));
+	}
+
+	/**
+	 * Loads state from JSON value object.
+	 *
+	 * @param Value JSON value object.
+	 */
+	void LoadStateFromJSON(const FJsonValue& Value)
+	{
+		int32 Chosen = 0;
+
+		if (Value.TryGetNumber(Chosen) && Chosen < Items.Num())
+		{
+			ChooseEnabledItem(Chosen);
+		}
+	}
+
 private:
 	/**
 	 * Function to rebuild main and fill it with items provided.
@@ -674,8 +760,10 @@ public:
 	}
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void Construct(const FArguments& InArgs)
+	void Construct(const FArguments& InArgs, const TSharedRef<FP4DataProxy>& InData)
 	{
+		Data = InData;
+
 		this->ChildSlot
 			[
 				SNew(STextBlock).Text(FText::FromString("This option will sync to the latest promoted label for given game."))
@@ -727,7 +815,7 @@ public:
 	{
 		ILabelNameProvider::RefreshData(GameName);
 
-		auto Labels = FUnrealSync::GetPromotedLabelsForGame(GameName);
+		auto Labels = Data.Pin()->GetPromotedLabelsForGame(GameName);
 		if (Labels->Num() != 0)
 		{
 			CurrentLabelName = (*Labels)[0];
@@ -758,6 +846,26 @@ public:
 		return true;
 	}
 
+	/**
+	 * Converts current object state to JSON value.
+	 *
+	 * @returns JSON value object with current state.
+	 */
+	TSharedPtr<FJsonValue> GetStateAsJSON() const
+	{
+		return nullptr;
+	}
+
+	/**
+	 * Loads state from JSON value object.
+	 *
+	 * @param Value JSON value object.
+	 */
+	void LoadStateFromJSON(const FJsonValue& Value)
+	{
+
+	}
+
 private:
 	/* Currently picked game name. */
 	FString CurrentGameName;
@@ -767,6 +875,9 @@ private:
 
 	/* Event that will trigger when data is ready. */
 	TSharedPtr<FEvent> DataReady;
+
+	/* Reference to P4 data proxy. */
+	TWeakPtr<FP4DataProxy> Data;
 };
 
 /**
@@ -780,9 +891,11 @@ public:
 	SLATE_END_ARGS()
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void Construct(const FArguments& InArgs)
+	void Construct(const FArguments& InArgs, const TSharedRef<FP4DataProxy>& InData)
 	{
-		LabelsCombo = SNew(SSimpleTextComboBox);
+		Data = InData;
+		LabelsCombo = SNew(SSimpleTextComboBox)
+			.OnSelectionChanged(this, &SPickLabel::OnSelectionChanged);
 		LabelsCombo->Add("Needs refreshing");
 
 		this->ChildSlot
@@ -817,7 +930,7 @@ public:
 	 */
 	bool IsReadyForSync() const override
 	{
-		return FUnrealSync::HasValidData() && !LabelsCombo->IsEmpty();
+		return Data.Pin()->HasValidData() && !LabelsCombo->IsEmpty();
 	}
 
 	/**
@@ -834,6 +947,31 @@ public:
 		LabelsCombo->SetEnabled(false);
 	}
 
+	/**
+	 * Converts current object state to JSON value.
+	 *
+	 * @returns JSON value object with current state.
+	 */
+	TSharedPtr<FJsonValue> GetStateAsJSON() const
+	{
+		if (!LabelsCombo->IsEnabled())
+		{
+			return nullptr;
+		}
+
+		return MakeShareable(new FJsonValueString(GetLabelName()));
+	}
+
+	/**
+	 * Loads state from JSON value object.
+	 *
+	 * @param Value JSON value object.
+	 */
+	void LoadStateFromJSON(const FJsonValue& Value)
+	{
+		Value.TryGetString(LastPickedValue);
+	}
+
 protected:
 	/**
 	 * Reset current labels combo options.
@@ -844,7 +982,7 @@ protected:
 	{
 		LabelsCombo->Clear();
 
-		if (FUnrealSync::HasValidData())
+		if (Data.Pin()->HasValidData())
 		{
 			for (auto LabelName : LabelOptions)
 			{
@@ -852,6 +990,11 @@ protected:
 			}
 
 			LabelsCombo->SetEnabled(true);
+
+			if (!LastPickedValue.IsEmpty())
+			{
+				LabelsCombo->SetCurrentOption(LastPickedValue);
+			}
 		}
 		else
 		{
@@ -860,9 +1003,29 @@ protected:
 		}
 	}
 
+	/**
+	 * Gets current data proxy.
+	 */
+	FP4DataProxy& GetData() { return *Data.Pin().Get(); }
+
 private:
+	/**
+	 * Function is called when combo box selection is changed.
+	 * It called OnGamePicked event.
+	 */
+	void OnSelectionChanged(int32 SelectionId, ESelectInfo::Type SelectionInfo)
+	{
+		LastPickedValue = LabelsCombo->GetCurrentOption();
+	}
+
 	/* Labels combo widget. */
 	TSharedPtr<SSimpleTextComboBox> LabelsCombo;
+
+	/* Reference to P4 data proxy. */
+	TWeakPtr<FP4DataProxy> Data;
+
+	/* Last picked value. */
+	FString LastPickedValue;
 };
 
 /**
@@ -878,7 +1041,7 @@ public:
 	 */
 	void RefreshData(const FString& GameName) override
 	{
-		SetLabelOptions(*FUnrealSync::GetPromotedLabelsForGame(GameName));
+		SetLabelOptions(*GetData().GetPromotedLabelsForGame(GameName));
 
 		SPickLabel::RefreshData(GameName);
 	}
@@ -897,7 +1060,7 @@ public:
 	 */
 	void RefreshData(const FString& GameName) override
 	{
-		SetLabelOptions(*FUnrealSync::GetPromotableLabelsForGame(GameName));
+		SetLabelOptions(*GetData().GetPromotableLabelsForGame(GameName));
 
 		SPickLabel::RefreshData(GameName);
 	}
@@ -916,7 +1079,7 @@ public:
 	 */
 	void RefreshData(const FString& GameName) override
 	{
-		SetLabelOptions(*FUnrealSync::GetAllLabels());
+		SetLabelOptions(*GetData().GetAllLabels());
 
 		SPickLabel::RefreshData(GameName);
 	}
@@ -936,14 +1099,15 @@ public:
 	SLATE_END_ARGS()
 
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void Construct(const FArguments& InArgs)
+	void Construct(const FArguments& InArgs, const TSharedRef<FP4DataProxy>& InData)
 	{
+		Data = InData;
 		OnGamePicked = InArgs._OnGamePicked;
 
 		GamesOptions = SNew(SSimpleTextComboBox)
 			.OnSelectionChanged(this, &SPickGameWidget::OnComboBoxSelectionChanged);
 
-		auto PossibleGameNames = FUnrealSync::GetPossibleGameNames();
+		auto PossibleGameNames = Data.Pin()->GetPossibleGameNames();
 
 		if (PossibleGameNames->Remove(FUnrealSync::GetSharedPromotableP4FolderName()))
 		{
@@ -975,9 +1139,32 @@ public:
 	 *
 	 * @returns Currently selected game.
 	 */
-	const FString& GetCurrentGame()
+	const FString& GetCurrentGame() const
 	{
 		return GamesOptions->GetCurrentOption();
+	}
+
+	/**
+	 * Converts current object state to JSON value.
+	 *
+	 * @returns JSON value object with current state.
+	 */
+	TSharedRef<FJsonValue> GetStateAsJSON() const
+	{
+		return TSharedRef<FJsonValueString>(new FJsonValueString(GetCurrentGame()));
+	}
+
+	/**
+	 * Loads state from JSON value object.
+	 *
+	 * @param Value JSON value object.
+	 */
+	void LoadStateFromJSON(const FJsonValue& Value)
+	{
+		FString StrVal;
+		check(Value.TryGetString(StrVal));
+
+		GamesOptions->SetCurrentOption(StrVal);
 	}
 
 private:
@@ -994,6 +1181,9 @@ private:
 	TSharedPtr<SSimpleTextComboBox> GamesOptions;
 	/* Delegate that is going to be called when game was picked by the user. */
 	FOnGamePicked OnGamePicked;
+
+	/* Reference to P4 data proxy. */
+	TWeakPtr<FP4DataProxy> Data;
 };
 
 /**
@@ -1051,9 +1241,25 @@ class SMainTabWidget : public SCompoundWidget
 	};
 
 public:
+	/* On data loaded event delegate. */
+	DECLARE_DELEGATE(FOnDataLoaded);
+
+	/* On data reset event delegate. */
+	DECLARE_DELEGATE(FOnDataReset);
+
 	SMainTabWidget()
-		: ExternalThreadsDispatcher(MakeShareable(new FExternalThreadsDispatcher()))
-	{}
+		: ExternalThreadsDispatcher(MakeShareable(new FExternalThreadsDispatcher())), P4Data(new FP4DataProxy)
+	{
+		GetSingletonPtr() = StaticCastSharedRef<SMainTabWidget>(this->AsShared());
+	}
+
+	/**
+	 * Gets instance of this class.
+	 */
+	static TSharedPtr<SMainTabWidget> GetInstance()
+	{
+		return GetSingletonPtr();
+	}
 
 	SLATE_BEGIN_ARGS(SMainTabWidget) {}
 	SLATE_END_ARGS()
@@ -1063,15 +1269,15 @@ public:
 	{
 		RadioSelection = SNew(SRadioContentSelection);
 
-		AddToRadioSelection(LOCTEXT("SyncToLatestPromoted", "Sync to the latest promoted"), SNew(SLatestPromoted));
-		AddToRadioSelection(LOCTEXT("SyncToChosenPromoted", "Sync to chosen promoted label"), SNew(SPickPromoted).Title(LOCTEXT("PickPromotedLabel", "Pick promoted label: ")));
-		AddToRadioSelection(LOCTEXT("SyncToChosenPromotable", "Sync to chosen promotable label since last promoted"), SNew(SPickPromotable).Title(LOCTEXT("PickPromotableLabel", "Pick promotable label: ")));
-		AddToRadioSelection(LOCTEXT("SyncToAnyChosen", "Sync to any chosen label"), SNew(SPickAny).Title(LOCTEXT("PickLabel", "Pick label: ")));
+		AddToRadioSelection(LOCTEXT("SyncToLatestPromoted", "Sync to the latest promoted"), SAssignNew(LatestPromoted, SLatestPromoted, P4Data));
+		AddToRadioSelection(LOCTEXT("SyncToChosenPromoted", "Sync to chosen promoted label"), SAssignNew(ChosenPromoted, SPickPromoted, P4Data).Title(LOCTEXT("PickPromotedLabel", "Pick promoted label: ")));
+		AddToRadioSelection(LOCTEXT("SyncToChosenPromotable", "Sync to chosen promotable label since last promoted"), SAssignNew(ChosenPromotable, SPickPromotable, P4Data).Title(LOCTEXT("PickPromotableLabel", "Pick promotable label: ")));
+		AddToRadioSelection(LOCTEXT("SyncToAnyChosen", "Sync to any chosen label"), SAssignNew(ChosenLabel, SPickAny, P4Data).Title(LOCTEXT("PickLabel", "Pick label: ")));
 
-		PickGameWidget = SNew(SPickGameWidget)
+		PickGameWidget = SNew(SPickGameWidget, P4Data)
 			.OnGamePicked(this, &SMainTabWidget::OnCurrentGameChanged);
 
-		ArtistSyncCheckBox = SNew(SCheckBox)
+		ArtistSyncCheckBox = SNew(SPreservableCheckBox)
 			[
 				SNew(STextBlock).Text(LOCTEXT("ArtistSync", "Artist sync?"))
 			];
@@ -1082,12 +1288,12 @@ public:
 			ArtistSyncCheckBox->ToggleCheckedState();
 		}
 
-		PreviewSyncCheckBox = SNew(SCheckBox)
+		PreviewSyncCheckBox = SNew(SPreservableCheckBox)
 			[
 				SNew(STextBlock).Text(LOCTEXT("PreviewSync", "Preview sync?"))
 			];
 
-		AutoClobberSyncCheckBox = SNew(SCheckBox)
+		AutoClobberSyncCheckBox = SNew(SPreservableCheckBox)
 			[
 				SNew(STextBlock).Text(LOCTEXT("AutoClobberSync", "Auto-clobber sync?"))
 			];
@@ -1227,25 +1433,168 @@ public:
 				];
 		}
 
-		FUnrealSync::RegisterOnDataReset(FUnrealSync::FOnDataReset::CreateRaw(this, &SMainTabWidget::DataReset));
-		FUnrealSync::RegisterOnDataLoaded(FUnrealSync::FOnDataLoaded::CreateRaw(this, &SMainTabWidget::DataLoaded));
+		OnDataReset = FOnDataReset::CreateRaw(this, &SMainTabWidget::DataReset);
+		OnDataLoaded = FOnDataLoaded::CreateRaw(this, &SMainTabWidget::DataLoaded);
 
 		RegisterActiveTimer(0.5f, FWidgetActiveTimerDelegate::CreateThreadSafeSP(&ExternalThreadsDispatcher.Get(), &FExternalThreadsDispatcher::ExecuteRequests));
 
 		OnReloadLabels();
+
+		TSharedPtr<FJsonValue> State;
+		if (FSettingsCache::Get().GetSetting(State, TEXT("GUI")))
+		{
+			LoadStateFromJSON(*State.Get());
+		}
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+	/**
+	 * JSON serializer for SMainTabWidget.
+	 */
+	template <bool bIsConst>
+	struct FJsonSerializer
+	{
+		/* Const-correct parameter type depending on template parameter. */
+		typedef typename FSettingsCache::TAddConstIf<bIsConst, SMainTabWidget&>::Result ConstCorrectType;
+
+		/**
+		 * Serializes SMainTabWidget object for JSON using given TSerializationActionPolicy.
+		 *
+		 * @param Action Action object to perform serialization on.
+		 * @param Object Object to serialize.
+		 */
+		template <class TSerializationActionPolicy>
+		static void Serialize(TSerializationActionPolicy& Action, ConstCorrectType Object)
+		{
+			Action.Serialize("PickedGame", Object.PickGameWidget);
+			Action.Serialize("IsArtist", Object.ArtistSyncCheckBox);
+			Action.Serialize("IsPreview", Object.PreviewSyncCheckBox);
+			Action.Serialize("IsAutoClobber", Object.AutoClobberSyncCheckBox);
+			Action.Serialize("RadioSelection", Object.RadioSelection);
+			Action.Serialize("LatestPromoted", Object.LatestPromoted);
+			Action.Serialize("ChosenPromoted", Object.ChosenPromoted);
+			Action.Serialize("ChosenPromotable", Object.ChosenPromotable);
+			Action.Serialize("ChosenLabel", Object.ChosenLabel);
+		}
+	};
+
+	/**
+	 * Converts current object state to JSON value.
+	 *
+	 * @returns JSON value object with current state.
+	 */
+	TSharedRef<FJsonValue> GetStateAsJSON() const
+	{
+		TSharedPtr<FJsonValue> PrevGUIValuePtr;
+		TSharedPtr<FJsonObject> PrevStatePtr;
+
+		if (FSettingsCache::Get().GetSetting(PrevGUIValuePtr, TEXT("GUI"))
+			&& PrevGUIValuePtr->Type == EJson::Object)
+		{
+			PrevStatePtr = PrevGUIValuePtr->AsObject();
+		}
+		else
+		{
+			PrevStatePtr = TSharedPtr<FJsonObject>(new FJsonObject());
+		}
+
+		TSharedRef<FJsonObject> PrevState = PrevStatePtr.ToSharedRef();
+
+		FSettingsCache::SerializeToJSON<FJsonSerializer>(PrevState, *this);
+		
+		return MakeShareable(new FJsonValueObject(PrevStatePtr));
+	}
+
+	/**
+	 * Loads state from JSON value object.
+	 *
+	 * @param Value JSON value object.
+	 */
+	void LoadStateFromJSON(const FJsonValue& State)
+	{
+		if (State.Type == EJson::Object)
+		{
+			FSettingsCache::SerializeFromJSON<FJsonSerializer>(State.AsObject().ToSharedRef(), *this);
+		}
+	}
+
+	/**
+	 * Tells that labels names are currently being loaded.
+	 *
+	 * @returns True if labels names are currently being loaded. False otherwise.
+	 */
+	bool IsLoadingInProgress() const
+	{
+		return LoaderThread.IsValid() && LoaderThread->IsInProgress();
+	}
+
+	/**
+	 * Start async loading of the P4 label data in case user wants it.
+	 */
+	void StartLoadingData()
+	{
+		P4Data->Reset();
+		LoaderThread.Reset();
+
+		OnDataReset.ExecuteIfBound();
+
+		LoaderThread = MakeShareable(new FP4DataLoader(OnDataLoaded, P4Data.Get()));
+	}
+	
+	/**
+	 * Terminates background P4 data loading process.
+	 */
+	void TerminateLoadingProcess()
+	{
+		if (LoaderThread.IsValid())
+		{
+			LoaderThread->Terminate();
+		}
+	}
 
 	/**
 	 * Destructor.
 	 */
 	virtual ~SMainTabWidget()
 	{
-		FUnrealSync::TerminateLoadingProcess();
-		FUnrealSync::TerminateSyncingProcess();
+		TerminateLoadingProcess();
+		TerminateSyncingProcess();
 	}
 
 private:
+	/**
+	 * Gets static shared ptr to the object of this class.
+	 */
+	static TSharedPtr<SMainTabWidget>& GetSingletonPtr()
+	{
+		static TSharedPtr<SMainTabWidget> Ptr = nullptr;
+		return Ptr;
+	}
+
+	/**
+	 * Terminates P4 syncing process.
+	 */
+	void TerminateSyncingProcess()
+	{
+		if (SyncingThread.IsValid())
+		{
+			SyncingThread->Terminate();
+		}
+	}
+
+	/**
+	 * Launches P4 sync command with given command line and options.
+	 *
+	 * @param Settings Sync settings.
+	 * @param LabelNameProvider Object that will provide label name to syncing thread.
+	 * @param OnSyncFinished Delegate to run when syncing is finished.
+	 * @param OnSyncProgress Delegate to run when syncing has made progress.
+	 */
+	void LaunchSync(FSyncSettings Settings, ILabelNameProvider& LabelNameProvider, const FSyncingThread::FOnSyncFinished& OnSyncFinished, const FSyncingThread::FOnSyncProgress& OnSyncProgress)
+	{
+		SyncingThread = MakeShareable(new FSyncingThread(MoveTemp(Settings), LabelNameProvider, OnSyncFinished, OnSyncProgress));
+	}
+
 	/**
 	 * Queues adding lines to the log for execution on Slate rendering thread.
 	 */
@@ -1404,8 +1753,8 @@ private:
 	 */
 	FReply OnCancelButtonClick()
 	{
-		FUnrealSync::TerminateLoadingProcess();
-		FUnrealSync::TerminateSyncingProcess();
+		TerminateLoadingProcess();
+		TerminateSyncingProcess();
 
 		ExternalThreadsDispatcher->AddRenderingThreadRequest(FExternalThreadsDispatcher::FRenderingThreadRequest::CreateRaw(this, &SMainTabWidget::GoBack));
 
@@ -1430,7 +1779,7 @@ private:
 	 */
 	bool IsReloadLabelsReady() const
 	{
-		return !FUnrealSync::IsLoadingInProgress();
+		return !IsLoadingInProgress();
 	}
 
 	/**
@@ -1440,7 +1789,7 @@ private:
 	 */
 	FReply OnReloadLabels()
 	{
-		FUnrealSync::StartLoadingData();
+		StartLoadingData();
 
 		return FReply::Handled();
 	}
@@ -1485,9 +1834,9 @@ private:
 			OverrideSyncStep);
 
 		Switcher->SetActiveWidgetIndex(1);
-		FUnrealSync::LaunchSync(MoveTemp(Settings), GetCurrentSyncCmdLineProvider(),
-			FUnrealSync::FOnSyncFinished::CreateRaw(this, &SMainTabWidget::SyncingFinished),
-			FUnrealSync::FOnSyncProgress::CreateRaw(this, &SMainTabWidget::SyncingProgress));
+		LaunchSync(MoveTemp(Settings), GetCurrentSyncCmdLineProvider(),
+			FSyncingThread::FOnSyncFinished::CreateRaw(this, &SMainTabWidget::SyncingFinished),
+			FSyncingThread::FOnSyncProgress::CreateRaw(this, &SMainTabWidget::SyncingProgress));
 
 		GoBackButton->SetEnabled(false);
 		CancelButton->SetEnabled(true);
@@ -1551,7 +1900,7 @@ private:
 	 */
 	void OnCurrentGameChanged(const FString& CurrentGameName)
 	{
-		if (!FUnrealSync::HasValidData())
+		if (!P4Data->HasValidData())
 		{
 			return;
 		}
@@ -1722,14 +2071,23 @@ private:
 	/* Radio selection used to chose method to sync. */
 	TSharedPtr<SRadioContentSelection> RadioSelection;
 
+	/* Latest promoted widget. */
+	TSharedPtr<SLatestPromoted> LatestPromoted;
+	/* Chosen promoted widget. */
+	TSharedPtr<SPickPromoted> ChosenPromoted;
+	/* Chosen promotable widget. */
+	TSharedPtr<SPickPromotable> ChosenPromotable;
+	/* Chosen label widget. */
+	TSharedPtr<SPickAny> ChosenLabel;
+
 	/* Widget to pick game used to sync. */
 	TSharedPtr<SPickGameWidget> PickGameWidget;
 	/* Check box to tell if this should be an artist sync. */
-	TSharedPtr<SCheckBox> ArtistSyncCheckBox;
+	TSharedPtr<SPreservableCheckBox> ArtistSyncCheckBox;
 	/* Check box to tell if this should be a preview sync. */
-	TSharedPtr<SCheckBox> PreviewSyncCheckBox;
+	TSharedPtr<SPreservableCheckBox> PreviewSyncCheckBox;
 	/* Check box to tell if this should be a auto-clobber sync. */
-	TSharedPtr<SCheckBox> AutoClobberSyncCheckBox;
+	TSharedPtr<SPreservableCheckBox> AutoClobberSyncCheckBox;
 
 	/* External thread requests dispatcher. */
 	TSharedRef<FExternalThreadsDispatcher, ESPMode::ThreadSafe> ExternalThreadsDispatcher;
@@ -1749,6 +2107,21 @@ private:
 
 	/* Override sync step value. */
 	FString OverrideSyncStep;
+
+	/* Data loaded event. */
+	FOnDataLoaded OnDataLoaded;
+
+	/* Data reset event. */
+	FOnDataReset OnDataReset;
+
+	/* Reference to P4 data proxy. */
+	TSharedRef<FP4DataProxy> P4Data;
+
+	/* Background loading process monitoring thread. */
+	TSharedPtr<FP4DataLoader> LoaderThread;
+
+	/* Background syncing process monitoring thread. */
+	TSharedPtr<FSyncingThread> SyncingThread;
 };
 
 void SMainTabWidget::OnOverrideSyncStepText(const FText& CommittedText, ETextCommit::Type Type)
@@ -1855,7 +2228,20 @@ void InitGUI(const TCHAR* CommandLine, bool bP4EnvTabOnly)
 		GLog->FlushThreadedLogs();
 	}
 
+	FUnrealSync::SaveSettingsAndClose();
+
 	FSlateApplication::Shutdown();
+}
+
+void SaveGUISettings()
+{
+	TSharedPtr<SMainTabWidget> Ptr = SMainTabWidget::GetInstance();
+	if (!Ptr.IsValid())
+	{
+		return;
+	}
+
+	FSettingsCache::Get().SetSetting(TEXT("GUI"), Ptr->GetStateAsJSON());
 }
 
 #undef LOCTEXT_NAMESPACE
