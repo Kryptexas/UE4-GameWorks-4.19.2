@@ -310,7 +310,7 @@ void LogCookerMessage( const FString& MessageText, EMessageSeverity::Type Severi
 	// Message->AddToken(FDocumentationToken::Create(TEXT("https://docs.unrealengine.com/latest/INT/Platforms/iOS/QuickStart/6/index.html"))); 
 	MessageLog.AddMessage(Message);
 
-	MessageLog.Notify();
+	MessageLog.Notify(FText(), EMessageSeverity::Warning, false);
 }
 
 
@@ -3575,3 +3575,5 @@ bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetR
 	}
 	return false;
 }
+
+#undef LOCTEXT_NAMESPACE
