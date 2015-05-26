@@ -65,6 +65,12 @@ private:
 	/** Creates the menu for the add collection button */
 	FReply MakeAddCollectionMenu();
 
+	/** Gets the visibility of the collections title text */
+	EVisibility GetCollectionsTitleTextVisibility() const;
+
+	/** Gets the visibility of the collections search box */
+	EVisibility GetCollectionsSearchBoxVisibility() const;
+
 	/** Gets the visibility of the add collection button */
 	EVisibility GetAddCollectionButtonVisibility() const;
 	
