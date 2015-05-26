@@ -515,19 +515,11 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 					OutFilterIndex = [AccessoryView SelectedExtension];
 				}
 
-				// Make sure all filenames gathered have their paths normalized and proper extensions added
+				// Make sure all filenames gathered have their paths normalized
 				for (auto OutFilenameIt = OutFilenames.CreateIterator(); OutFilenameIt; ++OutFilenameIt)
 				{
 					FString& OutFilename = *OutFilenameIt;
-
 					OutFilename = IFileManager::Get().ConvertToRelativePath(*OutFilename);
-
-					if (FPaths::GetExtension(OutFilename).IsEmpty() && !Extension.IsEmpty())
-					{
-						// filename does not have an extension. Add an extension based on the filter that the user chose in the dialog
-						OutFilename += Extension;
-					}
-
 					FPaths::NormalizeFilename(OutFilename);
 				}
 
