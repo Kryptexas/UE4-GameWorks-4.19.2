@@ -2971,10 +2971,11 @@ bool GameProjectUtils::ProjectRequiresBuild(const FName InPlatformInfoName)
 	{
 		// check to see if the default build settings have changed
 		bRequiresBuild |= !HasDefaultBuildSettings(InPlatformInfoName);
-
-		// check to see if any plugins beyond the defaults have been enabled
-		bRequiresBuild |= IProjectManager::Get().IsNonDefaultPluginEnabled();
 	}
+
+	// check to see if any plugins beyond the defaults have been enabled
+	bRequiresBuild |= IProjectManager::Get().IsNonDefaultPluginEnabled();
+
 	return bRequiresBuild;
 }
 
