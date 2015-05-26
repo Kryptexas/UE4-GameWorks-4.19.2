@@ -1530,6 +1530,8 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 	LastObjectWorkWasPerformedOn = nullptr;
 	LastTypeOfWorkPerformed = TEXT("postloading_gamethread");
 
+	TArray<UObject*>& ObjLoadedInPostLoad = FUObjectThreadContext::Get().ObjLoaded;
+
 	while (DeferredPostLoadIndex < DeferredPostLoadObjects.Num() && !::IsTimeLimitExceeded(InTickStartTime, bInUseTimeLimit, InOutTimeLimit, LastTypeOfWorkPerformed, LastObjectWorkWasPerformedOn))
 	{
 		UObject* Object = DeferredPostLoadObjects[DeferredPostLoadIndex++];
@@ -1538,6 +1540,26 @@ EAsyncPackageState::Type FAsyncPackage::PostLoadDeferredObjects(double InTickSta
 		FScopeCycleCounterUObject ConstructorScope(Object, GET_STATID(STAT_FAsyncPackage_PostLoadObjectsGameThread));
 
 		Object->ConditionalPostLoad();
+
+		if (ObjLoadedInPostLoad.Num())
+		{
+			// If there were any LoadObject calls inside of PostLoad, we need to pre-load those objects here. 
+			// There's no going back to the async tick loop from here.
+			UE_LOG(LogStreaming, Warning, TEXT("Detected %d objects loaded in PostLoad while streaming, this may cause hitches as we're blocking async loading to pre-load them."), ObjLoadedInPostLoad.Num());
+			
+			// Make sure all objects loaded in PostLoad get post-loaded too
+			DeferredPostLoadObjects.Append(ObjLoadedInPostLoad);
+
+			// Preload (aka serialize) the objects loaded in PostLoad.
+			for (UObject* PreLoadObject : ObjLoadedInPostLoad)
+			{
+				if (PreLoadObject && PreLoadObject->GetLinker())
+				{
+					PreLoadObject->GetLinker()->Preload(PreLoadObject);
+				}
+			}
+			ObjLoadedInPostLoad.Empty();
+		}
 
 		LastObjectWorkWasPerformedOn = Object;		
 

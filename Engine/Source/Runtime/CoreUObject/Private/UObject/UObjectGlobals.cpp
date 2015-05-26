@@ -1041,10 +1041,12 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			FIOSystem::Get().HintDoneWithFile(*Linker->Filename);
 		}
 
-		// with UE4 and single asset per package, we load so many packages that some platforms will run out
+		// With UE4 and single asset per package, we load so many packages that some platforms will run out
 		// of file handles. So, this will close the package, but just things like bulk data loading will
-		// fail, so we only currently do this when loading on consoles
-		if (FPlatformProperties::RequiresCookedData())
+		// fail, so we only currently do this when loading on consoles.
+		// The only exception here is when we're in the middle of async loading where we can't reset loaders yet. This should only happen when
+		// doing synchronous load in the middle of streaming.
+		if (FPlatformProperties::RequiresCookedData() && !IsInAsyncLoadingThread())
 		{
 			if (FUObjectThreadContext::Get().ObjBeginLoadCount == 0)
 			{
@@ -1053,10 +1055,10 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 					ResetLoaders(Result);
 				}
 				delete Linker->Loader;
-				Linker->Loader = NULL;
+				Linker->Loader = nullptr;
 			}
 			// Async loading removes delayed linkers on the game thread after streaming has finished
-			else if (!IsInAsyncLoadingThread())
+			else
 			{
 				FUObjectThreadContext::Get().DelayedLinkerClosePackages.Add(Linker);
 			}
