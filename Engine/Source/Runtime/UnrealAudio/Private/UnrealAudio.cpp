@@ -21,6 +21,7 @@ namespace UAudio
 {
 	FUnrealAudioModule::FUnrealAudioModule()
 		: UnrealAudioDevice(nullptr)
+		, SoundFileDllHandle(nullptr)
 	{
 	}
 
@@ -63,11 +64,27 @@ namespace UAudio
 		{
 			UnrealAudioDevice = CreateDummyDeviceModule();
 		}
+
+		bSuccess = LoadSoundFileLib();
+
 		return bSuccess;
 	}
 
 	void FUnrealAudioModule::Shutdown()
 	{
+		// Block shutdown until the number of background tasks goes to zero before shutting down the audio module
+		static const int32 BackgroundTaskTimeout = 500;
+		int32 BackgroundTaskWaitCount = 0;
+		while (NumBackgroundTasks.GetValue() != 0 && BackgroundTaskWaitCount++ < BackgroundTaskTimeout)
+		{
+			FPlatformProcess::Sleep(1);
+		}
+
+		if (BackgroundTaskWaitCount == BackgroundTaskTimeout)
+		{
+			UE_LOG(LogUnrealAudio, Error, TEXT("Timed out while waiting for background tasks to finish when shutting down unreal audio module."));
+		}
+
 		if (UnrealAudioDevice)
 		{
 			UnrealAudioDevice->Shutdown();
@@ -79,8 +96,9 @@ namespace UAudio
 			delete UnrealAudioDevice;
 			UnrealAudioDevice = nullptr;
 		}
-	}
 
+		ShutdownSoundFileLib();
+	}
 
 	FName FUnrealAudioModule::GetDefaultDeviceModuleName() const
 	{
@@ -92,6 +110,16 @@ namespace UAudio
 	IUnrealAudioDeviceModule* FUnrealAudioModule::GetDeviceModule()
 	{
 		return UnrealAudioDevice;
+	}
+
+	void FUnrealAudioModule::IncrementBackgroundTaskCount()
+	{
+		NumBackgroundTasks.Increment();
+	}
+
+	void FUnrealAudioModule::DecrementBackgroundTaskCount()
+	{
+		NumBackgroundTasks.Decrement();
 	}
 
 }

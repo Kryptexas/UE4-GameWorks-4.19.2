@@ -43,5 +43,33 @@ namespace UAudio
 	*/
 	bool UNREALAUDIO_API TestDeviceOutputNoisePan(double TestTime);
 
+	/**
+	* TestSourceImport
+	*
+	* Tests importing a sound file.
+	* @param ImportSettings A struct defining import settings.
+	* @return True if test succeeds.
+	*/
+	bool UNREALAUDIO_API TestSourceImport(const FSoundFileImportSettings& ImportSettings);
+
+	/**
+	* TestSourceImport
+	*
+	* Tests importing a sound file, then exporting it (with "export" appended to filename).
+	* @param ImportSettings A struct defining import settings.
+	* @return True if test succeeds.
+	*/
+	bool UNREALAUDIO_API TestSourceImportExport(const FSoundFileImportSettings& ImportSettings);
+
+	/**
+	* TestSourceImportFolder
+	*
+	* Tests importing all the sound files in a given folder.
+	* @param FolderPath Path to a folder of sound files.
+	* @param ImportSettings Settings to use for each sound file import (path is ignored)
+	* @return True if test succeeds.
+	*/
+	bool UNREALAUDIO_API TestSourceImportFolder(FString& FolderPath, const FSoundFileImportSettings& ImportSettings);
+
 }
 

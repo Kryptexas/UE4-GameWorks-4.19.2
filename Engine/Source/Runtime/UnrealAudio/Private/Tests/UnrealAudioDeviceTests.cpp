@@ -5,6 +5,7 @@
 #include "UnrealAudioDeviceModule.h"
 #include "UnrealAudioTests.h"
 #include "UnrealAudioTestGenerators.h"
+#include "UnrealAudioSoundFile.h"
 
 #if ENABLE_UNREAL_AUDIO
 
@@ -226,6 +227,206 @@ namespace UAudio
 	{
 		Test::FNoisePan SimpleWhiteNoisePan(LifeTime);
 		return DoOutputTest("output white noise panner", LifeTime, &SimpleWhiteNoisePan);
+	}
+
+	bool TestSourceImport(const FSoundFileImportSettings& ImportSettings)
+	{
+		UE_LOG(LogUnrealAudio, Display, TEXT("Testing exporting a single sound source."));
+
+		UE_LOG(LogUnrealAudio, Display, TEXT("First importing."));
+		UE_LOG(LogUnrealAudio, Display, TEXT("Import Path: %s"), *ImportSettings.SoundFilePath);
+		UE_LOG(LogUnrealAudio, Display, TEXT("Import Format: %s"), *FString::Printf(TEXT("%s - %s"), ESoundFileFormat::ToStringMajor(ImportSettings.Format), ESoundFileFormat::ToStringMinor(ImportSettings.Format)));
+		UE_LOG(LogUnrealAudio, Display, TEXT("Import SampleRate: %d"), ImportSettings.SampleRate);
+		UE_LOG(LogUnrealAudio, Display, TEXT("Import EncodingQuality: %.2f"), ImportSettings.EncodingQuality);
+		UE_LOG(LogUnrealAudio, Display, TEXT("Perform Peak Normalization: %s"), ImportSettings.bPerformPeakNormalization ? TEXT("Yes") : TEXT("No"));
+
+		
+		TSharedPtr<ISoundFile> ImportedSoundFile = UnrealAudioModule->ImportSound(ImportSettings);
+		ESoundFileState::Type State = ImportedSoundFile->GetState();
+		while (State != ESoundFileState::IMPORTED)
+		{
+			FPlatformProcess::Sleep(1);
+
+			State = ImportedSoundFile->GetState();
+			if (State == ESoundFileState::HAS_ERROR)
+			{
+				UE_LOG(LogUnrealAudio, Error, TEXT("Failed to import sound source!"));
+				UE_LOG(LogUnrealAudio, Error, TEXT("Error: %s"), ESoundFileError::ToString(ImportedSoundFile->GetError()));
+				return false;
+			}
+		}
+		UE_LOG(LogUnrealAudio, Display, TEXT("Succeeded importing sound source!"));
+		return true;
+	}
+
+	bool TestSourceImportExport(const FSoundFileImportSettings& ImportSettings)
+	{
+		//  Check if the soundfile path is a folder or a single file:
+		if (FPaths::DirectoryExists(ImportSettings.SoundFilePath))
+		{
+			FString FolderPath = ImportSettings.SoundFilePath;
+			UE_LOG(LogUnrealAudio, Display, TEXT("Testing import then export of all audio files in directory: %s."), *FolderPath);
+
+			// Create the output exported directory if it doesn't exist
+			FString OutputDir = FolderPath / "Exported";
+			if (!FPaths::DirectoryExists(OutputDir))
+			{
+				FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*OutputDir);
+			}
+
+			// Get list of .wav files:
+			TArray<FString> InputFiles;
+
+			// Get input files in formats we're currently supporting
+			IFileManager::Get().FindFiles(InputFiles, *(FolderPath / "*.wav"), true, false);
+			IFileManager::Get().FindFiles(InputFiles, *(FolderPath / "*.aif"), true, false);
+			IFileManager::Get().FindFiles(InputFiles, *(FolderPath / "*.flac"), true, false);
+			IFileManager::Get().FindFiles(InputFiles, *(FolderPath / "*.ogg"), true, false);
+
+			// Make an array of shared ptr sound files
+			TArray<TSharedPtr<ISoundFile>> SoundFiles;
+
+			// Array of sound files (names) that have finished importing
+			TSet<FString> FinishedImporting;
+
+			// Array of sound files (names) that have error'd out during import
+			TSet<FString> HasError;
+
+			FSoundFileImportSettings Settings = ImportSettings;
+
+			// Import all the files!
+			UE_LOG(LogUnrealAudio, Display, TEXT("Importing..."));
+			for (FString& InputFile : InputFiles)
+			{
+				Settings.SoundFilePath = FolderPath / InputFile;
+				UE_LOG(LogUnrealAudio, Display, TEXT("%s"), *InputFile);
+
+				// start the import process and store the ISoundFile ptr in our array of in-flight imports
+				TSharedPtr<ISoundFile> ImportedSoundFile = UnrealAudioModule->ImportSound(Settings);
+				SoundFiles.Add(ImportedSoundFile);
+			}
+
+			// Loop through in-flight imports and start exports as soon as the file finishes importing
+			bool bIsFinishedImporting = false;
+			while (!bIsFinishedImporting)
+			{
+				// Assume we're done, but set false as soon as we find an import still going
+				bIsFinishedImporting = true;
+
+				// Loop through our stored sound files
+				for (TSharedPtr<ISoundFile> SoundFile : SoundFiles)
+				{
+					// Get the sound file state, handle any errors that occurred during import
+					// Note: its ok for our test assets here to fail since we're testing graceful failure. We
+					// might have some pathological sound assets in the test asset directory.
+					ESoundFileState::Type State = SoundFile->GetState();
+					if (State == ESoundFileState::HAS_ERROR)
+					{
+						FString Name;
+						SoundFile->GetName(Name);
+
+						// Store the error in a list of error'd sound files
+						if (!HasError.Contains(Name))
+						{
+							HasError.Add(Name);
+						}
+					}
+					else if (State != ESoundFileState::IMPORTED)
+					{
+						bIsFinishedImporting = false;
+					}
+					else
+					{
+						FString Name;
+						SoundFile->GetName(Name);
+
+						// If this file's state is IMPORTED, then we add it to the list
+						// of FinishedImporting sounds, then trigger the export process.
+						if (!FinishedImporting.Contains(Name))
+						{
+							FinishedImporting.Add(Name);
+
+							UE_LOG(LogUnrealAudio, Display, TEXT("Finished importing %s"), *Name);
+
+							TSharedPtr<ISoundFileData> SoundFileData;
+							SoundFile->GetSoundFileData(SoundFileData);
+
+							// We're building up a filename with [NAME]_exported.[EXT] in the output directory
+							const FString& SoundFileFullPath = SoundFileData->GetFilePath();
+							FString BaseSoundFileName = FPaths::GetBaseFilename(SoundFileFullPath);
+							FString SoundFileExtension = FPaths::GetExtension(SoundFileFullPath);
+							FString SoundFilePath = FPaths::GetPath(SoundFileFullPath);
+							FString OutputFileName = BaseSoundFileName + TEXT("_exported.") + SoundFileExtension;
+							FString OutputPath = OutputDir / OutputFileName;
+
+							UE_LOG(LogUnrealAudio, Display, TEXT("Now exporting to %s"), *OutputPath);
+
+							UnrealAudioModule->ExportSound(SoundFileData, OutputPath);
+						}
+					}
+				}
+
+				// Sleep until all imports have finished. In-flight exports
+				// will cause the UnrealAudio shutdown to block until they are finished.
+				FPlatformProcess::Sleep(1);
+			}
+
+			return true;
+		}
+		else if (FPaths::FileExists(ImportSettings.SoundFilePath))
+		{
+			UE_LOG(LogUnrealAudio, Display, TEXT("Testing import, then export of a single sound source: %s."), *ImportSettings.SoundFilePath);
+			UE_LOG(LogUnrealAudio, Display, TEXT("Import Format: %s"), *FString::Printf(TEXT("%s - %s"), ESoundFileFormat::ToStringMajor(ImportSettings.Format), ESoundFileFormat::ToStringMinor(ImportSettings.Format)));
+			UE_LOG(LogUnrealAudio, Display, TEXT("Import SampleRate: %d"), ImportSettings.SampleRate);
+			UE_LOG(LogUnrealAudio, Display, TEXT("Import EncodingQuality: %.2f"), ImportSettings.EncodingQuality);
+			UE_LOG(LogUnrealAudio, Display, TEXT("Perform Peak Normalization: %s"), ImportSettings.bPerformPeakNormalization ? TEXT("Yes") : TEXT("No"));
+
+			// Start the import process on the sound
+			TSharedPtr<ISoundFile> ImportedSoundFile = UnrealAudioModule->ImportSound(ImportSettings);
+
+			// Wait for the import to finish (block this thread for test-purposes). Normally, this would be non-blocking.
+			ESoundFileState::Type State = ImportedSoundFile->GetState();
+			while (State != ESoundFileState::IMPORTED)
+			{
+				FPlatformProcess::Sleep(1);
+
+				State = ImportedSoundFile->GetState();
+				if (State == ESoundFileState::HAS_ERROR)
+				{
+					UE_LOG(LogUnrealAudio, Error, TEXT("Failed to import sound source!"));
+					UE_LOG(LogUnrealAudio, Error, TEXT("Error: %s"), ESoundFileError::ToString(ImportedSoundFile->GetError()));
+					return false;
+				}
+			}
+
+			UE_LOG(LogUnrealAudio, Display, TEXT("Succeeded importing sound source!"));
+
+			// Now setup the export path
+			FString SoundFileFullPath = ImportSettings.SoundFilePath;
+			FString BaseSoundFileName = FPaths::GetBaseFilename(SoundFileFullPath);
+			FString SoundFileExtension = FPaths::GetExtension(SoundFileFullPath);
+			FString SoundFileDir = FPaths::GetPath(SoundFileFullPath);
+
+			// Create the export directory if it doesn't exist
+			FString OutputDir = SoundFileDir;
+			if (!FPaths::DirectoryExists(OutputDir))
+			{
+				FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*OutputDir);
+			}
+
+			// Append _exported to the file path just to make it clear that this is the exported version of the file
+			FString OutputPath = SoundFileDir / (BaseSoundFileName + TEXT("_exported.") + SoundFileExtension);
+
+			// Start the export process. We can exit this test function since UnrealAudio will block on shutdown
+			// until all background processes have finished. Normally the Editor will remain running during the export process.
+			TSharedPtr<ISoundFileData> SoundFileData;
+			ImportedSoundFile->GetSoundFileData(SoundFileData);
+			UnrealAudioModule->ExportSound(SoundFileData, OutputPath);
+			return true;
+		}
+
+		UE_LOG(LogUnrealAudio, Display, TEXT("Path %s is not a single file or a directory."), *ImportSettings.SoundFilePath);
+		return false;
 	}
 
 }

@@ -39,7 +39,7 @@ static bool UnrealAudioUnload()
 * Test static functions which call into module test code
 */
 
-static bool TestAudioDeviceAll()
+static bool TestAudioDeviceAll(const TArray<FString>& Args)
 {
 	if (!UAudio::TestDeviceQuery())
 	{
@@ -64,24 +64,58 @@ static bool TestAudioDeviceAll()
 	return true;
 }
 
-static bool TestAudioDeviceQuery()
+static bool TestAudioDeviceQuery(const TArray<FString>& Args)
 {
 	return UAudio::TestDeviceQuery();
 }
 
-static bool TestAudioDeviceOutputSimple()
+static bool TestAudioDeviceOutputSimple(const TArray<FString>& Args)
 {
 	return UAudio::TestDeviceOutputSimple(-1);
 }
 
-static bool TestAudioDeviceOutputFm()
+static bool TestAudioDeviceOutputFm(const TArray<FString>& Args)
 {
 	return UAudio::TestDeviceOutputRandomizedFm(-1);
 }
 
-static bool TestAudioDeviceOutputPan()
+static bool TestAudioDeviceOutputPan(const TArray<FString>& Args)
 {
 	return UAudio::TestDeviceOutputNoisePan(-1);
+}
+
+static bool TestAudioSourceImport(const TArray<FString>& Args)
+{
+	if (Args.Num() != 1)
+	{
+		return false;
+	}
+
+	UAudio::FSoundFileImportSettings SoundFileImportSettings;
+	SoundFileImportSettings.SoundFilePath = Args[0];
+	SoundFileImportSettings.Format = UAudio::ESoundFileFormat::OGG | UAudio::ESoundFileFormat::VORBIS;
+	SoundFileImportSettings.SampleRate = 48000;
+	SoundFileImportSettings.EncodingQuality = 0.5;
+	SoundFileImportSettings.bPerformPeakNormalization = true;
+
+	return UAudio::TestSourceImport(SoundFileImportSettings);
+}
+
+static bool TestAudioSourceImportExport(const TArray<FString>& Args)
+{
+	if (Args.Num() != 1)
+	{
+		return false;
+	}
+
+	UAudio::FSoundFileImportSettings SoundFileImportSettings;
+	SoundFileImportSettings.SoundFilePath = Args[0];
+	SoundFileImportSettings.Format = UAudio::ESoundFileFormat::OGG | UAudio::ESoundFileFormat::VORBIS;
+	SoundFileImportSettings.SampleRate = 48000;
+	SoundFileImportSettings.EncodingQuality = 0.5;
+	SoundFileImportSettings.bPerformPeakNormalization = false;
+
+	return UAudio::TestSourceImportExport(SoundFileImportSettings);
 }
 
 /**
@@ -94,7 +128,9 @@ struct AudioTestInfo
 {
 	FString CategoryName;
 	FString TestName;
-	bool (*TestFunction)();
+	FString ArgDescription;
+	int32 NumArgs;
+	bool (*TestFunction)(const TArray<FString>& Args);
 };
 
 enum EAudioTests
@@ -104,26 +140,32 @@ enum EAudioTests
 	AUDIO_TEST_DEVICE_OUTPUT_SIMPLE,
 	AUDIO_TEST_DEVICE_OUTPUT_FM,
 	AUDIO_TEST_DEVICE_OUTPUT_PAN,
+	AUDIO_TEST_SOURCE_IMPORT,
+	AUDIO_TEST_SOURCE_IMPORT_EXPORT,
 	AUDIO_TESTS
 };
 
 static AudioTestInfo AudioTestInfoList[] =
 {
-	{ "device", "all",			TestAudioDeviceAll			}, // AUDIO_TEST_DEVICE_ALL
-	{ "device", "query",		TestAudioDeviceQuery		}, // AUDIO_TEST_DEVICE_QUERY
-	{ "device", "out",			TestAudioDeviceOutputSimple }, // AUDIO_TEST_DEVICE_OUTPUT_SIMPLE
-	{ "device", "out_fm",		TestAudioDeviceOutputFm		}, // AUDIO_TEST_DEVICE_OUTPUT_FM
-	{ "device", "out_pan",		TestAudioDeviceOutputPan	}, // AUDIO_TEST_DEVICE_OUTPUT_PAN
+	{ "device", "all",		"None",						0, TestAudioDeviceAll			}, // AUDIO_TEST_DEVICE_ALL
+	{ "device", "query",	"None",						0, TestAudioDeviceQuery			}, // AUDIO_TEST_DEVICE_QUERY
+	{ "device", "out",		"None",						0, TestAudioDeviceOutputSimple	}, // AUDIO_TEST_DEVICE_OUTPUT_SIMPLE
+	{ "device", "out_fm",	"None",						0, TestAudioDeviceOutputFm		}, // AUDIO_TEST_DEVICE_OUTPUT_FM
+	{ "device", "out_pan",	"None",						0, TestAudioDeviceOutputPan		}, // AUDIO_TEST_DEVICE_OUTPUT_PAN
+	{ "source", "import",	"SourcePath",				1, TestAudioSourceImport		}, // AUDIO_TEST_SOURCE_IMPORT
+	{ "source", "export",	"SourcePath or Directory",	1, TestAudioSourceImportExport	}, // AUDIO_TEST_SOURCE_IMPORT_EXPORT
 };
 static_assert(ARRAY_COUNT(AudioTestInfoList) == AUDIO_TESTS, "Mismatched info list and test enumeration");
 
 static void PrintUsage()
 {
-	UE_LOG(AudioTestCommandlet, Display, TEXT("AudioTestCommandlet Usage: {Editor}.exe UnrealEd.AudioTestCommandlet {testcategory} {test}"));
-	UE_LOG(AudioTestCommandlet, Display, TEXT("Possible Tests: [testcategory]: [test]"));
+	UE_LOG(AudioTestCommandlet, Display, TEXT("AudioTestCommandlet Usage: {Editor}.exe UnrealEd.AudioTestCommandlet {testcategory} {test} {arglist}"));
+	UE_LOG(AudioTestCommandlet, Display, TEXT("Possible Tests:"));
+	UE_LOG(AudioTestCommandlet, Display, TEXT("CategoryName | TestName | Arguments"));
 	for (uint32 Index = 0; Index < AUDIO_TESTS; ++Index)
 	{
-		UE_LOG(AudioTestCommandlet, Display, TEXT("    %s: %s"), *AudioTestInfoList[Index].CategoryName, *AudioTestInfoList[Index].TestName);
+		AudioTestInfo& Info = AudioTestInfoList[Index];
+		UE_LOG(AudioTestCommandlet, Display, TEXT("%s, %s, %s"), *Info.CategoryName, *Info.TestName, *Info.ArgDescription);
 	}
 }
 
@@ -160,24 +202,15 @@ int32 UAudioTestCommandlet::Main(const FString& InParams)
 	TArray<FString> Switches;
 	UCommandlet::ParseCommandLine(*Params, Tokens, Switches);
 
-	if (Tokens.Num() < 3 || Tokens.Num() > 4)
+	// Check if we're switching to a different device API
+	if (Switches.Num() == 1)
 	{
-		PrintUsage();
-		return 0;
-	}
-	int32 CategoryNameIndex = 1;
-	int32 TestNameIndex = 2;
-
-	if (Tokens.Num() == 4)
-	{
-		FString DeviceApiName(Tokens[1]);
+		FString DeviceApiName(Switches[1]);
 		if (!UnrealAudioLoad(&DeviceApiName))
 		{
 			UE_LOG(AudioTestCommandlet, Display, TEXT("Failed to load unreal audio module. Exiting."));
 			return 0;
 		}
-		CategoryNameIndex++;
-		TestNameIndex++;
 	}
 	else
 	{
@@ -190,21 +223,36 @@ int32 UAudioTestCommandlet::Main(const FString& InParams)
 
 	check(UnrealAudioModule != nullptr);
 
+	if (Tokens.Num() < 3)
+	{
+		PrintUsage();
+		return 0;
+	}
+
+	const int32 CategoryNameIndex = 1;
+	const int32 TestNameIndex = 2;
+	const int32 ArgStartIndex = 3;
 	bool FoundTest = false;
 	for (uint32 Index = 0; Index < AUDIO_TESTS; ++Index)
 	{
-		if (AudioTestInfoList[Index].CategoryName == Tokens[CategoryNameIndex])
+		AudioTestInfo& Info = AudioTestInfoList[Index];
+		if (Info.CategoryName == Tokens[CategoryNameIndex])
 		{
-			if (AudioTestInfoList[Index].TestName == Tokens[TestNameIndex])
+			if (Info.TestName == Tokens[TestNameIndex])
 			{
 				FoundTest = true;
-				if (AudioTestInfoList[Index].TestFunction())
+				TArray<FString> Args;
+				for (int32 ArgIndex = ArgStartIndex; ArgIndex < Tokens.Num(); ++ArgIndex)
 				{
-					UE_LOG(AudioTestCommandlet, Display, TEXT("Test %s succeeded."), *AudioTestInfoList[Index].TestName);
+					Args.Add(Tokens[ArgIndex]);
+				}
+				if (AudioTestInfoList[Index].TestFunction(Args))
+				{
+					UE_LOG(AudioTestCommandlet, Display, TEXT("Test %s succeeded."), *Info.TestName);
 				}
 				else
 				{
-					UE_LOG(AudioTestCommandlet, Display, TEXT("Test %s failed."), *AudioTestInfoList[Index].TestName);
+					UE_LOG(AudioTestCommandlet, Display, TEXT("Test %s failed."), *Info.TestName);
 				}
 				break;
 			}

@@ -3,13 +3,8 @@
 #pragma once 
 
 #include "ModuleInterface.h"
-
-// Only enable unreal audio on windows or mac
-#if PLATFORM_WINDOWS || PLATFORM_MAC
-#define ENABLE_UNREAL_AUDIO 1
-#else
-#define ENABLE_UNREAL_AUDIO 0
-#endif
+#include "UnrealAudioTypes.h"
+#include "UnrealAudioSoundFile.h"
 
 namespace UAudio
 {
@@ -31,6 +26,29 @@ namespace UAudio
 		virtual void Shutdown()
 		{
 		}
+
+		/** 
+		ImportSound
+		@param ImportSettings Settings to use to import a sound file. Settings file contains all information
+				needed to performt he import process.
+		@return A shared pointer to an ISoundFile object.
+		*/
+		virtual	TSharedPtr<ISoundFile> ImportSound(const FSoundFileImportSettings& ImportSettings)
+		{
+			return nullptr;
+		}
+
+		/**
+		ImportSound
+		@param ImportSettings Settings to use to import a sound file. Settings file contains all information
+		needed to performt he import process.
+		@return A handle to an ISoundFile object.
+		*/
+		virtual	void ExportSound(TSharedPtr<ISoundFileData> SoundFileData, const FString& ExportPath)
+		{
+		}
+
+
 	};
 }
 
