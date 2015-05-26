@@ -222,6 +222,12 @@ private:
 
 	bool IsFracturedOrInitiallyStatic() const;
 
+	/** Obtains the appropriate PhysX scene lock for READING and executes the passed in lambda. */
+	bool ExecuteOnPhysicsReadOnly(TFunctionRef<void()> Func) const;
+
+	/** Obtains the appropriate PhysX scene lock for WRITING and executes the passed in lambda. */
+	bool ExecuteOnPhysicsReadWrite(TFunctionRef<void()> Func) const;
+
 	/** Collision response used for chunks */
 	FCollisionResponse LargeChunkCollisionResponse;
 	FCollisionResponse SmallChunkCollisionResponse;
