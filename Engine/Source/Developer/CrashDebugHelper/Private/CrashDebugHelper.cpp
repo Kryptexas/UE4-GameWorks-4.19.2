@@ -193,6 +193,8 @@ bool ICrashDebugHelper::SyncModules()
 			// Find all symbols.
 			TArray<FString> NetworkSymbols;
 			IFileManager::Get().FindFilesRecursive( NetworkSymbols, *CrashInfo.SymbolsPath, TEXT( "*.pdb" ), true, false, false );
+			IFileManager::Get().FindFilesRecursive( NetworkSymbols, *CrashInfo.SymbolsPath, TEXT( "*.dll" ), true, false, false );
+			IFileManager::Get().FindFilesRecursive( NetworkSymbols, *CrashInfo.SymbolsPath, TEXT( "*.exe" ), true, false, false );
 
 			// From=Full pathname
 			// To=Relative pathname
