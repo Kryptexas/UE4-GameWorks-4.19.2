@@ -34,7 +34,7 @@ UEnum* FEnumEditorUtils::CreateUserDefinedEnum(UObject* InParent, FName EnumName
 
 	if (NULL != Enum)
 	{
-		TArray<FName> EmptyNames;
+		TArray<TPair<FName, int8>> EmptyNames;
 		Enum->SetEnums(EmptyNames, UEnum::ECppForm::Namespaced);
 		Enum->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 	}
@@ -51,13 +51,13 @@ void FEnumEditorUtils::UpdateAfterPathChanged(UEnum* Enum)
 {
 	check(NULL != Enum);
 
-	TArray<FName> NewEnumeratorsNames;
+	TArray<TPair<FName, int8>> NewEnumeratorsNames;
 	const int32 EnumeratorsToCopy = Enum->NumEnums() - 1; // skip _MAX
 	for (int32 Index = 0; Index < EnumeratorsToCopy; Index++)
 	{
 		const FString ShortName = Enum->GetEnumName(Index);
 		const FString NewFullName = Enum->GenerateFullEnumName(*ShortName);
-		NewEnumeratorsNames.Add(FName(*NewFullName));
+		NewEnumeratorsNames.Add(TPairInitializer<FName, int8>(FName(*NewFullName), Enum->GetValueByIndex(Index)));
 	}
 
 	Enum->SetEnums(NewEnumeratorsNames, UEnum::ECppForm::Namespaced);
@@ -66,96 +66,104 @@ void FEnumEditorUtils::UpdateAfterPathChanged(UEnum* Enum)
 //////////////////////////////////////////////////////////////////////////
 // Enumerators
 
-void FEnumEditorUtils::CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<FName>& OutEnumNames)
+void FEnumEditorUtils::CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair<FName, int8>>& OutEnumNames)
 {
-	if (NULL != Enum)
+	if (Enum == nullptr)
 	{
-		const int32 EnumeratorsToCopy = Enum->NumEnums() - 1;
-		for	(int32 Index = 0; Index < EnumeratorsToCopy; Index++)
-		{
-			OutEnumNames.Add(Enum->GetEnum(Index));
-		}
+		return;
+	}
+
+	const int32 EnumeratorsToCopy = Enum->NumEnums() - 1;
+	for	(int32 Index = 0; Index < EnumeratorsToCopy; Index++)
+	{
+		OutEnumNames.Add(TPairInitializer<FName, int8>(Enum->GetNameByIndex(Index), Enum->GetValueByIndex(Index)));
 	}
 }
 
 /** adds new enumerator (with default unique name) for user defined enum */
 void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum)
 {
-	if (Enum)
+	if (!Enum)
 	{
-		PrepareForChange(Enum);
-
-		TArray<FName> OldNames, Names;
-		CopyEnumeratorsWithoutMax(Enum, OldNames);
-		Names = OldNames;
-
-		FString EnumNameString = Enum->GenerateNewEnumeratorName();
-		const FString FullNameStr = Enum->GenerateFullEnumName(*EnumNameString);
-		Names.Add(FName(*FullNameStr));
-
-		const UEnum::ECppForm EnumType = Enum->GetCppForm();
-		Enum->SetEnums(Names, EnumType);
-		EnsureAllDisplayNamesExist(Enum);
-
-		BroadcastChanges(Enum, OldNames);
-		
-		Enum->MarkPackageDirty();
+		return;
 	}
+
+	PrepareForChange(Enum);
+
+	TArray<TPair<FName, int8>> OldNames, Names;
+	CopyEnumeratorsWithoutMax(Enum, OldNames);
+	Names = OldNames;
+
+	FString EnumNameString = Enum->GenerateNewEnumeratorName();
+	const FString FullNameStr = Enum->GenerateFullEnumName(*EnumNameString);
+	Names.Add(TPairInitializer<FName, int8>(FName(*FullNameStr), Enum->GetMaxEnumValue() + 1));
+
+	const UEnum::ECppForm EnumType = Enum->GetCppForm();
+	Enum->SetEnums(Names, EnumType);
+	EnsureAllDisplayNamesExist(Enum);
+
+	BroadcastChanges(Enum, OldNames);
+		
+	Enum->MarkPackageDirty();
 }
 
 void FEnumEditorUtils::RemoveEnumeratorFromUserDefinedEnum(UUserDefinedEnum* Enum, int32 EnumeratorIndex)
 {
-	if (Enum && (Enum->GetEnum(EnumeratorIndex) != NAME_None))
+	if (!(Enum && (Enum->GetNameByIndex(EnumeratorIndex) != NAME_None)))
 	{
-		PrepareForChange(Enum);
-
-		TArray<FName> OldNames, Names;
-		CopyEnumeratorsWithoutMax(Enum, OldNames);
-		Names = OldNames;
-
-		Names.RemoveAt(EnumeratorIndex);
-
-		Enum->RemoveMetaData(FEnumEditorUtilsHelper::DisplayName(), EnumeratorIndex);
-
-		const UEnum::ECppForm EnumType = Enum->GetCppForm();
-		Enum->SetEnums(Names, EnumType);
-		EnsureAllDisplayNamesExist(Enum);
-		BroadcastChanges(Enum, OldNames);
-
-		Enum->MarkPackageDirty();
+		return;
 	}
+
+	PrepareForChange(Enum);
+
+	TArray<TPair<FName, int8>> OldNames, Names;
+	CopyEnumeratorsWithoutMax(Enum, OldNames);
+	Names = OldNames;
+
+	Names.RemoveAt(EnumeratorIndex);
+
+	Enum->RemoveMetaData(FEnumEditorUtilsHelper::DisplayName(), EnumeratorIndex);
+
+	const UEnum::ECppForm EnumType = Enum->GetCppForm();
+	Enum->SetEnums(Names, EnumType);
+	EnsureAllDisplayNamesExist(Enum);
+	BroadcastChanges(Enum, OldNames);
+
+	Enum->MarkPackageDirty();
 }
 
 /** Reorder enumerators in enum. Swap an enumerator with given name, with previous or next (based on bDirectionUp parameter) */
 void FEnumEditorUtils::MoveEnumeratorInUserDefinedEnum(UUserDefinedEnum* Enum, int32 EnumeratorIndex, bool bDirectionUp)
 {
-	if (Enum && (Enum->GetEnum(EnumeratorIndex) != NAME_None))
+	if (!(Enum && (Enum->GetNameByIndex(EnumeratorIndex) != NAME_None)))
 	{
-		PrepareForChange(Enum);
-
-		TArray<FName> OldNames, Names;
-		CopyEnumeratorsWithoutMax(Enum, OldNames);
-		Names = OldNames;
-
-		const bool bIsLast = ((Names.Num() - 1) == EnumeratorIndex);
-		const bool bIsFirst = (0 == EnumeratorIndex);
-
-		if (bDirectionUp && !bIsFirst)
-		{
-			Names.Swap(EnumeratorIndex, EnumeratorIndex - 1);
-		}
-		else if (!bDirectionUp && !bIsLast)
-		{
-			Names.Swap(EnumeratorIndex, EnumeratorIndex + 1);
-		}
-
-		const UEnum::ECppForm EnumType = Enum->GetCppForm();
-		Enum->SetEnums(Names, EnumType);
-		EnsureAllDisplayNamesExist(Enum);
-		BroadcastChanges(Enum, OldNames);
-
-		Enum->MarkPackageDirty();
+		return;
 	}
+
+	PrepareForChange(Enum);
+
+	TArray<TPair<FName, int8>> OldNames, Names;
+	CopyEnumeratorsWithoutMax(Enum, OldNames);
+	Names = OldNames;
+
+	const bool bIsLast = ((Names.Num() - 1) == EnumeratorIndex);
+	const bool bIsFirst = (0 == EnumeratorIndex);
+
+	if (bDirectionUp && !bIsFirst)
+	{
+		Names.Swap(EnumeratorIndex, EnumeratorIndex - 1);
+	}
+	else if (!bDirectionUp && !bIsLast)
+	{
+		Names.Swap(EnumeratorIndex, EnumeratorIndex + 1);
+	}
+
+	const UEnum::ECppForm EnumType = Enum->GetCppForm();
+	Enum->SetEnums(Names, EnumType);
+	EnsureAllDisplayNamesExist(Enum);
+	BroadcastChanges(Enum, OldNames);
+
+	Enum->MarkPackageDirty();
 }
 
 bool FEnumEditorUtils::IsProperNameForUserDefinedEnumerator(const UEnum* Enum, FString NewName)
@@ -181,9 +189,9 @@ class FArchiveEnumeratorResolver : public FArchiveUObject
 {
 public:
 	const UEnum* Enum;
-	const TArray<FName>& OldNames;
+	const TArray<TPair<FName, int8>>& OldNames;
 
-	FArchiveEnumeratorResolver(const UEnum* InEnum, const TArray<FName>& InOldNames)
+	FArchiveEnumeratorResolver(const UEnum* InEnum, const TArray<TPair<FName, int8>>& InOldNames)
 		: FArchiveUObject(), Enum(InEnum), OldNames(InOldNames)
 	{
 	}
@@ -199,7 +207,7 @@ void FEnumEditorUtils::PrepareForChange(const UUserDefinedEnum* Enum)
 	FEnumEditorManager::Get().PreChange(Enum, EEnumEditorChangeInfo::Changed);
 }
 
-void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<FName>& OldNames, bool bResolveData)
+void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int8>>& OldNames, bool bResolveData)
 {
 	check(NULL != Enum);
 	if (bResolveData)
@@ -310,10 +318,10 @@ int32 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32
 	const FArchiveEnumeratorResolver* EnumeratorResolver = (FArchiveEnumeratorResolver*)(&Ar);
 	if(Enum == EnumeratorResolver->Enum)
 	{
-		const TArray<FName>& OldNames = EnumeratorResolver->OldNames;
+		const auto& OldNames = EnumeratorResolver->OldNames;
 		if(EnumeratorIndex < OldNames.Num())
 		{
-			const FName EnumeratorName = OldNames[EnumeratorIndex];
+			const FName EnumeratorName = OldNames[EnumeratorIndex].Key;
 			const int32 NewEnumIndex = Enum->FindEnumIndex(EnumeratorName);
 			if(INDEX_NONE != NewEnumIndex)
 			{
@@ -343,7 +351,7 @@ bool FEnumEditorUtils::SetEnumeratorDisplayName(UUserDefinedEnum* Enum, int32 En
 			PrepareForChange(Enum);
 			Enum->SetMetaData(FEnumEditorUtilsHelper::DisplayName(), *NewDisplayName, EnumeratorIndex);
 			EnsureAllDisplayNamesExist(Enum);
-			BroadcastChanges(Enum, TArray<FName>(), false);
+			BroadcastChanges(Enum, TArray<TPair<FName, int8>>(), false);
 			return true;
 		}
 	}

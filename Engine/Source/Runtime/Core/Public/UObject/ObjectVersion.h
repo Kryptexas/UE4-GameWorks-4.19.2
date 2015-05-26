@@ -520,6 +520,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_NEW_LIGHTMASS_PRIMITIVE_SETTING,
 	// Deprecate NoZSpring property on spring nodes to be replaced with TranslateZ property
 	VER_UE4_REPLACE_SPRING_NOZ_PROPERTY,
+	// Keep enums tight and serialize their values as pairs of FName and value. Don't insert dummy values.
+	VER_UE4_TIGHTLY_PACKED_ENUMS,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -12,10 +12,10 @@ class UUserDefinedEnum;
 class UNREALED_API FEnumEditorUtils
 {
 	static void PrepareForChange(const UUserDefinedEnum* Enum);
-	static void BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<FName>& OldNames, bool bResolveData = true);
+	static void BroadcastChanges(const UUserDefinedEnum* Enum, const TArray<TPair<FName, int8>>& OldNames, bool bResolveData = true);
 
 	/** copy full enumeratos names from given enum to OutEnumNames, the last '_MAX' enumerator is skipped */
-	static void CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<FName>& OutEnumNames);
+	static void CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<TPair<FName, int8>>& OutEnumNames);
 public:
 
 	enum EEnumEditorChangeInfo

@@ -97,7 +97,7 @@ FText UUserDefinedEnum::GetEnumText(int32 InIndex) const
 	return Super::GetEnumText(InIndex);
 }
 
-bool UUserDefinedEnum::SetEnums(TArray<FName>& InNames, ECppForm InCppForm)
+bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, int8>>& InNames, ECppForm InCppForm)
 {
 	if (Names.Num() > 0)
 	{
@@ -114,10 +114,10 @@ bool UUserDefinedEnum::SetEnums(TArray<FName>& InNames, ECppForm InCppForm)
 	{
 		const FString EnumPrefix = (TryNum == 0) ? BaseEnumPrefix : FString::Printf(TEXT("%s_%d"), *BaseEnumPrefix, TryNum - 1);
 		const FName MaxEnumItem = *GenerateFullEnumName(*(EnumPrefix + TEXT("_MAX")));
-		const int32 MaxEnumItemIndex = Names.Find(MaxEnumItem);
+		const int32 MaxEnumItemIndex = GetValueByName(MaxEnumItem);
 		if ((MaxEnumItemIndex == INDEX_NONE) && (LookupEnumName(MaxEnumItem) == INDEX_NONE))
 		{
-			Names.Add(MaxEnumItem);
+			Names.Add(TPairInitializer<FName, int8>(MaxEnumItem, GetMaxEnumValue() + 1));
 			AddNamesToMasterList();
 			return true;
 		}

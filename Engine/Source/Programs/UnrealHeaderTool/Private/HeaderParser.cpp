@@ -1077,7 +1077,7 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 	FToken TagToken;
 
 	TArray<FScriptLocation> EnumTagLocations;
-	TArray<FName> EnumNames;
+	TArray<TPair<FName, int8>> EnumNames;
 
 	int32 CurrentEnumValue = 0;
 
@@ -1119,7 +1119,9 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 			break;
 		}
 
-		if (EnumNames.Find(NewTag, iFound))
+		TPair<FName, int8> CurrentEnum = TPair<FName, int8>(TPairInitializer<FName, int8>(NewTag, CurrentEnumValue));
+
+		if (EnumNames.Find(CurrentEnum, iFound))
 		{
 			FError::Throwf(TEXT("Duplicate enumeration tag %s"), TagToken.Identifier );
 		}
@@ -1135,23 +1137,8 @@ UEnum* FHeaderParser::CompileEnum(FUnrealSourceFile& SourceFile)
 			FError::Throwf(TEXT("Enumeration tag '%s' already in use by enum '%s'"), TagToken.Identifier, *FoundEnum->GetPathName());
 		}
 
-		// Make sure the enum names array is tightly packed by inserting dummies
-		//@TODO: UCREMOVAL: Improve the UEnum system so we can have loosely packed values for e.g., bitfields
-		for (int32 DummyIndex = EnumNames.Num(); DummyIndex < CurrentEnumValue; ++DummyIndex)
-		{
-			FString DummyName              = FString::Printf(TEXT("UnusedSpacer_%d"), DummyIndex);
-			FString DummyNameWithQualifier = FString::Printf(TEXT("%s::%s"), EnumToken.Identifier, *DummyName);
-			EnumNames.Add(FName(*DummyNameWithQualifier));
-
-			// These ternary operators are the correct way around, believe it or not.
-			// Spacers are qualified with the ETheEnum:: when they're regular enums in order to prevent spacer name clashes.
-			// They're not qualified when they're actually in a namespace or are enum classes.
-			InsertMetaDataPair(EnumValueMetaData, ((CppForm != UEnum::ECppForm::Regular) ? DummyName : DummyNameWithQualifier) + TEXT(".Hidden"), TEXT(""));
-			InsertMetaDataPair(EnumValueMetaData, ((CppForm != UEnum::ECppForm::Regular) ? DummyName : DummyNameWithQualifier) + TEXT(".Spacer"), TEXT(""));
-		}
-
 		// Save the new tag
-		EnumNames.Add( NewTag );
+		EnumNames.Add(CurrentEnum);
 
 		// Autoincrement the current enumerant value
 		CurrentEnumValue++;

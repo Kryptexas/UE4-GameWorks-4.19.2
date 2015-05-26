@@ -1360,10 +1360,90 @@ public:
 	// This will be the true type of the enum as a string, e.g. "ENamespacedEnum::InnerType" or "ERegularEnum" or "EEnumClass"
 	FString CppType;
 
+	/** Gets enum name by index in Names array. Returns NAME_None if Index is not valid. */
+	FName GetNameByIndex(int8 Index) const
+	{
+		if (Names.IsValidIndex(Index))
+		{
+			return Names[Index].Key;
+		}
+		
+		return NAME_None;
+	}
+
+	/** Gets enum value by index in Names array. */
+	int8 GetValueByIndex(int8 Index) const
+	{
+		check(Names.IsValidIndex(Index));
+		return Names[Index].Value;
+	}
+
+	/** Gets enum name by value. Returns NAME_None if value is not found. */
+	FName GetNameByValue(int8 InValue) const
+	{
+		for (TPair<FName, int8> Kvp : Names)
+		{
+			if (Kvp.Value == InValue)
+			{
+				return Kvp.Key;
+			}
+		}
+		
+		return NAME_None;
+	}
+
+	/** Gets enum value by name. Returns INDEX_NONE when name is not found. */
+	int8 GetValueByName(FName InName)
+	{
+		for (TPair<FName, int8> Kvp : Names)
+		{
+			if (Kvp.Key == InName)
+			{
+				return Kvp.Value;
+			}
+		}
+
+		return INDEX_NONE;
+	}
+
+	/** Gets index of name in enum. Returns INDEX_NONE when name is not found. */
+	int32 GetIndexByName(FName Name) const
+	{
+		int32 Count = Names.Num();
+		for (int32 Counter = 0; Counter < Count; ++Counter)
+		{
+			if (Names[Counter].Key == Name)
+			{
+				return Counter;
+			}
+		}
+		return INDEX_NONE;
+	}
+
+	/** Gets max value of Enum. Defaults to zero if there are no entries. */
+	int8 GetMaxEnumValue() const
+	{
+		int8 MaxValue = -1;
+		if (Names.Num() > 0)
+		{
+			MaxValue = Names[0].Value;
+		}
+
+		for (const auto& Pair : Names)
+		{
+			if (Pair.Value > MaxValue)
+			{
+				MaxValue = Pair.Value;
+			}
+		}
+
+		return MaxValue;
+	}
+
 protected:
 	// Variables.
-	/** List of all enum names. */
-	TArray<FName> Names;
+	/** List of pairs of all enum names and values. */
+	TArray<TPair<FName, int8>> Names;
 
 	/** How the enum was originally defined. */
 	ECppForm CppForm;
@@ -1441,14 +1521,14 @@ public:
 	/** searches the list of all enum value names for the specified name
 	 * @return the value the specified name represents if found, otherwise INDEX_NONE
 	 */
-	static int32 LookupEnumName(FName TestName, UEnum** FoundEnum = NULL)
+	static int32 LookupEnumName(FName TestName, UEnum** FoundEnum = nullptr)
 	{
 		UEnum* TheEnum = AllEnumNames.FindRef(TestName);
-		if (FoundEnum != NULL)
+		if (FoundEnum != nullptr)
 		{
 			*FoundEnum = TheEnum;
 		}
-		return (TheEnum != NULL) ? TheEnum->Names.Find(TestName) : INDEX_NONE;
+		return (TheEnum != nullptr) ? TheEnum->GetIndexByName(TestName) : INDEX_NONE;
 	}
 
 	/** searches the list of all enum value names for the specified name
@@ -1490,7 +1570,7 @@ public:
 	 * @param InCppForm The form of enum.
 	 * @return	true unless the MAX enum already exists and isn't the last enum.
 	 */
-	COREUOBJECT_API virtual bool SetEnums(TArray<FName>& InNames, ECppForm InCppForm);
+	COREUOBJECT_API virtual bool SetEnums(TArray<TPair<FName, int8>>& InNames, ECppForm InCppForm);
 
 	/**
 	 * @return	The enum name at the specified Index.
@@ -1499,7 +1579,7 @@ public:
 	{
 		if (Names.IsValidIndex(InIndex))
 		{
-			return Names[InIndex];
+			return Names[InIndex].Key;
 		}
 		return NAME_None;
 	}
@@ -1513,11 +1593,11 @@ public:
 		{
 			if (CppForm == ECppForm::Regular)
 			{
-				return Names[InIndex].ToString();
+				return GetNameByIndex(InIndex).ToString();
 			}
 
 			// Strip the namespace from the name.
-			FString EnumName(Names[InIndex].ToString());
+			FString EnumName(GetNameByIndex(InIndex).ToString());
 			int32 ScopeIndex = EnumName.Find(TEXT("::"), ESearchCase::CaseSensitive);
 			if (ScopeIndex != INDEX_NONE)
 			{
