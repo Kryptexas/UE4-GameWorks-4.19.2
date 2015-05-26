@@ -697,9 +697,11 @@ void VelocityScatterVS(
 
 	float2 Velocity = PostprocessInput0[ TilePos ].xy;
 	OutColor = Velocity.xyxy;
+
+	Velocity *= VelocityScale.xy;
 	
 	BRANCH
-	if( length( Velocity * 0.5 * float2(1920,1080) ) <= 0.5 )
+	if( length( Velocity * float2(1920,1080) ) <= 0.5 )
 	{
 		return;
 	}
