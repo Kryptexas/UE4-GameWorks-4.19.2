@@ -150,8 +150,8 @@ uint32 FOnlineAsyncTaskManager::Run(void)
 
 void FOnlineAsyncTaskManager::Stop(void)
 {
-	FPlatformAtomics::InterlockedExchange(&bRequestingExit, 1);
 	WorkEvent->Trigger();
+	FPlatformAtomics::InterlockedExchange(&bRequestingExit, 1);
 }
 
 void FOnlineAsyncTaskManager::Exit(void)
