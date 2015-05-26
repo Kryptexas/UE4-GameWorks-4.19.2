@@ -28,6 +28,7 @@ public class StartUploading extends HttpServlet
         	final String versionString 	= request.getParameter( "Version" );
         	final String clString 		= request.getParameter( "CL" );
     		final String friendlyName 	= request.getParameter( "Friendly" );
+    		final String metaString 	= request.getParameter( "Meta" );
     		
     		if ( appName == null )
     		{
@@ -61,9 +62,9 @@ public class StartUploading extends HttpServlet
         	final int changelist = Integer.parseUnsignedInt( clString );
 
     		// Start a live session
-    		final String SessionName = ReplayDB.createSession( appName, version, changelist, friendlyName );
+    		final String SessionName = ReplayDB.createSession( appName, version, changelist, friendlyName, metaString );
       	
-    		ReplayLogger.log( Level.FINE, "StartUploading. Success: " + appName + "/" + versionString + "/" + clString + "/" + SessionName + "/" + friendlyName );
+    		ReplayLogger.log( Level.FINE, "StartUploading. Success: " + appName + "/" + versionString + "/" + clString + "/" + SessionName + "/" + friendlyName + "/" + metaString );
 
     		response.setHeader( "Session",  SessionName );   		
     	}

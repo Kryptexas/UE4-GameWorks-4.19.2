@@ -34,7 +34,7 @@ public class ReplayDB
 			{
 				final String app = "testApp";
 				
-				final String sessionName = createSession( app, 0, 0, "friendlyName" );
+				final String sessionName = createSession( app, 0, 0, "friendlyName", null );
 				
 				if ( i % 10 == 0 )
 				{
@@ -116,14 +116,14 @@ public class ReplayDB
 		return true;
 	}
 
-	static String createSession( final String appName, final int version, final int changelist, final String friendlyName ) throws ReplayException
+	static String createSession( final String appName, final int version, final int changelist, final String friendlyName, final String metaString ) throws ReplayException
 	{
 		final UUID sessionId = java.util.UUID.randomUUID();
 		final String sessionName = sessionId.toString();
 
 		try
 		{				
-			baseDB.createSession( appName, version, changelist, sessionName, friendlyName );
+			baseDB.createSession( appName, version, changelist, sessionName, friendlyName, metaString );
 			return sessionName; 
 		}
 		catch ( ReplayException e )
@@ -231,9 +231,9 @@ public class ReplayDB
 		return baseDB.getNumSessions( appName, version, changelist );
 	}
 
-	static List<ReplaySessionInfo> discoverSessions(  final String appName, final int version, final int changelist, final int limit )
+	static List<ReplaySessionInfo> discoverSessions(  final String appName, final int version, final int changelist, final String metaString, final int limit )
 	{
-		return baseDB.discoverSessions( appName, version, changelist, limit );
+		return baseDB.discoverSessions( appName, version, changelist, metaString, limit );
 	}
 
 	static List<ReplaySessionInfo> getRecentSessions( final String appName, final int version, final int changelist, final String userName, final int limit )

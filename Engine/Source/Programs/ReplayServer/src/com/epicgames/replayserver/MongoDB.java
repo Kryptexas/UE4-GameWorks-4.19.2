@@ -45,7 +45,7 @@ public class MongoDB implements BaseDB
 		mongoClient = new MongoClient( ReplayProps.getString( "mongoDB_Host", "localhost" ) , ReplayProps.getInt( "mongoDB_Port", "27017" ) );
 
 		final boolean bResetDB 		= false;
-		final boolean bResetIndexes = false;
+		final boolean bResetIndexes = ReplayProps.getInt( "mongoDB_ResetIndexes", "1" ) == 1 ? true : false;
 
 		if ( bResetDB )
 		{
@@ -65,11 +65,13 @@ public class MongoDB implements BaseDB
 			replayColl.dropIndex( "*" );
 			viewerColl.dropIndex( "*" );
 			eventColl.dropIndex( "*" );
+			recentColl.dropIndex( "*" );
 			logColl.dropIndex( "*" );
 	
 			replayColl.createIndex( new BasicDBObject( "session", 1 ), new BasicDBObject( "name", "SessionIndex" ) );
-			replayColl.createIndex( new BasicDBObject( "version", 1 ).append( "app", 1 ).append( "bIsLive", 1 ).append( "created", 1 ), new BasicDBObject( "name", "VersionAppSortIndex" ) );
+			replayColl.createIndex( new BasicDBObject( "app", 1 ).append( "version", 1 ).append( "bIsLive", 1 ).append( "created", 1 ), new BasicDBObject( "name", "VersionAppSortIndex" ) );
 			replayColl.createIndex( new BasicDBObject( "app", 1 ).append( "bIsLive", 1 ).append( "created", 1 ), new BasicDBObject( "name", "AppSortIndex" ) );
+			replayColl.createIndex( new BasicDBObject( "app", 1 ).append( "meta", 1 ), new BasicDBObject( "name", "AppMetaSortIndex" ) );
 			replayColl.createIndex( new BasicDBObject( "created", 1 ), new BasicDBObject( "name", "CreatedIndex" ) );
 			replayColl.createIndex( new BasicDBObject( "modified", 1 ), new BasicDBObject( "name", "ModifiedIndex" ) );
 
@@ -77,14 +79,11 @@ public class MongoDB implements BaseDB
 			viewerColl.createIndex( new BasicDBObject( "viewer", 1 ), new BasicDBObject( "name", "ViewerIndex" ) );
 			viewerColl.createIndex( new BasicDBObject( "modified", 1 ), new BasicDBObject( "name", "VModifiedIndex" ) );
 
-			eventColl.createIndex( new BasicDBObject( "session", 1 ).append( "group", 1 ).append( "time1", 1 ), new BasicDBObject( "name", "ESessionIndex" ) );
-			//eventColl.createIndex( new BasicDBObject( "time1", 1 ), new BasicDBObject( "name", "ETime1Index" ) );
-			//eventColl.createIndex( new BasicDBObject( "group" , 1 ), new BasicDBObject( "name", "EGroupIndex" ) );			
-			eventColl.createIndex( new BasicDBObject( "modified", 1 ), new BasicDBObject( "name", "EModifiedIndex" ) );
-
 			recentColl.createIndex( new BasicDBObject( "user", 1 ), new BasicDBObject( "name", "RecentUserIndex" ) );
 
-			//logColl.createIndex( new BasicDBObject( "level", 1 ), new BasicDBObject( "name", "LevelIndex" ) );
+			eventColl.createIndex( new BasicDBObject( "session", 1 ).append( "group", 1 ).append( "time1", 1 ), new BasicDBObject( "name", "ESessionIndex" ) );
+			eventColl.createIndex( new BasicDBObject( "modified", 1 ), new BasicDBObject( "name", "EModifiedIndex" ) );
+
 			logColl.createIndex( new BasicDBObject( "level", 1 ).append( "created", 1 ), new BasicDBObject( "name", "LevelIndex" ) );
 			logColl.createIndex( new BasicDBObject( "created", 1 ), new BasicDBObject( "name", "LCreatedIndex" ) );
 		}
@@ -213,7 +212,7 @@ public class MongoDB implements BaseDB
 		return replayColl.count( getSessionQuery( sessionName ) ) > 0;
 	}
 	
-	public void createSession( final String appName, final int version, final int changelist, final String sessionName, final String friendlyName ) throws ReplayException
+	public void createSession( final String appName, final int version, final int changelist, final String sessionName, final String friendlyName, final String metaString ) throws ReplayException
 	{
 		if ( sessionExists( sessionName ) )
 		{
@@ -233,7 +232,8 @@ public class MongoDB implements BaseDB
 							.append( "bIncomplete", 	(boolean)false )
 							.append( "numChunks", 		(int)0 )
 							.append( "demoTimeInMS", 	(int)0 )
-							.append( "sizeInBytes", 	(int)0 );
+							.append( "sizeInBytes", 	(int)0 )
+							.append( "meta", 			metaString );
 
 		
 			replayColl.insert( WriteConcern.ACKNOWLEDGED, newSession );
@@ -695,26 +695,27 @@ public class MongoDB implements BaseDB
  		return (int)replayColl.count();
 	}
 
-	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final int limit )
+	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String metaString, final int limit )
 	{
 		List<ReplaySessionInfo> sessions = new ArrayList<ReplaySessionInfo>();
 	
  		DBCursor cursor = null;
  		
- 		if ( version != 0 )
+ 		if ( appName != null )
  		{
- 	 		if ( appName != null )
- 	 		{
- 	 			cursor = replayColl.find( new BasicDBObject( "version", version ).append( "app", appName ) );
- 	 		}
- 	 		else
- 	 		{
- 	 			cursor = replayColl.find( new BasicDBObject( "version", version ) );
- 	 		}
- 		}
- 		else if ( appName != null )
- 		{
- 			cursor = replayColl.find( new BasicDBObject( "app", appName ) );
+ 			BasicDBObject query = new BasicDBObject( "app", appName );
+ 			
+ 			if ( version != 0 )
+	 		{
+	 			query.append( "version", version );	 			
+	 		}
+
+ 			if ( metaString != null )
+ 			{	 				
+		 		query.append( "meta", metaString );
+ 			}
+
+ 			cursor = replayColl.find( query );
  		}
  		else
  		{
