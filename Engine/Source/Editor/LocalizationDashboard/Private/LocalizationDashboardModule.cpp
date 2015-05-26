@@ -10,6 +10,7 @@
 #include "LocalizationTargetSetDetailCustomization.h"
 #include "LocalizationTargetDetailCustomization.h"
 #include "GatherTextDetailCustomizations.h"
+#include "PropertyEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -21,7 +22,6 @@ public:
 	virtual void StartupModule() override
 	{
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
-		ServiceProviders.Insert(nullptr, 0); // "None"
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout("LocalizationTargetSet", FOnGetDetailCustomizationInstance::CreateLambda(

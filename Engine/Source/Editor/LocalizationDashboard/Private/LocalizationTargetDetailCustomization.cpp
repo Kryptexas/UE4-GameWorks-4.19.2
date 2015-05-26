@@ -15,6 +15,8 @@
 #include "ObjectEditorUtils.h"
 #include "LocalizationDashboardSettings.h"
 #include "SErrorText.h"
+#include "ILocalizationServiceModule.h"
+#include "ILocalizationServiceProvider.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationTargetEditor"
 
@@ -283,6 +285,11 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 			];
 	});
 
+	{
+		// The sort priority is set the first time we edit the category, so set it here first
+		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory("Target", LOCTEXT("TargetCategoryLabel","Target"), ECategoryPriority::Variable);
+	}
+
 	UStructProperty* const SettingsStructProperty = CastChecked<UStructProperty>(TargetSettingsPropertyHandle->GetProperty());
 	for (TFieldIterator<UProperty> Iterator(SettingsStructProperty->Struct); Iterator; ++Iterator)
 	{
@@ -352,16 +359,16 @@ void FLocalizationTargetDetailCustomization::CustomizeDetails(IDetailLayoutBuild
 			];
 	}
 
+	{
+		// Assign this to the "important" category to make it show up just under the "target" category
+		IDetailCategoryBuilder& ServiceProviderCategoryBuilder = DetailBuilder.EditCategory(FName("LocalizationServiceProvider"), LOCTEXT("LocalizationServiceProviderCategoryLabel","Localization Service Provider"), ECategoryPriority::Important);
 
-	//{
-	//	IDetailCategoryBuilder& ServiceProviderCategoryBuilder = DetailBuilder.EditCategory(FName("LocalizationServiceProvider"));
-
-	//	ILocalizationServiceProvider* const LSP = ILocalizationDashboardModule::Get().GetCurrentLocalizationServiceProvider();
-	//	if (LSP && LocalizationTarget)
-	//	{
-	//		LSP->CustomizeTargetDetails(ServiceProviderCategoryBuilder, *LocalizationTarget);
-	//	}
-	//}
+		const ILocalizationServiceProvider& LSP = ILocalizationServiceModule::Get().GetProvider();
+		if (LocalizationTarget.IsValid())
+		{
+			LSP.CustomizeTargetDetails(ServiceProviderCategoryBuilder, LocalizationTarget->Settings.Guid);
+		}
+	}
 }
 
 FLocalizationTargetSettings* FLocalizationTargetDetailCustomization::GetTargetSettings() const

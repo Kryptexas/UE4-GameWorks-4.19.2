@@ -29,6 +29,7 @@ public class LocalizationDashboard : ModuleRules
                 "MainFrame",
                 "SourceControl",
                 "SharedSettingsWidgets",
+                "LocalizationService"
 			}
 		);
 
