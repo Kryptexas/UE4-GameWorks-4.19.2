@@ -16,7 +16,7 @@ void FPDBCache::Init()
 	// Default configuration
 	//PDBCachePath=F:/CrashReportPDBCache/
 	//DepotRoot=F:/depot
-	//DaysToDeleteUnusedFilesFromPDBCache=7
+	//DaysToDeleteUnusedFilesFromPDBCache=3
 	//PDBCacheSizeGB=128
 	//MinDiskFreeSpaceGB=256
 
@@ -24,6 +24,18 @@ void FPDBCache::Init()
 	FParse::Bool( FCommandLine::Get(), TEXT( "bUsePDBCache=" ), bUsePDBCache );
 
 	UE_LOG( LogCrashDebugHelper, Warning, TEXT( "bUsePDBCache is %s" ), bUsePDBCache ? TEXT( "enabled" ) : TEXT( "disabled" ) );
+
+	if (bUsePDBCache)
+	{
+		GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "DepotRoot" ), DepotRoot, GEngineIni );
+		ICrashDebugHelper::SetDepotIndex( DepotRoot );
+
+		const bool bHasDepotRoot = IFileManager::Get().DirectoryExists( *DepotRoot );
+		UE_CLOG( !bHasDepotRoot, LogCrashDebugHelper, Warning, TEXT( "DepotRoot: %s is not valid" ), *DepotRoot );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "DepotRoot: %s" ), *DepotRoot );	
+
+		bUsePDBCache = bHasDepotRoot;
+	}
 
 	// Get the rest of the PDB cache configuration.
 	if( bUsePDBCache )
@@ -176,7 +188,7 @@ void FPDBCache::CleanPDBCache( int32 DaysToDelete, int32 NumberOfGBsToBeCleaned 
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDB Cache cleaned %i GBs in %.2f ms" ), NumGBsCleaned, TotalTime*1000.0f );
 }
 
-FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotRoot, const FString& DepotName, const TArray<FString>& FilesToBeCached )
+FPDBCacheEntryRef FPDBCache::CreateAndAddPDBCacheEntry( const FString& OriginalLabelName, const FString& DepotName, const TArray<FString>& FilesToBeCached )
 {
 	const FString CleanedLabelName = EscapePath( OriginalLabelName );
 	const FString EntryDirectory = PDBCachePath / CleanedLabelName;
