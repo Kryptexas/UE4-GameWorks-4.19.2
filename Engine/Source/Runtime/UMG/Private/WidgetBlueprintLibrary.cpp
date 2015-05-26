@@ -301,6 +301,11 @@ UDragDropOperation* UWidgetBlueprintLibrary::GetDragDroppingContent()
 	return nullptr;
 }
 
+void UWidgetBlueprintLibrary::CancelDragDrop()
+{
+	FSlateApplication::Get().CancelDragDrop();
+}
+
 FSlateBrush UWidgetBlueprintLibrary::MakeBrushFromAsset(USlateBrushAsset* BrushAsset)
 {
 	if ( BrushAsset )

@@ -153,6 +153,12 @@ public:
 	static UDragDropOperation* GetDragDroppingContent();
 
 	/**
+	 * Cancels any current drag drop operation.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Widget|Drag and Drop")
+	static void CancelDragDrop();
+
+	/**
 	 * Creates a Slate Brush from a Slate Brush Asset
 	 *
 	 * @return A new slate brush using the asset's brush.
