@@ -2353,6 +2353,21 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 		IniVersionStrings.Emplace( MoveTemp(CurrentVersionString) );
 	}
 
+
+	TArray<FString> VersionedRValues;
+	GConfig->GetArray(TEXT("CookSettings"), TEXT("VersionedIntRValues"), VersionedRValues, GEditorIni);
+
+	for (const auto& RValue : VersionedRValues)
+	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
+		if (CVar)
+		{
+			FString VersionedRValueString = FString::Printf(TEXT("%s:%d"), *RValue, CVar->GetValueOnGameThread());
+			IniVersionStrings.Emplace(MoveTemp(VersionedRValueString));
+		}
+	}
+
+
 	// clean up our temporary platform ini files
 	for ( const auto& PlatformIniFile : PlatformIniFiles )
 	{
@@ -2555,11 +2570,11 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk( const TArray<ITargetPl
 			CookedFilename = FPaths::ConvertRelativePathToFull(CookedFilename);
 			FString StandardCookedFilename = CookedFilename;
 
-			StandardCookedFilename.ReplaceInline(*EngineSandboxPath, *LocalEnginePath);
-			StandardCookedFilename.ReplaceInline(*GameSandboxPath, *LocalGamePath);
 			StandardCookedFilename.ReplaceInline(*SandboxPath, *(FPaths::GetRelativePathToRoot()));
-			FDateTime DependentTimestamp;
 
+			StandardCookedFilename = FPaths::ConvertRelativePathToFull(StandardCookedFilename);
+			FPaths::MakeStandardFilename(StandardCookedFilename);
+			FDateTime DependentTimestamp;
 			if (PDInfoModule.DeterminePackageDependentTimeStamp(*(FPaths::GetBaseFilename(StandardCookedFilename, false)), DependentTimestamp) == true)
 			{
 				double Diff = (CookedTimestamp - DependentTimestamp).GetTotalSeconds();
@@ -2674,6 +2689,7 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 						(CookedFilename.EndsWith(TEXT(".umap")) == false))
 					{
 						// don't care if it's not a map or an asset
+						//IFileManager::Get().Delete(*CookedFilename);
 						continue;
 					}
 
@@ -2681,10 +2697,11 @@ void UCookOnTheFlyServer::CleanSandbox( const bool bIterative )
 					CookedFilename = FPaths::ConvertRelativePathToFull(CookedFilename);
 					FString StandardCookedFilename = CookedFilename;
 
-					StandardCookedFilename.ReplaceInline(*EngineSandboxPath, *LocalEnginePath);
-					StandardCookedFilename.ReplaceInline(*GameSandboxPath, *LocalGamePath);
 					StandardCookedFilename.ReplaceInline(*SandboxPath, *(FPaths::GetRelativePathToRoot()));
 
+					StandardCookedFilename = FPaths::ConvertRelativePathToFull(StandardCookedFilename);
+					FPaths::MakeStandardFilename(StandardCookedFilename);
+					
 					FDateTime DependentTimestamp;
 					FName StandardCookedFileFName = FName(*StandardCookedFilename);
 
