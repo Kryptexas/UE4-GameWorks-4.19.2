@@ -236,9 +236,9 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 					MeshScaleV.Z = Wheel->ShapeRadius / MeshBounds.BoxExtent.Z;
 				}
 				PxMeshScale MeshScale(U2PVector(UpdatedComponent->RelativeScale3D * MeshScaleV), PxQuat::createIdentity());
-				if (Wheel->CollisionMesh->BodySetup->TriMesh)
+				if (Wheel->CollisionMesh->BodySetup->TriMeshes.Num())
 				{
-					PxTriangleMesh* TriMesh = Wheel->CollisionMesh->BodySetup->TriMesh;
+					PxTriangleMesh* TriMesh = Wheel->CollisionMesh->BodySetup->TriMeshes[0];
 
 					// No eSIMULATION_SHAPE flag for wheels
 					PWheelShape = PVehicleActor->createShape(PxTriangleMeshGeometry(TriMesh, MeshScale), *WheelMaterial, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION);

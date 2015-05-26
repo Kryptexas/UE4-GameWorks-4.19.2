@@ -168,8 +168,12 @@ void UBodySetup::CreatePhysicsMeshes()
 			}
 		}
 
-		TriMesh = CookedDataReader.TriMesh;
-		FPhysxSharedData::Get().Add(TriMesh);
+		for(PxTriangleMesh* TriMesh : CookedDataReader.TriMeshes)
+		{
+			check(TriMesh);
+			TriMeshes.Add(TriMesh);
+			FPhysxSharedData::Get().Add(TriMesh);
+		}
 	}
 	else
 	{
@@ -211,12 +215,13 @@ void UBodySetup::ClearPhysicsMeshes()
 		}
 	}
 
-	if(TriMesh != NULL)
+	for(int32 ElementIndex = 0; ElementIndex < TriMeshes.Num(); ++ElementIndex)
 	{
-		GPhysXPendingKillTriMesh.Add(TriMesh);
-		FPhysxSharedData::Get().Remove(TriMesh);
-		TriMesh = NULL;
+		GPhysXPendingKillTriMesh.Add(TriMeshes[ElementIndex]);
+		FPhysxSharedData::Get().Remove(TriMeshes[ElementIndex]);
+		TriMeshes[ElementIndex] = NULL;
 	}
+	TriMeshes.Empty();
 
 	bCreatedPhysicsMeshes = false;
 #endif
@@ -521,10 +526,11 @@ public:
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
 
-		if (BodySetup->TriMesh)
+		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
 		{
+		
 			PxTriangleMeshGeometry PTriMeshGeom;
-			PTriMeshGeom.triangleMesh = BodySetup->TriMesh;
+			PTriMeshGeom.triangleMesh = TriMesh;
 			PTriMeshGeom.scale.scale = U2PVector(Scale3D);
 			if (BodySetup->bDoubleSidedGeometry)
 			{
@@ -534,13 +540,11 @@ public:
 
 			if (PTriMeshGeom.isValid())
 			{
-
+				PxTransform PElementTransform = U2PTransform(RelativeTM);
 				// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
+				if (!AttachShape_AssumesLocked(PTriMeshGeom, PElementTransform, MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
 				{
-					if (!AttachShape_AssumesLocked(PTriMeshGeom, PxTransform::createIdentity(), MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
-					{
-						UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
-					}
+					UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
 				}
 			}
 			else
@@ -857,16 +861,16 @@ void UBodySetup::UpdateTriMeshVertices(const TArray<FVector> & NewPositions)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateTriMeshVertices);
 #if WITH_PHYSX
-	if (TriMesh)
+	if (TriMeshes.Num())
 	{
 		
-		PxVec3 * PNewPositions = TriMesh->getVerticesForModification();
+		PxVec3 * PNewPositions = TriMeshes[0]->getVerticesForModification();	//we only update the first trimesh. We assume this per poly case is not updating welded trimeshes
 		for (int32 i = 0; i < NewPositions.Num(); ++i)
 		{
 			PNewPositions[i] = U2PVector(NewPositions[i]);
 		}
 
-		TriMesh->refitBVH();
+		TriMeshes[0]->refitBVH();
 	}
 #endif
 }
@@ -962,7 +966,7 @@ SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 
 #if WITH_PHYSX
 	// Count PhysX trimesh mem usage
-	if (TriMesh != NULL)
+	for(PxTriangleMesh* TriMesh : TriMeshes)
 	{
 		ResourceSize += GetPhysxObjectSize(TriMesh, NULL);
 	}

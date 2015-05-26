@@ -644,7 +644,6 @@ PxU32 FPhysXCPUDispatcherSingleThread::getWorkerCount() const
 // FPhysXFormatDataReader
 
 FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
-	: TriMesh( NULL )
 {
 	// Read cooked physics data
 	uint8* DataPtr = (uint8*)InBulkData.Lock( LOCK_READ_ONLY );
@@ -653,33 +652,33 @@ FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
 	uint8 bLittleEndian = true;
 	int32 NumConvexElementsCooked = 0;
 	int32 NumMirroredElementsCooked = 0;
-	uint8 bTriMeshCooked = false;
+	int32 NumTriMeshesCooked = 0;
 
 	Ar << bLittleEndian;
 	Ar.SetByteSwapping( PLATFORM_LITTLE_ENDIAN ? !bLittleEndian : !!bLittleEndian );
 	Ar << NumConvexElementsCooked;	
 	Ar << NumMirroredElementsCooked;
-	Ar << bTriMeshCooked;
+	Ar << NumTriMeshesCooked;
 	
-	ConvexMeshes.Empty( NumConvexElementsCooked );
-	ConvexMeshesNegX.Empty( NumMirroredElementsCooked );
-
+	ConvexMeshes.Empty(NumConvexElementsCooked);
 	for( int32 ElementIndex = 0; ElementIndex < NumConvexElementsCooked; ElementIndex++ )
 	{
 		PxConvexMesh* ConvexMesh = ReadConvexMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
 		ConvexMeshes.Add( ConvexMesh );
 	}
 
+	ConvexMeshesNegX.Empty(NumMirroredElementsCooked);
 	for( int32 ElementIndex = 0; ElementIndex < NumMirroredElementsCooked; ElementIndex++ )
 	{
 		PxConvexMesh* ConvexMeshNegX = ReadConvexMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
 		ConvexMeshesNegX.Add( ConvexMeshNegX );
 	}
 
-	if( bTriMeshCooked )
+	TriMeshes.Empty(NumTriMeshesCooked);
+	for(int32 ElementIndex = 0; ElementIndex < NumTriMeshesCooked; ++ElementIndex)
 	{
-		TriMesh = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
-		check(TriMesh);	
+		PxTriangleMesh* TriMesh = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
+		TriMeshes.Add(TriMesh);
 	}
 
 	InBulkData.Unlock();
@@ -914,7 +913,10 @@ PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMate
 
 	for (UBodySetup* BodySetup : BodySetups)
 	{
-		AddToCollection(PCollection, BodySetup->TriMesh);
+		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
+		{
+			AddToCollection(PCollection, TriMesh);
+		}
 
 		for (const FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 		{

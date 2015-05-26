@@ -38,7 +38,7 @@ public:
 		// This is a version string that mimics the old versioning scheme. If you
 		// want to bump this version, generate a new guid using VS->Tools->Create GUID and
 		// return it here. Ex.
-		return TEXT("7F9691E5320E4745AE426E72F60B484D");
+		return TEXT("1D9C17C451EA4FB88CB7A27536A65DB0");
 	}
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override
@@ -81,7 +81,7 @@ private:
 
 	void InitCooker();
 	int32 BuildConvex( TArray<uint8>& OutData, bool InMirrored );
-	bool BuildTriMesh( TArray<uint8>& OutData, bool InMirrored, bool InUseAllTriData );
+	int32 BuildTriMesh( TArray<uint8>& OutData, bool InUseAllTriData );
 	bool ShouldGenerateTriMeshData(bool InUseAllTriData);
 };
 

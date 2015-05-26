@@ -841,7 +841,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 #endif
 
 /** Update the filter data on the physics shapes, based on the owning component flags. */
-void FBodyInstance::UpdatePhysicsFilterData(bool bForceSimpleAsComplex)
+void FBodyInstance::UpdatePhysicsFilterData()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdatePhysFilter);
 
@@ -929,8 +929,8 @@ void FBodyInstance::UpdatePhysicsFilterData(bool bForceSimpleAsComplex)
 	}
 #endif
 
-	const bool bUseComplexAsSimple = !bForceSimpleAsComplex && (BodySetup.Get()->CollisionTraceFlag == CTF_UseComplexAsSimple);
-	const bool bUseSimpleAsComplex = bForceSimpleAsComplex || (BodySetup.Get()->CollisionTraceFlag == CTF_UseSimpleAsComplex);
+	const bool bUseComplexAsSimple = (BodySetup.Get()->CollisionTraceFlag == CTF_UseComplexAsSimple);
+	const bool bUseSimpleAsComplex = (BodySetup.Get()->CollisionTraceFlag == CTF_UseSimpleAsComplex);
 
 #if WITH_PHYSX
 	const TEnumAsByte<ECollisionEnabled::Type>* CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
@@ -1961,7 +1961,7 @@ void FBodyInstance::PostShapeChange()
 	UpdatePhysicalMaterials();
 
 	// Set the filter data on the shapes (call this after setting BodyData because it uses that pointer)
-	UpdatePhysicsFilterData(true);
+	UpdatePhysicsFilterData();
 
 	UpdateMassProperties();
 	// Update damping
@@ -2271,27 +2271,33 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 				{
 					PShape->getTriangleMeshGeometry(PTriMeshGeom);
 
-					// Create tri-mesh shape
-					if (BodySetup.IsValid() && BodySetup->TriMesh)
+					// find which trimesh elems it is
+					// it would be nice to know if the order of PShapes array index is in the order of createShape
+					if (BodySetup.IsValid())
 					{
 						// Please note that this one we don't inverse old scale, but just set new one (but still adjust for scale mode)
 						FVector NewScale3D = RelativeScale3D * OldScale3D;
-						if (BodySetup->TriMesh)
-						{
-							PTriMeshGeom.triangleMesh = BodySetup->TriMesh;
-							PTriMeshGeom.scale.scale = U2PVector(Scale3D);
 
-							if (PTriMeshGeom.isValid())
+						for (PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
+						{
+							// found it
+							if (TriMesh == PTriMeshGeom.triangleMesh)
 							{
-								UpdatedGeometry = &PTriMeshGeom;
-								bSuccess = true;
-							}
-							else
-							{
-								bInvalid = true;
+								PTriMeshGeom.scale.scale = U2PVector(Scale3D);
+
+								if (PTriMeshGeom.isValid())
+								{
+									UpdatedGeometry = &PTriMeshGeom;
+									bSuccess = true;
+								}
+								else
+								{
+									bInvalid = true;
+								}
 							}
 						}
 					}
+
 					break;
 				}
 				case PxGeometryType::eHEIGHTFIELD:

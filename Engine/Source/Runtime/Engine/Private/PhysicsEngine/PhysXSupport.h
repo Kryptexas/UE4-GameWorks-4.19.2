@@ -488,9 +488,9 @@ public:
 class FPhysXFormatDataReader
 {
 public:
-	TArray< PxConvexMesh* > ConvexMeshes;
-	TArray< PxConvexMesh* > ConvexMeshesNegX;
-	PxTriangleMesh* TriMesh;
+	TArray<PxConvexMesh*> ConvexMeshes;
+	TArray<PxConvexMesh*> ConvexMeshesNegX;
+	TArray<PxTriangleMesh*> TriMeshes;
 
 	FPhysXFormatDataReader( FByteBulkData& InBulkData );
 

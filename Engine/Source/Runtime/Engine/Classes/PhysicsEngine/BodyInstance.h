@@ -844,7 +844,7 @@ public:
 #endif
 
 	/** Update the instances collision filtering data */
-	void UpdatePhysicsFilterData(bool bForceSimpleAsComplex = false);
+	void UpdatePhysicsFilterData();
 
 	friend FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst);
 
