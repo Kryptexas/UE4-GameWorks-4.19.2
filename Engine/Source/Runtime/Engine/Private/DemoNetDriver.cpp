@@ -1510,7 +1510,7 @@ void UDemoNetDriver::LoadCheckpoint()
 			AddNonQueuedActorForScrubbing(*It);
 		}
 		
-		if ( *It == SpectatorController )
+		if (*It == SpectatorController || *It == SpectatorController->GetSpectatorPawn())
 		{
 			continue;
 		}
