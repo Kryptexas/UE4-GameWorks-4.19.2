@@ -1,6 +1,6 @@
 ﻿Availability: Docs
 Title:1.5 - 反交集
-Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Brushes
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Brushes
 Description:反交集
 
 
@@ -34,6 +34,4 @@ Description:反交集
 
 ![](Engine/Actors/Brushes\BSP_Deintersect.png)
 
-[INCLUDE:Engine/Actors/Brushes#Deintersect]
-
-[INCLUDE:Resources/ContentExamples/Brushes#BSPExamples]
+<!-- [INCLUDE:Engine/Actors/Brushes#Deintersect]-->
