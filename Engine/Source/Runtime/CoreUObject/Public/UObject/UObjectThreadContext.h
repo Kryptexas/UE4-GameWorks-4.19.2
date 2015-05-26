@@ -46,5 +46,7 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	/** Stack to ensure that PostInitProperties is routed through Super:: calls. **/
 	TArray<UObject*> PostInitPropertiesCheck;
+	/** Used to verify that the Super::PostLoad chain is intact.			*/
+	TArray<UObject*, TInlineAllocator<16> > DebugPostLoad;
 #endif
 };
