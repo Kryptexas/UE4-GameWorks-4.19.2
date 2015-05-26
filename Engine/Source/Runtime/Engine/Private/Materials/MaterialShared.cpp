@@ -2114,90 +2114,63 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 		);
 }
 
+const TMap<EMaterialProperty, int32> CreatePropertyToIOIndexMap()
+{	
+	static_assert(MP_MAX == 28, 
+		"New material properties should be added to the end of \"real\" properties in this map. Immediately before MP_MaterialAttributes . \
+		The order of properties here should match the material results pins, the inputs to MakeMaterialAttriubtes and the outputs of BreakMaterialAttriubtes.\
+		Insertions into the middle of the properties or a change in the order of properties will also require that existing data is fixed up in DoMaterialAttriubtesReorder().\
+		");
+
+	TMap<EMaterialProperty, int32> Ret;
+	Ret.Add(MP_BaseColor, 0);
+	Ret.Add(MP_Metallic, 1);
+	Ret.Add(MP_Specular, 2);
+	Ret.Add(MP_Roughness, 3);
+	Ret.Add(MP_EmissiveColor, 4);
+	Ret.Add(MP_Opacity, 5);
+	Ret.Add(MP_OpacityMask, 6);
+	Ret.Add(MP_Normal, 7);
+	Ret.Add(MP_WorldPositionOffset, 8);
+	Ret.Add(MP_WorldDisplacement, 9);
+	Ret.Add(MP_TessellationMultiplier, 10);
+	Ret.Add(MP_SubsurfaceColor, 11);
+	Ret.Add(MP_ClearCoat, 12);
+	Ret.Add(MP_ClearCoatRoughness, 13);
+	Ret.Add(MP_AmbientOcclusion, 14);
+	Ret.Add(MP_Refraction, 15);
+	Ret.Add(MP_CustomizedUVs0, 16);
+	Ret.Add(MP_CustomizedUVs1, 17);
+	Ret.Add(MP_CustomizedUVs2, 18);
+	Ret.Add(MP_CustomizedUVs3, 19);
+	Ret.Add(MP_CustomizedUVs4, 20);
+	Ret.Add(MP_CustomizedUVs5, 21);
+	Ret.Add(MP_CustomizedUVs6, 22);
+	Ret.Add(MP_CustomizedUVs7, 23);
+	Ret.Add(MP_PixelDepthOffset, 24);
+	//^^^^ New properties go above here ^^^^
+	//Below here are legacy or utility properties that don't match up to material inputs.
+	Ret.Add(MP_MaterialAttributes, INDEX_NONE);
+	Ret.Add(MP_DiffuseColor, INDEX_NONE);
+	Ret.Add(MP_SpecularColor, INDEX_NONE);
+	Ret.Add(MP_MAX, INDEX_NONE);
+	return Ret;
+}
+static const TMap<EMaterialProperty, int32> PropertyToIOIndexMap = CreatePropertyToIOIndexMap();
+
 EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 {
-	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
-
-	switch(Index)
-	{
-	case 0: return MP_BaseColor;
-	case 1: return MP_Metallic;
-	case 2: return MP_Specular;
-	case 3: return MP_Roughness;
-	case 4: return MP_EmissiveColor;
-	case 5: return MP_Opacity;
-	case 6: return MP_OpacityMask;
-	case 7: return MP_Normal;
-	case 8: return MP_WorldPositionOffset;
-	case 9: return MP_WorldDisplacement;
-	case 10: return MP_TessellationMultiplier;
-	case 11: return MP_SubsurfaceColor;
-	case 12: return MP_ClearCoat;
-	case 13: return MP_ClearCoatRoughness;
-	case 14: return MP_AmbientOcclusion;
-	case 15: return MP_Refraction;
-	};
-
-	const int32 UVStart = 16;
-	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
-
-	if (Index >= UVStart && Index <= UVEnd)
-	{
-		return (EMaterialProperty)(MP_CustomizedUVs0 + Index - UVStart);
-	}
-
-	if (Index == UVEnd + 1)
-	{
-		return MP_MaterialAttributes;
-	}
-
-	if (Index == UVEnd + 2)
-	{
-		return MP_PixelDepthOffset;
-	}
-
-	return MP_MAX;
+	const EMaterialProperty* Property = PropertyToIOIndexMap.FindKey(Index);
+	check(Property);
+	return *Property;
 }
 
 int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 {
-	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
-
-	switch(Property)
-	{
-	case MP_BaseColor: return 0;
-	case MP_Metallic: return 1;
-	case MP_Specular: return 2;
-	case MP_Roughness: return 3;
-	case MP_EmissiveColor: return 4;
-	case MP_Opacity: return 5;
-	case MP_OpacityMask: return 6;
-	case MP_Normal: return 7;
-	case MP_WorldPositionOffset: return 8;
-	case MP_WorldDisplacement: return 9;
-	case MP_TessellationMultiplier: return 10;
-	case MP_SubsurfaceColor: return 11;
-	case MP_ClearCoat: return 12;
-	case MP_ClearCoatRoughness: return 13;
-	case MP_AmbientOcclusion: return 14;
-	case MP_Refraction: return 15;
-	case MP_MaterialAttributes: UE_LOG(LogMaterial, Fatal, TEXT("We should never need the IO index of the MaterialAttriubtes property."));
-	};
-
-	const int32 UVStart = 16;
-	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
-
-	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-	{
-		return UVStart + Property - MP_CustomizedUVs0;
-	}
-
-	if (Property == MP_PixelDepthOffset)
-	{
-		return UVEnd + 2;
-	}
-
-	return -1;
+	const int32* Index = PropertyToIOIndexMap.Find(Property);
+	check(Index);
+	check(*Index != INDEX_NONE);
+	return *Index;
 }
 
 int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMaterialProperty Property)
@@ -2304,6 +2277,9 @@ int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterial
 	}
 }
 
+//Reorder the output index for any FExpressionInput connected to a UMaterialExpressionBreakMaterialAttributes.
+//If the order of pins in the material results or the make/break attributes nodes changes 
+//then the OutputIndex stored in any FExpressionInput coming from UMaterialExpressionBreakMaterialAttributes will be wrong and needs reordering.
 void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver)
 {
 	if( Input && Input->Expression && Input->Expression->IsA(UMaterialExpressionBreakMaterialAttributes::StaticClass()) )

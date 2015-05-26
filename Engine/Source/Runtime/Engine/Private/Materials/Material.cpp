@@ -1998,8 +1998,20 @@ void UMaterial::Serialize(FArchive& Ar)
 	DoMaterialAttributeReorder(&WorldDisplacement,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&TessellationMultiplier,	Ar.UE4Ver());
 	DoMaterialAttributeReorder(&SubsurfaceColor,		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&ClearCoat,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&ClearCoatRoughness,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&AmbientOcclusion,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&Refraction,				Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[0],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[1],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[2],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[3],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[4],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[5],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[6],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&CustomizedUVs[7],		Ar.UE4Ver());
+	DoMaterialAttributeReorder(&PixelDepthOffset,		Ar.UE4Ver());
+	static_assert(MP_MAX == 28, "New material properties must have DoMaterialAttributesReorder called on them to ensure that any future reordering of property pins is correctly applied.");
 
 	if (Ar.UE4Ver() < VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY)
 	{

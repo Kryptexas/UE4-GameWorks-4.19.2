@@ -3198,43 +3198,44 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 {
 	int32 Ret = INDEX_NONE;
 	UMaterialExpression* Expression = NULL;
-	switch( MultiplexIndex )
+
+	static_assert(MP_MAX == 28, 
+		"New material properties should be added to the end of the inputs for this expression. \
+		The order of properties here should match the material results pins, the make material attriubtes node inputs and the mapping of IO indices to properties in GetMaterialPropertyFromInputOutputIndex().\
+		Insertions into the middle of the properties or a change in the order of properties will also require that existing data is fixed up in DoMaterialAttriubtesReorder().\
+		");
+
+	EMaterialProperty Property = GetMaterialPropertyFromInputOutputIndex(MultiplexIndex);
+	switch (Property)
 	{
-		case 0: Ret = BaseColor.Compile(Compiler); Expression = BaseColor.Expression; break; 
-		case 1: Ret = Metallic.Compile(Compiler); Expression = Metallic.Expression; break; 
-		case 2: Ret = Specular.Compile(Compiler); Expression = Specular.Expression; break; 
-		case 3: Ret = Roughness.Compile(Compiler); Expression = Roughness.Expression; break; 
-		case 4: Ret = EmissiveColor.Compile(Compiler); Expression = EmissiveColor.Expression; break; 
-		case 5: Ret = Opacity.Compile(Compiler); Expression = Opacity.Expression; break; 
-		case 6: Ret = OpacityMask.Compile(Compiler); Expression = OpacityMask.Expression; break; 
-		case 7: Ret = Normal.Compile(Compiler); Expression = Normal.Expression; break; 
-		case 8: Ret = WorldPositionOffset.Compile(Compiler); Expression = WorldPositionOffset.Expression; break; 
-		case 9: Ret = WorldDisplacement.Compile(Compiler); Expression = WorldDisplacement.Expression; break; 
-		case 10: Ret = TessellationMultiplier.Compile(Compiler); Expression = TessellationMultiplier.Expression; break; 
-		case 11: Ret = SubsurfaceColor.Compile(Compiler); Expression = SubsurfaceColor.Expression; break;
-		case 12: Ret = ClearCoat.Compile(Compiler); Expression = ClearCoat.Expression; break;
-		case 13: Ret = ClearCoatRoughness.Compile(Compiler); Expression = ClearCoatRoughness.Expression; break;
-		case 14: Ret = AmbientOcclusion.Compile(Compiler); Expression = AmbientOcclusion.Expression; break;
-		case 15: Ret = Refraction.Compile(Compiler); Expression = Refraction.Expression; break; 
+	case MP_BaseColor: Ret = BaseColor.Compile(Compiler); Expression = BaseColor.Expression; break;
+	case MP_Metallic: Ret = Metallic.Compile(Compiler); Expression = Metallic.Expression; break;
+	case MP_Specular: Ret = Specular.Compile(Compiler); Expression = Specular.Expression; break;
+	case MP_Roughness: Ret = Roughness.Compile(Compiler); Expression = Roughness.Expression; break;
+	case MP_EmissiveColor: Ret = EmissiveColor.Compile(Compiler); Expression = EmissiveColor.Expression; break;
+	case MP_Opacity: Ret = Opacity.Compile(Compiler); Expression = Opacity.Expression; break;
+	case MP_OpacityMask: Ret = OpacityMask.Compile(Compiler); Expression = OpacityMask.Expression; break;
+	case MP_Normal: Ret = Normal.Compile(Compiler); Expression = Normal.Expression; break;
+	case MP_WorldPositionOffset: Ret = WorldPositionOffset.Compile(Compiler); Expression = WorldPositionOffset.Expression; break;
+	case MP_WorldDisplacement: Ret = WorldDisplacement.Compile(Compiler); Expression = WorldDisplacement.Expression; break;
+	case MP_TessellationMultiplier: Ret = TessellationMultiplier.Compile(Compiler); Expression = TessellationMultiplier.Expression; break;
+	case MP_SubsurfaceColor: Ret = SubsurfaceColor.Compile(Compiler); Expression = SubsurfaceColor.Expression; break;
+	case MP_ClearCoat: Ret = ClearCoat.Compile(Compiler); Expression = ClearCoat.Expression; break;
+	case MP_ClearCoatRoughness: Ret = ClearCoatRoughness.Compile(Compiler); Expression = ClearCoatRoughness.Expression; break;
+	case MP_AmbientOcclusion: Ret = AmbientOcclusion.Compile(Compiler); Expression = AmbientOcclusion.Expression; break;
+	case MP_Refraction: Ret = Refraction.Compile(Compiler); Expression = Refraction.Expression; break;
+	case MP_PixelDepthOffset: Ret = PixelDepthOffset.Compile(Compiler); Expression = PixelDepthOffset.Expression; break;
 	};
 
-	const int32 CustomUVStart = 16;
-
-	if (MultiplexIndex >= CustomUVStart && MultiplexIndex <= CustomUVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0)
+	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
-		Ret = CustomizedUVs[MultiplexIndex - CustomUVStart].Compile(Compiler); Expression = CustomizedUVs[MultiplexIndex - CustomUVStart].Expression; 
-	}
-
-	if (MultiplexIndex == CustomUVStart + 2)
-	{
-		Ret = PixelDepthOffset.Compile(Compiler);
-		Expression = PixelDepthOffset.Expression;
+		Ret = CustomizedUVs[Property - MP_CustomizedUVs0].Compile(Compiler); Expression = CustomizedUVs[Property - MP_CustomizedUVs0].Expression;
 	}
 
 	//If we've connected an expression but its still returned INDEX_NONE, flag the error.
-	if( Expression && INDEX_NONE == Ret )
+	if (Expression && INDEX_NONE == Ret)
 	{
-		Compiler->Errorf(TEXT("Error on property %s"), *GetNameOfMaterialProperty(GetMaterialPropertyFromInputOutputIndex(MultiplexIndex)));
+		Compiler->Errorf(TEXT("Error on property %s"), *GetNameOfMaterialProperty(Property));
 	}
 
 	return Ret;
@@ -3264,6 +3265,12 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	bShowOutputNameOnPin = true;
 
 	MenuCategories.Add(ConstructorStatics.NAME_MaterialAttributes);
+	
+	static_assert(MP_MAX == 28, 
+		"New material properties should be added to the end of the outputs for this expression. \
+		The order of properties here should match the material results pins, the make material attriubtes node inputs and the mapping of IO indices to properties in GetMaterialPropertyFromInputOutputIndex().\
+		Insertions into the middle of the properties or a change in the order of properties will also require that existing data is fixed up in DoMaterialAttriubtesReorder().\
+		");
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("BaseColor"), 1, 1, 1, 1, 0));
