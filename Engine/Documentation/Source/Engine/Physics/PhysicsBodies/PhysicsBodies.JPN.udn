@@ -1,7 +1,8 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2077918
+Availability:Public
 Title:物理ボディのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Physics
-Description:物理ボディについて
+Description:ほとんどの物理相互作用の基礎。物理ボディ。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -52,16 +53,16 @@ Description:物理ボディについて
 以下のリンクには、物理ボディを作成し、物理ボディで作業するための様々なエディタとワークフローに関する情報があります。
 
 
-###スタティック メッシュ
+###スタティックメッシュ
 
-ご利用の 3D アートプログラムで物理ボディを作成するには以下を参照してください。[FBX: Static Meshes](Engine/Content\FBX\StaticMeshes#Collision)
+ご利用の 3D アートプログラムで物理ボディを作成するには以下を参照してください。[FBX:スタティックメッシュ](Engine/Content\FBX\StaticMeshes#コリジョン)
 
-スタティックメッシュ エディタを使用して物理ボディを作成するには以下を参照してください。[Collision Reference: Static Mesh Editor](Engine/Physics\Collision\Reference#CreatingStaticMeshCollisionHullsintheStaticMeshEditor)
+スタティックメッシュ エディタを使用して物理ボディを作成するには以下を参照してください。[コリジョン リファレンス:スタティック メッシュ エディタ](Engine/Physics\Collision\Reference#3Dコンテンツ作成パッケージを使ってコリジョンモデルを作成する)
 
 
 ###物理アセット/ スケルタルメッシュ
 
-スケルタルメッシュで使用する物理アセットの作成に関するドキュメントは以下を参照してください。[](Engine/Physics\PhAT) ドキュメント
+スケルタルメッシュで使用する物理アセットの作成に関しては [](Engine/Physics\PhAT) ドキュメントを参照してください。　
 
 
 ### 形状のコンポーネント
