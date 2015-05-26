@@ -144,7 +144,7 @@ protected:
 
 	/** Indicated sense that takes precedence over other senses when determining sensed actor's location. 
 	 *	Should be set to one of the sences configured in SensesConfig, or None. */
-	UPROPERTY(EditDefaultsOnly, Instanced, Category = "AI Perception")
+	UPROPERTY(EditDefaultsOnly, Category = "AI Perception")
 	TSubclassOf<UAISense> DominantSense;
 	
 	FAISenseID DominantSenseID;

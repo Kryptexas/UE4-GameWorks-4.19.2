@@ -3507,9 +3507,19 @@ void FHeaderParser::GetVarType
 	}
 
 	// Perform some more specific validation on the property flags
-	if ((VarProperty.PropertyFlags & CPF_PersistentInstance) && VarProperty.Type != CPT_ObjectReference)
+	if (VarProperty.PropertyFlags & CPF_PersistentInstance)
 	{
-		FError::Throwf(TEXT("'Instanced' is only allowed on object property (or array of objects)"));
+		if (VarProperty.Type == CPT_ObjectReference)
+		{
+			if (VarProperty.PropertyClass->IsChildOf<UClass>())
+			{
+				FError::Throwf(TEXT("'Instanced' cannot be applied to class properties (UClass* or TSubclassOf<>)"));
+			}
+		}
+		else
+		{
+			FError::Throwf(TEXT("'Instanced' is only allowed on object property (or array of objects)"));
+		}
 	}
 
 	if ( VarProperty.IsObject() && VarProperty.MetaClass == NULL && (VarProperty.PropertyFlags&CPF_Config) != 0 )
