@@ -357,13 +357,14 @@ private:
 	FGuid LightingGuid;
 
 public:
-	/** Path to the resource used to construct this texture. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY(Category=Texture, VisibleAnywhere, BlueprintReadWrite)
-	FString SourceFilePath;
+	
+	UPROPERTY()
+	FString SourceFilePath_DEPRECATED;
 
-	/** Date/Time-stamp of the file from the last import. */
-	UPROPERTY(Category=Texture, VisibleAnywhere, BlueprintReadWrite)
-	FString SourceFileTimestamp;
+	UPROPERTY()
+	class UAssetImportData* AssetImportData;
+
+public:
 
 	/** Static texture brightness adjustment (scales HSV value.)  (Non-destructive; Requires texture source art to be available.) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Adjustments, meta=(DisplayName = "Brightness"))

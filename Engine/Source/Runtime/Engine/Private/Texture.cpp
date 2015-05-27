@@ -12,6 +12,7 @@
 
 #if WITH_EDITORONLY_DATA
 #include "DDSLoader.h"
+#include "EditorFramework/AssetImportData.h"
 #endif
 #include "Engine/TextureCube.h"
 
@@ -58,6 +59,9 @@ UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
 	PaddingColor = FColor::Black;
 	ChromaKeyColor = FColorList::Magenta;
 	ChromaKeyThreshold = 1.0f / 255.0f;
+
+	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
+	
 #endif // #if WITH_EDITORONLY_DATA
 
 	if (FApp::CanEverRender() && !IsTemplate())
@@ -265,6 +269,15 @@ void UTexture::PostLoad()
 {
 	Super::PostLoad();
 
+#if WITH_EDITORONLY_DATA
+	if (!SourceFilePath_DEPRECATED.IsEmpty())
+	{
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
+		AssetImportData->CopyFrom(Info);
+	}
+#endif
+
 	if( !IsTemplate() )
 	{
 		// Update cached LOD bias.
@@ -378,7 +391,7 @@ void UTexture::PreSave()
 #if WITH_EDITORONLY_DATA
 void UTexture::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
 
 	Super::GetAssetRegistryTags(OutTags);
 }

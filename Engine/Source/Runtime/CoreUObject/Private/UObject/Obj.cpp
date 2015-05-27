@@ -1265,7 +1265,7 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 
 const FName& UObject::SourceFileTagName()
 {
-	static const FName SourceFilePathName("SourceFile");
+	static const FName SourceFilePathName("AssetImportData");
 	return SourceFilePathName;
 }
 

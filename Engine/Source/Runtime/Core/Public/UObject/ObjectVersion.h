@@ -522,6 +522,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_REPLACE_SPRING_NOZ_PROPERTY,
 	// Keep enums tight and serialize their values as pairs of FName and value. Don't insert dummy values.
 	VER_UE4_TIGHTLY_PACKED_ENUMS,
+	// Changed Asset import data to serialize file meta data as JSON
+	VER_UE4_ASSET_IMPORT_DATA_AS_JSON,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

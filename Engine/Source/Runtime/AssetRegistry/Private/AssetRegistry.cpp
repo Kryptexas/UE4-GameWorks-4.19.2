@@ -169,9 +169,6 @@ FAssetRegistry::~FAssetRegistry()
 	CachedAssetsByClass.Empty();
 	CachedAssetsByTag.Empty();
 	CachedDependsNodes.Empty();
-#if WITH_EDITORONLY_DATA
-	CachedAssetsBySourceFileName.Empty();
-#endif
 
 	// Stop listening for content mount point events
 	FPackageName::OnContentPathMounted().RemoveAll( this );
@@ -551,21 +548,6 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			}
 		}
 	}
-
-#if WITH_EDITORONLY_DATA
-	// Asset source file filter
-	if ( GIsEditor && Filter.SourceFilenames.Num() )
-	{
-		for (const auto& Filename : Filter.SourceFilenames)
-		{
-			const auto* Assets = CachedAssetsBySourceFileName.Find(Filename);
-			if (Assets)
-			{
-				DiskFilterSets.Add(*Assets);
-			}
-		}
-	}
-#endif
 
 	// If we have any filter sets, add the assets which are contained in the sets to OutAssetData
 	if ( DiskFilterSets.Num() > 0 )
@@ -1684,15 +1666,6 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 
 		auto& TagAssets = CachedAssetsByTag.FindOrAdd(Key);
 		TagAssets.Add(AssetData);
-
-#if WITH_EDITORONLY_DATA
-		// Don't check FName number so we still accumulate them even if there are multiple
-		if (GIsEditor && TagIt.Key().IsEqual(UObject::SourceFileTagName(), ENameCase::IgnoreCase, false))
-		{
-			auto& Assets = CachedAssetsBySourceFileName.FindOrAdd(*FPaths::GetCleanFilename(TagIt.Value()));
-			Assets.Add(AssetData);
-		}
-#endif
 	}
 
 	// Notify subscribers
@@ -1714,6 +1687,22 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 
 void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& NewAssetData)
 {
+	// Determine if tags need to be remapped
+	bool bTagsChanged = AssetData->TagsAndValues.Num() != NewAssetData.TagsAndValues.Num();
+	
+	// If the old and new asset data has the same number of tags, see if any are different (its ok if values are different)
+	if (!bTagsChanged)
+	{
+		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
+		{
+			if ( !NewAssetData.TagsAndValues.Contains(TagIt.Key()) )
+			{
+				bTagsChanged = true;
+				break;
+			}
+		}
+	}
+
 	// Update ObjectPath
 	if ( AssetData->PackageName != NewAssetData.PackageName || AssetData->AssetName != NewAssetData.AssetName)
 	{
@@ -1752,71 +1741,23 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	}
 
 	// Update Tags
+	if (bTagsChanged)
 	{
-		const FName& SourceFileTagName = UObject::SourceFileTagName();
-		TArray<FString> OldSourcePaths, NewSourcePaths;
-
-		// Remove any tags that no longer exist
-		for (const auto& Pair : AssetData->TagsAndValues)
+		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
 		{
-#if WITH_EDITORONLY_DATA
-			// Accumulate a list of old source filenames
-			if (GIsEditor && Pair.Key.IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
-			{
-				OldSourcePaths.Add(Pair.Value);
-			}
-#endif
-			if (!NewAssetData.TagsAndValues.Contains(Pair.Key))
-			{
-				auto OldTagAssets = CachedAssetsByTag.Find(Pair.Key);
-				OldTagAssets->Remove(AssetData);
-			}
+			const FName FNameKey = TagIt.Key();
+			auto OldTagAssets = CachedAssetsByTag.Find(FNameKey);
+
+			OldTagAssets->Remove(AssetData);
 		}
 
-		// Add new tags
-		for (const auto& Pair : NewAssetData.TagsAndValues)
+		for (TMap<FName, FString>::TConstIterator TagIt(NewAssetData.TagsAndValues); TagIt; ++TagIt)
 		{
-#if WITH_EDITORONLY_DATA
-			// Accumulate a list of old source filenames
-			if (GIsEditor && Pair.Key.IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
-			{
-				NewSourcePaths.Add(Pair.Value);
-			}
-#endif
-			if (!AssetData->TagsAndValues.Contains(Pair.Key))
-			{
-				auto& NewTagAssets = CachedAssetsByTag.FindOrAdd(Pair.Key);
-				NewTagAssets.Add(AssetData);
-			}
-		}
+			const FName FNameKey = TagIt.Key();
+			auto& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
 
-#if WITH_EDITORONLY_DATA
-		// Fixup source file -> asset mappings
-		for (const auto& SourcePath : OldSourcePaths)
-		{
-			if (!NewSourcePaths.Contains(SourcePath))
-			{
-				FName CleanFilename = *FPaths::GetCleanFilename(SourcePath);
-				auto* Assets = CachedAssetsBySourceFileName.Find(CleanFilename);
-				if (Assets)
-				{
-					Assets->Remove(AssetData);
-					if (Assets->Num() == 0)
-					{
-						CachedAssetsBySourceFileName.Remove(CleanFilename);
-					}
-				}
-			}
+			NewTagAssets.Add(AssetData);
 		}
-		for (const auto& SourcePath : NewSourcePaths)
-		{
-			if (!OldSourcePaths.Contains(SourcePath))
-			{
-				auto& Assets = CachedAssetsBySourceFileName.FindOrAdd(*FPaths::GetCleanFilename(SourcePath));
-				Assets.Add(AssetData);
-			}
-		}
-#endif
 	}
 
 	// Update the class map if updating a blueprint
@@ -1874,29 +1815,10 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		OldPathAssets->Remove(AssetData);
 		OldClassAssets->Remove(AssetData);
 
-		const FName& SourceFileTagName = UObject::SourceFileTagName();
 		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
 		{
 			auto OldTagAssets = CachedAssetsByTag.Find(TagIt.Key());
 			OldTagAssets->Remove(AssetData);
-
-
-#if WITH_EDITORONLY_DATA
-			// Don't check FName number so we still remove them even if there are multiple
-			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
-			{
-				FName CleanFilename = *FPaths::GetCleanFilename(TagIt.Value());
-				auto* Assets = CachedAssetsBySourceFileName.Find(CleanFilename);
-				if (Assets)
-				{
-					Assets->Remove(AssetData);
-					if (Assets->Num() == 0)
-					{
-						CachedAssetsBySourceFileName.Remove(CleanFilename);
-					}
-				}
-			}
-#endif
 		}
 
 		// We need to update the cached dependencies references cache so that they know we no

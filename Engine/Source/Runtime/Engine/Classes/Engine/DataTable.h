@@ -40,10 +40,6 @@ class UDataTable
 	UPROPERTY()
 	UScriptStruct*			RowStruct;
 
-	/** The filename that was used to create this object. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY()
-	FString ImportPath;
-
 	/** Map of name of row to row data structure. */
 	TMap<FName, uint8*>		RowMap;
 
@@ -53,7 +49,16 @@ class UDataTable
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITORONLY_DATA
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-#endif
+	virtual void PostLoad() override;
+
+	UPROPERTY()
+	class UAssetImportData* AssetImportData;
+
+	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
+	UPROPERTY()
+	FString ImportPath_DEPRECATED;
+#endif	// WITH_EDITORONLY_DATA
+
 	// End  UObject interface
 
 	// Begin UDataTable interface

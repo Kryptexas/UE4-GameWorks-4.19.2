@@ -24,20 +24,26 @@ class UCurveTable
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The filename that was used to create this object. Relative to the object's package, BaseDir() or absolute */
-	UPROPERTY()
-	FString ImportPath;
-
-
 	/** Map of name of row to row data structure. */
 	TMap<FName, FRichCurve*>	RowMap;
 
 	// Begin UObject interface.
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
+
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-#endif
+	virtual void PostLoad() override;
+
+	UPROPERTY()
+	class UAssetImportData* AssetImportData;
+
+	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
+	UPROPERTY()
+	FString ImportPath_DEPRECATED;
+	
+#endif	// WITH_EDITORONLY_DATA
+
 	// End  UObject interface
 
 	// Begin UCurveTable interface

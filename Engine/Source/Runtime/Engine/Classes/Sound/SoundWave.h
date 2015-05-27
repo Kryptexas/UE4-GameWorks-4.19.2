@@ -210,14 +210,14 @@ class ENGINE_API USoundWave : public USoundBase
 	TArray<struct FLocalizedSubtitle> LocalizedSubtitles;
 
 #if WITH_EDITORONLY_DATA
-	/** Path to the resource used to construct this sound node wave. Relative to the object's package, BaseDir() or absolute. */
-	UPROPERTY(Category=Info, VisibleAnywhere)
-	FString SourceFilePath;
+	UPROPERTY()
+	FString SourceFilePath_DEPRECATED;
+	UPROPERTY()
+	FString SourceFileTimestamp_DEPRECATED;
 
-	/** Date/Time-stamp of the file from the last import */
-	UPROPERTY(Category=Info, VisibleAnywhere)
-	FString SourceFileTimestamp;
-
+	UPROPERTY()
+	class UAssetImportData* AssetImportData;
+	
 #endif // WITH_EDITORONLY_DATA
 
 public:	

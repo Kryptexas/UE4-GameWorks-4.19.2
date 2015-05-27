@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "CsvParser.h"
+#include "EditorFramework/AssetImportData.h"
 
 void FKeyHandleMap::Add( const FKeyHandle& InHandle, int32 InIndex )
 {
@@ -828,14 +829,28 @@ bool FRichCurve::operator==(const FRichCurve& Curve) const
 UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
+	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
+#endif
 }
 
 #if WITH_EDITORONLY_DATA
 void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportPath, FAssetRegistryTag::TT_Hidden) );
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UCurveBase::PostLoad()
+{
+	Super::PostLoad();
+	if (!ImportPath_DEPRECATED.IsEmpty())
+	{
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(ImportPath_DEPRECATED));
+		AssetImportData->CopyFrom(Info);
+	}
 }
 #endif
 

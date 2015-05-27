@@ -5,6 +5,7 @@
 #include "DataTableUtils.h"
 #include "DataTableCSV.h"
 #include "DataTableJSON.h"
+#include "EditorFramework/AssetImportData.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 
@@ -42,6 +43,8 @@ UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
 			UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDataTable::StaticClass(), &GatherDataTableForLocalization);
 		}
 	} AutomaticRegistrationOfLocalizationGatherer;
+
+	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
 #endif
 }
 
@@ -160,9 +163,20 @@ void UDataTable::FinishDestroy()
 #if WITH_EDITORONLY_DATA
 void UDataTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportPath, FAssetRegistryTag::TT_Hidden) );
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UDataTable::PostLoad()
+{
+	Super::PostLoad();
+	if (!ImportPath_DEPRECATED.IsEmpty())
+	{
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(ImportPath_DEPRECATED));
+		AssetImportData->CopyFrom(Info);
+	}
 }
 #endif
 

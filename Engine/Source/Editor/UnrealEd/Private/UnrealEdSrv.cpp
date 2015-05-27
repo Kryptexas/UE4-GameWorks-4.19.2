@@ -1102,20 +1102,27 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		{
 			static bool RemoveSourcePath( UAssetImportData* Data, const TArray<FString>& SearchTerms )
 			{
-				const FString& SourceFilePath = Data->SourceFilePath;
-				if( !SourceFilePath.IsEmpty() )
+				FAssetImportInfo AssetImportInfo;
+
+				bool bModified = false;
+				for (const auto& File : Data->GetSourceFileData())
 				{
-					for (const FString& SearchTerm : SearchTerms)
+					if( !File.RelativeFilename.IsEmpty() && !SearchTerms.ContainsByPredicate([&](const FString& SearchTerm){ return File.RelativeFilename.Contains(SearchTerm); }) )
 					{
-						if (SourceFilePath.Contains(SearchTerm))
-						{
-							Data->Modify();
-							UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *SourceFilePath);
-							Data->SourceFilePath.Empty();
-							Data->SourceFileTimestamp.Empty();
-							return true;
-						}
+						AssetImportInfo.Insert(File);
 					}
+					else
+					{
+						UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *File.RelativeFilename);
+						bModified = true;
+					}
+				}
+
+				if (bModified)
+				{
+					Data->Modify();
+					Data->CopyFrom(AssetImportInfo);
+					return true;
 				}
 
 				return false;
