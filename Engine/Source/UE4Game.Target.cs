@@ -65,6 +65,7 @@ public class UE4GameTarget : TargetRules
 		ModuleNames.Add("GameMenuBuilder");
 		ModuleNames.Add("GameplayAbilities");
 		ModuleNames.Add("XmlParser");
+		ModuleNames.Add("UE4Game");
 		if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
 		{
 			ModuleNames.Add("OnlineSubsystemNull");
