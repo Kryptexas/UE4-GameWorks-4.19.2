@@ -137,7 +137,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 
 	if (BodySetup)
 	{
-		CollisionTraceFlag = BodySetup->CollisionTraceFlag;
+		CollisionTraceFlag = BodySetup->GetCollisionTraceFlag();
 	}
 }
 
@@ -578,8 +578,11 @@ bool FStaticMeshSceneProxy::IsCollisionView(const FEngineShowFlags& EngineShowFl
 
 		if(bHasResponse)
 		{
-			bDrawComplexCollision = EngineShowFlags.CollisionVisibility;
-			bDrawSimpleCollision = EngineShowFlags.CollisionPawn;
+			const ECollisionTraceFlag TraceFlag = BodySetup ? BodySetup->GetCollisionTraceFlag() : ECollisionTraceFlag::CTF_UseDefault;
+			
+			//Visiblity uses complex and pawn uses simple. However, if UseSimpleAsComplex or UseComplexAsSimple is used we need to adjust accordingly
+			bDrawComplexCollision = (EngineShowFlags.CollisionVisibility && TraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex) || (EngineShowFlags.CollisionPawn && TraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);
+			bDrawSimpleCollision  = (EngineShowFlags.CollisionPawn && TraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple) || (EngineShowFlags.CollisionVisibility && TraceFlag == ECollisionTraceFlag::CTF_UseSimpleAsComplex);
 		}
 	}
 

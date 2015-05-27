@@ -122,7 +122,7 @@ void UBodySetup::CreatePhysicsMeshes()
 
 		FPhysXFormatDataReader CookedDataReader(*FormatData);
 
-		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
+		if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 		{
 			bool bNeedsCooking = bGenerateNonMirroredCollision && CookedDataReader.ConvexMeshes.Num() != AggGeom.ConvexElems.Num();
 			bNeedsCooking = bNeedsCooking || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() != AggGeom.ConvexElems.Num());
@@ -138,7 +138,7 @@ void UBodySetup::CreatePhysicsMeshes()
 		
 		ClearPhysicsMeshes();
 
-		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
+		if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 		{
 
 			ensure(!bGenerateNonMirroredCollision || CookedDataReader.ConvexMeshes.Num() == 0 || CookedDataReader.ConvexMeshes.Num() == AggGeom.ConvexElems.Num());
@@ -607,7 +607,7 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 
 	// Create shapes for simple collision if we do not want to use the complex collision mesh 
 	// for simple queries as well
-	if (CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple)
+	if (GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseComplexAsSimple)
 	{
 		AddShapesHelper.AddSpheresToRigidActor_AssumesLocked();
 		AddShapesHelper.AddBoxesToRigidActor_AssumesLocked();
@@ -617,7 +617,7 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 
 	// Create tri-mesh shape, when we are not using simple collision shapes for 
 	// complex queries as well
-	if (CollisionTraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex)
+	if (GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseSimpleAsComplex)
 	{
 		AddShapesHelper.AddTriMeshToRigidActor_AssumesLocked();
 	}
@@ -1250,4 +1250,10 @@ float UBodySetup::CalculateMass(const UPrimitiveComponent* Component) const
 float UBodySetup::GetVolume(const FVector& Scale) const
 {
 	return AggGeom.GetVolume(Scale);
+}
+
+TEnumAsByte<enum ECollisionTraceFlag> UBodySetup::GetCollisionTraceFlag() const
+{
+	ECollisionTraceFlag DefaultFlag = UPhysicsSettings::Get()->bDefaultHasComplexCollision ? ECollisionTraceFlag::CTF_UseDefault : ECollisionTraceFlag::CTF_UseSimpleAsComplex;
+	return CollisionTraceFlag == ECollisionTraceFlag::CTF_UseDefault ? DefaultFlag : CollisionTraceFlag;
 }

@@ -66,7 +66,7 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 	//TODO: we must save an id with convex and tri meshes for serialization. We must save this here and patch it up at runtime somehow
 
 	// Cook convex meshes, but only if we are not forcing complex collision to be used as simple collision as well
-	if( BodySetup && BodySetup->CollisionTraceFlag != CTF_UseComplexAsSimple && BodySetup->AggGeom.ConvexElems.Num() > 0 )
+	if( BodySetup && BodySetup->GetCollisionTraceFlag() != CTF_UseComplexAsSimple && BodySetup->AggGeom.ConvexElems.Num() > 0 )
 	{
 		if( bGenerateNormalMesh )
 		{
@@ -80,7 +80,7 @@ bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 
 	// Cook trimeshes, but only if we do not frce simple collision to be used as complex collision as well
 	bool bUsingAllTriData = BodySetup != NULL ? BodySetup->bMeshCollideAll : false;
-	if( (BodySetup == NULL || BodySetup->CollisionTraceFlag != CTF_UseSimpleAsComplex) && ShouldGenerateTriMeshData(bUsingAllTriData) )
+	if( (BodySetup == NULL || BodySetup->GetCollisionTraceFlag() != CTF_UseSimpleAsComplex) && ShouldGenerateTriMeshData(bUsingAllTriData) )
 	{
 		NumTriMeshesCooked = BuildTriMesh( OutData, bUsingAllTriData );
 	}

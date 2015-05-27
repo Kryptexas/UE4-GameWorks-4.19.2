@@ -162,6 +162,12 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bSimulateSkeletalMeshOnDedicatedServer;
 
+	
+	/**
+	*  If true, static meshes will use per poly collision as complex collision by default. If false the default behavior is the same as UseSimpleAsComplex. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	bool bDefaultHasComplexCollision;
+
 
 	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)

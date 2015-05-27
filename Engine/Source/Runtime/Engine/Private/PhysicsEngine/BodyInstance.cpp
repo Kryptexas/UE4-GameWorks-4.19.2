@@ -929,8 +929,8 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	}
 #endif
 
-	const bool bUseComplexAsSimple = (BodySetup.Get()->CollisionTraceFlag == CTF_UseComplexAsSimple);
-	const bool bUseSimpleAsComplex = (BodySetup.Get()->CollisionTraceFlag == CTF_UseSimpleAsComplex);
+	const bool bUseComplexAsSimple = (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
+	const bool bUseSimpleAsComplex = (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
 
 #if WITH_PHYSX
 	const TEnumAsByte<ECollisionEnabled::Type>* CollisionEnabledOverride = bUseCollisionEnabledOverride ? &UseCollisionEnabled : NULL;
@@ -1101,7 +1101,7 @@ struct FInitBodiesHelper
 
 		FShapeData ShapeData;
 		Instance->GetFilterData_AssumesLocked(ShapeData);
-		Instance->GetShapeFlags_AssumesLocked(ShapeData, ShapeData.CollisionEnabled, BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+		Instance->GetShapeFlags_AssumesLocked(ShapeData, ShapeData.CollisionEnabled, BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
 
 		if (!bCompileStatic && PNewDynamic)
 		{
@@ -1864,7 +1864,7 @@ bool FBodyInstance::Weld(FBodyInstance* TheirBody, const FTransform& TheirTM)
 
 	FShapeData ShapeData;
 	GetFilterData_AssumesLocked(ShapeData);
-	GetShapeFlags_AssumesLocked(ShapeData, ShapeData.CollisionEnabled, BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+	GetShapeFlags_AssumesLocked(ShapeData, ShapeData.CollisionEnabled, BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
 
 	//child body gets placed into the same scenes as parent body
 	if (PxRigidActor* MyBody = RigidActorSync)
@@ -4599,8 +4599,8 @@ void FBodyInstance::GetFilterData_AssumesLocked(FShapeData& ShapeData, bool bFor
 	}
 #endif
 
-	const bool bUseComplexAsSimple = !bForceSimpleAsComplex && (BodySetup.Get()->CollisionTraceFlag == CTF_UseComplexAsSimple);
-	const bool bUseSimpleAsComplex = bForceSimpleAsComplex || (BodySetup.Get()->CollisionTraceFlag == CTF_UseSimpleAsComplex);
+	const bool bUseComplexAsSimple = !bForceSimpleAsComplex && (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
+	const bool bUseSimpleAsComplex = bForceSimpleAsComplex || (BodySetup.Get()->GetCollisionTraceFlag() == CTF_UseSimpleAsComplex);
 
 	if(GetPxRigidActor_AssumesLocked())
 	{

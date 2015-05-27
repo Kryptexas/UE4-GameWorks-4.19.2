@@ -712,7 +712,7 @@ FORCEINLINE_DEBUGGABLE void ExportRigidBodyTriMesh(UBodySetup& BodySetup, TNavSt
 												   FBox& UnrealBounds, const FTransform& LocalToWorld)
 {
 #if WITH_PHYSX
-	if (BodySetup.CollisionTraceFlag == CTF_UseComplexAsSimple)
+	if (BodySetup.GetCollisionTraceFlag() == CTF_UseComplexAsSimple)
 	{
 		for(PxTriangleMesh* TriMesh : BodySetup.TriMeshes)
 		{

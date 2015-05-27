@@ -859,7 +859,7 @@ void USplineMeshComponent::RecreateCollision()
 		BodySetup->BodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
 		CachedMeshBodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
 
-		if (BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple)
+		if (BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple)
 		{
 			BodySetup->AggGeom.EmptyElements();
 		}

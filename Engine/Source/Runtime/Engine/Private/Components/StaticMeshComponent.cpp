@@ -616,7 +616,7 @@ bool UStaticMeshComponent::CanEditSimulatePhysics()
 {
 	if (UBodySetup* BodySetup = GetBodySetup())
 	{
-		return (BodySetup->AggGeom.GetElementCount() > 0) || (BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+		return (BodySetup->AggGeom.GetElementCount() > 0) || (BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
 	}
 	else
 	{
