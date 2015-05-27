@@ -322,7 +322,7 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 				FCompactPose AdditivePose;
 				AdditivePose.SetBoneContainer(&Output.Pose.GetBoneContainer());
 
-				FAnimExtractContext ExtractionContext(CurrentTime);
+				FAnimExtractContext ExtractionContext(CurrentTime, Sequence->bEnableRootMotion);
 				Sequence->GetAdditiveBasePose(AdditivePose, ExtractionContext);
 				Sequence->GetAnimationPose(Output.Pose, ExtractionContext);
 				if (Sequence->AdditiveAnimType == AAT_LocalSpaceBase)
