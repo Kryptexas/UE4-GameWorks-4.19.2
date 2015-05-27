@@ -428,28 +428,54 @@ bool FCinematicFPSPerfTest::RunTest(const FString& Parameters)
 }
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLogTypesTest, "System.Automation Framework.Logging Test", EAutomationTestFlags::ATF_None)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLogAddMessage, "System.Automation.Log.Add Log Message", EAutomationTestFlags::ATF_None)
 
-bool FLogTypesTest::RunTest(const FString& Parameters)
+bool FLogAddMessage::RunTest(const FString& Parameters)
 {
-	UE_LOG(LogEngineAutomationTests, Log, TEXT("This 'Log' log is created using the UE_LOG Macro"));
-	UE_LOG(LogEngineAutomationTests, Display, TEXT("This 'Display' log is created using the UE_LOG Macro"));
+	//** TEST **//
+	AddLogItem(TEXT("Test log message."));
 
-	ExecutionInfo.LogItems.Add(TEXT("This was added to the ExecutionInfo.LogItems"));
-	ExecutionInfo.Errors.Add(TEXT("This was added to the ExecutionInfo.Error."));
-	if (ExecutionInfo.Errors.Last().Contains(TEXT("This was added to the ExecutionInfo.Error.")))
-	{
-		UE_LOG(LogEngineAutomationTests, Display, TEXT("ExecutionInfo.Error has the correct info when used."));
-		ExecutionInfo.Errors.Empty();
-	}
+	//** VERIFY **//
+	TestEqual<FString>(TEXT("Test log message was not added to the ExecutionInfo.Log array."), ExecutionInfo.LogItems.Last(), TEXT("Test log message."));
+	
+	//** TEARDOWN **//
+	// We have to empty this log array so that it doesn't show in the automation results window as it may cause confusion.
+	ExecutionInfo.LogItems.Empty();
 
-	ExecutionInfo.Warnings.Add(TEXT("This was added to the ExecutionInfo.Warnings"));
-	if (ExecutionInfo.Warnings.Last().Contains(TEXT("This was added to the ExecutionInfo.Warnings")))
-	{
-		UE_LOG(LogEngineAutomationTests, Display, TEXT("ExecutionInfo.Warnings has the correct info when used."));
-		ExecutionInfo.Warnings.Empty();
-	}
+	return true;
+}
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLogAddWarning, "System.Automation.Log.Add Warning Message", EAutomationTestFlags::ATF_None)
+
+bool FLogAddWarning::RunTest(const FString& Parameters)
+{
+	//** TEST **//
+	AddWarning(TEXT("Test warning message."));
+
+	//** VERIFY **//
+	FString CurrentWarningMessage = ExecutionInfo.Warnings.Last();
+	// The warnings array is emptied so that it doesn't cause a false positive warning for this test.
+	ExecutionInfo.Warnings.Empty();
+
+	TestEqual<FString>(TEXT("Test warning message was not added to the ExecutionInfo.Warning array."), CurrentWarningMessage, TEXT("Test warning message."));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLogAddError, "System.Automation.Log.Add Error Message", EAutomationTestFlags::ATF_None)
+
+bool FLogAddError::RunTest(const FString& Parameters)
+{
+	//** TEST **//
+	AddError(TEXT("Test error message"));
+	
+	//** VERIFY **//
+	FString CurrentErrorMessage = ExecutionInfo.Errors.Last();
+	// The errors array is emptied so that this doesn't cause a false positive failure for this test.
+	ExecutionInfo.Errors.Empty();
+
+	TestEqual<FString>(TEXT("Test error message was not added to the ExecutionInfo.Error array."), CurrentErrorMessage, TEXT("Test error message"));
+	
 	return true;
 }
 
