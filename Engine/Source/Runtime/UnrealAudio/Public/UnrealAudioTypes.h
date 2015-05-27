@@ -3,7 +3,7 @@
 #pragma once 
 
 // Only enable unreal audio on windows or mac
-#if PLATFORM_WINDOWS || PLATFORM_MAC
+#if PLATFORM_WINDOWS
 #define ENABLE_UNREAL_AUDIO 1
 #else
 #define ENABLE_UNREAL_AUDIO 0

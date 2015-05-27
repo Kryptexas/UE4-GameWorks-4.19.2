@@ -48,10 +48,10 @@ public class UnrealAudio : ModuleRules
 			PublicAdditionalLibraries.Add("libsndfile-1.lib");
 			PublicDelayLoadDLLs.Add("libsndfile-1.dll");
 		}
-		else if (Target.Platform == UnrealTargetPlatform.Mac)
-		{
-			LibSndFilePath += "Mac/libsndfile.1.dylib";
-			PublicAdditionalLibraries.Add(LibSndFilePath);
-		}
+// 		else if (Target.Platform == UnrealTargetPlatform.Mac)
+// 		{
+// 			LibSndFilePath += "Mac/libsndfile.1.dylib";
+// 			PublicAdditionalLibraries.Add(LibSndFilePath);
+// 		}
 	}
 }
