@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472241
+﻿INTSourceChangelist:2565161
 Title:UE4 C++ 프로그래밍 입문
 Crumbs:
 Description:언리얼 엔진이 처음이신 C++ 프로그래머를 위한 입문 안내서입니다.
@@ -246,7 +246,7 @@ UFUNCTION() 매크로가 반영 시스템으로의 C++ 함수 노출을 처리�
 
 이제 이 버전의 함수가 호출되면 해당 블루프린트는 메소드를 덮어쓰지 않습니다. 한 가지 참고할 것은, 빌드 툴 미래 버전에서는 자동 생성되는 _Implementation() 선언이 없어져 헤더에 명시적으로 추가해 줘야 할 수도 있습니다. 4.7 버전을 기준으로, 그 선언 자동 생성은 여전히 일어나고 있습니다.
 
-일반적인 게임플레이 프로그래머 작업방식과 디자이너와 함께 게임플레이 기능을 만들어 나가는 방법을 안내해 드렸으니, 여러분 자신의 여정을 선택할 시간입니다. 이 문서를 계속 읽어보면서 엔진에서 C++ 를 어떻게 사용하는지 더 알아보거나, 런처에 포함된 샘플 중 하나에 바로 뛰어들어 실전 경험을 쌓아 보실 수도 있겠습니다. (역주: 기술적으로 깊이 들어가는 이후 부분은, 현 단계에서 번역 제공하지 않습니다.)
+일반적인 게임플레이 프로그래머 작업방식과 디자이너와 함께 게임플레이 기능을 만들어 나가는 방법을 안내해 드렸으니, 여러분 자신의 여정을 선택할 시간입니다. 이 문서를 계속 읽어보면서 엔진에서 C++ 를 어떻게 사용하는지 더 알아보거나, 런처에 포함된 샘플 중 하나에 바로 뛰어들어 실전 경험을 쌓아 보실 수도 있겠습니다. (역주: 기술적 심화 내용은 번역 제공하지 않습니다.)
 
 ## Diving Deeper
 
@@ -366,11 +366,11 @@ There are too many specifiers to list here, so I’ll link to the docs for them:
 
 [List of UCLASS Specifiers](Programming/UnrealArchitecture/Reference/Classes/Specifiers)
 
-[List of UPROPERTY Specifiers](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/UP___367/index.html)
+[List of UPROPERTY Specifiers](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Properties/Specifiers/index.html)
 
-[List of UFUNCTION Specifiers](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/UF___366/index.html)
+[List of UFUNCTION Specifiers](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Functions/Specifiers/index.html)
 
-[List of USTRUCT Specifiers](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/US___368/index.html)
+[List of USTRUCT Specifiers](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Structs/Specifiers/index.html)
 
 ### Object/Actor Iterators
 

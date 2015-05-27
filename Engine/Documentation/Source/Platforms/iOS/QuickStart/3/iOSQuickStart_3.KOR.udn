@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2430528
+﻿INTSourceChangelist:2565265
 Title:3. iOS Provisioning - Signing Certifcate 생성
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:iOS 개발 Signing Certificate 준비 작업입니다.
@@ -97,7 +97,7 @@ Availability:Public
 
 1. **Generate Certificate Request** 를 클릭한 다음 .csr 파일을 저장할 위치를 선택합니다.
 
-	**Generate Certifcate Request** 대화창이 닫히고, iPhonePackager 주화면으로 돌아옵니다.
+	**Generate Certificate Request** 대화창이 닫히고, iPhonePackager 주화면으로 돌아옵니다.
 
 
 **Certificate 를 생성하려면:**

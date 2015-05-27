@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2559390
+﻿INTSourceChangelist:2565630
 Availability:Public
 Title:플랫폼 개발
 Crumbs:%ROOT%
@@ -120,7 +120,7 @@ platforms
 	[/PARAM]
 	[PARAM:links]
 		* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
-		* [](Platforms/HTML5/BuildingEmscripten "%Platforms/HTML5/BuildingEmscripten:description%")
+	
 	[/PARAM]
 [/OBJECT]
 
