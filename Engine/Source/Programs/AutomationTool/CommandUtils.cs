@@ -1932,7 +1932,7 @@ namespace AutomationTool
                 {
                     File.AppendAllText(CmdEnv.CSVFile, CSVBuilder.ToString());
                 }
-                catch(Exception ex)
+                catch
                 {
                     Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file.");
                 }
