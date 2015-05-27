@@ -450,17 +450,11 @@ bool UDestructibleComponent::CanEditSimulatePhysics()
 void UDestructibleComponent::AddImpulse( FVector Impulse, FName BoneName /*= NAME_None*/, bool bVelChange /*= false*/ )
 {
 #if WITH_APEX
-	if ( ApexDestructibleActor )
+	if (ApexDestructibleActor)
 	{
-		int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
+		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		PxRigidDynamic* PActor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-
-		if ( PActor != NULL )
-		{
-			SCOPED_SCENE_WRITE_LOCK(PActor->getScene());
-
-			PActor->addForce(U2PVector(Impulse), bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE);
-		}
+		PActor->addForce(U2PVector(Impulse), bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE);
 	}
 #endif
 }
@@ -471,14 +465,9 @@ void UDestructibleComponent::AddImpulseAtLocation( FVector Impulse, FVector Posi
 #if WITH_APEX
 	if (ApexDestructibleActor)
 	{
-		int32 ChunkIdx = NxModuleDestructibleConst::INVALID_CHUNK_INDEX;
-		if (BoneName != NAME_None)
-		{
-			ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
-		}
-
+		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		Actor->addForce(U2PVector(Impulse), PxForceMode::eIMPULSE);
+		PxRigidBodyExt::addForceAtPos(*Actor, U2PVector(Impulse), U2PVector(Position), PxForceMode::eIMPULSE);
 	}
 #endif
 }
@@ -486,14 +475,12 @@ void UDestructibleComponent::AddImpulseAtLocation( FVector Impulse, FVector Posi
 void UDestructibleComponent::AddForce( FVector Force, FName BoneName /*= NAME_None*/, bool bAccelChange /* = false */ )
 {
 #if WITH_APEX
-	int32 ChunkIdx = NxModuleDestructibleConst::INVALID_CHUNK_INDEX;
-	if (BoneName != NAME_None)
+	if (ApexDestructibleActor)
 	{
-		ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
+		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
+		PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
+		Actor->addForce(U2PVector(Force), bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
 	}
-
-	PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-	Actor->addForce(U2PVector(Force), bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
 #endif
 }
 
@@ -502,14 +489,9 @@ void UDestructibleComponent::AddForceAtLocation( FVector Force, FVector Location
 #if WITH_APEX
 	if (ApexDestructibleActor)
 	{
-		int32 ChunkIdx = NxModuleDestructibleConst::INVALID_CHUNK_INDEX;
-		if (BoneName != NAME_None)
-		{
-			ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
-		}
-
+		int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx);
-		Actor->addForce(U2PVector(Force), PxForceMode::eFORCE);
+		PxRigidBodyExt::addForceAtPos(*Actor, U2PVector(Force), U2PVector(Location), PxForceMode::eFORCE);
 	}
 #endif
 }
@@ -564,6 +546,11 @@ void UDestructibleComponent::AddRadialForce(FVector Origin, float Radius, float 
 {
 #if WITH_APEX
 	if(bIgnoreRadialForce)
+	{
+		return;
+	}
+
+	if (ApexDestructibleActor == NULL)
 	{
 		return;
 	}
