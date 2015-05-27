@@ -133,11 +133,11 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
  * @param InURL the URL to init with
  * @param InConnectionSpeed Optional connection speed override
  */
-void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed)
+void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Driver = InDriver;
 	// We won't be sending any packets, so use a default size
-	MaxPacket = MAX_PACKET_SIZE;
+	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;
 	PacketOverhead = 0;
 	State = InState;
 
