@@ -102,7 +102,7 @@ Description:在这个步骤中，我们会确认游戏的可玩角色设置正�
 
 	![](SetDoN.png)
 
-	在 **Shots** 节点后，把 **Set** 连接回 **Montage Play** （播放动画剪辑）节点。 
+	在连接 **Shots** 节点后，把 **Set** 连接回 **Montage Play** （播放动画剪辑）节点。 
 
 1.	在按住 **Control** 不放的情况下，再次拉入 **Shots** 变量，并将其连接到 **Int - Int** 节点（设置为 **1** ）然后按照显示内容进行连接。 
 
@@ -114,7 +114,7 @@ Description:在这个步骤中，我们会确认游戏的可玩角色设置正�
 
 	![](CreateCustomEvent.png)
 
-1.	按住 **Alt** ，拉入 **Shots** ，并将其设置为 **3** ，然后根据 **Custom Event** （自定义事件）来连接它，并连接到 **DoN** 节点的 **Reset** （重设）。 
+1.	按住 **Alt** ，拉入 **Shots** ，并将其设置为 **3** ，然后先连接 **Custom Event** （自定义事件），再连接到 **DoN** 节点的 **Reset** （重设）。 
 
 	![](ResetEventSet.png)
 
