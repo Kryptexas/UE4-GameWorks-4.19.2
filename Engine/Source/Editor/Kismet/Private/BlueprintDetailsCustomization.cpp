@@ -4446,6 +4446,8 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 
 	TArray<FSCSEditorTreeNodePtrType> Nodes = Editor->GetSelectedNodes();
 
+	AddExperimentalWarningCategory(DetailLayout, Nodes);
+
 	if (!Nodes.Num())
 	{
 		CachedNodePtr = nullptr;
@@ -4851,6 +4853,63 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 	}
 }
 
+void FBlueprintComponentDetails::AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder, const TArray<FSCSEditorTreeNodePtrType>& Nodes )
+{
+	bool bIsExperimental = false;
+	bool bIsEarlyAccess = false;
+	for (const FSCSEditorTreeNodePtrType& Node : Nodes)
+	{
+		
+		if (UActorComponent* Component = Node->GetComponentTemplate())
+		{
+			bool bObjectClassIsExperimental, bObjectClassIsEarlyAccess;
+			FObjectEditorUtils::GetClassDevelopmentStatus(Component->GetClass(), bObjectClassIsExperimental, bObjectClassIsEarlyAccess);
+			bIsExperimental |= bObjectClassIsExperimental;
+			bIsEarlyAccess |= bObjectClassIsEarlyAccess;
+		}
+	}
+	
+	if (bIsExperimental || bIsEarlyAccess)
+	{
+		const FName CategoryName(TEXT("Warning"));
+		const FText CategoryDisplayName = LOCTEXT("WarningCategoryDisplayName", "Warning");
+		const FText WarningText = bIsExperimental ? LOCTEXT("ExperimentalClassWarning", "Uses experimental class") : LOCTEXT("EarlyAccessClassWarning", "Uses early access class");
+		const FText SearchString = WarningText;
+		const FText Tooltip = bIsExperimental ? LOCTEXT("ExperimentalClassTooltip", "Here be dragons!  Uses one or more unsupported 'experimental' classes") : LOCTEXT("EarlyAccessClassTooltip", "Uses one or more 'early access' classes");
+		const FString ExcerptName = bIsExperimental ? TEXT("ComponentUsesExperimentalClass") : TEXT("ComponentUsesEarlyAccessClass");
+		const FSlateBrush* WarningIcon = FEditorStyle::GetBrush(bIsExperimental ? "PropertyEditor.ExperimentalClass" : "PropertyEditor.EarlyAccessClass");
+
+		IDetailCategoryBuilder& WarningCategory = DetailBuilder.EditCategory(CategoryName, CategoryDisplayName, ECategoryPriority::Variable);
+
+		FDetailWidgetRow& WarningRow = WarningCategory.AddCustomRow(SearchString)
+			.WholeRowContent()
+			[
+				SNew(SHorizontalBox)
+				.ToolTip(IDocumentation::Get()->CreateToolTip(Tooltip, nullptr, TEXT("Shared/LevelEditor"), ExcerptName))
+				.Visibility(EVisibility::Visible)
+
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(SImage)
+					.Image(WarningIcon)
+				]
+
+				+SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				[
+					SNew(STextBlock)
+					.Text(WarningText)
+					.Font(IDetailLayoutBuilder::GetDetailFont())
+				]
+			];
+	}
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
@@ -5233,5 +5292,6 @@ TSharedRef<SWidget> FBlueprintDocumentationDetails::GenerateExcerptList()
 			.OnSelectionChanged( this, &FBlueprintDocumentationDetails::OnExcerptSelectionChanged )
 		];
 }
+
 
 #undef LOCTEXT_NAMESPACE
