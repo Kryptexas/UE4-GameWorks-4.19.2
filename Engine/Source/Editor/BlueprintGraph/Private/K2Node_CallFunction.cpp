@@ -190,12 +190,6 @@ void FDynamicOutputHelper::ConformOutputType() const
 		{
 			DynamicOutPin->PinType.PinSubCategoryObject = PickedClass;
 
-			if (UFunction* Function = FuncNode->GetTargetFunction())
-			{
-				DynamicOutPin->PinToolTip.Empty();
-				FuncNode->GeneratePinTooltipFromFunction(*DynamicOutPin, Function);
-			}
-
 			// leave the connection, and instead bring the user's attention to 
 			// it via a ValidateNodeDuringCompilation() error
 // 			const UEdGraphSchema* Schema = FuncNode->GetSchema();
@@ -400,6 +394,7 @@ bool FDynamicOutputHelper::CanConformPinType(const UK2Node_CallFunction* FuncNod
 
 UK2Node_CallFunction::UK2Node_CallFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bPinTooltipsValid(false)
 {
 }
 
@@ -506,8 +501,25 @@ FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 }
 
+void UK2Node_CallFunction::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const
+{
+	if (!bPinTooltipsValid)
+	{
+		for (auto& Pin : Pins)
+		{
+			GeneratePinTooltip(*Pin);
+		}
+
+		bPinTooltipsValid = true;
+	}
+
+	return UK2Node::GetPinHoverText(Pin, HoverTextOut);
+}
+
 void UK2Node_CallFunction::AllocateDefaultPins()
 {
+	InvalidatePinTooltips();
+
 	UBlueprint* MyBlueprint = GetBlueprint();
 	
 	UFunction* Function = GetTargetFunction();
@@ -797,9 +809,6 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	//Renamed self pin to target
 	SelfPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 
-	// fill out the self-pin's default tool-tip
-	GeneratePinTooltip(*SelfPin);
-
 	const bool bIsProtectedFunc = Function->GetBoolMetaData(FBlueprintMetadata::MD_Protected);
 	const bool bIsStaticFunc = Function->HasAllFunctionFlags(FUNC_Static);
 
@@ -861,9 +870,6 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 			}
 
 			K2Schema->SetPinDefaultValue(Pin, Function, Param);
-
-			// setup the default tool-tip text for this pin
-			GeneratePinTooltip(*Pin);
 			
 			if (PinsToHide.Contains(Pin->PinName))
 			{
@@ -901,6 +907,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 void UK2Node_CallFunction::PostReconstructNode()
 {
 	Super::PostReconstructNode();
+	InvalidatePinTooltips();
 
 	FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this);
 
@@ -976,12 +983,14 @@ void UK2Node_CallFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 		}
 	}
 
+	InvalidatePinTooltips();
 	FDynamicOutputHelper(Pin).ConformOutputType();
 }
 
 void UK2Node_CallFunction::PinDefaultValueChanged(UEdGraphPin* Pin)
 {
 	Super::PinDefaultValueChanged(Pin);
+	InvalidatePinTooltips();
 	FDynamicOutputHelper(Pin).ConformOutputType();
 }
 
@@ -2136,6 +2145,11 @@ bool UK2Node_CallFunction::ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins)
 		}
 	}
 	return false;
+}
+
+void UK2Node_CallFunction::InvalidatePinTooltips()
+{
+	bPinTooltipsValid = false;
 }
 
 FText UK2Node_CallFunction::GetToolTipHeading() const

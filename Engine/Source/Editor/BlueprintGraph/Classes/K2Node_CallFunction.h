@@ -52,6 +52,9 @@ private:
 	/** Constructing FText strings can be costly, so we cache the node's tooltip */
 	FNodeTextCache CachedTooltip;
 
+	/** Flag used to track validity of pin tooltips, when tooltips are invalid they will be refreshed before being displayed */
+	mutable bool bPinTooltipsValid;
+
 public:
 
 	// UObject interface
@@ -60,6 +63,7 @@ public:
 	// End of UObject interface
 
 	// UEdGraphNode interface
+	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual void AllocateDefaultPins() override;
 	virtual void DestroyNode() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
@@ -197,6 +201,9 @@ private:
 	 * Connect Execute and Then pins for functions, which became pure.
 	 */
 	bool ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins);
+
+	/** Invalidates current pin tool tips, so that they will be refreshed before being displayed: */
+	void InvalidatePinTooltips();
 
 protected:
 	/** Helper function to ensure function is called in our context */
