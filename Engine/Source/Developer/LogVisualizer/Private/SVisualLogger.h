@@ -92,6 +92,10 @@ public:
 	bool HandleSaveCommandCanExecute() const;
 	void HandleSaveCommandExecute();
 
+	void HandleSaveAllCommandExecute();
+
+	void HandleSaveCommand(bool bSaveAllData);
+
 	bool HandleCameraCommandCanExecute() const;
 	void HandleCameraCommandExecute();
 	bool HandleCameraCommandIsChecked() const;
