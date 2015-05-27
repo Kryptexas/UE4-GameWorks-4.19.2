@@ -22,7 +22,11 @@ void USoundNodeWavePlayer::LoadAsset()
 		SoundWave = SoundWaveAssetPtr.Get();
 		if (SoundWave == nullptr)
 		{
-			LoadPackageAsync(SoundWaveAssetPtr.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeWavePlayer::OnSoundWaveLoaded));
+			const FString LongPackageName = SoundWaveAssetPtr.GetLongPackageName();
+			if (!LongPackageName.IsEmpty())
+			{
+				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeWavePlayer::OnSoundWaveLoaded));
+			}
 		}
 	}
 	else

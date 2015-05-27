@@ -21,7 +21,11 @@ void USoundNodeModPlayer::LoadAsset()
 		SoundMod = SoundModAssetPtr.Get();
 		if (SoundMod == nullptr)
 		{
-			LoadPackageAsync(SoundModAssetPtr.GetLongPackageName(), FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeModPlayer::OnSoundModLoaded));
+			const FString LongPackageName = SoundModAssetPtr.GetLongPackageName();
+			if (!LongPackageName.IsEmpty())
+			{
+				LoadPackageAsync(LongPackageName, FLoadPackageAsyncDelegate::CreateUObject(this, &USoundNodeModPlayer::OnSoundModLoaded));
+			}
 		}
 	}
 	else
