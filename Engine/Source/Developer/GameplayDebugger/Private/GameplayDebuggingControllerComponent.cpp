@@ -250,6 +250,12 @@ void UGameplayDebuggingControllerComponent::CloseDebugTool()
 		GetDebuggingReplicator()->ServerReplicateMessage(nullptr, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
 		GetDebuggingReplicator()->EnableDraw(false);
 		GetDebuggingReplicator()->ServerReplicateMessage(nullptr, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
+
+		if (PlayerOwner.IsValid())
+		{
+			PlayerOwner->PopInputComponent(AIDebugViewInputComponent);
+		}
+		AIDebugViewInputComponent = nullptr;
 		bToolActivated = false;
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -298,7 +304,7 @@ void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys(class UInputComp
 			InputComponent->BindKey(EKeys::NumPadNine, IE_Pressed, this, &UGameplayDebuggingControllerComponent::ToggleAIDebugView_SetView9);
 			InputComponent->BindKey(EKeys::Add, IE_Released, this, &UGameplayDebuggingControllerComponent::NextEQSQuery);
 		}
-		InputComponent->BindKey(EKeys::Tab, IE_Released, this, &UGameplayDebuggingControllerComponent::ToggleDebugCamera);
+		InputComponent->BindKey(FInputChord(EKeys::Tab, false, false, false, false), IE_Released, this, &UGameplayDebuggingControllerComponent::ToggleDebugCamera);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -490,10 +496,10 @@ void UGameplayDebuggingControllerComponent::ToggleDebugCamera()
 		if(AIDebugViewInputComponent == nullptr)
 		{
 			BindAIDebugViewKeys(AIDebugViewInputComponent);
-		}
-		if (PlayerOwner.IsValid())
-		{
-			PlayerOwner->PushInputComponent(AIDebugViewInputComponent);
+			if (PlayerOwner.IsValid())
+			{
+				PlayerOwner->PushInputComponent(AIDebugViewInputComponent);
+			}
 		}
 
 	}

@@ -276,6 +276,19 @@ void AGameplayDebuggingReplicator::BeginPlay()
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
+
+void AGameplayDebuggingReplicator::BeginDestroy()
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	GEngine->bEnableOnScreenDebugMessages = true;
+	if (IsDrawEnabled())
+	{
+		EnableDraw(false);
+	}
+#endif
+	Super::BeginDestroy();
+}
+
 void AGameplayDebuggingReplicator::PostNetInit()
 {
 	Super::PostNetInit();

@@ -117,6 +117,8 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 
+	virtual void BeginDestroy() override;
+
 	UGameplayDebuggingComponent* GetDebugComponent();
 
 	bool IsToolCreated();
