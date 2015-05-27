@@ -61,42 +61,6 @@ EFileAction ToFileAction(FFileChangeData::EFileChangeAction InAction)
 	}
 }
 
-/** Synchronously read a file's MD5 */
-FMD5Hash ReadFileMD5(const FString& Filename, TArray<uint8>* Buffer = nullptr)
-{
-	FArchive* Ar = IFileManager::Get().CreateFileReader(*Filename);
-
-	FMD5Hash Hash;
-	if (Ar)
-	{
-		TArray<uint8> LocalScratch;
-		if (!Buffer)
-		{
-			LocalScratch.SetNumUninitialized(1024*64);
-			Buffer = &LocalScratch; //-V506
-		}
-		FMD5 MD5;
-
-		const int64 Size = Ar->TotalSize();
-		int64 Position = 0;
-
-		// Read in BufferSize chunks
-		while (Position < Size)
-		{
-			const auto ReadNum = FMath::Min(Size - Position, (int64)Buffer->Num());
-			Ar->Serialize(Buffer->GetData(), ReadNum);
-			MD5.Update(Buffer->GetData(), ReadNum);
-
-			Position += ReadNum;
-		}
-
-		Hash.Set(MD5);
-		delete Ar;
-	}
-
-	return Hash;
-}
-
 const FGuid FFileCacheCustomVersion::Key(0x8E7DDCB3, 0x80DA47BB, 0x9FD346A2, 0x93984DF6);
 FCustomVersionRegistration GRegisterFileCacheVersion(FFileCacheCustomVersion::Key, FFileCacheCustomVersion::Latest, TEXT("FileCacheVersion"));
 
@@ -181,7 +145,7 @@ private:
 
 FAsyncTaskThread AsyncTaskThread;
 
-/** Threading stategy for FAsyncFileHasher:
+/** Threading strategy for FAsyncFileHasher:
  *	The task is constructed on the main thread with its Data.
  *	The array 'Data' *never* changes size. The task thread moves along setting file hashes, while the main thread
  * 	trails behind accessing the completed entries. We should thus never have 2 threads accessing the same memory,
@@ -197,6 +161,7 @@ FAsyncFileHasher::FAsyncFileHasher(TArray<FFilenameAndHash> InFilesThatNeedHashi
 
 TArray<FFilenameAndHash> FAsyncFileHasher::GetCompletedData()
 {
+	// Don't need to lock here since the thread will never look at the array before CurrentIndex.
 	TArray<FFilenameAndHash> Local;
 	const int32 CompletedIndex = CurrentIndex.GetValue();
 
@@ -225,7 +190,7 @@ IAsyncFileCacheTask::EProgressResult FAsyncFileHasher::Tick(const FTimeLimit& Li
 	for (; CurrentIndex.GetValue() < Data.Num(); )
 	{
 		const auto Index = CurrentIndex.GetValue();
-		Data[Index].FileHash = ReadFileMD5(Data[Index].AbsoluteFilename, &ScratchBuffer);
+		Data[Index].FileHash = FMD5Hash::HashFile(*Data[Index].AbsoluteFilename, &ScratchBuffer);
 
 		CurrentIndex.Increment();
 
@@ -238,7 +203,7 @@ IAsyncFileCacheTask::EProgressResult FAsyncFileHasher::Tick(const FTimeLimit& Li
 	return EProgressResult::Finished;
 }
 
-/** Threading stategy for FAsyncDirectoryReader:
+/** Threading strategy for FAsyncDirectoryReader:
  *	The directory reader owns the cached and live state until it has completely finished. Once IsComplete() is true, the main thread can 
  *	have access to both the cached and farmed data.
  */
@@ -388,6 +353,9 @@ FFileCache::FFileCache(const FFileCacheConfig& InConfig)
 	// Ensure the directory has a trailing /
 	Config.Directory /= TEXT("");
 
+	// bDetectMoves implies bRequireFileHashes
+	Config.bRequireFileHashes = Config.bRequireFileHashes || Config.bDetectMoves;
+
 	DirectoryReader = MakeShareable(new FAsyncDirectoryReader(Config.Directory, Config.PathType));
 	DirectoryReader->SetMatchRules(Config.Rules);
 
@@ -425,6 +393,7 @@ void FFileCache::Destroy()
 
 	DirectoryReader = nullptr;
 	AsyncFileHasher = nullptr;
+	DirtyFileHasher = nullptr;
 
 	DirtyFiles.Empty();
 	CachedDirectoryState = FDirectoryState();
@@ -579,7 +548,7 @@ TOptional<FString> FFileCache::GetTransactionPath(const FString& InAbsolutePath)
 	}
 }
 
-void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState, const FDateTime& ThresholdTime) const
+void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FFileData>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState) const
 {
 	TArray<uint8> ScratchBuffer;
 	ScratchBuffer.SetNumUninitialized(1024*1024);
@@ -592,11 +561,6 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles,
 
 	for (const auto& Pair : InDirtyFiles)
 	{
-		if (Pair.Value > ThresholdTime)
-		{
-			continue;
-		}
-
 		const auto& File = Pair.Key;
 		FString AbsoluteFilename = GetAbsolutePath(File.Get());
 		
@@ -605,13 +569,37 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles,
 		const bool bFileExists = InFileSystemState ? InFileSystemState->Files.Find(File) != nullptr : PlatformFile.FileExists(*AbsoluteFilename);
 		if (bFileExists)
 		{
-			const FFileData FileData = InFileSystemState ? *InFileSystemState->Files.Find(File) : FFileData(FileManager.GetTimeStamp(*AbsoluteFilename), ReadFileMD5(AbsoluteFilename, &ScratchBuffer));
+			FFileData FileData;
+			if (const auto* FoundData = InFileSystemState ? InFileSystemState->Files.Find(File) : nullptr)
+			{
+				FileData = *FoundData;
+			}
+			else
+			{
+				// The dirty file timestamp is the time that the file was dirtied, not necessarily its modification time
+				FileData = FFileData(FileManager.GetTimeStamp(*AbsoluteFilename), Pair.Value.FileHash);
+			}
+
+			if (Config.bRequireFileHashes && !FileData.FileHash.IsValid())
+			{
+				// We don't have this file's hash yet. Temporarily ignore it.
+				continue;
+			}
 
 			// Do we think it exists in the cache?
 			if (CachedState)
 			{
-				// Has it changed?
-				if (CachedState->Timestamp != FileData.Timestamp)
+				// A file has changed if its hash is now different
+				if (Config.bRequireFileHashes &&
+					Config.ChangeDetectionBits[FFileCacheConfig::FileHash] &&
+					CachedState->FileHash != FileData.FileHash
+					)
+				{
+					ModifiedFiles.Add(File, FileData);
+				}
+				// or the timestamp has changed
+				else if (Config.ChangeDetectionBits[FFileCacheConfig::Timestamp] &&
+					CachedState->Timestamp != FileData.Timestamp)
 				{
 					ModifiedFiles.Add(File, FileData);
 				}
@@ -647,13 +635,27 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles,
 	// Rename / move detection
 	if (Config.bDetectMoves)
 	{
+		bool bHavePendingHashes = false;
+
+		// Remove any additions that don't have their hash generated yet
+		for (auto AdIt = AddedFiles.CreateIterator(); AdIt; ++AdIt)
+		{
+			if (!AdIt.Value().FileHash.IsValid())
+			{
+				bHavePendingHashes = true;
+				AdIt.RemoveCurrent();
+			}
+		}
+
+		// We can only detect renames or moves for files that have had their file hash harvested.
+		// If we can't find a valid move destination for this file, and we have pending hashes, ignore the removal until we can be sure it's not a move
 		for (auto RemoveIt = RemovedFiles.CreateIterator(); RemoveIt; ++RemoveIt)
 		{
 			const auto* CachedState = CachedDirectoryState.Files.Find(*RemoveIt);
 			if (CachedState && CachedState->FileHash.IsValid())
 			{
 				for (auto AdIt = AddedFiles.CreateIterator(); AdIt; ++AdIt)
-				{				
+				{
 					if (AdIt.Value().FileHash == CachedState->FileHash)
 					{
 						// Found a move destination!
@@ -661,10 +663,19 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles,
 
 						AdIt.RemoveCurrent();
 						RemoveIt.RemoveCurrent();
-						break;
+						goto next;
 					}
 				}
+
+				// We can't be sure this isn't a move (yet) so temporarily ignore this
+				if (bHavePendingHashes)
+				{
+					RemoveIt.RemoveCurrent();
+				}
 			}
+
+		next:
+			continue;
 		}
 	}
 
@@ -689,25 +700,29 @@ void FFileCache::DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles,
 
 TArray<FUpdateCacheTransaction> FFileCache::GetOutstandingChanges()
 {
+	HarvestDirtyFileHashes();
+
 	TArray<FUpdateCacheTransaction> PendingTransactions;
 	DiffDirtyFiles(DirtyFiles, PendingTransactions);
 	DirtyFiles.Empty();
-	return PendingTransactions;	
+	return PendingTransactions;
 }
 
 TArray<FUpdateCacheTransaction> FFileCache::FilterOutstandingChanges(const TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)>& InPredicate)
 {
-	// We don't diff things that have only just changed, to ensure that add/delete pairs correctly get picked up as renames
-	FDateTime Threshold = FDateTime::UtcNow() - FTimespan(0,0,0,0,500);
+	HarvestDirtyFileHashes();
 
 	TArray<FUpdateCacheTransaction> AllTransactions;
-	DiffDirtyFiles(DirtyFiles, AllTransactions, nullptr, Threshold);
+	DiffDirtyFiles(DirtyFiles, AllTransactions, nullptr);
 
+	// Filter the transactions based on the predicate
 	TArray<FUpdateCacheTransaction> FilteredTransactions;
 	for (auto& Transaction : AllTransactions)
 	{
-		auto TimeOfChange = DirtyFiles[Transaction.Filename];
-		if (InPredicate(Transaction, TimeOfChange))
+		FFileData FileData = DirtyFiles.FindRef(Transaction.Filename);
+
+		// Timestamp is the time the file was dirtied, not necessarily the timestamp of the file
+		if (InPredicate(Transaction, FileData.Timestamp))
 		{
 			DirtyFiles.Remove(Transaction.Filename);
 			FilteredTransactions.Add(MoveTemp(Transaction));
@@ -724,7 +739,7 @@ void FFileCache::IgnoreNewFile(const FString& Filename)
 	{
 		DirtyFiles.Remove(TransactionPath.GetValue());
 		
-		const FFileData FileData(IFileManager::Get().GetTimeStamp(*Filename), ReadFileMD5(Filename));
+		const FFileData FileData(IFileManager::Get().GetTimeStamp(*Filename), FMD5Hash::HashFile(*Filename));
 		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Added, FileData));	
 	}
 }
@@ -736,7 +751,7 @@ void FFileCache::IgnoreFileModification(const FString& Filename)
 	{
 		DirtyFiles.Remove(TransactionPath.GetValue());
 		
-		const FFileData FileData(IFileManager::Get().GetTimeStamp(*Filename), ReadFileMD5(Filename));
+		const FFileData FileData(IFileManager::Get().GetTimeStamp(*Filename), FMD5Hash::HashFile(*Filename));
 		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(TransactionPath.GetValue()), EFileAction::Modified, FileData));	
 	}
 }
@@ -751,7 +766,7 @@ void FFileCache::IgnoreMovedFile(const FString& SrcFilename, const FString& DstF
 		DirtyFiles.Remove(SrcTransactionPath.GetValue());
 		DirtyFiles.Remove(DstTransactionPath.GetValue());
 
-		const FFileData FileData(IFileManager::Get().GetTimeStamp(*DstFilename), ReadFileMD5(DstFilename));
+		const FFileData FileData(IFileManager::Get().GetTimeStamp(*DstFilename), FMD5Hash::HashFile(*DstFilename));
 		CompleteTransaction(FUpdateCacheTransaction(MoveTemp(SrcTransactionPath.GetValue()), MoveTemp(DstTransactionPath.GetValue()), FileData));	
 	}
 }
@@ -833,7 +848,7 @@ void FFileCache::Tick()
 		{
 			ReadStateFromAsyncReader();
 
-			if (Config.bDetectMoves)
+			if (Config.bRequireFileHashes)
 			{
 				auto FilesThatNeedHashing = DirectoryReader->GetFilesThatNeedHashing();
 				if (FilesThatNeedHashing.Num() > 0)
@@ -903,20 +918,26 @@ void FFileCache::ReadStateFromAsyncReader()
 		CachedDirectoryState = MoveTemp(CachedState.GetValue());
 	}
 
-	// Build up a list of dirty files
-	TMap<FImmutableString, FDateTime> LocalDirtyFiles;
-	auto Now = FDateTime::UtcNow();
-
+	const FDateTime Now = FDateTime::UtcNow();
 	// We already have cached data so we need to compare it with the harvested data
 	// to detect additions, modifications, and removals
 	for (const auto& FilenameAndData : LiveState->Files)
 	{
 		const FString& Filename = FilenameAndData.Key.Get();
 
-		const auto* CachedData = CachedDirectoryState.Files.Find(Filename);
-		if (!CachedData || CachedData->Timestamp != FilenameAndData.Value.Timestamp)
+		// If the file we've discovered was not applicable to the old cache, we can't report a change for it as we don't know if it's new or not, just add it straight to the cache.
+		if (!CachedDirectoryState.Rules.IsFileApplicable(*Filename))
 		{
-			LocalDirtyFiles.Add(Filename, Now);
+			CachedDirectoryState.Files.Add(FilenameAndData.Key, FilenameAndData.Value);
+			bSavedCacheDirty = true;
+		}
+		else
+		{
+			const auto* CachedData = CachedDirectoryState.Files.Find(Filename);
+			if (!CachedData || CachedData->Timestamp != FilenameAndData.Value.Timestamp)
+			{
+				DirtyFiles.Add(FilenameAndData.Key, FFileData(Now, FMD5Hash()));
+			}
 		}
 	}
 
@@ -924,85 +945,75 @@ void FFileCache::ReadStateFromAsyncReader()
 	for (auto It = CachedDirectoryState.Files.CreateIterator(); It; ++It)
 	{
 		const FImmutableString& Filename = It.Key();
-		if (!LiveState->Files.Contains(Filename))
+		if (LiveState->Rules.IsFileApplicable(*Filename.Get()) && !LiveState->Files.Contains(Filename))
 		{
-			LocalDirtyFiles.Add(Filename, Now);
+			DirtyFiles.Add(Filename, FFileData(Now, FMD5Hash()));
 		}
 	}
 
-	if (LocalDirtyFiles.Num() != 0)
-	{
-		TArray<FUpdateCacheTransaction> TempTransactions;
-		DiffDirtyFiles(LocalDirtyFiles, TempTransactions, &LiveState.GetValue());
-
-		// Any file changes that we've detected that are not relevant to the previously cached state, we just add to the cache immediately (without telling the user)
-		// This is because we have no idea whether they are new changes or not, because they were not previously cached.
-		for (auto& Transaction : TempTransactions)
-		{
-			// Generate paths that are relative to the watch directory to pass to the match rules
-			const TCHAR* TransactionFilename = *Transaction.Filename.Get();
-			const TCHAR* MovedFromFilename = *Transaction.MovedFromFilename.Get();
-			if (Config.PathType == EPathType::Absolute)
-			{
-				if (Transaction.Filename.Get().Len() > Config.Directory.Len())
-				{
-					TransactionFilename += Config.Directory.Len();
-				}
-
-				if (Transaction.MovedFromFilename.Get().Len() > Config.Directory.Len())
-				{
-					MovedFromFilename += Config.Directory.Len();
-				}
-			}
-
-			const bool bAppliesToOldCache = CachedDirectoryState.Rules.IsFileApplicable(TransactionFilename) &&
-				(Transaction.Action != EFileAction::Moved || CachedDirectoryState.Rules.IsFileApplicable(MovedFromFilename));
-
-			const bool bAppliesToNewCache = LiveState->Rules.IsFileApplicable(TransactionFilename) &&
-				(Transaction.Action != EFileAction::Moved || LiveState->Rules.IsFileApplicable(MovedFromFilename));
-
-			if (bAppliesToOldCache && bAppliesToNewCache)
-			{
-				// Just throw away the transaction
-				continue;
-			}
-			else
-			{
-				// Remove it from our dirty files
-				LocalDirtyFiles.Remove(Transaction.Filename);
-				if (Transaction.Action == EFileAction::Moved)
-				{
-					LocalDirtyFiles.Remove(Transaction.MovedFromFilename);
-				}
-
-				// Update the cache immediately and remove it from the pending transactions
-				CompleteTransaction(MoveTemp(Transaction));
-			}
-		}
-	}
-
-	// Now the only files left in LocalDirtyFiles are things that definitely apply to the current cache, and used to apply to the old cache
-	for (auto& Pair : LocalDirtyFiles)
-	{
-		if (!DirtyFiles.Contains(Pair.Key))
-		{
-			DirtyFiles.Add(MoveTemp(Pair.Key), Pair.Value);
-		}
-	}
+	RescanForDirtyFileHashes();
 
 	// Update the applicable extensions now that we've updated the cache
 	CachedDirectoryState.Rules = LiveState->Rules;
 }
 
+void FFileCache::HarvestDirtyFileHashes()
+{
+	if (!DirtyFileHasher.IsValid())
+	{
+		return;
+	}
+	else for (FFilenameAndHash& Data : DirtyFileHasher->GetCompletedData())
+	{
+		FImmutableString CachePath = (Config.PathType == EPathType::Relative) ? *Data.AbsoluteFilename + Config.Directory.Len() : *Data.AbsoluteFilename;
+
+		if (auto* FileData = DirtyFiles.Find(CachePath))
+		{
+			FileData->FileHash = Data.FileHash;
+		}
+	}
+
+	if (DirtyFileHasher->IsComplete())
+	{
+		DirtyFileHasher = nullptr;
+	}
+}
+
+void FFileCache::RescanForDirtyFileHashes()
+{
+	TArray<FFilenameAndHash> FilesThatNeedHashing;
+
+	for (const auto& Pair : DirtyFiles)
+	{
+		if (!Pair.Value.FileHash.IsValid())
+		{
+			FilesThatNeedHashing.Emplace(GetAbsolutePath(Pair.Key.Get()));
+		}
+	}
+
+	if (FilesThatNeedHashing.Num() > 0)
+	{
+		// Re-create the dirty file hasher with the new data that needs hashing. The old task will clean itself up if it already exists.
+		DirtyFileHasher = MakeShareable(new FAsyncFileHasher(MoveTemp(FilesThatNeedHashing)));
+		AsyncTaskThread.AddTask(DirtyFileHasher);
+	}
+}
+
 void FFileCache::OnDirectoryChanged(const TArray<FFileChangeData>& FileChanges)
 {
-	FDateTime Now = FDateTime::UtcNow();
+	// Harvest any completed data from the file hasher before we discard it
+	HarvestDirtyFileHashes();
+
+	const FDateTime Now = FDateTime::UtcNow();
 	for (const auto& ThisEntry : FileChanges)
 	{
 		auto TransactionPath = GetTransactionPath(ThisEntry.Filename);
 		if (TransactionPath.IsSet())
 		{
-			DirtyFiles.Add(MoveTemp(TransactionPath.GetValue()), Now);
+			// Add the file that changed to the dirty files map, potentially invalidating the MD5 hash (we'll need to calculate it again)
+			DirtyFiles.Add(MoveTemp(TransactionPath.GetValue()), FFileData(Now, FMD5Hash()));
 		}
 	}
+
+	RescanForDirtyFileHashes();
 }

@@ -92,54 +92,6 @@ private:
 	double StartTime;
 };
 
-/** Simple helper struct to ease the caching of MD5 hashes */
-struct FMD5Hash
-{
-	/** Default constructor */
-	FMD5Hash() : bIsValid(false) {}
-
-	/** Check whether this has hash is valid or not */
-	bool IsValid() const { return bIsValid; }
-
-	/** Set up the MD5 hash from a container */
-	void Set(FMD5& MD5)
-	{
-		MD5.Final(Bytes);
-		bIsValid = true;
-	}
-
-	/** Compare one hash with another */
-	friend bool operator==(const FMD5Hash& LHS, const FMD5Hash& RHS)
-	{
-		return LHS.bIsValid == RHS.bIsValid && (!LHS.bIsValid || FMemory::Memcmp(LHS.Bytes, RHS.Bytes, 16) == 0);
-	}
-
-	/** Compare one hash with another */
-	friend bool operator!=(const FMD5Hash& LHS, const FMD5Hash& RHS)
-	{
-		return LHS.bIsValid != RHS.bIsValid || (LHS.bIsValid && FMemory::Memcmp(LHS.Bytes, RHS.Bytes, 16) != 0);
-	}
-
-	/** Serialise this hash */
-	friend FArchive& operator<<(FArchive& Ar, FMD5Hash& Hash)
-	{
-		Ar << Hash.bIsValid;
-		if (Hash.bIsValid)
-		{
-			Ar.Serialize(Hash.Bytes, 16);
-		}
-
-		return Ar;
-	}
-
-private:
-	/** Whether this hash is valid or not */
-	bool bIsValid;
-
-	/** The bytes this hash comprises */
-	uint8 Bytes[16];
-};
-
 /** A rule that checks whether a file is applicable or not */
 struct IMatchRule
 {
@@ -212,7 +164,7 @@ namespace Utils
 		}
 		return Accumulator;
 	}
-	
+
 	/** Find a list of assets that were once imported from the specified filename */
 	TArray<FAssetData> FindAssetsPertainingToFile(const IAssetRegistry& Registry, const FString& AbsoluteFilename);
 

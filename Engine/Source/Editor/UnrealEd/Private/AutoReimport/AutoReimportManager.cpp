@@ -13,6 +13,7 @@
 #include "AssetRegistryModule.h"
 #include "ReimportFeedbackContext.h"
 #include "MessageLogModule.h"
+#include "AssetSourceFilenameCache.h"
 
 #define LOCTEXT_NAMESPACE "AutoReimportManager"
 #define yield if (TimeLimit.Exceeded()) return
@@ -143,9 +144,6 @@ private:
 	/** Get the number of unprocessed changes that are not part of the current processing operation */
 	int32 GetNumUnprocessedChanges() const;
 
-	/** Get the progress text to display on the context notification */
-	FText GetProgressText() const;
-
 private:
 
 	/** A state machine holding information about the current state of the manager */
@@ -235,8 +233,7 @@ FAutoReimportManager::FAutoReimportManager()
 		MessageLogModule.RegisterLogListing("AssetReimport", LOCTEXT("AssetReimportLabel", "Asset Reimport"));
 	}
 
-	IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-	AssetRegistry.OnAssetRenamed().AddRaw(this, &FAutoReimportManager::OnAssetRenamed);
+	FAssetSourceFilenameCache::Get().OnAssetRenamed().AddRaw(this, &FAutoReimportManager::OnAssetRenamed);
 
 	// Only set this up for content directories if the user has this enabled
 	if (Settings->bMonitorContentDirectories)
@@ -322,7 +319,7 @@ void FAutoReimportManager::Destroy()
 {
 	if (auto* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry"))
 	{
-		AssetRegistryModule->Get().OnAssetRenamed().RemoveAll(this);
+		FAssetSourceFilenameCache::Get().OnAssetRenamed().RemoveAll(this);
 	}
 	
 	if (auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>())
@@ -357,23 +354,23 @@ void FAutoReimportManager::OnAssetRenamed(const FAssetData& AssetData, const FSt
 	// Additionally, we rename the source file if it matched the name of the asset before the rename/move.
 	//	- If we rename the source file, then we also update the reimport paths for the asset
 
-	TArray<FString> SourceFilesRelativeToOldPath;
-	for (const auto& Pair : AssetData.TagsAndValues)
+	
+	TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(AssetData.TagsAndValues);
+	if (!ImportInfo.IsSet())
 	{
-		if (Pair.Key.IsEqual(UObject::SourceFileTagName(), ENameCase::IgnoreCase, false))
-		{
-			SourceFilesRelativeToOldPath.Add(Pair.Value);
-		}
+		return;
 	}
 
+	const TArray<FAssetImportInfo::FSourceFile>& SourceFileData = ImportInfo->GetSourceFileData();
+
 	// We move the file with the asset provided it is the only file referenced, and sits right beside the uasset file
-	if (SourceFilesRelativeToOldPath.Num() == 1 && !SourceFilesRelativeToOldPath[0].GetCharArray().ContainsByPredicate([](const TCHAR Char) { return Char == '/' || Char == '\\'; }))
+	if (SourceFileData.Num() == 1 && !SourceFileData[0].RelativeFilename.GetCharArray().ContainsByPredicate([](const TCHAR Char) { return Char == '/' || Char == '\\'; }))
 	{
 		const FString AbsoluteSrcPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(FPackageName::GetLongPackagePath(OldPath) / TEXT("")));
 		const FString AbsoluteDstPath = FPaths::ConvertRelativePathToFull(FPackageName::LongPackageNameToFilename(AssetData.PackagePath.ToString() / TEXT("")));
 
 		const FString OldAssetName = FPackageName::GetLongPackageAssetName(FPackageName::ObjectPathToPackageName(OldPath));
-		FString NewFileName = FPaths::GetBaseFilename(SourceFilesRelativeToOldPath[0]);
+		FString NewFileName = FPaths::GetBaseFilename(SourceFileData[0].RelativeFilename);
 
 		bool bRequireReimportPathUpdate = false;
 		if (PackageTools::SanitizePackageName(NewFileName) == OldAssetName)
@@ -382,13 +379,12 @@ void FAutoReimportManager::OnAssetRenamed(const FAssetData& AssetData, const FSt
 			bRequireReimportPathUpdate = true;
 		}
 
-		const FString SrcFile = AbsoluteSrcPath / SourceFilesRelativeToOldPath[0];
-		const FString DstFile = AbsoluteDstPath / NewFileName + TEXT(".") + FPaths::GetExtension(SourceFilesRelativeToOldPath[0]);
+		const FString SrcFile = AbsoluteSrcPath / SourceFileData[0].RelativeFilename;
+		const FString DstFile = AbsoluteDstPath / NewFileName + TEXT(".") + FPaths::GetExtension(SourceFileData[0].RelativeFilename);
 
-		// We can't do this if multiple assets reference the same file. We should be checking for > 1 referencing asset, but the asset registry
-		// filter lookup won't return the recently renamed package because it will be Empty by now, so we check for *anything* referencing the asset (assuming that we'll never find *this* asset).
+		// We can't do this if multiple assets reference the same file
 		const IAssetRegistry& Registry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry").Get();
-		if (Utils::FindAssetsPertainingToFile(Registry, SrcFile).Num() > 0)
+		if (Utils::FindAssetsPertainingToFile(Registry, SrcFile).Num() > 1)
 		{
 			return;
 		}
@@ -415,28 +411,6 @@ int32 FAutoReimportManager::GetNumUnprocessedChanges() const
 	return Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 Total){
 		return Total + Monitor.GetNumUnprocessedChanges();
 	}, 0);
-}
-
-FText FAutoReimportManager::GetProgressText() const
-{
-	FFormatOrderedArguments Args;
-	{
-		const int32 Progress = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 Total){
-			return Total + Monitor.GetWorkProgress();
-		}, 0);
-
-		Args.Add(Progress);
-	}
-
-	{
-		const int32 Total = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 InTotal){
-			return InTotal + Monitor.GetTotalWork();
-		}, 0);
-
-		Args.Add(Total);
-	}
-
-	return FText::Format(LOCTEXT("ProcessingChanges", "Processing outstanding content changes ({0} of {1})..."), Args);
 }
 
 TOptional<ECurrentState> FAutoReimportManager::ProcessAdditions(const FTimeLimit& TimeLimit)
@@ -536,6 +510,8 @@ TOptional<ECurrentState> FAutoReimportManager::ProcessDeletions()
 		Monitor.ExtractAssetsToDelete(Registry, AssetsToDelete);
 	}
 
+	FeedbackContextOverride->MainTask->EnterProgressFrame(AssetsToDelete.Num());
+
 	if (AssetsToDelete.Num() > 0)
 	{
 		for (const auto& AssetData : AssetsToDelete)
@@ -604,6 +580,8 @@ TOptional<ECurrentState> FAutoReimportManager::Abort()
 		Monitor.Abort();
 	}
 
+	PackagesToSave.Empty();
+
 	Cleanup();
 	return ECurrentState::Idle;
 }
@@ -648,30 +626,26 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 	{
 		State = EProcessState::Running;
 
+		int32 TotalWork = 0;
 		// We have some changes so kick off the process
 		for (auto& Monitor : DirectoryMonitors)
 		{
-			Monitor.StartProcessing();
+			TotalWork += Monitor.StartProcessing();
 		}
 
-		// Check that we actually have anything to do before kicking off a process
-		const int32 WorkTotal = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 Total){
-			return Total + Monitor.GetTotalWork();
-		}, 0);
-
-		if (WorkTotal > 0)
+		if (TotalWork > 0)
 		{
 			if (!FeedbackContextOverride.IsValid())
 			{
 				// Create a new feedback context override
 				FeedbackContextOverride = MakeShareable(new FReimportFeedbackContext(
-					TAttribute<FText>(this, &FAutoReimportManager::GetProgressText),
 					FSimpleDelegate::CreateSP(this, &FAutoReimportManager::OnPauseClicked),
 					FSimpleDelegate::CreateSP(this, &FAutoReimportManager::OnAbortClicked))
 				);
 			}
 
-			FeedbackContextOverride->Show();
+			FeedbackContextOverride->Show(TotalWork);
+
 			return ECurrentState::ProcessAdditions;
 		}
 	}
@@ -681,10 +655,7 @@ TOptional<ECurrentState> FAutoReimportManager::Idle()
 
 void FAutoReimportManager::Cleanup()
 {
-	if (GetNumUnprocessedChanges() == 0)
-	{
-		FeedbackContextOverride->Hide();
-	}
+	FeedbackContextOverride->Hide();
 }
 
 void FAutoReimportManager::Tick(float DeltaTime)

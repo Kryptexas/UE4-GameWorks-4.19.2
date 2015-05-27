@@ -190,12 +190,12 @@ struct FAsyncFileHasher : public IAsyncFileCacheTask
 	/** Return any completed filenames and their corresponding hashes */
 	TArray<FFilenameAndHash> GetCompletedData();
 
-	/** Returns true when this directory reader has finished scanning the directory */
+	/** Returns true when this task has finished hashing all its files */
 	virtual bool IsComplete() const override;
 
 protected:
 
-	/** Tick this reader (discover new directories / files). Returns progress state. */
+	/** Tick this reader (hashes as many files as possible in the time allowed). Returns progress state. */
 	virtual EProgressResult Tick(const FTimeLimit& Limit) override;
 
 	/** The array of data that we will process */
@@ -298,9 +298,22 @@ private:
 /** Configuration structure required to construct a FFileCache */
 struct FFileCacheConfig
 {
+	/** Enum that specifies what changes are required for a change to be reported. When combined, any valid change is reported. */
+	enum EChangeDetection
+	{
+		/** Report modifications when the timestamp of a file changes */
+		Timestamp,
+		/** Report modifications when the contents of a file changes */
+		FileHash,
+	};
+
 	FFileCacheConfig(FString InDirectory, FString InCacheFile)
-		: Directory(InDirectory), CacheFile(InCacheFile), PathType(EPathType::Relative), bDetectChangesSinceLastRun(false), bDetectMoves(true)
-	{}
+		: Directory(InDirectory), CacheFile(InCacheFile), PathType(EPathType::Relative), bDetectChangesSinceLastRun(false)
+		, ChangeDetectionBits(false, 2)
+	{
+		DetectMoves(true);
+		ChangeDetectionBits[EChangeDetection::Timestamp] = true;
+	}
 
 	/** String specifying the directory on disk that the cache should reflect */
 	FString Directory;
@@ -317,9 +330,46 @@ struct FFileCacheConfig
 	/** When true, changes to the directory since the cache shutdown will be detected and reported. When false, said changes will silently be applied to the serialized cache. */
 	bool bDetectChangesSinceLastRun;
 
-	/** True to detect moves and renames (based on file hash), false otherwise. When true, an additional thread will be launched on startup to harvest MD5 hashes.
-	 *  Changes that occur *before* hashes have been gatherd will not be detected as moves/renames. */
+	/** Set up this cache to detect moves */
+	FFileCacheConfig& DetectMoves(bool bInDetectMoves)
+	{
+		bDetectMoves = bInDetectMoves;
+		if (bDetectMoves)
+		{
+			bRequireFileHashes = true;
+		}
+		return *this;
+	}
+	
+	/** Set up this cache to generate MD5 hashes for its constituent files */
+	FFileCacheConfig& RequireFileHashes(bool bInRequireFileHashes)
+	{
+		if (ensureMsg(bInRequireFileHashes || !bDetectMoves, TEXT("Unable to disable file hashing when move detection is enabled")))
+		{
+			bRequireFileHashes = bInRequireFileHashes;
+		}
+		return *this;
+	}
+
+	/** Instruct the cache to report the specified changes to files */
+	FFileCacheConfig& DetectChangesFor(EChangeDetection ChangeType, bool Value)
+	{
+		ChangeDetectionBits[ChangeType] = Value;
+		return *this;
+	}
+
+private:
+
+	/** True to detect moves and renames (based on file hash), false otherwise. Implies bRequireFileHashes. */
 	bool bDetectMoves;
+
+	/** When true, the cache will also calculate MD5 hashes for files. When true, an additional thread will be launched on startup to harvest unknown MD5 hashes for the directory. */
+	bool bRequireFileHashes;
+
+	/** Bitfied specifying how we will be detecting changes. See EChangeDetection. */
+	TBitArray<> ChangeDetectionBits;
+
+	friend class FFileCache;
 };
 
 /**
@@ -379,7 +429,8 @@ public:
 	/** Get the number of pending changes to the cache. */
 	int32 GetNumOutstandingChanges() const { return DirtyFiles.Num(); }
 
-	/** Get pending changes to the cache. Transactions must be returned to CompleteTransaction to update the cache. */
+	/** Get pending changes to the cache. Transactions must be returned to CompleteTransaction to update the cache.
+	 *  Filter predicate recieves a transaction and the time the change was reported. */
 	TArray<FUpdateCacheTransaction> FilterOutstandingChanges(const TFunctionRef<bool(const FUpdateCacheTransaction&, const FDateTime&)>& InPredicate);
 	TArray<FUpdateCacheTransaction> GetOutstandingChanges();
 
@@ -392,7 +443,10 @@ private:
 	 *	Optionally takes a directory state from which we can retrieve current file system state, without having to ask the FS directly.
 	 *  Optionally exclude files that have changed since the specified threshold, to ensure that related events get grouped together correctly.
 	 */
-	void DiffDirtyFiles(TMap<FImmutableString, FDateTime>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState = nullptr, const FDateTime& ThreasholdTime = FDateTime::UtcNow()) const;
+	void DiffDirtyFiles(TMap<FImmutableString, FFileData>& InDirtyFiles, TArray<FUpdateCacheTransaction>& OutTransactions, const FDirectoryState* InFileSystemState = nullptr) const;
+
+	/** Detect a rename for the specified file */
+	void DetectRename();
 
 	/** Get the absolute path from a transaction filename */
 	FString GetAbsolutePath(const FString& InTransactionPath) const;
@@ -409,17 +463,24 @@ private:
 	/** Called when the initial async reader has finished harvesting file system timestamps */
 	void ReadStateFromAsyncReader();
 
+	/** Called to harvest any file hashes that have been generated by the DirtyFileHasher thread task */
+	void HarvestDirtyFileHashes();
+	void RescanForDirtyFileHashes();
+
 private:
 
 	/** Configuration settings applied on construction */
 	FFileCacheConfig Config;
 
-	/** 'Asynchronous' directory reader responsible for gathering all file/timestamp information recursively from our cache directory */
+	/** Asynchronous directory reader responsible for gathering all file/timestamp information recursively from our cache directory */
 	TSharedPtr<FAsyncDirectoryReader, ESPMode::ThreadSafe> DirectoryReader;
+	/** Asynchronous task used to harvest the MD5 hashes of a set of filenames */
 	TSharedPtr<FAsyncFileHasher, ESPMode::ThreadSafe> AsyncFileHasher;
+	/** Asynchronous task used to harvest the MD5 hashes of a set of recently changed filenames */
+	TSharedPtr<FAsyncFileHasher, ESPMode::ThreadSafe> DirtyFileHasher;
 
-	/** A map of dirty file times that we will use to report changes to the user */
-	TMap<FImmutableString, FDateTime> DirtyFiles;
+	/** A map of dirty files that we will use to report changes to the user. Timestamp value of FFileData here pertains to the *time of the change* not the timestamp of the file. */
+	TMap<FImmutableString, FFileData> DirtyFiles;
 
 	/** Our in-memory view of the cached directory state. */
 	FDirectoryState CachedDirectoryState;

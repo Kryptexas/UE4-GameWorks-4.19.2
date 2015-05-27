@@ -21,8 +21,7 @@ UFbxAnimSequenceImportData* UFbxAnimSequenceImportData::GetImportDataForAnimSequ
 		// Try to preserve the source file path if possible
 		if ( AnimSequence->AssetImportData != NULL )
 		{
-			ImportData->SourceFilePath = AnimSequence->AssetImportData->SourceFilePath;
-			ImportData->SourceFileTimestamp = AnimSequence->AssetImportData->SourceFileTimestamp;
+			ImportData->CopyFrom(*AnimSequence->AssetImportData);
 		}
 
 		AnimSequence->AssetImportData = ImportData;

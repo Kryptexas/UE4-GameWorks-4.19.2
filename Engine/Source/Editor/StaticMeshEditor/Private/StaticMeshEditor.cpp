@@ -1838,7 +1838,7 @@ void FStaticMeshEditor::ExecuteFindInExplorer()
 {
 	if ( ensure(StaticMesh->AssetImportData) )
 	{
-		const FString SourceFilePath = FReimportManager::ResolveImportFilename(StaticMesh->AssetImportData->SourceFilePath, StaticMesh);
+		const FString SourceFilePath = StaticMesh->AssetImportData->GetFirstFilename();
 		if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
 		{
 			FPlatformProcess::ExploreFolder( *FPaths::GetPath(SourceFilePath) );
@@ -1853,7 +1853,7 @@ bool FStaticMeshEditor::CanExecuteSourceCommands() const
 		return false;
 	}
 
-	const FString& SourceFilePath = FReimportManager::ResolveImportFilename(StaticMesh->AssetImportData->SourceFilePath, StaticMesh);
+	const FString& SourceFilePath = StaticMesh->AssetImportData->GetFirstFilename();
 
 	return SourceFilePath.Len() && IFileManager::Get().FileSize(*SourceFilePath) != INDEX_NONE;
 }

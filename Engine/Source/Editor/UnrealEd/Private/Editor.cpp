@@ -442,49 +442,6 @@ void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFi
 	}
 }
 
-FString FReimportManager::SanitizeImportFilename(const FString& InPath, const UObject* Obj)
-{
-	const UPackage* Package = Obj->GetOutermost();
-	if (Package)
-	{
-		const bool		bIncludeDot = true;
-		const FString	PackagePath	= Package->GetPathName();
-		const FName		MountPoint	= FPackageName::GetPackageMountPoint(PackagePath);
-		const FString	PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPaths::GetExtension(InPath, bIncludeDot));
-		const FString	AbsolutePath = FPaths::ConvertRelativePathToFull(InPath);
-
-		if ((MountPoint == FName("Engine") && AbsolutePath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()))) ||
-			(MountPoint == FName("Game") &&	AbsolutePath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::GameDir()))))
-		{
-			FString RelativePath = InPath;
-			FPaths::MakePathRelativeTo(RelativePath, *PackageFilename);
-			return RelativePath;
-		}
-	}
-
-	return IFileManager::Get().ConvertToRelativePath(*InPath);
-}
-
-
-FString FReimportManager::ResolveImportFilename(const FString& InRelativePath, const UObject* Obj)
-{
-	FString RelativePath = InRelativePath;
-
-	const UPackage* Package = Obj->GetOutermost();
-	if (Package)
-	{
-		// Relative to the package filename?
-		const FString PathRelativeToPackage = FPaths::GetPath(FPackageName::LongPackageNameToFilename(Package->GetPathName())) / InRelativePath;
-		if (FPaths::FileExists(PathRelativeToPackage))
-		{
-			RelativePath = PathRelativeToPackage;
-		}
-	}
-
-	// Convert relative paths
-	return FPaths::ConvertRelativePathToFull(RelativePath);
-}
-
 FReimportManager::FReimportManager()
 {
 	// Create reimport handler for textures

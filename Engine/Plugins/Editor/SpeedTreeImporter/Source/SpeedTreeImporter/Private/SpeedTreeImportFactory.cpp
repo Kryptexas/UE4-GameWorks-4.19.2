@@ -489,8 +489,7 @@ UTexture* CreateSpeedTreeMaterialTexture(UObject* Parent, FString Filename, bool
 		UnrealTexture = (UTexture*)TextureFact->FactoryCreateBinary(UTexture2D::StaticClass(), Package, *TextureName, RF_Standalone|RF_Public, NULL, *Extension, PtrTexture, PtrTexture + TextureData.Num(), GWarn);
 		if (UnrealTexture != NULL)
 		{
-			UnrealTexture->SourceFilePath = FReimportManager::SanitizeImportFilename(Filename, UnrealTexture);
-			UnrealTexture->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*Filename).ToString();
+			UnrealTexture->AssetImportData->Update(Filename);
 
 			// Notify the asset registry
 			FAssetRegistryModule::AssetCreated(UnrealTexture);
@@ -1235,8 +1234,7 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 
 				// @todo AssetImportData make a data class for speed tree assets
 				StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
-				StaticMesh->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::GetCurrentFilename(), StaticMesh);
-				StaticMesh->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::GetCurrentFilename()).ToString();
+				StaticMesh->AssetImportData->Update(UFactory::GetCurrentFilename());
 				StaticMesh->AssetImportData->bDirty = false;
 				
 				// clear out any old data

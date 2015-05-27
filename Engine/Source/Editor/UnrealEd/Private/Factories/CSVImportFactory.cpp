@@ -155,7 +155,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			// Create/reset table
 			UDataTable* NewTable = NewObject<UDataTable>(InParent, InName, Flags);
 			NewTable->RowStruct = ImportRowStruct;
-			NewTable->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewTable);
+			NewTable->AssetImportData->Update(CurrentFilename);
 			// Go ahead and create table from string
 			Problems = DoImportDataTable(NewTable, String);
 
@@ -173,7 +173,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 
 			// Create/reset table
 			UCurveTable* NewTable = NewObject<UCurveTable>(InParent, InName, Flags);
-			NewTable->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewTable);
+			NewTable->AssetImportData->Update(CurrentFilename);
 
 			// Go ahead and create table from string
 			Problems = DoImportCurveTable(NewTable, String, ImportCurveInterpMode);
@@ -192,7 +192,7 @@ UObject* UCSVImportFactory::FactoryCreateText( UClass* InClass, UObject* InParen
 			Problems = DoImportCurve(NewCurve, String);
 
 			UE_LOG(LogCSVImportFactory, Log, TEXT("Imported Curve '%s' - %d Problems"), *InName.ToString(), Problems.Num());
-			NewCurve->ImportPath = FReimportManager::SanitizeImportFilename(CurrentFilename, NewCurve);
+			NewCurve->AssetImportData->Update(CurrentFilename);
 			NewAsset = NewCurve;
 		}
 		
@@ -223,15 +223,15 @@ bool UCSVImportFactory::ReimportCSV( UObject* Obj )
 	bool bHandled = false;
 	if(UCurveBase* Curve = Cast<UCurveBase>(Obj))
 	{
-		bHandled = Reimport(Curve, FReimportManager::ResolveImportFilename(Curve->ImportPath, Curve));
+		bHandled = Reimport(Curve, Curve->AssetImportData->GetFirstFilename());
 	}
 	else if(UCurveTable* CurveTable = Cast<UCurveTable>(Obj))
 	{
-		bHandled = Reimport(CurveTable, FReimportManager::ResolveImportFilename(CurveTable->ImportPath, CurveTable));
+		bHandled = Reimport(CurveTable, CurveTable->AssetImportData->GetFirstFilename());
 	}
 	else if(UDataTable* DataTable = Cast<UDataTable>(Obj))
 	{
-		bHandled = Reimport(DataTable, FReimportManager::ResolveImportFilename(DataTable->ImportPath, DataTable));
+		bHandled = Reimport(DataTable, DataTable->AssetImportData->GetFirstFilename());
 	}
 	return bHandled;
 }
@@ -305,7 +305,7 @@ bool UReimportDataTableFactory::CanReimport( UObject* Obj, TArray<FString>& OutF
 	UDataTable* DataTable = Cast<UDataTable>(Obj);
 	if(DataTable)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(DataTable->ImportPath, DataTable));
+		DataTable->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -316,7 +316,7 @@ void UReimportDataTableFactory::SetReimportPaths( UObject* Obj, const TArray<FSt
 	UDataTable* DataTable = Cast<UDataTable>(Obj);
 	if(DataTable && ensure(NewReimportPaths.Num() == 1))
 	{
-		DataTable->ImportPath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], DataTable);
+		DataTable->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
 
@@ -350,7 +350,7 @@ bool UReimportCurveTableFactory::CanReimport( UObject* Obj, TArray<FString>& Out
 	UCurveTable* CurveTable = Cast<UCurveTable>(Obj);
 	if(CurveTable)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(CurveTable->ImportPath, CurveTable));
+		CurveTable->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -361,7 +361,7 @@ void UReimportCurveTableFactory::SetReimportPaths( UObject* Obj, const TArray<FS
 	UCurveTable* CurveTable = Cast<UCurveTable>(Obj);
 	if(CurveTable && ensure(NewReimportPaths.Num() == 1))
 	{
-		CurveTable->ImportPath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], CurveTable);
+		CurveTable->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
 
@@ -391,7 +391,7 @@ bool UReimportCurveFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilen
 	UCurveBase* CurveBase = Cast<UCurveBase>(Obj);
 	if(CurveBase)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(CurveBase->ImportPath, CurveBase));
+		CurveBase->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -402,7 +402,7 @@ void UReimportCurveFactory::SetReimportPaths( UObject* Obj, const TArray<FString
 	UCurveBase* CurveBase = Cast<UCurveBase>(Obj);
 	if(CurveBase && ensure(NewReimportPaths.Num() == 1))
 	{
-		CurveBase->ImportPath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], CurveBase);
+		CurveBase->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
 

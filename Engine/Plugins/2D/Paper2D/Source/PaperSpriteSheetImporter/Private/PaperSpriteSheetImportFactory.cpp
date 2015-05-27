@@ -65,8 +65,7 @@ UObject* UPaperSpriteSheetImportFactory::FactoryCreateText(UClass* InClass, UObj
 				SpriteSheet->AssetImportData = NewObject<UAssetImportData>(SpriteSheet);
 			}
 
-			SpriteSheet->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, SpriteSheet);
-			SpriteSheet->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
+			SpriteSheet->AssetImportData->Update(CurrentFilename);
 			SpriteSheet->AssetImportData->bDirty = false;
 
 			Result = SpriteSheet;

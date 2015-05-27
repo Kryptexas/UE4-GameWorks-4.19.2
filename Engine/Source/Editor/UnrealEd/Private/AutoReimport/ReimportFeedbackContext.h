@@ -13,13 +13,13 @@ class FReimportFeedbackContext : public FFeedbackContext, public INotificationWi
 {
 public:
 	/** Constructor */
-	FReimportFeedbackContext(const TAttribute<FText>& InMainText, const FSimpleDelegate& InOnPauseClicked, const FSimpleDelegate& InOnAbortClicked);
+	FReimportFeedbackContext(const FSimpleDelegate& InOnPauseClicked, const FSimpleDelegate& InOnAbortClicked);
 
 	/** Destroy this reimport context */
 	void Hide();
 
 	/** Revive the notification if it was destroyed */
-	void Show();
+	void Show(int32 TotalWork);
 
 	/** Get the message log that this context is using */
 	FMessageLog& GetMessageLog() { return MessageLog; }
@@ -34,21 +34,28 @@ public:
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category ) override {}
 	virtual void OnSetCompletionState(SNotificationItem::ECompletionState State) override {}
 	virtual TSharedRef<SWidget> AsWidget() override;
-	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false) override;
+	virtual void StartSlowTask(const FText& Task, bool bShowCancelButton=false) override;
+	virtual void ProgressReported(const float TotalProgressInterp, FText DisplayMessage) override;
+	virtual void FinalizeSlowTask() override;
 
 	/** True if we will suppress slow task messages from being shown on the UI, false if otherwise */
 	bool bSuppressSlowTaskMessages;
+
+	/** Publicly accessible task that defines the entire import progress */
+	TUniquePtr<FScopedSlowTask> MainTask;
 
 private:
 
 	/** Called when our notification has expired */
 	void OnNotificationExpired();
 
-	TAttribute<FText> MainTextAttribute;
 	FSimpleDelegate OnPauseClickedEvent, OnAbortClickedEvent;
 
 	/** Message log for output of errors and log messages */
 	FMessageLog MessageLog;
+
+	/** Nested slow task text */
+	TSharedPtr<class STextBlock> SlowTaskText;
 
 	/** The notification that is shown when the context is active */
 	TSharedPtr<class SNotificationItem> Notification;

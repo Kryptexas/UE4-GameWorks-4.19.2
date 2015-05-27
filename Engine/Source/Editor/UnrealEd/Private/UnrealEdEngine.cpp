@@ -31,6 +31,7 @@
 #include "AutoReimport/AutoReimportManager.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "AutoReimport/AssetSourceFilenameCache.h"
 #include "UObject/UObjectThreadContext.h"
 #include "Components/BillboardComponent.h"
 #include "Components/ArrowComponent.h"
@@ -309,6 +310,8 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 
 void UUnrealEdEngine::PreExit()
 {
+	FAssetSourceFilenameCache::Get().Shutdown();
+
 	// Notify edit modes we're mode at exit
 	FEditorModeRegistry::Get().Shutdown();
 

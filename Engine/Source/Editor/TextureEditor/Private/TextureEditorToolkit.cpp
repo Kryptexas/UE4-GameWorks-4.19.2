@@ -1101,20 +1101,6 @@ void FTextureEditorToolkit::HandleReimportManagerPreReimport( UObject* InObject 
 	SavedCompressionSetting = Texture->DeferCompression;
 	Texture->DeferCompression = true;
 
-	// Reduce the year to make sure the texture will always be reloaded even if it hasn't changed on disk
-	FDateTime TimeStamp;
-
-	if (FDateTime::Parse(Texture->SourceFileTimestamp, TimeStamp))
-	{
-		TimeStamp -= FTimespan(365, 0, 0, 0);
-	}
-	else
-	{
-		TimeStamp = FDateTime::MinValue();
-	}
-
-	Texture->SourceFileTimestamp = TimeStamp.ToString();
-
 	// Disable viewport rendering until the texture has finished re-importing
 	TextureViewport->DisableRendering();
 }

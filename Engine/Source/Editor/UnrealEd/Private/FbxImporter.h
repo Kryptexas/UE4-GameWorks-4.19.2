@@ -383,14 +383,13 @@ public:
 	 * @param NodeArray	Fbx Nodes to import
 	 * @param Name	the Unreal Mesh name after import
 	 * @param Flags
-	 * @param Filename	Fbx file name
 	 * @param FbxShapeArray	Fbx Morph objects.
 	 * @param OutData - Optional import data to populate
 	 * @param bCreateRenderData - Whether or not skeletal mesh rendering data will be created.
 	 *
 	 * @return The USkeletalMesh object created
 	 */
-	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, FString Filename, TArray<FbxShape*> *FbxShapeArray=NULL, FSkeletalMeshImportData* OutData=NULL, bool bCreateRenderData = true );
+	USkeletalMesh* ImportSkeletalMesh(UObject* InParent, TArray<FbxNode*>& NodeArray, const FName& Name, EObjectFlags Flags, UFbxSkeletalMeshImportData* TemplateImportData, TArray<FbxShape*> *FbxShapeArray=NULL, FSkeletalMeshImportData* OutData=NULL, bool bCreateRenderData = true );
 
 	/**
 	 * Add to the animation set, the animations contained within the FBX scene, for the given skeletal mesh
@@ -444,10 +443,9 @@ public:
 	 *
 	 * @param SkelMeshNodeArray - Fbx Nodes that the base Skeletal Mesh construct from
 	 * @param BaseSkelMesh - base Skeletal Mesh
-	 * @param Filename - Fbx file name
 	 * @param LODIndex - LOD index
 	 */
-	void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, const FString& Filename, int32 LODIndex);
+	void ImportFbxMorphTarget(TArray<FbxNode*> &SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex);
 
 	/**
 	 * Import LOD object for skeletal mesh
@@ -622,10 +620,9 @@ private:
 	 *
 	 * @param SkelMeshNodeArray - Fbx Nodes that the base Skeletal Mesh construct from
 	 * @param BaseSkelMesh - base Skeletal Mesh
-	 * @param Filename - Fbx file name
 	 * @param LODIndex - LOD index of the skeletal mesh
 	 */
-	void ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, const FString& InFilename, int32 LODIndex );
+	void ImportMorphTargetsInternal( TArray<FbxNode*>& SkelMeshNodeArray, USkeletalMesh* BaseSkelMesh, UObject* Parent, int32 LODIndex );
 
 	/**
 	* sub-method called from ImportSkeletalMeshLOD method

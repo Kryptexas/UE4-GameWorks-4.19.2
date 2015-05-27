@@ -20,8 +20,7 @@ UFbxSkeletalMeshImportData* UFbxSkeletalMeshImportData::GetImportDataForSkeletal
 		// Try to preserve the source file path if possible
 		if ( SkeletalMesh->AssetImportData != NULL )
 		{
-			ImportData->SourceFilePath = SkeletalMesh->AssetImportData->SourceFilePath;
-			ImportData->SourceFileTimestamp = SkeletalMesh->AssetImportData->SourceFileTimestamp;
+			ImportData->CopyFrom(*SkeletalMesh->AssetImportData);
 		}
 
 		SkeletalMesh->AssetImportData = ImportData;

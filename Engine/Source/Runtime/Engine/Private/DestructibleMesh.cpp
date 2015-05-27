@@ -638,9 +638,11 @@ ENGINE_API bool UDestructibleMesh::BuildFromStaticMesh( UStaticMesh& StaticMesh 
 	}
 
 	SourceStaticMesh = &StaticMesh;
-	if ( StaticMesh.AssetImportData == NULL || !FDateTime::Parse(StaticMesh.AssetImportData->SourceFileTimestamp, SourceSMImportTimestamp) )
+
+	SourceSMImportTimestamp = FDateTime::MinValue();
+	if ( StaticMesh.AssetImportData && StaticMesh.AssetImportData->GetSourceFileData().Num() == 1 )
 	{
-		SourceSMImportTimestamp = FDateTime::MinValue();
+		SourceSMImportTimestamp = StaticMesh.AssetImportData->GetSourceFileData()[0].Timestamp;
 	}
 
 #if WITH_APEX

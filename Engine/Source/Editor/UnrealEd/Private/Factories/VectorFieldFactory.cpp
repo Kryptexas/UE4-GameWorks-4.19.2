@@ -227,8 +227,7 @@ UObject* UVectorFieldStaticFactory::FactoryCreateBinary(
 				VectorField->SizeZ = FileContents.GridZ;
 				VectorField->Bounds = FileContents.Bounds;
 				
-				VectorField->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, VectorField);
-				VectorField->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
+				VectorField->AssetImportData->Update(CurrentFilename);
 
 				// Convert vectors to 16-bit FP and store.
 				check( (FileContents.Values.Num() % 3) == 0 );
@@ -282,7 +281,7 @@ bool UReimportVectorFieldStaticFactory::CanReimport( UObject* Obj, TArray<FStrin
 	UVectorFieldStatic* VectorFieldStatic = Cast<UVectorFieldStatic>(Obj);
 	if(VectorFieldStatic)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(VectorFieldStatic->SourceFilePath, VectorFieldStatic));
+		VectorFieldStatic->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -293,7 +292,7 @@ void UReimportVectorFieldStaticFactory::SetReimportPaths( UObject* Obj, const TA
 	UVectorFieldStatic* VectorFieldStatic = Cast<UVectorFieldStatic>(Obj);
 	if(VectorFieldStatic && ensure(NewReimportPaths.Num() == 1))
 	{
-		VectorFieldStatic->SourceFilePath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], VectorFieldStatic);
+		VectorFieldStatic->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
 
@@ -306,13 +305,13 @@ EReimportResult::Type UReimportVectorFieldStaticFactory::Reimport( UObject* Obj 
 
 	UVectorFieldStatic* VectorFieldStatic = Cast<UVectorFieldStatic>(Obj);
 
-	if ( VectorFieldStatic->SourceFilePath.Len() <= 0 )
+	if ( VectorFieldStatic->AssetImportData->GetSourceFileData().Num() != 1 )
 	{
 		// No source art path. Can't reimport.
 		return EReimportResult::Failed;
 	}
 
-	const FString ReImportFilename = FReimportManager::ResolveImportFilename(VectorFieldStatic->SourceFilePath, VectorFieldStatic);
+	const FString& ReImportFilename = VectorFieldStatic->AssetImportData->GetSourceFileData()[0].RelativeFilename;
 
 	UE_LOG(LogVectorFieldFactory, Log, TEXT("Performing atomic reimport of [%s]"), *ReImportFilename);
 

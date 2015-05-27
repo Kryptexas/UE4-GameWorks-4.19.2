@@ -464,10 +464,6 @@ class ENGINE_API UCurveBase : public UObject, public FCurveOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
-	UPROPERTY()
-	FString ImportPath;
-
 	/** Get the time range across all curves */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
 	void GetTimeRange(float& MinTime, float& MaxTime) const;
@@ -514,6 +510,15 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Override to ensure we write out the asset import data */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual void PostLoad() override;
+
+	UPROPERTY()
+	class UAssetImportData* AssetImportData;
+
+	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
+	UPROPERTY()
+	FString ImportPath_DEPRECATED;
+
 #endif
 	// End UObject interface
 };

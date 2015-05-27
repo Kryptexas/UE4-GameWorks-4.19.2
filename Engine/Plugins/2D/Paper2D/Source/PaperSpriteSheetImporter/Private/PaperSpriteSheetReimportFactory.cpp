@@ -22,7 +22,7 @@ bool UPaperSpriteSheetReimportFactory::CanReimport(UObject* Obj, TArray<FString>
 	UPaperSpriteSheet* SpriteSheet = Cast<UPaperSpriteSheet>(Obj);
 	if (SpriteSheet && SpriteSheet->AssetImportData)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(SpriteSheet->AssetImportData->SourceFilePath, SpriteSheet));
+		SpriteSheet->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -33,7 +33,7 @@ void UPaperSpriteSheetReimportFactory::SetReimportPaths(UObject* Obj, const TArr
 	UPaperSpriteSheet* SpriteSheet = Cast<UPaperSpriteSheet>(Obj);
 	if (SpriteSheet && ensure(NewReimportPaths.Num() == 1))
 	{
-		SpriteSheet->AssetImportData->SourceFilePath = FReimportManager::ResolveImportFilename(NewReimportPaths[0], SpriteSheet);
+		SpriteSheet->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
 
@@ -46,7 +46,7 @@ EReimportResult::Type UPaperSpriteSheetReimportFactory::Reimport(UObject* Obj)
 	}
 
 	// Make sure file is valid and exists
-	const FString Filename = FReimportManager::ResolveImportFilename(SpriteSheet->AssetImportData->SourceFilePath, SpriteSheet);
+	const FString Filename = SpriteSheet->AssetImportData->GetFirstFilename();
 	if (!Filename.Len() || IFileManager::Get().FileSize(*Filename) == INDEX_NONE)
 	{
 		return EReimportResult::Failed;

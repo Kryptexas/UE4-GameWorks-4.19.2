@@ -271,8 +271,7 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 	{
 		// Store the current file path and timestamp for re-import purposes
 		UTileMapAssetImportData* ImportData = UTileMapAssetImportData::GetImportDataForTileMap(Result);
-		ImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(CurrentFilename, Result);
-		ImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*CurrentFilename).ToString();
+		ImportData->Update(CurrentFilename);
 
 		//GlobalInfo.TileSets
 	}
@@ -321,7 +320,7 @@ bool UPaperTiledImporterFactory::CanReimport(UObject* Obj, TArray<FString>& OutF
 	{
 		if (TileMap->AssetImportData != nullptr)
 		{
-			OutFilenames.Add(FReimportManager::ResolveImportFilename(TileMap->AssetImportData->SourceFilePath, TileMap));
+			TileMap->AssetImportData->ExtractFilenames(OutFilenames);
 		}
 		else
 		{
@@ -339,8 +338,7 @@ void UPaperTiledImporterFactory::SetReimportPaths(UObject* Obj, const TArray<FSt
 		if (ensure(NewReimportPaths.Num() == 1))
 		{
 			UTileMapAssetImportData* ImportData = UTileMapAssetImportData::GetImportDataForTileMap(TileMap);
-
-			ImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(NewReimportPaths[0], TileMap);
+			ImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 		}
 	}
 }

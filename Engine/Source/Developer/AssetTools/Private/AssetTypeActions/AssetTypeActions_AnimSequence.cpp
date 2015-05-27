@@ -58,36 +58,36 @@ void FAssetTypeActions_AnimSequence::GetResolvedSourceFilePaths(const TArray<UOb
 		const auto AnimSequence = CastChecked<UAnimSequence>(Asset);
 		if (AnimSequence->AssetImportData)
 		{
-			OutSourceFilePaths.Add(FReimportManager::ResolveImportFilename(AnimSequence->AssetImportData->SourceFilePath, AnimSequence));
+			AnimSequence->AssetImportData->ExtractFilenames(OutSourceFilePaths);
 		}
 	}
 }
 
 void FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource(TArray<TWeakObjectPtr<UAnimSequence>> Objects)
 {
-	const FString EmptyPath = TEXT("");
+	FAssetImportInfo EmptyImportInfo;
 
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
 	{
 		auto Object = (*ObjIt).Get();
 		if (Object)
 		{
-			FString OldPath = EmptyPath;
+			FAssetImportInfo OldImportData;
 
-			// clear the source, I'm not sure if I should just remove all AssetImportData, but this is only clearing the source
-			// so everything else stays except the path
 			if (Object->AssetImportData)
 			{
-				OldPath = Object->AssetImportData->SourceFilePath;
-				Object->AssetImportData->SourceFilePath = EmptyPath;
+				// Make note of the old import data
+				OldImportData.CopyFrom(*Object->AssetImportData);
+				// And reset the import data
+				Object->AssetImportData->CopyFrom(EmptyImportInfo);
 			}
 
 			bool bSuccess = FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
 
 			// restore the old source path in case reimport was not successful
-			if (!bSuccess && Object->AssetImportData && OldPath != EmptyPath)
+			if (!bSuccess && Object->AssetImportData)
 			{
-				Object->AssetImportData->SourceFilePath = OldPath;
+				Object->AssetImportData->CopyFrom(OldImportData);
 			}
 		}
 	}

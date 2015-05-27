@@ -245,11 +245,11 @@ bool FDestructibleMeshEditorViewportClient::CanRefreshFromStaticMesh()
 		return false;
 	}
 
-	FDateTime CurrentSourceTimestamp;
-	if (DestructibleMesh->SourceStaticMesh->AssetImportData == NULL || !FDateTime::Parse(DestructibleMesh->SourceStaticMesh->AssetImportData->SourceFileTimestamp,
-						 CurrentSourceTimestamp))
+	FAssetImportInfo* ImportInfo = DestructibleMesh->SourceStaticMesh->AssetImportData;
+	FDateTime CurrentSourceTimestamp = FDateTime::MinValue();
+	if (ImportInfo && ImportInfo->GetSourceFileData().Num() == 1)
 	{
-		CurrentSourceTimestamp = FDateTime::MinValue();
+		CurrentSourceTimestamp = ImportInfo->GetSourceFileData()[0].Timestamp;
 	}
 
 	return (CurrentSourceTimestamp > DestructibleMesh->SourceSMImportTimestamp);

@@ -29,7 +29,7 @@ bool UReimportSpeedTreeFactory::CanReimport(UObject* Obj, TArray<FString>& OutFi
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && Mesh->AssetImportData)
 	{
-		OutFilenames.Add(FReimportManager::ResolveImportFilename(Mesh->AssetImportData->SourceFilePath, Mesh));
+		Mesh->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 #endif // #if WITH_SPEEDTREE
@@ -42,7 +42,7 @@ void UReimportSpeedTreeFactory::SetReimportPaths(UObject* Obj, const TArray<FStr
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && ensure(NewReimportPaths.Num() == 1))
 	{
-		Mesh->AssetImportData->SourceFilePath = FReimportManager::ResolveImportFilename(NewReimportPaths[0], Mesh);
+		Mesh->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 #endif // #if WITH_SPEEDTREE
 }
@@ -56,7 +56,7 @@ EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 		return EReimportResult::Failed;
 	}
 
-	const FString Filename = FReimportManager::ResolveImportFilename(Mesh->AssetImportData->SourceFilePath, Mesh);
+	const FString Filename = Mesh->AssetImportData->GetFirstFilename();
 	const FString FileExtension = FPaths::GetExtension(Filename);
 	const bool bIsSRT = FCString::Stricmp(*FileExtension, TEXT("SRT")) == 0;
 

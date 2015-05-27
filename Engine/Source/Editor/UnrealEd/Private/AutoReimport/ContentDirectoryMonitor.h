@@ -6,6 +6,8 @@
 #include "FileCache.h"
 #include "MessageLog.h"
 
+class FReimportFeedbackContext;
+
 /** Class responsible for watching a specific content directory for changes */
 class FContentDirectoryMonitor
 {
@@ -23,13 +25,13 @@ public:
 	void Tick();
 
 	/** Start processing any outstanding changes this monitor is aware of */
-	void StartProcessing();
+	int32 StartProcessing();
 
 	/** Extract the files we need to import from our outstanding changes (happens first)*/ 
-	void ProcessAdditions(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, class FReimportFeedbackContext& Context);
+	void ProcessAdditions(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, const TMap<FString, TArray<UFactory*>>& InFactoriesByExtension, FReimportFeedbackContext& Context);
 
 	/** Process the outstanding changes that we have cached */
-	void ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, class FReimportFeedbackContext& Context);
+	void ProcessModifications(const IAssetRegistry& Registry, const FTimeLimit& TimeLimit, TArray<UPackage*>& OutPackagesToSave, FReimportFeedbackContext& Context);
 
 	/** Extract the assets we need to delete from our outstanding changes (happens last) */ 
 	void ExtractAssetsToDelete(const IAssetRegistry& Registry, TArray<FAssetData>& OutAssetsToDelete);
@@ -57,12 +59,6 @@ public:
 	/** Get the number of outstanding changes that we potentially have to process (when not already processing) */
 	int32 GetNumUnprocessedChanges() const { return Cache.GetNumOutstandingChanges(); }
 
-	/** Get the total amount of work this monitor has to perform in the current processing operation */
-	int32 GetTotalWork() const { return TotalWork; }
-
-	/** Get the total amount of work this monitor has performed in the current processing operation */
-	int32 GetWorkProgress() const { return WorkProgress; }
-
 private:
 
 	/** The file cache that monitors and reflects the content directory. */
@@ -73,9 +69,6 @@ private:
 
 	/** A list of file system changes that are due to be processed */
 	TArray<FUpdateCacheTransaction> AddedFiles, ModifiedFiles, DeletedFiles;
-
-	/** The number of changes we've processed out of the OutstandingChanges array */
-	int32 TotalWork, WorkProgress;
 
 	/** The last time we attempted to save the cache file */
 	double LastSaveTime;
