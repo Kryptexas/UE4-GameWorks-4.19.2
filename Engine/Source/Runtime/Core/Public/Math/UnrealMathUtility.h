@@ -544,16 +544,23 @@ struct FMath : public FPlatformMath
 	/** Basically a Vector2d version of Lerp. */
 	static float GetRangeValue(FVector2D const& Range, float Pct);
 
-	/**
-	 * For the given value in the input range, returns the corresponding value in the output range.
-	 * Useful for mapping one value range to another value range.  Output is clamped to the OutputRange.
-	 * e.g. given that velocities [50..100] correspond to a sound volume of [0.2..1.4], this makes it easy to 
-	 *      find the volume for a velocity of 77.
-	 */
-	static FORCEINLINE float GetMappedRangeValue(FVector2D const& InputRange, FVector2D const& OutputRange, float Value)
+	DEPRECATED(4.9, "GetMappedRangeValue is deprecated. Use GetMappedRangeValueClamped instead.")
+	static FORCEINLINE float GetMappedRangeValue(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
 	{
-		float const ClampedPct = Clamp<float>(GetRangePct(InputRange, Value), 0.f, 1.f);
+		return GetMappedRangeValueClamped(InputRange, OutputRange, Value);
+	}
+
+	/** For the given Value clamped to the Input Range, returns the corresponding value in the Output Range. */
+	static FORCEINLINE float GetMappedRangeValueClamped(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
+	{
+		const float ClampedPct = Clamp<float>(GetRangePct(InputRange, Value), 0.f, 1.f);
 		return GetRangeValue(OutputRange, ClampedPct);
+	}
+
+	/** Transform the given Value relative to the input range to the Output Range. */
+	static FORCEINLINE float GetMappedRangeValueUnclamped(const FVector2D& InputRange, const FVector2D& OutputRange, const float Value)
+	{
+		return GetRangeValue(OutputRange, GetRangePct(InputRange, Value));
 	}
 
 	/** Performs a linear interpolation between two values, Alpha ranges from 0-1 */

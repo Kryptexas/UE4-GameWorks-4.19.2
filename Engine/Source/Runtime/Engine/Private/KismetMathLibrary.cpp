@@ -547,14 +547,14 @@ float UKismetMathLibrary::NormalizeToRange(float Value, float RangeMin, float Ra
 	return (Value - RangeMin) / (RangeMax - RangeMin);
 }
 
-float UKismetMathLibrary::MapRange(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB)
+float UKismetMathLibrary::MapRangeUnclamped(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB)
 {
-	if (InRangeB == InRangeA)
-	{
-		return OutRangeA;
-	}
+	return FMath::GetMappedRangeValueUnclamped(FVector2D(InRangeA,InRangeB),FVector2D(OutRangeA,OutRangeB),Value);
+}
 
-	return (Value - InRangeA) * (OutRangeB - OutRangeA) / (InRangeB - InRangeA) + OutRangeA;
+float UKismetMathLibrary::MapRangeClamped(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB)
+{ 
+	return FMath::GetMappedRangeValueClamped(FVector2D(InRangeA,InRangeB),FVector2D(OutRangeA,OutRangeB),Value);
 }
 
 float UKismetMathLibrary::MultiplyByPi(float Value)

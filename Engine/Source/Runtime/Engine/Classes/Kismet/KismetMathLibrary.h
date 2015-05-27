@@ -504,9 +504,13 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static float NormalizeToRange(float Value, float RangeMin, float RangeMax);
 
 	/** Returns Value mapped from one range into another.  (e.g. 20 normalized from the range 10->50 to 20->40 would result in 25) */
-	UFUNCTION(BlueprintPure, Category="Math|Float")
-	static float MapRange(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB);
+	UFUNCTION(BlueprintPure, Category="Math|Float", meta=(Keywords = "get mapped value"))
+	static float MapRangeUnclamped(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB);
 
+	/** Returns Value mapped from one range into another where the Value is clamped to the Input Range.  (e.g. 0.5 normalized from the range 0->1 to 0->50 would result in 25) */
+	UFUNCTION(BlueprintPure, Category="Math|Float", meta=(Keywords = "get mapped value"))
+	static float MapRangeClamped(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB);
+	
 	/** Multiplies the input value by pi. */
 	UFUNCTION(BlueprintPure, meta=(Keywords = "* multiply"), Category="Math|Float")
 	static float MultiplyByPi(float Value);
