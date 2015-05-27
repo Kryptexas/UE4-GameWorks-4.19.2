@@ -725,7 +725,7 @@ protected:
 
 	void PopulateVariableCategories();
 	
-	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder, const TArray<FSCSEditorTreeNodePtrType>& Nodes );
+	void AddExperimentalWarningCategory( IDetailLayoutBuilder& DetailBuilder, const TArray<TSharedPtr<class FSCSEditorTreeNode>>& Nodes );
 
 private:
 	/** Weak reference to the Blueprint editor */
