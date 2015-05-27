@@ -212,7 +212,7 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath(FVector2D DesktopSpaceCoor
 			}
 		}
 
-		return 	DirectBubblePathInfo.BubblePath;
+		return DirectBubblePathInfo.BubblePath;
 	}
 	else
 	{
@@ -602,8 +602,6 @@ void FHittestGrid::LogGrid() const
 			LogChildren( i, 0, *WidgetsCachedThisFrame );
 		}
 	}
-	
-
 }
 
 
