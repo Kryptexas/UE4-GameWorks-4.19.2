@@ -282,8 +282,10 @@ TSharedRef<SWidget> SAddContentWidget::CreateContentSourceDetail(TSharedPtr<FCon
 TSharedRef<SWidget> SAddContentWidget::CreateScreenshotCarousel(TSharedPtr<FContentSourceViewModel> ContentSource)
 {
 	return SNew(SWidgetCarouselWithNavigation<TSharedPtr<FSlateBrush>>)
-	.OnGenerateWidget(this, &SAddContentWidget::CreateScreenshotWidget)
-	.WidgetItemsSource(ContentSource->GetScreenshotBrushes());
+		.NavigationBarStyle(FWidgetCarouselModuleStyle::Get(), "CarouselNavigationButton")
+		.NavigationButtonStyle(FWidgetCarouselModuleStyle::Get(), "CarouselNavigationBar")
+		.OnGenerateWidget(this, &SAddContentWidget::CreateScreenshotWidget)
+		.WidgetItemsSource(ContentSource->GetScreenshotBrushes());
 }
 
 void SAddContentWidget::CategoryCheckBoxCheckStateChanged(ECheckBoxState CheckState, FCategoryViewModel Category)
