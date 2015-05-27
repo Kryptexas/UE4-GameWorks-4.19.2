@@ -453,16 +453,18 @@ void SCurveNameManager::OnDeleteNameClicked()
 					Sequence->RawCurveData.DeleteCurveData(Uid);
 				}
 			}
-
-			// Remove names from skeleton
-			CurrentSkeleton->Modify(true);
-			FSmartNameMapping* Mapping = CurrentSkeleton->SmartNames.GetContainer(ContainerName);
-			for(FSmartNameMapping::UID Uid : SelectedUids)
-			{
-				Mapping->Remove(Uid);
-			}
-
 			GWarn->EndSlowTask();
+		}
+	}
+
+	if(SelectedUids.Num() > 0)
+	{
+		// Remove names from skeleton
+		CurrentSkeleton->Modify(true);
+		FSmartNameMapping* Mapping = CurrentSkeleton->SmartNames.GetContainer(ContainerName);
+		for(FSmartNameMapping::UID Uid : SelectedUids)
+		{
+			Mapping->Remove(Uid);
 		}
 	}
 
