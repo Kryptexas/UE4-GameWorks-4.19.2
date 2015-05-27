@@ -355,6 +355,10 @@ void FUnrealEdMisc::OnInit()
 		{
 			AutomatedBuildSettings.BuildErrorBehavior = ParsedBool ? FEditorBuildUtils::ABB_ProceedOnError : FEditorBuildUtils::ABB_FailOnError;
 		}
+		if ( FParse::Bool( ParsedCmdLine, TEXT("UseSCC="), ParsedBool ) )
+		{
+			AutomatedBuildSettings.bUseSCC = ParsedBool;
+		}
 		if ( FParse::Bool( ParsedCmdLine, TEXT("IgnoreSCCErrors="), ParsedBool ) )
 		{
 			AutomatedBuildSettings.UnableToCheckoutFilesBehavior = ParsedBool ? FEditorBuildUtils::ABB_ProceedOnError : FEditorBuildUtils::ABB_FailOnError;

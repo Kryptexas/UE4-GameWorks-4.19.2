@@ -36,6 +36,7 @@ FEditorBuildUtils::FEditorAutomatedBuildSettings::FEditorAutomatedBuildSettings(
 	UnableToCheckoutFilesBehavior( ABB_PromptOnError ),
 	NewMapBehavior( ABB_PromptOnError ),
 	FailedToSaveBehavior( ABB_PromptOnError ),
+	bUseSCC( true ),
 	bAutoAddNewFiles( true ),
 	bShutdownEditorOnCompletion( false )
 {}
@@ -134,7 +135,7 @@ bool FEditorBuildUtils::EditorAutomatedBuildAndSubmit( const FEditorAutomatedBui
 	}
 
 	// Finally, if everything has gone smoothly, submit the requested packages to source control
-	if ( bBuildSuccessful )
+	if ( bBuildSuccessful && BuildSettings.bUseSCC )
 	{
 		SubmitPackagesForAutomatedBuild( PackagesToSubmit, BuildSettings );
 	}
@@ -513,17 +514,10 @@ bool FEditorBuildUtils::PrepForAutomatedBuild( const FEditorAutomatedBuildSettin
 
 	// Source control is required for the automated build, so ensure that SCC support is compiled in and
 	// that the server is enabled and available for use
-	if ( !ISourceControlModule::Get().IsEnabled() || !SourceControlProvider.IsAvailable() )
+	if ( BuildSettings.bUseSCC && !(ISourceControlModule::Get().IsEnabled() && SourceControlProvider.IsAvailable() ) )
 	{
 		bBuildSuccessful = false;
 		LogErrorMessage( NSLOCTEXT("UnrealEd", "AutomatedBuild_Error_SCCError", "Cannot connect to source control; automated build aborted."), OutErrorMessages );
-	}
-
-	// Empty changelists aren't allowed; abort the build if one wasn't provided
-	if ( bBuildSuccessful && BuildSettings.ChangeDescription.Len() == 0 )
-	{
-		bBuildSuccessful = false;
-		LogErrorMessage( NSLOCTEXT("UnrealEd", "AutomatedBuild_Error_NoCLDesc", "A changelist description must be provided; automated build aborted."), OutErrorMessages );
 	}
 
 	TArray<UPackage*> PreviouslySavedWorldPackages;
@@ -574,7 +568,7 @@ bool FEditorBuildUtils::PrepForAutomatedBuild( const FEditorAutomatedBuildSettin
 	// Load the asset tools module
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
-	if ( bBuildSuccessful )
+	if ( bBuildSuccessful && BuildSettings.bUseSCC )
 	{
 		// Update the source control status of any relevant world packages in order to determine which need to be
 		// checked out, added to the depot, etc.
@@ -601,6 +595,9 @@ bool FEditorBuildUtils::PrepForAutomatedBuild( const FEditorAutomatedBuildSettin
 						OutPkgsToSubmit.Remove( CurPackage );
 					}
 				}
+			}
+			else if(SourceControlState->IsCheckedOut())
+			{
 			}
 			else if(SourceControlState->CanCheckout())
 			{
@@ -767,7 +764,14 @@ void FEditorBuildUtils::SubmitPackagesForAutomatedBuild( const TSet<UPackage*>& 
 
 	// Now check in all the changes, including the files we added above
 	TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = StaticCastSharedRef<FCheckIn>(ISourceControlOperation::Create<FCheckIn>());
-	CheckInOperation->SetDescription(NSLOCTEXT("UnrealEd", "AutomatedBuild_AutomaticSubmission", "[Automatic Submission]"));
+	if (BuildSettings.ChangeDescription.IsEmpty())
+	{
+		CheckInOperation->SetDescription(NSLOCTEXT("UnrealEd", "AutomatedBuild_AutomaticSubmission", "[Automatic Submission]"));
+	}
+	else
+	{
+		CheckInOperation->SetDescription(FText::FromString(BuildSettings.ChangeDescription));
+	}
 	SourceControlProvider.Execute( CheckInOperation, LevelsToSubmit, EConcurrency::Synchronous );
 }
 
