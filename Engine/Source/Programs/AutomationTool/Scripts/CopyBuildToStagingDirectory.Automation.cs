@@ -1474,6 +1474,7 @@ public partial class Project : CommandUtils
 							if (bRequireStagedFilesToExist)
 							{
 								// if we aren't collecting multiple platforms, then it is expected to exist
+								AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);
 								throw new AutomationException("Missing receipt '{0}'. Check that this target has been built.", Path.GetFileName(ReceiptFileName));
 							}
 							else
