@@ -49,7 +49,7 @@ class UDataTable
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITORONLY_DATA
 	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	virtual void PostLoad() override;
+	ENGINE_API virtual void PostLoad() override;
 
 	UPROPERTY()
 	class UAssetImportData* AssetImportData;
