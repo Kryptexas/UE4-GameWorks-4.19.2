@@ -131,11 +131,6 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	// set camera mode
 	bCameraFollow = false;
 
-	//wind actor's initial position, rotation and strength
-	PrevWindLocation = FVector(100, 100, 100);
-	PrevWindRotation = FRotator(0,0,0); // roll, yaw, pitch
-	PrevWindStrength = 0.2f;
-
 	bDrawUVs = false;
 	UVChannelToDraw = 0;
 
@@ -146,6 +141,25 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	if(World)
 	{
 		World->bAllowAudioPlayback = !ConfigOption->bMuteAudio;
+	}
+
+	// Grab a wind actor if it exists (could have been placed in the scene before a mode transition)
+	TActorIterator<AWindDirectionalSource> WindIter(World);
+	if(WindIter)
+	{
+		AWindDirectionalSource* WindActor = *WindIter;
+		WindSourceActor = WindActor;
+
+		PrevWindLocation = WindActor->GetActorLocation();
+		PrevWindRotation = WindActor->GetActorRotation();
+		PrevWindStrength = WindActor->GetComponent()->Strength;
+	}
+	else
+	{
+		//wind actor's initial position, rotation and strength
+		PrevWindLocation = FVector(100, 100, 100);
+		PrevWindRotation = FRotator(0, 0, 0); // roll, yaw, pitch
+		PrevWindStrength = 0.2f;
 	}
 }
 
@@ -2148,7 +2162,7 @@ void FAnimationViewportClient::EnableWindActor(bool bEnableWind)
 			WindSourceActor = CreateWindActor(World);
 		}
 	}
-	else
+	else if(WindSourceActor.IsValid())
 	{
 		PrevWindLocation = WindSourceActor->GetActorLocation();
 		PrevWindRotation = WindSourceActor->GetActorRotation();
