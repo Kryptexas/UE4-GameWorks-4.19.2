@@ -430,8 +430,8 @@ namespace UnrealBuildTool
 
 		public override List<string> FinalizeBinaryPaths(string BinaryName)
 		{
-			string[] Architectures = AndroidToolChain.GetAllArchitectures();
-			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			var Architectures = AndroidToolChain.GetAllArchitectures();
+			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 
 			// make multiple output binaries
 			List<string> AllBinaries = new List<string>();

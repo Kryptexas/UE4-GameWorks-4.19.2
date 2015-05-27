@@ -114,8 +114,8 @@ public class AndroidPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
-		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
+		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
+		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk(false);
 
@@ -300,8 +300,8 @@ public class AndroidPlatform : Platform
 			throw new AutomationException(ErrorString);
 		}
 
-		string[] Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
-		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
+		var Architectures = UnrealBuildTool.AndroidToolChain.GetAllArchitectures();
+		var GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 		bool bPackageDataInsideApk = UnrealBuildTool.Android.UEDeployAndroid.PackageDataInsideApk(false);
 
@@ -506,7 +506,7 @@ public class AndroidPlatform : Platform
 		// Setup the OBB name and add the storage path (queried from the device) to it
 		string DeviceStorageQueryCommand = GetStorageQueryCommand();
 		ProcessResult Result = RunAdbCommand(Params, DeviceStorageQueryCommand, null, ERunOptions.AppMustExist);
-		String StorageLocation = Result.Output.Trim();
+        String StorageLocation = Result.Output.Trim(); // "/mnt/sdcard";
 		string DeviceObbName = StorageLocation + "/" + GetDeviceObbName(ApkName);
 		string RemoteDir = StorageLocation + "/UE4Game/" + Params.ShortProjectName;
 
@@ -862,7 +862,7 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		string[] AppArchitectures = AndroidToolChain.GetAllArchitectures();
+		var AppArchitectures = AndroidToolChain.GetAllArchitectures();
 
 		// ask the device
 		ProcessResult ABIResult = RunAdbCommand(Params, " shell getprop ro.product.cpu.abi", null, ERunOptions.AppMustExist);
@@ -871,7 +871,7 @@ public class AndroidPlatform : Platform
 		string DeviceArch = UnrealBuildTool.Android.UEDeployAndroid.GetUE4Arch(ABIResult.Output.Trim());
 
 		// if the architecture wasn't built, look for a backup
-		if (Array.IndexOf(AppArchitectures, DeviceArch) == -1)
+		if (!AppArchitectures.Contains(DeviceArch))
 		{
 			// go from 64 to 32-bit
 			if (DeviceArch == "-arm64")
@@ -881,7 +881,7 @@ public class AndroidPlatform : Platform
 			// go from 64 to 32-bit
 			else if (DeviceArch == "-x64")
 			{
-				if (Array.IndexOf(AppArchitectures, "-x86") != -1)
+				if (!AppArchitectures.Contains("-x86"))
 				{
 					DeviceArch = "-x86";
 				}
@@ -910,7 +910,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// if after the fallbacks, we still don't have it, we can't continue
-		if (Array.IndexOf(AppArchitectures, DeviceArch) == -1)
+		if (!AppArchitectures.Contains(DeviceArch))
 		{
 			string ErrorString = String.Format("Unable to run because you don't have an apk that is usable on {0}. Looked for {1}", Params.Device, DeviceArch);
             ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_NoApkSuitableForArchitecture);
@@ -929,7 +929,7 @@ public class AndroidPlatform : Platform
 			return "";
 		}
 
-		string[] AppGPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+		var AppGPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 
 		// get the device extensions
 		ProcessResult ExtensionsResult = RunAdbCommand(Params, "shell dumpsys SurfaceFlinger", null, ERunOptions.AppMustExist);

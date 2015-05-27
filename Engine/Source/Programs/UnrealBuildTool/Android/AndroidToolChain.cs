@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Microsoft.Win32;
 
 namespace UnrealBuildTool
@@ -15,11 +16,11 @@ namespace UnrealBuildTool
 		static private float ClangVersionFloat = 0;
 
 		// the list of architectures we will compile for
-		static private string[] Arches = null;
+		static private List<string> Arches = null;
 		// the list of GPU architectures we will compile for
-		static private string[] GPUArchitectures = null;
+		static private List<string> GPUArchitectures = null;
 		// a list of all architecture+GPUArchitecture names (-armv7-es2, etc)
-		static private string[] AllComboNames = null;
+		static private List<string> AllComboNames = null;
 
 		static private Dictionary<string, string[]> AllArchNames = new Dictionary<string, string[]> {
 			{ "-armv7", new string[] { "armv7", "armeabi-v7a", } }, 
@@ -39,63 +40,74 @@ namespace UnrealBuildTool
 		{
 			// look in ini settings for what platforms to compile for
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
-			List<string> ProjectArches = new List<string>();
+            Arches = new List<string>();
 			bool bBuild = true;
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArmV7", out bBuild) && bBuild)
 			{
-				ProjectArches.Add("-armv7");
+                Arches.Add("-armv7");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForArm64", out bBuild) && bBuild)
 			{
-				ProjectArches.Add("-arm64");
+                Arches.Add("-arm64");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx86", out bBuild) && bBuild)
 			{
-				ProjectArches.Add("-x86");
+                Arches.Add("-x86");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild)
 			{
-				ProjectArches.Add("-x64");
+                Arches.Add("-x64");
 			}
 
 			// force armv7 if something went wrong
-			if (ProjectArches.Count == 0)
+            if (Arches.Count == 0)
 			{
-				ProjectArches.Add("-armv7");
+                Arches.Add("-armv7");
 			}
 
-			Arches = ProjectArches.ToArray();
-
 			// Parse selected GPU architectures
-			List<string> ProjectGPUArches = new List<string>();
+            GPUArchitectures = new List<string>();
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES2", out bBuild) && bBuild)
 			{
-				ProjectGPUArches.Add("-es2");
+                GPUArchitectures.Add("-es2");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForES31", out bBuild) && bBuild)
 			{
-				ProjectGPUArches.Add("-es31");
+                GPUArchitectures.Add("-es31");
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForGL4", out bBuild) && bBuild)
 			{
-				ProjectGPUArches.Add("-gl4");
+                GPUArchitectures.Add("-gl4");
 			}
-			if (ProjectGPUArches.Count == 0)
+            if (GPUArchitectures.Count == 0)
 			{
-				ProjectGPUArches.Add("-es2");
+                GPUArchitectures.Add("-es2");
 			}
-			GPUArchitectures = ProjectGPUArches.ToArray();
 
-			List<string> FullArchCombinations = new List<string>();
-			foreach (string Arch in Arches)
-			{
-				foreach (string GPUArch in GPUArchitectures)
-				{
-					FullArchCombinations.Add(Arch + GPUArch);
-				}
-			}
-			AllComboNames = FullArchCombinations.ToArray();
+            AllComboNames = (from Arch in Arches
+                            from GPUArch in GPUArchitectures
+                             select Arch + GPUArch).ToList();
 		}
+
+        static public string GetGLESVersionFromGPUArch(string GPUArch)
+        {
+            GPUArch = GPUArch.Substring(1); // drop the '-' from the start
+            string GLESversion = "";
+            switch (GPUArch)
+            {
+                case "es2":
+                    GLESversion = "0x00020000";
+                    break;
+                case "es31":
+                    GLESversion = "0x00030001";
+                    break;
+                default:
+                    GLESversion = "0x00020000";
+                    break;
+            }
+
+            return GLESversion;
+        }
 
 		public override void SetUpGlobalEnvironment()
 		{
@@ -104,7 +116,7 @@ namespace UnrealBuildTool
 			ParseArchitectures();
 		}
 
-		static public string[] GetAllArchitectures()
+		static public List<string> GetAllArchitectures()
 		{
 			if (Arches == null)
 			{
@@ -114,7 +126,7 @@ namespace UnrealBuildTool
 			return Arches;
 		}
 
-		static public string[] GetAllGPUArchitectures()
+		static public List<string> GetAllGPUArchitectures()
 		{
 			if (GPUArchitectures == null)
 			{
@@ -584,7 +596,7 @@ namespace UnrealBuildTool
 		static private bool bHasPrintedApiLevel = false;
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			if (Arches.Length == 0)
+			if (Arches.Count == 0)
 			{
 				throw new BuildException("At least one architecture (armv7, x86, etc) needs to be selected in the project settings to build");
 			}
@@ -802,13 +814,13 @@ namespace UnrealBuildTool
 		{
 			List<FileItem> Outputs = new List<FileItem>();
 
-			for (int ArchIndex = 0; ArchIndex < Arches.Length; ArchIndex++)
+			for (int ArchIndex = 0; ArchIndex < Arches.Count; ArchIndex++)
 			{
 				string Arch = Arches[ArchIndex];
-				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Length; GPUArchIndex++)
+				for (int GPUArchIndex = 0; GPUArchIndex < GPUArchitectures.Count; GPUArchIndex++)
 				{
 					string GPUArchitecture = GPUArchitectures[GPUArchIndex];
-					int OutputPathIndex = ArchIndex * GPUArchitectures.Length + GPUArchIndex;
+					int OutputPathIndex = ArchIndex * GPUArchitectures.Count + GPUArchIndex;
 
 					// Android will have an array of outputs
 					if (LinkEnvironment.Config.OutputFilePaths.Count < OutputPathIndex ||
