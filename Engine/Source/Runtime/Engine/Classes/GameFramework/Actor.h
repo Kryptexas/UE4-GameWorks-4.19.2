@@ -317,12 +317,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Replicated, Category=Actor)
 	uint32 bCanBeDamaged:1;
 
+private:
 	/**
 	 * Set when actor is about to be deleted.
-	 * @see IsPendingKillPending()
 	 */
 	UPROPERTY(Transient, DuplicateTransient)
-	uint32 bPendingKillPending:1;    
+	uint32 bActorIsBeingDestroyed:1;    
+
+public:
 
 	/** This actor collides with the world when placing in the editor or when spawned, even if RootComponent collision is disabled */
 	UPROPERTY()
@@ -1022,6 +1024,12 @@ public:
 
 	/** Returns whether an actor has had BeginPlay called on it (and not subsequently had EndPlay called) */
 	bool HasActorBegunPlay() const { return bActorHasBegunPlay; }
+
+	UFUNCTION(BlueprintCallable, Category="Game")
+	bool IsActorBeingDestroyed() const 
+	{
+		return bActorIsBeingDestroyed;
+	}
 
 	/** Event when this actor takes ANY damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(DisplayName = "AnyDamage"), Category="Game|Damage")
@@ -1835,7 +1843,7 @@ public:
 	 **/
 	inline bool IsPendingKillPending() const
 	{
-		return bPendingKillPending || IsPendingKill();
+		return bActorIsBeingDestroyed || IsPendingKill();
 	}
 
 	/** Invalidate lighting cache with default options. */
@@ -2432,6 +2440,19 @@ private:
 
 	// Helper that already assumes the Hit info is reversed, and avoids creating a temp FHitResult if possible.
 	void InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit);
+
+	friend struct FMarkActorIsBeingDestroyed;
+};
+
+struct FMarkActorIsBeingDestroyed
+{
+private:
+	FMarkActorIsBeingDestroyed(AActor* InActor)
+	{
+		InActor->bActorIsBeingDestroyed = true;
+	}
+
+	friend UWorld;
 };
 
 /**

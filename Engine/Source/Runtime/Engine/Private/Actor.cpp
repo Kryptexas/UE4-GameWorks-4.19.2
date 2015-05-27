@@ -92,7 +92,6 @@ void AActor::InitializeDefaults()
 	InputConsumeOption_DEPRECATED = ICO_ConsumeBoundKeys;
 	bBlockInput = false;
 	bCanBeDamaged = true;
-	bPendingKillPending = false;
 	bFindCameraComponentWhenViewTarget = true;
 	bAllowReceiveTickEventOnDedicatedServer = true;
 	bRelevantForNetworkReplays = true;

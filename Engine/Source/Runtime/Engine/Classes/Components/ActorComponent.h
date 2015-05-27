@@ -136,6 +136,9 @@ private:
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
 	uint32 bHasBegunPlay:1;
 
+	/** Indicates the the destruction process has begun for this component to avoid recursion */
+	uint32 bIsBeingDestroyed:1;
+
 #if WITH_EDITOR
 	/** During undo/redo it isn't safe to cache owner */
 	uint32 bCanUseCachedOwner:1;
@@ -169,6 +172,12 @@ public:
 	bool HasBeenCreated() const { return bHasBeenCreated; }
 	bool HasBeenInitialized() const { return bHasBeenInitialized; }
 	bool HasBegunPlay() const { return bHasBegunPlay; }
+
+	UFUNCTION(BlueprintCallable, Category="Components")
+	bool IsBeingDestroyed() const
+	{
+		return bIsBeingDestroyed;
+	}
 
 	bool IsCreatedByConstructionScript() const;
 

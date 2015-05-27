@@ -873,6 +873,14 @@ void UActorComponent::UnregisterComponent()
 
 void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
+	// Avoid re-entrancy
+	if (bIsBeingDestroyed)
+	{
+		return;
+	}
+
+	bIsBeingDestroyed = true;
+
 	if (bHasBegunPlay)
 	{
 		EndPlay(EEndPlayReason::Destroyed);

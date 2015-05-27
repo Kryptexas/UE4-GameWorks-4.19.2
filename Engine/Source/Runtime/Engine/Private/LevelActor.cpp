@@ -456,7 +456,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	}
 
 	// Prevent recursion
-	ThisActor->bPendingKillPending = true;
+	FMarkActorIsBeingDestroyed MarkActorIsBeingDestroyed(ThisActor);
 
 	// Notify the texture streaming manager about the destruction of this actor.
 	IStreamingManager::Get().NotifyActorDestroyed( ThisActor );
