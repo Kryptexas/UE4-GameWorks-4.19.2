@@ -171,7 +171,7 @@ void UDataTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 void UDataTable::PostLoad()
 {
 	Super::PostLoad();
-	if (!ImportPath_DEPRECATED.IsEmpty())
+	if (!ImportPath_DEPRECATED.IsEmpty() && AssetImportData)
 	{
 		FAssetImportInfo Info;
 		Info.Insert(FAssetImportInfo::FSourceFile(ImportPath_DEPRECATED));

@@ -270,7 +270,7 @@ void UTexture::PostLoad()
 	Super::PostLoad();
 
 #if WITH_EDITORONLY_DATA
-	if (!SourceFilePath_DEPRECATED.IsEmpty())
+	if (!SourceFilePath_DEPRECATED.IsEmpty() && AssetImportData)
 	{
 		FAssetImportInfo Info;
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));

@@ -837,7 +837,10 @@ UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
+	if (AssetImportData)
+	{
+		OutTags.Add(FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden));
+	}
 
 	Super::GetAssetRegistryTags(OutTags);
 }
@@ -845,7 +848,7 @@ void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 void UCurveBase::PostLoad()
 {
 	Super::PostLoad();
-	if (!ImportPath_DEPRECATED.IsEmpty())
+	if (!ImportPath_DEPRECATED.IsEmpty() && AssetImportData)
 	{
 		FAssetImportInfo Info;
 		Info.Insert(FAssetImportInfo::FSourceFile(ImportPath_DEPRECATED));
