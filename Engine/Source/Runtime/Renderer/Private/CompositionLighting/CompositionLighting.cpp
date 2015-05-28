@@ -21,6 +21,7 @@
 #include "PostProcessTemporalAA.h"
 #include "PostProcessSubsurface.h"
 #include "SceneUtils.h"
+#include "LightPropagationVolumeBlendable.h"
 
 /** The global center for all deferred lighting activities. */
 FCompositionLighting GCompositionLighting;
@@ -56,7 +57,9 @@ static bool IsLpvIndirectPassRequired(FPostprocessContext& Context)
 	{
 		FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
 
-		if(LightPropagationVolume && Context.View.FinalPostProcessSettings.LPVIntensity > 0.0f)
+		const FLightPropagationVolumeSettings& LPVSettings = Context.View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+		if(LightPropagationVolume && LPVSettings.LPVIntensity > 0.0f)
 		{
 			return true; 
 		}

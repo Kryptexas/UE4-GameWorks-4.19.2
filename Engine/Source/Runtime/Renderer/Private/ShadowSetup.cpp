@@ -7,6 +7,7 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "LightPropagationVolume.h"
+#include "LightPropagationVolumeBlendable.h"
 
 static float GMinScreenRadiusForShadowCaster = 0.03f;
 static FAutoConsoleVariableRef CVarMinScreenRadiusForShadowCaster(
@@ -2246,8 +2247,10 @@ void FSceneRenderer::AddViewDependentWholeSceneShadowsForView(
 			if (ViewState)
 			{
 				FLightPropagationVolume* LightPropagationVolume = ViewState->GetLightPropagationVolume();
+				
+				FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalData<FLightPropagationVolumeSettings>();
 
-				if (LightPropagationVolume && LightPropagationVolume->bInitialized && View.FinalPostProcessSettings.LPVIntensity > 0)
+				if (LightPropagationVolume && LightPropagationVolume->bInitialized && LPVSettings.LPVIntensity > 0)
 				{
 					// Generate the RSM shadow info
 					FWholeSceneProjectedShadowInitializer ProjectedShadowInitializer;

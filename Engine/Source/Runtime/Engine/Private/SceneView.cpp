@@ -17,6 +17,7 @@
 #include "Engine/TextureCube.h"
 #include "IHeadMountedDisplay.h"
 #include "Classes/Engine/RendererSettings.h"
+#include "LightPropagationVolumeBlendable.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -801,13 +802,6 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	LERP_PP(BloomDirtMaskTint);
 	LERP_PP(AmbientCubemapIntensity);
 	LERP_PP(AmbientCubemapTint);
-	LERP_PP(LPVIntensity);
-	LERP_PP(LPVDirectionalOcclusionIntensity);
-	LERP_PP(LPVDirectionalOcclusionRadius);
-	LERP_PP(LPVSpecularOcclusionExponent);
-	LERP_PP(LPVDiffuseOcclusionExponent);
-	LERP_PP(LPVDiffuseOcclusionIntensity);
-	LERP_PP(LPVSpecularOcclusionIntensity);
 	LERP_PP(AutoExposureLowPercent);
 	LERP_PP(AutoExposureHighPercent);
 	LERP_PP(AutoExposureMinBrightness);
@@ -901,16 +895,6 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 		Dest.LensFlareBokehShape = Src.LensFlareBokehShape;
 	}
 
-	if(Src.bOverride_LPVSize)
-	{
-		Dest.LPVSize = Src.LPVSize;
-	}
-	LERP_PP( LPVSecondaryOcclusionIntensity );
-	LERP_PP( LPVSecondaryBounceIntensity );
-	LERP_PP( LPVVplInjectionBias );
-	LERP_PP( LPVGeometryVolumeBias );
-	LERP_PP( LPVEmissiveInjectionIntensity );
-
 	if(Src.bOverride_LensFlareTints)
 	{
 		for(uint32 i = 0; i < 8; ++i)
@@ -932,6 +916,30 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 	if(Src.bOverride_AntiAliasingMethod)
 	{
 		Dest.AntiAliasingMethod = Src.AntiAliasingMethod;
+	}
+	
+	// will be deprecated soon, use the new asset LightPropagationVolumeBlendable instead
+	{
+		FLightPropagationVolumeSettings& Dest = FinalPostProcessSettings.BlendableManager.GetSingleFinalData<FLightPropagationVolumeSettings>();
+		const float Weight = 1.0f;
+
+		LERP_PP(LPVIntensity);
+		LERP_PP(LPVSecondaryOcclusionIntensity);
+		LERP_PP(LPVSecondaryBounceIntensity);
+		LERP_PP(LPVVplInjectionBias);
+		LERP_PP(LPVGeometryVolumeBias);
+		LERP_PP(LPVEmissiveInjectionIntensity);
+		LERP_PP(LPVDirectionalOcclusionIntensity);
+		LERP_PP(LPVDirectionalOcclusionRadius);
+		LERP_PP(LPVDiffuseOcclusionExponent);
+		LERP_PP(LPVSpecularOcclusionExponent);
+		LERP_PP(LPVDiffuseOcclusionIntensity);
+		LERP_PP(LPVSpecularOcclusionIntensity);
+
+		if (Src.bOverride_LPVSize)
+		{
+			Dest.LPVSize = Src.LPVSize;
+		}
 	}
 
 	// Blendable objects
@@ -1082,14 +1090,24 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 
 void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions)
 {
-	if(FinalPostProcessSettings.LPVDirectionalOcclusionIntensity < 0.001f)
+	// will be deprecated soon, use the new asset LightPropagationVolumeBlendable instead
 	{
-		FinalPostProcessSettings.LPVDirectionalOcclusionIntensity = 0.0f;
-	}
+		FLightPropagationVolumeSettings& Dest = FinalPostProcessSettings.BlendableManager.GetSingleFinalData<FLightPropagationVolumeSettings>();
 
-	if(FinalPostProcessSettings.LPVIntensity < 0.001f)
-	{
-		FinalPostProcessSettings.LPVIntensity = 0.0f;
+		if(Dest.LPVDirectionalOcclusionIntensity < 0.001f)
+		{
+			Dest.LPVDirectionalOcclusionIntensity = 0.0f;
+		}
+
+		if (Dest.LPVIntensity < 0.001f)
+		{
+			Dest.LPVIntensity = 0.0f;
+		}
+
+		if(!Family->EngineShowFlags.GlobalIllumination)
+		{
+			Dest.LPVIntensity = 0.0f;
+		}
 	}
 
 	{
@@ -1116,11 +1134,6 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 	if(!Family->EngineShowFlags.Bloom)
 	{
 		FinalPostProcessSettings.BloomIntensity = 0.0f;
-	}
-
-	if(!Family->EngineShowFlags.GlobalIllumination)
-	{
-		FinalPostProcessSettings.LPVIntensity = 0.0f;
 	}
 
 	{

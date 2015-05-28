@@ -88,6 +88,8 @@ public class Engine : ModuleRules
 			}
 		);
 
+        PrivateIncludePathModuleNames.Add("LightPropagationVolumeRuntime");
+
 		if (Target.Type != TargetRules.TargetType.Server)
 		{
 			PrivateIncludePathModuleNames.AddRange(

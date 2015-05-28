@@ -15,6 +15,7 @@
 #include "LightPropagationVolume.h"
 #include "UniformBuffer.h"
 #include "SceneUtils.h"
+#include "LightPropagationVolumeBlendable.h"
 
 static TAutoConsoleVariable<int32> CVarLightPropagationVolume(
 	TEXT("r.LightPropagationVolume"),
@@ -894,15 +895,17 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 		bInitialized = true;
 	}  
 
+	const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
 	// Copy the LPV postprocess settings
-	Strength	 = View.FinalPostProcessSettings.LPVIntensity;
+	Strength	 = LPVSettings.LPVIntensity;
 	bEnabled     = Strength > 0.0f;
-	CubeSize	 = View.FinalPostProcessSettings.LPVSize;
+	CubeSize	 = LPVSettings.LPVSize;
 
-	SecondaryOcclusionStrength = View.FinalPostProcessSettings.LPVSecondaryOcclusionIntensity;
-	SecondaryBounceStrength = View.FinalPostProcessSettings.LPVSecondaryBounceIntensity;
+	SecondaryOcclusionStrength =LPVSettings.LPVSecondaryOcclusionIntensity;
+	SecondaryBounceStrength =LPVSettings.LPVSecondaryBounceIntensity;
 
-	bGeometryVolumeNeeded = View.FinalPostProcessSettings.LPVSecondaryOcclusionIntensity > 0.001f || View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.001;
+	bGeometryVolumeNeeded =LPVSettings.LPVSecondaryOcclusionIntensity > 0.001f ||LPVSettings.LPVDirectionalOcclusionIntensity > 0.001;
 	GeometryVolumeGenerated = false;
 
 	if ( !bEnabled )
@@ -952,20 +955,20 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 		LpvWriteUniformBufferParams->SecondaryBounceStrength = SecondaryBounceStrength;
 
 		// Convert the bias values from LPV grid space to world space
-		LpvWriteUniformBufferParams->GeometryVolumeInjectionBias	= View.FinalPostProcessSettings.LPVGeometryVolumeBias * LpvScale;
-		LpvWriteUniformBufferParams->VplInjectionBias				= View.FinalPostProcessSettings.LPVVplInjectionBias * LpvScale;
+		LpvWriteUniformBufferParams->GeometryVolumeInjectionBias	= LPVSettings.LPVGeometryVolumeBias * LpvScale;
+		LpvWriteUniformBufferParams->VplInjectionBias				= LPVSettings.LPVVplInjectionBias * LpvScale;
 		LpvWriteUniformBufferParams->PropagationIndex				= 0;
-		LpvWriteUniformBufferParams->EmissiveInjectionMultiplier	= View.FinalPostProcessSettings.LPVEmissiveInjectionIntensity
+		LpvWriteUniformBufferParams->EmissiveInjectionMultiplier	= LPVSettings.LPVEmissiveInjectionIntensity
 			* LpvWriteUniformBufferParams->RsmAreaIntensityMultiplier * CVarLPVEmissiveIntensityMultiplier.GetValueOnRenderThread() * 0.25f;
-		LpvWriteUniformBufferParams->DirectionalOcclusionIntensity	= View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity;
-		LpvWriteUniformBufferParams->DirectionalOcclusionRadius		= View.FinalPostProcessSettings.LPVDirectionalOcclusionRadius;
+		LpvWriteUniformBufferParams->DirectionalOcclusionIntensity	= LPVSettings.LPVDirectionalOcclusionIntensity;
+		LpvWriteUniformBufferParams->DirectionalOcclusionRadius		= LPVSettings.LPVDirectionalOcclusionRadius;
 		LpvWriteUniformBufferParams->RsmPixelToTexcoordMultiplier	= 1.0f / float(GSceneRenderTargets.GetReflectiveShadowMapResolution() - 1);
 
-		LpvReadUniformBufferParams.DirectionalOcclusionIntensity	= View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity;
-		LpvReadUniformBufferParams.DiffuseOcclusionExponent			= View.FinalPostProcessSettings.LPVDiffuseOcclusionExponent;
-		LpvReadUniformBufferParams.SpecularOcclusionExponent		= View.FinalPostProcessSettings.LPVSpecularOcclusionExponent;
-		LpvReadUniformBufferParams.DiffuseOcclusionIntensity		= View.FinalPostProcessSettings.LPVDiffuseOcclusionIntensity;
-		LpvReadUniformBufferParams.SpecularOcclusionIntensity		= View.FinalPostProcessSettings.LPVSpecularOcclusionIntensity;
+		LpvReadUniformBufferParams.DirectionalOcclusionIntensity	= LPVSettings.LPVDirectionalOcclusionIntensity;
+		LpvReadUniformBufferParams.DiffuseOcclusionExponent			= LPVSettings.LPVDiffuseOcclusionExponent;
+		LpvReadUniformBufferParams.SpecularOcclusionExponent		= LPVSettings.LPVSpecularOcclusionExponent;
+		LpvReadUniformBufferParams.DiffuseOcclusionIntensity		= LPVSettings.LPVDiffuseOcclusionIntensity;
+		LpvReadUniformBufferParams.SpecularOcclusionIntensity		= LPVSettings.LPVSpecularOcclusionIntensity;
 
 		LpvReadUniformBufferParams.mLpvGridOffset		= mGridOffset;
 		LpvReadUniformBufferParams.LpvScale				= LpvScale;

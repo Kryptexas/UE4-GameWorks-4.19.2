@@ -1,0 +1,27 @@
+{
+    "FileVersion": 3,
+
+    "FriendlyName": "LightPropagationVolume",
+    "Version": 1,
+    "VersionName": "1.0",
+    "CreatedBy": "Epic Games, Inc.",
+    "CreatedByURL": "http://epicgames.com",
+    "EngineVersion": "4.2.0",
+    "Description": "todo",
+    "Category": "3D",
+    "EnabledByDefault": true,
+
+    "Modules": [
+        {
+            "Name": "LightPropagationVolumeRuntime",
+            "Type": "Runtime",
+            "LoadingPhase": "PreDefault"
+        },
+        {
+			"Name" : "LightPropagationVolumeEditor",
+			"Type" : "Editor"
+		},
+    ],
+
+	"CanContainContent" : true
+}

@@ -972,7 +972,10 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 
 		bool bLPV = false;
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-		if ( ViewState != nullptr && ViewState->GetLightPropagationVolume() != nullptr && View.FinalPostProcessSettings.LPVIntensity > 0.0f )
+		
+		const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+		if ( ViewState != nullptr && ViewState->GetLightPropagationVolume() != nullptr && LPVSettings.LPVIntensity > 0.0f )
 		{
 			bLPV = true;
 		} 

@@ -11,6 +11,7 @@
 #include "LightPropagationVolume.h"
 #include "SceneUtils.h"
 #include "HdrCustomResolveShaders.h"
+#include "Public/LightPropagationVolumeBlendable.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGBufferResourceStruct,TEXT("GBuffers"));
 
@@ -20,7 +21,7 @@ static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocityDebug(
 	TEXT("Debug settings for Base Pass outputting velocity.\n")
 	TEXT("0 - Regular rendering\n")
 	TEXT("1 - Skip setting GBufferVelocity RT\n")
-	TEXT("2 - Set Color Mask 0 for GBufferVelocity RT\n"),
+	TEXT("2 - Set Color Mask 0 for GBufferVelocity RT"),
 	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarRSMResolution(
@@ -2015,9 +2016,12 @@ void FSceneTextureShaderParameters::Set(
 	{
 		bool bDirectionalOcclusion = false;
 		FSceneViewState* ViewState = (FSceneViewState*)View.State;
-		if ( ViewState != nullptr && ViewState->GetLightPropagationVolume() != nullptr && View.FinalPostProcessSettings.LPVIntensity > 0.0f )
+
+		const FLightPropagationVolumeSettings& LPVSettings = View.FinalPostProcessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+		if ( ViewState != nullptr && ViewState->GetLightPropagationVolume() != nullptr && LPVSettings.LPVIntensity > 0.0f )
 		{
-			if ( View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
+			if ( LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
 			{
 				bDirectionalOcclusion = true;
 			}

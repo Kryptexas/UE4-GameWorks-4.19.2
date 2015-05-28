@@ -18,6 +18,7 @@
 #include "LightPropagationVolume.h"
 #include "UniformBuffer.h"
 #include "SceneUtils.h"
+#include "LightPropagationVolumeBlendable.h"
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLpvReadUniformBufferParameters,TEXT("LpvRead"));
 typedef TUniformBufferRef<FLpvReadUniformBufferParameters> FLpvReadUniformBufferRef;
@@ -214,11 +215,12 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 		check(PassOutputs[0].RenderTargetDesc.Extent.Y);
 	}
 
-	const FPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
+	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
 	const FSceneView& View = Context.View;
+	const FLightPropagationVolumeSettings& LPVSettings = PostprocessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || PostprocessSettings.LPVIntensity == 0.0f )
+	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || LPVSettings.LPVIntensity == 0.0f )
 	{
 		return;
 	}
@@ -243,7 +245,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	// Make sure the LPV Update has completed
 	Lpv->InsertGPUWaitForAsyncUpdate(Context.RHICmdList);
 
-	if ( Context.View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
+	if ( LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
 	{
 		DoDirectionalOcclusionPass(Context);
 	}
@@ -326,7 +328,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 		}
 	}
 
-	if ( Context.View.FinalPostProcessSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
+	if ( LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
 	{
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, GSceneRenderTargets.DirectionalOcclusion);
 	}
@@ -338,8 +340,10 @@ void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingComposi
 	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = GSceneRenderTargets.DirectionalOcclusion->GetRenderTargetItem();
 	FViewInfo& View = Context.View;
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
-	const FPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
-	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || PostprocessSettings.LPVIntensity == 0.0f )
+	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
+	const FLightPropagationVolumeSettings& LPVSettings = PostprocessSettings.BlendableManager.GetSingleFinalDataConst<FLightPropagationVolumeSettings>();
+
+	if ( ViewState == nullptr || ViewState->GetLightPropagationVolume() == nullptr || LPVSettings.LPVIntensity == 0.0f )
 	{
 		return;
 	}
