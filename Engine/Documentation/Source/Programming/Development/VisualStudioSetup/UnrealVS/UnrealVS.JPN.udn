@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2432063
+﻿INTSourceChangelist:2566867
 Availability:Public
 Title:UnrealVS 拡張
 Crumbs: %ROOT%, GettingStarted, Programming, Programming/Development/VisualStudioSetup
@@ -55,7 +55,7 @@ UnrealVS 拡張は **Visual Studio Express** 版と **連動しません。**Vis
 
 	![UnrealVS Toolbar](unrealvs_toolbar_cmd.png)
 
-1. デフォルトで、ツールバーは上の図のように表示されますが、その内容は以下の手順でカスタマイズできます。**Tools->Customize...** で、**[Commands]** タブにある **[UnrealVS]** ツールバーを選択します。
+1. デフォルトで、ツールバーは上の図のように表示されますが、その内容は以下の手順でカスタマイズできます。**Tools->Customize...** で、**[コマンド]** タブにある **[UnrealVS]** ツールバーを選択します。
 
 	![UnrealVS Customize Toolbar](toolbar_customize.png)
 
@@ -158,8 +158,8 @@ UnrealVS オプションに何を一覧表示するかを変更することが�
 1. **UnrealVS Batch Builder** ウィンドウが表示されます。
 
 	![Batch Builder Window](batchbuilder_window.png)
-	* Project、Config、Platform、ジョブ タイプを設定して **Build Job** を作成します。
 
+	* Project、Config、Platform、ジョブ タイプを設定して **Build Job** を作成します。
 	* 矢印ボタンでジョブを追加/削除します。
 	* 矢印ボタンで選択したジョブをリスト内で上下に移動します。
 	* こうしたコントロールでコンボボックスに現在表示されている **ジョブセット** を編集します。
