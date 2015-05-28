@@ -1686,7 +1686,12 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		// If the world scene allows audio - tick wave instances.
 		else if( ActiveSound->World == NULL || ActiveSound->World->AllowAudioPlayback() )
 		{
-			if (ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. Index %d. AudioComponent=%s"), i, ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT") ))
+			if (ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound at address 0x%08x. Index %d. AudioComponent=%s. AudioComponent->Sound=%s. Address of AudioComponent->Sound=0x%08x"),
+				ActiveSound->Sound,
+				i,
+				ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT"),
+				ActiveSound->AudioComponent.IsValid() ? ( ActiveSound->AudioComponent->Sound ? (ActiveSound->AudioComponent->Sound->IsValidLowLevel() ? *ActiveSound->AudioComponent->Sound->GetName() : TEXT("INVALID")) : TEXT("NULL") ) : TEXT("NO COMPONENT"), 
+				ActiveSound->AudioComponent.IsValid() ? ActiveSound->AudioComponent->Sound : 0 ) )
 			{
 				const float Duration = ActiveSound->Sound->GetDuration();
 				// Divide by minimum pitch for longest possible duration
