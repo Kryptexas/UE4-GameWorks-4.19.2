@@ -389,6 +389,11 @@ bool FTranslucencyDrawingPolicyFactory::DrawMesh(
 	// Only render translucent materials.
 	if(IsTranslucentBlendMode(BlendMode))
 	{
+		if (Material->IsSeparateTranslucencyEnabled() != DrawingContext.bSeparateTranslucencyPass)
+		{
+			return false;
+		}
+
 		if (Material->RequiresSceneColorCopy_RenderThread())
 		{
 			if (DrawingContext.bSceneColorCopyIsUpToDate == false)
