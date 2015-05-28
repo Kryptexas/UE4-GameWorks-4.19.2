@@ -707,9 +707,11 @@ public class GUBP : BuildCommand
 
     public class CompileNode : HostPlatformNode
     {
+		bool bDependentOnCompileTools = true;
         public CompileNode(UnrealTargetPlatform InHostPlatform, bool DependentOnCompileTools = true)
             : base(InHostPlatform)
         {
+			bDependentOnCompileTools = DependentOnCompileTools;
             if (DependentOnCompileTools)
             {
                 AddDependency(ToolsForCompileNode.StaticGetFullName(HostPlatform));
@@ -742,7 +744,8 @@ public class GUBP : BuildCommand
             {
                 bool ReallyDeleteBuildProducts = DeleteBuildProducts() && !GUBP.bForceIncrementalCompile;
                 Agenda.DoRetries = false; // these would delete build products
-                UE4Build.Build(Agenda, InDeleteBuildProducts: ReallyDeleteBuildProducts, InUpdateVersionFiles: false, InForceUnity: true);
+				bool UseParallelExecutor = bDependentOnCompileTools && (HostPlatform == UnrealTargetPlatform.Win64);
+				UE4Build.Build(Agenda, InDeleteBuildProducts: ReallyDeleteBuildProducts, InUpdateVersionFiles: false, InForceUnity: true, InUseParallelExecutor: UseParallelExecutor);
                 var StartPostBuild = DateTime.Now.ToString();
                 PostBuild(bp, UE4Build);
                 var FinishPostBuild = DateTime.Now.ToString();
@@ -836,6 +839,10 @@ public class GUBP : BuildCommand
             string AddArgs = "-CopyAppBundleBackToDevice";
 
             Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
+			if (HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				Agenda.AddTargets(new string[] { "ParallelExecutor" }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: AddArgs);
+			}
             return Agenda;
         }
         public override void PostBuild(GUBP bp, UE4Build UE4Build)
@@ -5731,7 +5738,7 @@ public class GUBP : BuildCommand
 
 			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
 			{
-				AddNode(new NonUnityTestNode(HostPlatform));
+			AddNode(new NonUnityTestNode(HostPlatform));
 			}
 
             if (DoASharedPromotable)
@@ -5900,6 +5907,8 @@ public class GUBP : BuildCommand
                                         {
                                             AddNode(new GamePlatformCookedAndCompiledNode(this, HostPlatform, NonCodeProject, Plat, false));
 
+											if (NonCodeFormalBuilds.ContainsKey(NonCodeProject.GameName))
+											{
                                             var PlatList = NonCodeFormalBuilds[NonCodeProject.GameName];
                                             foreach (var PlatPair in PlatList)
                                             {
@@ -5937,6 +5946,7 @@ public class GUBP : BuildCommand
                                                     }
                                                 }
                                             }
+                                        }
                                         }
 
                                         if (!bNoAutomatedTesting)

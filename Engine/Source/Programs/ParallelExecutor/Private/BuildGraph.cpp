@@ -43,7 +43,7 @@ uint32 FBuildActionExecutor::Run()
 
 int32 FBuildActionExecutor::ExecuteAction()
 {
-	int32 ExitCode = -1;
+	ExitCode = -1;
 
 	void* ReadPipe;
 	void* WritePipe;
@@ -220,6 +220,7 @@ bool FBuildGraph::ReadFromFile(const FString& InputPath)
 
 	// Read the tool environment
 	TMap<FString, const FXmlNode*> NameToTool;
+	TMap<FString, const FXmlNode*> EnvironmentVariables;
 	for(const FXmlNode* EnvironmentNode = EnvironmentsNode->GetFirstChildNode(); EnvironmentNode != nullptr; EnvironmentNode = EnvironmentNode->GetNextNode())
 	{
 		if(EnvironmentNode->GetTag() == TEXT("Environment"))
@@ -241,21 +242,12 @@ bool FBuildGraph::ReadFromFile(const FString& InputPath)
 				}
 			}
 
-			// Read the environment variables
+			// Read the environment variables for this environment. Each environment has its own set of variables 
 			const FXmlNode* VariablesNode = EnvironmentNode->FindChildNode(TEXT("Variables"));
 			if(VariablesNode != nullptr)
 			{
-				for(const FXmlNode* VariableNode = VariablesNode->GetFirstChildNode(); VariableNode != nullptr; VariableNode = VariableNode->GetNextNode())
-				{
-					if(VariableNode->GetTag() == TEXT("Variable"))
-					{
-						FString Key = VariableNode->GetAttribute(TEXT("Name"));
-						if(Key.Len() > 0)
-						{
-							Variables.FindOrAdd(Key) = VariableNode->GetAttribute(TEXT("Value"));
-						}
-					}
-				}
+				FString Key = EnvironmentNode->GetAttribute(TEXT("Name"));
+				EnvironmentVariables.FindOrAdd(Key) = VariablesNode;
 			}
 		}
 	}
@@ -295,8 +287,26 @@ bool FBuildGraph::ReadFromFile(const FString& InputPath)
 						}
 
 						VisitedActions.Empty();
-						RecursiveIncDependants(Action, VisitedActions);
-						Action->MissingDependencyCount = DependsOnList.Num();
+						RecursiveIncDependents(Action, VisitedActions);
+
+						Action->MissingDependencyCount = Action->Dependencies.Num();
+
+						// set environment variables for this action
+						const FXmlNode** VariablesNode = EnvironmentVariables.Find(ProjectNode->GetAttribute(TEXT("Env")));
+						if (VariablesNode != nullptr)
+						{
+							for (const FXmlNode* VariableNode = (*VariablesNode)->GetFirstChildNode(); VariableNode != nullptr; VariableNode = VariableNode->GetNextNode())
+							{
+								if (VariableNode->GetTag() == TEXT("Variable"))
+								{
+									FString Key = VariableNode->GetAttribute(TEXT("Name"));
+									if (Key.Len() > 0)
+									{
+										Action->Variables.FindOrAdd(Key) = VariableNode->GetAttribute(TEXT("Value"));
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -365,7 +375,7 @@ int32 FBuildGraph::ExecuteInParallel(int32 MaxProcesses)
 		while(ExecutingActions.Num() < MaxProcesses && QueuedActions.Num() > 0)
 		{
 			FBuildAction* Action = QueuedActions.Pop();
-			FBuildActionExecutor* ExecutingAction = new FBuildActionExecutor(Action, CriticalSection, CompletedEvent, CompletedActions, Variables, JobObject);
+			FBuildActionExecutor* ExecutingAction = new FBuildActionExecutor(Action, CriticalSection, CompletedEvent, CompletedActions, Action->Variables, JobObject);
 			FRunnableThread* ExecutingThread = FRunnableThread::Create(ExecutingAction, *FString::Printf(TEXT("Build:%s"), *Action->Caption));
 			ExecutingActions.Add(ExecutingAction, ExecutingThread);
 		}
@@ -412,7 +422,7 @@ int32 FBuildGraph::ExecuteInParallel(int32 MaxProcesses)
 				}
 			}
 
-			// Mark all the dependants as done
+			// Mark all the dependents as done
 			for(FBuildAction* DependantAction : CompletedAction->Action->Dependants)
 			{
 				if(--DependantAction->MissingDependencyCount == 0)
@@ -442,7 +452,7 @@ FBuildAction* FBuildGraph::FindOrAddAction(TMap<FString, FBuildAction*>& NameToA
 	return Action;
 }
 
-void FBuildGraph::RecursiveIncDependants(FBuildAction* Action, TSet<FBuildAction*>& VisitedActions)
+void FBuildGraph::RecursiveIncDependents(FBuildAction* Action, TSet<FBuildAction*>& VisitedActions)
 {
 	for(FBuildAction* Dependency : Action->Dependencies)
 	{
@@ -450,7 +460,7 @@ void FBuildGraph::RecursiveIncDependants(FBuildAction* Action, TSet<FBuildAction
 		{
 			VisitedActions.Add(Action);
 			Dependency->TotalDependants++;
-			RecursiveIncDependants(Dependency, VisitedActions);
+			RecursiveIncDependents(Dependency, VisitedActions);
 		}
 	}
 }

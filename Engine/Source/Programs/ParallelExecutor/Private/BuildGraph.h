@@ -20,6 +20,8 @@ public:
 	int32 TotalDependants;
 	int32 MissingDependencyCount;
 
+	TMap<FString, FString> Variables;
+
 	FBuildAction();
 	~FBuildAction();
 };
@@ -57,10 +59,9 @@ public:
 
 private:
 	TArray<FBuildAction*> Actions;
-	TMap<FString, FString> Variables;
 
 	FBuildAction* FindOrAddAction(TMap<FString, FBuildAction*>& NameToAction, const FString& Name);
-	static void RecursiveIncDependants(FBuildAction* Action, TSet<FBuildAction*>& VisitedActions);
+	static void RecursiveIncDependents(FBuildAction* Action, TSet<FBuildAction*>& VisitedActions);
 
 	static void* CreateJobObject();
 };
