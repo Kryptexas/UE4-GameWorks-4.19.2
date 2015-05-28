@@ -3262,7 +3262,7 @@ void UWorld::AddNetworkActor( AActor* Actor )
 		return;
 	}
 
-	NetworkActors.AddUnique( Actor );
+	NetworkActors.Add( Actor );
 }
 
 void UWorld::RemoveNetworkActor( AActor* Actor )
@@ -3272,7 +3272,7 @@ void UWorld::RemoveNetworkActor( AActor* Actor )
 		return;
 	}
 
-	NetworkActors.RemoveSingleSwap( Actor );
+	NetworkActors.Remove( Actor );
 }
 
 FDelegateHandle UWorld::AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler )

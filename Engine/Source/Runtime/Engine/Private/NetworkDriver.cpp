@@ -1932,19 +1932,19 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 		SET_DWORD_STAT( STAT_NumNetActors, World->NetworkActors.Num() );
 
-		for ( int i = World->NetworkActors.Num() - 1; i >= 0 ; i-- )		// Traverse list backwards so we can easily remove items
+		for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
 		{
-			AActor* Actor = World->NetworkActors[i];
+			AActor* Actor = *ActorIt;
 
 			if (Actor->IsPendingKill() )
 			{
-				World->NetworkActors.RemoveAtSwap( i );
+				ActorIt.RemoveCurrent();
 				continue;
 			}
 
 			if (Actor->GetRemoteRole()==ROLE_None)
 			{
-				World->NetworkActors.RemoveAtSwap( i );
+				ActorIt.RemoveCurrent();
 				continue;
 			}
 
@@ -1968,7 +1968,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				// We'll want to track initially dormant actors some other way to track them with stats
 				SCOPE_CYCLE_COUNTER(STAT_NetInitialDormantCheckTime);		
 				NumInitiallyDormant++;
-				World->NetworkActors.RemoveAtSwap( i );
+				ActorIt.RemoveCurrent();
 				//UE_LOG(LogNetTraffic, Log, TEXT("Skipping Actor %s - its initially dormant!"), *Actor->GetName() );
 				continue;
 			}

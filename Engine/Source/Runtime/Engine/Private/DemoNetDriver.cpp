@@ -836,10 +836,8 @@ void UDemoNetDriver::SaveCheckpoint()
 		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, false );
 	}
 
-	for ( int32 i = 0; i < World->NetworkActors.Num(); i++ )
+	for ( AActor* Actor : World->NetworkActors )
 	{
-		AActor* Actor = World->NetworkActors[i];
-
 		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
 		{
 			Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
@@ -940,10 +938,8 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient );
 
-	for ( int32 i = 0; i < World->NetworkActors.Num(); i++ )
+	for ( AActor* Actor : World->NetworkActors )
 	{
-		AActor* Actor = World->NetworkActors[i];
-
 		if ( Actor->IsPendingKill() )
 		{
 			World->NetworkActors.RemoveAtSwap( i );
