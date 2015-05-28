@@ -170,6 +170,9 @@ void SEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
 	{
 		EditedText = InNewText;
 
+		// Move the cursor to the end of the string
+		SetCaretPosition(EditedText.ToString().Len());
+
 		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
 		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
 		// fired on the game thread in Tick.
@@ -182,6 +185,9 @@ void SEditableText::RestoreOriginalText()
 	if( HasTextChangedFromOriginal() )
 	{
 		EditedText = OriginalText;
+
+		// Reset the cursor position
+		SetCaretPosition(0);
 
 		SaveText();
 
