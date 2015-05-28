@@ -96,4 +96,5 @@ private:
 	FShaderResourceParameter ScreenSpaceAOTextureSampler;
 	FShaderResourceParameter CustomDepthTexture;
 	FShaderResourceParameter CustomDepthTextureSampler;
+	FShaderResourceParameter CustomStencilTexture;
 };

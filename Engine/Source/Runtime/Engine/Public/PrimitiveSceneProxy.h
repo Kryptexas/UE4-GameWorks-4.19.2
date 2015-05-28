@@ -379,6 +379,7 @@ public:
 	inline bool IsIndividuallySelected() const { return bIndividuallySelected; }
 	inline bool IsSelected() const { return IsParentSelected() || IsIndividuallySelected(); }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
+	inline uint8 GetCustomDepthStencilValue() const { return CustomDepthStencilValue; }
 	inline bool ShouldRenderInMainPass() const { return bRenderInMainPass; }
 	inline bool IsCollisionEnabled() const { return bCollisionEnabled; }
 	inline bool IsHovered() const { return bHovered; }
@@ -529,9 +530,6 @@ private:
 	/** True if the primitive will cache static lighting. */
 	uint32 bStaticLighting : 1;
 
-	/** This primitive has bRenderCustomDepth enabled */
-	uint32 bRenderCustomDepth : 1;
-
 	/** If true this primitive Renders in the mainPass */
 	uint32 bRenderInMainPass : 1;
 
@@ -647,6 +645,12 @@ private:
 
 	/** Whether this primitive should be composited onto the scene after post processing (editor only) */
 	uint32 bUseEditorCompositing : 1;
+
+	/** This primitive has bRenderCustomDepth enabled */
+	uint32 bRenderCustomDepth : 1;
+
+	/** Optionally write this stencil value during the CustomDepth pass */
+	uint8 CustomDepthStencilValue;
 
 protected:
 	/** The bias applied to LPV injection */

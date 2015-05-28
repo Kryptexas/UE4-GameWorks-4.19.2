@@ -1081,6 +1081,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
 	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
+	else if (SceneTextureIndex == 24)	return ScreenSpaceData.GBuffer.CustomStencil;
 #else
 	switch(SceneTextureIndex)
 	{
@@ -1138,6 +1139,8 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 22: return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 		// PPI_AmbientOcclusion
 		case 23: return ScreenSpaceData.AmbientOcclusion;
+		// PPI_CustomStencil
+		case 24: return ScreenSpaceData.GBuffer.CustomStencil;
 		default:
 			return float4(0, 0, 0, 0);
 	}

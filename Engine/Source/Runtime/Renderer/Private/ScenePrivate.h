@@ -545,9 +545,11 @@ public:
 	TRefCountPtr<IPooledRenderTarget> MobileAaColor0;
 	TRefCountPtr<IPooledRenderTarget> MobileAaColor1;
 
-	// cache for selection outline to a avoid reallocations of the SRV, Key is to detect if the object has changed
+	// cache for stencil reads to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
+	FTextureRHIRef CustomStencilSRVCacheKey;
+	TRefCountPtr<FRHIShaderResourceView> CustomStencilSRVCacheValue;
 
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
@@ -733,6 +735,8 @@ public:
 		MobileAaColor1.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
+		CustomStencilSRVCacheKey.SafeRelease();
+		CustomStencilSRVCacheValue.SafeRelease();
 
 		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(GlobalDistanceFieldClipmapState); CascadeIndex++)
 		{

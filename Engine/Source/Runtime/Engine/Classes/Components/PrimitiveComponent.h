@@ -212,10 +212,6 @@ public:
 	UPROPERTY()
 	uint32 bHasMotionBlurVelocityMeshes:1;
 	
-	/** If true, this component will be rendered in the CustomDepth pass (usually used for outlines) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
-	uint32 bRenderCustomDepth:1;
-
 	/** If true, this component will be rendered in the main pass (z prepass, basepass, transparency) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
@@ -378,6 +374,14 @@ public:
 	/** Composite the drawing of this component onto the scene after post processing (only applies to editor drawing) */
 	UPROPERTY()
 	uint32 bUseEditorCompositing:1;
+
+	/** If true, this component will be rendered in the CustomDepth pass (usually used for outlines) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering, meta=(DisplayName = "Render CustomDepth Pass"))
+	uint32 bRenderCustomDepth:1;
+
+	/** Optionally write this 0-255 value to the stencil buffer in CustomDepth pass (Requires project setting or r.CustomDepth == 3) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering,  meta=(UIMin = "0", UIMax = "255", editcondition = "bRenderCustomDepth", DisplayName = "CustomDepth Stencil Value"))
+	int32 CustomDepthStencilValue;
 
 	/**
 	 * Translucent objects with a lower sort priority draw behind objects with a higher priority.
@@ -967,6 +971,10 @@ public:
 	/** Sets the bRenderCustomDepth property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetRenderCustomDepth(bool bValue);
+
+	/** Sets the CustomDepth stencil value (0 - 255) and marks the render state dirty. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering", meta=(UIMin = "0", UIMax = "255"))
+	void SetCustomDepthStencilValue(int32 Value);
 
 	/** Sets bRenderInMainPass property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering")

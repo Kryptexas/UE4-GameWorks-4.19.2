@@ -57,6 +57,8 @@ enum ESceneTextureId
 	PPI_ShadingModel UMETA(DisplayName="Shading Model"),
 	/** Ambient Occlusion, single channel */
 	PPI_AmbientOcclusion UMETA(DisplayName="Ambient Occlusion"),
+	/** Scene stencil, contains CustomStencil mesh property of the opaque objects rendered with CustomDepth */
+	PPI_CustomStencil UMETA(DisplayName="CustomStencil"),
 };
 
 UCLASS(collapsecategories, hidecategories=Object)

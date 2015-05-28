@@ -69,7 +69,8 @@ static TAutoConsoleVariable<int32> CVarCustomDepth(
 	1,
 	TEXT("0: feature is disabled\n")
 	TEXT("1: feature is enabled, texture is created on demand\n")
-	TEXT("2: feature is enabled, texture is not released until required (should be the project setting if the feature should not stall)"),
+	TEXT("2: feature is enabled, texture is not released until required (should be the project setting if the feature should not stall)\n")
+	TEXT("3: feature is enabled, stencil writes are enabled, texture is not released until required (should be the project setting if the feature should not stall)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -803,7 +804,12 @@ bool FSceneRenderTargets::BeginRenderingCustomDepth(FRHICommandListImmediate& RH
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, BeginRenderingCustomDepth);
 		
-		SetRenderTarget(RHICmdList, FTextureRHIRef(), CustomDepthRenderTarget->GetRenderTargetItem().ShaderResourceTexture);
+		FRHIDepthRenderTargetView DepthView(CustomDepthRenderTarget->GetRenderTargetItem().ShaderResourceTexture);
+		FRHISetRenderTargetsInfo Info(0, nullptr, DepthView);
+		Info.bClearStencil = IsCustomDepthPassWritingStencil();
+		Info.StencilClearValue = 0;
+
+		RHICmdList.SetRenderTargetsAndClear(Info);
 
 		return true;
 	}
@@ -815,8 +821,7 @@ void FSceneRenderTargets::FinishRenderingCustomDepth(FRHICommandListImmediate& R
 {
 	SCOPED_DRAW_EVENT(RHICmdList, FinishRenderingCustomDepth);
 
-	auto& CurrentSceneColor = GetSceneColor();
-	RHICmdList.CopyToResolveTarget(CurrentSceneColor->GetRenderTargetItem().TargetableTexture, CurrentSceneColor->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
+	RHICmdList.CopyToResolveTarget(CustomDepth->GetRenderTargetItem().TargetableTexture, CustomDepth->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams(ResolveRect));
 
 	bCustomDepthIsValid = true;
 }
@@ -1763,14 +1768,20 @@ IPooledRenderTarget* FSceneRenderTargets::RequestCustomDepth(bool bPrimitives)
 {
 	int Value = CVarCustomDepth.GetValueOnRenderThread();
 
-	if((Value == 1  && bPrimitives) || Value == 2)
+	if((Value == 1  && bPrimitives) || Value == 2 || IsCustomDepthPassWritingStencil())
 	{
+		// Todo: Could check if writes stencil here and create min viable target
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_DepthStencil, TexCreate_None, TexCreate_DepthStencilTargetable, false));
 		GRenderTargetPool.FindFreeElement(Desc, CustomDepth, TEXT("CustomDepth"));
 		return CustomDepth;
 	}
 
 	return 0;
+}
+
+bool FSceneRenderTargets::IsCustomDepthPassWritingStencil() const
+{
+	return (CVarCustomDepth.GetValueOnRenderThread() == 3);
 }
 
 /** Returns an index in the range [0, NumCubeShadowDepthSurfaces) given an input resolution. */
@@ -2092,6 +2103,7 @@ void FDeferredPixelShaderParameters::Bind(const FShaderParameterMap& ParameterMa
 	ScreenSpaceAOTextureSampler.Bind(ParameterMap,TEXT("ScreenSpaceAOTextureSampler"));
 	CustomDepthTexture.Bind(ParameterMap,TEXT("CustomDepthTexture"));
 	CustomDepthTextureSampler.Bind(ParameterMap,TEXT("CustomDepthTextureSampler"));
+	CustomStencilTexture.Bind(ParameterMap,TEXT("CustomStencilTexture"));
 }
 
 bool IsDBufferEnabled();
@@ -2152,6 +2164,36 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 
 			SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTexture, CustomDepthTextureSampler, TStaticSamplerState<>::GetRHI(), CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
 			SetTextureParameter(RHICmdList, ShaderRHI, CustomDepthTextureNonMS, CustomDepth->GetRenderTargetItem().ShaderResourceTexture);
+
+			if (CustomStencilTexture.IsBound())
+			{
+				FSceneViewState* ViewState = (FSceneViewState*)View.State;	
+					
+				if (ViewState && GSceneRenderTargets.bCustomDepthIsValid)
+				{
+					FTexture2DRHIRef& CustomStencilTargetableTexture = (FTexture2DRHIRef&)CustomDepth->GetRenderTargetItem().TargetableTexture;
+					
+					// Release cached stencil SRV if outdated
+					if (ViewState->CustomStencilSRVCacheKey != CustomStencilTargetableTexture)
+					{
+						ViewState->CustomStencilSRVCacheKey.SafeRelease();
+						ViewState->CustomStencilSRVCacheValue.SafeRelease();
+					}
+
+					// Create and cache stencil SRV if needed
+					if (!ViewState->CustomStencilSRVCacheValue)
+					{
+						ViewState->CustomStencilSRVCacheKey = CustomStencilTargetableTexture;
+						ViewState->CustomStencilSRVCacheValue = RHICreateShaderResourceView(CustomStencilTargetableTexture, 0, 1, PF_X24_G8);
+					}
+
+					SetSRVParameter(RHICmdList, ShaderRHI, CustomStencilTexture, ViewState->CustomStencilSRVCacheValue);
+				}
+				else
+				{
+					SetTextureParameter(RHICmdList, ShaderRHI, CustomStencilTexture, GSystemTextures.BlackDummy->GetRenderTargetItem().ShaderResourceTexture);
+				}
+			}
 		}
 	}
 	else if (TextureMode == ESceneRenderTargetsMode::DontSet ||
@@ -2201,6 +2243,7 @@ FArchive& operator<<(FArchive& Ar,FDeferredPixelShaderParameters& Parameters)
 	Ar << Parameters.ScreenSpaceAOTextureSampler;
 	Ar << Parameters.CustomDepthTexture;
 	Ar << Parameters.CustomDepthTextureSampler;
+	Ar << Parameters.CustomStencilTexture;
 
 	return Ar;
 }

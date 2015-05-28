@@ -140,6 +140,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	CanBeCharacterBase_DEPRECATED = ECB_Yes;
 	CanCharacterStepUpOn = ECB_Yes;
 	ComponentId.PrimIDValue = NextComponentId.Increment();
+	CustomDepthStencilValue = 0;
 
 	bUseEditorCompositing = false;
 
@@ -2686,6 +2687,18 @@ void UPrimitiveComponent::SetRenderCustomDepth(bool bValue)
 	if( bRenderCustomDepth != bValue )
 	{
 		bRenderCustomDepth = bValue;
+		MarkRenderStateDirty();
+	}
+}
+
+void UPrimitiveComponent::SetCustomDepthStencilValue(int32 Value)
+{
+	// Clamping to currently usable stencil range (as specified in property UI and tooltips)
+	int32 ClampedValue = FMath::Clamp(Value, 0, 255);
+
+	if (CustomDepthStencilValue != ClampedValue)
+	{
+		CustomDepthStencilValue = ClampedValue;
 		MarkRenderStateDirty();
 	}
 }

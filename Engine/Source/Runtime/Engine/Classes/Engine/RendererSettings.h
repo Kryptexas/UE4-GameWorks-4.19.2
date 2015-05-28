@@ -43,13 +43,14 @@ namespace ECompositingSampleCount
  * Enumerates available options for custom depth.
  */
 UENUM()
-namespace ECustomDepth
+namespace ECustomDepthStencil
 {
 	enum Type
 	{
 		Disabled = 0,
-		Enabled = 1,
-		EnabledOnDemand = 2,
+		Enabled = 1 UMETA(ToolTip="Depth buffer created immediately. Stencil disabled."),
+		EnabledOnDemand = 2 UMETA(ToolTip="Depth buffer created on first use, can save memory but cause stalls. Stencil disabled."),
+		EnabledWithStencil = 3 UMETA(ToolTip="Depth buffer created immediately. Stencil available for read/write."),
 	};
 }
 
@@ -182,9 +183,9 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 	FVector TranslucentSortAxis;
 
 	UPROPERTY(config, EditAnywhere, Category=Postprocessing, meta=(
-		ConsoleVariable="r.CustomDepth",DisplayName="Custom Depth Pass",
+		ConsoleVariable="r.CustomDepth",DisplayName="Custom Depth-Stencil Pass",
 		ToolTip="Whether the custom depth pass for tagging primitives for postprocessing passes is enabled. Enabling it on demand can save memory but may cause a hitch the first time the feature is used."))
-	TEnumAsByte<ECustomDepth::Type> CustomDepth;
+	TEnumAsByte<ECustomDepthStencil::Type> CustomDepthStencil;
 
 	UPROPERTY(config, EditAnywhere, Category = DefaultPostprocessingSettings, meta = (
 		ConsoleVariable = "r.DefaultFeature.Bloom", DisplayName = "Bloom",

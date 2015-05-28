@@ -1305,16 +1305,19 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 			FViewInfo& View = Views[ViewIndex];
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-
-			RHICmdList.Clear(false, FLinearColor(0, 0, 0, 0), true, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 			
 			// seems this is set each draw call anyway
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+			
+			const bool bWriteCustomStencilValues = GSceneRenderTargets.IsCustomDepthPassWritingStencil();
 
-			View.CustomDepthSet.DrawPrims(RHICmdList, View);
+			if (!bWriteCustomStencilValues)
+			{
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
+			}
+
+			View.CustomDepthSet.DrawPrims(RHICmdList, View, bWriteCustomStencilValues);
 		}
 
 		// resolve using the current ResolveParams 

@@ -381,6 +381,8 @@ public:
 	// @return can be 0 if the feature is disabled
 	IPooledRenderTarget* RequestCustomDepth(bool bPrimitives);
 
+	bool IsCustomDepthPassWritingStencil() const;
+
 	// ---
 
 	/** */
