@@ -5729,7 +5729,10 @@ public class GUBP : BuildCommand
 
             DoASharedPromotable = NumSharedCode > 0 || NonCodeProjectNames.Count > 0 || NonCodeFormalBuilds.Count > 0;
 
-			AddNode(new NonUnityTestNode(HostPlatform));
+			if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+			{
+				AddNode(new NonUnityTestNode(HostPlatform));
+			}
 
             if (DoASharedPromotable)
             {
