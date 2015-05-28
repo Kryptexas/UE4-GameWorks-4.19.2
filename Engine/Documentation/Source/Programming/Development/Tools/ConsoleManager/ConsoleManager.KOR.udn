@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2431902
+﻿INTSourceChangelist:2566850
 Availability: Public
 Title:콘솔 매니저: C++ 의 콘솔 변수
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
@@ -37,7 +37,7 @@ Version: 4.6
 	static TAutoConsoleVariable<int32> CVarRefractionQuality(
 		TEXT("r.RefractionQuality"),
 		2,
-		TEXT("Defines the distorion/refraction quality, adjust for quality or performance.\n")
+		TEXT("Defines the distortion/refraction quality, adjust for quality or performance.\n")
 		TEXT("<=0: off (fastest)\n")
 		TEXT("  1: low quality (not yet implemented)\n")
 		TEXT("  2: normal quality (default)\n")
@@ -52,7 +52,7 @@ Version: 4.6
 
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.RefractionQuality"),
        2,
-       TEXT("Defines the distorion/refraction quality, adjust for quality or performance.\n")
+       TEXT("Defines the distortion/refraction quality, adjust for quality or performance.\n")
 		TEXT("<=0: off (fastest)\n")
 		TEXT("  1: low quality (not yet implemented)\n")
 		TEXT("  2: normal quality (default)\n")
@@ -88,7 +88,7 @@ Version: 4.6
 	// get the value on the game thread
 	int32 MyVar = CVarRefractionQuality.GetValueOnGameThread();
 
-(가상 함수 호출, 아마 캐시 실패 때문에) 약간 느리기만 할 뿐, GetInt(), GetFloat(), GetString() 등의 get 함수를 사용하여 state 를 구할 수 있습니다.
+(!GetInt(), !GetFloat(), !GetString() 등의) Getter 함수를 사용해서 콘솔 변수의 상태 결과를 알아낼 수 있는데, 약간 구현이 느리기만 할 뿐입니다 (가상 함수 호출, 캐시 없을 확률 등).
 최적의 퍼포먼스를 위해서라면 등록된 변수와 같은 타입을 사용해 줘야 합니다. 변수로의 포인터를 구하려면 등록 
 함수의 반환 아규먼트를 저장하거나, 변수가 필요한 시점 직전에 `FindConsoleVariable` 를 호출하면 됩니다. 예를 들어:
 
