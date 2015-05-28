@@ -191,6 +191,8 @@ struct FBlueprintCallableFunctionRedirect
 	FString ClassParamName;
 };
 
+struct FTypesDatabase;
+
 UCLASS(config=Editor)
 class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 {
@@ -283,7 +285,7 @@ public:
 		{
 		}
 
-		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly);
+		void Init(const FText& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly, FTypesDatabase* TypesDatabase);
 	
 	private:
 		/** The pin type corresponding to the schema type */
@@ -291,6 +293,10 @@ public:
 
 		/** Asset Reference, used when PinType.PinSubCategoryObject is not loaded yet */
 		FStringAssetReference SubCategoryObjectAssetReference;
+
+		FText CachedDescription;
+
+		FText GenerateDescription();
 
 	public:
 		/** The children of this pin type */
@@ -312,7 +318,7 @@ public:
 			PinType.PinSubCategory = SubCategory;
 		}
 
-		FPinTypeTreeInfo(const FText& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FText& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false, FTypesDatabase* TypesDatabase = nullptr);
 		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
 		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
 
