@@ -18,6 +18,8 @@
 #include "OnlineAchievementsInterfaceIOS.h"
 #include "OnlineExternalUIInterfaceIOS.h"
 #include "OnlineTurnBasedInterfaceIOS.h"
+#include "OnlineUserCloudInterfaceIOS.h"
+#include "OnlineSharedCloudInterfaceIOS.h"
 
 #include "OnlineSubsystemIOS.h"
 #include "OnlineSubsystemIOSModule.h"

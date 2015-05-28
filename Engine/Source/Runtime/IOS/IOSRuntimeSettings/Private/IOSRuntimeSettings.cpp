@@ -8,6 +8,7 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 	bEnableGameCenterSupport = true;
+	bEnableCloudKitSupport = false;
 	bSupportsPortraitOrientation = true;
 	BundleDisplayName = TEXT("UE4 Game");
 	BundleName = TEXT("MyUE4Game");

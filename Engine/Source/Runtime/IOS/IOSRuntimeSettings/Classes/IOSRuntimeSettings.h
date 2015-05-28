@@ -144,6 +144,10 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (ConfigHierarchyEditable))
 	uint32 bEnableGameCenterSupport : 1;
 	
+	// Should Cloud Kit support (iOS Online Subsystem) be enabled?
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online)
+	uint32 bEnableCloudKitSupport : 1;
+
 	// Whether or not to add support for Metal API (requires IOS8 and A7 processors).
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Rendering, meta = (DisplayName = "Support Forward Rendering with Metal (A7 and up devices)"))
 	bool bSupportsMetal;

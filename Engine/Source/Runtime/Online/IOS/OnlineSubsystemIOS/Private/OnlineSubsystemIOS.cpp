@@ -30,12 +30,12 @@ IOnlineGroupsPtr FOnlineSubsystemIOS::GetGroupsInterface() const
 
 IOnlineSharedCloudPtr FOnlineSubsystemIOS::GetSharedCloudInterface() const
 {
-	return nullptr;
+	return SharedCloudInterface;
 }
 
 IOnlineUserCloudPtr FOnlineSubsystemIOS::GetUserCloudInterface() const
 {
-	return nullptr;
+	return UserCloudInterface;
 }
 
 IOnlineUserCloudPtr FOnlineSubsystemIOS::GetUserCloudInterface(const FString& Key) const
@@ -148,6 +148,8 @@ bool FOnlineSubsystemIOS::Init()
 		AchievementsInterface = MakeShareable(new FOnlineAchievementsIOS(this));
 		ExternalUIInterface = MakeShareable(new FOnlineExternalUIIOS());
         TurnBasedInterface = MakeShareable(new FOnlineTurnBasedIOS());
+        UserCloudInterface = MakeShareable(new FOnlineUserCloudInterfaceIOS());
+        SharedCloudInterface = MakeShareable(new FOnlineSharedCloudInterfaceIOS());
 	}
 
 	if( IsInAppPurchasingEnabled() )
@@ -194,7 +196,9 @@ bool FOnlineSubsystemIOS::IsEnabled()
 {
 	bool bEnableGameCenter = false;
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableGameCenterSupport"), bEnableGameCenter, GEngineIni);
-	return bEnableGameCenter;
+    bool bEnableCloudKit = false;
+    GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bEnableCloudKitSupport"), bEnableCloudKit, GEngineIni);
+	return bEnableGameCenter || bEnableCloudKit;
 }
 
 bool FOnlineSubsystemIOS::IsInAppPurchasingEnabled()

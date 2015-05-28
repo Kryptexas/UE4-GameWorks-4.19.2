@@ -91,6 +91,12 @@ private:
 
     /** Interface to the turnbased multiplayer services */
     FOnlineTurnBasedIOSPtr TurnBasedInterface;
+
+	/** Interface to the user cloud storage */
+	FOnlineUserCloudIOSPtr UserCloudInterface;
+
+	/** Interface to the shared cloud storage */
+	FOnlineSharedCloudIOSPtr SharedCloudInterface;
 };
 
 typedef TSharedPtr<FOnlineSubsystemIOS, ESPMode::ThreadSafe> FOnlineSubsystemIOSPtr;

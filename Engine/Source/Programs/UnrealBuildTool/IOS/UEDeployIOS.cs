@@ -744,11 +744,35 @@ namespace UnrealBuildTool.IOS
 
 		private void WriteEntitlementsFile(string OutputFilename)
 		{
+			// get the settings from the ini file
+			// plist replacements
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
+			bool bSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bSupported);
+
 			Directory.CreateDirectory(Path.GetDirectoryName(OutputFilename));
 			// we need to have something so Xcode will compile, so we just set the get-task-allow, since we know the value, 
 			// which is based on distribution or not (true means debuggable)
-			File.WriteAllText(OutputFilename, string.Format("<plist><dict><key>get-task-allow</key><{0}/></dict></plist>",
-				/*Config.bForDistribution ? "false" : */"true"));
+			StringBuilder Text = new StringBuilder();
+			Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+			Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+			Text.AppendLine("<plist version=\"1.0\">");
+			Text.AppendLine("<dict>");
+			Text.AppendLine(string.Format("\t<key>get-task-allow</key><{0}/>",	/*Config.bForDistribution ? "false" : */"true"));
+			if (bSupported)
+			{
+				Text.AppendLine("\t<key>com.apple.developer.icloud-container-identifiers</key>");
+				Text.AppendLine("\t<array>");
+				Text.AppendLine("\t\t<string>iCloud.$(CFBundleIdentifier)</string>");
+				Text.AppendLine("\t</array>");
+				Text.AppendLine("\t<key>com.apple.developer.icloud-services</key>");
+				Text.AppendLine("\t<array>");
+				Text.AppendLine("\t\t<string>CloudKit</string>");
+				Text.AppendLine("\t</array>");
+			}
+			Text.AppendLine("</dict>");
+			Text.AppendLine("</plist>");
+			File.WriteAllText(OutputFilename, Text.ToString());
 		}
 
 		static void SafeFileCopy(FileInfo SourceFile, string DestinationPath, bool bOverwrite)
