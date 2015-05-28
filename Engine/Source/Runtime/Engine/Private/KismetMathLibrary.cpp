@@ -1379,6 +1379,20 @@ FDateTime UKismetMathLibrary::UtcNow( )
 /* Timespan functions
  *****************************************************************************/
 
+FTimespan UKismetMathLibrary::MakeTimespan(int32 Days, int32 Hours, int32 Minutes, int32 Seconds, int32 Milliseconds)
+{
+	return FTimespan(Days, Hours, Minutes, Seconds, Milliseconds);
+}
+
+void UKismetMathLibrary::BreakTimespan(FTimespan InTimespan, int32& Days, int32& Hours, int32& Minutes, int32& Seconds, int32& Milliseconds)
+{
+	Days = InTimespan.GetDays();
+	Hours = InTimespan.GetHours();
+	Minutes = InTimespan.GetMinutes();
+	Seconds = InTimespan.GetSeconds();
+	Milliseconds = InTimespan.GetMilliseconds();
+}
+
 FTimespan UKismetMathLibrary::Add_TimespanTimespan( FTimespan A, FTimespan B )
 {
 	return A + B;
