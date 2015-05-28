@@ -5608,6 +5608,9 @@ UReimportFbxStaticMeshFactory::UReimportFbxStaticMeshFactory(const FObjectInitia
 
 	bCreateNew = false;
 	bText = false;
+
+	// Required to allow other StaticMesh re importers to do their CanReimport checks first, and if they fail the FBX will catch it
+	ImportPriority = DefaultImportPriority - 1;
 }
 
 bool UReimportFbxStaticMeshFactory::CanReimport( UObject* Obj, TArray<FString>& OutFilenames )
@@ -5616,17 +5619,8 @@ bool UReimportFbxStaticMeshFactory::CanReimport( UObject* Obj, TArray<FString>& 
 	if(Mesh)
 	{
 		if ( Mesh->AssetImportData )
-		{
-			const FString& Filename = Mesh->AssetImportData->GetFirstFilename();
-			if (FPaths::GetExtension(Filename) == "srt")
-			{
-				// SpeedTrees need to use their own importer
-				return false;
-			}
-			else
-			{
-				OutFilenames.Add(Filename);
-			}
+		{		
+			OutFilenames.Add(Mesh->AssetImportData->GetFirstFilename());
 		}
 		else
 		{

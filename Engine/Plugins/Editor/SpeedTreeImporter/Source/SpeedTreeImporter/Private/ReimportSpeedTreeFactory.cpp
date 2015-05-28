@@ -29,8 +29,12 @@ bool UReimportSpeedTreeFactory::CanReimport(UObject* Obj, TArray<FString>& OutFi
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
 	if (Mesh && Mesh->AssetImportData)
 	{
-		Mesh->AssetImportData->ExtractFilenames(OutFilenames);
-		return true;
+		if (FPaths::GetExtension(Mesh->AssetImportData->GetFirstFilename()).ToLower() == "srt")
+		{
+			// SpeedTrees file extension matches with filepath			
+			Mesh->AssetImportData->ExtractFilenames(OutFilenames);
+			return true;
+		}		
 	}
 #endif // #if WITH_SPEEDTREE
 	return false;
@@ -40,7 +44,7 @@ void UReimportSpeedTreeFactory::SetReimportPaths(UObject* Obj, const TArray<FStr
 {
 #if WITH_SPEEDTREE
 	UStaticMesh* Mesh = Cast<UStaticMesh>(Obj);
-	if (Mesh && ensure(NewReimportPaths.Num() == 1))
+	if (Mesh && Mesh->AssetImportData && ensure(NewReimportPaths.Num() == 1))
 	{
 		Mesh->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
