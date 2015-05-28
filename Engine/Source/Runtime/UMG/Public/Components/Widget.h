@@ -528,9 +528,24 @@ protected:
 	static TArray<TSubclassOf<UPropertyBinding>> BinderClasses;
 
 private:
+
+#if WITH_EDITORONLY_DATA
 	/** Any flags used by the designer at edit time. */
 	UPROPERTY(Transient)
 	TEnumAsByte<EWidgetDesignFlags::Type> DesignerFlags;
+#endif
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+	void VerifySynchronizeProperties();
+
+	/** Did we route the synchronize properties call? */
+	UPROPERTY(Transient)
+	bool bRoutedSynchronizeProperties;
+
+#else
+	FORCEINLINE void VerifySynchronizeProperties() { }
+#endif
 
 private:
 	GAME_SAFE_BINDING_IMPLEMENTATION(FText, ToolTipText)

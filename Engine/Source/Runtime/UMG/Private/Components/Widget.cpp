@@ -100,7 +100,9 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 {
 	bIsEnabled = true;
 	bIsVariable = true;
+#if WITH_EDITOR
 	DesignerFlags = EWidgetDesignFlags::None;
+#endif
 	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 
@@ -471,9 +473,14 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 
 			MyGCWidget = SafeGCWidget;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			bRoutedSynchronizeProperties = false;
+#endif
+
 			// Always synchronize properties of a user widget and call construct AFTER we've
 			// properly setup the GCWidget and synced all the properties.
 			SynchronizeProperties();
+			VerifySynchronizeProperties();
 			OnWidgetRebuilt();
 
 			return SafeGCWidget.ToSharedRef();
@@ -483,13 +490,25 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 	{
 		if ( bNewlyCreated )
 		{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			bRoutedSynchronizeProperties = false;
+#endif
+
 			SynchronizeProperties();
+			VerifySynchronizeProperties();
 			OnWidgetRebuilt();
 		}
 
 		return SafeWidget.ToSharedRef();
 	}
 }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+void UWidget::VerifySynchronizeProperties()
+{
+	ensureMsgf(bRoutedSynchronizeProperties, TEXT("%s failed to route SynchronizeProperties.  Please call Super::SynchronizeProperties() in your <className>::SynchronizeProperties() function."), *GetFullName());
+}
+#endif
 
 void UWidget::OnWidgetRebuilt()
 {
@@ -685,6 +704,10 @@ TSharedRef<SWidget> UWidget::RebuildWidget()
 
 void UWidget::SynchronizeProperties()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bRoutedSynchronizeProperties = true;
+#endif
+
 	// We want to apply the bindings to the cached widget, which could be the SWidget, or the SObjectWidget, 
 	// in the case where it's a user widget.  We always want to prefer the SObjectWidget so that bindings to 
 	// visibility and enabled status are not stomping values setup in the root widget in the User Widget.
