@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2565161
+﻿INTSourceChangelist:2567016
 Title:UE4 C++ 프로그래밍 입문
 Crumbs:
 Description:언리얼 엔진이 처음이신 C++ 프로그래머를 위한 입문 안내서입니다.
@@ -267,7 +267,7 @@ The base building block in the Unreal Engine is called **UObject**. This class, 
 * Configurable values for properties
 * Networking support for properties and methods
 
-Each class that derives from **UObject** has a singleton **UClass** created for it that contains all of the meta data about the class instance. **UObject** and **UClass** together are at the root of everything that a gameplay object does during its lifetime. The best way to think of the difference between a **UClass** and a **UObject** is that the **UClass** *describes* what an instance of a **UObject** will look like, what properties are available for serialization, networking, etc. Most gameplay development doesn’t involve directly deriving from **UObjects**, but instead from **AActor** and **UActorComponent**. You don’t need to know the details of how **UClass**/**UObject** works in order to write gameplay code, but it’s good to know that these systems exist.
+Each class that derives from **UObject** has a singleton **UClass** created for it that contains all of the meta data about the class instance. **UObject** and **UClass** together are at the root of everything that a gameplay object does during its lifetime. The best way to think of the difference between a **UClass** and a **UObject** is that the **UClass** *describes* what an instance of a **UObject** will look like, what properties are available for serialization, networking, etc. Most gameplay development doesn’t involve directly deriving from **UObjects**, but instead from **AActor** and **UActorComponent**. You don’t need to know the details of how **UClass**/**UObject** works in order to write gameplay code, but it is good to know that these systems exist.
 
 #### AActor
 
@@ -316,11 +316,11 @@ This tree of components is attached to the one actor class. As you can see from 
 
 To use a **UStruct**, you don’t have to extend from any particular class, you just have mark the struct with **USTRUCT()** and our build tools will do the base work for you. Unlike a **UObject**, **UStructs** are *not* garbage collected. If you create dynamic instances of them, you must manage their lifecycle yourself. **UStructs** are meant to be plain old data types that have the **UObject** reflection support for editing within the Unreal Editor, Blueprint manipulation, serialization, networking, etc.
 
-Now that we’ve talked about the basic hierarchy used in our gameplay class construction, it’s time to choose your path again. You can read about our gameplay classes [here](Programming/UnrealArchitecture/Reference/Classes), head out to our samples in the launcher armed with more information, or continue digging deeper into our C++ features for building games.
+Now that we’ve talked about the basic hierarchy used in our gameplay class construction, it is time to choose your path again. You can read about our gameplay classes [here](Programming/UnrealArchitecture/Reference/Classes), head out to our samples in the launcher armed with more information, or continue digging deeper into our C++ features for building games.
 
 ## Diving Deeper Still
 
-Alright, it’s clear you want to know more. Let’s keep on going deeper into how the engine works.
+Alright, it is clear you want to know more. Let’s keep on going deeper into how the engine works.
 
 ### Unreal Reflection System
 
@@ -355,7 +355,7 @@ Here is an example declaration of a **UCLASS**:
 
 You’ll first notice the inclusion of "MyClass.generated.h".  Unreal will generate all the reflection data and put it into this file.  You must include this file as the last include in the header file that declares your type.
 
-You’ll also have noticed that we can also add additional specifiers to the markup.  I’ve added some of the more common ones for demonstration.  These allow us to specify certain behaviour that our types have.
+You’ll also have noticed that we can also add additional specifiers to the markup.  I’ve added some of the more common ones for demonstration.  These allow us to specify certain behavior that our types have.
 
 * **Blueprintable** - This class can be extended by a Blueprint.
 * **BlueprintReadOnly **- This property can only be read from a Blueprint, and not written to.
@@ -374,7 +374,7 @@ There are too many specifiers to list here, so I’ll link to the docs for them:
 
 ### Object/Actor Iterators
 
-Object iterators are a very useful tool to iterate over all instances of a particular **UObject** type and it’s subclasses.
+Object iterators are a very useful tool to iterate over all instances of a particular **UObject** type and its subclasses.
 
 	// Will find ALL current UObjects instances
 	for (TObjectIterator<UObject> It; It; ++It)
@@ -476,7 +476,7 @@ When a **UObject** is garbage collected, all **UPROPERTY** references to it will
 		// Use SafeObject
 	}
 
-This is important since, as mentioned before, actors that have had **Destroy() **called on them are not removed until the garbage collector runs again.  You can check the **IsPendingKill()** method to see if a **UObject** is awaiting it’s deletion.  If that method returns **true**, you should consider the object dead and not use it.
+This is important since, as mentioned before, actors that have had **Destroy() **called on them are not removed until the garbage collector runs again.  You can check the **IsPendingKill()** method to see if a **UObject** is awaiting its deletion.  If that method returns **true**, you should consider the object dead and not use it.
 
 ### UStructs
 
@@ -685,7 +685,7 @@ Let’s say you were creating a grid-based board game and needed to store and qu
 	{
 	private:
 
-		// Using a TMap, we can refer to each piece by it’s position
+		// Using a TMap, we can refer to each piece by its position
 		TMap<FIntPoint, FPiece> Data;
 
 	public:
