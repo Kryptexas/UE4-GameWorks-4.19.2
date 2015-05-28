@@ -180,6 +180,10 @@ public:
 
 	TArray<FAudioComponentParam> InstanceParameters;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FName DebugOriginalSoundName;
+#endif
+
 	// Updates the wave instances to be played.
 	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &WaveInstances, const float DeltaTime );
 

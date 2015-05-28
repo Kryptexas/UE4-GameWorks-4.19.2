@@ -1667,7 +1667,6 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 	// Tick all the active audio components.  Use a copy as some operations may remove elements from the list, but we want
 	// to evaluate in the order they were added
 	TArray<FActiveSound*> ActiveSoundsCopy = ActiveSounds;
-	ensureOnceMsgf(ActiveSoundsCopy.Num() < 500, TEXT("Encountered a large number of sounds in the ActiveSounds array. Num=%d. LastSound=%s"), ActiveSoundsCopy.Num(), ActiveSoundsCopy.Last() ? *GetNameSafe(ActiveSoundsCopy.Last()->Sound) : TEXT("None"));
 	for( int32 i = 0; i < ActiveSoundsCopy.Num(); ++i )
 	{
 		FActiveSound* ActiveSound = ActiveSoundsCopy[i];
@@ -1686,12 +1685,16 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		// If the world scene allows audio - tick wave instances.
 		else if( ActiveSound->World == NULL || ActiveSound->World->AllowAudioPlayback() )
 		{
-			if (ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound at address 0x%08x. Index %d. AudioComponent=%s. AudioComponent->Sound=%s. Address of AudioComponent->Sound=0x%08x"),
-				ActiveSound->Sound,
-				i,
-				ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT"),
-				ActiveSound->AudioComponent.IsValid() ? ( ActiveSound->AudioComponent->Sound ? (ActiveSound->AudioComponent->Sound->IsValidLowLevel() ? *ActiveSound->AudioComponent->Sound->GetName() : TEXT("INVALID")) : TEXT("NULL") ) : TEXT("NO COMPONENT"), 
-				ActiveSound->AudioComponent.IsValid() ? ActiveSound->AudioComponent->Sound : 0 ) )
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if ( !ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
+				 ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
+				 *ActiveSound->DebugOriginalSoundName.ToString() ))
+			{
+				// Sound was not valid, stop playing it.
+				ActiveSound->Stop(this);
+			}
+			else
+#endif
 			{
 				const float Duration = ActiveSound->Sound->GetDuration();
 				// Divide by minimum pitch for longest possible duration
@@ -1715,12 +1718,6 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 
 					ActiveSound->UpdateWaveInstances( this, WaveInstances, UsedDeltaTime );
 				}
-			}
-			else
-			{
-
-				// Sound was not valid, stop playing it.
-				ActiveSound->Stop(this);
 			}
 		}
 	}
@@ -2065,6 +2062,21 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	FActiveSound* ActiveSound = new FActiveSound(NewActiveSound);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (ActiveSound->Sound)
+	{
+		if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("AddNewActiveSound with INVALID sound. AudioComponent=%s"),
+			ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT") ))
+		{
+			static FName InvalidSoundName(TEXT("INVALID_Sound"));
+			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
+		}
+		else
+		{
+			ActiveSound->DebugOriginalSoundName = ActiveSound->Sound->GetFName();
+		}
+	}
+#endif
 	ActiveSounds.Add(ActiveSound);
 }
 
