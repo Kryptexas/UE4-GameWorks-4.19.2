@@ -4,4 +4,4 @@ Description:
 Availability:Public
 Version: 4.5
 
-The function is replicated over the network, but can fail due to bandwidth limitations or network errors. Only valid when used in conjunction with Client or Server.
+The function is replicated over the network but can fail due to bandwidth limitations or network errors. Only valid when used in conjunction with Client or Server.
