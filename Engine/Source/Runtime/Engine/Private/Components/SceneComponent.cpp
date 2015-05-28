@@ -1692,9 +1692,9 @@ bool USceneComponent::IsAnySimulatingPhysics() const
 
 APhysicsVolume* USceneComponent::GetPhysicsVolume() const
 {
-	if (PhysicsVolume)
+	if (PhysicsVolume.IsValid())
 	{
-		return PhysicsVolume;
+		return PhysicsVolume.Get();
 	}
 	else if (const UWorld* MyWorld = GetWorld())
 	{
@@ -1796,13 +1796,13 @@ void USceneComponent::SetPhysicsVolume( APhysicsVolume * NewVolume,  bool bTrigg
 		if( NewVolume != PhysicsVolume )
 		{
 			AActor *A = GetOwner();
-			if( PhysicsVolume )
+			if( PhysicsVolume.IsValid() )
 			{
 				PhysicsVolume->ActorLeavingVolume(A);
 				PhysicsVolumeChangedDelegate.Broadcast(NewVolume);
 			}
 			PhysicsVolume = NewVolume;
-			if( PhysicsVolume )
+			if( PhysicsVolume.IsValid() )
 			{
 				PhysicsVolume->ActorEnteredVolume(A);
 			}
