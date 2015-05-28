@@ -1175,6 +1175,21 @@ bool UKismetMathLibrary::ClassIsChildOf(TSubclassOf<class UObject> TestClass, TS
 
 /* DateTime functions
  *****************************************************************************/
+FDateTime UKismetMathLibrary::MakeDateTime(int32 Year, int32 Month, int32 Day, int32 Hour, int32 Minute, int32 Second, int32 Millisecond)
+{
+	return FDateTime(Year, Month, Day, Hour, Minute, Second, Millisecond);
+}
+
+void UKismetMathLibrary::BreakDateTime(FDateTime InDateTime, int32& Year, int32& Month, int32& Day, int32& Hour, int32& Minute, int32& Second, int32& Millisecond)
+{
+	Year = GetYear(InDateTime);
+	Month = GetMonth(InDateTime);
+	Day = GetDay(InDateTime);
+	Hour = GetHour(InDateTime);
+	Minute = GetMinute(InDateTime);
+	Second = GetSecond(InDateTime);
+	Millisecond = GetMillisecond(InDateTime);
+}
 
 FDateTime UKismetMathLibrary::Add_DateTimeTimespan( FDateTime A, FTimespan B )
 {

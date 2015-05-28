@@ -790,6 +790,14 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	// DateTime functions.
 	//
 
+	/* Makes a DateTime struct */
+	UFUNCTION(BlueprintPure, Category="Math|DateTime", meta=(NativeMakeFunc, AdvancedDisplay = "3"))
+	static FDateTime MakeDateTime(int32 Year, int32 Month, int32 Day, int32 Hour = 0, int32 Minute = 0, int32 Second = 0, int32 Millisecond = 0);
+
+	/* Breaks a DateTime into its components */
+	UFUNCTION(BlueprintPure, Category="Math|DateTime", meta=(NativeBreakFunc))
+	static void BreakDateTime(FDateTime InDateTime, int32& Year, int32& Month, int32& Day, int32& Hour, int32& Minute, int32& Second, int32& Millisecond);
+
 	/* Addition (A + B) */
 	UFUNCTION(BlueprintPure, meta=(DisplayName="DateTime + Timespan", CompactNodeTitle="+", Keywords="+ add plus"), Category="Math|DateTime")
 	static FDateTime Add_DateTimeTimespan( FDateTime A, FTimespan B );
