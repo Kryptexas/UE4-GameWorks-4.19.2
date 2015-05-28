@@ -7180,7 +7180,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 		}
 
-		TArray<UObject*> RelevantObjects;
+		TSet<UObject*> RelevantObjects;
 		for (const FDebugClass& DebugClass : DebugClasses)
 		{
 			if (DebugClass.Class)
@@ -7222,12 +7222,12 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				if (Prop != NULL || DebugProperties[i].bSpecialProperty)
 				{
 					// getall
-					for (int32 j = 0; j < RelevantObjects.Num(); j++)
+					for (UObject* RelevantObject : RelevantObjects)
 					{
-						if ( RelevantObjects[j]->IsA(Cls) && !RelevantObjects[j]->IsPendingKill() &&
-							(DebugProperties[i].WithinClass == NULL || (RelevantObjects[j]->GetOuter() != NULL && RelevantObjects[j]->GetOuter()->GetClass()->IsChildOf(DebugProperties[i].WithinClass))) )
+						if ( RelevantObject->IsA(Cls) && !RelevantObject->IsPendingKill() &&
+							(DebugProperties[i].WithinClass == NULL || (RelevantObject->GetOuter() != NULL && RelevantObject->GetOuter()->GetClass()->IsChildOf(DebugProperties[i].WithinClass))) )
 						{
-							DrawProperty(CanvasObject, RelevantObjects[j], DebugProperties[i], Prop, X, Y);
+							DrawProperty(CanvasObject, RelevantObject, DebugProperties[i], Prop, X, Y);
 						}
 					}
 				}
