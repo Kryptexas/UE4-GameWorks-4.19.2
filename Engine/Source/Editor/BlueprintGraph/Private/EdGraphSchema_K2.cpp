@@ -3459,8 +3459,8 @@ FText UEdGraphSchema_K2::GetCategoryText(const FString& Category, const bool bFo
 		CategoryDescriptions.Add(PC_Struct, LOCTEXT("StructCategory","Structure"));
 		CategoryDescriptions.Add(PC_Wildcard, LOCTEXT("WildcardCategory","Wildcard"));
 		CategoryDescriptions.Add(PC_Enum, LOCTEXT("EnumCategory","Enum"));
-		CategoryDescriptions.Add(PC_Asset, LOCTEXT("AssetCategory", "Asset"));
-		CategoryDescriptions.Add(PC_AssetClass, LOCTEXT("AssetClassCategory", "Class Asset"));
+		CategoryDescriptions.Add(PC_Asset, LOCTEXT("AssetCategory", "Asset ID"));
+		CategoryDescriptions.Add(PC_AssetClass, LOCTEXT("AssetClassCategory", "Class Asset ID"));
 	}
 
 	if (bForMenu)

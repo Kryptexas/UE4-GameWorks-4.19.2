@@ -218,12 +218,12 @@ FText UK2Node_ConvertAsset::GetMenuCategory() const
 
 FText UK2Node_ConvertAsset::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText(LOCTEXT("UK2Node_ConvertAssetGetNodeTitle", "Resolve Asset"));
+	return FText(LOCTEXT("UK2Node_ConvertAssetGetNodeTitle", "Resolve Asset ID"));
 }
 
 FText UK2Node_ConvertAsset::GetTooltipText() const
 {
-	return FText(LOCTEXT("UK2Node_ConvertAssetGetTooltipText", "Resolves an asset/assetclass into an object/class. If the asset wasn't loaded it returns none."));
+	return FText(LOCTEXT("UK2Node_ConvertAssetGetTooltipText", "Resolves an Asset ID or Class Asset ID into an object/class. If the asset wasn't loaded it returns none."));
 }
 
 #undef LOCTEXT_NAMESPACE
