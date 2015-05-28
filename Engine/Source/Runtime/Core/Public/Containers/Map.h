@@ -499,7 +499,7 @@ public:
 
 	/**
 	 * Checks if map contains the specified key.
-	 * @return Key - The key to check for.
+	 * @param Key - The key to check for.
 	 * @return true if the map contains the key.
 	 */
 	FORCEINLINE bool Contains(KeyConstPointerType Key) const
