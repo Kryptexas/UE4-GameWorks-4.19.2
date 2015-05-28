@@ -7,6 +7,9 @@
 #include "Runtime/Engine/Classes/Particles/Color/ParticleModuleColorScaleOverLife.h"
 #include "Runtime/Engine/Classes/Particles/Collision/ParticleModuleCollision.h"
 #include "Runtime/Engine/Classes/Particles/Spawn/ParticleModuleSpawn.h"
+#include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataRibbon.h"
+#include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataBeam2.h"
+#include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Distributions/DistributionFloatConstant.h"
@@ -96,6 +99,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			bool bFoundEmitter = false;
 			bool bMissingMaterial = false;
 			bool bHasHighSpawnRateOrBurst = false;
+			bool bHasRibbonTrailOrBeam = false;
 			for (int32 EmitterIdx = 0; EmitterIdx < PSys->Emitters.Num(); EmitterIdx++)
 			{
 				UParticleEmitter* Emitter = PSys->Emitters[EmitterIdx];
@@ -121,6 +125,13 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 								{
 									bMissingMaterial = true;
 								}
+							}
+
+							if (Cast<UParticleModuleTypeDataRibbon>(LODLevel->TypeDataModule) ||
+								Cast<UParticleModuleTypeDataBeam2>(LODLevel->TypeDataModule) ||
+								Cast<UParticleModuleTypeDataAnimTrail>(LODLevel->TypeDataModule))
+							{
+								bHasRibbonTrailOrBeam = true;
 							}
 
 							for (int32 ModuleIdx = 0; ModuleIdx < LODLevel->Modules.Num(); ModuleIdx++)
@@ -193,8 +204,8 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 				ParticleSystemsWithSingleLOD.Add(PSys->GetPathName());
 			}
 
-			// Note all non-fixed bound PSystems...
-			if (PSys->bUseFixedRelativeBoundingBox == false)
+			// Note all non-fixed bound PSystems, unless there is a ribbon, trail, or beam emitter...
+			if (PSys->bUseFixedRelativeBoundingBox == false && !bHasRibbonTrailOrBeam)
 			{
 				ParticleSystemsWithoutFixedBounds.Add(PSys->GetPathName());
 			}

@@ -10,7 +10,7 @@
 #include "Particles/TypeData/ParticleModuleTypeDataBase.h"
 #include "ParticleModuleTypeDataAnimTrail.generated.h"
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "AnimTrail Data"))
+UCLASS(MinimalAPI, editinlinenew, hidecategories=Object, meta=(DisplayName = "AnimTrail Data"))
 class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase
 {
 	GENERATED_UCLASS_BODY()
