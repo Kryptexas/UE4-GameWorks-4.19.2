@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2545715
+﻿INTSourceChangelist:2567301
 Availability:Public
 Title:シェーダー開発
 Crumbs:%ROOT%, Programming, Programming/Rendering
@@ -29,7 +29,7 @@ Version:4.5
 |FVertexFactoryInput| 頂点シェーダーへの入力として頂点ファクトリが何を必要とするかを定義します。これらは、C++ 側の FVertexFactory の頂点の宣言と一致しなければなりません。例えば、LocalVertexFactory の FVertexFactoryInput には、float4 Position、POSITION があります。これは、FStaticMeshLODResources::SetupVertexFactory にある位置ストリームの宣言に対応します。|
 |FVertexFactoryIntermediates|複数の頂点ファクトリ関数で使用されるキャッシュされた中間データを格納するために使用します。一般的な例は、TangentToLocal マトリックスであり、パックされない頂点入力から計算されなくてはなりません。
 |FVertexFactoryInterpolantsVSToPS|頂点シェーダーからピクセル シェーダーに渡される頂点ファクトリ データ。 |
-|VertexFactoryGetWorldPosition|ワールド空間頂点位置を得るために頂点シェーダーから呼び出されます。スタティック メッシュでは、これは単にLocalToWorld マトリックスを使用して頂点バッファからのローカル空間の位置をワールド空間に変換します。GPU スキン メッシュでは、この位置は最初にスキンされ、次にワールド空間に変換されます。|
+|VertexFactoryGetWorldPosition|ワールド空間頂点位置を得るために頂点シェーダーから呼び出されます。スタティック メッシュでは、これは単にLocalToWorld マトリックスを使用して頂点バッファからのローカル空間の位置をワールド空間に変換します。GPU スキン メッシュでは、この位置は最初にスキニングされ、次にワールド空間に変換されます。|
 |VertexFactoryGetInterpolantsVSToPS| FVertexFactoryInput を FVertexFactoryInterpolants に変換します。これは、ピクセル シェーダーに渡される前にグラフィックス ハードウェアによって補間されます。|
 |GetMaterialPixelParameters|これはピクセル シェーダーで呼び出され、頂点ファクトリ固有の補間式 (FVertexFactoryInterpolants) を、そのパスのピクセル シェーダーが使用する FMaterialPixelParameters 構造体に変換します。|
 
@@ -49,9 +49,9 @@ Version:4.5
             TDepthOnlyVS - FMeshMaterialShaderType
             TBasePassPS - FMeshMaterialShaderType
             TBasePassVS - FMeshMaterialShaderType
-            など
+            Etc
         FGPUSkinVertexFactory - FVertexFactoryType
-            など
+            Etc
 
 頂点ファクトリはマテリアルの用途に依存する ShouldCache 関数に基づきこのマトリックスに含まれます。例えば、bUsedWithSkeletalMesh が `true` の場合は GPU のスキン頂点ファクトリを含みます。FMeshMaterialShaderType は、マテリアルと頂点ファクトリの属性に依存するShouldCache 関数に基づきこのマトリックスに含まれます。これはシェーダーをキャッシングするための疎行列 (sparse matrix) アプローチであり、非常に速くシェーダーが多数になり、メモリを消費し、コンパイル時間が長くなります。実際に必要なシェーダーのリストを保存するのに比べて主な利点は、リストを生成する必要がなく、コンソールでのランタイム前に必要なシェーダーは常にコンパイル済みであるという点です。UE4 ではシェーダーのメモリ問題をシェーダーの圧縮によって軽減し、コンパイル時間の問題はマルチコアのシェーダーのコンパイルで短縮しています。
 #### マテリアル シェーダーを作成する
@@ -154,6 +154,6 @@ _r.DumpShaderDebugInfo=1_ を使用してコンパイルするすべてのシェ
 
 ## AsyncCompute
 
-[AsyncCompute](Programming/Rendering/ShaderDevelopment/AsyncCompute) は、一部の API で利用可能なハードウェア機能であり、いくつかの GPU でひとつだけ存在します。
-様々な GPU の作業をインターリーブし、GPU上のハードウェア ユニットをより効率的に活用できるようにします。
+[AsyncCompute](Programming/Rendering/ShaderDevelopment/AsyncCompute) は、特定の GPU で機能する API で利用可能なハードウェア機能です。
+GPU のハードウェア ユニットをより効率的に活用できるようにインターリーブします。
 
