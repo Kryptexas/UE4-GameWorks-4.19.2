@@ -183,6 +183,7 @@ struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
 	enum 
 	{
 		WithZeroConstructor = true,
+		WithNoDestructor = true,
 	};
 };
 IMPLEMENT_STRUCT(TwoVectors);
