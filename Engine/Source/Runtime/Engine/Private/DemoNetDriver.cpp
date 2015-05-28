@@ -1716,7 +1716,7 @@ void UDemoNetConnection::InitConnection( UNetDriver* InDriver, EConnectionState 
 	// default implementation
 	Super::InitConnection( InDriver, InState, InURL, InConnectionSpeed );
 
-	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_DEMO_READ_WRITE_BUFFER : InMaxPacket;
+	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_DEMO_READ_WRITE_BUFFER) ? MAX_DEMO_READ_WRITE_BUFFER : InMaxPacket;
 	InternalAck = true;
 
 	InitSendBuffer();
