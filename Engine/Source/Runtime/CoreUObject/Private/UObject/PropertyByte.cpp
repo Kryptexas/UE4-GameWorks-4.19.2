@@ -115,7 +115,8 @@ void UByteProperty::ExportTextItem( FString& ValueStr, const void* PropertyValue
 		// the property text value must actually match an entry in the enum's names array)
 		if (*(const uint8*)PropertyValue < Enum->NumEnums() - 1 || ((PortFlags&PPF_Copy) != 0 && *(const uint8*)PropertyValue < Enum->NumEnums()))
 		{
-			if (PortFlags & PPF_BlueprintDebugView)
+			// We do not want to export the enum text for non-display uses, localization text is very dynamic and would cause issues on import
+			if (PortFlags & PPF_PropertyWindow)
 			{
 				ValueStr += Enum->GetEnumText(*(const uint8*)PropertyValue).ToString();
 			}
