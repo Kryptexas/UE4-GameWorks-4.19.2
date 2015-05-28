@@ -2120,6 +2120,7 @@ void FMaterialEditor::OnConvertObjects()
 							NewTextureExpr->TextureObject = TextureSampleExpression->TextureObject;
 							NewTextureExpr->MipValue = TextureSampleExpression->MipValue;
 							NewTextureExpr->MipValueMode = TextureSampleExpression->MipValueMode;
+							NewGraphNode->ReconstructNode();
 						}
 						else if (ComponentMaskExpression)
 						{
