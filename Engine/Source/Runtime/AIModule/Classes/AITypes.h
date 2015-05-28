@@ -10,6 +10,7 @@
 namespace FAISystem
 {
 	static const FRotator InvalidRotation = FRotator(FLT_MAX);
+	static const FQuat InvalidOrientation = FQuat(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX);
 	static const FVector InvalidLocation = FVector(FLT_MAX);
 	static const FVector InvalidDirection = FVector::ZeroVector; 
 	static const float InvalidRange = -1.f;
@@ -30,6 +31,11 @@ namespace FAISystem
 	FORCEINLINE bool IsValidRotation(const FRotator& TestRotation)
 	{
 		return TestRotation != InvalidRotation;
+	}
+
+	FORCEINLINE bool IsValidOrientation(const FQuat& TestOrientation)
+	{
+		return TestOrientation != InvalidOrientation;
 	}
 }
 
