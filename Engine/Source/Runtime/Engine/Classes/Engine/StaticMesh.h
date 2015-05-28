@@ -10,6 +10,7 @@
 
 // Forward declarations
 class UFoliageType_InstancedStaticMesh;
+struct FStaticMeshLODResources;
 
 /*-----------------------------------------------------------------------------
 	Legacy mesh optimization settings.
@@ -512,7 +513,7 @@ public:
 	 * Returns the render data to use for exporting the specified LOD. This method should always
 	 * be called when exporting a static mesh.
 	 */
-	ENGINE_API struct FStaticMeshLODResources& GetLODForExport( int32 LODIndex );
+	ENGINE_API const FStaticMeshLODResources& GetLODForExport(int32 LODIndex) const;
 
 	/**
 	 * Static: Processes the specified static mesh for light map UV problems

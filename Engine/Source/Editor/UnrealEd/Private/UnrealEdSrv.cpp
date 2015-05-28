@@ -1821,11 +1821,11 @@ TArray<FPoly*> GetSelectedPolygons()
 					int32 NumLods = StaticMesh->GetNumLODs();
 					if ( NumLods )
 					{
-						FStaticMeshLODResources& MeshLodZero = StaticMesh->GetLODForExport(0);
+						const FStaticMeshLODResources& MeshLodZero = StaticMesh->GetLODForExport(0);
 						int32 NumTriangles = MeshLodZero.GetNumTriangles();
 						int32 NumVertices = MeshLodZero.GetNumVertices();
 			
-						FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.PositionVertexBuffer;
+						const FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.PositionVertexBuffer;
 						FIndexArrayView Indices = MeshLodZero.DepthOnlyIndexBuffer.GetArrayView();
 
 						for ( int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++ )

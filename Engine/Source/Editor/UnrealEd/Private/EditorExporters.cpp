@@ -1559,7 +1559,7 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 		Ar.Log( TEXT("# UnrealEd OBJ exporter\r\n") );
 
 		// Currently, we only export LOD 0 of the static mesh. In the future, we could potentially export all available LODs
-		FStaticMeshLODResources& RenderData = StaticMesh->GetLODForExport(0);
+		const FStaticMeshLODResources& RenderData = StaticMesh->GetLODForExport(0);
 		FRawMesh RawMesh;
 		StaticMesh->SourceModels[0].RawMeshBulkData->LoadRawMesh(RawMesh);
 
@@ -1689,7 +1689,7 @@ bool UStaticMeshExporterOBJ::ExportText(const FExportObjectInnerContext* Context
 		File->Logf( TEXT("# UnrealEd OBJ exporter (_Internal)\r\n") );
 
 		// Currently, we only export LOD 0 of the static mesh. In the future, we could potentially export all available LODs
-		FStaticMeshLODResources& RenderData = StaticMesh->GetLODForExport(0);
+		const FStaticMeshLODResources& RenderData = StaticMesh->GetLODForExport(0);
 		uint32 VertexCount = RenderData.GetNumVertices();
 
 		check(VertexCount == RenderData.VertexBuffer.GetNumVertices());

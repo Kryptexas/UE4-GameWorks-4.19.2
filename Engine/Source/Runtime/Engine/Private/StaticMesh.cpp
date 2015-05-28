@@ -2522,7 +2522,7 @@ UMaterialInterface* UStaticMesh::GetMaterial(int32 MaterialIndex) const
  * Returns the render data to use for exporting the specified LOD. This method should always
  * be called when exporting a static mesh.
  */
-FStaticMeshLODResources& UStaticMesh::GetLODForExport( int32 LODIndex )
+const FStaticMeshLODResources& UStaticMesh::GetLODForExport(int32 LODIndex) const
 {
 	check(RenderData);
 	LODIndex = FMath::Clamp<int32>( LODIndex, 0, RenderData->LODResources.Num()-1 );
