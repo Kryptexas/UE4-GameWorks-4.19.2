@@ -10,14 +10,24 @@
 
 void Main()
 {
-	const int BuggId = 53425;
-	var Remove = Buggs_Crashes.Where (bc => bc.BuggId==BuggId);
+	const int BuggId = 56230;
+	var BuggCrashes = Buggs_Crashes.Where (bc => bc.BuggId==BuggId);
 	Buggs.Where (b => b.Id==BuggId).First ().CrashType=3; // Ensure
 	Buggs.Context.SubmitChanges();
-	foreach( var it in Remove )
+	var NumToChange = BuggCrashes.Count();
+	int Index = 0;
+	foreach( var It in BuggCrashes )
 	{
-		it.Crash.CrashType=3; // Ensure
-		Debug.WriteLine( "{0}", it.CrashId );
+		Index ++;
+		if (It.Crash.CrashType != 3)
+		{
+			It.Crash.CrashType=3; // Ensure
+			Debug.WriteLine( "{0} {1,3}/{2,3}", It.CrashId, Index, NumToChange );
+			if (Index % 16 == 0)
+			{
+				Buggs_Crashes.Context.SubmitChanges();
+			}
+		}
 	}
 	Buggs_Crashes.Context.SubmitChanges();
 }
