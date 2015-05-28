@@ -1667,7 +1667,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 	// Tick all the active audio components.  Use a copy as some operations may remove elements from the list, but we want
 	// to evaluate in the order they were added
 	TArray<FActiveSound*> ActiveSoundsCopy = ActiveSounds;
-	ensureOnceMsgf(ActiveSoundsCopy.Num() < 100, TEXT("Encountered a large number of sounds in the ActiveSounds array. Num=%d. LastSound=%s"), ActiveSoundsCopy.Num(), ActiveSoundsCopy.Last() ? *GetNameSafe(ActiveSoundsCopy.Last()->Sound) : TEXT("None"));
+	ensureOnceMsgf(ActiveSoundsCopy.Num() < 500, TEXT("Encountered a large number of sounds in the ActiveSounds array. Num=%d. LastSound=%s"), ActiveSoundsCopy.Num(), ActiveSoundsCopy.Last() ? *GetNameSafe(ActiveSoundsCopy.Last()->Sound) : TEXT("None"));
 	for( int32 i = 0; i < ActiveSoundsCopy.Num(); ++i )
 	{
 		FActiveSound* ActiveSound = ActiveSoundsCopy[i];
