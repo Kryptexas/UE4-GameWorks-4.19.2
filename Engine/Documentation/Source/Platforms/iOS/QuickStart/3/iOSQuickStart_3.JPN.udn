@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2430528
+﻿INTSourceChangelist:2565265
 Title:3. iOS プロビジョニング- 署名証明書の生成
 Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
 Description:iOS 開発の署名証明書のセットアップ
@@ -24,7 +24,7 @@ Availability:Public
 %Steps%
 
 [REGION:note]
-プロビジョンと署名証明書を既にお持ちですか？[このセクションはスキップできます。](Platforms/iOS/QuickStart/4)
+プロビジョニングと署名証明書を既にお持ちですか？[このセクションはスキップできます。](Platforms/iOS/QuickStart/4)
 [/REGION]
 
 %Globals:OSSelect%
@@ -77,8 +77,8 @@ Unreal iOS Configuration Wizard (iPhonePackager) アプリケーション (`Engi
 	![](select_uproject.png)
 
 	[REGION:note]
-	この操作は、iPhonePackager アプリケーションを実行するたびに行わなければなりませんが、 
-	最後に選択したプロジェクトの位置は記憶されます。
+	この操作は、iPhonePackager アプリケーションを実行するたびに行わなければなりませんが、最後に選択した 
+	プロジェクトの位置は記憶されます。
 	[/REGION]
 
 1. **[New User]** タブを選択し、**[Create certificate request and a key pair]** をクリックします。
