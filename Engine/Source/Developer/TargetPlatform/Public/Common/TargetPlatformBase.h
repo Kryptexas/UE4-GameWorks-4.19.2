@@ -357,7 +357,7 @@ public:
 		case ETargetPlatformFeatures::UserCredentials:
 			break;
 		case ETargetPlatformFeatures::ShouldUseCompressedCookedPackages:
-			return true;
+			return false;
 		}
 
 		return false;
