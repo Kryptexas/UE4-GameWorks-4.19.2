@@ -938,29 +938,24 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient );
 
-	TArray<AActor*> ActorsToRemove;
-	for ( AActor* Actor : World->NetworkActors )
+	for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
 	{
+		AActor* Actor = *ActorIt;
+		
 		if ( Actor->IsPendingKill() )
 		{
-			ActorsToRemove.Add(Actor);
+			ActorIt.RemoveCurrent();
 			continue;
 		}
 
 		if ( Actor->GetRemoteRole() == ROLE_None )
 		{
-			ActorsToRemove.Add(Actor);
+			ActorIt.RemoveCurrent();
 			continue;
 		}
 
 		Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
 		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient );
-	}
-
-	// Remove actors marked for removal.
-	for ( AActor* Actor : ActorsToRemove )
-	{
-		World->NetworkActors.Remove(Actor);
 	}
 
 	// Make sure nothing is left over
