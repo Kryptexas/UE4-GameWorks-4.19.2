@@ -482,6 +482,12 @@ void UGameplayDebuggingControllerComponent::ToggleDebugCamera()
 
 			DebugCameraController->ChangeState(NAME_Default);
 			DebugCameraController->ChangeState(NAME_Spectating);
+
+			if (PlayerOwner.IsValid())
+			{
+				PlayerOwner->PopInputComponent(AIDebugViewInputComponent);
+			}
+			AIDebugViewInputComponent = nullptr;
 		}
 	}
 	else
