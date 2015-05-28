@@ -19,8 +19,6 @@ public class UE4BuildUtils : CommandUtils
 	/// <param name="InPlatform"></param>
 	public static void BuildBuildPatchTool(BuildCommand Command, UnrealBuildTool.UnrealTargetPlatform InPlatform)
 	{
-		BuildUnrealHeaderTool(Command, InPlatform);
-
 		BuildProduct(Command, new UE4Build.BuildTarget()
 			{
 				ProjectName = "",
