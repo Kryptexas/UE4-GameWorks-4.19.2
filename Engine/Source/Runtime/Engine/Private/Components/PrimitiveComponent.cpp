@@ -981,7 +981,7 @@ void UPrimitiveComponent::PushHoveredToProxy(const bool bInHovered)
 
 void UPrimitiveComponent::SetCullDistance(float NewCullDistance)
 {
-	if (NewCullDistance > 0)
+	if (NewCullDistance >= 0)
 	{
 		LDMaxDrawDistance = NewCullDistance;
 	
