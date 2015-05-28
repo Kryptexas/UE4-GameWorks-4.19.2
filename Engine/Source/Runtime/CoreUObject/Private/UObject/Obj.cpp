@@ -79,8 +79,6 @@ void UObject::EnsureNotRetrievingVTablePtr() const
 
 UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient)
 {
-	auto& ThreadContext = FUObjectThreadContext::Get();
-	UE_CLOG(!ThreadContext.IsInConstructor, LogObj, Fatal, TEXT("CreateDefultSubobject can only be used inside of UObject constructors. UObject constructing subobjects cannot be created using new or placement new operator."));
 	auto CurrentInitializer = FTlsObjectInitializers::Top();
 	UE_CLOG(!CurrentInitializer, LogObj, Fatal, TEXT("No object initializer found during construction."));
 	UE_CLOG(CurrentInitializer->Obj != this, LogObj, Fatal, TEXT("Using incorrect object initializer."));
