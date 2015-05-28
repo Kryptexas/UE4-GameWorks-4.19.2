@@ -1667,7 +1667,7 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 	// Tick all the active audio components.  Use a copy as some operations may remove elements from the list, but we want
 	// to evaluate in the order they were added
 	TArray<FActiveSound*> ActiveSoundsCopy = ActiveSounds;
-	ensureOnceMsgf(ActiveSoundsCopy.Num() < 10000, TEXT("Encountered a large number of sounds in the ActiveSounds array. Num=%d. LastSound=%s"), ActiveSoundsCopy.Num(), ActiveSoundsCopy.Last() ? *GetNameSafe(ActiveSoundsCopy.Last()->Sound) : TEXT("None"));
+	ensureOnceMsgf(ActiveSoundsCopy.Num() < 100, TEXT("Encountered a large number of sounds in the ActiveSounds array. Num=%d. LastSound=%s"), ActiveSoundsCopy.Num(), ActiveSoundsCopy.Last() ? *GetNameSafe(ActiveSoundsCopy.Last()->Sound) : TEXT("None"));
 	for( int32 i = 0; i < ActiveSoundsCopy.Num(); ++i )
 	{
 		FActiveSound* ActiveSound = ActiveSoundsCopy[i];
@@ -1686,27 +1686,36 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		// If the world scene allows audio - tick wave instances.
 		else if( ActiveSound->World == NULL || ActiveSound->World->AllowAudioPlayback() )
 		{
-			const float Duration = ActiveSound->Sound->GetDuration();
-			// Divide by minimum pitch for longest possible duration
-			if( Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH )
+			if (ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. Index %d. AudioComponent=%s"), i, ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT") ))
 			{
-				UE_LOG(LogAudio, Log, TEXT( "Sound stopped due to duration: %g > %g : %s %s" ), 
-					ActiveSound->PlaybackTime, 
-					Duration, 
-					*ActiveSound->Sound->GetName(), 
-					(ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT")));
-				ActiveSound->Stop(this);
+				const float Duration = ActiveSound->Sound->GetDuration();
+				// Divide by minimum pitch for longest possible duration
+				if( Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH )
+				{
+					UE_LOG(LogAudio, Log, TEXT( "Sound stopped due to duration: %g > %g : %s %s" ), 
+						ActiveSound->PlaybackTime, 
+						Duration, 
+						*ActiveSound->Sound->GetName(), 
+						(ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT")));
+					ActiveSound->Stop(this);
+				}
+				else
+				{
+					// If not in game, do not advance sounds unless they are UI sounds.
+					float UsedDeltaTime = FApp::GetDeltaTime();
+					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
+					{
+						UsedDeltaTime = 0.0f;
+					}
+
+					ActiveSound->UpdateWaveInstances( this, WaveInstances, UsedDeltaTime );
+				}
 			}
 			else
 			{
-				// If not in game, do not advance sounds unless they are UI sounds.
-				float UsedDeltaTime = FApp::GetDeltaTime();
-				if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
-				{
-					UsedDeltaTime = 0.0f;
-				}
 
-				ActiveSound->UpdateWaveInstances( this, WaveInstances, UsedDeltaTime );
+				// Sound was not valid, stop playing it.
+				ActiveSound->Stop(this);
 			}
 		}
 	}
