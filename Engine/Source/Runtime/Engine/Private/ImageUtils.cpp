@@ -259,7 +259,7 @@ void FImageUtils::CompressImageArray( int32 ImageWidth, int32 ImageHeight, TArra
 
 UTexture2D* FImageUtils::CreateCheckerboardTexture(FColor ColorOne, FColor ColorTwo, int32 CheckerSize)
 {
-	CheckerSize = FMath::RoundUpToPowerOfTwo(CheckerSize);
+	CheckerSize = FMath::Min<uint32>( FMath::RoundUpToPowerOfTwo(CheckerSize), 4096 );
 	const int32 HalfPixelNum = CheckerSize >> 1;
 
 	// Create the texture
