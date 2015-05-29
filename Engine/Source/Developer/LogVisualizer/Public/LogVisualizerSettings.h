@@ -97,6 +97,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bUsePlayersOnlyForPause;
 
+	/** Whether to dump Navigation Octree on Stop recording or not */
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bLogNavOctreeOnStop;
+
 	// UObject overrides
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;

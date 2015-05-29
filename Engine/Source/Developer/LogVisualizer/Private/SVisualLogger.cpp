@@ -447,9 +447,15 @@ bool SVisualLogger::HandleStopRecordingCommandCanExecute() const
 
 void SVisualLogger::HandleStopRecordingCommandExecute()
 {
+	UWorld* World = FLogVisualizer::Get().GetWorld();
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("DumpNavOctree")) == false && ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bLogNavOctreeOnStop)
+	{
+		FVisualLogger::NavigationDataDump(World, LogNavigation, ELogVerbosity::Log, INDEX_NONE, FBox());
+	}
+
 	FVisualLogger::Get().SetIsRecording(false);
 
-	UWorld* World = FLogVisualizer::Get().GetWorld();
 	if (AVisualLoggerCameraController::IsEnabled(World))
 	{
 		AVisualLoggerCameraController::DisableCamera(World);
