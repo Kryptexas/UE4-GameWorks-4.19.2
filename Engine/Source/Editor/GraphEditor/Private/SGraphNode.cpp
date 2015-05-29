@@ -180,9 +180,9 @@ void SGraphNode::OnCommentTextCommitted(const FText& NewComment, ETextCommit::Ty
 	GetNodeObj()->OnUpdateCommentText(NewComment.ToString());
 }
 
-void SGraphNode::OnCommentBubbleToggled(bool bCommentBubbleVisible)
+void SGraphNode::OnCommentBubbleToggled(bool bInCommentBubbleVisible)
 {
-	GetNodeObj()->OnCommentBubbleToggled(bCommentBubbleVisible);
+	GetNodeObj()->OnCommentBubbleToggled(bInCommentBubbleVisible);
 }
 
 void SGraphNode::SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinConnection InOnDisallowedPinConnection)

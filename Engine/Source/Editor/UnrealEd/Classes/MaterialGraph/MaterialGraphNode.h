@@ -60,7 +60,7 @@ public:
 	virtual void NodeConnectionListChanged() override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual void OnUpdateCommentText( const FString& NewComment ) override;
-	virtual void OnCommentBubbleToggled( bool bCommentBubbleVisible ) override;
+	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	// End UEdGraphNode interface.

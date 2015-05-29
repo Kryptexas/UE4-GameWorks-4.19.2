@@ -633,12 +633,12 @@ void UMaterialGraphNode::OnUpdateCommentText( const FString& NewComment )
 	}
 }
 
-void UMaterialGraphNode::OnCommentBubbleToggled( bool bCommentBubbleVisible )
+void UMaterialGraphNode::OnCommentBubbleToggled( bool bInCommentBubbleVisible )
 {
 	if ( MaterialExpression )
 	{
 		MaterialExpression->Modify();
-		MaterialExpression->bCommentBubbleVisible = bCommentBubbleVisible;
+		MaterialExpression->bCommentBubbleVisible = bInCommentBubbleVisible;
 		MaterialDirtyDelegate.ExecuteIfBound();
 	}
 }
