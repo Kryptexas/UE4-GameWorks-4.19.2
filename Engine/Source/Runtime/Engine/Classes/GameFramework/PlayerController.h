@@ -950,6 +950,10 @@ public:
 	UFUNCTION(unreliable, server, WithValidation)
 	void ServerCheckClientPossession();
 
+	/** Reliable version of ServerCheckClientPossession to be used when there is no likely danger of spamming the network. */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerCheckClientPossessionReliable();
+
 	/** Call ServerCheckClientPossession on the server, but only if the current pawn is not the acknowledged pawn (and throttled to avoid saturating the network). */
 	virtual void SafeServerCheckClientPossession();
 
