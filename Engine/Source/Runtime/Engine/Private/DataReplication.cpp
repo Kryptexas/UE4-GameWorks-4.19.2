@@ -761,7 +761,7 @@ void FObjectReplicator::PostReceivedBunch()
 	}
 
 	// Call RepNotifies
-	CallRepNotifies();
+	CallRepNotifies(true);
 }
 
 static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetirement &	Retire, int32 OutAckPacketId )
@@ -1126,7 +1126,7 @@ void FObjectReplicator::StartBecomingDormant()
 	bLastUpdateEmpty = false; // Ensure we get one more attempt to update properties
 }
 
-void FObjectReplicator::CallRepNotifies()
+void FObjectReplicator::CallRepNotifies(bool bSkipIfChannelHasQueuedBunches)
 {
 	UObject* Object = GetObject();
 
@@ -1140,7 +1140,7 @@ void FObjectReplicator::CallRepNotifies()
 		return;
 	}
 
-	if ( OwningChannel != NULL && OwningChannel->QueuedBunches.Num() > 0 )
+	if ( bSkipIfChannelHasQueuedBunches && ( OwningChannel != NULL && OwningChannel->QueuedBunches.Num() > 0 ) )
 	{
 		return;
 	}
@@ -1278,7 +1278,9 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 	}
 
 	// Call any rep notifies that need to happen when object pointers change
-	CallRepNotifies();
+	// Pass in false to override the check for queued bunches. Otherwise, if the owning channel has queued bunches,
+	// the RepNotifies will remain in the list and the check for 0 RepNotifies above will fail next time.
+	CallRepNotifies(false);
 
 	if ( bSomeObjectsWereMapped )
 	{

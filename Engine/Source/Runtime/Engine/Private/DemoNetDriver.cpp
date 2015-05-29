@@ -1353,7 +1353,7 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 				{
 					for (auto& ReplicatorPair : ChannelPair.Value->ReplicationMap)
 					{
-						ReplicatorPair.Value->CallRepNotifies();
+						ReplicatorPair.Value->CallRepNotifies(true);
 					}
 				}
 			}

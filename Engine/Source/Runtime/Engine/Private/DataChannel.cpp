@@ -1770,7 +1770,7 @@ bool UActorChannel::ProcessQueuedBunches()
 		// Call any onreps that were delayed because we were queuing bunches
 		for (auto& ReplicatorPair : ReplicationMap)
 		{
-			ReplicatorPair.Value->CallRepNotifies();
+			ReplicatorPair.Value->CallRepNotifies(true);
 		}
 	}
 
