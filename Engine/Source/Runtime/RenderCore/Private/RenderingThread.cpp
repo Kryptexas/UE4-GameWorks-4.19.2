@@ -386,9 +386,7 @@ public:
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 			__except( ReportCrash( GetExceptionInformation() ) )
 			{
-#if WITH_EDITORONLY_DATA
 				GRenderingThreadError = GErrorHist;
-#endif
 
 				// Use a memory barrier to ensure that the game thread sees the write to GRenderingThreadError before
 				// the write to GIsRenderingThreadHealthy.
@@ -644,9 +642,7 @@ void CheckRenderingThreadHealth()
 {
 	if(!GIsRenderingThreadHealthy)
 	{
-#if WITH_EDITORONLY_DATA
 		GErrorHist[0] = 0;
-#endif
 		GIsCriticalError = false;
 		UE_LOG(LogRendererCore, Fatal,TEXT("Rendering thread exception:\r\n%s"),*GRenderingThreadError);
 	}
