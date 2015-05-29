@@ -5,7 +5,9 @@
 =============================================================================*/
 
 #include "Core.h"
+#include "ModuleManager.h"
 #include "LightPropagationVolumeBlendable.h"
+#include "SceneView.h"
 
 IMPLEMENT_MODULE(FDefaultModuleImpl, LightPropagationVolumeRuntime);
 

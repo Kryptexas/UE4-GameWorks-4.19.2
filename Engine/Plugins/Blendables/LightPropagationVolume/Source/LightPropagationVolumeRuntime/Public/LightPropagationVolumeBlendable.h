@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreUObject.h"
 #include "Engine/BlendableInterface.h"
 #include "Engine/DataAsset.h"
 #include "LightPropagationVolumeBlendable.generated.h"

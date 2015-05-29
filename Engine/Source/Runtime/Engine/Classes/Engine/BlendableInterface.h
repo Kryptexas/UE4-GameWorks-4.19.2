@@ -1,9 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Interface.h"
 #include "BlendableInterface.generated.h"
 
+class UMaterialInterface;
 class UMaterialInstanceDynamic;
 
 /** Where to place a material node in the post processing graph */
