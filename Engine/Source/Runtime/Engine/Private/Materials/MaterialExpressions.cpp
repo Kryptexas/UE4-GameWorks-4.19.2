@@ -1405,6 +1405,17 @@ uint32 UMaterialExpressionTextureSample::GetInputType(int32 InputIndex)
 	return MCT_Unknown;
 }
 #undef IF_INPUT_RETURN
+
+void UMaterialExpressionTextureSample::GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip)
+{
+	if (InputIndex == 1 && !GetOuter()->IsA(UMaterialFunction::StaticClass()))
+	{
+		// If input pin 1 is omitted, increment the index so the correct tooltip is looked up
+		InputIndex++;
+	}
+
+	Super::GetConnectorToolTip(InputIndex, OutputIndex, OutToolTip);
+}
 #endif
 
 
