@@ -872,6 +872,11 @@ bool FAsyncPackage::IsTimeLimitExceeded()
  */
 bool FAsyncPackage::GiveUpTimeSlice()
 {
+	if (!FPlatformProcess::SupportsMultithreading())
+	{
+		FIOSystem::Get().TickSingleThreaded();
+	}
+
 	if (bUseTimeLimit && !bUseFullTimeLimit)
 	{
 		bTimeLimitExceeded = true;
