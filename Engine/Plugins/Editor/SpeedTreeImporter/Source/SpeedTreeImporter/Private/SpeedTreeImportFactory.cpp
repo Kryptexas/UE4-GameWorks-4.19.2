@@ -1233,7 +1233,6 @@ UObject* USpeedTreeImportFactory::FactoryCreateBinary( UClass* InClass, UObject*
 				StaticMesh = NewObject<UStaticMesh>(Package, FName(*MeshName), Flags | RF_Public);
 
 				// @todo AssetImportData make a data class for speed tree assets
-				StaticMesh->AssetImportData = NewObject<UAssetImportData>(StaticMesh);
 				StaticMesh->AssetImportData->Update(UFactory::GetCurrentFilename());
 				StaticMesh->AssetImportData->bDirty = false;
 				

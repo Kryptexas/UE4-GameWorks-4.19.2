@@ -1917,6 +1917,7 @@ USkeletalMesh::USkeletalMesh(const FObjectInitializer& ObjectInitializer)
 	StreamingDistanceMultiplier = 1.0f;
 #if WITH_EDITORONLY_DATA
 	SelectedEditorSection = INDEX_NONE;
+	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
 #endif
 	ImportedResource = MakeShareable(new FSkeletalMeshResource());
 }
@@ -2342,14 +2343,16 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 	}
 
 #if WITH_EDITORONLY_DATA
-	// SourceFilePath and SourceFileTimestamp were moved into a subobject
-	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADDED_FBX_ASSET_IMPORT_DATA )
+	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ASSET_IMPORT_DATA_AS_JSON && !AssetImportData)
 	{
-		if ( AssetImportData == NULL )
-		{
-			AssetImportData = NewObject<UAssetImportData>(this);
-		}
-
+		// AssetImportData should always be valid
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+	
+	// SourceFilePath and SourceFileTimestamp were moved into a subobject
+	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADDED_FBX_ASSET_IMPORT_DATA && AssetImportData)
+	{
+		// AssetImportData should always have been set up in the constructor where this is relevant
 		FAssetImportInfo Info;
 		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
 		AssetImportData->CopyFrom(Info);

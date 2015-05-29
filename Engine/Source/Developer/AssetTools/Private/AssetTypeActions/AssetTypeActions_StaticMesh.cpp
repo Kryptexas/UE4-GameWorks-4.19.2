@@ -92,10 +92,7 @@ void FAssetTypeActions_StaticMesh::GetResolvedSourceFilePaths(const TArray<UObje
 	for (auto& Asset : TypeAssets)
 	{
 		const auto StaticMesh = CastChecked<UStaticMesh>(Asset);
-		if (StaticMesh->AssetImportData)
-		{
-			StaticMesh->AssetImportData->ExtractFilenames(OutSourceFilePaths);
-		}
+		StaticMesh->AssetImportData->ExtractFilenames(OutSourceFilePaths);
 	}
 }
 

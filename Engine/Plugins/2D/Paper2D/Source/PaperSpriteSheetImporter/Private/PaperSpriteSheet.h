@@ -40,6 +40,7 @@ public:
 
 	// UObject interface
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
 #endif
 };

@@ -135,6 +135,7 @@ public:
 #endif
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual void Serialize(FArchive& Ar) override;
 #endif
 	// End of UObject interface
 

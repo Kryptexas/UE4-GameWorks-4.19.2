@@ -5800,14 +5800,7 @@ bool UReimportFbxSkeletalMeshFactory::CanReimport( UObject* Obj, TArray<FString>
 	USkeletalMesh* SkeletalMesh = Cast<USkeletalMesh>(Obj);
 	if(SkeletalMesh && !Obj->IsA( UDestructibleMesh::StaticClass() ))
 	{
-		if ( SkeletalMesh->AssetImportData )
-		{
-			SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
-		}
-		else
-		{
-			OutFilenames.Add(TEXT(""));
-		}
+		SkeletalMesh->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -5979,14 +5972,7 @@ bool UReimportFbxAnimSequenceFactory::CanReimport( UObject* Obj, TArray<FString>
 	UAnimSequence* AnimSequence = Cast<UAnimSequence>(Obj);
 	if(AnimSequence)
 	{
-		if ( AnimSequence->AssetImportData )
-		{
-			AnimSequence->AssetImportData->ExtractFilenames(OutFilenames);
-		}
-		else
-		{
-			OutFilenames.Add(TEXT(""));
-		}
+		AnimSequence->AssetImportData->ExtractFilenames(OutFilenames);
 		return true;
 	}
 	return false;
@@ -6784,12 +6770,6 @@ void UReimportDestructibleMeshFactory::SetReimportPaths( UObject* Obj, const TAr
 	UDestructibleMesh* DestructibleMesh = Cast<UDestructibleMesh>(Obj);
 	if(DestructibleMesh && ensure(NewReimportPaths.Num() == 1))
 	{
-		if ( DestructibleMesh->AssetImportData == nullptr )
-		{
-			// @todo AssetImportData make an apex destructible import data class
-			DestructibleMesh->AssetImportData = NewObject<UAssetImportData>(DestructibleMesh);
-		}
-
 		DestructibleMesh->AssetImportData->UpdateFilenameOnly(NewReimportPaths[0]);
 	}
 }
@@ -6803,12 +6783,6 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	}
 
 	UDestructibleMesh* DestructibleMesh = Cast<UDestructibleMesh>( Obj );
-
-	if ( DestructibleMesh->AssetImportData == nullptr )
-	{
-		// @todo AssetImportData make an apex destructible import data class
-		DestructibleMesh->AssetImportData = NewObject<UAssetImportData>(DestructibleMesh);
-	}
 
 	const FString Filename = DestructibleMesh->AssetImportData->GetFirstFilename();
 

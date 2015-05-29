@@ -19,14 +19,17 @@ UScriptBlueprint::UScriptBlueprint(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 void UScriptBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
+	if (AssetImportData)
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->ToJson(), FAssetRegistryTag::TT_Hidden) );
+	}
 
 	Super::GetAssetRegistryTags(OutTags);
 }
 void UScriptBlueprint::PostLoad()
 {
 	Super::PostLoad();
-	if (!SourceFilePath_DEPRECATED.IsEmpty())
+	if (!SourceFilePath_DEPRECATED.IsEmpty() && AssetImportData)
 	{
 		AssetImportData->UpdateFilenameOnly(SourceFilePath_DEPRECATED);
 	}
@@ -59,6 +62,11 @@ bool UScriptBlueprint::ValidateGeneratedClass(const UClass* InClass)
 
 bool UScriptBlueprint::IsCodeDirty() const
 {
+	if (!AssetImportData)
+	{
+		return true;
+	}
+
 	const TArray<FAssetImportInfo::FSourceFile>& Data = AssetImportData->GetSourceFileData();
 
 	if (Data.Num() == 1)
@@ -83,7 +91,7 @@ void UScriptBlueprint::UpdateScriptStatus()
 
 void UScriptBlueprint::UpdateSourceCodeIfChanged()
 {
-	if (IsCodeDirty())
+	if (IsCodeDirty() && AssetImportData)
 	{
 		FString NewScript;
 		FString Filename = AssetImportData->GetFirstFilename();

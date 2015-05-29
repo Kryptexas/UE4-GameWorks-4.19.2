@@ -56,10 +56,7 @@ void FAssetTypeActions_AnimSequence::GetResolvedSourceFilePaths(const TArray<UOb
 	for (auto& Asset : TypeAssets)
 	{
 		const auto AnimSequence = CastChecked<UAnimSequence>(Asset);
-		if (AnimSequence->AssetImportData)
-		{
-			AnimSequence->AssetImportData->ExtractFilenames(OutSourceFilePaths);
-		}
+		AnimSequence->AssetImportData->ExtractFilenames(OutSourceFilePaths);
 	}
 }
 
@@ -74,18 +71,15 @@ void FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource(TArray<TWeakOb
 		{
 			FAssetImportInfo OldImportData;
 
-			if (Object->AssetImportData)
-			{
-				// Make note of the old import data
-				OldImportData.CopyFrom(*Object->AssetImportData);
-				// And reset the import data
-				Object->AssetImportData->CopyFrom(EmptyImportInfo);
-			}
+			// Make note of the old import data
+			OldImportData.CopyFrom(*Object->AssetImportData);
+			// And reset the import data
+			Object->AssetImportData->CopyFrom(EmptyImportInfo);
 
 			bool bSuccess = FReimportManager::Instance()->Reimport(Object, /*bAskForNewFileIfMissing=*/true);
 
 			// restore the old source path in case reimport was not successful
-			if (!bSuccess && Object->AssetImportData)
+			if (!bSuccess)
 			{
 				Object->AssetImportData->CopyFrom(OldImportData);
 			}

@@ -29,6 +29,7 @@ UPaperTileMap::UPaperTileMap(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 	SelectedLayerIndex = INDEX_NONE;
 	BackgroundColor = FColor(55, 55, 55);
+	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
 #endif
 
 	LayerNameIndex = 0;
@@ -174,6 +175,19 @@ void UPaperTileMap::PostLoad()
 
 	ValidateSelectedLayerIndex();
 }
+
+#if WITH_EDITORONLY_DATA
+void UPaperTileMap::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+	
+	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ASSET_IMPORT_DATA_AS_JSON && !AssetImportData)
+	{
+		// AssetImportData should always be valid
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+}
+#endif
 
 void UPaperTileMap::ValidateSelectedLayerIndex()
 {
