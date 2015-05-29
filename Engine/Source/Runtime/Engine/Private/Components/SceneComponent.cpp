@@ -18,6 +18,15 @@
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
 
+namespace SceneComponentStatics
+{
+	static const FName DefaultSceneRootVariableName(TEXT("DefaultSceneRoot"));
+	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
+	static const FName MobilityName(TEXT("Mobility"));
+	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
+	static const FName PhysicsVolumeTraceName(TEXT("PhysicsVolumeTrace"));
+}
+
 DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 
 FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
@@ -30,9 +39,7 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 
 const FName& USceneComponent::GetDefaultSceneRootVariableName()
 {
-	static FName DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
-
-	return DefaultSceneRootVariableName;
+	return SceneComponentStatics::DefaultSceneRootVariableName;
 }
 
 USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -261,8 +268,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Note: This must be called before UActorComponent::PostEditChangeChainProperty is called because this component will be reset when UActorComponent reruns construction scripts 
-	static FName MobilityName("Mobility");
-	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == MobilityName)
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == SceneComponentStatics::MobilityName)
 	{
 		UpdateAttachedMobility(this);
 	}
@@ -273,8 +279,7 @@ void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 void USceneComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
 	// Note: This must be called before UActorComponent::PostEditChangeChainProperty is called because this component will be reset when UActorComponent reruns construction scripts 
-	static FName MobilityName("Mobility");
-	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == MobilityName)
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == SceneComponentStatics::MobilityName)
 	{
 		UpdateAttachedMobility(this);
 	}
@@ -1473,8 +1478,7 @@ FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 
 FName USceneComponent::GetComponentInstanceDataType() const
 {
-	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
-	return SceneComponentInstanceDataTypeName;
+	return SceneComponentStatics::SceneComponentInstanceDataTypeName;
 }
 
 void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, bool bTeleport)
@@ -1744,8 +1748,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 			{
 				// check for all volumes that overlap the component
 				TArray<FOverlapResult> Hits;
-				static FName NAME_PhysicsVolumeTrace = FName(TEXT("PhysicsVolumeTrace"));
-				FComponentQueryParams Params(NAME_PhysicsVolumeTrace, GetOwner());
+				FComponentQueryParams Params(SceneComponentStatics::PhysicsVolumeTraceName, GetOwner());
 
 				bool bOverlappedOrigin = false;
 				const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
@@ -1905,8 +1908,7 @@ bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewR
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentSceneComponentTime);
 
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	static const FText WarnText = LOCTEXT("InvalidMove", "move");
-	if (CheckStaticMobilityAndWarn(WarnText))
+	if (CheckStaticMobilityAndWarn(SceneComponentStatics::MobilityWarnText))
 	{
 		if (OutHit)
 		{

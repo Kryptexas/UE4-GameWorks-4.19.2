@@ -34,6 +34,14 @@
 //////////////////////////////////////////////////////////////////////////
 // Globals
 
+namespace PrimitiveComponentStatics
+{
+	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
+	static const FName MoveComponentName(TEXT("MoveComponent"));
+	static const FName UpdateOverlapsName(TEXT("UpdateOverlaps"));
+	static const FName PrimitiveComponentInstanceDataTypeName(TEXT("PrimitiveComponentInstanceData"));
+}
+
 DEFINE_LOG_CATEGORY_STATIC(LogPrimitiveComponent, Log, All);
 
 static FAutoConsoleVariable CVarAllowCachedOverlaps(
@@ -419,8 +427,7 @@ FActorComponentInstanceData* UPrimitiveComponent::GetComponentInstanceData() con
 
 FName UPrimitiveComponent::GetComponentInstanceDataType() const
 {
-	static const FName PrimitiveComponentInstanceDataTypeName(TEXT("PrimitiveComponentInstanceData"));
-	return PrimitiveComponentInstanceDataTypeName;
+	return PrimitiveComponentStatics::PrimitiveComponentInstanceDataTypeName;
 }
 
 void UPrimitiveComponent::OnAttachmentChanged()
@@ -1345,6 +1352,7 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
+
 bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotationQuat, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentTime);
@@ -1369,8 +1377,7 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	}
 
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	static const FText WarnText = LOCTEXT("InvalidMove", "move");
-	if (CheckStaticMobilityAndWarn(WarnText))
+	if (CheckStaticMobilityAndWarn(PrimitiveComponentStatics::MobilityWarnText))
 	{
 		if (OutHit)
 		{
@@ -1450,10 +1457,9 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) && PERF_MOVECOMPONENT_STATS
 			MoveTimer.bDidLineCheck = true;
 #endif 
-			static const FName Name_MoveComponent(TEXT("MoveComponent"));
 			UWorld* const MyWorld = GetWorld();
 
-			FComponentQueryParams Params(Name_MoveComponent, Actor);
+			FComponentQueryParams Params(PrimitiveComponentStatics::MoveComponentName, Actor);
 			FCollisionResponseParams ResponseParam;
 			InitSweepCollisionParams(Params, ResponseParam);
 			bool const bHadBlockingHit = MyWorld->ComponentSweepMulti(Hits, this, TraceStart, TraceEnd, InitialRotationQuat, Params);
@@ -2301,9 +2307,8 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 					UE_LOG(LogPrimitiveComponent, VeryVerbose, TEXT("%s->%s Performing overlaps!"), *GetNameSafe(GetOwner()), *GetName());
 					UWorld* const MyWorld = MyActor->GetWorld();
 					TArray<FOverlapResult> Overlaps;
-					static FName NAME_UpdateOverlaps = FName(TEXT("UpdateOverlaps"));
 					// note this will optionally include overlaps with components in the same actor (depending on bIgnoreChildren). 
-					FComponentQueryParams Params(NAME_UpdateOverlaps, bIgnoreChildren ? MyActor : nullptr);
+					FComponentQueryParams Params(PrimitiveComponentStatics::UpdateOverlapsName, bIgnoreChildren ? MyActor : nullptr);
 					Params.bTraceAsyncScene = bCheckAsyncSceneOnMove;
 					Params.AddIgnoredActors(MoveIgnoreActors);
 					MyWorld->ComponentOverlapMulti(Overlaps, this, GetComponentLocation(), GetComponentQuat(), Params);
