@@ -321,6 +321,7 @@ public:
 		FPinTypeTreeInfo(const FText& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly = false, FTypesDatabase* TypesDatabase = nullptr);
 		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
 		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly = false);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
@@ -329,6 +330,7 @@ public:
 			FriendlyName = InInfo->FriendlyName;
 			Tooltip = InInfo->Tooltip;
 			SubCategoryObjectAssetReference = InInfo->SubCategoryObjectAssetReference;
+			CachedDescription = InInfo->CachedDescription;
 		}
 		
 		/** Returns a succinct menu description of this type */

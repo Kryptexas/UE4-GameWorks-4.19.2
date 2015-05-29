@@ -103,9 +103,9 @@ const FName FBlueprintMetadata::MD_ArrayDependentParam(TEXT("ArrayTypeDependentP
 
 #define LOCTEXT_NAMESPACE "KismetSchema"
 
-UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FText& InFriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly/*=false*/, FTypesDatabase* TypesDatabase /*=nullptr*/)
+UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FText& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FText& InTooltip, bool bInReadOnly/*=false*/, FTypesDatabase* TypesDatabase /*=nullptr*/)
 {
-	Init(InFriendlyCategoryName, CategoryName, Schema, InTooltip, bInReadOnly, TypesDatabase);
+	Init(FriendlyName, CategoryName, Schema, InTooltip, bInReadOnly, TypesDatabase);
 }
 
 struct FUnloadedAssetData
@@ -435,8 +435,7 @@ public:
 		{
 			for (FUnloadedAssetData& It : *UnLoadedSubTypesPtr->Get())
 			{
-				FPinTypeTreeInfoPtr TypeTreeInfo = MakeShareable(new UEdGraphSchema_K2::FPinTypeTreeInfo(CategoryName, It.StringAssetReference, It.Tooltip));
-				TypeTreeInfo->FriendlyName = It.AssetFriendlyName;
+				FPinTypeTreeInfoPtr TypeTreeInfo = MakeShareable(new UEdGraphSchema_K2::FPinTypeTreeInfo(It.AssetFriendlyName, CategoryName, It.StringAssetReference, It.Tooltip));
 				OutChildren.Add(TypeTreeInfo);
 			}
 		}
@@ -644,6 +643,23 @@ UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FString& CategoryNam
 
 UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly)
 {
+	check(!CategoryName.IsEmpty());
+	check(SubCategoryObject.IsValid());
+
+	Tooltip = InTooltip;
+	PinType.PinCategory = CategoryName;
+
+	SubCategoryObjectAssetReference = SubCategoryObject;
+	PinType.PinSubCategoryObject = SubCategoryObjectAssetReference.ResolveObject();
+
+	bReadOnly = bInReadOnly;
+	CachedDescription = GenerateDescription();
+}
+
+UEdGraphSchema_K2::FPinTypeTreeInfo::FPinTypeTreeInfo(const FText& InFriendlyName, const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FText& InTooltip, bool bInReadOnly)
+{
+	FriendlyName = InFriendlyName;
+
 	check(!CategoryName.IsEmpty());
 	check(SubCategoryObject.IsValid());
 
