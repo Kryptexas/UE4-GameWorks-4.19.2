@@ -263,6 +263,7 @@ struct FTCharArrayTester
 	#define DECLARE_LOG_CATEGORY_CLASS(...)
 	#define DEFINE_LOG_CATEGORY_CLASS(...)
 	#define LOG_SCOPE_VERBOSITY_OVERRIDE(...)
+	#define UE_SECURITY_LOG(...)
 
 #else
 
@@ -317,6 +318,27 @@ struct FTCharArrayTester
 			} \
 		}
 
+		/**
+		* A  macro that outputs a formatted message to the log specifically used for security events
+		* @param NetConnection, a valid UNetConnection
+		* @param SecurityEventType, a security event type (ESecurityEvent::Type)
+		* @param Format, format text
+		***/
+		#define UE_SECURITY_LOG(NetConnection, SecurityEventType, Format, ...) \
+		{ \
+			static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
+			check(NetConnection != nullptr); \
+			if (UE_LOG_CHECK_COMPILEDIN_VERBOSITY(LogSecurity, Warning)) \
+			{ \
+				if (!LogSecurity.IsSuppressed(ELogVerbosity::Warning)) \
+				{ \
+				FString Test = FString::Printf(TEXT("%s: %s: %s"), *(NetConnection->RemoteAddressToString()), ToString(SecurityEventType), Format); \
+					FMsg::Logf_Internal(__FILE__, __LINE__, LogSecurity.GetCategoryName(), ELogVerbosity::Warning, *Test, ##__VA_ARGS__); \
+				} \
+			} \
+		 }
+
+
 		// Conditional logging. Will only log if Condition is met.
 		#define UE_CLOG(Condition, CategoryName, Verbosity, Format, ...) \
 		{ \
@@ -339,7 +361,6 @@ struct FTCharArrayTester
 			} \
 		}
 	#endif
-
 	/** 
 	 * A macro that executes some code within a scope if a given logging category is active at a given verbosity level
 	 * Also, withing the scope of the execution, the default category and verbosity is set up for the low level logging 

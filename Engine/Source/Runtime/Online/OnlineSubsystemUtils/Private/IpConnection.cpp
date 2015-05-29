@@ -173,3 +173,8 @@ int32 UIpConnection::GetAddrPort(void)
 	RemoteAddr->GetPort(OutPort);
 	return OutPort;
 }
+
+FString UIpConnection::RemoteAddressToString()
+{
+	return RemoteAddr->ToString(true);
+}

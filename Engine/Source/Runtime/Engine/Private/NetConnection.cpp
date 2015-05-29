@@ -459,16 +459,20 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 			FBitReader Reader( Data, BitSize );
 			ReceivedPacket( Reader );
 		}
+		// MalformedPacket - Received a packet with 0's in the last byte
 		else 
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "Packet missing trailing 1" ) );
+			UE_SECURITY_LOG(this, ESecurityEvent::Malformed_Packet, TEXT("Received packet with 0's in last byte of packet"));
 			Close();	// If they have the secret key (or haven't opened the control channel yet) and get here, assume they are being malicious
+			UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection closed"));
 		}
 	}
+	// MalformedPacket - Received a packet of 0 bytes
 	else 
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "Received zero-size packet" ) );
+		UE_SECURITY_LOG(this, ESecurityEvent::Malformed_Packet, TEXT("Received zero-size packet"));
 		Close();	// If they have the secret key (or haven't opened the control channel yet) and get here, assume they are being malicious
+		UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection closed"));
 	}
 }
 
@@ -661,7 +665,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
 	}
-	else
+	// Invalid Data Packet: Received a duplicate packet
+	else if ( PacketId > 0)
 	{
 		Driver->InOutOfOrderPackets++;
 		// Protect against replay attacks
@@ -669,7 +674,17 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		// The only bunch we would process would be unreliable RPC's, which could allow for replay attacks
 		// So rather than add individual protection for unreliable RPC's as well, just kill it at the source, 
 		// which protects everything in one fell swoop
+
+		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an Acked PacketID"));
+
 		return;		
+	}
+	// Invalid Data Packet: User has sent an invalid PacketId
+	else if ( PacketId < 0)
+	{
+		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an invalid PacketID"));
+
+		return;
 	}
 
 	// Detect packets on the client, which should trigger PingAck verification
@@ -687,8 +702,9 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		bool IsAck = !!Reader.ReadBit();
 		if ( Reader.IsError() )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "Bunch missing ack flag" ) );
+			UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Bunch missing ack flag"));
 			Close();
+			UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection Closed"));
 			return;
 		}
 
@@ -699,10 +715,12 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			// This is an acknowledgment.
 			int32 AckPacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),OutAckPacketId,MAX_PACKETID);
+
 			if( Reader.IsError() )
 			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch missing ack" ) );
+				UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Bunch missing ack"));
 				Close();
+				UE_SECURITY_LOG(this, ESecurityEvent::Closed, TEXT("Connection Closed"));
 				return;
 			}
 
@@ -1897,11 +1915,4 @@ void UNetConnection::ResetPacketBitCounts()
 	NumBunchBits = 0;
 	NumAckBits = 0;
 	NumPaddingBits = 0;
-}
-
-
-
-void SecurityLog::SecurityEvent(const char* string)
-{
-	UE_LOG(LogNet, Warning, TEXT("GHI"));
 }

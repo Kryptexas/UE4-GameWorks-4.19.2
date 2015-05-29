@@ -190,6 +190,22 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 			}
 			else
 			{
+				// MalformedPacket: Client tried sending a packet that exceeded the maximum packet limit
+				// enforced by the server
+				if (Error == SE_EMSGSIZE)
+				{
+					UIpConnection* Connection = nullptr;
+					if (GetServerConnection() && (*GetServerConnection()->RemoteAddr == *FromAddr))
+					{
+						Connection = GetServerConnection();
+					}
+
+					if (Connection != nullptr)
+					{
+						UE_SECURITY_LOG(Connection, ESecurityEvent::Malformed_Packet, TEXT("Received Packet with bytes > max MTU"));
+					}
+				}
+
 				if( Error != SE_ECONNRESET && Error != SE_UDP_ERR_PORT_UNREACH )
 				{
 					UE_LOG(LogNet, Warning, TEXT("UDP recvfrom error: %i (%s) from %s"),

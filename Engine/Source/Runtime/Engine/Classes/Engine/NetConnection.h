@@ -44,6 +44,40 @@ enum EConnectionState
 	USOCK_Open      = 3, // Connection is open.
 };
 
+// 
+// Security event types used for UE_SECURITY_LOG
+//
+namespace ESecurityEvent
+{ 
+	enum Type
+	{
+		Malformed_Packet = 0, // The packet didn't follow protocol
+		Invalid_Data = 1,     // The packet contained invalid data
+		Closed = 2            // The connection had issues (potentially malicious) and was closed
+	};
+	
+	/** @return the stringified version of the enum passed in */
+	inline const TCHAR* ToString(const ESecurityEvent::Type EnumVal)
+	{
+		switch (EnumVal)
+		{
+			case Malformed_Packet:
+			{
+				return TEXT("Malformed_Packet");
+			}
+			case Invalid_Data:
+			{
+				return TEXT("Invalid_Data");
+			}
+			case Closed:
+			{
+				return TEXT("Closed");
+			}
+		}
+		return TEXT("");
+	}
+}
+
 /** If this connection is from a client, this is the current login state of this connection/login attempt */
 namespace EClientLoginState
 {
@@ -94,14 +128,6 @@ struct DelayedPacket
 //	(optionally, 'PING_ACK_PACKET_INTERVAL' can be tweaked, so that the interval checks take a similar amount of time as this delay)
 #define PING_ACK_DELAY 0.5
 
-
-class SecurityLog
-{
-	void SecurityEvent(const char* string);
-};
-
-
-
 UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
 {
@@ -114,8 +140,6 @@ class UNetConnection : public UPlayer
 	/** Owning net driver */
 	UPROPERTY()
 	class UNetDriver* Driver;	
-
-	class SecurityLog Log;
 
 	UPROPERTY()
 	/** Package map between local and remote. (negotiates net serialization) */
@@ -482,6 +506,14 @@ public:
 	 */
 	ENGINE_API virtual void InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed=0, int32 InMaxPacket=0);
 
+
+	/** 
+	* Gets a unique ID for the connection, this ID depends on the underlying connection
+	* For IP connections this is an IP Address and port, for steam this is a SteamID
+	*/
+	ENGINE_API virtual FString RemoteAddressToString() PURE_VIRTUAL(UNetConnection::RemoteAddressToString, return TEXT("Error"););
+	
+	
 	// Functions.
 
 	/** Resend any pending acks. */
