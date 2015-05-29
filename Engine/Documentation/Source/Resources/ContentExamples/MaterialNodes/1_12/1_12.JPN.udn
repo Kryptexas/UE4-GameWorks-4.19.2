@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2568711
 Availability:Public
-Title:1.12 - Tesselation Multiplier
+Title:1.12 - Tessellation Multiplier
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description: マテリアルノード事例レベルの概要、事例 1.12:Tesselation Multiplier  (テッセレーション乗数)
+Description: マテリアルノード事例レベルの概要、事例 1.12:Tessellation Multiplier
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Engine/Rendering/Materials
 Related:Engine/Rendering/Materials/ExpressionReference
