@@ -47,20 +47,7 @@ float3 GammaCorrect(float3 InColor)
 #if !(ES2_PROFILE || ES3_1_PROFILE)
 	FLATTEN if( GammaValues.y != 1.0f )
 	{
-		// Apply "gamma" curve adjustment.
-		CorrectedColor = pow(CorrectedColor, GammaValues.x);
-
-		#if MAC
-			// Note, MacOSX native output is raw gamma 2.2 not sRGB!
-			CorrectedColor = pow(CorrectedColor, 1.0/2.2);
-		#else
-			#if USE_709
-				// Didn't profile yet if the branching version would be faster (different linear segment).
-				CorrectedColor = LinearTo709Branchless(CorrectedColor);
-			#else
-				CorrectedColor = LinearToSrgbBranching(CorrectedColor);
-			#endif
-		#endif
+		CorrectedColor = ApplyGammaCorrection(CorrectedColor, GammaValues.x);
 	}
 #endif
 

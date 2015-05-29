@@ -155,7 +155,7 @@ class FTextureFormatAndroid : public ITextureFormat
 		) const override
 	{
 		FImage Image;
-		InImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.bSRGB);
+		InImage.CopyTo(Image, ERawImageFormat::BGRA8, BuildSettings.GetGammaSpace());
 
 		EPixelFormat CompressedPixelFormat = PF_Unknown;
 

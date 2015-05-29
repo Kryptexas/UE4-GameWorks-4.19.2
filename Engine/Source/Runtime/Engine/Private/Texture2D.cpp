@@ -284,7 +284,7 @@ float UTexture2D::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale
 
 				if (SRGB == true)
 				{
-					CurrentColor = FLinearColor(*ColorData);
+					CurrentColor = bUseLegacyGamma ? FLinearColor::FromPow22Color(*ColorData) : FLinearColor(*ColorData);
 				}
 				else
 				{
@@ -2159,10 +2159,10 @@ void FTexture2DResource::FinalizeMipCount()
 				TotalBandwidth -= FStreamingManagerTexture::BandwidthSamples[FStreamingManagerTexture::BandwidthSampleIndex];
 				TotalBandwidth += BandwidthSample;
 				FStreamingManagerTexture::BandwidthSamples[FStreamingManagerTexture::BandwidthSampleIndex] = BandwidthSample;
- 				FStreamingManagerTexture::BandwidthSampleIndex = (FStreamingManagerTexture::BandwidthSampleIndex + 1) % NUM_BANDWIDTHSAMPLES;
- 				FStreamingManagerTexture::NumBandwidthSamples = ( FStreamingManagerTexture::NumBandwidthSamples == NUM_BANDWIDTHSAMPLES ) ? FStreamingManagerTexture::NumBandwidthSamples : (FStreamingManagerTexture::NumBandwidthSamples+1);
- 				FStreamingManagerTexture::BandwidthAverage = TotalBandwidth / FStreamingManagerTexture::NumBandwidthSamples;
- 				FStreamingManagerTexture::BandwidthMaximum = FMath::Max<float>(FStreamingManagerTexture::BandwidthMaximum, BandwidthSample);
+				FStreamingManagerTexture::BandwidthSampleIndex = (FStreamingManagerTexture::BandwidthSampleIndex + 1) % NUM_BANDWIDTHSAMPLES;
+				FStreamingManagerTexture::NumBandwidthSamples = ( FStreamingManagerTexture::NumBandwidthSamples == NUM_BANDWIDTHSAMPLES ) ? FStreamingManagerTexture::NumBandwidthSamples : (FStreamingManagerTexture::NumBandwidthSamples+1);
+				FStreamingManagerTexture::BandwidthAverage = TotalBandwidth / FStreamingManagerTexture::NumBandwidthSamples;
+				FStreamingManagerTexture::BandwidthMaximum = FMath::Max<float>(FStreamingManagerTexture::BandwidthMaximum, BandwidthSample);
 				FStreamingManagerTexture::BandwidthMinimum = FMath::IsNearlyZero(FStreamingManagerTexture::BandwidthMinimum) ? BandwidthSample : FMath::Min<float>(FStreamingManagerTexture::BandwidthMinimum, BandwidthSample);
 			}
 #endif

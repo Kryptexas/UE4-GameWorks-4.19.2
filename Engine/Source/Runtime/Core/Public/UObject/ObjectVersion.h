@@ -524,6 +524,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_TIGHTLY_PACKED_ENUMS,
 	// Changed Asset import data to serialize file meta data as JSON
 	VER_UE4_ASSET_IMPORT_DATA_AS_JSON,
+	// Legacy gamma support for textures.
+	VER_UE4_TEXTURE_LEGACY_GAMMA,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -55,6 +55,7 @@ UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
 	MipGenSettings = TMGS_FromTextureGroup;
 	CompositeTextureMode = CTM_NormalRoughnessToAlpha;
 	CompositePower = 1.0f;
+	bUseLegacyGamma = false;
 
 	PaddingColor = FColor::Black;
 	ChromaKeyColor = FColorList::Magenta;
@@ -262,6 +263,12 @@ void UTexture::Serialize(FArchive& Ar)
 	{
 		Source.BulkData.Serialize(Ar, this);
 	}
+
+	if ( GetLinkerUE4Version() < VER_UE4_TEXTURE_LEGACY_GAMMA )
+	{
+		bUseLegacyGamma = true;
+	}
+
 #endif // #if WITH_EDITORONLY_DATA
 }
 

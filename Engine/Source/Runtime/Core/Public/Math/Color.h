@@ -11,6 +11,19 @@ struct FColor;
 struct FVector;
 class FFloat16Color;
 
+/**
+ * Enum for the different kinds of gamma spaces we expect to need to convert from/to.
+ */
+enum class EGammaSpace
+{
+	/** No gamma correction is applied to this space, the incoming colors are assumed to already be in linear space. */
+	Linear,
+	/** A simplified sRGB gamma correction is applied, pow(1/2.2). */
+	Pow22,
+	/** Use the standard sRGB conversion. */
+	sRGB,
+};
+
 
 /**
  * A linear, 32-bit/component floating point RGBA color.
@@ -22,16 +35,26 @@ struct FLinearColor
 			B,
 			A;
 
-	/** Static lookup table used for FColor -> FLinearColor conversion. */
-	static float PowOneOver255Table[256];
+	/** Static lookup table used for FColor -> FLinearColor conversion. Pow(2.2) */
+	static float Pow22OneOver255Table[256];
+
+	/** Static lookup table used for FColor -> FLinearColor conversion. sRGB */
+	static float sRGBToLinearTable[256];
 
 	FORCEINLINE FLinearColor() {}
 	FORCEINLINE explicit FLinearColor(EForceInit)
 	: R(0), G(0), B(0), A(0)
 	{}
 	FORCEINLINE FLinearColor(float InR,float InG,float InB,float InA = 1.0f): R(InR), G(InG), B(InB), A(InA) {}
-	CORE_API FLinearColor(const FColor& C);
+	
+	/**
+	 * Converts an FColor which is assumed to be in sRGB space, into linear color space.
+	 * @param Color The sRGB color that needs to be converted into linear space.
+	 */
+	CORE_API FLinearColor(const FColor& Color);
+
 	CORE_API FLinearColor(const FVector& Vector);
+	
 	CORE_API explicit FLinearColor(const FFloat16Color& C);
 
 	// Serializer.
@@ -43,6 +66,18 @@ struct FLinearColor
 
 	// Conversions.
 	CORE_API FColor ToRGBE() const;
+
+	/**
+	 * Converts an FColor coming from an observed sRGB output, into a linear color.
+	 * @param Color The sRGB color that needs to be converted into linear space.
+	 */
+	CORE_API static FLinearColor FromSRGBColor(const FColor& Color);
+
+	/**
+	 * Converts an FColor coming from an observed Pow(1/2.2) output, into a linear color.
+	 * @param Color The Pow(1/2.2) color that needs to be converted into linear space.
+	 */
+	CORE_API static FLinearColor FromPow22Color(const FColor& Color);
 
 	// Operators.
 
@@ -355,14 +390,14 @@ struct FColor
 public:
 	// Variables.
 #if PLATFORM_LITTLE_ENDIAN
-    #if _MSC_VER
+	#if _MSC_VER
 		// Win32 x86
-	    union { struct{ uint8 B,G,R,A; }; uint32 AlignmentDummy; };
-    #else
+		union { struct{ uint8 B,G,R,A; }; uint32 AlignmentDummy; };
+	#else
 		// Linux x86, etc
-	    uint8 B GCC_ALIGN(4);
-	    uint8 G,R,A;
-    #endif
+		uint8 B GCC_ALIGN(4);
+		uint8 G,R,A;
+	#endif
 #else // PLATFORM_LITTLE_ENDIAN
 	union { struct{ uint8 A,R,G,B; }; uint32 AlignmentDummy; };
 #endif
