@@ -1249,22 +1249,14 @@ void AActor::OnRep_AttachmentReplication()
 	{
 		if (RootComponent)
 		{
-			USceneComponent* ParentComponent = AttachmentReplication.AttachParent->GetRootComponent();
-			
-			if (AttachmentReplication.AttachComponent != NULL)
-			{
-				ParentComponent = AttachmentReplication.AttachComponent;
-			}
+			USceneComponent* ParentComponent = (AttachmentReplication.AttachComponent ? AttachmentReplication.AttachComponent : AttachmentReplication.AttachParent->GetRootComponent());
 
 			if (ParentComponent)
 			{
-				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
 				RootComponent->RelativeScale3D = AttachmentReplication.RelativeScale3D;
-
-				RootComponent->UpdateComponentToWorld();
-
+				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
 			}
 		}
 	}
