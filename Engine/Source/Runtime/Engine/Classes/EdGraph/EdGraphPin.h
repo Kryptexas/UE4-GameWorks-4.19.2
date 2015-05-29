@@ -294,6 +294,15 @@ public:
 		return (InDirection == EGPD_Input) ? EGPD_Output : EGPD_Input;
 	}
 
+	/** Helper to safely set a pin's bHidden property only if it has no sub-pins that are influencing it to be hidden */
+	void SafeSetHidden(bool bIsHidden)
+	{
+		 if (SubPins.Num() == 0)
+		 {
+			 bHidden = bIsHidden;
+		 }
+	}
+
 	/** Get the current DefaultObject path name, or DefaultValue if its null */
 	ENGINE_API FString GetDefaultAsString() const;
 
