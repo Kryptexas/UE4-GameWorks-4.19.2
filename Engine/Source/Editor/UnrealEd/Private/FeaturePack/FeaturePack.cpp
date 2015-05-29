@@ -7,8 +7,6 @@
 #include "AssetRegistryModule.h"
 #include "LevelEditor.h"
 #include "Toolkits/AssetEditorManager.h"
-#include "GlobalShader.h"
-#include "ShaderCompiler.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFeaturePack, Log, All);
 
@@ -79,14 +77,6 @@ void FFeaturePack::ParsePacks()
 			}
 			else
 			{
-				static bool bOnce = false;
-				if (!bOnce)
-				{
-					bOnce = true;
-					TArray<int32> ShaderMapIds;
-					ShaderMapIds.Add(GlobalShaderMapId);
-					GShaderCompilingManager->FinishCompilation(TEXT("Global"), ShaderMapIds);
-				}
 				// Save any imported assets.
 				TArray<UPackage*> ToSave;
 				for (auto ImportedObject : EachPackData.ImportedObjects)
