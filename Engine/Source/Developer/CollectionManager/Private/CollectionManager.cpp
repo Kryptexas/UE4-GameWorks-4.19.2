@@ -21,6 +21,11 @@ FCollectionManager::~FCollectionManager()
 {
 }
 
+bool FCollectionManager::HasCollections() const
+{
+	return CachedCollections.Num() > 0;
+}
+
 void FCollectionManager::GetCollectionNames(ECollectionShareType::Type ShareType, TArray<FName>& CollectionNames) const
 {
 	for (const auto& CachedCollection : CachedCollections)
@@ -145,35 +150,64 @@ bool FCollectionManager::GetObjectsInCollection(FName CollectionName, ECollectio
 
 void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const
 {
-	for (const auto& CachedCollection : CachedCollections)
+	const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
+	if (ObjectCollectionsPtr)
 	{
-		const FCollectionNameType& CollectionKey = CachedCollection.Key;
-		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
-		if ((ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type) && Collection->IsObjectInCollection(ObjectPath))
+		for (const FCollectionNameType& CollectionKey : *ObjectCollectionsPtr)
 		{
-			OutCollectionNames.Add(CollectionKey.Name);
+			if (ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type)
+			{
+				OutCollectionNames.Add(CollectionKey.Name);
+			}
+		}
+	}
+}
+
+void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, TArray<FCollectionNameType>& OutCollections) const
+{
+	const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
+	if (ObjectCollectionsPtr)
+	{
+		OutCollections.Append(*ObjectCollectionsPtr);
+	}
+}
+
+void FCollectionManager::GetCollectionsContainingObjects(const TArray<FName>& ObjectPaths, TMap<FCollectionNameType, TArray<FName>>& OutCollectionsAndMatchedObjects) const
+{
+	for (const FName& ObjectPath : ObjectPaths)
+	{
+		const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
+		if (ObjectCollectionsPtr)
+		{
+			for (const FCollectionNameType& CollectionKey : *ObjectCollectionsPtr)
+			{
+				TArray<FName>& MatchedObjects = OutCollectionsAndMatchedObjects.FindOrAdd(CollectionKey);
+				MatchedObjects.Add(ObjectPath);
+			}
 		}
 	}
 }
 
 FString FCollectionManager::GetCollectionsStringForObject(FName ObjectPath, ECollectionShareType::Type ShareType) const
 {
-	TArray<FString> CollectionNameStrings;
+	const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
+	if (ObjectCollectionsPtr)
+	{
+		TArray<FString> CollectionNameStrings;
 
-	for (const auto& CachedCollection : CachedCollections)
-	{
-		const FCollectionNameType& CollectionKey = CachedCollection.Key;
-		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
-		if ((ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type) && Collection->IsObjectInCollection(ObjectPath))
+		for (const FCollectionNameType& CollectionKey : *ObjectCollectionsPtr)
 		{
-			CollectionNameStrings.Add(CollectionKey.Name.ToString());
+			if (ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type)
+			{
+				CollectionNameStrings.Add(CollectionKey.Name.ToString());
+			}
 		}
-	}
-	
-	if (CollectionNameStrings.Num() > 0)
-	{
-		CollectionNameStrings.Sort();
-		return FString::Join(CollectionNameStrings, TEXT(", "));
+
+		if (CollectionNameStrings.Num() > 0)
+		{
+			CollectionNameStrings.Sort();
+			return FString::Join(CollectionNameStrings, TEXT(", "));
+		}
 	}
 
 	return FString();
@@ -283,6 +317,8 @@ bool FCollectionManager::RenameCollection(FName CurrentCollectionName, ECollecti
 		return false;
 	}
 
+	RebuildCachedObjects();
+
 	// Success
 	const FCollectionNameType OriginalCollectionKey(CurrentCollectionName, CurrentShareType);
 	const FCollectionNameType NewCollectionKey(NewCollectionName, NewShareType);
@@ -311,6 +347,9 @@ bool FCollectionManager::DestroyCollection(FName CollectionName, ECollectionShar
 	if ((*CollectionRefPtr)->DeleteSourceFile(LastError))
 	{
 		RemoveCollection(*CollectionRefPtr, ShareType);
+
+		RebuildCachedObjects();
+
 		CollectionDestroyedEvent.Broadcast(CollectionKey);
 		return true;
 	}
@@ -369,6 +408,8 @@ bool FCollectionManager::AddToCollection(FName CollectionName, ECollectionShareT
 			{
 				*OutNumAdded = NumAdded;
 			}
+
+			RebuildCachedObjects();
 
 			AssetsAddedEvent.Broadcast(CollectionKey, ObjectPaths);
 			return true;
@@ -445,6 +486,8 @@ bool FCollectionManager::RemoveFromCollection(FName CollectionName, ECollectionS
 			*OutNumRemoved = RemovedAssets.Num();
 		}
 
+		RebuildCachedObjects();
+
 		AssetsRemovedEvent.Broadcast(CollectionKey, ObjectPaths);
 		return true;
 	}
@@ -481,7 +524,13 @@ bool FCollectionManager::EmptyCollection(FName CollectionName, ECollectionShareT
 		return true;
 	}
 	
-	return RemoveFromCollection(CollectionName, ShareType, ObjectPaths);
+	if (RemoveFromCollection(CollectionName, ShareType, ObjectPaths))
+	{
+		RebuildCachedObjects();
+		return true;
+	}
+
+	return false;
 }
 
 bool FCollectionManager::IsCollectionEmpty(FName CollectionName, ECollectionShareType::Type ShareType) const
@@ -501,6 +550,25 @@ bool FCollectionManager::IsCollectionEmpty(FName CollectionName, ECollectionShar
 	}
 
 	return true;
+}
+
+bool FCollectionManager::IsObjectInCollection(FName ObjectPath, FName CollectionName, ECollectionShareType::Type ShareType) const
+{
+	if (!ensure(ShareType < ECollectionShareType::CST_All))
+	{
+		// Bad share type
+		LastError = LOCTEXT("Error_Internal", "There was an internal error.");
+		return true;
+	}
+
+	const FCollectionNameType CollectionKey(CollectionName, ShareType);
+	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(CollectionKey);
+	if (CollectionRefPtr)
+	{
+		return (*CollectionRefPtr)->IsObjectInCollection(ObjectPath);
+	}
+
+	return false;
 }
 
 void FCollectionManager::LoadCollections()
@@ -534,6 +602,32 @@ void FCollectionManager::LoadCollections()
 	}
 
 	UE_LOG(LogCollectionManager, Log, TEXT( "Loaded %d collections in %0.6f seconds" ), CachedCollections.Num() - PrevNumCollections, FPlatformTime::Seconds() - LoadStartTime);
+
+	RebuildCachedObjects();
+}
+
+void FCollectionManager::RebuildCachedObjects()
+{
+	const double LoadStartTime = FPlatformTime::Seconds();
+
+	CachedObjects.Empty();
+
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
+		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
+
+		TArray<FName> ObjectsInCollection;
+		Collection->GetObjectsInCollection(ObjectsInCollection);
+
+		for (const FName& ObjectPath : ObjectsInCollection)
+		{
+			auto& ObjectCollections = CachedObjects.FindOrAdd(ObjectPath);
+			ObjectCollections.AddUnique(CollectionKey);
+		}
+	}
+
+	UE_LOG(LogCollectionManager, Log, TEXT( "Rebuilt the cache for %d objects in %0.6f seconds" ), CachedObjects.Num(), FPlatformTime::Seconds() - LoadStartTime);
 }
 
 bool FCollectionManager::ShouldUseSCC(ECollectionShareType::Type ShareType) const

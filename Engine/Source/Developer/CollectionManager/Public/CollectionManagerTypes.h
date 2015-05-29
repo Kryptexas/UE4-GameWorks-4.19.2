@@ -63,6 +63,38 @@ struct ECollectionShareType
 		}
 		return FText::GetEmpty();
 	}
+
+	static FText GetDescription(const Type InType)
+	{
+		switch (InType)
+		{
+		case CST_Local:
+			return NSLOCTEXT("ECollectionShareType", "CST_Local_Description", "Local. This collection is only visible to you and is not in source control.");
+		case CST_Private:
+			return NSLOCTEXT("ECollectionShareType", "CST_Private_Description", "Private. This collection is only visible to you.");
+		case CST_Shared:
+			return NSLOCTEXT("ECollectionShareType", "CST_Shared_Description", "Shared. This collection is visible to everyone.");
+		default:
+			break;
+		}
+		return FText::GetEmpty();
+	}
+
+	static FName GetIconStyleName(const Type InType)
+	{
+		switch (InType)
+		{
+		case CST_Local:
+			return FName("ContentBrowser.Local");
+		case CST_Private:
+			return FName("ContentBrowser.Private");
+		case CST_Shared:
+			return FName("ContentBrowser.Shared");
+		default:
+			break;
+		}
+		return NAME_None;
+	}
 };
 
 /** A name/type pair to uniquely identify a collection */
