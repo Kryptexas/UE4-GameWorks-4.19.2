@@ -763,11 +763,8 @@ void UK2Node_Select::PinTypeChanged(UEdGraphPin* Pin)
 			// Remove all but two options if we switched to a bool index
 			if (IndexPinType.PinCategory == Schema->PC_Boolean)
 			{
-				if (NumOptionPins > 2)
-				{
-					NumOptionPins = 2;
-					bReconstructNode = true;
-				}
+				NumOptionPins = 2;
+				bReconstructNode = true;
 			}
 
 			// Reset the default value
