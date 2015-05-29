@@ -66,10 +66,10 @@ const FText FBuildPatchInstallError::GetErrorText()
 	FText ErrorText = FText::GetEmpty();
 	switch( ErrorState )
 	{
-		case EBuildPatchInstallError::DownloadError: ErrorText = DownloadError;
-		case EBuildPatchInstallError::FileConstructionFail: ErrorText = FileConstructionFail;
-		case EBuildPatchInstallError::MoveFileToInstall: ErrorText = MoveFileToInstall;
-		case EBuildPatchInstallError::PathLengthExceeded: ErrorText = PathLengthExceeded;
+		case EBuildPatchInstallError::DownloadError: ErrorText = DownloadError; break;
+		case EBuildPatchInstallError::FileConstructionFail: ErrorText = FileConstructionFail; break;
+		case EBuildPatchInstallError::MoveFileToInstall: ErrorText = MoveFileToInstall; break;
+		case EBuildPatchInstallError::PathLengthExceeded: ErrorText = PathLengthExceeded; break;
 	}
 	return FText::Format(LOCTEXT("BuildPatchInstallLongError", "{0} {1}"), GetShortErrorText(), ErrorText);
 }
