@@ -4,7 +4,7 @@
 	LightPropagationVolumeModule.cpp: Module encapsulates the asset type for blending LightPropagationVolume settings
 =============================================================================*/
 
-#include "Core.h"
+#include "UnrealEd.h"
 #include "AssetTypeActions_LightPropagationVolumeBlendable.h"
 #include "LightPropagationVolumeBlendableFactory.h"
 #include "LightPropagationVolumeBlendable.h"
