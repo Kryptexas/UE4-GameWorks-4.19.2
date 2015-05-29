@@ -48,6 +48,13 @@ void UUserWidget::Initialize()
 			BGClass->InitializeWidget(this);
 		}
 
+		OnInitialize();
+
+		if ( WidgetTree == nullptr )
+		{
+			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
+		}
+
 		// Map the named slot bindings to the available slots.
 		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
@@ -64,6 +71,11 @@ void UUserWidget::Initialize()
 			}
 		});
 	}
+}
+
+void UUserWidget::OnInitialize()
+{
+
 }
 
 void UUserWidget::BeginDestroy()
