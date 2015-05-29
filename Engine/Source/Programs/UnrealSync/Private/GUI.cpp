@@ -1249,9 +1249,7 @@ public:
 
 	SMainTabWidget()
 		: ExternalThreadsDispatcher(MakeShareable(new FExternalThreadsDispatcher())), P4Data(new FP4DataProxy)
-	{
-		GetSingletonPtr() = StaticCastSharedRef<SMainTabWidget>(this->AsShared());
-	}
+	{ }
 
 	/**
 	 * Gets instance of this class.
@@ -1259,6 +1257,14 @@ public:
 	static TSharedPtr<SMainTabWidget> GetInstance()
 	{
 		return GetSingletonPtr();
+	}
+
+	/**
+	 * Creates instance of this class.
+	 */
+	static TSharedRef<SMainTabWidget> CreateInstance()
+	{
+		return SAssignNew(GetSingletonPtr(), SMainTabWidget);
 	}
 
 	SLATE_BEGIN_ARGS(SMainTabWidget) {}
@@ -2145,8 +2151,8 @@ TSharedRef<SDockTab> GetMainTab(const FSpawnTabArgs& Args)
 		.ToolTipText(FText::FromString("Sync Unreal Engine tool."));
 
 	MainTab->SetContent(
-		SNew(SMainTabWidget)
-		);
+		SMainTabWidget::CreateInstance()
+	);
 
 	FGlobalTabmanager::Get()->SetActiveTab(MainTab);
 
