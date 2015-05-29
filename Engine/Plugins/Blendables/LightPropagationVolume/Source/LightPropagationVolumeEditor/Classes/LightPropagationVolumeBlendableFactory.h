@@ -1,7 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "CoreUObject.h"
+#include "Factories/Factory.h"
 #include "LightPropagationVolumeBlendableFactory.generated.h"
 
 UCLASS(hidecategories=Object)
