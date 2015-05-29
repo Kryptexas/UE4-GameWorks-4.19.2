@@ -280,37 +280,52 @@ FQuat FRotator::Quaternion() const
 	FQuat RotationMatrix = FQuat( FRotationMatrix( *this ) );
 #endif
 
-#if WITH_DIRECTXMATH	// Currently VectorSinCos() is only vectorized in DirectX implementation. Other platforms become slower if they use this.
-	VectorRegister Angles = MakeVectorRegister(Roll, Pitch, Yaw, 0.0f);
-	VectorRegister HalfAngles = VectorMultiply(Angles, GlobalVectorConstants::DEG_TO_RAD_HALF);
+#if PLATFORM_ENABLE_VECTORINTRINSICS
+	const VectorRegister Angles = MakeVectorRegister(Pitch, Yaw, Roll, 0.0f);
+	const VectorRegister HalfAngles = VectorMultiply(Angles, GlobalVectorConstants::DEG_TO_RAD_HALF);
 
-	union { VectorRegister v; float f[4]; } SinAngles, CosAngles;	
-	VectorSinCos(&SinAngles.v, &CosAngles.v, &HalfAngles);
+	VectorRegister SinAngles, CosAngles;
+	VectorSinCos(&SinAngles, &CosAngles, &HalfAngles);
 
-	const float	SR	= SinAngles.f[0];
-	const float	SP	= SinAngles.f[1];
-	const float	SY	= SinAngles.f[2];
-	const float	CR	= CosAngles.f[0];
-	const float	CP	= CosAngles.f[1];
-	const float	CY	= CosAngles.f[2];
+	// Vectorized conversion, measured 20% faster than using scalar version after VectorSinCos.
+	// Indices within VectorRegister (for shuffles): P=0, Y=1, R=2
+	const VectorRegister SR = VectorReplicate(SinAngles, 2);
+	const VectorRegister CR = VectorReplicate(CosAngles, 2);
 
+	const VectorRegister SY_SY_CY_CY_Temp = VectorShuffle(SinAngles, CosAngles, 1, 1, 1, 1);
+
+	const VectorRegister SP_SP_CP_CP = VectorShuffle(SinAngles, CosAngles, 0, 0, 0, 0);
+	const VectorRegister SY_CY_SY_CY = VectorShuffle(SY_SY_CY_CY_Temp, SY_SY_CY_CY_Temp, 0, 2, 0, 2);
+
+	const VectorRegister CP_CP_SP_SP = VectorShuffle(CosAngles, SinAngles, 0, 0, 0, 0);
+	const VectorRegister CY_SY_CY_SY = VectorShuffle(SY_SY_CY_CY_Temp, SY_SY_CY_CY_Temp, 2, 0, 2, 0);
+
+	const uint32 Neg = uint32(1 << 31);
+	const uint32 Pos = uint32(0);
+	const VectorRegister SignBitsLeft  = MakeVectorRegister(Pos, Neg, Pos, Pos);
+	const VectorRegister SignBitsRight = MakeVectorRegister(Neg, Neg, Neg, Pos);
+	const VectorRegister LeftTerm  = VectorBitwiseXor(SignBitsLeft , VectorMultiply(CR, VectorMultiply(SP_SP_CP_CP, SY_CY_SY_CY)));
+	const VectorRegister RightTerm = VectorBitwiseXor(SignBitsRight, VectorMultiply(SR, VectorMultiply(CP_CP_SP_SP, CY_SY_CY_SY)));
+
+	FQuat RotationQuat;
+	const VectorRegister Result = VectorAdd(LeftTerm, RightTerm);	
+	VectorStoreAligned(Result, &RotationQuat);
 #else
-	static const float DEG_TO_RAD = PI/(180.f);
-	static const float DIVIDE_BY_2 = DEG_TO_RAD/2.f;
-
+	const float DEG_TO_RAD = PI/(180.f);
+	const float DIVIDE_BY_2 = DEG_TO_RAD/2.f;
 	float SP, SY, SR;
 	float CP, CY, CR;
 
 	FMath::SinCos(&SP, &CP, Pitch*DIVIDE_BY_2);
 	FMath::SinCos(&SY, &CY, Yaw*DIVIDE_BY_2);
 	FMath::SinCos(&SR, &CR, Roll*DIVIDE_BY_2);
-#endif
 
 	FQuat RotationQuat;
-	RotationQuat.W = CR*CP*CY + SR*SP*SY;
-	RotationQuat.X = CR*SP*SY - SR*CP*CY;
+	RotationQuat.X =  CR*SP*SY - SR*CP*CY;
 	RotationQuat.Y = -CR*SP*CY - SR*CP*SY;
-	RotationQuat.Z = CR*CP*SY - SR*SP*CY;
+	RotationQuat.Z =  CR*CP*SY - SR*SP*CY;
+	RotationQuat.W =  CR*CP*CY + SR*SP*SY;
+#endif // PLATFORM_ENABLE_VECTORINTRINSICS
 
 #if USE_MATRIX_ROTATOR 
 	if (!RotationMatrix.Equals(RotationQuat, KINDA_SMALL_NUMBER) && !RotationMatrix.Equals(RotationQuat*-1.f, KINDA_SMALL_NUMBER))

@@ -964,28 +964,6 @@ FORCEINLINE void VectorQuaternionMultiply( void* RESTRICT Result, const void* RE
 	*((VectorRegister *)Result) = VectorQuaternionMultiply2(*((const VectorRegister *)Quat1), *((const VectorRegister *)Quat2));
 }
 
-
-/**
-* Computes the sine and cosine of each component of a Vector.
-*
-* @param VSinAngles	VectorRegister Pointer to where the Sin result should be stored
-* @param VCosAngles	VectorRegister Pointer to where the Cos result should be stored
-* @param VAngles VectorRegister Pointer to the input angles 
-*/
-FORCEINLINE void VectorSinCos(  VectorRegister* VSinAngles, VectorRegister* VCosAngles, const VectorRegister* VAngles )
-{	
-	union { VectorRegister v; float f[4]; } VecSin, VecCos, VecAngles;
-	VecAngles.v = *VAngles;
-
-	FMath::SinCos(&VecSin.f[0], &VecCos.f[0], VecAngles.f[0]);
-	FMath::SinCos(&VecSin.f[1], &VecCos.f[1], VecAngles.f[1]);
-	FMath::SinCos(&VecSin.f[2], &VecCos.f[2], VecAngles.f[2]);
-	FMath::SinCos(&VecSin.f[3], &VecCos.f[3], VecAngles.f[3]);
-
-	*VSinAngles = VecSin.v;
-	*VCosAngles = VecCos.v;
-}
-
 // Returns true if the vector contains a component that is either NAN or +/-infinite.
 inline bool VectorContainsNaNOrInfinite(const VectorRegister& Vec)
 {
@@ -1093,6 +1071,60 @@ FORCEINLINE VectorRegister VectorSin(const VectorRegister& X)
 FORCEINLINE VectorRegister VectorCos(const VectorRegister& X)
 {
 	return VectorSin(VectorAdd(X, GlobalVectorConstants::PiByTwo));
+}
+
+
+/**
+* Computes the sine and cosine of each component of a Vector.
+*
+* @param VSinAngles	VectorRegister Pointer to where the Sin result should be stored
+* @param VCosAngles	VectorRegister Pointer to where the Cos result should be stored
+* @param VAngles VectorRegister Pointer to the input angles
+*/
+FORCEINLINE void VectorSinCos(VectorRegister* RESTRICT VSinAngles, VectorRegister* RESTRICT VCosAngles, const VectorRegister* RESTRICT VAngles)
+{
+	// Map to [-pi, pi]
+	VectorRegister X = VectorFloor(VectorMultiplyAdd(*VAngles, GlobalVectorConstants::OneOverTwoPi, GlobalVectorConstants::FloatOneHalf));
+	X = VectorSubtract(*VAngles, VectorMultiply(GlobalVectorConstants::TwoPi, X));
+
+	// Map in [-pi/2,pi/2]
+	VectorRegister sign = VectorBitwiseAnd(X, GlobalVectorConstants::SignBit);
+	VectorRegister c = VectorBitwiseOr(GlobalVectorConstants::Pi, sign);  // pi when x >= 0, -pi when x < 0
+	VectorRegister absx = VectorAbs(X);
+	VectorRegister rflx = VectorSubtract(c, X);
+	VectorRegister comp = VectorCompareGT(absx, GlobalVectorConstants::PiByTwo);
+	X = VectorSelect(comp, rflx, X);
+	sign = VectorSelect(comp, GlobalVectorConstants::FloatMinusOne, GlobalVectorConstants::FloatOne);
+
+	const VectorRegister XSquared = VectorMultiply(X, X);
+
+	// 11-degree minimax approximation
+	//*ScalarSin = (((((-2.3889859e-08f * y2 + 2.7525562e-06f) * y2 - 0.00019840874f) * y2 + 0.0083333310f) * y2 - 0.16666667f) * y2 + 1.0f) * y;
+	const VectorRegister SinCoeff0 = MakeVectorRegister(1.0f, -0.16666667f, 0.0083333310f, -0.00019840874f);
+	const VectorRegister SinCoeff1 = MakeVectorRegister(2.7525562e-06f, -2.3889859e-08f, /*unused*/ 0.f, /*unused*/ 0.f);
+
+	VectorRegister S;
+	S = VectorReplicate(SinCoeff1, 1);
+	S = VectorMultiplyAdd(XSquared, S, VectorReplicate(SinCoeff1, 0));
+	S = VectorMultiplyAdd(XSquared, S, VectorReplicate(SinCoeff0, 3));
+	S = VectorMultiplyAdd(XSquared, S, VectorReplicate(SinCoeff0, 2));
+	S = VectorMultiplyAdd(XSquared, S, VectorReplicate(SinCoeff0, 1));
+	S = VectorMultiplyAdd(XSquared, S, VectorReplicate(SinCoeff0, 0));
+	*VSinAngles = VectorMultiply(S, X);
+
+	// 10-degree minimax approximation
+	//*ScalarCos = sign * (((((-2.6051615e-07f * y2 + 2.4760495e-05f) * y2 - 0.0013888378f) * y2 + 0.041666638f) * y2 - 0.5f) * y2 + 1.0f);
+	const VectorRegister CosCoeff0 = MakeVectorRegister(1.0f, -0.5f, 0.041666638f, -0.0013888378f);
+	const VectorRegister CosCoeff1 = MakeVectorRegister(2.4760495e-05f, -2.6051615e-07f, /*unused*/ 0.f, /*unused*/ 0.f);
+
+	VectorRegister C;
+	C = VectorReplicate(CosCoeff1, 1);
+	C = VectorMultiplyAdd(XSquared, C, VectorReplicate(CosCoeff1, 0));
+	C = VectorMultiplyAdd(XSquared, C, VectorReplicate(CosCoeff0, 3));
+	C = VectorMultiplyAdd(XSquared, C, VectorReplicate(CosCoeff0, 2));
+	C = VectorMultiplyAdd(XSquared, C, VectorReplicate(CosCoeff0, 1));
+	C = VectorMultiplyAdd(XSquared, C, VectorReplicate(CosCoeff0, 0));
+	*VCosAngles = VectorMultiply(C, sign);
 }
 
 //TODO: Vectorize

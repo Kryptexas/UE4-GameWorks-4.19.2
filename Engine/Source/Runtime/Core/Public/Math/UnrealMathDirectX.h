@@ -727,7 +727,7 @@ FORCEINLINE void VectorQuaternionVector3InverseRotate( FVector *Result, const FV
 * @param VCosAngles	VectorRegister Pointer to where the Cos result should be stored
 * @param VAngles VectorRegister Pointer to the input angles 
 */
-FORCEINLINE void VectorSinCos(  VectorRegister* VSinAngles, VectorRegister* VCosAngles, const VectorRegister* VAngles )
+FORCEINLINE void VectorSinCos(VectorRegister* RESTRICT VSinAngles, VectorRegister* RESTRICT VCosAngles, const VectorRegister* RESTRICT VAngles)
 {
 	using namespace DirectX;
 	// Force the value within the bounds of pi	
