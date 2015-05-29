@@ -1479,9 +1479,9 @@ bool SEventGraph::ShowSelectedEventsInViewMode_CanExecute( EEventGraphViewModes:
 	return TreeView_Base->GetNumItemsSelected() > 0;
 }
 
-bool SEventGraph::ShowSelectedEventsInViewMode_IsChecked( EEventGraphViewModes::Type NewViewMode ) const
+ECheckBoxState SEventGraph::ShowSelectedEventsInViewMode_GetCheckState( EEventGraphViewModes::Type NewViewMode ) const
 {
-	return GetCurrentStateViewMode() == NewViewMode;
+	return GetCurrentStateViewMode() == NewViewMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 static EEventCompareOps::Type EColumnSortModeToEventCompareOp( const EColumnSortMode::Type ColumnSortMode )

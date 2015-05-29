@@ -35,6 +35,18 @@ namespace ESlateCheckBoxType
 	};
 }
 
+/** Current state of the check box */
+UENUM(BlueprintType)
+enum class ECheckBoxState : uint8
+{
+	/** Unchecked */
+	Unchecked,
+	/** Checked */
+	Checked,
+	/** Neither checked nor unchecked */
+	Undetermined
+};
+
 /**
  * Represents the appearance of an SCheckBox
  */

@@ -12,6 +12,9 @@ DECLARE_DELEGATE_RetVal(bool, FCanExecuteAction);
 /** Defines FIsActionChecked delegate interface.  Returns true if the action is currently toggled on. */
 DECLARE_DELEGATE_RetVal(bool, FIsActionChecked);
 
+/** Defines FGetActionCheckState delegate interface.  Returns the ECheckBoxState for the action. */
+DECLARE_DELEGATE_RetVal(ECheckBoxState, FGetActionCheckState);
+
 /** Defines FIsActionButtonVisible delegate interface.  Returns true when UI buttons associated with the action should be visible. */
 DECLARE_DELEGATE_RetVal(bool, FIsActionButtonVisible);
 
@@ -35,8 +38,8 @@ struct FUIAction
 	/** Holds a delegate that is executed when determining whether this action can execute. */
 	FCanExecuteAction CanExecuteAction;
 
-	/** Holds a delegate that is executed when determining whether this action is checked. */
-	FIsActionChecked IsCheckedDelegate;
+	/** Holds a delegate that is executed when determining the check state of this action. */
+	FGetActionCheckState GetActionCheckState;
 
 	/** Holds a delegate that is executed when determining whether this action is visible. */
 	FIsActionButtonVisible IsActionVisibleDelegate;
@@ -50,7 +53,7 @@ public:
 	FUIAction( )
 		: ExecuteAction()
 		, CanExecuteAction()
-		, IsCheckedDelegate()
+		, GetActionCheckState()
 		, IsActionVisibleDelegate()
 		, RepeatMode(EUIActionRepeatMode::RepeatDisabled)
 	{ }
@@ -64,7 +67,7 @@ public:
 	FUIAction( FExecuteAction InitExecuteAction, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction)
 		, CanExecuteAction(FCanExecuteAction::CreateRaw(&FSlateApplication::Get(), &FSlateApplication::IsNormalExecution))
-		, IsCheckedDelegate()
+		, GetActionCheckState()
 		, IsActionVisibleDelegate()
 		, RepeatMode(InitRepeatMode)
 	{ }
@@ -79,7 +82,7 @@ public:
 	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction )
 		, CanExecuteAction(InitCanExecuteAction)
-		, IsCheckedDelegate()
+		, GetActionCheckState()
 		, IsActionVisibleDelegate()
 		, RepeatMode(InitRepeatMode)
 	{ }
@@ -95,7 +98,7 @@ public:
 	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction)
 		, CanExecuteAction(InitCanExecuteAction)
-		, IsCheckedDelegate(InitIsCheckedDelegate)
+		, GetActionCheckState(FGetActionCheckState::CreateStatic(&FUIAction::IsActionCheckedPassthrough, InitIsCheckedDelegate))
 		, IsActionVisibleDelegate()
 		, RepeatMode(InitRepeatMode)
 	{ }
@@ -103,16 +106,49 @@ public:
 	/**
 	 * Constructor that takes delegates to initialize the action with
 	 *
-	 * @param	ExecuteAction			The delegate to call when the action should be executed
-	 * @param	CanExecuteAction		The delegate to call to see if the action can be executed
-	 * @param	IsCheckedDelegate		The delegate to call to see if the action should appear checked when visualized
-	 * @param	IsActionVisibleDelegate	The delegate to call to see if the action should be visible
-	 * @param	RepeatMode				Can this action can be repeated if the chord used to call it is held down?
+	 * @param	ExecuteAction		The delegate to call when the action should be executed
+	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
+	 * @param	GetActionCheckState	The delegate to call to see what the check state of the action should be
+	 * @param	RepeatMode			Can this action can be repeated if the chord used to call it is held down?
+	 */
+	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FGetActionCheckState InitGetActionCheckStateDelegate, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
+		: ExecuteAction(InitExecuteAction)
+		, CanExecuteAction(InitCanExecuteAction)
+		, GetActionCheckState(InitGetActionCheckStateDelegate)
+		, IsActionVisibleDelegate()
+		, RepeatMode(InitRepeatMode)
+	{ }
+
+	/**
+	 * Constructor that takes delegates to initialize the action with
+	 *
+	 * @param	ExecuteAction		The delegate to call when the action should be executed
+	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
+	 * @param	IsCheckedDelegate	The delegate to call to see if the action should appear checked when visualized
+	 * @param	IsActionVisible		The delegate to call to see if the action should be visible
+	 * @param	RepeatMode			Can this action can be repeated if the chord used to call it is held down?
 	 */
 	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FIsActionChecked InitIsCheckedDelegate, FIsActionButtonVisible InitIsActionVisibleDelegate, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
 		: ExecuteAction(InitExecuteAction)
 		, CanExecuteAction(InitCanExecuteAction)
-		, IsCheckedDelegate(InitIsCheckedDelegate)
+		, GetActionCheckState(FGetActionCheckState::CreateStatic(&FUIAction::IsActionCheckedPassthrough, InitIsCheckedDelegate))
+		, IsActionVisibleDelegate(InitIsActionVisibleDelegate)
+		, RepeatMode(InitRepeatMode)
+	{ }
+
+	/**
+	 * Constructor that takes delegates to initialize the action with
+	 *
+	 * @param	ExecuteAction		The delegate to call when the action should be executed
+	 * @param	CanExecuteAction	The delegate to call to see if the action can be executed
+	 * @param	GetActionCheckState	The delegate to call to see what the check state of the action should be
+	 * @param	IsActionVisible		The delegate to call to see if the action should be visible
+	 * @param	RepeatMode			Can this action can be repeated if the chord used to call it is held down?
+	 */
+	FUIAction( FExecuteAction InitExecuteAction, FCanExecuteAction InitCanExecuteAction, FGetActionCheckState InitGetActionCheckStateDelegate, FIsActionButtonVisible InitIsActionVisibleDelegate, EUIActionRepeatMode InitRepeatMode = EUIActionRepeatMode::RepeatDisabled )
+		: ExecuteAction(InitExecuteAction)
+		, CanExecuteAction(InitCanExecuteAction)
+		, GetActionCheckState(InitGetActionCheckStateDelegate)
 		, IsActionVisibleDelegate(InitIsActionVisibleDelegate)
 		, RepeatMode(InitRepeatMode)
 	{ }
@@ -150,19 +186,14 @@ public:
 	 *
 	 * @return	Checked state for this action
 	 */
-	bool IsChecked( ) const
+	ECheckBoxState GetCheckState( ) const
 	{
-		if (IsCheckedDelegate.IsBound())
+		if (GetActionCheckState.IsBound())
 		{
-			const bool bIsChecked = IsCheckedDelegate.Execute();
-
-			if (bIsChecked)
-			{
-				return true;
-			}
+			return GetActionCheckState.Execute();
 		}
 
-		return false;
+		return ECheckBoxState::Unchecked;
 	}
 
 	/**
@@ -199,5 +230,19 @@ public:
 	bool CanRepeat( ) const
 	{
 		return RepeatMode == EUIActionRepeatMode::RepeatEnabled;
+	}
+
+	/**
+	 * Passthrough function to convert the result from an FIsActionChecked delegate into something that works with a FGetActionCheckState delegate
+	 */
+	static ECheckBoxState IsActionCheckedPassthrough(FIsActionChecked InDelegate)
+	{
+		if (InDelegate.IsBound())
+		{
+			const bool bIsChecked = InDelegate.Execute();
+			return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+		}
+
+		return ECheckBoxState::Unchecked;
 	}
 };

@@ -390,6 +390,8 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 				SNew( SBox )
 				.WidthOverride( MultiBoxConstants::MenuIconSize )
 				.HeightOverride( MultiBoxConstants::MenuIconSize )
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
 				[
 					IconWidget
 				]
@@ -971,18 +973,18 @@ ECheckBoxState SMenuEntryBlock::IsChecked() const
 	TSharedPtr< const FUICommandInfo > Action = MultiBlock->GetAction();
 	const FUIAction& DirectActions = MultiBlock->GetDirectActions();
 
-	bool bIsChecked = true;
+	ECheckBoxState CheckState = ECheckBoxState::Unchecked;
 	if( ActionList.IsValid() && Action.IsValid() )
 	{
-		bIsChecked = ActionList->IsChecked( Action.ToSharedRef() );
+		CheckState = ActionList->GetCheckState( Action.ToSharedRef() );
 	}
 	else
 	{
 		// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
-		bIsChecked = DirectActions.IsChecked();
+		CheckState = DirectActions.GetCheckState();
 	}
 
-	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return CheckState;
 }
 
 const FSlateBrush* SMenuEntryBlock::OnGetCheckImage() const

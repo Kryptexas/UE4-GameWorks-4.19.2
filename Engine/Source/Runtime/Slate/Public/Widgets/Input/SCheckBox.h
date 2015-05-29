@@ -4,19 +4,6 @@
 
 #include "SBorder.h"
 #include "SlateDelegates.h"
-#include "SCheckBox.generated.h"
-
-/** Current state of the check box */
-UENUM(BlueprintType)
-enum class ECheckBoxState : uint8
-{
-	/** Unchecked */
-	Unchecked,
-	/** Checked */
-	Checked,
-	/** Neither checked nor unchecked */
-	Undetermined
-};
 
 /** DEPRECATED 4.6 - Do not use */
 //@Todo slate: Remove this as soon as the 4.6 deprecated API is Removed.

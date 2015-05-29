@@ -8,13 +8,13 @@
 
 void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, EUIActionRepeatMode RepeatMode )
 {
-	MapAction( InUICommandInfo, ExecuteAction, FCanExecuteAction(), FIsActionChecked(), FIsActionButtonVisible(), RepeatMode );
+	MapAction( InUICommandInfo, ExecuteAction, FCanExecuteAction(), FGetActionCheckState(), FIsActionButtonVisible(), RepeatMode );
 }
 
 
 void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, EUIActionRepeatMode RepeatMode )
 {
-	MapAction( InUICommandInfo, ExecuteAction, CanExecuteAction, FIsActionChecked(), FIsActionButtonVisible(), RepeatMode );
+	MapAction( InUICommandInfo, ExecuteAction, CanExecuteAction, FGetActionCheckState(), FIsActionButtonVisible(), RepeatMode );
 }
 
 
@@ -24,12 +24,24 @@ void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICom
 }
 
 
+void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, FGetActionCheckState GetActionCheckState, EUIActionRepeatMode RepeatMode )
+{
+	MapAction( InUICommandInfo, ExecuteAction, CanExecuteAction, GetActionCheckState, FIsActionButtonVisible(), RepeatMode );
+}
+
+
 void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, FIsActionChecked IsCheckedDelegate, FIsActionButtonVisible IsVisibleDelegate, EUIActionRepeatMode RepeatMode )
+{
+	MapAction( InUICommandInfo, ExecuteAction, CanExecuteAction, FGetActionCheckState::CreateStatic(&FUIAction::IsActionCheckedPassthrough, IsCheckedDelegate), IsVisibleDelegate, RepeatMode );
+}
+
+
+void FUICommandList::MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, FExecuteAction ExecuteAction, FCanExecuteAction CanExecuteAction, FGetActionCheckState GetActionCheckState, FIsActionButtonVisible IsVisibleDelegate, EUIActionRepeatMode RepeatMode )
 {
 	FUIAction Action;
 	Action.ExecuteAction = ExecuteAction;
 	Action.CanExecuteAction = CanExecuteAction;
-	Action.IsCheckedDelegate = IsCheckedDelegate;
+	Action.GetActionCheckState = GetActionCheckState;
 	Action.IsActionVisibleDelegate = IsVisibleDelegate;
 	Action.RepeatMode = RepeatMode;
 
@@ -119,16 +131,16 @@ EVisibility FUICommandList::GetVisibility( const TSharedRef< const FUICommandInf
 }
 
 
-bool FUICommandList::IsChecked( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
+ECheckBoxState FUICommandList::GetCheckState( const TSharedRef< const FUICommandInfo > InUICommandInfo ) const
 {
 	const FUIAction* Action = GetActionForCommand(InUICommandInfo);
 
 	if( Action )
 	{
-		return Action->IsChecked();
+		return Action->GetCheckState();
 	}
 
-	return false;
+	return ECheckBoxState::Unchecked;
 }
 
 
