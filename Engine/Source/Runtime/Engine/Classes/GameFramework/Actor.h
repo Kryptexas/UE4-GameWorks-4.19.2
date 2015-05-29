@@ -130,8 +130,12 @@ public:
 	 * @see SetReplicates()
 	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
 	 */
-	UPROPERTY(Replicated, Category=Replication, EditDefaultsOnly)
+	UPROPERTY(ReplicatedUsing=OnRep_ReplicateMovement, Category=Replication, EditDefaultsOnly)
 	uint32 bReplicateMovement:1;    
+
+	/** Called on client when updated bReplicateMovement value is received for this actor. */
+	UFUNCTION()
+	virtual void OnRep_ReplicateMovement();
 
 	/**
 	 * If true, this actor is no longer replicated to new clients, and is "torn off" (becomes a ROLE_Authority) on clients to which it was being replicated.
@@ -182,7 +186,7 @@ protected:
 	 * If true, this actor will replicate to remote machines
 	 * @see SetReplicates()
 	 */
-	UPROPERTY(Category = Replication, EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Replication")
 	uint32 bReplicates:1;
 
 	/** This function should only be used in the constructor of classes that need to set the RemoteRole for backwards compatibility purposes */
@@ -220,6 +224,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Replication")
 	void SetReplicates(bool bInReplicates);
+
+	/**
+	* Set whether this actor's movement replicates to network clients.
+	* @param bInReplicateMovement Whether this Actor's movement replicates to clients.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Replication")
+	virtual void SetReplicateMovement(bool bInReplicateMovement);
 
 	/** Sets whether or not this Actor is an autonomous proxy, which is an actor on a network client that is controlled by a user on that client. */
 	void SetAutonomousProxy(bool bInAutonomousProxy);

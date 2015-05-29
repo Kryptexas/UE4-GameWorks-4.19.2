@@ -1060,6 +1060,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			CharacterOwner->SimulatedRootMotionPositionFixup(DeltaSeconds);
 		}
 	}
+	// Not playing RootMotion AnimMontage
 	else
 	{
 		// if we were simulating root motion, we've been ignoring regular ReplicatedMovement updates.
@@ -1076,15 +1077,18 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			}
 		}
 
-		if( UpdatedComponent->IsSimulatingPhysics() 
-			|| (CharacterOwner && CharacterOwner->IsMatineeControlled()) 
-			|| (CharacterOwner && CharacterOwner->IsPlayingRootMotion()))
+		if (CharacterOwner->bReplicateMovement)
 		{
-			PerformMovement(DeltaSeconds);
-		}
-		else
-		{
-			SimulateMovement(DeltaSeconds);
+			if ((UpdatedComponent->IsSimulatingPhysics()
+				|| (CharacterOwner && CharacterOwner->IsMatineeControlled())
+				|| (CharacterOwner && CharacterOwner->IsPlayingRootMotion())))
+			{
+				PerformMovement(DeltaSeconds);
+			}
+			else
+			{
+				SimulateMovement(DeltaSeconds);
+			}
 		}
 	}
 
@@ -6011,45 +6015,49 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	NewMove->PostUpdate(CharacterOwner, FSavedMove_Character::PostUpdate_Record);
 
 	// Add NewMove to the list
-	ClientData->SavedMoves.Push(NewMove);
-
-	const bool bCanDelayMove = (CVarNetEnableMoveCombining.GetValueOnGameThread() != 0) && CanDelaySendingMove(NewMove);
-
-	if (bCanDelayMove && ClientData->PendingMove.IsValid() == false)
+	if (CharacterOwner->bReplicateMovement)
 	{
-		// Decide whether to hold off on move
-		// send moves more frequently in small games where server isn't likely to be saturated
-		float NetMoveDelta;
-		UPlayer* Player = (PC ? PC->Player : NULL);
+		ClientData->SavedMoves.Push(NewMove);
 
-		if (Player && (Player->CurrentNetSpeed > 10000) && (GetWorld()->GameState != NULL) && (GetWorld()->GameState->PlayerArray.Num() <= 10))
+		const bool bCanDelayMove = (CVarNetEnableMoveCombining.GetValueOnGameThread() != 0) && CanDelaySendingMove(NewMove);
+
+		if (bCanDelayMove && ClientData->PendingMove.IsValid() == false)
 		{
-			NetMoveDelta = 0.011f;
-		}
-		else if (Player && CharacterOwner->GetWorldSettings()->GameNetworkManagerClass) 
-		{
-			NetMoveDelta = FMath::Max(0.0222f,2 * GetDefault<AGameNetworkManager>(CharacterOwner->GetWorldSettings()->GameNetworkManagerClass)->MoveRepSize/Player->CurrentNetSpeed);
-		}
-		else
-		{
-			NetMoveDelta = 0.011f;
+			// Decide whether to hold off on move
+			// send moves more frequently in small games where server isn't likely to be saturated
+			float NetMoveDelta;
+			UPlayer* Player = (PC ? PC->Player : NULL);
+
+			if (Player && (Player->CurrentNetSpeed > 10000) && (GetWorld()->GameState != NULL) && (GetWorld()->GameState->PlayerArray.Num() <= 10))
+			{
+				NetMoveDelta = 0.011f;
+			}
+			else if (Player && CharacterOwner->GetWorldSettings()->GameNetworkManagerClass) 
+			{
+				NetMoveDelta = FMath::Max(0.0222f,2 * GetDefault<AGameNetworkManager>(CharacterOwner->GetWorldSettings()->GameNetworkManagerClass)->MoveRepSize/Player->CurrentNetSpeed);
+			}
+			else
+			{
+				NetMoveDelta = 0.011f;
+			}
+
+			if ((GetWorld()->TimeSeconds - ClientData->ClientUpdateTime) * CharacterOwner->GetWorldSettings()->GetEffectiveTimeDilation() < NetMoveDelta)
+			{
+				// Delay sending this move.
+				ClientData->PendingMove = NewMove;
+				return;
+			}
 		}
 
-		if ((GetWorld()->TimeSeconds - ClientData->ClientUpdateTime) * CharacterOwner->GetWorldSettings()->GetEffectiveTimeDilation() < NetMoveDelta)
-		{
-			// Delay sending this move.
-			ClientData->PendingMove = NewMove;
-			return;
-		}
+		ClientData->ClientUpdateTime = GetWorld()->TimeSeconds;
+
+		UE_LOG(LogNetPlayerMovement, Verbose, TEXT("Client ReplicateMove Time %f Acceleration %s Position %s DeltaTime %f"),
+			NewMove->TimeStamp, *NewMove->Acceleration.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), DeltaTime);
+
+		// Send move to server if this character is replicating movement
+		CallServerMove(NewMove.Get(), OldMove.Get());
 	}
 
-	ClientData->ClientUpdateTime = GetWorld()->TimeSeconds;
-
-	UE_LOG(LogNetPlayerMovement, Verbose, TEXT("Client ReplicateMove Time %f Acceleration %s Position %s DeltaTime %f"),
-		NewMove->TimeStamp, *NewMove->Acceleration.ToString(), *UpdatedComponent->GetComponentLocation().ToString(), DeltaTime);
-
-	// Send to the server
-	CallServerMove( NewMove.Get(), OldMove.Get() );
 	ClientData->PendingMove = NULL;
 }
 

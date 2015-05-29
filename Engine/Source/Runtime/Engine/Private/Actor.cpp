@@ -678,6 +678,7 @@ void AActor::Tick( float DeltaSeconds )
 		ReceiveTick(DeltaSeconds);
 	}
 
+
 	// Update any latent actions we have for this actor
 	GetWorld()->GetLatentActionManager().ProcessLatentActions(this, DeltaSeconds);
 
@@ -1599,6 +1600,8 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 }
 
 void AActor::OnRep_Instigator() {}
+
+void AActor::OnRep_ReplicateMovement() {}
 
 void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -2531,6 +2534,11 @@ void AActor::SetReplicates(bool bInReplicates)
 	{
 		UE_LOG(LogActor, Warning, TEXT("SetReplicates called on actor '%s' that is not valid for having its role modified."), *GetName());
 	}
+}
+
+void AActor::SetReplicateMovement(bool bInReplicateMovement)
+{
+	bReplicateMovement = bInReplicateMovement;
 }
 
 void AActor::SetAutonomousProxy(bool bInAutonomousProxy)

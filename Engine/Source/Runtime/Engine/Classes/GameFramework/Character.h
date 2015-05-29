@@ -259,6 +259,10 @@ public:
 	UFUNCTION()
 	virtual void OnRep_ReplicatedBasedMovement();
 
+	/** Set whether this actor's movement replicates to network clients. */
+	UFUNCTION(BlueprintCallable, Category = "Replication")
+	virtual void SetReplicateMovement(bool bInReplicateMovement) override;
+
 protected:
 	/** Saved translation offset of mesh. */
 	UPROPERTY()
