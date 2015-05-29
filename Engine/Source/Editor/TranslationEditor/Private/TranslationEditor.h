@@ -6,6 +6,7 @@
 #include "ITranslationEditor.h"
 #include "CustomFontColumn.h"
 #include "TranslationUnit.h"
+#include "ILocalizationServiceProvider.h"
 
 class TRANSLATIONEDITOR_API FTranslationEditor :  public ITranslationEditor
 {
@@ -15,9 +16,9 @@ public:
 	/**
 	 *	Creates a new FTranslationEditor and calls Initialize
 	 */
-	static TSharedRef< FTranslationEditor > Create(TSharedRef< FTranslationDataManager > DataManager, const FString& InManifestFile, const FString& InArchiveFile)
+	static TSharedRef< FTranslationEditor > Create(TSharedRef< FTranslationDataManager > DataManager, const FString& InManifestFile, const FString& InArchiveFile, const FGuid& LocalizationTargetGuid)
 	{
-		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable(new FTranslationEditor(DataManager, InManifestFile, InArchiveFile));
+		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable(new FTranslationEditor(DataManager, InManifestFile, InArchiveFile, LocalizationTargetGuid));
 
 		// Some stuff that needs to use the "this" pointer is done in Initialize (because it can't be done in the constructor)
 		TranslationEditor->Initialize();
@@ -59,8 +60,8 @@ protected:
 
 private:
 
-	FTranslationEditor(TSharedRef< FTranslationDataManager > InDataManager, const FString& InManifestFile, const FString& InArchiveFile )
-		: ITranslationEditor(InManifestFile, InArchiveFile)
+	FTranslationEditor(TSharedRef< FTranslationDataManager > InDataManager, const FString& InManifestFile, const FString& InArchiveFile, const FGuid& InLocalizationTargetGuid)
+		: ITranslationEditor(InManifestFile, InArchiveFile, InLocalizationTargetGuid)
 	, DataManager(InDataManager)
 	, SourceFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
 	, TranslationTargetFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
@@ -158,14 +159,23 @@ private:
 	/** Update content when a new context selection is made */
 	void UpdateContextSelection();
 
-	/** Called when "Preview in Editor" is clicked for this asset */
+	/** Called when "Preview in Editor" is clicked for this Localization Target */
 	void PreviewAllTranslationsInEditor_Execute();
+	
+	/** Called when "Import from Localization Service" is clicked for this Localization Target */
+	void ImportLatestFromLocalizationService_Execute();
 
-	/** Called when "Export to .PO" is clicked for this asset */
+	/** Callback for when the Localization Service operation started when "Import from Localization Service" was clicked finishes */
+	void DownloadLatestFromLocalizationServiceComplete(const FLocalizationServiceOperationRef& Operation, ELocalizationServiceOperationCommandResult::Type Result);
+
+	/** Called when "Export to .PO" is clicked for this Localization Target */
 	void ExportToPortableObjectFormat_Execute();
 
-	/** Called when "Import from .PO" is clicked for this asset */
+	/** Called when "Import from .PO" is clicked for this Localization Target */
 	void ImportFromPortableObjectFormat_Execute();
+
+	/** Import from the specified .po file into this localization target */
+	void ImportFromPoFile(FString FileToImport);
 
 	/** Open the search tab */
 	void OpenSearchTab_Execute();

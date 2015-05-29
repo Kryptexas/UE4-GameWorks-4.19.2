@@ -20,6 +20,7 @@
 #include "ScopedTransaction.h"
 
 #include "ISourceControlModule.h"
+#include "ILocalizationServiceModule.h"
 #include "PackageBackup.h"
 #include "LevelUtils.h"
 #include "Layers/Layers.h"
@@ -1490,6 +1491,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	ISourceControlModule::Get().Tick();
+	ILocalizationServiceModule::Get().Tick();
 
 	if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 	{

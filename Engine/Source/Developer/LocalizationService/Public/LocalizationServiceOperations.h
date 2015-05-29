@@ -100,6 +100,17 @@ public:
 		InLocale = NewLocale;
 	}
 
+	FText GetOutErrorText()
+	{
+		return OutErrorText;
+	}
+
+	void SetOutErrorText(const FText& NewOutErrorText)
+	{
+		OutErrorText = NewOutErrorText;
+	}
+
+
 protected:
 
 	/** The GUID of the Localization Target */
@@ -110,6 +121,9 @@ protected:
 
 	/** The path and name to the file downloaded, relative to project directory */
 	FString InRelativeOutputFilePathAndName;
+
+	/** Place to easily store and access error message */
+	FText OutErrorText;
 };
 
 ///**

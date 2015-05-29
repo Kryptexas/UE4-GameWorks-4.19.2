@@ -22,6 +22,8 @@
 #include "SSearchBox.h"
 #include "SDockTab.h"
 #include "InternationalizationExportSettings.h"
+#include "ILocalizationServiceModule.h"
+#include "ILocalizationServiceProvider.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LocalizationExport, Log, All);
 
@@ -798,6 +800,10 @@ void FTranslationEditor::MapActions()
 		FExecuteAction::CreateSP(this, &FTranslationEditor::PreviewAllTranslationsInEditor_Execute),
 		FCanExecuteAction());
 
+	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().ImportLatestFromLocalizationService,
+		FExecuteAction::CreateSP(this, &FTranslationEditor::ImportLatestFromLocalizationService_Execute),
+		FCanExecuteAction());
+
 	ToolkitCommands->MapAction(FTranslationEditorCommands::Get().ExportToPortableObjectFormat,
 		FExecuteAction::CreateSP(this, &FTranslationEditor::ExportToPortableObjectFormat_Execute),
 		FCanExecuteAction());
@@ -1129,6 +1135,99 @@ void FTranslationEditor::PreviewAllTranslationsInEditor_Execute()
 	DataManager->PreviewAllTranslationsInEditor();
 }
 
+void FTranslationEditor::ImportLatestFromLocalizationService_Execute()
+{
+	ILocalizationServiceProvider& Provider = ILocalizationServiceModule::Get().GetProvider();
+	TSharedRef<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> DownloadTargetFileOp = ILocalizationServiceOperation::Create<FDownloadLocalizationTargetFile>();
+	DownloadTargetFileOp->SetInTargetGuid(LocalizationTargetGuid);
+	DownloadTargetFileOp->SetInLocale(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
+	FString Path = FPaths::GameSavedDir() / "Temp" / "LastImportFromLocService.po";
+	FPaths::MakePathRelativeTo(Path, *FPaths::GameDir());
+	DownloadTargetFileOp->SetInRelativeOutputFilePathAndName(Path);
+
+	GWarn->BeginSlowTask(LOCTEXT("ImportingFromLocalizationService", "Importing Latest from Localization Service..."), true);
+
+	Provider.Execute(DownloadTargetFileOp, TArray<FLocalizationServiceTranslationIdentifier>(), ELocalizationServiceOperationConcurrency::Asynchronous, FLocalizationServiceOperationComplete::CreateSP(this, &FTranslationEditor::DownloadLatestFromLocalizationServiceComplete));
+}
+
+void FTranslationEditor::DownloadLatestFromLocalizationServiceComplete(const FLocalizationServiceOperationRef& Operation, ELocalizationServiceOperationCommandResult::Type Result)
+{
+	TSharedPtr<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> DownloadLocalizationTargetOp = StaticCastSharedRef<FDownloadLocalizationTargetFile>(Operation);
+	bool bError = !(Result == ELocalizationServiceOperationCommandResult::Succeeded);
+	FText ErrorText = FText::GetEmpty();
+	if (DownloadLocalizationTargetOp.IsValid())
+	{
+		ErrorText = DownloadLocalizationTargetOp->GetOutErrorText();
+	}
+	if (!bError && ErrorText.IsEmpty())
+	{
+		FGuid InTargetGuid;
+		FString InLocale;
+		FString InRelativeOutputFilePathAndName;
+
+		if (DownloadLocalizationTargetOp.IsValid())
+		{
+			InTargetGuid = DownloadLocalizationTargetOp->GetInTargetGuid();
+			InLocale = DownloadLocalizationTargetOp->GetInLocale();
+			InRelativeOutputFilePathAndName = DownloadLocalizationTargetOp->GetInRelativeOutputFilePathAndName();
+
+		}
+		else
+		{
+			bError = true;
+		}
+
+		if (InTargetGuid == LocalizationTargetGuid && InLocale == FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)) && !InRelativeOutputFilePathAndName.IsEmpty())
+		{
+			FString AbsoluteFilePathAndName = FPaths::ConvertRelativePathToFull(FPaths::GameDir() / InRelativeOutputFilePathAndName);
+			if (FPaths::FileExists(AbsoluteFilePathAndName))
+			{
+				GWarn->StatusUpdate(50, 100, LOCTEXT("DownloadFromLocalizationServiceFinishedNowImporting", "Download from Localization Service Finished, Importing..."));
+				ImportFromPoFile(AbsoluteFilePathAndName);
+			}
+			else
+			{
+				bError = true;
+			}
+		}
+		else
+		{
+			bError = true;
+		}
+
+		if (bError)
+		{
+			if (ErrorText.IsEmpty())
+			{
+				ErrorText = LOCTEXT("DownloadLatestFromLocalizationServiceFileProcessError", "An error occured when processing the file downloaded from the Localization Service.");
+			}
+		}
+	}
+	else
+	{
+		bError = true;
+		if (ErrorText.IsEmpty())
+		{
+			ErrorText = LOCTEXT("DownloadLatestFromLocalizationServiceDownloadError", "An error occured while downloading the file from the Localization Service.");
+		}
+	}
+
+	GWarn->StatusUpdate(100, 100, LOCTEXT("ImportFromLocalizationServiceFinished", "Import from Localization Service Complete!"));
+	GWarn->EndSlowTask();
+
+	if (bError || !ErrorText.IsEmpty())
+	{
+		if (ErrorText.IsEmpty())
+		{
+			ErrorText = LOCTEXT("DownloadLatestFromLocalizationServiceUnspecifiedError", "An unspecified error occured when trying download and import from the Localization Service.");
+		}
+
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+		TranslationEditorMessageLog.Error(ErrorText);
+		TranslationEditorMessageLog.Notify(ErrorText);
+	}
+}
+
 void FTranslationEditor::ExportToPortableObjectFormat_Execute()
 {
 	const FString PortableObjectFileDescription = LOCTEXT("PortableObjectFileDescription", "Portable Object File").ToString();
@@ -1296,7 +1395,6 @@ void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
 		DefaultPath = LastImportFilePath;
 	}
 	TArray<FString> OpenFilenames;
-	bool bHadError = false;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
 	bool bOpened = false;
@@ -1321,92 +1419,85 @@ void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
 			);
 	}
 
-	if (bOpened)
+	if (bOpened && OpenFilenames.Num() > 0)
 	{
-		// Source path needs to be relative to Engine or Game directory
-		FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
-		FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
-		FString FolderRelativeManifestPath = ManifestFilePath;
-		bool IsEngineManifest = false;
-		if (ManifestFullPath.StartsWith(EngineFullPath))
+		FString FileToImport = OpenFilenames[0];
+
+		ImportFromPoFile(FileToImport);
+
+	}
+}
+
+void FTranslationEditor::ImportFromPoFile(FString FileToImport)
+{
+	// Source path needs to be relative to Engine or Game directory
+	FString ManifestFullPath = FPaths::ConvertRelativePathToFull(ManifestFilePath);
+	FString EngineFullPath = FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir());
+	FString FolderRelativeManifestPath = ManifestFilePath;
+	bool IsEngineManifest = false;
+	if (ManifestFullPath.StartsWith(EngineFullPath))
+	{
+		IsEngineManifest = true;
+	}
+	if (IsEngineManifest)
+	{
+		FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::EngineDir());
+	}
+	else
+	{
+		FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::GameDir());
+	}
+
+	// Paths like "Content/Localization/Editor/" are not considered relative for some reason, so add "./" if neccessary
+	if (!FPaths::IsRelative(FolderRelativeManifestPath))
+	{
+		FolderRelativeManifestPath = FString(TEXT("./")) + FolderRelativeManifestPath;
+	}
+
+	UInternationalizationExportSettings* ImportSettings = NewObject<UInternationalizationExportSettings>();
+	ImportSettings->CulturesToGenerate.Empty();
+	ImportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
+	ImportSettings->CommandletClass = "InternationalizationExport";
+	ImportSettings->DestinationPath = FPaths::GetPath(FolderRelativeManifestPath);
+	ImportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
+	ImportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
+	ImportSettings->bExportLoc = false;
+	ImportSettings->bImportLoc = true;
+	ImportSettings->bUseCultureDirectory = false;
+
+	ImportSettings->SourcePath = FPaths::GetPath(FileToImport);
+	ImportSettings->PortableObjectName = FPaths::GetCleanFilename(FileToImport);
+	LastImportFilePath = FPaths::GetPath(FileToImport);
+
+	// Write translation data first to ensure all changes are exported
+	bool bHadError = !(DataManager->WriteTranslationData(true));
+
+	if (!bHadError)
+	{
+		GWarn->BeginSlowTask(LOCTEXT("ImportingInternationalization", "Importing Internationalization Data..."), true);
+
+		// Write these settings to a temporary config file that the Internationalization Export Commandlet will read
+		FString TempConfigFilepath = FPaths::GameSavedDir() / "Config" / "InternationalizationExport.ini";
+		ImportSettings->SaveConfig(CPF_Config, *TempConfigFilepath);
+
+		// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
+		TArray<FString> ConfigSections;
+		ConfigSections.Add(ImportSettings->GetClass()->GetPathName());
+		FMessageLog TranslationEditorMessageLog("TranslationEditor");
+
+		for (FString& ConfigSection : ConfigSections)
 		{
-			IsEngineManifest = true;
-		}
-		if (IsEngineManifest)
-		{
-			FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::EngineDir());
-		}
-		else
-		{
-			FPaths::MakePathRelativeTo(FolderRelativeManifestPath, *FPaths::GameDir());
-		}
+			// Spawn the LocalizationExport commandlet, and run its log output back into ours
+			FString AppURL = FPlatformProcess::ExecutableName(true);
+			FString Parameters = FString("-run=InternationalizationExport -config=") + TempConfigFilepath + " -section=" + ConfigSection;
 
-		// Paths like "Content/Localization/Editor/" are not considered relative for some reason, so add "./" if neccessary
-		if (!FPaths::IsRelative(FolderRelativeManifestPath))
-		{
-			FolderRelativeManifestPath = FString(TEXT("./")) + FolderRelativeManifestPath;
-		}
+			void* WritePipe;
+			void* ReadPipe;
+			FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
+			FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*AppURL, *Parameters, false, false, false, NULL, 0, NULL, WritePipe);
 
-		UInternationalizationExportSettings* ImportSettings = NewObject<UInternationalizationExportSettings>();
-		ImportSettings->CulturesToGenerate.Empty();
-		ImportSettings->CulturesToGenerate.Add(FPaths::GetBaseFilename(FPaths::GetPath(ArchiveFilePath)));
-		ImportSettings->CommandletClass = "InternationalizationExport";
-		ImportSettings->DestinationPath = FPaths::GetPath(FolderRelativeManifestPath);
-		ImportSettings->ManifestName = FPaths::GetBaseFilename(ManifestFilePath) + ".manifest";
-		ImportSettings->ArchiveName = FPaths::GetBaseFilename(ManifestFilePath) + ".archive";
-		ImportSettings->bExportLoc = false;
-		ImportSettings->bImportLoc = true;
-		ImportSettings->bUseCultureDirectory = false;
-
-		ImportSettings->SourcePath = DefaultPath / FPaths::GetBaseFilename(ManifestFilePath);
-
-		if (OpenFilenames.Num() > 0)
-		{
-			ImportSettings->SourcePath = FPaths::GetPath(OpenFilenames[0]);
-			ImportSettings->PortableObjectName = FPaths::GetCleanFilename(OpenFilenames[0]);
-			LastImportFilePath = FPaths::GetPath(OpenFilenames[0]);
-		}
-
-		// Write translation data first to ensure all changes are exported
-		bHadError = !(DataManager->WriteTranslationData(true));
-
-		if (!bHadError)
-		{
-			GWarn->BeginSlowTask(LOCTEXT("ImportingInternationalization", "Importing Internationalization Data..."), true);
-
-			// Write these settings to a temporary config file that the Internationalization Export Commandlet will read
-			FString TempConfigFilepath = FPaths::GameSavedDir() / "Config" / "InternationalizationExport.ini";
-			ImportSettings->SaveConfig(CPF_Config, *TempConfigFilepath);
-
-			// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
-			TArray<FString> ConfigSections;
-			ConfigSections.Add(ImportSettings->GetClass()->GetPathName());
-			FMessageLog TranslationEditorMessageLog("TranslationEditor");
-
-			for (FString& ConfigSection : ConfigSections)
+			while (FPlatformProcess::IsProcRunning(ProcessHandle))
 			{
-				// Spawn the LocalizationExport commandlet, and run its log output back into ours
-				FString AppURL = FPlatformProcess::ExecutableName(true);
-				FString Parameters = FString("-run=InternationalizationExport -config=") + TempConfigFilepath + " -section=" + ConfigSection;
-
-				void* WritePipe;
-				void* ReadPipe;
-				FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
-				FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*AppURL, *Parameters, false, false, false, NULL, 0, NULL, WritePipe);
-
-				while (FPlatformProcess::IsProcRunning(ProcessHandle))
-				{
-					FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
-					if (NewLine.Len() > 0)
-					{
-						UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
-						FFormatNamedArguments Arguments;
-						Arguments.Add(TEXT("LogMessage"), FText::FromString(NewLine));
-						TranslationEditorMessageLog.Info(FText::Format(LOCTEXT("LocalizationImportLog", "Localization Import Log: {LogMessage}"), Arguments));
-					}
-
-					FPlatformProcess::Sleep(0.25);
-				}
 				FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
 				if (NewLine.Len() > 0)
 				{
@@ -1417,38 +1508,48 @@ void FTranslationEditor::ImportFromPortableObjectFormat_Execute()
 				}
 
 				FPlatformProcess::Sleep(0.25);
-				FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
-
-				int32 ReturnCode;
-				if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
-				{
-					bHadError = true;
-				}
-				else if (ReturnCode != 0)
-				{
-					bHadError = true;
-				}
 			}
-
-			GWarn->EndSlowTask();
-
-			if (bHadError)
+			FString NewLine = FPlatformProcess::ReadPipe(ReadPipe);
+			if (NewLine.Len() > 0)
 			{
-				TranslationEditorMessageLog.Error(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"));
-				TranslationEditorMessageLog.Notify(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"), EMessageSeverity::Info, true);
-				TranslationEditorMessageLog.Open(EMessageSeverity::Error);
+				UE_LOG(LocalizationExport, Log, TEXT("%s"), *NewLine);
+				FFormatNamedArguments Arguments;
+				Arguments.Add(TEXT("LogMessage"), FText::FromString(NewLine));
+				TranslationEditorMessageLog.Info(FText::Format(LOCTEXT("LocalizationImportLog", "Localization Import Log: {LogMessage}"), Arguments));
 			}
-			else
-			{
-				DataManager->LoadFromArchive(DataManager->GetAllTranslationsArray(), true, true);
 
-				TabManager->InvokeTab(ChangedOnImportTabId);
-				ChangedOnImportPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetChangedOnImportArray());
-				// Need to re-add the columns we want to display
-				ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
-				ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "TranslationBeforeImport"));
-				ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+			FPlatformProcess::Sleep(0.25);
+			FPlatformProcess::ClosePipe(ReadPipe, WritePipe);
+
+			int32 ReturnCode;
+			if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+			{
+				bHadError = true;
 			}
+			else if (ReturnCode != 0)
+			{
+				bHadError = true;
+			}
+		}
+
+		GWarn->EndSlowTask();
+
+		if (bHadError)
+		{
+			TranslationEditorMessageLog.Error(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"));
+			TranslationEditorMessageLog.Notify(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"), EMessageSeverity::Info, true);
+			TranslationEditorMessageLog.Open(EMessageSeverity::Error);
+		}
+		else
+		{
+			DataManager->LoadFromArchive(DataManager->GetAllTranslationsArray(), true, true);
+
+			TabManager->InvokeTab(ChangedOnImportTabId);
+			ChangedOnImportPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetChangedOnImportArray());
+			// Need to re-add the columns we want to display
+			ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+			ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "TranslationBeforeImport"));
+			ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
 		}
 	}
 }

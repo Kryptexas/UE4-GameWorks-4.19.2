@@ -35,7 +35,7 @@ struct FOneSkyLocalizationTargetSetting
 
 };
 
-UCLASS(config = Editor)
+UCLASS(config = LocalizationServiceSettings)
 class UOneSkyLocalizationTargetSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()

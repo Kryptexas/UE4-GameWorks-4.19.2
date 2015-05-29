@@ -14,13 +14,14 @@ class ITranslationEditor : public FAssetEditorToolkit
 
 public:
 
-	TRANSLATIONEDITOR_API static void OpenTranslationEditor(const FString& InManifestFile, const FString& InArchiveFile);
+	TRANSLATIONEDITOR_API static void OpenTranslationEditor(const FString& InManifestFile, const FString& InArchiveFile, const FGuid& LocalizationTargetGuid);
 
 	TRANSLATIONEDITOR_API static void OpenTranslationPicker();
 
-	ITranslationEditor(const FString& InManifestFile, const FString& InArchiveFile)
+	ITranslationEditor(const FString& InManifestFile, const FString& InArchiveFile, const FGuid& InLocalizationTargetGuid)
 		: ManifestFilePath(InManifestFile)
 		, ArchiveFilePath(InArchiveFile)
+		, LocalizationTargetGuid(InLocalizationTargetGuid)
 	{}
 
 	virtual bool OnRequestClose() override;
@@ -31,6 +32,8 @@ protected:
 	FString ManifestFilePath;
 	/** Name of the language we are translating to */
 	FString ArchiveFilePath;
+	/** GUID of the Localization Target we are editing */
+	FGuid LocalizationTargetGuid;
 
 private:
 

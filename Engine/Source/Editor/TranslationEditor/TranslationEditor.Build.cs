@@ -8,6 +8,8 @@ public class TranslationEditor : ModuleRules
 	{
 		PublicIncludePathModuleNames.Add("LevelEditor");
 		PublicIncludePathModuleNames.Add("WorkspaceMenuStructure");
+        
+        PrivateIncludePathModuleNames.Add("LocalizationService");
 
         PrivateIncludePathModuleNames.AddRange(
 			new string[] {
@@ -33,6 +35,7 @@ public class TranslationEditor : ModuleRules
 				"SourceControl",
                 "MessageLog",
                 "Documentation",
+                "LocalizationService",
 			}
 		);
 
@@ -48,7 +51,8 @@ public class TranslationEditor : ModuleRules
 			new string[] {
 				"WorkspaceMenuStructure",
 				"DesktopPlatform",
-				"SourceControl"
+				"SourceControl",
+                "LocalizationService",
 			}
 		);
 	}

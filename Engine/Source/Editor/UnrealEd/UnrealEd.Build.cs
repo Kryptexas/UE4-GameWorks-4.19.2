@@ -56,6 +56,7 @@ public class UnrealEd : ModuleRules
 				"Landscape",
                 "Niagara",
 				"SizeMap",
+                "LocalizationService",
 			}
 		);
 
@@ -130,6 +131,7 @@ public class UnrealEd : ModuleRules
                 "VectorVM",
 				"TreeMap",
                 "MaterialUtilities",
+                "LocalizationService",
 			}
 		);
 

@@ -26,7 +26,7 @@ public:
 	 * 
 	 * @return	Interface to the new translation editor
 	 */
-	virtual TSharedRef<FTranslationEditor> CreateTranslationEditor( const FString& ManifestFile, const FString& ArchiveFile );
+	virtual TSharedRef<FTranslationEditor> CreateTranslationEditor(const FString& ManifestFile, const FString& ArchiveFile, const FGuid& LocalizationTargetGuid);
 
 	/** Gets the extensibility managers for outside entities to extend translation editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }

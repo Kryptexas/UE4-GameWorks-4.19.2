@@ -160,6 +160,8 @@ FOneSkyConnectionInfo FOneSkyLocalizationServiceSettings::GetConnectionInfo() co
 
 FOneSkyLocalizationTargetSetting* FOneSkyLocalizationServiceSettings::GetSettingsForTarget(FGuid TargetGuid, bool bCreateIfNotFound /* = false */)
 {
+	TargetSettingsObject->LoadConfig();
+
 	FOneSkyLocalizationTargetSetting* Settings = TargetSettingsObject->TargetSettings.FindByPredicate([&](const FOneSkyLocalizationTargetSetting& Setting)
 	{
 		return Setting.TargetGuid == TargetGuid;

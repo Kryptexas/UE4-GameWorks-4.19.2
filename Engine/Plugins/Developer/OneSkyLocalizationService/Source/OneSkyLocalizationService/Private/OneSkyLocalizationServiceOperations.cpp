@@ -833,6 +833,11 @@ void FOneSkyTranslationExportWorker::Query_HttpRequestComplete(FHttpRequestPtr H
 		{
 			UE_LOG(LogLocalizationService, Warning, TEXT("%s"), *(ErrorText.ToString()));
 			Command->ErrorMessages.Add(ErrorText);
+			TSharedPtr<FDownloadLocalizationTargetFile, ESPMode::ThreadSafe> DownloadLocTargetOp = StaticCastSharedRef<FDownloadLocalizationTargetFile>(Command->Operation);
+			if (DownloadLocTargetOp.IsValid())
+			{
+				DownloadLocTargetOp->SetOutErrorText(ErrorText);
+			}
 		}
 	}
 

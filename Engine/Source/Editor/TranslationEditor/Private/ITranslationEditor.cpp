@@ -8,13 +8,13 @@
 /** To keep track of what translation editors are open editing which manifest files */
 TMap<FString, ITranslationEditor*> ITranslationEditor::OpenTranslationEditors = TMap<FString, ITranslationEditor*>();
 
-void ITranslationEditor::OpenTranslationEditor(const FString& InManifestFile, const FString& InArchiveFile)
+void ITranslationEditor::OpenTranslationEditor(const FString& InManifestFile, const FString& InArchiveFile, const FGuid& LocalizationTargetGuid)
 {
 	// Only open a new translation editor if there isn't another one open for this archive file already
 	if (!OpenTranslationEditors.Contains(InArchiveFile))
 	{
 		FTranslationEditorModule& TranslationEditorModule = FModuleManager::LoadModuleChecked<FTranslationEditorModule>("TranslationEditor");
-		ITranslationEditor* NewTranslationEditor = (ITranslationEditor*)&(TranslationEditorModule.CreateTranslationEditor(InManifestFile, InArchiveFile).Get());
+		ITranslationEditor* NewTranslationEditor = (ITranslationEditor*)&(TranslationEditorModule.CreateTranslationEditor(InManifestFile, InArchiveFile, LocalizationTargetGuid).Get());
 		NewTranslationEditor->RegisterTranslationEditor();
 	}
 	else
