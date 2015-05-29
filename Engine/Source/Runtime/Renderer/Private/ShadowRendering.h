@@ -288,6 +288,9 @@ class FShadowStaticMeshElement;
  */
 struct FShadowDepthDrawingPolicyContext : FMeshDrawingPolicy::ContextDataType
 {
+	/** CAUTION, this is assumed to be a POD type. We allocate the on the scene allocator and NEVER CALL A DESTRUCTOR.
+		If you want to add non-pod data, not a huge problem, we just need to track and destruct them at the end of the scene.
+	**/
 	/** The projected shadow info for which we are rendering shadow depths. */
 	const FProjectedShadowInfo* ShadowInfo;
 
@@ -787,6 +790,16 @@ private:
 	void RenderDepthInner(FRHICommandList& RHICmdList, class FSceneRenderer* SceneRenderer, const FViewInfo* FoundView, TFunctionRef<void (FRHICommandList& RHICmdList)> SetShadowRenderTargets, EShadowDepthRenderMode RenderMode );
 
 	/**
+	* Modifies the passed in view for this shadow
+	*/
+	void ModifyViewForShadow(FRHICommandList& RHICmdList, FViewInfo* FoundView);
+
+	/**
+	* Finds a relevant view for a shadow
+	*/
+	FViewInfo* FindViewForShadow(FSceneRenderer* SceneRenderer);
+
+	/**
 	* Renders the dynamic shadow subject depth, to a particular hacked view
 	*/
 	friend class FRenderDepthDynamicThreadTask;
@@ -1085,7 +1098,7 @@ public:
 				FVector4(ShadowBufferSizeValue.X, ShadowBufferSizeValue.Y, 1.0f / ShadowBufferSizeValue.X, 1.0f / ShadowBufferSizeValue.Y));
 		}
 
-		FTexture2DRHIRef ShadowDepthTextureValue = GSceneRenderTargets.GetShadowDepthZTexture(ShadowInfo->bAllocatedInPreshadowCache);
+		FTexture2DRHIRef ShadowDepthTextureValue = FSceneRenderTargets::Get(RHICmdList).GetShadowDepthZTexture(ShadowInfo->bAllocatedInPreshadowCache);
 		FSamplerStateRHIParamRef DepthSamplerState = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
 		SetTextureParameter(RHICmdList, ShaderRHI, ShadowDepthTexture, ShadowDepthTextureSampler, DepthSamplerState, ShadowDepthTextureValue);		
@@ -1237,13 +1250,14 @@ public:
 
 	void Set(FRHICommandList& RHICmdList, FShader* Shader) const
 	{
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 		SetTextureParameter(
 			RHICmdList, 
 			Shader->GetPixelShader(),
 			TranslucencyShadowTransmission0,
 			TranslucencyShadowTransmission0Sampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			GSceneRenderTargets.TranslucencyShadowTransmission[0]->GetRenderTargetItem().ShaderResourceTexture
+			SceneContext.TranslucencyShadowTransmission[0]->GetRenderTargetItem().ShaderResourceTexture
 			);
 
 		SetTextureParameter(
@@ -1252,7 +1266,7 @@ public:
 			TranslucencyShadowTransmission1,
 			TranslucencyShadowTransmission1Sampler,
 			TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-			GSceneRenderTargets.TranslucencyShadowTransmission[1]->GetRenderTargetItem().ShaderResourceTexture
+			SceneContext.TranslucencyShadowTransmission[1]->GetRenderTargetItem().ShaderResourceTexture
 			);
 	}
 
@@ -1347,7 +1361,7 @@ public:
 			RHICmdList, 
 			ShaderRHI, 
 			ShadowDepthTexture, 
-			GSceneRenderTargets.GetCubeShadowDepthZTexture(ShadowInfo->ResolutionX)
+			FSceneRenderTargets::Get(RHICmdList).GetCubeShadowDepthZTexture(ShadowInfo->ResolutionX)
 			);
 
 		if (ShadowDepthCubeComparisonSampler.IsBound())

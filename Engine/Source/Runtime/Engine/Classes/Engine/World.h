@@ -2596,9 +2596,8 @@ public:
 
 	/**
 	 * Send all render updates to the rendering thread.
-	 * @param OutCompletion - all async updates are added to this array, they typically need to be completed before GC or anything else
 	 */
-	void SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion = NULL);
+	void SendAllEndOfFrameUpdates();
 
 
 	/** Do per frame tick behaviors related to the network driver */

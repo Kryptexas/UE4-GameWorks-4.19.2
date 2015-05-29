@@ -13,7 +13,7 @@
 //
 
 /** The interface which is implemented by the dynamically bound RHI. */
-class FDynamicRHI
+class RHI_API FDynamicRHI
 {
 public:
 
@@ -217,9 +217,6 @@ public:
 
 	// FlushType: Wait RHI Thread
 	virtual FTextureReferenceRHIRef RHICreateTextureReference(FLastRenderTimeContainer* LastRenderTime) = 0;
-
-	// FlushType: Flush RHI Thread
-	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
 
 	/**
 	* Creates a 2D RHI texture resource
@@ -620,6 +617,19 @@ public:
 	// FlushType: Thread safe
 	virtual class IRHICommandContextContainer* RHIGetCommandContextContainer() = 0;
 
+	///////// Pass through functions that allow RHIs to optimize certain calls.
+
+	virtual FVertexBufferRHIRef CreateVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
+	virtual FShaderResourceViewRHIRef CreateShaderResourceView_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format);
+	virtual void* LockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode);
+	virtual void UnlockVertexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FVertexBufferRHIParamRef VertexBuffer);
+	virtual FTexture2DRHIRef AsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus);
+	virtual ETextureReallocationStatus FinalizeAsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted);
+	virtual ETextureReallocationStatus CancelAsyncReallocateTexture2D_RenderThread(class FRHICommandListImmediate& RHICmdList, FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted);
+	virtual FIndexBufferRHIRef CreateIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo);
+	virtual void* LockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode);
+	virtual void UnlockIndexBuffer_RenderThread(class FRHICommandListImmediate& RHICmdList, FIndexBufferRHIParamRef IndexBuffer);
+	virtual FVertexDeclarationRHIRef CreateVertexDeclaration_RenderThread(class FRHICommandListImmediate& RHICmdList, const FVertexDeclarationElementList& Elements);
 };
 
 /** A global pointer to the dynamically bound RHI implementation. */
@@ -918,6 +928,8 @@ public:
 
 	virtual void RHIPopEvent() = 0;
 
+	virtual void RHIUpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture) = 0;
+
 	/** Start AsyncCompute command stream recording (no effect if not supported) */
 	virtual void RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) = 0;
 
@@ -926,6 +938,7 @@ public:
 
 	/** Wait for AsyncCompute command stream to finish (no effect if not supported) */
 	virtual void RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex) = 0;
+
 };
 
 

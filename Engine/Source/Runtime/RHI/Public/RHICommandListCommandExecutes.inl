@@ -8,16 +8,6 @@
 	#define INTERNAL_DECORATOR(Method) CmdList.GetContext().RHI##Method
 #endif
 
-// set this one to get a stat for each RHI command 
-#define RHI_STATS 0
-
-#if RHI_STATS
-	DECLARE_STATS_GROUP(TEXT("RHICommands"),STATGROUP_RHI_COMMANDS, STATCAT_Advanced);
-	#define RHISTAT(Method)	DECLARE_SCOPE_CYCLE_COUNTER(TEXT(#Method), STAT_RHI##Method, STATGROUP_RHI_COMMANDS)
-#else
-	#define RHISTAT(Method)
-#endif
-
 void FRHICommandSetRasterizerState::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetRasterizerState);
@@ -393,6 +383,12 @@ void FRHICommandSubmitCommandsHint::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(SubmitCommandsHint)();
 }
 
+void FRHICommandUpdateTextureReference::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(UpdateTextureReference);
+	INTERNAL_DECORATOR(UpdateTextureReference)(TextureRef, NewTexture);
+}
+
 void FRHICommandBeginScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginScene);
@@ -403,14 +399,6 @@ void FRHICommandEndScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(EndScene);
 	INTERNAL_DECORATOR(EndScene)();
-}
-
-void FRHICommandUpdateVertexBuffer::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(UpdateVertexBuffer);
-	void* Data = GDynamicRHI->RHILockVertexBuffer(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
-	FMemory::Memcpy(Data, Buffer, BufferSize);
-	GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
 }
 
 void FRHICommandBeginFrame::Execute(FRHICommandListBase& CmdList)

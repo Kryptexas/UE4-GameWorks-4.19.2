@@ -112,6 +112,21 @@ public:
 	/** Destructor. */
 	virtual ~FSceneRenderTargets() {}
 
+	/** Singletons. At the moment parallel tasks get their snapshot from the rhicmdlist */
+	static FSceneRenderTargets& Get(FRHICommandList& RHICmdList);
+	static FSceneRenderTargets& Get(FRHICommandListImmediate& RHICmdList);
+	// this is a placeholder, the context should come from somewhere. This is very unsafe, please don't use it!
+	static FSceneRenderTargets& Get_Todo_PassContext();
+	// As above but relaxed checks and always gives the global FSceneRenderTargets. The intention here is that it is only used for constants that don't change during a frame. This is very unsafe, please don't use it!
+	static FSceneRenderTargets& Get_FrameConstantsOnly();
+
+	/** Create a snapshot on the scene allocator */
+	FSceneRenderTargets* CreateSnapshot(const FViewInfo& InView);
+	/** Set a snapshot on the TargetCmdList */
+	void SetSnapshotOnCmdList(FRHICommandList& TargetCmdList);	
+	/** Destruct all snapshots */
+	void DestroyAllSnapshots();
+
 protected:
 	/** Constructor */
 	FSceneRenderTargets(): 
@@ -122,6 +137,7 @@ protected:
 		LargestDesiredSizeThisFrame( 0, 0 ),
 		LargestDesiredSizeLastFrame( 0, 0 ),
 		ThisFrameNumber( 0 ),
+		bVelocityPass(false),
 		BufferSize(0, 0), 
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
@@ -136,9 +152,12 @@ protected:
 		bCurrentLightPropagationVolume(false),
 		CurrentFeatureLevel(ERHIFeatureLevel::Num),
 		CurrentShadingPath(EShadingPath::Num),
-		bAllocateVelocityGBuffer(false)
+		bAllocateVelocityGBuffer(false),
+		bSnapshot(false)
 		{
 		}
+	/** Constructor that creates snapshot */
+	FSceneRenderTargets(const FViewInfo& InView, const FSceneRenderTargets& SnapshotSource);
 public:
 
 	enum class EShadingPath
@@ -468,6 +487,18 @@ public:
 	 */
 	static void QuantizeBufferSize(int32& InOutBufferSizeX, int32& InOutBufferSizeY);
 
+	bool IsSeparateTranslucencyActive(const FViewInfo& View) const;
+
+	bool IsVelocityPass() const
+	{
+		return bVelocityPass;
+	}
+	void SetVelocityPass(bool bInVelocityPass)
+	{
+		bVelocityPass = bInVelocityPass;
+	}
+
+
 private: // Get...() methods instead of direct access
 
 	// 0 before BeginRenderingSceneColor and after tone mapping in deferred shading
@@ -508,6 +539,8 @@ public:
 	TRefCountPtr<IPooledRenderTarget> ScreenSpaceAO;
 	// used by the CustomDepth material feature, is allocated on demand or if r.CustomDepth is 2
 	TRefCountPtr<IPooledRenderTarget> CustomDepth;
+	// used by the CustomDepth material feature for stencil
+	TRefCountPtr<FRHIShaderResourceView> CustomStencilSRV;
 	// Render target for per-object shadow depths.
 	TRefCountPtr<IPooledRenderTarget> ShadowDepthZ;
 	// optional in case this RHI requires a color render target
@@ -550,7 +583,8 @@ public:
 	/** Depth for editor primitives */
 	TRefCountPtr<IPooledRenderTarget> EditorPrimitivesDepth;
 
-	bool IsSeparateTranslucencyActive(const FViewInfo& View) const;
+	/** ONLY for snapshots!!! this is a copy of the SeparateTranslucencyRT from the view state. */
+	TRefCountPtr<IPooledRenderTarget> SeparateTranslucencyRT;
 
 	// todo: free ScreenSpaceAO so pool can reuse
 	bool bScreenSpaceAOIsValid;
@@ -570,6 +604,9 @@ private:
 	FIntPoint LargestDesiredSizeLastFrame;
 	/** to detect when LargestDesiredSizeThisFrame is outdated */
 	uint32 ThisFrameNumber;
+
+	bool bVelocityPass;
+	/** CAUTION: When adding new data, make sure you copy it in the snapshot constructor! **/
 
 	/**
 	 * Initializes the editor primitive color render target
@@ -665,7 +702,12 @@ private:
 	/** Helpers to track scenedepth state on platforms that need to propagate clear information across parallel rendering boundaries. */
 	bool bSceneDepthCleared;
 	float SceneDepthClearValue;
+	/** true is this is a snapshot on the scene allocator */
+	bool bSnapshot;
+	/** All outstanding snapshots */
+	TArray<FSceneRenderTargets*> Snapshots;
+
+	/** CAUTION: When adding new data, make sure you copy it in the snapshot constructor! **/
+
 };
 
-/** The global render targets used for scene rendering. */
-extern RENDERER_API TGlobalResource<FSceneRenderTargets> GSceneRenderTargets;

@@ -255,7 +255,7 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	bool bTessellatedQuad = PaniniConfig.D >= 0.01f;
 
 	// with distortion (bTessellatedQuad) we need to clear the background
-	FIntRect ExcludeRect = bTessellatedQuad ? FIntRect() : View.ViewRect;
+	FIntRect ExcludeRect = bTessellatedQuad ? FIntRect() : DestRect;
 
 	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ExcludeRect);
 

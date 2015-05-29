@@ -36,10 +36,11 @@ public:
 
 	void SetParameters(const FRenderingCompositePassContext& Context, IPooledRenderTarget& DistortionRT)
 	{
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FTextureRHIParamRef DistortionTextureValue = DistortionRT.GetRenderTargetItem().ShaderResourceTexture;
-		FTextureRHIParamRef SceneColorTextureValue = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture;
+		FTextureRHIParamRef SceneColorTextureValue = SceneContext.GetSceneColor()->GetRenderTargetItem().ShaderResourceTexture;
 
 		// Here we use SF_Point as in fullscreen the pixels are 1:1 mapped.
 		SetTextureParameter(
@@ -60,7 +61,7 @@ public:
 			SceneColorTextureValue
 			);
 
-		FIntPoint SceneBufferSize = GSceneRenderTargets.GetBufferSizeXY();
+		FIntPoint SceneBufferSize = SceneContext.GetBufferSizeXY();
 		FIntRect ViewportRect = Context.GetViewport();
 		FVector4 SceneColorRectValue = FVector4((float)ViewportRect.Min.X/SceneBufferSize.X,
 												(float)ViewportRect.Min.Y/SceneBufferSize.Y,
@@ -767,6 +768,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 	bool bDirty = false;
 
 	TRefCountPtr<IPooledRenderTarget> DistortionRT;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Render accumulated distortion offsets
 	if( bRender)
@@ -775,7 +777,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 
 		// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
 		{
-			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GetBufferSizeXY(), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
 			Desc.Flags |= TexCreate_FastVRAM;
 			GRenderTargetPool.FindFreeElement(Desc, DistortionRT, TEXT("Distortion"));
 
@@ -789,7 +791,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		// DistortionRT==0 should never happen but better we don't crash
 		if(DistortionRT)
 		{
-			SetRenderTarget(RHICmdList, DistortionRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+			SetRenderTarget(RHICmdList, DistortionRT->GetRenderTargetItem().TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 			for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 			{
@@ -829,12 +831,12 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, DistortionApply);
 
-		GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 // OCULUS BEGIN: select ONE render target for all views (eyes)
 		TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
-		GRenderTargetPool.FindFreeElement(GSceneRenderTargets.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("SceneColor"));
+		GRenderTargetPool.FindFreeElement(SceneContext.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("SceneColor"));
 		const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
 // OCULUS END
 
@@ -856,7 +858,7 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 // OCULUS BEGIN: Weird, different eyes may have different render targets!
 // 				TRefCountPtr<IPooledRenderTarget> NewSceneColor;
 // we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
-// 				GRenderTargetPool.FindFreeElement(GSceneRenderTargets.SceneColor->GetDesc(), NewSceneColor, TEXT("SceneColor"));
+// 				GRenderTargetPool.FindFreeElement(SceneContext.SceneColor->GetDesc(), NewSceneColor, TEXT("SceneColor"));
 // 				const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem(); 
 // OCULUS END
 
@@ -886,15 +888,15 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 					View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 					View.ViewRect.Width(), View.ViewRect.Height(),
 					View.ViewRect.Size(),
-					GSceneRenderTargets.GetBufferSizeXY(),
+					SceneContext.GetBufferSizeXY(),
 					*VertexShader,
 					EDRF_UseTriangleOptimization);
 
 				RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 // OCULUS BEGIN
-// 				GSceneRenderTargets.SetSceneColor(NewSceneColor);
-// 				check(GSceneRenderTargets.GetSceneColor());
+// 				SceneContext.SetSceneColor(NewSceneColor);
+// 				check(SceneContext.GetSceneColor());
 // OCULUS END				
 
 			}
@@ -902,11 +904,11 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 		}
 
 		// OCULUS BEGIN
-		GSceneRenderTargets.SetSceneColor(NewSceneColor);
-		check(GSceneRenderTargets.GetSceneColor());
+		SceneContext.SetSceneColor(NewSceneColor);
+		check(SceneContext.GetSceneColor());
 // OCULUS END				
 		// Distortions RT is no longer needed, buffer can be reused by the pool, see BeginRenderingDistortionAccumulation() call above
-		GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
+		SceneContext.FinishRenderingSceneColor(RHICmdList, false);
 	}
 }
 

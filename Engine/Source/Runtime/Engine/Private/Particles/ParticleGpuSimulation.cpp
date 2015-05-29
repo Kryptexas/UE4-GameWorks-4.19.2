@@ -1197,8 +1197,8 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
 		TileOffset[Index].X = 100.0f;
 		TileOffset[Index].Y = 100.0f;
 	}
-	RHIUnlockVertexBuffer( TileOffsetsRef );
-}
+		RHIUnlockVertexBuffer( TileOffsetsRef );
+	}
 
 /**
  * Builds a vertex buffer containing the offsets for a set of tiles.
@@ -1593,17 +1593,9 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 		// Copy new particles in to the vertex buffer.
 		const int32 ParticlesThisDrawCall = FMath::Min<int32>( ParticleCount, MaxParticlesPerDrawCall );
 		const void* Src = NewParticles.GetData() + FirstParticle;
-		if (GRHIThread)
-		{
-			RHICmdList.UpdateVertexBuffer(ScratchVertexBufferRHI, Src, ParticlesThisDrawCall * sizeof(FNewParticle));
-		}
-		else
-		{
-			void* Dest = RHILockVertexBuffer( ScratchVertexBufferRHI, 0, ParticlesThisDrawCall * sizeof(FNewParticle), RLM_WriteOnly );
-			FMemory::Memcpy( Dest, Src, ParticlesThisDrawCall * sizeof(FNewParticle) );
-			RHIUnlockVertexBuffer( ScratchVertexBufferRHI );
-
-		}
+		void* Dest = RHILockVertexBuffer( ScratchVertexBufferRHI, 0, ParticlesThisDrawCall * sizeof(FNewParticle), RLM_WriteOnly );
+		FMemory::Memcpy( Dest, Src, ParticlesThisDrawCall * sizeof(FNewParticle) );
+		RHIUnlockVertexBuffer( ScratchVertexBufferRHI );
 		ParticleCount -= ParticlesThisDrawCall;
 		FirstParticle += ParticlesThisDrawCall;
 

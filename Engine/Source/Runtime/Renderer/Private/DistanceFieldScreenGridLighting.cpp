@@ -635,6 +635,7 @@ void PostProcessBentNormalAOScreenGrid(
 	TRefCountPtr<IPooledRenderTarget>& BentNormalOutput,
 	TRefCountPtr<IPooledRenderTarget>& IrradianceOutput)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
 
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
@@ -691,7 +692,7 @@ void PostProcessBentNormalAOScreenGrid(
 				0, 0, 
 				View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor,
 				FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
-				GSceneRenderTargets.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor),
+				SceneContext.GetBufferSizeXY() / FIntPoint(GAODownsampleFactor, GAODownsampleFactor),
 				*VertexShader);
 		}
 

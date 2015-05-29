@@ -66,8 +66,9 @@ public:
 			// from Separabale.usf: float distanceToProjectionWindow = 1.0 / tan(0.5 * radians(SSSS_FOVY))
 			// can be extracted out of projection matrix
 
-			float ScaleCorrectionX = Context.View.ViewRect.Width() / (float)GSceneRenderTargets.GetBufferSizeXY().X;
-			float ScaleCorrectionY = Context.View.ViewRect.Height() / (float)GSceneRenderTargets.GetBufferSizeXY().Y;
+			FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+			float ScaleCorrectionX = Context.View.ViewRect.Width() / (float)SceneContext.GetBufferSizeXY().X;
+			float ScaleCorrectionY = Context.View.ViewRect.Height() / (float)SceneContext.GetBufferSizeXY().Y;
 
 			 // Divide by 3 as the kernels range from -3 to 3.
 			const float KernelSize = 3.0f;
@@ -198,7 +199,7 @@ void SetSubsurfaceVisualizeShader(const FRenderingCompositePassContext& Context)
 FRCPassPostProcessSubsurfaceVisualize::FRCPassPostProcessSubsurfaceVisualize()
 {
 	// we need the GBuffer, we release it Process()
-	GSceneRenderTargets.AdjustGBufferRefCount(1);
+	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
 }
 
 void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassContext& Context)
@@ -219,8 +220,9 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
 
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 ScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / SrcSize.X;
+	uint32 ScaleFactor = SceneContext.GetBufferSizeXY().X / SrcSize.X;
 
 	FIntRect SrcRect = View.ViewRect / ScaleFactor;
 	FIntRect DestRect = SrcRect;
@@ -302,12 +304,12 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// we no longer need the GBuffer
-	GSceneRenderTargets.AdjustGBufferRefCount(-1);
+	SceneContext.AdjustGBufferRefCount(-1);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = GSceneRenderTargets.GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceVisualize");
@@ -617,7 +619,7 @@ void FRCPassPostProcessSubsurfaceExtractSpecular::Process(FRenderingCompositePas
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceExtractSpecular::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = GSceneRenderTargets.GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceExtractSpecular");
@@ -700,7 +702,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceSetup::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = GSceneRenderTargets.GetSceneColor()->GetDesc();
+	FPooledRenderTargetDesc Ret = FSceneRenderTargets::Get_Todo_PassContext().GetSceneColor()->GetDesc();
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("SubsurfaceSetup");
@@ -1013,6 +1015,7 @@ void SetSubsurfaceRecombineShader(const FRenderingCompositePassContext& Context,
 
 void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassContext& Context)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	check(InputDesc);
@@ -1021,7 +1024,7 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 
 	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DestSize = GSceneRenderTargets.GetBufferSizeXY();
+	FIntPoint DestSize = SceneContext.GetBufferSizeXY();
 
 	check(DestSize.X);
 	check(DestSize.Y);
@@ -1031,7 +1034,7 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 	FIntRect SrcRect = FIntRect(0, 0, InputDesc->Extent.X, InputDesc->Extent.Y);
 	FIntRect DestRect = View.ViewRect;
 
-	TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
+	TRefCountPtr<IPooledRenderTarget>& SceneColor = SceneContext.GetSceneColor();
 
 	const FSceneRenderTargetItem& DestRenderTarget = SceneColor->GetRenderTargetItem();
 

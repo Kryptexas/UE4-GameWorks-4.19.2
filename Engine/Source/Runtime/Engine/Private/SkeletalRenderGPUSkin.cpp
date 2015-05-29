@@ -425,13 +425,13 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 			}
 		} // ApplyDelta
 
-		// Lock the real buffer.
-		FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
-		FMemory::Memcpy(ActualBuffer, Buffer, Size);
-		FMemory::Free(Buffer);
+			// Lock the real buffer.
+			FMorphGPUSkinVertex* ActualBuffer = (FMorphGPUSkinVertex*)RHILockVertexBuffer(MorphVertexBuffer.VertexBufferRHI, 0, Size, RLM_WriteOnly);
+			FMemory::Memcpy(ActualBuffer, Buffer, Size);
+			FMemory::Free(Buffer);
 
-		// Unlock the buffer.
-		RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
+			// Unlock the buffer.
+			RHIUnlockVertexBuffer(MorphVertexBuffer.VertexBufferRHI);
 		// set update flag
 		MorphVertexBuffer.bHasBeenUpdated = true;
 	}
@@ -1088,7 +1088,14 @@ FPreviousPerBoneMotionBlur
 -----------------------------------------------------------------------------*/
 
 FPreviousPerBoneMotionBlur::FPreviousPerBoneMotionBlur()
-	: LockedData(0), LockedTexelCount(0), bWarningBufferSizeExceeded(false)
+	:LockedData(0), LockedTexelCount(0),
+	IsVelocityFunc(
+		[](FRHICommandList& RHICmdList)->bool
+		{
+			return false;
+		}
+	)
+	, bWarningBufferSizeExceeded(false)
 {
 }
 
@@ -1131,27 +1138,28 @@ void FPreviousPerBoneMotionBlur::InitIfNeeded()
 		InitResources();
 	}
 }
-void FPreviousPerBoneMotionBlur::StartAppend(bool bWorldIsPaused)
+void FPreviousPerBoneMotionBlur::StartAppend(FRHICommandListImmediate& RHICmdList, bool bWorldIsPaused)
 {
 	check(!LockedData);
 	check(IsInRenderingThread());
+	check(IsVelocityFunc(RHICmdList));
 
 	if(!bWorldIsPaused)
-	{		
+	{
 		InitIfNeeded();
 
 		AdvanceBufferLocation();
 
-		FBoneDataVertexBuffer& WriteTexture = PerChunkBoneMatricesTexture[GetWriteBufferIndex()];
+	FBoneDataVertexBuffer& WriteTexture = PerChunkBoneMatricesTexture[GetWriteBufferIndex()];
 
-		if(WriteTexture.IsValid())
-		{
-			LockedData = WriteTexture.LockData();
-			check(LockedTexelPosition.GetValue() == 0); //otherwise it wasn't unlocked or it was unlocked before it was done being filled by async stuff
-			LockedTexelPosition.Set(0);
-			LockedTexelCount = WriteTexture.GetSizeX();
-		}
+	if(WriteTexture.IsValid())
+	{
+		LockedData = WriteTexture.LockData();
+		check(LockedTexelPosition.GetValue() == 0); //otherwise it wasn't unlocked or it was unlocked before it was done being filled by async stuff
+		LockedTexelPosition.Set(0);
+		LockedTexelCount = WriteTexture.GetSizeX();
 	}
+}
 
 	if (CVarMotionBlurDebug.GetValueOnRenderThread())
 	{
@@ -1186,8 +1194,17 @@ uint32 FPreviousPerBoneMotionBlur::AppendData(FBoneSkinning *DataStart, uint32 B
 	}
 }
 
-void FPreviousPerBoneMotionBlur::EndAppend()
+void FPreviousPerBoneMotionBlur::EndAppendFence(FRHICommandListImmediate& RHICmdList)
 {
+	check(IsVelocityFunc(RHICmdList));
+	EndAppendRenderThreadTaskFence = FRHICommandListImmediate::RenderThreadTaskFence();
+}
+
+void FPreviousPerBoneMotionBlur::EndAppend(FRHICommandListImmediate& RHICmdList)
+{
+	check(!IsVelocityFunc(RHICmdList));
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FPreviousPerBoneMotionBlur_EndAppend);
+
 	if(CVarMotionBlurDebug.GetValueOnRenderThread())
 	{
 		UE_LOG(LogEngine, Log, TEXT(" "));
@@ -1196,33 +1213,42 @@ void FPreviousPerBoneMotionBlur::EndAppend()
 	if(IsAppendStarted())
 	{
 		check(IsInRenderingThread());
+		FRHICommandListImmediate::WaitOnRenderThreadTaskFence(EndAppendRenderThreadTaskFence);
+		EndAppendRenderThreadTaskFence = nullptr;
+
 		LockedTexelCount = 0;
 		LockedData = 0;
 
 		// we use float4
 		PerChunkBoneMatricesTexture[GetWriteBufferIndex()].UnlockData(LockedTexelPosition.GetValue() * 4 * sizeof(float));
 		LockedTexelPosition.Set(0);
-	}
 
-	{
-		static int LogSpawmPrevent = 0;
-
-		if(bWarningBufferSizeExceeded)
 		{
-			bWarningBufferSizeExceeded = false;
+			static int LogSpawmPrevent = 0;
 
-			if((LogSpawmPrevent % 16) == 0)
+			if(bWarningBufferSizeExceeded)
 			{
-				UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh velocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
+				bWarningBufferSizeExceeded = false;
+
+				if((LogSpawmPrevent % 16) == 0)
+				{
+					UE_LOG(LogSkeletalGPUSkinMesh, Warning, TEXT("Exceeded buffer for per bone motionblur for skinned mesh velocity rendering. Artifacts can occur. Change Content, increase buffer size or change to use FGlobalDynamicVertexBuffer."));
+				}
+				++LogSpawmPrevent;
 			}
-			++LogSpawmPrevent;
-		}
-		else
-		{
-			LogSpawmPrevent = 0;
+			else
+			{
+				LogSpawmPrevent = 0;
+			}
 		}
 	}
 }
+
+void FPreviousPerBoneMotionBlur::SetVelocityPassCallback(const TFunction<bool(FRHICommandList& RHICmdList)>& InIsVelocityFunc)
+{
+	IsVelocityFunc = InIsVelocityFunc;
+}
+
 
 FString FPreviousPerBoneMotionBlur::GetDebugString() const
 {

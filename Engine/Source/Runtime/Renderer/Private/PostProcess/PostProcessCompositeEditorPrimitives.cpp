@@ -69,6 +69,7 @@ public:
 
 	void SetParameters(const FRenderingCompositePassContext& Context)
 	{
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
@@ -79,13 +80,13 @@ public:
 		PostProcessParameters.SetPS(ShaderRHI, Context, SamplerStateRHIRef);
 		if(MSAASampleCount > 1)
 		{
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesColor, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture);
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesColor, SceneContext.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesDepth, SceneContext.EditorPrimitivesDepth->GetRenderTargetItem().TargetableTexture);
 		}
 		else
 		{
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesColor, EditorPrimitivesColorSampler, SamplerStateRHIRef, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture);
-			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesDepth, GSceneRenderTargets.EditorPrimitivesDepth->GetRenderTargetItem().ShaderResourceTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesColor, EditorPrimitivesColorSampler, SamplerStateRHIRef, SceneContext.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture);
+			SetTextureParameter(Context.RHICmdList, ShaderRHI, EditorPrimitivesDepth, SceneContext.EditorPrimitivesDepth->GetRenderTargetItem().ShaderResourceTexture);
 		}
 
 		{
@@ -110,7 +111,7 @@ public:
 
 		if(FilteredSceneDepthTexture.IsBound())
 		{
-			const FTexture2DRHIRef* DepthTexture = GSceneRenderTargets.GetActualDepthTexture();
+			const FTexture2DRHIRef* DepthTexture = SceneContext.GetActualDepthTexture();
 			SetTextureParameter(
 				Context.RHICmdList,
 				ShaderRHI,
@@ -197,15 +198,16 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.ViewRect;
 	FIntPoint SrcSize = InputDesc->Extent;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// If we render wirframe we already started rendering to the EditorPrimitives buffer, so we don't want to clear it.
-	bool bClearIsNeeded = !IsValidRef(GSceneRenderTargets.EditorPrimitivesColor);
+	bool bClearIsNeeded = !IsValidRef(SceneContext.EditorPrimitivesColor);
 
 	// Get or create the msaa depth and color buffer
-	FTexture2DRHIRef ColorTarget = GSceneRenderTargets.GetEditorPrimitivesColor();
-	FTexture2DRHIRef DepthTarget = GSceneRenderTargets.GetEditorPrimitivesDepth();
+	FTexture2DRHIRef ColorTarget = SceneContext.GetEditorPrimitivesColor();
+	FTexture2DRHIRef DepthTarget = SceneContext.GetEditorPrimitivesDepth();
 
-	const uint32 MSAASampleCount = GSceneRenderTargets.EditorPrimitivesColor->GetDesc().NumSamples;
+	const uint32 MSAASampleCount = SceneContext.EditorPrimitivesColor->GetDesc().NumSamples;
 
 	{
 		SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget);
@@ -231,10 +233,10 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 			RenderPrimitivesToComposite<FBasePassForwardOpaqueDrawingPolicyFactory>(Context.RHICmdList, View);
 		}
 
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, GSceneRenderTargets.EditorPrimitivesColor);
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, SceneContext.EditorPrimitivesColor);
 	}
 
-	//	Context.RHICmdList.CopyToResolveTarget(GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	//	Context.RHICmdList.CopyToResolveTarget(SceneContext.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture, SceneContext.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 	const FTexture2DRHIRef& DestRenderTargetSurface = (const FTexture2DRHIRef&)DestRenderTarget.TargetableTexture;
@@ -288,7 +290,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTargetSurface, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// Clean up targets
-	GSceneRenderTargets.CleanUpEditorPrimitiveTargets();
+	SceneContext.CleanUpEditorPrimitiveTargets();
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessCompositeEditorPrimitives::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -304,6 +306,7 @@ FPooledRenderTargetDesc FRCPassPostProcessCompositeEditorPrimitives::ComputeOutp
 template<typename TBasePass>
 void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Always depth test against other editor primitives
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_DepthNearOrEqual>::GetRHI());
@@ -315,7 +318,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FR
 	const auto FeatureLevel = View.GetFeatureLevel();
 	const auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
 	const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(ShaderPlatform);
-	FTexture2DRHIRef SceneDepth = GSceneRenderTargets.GetSceneDepthTexture();
+	FTexture2DRHIRef SceneDepth = SceneContext.GetSceneDepthTexture();
 
 	typename TBasePass::ContextType Context(true, ESceneRenderTargetsMode::SetTextures);
 
@@ -330,7 +333,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::RenderPrimitivesToComposite(FR
 		}
 	}
 
-	View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, GSceneRenderTargets.GetSceneDepthTexture(), EBlendModeFilter::OpaqueAndMasked);
+	View.EditorSimpleElementCollector.DrawBatchedElements(RHICmdList, View, SceneContext.GetSceneDepthTexture(), EBlendModeFilter::OpaqueAndMasked);
 	
 	// Draw the base pass for the view's batched mesh elements.
 	DrawViewElements<TBasePass>(RHICmdList, View, typename TBasePass::ContextType(bDepthTest, ESceneRenderTargetsMode::SetTextures), SDPG_World, false);

@@ -27,7 +27,7 @@ public:
 
 	/**
 	 * Returns the input pointer as output to allow this:
-	 * Example:  SceneColor = Graph.RegisterPass(new FRCPassPostProcessInput(GSceneRenderTargets.SceneColor));
+	 * Example:  SceneColor = Graph.RegisterPass(new FRCPassPostProcessInput(FSceneRenderTargets::Get(RHICmdList).SceneColor));
 	 * @param InPass - must not be 0
 	 */
 	template<class T>

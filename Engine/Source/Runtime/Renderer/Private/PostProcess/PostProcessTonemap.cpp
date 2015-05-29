@@ -1095,6 +1095,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		default:
 			check(0);
 	}
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// Draw a quad mapping scene color to the view's render target
 	TShaderMapRef<FPostProcessTonemapVS> VertexShader(Context.GetShaderMap());
@@ -1106,7 +1107,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -1117,7 +1118,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	{
 		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 		// This becomes even more important with some limited VRam (XBoxOne).
-		GSceneRenderTargets.SetSceneColor(0);
+		SceneContext.SetSceneColor(0);
 	}
 }
 

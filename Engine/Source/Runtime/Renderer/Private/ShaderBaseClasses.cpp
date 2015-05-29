@@ -264,7 +264,7 @@ void FMaterialShader::SetParameters(
 				LightAttenuation,
 				LightAttenuationSampler,
 				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-				GSceneRenderTargets.GetLightAttenuationTexture());
+				FSceneRenderTargets::Get(RHICmdList).GetLightAttenuationTexture());
 		}
 	}
 

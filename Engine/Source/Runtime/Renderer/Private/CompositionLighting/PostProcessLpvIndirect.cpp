@@ -205,6 +205,8 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessLpvDirectionalOcclusionPS,TEXT("PostProcessLp
 
 void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Context)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
+
 	{
 		FRenderingCompositeOutput* OutputOfMyInput = GetInput(ePId_Input0)->GetOutput();
 		PassOutputs[0].PooledRenderTarget = OutputOfMyInput->PooledRenderTarget;
@@ -224,6 +226,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	{
 		return;
 	}
+
 	FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
 
 	const FSceneViewFamily& ViewFamily = *(View.Family);
@@ -237,10 +240,10 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 	// Apply specular separately if we're mixing reflection environment with indirect lighting
 	const bool bApplySeparateSpecularRT = View.Family->EngineShowFlags.ReflectionEnvironment && bMixing;
 
-	const FSceneRenderTargetItem& DestColorRenderTarget = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem();
-	const FSceneRenderTargetItem& DestSpecularRenderTarget = GSceneRenderTargets.LightAccumulation->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestColorRenderTarget = SceneContext.GetSceneColor()->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestSpecularRenderTarget = SceneContext.LightAccumulation->GetRenderTargetItem();
 
-	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = GSceneRenderTargets.DirectionalOcclusion->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = SceneContext.DirectionalOcclusion->GetRenderTargetItem();
 
 	// Make sure the LPV Update has completed
 	Lpv->InsertGPUWaitForAsyncUpdate(Context.RHICmdList);
@@ -318,7 +321,7 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 		    View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		    View.ViewRect.Width(), View.ViewRect.Height(),
 		    View.ViewRect.Size(),
-		    GSceneRenderTargets.GetBufferSizeXY(),
+		    SceneContext.GetBufferSizeXY(),
 		    *VertexShader);
 
 		Context.RHICmdList.CopyToResolveTarget(DestColorRenderTarget.TargetableTexture, DestColorRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -330,14 +333,16 @@ void FRCPassPostProcessLpvIndirect::Process(FRenderingCompositePassContext& Cont
 
 	if ( LPVSettings.LPVDirectionalOcclusionIntensity > 0.0001f )
 	{
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, GSceneRenderTargets.DirectionalOcclusion);
+		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, SceneContext.DirectionalOcclusion);
 	}
 }
 
 void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingCompositePassContext& Context) const
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
+
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessLpvDirectionalOcclusion );
-	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = GSceneRenderTargets.DirectionalOcclusion->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestDirectionalOcclusionRenderTarget = SceneContext.DirectionalOcclusion->GetRenderTargetItem();
 	FViewInfo& View = Context.View;
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 	const FFinalPostProcessSettings& PostprocessSettings = Context.View.FinalPostProcessSettings;
@@ -352,7 +357,7 @@ void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingComposi
 	FTextureRHIParamRef RenderTarget = DestDirectionalOcclusionRenderTarget.TargetableTexture;
 
 	SetRenderTargets(Context.RHICmdList, 1, &RenderTarget, NULL, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
-	
+
 	Context.SetViewportAndCallRHI(View.ViewRect);
 	Context.RHICmdList.SetBlendState( TStaticBlendState<>::GetRHI() );
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -365,7 +370,7 @@ void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingComposi
 	TShaderMapRef< FPostProcessLpvDirectionalOcclusionPS > PixelShader(View.ShaderMap);
 
 	static FGlobalBoundShaderState BoundShaderState;
-
+	
 	// call it once after setting up the shader data to avoid the warnings in the function
 	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
@@ -382,7 +387,7 @@ void FRCPassPostProcessLpvIndirect::DoDirectionalOcclusionPass(FRenderingComposi
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		*VertexShader);
 }
 

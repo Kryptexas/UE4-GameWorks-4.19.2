@@ -354,10 +354,11 @@ void FRCPassPostProcessWeightedSampleSum::Process(FRenderingCompositePassContext
 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	FIntPoint SrcScaleFactor = GSceneRenderTargets.GetBufferSizeXY() / SrcSize;
-	FIntPoint DstScaleFactor = GSceneRenderTargets.GetBufferSizeXY() / DestSize;
+	FIntPoint SrcScaleFactor = SceneContext.GetBufferSizeXY() / SrcSize;
+	FIntPoint DstScaleFactor = SceneContext.GetBufferSizeXY() / DestSize;
 
 	TRefCountPtr<IPooledRenderTarget> InputPooledElement = Input->RequestInput();
 
@@ -543,7 +544,7 @@ bool FRCPassPostProcessWeightedSampleSum::DoFastBlur() const
 		else
 		{
 			FIntPoint SrcSize = InputDesc->Extent;
-			FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+			FIntPoint BufferSize = FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY();
 
 			float InputRatio = SrcSize.X / (float)SrcSize.Y;
 			float BufferRatio = BufferSize.X / (float)BufferSize.Y;

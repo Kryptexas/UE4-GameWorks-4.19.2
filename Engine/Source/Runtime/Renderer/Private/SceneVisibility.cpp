@@ -1052,63 +1052,6 @@ struct FRelevancePacket
 	}
 };
 
-class FRelevancePacketAnyThreadTask
-{
-	FRelevancePacket& Packet;
-	ENamedThreads::Type ThreadToUse;
-public:
-
-	FRelevancePacketAnyThreadTask(FRelevancePacket& InPacket, ENamedThreads::Type InThreadToUse)
-		: Packet(InPacket)
-		, ThreadToUse(InThreadToUse)
-	{
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FRelevancePacketAnyThreadTask, STATGROUP_TaskGraphTasks);
-	}
-
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ThreadToUse;
-	}
-
-	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
-
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-	{
-		Packet.AnyThreadTask();
-	}
-};
-
-class FRelevancePacketRenderThreadTask
-{
-	FRelevancePacket& Packet;
-public:
-
-	FRelevancePacketRenderThreadTask(FRelevancePacket& InPacket)
-		: Packet(InPacket)
-	{
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FRelevancePacketRenderThreadTask, STATGROUP_TaskGraphTasks);
-	}
-
-	ENamedThreads::Type GetDesiredThread()
-	{
-		return ENamedThreads::RenderThread_Local;
-	}
-
-	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
-
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-	{
-		Packet.RenderThreadFinalize();
-	}
-};
 
 static TAutoConsoleVariable<int32> CVarParallelInitViews(
 	TEXT("r.ParallelInitViews"),
@@ -1117,21 +1060,10 @@ static TAutoConsoleVariable<int32> CVarParallelInitViews(
 #else
 	1,  
 #endif
-	TEXT("Toggles parallel init views."),
+	TEXT("Toggles parallel init views. 0 = off; 1 = on"),
 	ECVF_RenderThreadSafe
 	);
 
-
-/**
- * Computes view relevance for visible primitives in the view and adds them to
- * appropriate per-view rendering lists.
- * @param Scene - The scene being rendered.
- * @param View - The view for which to compute relevance.
- * @param ViewBit - Bit mask: 1 << ViewIndex where Views(ViewIndex) == View.
- * @param OutRelevantStaticPrimitives - Upon return contains a list of relevant
- *                                      static primitives.
- *                                callback for this view will have ViewBit set.
- */
 static void ComputeAndMarkRelevanceForViewParallel(
 	FRHICommandListImmediate& RHICmdList,
 	const FScene* Scene,
@@ -1150,21 +1082,16 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	uint8* RESTRICT MarkMasks = (uint8*)FMemStack::Get().Alloc(NumMesh + 31 , 8); // some padding to simplify the high speed transpose
 	FMemory::Memzero(MarkMasks, NumMesh + 31);
 
-	// I am going to do the render thread tasks in order, maybe that isn't necessary
-	FGraphEventRef LastRenderThread;
+	int32 EstimateOfNumPackets = NumMesh / (FRelevancePrimSet<int32>::MaxPrims * 4);
+
+	TArray<FRelevancePacket*,SceneRenderingAllocator> Packets;
+
+	Packets.Reserve(EstimateOfNumPackets);
+
 	{
 		FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap);
 		if (BitIt)
 		{
-			int32 AnyThreadTasksPerRenderThreadTasks = 1;
-
-			if (FApp::ShouldUseThreadingForPerformance() && CVarParallelInitViews.GetValueOnRenderThread() > 0)
-			{
-				AnyThreadTasksPerRenderThreadTasks = FTaskGraphInterface::Get().GetNumWorkerThreads() + 1; // the idea is to put the render thread to work
-			}
-			// else AnyThreadTasksPerRenderThreadTasks == 1 means we never use a task thread
-			int32 WorkingAnyThreadTasksPerRenderThreadTasks = AnyThreadTasksPerRenderThreadTasks;
-			
 
 			FRelevancePacket* Packet = new(FMemStack::Get()) FRelevancePacket(
 				RHICmdList,
@@ -1175,6 +1102,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 				OutHasDynamicMeshElementsMasks,
 				OutHasDynamicEditorMeshElementsMasks,
 				MarkMasks);
+			Packets.Add(Packet);
 
 			while (1)
 			{
@@ -1182,21 +1110,6 @@ static void ComputeAndMarkRelevanceForViewParallel(
 				++BitIt;
 				if (Packet->Input.IsFull() || !BitIt)
 				{
-					// submit task
-					ENamedThreads::Type ThreadToUse = ENamedThreads::AnyThread;
-					if (!--WorkingAnyThreadTasksPerRenderThreadTasks)
-					{
-						WorkingAnyThreadTasksPerRenderThreadTasks = AnyThreadTasksPerRenderThreadTasks;
-						ThreadToUse = ENamedThreads::RenderThread_Local;
-					}
-					FGraphEventArray RenderPrereqs;
-					if (LastRenderThread.GetReference())
-					{
-						RenderPrereqs.Add(LastRenderThread); // this puts the render thread ones in order
-					}
-					FGraphEventRef AnyThread = TGraphTask<FRelevancePacketAnyThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(*Packet, ThreadToUse);
-					RenderPrereqs.Add(AnyThread);
-					LastRenderThread = TGraphTask<FRelevancePacketRenderThreadTask>::CreateTask(&RenderPrereqs, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(*Packet);
 					if (!BitIt)
 					{
 						break;
@@ -1212,15 +1125,28 @@ static void ComputeAndMarkRelevanceForViewParallel(
 							OutHasDynamicMeshElementsMasks,
 							OutHasDynamicEditorMeshElementsMasks,
 							MarkMasks);
+						Packets.Add(Packet);
 					}
 				}
 			}
 		}
 	}
-	if (LastRenderThread.GetReference())
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_ComputeAndMarkRelevanceForViewParallel_Wait);
-		FTaskGraphInterface::Get().WaitUntilTaskCompletes(LastRenderThread, ENamedThreads::RenderThread_Local);
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ComputeAndMarkRelevanceForViewParallel_ParallelFor);
+		ParallelFor(Packets.Num(), 
+			[&Packets](int32 Index)
+			{
+				Packets[Index]->AnyThreadTask();
+			},
+			!(FApp::ShouldUseThreadingForPerformance() && CVarParallelInitViews.GetValueOnRenderThread() > 0)
+		);
+	}
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ComputeAndMarkRelevanceForViewParallel_RenderThreadFinalize);
+		for (auto Packet : Packets)
+		{
+			Packet->RenderThreadFinalize();
+		}
 	}
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_ComputeAndMarkRelevanceForViewParallel_TransposeMeshBits);
 	check(View.StaticMeshVelocityMap.Num() == NumMesh && 
@@ -1288,6 +1214,7 @@ static void ComputeAndMarkRelevanceForViewParallel(
 		StaticMeshFadeInDitheredLODMap_Words++;
 	}
 }
+
 
 void FSceneRenderer::GatherDynamicMeshElements(
 	TArray<FViewInfo>& InViews, 
@@ -1463,10 +1390,11 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			View.bDisableQuerySubmissions = true;
 			View.bIgnoreExistingQueries = true;
 		}
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 		// set up the screen area for occlusion
-		float NumPossiblePixels = GSceneRenderTargets.UseDownsizedOcclusionQueries() && IsValidRef(GSceneRenderTargets.GetSmallDepthSurface()) ? 
-			(float)View.ViewRect.Width() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor() * (float)View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor() :
+		float NumPossiblePixels = SceneContext.UseDownsizedOcclusionQueries() && IsValidRef(SceneContext.GetSmallDepthSurface()) ? 
+			(float)View.ViewRect.Width() / SceneContext.GetSmallColorDepthDownsampleFactor() * (float)View.ViewRect.Height() / SceneContext.GetSmallColorDepthDownsampleFactor() :
 			View.ViewRect.Width() * View.ViewRect.Height();
 		View.OneOverNumPossiblePixels = NumPossiblePixels > 0.0 ? 1.0f / NumPossiblePixels : 0.0f;
 

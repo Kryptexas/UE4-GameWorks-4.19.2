@@ -119,7 +119,7 @@ private:
 				LightAttenuationTexture,
 				LightAttenuationTextureSampler,
 				TStaticSamplerState<SF_Point,AM_Wrap,AM_Wrap,AM_Wrap>::GetRHI(),
-				GSceneRenderTargets.GetEffectiveLightAttenuationTexture(true)
+				FSceneRenderTargets::Get(RHICmdList).GetEffectiveLightAttenuationTexture(true)
 				);
 		}
 
@@ -359,6 +359,8 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, DirectLighting);
 
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
 		int32 AttenuationLightStart = SortedLights.Num();
 		int32 SupportedByTiledDeferredLightEnd = SortedLights.Num();
 		bool bAnyUnsupportedByTiledDeferred = false;
@@ -401,7 +403,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, NonShadowedLights);
 			INC_DWORD_STAT_BY(STAT_NumUnshadowedLights, AttenuationLightStart);
-			GSceneRenderTargets.SetLightAttenuationMode(false);
+			SceneContext.SetLightAttenuationMode(false);
 
 			int32 StandardDeferredStart = 0;
 
@@ -434,7 +436,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 			}
 			else if (SimpleLights.InstanceData.Num() > 0)
 			{
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 				RenderSimpleLightsStandardDeferred(RHICmdList, SimpleLights);
 			}
 
@@ -442,7 +444,7 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 				SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredLighting);
 
 				// make sure we don't clear the depth
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 				// Draw non-shadowed non-light function lights without changing render targets between them
 				for (int32 LightIndex = StandardDeferredStart; LightIndex < AttenuationLightStart; LightIndex++)
@@ -541,101 +543,101 @@ void FDeferredShadingSceneRenderer::RenderLights(FRHICommandListImmediate& RHICm
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, ShadowedLights);
 
-			bool bDirectLighting = ViewFamily.EngineShowFlags.DirectLighting;
+		bool bDirectLighting = ViewFamily.EngineShowFlags.DirectLighting;
 
-			// Draw shadowed and light function lights
-			for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
+		// Draw shadowed and light function lights
+		for (int32 LightIndex = AttenuationLightStart; LightIndex < SortedLights.Num(); LightIndex++)
+		{
+			const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
+			const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
+			const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
+			bool bDrawShadows = SortedLightInfo.SortKey.Fields.bShadowed;
+			bool bDrawLightFunction = SortedLightInfo.SortKey.Fields.bLightFunction;
+			bool bInjectedTranslucentVolume = false;
+			bool bUsedLightAttenuation = false;
+			FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
+
+			FString LightNameWithLevel;
+			GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
+			SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
+
+			// Do not resolve to scene color texture, this is done lazily
+			SceneContext.FinishRenderingSceneColor(RHICmdList, false);
+
+			if (bDrawShadows)
 			{
-				const FSortedLightSceneInfo& SortedLightInfo = SortedLights[LightIndex];
-				const FLightSceneInfoCompact& LightSceneInfoCompact = SortedLightInfo.SceneInfo;
-				const FLightSceneInfo& LightSceneInfo = *LightSceneInfoCompact.LightSceneInfo;
-				bool bDrawShadows = SortedLightInfo.SortKey.Fields.bShadowed;
-				bool bDrawLightFunction = SortedLightInfo.SortKey.Fields.bLightFunction;
-				bool bInjectedTranslucentVolume = false;
-				bool bUsedLightAttenuation = false;
-				FScopeCycleCounter Context(LightSceneInfo.Proxy->GetStatId());
-
-				FString LightNameWithLevel;
-				GetLightNameForDrawEvent(LightSceneInfo.Proxy, LightNameWithLevel);
-				SCOPED_DRAW_EVENTF(RHICmdList, EventLightPass, *LightNameWithLevel);
-
-				// Do not resolve to scene color texture, this is done lazily
-				GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
-
-				if (bDrawShadows)
-				{
-					INC_DWORD_STAT(STAT_NumShadowedLights);
-
-					for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-					{
-						const FViewInfo& View = Views[ViewIndex];
-						View.HeightfieldLightingViewInfo.ClearShadowing(View, RHICmdList, LightSceneInfo);
-					}
-
-					// All shadows render with min blending
-					bool bClearToWhite = true;
-					GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
-
-					bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
-					// Render non-modulated projected shadows to the attenuation buffer.
-					RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
-				
-					bUsedLightAttenuation = true;
-				}
+				INC_DWORD_STAT(STAT_NumShadowedLights);
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 				{
 					const FViewInfo& View = Views[ViewIndex];
-					View.HeightfieldLightingViewInfo.ComputeLighting(View, RHICmdList, LightSceneInfo);
-				}
-			
-				// Render light function to the attenuation buffer.
-				if (bDirectLighting)
-				{
-					const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
-					bUsedLightAttenuation |= bLightFunctionRendered;
-
-					if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
-						&& !LightSceneInfo.IsPrecomputedLightingValid() 
-						&& LightSceneInfo.Proxy->HasStaticShadowing())
-					{
-						RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);
-					}
-
-					if (!bDrawShadows)
-					{
-						INC_DWORD_STAT(STAT_NumLightFunctionOnlyLights);
-					}
-				}
-			
-				if( bUsedLightAttenuation )
-				{
-					// Resolve light attenuation buffer
-					GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
-				}
-			
-				if(bDirectLighting && !bInjectedTranslucentVolume)
-				{
-					SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume);
-					// Accumulate this light's unshadowed contribution to the translucency lighting volume
-					InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
+					View.HeightfieldLightingViewInfo.ClearShadowing(View, RHICmdList, LightSceneInfo);
 				}
 
-				GSceneRenderTargets.SetLightAttenuationMode(bUsedLightAttenuation);
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+				// All shadows render with min blending
+				bool bClearToWhite = true;
+				SceneContext.BeginRenderingLightAttenuation(RHICmdList, bClearToWhite);
 
-				// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
-				if(bDirectLighting)
-				{
-					RenderLight(RHICmdList, &LightSceneInfo, false, true);
-				}
+				bool bRenderedTranslucentObjectShadows = RenderTranslucentProjectedShadows(RHICmdList, &LightSceneInfo );
+				// Render non-modulated projected shadows to the attenuation buffer.
+				RenderProjectedShadows(RHICmdList, &LightSceneInfo, bRenderedTranslucentObjectShadows, bInjectedTranslucentVolume );
+				
+				bUsedLightAttenuation = true;
 			}
 
-			// Do not resolve to scene color texture, this is done lazily
-			GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
+			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+			{
+				const FViewInfo& View = Views[ViewIndex];
+				View.HeightfieldLightingViewInfo.ComputeLighting(View, RHICmdList, LightSceneInfo);
+			}
+			
+			// Render light function to the attenuation buffer.
+			if (bDirectLighting)
+			{
+				const bool bLightFunctionRendered = RenderLightFunction(RHICmdList, &LightSceneInfo, bDrawShadows);
+				bUsedLightAttenuation |= bLightFunctionRendered;
 
-			// Restore the default mode
-			GSceneRenderTargets.SetLightAttenuationMode(true);
+				if (ViewFamily.EngineShowFlags.PreviewShadowsIndicator
+					&& !LightSceneInfo.IsPrecomputedLightingValid() 
+					&& LightSceneInfo.Proxy->HasStaticShadowing())
+				{
+					RenderPreviewShadowsIndicator(RHICmdList, &LightSceneInfo, bUsedLightAttenuation);
+				}
+
+				if (!bDrawShadows)
+				{
+					INC_DWORD_STAT(STAT_NumLightFunctionOnlyLights);
+				}
+			}
+			
+			if( bUsedLightAttenuation )
+			{
+				// Resolve light attenuation buffer
+				SceneContext.FinishRenderingLightAttenuation(RHICmdList);
+			}
+			
+			if(bDirectLighting && !bInjectedTranslucentVolume)
+			{
+				SCOPED_DRAW_EVENT(RHICmdList, InjectTranslucentVolume);
+				// Accumulate this light's unshadowed contribution to the translucency lighting volume
+				InjectTranslucentVolumeLighting(RHICmdList, LightSceneInfo, NULL);
+			}
+
+			SceneContext.SetLightAttenuationMode(bUsedLightAttenuation);
+			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+
+			// Render the light to the scene color buffer, conditionally using the attenuation buffer or a 1x1 white texture as input 
+			if(bDirectLighting)
+			{
+				RenderLight(RHICmdList, &LightSceneInfo, false, true);
+			}
+		}
+
+		// Do not resolve to scene color texture, this is done lazily
+		SceneContext.FinishRenderingSceneColor(RHICmdList, false);
+
+		// Restore the default mode
+		SceneContext.SetLightAttenuationMode(true);
 
 		}
 	}
@@ -677,7 +679,7 @@ void FDeferredShadingSceneRenderer::RenderStationaryLightOverlap(FRHICommandList
 {
 	if (Scene->bIsEditorScene)
 	{
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+		FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
 		// Clear to discard base pass values in scene color since we didn't skip that, to have valid scene depths
 		RHICmdList.Clear(true, FLinearColor::Black, false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
@@ -875,7 +877,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 				View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				View.ViewRect.Size(),
-				GSceneRenderTargets.GetBufferSizeXY(),
+				FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 				*VertexShader,
 				EDRF_UseTriangleOptimization);
 		}

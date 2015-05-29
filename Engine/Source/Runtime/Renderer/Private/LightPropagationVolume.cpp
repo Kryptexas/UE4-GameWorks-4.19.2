@@ -775,7 +775,7 @@ FLightPropagationVolume::FLightPropagationVolume() :
 
 	// VPL List buffers
 	mVplListBuffer = new FRWBufferStructured();
-	int32 RSMResolution = GSceneRenderTargets.GetReflectiveShadowMapResolution();
+	int32 RSMResolution = FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution();
 	int32 GvListBufferSize = RSMResolution * RSMResolution * 16; // Allow 16 layers of depth per every pixel of the RSM (on average) 
 	int32 VplListBufferSize = RSMResolution * RSMResolution * 4; // Allow 4 layers of depth per pixel in the RSM (1 for the RSM injection + 3 for light injection)
 	mVplListBuffer->Initialize( sizeof( VplListEntry ), VplListBufferSize, 0, true, false );
@@ -837,7 +837,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 {
 	int32 NumFastLpvTextures = 7;
 	int32 NumFastGvTextures = 2;
-	FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+	FIntPoint BufferSize = FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY();
 	if ( BufferSize.X >= 1600 && BufferSize.Y >= 900 )
 	{
 		NumFastLpvTextures = 5;
@@ -962,7 +962,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 			* LpvWriteUniformBufferParams->RsmAreaIntensityMultiplier * CVarLPVEmissiveIntensityMultiplier.GetValueOnRenderThread() * 0.25f;
 		LpvWriteUniformBufferParams->DirectionalOcclusionIntensity	= LPVSettings.LPVDirectionalOcclusionIntensity;
 		LpvWriteUniformBufferParams->DirectionalOcclusionRadius		= LPVSettings.LPVDirectionalOcclusionRadius;
-		LpvWriteUniformBufferParams->RsmPixelToTexcoordMultiplier	= 1.0f / float(GSceneRenderTargets.GetReflectiveShadowMapResolution() - 1);
+		LpvWriteUniformBufferParams->RsmPixelToTexcoordMultiplier	= 1.0f / float(FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution() - 1);
 
 		LpvReadUniformBufferParams.DirectionalOcclusionIntensity	= LPVSettings.LPVDirectionalOcclusionIntensity;
 		LpvReadUniformBufferParams.DiffuseOcclusionExponent			= LPVSettings.LPVDiffuseOcclusionExponent;
@@ -1064,7 +1064,7 @@ void FLightPropagationVolume::GetShadowInfo( const FProjectedShadowInfo& Project
 	FVector4 WorldRight = RsmInfoOut.ShadowToWorld.TransformVector( ShadowRight );
 	float ShadowArea = WorldUp.Size3() * WorldRight.Size3();
 
-	int32 RSMResolution = GSceneRenderTargets.GetReflectiveShadowMapResolution();
+	int32 RSMResolution = FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution();
 	float ResolutionMultiplier = RSMResolution / 256.0f;
 	float IdealCubeSizeMultiplier = 0.5f * ResolutionMultiplier; 
 	float IdealRsmArea = ( CubeSize * IdealCubeSizeMultiplier * CubeSize * IdealCubeSizeMultiplier );
@@ -1124,7 +1124,7 @@ void FLightPropagationVolume::InjectDirectionalLightRSM(
 		GetShaderParams( ShaderParams );
 		Shader->SetParameters(RHICmdList, ShaderParams, RsmDiffuseTex, RsmNormalTex, RsmDepthTex );
 
-		int32 RSMResolution = GSceneRenderTargets.GetReflectiveShadowMapResolution();
+		int32 RSMResolution = FSceneRenderTargets::Get_FrameConstantsOnly().GetReflectiveShadowMapResolution();
 		// todo: what if not divisble by 8?
 		DispatchComputeShader(RHICmdList, *Shader, RSMResolution / 8, RSMResolution / 8, 1 ); 
 

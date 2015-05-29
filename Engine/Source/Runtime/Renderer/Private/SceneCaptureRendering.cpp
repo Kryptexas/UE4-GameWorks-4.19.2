@@ -55,7 +55,7 @@ static void CopyCaptureToTarget(FRHICommandListImmediate& RHICmdList, const FRen
 			ViewRect.Min.X, ViewRect.Min.Y,
 			ViewRect.Width(), ViewRect.Height(),
 			TargetSize,
-			GSceneRenderTargets.GetBufferSizeXY(),
+			FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
@@ -148,13 +148,12 @@ static void UpdateSceneCaptureContent_RenderThread(FRHICommandListImmediate& RHI
 			// Copy the captured scene into the destination texture (only required on HDR or deferred as that implies post-processing)
 			SCOPED_DRAW_EVENT(RHICmdList, CaptureSceneColor);
 			FIntPoint TargetSize(UnconstrainedViewRect.Width(), UnconstrainedViewRect.Height());
-			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, GSceneRenderTargets.GetSceneColorTexture(), false);
+			CopyCaptureToTarget(RHICmdList, Target, TargetSize, View, ViewRect, FSceneRenderTargets::Get(RHICmdList).GetSceneColorTexture(), false);
 		}
 
 		RHICmdList.CopyToResolveTarget(TextureRenderTarget->GetRenderTargetTexture(), TextureRenderTarget->TextureRHI, false, ResolveParams);
 	}
-
-	delete SceneRenderer;
+	FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
 }
 
 

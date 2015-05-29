@@ -734,7 +734,7 @@ void FPostProcessPassParameters::Set(
 
 	//Calculate a base scene texture min max which will be pulled in by a pixel for each PP input.
 	FIntRect ContextViewportRect = Context.IsViewportValid() ? Context.GetViewport() : FIntRect(0,0,0,0);
-	const FIntPoint SceneRTSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint SceneRTSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 	FVector4 BaseSceneTexMinMax(	((float)ContextViewportRect.Min.X/SceneRTSize.X), 
 									((float)ContextViewportRect.Min.Y/SceneRTSize.Y), 
 									((float)ContextViewportRect.Max.X/SceneRTSize.X), 

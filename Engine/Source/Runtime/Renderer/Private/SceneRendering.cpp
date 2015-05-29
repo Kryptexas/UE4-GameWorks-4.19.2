@@ -117,11 +117,6 @@ static TAutoConsoleVariable<float> CVarTessellationAdaptivePixelsPerTriangle(
 -----------------------------------------------------------------------------*/
 
 
-FRHICommandList* FParallelCommandListSet::AllocCommandList()
-{
-	return new FRHICommandList;
-}
-
 static TAutoConsoleVariable<int32> CVarRHICmdSpewParallelListBalance(
 	TEXT("r.RHICmdSpewParallelListBalance"),
 	0,
@@ -142,12 +137,12 @@ static TAutoConsoleVariable<int32> CVarRHICmdMinDrawsPerParallelCmdList(
 	32,
 	TEXT("The minimum number of draws per cmdlist. If the total number of draws is less than this, then no parallel work will be done at all. This can't always be honored or done correctly. More effective with RHICmdBalanceParallelLists."));
 
-FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute)
+FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext)
 	: View(InView)
 	, ParentCmdList(InParentCmdList)
-	, OutDirtyIfIgnored(false)
-	, OutDirty(InOutDirty ? *InOutDirty : OutDirtyIfIgnored)
+	, Snapshot(nullptr)
 	, bParallelExecute(GRHISupportsParallelRHIExecute && bInParallelExecute)
+	, bCreateSceneContext(bInCreateSceneContext)
 {
 	Width = CVarRHICmdWidth.GetValueOnRenderThread();
 	MinDrawsPerCommandList = CVarRHICmdMinDrawsPerParallelCmdList.GetValueOnRenderThread();
@@ -158,8 +153,14 @@ FParallelCommandListSet::FParallelCommandListSet(const FViewInfo& InView, FRHICo
 	NumDrawsIfKnown.Reserve(Width * 8);
 }
 
+FRHICommandList* FParallelCommandListSet::AllocCommandList()
+{
+	return new FRHICommandList;
+}
+
 void FParallelCommandListSet::Dispatch()
 {
+	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	check(CommandLists.Num() == Events.Num());
 	if (bSpewBalance)
 	{
@@ -213,11 +214,13 @@ void FParallelCommandListSet::Dispatch()
 		}
 	}
 	CommandLists.Reset();
+	Snapshot = nullptr;
 	Events.Reset();
 }
 
 FParallelCommandListSet::~FParallelCommandListSet()
 {
+	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	checkf(CommandLists.Num() == 0, TEXT("Derived class of FParallelCommandListSet did not call Dispatch in virtual destructor"));
 }
 
@@ -225,11 +228,23 @@ FRHICommandList* FParallelCommandListSet::NewParallelCommandList()
 {
 	FRHICommandList* Result = AllocCommandList();
 	SetStateOnCommandList(*Result); 
+	if (bCreateSceneContext)
+	{
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(ParentCmdList);
+		check(&SceneContext == &FSceneRenderTargets::Get_FrameConstantsOnly()); // the immediate should not have an overridden context
+		if (!Snapshot)
+		{
+			Snapshot = SceneContext.CreateSnapshot(View);
+		}
+		Snapshot->SetSnapshotOnCmdList(*Result);
+		check(&SceneContext != &FSceneRenderTargets::Get(*Result)); // the new commandlist should have a snapshot
+	}
 	return Result;
 }
 
 void FParallelCommandListSet::AddParallelCommandList(FRHICommandList* CmdList, FGraphEventRef& CompletionEvent, int32 InNumDrawsIfKnown)
 {
+	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
 	check(CommandLists.Num() == Events.Num());
 	CommandLists.Add(CmdList);
 	Events.Add(CompletionEvent);
@@ -303,6 +318,7 @@ void FViewInfo::Init()
 	ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 	ViewState = (FSceneViewState*)State;
+	bIsSnapshot = false;
 }
 
 FViewInfo::~FViewInfo()
@@ -382,17 +398,20 @@ void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradi
 
 /** Creates the view's uniform buffer given a set of view transforms. */
 TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
+	FRHICommandList& RHICmdList,
 	const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,	
 	const FMatrix& EffectiveTranslatedViewMatrix, 
 	const FMatrix& EffectiveViewToTranslatedWorld, 
 	FBox* OutTranslucentCascadeBoundsArray, 
 	int32 NumTranslucentCascades) const
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
 	check(Family);
 	check(!DirectionalLightShadowInfo || DirectionalLightShadowInfo->Num() > 0);
 
 	// Calculate the vector used by shaders to convert clip space coordinates to texture space.
-	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint BufferSize = SceneContext.GetBufferSizeXY();
 	const float InvBufferSizeX = 1.0f / BufferSize.X;
 	const float InvBufferSizeY = 1.0f / BufferSize.Y;
 	const FVector4 ScreenPositionScaleBias(
@@ -521,7 +540,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 					FIntPoint ShadowBufferResolution = ShadowInfo.GetShadowBufferResolution();
 					FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
 
-					ViewUniformShaderParameters.DirectionalLightShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture();				
+					ViewUniformShaderParameters.DirectionalLightShadowTexture = SceneContext.GetShadowDepthZTexture();				
 					ViewUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
 					ViewUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
 				}
@@ -919,7 +938,9 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 	/** The view transform, starting from world-space points translated by -ViewOrigin. */
 	FMatrix TranslatedViewMatrix = FTranslationMatrix(-ViewMatrices.PreViewTranslation) * ViewMatrices.ViewMatrix;
 
+	check(IsInRenderingThread());
 	UniformBuffer = CreateUniformBuffer(
+		FRHICommandListExecutor::GetImmediateCommandList(),
 		DirectionalLightShadowInfo,
 		TranslatedViewMatrix,
 		InvViewMatrix * FTranslationMatrix(ViewMatrices.PreViewTranslation),
@@ -943,6 +964,34 @@ void FViewInfo::InitRHIResources(const TArray<FProjectedShadowInfo*, SceneRender
 	{
 		CreateLightGrid();
 	}
+}
+
+static TArray<FViewInfo*> ViewInfoSnapshots;
+
+FViewInfo* FViewInfo::CreateSnapshot() const
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FViewInfo_CreateSnapshot);
+
+	check(IsInRenderingThread() && FMemStack::Get().GetNumMarks() == 1); // we do not want this popped before the end of the scene and it better be the scene allocator
+	FViewInfo* Result = (FViewInfo*)FMemStack::Get().Alloc(sizeof(FViewInfo),ALIGNOF(FViewInfo));
+	FMemory::Memcpy(*Result, *this);
+	TUniformBufferRef<FViewUniformShaderParameters> NullUniformBuffer;
+	FMemory::Memcpy(Result->UniformBuffer, NullUniformBuffer); // we want this to start null without a reference count, since we clear a ref later
+	Result->bIsSnapshot = true;
+	ViewInfoSnapshots.Add(Result);
+	return Result;
+}
+
+void FViewInfo::DestroyAllSnapshots()
+{
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FViewInfo_DestroyAllSnapshots);
+
+	check(IsInRenderingThread());
+	for (FViewInfo* Snapshot : ViewInfoSnapshots)
+	{
+		Snapshot->UniformBuffer.SafeRelease();
+	}
+	ViewInfoSnapshots.Reset();
 }
 
 IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
@@ -1294,7 +1343,8 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Render CustomDepth
-	if (GSceneRenderTargets.BeginRenderingCustomDepth(RHICmdList, bPrimitives))
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	if (SceneContext.BeginRenderingCustomDepth(RHICmdList, bPrimitives))
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, CustomDepth);
 
@@ -1310,7 +1360,7 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 			
-			const bool bWriteCustomStencilValues = GSceneRenderTargets.IsCustomDepthPassWritingStencil();
+			const bool bWriteCustomStencilValues = SceneContext.IsCustomDepthPassWritingStencil();
 
 			if (!bWriteCustomStencilValues)
 			{
@@ -1321,16 +1371,18 @@ void FSceneRenderer::RenderCustomDepthPass(FRHICommandListImmediate& RHICmdList)
 		}
 
 		// resolve using the current ResolveParams 
-		GSceneRenderTargets.FinishRenderingCustomDepth(RHICmdList);
+		SceneContext.FinishRenderingCustomDepth(RHICmdList);
 	}
 }
 
 void FSceneRenderer::OnStartFrame()
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get_Todo_PassContext();
+
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
 	CompositionGraph_OnStartFrame();
-	GSceneRenderTargets.bScreenSpaceAOIsValid = false;
-	GSceneRenderTargets.bCustomDepthIsValid = false;
+	SceneContext.bScreenSpaceAOIsValid = false;
+	SceneContext.bCustomDepthIsValid = false;
 
 	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 	{	
@@ -1371,6 +1423,27 @@ bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
 
 	return false;
 }
+
+void FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(FRHICommandListImmediate& RHICmdList, FSceneRenderer* SceneRenderer)
+{
+	// we are about to destroy things that are being used for async tasks, so we wait here for them.
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer_WaitForTasks);
+		RHICmdList.ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
+	}
+	FViewInfo::DestroyAllSnapshots(); // this destroys viewinfo snapshots
+	FSceneRenderTargets::Get(RHICmdList).DestroyAllSnapshots(); // this will destroy the render target snapshots
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer_Dispatch);
+		RHICmdList.ImmediateFlush(EImmediateFlushType::WaitForDispatchToRHIThread); // we want to make sure this all gets to the rhi thread this frame and doesn't hang around
+	}
+	// Delete the scene renderer.
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer);
+		delete SceneRenderer;
+	}
+}
+
 
 /*-----------------------------------------------------------------------------
 	FRendererModule::BeginRenderingViewFamily
@@ -1440,15 +1513,8 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 
 		GRenderTargetPool.SetEventRecordingActive(false);
 
-		// Delete the scene renderer.
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer);
-			delete SceneRenderer;
-		}
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer_Dispatch);
-			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::WaitForDispatchToRHIThread); // we want to make sure this all gets to the rhi thread this frame and doesn't hang around
-		}
+		FSceneRenderer::WaitForTasksClearSnapshotsAndDeleteSceneRenderer(RHICmdList, SceneRenderer);
+
 	}
 
 #if STATS

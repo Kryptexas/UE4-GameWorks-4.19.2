@@ -278,6 +278,7 @@ static int32 ComputeSSRQuality(float Quality)
 void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassContext& Context)
 {
 	auto& RHICmdList = Context.RHICmdList;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	const FSceneView& View = Context.View;
 	const auto FeatureLevel = Context.GetFeatureLevel();
@@ -306,11 +307,11 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		TShaderMapRef< FPostProcessScreenSpaceReflectionsStencilPS > PixelShader(Context.GetShaderMap());
 		
 		// bind the dest render target and the depth stencil render target
-		SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+		SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 		Context.SetViewportAndCallRHI(View.ViewRect);
-		
+
 		// Clear stencil to 0
-		RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+		RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, View.ViewRect);
 		
 		// bind shader
 		static FGlobalBoundShaderState BoundShaderState;
@@ -326,7 +327,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 
 		// disable blend mode
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-		
+	
 		// Draw a quad mapping scene color to the view's render target to set stencil to set the stencil mask where it needs to be
 		DrawRectangle( 
 			Context.RHICmdList,
@@ -335,28 +336,28 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			View.ViewRect.Size(),
-			GSceneRenderTargets.GetBufferSizeXY(),
+			SceneContext.GetBufferSizeXY(),
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	} // ScreenSpaceReflectionsStencil draw event
 
 	{ // ScreenSpaceReflections draw event
 		SCOPED_DRAW_EVENT(Context.RHICmdList, ScreenSpaceReflections);
-		
+
 		if (SSRStencilPrePass)
 		{
 			// set up the stencil test to match 0, meaning FPostProcessScreenSpaceReflectionsStencilPS has been discarded
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Equal, SO_Keep, SO_Keep, SO_Keep>::GetRHI(), 0);
 		}
 		else
-		{
+	{
 			// bind only the dest render target
 			SetRenderTarget(RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 			Context.SetViewportAndCallRHI(View.ViewRect);
 
 			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		}
-		
+	}
+
 		// clear DestRenderTarget only outside of the view's rectangle
 		RHICmdList.Clear(true, FLinearColor::Black, false, (float)ERHIZBuffer::FarPlane, false, 0, View.ViewRect);
 		
@@ -364,43 +365,43 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 
-		TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
+	TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 
-		#define CASE(A, B) \
-			case (A + 2 * (B + 3 * 0 )): \
-			{ \
-				TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(Context.GetShaderMap()); \
-				static FGlobalBoundShaderState BoundShaderState; \
+	#define CASE(A, B) \
+		case (A + 2 * (B + 3 * 0 )): \
+		{ \
+			TShaderMapRef< FPostProcessScreenSpaceReflectionsPS<A, B> > PixelShader(Context.GetShaderMap()); \
+			static FGlobalBoundShaderState BoundShaderState; \
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader); \
-				VertexShader->SetParameters(Context); \
-				PixelShader->SetParameters(Context); \
-			}; \
-			break
+			VertexShader->SetParameters(Context); \
+			PixelShader->SetParameters(Context); \
+		}; \
+		break
 
-		switch (iPreFrame + 2 * (SSRQuality + 3 * 0))
-		{
-			CASE(0,0);
-			CASE(0,1);	CASE(1,1);
-			CASE(0,2);	CASE(1,2);
-			CASE(0,3);	CASE(1,3);
-			CASE(0,4);	CASE(1,4);
-			default:
-				check(!"Missing case in FRCPassPostProcessScreenSpaceReflections");
-		}
-		#undef CASE
+	switch (iPreFrame + 2 * (SSRQuality + 3 * 0))
+	{
+		CASE(0,0);
+		CASE(0,1);	CASE(1,1);
+		CASE(0,2);	CASE(1,2);
+		CASE(0,3);	CASE(1,3);
+		CASE(0,4);	CASE(1,4);
+		default:
+			check(!"Missing case in FRCPassPostProcessScreenSpaceReflections");
+	}
+	#undef CASE
 
 
-		// Draw a quad mapping scene color to the view's render target
-		DrawRectangle( 
+	// Draw a quad mapping scene color to the view's render target
+	DrawRectangle( 
 			RHICmdList,
-			0, 0,
-			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
-			View.ViewRect.Width(), View.ViewRect.Height(),
-			View.ViewRect.Size(),
-			GSceneRenderTargets.GetBufferSizeXY(),
-			*VertexShader,
-			EDRF_UseTriangleOptimization);
+		0, 0,
+		View.ViewRect.Width(), View.ViewRect.Height(),
+		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
+		View.ViewRect.Width(), View.ViewRect.Height(),
+		View.ViewRect.Size(),
+		FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
+		*VertexShader,
+		EDRF_UseTriangleOptimization);
 
 		RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 	} // ScreenSpaceReflections
@@ -408,7 +409,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 
 FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GetBufferSizeXY(), PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false));
+	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false));
 
 	Ret.DebugName = TEXT("ScreenSpaceReflections");
 
@@ -417,12 +418,12 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 
 void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
 {
-	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
+	FRenderingCompositePassContext CompositeContext(RHICmdList, View);	
 	FPostprocessContext Context( CompositeContext.Graph, View );
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 
-	FRenderingCompositePass* SceneColorInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( GSceneRenderTargets.GetSceneColor() ) );
+	FRenderingCompositePass* SceneColorInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( FSceneRenderTargets::Get(RHICmdList).GetSceneColor() ) );
 	FRenderingCompositePass* HZBInput = Context.Graph.RegisterPass( new FRCPassPostProcessInput( View.HZB ) );
 
 	bool bPrevFrame = 0;

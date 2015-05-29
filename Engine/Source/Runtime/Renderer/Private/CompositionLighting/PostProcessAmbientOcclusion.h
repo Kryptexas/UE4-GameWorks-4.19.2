@@ -88,7 +88,7 @@ public:
 		FVector2D ViewportUVToRandomUV(InputTextureSize.X / (float)SSAORandomizationSize.X, InputTextureSize.Y / (float)SSAORandomizationSize.Y);
 
 		// e.g. 4 means the input texture is 4x smaller than the buffer size
-		uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / InputTextureSize.X;
+		uint32 ScaleToFullRes = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY().X / InputTextureSize.X;
 
 		FIntRect ViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 

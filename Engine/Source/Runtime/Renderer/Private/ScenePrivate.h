@@ -548,8 +548,6 @@ public:
 	// cache for stencil reads to a avoid reallocations of the SRV, Key is to detect if the object has changed
 	FTextureRHIRef SelectionOutlineCacheKey;
 	TRefCountPtr<FRHIShaderResourceView> SelectionOutlineCacheValue;
-	FTextureRHIRef CustomStencilSRVCacheKey;
-	TRefCountPtr<FRHIShaderResourceView> CustomStencilSRVCacheValue;
 
 	/** Distance field AO tile intersection GPU resources.  Last frame's state is not used, but they must be sized exactly to the view so stored here. */
 	class FTileIntersectionResources* AOTileIntersectionResources;
@@ -683,19 +681,23 @@ public:
 
 	TRefCountPtr<IPooledRenderTarget>& GetEyeAdaptation()
 	{
-		// Create the texture needed for EyeAdaptation
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_R32_FLOAT, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, EyeAdaptationRT, TEXT("EyeAdaptation"));
-
+		if (!EyeAdaptationRT)
+		{
+			// Create the texture needed for EyeAdaptation
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_R32_FLOAT, TexCreate_None, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, EyeAdaptationRT, TEXT("EyeAdaptation"));
+		}
 		return EyeAdaptationRT;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(const FViewInfo& View)
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FIntPoint Size)
 	{
-		// Create the SeparateTranslucency render target (alpha is needed to lerping)
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GetBufferSizeXY(), PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
-
+		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
+		{
+			// Create the SeparateTranslucency render target (alpha is needed to lerping)
+			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable, false));
+			GRenderTargetPool.FindFreeElement(Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
+		}
 		return SeparateTranslucencyRT;
 	}
 
@@ -735,8 +737,6 @@ public:
 		MobileAaColor1.SafeRelease();
 		SelectionOutlineCacheKey.SafeRelease();
 		SelectionOutlineCacheValue.SafeRelease();
-		CustomStencilSRVCacheKey.SafeRelease();
-		CustomStencilSRVCacheValue.SafeRelease();
 
 		for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(GlobalDistanceFieldClipmapState); CascadeIndex++)
 		{

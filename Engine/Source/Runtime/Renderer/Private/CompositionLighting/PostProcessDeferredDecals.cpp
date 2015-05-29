@@ -375,9 +375,10 @@ FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask);
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-	SetRenderTarget(RHICmdList, NULL, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+	SetRenderTarget(RHICmdList, NULL, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 	// Write 1 to highest bit of stencil to areas that should not receive decals
@@ -399,7 +400,7 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View)
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 }
@@ -721,12 +722,27 @@ FRCPassPostProcessDeferredDecals::FRCPassPostProcessDeferredDecals(uint32 InRend
 void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& Context)
 {
 	FRHICommandListImmediate& RHICmdList = Context.RHICmdList;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	const bool bShaderComplexity = Context.View.Family->EngineShowFlags.ShaderComplexity;
 	const bool bDBuffer = IsDBufferEnabled();
 	const bool bStencilSizeThreshold = CVarStencilSizeThreshold.GetValueOnRenderThread() >= 0;
 
 	SCOPED_DRAW_EVENT(RHICmdList, PostProcessDeferredDecals);
+
+	enum EDecalResolveBufferIndex
+	{
+		SceneColorIndex,
+		GBufferAIndex,
+		GBufferBIndex,
+		GBufferCIndex,
+		DBufferAIndex,
+		DBufferBIndex,
+		DBufferCIndex,
+		ResolveBufferMax,
+	};
+
+	FTextureRHIParamRef TargetsToResolve[ResolveBufferMax] = { nullptr };
 
 	if(RenderStage == 0)
 	{
@@ -735,27 +751,27 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		check(bDBuffer);
 
 		// DBuffer: Decal buffer
-		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GBufferA->GetDesc().Extent, 
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GBufferA->GetDesc().Extent, 
 			PF_B8G8R8A8, 
 			TexCreate_None, 
 			TexCreate_ShaderResource | TexCreate_RenderTargetable,
 			false));
 
-		if(!GSceneRenderTargets.DBufferA)
+		if(!SceneContext.DBufferA)
 		{
-			GRenderTargetPool.FindFreeElement(Desc, GSceneRenderTargets.DBufferA, TEXT("DBufferA"));
+			GRenderTargetPool.FindFreeElement(Desc, SceneContext.DBufferA, TEXT("DBufferA"));
 		}
 
-		if(!GSceneRenderTargets.DBufferB)
+		if(!SceneContext.DBufferB)
 		{
-			GRenderTargetPool.FindFreeElement(Desc, GSceneRenderTargets.DBufferB, TEXT("DBufferB"));
+			GRenderTargetPool.FindFreeElement(Desc, SceneContext.DBufferB, TEXT("DBufferB"));
 		}
 
 		Desc.Format = PF_R8G8;
 
-		if(!GSceneRenderTargets.DBufferC)
+		if(!SceneContext.DBufferC)
 		{
-			GRenderTargetPool.FindFreeElement(Desc, GSceneRenderTargets.DBufferC, TEXT("DBufferC"));
+			GRenderTargetPool.FindFreeElement(Desc, SceneContext.DBufferC, TEXT("DBufferC"));
 		}
 
 		// we assume views are non overlapping, then we need to clear only once in the beginning, otherwise we would need to set scissor rects
@@ -766,15 +782,24 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, DBufferClear);
 
-			// could be optimized
-			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			RHICmdList.Clear(true, FLinearColor(0, 0, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
-			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			// todo: some hardware would like to have 0 or 1 for faster clear, we chose 128/255 to represent 0 (8 bit cannot represent 0.5f)
-			RHICmdList.Clear(true, FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
-			SetRenderTarget(RHICmdList, GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			// R:roughness, G:roughness opacity
-			RHICmdList.Clear(true, FLinearColor(0, 1, 0, 1), false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
+			
+			FRHIRenderTargetView RenderTargets[3];
+			RenderTargets[0] = FRHIRenderTargetView(SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+			RenderTargets[1] = FRHIRenderTargetView(SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+			RenderTargets[2] = FRHIRenderTargetView(SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
+
+			FRHIDepthRenderTargetView DepthView(SceneContext.GetSceneDepthSurface(), ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil(FExclusiveDepthStencil::DepthRead_StencilWrite));
+
+			FRHISetRenderTargetsInfo Info(3, RenderTargets, DepthView);
+			Info.ClearColors[0] = FLinearColor(0, 0, 0, 1);
+			Info.ClearColors[1] = FLinearColor(128.0f / 255.0f, 128.0f / 255.0f, 128.0f / 255.0f, 1);
+			Info.ClearColors[2] = FLinearColor(0, 1, 0, 1);
+
+			RHICmdList.SetRenderTargetsAndClear(Info);
+
+			TargetsToResolve[DBufferAIndex] = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;
+			TargetsToResolve[DBufferBIndex] = SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture;
+			TargetsToResolve[DBufferCIndex] = SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture;
 		}
 	}
 
@@ -783,12 +808,8 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	FScene& Scene = *(FScene*)ViewFamily.Scene;
 
-	if(!Scene.Decals.Num())
+	if (Scene.Decals.Num())
 	{
-		// to avoid the stats showing up
-		return;
-	}
-
 	TArray<FTransientDecalRenderData, SceneRenderingAllocator> SortedDecals;
 	SortedDecals.Empty(Scene.Decals.Num());
 
@@ -813,12 +834,12 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		// can be optimized as we test against a sphere around the box instead of the box itself
 		const float ConservativeRadius = FMath::Sqrt(
-			ComponentToWorldMatrix.GetScaledAxis( EAxis::X ).SizeSquared() * FMath::Square(GDefaultDecalSize.X) +
-			ComponentToWorldMatrix.GetScaledAxis( EAxis::Y ).SizeSquared() * FMath::Square(GDefaultDecalSize.Y) +
-			ComponentToWorldMatrix.GetScaledAxis( EAxis::Z ).SizeSquared() * FMath::Square(GDefaultDecalSize.Z));
+				ComponentToWorldMatrix.GetScaledAxis(EAxis::X).SizeSquared() * FMath::Square(GDefaultDecalSize.X) +
+				ComponentToWorldMatrix.GetScaledAxis(EAxis::Y).SizeSquared() * FMath::Square(GDefaultDecalSize.Y) +
+				ComponentToWorldMatrix.GetScaledAxis(EAxis::Z).SizeSquared() * FMath::Square(GDefaultDecalSize.Z));
 
 		// can be optimized as the test is too conservative (sphere instead of OBB)
-		if(ConservativeRadius < SMALL_NUMBER || !View.ViewFrustum.IntersectSphere(ComponentToWorldMatrix.GetOrigin(), ConservativeRadius))
+			if (ConservativeRadius < SMALL_NUMBER || !View.ViewFrustum.IntersectSphere(ComponentToWorldMatrix.GetOrigin(), ConservativeRadius))
 		{
 			bIsShown = false;
 		}
@@ -837,7 +858,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		}
 	}
 
-	if(SortedDecals.Num() > 0)
+		if (SortedDecals.Num() > 0)
 	{
 		FIntRect SrcRect = View.ViewRect;
 		FIntRect DestRect = View.ViewRect;
@@ -845,14 +866,14 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		bool bStencilDecals = true;
 
 #if DBUFFER_DONT_USE_STENCIL_YET
-		if(RenderStage == 0)
+			if (RenderStage == 0)
 		{
 			bStencilDecals = false;
 		}
 #endif
 
 		// Setup a stencil mask to prevent certain pixels from receiving deferred decals
-		if(bStencilDecals)
+			if (bStencilDecals)
 		{
 			StencilDecalMask(RHICmdList, View);
 		}
@@ -862,7 +883,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// Also sort by component since Sort() is not stable
 		struct FCompareFTransientDecalRenderData
 		{
-			FORCEINLINE bool operator()( const FTransientDecalRenderData& A, const FTransientDecalRenderData& B ) const
+				FORCEINLINE bool operator()(const FTransientDecalRenderData& A, const FTransientDecalRenderData& B) const
 			{
 				if (B.DecalProxy->SortOrder != A.DecalProxy->SortOrder)
 				{ 
@@ -877,7 +898,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					return B.bHasNormal < A.bHasNormal;
 				}
 				// Batch decals with the same material together
-				if (B.MaterialProxy != A.MaterialProxy )
+					if (B.MaterialProxy != A.MaterialProxy)
 				{
 					return B.MaterialProxy < A.MaterialProxy;
 				}
@@ -886,7 +907,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		};
 
 		// Sort decals by blend mode to reduce render target switches
-		SortedDecals.Sort( FCompareFTransientDecalRenderData() );
+			SortedDecals.Sort(FCompareFTransientDecalRenderData());
 
 		// optimization to have less state changes
 		int32 LastDecalBlendMode = -1;
@@ -898,19 +919,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		SCOPED_DRAW_EVENT(RHICmdList, Decals);
 		INC_DWORD_STAT_BY(STAT_Decals, SortedDecals.Num());
 
-		enum EDecalResolveBufferIndex
-		{
-			SceneColorIndex,
-			GBufferAIndex,
-			GBufferBIndex,
-			GBufferCIndex,
-			DBufferAIndex,
-			DBufferBIndex,
-			DBufferCIndex,
-			ResolveBufferMax,
-		};
 	
-		FTextureRHIParamRef TargetsToResolve[ResolveBufferMax] = { nullptr };
 
 		for (int32 DecalIndex = 0, DecalCount = SortedDecals.Num(); DecalIndex < DecalCount; DecalIndex++)
 		{
@@ -927,16 +936,16 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			// can be optimized as we test against a sphere around the box instead of the box itself
 			const float ConservativeRadius = FMath::Sqrt(
-				ComponentToWorldMatrix.GetScaledAxis( EAxis::X ).SizeSquared() * FMath::Square(GDefaultDecalSize.X) +
-				ComponentToWorldMatrix.GetScaledAxis( EAxis::Y ).SizeSquared() * FMath::Square(GDefaultDecalSize.Y) +
-				ComponentToWorldMatrix.GetScaledAxis( EAxis::Z ).SizeSquared() * FMath::Square(GDefaultDecalSize.Z));
+					ComponentToWorldMatrix.GetScaledAxis(EAxis::X).SizeSquared() * FMath::Square(GDefaultDecalSize.X) +
+					ComponentToWorldMatrix.GetScaledAxis(EAxis::Y).SizeSquared() * FMath::Square(GDefaultDecalSize.Y) +
+					ComponentToWorldMatrix.GetScaledAxis(EAxis::Z).SizeSquared() * FMath::Square(GDefaultDecalSize.Z));
 
 			EDecalBlendMode DecalBlendMode = DecalData.DecalBlendMode;
 
 			bool bStencilThisDecal = bStencilDecals;
 			
 #if DBUFFER_DONT_USE_STENCIL_YET
-			if(ComputeRenderStage(DecalBlendMode) == 0)
+				if (ComputeRenderStage(DecalBlendMode) == 0)
 			{
 				bStencilThisDecal = false;
 			}
@@ -944,7 +953,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 			ERenderTargetMode CurrentRenderTargetMode = ComputeRenderTargetMode(DecalBlendMode);
 
-			if(bShaderComplexity)
+				if (bShaderComplexity)
 			{
 				CurrentRenderTargetMode = RTM_SceneColor;
 				// we want additive blending for the ShaderComplexity mode
@@ -952,39 +961,39 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			}
 
 			// fewer rendertarget switches if possible
-			if(CurrentRenderTargetMode != LastRenderTargetMode)
+				if (CurrentRenderTargetMode != LastRenderTargetMode)
 			{
 				LastRenderTargetMode = CurrentRenderTargetMode;
 
-				switch(CurrentRenderTargetMode)
+					switch (CurrentRenderTargetMode)
 				{
 					case RTM_SceneColorAndGBuffer:
 						{							
-							TargetsToResolve[SceneColorIndex] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-							TargetsToResolve[GBufferAIndex] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
-							TargetsToResolve[GBufferBIndex] = GSceneRenderTargets.GBufferB->GetRenderTargetItem().TargetableTexture;
-							TargetsToResolve[GBufferCIndex] = GSceneRenderTargets.GBufferC->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[SceneColorIndex] = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[GBufferAIndex] = SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[GBufferBIndex] = SceneContext.GBufferB->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[GBufferCIndex] = SceneContext.GBufferC->GetRenderTargetItem().TargetableTexture;
 							
-							SetRenderTargets(RHICmdList, 4, TargetsToResolve, GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+							SetRenderTargets(RHICmdList, 4, TargetsToResolve, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 						}
 						break;
 
 					case RTM_GBufferNormal:
-						TargetsToResolve[GBufferAIndex] = GSceneRenderTargets.GBufferA->GetRenderTargetItem().TargetableTexture;
-						SetRenderTarget(RHICmdList, TargetsToResolve[GBufferAIndex], GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+						TargetsToResolve[GBufferAIndex] = SceneContext.GBufferA->GetRenderTargetItem().TargetableTexture;
+						SetRenderTarget(RHICmdList, TargetsToResolve[GBufferAIndex], SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 						break;
 					
 					case RTM_SceneColor:
-						TargetsToResolve[SceneColorIndex] = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
-						SetRenderTarget(RHICmdList, TargetsToResolve[SceneColorIndex], GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+						TargetsToResolve[SceneColorIndex] = SceneContext.GetSceneColor()->GetRenderTargetItem().TargetableTexture;
+						SetRenderTarget(RHICmdList, TargetsToResolve[SceneColorIndex], SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 						break;
 
 					case RTM_DBuffer:
 						{							
-							TargetsToResolve[DBufferAIndex] = GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture;
-							TargetsToResolve[DBufferBIndex] = GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture;
-							TargetsToResolve[DBufferCIndex] = GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture;
-							SetRenderTargets(RHICmdList, 3, &TargetsToResolve[DBufferAIndex], GSceneRenderTargets.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+							TargetsToResolve[DBufferAIndex] = SceneContext.DBufferA->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[DBufferBIndex] = SceneContext.DBufferB->GetRenderTargetItem().TargetableTexture;
+							TargetsToResolve[DBufferCIndex] = SceneContext.DBufferC->GetRenderTargetItem().TargetableTexture;
+							SetRenderTargets(RHICmdList, 3, &TargetsToResolve[DBufferAIndex], SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 						}
 						break;
 
@@ -1032,33 +1041,33 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 				VertexShader->SetParameters(RHICmdList, View, FrustumComponentToClip);
 
-				const int32 IsInsideDecal = ((FVector)View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f) + ( bThisDecalUsesStencil ) ? 2 : 0;
-				if ( WasInsideDecal != IsInsideDecal )
+					const int32 IsInsideDecal = ((FVector)View.ViewMatrices.ViewOrigin - ComponentToWorldMatrix.GetOrigin()).SizeSquared() < FMath::Square(ConservativeRadius * 1.05f + View.NearClippingDistance * 2.0f) + (bThisDecalUsesStencil) ? 2 : 0;
+					if (WasInsideDecal != IsInsideDecal)
 				{
 					WasInsideDecal = IsInsideDecal;
-					if ( !(IsInsideDecal & 1) )
+						if (!(IsInsideDecal & 1))
 					{
 						// Render backfaces with depth tests disabled since the camera is inside (or close to inside) the light function geometry
 						RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI());
-						if(bStencilDecals)
+							if (bStencilDecals)
 						{
 							// Enable stencil testing, only write to pixels with stencil of 0
-							if ( bThisDecalUsesStencil )
+								if (bThisDecalUsesStencil)
 							{
 								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-									false,CF_Always,
-									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
-									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
+										false, CF_Always,
+										true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+										true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
 									0xff, 0x7f
 								>::GetRHI(), 1);
 							}
 							else
 							{
 								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-									false,CF_Always,
-									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
-									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-									0x80,0x00>::GetRHI(), 0);
+										false, CF_Always,
+										true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+										false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+										0x80, 0x00>::GetRHI(), 0);
 							}
 						}
 						else
@@ -1069,26 +1078,26 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 					else
 					{
 						// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light function geometry
-						if(bStencilDecals)
+							if (bStencilDecals)
 						{
 							// Render frontfaces with depth tests on to get the speedup from HiZ since the camera is outside the light function geometry
 							// Enable stencil testing, only write to pixels with stencil of 0
-							if ( bThisDecalUsesStencil )
+								if (bThisDecalUsesStencil)
 							{
 								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-									false,CF_DepthNearOrEqual,
-									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
-									true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
+										false, CF_DepthNearOrEqual,
+										true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
+										true, CF_Equal, SO_Zero, SO_Zero, SO_Zero,
 									0xff, 0x7f
 								>::GetRHI(), 1);
 							}
 							else
 							{
 								RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
-									false,CF_DepthNearOrEqual,
-									true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
-									false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-									0x80,0x00>::GetRHI(), 0);
+										false, CF_DepthNearOrEqual,
+										true, CF_Equal, SO_Keep, SO_Keep, SO_Keep,
+										false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+										0x80, 0x00>::GetRHI(), 0);
 							}
 							RHICmdList.SetRasterizerState(View.bReverseCulling ? TStaticRasterizerState<FM_Solid, CM_CW>::GetRHI() : TStaticRasterizerState<FM_Solid, CM_CCW>::GetRHI());
 						}
@@ -1107,6 +1116,16 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		// we don't modify stencil but if out input was having stencil for us (after base pass - we need to clear)
 		// Clear stencil to 0, which is the assumed default by other passes
 		RHICmdList.Clear(false, FLinearColor::White, false, (float)ERHIZBuffer::FarPlane, true, 0, FIntRect());
+		}
+
+		if (RenderStage == 0)
+		{
+			// before BasePass
+			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferA);
+			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferB);
+			GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, SceneContext.DBufferC);
+		}
+	}
 
 		// resolve the targets we wrote to.
 		FResolveParams ResolveParams;
@@ -1118,15 +1137,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			}
 		}		
 	}
-
-	if(RenderStage == 0)
-	{
-		// before BasePass
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.DBufferA);
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.DBufferB);
-		GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, GSceneRenderTargets.DBufferC);
-	}
-}
 
 FPooledRenderTargetDesc FRCPassPostProcessDeferredDecals::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {

@@ -48,16 +48,18 @@ FGlobalBoundShaderState ForwardCopySceneAlphaBoundShaderState;
 void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHICmdList, const FViewInfo& View)
 {
 	SCOPED_DRAW_EVENTF(RHICmdList, EventCopy, TEXT("CopySceneAlpha"));
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
-	GSceneRenderTargets.ResolveSceneColor(RHICmdList);
+	SceneContext.ResolveSceneColor(RHICmdList);
 
-	GSceneRenderTargets.BeginRenderingSceneAlphaCopy(RHICmdList);
+	SceneContext.BeginRenderingSceneAlphaCopy(RHICmdList);
 
-	int X = GSceneRenderTargets.GetBufferSizeXY().X;
-	int Y = GSceneRenderTargets.GetBufferSizeXY().Y;
+	int X = SceneContext.GetBufferSizeXY().X;
+	int Y = SceneContext.GetBufferSizeXY().Y;
 
 	RHICmdList.SetViewport(0, 0, 0.0f, X, Y, 1.0f);
 
@@ -74,11 +76,11 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(FRHICommandListImmediate& RHIC
 		0, 0, 
 		X, Y,
 		FIntPoint(X, Y),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
-	GSceneRenderTargets.FinishRenderingSceneAlphaCopy(RHICmdList);
+	SceneContext.FinishRenderingSceneAlphaCopy(RHICmdList);
 }
 
 
@@ -344,7 +346,7 @@ void FForwardShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& 
 
 			if (!bGammaSpace)
 			{
-				GSceneRenderTargets.BeginRenderingTranslucency(RHICmdList, View);
+				FSceneRenderTargets::Get(RHICmdList).BeginRenderingTranslucency(RHICmdList, View);
 			}
 			else
 			{

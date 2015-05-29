@@ -133,7 +133,7 @@ FPooledRenderTargetDesc FRCPassPostProcessSelectionOutlineColor::ComputeOutputDe
 	Ret.Flags = TexCreate_None;
 	Ret.TargetableFlags = TexCreate_DepthStencilTargetable;
 	Ret.DebugName = TEXT("SelectionDepthStencil");
-	Ret.NumSamples = GSceneRenderTargets.GetEditorMSAACompositingSampleCount();
+	Ret.NumSamples = FSceneRenderTargets::Get_FrameConstantsOnly().GetEditorMSAACompositingSampleCount();
 
 	return Ret;
 }
@@ -348,7 +348,7 @@ void FRCPassPostProcessSelectionOutline::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	const uint32 MSAASampleCount = GSceneRenderTargets.GetEditorMSAACompositingSampleCount();
+	const uint32 MSAASampleCount = FSceneRenderTargets::Get(Context.RHICmdList).GetEditorMSAACompositingSampleCount();
 
 	if(MSAASampleCount == 1)
 	{

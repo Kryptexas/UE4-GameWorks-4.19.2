@@ -319,9 +319,9 @@ public:
 			float FilmSlopeS = FilmMidYS / (FilmMidXS);
 			float FilmHiYS = 1.0f - FilmHiY;
 			float FilmLoYS = FilmLoY;
-			float FilmToeS = FilmLoX;
+			float FilmToe = FilmLoX;
 			float FilmHiG = (-FilmHiYS + (FilmSlopeS*FilmHeal)) / (FilmSlopeS*FilmHeal);
-			float FilmLoG = (-FilmLoYS + (FilmSlopeS*FilmToeS)) / (FilmSlopeS*FilmToeS);
+			float FilmLoG = (-FilmLoYS + (FilmSlopeS*FilmToe)) / (FilmSlopeS*FilmToe);
 
 			// Constants.
 			float OutColorCurveCh1 = FilmHiYS/FilmHiG;

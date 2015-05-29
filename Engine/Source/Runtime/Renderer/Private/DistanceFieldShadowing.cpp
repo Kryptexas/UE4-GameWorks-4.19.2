@@ -63,7 +63,7 @@ int32 GetDFShadowDownsampleFactor()
 
 FIntPoint GetBufferSizeForDFShadows()
 {
-	return FIntPoint::DivideAndRoundDown(GSceneRenderTargets.GetBufferSizeXY(), GetDFShadowDownsampleFactor());
+	return FIntPoint::DivideAndRoundDown(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), GetDFShadowDownsampleFactor());
 }
 
 TGlobalResource<FDistanceFieldObjectBufferResource> GShadowCulledObjectBuffers;
@@ -780,7 +780,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 		{
 			check(!Scene->DistanceFieldSceneData.HasPendingOperations());
 
-			GSceneRenderTargets.FinishRenderingLightAttenuation(RHICmdList);
+			FSceneRenderTargets::Get(RHICmdList).FinishRenderingLightAttenuation(RHICmdList);
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
 			int32 NumPlanes = 0;
@@ -873,7 +873,7 @@ void FProjectedShadowInfo::RenderRayTracedDistanceFieldProjection(FRHICommandLis
 			}
 
 			{
-				GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
+				FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
 
 				SCOPED_DRAW_EVENT(RHICmdList, Upsample);
 

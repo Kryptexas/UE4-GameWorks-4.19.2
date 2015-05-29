@@ -144,20 +144,12 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData(ERHIFeatureLevel:
 		}
 		if(NumBones)
 		{
-			if (GRHIThread)
-			{
-				check(VectorArraySize == NumBones * sizeof(BoneMatrices[0]));
-				GRHICommandList.GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, BoneMatrices.GetData(), NumBones * sizeof(BoneMatrices[0]));
-			}
-			else
-			{
 				float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
 				checkSlow(Data);
 				FMemory::Memcpy(Data, BoneMatrices.GetData(), NumBones * sizeof(BoneMatrices[0]));
 				RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
 			}
 		}
-	}
 	else
 	{
 		check(NumBones * BoneMatrices.GetTypeSize() <= sizeof(GBoneUniformStruct));
@@ -173,31 +165,25 @@ void FGPUBaseSkinVertexFactory::ShaderDataType::UpdateBoneData(ERHIFeatureLevel:
 
 FBoneDataVertexBuffer::FBoneDataVertexBuffer()
 	: SizeX(80 * 1024)		// todo: we will replace this fixed size using FGlobalDynamicVertexBuffer
-	, AllocSize(0)
-	, AllocBlock(nullptr)
 {
 }
 
 float* FBoneDataVertexBuffer::LockData()
 {
-	check(IsInRenderingThread() && GetSizeX() && IsValidRef(BoneBuffer));
-	check(!AllocSize && !AllocBlock);
-	AllocSize = ComputeMemorySize();
-	AllocBlock = FMemory::Malloc(AllocSize + 15, 16);
-	float* Data = (float*)AllocBlock;
-	check(AllocSize && AllocBlock);
-	check(Data);
+	checkSlow(IsInRenderingThread());
+	checkSlow(GetSizeX());
+	checkSlow(IsValidRef(BoneBuffer));
+
+	float* Data = (float*)RHILockVertexBuffer(BoneBuffer.VertexBufferRHI, 0, ComputeMemorySize(), RLM_WriteOnly);
+	checkSlow(Data);
+
 	return Data;
 }
 
 void FBoneDataVertexBuffer::UnlockData(uint32 SizeInBytes)
 {
-	check(IsValidRef(BoneBuffer));
-	check(IsInRenderingThread() && AllocBlock && AllocSize);
-	FRHICommandListExecutor::GetImmediateCommandList().UpdateVertexBuffer(BoneBuffer.VertexBufferRHI, AllocBlock, SizeInBytes ? SizeInBytes : 4);
-	FMemory::Free(AllocBlock);
-	AllocBlock = nullptr;
-	AllocSize = 0;
+	checkSlow(IsValidRef(BoneBuffer));
+	RHIUnlockVertexBuffer(BoneBuffer.VertexBufferRHI);
 }
 
 uint32 FBoneDataVertexBuffer::GetSizeX() const
@@ -421,9 +407,11 @@ public:
 			}
 
 			bool bLocalPerBoneMotionBlur = false;
-			
-			if (FeatureLevel >= ERHIFeatureLevel::SM4 && PreviousBoneMatrices.IsBound())
+
+
+			if (FeatureLevel >= ERHIFeatureLevel::SM4 && GPrevPerBoneMotionBlur.IsVelocityPass(RHICmdList) && PreviousBoneMatrices.IsBound())
 			{
+				check(GPrevPerBoneMotionBlur.IsAppendStarted());
 				const bool bWorldIsPaused = View.Family->bWorldIsPaused;
 
 				// we are in the velocity rendering pass
@@ -484,23 +472,23 @@ public:
 					else
 					{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-						if (CVarVelocityTest.GetValueOnRenderThread())
-						{
-							FBoneSkinning Tab[10];
+					if (CVarVelocityTest.GetValueOnRenderThread())
+					{
+						FBoneSkinning Tab[10];
 
 							FMemory::Memset(Tab, 0, sizeof(FBoneSkinning) * 10);
 							// We add some black gap between the elements, to ensure we pick the right data for this frame
 							// wwe create different gap size on alternating frames.
 							GPrevPerBoneMotionBlur.AppendData(Tab, (FrameNumber % 2) + 4);
-						}
+					}
 #endif // if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-						// copy the bone data and tell the instance where it can pick it up next frame
-						// append data to a buffer we bind next frame to read old matrix data for motion blur
-						uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
-						GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
-					}
+					// copy the bone data and tell the instance where it can pick it up next frame
+					// append data to a buffer we bind next frame to read old matrix data for motion blur
+					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
+					GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
 				}
+			}
 			}
 			SetShaderValue(RHICmdList, Shader->GetVertexShader(), PerBoneMotionBlur, bLocalPerBoneMotionBlur);
 		}
@@ -770,17 +758,17 @@ void FGPUBaseSkinAPEXClothVertexFactory::ClothShaderType::UpdateClothSimulData(c
 
 		if(NumSimulVerts)
 		{
-			float* Data = (float*)RHILockVertexBuffer(ClothSimulPositionBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
-			checkSlow(Data);
-			FMemory::Memcpy(Data, InSimulPositions.GetData(), NumSimulVerts * sizeof(FVector4));
-			RHIUnlockVertexBuffer(ClothSimulPositionBuffer.VertexBufferRHI);
+				float* Data = (float*)RHILockVertexBuffer(ClothSimulPositionBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
+				checkSlow(Data);
+				FMemory::Memcpy(Data, InSimulPositions.GetData(), NumSimulVerts * sizeof(FVector4));
+				RHIUnlockVertexBuffer(ClothSimulPositionBuffer.VertexBufferRHI);
 
-			Data = (float*)RHILockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
-			checkSlow(Data);
-			FMemory::Memcpy(Data, InSimulNormals.GetData(), NumSimulVerts * sizeof(FVector4));
-			RHIUnlockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI);
+				Data = (float*)RHILockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI, 0, VectorArraySize, RLM_WriteOnly);
+				checkSlow(Data);
+				FMemory::Memcpy(Data, InSimulNormals.GetData(), NumSimulVerts * sizeof(FVector4));
+				RHIUnlockVertexBuffer(ClothSimulNormalBuffer.VertexBufferRHI);
+			}
 		}
-	}
 	else
 	{
 		UpdateClothUniformBuffer(InSimulPositions, InSimulNormals);

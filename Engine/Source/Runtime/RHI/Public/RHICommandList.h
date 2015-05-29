@@ -10,9 +10,18 @@
 
 DECLARE_STATS_GROUP(TEXT("RHICmdList"), STATGROUP_RHICMDLIST, STATCAT_Advanced);
 
-#define USE_RHICOMMAND_STATE_REDUCTION (0)
+// set this one to get a stat for each RHI command 
+#define RHI_STATS 0
+
+#if RHI_STATS
+DECLARE_STATS_GROUP(TEXT("RHICommands"),STATGROUP_RHI_COMMANDS, STATCAT_Advanced);
+#define RHISTAT(Method)	DECLARE_SCOPE_CYCLE_COUNTER(TEXT(#Method), STAT_RHI##Method, STATGROUP_RHI_COMMANDS)
+#else
+#define RHISTAT(Method)
+#endif
 
 extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdWidth;
+extern RHI_API TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasks;
 class FRHICommandListBase;
 
 
@@ -208,11 +217,6 @@ private:
 	IRHICommandContext* Context;
 
 	FMemStackBase MemManager; 
-#if USE_RHICOMMAND_STATE_REDUCTION
-protected:
-	struct FRHICommandListStateCache* StateCache;
-private:
-#endif
 	FGraphEventArray RTTasks;
 
 	void Reset();
@@ -221,50 +225,34 @@ private:
 	friend class FRHICommandListIterator;
 
 public:
+	enum class ERenderThreadContext
+	{
+		SceneRenderTargets,
+		Num
+	};
+	void *RenderThreadContexts[(int32)ERenderThreadContext::Num];
+private:
+public:
+	void CopyRenderThreadContexts(const FRHICommandListBase& ParentCommandList)
+	{
+		for (int32 Index = 0; ERenderThreadContext(Index) < ERenderThreadContext::Num; Index++)
+		{
+			RenderThreadContexts[Index] = ParentCommandList.RenderThreadContexts[Index];
+		}
+	}
+	void SetRenderThreadContext(void* Context, ERenderThreadContext Slot)
+	{
+		RenderThreadContexts[int32(Slot)] = Context;
+	}
+	FORCEINLINE void* GetRenderThreadContext(ERenderThreadContext Slot)
+	{
+		return RenderThreadContexts[int32(Slot)];
+	}
+
+
 	FDrawUpData DrawUPData; 
 };
 
-#if USE_RHICOMMAND_STATE_REDUCTION
-struct FRHICommandListStateCache
-{
-	// warning, no destructor is ever called for this struct
-
-	FRHICommandListStateCache()
-	{
-		FlushShaderState();
-		FlushSamplerState();
-	}
-	enum 
-	{
-		MAX_SAMPLERS_PER_SHADER_STAGE = 32, // it is okish if this is too small, those buffers simply won't get state reduction
-		MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE = 14, // it is okish if this is too small, those buffers simply won't get state reduction
-	};
-	FSamplerStateRHIParamRef Samplers[SF_NumFrequencies][MAX_SAMPLERS_PER_SHADER_STAGE];
-	FUniformBufferRHIParamRef BoundUniformBuffers[SF_NumFrequencies][MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE];
-
-	FORCEINLINE void FlushSamplerState()
-	{
-		for (int32 Index = 0; Index < SF_NumFrequencies; Index++)
-		{
-			for (int32 IndexInner = 0; IndexInner < MAX_SAMPLERS_PER_SHADER_STAGE; IndexInner++)
-			{
-				Samplers[Index][IndexInner] = nullptr;
-			}
-		}
-	}
-
-	FORCEINLINE void FlushShaderState()
-	{
-		for (int32 Index = 0; Index < SF_NumFrequencies; Index++)
-		{
-			for (int32 IndexInner = 0; IndexInner < MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE; IndexInner++)
-			{
-				BoundUniformBuffers[Index][IndexInner] = nullptr;
-			}
-		}
-	}
-};
-#endif
 
 
 template<typename TCmd>
@@ -1148,21 +1136,6 @@ struct FRHICommandEndScene : public FRHICommand<FRHICommandEndScene>
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
-struct FRHICommandUpdateVertexBuffer : public FRHICommand<FRHICommandUpdateVertexBuffer>
-{
-	FVertexBufferRHIParamRef VertexBuffer;
-	void const* Buffer;
-	int32 BufferSize;
-
-	FORCEINLINE_DEBUGGABLE FRHICommandUpdateVertexBuffer(FVertexBufferRHIParamRef InVertexBuffer, void const* InBuffer, int32 InBufferSize)
-		: VertexBuffer(InVertexBuffer)
-		, Buffer(InBuffer)
-		, BufferSize(InBufferSize)
-	{
-	}
-	RHI_API void Execute(FRHICommandListBase& CmdList);
-};
-
 struct FRHICommandBeginFrame : public FRHICommand<FRHICommandBeginFrame>
 {
 	FORCEINLINE_DEBUGGABLE FRHICommandBeginFrame()
@@ -1234,6 +1207,19 @@ struct FRHICommandDebugBreak : public FRHICommand<FRHICommandDebugBreak>
 	}
 };
 
+struct FRHICommandUpdateTextureReference : public FRHICommand<FRHICommandUpdateTextureReference>
+{
+	FTextureReferenceRHIParamRef TextureRef;
+	FTextureRHIParamRef NewTexture;
+	FORCEINLINE_DEBUGGABLE FRHICommandUpdateTextureReference(FTextureReferenceRHIParamRef InTextureRef, FTextureRHIParamRef InNewTexture)
+		: TextureRef(InTextureRef)
+		, NewTexture(InNewTexture)
+	{
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+
 #define CMD_CONTEXT(Method) GetContext().RHI##Method
 
 struct FRHIBeginAsyncComputeJob_DrawThread : public FRHICommand<FRHIBeginAsyncComputeJob_DrawThread>
@@ -1267,17 +1253,6 @@ public:
 	void* operator new(size_t Size);
 	void operator delete(void *RawMemory);
 
-#if USE_RHICOMMAND_STATE_REDUCTION
-	FORCEINLINE_DEBUGGABLE bool AllocStateCache()
-	{
-		if (!StateCache)
-		{
-			StateCache = new (Alloc<FRHICommandListStateCache>()) FRHICommandListStateCache();
-			return false;
-		}
-		return true;
-	}
-#endif
 	FORCEINLINE_DEBUGGABLE FLocalBoundShaderState BuildLocalBoundShaderState(const FBoundShaderStateInput& BoundShaderStateInput)
 	{
 		return BuildLocalBoundShaderState(
@@ -1331,12 +1306,6 @@ public:
 			CMD_CONTEXT(SetBoundShaderState)(LocalBoundShaderState.BypassBSS);
 			return;
 		}
-#if USE_RHICOMMAND_STATE_REDUCTION
-		if (StateCache)
-		{
-			StateCache->FlushShaderState();
-		}
-#endif
 		new (AllocCommand<FRHICommandSetLocalBoundShaderState>()) FRHICommandSetLocalBoundShaderState(this, LocalBoundShaderState);
 	}
 
@@ -1363,13 +1332,6 @@ public:
 			CMD_CONTEXT(SetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer.BypassUniform);
 			return;
 		}
-#if USE_RHICOMMAND_STATE_REDUCTION
-		if (StateCache)
-		{
-			//local uniform buffers are rare, so we will just flush
-			StateCache->BoundUniformBuffers[TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency][BaseIndex] = nullptr;
-		}
-#endif
 		new (AllocCommand<FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef> >()) FRHICommandSetLocalUniformBuffer<TShaderRHIParamRef>(this, Shader, BaseIndex, UniformBuffer);
 	}
 
@@ -1381,16 +1343,6 @@ public:
 			CMD_CONTEXT(SetShaderUniformBuffer)(Shader, BaseIndex, UniformBuffer);
 			return;
 		}
-#if USE_RHICOMMAND_STATE_REDUCTION
-		if (BaseIndex < FRHICommandListStateCache::MAX_UNIFORM_BUFFERS_PER_SHADER_STAGE)
-		{
-			if (AllocStateCache() && StateCache->BoundUniformBuffers[TRHIShaderToEnum<TShaderRHI*>::ShaderFrequency][BaseIndex] == UniformBuffer)
-			{
-				return;
-			}
-			StateCache->BoundUniformBuffers[TRHIShaderToEnum<TShaderRHI*>::ShaderFrequency][BaseIndex] = UniformBuffer;
-		}
-#endif
 		new (AllocCommand<FRHICommandSetShaderUniformBuffer<TShaderRHI*> >()) FRHICommandSetShaderUniformBuffer<TShaderRHI*>(Shader, BaseIndex, UniformBuffer);
 	}
 	template <typename TShaderRHI>
@@ -1447,16 +1399,6 @@ public:
 			CMD_CONTEXT(SetShaderSampler)(Shader, SamplerIndex, State);
 			return;
 		}
-#if USE_RHICOMMAND_STATE_REDUCTION
-		if (SamplerIndex < FRHICommandListStateCache::MAX_SAMPLERS_PER_SHADER_STAGE)
-		{
-			if (AllocStateCache() && StateCache->Samplers[TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency][SamplerIndex] == State)
-			{
-				return;
-			}
-			StateCache->Samplers[TRHIShaderToEnum<TShaderRHIParamRef>::ShaderFrequency][SamplerIndex] = State;
-		}
-#endif
 		new (AllocCommand<FRHICommandSetShaderSampler<TShaderRHIParamRef> >()) FRHICommandSetShaderSampler<TShaderRHIParamRef>(Shader, SamplerIndex, State);
 	}
 
@@ -1487,12 +1429,6 @@ public:
 			CMD_CONTEXT(SetBoundShaderState)(BoundShaderState);
 			return;
 		}
-#if USE_RHICOMMAND_STATE_REDUCTION
-		if (StateCache)
-		{
-			StateCache->FlushShaderState();
-		}
-#endif
 		new (AllocCommand<FRHICommandSetBoundShaderState>()) FRHICommandSetBoundShaderState(BoundShaderState);
 	}
 
@@ -1702,12 +1638,6 @@ public:
 			CMD_CONTEXT(SetComputeShader)(ComputeShader);
 			return;
 		}
-#if USE_RHICOMMAND_STATE_REDUCTION
-		if (StateCache)
-		{
-			StateCache->FlushShaderState();
-		}
-#endif
 		new (AllocCommand<FRHICommandSetComputeShader>()) FRHICommandSetComputeShader(ComputeShader);
 	}
 
@@ -1831,19 +1761,6 @@ public:
 		new (AllocCommand<FRHICommandClearMRT>()) FRHICommandClearMRT(bClearColor, NumClearColors, ClearColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 	}
 
-	FORCEINLINE_DEBUGGABLE void UpdateVertexBuffer(FVertexBufferRHIParamRef VertexBuffer, void const* Buffer, int32 BufferSize)
-	{
-		if (Bypass())
-		{
-			void* Data = GDynamicRHI->RHILockVertexBuffer(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
-			FMemory::Memcpy(Data, Buffer, BufferSize);
-			GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
-			return;
-		}
-		void* Data = Alloc(BufferSize, 16);
-		FMemory::Memcpy(Data, Buffer, BufferSize);
-		new (AllocCommand<FRHICommandUpdateVertexBuffer>()) FRHICommandUpdateVertexBuffer(VertexBuffer, Data, BufferSize);
-	}
 	FORCEINLINE_DEBUGGABLE void BeginRenderQuery(FRenderQueryRHIParamRef RenderQuery)
 	{
 		if (Bypass())
@@ -1998,18 +1915,14 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	}
 public:
 
-	static bool bFlushedGlobal;	
-	
 	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
 
 	void SetCurrentStat(TStatId Stat);
 
-	static bool IsFullyFlushed()
-	{
-		return bFlushedGlobal;
-	};
-
-
+	static FGraphEventRef RenderThreadTaskFence();
+	static void WaitOnRenderThreadTaskFence(FGraphEventRef& Fence);
+	static bool AnyRenderThreadTasksOutstanding();
+	FGraphEventRef RHIThreadFence();
 
 	FORCEINLINE void GpuTimeBegin(uint32 Hash,bool bCompute)
 	{
@@ -2047,12 +1960,7 @@ public:
 	
 	FORCEINLINE FVertexDeclarationRHIRef CreateVertexDeclaration(const FVertexDeclarationElementList& Elements)
 	{
-		if(GRHIThread)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateVertexDeclaration_WaitRHI);
-			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
-		}
-		return GDynamicRHI->RHICreateVertexDeclaration(Elements);
+		return GDynamicRHI->CreateVertexDeclaration_RenderThread(*this, Elements);
 	}
 	
 	FORCEINLINE FPixelShaderRHIRef CreatePixelShader(const TArray<uint8>& Code)
@@ -2137,54 +2045,32 @@ public:
 	
 	FORCEINLINE FIndexBufferRHIRef CreateIndexBuffer(uint32 Stride, uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 	{
-		if(GRHIThread)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateIndexBuffer_WaitRHI);
-			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
-		}
-		return GDynamicRHI->RHICreateIndexBuffer(Stride, Size, InUsage, CreateInfo);
+		return GDynamicRHI->CreateIndexBuffer_RenderThread(*this, Stride, Size, InUsage, CreateInfo);
 	}
 	
-	FORCEINLINE void* LockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 Size, EResourceLockMode LockMode)
+	FORCEINLINE void* LockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockIndexBuffer_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
-		return GDynamicRHI->RHILockIndexBuffer(IndexBuffer, Offset, Size, LockMode);
+		return GDynamicRHI->LockIndexBuffer_RenderThread(*this, IndexBuffer, Offset, SizeRHI, LockMode);
 	}
 	
 	FORCEINLINE void UnlockIndexBuffer(FIndexBufferRHIParamRef IndexBuffer)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockIndexBuffer_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
-		GDynamicRHI->RHIUnlockIndexBuffer(IndexBuffer);
+		GDynamicRHI->UnlockIndexBuffer_RenderThread(*this, IndexBuffer);
 	}
 	
 	FORCEINLINE FVertexBufferRHIRef CreateVertexBuffer(uint32 Size, uint32 InUsage, FRHIResourceCreateInfo& CreateInfo)
 	{
-		if(GRHIThread)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateVertexBuffer_WaitRHI);
-			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
-		}
-		return GDynamicRHI->RHICreateVertexBuffer(Size, InUsage, CreateInfo);
+		return GDynamicRHI->CreateVertexBuffer_RenderThread(*this, Size, InUsage, CreateInfo);
 	}
 	
 	FORCEINLINE void* LockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer, uint32 Offset, uint32 SizeRHI, EResourceLockMode LockMode)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockVertexBuffer_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
-		return GDynamicRHI->RHILockVertexBuffer(VertexBuffer, Offset, SizeRHI, LockMode);
+		return GDynamicRHI->LockVertexBuffer_RenderThread(*this, VertexBuffer, Offset, SizeRHI, LockMode);
 	}
 	
 	FORCEINLINE void UnlockVertexBuffer(FVertexBufferRHIParamRef VertexBuffer)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockVertexBuffer_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
-		GDynamicRHI->RHIUnlockVertexBuffer(VertexBuffer);
+		GDynamicRHI->UnlockVertexBuffer_RenderThread(*this, VertexBuffer);
 	}
 	
 	FORCEINLINE void CopyVertexBuffer(FVertexBufferRHIParamRef SourceBuffer,FVertexBufferRHIParamRef DestBuffer)
@@ -2208,7 +2094,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockStructuredBuffer_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		 
 		return GDynamicRHI->RHILockStructuredBuffer(StructuredBuffer, Offset, SizeRHI, LockMode);
 	}
 	
@@ -2216,7 +2102,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockStructuredBuffer_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		  
 		GDynamicRHI->RHIUnlockStructuredBuffer(StructuredBuffer);
 	}
 	
@@ -2262,12 +2148,7 @@ public:
 	
 	FORCEINLINE FShaderResourceViewRHIRef CreateShaderResourceView(FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint8 Format)
 	{
-		if(GRHIThread)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CreateShaderResourceView_WaitRHI);
-			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
-		}
-		return GDynamicRHI->RHICreateShaderResourceView(VertexBuffer, Stride, Format);
+		return GDynamicRHI->CreateShaderResourceView_RenderThread(*this, VertexBuffer, Stride, Format);
 	}
 	
 	FORCEINLINE uint64 CalcTexture2DPlatformSize(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, uint32& OutAlign)
@@ -2307,14 +2188,6 @@ public:
 		return GDynamicRHI->RHICreateTextureReference(LastRenderTime);
 	}
 	
-	FORCEINLINE void UpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTextureReference_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
-		GDynamicRHI->RHIUpdateTextureReference(TextureRef, NewTexture);
-	}
-	
 	FORCEINLINE FTexture2DRHIRef CreateTexture2D(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, FRHIResourceCreateInfo& CreateInfo)
 	{
 		if(GRHIThread)
@@ -2339,7 +2212,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CopySharedMips_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		 
 		return GDynamicRHI->RHICopySharedMips(DestTexture2D, SrcTexture2D);
 	}
 	
@@ -2401,70 +2274,58 @@ public:
 	
 	FORCEINLINE FTexture2DRHIRef AsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, int32 NewMipCount, int32 NewSizeX, int32 NewSizeY, FThreadSafeCounter* RequestStatus)
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_AsyncReallocateTexture2D_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
-		return GDynamicRHI->RHIAsyncReallocateTexture2D(Texture2D, NewMipCount, NewSizeX, NewSizeY, RequestStatus);
+		return GDynamicRHI->AsyncReallocateTexture2D_RenderThread(*this, Texture2D, NewMipCount, NewSizeX, NewSizeY, RequestStatus);
 	}
 	
 	FORCEINLINE ETextureReallocationStatus FinalizeAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted)
 	{
-		if(GRHIThread)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_FinalizeAsyncReallocateTexture2D_WaitRHI);
-			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
-		}
-		return GDynamicRHI->RHIFinalizeAsyncReallocateTexture2D(Texture2D, bBlockUntilCompleted);
+		return GDynamicRHI->FinalizeAsyncReallocateTexture2D_RenderThread(*this, Texture2D, bBlockUntilCompleted);
 	}
 	
 	FORCEINLINE ETextureReallocationStatus CancelAsyncReallocateTexture2D(FTexture2DRHIParamRef Texture2D, bool bBlockUntilCompleted)
 	{
-		if(GRHIThread)
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_CancelAsyncReallocateTexture2D_WaitRHI);
-			ImmediateFlush(EImmediateFlushType::WaitForRHIThread);
-		}
-		return GDynamicRHI->RHICancelAsyncReallocateTexture2D(Texture2D, bBlockUntilCompleted);
+		return GDynamicRHI->CancelAsyncReallocateTexture2D_RenderThread(*this, Texture2D, bBlockUntilCompleted);
 	}
 	
 	FORCEINLINE void* LockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTexture2D_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
 		return GDynamicRHI->RHILockTexture2D(Texture, MipIndex, LockMode, DestStride, bLockWithinMiptail);
 	}
 	
 	FORCEINLINE void UnlockTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, bool bLockWithinMiptail)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockTexture2D_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);   
 		GDynamicRHI->RHIUnlockTexture2D(Texture, MipIndex, bLockWithinMiptail);
 	}
 	
 	FORCEINLINE void* LockTexture2DArray(FTexture2DArrayRHIParamRef Texture, uint32 TextureIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTexture2DArray_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
 		return GDynamicRHI->RHILockTexture2DArray(Texture, TextureIndex, MipIndex, LockMode, DestStride, bLockWithinMiptail);
 	}
 	
 	FORCEINLINE void UnlockTexture2DArray(FTexture2DArrayRHIParamRef Texture, uint32 TextureIndex, uint32 MipIndex, bool bLockWithinMiptail)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockTexture2DArray_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);   
 		GDynamicRHI->RHIUnlockTexture2DArray(Texture, TextureIndex, MipIndex, bLockWithinMiptail);
 	}
 	
 	FORCEINLINE void UpdateTexture2D(FTexture2DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion2D& UpdateRegion, uint32 SourcePitch, const uint8* SourceData)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTexture2D_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);   
 		GDynamicRHI->RHIUpdateTexture2D(Texture, MipIndex, UpdateRegion, SourcePitch, SourceData);
 	}
 	
 	FORCEINLINE void UpdateTexture3D(FTexture3DRHIParamRef Texture, uint32 MipIndex, const struct FUpdateTextureRegion3D& UpdateRegion, uint32 SourceRowPitch, uint32 SourceDepthPitch, const uint8* SourceData)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UpdateTexture3D_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);   
 		GDynamicRHI->RHIUpdateTexture3D(Texture, MipIndex, UpdateRegion, SourceRowPitch, SourceDepthPitch, SourceData);
 	}
 	
@@ -2491,14 +2352,14 @@ public:
 	FORCEINLINE void* LockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, EResourceLockMode LockMode, uint32& DestStride, bool bLockWithinMiptail)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_LockTextureCubeFace_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);  
 		return GDynamicRHI->RHILockTextureCubeFace(Texture, FaceIndex, ArrayIndex, MipIndex, LockMode, DestStride, bLockWithinMiptail);
 	}
 	
 	FORCEINLINE void UnlockTextureCubeFace(FTextureCubeRHIParamRef Texture, uint32 FaceIndex, uint32 ArrayIndex, uint32 MipIndex, bool bLockWithinMiptail)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_UnlockTextureCubeFace_Flush);
-		ImmediateFlush(EImmediateFlushType::FlushRHIThread); TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true );  
+		ImmediateFlush(EImmediateFlushType::FlushRHIThread);   
 		GDynamicRHI->RHIUnlockTextureCubeFace(Texture, FaceIndex, ArrayIndex, MipIndex, bLockWithinMiptail);
 	}
 	
@@ -2578,7 +2439,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_AcquireThreadOwnership_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		 
 		return GDynamicRHI->RHIAcquireThreadOwnership();
 	}
 	
@@ -2586,7 +2447,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_ReleaseThreadOwnership_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		 
 		return GDynamicRHI->RHIReleaseThreadOwnership();
 	}
 	
@@ -2594,7 +2455,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_FlushResources_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		 
 		return GDynamicRHI->RHIFlushResources();
 	}
 	
@@ -2700,7 +2561,7 @@ public:
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_GetNativeDevice_Flush);
 		ImmediateFlush(EImmediateFlushType::FlushRHIThread); 
-		TGuardValue<bool> GuardIsFlushedGlobal( bFlushedGlobal, true ); 
+		 
 		return GDynamicRHI->RHIGetNativeDevice();
 	}
 	
@@ -2713,6 +2574,7 @@ public:
 	{
 		return RHIGetCommandContextContainer();
 	}
+	void UpdateTextureReference(FTextureReferenceRHIParamRef TextureRef, FTextureRHIParamRef NewTexture);
 	
 
 };
@@ -2752,7 +2614,6 @@ public:
 	void ExecuteList(FRHICommandListImmediate& CmdList);
 	void LatchBypass();
 
-	static FGraphEventRef RHIThreadFence();
 	static void WaitOnRHIThreadFence(FGraphEventRef& Fence);
 
 	FORCEINLINE_DEBUGGABLE bool Bypass()
@@ -2773,6 +2634,7 @@ public:
 	}
 	static void CheckNoOutstandingCmdLists();
 	static bool IsRHIThreadActive();
+	static bool IsRHIThreadCompletelyFlushed();
 
 private:
 
@@ -2798,31 +2660,14 @@ FORCEINLINE_DEBUGGABLE FRHICommandListImmediate& FRHICommandListExecutor::GetImm
 struct FScopedCommandListWaitForTasks
 {
 	FRHICommandListImmediate& RHICmdList;
+	bool bWaitForTasks;
 
-	FScopedCommandListWaitForTasks(FRHICommandListImmediate& InRHICmdList = FRHICommandListExecutor::GetImmediateCommandList())
+	FScopedCommandListWaitForTasks(bool InbWaitForTasks, FRHICommandListImmediate& InRHICmdList = FRHICommandListExecutor::GetImmediateCommandList())
 		: RHICmdList(InRHICmdList)
+		, bWaitForTasks(InbWaitForTasks)
 	{
 	}
-	~FScopedCommandListWaitForTasks()
-	{
-		check(IsInRenderingThread());
-		if (GRHIThread)
-		{
-			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_FScopedCommandListWaitForTasks_Dispatch);
-				RHICmdList.ImmediateFlush(EImmediateFlushType::DispatchToRHIThread);
-			}
-			{
-				QUICK_SCOPE_CYCLE_COUNTER(STAT_FScopedCommandListWaitForTasks_WaitAsync);
-				RHICmdList.ImmediateFlush(EImmediateFlushType::WaitForOutstandingTasksOnly);
-			}
-		}
-		else
-		{
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FScopedCommandListWaitForTasks_Flush);
-			RHICmdList.ImmediateFlush(EImmediateFlushType::FlushRHIThread);
-		}
-	}
+	RHI_API ~FScopedCommandListWaitForTasks();
 };
 
 

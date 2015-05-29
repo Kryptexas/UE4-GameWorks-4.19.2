@@ -202,7 +202,7 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 
 	if(Material->NeedsGBuffer())
 	{
-		GSceneRenderTargets.AdjustGBufferRefCount(-1);
+		FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(-1);
 	}
 }
 

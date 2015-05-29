@@ -188,7 +188,9 @@ public:
 	bool IsAppendStarted() const;
 
 	/** needed before AppendData() ccan be called */
-	ENGINE_API void StartAppend(bool bWorldIsPaused);
+	ENGINE_API void StartAppend(FRHICommandListImmediate& RHICmdList, bool bWorldIsPaused);
+
+	ENGINE_API void SetVelocityPassCallback(const TFunction<bool(FRHICommandList& RHICmdList)>& InIsVelocityFunc);
 
 	/**
 	 * use between LockData() and UnlockData()
@@ -199,7 +201,10 @@ public:
 	uint32 AppendData(FBoneSkinning *DataStart, uint32 BoneCount);
 
 	/** only call if StartAppend(), if the append wasn't started it silently ignores the call */
-	ENGINE_API void EndAppend();
+	ENGINE_API void EndAppendFence(FRHICommandListImmediate& RHICmdList);
+
+	/** only call if StartAppend(), if the append wasn't started it silently ignores the call */
+	ENGINE_API void EndAppend(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * @param Index 0 .. PER_BONE_BUFFER_COUNT - 1, usually from GetReadBufferIndex()
@@ -228,6 +233,11 @@ public:
 		return 1;
 	}
 
+	bool IsVelocityPass(FRHICommandList& RHICmdList)
+	{
+		return IsVelocityFunc(RHICmdList);
+	}
+
 
 private:
 
@@ -239,6 +249,12 @@ private:
 	FThreadSafeCounter LockedTexelPosition;
 	/** only valid if LockedData != 0 */
 	uint32 LockedTexelCount;
+
+	/** Fence for render thread tasks that use this. */
+	FGraphEventRef EndAppendRenderThreadTaskFence;
+
+	/** Callback if we should save bone data or not. */
+	TFunction<bool(FRHICommandList& RHICmdList)> IsVelocityFunc;
 
 	bool bWarningBufferSizeExceeded;
 

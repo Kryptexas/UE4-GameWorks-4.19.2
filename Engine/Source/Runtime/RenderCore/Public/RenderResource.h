@@ -508,7 +508,7 @@ public:
 	 * @param SizeInBytes - The amount of memory to allocate in bytes.
 	 * @returns An FAllocation with information regarding the allocated memory.
 	 */
-	FAllocation Allocate(uint32 SizeInBytes, bool bDeferLock = false);
+	FAllocation Allocate(uint32 SizeInBytes);
 
 	/**
 	 * Commits allocated memory to the GPU.

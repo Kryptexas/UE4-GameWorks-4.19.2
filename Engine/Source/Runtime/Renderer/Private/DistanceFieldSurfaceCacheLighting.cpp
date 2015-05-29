@@ -217,7 +217,7 @@ FDistanceFieldAOParameters::FDistanceFieldAOParameters(float InOcclusionMaxDista
 
 FIntPoint GetBufferSizeForAO()
 {
-	return FIntPoint::DivideAndRoundDown(GSceneRenderTargets.GetBufferSizeXY(), GAODownsampleFactor);
+	return FIntPoint::DivideAndRoundDown(FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY(), GAODownsampleFactor);
 }
 
 // Sample set restricted to not self-intersect a surface based on cone angle .475882232
@@ -986,7 +986,7 @@ void ComputeDistanceFieldNormal(FRHICommandListImmediate& RHICmdList, const TArr
 				0, 0, 
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(View.ViewRect.Width() / GAODownsampleFactor, View.ViewRect.Height() / GAODownsampleFactor),
-				GSceneRenderTargets.GetBufferSizeXY(),
+				FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY(),
 				*VertexShader);
 		}
 	}
@@ -2448,7 +2448,7 @@ void RenderIrradianceCacheInterpolation(
 
 			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One, CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
-			const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+			const FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 			const float InvBufferSizeX = 1.0f / BufferSize.X;
 			const float InvBufferSizeY = 1.0f / BufferSize.Y;
 
@@ -2567,7 +2567,7 @@ void ListDistanceFieldLightingMemory(const FViewInfo& View)
 	{
 		UE_LOG(LogTemp, Log, TEXT("   Tile Culled objects %.3fMb"), TileIntersectionResources->GetSizeBytes() / 1024.0f / 1024.0f);
 	}
-
+	
 	FAOScreenGridResources* ScreenGridResources = ((FSceneViewState*)View.State)->AOScreenGridResources;
 
 	if (ScreenGridResources)
@@ -2648,6 +2648,7 @@ void RenderDistanceFieldAOSurfaceCache(
 	TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
 	TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	const bool bUseDistanceFieldGI = IsDistanceFieldGIAllowed(View);
 
 	// Create surface cache state that will persist across frames if needed
@@ -2743,7 +2744,7 @@ void RenderDistanceFieldAOSurfaceCache(
 		TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormalSplat;
 
 		{
-			FIntPoint AOBufferSize = FIntPoint::DivideAndRoundUp(GSceneRenderTargets.GetBufferSizeXY(), DestLevelDownsampleFactor);
+			FIntPoint AOBufferSize = FIntPoint::DivideAndRoundUp(SceneContext.GetBufferSizeXY(), DestLevelDownsampleFactor);
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(AOBufferSize, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 			GRenderTargetPool.FindFreeElement(Desc, DistanceFieldAOBentNormalSplat, TEXT("DistanceFieldAOBentNormalSplat"));
 		}
@@ -2768,14 +2769,14 @@ void RenderDistanceFieldAOSurfaceCache(
 
 			// Create new records which haven't been shaded yet for shading points which don't have a valid interpolation from existing records
 			{
-				FIntPoint DownsampledViewSize = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), DestLevelDownsampleFactor);
-				uint32 GroupSizeX = FMath::DivideAndRoundUp(DownsampledViewSize.X, GDistanceFieldAOTileSizeX);
-				uint32 GroupSizeY = FMath::DivideAndRoundUp(DownsampledViewSize.Y, GDistanceFieldAOTileSizeY);
-
-				TShaderMapRef<FPopulateCacheCS> ComputeShader(View.ShaderMap);
-
-				RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
-				ComputeShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormalSplat->GetRenderTargetItem(), DistanceFieldNormal->GetRenderTargetItem(), DestLevelDownsampleFactor, DepthLevel, TileListGroupSize, Parameters);
+		        FIntPoint DownsampledViewSize = FIntPoint::DivideAndRoundUp(View.ViewRect.Size(), DestLevelDownsampleFactor);
+				        uint32 GroupSizeX = FMath::DivideAndRoundUp(DownsampledViewSize.X, GDistanceFieldAOTileSizeX);
+				        uint32 GroupSizeY = FMath::DivideAndRoundUp(DownsampledViewSize.Y, GDistanceFieldAOTileSizeY);
+        
+		        TShaderMapRef<FPopulateCacheCS> ComputeShader(View.ShaderMap);
+        
+				        RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+		        ComputeShader->SetParameters(RHICmdList, View, DistanceFieldAOBentNormalSplat->GetRenderTargetItem(), DistanceFieldNormal->GetRenderTargetItem(), DestLevelDownsampleFactor, DepthLevel, TileListGroupSize, Parameters);
 				DispatchComputeShader(RHICmdList, *ComputeShader, GroupSizeX, GroupSizeY, 1);
 
 				ComputeShader->UnsetParameters(RHICmdList);
@@ -2874,18 +2875,18 @@ void RenderDistanceFieldAOSurfaceCache(
 
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, BentNormalAccumulation);
 
-	// Post process the AO to cover over artifacts
+			// Post process the AO to cover over artifacts
 
 	PostProcessBentNormalAOSurfaceCache(
-		RHICmdList, 
-		Parameters, 
-		View, 
-		VelocityTexture, 
-		BentNormalAccumulation->GetRenderTargetItem(), 
-		IrradianceAccumulation, 
-		DistanceFieldNormal->GetRenderTargetItem(), 
-		OutDynamicBentNormalAO, 
-		OutDynamicIrradiance);
+				RHICmdList, 
+				Parameters, 
+				View, 
+	VelocityTexture, 
+			BentNormalAccumulation->GetRenderTargetItem(), 
+			IrradianceAccumulation, 
+			DistanceFieldNormal->GetRenderTargetItem(), 
+	OutDynamicBentNormalAO, 
+	OutDynamicIrradiance);
 }
 
 bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
@@ -2899,6 +2900,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 {
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	if (SupportsDistanceFieldAO(View.GetFeatureLevel(), View.GetShaderPlatform())
 		&& Views.Num() == 1
@@ -2986,8 +2988,8 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 					Parameters, 
 					VelocityTexture,
 					DistanceFieldNormal, 
-					BentNormalOutput, 
-					IrradianceOutput);
+				BentNormalOutput, 
+				IrradianceOutput);
 			}
 			else
 			{
@@ -3006,11 +3008,11 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 
 			if (bVisualizeAmbientOcclusion || bVisualizeGlobalIllumination)
 			{
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
+				SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthRead_StencilNop);
 			}
 			else
 			{
-				FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
+				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				// Make sure we get a signed format
 				Desc.Format = PF_FloatRGBA;
 				GRenderTargetPool.FindFreeElement(Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
@@ -3175,8 +3177,9 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 		{
 			bApplyShadowing = RenderDistanceFieldLighting(RHICmdList, Parameters, VelocityTexture, DynamicBentNormalAO, DynamicIrradiance, false, false);
 		}
+		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+		SceneContext.BeginRenderingSceneColor(RHICmdList);
 
 		for( int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++ )
 		{
@@ -3244,7 +3247,7 @@ void FDeferredShadingSceneRenderer::RenderDynamicSkyLighting(FRHICommandListImme
 				View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-				GSceneRenderTargets.GetBufferSizeXY(),
+				SceneContext.GetBufferSizeXY(),
 				*VertexShader);
 		}
 	}
@@ -3485,7 +3488,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 			}
 
 			{
-				GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+				FSceneRenderTargets::Get(RHICmdList).BeginRenderingSceneColor(RHICmdList);
 
 				for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 				{

@@ -503,9 +503,6 @@ public:
 	/** True if this scene was created from a game world. */
 	bool bIsGameView;
 
-	/** Whether this view should override the view family's EngineShowFlags.Materials setting and force it on. */
-	bool bForceShowMaterials;
-
 	/** For sanity checking casts that are assumed to be safe. */
 	bool bIsViewInfo;
 

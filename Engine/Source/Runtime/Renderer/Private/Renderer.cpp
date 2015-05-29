@@ -23,13 +23,13 @@ IMPLEMENT_MODULE(FRendererModule, Renderer);
 void FRendererModule::ReallocateSceneRenderTargets()
 {
 	FLightPrimitiveInteraction::InitializeMemoryPool();
-	GSceneRenderTargets.UpdateRHI();
+	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
 }
 
 void FRendererModule::SceneRenderTargetsSetBufferSize(uint32 SizeX, uint32 SizeY)
 {
-	GSceneRenderTargets.SetBufferSize(SizeX, SizeY);
-	GSceneRenderTargets.UpdateRHI();
+	FSceneRenderTargets::Get_Todo_PassContext().SetBufferSize(SizeX, SizeY);
+	FSceneRenderTargets::Get_Todo_PassContext().UpdateRHI();
 }
 
 void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& SceneView, const FMeshBatch& Mesh, bool bIsHitTesting, const FHitProxyId& HitProxyId)
