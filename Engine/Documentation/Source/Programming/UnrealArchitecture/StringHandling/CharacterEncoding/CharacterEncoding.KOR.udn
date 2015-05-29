@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2435622
+﻿INTSourceChangelist:2569422
 Availability: Public
 Title:캐릭터 인코딩
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
@@ -22,9 +22,10 @@ Version: 4.5
 이 내용은 해당 포맷에 대한 기술적인 정의는 아니며, 단지 이 문서에 걸맞도록 단순화된 버전입니다.
 
 $ **ASCII** : 0, 9, 10, 13, 32 - 126 를 포함한 캐릭터입니다. (P4 타입 텍스트) (이는 체크인시 P4 트리거를 통해 검증됩니다.)
-$ **ANSI** : ASCII 와 (서유럽 하이 ASCII 등) 현재 코드 페이지입니다 (P4 서버에는 바이너리로 저장해야 합니다).
+$ **ANSI** : ASCII 와 (서유럽 하이 ASCII 등) 현재 코드 페이지는 P4 서버에 바이너리로 저장해야 합니다.
 $ **UTF-8** : (ASCII 상위집합인) 특수 캐릭터 시퀀스를 사용하여 비-ANSI 캐릭터를 표현할 수 있는 단일 바이트로 구성된 스트링 입니다. (P4 타입 Unicode)
-$ **UTF-16** : (아스트랄 캐릭터 포함 4 바이트가 될 수는 있지만) [BOM(Byte Order Mark)](http://en.wikipedia.org/wiki/Byte-order_mark) 포함 글자 당 2 바이트로 구성된 스트링입니다. (P4 타입 UTF-16) (체크인시 P4 트리거로 검증됩니다.)
+$ **UTF-16** : 
+(아스트랄 캐릭터 포함 4 바이트가 될 수는 있지만) [BOM(Byte Order Mark)](http://en.wikipedia.org/wiki/Byte-order_mark) 포함 글자 당 2 바이트로 구성된 스트링입니다. (P4 타입 UTF-16) (체크인시 P4 트리거로 검증됩니다.)
 
 
 ### 바이너리의 경우
