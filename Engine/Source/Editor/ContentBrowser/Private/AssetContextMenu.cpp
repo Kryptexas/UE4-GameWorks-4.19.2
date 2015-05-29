@@ -22,6 +22,7 @@
 #include "SourceControlWindows.h"
 #include "KismetEditorUtilities.h"
 #include "AssetToolsModule.h"
+#include "CollectionAssetManagement.h"
 #include "ComponentAssetBroker.h"
 #include "SNumericEntryBox.h"
 
@@ -106,11 +107,11 @@ TSharedRef<SWidget> FAssetContextMenu::MakeContextMenu(const TArray<FAssetData>&
 		// Add reference options
 		AddReferenceMenuOptions(MenuBuilder);
 
-		// Add documentation options
-		AddDocumentationMenuOptions(MenuBuilder);
-
 		// Add collection options
 		AddCollectionMenuOptions(MenuBuilder);
+
+		// Add documentation options
+		AddDocumentationMenuOptions(MenuBuilder);
 
 		// Add source control options
 		AddSourceControlMenuOptions(MenuBuilder);
@@ -807,27 +808,124 @@ bool FAssetContextMenu::CanExecuteSourceControlActions() const
 
 bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 {
+	class FManageCollectionsContextMenu
+	{
+	public:
+		static void CreateManageCollectionsSubMenu(FMenuBuilder& SubMenuBuilder, TSharedRef<FCollectionAssetManagement> QuickAssetManagement)
+		{
+			static const FName CollectionManagerModuleName = "CollectionManager";
+			FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+
+			// Get collections of all types
+			TArray<FCollectionNameType> AvailableCollections;
+			for (int32 TypeIdx = 0; TypeIdx < ECollectionShareType::CST_All; ++TypeIdx)
+			{
+				const ECollectionShareType::Type CollectionType = ECollectionShareType::Type(TypeIdx);
+
+				// Never display system collections
+				if (CollectionType == ECollectionShareType::CST_System)
+				{
+					continue;
+				}
+
+				TArray<FName> CollectionNames;
+				CollectionManagerModule.Get().GetCollectionNames(CollectionType, CollectionNames);
+
+				for (const FName& CollectionName : CollectionNames)
+				{
+					AvailableCollections.Add(FCollectionNameType(CollectionName, CollectionType));
+				}
+			}
+
+			AvailableCollections.Sort([](const FCollectionNameType& One, const FCollectionNameType& Two) -> bool
+			{
+				return One.Name < Two.Name;
+			});
+
+			for (const FCollectionNameType& AvailableCollection : AvailableCollections)
+			{
+				SubMenuBuilder.AddMenuEntry(
+					FText::FromName(AvailableCollection.Name), 
+					ECollectionShareType::GetDescription(AvailableCollection.Type), 
+					FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(AvailableCollection.Type)), 
+					FUIAction(
+						FExecuteAction::CreateStatic(&FManageCollectionsContextMenu::OnCollectionClicked, QuickAssetManagement, AvailableCollection),
+						FCanExecuteAction::CreateStatic(&FManageCollectionsContextMenu::IsCollectionEnabled, QuickAssetManagement, AvailableCollection),
+						FGetActionCheckState::CreateStatic(&FManageCollectionsContextMenu::GetCollectionCheckState, QuickAssetManagement, AvailableCollection)
+						), 
+					NAME_None, 
+					EUserInterfaceActionType::ToggleButton
+					);
+			}
+		}
+
+	private:
+		static bool IsCollectionEnabled(TSharedRef<FCollectionAssetManagement> QuickAssetManagement, FCollectionNameType InCollectionKey)
+		{
+			return QuickAssetManagement->IsCollectionEnabled(InCollectionKey);
+		}
+
+		static ECheckBoxState GetCollectionCheckState(TSharedRef<FCollectionAssetManagement> QuickAssetManagement, FCollectionNameType InCollectionKey)
+		{
+			return QuickAssetManagement->GetCollectionCheckState(InCollectionKey);
+		}
+
+		static void OnCollectionClicked(TSharedRef<FCollectionAssetManagement> QuickAssetManagement, FCollectionNameType InCollectionKey)
+		{
+			// The UI actions don't give you the new check state, so we need to emulate the behavior of SCheckBox
+			// Basically, unchecked will transition to checked (adding items), and anything else will transition to unchecked (removing items)
+			if (GetCollectionCheckState(QuickAssetManagement, InCollectionKey) == ECheckBoxState::Unchecked)
+			{
+				QuickAssetManagement->AddCurrentAssetsToCollection(InCollectionKey);
+			}
+			else
+			{
+				QuickAssetManagement->RemoveCurrentAssetsFromCollection(InCollectionKey);
+			}
+		}
+	};
+
+	bool bHasAddedItems = false;
+
+	static const FName CollectionManagerModuleName = "CollectionManager";
+	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+
+	MenuBuilder.BeginSection("AssetContextCollections", LOCTEXT("AssetCollectionOptionsMenuHeading", "Collections"));
+
+	// Show a sub-menu that allows you to quickly add or remove the current asset selection from the available collections
+	if (CollectionManagerModule.Get().HasCollections())
+	{
+		TSharedRef<FCollectionAssetManagement> QuickAssetManagement = MakeShareable(new FCollectionAssetManagement());
+		QuickAssetManagement->SetCurrentAssets(SelectedAssets);
+
+		MenuBuilder.AddSubMenu(
+			LOCTEXT("ManageCollections", "Manage Collections"),
+			LOCTEXT("ManageCollections_ToolTip", "Manage the collections that the selected asset(s) belong to."),
+			FNewMenuDelegate::CreateStatic(&FManageCollectionsContextMenu::CreateManageCollectionsSubMenu, QuickAssetManagement)
+			);
+
+		bHasAddedItems = true;
+	}
+
 	// "Remove from collection" (only display option if exactly one collection is selected)
 	if ( SourcesData.Collections.Num() == 1 )
 	{
-		MenuBuilder.BeginSection("AssetContextCollections", LOCTEXT("AssetCollectionOptionsMenuHeading", "Collections"));
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("RemoveFromCollection", "Remove From Collection"),
-				LOCTEXT("RemoveFromCollection_ToolTip", "Removes the selected asset from the current collection."),
-				FSlateIcon(),
-				FUIAction(
-					FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteRemoveFromCollection ),
-					FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteRemoveFromCollection )
-					)
-				);
-		}
-		MenuBuilder.EndSection();
+		MenuBuilder.AddMenuEntry(
+			FText::Format(LOCTEXT("RemoveFromCollectionFmt", "Remove From {0}"), FText::FromName(SourcesData.Collections[0].Name)),
+			LOCTEXT("RemoveFromCollection_ToolTip", "Removes the selected asset from the current collection."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteRemoveFromCollection ),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteRemoveFromCollection )
+				)
+			);
 
-		return true;
+		bHasAddedItems = true;
 	}
 
-	return false;
+	MenuBuilder.EndSection();
+
+	return bHasAddedItems;
 }
 
 bool FAssetContextMenu::AreImportedAssetActionsVisible() const

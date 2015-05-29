@@ -323,31 +323,6 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
 	bDraggedOver = false;
 
-	FString CollectionTypeImage;
-	FText CollectionTypeTooltip;
-	switch (InArgs._CollectionItem->CollectionType)
-	{
-	case ECollectionShareType::CST_Shared:
-		CollectionTypeImage = TEXT("ContentBrowser.Shared");
-		CollectionTypeTooltip = LOCTEXT("SharedCollectionTooltip", "Shared. This collection is visible to everyone.");
-		break;
-
-	case ECollectionShareType::CST_Private:
-		CollectionTypeImage = TEXT("ContentBrowser.Private");
-		CollectionTypeTooltip = LOCTEXT("PrivateCollectionTooltip", "Private. This collection is only visible to you.");
-		break;
-
-	case ECollectionShareType::CST_Local:
-		CollectionTypeImage = TEXT("ContentBrowser.Local");
-		CollectionTypeTooltip = LOCTEXT("LocalCollectionTooltip", "Local. This collection is only visible to you and is not in source control.");
-		break;
-
-	default:
-		CollectionTypeImage = TEXT("");
-		CollectionTypeTooltip = FText::GetEmpty();
-		break;
-	}
-
 	ChildSlot
 	[
 		SNew(SBorder)
@@ -355,16 +330,28 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 		.Padding(0)
 		[
 			SNew(SHorizontalBox)
-			.ToolTip( SNew(SToolTip).Text(CollectionTypeTooltip) )
+			.ToolTip( SNew(SToolTip).Text( ECollectionShareType::GetDescription(InArgs._CollectionItem->CollectionType) ) )
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.VAlign(VAlign_Center)
-			.Padding(0, 0, 4, 0)
+			.Padding(0, 0, 2, 0)
+			[
+				SNew(SCheckBox)
+				.Visibility( InArgs._IsCollectionChecked.IsSet() ? EVisibility::Visible : EVisibility::Collapsed )
+				.IsEnabled( InArgs._IsCheckBoxEnabled )
+				.IsChecked( InArgs._IsCollectionChecked )
+				.OnCheckStateChanged( InArgs._OnCollectionCheckStateChanged )
+			]
+
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(0, 0, 2, 0)
 			[
 				// Type Icon
 				SNew(SImage)
-				.Image( FEditorStyle::GetBrush(*CollectionTypeImage) )
+				.Image( FEditorStyle::GetBrush( ECollectionShareType::GetIconStyleName(InArgs._CollectionItem->CollectionType) ) )
 				.ColorAndOpacity( this, &SCollectionListItem::GetCollectionColor )
 			]
 
@@ -373,14 +360,14 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 			.VAlign(VAlign_Center)
 			[
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
-					.Text( this, &SCollectionListItem::GetNameText )
-					.HighlightText( InArgs._HighlightText )
-					.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceListItemFont") )
-					.OnBeginTextEdit(this, &SCollectionListItem::HandleBeginNameChange)
-					.OnTextCommitted(this, &SCollectionListItem::HandleNameCommitted)
-					.OnVerifyTextChanged(this, &SCollectionListItem::HandleVerifyNameChanged)
-					.IsSelected( InArgs._IsSelected )
-					.IsReadOnly( InArgs._IsReadOnly )
+				.Text( this, &SCollectionListItem::GetNameText )
+				.HighlightText( InArgs._HighlightText )
+				.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceListItemFont") )
+				.OnBeginTextEdit(this, &SCollectionListItem::HandleBeginNameChange)
+				.OnTextCommitted(this, &SCollectionListItem::HandleNameCommitted)
+				.OnVerifyTextChanged(this, &SCollectionListItem::HandleVerifyNameChanged)
+				.IsSelected( InArgs._IsSelected )
+				.IsReadOnly( InArgs._IsReadOnly )
 			]
 		]
 	];

@@ -2,6 +2,7 @@
 
 #include "ContentBrowserPCH.h"
 
+#include "CollectionAssetManagement.h"
 #include "CollectionViewTypes.h"
 #include "CollectionContextMenu.h"
 #include "ObjectTools.h"
@@ -26,6 +27,11 @@ void SCollectionView::Construct( const FArguments& InArgs )
 	Commands = TSharedPtr< FUICommandList >(new FUICommandList);
 	CollectionContextMenu = MakeShareable(new FCollectionContextMenu( SharedThis(this) ));
 	CollectionContextMenu->BindCommands(Commands);
+
+	if ( InArgs._AllowQuickAssetManagement )
+	{
+		QuickAssetManagement = MakeShareable(new FCollectionAssetManagement());
+	}
 
 	FOnContextMenuOpening CollectionListContextMenuOpening;
 	if ( InArgs._AllowContextMenu )
@@ -275,6 +281,14 @@ TArray<FCollectionNameType> SCollectionView::GetSelectedCollections() const
 	return RetArray;
 }
 
+void SCollectionView::SetSelectedAssets(const TArray<FAssetData>& SelectedAssets)
+{
+	if ( QuickAssetManagement.IsValid() )
+	{
+		QuickAssetManagement->SetCurrentAssets(SelectedAssets);
+	}
+}
+
 void SCollectionView::ApplyHistoryData ( const FHistoryData& History )
 {	
 	// Prevent the selection changed delegate because it would add more history when we are just setting a state
@@ -504,6 +518,17 @@ TSharedRef<ITableRow> SCollectionView::GenerateCollectionRow( TSharedPtr<FCollec
 {
 	check(CollectionItem.IsValid());
 
+	// Only bind the check box callbacks if we're allowed to show check boxes
+	TAttribute<bool> IsCollectionCheckBoxEnabledAttribute;
+	TAttribute<ECheckBoxState> IsCollectionCheckedAttribute;
+	FOnCheckStateChanged OnCollectionCheckStateChangedDelegate;
+	if ( QuickAssetManagement.IsValid() )
+	{
+		IsCollectionCheckBoxEnabledAttribute.Bind(TAttribute<bool>::FGetter::CreateSP(this, &SCollectionView::IsCollectionCheckBoxEnabled, CollectionItem));
+		IsCollectionCheckedAttribute.Bind(TAttribute<ECheckBoxState>::FGetter::CreateSP(this, &SCollectionView::IsCollectionChecked, CollectionItem));
+		OnCollectionCheckStateChangedDelegate.BindSP(this, &SCollectionView::OnCollectionCheckStateChanged, CollectionItem);
+	}
+
 	TSharedPtr< STableRow< TSharedPtr<FTreeItem> > > TableRow = SNew( STableRow< TSharedPtr<FTreeItem> >, OwnerTable );
 	TableRow->SetContent
 		(
@@ -516,6 +541,9 @@ TSharedRef<ITableRow> SCollectionView::GenerateCollectionRow( TSharedPtr<FCollec
 			.IsSelected( TableRow.Get(), &STableRow< TSharedPtr<FTreeItem> >::IsSelectedExclusively )
 			.IsReadOnly(this, &SCollectionView::IsCollectionNotRenamable)
 			.HighlightText( this, &SCollectionView::GetFilterText)
+			.IsCheckBoxEnabled( IsCollectionCheckBoxEnabledAttribute )
+			.IsCollectionChecked( IsCollectionCheckedAttribute )
+			.OnCollectionCheckStateChanged( OnCollectionCheckStateChangedDelegate )
 		);
 
 	return TableRow.ToSharedRef();
@@ -529,6 +557,40 @@ TSharedPtr<SWidget> SCollectionView::MakeCollectionListContextMenu()
 	}
 
 	return CollectionContextMenu->MakeCollectionListContextMenu(Commands);
+}
+
+bool SCollectionView::IsCollectionCheckBoxEnabled( TSharedPtr<FCollectionItem> CollectionItem ) const
+{
+	return QuickAssetManagement.IsValid() && QuickAssetManagement->IsCollectionEnabled(FCollectionNameType(*CollectionItem->CollectionName, CollectionItem->CollectionType));
+}
+
+ECheckBoxState SCollectionView::IsCollectionChecked( TSharedPtr<FCollectionItem> CollectionItem ) const
+{
+	if ( QuickAssetManagement.IsValid() )
+	{
+		return QuickAssetManagement->GetCollectionCheckState(FCollectionNameType(*CollectionItem->CollectionName, CollectionItem->CollectionType));
+	}
+	return ECheckBoxState::Unchecked;
+}
+
+void SCollectionView::OnCollectionCheckStateChanged( ECheckBoxState NewState, TSharedPtr<FCollectionItem> CollectionItem )
+{
+	if ( QuickAssetManagement.IsValid() )
+	{
+		switch(NewState)
+		{
+		case ECheckBoxState::Checked:
+			QuickAssetManagement->AddCurrentAssetsToCollection(FCollectionNameType(*CollectionItem->CollectionName, CollectionItem->CollectionType));
+			break;
+
+		case ECheckBoxState::Unchecked:
+			QuickAssetManagement->RemoveCurrentAssetsFromCollection(FCollectionNameType(*CollectionItem->CollectionName, CollectionItem->CollectionType));
+			break;
+
+		default:
+			break;
+		}
+	}
 }
 
 void SCollectionView::CollectionSelectionChanged( TSharedPtr< FCollectionItem > CollectionItem, ESelectInfo::Type /*SelectInfo*/ )
@@ -559,9 +621,20 @@ void SCollectionView::CollectionAssetsDropped(const TArray<FAssetData>& AssetLis
 	int32 NumAdded = 0;
 	if ( CollectionManagerModule.Get().AddToCollection(FName(*CollectionItem->CollectionName), CollectionItem->CollectionType, ObjectPaths, &NumAdded) )
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("Number"), NumAdded );
-		OutMessage = FText::Format( LOCTEXT("CollectionAssetsAdded", "Added {Number} asset(s)"), Args );
+		if ( AssetList.Num() == 1 )
+		{
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("AssetName"), FText::FromName(AssetList[0].AssetName) );
+			Args.Add( TEXT("CollectionName"), FText::FromString(CollectionItem->CollectionName) );
+			OutMessage = FText::Format( LOCTEXT("CollectionAssetsAdded", "Added {AssetName} to {CollectionName}"), Args );
+		}
+		else
+		{
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("Number"), NumAdded );
+			Args.Add( TEXT("CollectionName"), FText::FromString(CollectionItem->CollectionName) );
+			OutMessage = FText::Format( LOCTEXT("CollectionAssetsAdded", "Added {Number} asset(s) to {CollectionName}"), Args );
+		}
 	}
 	else
 	{

@@ -454,6 +454,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							SAssignNew(CollectionViewPtr, SCollectionView)
 							.OnCollectionSelected(this, &SContentBrowser::CollectionSelected)
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserCollections")))
+							.AllowQuickAssetManagement(true)
 						]
 					]
 				]
@@ -1553,6 +1554,7 @@ void SContentBrowser::OnAssetSelectionChanged(const FAssetData& SelectedAsset)
 	
 	const TArray<FAssetData>& SelectedAssets = AssetViewPtr->GetSelectedAssets();
 	AssetContextMenu->SetSelectedAssets(SelectedAssets);
+	CollectionViewPtr->SetSelectedAssets(SelectedAssets);
 	if(AssetSelectionChangedDelegate.IsBound())
 	{
 		AssetSelectionChangedDelegate.Broadcast(SelectedAssets, bIsPrimaryBrowser);

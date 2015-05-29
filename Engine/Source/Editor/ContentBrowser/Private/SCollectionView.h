@@ -6,6 +6,7 @@
 
 struct FCollectionItem;
 class SCollectionListItem;
+class FCollectionAssetManagement;
 
 /**
  * The list view of collections.
@@ -21,6 +22,7 @@ public:
 		, _AllowRightClickMenu(true)
 		, _AllowCollapsing(true)
 		, _AllowContextMenu(true)
+		, _AllowQuickAssetManagement(false)
 		{}
 
 		/** Called when a collection was selected */
@@ -31,6 +33,9 @@ public:
 		SLATE_ARGUMENT( bool, AllowRightClickMenu )
 		SLATE_ARGUMENT( bool, AllowCollapsing )
 		SLATE_ARGUMENT( bool, AllowContextMenu )
+
+		/** If true, check boxes that let you quickly add/remove the current selection from a collection will be displayed */
+		SLATE_ARGUMENT( bool, AllowQuickAssetManagement )
 
 	SLATE_END_ARGS()
 
@@ -45,6 +50,9 @@ public:
 
 	/** Gets all the currently selected collections */
 	TArray<FCollectionNameType> GetSelectedCollections() const;
+
+	/** Let the collections view know that the list of selected assets has changed, so that it can update the quick asset management check boxes */
+	void SetSelectedAssets(const TArray<FAssetData>& SelectedAssets);
 
 	/** Sets the state of the collection view to the one described by the history data */
 	void ApplyHistoryData ( const FHistoryData& History );
@@ -91,6 +99,15 @@ private:
 
 	/** Makes the context menu for the collection list */
 	TSharedPtr<SWidget> MakeCollectionListContextMenu();
+
+	/** Whether the check box of the given collection item is currently enabled */
+	bool IsCollectionCheckBoxEnabled( TSharedPtr<FCollectionItem> CollectionItem ) const;
+
+	/** Whether the check box of the given collection item is currently in a checked state */
+	ECheckBoxState IsCollectionChecked( TSharedPtr<FCollectionItem> CollectionItem ) const;
+
+	/** Handler for when the checked state of the given collection item check box is changed */
+	void OnCollectionCheckStateChanged( ECheckBoxState NewState, TSharedPtr<FCollectionItem> CollectionItem );
 
 	/** Handler for collection list selection changes */
 	void CollectionSelectionChanged( TSharedPtr< FCollectionItem > CollectionItem, ESelectInfo::Type SelectInfo );
@@ -185,4 +202,7 @@ private:
 
 	/** Commands handled by this widget */
 	TSharedPtr< FUICommandList > Commands;
+
+	/** Handles the collection management for the currently selected assets (if available) */
+	TSharedPtr<FCollectionAssetManagement> QuickAssetManagement;
 };

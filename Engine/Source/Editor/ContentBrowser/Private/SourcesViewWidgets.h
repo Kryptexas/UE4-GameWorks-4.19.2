@@ -190,6 +190,15 @@ public:
 		/** Text to highlight for this item */
 		SLATE_ATTRIBUTE( FText, HighlightText )
 
+		/** True if the check box of the collection item is enabled */
+		SLATE_ATTRIBUTE( bool, IsCheckBoxEnabled )
+
+		/** Whether the check box of the collection item is currently in a checked state (if unset, no check box will be shown) */
+		SLATE_ATTRIBUTE( ECheckBoxState, IsCollectionChecked )
+
+		/** Delegate for when the checked state of the collection item check box is changed */
+		SLATE_EVENT( FOnCheckStateChanged, OnCollectionCheckStateChanged )
+
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
