@@ -9,7 +9,7 @@
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
 USTRUCT()
-struct FOverlapInfo
+struct ENGINE_API FOverlapInfo
 {
 	GENERATED_USTRUCT_BODY()
 
