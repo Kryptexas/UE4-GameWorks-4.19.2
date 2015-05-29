@@ -415,6 +415,9 @@ public:
 	// called to replace this nodes comment text
 	virtual void OnUpdateCommentText( const FString& NewComment );
 
+	// called when the node's comment bubble is toggled
+	virtual void OnCommentBubbleToggled( bool bCommentBubbleVisible ) {}
+
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }
 

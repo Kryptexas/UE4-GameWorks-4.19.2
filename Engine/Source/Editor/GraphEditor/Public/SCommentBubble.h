@@ -3,6 +3,7 @@
 #pragma once
 
 DECLARE_DELEGATE_RetVal( bool, FIsGraphNodeHovered );
+DECLARE_DELEGATE_OneParam( FOnCommentBubbleToggled, bool );
 
 class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 {
@@ -27,6 +28,9 @@ class GRAPHEDITOR_API SCommentBubble : public SCompoundWidget
 
 		/** Called when the comment text is committed */
 		SLATE_EVENT( FOnTextCommitted, OnTextCommitted )
+
+		/** Called when the comment bubble is toggled */
+		SLATE_EVENT( FOnCommentBubbleToggled, OnToggled )
 
 		/** The comment hint text for the bubble */
 		SLATE_ATTRIBUTE( FText, HintText )
@@ -149,6 +153,8 @@ protected:
 
 	/** Optional delegate to call when the comment text is committed */
 	FOnTextCommitted OnTextCommittedDelegate;
+	/** Optional delegate to call when the comment bubble is toggled */
+	FOnCommentBubbleToggled OnToggledDelegate;
 	/** Delegate to determine if the graph node is currently hovered */
 	FIsGraphNodeHovered IsGraphNodeHovered;
 

@@ -45,6 +45,7 @@ void SCommentBubble::Construct( const FArguments& InArgs )
 	GraphNode				= InArgs._GraphNode;
 	CommentAttribute		= InArgs._Text;
 	OnTextCommittedDelegate	= InArgs._OnTextCommitted;
+	OnToggledDelegate		= InArgs._OnToggled;
 	ColorAndOpacity			= InArgs._ColorAndOpacity;
 	bAllowPinning			= InArgs._AllowPinning;
 	bEnableTitleBarBubble	= InArgs._EnableTitleBarBubble;
@@ -391,9 +392,13 @@ FSlateColor SCommentBubble::GetTextForegroundColor() const
 
 void SCommentBubble::OnCommentTextCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
-	CachedComment = NewText.ToString();
-	CachedCommentText = NewText;
-	OnTextCommittedDelegate.ExecuteIfBound( CachedCommentText, CommitInfo );
+	if (CommitInfo == ETextCommit::OnCleared)
+	{
+		// Don't respond to OnEnter, as it will be immediately followed by OnCleared anyway (due to loss of keyboard focus) and generate a second transaction
+		CachedComment = NewText.ToString();
+		CachedCommentText = NewText;
+		OnTextCommittedDelegate.ExecuteIfBound(CachedCommentText, CommitInfo);
+	}
 }
 
 EVisibility SCommentBubble::GetToggleButtonVisibility() const
@@ -426,11 +431,12 @@ void SCommentBubble::OnCommentBubbleToggle( ECheckBoxState State )
 {
 	if( !IsReadOnly() )
 	{
-		const FScopedTransaction Transaction( NSLOCTEXT( "CommentBubble", "BubbleVisibility", "Comment Bubble Visibilty" ) );
+		const FScopedTransaction Transaction( NSLOCTEXT( "CommentBubble", "BubbleVisibility", "Comment Bubble Visibility" ) );
 		GraphNode->Modify();
 		GraphNode->bCommentBubbleVisible = State == ECheckBoxState::Checked;
 		OpacityValue = 0.f;
 		UpdateBubble();
+		OnToggledDelegate.ExecuteIfBound(GraphNode->bCommentBubbleVisible);
 	}
 }
 

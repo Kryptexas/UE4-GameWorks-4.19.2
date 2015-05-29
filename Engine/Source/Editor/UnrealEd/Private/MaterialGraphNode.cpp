@@ -592,6 +592,7 @@ void UMaterialGraphNode::PostPlacedNewNode()
 	if (MaterialExpression)
 	{
 		NodeComment = MaterialExpression->Desc;
+		bCommentBubbleVisible = MaterialExpression->bCommentBubbleVisible;
 		NodePosX = MaterialExpression->MaterialExpressionEditorX;
 		NodePosY = MaterialExpression->MaterialExpressionEditorY;
 		bCanRenameNode = MaterialExpression->CanRenameNode();
@@ -628,6 +629,17 @@ void UMaterialGraphNode::OnUpdateCommentText( const FString& NewComment )
 	{
 		MaterialExpression->Modify();
 		MaterialExpression->Desc = NewComment;
+		MaterialDirtyDelegate.ExecuteIfBound();
+	}
+}
+
+void UMaterialGraphNode::OnCommentBubbleToggled( bool bCommentBubbleVisible )
+{
+	if ( MaterialExpression )
+	{
+		MaterialExpression->Modify();
+		MaterialExpression->bCommentBubbleVisible = bCommentBubbleVisible;
+		MaterialDirtyDelegate.ExecuteIfBound();
 	}
 }
 

@@ -105,18 +105,6 @@ class ENGINE_API UMaterialExpression : public UObject
 	FGuid MaterialExpressionGuid;
 
 #endif // WITH_EDITORONLY_DATA
-	/** Set to true by RecursiveUpdateRealtimePreview() if the expression's preview needs to be updated in realtime in the material editor. */
-	UPROPERTY()
-	uint32 bRealtimePreview:1;
-
-	/** If true, we should update the preview next render. This is set when changing bRealtimePreview. */
-	UPROPERTY(transient)
-	uint32 bNeedToUpdatePreview:1;
-
-	/** Indicates that this is a 'parameter' type of expression and should always be loaded (ie not cooked away) because we might want the default parameter. */
-	UPROPERTY()
-	uint32 bIsParameterExpression:1;
-
 	/** 
 	 * The material that this expression is currently being compiled in.  
 	 * This is not necessarily the object which owns this expression, for example a preview material compiling a material function's expressions.
@@ -138,6 +126,22 @@ class ENGINE_API UMaterialExpression : public UObject
 	/** Color of the expression's border outline. */
 	UPROPERTY()
 	FColor BorderColor;
+
+	/** Set to true by RecursiveUpdateRealtimePreview() if the expression's preview needs to be updated in realtime in the material editor. */
+	UPROPERTY()
+	uint32 bRealtimePreview:1;
+
+	/** If true, we should update the preview next render. This is set when changing bRealtimePreview. */
+	UPROPERTY(transient)
+	uint32 bNeedToUpdatePreview:1;
+
+	/** Indicates that this is a 'parameter' type of expression and should always be loaded (ie not cooked away) because we might want the default parameter. */
+	UPROPERTY()
+	uint32 bIsParameterExpression:1;
+
+	/** If true, the comment bubble will be visible in the graph editor */
+	UPROPERTY()
+	uint32 bCommentBubbleVisible:1;
 
 	/** If true, use the output name as the label for the pin */
 	UPROPERTY()

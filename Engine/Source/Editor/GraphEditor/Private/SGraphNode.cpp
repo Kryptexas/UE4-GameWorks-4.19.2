@@ -180,6 +180,11 @@ void SGraphNode::OnCommentTextCommitted(const FText& NewComment, ETextCommit::Ty
 	GetNodeObj()->OnUpdateCommentText(NewComment.ToString());
 }
 
+void SGraphNode::OnCommentBubbleToggled(bool bCommentBubbleVisible)
+{
+	GetNodeObj()->OnCommentBubbleToggled(bCommentBubbleVisible);
+}
+
 void SGraphNode::SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinConnection InOnDisallowedPinConnection)
 {
 	OnDisallowedPinConnection = InOnDisallowedPinConnection;
@@ -860,6 +865,7 @@ void SGraphNode::UpdateGraphNode()
 	.GraphNode( GraphNode )
 	.Text( this, &SGraphNode::GetNodeComment )
 	.OnTextCommitted( this, &SGraphNode::OnCommentTextCommitted )
+	.OnToggled( this, &SGraphNode::OnCommentBubbleToggled )
 	.ColorAndOpacity( CommentColor )
 	.AllowPinning( true )
 	.EnableTitleBarBubble( true )

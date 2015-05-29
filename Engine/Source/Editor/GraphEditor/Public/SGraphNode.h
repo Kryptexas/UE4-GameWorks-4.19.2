@@ -185,6 +185,8 @@ public:
 	void SetDisallowedPinConnectionEvent(SGraphEditor::FOnDisallowedPinConnection InOnDisallowedPinConnection);
 	/** called to replace this nodes comment text */
 	void OnCommentTextCommitted(const FText& NewComment, ETextCommit::Type CommitInfo);
+	/** called when the node's comment bubble is toggled */
+	void OnCommentBubbleToggled(bool bCommentBubbleVisible);
 	/** returns true if a rename is pending on this node */
 	bool IsRenamePending() const { return bRenameIsPending; }
 
