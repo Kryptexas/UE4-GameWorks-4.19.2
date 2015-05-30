@@ -1,7 +1,7 @@
 Availability:Docs
-Title: 1. Procedural Foliage Tool Actors Creation
+Title: 1. Creating Foliage Type Actors
 Crumbs:
-Description:In this step we create all of the required Actors.
+Description: Creating and adding all the required Actors.
 Navigation:topic
 SkillLevel:Intermediate
 Version: 4.8
@@ -23,42 +23,48 @@ Version: 4.8
 
 %Steps%
 
-In the following How To we will create a new Level, Landscape Terrain and all of Actors the Procedural Foliage Tool requires to function correctly inside UE4.
+In this step we will create a new Level, Landscape Terrain and all of the Actors the Procedural Foliage Tool requires.
 
 
-1. First create a new level inside UE4 using the **Default Template** as a base.
+1. Create a new level using the **Default Template** as a base.
 
 	![](T_New_Level.png)
 
-1. After the new level has loaded, add a new Landscape actor to the level by first clicking on the **Landscape Tool** icon and then pressing the **Create** button to add the Landscape Actor to the level.
+1. Add a new Landscape actor to the level by first clicking on the **Landscape Tool** icon and then pressing the **Create** button to add the Landscape Actor to the level.
 	
 	![](T_Create_Landscape.gif)(convert:false)
 
-1. Once the Landscape has been added to the level exit the Landscape tool by clicking on the **Place** icon in the **Modes Panel**.
+	[region:note]
+	If you are not familiar with how Landscape Terrain works or would like to know more about how it works please check out the [Landscape Terrain documents](https://docs.unrealengine.com/latest/INT/Engine/Landscape/index.html) for more information.
+	[/region]
+
+1. Exit the Landscape tool by clicking on the **Place** icon in the **Modes Panel**.
 
 	![](T_Exit_Landscape_Mode.png)
 
 	[region:note]
-	The reason we are using a Landscape Terrain this is because the Landscape Terrain Actor quickly provides us with a very large area to spawn lots of Static Meshes on.
+	Using a Landscape Terrain Actor quickly provides you with a very large area to spawn your forest on.
 	[/region]
 
-1. Next create a new Procedural Foliage Spawner by **Right- Clicking** in the **Content Browser** and going to the **Create Advanced Asset** menu option then **Miscellaneous** > **Procedural Foliage Spawner**. 
+1. Create a new Procedural Foliage Spawner by **right-clicking** in the **Content Browser** expanding the **Miscellaneous** section and then click on the **Procedural Foliage Spawner**. 
 	
 	![](T_Create_PFS.png)
 
-1. Now name the Procedural Foliage Spawner **PFS_Example**.
+1. Name the Procedural Foliage Spawner in this example **PFS_Example** or something similar.
 
 	![](T_Name_PFS.png)
 
-1. Then drag the Procedural Foliage Spawner from the **Content Browser** into the level and position it so that it is at **0,0,200** in the level then scale Procedural Foliage Spawner to **100,100,10** in the X, Y and Z Axis.
-
+1. Drag the Procedural Foliage Spawner from the **Content Browser** into the level and position it so that it is in the center of the level or at **0,0,200** in the X, Y, and Z axis.
+	
 	![](T_Add_PFS_To_Level.gif)(convert:false)
 
-1. Next  create the **Foliage Type** Actors by  **Right- Clicking**  with the Mouse in the Content Browser and then go to the **Create Advanced Asset** section and then **Miscellaneous** > **Foliage Type** and name it **Tree_00**.
+1. Scale Procedural Foliage Spawner to **100,100,10** in the X, Y and Z Axis to give up a large area to spawn our forest in.
+
+1. Now that we have our spawner, we need to give it some types of Foliage to spawn. To do this, **right - click** in the **Content Browser** expanding the **Miscellaneous** section and then click on the **Foliage Type**. Name the Foliage Type **Tree_00** or something similar.
 
 	![](T_Create_FT.png)
 
-1. Finally save your work and level by pressing the **Save All** button to save all content and the ** Save** button to save the level. 
+1. At this point you should have something that looks similar to the image below. If you have not done so already, save your work and level by pressing the **Save All** button to save all content and the ** Save** button to save the level. 
 	When prompted for a level name use the name **PFT_00**.
 
 	![](T_Save_All.png)

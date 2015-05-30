@@ -1,7 +1,7 @@
 Availability:Docs
-Title:3. Grass Tool Material Setup
+Title:3. Landscape Materials and the Grass Tool
 Crumbs:
-Description: How to setup a Material that will work with the Grass system.
+Description: How to setup a Material that will work with both the Grass Tool and the Landscape terrain.
 Navigation:topic
 SkillLevel:Intermediate
 Version: 4.8
@@ -25,59 +25,69 @@ Version: 4.8
 %Steps%
 
 Before we can begin to use the Grass Tools we first have to create Material that can work with both the Landscape terrain and the **Landscape Grass Type**. 
-In the following section we will cover how to create and setup this Material as well as how to link it so that it works with the Landscape Grass Type. 
+In the following section we will cover how to set up this Material as well as how to link it so that it will work with the Landscape Grass Type. 
 
 [region:tip]
 If you would like to have a more in-depth look at how the Landscape terrain works in UE4 check out the [Landscape](https://docs.unrealengine.com/latest/INT/Engine/Landscape/index.html) pages for more information.
 [/region]
 
-1. First create a new Material for our Landscape Terrain by **Right - Click** in the **Content Browser** with the mouse and then select the **Material** option form the **Create Basic Asset** section. 
-	Name the new Material **MAT_GT_Grass**
+1. First create a new Material for our Landscape Terrain by **right - clicking** in the **Content Browser** then selecting the **Material** option form the **Create Basic Asset** 
+  section naming the new Material **MAT_GT_Grass**
 
 	![](T_Create_New_Material.png)
 
-1. Open up the **MAT_GT_Grass** Material by **Double - Clicking** with the **Left Mouse Button** inside of the **Content Browser** and then add the following two Textures from the **Open World Demo Collection** to the Material Graph.
+1. Open up the **MAT_GT_Grass** Material by **double - clicking** on the Material inside of the **Content Browser** and then add the following two Textures from the **Open World Demo Collection** to the Material Graph.
 
 	* **T_AlpinePatch001_D_alt_R**
 	* **T_GDC_Grass01_D_NoisyAlpha**
 
 	![](T_Added_Textures.png)
 
-1. Next search for the following Material Expression nodes using the **Palette** search function.
-	Once you locate a required Material Expression node select it in the Palette by clicking on it with the **Left Mouse Button** and then dragging it into the Material Graph, releasing the **Left Mouse Button** to place it in the Material graph. 
+1. Search for the Material Expression nodes listed below using the **Palette** search function.
+	Once you locate a required Material Expression node select it in the Palette and then dragging it into the Material Graph.
 
-	* **Landscape Layer Blend** x 1
-	* **Landscape Layer Sample** x 1
-	* **Landscape Grass Output** x 1
+	|Material Expression Name | Amount | The Why|
+	|-------------------------|--------|--------|
+	|**Landscape Layer Blend**   | 1     | To make the Landscape terrain look more realistic you will often need to blend and paint multiple together or separately and that is what the Landscape Layer Blend allows you to do. |
+	|**Landscape Layer Sample**  | 1     | This Material Expression allows the Material and the Landscape to talk to one another to ensure the right Static Mesh is used whenever a certain Landscape layer is painted . |
+	|**Landscape Grass Output**  | 1     | This enables the Landscape terrain to be able to spawn the Grass Types based on the setup in the Landscape Material. |
 
 	![](T_Add_Material_Nodes.gif)(convert:false)
 
-1. Now select the **Landscape Layer Blend** node in the Material Graph and add two new **Layers** to it by pressing the **Plus**  icon twice. 
-	Once both layers have been added, set the **Layer Name** of one to **Grass** and set the **Layer Name** of the other to **Rock** and set the **Preview Weight** to 1.0 for both the Grass and Rock. 
+	[region:tip]
+	If you are unfamiliar with how the UE4 Material Editor works or would just like more information about it, check the official **[Unreal Engine Material documentation](Engine/Rendering/Materials)** for more information on all things related to Materials.
+	[/region]
+
+1. Select the **Landscape Layer Blend** node and under the **Details** panel in the **Layers** section and add two new Layers to it by clicking the **Plus** icon 2 times.
+ 
+	![](T_LB_Add_2_Layers.png)
+
+1. Once 2 layers have been added, set the **Layer Name** of one to **Grass** and set the **Layer Name** of the other one to **Rock** also setting the **Preview Weight** to **1.0** for each. 
 
 	![](T_LS_LayerBlend_Setup.png)
 
-1. Next connect the **T_AlpinePatch001_D_alt_R** Texture to the **Layer Rock** input on the **Landscape Layer Blend** node, then connect the **T_GDC_Grass01_D_NoisyAlpha** to the **Later Grass** input. 
-	Once that is completed connect the **Output** of the **Landscape Layer Blend** node into the **Base Color** input on the **Main Material Node**.
+1. Connect the **T_AlpinePatch001_D_alt_R** Texture to the **Layer Rock** input on the **Landscape Layer Blend** node then connect the **T_GDC_Grass01_D_NoisyAlpha** to the **Layer Grass** input finally connect the **Output** of the **Landscape Layer Blend** node into the **Base Color** input on the **Main Material Node**.
 
 	![](T_Hook_Up_Textures.png)
 	
-1. Then select the **Landscape Grass Output** node in the Material Graph and then in the **Details** panel in the **Grass Types** section press the **Plus** sign icon to add a new element to the Grass Types array. 
+1. Select the **Landscape Grass Output** node in the Material Graph then in the **Details** panel in the **Grass Types** section press the **Plus** sign icon to add a new element to the Grass Types array. 
 	
 	![](T_Grass_Out_SetUp.gif)(convert:false)
 
-1. Now in **Content Browser** select the **Grass_00** Landscape Grass Type that was created in the last step and then in the **Material** under the **Grass Type** option, 
-	press the **Arrow** icon to load the Actor that is currently selected in the Content Browser. 
+1. In the **Content Browser**, select the **Grass_00** Landscape Grass Type that was created in the last step.
+
+1.  In the **Material** under the **Grass Type** option, press the **Arrow** icon to load the Actor that is currently selected in the Content Browser. 
 
 	![](T_Input_Grass_Type.png)
 
-1. Next select the **Landscape Layer Sample** node under the **Parameter Name** input **Grass** for the name and connect the Output from the **Landscape Layer Sample** to the input of the **Landscape Grass Output** node. 
+1. Select the **Landscape Layer Sample** node under the **Parameter Name** input **Grass** for the name and connect the Output from the **Landscape Layer Sample** to the input of the **Landscape Grass Output** node. 
 
 	![](T_LLW_Setup.png)
 
-1. Finally press the **Apply** and **Save** buttons to compile and save the Material.
+1. When completed you should have a Material that looks like the following. As do not forget to press the **Apply** and **Save** buttons to compile and save the Material.
 
 	![](T_Final_Material.png)
+
 
 
 
