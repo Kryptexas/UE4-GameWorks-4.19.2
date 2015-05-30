@@ -348,24 +348,14 @@ void FSLESSoundSource::Update( void )
 		return;
 	}
 	
-	float Volume = 1.0f;
-
-	// If the audio device is muted, then mute our sound source
-	if (AudioDevice->bIsDeviceMuted)
+	float Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
+	if (SetStereoBleed())
 	{
-		Volume = 0.0f;
+		// Emulate the bleed to rear speakers followed by stereo fold down
+		Volume *= 1.25f;
 	}
-	else
-	{
-		float Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
-		if (SetStereoBleed())
-		{
-			// Emulate the bleed to rear speakers followed by stereo fold down
-			Volume *= 1.25f;
-		}
-		Volume *= FApp::GetVolumeMultiplier();
-		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
-	}
+	Volume *= FApp::GetVolumeMultiplier();
+	Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
 	
 	const float Pitch = FMath::Clamp<float>(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH);
 
