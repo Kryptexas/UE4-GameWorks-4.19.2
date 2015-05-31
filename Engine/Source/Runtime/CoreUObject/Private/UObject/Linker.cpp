@@ -160,10 +160,6 @@ void FLinker::AddReferencedObjects(FReferenceCollector& Collector)
 		Collector.AddReferencedObject(*(UObject**)&LinkerRoot);
 	}
 #endif
-	for (auto& Import : ImportMap)
-	{
-		Collector.AddReferencedObject(Import.XObject);
-	}
 }
 
 // FLinker interface.
