@@ -1,6 +1,17 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Private/IContentSource.h"
+
+class UObject;
+
+struct FPackData
+{
+	FString PackSource;
+	FString PackName;
+	FString PackMap;
+	TArray<UObject*>	ImportedObjects;
+};
 
 class FLocalizedTextArray
 {
@@ -48,7 +59,7 @@ struct FSearchEntry;
 class FFeaturePackContentSource : public IContentSource
 {
 public:
-	FFeaturePackContentSource(FString InFeaturePackPath);
+	ADDCONTENTDIALOG_API FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegister = false);
 
 	virtual TArray<FLocalizedText> GetLocalizedNames() const override;
 	virtual TArray<FLocalizedText> GetLocalizedDescriptions() const override;
@@ -69,11 +80,15 @@ public:
 	void HandleActOnSearchText(TSharedPtr<FSearchEntry> SearchEntry);
 	void HandleSuperSearchTextChanged(const FString& InText, TArray< TSharedPtr<FSearchEntry> >& OutSuggestions);
 
+	static ADDCONTENTDIALOG_API void ImportPendingPacks();
+	TArray<FString>	ParseErrors;
 private:
+	static void ParseAndImportPacks();
 	bool LoadPakFileToBuffer(FPakPlatformFile& PakPlatformFile, FString Path, TArray<uint8>& Buffer);
 	FString GetFocusAssetName() const;
 
 private:
+	void RecordAndLogError(const FString& ErrorString);
 	/** Selects an FLocalizedText from an array which matches either the supplied language code, or the default language code. */
 	FLocalizedTextArray ChooseLocalizedTextArray(TArray<FLocalizedTextArray> Choices, FString LanguageCode);
 	FLocalizedText ChooseLocalizedText(TArray<FLocalizedText> Choices, FString LanguageCode);
@@ -91,4 +106,5 @@ private:
 	FString FocusAssetIdent;
 	FString SortKey;
 	TArray<FLocalizedTextArray> LocalizedSearchTags;
+	
 };

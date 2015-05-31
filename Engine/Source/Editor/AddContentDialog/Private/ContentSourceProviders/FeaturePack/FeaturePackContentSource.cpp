@@ -121,7 +121,7 @@ bool TryValidateManifestObject(TSharedPtr<FJsonObject> ManifestObject, TSharedPt
 	return true;
 }
 
-FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
+FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, bool bDontRegisterForSearch)
 {
 	FeaturePackPath = InFeaturePackPath;
 	bPackValid = false;
@@ -136,7 +136,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	TArray<uint8> ManifestBuffer;
 	if( LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("manifest.json")), ManifestBuffer) == false )
 	{
-		UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Cannot find manifest."), *InFeaturePackPath);
+		RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Cannot find manifest."), *InFeaturePackPath));
 		Category = EContentSourceCategory::Unknown;
 		return;
 	}
@@ -150,7 +150,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 
 	if (ManifestReader->GetErrorMessage().IsEmpty() == false)
 	{
-		UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Failed to parse manifest: %s"), *InFeaturePackPath, *ManifestReader->GetErrorMessage());
+		RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Failed to parse manifest: %s"), *InFeaturePackPath, *ManifestReader->GetErrorMessage()));
 		Category = EContentSourceCategory::Unknown;
 		return;
 	}
@@ -158,7 +158,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	TSharedPtr<FString> ManifestObjectErrorMessage;
 	if (TryValidateManifestObject(ManifestObject, ManifestObjectErrorMessage) == false)
 	{
-		UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Manifest object error: %s"), *InFeaturePackPath, **ManifestObjectErrorMessage);
+		RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Manifest object error: %s"), *InFeaturePackPath, **ManifestObjectErrorMessage));
 		Category = EContentSourceCategory::Unknown;
 		return;
 	}
@@ -229,7 +229,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 	}
 	else
 	{
-		UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Cannot find thumbnail %s."), *InFeaturePackPath, *ThumbnailFile );
+		RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Cannot find thumbnail %s."), *InFeaturePackPath, *ThumbnailFile ));
 	}
 
 	const TArray<TSharedPtr<FJsonValue>> ScreenshotFilenameArray = ManifestObject->GetArrayField("Screenshots");
@@ -242,13 +242,16 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath)
 		}
 		else
 		{
-			UE_LOG(LogFeaturePack, Warning, TEXT("Error in Feature pack %s. Cannot find screenshot %s."), *InFeaturePackPath, *ScreenshotFilename->AsString() );
+			RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Cannot find screenshot %s."), *InFeaturePackPath, *ScreenshotFilename->AsString() ));
 		}
 	}
 
-	FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
-	SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);	
-	SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
+	if( bDontRegisterForSearch == false )
+	{
+		FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+		SuperSearchModule.GetActOnSearchTextClicked().AddRaw(this, &FFeaturePackContentSource::HandleActOnSearchText);
+		SuperSearchModule.GetSearchTextChanged().AddRaw(this, &FFeaturePackContentSource::HandleSuperSearchTextChanged);
+	}
 	bPackValid = true;
 }
 
@@ -466,6 +469,89 @@ FLocalizedTextArray FFeaturePackContentSource::ChooseLocalizedTextArray(TArray<F
 		}
 	}
 	return Default;
+}
+
+void FFeaturePackContentSource::ImportPendingPacks()
+{ 
+	bool bAddPacks;
+	if (GConfig->GetBool(TEXT("StartupActions"), TEXT("bAddPacks"), bAddPacks, GGameIni) == true)
+	{
+		if (bAddPacks == true)
+		{
+			ParseAndImportPacks();			
+			GConfig->SetBool(TEXT("StartupActions"), TEXT("bAddPacks"), false, GGameIni);
+			GConfig->Flush(true, GGameIni);
+		}
+	}
+}
+
+void FFeaturePackContentSource::ParseAndImportPacks()
+{
+	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	// Look for pack insertions in the startup actions section
+	TArray<FString> PacksToAdd;
+	GConfig->GetArray(TEXT("StartupActions"), TEXT("InsertPack"), PacksToAdd, GGameIni);
+	int32 PacksInserted = 0;
+	for (int32 iPackEntry = 0; iPackEntry < PacksToAdd.Num(); iPackEntry++)
+	{
+		FPackData EachPackData;
+		TArray<FString> PackEntries;
+		PacksToAdd[iPackEntry].ParseIntoArray(PackEntries, TEXT(","), true);
+		FString PackSource;
+		FString PackName;
+		// Parse the pack name and source
+		for (int32 iEntry = 0; iEntry < PackEntries.Num(); iEntry++)
+		{
+			FString EachString = PackEntries[iEntry];
+			// remove the parenthesis
+			EachString = EachString.Replace(TEXT("("), TEXT(""));
+			EachString = EachString.Replace(TEXT(")"), TEXT(""));
+			if (EachString.StartsWith(TEXT("PackSource=")) == true)
+			{
+				EachString = EachString.Replace(TEXT("PackSource="), TEXT(""));
+				EachString = EachString.TrimQuotes();
+				EachPackData.PackSource = EachString;
+			}
+			if (EachString.StartsWith(TEXT("PackName=")) == true)
+			{
+				EachString = EachString.Replace(TEXT("PackName="), TEXT(""));
+				EachString = EachString.TrimQuotes();
+				EachPackData.PackName = EachString;
+			}
+		}
+
+		// If we found anything to insert, insert it !
+		if ((EachPackData.PackSource.IsEmpty() == false) && (EachPackData.PackName.IsEmpty() == false))
+		{
+			TArray<FString> EachImport;
+			FString FullPath = FPaths::FeaturePackDir() + EachPackData.PackSource;
+			EachImport.Add(FullPath);
+			EachPackData.ImportedObjects = AssetToolsModule.Get().ImportAssets(EachImport, TEXT("/Game"), nullptr, false);
+
+			if (EachPackData.ImportedObjects.Num() == 0)
+			{
+				UE_LOG(LogFeaturePack, Warning, TEXT("No objects imported installing pack %s"), *EachPackData.PackSource);
+			}
+			else
+			{
+				// Save any imported assets.
+				TArray<UPackage*> ToSave;
+				for (auto ImportedObject : EachPackData.ImportedObjects)
+				{
+					ToSave.AddUnique(ImportedObject->GetOutermost());
+				}
+				FEditorFileUtils::PromptForCheckoutAndSave(ToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
+				PacksInserted++;
+			}
+		}
+	}
+	UE_LOG(LogFeaturePack, Warning, TEXT("Inserted %d feature packs"), PacksInserted++);
+}
+
+void FFeaturePackContentSource::RecordAndLogError(const FString& ErrorString)
+{
+	UE_LOG(LogFeaturePack, Warning, TEXT("%s"), *ErrorString);
+	ParseErrors.Add(ErrorString);
 }
 
 #undef LOCTEXT_NAMESPACE 

@@ -29,7 +29,7 @@ public:
 
 FFeaturePackContentSourceProvider::FFeaturePackContentSourceProvider()
 {
-	FeaturePackPath = FPaths::Combine(*FPaths::RootDir(), TEXT("FeaturePacks"));
+	FeaturePackPath = FPaths::FeaturePackDir();
 	StartUpDirectoryWatcher();
 	RefreshFeaturePacks();
 }

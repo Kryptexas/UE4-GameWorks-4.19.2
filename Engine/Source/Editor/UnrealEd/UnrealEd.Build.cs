@@ -14,7 +14,6 @@ public class UnrealEd : ModuleRules
 			{
 				"Editor/UnrealEd/Private",
 				"Editor/UnrealEd/Private/Settings",
-				"Editor/UnrealEd/Private/FeaturePack",
 				"Editor/PackagesDialog/Public",				
 				"Developer/DerivedDataCache/Public",
 				"Developer/TargetPlatform/Public",
@@ -132,6 +131,7 @@ public class UnrealEd : ModuleRules
 				"TreeMap",
                 "MaterialUtilities",
                 "LocalizationService",
+				"AddContentDialog",
 			}
 		);
 
@@ -233,6 +233,7 @@ public class UnrealEd : ModuleRules
 				"NiagaraEditor",
                 "Niagara",
                 "VectorVM",
+				"AddContentDialog",
 			}
 			);
 
