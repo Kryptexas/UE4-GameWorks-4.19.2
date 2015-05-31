@@ -159,7 +159,7 @@ public:
 	/**
 	 * Gets a shared pointer to an instance of the specified class.
 	 *
-	 * @param T The type of class to get an instance for.
+	 * @param R The type of class to get an instance for.
 	 * @param A shared reference to the instance.
 	 * @see RegisterClass, RegisterDelegate, RegisterFactory, RegisterInstance
 	 */
@@ -189,6 +189,21 @@ public:
 	TSharedRef<R> GetInstanceRef()
 	{
 		return GetInstance<R>().ToSharedRef();
+	}
+
+	/**
+	 * Check whether the specified class has been registered.
+	 *
+	 * @param R The type of registered class to check.
+	 * @return true if the class was registered, false otherwise.
+	 */
+	template<class R>
+	bool IsRegistered()
+	{
+		FScopeLock Lock(&CriticalSection);
+		{
+			return Providers.Contains(TNameOf<R>::GetName());
+		}
 	}
 
 	/**
