@@ -48,8 +48,6 @@ void UUserWidget::Initialize()
 			BGClass->InitializeWidget(this);
 		}
 
-		OnInitialize();
-
 		if ( WidgetTree == nullptr )
 		{
 			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
@@ -71,11 +69,6 @@ void UUserWidget::Initialize()
 			}
 		});
 	}
-}
-
-void UUserWidget::OnInitialize()
-{
-
 }
 
 void UUserWidget::BeginDestroy()

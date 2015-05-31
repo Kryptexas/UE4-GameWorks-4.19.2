@@ -838,8 +838,6 @@ public:
 #endif
 
 protected:
-	/** Called after the blueprint class has had a chance to initialize the class. */
-	virtual void OnInitialize();
 
 	/** Adds the widget to the screen, either to the viewport or to the player's screen depending on if the LocalPlayer is null. */
 	void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
