@@ -20,7 +20,7 @@
  *****************************************************************************/
 
 /** Defines interval at which calls are being re-sent to the server (in seconds). */
-#define MESSAGE_RPC__RETRY_INTERVAL 1.0
+#define MESSAGE_RPC_RETRY_INTERVAL 1.0
 
 /** Defines the time after which calls time out (in seconds). */
 #define MESSAGE_RPC_RETRY_TIMEOUT 3.0

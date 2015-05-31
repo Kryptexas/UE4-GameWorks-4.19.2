@@ -107,9 +107,11 @@ class IMessageRpcClient
 	{
 	public:
 
-		TCall(P... Params)
+		TCall(const FGuid& CallId, P... Params)
 			: Message(new typename RpcType::FRequest(Params...))
-		{ }
+		{
+			Message->CallId = CallId;
+		}
 
 		virtual ~TCall()
 		{
@@ -133,6 +135,11 @@ class IMessageRpcClient
 		TFuture<typename RpcType::FResult> GetFuture()
 		{
 			return Promise.GetFuture();
+		}
+
+		virtual const FGuid& GetId() const override
+		{
+			return Message->CallId;
 		}
 
 		virtual void* GetMessage() const override
@@ -160,6 +167,23 @@ class IMessageRpcClient
 public:
 
 	/**
+	 * Connect this client to an RPC server.
+	 *
+	 * @param InServerAddress The RPC server's message address.
+	 * @see Disconnect
+	 */
+	virtual void Connect(const FMessageAddress& InServerAddress) = 0;
+
+	/**
+	 * Disconnect this client from the RPC server.
+	 *
+	 * @see Connect
+	 */
+	virtual void Disconnect() = 0;
+
+public:
+
+	/**
 	 * Call a remote procedure.
 	 *
 	 * @param RpcType The RPC type definition.
@@ -171,12 +195,15 @@ public:
 	{
 		typedef TCall<RpcType, P...> CallType;
 
-		TSharedRef<CallType> Call = MakeShareable(new CallType(Params...));
-		FGuid CallId = AddCall(Call);
+		FGuid CallId = FGuid::NewGuid();
+		TSharedRef<CallType> Call = MakeShareable(new CallType(CallId, Params...));
+		{
+			AddCall(Call);
 
-		Call->OnCancelled().BindLambda([=]() {
-			CancelCall(CallId);
-		});	
+			Call->OnCancelled().BindLambda([=]() {
+				CancelCall(CallId);
+			});	
+		}
 
 		return TAsyncResult<typename RpcType::FResult>(Call->GetFuture(), Call, Call);
 	}
@@ -187,9 +214,8 @@ protected:
 	 * Add an RPC request.
 	 *
 	 * @param Request The call to add.
-	 * @return The call's unique identifier.
 	 */
-	virtual FGuid AddCall(const TSharedRef<IMessageRpcCall>& Call) = 0;
+	virtual void AddCall(const TSharedRef<IMessageRpcCall>& Call) = 0;
 
 	/**
 	 * Cancel the specified RPC call.

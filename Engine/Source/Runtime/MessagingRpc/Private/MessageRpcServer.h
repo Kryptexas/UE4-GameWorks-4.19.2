@@ -28,6 +28,7 @@ public:
 	// IMessageRpcServer interface
 
 	virtual void AddHandler(const FName& RequestMessageType, const TSharedRef<IMessageRpcHandler>& Handler) override;
+	virtual const FMessageAddress& GetAddress() const override;
 
 protected:
 

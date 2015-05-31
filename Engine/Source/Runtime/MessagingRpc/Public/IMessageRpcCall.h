@@ -28,6 +28,13 @@ public:
 	virtual void Complete(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& ResponseContext) = 0;
 
 	/**
+	 * Get the call's unique identifier.
+	 *
+	 * @return Call identifier.
+	 */
+	virtual const FGuid& GetId() const = 0;
+
+	/**
 	 * Get the request message.
 	 *
 	 * @return Pointer to the request message.

@@ -94,6 +94,13 @@ public:
 	 */
 	virtual void AddHandler(const FName& RequestMessageType, const TSharedRef<IMessageRpcHandler>& Handler) = 0;
 
+	/**
+	 * Gets the server's message address.
+	 *
+	 * @return Message address.
+	 */
+	virtual const FMessageAddress& GetAddress() const = 0;
+
 public:
 
 	/**

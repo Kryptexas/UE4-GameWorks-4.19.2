@@ -32,6 +32,12 @@ void FMessageRpcServer::AddHandler(const FName& RequestMessageType, const TShare
 }
 
 
+const FMessageAddress& FMessageRpcServer::GetAddress() const
+{
+	return MessageEndpoint->GetAddress();
+}
+
+
 /* FMessageRpcServer implementation
  *****************************************************************************/
 
@@ -53,19 +59,20 @@ void FMessageRpcServer::ProcessRequest(const TSharedRef<IMessageContext, ESPMode
 
 	if (Handler.IsValid())
 	{
-		/*
-		TSharedPtr<IMessageRpcServer::IPortalRpcReturn> Return = Handler->HandleRequest(Context);
-
-		if (Return.IsValid())
+		FReturnInfo ReturnInfo;
 		{
-			Returns.Add(Message->CallId, Return);
+			ReturnInfo.ClientAddress = Context->GetSender();
+			ReturnInfo.LastProgressSent = FDateTime::UtcNow();
+			ReturnInfo.Return = Handler->HandleRequest(Context);
+		}
 
-			return;
-		}*/
+		Returns.Add(Message->CallId, ReturnInfo);
 	}
-
-	// notify caller that call was not handled
-	MessageEndpoint->Send(new FMessageRpcInvalid(Message->CallId), Context->GetSender());
+	else
+	{
+		// notify caller that call was not handled
+		MessageEndpoint->Send(new FMessageRpcInvalid(Message->CallId), Context->GetSender());
+	}
 }
 
 
@@ -136,7 +143,7 @@ bool FMessageRpcServer::HandleTicker(float DeltaTime)
 			SendResult(It.Key(), ReturnInfo);
 			It.RemoveCurrent();
 		}
-		else if (UtcNow - ReturnInfo.LastProgressSent > FTimespan::FromSeconds(MESSAGE_RPC__RETRY_INTERVAL * 0.25))
+		else if (UtcNow - ReturnInfo.LastProgressSent > FTimespan::FromSeconds(MESSAGE_RPC_RETRY_INTERVAL * 0.25))
 		{
 			SendProgress(It.Key(), ReturnInfo);
 			ReturnInfo.LastProgressSent = UtcNow;

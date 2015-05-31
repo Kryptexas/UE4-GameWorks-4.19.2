@@ -26,6 +26,13 @@ public:
 	/** Virtual destructor. */
 	virtual ~FMessageRpcClient();
 
+public:
+
+	// IMessageRpcClient interface
+
+	virtual void Connect(const FMessageAddress& InServerAddress) override;
+	virtual void Disconnect() override;
+
 protected:
 
 	/**
@@ -47,7 +54,7 @@ protected:
 
 	// IMessageRpcClient interface
 
-	virtual FGuid AddCall(const TSharedRef<IMessageRpcCall>& Call) override;
+	virtual void AddCall(const TSharedRef<IMessageRpcCall>& Call) override;
 	virtual void CancelCall(const FGuid& CallId) override;
 
 private:

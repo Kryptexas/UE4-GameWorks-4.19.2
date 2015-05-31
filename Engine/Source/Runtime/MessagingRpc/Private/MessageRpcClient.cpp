@@ -11,13 +11,35 @@ FMessageRpcClient::FMessageRpcClient()
 	MessageEndpoint = FMessageEndpoint::Builder("FPortalAppWindowEndpoint")
 		.Handling<FMessageRpcProgress>(this, &FMessageRpcClient::HandleMessage);
 
-	TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FMessageRpcClient::HandleTicker), MESSAGE_RPC__RETRY_INTERVAL);
+	TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FMessageRpcClient::HandleTicker), MESSAGE_RPC_RETRY_INTERVAL);
 }
 
 
 FMessageRpcClient::~FMessageRpcClient()
 {
 	FTicker::GetCoreTicker().RemoveTicker(TickerHandle);
+}
+
+
+/* IMessageRpcClient interface
+ *****************************************************************************/
+
+void FMessageRpcClient::Connect(const FMessageAddress& InServerAddress)
+{
+	Disconnect();
+	ServerAddress = InServerAddress;
+}
+
+
+void FMessageRpcClient::Disconnect()
+{
+	for (TMap<FGuid, TSharedPtr<IMessageRpcCall>>::TIterator It(Calls); It; ++It)
+	{
+		It.Value()->TimeOut();
+	}
+
+	Calls.Empty();
+	ServerAddress.Invalidate();
 }
 
 
@@ -33,28 +55,27 @@ TSharedPtr<IMessageRpcCall> FMessageRpcClient::FindCall(const TSharedRef<IMessag
 
 void FMessageRpcClient::SendCall(const TSharedPtr<IMessageRpcCall>& Call)
 {
-	MessageEndpoint->Send(
-		Call->GetMessage(),
-		Call->GetMessageType(),
-		nullptr,
-		TArrayBuilder<FMessageAddress>().Add(ServerAddress),
-		FTimespan::Zero(),
-		FDateTime::MaxValue()
-	);
+	if (ServerAddress.IsValid())
+	{
+		MessageEndpoint->Send(
+			Call->GetMessage(),
+			Call->GetMessageType(),
+			nullptr,
+			TArrayBuilder<FMessageAddress>().Add(ServerAddress),
+			FTimespan::Zero(),
+			FDateTime::MaxValue()
+		);
+	}
 }
 
 
 /* IMessageRpcClient interface
  *****************************************************************************/
 
-FGuid FMessageRpcClient::AddCall(const TSharedRef<IMessageRpcCall>& Call)
+void FMessageRpcClient::AddCall(const TSharedRef<IMessageRpcCall>& Call)
 {
-	FGuid CallId = FGuid::NewGuid();
-
-	Calls.Add(CallId, Call);
+	Calls.Add(Call->GetId(), Call);
 	SendCall(Call);
-
-	return CallId;
 }
 
 
@@ -96,7 +117,7 @@ bool FMessageRpcClient::HandleTicker(float DeltaTime)
 			It.RemoveCurrent();
 			Call->TimeOut();
 		}
-		else if (UtcNow - Call->GetLastUpdated() > FTimespan::FromSeconds(MESSAGE_RPC__RETRY_INTERVAL))
+		else if (UtcNow - Call->GetLastUpdated() > FTimespan::FromSeconds(MESSAGE_RPC_RETRY_INTERVAL))
 		{
 			SendCall(Call);
 		}
