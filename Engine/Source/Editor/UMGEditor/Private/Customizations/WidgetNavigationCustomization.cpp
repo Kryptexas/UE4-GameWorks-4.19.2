@@ -27,6 +27,8 @@ void FWidgetNavigationCustomization::CustomizeChildren(TSharedRef<IPropertyHandl
 	MakeNavRow(PropertyHandlePtr, ChildBuilder, EUINavigation::Right, LOCTEXT("RightNavigation", "Right"));
 	MakeNavRow(PropertyHandlePtr, ChildBuilder, EUINavigation::Up, LOCTEXT("UpNavigation", "Up"));
 	MakeNavRow(PropertyHandlePtr, ChildBuilder, EUINavigation::Down, LOCTEXT("DownNavigation", "Down"));
+	MakeNavRow(PropertyHandlePtr, ChildBuilder, EUINavigation::Next, LOCTEXT("NextNavigation", "Next"));
+	MakeNavRow(PropertyHandlePtr, ChildBuilder, EUINavigation::Previous, LOCTEXT("PreviousNavigation", "Previous"));
 }
 
 void FWidgetNavigationCustomization::FillOutChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)
@@ -307,6 +309,12 @@ void FWidgetNavigationCustomization::SetNav(UWidget* Widget, EUINavigation Nav, 
 		break;
 	case EUINavigation::Down:
 		DirectionNavigation = &WidgetNavigation->Down;
+		break;
+	case EUINavigation::Next:
+		DirectionNavigation = &WidgetNavigation->Next;
+		break;
+	case EUINavigation::Previous:
+		DirectionNavigation = &WidgetNavigation->Previous;
 		break;
 	default:
 		// Should not be possible.
