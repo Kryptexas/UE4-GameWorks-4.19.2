@@ -1364,7 +1364,10 @@ public:
 				if (!VariableGuid.IsValid())
 				{
 					VariableGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(TargetBlueprint, CompilingNode->GetGraph(), FName(*VariableName));
-					VariableReference.SetLocalMember(FName(*VariableName), CompilingNode->GetGraph()->GetName(), VariableGuid);
+					if (VariableGuid.IsValid())
+					{
+						VariableReference.SetLocalMember(FName(*VariableName), CompilingNode->GetGraph()->GetName(), VariableGuid);
+					}
 				}
 				else
 				{
