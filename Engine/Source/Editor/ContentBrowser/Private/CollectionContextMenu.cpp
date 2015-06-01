@@ -73,6 +73,13 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionListContextMenu(TShare
 
 			if ( CollectionList.Num() == 1 )
 			{
+				// Share Type
+				MenuBuilder.AddSubMenu(
+					LOCTEXT("SetCollectionShareType", "Share Type"),
+					LOCTEXT("SetCollectionShareTypeTooltip", "Change the share type of this collection."),
+					FNewMenuDelegate::CreateRaw( this, &FCollectionContextMenu::MakeCollectionShareTypeSubMenu )
+					);
+
 				// Rename
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None, LOCTEXT("RenameCollection", "Rename"), LOCTEXT("RenameCollectionTooltip", "Rename this collection."));
 			}
@@ -125,31 +132,77 @@ void FCollectionContextMenu::MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder)
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Shared", "Shared Collection"),
 			LOCTEXT("NewCollection_SharedTooltip", "Create a collection that can be seen by anyone."),
-			FSlateIcon(),
+			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Shared ) ),
 			FUIAction(
-			FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Shared ),
-			FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Shared )
-			)
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Shared ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Shared )
+				)
 			);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Private", "Private Collection"),
 			LOCTEXT("NewCollection_PrivateTooltip", "Create a collection that can only be seen by you."),
-			FSlateIcon(),
+			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Private ) ),
 			FUIAction(
-			FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Private ),
-			FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Private )
-			)
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Private ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Private )
+				)
 			);
 
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("NewCollection_Local", "Local Collection"),
 			LOCTEXT("NewCollection_LocalTooltip", "Create a collection that is not in source control and can only be seen by you."),
-			FSlateIcon(),
+			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Local ) ),
 			FUIAction(
-			FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Local ),
-			FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Local )
-			)
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteNewCollection, ECollectionShareType::CST_Local ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteNewCollection, ECollectionShareType::CST_Local )
+				)
+			);
+	}
+	MenuBuilder.EndSection();
+}
+
+void FCollectionContextMenu::MakeCollectionShareTypeSubMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.BeginSection("CollectionShareType", LOCTEXT("CollectionShareTypeMenuHeading", "Collection Share Type"));
+	{
+		MenuBuilder.AddMenuEntry(
+			ECollectionShareType::ToText( ECollectionShareType::CST_Shared ),
+			ECollectionShareType::GetDescription( ECollectionShareType::CST_Shared ),
+			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Shared ) ),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteSetCollectionShareType, ECollectionShareType::CST_Shared ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteSetCollectionShareType, ECollectionShareType::CST_Shared ),
+				FIsActionChecked::CreateSP( this, &FCollectionContextMenu::IsSetCollectionShareTypeChecked, ECollectionShareType::CST_Shared )
+				),
+			NAME_None,
+			EUserInterfaceActionType::Check
+			);
+
+		MenuBuilder.AddMenuEntry(
+			ECollectionShareType::ToText( ECollectionShareType::CST_Private ),
+			ECollectionShareType::GetDescription( ECollectionShareType::CST_Private ),
+			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Private ) ),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteSetCollectionShareType, ECollectionShareType::CST_Private ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteSetCollectionShareType, ECollectionShareType::CST_Private ),
+				FIsActionChecked::CreateSP( this, &FCollectionContextMenu::IsSetCollectionShareTypeChecked, ECollectionShareType::CST_Private )
+				),
+			NAME_None,
+			EUserInterfaceActionType::Check
+			);
+
+		MenuBuilder.AddMenuEntry(
+			ECollectionShareType::ToText( ECollectionShareType::CST_Local ),
+			ECollectionShareType::GetDescription( ECollectionShareType::CST_Local ),
+			FSlateIcon( FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName( ECollectionShareType::CST_Local ) ),
+			FUIAction(
+				FExecuteAction::CreateSP( this, &FCollectionContextMenu::ExecuteSetCollectionShareType, ECollectionShareType::CST_Local ),
+				FCanExecuteAction::CreateSP( this, &FCollectionContextMenu::CanExecuteSetCollectionShareType, ECollectionShareType::CST_Local ),
+				FIsActionChecked::CreateSP( this, &FCollectionContextMenu::IsSetCollectionShareTypeChecked, ECollectionShareType::CST_Local )
+				),
+			NAME_None,
+			EUserInterfaceActionType::Check
 			);
 	}
 	MenuBuilder.EndSection();
@@ -240,6 +293,27 @@ void FCollectionContextMenu::ExecuteNewCollection(ECollectionShareType::Type Col
 	}
 
 	CollectionView.Pin()->CreateCollectionItem(CollectionType);
+}
+
+void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType)
+{
+	if ( !ensure(CollectionView.IsValid()) )
+	{
+		return;
+	}
+
+	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+
+	if ( !ensure(CollectionList.Num() == 1) )
+	{
+		return;
+	}
+
+	static const FName CollectionManagerModuleName = "CollectionManager";
+	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+
+	const FName CollectionName = *CollectionList[0]->CollectionName;
+	CollectionManagerModule.Get().RenameCollection(CollectionName, CollectionList[0]->CollectionType, CollectionName, CollectionType);
 }
 
 void FCollectionContextMenu::ExecuteRenameCollection()
@@ -367,6 +441,45 @@ void FCollectionContextMenu::ExecutePickColor()
 bool FCollectionContextMenu::CanExecuteNewCollection(ECollectionShareType::Type CollectionType) const
 {
 	return (CollectionType == ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
+}
+
+bool FCollectionContextMenu::CanExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType) const
+{
+	if ( !ensure(CollectionView.IsValid()) )
+	{
+		return false;
+	}
+
+	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+
+	if ( !ensure(CollectionList.Num() == 1) )
+	{
+		return false;
+	}
+
+	const bool bIsSourceControlAvailable = bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable();
+	const bool bIsCurrentTypeLocal = CollectionList[0]->CollectionType == ECollectionShareType::CST_Local;
+	const bool bIsNewTypeLocal = CollectionType == ECollectionShareType::CST_Local;
+	const bool bIsNewShareTypeDifferent = CollectionList[0]->CollectionType != CollectionType;
+
+	return bIsNewShareTypeDifferent && ((bIsCurrentTypeLocal && bIsNewTypeLocal) || bIsSourceControlAvailable);
+}
+
+bool FCollectionContextMenu::IsSetCollectionShareTypeChecked(ECollectionShareType::Type CollectionType) const
+{
+	if ( !ensure(CollectionView.IsValid()) )
+	{
+		return false;
+	}
+
+	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+
+	if ( !ensure(CollectionList.Num() == 1) )
+	{
+		return false;
+	}
+
+	return CollectionList[0]->CollectionType == CollectionType;
 }
 
 bool FCollectionContextMenu::CanExecuteRenameCollection() const

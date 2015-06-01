@@ -17,6 +17,9 @@ public:
 	/** Makes the new collection submenu */
 	void MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder);
 
+	/** Makes the collection share type submenu */
+	void MakeCollectionShareTypeSubMenu(FMenuBuilder& MenuBuilder);
+
 	/** Update the source control flag the 'CanExecute' functions rely on */
 	void UpdateProjectSourceControl();
 
@@ -30,6 +33,9 @@ protected:
 private:
 	/** Handler for when a collection is selected in the "New" menu */
 	void ExecuteNewCollection(ECollectionShareType::Type CollectionType);
+
+	/** Handler for when a collection share type is changed in the "Share Type" menu */
+	void ExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType);
 
 	/** Handler for when "Rename Collection" is selected */
 	void ExecuteRenameCollection();
@@ -48,6 +54,12 @@ private:
 
 	/** Handler to check to see if "New Collection" can be executed */
 	bool CanExecuteNewCollection(ECollectionShareType::Type CollectionType) const;
+
+	/** Handler to check to see if a entry in the "Share Type" menu can be executed */
+	bool CanExecuteSetCollectionShareType(ECollectionShareType::Type CollectionType) const;
+
+	/** Handler to check to see if an entry in the "Share Type" menu should be checked */
+	bool IsSetCollectionShareTypeChecked(ECollectionShareType::Type CollectionType) const;
 
 	/** Handler to check to see if "Rename Collection" can be executed */
 	bool CanExecuteRenameCollection() const;
