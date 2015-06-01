@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2430626
+﻿INTSourceChangelist:2565329
 Availability:Public
 Title:Oculus Rift ベスト プラクティス
 Crumbs:%ROOT%, Platforms, Platforms/Oculus
@@ -16,8 +16,8 @@ Oculus Rift とは、ユーザーが見たり再生しているワールドと�
 ## Oculus Rift サニティ チェック
 
 Oculus Rift がプラグインされ、プラグインが有効になっていると、アンリアル エンジンは自動的に Oculus Rift を使用します。 
-Oculus が動かない場合は、プラグインが有効になっているかどうかを最初に確認してください。プラグインは [プラグイン](https://docs.unrealengine.com/latest/INT/Programming/Plugins/index.html) メニューの 
-ヘッドマウントディスプレイの下にあります。  
+Oculus が動かない場合は、プラグインが有効になっているかどうかを最初に確認してください。プラグインは [プラグイン](https://docs.unrealengine.com/latest/INT/Programming/Plugins/index.html) メニューの  
+[Head Mounted Displays] の下にあります。  
 
 [REGION:fullwidth]
 ![](T_VR_Plug-In_On_00.png)
@@ -30,7 +30,7 @@ Oculus が動かない場合は、プラグインが有効になっているか�
 * スタンドアローン型ゲームが起動したら、波形ダッシュ (`) キーを使ってアンリアル コンソールを呼び出します。 
 * そして「showlog」と入力します。
 * 次に「ovrversion」と入力します。
-* 現在の LibOVR のバージョンとビルド日は、以下のようにログ ウィンドウに印刷されています。
+* 現在の LibOVR のバージョンとビルドした日時は、以下のようにログ ウィンドウに印刷されています。
 	[REGION:fullwidth]
 	![](T_OculusRiftPluginVersionCheck.jpg)
 	[/REGION]
@@ -81,13 +81,13 @@ Oculus には、 VR デバイス用の幾つかの変数を永久に設定する
 
 1. まず、選択したキャラクターに基いてブループリントを作成します。 
 1. 次に [コンポーネント タブ](Engine/Blueprints/UserGuide/Components) で Camera コンポーネントを追加します。 
-1. カメラ コンポーネントをキャラクター メッシュ上にドラッグしてアタッチします。
-1. カメラ コンポーネントを選択し、その親ソケットを選択したボーン / ソケットに変更します。 
+1. Camera コンポーネントをキャラクター メッシュ上にドラッグしてアタッチします。
+1. Camera コンポーネントを選択し、その親ソケットを選択したボーン / ソケットに変更します。 
 1. 必要な場合は、相対的な [位置と回転](Engine/Blueprints/UserGuide/Components#コンポーネントの変形) を調整します。
 1. Camera Setting -> Use Controller View Rotation が有効になっていることを確認してください。 
 1. ブループリントがコンパイルされていることを確認してください。
 1. ゲーム モードの Pawn クラスのデフォルトを TFP キャラクターに設定します。 
-1. **Virtual Head モデル** をゼロアウトする
+1. **Virtual Head Model** をゼロアウトする
 
 ## Virtual Head Model
 
@@ -124,7 +124,7 @@ Virtual Head Model は、プレイヤーの視点をオフセットするため�
 1. **Player Controller** に基いてブループリントを作成します。
 1. [Defaults] タブの **Player Camera Manager クラス** を **PlayerCameraManager 1** ブループリントに設定します。
 1. **Game Mode** に基いてブループリントを作成します。
-1. [Defaults] タブの Default Controller  クラスを検索して **Player Controller** ブループリントに設定します。
+1. [Defaults] タブの Default Controller クラスを検索して **Player Controller** ブループリントに設定します。
 1. 最後に、レベル **ワールド設定値** の **Game Mode Override** を **Game Mode** ブループリントに設定します。
 
 **C++ 手法**
@@ -267,7 +267,6 @@ Virtual Head Model は、プレイヤーの視点をオフセットするため�
 		}
 -->
 
-
 ## C++ 機能
 
 実際のプラグイン以外に、プレイヤーのビューポートが Oculus Rift からの入力でどのように変更されるかを決定する 
@@ -276,7 +275,7 @@ Virtual Head Model は、プレイヤーの視点をオフセットするため�
 	APlayerController::UpdateRotation()
 	APlayerCameraManager::UpdateViewTarget()
 
-## Oculus の参照
+## Oculus のリファレンス
 
 Oculus 社は、莫大な時間とエネルギーをかけて、 
 どうすればユーザーが Rift 使用時に最高の VR 体験ができるのかを調査してきました。VR ユーザー体験の開発や提供に役立つ情報が満載の [website]( https://developer.oculus.com/) をまだご覧になっていない方は、 
