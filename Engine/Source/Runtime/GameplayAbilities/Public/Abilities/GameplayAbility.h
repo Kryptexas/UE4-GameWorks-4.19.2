@@ -391,12 +391,12 @@ protected:
 	void EndOrCancelTasksByInstanceName();
 	TArray<FName> CancelTaskInstanceNames;
 
-	/** Internal function, cancels all the tasks we asked to cancel last frame (by instance name). */
+	/** Add any task with this instance name to a list to be ended (not canceled) next frame.  See also CancelTaskByInstanceName. */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	void EndTaskByInstanceName(FName InstanceName);
 	TArray<FName> EndTaskInstanceNames;
 
-	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
+	/** Add any task with this instance name to a list to be canceled (not ended) next frame.  See also EndTaskByInstanceName. */
 	UFUNCTION(BlueprintCallable, Category = Ability)
 	void CancelTaskByInstanceName(FName InstanceName);
 
