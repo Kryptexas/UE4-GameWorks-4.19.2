@@ -238,8 +238,6 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			Ar.Logf(TEXT("%s $%X: Let (Variable = Expression)"), *Indents, (int32)Opcode);
 			AddIndent();
 
-			ReadPointer<UProperty>(ScriptIndex);
-
 			// Variable expr.
 			Ar.Logf(TEXT("%s Variable:"), *Indents);
 			SerializeExpr( ScriptIndex );
