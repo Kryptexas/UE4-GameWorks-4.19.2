@@ -908,7 +908,7 @@ public:
 	 *	@param	BoneName	If a SkeletalMeshComponent, name of body to wake. 'None' indicates root body.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics")
-	void WakeRigidBody(FName BoneName = NAME_None);
+	virtual void WakeRigidBody(FName BoneName = NAME_None);
 
 	/** 
 	 *	Force a single body back to sleep. 
