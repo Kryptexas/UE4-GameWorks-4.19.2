@@ -1,7 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorStylePrivatePCH.h"
-#include "UnitConversion.h"
 
 /* UEditorStyleSettings interface
  *****************************************************************************/
