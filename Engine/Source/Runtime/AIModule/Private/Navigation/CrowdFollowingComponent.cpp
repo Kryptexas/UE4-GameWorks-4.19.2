@@ -192,6 +192,29 @@ void UCrowdFollowingComponent::SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::
 	}
 }
 
+void UCrowdFollowingComponent::SetCrowdPathOffset(bool bEnable, bool bUpdateAgent)
+{
+	if (bEnablePathOffset != bEnable)
+	{
+		bEnablePathOffset = bEnable;
+
+		if (bUpdateAgent)
+		{
+			UpdateCrowdAgentParams();
+		}
+	}
+}
+
+void UCrowdFollowingComponent::SetCrowdAffectFallingVelocity(bool bEnable)
+{
+	bAffectFallingVelocity = bEnable;
+}
+
+void UCrowdFollowingComponent::SetCrowdRotateToVelocity(bool bEnable)
+{
+	bRotateToVelocity = bEnable;
+}
+
 void UCrowdFollowingComponent::SuspendCrowdSteering(bool bSuspend)
 {
 	if (bSuspendCrowdSimulation != bSuspend)
