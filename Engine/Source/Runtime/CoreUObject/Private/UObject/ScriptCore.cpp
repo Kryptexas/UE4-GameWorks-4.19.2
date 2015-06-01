@@ -638,6 +638,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 
 	if (FunctionCallspace & FunctionCallspace::Local)
 	{
+		// No POD struct can ever be stored in this buffer. 
 		MS_ALIGN(16) uint8 Buffer[MAX_SIMPLE_RETURN_VALUE_SIZE] GCC_ALIGN(16);
 
 #if DO_GUARD
@@ -1015,15 +1016,17 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		}
 
 		// Call native function or UObject::ProcessInternal.
+		const bool bHasReturnParam = Function->ReturnValueOffset != MAX_uint16;
+		uint8* ReturnValueAdress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
 		if (Function->FunctionFlags & FUNC_Native)
 		{
 			FScopeCycleCounterUObject ContextScope(this);
 			FScopeCycleCounterUObject FunctionScope(Function);
-			Function->Invoke(this, NewStack, (uint8*)Parms + Function->ReturnValueOffset);
+			Function->Invoke(this, NewStack, ReturnValueAdress);
 		}
 		else
 		{
-			Function->Invoke(this, NewStack, (uint8*)Parms + Function->ReturnValueOffset);
+			Function->Invoke(this, NewStack, ReturnValueAdress);
 		}
 
 		if (!bUsePersistentFrame)
@@ -1353,11 +1356,11 @@ void UObject::execLet( FFrame& Stack, RESULT_DECL )
 		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to assign variable through None"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
-		//@TODO: ScriptParallel: Contended static usage
-		static uint8 Crud[1024];//@temp
-		Stack.MostRecentPropertyAddress = Crud;
-		FMemory::Memzero( Stack.MostRecentPropertyAddress, sizeof(FString) );
-	}
+			//@TODO: ScriptParallel: Contended static usage
+			static uint8 Crud[1024];//@temp
+			Stack.MostRecentPropertyAddress = Crud;
+			FMemory::Memzero(Stack.MostRecentPropertyAddress, sizeof(FString));
+		}
 
 	// Evaluate expression into variable.
 	Stack.Step( Stack.Object, Stack.MostRecentPropertyAddress );
@@ -1548,8 +1551,7 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	if (IsValid(NewContext))
 	{
 		Stack.Code += sizeof(CodeSkipSizeType)	// Code offset for NULL expressions.
-			+ sizeof(ScriptPointerType)			// Property corresponding to the r-value data, in case the l-value needs to be cleared
-			+ sizeof(uint8);					// Property type, in case the r-value is a non-property - in ue4 it seems to be unused
+			+ sizeof(ScriptPointerType);		// Property corresponding to the r-value data, in case the l-value needs to be cleared
 		Stack.Step( NewContext, RESULT_PARAM );
 	}
 	else
@@ -1580,20 +1582,15 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 		}
 
 		const CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount(); // Code offset for NULL expressions. Code += sizeof(CodeSkipSizeType)
-		UField* RValueField = nullptr;
-		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueField); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
+		UProperty* RValueProperty = nullptr;
+		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueProperty); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
 		Stack.Code += wSkip;
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.MostRecentProperty = NULL;
 
-		if (RESULT_PARAM)
+		if (RESULT_PARAM && RValueProperty)
 		{
-			auto RValueProperty = Cast<const UProperty>(RValueField);
-			ensure(RValueProperty || !RValueField);
-			if (RValueProperty)
-			{
-				RValueProperty->ClearValue(RESULT_PARAM);
-			}
+			RValueProperty->ClearValue(RESULT_PARAM);
 		}
 	}
 }

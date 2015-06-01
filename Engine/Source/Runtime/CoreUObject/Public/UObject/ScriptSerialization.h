@@ -241,7 +241,6 @@
 			SerializeExpr( iCode, Ar ); // Object expression.
 			XFER(CodeSkipSizeType);		// Code offset for NULL expressions.
 			XFERPTR(UField*);			// Property corresponding to the r-value data, in case the l-value needs to be mem-zero'd
-			XFER(uint8);					// Property type, in case the r-value is a non-property such as dynamic array length
 			SerializeExpr( iCode, Ar ); // Context expression.
 			break;
 		}

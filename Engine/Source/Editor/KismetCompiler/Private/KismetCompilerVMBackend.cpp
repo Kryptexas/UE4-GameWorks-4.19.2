@@ -241,15 +241,15 @@ protected:
 		}
 
 		/** Starts a context if the Term isn't NULL */
-		void TryStartContext(FBPTerminal* Term, bool bUnsafeToSkip = false, bool bIsInterfaceContext = false, FBPTerminal* RValueTerm = NULL)
+		void TryStartContext(FBPTerminal* Term, bool bUnsafeToSkip = false, bool bIsInterfaceContext = false, UProperty* RValueProperty = nullptr)
 		{
 			if (Term != NULL)
 			{
-				StartContext(Term, bUnsafeToSkip, bIsInterfaceContext, RValueTerm);
+				StartContext(Term, bUnsafeToSkip, bIsInterfaceContext, RValueProperty);
 			}
 		}
 
-		void StartContext(FBPTerminal* Term, bool bUnsafeToSkip = false, bool bIsInterfaceContext = false, FBPTerminal* RValueTerm = NULL)
+		void StartContext(FBPTerminal* Term, bool bUnsafeToSkip = false, bool bIsInterfaceContext = false, UProperty* RValueProperty = nullptr)
 		{
 			bInContext = true;
 
@@ -277,14 +277,7 @@ protected:
 			Skipper.Emit();
 
 			// R-Value property, see ReadVariableSize in UObject::ProcessContextOpcode() for usage
-			//@TODO: Not sure what to use for yet
-			UProperty* RValueProperty = RValueTerm ? RValueTerm->AssociatedVarProperty : NULL;
 			Writer << RValueProperty;
-
-			// Property type if needed, it seems it's not used in ue4
-			//@TODO: Not sure what to use for yet
-			uint8 PropetyType = 0;
-			Writer << PropetyType;
 
 			// Context expression (this is the part that gets skipped if the object turns out NULL)
 			Skipper.BeginCounting();
@@ -748,7 +741,11 @@ public:
 
 		// Handle the function calling context if needed
 		FContextEmitter CallContextWriter(*this);
-		CallContextWriter.TryStartContext(Statement.FunctionContext, /*bUnsafeToSkip=*/ bHasOutputValue, Statement.bIsInterfaceContext);
+
+		// RValue property is used to clear value after Access Violation. See UObject::ProcessContextOpcod
+		// If the property from LHS is used, then the retured property (with CPF_ReturnParm) is cleared. But properties returned by ref are not cleared. 
+		UProperty* RValueProperty = nullptr; //Statement.LHS ? Statement.LHS->AssociatedVarProperty : nullptr;
+		CallContextWriter.TryStartContext(Statement.FunctionContext, /*bUnsafeToSkip=*/ bHasOutputValue, Statement.bIsInterfaceContext, RValueProperty);
 
 		// Emit the call type
 		if (FunctionToCall->HasAnyFunctionFlags(FUNC_Delegate))
@@ -871,7 +868,8 @@ public:
 				}
 
  				FContextEmitter CallContextWriter(*this);
-				CallContextWriter.TryStartContext(Term->Context, /*@TODO: bUnsafeToSkip*/ true, /*bIsInterfaceContext*/ false, RValueTerm);
+				UProperty* RValueProperty = RValueTerm ? RValueTerm->AssociatedVarProperty : nullptr;
+				CallContextWriter.TryStartContext(Term->Context, /*@TODO: bUnsafeToSkip*/ true, /*bIsInterfaceContext*/ false, RValueProperty);
 
 				EmitTermExpr(Term, CoerceProperty);
 			}

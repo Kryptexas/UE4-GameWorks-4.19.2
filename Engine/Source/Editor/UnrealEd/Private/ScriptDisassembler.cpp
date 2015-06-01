@@ -534,10 +534,6 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			UField* Field = ReadPointer<UField>(ScriptIndex);
 			Ar.Logf(TEXT("%s R-Value Property: %s"), *Indents, Field ? *Field->GetName() : TEXT("(null)"));
 
-			// Property type, in case the r-value is a non-property such as dynamic array length
-			uint8 PropType = ReadBYTE(ScriptIndex);
-			Ar.Logf(TEXT("%s PropertyTypeIfNeeded: %d"), *Indents, PropType);
-
 			// Context expression.
 			Ar.Logf(TEXT("%s ContextExpression:"), *Indents);
 			SerializeExpr( ScriptIndex );
