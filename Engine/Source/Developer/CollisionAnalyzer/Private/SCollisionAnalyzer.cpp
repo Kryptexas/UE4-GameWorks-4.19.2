@@ -29,7 +29,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 		.AutoHeight()
 		[
 			SNew( SBorder )
-			.BorderImage( FEditorStyle::GetBrush( "ToolBar.Background" ) )
+			.BorderImage( FCollisionAnalyzerStyle::Get()->GetBrush( "ToolBar.Background" ) )
 			[
 				SNew(SHorizontalBox)
 				// Record button
@@ -51,13 +51,13 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 				.Padding(1)
 				[
 					SNew(SCheckBox)
-					.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+					.Style(FCollisionAnalyzerStyle::Get(), "ToggleButtonCheckbox")
 					.OnCheckStateChanged(this, &SCollisionAnalyzer::OnDrawRecentChanged)
 					.IsChecked(this, &SCollisionAnalyzer::GetDrawRecentState)
 					.Content()
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("CollisionAnalyzer.ShowRecent"))
+						.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.ShowRecent"))
 					]
 				]
 			]
@@ -72,7 +72,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 			.Value(2)
 			[
 				SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+				.BorderImage(FCollisionAnalyzerStyle::Get()->GetBrush("Menu.Background"))
 				.Padding(1.0)
 				[
 					SAssignNew(QueryTreeWidget, STreeView< TSharedPtr<FQueryTreeItem> >)
@@ -123,13 +123,13 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 								.AutoWidth()
 								[
 									SNew(SCheckBox)
-									.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+									.Style(FCollisionAnalyzerStyle::Get(), "ToggleButtonCheckbox")
 									.OnCheckStateChanged(this, &SCollisionAnalyzer::OnGroupByFrameChanged)
 									.IsChecked( this, &SCollisionAnalyzer::GetGroupByFrameState)
 									.Content()
 									[
 										SNew(SImage)
-										.Image(FEditorStyle::GetBrush("CollisionAnalyzer.Group"))
+										.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Group"))
 									]
 								]
 							]
@@ -177,13 +177,13 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 								.AutoWidth()
 								[
 									SNew(SCheckBox)
-									.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+									.Style(FCollisionAnalyzerStyle::Get(), "ToggleButtonCheckbox")
 									.OnCheckStateChanged(this, &SCollisionAnalyzer::OnGroupByTagChanged)
 									.IsChecked( this, &SCollisionAnalyzer::GetGroupByTagState)
 									.Content()
 									[
 										SNew(SImage)
-										.Image(FEditorStyle::GetBrush("CollisionAnalyzer.Group"))
+										.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Group"))
 									]
 								]
 							]
@@ -217,13 +217,13 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 								.AutoWidth()
 								[
 									SNew(SCheckBox)
-									.Style(FEditorStyle::Get(), "ToggleButtonCheckbox")
+									.Style(FCollisionAnalyzerStyle::Get(), "ToggleButtonCheckbox")
 									.OnCheckStateChanged(this, &SCollisionAnalyzer::OnGroupByOwnerChanged)
 									.IsChecked( this, &SCollisionAnalyzer::GetGroupByOwnerState)
 									.Content()
 									[
 										SNew(SImage)
-										.Image(FEditorStyle::GetBrush("CollisionAnalyzer.Group"))
+										.Image(FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Group"))
 									]
 								]
 							]
@@ -281,7 +281,7 @@ void SCollisionAnalyzer::Construct(const FArguments& InArgs, FCollisionAnalyzer*
 		.AutoHeight()
 		[
 			SNew( SBorder )
-			.BorderImage( FEditorStyle::GetBrush( "ToolBar.Background" ) )
+			.BorderImage(FCollisionAnalyzerStyle::Get()->GetBrush("ToolBar.Background"))
 			[
 				SNew(STextBlock)
 				.Text(this, &SCollisionAnalyzer::GetStatusText)
@@ -651,12 +651,12 @@ const FSlateBrush* SCollisionAnalyzer::GetRecordButtonBrush() const
 	if(Analyzer->IsRecording())
 	{
 		// If recording, show stop button
-		return 	FEditorStyle::GetBrush("CollisionAnalyzer.Stop");
+		return FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Stop");
 	}
 	else
 	{
 		// If stopped, show record button
-		return 	FEditorStyle::GetBrush("CollisionAnalyzer.Record");
+		return FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.Record");
 	}
 }
 

@@ -1709,15 +1709,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "EditorLiveStreaming.BroadcastButton", new IMAGE_BRUSH( "Animation/Record", Icon20x20 ) );
 	}
 
-	// Collision Analyzer
-	{
-		Set( "CollisionAnalyzer.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_CollisionAnalyser_16x", Icon16x16 ) );
-		Set( "CollisionAnalyzer.Record", new IMAGE_BRUSH( "Icons/CA_Record", Icon24x24 ) );
-		Set( "CollisionAnalyzer.Stop", new IMAGE_BRUSH( "Icons/CA_Stop", Icon24x24 ) );
-		Set( "CollisionAnalyzer.ShowRecent", new IMAGE_BRUSH( "Icons/CA_ShowRecent", Icon24x24 ) );
-		Set( "CollisionAnalyzer.Group", new IMAGE_BRUSH( "Icons/CA_Group", FVector2D(10,18) ) );
-		Set( "CollisionAnalyzer.GroupBackground", new BOX_BRUSH( "/Icons/CA_GroupBackground", FMargin(4.f/16.f) ) );
-	}
 #endif // WITH_EDITOR || IS_PROGRAM
 
 #if WITH_EDITOR
