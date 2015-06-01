@@ -19,7 +19,7 @@ void SCollectionView::Construct( const FArguments& InArgs )
 	bAllowCollectionButtons = InArgs._AllowCollectionButtons;
 	bAllowRightClickMenu = InArgs._AllowRightClickMenu;
 
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	CollectionManagerModule.Get().OnCollectionCreated().AddSP( this, &SCollectionView::HandleCollectionCreated );
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SCollectionView::HandleCollectionRenamed );
 	CollectionManagerModule.Get().OnCollectionDestroyed().AddSP( this, &SCollectionView::HandleCollectionDestroyed );
@@ -168,7 +168,7 @@ void SCollectionView::UpdateCollectionItems()
 	CollectionItems.Empty();
 
 	// Load the collection manager module
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	// Get collections of all types
 	for (int32 TypeIdx = 0; TypeIdx < ECollectionShareType::CST_All; ++TypeIdx)
@@ -437,7 +437,7 @@ void SCollectionView::CreateCollectionItem( ECollectionShareType::Type Collectio
 {
 	if ( ensure(CollectionType != ECollectionShareType::CST_All) )
 	{
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>("CollectionManager");
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 		const FName BaseCollectionName = *LOCTEXT("NewCollectionName", "NewCollection").ToString();
 		FName CollectionName;
@@ -617,7 +617,7 @@ void SCollectionView::CollectionAssetsDropped(const TArray<FAssetData>& AssetLis
 		ObjectPaths.Add((*AssetIt).ObjectPath);
 	}
 
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>("CollectionManager");
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	int32 NumAdded = 0;
 	if ( CollectionManagerModule.Get().AddToCollection(CollectionItem->CollectionName, CollectionItem->CollectionType, ObjectPaths, &NumAdded) )
 	{
@@ -661,7 +661,7 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 	// There should only ever be one item selected when renaming
 	check(CollectionListPtr->GetNumItemsSelected() == 1);
 
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	ECollectionShareType::Type CollectionType = CollectionItem->CollectionType;
 
 	// If new name is empty, set it back to the original name
@@ -754,7 +754,7 @@ bool SCollectionView::CollectionVerifyRenameCommit(const TSharedPtr< FCollection
 		return true;
 	}
 
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	if (CollectionManagerModule.Get().CollectionExists(NewNameFinal, ECollectionShareType::CST_All))
 	{

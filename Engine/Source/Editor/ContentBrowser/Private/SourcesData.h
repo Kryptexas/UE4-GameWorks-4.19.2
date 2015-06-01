@@ -22,10 +22,10 @@ struct FSourcesData
 
 		// Collections
 		TArray<FName> ObjectPathsFromCollections;
-		if ( Collections.Num() )
+		if ( Collections.Num() && FCollectionManagerModule::IsModuleAvailable() )
 		{
 			// Collection manager module should already be loaded since it may cause a hitch on the first search
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 			for ( int32 CollectionIdx = 0; CollectionIdx < Collections.Num(); ++CollectionIdx )
 			{

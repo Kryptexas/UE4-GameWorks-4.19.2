@@ -88,7 +88,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	AssetRegistryModule.Get().OnPathAdded().AddSP( this, &SAssetView::OnAssetRegistryPathAdded );
 	AssetRegistryModule.Get().OnPathRemoved().AddSP( this, &SAssetView::OnAssetRegistryPathRemoved );
 
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	CollectionManagerModule.Get().OnAssetsAdded().AddSP( this, &SAssetView::OnAssetsAddedToCollection );
 	CollectionManagerModule.Get().OnAssetsRemoved().AddSP( this, &SAssetView::OnAssetsRemovedFromCollection );
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SAssetView::OnCollectionRenamed );
@@ -1107,7 +1107,7 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 			if( DragAssetOp.IsValid() )
 			{
 				TArray< FName > ObjectPaths;
-				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 				CollectionManagerModule.Get().GetObjectsInCollection( SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths );
 
 				bool IsValidDrop = false;
@@ -1172,7 +1172,7 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 
 			if (ObjectPaths.Num() > 0)
 			{
-				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 				CollectionManagerModule.Get().AddToCollection(SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths);
 			}
 
@@ -1377,7 +1377,7 @@ void SAssetView::RefreshSourceItems()
 		if ( bFilterAllowsClasses )
 		{
 			TArray< FName > ClassPaths;
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 			for (int32 Index = 0; Index < SourcesData.Collections.Num(); Index++)
 			{
 				CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths );
@@ -2174,7 +2174,7 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 
 		if ( SourcesData.Collections.Num() > 0 )
 		{
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 			TArray< FName > CollectionObjectPaths;
 			for (int Index = 0; Index < SourcesData.Collections.Num(); Index++)
 			{

@@ -309,8 +309,7 @@ void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType:
 		return;
 	}
 
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	CollectionManagerModule.Get().RenameCollection(CollectionList[0]->CollectionName, CollectionList[0]->CollectionType, CollectionList[0]->CollectionName, CollectionType);
 }
@@ -362,7 +361,7 @@ void FCollectionContextMenu::ExecuteDestroyCollection()
 
 FReply FCollectionContextMenu::ExecuteDestroyCollectionConfirmed(TArray<TSharedPtr<FCollectionItem>> CollectionList)
 {
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	TArray<TSharedPtr<FCollectionItem>> ItemsToRemove;
 	for (int32 CollectionIdx = 0; CollectionIdx < CollectionList.Num(); ++CollectionIdx)

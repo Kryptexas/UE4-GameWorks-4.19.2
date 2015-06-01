@@ -26,11 +26,12 @@ SContentBrowser::~SContentBrowser()
 	UContentBrowserSettings::OnSettingChanged().RemoveAll( this );
 
 	// Remove listeners for when collections/paths are renamed/deleted
-	FCollectionManagerModule* CollectionManagerModule = FModuleManager::GetModulePtr<FCollectionManagerModule>(TEXT("CollectionManager"));
-	if (CollectionManagerModule != nullptr)
+	if (FCollectionManagerModule::IsModuleAvailable())
 	{
-		CollectionManagerModule->Get().OnCollectionRenamed().RemoveAll(this);
-		CollectionManagerModule->Get().OnCollectionDestroyed().RemoveAll(this);
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		CollectionManagerModule.Get().OnCollectionRenamed().RemoveAll(this);
+		CollectionManagerModule.Get().OnCollectionDestroyed().RemoveAll(this);
 	}
 
 	FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -620,7 +621,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	LoadSettings(InInstanceName);
 
 	// Bindings to manage history when items are deleted
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP(this, &SContentBrowser::HandleCollectionRenamed);
 	CollectionManagerModule.Get().OnCollectionDestroyed().AddSP(this, &SContentBrowser::HandleCollectionRemoved);
 

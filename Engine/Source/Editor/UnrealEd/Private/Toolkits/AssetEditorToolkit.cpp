@@ -323,8 +323,7 @@ FText FAssetEditorToolkit::GetToolTipTextForObject(const UObject* InObject)
 		ToolTipString += TEXT(": ");
 		ToolTipString += InObject->GetName();
 
-		static const FName CollectionManagerModuleName = "CollectionManager";
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 		const FString CollectionNames = CollectionManagerModule.Get().GetCollectionsStringForObject(*InObject->GetPathName(), ECollectionShareType::CST_All);
 		if (!CollectionNames.IsEmpty())

@@ -396,8 +396,7 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 			
 			// Add Collections
 			{
-				static const FName CollectionManagerModuleName = "CollectionManager";
-				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 				const FString CollectionNames = CollectionManagerModule.Get().GetCollectionsStringForObject(AssetData.ObjectPath, ECollectionShareType::CST_All);
 				if (!CollectionNames.IsEmpty())

@@ -813,8 +813,7 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 	public:
 		static void CreateManageCollectionsSubMenu(FMenuBuilder& SubMenuBuilder, TSharedRef<FCollectionAssetManagement> QuickAssetManagement)
 		{
-			static const FName CollectionManagerModuleName = "CollectionManager";
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 			// Get collections of all types
 			TArray<FCollectionNameType> AvailableCollections;
@@ -887,8 +886,7 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 
 	bool bHasAddedItems = false;
 
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	MenuBuilder.BeginSection("AssetContextCollections", LOCTEXT("AssetCollectionOptionsMenuHeading", "Collections"));
 
@@ -1545,7 +1543,7 @@ void FAssetContextMenu::ExecuteRemoveFromCollection()
 
 		if ( AssetsToRemove.Num() > 0 )
 		{
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>("CollectionManager");
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 			FName CollectionName = SourcesData.Collections[0].Name;
 			ECollectionShareType::Type CollectionType = SourcesData.Collections[0].Type;

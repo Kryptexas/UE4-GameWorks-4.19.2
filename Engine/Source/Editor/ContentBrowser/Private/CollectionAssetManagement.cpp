@@ -10,8 +10,7 @@
 
 FCollectionAssetManagement::FCollectionAssetManagement()
 {
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	// Register the notifications we need in order to keep things up-to-date
 	OnCollectionRenamedHandle = CollectionManagerModule.Get().OnCollectionRenamed().AddRaw(this, &FCollectionAssetManagement::HandleCollectionRenamed);
@@ -22,16 +21,15 @@ FCollectionAssetManagement::FCollectionAssetManagement()
 
 FCollectionAssetManagement::~FCollectionAssetManagement()
 {
-	// Use Get rather than Load as we might be in the process of shutting down...
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule* CollectionManagerModulePtr = FModuleManager::Get().GetModulePtr<FCollectionManagerModule>(CollectionManagerModuleName);
-
-	if (CollectionManagerModulePtr)
+	// Check IsModuleAvailable as we might be in the process of shutting down...
+	if (FCollectionManagerModule::IsModuleAvailable())
 	{
-		CollectionManagerModulePtr->Get().OnCollectionRenamed().Remove(OnCollectionRenamedHandle);
-		CollectionManagerModulePtr->Get().OnCollectionDestroyed().Remove(OnCollectionDestroyedHandle);
-		CollectionManagerModulePtr->Get().OnAssetsAdded().Remove(OnAssetsAddedHandle);
-		CollectionManagerModulePtr->Get().OnAssetsRemoved().Remove(OnAssetsRemovedHandle);
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		CollectionManagerModule.Get().OnCollectionRenamed().Remove(OnCollectionRenamedHandle);
+		CollectionManagerModule.Get().OnCollectionDestroyed().Remove(OnCollectionDestroyedHandle);
+		CollectionManagerModule.Get().OnAssetsAdded().Remove(OnAssetsAddedHandle);
+		CollectionManagerModule.Get().OnAssetsRemoved().Remove(OnAssetsRemovedHandle);
 	}
 }
 
@@ -48,8 +46,7 @@ void FCollectionAssetManagement::SetCurrentAssets(const TArray<FAssetData>& Curr
 
 void FCollectionAssetManagement::AddCurrentAssetsToCollection(FCollectionNameType InCollectionKey)
 {
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	const TArray<FName> ObjectPaths = CurrentAssetPaths.Array();
 
@@ -88,8 +85,7 @@ void FCollectionAssetManagement::AddCurrentAssetsToCollection(FCollectionNameTyp
 
 void FCollectionAssetManagement::RemoveCurrentAssetsFromCollection(FCollectionNameType InCollectionKey)
 {
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	const TArray<FName> ObjectPaths = CurrentAssetPaths.Array();
 
@@ -148,8 +144,7 @@ ECheckBoxState FCollectionAssetManagement::GetCollectionCheckState(FCollectionNa
 
 void FCollectionAssetManagement::UpdateAssetManagementState()
 {
-	static const FName CollectionManagerModuleName = "CollectionManager";
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 	AssetManagementState.Empty();
 

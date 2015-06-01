@@ -234,31 +234,31 @@ class FCollectionPolicy
 public:
 	static bool CreateAssetSet(FName InSetName, ECollectionShareType::Type InSetType)
 	{
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		return CollectionManagerModule.Get().CreateCollection(InSetName, InSetType);
 	}
 
 	static bool DestroyAssetSet(FName InSetName, ECollectionShareType::Type InSetType )
 	{
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		return CollectionManagerModule.Get().DestroyCollection(InSetName, InSetType);
 	}
 
 	static bool RemoveAssetsFromSet(FName InSetName, ECollectionShareType::Type InSetType, const TArray<FName>& InAssetPathNames )
 	{
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		return CollectionManagerModule.Get().RemoveFromCollection(InSetName, InSetType, InAssetPathNames);
 	}
 
 	static bool AddAssetsToSet(FName InSetName, ECollectionShareType::Type InSetType, const TArray<FName>& InAssetPathNames )
 	{
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		return CollectionManagerModule.Get().AddToCollection(InSetName, InSetType, InAssetPathNames);
 	}
 
 	static bool QueryAssetsInSet(FName InSetName, ECollectionShareType::Type InSetType, TArray<FName>& OutAssetPathNames )
 	{
-		FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 		return CollectionManagerModule.Get().GetAssetsInCollection(InSetName, InSetType, OutAssetPathNames);
 	}
 };
