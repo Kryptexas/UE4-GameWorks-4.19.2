@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2559319
+﻿INTSourceChangelist:2571771
 Availability:Docs
 Title:Open World ツールの概要
 Crumbs:
-Description:レベルにスタティックメッシュをプロシージャルに配置するシステム
+Description:スタティックメッシュをレベルにプロシージャル配置するシステム
 Navigation:topic
 SkillLevel:Intermediate
 Version:4.8
