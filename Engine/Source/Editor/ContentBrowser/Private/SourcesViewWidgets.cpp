@@ -503,7 +503,7 @@ FText SCollectionListItem::GetNameText() const
 
 	if ( CollectionItemPtr.IsValid() )
 	{
-		return FText::FromString(CollectionItemPtr->CollectionName);
+		return FText::FromName(CollectionItemPtr->CollectionName);
 	}
 	else
 	{
@@ -517,7 +517,7 @@ FSlateColor SCollectionListItem::GetCollectionColor() const
 
 	if ( CollectionItemPtr.IsValid() )
 	{
-		const TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor(CollectionItemPtr->CollectionName, CollectionItemPtr->CollectionType);
+		const TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor(CollectionItemPtr->CollectionName.ToString(), CollectionItemPtr->CollectionType);
 		if( Color.IsValid() )
 		{
 			return *Color.Get();

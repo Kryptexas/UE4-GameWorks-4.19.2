@@ -14,7 +14,7 @@ struct FCollectionItem
 	};
 
 	/** The name of the collection */
-	FString CollectionName;
+	FName CollectionName;
 
 	/** The type of the collection */
 	ECollectionShareType::Type CollectionType;
@@ -32,7 +32,7 @@ struct FCollectionItem
 	FRenamedRequestEvent OnRenamedRequestEvent;
 
 	/** Constructor */
-	FCollectionItem(const FString& InCollectionName, const ECollectionShareType::Type& InCollectionType)
+	FCollectionItem(const FName& InCollectionName, const ECollectionShareType::Type& InCollectionType)
 		: CollectionName(InCollectionName)
 		, CollectionType(InCollectionType)
 		, bRenaming(false)

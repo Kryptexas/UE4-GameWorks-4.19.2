@@ -312,8 +312,7 @@ void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType:
 	static const FName CollectionManagerModuleName = "CollectionManager";
 	FCollectionManagerModule& CollectionManagerModule = FModuleManager::Get().LoadModuleChecked<FCollectionManagerModule>(CollectionManagerModuleName);
 
-	const FName CollectionName = *CollectionList[0]->CollectionName;
-	CollectionManagerModule.Get().RenameCollection(CollectionName, CollectionList[0]->CollectionType, CollectionName, CollectionType);
+	CollectionManagerModule.Get().RenameCollection(CollectionList[0]->CollectionName, CollectionList[0]->CollectionType, CollectionList[0]->CollectionName, CollectionType);
 }
 
 void FCollectionContextMenu::ExecuteRenameCollection()
@@ -345,7 +344,7 @@ void FCollectionContextMenu::ExecuteDestroyCollection()
 	FText Prompt;
 	if ( CollectionList.Num() == 1 )
 	{
-		Prompt = FText::Format(LOCTEXT("CollectionDestroyConfirm_Single", "Delete {0}?"), FText::FromString(CollectionList[0]->CollectionName));
+		Prompt = FText::Format(LOCTEXT("CollectionDestroyConfirm_Single", "Delete {0}?"), FText::FromName(CollectionList[0]->CollectionName));
 	}
 	else
 	{
@@ -370,7 +369,7 @@ FReply FCollectionContextMenu::ExecuteDestroyCollectionConfirmed(TArray<TSharedP
 	{
 		const TSharedPtr<FCollectionItem>& CollectionItem = CollectionList[CollectionIdx];
 
-		if ( CollectionManagerModule.Get().DestroyCollection(FName(*CollectionItem->CollectionName), CollectionItem->CollectionType) )
+		if ( CollectionManagerModule.Get().DestroyCollection(CollectionItem->CollectionName, CollectionItem->CollectionType) )
 		{
 			// Refresh the list now that the collection has been removed
 			ItemsToRemove.Add(CollectionItem);
