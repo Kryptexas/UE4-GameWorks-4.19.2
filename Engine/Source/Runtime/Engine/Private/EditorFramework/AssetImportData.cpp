@@ -86,8 +86,16 @@ TOptional<FAssetImportInfo> FAssetImportInfo::FromJson(FString InJsonString)
 
 void UAssetImportData::UpdateFilenameOnly(const FString& InPath)
 {
-	SourceFiles.Reset();
-	SourceFiles.Emplace(SanitizeImportFilename(InPath));
+	// Try and retain the MD5 and timestamp if possible
+	if (SourceFiles.Num() == 1)
+	{
+		SourceFiles[0].RelativeFilename = SanitizeImportFilename(InPath);
+	}
+	else
+	{
+		SourceFiles.Reset();
+		SourceFiles.Emplace(SanitizeImportFilename(InPath));
+	}
 }
 
 void UAssetImportData::Update(const FString& InPath)
