@@ -5,8 +5,6 @@ Description:Reference for the Behavior Tree Task nodes.
 
 [TOC(start:2 end:2)]
 
-## Overview
-
 This document is a reference page for the **Task Nodes** available in the Behavior Tree Editor. Tasks are nodes that "do" things, like move an AI, or adjust Blackboard values. They can have [**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) attached to them.
 
 ## Make Noise

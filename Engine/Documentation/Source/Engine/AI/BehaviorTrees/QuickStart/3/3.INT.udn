@@ -28,6 +28,7 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 ![](Assets.png)
 [/REGION]
 
+## Steps
 
 1. **New** -> **Blueprint** -> **AI Controller**
 

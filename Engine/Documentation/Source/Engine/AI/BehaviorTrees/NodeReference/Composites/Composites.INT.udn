@@ -5,8 +5,6 @@ Availability:Public
 
 [TOC(start:2 end:2)]
 
-## Overview
-
 **Composite Nodes** define the root of a branch and the base rules for how that branch is executed. They can have [**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) applied to them to modify entry into their branch or even cancel out mid execution. Also, they can have [**Services**](Engine/AI/BehaviorTrees/NodeReference/Services) attached to them that will only be active if the children of the Composite are being executed.
 
 ## Selector

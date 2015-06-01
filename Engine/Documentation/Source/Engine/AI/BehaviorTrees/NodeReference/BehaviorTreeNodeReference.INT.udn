@@ -3,9 +3,6 @@ Title: Behavior Trees Nodes Reference
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree nodes.
 
-[TOC(start:2 end:2)]
-
-## Overview
 
 This is a reference for the default nodes available in the Behavior Tree Editor. You may see more depending on the project you are working with (such as Shooter Game). There are five types of Behavior Tree Nodes:
 
@@ -35,7 +32,6 @@ See the links below to see full listings of the default Behavior Tree Nodes.
 	* [Services](Engine/AI/BehaviorTrees/NodeReference/Services "%Engine/AI/BehaviorTrees/NodeReference/Services:description% These attach to Composite nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems.")
 	[/PARAM]
 [/OBJECT]
-
 
 <!--
 [EXCERPT:rootNode]

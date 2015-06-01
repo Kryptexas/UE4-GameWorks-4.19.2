@@ -1,4 +1,4 @@
-Availability:Public
+Availability:Docs
 Title: Asking the Environment Smart Questions
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:This is a white paper written by Sr. AI Programmer Mieszko Zielinski over the predecessor to the Environment Query System: the Environment Tactical Querying.

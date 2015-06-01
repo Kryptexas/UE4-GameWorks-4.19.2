@@ -44,7 +44,7 @@ Description:The Environment Query System includes a specialized Pawn that will d
 
 ![](testingPawnBanner.png)(convert:false)
 
-The **Environment Query System Testing Pawn** (EQSTestingPawn) is a specialized Pawn class that enables you to check out what your Environment Queries are actually doing. The exact makeup of your Environment Query will define the size and shape of what is created, but it will always be represented as colored spheres. Spheres that are on the color scale from green to red, indicate some level of match for the various tests your Environment Query ran. Blue spheres indicate a failure or a bool type test that returned false, such as the **Trace** test.
+The **Environment Query System Testing Pawn** (EQSTestingPawn) is a specialized Pawn class that enables you to check out what your Environment Queries are actually doing. The exact makeup of your Environment Query will define the size and shape of what is created, but it will always be represented as colored spheres. Spheres that are on the color scale from green to red, indicate some level of match for the various tests your Environment Query ran. Blue spheres indicate a failure or a boolean type test that returned false, such as the **Trace** test.
 
 ## Creating an EQS Testing Pawn
 

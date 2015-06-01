@@ -25,7 +25,9 @@ Description:Step 8. Controller Blueprint: Run the Behavior Tree
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
 [/REGION]
 
-Finally, we just have to run our **Behavior Tree** with a single node:
+Finally, we just have to run our **Behavior Tree** with a single node.
+
+## Steps
 
 1. Create a **Run Behavior Tree** node.
 

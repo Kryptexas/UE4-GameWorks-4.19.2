@@ -5,7 +5,6 @@ Description:Reference for the Behavior Tree Decorator nodes.
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 **Decorator**, also known as conditionals in other Behavior Tree systems, are attached to either a [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) or a [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) node and define whether or not a branch in the tree, or even a single node, can be executed.
 
