@@ -9,6 +9,7 @@ using System.Threading;
 using System.Reflection;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
+using Tools.DotNETCommon.ExecutingAssembly;
 
 namespace UnrealBuildTool
 {
@@ -194,7 +195,7 @@ namespace UnrealBuildTool
 
         static public string GetUBTPath()
         {
-            string UnrealBuildToolPath = Path.Combine(Utils.GetExecutingAssemblyDirectory(), "UnrealBuildTool.exe");
+            string UnrealBuildToolPath = Path.Combine(ExecutingAssembly.GetDirectory(), "UnrealBuildTool.exe");
             return UnrealBuildToolPath;
         }
 
@@ -636,14 +637,14 @@ namespace UnrealBuildTool
             // Change the working directory to be the Engine/Source folder. We are likely running from Engine/Binaries/DotNET
             // This is critical to be done early so any code that relies on the current directory being Engine/Source will work.
             // UEBuildConfiguration.PostReset is susceptible to this, so we must do this before configs are loaded.
-            string EngineSourceDirectory = Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine", "Source");
+            string EngineSourceDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine", "Source");
 
             //@todo.Rocket: This is a workaround for recompiling game code in editor
             // The working directory when launching is *not* what we would expect
             if (Directory.Exists(EngineSourceDirectory) == false)
             {
                 // We are assuming UBT always runs from <>/Engine/...
-                EngineSourceDirectory = Path.GetDirectoryName(Utils.GetExecutingAssemblyLocation());
+                EngineSourceDirectory = ExecutingAssembly.GetDirectory();
                 EngineSourceDirectory = EngineSourceDirectory.Replace("\\", "/");
                 Int32 EngineIdx = EngineSourceDirectory.IndexOf("/Engine/");
                 if (EngineIdx != 0)
@@ -939,7 +940,7 @@ namespace UnrealBuildTool
                 Mutex SingleInstanceMutex = null;
                 if (bUseMutex)
                 {
-                    int LocationHash = Utils.GetExecutingAssemblyLocation().GetHashCode();
+                    int LocationHash = ExecutingAssembly.GetFilename().GetHashCode();
 
                     String MutexName;
                     if (bAutoSDKOnly || bValidatePlatforms)

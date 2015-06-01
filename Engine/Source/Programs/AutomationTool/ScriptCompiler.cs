@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace AutomationTool
 {

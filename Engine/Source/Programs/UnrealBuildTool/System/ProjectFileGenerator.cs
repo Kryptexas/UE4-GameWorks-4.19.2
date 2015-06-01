@@ -8,6 +8,7 @@ using System.Reflection;
 using Microsoft.Win32;
 using System.Linq;
 using System.Diagnostics;
+using Tools.DotNETCommon.ExecutingAssembly;
 
 namespace UnrealBuildTool
 {
@@ -304,7 +305,7 @@ namespace UnrealBuildTool
 					{
 						if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 						{
-							MasterProjectRelativePath = Path.GetFullPath(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine"));
+							MasterProjectRelativePath = Path.GetFullPath(Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine"));
 							GameProjectName = "UE4Game";
 						}
 						if (!Directory.Exists(MasterProjectRelativePath + "/Source"))

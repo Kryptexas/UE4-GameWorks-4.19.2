@@ -13,6 +13,8 @@ using Tools.DotNETCommon.XmlHandler;
 using UnrealBuildTool;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using Tools.DotNETCommon.CaselessDictionary;
+using Tools.DotNETCommon.HarvestEnvVars;
 
 namespace AutomationTool
 {
@@ -1717,53 +1719,26 @@ namespace AutomationTool
 		/// <returns>Dictionary of environment variables set by the batch file.</returns>
 		public static CaselessDictionary<string> GetEnvironmentVariablesFromBatchFile(string BatchFileName, bool AlsoSet = false)
 		{
-			if (File.Exists(BatchFileName))
+			CaselessDictionary<string> Result;
+			try
 			{
-				// Create a wrapper batch file that echoes environment variables to a text file
-				var EnvOutputFileName = CommandUtils.CombinePaths(Path.GetTempPath(), "HarvestEnvVars.txt");
-				var EnvReaderBatchFileName = CommandUtils.CombinePaths(Path.GetTempPath(), "HarvestEnvVars.bat");
-
-				{
-					var EnvReaderBatchFileContent = new List<string>();
-
-					// Run 'vcvars32.bat' (or similar x64 version) to set environment variables
-					EnvReaderBatchFileContent.Add(String.Format("call \"{0}\"", BatchFileName));
-
-					// Pipe all environment variables to a file where we can read them in
-					EnvReaderBatchFileContent.Add(String.Format("set >\"{0}\"", EnvOutputFileName));
-
-					File.WriteAllLines(EnvReaderBatchFileName, EnvReaderBatchFileContent);
-				}
-
-				InternalUtils.SafeDeleteFile(EnvOutputFileName);
-				CommandUtils.Run(EnvReaderBatchFileName, "");
-
-				var Result = new CaselessDictionary<string>();
-				// Load environment variables
-				var EnvStringsFromFile = File.ReadAllLines(EnvOutputFileName);
-				foreach (var EnvString in EnvStringsFromFile)
-				{
-					// Parse the environment variable name and value from the string ("name=value")
-					int EqualSignPos = EnvString.IndexOf('=');
-					var EnvironmentVariableName = EnvString.Substring(0, EqualSignPos);
-					var EnvironmentVariableValue = EnvString.Substring(EqualSignPos + 1);
-
-					if (Environment.GetEnvironmentVariable(EnvironmentVariableName) != EnvironmentVariableValue)
-					{
-						Result.Add(EnvironmentVariableName, EnvironmentVariableValue);
-					}
-					if (AlsoSet)
-					{
-						// Set the environment variable
-						Environment.SetEnvironmentVariable(EnvironmentVariableName, EnvironmentVariableValue);
-					}
-				}
-				return Result;
+				Result = HarvestEnvVars.HarvestEnvVarsFromBatchFile(BatchFileName, "", HarvestEnvVars.EPathOverride.User);
 			}
-			else
+			catch (Exception Ex)
 			{
-				throw new AutomationException("BatchFile {0} does not exist!", BatchFileName);
+				throw new AutomationException("Failed to harvest environment variables", Ex);
 			}
+
+			if (AlsoSet)
+			{
+				// Set the environment variables
+				foreach (var Envvar in Result)
+				{
+					Environment.SetEnvironmentVariable(Envvar.Key, Envvar.Value);
+				}
+			}
+
+			return Result;
 		}
 
 		#endregion

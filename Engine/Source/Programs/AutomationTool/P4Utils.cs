@@ -7,6 +7,7 @@ using System.IO;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace AutomationTool
 {

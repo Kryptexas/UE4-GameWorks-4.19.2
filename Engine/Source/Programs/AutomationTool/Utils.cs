@@ -1083,30 +1083,4 @@ namespace AutomationTool
 	}
 
 	#endregion
-
-	#region Case insensitive dictionary
-
-	/// <summary>
-	/// Equivalent of case insensitve Dictionary<string, T>
-	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	public class CaselessDictionary<T> : Dictionary<string, T>
-	{
-		public CaselessDictionary()
-			: base(StringComparer.InvariantCultureIgnoreCase)
-		{
-		}
-
-		public CaselessDictionary(int Capacity)
-			: base(Capacity, StringComparer.InvariantCultureIgnoreCase)
-		{
-		}
-
-		public CaselessDictionary(IDictionary<string, T> Dict)
-			: base(Dict, StringComparer.InvariantCultureIgnoreCase)
-		{
-		}
-	}
-
-	#endregion
 }

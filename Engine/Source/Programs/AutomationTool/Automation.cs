@@ -7,6 +7,7 @@ using System.IO;
 using System.Reflection;
 using System.Diagnostics;
 using UnrealBuildTool;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace AutomationTool
 {

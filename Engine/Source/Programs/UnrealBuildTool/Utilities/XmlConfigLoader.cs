@@ -13,6 +13,7 @@ using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
+using Tools.DotNETCommon.ExecutingAssembly;
 
 namespace UnrealBuildTool
 {
@@ -501,7 +502,7 @@ namespace UnrealBuildTool
 			 *	priority. Not defined classes and fields are left alone.
 			 */
 
-			var UE4EnginePath = new FileInfo(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..")).FullName;
+			var UE4EnginePath = new FileInfo(Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..")).FullName;
 
 			ConfigLocationHierarchy = new XmlConfigLocation[]
 			{
@@ -960,7 +961,7 @@ namespace UnrealBuildTool
 		/// <returns>Standard BuildConfiguration.xml schema path.</returns>
 		public static string GetXSDPath()
 		{
-			return new FileInfo(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "Saved", "UnrealBuildTool", "BuildConfiguration.Schema.xsd")).FullName;
+			return new FileInfo(Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "Saved", "UnrealBuildTool", "BuildConfiguration.Schema.xsd")).FullName;
 		}
 
 		private static XElement CreateXSDElementForField(FieldInfo Field)

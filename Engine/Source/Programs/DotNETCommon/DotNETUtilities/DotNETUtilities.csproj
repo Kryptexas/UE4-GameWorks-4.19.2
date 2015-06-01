@@ -49,6 +49,10 @@
     <Compile Include="..\MetaData.cs">
       <Link>Properties\MetaData.cs</Link>
     </Compile>
+    <Compile Include="CaselessDictionary.cs" />
+    <Compile Include="ExecutingAssembly.cs" />
+    <Compile Include="FileSystem.cs" />
+    <Compile Include="HarvestEnvVars.cs" />
     <Compile Include="LaunchProcess.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleWebRequest.cs" />
