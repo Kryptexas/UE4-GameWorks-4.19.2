@@ -136,6 +136,8 @@ bool FDerivedDataNavCollisionCooker::Build( TArray<uint8>& OutData )
 //----------------------------------------------------------------------//
 UNavCollision::UNavCollision(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {	
+	bHasConvexGeometry = false;
+	bForceGeometryRebuild = false;
 }
 
 FGuid UNavCollision::GetGuid() const
@@ -161,7 +163,7 @@ void UNavCollision::Setup(UBodySetup* BodySetup)
 	{
 		// Find or create cooked navcollision data
 		FByteBulkData* FormatData = GetCookedData(NAVCOLLISION_FORMAT);
-		if( FormatData )
+		if (!bForceGeometryRebuild && FormatData)
 		{
 			// if it's not being already processed
 			if (FormatData->IsLocked() == false)
@@ -343,7 +345,8 @@ void UNavCollision::Serialize(FArchive& Ar)
 
 	const int32 VerInitial = 1;
 	const int32 VerAreaClass = 2;
-	const int32 VerLatest = VerAreaClass;
+	const int32 VerConvexTransforms = 3;
+	const int32 VerLatest = VerConvexTransforms;
 
 	// use magic number to determine if serialized stream has version :/
 	const int32 MagicNum = 0xA237F237;
@@ -399,6 +402,11 @@ void UNavCollision::Serialize(FArchive& Ar)
 	if (Version >= VerAreaClass)
 	{
 		Ar << AreaClass;
+	}
+
+	if (Version < VerConvexTransforms && Ar.IsLoading() && GIsEditor)
+	{
+		bForceGeometryRebuild = true;
 	}
 }
 
