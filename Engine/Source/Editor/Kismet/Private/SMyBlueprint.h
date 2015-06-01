@@ -40,7 +40,6 @@ public:
 	TSharedPtr<FUICommandInfo> FocusNode;
 	TSharedPtr<FUICommandInfo> FocusNodeInNewTab;
 	TSharedPtr<FUICommandInfo> ImplementFunction;
-	TSharedPtr<FUICommandInfo> FindEntry;
 	TSharedPtr<FUICommandInfo> DeleteEntry;
 	TSharedPtr<FUICommandInfo> GotoNativeVarDefinition;
 	// Add New Item
@@ -193,8 +192,8 @@ private:
 	void ImplementFunction(TSharedPtr<FEdGraphSchemaAction_K2Graph> GraphAction);
 	void ImplementFunction(FEdGraphSchemaAction_K2Graph* GraphAction);
 	bool CanImplementFunction() const;
-	void OnFindEntry();
-	bool CanFindEntry() const;
+	void OnFindReference();
+	bool CanFindReference() const;
 	void OnDeleteEntry();
 	bool CanDeleteEntry() const;
 	FReply OnAddNewLocalVariable();

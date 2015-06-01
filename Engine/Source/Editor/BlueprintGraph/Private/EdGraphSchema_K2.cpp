@@ -1580,12 +1580,6 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().RemoveOptionPin);
 					}
 
-					// Conditionally add the action to find instances of the node if it is a custom event
-					if (InGraphNode->IsA(UK2Node_CustomEvent::StaticClass()))
-					{
-						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().FindInstancesOfCustomEvent);
-					}
-
 					// Don't show the "Assign selected Actor" option if more than one actor is selected
 					if (InGraphNode->IsA(UK2Node_ActorBoundEvent::StaticClass()) && GEditor->GetSelectedActorCount() == 1)
 					{
@@ -1612,10 +1606,11 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GoToDefinition);
 					}
 
+					MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().FindReferences);
+
 					// show search for references for variable nodes and goto source code action
 					if (InGraphNode->IsA(UK2Node_Variable::StaticClass()))
 					{
-						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().FindVariableReferences);
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeVariableDefinition);
 						GetReplaceVariableMenu(InGraphNode,OwnerBlueprint, MenuBuilder, true);
 					}

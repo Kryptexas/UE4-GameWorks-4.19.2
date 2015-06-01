@@ -443,4 +443,20 @@ void UK2Node_CustomEvent::AutowireNewNode(UEdGraphPin* FromPin)
 	}
 }
 
+void UK2Node_CustomEvent::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
+{
+	Super::AddSearchMetaDataInfo(OutTaggedMetaData);
+
+	for (FSearchTagDataPair& SearchData : OutTaggedMetaData)
+	{
+		// Should always be the first item, but there is no guarantee
+		if (SearchData.Key.CompareTo(FFindInBlueprintSearchTags::FiB_Name) == 0)
+		{
+			SearchData.Value = FText::FromString(FName::NameToDisplayString(CustomFunctionName.ToString(), false));
+			break;
+		}
+	}
+	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_NativeName, FText::FromName(CustomFunctionName)));
+}
+
 #undef LOCTEXT_NAMESPACE

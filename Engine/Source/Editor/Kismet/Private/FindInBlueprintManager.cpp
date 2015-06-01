@@ -31,6 +31,7 @@ const FText FFindInBlueprintSearchTags::FiB_Macros = LOCTEXT("Macros", "Macros")
 const FText FFindInBlueprintSearchTags::FiB_SubGraphs = LOCTEXT("Sub", "Sub");
 
 const FText FFindInBlueprintSearchTags::FiB_Name = LOCTEXT("Name", "Name");
+const FText FFindInBlueprintSearchTags::FiB_NativeName = LOCTEXT("NativeName", "Native Name");
 const FText FFindInBlueprintSearchTags::FiB_ClassName = LOCTEXT("ClassName", "ClassName");
 const FText FFindInBlueprintSearchTags::FiB_NodeGuid = LOCTEXT("NodeGuid", "NodeGuid");
 const FText FFindInBlueprintSearchTags::FiB_Tooltip = LOCTEXT("Tooltip", "Tooltip");
@@ -46,6 +47,51 @@ const FText FFindInBlueprintSearchTags::FiB_IsArray = LOCTEXT("IsArray", "IsArra
 const FText FFindInBlueprintSearchTags::FiB_IsReference = LOCTEXT("IsReference", "IsReference");
 const FText FFindInBlueprintSearchTags::FiB_Glyph = LOCTEXT("Glyph", "Glyph");
 const FText FFindInBlueprintSearchTags::FiB_GlyphColor = LOCTEXT("GlyphColor", "GlyphColor");
+
+/** Temporarily forces all nodes and pins to use non-friendly names, forces all schema to have nodes clear their cached values so they will re-cache, and then reverts at the end */
+struct FTemporarilyUseFriendlyNodeTitles
+{
+	FTemporarilyUseFriendlyNodeTitles()
+	{
+		UEditorStyleSettings* EditorSettings = GetMutableDefault<UEditorStyleSettings>();
+
+		// Cache the value of bShowFriendlyNames, we will force it to true for gathering BP search data and then restore it
+		bCacheShowFriendlyNames = EditorSettings->bShowFriendlyNames;
+
+		EditorSettings->bShowFriendlyNames = true;
+		ForceVisualizationCacheClear();
+	}
+
+	~FTemporarilyUseFriendlyNodeTitles()
+	{
+		UEditorStyleSettings* EditorSettings = GetMutableDefault<UEditorStyleSettings>();
+		EditorSettings->bShowFriendlyNames = bCacheShowFriendlyNames;
+		ForceVisualizationCacheClear();
+	}
+
+	/** Go through all Schemas and force a visualization cache clear, forcing nodes to refresh their titles */
+	void ForceVisualizationCacheClear()
+	{
+		// Only do the purge if the state was changed
+		if (!bCacheShowFriendlyNames)
+		{
+			// Find all Schemas and force a visualization cache clear
+			for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+			{
+				UClass* CurrentClass = *ClassIt;
+
+				if (UEdGraphSchema* Schema = Cast<UEdGraphSchema>(CurrentClass->GetDefaultObject()))
+				{
+					Schema->ForceVisualizationCacheClear();
+				}
+			}
+		}
+	}
+
+private:
+	/** Cached state of ShowFriendlyNames in EditorSettings */
+	bool bCacheShowFriendlyNames;
+};
 
 /** Helper functions for serialization of types to and from an FString */
 namespace FiBSerializationHelpers
@@ -337,10 +383,6 @@ namespace BlueprintSearchMetaDataHelpers
 		{ 
 			check( this->CurrentToken == EJsonToken::String ); 
 			// The string value from Json is a Hex value that must be looked up in the LookupTable to find the FText it represents
-			if(const FText* LookupText = LookupTable.Find(FCString::Atoi(*this->StringValue)))
-			{
-				return LookupText->ToString();
-			}
 			return this->StringValue;
 		}
 
@@ -1011,7 +1053,9 @@ void FFindInBlueprintSearchManager::OnAssetLoaded(UObject* InAsset)
 }
 
 FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlueprint* Blueprint)
-{
+{	
+	FTemporarilyUseFriendlyNodeTitles TemporarilyUseFriendlyNodeTitles;
+
 	FString SearchMetaData;
 
 	// The search registry tags for a Blueprint are all in Json
@@ -1515,7 +1559,7 @@ bool FFindInBlueprintSearchManager::IsCacheInProgress() const
 	return CachingObject != nullptr;
 }
 
-TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObject(FString InJsonString)
+TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObject(FString InJsonString, TMap<int32, FText>& OutFTextLookupTable)
 {
 	/** The searchable data is more complicated than a Json string, the Json being the main searchable body that is parsed. Below is a diagram of the full data:
 	 *  | int32 "Size" | TMap "Lookup Table" | Json String |
@@ -1536,7 +1580,7 @@ TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObje
 
  	// With the size of the TMap in hand, let's serialize JUST that (as a byte string)
 	TMap<int32, FText> LookupTable;
-	LookupTable = FiBSerializationHelpers::Deserialize< TMap<int32, FText> >(ReaderStream, SizeOfData);
+	OutFTextLookupTable = LookupTable = FiBSerializationHelpers::Deserialize< TMap<int32, FText> >(ReaderStream, SizeOfData);
 
 	// The original BufferReader should be positioned at the Json
 	TSharedPtr< FJsonObject > JsonObject = NULL;

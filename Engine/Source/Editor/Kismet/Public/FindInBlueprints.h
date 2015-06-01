@@ -38,21 +38,23 @@ public:
 	/**
 	 * Extracts the content of a JsonNode, building the sub-hierarchy for display
 	 *
+	 * @param InLookupTable		Lookup table for converting Json strings into an FText
 	 * @param InJsonNode		Node to extract data from
 	 * @param InTokens			Tokens to match searchable content against
 	 * @return					Returns TRUE if the content matches search results and was extracted
 	 */
-	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) { return ExtractContent(InJsonNode, InTokens, NULL); };
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) { return ExtractContent(InLookupTable, InJsonNode, InTokens, NULL); };
 
 	/**
 	 * Extracts the content of a JsonNode, building the sub-hierarchy for display
 	 *
+	 * @param InLookupTable		Lookup table for converting Json strings into an FText
 	 * @param InJsonNode		Node to extract data from
 	 * @param InTokens			Tokens to match searchable content against
 	 * @param InParentOverride	Parent search result to attach sub-content to
 	 * @return					Returns TRUE if the content matches search results and was extracted
 	 */
-	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
 
 	/**
 	 * Parses search info for specific data important for displaying the search result in an easy to understand format
@@ -64,7 +66,7 @@ public:
 	 *
 	 * @return					TRUE if the item passes the search filter or is otherwise accepted
 	 */
-	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
 
 	/**
 	 * Adds extra search info, anything that does not have a predestined place in the search result. Adds a sub-item to the searches and formats its description so the tag displays
@@ -73,7 +75,7 @@ public:
 	 * @param	InValue			Compared against search query to see if it passes the filter, sometimes data is rejected because it is deemed unsearchable
 	 * @param	InParent		The parent search result
 	 */
-	void AddExtraSearchInfo(FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
+	void AddExtraSearchInfo(FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent);
 
 	/**
 	 * Iterates through all this node's children, and tells the tree view to expand them
@@ -88,12 +90,13 @@ protected:
 	/**
 	 * Extracts the details of a JsonValue in the search results, pushing arrays into sub-objects correctly, breaking up objects, and passing on the rest of the types
 	 *
+	 * @param	InLookupTable			Lookup table for converting Json strings into an FText
 	 * @param	InTokens				The search tokens to check results against
 	 * @param	InKey					This is the tag for the data, describing what it is so special handling can occur if needed
 	 * @param	InValue					Has all the data for this object that needs to be deciphered or broken up into base types to be deciphered
 	 * @param	InParentOverride		The parent to attach all children data to, can be NULL.
 	 */
-	bool ExtractJsonValue(const TArray<FString>& InTokens, FText InKey, TSharedPtr< FJsonValue > InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
+	bool ExtractJsonValue(const TMap<int32, FText>& InLookupTable, const TArray<FString>& InTokens, FText InKey, TSharedPtr< FJsonValue > InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride);
 
 public:
 	/*Any children listed under this category */
@@ -119,8 +122,8 @@ public:
 	/** FFindInBlueprintsResult Interface */
 	virtual FReply OnClick() override;
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
-	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
@@ -151,7 +154,7 @@ public:
 
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
@@ -178,7 +181,7 @@ public:
 
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
@@ -206,9 +209,9 @@ public:
 	/** FFindInBlueprintsResult Interface */
 	virtual FReply OnClick() override;
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
-	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
+	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual FText GetCategory() const override;
-	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
+	virtual bool ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
 	/** End FFindInBlueprintsResult Interface */
 protected:
 

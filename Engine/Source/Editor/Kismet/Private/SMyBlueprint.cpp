@@ -21,6 +21,7 @@
 #include "SBlueprintPalette.h"
 #include "SGraphActionMenu.h"
 #include "BlueprintEditorCommands.h"
+#include "GraphEditorActions.h"
 
 #include "Editor/AnimGraph/Classes/AnimationGraph.h"
 
@@ -54,7 +55,6 @@ void FMyBlueprintCommands::RegisterCommands()
 	UI_COMMAND( FocusNode, "Focus", "Focuses on the associated node", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( FocusNodeInNewTab, "Focus in New Tab", "Focuses on the associated node in a new tab", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ImplementFunction, "Implement Function", "Implements this overridable function as a new function.", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( FindEntry, "Find References", "Searches for all references of this function or variable.", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND(DeleteEntry, "Delete", "Deletes this function or variable from this blueprint.", EUserInterfaceActionType::Button, FInputChord(EKeys::Platform_Delete));
 	UI_COMMAND( GotoNativeVarDefinition, "Goto Code Definition", "Goto the native code definition of this variable", EUserInterfaceActionType::Button, FInputChord() );
 }
@@ -169,10 +169,10 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 			FCanExecuteAction(), FIsActionChecked(),
 			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanImplementFunction) );
 	
-		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().FindEntry,
-			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindEntry),
+		ToolKitCommandList->MapAction( FGraphEditorCommands::Get().FindReferences,
+			FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindReference),
 			FCanExecuteAction(),
-			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindEntry) );
+			FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindReference) );
 	
 		ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
 			FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
@@ -1831,7 +1831,7 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FocusNodeInNewTab);
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("Rename", "Rename"), LOCTEXT("Rename_Tooltip", "Renames this function or variable from blueprint.") );
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().ImplementFunction);
-			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FindEntry);
+			MenuBuilder.AddMenuEntry(FGraphEditorCommands::Get().FindReferences);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().GotoNativeVarDefinition);
 			MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().DeleteEntry);
@@ -2078,7 +2078,7 @@ void SMyBlueprint::ImplementFunction(FEdGraphSchemaAction_K2Graph* GraphAction)
 	}
 }
 
-void SMyBlueprint::OnFindEntry()
+void SMyBlueprint::OnFindReference()
 {
 	FString SearchTerm;
 	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
@@ -2103,7 +2103,7 @@ void SMyBlueprint::OnFindEntry()
 	}
 	else if (FEdGraphSchemaAction_K2Struct* StructAction = SelectionAsStruct())
 	{
-		BlueprintEditorPtr.Pin()->SummonSearchUI(true, StructAction->Struct->GetName());
+		SearchTerm = StructAction->Struct->GetName();
 	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
@@ -2122,7 +2122,7 @@ void SMyBlueprint::OnFindEntry()
 	}
 }
 
-bool SMyBlueprint::CanFindEntry() const
+bool SMyBlueprint::CanFindReference() const
 {
 	// Nothing relevant to the category will ever be found, unless the name of the category overlaps with another item
 	if (SelectionIsCategory())

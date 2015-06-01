@@ -459,9 +459,6 @@ public:
 
 	virtual void ClearSelectionStateFor(FName SelectionOwner);
 
-	/** Find all instances of the selected custom event. */
-	void OnFindInstancesCustomEvent();
-
 	/** Handles spawning a graph node in the current graph using the passed in chord */
 	FReply OnSpawnGraphNodeByShortcut(FInputChord InChord, const FVector2D& InPosition, UEdGraph* InGraph);
 
@@ -920,11 +917,11 @@ private:
 	/** Helper function to navigate the current tab */
 	void NavigateTab(FDocumentTracker::EOpenDocumentCause InCause);
 
-	/** Find all references of the selected variable. */
-	void OnFindVariableReferences();
+	/** Find all references of the selected node. */
+	void OnFindReferences();
 
-	/** Checks if we can currently find all references of the variable selection. */
-	bool CanFindVariableReferences();
+	/** Checks if we can currently find all references of the node selection. */
+	bool CanFindReferences();
 
 	/** Called when the user generates a warning tooltip because a connection was invalid */
 	void OnDisallowedPinConnection(const class UEdGraphPin* PinA, const class UEdGraphPin* PinB);

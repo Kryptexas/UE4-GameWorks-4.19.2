@@ -31,6 +31,8 @@ struct KISMET_API FFindInBlueprintSearchTags
 
 	/** Name tag */
 	static const FText FiB_Name;
+	/** Native Name tag */
+	static const FText FiB_NativeName;
 	/** Class Name tag */
 	static const FText FiB_ClassName;
 	/** NodeGuid tag */
@@ -261,7 +263,7 @@ public:
 	static FString ConvertFStringToHexString(FString InValue);
 
 	/** Given a fully constructed Find-in-Blueprint FString of searchable data, will parse and construct a JsonObject */
-	static TSharedPtr< class FJsonObject > ConvertJsonStringToObject(FString InJsonString);
+	static TSharedPtr< class FJsonObject > ConvertJsonStringToObject(FString InJsonString, TMap<int32, FText>& OutFTextLookupTable);
 
 private:
 	/** Initializes the FiB manager */

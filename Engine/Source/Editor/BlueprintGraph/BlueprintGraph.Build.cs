@@ -33,6 +33,7 @@ public class BlueprintGraph : ModuleRules
 				"UnrealEd",
                 "GraphEditor",
 				"SlateCore",
+                "Kismet",
 			}
 		);
 
@@ -41,6 +42,7 @@ public class BlueprintGraph : ModuleRules
                 "KismetCompiler",
                 "UnrealEd",
                 "GraphEditor",
+                "Kismet",
             }
 		); 
 	}

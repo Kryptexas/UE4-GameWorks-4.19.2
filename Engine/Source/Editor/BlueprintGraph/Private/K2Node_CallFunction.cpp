@@ -11,6 +11,7 @@
 #include "K2Node_PureAssignmentStatement.h"
 #include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -1296,7 +1297,20 @@ void UK2Node_CallFunction::GeneratePinTooltipFromFunction(UEdGraphPin& Pin, cons
 
 FText UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Function)
 {
-	return Function->GetDisplayNameText();
+	FText ReturnDisplayName;
+
+	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
+	{
+		ReturnDisplayName = Function->GetDisplayNameText();
+	}
+	else
+	{
+		static const FString Namespace = TEXT("UObjectDisplayNames");
+		const FString Key = Function->GetFullGroupName(false);
+
+		ReturnDisplayName = Function->GetMetaDataText(TEXT("DisplayName"), Namespace, Key);
+	}
+	return ReturnDisplayName;
 }
 
 FString UK2Node_CallFunction::GetDefaultTooltipForFunction(const UFunction* Function)
@@ -2287,6 +2301,16 @@ bool UK2Node_CallFunction::IsStructureWildcardProperty(const UFunction* Function
 		}
 	}
 	return false;
+}
+
+void UK2Node_CallFunction::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
+{
+	Super::AddSearchMetaDataInfo(OutTaggedMetaData);
+
+	if (UFunction* TargetFunction = GetTargetFunction())
+	{
+		OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_NativeName, FText::FromString(TargetFunction->GetName())));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

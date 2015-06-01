@@ -1114,13 +1114,9 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP(this, &FBlueprintEditor::SetPinVisibility, SGraphEditor::Pin_HideNoConnectionNoDefault)
 				);
 
-			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().FindInstancesOfCustomEvent,
-				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnFindInstancesCustomEvent )
-				);
-
-			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().FindVariableReferences,
-				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnFindVariableReferences ),
-				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanFindVariableReferences )
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().FindReferences,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnFindReferences ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanFindReferences )
 				);
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeFunctionDefinition,
@@ -7102,37 +7098,6 @@ void FBlueprintEditor::SetPinVisibility(SGraphEditor::EPinVisibility Visibility)
 	OnSetPinVisibility.Broadcast(PinVisibility);
 }
 
-void FBlueprintEditor::OnFindVariableReferences()
-{
-	auto GraphEditor = FocusedGraphEdPtr.Pin();
-	if (GraphEditor.IsValid())
-	{
-		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
-		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
-		{
-			UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(*NodeIt);
-			if (VariableNode)
-			{
-				SummonSearchUI(true, VariableNode->GetVarName().ToString());
-			}
-		}
-	}
-}
-
-bool FBlueprintEditor::CanFindVariableReferences()
-{
-	auto GraphEditor = FocusedGraphEdPtr.Pin();
-	if (GraphEditor.IsValid())
-	{
-		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
-		if( SelectedNodes.Num() == 1 )
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
 void FBlueprintEditor::GotoNativeFunctionDefinition()
 {
 	auto GraphEditor = FocusedGraphEdPtr.Pin();
@@ -7248,25 +7213,53 @@ bool FBlueprintEditor::IsNativeCodeBrowsingAvailable() const
 	return bCodeBasedProject;
 }
 
-void FBlueprintEditor::OnFindInstancesCustomEvent()
+void FBlueprintEditor::OnFindReferences()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if (GraphEditor.IsValid())
+	{
+		FString SearchTerm;
+
+		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+		{
+			UEdGraphNode* SelectedNode = Cast<UEdGraphNode>(*NodeIt);
+			if (SelectedNode != NULL)
+			{
+				if (UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(SelectedNode))
+				{
+					SearchTerm =  CustomEvent->CustomFunctionName.ToString();
+				}
+				else if (UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(SelectedNode))
+				{
+					SearchTerm = FName::NameToDisplayString(VariableNode->GetVarName().ToString(), VariableNode->GetPropertyForVariable()->IsA(UBoolProperty::StaticClass()) );
+				}
+				else
+				{
+					SearchTerm = SelectedNode->GetNodeTitle(ENodeTitleType::ListView).ToString();
+				}
+			}
+		}
+
+		if (!SearchTerm.IsEmpty())
+		{
+			SummonSearchUI(true, FString::Printf(TEXT("\"%s\""), *SearchTerm));
+		}
+	}
+}
+
+bool FBlueprintEditor::CanFindReferences()
 {
 	auto GraphEditor = FocusedGraphEdPtr.Pin();
 	if (GraphEditor.IsValid())
 	{
 		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
-		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
+		if( SelectedNodes.Num() == 1 )
 		{
-			UEdGraphNode* SelectedNode = Cast<UEdGraphNode>(*NodeIt);
-			if (SelectedNode != NULL && SelectedNode->bCanRenameNode)
-			{
-				if (SelectedNode->IsA(UK2Node_CustomEvent::StaticClass()))
-				{
-					UK2Node_CustomEvent* CustomEvent = (UK2Node_CustomEvent*)SelectedNode;
-					SummonSearchUI(true, CustomEvent->CustomFunctionName.ToString());
-				}
-			}
+			return true;
 		}
 	}
+	return false;
 }
 
 AActor* FBlueprintEditor::GetPreviewActor() const
