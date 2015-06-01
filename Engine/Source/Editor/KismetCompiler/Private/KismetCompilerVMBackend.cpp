@@ -912,6 +912,8 @@ public:
 		else
 		{
 			Writer << EX_Let;
+			Writer << DestinationExpression->AssociatedVarProperty;
+
 		}
 		EmitTerm(DestinationExpression);
 	}
@@ -945,6 +947,8 @@ public:
 		FBPTerminal* TargetExpression = Statement.RHS[1];
 
 		Writer << EX_Let;
+		UProperty* PropertyToHandleComplexStruct = nullptr;
+		Writer << PropertyToHandleComplexStruct;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_ObjToInterfaceCast;
@@ -961,6 +965,8 @@ public:
 		FBPTerminal* TargetExpression      = Statement.RHS[1];
 
 		Writer << EX_Let;
+		UProperty* PropertyToHandleComplexStruct = nullptr;
+		Writer << PropertyToHandleComplexStruct;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_CrossInterfaceCast;
@@ -977,6 +983,8 @@ public:
 		FBPTerminal* TargetInterfaceExpression = Statement.RHS[1];
 
 		Writer << EX_Let;
+		UProperty* PropertyToHandleComplexStruct = nullptr;
+		Writer << PropertyToHandleComplexStruct;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_InterfaceToObjCast;
@@ -993,6 +1001,8 @@ public:
 		FBPTerminal* TargetExpression = Statement.RHS[1];
 
 		Writer << EX_Let;
+		UProperty* PropertyToHandleComplexStruct = nullptr;
+		Writer << PropertyToHandleComplexStruct;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_DynamicCast;
@@ -1008,6 +1018,8 @@ public:
 		FBPTerminal* TargetExpression = Statement.RHS[1];
 
 		Writer << EX_Let;
+		UProperty* PropertyToHandleComplexStruct = nullptr;
+		Writer << PropertyToHandleComplexStruct;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_MetaCast;
@@ -1025,6 +1037,8 @@ public:
 		const bool bIsInterfaceCast = (PSCObjClass && PSCObjClass->HasAnyClassFlags(CLASS_Interface));
 
 		Writer << EX_Let;
+		UProperty* PropertyToHandleComplexStruct = nullptr;
+		Writer << PropertyToHandleComplexStruct;
 		EmitTerm(DestinationExpression);
 
 		Writer << EX_PrimitiveCast;

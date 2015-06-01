@@ -1343,27 +1343,46 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 }
 IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
-void UObject::execLet( FFrame& Stack, RESULT_DECL )
+void UObject::execLet(FFrame& Stack, RESULT_DECL)
 {
 	checkSlow(!dynamic_cast<UBoolProperty*>(this));
 
-	// Get variable address.
-	Stack.MostRecentPropertyAddress = NULL;
-	Stack.Step( Stack.Object, NULL ); // Evaluate variable.
+	Stack.MostRecentProperty = nullptr;
+	UProperty* LocallyKnownProperty = Stack.ReadProperty();
 
-	if (Stack.MostRecentPropertyAddress == NULL)
+	// Get variable address.
+	Stack.MostRecentProperty = nullptr;
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.Step(Stack.Object, nullptr); // Evaluate variable.
+
+	uint8* LocalTempResult = nullptr;
+	if (Stack.MostRecentPropertyAddress == nullptr)
 	{
 		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to assign variable through None"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
+		if (LocallyKnownProperty)
+		{
+			LocalTempResult = (uint8*)FMemory_Alloca(LocallyKnownProperty->GetSize());
+			LocallyKnownProperty->InitializeValue(LocalTempResult);
+			Stack.MostRecentPropertyAddress = LocalTempResult;
+		}
+		else
+		{
 			//@TODO: ScriptParallel: Contended static usage
 			static uint8 Crud[1024];//@temp
 			Stack.MostRecentPropertyAddress = Crud;
 			FMemory::Memzero(Stack.MostRecentPropertyAddress, sizeof(FString));
 		}
+	}
 
 	// Evaluate expression into variable.
-	Stack.Step( Stack.Object, Stack.MostRecentPropertyAddress );
+	Stack.Step(Stack.Object, Stack.MostRecentPropertyAddress);
+
+	if (LocalTempResult && LocallyKnownProperty)
+	{
+		LocallyKnownProperty->DestroyValue(LocalTempResult);
+	}
 }
 IMPLEMENT_VM_FUNCTION( EX_Let, execLet );
 

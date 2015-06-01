@@ -128,6 +128,9 @@
 			break;
 		}
 		case EX_Let:
+		{
+			XFER_PROP_POINTER;
+		}
 		case EX_LetObj:
 		case EX_LetWeakObjPtr:
 		case EX_LetBool:
