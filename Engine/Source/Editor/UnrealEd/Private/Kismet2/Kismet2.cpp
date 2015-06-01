@@ -1521,6 +1521,12 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromClass(FText InWindowTitle
 		NewNameSuggestion = TEXT("NewBlueprint");
 	}
 
+	UClass* BlueprintClass = nullptr;
+	UClass* BlueprintGeneratedClass = nullptr;
+
+	IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
+	KismetCompilerModule.GetBlueprintTypesForClass(InParentClass, BlueprintClass, BlueprintGeneratedClass);
+
 	FString PackageName = FString(TEXT("/Game/Blueprints/")) + NewNameSuggestion;
 	FString Name;
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
@@ -1550,7 +1556,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromClass(FText InWindowTitle
 		check(Package);
 
 		// Create and init a new Blueprint
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(InParentClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("LevelEditorActions"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(InParentClass, Package, BPName, BPTYPE_Normal, BlueprintClass, BlueprintGeneratedClass, FName("LevelEditorActions"));
 		if (Blueprint)
 		{
 			// Notify the asset registry

@@ -141,6 +141,18 @@ public:
 		}
 	}
 
+	bool GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override
+	{
+		if ( ParentClass == UUserWidget::StaticClass() || ParentClass->IsChildOf(UUserWidget::StaticClass()) )
+		{
+			OutBlueprintClass = UWidgetBlueprint::StaticClass();
+			OutBlueprintGeneratedClass = UWidgetBlueprintGeneratedClass::StaticClass();
+			return true;
+		}
+
+		return false;
+	}
+
 	/** Gets the extensibility managers for outside entities to extend gui page editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }
 	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() override { return ToolBarExtensibilityManager; }

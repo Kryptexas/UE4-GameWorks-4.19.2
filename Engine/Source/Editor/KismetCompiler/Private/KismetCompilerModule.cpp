@@ -274,4 +274,18 @@ void FKismet2CompilerModule::RemoveBlueprintGeneratedClasses(class UBlueprint* B
 	}
 }
 
+void FKismet2CompilerModule::GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const
+{
+	for ( IBlueprintCompiler* Compiler : Compilers )
+	{
+		if ( Compiler->GetBlueprintTypesForClass(ParentClass, OutBlueprintClass, OutBlueprintGeneratedClass) )
+		{
+			return;
+		}
+	}
+
+	OutBlueprintClass = UBlueprint::StaticClass();
+	OutBlueprintGeneratedClass = UBlueprintGeneratedClass::StaticClass();
+}
+
 #undef LOCTEXT_NAMESPACE

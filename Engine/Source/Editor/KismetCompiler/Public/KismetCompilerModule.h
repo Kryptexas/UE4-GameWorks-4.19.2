@@ -28,6 +28,13 @@ public:
 		PostCompile(Blueprint);
 	}
 
+	virtual bool GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const
+	{
+		OutBlueprintClass = nullptr;
+		OutBlueprintGeneratedClass = nullptr;
+		return false;
+	}
+
 protected:
 	virtual void PreCompile(UBlueprint* Blueprint) { }
 	virtual void PostCompile(UBlueprint* Blueprint) { }
@@ -71,6 +78,12 @@ public:
 	 * Gets a list of all compilers for blueprints.  You can register new compilers through this list.
 	 */
 	virtual TArray<IBlueprintCompiler*>& GetCompilers() = 0;
+
+	/**
+	 * Get the blueprint class and generated blueprint class for a particular class type.  Not every
+	 * blueprint is a normal UBlueprint, like UUserWidget blueprints should be UWidgetBlueprints.
+	 */
+	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -88,6 +101,7 @@ public:
 	virtual void RecoverCorruptedBlueprint(class UBlueprint* Blueprint) override;
 	virtual void RemoveBlueprintGeneratedClasses(class UBlueprint* Blueprint) override;
 	virtual TArray<IBlueprintCompiler*>& GetCompilers() override { return Compilers; }
+	virtual void GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const override;
 	// End implementation
 private:
 	void CompileBlueprintInner(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> Reinstancer, TArray<UObject*>* ObjLoaded);
