@@ -100,6 +100,9 @@ public:
 	/** Can we tick this concurrently on other threads? */
 	uint32 bAllowConcurrentTick:1;
 
+	/** Can this component be destroyed (via K2_DestroyComponent) by any parent */
+	uint32 bAllowAnyoneToDestroyMe:1;
+
 	/** True if this component was created by a construction script, and will be destroyed by DestroyConstructedComponents */
 	UPROPERTY()
 	uint32 bCreatedByConstructionScript_DEPRECATED:1;
