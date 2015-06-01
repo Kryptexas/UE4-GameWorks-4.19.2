@@ -232,9 +232,11 @@ void FNavigationLockContext::UnlockUpdates()
 // UNavigationSystem                                                                
 //----------------------------------------------------------------------//
 bool UNavigationSystem::bNavigationAutoUpdateEnabled = true;
+TMap<INavLinkCustomInterface*, FWeakObjectPtr> UNavigationSystem::PendingCustomLinkRegistration;
 TArray<const UClass*> UNavigationSystem::NavAreaClasses;
 TArray<UClass*> UNavigationSystem::PendingNavAreaRegistration;
 FCriticalSection UNavigationSystem::NavAreaRegistrationSection;
+FCriticalSection UNavigationSystem::CustomLinkRegistrationSection;
 TSubclassOf<UNavArea> UNavigationSystem::DefaultWalkableArea = NULL;
 TSubclassOf<UNavArea> UNavigationSystem::DefaultObstacleArea = NULL;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -315,7 +317,6 @@ void UNavigationSystem::DoInitialSetup()
 	}
 	
 	UpdateAbstractNavData();
-
 	CreateCrowdManager();
 
 	bInitialSetupHasBeenPerformed = true;
@@ -721,6 +722,11 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickNavAreaRegister);
 		ProcessNavAreaPendingRegistration();
+	}
+	
+	if (PendingCustomLinkRegistration.Num())
+	{
+		ProcessCustomLinkPendingRegistration();
 	}
 
 	if (PendingNavBoundsUpdates.Num() > 0)
@@ -1703,6 +1709,25 @@ void UNavigationSystem::ProcessNavAreaPendingRegistration()
 	}
 }
 
+void UNavigationSystem::ProcessCustomLinkPendingRegistration()
+{
+	FScopeLock AccessLock(&CustomLinkRegistrationSection);
+
+	TMap<INavLinkCustomInterface*, FWeakObjectPtr> TempPending = PendingCustomLinkRegistration;
+	PendingCustomLinkRegistration.Empty();
+
+	for (TMap<INavLinkCustomInterface*, FWeakObjectPtr>::TIterator It(TempPending); It; ++It)
+	{
+		INavLinkCustomInterface* ILink = It.Key();
+		FWeakObjectPtr LinkOb = It.Value();
+		
+		if (LinkOb.IsValid() && ILink)
+		{
+			RegisterCustomLink(*ILink);
+		}
+	}
+}
+
 UNavigationSystem::ERegistrationResult UNavigationSystem::RegisterNavData(ANavigationData* NavData)
 {
 	if (NavData == NULL)
@@ -1833,6 +1858,34 @@ void UNavigationSystem::UpdateCustomLink(const INavLinkCustomInterface* CustomLi
 	{
 		ANavigationData* NavData = It.Value();
 		NavData->UpdateCustomLink(CustomLink);
+	}
+}
+
+void UNavigationSystem::RequestCustomLinkRegistering(INavLinkCustomInterface& CustomLink, UObject* OwnerOb)
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerOb);
+	if (NavSys)
+	{
+		NavSys->RegisterCustomLink(CustomLink);
+	}
+	else
+	{
+		FScopeLock AccessLock(&CustomLinkRegistrationSection);
+		PendingCustomLinkRegistration.Add(&CustomLink, OwnerOb);
+	}
+}
+
+void UNavigationSystem::RequestCustomLinkUnregistering(INavLinkCustomInterface& CustomLink, UObject* OwnerOb)
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerOb);
+	if (NavSys)
+	{
+		NavSys->UnregisterCustomLink(CustomLink);
+	}
+	else
+	{
+		FScopeLock AccessLock(&CustomLinkRegistrationSection);
+		PendingCustomLinkRegistration.Remove(&CustomLink);
 	}
 }
 

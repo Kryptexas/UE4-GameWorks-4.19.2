@@ -566,6 +566,9 @@ protected:
 	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
 	void ProcessNavAreaPendingRegistration();
 
+	/** registers CustomLinks awaiting registration in PendingCustomLinkRegistration */
+	void ProcessCustomLinkPendingRegistration();
+
 	/** used to apply updates of nav volumes in navigation system's tick */
 	void PerformNavigationBoundsUpdate(const TArray<FNavigationBoundsUpdateRequest>& UpdateRequests);
 	
@@ -628,6 +631,9 @@ public:
 	void RegisterCustomLink(INavLinkCustomInterface& CustomLink);
 	void UnregisterCustomLink(INavLinkCustomInterface& CustomLink);
 	
+	static void RequestCustomLinkRegistering(INavLinkCustomInterface& CustomLink, UObject* OwnerOb);
+	static void RequestCustomLinkUnregistering(INavLinkCustomInterface& CustomLink, UObject* ObjectOb);
+
 	/** find custom link by unique ID */
 	INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
 
@@ -799,6 +805,7 @@ protected:
 	// async queries
 	FCriticalSection NavDataRegistrationSection;
 	static FCriticalSection NavAreaRegistrationSection;
+	static FCriticalSection CustomLinkRegistrationSection;
 	
 #if WITH_EDITOR
 	uint8 NavUpdateLockFlags;
@@ -831,6 +838,7 @@ protected:
 
 	static bool bUpdateNavOctreeOnComponentChange;
 
+	static TMap<INavLinkCustomInterface*, FWeakObjectPtr> PendingCustomLinkRegistration;
 	static TArray<UClass*> PendingNavAreaRegistration;
 	static TArray<const UClass*> NavAreaClasses;
 	static TSubclassOf<UNavArea> DefaultWalkableArea;

@@ -120,27 +120,14 @@ void UNavLinkCustomComponent::OnRegister()
 		NavLinkUserId = INavLinkCustomInterface::GetUniqueId();
 	}
 
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	if (NavSys == NULL)
-	{
-		return;
-	}
-
-	NavSys->RegisterCustomLink(*this);
+	UNavigationSystem::RequestCustomLinkRegistering(*this, this);
 }
 
 void UNavLinkCustomComponent::OnUnregister()
 {
 	Super::OnUnregister();
 
-	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-	if (NavSys == NULL)
-	{
-		return;
-	}
-
-	// always try to unregister, even if not relevant right now
-	NavSys->UnregisterCustomLink(*this);
+	UNavigationSystem::RequestCustomLinkUnregistering(*this, this);
 }
 
 void UNavLinkCustomComponent::SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ENavLinkDirection::Type Direction)
