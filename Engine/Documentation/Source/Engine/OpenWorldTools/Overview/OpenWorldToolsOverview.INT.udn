@@ -26,8 +26,7 @@ Once the Open World Demo Collection is downloaded add it to the project that you
 
 ## Types of Tools 
 The Open World Tools in Unreal Engine 4 allow you to place Static Meshes inside your levels using a computer algorithm to determine placement instead having to do this work manually. 
-This enables you to quickly generate a natural looking forest comprised of many different species of trees.
-You can also control which plants are spawned by painting Textures on the Landscape Terrain.
+This enables you to quickly generate a natural looking forest comprised of many different species of trees, plants and bushes.
 
 When talking about the Open World tools we are actually referring to the two different tool sets inside of UE4. 
 The tool set that you use depends on what you want to accomplish. 
@@ -53,7 +52,7 @@ To learn more about how to use the Procedural Foliage Tool check out the Procedu
 		Procedural Foliage Tool Quick Start
 	[/PARAM]
 	[PARAM:description]
-		A comprehensive guide for getting the Procedural Foliage Tool setup and working.
+		A comprehensive guide showing you how to unleash the full power of the Procedural Foliage tool in your projects.
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/OpenWorldTools/ProceduralFoliage/QuickStart]
@@ -89,7 +88,7 @@ To learn more about how to use the Grass Tool, check out the Grass Tool Quick St
 [REGION:topics third]
 [OBJECT:Topic]
 	[PARAM:image]
-		![](T_PFT_Grass_00.png)
+		![Engine/OpenWorldTools/Overview:title%](Engine\OpenWorldTools\Grass\QuickStart\T_Grass_Intro.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -98,7 +97,7 @@ To learn more about how to use the Grass Tool, check out the Grass Tool Quick St
 		Grass Tool Quick Start
 	[/PARAM]
 	[PARAM:description]
-		A comprehensive guide for getting the Grass Tool setup and working.
+	An in-depth look at how to use the Grass tool in your projects.
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/OpenWorldTools/Grass/QuickStart]

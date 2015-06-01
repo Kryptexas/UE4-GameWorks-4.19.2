@@ -8,8 +8,8 @@ Version: 4.8
 
 
 In this Quick Start tutorial we will take a look at how the **Procedural Foliage Tool** that are now available with the 4.8 release of Unreal Engine 4 (UE4) work. 
-Over the course of this Quick Start tutorial you will learn how to create, setup, and spawn an entire forests worth of trees inside of UE4 using the Procedural Foliage tool. 
-You will also be introduced to key properties and settings that will help you shape your virtual forest to fit your needs. 
+Over the course of this Quick Start tutorial you will learn how to create, setup, and spawn an entire forests worth of trees inside of UE4 using only the Procedural Foliage tool. 
+You will also be introduced to key properties and settings that will help you shape your virtual forest to fit your projects needs. 
 
 ![](T_PF_QS_Final_Product.png)
 
