@@ -69,7 +69,7 @@ namespace MaterialEditorPromotionTestUtils
 		else
 		{
 			UE_LOG(LogEditorMaterialEditorPromotionTests, Error, TEXT("Could not add a texture sample to %s"), *InMaterial->GetName());
-			return false;
+			return true;
 		}
 	}
 
@@ -148,7 +148,7 @@ namespace MaterialEditorPromotionTestHelper
 			if (!(DiffuseTexturePackagePath.Len() > 0))
 			{
 				UE_LOG(LogEditorMaterialEditorPromotionTests, Error, TEXT("Failed to load diffuse texture."));
-				return false;
+				return true;
 			}
 			DiffuseTexture = MaterialEditorPromotionTestUtils::GetAssetFromPackagePath<UTexture>(DiffuseTexturePackagePath);
 
@@ -188,7 +188,7 @@ namespace MaterialEditorPromotionTestHelper
 				if (!(NormalTexturePackagePath.Len() > 0))
 				{
 					UE_LOG(LogEditorMaterialEditorPromotionTests, Error, TEXT("Failed to load normal texture."));
-					return false;
+					return true;
 				}
 				NormalTexture = MaterialEditorPromotionTestUtils::GetAssetFromPackagePath<UTexture>(NormalTexturePackagePath);
 
