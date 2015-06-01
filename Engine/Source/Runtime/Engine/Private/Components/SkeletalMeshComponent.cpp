@@ -19,6 +19,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "AI/NavigationSystemHelpers.h"
 #if WITH_EDITOR
 #include "ShowFlags.h"
 #include "Collision.h"
@@ -149,6 +150,8 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bEnablePhysicsOnDedicatedServer = UPhysicsSettings::Get()->bSimulateSkeletalMeshOnDedicatedServer;
 	bEnableUpdateRateOptimizations = false;
 	RagdollAggregateThreshold = UPhysicsSettings::Get()->RagdollAggregateThreshold;
+
+	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 
 	bTickInEditor = true;
 }
@@ -2264,4 +2267,30 @@ void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSim
 		}
 	}
 #endif
+}
+
+bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
+{
+	UPhysicsAsset* PhysicsAsset = GetPhysicsAsset();
+	if (PhysicsAsset && ComponentToWorld.GetScale3D().IsUniform())
+	{
+		const int32 MaxBodies = PhysicsAsset->BodySetup.Num();
+		for (int32 Idx = 0; Idx < MaxBodies; Idx++)
+		{
+			UBodySetup* BodySetup = PhysicsAsset->BodySetup[Idx];
+			int32 BoneIndex = BodySetup ? GetBoneIndex(BodySetup->BoneName) : INDEX_NONE;
+
+			if (BoneIndex != INDEX_NONE)
+			{
+				FTransform WorldBoneTransform = GetBoneTransform(BoneIndex, ComponentToWorld);
+				if (FMath::Abs(WorldBoneTransform.GetDeterminant()) > (float)KINDA_SMALL_NUMBER)
+				{
+					GeomExport.ExportRigidBodySetup(*BodySetup, WorldBoneTransform);
+				}
+			}
+		}
+	}
+
+	// skip fallback export of body setup data
+	return false;
 }
