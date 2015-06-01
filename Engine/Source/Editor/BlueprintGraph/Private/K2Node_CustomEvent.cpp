@@ -9,6 +9,7 @@
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "K2Node_CustomEvent.h"
 #include "K2Node_BaseMCDelegate.h"
+#include "Editor/Kismet/Public/FindInBlueprintManager.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 
