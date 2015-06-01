@@ -1220,6 +1220,17 @@ void UDestructibleComponent::ResetFakeBodyInstance( FFakeBodyInstanceState& Prev
 
 #endif
 
+void UDestructibleComponent::WakeRigidBody(FName BoneName /* = NAME_None */)
+{
+#if WITH_APEX
+	ExecuteOnPhysicsReadWrite([&]
+	{
+		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
+		ApexDestructibleActor->setChunkPhysXActorAwakeState(ChunkIdx, true);
+	});
+#endif
+}
+
 void UDestructibleComponent::SetEnableGravity(bool bGravityEnabled)
 {
 	Super::SetEnableGravity(bGravityEnabled);
