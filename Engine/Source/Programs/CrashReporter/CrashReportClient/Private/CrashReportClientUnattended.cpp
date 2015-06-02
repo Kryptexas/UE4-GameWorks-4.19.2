@@ -2,6 +2,7 @@
 
 #include "CrashReportClientApp.h"
 #include "CrashReportClientUnattended.h"
+#include "CrashReportUtil.h"
 
 FCrashReportClientUnattended::FCrashReportClientUnattended(const FPlatformErrorReport& ErrorReport)
 	: Uploader( FCrashReportClientConfig::Get().GetReceiverAddress() )
