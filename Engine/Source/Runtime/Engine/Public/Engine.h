@@ -282,7 +282,6 @@
 #include "Sound/SoundClass.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundGroups.h"
-#include "Sound/SoundWaveStreaming.h"
 #include "Sound/SoundMix.h"
 #include "Engine/StaticMeshSocket.h"
 #include "Camera/CameraStackTypes.h"

@@ -11,6 +11,7 @@
 #include "Voice.h"
 #include "SoundDefinitions.h"
 #include "Runtime/Engine/Classes/Sound/AudioSettings.h"
+#include "Runtime/Engine/Classes/Sound/SoundWaveProcedural.h"
 
 // Testing classes
 #include "Tests/TestFriendsInterface.h"
@@ -47,7 +48,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 	{
 		if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice())
 		{
-			USoundWaveStreaming* SoundStreaming = NewObject<USoundWaveStreaming>();
+			USoundWaveProcedural* SoundStreaming = NewObject<USoundWaveProcedural>();
 			SoundStreaming->SampleRate = SampleRate;
 			SoundStreaming->NumChannels = 1;
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;

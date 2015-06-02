@@ -7,12 +7,18 @@
 
 #pragma once
 #include "Sound/SoundWave.h"
-#include "SoundWaveStreaming.generated.h"
+#include "SoundWaveProcedural.generated.h"
 
-DECLARE_DELEGATE_TwoParams( FOnSoundWaveStreamingUnderflow, class USoundWaveStreaming*, int32 );
+DECLARE_DELEGATE_TwoParams( FOnSoundWaveProceduralUnderflow, class USoundWaveProcedural*, int32 );
+
+DEPRECATED(4.9, "FOnSoundWaveStreamingUnderflow has been renamed FOnSoundWaveProceduralUnderflow")
+typedef FOnSoundWaveProceduralUnderflow FOnSoundWaveStreamingUnderflow;
+
+DEPRECATED(4.9, "USoundWaveStreaming has been renamed USoundWaveProcedural.")
+typedef class USoundWaveProcedural USoundWaveStreaming;
 
 UCLASS()
-class ENGINE_API USoundWaveStreaming : public USoundWave
+class ENGINE_API USoundWaveProcedural : public USoundWave
 {
 	GENERATED_UCLASS_BODY()
 
@@ -46,6 +52,5 @@ public:
 	int32 GetAvailableAudioByteCount();
 
 	/** Called when GeneratePCMData is called but not enough data is available. Allows more data to be added, and will try again */
-	FOnSoundWaveStreamingUnderflow OnSoundWaveStreamingUnderflow;
-
+	FOnSoundWaveProceduralUnderflow OnSoundWaveProceduralUnderflow;
 };
