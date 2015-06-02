@@ -158,7 +158,7 @@ static FString GetAutomaticDemoName()
 	return FinalDemoName;
 }
 
-void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, const FString& FriendlyName, bool bRecord, const FNetworkReplayVersion& ReplayVersion, const FOnStreamReadyDelegate& Delegate )
+void FNullNetworkReplayStreamer::StartStreaming( const FString& CustomName, const FString& FriendlyName, const FString& UserName, bool bRecord, const FNetworkReplayVersion& ReplayVersion, const FOnStreamReadyDelegate& Delegate )
 {
 	FString FinalDemoName = CustomName;
 

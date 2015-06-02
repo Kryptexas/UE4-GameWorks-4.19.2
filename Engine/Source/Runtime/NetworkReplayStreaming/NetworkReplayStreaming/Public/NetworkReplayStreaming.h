@@ -106,7 +106,7 @@ class INetworkReplayStreamer
 public:
 	virtual ~INetworkReplayStreamer() {}
 
-	virtual void StartStreaming( const FString& CustomName, const FString& FriendlyName, bool bRecord, const FNetworkReplayVersion& ReplayVersion, const FOnStreamReadyDelegate& Delegate ) = 0;
+	virtual void StartStreaming( const FString& CustomName, const FString& FriendlyName, const FString& UserName, bool bRecord, const FNetworkReplayVersion& ReplayVersion, const FOnStreamReadyDelegate& Delegate ) = 0;
 	virtual void StopStreaming() = 0;
 	virtual FArchive* GetHeaderArchive() = 0;
 	virtual FArchive* GetStreamingArchive() = 0;
@@ -139,6 +139,13 @@ public:
 	 * @param Delegate A delegate that will be executed if bound when the list of streams is available
 	 */
 	virtual void EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FOnEnumerateStreamsComplete& Delegate ) = 0;
+
+	/**
+	 * Retrieves the streams that have been recently viewed. May execute asynchronously.
+	 *
+	 * @param Delegate A delegate that will be executed if bound when the list of streams is available
+	 */
+	virtual void EnumerateRecentStreams( const FNetworkReplayVersion& ReplayVersion, const FString& RecentViewer, const FOnEnumerateStreamsComplete& Delegate ) = 0;
 
 	/** Returns the last error that occurred while streaming replays */
 	virtual ENetworkReplayError::Type GetLastError() const = 0;
