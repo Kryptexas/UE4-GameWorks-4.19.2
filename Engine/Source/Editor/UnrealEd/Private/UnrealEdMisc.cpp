@@ -267,9 +267,6 @@ void FUnrealEdMisc::OnInit()
 			 // If it's not a parameter
 			 ParsedMapName.StartsWith( TEXT("-") ) == false )
 		{
-			FURL DefaultURL;
-			FURL URL( &DefaultURL, *ParsedMapName, TRAVEL_Partial );
-			
 			FString InitialMapName;
 				
 			// If the specified package exists
