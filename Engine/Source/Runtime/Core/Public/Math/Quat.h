@@ -569,31 +569,6 @@ inline FMatrix FQuat::operator*( const FMatrix& M ) const
 }
 
 
-/** now we directly convert from Rotator to Quaternion and vice versa. If you see issue with rotator, you can contact @LH or  
- *  you can undo this to see if this fixes issue. Feel free to enable this and see if that fixes the issue.
- */
-#define USE_MATRIX_ROTATOR 0
-
-#if USE_MATRIX_ROTATOR
-
-#include "QuatRotationTranslationMatrix.h"
-
-/** 
- * this is not right representation of if both rotation is equal or not
- * if you really like to equal, use matrix form. 
- * @warning DO NOT USE THIS To VERIFY if rotation is same. I'm only using this for the debug purpose
- */
-FORCEINLINE bool DebugRotatorEquals(const FRotator& R1, const FRotator& R2, float Tolerance=1.f) 
-{
-	// also 0 and 360 should be considered same 
-	return ( FMath::Abs(R1.Pitch-R2.Pitch) <= Tolerance || FMath::Abs(R1.Pitch+R2.Pitch-360) <= Tolerance )
-		&& ( FMath::Abs(R1.Yaw-R2.Yaw) <= Tolerance || FMath::Abs(R1.Yaw+R2.Yaw-360) <= Tolerance )
-		&& ( FMath::Abs(R1.Roll-R2.Roll) <= Tolerance || FMath::Abs(R1.Roll+R2.Roll-360) <= Tolerance );
-}
-#endif
-
-
-
 /* FQuat inline functions
  *****************************************************************************/
 
