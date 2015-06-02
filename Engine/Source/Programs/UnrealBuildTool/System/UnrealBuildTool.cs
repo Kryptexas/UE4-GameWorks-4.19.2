@@ -1692,6 +1692,8 @@ namespace UnrealBuildTool
                             // a 'gather' and 'assemble' in the same run.  This will take a while longer, but subsequent runs will be fast!
                             UnrealBuildTool.bIsGatheringBuild_Unsafe = true;
 
+							FileItem.ClearCaches();
+
                             Log.TraceInformation( "Creating makefile for {0}{1}{2} ({3})", 
 								bIsHotReload ? "hot reloading " : "", 
 								TargetDescs[0].TargetName, 
@@ -2272,172 +2274,144 @@ namespace UnrealBuildTool
         /// <param name="TargetDescs">List of targets.  Order is not important</param>
 		/// <param name="ReasonNotLoaded">If the function returns null, this string will contain the reason why</param>
 		/// <returns>The loaded makefile, or null if it failed for some reason.  On failure, the 'ReasonNotLoaded' variable will contain information about why</returns>
-        static UBTMakefile LoadUBTMakefile( List<TargetDescriptor> TargetDescs, out string ReasonNotLoaded )
-        {
-            var UBTMakefileInfo = new FileInfo( GetUBTMakefilePath( TargetDescs ) );
-			ReasonNotLoaded = null;
-
-            // Check the directory timestamp on the project files directory.  If the user has generated project files more
-            // recently than the UBTMakefile, then we need to consider the file to be out of date
-            bool bForceOutOfDate = false;
-            if( UBTMakefileInfo.Exists )
-            {
-                // @todo ubtmake: This will only work if the directory timestamp actually changes with every single GPF.  Force delete existing files before creating new ones?  Eh... really we probably just want to delete + create a file in that folder
-                //			-> UPDATE: Seems to work OK right now though on Windows platform, maybe due to GUID changes
-                // @todo ubtmake: Some platforms may not save any files into this folder.  We should delete + generate a "touch" file to force the directory timestamp to be updated (or just check the timestamp file itself.  We could put it ANYWHERE, actually)
-
-				if( !UnrealBuildTool.RunningRocket() )
-                {
-                    if( Directory.Exists( ProjectFileGenerator.IntermediateProjectFilesPath ) )
-                    {
-                        var EngineProjectFilesLastUpdateTime = new FileInfo(ProjectFileGenerator.ProjectTimestampFile).LastWriteTime;
-						if( UBTMakefileInfo.LastWriteTime.CompareTo( EngineProjectFilesLastUpdateTime ) < 0 )
-						{
-							// Engine project files are newer than UBTMakefile
-							bForceOutOfDate = true;
-							Log.TraceVerbose("Existing makefile is older than generated engine project files, ignoring it" );
-
-							ReasonNotLoaded = "project files are newer";
-						}
-                    }
-                }
-                else
-                {
-                    // Rocket doesn't need to check engine projects for outdatedness
-                }
-
-				if( !bForceOutOfDate )
-				{
-					// Check the game project directory too
-					if( UnrealBuildTool.HasUProjectFile() )
-					{
-						string ProjectFilename = UnrealBuildTool.GetUProjectFile();
-						var ProjectFileInfo = new FileInfo(ProjectFilename);
-						if( !ProjectFileInfo.Exists || UBTMakefileInfo.LastWriteTime.CompareTo(ProjectFileInfo.LastWriteTime ) < 0 )
-						{
-							// .uproject file is newer than UBTMakefile
-							bForceOutOfDate = true;
-							Log.TraceVerbose("Makefile is older than .uproject file, ignoring it" );
-
-							ReasonNotLoaded = ".uproject file is newer";
-						}
-						else
-						{
-							var MasterProjectRelativePath = UnrealBuildTool.GetUProjectPath();
-							var GameIntermediateProjectFilesPath = Path.Combine( MasterProjectRelativePath, "Intermediate", "ProjectFiles" );
-							if( Directory.Exists( GameIntermediateProjectFilesPath ) )
-							{
-								var GameProjectFilesLastUpdateTime = new DirectoryInfo( GameIntermediateProjectFilesPath ).LastWriteTime;
-								if( UBTMakefileInfo.LastWriteTime.CompareTo( GameProjectFilesLastUpdateTime ) < 0 )
-								{
-									// Game project files are newer than UBTMakefile
-									bForceOutOfDate = true;
-									Log.TraceVerbose("Makefile is older than generated game project files, ignoring it" );
-
-									ReasonNotLoaded = "game project files are newer";
-								}
-							}
-						}
-					}
-				}
-
-				if( !bForceOutOfDate )
-				{
-					// Check to see if UnrealBuildTool.exe was compiled more recently than the UBTMakefile
-					var UnrealBuildToolTimestamp = new FileInfo( Assembly.GetExecutingAssembly().Location ).LastWriteTime;
-					if( UBTMakefileInfo.LastWriteTime.CompareTo( UnrealBuildToolTimestamp ) < 0 )
-					{
-						// UnrealBuildTool.exe was compiled more recently than the UBTMakefile
-						Log.TraceVerbose("Makefile is older than UnrealBuildTool.exe, ignoring it" );
-
-						ReasonNotLoaded = "UnrealBuildTool.exe is newer";
-						bForceOutOfDate = true;
-					}
-				}
-			}
-			else
+		static UBTMakefile LoadUBTMakefile( List<TargetDescriptor> TargetDescs, out string ReasonNotLoaded )
+		{
+			// Check the directory timestamp on the project files directory.  If the user has generated project files more
+			// recently than the UBTMakefile, then we need to consider the file to be out of date
+			var UBTMakefileInfo = new FileInfo( GetUBTMakefilePath( TargetDescs ) );
+			if( !UBTMakefileInfo.Exists )
 			{
 				// UBTMakefile doesn't even exist, so we won't bother loading it
-				bForceOutOfDate = true;
-
 				ReasonNotLoaded = "no existing makefile";
+				return null;
 			}
 
-            UBTMakefile LoadedUBTMakefile = null;
-            if( !bForceOutOfDate )
-            { 
-                try
-                {
-					var LoadUBTMakefileStartTime = DateTime.UtcNow;
+			// @todo ubtmake: This will only work if the directory timestamp actually changes with every single GPF.  Force delete existing files before creating new ones?  Eh... really we probably just want to delete + create a file in that folder
+			//			-> UPDATE: Seems to work OK right now though on Windows platform, maybe due to GUID changes
+			// @todo ubtmake: Some platforms may not save any files into this folder.  We should delete + generate a "touch" file to force the directory timestamp to be updated (or just check the timestamp file itself.  We could put it ANYWHERE, actually)
 
-                    using (FileStream Stream = new FileStream(UBTMakefileInfo.FullName, FileMode.Open, FileAccess.Read))
-                    {	
-                        BinaryFormatter Formatter = new BinaryFormatter();
-                        LoadedUBTMakefile = Formatter.Deserialize(Stream) as UBTMakefile;
-                    }
-
-					if( BuildConfiguration.bPrintPerformanceInfo )
-					{ 
-						var LoadUBTMakefileTime = (DateTime.UtcNow - LoadUBTMakefileStartTime).TotalSeconds;
-						Log.TraceInformation( "LoadUBTMakefile took " + LoadUBTMakefileTime + "s" );
-					}
-                }
-                catch (Exception Ex)
-                {
-                    Log.TraceWarning("Failed to read makefile: {0}", Ex.Message);
-					ReasonNotLoaded = "couldn't read existing makefile";
-                }
-
-                if( LoadedUBTMakefile != null && !LoadedUBTMakefile.IsValidMakefile() )
-                {
-                    Log.TraceWarning("Loaded makefile appears to have invalid contents, ignoring it ({0})", UBTMakefileInfo.FullName );
-                    LoadedUBTMakefile = null;
-					ReasonNotLoaded = "existing makefile appears to be invalid";
-                }
-
-				if( LoadedUBTMakefile != null )
+			// Rocket doesn't need to check engine projects for outdatedness
+			if( !UnrealBuildTool.RunningRocket() )
+			{
+				if( Directory.Exists( ProjectFileGenerator.IntermediateProjectFilesPath ) )
 				{
-					// Check if any of the target's Build.cs files are newer than the makefile
-					foreach (var Target in LoadedUBTMakefile.Targets)
+					var EngineProjectFilesLastUpdateTime = new FileInfo(ProjectFileGenerator.ProjectTimestampFile).LastWriteTime;
+					if( UBTMakefileInfo.LastWriteTime.CompareTo( EngineProjectFilesLastUpdateTime ) < 0 )
 					{
-						string TargetCsFilename = Target.TargetCsFilename;
-						if (TargetCsFilename != null)
-						{
-							var TargetCsFile = new FileInfo(TargetCsFilename);
-							bool bTargetCsFileExists = TargetCsFile.Exists;
-							if (!bTargetCsFileExists || TargetCsFile.LastWriteTime > UBTMakefileInfo.LastWriteTime)
-							{
-								Log.TraceWarning("{0} has been {1} since makefile was built, ignoring it ({2})", TargetCsFilename, bTargetCsFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
-								LoadedUBTMakefile = null;
-								ReasonNotLoaded = string.Format("changes to target files");
-								goto SkipRemainingTimestampChecks;
-							}
-						}
+						// Engine project files are newer than UBTMakefile
+						Log.TraceVerbose("Existing makefile is older than generated engine project files, ignoring it" );
+						ReasonNotLoaded = "project files are newer";
+						return null;
+					}
+				}
+			}
 
-						List<string> BuildCsFilenames = Target.GetAllModuleBuildCsFilenames();
-						foreach (var BuildCsFilename in BuildCsFilenames)
+			// Check the game project directory too
+			if( UnrealBuildTool.HasUProjectFile() )
+			{
+				string ProjectFilename = UnrealBuildTool.GetUProjectFile();
+				var ProjectFileInfo = new FileInfo(ProjectFilename);
+				if( !ProjectFileInfo.Exists || UBTMakefileInfo.LastWriteTime.CompareTo(ProjectFileInfo.LastWriteTime ) < 0 )
+				{
+					// .uproject file is newer than UBTMakefile
+					Log.TraceVerbose("Makefile is older than .uproject file, ignoring it" );
+					ReasonNotLoaded = ".uproject file is newer";
+					return null;
+				}
+
+				var MasterProjectRelativePath = UnrealBuildTool.GetUProjectPath();
+				var GameIntermediateProjectFilesPath = Path.Combine( MasterProjectRelativePath, "Intermediate", "ProjectFiles" );
+				if( Directory.Exists( GameIntermediateProjectFilesPath ) )
+				{
+					var GameProjectFilesLastUpdateTime = new DirectoryInfo( GameIntermediateProjectFilesPath ).LastWriteTime;
+					if( UBTMakefileInfo.LastWriteTime.CompareTo( GameProjectFilesLastUpdateTime ) < 0 )
+					{
+						// Game project files are newer than UBTMakefile
+						Log.TraceVerbose("Makefile is older than generated game project files, ignoring it" );
+						ReasonNotLoaded = "game project files are newer";
+						return null;
+					}
+				}
+			}
+
+			// Check to see if UnrealBuildTool.exe was compiled more recently than the UBTMakefile
+			var UnrealBuildToolTimestamp = new FileInfo( Assembly.GetExecutingAssembly().Location ).LastWriteTime;
+			if( UBTMakefileInfo.LastWriteTime.CompareTo( UnrealBuildToolTimestamp ) < 0 )
+			{
+				// UnrealBuildTool.exe was compiled more recently than the UBTMakefile
+				Log.TraceVerbose("Makefile is older than UnrealBuildTool.exe, ignoring it" );
+				ReasonNotLoaded = "UnrealBuildTool.exe is newer";
+				return null;
+			}
+
+			UBTMakefile LoadedUBTMakefile = null;
+
+			try
+			{
+				var LoadUBTMakefileStartTime = DateTime.UtcNow;
+
+				using (FileStream Stream = new FileStream(UBTMakefileInfo.FullName, FileMode.Open, FileAccess.Read))
+				{	
+					BinaryFormatter Formatter = new BinaryFormatter();
+					LoadedUBTMakefile = Formatter.Deserialize(Stream) as UBTMakefile;
+				}
+
+				if( BuildConfiguration.bPrintPerformanceInfo )
+				{ 
+					var LoadUBTMakefileTime = (DateTime.UtcNow - LoadUBTMakefileStartTime).TotalSeconds;
+					Log.TraceInformation( "LoadUBTMakefile took " + LoadUBTMakefileTime + "s" );
+				}
+			}
+			catch (Exception Ex)
+			{
+				Log.TraceWarning("Failed to read makefile: {0}", Ex.Message);
+				ReasonNotLoaded = "couldn't read existing makefile";
+				return null;
+			}
+
+			if( !LoadedUBTMakefile.IsValidMakefile() )
+			{
+				Log.TraceWarning("Loaded makefile appears to have invalid contents, ignoring it ({0})", UBTMakefileInfo.FullName );
+				ReasonNotLoaded = "existing makefile appears to be invalid";
+				return null;
+			}
+
+			// Check if any of the target's Build.cs files are newer than the makefile
+			foreach (var Target in LoadedUBTMakefile.Targets)
+			{
+				string TargetCsFilename = Target.TargetCsFilename;
+				if (TargetCsFilename != null)
+				{
+					var TargetCsFile = new FileInfo(TargetCsFilename);
+					bool bTargetCsFileExists = TargetCsFile.Exists;
+					if (!bTargetCsFileExists || TargetCsFile.LastWriteTime > UBTMakefileInfo.LastWriteTime)
+					{
+						Log.TraceVerbose("{0} has been {1} since makefile was built, ignoring it ({2})", TargetCsFilename, bTargetCsFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
+						ReasonNotLoaded = string.Format("changes to target files");
+						return null;
+					}
+				}
+
+				List<string> BuildCsFilenames = Target.GetAllModuleBuildCsFilenames();
+				foreach (var BuildCsFilename in BuildCsFilenames)
+				{
+					if (BuildCsFilename != null)
+					{
+						var BuildCsFile = new FileInfo(BuildCsFilename);
+						bool bBuildCsFileExists = BuildCsFile.Exists;
+						if (!bBuildCsFileExists || BuildCsFile.LastWriteTime > UBTMakefileInfo.LastWriteTime)
 						{
-							if (BuildCsFilename != null)
-							{
-								var BuildCsFile = new FileInfo(BuildCsFilename);
-								bool bBuildCsFileExists = BuildCsFile.Exists;
-								if (!bBuildCsFileExists || BuildCsFile.LastWriteTime > UBTMakefileInfo.LastWriteTime)
-								{
-									Log.TraceWarning("{0} has been {1} since makefile was built, ignoring it ({2})", BuildCsFilename, bBuildCsFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
-									LoadedUBTMakefile = null;
-									ReasonNotLoaded = string.Format("changes to module files");
-									goto SkipRemainingTimestampChecks;
-								}
-							}
+							Log.TraceVerbose("{0} has been {1} since makefile was built, ignoring it ({2})", BuildCsFilename, bBuildCsFileExists ? "changed" : "deleted", UBTMakefileInfo.FullName);
+							ReasonNotLoaded = string.Format("changes to module files");
+							return null;
 						}
 					}
-
-				SkipRemainingTimestampChecks:;
 				}
-            }
+			}
 
-            return LoadedUBTMakefile;
-        }
+			ReasonNotLoaded = null;
+			return LoadedUBTMakefile;
+		}
 
 
         /// <summary>

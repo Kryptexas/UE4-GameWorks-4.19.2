@@ -332,8 +332,6 @@ namespace UnrealBuildTool
 		 * */
 		private static bool AreGeneratedCodeFilesOutOfDate(List<UHTModuleInfo> UObjectModules)
 		{
-			bool bIsOutOfDate = false;
-
 			// Get UnrealHeaderTool timestamp. If it's newer than generated headers, they need to be rebuilt too.
 			var HeaderToolTimestamp = CheckIfUnrealHeaderToolIsUpToDate();
 
@@ -368,81 +366,66 @@ namespace UnrealBuildTool
 				// Make sure we have an existing folder for generated code.  If not, then we definitely need to generate code!
 				var GeneratedCodeDirectory = Path.GetDirectoryName( Module.GeneratedCPPFilenameBase );
 				var TestDirectory = (FileSystemInfo)new DirectoryInfo(GeneratedCodeDirectory);
-				if( TestDirectory.Exists )
-				{
-					// Grab our special "Timestamp" file that we saved after the last set of headers were generated
-					string TimestampFile = Path.Combine( GeneratedCodeDirectory, @"Timestamp" );
-					var SavedTimestampFileInfo = (FileSystemInfo)new FileInfo(TimestampFile);
-					if (SavedTimestampFileInfo.Exists)
-					{
-						// Make sure the last UHT run completed after UnrealHeaderTool.exe was compiled last, and after the CoreUObject headers were touched last.
-						var SavedTimestamp = SavedTimestampFileInfo.LastWriteTime;
-						if( SavedTimestamp.CompareTo(HeaderToolTimestamp) > 0 &&
-							SavedTimestamp.CompareTo(CoreGeneratedTimestamp) > 0 )
-						{
-							// Iterate over our UObjects headers and figure out if any of them have changed
-							var AllUObjectHeaders = new List<FileItem>();
-							AllUObjectHeaders.AddRange( Module.PublicUObjectClassesHeaders );
-							AllUObjectHeaders.AddRange( Module.PublicUObjectHeaders );
-							AllUObjectHeaders.AddRange( Module.PrivateUObjectHeaders );
-							foreach( var HeaderFile in AllUObjectHeaders )
-							{
-								var HeaderFileTimestamp = HeaderFile.Info.LastWriteTime;
-
-								// Has the source header changed since we last generated headers successfully?
-								if( SavedTimestamp.CompareTo( HeaderFileTimestamp ) < 0 )
-								{
-									bIsOutOfDate = true;
-									break;
-								}
-
-								// When we're running in assembler mode, outdatedness cannot be inferred by checking the directory timestamp
-								// of the source headers.  We don't care if source files were added or removed in this mode, because we're only
-								// able to process the known UObject headers that are in the Makefile.  If UObject header files are added/removed,
-								// we expect the user to re-run GenerateProjectFiles which will force UBTMakefile outdatedness.
-								// @todo ubtmake: Possibly, we should never be doing this check these days.
-								if( UnrealBuildTool.IsGatheringBuild || !UnrealBuildTool.IsAssemblingBuild )
-								{
-									// Also check the timestamp on the directory the source file is in.  If the directory timestamp has
-									// changed, new source files may have been added or deleted.  We don't know whether the new/deleted
-									// files were actually UObject headers, but because we don't know all of the files we processed
-									// in the previous run, we need to assume our generated code is out of date if the directory timestamp
-									// is newer.
-									var HeaderDirectoryTimestamp = new DirectoryInfo( Path.GetDirectoryName( HeaderFile.AbsolutePath ) ).LastWriteTime;
-									if( SavedTimestamp.CompareTo( HeaderDirectoryTimestamp) < 0 )
-									{
-										bIsOutOfDate = true;
-										break;
-									}
-								}
-							}
-						}
-						else
-						{
-							// Generated code is older UnrealHeaderTool.exe or CoreUObject headers.  Out of date!
-							bIsOutOfDate = true;
-						}
-					}
-					else
-					{
-						// Timestamp file was missing (possibly deleted/cleaned), so headers are out of date
-						bIsOutOfDate = true;
-					}
-				}
-				else
+				if( !TestDirectory.Exists )
 				{
 					// Generated code directory is missing entirely!
-					bIsOutOfDate = true;
+					return true;
 				}
 
-				// If even one module is out of date, we're done!  UHT does them all in one fell swoop.;
-				if( bIsOutOfDate )
+				// Grab our special "Timestamp" file that we saved after the last set of headers were generated
+				string TimestampFile = Path.Combine( GeneratedCodeDirectory, @"Timestamp" );
+				var SavedTimestampFileInfo = (FileSystemInfo)new FileInfo(TimestampFile);
+				if (!SavedTimestampFileInfo.Exists)
 				{
-					break;
+					// Timestamp file was missing (possibly deleted/cleaned), so headers are out of date
+					return true;
+				}
+
+				// Make sure the last UHT run completed after UnrealHeaderTool.exe was compiled last, and after the CoreUObject headers were touched last.
+				var SavedTimestamp = SavedTimestampFileInfo.LastWriteTime;
+				if( HeaderToolTimestamp > SavedTimestamp || CoreGeneratedTimestamp > SavedTimestamp )
+				{
+					// Generated code is older UnrealHeaderTool.exe or CoreUObject headers.  Out of date!
+					return true;
+				}
+
+				// Iterate over our UObjects headers and figure out if any of them have changed
+				var AllUObjectHeaders = new List<FileItem>();
+				AllUObjectHeaders.AddRange( Module.PublicUObjectClassesHeaders );
+				AllUObjectHeaders.AddRange( Module.PublicUObjectHeaders );
+				AllUObjectHeaders.AddRange( Module.PrivateUObjectHeaders );
+				foreach( var HeaderFile in AllUObjectHeaders )
+				{
+					var HeaderFileTimestamp = HeaderFile.Info.LastWriteTime;
+
+					// Has the source header changed since we last generated headers successfully?
+					if( HeaderFileTimestamp > SavedTimestamp )
+					{
+						return true;
+					}
+
+					// When we're running in assembler mode, outdatedness cannot be inferred by checking the directory timestamp
+					// of the source headers.  We don't care if source files were added or removed in this mode, because we're only
+					// able to process the known UObject headers that are in the Makefile.  If UObject header files are added/removed,
+					// we expect the user to re-run GenerateProjectFiles which will force UBTMakefile outdatedness.
+					// @todo ubtmake: Possibly, we should never be doing this check these days.
+					if( UnrealBuildTool.IsGatheringBuild || !UnrealBuildTool.IsAssemblingBuild )
+					{
+						// Also check the timestamp on the directory the source file is in.  If the directory timestamp has
+						// changed, new source files may have been added or deleted.  We don't know whether the new/deleted
+						// files were actually UObject headers, but because we don't know all of the files we processed
+						// in the previous run, we need to assume our generated code is out of date if the directory timestamp
+						// is newer.
+						var HeaderDirectoryTimestamp = new DirectoryInfo( Path.GetDirectoryName( HeaderFile.AbsolutePath ) ).LastWriteTime;
+						if( HeaderDirectoryTimestamp > SavedTimestamp )
+						{
+							return true;
+						}
+					}
 				}
 			}
 
-			return bIsOutOfDate;
+			return false;
 		}
 
 		/** Updates the intermediate include directory timestamps of all the passed in UObject modules */
