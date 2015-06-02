@@ -196,7 +196,7 @@ bool TestInvalidExpression(FAutomationTestBase* Test, const TCHAR* Expression)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBasicMathExpressionEvaluatorTest, "System.Core.Math.Expressions", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBasicMathExpressionEvaluatorTest, "System.Core.Math.Expressions", EAutomationTestFlags::ATF_SmokeTest)
 bool FBasicMathExpressionEvaluatorTest::RunTest( const FString& Parameters )
 {
 	bool bResult = true;
