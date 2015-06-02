@@ -486,6 +486,31 @@ FArchive& operator<<(FArchive& Ar, FForeignWorldSplineData& Value)
 
 void ULandscapeSplinesComponent::Serialize(FArchive& Ar)
 {
+#if WITH_EDITORONLY_DATA
+	// Cooking is a save-time operation, so has to be done before Super::Serialize
+	if (Ar.IsCooking())
+	{
+		CookedForeignMeshComponents.Reset();
+
+		for (const auto& ForeignWorldSplineDataPair : ForeignWorldSplineDataMap)
+		{
+			const auto& ForeignWorldSplineData = ForeignWorldSplineDataPair.Value;
+
+			for (const auto& ForeignControlPointDataPair : ForeignWorldSplineData.ForeignControlPointDataMap)
+			{
+				const auto& ForeignControlPointData = ForeignControlPointDataPair.Value;
+				CookedForeignMeshComponents.Add(ForeignControlPointData.MeshComponent);
+			}
+
+			for (const auto& ForeignSplineSegmentDataPair : ForeignWorldSplineData.ForeignSplineSegmentDataMap)
+			{
+				const auto& ForeignSplineSegmentData = ForeignSplineSegmentDataPair.Value;
+				CookedForeignMeshComponents.Append(ForeignSplineSegmentData.MeshComponents);
+			}
+		}
+	}
+#endif
+
 	Super::Serialize(Ar);
 
 #if WITH_EDITORONLY_DATA

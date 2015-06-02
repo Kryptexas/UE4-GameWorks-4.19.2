@@ -32,11 +32,11 @@ struct FForeignSplineSegmentData
 	GENERATED_USTRUCT_BODY()
 
 #if WITH_EDITORONLY_DATA
-		UPROPERTY()
-		FGuid ModificationKey;
+	UPROPERTY()
+	FGuid ModificationKey;
 
 	UPROPERTY()
-		TArray<USplineMeshComponent*> MeshComponents;
+	TArray<USplineMeshComponent*> MeshComponents;
 #endif
 
 	friend FArchive& operator<<(FArchive& Ar, FForeignSplineSegmentData& Value);
@@ -92,11 +92,18 @@ protected:
 	TArray<ULandscapeSplineSegment*> Segments;
 
 #if WITH_EDITORONLY_DATA
+	// Serialized
 	TMap<TAssetPtr<UWorld>, FForeignWorldSplineData> ForeignWorldSplineDataMap;
 
+	// Transient - rebuilt on load
 	TMap<UMeshComponent*, UObject*> MeshComponentLocalOwnersMap;
 	TMap<UMeshComponent*, TLazyObjectPtr<UObject>> MeshComponentForeignOwnersMap;
 #endif
+
+	// References to components owned by landscape splines in other levels
+	// for cooked build (uncooked keeps references via ForeignWorldSplineDataMap)
+	UPROPERTY()
+	TArray<UMeshComponent*> CookedForeignMeshComponents;
 
 public:
 	void CheckSplinesValid();
