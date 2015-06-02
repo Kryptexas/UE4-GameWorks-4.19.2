@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2529879
+﻿INTSourceChangelist:2570851
 Title:TMap
 Crumbs:
 Description:
@@ -120,7 +120,7 @@ TMaps のイタレーションは TArrays と似ています。エレメント �
 	// (3, "Orange")
 	// (9, "Melon")
 
-マップには、イタレーションの制御を強める独自のイタレータ タイプも含まれます。CreateIterator メソッドでは読み書きが可能ですが、CreateConstIterator メソッドは読み取り専用です。イテレータ オブジェクトそのものはキーと値のアクセスに対して Key() メソッドと Value() メソッドを提供します。いずれかの形式がコード内で使用されているのが分かります。
+マップには、イタレーションの制御を強める独自の iterator 型も含まれます。CreateIterator メソッドでは読み書きが可能ですが、CreateConstIterator メソッドは読み取り専用です。イテレータ オブジェクトそのものはキーと値のアクセスに対して Key() メソッドと Value() メソッドを提供します。いずれかの形式がコード内で使用されているのが分かります。
 
 	for (auto It = FruitMap.CreateConstIterator(); It; ++It)
 	{
@@ -237,9 +237,9 @@ Remove メソッドを使って、削除するエレメントのキーを与え�
 	// 	{ Key:9, Value:"Melon"     }
 	// ]
 
-Visual Studio の [Watch] ウィンドウでマップを視覚化すると分かりますが、エレメントを削除するとデータ構造中に '穴' があいたままになってしまいます。今ここでは分かりやすいように穴をあけています。
+Visual Studio の [Watch] ウィンドウでマップを視覚化すると分かりますが、エレメントを削除するとデータ構造中に「穴」があいたままになってしまいます。今ここでは分かりやすいように穴をあけています。
 
-FindAndRemoveChecked メソッドは、エレメントを削除し、関連する値を返します。メソッド名の 'Checked' という部分は、キーの存在を確認し、存在していなければアサートするという意味です。
+FindAndRemoveChecked メソッドは、エレメントを削除し、関連する値を返します。メソッド名の「Checked」という部分は、キーの存在を確認し、存在していなければアサートするという意味です。
 
 	FString Removed7 = FruitMap.FindAndRemoveChecked(7);
 	// Removed7 == "Pineapple"
@@ -445,11 +445,11 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 	{
 		// String which identifies our key
 		FString UniqueID;
-
+	
 		// Some state which doesn't affect struct identity
 		float SomeFloat;
 
-	explicit FMyStruct(float InFloat)
+		explicit FMyStruct(float InFloat)
 			:UniqueID (FGuid::NewGuid().ToString())
 			, SomeFloat(InFloat)
 		{
@@ -477,18 +477,18 @@ KeyInitType と ElementInitType は key 型と element 型の通常の渡し方�
 			return Element.Key.UniqueID;
 		}
 
-	static bool Matches(KeyInitType A, KeyInitType B)
+		static bool Matches(KeyInitType A, KeyInitType B)
 		{
 			return A.Compare(B, ESearchCase::CaseSensitive) == 0;
 		}
 
-	static uint32 GetKeyHash(KeyInitType Key)
+		static uint32 GetKeyHash(KeyInitType Key)
 		{
 			return FCrc::StrCrc32(*Key);
 		}
 	};
 
-ステートの一部に一意の識別子を持つタイプがありますが、恒等式に影響しないステートも他にあります。GetTypeHash と 演算子 == はここでは適切ではありません。ステートの一部を無視することは演算子 == に嘘をつくことになりますし、GetTypeHash は演算子 == と一致する必要がありますが、演算子 == を正しく定義すると一致しません。ただ、マップ内でこのタイプを認識するためには、ステートのUniqueID の部分だけが使えれば良いのです。
+ステートの一部に一意の識別子を持つタイプがありますが、恒等式に影響しないステートも他にあります。GetTypeHash と 演算子 == はここでは適切ではありません。ステートの一部を無視することは演算子 == に嘘をつくことになりますし、GetTypeHash は演算子 == と一致する必要がありますが、演算子 == を正しく定義すると一致しません。ただ、マップ内でこのタイプを認識するためには、ステートの UniqueID の部分だけが使えれば良いのです。
 
 まず、KeyInitType と ElementInitType を含むいくつかの定義をしやすいように BaseKeyFuncs を継承します。他のすべてのインプリメンテーションで使用できるように、これらを直接 Super から派生クラスに引き継ぎます。
 
