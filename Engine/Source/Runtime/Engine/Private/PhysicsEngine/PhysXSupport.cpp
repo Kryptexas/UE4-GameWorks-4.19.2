@@ -738,7 +738,7 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 		return;
 	}
 
-	DestructibleComponent->OnDamageEvent(damageEvent);
+	DestructibleComponent->GetWorld()->GetPhysicsScene()->AddPendingDamageEvent(DestructibleComponent, damageEvent);
 }
 
 void FApexChunkReport::onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent)

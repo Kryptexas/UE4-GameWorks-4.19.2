@@ -562,11 +562,9 @@ public:
 	/** Adds to queue of skelmesh we want to remove from collision disable table */
 	void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
 
-#if WITH_SUBSTEPPING
 #if WITH_APEX
-	/** Adds a damage event to be fired when substepping is done */
-	void DeferredDestructibleDamageNotify(const NxApexDamageEventReportData& damageEvent);
-#endif
+	/** Adds a damage event to be fired when fetchResults is done */
+	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const NxApexDamageEventReportData& DamageEvent);
 #endif
 
 	/** DeferredCommandHandler - this is mainly used for scene specific APEX calls that need to be deferred */
@@ -608,7 +606,7 @@ private:
 	class FPhysSubstepTask * PhysSubSteppers[PST_MAX];
 
 #if WITH_APEX
-	TArray<NxApexDamageEventReportData> DestructibleDamageEventQueue;
+	TUniquePtr<struct FPendingApexDamageManager> PendingApexDamageManager;
 #endif
 #endif
 
