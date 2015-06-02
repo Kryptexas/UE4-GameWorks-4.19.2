@@ -4,6 +4,8 @@
 package com.epicgames.replayserver;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.List;
 import java.util.logging.Level;
 
 import javax.servlet.ServletException;
@@ -11,10 +13,16 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.gson.Gson;
 
 public class StartUploading extends HttpServlet 
 {
 	private static final long serialVersionUID = 1L;
+
+	public class ReplayUsers 
+	{
+		public List< String > users;
+	}
 
 	public StartUploading()
 	{		
@@ -61,8 +69,25 @@ public class StartUploading extends HttpServlet
     		final int version = Integer.parseUnsignedInt( versionString );
         	final int changelist = Integer.parseUnsignedInt( clString );
 
-    		// Start a live session
-    		final String SessionName = ReplayDB.createSession( appName, version, changelist, friendlyName, metaString );
+        	List< String > userNames = null;
+       
+        	if ( request.getContentLength() > 0 )
+        	{
+            	try ( InputStreamReader inputStreamReader = new InputStreamReader( request.getInputStream() ) )
+        		{
+            		ReplayUsers replayUsers = new Gson().fromJson( inputStreamReader, ReplayUsers.class );
+            		userNames = replayUsers.users;
+        		}
+            	catch( Exception e )
+            	{
+            		ReplayLogger.log( Level.SEVERE, "StartUploading: Stream failed: " + appName + "/" + version );
+                    response.sendError( HttpServletResponse.SC_BAD_REQUEST );
+                    return;
+            	}
+        	}
+
+            // Start a live session
+    		final String SessionName = ReplayDB.createSession( appName, version, changelist, friendlyName, userNames, metaString );
       	
     		ReplayLogger.log( Level.FINE, "StartUploading. Success: " + appName + "/" + versionString + "/" + clString + "/" + SessionName + "/" + friendlyName + "/" + metaString );
 

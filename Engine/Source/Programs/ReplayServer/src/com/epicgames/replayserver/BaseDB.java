@@ -49,7 +49,7 @@ public interface BaseDB
 
 	public void shutdown();
 	public boolean sessionExists( final String sessionName );
-	public void createSession( final String appName, final int version, final int changelist, final String sessionName, final String friendlyName, final String metaString ) throws ReplayException;
+	public void createSession( final String appName, final int version, final int changelist, final String sessionName, final String friendlyName, final List< String > userNames, final String metaString ) throws ReplayException;
 	public void deleteSession( final String sessionName ) throws ReplayException;
 	public void refreshSession( final String 	sessionName, 
 								final boolean 	bIsLive, 

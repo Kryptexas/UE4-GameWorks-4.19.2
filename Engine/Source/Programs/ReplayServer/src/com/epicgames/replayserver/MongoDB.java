@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+//import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -97,6 +98,7 @@ public class MongoDB implements BaseDB
 		EnsureIndex( replayColl, new BasicDBObject( "app", 1 ).append( "version", 1 ).append( "bIsLive", 1 ).append( "created", 1 ), "VersionAppSortIndex" );
 		EnsureIndex( replayColl, new BasicDBObject( "app", 1 ).append( "bIsLive", 1 ).append( "created", 1 ), "AppSortIndex" );
 		EnsureIndex( replayColl, new BasicDBObject( "app", 1 ).append( "meta", 1 ), "AppMetaSortIndex" );
+		EnsureIndex( replayColl, new BasicDBObject( "app", 1 ).append( "users", 1 ).append( "created", 1 ), "AppUserIndex" );
 		EnsureIndex( replayColl, new BasicDBObject( "created", 1 ), "CreatedIndex" );
 		EnsureIndex( replayColl, new BasicDBObject( "modified", 1 ), "ModifiedIndex" );
 
@@ -235,7 +237,7 @@ public class MongoDB implements BaseDB
 		return replayColl.count( getSessionQuery( sessionName ) ) > 0;
 	}
 	
-	public void createSession( final String appName, final int version, final int changelist, final String sessionName, final String friendlyName, final String metaString ) throws ReplayException
+	public void createSession( final String appName, final int version, final int changelist, final String sessionName, final String friendlyName, final List< String > userNames, final String metaString ) throws ReplayException
 	{
 		if ( sessionExists( sessionName ) )
 		{
@@ -256,6 +258,7 @@ public class MongoDB implements BaseDB
 							.append( "numChunks", 		(int)0 )
 							.append( "demoTimeInMS", 	(int)0 )
 							.append( "sizeInBytes", 	(int)0 )
+							.append( "users", 			userNames )
 							.append( "meta", 			metaString );
 
 		
@@ -346,7 +349,7 @@ public class MongoDB implements BaseDB
 		WriteResult result = replayColl.update( getSessionQuery( sessionName ), new BasicDBObject( "$set", setData ).append( "$inc", incData ), true, false );
         if ( result.getN() != 1 )
         {
-        	throw new ReplayException( "MongoDB.UpdateSessionMetaData: result.getN() != 1" );
+        	throw new ReplayException( "MongoDB.refreshSession: result.getN() != 1" );
         }
 	}
 
@@ -358,7 +361,20 @@ public class MongoDB implements BaseDB
 		WriteResult result = replayColl.update( getSessionQuery( sessionName ), new BasicDBObject( "$set", setData ).append( "$inc", incData ), true, false );
 		if ( result.getN() != 1 )
 		{
-			throw new ReplayException( "MongoDB.UpdateSessionMetaData: result.getN() != 1" );
+			throw new ReplayException( "MongoDB.refreshSession: result.getN() != 1" );
+		}
+	}
+
+	public void addUsersToSession( final String sessionName, final List< String > userNames ) throws ReplayException
+	{
+		final BasicDBObject setData 		= new BasicDBObject( "modified", System.currentTimeMillis() );
+		final BasicDBObject addToSetData 	= new BasicDBObject( "$each", userNames ); 
+
+		WriteResult result = replayColl.update( getSessionQuery( sessionName ), new BasicDBObject( "$set", setData ).append( "$addToSet", addToSetData ), true, false );
+
+		if ( result.getN() != 1 )
+		{
+			throw new ReplayException( "MongoDB.addUserToSession: result.getN() != 1" );
 		}
 	}
 
@@ -668,8 +684,35 @@ public class MongoDB implements BaseDB
 		return obj;
 	}
 
+	/*
+	public static <T> List<T> castList( Class<? extends T> clazz, Collection<?> c ) 
+	{
+	    List<T> r = new ArrayList<T>( c.size() );
+
+	    for ( Object o : c )
+	    {
+	    	r.add( clazz.cast( o ) );
+	    }
+
+	    return r;
+	}
+	*/
+
 	private ReplaySessionInfo getSessionInfoFromDoc( final DBObject doc ) throws ReplayException
 	{
+    	/*
+		try
+    	{
+    		List<String> users = castList( String.class, (List<?>)doc.get( "users" ) );
+
+    	    ReplayLogger.log( Level.INFO, "Users: " + users );
+    	}
+    	catch( Exception e )
+    	{
+    	    ReplayLogger.log( Level.INFO, "NULL Users ");
+    	}
+    	*/
+
 	    try
 	    {
 	    	final String sessionName = getSessionString( doc );
@@ -738,6 +781,13 @@ public class MongoDB implements BaseDB
 		 		query.append( "meta", metaString );
  			}
 
+ 			/*
+ 			if ( userString != null )
+ 			{
+ 	 			query.append( "users", userString );
+ 			}
+ 			*/
+ 			
  			cursor = replayColl.find( query );
  		}
  		else

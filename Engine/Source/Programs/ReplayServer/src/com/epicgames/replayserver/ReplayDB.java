@@ -34,7 +34,7 @@ public class ReplayDB
 			{
 				final String app = "testApp";
 				
-				final String sessionName = createSession( app, 0, 0, "friendlyName", null );
+				final String sessionName = createSession( app, 0, 0, "friendlyName", null, null );
 				
 				if ( i % 10 == 0 )
 				{
@@ -116,14 +116,14 @@ public class ReplayDB
 		return true;
 	}
 
-	static String createSession( final String appName, final int version, final int changelist, final String friendlyName, final String metaString ) throws ReplayException
+	static String createSession( final String appName, final int version, final int changelist, final String friendlyName, final List< String > userNames, final String metaString ) throws ReplayException
 	{
 		final UUID sessionId = java.util.UUID.randomUUID();
 		final String sessionName = sessionId.toString();
 
 		try
 		{				
-			baseDB.createSession( appName, version, changelist, sessionName, friendlyName, metaString );
+			baseDB.createSession( appName, version, changelist, sessionName, friendlyName, userNames, metaString );
 			return sessionName; 
 		}
 		catch ( ReplayException e )
