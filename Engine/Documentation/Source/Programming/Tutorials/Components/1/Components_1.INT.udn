@@ -133,7 +133,6 @@ Our new **Pawn** now has a collection of useful **Components** attached to it, a
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
-			#include "CollidingPawnMovementComponent.h"
 
 			// Sets default values
 			ACollidingPawn::ACollidingPawn()
