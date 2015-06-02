@@ -98,7 +98,7 @@ We're now ready to finish coding our MyPawn class in **Visual Studio**.
 				// Called to bind functionality to input
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 			};
 

@@ -37,7 +37,7 @@ Description:Introduction to Pawns
 
 1. Next, we'll build a few basic **Components**. If you want to learn more about adding and managing **Components** in code, as well as some common types of **Components** you will encounter, try reading our [%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components). In order to keep track of the **Component** we will create, we should add the following code to `MyPawn.h`, at the bottom of our class definition:
 
-		UPROPERTY()
+		UPROPERTY(EditAnywhere)
 		USceneComponent* OurVisibleComponent;
 
 	[REGION:note]This variable is tagged as a **UPROPERTY** so that it will be visible to **Unreal Engine**. This is important because it prevents the variable from being reset when the game is launched, or when the project or level is closed and reloaded.[/REGION]
@@ -95,7 +95,7 @@ Now that we have a customized **Pawn** to react to our game's input, we'll need 
 				// Called to bind functionality to input
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 			};
 
