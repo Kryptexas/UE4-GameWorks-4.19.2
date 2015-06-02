@@ -153,11 +153,11 @@ uint32 FAssetDataGatherer::Run()
 				if ( bLoadAndSaveCache )
 				{
 					const FName PackageName = FName(*FPackageName::FilenameToLongPackageName(AssetFile));
-					const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
 					FDiskCachedAssetData** DiskCachedAssetDataPtr = DiskCachedAssetDataMap.Find(PackageName);
 					FDiskCachedAssetData* DiskCachedAssetData = NULL;
 					if ( DiskCachedAssetDataPtr && *DiskCachedAssetDataPtr )
 					{
+						const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
 						const FDateTime& CachedTimestamp = (*DiskCachedAssetDataPtr)->Timestamp;
 						if ( FileTimestamp == CachedTimestamp )
 						{
