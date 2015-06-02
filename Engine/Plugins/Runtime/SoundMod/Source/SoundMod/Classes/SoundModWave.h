@@ -6,6 +6,7 @@
 
 #pragma once
 #include "xmp.h"
+#include "Sound/SoundWaveProcedural.h"
 #include "SoundModWave.generated.h"
 
 UCLASS()
