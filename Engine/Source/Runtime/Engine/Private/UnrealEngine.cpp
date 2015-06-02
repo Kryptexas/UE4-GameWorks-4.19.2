@@ -8902,7 +8902,11 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 		for (FActorIterator ActorIt(WorldContext.World()); ActorIt; ++ActorIt)
 		{
-			ActorIt->RouteEndPlay(EEndPlayReason::LevelTransition);
+			// Routing the end play of an earlier Actor could have resulted in this Actor already being cleaned up/destroyed
+			if (!ActorIt->IsPendingKill())
+			{
+				ActorIt->RouteEndPlay(EEndPlayReason::LevelTransition);
+			}
 		}
 
 		// Do this after destroying pawns/playercontrollers, in case that spawns new things (e.g. dropped weapons)
