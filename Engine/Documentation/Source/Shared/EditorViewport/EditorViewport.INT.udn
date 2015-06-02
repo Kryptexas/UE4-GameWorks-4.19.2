@@ -119,7 +119,7 @@ Engine/UI/LevelEditor/Viewports/ViewModes#wireframe
 
 Only lighting with normal data pulled from materials is rendered. Color emitted from lights will affect the scene.
 
-Roughness and Emissive portions of the material will still affect the output, where as Metallic and Specular do not.
+Roughness and Emissive portions of the material will still affect the output, whereas Metallic and Specular do not.
 [VAR:ToolTipFullLink]
 Engine/UI/LevelEditor/Viewports/ViewModes#detaillighting
 [/VAR]
