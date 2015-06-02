@@ -364,6 +364,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 static FCriticalSection EnsureLock;
 static bool bReentranceGuard = false;
 
+// #YRX_Crash: 2015-05-28 This should be named EngineEnsureHandler
 /** 
  * Report an ensure to the crash reporting system
  */
@@ -455,6 +456,7 @@ void CreateExceptionInfoString(EXCEPTION_RECORD* ExceptionRecord)
 }
 #include "HideWindowsPlatformTypes.h"
 
+// #YRX_Crash: 2015-05-28 THis should be named EngineCrashHandler
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
 	// Only create a minidump the first time this function is called.
@@ -464,12 +466,32 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
+	GLog->PanicFlushThreadedLogs();
+
+	// First launch the crash reporter client.
+#if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
+	if (GUseCrashReportClient)
+	{
+		ReportCrashUsingCrashReportClient( ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog );
+	}
+	else
+#endif		// WINVER
+	{
+		WriteMinidump( MiniDumpFilenameW, ExceptionInfo );
+
+#if UE_BUILD_SHIPPING && WITH_EDITOR
+		uint32 dwOpt = 0;
+		EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt );
+#endif
+	}
+
+	// Then try run time crash processing and broadcast information about a crash.
 	FCoreDelegates::OnHandleSystemError.Broadcast();
 
 	const SIZE_T StackTraceSize = 65535;
 	ANSICHAR* StackTrace = (ANSICHAR*) GMalloc->Malloc( StackTraceSize );
 	StackTrace[0] = 0;
-	// Walk the stack and dump it to the allocated memory.
+	// Walk the stack and dump it to the allocated memory. This process usually allocates a lot of memory.
 	FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
 
 	// @TODO yrx 2014-08-20 Make this constant.
@@ -483,22 +505,6 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 	FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) );
 
 	GMalloc->Free( StackTrace );
-
-#if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
-	if (GUseCrashReportClient)
-	{
-		ReportCrashUsingCrashReportClient(ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog);
-	}
-	else
-#endif		// WINVER
-	{
-		WriteMinidump(MiniDumpFilenameW, ExceptionInfo);
-
-#if UE_BUILD_SHIPPING && WITH_EDITOR
-		uint32 dwOpt = 0;
-		EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt);
-#endif
-	}
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
