@@ -139,6 +139,9 @@ class ENGINE_API AGameSession : public AInfo
 	/** Allow a dedicated server a chance to register itself with an online service */
 	virtual void RegisterServer();
 
+	/** Callback when autologin was expected but failed */
+	virtual void RegisterServerFailed();
+
 	/**
 	 * Update session join parameters
 	 *

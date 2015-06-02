@@ -336,44 +336,11 @@ void APlayerController::SetNetSpeed(int32 NewSpeed)
 	}
 }
 
-FString APlayerController::ConsoleCommand(const FString& Cmd,bool bWriteToLog)
+FString APlayerController::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 {
-	if (Player != NULL)
+	if (Player != nullptr)
 	{
-		UConsole* ViewportConsole = (GEngine->GameViewport != NULL) ? GEngine->GameViewport->ViewportConsole : NULL;
-		FConsoleOutputDevice StrOut(ViewportConsole);
-
-		const int32 CmdLen = Cmd.Len();
-		TCHAR* CommandBuffer = (TCHAR*)FMemory::Malloc((CmdLen+1)*sizeof(TCHAR));
-		TCHAR* Line = (TCHAR*)FMemory::Malloc((CmdLen+1)*sizeof(TCHAR));
-
-		const TCHAR* Command = CommandBuffer;
-		// copy the command into a modifiable buffer
-		FCString::Strcpy(CommandBuffer, (CmdLen+1), *Cmd.Left(CmdLen)); 
-		
-		// iterate over the line, breaking up on |'s
-		while (FParse::Line(&Command, Line, CmdLen+1))	// The FParse::Line function expects the full array size, including the NULL character.
-		{
-			if (Player)
-			{
-				if(!Player->Exec( GetWorld(), Line, StrOut))
-				{
-					StrOut.Logf(TEXT("Command not recognized: %s"), Line);
-				}
-			}
-		}
-
-		// Free temp arrays
-		FMemory::Free(CommandBuffer);
-		CommandBuffer=NULL;
-
-		FMemory::Free(Line);
-		Line=NULL;
-
-		if (!bWriteToLog)
-		{
-			return *StrOut;
-		}
+		return Player->ConsoleCommand(Cmd, bWriteToLog);
 	}
 
 	return TEXT("");

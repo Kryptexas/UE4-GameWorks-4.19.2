@@ -68,11 +68,12 @@ protected:
 
 public:
 
-	void SetTestInstance(FAutomationTestBase& AutomationTestInstance) { TestRunner = &AutomationTestInstance; }
+	virtual void SetTestInstance(FAutomationTestBase& AutomationTestInstance) { TestRunner = &AutomationTestInstance; }
 
 	// interface
 	virtual ~FAITestBase();
 	virtual void SetUp() {}
+	/** @return true to indicate that the test is done. */
 	virtual bool Update() { return true; }
 	virtual void InstantTest() {}
 	// must be called!
@@ -135,13 +136,40 @@ struct FAITest_SimpleBT : public FAITestBase
 	virtual void VerifyResults();
 };
 
-struct FAITest_SimpleActionsTest : public FAITestBase
+template<class TComponent>
+struct FAITest_SimpleComponentBasedTest : public FAITestBase
 {
 	FTestLogger<int32> Logger;
-	UPawnActionsComponent* ActionsComponent;
+	TComponent* Component;
 
-	FAITest_SimpleActionsTest();
-	virtual ~FAITest_SimpleActionsTest();
-	virtual void SetUp() override;
+	FAITest_SimpleComponentBasedTest()
+	{
+		Component = NewAutoDestroyObject<TComponent>();
+	}
+
+	virtual void SetTestInstance(FAutomationTestBase& AutomationTestInstance) override
+	{ 
+		FAITestBase::SetTestInstance(AutomationTestInstance);
+		Logger.TestRunner = TestRunner;
+	}
+
+	virtual ~FAITest_SimpleComponentBasedTest()
+	{
+		Test(TEXT("Not all expected values has been logged"), Logger.ExpectedValues.Num() == 0 || Logger.ExpectedValues.Num() == Logger.LoggedValues.Num());
+	}
+
+	virtual void SetUp() override
+	{
+		UWorld* World = FAITestHelpers::GetWorld();
+		Component->RegisterComponentWithWorld(World);
+	}
+
+	void TickComponent()
+	{
+		Component->TickComponent(FAITestHelpers::TickInterval, ELevelTick::LEVELTICK_All, nullptr);
+	}
+
 	//virtual bool Update() override;
 };
+
+typedef FAITest_SimpleComponentBasedTest<UPawnActionsComponent> FAITest_SimpleActionsTest;

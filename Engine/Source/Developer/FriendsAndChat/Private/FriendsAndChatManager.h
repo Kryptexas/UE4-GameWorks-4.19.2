@@ -69,19 +69,19 @@ public:
 	/**
 	 * Record a game invite event
  	 */
-	void RecordGameInvite(const FUniqueNetId& ToUser, const FString& EventStr) const;
+	void RecordGameInvite(const FUniqueNetId& LocalUserId, const FUniqueNetId& ToUser, const FString& EventStr) const;
 	/**
 	 * Record a friend action event
 	 */
-	void RecordFriendAction(const IFriendItem& Friend, const FString& EventStr) const;
+	void RecordFriendAction(const FUniqueNetId& LocalUserId, const IFriendItem& Friend, const FString& EventStr) const;
 	/**
 	 * Record a add friend action event
 	 */
-	void RecordAddFriend(const FString& FriendName, const FUniqueNetId& FriendId, EFindFriendResult::Type Result, bool bRecentPlayer, const FString& EventStr) const;
+	void RecordAddFriend(const FUniqueNetId& LocalUserId, const FString& FriendName, const FUniqueNetId& FriendId, EFindFriendResult::Type Result, bool bRecentPlayer, const FString& EventStr) const;
 	/**
 	 * Record chat option toggle
 	 */
-	void RecordToggleChat(const FString& Channel, bool bEnabled, const FString& EventStr) const;
+	void RecordToggleChat(const FUniqueNetId& LocalUserId, const FString& Channel, bool bEnabled, const FString& EventStr) const;
 	/**
 	 * Record a private chat to a user (aggregates pending FlushChat)
 	 */
@@ -124,7 +124,7 @@ public:
 
 	// IFriendsAndChatManager
 	virtual void Logout() override;
-	virtual void Login(bool bInIsGame = false) override;
+	virtual void Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame = false) override;
 	virtual bool IsLoggedIn() override;
 	virtual void SetOnline() override;
 	virtual void SetAway() override;
@@ -142,6 +142,20 @@ public:
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) override;
+
+	/**
+	 * Get the name of the first global chat room we've joined
+	 *
+	 * param Out global chat room name
+	 */
+	virtual bool GetGlobalChatRoomId(FString& OutGlobalRoomId) const;
+
+	/**
+	* Get the name of the primary party chat room we've joined
+	*
+	* @param Out shared ref to party room id
+	*/
+	virtual TSharedPtr<const FOnlinePartyId> GetPartyChatRoomId() const;
 
 	/**
 	* Get the friends filtered list of friends.
@@ -186,6 +200,13 @@ public:
 	 * @return True if we are in a game session.
 	 */
 	bool IsInGameSession() const;
+
+	/**
+	* Get if the current player is in an active party, for determining if party chat is accessible.
+	*
+	* @return True if we are in a party for chat purposes
+	*/
+	bool IsInActiveParty() const;
 
 	/**
 	 * Is this friend in the same session as I am
@@ -350,6 +371,13 @@ public:
 	 * @return The recent player ID.
 	 */
 	TSharedPtr< IFriendItem > FindRecentPlayer(const FUniqueNetId& InUserID);
+	
+	/**
+	* Get the the local player's unique id used for the OSS
+	*
+	* @return Pointer to unique id.
+	*/
+	TSharedPtr<const FUniqueNetId> GetLocalUserId() const;
 
 	/**
 	 * Find a user.
@@ -591,6 +619,22 @@ private:
 	void OnGameDestroyed(const FName SessionName, bool bWasSuccessful);
 
 	/**
+	 * Handle switching default chat channel when player joins party
+	 *
+	 * @param PartyId party that member joined
+	 * @param MemberId member that joined
+	 */
+	void OnPartyMemberJoined(const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId);
+
+	/**
+	 * Handle removing party chat channel option when party becomes empty
+	 *
+	 * @param PartyId party that member left
+	 * @param MemberId member that left
+	 */
+	void OnPartyMemberLeft(const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId);
+
+	/**
 	 * Delegate used when a friend is removed.
 	 *
 	 * @param UserId		The user ID.
@@ -753,6 +797,11 @@ private:
 	FOnSessionInviteReceivedDelegate OnGameInviteReceivedDelegate;
 	// Delegate for a game session being destroyed
 	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
+	// Delegate for a player joining your party
+	FOnPartyMemberJoinedDelegate OnPartyMemberJoinedDelegate;
+	// Delegate for a player leaving your party
+	FOnPartyMemberLeftDelegate OnPartyMemberLeftDelegate;
+
 	// Delegate for friend removed
 	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
 	// Delegate for friend invite rejected
@@ -864,6 +913,9 @@ private:
 	// Lets us know if we are in game for invites / join game sessions
 	bool bIsInGame;
 
+	// The local player index that we use to talk to OSS
+	int32 LocalControllerIndex;
+
 public:
 
 	static TSharedRef< FFriendsAndChatManager > Get();
@@ -888,5 +940,7 @@ private:
 	FDelegateHandle OnPresenceReceivedCompleteDelegateHandle;
 	FDelegateHandle OnGameInviteReceivedDelegateHandle;
 	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
+	FDelegateHandle OnPartyMemberJoinedDelegateHandle;
+	FDelegateHandle OnPartyMemberLeftDelegateHandle;
 	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };

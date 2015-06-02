@@ -14,6 +14,7 @@
 #include "GameFramework/PhysicsVolume.h"
 #include "AIController.h"
 #include "Perception/AIPerceptionComponent.h"
+#include "GameplayTasksComponent.h"
 
 // mz@todo these need to be removed, legacy code
 #define CLOSEPROXIMITY					500.f
@@ -459,6 +460,16 @@ void AAIController::Possess(APawn* InPawn)
 		ChangeState(NAME_Playing);
 	}
 
+	// a Pawn controlled by AI _requires_ a GameplayTasksComponent, so if Pawn 
+	// doesn't have one we need to create it
+	UGameplayTasksComponent* GTComp = InPawn->FindComponentByClass<UGameplayTasksComponent>();
+	if (GTComp == nullptr)
+	{
+		GTComp = NewObject<UGameplayTasksComponent>(InPawn, TEXT("GameplayTasksComponent"));
+		GTComp->RegisterComponent();
+	}
+	CachedGameplayTasksComponent = GTComp;
+
 	OnPossess(InPawn);
 }
 
@@ -475,6 +486,8 @@ void AAIController::UnPossess()
 	{
 		BrainComponent->Cleanup();
 	}
+
+	CachedGameplayTasksComponent = nullptr;
 }
 
 void AAIController::InitNavigationControl(UPathFollowingComponent*& PathFollowingComp)

@@ -353,7 +353,8 @@ dtCrowd::dtCrowd() :
 	m_velocitySampleCount(0),
 	m_navquery(0),
 	m_raycastSingleArea(0),
-	m_keepOffmeshConnections(0)
+	m_keepOffmeshConnections(0),
+	m_earlyReachTest(0)
 {
 }
 
@@ -1805,6 +1806,11 @@ void dtCrowd::setPruneStartedOffmeshConnections(bool bRemoveFromCorridor)
 	m_keepOffmeshConnections = !bRemoveFromCorridor;
 }
 
+void dtCrowd::setEarlyReachTestOptimization(bool bEnable)
+{
+	m_earlyReachTest = bEnable;
+}
+
 bool dtCrowd::isOutsideCorridor(const int idx) const
 {
 	if (idx < 0 || idx > m_maxAgents)
@@ -1841,6 +1847,7 @@ bool dtCrowd::setAgentCorridor(const int idx, const dtPolyRef* path, const int n
 		return false;
 
 	ag->corridor.setCorridor(ag->targetPos, path, npath);
+	ag->corridor.setEarlyReachTest(m_earlyReachTest);
 	ag->boundary.reset();
 	ag->targetState = DT_CROWDAGENT_TARGET_VALID;
 	ag->targetReplanTime = 0.0;

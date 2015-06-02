@@ -265,6 +265,7 @@ private:
 				case EChatMessageType::Global: return FriendStyle.DefaultChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
 				case EChatMessageType::Whisper: return FriendStyle.WhisplerChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
 				case EChatMessageType::Game: return FriendStyle.GameChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
+				case EChatMessageType::Party: return FriendStyle.PartyChatColor.CopyWithNewOpacity(OwnerViewModel->GetTimeTransparency()); break;
 				default: return FLinearColor::Gray;
 			}
 		}
@@ -288,6 +289,7 @@ private:
 			case EChatMessageType::Global: DisplayColor = FriendStyle.DefaultChatColor; break;
 			case EChatMessageType::Whisper: DisplayColor = FriendStyle.WhisplerChatColor; break;
 			case EChatMessageType::Game: DisplayColor = FriendStyle.GameChatColor; break;
+			case EChatMessageType::Party: DisplayColor = FriendStyle.PartyChatColor; break;
 			default: DisplayColor = FLinearColor::Gray;
 		}
 		return DisplayColor;
@@ -306,6 +308,7 @@ private:
 				case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
 				case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
 				case EChatMessageType::Game: return &FriendStyle.ChatGameBrush; break;
+				case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
 				default:
 				return nullptr;
 			}
@@ -329,6 +332,7 @@ private:
 				case EChatMessageType::Global: return TEXT("UserNameTextStyle.GlobalHyperlink"); break;
 				case EChatMessageType::Whisper: return TEXT("UserNameTextStyle.Whisperlink"); break;
 				case EChatMessageType::Game: return TEXT("UserNameTextStyle.GameHyperlink"); break;
+				case EChatMessageType::Party: return TEXT("UserNameTextStyle.PartyHyperlink"); break;
 				default:
 					return TEXT("UserNameTextStyle.DefaultHyperlink");
 			}
@@ -371,12 +375,14 @@ private:
 			else
 			{
 				FFormatNamedArguments Args;
-				if(ViewModel->IsFromSelf() && ViewModel->GetMessageType() != EChatMessageType::Global)
+				if (ViewModel->IsFromSelf() && ViewModel->GetMessageType() == EChatMessageType::Whisper)
 				{
+					// Show who you whispered TO when displaying your sent whisper messages
 					Args.Add(TEXT("SenderName"), ViewModel->GetRecipientName());
 				}
 				else
 				{
+					// Party and global always show sender + channel icon
 					Args.Add(TEXT("SenderName"), ViewModel->GetSenderName());
 				}
 

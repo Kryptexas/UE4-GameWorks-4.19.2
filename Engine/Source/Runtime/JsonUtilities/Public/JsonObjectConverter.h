@@ -106,6 +106,22 @@ public: // JSON -> UStruct
 	 * @return False if any properties matched but failed to deserialize
 	 */
 	static bool JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags);
+	
+	/**
+	 * Templated version of JsonObjectToUStruct
+	 *
+	 * @param JsonObject Json Object to copy data out of
+	 * @param OutStruct The UStruct instance to copy in to
+	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
+	 * @param SkipFlags Skip properties that match any of these flags
+	 *
+	 * @return False if any properties matched but failed to deserialize
+	 */
+	template<typename OutStructType>
+	static bool JsonObjectToUStruct(const TSharedRef<FJsonObject>& JsonObject, OutStructType* OutStruct, int64 CheckFlags, int64 SkipFlags)
+	{
+		return JsonObjectToUStruct(JsonObject, OutStructType::StaticStruct(), OutStruct, CheckFlags, SkipFlags);
+	}
 
 	/**
 	 * Converts a set of json attributes (possibly from within a JsonObject) to a UStruct, using importText
@@ -153,7 +169,7 @@ public: // JSON -> UStruct
 			UE_LOG(LogJson, Warning, TEXT("JsonObjectStringToUStruct - Unable to parse json=[%s]"), *JsonString);
 			return false;
 		}
-		if (!FJsonObjectConverter::JsonObjectToUStruct(JsonObject.ToSharedRef(), OutStructType::StaticStruct(), OutStruct, CheckFlags, SkipFlags))
+		if (!FJsonObjectConverter::JsonObjectToUStruct(JsonObject.ToSharedRef(), OutStruct, CheckFlags, SkipFlags))
 		{
 			UE_LOG(LogJson, Warning, TEXT("JsonObjectStringToUStruct - Unable to deserialize. json=[%s]"), *JsonString);
 			return false;

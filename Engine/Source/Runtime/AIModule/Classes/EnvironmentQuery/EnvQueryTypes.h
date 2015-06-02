@@ -29,6 +29,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_EQS_Tick,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - EQS work"), STAT_AI_EQS_TickWork, STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - OnFinished delegates"), STAT_AI_EQS_TickNotifies, STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EQS_LoadTime,STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Execute One Step Time"),STAT_AI_EQS_ExecuteOneStep,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EQS_GeneratorTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EQS_TestTime,STATGROUP_AI_EQS, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EQS_NumInstances,STATGROUP_AI_EQS, );
@@ -581,6 +582,18 @@ private:
 	/** set when testing final condition of an option */
 	uint8 bPassOnSingleResult : 1;
 
+	/** if > 0 then it's how much time query has for performing current step */
+	double CurrentStepTimeLimit;
+
+	/** time spent executing this query */
+	double TotalExecutionTime;
+
+	/** time spent doing generation for this query */
+	double GenerationExecutionTime;
+
+	/** time spent on each test of this query */
+	TArray<double> PerStepExecutionTime;
+
 public:
 #if USE_EQS_DEBUGGER
 	/** set to true to store additional debug info */
@@ -596,9 +609,6 @@ public:
 	/** item type's CDO for actor tests */
 	UEnvQueryItemType_ActorBase* ItemTypeActorCDO;
 
-	/** if > 0 then it's how much time query has for performing current step */
-	double TimeLimit;
-
 	FEnvQueryInstance() : World(NULL), CurrentTest(-1), NumValidItems(0), bFoundSingleResult(false), bPassOnSingleResult(false)
 #if USE_EQS_DEBUGGER
 		, bStoreDebugInfo(bDebuggingInfoEnabled) 
@@ -608,7 +618,13 @@ public:
 	~FEnvQueryInstance() { DecStats(); }
 
 	/** execute single step of query */
-	void ExecuteOneStep(double TimeLimit);
+	void ExecuteOneStep(double InCurrentStepTimeLimit);
+
+	/** get the amount of time spent executing query */
+	double GetTotalExecutionTime() const { return TotalExecutionTime; }
+
+	/** describe for logging purposes what the query spent time on */
+	FString GetExecutionTimeDescription() const;
 
 	/** update context cache */
 	bool PrepareContext(UClass* Context, FEnvQueryContextData& ContextData);

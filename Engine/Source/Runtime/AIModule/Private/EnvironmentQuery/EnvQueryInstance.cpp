@@ -180,7 +180,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<AActor*>& Data)
 	return Data.Num() > 0;
 }
 
-void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
+void FEnvQueryInstance::ExecuteOneStep(double InCurrentStepTimeLimit)
 {
 	if (!Owner.IsValid())
 	{
@@ -197,32 +197,43 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 		return;
 	}
 
+	SCOPE_CYCLE_COUNTER(STAT_AI_EQS_ExecuteOneStep);
+
 	FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
-	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
-	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);
+	const double StepStartTime = FPlatformTime::Seconds();
 
 	const bool bDoingLastTest = (CurrentTest >= OptionItem.Tests.Num() - 1);
 	bool bStepDone = true;
-	TimeLimit = InTimeLimit;
+	CurrentStepTimeLimit = InCurrentStepTimeLimit;
 
 	if (CurrentTest < 0)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime);
 		DEC_DWORD_STAT_BY(STAT_AI_EQS_NumItems, Items.Num());
 
-//		SCOPE_LOG_TIME(TEXT("Generator"), nullptr);
-
+		TotalExecutionTime = 0.0;
+		GenerationExecutionTime = 0.0;
+		PerStepExecutionTime.Empty(OptionItem.Tests.Num());
+		PerStepExecutionTime.AddZeroed(OptionItem.Tests.Num());
 		RawData.Reset();
 		Items.Reset();
 		ItemType = OptionItem.ItemType;
 		bPassOnSingleResult = false;
 		ValueSize = ((UEnvQueryItemType*)ItemType->GetDefaultObject())->GetValueSize();
 		
-		OptionItem.Generator->GenerateItems(*this);
+		{
+			FScopeCycleCounterUObject GeneratorScope(OptionItem.Generator);
+			OptionItem.Generator->GenerateItems(*this);
+		}
+
 		FinalizeGeneration();
+
+		GenerationExecutionTime = FPlatformTime::Seconds() - StepStartTime;
+		TotalExecutionTime += GenerationExecutionTime;
 	}
 	else if (OptionItem.Tests.IsValidIndex(CurrentTest))
 	{
-//		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].Tests[CurrentTest]).ToString(), nullptr);
+		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime);
 
 		UEnvQueryTest* TestObject = OptionItem.Tests[CurrentTest];
 
@@ -250,7 +261,12 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 		}
 
 		const int32 ItemsAlreadyProcessed = CurrentTestStartingItem;
-		TestObject->RunTest(*this);
+
+		{
+			FScopeCycleCounterUObject TestScope(TestObject);
+			TestObject->RunTest(*this);
+		}
+
 		bStepDone = CurrentTestStartingItem >= Items.Num() || bFoundSingleResult
 			// or no items processed ==> this means error
 			|| (ItemsAlreadyProcessed == CurrentTestStartingItem);
@@ -259,6 +275,10 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 		{
 			FinalizeTest();
 		}
+
+		const double StepTime = (FPlatformTime::Seconds() - StepStartTime);
+		PerStepExecutionTime[CurrentTest] += StepTime;
+		TotalExecutionTime += StepTime;
 	}
 	else
 	{
@@ -306,6 +326,49 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	}
 }
 
+FString FEnvQueryInstance::GetExecutionTimeDescription() const
+{
+	FString ExecutionTimeDescription = FString::Printf(TEXT("Total Execution Time: %f - Generation Execution Time: %f"), TotalExecutionTime, GenerationExecutionTime);
+
+	if (Options.IsValidIndex(OptionIndex))
+	{
+		const FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
+		const int32 LastTestToDescribe = IsFinished() ? (OptionItem.Tests.Num() - 1) : CurrentTest;
+
+		if (PerStepExecutionTime.IsValidIndex(LastTestToDescribe))
+		{
+			FString TestDetails;
+			for (int32 StepIndex = 0; StepIndex <= LastTestToDescribe; ++StepIndex)
+			{
+				if (PerStepExecutionTime[StepIndex] > 0.0)
+				{
+					UEnvQueryTest* Test = nullptr;
+					if (OptionItem.Tests.IsValidIndex(StepIndex))
+					{
+						Test = OptionItem.Tests[StepIndex];
+					}
+
+					TestDetails.Append(FString::Printf(TEXT("%s (Index: %d) took %f seconds"), *GetNameSafe(Test), StepIndex, PerStepExecutionTime[StepIndex]));
+
+					if (StepIndex != LastTestToDescribe)
+					{
+						TestDetails.Append(TEXT(", "));
+					}
+				}
+			}
+
+			if (!TestDetails.IsEmpty())
+			{
+				ExecutionTimeDescription.Append(TEXT(" ("));
+				ExecutionTimeDescription.Append(TestDetails);
+				ExecutionTimeDescription.Append(TEXT(")"));
+			}
+		}
+	}
+
+	return ExecutionTimeDescription;
+}
+
 #if !NO_LOGGING
 void FEnvQueryInstance::Log(const FString Msg) const
 {
@@ -331,7 +394,7 @@ FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FE
 	CachedScoreOp = QueryTest ? QueryTest->MultipleContextScoreOp.GetValue() : EEnvTestScoreOperator::AverageScore;
 	bIsFiltering = (QueryTest->TestPurpose == EEnvTestPurpose::Filter) || (QueryTest->TestPurpose == EEnvTestPurpose::FilterAndScore);
 
-	Deadline = QueryInstance.TimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.TimeLimit) : -1.0;
+	Deadline = QueryInstance.CurrentStepTimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.CurrentStepTimeLimit) : -1.0;
 	// it's possible item 'CurrentItem' has been already discarded. Find a valid starting index
 	--CurrentItem;
 	FindNextValidIndex();
@@ -512,7 +575,6 @@ void FEnvQueryInstance::PickSingleItem(int32 ItemIndex)
 	if (bStoreDebugInfo)
 	{
 		Items.Swap(0, ItemIndex);
-		Items[0].Score = 1.0f;
 		ItemDetails.Swap(0, ItemIndex);
 
 		DebugData.bSingleItemResult = true;

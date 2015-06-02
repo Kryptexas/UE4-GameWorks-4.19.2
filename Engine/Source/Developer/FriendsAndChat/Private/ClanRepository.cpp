@@ -59,11 +59,6 @@ public:
 		return TEXT("Test Client");
 	}
 
-	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override
-	{
-		return nullptr;
-	}
-
 	virtual const bool IsOnline() const override
 	{
 		return false;

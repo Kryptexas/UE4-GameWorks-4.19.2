@@ -224,6 +224,8 @@ public:
 	void RemoveDevice(FVisualLogDevice* InDevice) { OutputDevices.RemoveSwap(InDevice); }
 	/** Remove visual logger output device */
 	const TArray<FVisualLogDevice*>& GetDevices() const { return OutputDevices; }
+	/** Check if log category can be recorded, verify before using GetEntryToWrite! */
+	bool IsCategoryLogged(const struct FLogCategoryBase& Category) const;
 	/** Returns  current entry for given TimeStap or creates another one  but first it serialize previous entry as completed to vislog devices. Use VisualLogger::DontCreate to get current entry without serialization*/
 	FVisualLogEntry* GetEntryToWrite(const class UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate = ECreateIfNeeded::Create);
 	/** Retrieves last used entry for given UObject*/

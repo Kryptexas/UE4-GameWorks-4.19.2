@@ -2031,7 +2031,7 @@ UWorld* UEditorEngine::NewMap()
 	InitBuilderBrush( Context.World() );
 
 	// Let navigation system know we're done creating new world
-	UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
+	UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystemRunMode::EditorMode);
 
 	// Deselect all
 	GEditor->SelectNone( false, true );
@@ -2424,7 +2424,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					InitializingFeedback.EnterProgressFrame();
 
-					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
+					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystemRunMode::EditorMode);
 					Context.World()->CreateAISystem();
 
 					// Assign stationary light channels for previewing

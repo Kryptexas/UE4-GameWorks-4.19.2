@@ -11,6 +11,7 @@
 #include "Actions/PawnActionsComponent.h"
 #include "Perception/AIPerceptionListenerInterface.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
+#include "GameplayTaskOwnerInterface.h"
 #include "AIController.generated.h"
 
 class APawn;
@@ -73,7 +74,7 @@ struct FFocusKnowledge
  */
 
 UCLASS(ClassGroup = AI, BlueprintType, Blueprintable)
-class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface
+class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface
 {
 	GENERATED_BODY()
 
@@ -118,6 +119,10 @@ private_subobject:
 	DEPRECATED_FORGAME(4.6, "ActionsComp should not be accessed directly, please use GetActionsComp() function instead. ActionsComp will soon be private and your code will not compile.")
 	UPROPERTY(BlueprintReadOnly, Category = AI, meta = (AllowPrivateAccess = "true"))
 	UPawnActionsComponent* ActionsComp;
+
+protected:
+	UPROPERTY()
+	UGameplayTasksComponent* CachedGameplayTasksComponent;
 
 public:
 
@@ -339,6 +344,15 @@ public:
 	// INavAgentInterface
 	//----------------------------------------------------------------------//
 	virtual bool IsFollowingAPath() const override;
+
+	//----------------------------------------------------------------------//
+	// IGameplayTaskOwnerInterface
+	//----------------------------------------------------------------------//
+	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override { return CachedGameplayTasksComponent; }
+	virtual void TaskStarted(UGameplayTask& NewTask) {}
+	virtual void TaskEnded(UGameplayTask& Task) {}
+	virtual AActor* GetOwnerActor() const { return const_cast<AAIController*>(this); }
+	virtual AActor* GetAvatarActor() const { return GetPawn(); }
 
 	//----------------------------------------------------------------------//
 	// Actions

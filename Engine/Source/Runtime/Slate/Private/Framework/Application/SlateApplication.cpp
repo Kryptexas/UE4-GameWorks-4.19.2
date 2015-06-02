@@ -4739,7 +4739,10 @@ FKey TranslateControllerButtonToKey( EControllerButtons::Type Button )
 
 bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEvent, const FNavigationReply& NavigationReply, const FArrangedWidget& BoundaryWidget)
 {
-	TSharedPtr<SWidget> FocusedWidget = GetUserFocusedWidget(NavigationEvent.GetUserIndex());
+	// Get the controller focus target for this user
+	FWeakWidgetPath FocusedWeakWidgetPath = UserFocusEntries[NavigationEvent.GetUserIndex()].WidgetPath;
+	TSharedPtr<SWidget> FocusedWidget = FocusedWeakWidgetPath.IsValid() ? FocusedWeakWidgetPath.GetLastWidget().Pin() : TSharedPtr<SWidget>();
+
 	TSharedPtr<SWidget> NewFocusedWidget = TSharedPtr<SWidget>();
 	if (FocusedWidget.IsValid())
 	{
@@ -4759,9 +4762,6 @@ bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEven
 		}
 		else
 		{
-			// Get the controller focus target for this user
-			FWeakWidgetPath FocusedWeakWidgetPath = UserFocusEntries[NavigationEvent.GetUserIndex()].WidgetPath;
-
 			// Find the next widget
 			if (NavigationType == EUINavigation::Next || NavigationType == EUINavigation::Previous)
 			{
@@ -4785,7 +4785,7 @@ bool FSlateApplication::AttemptNavigation(const FNavigationEvent& NavigationEven
 			}
 		}
 	}
-	
+
 	// Set controller focus if we have a valid widget
 	if (NewFocusedWidget.IsValid())
 	{

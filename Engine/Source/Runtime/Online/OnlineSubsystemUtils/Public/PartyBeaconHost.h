@@ -12,9 +12,9 @@ class AOnlineBeaconClient;
 class APartyBeaconClient;
 
 /**
- * Delegate fired when a the beacon host detects a reservation addition/removal
+ * Delegate type for handling reservation additions/removals, or full events
  */
-DECLARE_DELEGATE(FOnReservationChanged);
+DECLARE_DELEGATE(FOnReservationUpdate);
 
 /**
  * Delegate fired when a the beacon host has been told to cancel a reservation
@@ -37,11 +37,6 @@ DECLARE_DELEGATE_RetVal_OneParam(bool, FOnValidatePlayers, const TArray<FPlayerR
  * @param PartyReservation reservation that is found to be duplicated
  */
 DECLARE_DELEGATE_OneParam(FOnDuplicateReservation, const FPartyReservation&);
-
-/**
- * Delegate fired when a the beacon host detects that all reservations are full
- */
-DECLARE_DELEGATE(FOnReservationsFull);
 
 /**
  * A beacon host used for taking reservations for an existing game session
@@ -225,12 +220,12 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	/**
 	 * Delegate fired when a the beacon host detects a reservation addition/removal
 	 */
-	FOnReservationsFull& OnReservationsFull() { return ReservationsFull; }
+	FOnReservationUpdate& OnReservationsFull() { return ReservationsFull; }
 
 	/**
 	 * Delegate fired when a the beacon host detects that all reservations are full
 	 */
-	FOnReservationChanged& OnReservationChanged() { return ReservationChanged; }
+	FOnReservationUpdate& OnReservationChanged() { return ReservationChanged; }
 
 	/**
 	 * Delegate fired when a the beacon host cancels a reservation
@@ -259,9 +254,9 @@ protected:
 	UPartyBeaconState* State;
 
 	/** Delegate fired when the beacon indicates all reservations are taken */
-	FOnReservationsFull ReservationsFull;
+	FOnReservationUpdate ReservationsFull;
 	/** Delegate fired when the beacon indicates a reservation add/remove */
-	FOnReservationChanged ReservationChanged;
+	FOnReservationUpdate ReservationChanged;
 	/** Delegate fired when the beacon indicates a reservation cancellation */
 	FOnCancelationReceived CancelationReceived;
 	/** Delegate fired when the beacon detects a duplicate reservation */
@@ -301,4 +296,6 @@ protected:
 	 * @return true if the session matches, false otherwise
 	 */
 	bool DoesSessionMatch(const FString& SessionId) const;
+
+	void NotifyReservationEventNextFrame(FOnReservationUpdate& ReservationEvent);
 };

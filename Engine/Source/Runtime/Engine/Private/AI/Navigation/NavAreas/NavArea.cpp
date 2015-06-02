@@ -17,7 +17,11 @@ void UNavArea::PostInitProperties()
 {
 	Super::PostInitProperties();
 	
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	if (HasAnyFlags(RF_ClassDefaultObject)
+#if WITH_HOT_RELOAD
+		&& !GIsHotReload
+#endif // WITH_HOT_RELOAD
+		)
 	{
 		UNavigationSystem::RequestAreaRegistering(GetClass());
 	}
@@ -25,7 +29,11 @@ void UNavArea::PostInitProperties()
 
 void UNavArea::FinishDestroy()
 {
-	if (HasAnyFlags(RF_ClassDefaultObject))
+	if (HasAnyFlags(RF_ClassDefaultObject)
+#if WITH_HOT_RELOAD
+		&& !GIsHotReload
+#endif // WITH_HOT_RELOAD
+		)
 	{
 		UNavigationSystem::RequestAreaUnregistering(GetClass());
 	}

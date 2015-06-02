@@ -19,6 +19,10 @@
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #endif
 
+#if WITH_HOT_RELOAD
+#include "Misc/HotReloadInterface.h"
+#endif
+
 #if WITH_PHYSX
 #include "PhysicsPublic.h"
 #include "../../PhysicsEngine/PhysXSupport.h"
@@ -256,7 +260,7 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 	, bWholeWorldNavigable(false)
 	, bSkipAgentHeightCheckWhenPickingNavData(false)
 	, DirtyAreasUpdateFreq(60)
-	, OperationMode(FNavigationSystem::InvalidMode)
+	, OperationMode(FNavigationSystemRunMode::InvalidMode)
 	, NavOctree(NULL)
 	, NavBuildingLockFlags(0)
 	, InitialNavBuildingLockFlags(0)
@@ -442,6 +446,11 @@ void UNavigationSystem::PostInitProperties()
 #endif
 		FCoreUObjectDelegates::PostLoadMap.AddUObject(this, &UNavigationSystem::OnPostLoadMap);
 		UNavigationSystem::NavigationDirtyEvent.AddUObject(this, &UNavigationSystem::OnNavigationDirtied);
+
+#if WITH_HOT_RELOAD
+		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadDelegateHandle = HotReloadSupport.OnHotReload().AddUObject(this, &UNavigationSystem::OnHotReload);
+#endif
 	}
 }
 
@@ -542,9 +551,9 @@ void UNavigationSystem::OnInitializeActors()
 	
 }
 
-void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
+void UNavigationSystem::OnWorldInitDone(FNavigationSystemRunMode Mode)
 {
-	const bool bSkipRebuildInEditor = true;
+	static const bool bSkipRebuildInEditor = true;
 	OperationMode = Mode;
 	DoInitialSetup();
 	
@@ -552,13 +561,13 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 
 	if (IsThereAnywhereToBuildNavigation() == false
 		// Simulation mode is a special case - better not do it in this case
-		&& OperationMode != FNavigationSystem::SimulationMode)
+		&& OperationMode != FNavigationSystemRunMode::SimulationMode)
 	{
 		// remove all navigation data instances
 		for (TActorIterator<ANavigationData> It(World); It; ++It)
 		{
 			ANavigationData* Nav = (*It);
-			if (Nav != NULL && Nav->IsPendingKill() == false)
+			if (Nav != NULL && Nav->IsPendingKill() == false && Nav != GetAbstractNavData())
 			{
 				UnregisterNavData(Nav);
 				Nav->CleanUpAndMarkPendingKill();
@@ -566,7 +575,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 			}
 		}
 
-		if (OperationMode == FNavigationSystem::EditorMode)
+		if (OperationMode == FNavigationSystemRunMode::EditorMode)
 		{
 			RemoveNavigationBuildLock(InitialNavBuildingLockFlags, bSkipRebuildInEditor);
 		}
@@ -618,7 +627,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 			}
 		}
 
-		if (OperationMode == FNavigationSystem::EditorMode)
+		if (OperationMode == FNavigationSystemRunMode::EditorMode)
 		{
 			// don't lock navigation building in editor
 			RemoveNavigationBuildLock(InitialNavBuildingLockFlags, bSkipRebuildInEditor);
@@ -654,7 +663,7 @@ void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 		}
 	}
 
-	if (Mode == FNavigationSystem::EditorMode && bGenerateNavigationOnlyAroundNavigationInvokers)
+	if (Mode == FNavigationSystemRunMode::EditorMode && bGenerateNavigationOnlyAroundNavigationInvokers)
 	{
 		UWorld* MyWorld = GetWorld();
 		// gather enforcers manually to be able to see the results in editor as well
@@ -2168,7 +2177,7 @@ UNavigationSystem* UNavigationSystem::CreateNavigationSystem(UWorld* WorldOwner)
 	return NavSys;
 }
 
-void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode)
+void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystemRunMode Mode)
 {
 	if (World)
 	{
@@ -2180,7 +2189,7 @@ void UNavigationSystem::InitializeForWorld(UWorld* World, FNavigationSystem::EMo
 
 		// Remove old/stale chunk data from all levels, when navigation auto-update is enabled
 		// In case navigation system will be created chunks will be regenerated anyway
-		if (Mode == FNavigationSystem::EditorMode && bNavigationAutoUpdateEnabled)
+		if (Mode == FNavigationSystemRunMode::EditorMode)
 		{
 			DiscardNavigationDataChunks(World);
 		}
@@ -3153,7 +3162,7 @@ void UNavigationSystem::RemoveNavigationBuildLock(uint8 Flags, bool bSkipRebuild
 	NavBuildingLockFlags &= ~Flags;
 
 	const bool bIsLocked = IsNavigationBuildingLocked();
-	const bool bSkipRebuild = (OperationMode == FNavigationSystem::EditorMode) && bSkipRebuildInEditor;
+	const bool bSkipRebuild = (OperationMode == FNavigationSystemRunMode::EditorMode) && bSkipRebuildInEditor;
 	if (bWasLocked && !bIsLocked && !bSkipRebuild)
 	{
 		RebuildAll();
@@ -3359,6 +3368,21 @@ void UNavigationSystem::OnNavigationDirtied(const FBox& Bounds)
 	AddDirtyArea(Bounds, ENavigationDirtyFlag::All);
 }
 
+#if WITH_HOT_RELOAD
+void UNavigationSystem::OnHotReload(bool bWasTriggeredAutomatically)
+{
+	if (RequiresNavOctree() && NavOctree.IsValid() == false)
+	{
+		ConditionalPopulateNavOctree();
+
+		if (bInitialBuildingLocked)
+		{
+			RemoveNavigationBuildLock(ENavigationBuildLock::InitialLock, /*bSkipRebuildInEditor=*/true);
+		}
+	}
+}
+#endif // WITH_HOT_RELOAD
+
 void UNavigationSystem::CleanUp(ECleanupMode Mode)
 {
 	UE_LOG(LogNavigation, Log, TEXT("UNavigationSystem::CleanUp"));
@@ -3374,6 +3398,11 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 	UNavigationSystem::NavigationDirtyEvent.RemoveAll(this);
 	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 	FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
+
+#if WITH_HOT_RELOAD
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().Remove(HotReloadDelegateHandle);
+#endif
 
 	DestroyNavOctree();
 	
@@ -3581,7 +3610,8 @@ bool UNavigationSystem::IsNavigationBeingBuilt(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
-	if (NavSys && !NavSys->IsNavigationBuildingLocked())
+	
+	if (NavSys && !NavSys->IsNavigationBuildingPermanentlyLocked())
 	{
 		return NavSys->HasDirtyAreasQueued() || NavSys->IsNavigationBuildInProgress();
 	}

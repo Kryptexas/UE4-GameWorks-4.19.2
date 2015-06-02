@@ -1797,13 +1797,12 @@ public class GUBP : BuildCommand
         }
         public override int AgentMemoryRequirement(GUBP bp)
         {
-            if(bp.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled)))
+            if (bp.BranchOptions.EnhanceAgentRequirements.Contains(StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled)))
             {
                 return 64;
             }
             return base.AgentMemoryRequirement(bp);
         }
-
         public override int CISFrequencyQuantumShift(GUBP bp)
         {            
             int Result = base.CISFrequencyQuantumShift(bp);
@@ -7109,7 +7108,7 @@ public class GUBP : BuildCommand
 
                     bool Sticky = GUBPNodes[NodeToDo].IsSticky();
                     bool DoParallel = !Sticky;
-                    if (GUBPNodes[NodeToDo].ECProcedure() == "GUBP_UAT_Node_Parallel_AgentShare_Editor")
+                    if(GUBPNodes[NodeToDo].ECProcedure() == "GUBP_UAT_Node_Parallel_AgentShare_Editor")
                     {
                         DoParallel = true;
                     }

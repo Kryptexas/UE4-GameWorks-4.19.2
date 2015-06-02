@@ -181,6 +181,9 @@ protected:
 	/** Are we using double buffered blend spaces */
 	bool bDoubleBufferedBlendSpaces;
 
+	/** Are we using double buffered blend spaces */
+	bool bReInitAnimationOnSetSkeletalMeshCalls;
+
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference

@@ -12,7 +12,7 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogTimeline, Log, All);
 
-DECLARE_CYCLE_STAT(TEXT("TimelineComp Tick"),STAT_TimelineCompTick,STATGROUP_AI);
+DECLARE_CYCLE_STAT(TEXT("TimelineComp Tick"), STAT_TimelineCompTick, STATGROUP_Default);
 
 //////////////////////////////////////////////////////////////////////////
 // FTimeline

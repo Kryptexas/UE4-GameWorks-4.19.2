@@ -11,8 +11,6 @@
 class UWorld;
 class APlayerController;
 
-#define INVALID_CONTROLLERID 255
-
 UCLASS(config=Game)
 class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession
 {

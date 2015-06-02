@@ -40,4 +40,12 @@ public:
 	 * @param    PC - new player controller to assign to player
 	 */
 	ENGINE_API virtual void SwitchController( class APlayerController* PC );
+
+	/**
+	 * Executes the Exec() command
+	 *
+	 * @param Command command to execute (string of commands optionally separated by a | (pipe))
+	 * @param bWriteToLog write out to the log
+	 */
+	ENGINE_API FString ConsoleCommand(const FString& Cmd, bool bWriteToLog = true);
 };

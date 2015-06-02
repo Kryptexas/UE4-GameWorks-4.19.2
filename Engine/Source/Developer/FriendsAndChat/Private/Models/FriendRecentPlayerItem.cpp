@@ -40,11 +40,6 @@ const FString FFriendRecentPlayerItem::GetClientName() const
 	return TEXT("");
 }
 
-const TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetSessionId() const
-{
-	return nullptr;
-}
-
 const bool FFriendRecentPlayerItem::IsOnline() const
 {
 	return false;

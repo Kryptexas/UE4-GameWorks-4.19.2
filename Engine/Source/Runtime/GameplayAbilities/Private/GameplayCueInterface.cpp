@@ -28,6 +28,11 @@ void IGameplayCueInterface::HandleGameplayCues(AActor *Self, const FGameplayTagC
 	}
 }
 
+bool IGameplayCueInterface::ShouldAcceptGameplayCue(AActor *Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
+{
+	return true;
+}
+
 void IGameplayCueInterface::HandleGameplayCue(AActor *Self, FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
 	// Look up a custom function for this gameplay tag. 

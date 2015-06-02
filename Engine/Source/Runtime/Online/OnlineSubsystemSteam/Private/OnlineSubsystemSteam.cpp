@@ -375,6 +375,8 @@ bool FOnlineSubsystemSteam::Shutdown()
 {
 	UE_LOG_ONLINE(Display, TEXT("OnlineSubsystemSteam::Shutdown()"));
 
+	FOnlineSubsystemImpl::Shutdown();
+
 	if (OnlineAsyncTaskThread)
 	{
 		// Destroy the online async task thread

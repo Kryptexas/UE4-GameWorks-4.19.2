@@ -208,7 +208,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
 
 	FGameplayEffectAttributeCaptureDefinition()
 	{
-
+		AttributeSource = EGameplayEffectAttributeCaptureSource::Source;
+		bSnapshot = false;
 	}
 
 	FGameplayEffectAttributeCaptureDefinition(FGameplayAttribute InAttribute, EGameplayEffectAttributeCaptureSource InSource, bool InSnapshot)

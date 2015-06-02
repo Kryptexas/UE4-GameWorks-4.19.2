@@ -1166,7 +1166,12 @@ public:
 	 */
 	virtual void SmoothTargetViewRotation(APawn* TargetPawn, float DeltaSeconds);
 
-	//@todo: Document
+	/**
+	 * Executes the Exec() command on the UPlayer object
+	 *
+	 * @param Command command to execute (string of commands optionally separated by a | (pipe))
+	 * @param bWriteToLog write out to the log
+	 */
 	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true);
 
 	// Begin UObject Interface

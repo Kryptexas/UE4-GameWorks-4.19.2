@@ -28,6 +28,9 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 	/** Get the type of beacon implemented */
 	const FString& GetBeaconType() const { return BeaconTypeName; }
 
+	/** Simple accessor for client beacon actor class */
+	TSubclassOf<AOnlineBeaconClient> GetClientBeaconActorClass() const { return ClientBeaconActorClass; }
+
 	/**
 	 * Each beacon host must be able to spawn the appropriate client beacon actor to communicate with the initiating client
 	 *

@@ -11,8 +11,10 @@ namespace EChatMessageType
 	{
 		// Person whisper Item
 		Whisper,
-		// In-game Chat Item
+		// In-game (on server) Chat Item
 		Game,
+		// In-party (lobby, pre-server MUC) Chat Item
+		Party,
 		// Global Chat Item
 		Global,
 	};
@@ -23,12 +25,14 @@ namespace EChatMessageType
 		static FText GlobalText = NSLOCTEXT("FriendsList", "Global", "Global");
 		static FText WhisperText = NSLOCTEXT("FriendsList", "Whisper", "Whisper");
 		static FText GameText = NSLOCTEXT("FriendsList", "Game", "Game");
+		static FText PartyText = NSLOCTEXT("FriendsList", "Party", "Party");
 
 		switch (Type)
 		{
 			case Global: return GlobalText;
 			case Whisper: return WhisperText;
 			case Game: return GameText;
+			case Party: return PartyText;
 
 			default: return FText::GetEmpty();
 		}

@@ -52,7 +52,7 @@ bool FVisualLogger::CheckVisualLogInputInternal(const class UObject* Object, con
 FVisualLogEntry* FVisualLogger::GetLastEntryForObject(const class UObject* Object)
 {
 	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
-	return CurrentEntryPerObject.Contains(LogOwner) ? &CurrentEntryPerObject[LogOwner] : nullptr;	
+	return CurrentEntryPerObject.Contains(LogOwner) ? &CurrentEntryPerObject[LogOwner] : nullptr;
 }
 
 FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, float TimeStamp, ECreateIfNeeded ShouldCreate)
@@ -440,6 +440,22 @@ void FVisualLogger::SetIsRecordingToFile(bool InIsRecording)
 	}
 
 	bIsRecordingToFile = InIsRecording;
+}
+
+bool FVisualLogger::IsCategoryLogged(const struct FLogCategoryBase& Category) const
+{
+	if ((GEngine && GEngine->bDisableAILogging) || IsRecording() == false)
+	{
+		return false;
+	}
+
+	const FName CategoryName = Category.GetCategoryName();
+	if (IsBlockedForAllCategories() && IsWhiteListed(CategoryName) == false)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 #endif //ENABLE_VISUAL_LOG

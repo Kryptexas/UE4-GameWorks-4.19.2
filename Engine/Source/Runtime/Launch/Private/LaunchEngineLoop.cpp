@@ -1889,6 +1889,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// cooking needs this module too
 	FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 
+	// Ability tasks are based on GameplayTasks, so we need to make sure that module is loaded as well
+	FModuleManager::Get().LoadModule(TEXT("GameplayTasksEditor"));
+
 	// -----------------------------------------------------
 
 	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)

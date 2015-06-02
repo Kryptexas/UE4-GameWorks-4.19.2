@@ -907,6 +907,8 @@ public:
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh) override;
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
 
+	void SetSkeletalMeshWithoutResettingAnimation(class USkeletalMesh* NewMesh);
+
 	virtual bool IsPlayingRootMotion() override;
 	virtual bool IsPlayingRootMotionFromEverything() override;
 

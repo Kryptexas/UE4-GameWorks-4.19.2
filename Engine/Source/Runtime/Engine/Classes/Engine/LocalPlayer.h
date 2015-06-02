@@ -10,6 +10,8 @@
 #include "Player.h"
 #include "LocalPlayer.generated.h"
 
+#define INVALID_CONTROLLERID 255
+
 class FUniqueNetId;
 
 /** A context object that binds to a LocalPlayer. Useful for UI or other things that need to pass around player references */

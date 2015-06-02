@@ -146,6 +146,8 @@ bool FOnlineSubsystemFacebook::Shutdown()
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemFacebook::Shutdown()"));
 	
+	FOnlineSubsystemImpl::Shutdown();
+
 	FacebookIdentity = nullptr;
 	FacebookFriends = nullptr;
 	return true;

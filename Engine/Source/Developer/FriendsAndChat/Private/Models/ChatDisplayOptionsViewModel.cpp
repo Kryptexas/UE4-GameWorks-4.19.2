@@ -53,6 +53,12 @@ public:
 		ChatViewModel->SetInGame(bInGame);
 	}
 
+	virtual void UpdateInPartyUI() override
+	{
+		bool bInParty = FFriendsAndChatManager::Get()->IsInActiveParty();
+		ChatViewModel->SetInParty(bInParty);
+	}
+
 	virtual void EnableGlobalChat(bool bEnable) override
 	{
 		ChatViewModel->EnableGlobalChat(bEnable);
@@ -158,9 +164,15 @@ public:
 			OUTChannelType.Add(EChatMessageType::Global);
 		}
 		
-		if (OnNetworkMessageSentEvent().IsBound() && FFriendsAndChatManager::Get()->IsInGameSession())
+		bool bIsInGameServer = OnNetworkMessageSentEvent().IsBound() && FFriendsAndChatManager::Get()->IsInGameSession();
+		bool bIsInParty = FFriendsAndChatManager::Get()->IsInActiveParty();
+		if (bIsInGameServer)
 		{
 			OUTChannelType.Add(EChatMessageType::Game);
+		}
+		else if (bIsInParty)
+		{
+			OUTChannelType.Add(EChatMessageType::Party);
 		}
 	}
 

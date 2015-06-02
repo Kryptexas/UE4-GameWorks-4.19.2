@@ -9,6 +9,8 @@
 #include "GameplayAbilityTypes.h"
 #include "GameplayEffect.h"
 #include "Abilities/GameplayAbilityTargetDataFilter.h"
+#include "GameplayTask.h"
+#include "GameplayTaskOwnerInterface.h"
 #include "GameplayAbility.generated.h"
 
 /**
@@ -96,7 +98,7 @@ struct FAbilityTriggerData
  *	Abilities define custom gameplay logic that can be activated by players or external game logic.
  */
 UCLASS(Blueprintable)
-class GAMEPLAYABILITIES_API UGameplayAbility : public UObject
+class GAMEPLAYABILITIES_API UGameplayAbility : public UObject, public IGameplayTaskOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -228,12 +230,6 @@ public:
 	/** Callback for when this ability has been confirmed by the server */
 	FGenericAbilityDelegate	OnConfirmDelegate;
 
-	/** Called by an ability task, originating from this ability, when it starts */
-	virtual void TaskStarted(UAbilityTask* NewTask);
-
-	/** Called by an ability task, originating from this ability, when it ends */
-	virtual void TaskEnded(UAbilityTask* Task);
-
 	/** Is this ability triggered from TriggerData (or is it triggered explicitly through input/game code) */
 	bool IsTriggered() const;
 
@@ -252,6 +248,21 @@ public:
 
 	/** Called when the avatar actor is set/changes */
 	virtual void OnAvatarSet(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec);
+	
+	// --------------------------------------
+	//	IGameplayTaskOwnerInterface
+	// --------------------------------------	
+	/** setup additional properties if given task is an AbilityTask */
+	virtual void OnTaskInitialized(UGameplayTask& Task) override;
+	/** Called by an ability task, originating from this ability, when it starts */
+	virtual void TaskStarted(UGameplayTask& NewTask) override;
+
+	/** Called by an ability task, originating from this ability, when it ends */
+	virtual void TaskEnded(UGameplayTask& Task) override;
+
+	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override;
+	virtual AActor* GetOwnerActor() const override;
+	virtual AActor* GetAvatarActor() const override;
 
 	// --------------------------------------
 	//	Input
@@ -482,6 +493,9 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), DisplayName="ExecuteGameplayCue")
 	virtual void K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context);
 
+	UFUNCTION(BlueprintCallable, Category = Ability, meta = (GameplayTagFilter = "GameplayCue"), DisplayName = "ExecuteGameplayCueWithParams")
+	virtual void K2_ExecuteGameplayCueWithParams(FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters);
+
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), DisplayName="AddGameplayCue")
 	virtual void K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd = true);
 
@@ -701,7 +715,7 @@ protected:
 	//
 	// ----------------------------------------------------------------------------------------------------------------
 	
-	TArray<TWeakObjectPtr<UAbilityTask> >	ActiveTasks;
+	TArray<TWeakObjectPtr<UGameplayTask> >	ActiveTasks;
 
 	// ----------------------------------------------------------------------------------------------------------------
 	//

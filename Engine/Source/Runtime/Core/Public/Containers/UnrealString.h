@@ -1283,7 +1283,7 @@ public:
 	*
 	* @param	InArray			The array to fill with the string pieces
 	* @param	DelimArray		The strings to delimit on
-	* @param	NumDelims		The number of delimters.
+	* @param	NumDelims		The number of delimiters.
 	*
 	* @return	The number of elements in InArray
 	*/

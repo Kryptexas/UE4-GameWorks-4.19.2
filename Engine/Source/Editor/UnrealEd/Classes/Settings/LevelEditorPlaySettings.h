@@ -237,6 +237,14 @@ private:
 	int32 ClientWindowWidth;
 
 	/**
+	 * When running multiple players or a dedicated server the client need to connect to the server, this option sets how they connect
+	 *
+	 * If this is checked, the clients will automatically connect to the launched server, if false they will launch into the map and wait
+	 */
+	UPROPERTY(config, EditAnywhere, Category=MultiplayerOptions)
+	bool AutoConnectToServer;
+
+	/**
 	 * When running multiple player windows in a single process, this option determines how the game pad input gets routed.
 	 *
 	 * If unchecked (default) then the 1st game pad is attached to the 1st window, 2nd to the 2nd window, and so on.
@@ -288,6 +296,10 @@ public:
 	bool IsPlayNumberOfClientsActive() const { return (PlayNetMode != PIE_Standalone) || RunUnderOneProcess; }
 	bool GetPlayNumberOfClients( int32 &OutPlayNumberOfClients ) const { OutPlayNumberOfClients = PlayNumberOfClients; return IsPlayNumberOfClientsActive(); }
 	
+	bool IsAutoConnectToServerActive() const { return PlayNumberOfClients > 1 || PlayNetDedicated; }
+	bool GetAutoConnectToServer(bool &OutAutoConnectToServer) const { OutAutoConnectToServer = AutoConnectToServer; return IsAutoConnectToServerActive(); }
+	EVisibility GetAutoConnectToServerVisibility() const { return (RunUnderOneProcess ? EVisibility::Visible : EVisibility::Hidden); }
+
 	bool IsRouteGamepadToSecondWindowActive() const { return PlayNumberOfClients > 1; }
 	bool GetRouteGamepadToSecondWindow( bool &OutRouteGamepadToSecondWindow ) const { OutRouteGamepadToSecondWindow = RouteGamepadToSecondWindow; return IsRouteGamepadToSecondWindowActive(); }
 	EVisibility GetRouteGamepadToSecondWindowVisibility() const { return (RunUnderOneProcess ? EVisibility::Visible : EVisibility::Hidden); }

@@ -56,11 +56,14 @@ public:
 			[
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()
+				.VAlign(VAlign_Fill)
 				[
 					SNew(SOverlay)
 					+ SOverlay::Slot()
+					.VAlign(VAlign_Bottom)
 					[
 						SNew(SScrollBorder, TableBase)
+						.Style(&FriendStyle.ScrollBorderStyle)
 						[
 							SAssignNew(ChatListBox, SBox)
 							[
@@ -576,6 +579,7 @@ private:
 				case EChatMessageType::Global: ChatImage =  &FriendStyle.ChatGlobalBrush; break;
 				case EChatMessageType::Whisper: ChatImage = &FriendStyle.ChatWhisperBrush; break;
 				case EChatMessageType::Game: ChatImage = &FriendStyle.ChatGameBrush; break;
+				case EChatMessageType::Party: ChatImage = &FriendStyle.ChatGameBrush; break;
 			}
 
 			FLinearColor ChannelColor = FLinearColor::Gray;
@@ -584,6 +588,7 @@ private:
 				case EChatMessageType::Global: ChannelColor = FriendStyle.DefaultChatColor; break;
 				case EChatMessageType::Whisper: ChannelColor = FriendStyle.WhisplerChatColor; break;
 				case EChatMessageType::Game: ChannelColor = FriendStyle.GameChatColor; break;
+				case EChatMessageType::Party: ChannelColor = FriendStyle.GameChatColor; break;
 			}
 
 			ChannelSelection->AddSlot()
@@ -864,6 +869,7 @@ private:
 			case EChatMessageType::Global: return &FriendStyle.ChatGlobalBrush; break;
 			case EChatMessageType::Whisper: return &FriendStyle.ChatWhisperBrush; break;
 			case EChatMessageType::Game: return &FriendStyle.ChatGameBrush; break;
+			case EChatMessageType::Party: return &FriendStyle.ChatPartyBrush; break;
 			default:
 			return nullptr;
 		}

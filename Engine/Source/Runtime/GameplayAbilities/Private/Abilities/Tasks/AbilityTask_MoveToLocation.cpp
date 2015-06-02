@@ -16,7 +16,7 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const FObjectInitialize
 
 UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(UObject* WorldContextObject, FName TaskInstanceName, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve, UCurveVector* OptionalVectorInterpolationCurve)
 {
-	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject, TaskInstanceName);
+	auto MyObj = NewAbilityTask<UAbilityTask_MoveToLocation>(WorldContextObject, TaskInstanceName);
 
 	if (MyObj->GetAvatarActor() != nullptr)
 	{
@@ -38,9 +38,9 @@ void UAbilityTask_MoveToLocation::Activate()
 
 }
 
-void UAbilityTask_MoveToLocation::InitSimulatedTask(UAbilitySystemComponent* InAbilitySystemComponent)
+void UAbilityTask_MoveToLocation::InitSimulatedTask(UGameplayTasksComponent& InGameplayTasksComponent)
 {
-	Super::InitSimulatedTask(InAbilitySystemComponent);
+	Super::InitSimulatedTask(InGameplayTasksComponent);
 
 	TimeMoveStarted = GetWorld()->GetTimeSeconds();
 	TimeMoveWillEnd = TimeMoveStarted + DurationOfMovement;

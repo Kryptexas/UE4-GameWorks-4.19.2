@@ -4836,7 +4836,7 @@ UWorld* FSeamlessTravelHandler::Tick()
 				}
 			}
 
-			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystem::GameMode);
+			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystemRunMode::GameMode);
 
 			// Note that AI system will be created only if ai-system-creation conditions are met
 			LoadedWorld->CreateAISystem();

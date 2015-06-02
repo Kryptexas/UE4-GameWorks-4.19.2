@@ -45,8 +45,9 @@ FFriendsAndChatManager::FFriendsAndChatManager( )
 	, bIsInited( false )
 	, bRequiresListRefresh(false)
 	, bRequiresRecentPlayersRefresh(false)
-	, FlushChatAnalyticsCountdown(CHAT_ANALYTICS_INTERVAL)
 	, bIsInGame(false)
+	, LocalControllerIndex(0)
+	, FlushChatAnalyticsCountdown(CHAT_ANALYTICS_INTERVAL)
 {
 }
 
@@ -60,26 +61,35 @@ FFriendsAndChatManager::~FFriendsAndChatManager( )
 /* IFriendsAndChatManager interface
  *****************************************************************************/
 
-void FFriendsAndChatManager::Login(bool bInIsGame)
+void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame)
 {
 	// Clear existing data
 	Logout();
 
 	bIsInited = false;
 	bIsInGame = bInIsGame;
-	OnlineSub = IOnlineSubsystem::Get(TEXT("MCP"));
+	
+	if (InOnlineSub)
+	{
+		OnlineSub = InOnlineSub;
+	}
+	else
+	{
+		OnlineSub = IOnlineSubsystem::Get(TEXT("MCP"));
+	}
 
 	if (OnlineSub != nullptr &&
 		OnlineSub->GetUserInterface().IsValid() &&
 		OnlineSub->GetIdentityInterface().IsValid())
 	{
+		LocalControllerIndex = 0;
 		OnlineIdentity = OnlineSub->GetIdentityInterface();
-
+		
 		// ToDo - Inject these. Also, create FriendsListViewModelFactory here: Nick Davies 30th March 2015
 		ClanRepository = FClanRepositoryFactory::Create();
 		FriendsListFactory = FFriendListFactoryFactory::Create();
 
-		if(OnlineIdentity->GetUniquePlayerId(0).IsValid())
+		if(OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 		{
 			IOnlineUserPtr UserInterface = OnlineSub->GetUserInterface();
 			check(UserInterface.IsValid());
@@ -101,20 +111,25 @@ void FFriendsAndChatManager::Login(bool bInIsGame)
 			OnFriendInviteAccepted               = FOnInviteAcceptedDelegate                       ::CreateSP (this, &FFriendsAndChatManager::OnInviteAccepted);
 			OnGameInviteReceivedDelegate         = FOnSessionInviteReceivedDelegate                ::CreateSP (this, &FFriendsAndChatManager::OnGameInviteReceived);
 			OnDestroySessionCompleteDelegate     = FOnDestroySessionCompleteDelegate               ::CreateSP (this, &FFriendsAndChatManager::OnGameDestroyed);
+			OnPartyMemberJoinedDelegate          = FOnPartyMemberJoinedDelegate                    ::CreateSP (this, &FFriendsAndChatManager::OnPartyMemberJoined);
+			OnPartyMemberLeftDelegate            = FOnPartyMemberLeftDelegate                      ::CreateSP (this, &FFriendsAndChatManager::OnPartyMemberLeft);
 
-			OnQueryRecentPlayersCompleteDelegateHandle = FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegate);
-			OnFriendsListChangedDelegateHandle         = FriendsInterface->AddOnFriendsChangeDelegate_Handle             (0, OnFriendsListChangedDelegate);
-			OnFriendInviteReceivedDelegateHandle       = FriendsInterface->AddOnInviteReceivedDelegate_Handle            (   OnFriendInviteReceivedDelegate);
-			OnFriendRemovedDelegateHandle              = FriendsInterface->AddOnFriendRemovedDelegate_Handle             (   OnFriendRemovedDelegate);
-			OnFriendInviteRejectedHandle               = FriendsInterface->AddOnInviteRejectedDelegate_Handle            (   OnFriendInviteRejected);
-			OnFriendInviteAcceptedHandle               = FriendsInterface->AddOnInviteAcceptedDelegate_Handle            (   OnFriendInviteAccepted);
-			OnDeleteFriendCompleteDelegateHandle       = FriendsInterface->AddOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegate);
+			OnQueryRecentPlayersCompleteDelegateHandle	= FriendsInterface->AddOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegate);
+			OnFriendsListChangedDelegateHandle			= FriendsInterface->AddOnFriendsChangeDelegate_Handle(LocalControllerIndex, OnFriendsListChangedDelegate);
+			OnFriendInviteReceivedDelegateHandle		= FriendsInterface->AddOnInviteReceivedDelegate_Handle            (   OnFriendInviteReceivedDelegate);
+			OnFriendRemovedDelegateHandle				= FriendsInterface->AddOnFriendRemovedDelegate_Handle             (   OnFriendRemovedDelegate);
+			OnFriendInviteRejectedHandle				= FriendsInterface->AddOnInviteRejectedDelegate_Handle            (   OnFriendInviteRejected);
+			OnFriendInviteAcceptedHandle				= FriendsInterface->AddOnInviteAcceptedDelegate_Handle            (   OnFriendInviteAccepted);
+			OnDeleteFriendCompleteDelegateHandle		= FriendsInterface->AddOnDeleteFriendCompleteDelegate_Handle(LocalControllerIndex, OnDeleteFriendCompleteDelegate);
 
-			OnQueryUserInfoCompleteDelegateHandle = UserInterface->AddOnQueryUserInfoCompleteDelegate_Handle(0, OnQueryUserInfoCompleteDelegate);
+			OnQueryUserInfoCompleteDelegateHandle = UserInterface->AddOnQueryUserInfoCompleteDelegate_Handle(LocalControllerIndex, OnQueryUserInfoCompleteDelegate);
 
 			OnPresenceReceivedCompleteDelegateHandle = OnlineSub->GetPresenceInterface()->AddOnPresenceReceivedDelegate_Handle      (OnPresenceReceivedCompleteDelegate);
 			OnGameInviteReceivedDelegateHandle       = OnlineSub->GetSessionInterface ()->AddOnSessionInviteReceivedDelegate_Handle (OnGameInviteReceivedDelegate);
 			OnDestroySessionCompleteDelegateHandle   = OnlineSub->GetSessionInterface ()->AddOnDestroySessionCompleteDelegate_Handle(OnDestroySessionCompleteDelegate);
+
+			OnPartyMemberJoinedDelegateHandle = OnlineSub->GetPartyInterface()->AddOnPartyMemberJoinedDelegate_Handle(OnPartyMemberJoinedDelegate);
+			OnPartyMemberLeftDelegateHandle   = OnlineSub->GetPartyInterface()->AddOnPartyMemberLeftDelegate_Handle  (OnPartyMemberLeftDelegate);
 
 			ManagerState = EFriendsAndManagerState::Idle;
 
@@ -155,12 +170,12 @@ void FFriendsAndChatManager::Logout()
 		if (OnlineSub->GetFriendsInterface().IsValid())
 		{
 			OnlineSub->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate_Handle(   OnQueryRecentPlayersCompleteDelegateHandle);
-			OnlineSub->GetFriendsInterface()->ClearOnFriendsChangeDelegate_Handle             (0, OnFriendsListChangedDelegateHandle);
+			OnlineSub->GetFriendsInterface()->ClearOnFriendsChangeDelegate_Handle             (LocalControllerIndex, OnFriendsListChangedDelegateHandle);
 			OnlineSub->GetFriendsInterface()->ClearOnInviteReceivedDelegate_Handle            (   OnFriendInviteReceivedDelegateHandle);
 			OnlineSub->GetFriendsInterface()->ClearOnFriendRemovedDelegate_Handle             (   OnFriendRemovedDelegateHandle);
 			OnlineSub->GetFriendsInterface()->ClearOnInviteRejectedDelegate_Handle            (   OnFriendInviteRejectedHandle);
 			OnlineSub->GetFriendsInterface()->ClearOnInviteAcceptedDelegate_Handle            (   OnFriendInviteAcceptedHandle);
-			OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegateHandle);
+			OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate_Handle	  (LocalControllerIndex, OnDeleteFriendCompleteDelegateHandle);
 		}
 		if (OnlineSub->GetPresenceInterface().IsValid())
 		{
@@ -173,7 +188,12 @@ void FFriendsAndChatManager::Logout()
 		}
 		if (OnlineSub->GetUserInterface().IsValid())
 		{
-			OnlineSub->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate_Handle(0, OnQueryUserInfoCompleteDelegateHandle);
+			OnlineSub->GetUserInterface()->ClearOnQueryUserInfoCompleteDelegate_Handle(LocalControllerIndex, OnQueryUserInfoCompleteDelegateHandle);
+		}
+		if (OnlineSub->GetPartyInterface().IsValid())
+		{
+			OnlineSub->GetPartyInterface()->ClearOnPartyMemberJoinedDelegate_Handle(OnPartyMemberJoinedDelegateHandle);
+			OnlineSub->GetPartyInterface()->ClearOnPartyMemberLeftDelegate_Handle(OnPartyMemberLeftDelegateHandle);
 		}
 	}
 
@@ -274,6 +294,35 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 			MessageManager->JoinPublicRoom(RoomName);
 		}
 	}
+}
+
+bool FFriendsAndChatManager::GetGlobalChatRoomId(FString& OutGlobalRoomId) const
+{
+	if (ChatRoomstoJoin.Num() > 0)
+	{
+		OutGlobalRoomId = ChatRoomstoJoin[0];
+		return true;
+	}
+	return false;
+}
+
+TSharedPtr<const FOnlinePartyId> FFriendsAndChatManager::GetPartyChatRoomId() const
+{
+	TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
+	TSharedPtr<const FOnlinePartyId> PartyChatRoomId;
+	TArray< TSharedRef<const FOnlinePartyId> > OutPartyIds;
+	if (OnlineSub != nullptr &&
+		UserId.IsValid())
+	{
+		IOnlinePartyPtr PartyInterface = OnlineSub->GetPartyInterface();
+		if (PartyInterface.IsValid()
+			&& PartyInterface->GetJoinedParties(*UserId, OutPartyIds) == true
+			&& OutPartyIds.Num() > 0)
+		{
+			PartyChatRoomId = OutPartyIds[0]; // @todo EN need to identify the primary game party consistently when multiple parties exist
+		}
+	}
+	return PartyChatRoomId;
 }
 
 void FFriendsAndChatManager::OnChatPublicRoomJoined(const FString& ChatRoomID)
@@ -666,7 +715,12 @@ void FFriendsAndChatManager::OpenGlobalChat()
 {
 	if (IsInGlobalChat())
 	{
-		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), true, TEXT("Social.Chat.Toggle"));
+
+		if (OnlineIdentity.IsValid() &&
+			OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+		{
+			Analytics.RecordToggleChat(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), TEXT("Global"), true, TEXT("Social.Chat.Toggle"));
+		}
 		CreateChatWindow(&Style, EChatMessageType::Global, nullptr, true);
 	}
 }
@@ -675,7 +729,12 @@ void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& I
 {
 	if (InWindow == GlobalChatWindow)
 	{
-		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), false, TEXT("Social.Chat.Toggle"));
+		if (OnlineIdentity.IsValid() &&
+			OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+		{
+			Analytics.RecordToggleChat(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), TEXT("Global"), true, TEXT("Social.Chat.Toggle"));
+		}
+				
 		GlobalChatWindow.Reset();
 	}	
 	else
@@ -693,6 +752,15 @@ void FFriendsAndChatManager::HandleChatWindowClosed(const TSharedRef<SWindow>& I
 	Analytics.FlushChatStats();
 }
 
+TSharedPtr<const FUniqueNetId> FFriendsAndChatManager::GetLocalUserId() const
+{
+	if (OnlineIdentity.IsValid() && OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		return OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
+	}
+
+	return nullptr;
+}
 
 class SLATE_API SWindowZoneBox 
 	: public SCompoundWidget
@@ -803,6 +871,7 @@ void FFriendsAndChatManager::SetChatWindowContents(TSharedPtr<SWindow> Window, T
 
 	TSharedRef<FChatDisplayOptionsViewModel> DisplayViewModel = FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef());
 	DisplayViewModel->SetInGameUI(false);
+	DisplayViewModel->UpdateInPartyUI();
 	DisplayViewModel->SetCaptureFocus(false);
 	DisplayViewModel->EnableGlobalChat(true);
 
@@ -899,7 +968,7 @@ void FFriendsAndChatManager::SetUserIsOnline(EOnlinePresenceState::Type OnlineSt
 	if (OnlineSub != nullptr &&
 		OnlineIdentity.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 		if (UserId.IsValid())
 		{
 			TSharedPtr<FOnlineUserPresence> CurrentPresence;
@@ -921,8 +990,11 @@ void FFriendsAndChatManager::AcceptFriend( TSharedPtr< IFriendItem > FriendItem 
 	FriendItem->SetPendingAccept();
 	RefreshList();
 	OnFriendsNotification().Broadcast(false);
-
-	Analytics.RecordFriendAction(*FriendItem, TEXT("Social.FriendAction.Accept"));
+	if (OnlineIdentity.IsValid() &&
+		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		Analytics.RecordFriendAction(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, TEXT("Social.FriendAction.Accept"));
+	}
 }
 
 
@@ -934,7 +1006,11 @@ void FFriendsAndChatManager::RejectFriend(TSharedPtr< IFriendItem > FriendItem)
 	RefreshList();
 	OnFriendsNotification().Broadcast(false);
 
-	Analytics.RecordFriendAction(*FriendItem, TEXT("Social.FriendAction.Reject"));
+	if (OnlineIdentity.IsValid() &&
+		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		Analytics.RecordFriendAction(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, TEXT("Social.FriendAction.Reject"));
+	}
 }
 
 void FFriendsAndChatManager::DeleteFriend(TSharedPtr< IFriendItem > FriendItem, const FString& Action)
@@ -948,7 +1024,11 @@ void FFriendsAndChatManager::DeleteFriend(TSharedPtr< IFriendItem > FriendItem, 
 	// Clear notifications
 	OnFriendsNotification().Broadcast(false);
 
-	Analytics.RecordFriendAction(*FriendItem, TEXT("Social.FriendAction.") + Action);
+	if (OnlineIdentity.IsValid() &&
+		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		Analytics.RecordFriendAction(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem, TEXT("Social.FriendAction.") + Action);
+	}
 }
 
 void FFriendsAndChatManager::RequestFriend( const FText& FriendName )
@@ -1061,12 +1141,41 @@ bool FFriendsAndChatManager::IsInGameSession() const
 	return false;
 }
 
+bool FFriendsAndChatManager::IsInActiveParty() const
+{
+	if (OnlineIdentity.IsValid())
+	{
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
+		TSharedPtr<const FOnlinePartyId> ActivePartyId = GetPartyChatRoomId();
+		if (ActivePartyId.IsValid() && UserId.IsValid())
+		{
+			if (OnlineSub != nullptr)
+			{
+				IOnlinePartyPtr PartyInterface = OnlineSub->GetPartyInterface();
+				if (PartyInterface.IsValid())
+				{
+					TArray< TSharedRef<FOnlinePartyMember> > OutPartyMembers;
+					if (PartyInterface->GetPartyMembers(*UserId, *ActivePartyId, OutPartyMembers)
+						&& OutPartyMembers.Num() > 1)
+					{
+						// Fortnite puts you in a party immediately, so we have to check size here to see if YOU think you're in a party & have anyone to talk to
+						// @todo What about if people leave and come back - should MUC persist w/ chat history?
+						//       Need UI flow to determine right way to do this & edge cases.  Can a party of 1 exist, should it allow party chat, etc.
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 bool FFriendsAndChatManager::IsFriendInSameSession(const TSharedPtr< const IFriendItem >& FriendItem) const
 {
 	TSharedPtr<const FUniqueNetId> MySessionId = GetGameSessionId();
 	bool bMySessionValid = MySessionId.IsValid() && MySessionId->IsValid();
 
-	TSharedPtr<const FUniqueNetId> FriendSessionId = FriendItem->GetSessionId();
+	TSharedPtr<const FUniqueNetId> FriendSessionId = FriendItem->GetGameSessionId();
 	bool bFriendSessionValid = FriendSessionId.IsValid() && FriendSessionId->IsValid();
 
 	return (bMySessionValid && bFriendSessionValid && (*FriendSessionId == *MySessionId));
@@ -1134,7 +1243,7 @@ EOnlinePresenceState::Type FFriendsAndChatManager::GetOnlineStatus()
 		OnlineIdentity.IsValid())
 	{
 		TSharedPtr<FOnlineUserPresence> Presence;
-		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 		if(UserId.IsValid())
 		{
 			OnlineSub->GetPresenceInterface()->GetCachedPresence(*UserId, Presence);
@@ -1154,7 +1263,7 @@ FString FFriendsAndChatManager::GetUserClientId() const
 		OnlineIdentity.IsValid())
 	{
 		TSharedPtr<FOnlineUserPresence> Presence;
-		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 		if (UserId.IsValid())
 		{
 			OnlineSub->GetPresenceInterface()->GetCachedPresence(*UserId, Presence);
@@ -1178,7 +1287,7 @@ FString FFriendsAndChatManager::GetUserNickname() const
 		OnlineIdentity.IsValid())
 	{
 		TSharedPtr<FOnlineUserPresence> Presence;
-		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 		if (UserId.IsValid())
 		{
 			Result = OnlineIdentity->GetPlayerNickname(*UserId);
@@ -1260,7 +1369,7 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 	case EFriendsAndManagerState::RequestFriendsListRefresh:
 		{
 			FOnReadFriendsListComplete Delegate = FOnReadFriendsListComplete::CreateSP(this, &FFriendsAndChatManager::OnReadFriendsListComplete);
-			if (FriendsInterface.IsValid() && FriendsInterface->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), Delegate))
+			if (FriendsInterface.IsValid() && FriendsInterface->ReadFriendsList(LocalControllerIndex, EFriendsLists::ToString(EFriendsLists::Default), Delegate))
 			{
 				SetState(EFriendsAndManagerState::RequestingFriendsList);
 			}
@@ -1273,7 +1382,7 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 		break;
 	case EFriendsAndManagerState::RequestRecentPlayersListRefresh:
 		{
-			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity.IsValid() ? OnlineIdentity->GetUniquePlayerId(0) : nullptr;
+			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity.IsValid() ? OnlineIdentity->GetUniquePlayerId(LocalControllerIndex) : nullptr;
 			if (UserId.IsValid() &&
 				FriendsInterface->QueryRecentPlayers(*UserId))
 			{
@@ -1310,7 +1419,7 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 		{
 			if (FriendsInterface.IsValid())
 			{
-				FriendsInterface->DeleteFriend(0, PendingOutgoingDeleteFriendRequests[0], EFriendsLists::ToString(EFriendsLists::Default));
+				FriendsInterface->DeleteFriend(LocalControllerIndex, PendingOutgoingDeleteFriendRequests[0], EFriendsLists::ToString(EFriendsLists::Default));
 			}			
 		}
 		break;
@@ -1319,7 +1428,7 @@ void FFriendsAndChatManager::SetState( EFriendsAndManagerState::Type NewState )
 			if (FriendsInterface.IsValid())
 			{
 				FOnAcceptInviteComplete Delegate = FOnAcceptInviteComplete::CreateSP(this, &FFriendsAndChatManager::OnAcceptInviteComplete);
-				FriendsInterface->AcceptInvite(0, PendingOutgoingAcceptFriendRequests[0], EFriendsLists::ToString(EFriendsLists::Default), Delegate);
+				FriendsInterface->AcceptInvite(LocalControllerIndex, PendingOutgoingAcceptFriendRequests[0], EFriendsLists::ToString(EFriendsLists::Default), Delegate);
 			}
 		}
 		break;
@@ -1369,7 +1478,7 @@ void FFriendsAndChatManager::OnQueryRecentPlayersComplete(const FUniqueNetId& Us
 			{
 				check(OnlineSub != nullptr && OnlineSub->GetUserInterface().IsValid());
 				IOnlineUserPtr UserInterface = OnlineSub->GetUserInterface();
-				UserInterface->QueryUserInfo(0, QueryUserIds);
+				UserInterface->QueryUserInfo(LocalControllerIndex, QueryUserIds);
 				bFoundAllIds = false;
 			}
 			else
@@ -1390,7 +1499,7 @@ void FFriendsAndChatManager::PreProcessList(const FString& ListName)
 	TArray< TSharedRef<FOnlineFriend> > Friends;
 	bool bReadyToChangeState = true;
 
-	if ( FriendsInterface.IsValid() && FriendsInterface->GetFriendsList(0, ListName, Friends) )
+	if (FriendsInterface.IsValid() && FriendsInterface->GetFriendsList(LocalControllerIndex, ListName, Friends))
 	{
 		if (Friends.Num() > 0)
 		{
@@ -1417,7 +1526,7 @@ void FFriendsAndChatManager::PreProcessList(const FString& ListName)
 
 		if ( QueryUserIds.Num() > 0 )
 		{
-			UserInterface->QueryUserInfo(0, QueryUserIds);
+			UserInterface->QueryUserInfo(LocalControllerIndex, QueryUserIds);
 			// OnQueryUserInfoComplete will handle state change
 			bReadyToChangeState = false;
 		}
@@ -1479,7 +1588,7 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 	else if(ManagerState == EFriendsAndManagerState::RequestingRecentPlayersIDs)
 	{
 		RecentPlayersList.Empty();
-		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 		if (UserId.IsValid())
 		{
 			TArray< TSharedRef<FOnlineRecentPlayer> > Players;
@@ -1595,11 +1704,11 @@ void FFriendsAndChatManager::SendFriendRequests()
 	IOnlineUserPtr UserInterface = OnlineSub->GetUserInterface();
 	if (UserInterface.IsValid())
 	{
-	TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-	if (UserId.IsValid())
-	{
-		for (int32 Index = 0; Index < FriendByNameRequests.Num(); Index++)
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
+		if (UserId.IsValid())
 		{
+			for (int32 Index = 0; Index < FriendByNameRequests.Num(); Index++)
+			{
 				UserInterface->QueryUserIdMapping(*UserId, FriendByNameRequests[Index], OnQueryUserIdMappingCompleteDelegate);
 			}
 		}
@@ -1758,7 +1867,17 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 	{
 		bRecentPlayer = FindRecentPlayer(IdentifiedUserId).IsValid();
 	}
-	Analytics.RecordAddFriend(DisplayName, IdentifiedUserId, FindFriendResult, bRecentPlayer, TEXT("Social.AddFriend"));
+
+	if (OnlineIdentity.IsValid() &&
+		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		Analytics.RecordAddFriend(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), 
+								  DisplayName, 
+								  IdentifiedUserId, 
+								  FindFriendResult, 
+								  bRecentPlayer, 
+								  TEXT("Social.AddFriend"));
+	}
 
 	FriendByNameRequests.Remove( DisplayName );
 	if ( FriendByNameRequests.Num() == 0 )
@@ -1768,7 +1887,7 @@ void FFriendsAndChatManager::OnQueryUserIdMappingComplete(bool bWasSuccessful, c
 			for ( int32 Index = 0; Index < PendingOutgoingFriendRequests.Num(); Index++ )
 			{
 				FOnSendInviteComplete Delegate = FOnSendInviteComplete::CreateSP(this, &FFriendsAndChatManager::OnSendInviteComplete);
-				FriendsInterface->SendInvite(0, PendingOutgoingFriendRequests[Index].Get(), EFriendsLists::ToString( EFriendsLists::Default ), Delegate);
+				FriendsInterface->SendInvite(LocalControllerIndex, PendingOutgoingFriendRequests[Index].Get(), EFriendsLists::ToString(EFriendsLists::Default), Delegate);
 				AddFriendsToast(LOCTEXT("FFriendsAndChatManager_FriendRequestSent", "Request Sent"));
 			}
 		}
@@ -1798,7 +1917,7 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 	RefreshList();
 
 	// Compare to previous presence for this friend, display a toast if a friend has came online or joined a game
-	TSharedPtr<const FUniqueNetId> SelfId = OnlineIdentity->GetUniquePlayerId(0);
+	TSharedPtr<const FUniqueNetId> SelfId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 	bool bIsSelf = (SelfId.IsValid() && UserId == *SelfId);
 	TSharedPtr<IFriendItem> PresenceFriend = FindUser(UserId);
 	bool bFoundFriend = PresenceFriend.IsValid();
@@ -1817,16 +1936,16 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 	// Check for out of date invites
 	if (OnlineSub != nullptr && OnlineIdentity.IsValid())
 	{
-		TSharedPtr<const FUniqueNetId> UserId0 = OnlineIdentity->GetUniquePlayerId(0);
-		if (UserId0.IsValid())
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
+		if (UserId.IsValid())
 		{
 			TSharedPtr<FOnlineUserPresence> CurrentPresence;
 			TArray<FString> InvitesToRemove;
-			OnlineSub->GetPresenceInterface()->GetCachedPresence(*UserId0, CurrentPresence);
+			OnlineSub->GetPresenceInterface()->GetCachedPresence(*UserId, CurrentPresence);
 			for (auto It = PendingGameInvitesList.CreateConstIterator(); It; ++It)
 			{
 				FString CurrentSessionID = CurrentPresence->SessionId.IsValid() ? CurrentPresence->SessionId->ToString() : TEXT("");
-				FString InviteSessionID = It.Value()->GetSessionId().IsValid() ? It.Value()->GetSessionId()->ToString() : TEXT("");
+				FString InviteSessionID = It.Value()->GetGameSessionId().IsValid() ? It.Value()->GetGameSessionId()->ToString() : TEXT("");
 				if ((CurrentSessionID == InviteSessionID) || (GetOnlineStatus() != EOnlinePresenceState::Offline && !It.Value()->IsOnline()))
 				{
 					// Already in the same session so remove
@@ -1974,8 +2093,11 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 		{
 			const FReceivedGameInvite& Invite = ReceivedGameInvites[Idx];
 
+			TSharedPtr<const FUniqueNetId> MySessionId = GetGameSessionId();
+			bool bMySessionValid = MySessionId.IsValid() && MySessionId->IsValid();
+
 			if (!Invite.InviteResult->Session.SessionInfo.IsValid() ||
-				Invite.InviteResult->Session.SessionInfo->GetSessionId().ToString() == GetGameSessionId()->ToString())
+				(bMySessionValid && Invite.InviteResult->Session.SessionInfo->GetSessionId().ToString() == MySessionId->ToString()))
 			{
 				// remove invites if user is already in the game session
 				ReceivedGameInvites.RemoveAt(Idx--);
@@ -1983,36 +2105,34 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 			else
 			{
 				// add to list of pending invites to accept
-			TSharedPtr<FOnlineUser> UserInfo;
-			TSharedPtr<IFriendItem> Friend = FindUser(*Invite.FromId);
-			TSharedPtr<FOnlineFriend> OnlineFriend;
-			if (Friend.IsValid())
-			{
-				UserInfo = Friend->GetOnlineUser();
-				OnlineFriend = Friend->GetOnlineFriend();
-			}
-			if (!UserInfo.IsValid())
-			{
-				UserInfo = OnlineSub->GetUserInterface()->GetUserInfo(0, *Invite.FromId);
-			}
-			if (UserInfo.IsValid() && OnlineFriend.IsValid())
-			{
-				TSharedPtr<FFriendGameInviteItem> GameInvite = MakeShareable(
-					new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult, Invite.ClientId, OnlineFriend.ToSharedRef())
-					);
+				TSharedPtr<FOnlineUser> UserInfo;
+				TSharedPtr<IFriendItem> Friend = FindUser(*Invite.FromId);
+				TSharedPtr<FOnlineFriend> OnlineFriend;
+				if (Friend.IsValid())
+				{
+					UserInfo = Friend->GetOnlineUser();
+					OnlineFriend = Friend->GetOnlineFriend();
+				}
+				if (!UserInfo.IsValid())
+				{
+					UserInfo = OnlineSub->GetUserInterface()->GetUserInfo(LocalControllerIndex, *Invite.FromId);
+				}
+				if (UserInfo.IsValid() && OnlineFriend.IsValid())
+				{
+					TSharedPtr<FFriendGameInviteItem> GameInvite = MakeShareable(
+						new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult, Invite.ClientId, OnlineFriend.ToSharedRef())
+						);
 
-				PendingGameInvitesList.Add(Invite.FromId->ToString(), GameInvite);
+					PendingGameInvitesList.Add(Invite.FromId->ToString(), GameInvite);
 
-				OnGameInvitesUpdated().Broadcast();
-				SendGameInviteNotification(GameInvite);
+					OnGameInvitesUpdated().Broadcast();
+					SendGameInviteNotification(GameInvite);
 
-				ReceivedGameInvites.RemoveAt(Idx--);
+					ReceivedGameInvites.RemoveAt(Idx--);
+				}
 			}
 		}
-
-		OnGameInvitesUpdated().Broadcast();
 	}
-}
 }
 
 bool FFriendsAndChatManager::RequestGameInviteUserInfo()
@@ -2032,7 +2152,7 @@ bool FFriendsAndChatManager::RequestGameInviteUserInfo()
 		}
 		if (GameInviteUserIds.Num() > 0)
 		{
-			UserInterface->QueryUserInfo(0, GameInviteUserIds);
+			UserInterface->QueryUserInfo(LocalControllerIndex, GameInviteUserIds);
 			bPending = true;
 		}
 	}
@@ -2068,6 +2188,18 @@ void FFriendsAndChatManager::OnGameDestroyed(const FName SessionName, bool bWasS
 	}
 }
 
+void FFriendsAndChatManager::OnPartyMemberJoined(const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId)
+{
+	// If now in an active party, make party chat available & the default output channel
+	GetChatViewModel()->UpdateInPartyUI();
+}
+
+void FFriendsAndChatManager::OnPartyMemberLeft(const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId)
+{
+	// If no longer in an active party, make party chat unavailable & no longer the default output channel
+	GetChatViewModel()->UpdateInPartyUI();
+}
+
 void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
 {
 	TSharedPtr<IFriendItem>* Existing = PendingGameInvitesList.Find(FriendItem->GetUniqueID()->ToString());
@@ -2078,8 +2210,12 @@ void FFriendsAndChatManager::RejectGameInvite(const TSharedPtr<IFriendItem>& Fri
 	}
 	// update game invite UI
 	OnGameInvitesUpdated().Broadcast();
-
-	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Reject"));
+	if (OnlineIdentity.IsValid() &&
+		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		Analytics.RecordGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Reject"));
+	}
+	
 }
 
 void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
@@ -2103,7 +2239,11 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 		(*FriendsApplicationViewModel)->LaunchFriendApp(AdditionalCommandline);
 	}
 
-	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
+	if (OnlineIdentity.IsValid() &&
+		OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+	{
+		Analytics.RecordGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), *FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));
+	}
 }
 
 void FFriendsAndChatManager::SendGameInvite(const TSharedPtr<IFriendItem>& FriendItem)
@@ -2118,12 +2258,16 @@ void FFriendsAndChatManager::SendGameInvite(const FUniqueNetId& ToUser)
 		OnlineSub->GetSessionInterface().IsValid() &&
 		OnlineSub->GetSessionInterface()->GetNamedSession(GameSessionName) != nullptr)
 	{
-		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(LocalControllerIndex);
 		if (UserId.IsValid())
 		{
 			OnlineSub->GetSessionInterface()->SendSessionInviteToFriend(*UserId, GameSessionName, ToUser);
 
-			Analytics.RecordGameInvite(ToUser, TEXT("Social.GameInvite.Send"));
+			if (OnlineIdentity.IsValid() &&
+				OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
+			{
+				Analytics.RecordGameInvite(*OnlineIdentity->GetUniquePlayerId(LocalControllerIndex), ToUser, TEXT("Social.GameInvite.Send"));
+			}
 		}
 	}
 }
@@ -2196,86 +2340,66 @@ void FFriendsAndChatManager::AddFriendsToast(const FText Message)
 
 // Analytics
 
-void FFriendsAndChatAnalytics::RecordGameInvite(const FUniqueNetId& ToUser, const FString& EventStr) const
+void FFriendsAndChatAnalytics::RecordGameInvite(const FUniqueNetId& LocalUserId, const FUniqueNetId& ToUser, const FString& EventStr) const
 {
 	if (Provider.IsValid())
 	{
-		IOnlineIdentityPtr OnlineIdentity = Online::GetIdentityInterface(TEXT("MCP"));
-		if (OnlineIdentity.IsValid())
+		if (LocalUserId.IsValid())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if (UserId.IsValid())
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), UserId->ToString()));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), ToUser.ToString()));
-				AddPresenceAttributes(*UserId, Attributes);
-				Provider->RecordEvent(EventStr, Attributes);
-			}
+			TArray<FAnalyticsEventAttribute> Attributes;
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), ToUser.ToString()));
+			AddPresenceAttributes(LocalUserId, Attributes);
+			Provider->RecordEvent(EventStr, Attributes);
 		}
 	}
 }
 
-void FFriendsAndChatAnalytics::RecordFriendAction(const IFriendItem& Friend, const FString& EventStr) const
+void FFriendsAndChatAnalytics::RecordFriendAction(const FUniqueNetId& LocalUserId, const IFriendItem& Friend, const FString& EventStr) const
 {
 	if (Provider.IsValid())
 	{
-		IOnlineIdentityPtr OnlineIdentity = Online::GetIdentityInterface(TEXT("MCP"));
-		if (OnlineIdentity.IsValid())
+		if (LocalUserId.IsValid())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if (UserId.IsValid())
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), UserId->ToString()));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), Friend.GetUniqueID()->ToString()));
-				AddPresenceAttributes(*UserId, Attributes);
-				Provider->RecordEvent(EventStr, Attributes);
-			}
+			TArray<FAnalyticsEventAttribute> Attributes;
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), Friend.GetUniqueID()->ToString()));
+			AddPresenceAttributes(LocalUserId, Attributes);
+			Provider->RecordEvent(EventStr, Attributes);
 		}
 	}
 }
 
-void FFriendsAndChatAnalytics::RecordAddFriend(const FString& FriendName, const FUniqueNetId& FriendId, EFindFriendResult::Type Result, bool bRecentPlayer, const FString& EventStr) const
+void FFriendsAndChatAnalytics::RecordAddFriend(const FUniqueNetId& LocalUserId, const FString& FriendName, const FUniqueNetId& FriendId, EFindFriendResult::Type Result, bool bRecentPlayer, const FString& EventStr) const
 {
 	if (Provider.IsValid())
 	{
-		IOnlineIdentityPtr OnlineIdentity = Online::GetIdentityInterface(TEXT("MCP"));
-		if (OnlineIdentity.IsValid())
+		if (LocalUserId.IsValid())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if (UserId.IsValid())
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), UserId->ToString()));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), FriendId.ToString()));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("FriendName"), FriendName));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("Result"), EFindFriendResult::ToString(Result)));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("bRecentPlayer"), bRecentPlayer));
-				AddPresenceAttributes(*UserId, Attributes);
-				Provider->RecordEvent(EventStr, Attributes);
-			}
+			TArray<FAnalyticsEventAttribute> Attributes;
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("Friend"), FriendId.ToString()));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("FriendName"), FriendName));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("Result"), EFindFriendResult::ToString(Result)));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("bRecentPlayer"), bRecentPlayer));
+			AddPresenceAttributes(LocalUserId, Attributes);
+			Provider->RecordEvent(EventStr, Attributes);
 		}
 	}
 }
 
-void FFriendsAndChatAnalytics::RecordToggleChat(const FString& Channel, bool bEnabled, const FString& EventStr) const
+void FFriendsAndChatAnalytics::RecordToggleChat(const FUniqueNetId& LocalUserId, const FString& Channel, bool bEnabled, const FString& EventStr) const
 {
 	if (Provider.IsValid())
 	{
-		IOnlineIdentityPtr OnlineIdentity = Online::GetIdentityInterface(TEXT("MCP"));
-		if (OnlineIdentity.IsValid())
+		if (LocalUserId.IsValid())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-			if (UserId.IsValid())
-			{
-				TArray<FAnalyticsEventAttribute> Attributes;
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), UserId->ToString()));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("Channel"), Channel));
-				Attributes.Add(FAnalyticsEventAttribute(TEXT("bEnabled"), bEnabled));
-				AddPresenceAttributes(*UserId, Attributes);
-				Provider->RecordEvent(EventStr, Attributes);
-			}
+			TArray<FAnalyticsEventAttribute> Attributes;
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("User"), LocalUserId.ToString()));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("Channel"), Channel));
+			Attributes.Add(FAnalyticsEventAttribute(TEXT("bEnabled"), bEnabled));
+			AddPresenceAttributes(LocalUserId, Attributes);
+			Provider->RecordEvent(EventStr, Attributes);
 		}
 	}
 }

@@ -79,6 +79,13 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 		return;
 	}
 
+	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(TargetActor);
+	bool bAcceptsCue = true;
+	if (GameplayCueInterface)
+	{
+		bAcceptsCue = GameplayCueInterface->ShouldAcceptGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
+	}
+
 	if (DisplayGameplayCues)
 	{
 		FString DebugStr = FString::Printf(TEXT("%s - %s"), *GameplayCueTag.ToString(), *EGameplayCueEventToString(EventType) );
@@ -87,11 +94,13 @@ void UGameplayCueManager::HandleGameplayCue(AActor* TargetActor, FGameplayTag Ga
 	}
 	// Give the global set a chance
 	check(GlobalCueSet);
-	GlobalCueSet->HandleGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
+	if (bAcceptsCue)
+	{
+		GlobalCueSet->HandleGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
+	}
 
 	// Use the interface even if it's not in the map
-	IGameplayCueInterface* GameplayCueInterface = Cast<IGameplayCueInterface>(TargetActor);
-	if (GameplayCueInterface)
+	if (GameplayCueInterface && bAcceptsCue)
 	{
 		GameplayCueInterface->HandleGameplayCue(TargetActor, GameplayCueTag, EventType, Parameters);
 	}

@@ -168,7 +168,7 @@ bool FOnlineSubsystemFacebook::Shutdown()
 {
 	bool bSuccessfullyShutdown = true;
 
-
+	bSuccessfullyShutdown = FOnlineSubsystemImpl::Shutdown();
 	return bSuccessfullyShutdown;
 }
 

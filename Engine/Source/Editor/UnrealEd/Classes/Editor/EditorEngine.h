@@ -2371,6 +2371,9 @@ private:
 	 */
 	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
 
+	/** Above function but called a frame later, to stop PIE login from happening from a network callback */
+	virtual void OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct);
+
 public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
@@ -2378,8 +2381,9 @@ public:
 	 * @param PieWorldContext world context for this PIE instance
 	 * @param PlayNetMode mode to create this PIE world in (as server, client, etc)
 	 * @param DataStruct data required to continue PIE creation, set at login time
+	 * @return	true if world created successfully
 	 */
-	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
+	bool CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
 	/*
 	 * Handler for when viewport close request is made. 

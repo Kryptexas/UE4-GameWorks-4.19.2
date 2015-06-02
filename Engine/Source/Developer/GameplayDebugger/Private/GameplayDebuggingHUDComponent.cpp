@@ -46,6 +46,10 @@ AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const FObjectInit
 	bEditable = false;
 #	endif
 #endif
+
+	ItemDescriptionWidth = 312.f; // 200.0f;
+	ItemScoreWidth = 50.0f;
+	TestScoreWidth = 100.0f;
 }
 
 void AGameplayDebuggingHUDComponent::Render()
@@ -550,15 +554,15 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 
 			float HeaderX = DefaultContext.CursorX;
 			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), CurrentLocalData.NumValidItems), HeaderX, HeaderY);
-			HeaderX += 200.0f;
+			HeaderX += ItemDescriptionWidth;
 
 			PrintString(DefaultContext, FColor::White, TEXT("Score"), HeaderX, HeaderY);
-			HeaderX += 50.0f;
+			HeaderX += ItemScoreWidth;
 
 			for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
 			{
 				PrintString(DefaultContext, FColor::White, FString::Printf(TEXT("Test %d"), TestIdx), HeaderX, HeaderY);
-				HeaderX += 100.0f;
+				HeaderX += TestScoreWidth;
 			}
 
 			DefaultContext.CursorY += RowHeight;
@@ -601,11 +605,11 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 
 	PrintString(DefaultContext, FColor::White, ItemData.Desc, PosX, PosY);
-	PosX += 200.0f;
+	PosX += ItemDescriptionWidth;
 
 	FString ScoreDesc = FString::Printf(TEXT("%.2f"), ItemData.TotalScore);
 	PrintString(DefaultContext, FColor::Yellow, ScoreDesc, PosX, PosY);
-	PosX += 50.0f;
+	PosX += ItemScoreWidth;
 
 	FCanvasTileItem ActiveTileItem(FVector2D(0, PosY + 15.0f), GWhiteTexture, FVector2D(0, 2.0f), FLinearColor::Yellow);
 	FCanvasTileItem BackTileItem(FVector2D(0, PosY + 15.0f), GWhiteTexture, FVector2D(0, 2.0f), FLinearColor(0.1f, 0.1f, 0.1f));
@@ -637,7 +641,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 		DrawItem(DefaultContext, BackTileItem, BackTileItem.Position.X, BackTileItem.Position.Y);
 
 		PrintString(DefaultContext, FColor::Green, TestDesc, PosX, PosY);
-		PosX += 100.0f;
+		PosX += TestScoreWidth;
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 }

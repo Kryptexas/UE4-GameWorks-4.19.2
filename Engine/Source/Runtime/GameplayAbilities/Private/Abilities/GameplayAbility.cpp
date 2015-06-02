@@ -538,10 +538,10 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		// Tell all our tasks that we are finished and they should cleanup
 		for (int32 TaskIdx = ActiveTasks.Num() - 1; TaskIdx >= 0 && ActiveTasks.Num() > 0; --TaskIdx)
 		{
-			TWeakObjectPtr<UAbilityTask> Task = ActiveTasks[TaskIdx];
+			TWeakObjectPtr<UGameplayTask> Task = ActiveTasks[TaskIdx];
 			if (Task.IsValid())
 			{
-				Task.Get()->AbilityEnded();
+				Task.Get()->TaskOwnerEnded();
 			}
 		}
 		ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
@@ -1006,21 +1006,48 @@ FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFr
 
 //----------------------------------------------------------------------
 
-void UGameplayAbility::TaskStarted(UAbilityTask* NewTask)
+UGameplayTasksComponent* UGameplayAbility::GetGameplayTasksComponent()
 {
-	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *NewTask->GetName());
+	return GetCurrentActorInfo() ? GetCurrentActorInfo()->AbilitySystemComponent.Get() : nullptr;
+}
 
-	ActiveTasks.Add(NewTask);
+AActor* UGameplayAbility::GetOwnerActor() const
+{
+	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
+	return Info ? Info->OwnerActor.Get() : nullptr;
+}
+
+AActor* UGameplayAbility::GetAvatarActor() const
+{
+	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
+	return Info ? Info->AvatarActor.Get() : nullptr;
+}
+
+void UGameplayAbility::OnTaskInitialized(UGameplayTask& Task)
+{
+	UAbilityTask* AbilityTask = Cast<UAbilityTask>(&Task);
+	if (AbilityTask)
+	{
+		AbilityTask->SetAbilitySystemComponent(GetCurrentActorInfo()->AbilitySystemComponent.Get());
+		AbilityTask->Ability = this;
+	}
+}
+
+void UGameplayAbility::TaskStarted(UGameplayTask& NewTask)
+{
+	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *NewTask.GetName());
+
+	ActiveTasks.Add(&NewTask);
 }
 
 void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
 {
-	TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+	TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
 	for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 	{
 		if (NamedTasks[i].IsValid())
 		{
-			UAbilityTask* CurrentTask = NamedTasks[i].Get();
+			UGameplayTask* CurrentTask = NamedTasks[i].Get();
 			CurrentTask->ExternalConfirm(bEndTask);
 		}
 	}
@@ -1031,12 +1058,12 @@ void UGameplayAbility::EndOrCancelTasksByInstanceName()
 	for (int32 j = 0; j < EndTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = EndTaskInstanceNames[j];
-		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
 		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
 			if (NamedTasks[i].IsValid())
 			{
-				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				UGameplayTask* CurrentTask = NamedTasks[i].Get();
 				CurrentTask->EndTask();
 			}
 		}
@@ -1046,12 +1073,12 @@ void UGameplayAbility::EndOrCancelTasksByInstanceName()
 	for (int32 j = 0; j < CancelTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = CancelTaskInstanceNames[j];
-		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
 		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
 			if (NamedTasks[i].IsValid())
 			{
-				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				UGameplayTask* CurrentTask = NamedTasks[i].Get();
 				CurrentTask->ExternalCancel();
 			}
 		}
@@ -1083,11 +1110,11 @@ void UGameplayAbility::EndAbilityState(FName OptionalStateNameToEnd)
 	}
 }
 
-void UGameplayAbility::TaskEnded(UAbilityTask* Task)
+void UGameplayAbility::TaskEnded(UGameplayTask& Task)
 {
-	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task->GetName());
+	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task.GetName());
 
-	ActiveTasks.Remove(Task);
+	ActiveTasks.Remove(&Task);
 }
 
 /**
@@ -1100,6 +1127,12 @@ void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGamep
 {
 	check(CurrentActorInfo);
 	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, Context);
+}
+
+void UGameplayAbility::K2_ExecuteGameplayCueWithParams(FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters)
+{
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, GameplayCueParameters);
 }
 
 void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd)

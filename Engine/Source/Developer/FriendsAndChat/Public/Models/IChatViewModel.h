@@ -13,8 +13,9 @@ public:
 	virtual void SetFontOverrideColor(FSlateColor OverrideColor) = 0;
 	virtual void SetOverrideColorActive(bool bSet) = 0;
 	virtual bool GetOverrideColorSet() = 0;
-	virtual FSlateColor GetFontOverrideColor() const = 0;
 	virtual void SetInGameUI(bool bInGame) = 0;
+	virtual void UpdateInPartyUI() = 0;
+	virtual FSlateColor GetFontOverrideColor() const = 0;
 	virtual void EnableGlobalChat(bool bEnable) = 0;
 	virtual float GetChatListFadeValue() const = 0;
 	virtual bool IsGlobalChatEnabled() const = 0;

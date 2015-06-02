@@ -417,6 +417,6 @@ bool dtIntersectSegSeg2D(const float* ap, const float* aq,
 	if (fabsf(d) < 1e-6f) return false;
 	s = vperpXZ(v,w) / d;
 	t = vperpXZ(u,w) / d;
-	return true;
+	return (s >= 0.0f && s <= 1.0f);
 }
 

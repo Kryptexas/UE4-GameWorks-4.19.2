@@ -8,11 +8,13 @@
 // Message expiry time for different message types
 static const int32 GlobalMessageLifetime = 5 * 60;  // 5 min
 static const int32 GameMessageLifetime = 5 * 60;  // 5 min
+static const int32 PartyMessageLifetime = 5 * 60;  // 5 min
 static const int32 WhisperMessageLifetime = 5 * 60;  // 5 min
 static const int32 MessageStore = 200;
 static const int32 GlobalMaxStore = 100;
 static const int32 WhisperMaxStore = 100;
 static const int32 GameMaxStore = 100;
+static const int32 PartyMaxStore = 100;
 
 class FFriendsMessageManagerImpl
 	: public FFriendsMessageManager
@@ -185,6 +187,7 @@ private:
 		GlobalMessagesCount = 0;
 		WhisperMessagesCount = 0;
 		GameMessagesCount = 0;
+		PartyMessagesCount = 0;
 		ReceivedMessages.Empty();
 
 		OnlineSub = IOnlineSubsystem::Get( TEXT( "MCP" ) );
@@ -311,9 +314,25 @@ private:
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 
+		{
+			// Determine roomtype for the message.  
+			FString GlobalChatRoomId;
+			TSharedPtr<const FOnlinePartyId> PartyChatRoomId = FFriendsAndChatManager::Get()->GetPartyChatRoomId();
+			if (FFriendsAndChatManager::Get()->GetGlobalChatRoomId(GlobalChatRoomId) && ChatRoomID == GlobalChatRoomId)
+			{
+				ChatItem->MessageType = EChatMessageType::Global;
+			}
+			else if (PartyChatRoomId.IsValid() && ChatRoomID == (*PartyChatRoomId).ToString())
+			{
+				ChatItem->MessageType = EChatMessageType::Party;
+			}
+			else
+			{
+				UE_LOG(LogOnline, Warning, TEXT("Received message for chatroom that didn't match global or party chatroom criteria %s"), *ChatRoomID);
+			}
+		}
 		ChatItem->FromName = FText::FromString(*ChatMessage->GetNickname());
 		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
-		ChatItem->MessageType = EChatMessageType::Global;
 		ChatItem->MessageTime = ChatMessage->GetTimestamp();
 		ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(GlobalMessageLifetime);
 		ChatItem->bIsFromSelf = *ChatMessage->GetUserId() == *LoggedInUser;
@@ -357,6 +376,7 @@ private:
 			{
 				for (auto RoomName : RoomJoins)
 				{
+					// @todo What is this for?  Rooms are rejoined on xmpploginchanged and onlogin, why spam joins on self-presence received too?
 					JoinPublicRoom(RoomName);
 				}
 			}
@@ -370,6 +390,7 @@ private:
 		{
 			bool bGlobalTimeFound = false;
 			bool bGameTimeFound = false;
+			bool bPartyTimeFound = false;
 			bool bWhisperFound = false;
 			FDateTime CurrentTime = FDateTime::UtcNow();
 			for(int32 Index = 0; Index < ReceivedMessages.Num(); Index++)
@@ -410,6 +431,19 @@ private:
 							}
 						}
 						break;
+						case EChatMessageType::Party:
+						{
+							if (PartyMessagesCount > PartyMaxStore)
+							{
+								RemoveMessage(Message);
+								Index--;
+							}
+							else
+							{
+								bPartyTimeFound = true;
+							}
+						}
+						break;
 						case EChatMessageType::Whisper :
 						{
 							if(WhisperMessagesCount > WhisperMaxStore)
@@ -425,7 +459,7 @@ private:
 						break;
 					}
 				}
-				if (ReceivedMessages.Num() < MessageStore || (bGameTimeFound && bGlobalTimeFound && bWhisperFound))
+				if (ReceivedMessages.Num() < MessageStore || (bPartyTimeFound && bGameTimeFound && bGlobalTimeFound && bWhisperFound))
 				{
 					break;
 				}
@@ -440,6 +474,7 @@ private:
 		{
 			case EChatMessageType::Global : GlobalMessagesCount--; break;
 			case EChatMessageType::Game: GameMessagesCount--; break;
+			case EChatMessageType::Party: PartyMessagesCount--; break;
 			case EChatMessageType::Whisper : WhisperMessagesCount--; break;
 		}
 		ReceivedMessages.Remove(Message);
@@ -480,6 +515,7 @@ private:
 	int32 GlobalMessagesCount;
 	int32 WhisperMessagesCount;
 	int32 GameMessagesCount;
+	int32 PartyMessagesCount;
 
 	bool bEnableEnterExitMessages;
 

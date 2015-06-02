@@ -27,6 +27,7 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",
 					"Engine",
                     "GameplayTags",
+                    "GameplayTasks",
 					// ... add other public dependencies that you statically link with here ...
 				}
 				);

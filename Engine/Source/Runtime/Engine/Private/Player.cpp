@@ -28,6 +28,47 @@ UPlayer::UPlayer(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+FString UPlayer::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
+{
+	UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
+	FConsoleOutputDevice StrOut(ViewportConsole);
+
+	const int32 CmdLen = Cmd.Len();
+	TCHAR* CommandBuffer = (TCHAR*)FMemory::Malloc((CmdLen + 1)*sizeof(TCHAR));
+	TCHAR* Line = (TCHAR*)FMemory::Malloc((CmdLen + 1)*sizeof(TCHAR));
+
+	const TCHAR* Command = CommandBuffer;
+	// copy the command into a modifiable buffer
+	FCString::Strcpy(CommandBuffer, (CmdLen + 1), *Cmd.Left(CmdLen));
+
+	// iterate over the line, breaking up on |'s
+	while (FParse::Line(&Command, Line, CmdLen + 1))	// The FParse::Line function expects the full array size, including the NULL character.
+	{
+		// if dissociated with the PC, stop processing commands
+		if (PlayerController)
+		{
+			if (!Exec(GetWorld(), Line, StrOut))
+			{
+				StrOut.Logf(TEXT("Command not recognized: %s"), Line);
+			}
+		}
+	}
+
+	// Free temp arrays
+	FMemory::Free(CommandBuffer);
+	CommandBuffer = nullptr;
+
+	FMemory::Free(Line);
+	Line = nullptr;
+
+	if (!bWriteToLog)
+	{
+		return StrOut;
+	}
+
+	return TEXT("");
+}
+
 bool UPlayer::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 {
 	if(PlayerController)

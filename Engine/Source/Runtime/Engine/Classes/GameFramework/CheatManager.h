@@ -264,6 +264,9 @@ class ENGINE_API UCheatManager : public UObject
 	virtual void DumpOnlineSessionState();
 
 	UFUNCTION(exec)
+	virtual void DumpPartyState();
+
+	UFUNCTION(exec)
 	virtual void DumpVoiceMutingState();
 
 	/**

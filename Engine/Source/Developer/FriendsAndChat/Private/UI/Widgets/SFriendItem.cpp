@@ -19,7 +19,6 @@ public:
 		this->ViewModel = InViewModel;
 		FFriendViewModel* ViewModelPtr = ViewModel.Get();
 		MenuMethod = InArgs._Method;
-		PendingAction = EFriendActionType::MAX_None;
 
 		FFriendsAndChatComboButtonStyle ActionButtonStyle;
 		ActionButtonStyle.ComboButtonStyle = &FriendStyle.ActionComboButtonStyle;
@@ -323,7 +322,7 @@ private:
 
 	EVisibility PendingActionVisibility(EFriendActionType::Type ActionType) const
 	{
-		return PendingAction == ActionType ? EVisibility::Visible : EVisibility::Collapsed;
+		return ViewModel->GetPendingAction() == ActionType ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	bool IsActionEnabled(const EFriendActionType::Type FriendAction) const
@@ -335,9 +334,12 @@ private:
 	{
 		if (bConfirm)
 		{
-			ViewModel->PerformAction(PendingAction);
+			ViewModel->PerformAction(ViewModel->GetPendingAction());
 		}
-		PendingAction = EFriendActionType::MAX_None;
+		else
+		{
+			ViewModel->SetPendingAction(EFriendActionType::MAX_None);
+		}
 		return FReply::Handled();
 	}
 
@@ -349,7 +351,7 @@ private:
 
 			if (FriendAction == EFriendActionType::RemoveFriend || (FriendAction == EFriendActionType::JoinGame && ViewModel->IsInGameSession()))
 			{
-				PendingAction = FriendAction;
+				ViewModel->SetPendingAction(FriendAction);
 				FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 			}
 			else
@@ -366,7 +368,7 @@ private:
 
 	EVisibility ActionMenuButtonVisibility() const
 	{
-		return (bIsHovered && PendingAction == EFriendActionType::MAX_None && !IsAnyActionMenuOpen()) || ActionMenuButton->IsOpen() ? EVisibility::Visible : EVisibility::Hidden;
+		return (bIsHovered && ViewModel->GetPendingAction() == EFriendActionType::MAX_None && !IsAnyActionMenuOpen()) || ActionMenuButton->IsOpen() ? EVisibility::Visible : EVisibility::Hidden;
 	}
 
 	TSharedPtr<SToolTip> CreateJoingGameToolTip()
@@ -404,8 +406,6 @@ private:
 	EPopupMethod MenuMethod;
 
 	float OpenTime;
-
-	EFriendActionType::Type PendingAction;
 
 	/**
 	 * Static ref to the last action menu combo that was opened

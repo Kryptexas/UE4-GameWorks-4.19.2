@@ -248,9 +248,9 @@ public:
 
 	virtual void SetChannelUserClicked(const TSharedRef<FChatItemViewModel> ChatItemSelected) override
 	{
-		if(ChatItemSelected->IsFromSelf() && ChatItemSelected->GetMessageType() == EChatMessageType::Global)
+		if(ChatItemSelected->IsFromSelf() && (ChatItemSelected->GetMessageType() == EChatMessageType::Global || ChatItemSelected->GetMessageType() == EChatMessageType::Party))
 		{
-			SetChatChannel(EChatMessageType::Global);
+			SetChatChannel(ChatItemSelected->GetMessageType());
 		}
 		else
 		{
@@ -317,13 +317,28 @@ public:
 					}
 				}
 				break;
+				case EChatMessageType::Party:
+				{
+					TSharedPtr<const FOnlinePartyId> PartyRoomId = FFriendsAndChatManager::Get()->GetPartyChatRoomId();
+					if (FFriendsAndChatManager::Get()->IsInActiveParty()
+						&& PartyRoomId.IsValid())
+					{
+						//@todo will need to support multiple party channels eventually, hardcoded to first party for now
+						bSuccess = MessageManager.Pin()->SendRoomMessage((*PartyRoomId).ToString(), NewMessage.ToString());
+
+						FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Party"));
+					}
+				}
+				break;
 				case EChatMessageType::Global:
 				{
-					if (IsDisplayingGlobalChat())
+					FString GlobalRoomId;
+					if (IsDisplayingGlobalChat()
+						&& FFriendsAndChatManager::Get()->GetGlobalChatRoomId(GlobalRoomId))
 					{
-						//@todo samz - send message to specific room (empty room name will send to all rooms)
-						bSuccess = MessageManager.Pin()->SendRoomMessage(FString(), NewMessage.ToString());
-
+						//@todo will need to support multiple global channels eventually, roomname hardcoded for now
+						bSuccess = MessageManager.Pin()->SendRoomMessage(GlobalRoomId, NewMessage.ToString());
+						
 						FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Global"));
 					}	
 				}
@@ -455,7 +470,12 @@ public:
 	virtual void SetDisplayGlobalChat(bool bAllow) override
 	{
 		bIsDisplayingGlobalChat = bAllow;
-		FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(TEXT("Global"), bIsDisplayingGlobalChat, TEXT("Social.Chat.Toggle"));
+		TSharedPtr<const FUniqueNetId> LocalUserId = FFriendsAndChatManager::Get()->GetLocalUserId();
+		if (LocalUserId.IsValid())
+		{
+			FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(*LocalUserId, TEXT("Global"), bIsDisplayingGlobalChat, TEXT("Social.Chat.Toggle"));
+		}
+		
 		RefreshMessages();
 	}
 
@@ -467,10 +487,50 @@ public:
 
 	virtual void SetInGame(bool bInGameSetting) override
 	{
-		if(bInGame != bInGameSetting)
+		if (bInGame != bInGameSetting)
 		{
+			if (bInGameSetting)
+			{
+				// Entered a game.  Always change the selected chat channel to game chat
+				SetViewChannel(EChatMessageType::Game);
+			}
+			else
+			{
+				// Left a game.  Fall back to party or global.
+				if (bInParty)
+				{
+					SetViewChannel(EChatMessageType::Party);
+				}
+				else
+				{
+					SetViewChannel(EChatMessageType::Global);
+				}
+			}
 			bInGame = bInGameSetting;
-			SetViewChannel(bInGame ? EChatMessageType::Game : EChatMessageType::Global);
+		}
+	}
+
+	virtual void SetInParty(bool bInPartySetting) override
+	{
+		if (bInParty != bInPartySetting)
+		{
+			if (bInPartySetting)
+			{
+				// Entered a party.  Change the selected chat channel to party if we're not in a game and not whispering
+				if (SelectedChatChannel != EChatMessageType::Whisper && !bInGame)
+				{
+					SetViewChannel(EChatMessageType::Party);
+				}
+			}
+			else
+			{
+				// Left a party.  If Party is selected for chat, fall back to global.  Note having party selected implies we're not in a game.
+				if (SelectedChatChannel == EChatMessageType::Party)
+				{
+					SetViewChannel(EChatMessageType::Global);
+				}
+			}
+			bInParty = bInPartySetting;
 		}
 	}
 
@@ -552,25 +612,8 @@ private:
 
 	void AggregateMessage(const TSharedRef<FFriendChatMessage>& Message)
 	{
-		TSharedPtr<FChatItemViewModel> PreviousMessage;
-		if (FilteredMessages.Num() > 0)
-		{
-			PreviousMessage = FilteredMessages.Last();
-		}
-
-		if (PreviousMessage.IsValid() && 
-			PreviousMessage->GetSenderID().IsValid() &&
-			Message->SenderId.IsValid() &&
-			*PreviousMessage->GetSenderID() == *Message->SenderId &&
-			PreviousMessage->GetMessageType() == Message->MessageType &&
-			(Message->MessageTime - PreviousMessage->GetMessageTime()).GetDuration() <= FTimespan::FromMinutes(1.0))
-		{
-			PreviousMessage->AddMessage(Message);
-		}
-		else
-		{
-			FilteredMessages.Add(FChatItemViewModelFactory::Create(Message));
-		}
+		// Agregate messages have been disabled in Fortnite. This will be replaced with Chat 2.0 Nick Davies
+		FilteredMessages.Add(FChatItemViewModelFactory::Create(Message));
 	}
 
 	TSharedPtr<FSelectedFriend> FindFriend(TSharedPtr<const FUniqueNetId> UniqueID)
@@ -657,6 +700,7 @@ private:
 	EChatMessageType::Type SelectedChatChannel;
 	TWeakPtr<FFriendsMessageManager> MessageManager;
 	bool bInGame;
+	bool bInParty;
 	/** Whether global chat is currently switched on and displayed  */
 	bool bIsDisplayingGlobalChat;
 	/** Whether global chat mode is enabled/disabled - if disabled it can't be selected and isn't an option in the UI */

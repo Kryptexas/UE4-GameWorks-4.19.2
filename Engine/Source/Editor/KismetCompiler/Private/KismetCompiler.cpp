@@ -282,7 +282,10 @@ void FKismetCompilerContext::PostCreateSchema()
 	{
 		if( !(*ClassIt)->HasAnyClassFlags(CLASS_Abstract) )
 		{
-			FNodeHandlingFunctor* HandlingFunctor = (*ClassIt)->GetDefaultObject<UK2Node>()->CreateNodeHandler(*this);
+			UClass* Class = (*ClassIt);
+			UObject* CDO = Class->GetDefaultObject();
+			UK2Node* K2CDO = Class->GetDefaultObject<UK2Node>();
+			FNodeHandlingFunctor* HandlingFunctor = K2CDO->CreateNodeHandler(*this);
 			if (HandlingFunctor)
 			{
 				NodeHandlers.Add(*ClassIt, HandlingFunctor);

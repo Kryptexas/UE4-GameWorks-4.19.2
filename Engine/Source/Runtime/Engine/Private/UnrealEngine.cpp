@@ -9254,7 +9254,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 	}
 	
-	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
+	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystemRunMode::GameMode);
 	
 	// Note that AI system will be created only if ai-system-creation conditions are met
 	WorldContext.World()->CreateAISystem();

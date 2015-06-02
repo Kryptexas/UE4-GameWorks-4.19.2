@@ -275,6 +275,15 @@ void APartyBeaconHost::NewPlayerAdded(const FPlayerReservation& NewPlayer)
 	}
 }
 
+void APartyBeaconHost::NotifyReservationEventNextFrame(FOnReservationUpdate& ReservationEvent)
+{
+	UWorld* World = GetWorld();
+	check(World);
+
+	// Calling this on next tick to protect against re-entrance
+	World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda([ReservationEvent](){ ReservationEvent.ExecuteIfBound(); }));
+}
+
 void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
 {
 	if (PlayerId.IsValid())
@@ -286,7 +295,7 @@ void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
 			if (State->RemovePlayer(PlayerId))
 			{
 				SendReservationUpdates();
-				ReservationChanged.ExecuteIfBound();
+				NotifyReservationEventNextFrame(ReservationChanged);
 			}
 		}
 	}
@@ -299,7 +308,7 @@ bool APartyBeaconHost::SwapTeams(const FUniqueNetIdRepl& PartyLeader, const FUni
 	{
 		if (State->SwapTeams(PartyLeader, OtherPartyLeader))
 		{
-			ReservationChanged.ExecuteIfBound();
+			NotifyReservationEventNextFrame(ReservationChanged);
 			bSuccess = true;
 		}
 	}
@@ -315,7 +324,7 @@ bool APartyBeaconHost::ChangeTeam(const FUniqueNetIdRepl& PartyLeader, int32 New
 	{
 		if (State->ChangeTeam(PartyLeader, NewTeamNum))
 		{
-			ReservationChanged.ExecuteIfBound();
+			NotifyReservationEventNextFrame(ReservationChanged);
 			bSuccess = true;
 		}
 	}
@@ -459,10 +468,10 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 
 							SendReservationUpdates();
 
-							ReservationChanged.ExecuteIfBound();
+							NotifyReservationEventNextFrame(ReservationChanged);
 							if (State->IsBeaconFull())
 							{
-								ReservationsFull.ExecuteIfBound();
+								NotifyReservationEventNextFrame(ReservationsFull);
 							}
 
 							Result = EPartyReservationResult::ReservationAccepted;
@@ -504,7 +513,7 @@ void APartyBeaconHost::RemovePartyReservation(const FUniqueNetIdRepl& PartyLeade
 		CancelationReceived.ExecuteIfBound(*PartyLeader);
 
 		SendReservationUpdates();
-		ReservationChanged.ExecuteIfBound();
+		NotifyReservationEventNextFrame(ReservationChanged);
 	}
 	else
 	{

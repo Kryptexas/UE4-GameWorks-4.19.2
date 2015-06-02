@@ -303,9 +303,9 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FLinearColor GameChatColor;
 	FFriendsAndChatStyle& SetGameChatColor(const FLinearColor& InFontColor);
 
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor NetworkChatColor;
-	FFriendsAndChatStyle& SetNetworkChatColor(const FLinearColor& InFontColor);
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor PartyChatColor;
+	FFriendsAndChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor ComboItemTextColorNormal;
@@ -326,6 +326,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ChatGameBrush;
 	FFriendsAndChatStyle& SetChatGameBrush(const FSlateBrush& Brush);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush ChatPartyBrush;
+	FFriendsAndChatStyle& SetChatPartyBrush(const FSlateBrush& Brush);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ChatWhisperBrush;
@@ -422,6 +426,10 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FScrollBarStyle ScrollBarStyle;
 	FFriendsAndChatStyle& SetScrollbarStyle(const FScrollBarStyle& InScrollBarStyle);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FScrollBorderStyle ScrollBorderStyle;
+	FFriendsAndChatStyle& SetScrollBorderStyle(const FScrollBorderStyle& InScrollBorderStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FWindowStyle WindowStyle;

@@ -22,9 +22,6 @@ void UAbilitySystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
-	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
-	
 	// Look for DSO AttributeSets (note we are currently requiring all attribute sets to be subobjects of the same owner. This doesn't *have* to be the case forever.
 	AActor *Owner = GetOwner();
 	InitAbilityActorInfo(Owner, Owner);	// Default init to our outer owner
@@ -83,55 +80,15 @@ void UAbilitySystemComponent::OnComponentDestroyed()
 }
 
 void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
-{
+{	
 	SCOPE_CYCLE_COUNTER(STAT_TickAbilityTasks);
-
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	if (IsOwnerActorAuthoritative())
 	{
 		AnimMontage_UpdateReplicatedData();
 	}
 
-	// Because we have no control over what a task may do when it ticks, we must be careful.
-	// Ticking a task may kill the task right here. It could also potentially kill another task
-	// which was waiting on the original task to do something. Since when a tasks is killed, it removes
-	// itself from the TickingTask list, we will make a copy of the tasks we want to service before ticking any
-
-	int32 NumTickingTasks = TickingTasks.Num();
-	int32 NumActuallyTicked = 0;
-	switch(NumTickingTasks)
-	{
-		case 0:
-			break;
-		case 1:
-			if (TickingTasks[0].IsValid())
-			{
-				TickingTasks[0]->TickTask(DeltaTime);
-				NumActuallyTicked++;
-			}
-			break;
-		default:
-			{
-				TArray<TWeakObjectPtr<UAbilityTask> >	LocalTickingTasks = TickingTasks;
-				for (TWeakObjectPtr<UAbilityTask>& TickingTask : LocalTickingTasks)
-				{
-					if (TickingTask.IsValid())
-					{
-						TickingTask->TickTask(DeltaTime);
-						NumActuallyTicked++;
-					}
-				}
-			}
-		break;
-	};
-	
-	// Stop ticking if no more active tasks
-	if (NumActuallyTicked == 0)
-	{
-		TickingTasks.SetNum(0, false);
-		UpdateShouldTick();
-	}
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	for (UAttributeSet* AttributeSet : SpawnedAttributes)
 	{
@@ -166,28 +123,30 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 	}
 }
 
-void UAbilitySystemComponent::UpdateShouldTick()
+bool UAbilitySystemComponent::GetShouldTick() const 
 {
-	bool bHasTickingTasks = (TickingTasks.Num() != 0);
-	bool bHasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
-	bool bHasTickingAttributes = false;
-	for (const UAttributeSet* AttributeSet : SpawnedAttributes)
+	const bool bHasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
+	
+	if (bHasReplicatedMontageInfoToUpdate)
 	{
-		const ITickableAttributeSetInterface* TickableAttributeSet = Cast<const ITickableAttributeSetInterface>(AttributeSet);
-		if (TickableAttributeSet && TickableAttributeSet->ShouldTick())
-		{
-			bHasTickingAttributes = true;
-		}
+		return true;
 	}
 
-	if (bHasTickingTasks || bHasReplicatedMontageInfoToUpdate || bHasTickingAttributes)
+	bool bResult = Super::GetShouldTick();	
+	if (bResult == false)
 	{
-		SetActive(true);
+		for (const UAttributeSet* AttributeSet : SpawnedAttributes)
+		{
+			const ITickableAttributeSetInterface* TickableAttributeSet = Cast<const ITickableAttributeSetInterface>(AttributeSet);
+			if (TickableAttributeSet && TickableAttributeSet->ShouldTick())
+			{
+				bResult = true;
+				break;
+			}
+		}
 	}
-	else
-	{
-		SetActive(false);
-	}
+	
+	return bResult;
 }
 
 void UAbilitySystemComponent::SetAvatarActor(AActor* InAvatarActor)
@@ -2039,24 +1998,6 @@ void UAbilitySystemComponent::TargetCancel()
 }
 
 // --------------------------------------------------------------------------
-
-void UAbilitySystemComponent::OnRep_SimulatedTasks()
-{
-	for (UAbilityTask* SimulatedTask : SimulatedTasks)
-	{
-		// Temp check 
-		if (SimulatedTask && SimulatedTask->bTickingTask && TickingTasks.Contains(SimulatedTask) == false)
-		{
-			SimulatedTask->InitSimulatedTask(this);
-			if (TickingTasks.Num() == 0)
-			{
-				UpdateShouldTick();
-			}
-
-			TickingTasks.Add(SimulatedTask);
-		}
-	}
-}
 
 #if ENABLE_VISUAL_LOG
 void UAbilitySystemComponent::ClearDebugInstantEffects()

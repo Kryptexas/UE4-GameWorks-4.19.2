@@ -2215,10 +2215,12 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	{
 		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
-		if (!CanPlayNetDedicated && (PlayNumberOfClients == 1))
+		const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+		if (!CanPlayNetDedicated && (PlayNumberOfClients == 1 || !WillAutoConnectToServer))
 		{
 			// Since we don't expose PlayNetMode as an option when doing RunUnderOnProcess,
 			// we take 1 player and !PlayNetdedicated and being standalone.
+			// If auto connect is off, launch as standalone unless there is a dedicated server
 			PlayNetMode = EPlayNetMode::PIE_Standalone;
 		}
 		else
@@ -2235,10 +2237,10 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	bool bAnyBlueprintErrors = ErrorBlueprintList.Num()? true : false;
 	bool bStartInSpectatorMode = false;
 	bool bSupportsOnlinePIE = false;
+	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 
 	if (SupportsOnlinePIE())
 	{
-		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 		bool bHasRequiredLogins = PlayNumberOfClients <= PIELogins.Num();
 
 		if (bHasRequiredLogins)
@@ -2262,7 +2264,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	}
 
 	CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
-	if (bInSimulateInEditor || (PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !CanRunUnderOneProcess)
+	if (bInSimulateInEditor || (PlayNetMode == EPlayNetMode::PIE_Standalone && PlayNumberOfClients <= 1 && !bSupportsOnlinePIE) || !CanRunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
 		const int32 PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
@@ -2315,13 +2317,14 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	int32 ClientNum = 0;
 
 	PIEInstance = 1;
+	const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 
 	// Server
 	FString ServerPrefix;
+	if (CanPlayNetDedicated || WillAutoConnectToServer)
 	{
 		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_ListenServer);
-
-		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 
 		if (!CanPlayNetDedicated)
 		{
@@ -2334,6 +2337,11 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 		{
 			ServerPrefix = ServerGameInstance->GetWorldContext()->PIEPrefix;
 		}
+		else
+		{
+			// Failed, abort
+			return;
+		}
 
 		PIEInstance++;
 	}
@@ -2342,7 +2350,15 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 	for (; ClientNum < PlayNumberOfClients; ++ClientNum)
 	{
-		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Client);
+		// Only launch as clients if they should connect
+		if (WillAutoConnectToServer)
+		{
+			PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Client);
+		}
+		else
+		{
+			PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Standalone);
+		}
 
 		GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
 
@@ -2350,6 +2366,11 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 		if (ClientGameInstance)
 		{
 			ClientGameInstance->GetWorldContext()->PIERemapPrefix = ServerPrefix;
+		}
+		else
+		{
+			// Failed, abort
+			return;
 		}
 
 		PIEInstance++;
@@ -2359,7 +2380,7 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	GetMultipleInstancePositions(0, NextX, NextY);	// restore cached settings
 }
 
-void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct)
+bool UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct)
 {
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
 	PlayInSettings->SetPlayNetMode(PlayNetMode);
@@ -2368,36 +2389,46 @@ void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	GetMultipleInstancePositions(DataStruct.SettingsIndex, DataStruct.NextX, DataStruct.NextY);
 	
 	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
-	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayNetMode == EPlayNetMode::PIE_Client ? false : CanPlayNetDedicated, DataStruct.PIEStartTime);
+	const bool ActAsClient = PlayNetMode == EPlayNetMode::PIE_Client || PlayNetMode == EPlayNetMode::PIE_Standalone;
+	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, ActAsClient ? false : CanPlayNetDedicated, DataStruct.PIEStartTime);
 	
 	// Restore window settings
 	GetMultipleInstancePositions(0, DataStruct.NextX, DataStruct.NextY);	// restore cached settings
 
-	GameInstance->GetWorldContext()->bWaitingOnOnlineSubsystem = false;
-
-	if (PlayNetMode == EPlayNetMode::PIE_ListenServer)
+	if (GameInstance)
 	{
-		// If any clients finished before us, update their PIERemapPrefix
-		for (FWorldContext &WorldContext : WorldList)
+		GameInstance->GetWorldContext()->bWaitingOnOnlineSubsystem = false;
+
+		if (PlayNetMode == EPlayNetMode::PIE_ListenServer)
 		{
-			if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
+			// If any clients finished before us, update their PIERemapPrefix
+			for (FWorldContext &WorldContext : WorldList)
 			{
-				WorldContext.PIERemapPrefix = PieWorldContext.PIEPrefix;
+				if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
+				{
+					WorldContext.PIERemapPrefix = PieWorldContext.PIEPrefix;
+				}
 			}
 		}
+		else
+		{
+			// Grab a valid PIERemapPrefix
+			for (FWorldContext &WorldContext : WorldList)
+			{
+				// This relies on the server being the first in the WorldList. Might be risky.
+				if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
+				{
+					PieWorldContext.PIERemapPrefix = WorldContext.PIEPrefix;
+					break;
+				}
+			}
+		}
+
+		return true;
 	}
 	else
 	{
-		// Grab a valid PIERemapPrefix
-		for (FWorldContext &WorldContext : WorldList)
-		{
-			// This relies on the server being the first in the WorldList. Might be risky.
-			if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
-			{
-				PieWorldContext.PIERemapPrefix = WorldContext.PIEPrefix;
-				break;
-			}
-		}
+		return false;
 	}
 }
 
@@ -2431,8 +2462,10 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+	const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
 
 	// Server
+	if (WillAutoConnectToServer || CanPlayNetDedicated)
 	{
 		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
 		PieWorldContext.PIEInstance = PIEInstance++;
@@ -2477,8 +2510,15 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		{
 			// Dedicated servers don't use a login
 			OnlineSub->SetForceDedicated(true);
-			CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct);
-			FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
+			if (CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct))
+			{
+				FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
+			}
+			else
+			{
+				// Failed to create world, this creates a dialog elsewhere
+				return;
+			}
 		}
 	}
 
@@ -2497,7 +2537,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.NextX = NextX;
 		DataStruct.NextY = NextY;
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
-		DataStruct.NetMode = EPlayNetMode::PIE_Client;
+		DataStruct.NetMode = WillAutoConnectToServer ? EPlayNetMode::PIE_Client : EPlayNetMode::PIE_Standalone;
 
 		FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
@@ -2524,10 +2564,22 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct)
 {
-	UE_LOG(LogOnline, Verbose, TEXT("OnLoginPIEComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorString);
-	FWorldContext& PieWorldContext = GetWorldContextFromHandleChecked(DataStruct.WorldContextHandle);
+	// This is needed because pie login may change the state of the online objects that called this function
+	GetTimerManager()->SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UEditorEngine::OnLoginPIEComplete_Deferred, LocalUserNum, bWasSuccessful, ErrorString, DataStruct));
+}
 
-	FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
+void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("OnLoginPIEComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorString);
+	FWorldContext* PieWorldContext = GetWorldContextFromHandle(DataStruct.WorldContextHandle);
+
+	if (!PieWorldContext)
+	{
+		// This will fail if PIE was ended before this callback happened, silently return
+		return;
+	}
+
+	FName OnlineIdentifier = GetOnlineIdentifier(*PieWorldContext);
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 
 	// Cleanup the login delegate before calling create below
@@ -2539,29 +2591,30 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	}
 
 	// Create the new world
-	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.NetMode, DataStruct);
-
-	// Logging after the create so a new MessageLog Page is created
-	if (bWasSuccessful)
+	if (CreatePIEWorldFromLogin(*PieWorldContext, DataStruct.NetMode, DataStruct))
 	{
-		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
+		// Logging after the create so a new MessageLog Page is created
+		if (bWasSuccessful)
 		{
-			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
+			{
+				FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+			}
+			else
+			{
+				FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
+			}
 		}
 		else
 		{
-			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
-		}
-	}
-	else
-	{
-		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
-		{
-			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
-		}
-		else
-		{
-			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
+			{
+				FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
+			}
+			else
+			{
+				FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+			}
 		}
 	}
 }
@@ -2926,6 +2979,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	bSuccess = GameInstance->StartPIEGameInstance(NewLocalPlayer, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode);
 	if (!bSuccess)
 	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_CouldntStartInstance", "Failed to start PIE game instance"));
 		RestoreEditorWorld( EditorWorld );
 		EndPlayMap();
 		return nullptr;
@@ -3338,7 +3392,8 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	PlayWorldPackage->FileName = InPackage->FileName;
 	PlayWorldPackage->SetGuid( InPackage->GetGuid() );
 
-	check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
+	// check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
+	// Currently GPlayInEditorID is not correctly reset after map loading, so it's not safe to assert here
 	GPlayInEditorID = WorldContext.PIEInstance;
 
 	{

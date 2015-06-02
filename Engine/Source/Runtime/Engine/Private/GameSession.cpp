@@ -160,13 +160,18 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 		}
 		else
 		{
-			UE_LOG(LogGameSession, Warning, TEXT("Autologin attempt failed, unable to register server!"));
+			RegisterServerFailed();
 		}
 	}
 }
 
 void AGameSession::RegisterServer()
 {
+}
+
+void AGameSession::RegisterServerFailed()
+{
+	UE_LOG(LogGameSession, Warning, TEXT("Autologin attempt failed, unable to register server!"));
 }
 
 FString AGameSession::ApproveLogin(const FString& Options)

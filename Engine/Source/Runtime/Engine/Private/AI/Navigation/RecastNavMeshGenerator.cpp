@@ -24,8 +24,7 @@
 #include "RecastHelpers.h"
 #include "NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
-#include "NavMeshRenderingHelpers.h"
-
+#include "NavmeshRenderingHelpers.h"
 
 #define SEAMLESS_REBUILDING_ENABLED 1
 
@@ -1797,9 +1796,12 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_GatherGeometry);
 
-	UNavigationSystem*	NavSys = UNavigationSystem::GetCurrent(ParentGenerator.GetWorld());
-	FNavigationOctree*	NavigationOctree = NavSys ? NavSys->GetMutableNavOctree() : nullptr;
-	check(NavigationOctree);
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(ParentGenerator.GetWorld());
+	FNavigationOctree* NavigationOctree = NavSys ? NavSys->GetMutableNavOctree() : nullptr;
+	if (NavigationOctree == nullptr)
+	{
+		return;
+	}
 	const FNavDataConfig& OwnerNavDataConfig = ParentGenerator.GetOwner()->GetConfig();
 
 	for (FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavigationOctree, ParentGenerator.GrowBoundingBox(TileBB, /*bIncludeAgentHeight*/ false));

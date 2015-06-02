@@ -185,6 +185,8 @@ bool FOnlineSubsystemNull::Shutdown()
 {
 	UE_LOG_ONLINE(Display, TEXT("FOnlineSubsystemNull::Shutdown()"));
 
+	FOnlineSubsystemImpl::Shutdown();
+
 	if (OnlineAsyncTaskThread)
 	{
 		// Destroy the online async task thread

@@ -54,6 +54,7 @@ public:
 	virtual bool HasFriendChatAction() const = 0;
 	virtual bool HasActionPending() const = 0;
 	virtual void SetInGame(bool bInGameSetting) = 0;
+	virtual void SetInParty(bool bInPartySetting) = 0;
 	virtual void LockChatChannel(bool bLocked) = 0;
 	virtual bool IsChatChannelLocked() const = 0;	
 	virtual void EnableGlobalChat(bool bEnable) = 0;

@@ -237,7 +237,7 @@ void USkeletalMeshComponent::OnUnregister()
 	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
-	if (AnimScriptInstance)
+	if (AnimScriptInstance && bReInitAnimationOnSetSkeletalMeshCalls)
 	{
 		AnimScriptInstance->UninitializeAnimation();
 	}
@@ -320,7 +320,7 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 				CachedData.Initialize(Cast<UAnimSingleNodeInstance>(AnimScriptInstance));
 			}
 		}
-		else if (AnimScriptInstance)
+		else if (AnimScriptInstance && bReInitAnimationOnSetSkeletalMeshCalls)
 		{
 			AnimScriptInstance->InitializeAnimation();
 		}		
@@ -1309,6 +1309,13 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 #if WITH_APEX_CLOTHING
 	ValidateClothingActors();
 #endif
+}
+
+void USkeletalMeshComponent::SetSkeletalMeshWithoutResettingAnimation(USkeletalMesh* InSkelMesh)
+{
+	bReInitAnimationOnSetSkeletalMeshCalls = false;
+	SetSkeletalMesh(InSkelMesh);
+	bReInitAnimationOnSetSkeletalMeshCalls = true;
 }
 
 bool USkeletalMeshComponent::AllocateTransformData()

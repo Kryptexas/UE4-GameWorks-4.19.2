@@ -28,13 +28,9 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 {
 	bWantsInitializeComponent = true;
 
-	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true; // FIXME! Just temp until timer manager figured out
-	PrimaryComponentTick.bCanEverTick = true;
-	
-	ActiveGameplayCues.Owner = this;
 
-	bReplicates = true;
+	ActiveGameplayCues.Owner = this;
 
 	UserAbilityActivationInhibited = false;
 
@@ -126,6 +122,9 @@ void UAbilitySystemComponent::OnRegister()
 
 	ActiveGameplayEffects.RegisterWithOwner(this);
 	ActivatableAbilities.RegisterWithOwner(this);
+
+	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
+	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
 }
 
 // ---------------------------------------------------------
@@ -1150,52 +1149,8 @@ void UAbilitySystemComponent::RemoveActiveEffects(const FActiveGameplayEffectQue
 
 // ---------------------------------------------------------------------------------------
 
-void UAbilitySystemComponent::TaskStarted(UAbilityTask* NewTask)
-{
-	if (NewTask->bTickingTask)
-	{
-		check(TickingTasks.Contains(NewTask) == false);
-		TickingTasks.Add(NewTask);
-
-		// If this is our first ticking task, set this component as active so it begins ticking
-		if (TickingTasks.Num() == 1)
-		{
-			UpdateShouldTick();
-		}
-		
-	}
-	if (NewTask->bSimulatedTask)
-	{
-		check(SimulatedTasks.Contains(NewTask) == false);
-		SimulatedTasks.Add(NewTask);
-	}
-}
-
-void UAbilitySystemComponent::TaskEnded(UAbilityTask* Task)
-{
-	if (Task->bTickingTask)
-	{
-		// If we are removing our last ticking task, set this component as inactive so it stops ticking
-		TickingTasks.RemoveSingleSwap(Task);
-		if (TickingTasks.Num() == 0)
-		{
-			UpdateShouldTick();
-		}
-	}
-
-	if (Task->bSimulatedTask)
-	{
-		SimulatedTasks.RemoveSingleSwap(Task);
-	}
-}
-
-// ---------------------------------------------------------------------------------------
-
 void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	// Intentionally not calling super: We do not want to replicate bActive which controls ticking. We sometimes need to tick on client predictively.
-	
-
+{	
 	DOREPLIFETIME(UAbilitySystemComponent, SpawnedAttributes);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayEffects);
 	DOREPLIFETIME(UAbilitySystemComponent, ActiveGameplayCues);
@@ -1209,7 +1164,7 @@ void UAbilitySystemComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProper
 	DOREPLIFETIME(UAbilitySystemComponent, ReplicatedPredictionKey);
 	DOREPLIFETIME(UAbilitySystemComponent, RepAnimMontageInfo);
 	
-	DOREPLIFETIME_CONDITION(UAbilitySystemComponent, SimulatedTasks, COND_SkipOwner);
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
 void UAbilitySystemComponent::ForceReplication()
@@ -1238,17 +1193,6 @@ bool UAbilitySystemComponent::ReplicateSubobjects(class UActorChannel *Channel, 
 		if (Ability && !Ability->HasAnyFlags(RF_PendingKill))
 		{
 			WroteSomething |= Channel->ReplicateSubobject(Ability, *Bunch, *RepFlags);
-		}
-	}
-
-	if (!RepFlags->bNetOwner)
-	{
-		for (UAbilityTask* SimulatedTask : SimulatedTasks)
-		{
-			if (SimulatedTask && !SimulatedTask->HasAnyFlags(RF_PendingKill))
-			{
-				WroteSomething |= Channel->ReplicateSubobject(SimulatedTask, *Bunch, *RepFlags);
-			}
 		}
 	}
 
@@ -1324,9 +1268,15 @@ void UAbilitySystemComponent::OnGameplayEffectAppliedToSelf(UAbilitySystemCompon
 	OnGameplayEffectAppliedDelegateToSelf.Broadcast(Source, SpecApplied, ActiveHandle);
 }
 
-TArray<TWeakObjectPtr<UAbilityTask> >&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
+TArray<TWeakObjectPtr<UGameplayTask> >&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
 {
 	return Ability->ActiveTasks;
+}
+
+AActor* UAbilitySystemComponent::GetAvatarActor() const
+{
+	check(AbilityActorInfo.IsValid());
+	return AbilityActorInfo->OwnerActor.Get();
 }
 
 // ------------------------------------------------------------------------
@@ -1575,7 +1525,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 					Canvas->SetDrawColor(FColor::White);
 					for (auto TaskPtr : Instance->ActiveTasks)
 					{
-						UAbilityTask* Task = TaskPtr.Get();
+						UGameplayTask* Task = TaskPtr.Get();
 						if (Task)
 						{
 							YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s"), *Task->GetDebugString()), 7.f, YPos);

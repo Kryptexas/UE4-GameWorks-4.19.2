@@ -204,6 +204,8 @@ bool FOnlineSubsystemGooglePlay::Shutdown()
 {
 	UE_LOG(LogOnline, Log, TEXT("FOnlineSubsystemAndroid::Shutdown()"));
 
+	FOnlineSubsystemImpl::Shutdown();
+
 	FJavaWrapper::OnActivityResultDelegate.Remove(OnActivityResultDelegateHandle);
 
 #define DESTRUCT_INTERFACE(Interface) \

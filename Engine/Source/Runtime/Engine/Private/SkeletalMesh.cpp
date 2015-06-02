@@ -4712,6 +4712,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bPerBoneMotionBlur = true;
 
 	bDoubleBufferedBlendSpaces = true;
+	bReInitAnimationOnSetSkeletalMeshCalls = true;
 	CurrentEditableSpaceBases = 0;
 	CurrentReadSpaceBases = 1;
 	bNeedToFlipSpaceBaseBuffers = false;

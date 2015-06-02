@@ -8,6 +8,7 @@
 #include "GameplayCueInterface.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "GameplayTasksComponent.h"
 #include "AbilitySystemComponent.generated.h"
 
 /** 
@@ -53,7 +54,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityEnded, UGameplayAbility*);
  *	The core ActorComponent for interfacing with the GameplayAbilities System
  */
 UCLASS(ClassGroup=AbilitySystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
-class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, public IGameplayTagAssetInterface
+class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksComponent, public IGameplayTagAssetInterface
 {
 	GENERATED_UCLASS_BODY()
 
@@ -74,8 +75,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	virtual void OnComponentDestroyed() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
-	/** Checks to see if we should be active (ticking). Called after something changes that would cause us to tick or not tick. */
-	void UpdateShouldTick();
+	/** retrieves information whether this component should be ticking taken current
+	 *	activity into consideration*/
+	virtual bool GetShouldTick() const override;
 
 	/** Finds existing AttributeSet */
 	template <class T >
@@ -811,14 +813,6 @@ public:
 	void TargetCancel();
 
 	// ----------------------------------------------------------------------------------------------------------------
-
-	/** Adds a UAbilityTask task to the list of tasks to be ticked */
-	void TaskStarted(UAbilityTask* NewTask);
-
-	/** Removes a UAbilityTask task from the list of tasks to be ticked */
-	void TaskEnded(UAbilityTask* Task);
-
-	// ----------------------------------------------------------------------------------------------------------------
 	//	AnimMontage Support
 	//	
 	//	TODO:
@@ -1020,18 +1014,16 @@ public:
 
 	// ---------------------------------------------------------------------
 
-	/** Tasks that run on simulated proxies */
-	UPROPERTY(ReplicatedUsing=OnRep_SimulatedTasks)
-	TArray<UAbilityTask*> SimulatedTasks;
-
-	UFUNCTION()
-	void OnRep_SimulatedTasks();
-
 #if ENABLE_VISUAL_LOG
 	void ClearDebugInstantEffects();
 #endif // ENABLE_VISUAL_LOG
 
 	const FActiveGameplayEffect* GetActiveGameplayEffect(const FActiveGameplayEffectHandle Handle) const;
+
+	// -
+	// UGameplayTasksComponent
+	// -
+	virtual AActor* GetAvatarActor() const override;
 
 protected:
 
@@ -1048,7 +1040,7 @@ protected:
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
 		
-	TArray<TWeakObjectPtr<UAbilityTask> >&	GetAbilityActiveTasks(UGameplayAbility* Ability);
+	TArray<TWeakObjectPtr<UGameplayTask> >&	GetAbilityActiveTasks(UGameplayAbility* Ability);
 	// --------------------------------------------
 	
 	// Contains all of the gameplay effects that are currently active on this component
@@ -1080,9 +1072,6 @@ protected:
 	virtual void OnTagUpdated(const FGameplayTag& Tag, bool TagExists) {};
 	
 	// ---------------------------------------------
-
-	/** Array of currently active UAbilityTasks that require ticking */
-	TArray<TWeakObjectPtr<UAbilityTask> >	TickingTasks;
 
 	virtual void OnRegister() override;
 

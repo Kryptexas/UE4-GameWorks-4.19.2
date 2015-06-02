@@ -50,17 +50,18 @@ namespace NavigationDebugDrawing
 	extern const ENGINE_API FVector PathNodeBoxExtent;
 }
 
-namespace FNavigationSystem
+UENUM()
+enum class FNavigationSystemRunMode : uint8
 {
-	enum EMode
-	{
-		InvalidMode = -1,
-		GameMode,
-		EditorMode,
-		SimulationMode,
-		PIEMode,
-	};
-	
+	InvalidMode,
+	GameMode,
+	EditorMode,
+	SimulationMode,
+	PIEMode,
+};
+
+namespace FNavigationSystem
+{	
 	/** 
 	 * Used to construct an ANavigationData instance for specified navigation data agent 
 	 */
@@ -90,7 +91,7 @@ namespace ENavigationBuildLock
 	enum Type
 	{
 		LoadingAreas = 1 << 1,			// navigation areas are being loaded
-		NoUpdateInEditor = 1 << 2,			// editor doesn't allow automatic updates
+		NoUpdateInEditor = 1 << 2,		// editor doesn't allow automatic updates
 		InitialLock = 1 << 3,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
 		Custom = 1 << 4,
 	};
@@ -680,6 +681,12 @@ public:
 	// @todo document
 	FORCEINLINE bool IsNavigationBuildingLocked() const { return NavBuildingLockFlags != 0; }
 
+	/** check if building is permanently locked to avoid showing navmesh building notify (due to queued dirty areas) */
+	FORCEINLINE bool IsNavigationBuildingPermanentlyLocked() const
+	{
+		return (NavBuildingLockFlags & ~(ENavigationBuildLock::LoadingAreas | ENavigationBuildLock::InitialLock)) != 0; 
+	}
+
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
@@ -714,7 +721,7 @@ public:
 	virtual void OnInitializeActors();
 
 	/** */
-	virtual void OnWorldInitDone(FNavigationSystem::EMode Mode);
+	virtual void OnWorldInitDone(FNavigationSystemRunMode Mode);
 
 	/** adds BSP collisions of currently streamed in levels to octree */
 	void InitializeLevelCollisions();
@@ -757,7 +764,7 @@ public:
 	static UNavigationSystem* GetCurrent(UObject* WorldContextObject);
 	
 	/** try to create and setup navigation system */
-	static void InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode);
+	static void InitializeForWorld(UWorld* World, FNavigationSystemRunMode Mode);
 
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
@@ -780,7 +787,8 @@ public:
 
 protected:
 
-	FNavigationSystem::EMode OperationMode;
+	UPROPERTY()
+	FNavigationSystemRunMode OperationMode;
 
 	TSharedPtr<FNavigationOctree, ESPMode::ThreadSafe> NavOctree;
 
@@ -827,7 +835,7 @@ protected:
 
 	/** temporary cumulative time to calculate when we need to update dirty areas */
 	float DirtyAreasUpdateTime;
-
+	
 #if !UE_BUILD_SHIPPING
 	/** self-registering exec command to handle nav sys console commands */
 	static FNavigationSystemExec ExecHandler;
@@ -852,7 +860,14 @@ protected:
 #endif
 	/** delegate handler called when navigation is dirtied*/
 	void OnNavigationDirtied(const FBox& Bounds);
-	
+
+#if WITH_HOT_RELOAD
+	FDelegateHandle HotReloadDelegateHandle;
+
+	/** called to notify NavigaitonSystem about finished hot reload */
+	virtual void OnHotReload(bool bWasTriggeredAutomatically);
+#endif // WITH_HOT_RELOAD
+
 	/** Registers given navigation data with this Navigation System.
 	 *	@return RegistrationSuccessful if registration was successful, other results mean it failed
 	 *	@see ERegistrationResult

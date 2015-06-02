@@ -465,6 +465,11 @@ public:
 			WindowHeightHandle->MarkHiddenByCustomization();
 			WindowWidthHandle->MarkHiddenByCustomization();
 
+			NetworkCategory.AddProperty("AutoConnectToServer")
+				.DisplayName(LOCTEXT("AutoConnectToServerLabel", "Auto Connect To Server"))
+				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleAutoConnectToServerEnabled)))
+				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleAutoConnectToServerVisibility)));
+
 			NetworkCategory.AddProperty("RouteGamepadToSecondWindow")
 				.DisplayName(LOCTEXT("RouteGamepadToSecondWindowLabel", "Route 1st Gamepad to 2nd Client"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleRerouteInputToSecondWindowEnabled)))
@@ -653,6 +658,18 @@ private:
 	bool HandleGameOptionsIsEnabled( ) const
 	{
 		return GetDefault<ULevelEditorPlaySettings>()->IsAdditionalServerGameOptionsActive();
+	}
+
+	// Callback for getting the enabled state of the AutoConnectToServer property.
+	bool HandleAutoConnectToServerEnabled() const
+	{
+		return GetDefault<ULevelEditorPlaySettings>()->IsAutoConnectToServerActive();
+	}
+
+	// Callback for getting the visibility of the RerouteInputToSecondWindow property.
+	EVisibility HandleAutoConnectToServerVisibility() const
+	{
+		return GetDefault<ULevelEditorPlaySettings>()->GetAutoConnectToServerVisibility();
 	}
 
 	// Callback for getting the enabled state of the RerouteInputToSecondWindow property.

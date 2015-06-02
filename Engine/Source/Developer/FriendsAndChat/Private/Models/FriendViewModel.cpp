@@ -33,7 +33,7 @@ public:
 			{
 				Actions.Add(EFriendActionType::SendFriendRequest);
 			}
-			if (FFriendsAndChatManager::Get()->IsInJoinableGameSession())
+			if (FFriendsAndChatManager::Get()->IsInJoinableGameSession() && FriendItem->IsOnline())
 			{
 				Actions.Add(EFriendActionType::InviteToGame);
 			}
@@ -136,6 +136,17 @@ public:
 				break;
 			}
 		}
+		SetPendingAction(EFriendActionType::MAX_None);
+	}
+
+	virtual void SetPendingAction(EFriendActionType::Type PendingAction) override
+	{
+		FriendItem->SetPendingAction(PendingAction);
+	}
+
+	virtual EFriendActionType::Type GetPendingAction() override
+	{
+		return FriendItem->GetPendingAction();
 	}
 
 	virtual bool CanPerformAction(const EFriendActionType::Type ActionType) override
@@ -198,6 +209,11 @@ public:
 	virtual bool IsInGameSession() const override
 	{
 		return FFriendsAndChatManager::Get()->IsInGameSession();
+	}
+
+	virtual bool IsInActiveParty() const override
+	{
+		return FFriendsAndChatManager::Get()->IsInActiveParty();
 	}
 
 	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override

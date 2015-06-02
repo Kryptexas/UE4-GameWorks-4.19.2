@@ -179,6 +179,7 @@ bool FOnlineSubsystemIOS::Shutdown()
 	bool bSuccessfullyShutdown = true;
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::Shutdown()"));
 
+	bSuccessfullyShutdown = FOnlineSubsystemImpl::Shutdown();
 	return bSuccessfullyShutdown;
 }
 

@@ -14,7 +14,7 @@ UAbilityTask_SpawnActor::UAbilityTask_SpawnActor(const FObjectInitializer& Objec
 
 UAbilityTask_SpawnActor* UAbilityTask_SpawnActor::SpawnActor(UObject* WorldContextObject, FGameplayAbilityTargetDataHandle TargetData, TSubclassOf<AActor> InClass)
 {
-	auto MyObj = NewTask<UAbilityTask_SpawnActor>(WorldContextObject);
+	auto MyObj = NewAbilityTask<UAbilityTask_SpawnActor>(WorldContextObject);
 	MyObj->CachedTargetDataHandle = TargetData;
 	return MyObj;
 }

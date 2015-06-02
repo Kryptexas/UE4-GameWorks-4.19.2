@@ -969,6 +969,15 @@ void UCheatManager::DumpOnlineSessionState()
 	}
 }
 
+void UCheatManager::DumpPartyState()
+{
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
+	if (PartyInt.IsValid())
+	{
+		PartyInt->DumpPartyState();
+	}
+}
+
 void UCheatManager::DumpVoiceMutingState()
 {
 	UE_LOG(LogCheatManager, Display, TEXT(""));

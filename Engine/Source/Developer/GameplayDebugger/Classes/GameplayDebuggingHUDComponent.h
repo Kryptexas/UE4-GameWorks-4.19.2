@@ -26,15 +26,6 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingHUDComponent : public AActor
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(config)
-	float MenuStartX;
-	UPROPERTY(config)
-	float MenuStartY;
-	UPROPERTY(config)
-	float DebugInfoStartX;
-	UPROPERTY(config)
-	float DebugInfoStartY;
-
 	struct FPrintContext
 	{
 	public:
@@ -79,9 +70,27 @@ protected:
 
 	virtual void GetKeyboardDesc(TArray<FDebugCategoryView>& Categories);
 
+	void PrintString(FPrintContext& Context, const FString& InString );
+	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString );
+	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString, float X, float Y );
+
+	void DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent);
+
+	AGameplayDebuggingReplicator* GetDebuggingReplicator();
+
 private:
 	// local player related draw from PostRender
 	void DrawDebugComponentData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
+
+public:
+	UPROPERTY(config)
+	float MenuStartX;
+	UPROPERTY(config)
+	float MenuStartY;
+	UPROPERTY(config)
+	float DebugInfoStartX;
+	UPROPERTY(config)
+	float DebugInfoStartY;
 
 protected:
 	UPROPERTY(Transient)
@@ -99,11 +108,8 @@ protected:
 	UWorld* World;
 	FEngineShowFlags EngineShowFlags;
 
-	void PrintString(FPrintContext& Context, const FString& InString );
-	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString );
-	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString, float X, float Y );
-
-	void DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent);
-
-	AGameplayDebuggingReplicator* GetDebuggingReplicator();
+private:
+	float ItemDescriptionWidth;
+	float ItemScoreWidth;
+	float TestScoreWidth;
 };
