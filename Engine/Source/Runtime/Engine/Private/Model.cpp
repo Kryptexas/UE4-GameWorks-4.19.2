@@ -333,6 +333,7 @@ void UModel::PostLoad()
 			CurSurf.bHiddenEdLevel = 0;
 		}
 
+#if WITH_EDITOR
 		if (ABrush* Owner = Cast<ABrush>(GetOuter()))
 		{
 			OwnerLocationWhenLastBuilt = Owner->GetActorLocation();
@@ -341,6 +342,7 @@ void UModel::PostLoad()
 			OwnerRotationWhenLastBuilt = -Owner->GetActorRotation();
 			bCachedOwnerTransformValid = true;
 		}
+#endif
 	}
 }
 
