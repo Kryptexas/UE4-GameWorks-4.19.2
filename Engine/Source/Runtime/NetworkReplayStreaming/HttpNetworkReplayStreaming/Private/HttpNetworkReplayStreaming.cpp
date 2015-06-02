@@ -49,6 +49,24 @@ public:
 	END_ONLINE_JSON_SERIALIZER
 };
 
+class FNetworkReplayUserList : public FOnlineJsonSerializable
+{
+public:
+	FNetworkReplayUserList()
+	{
+	}
+	virtual ~FNetworkReplayUserList()
+	{
+	}
+
+	TArray< FString > Users;
+
+	// FOnlineJsonSerializable
+	BEGIN_ONLINE_JSON_SERIALIZER
+		ONLINE_JSON_SERIALIZE_ARRAY( "users", Users );
+	END_ONLINE_JSON_SERIALIZER
+};
+
 void FHttpStreamFArchive::Serialize( void* V, int64 Length ) 
 {
 	if ( IsLoading() )
@@ -124,7 +142,7 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
 }
 
-void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, const FString& FriendlyName, const FString& UserName, bool bRecord, const FNetworkReplayVersion& InReplayVersion, const FOnStreamReadyDelegate& Delegate )
+void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, const FString& FriendlyName, const TArray< FString >& UserNames, bool bRecord, const FNetworkReplayVersion& InReplayVersion, const FOnStreamReadyDelegate& Delegate )
 {
 	if ( !SessionName.IsEmpty() )
 	{
@@ -179,6 +197,13 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 
 		SessionName = CustomName;
 
+		FString UserName;
+
+		if ( UserNames.Num() == 1 )
+		{
+			UserName = UserNames[0];
+		}
+
 		// Notify the http server that we want to start downloading a replay
 		HttpRequest->SetURL( FString::Printf( TEXT( "%sstartdownloading?Session=%s&User=%s" ), *ServerURL, *SessionName, *UserName ) );
 		HttpRequest->SetVerb( TEXT( "POST" ) );
@@ -220,6 +245,15 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 		HttpRequest->SetVerb( TEXT( "POST" ) );
 
 		HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpStartUploadingFinished );
+
+		if ( UserNames.Num() > 0 )
+		{
+			FNetworkReplayUserList UserList;
+
+			UserList.Users = UserNames;
+			HttpRequest->SetContentAsString( UserList.ToJson() );
+			HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
+		}
 
 		AddRequestToQueue( EQueuedHttpRequestType::StartUploading, HttpRequest );
 	}
