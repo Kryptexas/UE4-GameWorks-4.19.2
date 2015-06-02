@@ -86,6 +86,7 @@ engine
 %Engine/AI/BehaviorTrees:topiccompact%
 %Engine/Landscape:topiccompact%
 %Engine/Foliage:topiccompact%
+%Engine/OpenWorldTools:topiccompact%
 %Engine/LevelStreaming:topiccompact%
 %Engine/Audio:topiccompact%
 %Engine/Physics:topiccompact%
