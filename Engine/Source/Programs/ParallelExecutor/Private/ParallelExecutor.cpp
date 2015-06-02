@@ -15,6 +15,8 @@ int main(int ArgC, const char* ArgV[])
 
 	FCommandLine::Set(TEXT(""));
 
+	setvbuf(stdout, NULL, _IONBF, 0);
+
 	if(ArgC != 2)
 	{
 		wprintf(TEXT("Missing argument to ParallelExecutor for build graph."));
