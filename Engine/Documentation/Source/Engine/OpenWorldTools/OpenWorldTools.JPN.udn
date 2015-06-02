@@ -1,0 +1,93 @@
+﻿INTSourceChangelist:2573008
+Availability:Docs
+Title:Open World ツール
+Crumbs:
+Description:Open World ツールの操作
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+![](T_OWT_Header_00.png)
+
+2015年に開催された Games Developer Conference(GDC) で、エピックは動植物でいっぱいの壮大なオープンワールドのレンダリング能力を発表しました。
+アンリアルエンジン 4.8 (UE4) のリリースにより、このデモ作成に使用した **Open World ツール** と呼ばれるツールが UE4 プロジェクトで利用できるようになりました。 
+
+[region:note]
+Open World ツールは現時点では実験的であるため、ツールの使用中にエラーが発生したり不安定な状態になる可能性があることに留意してください。
+[/region]
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine/OpenWorldTools/Overview:title%](Engine\OpenWorldTools\Overview\T_Kite_Demo_00.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/OpenWorldTools/Overview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/OpenWorldTools/Overview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/Overview]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine/OpenWorldTools/ProceduralFoliage/QuickStart:title%](Engine\OpenWorldTools\Overview\T_PFT_Trees_00.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/OpenWorldTools/ProceduralFoliage/QuickStart:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/OpenWorldTools/ProceduralFoliage/QuickStart:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/ProceduralFoliage/QuickStart]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![Engine/OpenWorldTools/Overview:title%](Engine\OpenWorldTools\Grass\QuickStart\T_Grass_Intro.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/OpenWorldTools/Grass/QuickStart:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/OpenWorldTools/Grass/QuickStart:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/OpenWorldTools/Grass/QuickStart]
+	[/PARAM]
+[/OBJECT]
+
+
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
