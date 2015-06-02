@@ -43,7 +43,7 @@ Description:Coding a class to change camera views
 
 	The GameplayStatics header file gives us access to some useful general-purpose functions, one of which we will need for this tutorial. When that is done, add the following code to the bottom of **ACameraDirector::Tick**:
 
-		const float TimeBetweenCameraChanges = 3.0f;
+		const float TimeBetweenCameraChanges = 2.0f;
 		const float SmoothBlendTime = 0.75f;
 		TimeToNextCameraChange -= DeltaTime;
 		if (TimeToNextCameraChange <= 0.0f)
