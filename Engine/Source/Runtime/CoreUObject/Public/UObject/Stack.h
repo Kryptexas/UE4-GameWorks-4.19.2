@@ -140,6 +140,9 @@ public:
 	int32 ReadWord();
 	UProperty* ReadProperty();
 
+	/** May return null */
+	UProperty* ReadPropertyUnchecked();
+
 	/**
 	 * Reads a value from the bytestream, which represents the number of bytes to advance
 	 * the code pointer for certain expressions.
@@ -224,6 +227,13 @@ inline UProperty* FFrame::ReadProperty()
 	// Callers don't check for NULL; this method is expected to succeed.
 	check(Result);
 
+	return Result;
+}
+
+inline UProperty* FFrame::ReadPropertyUnchecked()
+{
+	UProperty* Result = (UProperty*)ReadObject();
+	MostRecentProperty = Result;
 	return Result;
 }
 
