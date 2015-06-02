@@ -351,6 +351,7 @@ public:
 	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override { return CachedGameplayTasksComponent; }
 	virtual void TaskStarted(UGameplayTask& NewTask) {}
 	virtual void TaskEnded(UGameplayTask& Task) {}
+	virtual void OnTaskInitialized(UGameplayTask& Task) override {}
 	virtual AActor* GetOwnerActor() const { return const_cast<AAIController*>(this); }
 	virtual AActor* GetAvatarActor() const { return GetPawn(); }
 
