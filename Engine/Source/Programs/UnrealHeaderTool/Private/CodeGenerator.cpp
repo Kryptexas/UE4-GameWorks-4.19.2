@@ -5277,6 +5277,60 @@ void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
 	}
 }
 
+/**
+ * Tries to resolve super classes for classes defined in the given
+ * module.
+ *
+ * @param Package Modules package.
+ */
+void ResolveSuperClasses(UPackage* Package)
+{
+	TArray<UObject*> Objects;
+	GetObjectsWithOuter(Package, Objects);
+
+	for (auto* Object : Objects)
+	{
+		if (!Object->IsA<UClass>())
+		{
+			continue;
+		}
+
+		UClass* DefinedClass = Cast<UClass>(Object);
+
+		if (DefinedClass->HasAnyClassFlags(CLASS_Intrinsic | CLASS_NoExport))
+		{
+			continue;
+		}
+
+		const FSimplifiedParsingClassInfo& ParsingInfo = GTypeDefinitionInfoMap[DefinedClass]->GetUnrealSourceFile()
+			.GetDefinedClassParsingInfo(DefinedClass);
+
+		const FString& BaseClassNameStripped = GetClassNameWithPrefixRemoved(ParsingInfo.GetBaseClassName());
+
+		if (!BaseClassNameStripped.IsEmpty() && !DefinedClass->GetSuperClass())
+		{
+			UClass* FoundBaseClass = FindObject<UClass>(Package, *BaseClassNameStripped);
+
+			if (FoundBaseClass == nullptr)
+			{
+				FoundBaseClass = FindObject<UClass>(ANY_PACKAGE, *BaseClassNameStripped);
+			}
+
+			if (FoundBaseClass == nullptr)
+			{
+				// Don't know its parent class. Raise error.
+				UE_LOG(LogCompile, Error, TEXT("Couldn't find parent type for '%s' named '%s' in current module or any other module parsed so far."),
+					*DefinedClass->GetName(), *ParsingInfo.GetBaseClassName());
+			}
+			else
+			{
+				DefinedClass->SetSuperStruct(FoundBaseClass);
+				DefinedClass->ClassCastFlags |= FoundBaseClass->ClassCastFlags;
+			}
+		}
+	}
+}
+
 ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 {
 	check(GIsUCCMakeStandaloneHeaderGenerator);
@@ -5459,6 +5513,8 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 				Result = ECompilationResult::OtherCompilationError;
 			}
 		}
+
+		ResolveSuperClasses(Package);
 
 		ThisModuleTimer.Stop();
 		TotalModulePreparseTime += ThisModulePreparseTime;
@@ -5680,30 +5736,6 @@ UClass* ProcessParsedClass(bool bClassIsAnInterface, TArray<FHeaderProvider> &De
 		}
 	}
 
-	if (ResultClass != nullptr)
-	{
-		if (!BaseClassNameStripped.IsEmpty() && !ResultClass->GetSuperClass())
-		{
-			// Find or forward-declare base class.
-			ResultClass->SetSuperStruct(FindObject<UClass>(InParent, *BaseClassNameStripped));
-			if (ResultClass->GetSuperStruct() == nullptr)
-			{
-				ResultClass->SetSuperStruct(FindObject<UClass>(ANY_PACKAGE, *BaseClassNameStripped));
-			}
-
-			if (ResultClass->GetSuperStruct() == nullptr)
-			{
-				// don't know its parent class yet
-				ResultClass->SetSuperStruct(new(EC_InternalUseOnlyConstructor, InParent, *BaseClassNameStripped) UClass(FObjectInitializer(), nullptr));
-			}
-
-			if (ResultClass->GetSuperStruct() != nullptr)
-			{
-				ResultClass->ClassCastFlags |= ResultClass->GetSuperClass()->ClassCastFlags;
-			}
-		}
-	}
-
 	if (bVerboseOutput)
 	{
 		for (const auto& Dependency : DependentOn)
@@ -5739,7 +5771,7 @@ TSharedRef<FUnrealSourceFile> PerformInitialParseOnHeader(UPackage* InParent, co
 		FScope::AddTypeScope(ResultClass, &UnrealSourceFile->GetScope().Get());
 
 		AddTypeDefinition(*UnrealSourceFile, ResultClass, ParsedClassInfo.GetClassDefLine());
-		UnrealSourceFile->AddDefinedClass(ResultClass);
+		UnrealSourceFile->AddDefinedClass(ResultClass, MoveTemp(ParsedClassInfo));
 	}
 
 	for (const auto& DependsOnElement : DependsOn)
