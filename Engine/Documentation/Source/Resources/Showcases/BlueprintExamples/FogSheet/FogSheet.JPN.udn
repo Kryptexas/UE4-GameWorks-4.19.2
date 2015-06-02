@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2480698
+﻿INTSourceChangelist:2572494
 Availability:Public
 Title:フォグシート＆ライトビーム
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -44,7 +44,7 @@ Related:Engine/Rendering/Materials/MaterialInstances
 
 | ブループリントの特性 | 目的 |
 |---|---|
-| **Components List** | _Compnonents List_ 内で作成されたコンポーネントのみが単一の Billboard Component で選択可能なアイコンのみを提供します。レベル内の配置に使用されます。 |
+| **Components List** | _Components List_ 内で作成されたコンポーネントのみが単一の Billboard Component で選択可能なアイコンのみを提供します。レベル内の配置に使用されます。 |
 | **Construction Script** | [INCLUDE:#FogSheetCS] |
 | **Event Graph** | このブループリントには _イベントグラフ_ がありません。つまり一度プロパティが設定されるとゲームプレイを通じて設定に変更はありません。|
 
@@ -141,7 +141,7 @@ _コンストラクションスクリプト_ は以下のタスクを実行し�
 * スタティック メッシュを使用してシート ジオメトリを作成する
 * **Size** 変数の配置を読み取り、 スタティック メッシュを適切にスケールするために使用する
 * シート ジオメトリに対し Material Instance Dynamic (MID) を作成し適用する
-* エクスポーズされた Details panel プロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
+* エクスポーズされた **[Details]** パネルのプロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
 [/EXCERPT:FogSheetCS]
 
 
@@ -151,8 +151,8 @@ _コンストラクションスクリプト_ は以下のタスクを実行し�
 * **Length** 変数と **Width** 変数の配置を読み取り、 スタティック メッシュを適切にスケールするために使用する
 * シート ジオメトリに対し Material Instance Dynamic (MID) を作成し適用する
 * 光源の回転を追うか、追う場合ジオメトリを合わせて回転させるかを設定する
-* をプロファイルに使用する形状 (指向性ライトには平行、スポットライトにはコーン) を判断し、マテリアル マスク テクスチャを適切にスワップする
-* エクスポーズされた Details panel プロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
+* プロファイルに使用する形状 (指向性ライトには平行、スポットライトにはコーン) を判断し、マテリアル マスク テクスチャを適切にスワップする
+* エクスポーズされた **[Details]** パネルのプロパティからマテリアルの設定データを集め、それらをマテリアルに適用します。
 [/EXCERPT:LightBeamCS]
 
 
