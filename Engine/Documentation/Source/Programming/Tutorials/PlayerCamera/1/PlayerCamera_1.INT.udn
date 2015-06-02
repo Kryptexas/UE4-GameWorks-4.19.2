@@ -29,6 +29,7 @@ Description:Creating a spring arm and a camera.
 1. Next, in **Visual Studio**, we should open `PawnWithCamera.h` and add the following code to the bottom of our class definition:
 
 		protected:
+			UPROPERTY(EditAnywhere)
 			USpringArmComponent* OurCameraSpringArm;
 			UCameraComponent* OurCamera;
 
@@ -94,6 +95,7 @@ We now have a simple **Pawn** that will allow us to control our camera comfortab
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};
