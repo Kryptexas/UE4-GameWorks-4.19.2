@@ -450,56 +450,56 @@ bool UDestructibleComponent::CanEditSimulatePhysics()
 void UDestructibleComponent::AddImpulse( FVector Impulse, FName BoneName /*= NAME_None*/, bool bVelChange /*= false*/ )
 {
 #if WITH_APEX
-	if (ApexDestructibleActor)
+	ExecuteOnPhysicsReadWrite([&]
 	{
 		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		if(PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx))
 		{
 			Actor->addForce(U2PVector(Impulse), bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE);
 		}
-	}
+	});
 #endif
 }
 
 void UDestructibleComponent::AddImpulseAtLocation( FVector Impulse, FVector Position, FName BoneName /*= NAME_None*/ )
 {
 #if WITH_APEX
-	if (ApexDestructibleActor)
+	ExecuteOnPhysicsReadWrite([&]
 	{
 		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		if (PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx))
 		{
 			PxRigidBodyExt::addForceAtPos(*Actor, U2PVector(Impulse), U2PVector(Position), PxForceMode::eIMPULSE);
 		}
-	}
+	});
 #endif
 }
 
 void UDestructibleComponent::AddForce( FVector Force, FName BoneName /*= NAME_None*/, bool bAccelChange /* = false */ )
 {
 #if WITH_APEX
-	if (ApexDestructibleActor)
+	ExecuteOnPhysicsReadWrite([&]
 	{
 		const int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		if (PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx))
 		{
 			Actor->addForce(U2PVector(Force), bAccelChange ? PxForceMode::eACCELERATION : PxForceMode::eFORCE);
 		}
-	}
+	});
 #endif
 }
 
 void UDestructibleComponent::AddForceAtLocation( FVector Force, FVector Location, FName BoneName /*= NAME_None*/ )
 {
 #if WITH_APEX
-	if (ApexDestructibleActor)
+	ExecuteOnPhysicsReadWrite([&]
 	{
 		int32 ChunkIdx = BoneIdxToChunkIdx(GetBoneIndex(BoneName));
 		if (PxRigidDynamic* Actor = ApexDestructibleActor->getChunkPhysXActor(ChunkIdx))
 		{
 			PxRigidBodyExt::addForceAtPos(*Actor, U2PVector(Force), U2PVector(Location), PxForceMode::eFORCE);
 		}
-	}
+	});
 #endif
 }
 
@@ -726,6 +726,46 @@ bool UDestructibleComponent::IsFracturedOrInitiallyStatic() const
 	}
 #endif
 	return bFractured || bInitiallyStatic;
+}
+
+bool UDestructibleComponent::ExecuteOnPhysicsReadOnly(TFunctionRef<void()> Func) const
+{
+#if WITH_APEX
+	if (ApexDestructibleActor)
+	{
+		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+		// Destructibles are always dynamic or kinematic, and therefore only go into one of the scenes
+		const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
+		PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+
+		SCOPED_SCENE_READ_LOCK(PScene);
+		Func();
+
+		return true;
+	}
+#endif
+
+	return false;
+}
+
+bool UDestructibleComponent::ExecuteOnPhysicsReadWrite(TFunctionRef<void()> Func) const
+{
+#if WITH_APEX
+	if (ApexDestructibleActor)
+	{
+		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
+		// Destructibles are always dynamic or kinematic, and therefore only go into one of the scenes
+		const uint32 SceneType = BodyInstance.UseAsyncScene(PhysScene) ? PST_Async : PST_Sync;
+		PxScene* PScene = PhysScene->GetPhysXScene(SceneType);
+
+		SCOPED_SCENE_WRITE_LOCK(PScene);
+		Func();
+
+		return true;
+	}
+#endif
+
+	return false;
 }
 
 void UDestructibleComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
