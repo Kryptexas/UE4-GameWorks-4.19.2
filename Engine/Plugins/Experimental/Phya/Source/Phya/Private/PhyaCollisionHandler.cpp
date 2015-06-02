@@ -3,6 +3,7 @@
 #include "PhyaPluginPrivatePCH.h"
 #include "PhysicsPublic.h"
 #include "Phya.hpp"
+#include "Sound/SoundWaveProcedural.h"
 
 #define N_BODIES 5
 
