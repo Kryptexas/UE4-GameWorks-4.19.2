@@ -1,0 +1,74 @@
+﻿INTSourceChangelist:2572470
+Availability:Public
+Title:5.Character ブループリント
+Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
+Description:Character ブループリントの設定
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/AI/EnvironmentQuerySystem/QuickStart/4 "%Engine/AI/EnvironmentQuerySystem/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/6 "%Engine/AI/EnvironmentQuerySystem/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+**キャラクター** でプロジェクトが既に作成されているので、人間の形をした **スケルタルメッシュ** とその **Animation** ブループリントを利用することができます。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+
+このキャラクターが新規 AI キャラクターになります。例えば、ポーンではなくキャラクターを使う理由は、Character Movement Component の機能にアクセスするためです。
+
+## ステップ
+
+1. **コンテンツ ブラウザ** の `AI_Character` ブループリントを **ダブルクリック** して、編集用に開きます。
+
+1. **[Components]** パネルで **メッシュ** コンポーネントを選択します。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\meshComp.png)
+
+1. **[詳細]** パネルの **Mesh** カテゴリで `HeroTPP` (または自分自身の) **スケルタルメッシュ** を割り当てます。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\assignSkelMesh.png)
+
+1. **Mesh** コンポーネントを、カプセルの真ん中に来るように移動させます。
+
+1.  **Mesh** コンポーネントを回転させて、青色の **Arrow Component** がポイントする方向を向くようにします。
+
+1. **[Details]** パネルの **Animation** カテゴリで `HeroTPP_AnimBlueprint` を **Animation Blueprint Generated Class** に割り当てます。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\assignAnimBP.png)
+
+1. **[Components]** パネルで ** CapsuleComponent** を選び、 **[Details]** パネルで **スケルタル メッシュ** が囲まれるように **Capsule Half Height** と **Capsule Radius** を調整します。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\shapeCat.png)
+
+1. **Character Movement** コンポーネントを選択します。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\charmve.png)
+
+1. **[Details]** パネルの Movement Component カテゴリで、 Agent Radius と Agent Height の値を調整します。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\agentProps.png)
+
+	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの「半分の高さ」の 2 倍になるように設定します。_
+
+1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed** プロパティを 400 に変更します。
+
+	![](Engine\AI\BehaviorTrees\QuickStart\4\maxWalk.png)
+
+1. **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) ボタンをクリックして、新規 AI Controller  (`Runner_AI_CON`) を **Pawn** カテゴリの **AIController Class** プロパティに割り当てます。
+
+	![](AI_con.png)
+
+1. コンパイルし ![](Engine\AI\BehaviorTrees\QuickStart\4\compile_button.png) 保存します。 ![](Engine\AI\BehaviorTrees\QuickStart\4\save_button.png)
+
+
+%Steps%
