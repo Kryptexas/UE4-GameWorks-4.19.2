@@ -3838,53 +3838,52 @@ bool FBlueprintEditor::CanRemoveOptionPin() const
 
 void FBlueprintEditor::OnChangePinType()
 {
-	if (UEdGraphPin* Pin = GetCurrentlySelectedPin())
+	if (UEdGraphPin* SelectedPin = GetCurrentlySelectedPin())
 	{
-		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
-		if (FocusedGraphEd.IsValid())
+		// Grab the root pin, that is what we want to edit
+		UEdGraphPin* RootPin = SelectedPin;
+		while(RootPin->ParentPin)
 		{
-			UEdGraphPin* SelectedPin = FocusedGraphEd->GetGraphPinForMenu();
-			if (SelectedPin)
-			{
-				const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+			RootPin = RootPin->ParentPin;
+		}
 
-				// If this is the index node of the select node, we need to use the index list of types
-				UK2Node_Select* SelectNode = Cast<UK2Node_Select>(SelectedPin->GetOwningNode());
-				if (SelectNode && SelectNode->GetIndexPin() == SelectedPin)
-				{
-					TSharedRef<SCompoundWidget> PinChange = SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableIndexTypeTree))
-						.TargetPinType(this, &FBlueprintEditor::OnGetPinType, SelectedPin)
-						.OnPinTypeChanged(this, &FBlueprintEditor::OnChangePinTypeFinished, SelectedPin)
-						.Schema(Schema)
-						.bAllowExec(false)
-						.IsEnabled(true)
-						.bAllowArrays(false);
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-					PinTypeChangePopupWindow = FSlateApplication::Get().PushMenu( 
-						GetToolkitHost()->GetParentWidget(), // Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-						PinChange,
-						FSlateApplication::Get().GetCursorPos(), // summon location
-						FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-						);
-				}
-				else
-				{
-					TSharedRef<SCompoundWidget> PinChange = SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
-						.TargetPinType(this, &FBlueprintEditor::OnGetPinType, SelectedPin)
-						.OnPinTypeChanged(this, &FBlueprintEditor::OnChangePinTypeFinished, SelectedPin)
-						.Schema(Schema)
-						.bAllowExec(false)
-						.IsEnabled(true)
-						.bAllowArrays(false);
+		// If this is the index node of the select node, we need to use the index list of types
+		UK2Node_Select* SelectNode = Cast<UK2Node_Select>(SelectedPin->GetOwningNode());
+		if (SelectNode && SelectNode->GetIndexPin() == SelectedPin)
+		{
+			TSharedRef<SCompoundWidget> PinChange = SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableIndexTypeTree))
+				.TargetPinType(this, &FBlueprintEditor::OnGetPinType, RootPin)
+				.OnPinTypeChanged(this, &FBlueprintEditor::OnChangePinTypeFinished, SelectedPin)
+				.Schema(Schema)
+				.bAllowExec(false)
+				.IsEnabled(true)
+				.bAllowArrays(false);
 
-					PinTypeChangePopupWindow = FSlateApplication::Get().PushMenu( 
-						GetToolkitHost()->GetParentWidget(), // Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
-						PinChange,
-						FSlateApplication::Get().GetCursorPos(), // summon location
-						FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-						);
-				}
-			}
+			PinTypeChangePopupWindow = FSlateApplication::Get().PushMenu( 
+				GetToolkitHost()->GetParentWidget(), // Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+				PinChange,
+				FSlateApplication::Get().GetCursorPos(), // summon location
+				FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+				);
+		}
+		else
+		{
+			TSharedRef<SCompoundWidget> PinChange = SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
+				.TargetPinType(this, &FBlueprintEditor::OnGetPinType, RootPin)
+				.OnPinTypeChanged(this, &FBlueprintEditor::OnChangePinTypeFinished, SelectedPin)
+				.Schema(Schema)
+				.bAllowExec(false)
+				.IsEnabled(true)
+				.bAllowArrays(false);
+
+			PinTypeChangePopupWindow = FSlateApplication::Get().PushMenu( 
+				GetToolkitHost()->GetParentWidget(), // Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+				PinChange,
+				FSlateApplication::Get().GetCursorPos(), // summon location
+				FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+				);
 		}
 	}
 }
@@ -3899,12 +3898,9 @@ void FBlueprintEditor::OnChangePinTypeFinished(const FEdGraphPinType& PinType, U
 	if (FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
 		InSelectedPin->PinType = PinType;
-		if (UEdGraphPin* SelectedPin = GetCurrentlySelectedPin())
+		if (UK2Node_Select* SelectNode = Cast<UK2Node_Select>(InSelectedPin->GetOwningNode()))
 		{
-			if (UK2Node_Select* SelectNode = Cast<UK2Node_Select>(SelectedPin->GetOwningNode()))
-			{
-				SelectNode->ChangePinType(SelectedPin);
-			}
+			SelectNode->ChangePinType(InSelectedPin);
 		}
 	}
 

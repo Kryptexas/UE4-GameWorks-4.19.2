@@ -777,12 +777,28 @@ void UK2Node_Select::PinTypeChanged(UEdGraphPin* Pin)
 		UEdGraphPin* ReturnPin = GetReturnValuePin();
 		if (ReturnPin->PinType != Pin->PinType)
 		{
+			// Recombine the sub pins back into the ReturnPin
+			if (ReturnPin->SubPins.Num() > 0)
+			{
+				Schema->RecombinePin(ReturnPin->SubPins[0]);
+			}
 			ReturnPin->PinType = Pin->PinType;
 			Schema->SetPinDefaultValueBasedOnType(ReturnPin);
 		}
 
-		// Set the options
+		// Recombine all option pins back into their root
 		TArray<UEdGraphPin*> OptionPins;
+ 		GetOptionPins(OptionPins);
+		for (UEdGraphPin* OptionPin : OptionPins)
+		{
+			// Recombine the sub pins back into the OptionPin
+			if (OptionPin->ParentPin == nullptr && OptionPin->SubPins.Num() > 0)
+			{
+				Schema->RecombinePin(OptionPin->SubPins[0]);
+			}
+		}
+
+		// Get the options again and set them
 		GetOptionPins(OptionPins);
 		for (auto It = OptionPins.CreateConstIterator(); It; It++)
 		{
