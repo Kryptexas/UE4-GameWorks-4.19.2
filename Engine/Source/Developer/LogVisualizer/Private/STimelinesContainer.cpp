@@ -78,6 +78,7 @@ void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> Affected
 		// Not selecting so remove the node from the selection set
 		SelectedNodes.Remove(AffectedNode);
 		AffectedNode->OnDeselect();
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnObjectSelectionChanged.ExecuteIfBound(AffectedNode);
 	}
 }
 

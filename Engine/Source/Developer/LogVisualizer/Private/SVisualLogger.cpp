@@ -731,7 +731,8 @@ void SVisualLogger::ResetData()
 	if (HelperActor)
 	{
 		HelperActor->OnItemSelectionChanged(FVisualLogDevice::FVisualLogEntryItem());
-		HelperActor->ObjectSelectionChanged(NULL);
+		TArray<TSharedPtr<class STimeline> > TimeLines;
+		HelperActor->ObjectSelectionChanged(TimeLines);
 	}
 
 	bGotHistogramData = false;
@@ -808,14 +809,21 @@ void SVisualLogger::OnFiltersChanged()
 
 void SVisualLogger::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
 {
+	TArray<TSharedPtr<class STimeline> > TimeLines;
+	GetTimelines(TimeLines, true);
+
+	LogsList->ObjectSelectionChanged(TimeLines);
+
 	VisualLoggerCanvasRenderer->ObjectSelectionChanged(TimeLine);
 	AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FLogVisualizer::Get().GetVisualLoggerHelperActor());
 	if (HelperActor)
 	{
-		HelperActor->ObjectSelectionChanged(TimeLine);
+		HelperActor->ObjectSelectionChanged(TimeLines);
 	}
 	MainView->OnObjectSelectionChanged(TimeLine);
 	FLogVisualizer::Get().OnObjectSelectionChanged(TimeLine);
+
+	StatusView->ObjectSelectionChanged(TimeLines);
 }
 
 void SVisualLogger::OnFiltersSearchChanged(const FText& Filter)

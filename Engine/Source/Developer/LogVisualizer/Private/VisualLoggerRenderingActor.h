@@ -13,26 +13,49 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnSelectionChanged, class AActor*);
 UCLASS(config = Engine, NotBlueprintable, Transient)
 class LOGVISUALIZER_API AVisualLoggerRenderingActor : public AActor
 {
+	struct FTimelineDebugShapes
+	{
+		TArray<FDebugRenderSceneProxy::FDebugLine> Lines;
+		TArray<FDebugRenderSceneProxy::FCone> Cones;
+		TArray<FDebugRenderSceneProxy::FDebugBox> Boxes;
+		TArray<FDebugRenderSceneProxy::FSphere> Points;
+		TArray<FDebugRenderSceneProxy::FMesh> Meshes;
+		TArray<FDebugRenderSceneProxy::FText3d> Texts;
+		TArray<FDebugRenderSceneProxy::FWireCylinder> Cylinders;
+		TArray<FDebugRenderSceneProxy::FCapsule> Capsles;
+		TArray<FVector> LogEntriesPath;
+
+		void Reset()
+		{
+			Lines.Reset();
+			Cones.Reset();
+			Boxes.Reset();
+			Points.Reset();
+			Meshes.Reset();
+			Texts.Reset();
+			Cylinders.Reset();
+			Capsles.Reset();
+			LogEntriesPath.Reset();
+		}
+	};
+
 public:
 	GENERATED_UCLASS_BODY()
 
 	void OnItemSelectionChanged(const FVisualLogDevice::FVisualLogEntryItem& EntryItem);
-	void ObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);
+	void ObjectSelectionChanged(TArray<TSharedPtr<class STimeline> >& TimeLines);
+
+	void GetDebugShapes(const FVisualLogDevice::FVisualLogEntryItem& EntryItem, FTimelineDebugShapes& DebugShapes);
 
 private:
 	void AddDebugRendering();
 
 public:
 	UPrimitiveComponent* RenderingComponent;
-	
-	TArray<FDebugRenderSceneProxy::FDebugLine> Lines;
-	TArray<FDebugRenderSceneProxy::FCone> Cones;
-	TArray<FDebugRenderSceneProxy::FDebugBox> Boxes;
-	TArray<FDebugRenderSceneProxy::FSphere> Points;
-	TArray<FDebugRenderSceneProxy::FMesh> Meshes;
-	TArray<FDebugRenderSceneProxy::FText3d> Texts;
-	TArray<FDebugRenderSceneProxy::FWireCylinder> Cylinders;
-	TArray<FDebugRenderSceneProxy::FCapsule> Capsles;
-	TArray<FVector> LogEntriesPath;
 
+	FTimelineDebugShapes PrimaryDebugShapes;
+	FTimelineDebugShapes SecondaryDebugShapes;
+	FTimelineDebugShapes TestDebugShapes;
+
+	TArray<TSharedPtr<class STimeline> > SelectedTimeLines;
 };
