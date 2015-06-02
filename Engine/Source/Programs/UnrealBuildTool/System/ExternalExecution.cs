@@ -509,6 +509,10 @@ namespace UnrealBuildTool
 		 */
 		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
 		{
+			if(ProgressWriter.bWriteMarkup)
+			{
+				Log.WriteLine(TraceEventType.Information, "@progress push 5%");
+			}
 			using (ProgressWriter Progress = new ProgressWriter("Generating code...", false))
 			{
 				// We never want to try to execute the header tool when we're already trying to build it!
@@ -668,6 +672,10 @@ namespace UnrealBuildTool
 				UpdateDirectoryTimestamps(UObjectModules);
 
 				Progress.Write(3, 3);
+			}
+			if(ProgressWriter.bWriteMarkup)
+			{
+				Log.WriteLine(TraceEventType.Information, "@progress pop");
 			}
 			return true;
 		}
