@@ -4670,13 +4670,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 			for (FActorIterator It(CurrentWorld); It; ++It)
 			{
 				AActor* TheActor = *It;
-
-				// Routing the end play of an earlier Actor could have resulted in this Actor already being cleaned up/destroyed
-				if (TheActor->IsPendingKill())
-				{
-					continue;
-				}
-
 				bool bSameLevel = TheActor->GetLevel() == CurrentWorld->PersistentLevel;
 				bool bShouldKeep = KeepAnnotation.Get(TheActor);
 				bool bDormant = false;

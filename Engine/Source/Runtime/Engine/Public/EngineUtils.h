@@ -337,7 +337,7 @@ protected:
 	 */
 	FORCEINLINE static bool IsActorSuitable(AActor* Actor)
 	{
-		return true;
+		return !Actor->IsPendingKill();
 	}
 
 	/**
@@ -540,7 +540,7 @@ protected:
 	 */
 	FORCEINLINE static bool IsActorSuitable(AActor* Actor)
 	{
-		return Actor->IsSelected();
+		return !Actor->IsPendingKill() && Actor->IsSelected();
 	}
 };
 
