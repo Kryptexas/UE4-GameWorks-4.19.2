@@ -43,7 +43,7 @@ class UPhyaCollisionHandler : public UPhysicsCollisionHandler
 	UAudioComponent* AudioComp;
 
 	UPROPERTY()
-	USoundWaveProcedural* ProceduralWave;
+	class USoundWaveProcedural* ProceduralWave;
 
 	TMap< FPhyaBodyInstancePair, TSharedPtr<FPhyaPairInfo> >	PairHash;
 
