@@ -514,7 +514,11 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 					UPrimitiveComponent* PrimitiveThis = CastChecked<UPrimitiveComponent>(this);
 					for (const FHitResult& Hit : CurrentScopedUpdate->BlockingHits)
 					{
-						PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
+						// Collision response may change (due to overlaps or multiple blocking hits), make sure it's still considered blocking.
+						if (PrimitiveThis->GetCollisionResponseToComponent(Hit.GetComponent()) == ECR_Block)
+						{
+							PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
+						}						
 					}
 				}
 			}
