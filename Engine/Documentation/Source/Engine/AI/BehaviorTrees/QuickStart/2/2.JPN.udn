@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:2.Nav Mesh Bounds Volume を作成する
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -8,6 +8,9 @@ Description:ステップ 2Nav Mesh Bounds Volume を作成する
 [OBJECT:Navigation]
 	[PARAM:previous]
 		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/1 "%Engine/AI/BehaviorTrees/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:coloroverride]
+		#000000
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -26,7 +29,10 @@ Description:ステップ 2Nav Mesh Bounds Volume を作成する
 
 アンリアルの NavMesh には、ビヘイビアツリーと相性の良い関数が数多くあります。ゲームによっては必要のない場合もありますが、様々なゲームタイプにおいて役立っています。さらに、 Top Down テンプレートには既に Nav Mesh Bounds Volume が含まれていますが、後日全くゼロの状態からプロジェクトを開始することを選択することもできます。
 
-1. **[Modes] パネル** -> **[Create]** -> **[Volumes]**
+## 手順
+
+1. [REGION:raw]**Modes Panel** %arrow% **Create** %arrow% **Volumes**.[/REGION]
+
 1. **Nav Mesh Bounds Volume** をクリックしてマップへドラッグします。
 
 	![](createNavVol.png)
@@ -45,3 +51,5 @@ Description:ステップ 2Nav Mesh Bounds Volume を作成する
 
 [/EXCERPT:AICreateNav]
 %Steps%
+
+[VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
