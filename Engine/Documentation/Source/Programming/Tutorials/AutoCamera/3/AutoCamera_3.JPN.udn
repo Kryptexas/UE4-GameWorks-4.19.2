@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2486582
+﻿INTSourceChangelist:2573803
 Availability:Public
 Title:3.ワールドにCamera Directorを配置する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -30,7 +30,7 @@ Description:Camera Directorをワールドに配置してカメラを割り当�
 
 	[![](CameraDirectorDetails.png)](CameraDirectorDetails.png)
 
-	ドロップダウンから「None（なし」をクリックして、 **Cube** と既に作成した **CameraActor** に変数を設定します。
+	ドロップダウンから「None（なし）」をクリックして、 **Cube** と既に作成した **CameraActor** に変数を設定します。
 
 	[![](CameraDirectorDetails2.png)](CameraDirectorDetails2.png)
 
