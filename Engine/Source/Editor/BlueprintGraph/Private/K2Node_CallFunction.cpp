@@ -506,9 +506,9 @@ void UK2Node_CallFunction::GetPinHoverText(const UEdGraphPin& Pin, FString& Hove
 {
 	if (!bPinTooltipsValid)
 	{
-		for (auto& Pin : Pins)
+		for (auto& P : Pins)
 		{
-			GeneratePinTooltip(*Pin);
+			GeneratePinTooltip(*P);
 		}
 
 		bPinTooltipsValid = true;

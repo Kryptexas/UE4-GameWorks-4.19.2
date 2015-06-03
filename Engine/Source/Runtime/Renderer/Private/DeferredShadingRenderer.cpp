@@ -873,9 +873,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			bOnce = true;
 			GPrevPerBoneMotionBlur.SetVelocityPassCallback(			
 				// this is a strange intermodule bridge so that the skeletal mesh vertex factory knows when to add bone data in a parallel thread
-				[](FRHICommandList& RHICmdList)->bool
+				[](FRHICommandList& InRHICmdList)->bool
 			{
-				return FSceneRenderTargets::Get(RHICmdList).IsVelocityPass();
+				return FSceneRenderTargets::Get(InRHICmdList).IsVelocityPass();
 			});
 		}
 	}

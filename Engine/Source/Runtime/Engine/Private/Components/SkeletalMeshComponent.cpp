@@ -2284,15 +2284,15 @@ bool USkeletalMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 		const int32 MaxBodies = PhysicsAsset->BodySetup.Num();
 		for (int32 Idx = 0; Idx < MaxBodies; Idx++)
 		{
-			UBodySetup* BodySetup = PhysicsAsset->BodySetup[Idx];
-			int32 BoneIndex = BodySetup ? GetBoneIndex(BodySetup->BoneName) : INDEX_NONE;
+			UBodySetup* const BS = PhysicsAsset->BodySetup[Idx];
+			int32 const BoneIndex = BS ? GetBoneIndex(BS->BoneName) : INDEX_NONE;
 
 			if (BoneIndex != INDEX_NONE)
 			{
 				FTransform WorldBoneTransform = GetBoneTransform(BoneIndex, ComponentToWorld);
 				if (FMath::Abs(WorldBoneTransform.GetDeterminant()) > (float)KINDA_SMALL_NUMBER)
 				{
-					GeomExport.ExportRigidBodySetup(*BodySetup, WorldBoneTransform);
+					GeomExport.ExportRigidBodySetup(*BS, WorldBoneTransform);
 				}
 			}
 		}
