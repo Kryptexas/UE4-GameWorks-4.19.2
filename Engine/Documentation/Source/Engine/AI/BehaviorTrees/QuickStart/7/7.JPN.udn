@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:7.AI Controller ブループリント:ブラックボードの初期値
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -26,7 +26,9 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
 [/REGION]
 
-ここで **Blackboard** 上の "HomeLocation" キーを設定する必要があります。少々入り組んだステップですが、度を超えて難しいわけではありません。
+ここで **Blackboard** 上の "HomeLocation" キーを設定する必要があります。少々入り組んだステップとなります。
+
+## 手順
 
 1. **Get Blackboard** ノードと **Get Controlled Pawn** ノードが必要です。
 
@@ -54,10 +56,9 @@ Description:ステップ 7AI Controller ブループリント:ブラックボー
 
 	![](promoteText.png)
 
-	1. **[My Blueprint]** パネルで変数に名前をつけます。「 **HomeLocation** ]という名前を付けます。
+1. **[My Blueprint]** パネルで変数に名前をつけます。「 **HomeLocation** ]という名前を付けます。
 
-	* 変数に名前をつける前にどこかをクリックしてしまった場合は、コンテクスト メニューを **右クリック** して **[My Blueprint]** パネルで名前を変更することができます。
-
+	* 変数に名前をつける前にどこかをクリックしてしまった場合は、コンテキスト メニューを **右クリック** して **[My Blueprint]** パネルで名前を変更することができます。
 
 	![](hlconnected.png)
 
