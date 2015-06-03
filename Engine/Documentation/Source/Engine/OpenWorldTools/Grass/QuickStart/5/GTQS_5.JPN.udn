@@ -1,0 +1,50 @@
+﻿INTSourceChangelist:2573008
+Availability:Docs
+Title:5. 応用編
+Crumbs:
+Description:Grass ツールの中級操作と応用編
+Navigation:topic
+SkillLevel:Intermediate
+Version:4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Grass ツールのパワフルな機能が分かったところで、以下にリスト表示したツールと一緒に Grass ツールについて学んだことを応用しながら、 
+以下のような画像を作成してみましょう。
+
+![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6\T_On_Your_Own.png)
+
+* 草、花、低木で密に覆われたランドスケープの作成に **[Procedural Foliage ツール](Engine\OpenWorldTools\ProceduralFoliage\QuickStart)** を使用します。
+
+* **[Landscape Sculpt](Engine/Landscape/Editing/SculptMode)** ツールで丘、山、湖などをいくつか追加して、ランドスケープテレインのルックアンドフィールを定義します。
+
+* ランドスケープテレイン上でペイント可能な複数のテクスチャを設定した **[Landscape Material](Engine/Landscape/Materials)** を作成して、ランドスケープのサーフェスに視覚表現や詳細を強調します。
+
+* 早朝や夕方に差し込む光に似たレベルライティングを作成するために **[Directional Light](Engine/Rendering/LightingAndShadows/LightTypes/Directional)** を調整します。
+
+* ダイナミックシャドウと **[Ray Traced Distance Field Soft Shadows](Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing)** を利用する完全なダイナミックベースのライティングソリューションを使用するためにレベルライティングを設定します。 
+
+* 思い通りの外観を作成するために、プロシージャルフォーリッジで配置されたフォーリッジメッシュの配置、回転、スケーリングを削除したり微調整するには **[Foliage System](Engine/Foliage)** ツールを使用します。
+
+* レベルのビデオの出力に、 **[Camera](Gameplay/HowTo/UsingCameras)** と一緒に **[Matinee](Engine/Matinee)** を使用してご自身の作品を他のユーザーと共有してください。
+
+
+
+
+
+%Steps%
