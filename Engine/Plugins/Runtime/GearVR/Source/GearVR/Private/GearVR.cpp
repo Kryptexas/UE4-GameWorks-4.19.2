@@ -7,7 +7,9 @@
 #include "Android/AndroidJNI.h"
 #include "RHIStaticStates.h"
 
+#if GEARVR_SUPPORTED_PLATFORMS
 #include "VrApi_Helpers.h"
+#endif
 
 #define DEFAULT_PREDICTION_IN_SECONDS 0.035
 
@@ -16,7 +18,9 @@
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (push,8)
 #endif
+#if GEARVR_SUPPORTED_PLATFORMS
 #include "../Src/Kernel/OVR_Log.h"
+#endif
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
 #pragma pack (pop)
 #endif

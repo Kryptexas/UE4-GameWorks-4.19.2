@@ -23,6 +23,18 @@
 #if !defined(PLATFORM_ANDROID)
 	#define PLATFORM_ANDROID 0
 #endif
+#if !defined(PLATFORM_ANDROID_ARM)
+	#define PLATFORM_ANDROID_ARM 0
+#endif
+#if !defined(PLATFORM_ANDROID_ARM64)
+	#define PLATFORM_ANDROID_ARM64 0
+#endif
+#if !defined(PLATFORM_ANDROID_X86)
+	#define PLATFORM_ANDROID_X86 0
+#endif
+#if !defined(PLATFORM_ANDROID_X64)
+	#define PLATFORM_ANDROID_X64 0
+#endif
 #if !defined(PLATFORM_ANDROIDGL4)
 	#define PLATFORM_ANDROIDGL4 0
 #endif

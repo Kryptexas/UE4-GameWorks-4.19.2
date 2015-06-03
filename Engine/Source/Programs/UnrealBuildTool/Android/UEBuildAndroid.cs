@@ -372,6 +372,14 @@ namespace UnrealBuildTool
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_ANDROID=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID=1");
+			switch (GetActiveArchitecture())
+			{
+				case "-armv7":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_ARM=1");		break;
+				case "-arm64":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_ARM64=1");	break;
+				case "-x86":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_X86=1");		break;
+				case "-x64":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_X64=1");		break;
+				default:		InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_ARM=1");		break;
+			}
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
