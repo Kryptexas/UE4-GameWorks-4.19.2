@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2477330
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:ビヘイビアツリー
 Crumbs:%ROOT%, Engine, Gameplay/AI
@@ -42,6 +42,18 @@ Description:ビヘイビアツリーに関連する全ドキュメントへの�
 	[/PARAM]
 [/OBJECT]
 [/VAR]
+
+影に潜んでいる卑しいゴキブリから、撃つタイミングやヘルス値と弾薬を探す時を分かっているシューティングゲームの Bot に至るまで、**Behavior Trees** はアンリアル エンジン 4 に AI を作り出すパワフルなツールです。 
+
+以下の 2 つのアセットタイプ **Blackboard** と **Behavior Tree** の組み合わせになります。
+
+| アセット タイプ | 説明 |
+| --- | --- |
+| **Blackboard** | **Blackboard** は AI のメモリです。Behavior Tree が使うキー値を格納します。 |
+| **Behavior Tree** | **Behavior Tree** は AI のプロセッサーです。判断を下し、その判断に基づいて行動します。 |
+
+以下は、Behavior Tree の使用方法に関するドキュメントのリンク先です。[クイックスタート ガイド](Engine/AI/BehaviorTrees/QuickStart) で、AI にプレイヤーを追いかけさせる方法が学習できます。[ユーザーガイド](Engine/AI/BehaviorTrees/UserGuide) は、ビヘイビアツリー使用時に最もよく使うタスクのインストラクションになります。[ノード リファレンス](Engine/AI/BehaviorTrees/NodeReference) は、ビヘイビアツリー エディタで使用できる全ノードの一覧です。機能の内容、含まれるプロパティが分かります。[アンリアル エンジン 4 のビヘイビアツリーの特徴](Engine/AI/BehaviorTrees/HowUE4BehaviorTreesDiffer) は、他のビヘイビアツリーの動作に慣れているユーザー向けのドキュメントです。
+
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/tech_icon.png)(convert:false)
