@@ -85,7 +85,7 @@ If you would like to have a more in-depth look at how the Landscape terrain work
 	![](T_LLW_Setup.png)
 
 	[region:note]
-	When using the Grass Output the future make sure that the Grass output Material Expression is the last item you add to your Material Graph.
+	When using the Grass Output future make sure that the Grass output Material Expression is the last item you add to your Material Graph.
 	If you try and compile or save your Material without anything going into the Grass output node the compile will fail with the following error message in the **Stats** window.
 
 	![](T_Grass_Material_Warning.png)
