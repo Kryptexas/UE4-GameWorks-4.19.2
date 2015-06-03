@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title: 3. Tweaking Foliage Type Properties
 Crumbs:
 Description:In this step we tweak the settings of the Procedural Foliage Actors.
@@ -29,7 +29,7 @@ We will continue to work with the **PFT_00** level that was used in the last ste
 
 1. Open up the **Tree_00** Foliage Type.
 
-1. Expand the **Placement** section and make sure that both **Align to Normal** and **Random Yaw** are enabled and set **Align Max Angle** to **3.0** to ensure that Static Meshes do not turn sideways when spawned.
+1. Expand the **Placement** section and make sure that both **Align to Normal** and **Random Yaw** are enabled.
 
 	![](T_Placement_Options.png)
 
