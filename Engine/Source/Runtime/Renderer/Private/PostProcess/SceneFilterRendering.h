@@ -7,8 +7,6 @@
 #ifndef _INC_SCENEFILTERRENDERING
 #define _INC_SCENEFILTERRENDERING
 
-#define MAX_FILTER_SAMPLES	32
-
 #include "SceneRenderTargets.h"
 
 /**
