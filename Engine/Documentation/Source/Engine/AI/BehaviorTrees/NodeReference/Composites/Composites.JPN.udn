@@ -1,14 +1,12 @@
-﻿INTSourceChangelist:2546943
-Title:Behavior Tree ノードのリファレンス:コンポジット ノード
+﻿INTSourceChangelist:2572470
+Title:Behavior Tree ノードのリファレンス:Composites
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:ビヘイビアツリーのコンポジット ノードの説明です。
+Description:Behavior Tree Composite ノードの説明です。
 Availability:Public
 
 [TOC(start:2 end:2)]
 
-## 概要
-
-**コンポジット ノード** は、ブランチを実行するブランチのルートと基本ルールを定義します。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) を適用させて、ブランチへのエントリを修正したり、実行中に取り消すことができます。また、それらにアタッチされている [**Services**](Engine/AI/BehaviorTrees/NodeReference/Services) はコンポジットの子供の実行中のみアクティブになります。
+**Composite ノード** は、ブランチを実行するブランチのルートと基本ルールを定義します。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) を適用させて、ブランチへのエントリを修正したり、実行中に取り消すことができます。また、それらにアタッチされている [**Services**](Engine/AI/BehaviorTrees/NodeReference/Services) はコンポジットの子供の実行中のみアクティブになります。
 
 ## Selector
 
