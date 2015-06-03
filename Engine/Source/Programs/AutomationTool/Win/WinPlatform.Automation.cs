@@ -236,7 +236,7 @@ public abstract class BaseWinPlatform : Platform
 
 	public override bool ShouldStageCommandLine(ProjectParams Params, DeploymentContext SC)
 	{
-		return !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
+		return false; // !String.IsNullOrEmpty(Params.StageCommandline) || !String.IsNullOrEmpty(Params.RunCommandline) || (!Params.IsCodeBasedProject && Params.NoBootstrapExe);
 	}
 
 	public override List<string> GetDebugFileExtentions()
