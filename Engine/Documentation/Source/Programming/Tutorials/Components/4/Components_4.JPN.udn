@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573829
 Availability:Public
 Title:4.ポーンとコンポーネントの併用
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -33,8 +33,8 @@ Description:ポーンの機能、入力設定、コンポーネントの併用
 	**Pawn Movement Component** の作成と、このコンポーネントと **Pawn** の関連付けはシンプルな作業です。**ACollidingPawn::ACollidingPawn** の下に以下のコードを追加します：
 
 		// Create an instance of our movement component, and tell it to update the root.（Movementコンポーネントのインスタンスを作成してこれでルートの更新を伝えます）
-		MovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
-		MovementComponent->UpdatedComponent = RootComponent;
+		OurMovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
+		OurMovementComponent->UpdatedComponent = RootComponent;
 
 	[REGION:note]これまでの **コンポーネント** と違って、この **コンポーネント** を独自の **Component** 階層に親子付けする必要はありません。理由は、その他の **コンポーネント** は本質的に物理ロケーションを必要とするあらゆる種類の **Scene Components** だからです。しかし **Movement Controllers** は **Scene Components** ではないため物理オブジェクトを表現しません。そのためコントローラーには物理位置に存在したり、別の **コンポーネント** に親子付けするという概念があてはまりません。[/REGION]
 
