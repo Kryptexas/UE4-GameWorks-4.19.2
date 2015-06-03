@@ -10,6 +10,8 @@ class ULandscapeSplineSegment;
 class USplineMeshComponent;
 class UControlPointMeshComponent;
 
+// structs for ForeignWorldSplineDataMap
+// these are editor-only, but we don't have the concept of an editor-only USTRUCT
 USTRUCT()
 struct FForeignControlPointData
 {
@@ -22,8 +24,6 @@ struct FForeignControlPointData
 	UPROPERTY()
 	UControlPointMeshComponent* MeshComponent;
 #endif
-
-	friend FArchive& operator<<(FArchive& Ar, FForeignControlPointData& Value);
 };
 
 USTRUCT()
@@ -38,8 +38,6 @@ struct FForeignSplineSegmentData
 	UPROPERTY()
 	TArray<USplineMeshComponent*> MeshComponents;
 #endif
-
-	friend FArchive& operator<<(FArchive& Ar, FForeignSplineSegmentData& Value);
 };
 
 USTRUCT()
@@ -48,14 +46,21 @@ struct FForeignWorldSplineData
 	GENERATED_USTRUCT_BODY()
 
 #if WITH_EDITORONLY_DATA
+	UPROPERTY()
 	TMap<TLazyObjectPtr<ULandscapeSplineControlPoint>, FForeignControlPointData> ForeignControlPointDataMap;
+
+	UPROPERTY()
 	TMap<TLazyObjectPtr<ULandscapeSplineSegment>, FForeignSplineSegmentData> ForeignSplineSegmentDataMap;
 #endif
 
-	friend FArchive& operator<<(FArchive& Ar, FForeignWorldSplineData& Value);
-
+#if WITH_EDITOR
 	bool IsEmpty();
+#endif
 };
+
+//////////////////////////////////////////////////////////////////////////
+// ULandscapeSplinesComponent
+//////////////////////////////////////////////////////////////////////////
 
 UCLASS(MinimalAPI)
 class ULandscapeSplinesComponent : public UPrimitiveComponent
@@ -93,6 +98,7 @@ protected:
 
 #if WITH_EDITORONLY_DATA
 	// Serialized
+	UPROPERTY(TextExportTransient)
 	TMap<TAssetPtr<UWorld>, FForeignWorldSplineData> ForeignWorldSplineDataMap;
 
 	// Transient - rebuilt on load
@@ -102,7 +108,7 @@ protected:
 
 	// References to components owned by landscape splines in other levels
 	// for cooked build (uncooked keeps references via ForeignWorldSplineDataMap)
-	UPROPERTY()
+	UPROPERTY(TextExportTransient)
 	TArray<UMeshComponent*> CookedForeignMeshComponents;
 
 public:

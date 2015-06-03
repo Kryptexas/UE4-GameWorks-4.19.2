@@ -23,6 +23,7 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #endif
+#include "LandscapeVersion.h"
 
 IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy, HHitProxy);
 IMPLEMENT_HIT_PROXY(HLandscapeSplineProxy_Segment, HLandscapeSplineProxy);
@@ -451,38 +452,27 @@ bool ULandscapeSplinesComponent::ModifySplines(bool bAlwaysMarkDirty /*= true*/)
 	return bSavedToTransactionBuffer;
 }
 
-FArchive& operator<<(FArchive& Ar, FForeignControlPointData& Value)
-{
 #if WITH_EDITORONLY_DATA
-	if (!Ar.IsFilterEditorOnly())
-	{
-		Ar << Value.ModificationKey << Value.MeshComponent;
-	}
-#endif
-	return Ar;
-}
-
+// legacy ForeignWorldSplineDataMap serialization
 FArchive& operator<<(FArchive& Ar, FForeignSplineSegmentData& Value)
 {
-#if WITH_EDITORONLY_DATA
 	if (!Ar.IsFilterEditorOnly())
 	{
 		Ar << Value.ModificationKey << Value.MeshComponents;
 	}
-#endif
 	return Ar;
 }
 
 FArchive& operator<<(FArchive& Ar, FForeignWorldSplineData& Value)
 {
-#if WITH_EDITORONLY_DATA
 	if (!Ar.IsFilterEditorOnly())
 	{
+		// note: ForeignControlPointDataMap is missing in legacy serialization
 		Ar << Value.ForeignSplineSegmentDataMap;
 	}
-#endif
 	return Ar;
 }
+#endif
 
 void ULandscapeSplinesComponent::Serialize(FArchive& Ar)
 {
@@ -517,7 +507,12 @@ void ULandscapeSplinesComponent::Serialize(FArchive& Ar)
 	if (Ar.UE4Ver() >= VER_UE4_LANDSCAPE_SPLINE_CROSS_LEVEL_MESHES &&
 		!Ar.IsFilterEditorOnly())
 	{
-		Ar << ForeignWorldSplineDataMap;
+		Ar.UsingCustomVersion(FLandscapeCustomVersion::GUID);
+
+		if (Ar.CustomVer(FLandscapeCustomVersion::GUID) < FLandscapeCustomVersion::NewSplineCrossLevelMeshSerialization)
+		{
+			Ar << ForeignWorldSplineDataMap;
+		}
 	}
 
 	if (!Ar.IsPersistent())
