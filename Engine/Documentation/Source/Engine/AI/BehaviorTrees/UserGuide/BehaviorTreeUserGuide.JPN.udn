@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2493175
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:ビヘイビアツリー ユーザーガイド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:ビヘイビアツリー ユーザーガイド
 
 [TOC(start:2 end:2)]
-
-## 概要
 
 このページでは、ビヘイビアツリーを使った作業の最も一般的なワークフローについて説明していきます。
 
@@ -42,19 +40,19 @@ Description:ビヘイビアツリー ユーザーガイド
 ### Task (ブループリント) の作成
 
 1. (Behavior Tree Edit モードの間に) ビヘイビアツリー エディタの New Task ![](Engine/AI/BehaviorTrees/QuickStart/12/newTask_button.png) ボタンをクリックすることができます。
-1. 継承する Behavior Tree Task クラスを選択します。 `BTTask_BlueprintBase` が「ブランク」のデフォルトのクラスです。
+1. 継承する Behavior Tree Task クラスを選択します。 `BTTask_BlueprintBase` がデフォルトの「ブランク」クラスです。
 1. 新規の Task ブループリントがビヘイビアツリー アセットと同じフォルダの中に作成されます。
 
 ### Decorator (ブループリント) の作成
 
 1. (Behavior Tree Edit モードの間に) ビヘイビアツリー エディタの New Decorator ![](Engine/AI/BehaviorTrees/QuickStart/13/newDecorator_button.png) ボタンをクリックすることができます。
-1. 継承する Behavior Tree Decorator クラスを選択します。 `BTDecorator_BlueprintBase` が「ブランク」のデフォルトのクラスです。
+1. 継承する Behavior Tree Decorator クラスを選択します。 `BTDecorator_BlueprintBase` がデフォルトの「ブランク」クラスです。
 1. 新規の Decorator ブループリントがビヘイビアツリー アセットと同じフォルダの中に作成されます。
 
 ### Service (ブループリント) の作成
 
 1. (Behavior Tree Edit モードの間に) ビヘイビアツリー エディタの New Service ![](Engine/AI/BehaviorTrees/QuickStart/11/newService_button.png) ボタンをクリックすることができます。
-1. 継承する Behavior Tree Service クラスを選択します。 `BTService_BlueprintBase` が「ブランク」のデフォルトのクラスです。
+1. 継承する Behavior Tree Service クラスを選択します。 `BTService_BlueprintBase` がデフォルトの「ブランク」クラスです。
 1. 新規の Service ブループリントがビヘイビアツリー アセットと同じフォルダの中に作成されます。
 
 ##ブラックボードの編集
@@ -78,7 +76,7 @@ Description:ビヘイビアツリー ユーザーガイド
 1. 取り除きたいキーを選択します。
 1. **[Delete]** キーを押します。
 
-###キーの名前変更
+### キーの名前変更
 
 1. 名前を変更したいキーを選択します。
 1. **右クリック** して、[Rename] を選択します (または F2 を押下)。
