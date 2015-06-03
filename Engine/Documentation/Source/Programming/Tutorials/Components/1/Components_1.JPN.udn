@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573824
 Availability:Public
 Title:1.コンポーネントの作成と親子付け
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -56,9 +56,9 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 				SphereVisual->SetWorldScale3D(FVector(0.8f));
 			}
 
-	[REGION:note]**Static Mesh** アセットのアセット位置をコードで確認することができますが、パスコードのハードコーディングは一般的にアセットのロードに最適な方法とを言えません。クラスでコンポーネントを使用するには、コードに **コンポーネント** 自体を作成して、 **アンリアルエディタ** でアセットを選択することが一般的に望ましいとされます。一方でコードで直接アセットをロードすることも可能で、プログラマーが行うデバッグ作業や新規機能の作成を高速に処理できます。[/REGION]
+	[REGION:note]**Static Mesh** アセットのアセット位置をコードで確認することができますが、パスコードのハードコーディングは一般的にアセットのロードに最適な方法とは言えません。クラスでコンポーネントを使用するには、コードに **コンポーネント** 自体を作成して、 **アンリアルエディタ** でアセットを選択することが一般的に好まれます。一方でコードで直接アセットをロードすることも可能で、プログラマーが行うデバッグ作業や新規機能の作成を高速に処理できます。[/REGION]
 
-1. 階層に非アクティブな **パーティクルシステムコンポーネント** を親子付けが出来るようになりました。このコンポーネントはコードで操作可能で、後にオン/オフを切り替える入力を設定出来ます。**パーティクルシステムコンポーネント** は **スタティックメッシュコンポーネント** に直接親子付けできることに注目してください。プレイ中の表示をより良くするために、メッシュの下部中央から少しだけオフセットしいます。
+1. 階層に非アクティブな **パーティクルシステムコンポーネント** を親子付けが出来るようになりました。このコンポーネントはコードで操作可能で、後にオン/オフを切り替える入力を設定出来ます。**パーティクルシステムコンポーネント** は **スタティックメッシュコンポーネント** に直接親子付けできることに注目してください。プレイ中の表示をより見やすくするために、メッシュの下部中央から少しだけオフセットしています。
 			// Create a particle system that we can activate or deactivate（アクティベートにしたり非アクティベートが可能なパーティクルシステムを作成）
 			OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
 			OurParticleSystem->AttachTo(SphereVisual);
@@ -79,7 +79,7 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 			SpringArm->bEnableCameraLag = true;
 			SpringArm->CameraLagSpeed = 3.0f;
 
-1. 実際の **カメラコンポーネント** の作成は簡単で、特別な設定は必要ありません。**スプリングアーム** にはベース以外に親子付けが出来る特別な内蔵 **ソケット** があります。
+1. 実際の **カメラコンポーネント** は作成が簡単で、特別な設定は必要ありません。**スプリングアーム** にはベース以外に親子付けが出来る特別な内蔵 **ソケット** があります。
 			// Create a camera and attach to our spring arm（カメラを作成してスプリングアームに親子付け）
 			UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
 			Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
@@ -90,7 +90,7 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 
 ----
 
-新規の **ポーン** に便利な **コンポーネント** のコレクションを親子付けしました。またユーザーによるコントロール設定の準備も整いました。**アンリアルエディタ** に戻ります。
+新規の **ポーン** に便利な **コンポーネント** のコレクションを親子付けしました。またユーザーによるコントロール設定の準備も整いました。ここで **アンリアルエディタ** に戻ります。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -134,7 +134,6 @@ Description:さまざまなコンポーネントを作成してカスタマイ�
 
 			#include "HowTo_Components.h"
 			[INCLUDE:Included]
-			#include "CollidingPawnMovementComponent.h"
 
 			// Sets default values（デフォルト値を設定）
 			ACollidingPawn::ACollidingPawn()
