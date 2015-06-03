@@ -18,4 +18,4 @@ class FFriendInviteList
  *
  * @return the newly created FFriendInviteList implementation.
  */
-FACTORY(TSharedRef< FFriendInviteList >, FFriendInviteList);
+FACTORY(TSharedRef< FFriendInviteList >, FFriendInviteList, const TSharedRef<class FFriendsAndChatManager> & FriendAndChatManager);

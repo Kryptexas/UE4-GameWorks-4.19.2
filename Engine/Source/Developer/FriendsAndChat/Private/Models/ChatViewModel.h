@@ -70,4 +70,5 @@ public:
  * @return the newly created ChatViewModel implementation.
  */
 FACTORY(TSharedRef< FChatViewModel >, FChatViewModel,
-	const TSharedRef<class FFriendsMessageManager>& MessageManager);
+	const TSharedRef<class FFriendsMessageManager>& MessageManager,
+	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager);

@@ -135,7 +135,7 @@ bool FFriendItem::IsGameJoinable() const
 	{
 		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
 		const bool bIsOnline = FriendPresence.Status.State != EOnlinePresenceState::Offline;
-		bool bIsJoinable = FriendPresence.bIsJoinable && !FFriendsAndChatManager::Get()->IsFriendInSameSession(AsShared());
+		bool bIsJoinable = FriendPresence.bIsJoinable && !FriendsAndChatManager.Pin()->IsFriendInSameSession(AsShared());
 
 		return bIsOnline && bIsJoinable;
 	}
@@ -145,7 +145,7 @@ bool FFriendItem::IsGameJoinable() const
 bool FFriendItem::CanInvite() const
 {
 	FString FriendsClientID = GetClientId();
-	return FriendsClientID == FFriendsAndChatManager::Get()->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
+	return FriendsClientID == FriendsAndChatManager.Pin()->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
 }
 
 TSharedPtr<const FUniqueNetId> FFriendItem::GetGameSessionId() const

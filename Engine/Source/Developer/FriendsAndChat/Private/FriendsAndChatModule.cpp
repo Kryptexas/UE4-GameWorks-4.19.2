@@ -12,9 +12,30 @@ public:
 
 	// IFriendsAndChatModule interface
 
-	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager() override
+	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager(FName MCPInstanceName) override
 	{
-		return FFriendsAndChatManager::Get();
+		if(MCPInstanceName == TEXT(""))
+		{
+			if (!DefaultManager.IsValid())
+			{
+				DefaultManager = MakeShareable(new FFriendsAndChatManager());
+				DefaultManager->Initialize();
+			}
+			return DefaultManager.ToSharedRef();
+		}
+		else
+		{
+			TSharedRef<FFriendsAndChatManager>* FoundManager = ManagerMap.Find(MCPInstanceName);
+			if(FoundManager != nullptr)
+			{
+				return *FoundManager;
+			}
+		}
+
+		TSharedRef<FFriendsAndChatManager> NewManager = MakeShareable(new FFriendsAndChatManager());
+		NewManager->Initialize();
+		ManagerMap.Add(MCPInstanceName, NewManager);
+		return NewManager;
 	}
 
 public:
@@ -23,16 +44,21 @@ public:
 
 	virtual void StartupModule() override
 	{
- 		FFriendsAndChatManager::Get();
 	}
 
 	virtual void ShutdownModule() override
 	{
-		FFriendsAndChatManager::Shutdown();
+		if(DefaultManager.IsValid())
+		{
+			DefaultManager.Reset();
+		}
+		ManagerMap.Reset();
 	}
 
 private:
 
+	TSharedPtr<FFriendsAndChatManager> DefaultManager;
+	TMap<FName, TSharedRef<FFriendsAndChatManager>> ManagerMap;
 };
 
 

@@ -19,4 +19,5 @@ class FDefaultFriendList
  * @return the newly created FDefaultFriendList implementation.
  */
 FACTORY(TSharedRef< FDefaultFriendList >, FDefaultFriendList,
-	EFriendsDisplayLists::Type ListType);
+	EFriendsDisplayLists::Type ListType,
+	const TSharedRef<class FFriendsAndChatManager> & FriendAndChatManager);

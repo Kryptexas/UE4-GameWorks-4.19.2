@@ -38,7 +38,6 @@ namespace FriendsAndChatManagerDefs
 
 FFriendsAndChatManager::FFriendsAndChatManager( )
 	: OnlineSub(nullptr)
-	, MessageManager(FFriendsMessageManagerFactory::Create())
 	, bJoinedGlobalChat(false)
 	, ChatWindowMode(EChatWindowMode::MultiWindow)
 	, ManagerState ( EFriendsAndManagerState::OffLine )
@@ -57,6 +56,10 @@ FFriendsAndChatManager::~FFriendsAndChatManager( )
 	Analytics.FlushChatStats();
 }
 
+void FFriendsAndChatManager::Initialize()
+{
+	MessageManager = FFriendsMessageManagerFactory::Create(SharedThis(this));
+}
 
 /* IFriendsAndChatManager interface
  *****************************************************************************/
@@ -87,7 +90,7 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 		
 		// ToDo - Inject these. Also, create FriendsListViewModelFactory here: Nick Davies 30th March 2015
 		ClanRepository = FClanRepositoryFactory::Create();
-		FriendsListFactory = FFriendListFactoryFactory::Create();
+		FriendsListFactory = FFriendListFactoryFactory::Create(SharedThis(this));
 
 		if(OnlineIdentity->GetUniquePlayerId(LocalControllerIndex).IsValid())
 		{
@@ -480,7 +483,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateFriendsListWidget( const F
 
 		if (!FriendsListFactory.IsValid())
 		{
-			FriendsListFactory = FFriendListFactoryFactory::Create();
+			FriendsListFactory = FFriendListFactoryFactory::Create(SharedThis(this));
 		}
 		check(FriendsListFactory.IsValid());
 
@@ -518,7 +521,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 	ChatWindowMode = EChatWindowMode::Widget;
 	if(!ChatViewModel.IsValid())
 	{
-		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef(), SharedThis(this));
 	}
 
 	// todo - NDavies = find a better way to do this
@@ -539,9 +542,9 @@ TSharedPtr<IChatViewModel> FFriendsAndChatManager::GetChatViewModel()
 {
 	if(!ChatViewModel.IsValid())
 	{
-		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef(), SharedThis(this));
 	}
-	return FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef());
+	return FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef(), SharedThis(this));
 }
 
 FVector2D FFriendsAndChatManager::GetWindowSpawnPosition() const
@@ -866,10 +869,10 @@ void FFriendsAndChatManager::SetChatWindowContents(TSharedPtr<SWindow> Window, T
 	TSharedPtr<SWindowTitleBar> TitleBar;
 	if(!ChatViewModel.IsValid() || ChatWindowMode == EChatWindowMode::MultiWindow)
 	{
-		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef());
+		ChatViewModel = FChatViewModelFactory::Create(MessageManager.ToSharedRef(), SharedThis(this));
 	}
 
-	TSharedRef<FChatDisplayOptionsViewModel> DisplayViewModel = FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef());
+	TSharedRef<FChatDisplayOptionsViewModel> DisplayViewModel = FChatDisplayOptionsViewModelFactory::Create(ChatViewModel.ToSharedRef(), SharedThis(this));
 	DisplayViewModel->SetInGameUI(false);
 	DisplayViewModel->UpdateInPartyUI();
 	DisplayViewModel->SetCaptureFocus(false);
@@ -1571,7 +1574,7 @@ void FFriendsAndChatManager::OnQueryUserInfoComplete( int32 LocalPlayer, bool bW
 				}
 				else
 				{
-					TSharedPtr< FFriendItem > FriendItem = MakeShareable(new FFriendItem(OnlineFriend, OnlineUser, EFriendsDisplayLists::DefaultDisplay));
+					TSharedPtr< FFriendItem > FriendItem = MakeShareable(new FFriendItem(OnlineFriend, OnlineUser, EFriendsDisplayLists::DefaultDisplay, SharedThis(this)));
 					PendingFriendsList.Add(FriendItem);
 				}
 			}
@@ -1763,7 +1766,7 @@ TSharedPtr<FFriendViewModel> FFriendsAndChatManager::GetFriendViewModel(const FU
 	TSharedPtr<IFriendItem> FoundFriend = FindUser(InUserID);
 	if(FoundFriend.IsValid())
 	{
-		return FFriendViewModelFactory::Create(FoundFriend.ToSharedRef());
+		return FFriendViewModelFactory::Create(FoundFriend.ToSharedRef(), SharedThis(this));
 	}
 	return nullptr;
 }
@@ -2120,7 +2123,7 @@ void FFriendsAndChatManager::ProcessReceivedGameInvites()
 				if (UserInfo.IsValid() && OnlineFriend.IsValid())
 				{
 					TSharedPtr<FFriendGameInviteItem> GameInvite = MakeShareable(
-						new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult, Invite.ClientId, OnlineFriend.ToSharedRef())
+						new FFriendGameInviteItem(UserInfo.ToSharedRef(), Invite.InviteResult, Invite.ClientId, OnlineFriend.ToSharedRef(), SharedThis(this))
 						);
 
 					PendingGameInvitesList.Add(Invite.FromId->ToString(), GameInvite);
@@ -2469,26 +2472,5 @@ void FFriendsAndChatAnalytics::AddPresenceAttributes(const FUniqueNetId& UserId,
 		}
 	}
 }
-
-/* FFriendsAndChatManager system singletons
-*****************************************************************************/
-
-TSharedPtr< FFriendsAndChatManager > FFriendsAndChatManager::SingletonInstance = nullptr;
-
-TSharedRef< FFriendsAndChatManager > FFriendsAndChatManager::Get()
-{
-	if ( !SingletonInstance.IsValid() )
-	{
-		SingletonInstance = MakeShareable( new FFriendsAndChatManager() );
-	}
-	return SingletonInstance.ToSharedRef();
-}
-
-
-void FFriendsAndChatManager::Shutdown()
-{
-	SingletonInstance.Reset();
-}
-
 
 #undef LOCTEXT_NAMESPACE

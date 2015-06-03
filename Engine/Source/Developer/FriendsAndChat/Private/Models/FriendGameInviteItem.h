@@ -23,20 +23,17 @@ public:
 		const TSharedRef<FOnlineUser>& InOnlineUser,
 		const TSharedRef<FOnlineSessionSearchResult>& InSessionResult,
 		const FString& InClientId,
-		const TSharedRef<FOnlineFriend>& InOnlineFriend)
-		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
+		const TSharedRef<FOnlineFriend>& InOnlineFriend,
+		const TSharedRef<class FFriendsAndChatManager> FriendsAndChatManager)
+		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay, FriendsAndChatManager)
 		, SessionResult(InSessionResult)
 		, ClientId(InClientId)
-	{ }
-
-protected:
-
-	/** Hidden default constructor. */
-	FFriendGameInviteItem()
+		, FriendsAndChatManager(FriendsAndChatManager)
 	{ }
 
 private:
 
 	TSharedPtr<FOnlineSessionSearchResult> SessionResult;
+	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 	FString ClientId;
 };

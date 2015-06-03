@@ -18,4 +18,4 @@ class FRecentPlayerList
  *
  * @return the newly created FRecentPlayerList implementation.
  */
-FACTORY(TSharedRef< FRecentPlayerList >, FRecentPlayerList);
+FACTORY(TSharedRef< FRecentPlayerList >, FRecentPlayerList, const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);

@@ -23,7 +23,7 @@ public:
 
 	virtual TSharedRef< FFriendListViewModel > GetFriendListViewModel() override
 	{
-		return FFriendListViewModelFactory::Create(FClanMemberListFactory::Create(ClanInfo), EFriendsDisplayLists::ClanMemberDisplay);
+		return FFriendListViewModelFactory::Create(FClanMemberListFactory::Create(ClanInfo, FriendsAndChatManager.Pin().ToSharedRef()), EFriendsDisplayLists::ClanMemberDisplay);
 	}
 
 	virtual FText GetListCountText() const override
@@ -43,20 +43,23 @@ private:
 	}
 
 private:
-	FClanInfoViewModelImpl(const TSharedRef<IClanInfo>& InClanInfo)
-		: ClanInfo(InClanInfo)
+	FClanInfoViewModelImpl(const TSharedRef<IClanInfo>& ClanInfo, const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+		: ClanInfo(ClanInfo)
+		, FriendsAndChatManager(FriendsAndChatManager)
 	{
 	}
 
 	TSharedRef<IClanInfo> ClanInfo;
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	friend FClanInfoViewModelFactory;
 };
 
 TSharedRef< FClanInfoViewModel > FClanInfoViewModelFactory::Create(
-	const TSharedRef<IClanInfo>& ClanInfo
+	const TSharedRef<IClanInfo>& ClanInfo,
+	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
 	)
 {
-	TSharedRef< FClanInfoViewModelImpl > ViewModel(new FClanInfoViewModelImpl(ClanInfo));
+	TSharedRef< FClanInfoViewModelImpl > ViewModel(new FClanInfoViewModelImpl(ClanInfo, FriendsAndChatManager));
 	ViewModel->Initialize();
 	return ViewModel;
 }

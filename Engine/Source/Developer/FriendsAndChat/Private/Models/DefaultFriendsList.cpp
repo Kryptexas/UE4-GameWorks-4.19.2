@@ -13,7 +13,7 @@ public:
 	virtual int32 GetFriendList(TArray< TSharedPtr<FFriendViewModel> >& OutFriendsList) override
 	{
 		TArray< TSharedPtr< IFriendItem > > FriendItemList;
-		FFriendsAndChatManager::Get()->GetFilteredFriendsList(FriendItemList);
+		FriendsAndChatManager.Pin()->GetFilteredFriendsList(FriendItemList);
 		TArray< TSharedPtr< IFriendItem > > OnlineFriendsList;
 		TArray< TSharedPtr< IFriendItem > > OfflineFriendsList;
 
@@ -62,11 +62,11 @@ public:
 
 		for(const auto& FriendItem : OnlineFriendsList)
 		{
-			OutFriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+			OutFriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef(), FriendsAndChatManager.Pin().ToSharedRef()));
 		}
 		for(const auto& FriendItem : OfflineFriendsList)
 		{
-			OutFriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+			OutFriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef(), FriendsAndChatManager.Pin().ToSharedRef()));
 		}
 
 		return OnlineCount;
@@ -84,7 +84,7 @@ public:
 private:
 	void Initialize()
 	{
-		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FDefaultFriendListImpl::HandleChatListUpdated);
+		FriendsAndChatManager.Pin()->OnFriendsListUpdated().AddSP(this, &FDefaultFriendListImpl::HandleChatListUpdated);
 	}
 
 	void HandleChatListUpdated()
@@ -92,20 +92,24 @@ private:
 		OnFriendsListUpdated().Broadcast();
 	}
 
-	FDefaultFriendListImpl(EFriendsDisplayLists::Type InListType)
-		: ListType(InListType)
+	FDefaultFriendListImpl(EFriendsDisplayLists::Type ListType,
+		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+		: ListType(ListType)
+		, FriendsAndChatManager(FriendsAndChatManager)
 	{}
 
 private:
 	const EFriendsDisplayLists::Type ListType;
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 
 	friend FDefaultFriendListFactory;
 };
 
 TSharedRef< FDefaultFriendList > FDefaultFriendListFactory::Create(
-	EFriendsDisplayLists::Type ListType)
+	EFriendsDisplayLists::Type ListType,
+	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
 {
-	TSharedRef< FDefaultFriendListImpl > ChatList(new FDefaultFriendListImpl(ListType));
+	TSharedRef< FDefaultFriendListImpl > ChatList(new FDefaultFriendListImpl(ListType, FriendsAndChatManager));
 	ChatList->Initialize();
 	return ChatList;
 }

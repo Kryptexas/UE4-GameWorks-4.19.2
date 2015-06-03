@@ -18,35 +18,37 @@ public:
 		{
 			case EFriendsDisplayLists::GameInviteDisplay :
 			{
-				return FFriendInviteListFactory::Create();
+				return FFriendInviteListFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
 			}
 			break;
 			case EFriendsDisplayLists::RecentPlayersDisplay :
 			{
-				return FRecentPlayerListFactory::Create();
+				return FRecentPlayerListFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
 			}
 			break;
 		}
-		return FDefaultFriendListFactory::Create(ListType);
+		return FDefaultFriendListFactory::Create(ListType, FriendsAndChatManager.Pin().ToSharedRef());
 	}
 
 	virtual ~FFriendListFactory() {}
 
 private:
 
-	FFriendListFactory()
+	FFriendListFactory(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	: FriendsAndChatManager(FriendsAndChatManager)
 	{ }
 
 private:
 
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	friend FFriendListFactoryFactory;
 };
 
 
-TSharedRef<IFriendListFactory> FFriendListFactoryFactory::Create()
+TSharedRef<IFriendListFactory> FFriendListFactoryFactory::Create(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
 {
 	TSharedRef<FFriendListFactory> Factory = MakeShareable(
-		new FFriendListFactory());
+		new FFriendListFactory(FriendsAndChatManager));
 
 	return Factory;
 }

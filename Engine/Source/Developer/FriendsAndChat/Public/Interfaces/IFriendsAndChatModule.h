@@ -23,7 +23,7 @@ public:
 		return FModuleManager::LoadModuleChecked<IFriendsAndChatModule>("FriendsAndChat");
 	}
 
-	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager() = 0;
+	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager(FName OSSInstanceName = TEXT("")) = 0;
 
 public:
 

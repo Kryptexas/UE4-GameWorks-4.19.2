@@ -21,7 +21,7 @@ public:
 	 * @param InOnlineUser The online user.
 	 * @param InListType The list type.
 	 */
-	FFriendItem( TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType )
+	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager)
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
@@ -31,6 +31,7 @@ public:
 		, bIsPendingAccepted(false)
 		, bIsPendingInvite(false)
 		, bIsPendingDelete(false)
+		, FriendsAndChatManager(FriendsAndChatManager)
 	{ }
 
 	/**
@@ -214,4 +215,6 @@ private:
 
 	/** Holds if we are pending delete. */
 	bool bIsPendingDelete;
+
+	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 };

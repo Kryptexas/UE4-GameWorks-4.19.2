@@ -13,7 +13,7 @@ bool FFriendGameInviteItem::IsGameRequest() const
 bool FFriendGameInviteItem::IsGameJoinable() const
 {
 	const TSharedPtr<const IFriendItem> Item = AsShared();
-	return !FFriendsAndChatManager::Get()->IsFriendInSameSession(Item);
+	return !FriendsAndChatManager.Pin()->IsFriendInSameSession(Item);
 }
 
 TSharedPtr<const FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const

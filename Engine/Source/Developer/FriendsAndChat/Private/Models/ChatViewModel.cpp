@@ -23,7 +23,7 @@ public:
 			FText FriendName = ItemSelected->IsFromSelf() ? ItemSelected->GetRecipientName() : ItemSelected->GetSenderName();
 			if (FriendID.IsValid())
 			{
-				TSharedPtr< IFriendItem > ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*FriendID);
+				TSharedPtr< IFriendItem > ExistingFriend = FriendsAndChatManager.Pin()->FindUser(*FriendID);
 				if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted)
 				{
 					SetWhisperChannel(GetRecentFriend(FriendName, FriendID));
@@ -78,53 +78,53 @@ public:
 			}
 			else if(ActionType == EFriendActionType::SendFriendRequest)
 			{
-				FFriendsAndChatManager::Get()->RequestFriend(SelectedFriend->DisplayName);
+				FriendsAndChatManager.Pin()->RequestFriend(SelectedFriend->DisplayName);
 				CancelAction();
 			}
 			else if(ActionType == EFriendActionType::InviteToGame)
 			{
 				if(SelectedFriend->UserID.IsValid())
 				{
-					FFriendsAndChatManager::Get()->SendGameInvite(*SelectedFriend->UserID.Get());
+					FriendsAndChatManager.Pin()->SendGameInvite(*SelectedFriend->UserID.Get());
 				}
 				else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->GetSenderID().IsValid())
 				{
-					FFriendsAndChatManager::Get()->SendGameInvite(*SelectedFriend->SelectedMessage->GetSenderID().Get());
+					FriendsAndChatManager.Pin()->SendGameInvite(*SelectedFriend->SelectedMessage->GetSenderID().Get());
 				}
 			}
 			else if (ActionType == EFriendActionType::Whisper)
 			{
-				TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+				TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 				if (FriendItem.IsValid())
 				{
-					FFriendsAndChatManager::Get()->SetChatFriend(FriendItem);					
+					FriendsAndChatManager.Pin()->SetChatFriend(FriendItem);
 				}				
 				CancelAction();
 			}
 			else if (ActionType == EFriendActionType::AcceptFriendRequest)
 			{
-				TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+				TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 				if (FriendItem.IsValid())
 				{
-					FFriendsAndChatManager::Get()->AcceptFriend(FriendItem);
+					FriendsAndChatManager.Pin()->AcceptFriend(FriendItem);
 				}
 				CancelAction();
 			}
 			else if (ActionType == EFriendActionType::IgnoreFriendRequest)
 			{
-				TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+				TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 				if (FriendItem.IsValid())
 				{
-					FFriendsAndChatManager::Get()->DeleteFriend(FriendItem, EFriendActionType::ToText(EFriendActionType::IgnoreFriendRequest).ToString());
+					FriendsAndChatManager.Pin()->DeleteFriend(FriendItem, EFriendActionType::ToText(EFriendActionType::IgnoreFriendRequest).ToString());
 				}
 				CancelAction();
 			}
 			else if (ActionType == EFriendActionType::CancelFriendRequest)
 			{
-				TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+				TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 				if (FriendItem.IsValid())
 				{
-					FFriendsAndChatManager::Get()->DeleteFriend(FriendItem, EFriendActionType::ToText(EFriendActionType::CancelFriendRequest).ToString());
+					FriendsAndChatManager.Pin()->DeleteFriend(FriendItem, EFriendActionType::ToText(EFriendActionType::CancelFriendRequest).ToString());
 				}
 				CancelAction();
 			}
@@ -170,7 +170,7 @@ public:
 			SelectedFriend = InFriend;
 			if (SelectedFriend->UserID.IsValid())
 			{
-				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+				SelectedFriend->ViewModel = FriendsAndChatManager.Pin()->GetFriendViewModel(*SelectedFriend->UserID.Get());
 			}
 			SelectedFriend->MessageType = EChatMessageType::Whisper;
 			bHasActionPending = false;
@@ -201,7 +201,7 @@ public:
 	virtual bool IsChatConnected() const override
 	{
 		// Are we online
-		bool bConnected = FFriendsAndChatManager::Get()->GetOnlineStatus() != EOnlinePresenceState::Offline;
+		bool bConnected = FriendsAndChatManager.Pin()->GetOnlineStatus() != EOnlinePresenceState::Offline;
 
 		// Is our friend online
 		if (SelectedChatChannel == EChatMessageType::Whisper)
@@ -222,7 +222,7 @@ public:
 
 	virtual FText GetChatDisconnectText() const override
 	{
-		if (FFriendsAndChatManager::Get()->GetOnlineStatus() == EOnlinePresenceState::Offline)
+		if (FriendsAndChatManager.Pin()->GetOnlineStatus() == EOnlinePresenceState::Offline)
 		{
 			return NSLOCTEXT("ChatViewModel", "LostConnection", "Unable to chat while offline.");
 		}
@@ -260,7 +260,7 @@ public:
 			const TSharedPtr<const FUniqueNetId> ChatID = ChatItemSelected->IsFromSelf() ? ChatItemSelected->GetRecipientID() : ChatItemSelected->GetSenderID();
 			if(ChatID.IsValid())
 			{
-				ExistingFriend = FFriendsAndChatManager::Get()->FindUser(*ChatID.Get());
+				ExistingFriend = FriendsAndChatManager.Pin()->FindUser(*ChatID.Get());
 			}
 
 			if(ExistingFriend.IsValid() && ExistingFriend->GetInviteStatus() == EInviteStatus::Accepted && !bLockedChannel)
@@ -292,7 +292,7 @@ public:
 					SelectedFriend->UserID = ExistingFriend->GetUniqueID();
 				}
 				bHasActionPending = true;
-				bAllowJoinGame = FFriendsAndChatManager::Get()->IsInJoinableGameSession();
+				bAllowJoinGame = FriendsAndChatManager.Pin()->IsInJoinableGameSession();
 			}
 		}
 	}
@@ -313,20 +313,20 @@ public:
 							bSuccess = true;
 						}
 
-						FFriendsAndChatManager::Get()->GetAnalytics().RecordPrivateChat(SelectedFriend->UserID->ToString());
+						FriendsAndChatManager.Pin()->GetAnalytics().RecordPrivateChat(SelectedFriend->UserID->ToString());
 					}
 				}
 				break;
 				case EChatMessageType::Party:
 				{
-					TSharedPtr<const FOnlinePartyId> PartyRoomId = FFriendsAndChatManager::Get()->GetPartyChatRoomId();
-					if (FFriendsAndChatManager::Get()->IsInActiveParty()
+					TSharedPtr<const FOnlinePartyId> PartyRoomId = FriendsAndChatManager.Pin()->GetPartyChatRoomId();
+					if (FriendsAndChatManager.Pin()->IsInActiveParty()
 						&& PartyRoomId.IsValid())
 					{
 						//@todo will need to support multiple party channels eventually, hardcoded to first party for now
 						bSuccess = MessageManager.Pin()->SendRoomMessage((*PartyRoomId).ToString(), NewMessage.ToString());
 
-						FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Party"));
+						FriendsAndChatManager.Pin()->GetAnalytics().RecordChannelChat(TEXT("Party"));
 					}
 				}
 				break;
@@ -334,13 +334,13 @@ public:
 				{
 					FString GlobalRoomId;
 					if (IsDisplayingGlobalChat()
-						&& FFriendsAndChatManager::Get()->GetGlobalChatRoomId(GlobalRoomId))
+						&& FriendsAndChatManager.Pin()->GetGlobalChatRoomId(GlobalRoomId))
 					{
 						//@todo will need to support multiple global channels eventually, roomname hardcoded for now
 						bSuccess = MessageManager.Pin()->SendRoomMessage(GlobalRoomId, NewMessage.ToString());
 						
-						FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Global"));
-					}	
+						FriendsAndChatManager.Pin()->GetAnalytics().RecordChannelChat(TEXT("Global"));
+					}
 				}
 				break;
 			}
@@ -362,7 +362,7 @@ public:
 	{
 		if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 		{
-			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+			TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 			if (FriendItem.IsValid())
 			{
 				return EVisibility::Collapsed;
@@ -375,7 +375,7 @@ public:
 	{
 		if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 		{
-			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+			TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 			if (FriendItem.IsValid() && 
 				FriendItem->GetInviteStatus() == EInviteStatus::PendingInbound && 
 				(!FriendItem->IsPendingAccepted() || !FriendItem->IsPendingDelete()))
@@ -391,7 +391,7 @@ public:
 	{
 		if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 		{
-			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+			TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 			if (FriendItem.IsValid() &&
 				FriendItem->GetInviteStatus() == EInviteStatus::PendingInbound &&
 				(!FriendItem->IsPendingAccepted() || !FriendItem->IsPendingDelete()))
@@ -407,7 +407,7 @@ public:
 	{
 		if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 		{
-			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);
+			TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);
 			if (FriendItem.IsValid() &&
 				FriendItem->GetInviteStatus() == EInviteStatus::PendingOutbound &&
 				(!FriendItem->IsPendingAccepted() || !FriendItem->IsPendingDelete()))
@@ -428,7 +428,7 @@ public:
 	{
 		if (bIsDisplayingGlobalChat && SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 		{
-			TSharedPtr<IFriendItem> FriendItem = FFriendsAndChatManager::Get()->FindUser(*SelectedFriend->UserID);			
+			TSharedPtr<IFriendItem> FriendItem = FriendsAndChatManager.Pin()->FindUser(*SelectedFriend->UserID);			
 			if (FriendItem.IsValid() && FriendItem->GetInviteStatus() == EInviteStatus::Accepted && FriendItem->IsOnline())
 			{
 				return EVisibility::Visible;
@@ -470,10 +470,10 @@ public:
 	virtual void SetDisplayGlobalChat(bool bAllow) override
 	{
 		bIsDisplayingGlobalChat = bAllow;
-		TSharedPtr<const FUniqueNetId> LocalUserId = FFriendsAndChatManager::Get()->GetLocalUserId();
+		TSharedPtr<const FUniqueNetId> LocalUserId = FriendsAndChatManager.Pin()->GetLocalUserId();
 		if (LocalUserId.IsValid())
 		{
-			FFriendsAndChatManager::Get()->GetAnalytics().RecordToggleChat(*LocalUserId, TEXT("Global"), bIsDisplayingGlobalChat, TEXT("Social.Chat.Toggle"));
+			FriendsAndChatManager.Pin()->GetAnalytics().RecordToggleChat(*LocalUserId, TEXT("Global"), bIsDisplayingGlobalChat, TEXT("Social.Chat.Toggle"));
 		}
 		
 		RefreshMessages();
@@ -543,8 +543,8 @@ public:
 private:
 	void Initialize()
 	{
-		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
-		FFriendsAndChatManager::Get()->OnChatFriendSelected().AddSP(this, &FChatViewModelImpl::HandleChatFriendSelected);
+		FriendsAndChatManager.Pin()->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
+		FriendsAndChatManager.Pin()->OnChatFriendSelected().AddSP(this, &FChatViewModelImpl::HandleChatFriendSelected);
 		MessageManager.Pin()->OnChatMessageRecieved().AddSP(this, &FChatViewModelImpl::HandleMessageReceived);
 		RefreshMessages();
 	}
@@ -671,21 +671,22 @@ private:
 		{
 			if(SelectedFriend->UserID.IsValid())
 			{
-				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->UserID.Get());
+				SelectedFriend->ViewModel = FriendsAndChatManager.Pin()->GetFriendViewModel(*SelectedFriend->UserID.Get());
 				bHasActionPending = false;
 			}
 			else if(SelectedFriend->SelectedMessage.IsValid() && SelectedFriend->SelectedMessage->GetSenderID().IsValid())
 			{
-				SelectedFriend->ViewModel = FFriendsAndChatManager::Get()->GetFriendViewModel(*SelectedFriend->SelectedMessage->GetSenderID().Get());
+				SelectedFriend->ViewModel = FriendsAndChatManager.Pin()->GetFriendViewModel(*SelectedFriend->SelectedMessage->GetSenderID().Get());
 				bHasActionPending = false;
 			}
 		}
 	}
 
-	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& InMessageManager)
+	FChatViewModelImpl(const TSharedRef<FFriendsMessageManager>& MessageManager, const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
 		: SelectedViewChannel(EChatMessageType::Global)
 		, SelectedChatChannel(EChatMessageType::Global)
-		, MessageManager(InMessageManager)
+		, MessageManager(MessageManager)
+		, FriendsAndChatManager(FriendsAndChatManager)
 		, bInGame(false)
 		, bIsDisplayingGlobalChat(false)
 		, bEnableGlobalChat(true)
@@ -699,6 +700,7 @@ private:
 	EChatMessageType::Type SelectedViewChannel;
 	EChatMessageType::Type SelectedChatChannel;
 	TWeakPtr<FFriendsMessageManager> MessageManager;
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	bool bInGame;
 	bool bInParty;
 	/** Whether global chat is currently switched on and displayed  */
@@ -719,10 +721,11 @@ private:
 };
 
 TSharedRef< FChatViewModel > FChatViewModelFactory::Create(
-	const TSharedRef<FFriendsMessageManager>& MessageManager
+	const TSharedRef<FFriendsMessageManager>& MessageManager,
+	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
 	)
 {
-	TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(MessageManager));
+	TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(MessageManager, FriendsAndChatManager));
 	ViewModel->Initialize();
 	return ViewModel;
 }

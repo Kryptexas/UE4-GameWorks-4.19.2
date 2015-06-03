@@ -12,11 +12,11 @@ public:
 
 	virtual int32 GetFriendList(TArray< TSharedPtr<FFriendViewModel> >& OutFriendsList) override
 	{
-		TArray< TSharedPtr< IFriendItem > > FriendItemList = FFriendsAndChatManager::Get()->GetRecentPlayerList();
+		TArray< TSharedPtr< IFriendItem > > FriendItemList = FriendsAndChatManager.Pin()->GetRecentPlayerList();
 		FriendItemList.Sort(FCompareGroupByName());
 		for(const auto& FriendItem : FriendItemList)
 		{
-			OutFriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+			OutFriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef(), FriendsAndChatManager.Pin().ToSharedRef()));
 		}
 		return 0;
 	}
@@ -31,23 +31,29 @@ public:
 	FFriendsListUpdated FriendsListUpdatedEvent;
 
 private:
-	void Initialize()
-	{
-		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FRecentPlayerListImpl::HandleChatListUpdated);
-	}
 
 	void HandleChatListUpdated()
 	{
 		OnFriendsListUpdated().Broadcast();
 	}
 
+	void Initialize()
+	{
+		FriendsAndChatManager.Pin()->OnFriendsListUpdated().AddSP(this, &FRecentPlayerListImpl::HandleChatListUpdated);
+	}
+
+	FRecentPlayerListImpl(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+	: FriendsAndChatManager(FriendsAndChatManager)
+	{}
+
 private:
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	friend FRecentPlayerListFactory;
 };
 
-TSharedRef< FRecentPlayerList > FRecentPlayerListFactory::Create()
+TSharedRef< FRecentPlayerList > FRecentPlayerListFactory::Create(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
 {
-	TSharedRef< FRecentPlayerListImpl > ChatList(new FRecentPlayerListImpl());
+	TSharedRef< FRecentPlayerListImpl > ChatList(new FRecentPlayerListImpl(FriendsAndChatManager));
 	ChatList->Initialize();
 	return ChatList;
 }

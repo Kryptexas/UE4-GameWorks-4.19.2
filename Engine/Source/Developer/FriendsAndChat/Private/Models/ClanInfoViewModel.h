@@ -21,4 +21,5 @@ public:
  * @return the newly created ClanInfoViewModel implementation.
  */
 FACTORY(TSharedRef< FClanInfoViewModel >, FClanInfoViewModel,
-	const TSharedRef<class IClanInfo>& ClanInfo);
+	const TSharedRef<class IClanInfo>& ClanInfo,
+	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);

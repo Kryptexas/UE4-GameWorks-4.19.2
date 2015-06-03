@@ -55,7 +55,7 @@ public:
 
 	virtual void UpdateInPartyUI() override
 	{
-		bool bInParty = FFriendsAndChatManager::Get()->IsInActiveParty();
+		bool bInParty = FriendsAndChatManager.Pin()->IsInActiveParty();
 		ChatViewModel->SetInParty(bInParty);
 	}
 
@@ -139,7 +139,7 @@ public:
 			if(ChatViewModel->GetChatChannel() == EChatMessageType::Game)
 			{
 				OnNetworkMessageSentEvent().Broadcast(NewMessage.ToString());
-				FFriendsAndChatManager::Get()->GetAnalytics().RecordChannelChat(TEXT("Game"));
+				FriendsAndChatManager.Pin()->GetAnalytics().RecordChannelChat(TEXT("Game"));
 			}
 			else
 			{
@@ -164,8 +164,8 @@ public:
 			OUTChannelType.Add(EChatMessageType::Global);
 		}
 		
-		bool bIsInGameServer = OnNetworkMessageSentEvent().IsBound() && FFriendsAndChatManager::Get()->IsInGameSession();
-		bool bIsInParty = FFriendsAndChatManager::Get()->IsInActiveParty();
+		bool bIsInGameServer = OnNetworkMessageSentEvent().IsBound() && FriendsAndChatManager.Pin()->IsInGameSession();
+		bool bIsInParty = FriendsAndChatManager.Pin()->IsInActiveParty();
 		if (bIsInGameServer)
 		{
 			OUTChannelType.Add(EChatMessageType::Game);
@@ -213,8 +213,10 @@ private:
 		OnChatListUpdated().Broadcast();
 	}
 
-	FChatDisplayOptionsViewModelImpl(const TSharedRef<FChatViewModel>& InChatViewModel)
-		: ChatViewModel(InChatViewModel)
+	FChatDisplayOptionsViewModelImpl(const TSharedRef<FChatViewModel>& ChatViewModel,
+		const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+		: ChatViewModel(ChatViewModel)
+		, FriendsAndChatManager(FriendsAndChatManager)
 		, bUseOverrideColor(false)
 		, bInGame(false)
 		, bAllowGlobalChat(true)
@@ -226,6 +228,7 @@ private:
 private:
 
 	TSharedPtr<FChatViewModel> ChatViewModel;
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	bool bUseOverrideColor;
 	bool bInGame;
 	bool bAllowGlobalChat;
@@ -245,9 +248,9 @@ private:
 	friend FChatDisplayOptionsViewModelFactory;
 };
 
-TSharedRef< FChatDisplayOptionsViewModel > FChatDisplayOptionsViewModelFactory::Create(const TSharedRef<FChatViewModel>& ChatViewModel)
+TSharedRef< FChatDisplayOptionsViewModel > FChatDisplayOptionsViewModelFactory::Create(const TSharedRef<FChatViewModel>& ChatViewModel, const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
 {
-	TSharedRef< FChatDisplayOptionsViewModelImpl > ViewModel(new FChatDisplayOptionsViewModelImpl(ChatViewModel));
+	TSharedRef< FChatDisplayOptionsViewModelImpl > ViewModel(new FChatDisplayOptionsViewModelImpl(ChatViewModel, FriendsAndChatManager));
 	ViewModel->Initialize();
 	return ViewModel;
 }

@@ -88,4 +88,4 @@ public:
  *
  * @return the newly created FriendViewModel implementation.
  */
-FACTORY(TSharedRef< FFriendsMessageManager >, FFriendsMessageManager);
+FACTORY(TSharedRef< FFriendsMessageManager >, FFriendsMessageManager, const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);

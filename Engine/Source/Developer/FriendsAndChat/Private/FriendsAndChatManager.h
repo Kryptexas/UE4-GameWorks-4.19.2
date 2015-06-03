@@ -120,6 +120,8 @@ public:
 	/** Destructor. */
 	~FFriendsAndChatManager( );
 
+	void Initialize();
+
 public:
 
 	// IFriendsAndChatManager
@@ -916,16 +918,10 @@ private:
 	// The local player index that we use to talk to OSS
 	int32 LocalControllerIndex;
 
-public:
-
-	static TSharedRef< FFriendsAndChatManager > Get();
-	static void Shutdown();
-
 private:
 
 	FFriendsAndChatAnalytics Analytics;
 	float FlushChatAnalyticsCountdown;
-	static TSharedPtr< FFriendsAndChatManager > SingletonInstance;
 
 	/** Handle to various registered delegates */
 	FDelegateHandle OnQueryRecentPlayersCompleteDelegateHandle;

@@ -24,7 +24,7 @@ public:
 	{
 		if(ClanList.Num() > 0)
 		{
-			return FClanInfoViewModelFactory::Create(ClanList[0]);
+			return FClanInfoViewModelFactory::Create(ClanList[0], FriendsAndChatManager.Pin().ToSharedRef());
 		}
 		return nullptr;
 	}
@@ -45,21 +45,24 @@ private:
 	}
 
 private:
-	FClanViewModelImpl(const TSharedRef<IClanRepository>& InClanRepository)
-		: ClanRepository(InClanRepository)
+	FClanViewModelImpl(const TSharedRef<IClanRepository>& ClanRepository, const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+		: ClanRepository(ClanRepository)
+		, FriendsAndChatManager(FriendsAndChatManager)
 	{
 	}
 
 	TSharedRef<IClanRepository> ClanRepository;
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	TArray<TSharedRef<IClanInfo>> ClanList;
 	friend FClanViewModelFactory;
 };
 
 TSharedRef< FClanViewModel > FClanViewModelFactory::Create(
-	const TSharedRef<IClanRepository>& ClanRepository
+	const TSharedRef<IClanRepository>& ClanRepository,
+	const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager
 	)
 {
-	TSharedRef< FClanViewModelImpl > ViewModel(new FClanViewModelImpl(ClanRepository));
+	TSharedRef< FClanViewModelImpl > ViewModel(new FClanViewModelImpl(ClanRepository, FriendsAndChatManager));
 	ViewModel->Initialize();
 	return ViewModel;
 }

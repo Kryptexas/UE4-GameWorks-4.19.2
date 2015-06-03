@@ -34,4 +34,5 @@ public:
  * @return the newly created ChatDisplayOptionViewModel implementation.
  */
 FACTORY(TSharedRef< FChatDisplayOptionsViewModel >, FChatDisplayOptionsViewModel,
-	const TSharedRef<class FChatViewModel>& ChatViewModel);
+	const TSharedRef<class FChatViewModel>& ChatViewModel,
+	const TSharedRef<class FFriendsAndChatManager> & FriendAndChatManager);

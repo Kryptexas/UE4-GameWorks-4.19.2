@@ -38,4 +38,5 @@ IFACTORY(TSharedRef<IFriendList>, IFriendList,
 	EFriendsDisplayLists::Type ListType
 	);
 
-FACTORY(TSharedRef< IFriendListFactory >, FFriendListFactory);
+FACTORY(TSharedRef< IFriendListFactory >, FFriendListFactory,
+	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);

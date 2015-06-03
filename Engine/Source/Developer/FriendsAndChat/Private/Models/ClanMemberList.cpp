@@ -39,7 +39,7 @@ public:
 		FilteredItemList.Sort(FCompareGroupByName());
 		for(const auto& FriendItem : FilteredItemList)
 		{
-			FilteredMemberList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+			FilteredMemberList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef(), FriendsAndChatManager.Pin().ToSharedRef()));
 		}
 
 		OnFriendsListUpdated().Broadcast();
@@ -67,20 +67,22 @@ private:
 		OnFriendsListUpdated().Broadcast();
 	}
 
-	FClanMemberListImpl(TSharedRef<IClanInfo> InClanInfo)
-		: ClanInfo(InClanInfo)
+	FClanMemberListImpl(TSharedRef<IClanInfo> ClanInfo, const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+		: ClanInfo(ClanInfo)
+		, FriendsAndChatManager(FriendsAndChatManager)
 	{}
 
 private:
 
 	TSharedRef<IClanInfo> ClanInfo;
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 
 	friend FClanMemberListFactory;
 };
 
-TSharedRef< FClanMemberList > FClanMemberListFactory::Create(TSharedRef<IClanInfo> ClanInfo)
+TSharedRef< FClanMemberList > FClanMemberListFactory::Create(TSharedRef<IClanInfo> ClanInfo, const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager)
 {
-	TSharedRef< FClanMemberListImpl > ChatList(new FClanMemberListImpl(ClanInfo));
+	TSharedRef< FClanMemberListImpl > ChatList(new FClanMemberListImpl(ClanInfo, FriendsAndChatManager));
 	ChatList->Initialize();
 	return ChatList;
 }

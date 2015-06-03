@@ -19,4 +19,5 @@ class FClanMemberList
  * @return the newly created FDefaultFriendList implementation.
  */
 FACTORY(TSharedRef< FClanMemberList >, FClanMemberList,
-	TSharedRef<class IClanInfo> ClanInfo);
+	TSharedRef<class IClanInfo> ClanInfo,
+	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);

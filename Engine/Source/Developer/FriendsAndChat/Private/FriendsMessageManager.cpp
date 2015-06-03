@@ -108,7 +108,7 @@ public:
 			{
 				TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
 				ChatItem->FromName = FText::FromString(OnlineSub->GetIdentityInterface()->GetPlayerNickname(*LoggedInUser.Get()));
-				TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(*UserID.Get());
+				TSharedPtr<IFriendItem> FoundFriend = FriendsAndChatManager.Pin()->FindUser(*UserID.Get());
 				ChatItem->ToName = FText::FromString(*FoundFriend->GetName());
 				ChatItem->Message = MessageText;
 				ChatItem->MessageType = EChatMessageType::Whisper;
@@ -173,8 +173,10 @@ public:
 	}
 
 private:
-	FFriendsMessageManagerImpl( )
-		: OnlineSub(nullptr)
+
+	FFriendsMessageManagerImpl(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
+		: FriendsAndChatManager(FriendsAndChatManager)
+		, OnlineSub(nullptr)
 		, bEnableEnterExitMessages(false)
 	{
 	}
@@ -317,8 +319,8 @@ private:
 		{
 			// Determine roomtype for the message.  
 			FString GlobalChatRoomId;
-			TSharedPtr<const FOnlinePartyId> PartyChatRoomId = FFriendsAndChatManager::Get()->GetPartyChatRoomId();
-			if (FFriendsAndChatManager::Get()->GetGlobalChatRoomId(GlobalChatRoomId) && ChatRoomID == GlobalChatRoomId)
+			TSharedPtr<const FOnlinePartyId> PartyChatRoomId = FriendsAndChatManager.Pin()->GetPartyChatRoomId();
+			if (FriendsAndChatManager.Pin()->GetGlobalChatRoomId(GlobalChatRoomId) && ChatRoomID == GlobalChatRoomId)
 			{
 				ChatItem->MessageType = EChatMessageType::Global;
 			}
@@ -346,7 +348,7 @@ private:
 	void OnChatPrivateMessageReceived(const FUniqueNetId& UserId, const TSharedRef<FChatMessage>& ChatMessage)
 	{
 		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
-		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
+		TSharedPtr<IFriendItem> FoundFriend = FriendsAndChatManager.Pin()->FindUser(ChatMessage->GetUserId());
 		// Ignore messages from unknown people
 		if(FoundFriend.IsValid())
 		{
@@ -363,7 +365,7 @@ private:
 			AddMessage(ChatItem.ToSharedRef());
 
 			// Inform listers that we have received a chat message
-			FFriendsAndChatManager::Get()->SendChatMessageReceivedEvent(ChatItem->MessageType, FoundFriend);
+			FriendsAndChatManager.Pin()->SendChatMessageReceivedEvent(ChatItem->MessageType, FoundFriend);
 		}
 	}
 
@@ -479,8 +481,10 @@ private:
 		}
 		ReceivedMessages.Remove(Message);
 	}
+
 private:
 
+	TWeakPtr<FFriendsAndChatManager> FriendsAndChatManager;
 	// Incoming delegates
 	FOnChatRoomJoinPublicDelegate OnChatRoomJoinPublicDelegate;
 	FOnChatRoomExitDelegate OnChatRoomExitDelegate;
@@ -523,9 +527,9 @@ private:
 	friend FFriendsMessageManagerFactory;
 };
 
-TSharedRef< FFriendsMessageManager > FFriendsMessageManagerFactory::Create()
+TSharedRef< FFriendsMessageManager > FFriendsMessageManagerFactory::Create(const TSharedRef<FFriendsAndChatManager>& FriendsAndChatManager)
 {
-	TSharedRef< FFriendsMessageManagerImpl > MessageManager(new FFriendsMessageManagerImpl());
+	TSharedRef< FFriendsMessageManagerImpl > MessageManager(new FFriendsMessageManagerImpl(FriendsAndChatManager));
 	return MessageManager;
 }
 

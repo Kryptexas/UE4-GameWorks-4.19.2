@@ -48,7 +48,7 @@ public:
 
 	virtual TSharedRef< FClanViewModel > GetClanViewModel() override
 	{
-		return FClanViewModelFactory::Create(ClanRepository);
+		return FClanViewModelFactory::Create(ClanRepository, FriendsAndChatManager.Pin().ToSharedRef());
 	}
 
 	virtual void RequestFriend(const FText& FriendName) const override
