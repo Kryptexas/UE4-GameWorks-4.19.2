@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573803
 Availability:Public
-Title:2.C++コードでカメラビューをコントロールする
+Title:2.C++コードで行うカメラビューのコントロール
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:カメラビューを変更するクラスのコーディング
 
@@ -22,7 +22,7 @@ Description:カメラビューを変更するクラスのコーディング
 
 %Steps%
 
-1. カメラビューをコントロールするC++クラスの作成準備が整いました。このチュートリアルでは、 **アクタ** を CameraDirector を呼び出す新規クラスに拡張します。
+1. カメラビューをコントロールする C++ クラスの作成準備が整いました。このチュートリアルでは、 **アクタ** を CameraDirector を呼び出す新規クラスに拡張します。
 
 	[![](NameActorClass.png)](NameActorClass.png)
 
@@ -44,7 +44,7 @@ Description:カメラビューを変更するクラスのコーディング
 
 	「GameplayStatics」ヘッダファイルで、いくつかの汎用関数にアクセスすることができます。そのうちの1つはこのチュートリアルに必要な関数です。終了後、以下のコードを **ACameraDirector::Tick** の下部に追加します：
 
-		const float TimeBetweenCameraChanges = 3.0f;
+		const float TimeBetweenCameraChanges = 2.0f;
 		const float SmoothBlendTime = 0.75f;
 		TimeToNextCameraChange -= DeltaTime;
 		if (TimeToNextCameraChange <= 0.0f)
