@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2515016
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -10,6 +10,9 @@ Description:ステップ 1.基本設定
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
+	[PARAM:coloroverride]
+		#000000
+	[/PARAM]
 	[PARAM:home]
 		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
 	[/PARAM]
@@ -20,9 +23,14 @@ Description:ステップ 1.基本設定
 [/VAR]
 
 %Steps%
+
+このクイック スタートでは、プロジェクトで使用できるものを仮定します。オンザフライでうまく問題が解決できなければ、次の手順に従ってください。
+
+## 手順
+
 [EXCERPT:AIProjectStart]
 
-1. アンリアル エディタ 4 を開きます。
+1. アンリアル エディタを開きます。
 
 1. **Blueprint Top Down** テンプレートを元に新規プロジェクトを作成します。
 
