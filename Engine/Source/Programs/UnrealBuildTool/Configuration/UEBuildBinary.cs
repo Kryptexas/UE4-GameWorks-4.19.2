@@ -749,16 +749,16 @@ namespace UnrealBuildTool
 			}
 
 
-			// Remove the default resource file on Windows (PCLaunch.rc) if the user has specified their own
-			if (BinaryLinkEnvironment.InputFiles.Select(Item => Path.GetFileName(Item.AbsolutePath).ToLower()).Any(Name => Name.EndsWith(".res") && !Name.EndsWith(".inl.res") && Name != "pclaunch.rc.res"))
-			{
-				BinaryLinkEnvironment.InputFiles.RemoveAll(x => Path.GetFileName(x.AbsolutePath).ToLower() == "pclaunch.rc.res");
-			}
-
 			// Allow the binary dependencies to modify the link environment.
 			foreach (var BinaryDependency in BinaryDependencies)
 			{
 				BinaryDependency.SetupDependentLinkEnvironment(BinaryLinkEnvironment);
+			}
+
+			// Remove the default resource file on Windows (PCLaunch.rc) if the user has specified their own
+			if (BinaryLinkEnvironment.InputFiles.Select(Item => Path.GetFileName(Item.AbsolutePath).ToLower()).Any(Name => Name.EndsWith(".res") && !Name.EndsWith(".inl.res") && Name != "pclaunch.rc.res"))
+			{
+				BinaryLinkEnvironment.InputFiles.RemoveAll(x => Path.GetFileName(x.AbsolutePath).ToLower() == "pclaunch.rc.res");
 			}
 
 			// Set the link output file.
