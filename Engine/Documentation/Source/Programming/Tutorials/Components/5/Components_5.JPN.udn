@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2486695
+﻿INTSourceChangelist:2573834
 Availability:Public
 Title:5. Play in Editor（PIE）
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -32,7 +32,7 @@ Description:エディタ再生によるコードのテスト
 
 	[![](LevelEditorBeforePlay.png)](LevelEditorBeforePlay.png)
 
-1. **Play（再生）** を押すと、スフィアはWASDキーで移動、マウス操作で回転、そして例にあるテーブルやチェア、またはユーザーが配置するその他の物理オブジェクトなど、ワールドオブジェクトと平行に「衝突してスライド」します。スペースバーでスフィアに火を付ける（または火を消す）ことも出来ます！
+1. **Play（再生）** を押すと、スフィアは WASD キーで移動、マウス操作で回転、そして例にあるテーブルやチェア、またはユーザーが配置するその他の物理オブジェクトなど、ワールドオブジェクトと平行に「衝突してスライド」します。スペースバーでスフィアに火を付ける（または火を消す）ことも出来ます！
 
 	[![](CollidingAndOnFire.png)](CollidingAndOnFire.png)
 
@@ -251,7 +251,7 @@ Description:エディタ再生によるコードのテスト
 					FHitResult Hit;
 					SafeMoveUpdatedComponent(DesiredMovementThisFrame, UpdatedComponent->GetComponentRotation(), true, Hit);
 
-					// If we bumped into something, try to slide along it（何かとぶつかった時に、ぶつかった対象物に沿ってスライド）
+					// If we bumped into something, try to slide along it（何かとぶつかった場合は、ぶつかった対象物に沿ってスライド）
 					if (Hit.IsValidBlockingHit())
 					{
 						SlideAlongSurface(DesiredMovementThisFrame, 1.f - Hit.Time, Hit.Normal, Hit);
