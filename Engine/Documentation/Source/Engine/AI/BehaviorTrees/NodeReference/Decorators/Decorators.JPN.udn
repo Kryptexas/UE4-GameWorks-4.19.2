@@ -1,12 +1,11 @@
-﻿INTSourceChangelist:2546942
+﻿INTSourceChangelist:2572470
 Availability:Public
-Title:Behavior Tree ノードのリファレンス:デコレーター ノード
+Title:Behavior Tree ノードのリファレンス:Decorators
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:ビヘイビアツリーのデコレーター ノードの説明です。
+Description:Behavior Tree Decorator ノードの説明です。
 
 [TOC(start:2 end:2)]
 
-## 概要
 
 Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **デコレーター ノード** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) または [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
 
@@ -83,7 +82,7 @@ Composite Decorator ノードは、内臓されているノードよりもさら
 
 ## Conditional Loop
 
- **Key Query** 条件が一致している限り、このデコレーターはノードをループにアタッチします。
+**Key Query** 条件が一致している限り、このデコレーターはノードをループにアタッチします。
 
 ![](ConditionalLoop.png)
 
@@ -193,8 +192,8 @@ Force Success デコレーターはノード結果を成功に変更します。
 | **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
 
 ## Loop 
-	![](Loop.png)
 
+![](Loop.png)
 
 ノードあるいはブランチを回数分、あるいは無限にループさせます。
 
