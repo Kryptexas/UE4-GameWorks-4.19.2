@@ -477,6 +477,29 @@ void LogRotatorTest(bool bExpected, const TCHAR* TestName, const FRotator& A, co
 }
 
 
+// Normalize tests
+
+MATHTEST_INLINE VectorRegister TestVectorNormalize_Sqrt(const VectorRegister& V)
+{
+	const VectorRegister Len = VectorDot4(V, V);
+	const float rlen = 1.0f / FMath::Sqrt(VectorGetComponent(Len, 0));
+	return VectorMultiply(V, VectorLoadFloat1(&rlen));
+}
+
+MATHTEST_INLINE VectorRegister TestVectorNormalize_InvSqrt(const VectorRegister& V)
+{
+	const VectorRegister Len = VectorDot4(V, V);
+	const float rlen = FMath::InvSqrt(VectorGetComponent(Len, 0));
+	return VectorMultiply(V, VectorLoadFloat1(&rlen));
+}
+
+MATHTEST_INLINE VectorRegister TestVectorNormalize_InvSqrtEst(const VectorRegister& V)
+{
+	const VectorRegister Len = VectorDot4(V, V);
+	const float rlen = FMath::InvSqrtEst(VectorGetComponent(Len, 0));
+	return VectorMultiply(V, VectorLoadFloat1(&rlen));
+}
+
 
 /**
  * Helper debugf function to print out success or failure information for a test
@@ -676,6 +699,26 @@ bool FVectorRegisterAbstractionTest::RunTest(const FString& Parameters)
 	V1 = VectorNormalize( V0 );
 	V0 = MakeVectorRegister( 0.5f, -0.5f, 0.5f, -0.5f );
 	LogTest( TEXT("VectorNormalize"), TestVectorsEqual( V0, V1, 0.001f ) );
+
+	V0 = MakeVectorRegister(2.0f, -2.0f, 2.0f, -2.0f);
+	V1 = VectorNormalizeAccurate(V0);
+	V0 = MakeVectorRegister(0.5f, -0.5f, 0.5f, -0.5f);
+	LogTest(TEXT("VectorNormalizeAccurate"), TestVectorsEqual(V0, V1, 1e-8f));
+
+	V0 = MakeVectorRegister(2.0f, -2.0f, 2.0f, -2.0f);
+	V1 = TestVectorNormalize_Sqrt(V0);
+	V0 = MakeVectorRegister(0.5f, -0.5f, 0.5f, -0.5f);
+	LogTest(TEXT("TestVectorNormalize_Sqrt"), TestVectorsEqual(V0, V1, 1e-8f));
+
+	V0 = MakeVectorRegister(2.0f, -2.0f, 2.0f, -2.0f);
+	V1 = TestVectorNormalize_InvSqrt(V0);
+	V0 = MakeVectorRegister(0.5f, -0.5f, 0.5f, -0.5f);
+	LogTest(TEXT("TestVectorNormalize_InvSqrt"), TestVectorsEqual(V0, V1, 1e-8f));
+
+	V0 = MakeVectorRegister(2.0f, -2.0f, 2.0f, -2.0f);
+	V1 = TestVectorNormalize_InvSqrtEst(V0);
+	V0 = MakeVectorRegister(0.5f, -0.5f, 0.5f, -0.5f);
+	LogTest(TEXT("TestVectorNormalize_InvSqrtEst"), TestVectorsEqual(V0, V1, 1e-6f));
 
 	V0 = MakeVectorRegister( 2.0f, -2.0f, 2.0f, -2.0f );
 	V1 = VectorSet_W0( V0 );
