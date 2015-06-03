@@ -78,7 +78,7 @@ public interface BaseDB
 	public void deleteViewer( final String sessionName, final String viewerName ) throws ReplayException;
 	public ReplaySessionInfo getSessionInfo( final String sessionName ) throws ReplayException;
 	public int getNumSessions( final String appName, final int version, final int changelist );
-	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String metaString, final int limit );
+	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String userString, final String metaString, final int limit );
 	public List<ReplaySessionInfo> getRecentSessions( final String appName, final int version, final int changelist, final String userName, final int limit );
 
 	public void log( final Level level, final String str );

@@ -44,6 +44,7 @@ public class EnumerateSessions extends HttpServlet
     	final String appName 		= request.getParameter( "App" );
     	final String versionString 	= request.getParameter( "Version" );
     	final String clString 		= request.getParameter( "CL" );
+    	final String recentName 	= request.getParameter( "Recent" );
     	final String userName 		= request.getParameter( "User" );
     	final String metaString 	= request.getParameter( "Meta" );
 
@@ -63,13 +64,13 @@ public class EnumerateSessions extends HttpServlet
 
     	List< ReplaySessionInfo > replaySessions = null;
     	
-    	if ( userName != null )
+    	if ( recentName != null )
     	{
-    		replaySessions = ReplayDB.getRecentSessions( appName, version, changelist, userName, hardLimit );
+    		replaySessions = ReplayDB.getRecentSessions( appName, version, changelist, recentName, hardLimit );
     	}
     	else
     	{
-    		replaySessions = ReplayDB.discoverSessions( appName, version, changelist, metaString, hardLimit );
+    		replaySessions = ReplayDB.discoverSessions( appName, version, changelist, userName, metaString, hardLimit );
     	}
 
 		Gson gson = new GsonBuilder().setDateFormat( "yyyy-MM-dd'T'HH:mm:ss" ).create();

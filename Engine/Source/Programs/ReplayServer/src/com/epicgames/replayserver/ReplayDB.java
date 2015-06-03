@@ -231,9 +231,9 @@ public class ReplayDB
 		return baseDB.getNumSessions( appName, version, changelist );
 	}
 
-	static List<ReplaySessionInfo> discoverSessions(  final String appName, final int version, final int changelist, final String metaString, final int limit )
+	static List<ReplaySessionInfo> discoverSessions(  final String appName, final int version, final int changelist, final String userString, final String metaString, final int limit )
 	{
-		return baseDB.discoverSessions( appName, version, changelist, metaString, limit );
+		return baseDB.discoverSessions( appName, version, changelist, userString, metaString, limit );
 	}
 
 	static List<ReplaySessionInfo> getRecentSessions( final String appName, final int version, final int changelist, final String userName, final int limit )

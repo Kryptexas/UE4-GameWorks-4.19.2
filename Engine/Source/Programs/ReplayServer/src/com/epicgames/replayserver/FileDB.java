@@ -354,7 +354,7 @@ public class FileDB implements BaseDB
 		return 0;
 	}
 
-	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String metaString, final int limit )
+	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String userString, final String metaString, final int limit )
 	{
 		List<ReplaySessionInfo> sessions = new ArrayList<ReplaySessionInfo>();
 		
@@ -435,7 +435,7 @@ public class FileDB implements BaseDB
 	public void quickCleanup()
 	{
 		// Loop over all of the sessions and clean up old ones
-		for ( final ReplaySessionInfo sessionEntry : discoverSessions( null, 0, 0, null, 0 ) )
+		for ( final ReplaySessionInfo sessionEntry : discoverSessions( null, 0, 0, null, null, 0 ) )
 		{		
 			if ( sessionEntry.bIsLive && sessionEntry.GetRefreshTimeInSeconds() >= 60 )
 			{

@@ -761,7 +761,7 @@ public class MongoDB implements BaseDB
  		return (int)replayColl.count();
 	}
 
-	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String metaString, final int limit )
+	public List<ReplaySessionInfo> discoverSessions( final String appName, final int version, final int changelist, final String userString, final String metaString, final int limit )
 	{
 		List<ReplaySessionInfo> sessions = new ArrayList<ReplaySessionInfo>();
 	
@@ -781,12 +781,10 @@ public class MongoDB implements BaseDB
 		 		query.append( "meta", metaString );
  			}
 
- 			/*
  			if ( userString != null )
  			{
  	 			query.append( "users", userString );
  			}
- 			*/
  			
  			cursor = replayColl.find( query );
  		}

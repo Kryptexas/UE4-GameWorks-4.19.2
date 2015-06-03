@@ -82,7 +82,7 @@ public class Index extends HttpServlet
 			response.getWriter().println( "<td></td>");
 
 			// Loop over all of the sessions and fill the table
-			final List< ReplaySessionInfo > sessions = ReplayDB.discoverSessions( null, 0, 0, null, refresh != null ? 10 : 0 );
+			final List< ReplaySessionInfo > sessions = ReplayDB.discoverSessions( null, 0, 0, null, null, refresh != null ? 10 : 0 );
 
 			response.getWriter().println( "<p>Total Sessions: " + ReplayDB.getNumSessions( null, 0, 0 ) );
 
