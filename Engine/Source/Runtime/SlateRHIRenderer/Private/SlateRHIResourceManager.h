@@ -11,6 +11,8 @@ class FSlateMaterialResource;
 struct FDynamicResourceMap
 {
 public:
+	FDynamicResourceMap();
+
 	TSharedPtr<FSlateDynamicTextureResource> GetDynamicTextureResource( FName ResourceName ) const;
 
 	TSharedPtr<FSlateUTextureResource> GetUTextureResource( UTexture2D* TextureObject ) const;
@@ -34,14 +36,26 @@ public:
 
 	void ReleaseResources();
 
-	uint32 GetNumObjectResources() const { return UTextureResourceMap.Num() + MaterialResourceMap.Num(); }
+	uint32 GetNumObjectResources() const { return TextureMap.Num() + MaterialMap.Num(); }
+
+	void RemoveExpiredResources();
+
 private:
 	TMap<FName, TSharedPtr<FSlateDynamicTextureResource> > NativeTextureMap;
 	
-	TMap<TWeakObjectPtr<UTexture2D>, TSharedPtr<FSlateUTextureResource> > UTextureResourceMap;
+	typedef TMap<TWeakObjectPtr<UTexture2D>, TSharedPtr<FSlateUTextureResource> > TextureResourceMap;
+
+	/** Map of all texture resources */
+	TextureResourceMap TextureMap;
+
+	int32 LastExpiredTextureNumMarker;
+
+	typedef TMap<TWeakObjectPtr<UMaterialInterface>, TSharedPtr<FSlateMaterialResource> > MaterialResourceMap;
 
 	/** Map of all material resources */
-	TMap<TWeakObjectPtr<UMaterialInterface>, TSharedPtr<FSlateMaterialResource> > MaterialResourceMap;
+	MaterialResourceMap MaterialMap;
+
+	int32 LastExpiredMaterialNumMarker;
 };
 
 
@@ -79,6 +93,11 @@ public:
 	 * Updates texture atlases if needed
 	 */
 	void UpdateTextureAtlases();
+
+	/**
+	 * Removes entries from the DynamicResourceMap that have expired and are no longer valid UObject pointers.
+	 */
+	void RemoveExpiredResources();
 
 	/** FSlateShaderResourceManager interface */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;

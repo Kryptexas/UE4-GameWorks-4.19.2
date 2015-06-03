@@ -59,6 +59,9 @@ public:
 	/** Ensures the user widget is initialized */
 	void InitWidget();
 
+	/** Release resources associated with the widget. */
+	void ReleaseResources();
+
 	/** Ensures the 3d window is created its size and content. */
 	void UpdateWidget();
 

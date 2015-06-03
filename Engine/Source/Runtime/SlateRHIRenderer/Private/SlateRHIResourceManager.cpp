@@ -11,6 +11,13 @@ DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTexture
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Dynamic Textures"), STAT_SlateNumDynamicTextures, STATGROUP_SlateMemory);
 
+FDynamicResourceMap::FDynamicResourceMap()
+	: LastExpiredTextureNumMarker(0)
+	, LastExpiredMaterialNumMarker(0)
+{
+
+}
+
 TSharedPtr<FSlateDynamicTextureResource> FDynamicResourceMap::GetDynamicTextureResource( FName ResourceName ) const
 {
 	return NativeTextureMap.FindRef( ResourceName );
@@ -20,7 +27,7 @@ TSharedPtr<FSlateUTextureResource> FDynamicResourceMap::GetUTextureResource( UTe
 {
 	if(TextureObject)
 	{
-		return UTextureResourceMap.FindRef(TextureObject);
+		return TextureMap.FindRef(TextureObject);
 	}
 
 	return nullptr;
@@ -28,7 +35,7 @@ TSharedPtr<FSlateUTextureResource> FDynamicResourceMap::GetUTextureResource( UTe
 
 TSharedPtr<FSlateMaterialResource> FDynamicResourceMap::GetMaterialResource( UMaterialInterface* Material ) const
 {
-	return MaterialResourceMap.FindRef( Material );
+	return MaterialMap.FindRef( Material );
 }
 
 
@@ -42,14 +49,14 @@ void FDynamicResourceMap::AddUTextureResource( UTexture2D* TextureObject, TShare
 	if(TextureObject)
 	{
 		check(TextureObject == InResource->TextureObject);
-		UTextureResourceMap.Add(TextureObject, InResource);
+		TextureMap.Add(TextureObject, InResource);
 	}
 }
 
 void FDynamicResourceMap::AddMaterialResource( UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InMaterialResource )
 {
 	check( Material == InMaterialResource->GetMaterialObject() );
-	MaterialResourceMap.Add( Material, InMaterialResource );
+	MaterialMap.Add(Material, InMaterialResource);
 }
 
 void FDynamicResourceMap::RemoveDynamicTextureResource(FName ResourceName)
@@ -61,14 +68,13 @@ void FDynamicResourceMap::RemoveUTextureResource( UTexture2D* TextureObject )
 {
 	if(TextureObject)
 	{
-		UTextureResourceMap.Remove(TextureObject);
+		TextureMap.Remove(TextureObject);
 	}
 }
 
-
 void FDynamicResourceMap::RemoveMaterialResource( UMaterialInterface* Material )
 {
-	MaterialResourceMap.Remove( Material );
+	MaterialMap.Remove(Material);
 }
 
 void FDynamicResourceMap::Empty()
@@ -85,14 +91,13 @@ void FDynamicResourceMap::EmptyDynamicTextureResources()
 
 void FDynamicResourceMap::EmptyUTextureResources()
 {
-	UTextureResourceMap.Empty();
+	TextureMap.Empty();
 }
 
 void FDynamicResourceMap::EmptyMaterialResources()
 {
-	MaterialResourceMap.Empty();
+	MaterialMap.Empty();
 }
-
 
 void FDynamicResourceMap::ReleaseResources()
 {
@@ -101,13 +106,42 @@ void FDynamicResourceMap::ReleaseResources()
 		BeginReleaseResource(It.Value()->RHIRefTexture);
 	}
 	
-	for (TMap<TWeakObjectPtr<UTexture2D>, TSharedPtr<FSlateUTextureResource> >::TIterator It(UTextureResourceMap); It; ++It)
+	for ( TextureResourceMap::TIterator It(TextureMap); It; ++It )
 	{
 		It.Value()->UpdateRenderResource(nullptr);
 	}
-
 }
 
+void FDynamicResourceMap::RemoveExpiredResources()
+{
+	const int32 CheckingIncrement = 100;
+
+	if ( TextureMap.Num() > ( LastExpiredTextureNumMarker + CheckingIncrement ) )
+	{
+		for ( TextureResourceMap::TIterator It(TextureMap); It; ++It )
+		{
+			if ( It.Key().IsStale() )
+			{
+				It.RemoveCurrent();
+			}
+		}
+
+		LastExpiredTextureNumMarker = TextureMap.Num();
+	}
+
+	if ( MaterialMap.Num() > ( LastExpiredMaterialNumMarker + CheckingIncrement ) )
+	{
+		for ( MaterialResourceMap::TIterator It(MaterialMap); It; ++It )
+		{
+			if ( It.Key().IsStale() )
+			{
+				It.RemoveCurrent();
+			}
+		}
+
+		LastExpiredMaterialNumMarker = MaterialMap.Num();
+	}
+}
 
 FSlateRHIResourceManager::FSlateRHIResourceManager()
 	: BadResourceTexture(nullptr)
@@ -739,6 +773,11 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 	{
 		TextureAtlases[AtlasIndex]->ConditionalUpdateTexture();
 	}
+}
+
+void FSlateRHIResourceManager::RemoveExpiredResources()
+{
+	DynamicResourceMap.RemoveExpiredResources();
 }
 
 void FSlateRHIResourceManager::ReleaseResources()

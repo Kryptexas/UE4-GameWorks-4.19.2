@@ -50,10 +50,6 @@ public:
 		bWillEverBeLit = false;
 	}
 
-	~FWidget3DSceneProxy()
-	{
-	}
-
 	// FPrimitiveSceneProxy interface.
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
 	{
@@ -325,6 +321,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	, TickWhenOffscreen( false )
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 	bTickInEditor = true;
 	
 	RelativeRotation = FRotator(0.f, 0.f, 90.f);
@@ -356,20 +353,16 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	Space = EWidgetSpace::World;
 	Pivot = FVector2D(0.5, 0.5);
 	ZOrder = -100;
-
-	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 }
 
 FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 {
-	if ( Space != EWidgetSpace::Screen )
+	if ( Space != EWidgetSpace::Screen && Renderer.IsValid() )
 	{
 		return new FWidget3DSceneProxy(this, *Renderer);
 	}
-	else
-	{
-		return nullptr;
-	}
+	
+	return nullptr;
 }
 
 FBoxSphereBounds UWidgetComponent::CalcBounds(const FTransform & LocalToWorld) const
@@ -499,14 +492,8 @@ void UWidgetComponent::OnUnregister()
 		}
 	}
 
-	if ( Widget )
-	{
-		Widget->RemoveFromParent();
-		Widget->MarkPendingKill();
-		Widget = nullptr;
-	}
+	ReleaseResources();
 
-	SlateWidget.Reset();
 	Super::OnUnregister();
 }
 
@@ -514,8 +501,11 @@ void UWidgetComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	Super::DestroyComponent(bPromoteChildren);
 
-	Renderer.Reset();
+	ReleaseResources();
+}
 
+void UWidgetComponent::ReleaseResources()
+{
 	if ( Widget )
 	{
 		Widget->RemoveFromParent();
@@ -523,7 +513,9 @@ void UWidgetComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 		Widget = nullptr;
 	}
 
+	Renderer.Reset();
 	SlateWidget.Reset();
+	HitTestGrid.Reset();
 }
 
 void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
