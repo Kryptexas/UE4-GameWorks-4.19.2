@@ -1,4 +1,4 @@
-Availability:Docs
+Availability:Public
 Title:3. Landscape Materials and the Grass Tool
 Crumbs:
 Description: How to setup a Material that will work with both the Grass Tool and the Landscape terrain.
@@ -9,7 +9,7 @@ Version: 4.8
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[Previous Step](Engine\OpenWorldTools\Grass\QuickStart\1 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1:title%") 
+	[Previous Step](Engine\OpenWorldTools\Grass\QuickStart\2 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -84,14 +84,7 @@ If you would like to have a more in-depth look at how the Landscape terrain work
 
 	![](T_LLW_Setup.png)
 
-	[region:note]
-	When using the Grass Output future make sure that the Grass output Material Expression is the last item you add to your Material Graph.
-	If you try and compile or save your Material without anything going into the Grass output node the compile will fail with the following error message in the **Stats** window.
-
-	![](T_Grass_Material_Warning.png)
-	[/region]
-
-1. When completed you should have a Material that looks like the following. As do not forget to press the **Apply** and **Save** buttons to compile and save the Material.
+1. When completed you should have a Material that looks like the following. As always, do not forget to press the **Apply** and **Save** buttons to compile and save the Material.
 
 	![](T_Final_Material.png)
 
