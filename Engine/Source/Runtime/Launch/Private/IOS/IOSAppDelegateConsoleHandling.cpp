@@ -4,6 +4,8 @@
 #include "IOSAppDelegateConsoleHandling.h"
 #include "LaunchPrivatePCH.h"
 
+extern bool GShowSplashScreen;
+
 @implementation IOSAppDelegate (ConsoleHandling)
 
 #if !UE_BUILD_SHIPPING
@@ -148,6 +150,14 @@
  */
 - (void)ShowAlert:(NSMutableArray*)StringArray
 {
+	if (GShowSplashScreen)
+	{
+		if ([[IOSAppDelegate GetDelegate].Window viewWithTag : 2] != nil)
+		{
+			[[[IOSAppDelegate GetDelegate].Window viewWithTag : 2] removeFromSuperview];
+		}
+		GShowSplashScreen = false;
+	}
 #ifdef __IPHONE_8_0
 	if ([UIAlertController class])
 	{
