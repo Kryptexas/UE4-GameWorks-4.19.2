@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2400172
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:The  Environment Query System ノードのリファレンス
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -45,7 +45,6 @@ Description:Environment Query System エディタで利用できる各種ノー�
 
 [toc]
 
-## 概要
 
 環境クエリ エディタ内で利用できるノードとテストのクイック リファレンスです。
 
@@ -193,7 +192,7 @@ Two Points の **Mode** 設定:
 | **Gameplay Tags** | 一致すべきタグです。 |
 | **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
 | **Bool Match** | 基本的に、true 一致と false 一致のどちらを使うのか決めます。タグがあるとアイテムが返せば、それを保持せずに _取り除く_ ことができます。 |
-| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 |
 
 
 ### Path Finding
@@ -217,7 +216,7 @@ Two Points の **Mode** 設定:
 | **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。 |
 | **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
 | **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
-| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 |
 
 <!--
 [EXCERPT:path1]
@@ -247,7 +246,7 @@ Two Points の **Mode** 設定:
 | **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。 |
 | **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
 | **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
-| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 |
 
 
 ### Trace
@@ -268,7 +267,7 @@ Two Points の **Mode** 設定:
 | **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。 |
 | **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
 | **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
-| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 |
 
 ## コンテキスト
 
