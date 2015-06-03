@@ -19,7 +19,6 @@
 #include "SNumericEntryBox.h"
 #include "Curves/CurveVector.h"
 
-
 #define NGED_SECTION_BORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
 #define NGED_SECTION_LIGHTBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.LightGroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
 #define NGED_SECTION_DARKBORDER SNew(SBorder).BorderImage(FEditorStyle::GetBrush("ToolPanel.DarkGroupBorder")).Padding(2.0f).HAlign(HAlign_Left)
@@ -430,11 +429,10 @@ private:
 	/** Notification list to pass messages to editor users  */
 	TSharedPtr<SNotificationList> NotificationListPtr;
 	SOverlay::FOverlaySlot* DetailsViewSlot;
-	TSharedPtr<SNiagaraEffectEditorViewport>	Viewport;
 	
 	TSharedPtr< SListView<TSharedPtr<FNiagaraSimulation> > > ListView;
 
-	TSharedPtr< SNiagaraTimeline > TimeLine;
+	class FNiagaraEffectEditor *EffectEditor;
 public:
 	SLATE_BEGIN_ARGS(SNiagaraEffectEditorWidget)
 		: _EffectObj(nullptr)
@@ -443,6 +441,7 @@ public:
 	SLATE_ARGUMENT(UNiagaraEffect*, EffectObj)
 	SLATE_ARGUMENT(TSharedPtr<SWidget>, TitleBar)
 	SLATE_ARGUMENT(FNiagaraEffectInstance*, EffectInstance)
+	SLATE_ARGUMENT(class FNiagaraEffectEditor*, EffectEditor)
 	SLATE_END_ARGS()
 
 
@@ -456,8 +455,6 @@ public:
 	{
 		ListView->RequestListRefresh();
 	}
-
-	TSharedPtr<SNiagaraEffectEditorViewport> GetViewport()	{ return Viewport; }
 
 	TSharedRef<ITableRow> OnGenerateWidgetForList(TSharedPtr<FNiagaraSimulation> InItem, const TSharedRef< STableViewBase >& OwnerTable)
 	{
@@ -473,17 +470,7 @@ public:
 			];
 	}
 
-	void OnSelectionChanged( TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType)
-	{
-		if ( SelectedItem.Get() != nullptr )
-		{
-			if (SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().Num())
-			{
-				FNiagaraDataObject *DataObj = SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().CreateConstIterator().Value();
-				TimeLine->SetCurve(static_cast<FNiagaraCurveDataObject*>(DataObj)->GetCurveObject());
-			}
-		}
-	}
+	void OnSelectionChanged(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType); 
 
 	void Construct(const FArguments& InArgs);
 

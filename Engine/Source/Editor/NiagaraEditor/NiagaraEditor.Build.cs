@@ -20,14 +20,16 @@ public class NiagaraEditor : ModuleRules
 				"UnrealEd", 
 				"GraphEditor", 
 				"VectorVM",
-                "Niagara"
+                "Niagara",
+                "MovieSceneCore",
+				"Sequencer",
 			}
 		);
 
         PublicDependencyModuleNames.AddRange(
             new string[] {
 				"Engine",
-                "Niagara"
+                "Niagara",
             }
         );
 
@@ -39,6 +41,10 @@ public class NiagaraEditor : ModuleRules
 				"LevelEditor"}
                 );
 
-		DynamicallyLoadedModuleNames.Add("WorkspaceMenuStructure");
+		DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "WorkspaceMenuStructure",
+                }
+            );
 	}
 }

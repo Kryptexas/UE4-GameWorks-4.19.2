@@ -4,7 +4,7 @@
 
 #include "PreviewScene.h"
 #include "SEditorViewport.h"
-
+#include "NiagaraEffect.h"
 
 /**
  * Material Editor Preview viewport widget

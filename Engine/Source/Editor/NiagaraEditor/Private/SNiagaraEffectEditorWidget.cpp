@@ -7,6 +7,7 @@
 #include "SSplitter.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "NiagaraEffectEditor.h"
 
 
 #define LOCTEXT_NAMESPACE "NiagaraEffectEditor"
@@ -25,111 +26,42 @@ void SNiagaraEffectEditorWidget::Construct(const FArguments& InArgs)
 		EffectInstance = new FNiagaraEffectInstance(EffectObj);
 	}
 
-	//bNeedsRefresh = false;
-
-
-	Viewport = SNew(SNiagaraEffectEditorViewport);
-
+	EffectEditor = InArgs._EffectEditor;
 
 	TSharedPtr<SOverlay> OverlayWidget;
 	this->ChildSlot
 		[
+
 			SNew(SSplitter)
 			.Orientation(Orient_Vertical)
 			+ SSplitter::Slot()
 			.Value(0.75f)
 			[
 
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew(SBox)
-						.WidthOverride(512)
-						.HeightOverride(512)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
 						[
-							Viewport.ToSharedRef()
-						]
-					]
-				]
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SAssignNew(OverlayWidget, SOverlay)
-
-						+SOverlay::Slot()
-						.Padding(10)
-						.VAlign(VAlign_Fill)
-						[
-							SAssignNew(ListView, SListView<TSharedPtr<FNiagaraSimulation> >)
-							.ItemHeight(256)
-							.ListItemsSource(&(this->EffectInstance->GetEmitters()))
-							.OnGenerateRow(this, &SNiagaraEffectEditorWidget::OnGenerateWidgetForList)
-							.OnSelectionChanged(this, &SNiagaraEffectEditorWidget::OnSelectionChanged)
-							//.SelectionMode(ESelectionMode::None)
-						]
-
-						// Bottom-right corner text indicating the type of tool
-						+ SOverlay::Slot()
+							SAssignNew(OverlayWidget, SOverlay)
+							+SOverlay::Slot()
 							.Padding(10)
-							.VAlign(VAlign_Bottom)
-							.HAlign(HAlign_Right)
+							.VAlign(VAlign_Fill)
 							[
-								SNew(STextBlock)
-								.Visibility(EVisibility::HitTestInvisible)
-								.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
-								.Text(LOCTEXT("NiagaraEditorLabel", "Niagara Effect"))
+								SAssignNew(ListView, SListView<TSharedPtr<FNiagaraSimulation> >)
+								.ItemHeight(256)
+								.ListItemsSource(&(this->EffectInstance->GetEmitters()))
+								.OnGenerateRow(this, &SNiagaraEffectEditorWidget::OnGenerateWidgetForList)
+								.OnSelectionChanged(this, &SNiagaraEffectEditorWidget::OnSelectionChanged)
+								//.SelectionMode(ESelectionMode::Single)
 							]
-
-						// Top-right corner text indicating read only when not simulating
-						+ SOverlay::Slot()
-							.Padding(20)
-							.VAlign(VAlign_Top)
-							.HAlign(HAlign_Right)
-							[
-								SNew(STextBlock)
-								.Visibility(this, &SNiagaraEffectEditorWidget::ReadOnlyVisibility)
-								.TextStyle(FEditorStyle::Get(), "Graph.CornerText")
-								.Text(LOCTEXT("ReadOnlyLabel", "Read Only"))
-							]
-
-						// Bottom-right corner text for notification list position
-						+ SOverlay::Slot()
-							.Padding(15.f)
-							.VAlign(VAlign_Bottom)
-							.HAlign(HAlign_Right)
-							[
-								SAssignNew(NotificationListPtr, SNotificationList)
-								.Visibility(EVisibility::HitTestInvisible)
-							]
-					]
-			]
-
-			]
-			+ SSplitter::Slot()
-			.Value(0.25f)
-				[
-					NGED_SECTION_BORDER
-					[
-						SNew(SBox)
-						.MinDesiredHeight(400).MinDesiredWidth(1920)
-						[
-							SAssignNew(TimeLine, SNiagaraTimeline)
 						]
-					]
 				]
+			]
 		];
-
-	Viewport->SetPreviewEffect(EffectInstance);
 }
 
 
@@ -586,6 +518,12 @@ void SEmitterWidget::OnSpawnScriptSelectedFromPicker(UObject *Asset)
 				.ItemHeight(20).ListItemsSource(&CurSpawnScript->Source->ExposedVectorConstants).OnGenerateRow(this, &SEmitterWidget::OnGenerateConstantListRow)
 			]
 		];
+}
+
+
+void SNiagaraEffectEditorWidget::OnSelectionChanged(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType)
+{
+	EffectEditor->OnEmitterSelected(SelectedItem, SelType);
 }
 
 
