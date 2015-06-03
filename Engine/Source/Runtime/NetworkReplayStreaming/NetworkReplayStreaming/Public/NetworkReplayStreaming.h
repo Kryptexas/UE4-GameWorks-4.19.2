@@ -138,7 +138,7 @@ public:
 	 *
 	 * @param Delegate A delegate that will be executed if bound when the list of streams is available
 	 */
-	virtual void EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate ) = 0;
+	virtual void EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate ) = 0;
 
 	/**
 	 * Retrieves the streams that have been recently viewed. May execute asynchronously.
