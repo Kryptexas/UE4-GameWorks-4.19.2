@@ -1,11 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2572470
+Availability:Public
 Title:Behavior Tree ノードのリファレンス
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree ノードのリファレンス
 
-[TOC(start:2 end:2)]
-
-## 概要
 
 ビヘイビアツリー エディタで利用可能なデフォルト ノードについて説明します。(Shooter Game など) 作業するプロジェクトによって異なります。Behavior Tree ノードは 5 種類です。
 
@@ -17,7 +15,7 @@ Description:Behavior Tree ノードのリファレンス
 | **Service** | Composite ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。|
 | **Root** | [INCLUDE:#rootNode] |
 
-デフォルト Behavior Tree ノードすべてのリストは以下のリンクからご覧ください。
+デフォルト Behavior Tree ノードはすべて、以下のリストからご覧頂けます。
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -35,7 +33,6 @@ Description:Behavior Tree ノードのリファレンス
 	* [Services](Engine/AI/BehaviorTrees/NodeReference/Services "%Engine/AI/BehaviorTrees/NodeReference/Services:description% Composite ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります")
 	[/PARAM]
 [/OBJECT]
-
 
 <!--
 [EXCERPT:rootNode]
