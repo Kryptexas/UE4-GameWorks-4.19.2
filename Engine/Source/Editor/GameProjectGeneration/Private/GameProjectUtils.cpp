@@ -3015,7 +3015,7 @@ bool GameProjectUtils::DoProjectSettingsMatchDefault(const FString& InPlatformNa
 	FConfigFile ProjIni;
 	FConfigFile DefaultIni;
 	FConfigCacheIni::LoadLocalIniFile(ProjIni, TEXT("Engine"), true, *InPlatformName, true);
-	FConfigCacheIni::LoadLocalIniFile(DefaultIni, TEXT("Engine"), true, NULL, true);
+	FConfigCacheIni::LoadExternalIniFile(DefaultIni, TEXT("Engine"), *FPaths::EngineConfigDir(), *FPaths::EngineConfigDir(), true, NULL, true);
 
 	if (InBoolKeys != NULL)
 	{
