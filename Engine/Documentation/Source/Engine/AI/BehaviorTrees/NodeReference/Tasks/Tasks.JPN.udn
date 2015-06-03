@@ -1,14 +1,12 @@
-﻿INTSourceChangelist:2546940
+﻿INTSourceChangelist:2572470
 Availability:Public
-Title:Behavior Tree ノードのリファレンス:タスク
+Title:Behavior Tree ノードのリファレンス:Tasks
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
-Description:ビヘイビアツリーのタスクノードの説明です。
+Description:Behavior Tree Task ノードの説明です。
 
 [TOC(start:2 end:2)]
 
-## 概要
-
-ビヘイビアツリー エディタで利用可能な **タスクノード** について説明します。タスクとは、AI を移動するなどのように何かを "実行する" ノード、あるいは Blackboard 値を調整するノードです。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
+ビヘイビアツリー エディタで利用可能な **Task ノード** について説明します。Tasks ノードは、AI を移動するなどのように何かを "実行する" ノード、あるいは Blackboard 値を調整します。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
 
 ## Make Noise
 
