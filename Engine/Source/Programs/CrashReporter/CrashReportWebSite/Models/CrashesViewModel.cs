@@ -93,8 +93,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			DateTime FromDate = DateTime.Today.AddDays( -7 ).ToUniversalTime();
 			DateTime ToDate = DateTime.Today.ToUniversalTime();
-			BranchNames = CrashRepository.GetBranches();
-			VersionNames = CrashRepository.GetVersions();
+			BranchNames = CrashRepository.GetBranchesAsListItems();
+			VersionNames = CrashRepository.GetVersionsAsListItems();
 			DateFrom = (long)( FromDate - Epoch ).TotalMilliseconds;
 			DateTo = (long)( ToDate - Epoch ).TotalMilliseconds;
 			CrashType = "CrashesAsserts";

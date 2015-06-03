@@ -1,5 +1,10 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web.Mvc;
+
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
 	/// <summary>
@@ -16,5 +21,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>Time spent in generating this site, formatted as a string.</summary>
 		public string GenerationTime { get; set; }
+
+		/// <summary>Engine versions.</summary>
+		public List<string> EngineVersions;
 	}
 }

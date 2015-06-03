@@ -82,7 +82,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		public BuggsViewModel()
 		{
-			VersionNames = CrashRepository.GetVersions();
+			VersionNames = CrashRepository.GetVersionsAsListItems();
 		}
 	}
 }

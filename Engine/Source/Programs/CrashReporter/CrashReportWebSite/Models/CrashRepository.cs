@@ -66,7 +66,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Retrieves a list of distinct UE4 Branches from the CrashRepository
 		/// </summary>
-		public static List<SelectListItem> GetBranches()
+		public static List<SelectListItem> GetBranchesAsListItems()
 		{
 			using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( "CrashRepository.GetBranches" ))
 			{
@@ -97,10 +97,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		private static DateTime LastVersionDate = DateTime.UtcNow.AddDays( -1 );
 		private static List<SelectListItem> VersionsAsSelectList = null;
+		private static HashSet<string> DistinctBuildVersions = null;
 		/// <summary>
 		/// Retrieves a list of distinct UE4 Versions from the CrashRepository
 		/// </summary>
-		public static List<SelectListItem> GetVersions()
+		public static List<SelectListItem> GetVersionsAsListItems()
 		{
 			using (FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( "CrashRepository.GetVersions" ))
 			{
@@ -115,7 +116,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					.Distinct()
 					.ToList();
 
-					HashSet<string> DistinctBuildVersions = new HashSet<string>();
+					DistinctBuildVersions = new HashSet<string>();
 
 					foreach (var BuildVersion in BuildVersions)
 					{
@@ -138,6 +139,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 				return VersionsAsSelectList;
 			}
+		}
+
+		/// <summary>
+		/// Retrieves a list of distinct UE4 Versions from the CrashRepository
+		/// </summary>
+		public static HashSet<string> GetVersions()
+		{
+			GetVersionsAsListItems();
+			return DistinctBuildVersions;
 		}
 		
 		/// <summary>

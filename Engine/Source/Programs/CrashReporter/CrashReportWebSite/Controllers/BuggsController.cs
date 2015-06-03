@@ -127,14 +127,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				Crashes = NewBugg.GetCrashes();
 
-				using( FAutoScopedLogTimer GetCrashesTimer = new FAutoScopedLogTimer( "Bugg.PrepareBuggForJira" ) )
+				using (FAutoScopedLogTimer GetCrashesTimer = new FAutoScopedLogTimer( "Bugg.PrepareBuggForJira" ))
 				{
-					NewBugg.PrepareBuggForJira( Crashes );
-
-					if( BuggIDToBeAddedToJira != 0 )
+					if (Crashes.Count > 0)
 					{
-						NewBugg.CopyToJira();
-					}			
+						NewBugg.PrepareBuggForJira( Crashes );
+
+						if (BuggIDToBeAddedToJira != 0)
+						{
+							NewBugg.CopyToJira();
+						}
+					}
+
 				}
 
 				using( FAutoScopedLogTimer JiraResultsTimer = new FAutoScopedLogTimer( "Bugg.GrabJira" ) )

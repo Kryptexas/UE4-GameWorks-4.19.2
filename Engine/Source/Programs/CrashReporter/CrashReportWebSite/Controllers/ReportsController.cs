@@ -60,7 +60,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				int AnonymousGroupID = FRepository.Get( BuggsRepo ).FindOrAddGroup( AnonumousGroup );
 				HashSet<int> AnonumousIDs = FRepository.Get( BuggsRepo ).GetUserIdsFromUserGroup( AnonumousGroup );
 				int AnonymousID = AnonumousIDs.First();
-				HashSet<string> UserNamesForUserGroup = FRepository.Get( BuggsRepo ).GetUserNamesFromGroupName( AnonumousGroup );
 
 				var Crashes = CrashRepo
 					.FilterByDate( CrashRepo.ListAll(), FormData.DateFrom, FormData.DateTo )
