@@ -14,7 +14,10 @@ enum class EP4ParamType
 	Port = 1,
 	User = 2,
 	Client = 3,
-	Branch = 4
+	Branch = 4,
+	OptionalDelimiter = 5,
+	P4VPath = 6,
+	EndParam = 7
 };
 
 /**
@@ -173,6 +176,13 @@ public:
 	const FString& GetPath() const;
 
 	/**
+	 * Gets P4V path.
+	 *
+	 * @returns P4V path.
+	 */
+	const FString& GetP4VPath() const;
+
+	/**
 	 * Gets P4 user.
 	 *
 	 * @returns P4 user.
@@ -270,6 +280,13 @@ private:
 	bool AutoDetectMissingParams(const TCHAR* CommandLine);
 
 	/**
+	 * Auto-detect missing optional params.
+	 *
+	 * @param CommandLine Command line that the program was run with.
+	 */
+	void AutoDetectMissingOptionalParams(const TCHAR* CommandLine);
+
+	/**
 	 * Sets param value.
 	 *
 	 * @param Type Type of param to set.
@@ -282,6 +299,9 @@ private:
 
 	/* Path to P4 executable. */
 	FString Path;
+
+	/* Path to P4V executable. */
+	FString P4VPath;
 
 	/* P4 port. */
 	FString Port;

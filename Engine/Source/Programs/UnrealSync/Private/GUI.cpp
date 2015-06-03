@@ -399,6 +399,16 @@ public:
 	}
 
 	/**
+	 * Gets current option index.
+	 *
+	 * @returns Index of current option.
+	 */
+	int32 GetCurrentOptionIndex() const
+	{
+		return CurrentOption;
+	}
+
+	/**
 	 * Sets current option for this combo box.
 	 *
 	 * @param Value Value to set combo box to.
@@ -699,11 +709,11 @@ public:
 	 */
 	void LoadStateFromJSON(const FJsonValue& Value)
 	{
-		int32 Chosen = 0;
+		int32 ChosenWidget = 0;
 
-		if (Value.TryGetNumber(Chosen) && Chosen < Items.Num())
+		if (Value.TryGetNumber(ChosenWidget) && ChosenWidget < Items.Num())
 		{
-			ChooseEnabledItem(Chosen);
+			ChooseEnabledItem(ChosenWidget);
 		}
 	}
 
@@ -954,7 +964,7 @@ public:
 	 */
 	TSharedPtr<FJsonValue> GetStateAsJSON() const
 	{
-		if (!LabelsCombo->IsEnabled())
+		if (!LabelsCombo->IsEnabled() || LabelsCombo->GetCurrentOptionIndex() < 0)
 		{
 			return nullptr;
 		}
@@ -1376,6 +1386,16 @@ public:
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock).Text(FText::FromString("Run UE4"))
+							]
+						]
+					+ SHorizontalBox::Slot().AutoWidth()
+						[
+							SNew(SButton).HAlign(HAlign_Right)
+							.OnClicked(this, &SMainTabWidget::RunP4V)
+							.IsEnabled(CheckIfP4VExists())
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock).Text(FText::FromString("Run P4V"))
 							]
 						]
 				]
@@ -1818,6 +1838,30 @@ private:
 		RunProcess(ProcessPath + ProcessPathPostfix);
 
 		return FReply::Handled();
+	}
+
+	/**
+	 * Fires up P4V for current branch.
+	 */
+	FReply RunP4V()
+	{
+		FP4Env& Env = FP4Env::Get();
+		RunProcess(Env.GetP4VPath(), FString::Printf(TEXT("-p %s -u %s -c %s"), *Env.GetPort(), *Env.GetUser(), *Env.GetClient()));
+		return FReply::Handled();
+	}
+
+	/**
+	 * Checks if P4V exists for current P4 environment.
+	 *
+	 * @returns True if P4V exists, false otherwise.
+	 */
+	bool CheckIfP4VExists()
+	{
+#if PLATFORM_MAC
+		return FPaths::DirectoryExists(FP4Env::Get().GetP4VPath());
+#else
+		return FPaths::FileExists(FP4Env::Get().GetP4VPath());
+#endif
 	}
 
 	/**

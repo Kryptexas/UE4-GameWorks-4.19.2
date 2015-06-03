@@ -255,7 +255,7 @@ private:
 /**
  * P4 path param auto-detection iterator.
  */
-class FP4PathDetectionIterator : public FP4EnvParamDetectionIteratorBase
+class FPathDetectionIterator : public FP4EnvParamDetectionIteratorBase
 {
 public:
 	/**
@@ -263,35 +263,20 @@ public:
 	 *
 	 * @param CommandLine Command line to parse.
 	 */
-	FP4PathDetectionIterator(const TCHAR* CommandLine)
-		: FP4EnvParamDetectionIteratorBase(EP4ParamType::Path, CommandLine), Step(0)
+	FPathDetectionIterator(EP4ParamType Type, const TCHAR* CommandLine, const TArray<FString>& StdLocationPrefixes, const FString& ExecutableName, bool bAppIsADirectory)
+		: FP4EnvParamDetectionIteratorBase(Type, CommandLine), Step(0)
 	{
 #if PLATFORM_WINDOWS
-		const TCHAR* StdLocationPrefixes[] =
-		{
-			TEXT("C:\\Program Files\\Perforce"),
-			TEXT("C:\\Program Files (x86)\\Perforce")
-		};
-
 		static const FString WhereCommand = "where";
-		static const FString P4ExecutableName = "p4.exe";
 #else
-		const TCHAR* StdLocationPrefixes[] =
-		{
-			TEXT("/bin"),
-			TEXT("/usr/local/bin"),
-			TEXT("~/bin")
-		};
-
 		static const FString WhereCommand = "whereis";
-		static const FString P4ExecutableName = "p4";
 #endif
 
 		TArray<FString> LocationCandidates;
 
 		// Tries to detect in standard environment paths.
 		FString WhereOutput;
-		if (RunProcessOutput(WhereCommand, P4ExecutableName, WhereOutput) && !WhereOutput.IsEmpty())
+		if (RunProcessOutput(WhereCommand, ExecutableName, WhereOutput) && !WhereOutput.IsEmpty())
 		{
 			TArray<FString> Outputs;
 			if (WhereOutput.ParseIntoArrayLines(Outputs, true))
@@ -303,23 +288,23 @@ public:
 			}
 		}
 
-		for (const auto* StdLocationPrefix : StdLocationPrefixes)
+		for (const auto& StdLocationPrefix : StdLocationPrefixes)
 		{
-			LocationCandidates.Add(FPaths::Combine(StdLocationPrefix, *P4ExecutableName));
+			LocationCandidates.Add(FPaths::Combine(*StdLocationPrefix, *ExecutableName));
 		}
 
 		for (auto& LocationCandidate : LocationCandidates)
 		{
 			FPlatformMisc::NormalizePath(LocationCandidate);
 			LocationCandidate = FPaths::ConvertRelativePathToFull(LocationCandidate);
-			if (FPaths::FileExists(LocationCandidate))
+			if ((!bAppIsADirectory && FPaths::FileExists(LocationCandidate)) || (bAppIsADirectory && FPaths::DirectoryExists(LocationCandidate)))
 			{
 				AddUniqueLocation(LocationCandidate);
 			}
 		}
 	}
 
-	virtual ~FP4PathDetectionIterator() {}
+	virtual ~FPathDetectionIterator() {}
 
 	/**
 	 * Function that tries to detect P4 executable path.
@@ -373,6 +358,135 @@ private:
 
 	/** Current step number. */
 	int32 Step;
+};
+
+/**
+ * P4 path param auto-detection iterator.
+ */
+class FP4PathDetectionIterator : public FPathDetectionIterator
+{
+public:
+	FP4PathDetectionIterator(const TCHAR* CommandLine)
+		: FPathDetectionIterator(EP4ParamType::Path, CommandLine, GetStdLocationPrefixes(), GetExecutableName(), false)
+	{}
+
+private:
+	/**
+	 * Gets array of standard location prefixes for P4.
+	 */
+	TArray<FString> GetStdLocationPrefixes() const
+	{
+#if PLATFORM_WINDOWS
+		const TCHAR* StdLocationPrefixes[] =
+		{
+			TEXT("C:\\Program Files\\Perforce"),
+			TEXT("C:\\Program Files (x86)\\Perforce")
+		};
+#else
+		const TCHAR* StdLocationPrefixes[] =
+		{
+			TEXT("/bin"),
+			TEXT("/usr/local/bin"),
+			TEXT("~/bin")
+		};
+#endif
+
+		TArray<FString> Out;
+		for (const auto* StdLocationPrefix : StdLocationPrefixes)
+		{
+			Out.Add(StdLocationPrefix);
+		}
+
+		return Out;
+	}
+
+	/**
+	 * Gets executable name for P4.
+	 */
+	const FString& GetExecutableName() const
+	{
+#if PLATFORM_WINDOWS
+		static const FString ExecutableName = "p4.exe";
+#else
+		static const FString ExecutableName = "p4";
+#endif
+
+		return ExecutableName;
+	}
+};
+
+/**
+ * P4V path param auto-detection iterator.
+ */
+class FP4VPathDetectionIterator : public FPathDetectionIterator
+{
+public:
+	FP4VPathDetectionIterator(const TCHAR* CommandLine)
+		: FPathDetectionIterator(EP4ParamType::P4VPath, CommandLine, GetStdLocationPrefixes(), GetExecutableName(), GetAppIsADir())
+	{}
+
+private:
+	/**
+	 * Gets array of standard location prefixes for P4V.
+	 */
+	TArray<FString> GetStdLocationPrefixes() const
+	{
+#if PLATFORM_WINDOWS
+		const TCHAR* StdLocationPrefixes[] =
+		{
+			TEXT("C:\\Program Files\\Perforce"),
+			TEXT("C:\\Program Files (x86)\\Perforce")
+		};
+#elif PLATFORM_LINUX
+		const TCHAR* StdLocationPrefixes[] =
+		{
+			TEXT("/bin"),
+			TEXT("/usr/local/bin"),
+			TEXT("~/bin")
+		};
+#elif PLATFORM_MAC
+		const TCHAR* StdLocationPrefixes[] =
+		{
+			TEXT("/Applications")
+		};
+#endif
+
+		TArray<FString> Out;
+		for (const auto* StdLocationPrefix : StdLocationPrefixes)
+		{
+			Out.Add(StdLocationPrefix);
+		}
+
+		return Out;
+	}
+
+	/**
+	 * Gets if P4V app is a directory.
+	 */
+	bool GetAppIsADir()
+	{
+#if PLATFORM_MAC
+		return true;
+#else
+		return false;
+#endif
+	}
+
+	/**
+	 * Gets executable name for P4V.
+	 */
+	const FString& GetExecutableName() const
+	{
+#if PLATFORM_WINDOWS
+		static const FString ExecutableName = "p4v.exe";
+#elif PLATFORM_LINUX
+		static const FString ExecutableName = "p4v";
+#elif PLATFORM_MAC
+		static const FString ExecutableName = "p4v.app";
+#endif
+
+		return ExecutableName;
+	}
 };
 
 #include "XmlParser.h"
@@ -763,6 +877,9 @@ bool FP4Env::Init(const TCHAR* CommandLine)
 		return false;
 	}
 
+	// Auto-detect optional params.
+	TempEnv->AutoDetectMissingOptionalParams(CommandLine);
+
 	FP4Env::Env = TempEnv;
 
 	return true;
@@ -807,6 +924,7 @@ bool FP4Env::RunP4(const FString& CommandLine)
 void FP4Env::SerializeParams(const FSerializationTask& SerializationTask)
 {
 	SerializationTask.ExecuteIfBound(Path, EP4ParamType::Path);
+	SerializationTask.ExecuteIfBound(P4VPath, EP4ParamType::P4VPath);
 	SerializationTask.ExecuteIfBound(Port, EP4ParamType::Port);
 	SerializationTask.ExecuteIfBound(User, EP4ParamType::User);
 	SerializationTask.ExecuteIfBound(Client, EP4ParamType::Client);
@@ -819,6 +937,8 @@ FString FP4Env::GetParamName(EP4ParamType Type)
 	{
 	case EP4ParamType::Path:
 		return "P4PATH";
+	case EP4ParamType::P4VPath:
+		return "P4VPATH";
 	case EP4ParamType::Port:
 		return "P4PORT";
 	case EP4ParamType::User:
@@ -848,9 +968,9 @@ bool FP4Env::AutoDetectMissingParams(const TCHAR* CommandLine)
 		{
 			SetParam(Type, ParamDetectionIteratorsStack.Last()->GetCurrent());
 
-			if (Type != EP4ParamType::Branch)
+			if (Type < (EP4ParamType)((int32)EP4ParamType::OptionalDelimiter - 1))
 			{
-				Type = (EP4ParamType) ((int)Type + 1);
+				Type = (EP4ParamType)((int32)Type + 1);
 				ParamDetectionIteratorsStack.Add(IP4EnvParamDetectionIterator::Create(Type, CommandLine, *this));
 				continue;
 			}
@@ -861,7 +981,7 @@ bool FP4Env::AutoDetectMissingParams(const TCHAR* CommandLine)
 		}
 		else
 		{
-			Type = (EP4ParamType) ((int)Type - 1);
+			Type = (EP4ParamType)((int32)Type - 1);
 			ParamDetectionIteratorsStack.RemoveAt(ParamDetectionIteratorsStack.Num() - 1);
 			--IterationCountdown;
 			if (!IterationCountdown)
@@ -872,6 +992,18 @@ bool FP4Env::AutoDetectMissingParams(const TCHAR* CommandLine)
 	}
 
 	return false;
+}
+
+void FP4Env::AutoDetectMissingOptionalParams(const TCHAR* CommandLine)
+{
+	for (EP4ParamType Type = (EP4ParamType)((int32)EP4ParamType::OptionalDelimiter + 1); Type < EP4ParamType::EndParam; Type = (EP4ParamType)((int32) Type + 1))
+	{
+		TSharedPtr<IP4EnvParamDetectionIterator> Iter = IP4EnvParamDetectionIterator::Create(Type, CommandLine, *this);
+		if (Iter->MoveNext())
+		{
+			SetParam(Type, Iter->GetCurrent());
+		}
+	}
 }
 
 FString FP4Env::GetCommandLine()
@@ -899,12 +1031,20 @@ const FString& FP4Env::GetPath() const
 	return Path;
 }
 
+const FString& FP4Env::GetP4VPath() const
+{
+	return P4VPath;
+}
+
 void FP4Env::SetParam(EP4ParamType Type, const FString& Value)
 {
 	switch (Type)
 	{
 	case EP4ParamType::Path:
 		Path = Value;
+		break;
+	case EP4ParamType::P4VPath:
+		P4VPath = Value;
 		break;
 	case EP4ParamType::Port:
 		Port = Value;
@@ -983,6 +1123,8 @@ const FString& FP4Env::GetParamByType(EP4ParamType Type) const
 	{
 	case EP4ParamType::Path:
 		return GetPath();
+	case EP4ParamType::P4VPath:
+		return GetP4VPath();
 	case EP4ParamType::Port:
 		return GetPort();
 	case EP4ParamType::User:
@@ -1004,6 +1146,8 @@ TSharedPtr<IP4EnvParamDetectionIterator> IP4EnvParamDetectionIterator::Create(EP
 	{
 	case EP4ParamType::Path:
 		return MakeShareable(new FP4PathDetectionIterator(CommandLine));
+	case EP4ParamType::P4VPath:
+		return MakeShareable(new FP4VPathDetectionIterator(CommandLine));
 	case EP4ParamType::Port:
 		return MakeShareable(new FP4PortDetectionIterator(CommandLine));
 	case EP4ParamType::User:
@@ -1197,6 +1341,8 @@ void SP4EnvTabWidget::Construct(const FArguments& InArgs)
 				return LOCTEXT("P4Option_Client", "Workspace name");
 			case EP4ParamType::Path:
 				return LOCTEXT("P4Option_Path", "Path to P4 executable");
+			case EP4ParamType::P4VPath:
+				return LOCTEXT("P4Option_P4VPath", "Path to P4V executable");
 			case EP4ParamType::Port:
 				return LOCTEXT("P4Option_Port", "P4 server address");
 			case EP4ParamType::User:
@@ -1212,8 +1358,9 @@ void SP4EnvTabWidget::Construct(const FArguments& InArgs)
 		TSharedRef<FP4Option> Option;
 	};
 
-	Options.Reserve(4);
+	Options.Reserve(5);
 	Options.Add(MakeShareable(new FP4Option(EP4ParamType::Path)));
+	Options.Add(MakeShareable(new FP4Option(EP4ParamType::P4VPath)));
 	Options.Add(MakeShareable(new FP4Option(EP4ParamType::Port)));
 	Options.Add(MakeShareable(new FP4Option(EP4ParamType::User)));
 	Options.Add(MakeShareable(new FP4Option(EP4ParamType::Client)));
