@@ -429,11 +429,9 @@ $(document).ready(function() {
     addLog( "Starting downloads" );
     // start downloads in parallel, print when done.  
     var promises = [
-			'json2.js',
-			'jStorage.js',
-			'moz_binarystring.js',
-			'%GAME%.data.js',
-			'%CONFIG%.js'   
+			'Utility.js.gz',
+			'%GAME%.data.js.gz',
+			'%CONFIG%.js.gz'   
 		].map(download); 
 
 	// add the data file promise. 

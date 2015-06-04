@@ -9,6 +9,7 @@ using AutomationTool;
 using UnrealBuildTool;
 using System.Diagnostics;
 using System.Threading;
+using Ionic.Zip;
 
 public class HTML5Platform : Platform
 {
@@ -73,6 +74,12 @@ public class HTML5Platform : Platform
             }
         }
 
+		// packaging created 2 files - .data.js and .data file. lets compress them.
+
+		CompressFile(FinalDataLocation, FinalDataLocation);
+		CompressFile(FinalDataLocation + ".js", FinalDataLocation + ".js.gz");
+		File.Delete(FinalDataLocation + ".js");
+
         // copy the "Executable" to the package directory
         string GameExe = Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename);
         if (Params.ClientConfigsToBuild[0].ToString() != "Development")
@@ -92,14 +99,15 @@ public class HTML5Platform : Platform
 
         if (Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) != Path.Combine(PackagePath, GameExe))
         {
-            File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe), Path.Combine(PackagePath, GameExe), true);
-            File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".mem", true);
+			// compress all javascript files in place. 
+			Log("Compressing and Copying main js executable");
+			CompressFile(FullGameExePath, Path.Combine(PackagePath, GameExe) + ".gz");
+			Log("Compressing and copying memory Initialization file");
+			CompressFile(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".mem", (Path.Combine(PackagePath, GameExe) + ".mem"));
 			File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbols", true);
         }
-        File.SetAttributes(Path.Combine(PackagePath, GameExe), FileAttributes.Normal);
-        File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".mem", FileAttributes.Normal);
-		File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".symbols", FileAttributes.Normal);
 
+		File.SetAttributes(Path.Combine(PackagePath, GameExe) + ".symbols", FileAttributes.Normal);
 
         // put the HTML file to the package directory
 
@@ -134,18 +142,63 @@ public class HTML5Platform : Platform
 
         GenerateFileFromTemplate(TemplateFile, OutputFile, Params.ShortProjectName, Params.ClientConfigsToBuild[0].ToString(), Params.StageCommandline, !Params.IsCodeBasedProject, HeapSize);
 
-        // copy the jstorage files to the binaries directory
         string JSDir = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5");
         string OutDir = PackagePath;
-        File.Copy(JSDir + "/json2.js", OutDir + "/json2.js", true);
-        File.SetAttributes(OutDir + "/json2.js", FileAttributes.Normal);
-        File.Copy(JSDir + "/jStorage.js", OutDir + "/jStorage.js", true);
-        File.SetAttributes(OutDir + "/jStorage.js", FileAttributes.Normal);
-        File.Copy(JSDir + "/moz_binarystring.js", OutDir + "/moz_binarystring.js", true);
-        File.SetAttributes(OutDir + "/moz_binarystring.js", FileAttributes.Normal);
+
+		// Gather utlity .js files and combine into one file
+		string[] UtilityJavaScriptFiles = Directory.GetFiles(JSDir, "*.js");
+
+		string DestinationFile = OutDir + "/Utility.js";
+		foreach( var UtilityFile in UtilityJavaScriptFiles)
+		{
+			string Data = File.ReadAllText(UtilityFile);
+			File.AppendAllText(DestinationFile, Data);
+		}
+
+		CompressFile(DestinationFile, DestinationFile + ".gz");
+
+		// delete uncompressed file.
+		if (File.Exists(DestinationFile))
+		{
+			File.Delete(DestinationFile);
+		}
+
         PrintRunTime();
 	}
 
+	void CompressFile(string Source, string Destination)
+	{
+		bool DeleteSource = false; 
+
+		if(  Source == Destination )
+		{
+			string CopyOrig = Source + ".Copy";
+			File.Copy(Source, CopyOrig);
+			Source = CopyOrig;
+			DeleteSource = true; 
+		}
+
+		using (System.IO.Stream input = System.IO.File.OpenRead(Source))
+		{
+			using (var raw = System.IO.File.Create(Destination))
+				{
+					using (Stream compressor = new Ionic.Zlib.GZipStream(raw, Ionic.Zlib.CompressionMode.Compress,Ionic.Zlib.CompressionLevel.BestCompression))
+					{
+						byte[] buffer = new byte[2048];
+						int SizeRead = 0;
+						while ((SizeRead = input.Read(buffer, 0, buffer.Length)) != 0)
+						{
+							compressor.Write(buffer, 0, SizeRead);
+						}
+					}
+				}
+		}
+
+		if (DeleteSource && File.Exists(Source))
+		{
+			File.Delete(Source);
+		}
+	}
 
     public override bool RequiresPackageToDeploy
     {
@@ -247,26 +300,28 @@ public class HTML5Platform : Platform
 		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
 
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe +".gz"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("json2.js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("jStorage.js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("moz_binarystring.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.js.gz"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
-        
 
-        if (HTMLPakAutomation.CanCreateMapPaks(Params))
-        {
-            // find all paks.
-            string[] Files = Directory.GetFiles(Path.Combine(PackagePath, Params.ShortProjectName), "*",SearchOption.AllDirectories);
-            foreach(string PakFile in Files)
-            {
-                var DestPak = PakFile.Replace(PackagePath,"");
-                SC.ArchivedFiles.Add(PakFile, DestPak);
-            }
-        }
+		// Archive HTML5 Server and a Readme. 
+		var LaunchHelperPath = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/");
+		SC.ArchiveFiles(LaunchHelperPath, "HTML5LaunchHelper.exe");
+		SC.ArchiveFiles(Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5"), "Readme.txt");
+
+		if (HTMLPakAutomation.CanCreateMapPaks(Params))
+		{
+			// find all paks.
+			string[] Files = Directory.GetFiles(Path.Combine(PackagePath, Params.ShortProjectName), "*",SearchOption.AllDirectories);
+			foreach(string PakFile in Files)
+			{
+				var DestPak = PakFile.Replace(PackagePath,"");
+				SC.ArchivedFiles.Add(PakFile, DestPak);
+			}
+		}
 
 	}
 
@@ -320,7 +375,6 @@ public class HTML5Platform : Platform
 		ConfigCache.GetInt32("/Script/HTML5PlatformEditor.HTML5TargetSettings", "DeployServerPort", out ServerPort);
 		string WorkingDirectory = Path.GetDirectoryName(ClientApp);
 		string url = Path.GetFileName(ClientApp) +".html";
-		string args = "-m ";
 		// Are we running via cook on the fly server?
 		// find our http url - This is awkward because RunClient doesn't have real information that NFS is running or not.
 		bool IsCookOnTheFly = false;
@@ -341,27 +395,29 @@ public class HTML5Platform : Platform
 		}
 		else
 		{
-			url = String.Format("http://127.0.0.1:{0}/{1}", ServerPort, url);
-			args += String.Format("-h -s {0} ", ServerPort);
+			url = String.Format("http://localhost:{0}/{1}", ServerPort, url);
 		}
 
 		// Check HTML5LaunchHelper source for command line args
+
 		var LowerBrowserPath = browserPath.ToLower();
-		args += String.Format("-b \"{0}\" -p \"{1}\" -w \"{2}\" ", browserPath, HTML5SDKInfo.PythonPath(), WorkingDirectory);
-		args += url + " ";
 		var ProfileDirectory = Path.Combine(Utils.GetUserSettingDirectory(), "UE4_HTML5", "user");
+
+		string BrowserCommandline = url; 
+
 		if (LowerBrowserPath.Contains("chrome"))
 		{
-			args += String.Format("--user-data-dir=\"{0}\" --enable-logging --no-first-run", Path.Combine(ProfileDirectory, "chrome"));
+			BrowserCommandline  += "  " + String.Format("--user-data-dir=\"{0}\" --enable-logging --no-first-run", Path.Combine(ProfileDirectory, "chrome"));
 		}
 		else if (LowerBrowserPath.Contains("firefox"))
 		{
-			args += String.Format("-no-remote -profile \"{0}\"", Path.Combine(ProfileDirectory, "firefox"));
+			BrowserCommandline += "  " +  String.Format("-no-remote -profile \"{0}\"", Path.Combine(ProfileDirectory, "firefox"));
 		}
-		//else if (browserPath.Contains("Safari")) {}
+
+		string LauncherArguments = string.Format( " -Browser=\"{0}\" + -BrowserCommandLine=\"{1}\" -ServerPort=\"{2}\" -ServerRoot=\"{3}\" ", new object[] { browserPath,BrowserCommandline,ServerPort,WorkingDirectory });
 
 		var LaunchHelperPath = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/HTML5LaunchHelper.exe");
-		ProcessResult BrowserProcess = Run(LaunchHelperPath, args, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+		ProcessResult BrowserProcess = Run(LaunchHelperPath, LauncherArguments, null, ClientRunFlags | ERunOptions.NoWaitForExit);
 	
 		return BrowserProcess;
 
