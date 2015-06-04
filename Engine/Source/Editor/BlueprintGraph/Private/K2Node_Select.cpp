@@ -461,8 +461,7 @@ void UK2Node_Select::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 			}
 
 			// If the index pin is a boolean, we need to remove all but 2 options
-			if (IndexPinType.PinCategory == Schema->PC_Boolean &&
-				NumOptionPins != 2)
+			if (IndexPinType.PinCategory == Schema->PC_Boolean)
 			{
 				NumOptionPins = 2;
 				bReconstructNode = true;
