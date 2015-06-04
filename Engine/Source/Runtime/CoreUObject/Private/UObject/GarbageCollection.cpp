@@ -135,6 +135,11 @@ public:
 
 		GCCounter.Increment();
 	}
+	/** Checks if any async thread has a lock */
+	bool IsAsyncLocked()
+	{
+		return AsyncCounter.GetValue() != 0;
+	}
 	/** Lock for GC. Will not block and return false if any other thread has already locked. */
 	bool TryGCLock()
 	{		
@@ -168,6 +173,11 @@ FGCScopeGuard::~FGCScopeGuard()
 bool IsGarbageCollecting()
 {
 	return FGCScopeLock::GetGarbageCollectingFlag();
+}
+
+bool IsGarbageCollectionLocked()
+{
+	return GGarbageCollectionGuardCritical.IsAsyncLocked();
 }
 
 /**
