@@ -775,7 +775,7 @@ struct ENGINE_API FCollisionResponseContainer
 	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
 
 	/** Returns the response set on the specified channel */
-	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
+	FORCEINLINE_DEBUGGABLE ECollisionResponse GetResponse(ECollisionChannel Channel) const { return (ECollisionResponse)EnumArray[Channel]; }
 
 	/** Set all channels from ChannelResponse Array **/
 	void UpdateResponsesFromArray(TArray<FResponseChannel> & ChannelResponses);
@@ -1068,6 +1068,85 @@ struct ENGINE_API FBasedPosition
 
 	friend FArchive& operator<<( FArchive& Ar, FBasedPosition& T );
 };
+
+
+/** Struct for caching Quat<->Rotator conversions. */
+struct ENGINE_API FRotationConversionCache
+{
+	FRotationConversionCache()
+		: CachedQuat(FQuat::Identity)
+		, CachedRotator(FRotator::ZeroRotator)
+	{
+	}
+
+	/** Convert a FRotator to FQuat. Uses the cached conversion if possible, and updates it if there was no match. */
+	FORCEINLINE_DEBUGGABLE FQuat FRotationConversionCache::RotatorToQuat(const FRotator& InRotator) const
+	{
+		if (CachedRotator != InRotator)
+		{
+			CachedRotator = InRotator.GetNormalized();;
+			CachedQuat = CachedRotator.Quaternion();
+		}
+		return CachedQuat;
+	}
+
+	/** Convert a FRotator to FQuat. Uses the cached conversion if possible, but does *NOT* update the cache if there was no match. */
+	FORCEINLINE_DEBUGGABLE FQuat FRotationConversionCache::RotatorToQuat_ReadOnly(const FRotator& InRotator) const
+	{
+		if (CachedRotator == InRotator)
+		{
+			return CachedQuat;
+		}
+		return InRotator.Quaternion();
+	}
+
+	/** Convert a FQuat to FRotator. Uses the cached conversion if possible, and updates it if there was no match. */
+	FORCEINLINE_DEBUGGABLE FRotator FRotationConversionCache::QuatToRotator(const FQuat& InQuat) const
+	{
+		if (CachedQuat != InQuat)
+		{
+			CachedQuat = InQuat.GetNormalized();
+			CachedRotator = CachedQuat.Rotator();
+		}
+		return CachedRotator;
+	}
+
+	/** Convert a FQuat to FRotator. Uses the cached conversion if possible, but does *NOT* update the cache if there was no match. */
+	FORCEINLINE_DEBUGGABLE FRotator FRotationConversionCache::QuatToRotator_ReadOnly(const FQuat& InQuat) const
+	{
+		if (CachedQuat == InQuat)
+		{
+			return CachedRotator;
+		}
+		return InQuat.Rotator();
+	}
+
+	/** Version of QuatToRotator when the Quat is known to already be normalized. */
+	FORCEINLINE_DEBUGGABLE FRotator FRotationConversionCache::NormalizedQuatToRotator(const FQuat& InNormalizedQuat) const
+	{
+		if (CachedQuat != InNormalizedQuat)
+		{
+			CachedQuat = InNormalizedQuat;
+			CachedRotator = InNormalizedQuat.Rotator();
+		}
+		return CachedRotator;
+	}
+
+	/** Version of QuatToRotator when the Quat is known to already be normalized. Does *NOT* update the cache if there was no match. */
+	FORCEINLINE_DEBUGGABLE FRotator FRotationConversionCache::NormalizedQuatToRotator_ReadOnly(const FQuat& InNormalizedQuat) const
+	{
+		if (CachedQuat == InNormalizedQuat)
+		{
+			return CachedRotator;
+		}
+		return InNormalizedQuat.Rotator();
+	}
+
+private:
+	mutable FQuat		CachedQuat;		// FQuat matching CachedRotator such that CachedQuat.Rotator() == CachedRotator.
+	mutable FRotator	CachedRotator;	// FRotator matching CachedQuat such that CachedRotator.Quaternion() == CachedQuat.
+};
+
 
 
 /** A line of subtitle text and the time at which it should be displayed. */

@@ -347,6 +347,10 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	// Minimize accumulation of errors after many composed transforms.
 	NewTransform.NormalizeRotation();
 
+	// Update RelativeRotation and cache (not done earlier because normalization can change the rotation)
+	const FQuat RelativeQuatNormalized = (Parent ? RelativeRotationQuat.GetNormalized() : NewTransform.GetRotation());
+	RelativeRotation = RelativeRotationCache.NormalizedQuatToRotator(RelativeQuatNormalized);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ensureOnce(NewTransform.IsValid());
 #endif
@@ -356,7 +360,6 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	{
 		// Update transform
 		ComponentToWorld = NewTransform;
-
 		PropagateTransformUpdate(true, bSkipPhysicsMove, bTeleport);
 	}
 	else
@@ -399,7 +402,7 @@ void USceneComponent::OnRegister()
 
 void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove, bool bTeleport)
 {
-	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotation.Quaternion(), bTeleport);
+	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), bTeleport);
 }
 
 
@@ -734,34 +737,35 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 
 void USceneComponent::AddRelativeRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	const FQuat CurRelRotQuat = RelativeRotation.Quaternion();
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = DeltaRotation * CurRelRotQuat;
 	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
 }
 
 void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	const FVector LocalOffset = RelativeRotation.RotateVector(DeltaLocation);
-	SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, RelativeRotation, bSweep, OutSweepHitResult);
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
+	const FVector LocalOffset = CurRelRotQuat.RotateVector(DeltaLocation);
+	SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, CurRelRotQuat, bSweep, OutSweepHitResult);
 }
 
 void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	const FQuat CurRelRotQuat = RelativeRotation.Quaternion();
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = CurRelRotQuat * DeltaRotation.Quaternion();
 	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
 }
 
 void USceneComponent::AddLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	const FQuat CurRelRotQuat = RelativeRotation.Quaternion();
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = CurRelRotQuat * DeltaRotation;
 	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
 }
 
 void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	const FTransform RelativeTransform( RelativeRotation, RelativeLocation, FVector(1,1,1) ); // don't use scaling, so it matches how AddLocalRotation/Offset work
+	const FTransform RelativeTransform( RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, FVector(1,1,1) ); // don't use scaling, so it matches how AddLocalRotation/Offset work
 	const FTransform NewRelTransform = DeltaTransform * RelativeTransform;
 	SetRelativeTransform(NewRelTransform, bSweep, OutSweepHitResult);
 }
@@ -833,7 +837,7 @@ void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool 
 
 FTransform USceneComponent::GetRelativeTransform() const
 {
-	const FTransform RelativeTransform( RelativeRotation.Quaternion(), RelativeLocation, RelativeScale3D );
+	const FTransform RelativeTransform( RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D );
 	return RelativeTransform;
 }
 
@@ -966,7 +970,7 @@ void USceneComponent::SetWorldLocationAndRotationNoPhysics(const FVector& NewLoc
 		{
 			// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
 			const FQuat NewRelQuat = ParentToWorld.GetRotation().Inverse() * NewRotation.Quaternion();
-			RelativeRotation = NewRelQuat.Rotator();
+			RelativeRotation = RelativeRotationCache.QuatToRotator(NewRelQuat);
 		}
 	}
 	else
@@ -1187,10 +1191,10 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
 				if (bMaintainWorldPosition == false)	//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
 				{
-					UpdateComponentToWorldWithParent(Parent, false, RelativeRotation.Quaternion());
-					RelativeLocation = ComponentToWorld.GetLocation();
-					RelativeRotation = ComponentToWorld.GetRotation().Rotator();
-					RelativeScale3D = ComponentToWorld.GetScale3D();
+					UpdateComponentToWorldWithParent(Parent, false, RelativeRotationCache.RotatorToQuat(RelativeRotation));
+					RelativeLocation = ComponentToWorld.GetLocation(); // or GetComponentLocation(), but worried about custom location...
+					RelativeRotation = GetComponentRotation();
+					RelativeScale3D = GetComponentScale();
 				}
 
 				return;
@@ -1235,11 +1239,11 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 				if(bAbsoluteRotation)
 				{
-					RelativeRotation = ComponentToWorld.Rotator();
+					RelativeRotation = GetComponentRotation();
 				}
 				else
 				{
-					RelativeRotation = RelativeTM.Rotator();
+					RelativeRotation = RelativeRotationCache.QuatToRotator(RelativeTM.GetRotation());
 				}
 				if(bAbsoluteScale)
 				{
@@ -1364,9 +1368,9 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallMo
 		// If desired, update RelativeLocation and RelativeRotation to maintain current world position after detachment
 		if(bMaintainWorldPosition)
 		{
-			RelativeLocation = ComponentToWorld.GetTranslation();
-			RelativeRotation = ComponentToWorld.Rotator();
-			RelativeScale3D = ComponentToWorld.GetScale3D();
+			RelativeLocation = ComponentToWorld.GetTranslation(); // or GetComponentLocation, but worried about custom location...
+			RelativeRotation = GetComponentRotation();
+			RelativeScale3D = GetComponentScale();
 		}
 
 		// calculate transform with new attachment condition
@@ -1825,6 +1829,7 @@ void USceneComponent::BeginDestroy()
 
 bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics, bool bTeleport)
 {
+	checkSlow(bWorldToComponentUpdated);
 	FQuat NewRotationQuat(RotationQuat);
 
 	// If attached to something, transform into local space
@@ -1844,11 +1849,9 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		}
 	}
 
-	const FRotator NewRotator = NewRotationQuat.Rotator();
-	if (!NewLocation.Equals(RelativeLocation) || !NewRotator.Equals(RelativeRotation))
+	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), 1e-6f))
 	{
 		RelativeLocation = NewLocation;
-		RelativeRotation = NewRotator;
 		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat, bTeleport);
 		return true;
 	}
@@ -2084,7 +2087,7 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 	// Calculate current ComponentToWorld transform
 	// We do this because at level load/duplication ComponentToWorld is uninitialized
 	{
-		const FTransform RelativeTransform(RelativeRotation, RelativeLocation, RelativeScale3D);
+		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
 		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
 	}
 
@@ -2106,7 +2109,7 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 	RelativeLocation = NewLocation;
 		
 	// Calculate the new ComponentToWorld transform
-	const FTransform RelativeTransform(RelativeRotation, RelativeLocation, RelativeScale3D);
+	const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
 	ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
 
 	// Physics move is skipped if physics state is not created or physics scene supports origin shifting

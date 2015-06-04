@@ -173,14 +173,17 @@ private:
 	TWeakObjectPtr<class APhysicsVolume> PhysicsVolume;
 
 public:
-	/** Current transform of this component, relative to the world */
-	FTransform ComponentToWorld;
-
 	/** Current bounds of this component */
 	FBoxSphereBounds Bounds;
 
-	UPROPERTY()
-	FVector RelativeTranslation_DEPRECATED;
+	/** Current transform of this component, relative to the world */
+	FTransform ComponentToWorld;
+
+private:
+	/** Cache that avoids Quat<->Rotator conversions if possible. Only to be used with ComponentToWorld.GetRotation(). */
+	FRotationConversionCache WorldRotationCache;
+
+public:
 
 	/** Location of this component relative to its parent */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category = Transform)
@@ -189,6 +192,21 @@ public:
 	/** Rotation of this component relative to its parent */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	FRotator RelativeRotation;
+
+private:
+	/** Cache that avoids Quat<->Rotator conversions if possible. Only to be used with RelativeRotation. */
+	FRotationConversionCache RelativeRotationCache;
+
+public:
+	/**
+	*	Non-uniform scaling of this component relative to its parent.
+	*	Note that scaling is always applied in local space (no shearing etc)
+	*/
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, interp, Category=Transform)
+	FVector RelativeScale3D;
+
+	UPROPERTY()
+	FVector RelativeTranslation_DEPRECATED;
 
 	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */
 	UPROPERTY(Category = Mobility, EditAnywhere, BlueprintReadOnly)
@@ -215,13 +233,6 @@ private:
 	virtual void PostNetReceive() override;
 
 public:
-
-	/** 
-	 *	Non-uniform scaling of this component relative to its parent. 
-	 *	Note that scaling is always applied in local space (no shearing etc)
-	 */
-	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, interp, Category=Transform)
-	FVector RelativeScale3D;
 
 	/**
 	 * Velocity of this component.
@@ -642,7 +653,7 @@ public:
 	/** Return rotation of the component, in world space */
 	FORCEINLINE FRotator GetComponentRotation() const
 	{
-		return ComponentToWorld.Rotator();
+		return WorldRotationCache.NormalizedQuatToRotator(ComponentToWorld.GetRotation());
 	}
 
 	/** Return rotation quaternion of the component, in world space */
@@ -876,7 +887,7 @@ FORCEINLINE_DEBUGGABLE bool USceneComponent::MoveComponent(const FVector& Delta,
 
 FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(NewLocation, RelativeRotation, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(NewLocation, RelativeRotationCache.RotatorToQuat(RelativeRotation), bSweep, OutSweepHitResult);
 }
 
 FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
@@ -896,7 +907,7 @@ FORCEINLINE_DEBUGGABLE void USceneComponent::SetRelativeLocationAndRotation(FVec
 
 FORCEINLINE_DEBUGGABLE void USceneComponent::AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
 {
-	SetRelativeLocationAndRotation(RelativeLocation + DeltaLocation, RelativeRotation, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation + DeltaLocation, RelativeRotationCache.RotatorToQuat(RelativeRotation), bSweep, OutSweepHitResult);
 }
 
 FORCEINLINE_DEBUGGABLE void USceneComponent::AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
