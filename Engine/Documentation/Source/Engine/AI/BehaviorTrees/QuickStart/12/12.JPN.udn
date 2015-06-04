@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:12.タスクの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -21,6 +21,13 @@ Description:ステップ 12タスクの作成
 [/VAR]
 
 %Steps%
+
+Tasks ノードは、AI を移動するなどのように何かを "実行する" ノード、あるいは Blackboard 値を調整します。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
+
+**Task** ノードは基本的には **Move To** ノードを再生成したものです。大きな違いは、Task ノードは常に AI をプレイヤーの位置ではなくて Pawn に向かって走らせることです。また、内容を細かくして、**Finish Execute** を実行しないと Task ノードが処理を継続するか確認する場合に便利です。**AI MoveTo** ノードがこれを完璧に表示します。
+
+
+## 手順
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
 1. New Task ![](newTask_button.png) ボタンをクリックします。
