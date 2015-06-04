@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573946
 Availability:Public
 Title:1.ポーンのカスタマイズ
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -21,9 +21,9 @@ Description:ポーン入門
 
 %Steps%
 
-[REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 プロジェクトの作成、プロジェクトにC++コードを追加、またコードをコンパイルできる方を想定しています。[/REGION]
+[REGION:tip] **アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 プロジェクトの作成、プロジェクトに C++ コードを追加、またコードをコンパイルできる方を想定しています。[/REGION]
 
-1. まず「HowTo_PlayerInput」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。その後「MyPawn」と名前を付けたカスタマイズした **Pawn** クラスをプロジェクトに追加します。
+1. まず「HowTo_PlayerInput」という名前のスターターコンテンツを使用して、Basic Code プロジェクトを作成します。その後「MyPawn」と名前を付けたカスタマイズした **Pawn** クラスをプロジェクトに追加します。
 
 	[REGION:note]**ポーン** は人間のプレイヤーまたはAIによる制御が設定されている **アクタ** の一種です。[/REGION]
 
@@ -36,12 +36,12 @@ Description:ポーン入門
 		// Set this pawn to be controlled by the lowest-numbered player（このポーンが最小値のプレイヤーで制御されるように設定）
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
 
-1. 次に基本的な **コンポーネント** をいくつか構成します。コードによる **コンポーネント** の追加や管理に加えて **コンポーネント** の共通タイプに関する詳細を知りたいユーザーは、[%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components) を参照してください。作成する **コンポーネント** を追跡するには、クラス定義の下にある「 `MyPawn.h` 」へ以下のコードを追加してください。
+1. 次に基本的な **コンポーネント** をいくつか構成します。コードによる **コンポーネント** の追加や管理に加えて **コンポーネント** の共通タイプの詳細を知りたいユーザーは、[%Programming\Tutorials\Components:title% tutorial](Programming\Tutorials\Components) を参照してください。作成する **コンポーネント** を追跡するには、クラス定義の下にある「 `MyPawn.h` 」へ以下のコードを追加してください。
 
-		UPROPERTY()
+		UPROPERTY(EditAnywhere)
 		USceneComponent* OurVisibleComponent;
 
-	[REGION:note]この変数は **アンリアルエンジン** で表示されるように **UPROPERTY** とタグが付けられています。ゲームの起動時や、プロジェクトまたはレベルが閉じられて再ロードされた時に変数のリセットを防ぐために、これは重要です。[/REGION]
+	[REGION:note]この変数は **アンリアルエンジン** で表示されるように **UPROPERTY** とタグが付けられます。ゲームの起動時や、プロジェクトまたはレベルが閉じられて再ロードされた時に変数のリセットを防ぐために、これは重要です。[/REGION]
 
 	「 `MyPawn.cpp` 」ファイルへ戻って、以下のコードを **AMyPawn::AMyPawn** に追加します：
 
@@ -96,7 +96,7 @@ Description:ポーン入門
 				// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 			};
 
