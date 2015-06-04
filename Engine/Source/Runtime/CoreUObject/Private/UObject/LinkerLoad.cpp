@@ -3757,7 +3757,7 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 			}
 		}
 	}
-	return Export.Object;
+	return Export.bExportLoadFailed ? nullptr : Export.Object;
 }
 
 bool FLinkerLoad::IsImportNative(const int32 Index) const

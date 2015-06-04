@@ -225,7 +225,7 @@ void UPanelWidget::PostLoad()
 	for ( int32 SlotIndex = 0; SlotIndex < Slots.Num(); SlotIndex++ )
 	{
 		// Remove any slots where their content is null, we don't support content-less slots.
-		if ( Slots[SlotIndex]->Content == nullptr )
+		if (!Slots[SlotIndex] || Slots[SlotIndex]->Content == nullptr)
 		{
 			Slots.RemoveAt(SlotIndex);
 			SlotIndex--;
