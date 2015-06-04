@@ -1187,15 +1187,12 @@ void ACharacter::UpdateSimulatedPosition(const FVector& NewLocation, const FRota
 
 		// Only need to check for encroachment when teleported without any velocity.
 		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
-		if (CharacterMovement && CharacterMovement->Velocity.IsZero())
+		bSimGravityDisabled = false;
+		if (CharacterMovement->Velocity.IsZero())
 		{
 			if (GetWorld()->EncroachingBlockingGeometry(this, NewLocation, NewRotation))
 			{
 				bSimGravityDisabled = true;
-			}
-			else
-			{
-				bSimGravityDisabled = false;
 			}
 		}
 		
