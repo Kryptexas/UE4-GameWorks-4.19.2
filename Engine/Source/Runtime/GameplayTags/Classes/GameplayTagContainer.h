@@ -186,6 +186,14 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 */
 	virtual void AppendTags(FGameplayTagContainer const& Other);
 
+	/** 
+	 * Adds all the tags that match between the two specified containers to this container 
+	 *
+	 * @param OtherA TagContainer that has the matching tags you want to add to this container 
+	 * @param OtherB TagContainer used to check for matching tags
+	 */
+	virtual void AppendMatchingTags(FGameplayTagContainer const& OtherA, FGameplayTagContainer const& OtherB);
+
 	/**
 	 * Add the specified tag to the container
 	 *

@@ -186,6 +186,17 @@ void FGameplayTagContainer::AppendTags(FGameplayTagContainer const& Other)
 	}
 }
 
+void FGameplayTagContainer::AppendMatchingTags(FGameplayTagContainer const& OtherA, FGameplayTagContainer const& OtherB)
+{
+	for(TArray<FGameplayTag>::TConstIterator It(OtherA.GameplayTags); It; ++It)
+	{
+		if (OtherB.HasTag(*It, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		{
+			AddTag(*It);		
+		}
+	}
+}
+
 void FGameplayTagContainer::AddTag(const FGameplayTag& TagToAdd)
 {
 	if (TagToAdd.IsValid())
