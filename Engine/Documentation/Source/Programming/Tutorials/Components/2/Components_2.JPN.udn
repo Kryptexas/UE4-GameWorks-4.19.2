@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2573818
 Availability:Public
-Title:2.入力設定とPawn Movement Componentを作成
+Title:2.入力設定とPawn Movement Componentの作成
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
-Description:ポーンを動かす方法を定義するために入力設定を行いカスタムPawn Movement Component を構築する
+Description:ポーンの移動方法を定義する入力設定とカスタムPawn Movement Component の構築
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -26,7 +26,7 @@ Description:ポーンを動かす方法を定義するために入力設定を�
 
 	[![](EditProjectSettings.png)](EditProjectSettings.png)
 
-	その後、左側のパネル **エンジン** セクションから **Input（入力）** を選択します。パーティクルシステムの切り替えを設定する **Action Mapping（アクションマッピング）** 、 **ポーン** を動かす2つの **Axis Mappings** 、そして **ポーン** を回転するためにもう一つの **Axis Mapping** を設定しなくてはいけません。
+	設定メニューに移動したら、左パネルの **エンジン** セクションから **Input（入力）** を選択します。パーティクルシステムの切り替えを設定する **Action Mapping（アクションマッピング）** 、 **ポーン** を動かす2つの **Axis Mappings** 、そして **ポーン** を回転するためにもう一つの **Axis Mapping** を設定しなくてはいけません。
 
 	| ----- | ----- | ----- |
 	| Action Mapping | | |
@@ -42,7 +42,7 @@ Description:ポーンを動かす方法を定義するために入力設定を�
 
 	[![](InputSettings.png)](InputSettings.png)
 
-1. **Pawn** クラスですべての動きを直接処理する代わりに、動きを管理する **Movement Component** を作成します。このチュートリアルでは、 **Pawn Movement Component** クラスを拡張します。最初に **ファイル** のドロップダウンメニューから **Add Code to Project（コードをプロジェクトに追加）** を選択します。
+1. **Pawn** クラスですべての動きを直接処理する代わりに、動きを管理する **Movement Component** を作成します。このチュートリアルでは、 **Pawn Movement Component** クラスを拡張します。最初に **ファイル** のドロップダウンメニューから **Add Code to Project（コードをプロジェクトに追加）** コマンドを選択します。
 
 	[![](AddCPPCode.png)](AddCPPCode.png)
 
@@ -54,7 +54,7 @@ Description:ポーンを動かす方法を定義するために入力設定を�
 
 	[![](ChooseParentClass.png)](ChooseParentClass.png)
 
-	[REGION:tip]**Pawn Movement Components** にはパワフルな内蔵機能がいくつかあり共通の物理機能に役立ちます。また、多数ある **Pawn** タイプの間で移動コードを共有するのに最適な方法です。プロジェクトが大きくなるにつれて乱雑な状態になったり **ポーン** がより複雑になることを防ぐために、機能の分割に **コンポーネント** を使用することはグッドプラクティスです。[/REGION]
+	[REGION:tip]**Pawn Movement Components** にはパワフルな内蔵機能がいくつかあり共通の物理機能に役立ちます。また、多数ある **Pawn** タイプの間で移動コードの共有に最適な方法です。プロジェクトが大きくなるにつれて乱雑な状態になったり **ポーン** がより複雑になることを防ぐために、機能の分割に **コンポーネント** を使用することはグッドプラクティスです。[/REGION]
 
 	**Pawn** クラスを "CollidingPawn" と呼ぶため、このクラスを "CollidingPawnMovementComponent" と呼びましょう。
 
