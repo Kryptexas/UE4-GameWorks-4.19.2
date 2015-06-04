@@ -148,20 +148,20 @@ public:
 
 	float SubtitlePriority;
 
-	/** frequency with which to check for occlusion from its closest listener */
+	/** Frequency with which to check for occlusion from its closest listener */
 	float OcclusionCheckInterval;
 
-	/** last time we checked for occlusion */
+	/** Last time we checked for occlusion */
 	float LastOcclusionCheckTime;
 
 	FTransform Transform;
 
-	/** location last time playback was updated */
+	/** Location last time playback was updated */
 	FVector LastLocation;
 
 	FAttenuationSettings AttenuationSettings;
 
-	/** cache what volume settings we had last time so we don't have to search again if we didn't move */
+	/** Cache what volume settings we had last time so we don't have to search again if we didn't move */
 	FInteriorSettings LastInteriorSettings;
 
 	class AAudioVolume* LastAudioVolume;

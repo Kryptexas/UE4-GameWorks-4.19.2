@@ -295,13 +295,13 @@ void FSlateTextureRenderTarget2DResource::ReleaseDynamicRHI()
 {
 	check(IsInRenderingThread());
 
-	// release the FTexture RHI resources here as well
+	// Release the FTexture RHI resources here as well
 	ReleaseRHI();
 
 	Texture2DRHI.SafeRelease();
 	RenderTargetTextureRHI.SafeRelease();	
 
-	// remove from global list of deferred clears
+	// Remove from global list of deferred clears
 	RemoveFromDeferredUpdateList();
 }
 
@@ -309,7 +309,7 @@ void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandList
 {
 	check(IsInRenderingThread());
 
-	// clear the target surface to green
+	// Clear the target surface to green
 	if (bClearRenderTarget)
 	{
 		SetRenderTarget(RHICmdList, RenderTargetTextureRHI,FTextureRHIRef());
@@ -317,7 +317,7 @@ void FSlateTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandList
 		RHICmdList.Clear(true,ClearColor,false,0.f,false,0, FIntRect());
 	}
 
-	// copy surface to the texture for use
+	// Copy surface to the texture for use
 	RHICmdList.CopyToResolveTarget(RenderTargetTextureRHI, TextureRHI, true, FResolveParams());
 }
 

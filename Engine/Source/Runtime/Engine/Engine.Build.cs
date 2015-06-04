@@ -309,7 +309,7 @@ public class Engine : ModuleRules
 		else
 		{
 			// Because we test WITH_RECAST in public Engine header files, we need to make sure that modules
-			// that import us also have this definition set appropriately.  Recast is a private dependency
+			// that import this also have this definition set appropriately.  Recast is a private dependency
 			// module, so it's definitions won't propagate to modules that import Engine.
 			Definitions.Add("WITH_RECAST=0");
 		}

@@ -75,16 +75,16 @@ namespace HTML5LaunchHelper
 			if (bStartPythonServer)
 			{
 				BeginPythonServer();
-				// Give the server time to start. 1 sec should be enough
+				// Give the server time to start, 1 Second should be enough.
 				System.Threading.Thread.Sleep(1000);
 			}
 
 			var bIsSafari = BrowserPath.Contains("Safari");
 
 			// Browsers can be multiprocess programs (Chrome, basically)
-			// which we need to catch spawning of other child processes. The trick is
-			// they aren't really child-processes. There appears to be no real binding between the two
-			// so we kinda fudge it a bit here
+			// so we need to catch spawning of other child processes. The trick is
+			// they aren't really child-processes at all. There appears to be no real binding between the two,
+			// So we kind of fudged it a bit here.
 			var PrevProcesses = Process.GetProcesses();
 			var FirstProcess = SpawnBrowserProcess(BrowserPath, !bIsSafari ? Url + " " + AdditionalArgs : "");
 			ProcessesToWatch.Add(FirstProcess);
@@ -146,7 +146,7 @@ namespace HTML5LaunchHelper
 					FirstProcess = null;
 				}
 
-				//If any service processes have died this is considered an error
+				// It is considered an error if any service processes have died.
 				foreach (var proc in ProcessesToKill)
 				{
 					if (proc.HasExited)
@@ -161,7 +161,7 @@ namespace HTML5LaunchHelper
 			}
 			System.Console.WriteLine("All processes being watched have exited.\n");
 
-			//All processes we cared about have finished so clean up the services we spawned for them.
+			// All processes we cared about have finished, So it is time to clean up the services we spawned for them.
 			foreach (var proc in ProcessesToKill)
 			{
 				if (!proc.HasExited)
