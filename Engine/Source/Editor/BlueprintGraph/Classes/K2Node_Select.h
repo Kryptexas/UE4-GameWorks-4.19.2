@@ -29,7 +29,7 @@ class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 
 	/** List of the current entries in the enum (Pin Friendly Names) */
 	UPROPERTY()
-	TArray<FName> EnumEntryFriendlyNames;
+	TArray<FText> EnumEntryFriendlyNames;
 
 	/** Whether we need to reconstruct the node after the pins have changed */
 	UPROPERTY(Transient)
