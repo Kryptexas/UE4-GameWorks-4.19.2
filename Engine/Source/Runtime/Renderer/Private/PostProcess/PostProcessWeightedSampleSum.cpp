@@ -239,7 +239,7 @@ void SetFilterShaders(
 	auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 	const auto DynamicNumSample = CVarLoopMode.GetValueOnRenderThread();
 	
-	if (NumSamples > MAX_FILTER_COMPILE_TIME_SAMPLES && DynamicNumSample != 0 || DynamicNumSample == 2)
+	if ((NumSamples > MAX_FILTER_COMPILE_TIME_SAMPLES && DynamicNumSample != 0) || (DynamicNumSample == 2))
 	{
 		// there is to many samples, so we use the dynamic sample count shader
 		
