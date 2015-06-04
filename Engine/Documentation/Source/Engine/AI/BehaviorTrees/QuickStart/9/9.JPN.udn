@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:9.キャラクターを配置する
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -22,11 +22,17 @@ Description:ステップ 9.キャラクターを配置する
 
 %Steps%
 
-1. **コンテンツ ブラウザ** からステップ 3 で作成した **キャラクター** をクリックしレベル内にドラッグします。
+[EXCERPT:s9]
+
+プレイヤーもしくは背景とインタラクトできるように、AI_Character をレベルに配置する必要があります。
+
+## 手順
+
+* **コンテンツ ブラウザ** で`AI_Character` をクリックして、さきほど作成したレベル内へドラッグします。
 
 [REGION:lightbox]
 [![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
 [/REGION]
-
+[/EXCERPT:s9]
 
 %Steps%
