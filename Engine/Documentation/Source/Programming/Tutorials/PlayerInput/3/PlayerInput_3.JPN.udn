@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573946
 Availability:Public
 Title:3.ゲームアクションのプログラミングとバインド
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -36,7 +36,7 @@ Description:入力と C++ コードのバインド
 
 	[REGION:note]4つの入力関数は入力イベントと結合されます。実行時に、新規の入力変数に格納した値を更新します。この値はMyPawn がインゲームの動作を判断するために使用します。[/REGION]
 
-1. 「`MyPawn.cpp` 」に切り替えて、宣言したばかりの4つの関数をプログラミングします。次のコードも追加します。
+1. 「`MyPawn.cpp` 」に切り替えて、宣言したばかりの4つの関数をプログラミングします。次のコードを追加します。
 
 		void AMyPawn::Move_XAxis(float AxisValue)
 		{
@@ -59,8 +59,8 @@ Description:入力と C++ コードのバインド
 		{
 			bGrowing = false;
 		}
-	入力から受け取る値を「－1」から「＋1」の範囲にコンストレイントするために **FMath::Clamp** を使用します。サンプルでは問題ありませんが、軸に対し同じように影響を与える複数キーがある場合は、プレイヤーがこれらの値を同時にパスすると値は一緒に加算されます。例えば「W」と「↑」両方が1.0値のスケールで MoveX にマッピングされている場合は、両方のキーを同時に押すと AxisValue は値2.0になります。クランプしなければ、この値は結果的にプレイヤーを倍速で移動させます。
-	[REGION:note]2つの "Move" 関数は軸値を浮動小数値で受け取る一方で、 "Grow" 関数はそうでないことにお気づきのユーザーがいるかもしれません。Move 関数は軸マッピングの MoveX と MoveY にマッピングされているため、浮動小数点パラメータになります。アクションマッピングにこのパラメータはありません。[/REGION]
+	入力から受け取る値を「－1」から「＋1」の範囲にコンストレイントするために **FMath::Clamp** を使用します。サンプルでは問題ありませんが、軸に同じように影響を与える複数キーがある場合は、プレイヤーがこれらの値を同時にパスすると値は一緒に加算されます。例えば「W」と「↑」両方が1.0値のスケールでMoveXにマッピングされている場合は、両方のキーを同時に押すとAxisValueは値2.0になります。クランプしなければ、この値は結果的にプレイヤーを倍速で移動させます。
+	[REGION:note]2つの "Move" 関数は軸値を浮動小数値で受け取る一方で、 "Grow" 関数は違うことにお気づきかもしれません。Move 関数は軸マッピングのMoveXとMoveYにマッピングされているため、浮動小数点パラメータになります。アクションマッピングにこのパラメータはありません。[/REGION]
 
 1. 入力関数を定義したので、適切な入力に対応するようにこれらをバインドしなくてはいけません。**AMyPawn::SetupPlayerInputComponent** に以下のコードを追加します：
 
@@ -68,11 +68,11 @@ Description:入力と C++ コードのバインド
 		InputComponent->BindAction("Grow", IE_Pressed, this, &AMyPawn::StartGrowing);
 		InputComponent->BindAction("Grow", IE_Released, this, &AMyPawn::StopGrowing);
 
-		// Respond every frame to the values of our two movement axes, "MoveX" and "MoveY".
+		// Respond every frame to the values of our two movement axes, "MoveX" and "MoveY".（各フレームは2つの移動軸値、 MoveX と MoveY に反応）
 		InputComponent->BindAxis("MoveX", this, &AMyPawn::Move_XAxis);
 		InputComponent->BindAxis("MoveY", this, &AMyPawn::Move_YAxis);
 
-1. 設定した入力値で更新を行う変数を設定しました。最後に変数を使用するコードを記述します。次のコードを **AMyPawn::Tick** に追加しましょう：
+1. 構成した入力値で更新を行う変数を設定しました。最後に変数を使用するコードを記述します。次のコードを **AMyPawn::Tick** に追加しましょう：
 
 		// Handle growing and shrinking based on our "Grow" action（Growアクションに基づいて拡大・縮小を処理）
 		{
@@ -142,7 +142,7 @@ Description:入力と C++ コードのバインド
 				// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 
 				//Input functions（入力関数）
@@ -165,7 +165,7 @@ Description:入力と C++ コードのバインド
 			// Sets default values（デフォルト値を設定）
 			AMyPawn::AMyPawn()
 			{
-				// Set this pawn to call Tick() every frame.（フレームごとに Tick() を呼び出すためこのポーンを設定）You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+				// Set this pawn to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
 				PrimaryActorTick.bCanEverTick = true;
 
 				// Set this pawn to be controlled by the lowest-numbered player（このポーンが最小値のプレイヤーで制御されるように設定）
@@ -228,11 +228,11 @@ Description:入力と C++ コードのバインド
 			{
 				Super::SetupPlayerInputComponent(InputComponent);
 
-				// Respond when our "Grow" key is pressed or released.（Growキーが押された時またはリリースされた時に反応）
+				// Respond when our "Grow" key is pressed or released.（Grow キーが押された時またはリリースされた時に反応）
 				InputComponent->BindAction("Grow", IE_Pressed, this, &AMyPawn::StartGrowing);
 				InputComponent->BindAction("Grow", IE_Released, this, &AMyPawn::StopGrowing);
 
-				// Respond every frame to the values of our two movement axes, 
+				// Respond every frame to the values of our two movement axes, "MoveX" and "MoveY".
 				InputComponent->BindAxis("MoveX", this, &AMyPawn::Move_XAxis);
 				InputComponent->BindAxis("MoveY", this, &AMyPawn::Move_YAxis);
 			}
