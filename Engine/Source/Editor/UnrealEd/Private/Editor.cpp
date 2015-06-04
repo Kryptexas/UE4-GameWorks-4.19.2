@@ -812,6 +812,9 @@ namespace EditorUtilities
 		}
 		else if (UStructProperty* const StructProperty = Cast<UStructProperty>(InProperty))
 		{
+			// Ensure that the target struct is initialized before copying fields from the source.
+			StructProperty->InitializeValue_InContainer(InTargetPtr);
+
 			const int32 PropertyArrayDim = InProperty->ArrayDim;
 			for (int32 ArrayIndex = 0; ArrayIndex < PropertyArrayDim; ArrayIndex++)
 			{
