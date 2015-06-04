@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2572470
-Availability:Public
+﻿Availability:Public
 Title:11.FindPlayer EQS を作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description:レベル内でプレイヤーのTopDownCharacter のすべてのインスタンスを見つける Environment Query を作成します。
+Description:レベル内でプレイヤーの TopDownCharacter のすべてのインスタンスを見つける Environment Query を作成します。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,13 +23,13 @@ Description:レベル内でプレイヤーのTopDownCharacter のすべてのイ
 
 これは 2 つある **Environment Queries** の中でより単純なものです。AI の 1500 ユニット内ですべての TopDownCharacters のリストを戻して、次に AI が TopDownCharacters を見ることができるかをテストします。AI が TopDownCharacters を見ることができれば、**ビヘイビア ツリー** 用に **ActorToFleeFrom** を取得します。
 
-このプロセスを実現するには多くの方法があります。それぞれ長所と短所があります。この場合 EQS を使用すると、後でさらにテストを追加して、そこから実行する _ベスト_ な敵 (TopDownCharacter) を選ぶことができます。
+このプロセスを実現するには多くの方法があります。それぞれ長所と短所があります。この場合 EQS を使用すると、後でさらにテストを追加して、そこから実行する _一番良い_ 敵 (TopDownCharacter) を選ぶことができます。
 
 以下は簡単な用語集です。
 
 * **Generator** は、**Context** に関連して **Items** を作成します。
 * **Items** は多くの場合、 **Context** (Item X は Context Y からどれくらい離れているか) に関連して **Tests** で使用されます。
-* **Items** は **Tests** 結果に基づきカリングまたはスコアリングされます。
+* **Items** は **Tests** 結果に基づき選別またはスコアリングされます。
 
 ## ステップ
 
@@ -65,13 +64,13 @@ Description:レベル内でプレイヤーのTopDownCharacter のすべてのイ
 	* **Search Radius** = 1500
 	* **Searched Actor Class** = TopDownCharacter
 
-	この **Generator** は、この半径内の特定のクラスのすべてのアクタを見つけて、そこから **Items** を作成します。
+	この **Generator** は、この半径内で、特定のクラスのすべてのアクタを見つけて、そこから **Items** を作成します。
 
 1. **Trace** テストを **ActorsOfClass** ノードに追加します。
 
 	![](addTraceTest.png)
 
-	トレース テストはコンテキストがアイテムに対して視線を持っているかをチェックするのに役立ちます。この場合、AI から Item です (この場合 TopDownCharacters/Players )。
+	トレース テストはコンテキストがアイテムに対して視線を持っているかをチェックするのに役立ちます。この場合、AI から Item (この場合 TopDownCharacters/Players )です。
 
 1. **ActorsOfClass** ノードを左クリックして Trace Test を選択します。[Details] パネルで、 **Bool Match** Property を `false` に変更します。
 
