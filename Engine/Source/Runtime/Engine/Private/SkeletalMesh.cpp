@@ -3498,9 +3498,9 @@ FString USkeletalMesh::GetDesc()
 	return FString::Printf( TEXT("%d Triangles, %d Bones"), Resource->LODModels[0].GetTotalFaces(), RefSkeleton.GetNum() );
 }
 
-#if WITH_APEX_CLOTHING
 bool USkeletalMesh::IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections) const
 {
+#if WITH_APEX_CLOTHING
 	if(ImportedResource.IsValid())
 	{
 		for(FStaticLODModel& LodModel : ImportedResource->LODModels)
@@ -3524,10 +3524,10 @@ bool USkeletalMesh::IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorresp
 			}
 		}
 	}
+#endif
 
 	return false;
 }
-#endif
 
 /*-----------------------------------------------------------------------------
 USkeletalMeshSocket
