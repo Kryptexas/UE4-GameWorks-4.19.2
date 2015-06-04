@@ -229,3 +229,6 @@ public:
 	/** Virtual destructor. */
 	virtual ~IMessageRpcClient() { }
 };
+
+
+Expose_TNameOf(IMessageRpcClient)
