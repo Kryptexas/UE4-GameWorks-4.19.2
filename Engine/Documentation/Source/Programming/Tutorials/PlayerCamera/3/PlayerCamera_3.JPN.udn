@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573881
 Availability:Public
-Title:3.入力に対応するC++コードの記述
+Title:3.入力に対応する C++ コードの記述
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:入力でポーンとカメラをコントロールするコードの実装
 
@@ -22,7 +22,7 @@ Description:入力でポーンとカメラをコントロールするコード�
 
 %Steps%
 
-1. 使用可能な入力マッピングをゲームに設定したので、受信データを格納するメンバ変数をいくつか設定しましょう。更新の間に、移動とマウスから見える軸それぞれの2Dベクター値が必要です。ズームインまたはズームアウトビューのどちらへ移動させるべきか、2つのステートの間隔が現時点でどれくらいあるのかも知る必要があります。これを実現するために「PawnWithCamera.h」ファイルのクラス定義へ以下のコードを追加しなくてはいけません：
+1. 使用可能な入力マッピングをゲームに設定したので、受信データを格納するメンバ変数をいくつか設定しましょう。更新の間に、移動とマウスから見える軸それぞれの 2D ベクター値が必要です。ズームインまたはズームアウトビューのどちらへ移動させるべきか、2つのステートの間隔が現時点でどれくらいあるのかも知る必要があります。これを実現するために「PawnWithCamera.h」ファイルのクラス定義へ以下のコードを追加しなくてはいけません：
 
 		//Input variables（入力変数）
 		FVector2D MovementInput;
@@ -73,7 +73,7 @@ Description:入力でポーンとカメラをコントロールするコード�
 			bZoomingIn = false;
 		}
 
-	[REGION:note]ZoomFactor にはまだ何もしていません。この変数はボタンのステートに基づいて時間の経過と共に常に変化するため、 **ポーン** の **Tick** 関数を実行中に更新されます。[/REGION]
+	[REGION:note]ZoomFactor にはまだ何もしていません。この変数はボタンのステートに基づいて時間の経過と共に常に変化するため、 **ポーン** の **Tick** 関数実行時に更新されます。[/REGION]
 
 1. 入力データを格納するコードを作成したので、あとは **アンリアルエンジン** にコードを呼び出すタイミングを伝えるのみです。**ポーン** に対応するイベントを入力するバインディング関数は **APawnWithCamera::SetupPlayerInputComponent** にバインディングコードを追加するのみのシンプルな作業です。以下のように追加します：
 
@@ -140,7 +140,7 @@ Description:入力でポーンとカメラをコントロールするコード�
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
 
-	**スタティックメッシュ** やその他のビジュアル **コンポーネント** を自由に追加したり、または何も追加しないでプレイをお楽しみください。レベル内のプレイヤーをカメラで追跡する時に、カメラ移動のスムーズな加速と減速を感じるはずですが、回転はタイトで瞬間的な感じがします。Camera Rotation Lagを追加したりCamera Lagを増減させるなど **SpringArmComponent** のプロパティをいくつか変更して、コントロールの操作性の違いを感じてみてください。
+	**スタティックメッシュ** やその他のビジュアル **コンポーネント** を自由に追加したり、または何も追加しないでプレイをお楽しみください。レベル内のプレイヤーをカメラで追跡すると、カメラ移動はスムーズな加速と減速、回転はタイトで瞬間の動作に感じるはずです。Camera Rotation Lag を追加したり Camera Lag を増減させるなど **SpringArmComponent** のプロパティをいくつか変更して、コントロールの操作性の違いを感じてみてください。
 
 	[![](SpringArmValues.png)](SpringArmValues.png)
 
@@ -181,6 +181,7 @@ Description:入力でポーンとカメラをコントロールするコード�
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 
