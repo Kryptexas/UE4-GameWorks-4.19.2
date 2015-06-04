@@ -531,6 +531,7 @@ public:
 	ENGINE_API virtual bool GetScalarParameterValue(FName ParameterName, float& OutValue) const;
 	ENGINE_API virtual bool GetScalarCurveParameterValue(FName ParameterName, FInterpCurveFloat& OutValue) const;
 	ENGINE_API virtual bool GetTextureParameterValue(FName ParameterName, class UTexture*& OutValue) const;
+	ENGINE_API virtual bool GetTextureParameterOverrideValue(FName ParameterName, class UTexture*& OutValue) const;
 	ENGINE_API virtual bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const;
 	ENGINE_API virtual bool GetVectorCurveParameterValue(FName ParameterName, FInterpCurveVector& OutValue) const;
 	ENGINE_API virtual bool GetLinearColorParameterValue(FName ParameterName, FLinearColor& OutValue) const;

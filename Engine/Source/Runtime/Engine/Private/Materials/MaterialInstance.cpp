@@ -610,6 +610,30 @@ bool UMaterialInstance::GetTextureParameterValue(FName ParameterName, UTexture*&
 	}
 }
 
+bool UMaterialInstance::GetTextureParameterOverrideValue(FName ParameterName, UTexture*& OutValue) const
+{
+	if(ReentrantFlag)
+	{
+		return false;
+	}
+
+	const FTextureParameterValue* ParameterValue = GameThread_FindParameterByName(TextureParameterValues,ParameterName);
+	if(ParameterValue && ParameterValue->ParameterValue)
+	{
+		OutValue = ParameterValue->ParameterValue;
+		return true;
+	}
+	else if(Parent)
+	{
+		FMICReentranceGuard	Guard(this);
+		return Parent->GetTextureParameterOverrideValue(ParameterName,OutValue);
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool UMaterialInstance::GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue, int32& OutFontPage) const
 {
 	if( ReentrantFlag )

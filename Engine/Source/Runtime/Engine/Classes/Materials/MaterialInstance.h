@@ -252,6 +252,8 @@ public:
 	virtual ENGINE_API bool GetFontParameterValue(FName ParameterName, class UFont*& OutFontValue, int32& OutFontPage) const override;
 	virtual ENGINE_API bool GetScalarParameterValue(FName ParameterName, float& OutValue) const override;
 	virtual ENGINE_API bool GetTextureParameterValue(FName ParameterName, class UTexture*& OutValue) const override;
+	/** Searches for a parameter override for the named parameter and returns true if one was found.  Does not search the base UMaterial. */
+	virtual ENGINE_API bool GetTextureParameterOverrideValue(FName ParameterName, class UTexture*& OutValue) const override;
 	virtual ENGINE_API bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const override;
 	virtual ENGINE_API void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
 	virtual ENGINE_API void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) override;

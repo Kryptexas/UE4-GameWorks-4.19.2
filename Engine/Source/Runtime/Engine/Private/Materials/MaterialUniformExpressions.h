@@ -311,7 +311,7 @@ public:
 		else
 		{
 			OutValue = NULL;
-			if(!MaterialInterface->GetTextureParameterValue(ParameterName,OutValue))
+			if(!MaterialInterface->GetTextureParameterOverrideValue(ParameterName,OutValue))
 			{
 				OutValue = GetIndexedTexture(Material, TextureIndex);
 			}

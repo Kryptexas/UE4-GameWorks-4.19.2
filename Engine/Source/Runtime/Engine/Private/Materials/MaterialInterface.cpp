@@ -200,6 +200,11 @@ bool UMaterialInterface::GetTextureParameterValue(FName ParameterName, UTexture*
 	return false;
 }
 
+bool UMaterialInterface::GetTextureParameterOverrideValue(FName ParameterName, UTexture*& OutValue) const
+{
+	return false;
+}
+
 bool UMaterialInterface::GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue,int32& OutFontPage) const
 {
 	return false;

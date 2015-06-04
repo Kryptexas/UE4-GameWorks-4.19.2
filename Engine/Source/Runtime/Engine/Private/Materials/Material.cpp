@@ -1356,6 +1356,7 @@ bool UMaterial::GetVectorParameterValue(FName ParameterName, FLinearColor& OutVa
 			const UMaterialExpressionVectorParameter* Parameter = CastChecked<const UMaterialExpressionVectorParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue))
 			{
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
 				return true;
 			}
 		}
@@ -1398,6 +1399,7 @@ bool UMaterial::GetScalarParameterValue(FName ParameterName, float& OutValue) co
 			const UMaterialExpressionScalarParameter* Parameter = CastChecked<const UMaterialExpressionScalarParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue))
 			{
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
 				return true;
 			}
 		}
@@ -1440,6 +1442,7 @@ bool UMaterial::GetTextureParameterValue(FName ParameterName, UTexture*& OutValu
 			const UMaterialExpressionTextureSampleParameter* Parameter = CastChecked<const UMaterialExpressionTextureSampleParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue))
 			{
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
 				return true;
 			}
 		}
@@ -1482,6 +1485,7 @@ bool UMaterial::GetFontParameterValue(FName ParameterName, UFont*& OutFontValue,
 			const UMaterialExpressionFontSampleParameter* Parameter = CastChecked<const UMaterialExpressionFontSampleParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutFontValue, OutFontPage))
 			{
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
 				return true;
 			}
 		}
@@ -1525,6 +1529,7 @@ bool UMaterial::GetStaticSwitchParameterValue(FName ParameterName, bool& OutValu
 			const UMaterialExpressionStaticBoolParameter* Parameter = CastChecked<const UMaterialExpressionStaticBoolParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutValue, OutExpressionGuid))
 			{
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
 				return true;
 			}
 		}
@@ -1568,6 +1573,7 @@ bool UMaterial::GetStaticComponentMaskParameterValue(FName ParameterName, bool& 
 			const UMaterialExpressionStaticComponentMaskParameter* Parameter = CastChecked<const UMaterialExpressionStaticComponentMaskParameter>(Expression);
 			if (Parameter->IsNamedParameter(ParameterName, OutR, OutG, OutB, OutA, OutExpressionGuid))
 			{
+				// Warning: in the case of duplicate parameters with different default values, this will find the first in the expression array, not necessarily the one that's used for rendering
 				return true;
 			}
 		}
