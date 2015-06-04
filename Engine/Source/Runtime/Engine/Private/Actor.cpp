@@ -1212,18 +1212,6 @@ void AActor::SetOwner( AActor *NewOwner )
 	}
 }
 
-AActor* AActor::GetOwner() const
-{ 
-	return Owner; 
-}
-
-const AActor* AActor::GetNetOwner() const
-{
-	// NetOwner is the Actor Owner unless otherwise overridden (see PlayerController/Pawn/Beacon)
-	// Used in ServerReplicateActors
-	return Owner;
-}
-
 bool AActor::HasNetOwner() const
 {
 	if (Owner == NULL)
@@ -2554,11 +2542,6 @@ void AActor::CopyRemoteRoleFrom(const AActor* CopyFromActor)
 	}
 }
 
-ENetRole AActor::GetRemoteRole() const
-{
-	return RemoteRole;
-}
-
 void AActor::PostNetInit()
 {
 	if(RemoteRole != ROLE_Authority)
@@ -3004,11 +2987,6 @@ void AActor::SetActorEnableCollision(bool bNewActorEnableCollision)
 }
 
 
-bool AActor::GetActorEnableCollision() const
-{
-	return bActorEnableCollision;
-}
-
 bool AActor::Destroy( bool bNetForce, bool bShouldModifyLevel )
 {
 	// It's already pending kill or in DestroyActor(), no need to beat the corpse
@@ -3031,11 +3009,6 @@ bool AActor::Destroy( bool bNetForce, bool bShouldModifyLevel )
 void AActor::K2_DestroyActor()
 {
 	Destroy();
-}
-
-bool AActor::HasAuthority() const
-{
-	return (Role == ROLE_Authority);
 }
 
 void AActor::K2_DestroyComponent(UActorComponent* Component)

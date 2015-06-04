@@ -88,7 +88,7 @@ struct ENGINE_API FCollisionResponse
 	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
 
 	/** Returns the response set on the specified channel */
-	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
+	FORCEINLINE_DEBUGGABLE ECollisionResponse GetResponse(ECollisionChannel Channel) const { return ResponseToChannels.GetResponse(Channel); }
 	const FCollisionResponseContainer& GetResponseContainer() const { return ResponseToChannels; }
 
 	/** Set all channels from ChannelResponse Array **/
@@ -764,7 +764,7 @@ public:
 	void SetResponseToChannel(ECollisionChannel Channel, ECollisionResponse NewResponse);
 
 	/** Get the collision response of this body to a particular channel */
-	ECollisionResponse GetResponseToChannel(ECollisionChannel Channel) const;
+	FORCEINLINE_DEBUGGABLE ECollisionResponse GetResponseToChannel(ECollisionChannel Channel) const { return CollisionResponses.GetResponse(Channel); }
 
 	/** Set the response of this body to all channels */
 	void SetResponseToAllChannels(ECollisionResponse NewResponse);
@@ -776,13 +776,13 @@ public:
 	void SetResponseToChannels(const FCollisionResponseContainer& NewReponses);
 
 	/** Get Collision ResponseToChannels container for this component **/
-	const FCollisionResponseContainer& GetResponseToChannels() const;
+	FORCEINLINE_DEBUGGABLE const FCollisionResponseContainer& GetResponseToChannels() const { return CollisionResponses.GetResponseContainer(); }
 
 	/** Set the movement channel of this body to the one supplied */
 	void SetObjectType(ECollisionChannel Channel);
 
 	/** Get the movement channel of this body **/
-	ECollisionChannel GetObjectType() const;
+	FORCEINLINE_DEBUGGABLE ECollisionChannel GetObjectType() const { return ObjectType; }
 
 	/** Controls what kind of collision is enabled for this body and allows optional disable physics rebuild */
 	void SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bUpdatePhysicsFilterData = true);
@@ -800,7 +800,7 @@ public:
 	void SetCollisionProfileName(FName InCollisionProfileName);
 
 	/** Get the current collision profile assigned to this body */
-	FName GetCollisionProfileName() const;
+	FORCEINLINE_DEBUGGABLE FName GetCollisionProfileName() const { return CollisionProfileName; }
 
 	/** return true if it uses Collision Profile System. False otherwise*/
 	bool DoesUseCollisionProfile() const;

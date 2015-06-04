@@ -2511,6 +2511,34 @@ FORCEINLINE FVector AActor::GetSimpleCollisionCylinderExtent() const
 	return FVector(Radius, Radius, HalfHeight);
 }
 
+FORCEINLINE_DEBUGGABLE bool AActor::GetActorEnableCollision() const
+{
+	return bActorEnableCollision;
+}
+
+FORCEINLINE_DEBUGGABLE bool AActor::HasAuthority() const
+{
+	return (Role == ROLE_Authority);
+}
+
+FORCEINLINE_DEBUGGABLE AActor* AActor::GetOwner() const
+{ 
+	return Owner; 
+}
+
+FORCEINLINE_DEBUGGABLE const AActor* AActor::GetNetOwner() const
+{
+	// NetOwner is the Actor Owner unless otherwise overridden (see PlayerController/Pawn/Beacon)
+	// Used in ServerReplicateActors
+	return Owner;
+}
+
+FORCEINLINE_DEBUGGABLE ENetRole AActor::GetRemoteRole() const
+{
+	return RemoteRole;
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 // Macro to hide common Transform functions in native code for classes where they don't make sense.
 // Note that this doesn't prevent access through function calls from parent classes (ie an AActor*), but

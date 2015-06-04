@@ -227,12 +227,6 @@ void FCollisionResponseContainer::ReplaceChannels(ECollisionResponse OldResponse
 	}
 }
 
-/** Returns if the specified channel is set */
-ECollisionResponse FCollisionResponseContainer::GetResponse(ECollisionChannel Channel) const
-{
-	return (ECollisionResponse)EnumArray[Channel];
-}
-
 FCollisionResponseContainer FCollisionResponseContainer::CreateMinContainer(const FCollisionResponseContainer& A, const FCollisionResponseContainer& B)
 {
 	FCollisionResponseContainer Result;
