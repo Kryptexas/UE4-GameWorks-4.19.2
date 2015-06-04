@@ -317,7 +317,7 @@ bool STutorialButton::ShouldShowAlert() const
 {
 	if ((bTestAlerts || !FEngineBuildSettings::IsInternalBuild()) && bTutorialAvailable && !(bTutorialCompleted || bTutorialDismissed))
 	{
-		return !GetMutableDefault<UTutorialStateSettings>()->AreAllTutorialsDismissed();
+		return (!GetMutableDefault<UEditorTutorialSettings>()->bDisableAllTutorialAlerts && !GetMutableDefault<UTutorialStateSettings>()->AreAllTutorialsDismissed());
 	}
 	return false;
 }
