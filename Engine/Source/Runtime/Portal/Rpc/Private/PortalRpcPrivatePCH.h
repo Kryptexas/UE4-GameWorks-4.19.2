@@ -28,4 +28,4 @@
 
 #include "PortalRpcLocator.h"
 #include "PortalRpcMessages.h"
-#include "PortalRpcProvider.h"
+#include "PortalRpcResponder.h"

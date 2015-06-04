@@ -29,9 +29,9 @@ public:
 		return MakeShareable(new FPortalRpcLocator);
 	}
 
-	virtual TSharedRef<IPortalRpcProvider> CreateProvider() override
+	virtual TSharedRef<IPortalRpcResponder> CreateResponder() override
 	{
-		return MakeShareable(new FPortalRpcProvider);
+		return MakeShareable(new FPortalRpcResponder);
 	}
 };
 

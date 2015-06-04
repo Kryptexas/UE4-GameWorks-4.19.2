@@ -5,20 +5,20 @@
 #include "ModuleManager.h"
 
 
-/* FPortalRpcProvider structors
+/* FPortalRpcResponder structors
  *****************************************************************************/
 
-FPortalRpcProvider::FPortalRpcProvider()
+FPortalRpcResponder::FPortalRpcResponder()
 {
 	MessageEndpoint = FMessageEndpoint::Builder("FRpcManager")
-		.Handling<FPortalRpcLocateServer>(this, &FPortalRpcProvider::HandleMessage);
+		.Handling<FPortalRpcLocateServer>(this, &FPortalRpcResponder::HandleMessage);
 }
 
 
-/* FPortalRpcProvider callbacks
+/* FPortalRpcResponder callbacks
  *****************************************************************************/
 
-void FPortalRpcProvider::HandleMessage(const FPortalRpcLocateServer& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
+void FPortalRpcResponder::HandleMessage(const FPortalRpcLocateServer& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	if (!LookupDelegate.IsBound())
 	{

@@ -10,9 +10,9 @@ DECLARE_DELEGATE_RetVal_OneParam(TSharedPtr<IMessageRpcServer>, FOnPortalRpcLook
 
 
 /**
- * Interface for Portal RPC endpoint providers.
+ * Interface for Portal RPC responders.
  */
-class IPortalRpcProvider
+class IPortalRpcResponder
 {
 public:
 
@@ -22,5 +22,5 @@ public:
 public:
 
 	/** Virtual destructor. */
-	~IPortalRpcProvider() { }
+	~IPortalRpcResponder() { }
 };

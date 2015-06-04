@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "IPortalRpcProvider.h"
+#include "IPortalRpcResponder.h"
 
 
 class FMessageEndpoint;
@@ -10,20 +10,20 @@ struct FPortalRpcLocateServer;
 class IMessageContext;
 
 
-class FPortalRpcProvider
-	: public IPortalRpcProvider
+class FPortalRpcResponder
+	: public IPortalRpcResponder
 {
 public:
 
 	/** Default constructor. */
-	FPortalRpcProvider();
+	FPortalRpcResponder();
 
 	/** Virtual destructor. */
-	virtual ~FPortalRpcProvider() { }
+	virtual ~FPortalRpcResponder() { }
 
 public:
 
-	// IPortalRpcProvider interface
+	// IPortalRpcResponder interface
 
 	virtual FOnPortalRpcLookup& OnLookup() override
 	{

@@ -6,7 +6,7 @@
 
 
 class IPortalRpcLocator;
-class IPortalRpcProvider;
+class IPortalRpcResponder;
 
 
 /**
@@ -18,5 +18,5 @@ class IPortalRpcModule
 public:
 
 	virtual TSharedRef<IPortalRpcLocator> CreateLocator() = 0;
-	virtual TSharedRef<IPortalRpcProvider> CreateProvider() = 0;
+	virtual TSharedRef<IPortalRpcResponder> CreateResponder() = 0;
 };
