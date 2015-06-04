@@ -193,6 +193,12 @@ void FChunkManifestGenerator::Initialize(bool InGenerateChunks)
 			{
 				RegistryChunkIDs.Add(ChunkID);
 			}
+			auto* FoundIDList = PackageChunkIDMap.Find(AssetData.PackageName);
+			if (!FoundIDList)
+			{
+				FoundIDList = &PackageChunkIDMap.Add(AssetData.PackageName);
+			}
+			FoundIDList->AddUnique(ChunkID);
 		}
 		// Now clear the original chunk id list. We will fill it with real IDs when cooking.
 		AssetData.ChunkIDs.Empty();

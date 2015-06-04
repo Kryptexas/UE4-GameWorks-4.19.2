@@ -22,6 +22,8 @@ class FChunkManifestGenerator
 	TSet<FName> AssetsLoadedWithLastPackage;
 	/** The entire asset registry data */
 	TArray<FAssetData> AssetRegistryData;
+	/** Lookup for the original ChunkID Mappings. AssetRegistryData is modified making it invalid to query */
+	TMap<FName, TArray<int32> > PackageChunkIDMap;
 	/** Maps packages to assets from the asset registry */
 	TMap<FName, TArray<int32> > PackageToRegistryDataMap;
 	/** Should the chunks be generated or only asset registry */
@@ -167,14 +169,11 @@ class FChunkManifestGenerator
 	*/
 	FORCEINLINE TArray<int32> GetAssetRegistryChunkAssignments(const FName& PackageFName)
 	{
-		//get the objects in this package
 		TArray<int32> RegistryChunkIDs;
-		for ( const auto& AssetData : AssetRegistryData )
+		auto* FoundIDs = PackageChunkIDMap.Find(PackageFName);
+		if (FoundIDs)
 		{
-			if ( AssetData.PackageName == PackageFName ) 
-			{
-				RegistryChunkIDs.Append( AssetData.ChunkIDs );
-			}
+			RegistryChunkIDs = *FoundIDs;
 		}
 		return RegistryChunkIDs;
 	}
