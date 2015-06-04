@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2556654
+﻿INTSourceChangelist:2571771
 Availability:Docs
-Title: 5. 프로시저럴 폴리지 블로킹 볼륨 사용
+Title: 5. 프로시저럴 폴리지 블로킹 볼륨 구현
 Crumbs:
 Description:여기서는 폴리지 스폰 구역을 제한시키는 블로킹 볼륨을 구성해 봅니다.
 Navigation:topic
@@ -18,7 +18,7 @@ Version: 4.8
 		[비법 홈](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
-
+	[다음 단계](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -28,17 +28,16 @@ Version: 4.8
 이 경계 안에는 폴리지 액터를 스폰하지 않습니다.
 다음 섹션에서는 레벨에 **Procedural Foliage Blocking Volume** 을 추가하는 법과, 그것을 사용해서 폴리지 메시 스폰을 막는 법을 알아보겠습니다.
 예전 단계에서 사용된 **PFT_00** 레벨 작업을 계속하겠습니다.
-이미 닫으신 경우 다시 열어주시기 바랍니다.
 
-1. 먼저 **모드** 패널에서 **Proc** 로 검색하여 Procedural Foliage Blocking Volume 을 찾습니다.
+1. 먼저 **모드** 패널에서 **Proc** 로 검색하여 **Procedural Foliage Blocking Volume** 을 찾습니다.
 
 	![](T_Find_ProcF_Blocking_Volume.png)
 
-1. 모드 패널에서 Procedural Foliage Blocking Volume 위치를 찾은 이후에는, 모드 패널에서 마우스로 끌어 레벨에 놓습니다.
+1. 모드 패널에서 Procedural Foliage Blocking Volume 을 선택하고 레벨에 끌어 놓습니다.
 
 	![](T_Adding_PFV_To_Level.gif)(convert:false)
 
-1. 다음, Procedural Foliage Blocking Volume 위치와 스케일에 다음 값을 입력합니다.완료되면 아래 그림과 같은 모습일 것입니다.
+1. 프로시저럴 폴리지 스포너 뒷부분에 폴리지 메시가 스폰되지 않도록 하기 위해 다음 위치와 스케일 값을 사용해서 Procedural Foliage Blocking Volume 설정을 합니다.
 
 	* **위치    X:** 5430.0 cm
 	* **위치    Y:** -3900.0 cm
@@ -51,16 +50,14 @@ Version: 4.8
 
 1. 이제 레벨의 **프로시저럴 폴리지 스포너** 선택 후 **디테일** 패널에서 **재시뮬레이션** 버튼을 누릅니다.
    재시뮬레이션이 완료되면 Procedural Foliage Blocking Volume 과 교차하는 부분에는 나무 뒷구역 전체가 빠져있을 것입니다.
-   다음 그림에서 결과 이전과 이후 모습을 확인할 수 있습니다.
 
-	   ![](T_PFV_Before_After.png)
+	![](T_PFV_Before_After.png)
+	다음 그림에서 결과 이전과 이후 모습을 확인할 수 있습니다.
 
-	   * 1: 이전
-	   * 2: 이후
-
-1. 마지막으로 **모두 저장** 버튼을 눌러 모든 콘텐츠를, **저장** 버튼을 눌러 레벨을 저장합니다.
-	
-	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+	|그림 번호| 결과|
+	|-----|------|
+	|1: | 볼륨 추가 전|
+	|2: | 볼륨 추가 후|
 
 
 %Steps%

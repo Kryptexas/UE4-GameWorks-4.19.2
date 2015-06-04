@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2555265
+﻿INTSourceChangelist:2571771
 Availability:Docs
-Title: 2. 프로시저럴 폴리지 툴 액터 구성
+Title: 2. 스포너에 스폰시킬 것 알려주기
 Crumbs:
-Description:이번 단계에서는 필수 액터를 전부 구성합니다.
+Description:폴리지를 스폰하도록 프로시저럴 폴리지 스포너를 구성합니다.
 Navigation:topic
 SkillLevel:Intermediate
 Version: 4.8
@@ -25,40 +25,39 @@ Version: 4.8
 
 %Steps%
 다음 섹션에서는 프로시저럴 폴리지 스포너와 정상 작동하게끔 **폴리지 타입** 액터를 구성하는 법을 다뤄보겠습니다.
-예전 단계에서 만들었던 **PFT_00** 레벨 작업을 이어가겠으니, 이미 닫은 경우 다시 열어주시기 바랍니다.
+예전 단계에서 만들었던 **PFT_00** 레벨 작업을 이어가겠습니다.
 
-1. 먼저 콘텐츠 브라우저에서 **프로시저럴 폴리지 스포너** 를 **더블클릭** 하여 열어줍니다.
+1. 콘텐츠 브라우저에서 **프로시저럴 폴리지 스포너** 를 **더블클릭** 하여 열어줍니다.
 
 	![](T_PFS_Opened.png)
 
-1. 다음, **폴리지 타입** 메뉴 옵션 오른쪽에 있는 **더하기** 부호 아이콘을 눌러 **Foliage Types** 배열에 항목을 새로 추가합니다.
+1. **폴리지 타입** 메뉴 옵션 오른쪽에 있는 **더하기** 부호 아이콘을 눌러 **Foliage Types** 배열에 항목을 새로 추가합니다.
 
 	![](T_PFS_Add_FT.png)
 
-1. 그리고 콘텐츠 브라우저에서 **Tree_00** 폴리지 타입을 선택한 다음, 프로시저럴 폴리지 스포너의 **폴리지 타입** 섹션에서 **화살표** 아이콘을 눌러 선택된 폴리지 타입을 프로시저럴 폴리지 스포너에 로드합니다.
+1. 콘텐츠 브라우저에서 **Tree_00** 폴리지 타입을 선택한 다음, 프로시저럴 폴리지 스포너의 **폴리지 타입** 섹션에서 **화살표** 아이콘을 눌러 선택된 폴리지 타입을 프로시저럴 폴리지 스포너에 로드합니다.
 
 	![](T_Assign_PFT_To_PFS.gif)(convert:false)
 
-1. 이제 프로시저럴 폴리지 스포너에 폴리지 타입이 설정되었으니, **Tree_00** 폴리지 타입을 열어 아주 기본적인 구성 작업을 해 주어 모두 정상 작동하도록 합니다.
+1. 콘텐츠 브라우저에서 **Tree_00** 폴리지 타입을 **더블클릭** 하여 엽니다.
 
 	![](T_PFT_Window.png)
 
-1. Tree_00 폴리지 타입 상단의 **Mesh** 섹션을 찾은 뒤 **없음** 이라 되어있는 드롭다운 메뉴를 좌클릭합니다.
-	검색 메뉴에 **HillTree_02** 를 검색하여 **Open World Demo Collection** 의 **HillTree_02** 스태틱 메뉴를 찾습니다.
-	**HillTree_02** 를 찾았으면 **좌클릭** 하여 로드합니다.
+1. **Tree_00** 폴리지 타입 상단의 **Mesh** 섹션을 찾은 뒤 **없음** 이라 되어있는 드롭다운 메뉴를 클릭합니다. 
+	
+	![](T_PFT_Mesh_Section.png)
+
+1. 검색 메뉴에 **HillTree_02** 를 검색하여 **Open World Demo Collection** 의 **HillTree_02** 스태틱 메시를 찾아 클릭하여 로드합니다.
 
 	![](T_Set_Tree_Mesh.gif)(convert:false)
 
-1. 다음, 뷰포트 안에서 레벨에 배치되었던 **프로시저럴 폴리지 스포너** 를 선택한 뒤 **Procedural Foliage** 섹션을 펼칩니다.
+1. 뷰포트로 돌아와 레벨에 배치되었던 **프로시저럴 폴리지 스포너** 를 선택한 뒤 **디테일** 패널 아래 **Procedural Foliage** 섹션을 펼칩니다.
 	
 	![](T_PFV_Select_In_Level.png)
 
-1. **Procedural Foliage** 섹션 아래 **Resimulate** (재시뮬레이션) 버튼을 누르면 레벨에 다음과 같은 것이 생겼을 것입니다.
+1. **Procedural Foliage** 섹션 아래 **Resimulate** (재시뮬레이션) 버튼을 누르면 아래 그림처럼 나무로 빽빽히 가득찬 프로시저럴 폴리지 스포너를 볼 수 있을 것입니다.
 
 	![](T_Final_Results.png)
 
-1. 마지막으로 **모두 저장** 버튼을 눌러 모든 콘텐츠를, **저장** 버튼을 눌러 레벨을 저장합니다.
-
-	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
 
 %Steps%

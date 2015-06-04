@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2554119
+﻿INTSourceChangelist:2571771
 Availability:Docs
-Title:3. 그래스 툴 머티리얼 구성
+Title:3. 랜드스케이프 머티리얼과 그래스 툴
 Crumbs:
-Description: 그래스 시스템에서 쓸 머티리얼 구성 방법입니다.
+Description: 그래스 툴과 랜드스케이프 터레인에 통하는 머티리얼 구성법입니다.
 Navigation:topic
 SkillLevel:Intermediate
 Version: 4.8
@@ -44,22 +44,30 @@ UE4 의 랜드스케이프 터레인 작동방식에 대해 보다 자세히 살
 
 	![](T_Added_Textures.png)
 
-1. 다음, **팔레트** 검색 기능을 사용해서 다음의 머티리얼 표현식 노드를 검색합니다.
-	팔레트에서 필요한 머티리얼 표현식 노드를 찾았으면 **좌클릭** 유지 상태에서 머티리얼 그래프로 끌어온 뒤 버튼을 놓으면 머티리얼 그래프에 배치됩니다.
+1. **팔레트** 검색 기능을 사용해서 다음의 머티리얼 표현식 노드를 검색합니다.
+	팔레트에서 필요한 머티리얼 표현식 노드를 찾았으면 **좌클릭** 하고 머티리얼 그래프로 끌어온 뒤 버튼을 놓으면 머티리얼 그래프에 배치됩니다.
 
-	* **Landscape Layer Blend** x 1
-	* **Landscape Layer Sample** x 1
-	* **Landscape Grass Output** x 1
+	|머티리얼 표현식 이름 | 양 | 이유 |
+	|-------------------------|--------|--------|
+	|**Landscape Layer Blend**   | 1     | 랜드스케이프 레이어 블렌드 - 랜드스케이프 터레인을 보다 사실적으로 보이도록 만들기 위해 다수의 레이어를 같이 또는 따로 칠하고 블렌딩할 필요가 있는데, 그럴 때 랜드스케이프 레이어 블렌드로 가능합니다. |
+	|**Landscape Layer Sample**  | 1     | 랜드스케이프 레이어 샘플 - 머티리얼과 랜드스케이프가 서로 통신하여 특정 랜드스케이프 레이어를 칠할 때마다 올바른 스태틱 메시가 사용되도록 해줍니다. |
+	|**Landscape Grass Output**  | 1     | 랜드스케이프 그래스 출력 - 랜드스케이프 터레인이 랜드스케이프 머티리얼의 구성에 따라 그래스 타입을 스폰시킬 수 있도록 합니다. |
 
 	![](T_Add_Material_Nodes.gif)(convert:false)
 
-1. 이제 머티리얼 그래프의 **Landscape Layer Blend** 노드를 선택한 다음 **더하기** 아이콘을 두 번 눌러 **레이어** 를 두 개 새로 추가합니다.
-	레이어를 둘 다 추가했으면, 그 중 하나의 **Layer Name** 을 **Grass** 로, 나머지는 **Rock** 로 지어주고, 둘 다 **Preview Weight** 는 1.0 으로 설정합니다.
+	[region:tip]
+	UE4 머티리얼 에디터 작동방식에 익숙치 않거나 그냥 자세한 정보가 알고싶은 경우, 공식 **[언리얼 엔진 머티리얼 문서](Engine/Rendering/Materials)** 에서 머티리얼 관련 모든 것에 대해 참고하시기 바랍니다.
+	[/region]
+
+1. **Landscape Layer Blend** 노드를 선택한 다음 **디테일** 패널에서 **Layers** 섹션 아래 **더하기** 아이콘을 두 번 클릭하여 새 레이어를 둘 추가합니다.
+ 
+	![](T_LB_Add_2_Layers.png)
+
+1. 레이어를 두 개 추가했으면, 그 중 하나의 **Layer Name** 을 **Grass** 로, 나머지는 **Rock** 로 지어주고, 둘 다 **Preview Weight** 는 1.0 으로 설정합니다.
 
 	![](T_LS_LayerBlend_Setup.png)
 
-1. 다음, **T_AlpinePatch001_D_alt_R** 텍스처를 **Landscape Layer Blend** 노드의 **Layer Rock** 입력에 연결한 다음, **T_GDC_Grass01_D_NoisyAlpha** 를 **Later Grass** 입력에 연결합니다.
-	다 됐으면 **Landscape Layer Blend** 노드의 **출력** 을 **메인 머티리얼 노드** 의 **베이스 컬러** 입력에 연결합니다.
+1. 다음, **T_AlpinePatch001_D_alt_R** 텍스처를 **Landscape Layer Blend** 노드의 **Layer Rock** 입력에 연결한 다음, **T_GDC_Grass01_D_NoisyAlpha** 를 **Layer Grass** 입력에 연결합니다. 마지막으로 **Landscape Layer Blend** 노드의 **출력** 을 **메인 머티리얼 노드** 의 **베이스 컬러** 입력에 연결합니다.
 
 	![](T_Hook_Up_Textures.png)
 	
@@ -67,18 +75,27 @@ UE4 의 랜드스케이프 터레인 작동방식에 대해 보다 자세히 살
 	
 	![](T_Grass_Out_SetUp.gif)(convert:false)
 
-1. 이제 **콘텐츠 브라우저** 에서 예전 단계에 만든 **Grass_00** 랜드스케이프 그래스 타입을 선택한 다음 **머티리얼** 의 **Grass Type** 옵션 아래 
-	**화살표** 아이콘을 눌러 콘텐츠 브라우저에 현재 선택된 액터를 로드합니다.
+1. **콘텐츠 브라우저** 에서 예전 단계에 만든 **Grass_00** 랜드스케이프 그래스 타입을 선택합니다.
+
+1.  **머티리얼** 의 **Grass Type** 옵션 아래 **화살표** 아이콘을 눌러 콘텐츠 브라우저에 현재 선택된 액터를 로드합니다.
 
 	![](T_Input_Grass_Type.png)
 
-1. 다음, **Parameter Name** 아래 **Landscape Layer Sample** 을 선택하고 이름을 **Grass** 라 한 뒤 **Landscape Layer Sample** 의 출력을 **Landscape Grass Output** 노드의 입력에 연결합니다.
+1. **Parameter Name** 아래 **Landscape Layer Sample** 을 선택하고 이름을 **Grass** 라 한 뒤 **Landscape Layer Sample** 의 출력을 **Landscape Grass Output** 노드의 입력에 연결합니다.
 
 	![](T_LLW_Setup.png)
 
-1. 마지막으로 **적용** 및 **저장** 버튼을 눌러 머티리얼을 컴파일하고 저장합니다.
+	[region:note]
+	앞으로 그래스 출력을 사용할 때, 머티리얼 그래프에 추가되는 마지막 항목이 그래스 출력 머티리얼 표현식인지 확인하시기 바랍니다.
+	그래스 출력에 아무것도 연결하지 않고 머티리얼 저장 및 컴파일 시도를 한다면, **통계** 창에 다음과 같은 오류 메시지를 내며 컴파일이 실패할 것입니다.
+
+	![](T_Grass_Material_Warning.png)
+	[/region]
+
+1. 완료된 머티리얼은 다음과 같을 것입니다. **적용**, **저장** 버튼을 눌러 머티리얼을 컴파일, 저장하는 것 잊지 마시기 바랍니다.
 
 	![](T_Final_Material.png)
+
 
 
 

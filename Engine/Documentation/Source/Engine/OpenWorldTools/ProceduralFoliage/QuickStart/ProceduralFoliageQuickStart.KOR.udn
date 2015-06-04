@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2557359
+﻿INTSourceChangelist:2571771
 Availability:Docs
 Title: 프로시저럴 폴리지 툴 퀵스타트
 Crumbs:
@@ -8,25 +8,43 @@ SkillLevel:Intermediate
 Version: 4.8
 
 
-## 개요
-프로시저럴 폴리지 퀵스타트 안내에서는 언리얼 엔진 4 (UE4) 4.8 릴리즈부터 사용할 수 있게 된 **프로시저럴 폴리지 툴** 작동법에 대해 살펴보겠습니다.
-이 퀵스타트 전반에 걸쳐 프로시저럴 폴리지 툴을 어떤 의도로 사용해야 할 것인지와, UE4 내 다른 툴과 어떻게 사용할 것인지를 배워볼 것입니다.
-항상 만족스런 결과를 얻는 데 도움이 되는 핵심 툴 프로퍼티에 대해서도 소개해 드릴 것입니다.
-이 퀵스타트를 완료할 무렵이면 아래 그림과 같은 레벨이 새로 생겨있을 것입니다.
+이 퀵스타트 튜토리얼에서는 언리얼 엔진 4 (UE4) 4.8 릴리즈에 공개된 **Procedural Foliage Tool** (프로시저럴 폴리지 툴) 작동법을 살펴보도록 하겠습니다.
+이 퀵스타트 튜토리얼 전반에 걸쳐 프로시저럴 폴리지 툴만 사용해서 UE4 안에 적당한 나무로 조성된 숲을 만들고, 구성하고, 스폰하는 법을 배워볼 것입니다.
+프로젝트의 요구에 맞게끔 가상의 숲 모양을 만드는 데 도움이 되는 핵심 프로퍼티와 세팅을 소개해 드리기도 할 것입니다.
 
 ![](T_PF_QS_Final_Product.png)
 
-이 퀵스타트를 마치고나면 프로시저럴 폴리지 툴에 필요한 액터 유형은 어떤 것이고, 어떻게 구성해야 정상 작동할 것인지 더욱 잘 이해할 수 있을 것입니다.
-툴 사용시 주의할 점과 그에 맞는 작업방식 조절 방법에 대해서도 소개해 드리겠습니다.
+또한 프로시저럴 폴리지 툴의 정상 작동 및 원하는 결과를 내기 위해 필요한 액터와 프로퍼티도 전부 접해볼 것입니다.
+이 퀵스타트를 마칠 때 쯤이면 위 그림과 비슷한 레벨이 새로 생겨있을 것입니다.
+
 
 ## 사전 요구사항
-프로시저럴 폴리지 툴을 이미 활성화시키지 않은 경우, **메인 툴바** 의 **편집** > **에디터 개인설정** > **실험단계** 기능으로 갑니다.
-거기서 Prodecural Foliage 옵션 옆의 박스를 체크해 주면 됩니다.
-**Open World Demo Collection** (오픈 월드 데모 콜렉션)에 있는 콘텐츠도 몇 개 사용되니 그 콘텐츠 팩을 언리얼 엔진 4 런처에서 다운로드할 필요도 있습니다.
+프로시저럴 폴리지 툴을 이미 활성화시키지 않은 경우, 다음과 같이 활성화시켜 줍니다.
 
-오픈 월드 데모 콜렉션이 다운로드되면 사용중인 프로젝트에 추가시킵니다. UE4 런처 **저장소** 섹션에서 오픈 월드 데모 콜렉션을 찾은 다음 **프로젝트에 추가** 라는 버튼을 누르면 됩니다. 그러면 추가시킬 수 있는 프로젝트 목록이 나타납니다. 이 퀵스타트를 따라해 보고자 하는 프로젝트를 선택한 다음 **프로젝트에 추가** 버튼을 눌러 콘텐츠를 추가시킵니다. 프로젝트를 다시 열면 **Kite Demo** 라는 폴더가 보일 것이며, 그 안에 필요한 콘텐츠를 찾을 수 있을 것입니다.
+1. **메인 툴바** 에서 **편집** - **에디터 개인설정** 을 클릭합니다.
+1. 에디터 개인설정 안에서 **실험단계** 섹션에 **우클릭** 합니다.
+1. **Procedural Foliage** 옆의 체크박스를 클릭하여 프로시저럴 폴리지 옵션을 켭니다.
 
+	![](Engine\OpenWorldTools\Overview\T_Enable_PFT.gif)(convert:false)
 
+**언리얼 엔진 마켓플레이스
+Open World Demo Collection 다운로드 완료 후, 따라해 볼 때 사용할 프로젝트에 추가하는 방법은 다음과 같습니다.
+
+1. 에픽 게임스 런처 내 **마켓플레이스** 에서 **Open World Demo Collection** 를 찾아 다운로드합니다.
+	
+	![](Engine\OpenWorldTools\T_OWT_OWDC.png)
+
+1. 런처의 **라이브러리** 섹션으로 이동한 다음 **저장소** 섹션 아래 Open World Demo Collection  을 찾습니다. 
+	
+	![](Engine\OpenWorldTools\T_OWT_Add_Content_00.png)
+
+1. **프로젝트에 추가** 라는 버튼을 누릅니다.
+	
+	![](Engine\OpenWorldTools\T_OWT_Add_To_Project.png)
+
+1. 그러면 거기에 추가시킬 수 있는 프로퍼티 목록이 표시되는데, 이 퀵스타트를 따라하는 데 사용하려는 프로젝트를 선택한 다음 **프로젝트에 추가** 버튼을 누릅니다.
+
+	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -43,6 +61,7 @@ Version: 4.8
 	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3)
 	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4)
 	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6)
 	[/PARAM]
 [/OBJECT]
 
