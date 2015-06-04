@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Don't include this code in shipping or perf test builds
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

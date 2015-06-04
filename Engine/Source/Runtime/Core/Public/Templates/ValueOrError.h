@@ -17,15 +17,15 @@ struct TValueOrError_ErrorProxy
 };
 
 template <typename A>
-FORCEINLINE TValueOrError_ValueProxy<A> MakeValue(A&& arg)
+FORCEINLINE TValueOrError_ValueProxy<A> MakeValue(A&& Arg)
 {
-    return TValueOrError_ValueProxy<A>(Forward<A>(arg));
+    return TValueOrError_ValueProxy<A>(Forward<A>(Arg));
 }
 
 template <typename A>
-FORCEINLINE TValueOrError_ErrorProxy<A> MakeError(A&& arg)
+FORCEINLINE TValueOrError_ErrorProxy<A> MakeError(A&& Arg)
 {
-    return TValueOrError_ErrorProxy<A>(Forward<A>(arg));
+    return TValueOrError_ErrorProxy<A>(Forward<A>(Arg));
 }
 
 /** Type used to return either some data, or an error */
@@ -35,14 +35,10 @@ class TValueOrError
 public:
 	/** Construct the result from a value, or an error (See MakeValue and MakeError) */
 	template<typename A>
-	TValueOrError(TValueOrError_ValueProxy<A>&& Proxy) 		: Value(Forward<A>(Proxy.Arg)) {}
+	TValueOrError(TValueOrError_ValueProxy<A>&& Proxy) 		: Value(MoveTemp(Proxy.Arg)) {}
 
 	template<typename A>
-	TValueOrError(TValueOrError_ErrorProxy<A>&& Proxy)		: Error(Forward<A>(Proxy.Arg)) {}
-
-	/** Copy construction/Assignment */
-	TValueOrError(const TValueOrError& In) 					: Error(In.Error), Value(In.Value) {}
-	TValueOrError& operator=(const TValueOrError& In) 		{ Error = In.Error; Value = In.Value; return *this; }
+	TValueOrError(TValueOrError_ErrorProxy<A>&& Proxy)		: Error(MoveTemp(Proxy.Arg)) {}
 
 	/** Move construction/assignment */
 	TValueOrError(TValueOrError&& In) 						: Error(MoveTemp(In.Error)), Value(MoveTemp(In.Value)) {}
@@ -70,5 +66,9 @@ private:
 	/** The error reported by the procedure, if any */
 	TOptional<ErrorType> Error;
 	/** Optional value to return as part of the result */
-	TOptional<ValueType> Value;	
+	TOptional<ValueType> Value;
+
+	/** Copy construction/Assignment disallowed */
+	TValueOrError(const TValueOrError&);
+	TValueOrError& operator=(const TValueOrError&);
 };

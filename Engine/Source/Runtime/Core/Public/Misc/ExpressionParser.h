@@ -14,17 +14,36 @@
 
 namespace ExpressionParser
 {
-	typedef TValueOrError< TArray<FExpressionToken>, FExpressionError > ResultType;
+	typedef TValueOrError< TArray<FExpressionToken>, FExpressionError > LexResultType;
+	typedef TValueOrError< TArray<FCompiledToken>, FExpressionError > CompileResultType;
 
 	/** Lex the specified string, using the specified grammar */
-	CORE_API ResultType Lex(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions);
+	CORE_API LexResultType Lex(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions);
 	
 	/** Compile the specified expression into an array of Reverse-Polish order nodes for evaluation, according to our grammar definition */
-	CORE_API ResultType Compile(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions, const FExpressionGrammar& InGrammar);
+	CORE_API CompileResultType Compile(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions, const FExpressionGrammar& InGrammar);
 
 	/** Compile the specified tokens into an array of Reverse-Polish order nodes for evaluation, according to our grammar definition */
-	CORE_API ResultType Compile(const TArray<FExpressionToken>& InTokens, const FExpressionGrammar& InGrammar);
+	CORE_API CompileResultType Compile(TArray<FExpressionToken> InTokens, const FExpressionGrammar& InGrammar);
 
-	/** Evaluate the specific expression using our grammar definition, and return the result */
-	CORE_API FExpressionResult Evaluate(const TCHAR* Expression, const FTokenDefinitions& TokenDefinitions, const FExpressionGrammar& InGrammar, const FOperatorJumpTable& InJumpTable);
+	/** Evaluate the specified expression using the specified token definitions, grammar definition, and evaluation environment */
+	CORE_API FExpressionResult Evaluate(const TCHAR* InExpression, const FTokenDefinitions& InTokenDefinitions, const FExpressionGrammar& InGrammar, const IOperatorEvaluationEnvironment& InEnvironment);
+
+	/** Evaluate the specified pre-compiled tokens using an evaluation environment */
+	CORE_API FExpressionResult Evaluate(TArray<FCompiledToken> CompiledTokens, const IOperatorEvaluationEnvironment& InEnvironment);
+
+	/** Templated versions of evaluation functions used when passing a specific jump table and context */
+	template<typename ContextType>
+	FExpressionResult Evaluate(const TCHAR* InExpression, const FTokenDefinitions& InTokenDefinitions, const FExpressionGrammar& InGrammar,	const TOperatorJumpTable<ContextType>& InJumpTable, const ContextType* InContext = nullptr)
+	{
+		TOperatorEvaluationEnvironment<ContextType> Env(InJumpTable, InContext);
+		return Evaluate(InExpression, InTokenDefinitions, InGrammar, Env);
+	}
+
+	template<typename ContextType>
+	FExpressionResult Evaluate(TArray<FCompiledToken>& CompiledTokens, const TOperatorJumpTable<ContextType>& InJumpTable, const ContextType* InContext = nullptr)
+	{
+		TOperatorEvaluationEnvironment<ContextType> Env(InJumpTable, InContext);
+		return Evaluate(CompiledTokens, Env);
+	}
 }

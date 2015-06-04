@@ -160,6 +160,8 @@ TValueOrError<double, FExpressionError> FBasicMathExpressionEvaluator::Evaluate(
 	}
 }
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
 bool TestExpression(FAutomationTestBase* Test, const TCHAR* Expression, double Expected)
 {
 	FBasicMathExpressionEvaluator Parser;
@@ -232,5 +234,7 @@ bool FBasicMathExpressionEvaluatorTest::RunTest( const FString& Parameters )
 
 	return bResult;
 }
+
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 #undef LOCTEXT_NAMESPACE

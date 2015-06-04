@@ -1,15 +1,17 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ExpressionParser.h"
 
 #define LOCTEXT_NAMESPACE "ExpressionParser"
 
+
+
 FTokenStream::FTokenStream(const TCHAR* In)
 	: Start(In)
 	, End(Start + FCString::Strlen(Start))
 	, ReadPos(In)
 {
-
 }
 
 bool FTokenStream::IsReadPosValid(const TCHAR* InPos, int32 MinNumChars) const
@@ -256,49 +258,6 @@ void FTokenStream::SetReadPos(const FStringToken& Token)
 	}
 }
 
-FExpressionResult FOperatorJumpTable::ExecBinary(const FExpressionToken& Operator, const FExpressionToken& L, const FExpressionToken& R) const
-{
-	FOperatorFunctionID ID = { Operator.Node.GetTypeId(), L.Node.GetTypeId(), R.Node.GetTypeId() };
-	if (const auto* Func = BinaryOps.Find(ID))
-	{
-		return (*Func)(L.Node, R.Node);
-	}
-
-	FFormatOrderedArguments Args;
-	Args.Add(FText::FromString(Operator.Context.GetString()));
-	Args.Add(FText::FromString(L.Context.GetString()));
-	Args.Add(FText::FromString(R.Context.GetString()));
-	return MakeError(FText::Format(LOCTEXT("UnaryExecutionError", "Binary operator {0} cannot operate on {1} and {2}"), Args));
-}
-
-FExpressionResult FOperatorJumpTable::ExecPreUnary(const FExpressionToken& Operator, const FExpressionToken& R) const
-{
-	FOperatorFunctionID ID = { Operator.Node.GetTypeId(), FGuid(), R.Node.GetTypeId() };
-	if (const auto* Func = PreUnaryOps.Find(ID))
-	{
-		return (*Func)(R.Node);
-	}
-
-	FFormatOrderedArguments Args;
-	Args.Add(FText::FromString(Operator.Context.GetString()));
-	Args.Add(FText::FromString(R.Context.GetString()));
-	return MakeError(FText::Format(LOCTEXT("UnaryExecutionError", "Pre-unary operator {0} cannot operate on {1}"), Args));
-}
-
-FExpressionResult FOperatorJumpTable::ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L) const
-{
-	FOperatorFunctionID ID = { Operator.Node.GetTypeId(), L.Node.GetTypeId(), FGuid() };
-	if (const auto* Func = PostUnaryOps.Find(ID))
-	{
-		return (*Func)(L.Node);
-	}
-
-	FFormatOrderedArguments Args;
-	Args.Add(FText::FromString(Operator.Context.GetString()));
-	Args.Add(FText::FromString(L.Context.GetString()));
-	return MakeError(FText::Format(LOCTEXT("UnaryExecutionError", "Post-unary operator {0} cannot operate on {1}"), Args));
-}
-
 FExpressionTokenConsumer::FExpressionTokenConsumer(const TCHAR* InExpression)
 	: Stream(InExpression)
 {}
@@ -313,7 +272,7 @@ TArray<FExpressionToken> FExpressionTokenConsumer::Extract()
 void FExpressionTokenConsumer::Add(const FStringToken& SourceToken, FExpressionNode Node)
 {
 	Stream.SetReadPos(SourceToken);
-	Tokens.Add(FExpressionToken(SourceToken, Node));
+	Tokens.Add(FExpressionToken(SourceToken, MoveTemp(Node)));
 }
 
 void FTokenDefinitions::DefineToken(const TFunction<FExpressionDefinition>& Definition)
@@ -381,6 +340,58 @@ TOptional<FExpressionError> FTokenDefinitions::ConsumeTokens(FExpressionTokenCon
 	return TOptional<FExpressionError>();
 }
 
+FExpressionNode::~FExpressionNode()
+{
+	if (auto* Data = GetData())
+	{
+		Data->~IExpressionNodeStorage();
+	}
+}
+
+FExpressionNode::FExpressionNode(FExpressionNode&& In)
+{
+	*this = MoveTemp(In);
+}
+
+FExpressionNode& FExpressionNode::operator=(FExpressionNode&& In)
+{
+	if (TypeId == In.TypeId && TypeId.IsValid())
+	{
+		// If we have the same types, we can move-assign properly
+		In.GetData()->MoveAssign(InlineBytes);
+	}
+	else
+	{
+		// Otherwise we have to destroy what we have, and reseat the RHS
+		if (auto* ThisData = GetData())
+		{
+			ThisData->~IExpressionNodeStorage();
+		}
+
+		TypeId = In.TypeId;
+		if (auto* SrcData = In.GetData())
+		{
+			SrcData->Reseat(InlineBytes);
+
+			// Empty the RHS
+			In.TypeId = FGuid();
+			SrcData->~IExpressionNodeStorage();
+		}
+	}
+
+	return *this;
+}
+
+const FGuid& FExpressionNode::GetTypeId() const
+{
+	return TypeId;
+}
+
+Impl::IExpressionNodeStorage* FExpressionNode::GetData()
+{
+	return TypeId.IsValid() ? reinterpret_cast<Impl::IExpressionNodeStorage*>(InlineBytes) : nullptr;
+}
+
 const FGuid* FExpressionGrammar::GetGrouping(const FGuid& TypeId) const
 {
 	return Groupings.Find(TypeId);
@@ -403,14 +414,14 @@ const int* FExpressionGrammar::GetBinaryOperatorPrecedence(const FGuid& InTypeId
 
 struct FExpressionCompiler
 {
-	FExpressionCompiler(const FExpressionGrammar& InGrammar, const TArray<FExpressionToken>& InTokens)
+	FExpressionCompiler(const FExpressionGrammar& InGrammar, TArray<FExpressionToken>& InTokens)
 		: Grammar(InGrammar), Tokens(InTokens)
 	{
 		CurrentTokenIndex = 0;
 		Commands.Reserve(Tokens.Num());
 	}
 
-	TValueOrError<TArray<FExpressionToken>, FExpressionError> Compile()
+	TValueOrError<TArray<FCompiledToken>, FExpressionError> Compile()
 	{
 		auto Error = CompileGroup(nullptr, nullptr);
 		if (Error.IsSet())
@@ -419,6 +430,21 @@ struct FExpressionCompiler
 		}
 		return MakeValue(MoveTemp(Commands));
 	}
+
+	struct FWrappedOperator : FNoncopyable
+	{
+		FWrappedOperator(FCompiledToken InToken, int32 InPrecedence = 0)
+			: Token(MoveTemp(InToken)), Precedence(InPrecedence)
+		{}
+
+		FWrappedOperator(FWrappedOperator&& In) : Token(MoveTemp(In.Token)), Precedence(In.Precedence) {}
+		FWrappedOperator& operator=(FWrappedOperator&& In) { Token = MoveTemp(In.Token); Precedence = In.Precedence; return *this; }
+
+		FCompiledToken Steal() { return MoveTemp(Token); }
+
+		FCompiledToken Token;
+		int32 Precedence;
+	};
 
 	TOptional<FExpressionError> CompileGroup(const FExpressionToken* GroupStart, const FGuid* StopAt)
 	{
@@ -441,18 +467,8 @@ struct FExpressionCompiler
 				// Ignore this token
 				CurrentTokenIndex++;
 
-				const auto MarkerIndex = Commands.Num();
-
-				FGroupMarker Marker(Token);
-
-				// Add the group marker
-				Commands.Add(FExpressionToken(Token.Context, Marker));
-
 				// Start of group - recurse
 				auto Error = CompileGroup(&Token, GroupingEnd);
-				
-				Marker.NumTokens = Commands.Num() - MarkerIndex;
-				Commands[MarkerIndex].Node = Marker;
 
 				if (Error.IsSet())
 				{
@@ -472,7 +488,7 @@ struct FExpressionCompiler
 				if (Grammar.HasPreUnaryOperator(TypeId))
 				{
 					// Make this a unary op
-					OperatorStack.Add(FWrappedOperator(FWrappedOperator::PreUnary, Token));
+					OperatorStack.Emplace(FCompiledToken(FCompiledToken::PreUnaryOperator, MoveTemp(Token)));
 				}
 				else if (Grammar.GetBinaryOperatorPrecedence(TypeId))
 				{
@@ -486,17 +502,16 @@ struct FExpressionCompiler
 					// Pop off any pending unary operators
 					while (OperatorStack.Num() > 0 && OperatorStack.Last().Precedence <= 0)
 					{
-						auto Operator = OperatorStack.Pop(false);
-						Commands.Add(FExpressionToken(Operator.WrappedToken.Context, Operator));
+						Commands.Add(OperatorStack.Pop(false).Steal());
 					}
 
 					// Make this a post-unary op
-					OperatorStack.Add(FWrappedOperator(FWrappedOperator::PostUnary, Token));
+					OperatorStack.Emplace(FCompiledToken(FCompiledToken::PostUnaryOperator, MoveTemp(Token)));
 				}
 				else
 				{
 					// Not an operator, so treat it as an ordinary token
-					Commands.Add(Token);
+					Commands.Add(FCompiledToken(FCompiledToken::Operand, MoveTemp(Token)));
 					State = EState::PostUnary;
 				}
 			}
@@ -507,12 +522,11 @@ struct FExpressionCompiler
 					// Pop off any pending unary operators
 					while (OperatorStack.Num() > 0 && OperatorStack.Last().Precedence <= 0)
 					{
-						auto Operator = OperatorStack.Pop(false);
-						Commands.Add(FExpressionToken(Operator.WrappedToken.Context, Operator));
+						Commands.Add(OperatorStack.Pop(false).Steal());
 					}
 
 					// Make this a post-unary op
-					OperatorStack.Add(FWrappedOperator(FWrappedOperator::PostUnary, Token));
+					OperatorStack.Emplace(FCompiledToken(FCompiledToken::PostUnaryOperator, MoveTemp(Token)));
 				}
 				else
 				{
@@ -522,12 +536,11 @@ struct FExpressionCompiler
 						// Pop off anything of higher precedence than this one onto the command stack
 						while (OperatorStack.Num() > 0 && OperatorStack.Last().Precedence < *Prec)
 						{
-							auto Operator = OperatorStack.Pop(false);
-							Commands.Add(FExpressionToken(Operator.WrappedToken.Context, Operator));
+							Commands.Add(OperatorStack.Pop(false).Steal());
 						}
 
 						// Add the operator itself to the op stack
-						OperatorStack.Add(FWrappedOperator(FWrappedOperator::Binary, Token, *Prec));
+						OperatorStack.Emplace(FCompiledToken(FCompiledToken::BinaryOperator, MoveTemp(Token)), *Prec);
 
 						// Check for a unary op again
 						State = EState::PreUnary;
@@ -536,7 +549,7 @@ struct FExpressionCompiler
 					{
 						// Just add the token. It's possible that this is a syntax error (there's no binary operator specified between two tokens),
 						// But we don't have enough information at this point to say whether or not it is an error
-						Commands.Add(Token);
+						Commands.Add(FCompiledToken(FCompiledToken::Operand, MoveTemp(Token)));
 						State = EState::PreUnary;
 					}
 				}
@@ -555,8 +568,7 @@ struct FExpressionCompiler
 		// Pop everything off the operator stack, onto the command stack
 		while (OperatorStack.Num() > 0)
 		{
-			auto Operator = OperatorStack.Pop(false);
-			Commands.Add(FExpressionToken(Operator.WrappedToken.Context, Operator));
+			Commands.Add(OperatorStack.Pop(false).Token);
 		}
 
 		return TOptional<FExpressionError>();
@@ -568,17 +580,17 @@ private:
 	int32 CurrentTokenIndex;
 
 	/** Working structures */
-	TArray<FExpressionToken> Commands;
+	TArray<FCompiledToken> Commands;
 
 private:
 	/** Const data provided by the parser */
-	const FExpressionGrammar& 			Grammar;
-	const TArray<FExpressionToken>& Tokens;
+	const FExpressionGrammar& Grammar;
+	TArray<FExpressionToken>& Tokens;
 };
 
 namespace ExpressionParser
 {
-	TValueOrError<TArray<FExpressionToken>, FExpressionError> Lex(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions)
+	LexResultType Lex(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions)
 	{
 		FExpressionTokenConsumer TokenConsumer(InExpression);
 		
@@ -593,116 +605,112 @@ namespace ExpressionParser
 		}
 	}
 
-	TValueOrError<TArray<FExpressionToken>, FExpressionError> Compile(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions, const FExpressionGrammar& InGrammar)
+	CompileResultType Compile(const TCHAR* InExpression, const FTokenDefinitions& InTokenDefinitions, const FExpressionGrammar& InGrammar)
 	{
-		TValueOrError<TArray<FExpressionToken>, FExpressionError> Result = Lex(InExpression, TokenDefinitions);
+		TValueOrError<TArray<FExpressionToken>, FExpressionError> Result = Lex(InExpression, InTokenDefinitions);
 
 		if (!Result.IsValid())
 		{
 			return MakeError(Result.GetError());
 		}
 
-		return Compile(Result.GetValue(), InGrammar);
+		return Compile(MoveTemp(Result.GetValue()), InGrammar);
 	}
 
-	ResultType Compile(const TArray<FExpressionToken>& InTokens, const FExpressionGrammar& InGrammar)
+	CompileResultType Compile(TArray<FExpressionToken> InTokens, const FExpressionGrammar& InGrammar)
 	{
 		return FExpressionCompiler(InGrammar, InTokens).Compile();
 	}
 
-	FExpressionResult Evaluate(const TCHAR* InExpression, const FTokenDefinitions& TokenDefinitions, const FExpressionGrammar& InGrammar, const FOperatorJumpTable& InJumpTable)
+	FExpressionResult Evaluate(const TCHAR* InExpression, const FTokenDefinitions& InTokenDefinitions, const FExpressionGrammar& InGrammar, const IOperatorEvaluationEnvironment& InEnvironment)
 	{
-		TValueOrError<TArray<FExpressionToken>, FExpressionError> CompilationResult = Compile(InExpression, TokenDefinitions, InGrammar);
+		TValueOrError<TArray<FCompiledToken>, FExpressionError> CompilationResult = Compile(InExpression, InTokenDefinitions, InGrammar);
 
 		if (!CompilationResult.IsValid())
 		{
 			return MakeError(CompilationResult.GetError());
 		}
 
-		auto& Tokens = CompilationResult.GetValue();
+		return Evaluate(MoveTemp(CompilationResult.GetValue()), InEnvironment);
+	}
 
-		TArray<FExpressionToken> Stack;
-		TArray<FExpressionToken> Popped;
+	FExpressionResult Evaluate(TArray<FCompiledToken> CompiledTokens, const IOperatorEvaluationEnvironment& InEnvironment)
+	{
+		TArray<FExpressionToken> OperandStack;
 
-		for (int32 Index = 0; Index < Tokens.Num(); ++Index)
+		for (int32 Index = 0; Index < CompiledTokens.Num(); ++Index)
 		{
-			auto& Token = Tokens[Index];
+			auto& Token = CompiledTokens[Index];
 
-			// We can ignore group markers for evaluation
-			if (Token.Node.Cast<FGroupMarker>())
+			switch(Token.Type)
 			{
+			case FCompiledToken::Benign:
 				continue;
-			}
 
-			if (const auto* Op = Token.Node.Cast<FWrappedOperator>())
-			{
-				switch(Op->Type)
+			case FCompiledToken::Operand:
+				OperandStack.Push(MoveTemp(Token));
+				continue;
+
+			case FCompiledToken::BinaryOperator:
+				if (OperandStack.Num() >= 2)
 				{
-				case FWrappedOperator::Binary:
-					if (Stack.Num() >= 2)
-					{
-						// Binary
-						auto R = Stack.Pop();
-						auto L = Stack.Pop();
+					// Binary
+					auto R = OperandStack.Pop();
+					auto L = OperandStack.Pop();
 
-						auto OpResult = InJumpTable.ExecBinary(Op->WrappedToken, L, R);
-						if (OpResult.IsValid())
-						{
-							// Inherit the LHS context
-							Stack.Push(FExpressionToken(L.Context, OpResult.GetValue()));
-						}
-						else
-						{
-							return MakeError(OpResult.GetError());
-						}
+					auto OpResult = InEnvironment.ExecBinary(Token, L, R);
+					if (OpResult.IsValid())
+					{
+						// Inherit the LHS context
+						OperandStack.Push(FExpressionToken(L.Context, MoveTemp(OpResult.GetValue())));
 					}
 					else
 					{
-						FFormatOrderedArguments Args;
-						Args.Add(FText::FromString(Op->WrappedToken.Context.GetString()));
-						return MakeError(FText::Format(LOCTEXT("SyntaxError_NoUnaryOperand", "Not enough operands for binary operator {0}"), Args));
+						return MakeError(OpResult.GetError());
 					}
-					break;
-				
-				case FWrappedOperator::PostUnary:
-				case FWrappedOperator::PreUnary:
-
-					if (Stack.Num() >= 1)
-					{
-						auto Operand = Stack.Pop();
-
-						FExpressionResult OpResult = (Op->Type == FWrappedOperator::PreUnary) ?
-							InJumpTable.ExecPreUnary(Op->WrappedToken, Operand) :
-							InJumpTable.ExecPostUnary(Op->WrappedToken, Operand);
-
-						if (OpResult.IsValid())
-						{
-							// Inherit the LHS context
-							Stack.Push(FExpressionToken(Op->WrappedToken.Context, OpResult.GetValue()));
-						}
-						else
-						{
-							return MakeError(OpResult.GetError());
-						}			
-					}
-					else
-					{
-						FFormatOrderedArguments Args;
-						Args.Add(FText::FromString(Op->WrappedToken.Context.GetString()));
-						return MakeError(FText::Format(LOCTEXT("SyntaxError_NoUnaryOperand", "No operand for unary operator {0}"), Args));
-					}
-					break;
 				}
-			}
-			else
-			{
-				Stack.Push(Token);
+				else
+				{
+					FFormatOrderedArguments Args;
+					Args.Add(FText::FromString(Token.Context.GetString()));
+					return MakeError(FText::Format(LOCTEXT("SyntaxError_NoUnaryOperand", "Not enough operands for binary operator {0}"), Args));
+				}
+				break;
+			
+			case FCompiledToken::PostUnaryOperator:
+			case FCompiledToken::PreUnaryOperator:
+
+				if (OperandStack.Num() >= 1)
+				{
+					auto Operand = OperandStack.Pop();
+
+					FExpressionResult OpResult = (Token.Type == FCompiledToken::PreUnaryOperator) ?
+						InEnvironment.ExecPreUnary(Token, Operand) :
+						InEnvironment.ExecPostUnary(Token, Operand);
+
+					if (OpResult.IsValid())
+					{
+						// Inherit the LHS context
+						OperandStack.Push(FExpressionToken(Token.Context, MoveTemp(OpResult.GetValue())));
+					}
+					else
+					{
+						return MakeError(OpResult.GetError());
+					}			
+				}
+				else
+				{
+					FFormatOrderedArguments Args;
+					Args.Add(FText::FromString(Token.Context.GetString()));
+					return MakeError(FText::Format(LOCTEXT("SyntaxError_NoUnaryOperand", "No operand for unary operator {0}"), Args));
+				}
+				break;
 			}
 		}
 
-		if (Stack.Num() == 1)
+		if (OperandStack.Num() == 1)
 		{
-			return MakeValue(Stack[0].Node);
+			return MakeValue(MoveTemp(OperandStack[0].Node));
 		}
 		else
 		{
@@ -710,5 +718,153 @@ namespace ExpressionParser
 		}
 	}
 }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+namespace Tests
+{
+PRAGMA_DISABLE_OPTIMIZATION
+	struct FOperator {};
+
+	struct FMoveableType
+	{
+		static int32* LeakCount;
+
+		FMoveableType(int32 InId)
+			: Id(InId), bOwnsLeak(true)
+		{
+			++*LeakCount;
+		}
+
+		FMoveableType(FMoveableType&& In) : Id(-1), bOwnsLeak(false) { *this = MoveTemp(In); }
+		FMoveableType& operator=(FMoveableType&& In)
+		{
+			if (bOwnsLeak)
+			{
+				bOwnsLeak = false;
+				--*LeakCount;
+			}
+
+			Id = In.Id;
+			In.Id = -1;
+			
+			bOwnsLeak = In.bOwnsLeak;
+
+			In.bOwnsLeak = false;
+			return *this;
+		}
+
+		virtual ~FMoveableType()
+		{
+			if (bOwnsLeak)
+			{
+				--*LeakCount;
+			}
+		}
+
+		int32 Id;
+		bool bOwnsLeak;
+	};
+	
+	int32* FMoveableType::LeakCount = nullptr;
+
+	template<typename T>
+	bool TestWithType(FAutomationTestBase* Test)
+	{
+		int32 NumLeaks = 0;
+		
+		// Test that move-assigning the expression node correctly assigns the data, and calls the destructors successfully
+		{
+			TGuardValue<int32*> LeakCounter(T::LeakCount, &NumLeaks);
+			
+			FExpressionNode Original(T(1));
+			FExpressionNode New = MoveTemp(Original);
+			
+			int32 ResultingId = New.Cast<T>()->Id;
+			if (ResultingId != 1)
+			{
+				Test->AddError(FString::Printf(TEXT("Expression node move operator did not operate correctly. Expected moved-to state to be 1, it's actually %d."), ResultingId));
+				return false;
+			}
+
+			// Try assigning it over the top again
+			Original = FExpressionNode(T(1));
+			New = MoveTemp(Original);
+
+			ResultingId = New.Cast<T>()->Id;
+			if (ResultingId != 1)
+			{
+				Test->AddError(FString::Printf(TEXT("Expression node move operator did not operate correctly. Expected moved-to state to be 1, it's actually %d."), ResultingId));
+				return false;
+			}
+
+			// Now try running it all through a parser
+			FTokenDefinitions TokenDefs;
+			FExpressionGrammar Grammar;
+			FOperatorJumpTable JumpTable;
+
+			// Only valid tokens are a, b, and +
+			TokenDefs.DefineToken([](FExpressionTokenConsumer& Consumer){
+				auto Token = Consumer.GetStream().GenerateToken(1);
+				if (Token.IsSet())
+				{
+					switch(Consumer.GetStream().PeekChar())
+					{
+					case 'a': Consumer.Add(Token.GetValue(), T(1)); break;
+					case '+': Consumer.Add(Token.GetValue(), FOperator()); break;
+					}
+				}
+				return TOptional<FExpressionError>();
+			});
+
+			Grammar.DefinePreUnaryOperator<FOperator>();
+			Grammar.DefineBinaryOperator<FOperator>(1);
+
+			JumpTable.MapPreUnary<FOperator>([](const T& A)					{ return T(A.Id); });
+			JumpTable.MapBinary<FOperator>([](const T& A, const T& B)		{ return T(A.Id); });
+
+			ExpressionParser::Evaluate(TEXT("+a"), TokenDefs, Grammar, JumpTable);
+			ExpressionParser::Evaluate(TEXT("a+a"), TokenDefs, Grammar, JumpTable);
+			ExpressionParser::Evaluate(TEXT("+a++a"), TokenDefs, Grammar, JumpTable);
+		}
+
+		if (NumLeaks != 0)
+		{
+			Test->AddError(FString::Printf(TEXT("Expression node did not call wrapped type's destructors correctly. Potentially resulted in %d leaks."), NumLeaks));
+			return false;
+		}
+
+		return true;
+	}
+
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserMoveableTypes, "System.Core.Expression Parser.Moveable Types", EAutomationTestFlags::ATF_SmokeTest)
+	bool FExpressionParserMoveableTypes::RunTest( const FString& Parameters )
+	{
+		return TestWithType<FMoveableType>(this);
+	}
+
+	struct FHugeType : FMoveableType
+	{
+		FHugeType(int32 InId) : FMoveableType(InId) {}
+		FHugeType(FHugeType&& In) : FMoveableType(MoveTemp(In)) {}
+
+		uint8 Padding[1024];
+	};
+
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserAllocatedTypes, "System.Core.Expression Parser.Allocated Types", EAutomationTestFlags::ATF_SmokeTest)
+	bool FExpressionParserAllocatedTypes::RunTest( const FString& Parameters )
+	{
+		return TestWithType<FHugeType>(this);
+	}
+
+}
+
+DEFINE_EXPRESSION_NODE_TYPE(Tests::FMoveableType, 0xB7F3F127, 0xD5E74833, 0x9EAB754E, 0x6CF3AAC1)
+DEFINE_EXPRESSION_NODE_TYPE(Tests::FHugeType, 0x4A329D81, 0x102343A8, 0xAB95BF45, 0x6578EE54)
+DEFINE_EXPRESSION_NODE_TYPE(Tests::FOperator, 0xC777A5D7, 0x6895456C, 0x9854BFA0, 0xB71B5A8D)
+
+PRAGMA_ENABLE_OPTIMIZATION
+
+#endif
 
 #undef LOCTEXT_NAMESPACE

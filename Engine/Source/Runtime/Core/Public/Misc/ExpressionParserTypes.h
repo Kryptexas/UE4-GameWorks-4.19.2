@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -5,6 +6,11 @@
 
 class FExpressionNode;
 struct FExpressionError;
+
+namespace Impl
+{
+	struct IExpressionNodeStorage;
+}
 
 typedef TValueOrError<FExpressionNode, FExpressionError> FExpressionResult;
 
@@ -154,306 +160,157 @@ template<typename T> struct TGetExpressionNodeTypeId;
  * 	Can be constructed from any C++ type that has a corresponding DEFINE_EXPRESSION_NODE_TYPE.
  * 	Evaluation behaviour (unary/binary operator etc) is defined in the expression grammar, rather than the type itself.
  */
-class FExpressionNode
+class CORE_API FExpressionNode : FNoncopyable
 {
 public:
 	/** Construction from client expression data type */
 	template<typename T>
-	FExpressionNode(const T& In,
+	FExpressionNode(T In,
 		/** @todo: make this a default function template parameter when VS2012 support goes */
 		typename TEnableIf<!TPointerIsConvertibleFromTo<T, FExpressionNode>::Value>::Type* = nullptr
-		)
-		: TypeId(TGetExpressionNodeTypeId<T>::GetTypeId())
-	{
-		if (sizeof(T) <= SizeOfInlineBytes)
-		{
-			FMemory::Memcpy(InlineBytes, &In, sizeof(T));
-		}
-		else
-		{
-			BigData = MakeShareable(new T(In));
-		}
-	}
+		);
 
-	/** Copy construction/assignment */
-	FExpressionNode(const FExpressionNode& In) { *this = In; }
-	FExpressionNode& operator=(const FExpressionNode& In)
-	{
-		TypeId = In.TypeId;
-		if (In.BigData.IsValid())
-		{
-			BigData = In.BigData;
-		}
-		else
-		{
-			BigData = nullptr;
-			FMemory::Memcpy(InlineBytes, In.InlineBytes, SizeOfInlineBytes);
-		}
-		return *this;
-	}
+	~FExpressionNode();
+
+	/** Move construction/assignment */
+	FExpressionNode(FExpressionNode&& In);
+	FExpressionNode& operator=(FExpressionNode&& In);
 
 	/** Get the type identifier of this node */
-	const FGuid& GetTypeId() const { return TypeId; }
+	const FGuid& GetTypeId() const;
 
-	/** Cast this node to the specified type. Will asset if the types do not match. */
+	/** Cast this node to the specified type. Will return nullptr if the types do not match. */
 	template<typename T>
-	const T* Cast() const
-	{
-		if (TypeId == TGetExpressionNodeTypeId<T>::GetTypeId())
-		{
-			if (BigData.IsValid())
-			{
-				return reinterpret_cast<const T*>(BigData.Get());
-			}
-			else
-			{
-				return reinterpret_cast<const T*>(InlineBytes);
-			}
-		}
-		return nullptr;
-	}
+	const T* Cast() const;
 
 private:
 
-	static const int32 SizeOfInlineBytes = 128 - sizeof(FGuid) - sizeof(TSharedPtr<void>);
+	/** The maximum size of type we will allow allocation on the stack (for efficiency). Anything larger will be allocated on the heap. */
+	static const int32 MaxStackAllocationSize = 64 - sizeof(FGuid);
+
+	/** Helper accessor to the data interface. Returns null for empty containers. */
+	Impl::IExpressionNodeStorage* GetData();
 
 	/** TypeID - 16 bytes */
 	FGuid TypeId;
-	/** SharedPtr for large types - 2*sizeof(void*) */
-	TSharedPtr<void> BigData;
-	uint8 InlineBytes[SizeOfInlineBytes];
+	uint8 InlineBytes[MaxStackAllocationSize];
 };
 
 /** A specific token in a stream. Comprises an expression node, and the stream token it was created from */
-class FExpressionToken
+class FExpressionToken : FNoncopyable
 {
 public:
-	FExpressionToken(const FStringToken& InContext, const FExpressionNode& InNode)
-		: Node(InNode)
+	FExpressionToken(const FStringToken& InContext, FExpressionNode InNode)
+		: Node(MoveTemp(InNode))
 		, Context(InContext)
 	{
 	}
 
-	FExpressionToken(const FExpressionToken& In) : Node(In.Node), Context(In.Context) {}
-	FExpressionToken& operator=(const FExpressionToken& In) { Node = In.Node; Context = In.Context; return *this; }
+	FExpressionToken(FExpressionToken&& In) : Node(MoveTemp(In.Node)), Context(In.Context) {}
+	FExpressionToken& operator=(FExpressionToken&& In) { Node = MoveTemp(In.Node); Context = In.Context; return *this; }
 
 	FExpressionNode Node;
 	FStringToken Context;
 };
 
-/** Built-in wrapper tokens used for compilation */
-struct FGroupMarker
+/** A compiled token, holding the token itself, and any compiler information required to evaluate it */
+struct FCompiledToken : FExpressionToken
 {
-	FGroupMarker(const FExpressionToken& InWrappedToken) : WrappedToken(InWrappedToken), NumTokens(0) {}
+	// Todo: add callable types here?
+	enum EType { Operand, PreUnaryOperator, PostUnaryOperator, BinaryOperator, Benign };
 
-	template<typename T>	bool 		IsA() const 	{ return WrappedToken.Node.GetTypeId() == TGetExpressionNodeTypeId<T>::GetTypeId(); }
-	template<typename T>	const T* 	Cast() const	{ return WrappedToken.Node.Cast<T>(); }
+	FCompiledToken(EType InType, FExpressionToken InToken)
+		: FExpressionToken(MoveTemp(InToken)), Type(InType)
+	{}
 
-	FExpressionToken WrappedToken;
-	int32 NumTokens;
-};
-DEFINE_EXPRESSION_NODE_TYPE(FGroupMarker, 0xEBF6DBA6, 0xE81B4684, 0x938EF46A, 0xD2FC0052)
-
-struct FWrappedOperator
-{
-	enum EType { PreUnary, PostUnary, Binary };
-	FWrappedOperator(EType InType, const FExpressionToken& InWrappedToken, int32 InPrec = 0) : Type(InType), WrappedToken(InWrappedToken), Precedence(InPrec) {}
-
-	template<typename T>	bool 		IsA() const 	{ return WrappedToken.Node.GetTypeId() == TGetExpressionNodeTypeId<T>::GetTypeId(); }
-	template<typename T>	const T* 	Cast() const	{ return WrappedToken.Node.Cast<T>(); }
+	FCompiledToken(FCompiledToken&& In) : FExpressionToken(MoveTemp(In)), Type(In.Type) {}
+	FCompiledToken& operator=(FCompiledToken&& In) { FExpressionToken::operator=(MoveTemp(In)); Type = In.Type; return *this; }
 
 	EType Type;
-	FExpressionToken WrappedToken;
-	int32 Precedence;
 };
-DEFINE_EXPRESSION_NODE_TYPE(FWrappedOperator, 0x449B352B, 0x17B14A76, 0xBD264E7B, 0x9669D8F4)
-
-namespace impl
-{
-	template <typename> struct TParams;
-	template <typename> struct TParamsImpl;
-
-	template <typename Ret_, typename T, typename Arg1_>
-	struct TParamsImpl<Ret_ (T::*)(Arg1_)> { typedef Ret_ Ret; typedef Arg1_ Arg1; };
-	template <typename Ret_, typename T, typename Arg1_>
-	struct TParamsImpl<Ret_ (T::*)(Arg1_) const> { typedef Ret_ Ret; typedef Arg1_ Arg1; };
-
-	template <typename Ret_, typename T, typename Arg1_, typename Arg2_>
-	struct TParamsImpl<Ret_ (T::*)(Arg1_, Arg2_)> { typedef Ret_ Ret; typedef Arg1_ Arg1; typedef Arg2_ Arg2; };
-	template <typename Ret_, typename T, typename Arg1_, typename Arg2_>
-	struct TParamsImpl<Ret_ (T::*)(Arg1_, Arg2_) const> { typedef Ret_ Ret; typedef Arg1_ Arg1; typedef Arg2_ Arg2; };
-
-	/** @todo: decltype(&T::operator()) can go directly in the specialization below if it weren't for VS2012 support */
-	template<typename T>
-	struct TGetOperatorCallPtr { typedef decltype(&T::operator()) Type; };
-
-	template <typename T>
-	struct TParams : TParamsImpl<typename TGetOperatorCallPtr<T>::Type> {};
-}
 
 /** Jump table specifying how to execute an operator with different types */
-struct FOperatorJumpTable
+template<typename ContextType=void>
+struct TOperatorJumpTable
 {
 	/** Execute the specified token as a unary operator, if such an overload exists */
-	FExpressionResult ExecPreUnary(const FExpressionToken& Operator, const FExpressionToken& R) const;
+	FExpressionResult ExecPreUnary(const FExpressionToken& Operator, const FExpressionToken& R, const ContextType* Context) const;
 	/** Execute the specified token as a unary operator, if such an overload exists */
-	FExpressionResult ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L) const;
+	FExpressionResult ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L, const ContextType* Context) const;
 	/** Execute the specified token as a binary operator, if such an overload exists */
-	FExpressionResult ExecBinary(const FExpressionToken& Operator, const FExpressionToken& L, const FExpressionToken& R) const;
+	FExpressionResult ExecBinary(const FExpressionToken& Operator, const FExpressionToken& L, const FExpressionToken& R, const ContextType* Context) const;
 
 	/**
-	 * Map an expression node to a unary operator with the specified implementation.
-	 * This overload accepts callable types that return an FExpressionResult (and thus support returning an error)
-	 * Example usage that binds a '!' token to a function that attempts to do a boolean 'not'
-	 *		JumpTable.MapUnary<FExclamation>([](bool A) -> FExpressionResult { return MakeValue(!A); });
+	 * Map an expression node to a pre-unary operator with the specified implementation.
+	 *
+	 * The callable type must match the declaration Ret(Operand[, Context]), where:
+	 *	 	Ret 	= Any DEFINE_EXPRESSION_NODE_TYPE type, OR FExpressionResult
+	 *	 	Operand = Any DEFINE_EXPRESSION_NODE_TYPE type
+	 *	 	Context = (optional) const ptr to user-supplied arbitrary context
+	 *
+	 * Examples that binds a '!' token to a function that attempts to do a boolean 'not':
+	 *		JumpTable.MapPreUnary<FExclamation>([](bool A){ return !A; });
+	 *		JumpTable.MapPreUnary<FExclamation>([](bool A, FMyContext* Ctxt){ if (Ctxt->IsBooleanNotOpEnabled()) { return !A; } else { return A; } });
+	 *		JumpTable.MapPreUnary<FExclamation>([](bool A, const FMyContext* Ctxt) -> FExpressionResult {
+
+	 *			if (Ctxt->IsBooleanNotOpEnabled())
+	 *			{
+	 *				return MakeValue(!A);
+	 *			}
+	 *			return MakeError(FExpressionError(LOCTEXT("NotNotEnabled", "Boolean not is not enabled.")));
+	 *		});
 	 */
 	template<typename OperatorType, typename FuncType>
-	typename TEnableIf<TIsSame<FExpressionResult, typename impl::TParams<FuncType>::Ret>::Value>::Type
-		MapPreUnary(FuncType InFunc)
-	{
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg1>::Type>::Type OperandType;
-
-		FOperatorFunctionID ID = {
-			TGetExpressionNodeTypeId<OperatorType>::GetTypeId(),
-			FGuid(),
-			TGetExpressionNodeTypeId<OperandType>::GetTypeId()
-		};
-
-		PreUnaryOps.Add(ID, [=](const FExpressionNode& InOperand) {
-			return InFunc(*InOperand.Cast<OperandType>());
-		});
-	}
+	void MapPreUnary(FuncType InFunc);
 
 	/**
-	 * Map an expression node to a unary operator with the specified implementation.
-	 * This overload accepts callable types that return anything other than an FExpressionResult. Such functions cannot return errors.
-	 * The returned type is passed into an FExpressionNode, and as such must be a valid expression node type (see DEFINE_EXPRESSION_NODE_TYPE).
-	 * Example usage that binds a 'subtract' token to a function that negates the integer:
-	 *		JumpTable.MapUnary<FSubtractToken>([](int32 A){ return -A; });
+	 * Map an expression node to a post-unary operator with the specified implementation.
+	 * The same function signature rules apply here as with MapPreUnary.
 	 */
 	template<typename OperatorType, typename FuncType>
-	typename TEnableIf<!TIsSame<FExpressionResult, typename impl::TParams<FuncType>::Ret>::Value>::Type
-		MapPreUnary(FuncType InFunc)
-	{
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg1>::Type>::Type OperandType;
-
-		FOperatorFunctionID ID = {
-			TGetExpressionNodeTypeId<OperatorType>::GetTypeId(),
-			FGuid(),
-			TGetExpressionNodeTypeId<OperandType>::GetTypeId()
-		};
-
-		// Explicit return type is important here, to ensure that the proxy returned from MakeValue does not outlive the value it's proxying
-		PreUnaryOps.Add(ID, [=](const FExpressionNode& InOperand) -> FExpressionResult {
-			return MakeValue(InFunc(*InOperand.Cast<OperandType>()));
-		});
-	}
-
-	/**
-	 * Map an expression node to a unary operator with the specified implementation.
-	 * This overload accepts callable types that return an FExpressionResult (and thus support returning an error)
-	 * Example usage that binds a '!' token to a function that attempts to do a boolean 'not'
-	 *		JumpTable.MapUnary<FExclamation>([](bool A) -> FExpressionResult { return MakeValue(!A); });
-	 */
-	template<typename OperatorType, typename FuncType>
-	typename TEnableIf<TIsSame<FExpressionResult, typename impl::TParams<FuncType>::Ret>::Value>::Type
-		MapPostUnary(FuncType InFunc)
-	{
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg1>::Type>::Type OperandType;
-
-		FOperatorFunctionID ID = {
-			TGetExpressionNodeTypeId<OperatorType>::GetTypeId(),
-			TGetExpressionNodeTypeId<OperandType>::GetTypeId(),
-			FGuid()
-		};
-
-		PostUnaryOps.Add(ID, [=](const FExpressionNode& InOperand) {
-			return InFunc(*InOperand.Cast<OperandType>());
-		});
-	}
-
-	/**
-	 * Map an expression node to a unary operator with the specified implementation.
-	 * This overload accepts callable types that return anything other than an FExpressionResult. Such functions cannot return errors.
-	 * The returned type is passed into an FExpressionNode, and as such must be a valid expression node type (see DEFINE_EXPRESSION_NODE_TYPE).
-	 * Example usage that binds a 'subtract' token to a function that negates the integer:
-	 *		JumpTable.MapUnary<FSubtractToken>([](int32 A){ return -A; });
-	 */
-	template<typename OperatorType, typename FuncType>
-	typename TEnableIf<!TIsSame<FExpressionResult, typename impl::TParams<FuncType>::Ret>::Value>::Type
-		MapPostUnary(FuncType InFunc)
-	{
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg1>::Type>::Type OperandType;
-
-		FOperatorFunctionID ID = {
-			TGetExpressionNodeTypeId<OperatorType>::GetTypeId(),
-			TGetExpressionNodeTypeId<OperandType>::GetTypeId(),
-			FGuid()
-		};
-
-		// Explicit return type is important here, to ensure that the proxy returned from MakeValue does not outlive the value it's proxying
-		PostUnaryOps.Add(ID, [=](const FExpressionNode& InOperand) -> FExpressionResult {
-			return MakeValue(InFunc(*InOperand.Cast<OperandType>()));
-		});
-	}
-
-	/**
-	 * Map an expression node to a unary operator with the specified implementation.
-	 * This overload accepts callable types that return an FExpressionResult (and thus support returning an error)
-	 * Example usage that binds a 'slash' token to a function that subtracts two integers:
-	 *		JumpTable.MapBinary<FSlashToken>([](double A, double B){
-	 			if (B == 0) {
-	 				return MakeError(LOCTEXT("DivisionByZero", "Division by zero"));
-	 			} else {
-	 				return MakeValue(A / B);
-	 			}
-	 		});
-	 */
-	template<typename OperatorType, typename FuncType>
-	typename TEnableIf<TIsSame<FExpressionResult, typename impl::TParams<FuncType>::Ret>::Value>::Type
-		MapBinary(FuncType InFunc)
-	{
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg1>::Type>::Type LeftOperandType;
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg2>::Type>::Type RightOperandType;
-
-		FOperatorFunctionID ID = {
-			TGetExpressionNodeTypeId<OperatorType>::GetTypeId(),
-			TGetExpressionNodeTypeId<LeftOperandType>::GetTypeId(),
-			TGetExpressionNodeTypeId<RightOperandType>::GetTypeId()
-		};
-
-		BinaryOps.Add(ID, [=](const FExpressionNode& InLeftOperand, const FExpressionNode& InRightOperand){
-			return InFunc(*InLeftOperand.Cast<LeftOperandType>(), *InRightOperand.Cast<RightOperandType>());
-		});
-	}
+	void MapPostUnary(FuncType InFunc);
 
 	/**
 	 * Map an expression node to a binary operator with the specified implementation.
-	 * This overload accepts callable types that return anything other than an FExpressionResult. Such functions cannot return errors.
-	 * The returned type is passed into an FExpressionNode, and as such must be a valid expression node type (see DEFINE_EXPRESSION_NODE_TYPE).
-	 * Example usage that binds a 'subtract' token to a function that subtracts two integers:
-	 *		JumpTable.MapBinary<FSubtractToken>([](int32 A, int32 B){ return A - B; });
+	 *
+	 * The callable type must match the declaration Ret(OperandL, OperandR, [, Context]), where:
+	 *	 	Ret 		= Any DEFINE_EXPRESSION_NODE_TYPE type, OR FExpressionResult
+	 *	 	OperandL	= Any DEFINE_EXPRESSION_NODE_TYPE type
+	 *	 	OperandR	= Any DEFINE_EXPRESSION_NODE_TYPE type
+	 *	 	Context 	= (optional) const ptr to user-supplied arbitrary context
+	 *
+	 * Examples that binds a '/' token to a function that attempts to do a division:
+	 *		JumpTable.MapUnary<FForwardSlash>([](double A, double B){ return A / B; }); // Runtime exception on div/0 
+	 *		JumpTable.MapUnary<FForwardSlash>([](double A, double B, FMyContext* Ctxt){
+	 *			if (!Ctxt->IsMathEnabled())
+	 *			{
+	 *				return A;
+	 *			}
+	 *			return A / B; // Runtime exception on div/0 
+	 *		});
+	 *		JumpTable.MapUnary<FForwardSlash>([](double A, double B, const FMyContext* Ctxt) -> FExpressionResult {
+	 *			if (!Ctxt->IsMathEnabled())
+	 *			{
+	 *				return MakeError(FExpressionError(LOCTEXT("MathNotEnabled", "Math is not enabled.")));
+	 *			}
+	 *			else if (B == 0)
+	 *			{
+	 *				return MakeError(FExpressionError(LOCTEXT("DivisionByZero", "Division by zero.")));	
+	 *			}
+	 *
+	 *			return MakeValue(!A);
+	 *		});
 	 */
 	template<typename OperatorType, typename FuncType>
-	typename TEnableIf<!TIsSame<FExpressionResult, typename impl::TParams<FuncType>::Ret>::Value>::Type
-		MapBinary(FuncType InFunc)
-	{
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg1>::Type>::Type LeftOperandType;
-		typedef typename TRemoveConst<typename TRemoveReference<typename impl::TParams<FuncType>::Arg2>::Type>::Type RightOperandType;
+	void MapBinary(FuncType InFunc);
 
-		FOperatorFunctionID ID = {
-			TGetExpressionNodeTypeId<OperatorType>::GetTypeId(),
-			TGetExpressionNodeTypeId<LeftOperandType>::GetTypeId(),
-			TGetExpressionNodeTypeId<RightOperandType>::GetTypeId()
-		};
+public:
 
-		// Explicit return type is important here, to ensure that the proxy returned from MakeValue does not outlive the value it's proxying
-		BinaryOps.Add(ID, [=](const FExpressionNode& InLeftOperand, const FExpressionNode& InRightOperand) -> FExpressionResult {
-			return MakeValue(InFunc(*InLeftOperand.Cast<LeftOperandType>(), *InRightOperand.Cast<RightOperandType>()));
-		});
-	}
+	typedef TFunction<FExpressionResult(const FExpressionNode&, const ContextType* Context)> FUnaryFunction;
+	typedef TFunction<FExpressionResult(const FExpressionNode&, const FExpressionNode&, const ContextType* Context)> FBinaryFunction;
 
 private:
+
 	/** Struct used to identify a function for a specific operator overload */
 	struct FOperatorFunctionID
 	{
@@ -476,10 +333,51 @@ private:
 	};
 
 	/** Maps of unary/binary operators */
-	TMap<FOperatorFunctionID, TFunction<FExpressionResult(const FExpressionNode&)>> PreUnaryOps;
-	TMap<FOperatorFunctionID, TFunction<FExpressionResult(const FExpressionNode&)>> PostUnaryOps;
-	TMap<FOperatorFunctionID, TFunction<FExpressionResult(const FExpressionNode&, const FExpressionNode&)>> BinaryOps;
+	TMap<FOperatorFunctionID, FUnaryFunction> PreUnaryOps;
+	TMap<FOperatorFunctionID, FUnaryFunction> PostUnaryOps;
+	TMap<FOperatorFunctionID, FBinaryFunction> BinaryOps;
 };
+
+typedef TOperatorJumpTable<> FOperatorJumpTable;
+
+/** Structures used for managing the evaluation environment for operators in an expression. This class manages the evaluation context
+ * to avoid templating the whole evaluation code on a context type
+ */
+struct IOperatorEvaluationEnvironment
+{
+	/** Execute the specified token as a unary operator, if such an overload exists */
+	virtual FExpressionResult ExecPreUnary(const FExpressionToken& Operator, const FExpressionToken& R) const = 0;
+	/** Execute the specified token as a unary operator, if such an overload exists */
+	virtual FExpressionResult ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L) const = 0;
+	/** Execute the specified token as a binary operator, if such an overload exists */
+	virtual FExpressionResult ExecBinary(const FExpressionToken& Operator, const FExpressionToken& L, const FExpressionToken& R) const = 0;
+};
+template<typename ContextType = void>
+struct TOperatorEvaluationEnvironment : IOperatorEvaluationEnvironment
+{
+	TOperatorEvaluationEnvironment(const TOperatorJumpTable<ContextType>& InOperators, const ContextType* InContext)
+		: Operators(InOperators), Context(InContext)
+	{}
+
+	virtual FExpressionResult ExecPreUnary(const FExpressionToken& Operator, const FExpressionToken& R) const override
+	{
+		return Operators.ExecPreUnary(Operator, R, Context);
+	}
+	virtual FExpressionResult ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L) const
+	{
+		return Operators.ExecPostUnary(Operator, L, Context);
+	}
+	virtual FExpressionResult ExecBinary(const FExpressionToken& Operator, const FExpressionToken& L, const FExpressionToken& R) const override
+	{
+		return Operators.ExecBinary(Operator, L, R, Context);
+	}
+
+private:
+	const TOperatorJumpTable<ContextType>& Operators;
+	const ContextType* Context;
+};
+
+typedef TOperatorEvaluationEnvironment<> FOperatorEvaluationEnvironment;
 
 /** Class used to consume tokens from a string */
 class CORE_API FExpressionTokenConsumer
@@ -589,3 +487,5 @@ private:
 	TSet<FGuid>			PostUnaryOperators;
 	TMap<FGuid, int32>	BinaryOperators;
 };
+
+#include "ExpressionParserTypes.inl"
