@@ -81,6 +81,11 @@ public class MongoDB implements BaseDB
 		PrintCollectionStats( logColl );
 		PrintCollectionStats( db.getCollection( "replayFS.files" ) );
 		PrintCollectionStats( db.getCollection( "replayFS.chunks" ) );
+		
+		if ( ReplayProps.getInt( "mongoDB_ConvertReplaysToLower", "0" ) == 1 )
+		{
+			convertReplaysToLowercase();
+		}
 	}
 	
 	public void ResetIndexes()
@@ -221,6 +226,27 @@ public class MongoDB implements BaseDB
 		}		
 	}
 	
+	void convertReplaysToLowercase()
+	{
+		DBCursor cursor = replayColl.find();
+		
+		while ( cursor.hasNext() ) 
+		{
+		    DBObject doc = (DBObject)cursor.next();
+		    
+		    String appName = (String)doc.get( "app" );
+		    
+		    if ( appName != null )
+		    {
+		    	appName = appName.toLowerCase();
+		    	
+		    	doc.put( "app", appName );
+		    	
+		    	replayColl.save( doc );
+		    }
+		}		
+	}
+
 	static void listFiles()
 	{
 		ReplayLogger.log( "Files:" );
@@ -247,7 +273,7 @@ public class MongoDB implements BaseDB
 		try
 		{
 			final BasicDBObject newSession = getSessionQuery( sessionName )
-							.append( "app", 			appName )
+							.append( "app", 			appName.toLowerCase() )
 							.append( "version", 		version )
 							.append( "cl", 				changelist )
 							.append( "friendlyName", 	friendlyName )
@@ -769,7 +795,7 @@ public class MongoDB implements BaseDB
  		
  		if ( appName != null )
  		{
- 			BasicDBObject query = new BasicDBObject( "app", appName );
+ 			BasicDBObject query = new BasicDBObject( "app", appName.toLowerCase() );
  			
  			if ( version != 0 )
 	 		{
