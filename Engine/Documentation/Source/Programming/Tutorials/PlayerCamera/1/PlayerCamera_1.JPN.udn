@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573881
 Availability:Public
 Title:1.ポーンにカメラを親子付けする
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -30,10 +30,11 @@ Description:スプリングアームとカメラを作成
 1. 次に **Visual Studio** で 「 `PawnWithCamera.h` 」 ファイルを開いて、以下のコードをクラス定義の下に追加します：
 
 		protected:
+			UPROPERTY(EditAnywhere)
 			USpringArmComponent* OurCameraSpringArm;
 			UCameraComponent* OurCamera;
 
-	エンドに **CameraComponent** を親子付けした **SpringArmComponent** の作成にこれらの変数を使用します。スプリングアームは過度に固定せずに動きに合わせたより滑らかな動作をするため、カメラの親子付けに適したシンプルな手法です。
+	エンドに **CameraComponent** を親子付けした **SpringArmComponent** の作成にこれらの変数を使用します。スプリングアームは過度に固定せずに動きに合わせたより滑らかな動作を作成するため、カメラの親子付けに適したシンプルな手法です。
 
 1. その後、コンストラクタ内に **コンポーネント** を実際に作成しなくてはいけません。次のコードを **APawnWithCamera::APawnWithCamera** 内の「 `PawnWithCamera.cpp` 」ファイルに追加します：
 
@@ -51,7 +52,7 @@ Description:スプリングアームとカメラを作成
 		OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
 		OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
 
-1. 以下のコードの一部を追加することにより、ついにデフォルト設定およびスポーン時にローカルプレイヤーが自動でコントロールできる **ポーン** を設定できます。
+1. 以下に示すコードの一部を追加することにより、デフォルト設定およびスポーン時にローカルプレイヤーが自動でコントロールできる **ポーン** を最終的に設定できます。
 
 		//Take control of the default Player（デフォルトプレイヤーをコントロール）
 		AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -95,6 +96,7 @@ Description:スプリングアームとカメラを作成
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};
