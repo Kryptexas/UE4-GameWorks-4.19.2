@@ -3,12 +3,14 @@
 #pragma once
 
 #include "AsyncResult.h"
+#include "IPortalService.h"
 
 
 /**
  * Interface for package installer services.
  */
 class IPortalPackageInstaller
+	: public IPortalService
 {
 public:
 

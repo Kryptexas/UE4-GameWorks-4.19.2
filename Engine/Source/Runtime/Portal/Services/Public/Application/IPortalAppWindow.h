@@ -3,12 +3,14 @@
 #pragma once
 
 #include "AsyncResult.h"
+#include "IPortalService.h"
 
 
 /**
  * Interface for the Portal application's marketplace services.
  */
 class IPortalAppWindow
+	: public IPortalService
 {
 public:
 

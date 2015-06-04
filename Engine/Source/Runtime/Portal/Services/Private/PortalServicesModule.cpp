@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PortalServicesPrivatePCH.h"
+#include "IPortalServicesModule.h"
 #include "ModuleManager.h"
 
 
@@ -8,12 +9,21 @@
  * Implements the PortalServices module.
  */
 class FPortalServicesModule
-	: public IModuleInterface
+	: public IPortalServicesModule
 {
 public:
 
 	/** Virtual destructor. */
 	virtual ~FPortalServicesModule() { }
+
+public:
+
+	// IPortalServicesModule interface
+
+	virtual TSharedRef<IPortalServiceLocator> CreateLocator(const TSharedRef<FTypeContainer>& ServiceDependencies) override
+	{
+		return MakeShareable(new FPortalServiceLocator(ServiceDependencies));
+	}
 
 public:
 
