@@ -536,6 +536,16 @@ void AMatineeActor::OnObjectsReplaced(const TMap<UObject*,UObject*>& Replacement
 }
 #endif //WITH_EDITOR
 
+void AMatineeActor::Destroyed()
+{
+	if( GetWorld() )
+	{
+		GetWorldTimerManager().ClearTimer(TimerHandle_CheckPriorityRefresh);
+	}
+
+	Super::Destroyed();
+}
+
 void AMatineeActor::SetPosition(float NewPosition,bool bJump)
 {
 	// if we aren't currently active, temporarily activate to change the position

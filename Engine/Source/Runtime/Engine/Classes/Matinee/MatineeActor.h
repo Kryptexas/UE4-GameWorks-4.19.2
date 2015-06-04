@@ -267,6 +267,7 @@ public:
 	ENGINE_API void OnObjectsReplaced(const TMap<UObject*,UObject*>& ReplacementMap);
 #endif //WITH_EDITOR
 
+	virtual void Destroyed() override;
 protected:
 
 	/** Handle for efficient management of CheckPriorityRefresh timer */
