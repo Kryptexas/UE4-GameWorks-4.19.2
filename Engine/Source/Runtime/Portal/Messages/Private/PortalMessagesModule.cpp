@@ -2,12 +2,13 @@
 
 #include "PortalMessagesPrivatePCH.h"
 #include "ModuleInterface.h"
+#include "ModuleManager.h"
 
 
 /**
  * Implements the module.
  */
-class FModule
+class FPortalMessagesModule
 	: public IModuleInterface
 {
 public:
@@ -24,4 +25,4 @@ public:
 };
 
 
-IMPLEMENT_MODULE(FModule, PortalMessages);
+IMPLEMENT_MODULE(FPortalMessagesModule, PortalMessages);
