@@ -737,9 +737,13 @@ static void BlueprintActionDatabaseImpl::AddBlueprintGraphActions(UBlueprint con
 		{
 			for (FBPVariableDescription const& LocalVar : FunctionEntry->LocalVariables)
 			{
-				UBlueprintNodeSpawner* GetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), FunctionGraph, LocalVar);
+				// Create a member reference so we can safely resolve the UProperty
+				FMemberReference Reference;
+				Reference.SetLocalMember(LocalVar.VarName, FunctionGraph->GetName(), LocalVar.VarGuid);
+
+				UBlueprintNodeSpawner* GetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableGet::StaticClass(), FunctionGraph, LocalVar, Reference.ResolveMember<UProperty>(Blueprint->SkeletonGeneratedClass));
 				ActionListOut.Add(GetVarSpawner);
-				UBlueprintNodeSpawner* SetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), FunctionGraph, LocalVar);
+				UBlueprintNodeSpawner* SetVarSpawner = UBlueprintVariableNodeSpawner::Create(UK2Node_VariableSet::StaticClass(), FunctionGraph, LocalVar, Reference.ResolveMember<UProperty>(Blueprint->SkeletonGeneratedClass));
 				ActionListOut.Add(SetVarSpawner);
 			}
 		}
