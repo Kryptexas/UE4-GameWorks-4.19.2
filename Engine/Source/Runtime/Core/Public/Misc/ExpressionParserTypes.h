@@ -163,6 +163,10 @@ template<typename T> struct TGetExpressionNodeTypeId;
 class CORE_API FExpressionNode : FNoncopyable
 {
 public:
+
+	/** Default constructor */
+	FExpressionNode() : TypeId() {}
+
 	/** Construction from client expression data type */
 	template<typename T>
 	FExpressionNode(T In,
@@ -183,6 +187,9 @@ public:
 	template<typename T>
 	const T* Cast() const;
 
+	/** Copy this node and its wrapped data */
+	FExpressionNode Copy() const;
+
 private:
 
 	/** The maximum size of type we will allow allocation on the stack (for efficiency). Anything larger will be allocated on the heap. */
@@ -190,6 +197,7 @@ private:
 
 	/** Helper accessor to the data interface. Returns null for empty containers. */
 	Impl::IExpressionNodeStorage* GetData();
+	const Impl::IExpressionNodeStorage* GetData() const;
 
 	/** TypeID - 16 bytes */
 	FGuid TypeId;

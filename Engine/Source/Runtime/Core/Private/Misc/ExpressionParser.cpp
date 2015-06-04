@@ -392,6 +392,20 @@ Impl::IExpressionNodeStorage* FExpressionNode::GetData()
 	return TypeId.IsValid() ? reinterpret_cast<Impl::IExpressionNodeStorage*>(InlineBytes) : nullptr;
 }
 
+const Impl::IExpressionNodeStorage* FExpressionNode::GetData() const
+{
+	return TypeId.IsValid() ? reinterpret_cast<const Impl::IExpressionNodeStorage*>(InlineBytes) : nullptr;
+}
+
+FExpressionNode FExpressionNode::Copy() const
+{
+	if (const auto* Data = GetData())
+	{
+		return Data->Copy();
+	}
+	return FExpressionNode();
+}
+
 const FGuid* FExpressionGrammar::GetGrouping(const FGuid& TypeId) const
 {
 	return Groupings.Find(TypeId);
@@ -631,16 +645,40 @@ namespace ExpressionParser
 			return MakeError(CompilationResult.GetError());
 		}
 
-		return Evaluate(MoveTemp(CompilationResult.GetValue()), InEnvironment);
+		return Evaluate(CompilationResult.GetValue(), InEnvironment);
 	}
 
-	FExpressionResult Evaluate(TArray<FCompiledToken> CompiledTokens, const IOperatorEvaluationEnvironment& InEnvironment)
+	FExpressionResult Evaluate(const TArray<FCompiledToken>& CompiledTokens, const IOperatorEvaluationEnvironment& InEnvironment)
 	{
-		TArray<FExpressionToken> OperandStack;
+		// Evaluation strategy: the supplied compiled tokens are const. To avoid copying the whole array, we store a separate array of
+		// any tokens that are generated at runtime by the evaluator. The operand stack will consist of indices into either the CompiledTokens
+		// array, or the RuntimeGeneratedTokens (where Index >= CompiledTokens.Num())
+		TArray<FExpressionToken> RuntimeGeneratedTokens;
+		TArray<int32> OperandStack;
+
+		/** Get the token pertaining to the specified operand index */
+		auto GetToken = [&](int32 Index) -> const FExpressionToken& {
+			if (Index < CompiledTokens.Num())
+			{
+				return CompiledTokens[Index];
+			}
+			else
+			{
+				return RuntimeGeneratedTokens[Index - CompiledTokens.Num()];
+			}
+		};
+
+		/** Add a new token to the runtime generated array */
+		auto AddToken = [&](FExpressionToken&& In) -> int32 {
+			auto Index = CompiledTokens.Num() + RuntimeGeneratedTokens.Num();
+			RuntimeGeneratedTokens.Emplace(MoveTemp(In));
+			return Index;
+		};
+
 
 		for (int32 Index = 0; Index < CompiledTokens.Num(); ++Index)
 		{
-			auto& Token = CompiledTokens[Index];
+			const auto& Token = CompiledTokens[Index];
 
 			switch(Token.Type)
 			{
@@ -648,21 +686,21 @@ namespace ExpressionParser
 				continue;
 
 			case FCompiledToken::Operand:
-				OperandStack.Push(MoveTemp(Token));
+				OperandStack.Push(Index);
 				continue;
 
 			case FCompiledToken::BinaryOperator:
 				if (OperandStack.Num() >= 2)
 				{
 					// Binary
-					auto R = OperandStack.Pop();
-					auto L = OperandStack.Pop();
+					const auto& R = GetToken(OperandStack.Pop());
+					const auto& L = GetToken(OperandStack.Pop());
 
 					auto OpResult = InEnvironment.ExecBinary(Token, L, R);
 					if (OpResult.IsValid())
 					{
 						// Inherit the LHS context
-						OperandStack.Push(FExpressionToken(L.Context, MoveTemp(OpResult.GetValue())));
+						OperandStack.Push(AddToken(FExpressionToken(L.Context, MoveTemp(OpResult.GetValue()))));
 					}
 					else
 					{
@@ -682,7 +720,7 @@ namespace ExpressionParser
 
 				if (OperandStack.Num() >= 1)
 				{
-					auto Operand = OperandStack.Pop();
+					const auto& Operand = GetToken(OperandStack.Pop());
 
 					FExpressionResult OpResult = (Token.Type == FCompiledToken::PreUnaryOperator) ?
 						InEnvironment.ExecPreUnary(Token, Operand) :
@@ -691,7 +729,7 @@ namespace ExpressionParser
 					if (OpResult.IsValid())
 					{
 						// Inherit the LHS context
-						OperandStack.Push(FExpressionToken(Token.Context, MoveTemp(OpResult.GetValue())));
+						OperandStack.Push(AddToken(FExpressionToken(Operand.Context, MoveTemp(OpResult.GetValue()))));
 					}
 					else
 					{
@@ -710,7 +748,7 @@ namespace ExpressionParser
 
 		if (OperandStack.Num() == 1)
 		{
-			return MakeValue(MoveTemp(OperandStack[0].Node));
+			return MakeValue(GetToken(OperandStack[0]).Node.Copy());
 		}
 		else
 		{
@@ -751,6 +789,23 @@ PRAGMA_DISABLE_OPTIMIZATION
 			bOwnsLeak = In.bOwnsLeak;
 
 			In.bOwnsLeak = false;
+			return *this;
+		}
+
+		FMoveableType(const FMoveableType& In) : Id(-1), bOwnsLeak(false) { *this = In; }
+		const FMoveableType& operator=(const FMoveableType& In)
+		{
+			const bool bDidOwnLeak = bOwnsLeak;
+			bOwnsLeak = In.bOwnsLeak;
+
+			if (bOwnsLeak && !bDidOwnLeak)
+			{
+				++*LeakCount;
+			}
+			else if (!bOwnsLeak && bDidOwnLeak)
+			{
+				--*LeakCount;
+			}
 			return *this;
 		}
 
@@ -847,7 +902,8 @@ PRAGMA_DISABLE_OPTIMIZATION
 	{
 		FHugeType(int32 InId) : FMoveableType(InId) {}
 		FHugeType(FHugeType&& In) : FMoveableType(MoveTemp(In)) {}
-
+		FHugeType(const FHugeType& In) : FMoveableType(In) {}
+		
 		uint8 Padding[1024];
 	};
 

@@ -14,6 +14,8 @@ namespace Impl
 		virtual void Reseat(uint8* Dst) = 0;
 		/** Move this type to a buffer already allocated to the same type (uses type-defined move-assignment) */
 		virtual void MoveAssign(uint8* Dst) = 0;
+		/** Copy this data */
+		virtual FExpressionNode Copy() const = 0;
 	};
 
 	/** Implementation of the wrapper utility for any moveable/copyable data, that allows us to virtually move/copy/destruct the data */
@@ -32,6 +34,7 @@ namespace Impl
 
 		virtual void Reseat(uint8* Dst) override 			{ new(Dst) FInlineDataStorage(MoveTemp(Value)); }
 		virtual void MoveAssign(uint8* Dst) override 		{ reinterpret_cast<FInlineDataStorage*>(Dst)->Value = MoveTemp(Value); }
+		virtual FExpressionNode Copy() const override		{ return Value; }
 	};
 
 	/** Data is stored on the heap in this implementation */
@@ -50,6 +53,7 @@ namespace Impl
 
 		virtual void Reseat(uint8* Dst) override 			{ new(Dst) FHeapDataStorage(MoveTemp(*this)); }
 		virtual void MoveAssign(uint8* Dst) override 		{ reinterpret_cast<FHeapDataStorage*>(Dst)->Value = MoveTemp(Value); }
+		virtual FExpressionNode Copy() const override		{ return *Value; }
 	};
 
 	template<typename T, uint32 MaxStackAllocationSize, typename Enabled=void> struct TStorageTypeDeduction;

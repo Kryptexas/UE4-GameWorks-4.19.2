@@ -30,7 +30,7 @@ namespace ExpressionParser
 	CORE_API FExpressionResult Evaluate(const TCHAR* InExpression, const FTokenDefinitions& InTokenDefinitions, const FExpressionGrammar& InGrammar, const IOperatorEvaluationEnvironment& InEnvironment);
 
 	/** Evaluate the specified pre-compiled tokens using an evaluation environment */
-	CORE_API FExpressionResult Evaluate(TArray<FCompiledToken> CompiledTokens, const IOperatorEvaluationEnvironment& InEnvironment);
+	CORE_API FExpressionResult Evaluate(const TArray<FCompiledToken>& CompiledTokens, const IOperatorEvaluationEnvironment& InEnvironment);
 
 	/** Templated versions of evaluation functions used when passing a specific jump table and context */
 	template<typename ContextType>
@@ -41,7 +41,7 @@ namespace ExpressionParser
 	}
 
 	template<typename ContextType>
-	FExpressionResult Evaluate(TArray<FCompiledToken>& CompiledTokens, const TOperatorJumpTable<ContextType>& InJumpTable, const ContextType* InContext = nullptr)
+	FExpressionResult Evaluate(const TArray<FCompiledToken>& CompiledTokens, const TOperatorJumpTable<ContextType>& InJumpTable, const ContextType* InContext = nullptr)
 	{
 		TOperatorEvaluationEnvironment<ContextType> Env(InJumpTable, InContext);
 		return Evaluate(CompiledTokens, Env);
