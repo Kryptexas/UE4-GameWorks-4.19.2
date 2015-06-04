@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2573881
+Availability:Public
 Title:2.カメラコントロールを行う入力設定
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:ポーンとカメラに適用する入力を設定
@@ -21,7 +22,7 @@ Description:ポーンとカメラに適用する入力を設定
 
 %Steps%
 
-1. カメラコントロールが行う制御を決定してからそれに基づいて入力を設定します。このプロジェクトは、右マウスボタンを押した時に追跡距離を短くしてFOVをズームインするコントロールを作成します。これに加えてマウス操作による視野角の操作と、WASDキー操作で **ポーン** の動作もコントロールしましょう。設定を行うために、 **アンリアルエンジン** エディタの **Edit（編集）** ドロップダウンメニューから **Project Settings（プロジェクト設定）** を開きます。
+1. カメラコントロールで行う制御対象を決定してからそれに基づいて入力を設定します。このプロジェクでトは、右マウスボタンを押した時に追跡距離を近づけて FOV をズームインするコントロールを作成します。これに加えてマウス操作による視野角の操作と、 WASD キー操作で **ポーン** の動作もコントロールしましょう。設定を行うために、 **アンリアルエンジン** エディタの **Edit（編集）** ドロップダウンメニューから **Project Settings（プロジェクト設定）** を開きます。
 
 	[![](EditProjectSettings.png)](EditProjectSettings.png)
 
@@ -42,7 +43,7 @@ Description:ポーンとカメラに適用する入力を設定
 
 	[![](InputConfig.png)](InputConfig.png)
 
-	[REGION:note]入力マッピングがどのように動作するかについて理解を深めたいユーザーは、 [%Programming\Tutorials\PlayerInput:title%](Programming\Tutorials\PlayerInput) チュートリアルを参照してください。[/REGION]
+	[REGION:note]入力マッピングが機能する仕組みについて理解を深めたいユーザーは、 [%Programming\Tutorials\PlayerInput:title%](Programming\Tutorials\PlayerInput) チュートリアルを参照してください。[/REGION]
 
 
 ----
@@ -82,7 +83,9 @@ Description:ポーンとカメラに適用する入力を設定
 
 				// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+			protected:
 
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};
@@ -104,6 +107,9 @@ Description:ポーンとカメラに適用する入力を設定
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
 				OurCameraSpringArm->AttachTo(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
+				OurCameraSpringArm->TargetArmLength = 400.f
+				OurCameraSpringArm->bEnableCameraLag = true;
+				OurCameraSprintArm->CameraLagSpeed = 3.0f
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
 				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
 
