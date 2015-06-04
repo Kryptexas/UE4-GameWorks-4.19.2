@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:11.サービスの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -21,6 +21,13 @@ Description:ステップ 11サービスの作成
 [/VAR]
 
 %Steps%
+
+**Services** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) ノードにアタッチされ、ブランチの実行中は定義された頻度で実行されるノードです。確認してブラックボードを更新するために頻繁に使用されます。他のビヘイビアツリー システムの通常の Parallel ノードの代わりになります。
+
+ここでは、サービスは AI Character ではない **Pawn** を探して、TargetToFollow キーと TargetLocation Blackboard キーを設定します。
+
+
+## 手順
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
 1. Click New Service ![](newService_button.png) button.
