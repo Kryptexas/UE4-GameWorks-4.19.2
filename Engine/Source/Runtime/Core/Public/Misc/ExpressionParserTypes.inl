@@ -52,10 +52,10 @@ namespace Impl
 		virtual void MoveAssign(uint8* Dst) override 		{ reinterpret_cast<FHeapDataStorage*>(Dst)->Value = MoveTemp(Value); }
 	};
 
-	template<typename T, int32 MaxStackAllocationSize, typename Enabled=void> struct TStorageTypeDeduction;
-	template<typename T, int32 MaxStackAllocationSize> struct TStorageTypeDeduction<T, MaxStackAllocationSize, typename TEnableIf<(sizeof(FInlineDataStorage<T>) <= MaxStackAllocationSize)>::Type>
+	template<typename T, uint32 MaxStackAllocationSize, typename Enabled=void> struct TStorageTypeDeduction;
+	template<typename T, uint32 MaxStackAllocationSize> struct TStorageTypeDeduction<T, MaxStackAllocationSize, typename TEnableIf<(sizeof(FInlineDataStorage<T>) <= MaxStackAllocationSize)>::Type>
 		{ typedef FInlineDataStorage<T> Type; };
-	template<typename T, int32 MaxStackAllocationSize> struct TStorageTypeDeduction<T, MaxStackAllocationSize, typename TEnableIf<(sizeof(FInlineDataStorage<T>) >  MaxStackAllocationSize)>::Type>
+	template<typename T, uint32 MaxStackAllocationSize> struct TStorageTypeDeduction<T, MaxStackAllocationSize, typename TEnableIf<(sizeof(FInlineDataStorage<T>) >  MaxStackAllocationSize)>::Type>
 		{ typedef FHeapDataStorage<T> 	Type; };
 
 
