@@ -8,7 +8,8 @@ public:
 	int32 SortIndex;
 
 	FString Caption;
-	FString Prefix;
+	FString GroupPrefix;
+	FString OutputPrefix;
 	FString ToolPath;
 	FString ToolArguments;
 	FString WorkingDirectory;

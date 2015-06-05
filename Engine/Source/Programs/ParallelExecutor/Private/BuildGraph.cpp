@@ -270,7 +270,8 @@ bool FBuildGraph::ReadFromFile(const FString& InputPath)
 						FBuildAction* Action = FindOrAddAction(NameToAction, TaskNode->GetAttribute(TEXT("Name")));
 						Action->SortIndex = ++SortIndex;
 						Action->Caption = TaskNode->GetAttribute(TEXT("Caption"));
-						Action->Prefix = (*ToolNode)->GetAttribute(TEXT("OutputPrefix"));
+						Action->GroupPrefix = (*ToolNode)->GetAttribute(TEXT("GroupPrefix"));
+						Action->OutputPrefix = (*ToolNode)->GetAttribute(TEXT("OutputPrefix"));
 						Action->ToolPath = (*ToolNode)->GetAttribute(TEXT("Path"));
 						Action->ToolArguments = (*ToolNode)->GetAttribute(TEXT("Params"));
 						Action->WorkingDirectory = TaskNode->GetAttribute(TEXT("WorkingDir"));
@@ -395,10 +396,14 @@ int32 FBuildGraph::ExecuteInParallel(int32 MaxProcesses)
 			// Write it to the log
 			if(CompletedAction->Log.Num() > 0)
 			{
-				if(CurrentPrefix != CompletedAction->Action->Prefix)
+				if(CurrentPrefix != CompletedAction->Action->GroupPrefix)
 				{
-					CurrentPrefix = CompletedAction->Action->Prefix;
+					CurrentPrefix = CompletedAction->Action->GroupPrefix;
 					wprintf(TEXT("%s\n"), *CurrentPrefix);
+				}
+				if (!CompletedAction->Action->OutputPrefix.IsEmpty())
+				{
+					wprintf(TEXT("%s\n"), *CompletedAction->Action->OutputPrefix);
 				}
 				for(const FString& Line : CompletedAction->Log)
 				{
