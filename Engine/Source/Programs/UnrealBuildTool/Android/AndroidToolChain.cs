@@ -304,7 +304,7 @@ namespace UnrealBuildTool
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
 
-			if (CompileEnvironment.Config.bEnableShadowVariableWarning || true)
+			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
 				Result += " -Wshadow -Wno-error=shadow";
 			}
