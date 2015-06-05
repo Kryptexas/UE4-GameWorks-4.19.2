@@ -477,7 +477,7 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 
 	// Process top of the stack
 	FScopedMovementUpdate* CurrentScopedUpdate = ScopedMovementStack.Pop(false);
-	check(CurrentScopedUpdate == &CompletedScope);
+	checkSlow(CurrentScopedUpdate == &CompletedScope);
 	{
 		checkSlow(CurrentScopedUpdate->IsDeferringUpdates());
 		if (ScopedMovementStack.Num() == 0)
