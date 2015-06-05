@@ -2401,6 +2401,8 @@ public:
 		: DamageTypeClass(InDamageEvent.DamageTypeClass)
 	{ }
 	
+	virtual ~FDamageEvent() { }
+
 	explicit FDamageEvent(TSubclassOf<class UDamageType> InDamageTypeClass)
 		: DamageTypeClass(InDamageTypeClass)
 	{ }
