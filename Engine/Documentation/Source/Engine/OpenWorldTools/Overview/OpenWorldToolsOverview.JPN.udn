@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2571771
-Availability:Docs
+﻿INTSourceChangelist:2576224
+Availability:Public
 Title:Open World ツールの概要
 Crumbs:
 Description:スタティックメッシュをレベルにプロシージャル配置するシステム
@@ -11,11 +11,8 @@ Version:4.8
 
 ![](T_Kite_Demo_00.png)
 
-2015年に開催された Games Developer Conference(GDC) で、エピックは動植物でいっぱいの壮大なオープンワールドタイプのゲームデモを発表しました。
-Open World ツールと呼ばれるこのデモ作成に使用したツールが、アンリアルエンジン 4.8 (UE4) のリリースから UE4 プロジェクトで利用可能になりました。 
-このツールの紹介および UE4 プロジェクトでの使用方法を次のチュートリアルで説明していきます。
 
-## 前提条件
+<!--## Prerequisites
 
 プロジェクトで Procedural Foliage ツールを使用する前に、 **メインツールバー** から **Edit** > **Editor Preferences** > **Experimental** の順に選択してツールを有効にしなくてはいけません。 
 Experimental セクションへ移動したら、 **Procedural Foliage** の横にあるチェックボックスをクリックして Procedural Foliage オプションを有効にします。 
@@ -26,23 +23,23 @@ Experimental セクションへ移動したら、 **Procedural Foliage** の横�
 
 Open World Demo Collection をダウンロードしたら、クイックスタートと同設定にするためにコレクションを使用するプロジェクトに追加します。最初にUE4 ランチャーの **Vault（保管庫）** へ移動して、 **Add to Project（プロジェクトに追加する）** ボタンをクリックします。コレクションを追加するプロジェクトのリストが表示されます。クイックスタートと同設定しするために使用しているプロジェクトを選んで、 **Add to Project（プロジェクトに追加）** ボタンをクリックしてコンテンツを追加します。プロジェクトを再度開くと、 **Kite Demo** という名前のフォルダが表示されて、フォルダ内に必要なコンテンツがあります。
 
+-->!
 
+## ツールの種類 
+UE4 の Open World ツールで、配置の判断を手動で設定することなく、コンピューターアルゴリズムを使用してレベル内にスタティックメッシュを配置することができます。 
+このツールはさまざまな種類の木々、植物、低木などで構成する自然体の森林を素早く作成します。
 
-## Procedural ツールの種類 
-アンリアルエンジン 4.8 でリリースされる Procedural ツールは、スタティックメッシュを手動でレベルに配置する代わりに、コンピューターアルゴリズムを使用してレベルへの配置位置を判断するツールです。 
-特定のテクスチャがランドスケープテレインにペイントされると、さまざまな種類の木々で構成される自然な森林や、特定の種類の茂みのスポーン操作を素早く作成するのに便利なツールです。
-
-UE4 内蔵の Procedural Foliage ツールについて触れるときは、実際には2つの異なるツールセットを指しています。 
-使用するツールセットは、ユーザーがこれから達成したい具体的な目標によって異なります。 
-例えば、広大な松や樺の木々で構成される森林を作成したい場合は、 **Procedural Foliage ツール** を使用してください。 
-草、花、小さな岩石を少しだけ表現しながら松や樺の木々で構成された森林に活用する密度の高いランドスケープテレインを追加したい場合は、 **Grass ツール** を使用してください。
+UE4 内蔵の Open World ツールについて話すときは、実際には UE4 内部の2つの異なるツールセットに関して言及しています。 
+使用するツールセットは、ユーザーがこれから作成する具体的な目標によって異なります。 
+例えば、広大な松や樺の木々から成る森林を作成したい場合は、 **Procedural Foliage ツール** を使用してください。 
+上述の森林に草、花、小さな岩石を表現しながら密度の高いランドスケープテレインを作成する場合は、 **Grass ツール** を使用してください。
 
 ### Procedural Foliage ツール 
 Procedural Foliage ツールは、さまざまな種類の木々や低木が生い茂った広大な森林のシミュレーションに使用します。 
-このツールは **Steps** で時間経過と共に育つ森林の成長率を定義して、シミュレーションさせることで機能します。 
+このツールは **Steps** で年間で育つ森林の成長率を定義して、シミュレーションさせることで機能します。 
 シミュレーションの各 Step で、他の Foliage Type アクタのスポーン位置として、新しいバーチャルシードがレベルにキャストされます。 
 **Spread**、 **Size**、 または **Priority Settings** など色々な Foliage Type オプションに調整することで、 Procedural Foliage スポーナーを配置したレベル全体のフォーリッジタイプの広がり方やスポーン位置を競合させる方法に影響を与えます。
-Procedural Foliage ツールの使用に関する詳細は、以下のリンクから Procedural Foliage クイックスタートを参照してください。
+Procedural Foliage ツールの使用に関する詳細は、 PProcedural Foliage クイックスタートガイドを参照してください。
 
 [REGION:topics third]
 [OBJECT:Topic]
@@ -56,7 +53,7 @@ Procedural Foliage ツールの使用に関する詳細は、以下のリンク�
 		Procedural Foliage ツールのクイックスタート
 	[/PARAM]
 	[PARAM:description]
-		Procedural Foliage ツールの設定と操作に関する包括的なガイドです。
+		総合ガイドで Procedural Foliage ツールをプロジェクトにフル活用する方法を紹介しています。
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/OpenWorldTools/ProceduralFoliage/QuickStart]
@@ -64,6 +61,7 @@ Procedural Foliage ツールの使用に関する詳細は、以下のリンク�
 [/OBJECT]
 [/region]
 
+<!--
 #### Foliage Type アクタ
 Procedural Foliage ツールは **Foliage Types** と呼ばれるアクタを使用します。 
 Foliage Types は例えば利用するスタティックメッシュやスタティックメッシュをスポーンする大きさなど、フォーリッジに設定するさまざまなプロパティを定義します。
@@ -77,20 +75,21 @@ Foliage Types は例えば利用するスタティックメッシュやスタテ
 |**Placement**| Placement セクションは、 Mesh セクションで指定したスタティックメッシュをレベル全域のオブジェクトに配置する方法を調整するセクションです。|
 |**Growth**| Growth セクションは、シミュレーションの開始時の木々の大きさと、シミュレーションの終了時までに木々が「Grow（成長）」する大きさを定義します。|
 |**Instance Settings**| Instance Settings（インスタンス設定） は Foliage Type に使用したスタティックメッシュをレベルに表示する方法を調整します。|
+-->!
 
 ### Grass ツール
 [region:note]
-現時点の Grass ツールはランドスケープテレインシステムとのみ連動して動作します。 
+現時点の Grass ツールはランドスケープテレインシステムとだけ組み合わせて使用することができます。 
 [/region]
-Grass ツールは、草、花、小さな岩石などをシミュレーションするために、スタティックメッシュのランドスケープテレインを覆いつくすために使用します。 
-ランドスケープテレイン上に特定のランドスケープレイヤーがペイントされた時にスポーンされるスタティックメッシュの定義に Grass ツールを使用することができます。 
+Grass ツールは、草、花、小さな岩石などでランドスケープテレインを覆いつくすために使用します。 
+ランドスケープテレインの特定のランドスケープレイヤーがペイントされた時にスポーンするスタティックメッシュを定義するために Grass ツールを使用することができます。 
 このツールは Procedural Foliage スポーナーのようにシミュレーションを一切使用しません。指定したスタティックメッシュで、指定した密度に、指定した領域を埋めるのみです。 
 Grass ツールの使用に関する詳細は、以下のリンクから Grass ツールのクイックスタートを参照してください。
 
 [REGION:topics third]
 [OBJECT:Topic]
 	[PARAM:image]
-		![](T_PFT_Grass_00.png)
+		![Engine/OpenWorldTools/Overview:title%](Engine\OpenWorldTools\Grass\QuickStart\T_Grass_Intro.png)
 	[/PARAM]
 	[PARAM:icon]
 		![](%ROOT%/editor_icon.png)(convert:false)
@@ -99,7 +98,7 @@ Grass ツールの使用に関する詳細は、以下のリンクから Grass �
 		Grass ツールのクイックスタート
 	[/PARAM]
 	[PARAM:description]
-		Grass ツールの設定と操作に関する包括的なガイドです。
+	Grass ツールをプロジェクトに使用する方法を紹介します。
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/OpenWorldTools/Grass/QuickStart]
@@ -107,6 +106,7 @@ Grass ツールの使用に関する詳細は、以下のリンクから Grass �
 [/OBJECT]
 [/region]
 
+<!--
 #### Grass Type アクタ
 Grass ツールは **Landscape Grass Types** と呼ばれるアクタを使用します。
 Landscape Grass Types は、例えば草に利用するスタティックメッシュやスタティックメッシュをスポーンする数など、 Grass に設定できるさまざまなプロパティを定義します。
@@ -117,66 +117,7 @@ Landscape Grass Type Actor を分類して利用できるオプションを示�
 | プロパティ名| 説明 |
 | ------------ | ----------- |
 |**Grass Varieties**| Grass Varieties 内で、草に使用するスタティックメッシュのタイプや草の密度、またはカリング距離設定を指定することができます。|
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-->!
 
 
 
