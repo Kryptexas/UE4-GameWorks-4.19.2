@@ -5,6 +5,7 @@
 #include "ISourceControlModule.h"
 #include "ObjectTools.h"
 #include "AssetToolsModule.h"
+#include "CollectionManagerModule.h"
 
 
 /////////////////////////////////////////
@@ -53,9 +54,97 @@ void AssetDataToClassAndNameStrings(FAssetFilterType Asset, OUT TArray< FString 
 	AssetDataToNameString(Asset, Array);
 }
 
+bool AssetDataTestComplexExpression(FAssetFilterType Asset, const FName& InKey, const FString& InValue, ETextFilterComparisonOperation InComparisonOperation, ETextFilterTextComparisonMode InTextComparisonMode)
+{
+	static const FName NameKeyName = "Name";
+	static const FName PathKeyName = "Path";
+	static const FName ClassKeyName = "Class";
+	static const FName TypeKeyName = "Type";
+	static const FName CollectionKeyName = "Collection";
+	static const FName TagKeyName = "Tag";
+
+	// Special case for the asset name, as this isn't contained within the asset registry meta-data
+	if (InKey == NameKeyName)
+	{
+		// Names can only work with Equal or NotEqual type tests
+		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+		{
+			return false;
+		}
+
+		const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.AssetName.ToString(), InValue, InTextComparisonMode);
+		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
+	}
+
+	// Special case for the asset path, as this isn't contained within the asset registry meta-data
+	if (InKey == PathKeyName)
+	{
+		// Paths can only work with Equal or NotEqual type tests
+		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+		{
+			return false;
+		}
+
+		const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.PackagePath.ToString(), InValue, InTextComparisonMode);
+		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
+	}
+
+	// Special case for the asset type, as this isn't contained within the asset registry meta-data
+	if (InKey == ClassKeyName || InKey == TypeKeyName)
+	{
+		// Class names can only work with Equal or NotEqual type tests
+		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+		{
+			return false;
+		}
+
+		const bool bIsMatch = TextFilterUtils::TestBasicStringExpression(Asset.AssetClass.ToString(), InValue, InTextComparisonMode);
+		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bIsMatch : !bIsMatch;
+	}
+
+	// Special case for collections, as these aren't contained within the asset registry meta-data
+	if ((InKey == CollectionKeyName || InKey == TagKeyName) && FCollectionManagerModule::IsModuleAvailable())
+	{
+		// Collections can only work with Equal or NotEqual type tests
+		if (InComparisonOperation != ETextFilterComparisonOperation::Equal && InComparisonOperation != ETextFilterComparisonOperation::NotEqual)
+		{
+			return false;
+		}
+
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+		TArray<FName> AssetCollectionNames;
+		CollectionManagerModule.Get().GetCollectionsContainingObject(Asset.ObjectPath, ECollectionShareType::CST_All, AssetCollectionNames);
+
+		bool bFoundMatch = false;
+		for (const FName& AssetCollectionName : AssetCollectionNames)
+		{
+			if (TextFilterUtils::TestBasicStringExpression(AssetCollectionName.ToString(), InValue, InTextComparisonMode))
+			{
+				bFoundMatch = true;
+				break;
+			}
+		}
+
+		return (InComparisonOperation == ETextFilterComparisonOperation::Equal) ? bFoundMatch : !bFoundMatch;
+	}
+
+	// Generic handling for anything in the asset meta-data
+	const FString* const MetaDataValue = Asset.TagsAndValues.Find(InKey);
+	if (MetaDataValue)
+	{
+		return TextFilterUtils::TestComplexExpression(*MetaDataValue, InValue, InComparisonOperation, InTextComparisonMode);
+	}
+
+	return false;
+}
+
 FFrontendFilter_Text::FFrontendFilter_Text()
 	: FFrontendFilter(nullptr)
-	, TextFilter(TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings))
+	, TextFilter(
+		TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings), 
+		TTextFilter<FAssetFilterType>::FItemTestComplexExpression::CreateStatic(&AssetDataTestComplexExpression)
+		)
 {
 	SetIncludeClassName(true);
 }
@@ -80,6 +169,11 @@ void FFrontendFilter_Text::SetRawFilterText(const FText& InFilterText)
 	return TextFilter.SetRawFilterText(InFilterText);
 }
 
+FText FFrontendFilter_Text::GetFilterErrorText() const
+{
+	return TextFilter.GetFilterErrorText();
+}
+
 void FFrontendFilter_Text::SetIncludeClassName(bool bIncludeClassName)
 {
 	// Preserve the existing text. The filter is going to get recreated here.
@@ -87,11 +181,17 @@ void FFrontendFilter_Text::SetIncludeClassName(bool bIncludeClassName)
 
 	if ( bIncludeClassName )
 	{
-		TextFilter = TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings);
+		TextFilter = TTextFilter<FAssetFilterType>(
+			TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToClassAndNameStrings),
+			TTextFilter<FAssetFilterType>::FItemTestComplexExpression::CreateStatic(&AssetDataTestComplexExpression)
+			);
 	}
 	else
 	{
-		TextFilter = TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToNameString);
+		TextFilter = TTextFilter<FAssetFilterType>(
+			TTextFilter<FAssetFilterType>::FItemToStringArray::CreateStatic(&AssetDataToNameString),
+			TTextFilter<FAssetFilterType>::FItemTestComplexExpression::CreateStatic(&AssetDataTestComplexExpression)
+			);
 	}
 
 	// Apply the existing text before we re-assign the delegate since we want the text preservation to be opaque.
@@ -234,47 +334,7 @@ bool FFrontendFilter_ArbitraryComparisonOperation::PassesFilter(FAssetFilterType
 {
 	if (const FString* pTagValue = InItem.TagsAndValues.Find(TagName))
 	{
-		const FString& TestTagValue = *pTagValue;
-
-		const bool bNumericComparison = TestTagValue.IsNumeric() && TargetTagValue.IsNumeric();
-
-		int32 ComparisonSign = 0;
-		if (bNumericComparison)
-		{
-			const double Difference = FCString::Atod(*TestTagValue) - FCString::Atod(*TargetTagValue);
-			ComparisonSign = (int32)FMath::Sign(Difference);
-		}
-		else
-		{
-			ComparisonSign = TestTagValue.Compare(TargetTagValue, ESearchCase::IgnoreCase);
-		}
-
-		bool bComparisonPassed = false;
-		switch (ComparisonOp)
-		{
-		case ETextFilterComparisonOperation::Equal:
-			bComparisonPassed = ComparisonSign == 0;
-			break;
-		case ETextFilterComparisonOperation::NotEqual:
-			bComparisonPassed = ComparisonSign != 0;
-			break;
-		case ETextFilterComparisonOperation::Less:
-			bComparisonPassed = ComparisonSign < 0;
-			break;
-		case ETextFilterComparisonOperation::LessOrEqual:
-			bComparisonPassed = ComparisonSign <= 0;
-			break;
-		case ETextFilterComparisonOperation::Greater:
-			bComparisonPassed = ComparisonSign > 0;
-			break;
-		case ETextFilterComparisonOperation::GreaterOrEqual:
-			bComparisonPassed = ComparisonSign >= 0;
-			break;
-		default:
-			check(false);
-		};
-
-		return bComparisonPassed;
+		return TextFilterUtils::TestComplexExpression(*pTagValue, TargetTagValue, ComparisonOp, ETextFilterTextComparisonMode::Exact);
 	}
 	else
 	{

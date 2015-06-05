@@ -829,7 +829,8 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 	// Disable the filter search (reset the filter, then clear the search text)
 	// Note: we have to remove the filter immediately, we can't wait for OnSearchBoxChanged to hit
 	SetSearchBoxText(FText::GetEmpty());
-	SearchBoxPtr->SetText(FText::GetEmpty());	
+	SearchBoxPtr->SetText(FText::GetEmpty());
+	SearchBoxPtr->SetError(FText::GetEmpty());
 
 	// Tell the sources view first so the asset view will be up to date by the time we request the sync
 	PathViewPtr->SyncToAssets(AssetDataList, bAllowImplicitSync);
@@ -1242,6 +1243,7 @@ void SContentBrowser::SetSearchBoxText(const FText& InSearchText)
 	if (!InSearchText.EqualToCaseIgnored(TextFilter->GetRawFilterText()))
 	{
 		TextFilter->SetRawFilterText( InSearchText );
+		SearchBoxPtr->SetError( TextFilter->GetFilterErrorText() );
 		if(InSearchText.IsEmpty())
 		{
 			FrontendFilters->Remove(TextFilter);

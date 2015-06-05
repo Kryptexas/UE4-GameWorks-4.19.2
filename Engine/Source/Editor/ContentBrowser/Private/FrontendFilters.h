@@ -28,6 +28,9 @@ public:
 	/** Set the Text to be used as the Filter's restrictions */
 	void SetRawFilterText(const FText& InFilterText);
 
+	/** Get the last error returned from lexing or compiling the current filter text */
+	FText GetFilterErrorText() const;
+
 	/** If bIncludeClassName is true, the text filter will include an asset's class name in the search */
 	void SetIncludeClassName(bool bIncludeClassName);
 
