@@ -59,14 +59,13 @@ class FLandscapeToolStrokePaintBase : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokePaintBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: Cache(InTarget)
-		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
+		, Cache(InTarget)
 	{
 	}
 
 protected:
 	typename ToolTarget::CacheClass Cache;
-	ULandscapeInfo* LandscapeInfo;
 };
 
 
@@ -613,7 +612,7 @@ public:
 };
 
 template<class ToolTarget>
-class FLandscapeToolFlatten : public FLandscapeToolPaintBase<ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget>>
+class FLandscapeToolFlatten : public FLandscapeToolPaintBase < ToolTarget, FLandscapeToolStrokeFlatten<ToolTarget> >
 {
 protected:
 	UStaticMesh* PlaneMesh;
@@ -626,6 +625,12 @@ public:
 		, MeshComponent(NULL)
 	{
 		check(PlaneMesh);
+	}
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		Collector.AddReferencedObject(PlaneMesh);
+		Collector.AddReferencedObject(MeshComponent);
 	}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Flatten"); }

@@ -221,7 +221,7 @@ enum class ELandscapeToolType
 /**
  * FLandscapeTool
  */
-class FLandscapeTool
+class FLandscapeTool : public FGCObject
 {
 public:
 	virtual void EnterTool() {}
@@ -265,6 +265,10 @@ public:
 	virtual ELandscapeToolType GetToolType() { return ELandscapeToolType::Normal; }
 	virtual ELandscapeToolTargetTypeMask::Type GetSupportedTargetTypes() { return ELandscapeToolTargetTypeMask::NA; };
 
+	// FGCObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override {}
+
+public:
 	int32					PreviousBrushIndex;
 	TArray<FName>			ValidBrushes;
 };

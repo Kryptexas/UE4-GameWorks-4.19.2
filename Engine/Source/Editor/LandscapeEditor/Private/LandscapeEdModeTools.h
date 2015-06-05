@@ -1247,17 +1247,35 @@ struct FWeightmapToolTarget
 };
 
 /**
-* FLandscapeToolStrokeBase - base class for tool strokes (used by FLandscapeToolBase)
-*/
+ * FLandscapeToolStrokeBase - base class for tool strokes (used by FLandscapeToolBase)
+ */
 
-class FLandscapeToolStrokeBase
+class FLandscapeToolStrokeBase : protected FGCObject
 {
 public:
 	// Whether to call Apply() every frame even if the mouse hasn't moved
 	enum { UseContinuousApply = false };
 
-	// Signature of Apply() method:
+	// This is also the expected signature of derived class constructor used by FLandscapeToolBase
+	FLandscapeToolStrokeBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
+		: EdMode(InEdMode)
+		, Target(InTarget)
+		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+	{
+	}
+
+	// Signature of Apply() method for derived strokes
 	// void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions);
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		Collector.AddReferencedObject(LandscapeInfo);
+	}
+
+protected:
+	FEdModeLandscape* EdMode;
+	const FLandscapeToolTarget& Target;
+	ULandscapeInfo* LandscapeInfo;
 };
 
 

@@ -27,8 +27,8 @@ class FLandscapeToolStrokeSelect : public FLandscapeToolStrokeBase
 
 public:
 	FLandscapeToolStrokeSelect(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: bInitializedComponentInvert(false)
-		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
+		, bInitializedComponentInvert(false)
 		, Cache(InTarget)
 	{
 	}
@@ -170,7 +170,6 @@ public:
 	}
 
 protected:
-	ULandscapeInfo* LandscapeInfo;
 	FLandscapeDataCache Cache;
 };
 
@@ -212,10 +211,8 @@ public:
 class FLandscapeToolStrokeVisibility : public FLandscapeToolStrokeBase
 {
 public:
-	enum { UseContinuousApply = false };
-
 	FLandscapeToolStrokeVisibility(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 	{
 	}
@@ -268,7 +265,6 @@ public:
 	}
 
 protected:
-	ULandscapeInfo* LandscapeInfo;
 	FLandscapeVisCache Cache;
 };
 
@@ -295,13 +291,11 @@ public:
 	}
 };
 
-class FLandscapeToolStrokeMoveToLevel
+class FLandscapeToolStrokeMoveToLevel : public FLandscapeToolStrokeBase
 {
 public:
-	enum { UseContinuousApply = false };
-
 	FLandscapeToolStrokeMoveToLevel(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 	{
 	}
 
@@ -727,9 +721,6 @@ public:
 			}
 		}
 	}
-
-protected:
-	ULandscapeInfo* LandscapeInfo;
 };
 
 // 
@@ -755,8 +746,7 @@ class FLandscapeToolStrokeAddComponent : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeAddComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: EdMode(InEdMode)
-		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, HeightCache(InTarget)
 		, XYOffsetCache(InTarget)
 	{
@@ -879,13 +869,52 @@ public:
 
 			EdMode->LandscapeRenderAddCollision = nullptr;
 
+			// Add/update "add collision" around the newly added components
+			{
+				// Top row
+				int32 ComponentIndexY = ComponentIndexY1 - 1;
+				for (int32 ComponentIndexX = ComponentIndexX1 - 1; ComponentIndexX <= ComponentIndexX2 + 1; ++ComponentIndexX)
+				{
+					if (!LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY)))
+					{
+						LandscapeInfo->UpdateAddCollision(FIntPoint(ComponentIndexX, ComponentIndexY));
+					}
+				}
+
+				// Sides
+				for (ComponentIndexY = ComponentIndexY1; ComponentIndexY <= ComponentIndexY2; ++ComponentIndexY)
+				{
+					// Left
+					int32 ComponentIndexX = ComponentIndexX1 - 1;
+					if (!LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY)))
+					{
+						LandscapeInfo->UpdateAddCollision(FIntPoint(ComponentIndexX, ComponentIndexY));
+					}
+
+					// Right
+					ComponentIndexX = ComponentIndexX1 + 1;
+					if (!LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY)))
+					{
+						LandscapeInfo->UpdateAddCollision(FIntPoint(ComponentIndexX, ComponentIndexY));
+					}
+				}
+
+				// Bottom row
+				ComponentIndexY = ComponentIndexY2 + 1;
+				for (int32 ComponentIndexX = ComponentIndexX1 - 1; ComponentIndexX <= ComponentIndexX2 + 1; ++ComponentIndexX)
+				{
+					if (!LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(ComponentIndexX, ComponentIndexY)))
+					{
+						LandscapeInfo->UpdateAddCollision(FIntPoint(ComponentIndexX, ComponentIndexY));
+					}
+				}
+			}
+
 			GEngine->BroadcastOnActorMoved(Landscape);
 		}
 	}
 
 protected:
-	FEdModeLandscape* EdMode;
-	ULandscapeInfo* LandscapeInfo;
 	FLandscapeHeightCache HeightCache;
 	FLandscapeXYOffsetCache<true> XYOffsetCache;
 };
@@ -926,7 +955,7 @@ class FLandscapeToolStrokeDeleteComponent : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeDeleteComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 	{
 	}
 
@@ -1085,9 +1114,6 @@ public:
 			GEngine->BroadcastLevelActorListChanged();
 		}
 	}
-
-protected:
-	ULandscapeInfo* LandscapeInfo;
 };
 
 // 
@@ -1113,8 +1139,7 @@ class FLandscapeToolStrokeCopy : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeCopy(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: EdMode(InEdMode)
-		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
@@ -1409,8 +1434,6 @@ public:
 	}
 
 protected:
-	FEdModeLandscape* EdMode;
-	ULandscapeInfo* LandscapeInfo;
 	typename ToolTarget::CacheClass Cache;
 	FLandscapeHeightCache HeightCache;
 	FLandscapeFullWeightCache WeightCache;
@@ -1471,8 +1494,7 @@ class FLandscapeToolStrokePaste : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokePaste(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: EdMode(InEdMode)
-		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 		, HeightCache(InTarget)
 		, WeightCache(InTarget)
@@ -1727,8 +1749,6 @@ public:
 	}
 
 protected:
-	FEdModeLandscape* EdMode;
-	ULandscapeInfo* LandscapeInfo;
 	typename ToolTarget::CacheClass Cache;
 	FLandscapeHeightCache HeightCache;
 	FLandscapeFullWeightCache WeightCache;

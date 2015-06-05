@@ -54,7 +54,7 @@ class FLandscapeToolStrokeRetopologize : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeRetopologize(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		: LandscapeInfo(InTarget.LandscapeInfo.Get())
+		: FLandscapeToolStrokeBase(InEdMode, InTarget)
 		, Cache(InTarget)
 	{
 	}
@@ -547,7 +547,6 @@ public:
 	}
 
 protected:
-	ULandscapeInfo* LandscapeInfo;
 	FLandscapeXYOffsetCache<false> Cache;
 };
 
