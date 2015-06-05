@@ -18,6 +18,7 @@ UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const FObjectInitializer&
 	MyWorld = Cast<UWorld>(GetOuter());
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
+		SetFlags(RF_StrongRefOnFrame);
 		UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 		if (AISystem)
 		{

@@ -116,6 +116,7 @@ void UInAppPurchaseQueryCallbackProxy::BeginDestroy()
 UInAppPurchaseQueryCallbackProxy* UInAppPurchaseQueryCallbackProxy::CreateProxyObjectForInAppPurchaseQuery(class APlayerController* PlayerController, const TArray<FString>& ProductIdentifiers)
 {
 	UInAppPurchaseQueryCallbackProxy* Proxy = NewObject<UInAppPurchaseQueryCallbackProxy>();
+	Proxy->SetFlags(RF_StrongRefOnFrame);
 	Proxy->TriggerQuery(PlayerController, ProductIdentifiers);
 	return Proxy;
 }

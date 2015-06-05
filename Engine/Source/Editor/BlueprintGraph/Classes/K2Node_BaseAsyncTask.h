@@ -10,6 +10,8 @@ class UK2Node_CustomEvent;
 class UEdGraphPin;
 class UK2Node_TemporaryVariable;
 
+/** !!! The proxy object should have RF_StrongRefOnFrame flag. !!! */
+
 UCLASS(Abstract)
 class BLUEPRINTGRAPH_API UK2Node_BaseAsyncTask : public UK2Node
 {

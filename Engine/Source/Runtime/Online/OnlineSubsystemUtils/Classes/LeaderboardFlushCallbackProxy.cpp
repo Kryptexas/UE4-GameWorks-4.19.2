@@ -97,6 +97,7 @@ void ULeaderboardFlushCallbackProxy::BeginDestroy()
 ULeaderboardFlushCallbackProxy* ULeaderboardFlushCallbackProxy::CreateProxyObjectForFlush(class APlayerController* PlayerController, FName SessionName)
 {
 	ULeaderboardFlushCallbackProxy* Proxy = NewObject<ULeaderboardFlushCallbackProxy>();
+	Proxy->SetFlags(RF_StrongRefOnFrame);
 	Proxy->TriggerFlush(PlayerController, SessionName);
 	return Proxy;
 }

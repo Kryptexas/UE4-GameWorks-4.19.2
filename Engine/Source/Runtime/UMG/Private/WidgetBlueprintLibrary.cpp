@@ -24,27 +24,41 @@ UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubcl
 		return nullptr;
 	}
 
+	UUserWidget* UserWidget = nullptr;
 	if ( OwningPlayer == nullptr )
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-		return CreateWidget<UUserWidget>(World, WidgetType);
+		UserWidget = CreateWidget<UUserWidget>(World, WidgetType);
 	}
 	else
 	{
-		return CreateWidget<UUserWidget>(OwningPlayer, WidgetType);
+		UserWidget = CreateWidget<UUserWidget>(OwningPlayer, WidgetType);
 	}
+
+	if (UserWidget)
+	{
+		UserWidget->SetFlags(RF_StrongRefOnFrame);
+	}
+	return UserWidget;
 }
 
 UDragDropOperation* UWidgetBlueprintLibrary::CreateDragDropOperation(TSubclassOf<UDragDropOperation> Operation)
 {
+	UDragDropOperation* DragDropOperation = nullptr;
 	if ( Operation )
 	{
-		return NewObject<UDragDropOperation>(GetTransientPackage(), Operation);
+		DragDropOperation = NewObject<UDragDropOperation>(GetTransientPackage(), Operation);
 	}
 	else
 	{
-		return NewObject<UDragDropOperation>();
+		DragDropOperation = NewObject<UDragDropOperation>();
 	}
+
+	if (DragDropOperation)
+	{
+		DragDropOperation->SetFlags(RF_StrongRefOnFrame);
+	}
+	return DragDropOperation;
 }
 
 void UWidgetBlueprintLibrary::SetInputMode_UIOnly(APlayerController* Target, UWidget* InWidgetToFocus, bool bLockMouseToViewport)

@@ -118,6 +118,7 @@ void UInAppPurchaseRestoreCallbackProxy::BeginDestroy()
 UInAppPurchaseRestoreCallbackProxy* UInAppPurchaseRestoreCallbackProxy::CreateProxyObjectForInAppPurchaseRestore(class APlayerController* PlayerController)
 {
 	UInAppPurchaseRestoreCallbackProxy* Proxy = NewObject<UInAppPurchaseRestoreCallbackProxy>();
+	Proxy->SetFlags(RF_StrongRefOnFrame);
 	Proxy->Trigger(PlayerController);
 	return Proxy;
 }

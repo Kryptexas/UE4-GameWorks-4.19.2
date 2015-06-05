@@ -12,6 +12,7 @@ UGameplayTask::UGameplayTask(const FObjectInitializer& ObjectInitializer)
 	bIsSimulating = false;
 	bOwnedByTasksComponent = false;
 	TaskState = EGameplayTaskState::Uninitialized;
+	SetFlags(RF_StrongRefOnFrame);
 }
 
 IGameplayTaskOwnerInterface* UGameplayTask::ConvertToTaskOwner(UObject& OwnerObject)
