@@ -106,9 +106,6 @@ extern ENGINE_API class FPhysXAllocator* GPhysXAllocator;
 /** Pointer to PhysX Command Handler */
 extern ENGINE_API class FPhysCommandHandler* GPhysCommandHandler;
 
-/** Convert PhysX PxVec3 to Unreal FVector */
-ENGINE_API FVector P2UVector(const PxVec3& PVec);
-
 #if WITH_APEX
 
 namespace NxParameterized

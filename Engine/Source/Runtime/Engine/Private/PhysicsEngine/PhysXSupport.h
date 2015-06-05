@@ -299,6 +299,8 @@ ENGINE_API PxMat44 U2PMatrix(const FMatrix& UTM);
 ENGINE_API PxPlane U2PPlane(const FPlane& Plane);
 /** Convert PhysX PxTransform to Unreal PxTransform */
 ENGINE_API FTransform P2UTransform(const PxTransform& PTM);
+/** Convert PhysX PxVec3 to Unreal FVector */
+ENGINE_API FVector P2UVector(const PxVec3& PVec);
 /** Convert PhysX PxQuat to Unreal FQuat */
 ENGINE_API FQuat P2UQuat(const PxQuat& PQuat);
 /** Convert PhysX plane def to Unreal FPlane */
