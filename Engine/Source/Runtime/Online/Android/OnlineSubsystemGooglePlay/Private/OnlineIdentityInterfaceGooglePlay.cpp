@@ -181,12 +181,12 @@ void FOnlineIdentityGooglePlay::GetUserPrivilege(const FUniqueNetId& UserId, EUs
 	Delegate.ExecuteIfBound(UserId, Privilege, (uint32)EPrivilegeResults::NoFailures);
 }
 
-FPlatformUserId FOnlineIdentityGooglePlay::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId)
+FPlatformUserId FOnlineIdentityGooglePlay::GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& NetId)
 {
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
 	{
 		auto CurrentUniqueId = GetUniquePlayerId(i);
-		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == UniqueNetId))
+		if (CurrentUniqueId.IsValid() && (*CurrentUniqueId == NetId))
 		{
 			return i;
 		}

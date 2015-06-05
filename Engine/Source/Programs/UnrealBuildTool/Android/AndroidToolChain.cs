@@ -304,6 +304,11 @@ namespace UnrealBuildTool
 			Result += " -Wno-invalid-offsetof";			// needed to suppress warnings about using offsetof on non-POD types.
 			Result += " -Wno-logical-op-parentheses";	// needed for external headers we can't change
 
+			if (CompileEnvironment.Config.bEnableShadowVariableWarning || true)
+			{
+				Result += " -Wshadow -Wno-error=shadow";
+			}
+
 			// new for clang4.5 warnings:
 			if (ClangVersionFloat >= 3.5)
 			{
@@ -625,8 +630,7 @@ namespace UnrealBuildTool
 			}
 
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
-
-
+			var NDKRoot = Environment.GetEnvironmentVariable("NDKROOT").Replace("\\", "/");
 
 			string BasePCHName = "";
 			var PCHExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Android].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
@@ -683,6 +687,7 @@ namespace UnrealBuildTool
 						Action CompileAction = new Action(ActionType.Compile);
 						string FileArguments = "";
 						bool bIsPlainCFile = Path.GetExtension(SourceFile.AbsolutePath).ToUpperInvariant() == ".C";
+						bool bDisableShadowWarning = false;
 
 						// should we disable optimizations on this file?
 						// @todo android - We wouldn't need this if we could disable optimizations per function (via pragma)
@@ -702,6 +707,12 @@ namespace UnrealBuildTool
 						else if (bIsPlainCFile)
 						{
 							FileArguments += GetCompileArguments_C(bDisableOptimizations);
+
+							// remove shadow variable warnings for NDK files
+							if (SourceFile.AbsolutePath.Replace("\\", "/").StartsWith(NDKRoot))
+							{
+								bDisableShadowWarning = true;
+							}
 						}
 						else
 						{
@@ -761,6 +772,16 @@ namespace UnrealBuildTool
 						string AllArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 						AllArguments = ActionThread.ExpandEnvironmentVariables(AllArguments);
 						AllArguments = AllArguments.Replace("\\", "/");
+
+						// Remove shadow warning for this file if requested
+						if (bDisableShadowWarning)
+						{
+							int WarningIndex = AllArguments.IndexOf(" -Wshadow");
+							if (WarningIndex > 0)
+							{
+								AllArguments = AllArguments.Remove(WarningIndex, 9);
+							}
+						}
 
 						// Create the response file
 						string ResponseFileName = CompileAction.ProducedItems[0].AbsolutePath + ".response";
