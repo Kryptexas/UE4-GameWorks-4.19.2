@@ -10,8 +10,13 @@
 
 FPortalRpcResponder::FPortalRpcResponder()
 {
-	MessageEndpoint = FMessageEndpoint::Builder("FRpcManager")
+	MessageEndpoint = FMessageEndpoint::Builder("FPortalRpcResponder")
 		.Handling<FPortalRpcLocateServer>(this, &FPortalRpcResponder::HandleMessage);
+
+	if (MessageEndpoint.IsValid())
+	{
+		MessageEndpoint->Subscribe<FPortalRpcLocateServer>();
+	}
 }
 
 
