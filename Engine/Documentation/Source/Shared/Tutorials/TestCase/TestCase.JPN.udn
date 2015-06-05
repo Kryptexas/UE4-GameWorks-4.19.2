@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2301415
+﻿INTSourceChangelist:2574268
 Availability:NoPublish
 Title:テスト
 Crumbs:
@@ -20,7 +20,7 @@ Description:これはテストです。
 
 ![](TutorialTestImage02.png)
 
-1.  [�Pick Parent Class�] ウィンドウから [アクタ] を選択します。
+1. [Pick Parent Class] ウィンドウから [アクタ] を選択します。
 
 [/EXCERPT:TestSecond]
 
@@ -37,7 +37,7 @@ Description:これはテストです。
 
 
 [EXCERPT:Fourth]
-## コンポーネントパネル
+## コンポーネント パネル
 
 ![](TutorialTestImage04.png)
 
@@ -53,7 +53,7 @@ Description:これはテストです。
 
 ![](TutorialTestImage05.png)
 
-1. [コンポーネント] パネルで [StaticMeshComponent] を選択して、 [詳細] パネルでその詳細を見てみます。
+1. [コンポーネント] パネルで [StaticMeshComponent] を選択して、[詳細] パネルでその詳細を見てみます。
 1. [コンポーネント] オプションが見つかるまでスクロールダウンします。[Globals] に隣接するスタティックメッシュに名前を付けます。 
 [/EXCERPT:Five]
 
@@ -64,7 +64,7 @@ Description:これはテストです。
 
 ![](TutorialTestImage06.png)
 
-1. [コンポーネント] オプションの上に [スタティックメッシュ] オプションがあります。このオプションを見つけたら、プレビューウィンドウの横のバーをクリックします。
+1. [コンポーネント] オプションの上に [スタティックメッシュ] オプションがあります。このオプションを見つけたら、プレビュー ウィンドウの横のバーをクリックします。
 1. 表示される新しいウィンドウの検索欄に「EditorCube」と入力します。表示されたら StaticMeshComponent へ追加します。
 
 [/EXCERPT:Six]
@@ -76,7 +76,7 @@ Description:これはテストです。
 
 ![](TutorialTestImage08.png)
 
-1. ブループリント内部で [グラフ] タブを選択します。[Event Graph] 内で「右クリック」して [イベントを追加] を展開します。
+1. ブループリント内部で [グラフ] タブを選択します。[Event Graph] 内を右クリックして [Add Event] を展開します。
 1. リストから [EventReceiveBeginPlay] を選択します。
 [/EXCERPT:Eight]
 
@@ -87,7 +87,7 @@ Description:これはテストです。
 
 ![](TutorialTestImage09.png)
 
-1. [Event Graph] 内で「右クリック」して、 [タイムラインを追加�] を選択、名前を付けます。
+1. [Event Graph] 内を右クリックして、[Add Timeline] を選択、名前を付けます。
 
 [/EXCERPT:Nine]
 
@@ -99,7 +99,7 @@ Description:これはテストです。
 ![](TutorialTestImage10.png)
 
 1. タイムラインをダブルクリックして開きます。 
-1. [浮動トラックを追加] を選択してトラック名を入力します。
+1. [Add Float Track] を選択してトラック名を入力します。
 [/EXCERPT:Ten]
 
 
@@ -162,7 +162,7 @@ Description:これはテストです。
 
 ![](TutorialTestImage16.png)
 
-1. Lerp の ReturnValue をドラッグして、 Make Vector を追加します。
+1. Lerp の ReturnValue をドラッグして、Make Vector を追加します。
 1. Lerp の ReturnValue と Make Vector の Z 入力を接続します。
 1. 注釈：この時、 Lerp を X ベクター値と非接続にしなくてはいけません。接続ポイント上で「Alt＋左マウスをクリック」して非接続にします。
 [/EXCERPT:Sixteen]
