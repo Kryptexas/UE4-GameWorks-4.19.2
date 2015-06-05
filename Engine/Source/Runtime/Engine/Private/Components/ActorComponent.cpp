@@ -111,7 +111,9 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*=
 	bAutoRegister = true;
 	bNetAddressable = false;
 	bEditableWhenInherited = true;
+#if WITH_EDITOR
 	bCanUseCachedOwner = true;
+#endif
 }
 
 void UActorComponent::PostInitProperties()
