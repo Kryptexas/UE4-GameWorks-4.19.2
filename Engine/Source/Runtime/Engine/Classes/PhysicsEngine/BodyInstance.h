@@ -1085,3 +1085,13 @@ FORCEINLINE_DEBUGGABLE bool FBodyInstance::OverlapTestForBody(const FVector& Pos
 	InlineArray.Add(Body);
 	return OverlapTestForBodiesImpl(Position, Rotation, InlineArray);
 }
+
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::IsInstanceSimulatingPhysics()
+{
+	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
+}
+
+FORCEINLINE_DEBUGGABLE bool FBodyInstance::ShouldInstanceSimulatingPhysics()
+{
+	return bSimulatePhysics;
+}

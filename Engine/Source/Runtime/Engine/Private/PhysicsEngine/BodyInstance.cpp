@@ -2466,17 +2466,6 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 	UpdateInstanceSimulatePhysics();
 }
 
-bool FBodyInstance::IsInstanceSimulatingPhysics()
-{
-	// if I'm simulating or owner is simulating
-	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
-}
-
-bool FBodyInstance::ShouldInstanceSimulatingPhysics()
-{
-	return bSimulatePhysics;
-}
-
 bool FBodyInstance::IsValidBodyInstance() const
 {
 #if WITH_PHYSX
