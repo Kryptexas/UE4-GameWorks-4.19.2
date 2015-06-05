@@ -5908,44 +5908,44 @@ public class GUBP : BuildCommand
 
 											if (NonCodeFormalBuilds.ContainsKey(NonCodeProject.GameName))
 											{
-                                            var PlatList = NonCodeFormalBuilds[NonCodeProject.GameName];
-                                            foreach (var PlatPair in PlatList)
-                                            {
-                                                if (PlatPair.TargetPlatform == Plat)
-                                                {
-                                                    var NodeName = AddNode(new FormalBuildNode(this, NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() { PlatPair.TargetConfig }));                                                    
-                                                    // we don't want this delayed
-                                                    // this would normally wait for the testing phase, we just want to build it right away
-                                                    RemovePseudodependencyFromNode(
-                                                        CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform),
-                                                        WaitForTestShared.StaticGetFullName());
-                                                    string BuildAgentSharingGroup = "";
-                                                    if (Options.bSeparateGamePromotion)
-                                                    {
-                                                        BuildAgentSharingGroup = NonCodeProject.GameName + "_MakeFormalBuild_" + Plat.ToString() + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
-                                                        if (Plat == UnrealTargetPlatform.IOS || Plat == UnrealTargetPlatform.Android) // These trash build products, so we need to use different agents
-                                                        {
-                                                            BuildAgentSharingGroup = "";
-                                                        }
-                                                        GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
-                                                        GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
-                                                        GUBPNodes[NodeName].AgentSharingGroup = BuildAgentSharingGroup;
-                                                    }
-                                                    else
-                                                    {
-                                                        //GUBPNodes[NodeName].AgentSharingGroup = FormalAgentSharingGroup;
-                                                        if (Plat == UnrealTargetPlatform.XboxOne)
-                                                        {
-                                                            GUBPNodes[NodeName].AgentSharingGroup = "";
-                                                        }
-                                                    }
-                                                    if (PlatPair.bTest)
-                                                    {
-                                                        AddNode(new FormalBuildTestNode(this, NonCodeProject, HostPlatform, Plat, PlatPair.TargetConfig));
-                                                    }
-                                                }
-                                            }
-                                        }
+												var PlatList = NonCodeFormalBuilds[NonCodeProject.GameName];
+												foreach (var PlatPair in PlatList)
+												{
+													if (PlatPair.TargetPlatform == Plat)
+													{
+														var NodeName = AddNode(new FormalBuildNode(this, NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() { PlatPair.TargetConfig }));                                                    
+														// we don't want this delayed
+														// this would normally wait for the testing phase, we just want to build it right away
+														RemovePseudodependencyFromNode(
+															CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform),
+															WaitForTestShared.StaticGetFullName());
+														string BuildAgentSharingGroup = "";
+														if (Options.bSeparateGamePromotion)
+														{
+															BuildAgentSharingGroup = NonCodeProject.GameName + "_MakeFormalBuild_" + Plat.ToString() + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
+															if (Plat == UnrealTargetPlatform.IOS || Plat == UnrealTargetPlatform.Android) // These trash build products, so we need to use different agents
+															{
+																BuildAgentSharingGroup = "";
+															}
+															GUBPNodes[CookNode.StaticGetFullName(HostPlatform, NonCodeProject, CookedPlatform)].AgentSharingGroup = BuildAgentSharingGroup;
+															GUBPNodes[GamePlatformCookedAndCompiledNode.StaticGetFullName(HostPlatform, NonCodeProject, Plat)].AgentSharingGroup = BuildAgentSharingGroup;
+															GUBPNodes[NodeName].AgentSharingGroup = BuildAgentSharingGroup;
+														}
+														else
+														{
+															//GUBPNodes[NodeName].AgentSharingGroup = FormalAgentSharingGroup;
+															if (Plat == UnrealTargetPlatform.XboxOne)
+															{
+																GUBPNodes[NodeName].AgentSharingGroup = "";
+															}
+														}
+														if (PlatPair.bTest)
+														{
+															AddNode(new FormalBuildTestNode(this, NonCodeProject, HostPlatform, Plat, PlatPair.TargetConfig));
+														}
+													}
+												}
+											}
                                         }
 
                                         if (!bNoAutomatedTesting)
