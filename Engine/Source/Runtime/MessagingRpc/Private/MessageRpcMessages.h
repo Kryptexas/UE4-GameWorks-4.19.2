@@ -55,9 +55,9 @@ struct FMessageRpcProgress
 };
 
 
-/** Message for notifying RPC clients that a call was invalid. */
+/** Message for notifying RPC clients that a call was not handled by the server. */
 USTRUCT()
-struct FMessageRpcInvalid
+struct FMessageRpcUnhandled
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -66,10 +66,10 @@ struct FMessageRpcInvalid
 	FGuid CallId;
 
 	/** Default constructor. */
-	FMessageRpcInvalid() { }
+	FMessageRpcUnhandled() { }
 
 	/** Creates and initializes a new instance. */
-	FMessageRpcInvalid(const FGuid& InCallId)
+	FMessageRpcUnhandled(const FGuid& InCallId)
 		: CallId(InCallId)
 	{ }
 };

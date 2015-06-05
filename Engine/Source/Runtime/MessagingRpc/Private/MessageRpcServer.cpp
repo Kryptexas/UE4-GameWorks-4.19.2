@@ -38,6 +38,12 @@ const FMessageAddress& FMessageRpcServer::GetAddress() const
 }
 
 
+FOnMessageRpcNoHandler& FMessageRpcServer::OnNoHandler()
+{
+	return NoHandlerDelegate;
+}
+
+
 /* FMessageRpcServer implementation
  *****************************************************************************/
 
@@ -55,7 +61,19 @@ void FMessageRpcServer::ProcessCancelation(const FMessageRpcCancel& Message, con
 void FMessageRpcServer::ProcessRequest(const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context)
 {
 	auto Message = (FRpcMessage*)Context->GetMessage();
-	auto Handler = Handlers.FindRef(Context->GetMessageType());
+	const FName MessageType = Context->GetMessageType();
+
+	if (!Handlers.Contains(MessageType))
+	{
+		if (!NoHandlerDelegate.IsBound())
+		{
+			return;
+		}
+
+		NoHandlerDelegate.Execute(MessageType);
+	}
+
+	auto Handler = Handlers.FindRef(MessageType);
 
 	if (Handler.IsValid())
 	{
@@ -71,7 +89,7 @@ void FMessageRpcServer::ProcessRequest(const TSharedRef<IMessageContext, ESPMode
 	else
 	{
 		// notify caller that call was not handled
-		MessageEndpoint->Send(new FMessageRpcInvalid(Message->CallId), Context->GetSender());
+		MessageEndpoint->Send(new FMessageRpcUnhandled(Message->CallId), Context->GetSender());
 	}
 }
 

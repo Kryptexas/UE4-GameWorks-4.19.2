@@ -10,6 +10,9 @@
 #include "IMessageRpcReturn.h"
 
 
+/** Delegate type for RPC messages that have no registered handler. */
+DECLARE_DELEGATE_OneParam(FOnMessageRpcNoHandler, const FName& /*MessageType*/)
+
 /**
  * Interface for RPC servers.
  */
@@ -100,6 +103,13 @@ public:
 	 * @return Message address.
 	 */
 	virtual const FMessageAddress& GetAddress() const = 0;
+
+	/**
+	 * Get a delegate that is executed when a received RPC message has no registered handler.
+	 *
+	 * @return The delegate.
+	 */
+	virtual FOnMessageRpcNoHandler& OnNoHandler() = 0;
 
 public:
 

@@ -29,6 +29,7 @@ public:
 
 	virtual void AddHandler(const FName& RequestMessageType, const TSharedRef<IMessageRpcHandler>& Handler) override;
 	virtual const FMessageAddress& GetAddress() const override;
+	virtual FOnMessageRpcNoHandler& OnNoHandler() override;
 
 protected:
 
@@ -68,6 +69,9 @@ private:
 
 	/** Message endpoint. */
 	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
+
+	/* Delegate that is executed when a received RPC message has no registered handler. */
+	FOnMessageRpcNoHandler NoHandlerDelegate;
 
 	/** Collection of pending RPC returns. */
 	TMap<FGuid, FReturnInfo> Returns;
