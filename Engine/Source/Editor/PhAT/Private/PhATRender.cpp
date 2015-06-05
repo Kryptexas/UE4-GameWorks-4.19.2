@@ -453,13 +453,13 @@ FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollis
 			bInBody = true;
 		}
 
-		if (Body == SharedData->SelectedBodies[i])
+		if (Body == SharedData->SelectedBodies[i] && !SharedData->bRunningSimulation)
 		{
 			return ElemSelectedColor;
 		}
 	}
 
-	if(bInBody)	//this primitive is in a body that's currently selected, but this primitive itself isn't selected
+	if(bInBody && !SharedData->bRunningSimulation)	//this primitive is in a body that's currently selected, but this primitive itself isn't selected
 	{
 		return ElemSelectedBodyColor;
 	}
@@ -474,7 +474,7 @@ FColor UPhATEdSkeletalMeshComponent::GetPrimitiveColor(int32 BodyIndex, EKCollis
 	}
 	else
 	{
-		if (!SharedData->bRunningSimulation)
+		if (!SharedData->bRunningSimulation && SharedData->SelectedBodies.Num())
 		{
 			// If there is no collision with this body, use 'no collision material'.
 			if (SharedData->NoCollisionBodies.Find(BodyIndex) != INDEX_NONE)
@@ -498,14 +498,14 @@ UMaterialInterface* UPhATEdSkeletalMeshComponent::GetPrimitiveMaterial(int32 Bod
 
 	for(int32 i=0; i< SharedData->SelectedBodies.Num(); ++i)
 	{
-		if (Body == SharedData->SelectedBodies[i])
+		if (Body == SharedData->SelectedBodies[i] && !SharedData->bRunningSimulation)
 		{
 			return bHitTest ? BoneMaterialHit : ElemSelectedMaterial;
 		}
 	}
 
 	// If there is no collision with this body, use 'no collision material'.
-	if (SharedData->NoCollisionBodies.Find(BodyIndex) != INDEX_NONE)
+	if (SharedData->NoCollisionBodies.Find(BodyIndex) != INDEX_NONE && !SharedData->bRunningSimulation)
 	{
 		return bHitTest ? BoneMaterialHit : BoneNoCollisionMaterial;
 	}

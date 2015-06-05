@@ -9,6 +9,7 @@
 #include "PhATActions.h"
 #include "SPhATPreviewToolbar.h"
 #include "Editor/UnrealEd//Public/SEditorViewport.h"
+#include "SPhatPreviewViewport.h"
 
 #define LOCTEXT_NAMESPACE "PhatViewportToolBar"
 
@@ -220,6 +221,19 @@ TSharedRef<SWidget> SPhATPreviewViewportToolBar::GenerateModesMenu() const
 		{
 			struct Local
 			{
+				static void BuildMeshRenderModeMenu(FMenuBuilder& Menu)
+				{
+					const FPhATCommands& Commands = FPhATCommands::Get();
+
+					Menu.BeginSection("PhATRenderingMode", NSLOCTEXT("PhAT", "MeshRenderModeHeader", "Mesh Rendering Mode"));
+					{
+						Menu.AddMenuEntry(Commands.MeshRenderingMode_Solid);
+						Menu.AddMenuEntry(Commands.MeshRenderingMode_Wireframe);
+						Menu.AddMenuEntry(Commands.MeshRenderingMode_None);
+					}
+					Menu.EndSection();
+				}
+
 				static void BuildCollisionRenderModeMenu(FMenuBuilder& Menu)
 				{
 					const FPhATCommands& Commands = FPhATCommands::Get();
@@ -249,6 +263,7 @@ TSharedRef<SWidget> SPhATPreviewViewportToolBar::GenerateModesMenu() const
 
 			ModesMenuBuilder.BeginSection("PhATSubMenus");
 			{
+				ModesMenuBuilder.AddSubMenu(NSLOCTEXT("PhAT", "MeshRenderModeSubMenu", "MeshRender Mode"), FText::GetEmpty(), FNewMenuDelegate::CreateStatic(&Local::BuildMeshRenderModeMenu));
 				ModesMenuBuilder.AddSubMenu(NSLOCTEXT("PhAT", "CollisionRenderModeSubMenu", "CollisionRender Mode"), FText::GetEmpty(), FNewMenuDelegate::CreateStatic(&Local::BuildCollisionRenderModeMenu));
 				ModesMenuBuilder.AddSubMenu(NSLOCTEXT("PhAT", "ConstraintRenderModeSubMenu", "ConstraintRender Mode"), FText::GetEmpty(), FNewMenuDelegate::CreateStatic(&Local::BuildConstraintRenderModeMenu));
 			}
