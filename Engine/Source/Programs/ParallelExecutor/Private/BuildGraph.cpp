@@ -270,7 +270,7 @@ bool FBuildGraph::ReadFromFile(const FString& InputPath)
 						FBuildAction* Action = FindOrAddAction(NameToAction, TaskNode->GetAttribute(TEXT("Name")));
 						Action->SortIndex = ++SortIndex;
 						Action->Caption = TaskNode->GetAttribute(TEXT("Caption"));
-						Action->Prefix = (*ToolNode)->GetAttribute(TEXT("GroupPrefix"));
+						Action->Prefix = (*ToolNode)->GetAttribute(TEXT("OutputPrefix"));
 						Action->ToolPath = (*ToolNode)->GetAttribute(TEXT("Path"));
 						Action->ToolArguments = (*ToolNode)->GetAttribute(TEXT("Params"));
 						Action->WorkingDirectory = TaskNode->GetAttribute(TEXT("WorkingDir"));
