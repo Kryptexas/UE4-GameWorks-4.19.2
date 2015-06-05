@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2555278
-Availability:Docs
-Title:3. Procedural Foliage ツールでアクタのプロパティを調整する
+﻿INTSourceChangelist:2576224
+Availability:Public
+Title:3. Foliage Type のプロパティを調整する
 Crumbs:
 Description:Procedural Foliage アクタの設定を調整してみましょう。
 Navigation:topic
@@ -24,11 +24,13 @@ SkillLevel:Intermediate
 [/VAR]
 
 %Steps%
-次のセクションは、 **Foliage Type Actor** の各種オプションについて、オプションの内容、およびそれらを使って レベルへの Foliage Mesh の置き方の調整方法を説明します。
+**Foliage Types** に付いている様々なプロパティを調整することで、レベル内のオブジェクト上にどのようにフォーリッジ タイプを配置するかということから、フォーリッジ スポーナーによるフォーリッジ タイプの成長方法まで、あらゆる項目を制御できます。 
+次のセクションでは、**Foliage types** ではどのようなプロパティが使えるのか、またこれらをどのように使えば期待の結果が出せるのかについて説明します。 
 前のステップで作成した **PFT_00** レベルを引き続き使用します。
-一旦終了してしまった場合は再度ここで開いてから、次のステップへ進んでください。
 
-1. まず **Tree_00** Foliage Type を開きます。 **[Placement]** セクションを展開して、**Align to Normal** と **Random Yaw** が有効になっていることを確認してください。
+1. **Tree_00** Foliage Type を開きます。
+
+1. **Placement** を展開して、**Align to Normal** と **Random Yaw** の両方が有効になっていることを確認してください。
 
 	![](T_Placement_Options.png)
 
@@ -36,90 +38,54 @@ SkillLevel:Intermediate
 	Placement セクションは、レベルのオブジェクト上に置かれた Foliage Type に対するスタティックメッシュの使用方法を調整します。 
 	[/region]
 
-1. 次に Foliage Type の **[Procedural]** セクション、 **[Collision]** セクションの順に展開し、 **Shade Radius** を **50** に設定します。そして、レベルに置いた Procedural Foliage Spawner 上で **[Resimulate]** ボタンを押します。 
-
+1. フォーリッジ タイプの **[Procedural]** セクションの **Collision** セクションを展開して、**Shade Radius** を **50** に設定します。 
 	![](T_Shade_Radius.png)
 
 	[region:note]
 	Collision セクションは、2 つの Foliage Type が同じスポーン位置あるいは関連空間に対して競合した場合、どちらを削除するか決定します。Virtual Seed のコリジョン半径が、別の Foliage Type の Virtual Seed からの既存コリジョンまたは描画にオーバーラップすると、優先度の高い Foliage Type がどちらかによって Virrual Seed は置き換えまたはキルされます。
 	[/region]
 
-1. **[Collision]** セクションを折り畳んで **[Clustering]** セクションを展開します。次に、 **Num Steps** を **0** に設定して **[Resimulate]** ボタンを押します。 
+1. 次にレベルに配置した **Procedural Foliage Spawner** をビューポートから選択し、**Procedural Foliage** セクションを拡張して、**[Resimulate]** ボタンをクリックします。
+
+	![](T_Press_ReSimulate.png)
+
+1. Tree_00 Foliage type で、**[Collision]** セクションを折り畳み **[Clustering]** セクションを展開します。次に、 **Num Steps** を **0** に設定してすべての木のサイズと年齢がが同じになるようにします。そして **[Resimulate]** ボタンを押します。入力すると、以下のようになります。 
 
 	![](T_Num_Steps_0.png)
 
 	[region:note]
-	[Clustering] セクションは、密度 (density)、存在時間 (age)、近接度 (proximity) など様々なプロパティを使って、指定したスタティックメッシュのレベルでの配置およびグループ化を決定します。 
+	[Clustering] セクションは、密度 (density)、存在時間 (age)、近接度 (proximity) など様々なプロパティを使って、指定したスタティックメッシュのレベル内での配置およびグループ化を決定し、Procedural Foliage Spawner の内部に広げます。
 	[/region]
 
 1. 木の間にいくらか空間はありますが、全体的にまだ密度が高すぎます。 
-	これを修正するために、 **Initial Seed Density** を **0.25** に設定して、 **[Resimulate]** ボタンを押します。
+	これを修正するために、 **Initial Seed Density** を **0.25** に設定して、 **[Resimulate]** ボタンをクリックします。
 
 	![](T_Num_ISD_0.125.png)
 
-1. ご覧の通り、**Initial Seed Density** を **0.25** に設定すると、森の密度が大幅に下がってしまいました。 
-	これを解決するために **Num Steps** を **3** に設定して、 **[Resimulate]** ボタンを押します。
+1. ご覧の通り、**Initial Seed Density** を **0.25** に設定すると、森の密度が大幅に下がってしまいました。これは、木の成長と拡散を単年分しか行っていないからです。 
+	これを修正するために、 **Num Steps** を **3** に戻すことで木を 3 年分成長および拡散させます。そして **[Resimulate]** ボタンをクリックします。
 
 	![](T_Num_Steps_3.png)
 
-1. **[Clustering]** セクションを折り畳み、 **[Growth]** セクションを展開します。 
-	**Max Age** を **20.0** に設定し、 **Procedural Scale** でMax value を **10.0** にしたら **[Resimulate]** ボタンを押します。 
+1. **Growth** セクションを展開して、以下のパラメータを以下の設定値にします。
+
+	* **Max Age**:**20.0**
+	* **Procedural Scale Max**:**10.0**
 
 	![](T_Set_Growth.png)
 
-1. 次に、**[Growth]** セクションを折り畳んで **[Instance Settings]** オプションを展開したら、 **[Cull Distance]** オプションで **Max** value を **20,000** に設定します。 
+	[region:note]
+	[Growth] セクションは、レベルに表示される Foliage type に使用するスタティックメッシュの時間経過に伴う成長方法の調整をします。 
+	[/region]
+
+1. 最後に **Instance Settings** の **Cull Distance** で、 **Max** value を **20,000** に設定して、 **[Resimulate]** ボタンをクリックします。 
+	入力すると、以下のようになります。
 
 	![](T_Cull_Distance.png)
 
 	[region:note]
-	Instance Settings は、レベルに表示される Foliage type に対するスタティックメッシュの使用方法を調整します。Instance Settings 内では、Cull Distance、Shadowing、Collision などの様々なプロパティの設置や調整ができます。ここで調整できるプロパティは、レベルでどのように Foliage を使用するかによって異なります。 
+	Instance Settings は、レベルに表示される Foliage type に使用するスタティックメッシュの使用方法を調整します。Instance Settings 内では、Cull Distance、Shadowing、Collision などの様々なプロパティの設置や調整ができます。
 	[/region]
-
-1. 最後に、 **メイン ツール バー** の **[Save]** ボタンと **コンテンツ ブラウザ** の **[Save All]** ボタンを押して、レベルとコンテンツを必ず保存します。
-
-	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 %Steps%
