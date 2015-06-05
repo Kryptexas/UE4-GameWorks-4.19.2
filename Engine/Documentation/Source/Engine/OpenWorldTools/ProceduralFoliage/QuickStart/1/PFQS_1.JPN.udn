@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2557751
-Availability:Docs
-Title:1. Procedural Foliage ツールでアクタを作成する
+﻿INTSourceChangelist:2576224
+Availability:Public
+Title:1. Foliage Type アクタを作成する
 Crumbs:
-Description:必要なアクタをすべて作成してみましょう。
+Description:必要なアクタの作成と追加
 Navigation:topic
 SkillLevel:Intermediate
 バージョン：4.8
@@ -24,42 +24,48 @@ SkillLevel:Intermediate
 
 %Steps%
 
-次の How To では、UE4 で正しく機能するために Procedural Foliage ツールが必要とするレベル、ランドスケープ テレイン、すべてのアクタを新規作成します。
+このステップでは、Procedural Foliage ツールが必要とするレベル、ランドスケープ テレイン、すべてのアクタを新規作成します。
 
 
-1. 最初に **Default Template** を使って UE4 内にベースとしてレベルを作成します。
+1. **Default Template** をベースに使ってレベルを作成します。
 
 	![](T_New_Level.png)
 
-1. レベルがロードされたら、まず **[Landscape Tool]** アイコンをクリックして Landscape アクタを追加し、次に **[Create]** ボタンを押してその Landscape アクタをレベルに追加します。
+1. まず **[Landscape Tool]** アイコンをクリックして Landscape アクタを追加し、次に **[Create]** ボタンを押してその Landscape アクタをレベルに追加します。
 
 	![](T_Create_Landscape.gif)(convert:false)
 
-1. Landscape がレベルに追加されたら、**[Modes] パネル** の **[Place]** アイコンをクリックして Landscape ツールを終了します。
+	[region:note]
+	ランドスケープ テレインを使った作業に慣れていない、もしくは詳しく知りたい場合は、[](Engine/Landscape) を参照してください。
+	[/region]
+
+1. **[Modes] パネル** の **[Place]** アイコンをクリックして Landscape ツールを終了します。
 
 	![](T_Exit_Landscape_Mode.png)
 
 	[region:note]
-	Landscape Terrain アクタは多数のスタティックメッシュをスポーンする広い領域をすぐに与えてくれるので、Landscape Terrain を使用します。
+	Landscape Terrain アクタを使用すると、多数のスタティックメッシュをスポーンする広い領域がすぐに与えられます。
 	[/region]
 
-1. 次にマウスで **コンテンツ ブラウザ** をマウスで **右クリック** し、 **[Create Advanced Asset]** から **[Miscellaneous]** > **[Procedural Foliage Spawner]** を選択して Procedural Foliage Spawner を作成します。 
+1. **コンテンツ ブラウザ** を **右クリック** し、[Miscellaneous] > **[Procedural Foliage Spawner]** セクションを展開して **Procedural Foliage Spawner** をクリックします。 
 
 	![](T_Create_PFS.png)
 
-1. Procedural Foliage Spawner に 「**PFS_Example**」 という名前を付けます。
+1. このサンプルでは、Procedural Foliage Spawner に 「**PFS_Example**」 という名前を付けます。
 
 	![](T_Name_PFS.png)
 
-1. Procedural Foliage Spawner を **コンテンツ ブラウザ** からレベルにドラッグし、レベルの **0,0,200** に配置したら、Procedural Foliage Spawner の X、Y、Z が **100,100,10** になるようにスケールします。
+1. Procedural Foliage Spawner を **コンテンツ ブラウザ** からレベルにドラッグし、レベルの中央もしくは X、Y、Z が **0,0,200** になるように配置します。
 
 	![](T_Add_PFS_To_Level.gif)(convert:false)
 
-1. 次にコンテンツ ブラウザでマウスを **右クリック** して **Foliage Type** アクタを作成したら、 **[Create Advanced Asset]** セクションの **Miscellaneous** > **Foliage Type** で 「**Tree_00**」 という名前を付けます。
+1. 森をスポーンする十分な広さがないので、X、Y、Z 軸が **100,100,10** になるように Procedural Foliage Spawner をスケールします。
+
+1. スポーナーができたので、スポーンするためにフォーリッジのタイプを決める必要があります。**コンテンツ ブラウザ** を **右クリック** し、[Miscellaneous] > **[Procedural Foliage Spawner]** セクションを展開して **Foliage Type** をクリックします。Foliage Type に **Tree_00** などの名前を付けます。
 
 	![](T_Create_FT.png)
 
-1. 最後に作業とレベルを保存します。 **[Save All]** ボタンはすべてのコンテンツが保存され、 **[Save]** ボタンを押すとレベルが保存されます。 
+1. この時点では、以下のようになります。そうならなかった場合は、 **[Save All]** ボタンでコンテンツを、**[Save]** ボタンでレベルと保存して、作業とレベルを保存してください。 
 	レベル名を求められたら、 「**PFT_00**」としてください。
 
 	![](T_Save_All.png)
