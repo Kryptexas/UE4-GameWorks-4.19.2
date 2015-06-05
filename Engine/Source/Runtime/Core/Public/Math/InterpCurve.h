@@ -25,8 +25,11 @@ public:
 
 public:
 
-	/** Default constructor (no initialization). */
-	FInterpCurve() { }
+	/** Default constructor. */
+	FInterpCurve() 
+		: bIsLooped(false)
+	{ 
+	}
 
 public:
 
