@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 13. 데코레이터 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -21,6 +21,12 @@ Description:13 단계. 데코레이터 생성
 [/VAR]
 
 %Steps%
+
+**Decorator**, 데코레이터는 다른 비헤이비어 시스템에서 조건절이라고도 알려져 있는데, [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) 또는 [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) 노드에 붙어 트리 내 분기 또는 단일 노드의 실행 여부를 결정합니다.
+
+이 **데코레이터** 는 AI 의 폰이 타겟에 충분히 가까이 가면 비헤이비어 트리의 Rapid Move To 분기 실행을 중지합니다. **Rapid Move To** 태스크나 그냥 **Move To** 태스크를 사용해서 처리할 수는 있지만, 이 데코레이터는 아무 액터나 받아 어느 분기의 실행을 막을 수도 있습니다. 여러가지 상황에서 재사용할 수 있게 되는 것입니다.
+
+## Steps
 
 1. **콘텐츠 브라우저** 에서 FollowerBT 비헤이비어 트리에 **더블클릭** 하여 엽니다.
 1. ![](newDecorator_button.png) 새 데코레이터 버튼을 클릭합니다.

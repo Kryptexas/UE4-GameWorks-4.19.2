@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2573881
 Availability: Public
 Title:2. 카메라 제어 입력 환경설정
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -83,7 +83,9 @@ Description:폰과 카메라에 적용시킬 입력 환경설정 입니다.
 
 				// Called to bind functionality to input
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-
+			
+			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};
@@ -105,6 +107,9 @@ Description:폰과 카메라에 적용시킬 입력 환경설정 입니다.
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
 				OurCameraSpringArm->AttachTo(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
+				OurCameraSpringArm->TargetArmLength = 400.f
+				OurCameraSpringArm->bEnableCameraLag = true;
+				OurCameraSprintArm->CameraLagSpeed = 3.0f
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
 				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 3. 기본 애셋 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -29,6 +29,7 @@ Description:3 단계. 기본 애셋 생성
 ![](Assets.png)
 [/REGION]
 
+## 단계
 
 1. **신규 추가** -> **블루프린트** -> **AI Controller**
 

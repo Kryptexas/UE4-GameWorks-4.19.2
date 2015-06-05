@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 14. 비헤이비어 트리 제작
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -27,9 +27,19 @@ Description:14 단계. 비헤이비어 트리 제작
 
 ![](fullTree.png)
 
+무슨 소린지 분석해 봅시다.
+
+* AI 가 AI 캐릭터 아닌 폰을 감지하지 못한 경우, 그냥 서있습니다.
+* AgroCheck Service 가 계속해서 적당한 타겟을 찾습니다.
+* 찾으면 가장 왼쪽의 분기가 열려, AI 는 타겟 폰을 향해 뛰어갑니다.
+* 그 폰 범위 안에 들어서면, 분기 실행이 중지되어 그래프 상단으로 돌아갑니다.
+* 바라던 폰이 숨으면, 가장 오른쪽 분기를 실행할 수 있게 되고, 이를 통해 AI 가 바라던 폰의 마지막 알려진 위치로 이동하게 됩니다.
+* 거기 도착하면 기다렸다가 원래 위치로 돌아갑니다.
+* 언제든 적당한 타겟을 찾으면 가장 오른쪽 분기 실행이 강제 중지되어, 가장 왼쪽 분기가 열립니다.
+
 이 트리 생성 과정을 단계별로 살펴봅시다.
 
-## 길잡이
+## 단계
 
 ### 기본 셋업
 

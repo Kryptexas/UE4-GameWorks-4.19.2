@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2400172
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 인바이언먼트 쿼리 시스템 노드 참고서
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
@@ -45,7 +45,6 @@ Description:인바이언먼트 쿼리 시스템 에디터에서 사용할 수 �
 
 [toc]
 
-## 개요
 
 인바이언먼트 쿼리 에디터에서 사용할 수 있는 노드와 테스트에 대한 간략 참고서입니다.
 

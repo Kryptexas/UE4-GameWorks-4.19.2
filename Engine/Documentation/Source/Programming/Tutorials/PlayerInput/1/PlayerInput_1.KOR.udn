@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573946
 Availability: Public
 Title:1. 폰 커스터마이즈
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -38,7 +38,7 @@ Description:폰에 대한 소개입니다.
 
 1. 다음으로 기본적인 **컴포넌트** 를 몇 가지 만듭니다. 코드로 **컴포넌트** 를 추가 및 관리하는 법은 물론 자주 보이게 되는 **컴포넌트** 유형에 대해서는 [](Programming\Tutorials\Components) 문서를 참고하세요. **컴포넌트** 의 기록 유지를 위해 다음 코드를 `MyPawn.h` 내 클래스 정의 아래 추가해 주겠습니다:
 
-		UPROPERTY()
+		UPROPERTY(EditAnywhere)
 		USceneComponent* OurVisibleComponent;
 
 	[REGION:note]이 변수에는 **UPROPERTY** 가 붙어있어 **언리얼 엔진** 에서 볼 수 있습니다. 이것이 중요한 이유는, 게임이 실행되거나, 프로젝트 또는 레벨을 닫고 다시 로드해도 변수가 리셋되지 않기 때문입니다.[/REGION]
@@ -96,7 +96,7 @@ Description:폰에 대한 소개입니다.
 				// Called to bind functionality to input
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 			};
 

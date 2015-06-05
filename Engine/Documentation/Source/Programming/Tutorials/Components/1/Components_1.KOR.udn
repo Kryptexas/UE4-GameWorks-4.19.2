@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573824
 Availability: Public
 Title:1. 컴포넌트 만들고 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -134,7 +134,6 @@ Description:다양한 컴포넌트를 만들어 커스텀 폰에 붙여봅니다
 
 			#include "HowTo_Components.h"
 			#include "CollidingPawn.h"
-			#include "CollidingPawnMovementComponent.h"
 
 			// Sets default values
 			ACollidingPawn::ACollidingPawn()

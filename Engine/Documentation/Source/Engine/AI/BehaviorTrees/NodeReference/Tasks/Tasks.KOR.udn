@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2546940
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 비헤이비어 트리 노드 참고서: 태스크
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:비헤이비어 트리의 Task, 태스크 노드에 대한 참고서입니다.
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 이 글은 비헤이비어 트리 에디터에서 사용할 수 있는 **Task** 노드에 대한 참고서입니다. 태스크란 어떤 작업을 하는 노드로, 그 작업은 AI 이동, 블랙보드 값 조정 등입니다. 거기에 [**Decorator**](Engine/AI/BehaviorTrees/NodeReference/Decorators), 데코레이터(조건)가 붙을 수도 있습니다.
 

@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 비헤이비어 트리 퀵스타트 가이드
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:AI 개요 및 예제입니다.
-Prereq:Engine/Blueprints/BP_HowTo/BasicUsage
-Prereq:Engine/Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

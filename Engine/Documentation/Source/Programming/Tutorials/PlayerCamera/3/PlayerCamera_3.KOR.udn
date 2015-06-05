@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573881
 Availability: Public
 Title:3. 입력에 반응하는 C++ 코드 작성
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -181,6 +181,7 @@ Description:입력으로 폰과 카메라를 제어하는 코드를 구현합니
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 

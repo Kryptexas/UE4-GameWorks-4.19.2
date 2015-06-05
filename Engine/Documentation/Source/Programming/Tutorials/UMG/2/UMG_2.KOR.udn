@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2574074
 Availability: Public
 Title:2. 게임 모드 확장
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -56,7 +56,7 @@ Description:프로젝트의 게임 모드를 확장하여 화면에 메뉴를 �
 
 	[REGION:note](Super 라는 단어로 레퍼런싱되는) 부모 클래스에서의 함수를 덮어쓸 때는, 여기 _BeginPlay_ 에서 하듯이, 종종 해당 함수의 부모 클래스 버전을 호출하는 것이 중요합니다. 함수 우리 버전은 그저 기존 절차의 끝에 한 단계를 추가하기 위한 것이므로, 함수 첫 줄에 _Super::BeginPlay_ 호출을 합니다.[/REGION]
 
-1. 다음으로 계속 `HowTo_UMGGameMode.cpp` 에서, 메뉴간의 전환 방식을 정의해 줘야 합니다. 뷰포트에 활성화된 **유저 위젯** 이 있다면, 먼저 제거해 줘야 합니다. 그 후 **유저 위젯** 을 새로 만들어 뷰포트에 추가해 주면 됩니다.
+1. 다음으로 계속 `HowTo_UMGGameMode.cpp` 에서, 메뉴간의 전환 방식을 정의해 줘야 합니다. 뷰포트에 활성화된 **유저 위젯** 이 있다면 제거해 줘야 합니다. 그 후 **유저 위젯** 을 새로 만들어 뷰포트에 추가해 주면 됩니다.
 
 		void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 		{

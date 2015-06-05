@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2571771
-Availability:Docs
+﻿INTSourceChangelist:2576221
+Availability:Public
 Title:3. 랜드스케이프 머티리얼과 그래스 툴
 Crumbs:
 Description: 그래스 툴과 랜드스케이프 터레인에 통하는 머티리얼 구성법입니다.
@@ -10,7 +10,7 @@ Version: 4.8
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[예전 단계](Engine\OpenWorldTools\Grass\QuickStart\1 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1:title%") 
+	[예전 단계](Engine\OpenWorldTools\Grass\QuickStart\2 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\2:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -85,14 +85,7 @@ UE4 의 랜드스케이프 터레인 작동방식에 대해 보다 자세히 살
 
 	![](T_LLW_Setup.png)
 
-	[region:note]
-	앞으로 그래스 출력을 사용할 때, 머티리얼 그래프에 추가되는 마지막 항목이 그래스 출력 머티리얼 표현식인지 확인하시기 바랍니다.
-	그래스 출력에 아무것도 연결하지 않고 머티리얼 저장 및 컴파일 시도를 한다면, **통계** 창에 다음과 같은 오류 메시지를 내며 컴파일이 실패할 것입니다.
-
-	![](T_Grass_Material_Warning.png)
-	[/region]
-
-1. 완료된 머티리얼은 다음과 같을 것입니다. **적용**, **저장** 버튼을 눌러 머티리얼을 컴파일, 저장하는 것 잊지 마시기 바랍니다.
+1. 완료된 머티리얼은 다음과 같을 것입니다. 언제나처럼 **적용**, **저장** 버튼을 눌러 머티리얼 컴파일, 저장하는 것 잊지 마시구요.
 
 	![](T_Final_Material.png)
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2463144
+﻿INTSourceChangelist:2572463
 Availability:NoPublish
 Title:
 Crumbs:
@@ -132,6 +132,43 @@ Description:
 	[/OBJECT]
 [/REGION]
 [/VAR]
+
+
+[VAR:BlueprintOrCPPSelectVar]
+[REGION:section]
+	[REGION:titlesection]
+	구현 방식을 선택하세요:
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		BlueprintOrCPPSelect
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		blueprintimplementation
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		블루프린트
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		BlueprintOrCPPSelect
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		cppimplementation
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		C++
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
 
 [EXCERPT:bpModesRemoved]
 [REGION:note]

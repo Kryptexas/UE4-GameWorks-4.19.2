@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 8. 콘트롤러 블루프린트: 비헤이비어 트리 실행
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -26,7 +26,9 @@ Description:8 단계. 콘트롤러 블루프린트: 비헤이비어 트리 실�
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
 [/REGION]
 
-마지막으로, **비헤이비어 트리** 를 하나의 노드로 실행해 주기만 하면 됩니다:
+마지막으로, **비헤이비어 트리** 를 하나의 노드로 실행해 주기만 하면 됩니다.
+
+## 단계
 
 1. **Run Behavior Tree** 노드를 만듭니다.
 

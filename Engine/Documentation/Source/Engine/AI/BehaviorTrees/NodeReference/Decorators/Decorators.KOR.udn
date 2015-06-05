@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2546942
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 비헤이비어 트리 노드 참고서 - 데코레이터
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
@@ -6,7 +6,6 @@ Description:비헤이비어 트리의 Decorator, 데코레이터 노드에 대�
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 **Decorator**, 데코레이터는 다른 비헤이비어 시스템에서는 조건절이라고도 하는데, [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites), 컴포짓이나 [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) 태스크 노드에 붙여 트리 내 분기 또는 노드 하나라도 실행할 것인지를 정의하는 것입니다.
 

@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2571771
-Availability:Docs
+﻿INTSourceChangelist:2576224
+Availability:Public
 Title: 오픈 월드 툴 개요
 Crumbs:
 Description: 레벨에 스태틱 메시를 순차적으로 배치하는 프로시저럴 시스템입니다.
@@ -27,7 +27,7 @@ Version: 4.8
 
 ## 툴 유형
 언리얼 엔진 4 의 오픈 월드 툴을 통해 레벨에 스태틱 메시를 배치할 때 수동이 아닌 컴퓨터 알고리즘을 사용하여 배치할 수 있습니다.
-이로써 여러가지 다양한 수종으로 구성된 자연스러운 모습의 숲을 빠르게 생성하는 것이 가능합니다.
+이로써 여러가지 다양한 나무, 식물, 덤불로 구성된 자연스러운 모습의 숲을 빠르게 생성하는 것이 가능합니다.
 
 UE4 의 오픈 월드 툴이라 하면 실제로 UE4 의 두 가지 툴 세트를 이야기합니다.
 어떤 툴 세트를 사용할지는 내고자 하는 결과에 따라 달라집니다.
@@ -98,7 +98,7 @@ Procedural Foliage Tool, 프로시저럴 폴리지 툴은 여러가지 다양한
 		그래스 툴 퀵스타트
 	[/PARAM]
 	[PARAM:description]
-	프로젝트에 그래스 툴을 사용하기 위한 상세 안내서입니다.
+	프로젝트에 그래스 툴을 사용하기 위한 심화 안내서입니다.
 	[/PARAM]
 	[PARAM:path]
 		[RELATIVE:Engine/OpenWorldTools/Grass/QuickStart]

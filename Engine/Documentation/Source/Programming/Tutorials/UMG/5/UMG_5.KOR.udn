@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2539112
+﻿INTSourceChangelist:2574101
 Availability: Public
 Title:5. 2차 메뉴 제작
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
@@ -32,7 +32,7 @@ Description:새로운 기능의 2차 메뉴를 만듭니다.
 1.  **텍스트 박스** 환경설정은 다음과 같이 합니다:
 	* 위치는 (325, 200) 입니다. **텍스트 박스** 왼쪽에 위치한 **텍스트 블록** 을 남겨둡니다.
 	* 크기는 250x40 입니다.
-	* ("Style" 제목 아래) 폰트 크기는 9 입니다.
+	* ("Style" 제목 아래) 폰트 크기는 20 입니다.
 	
 	[![](TextBoxDetails.png)](TextBoxDetails.png)
 

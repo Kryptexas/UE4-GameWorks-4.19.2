@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573829
 Availability: Public
 Title:4. 폰과 컴포넌트 함께 사용하기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
@@ -33,8 +33,8 @@ Description:폰의 함수성, 입력 환경설정, 컴포넌트를 함께 묶는
 	**Pawn Movement Component** 를 만들어 우리 **Pawn** 에 연관시켜 주는 것은 간단합니다. **ACollidingPawn::ACollidingPawn** 하단에 이렇게 추가해 주면 됩니다:
 
 		// 무브먼트 컴포넌트 인스턴스를 생성하고, 루트를 업데이트하라 이릅니다.
-		MovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
-		MovementComponent->UpdatedComponent = RootComponent;
+		OurMovementComponent = CreateDefaultSubobject<UCollidingPawnMovementComponent>(TEXT("CustomMovementComponent"));
+		OurMovementComponent->UpdatedComponent = RootComponent;
 
 	[REGION:note]지금까지 봐 온 다른 **컴포넌트** 와는 달리, 이 **컴포넌트** 는 우리 **컴포넌트** 계층구조에 붙일 필요가 없습니다. 왜냐면 우리 **컴포넌트** 는 모두 **씬 컴포넌트** 유형이었는데, 애초부터 물리적 위치가 필요한 것들이기 때문입니다. 하지만 **Movement Controller** 는 **씬 컴포넌트** 가 아니라, 물리적 오브젝트를 나타내지 않기에, 물리적 위치에 존재한다든가 다른 **컴포넌트** 에 물리적으로 붙인다든가 하는 개념은 적용되지 않습니다.[/REGION]
 

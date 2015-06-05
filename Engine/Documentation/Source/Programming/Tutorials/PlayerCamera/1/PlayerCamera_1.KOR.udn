@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573881
 Availability: Public
 Title:1. 폰에 카메라 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
@@ -30,6 +30,7 @@ Description:스프링 암과 카메라를 만들어 붙입니다.
 1. 다음으로 **Visual Studio** 에서, `PawnWithCamera.h` 를 열고 클래스 정의 아래 다음 코드 줄을 추가합니다:
 
 		protected:
+			UPROPERTY(EditAnywhere)
 			USpringArmComponent* OurCameraSpringArm;
 			UCameraComponent* OurCamera;
 
@@ -95,6 +96,7 @@ Description:스프링 암과 카메라를 만들어 붙입니다.
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};

@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2493175
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 비헤이비어 트리 사용 안내서
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:비헤이비어 트리 에디터 사용 안내서 입니다.
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 이 문서는 비헤이비어 트리 작업 도중 가장 흔히 겪게 되는 작업방식에 대해 다룹니다.
 

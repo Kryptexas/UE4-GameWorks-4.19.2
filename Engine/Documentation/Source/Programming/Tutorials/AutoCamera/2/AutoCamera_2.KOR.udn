@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2543301
+﻿INTSourceChangelist:2573803
 Availability: Public
 Title:2. C++ 에서 카메라 뷰 제어
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
@@ -44,7 +44,7 @@ Description:카메라 뷰 제어를 위한 클래스 코딩입니다.
 
 	GameplayStatics 헤더 파일로 유용한 범용 함수에 접근할 수 있으며, 그 중 하나가 이 튜토리얼에 필요합니다. 이 작업이 완료되면, **ACameraDirector::Tick** 아래 다음 코드를 추가합니다:
 
-		const float TimeBetweenCameraChanges = 3.0f;
+		const float TimeBetweenCameraChanges = 2.0f;
 		const float SmoothBlendTime = 0.75f;
 		TimeToNextCameraChange -= DeltaTime;
 		if (TimeToNextCameraChange <= 0.0f)

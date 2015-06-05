@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 12. 태스크 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -21,6 +21,13 @@ Description:12 단계. 태스크 생성
 [/VAR]
 
 %Steps%
+
+Task, 태스크란 AI 이동, 블랙보드 값 조정 등 무언가를 하는 노드입니다. [**데코레이터**](Engine/AI/BehaviorTrees/NodeReference/Decorators) 를 붙일 수 있습니다.
+
+이 **태스크** 는 기본적으로 **Move To** 노드를 새로 만든 것으로, 한 가지 큰 차이점이라면 AI 가 항상 자기 위치가 아닌 플레이어 폰을 향해 달린다는 점입니다. 또한 분해해서 **Finish Execute** 를 실행하지 않는 한 계속해서 처리가 되며, **AI MoveTo** 노드에 완벽히 이러한 모습이 보입니다.
+
+
+## 단계
 
 1. **콘텐츠 브라우저** 에서 FollowerBT 비헤이비어 트리를 **더블클릭** 하여 엽니다.
 1. ![](newTask_button.png) 새 태스크 버튼을 클릭합니다.

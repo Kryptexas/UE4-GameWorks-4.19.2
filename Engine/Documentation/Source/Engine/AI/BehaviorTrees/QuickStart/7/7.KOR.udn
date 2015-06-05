@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 7. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -26,7 +26,9 @@ Description:7 단계. AI 콘트롤러 블루프린트: 초기 블랙보드 값
 [![](fullEG.png)(w:940 convert:false)](fullEG.png)
 [/REGION]
 
-이제 **블랙보드** 의 "HomeLocation" 키를 설정해 줘야 합니다. 조금 복잡한 단계지만, 엄청나게 어렵지는 않습니다.
+이제 **블랙보드** 의 "HomeLocation" 키를 설정해 줘야 합니다. 조금 복잡한 부분이지요.
+
+## 단계
 
 1. **Get Blackboard** 노드와 **Get Controlled Pawn** 노드가 필요합니다.
 

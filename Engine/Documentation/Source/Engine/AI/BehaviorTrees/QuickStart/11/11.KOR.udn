@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title: 11. 서비스 생성
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -21,6 +21,13 @@ Description:11 단계. 서비스 생성
 [/VAR]
 
 %Steps%
+
+**Service**, 서비스는 [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) 노드에 붙으며, 분기 실행 도중 정해진 빈도대로 실행합니다. 종종 블랙보드 검사 및 업데이트에 사용됩니다. 다른 비헤이비어 트리 시스템의 전통적인 Parrallel 노드에 해당하는 노드입니다.
+
+여기서 서비스는 AI 캐릭터가 아닌 **폰** 을 찾은 다음, TargetToFollow 와 TargetLocation 블랙보드 키를 설정합니다.
+
+
+## Steps
 
 1. **콘텐츠 브라우저** 에서 FollowerBT 비헤이비어 트리를 **더블클릭** 하여 엽니다.
 1. ![](newService_button.png) 새 서비스 버튼을 클릭합니다.

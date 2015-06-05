@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2571771
+﻿INTSourceChangelist:2576012
 Availability:Public
 Title: 그래스 툴 퀵스타트
 Crumbs:
@@ -25,7 +25,7 @@ Version: 4.8
 ## 사전 요구사항
 
 **Open World Demo Collection** (오픈 월드 데모 콜렉션)에 있는 콘텐츠도 몇 개 사용되니 그 콘텐츠 팩을 **마켓플레이스** 에서 다운로드할 필요도 있습니다.
-오픈 월드 데모 콜렉션이 다운로드되면 사용중인 프로젝트에 추가시켜야 따라해 볼 수 있습니다. 
+오픈 월드 데모 콜렉션이 다운로드되면 사용중인 프로젝트에 추가시켜야 따라해 볼 수 있습니다:
 
 1. 에픽 게임스 런처에서 마켓플레이스 내 **Open World Demo Collection** 을 찾아 다운로드합니다.
 	

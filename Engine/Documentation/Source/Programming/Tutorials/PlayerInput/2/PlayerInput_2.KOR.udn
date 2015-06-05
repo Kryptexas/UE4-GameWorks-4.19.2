@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2573946
 Availability: Public
 Title:2. 게임 입력 환경설정
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -99,7 +99,7 @@ Description:언리얼 엔진에서 입력 환경설정 입니다.
 				// Called to bind functionality to input
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 			};
 

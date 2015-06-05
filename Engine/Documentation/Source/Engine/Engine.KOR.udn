@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2488425
+﻿INTSourceChangelist:2573954
 Availability:Public
 Title: 언리얼 에디터 매뉴얼
 Crumbs: %ROOT%
@@ -87,6 +87,7 @@ engine
 %Engine/AI/BehaviorTrees:topiccompact%
 %Engine/Landscape:topiccompact%
 %Engine/Foliage:topiccompact%
+%Engine/OpenWorldTools:topiccompact%
 %Engine/LevelStreaming:topiccompact%
 %Engine/Audio:topiccompact%
 %Engine/Physics:topiccompact%
