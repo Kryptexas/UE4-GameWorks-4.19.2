@@ -18,6 +18,8 @@
 
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "PluginCreatorStyle.h"
+#include "PluginCreatorPlugin.h"
 
 #define LOCTEXT_NAMESPACE "PluginCreatorPluginModule"
 

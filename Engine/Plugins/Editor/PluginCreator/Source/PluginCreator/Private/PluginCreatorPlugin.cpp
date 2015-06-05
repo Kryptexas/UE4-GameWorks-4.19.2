@@ -17,6 +17,8 @@ static const FName PCPluginTabName("PluginCreatorPlugin");
 
 #include "PluginCreatorCommands.h"
 
+DEFINE_LOG_CATEGORY(PluginCreatorPluginLog);
+
 void FPluginCreatorModule::StartupModule()
 {
 	FPluginCreatorStyle::Initialize();

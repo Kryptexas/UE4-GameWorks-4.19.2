@@ -8,7 +8,6 @@
 
 
 DECLARE_LOG_CATEGORY_EXTERN(PluginCreatorPluginLog, Log, All);
-DEFINE_LOG_CATEGORY(PluginCreatorPluginLog);
 
 class FPluginCreatorModule : public IModuleInterface
 {
