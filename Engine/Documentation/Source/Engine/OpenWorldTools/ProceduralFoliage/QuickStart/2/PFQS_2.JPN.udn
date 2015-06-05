@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2555265
-Availability:Docs
-Title:2. Procedural Foliage ツールでアクタを設定する
+﻿INTSourceChangelist:2576224
+Availability:Public
+Title:2. スポーン対象をスポーナーに指示する
 Crumbs:
-Description:必要なアクタをすべて設定してみましょう
+Description:フォーリッジをスポーンする Procedural Foliage Spawner を設定する
 Navigation:topic
 SkillLevel:Intermediate
 バージョン：4.8
@@ -25,40 +25,39 @@ SkillLevel:Intermediate
 
 %Steps%
 次のセクションでは、Procedural Foliage Spawnerで作業するために **Foliage Type アクタ** を設定する方法を説明します。 
-前のステップで作成した **PFT_00** レベルを引き続き使用しますので、一旦終了してしまった場合は再度ここで開いてから、次のステップへ進んでください。
+前のステップで作成した **PFT_00** レベルを引き続き使用します。
 
-1. まずコンテンツ ブラウザ内を **マウスの左ボタン** で **ダブルクリック** して **Procedural Foliage Spawner** を開きます。 
+1. まずコンテンツ ブラウザ内を **ダブルクリック** して **Procedural Foliage Spawner** を開きます。 
 
 	![](T_PFS_Opened.png)
 
-1. 次に **Foliage Types** メニュー オプションの右側にある **[+] 記号の** アイコンをクリックして、新規アイテムを **Foliage Types** 配列に追加します。
+1. **Foliage Types** メニュー オプションの右側にある **[+] 記号の** アイコンをクリックして、新規アイテムを **Foliage Types** 配列に追加します。
 
 	![](T_PFS_Add_FT.png)
 
-1. そして、コンテンツ ブラウザで **Tree_00** Foliage Type を選択し、Procedural Foliage Spawner の **[Foliage Types]** セクションの **[Arrow]** アイコンを押して選択した Foliage Type を Procedural Foliage Spawner へロードします。
+1. コンテンツ ブラウザで **Tree_00** Foliage Type を選択し、Procedural Foliage Spawner の **[Foliage Types]** セクションの **[Arrow]** アイコンを押して選択した Foliage Type を Procedural Foliage Spawner へロードします。
 
 	![](T_Assign_PFT_To_PFS.gif)(convert:false)
 
-1. Foliage Type を Procedural Foliage Spawner に設定した状態で **Tree_00** Foliage Type を開いて、確実にすべてが機能するように基本的な設定を行います。
+1. コンテンツブラウザで **ダブルクリック** して **Tree_00** Foliage Type を開きます。
 
 	![](T_PFT_Window.png)
 
-1. Tree_00 Foliage Type の上部にある **[Mesh]** セクションの **[None]** というドロップダウン メニューを **マウスの左ボタン** でクリックします。 
-	検索メニューに 「**HillTree_02**」 と入力して **Open World Demo Collection** から **HillTree_02** Static Mesh を検索します。 
-	**HillTree_02** の検索結果を **マウスの左ボタン** でクリックしてロードします。 
+1. **Tree_00** Foliage Type の一番上の **[Mesh]** セクションの **[None]** というドロップダウン メニューをマウスの左ボタンでクリックします。 
+
+	![](T_PFT_Mesh_Section.png)
+
+1. 検索メニューに 「**HillTree_02**」 と入力して **Open World Demo Collection** から **HillTree_02** Static Mesh を検索し、クリックしてロードします。 
 
 	![](T_Set_Tree_Mesh.gif)(convert:false)
 
-1. 次にレベルに配置した **Procedural Foliage Spawner** をビューポートから選択し、**Procedural Foliage** セクションを拡張します。 
+1. ビューポートに戻ってレベルに置いた **Procedural Foliage Spawner** を選択し、**[詳細]** パネルの **Procedural Foliage** セクションを展開します。 
 
 	![](T_PFV_Select_In_Level.png)
 
-1. **[Procedural Foliage]** セクションで **[Resimulate]** ボタンを押すと、レベル内は以下のようになります。
+1. **Procedural Foliage** セクションの **[Resimulate]** ボタンをクリックすると、たくさんの木で埋め尽くされた Procedural Foliage Spawner が見えるようになっています。
 
 	![](T_Final_Results.png)
 
-1. 最後に作業とレベルを保存します。 **[Save All]** ボタンはすべてのコンテンツが保存され、 **[Save]** ボタンを押すとレベルが保存されます。  
-
-	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
 
 %Steps%
