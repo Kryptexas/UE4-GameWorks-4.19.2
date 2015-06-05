@@ -41,6 +41,16 @@ FSLESSoundBuffer::~FSLESSoundBuffer( void )
 
 FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioDevice, USoundWave* InWave )
 {
+	// Check to see if thread has finished decompressing on the other thread
+	if (InWave->AudioDecompressor != nullptr)
+	{
+		InWave->AudioDecompressor->EnsureCompletion();
+
+		// Remove the decompressor
+		delete InWave->AudioDecompressor;
+		InWave->AudioDecompressor = nullptr;
+	}
+
 	// Always create a new buffer for real time decompressed sounds
 	FSLESSoundBuffer* Buffer = new FSLESSoundBuffer( AudioDevice);
 	
@@ -49,16 +59,8 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 	
 	Buffer->DecompressionState = AudioDevice->CreateCompressedAudioInfo(InWave);
 
-	InWave->InitAudioResource( AudioDevice->GetRuntimeFormat(InWave) );
-	
-	if( Buffer->DecompressionState->ReadCompressedInfo( InWave->ResourceData, InWave->ResourceSize, &QualityInfo ) )
-	{
-		// Refresh the wave data
-		InWave->SampleRate = QualityInfo.SampleRate;
-		InWave->NumChannels = QualityInfo.NumChannels;
-		InWave->RawPCMDataSize = QualityInfo.SampleDataSize;
-		InWave->Duration = QualityInfo.Duration;
-		
+	if (Buffer->DecompressionState->ReadCompressedInfo( InWave->ResourceData, InWave->ResourceSize, &QualityInfo ))
+	{	
 		// Clear out any dangling pointers
 		Buffer->AudioData = NULL;
 		Buffer->BufferSize = 0;
@@ -80,8 +82,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 			InWave->RawPCMDataSize = SampleCount * QualityInfo.NumChannels * sizeof(uint16);;
 		}
 
-		Buffer->Format = SoundFormat_PCMRT;
-		
+		Buffer->Format = SoundFormat_PCMRT;	
 	}
 	else
 	{
@@ -91,7 +92,7 @@ FSLESSoundBuffer* FSLESSoundBuffer::CreateQueuedBuffer( FSLESAudioDevice* AudioD
 		InWave->RemoveAudioResource();
 	}
 	
-	return( Buffer );
+	return Buffer;
 }
 
 /**

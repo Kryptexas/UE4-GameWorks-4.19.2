@@ -36,6 +36,7 @@ FXMPHelper* FXMPHelper::GetXMPHelper( void )
 FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 :	FSoundSource( InAudioDevice ),
 	Source( NULL ),
+	RealtimeAsyncTask( nullptr ),
 	CurrentBuffer( 0 ),
 	bBuffersToFlush( false ),
 	bLoopCallback( false ),
@@ -81,11 +82,18 @@ void FXAudio2SoundSource::InitializeSourceEffects(uint32 InVoiceId)
  */
 void FXAudio2SoundSource::FreeResources( void )
 {
+	if (RealtimeAsyncTask)
+	{
+		RealtimeAsyncTask->EnsureCompletion();
+		delete RealtimeAsyncTask;
+		RealtimeAsyncTask = nullptr;
+	}
+
 	// Release voice.
 	if( Source )
 	{
 		Source->DestroyVoice();
-		Source = NULL;
+		Source = nullptr;
 	}
 
 	// If we're a streaming buffer...
@@ -100,7 +108,7 @@ void FXAudio2SoundSource::FreeResources( void )
 		{
 			check( Buffer->ResourceID == 0 );
 			delete Buffer;
-			Buffer = NULL;
+			Buffer = nullptr;
 		}
 
 		CurrentBuffer = 0;
@@ -138,28 +146,39 @@ void FXAudio2SoundSource::SubmitPCMBuffers( void )
 	}
 }
 
-
-bool FXAudio2SoundSource::ReadProceduralData( const int32 BufferIndex )
+bool FXAudio2SoundSource::ReadMorePCMData( const int32 BufferIndex, EDataReadMode DataReadMode )
 {
-	const int32 MaxSamples = ( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels ) / sizeof( int16 );
-	const int32 BytesWritten = WaveInstance->WaveData->GeneratePCMData( (uint8*)XAudio2Buffers[BufferIndex].pAudioData, MaxSamples );
-
-	XAudio2Buffers[BufferIndex].AudioBytes = BytesWritten;
-
-	// convenience return value: we're never actually "looping" here.
-	return false;  
-}
-
-bool FXAudio2SoundSource::ReadMorePCMData( const int32 BufferIndex )
-{
-	USoundWave *WaveData = WaveInstance->WaveData;
+	USoundWave* WaveData = WaveInstance->WaveData;
 	if( WaveData && WaveData->bProcedural )
 	{
-		return ReadProceduralData( BufferIndex );
+		const int32 MaxSamples = ( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels ) / sizeof( int16 );
+
+		if (DataReadMode == EDataReadMode::Synchronous || WaveData->bCanProcessAsync == false)
+		{
+			const int32 BytesWritten = WaveData->GeneratePCMData( (uint8*)XAudio2Buffers[BufferIndex].pAudioData, MaxSamples );
+			XAudio2Buffers[BufferIndex].AudioBytes = BytesWritten;
+		}
+		else
+		{
+			RealtimeAsyncTask = new FAsyncRealtimeAudioTask(WaveData, (uint8*)XAudio2Buffers[BufferIndex].pAudioData, MaxSamples);
+			RealtimeAsyncTask->StartBackgroundTask();
+		}
+
+		// we're never actually "looping" here.
+		return false;
 	}
 	else
 	{
-		return XAudio2Buffer->ReadCompressedData( ( uint8* )XAudio2Buffers[BufferIndex].pAudioData, WaveInstance->LoopingMode != LOOP_Never );
+		if (DataReadMode == EDataReadMode::Synchronous)
+		{
+			return XAudio2Buffer->ReadCompressedData( ( uint8* )XAudio2Buffers[BufferIndex].pAudioData, WaveInstance->LoopingMode != LOOP_Never );
+		}
+		else
+		{
+			RealtimeAsyncTask = new FAsyncRealtimeAudioTask(XAudio2Buffer, ( uint8* )XAudio2Buffers[BufferIndex].pAudioData, WaveInstance->LoopingMode != LOOP_Never, DataReadMode == EDataReadMode::AsynchronousSkipFirstFrame);
+			RealtimeAsyncTask->StartBackgroundTask();
+			return false;
+		}
 	}
 }
 
@@ -175,27 +194,44 @@ void FXAudio2SoundSource::SubmitPCMRTBuffers( void )
 	// Set the buffer to be in real time mode
 	CurrentBuffer = 0;
 
+	const uint32 BufferSize = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	
 	// Set up double buffer area to decompress to
-	XAudio2Buffers[0].pAudioData = ( uint8* )FMemory::Malloc( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels );
-	XAudio2Buffers[0].AudioBytes = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	XAudio2Buffers[0].pAudioData = (uint8*)FMemory::Malloc(BufferSize);
+	XAudio2Buffers[0].AudioBytes = BufferSize;
 
-	ReadMorePCMData(0);
+	// Only use the cached data if we're starting from the beginning, otherwise we'll have to take a synchronous hit
+	bool bSkipFirstBuffer = false;;
+	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
+	{
+		FMemory::Memcpy((uint8*)XAudio2Buffers[0].pAudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
+		bSkipFirstBuffer = true;
+	}
+	else
+	{
+		ReadMorePCMData(0, EDataReadMode::Synchronous);
+	}
 
 	AudioDevice->ValidateAPICall( TEXT( "SubmitSourceBuffer - PCMRT" ), 
 		Source->SubmitSourceBuffer( XAudio2Buffers ) );
 
-	XAudio2Buffers[1].pAudioData = ( uint8* )FMemory::Malloc( MONO_PCM_BUFFER_SIZE * Buffer->NumChannels );
-	XAudio2Buffers[1].AudioBytes = MONO_PCM_BUFFER_SIZE * Buffer->NumChannels;
+	XAudio2Buffers[1].pAudioData = (uint8*)FMemory::Malloc(BufferSize);
+	XAudio2Buffers[1].AudioBytes = BufferSize;
 
-	ReadMorePCMData(1);
+	CurrentBuffer = 1;
 
-	if (XAudio2Buffers[1].AudioBytes > 0)
+	// Start the async population of the next buffer
+	EDataReadMode DataReadMode = EDataReadMode::Asynchronous;
+	if (XAudio2Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming)
 	{
-		CurrentBuffer = 1;
-
-		AudioDevice->ValidateAPICall( TEXT( "SubmitSourceBuffer - PCMRT" ), 
-			Source->SubmitSourceBuffer( XAudio2Buffers + 1 ) );
+		DataReadMode =  EDataReadMode::Synchronous;
 	}
+	else if (bSkipFirstBuffer)
+	{
+		DataReadMode =  EDataReadMode::AsynchronousSkipFirstFrame;
+	}
+
+	ReadMorePCMData(1, DataReadMode);
 
 	bResourcesNeedFreeing = true;
 }
@@ -1175,33 +1211,66 @@ void FXAudio2SoundSource::Pause( void )
 /**
  * Handles feeding new data to a real time decompressed sound
  */
-void FXAudio2SoundSource::HandleRealTimeSource( void )
+void FXAudio2SoundSource::HandleRealTimeSource()
 {
-	// Update the double buffer toggle
-	++CurrentBuffer;
-
-	// Get the next bit of streaming data
-	const bool bLooped = ReadMorePCMData(CurrentBuffer & 1);
-
-	// Have we reached the end of the compressed sound?
-	if( bLooped )
+	bool bLooped = false;
+	if (RealtimeAsyncTask && RealtimeAsyncTask->IsDone())
 	{
-		switch( WaveInstance->LoopingMode )
+		switch(RealtimeAsyncTask->GetTask().GetTaskType())
 		{
-		case LOOP_Never:
-			// Play out any queued buffers - once there are no buffers left, the state check at the beginning of IsFinished will fire
-			bBuffersToFlush = true;
-			XAudio2Buffers[CurrentBuffer & 1].Flags |= XAUDIO2_END_OF_STREAM;
+		case ERealtimeAudioTaskType::Decompress:
+			bLooped = RealtimeAsyncTask->GetTask().GetBufferLooped();
 			break;
 
-		case LOOP_WithNotification:
-			// If we have just looped, and we are programmatically looping, send notification
-			WaveInstance->NotifyFinished();
+		case ERealtimeAudioTaskType::Procedural:
+			XAudio2Buffers[CurrentBuffer & 1].AudioBytes = RealtimeAsyncTask->GetTask().GetBytesWritten();
 			break;
+		}
 
-		case LOOP_Forever:
-			// Let the sound loop indefinitely
-			break;
+		delete RealtimeAsyncTask;
+		RealtimeAsyncTask = nullptr;
+	}
+	else
+	{
+		// Update the double buffer toggle
+		++CurrentBuffer;
+
+		// Get the next bit of streaming data
+		bLooped = ReadMorePCMData(CurrentBuffer & 1, (XAudio2Buffer->SoundFormat == ESoundFormat::SoundFormat_Streaming ? EDataReadMode::Synchronous : EDataReadMode::Asynchronous));
+	}
+
+	if (RealtimeAsyncTask == nullptr)
+	{
+		// Have we reached the end of the compressed sound?
+		if( bLooped )
+		{
+			switch( WaveInstance->LoopingMode )
+			{
+			case LOOP_Never:
+				// Play out any queued buffers - once there are no buffers left, the state check at the beginning of IsFinished will fire
+				bBuffersToFlush = true;
+				XAudio2Buffers[CurrentBuffer & 1].Flags |= XAUDIO2_END_OF_STREAM;
+				break;
+
+			case LOOP_WithNotification:
+				// If we have just looped, and we are programmatically looping, send notification
+				WaveInstance->NotifyFinished();
+				break;
+
+			case LOOP_Forever:
+				// Let the sound loop indefinitely
+				break;
+			}
+		}
+
+		if (XAudio2Buffers[CurrentBuffer & 1].AudioBytes > 0)
+		{
+			AudioDevice->ValidateAPICall( TEXT( "SubmitSourceBuffer - IsFinished" ), 
+				Source->SubmitSourceBuffer( &XAudio2Buffers[CurrentBuffer & 1] ) );
+		}
+		else
+		{
+			--CurrentBuffer;
 		}
 	}
 }
@@ -1229,39 +1298,19 @@ bool FXAudio2SoundSource::IsFinished( void )
 		const bool bIsRealTimeSource = XAudio2Buffer->SoundFormat == SoundFormat_PCMRT || XAudio2Buffer->SoundFormat == SoundFormat_Streaming;
 
 		// If we have no queued buffers, we're either at the end of a sound, or starved
-		if( SourceState.BuffersQueued == 0 )
+		// and we are expecting the sound to be finishing
+		if (SourceState.BuffersQueued == 0 && (bBuffersToFlush || !bIsRealTimeSource))
 		{
-			// ... are we expecting the sound to be finishing?
-			if( bBuffersToFlush || !bIsRealTimeSource )
-			{
-				// ... notify the wave instance that it has finished playing.
-				WaveInstance->NotifyFinished();
-				return( true );
-			}
+			// ... notify the wave instance that it has finished playing.
+			WaveInstance->NotifyFinished();
+			return true;
 		}
 
 		// Service any real time sounds
-		if( bIsRealTimeSource )
+		if (bIsRealTimeSource && !bBuffersToFlush && SourceState.BuffersQueued <= 1)
 		{
-			if( SourceState.BuffersQueued <= 1 )
-			{
-				// Continue feeding new sound data (unless we are waiting for the sound to finish)
-				if( !bBuffersToFlush )
-				{
-					HandleRealTimeSource();
-
-					if (XAudio2Buffers[CurrentBuffer & 1].AudioBytes > 0)
-					{
-						AudioDevice->ValidateAPICall( TEXT( "SubmitSourceBuffer - IsFinished" ), 
-							Source->SubmitSourceBuffer( &XAudio2Buffers[CurrentBuffer & 1] ) );
-					}
-					else
-					{
-						--CurrentBuffer;
-					}
-
-				}
-			}
+			// Continue feeding new sound data (unless we are waiting for the sound to finish)
+			HandleRealTimeSource();
 
 			return( false );
 		}

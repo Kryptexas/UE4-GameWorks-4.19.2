@@ -260,6 +260,8 @@ public:
 	friend class FXAudio2SoundSource;
 };
 
+typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FXAudio2SoundBuffer>> FAsyncRealtimeAudioTask;
+
 /**
  * XAudio2 implementation of FSoundSource, the interface used to play, stop and update sources
  */
@@ -320,7 +322,7 @@ public:
 	/**
 	 * Handles feeding new data to a real time decompressed sound
 	 */
-	void HandleRealTimeSource( void );
+	void HandleRealTimeSource();
 
 	/**
 	 * Queries the status of the currently associated wave instance.
@@ -389,11 +391,16 @@ public:
 	void RouteToRadio( float ChannelVolumes[CHANNELOUT_COUNT] );
 
 protected:
-	/** Decompress through XAudio2Buffer, or call USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
-	bool ReadMorePCMData(const int32 BufferIndex);
 
-	/** Handle obtaining more data for procedural USoundWaves. Always returns false for convenience. */
-	bool ReadProceduralData(const int32 BufferIndex);
+	enum class EDataReadMode : uint8
+	{
+		Synchronous,
+		Asynchronous,
+		AsynchronousSkipFirstFrame
+	};
+
+	/** Decompress through XAudio2Buffer, or call USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
+	bool ReadMorePCMData(const int32 BufferIndex, EDataReadMode DataReadMode);
 
 	/** Returns if the source is using the default 3d spatialization. */
 	bool IsUsingDefaultSpatializer();
@@ -439,6 +446,9 @@ protected:
 	IXAudio2SourceVoice*		Source;
 	/** Structure to handle looping sound callbacks */
 	FXAudio2SoundSourceCallback	SourceCallback;
+
+	/** Asynchronous task for real time audio sources */
+	FAsyncRealtimeAudioTask* RealtimeAsyncTask;
 	/** Destination voices */
 	XAUDIO2_SEND_DESCRIPTOR		Destinations[DEST_COUNT];
 	/** Which sound buffer should be written to next - used for double buffering. */

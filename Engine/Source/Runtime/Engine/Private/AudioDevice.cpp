@@ -2317,6 +2317,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())
 		{
 			SoundWave->DecompressionType = DTYPE_Streaming;
+			SoundWave->bCanProcessAsync = false;
 		}
 		else if (SupportsRealtimeDecompression() && 
 			(bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration)))
@@ -2342,9 +2343,8 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		// Grab the compressed audio data
 		SoundWave->InitAudioResource(GetRuntimeFormat(SoundWave));
 
-		if (SoundWave->AudioDecompressor == NULL && SoundWave->DecompressionType == DTYPE_Native)
+		if (SoundWave->AudioDecompressor == nullptr && (SoundWave->DecompressionType == DTYPE_Native || SoundWave->DecompressionType == DTYPE_RealTime))
 		{
-			check(!SoundWave->AudioDecompressor); // should not have had a valid pointer at this point
 			// Create a worker to decompress the audio data
 			if (bSynchronous)
 			{
@@ -2354,6 +2354,10 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			}
 			else
 			{
+				if (SoundWave->DecompressionType == DTYPE_RealTime)
+				{
+					SoundWave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc( MONO_PCM_BUFFER_SIZE * SoundWave->NumChannels );
+				}
 				SoundWave->AudioDecompressor = new FAsyncAudioDecompress(SoundWave);
 				SoundWave->AudioDecompressor->StartBackgroundTask();
 			}
@@ -2362,7 +2366,10 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			SoundWave->bDecompressedFromOgg = GetRuntimeFormat(SoundWave) == NAME_OGG;
 
 			// the audio decompressor will track memory
-			bTrackMemory = false;
+			if (SoundWave->DecompressionType == DTYPE_Native)
+			{
+				bTrackMemory = false;
+			}
 		}
 	}
 	else

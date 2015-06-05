@@ -161,6 +161,9 @@ public:
 	bool						bDynamicResource;
 };
 
+typedef FAsyncTask<class FAsyncRealtimeAudioTaskWorker<FCoreAudioSoundBuffer>> FAsyncRealtimeAudioTask;
+
+
 /**
  * CoreAudio implementation of FSoundSource, the interface used to play, stop and update sources
  */
@@ -238,11 +241,16 @@ public:
 											 AudioStreamPacketDescription **outPacketDescription, void *inUserData );
 
 protected:
-	/** Decompress USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
-	bool ReadMorePCMData( const int32 BufferIndex );
 
-	/** Handle obtaining more data for procedural USoundWaves. Always returns false for convenience. */
-	bool ReadProceduralData( const int32 BufferIndex );
+	enum class EDataReadMode : uint8
+	{
+		Synchronous,
+		Asynchronous,
+		AsynchronousSkipFirstFrame
+	};
+
+	/** Decompress USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
+	bool ReadMorePCMData( const int32 BufferIndex, EDataReadMode DataReadMode );
 
 	OSStatus CreateAudioUnit( OSType Type, OSType SubType, OSType Manufacturer, AudioStreamBasicDescription* InputFormat, AudioStreamBasicDescription* OutputFormat, AUNode* OutNode, AudioUnit* OutUnit );
 	OSStatus ConnectAudioUnit( AUNode DestNode, uint32 DestInputNumber, AUNode OutNode, AudioUnit OutUnit );
@@ -258,6 +266,9 @@ protected:
 	FCoreAudioSoundBuffer*		Buffer;
 
 	AudioConverterRef			CoreAudioConverter;
+
+	/** Asynchronous task for real time audio sources */
+	FAsyncRealtimeAudioTask* RealtimeAsyncTask;
 
 	/** Which sound buffer should be written to next - used for double buffering. */
 	bool						bStreamedSound;

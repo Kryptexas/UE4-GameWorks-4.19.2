@@ -71,10 +71,17 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 {
 	int32 CalculatedResourceSize = 0;
 
-	if( DecompressionType == DTYPE_Native )
+	if (DecompressionType == DTYPE_Native)
 	{
 		// If we've been decompressed, need to account for decompressed and also compressed
 		CalculatedResourceSize += RawPCMDataSize;
+	}
+	else if (DecompressionType == DTYPE_RealTime)
+	{
+		if (CachedRealtimeFirstBuffer)
+		{
+			CalculatedResourceSize += MONO_PCM_BUFFER_SIZE * NumChannels;
+		}
 	}
 
 	if (GEngine && GEngine->GetMainAudioDevice())
@@ -467,18 +474,24 @@ void USoundWave::FreeResources()
 	{
 		// Notify the audio device to free the bulk data associated with this wave.
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-		if (AudioDeviceManager != NULL)
+		if (AudioDeviceManager)
 		{
 			AudioDeviceManager->StopSoundsUsingWave(this);
 			AudioDeviceManager->FreeResource(this);
 		}
 	}
 
+	if (CachedRealtimeFirstBuffer)
+	{
+		FMemory::Free(CachedRealtimeFirstBuffer);
+		CachedRealtimeFirstBuffer = nullptr;
+	}
+
 	// Just in case the data was created but never uploaded
-	if (RawPCMData != NULL)
+	if (RawPCMData)
 	{
 		FMemory::Free(RawPCMData);
-		RawPCMData = NULL;
+		RawPCMData = nullptr;
 	}
 
 	// Remove the compressed copy of the data
