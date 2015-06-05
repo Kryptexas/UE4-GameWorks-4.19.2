@@ -927,6 +927,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			FShaderResourceId ResourceId;
 			ResourceId.Target = Target;
 			ResourceId.OutputHash = OutputHash;
+			ResourceId.SpecificShaderTypeName = Type->LimitShaderResourceToThisType() ? Type->GetName() : NULL;
 
 			// use it to look up in the registered resource map
 			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
