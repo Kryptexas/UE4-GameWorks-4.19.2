@@ -73,16 +73,6 @@ PxTransform U2PTransform(const FTransform& UTransform)
 	return Result;
 }
 
-PxVec3 U2PVector(const FVector& UVec)
-{
-	return PxVec3(UVec.X, UVec.Y, UVec.Z);
-}
-
-PxQuat U2PQuat(const FQuat& UQuat)
-{
-	return PxQuat( UQuat.X, UQuat.Y, UQuat.Z, UQuat.W );
-}
-
 PxMat44 U2PMatrix(const FMatrix& UTM)
 {
 	PxMat44 Result;
@@ -91,11 +81,6 @@ PxMat44 U2PMatrix(const FMatrix& UTM)
 	Result = *MatPtr;
 
 	return Result;
-}
-
-PxPlane U2PPlane(FPlane& Plane)
-{
-	return PxPlane(Plane.X, Plane.Y, Plane.Z, -Plane.W);
 }
 
 UCollision2PGeom::UCollision2PGeom(const FCollisionShape& CollisionShape)
@@ -153,25 +138,6 @@ FTransform P2UTransform(const PxTransform& PTM)
 	return Result;
 }
 
-FVector P2UVector(const PxVec3& PVec)
-{
-	return FVector(PVec.x, PVec.y, PVec.z);
-}
-
-FQuat P2UQuat(const PxQuat& PQuat)
-{
-	return FQuat(PQuat.x, PQuat.y, PQuat.z, PQuat.w);
-}
-
-FPlane P2UPlane(PxReal P[4])
-{
-	return FPlane(P[0], P[1], P[2], -P[3]);
-}
-
-FPlane P2UPlane(PxPlane& Plane)
-{
-	return FPlane(Plane.n.x, Plane.n.y, Plane.n.z, -Plane.d);
-}
 ///////////////////// Utils /////////////////////
 
 

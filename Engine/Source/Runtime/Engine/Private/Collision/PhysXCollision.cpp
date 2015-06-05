@@ -496,14 +496,14 @@ struct FScopedMultiSceneReadLock
 
 	inline void LockRead(PxScene* Scene, int32 SceneIndex)
 	{
-		check(SceneLocks[SceneIndex] == nullptr); // no nested locks allowed.
+		checkSlow(SceneLocks[SceneIndex] == nullptr); // no nested locks allowed.
 		SCENE_LOCK_READ(Scene);
 		SceneLocks[SceneIndex] = Scene;
 	}
 
 	inline void UnlockRead(PxScene* Scene, int32 SceneIndex)
 	{
-		check(SceneLocks[SceneIndex] == Scene || SceneLocks[SceneIndex] == nullptr);
+		checkSlow(SceneLocks[SceneIndex] == Scene || SceneLocks[SceneIndex] == nullptr);
 		SCENE_UNLOCK_READ(Scene);
 		SceneLocks[SceneIndex] = nullptr;
 	}
