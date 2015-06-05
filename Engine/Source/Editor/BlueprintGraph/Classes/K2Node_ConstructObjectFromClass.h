@@ -17,9 +17,9 @@ class BLUEPRINTGRAPH_API UK2Node_ConstructObjectFromClass : public UK2Node
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual FText GetTooltipText() const override;
-	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
+	virtual void PinConnectionListChanged(UEdGraphPin* Pin);
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
@@ -28,7 +28,6 @@ class BLUEPRINTGRAPH_API UK2Node_ConstructObjectFromClass : public UK2Node
 	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
-	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	// End UK2Node interface
 
 	/** Create new pins to show properties on archetype */
@@ -45,9 +44,17 @@ class BLUEPRINTGRAPH_API UK2Node_ConstructObjectFromClass : public UK2Node
 	UEdGraphPin* GetWorldContextPin() const;
 	/** Get the result output pin */
 	UEdGraphPin* GetResultPin() const;
+	/** Get the result input pin */
+	UEdGraphPin* GetOuterPin() const;
 
 	/** Get the class that we are going to spawn, if it's defined as default value */
 	UClass* GetClassToSpawn(const TArray<UEdGraphPin*>* InPinsToSearch=NULL) const;
+
+	/** Returns if the node uses World Object Context input */
+	virtual bool UseWorldContext() const;
+
+	/** Returns if the node uses Outer input */
+	virtual bool UseOuter() const { return false; }
 
 protected:
 	/** Gets the default node title when no class is selected */
@@ -65,6 +72,9 @@ protected:
 	 * @param   PinDescription	A string describing the pin's purpose
 	 */
 	void SetPinToolTip(UEdGraphPin& MutatablePin, const FText& PinDescription) const;
+
+	/** Refresh pins when class was changed */
+	void OnClassPinChanged();
 
 	/** Tooltip text for this node. */
 	FText NodeTooltip;
