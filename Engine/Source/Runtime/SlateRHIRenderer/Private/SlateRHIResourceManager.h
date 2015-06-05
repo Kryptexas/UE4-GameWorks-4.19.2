@@ -38,7 +38,9 @@ public:
 
 	uint32 GetNumObjectResources() const { return TextureMap.Num() + MaterialMap.Num(); }
 
-	void RemoveExpiredResources();
+private:
+	void RemoveExpiredTextureResources();
+	void RemoveExpiredMaterialResources();
 
 private:
 	TMap<FName, TSharedPtr<FSlateDynamicTextureResource> > NativeTextureMap;
@@ -48,7 +50,7 @@ private:
 	/** Map of all texture resources */
 	TextureResourceMap TextureMap;
 
-	int32 LastExpiredTextureNumMarker;
+	uint64 TextureMemorySincePurge;
 
 	typedef TMap<TWeakObjectPtr<UMaterialInterface>, TSharedPtr<FSlateMaterialResource> > MaterialResourceMap;
 
@@ -93,11 +95,6 @@ public:
 	 * Updates texture atlases if needed
 	 */
 	void UpdateTextureAtlases();
-
-	/**
-	 * Removes entries from the DynamicResourceMap that have expired and are no longer valid UObject pointers.
-	 */
-	void RemoveExpiredResources();
 
 	/** FSlateShaderResourceManager interface */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;

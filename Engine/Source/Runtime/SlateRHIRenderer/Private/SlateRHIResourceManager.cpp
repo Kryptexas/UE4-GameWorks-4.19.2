@@ -12,7 +12,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNo
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Dynamic Textures"), STAT_SlateNumDynamicTextures, STATGROUP_SlateMemory);
 
 FDynamicResourceMap::FDynamicResourceMap()
-	: LastExpiredTextureNumMarker(0)
+	: TextureMemorySincePurge(0)
 	, LastExpiredMaterialNumMarker(0)
 {
 
@@ -46,10 +46,13 @@ void FDynamicResourceMap::AddDynamicTextureResource( FName ResourceName, TShared
 
 void FDynamicResourceMap::AddUTextureResource( UTexture2D* TextureObject, TSharedRef<FSlateUTextureResource> InResource)
 {
-	if(TextureObject)
+	if ( TextureObject )
 	{
 		check(TextureObject == InResource->TextureObject);
 		TextureMap.Add(TextureObject, InResource);
+
+		TextureMemorySincePurge += TextureObject->GetResourceSize(EResourceSizeMode::Inclusive);
+		RemoveExpiredTextureResources();
 	}
 }
 
@@ -57,6 +60,8 @@ void FDynamicResourceMap::AddMaterialResource( UMaterialInterface* Material, TSh
 {
 	check( Material == InMaterialResource->GetMaterialObject() );
 	MaterialMap.Add(Material, InMaterialResource);
+
+	RemoveExpiredMaterialResources();
 }
 
 void FDynamicResourceMap::RemoveDynamicTextureResource(FName ResourceName)
@@ -69,6 +74,7 @@ void FDynamicResourceMap::RemoveUTextureResource( UTexture2D* TextureObject )
 	if(TextureObject)
 	{
 		TextureMap.Remove(TextureObject);
+		TextureMemorySincePurge -= TextureObject->GetResourceSize(EResourceSizeMode::Inclusive);
 	}
 }
 
@@ -92,6 +98,7 @@ void FDynamicResourceMap::EmptyDynamicTextureResources()
 void FDynamicResourceMap::EmptyUTextureResources()
 {
 	TextureMap.Empty();
+	TextureMemorySincePurge = 0;
 }
 
 void FDynamicResourceMap::EmptyMaterialResources()
@@ -112,11 +119,12 @@ void FDynamicResourceMap::ReleaseResources()
 	}
 }
 
-void FDynamicResourceMap::RemoveExpiredResources()
+void FDynamicResourceMap::RemoveExpiredTextureResources()
 {
-	const int32 CheckingIncrement = 100;
+	// We attempt to purge every 10Mb of accumulated textures.
+	static const uint64 PurgeAfterAddingNewBytes = 1024 * 1024 * 10; // 10Mb
 
-	if ( TextureMap.Num() > ( LastExpiredTextureNumMarker + CheckingIncrement ) )
+	if ( TextureMemorySincePurge >= PurgeAfterAddingNewBytes )
 	{
 		for ( TextureResourceMap::TIterator It(TextureMap); It; ++It )
 		{
@@ -126,8 +134,13 @@ void FDynamicResourceMap::RemoveExpiredResources()
 			}
 		}
 
-		LastExpiredTextureNumMarker = TextureMap.Num();
+		TextureMemorySincePurge = 0;
 	}
+}
+
+void FDynamicResourceMap::RemoveExpiredMaterialResources()
+{
+	static const int32 CheckingIncrement = 10;
 
 	if ( MaterialMap.Num() > ( LastExpiredMaterialNumMarker + CheckingIncrement ) )
 	{
@@ -773,11 +786,6 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 	{
 		TextureAtlases[AtlasIndex]->ConditionalUpdateTexture();
 	}
-}
-
-void FSlateRHIResourceManager::RemoveExpiredResources()
-{
-	DynamicResourceMap.RemoveExpiredResources();
 }
 
 void FSlateRHIResourceManager::ReleaseResources()

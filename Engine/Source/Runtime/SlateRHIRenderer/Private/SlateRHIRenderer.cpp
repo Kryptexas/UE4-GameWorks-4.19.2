@@ -571,9 +571,6 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 	// Update texture atlases if needed
 	ResourceManager->UpdateTextureAtlases();
 
-	// Remove expired assets from the dynamic resource pools.
-	ResourceManager->RemoveExpiredResources();
-
 	// Iterate through each element list and set up an RHI window for it if needed
 	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = WindowDrawBuffer.GetWindowElementLists();
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
