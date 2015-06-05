@@ -3,6 +3,392 @@
 #include "GameplayTagsModulePrivatePCH.h"
 
 const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;
+const FGameplayTagQuery FGameplayTagQuery::EmptyQuery;
+
+
+/** Helper class to parse/eval query token streams. */
+class FQueryEvaluator
+{
+public:
+	FQueryEvaluator(FGameplayTagQuery const& Q)
+		: Query(Q), 
+		CurStreamIdx(0), 
+		Version(EGameplayTagQueryStreamVersion::LatestVersion), 
+		bReadError(false)
+	{}
+
+	/** Evaluates the query against the given tag container and returns the result (true if matching, false otherwise). */
+	bool Eval(FGameplayTagContainer const& Tags);
+
+	/** Parses the token stream into an FExpr. */
+	void Read(struct FGameplayTagQueryExpression& E);
+
+private:
+	FGameplayTagQuery const& Query;
+	int32 CurStreamIdx;
+	int32 Version;
+	bool bReadError;
+
+	bool EvalAnyTagsMatch(FGameplayTagContainer const& Tags, bool bSkip);
+	bool EvalAllTagsMatch(FGameplayTagContainer const& Tags, bool bSkip);
+	bool EvalNoTagsMatch(FGameplayTagContainer const& Tags, bool bSkip);
+
+	bool EvalAnyExprMatch(FGameplayTagContainer const& Tags, bool bSkip);
+	bool EvalAllExprMatch(FGameplayTagContainer const& Tags, bool bSkip);
+	bool EvalNoExprMatch(FGameplayTagContainer const& Tags, bool bSkip);
+
+	bool EvalExpr(FGameplayTagContainer const& Tags, bool bSkip = false);
+	void ReadExpr(struct FGameplayTagQueryExpression& E);
+
+#if WITH_EDITOR
+public:
+	UEditableGameplayTagQuery* CreateEditableQuery();
+
+private:
+	UEditableGameplayTagQueryExpression* ReadEditableQueryExpr(UObject* ExprOuter);
+	void ReadEditableQueryTags(UEditableGameplayTagQueryExpression* EditableQueryExpr);
+	void ReadEditableQueryExprList(UEditableGameplayTagQueryExpression* EditableQueryExpr);
+#endif // WITH_EDITOR
+
+	/** Returns the next token in the stream. If there's a read error, sets bReadError and returns zero, so be sure to check that. */
+	uint8 GetToken()
+	{
+		if (Query.QueryTokenStream.IsValidIndex(CurStreamIdx))
+		{
+			return Query.QueryTokenStream[CurStreamIdx++];
+		}
+		
+		UE_LOG(LogGameplayTags, Warning, TEXT("Error parsing FGameplayTagQuery!"));
+		bReadError = true;
+		return 0;
+	}
+};
+
+bool FQueryEvaluator::Eval(FGameplayTagContainer const& Tags)
+{
+	CurStreamIdx = 0;
+
+	// start parsing the set
+	Version = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	bool const bRet = EvalExpr(Tags);
+	ensure(CurStreamIdx == Query.QueryTokenStream.Num());
+	return bRet;
+}
+
+void FQueryEvaluator::Read(FGameplayTagQueryExpression& E)
+{
+	E = FGameplayTagQueryExpression();
+	CurStreamIdx = 0;
+
+	if (Query.QueryTokenStream.Num() > 0)
+	{
+		// start parsing the set
+		Version = GetToken();
+		if (!bReadError)
+		{
+			uint8 const bHasRootExpression = GetToken();
+			if (!bReadError && bHasRootExpression)
+			{
+				ReadExpr(E);
+			}
+		}
+
+		ensure(CurStreamIdx == Query.QueryTokenStream.Num());
+	}
+}
+
+void FQueryEvaluator::ReadExpr(FGameplayTagQueryExpression& E)
+{
+	E.ExprType = (EGameplayTagQueryExprType::Type) GetToken();
+	if (bReadError)
+	{
+		return;
+	}
+	
+	if (E.UsesTagSet())
+	{
+		// parse tag set
+		int32 NumTags = GetToken();
+		if (bReadError)
+		{
+			return;
+		}
+
+		for (int32 Idx = 0; Idx < NumTags; ++Idx)
+		{
+			int32 const TagIdx = GetToken();
+			if (bReadError)
+			{
+				return;
+			}
+
+			FGameplayTag Tag = Query.GetTagFromIndex(TagIdx);
+			E.AddTag(Tag);
+		}
+	}
+	else
+	{
+		// parse expr set
+		int32 NumExprs = GetToken();
+		if (bReadError)
+		{
+			return;
+		}
+
+		for (int32 Idx = 0; Idx < NumExprs; ++Idx)
+		{
+			FGameplayTagQueryExpression E;
+			ReadExpr(E);
+			E.AddExpr(E);
+		}
+	}
+}
+
+
+bool FQueryEvaluator::EvalAnyTagsMatch(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	bool bShortCircuit = bSkip;
+	bool Result = false;
+
+	// parse tagset
+	int32 const NumTags = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	for (int32 Idx = 0; Idx < NumTags; ++Idx)
+	{
+		int32 const TagIdx = GetToken();
+		if (bReadError)
+		{
+			return false;
+		}
+
+		if (bShortCircuit == false)
+		{
+			FGameplayTag Tag = Query.GetTagFromIndex(TagIdx);
+
+			bool bHasTag = Tags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
+
+			if (bHasTag)
+			{
+				// one match is sufficient for a true result!
+				bShortCircuit = true;
+				Result = true;
+			}
+		}
+	}
+
+	return Result;
+}
+
+bool FQueryEvaluator::EvalAllTagsMatch(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	bool bShortCircuit = bSkip;
+
+	// assume true until proven otherwise
+	bool Result = true;
+
+	// parse tagset
+	int32 const NumTags = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	for (int32 Idx = 0; Idx < NumTags; ++Idx)
+	{
+		int32 const TagIdx = GetToken();
+		if (bReadError)
+		{
+			return false;
+		}
+
+		if (bShortCircuit == false)
+		{
+			FGameplayTag const Tag = Query.GetTagFromIndex(TagIdx);
+			bool const bHasTag = Tags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
+
+			if (bHasTag == false)
+			{
+				// one failed match is sufficient for a false result
+				bShortCircuit = true;
+				Result = false;
+			}
+		}
+	}
+
+	return Result;
+}
+
+bool FQueryEvaluator::EvalNoTagsMatch(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	bool bShortCircuit = bSkip;
+
+	// assume true until proven otherwise
+	bool Result = true;
+
+	// parse tagset
+	int32 const NumTags = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+	
+	for (int32 Idx = 0; Idx < NumTags; ++Idx)
+	{
+		int32 const TagIdx = GetToken();
+		if (bReadError)
+		{
+			return false;
+		}
+
+		if (bShortCircuit == false)
+		{
+			FGameplayTag const Tag = Query.GetTagFromIndex(TagIdx);
+			bool const bHasTag = Tags.HasTag(Tag, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
+
+			if (bHasTag == true)
+			{
+				// one match is sufficient for a false result
+				bShortCircuit = true;
+				Result = false;
+			}
+		}
+	}
+
+	return Result;
+}
+
+bool FQueryEvaluator::EvalAnyExprMatch(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	bool bShortCircuit = bSkip;
+
+	// assume false until proven otherwise
+	bool Result = false;
+
+	// parse exprset
+	int32 const NumExprs = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	for (int32 Idx = 0; Idx < NumExprs; ++Idx)
+	{
+		bool const bExprResult = EvalExpr(Tags, bShortCircuit);
+		if (bShortCircuit == false)
+		{
+			if (bExprResult == true)
+			{
+				// one match is sufficient for true result
+				Result = true;
+				bShortCircuit = true;
+			}
+		}
+	}
+
+	return Result;
+}
+bool FQueryEvaluator::EvalAllExprMatch(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	bool bShortCircuit = bSkip;
+
+	// assume false until proven otherwise
+	bool Result = false;
+
+	// parse exprset
+	int32 const NumExprs = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	for (int32 Idx = 0; Idx < NumExprs; ++Idx)
+	{
+		bool const bExprResult = EvalExpr(Tags, bShortCircuit);
+		if (bShortCircuit == false)
+		{
+			if (bExprResult == true)
+			{
+				// one match is sufficient for true result
+				Result = true;
+				bShortCircuit = true;
+			}
+		}
+	}
+
+	return Result;
+}
+bool FQueryEvaluator::EvalNoExprMatch(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	bool bShortCircuit = bSkip;
+
+	// assume false until proven otherwise
+	bool Result = false;
+
+	// parse exprset
+	int32 const NumExprs = GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	for (int32 Idx = 0; Idx < NumExprs; ++Idx)
+	{
+		bool const bExprResult = EvalExpr(Tags, bShortCircuit);
+		if (bShortCircuit == false)
+		{
+			if (bExprResult == true)
+			{
+				// one match is sufficient for true result
+				Result = true;
+				bShortCircuit = true;
+			}
+		}
+	}
+
+	return Result;
+}
+
+
+bool FQueryEvaluator::EvalExpr(FGameplayTagContainer const& Tags, bool bSkip)
+{
+	EGameplayTagQueryExprType::Type const ExprType = (EGameplayTagQueryExprType::Type) GetToken();
+	if (bReadError)
+	{
+		return false;
+	}
+
+	// emit exprdata
+	switch (ExprType)
+	{
+	case EGameplayTagQueryExprType::AnyTagsMatch:
+		return EvalAnyTagsMatch(Tags, bSkip);
+	case EGameplayTagQueryExprType::AllTagsMatch:
+		return EvalAllTagsMatch(Tags, bSkip);
+	case EGameplayTagQueryExprType::NoTagsMatch:
+		return EvalNoTagsMatch(Tags, bSkip);
+
+	case EGameplayTagQueryExprType::AnyExprMatch:
+		return EvalAnyExprMatch(Tags, bSkip);
+	case EGameplayTagQueryExprType::AllExprMatch:
+		return EvalAllExprMatch(Tags, bSkip);
+	case EGameplayTagQueryExprType::NoExprMatch:
+		return EvalNoExprMatch(Tags, bSkip);
+	}
+
+	check(false);
+	return false;
+}
+
+
 
 FGameplayTagContainer::FGameplayTagContainer()
 {}
@@ -175,6 +561,11 @@ bool FGameplayTagContainer::MatchesAny(FGameplayTagContainer const& Other, bool 
 	}
 
 	return DoesTagContainerMatch(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::Any);
+}
+
+bool FGameplayTagContainer::MatchesQuery(const FGameplayTagQuery& Query) const
+{
+	return Query.Matches(*this);
 }
 
 void FGameplayTagContainer::AppendTags(FGameplayTagContainer const& Other)
@@ -418,3 +809,340 @@ bool FGameplayTag::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOut
 	bOutSuccess = true;
 	return true;
 }
+
+
+
+FGameplayTagQuery::FGameplayTagQuery()
+	: TokenStreamVersion(EGameplayTagQueryStreamVersion::LatestVersion)
+{
+}
+
+bool FGameplayTagQuery::Matches(FGameplayTagContainer const& Tags) const
+{
+	FQueryEvaluator QE(*this);
+	return QE.Eval(Tags);
+}
+
+void FGameplayTagQuery::GetQueryExpr(FGameplayTagQueryExpression& OutExpr) const
+{
+	// build the FExpr tree from the token stream and return it
+	FQueryEvaluator QE(*this);
+	QE.Read(OutExpr);
+}
+
+void FGameplayTagQuery::BuildQuery(FGameplayTagQueryExpression& QueryExpr)
+{
+	// Reserve size here is arbitrary, goal is to minimizing reallocs while being respectful of mem usage
+	QueryTokenStream.Reset(128);
+	TagDictionary.Reset();
+
+	// add stream version first
+	QueryTokenStream.Add(EGameplayTagQueryStreamVersion::LatestVersion);
+
+	// emit the query
+	QueryTokenStream.Add(1);		// true to indicate is has a root expression
+	QueryExpr.EmitTokens(QueryTokenStream, TagDictionary);
+}
+
+
+#if WITH_EDITOR
+
+UEditableGameplayTagQuery* FQueryEvaluator::CreateEditableQuery()
+{
+	CurStreamIdx = 0;
+
+	UEditableGameplayTagQuery* const EditableQuery = NewObject<UEditableGameplayTagQuery>(GetTransientPackage(), NAME_None, RF_Transactional);
+
+	// start parsing the set
+	Version = GetToken();
+	if (!bReadError)
+	{
+		uint8 const bHasRootExpression = GetToken();
+		if (!bReadError && bHasRootExpression)
+		{
+			EditableQuery->RootExpression = ReadEditableQueryExpr(EditableQuery);
+		}
+	}
+	ensure(CurStreamIdx == Query.QueryTokenStream.Num());
+
+	return EditableQuery;
+}
+
+UEditableGameplayTagQueryExpression* FQueryEvaluator::ReadEditableQueryExpr(UObject* ExprOuter)
+{
+	EGameplayTagQueryExprType::Type const ExprType = (EGameplayTagQueryExprType::Type) GetToken();
+	if (bReadError)
+	{
+		return nullptr;
+	}
+
+	UClass* ExprClass = nullptr;
+	switch (ExprType)
+	{
+	case EGameplayTagQueryExprType::AnyTagsMatch:
+		ExprClass = UEditableGameplayTagQueryExpression_AnyTagsMatch::StaticClass();
+		break;
+	case EGameplayTagQueryExprType::AllTagsMatch:
+		ExprClass = UEditableGameplayTagQueryExpression_AllTagsMatch::StaticClass();
+		break;
+	case EGameplayTagQueryExprType::NoTagsMatch:
+		ExprClass = UEditableGameplayTagQueryExpression_NoTagsMatch::StaticClass();
+		break;
+	case EGameplayTagQueryExprType::AnyExprMatch:
+		ExprClass = UEditableGameplayTagQueryExpression_AnyExprMatch::StaticClass();
+		break;
+	case EGameplayTagQueryExprType::AllExprMatch:
+		ExprClass = UEditableGameplayTagQueryExpression_AllExprMatch::StaticClass();
+		break;
+	case EGameplayTagQueryExprType::NoExprMatch:
+		ExprClass = UEditableGameplayTagQueryExpression_NoExprMatch::StaticClass();
+		break;
+	}
+
+	UEditableGameplayTagQueryExpression* NewExpr = nullptr;
+	if (ExprClass)
+	{
+		NewExpr = NewObject<UEditableGameplayTagQueryExpression>(ExprOuter, ExprClass, NAME_None, RF_Transactional);
+		if (NewExpr)
+		{
+			switch (ExprType)
+			{
+			case EGameplayTagQueryExprType::AnyTagsMatch:
+			case EGameplayTagQueryExprType::AllTagsMatch:
+			case EGameplayTagQueryExprType::NoTagsMatch:
+				ReadEditableQueryTags(NewExpr);
+				break;
+			case EGameplayTagQueryExprType::AnyExprMatch:
+			case EGameplayTagQueryExprType::AllExprMatch:
+			case EGameplayTagQueryExprType::NoExprMatch:
+				ReadEditableQueryExprList(NewExpr);
+				break;
+			}
+		}
+	}
+
+	return NewExpr;
+}
+
+void FQueryEvaluator::ReadEditableQueryTags(UEditableGameplayTagQueryExpression* EditableQueryExpr)
+{
+	// find the tag container to read into
+	FGameplayTagContainer* Tags = nullptr;
+	if (EditableQueryExpr->IsA(UEditableGameplayTagQueryExpression_AnyTagsMatch::StaticClass()))
+	{
+		Tags = &((UEditableGameplayTagQueryExpression_AnyTagsMatch*)EditableQueryExpr)->Tags;
+	}
+	else if (EditableQueryExpr->IsA(UEditableGameplayTagQueryExpression_AllTagsMatch::StaticClass()))
+	{
+		Tags = &((UEditableGameplayTagQueryExpression_AllTagsMatch*)EditableQueryExpr)->Tags;
+	}
+	else if (EditableQueryExpr->IsA(UEditableGameplayTagQueryExpression_NoTagsMatch::StaticClass()))
+	{
+		Tags = &((UEditableGameplayTagQueryExpression_NoTagsMatch*)EditableQueryExpr)->Tags;
+	}
+	ensure(Tags);
+
+	if (Tags)
+	{
+		// parse tag set
+		int32 const NumTags = GetToken();
+		if (bReadError)
+		{
+			return;
+		}
+
+		for (int32 Idx = 0; Idx < NumTags; ++Idx)
+		{
+			int32 const TagIdx = GetToken();
+			if (bReadError)
+			{
+				return;
+			}
+
+			FGameplayTag const Tag = Query.GetTagFromIndex(TagIdx);
+			Tags->AddTag(Tag);
+		}
+	}
+}
+
+void FQueryEvaluator::ReadEditableQueryExprList(UEditableGameplayTagQueryExpression* EditableQueryExpr)
+{
+	// find the tag container to read into
+	TArray<UEditableGameplayTagQueryExpression*>* ExprList = nullptr;
+	if (EditableQueryExpr->IsA(UEditableGameplayTagQueryExpression_AnyExprMatch::StaticClass()))
+	{
+		ExprList = &((UEditableGameplayTagQueryExpression_AnyExprMatch*)EditableQueryExpr)->Expressions;
+	}
+	else if (EditableQueryExpr->IsA(UEditableGameplayTagQueryExpression_AllExprMatch::StaticClass()))
+	{
+		ExprList = &((UEditableGameplayTagQueryExpression_AllExprMatch*)EditableQueryExpr)->Expressions;
+	}
+	else if (EditableQueryExpr->IsA(UEditableGameplayTagQueryExpression_NoExprMatch::StaticClass()))
+	{
+		ExprList = &((UEditableGameplayTagQueryExpression_NoExprMatch*)EditableQueryExpr)->Expressions;
+	}
+	ensure(ExprList);
+
+	if (ExprList)
+	{
+		// parse expr set
+		int32 const NumExprs = GetToken();
+		if (bReadError)
+		{
+			return;
+		}
+
+		for (int32 Idx = 0; Idx < NumExprs; ++Idx)
+		{
+			UEditableGameplayTagQueryExpression* const NewExpr = ReadEditableQueryExpr(EditableQueryExpr);
+			ExprList->Add(NewExpr);
+		}
+	}
+}
+
+UEditableGameplayTagQuery* FGameplayTagQuery::CreateEditableQuery()
+{
+	FQueryEvaluator QE(*this);
+	return QE.CreateEditableQuery();
+}
+
+void FGameplayTagQuery::BuildFromEditableQuery(UEditableGameplayTagQuery& EditableQuery)
+{
+	QueryTokenStream.Reset();
+	TagDictionary.Reset();
+
+	// add stream version first
+	QueryTokenStream.Add(EGameplayTagQueryStreamVersion::LatestVersion);
+
+	EditableQuery.EmitTokens(QueryTokenStream, TagDictionary);
+}
+
+void UEditableGameplayTagQuery::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	if (RootExpression)
+	{
+		TokenStream.Add(1);		// true if has a root expression
+		RootExpression->EmitTokens(TokenStream, TagDictionary);
+	}
+	else
+	{
+		TokenStream.Add(0);		// false if no root expression
+	}
+}
+
+void UEditableGameplayTagQueryExpression::EmitTagTokens(FGameplayTagContainer const& TagsToEmit, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	uint8 const NumTags = (uint8)TagsToEmit.Num();
+	TokenStream.Add(NumTags);
+
+	for (auto T : TagsToEmit)
+	{
+		int32 TagIdx = TagDictionary.AddUnique(T);
+		check(TagIdx <= 255);
+		TokenStream.Add((uint8)TagIdx);
+	}
+}
+
+void UEditableGameplayTagQueryExpression::EmitExprListTokens(TArray<UEditableGameplayTagQueryExpression*> const& ExprList, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	uint8 const NumExprs = (uint8)ExprList.Num();
+	TokenStream.Add(NumExprs);
+	int32 const NumExprsStreamLocation = TokenStream.Num() - 1;		// so we can fill in the actual number of written exprs later
+
+	for (auto E : ExprList)
+	{
+		if (E)
+		{
+			E->EmitTokens(TokenStream, TagDictionary);
+		}
+		else
+		{
+			// null expression
+			TokenStream.Add(EGameplayTagQueryExprType::Undefined);
+		}
+	}
+}
+
+void UEditableGameplayTagQueryExpression_AnyTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const 
+{
+	TokenStream.Add(EGameplayTagQueryExprType::AnyTagsMatch);
+	EmitTagTokens(Tags, TokenStream, TagDictionary);
+}
+
+void UEditableGameplayTagQueryExpression_AllTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	TokenStream.Add(EGameplayTagQueryExprType::AllTagsMatch);
+	EmitTagTokens(Tags, TokenStream, TagDictionary);
+}
+
+void UEditableGameplayTagQueryExpression_NoTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	TokenStream.Add(EGameplayTagQueryExprType::NoTagsMatch);
+	EmitTagTokens(Tags, TokenStream, TagDictionary);
+}
+
+void UEditableGameplayTagQueryExpression_AnyExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	TokenStream.Add(EGameplayTagQueryExprType::AnyExprMatch);
+	EmitExprListTokens(Expressions, TokenStream, TagDictionary);
+}
+
+void UEditableGameplayTagQueryExpression_AllExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	TokenStream.Add(EGameplayTagQueryExprType::AllExprMatch);
+	EmitExprListTokens(Expressions, TokenStream, TagDictionary);
+}
+
+void UEditableGameplayTagQueryExpression_NoExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	TokenStream.Add(EGameplayTagQueryExprType::NoExprMatch);
+	EmitExprListTokens(Expressions, TokenStream, TagDictionary);
+}
+#endif	// WITH_EDITOR
+
+
+
+void FGameplayTagQueryExpression::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+{
+	// emit exprtype
+	TokenStream.Add(ExprType);
+
+	// emit exprdata
+	switch (ExprType)
+	{
+	case EGameplayTagQueryExprType::AnyTagsMatch:
+	case EGameplayTagQueryExprType::AllTagsMatch:
+	case EGameplayTagQueryExprType::NoTagsMatch:
+	{
+		// emit tagset
+		uint8 NumTags = (uint8)TagSet.Num();
+		TokenStream.Add(NumTags);
+
+		for (auto Tag : TagSet)
+		{
+			int32 TagIdx = TagDictionary.AddUnique(Tag);
+			check(TagIdx <= 255);
+			TokenStream.Add((uint8)TagIdx);
+		}
+	}
+	break;
+
+	case EGameplayTagQueryExprType::AnyExprMatch:
+	case EGameplayTagQueryExprType::AllExprMatch:
+	case EGameplayTagQueryExprType::NoExprMatch:
+	{
+		// emit tagset
+		uint8 NumExprs = (uint8)ExprSet.Num();
+		TokenStream.Add(NumExprs);
+
+		for (auto& E : ExprSet)
+		{
+			E.EmitTokens(TokenStream, TagDictionary);
+		}
+	}
+	break;
+	default:
+		break;
+	}
+}
+

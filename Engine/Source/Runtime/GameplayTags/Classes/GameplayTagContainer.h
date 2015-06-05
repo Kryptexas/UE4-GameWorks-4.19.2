@@ -168,6 +168,15 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	*/
 	bool MatchesAll(const FGameplayTagContainer& Other, bool bCountEmptyAsMatch) const;
 
+	/** 
+	 * Checks if this container matches the given query.
+	 *
+	 * @param Query		Query we are checking against
+	 *
+	 * @return True if this container matches the query, false otherwise.
+	 */
+	bool MatchesQuery(const struct FGameplayTagQuery& Query) const;
+
 	/**
 	 * Determine if the container has the specified tag
 	 * 
@@ -330,3 +339,304 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 		WithCopy = true
 	};
 };
+
+
+/** Enumerates the list of supported query expression types. */
+UENUM()
+namespace EGameplayTagQueryExprType
+{
+	enum Type
+	{
+		Undefined = 0,
+		AnyTagsMatch,
+		AllTagsMatch,
+		NoTagsMatch,
+		AnyExprMatch,
+		AllExprMatch,
+		NoExprMatch,
+	};
+}
+
+namespace EGameplayTagQueryStreamVersion
+{
+	enum Type
+	{
+		InitialVersion = 0,
+
+		// -----<new versions can be added before this line>-------------------------------------------------
+		// - this needs to be the last line (see note below)
+		VersionPlusOne,
+		LatestVersion = VersionPlusOne - 1
+	};
+}
+
+/**
+ * An FGameplayTagQuery is a logical query that can be run against an FGameplayTagContainer.  A query that succeeds is said to "match".
+ * Queries are logical expressions that can test the intersection properties of another tag container (all, any, or none), or the matching state of a set of sub-expressions
+ * (all, any, or none). This allows queries to be arbitrarily recursive and very expressive.  For instance, if you wanted to test if a given tag container contained tags 
+ * ((A && B) || (C)) && (!D), you would construct your query in the form ALL( ANY( ALL(A,B), ALL(C) ), NONE(D) )
+ * 
+ * You can expose the query structs to Blueprints and edit them with a custom editor, or you can construct them natively in code. 
+ * 
+ * Example of how to build a query via code:
+ *	FGameplayTagQuery Q;
+ *	Q.BuildQuery(
+ *		FGameplayTagQueryExpression()
+ * 		.AllTagsMatch()
+ *		.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Animal.Mammal.Dog.Corgi"))))
+ *		.AddTag(IGameplayTagsModule::RequestGameplayTag(FName(TEXT("Plant.Tree.Spruce"))))
+ *		);
+ * 
+ * Queries are internally represented as a byte stream that is memory-efficient and can be evaluated quickly at runtime.
+ */
+USTRUCT(BlueprintType)
+struct GAMEPLAYTAGS_API FGameplayTagQuery
+{
+	GENERATED_BODY();
+
+public:
+	FGameplayTagQuery();
+
+private:
+	/** Versioning for future token stream protocol changes. See EGameplayTagQueryStreamVersion. */
+	UPROPERTY()
+	int32 TokenStreamVersion;
+
+	/** List of tags referenced by this entire query. Token stream stored indices into this list. */
+	UPROPERTY()
+	TArray<FGameplayTag> TagDictionary;
+
+	/** Stream representation of the actual hierarchical query */
+	UPROPERTY()
+	TArray<uint8> QueryTokenStream;
+
+	/** Returns a gameplay tag from the tag dictionary */
+	FGameplayTag GetTagFromIndex(int32 TagIdx) const
+	{
+		ensure(TagDictionary.IsValidIndex(TagIdx));
+		return TagDictionary[TagIdx];
+	}
+
+public:
+	/** Returns true if the given tags match this query, or false otherwise. */
+	bool Matches(FGameplayTagContainer const& Tags) const;
+
+	/** Creates this query with the given root expression. */
+	void BuildQuery(struct FGameplayTagQueryExpression& RootQueryExpr);
+
+	/** Builds a FGameplayTagQueryExpression from this query. */
+	void GetQueryExpr(struct FGameplayTagQueryExpression& OutExpr) const;
+	
+#if WITH_EDITOR
+	/** Creates this query based on the given EditableQuery object */
+	void BuildFromEditableQuery(class UEditableGameplayTagQuery& EditableQuery); 
+
+	/** Creates editable query object tree based on this query */
+	UEditableGameplayTagQuery* CreateEditableQuery();
+#endif // WITH_EDITOR
+
+	static const FGameplayTagQuery EmptyQuery;
+
+	friend class FQueryEvaluator;
+};
+
+struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
+{
+	FGameplayTagQueryExpression& AnyTagsMatch()
+	{
+		ExprType = EGameplayTagQueryExprType::AnyTagsMatch;
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& AllTagsMatch()
+	{
+		ExprType = EGameplayTagQueryExprType::AllTagsMatch;
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& NoTagsMatch()
+	{
+		ExprType = EGameplayTagQueryExprType::NoTagsMatch;
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& AnyExprMatch()
+	{
+		ExprType = EGameplayTagQueryExprType::AnyExprMatch;
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& AllExprMatch()
+	{
+		ExprType = EGameplayTagQueryExprType::AllExprMatch;
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& NoExprMatch()
+	{
+		ExprType = EGameplayTagQueryExprType::NoExprMatch;
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& AddTag(FGameplayTag Tag)
+	{
+		ensure(UsesTagSet());
+		TagSet.Add(Tag);
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& AddTags(FGameplayTagContainer const& Tags)
+	{
+		ensure(UsesTagSet());
+		for (auto T : Tags)
+		{
+			TagSet.Add(T);
+		}
+		return *this;
+	}
+
+	FGameplayTagQueryExpression& AddExpr(FGameplayTagQueryExpression& Expr)
+	{
+		ensure(UsesExprSet());
+		ExprSet.Add(Expr);
+		return *this;
+	}
+	
+	/** Writes this expression to the given token stream. */
+	void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
+
+	/** Which type of expression this is. */
+	EGameplayTagQueryExprType::Type ExprType;
+	/** Expression list, for expression types that need it */
+	TArray<struct FGameplayTagQueryExpression> ExprSet;
+	/** Tag list, for expression types that need it */
+	TArray<FGameplayTag> TagSet;
+
+	/** Returns true if this expression uses the tag data. */
+	FORCEINLINE bool UsesTagSet() const
+	{
+		return (ExprType == EGameplayTagQueryExprType::AllTagsMatch) || (ExprType == EGameplayTagQueryExprType::AnyTagsMatch) || (ExprType == EGameplayTagQueryExprType::NoTagsMatch);
+	}
+	/** Returns true if this expression uses the expression list data. */
+	FORCEINLINE bool UsesExprSet() const
+	{
+		return (ExprType == EGameplayTagQueryExprType::AllExprMatch) || (ExprType == EGameplayTagQueryExprType::AnyExprMatch) || (ExprType == EGameplayTagQueryExprType::NoExprMatch);
+	}
+};
+
+/** 
+ * This is an editor-only representation of a query, designed to be editable with a typical property window. 
+ * To edit a query in the editor, an FGameplayTagQuery is converted to a set of UObjects and edited,  When finished,
+ * the query struct is rewritten and these UObjects are discarded.
+ * This query representation is not intended for runtime use.
+ */
+UCLASS(editinlinenew, collapseCategories, Transient) 
+class GAMEPLAYTAGS_API UEditableGameplayTagQuery : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	/** The base expression of this query. */
+	UPROPERTY(EditDefaultsOnly, Instanced, Category = Query)
+	class UEditableGameplayTagQueryExpression* RootExpression;
+
+#if WITH_EDITOR
+	/** Converts this editor query construct into the runtime-usable token stream. */
+	void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(abstract, editinlinenew, collapseCategories, Transient)
+class GAMEPLAYTAGS_API UEditableGameplayTagQueryExpression : public UObject
+{
+	GENERATED_BODY()
+
+#if WITH_EDITOR
+public:
+	/** Converts this editor query construct into the runtime-usable token stream. */
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const {};
+
+protected:
+ 	void EmitTagTokens(FGameplayTagContainer const& TagsToEmit, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
+ 	void EmitExprListTokens(TArray<UEditableGameplayTagQueryExpression*> const& ExprList, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(BlueprintType, editinlinenew, collapseCategories, meta=(DisplayName="Any Tags Match"))
+class UEditableGameplayTagQueryExpression_AnyTagsMatch : public UEditableGameplayTagQueryExpression
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditDefaultsOnly, Category = Expr)
+	FGameplayTagContainer Tags;
+
+#if WITH_EDITOR
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(BlueprintType, editinlinenew, collapseCategories, meta = (DisplayName = "All Tags Match"))
+class UEditableGameplayTagQueryExpression_AllTagsMatch : public UEditableGameplayTagQueryExpression
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditDefaultsOnly, Category = Expr)
+	FGameplayTagContainer Tags;
+
+#if WITH_EDITOR
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(BlueprintType, editinlinenew, collapseCategories, meta = (DisplayName = "No Tags Match"))
+class UEditableGameplayTagQueryExpression_NoTagsMatch : public UEditableGameplayTagQueryExpression
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditDefaultsOnly, Category = Expr)
+	FGameplayTagContainer Tags;
+
+#if WITH_EDITOR
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(BlueprintType, editinlinenew, collapseCategories, meta = (DisplayName = "Any Expressions Match"))
+class UEditableGameplayTagQueryExpression_AnyExprMatch : public UEditableGameplayTagQueryExpression
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, Instanced, Category = Expr)
+	TArray<UEditableGameplayTagQueryExpression*> Expressions;
+
+#if WITH_EDITOR
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(BlueprintType, editinlinenew, collapseCategories, meta = (DisplayName = "All Expressions Match"))
+class UEditableGameplayTagQueryExpression_AllExprMatch : public UEditableGameplayTagQueryExpression
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, Instanced, Category = Expr)
+	TArray<UEditableGameplayTagQueryExpression*> Expressions;
+
+#if WITH_EDITOR
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+#endif  // WITH_EDITOR
+};
+
+UCLASS(BlueprintType, editinlinenew, collapseCategories, meta = (DisplayName = "No Expressions Match"))
+class UEditableGameplayTagQueryExpression_NoExprMatch : public UEditableGameplayTagQueryExpression
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, Instanced, Category = Expr)
+	TArray<UEditableGameplayTagQueryExpression*> Expressions;
+
+#if WITH_EDITOR
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+#endif  // WITH_EDITOR
+};
+
