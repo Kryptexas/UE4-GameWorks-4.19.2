@@ -106,6 +106,30 @@ struct FAnimSegment
 		return ((CurPos >= StartPos) && (CurPos <= (StartPos + GetLength())));
 	}
 
+	/*
+	 * Return true if it's included within the input range
+	 */
+	bool IsIncluded(float InStartPos, float InEndPos) const
+	{
+		float EndPos = StartPos + GetLength(); 
+		// InStartPos is between Start and End, it is included
+		if (StartPos <= InStartPos && EndPos > InStartPos)
+		{
+			return true;
+		}
+		// InEndPos is between Start and End, it is also included
+		if (StartPos < InEndPos && EndPos >= InEndPos)
+		{
+			return true;
+		}
+		// if it is within Start and End, it is also included
+		if (StartPos >= InStartPos && EndPos <= InEndPos)
+		{
+			return true;
+		}
+
+		return false;
+	}
 	/**
 	 * Get Animation Data, for now have weight to be controlled here, in the future, it will be controlled in Track
 	 */

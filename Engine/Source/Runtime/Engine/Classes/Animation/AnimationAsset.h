@@ -440,6 +440,13 @@ private:
 	/** Skeleton guid. If changes, you need to remap info*/
 	FGuid SkeletonGuid;
 
+	/** Meta data that can be saved with the asset 
+	 * 
+	 * You can query by GetMetaData function
+	 */
+	UPROPERTY(Category=MetaData, instanced, EditAnywhere)
+	TArray<class UAnimMetaData*> MetaData;
+
 public:
 	/** Advances the asset player instance 
 	 * 
@@ -461,6 +468,10 @@ public:
 	void ValidateSkeleton();
 
 	virtual void Serialize(FArchive& Ar) override;
+
+	/** Get available Metadata within the animation asset
+	 */
+	ENGINE_API const TArray<class UAnimMetaData*>& GetMetaData() const { return MetaData; }
 
 #if WITH_EDITOR
 	/** Replace Skeleton 

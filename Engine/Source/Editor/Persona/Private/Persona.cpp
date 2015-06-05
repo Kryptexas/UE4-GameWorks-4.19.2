@@ -434,6 +434,9 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 
 TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimAsset)
 {
+	/// before opening new asset, clear the currently selected object
+	SetDetailObject(NULL);
+
 	TSharedPtr<SDockTab> NewTab;
 	if (InAnimAsset)
 	{

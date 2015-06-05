@@ -35,12 +35,25 @@ struct FCompositeSection : public FAnimLinkableElement
 	UPROPERTY()
 	FName NextSectionName;
 
+private:
+	/** Meta data that can be saved with the asset 
+	 * 
+	 * You can query by GetMetaData function
+	 */
+	UPROPERTY(Category=Section, Instanced, EditAnywhere)
+	TArray<class UAnimMetaData*> MetaData;
+
+public:
 	FCompositeSection()
 		: FAnimLinkableElement()
 		, SectionName(NAME_None)
 		, NextSectionName(NAME_None)
 	{
 	}
+
+	/** Get available Metadata for this section
+	 */
+	const TArray<class UAnimMetaData*>& GetMetaData() const { return MetaData; }
 };
 
 /**
@@ -462,6 +475,21 @@ public:
 	/** Return Section Index from Position */
 	ENGINE_API int32 GetSectionIndexFromPosition(float Position) const;
 	
+	/**
+	 * Get Section Metadata for the montage including metadata belong to the anim reference
+	 * This will remove redundant entry if found - i.e. multiple same anim reference is used
+	 * 
+	 * @param : SectionName - Name of section you'd like to get meta data for. 
+	 *						- If SectionName == NONE, it will return all the section data
+	 * @param : bIncludeSequence - if true, it returns all metadata of the animation within that section
+	 *						- whether partial or full
+	 * @param : SlotName - this only matters if bIncludeSequence is true.
+	 *						- If true, and if SlotName is given, it will only look for SlotName.
+	 *						- If true and if SlotName is none, then it will look for all slot nodes
+	 ***/
+
+	ENGINE_API const TArray<class UAnimMetaData*> GetSectionMetaData(FName SectionName, bool bIncludeSequence=true, FName SlotName = NAME_None);
+
 	/** Get Section Index from CurrentTime with PosWithinCompositeSection */
 	int32 GetAnimCompositeSectionIndexFromPos(float CurrentTime, float& PosWithinCompositeSection) const;
 

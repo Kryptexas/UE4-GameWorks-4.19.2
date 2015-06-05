@@ -78,7 +78,6 @@ SAnimMontagePanel::~SAnimMontagePanel()
 /** This is the main function that creates the UI widgets for the montage tool.*/
 void SAnimMontagePanel::Update()
 {
-	ClearSelected();
 	if ( Montage != NULL )
 	{
 		SMontageEditor * Editor = MontageEditor.Pin().Get();
