@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:13.デコレーターの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -21,6 +21,12 @@ Description:13.デコレーターの作成
 [/VAR]
 
 %Steps%
+
+Behavior Tree (ビヘイビアツリー) システムの条件式としても知られる **Decorators ノード** は [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) または [**Task**](Engine/AI/BehaviorTrees/NodeReference/Tasks) ノードのいずれかにアタッチされ、ツリーのブランチあるいはノード 1 つでも実行可能かどうかの判断をするノードです。
+
+AI のポーンがターゲットに十分近づくと、**Decorator** はビヘイビアツリーの Rapid Move To ブランチの実行を中止します。これは **Rapid Move To** Task 内あるいは **Move To** Task によって処理することができますが、この Decorator はすべてのアクタを受け取り、ブランチの実行をブロックすることができます。従って、様々な状況での再利用が可能になります。
+
+## 手順
 
 1. **コンテンツ ブラウザ** で FollowerBT Behavior Tree を **ダブルクリック** して開きます。
 1. New Decorator ![](newDecorator_button.png) ボタンをクリックします。
