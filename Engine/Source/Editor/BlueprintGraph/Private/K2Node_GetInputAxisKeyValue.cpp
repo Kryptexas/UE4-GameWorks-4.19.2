@@ -29,7 +29,7 @@ void UK2Node_GetInputAxisKeyValue::AllocateDefaultPins()
 void UK2Node_GetInputAxisKeyValue::Initialize(const FKey AxisKey)
 {
 	InputAxisKey = AxisKey;
-	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputAxisKeyValue")));
+	SetFromFunction(AActor::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(AActor, GetInputAxisKeyValue)));
 	
 	CachedTooltip.MarkDirty();
 	CachedNodeTitle.MarkDirty();

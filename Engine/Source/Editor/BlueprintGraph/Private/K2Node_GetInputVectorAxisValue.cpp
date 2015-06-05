@@ -16,7 +16,7 @@ UK2Node_GetInputVectorAxisValue::UK2Node_GetInputVectorAxisValue(const FObjectIn
 void UK2Node_GetInputVectorAxisValue::Initialize(const FKey AxisKey)
 {
 	InputAxisKey = AxisKey;
-	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputVectorAxisValue")));
+	SetFromFunction(AActor::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(AActor, GetInputVectorAxisValue)));
 }
 
 FText UK2Node_GetInputVectorAxisValue::GetTooltipText() const

@@ -5,6 +5,7 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GraphEditorActions.h"
 #include "GraphEditorSettings.h"
 #include "ScopedTransaction.h"
@@ -5145,17 +5146,17 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 
 				if(OldMakeStructNode->StructType->GetName() == TEXT("Rotator"))
 				{
-					MakeNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("KismetMathLibrary"))->FindFunctionByName(TEXT("MakeRot"));
+					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeRot));
 					OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("ReturnValue"));
 				}
 				else if(OldMakeStructNode->StructType->GetName() == TEXT("Vector"))
 				{
-					MakeNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("KismetMathLibrary"))->FindFunctionByName(TEXT("MakeVector"));
+					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector));
 					OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("ReturnValue"));
 				}
 				else if(OldMakeStructNode->StructType->GetName() == TEXT("Vector2D"))
 				{
-					MakeNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("KismetMathLibrary"))->FindFunctionByName(TEXT("MakeVector2D"));
+					MakeNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, MakeVector2D));
 					OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("ReturnValue"));
 				}
 
@@ -5226,17 +5227,17 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, boo
 
 				if(OldBreakStructNode->StructType->GetName() == TEXT("Rotator"))
 				{
-					BreakNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("KismetMathLibrary"))->FindFunctionByName(TEXT("BreakRot"));
+					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakRot));
 					OldPinToNewPinMap.Add(TEXT("Rotator"), TEXT("InRot"));
 				}
 				else if(OldBreakStructNode->StructType->GetName() == TEXT("Vector"))
 				{
-					BreakNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("KismetMathLibrary"))->FindFunctionByName(TEXT("BreakVector"));
+					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakVector));
 					OldPinToNewPinMap.Add(TEXT("Vector"), TEXT("InVec"));
 				}
 				else if(OldBreakStructNode->StructType->GetName() == TEXT("Vector2D"))
 				{
-					BreakNodeFunction = FindObject<UClass>(ANY_PACKAGE, TEXT("KismetMathLibrary"))->FindFunctionByName(TEXT("BreakVector2D"));
+					BreakNodeFunction = UKismetMathLibrary::StaticClass()->FindFunctionByName(GET_FUNCTION_NAME_CHECKED(UKismetMathLibrary, BreakVector2D));
 					OldPinToNewPinMap.Add(TEXT("Vector2D"), TEXT("InVec"));
 				}
 
