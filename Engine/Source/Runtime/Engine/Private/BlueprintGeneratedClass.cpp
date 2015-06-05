@@ -666,6 +666,22 @@ void UBlueprintGeneratedClass::Bind()
 	}
 }
 
+class FPersistentFrameCollectorArchive : public FSimpleObjectReferenceCollectorArchive
+{
+public:
+	FPersistentFrameCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
+		: FSimpleObjectReferenceCollectorArchive(InSerializingObject, InCollector)
+	{}
+
+protected:
+	virtual FArchive& operator<<(UObject*& Object) override
+	{
+		const bool bWeakRef = false; //@TODO - enable: Object ? !Object->HasAnyFlags(RF_StrongRefOnFrame) : false;
+		Collector.SetShouldHandleAsWeakRef(bWeakRef); 
+		return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+	}
+};
+
 void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector)
 {
 	checkSlow(InThis);
@@ -680,8 +696,9 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				checkSlow(PointerToUberGraphFrame)
 				if (PointerToUberGraphFrame->RawPointer)
 				{
-					FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(InThis, Collector);
+					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
 					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
+					Collector.SetShouldHandleAsWeakRef(false);
 				}
 			}
 		}

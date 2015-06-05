@@ -293,7 +293,7 @@ void SerializeRootSet( FArchive& Ar, EObjectFlags KeepFlags )
  * @param ReferencingObject UObject which owns the reference (can be NULL)
  * @param bAllowReferenceElimination	Whether to allow NULL'ing the reference if RF_PendingKill is set
  */
-static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination)
+static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination, bool bDoHandle = true)
 {
 	// Disregard NULL objects and perform very fast check to see whether object is part of permanent
 	// object pool and should therefore be disregarded. The check doesn't touch the object and is
@@ -310,7 +310,7 @@ static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSeriali
 				Object = NULL;
 			}
 			// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
-			else if( Object->HasAnyFlags( RF_Unreachable ) )
+			else if (Object->HasAnyFlags(RF_Unreachable) && bDoHandle)
 			{				
 				if( GIsRunningParallelReachability )
 				{
@@ -383,12 +383,14 @@ class FGCCollector : public FReferenceCollector
 {
 	TArray<UObject*>& ObjectArray;
 	bool bAllowEliminatingReferences;
+	bool bShouldHandleAsWeakRef;
 
 public:
 
 	FGCCollector(TArray<UObject*>& InObjectArray)
 		: ObjectArray(InObjectArray)
 		, bAllowEliminatingReferences(true)
+		, bShouldHandleAsWeakRef(false)
 	{
 	}
 
@@ -403,7 +405,7 @@ public:
 				ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
 		}
 #endif
-		::HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
+		::HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences, !bShouldHandleAsWeakRef);
 	}
 	virtual bool IsIgnoringArchetypeRef() const override
 	{
@@ -416,6 +418,11 @@ public:
 	virtual void AllowEliminatingReferences( bool bAllow ) override
 	{
 		bAllowEliminatingReferences = bAllow;
+	}
+
+	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) override
+	{
+		bShouldHandleAsWeakRef = bWeakRef;
 	}
 };
 

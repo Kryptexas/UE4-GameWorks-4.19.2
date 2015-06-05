@@ -1563,6 +1563,8 @@ public:
 	* Gets the property that is currently being serialized
 	*/
 	virtual class UProperty* GetSerializedProperty() const { return nullptr; }
+
+	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) {}
 protected:
 	/**
 	 * Handle object reference. Called by AddReferencedObject.
