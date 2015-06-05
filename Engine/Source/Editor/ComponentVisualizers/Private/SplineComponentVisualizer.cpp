@@ -955,8 +955,8 @@ void FSplineComponentVisualizer::OnSetVisualizeRollAndScale()
 bool FSplineComponentVisualizer::IsVisualizingRollAndScale() const
 {
 	USplineComponent* SplineComp = GetEditedSplineComponent();
-	check(SplineComp != nullptr);
-	return SplineComp->bShouldVisualizeScale;
+	
+	return SplineComp ? SplineComp->bShouldVisualizeScale : false;
 }
 
 
