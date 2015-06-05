@@ -5,6 +5,10 @@
 #include "ModuleInterface.h"
 
 
+class FTypeContainer;
+class IPortalServiceLocator;
+
+
 class IPortalServicesModule
 	: public IModuleInterface
 {
