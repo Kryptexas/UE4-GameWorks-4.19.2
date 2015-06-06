@@ -490,9 +490,10 @@ void SDockingTabStack::CloseAllButForegroundTab(ETabsToClose TabsToClose)
 
 FReply SDockingTabStack::TabWellRightClicked( const FGeometry& TabWellGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
+	if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
-		FSlateApplication::Get().PushMenu( SharedThis( this ), MakeContextMenu(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect::ContextMenu );
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+		FSlateApplication::Get().PushMenu(AsShared(), WidgetPath, MakeContextMenu(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect::ContextMenu);
 		return FReply::Handled();
 	}
 	else

@@ -469,8 +469,12 @@ void FLevelEditorContextMenu::SummonMenu( const TSharedRef< SLevelEditor >& Leve
 		// @todo: Should actually use the location from a click event instead!
 		const FVector2D MouseCursorLocation = FSlateApplication::Get().GetCursorPos();
 	
-		TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(
-			LevelEditor->GetActiveViewport().ToSharedRef(), MenuWidget.ToSharedRef(), MouseCursorLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+		FSlateApplication::Get().PushMenu(
+			LevelEditor->GetActiveViewport().ToSharedRef(),
+			FWidgetPath(),
+			MenuWidget.ToSharedRef(),
+			MouseCursorLocation,
+			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
 	}
 }
 

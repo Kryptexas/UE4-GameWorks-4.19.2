@@ -260,7 +260,7 @@ public:
 	TSharedRef<SWindow> AddWindowAsNativeChild( TSharedRef<SWindow> InSlateWindow, TSharedRef<SWindow> InParentWindow, const bool bShowImmediately = true );
 
 	/**
-	 * Creates a new Menu window and add it to the menu stack.
+	 * Creates a new Menu window and adds it to the menu stack.
 	 *
 	 * @param InWindow				The parent of the menu.  If there is already an open menu this parent must exist in the menu stack or the menu stack is dismissed and a new one started
 	 * @param Content				The content to be placed inside the new window
@@ -271,15 +271,76 @@ public:
 	 * @param WindowSize			When bShouldAutoSize=false, this must be set to the size of the window to be created
 	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
 	 */
+	DEPRECATED(4.9, "PushMenu() returning a window is deprecated. Use the new version of PushMenu() that returns an IMenu.")
 	TSharedRef<SWindow> PushMenu( const TSharedRef<SWidget>& InParentContent, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const bool bShouldAutoSize = true, const FVector2D& WindowSize = FVector2D::ZeroVector, const FVector2D& SummonLocationSize = FVector2D::ZeroVector );
 
+	/**
+	 * Creates a new Menu and adds it to the menu stack.
+	 * Menus are always auto-sized. Use fixed-size content if a fixed size is required.
+	 *
+	 * @param InParentWidget		The parent of the menu. If the stack isn't empty, PushMenu will attempt to determine the stack level for the new menu by looking of an open menu in the parent's path.
+	 * @param InOwnerPath			Optional full widget path of the parent if one is available. If an invalid path is given PushMenu will attempt to generate a path to the InParentWidget
+	 * @param InContent				The content to be placed inside the new menu
+	 * @param SummonLocation		The location where this menu should be summoned
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param bFocusImmediately		Should the popup steal focus when shown?
+	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
+	 * @param Method				An optional popup method override. If not set, the widgets in the InOwnerPath will be queried for this.
+	 */
+	TSharedPtr<IMenu> PushMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, TOptional<EPopupMethod> Method = TOptional<EPopupMethod>());
+
+	/**
+	 * Creates a new Menu and adds it to the menu stack under the specified parent menu.
+	 * Menus are always auto-sized. Use fixed-size content if a fixed size is required.
+	 *
+	 * @param InParentMenu			The parent of the menu. Must be a valid menu in the stack.
+	 * @param InContent				The content to be placed inside the new menu
+	 * @param SummonLocation		The location where this menu should be summoned
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param bFocusImmediately		Should the popup steal focus when shown?
+	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
+	 */
+	TSharedPtr<IMenu> PushMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector);
+
+	/**
+	 * Creates a new hosted Menu and adds it to the menu stack.
+	 * Hosted menus are drawn by an external host widget.
+	 * 
+	 * @param InParentMenu			The parent of the menu. Must be a valid menu in the stack.
+	 * @param InOwnerPath			Optional full widget path of the parent if one is available. If an invalid path is given PushMenu will attempt to generate a path to the InParentWidget
+	 * @param InMenuHost			The host widget that draws the menu's content
+	 * @param InContent				The content to be placed inside the new menu
+	 * @param OutWrappedContent		Returns the InContent wrapped with widgets needed by the menu stack system. This is what should be drawn by the host after this call.
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 */
+	TSharedPtr<IMenu> PushHostedMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect);
+	
+	/**
+	 * Creates a new hosted child Menu and adds it to the menu stack under the specified parent menu.
+	 * Hosted menus are drawn by an external host widget.
+	 * 
+	 * @param InParentMenu			The parent menu for this menu
+	 * @param InMenuHost			The host widget that draws the menu's content
+	 * @param InContent				The menu's content
+	 * @param OutWrappedContent		Returns the InContent wrapped with widgets needed by the menu stack system. This is what should be drawn by the host after this call.
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 */	
+	TSharedPtr<IMenu> PushHostedMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect);
+
 	/** @return Returns whether the window has child menus. */
+	DEPRECATED(4.9, "HasOpenSubMenus() taking a window is deprecated. Use HasOpenSubMenus() taking an IMenu as a parameter.")
 	bool HasOpenSubMenus( TSharedRef<SWindow> Window ) const;
+
+	/** @return Returns whether the menu has child menus. */
+	bool HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const;
 
 	/** @return	Returns true if there are any pop-up menus summoned */
 	bool AnyMenusVisible() const;
 
-	/** Dismisses any open menus */
+	/** @return	Returns a ptr to the window that is currently the host of the menu stack or null if no menus are visible */
+	TSharedPtr<SWindow> GetVisibleMenuWindow() const;
+
+	/** Dismisses all open menus */
 	void DismissAllMenus();
 
 	/**
@@ -287,7 +348,22 @@ public:
 	 *
 	 * @param MenuWindowToDismiss	The window to dismiss, any children, grandchildren etc will also be dismissed
 	 */
+	DEPRECATED(4.9, "DismissMenu() taking a window is deprecated. Use DismissMenu() taking an IMenu, DismissMenuByWidget() or DismissAll().")
 	void DismissMenu( TSharedRef<SWindow> MenuWindowToDismiss );
+
+	/**
+	 * Dismisses a menu and all its children
+	 *
+	 * @param InFromMenu	The menu to dismiss, any children, grandchildren etc will also be dismissed
+	 */
+	void DismissMenu(const TSharedPtr<IMenu>& InFromMenu);
+
+	/**
+	 * Dismisses a menu and all its children. The menu is determined by looking for menus in the parent chain of the widget.
+	 *
+	 * @param InWidgetInMenu	The widget whose path is search upwards for a menu. That menu will then be dismissed.
+	 */
+	void DismissMenuByWidget(const TSharedRef<SWidget>& InWidgetInMenu);
 
 	/**
 	 * Finds the window in the menu stack
@@ -295,6 +371,7 @@ public:
 	 * @param WindowToFind	The window to look for
 	 * @return The level in the stack  that the window is in or INDEX_NONE if it is not found
 	 */
+	DEPRECATED(4.9, "GetLocationInMenuStack() is deprecated. Shouldn't be needed.")
 	int32 GetLocationInMenuStack( TSharedRef<SWindow> WindowToFind ) const;
 
 	/**

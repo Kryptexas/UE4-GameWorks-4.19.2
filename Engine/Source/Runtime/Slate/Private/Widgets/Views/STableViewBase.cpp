@@ -377,7 +377,7 @@ FReply STableViewBase::OnMouseButtonUp( const FGeometry& MyGeometry, const FPoin
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 
-		OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
+		OnRightMouseButtonUp( MouseEvent );
 
 		FReply Reply = FReply::Handled().ReleaseMouseCapture();
 		bShowSoftwareCursor = false;
@@ -744,8 +744,9 @@ int32 STableViewBase::GetNumItemsWide() const
 	return 1;
 }
 
-void STableViewBase::OnRightMouseButtonUp(const FVector2D& SummonLocation)
+void STableViewBase::OnRightMouseButtonUp(const FPointerEvent& MouseEvent)
 {
+	const FVector2D& SummonLocation = MouseEvent.GetScreenSpacePosition();
 	const bool bShouldOpenContextMenu = !IsRightClickScrolling();
 	const bool bContextMenuOpeningBound = OnContextMenuOpening.IsBound();
 
@@ -757,7 +758,9 @@ void STableViewBase::OnRightMouseButtonUp(const FVector2D& SummonLocation)
 		if( MenuContent.IsValid() )
 		{
 			bShowSoftwareCursor = false;
-			FSlateApplication::Get().PushMenu( AsShared(), MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+			FSlateApplication::Get().PushMenu(AsShared(), WidgetPath, MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 
 
 		}

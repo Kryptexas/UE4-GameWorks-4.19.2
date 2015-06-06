@@ -36,6 +36,7 @@
 #include "GenericCommands.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/Selection.h"
+#include "IMenu.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -337,8 +338,9 @@ void FSequencer::RenameShot(UMovieSceneSection* ShotSection)
 		.OnTextCommitted(this, &FSequencer::RenameShotCommitted, ShotSection)
 		.ClearKeyboardFocusOnCommit( false );
 	
-	NameEntryPopupWindow = FSlateApplication::Get().PushMenu(
+	NameEntryPopupMenu = FSlateApplication::Get().PushMenu(
 		SequencerWidget.ToSharedRef(),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -402,9 +404,9 @@ void FSequencer::RenameShotCommitted(const FText& RenameText, ETextCommit::Type 
 		ShotSection->SetTitle(RenameText);
 	}
 
-	if (NameEntryPopupWindow.IsValid())
+	if (NameEntryPopupMenu.IsValid())
 	{
-		NameEntryPopupWindow.Pin()->RequestDestroyWindow();
+		NameEntryPopupMenu.Pin()->Dismiss();
 	}
 }
 

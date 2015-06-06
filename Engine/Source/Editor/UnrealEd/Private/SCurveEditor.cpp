@@ -469,14 +469,17 @@ void SCurveEditor::PushWarningMenu( FVector2D Position, const FText& Message )
 
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		WarningMessageText->AsWidget(),
 		Position,
 		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu));
 }
 
 
-void SCurveEditor::PushKeyMenu(const FGeometry& InMyGeometry, FVector2D Position)
+void SCurveEditor::PushKeyMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
+	FVector2D Position = InMouseEvent.GetScreenSpacePosition();
+
 	FMenuBuilder MenuBuilder(true, Commands.ToSharedRef());
 
 	if (SelectedKeys.Num() == 0)
@@ -503,8 +506,11 @@ void SCurveEditor::PushKeyMenu(const FGeometry& InMyGeometry, FVector2D Position
 	}
 	MenuBuilder.EndSection(); //CurveEditorInterpolation
 
+	FWidgetPath WidgetPath = InMouseEvent.GetEventPath() != nullptr ? *InMouseEvent.GetEventPath() : FWidgetPath();
+
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		WidgetPath,
 		MenuBuilder.MakeWidget(),
 		Position,
 		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu));
@@ -1494,58 +1500,58 @@ void SCurveEditor::ProcessClick(const FGeometry& InMyGeometry, const FPointerEve
 	const bool bShiftDown = InMouseEvent.IsShiftDown();
 
 	FSelectedCurveKey HitKey = HitTestKeys(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
-		if (bLeftMouseButton)
+
+	if (bLeftMouseButton)
+	{
+		// If the user left clicked a key, update selection based on modifier key state.
+		if (HitKey.IsValid())
 		{
-			// If the user left clicked a key, update selection based on modifier key state.
-			if (HitKey.IsValid())
+			if (!IsKeySelected(HitKey))
 			{
-				if (!IsKeySelected(HitKey))
+				if (!bControlDown)
 				{
-					if (!bControlDown)
-					{
-						EmptySelection();
-					}
-					AddToSelection(HitKey);
-				}
-				else if (bControlDown)
-				{
-					RemoveFromSelection(HitKey);
-				}
-			}
-			else
-			{
-				// If the user didn't click a key, add a new one if shift is held down, or try to select a curve.
-				if (bShiftDown)
-				{
-					AddNewKey(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
-				}
-				else
-				{
-					// clicking on background clears key selection
 					EmptySelection();
 				}
+				AddToSelection(HitKey);
+			}
+			else if (bControlDown)
+			{
+				RemoveFromSelection(HitKey);
 			}
 		}
-		else if (bRightMouseButton)
+		else
 		{
-			// If the user right clicked, handle opening context menus.
-			if (HitKey.IsValid())
+			// If the user didn't click a key, add a new one if shift is held down, or try to select a curve.
+			if (bShiftDown)
 			{
-				// Make sure key is selected in readiness for context menu
-				if (!IsKeySelected(HitKey))
-				{
-					EmptySelection();
-					AddToSelection(HitKey);
-				}
-			PushKeyMenu(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
+				AddNewKey(InMyGeometry, InMouseEvent.GetScreenSpacePosition());
 			}
 			else
 			{
-				FVector2D ScreenPos = InMouseEvent.GetScreenSpacePosition();
-				if (!HitTestCubicTangents(InMyGeometry, ScreenPos).IsValid())
-				{
-					CreateContextMenu(InMyGeometry, ScreenPos);
-				}
+				// clicking on background clears key selection
+				EmptySelection();
+			}
+		}
+	}
+	else if (bRightMouseButton)
+	{
+		// If the user right clicked, handle opening context menus.
+		if (HitKey.IsValid())
+		{
+			// Make sure key is selected in readiness for context menu
+			if (!IsKeySelected(HitKey))
+			{
+				EmptySelection();
+				AddToSelection(HitKey);
+			}
+			PushKeyMenu(InMyGeometry, InMouseEvent);
+		}
+		else
+		{
+			if (!HitTestCubicTangents(InMyGeometry, InMouseEvent.GetScreenSpacePosition()).IsValid())
+			{
+				CreateContextMenu(InMyGeometry, InMouseEvent);
+			}
 			else
 			{
 				EmptySelection();
@@ -2018,8 +2024,10 @@ bool SCurveEditor::IsSnappingEnabled()
 	return bSnappingEnabled.Get();
 }
 
-void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FVector2D& ScreenPosition)
+void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
+	const FVector2D& ScreenPosition = InMouseEvent.GetScreenSpacePosition();
+
 	const bool CloseAfterSelection = true;
 	FMenuBuilder MenuBuilder( CloseAfterSelection, NULL );
 
@@ -2080,7 +2088,9 @@ void SCurveEditor::CreateContextMenu(const FGeometry& InMyGeometry, const FVecto
 	}
 
 	MenuBuilder.EndSection();
-	FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+
+	FWidgetPath WidgetPath = InMouseEvent.GetEventPath() != nullptr ? *InMouseEvent.GetEventPath() : FWidgetPath();
+	FSlateApplication::Get().PushMenu(SharedThis(this), WidgetPath, MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 }
 
 void SCurveEditor::OnCreateExternalCurveClicked()

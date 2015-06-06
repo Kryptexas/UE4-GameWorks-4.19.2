@@ -1102,6 +1102,7 @@ void SFindInBlueprints::ConditionallyAddCacheBar()
 
 					FSlateApplication::Get().PushMenu(
 						InParentWidget.Pin().ToSharedRef(),
+						FWidgetPath(),
 						DisplayWidget,
 						FSlateApplication::Get().GetCursorPos(),
 						FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)

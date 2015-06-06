@@ -408,6 +408,7 @@ FReply SCollectionView::MakeAddCollectionMenu()
 
 	FSlateApplication::Get().PushMenu(
 		AsShared(),
+		FWidgetPath(),
 		MenuBuilder.MakeWidget(),
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TopMenu )

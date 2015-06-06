@@ -139,6 +139,7 @@ void FActorDropTarget::OnDrop(FDragDropPayload& DraggedObjects, UWorld& World, c
 			// Create the popup
 			FSlateApplication::Get().PushMenu(
 				DroppedOnWidget,
+				FWidgetPath(),
 				SNew(SSocketChooserPopup)
 				.SceneComponent( Component )
 				.OnSocketChosen_Static(&FActorDropTarget::PerformAttachment, Actor, MoveTemp(DraggedActors) ),

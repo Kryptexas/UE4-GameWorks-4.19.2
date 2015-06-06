@@ -1060,6 +1060,7 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 		
 		FSlateApplication::Get().PushMenu(
 			AsShared(),
+			FWidgetPath(),
 			MenuContent,
 			WhereToSummon,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )

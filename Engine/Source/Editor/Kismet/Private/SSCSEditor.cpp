@@ -2273,13 +2273,17 @@ FReply SSCS_RowWidget::HandleOnAcceptDrop( const FDragDropEvent& DragDropEvent, 
 			break;
 
 		case FSCSRowDragDropOp::DropAction_AttachToOrMakeNewRoot:
-			check(DragRowOp->SourceNodes.Num() == 1);
-			FSlateApplication::Get().PushMenu(
-				SharedThis(this),
-				BuildSceneRootDropActionMenu(DragRowOp->SourceNodes[0]).ToSharedRef(),
-				FSlateApplication::Get().GetCursorPos(),
-				FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-			);
+			{
+				check(DragRowOp->SourceNodes.Num() == 1);
+				FWidgetPath WidgetPath = DragDropEvent.GetEventPath() != nullptr ? *DragDropEvent.GetEventPath() : FWidgetPath();
+				FSlateApplication::Get().PushMenu(
+					SharedThis(this),
+					WidgetPath,
+					BuildSceneRootDropActionMenu(DragRowOp->SourceNodes[0]).ToSharedRef(),
+					FSlateApplication::Get().GetCursorPos(),
+					FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+				);
+			}
 			break;
 
 		case FSCSRowDragDropOp::DropAction_None:

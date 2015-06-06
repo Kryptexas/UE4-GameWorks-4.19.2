@@ -383,7 +383,7 @@ private:
 	TSharedPtr<IDistributionCurveEditor> CurveEditor;
 
 	/** Reference to owner of the current popup */
-	TWeakPtr<SWindow> EntryPopupWindow;
+	TWeakPtr<class IMenu> EntryMenu;
 
 	/** Components used for drawing the particle system in the preview viewport */
 	UCascadeParticleSystemComponent* ParticleSystemComponent;

@@ -4,6 +4,7 @@
 #include "BreakIterator.h"
 #include "TextEditHelper.h"
 #include "GenericCommands.h"
+#include "IMenu.h"
 
 /** A pointer to the editable text currently under the mouse cursor. nullptr when there isn't one. */
 SEditableText* SEditableText::EditableTextUnderCursor = nullptr;
@@ -1799,8 +1800,7 @@ void SEditableText::SaveText()
 	}
 }
 
-
-void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow)
+void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)
 {
 	TSharedPtr<SWidget> MenuContentWidget;
 
@@ -1866,13 +1866,13 @@ void SEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SW
 		{
 			MenuParent = StaticCastSharedRef<SWidget>(ParentWindow.ToSharedRef());
 		}
-		TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(MenuParent, MenuContentWidget.ToSharedRef(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately);
+		TSharedPtr< IMenu > ContextMenu = FSlateApplication::Get().PushMenu(MenuParent, EventPath, MenuContentWidget.ToSharedRef(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately);
 
-		// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
-		if (ContextMenuWindow.IsValid())
+		// Make sure the menu is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
+		if (ContextMenu.IsValid())
 		{
-			ContextMenuWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SEditableText::OnWindowClosed));
-			ActiveContextMenu.SummonSucceeded(ContextMenuWindow.ToSharedRef());
+			ContextMenu->GetOnMenuDismissed().AddSP(this, &SEditableText::OnContextMenuClosed);
+			ActiveContextMenu.SummonSucceeded(ContextMenu.ToSharedRef());
 		}
 		else
 		{
@@ -1991,7 +1991,7 @@ FString SEditableText::GetStringToRender() const
 	return VisibleText;
 }
 
-void SEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
+void SEditableText::OnContextMenuClosed(TSharedRef<IMenu> Menu)
 {
 	// Note: We don't reset the ActiveContextMenu here, as Slate hasn't yet finished processing window focus events, and we need 
 	// to know that the window is still available for OnFocusReceived and OnFocusLost even though it's about to be destroyed

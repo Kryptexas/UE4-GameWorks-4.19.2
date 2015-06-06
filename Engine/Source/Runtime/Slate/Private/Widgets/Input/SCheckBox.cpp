@@ -171,8 +171,11 @@ FReply SCheckBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointer
 	}
 	else if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && OnGetMenuContent.IsBound() )
 	{
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 		FSlateApplication::Get().PushMenu(
 			AsShared(),
+			WidgetPath,
 			OnGetMenuContent.Execute(),
 			MouseEvent.GetScreenSpacePosition(),
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )

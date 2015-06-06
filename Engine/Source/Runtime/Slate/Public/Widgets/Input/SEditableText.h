@@ -367,7 +367,7 @@ public:
 	virtual void Undo() override;
 	virtual void Redo() override;
 	virtual TSharedRef< SWidget > GetWidget() override;
-	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow = TSharedPtr<SWindow>()) override;
+	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath) override;
 	virtual void LoadText() override;
 	// END ITextEditorWidget interface
 
@@ -508,9 +508,9 @@ protected:
 	void SetCaretPosition( int32 Position );
 
 	/**
-	 * Called when the content menu window is closed
+	 * Called when the context menu is closed
 	 */
-	void OnWindowClosed(const TSharedRef<SWindow>&);
+	void OnContextMenuClosed(TSharedRef<IMenu>);
 
 private:
 	/** @return Whether the editable text should appear focused */

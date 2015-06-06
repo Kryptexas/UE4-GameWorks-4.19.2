@@ -242,7 +242,7 @@ FReply SScrubWidget::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointe
 
 		if( !bMouseMovedDuringPanning )
 		{
-			CreateContextMenu( NewValue );
+			CreateContextMenu(NewValue, MouseEvent);
 		}
 		return FReply::Handled().ReleaseMouseCapture();
 	}
@@ -411,7 +411,7 @@ FCursorReply SScrubWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPo
 	return FCursorReply::Unhandled();
 }
 
-void SScrubWidget::CreateContextMenu(float CurrentFrameTime)
+void SScrubWidget::CreateContextMenu(float CurrentFrameTime, const FPointerEvent& MouseEvent)
 {
 	if ((OnCropAnimSequence.IsBound() || OnReZeroAnimSequence.IsBound() || OnAddAnimSequence.IsBound()) && (SequenceLength.Get() >= MINIMUM_ANIMATION_LENGTH))
 	{
@@ -480,7 +480,9 @@ void SScrubWidget::CreateContextMenu(float CurrentFrameTime)
 		}
 		MenuBuilder.EndSection();
 
-		FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
+		FSlateApplication::Get().PushMenu(SharedThis(this), WidgetPath, MenuBuilder.MakeWidget(), FSlateApplication::Get().GetCursorPos(), FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 	}
 }
 

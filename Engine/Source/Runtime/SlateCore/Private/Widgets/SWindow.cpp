@@ -1038,11 +1038,13 @@ bool SWindow::AppearsInTaskbar() const
 
 void SWindow::SetOnWindowActivated( const FOnWindowActivated& InDelegate )
 {
+	// deprecated
 	OnWindowActivated = InDelegate;
 }
 
 void SWindow::SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate )
 {
+	// deprecated
 	OnWindowDeactivated = InDelegate;
 }
 
@@ -1313,7 +1315,8 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 	const bool bWasDeactivated = ( ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_Deactivate );
 	if ( bWasDeactivated )
 	{
-		OnWindowDeactivated.ExecuteIfBound();
+		OnWindowDeactivated.ExecuteIfBound();	// deprecated
+		WindowDeactivatedEvent.Broadcast();
 
 		const EWindowMode::Type WindowMode = GetWindowMode();
 		// If the window is not fullscreen, we do not want to automatically recapture the mouse unless an external UI such as Steam is open. Fullscreen windows we do.
@@ -1357,7 +1360,8 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 			}
 		}
 
-		OnWindowActivated.ExecuteIfBound();
+		OnWindowActivated.ExecuteIfBound();	// deprecated
+		WindowActivatedEvent.Broadcast();
 	}
 
 	return true;

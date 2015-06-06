@@ -2580,9 +2580,10 @@ TSharedPtr<SWidget> SAnimNotifyTrack::SummonContextMenu(const FGeometry& MyGeome
 		}
 	}
 
+	FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 	// Display the newly built menu
-	TWeakPtr<SWindow> ContextMenuWindow =
-		FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), CursorPos, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ));
+	FSlateApplication::Get().PushMenu(SharedThis(this), WidgetPath, MenuBuilder.MakeWidget(), CursorPos, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 
 	return TSharedPtr<SWidget>();
 }
@@ -2830,6 +2831,7 @@ void SAnimNotifyTrack::OnSetTriggerWeightNotifyClicked(int32 NotifyIndex)
 
 		FSlateApplication::Get().PushMenu(
 			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -2852,6 +2854,7 @@ void SAnimNotifyTrack::OnSetDurationNotifyClicked(int32 NotifyIndex)
 
 		FSlateApplication::Get().PushMenu(
 			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -2890,6 +2893,7 @@ void SAnimNotifyTrack::OnNewNotifyClicked()
 	// Show dialog to enter new event name
 	FSlateApplication::Get().PushMenu(
 		AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -3348,6 +3352,7 @@ void SAnimNotifyTrack::OnSetNotifyTimeClicked(int32 NotifyIndex)
 
 		FSlateApplication::Get().PushMenu(
 			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -3399,6 +3404,7 @@ void SAnimNotifyTrack::OnSetNotifyFrameClicked(int32 NotifyIndex)
 
 		FSlateApplication::Get().PushMenu(
 			AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)

@@ -1020,7 +1020,7 @@ protected:
 	TSharedPtr<class INameValidatorInterface> NameEntryValidator;
 
 	/** Reference to owner of the pin type change popup */
-	TWeakPtr<class SWindow> PinTypeChangePopupWindow;
+	TWeakPtr<class IMenu> PinTypeChangeMenu;
 
 	/** The toolbar builder class */
 	TSharedPtr<class FBlueprintEditorToolbar> Toolbar;

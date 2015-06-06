@@ -105,7 +105,7 @@ private:
 	TSharedPtr<FConsoleShortcutData> EditedShortcut;
 
 	/** Reference to owner of the current pop-up. */
-	TSharedPtr<class SWindow> NameEntryPopupWindow;
+	TWeakPtr<class IMenu> NameEntryMenu;
 
 	/** Holds a delegate that is executed when a command is submitted. */
 	FOnSessionConsoleCommandSubmitted OnCommandSubmitted;

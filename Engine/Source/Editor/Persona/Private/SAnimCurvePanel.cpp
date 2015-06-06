@@ -412,6 +412,7 @@ FReply SCurveEdTrack::OnContextMenu()
 	{
 		FFloatCurve* Curve = (FFloatCurve*)(CurveInterface->CurveData);
 		FSlateApplication::Get().PushMenu(SharedThis(this),
+										  FWidgetPath(),
 										  PanelShared->CreateCurveContextMenu(Curve),
 										  FSlateApplication::Get().GetCursorPos(),
 										  FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup));
@@ -591,6 +592,7 @@ FReply SAnimCurvePanel::AddButtonClicked()
 	// Show dialog to enter new track name
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		MenuBuilder.MakeWidget(),
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup)
@@ -694,6 +696,7 @@ FReply SAnimCurvePanel::OnContextMenu()
 		);
 
 		FSlateApplication::Get().PushMenu(	SharedThis(this),
+			FWidgetPath(),
 			MenuBuilder.MakeWidget(),
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup) );
@@ -1101,6 +1104,7 @@ void SAnimCurvePanel::CreateNewMetadataEntryClicked()
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 	SlateApp.PushMenu(
 		AsShared(),
+		FWidgetPath(),
 		TextEntry,
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup
@@ -1136,6 +1140,7 @@ void SAnimCurvePanel::CreateNewCurveClicked()
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 	SlateApp.PushMenu(
 		AsShared(),
+		FWidgetPath(),
 		TextEntry,
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup

@@ -352,7 +352,7 @@ private:
 	bool GetInputEditEnabled() const;
 
 	/** Function to create context menu on mouse right click*/
-	void CreateContextMenu(const FGeometry& InMyGeometry, const FVector2D& ScreenPosition);
+	void CreateContextMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	/** Callback function called when item is select in the context menu */
 	void OnCreateExternalCurveClicked();
@@ -429,7 +429,7 @@ private:
 	void	PushWarningMenu(FVector2D Position, const FText& Message);
 
 	/** Create context Menu for key interpolation settings*/
-	void	PushKeyMenu(const FGeometry& InMyGeometry, FVector2D Position);
+	void	PushKeyMenu(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	/** Called when the user selects the interpolation mode */
 	void	OnSelectInterpolationMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode);

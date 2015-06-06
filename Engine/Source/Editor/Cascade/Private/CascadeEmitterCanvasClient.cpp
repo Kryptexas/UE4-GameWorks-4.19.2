@@ -1701,6 +1701,7 @@ void FCascadeEmitterCanvasClient::OpenModuleMenu()
 
 	FSlateApplication::Get().PushMenu(
 		CascadeViewportPtr.Pin().ToSharedRef(),
+		FWidgetPath(),
 		BuildMenuWidgetModule(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -1713,6 +1714,7 @@ void FCascadeEmitterCanvasClient::OpenEmitterMenu()
 
 	FSlateApplication::Get().PushMenu(
 		CascadeViewportPtr.Pin().ToSharedRef(),
+		FWidgetPath(),
 		BuildMenuWidgetEmitter(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -1725,6 +1727,7 @@ void FCascadeEmitterCanvasClient::OpenBackgroundMenu()
 
 	FSlateApplication::Get().PushMenu(
 		CascadeViewportPtr.Pin().ToSharedRef(),
+		FWidgetPath(),
 		BuildMenuWidgetBackround(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)

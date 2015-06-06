@@ -874,8 +874,7 @@ void SMenuEntryBlock::OnClicked( bool bCheckBoxClicked )
 			if( MenuEntryBlock->bCloseSelfOnly )
 			{
 				// Close only this menu and its children
-				TSharedRef<SWindow> ParentContextMenuWindow = FSlateApplication::Get().FindWidgetWindow( AsShared() ).ToSharedRef();
-				FSlateApplication::Get().DismissMenu( ParentContextMenuWindow );
+				FSlateApplication::Get().DismissMenuByWidget(AsShared());
 			}
 			else
 			{

@@ -311,6 +311,7 @@ void SSkeletonSmartNameManager::OnAddClicked()
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 	SlateApp.PushMenu(
 		AsShared(),
+		FWidgetPath(),
 		TextEntry,
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup

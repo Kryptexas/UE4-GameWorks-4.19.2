@@ -346,6 +346,7 @@ FReply SAnimTimingPanel::OnContextMenu()
 	Builder.EndSection();
 
 	FSlateApplication::Get().PushMenu(SharedThis(this),
+		FWidgetPath(),
 		Builder.MakeWidget(),
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));

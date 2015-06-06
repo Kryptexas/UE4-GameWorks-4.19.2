@@ -91,7 +91,7 @@ protected:
 private:
 
 	/** Function to create context menu to display anim sequence editing options */
-	void CreateContextMenu( float CurrentFrameTime );
+	void CreateContextMenu( float CurrentFrameTime, const FPointerEvent& MouseEvent );
 
 	/** Function to crop animation sequence before/after selected frame */
 	void OnSequenceCropped( bool bFromStart, float CurrentFrameTime );

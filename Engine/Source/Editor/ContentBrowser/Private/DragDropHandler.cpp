@@ -150,6 +150,7 @@ void DragDropHandler::HandleAssetsDroppedOnAssetFolder(const TSharedRef<SWidget>
 
 	FSlateApplication::Get().PushMenu(
 		ParentWidget,
+		FWidgetPath(),
 		MenuBuilder.MakeWidget(),
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -191,6 +192,7 @@ void DragDropHandler::HandleFoldersDroppedOnAssetFolder(const TSharedRef<SWidget
 
 	FSlateApplication::Get().PushMenu(
 		ParentWidget,
+		FWidgetPath(),
 		MenuBuilder.MakeWidget(),
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)

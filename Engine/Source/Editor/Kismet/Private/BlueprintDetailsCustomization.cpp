@@ -420,7 +420,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 		.Visibility(GetPropertyOwnerBlueprint()? EVisibility::Visible : EVisibility::Hidden)
-		.NameContent()
+	.NameContent()
 	[
 		SNew(STextBlock)
 		.Text( LOCTEXT("CategoryLabel", "Category") )
@@ -561,7 +561,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	TSharedPtr<SToolTip> ReplicationTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableReplicate_Tooltip", "Should this Variable be replicated over the network?"), NULL, DocLink, TEXT("Replication"));
 
 	Category.AddCustomRow( LOCTEXT("VariableReplicationLabel", "Replication") )
-		.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -4817,6 +4817,7 @@ void FBlueprintComponentDetails::OnBrowseSocket()
 					// Pop up a combo box to pick socket from mesh
 					FSlateApplication::Get().PushMenu(
 						Editor.ToSharedRef(),
+						FWidgetPath(),
 						SNew(SSocketChooserPopup)
 						.SceneComponent( ParentSceneComponent )
 						.OnSocketChosen( this, &FBlueprintComponentDetails::OnSocketSelection ),

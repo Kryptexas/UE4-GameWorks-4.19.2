@@ -962,7 +962,7 @@ void FFriendsAndChatManager::SetChatWindowContents(TSharedPtr<SWindow> Window, T
 		];
 
 	Window->SetContent(Content);
-	Window->SetOnWindowActivated(FOnWindowActivated::CreateSP(ChatWindow.Get(), &SChatWindow::HandleWindowActivated));
+	Window->GetOnWindowActivatedEvent().AddSP(ChatWindow.Get(), &SChatWindow::HandleWindowActivated);
 }
 // Actions
 

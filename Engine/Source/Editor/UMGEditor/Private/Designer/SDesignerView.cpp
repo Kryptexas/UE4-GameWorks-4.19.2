@@ -1419,7 +1419,8 @@ void SDesignerView::ShowContextMenu(const FGeometry& MyGeometry, const FPointerE
 	if ( MenuContent.IsValid() )
 	{
 		FVector2D SummonLocation = MouseEvent.GetScreenSpacePosition();
-		FSlateApplication::Get().PushMenu(AsShared(), MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+		FSlateApplication::Get().PushMenu(AsShared(), WidgetPath, MenuContent.ToSharedRef(), SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 	}
 }
 

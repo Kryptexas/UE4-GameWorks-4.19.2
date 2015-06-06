@@ -382,6 +382,7 @@ void SAnimMontagePanel::OnNewSectionClicked(float DataPosX)
 	// Show dialog to enter new event name
 	FSlateApplication::Get().PushMenu(
 		AsShared(), // Menu being summoned from a menu that is closing: Parent widget should be k2 not the menu thats open or it will be closed when the menu is dismissed
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )

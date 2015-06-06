@@ -353,7 +353,7 @@ private:
 	TSharedPtr< class SSequencer > SequencerWidget;
 	
 	/** Reference to owner of the current popup */
-	TWeakPtr<class SWindow> NameEntryPopupWindow;
+	TWeakPtr<class IMenu> NameEntryPopupMenu;
 
 	/** The asset editor that created this Sequencer if any */
 	TWeakPtr<IToolkitHost> ToolkitHost;

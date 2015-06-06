@@ -23,6 +23,7 @@
 #include "SResponsiveGridPanel.h"
 #include "SColorPicker.h"
 #include "INotificationWidget.h"
+#include "IMenu.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 
@@ -1371,6 +1372,7 @@ struct RichTextHelper
 
 		FSlateApplication::Get().PushMenu(
 			ParentWidget, // Parent widget should be TestSuite, not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			Widget,
 			FSlateApplication::Get().GetCursorPos(), // summon location
 			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -2142,8 +2144,9 @@ public:
 			.OnTextCommitted( this, &STextEditTest::OnPopupTextCommitted ) 
 			.HintText( DefaultText );
 
-		PopupWindow = FSlateApplication::Get().PushMenu( 
+		PopupMenu = FSlateApplication::Get().PushMenu(
 			AsShared(), // Parent widget should be TestSyuite, not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(), // summon location
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -2167,9 +2170,9 @@ public:
 		if ( (CommitInfo == ETextCommit::OnEnter) && (NewText.ToString().Len() == 3) )
 		{
 			// manually close menu on validated committal
-			if ( PopupWindow.IsValid() )
+			if (PopupMenu.IsValid())
 			{		
-				PopupWindow->RequestDestroyWindow();
+				PopupMenu.Pin()->Dismiss();
 			}
 		}
 	}
@@ -2193,7 +2196,7 @@ protected:
 
 	TSharedPtr<STextEntryPopup> PopupInput;
 
-	TSharedPtr<SWindow> PopupWindow;
+	TWeakPtr<IMenu> PopupMenu;
 
 	TSharedPtr<SInlineEditableTextBlock> InlineEditableTextBlock;
 	FText InlineEditableText;

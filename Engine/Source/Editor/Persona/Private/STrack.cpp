@@ -740,14 +740,16 @@ TSharedPtr<SWidget> STrack::SummonContextMenu(const FGeometry& MyGeometry, const
 	}
 
 	// Build the menu if we actually added anything to it
-	TSharedPtr<SWindow> ContextMenuWindow = NULL;
+	TSharedPtr<SWidget> MenuContent;
 	if(SummonedContextMenu)
 	{
-		ContextMenuWindow =
-			FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), CursorPos, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ));
+		MenuContent = MenuBuilder.MakeWidget();
+
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+		FSlateApplication::Get().PushMenu(SharedThis(this), WidgetPath, MenuContent.ToSharedRef(), CursorPos, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 	}
 
-	return ContextMenuWindow;
+	return MenuContent;
 }
 
 /** Return true if we should snap and set out position to its position */

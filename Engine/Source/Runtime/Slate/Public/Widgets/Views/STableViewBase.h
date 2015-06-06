@@ -178,7 +178,7 @@ protected:
 	/**
 	 * Opens a context menu as the result of a right click if OnContextMenuOpening is bound and we are not right click scrolling.
 	 */
-	virtual void OnRightMouseButtonUp(const FVector2D& SummonLocation);
+	virtual void OnRightMouseButtonUp(const FPointerEvent& MouseEvent);
 	
 	/**
 	 * Get the scroll rate in items that best approximates a constant physical scroll rate.

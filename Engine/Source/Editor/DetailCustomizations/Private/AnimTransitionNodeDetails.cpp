@@ -224,6 +224,7 @@ FReply FAnimTransitionNodeDetails::OnPromoteToSharedClick(bool RuleShare)
 		// Show dialog to enter new event name
 		FSlateApplication::Get().PushMenu(
 			Parent.ToSharedRef(),
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )

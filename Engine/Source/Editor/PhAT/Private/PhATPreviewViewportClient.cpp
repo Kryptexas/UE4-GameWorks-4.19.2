@@ -710,6 +710,7 @@ void FPhATEdPreviewViewportClient::OpenBodyMenu()
 
 		FSlateApplication::Get().PushMenu(
 			ParentWidget.ToSharedRef(),
+			FWidgetPath(),
 			MenuWidget.ToSharedRef(),
 			MouseCursorLocation,
 			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -728,6 +729,7 @@ void FPhATEdPreviewViewportClient::OpenConstraintMenu()
 
 		FSlateApplication::Get().PushMenu(
 			ParentWidget.ToSharedRef(),
+			FWidgetPath(),
 			MenuWidget.ToSharedRef(),
 			MouseCursorLocation,
 			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)

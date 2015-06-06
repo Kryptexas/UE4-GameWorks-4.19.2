@@ -111,8 +111,11 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonUp( const FGeometry& MyGeometry,
 		TSharedPtr<SWidget> MenuContent = DisplayNode->OnSummonContextMenu(MyGeometry, MouseEvent);
 		if (MenuContent.IsValid())
 		{
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 			FSlateApplication::Get().PushMenu(
 				AsShared(),
+				WidgetPath,
 				MenuContent.ToSharedRef(),
 				MouseEvent.GetScreenSpacePosition(),
 				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )

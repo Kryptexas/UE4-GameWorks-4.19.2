@@ -13,6 +13,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/InterpCurveEdSetup.h"
+#include "IMenu.h"
 
 #define LOCTEXT_NAMESPACE "CurveEditor"
 
@@ -531,8 +532,9 @@ void SDistributionCurveEditor::OnSetTime()
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -555,8 +557,9 @@ void SDistributionCurveEditor::OnSetValue()
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -775,8 +778,9 @@ void SDistributionCurveEditor::OnScaleTimes(ECurveScaleScope::Type Scope)
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -811,8 +815,9 @@ void SDistributionCurveEditor::OnScaleValues(ECurveScaleScope::Type Scope)
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -966,8 +971,9 @@ void SDistributionCurveEditor::OnCreateTab()
 		.OnTextCommitted(this, &SDistributionCurveEditor::TabNameCommitted)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -1003,6 +1009,7 @@ void SDistributionCurveEditor::OpenLabelMenu()
 
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		BuildMenuWidgetLabel(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -1015,6 +1022,7 @@ void SDistributionCurveEditor::OpenKeyMenu()
 
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		BuildMenuWidgetKey(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -1027,6 +1035,7 @@ void SDistributionCurveEditor::OpenGeneralMenu()
 
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		BuildMenuWidgetGeneral(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -1039,6 +1048,7 @@ void SDistributionCurveEditor::OpenCurveMenu()
 
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		BuildMenuWidgetCurve(),
 		MouseCursorLocation,
 		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -1047,9 +1057,9 @@ void SDistributionCurveEditor::OpenCurveMenu()
 
 void SDistributionCurveEditor::CloseEntryPopup()
 {
-	if( EntryPopupWindow.IsValid() )
+	if (EntryMenu.IsValid())
 	{
-		EntryPopupWindow.Pin()->RequestDestroyWindow();
+		EntryMenu.Pin()->Dismiss();
 	}
 }
 

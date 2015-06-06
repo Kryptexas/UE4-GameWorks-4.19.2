@@ -1083,6 +1083,7 @@ private:
 
 		FSlateApplication::Get().PushMenu(
 			SharedThis(this),
+			FWidgetPath(),
 			SNew(STextComboPopup)
 				.TextOptions(TextOptions)
 				.OnTextChosen(this, &SWidgetGallery::HandleTextComboPopupTextChosen),

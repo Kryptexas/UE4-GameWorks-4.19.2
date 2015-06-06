@@ -154,7 +154,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 		.PropertyHandle( StructPropertyHandle )
 	];
 
-	GameplayTagWidgetWindow->SetOnWindowDeactivated( FOnWindowDeactivated::CreateRaw( this, &FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate ) );
+	GameplayTagWidgetWindow->GetOnWindowDeactivatedEvent().AddRaw(this, &FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate);
 
 	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 	if (MainFrameModule.GetParentWindow().IsValid())

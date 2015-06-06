@@ -783,7 +783,7 @@ FReply SBlendSpaceWidget::OnMouseButtonUp( const FGeometry& MyGeometry, const FP
 	int32 HighlightedSampleIndex = GetHighlightedSample(GetWindowRectFromGeometry(MyGeometry));
 	if (HighlightedSampleIndex!=INDEX_NONE)
 	{
-		ShowPopupEditWindow(HighlightedSampleIndex);
+		ShowPopupEditWindow(HighlightedSampleIndex, MouseEvent);
 		return FReply::Handled();
 	}
 
@@ -1121,15 +1121,18 @@ int32 SBlendSpaceWidget::GetHighlightedSample(const FSlateRect& WindowRect) cons
 	return HighlightedSampleIndex;
 }
 
-void SBlendSpaceWidget::ShowPopupEditWindow(int32 SampleIndex)
+void SBlendSpaceWidget::ShowPopupEditWindow(int32 SampleIndex, const FPointerEvent& MouseEvent)
 {
 	if (CachedSamples.IsValidIndex(SampleIndex))
 	{
 		FBlendSample Sample = CachedSamples[SampleIndex];
 
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 		// Show dialog to enter new function name
 		FSlateApplication::Get().PushMenu(
 			SharedThis( this ),
+			WidgetPath,
 			SNew(SSampleEditPopUp)
 			.BlendSpace(BlendSpace)
 			.BlendSpaceEditorWidget(this)

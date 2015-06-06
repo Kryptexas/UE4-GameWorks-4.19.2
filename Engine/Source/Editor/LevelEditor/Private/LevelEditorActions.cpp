@@ -421,6 +421,7 @@ void FLevelEditorActionCallbacks::AttachToActor(AActor* ParentActorPtr)
 		// Create as context menu
 		FSlateApplication::Get().PushMenu(
 			LevelEditor.ToSharedRef(),
+			FWidgetPath(),
 			SNew(SSocketChooserPopup)
 			.SceneComponent( ComponentWithSockets )
 			.OnSocketChosen_Static( &FLevelEditorActionCallbacks::AttachToSocketSelection, ParentActorPtr ),

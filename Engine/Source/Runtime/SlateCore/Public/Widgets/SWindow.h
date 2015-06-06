@@ -7,9 +7,11 @@ class FHittestGrid;
 
 /** Notification that a window has been activated */
 DECLARE_DELEGATE( FOnWindowActivated );
+DECLARE_MULTICAST_DELEGATE( FOnWindowActivatedEvent );
 
 /** Notification that a window has been deactivated */
 DECLARE_DELEGATE( FOnWindowDeactivated );
+DECLARE_MULTICAST_DELEGATE( FOnWindowDeactivatedEvent );
 
 /** Notification that a window is about to be closed */
 DECLARE_DELEGATE_OneParam( FOnWindowClosed, const TSharedRef<SWindow>& );
@@ -434,10 +436,18 @@ public:
 	bool AppearsInTaskbar() const;
 
 	/** Sets the delegate to execute when the window is activated */
+	DEPRECATED(4.9, "SetOnWindowActivated() is deprecated. Use GetOnWindowActivatedEvent() and subscribe to the multicast event.")
 	void SetOnWindowActivated( const FOnWindowActivated& InDelegate );
 
+	/** Gets the multicast delegate executed when the window is deactivated */
+	FOnWindowActivatedEvent& GetOnWindowActivatedEvent() { return WindowActivatedEvent; }
+
 	/** Sets the delegate to execute when the window is deactivated */
+	DEPRECATED(4.9, "SetOnWindowDeactivated() is deprecated. Use GetOnWindowDeactivatedEvent() and subscribe to the multicast event.")
 	void SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate );
+
+	/** Gets the multicast delegate executed when the window is deactivated */
+	FOnWindowDeactivatedEvent& GetOnWindowDeactivatedEvent() { return WindowDeactivatedEvent; }
 
 	/** Sets the delegate to execute right before the window is closed */
 	void SetOnWindowClosed( const FOnWindowClosed& InDelegate );
@@ -890,10 +900,12 @@ private:
 	
 	/** Invoked when the window has been activated. */
 	FOnWindowActivated OnWindowActivated;
-	
+	FOnWindowActivatedEvent WindowActivatedEvent;
+
 	/** Invoked when the window has been deactivated. */
 	FOnWindowDeactivated OnWindowDeactivated;
-	
+	FOnWindowDeactivatedEvent WindowDeactivatedEvent;
+
 	/** Invoked when the window is about to be closed. */
 	FOnWindowClosed OnWindowClosed;
 

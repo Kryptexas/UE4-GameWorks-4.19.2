@@ -671,7 +671,7 @@ public:
 
 	virtual void Private_OnItemRightClicked( ItemType TheItem, const FPointerEvent& MouseEvent ) override
 	{
-		this->OnRightMouseButtonUp( MouseEvent.GetScreenSpacePosition() );
+		this->OnRightMouseButtonUp( MouseEvent );
 	}
 
 	virtual bool Private_OnItemClicked(ItemType TheItem) override

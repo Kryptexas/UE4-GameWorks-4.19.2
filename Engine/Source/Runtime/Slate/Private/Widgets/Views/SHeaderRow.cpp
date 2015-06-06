@@ -208,7 +208,7 @@ public:
 	{
 		if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && ContextMenuContent != SNullWidget::NullWidget )
 		{
-			OpenContextMenu( MouseEvent.GetScreenSpacePosition() );
+			OpenContextMenu( MouseEvent );
 			return FReply::Handled();
 		}
 
@@ -355,11 +355,14 @@ private:
 		return FReply::Handled();
 	}
 
-	void OpenContextMenu(const FVector2D& SummonLocation)
+	void OpenContextMenu(const FPointerEvent& MouseEvent)
 	{
 		if ( ContextMenuContent != SNullWidget::NullWidget )
 		{
-			FSlateApplication::Get().PushMenu( AsShared(), ContextMenuContent, SummonLocation, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+			const FVector2D& SummonLocation = MouseEvent.GetScreenSpacePosition();
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
+			FSlateApplication::Get().PushMenu(AsShared(), WidgetPath, ContextMenuContent, SummonLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu));
 		}
 	}
 

@@ -306,6 +306,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 
 							FSlateApplication::Get().PushMenu(
 								FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef(),
+								FWidgetPath(),
 								DisplayWidget,
 								FSlateApplication::Get().GetCursorPos(),
 								FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)

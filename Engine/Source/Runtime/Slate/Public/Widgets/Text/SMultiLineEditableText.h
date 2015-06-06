@@ -450,7 +450,7 @@ private:
 	virtual void Undo() override;
 	virtual void Redo() override;
 	virtual TSharedRef< SWidget > GetWidget() override;
-	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow = TSharedPtr<SWindow>()) override;
+	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath) override;
 	virtual void LoadText() override;
 	// END ITextEditorWidget interface
 
@@ -503,7 +503,7 @@ protected:
 
 private:
 	
-	void OnWindowClosed(const TSharedRef<SWindow>&);
+	void OnContextMenuClosed(TSharedRef<IMenu>);
 
 	/** Remember where the cursor was when we started selecting. */
 	void BeginSelecting( const FTextLocation& Endpoint );

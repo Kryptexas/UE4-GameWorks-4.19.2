@@ -775,8 +775,15 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 		}
 		else if ( bAllAssetWereLoaded && DroppedObjects.Num() > 0 )
 		{
-			TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu( SharedThis( this ),
-				BuildViewportDragDropContextMenu(), DragDropEvent.GetScreenSpacePosition(), FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+			FWidgetPath WidgetPath = DragDropEvent.GetEventPath() != nullptr ? *DragDropEvent.GetEventPath() : FWidgetPath();
+
+			FSlateApplication::Get().PushMenu(
+				SharedThis( this ),
+				WidgetPath,
+				BuildViewportDragDropContextMenu(),
+				DragDropEvent.GetScreenSpacePosition(),
+				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+
 			bDropSuccessful = true;
 		}
 

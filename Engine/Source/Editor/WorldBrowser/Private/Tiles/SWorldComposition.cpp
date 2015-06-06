@@ -9,6 +9,7 @@
 #include "SWorldTileItem.h"
 #include "SWorldLayers.h"
 #include "WorldTileCollectionModel.h"
+#include "IMenu.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -657,8 +658,11 @@ protected:
 		WorldModel->BuildWorldCompositionMenu(MenuBuilder);
 		TSharedPtr<SWidget> MenuWidget = MenuBuilder.MakeWidget();
 
+		FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 		FSlateApplication::Get().PushMenu(
 			AsShared(),
+			WidgetPath,
 			MenuWidget.ToSharedRef(),
 			MouseEvent.GetScreenSpacePosition(),
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
@@ -985,7 +989,7 @@ void SWorldComposition::OnBrowseWorld(UWorld* InWorld)
 	ContentParent->SetContent(SNullWidget::NullWidget);
 	LayersListWrapBox = nullptr;
 	NewLayerButton = nullptr;
-	NewLayerPopupWindow = nullptr;
+	NewLayerMenu.Reset();
 	GridView = nullptr;
 	TileWorldModel = nullptr;
 			
@@ -1210,8 +1214,9 @@ FReply SWorldComposition::NewLayer_Clicked()
 		.OnCreateLayer(this, &SWorldComposition::CreateNewLayer)
 		.DefaultName(LOCTEXT("Layer_DefaultName", "MyLayer").ToString());
 
-	NewLayerPopupWindow = FSlateApplication::Get().PushMenu(
+	NewLayerMenu = FSlateApplication::Get().PushMenu(
 		this->AsShared(),
+		FWidgetPath(),
 		CreateLayerWidget,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -1225,9 +1230,9 @@ FReply SWorldComposition::CreateNewLayer(const FWorldTileLayer& NewLayer)
 	TileWorldModel->AddManagedLayer(NewLayer);
 	PopulateLayersList();
 	
-	if (NewLayerPopupWindow.IsValid())
+	if (NewLayerMenu.IsValid())
 	{
-		NewLayerPopupWindow->RequestDestroyWindow();
+		NewLayerMenu.Pin()->Dismiss();
 	}
 		
 	return FReply::Handled();

@@ -8,6 +8,7 @@
 #include "PlainTextLayoutMarshaller.h"
 #include "TextBlockLayout.h"
 #include "GenericCommands.h"
+#include "IMenu.h"
 
 void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& InTextLayout, const FTextLocation& InCursorPosition)
 {
@@ -2320,7 +2321,7 @@ TSharedRef< SWidget > SMultiLineEditableText::GetWidget()
 	return SharedThis( this );
 }
 
-void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow)
+void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath)
 {
 	TSharedPtr<SWidget> MenuContentWidget;
 
@@ -2386,13 +2387,13 @@ void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSha
 		{
 			MenuParent = StaticCastSharedRef<SWidget>(ParentWindow.ToSharedRef());
 		}
-		TSharedPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu(MenuParent, MenuContentWidget.ToSharedRef(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately);
+		TSharedPtr< IMenu > ContextMenu = FSlateApplication::Get().PushMenu(MenuParent, EventPath, MenuContentWidget.ToSharedRef(), InLocation, FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu), bFocusImmediately);
 
 		// Make sure the window is valid.  It's possible for the parent to already be in the destroy queue, for example if the editable text was configured to dismiss it's window during OnTextCommitted.
-		if (ContextMenuWindow.IsValid())
+		if (ContextMenu.IsValid())
 		{
-			ContextMenuWindow->SetOnWindowClosed(FOnWindowClosed::CreateSP(this, &SMultiLineEditableText::OnWindowClosed));
-			ActiveContextMenu.SummonSucceeded(ContextMenuWindow.ToSharedRef());
+			ContextMenu->GetOnMenuDismissed().AddSP(this, &SMultiLineEditableText::OnContextMenuClosed);
+			ActiveContextMenu.SummonSucceeded(ContextMenu.ToSharedRef());
 		}
 		else
 		{
@@ -2401,7 +2402,7 @@ void SMultiLineEditableText::SummonContextMenu(const FVector2D& InLocation, TSha
 	}
 }
 
-void SMultiLineEditableText::OnWindowClosed(const TSharedRef<SWindow>&)
+void SMultiLineEditableText::OnContextMenuClosed(TSharedRef<IMenu> Menu)
 {
 	// Note: We don't reset the ActiveContextMenu here, as Slate hasn't yet finished processing window focus events, and we need 
 	// to know that the window is still available for OnFocusReceived and OnFocusLost even though it's about to be destroyed

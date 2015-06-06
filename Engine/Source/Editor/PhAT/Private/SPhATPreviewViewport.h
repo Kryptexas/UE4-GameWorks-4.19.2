@@ -5,6 +5,7 @@
 #include "SEditorViewport.h"
 
 class FPhAT;
+class FPhATEdPreviewViewportClient;
 
 /*-----------------------------------------------------------------------------
    SPhATViewport

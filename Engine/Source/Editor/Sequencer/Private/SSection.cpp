@@ -555,8 +555,11 @@ FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 			TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
 			if (MenuContent.IsValid())
 			{
+				FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 				FSlateApplication::Get().PushMenu(
 					AsShared(),
+					WidgetPath,
 					MenuContent.ToSharedRef(),
 					MouseEvent.GetScreenSpacePosition(),
 					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )

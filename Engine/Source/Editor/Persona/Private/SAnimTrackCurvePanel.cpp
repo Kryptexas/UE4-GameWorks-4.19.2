@@ -481,6 +481,7 @@ FReply STransformCurveEdTrack::OnContextMenu()
 	if(PanelShared.IsValid())
 	{
 		FSlateApplication::Get().PushMenu(SharedThis(this),
+										  FWidgetPath(),
 										  PanelShared->CreateCurveContextMenu(CurveUid),
 										  FSlateApplication::Get().GetCursorPos(),
 										  FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup));

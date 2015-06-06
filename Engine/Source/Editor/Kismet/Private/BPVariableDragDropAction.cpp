@@ -513,6 +513,7 @@ FReply FKismetVariableDragDropAction::DroppedOnPanel( const TSharedRef< SWidget 
 				// Show dialog to choose getter vs setter
 				FSlateApplication::Get().PushMenu(
 					PanelWidget,
+					FWidgetPath(),
 					MenuBuilder.MakeWidget(),
 					ScreenPosition,
 					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu)

@@ -2108,8 +2108,8 @@ void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blue
 		{
 			if (!Blueprint->bIsRegeneratingOnLoad)
 			{
-				GetDerivedClasses(SkelClass, ChildrenOfClass, false);
-			}
+			GetDerivedClasses(SkelClass, ChildrenOfClass, false);
+		}
 		}
 
 		{
@@ -5561,8 +5561,8 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 								// Fix up the event signature
 								if (TargetFunction != nullptr)
 								{
-									EventNode->EventReference.SetFromField<UFunction>(TargetFunction, false);
-								}
+								EventNode->EventReference.SetFromField<UFunction>(TargetFunction, false);
+							}
 								else
 								{
 									EventNode->EventReference.SetExternalMember(EventFuncName, Blueprint->GeneratedClass);
@@ -6854,23 +6854,26 @@ void FBlueprintEditorUtils::OpenReparentBlueprintMenu( const TArray< UBlueprint*
 
 	TSharedRef<SWidget> ClassPicker = ConstructBlueprintParentClassPicker(Blueprints, OnPicked);
 
-	TSharedRef<SBorder> ClassPickerBorder = 
-		SNew(SBorder)
-		.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+	TSharedRef<SBox> ClassPickerBox = 
+		SNew(SBox)
+		.WidthOverride(280)
+		.HeightOverride(400)
 		[
-			ClassPicker
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			[
+				ClassPicker
+			]
 		];
 
 	// Show dialog to choose new parent class
 	FSlateApplication::Get().PushMenu(
 		ParentContent,
-		ClassPickerBorder,
+		FWidgetPath(),
+		ClassPickerBox,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu),
-		true,
-		false,
-		FVector2D(280, 400)
-		);
+		true);
 }
 
 /** Filter class for ClassPicker handling allowed interfaces for a Blueprint */

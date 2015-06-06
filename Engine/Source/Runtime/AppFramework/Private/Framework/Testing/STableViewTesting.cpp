@@ -444,6 +444,7 @@ public:
 		FSlateApplication::Get().PushMenu
 		(
 			SharedThis( this ),
+			FWidgetPath(),
 			GetPopupContent(),
 			SpawnLocation,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
@@ -603,6 +604,7 @@ public:
 		FSlateApplication::Get().PushMenu
 		(
 			SharedThis( this ),
+			FWidgetPath(),
 			GetPopupContent(),
 			SpawnLocation,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )

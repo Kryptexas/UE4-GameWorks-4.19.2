@@ -329,6 +329,11 @@ public:
 		EventPath = &InEventPath;
 	}
 
+	const FWidgetPath* GetEventPath() const
+	{
+		return EventPath;
+	}
+
 	SLATECORE_API virtual FText ToText() const;
 	
 	/** Is this event a pointer event (touch or cursor). */
@@ -345,7 +350,7 @@ protected:
 	// True if this key was auto-repeated.
 	bool bIsRepeat;
 
-	// Events are sent along paths. See GetEventPath().
+	// Events are sent along paths. See (GetEventPath).
 	const FWidgetPath* EventPath;
 };
 

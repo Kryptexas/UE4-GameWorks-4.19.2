@@ -161,7 +161,7 @@ private:
 	TSharedPtr<FCurveEditorSharedData> SharedData;
 
 	/** Reference to owner of the current popup */
-	TWeakPtr<SWindow> EntryPopupWindow;
+	TWeakPtr<IMenu> EntryMenu;
 
 	/** Tabs dropdown */
 	TSharedPtr<STextComboBox> TabNamesComboBox;

@@ -13,6 +13,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "IPluginManager.h"
+#include "IMenu.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -74,35 +75,31 @@ public:
 
 		const FVector2D ScreenLocation = FVector2D(ScreenAnchor.Left, ScreenAnchor.Top);
 		const bool bFocusImmediately = true;
-		const bool bShouldAutoSize = true;
-		const FVector2D WindowSize = FVector2D::ZeroVector;
 		const FVector2D SummonLocationSize = ScreenAnchor.GetSize();
 
-		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(
+		TSharedPtr<IMenu> Menu = FSlateApplication::Get().PushMenu(
 			ParentContent,
+			FWidgetPath(),
 			PopupContent,
 			ScreenLocation,
 			FPopupTransitionEffect( FPopupTransitionEffect::TopMenu ),
 			bFocusImmediately,
-			bShouldAutoSize,
-			WindowSize,
-			SummonLocationSize
-			);
+			SummonLocationSize);
 
-		PopupContent->SetWindow(PopupWindow);
+		PopupContent->SetMenu(Menu);
 	}
 
 private:
-	void SetWindow( const TSharedRef<SWindow>& InWindow )
+	void SetMenu(const TSharedPtr<IMenu>& InMenu)
 	{
-		Window = InWindow;
+		Menu = InMenu;
 	}
 
 	FReply OnBorderClicked(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
 	{
-		if ( Window.IsValid() )
+		if (Menu.IsValid())
 		{
-			Window.Pin()->RequestDestroyWindow();
+			Menu.Pin()->Dismiss();
 		}
 
 		return FReply::Handled();
@@ -114,7 +111,7 @@ private:
 	}
 
 private:
-	TWeakPtr<SWindow> Window;
+	TWeakPtr<IMenu> Menu;
 };
 
 /** A miniture confirmation popup for quick yes/no questions */
@@ -195,8 +192,9 @@ public:
 	void OpenPopup(const TSharedRef<SWidget>& ParentContent)
 	{
 		// Show dialog to confirm the delete
-		PopupWindow = FSlateApplication::Get().PushMenu(
+		Menu = FSlateApplication::Get().PushMenu(
 			ParentContent,
+			FWidgetPath(),
 			SharedThis(this),
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect( FPopupTransitionEffect::TopMenu )
@@ -212,7 +210,10 @@ private:
 			OnYesClicked.Execute();
 		}
 
-		PopupWindow.Pin()->RequestDestroyWindow();
+		if (Menu.IsValid())
+		{
+			Menu.Pin()->Dismiss();
+		}
 
 		return FReply::Handled();
 	}
@@ -225,13 +226,16 @@ private:
 			OnNoClicked.Execute();
 		}
 
-		PopupWindow.Pin()->RequestDestroyWindow();
+		if (Menu.IsValid())
+		{
+			Menu.Pin()->Dismiss();
+		}
 
 		return FReply::Handled();
 	}
 
-	/** The window containing this popup */
-	TWeakPtr<SWindow> PopupWindow;
+	/** The IMenu prepresenting this popup */
+	TWeakPtr<IMenu> Menu;
 
 	/** Delegates for button clicks */
 	FOnClicked OnYesClicked;

@@ -1767,45 +1767,146 @@ TSharedRef<SWindow> FSlateApplication::AddWindowAsNativeChild( TSharedRef<SWindo
 
 TSharedRef<SWindow> FSlateApplication::PushMenu( const TSharedRef<SWidget>& InParentContent, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bShouldAutoSize, const FVector2D& WindowSize, const FVector2D& SummonLocationSize )
 {
-	FWidgetPath WidgetPath;
-	GeneratePathToWidgetChecked( InParentContent, WidgetPath );
-
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 	// The would-be parent of the new menu being pushed is about to be destroyed.  Any children added to an about to be destroyed window will also be destroyed
+	FWidgetPath WidgetPath;
+	GeneratePathToWidgetChecked(InParentContent, WidgetPath);
 	if (IsWindowInDestroyQueue( WidgetPath.GetWindow() ))
 	{
 		UE_LOG(LogSlate, Warning, TEXT("FSlateApplication::PushMenu() called when parent window queued for destroy. New menu will be destroyed."));
 	}
 #endif
 
-	return MenuStack.PushMenu( WidgetPath.GetWindow(), InContent, SummonLocation, TransitionEffect, bFocusImmediately, bShouldAutoSize, WindowSize, SummonLocationSize );
+	// This is a DEPRECATED version of PushMenu(). It creates a new menu but forces the popup method to EPopupMethod::CreateNewWindow
+
+	// Wrap content in a fixed size box if autosizing isn't wanted
+	TSharedRef<SWidget> WappedContent = InContent;
+	if (!bShouldAutoSize)
+	{
+		WappedContent = SNew(SBox)
+			.WidthOverride(WindowSize.X)
+			.HeightOverride(WindowSize.Y)
+			[
+				InContent
+			];
+	}
+
+	TSharedPtr<IMenu> Menu = PushMenu(InParentContent, FWidgetPath(), WappedContent, SummonLocation, TransitionEffect, bFocusImmediately, SummonLocationSize, EPopupMethod::CreateNewWindow);
+	TSharedPtr<SWindow> Window = Menu->GetOwnedWindow();
+	check(Window.IsValid());
+
+	return Window.ToSharedRef();
+}
+
+TSharedPtr<IMenu> FSlateApplication::PushMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize, TOptional<EPopupMethod> Method)
+{
+	// Caller supplied a valid path? Pass it to the menu stack.
+	if (InOwnerPath.IsValid())
+	{
+		return MenuStack.Push(InOwnerPath, InContent, SummonLocation, TransitionEffect, bFocusImmediately, SummonLocationSize, Method);
+	}
+
+	// If the caller doesn't specify a valid event path we'll generate one from InParentWidget
+	FWidgetPath WidgetPath;
+	if (GeneratePathToWidgetUnchecked(InParentWidget, WidgetPath))
+	{
+		return MenuStack.Push(WidgetPath, InContent, SummonLocation, TransitionEffect, bFocusImmediately, SummonLocationSize, Method);
+	}
+
+	return TSharedPtr<IMenu>();
+}
+
+TSharedPtr<IMenu> FSlateApplication::PushMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const FVector2D& SummonLocationSize)
+{
+	return MenuStack.Push(InParentMenu, InContent, SummonLocation, TransitionEffect, bFocusImmediately, SummonLocationSize);
+}
+
+TSharedPtr<IMenu> FSlateApplication::PushHostedMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect)
+{
+	// Caller supplied a valid path? Pass it to the menu stack.
+	if (InOwnerPath.IsValid())
+	{
+		return MenuStack.PushHosted(InOwnerPath, InMenuHost, InContent, OutWrappedContent, TransitionEffect);
+	}
+
+	// If the caller doesn't specify a valid event path we'll generate one from InParentWidget
+	FWidgetPath WidgetPath;
+	if (GeneratePathToWidgetUnchecked(InParentWidget, WidgetPath))
+	{
+		return MenuStack.PushHosted(WidgetPath, InMenuHost, InContent, OutWrappedContent, TransitionEffect);
+	}
+
+	return TSharedPtr<IMenu>();
+}
+
+TSharedPtr<IMenu> FSlateApplication::PushHostedMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect)
+{
+	return MenuStack.PushHosted(InParentMenu, InMenuHost, InContent, OutWrappedContent, TransitionEffect);
 }
 
 bool FSlateApplication::HasOpenSubMenus( TSharedRef<SWindow> Window ) const
 {
-	return MenuStack.HasOpenSubMenus(Window);
+	// deprecated
+	TSharedPtr<IMenu> Menu = MenuStack.FindMenuFromWindow(Window);
+	if (Menu.IsValid())
+	{
+		return MenuStack.HasOpenSubMenus(Menu);
+	}
+	return false;
+}
+
+bool FSlateApplication::HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const
+{
+	return MenuStack.HasOpenSubMenus(InMenu);
 }
 
 bool FSlateApplication::AnyMenusVisible() const
 {
-	return MenuStack.GetNumStackLevels() > 0;
+	return MenuStack.HasMenus();
+}
+
+TSharedPtr<SWindow> FSlateApplication::GetVisibleMenuWindow() const
+{
+	return MenuStack.GetHostWindow();
 }
 
 void FSlateApplication::DismissAllMenus()
 {
-	MenuStack.Dismiss();
+	MenuStack.DismissAll();
 }
 
 void FSlateApplication::DismissMenu( TSharedRef<SWindow> MenuWindowToDismiss )
 {
-	int32 Location = MenuStack.FindLocationInStack( MenuWindowToDismiss );
-	// Dismiss everything starting at the window to dismiss
-	MenuStack.Dismiss( Location );
+	// deprecated
+	TSharedPtr<IMenu> Menu = MenuStack.FindMenuFromWindow(MenuWindowToDismiss);
+	if (Menu.IsValid())
+	{
+		DismissMenu(Menu);
+	}
+}
+
+void FSlateApplication::DismissMenu(const TSharedPtr<IMenu>& InFromMenu)
+{
+	MenuStack.DismissFrom(InFromMenu);
+}
+
+void FSlateApplication::DismissMenuByWidget(const TSharedRef<SWidget>& InWidgetInMenu)
+{
+	FWidgetPath WidgetPath;
+	if (GeneratePathToWidgetUnchecked(InWidgetInMenu, WidgetPath))
+	{
+		TSharedPtr<IMenu> Menu = MenuStack.FindMenuInWidgetPath(WidgetPath);
+		if (Menu.IsValid())
+		{
+			MenuStack.DismissFrom(Menu);
+		}
+	}
 }
 
 int32 FSlateApplication::GetLocationInMenuStack( TSharedRef<SWindow> WindowToFind ) const
 {
-	return MenuStack.FindLocationInStack( WindowToFind );
+	// DEPRECATED
+	return MenuStack.FindLocationInStack(WindowToFind);
 }
 
 
@@ -2326,7 +2427,7 @@ void FSlateApplication::DestroyWindowsImmediately()
 		}
 
 		// Any window being destroyed should be removed from the menu stack if its in it
-		MenuStack.RemoveWindow( CurrentWindow );
+		MenuStack.OnWindowDestroyed(CurrentWindow);
 
 		// Perform actual cleanup of the window
 		PrivateDestroyWindow( CurrentWindow );
@@ -2892,22 +2993,11 @@ void FSlateApplication::UpdateToolTip( bool AllowSpawningOfNewToolTips )
 	// spawned from menu items in a different window, for example.
 	if( bHaveForceFieldRect && WidgetsToQueryForToolTip.IsValid() )
 	{
-		const int32 MenuStackLevel = MenuStack.FindLocationInStack( WidgetsToQueryForToolTip.GetWindow() );
+		TSharedPtr<IMenu> MenuInPath = MenuStack.FindMenuInWidgetPath(WidgetsToQueryForToolTip);
 
-		// Also check widgets in pop-up menus owned by this window
-		for( int32 CurStackLevel = MenuStackLevel + 1; CurStackLevel < MenuStack.GetNumStackLevels(); ++CurStackLevel )
+		if (MenuInPath.IsValid())
 		{
-			FMenuWindowList& Windows = MenuStack.GetWindowsAtStackLevel( CurStackLevel );
-
-			for( FMenuWindowList::TConstIterator WindowIt( Windows ); WindowIt; ++WindowIt )
-			{
-				TSharedPtr< SWindow > CurWindow = *WindowIt;
-				if( CurWindow.IsValid() )
-				{
-					const FGeometry& WindowGeometry = CurWindow->GetWindowGeometryInScreen();
-					ForceFieldRect = ForceFieldRect.Expand( WindowGeometry.GetClippingRect() );
-				}
-			}
+			ForceFieldRect = ForceFieldRect.Expand(MenuStack.GetToolTipForceFieldRect(MenuInPath.ToSharedRef(), WidgetsToQueryForToolTip));
 		}
 	}
 

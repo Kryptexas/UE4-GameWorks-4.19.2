@@ -1476,7 +1476,7 @@ public:
 	 */
 	void GenericTextEntryModeless(const FText& DialogText, const FText& DefaultText, FOnTextCommitted OnTextComitted);
 	/** Closes the popup created by GenericTextEntryModal or GenericTextEntryModeless*/
-	void CloseEntryPopupWindow();
+	void CloseEntryPopupMenu();
 private:
 	/** Popup menu function for retrieving a new name from the user. */	
 	void GetNewNamePopup( const FText& InDialogTitle, const FText& InDialogCaption, const FText& InDefaultText, const FText& InOriginalName, FOnTextCommitted OnTextCommited );
@@ -1518,7 +1518,7 @@ private:
 	void BindCommands();
 
 	/** Generic Popup Entry */
-	TWeakPtr<SWindow> EntryPopupWindow;
+	TWeakPtr<class IMenu> EntryPopupMenu;
 
 	/** ToolBar delegates */
 	const FSlateBrush* GetToolbarInterpSpeedIcon();

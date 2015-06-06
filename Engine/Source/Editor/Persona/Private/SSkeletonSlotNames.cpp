@@ -400,6 +400,7 @@ void SSkeletonSlotNames::OnAddSlot()
 	// Show dialog to enter new track name
 	FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -416,6 +417,7 @@ void SSkeletonSlotNames::OnAddGroup()
 	// Show dialog to enter new track name
 	FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -909,6 +911,7 @@ void SSkeletonSlotNames::OnRenameSlot(FName CurrentName)
 	// Show dialog to enter new track name
 	FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
