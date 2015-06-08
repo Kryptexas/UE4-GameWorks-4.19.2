@@ -55,6 +55,9 @@ namespace UnrealBuildTool
 		// Marketplace URL for this plugin. This URL will be embedded into projects that enable this plugin, so we can redirect to the marketplace if a user doesn't have it installed.
 		public string MarketplaceURL;
 
+		// Support URL/email for this plugin.
+		public string SupportURL;
+
 		// List of all modules associated with this plugin
 		public ModuleDescriptor[] Modules;
 
@@ -128,6 +131,7 @@ namespace UnrealBuildTool
 				RawObject.TryGetStringField("CreatedByURL", out Descriptor.CreatedByURL);
 				RawObject.TryGetStringField("DocsURL", out Descriptor.DocsURL);
 				RawObject.TryGetStringField("MarketplaceURL", out Descriptor.MarketplaceURL);
+				RawObject.TryGetStringField("SupportURL", out Descriptor.SupportURL);
 
 				JsonObject[] ModulesArray;
 				if(RawObject.TryGetObjectArrayField("Modules", out ModulesArray))
@@ -168,6 +172,7 @@ namespace UnrealBuildTool
 				Writer.WriteValue("CreatedByURL", CreatedByURL);
 				Writer.WriteValue("DocsURL", DocsURL);
 				Writer.WriteValue("MarketplaceURL", MarketplaceURL);
+				Writer.WriteValue("SupportURL", SupportURL);
 
 				ModuleDescriptor.WriteArray(Writer, "Modules", Modules);
 

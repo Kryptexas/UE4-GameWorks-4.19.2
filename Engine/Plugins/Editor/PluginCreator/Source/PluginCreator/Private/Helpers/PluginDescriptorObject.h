@@ -64,6 +64,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "PluginDescription")
 	FString DocsURL;
 
+	/** Support URL/email for this plugin. Email addresses must be prefixed with 'mailto:' */
+	UPROPERTY(EditAnywhere, Category = "PluginDescription")
+	FString SupportURL;
+
 	/** List of all modules associated with this plugin */
 	TArray<FModuleDescriptor> Modules;
 

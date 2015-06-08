@@ -105,38 +105,6 @@ bool FPluginHelpers::CreatePrivatePCHFile(const FString& FolderPath, const FStri
 	return GameProjectUtils::WriteOutputFile(FolderPath / PluginName + TEXT("PrivatePCH.h"), FinalOutput, OutFailReason);
 }
 
-
-bool FPluginHelpers::SavePluginDescriptor(const FString& NewProjectFilename, const FPluginDescriptor& PluginDescriptor)
-{
-	FString Text;
-	TSharedRef< TJsonWriter<> > Writer = TJsonWriterFactory<>::Create(&Text);
-
-	Writer->WriteObjectStart();
-
-	// Write all the simple fields
-
-	Writer->WriteValue(TEXT("FileVersion"), PluginDescriptor.FileVersion);
-
-	Writer->WriteValue(TEXT("FriendlyName"), PluginDescriptor.FriendlyName);
-	Writer->WriteValue(TEXT("Version"), PluginDescriptor.Version);
-	Writer->WriteValue(TEXT("VersionName"), PluginDescriptor.VersionName);
-	Writer->WriteValue(TEXT("CreatedBy"), PluginDescriptor.CreatedBy);
-	Writer->WriteValue(TEXT("CreatedByURL"), PluginDescriptor.CreatedByURL);
-	Writer->WriteValue(TEXT("Category"), PluginDescriptor.Category);
-	Writer->WriteValue(TEXT("Description"), PluginDescriptor.Description);
-	Writer->WriteValue(TEXT("EnabledByDefault"), PluginDescriptor.bEnabledByDefault);
-
-
-	// Write the module list
-	FModuleDescriptor::WriteArray(Writer.Get(), TEXT("Modules"), PluginDescriptor.Modules);
-
-	Writer->WriteObjectEnd();
-
-	Writer->Close();
-
-	return FFileHelper::SaveStringToFile(Text, *NewProjectFilename);
-}
-
 bool FPluginHelpers::CreatePluginStyleFiles(const FString& PrivateFolderPath, const FString& PublicFolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType)
 {
 	{

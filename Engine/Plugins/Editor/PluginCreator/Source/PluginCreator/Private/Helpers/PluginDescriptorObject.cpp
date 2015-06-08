@@ -23,6 +23,7 @@ void UPluginDescriptorObject::FillDescriptor(FPluginDescriptor& OutDescriptor)
 	OutDescriptor.CreatedByURL = CreatedByURL;
 	OutDescriptor.Description = Description;
 	OutDescriptor.DocsURL = DocsURL;
+	OutDescriptor.SupportURL = SupportURL;
 	OutDescriptor.FileVersion = FileVersion;
 	OutDescriptor.FriendlyName = FriendlyName;
 	OutDescriptor.Version = Version;

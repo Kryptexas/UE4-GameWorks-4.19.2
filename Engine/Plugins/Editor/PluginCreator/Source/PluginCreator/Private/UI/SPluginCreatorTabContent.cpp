@@ -551,7 +551,8 @@ bool SPluginCreatorTabContent::WritePluginDescriptor(const FString& PluginModule
 	}
 
 	// Save the descriptor using JSon
-	if (FPluginHelpers::SavePluginDescriptor(UPluginFilePath, Descriptor))
+	FText FailReason;
+	if (Descriptor.Save(UPluginFilePath, FailReason))
 	{
 		return true;
 	}

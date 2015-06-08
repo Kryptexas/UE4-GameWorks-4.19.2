@@ -62,11 +62,4 @@ public:
 	*	@param TemplateType - empty by default; can be Blank, Basic or Advanced
 	*	@return true if file was created, false otherwise*/
 	static bool CreatePrivatePCHFile(const FString& FolderPath, const FString& PluginName, FText& OutFailReason, FString TemplateType = FString(""));
-
-	/** Save plugin descriptor under given path as .uplugin file using JSon
-	*	@param NewProjectFilename - filename with full path
-	*	@param PluginDescriptor - descriptor to save
-	*	@return true if file was created, false otherwise*/
-	static bool SavePluginDescriptor(const FString& NewProjectFilename, const FPluginDescriptor& PluginDescriptor);
-
 };
