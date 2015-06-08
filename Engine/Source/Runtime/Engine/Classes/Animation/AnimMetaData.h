@@ -8,7 +8,7 @@
  */
 
 #pragma once
-#include "AnimMetadata.generated.h"
+#include "AnimMetaData.generated.h"
 
 UCLASS(Blueprintable, abstract, const, MinimalAPI, editinlinenew, hidecategories=Object, collapsecategories)
 class UAnimMetaData : public UObject

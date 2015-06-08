@@ -9,7 +9,7 @@
 #include "PhATActions.h"
 #include "SPhATPreviewToolbar.h"
 #include "Editor/UnrealEd//Public/SEditorViewport.h"
-#include "SPhatPreviewViewport.h"
+#include "SPhATPreviewViewport.h"
 #include "PhATPreviewViewportClient.h"
 
 #define LOCTEXT_NAMESPACE "PhatViewportToolBar"
