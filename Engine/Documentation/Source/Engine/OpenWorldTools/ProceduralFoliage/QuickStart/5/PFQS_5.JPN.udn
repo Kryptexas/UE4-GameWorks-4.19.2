@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2556654
+﻿INTSourceChangelist:2578359
 Availability:Docs
-Title:5. Procedural Foliage Blocking Volume を使用する
+Title:5. Procedural Foliage Blocking Volume を実装する
 Crumbs:
 Description:フォーリッジのスポーン範囲を制限するブロック ボリュームを設定しましょう。
 Navigation:topic
@@ -18,7 +18,7 @@ SkillLevel:Intermediate
 		[How-To ホーム](Engine\OpenWorldTools\ProceduralFoliage\QuickStart "Engine\OpenWorldTools\ProceduralFoliage\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
-
+	[次のステップ](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -28,17 +28,16 @@ SkillLevel:Intermediate
 このアクタは、Procedural Foliage が Procedural Foliage Blocking Volume の領域で Foliage アクタをスポーンしてしまうことを防ぎます。
 次のセクションでは、 **Procedural Foliage Blocking Volume** のレベルへの追加方法および Foliage meshes のスポーンを防ぐための使用方法について説明します。
 前のステップで作成した **PFT_00** レベルを引き続き使用します。
-一旦終了してしまった場合は再度ここで開いてから、次のステップへ進んでください。
 
 1. まず **Proc** というワードで **[Modes]** パネル内を検索して Procedural Foliage Blocking Volume を探します。  
 
 	![](T_Find_ProcF_Blocking_Volume.png)
 
-1. [Modes] パネルで見つかった Procedural Foliage Blocking Volume をマウスでクリックして、[Modes] パネルからレベルへドラッグします。
+1. [Modes] パネルで見つかった Procedural Foliage Blocking Volume を選択して、[Modes] パネルからレベルへドラッグします。
 
 	![](T_Adding_PFV_To_Level.gif)(convert:false)
 
-1. 次に以下の値を Procedural Foliage Blocking Volume の Locaiton と Scale に入力します。入力すると、以下のようになります。
+1. フォーリッジ メッシュが Procedural Foliage Spawner の黒い部分にスポーンされないように、Procedural Foliage Blocking Volume を以下の値を使って移動およびスケールします。
 
 	* **Location X:** 5430.0 cm
 	* **Location Y:** -3900.0 cm
@@ -49,18 +48,16 @@ SkillLevel:Intermediate
 
 	![](T_PFBV_Postion.png)
 
-1. 次にレベルで **Procedural Foliage Spawner** を選択して、**[Details]** パネルの **[Resimulate]** ボタンを押します。 
+1. 次にレベルで **Procedural Foliage Spawner** を選択して、**[Details]** の **[Resimulate]** ボタンをクリックします。
    再シミュレーションが完了すると、Procedural Foliage Blocking Volume と交わる部分全体の木が消えています。
-   以下の画像で、設定前と後の違いが分かります。 
 
-	   ![](T_PFV_Before_After.png)
+	![](T_PFV_Before_After.png)
+	以下の画像で、設定前と後の違いが分かります。 
 
-	   * 1:設定前
-	   * 2:設定後
-
-1. 最後に作業とレベルを保存します。 **[Save All]** ボタンはすべてのコンテンツが保存され、 **[Save]** ボタンを押すとレベルが保存されます。 
-
-	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
+	|画像番号| 結果|
+	|-----|------|
+	|1: | Procedural Foliage Blocking Volume 追加前|
+	|2:| Procedural Foliage Blocking Volume 追加後|
 
 
 %Steps%
