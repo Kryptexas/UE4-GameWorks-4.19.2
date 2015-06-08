@@ -845,6 +845,14 @@ public:
 	 */
 	static void SetVariableSaveGameFlag(UBlueprint* InBlueprint, const FName& InVarName, const bool bInIsSaveGame);
 
+	/**
+	 * Sets the Advanced Display flag on the variable with the specified name
+	 *
+	 * @param	InVarName				Name of the var to set the flag on
+	 * @param	bInIsAdvancedDisplay	The new value to set the bitflag to
+	 */
+	static void SetVariableAdvancedDisplayFlag(UBlueprint* InBlueprint, const FName& InVarName, const bool bInIsAdvancedDisplay);
+
 	/** Sets a metadata key/value on the specified variable
 	 *
 	 * @param Blueprint				The Blueprint to find the variable in

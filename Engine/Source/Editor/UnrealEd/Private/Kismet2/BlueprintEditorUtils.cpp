@@ -3389,6 +3389,25 @@ void FBlueprintEditorUtils::SetVariableSaveGameFlag(UBlueprint* InBlueprint, con
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 }
 
+void FBlueprintEditorUtils::SetVariableAdvancedDisplayFlag(UBlueprint* InBlueprint, const FName& InVarName, const bool bInIsAdvancedDisplay)
+{
+	const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(InBlueprint, InVarName);
+
+	if (VarIndex != INDEX_NONE)
+	{
+		if( bInIsAdvancedDisplay )
+		{
+			InBlueprint->NewVariables[VarIndex].PropertyFlags |= CPF_AdvancedDisplay;
+		}
+		else
+		{
+			InBlueprint->NewVariables[VarIndex].PropertyFlags &= ~CPF_AdvancedDisplay;
+		}
+	}
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+}
+
 struct FMetaDataDependencyHelper
 {
 	static void OnChange(UBlueprint* Blueprint, FName MetaDataKey)

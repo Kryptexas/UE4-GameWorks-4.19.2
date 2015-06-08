@@ -169,6 +169,10 @@ private:
 	ECheckBoxState OnGetSaveGameCheckboxState() const;
 	void OnSaveGameChanged(ECheckBoxState InNewState);
 
+	EVisibility GetAdvancedDisplayVisibility() const;
+	ECheckBoxState OnGetAdvancedDisplayCheckboxState() const;
+	void OnAdvancedDisplayChanged(ECheckBoxState InNewState);
+
 	/** Refresh the property flags list */
 	void RefreshPropertyFlags();
 
