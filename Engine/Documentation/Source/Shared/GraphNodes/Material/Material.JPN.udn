@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2528858
+﻿INTSourceChangelist:2573986
 Availability:NoPublish
 Title:
 Crumbs:
@@ -132,7 +132,7 @@ Engine/Rendering/Materials/ExpressionReference/Constant#perinstancefadeamount
 [EXCERPT:UMaterialExpressionPerInstanceRandom]
 PerInstanceRandom 表現式は、マテリアルが適用されたスタティックメッシュのインスタンスごとに異なるランダムな float 値を出力します。InstancedStaticMeshComponent はランダムな float 値をインスタンスに設定しますが、必要に応じて何にでも利用できるようにエクスポーズされています (例えば窓の後方のランダムな光源レベル)。出力値は定数ですが、個々のメッシュのインスタンスに対し異なる値となります。
 
-出力値は、ターゲットプラットフォームに対して 0 から RAND_MAX 間の整数になります。 
+出力値は、ターゲット プラットフォームに対して 0 から RAND_MAX 間の整数になります。 
 
 注記：InstancedStaticMesh アクタ、または InstancedStaticMeshComponents (インスタンス化されたスタティックメッシュ) を利用する別のアクタに適用時のみ機能します。 
 
@@ -158,7 +158,7 @@ Engine/Rendering/Materials/ExpressionReference/Constant#twosidedsign
 [/EXCERPT:UMaterialExpressionTwoSidedSign]
 
 [EXCERPT:UMaterialExpressionVertexColor]
-VertexColor 表現式は、スプライト パーティクル エミッターに影響を及ぼすカラー モジュールの出力を目的とした、マテリアルのアクセスポイントです。 
+VertexColor 表現式は、スプライト パーティクル エミッターに影響を及ぼすカラー モジュールの出力を目的とした、マテリアルのアクセス ポイントです。 
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Constant#vertexcolor
@@ -348,7 +348,7 @@ Engine/Rendering/Materials/ExpressionReference/Depth#scenedepth
 [/EXCERPT:UMaterialExpressionSceneDepth]
 
 [EXCERPT:UMaterialExpressionFontSample]
-FontSample 表現式は、通常の 2D テクスチャとしてフォントリソースからテクスチャページのサンプルを作成します。フォントのアルファ チャンネルには、フォント アウトライン値が格納されます。有効なフォントページのみを指定できます。 
+FontSample 表現式は、通常の 2D テクスチャとしてフォント リソースからテクスチャページのサンプルを作成します。フォントのアルファ チャンネルには、フォント アウトライン値が格納されます。有効なフォントページのみを指定できます。 
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Font#fontsample
@@ -364,7 +364,7 @@ Engine/Rendering/Materials/ExpressionReference/Font#fontsampleparameter
 [/EXCERPT:UMaterialExpressionFontSampleParameter]
 
 [EXCERPT:UMaterialExpressionMaterialFunctionCall]
- MaterialFunctionCall 表現式では、別のマテリアルまたは関数から外部マテリアル関数を使用することができます。外部関数の入出力ノードは関数呼び出しノードの入出力になります。こうした式を配置する場合に、コンテンツ ブラウザでマテリアル関数が選択されると、自動的に割り当てられます。 
+MaterialFunctionCall 表現式では、別のマテリアルまたは関数から外部マテリアル関数を使用することができます。外部関数の入出力ノードは関数呼び出しノードの入出力になります。こうした式を配置する場合に、コンテンツ ブラウザでマテリアル関数が選択されると、自動的に割り当てられます。 
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Functions#materialfunctioncall
@@ -477,7 +477,7 @@ Engine/Rendering/Materials/ExpressionReference/Math#add
 [/EXCERPT:UMaterialExpressionAdd]
 
 [EXCERPT:UMaterialExpressionAppendVector]
-AppendVector 表現式は、オリジナルよりも多いチャンネルでベクターを作成するために、チャンネルの結合を有効にします。例えば、2 つの個別の Constant 値を受け取り、2 チャンネルのConstant2Vector 値を作成するためにこれらを追加 (append) します。単一テクスチャ内でチャンネルの再順序付けをしたり、複数のグレースケールテクスチャを 1 つの RGB カラーテクスチャに結合する際に実用的です。 
+AppendVector 表現式は、オリジナルよりも多いチャンネルでベクターを作成するために、チャンネルの結合を有効にします。例えば、2 つの個別の Constant 値を受け取り、2 チャンネルのConstant2Vector 値を作成するためにこれらを追加 (append) します。単一テクスチャ内でチャンネルの再順序付けをしたり、複数のグレースケール テクスチャを 1 つの RGB カラーテクスチャに結合する際に実用的です。 
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Math#appendvector
@@ -771,7 +771,7 @@ Engine/Rendering/Materials/ExpressionReference/Textures#scenecolor
 [/EXCERPT:UMaterialExpressionSceneColor]
 
 [EXCERPT:UMaterialExpressionTextureSample]
-TextureSample 表現式は、テクスチャからカラー値を出力します。テキスチャは、通常の Texture2D (法線マップを含む) 、キューブマップまたはムービーテクスチャとなります。 
+TextureSample 表現式は、テクスチャからカラー値を出力します。テキスチャは、通常の Texture2D (法線マップを含む) 、キューブマップまたはムービー テクスチャとなります。 
 
 [VAR:ToolTipFullLink]
 Engine/Rendering/Materials/ExpressionReference/Textures#texturesample
@@ -885,7 +885,7 @@ Engine/Rendering/Materials/ExpressionReference/Utility#rotateaboutaxis
 [/EXCERPT:UMaterialExpressionRotateAboutAxis]
 
 [EXCERPT:UMaterialExpressionAntialiasedTextureMask]
-AntialiasedTextureMask 表現式はソフト (アンチエイリアス化) トランジションマスクを使用したマテリアルの作成を可能にします。マスクは二つの複雑なマテリアルプロパティのブレンドや、アルファブレンドされたマテリアル (SoftMasked とうまく機能します) をフェードアウトする際に使用されます。 
+AntialiasedTextureMask 表現式はソフト (アンチエイリアス化) トランジションマスクを使用したマテリアルの作成を可能にします。マスクは 2 つの複雑なマテリアルプロパティのブレンドや、アルファブレンドされたマテリアル (SoftMasked とうまく機能します) のフェードアウトに使用されます。 
 
 Simple はあるチャンネル (赤、緑、青、アルファ) で特定されたマスクと共にテクスチャを指定し、使用チャンネルを表現式に設定し、比較値を特定します。
 
