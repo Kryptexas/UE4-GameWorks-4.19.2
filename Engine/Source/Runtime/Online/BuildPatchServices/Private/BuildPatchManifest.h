@@ -318,6 +318,12 @@ struct FFileChunkPart
 	{}
 };
 
+// Required to allow private access to manifest builder for now..
+namespace FBuildPatchServices
+{
+	class FManifestBuilderImpl;
+}
+
 /**
  * Declare the FBuildPatchAppManifest object class. This holds the UObject data, and the implemented build manifest functionality
  */
@@ -326,9 +332,9 @@ class FBuildPatchAppManifest
 {
 	// Allow access to build processor classes
 	friend class FBuildDataGenerator;
-	friend class FBuildDataChunkProcessor;
 	friend class FBuildDataFileProcessor;
 	friend class FBuildPatchInstaller;
+	friend class FBuildPatchServices::FManifestBuilderImpl;
 public:
 
 	/**

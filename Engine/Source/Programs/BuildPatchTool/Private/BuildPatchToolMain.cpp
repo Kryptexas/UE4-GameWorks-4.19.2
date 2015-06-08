@@ -83,7 +83,6 @@
 #include "RequiredProgramMainCPPInclude.h"
 
 #include "BuildPatchServices.h"
-
 #include "CoreUObject.h"
 
 // Ensure compiled with patch generation code
@@ -143,6 +142,8 @@ namespace EBuildPatchToolMode
 int32 BuildPatchToolMain( const TCHAR* CommandLine )
 {
 	GEngineLoop.PreInit(CommandLine);
+	GConfig->InitializeConfigSystem();
+	IFileManager::Get().ProcessCommandLineOptions();
 
 	// Add log device
 	if (FParse::Param(FCommandLine::Get(), TEXT("stdout")))
@@ -372,7 +373,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		{
 			// Initialize the configuration system, we can only do this reliably if we have CloudDirectory (i.e. bSuccess is true)
 			IniFile = CloudDirectory / TEXT("BuildPatchTool.ini");
-			GConfig->InitializeConfigSystem();
 
 			if (DataAgeThresholdIdx != INDEX_NONE)
 			{
@@ -405,9 +405,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			}
 		}
 	}
-
-	// Initialize the file manager
-	IFileManager::Get().ProcessCommandLineOptions();
 
 	// Check for argument error
 	if( !bSuccess )
@@ -552,7 +549,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
-	FString CommandLine;
+	FString CommandLine = TEXT("-usehyperthreading");
 	for( int32 Option = 1; Option < ArgC; Option++ )
 	{
 		CommandLine += TEXT(" ");
