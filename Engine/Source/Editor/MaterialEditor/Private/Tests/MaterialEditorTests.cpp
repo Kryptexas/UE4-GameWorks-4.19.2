@@ -246,3 +246,5 @@ bool FMaterialEditorPromotionTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FRunMaterialEditorPromotionTestCommand(MaterialEditorPromotionTest));
 	return true;
 }
+
+#undef LOCTEXT_NAMESPACE
