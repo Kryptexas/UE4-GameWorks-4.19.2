@@ -1355,15 +1355,25 @@ public:
 		return *OneFrameResource;
 	}
 
+	FORCEINLINE bool ShouldUseTasks() const
+	{
+		return bUseAsyncTasks;
+	}
+
+	FORCEINLINE void AddTask(const FGraphEventRef& Task)
+	{
+		TasksToWaitFor.Add(Task);
+	}
+
+	ENGINE_API void WaitForTasks();
+
 private:
 
-	FMeshElementCollector() :
-		PrimitiveSceneProxy(NULL),
-		FeatureLevel(ERHIFeatureLevel::Num)
-	{}
+	ENGINE_API FMeshElementCollector();
 
 	~FMeshElementCollector()
 	{
+		check(!TasksToWaitFor.Num()); // We should have blocked on this already
 		for (int32 ProxyIndex = 0; ProxyIndex < TemporaryProxies.Num(); ProxyIndex++)
 		{
 			delete TemporaryProxies[ProxyIndex];
@@ -1431,6 +1441,13 @@ private:
 	const FPrimitiveSceneProxy* PrimitiveSceneProxy;
 
 	ERHIFeatureLevel::Type FeatureLevel;
+
+	/** This is related to some cvars and FApp stuff and if true means calling code should use async tasks. */
+	const bool bUseAsyncTasks;
+
+	/** Tasks to wait for at the end of gathering dynamic mesh elements. */
+	FGraphEventArray TasksToWaitFor;
+
 
 	friend class FSceneRenderer;
 	friend class FProjectedShadowInfo;

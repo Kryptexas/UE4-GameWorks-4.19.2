@@ -46,6 +46,19 @@ static FAutoConsoleVariableRef CVarShowRelevantPrecomputedVisibilityCells(
 /** Random table for occlusion **/
 FOcclusionRandomStream GOcclusionRandomStream;
 
+int32 FOcclusionQueryHelpers::GetNumBufferedFrames()
+{
+#if WITH_SLI
+	// If we're running with SLI, assume throughput is more important than latency, and buffer an extra frame
+	check(GNumActiveGPUsForRendering <= (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+	return FMath::Min<int32>(GNumActiveGPUsForRendering, (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+#else
+	static const auto NumBufferedQueriesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NumBufferedOcclusionQueries"));
+	return FMath::Clamp<int32>(NumBufferedQueriesVar->GetValueOnAnyThread(), 1, (int32)FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+#endif
+}
+
+
 // default, non-instanced shader implementation
 IMPLEMENT_SHADER_TYPE(,FOcclusionQueryVS,TEXT("OcclusionQueryVertexShader"),TEXT("Main"),SF_Vertex);
 
@@ -203,6 +216,8 @@ void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList,
 	// Only trim every few frames, since stale entries won't cause problems
 	if (FrameNumber % 6 == 0)
 	{
+		int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+
 		for(TSet<FPrimitiveOcclusionHistory,FPrimitiveOcclusionHistoryKeyFuncs>::TIterator PrimitiveIt(PrimitiveOcclusionHistorySet);
 			PrimitiveIt;
 			++PrimitiveIt
@@ -211,7 +226,7 @@ void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList,
 			// If the primitive has an old pending occlusion query, release it.
 			if(PrimitiveIt->LastConsideredTime < MinQueryTime)
 			{
-				PrimitiveIt->ReleaseQueries(RHICmdList, OcclusionQueryPool);
+				PrimitiveIt->ReleaseQueries(RHICmdList, OcclusionQueryPool, NumBufferedFrames);
 			}
 
 			// If the primitive hasn't been considered for visibility recently, remove its history from the set.
@@ -223,16 +238,14 @@ void FSceneViewState::TrimOcclusionHistory(FRHICommandListImmediate& RHICmdList,
 	}
 }
 
-bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 InShadowSplitIndex, bool bTranslucentShadow) const
+bool FSceneViewState::IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 InShadowSplitIndex, bool bTranslucentShadow, int32 NumBufferedFrames) const
 {
 	// Find the shadow's occlusion query from the previous frame.
 	const FSceneViewState::FProjectedShadowKey Key(PrimitiveId, Light, InShadowSplitIndex, bTranslucentShadow);
 
-#if BUFFERED_OCCLUSION_QUERIES
 	// Get the oldest occlusion query	
 	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(PendingPrevFrameNumber, NumBufferedFrames);
 	const FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ShadowOcclusionQueryMaps[QueryIndex];	
-#endif
 
 
 	const FRenderQueryRHIRef* Query = ShadowOcclusionQueryMap.Find(Key);
@@ -274,15 +287,11 @@ void FSceneViewState::Destroy()
 
 SIZE_T FSceneViewState::GetSizeBytes() const
 {
-#if BUFFERED_OCCLUSION_QUERIES
 	uint32 ShadowOcclusionQuerySize = ShadowOcclusionQueryMaps.GetAllocatedSize();
 	for (int32 i = 0; i < ShadowOcclusionQueryMaps.Num(); ++i)
 	{
 		ShadowOcclusionQuerySize += ShadowOcclusionQueryMaps[i].GetAllocatedSize();
 	}
-#else
-	uint32 ShadowOcclusionQuerySize = ShadowOcclusionQueryMap.GetAllocatedSize();
-#endif
 
 	return sizeof(*this) 
 		+ ShadowOcclusionQuerySize
@@ -401,16 +410,12 @@ FRenderQueryRHIParamRef FOcclusionQueryBatcher::BatchPrimitive(const FVector& Bo
 	return CurrentBatchOcclusionQuery->Query;
 }
 
-static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader)
+static void IssueProjectedShadowOcclusionQuery(FRHICommandListImmediate& RHICmdList, FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader, int32 NumBufferedFrames)
 {	
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;
 
-#if BUFFERED_OCCLUSION_QUERIES		
-	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, ViewState->NumBufferedFrames);
+	const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, NumBufferedFrames);
 	FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
-#else
-	FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
-#endif
 
 	// The shadow transforms and view transforms are relative to different origins, so the world coordinates need to
 	// be translated.
@@ -1072,6 +1077,7 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate& RHICmdList, bool bRenderQueries, bool bRenderHZB)
 {
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
+	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	const bool bUseDownsampledDepth = IsValidRef(SceneContext.GetSmallDepthSurface()) && SceneContext.UseDownsizedOcclusionQueries();	
 
@@ -1087,6 +1093,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 	if (bRenderQueries)
 	{
 		RHICmdList.BeginOcclusionQueryBatch();
+
 
 		// Perform occlusion queries for each view
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -1125,12 +1132,8 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 				VertexShader->SetParameters(RHICmdList, View);
 
 				// Issue this frame's occlusion queries (occlusion queries from last frame may still be in flight)
-#if BUFFERED_OCCLUSION_QUERIES				
-				const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, ViewState->NumBufferedFrames);
+				const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(ViewState->PendingPrevFrameNumber, NumBufferedFrames);
 				FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMaps[QueryIndex];
-#else
-				FSceneViewState::ShadowKeyOcclusionQueryMap& ShadowOcclusionQueryMap = ViewState->ShadowOcclusionQueryMap;
-#endif			
 
 				// Clear primitives which haven't been visible recently out of the occlusion history, and reset old pending occlusion queries.
 				ViewState->TrimOcclusionHistory(RHICmdList, ViewFamily.CurrentRealTime - GEngine->PrimitiveProbablyVisibleTime, ViewFamily.CurrentRealTime, ViewState->OcclusionFrameCounter);
@@ -1189,7 +1192,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 							// Don't query if any subjects are visible because the shadow frustum will be definitely unoccluded
 							else if (!ProjectedShadowInfo.IsWholeSceneDirectionalShadow() && !ProjectedShadowInfo.bPreShadow && !ProjectedShadowInfo.SubjectsVisible(View))
 							{
-								IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader);
+								IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader, NumBufferedFrames);
 							}
 						}
 
@@ -1197,7 +1200,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 						for (int32 ShadowIndex = 0; ShadowIndex < VisibleLightInfo.OccludedPerObjectShadows.Num(); ShadowIndex++)
 						{
 							const FProjectedShadowInfo& ProjectedShadowInfo = *VisibleLightInfo.OccludedPerObjectShadows[ShadowIndex];
-							IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader);
+							IssueProjectedShadowOcclusionQuery(RHICmdList, View, ProjectedShadowInfo, *VertexShader, NumBufferedFrames);
 						}
 					}
 				}

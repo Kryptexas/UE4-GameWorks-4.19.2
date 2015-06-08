@@ -181,6 +181,33 @@ FMeshBatchAndRelevance::FMeshBatchAndRelevance(const FMeshBatch& InMesh, const F
 	bRenderInMainPass = PrimitiveSceneProxy->ShouldRenderInMainPass();
 }
 
+static TAutoConsoleVariable<int32> CVarUseParallelGetDynamicMeshElementsTasks(
+	TEXT("r.UseParallelGetDynamicMeshElementsTasks"),
+	0,
+	TEXT("If > 0, and if FApp::ShouldUseThreadingForPerformance(), then parts of GetDynamicMeshElements will be done in parallel."));
+
+FMeshElementCollector::FMeshElementCollector() :
+	PrimitiveSceneProxy(NULL),
+	FeatureLevel(ERHIFeatureLevel::Num),
+	bUseAsyncTasks(FApp::ShouldUseThreadingForPerformance() && CVarUseParallelGetDynamicMeshElementsTasks.GetValueOnRenderThread() > 0)
+{	
+}
+
+
+void FMeshElementCollector::WaitForTasks()
+{
+	check(IsInRenderingThread());
+	check(!TasksToWaitFor.Num() || bUseAsyncTasks);
+
+	if (TasksToWaitFor.Num())
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FMeshElementCollector_WaitForTasks);
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(TasksToWaitFor, ENamedThreads::RenderThread_Local);
+		TasksToWaitFor.Empty();
+	}
+}
+
+
 void FMeshElementCollector::AddMesh(int32 ViewIndex, FMeshBatch& MeshBatch)
 {
 	checkSlow(MeshBatch.GetNumPrimitives() > 0);

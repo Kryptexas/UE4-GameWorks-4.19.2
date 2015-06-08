@@ -989,6 +989,8 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = nullptr;
     
 		    FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+
+			Renderer.MeshCollector.WaitForTasks();
 	    }
     }
 }
@@ -1276,6 +1278,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 	bool bOpaqueRelevance = false;
 	bool bTranslucentRelevance = false;
 	bool bTranslucentShadowIsVisibleThisFrame = false;
+	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -1298,14 +1301,14 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 			!bCreateOpaqueObjectShadow ||
 			(
 				!View.bIgnoreExistingQueries &&	View.State &&
-				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, false)
+				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, false, NumBufferedFrames)
 			);
 
 		const bool bTranslucentShadowIsOccluded = 
 			!bCreateTranslucentObjectShadow ||
 			(
 				!View.bIgnoreExistingQueries && View.State &&
-				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, true)
+				((FSceneViewState*)View.State)->IsShadowOccluded(RHICmdList, PrimitiveSceneInfo->PrimitiveComponentId, LightSceneInfo->Proxy->GetLightComponent(), INDEX_NONE, true, NumBufferedFrames)
 			);
 
 		const bool bSubjectIsVisibleInThisView = View.PrimitiveVisibilityMap[PrimitiveSceneInfo->GetIndex()];
@@ -1760,6 +1763,8 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHICmdList)
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitProjectedShadowVisibility);
+	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
+
 	// Initialize the views' ProjectedShadowVisibilityMaps and remove shadows without subjects.
 	for(TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights);LightIt;++LightIt)
 	{
@@ -1833,7 +1838,8 @@ void FSceneRenderer::InitProjectedShadowVisibility(FRHICommandListImmediate& RHI
 								FPrimitiveComponentId(),
 							ProjectedShadowInfo.GetLightSceneInfo().Proxy->GetLightComponent(),
 							ProjectedShadowInfo.CascadeSettings.ShadowSplitIndex,
-							ProjectedShadowInfo.bTranslucentShadow
+							ProjectedShadowInfo.bTranslucentShadow,
+							NumBufferedFrames
 							);
 
 					// The shadow is visible if it is view relevant and unoccluded.

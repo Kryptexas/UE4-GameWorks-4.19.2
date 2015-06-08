@@ -100,11 +100,8 @@ FSceneViewState::FSceneViewState()
 	bIntializedGlobalDistanceFieldOrigins = false;
 	GlobalDistanceFieldUpdateIndex = 0;
 
-#if BUFFERED_OCCLUSION_QUERIES
-	NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
-	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
-	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
-#endif
+	ShadowOcclusionQueryMaps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+	ShadowOcclusionQueryMaps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);	
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)

@@ -1012,20 +1012,105 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 						)
 					{
 						ParticleOrder = GParticleOrderPool.GetParticleOrderData(ParticleCount);
+					}
+				}
+
+				if (Collector.ShouldUseTasks())
+				{
+					class FHandleParticleSortAndFill
+					{
+						const FDynamicSpriteEmitterData* Target;
+						const FSceneView* View;
+						FParticleOrder* ParticleOrder;
+						FMatrix LocalToWorld;
+						FGlobalDynamicVertexBuffer::FAllocation Allocation;
+						FGlobalDynamicVertexBuffer::FAllocation DynamicParameterAllocation;
+						bool bInstanced;
+					public:
+
+						FHandleParticleSortAndFill(						
+							const FDynamicSpriteEmitterData* InTarget,
+							const FSceneView* InView,
+							FParticleOrder* InParticleOrder,
+							const FMatrix& LocalToWorld,
+							const FGlobalDynamicVertexBuffer::FAllocation& InAllocation,
+							const FGlobalDynamicVertexBuffer::FAllocation& InDynamicParameterAllocation,
+							bool bInInstanced)
+							: Target(InTarget)
+							, View(InView)
+							, ParticleOrder(InParticleOrder)
+							, LocalToWorld(LocalToWorld)
+							, Allocation(InAllocation)
+							, DynamicParameterAllocation(InDynamicParameterAllocation)
+							, bInstanced(bInInstanced)
+						{
+						}
+
+						FORCEINLINE TStatId GetStatId() const
+						{
+							RETURN_QUICK_DECLARE_CYCLE_STAT(FHandleParticleSortAndFill, STATGROUP_TaskGraphTasks);
+						}
+
+						static FORCEINLINE ENamedThreads::Type GetDesiredThread()
+						{
+							return ENamedThreads::AnyThread;
+						}
+
+						static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
+
+						void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+						{
+							const FDynamicSpriteEmitterReplayDataBase* SourceData = Target->GetSourceData();
+							if (ParticleOrder)
+							{
+								Target->SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
+									SourceData->ParticleData, SourceData->ParticleStride, SourceData->ParticleIndices,
+									View, LocalToWorld, ParticleOrder);
+							}
+							// Fill vertex buffers.
+							if(bInstanced)
+							{
+								Target->GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, LocalToWorld);
+							}
+							else
+							{
+								Target->GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, LocalToWorld);
+							}
+						}
+					};
+
+					check(IsInRenderingThread());
+
+					Collector.AddTask(
+						TGraphTask<FHandleParticleSortAndFill>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(
+							this,
+							View,
+							ParticleOrder,
+							Proxy->GetLocalToWorld(),
+							Allocation,
+							DynamicParameterAllocation,
+							bInstanced
+						)
+					);
+
+				}
+				else
+				{
+					if (ParticleOrder)
+					{
 						SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
 							SourceData->ParticleData, SourceData->ParticleStride, SourceData->ParticleIndices,
 							View, Proxy->GetLocalToWorld(), ParticleOrder);
 					}
-				}
-
-				// Fill vertex buffers.
-				if(bInstanced)
-				{
-					GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
-				}
-				else
-				{
-					GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+					// Fill vertex buffers.
+					if(bInstanced)
+					{
+						GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+					}
+					else
+					{
+						GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+					}
 				}
 
 				// Create per-view uniform buffer.

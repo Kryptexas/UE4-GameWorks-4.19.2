@@ -119,7 +119,8 @@ public:
 
 private:
 
-	static FGraphEventRef OcclusionSubmittedFence;
+	// fences to make sure the rhi thread has digested the occlusion query renders before we attempt to read them back async
+	static FGraphEventRef OcclusionSubmittedFence[FOcclusionQueryHelpers::MaxBufferedOcclusionFrames];
 
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(

@@ -40,6 +40,41 @@ bool IsMobileHDR();
 /** True if the mobile renderer is emulating HDR in a 32bpp render target. */
 bool IsMobileHDR32bpp();
 
+class FOcclusionQueryHelpers
+{
+public:
+
+	enum
+	{
+		MaxBufferedOcclusionFrames = 2
+	};
+
+	// get the system-wide number of frames of buffered occlusion queries.
+	static int32 GetNumBufferedFrames();
+
+	// get the index of the oldest query based on the current frame and number of buffered frames.
+	static uint32 GetQueryLookupIndex(int32 CurrentFrame, int32 NumBufferedFrames)
+	{
+		// queries are currently always requested earlier in the frame than they are issued.
+		// thus we can always overwrite the oldest query with the current one as we never need them
+		// to coexist.  This saves us a buffer entry.
+		const uint32 QueryIndex = CurrentFrame % NumBufferedFrames;
+		return QueryIndex;
+	}
+
+	// get the index of the query to overwrite for new queries.
+	static uint32 GetQueryIssueIndex(int32 CurrentFrame, int32 NumBufferedFrames)
+	{
+		// queries are currently always requested earlier in the frame than they are issued.
+		// thus we can always overwrite the oldest query with the current one as we never need them
+		// to coexist.  This saves us a buffer entry.
+		const uint32 QueryIndex = CurrentFrame % NumBufferedFrames;
+		return QueryIndex;
+	}
+};
+
+
+
 // Dependencies.
 #include "StaticBoundShaderState.h"
 #include "BatchedElements.h"
@@ -71,54 +106,8 @@ bool IsMobileHDR32bpp();
 #include "AtmosphereRendering.h"
 #include "GlobalDistanceFieldParameters.h"
 
-#if WITH_SLI || PLATFORM_SHOULD_BUFFER_QUERIES
-#define BUFFERED_OCCLUSION_QUERIES 1
-#endif
-
 /** Factor by which to grow occlusion tests **/
 #define OCCLUSION_SLOP (1.0f)
-
-class FOcclusionQueryHelpers
-{
-public:
-
-	// get the system-wide number of frames of buffered occlusion queries.
-	static int32 GetNumBufferedFrames()
-	{
-		int32 NumBufferedFrames = 1;
-
-#if BUFFERED_OCCLUSION_QUERIES		
-#	if WITH_SLI
-		// If we're running with SLI, assume throughput is more important than latency, and buffer an extra frame
-		NumBufferedFrames = GNumActiveGPUsForRendering == 1 ? 1 : GNumActiveGPUsForRendering;
-#	else
-		static const auto NumBufferedQueriesVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.NumBufferedOcclusionQueries"));
-		NumBufferedFrames = NumBufferedQueriesVar->GetValueOnAnyThread();
-#	endif		
-#endif
-		return NumBufferedFrames;
-	}
-
-	// get the index of the oldest query based on the current frame and number of buffered frames.
-	static uint32 GetQueryLookupIndex(int32 CurrentFrame, int32 NumBufferedFrames)
-	{
-		// queries are currently always requested earlier in the frame than they are issued.
-		// thus we can always overwrite the oldest query with the current one as we never need them
-		// to coexist.  This saves us a buffer entry.
-		const uint32 QueryIndex = CurrentFrame % NumBufferedFrames;
-		return QueryIndex;
-	}
-
-	// get the index of the query to overwrite for new queries.
-	static uint32 GetQueryIssueIndex(int32 CurrentFrame, int32 NumBufferedFrames)
-	{
-		// queries are currently always requested earlier in the frame than they are issued.
-		// thus we can always overwrite the oldest query with the current one as we never need them
-		// to coexist.  This saves us a buffer entry.
-		const uint32 QueryIndex = CurrentFrame % NumBufferedFrames;
-		return QueryIndex;
-	}
-};
 
 /** Holds information about a single primitive's occlusion. */
 class FPrimitiveOcclusionHistory
@@ -127,13 +116,8 @@ public:
 	/** The primitive the occlusion information is about. */
 	FPrimitiveComponentId PrimitiveId;
 
-#if BUFFERED_OCCLUSION_QUERIES
 	/** The occlusion query which contains the primitive's pending occlusion results. */
-	TArray<FRenderQueryRHIRef, TInlineAllocator<1> > PendingOcclusionQuery;
-#else
-	/** The occlusion query which contains the primitive's pending occlusion results. */
-	FRenderQueryRHIRef PendingOcclusionQuery;
-#endif
+	TArray<FRenderQueryRHIRef, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames> > PendingOcclusionQuery;
 
 	uint32 HZBTestIndex;
 	uint32 HZBTestFrameNumber;
@@ -154,12 +138,6 @@ public:
 	bool bGroupedQuery;
 
 	/** 
-	 * Number of frames to buffer the occlusion queries. 
-	 * Larger numbers allow better SLI scaling but introduce latency in the results.
-	 */
-	int32 NumBufferedFrames;
-
-	/** 
 	 * For things that have subqueries (folaige), this is the non-zero
 	 */
 	int32 CustomIndex;
@@ -175,11 +153,8 @@ public:
 		, bGroupedQuery(false)
 		, CustomIndex(SubQuery)
 	{
-#if BUFFERED_OCCLUSION_QUERIES
-		NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
-		PendingOcclusionQuery.Empty(NumBufferedFrames);
-		PendingOcclusionQuery.AddZeroed(NumBufferedFrames);
-#endif
+		PendingOcclusionQuery.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+		PendingOcclusionQuery.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
 	}
 
 	/** Destructor. Note that the query should have been released already. */
@@ -189,38 +164,26 @@ public:
 	}
 
 	template<class TOcclusionQueryPool> // here we use a template just to allow this to be inlined without sorting out the header order
-	FORCEINLINE void ReleaseQueries(FRHICommandListImmediate& RHICmdList, TOcclusionQueryPool& Pool)
+	FORCEINLINE void ReleaseQueries(FRHICommandListImmediate& RHICmdList, TOcclusionQueryPool& Pool, int32 NumBufferedFrames)
 	{
-#if BUFFERED_OCCLUSION_QUERIES
 		for (int32 QueryIndex = 0; QueryIndex < NumBufferedFrames; QueryIndex++)
 		{
 			Pool.ReleaseQuery(RHICmdList, PendingOcclusionQuery[QueryIndex]);
 		}
-#else
-		Pool.ReleaseQuery(RHICmdList, PendingOcclusionQuery);
-#endif
 	}
 
-	FORCEINLINE FRenderQueryRHIRef& GetPastQuery(uint32 FrameNumber)
+	FORCEINLINE FRenderQueryRHIRef& GetPastQuery(uint32 FrameNumber, int32 NumBufferedFrames)
 	{
-#if BUFFERED_OCCLUSION_QUERIES
 		// Get the oldest occlusion query
 		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryLookupIndex(FrameNumber, NumBufferedFrames);
 		return PendingOcclusionQuery[QueryIndex];
-#else
-		return PendingOcclusionQuery;
-#endif
 	}
 
-	FORCEINLINE void SetCurrentQuery(uint32 FrameNumber, FRenderQueryRHIParamRef NewQuery)
+	FORCEINLINE void SetCurrentQuery(uint32 FrameNumber, FRenderQueryRHIParamRef NewQuery, int32 NumBufferedFrames)
 	{
-#if BUFFERED_OCCLUSION_QUERIES
 		// Get the current occlusion query
 		const uint32 QueryIndex = FOcclusionQueryHelpers::GetQueryIssueIndex(FrameNumber, NumBufferedFrames);
 		PendingOcclusionQuery[QueryIndex] = NewQuery;
-#else
-		PendingOcclusionQuery = NewQuery;
-#endif
 	}
 };
 
@@ -445,14 +408,9 @@ public:
 		bool bTranslucentShadow;
 	};
 
-	int32 NumBufferedFrames;
 	uint32 UniqueID;
 	typedef TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef> ShadowKeyOcclusionQueryMap;
-#if BUFFERED_OCCLUSION_QUERIES
-	TArray<ShadowKeyOcclusionQueryMap> ShadowOcclusionQueryMaps;
-#else
-	ShadowKeyOcclusionQueryMap ShadowOcclusionQueryMap;
-#endif
+	TArray<ShadowKeyOcclusionQueryMap, TInlineAllocator<FOcclusionQueryHelpers::MaxBufferedOcclusionFrames> > ShadowOcclusionQueryMaps;
 
 	/** The view's occlusion query pool. */
 	FRenderQueryPool OcclusionQueryPool;
@@ -677,7 +635,7 @@ public:
 	 * @param Primitive - The shadow subject.
 	 * @param Light - The shadow source.
 	 */
-	bool IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow) const;
+	bool IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow, int32 NumBufferedFrames) const;
 
 	TRefCountPtr<IPooledRenderTarget>& GetEyeAdaptation()
 	{
@@ -709,14 +667,10 @@ public:
 
 	virtual void ReleaseDynamicRHI() override
 	{
-#if BUFFERED_OCCLUSION_QUERIES
 		for (int i = 0; i < ShadowOcclusionQueryMaps.Num(); ++i)
 		{
 			ShadowOcclusionQueryMaps[i].Reset();
 		}
-#else
-		ShadowOcclusionQueryMap.Reset();
-#endif
 		PrimitiveOcclusionHistorySet.Empty();
 		PrimitiveFadingStates.Empty();
 		OcclusionQueryPool.Release();

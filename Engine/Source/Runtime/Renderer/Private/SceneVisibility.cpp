@@ -346,6 +346,7 @@ static void UpdatePrimitiveFading(const FScene* Scene, FViewInfo& View)
 static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* Scene, FViewInfo& View)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OcclusionCull);
+	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
 
 	// INITVIEWS_TODO: This could be more efficient if broken up in to separate concerns:
 	// - What is occluded?
@@ -481,7 +482,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 							{
 								// Read the occlusion query results.
 								uint64 NumSamples = 0;
-								FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter);
+								FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter, NumBufferedFrames);
 								if (IsValidRef(PastQuery))
 								{
 									// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
@@ -545,7 +546,7 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 
 						if (bClearQueries)
 						{
-							ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter));
+							ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter, NumBufferedFrames));
 						}
 					}
 
@@ -619,7 +620,8 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 									PrimitiveOcclusionHistory->SetCurrentQuery(ViewState->OcclusionFrameCounter, 
 										bGroupedQuery ? 
 										View.GroupedOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent) :
-										View.IndividualOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent)
+										View.IndividualOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent),
+										NumBufferedFrames
 										);	
 								}
 								PrimitiveOcclusionHistory->bGroupedQuery = bGroupedQuery;
@@ -1271,6 +1273,7 @@ void FSceneRenderer::GatherDynamicMeshElements(
 			}
 		}
 	}
+	MeshCollector.WaitForTasks();
 }
 
 static void MarkAllPrimitivesForReflectionProxyUpdate(FScene* Scene)

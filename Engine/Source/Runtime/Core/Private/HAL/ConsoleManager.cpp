@@ -1782,7 +1782,7 @@ static TAutoConsoleVariable<int32> CVarNumBufferedOcclusionQueries(
 	1,
 	TEXT("Number of frames to buffer occlusion queries (including the current renderthread frame).\n")
 	TEXT("More frames reduces the chance of stalling the CPU waiting for results, but increases out of date query artifacts."),
-	ECVF_ReadOnly);
+	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarDistField(
 	TEXT("r.GenerateMeshDistanceFields"),
