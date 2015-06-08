@@ -374,7 +374,7 @@ private:
 	void PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu);
 
 	/** The popup method currently used by the whole stack. It can only use one at a time */
-	EPopupMethod ActiveMethod;
+	TOptional<EPopupMethod> ActiveMethod;
 
 	/** The parent window of the root menu in the stack. NOT the actual menu window if it's a CreateNewWindow */
 	TSharedPtr<SWindow> HostWindow;
