@@ -31,7 +31,7 @@ class BLUEPRINTGRAPH_API UK2Node_ConstructObjectFromClass : public UK2Node
 	// End UK2Node interface
 
 	/** Create new pins to show properties on archetype */
-	void CreatePinsForClass(UClass* InClass);
+	void CreatePinsForClass(UClass* InClass, TArray<UEdGraphPin*>* OutClassPins = nullptr);
 
 	/** See if this is a spawn variable pin, or a 'default' pin */
 	virtual bool IsSpawnVarPin(UEdGraphPin* Pin);
