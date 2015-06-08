@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482134
+﻿INTSourceChangelist:2572870
 Availability:Public
 Title:リアリスティック レンダリング 
 Crumbs:%ROOT%, Resources
@@ -186,7 +186,7 @@ UE4 の物理ベースのマテリアル システムに関するより技術的
 
 * **Reflection Environment and Reflection Captures** - アンリアル・エンジン 4 は現実的な反射の作成に反射キャプチャを活用しています。これらは環境の球またはキューブ形状のキャプチャを作成する、レベルに戦略的に配置されたアクタで作成されています。この画像は、いくつかのオブジェクトに正確な反射効果を与えるために配置された Reflection Capture Actors を表示しています。
 
-	![](RefelctionCaptures.png)(w:600)
+	![](ReflectionCaptures.png)(w:600)
 
 
 ## カーペットのオブジェクト
