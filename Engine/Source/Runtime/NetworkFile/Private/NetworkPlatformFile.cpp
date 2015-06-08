@@ -417,7 +417,7 @@ IFileHandle* FNetworkPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWr
 	float ThisTime;
 
 	StartTime = FPlatformTime::Seconds();
-	IFileHandle* Result = InnerPlatformFile->OpenRead(Filename);
+	IFileHandle* Result = InnerPlatformFile->OpenRead(Filename, bAllowWrite);
 
 	ThisTime = 1000.0f * float(FPlatformTime::Seconds() - StartTime);
 	//UE_LOG(LogNetworkPlatformFile, Display, TEXT("Open local file %6.2fms"), ThisTime);

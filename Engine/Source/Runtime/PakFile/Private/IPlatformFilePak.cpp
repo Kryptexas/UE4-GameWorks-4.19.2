@@ -825,7 +825,7 @@ IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 	else if (!bSigned)
 	{
 		// Default to wrapped file but only if we don't force use signed content
-		Result = LowerLevel->OpenRead(Filename);
+		Result = LowerLevel->OpenRead(Filename, bAllowWrite);
 	}
 #endif
 	return Result;
