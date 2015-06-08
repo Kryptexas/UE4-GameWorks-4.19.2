@@ -355,6 +355,18 @@ bool UKismetMathLibrary::InRange_FloatFloat(float Value, float Min, float Max, b
 	return ((InclusiveMin ? (Value >= Min) : (Value > Min)) && (InclusiveMax ? (Value <= Max) : (Value < Max)));
 }	
 
+float UKismetMathLibrary::Hypotenuse(float Width, float Height)
+{
+	// This implementation avoids overflow/underflow caused by squaring width and height:
+	Width = FMath::Abs(Width);
+	Height = FMath::Abs(Height);
+
+	float Min = FGenericPlatformMath::Min(Width, Height);
+	float Max = FGenericPlatformMath::Max(Width, Height);
+	float Ratio = Min / Max;
+	return Max * FMath::Sqrt(1.f + Ratio * Ratio);
+}
+
 float UKismetMathLibrary::GridSnap_Float(float Location, float GridSize)
 {
 	return FMath::GridSnap(Location, GridSize);
