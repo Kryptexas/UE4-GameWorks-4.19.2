@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2573008
-Availability:Docs
+﻿INTSourceChangelist:2576221
+Availability:Public
 Title:5. 応用編
 Crumbs:
 Description:Grass ツールの中級操作と応用編
@@ -10,7 +10,7 @@ Version:4.8
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3:title%") 
+	[前の手順](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -24,14 +24,13 @@ Version:4.8
 
 %Steps%
 
-Grass ツールのパワフルな機能が分かったところで、以下にリスト表示したツールと一緒に Grass ツールについて学んだことを応用しながら、 
-以下のような画像を作成してみましょう。
+Grass ツールのパワフルな機能が分かったところで、以下にリスト表示したツールと一緒に Grass ツールについて学んだことを応用しながら、以下の画像のようなレベルを作成してみましょう。
 
 ![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6\T_On_Your_Own.png)
 
 * 草、花、低木で密に覆われたランドスケープの作成に **[Procedural Foliage ツール](Engine\OpenWorldTools\ProceduralFoliage\QuickStart)** を使用します。
 
-* **[Landscape Sculpt](Engine/Landscape/Editing/SculptMode)** ツールで丘、山、湖などをいくつか追加して、ランドスケープテレインのルックアンドフィールを定義します。
+* [Landscape Sculpt](Engine/Landscape/Editing/SculptMode)** ツールで丘、山、湖などをいくつか追加して、ランドスケープテレインのルックアンドフィールを定義します。
 
 * ランドスケープテレイン上でペイント可能な複数のテクスチャを設定した **[Landscape Material](Engine/Landscape/Materials)** を作成して、ランドスケープのサーフェスに視覚表現や詳細を強調します。
 
