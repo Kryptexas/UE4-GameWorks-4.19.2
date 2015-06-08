@@ -785,6 +785,9 @@ private:
 	/** Finish Async Trace Buffer **/
 	void FinishAsyncTrace();
 
+	/** Utility function that is used to ensure that a World has the correct WorldSettings */
+	void RepairWorldSettings();
+
 	/** Gameplay timers. */
 	class FTimerManager* TimerManager;
 

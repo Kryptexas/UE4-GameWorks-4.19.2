@@ -551,6 +551,8 @@ void UWorld::PostLoad()
 	Super::PostLoad();
 	CurrentLevel = PersistentLevel;
 
+	RepairWorldSettings();
+
 	// Remove null streaming level entries (could be if level was saved with transient level streaming objects)
 	StreamingLevels.Remove(nullptr);
 	
@@ -780,6 +782,50 @@ UAISystemBase* UWorld::CreateAISystem()
 	return AISystem; 
 }
 
+void UWorld::RepairWorldSettings()
+{
+	// If for some reason we don't have a valid WorldSettings object go ahead and spawn one to avoid crashing.
+	// This will generally happen if a map is being moved from a different project.
+	const bool bNeedsExchange = PersistentLevel->Actors.Num() > 0;
+	const bool bNeedsDestroy = bNeedsExchange && PersistentLevel->Actors[0] != NULL;
+
+	if (PersistentLevel->Actors.Num() < 1 || PersistentLevel->Actors[0] == NULL || !PersistentLevel->Actors[0]->IsA(GEngine->WorldSettingsClass))
+	{
+		// Rename invalid WorldSettings to avoid name collisions
+		if (bNeedsDestroy)
+		{
+			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel, REN_ForceNoResetLoaders);
+		}
+		
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
+		AWorldSettings* NewWorldSettings = SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
+
+		const int32 NewWorldSettingsActorIndex = PersistentLevel->Actors.Find( NewWorldSettings );
+
+		if (bNeedsExchange)
+		{
+			// The world info must reside at index 0.
+			Exchange(PersistentLevel->Actors[0],PersistentLevel->Actors[NewWorldSettingsActorIndex]);
+		}
+
+		// If there was an existing actor, copy its properties to the new actor and then destroy it
+		if (bNeedsDestroy)
+		{
+			NewWorldSettings->UnregisterAllComponents();
+			UEngine::CopyPropertiesForUnrelatedObjects(PersistentLevel->Actors[NewWorldSettingsActorIndex], NewWorldSettings);
+			NewWorldSettings->RegisterAllComponents();
+			PersistentLevel->Actors[NewWorldSettingsActorIndex]->Destroy();
+		}
+
+		// Re-sort actor list as we just shuffled things around.
+		PersistentLevel->SortActorList();
+
+	}
+	check(GetWorldSettings());
+}
+
 void UWorld::InitWorld(const InitializationValues IVS)
 {
 	if (!ensure(!bIsWorldInitialized))
@@ -842,46 +888,7 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	PersistentLevel->OwningWorld = this;
 	PersistentLevel->bIsVisible = true;
 
-	// If for some reason we don't have a valid WorldSettings object go ahead and spawn one to avoid crashing.
-	// This will generally happen if a map is being moved from a different project.
-	const bool bNeedsExchange = PersistentLevel->Actors.Num() > 0;
-	const bool bNeedsDestroy = bNeedsExchange && PersistentLevel->Actors[0] != NULL;
-
-	if (PersistentLevel->Actors.Num() < 1 || PersistentLevel->Actors[0] == NULL || !PersistentLevel->Actors[0]->IsA(GEngine->WorldSettingsClass))
-	{
-		// Rename invalid WorldSettings to avoid name collisions
-		if (bNeedsDestroy)
-		{
-			PersistentLevel->Actors[0]->Rename(NULL, PersistentLevel, REN_ForceNoResetLoaders);
-		}
-		
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
-		SpawnInfo.Name = GEngine->WorldSettingsClass->GetFName();
-		AWorldSettings* NewWorldSettings = SpawnActor<AWorldSettings>( GEngine->WorldSettingsClass, SpawnInfo );
-
-		const int32 NewWorldSettingsActorIndex = PersistentLevel->Actors.Find( NewWorldSettings );
-
-		if (bNeedsExchange)
-		{
-			// The world info must reside at index 0.
-			Exchange(PersistentLevel->Actors[0],PersistentLevel->Actors[NewWorldSettingsActorIndex]);
-		}
-
-		// If there was an existing actor, copy its properties to the new actor and then destroy it
-		if (bNeedsDestroy)
-		{
-			NewWorldSettings->UnregisterAllComponents();
-			UEngine::CopyPropertiesForUnrelatedObjects(PersistentLevel->Actors[NewWorldSettingsActorIndex], NewWorldSettings);
-			NewWorldSettings->RegisterAllComponents();
-			PersistentLevel->Actors[NewWorldSettingsActorIndex]->Destroy();
-		}
-
-		// Re-sort actor list as we just shuffled things around.
-		PersistentLevel->SortActorList();
-
-	}
-	check(GetWorldSettings());
+	RepairWorldSettings();
 
 	// initialize DefaultPhysicsVolume for the world
 	// Spawned on demand by this function.

@@ -2385,9 +2385,10 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// This should be the same sequence for deferred or nondeferred spawning.
 
 	// It's not safe to call UWorld accessor functions till the world info has been spawned.
-	bool const bActorsInitialized = GetWorld() && GetWorld()->AreActorsInitialized();
+	UWorld* World = GetWorld();
+	bool const bActorsInitialized = World && World->AreActorsInitialized();
 
-	CreationTime = GetWorld()->GetTimeSeconds();
+	CreationTime = (World ? World->GetTimeSeconds() : 0.f);
 
 	// Set network role.
 	check(Role == ROLE_Authority);
@@ -2452,7 +2453,8 @@ void AActor::FinishSpawning(const FTransform& Transform, bool bIsDefaultTransfor
 
 void AActor::PostActorConstruction()
 {
-	bool const bActorsInitialized = GetWorld() && GetWorld()->AreActorsInitialized();
+	UWorld* World = GetWorld();
+	bool const bActorsInitialized = World && World->AreActorsInitialized();
 
 	if (bActorsInitialized)
 	{
@@ -2473,7 +2475,7 @@ void AActor::PostActorConstruction()
 			UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName() );
 		}
 
-		if (GetWorld()->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
+		if (World->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
 		{
 			BeginPlay();
 		}
