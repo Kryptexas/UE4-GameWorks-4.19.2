@@ -320,12 +320,9 @@ void SSizeMap::GatherDependenciesRecursively( FAssetRegistryModule& AssetRegistr
 							NodeSizeMapData.AssetSize = Asset->GetResourceSize( EResourceSizeMode::Exclusive );
 						}
 
-						NodeSizeMapData.bHasKnownSize = NodeSizeMapData.AssetSize != UObject::RESOURCE_SIZE_NONE && NodeSizeMapData.AssetSize != 0;
+						NodeSizeMapData.bHasKnownSize = (NodeSizeMapData.AssetSize != 0);
 						if( !NodeSizeMapData.bHasKnownSize )
 						{
-							// Asset has no meaningful size
-							NodeSizeMapData.AssetSize = 0;
-
 							// @todo sizemap urgent: Try to serialize to figure out how big it is (not into sub-assets though!)
 							// FObjectMemoryAnalyzer ObjectMemoryAnalyzer( Asset );
 						}
