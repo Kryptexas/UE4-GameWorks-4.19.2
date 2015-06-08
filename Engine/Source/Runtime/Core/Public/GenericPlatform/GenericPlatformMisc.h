@@ -830,6 +830,11 @@ public:
 	static const TCHAR* GetEngineMode();
 
 	/**
+	 * Requests permission to send remote notifications to the user's device.
+	 */
+	static void RegisterForRemoteNotifications();
+
+	/**
 	* Execute plaform dependent pre load map actions
 	*/
 	static const void PreLoadMap(FString&, FString&, void*)

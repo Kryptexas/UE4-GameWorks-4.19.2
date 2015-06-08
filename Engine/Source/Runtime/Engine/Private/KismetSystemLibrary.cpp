@@ -3098,3 +3098,8 @@ void UKismetSystemLibrary::LoadAssetClass(UObject* WorldContextObject, const TAs
 		}
 	}
 }
+
+void UKismetSystemLibrary::RegisterForRemoteNotifications()
+{
+	FPlatformMisc::RegisterForRemoteNotifications();
+}

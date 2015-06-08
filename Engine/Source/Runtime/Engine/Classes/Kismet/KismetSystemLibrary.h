@@ -1330,4 +1330,11 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
 	static void SetSupressViewportTransitionMessage(UObject* WorldContextObject, bool bState);
+
+	/**
+	 * Requests permission to send remote notifications to the user's device.
+	 * (iOS only)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void RegisterForRemoteNotifications();
 };

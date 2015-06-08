@@ -876,3 +876,8 @@ FString FGenericPlatformMisc::GetOperatingSystemId()
 	// not implemented by default.
 	return FString();
 }
+
+void FGenericPlatformMisc::RegisterForRemoteNotifications()
+{
+	// not implemented by default
+}

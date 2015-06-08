@@ -740,3 +740,19 @@ TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
 	return FontBytes;
 }
 
+void FIOSPlatformMisc::RegisterForRemoteNotifications()
+{
+	UIApplication* application = [UIApplication sharedApplication];
+	if ([application respondsToSelector : @selector(registerUserNotifcationSettings:)])
+	{
+#ifdef __IPHONE_8_0
+		UIUserNotificationSettings * settings = [UIUserNotificationSettings settingsForTypes : (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert) categories:nil];
+		[application registerUserNotificationSettings : settings];
+#endif
+	}
+	else
+	{
+		UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
+		[application registerForRemoteNotificationTypes : myTypes];
+	}
+}

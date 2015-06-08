@@ -624,6 +624,43 @@ void InstallSignalHandlers()
 	FPlatformMisc::HandleLowMemoryWarning();
 }
 
+#ifdef __IPHONE_8_0
+- (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings
+{
+	[application registerForRemoteNotifications];
+}
+#endif
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+{
+	TArray<uint8> Token;
+	Token.AddUninitialized([deviceToken length]);
+	memcpy(Token.GetData(), [deviceToken bytes], [deviceToken length]);
+
+	FCoreDelegates::ApplicationRegisteredForRemoteNotificationsDelegate.Broadcast(Token);
+}
+
+-(void)application:(UIApplication *)application didFailtoRegisterForRemoteNotificationsWithError:(NSError *)error
+{
+	FCoreDelegates::ApplicationFailedToRegisterForRemoteNotificationsDelegate.Broadcast(FString([error description]));
+}
+
+-(void)application : (UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void(^)(UIBackgroundFetchResult result))handler
+{
+	NSString* JsonString = @"{}";
+	NSError* JsonError;
+	NSData* JsonData = [NSJSONSerialization dataWithJSONObject : userInfo
+					options : 0
+					error : &JsonError];
+
+	if (JsonData)
+	{
+		JsonString = [[[NSString alloc] initWithData:JsonData encoding : NSUTF8StringEncoding] autorelease];
+	}
+
+	FCoreDelegates::ApplicationReceivedRemoteNotificationDelegate.Broadcast(FString(JsonString));
+}
+
 /**
  * Shows the given Game Center supplied controller on the screen
  *
