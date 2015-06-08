@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2554119
+﻿INTSourceChangelist:2578359
 Availability:Docs
 Title:4. 複数の Foliage Type を使う
 Crumbs:
@@ -24,13 +24,12 @@ SkillLevel:Intermediate
 [/VAR]
 
 %Steps%
-1 種類だけで仮想の森を作っても、たいして面白味もなければ現実味にも欠けてしまいます。 
+木の種類を追加すると、仮想の森のリアルさ、そして全体的な見た目と質感がぐんと増します。 
 幸運にも **Procedural Foliage Spawner** を使えば、1 つの **Procedural Foliage Spawner** が複数の **Foliage Type** をスポーンして、多種多様な木で構成される森をスポーンできるようになります。 
 次のセクションでは、複数の Foliage Type で作業するための Procedural Foliage Spawner の設定方法を説明します。
 前のステップで作成した **PFT_00** レベルを引き続き使用します。
-一旦終了してしまった場合は再度ここで開いてから、次のステップへ進んでください。
 
-1. まず **コンテンツ ブラウザ** の **Tree_00** Foliage Type をマウスでクリックして選択し、キーボードの **Ctrl + W** を押して複製し 「**Tree_01**」と名付けます。
+1. まず **コンテンツ ブラウザ** の **Tree_00** Foliage Type を選択し、キーボードの **Ctrl + W** を押して複製し 「**Tree_01**」と名付けます。
 
 	![](T_Dup_FT.png)
 
@@ -38,7 +37,7 @@ SkillLevel:Intermediate
 
 	![](T_New_Mesh.png)
 
-1. 次に **コンテンツ ブラウザ** から **Procedural Foliage Spawner** を開き、**[Foliage Types]** セクションを展開します。
+1. **コンテンツ ブラウザ** から **Procedural Foliage Spawner** を開き、**[Foliage Types]** セクションを展開します。
 
 	![](T_Expand_FT.png)
 
@@ -50,12 +49,15 @@ SkillLevel:Intermediate
 
 	![](T_Add_New_FT_Type.gif)(convert:false)
 
-1. レベルに置かれた **Procedural Foliage Spawner** を選択し、 **[Resimulate]** ボタンを押すと、レベル内は以下のようになります。
+1. レベル内に置いた **Procedural Foliage Spawner** を選択し、**[Resimulate]** ボタンをクリックします。完了すると以下の画像のようになります。
 
 	![](T_2_FT_In_Level.png)
 
-1. かなり森らしくなりましたが、もっと良くすることができます。**Tree_01** Foliage Type を開いて、以下の設定を調整します。
-	* **Num Steps:** 4
+1. さらに森を自然に見せるために、**Tree_01** Foliage Type を開いて、パラメータと値を以下のように変更します。 
+	以下の数値とオプションを使うと、既に使用した Foliage Types とインタラクションして、森の群がり方と成長の様子が興味深いものになります。オプション、オプション項目 
+	ご自分のニーズにぴったり合うものが見つかるまで、これらの値とオプションであれこれ試してみてください。 
+
+	* **Num Steps:** 4 
 	* **Initial Seed Density:** 0.125
 	* **Average Spread Distance:** 100
 	* **Can Grow in Shade:** Enabled
@@ -64,13 +66,8 @@ SkillLevel:Intermediate
 	* **Overlap Priority:** 1
 	* **Procedural Scale:** Max 5.0
 
-1. 上記のように設定を変更したら、Procedural Foliage Spawner 上で **[Re-Simulate]** ボタンを押します。
+1. 設定を変更したら、Procedural Foliage Spawner 上の **[Resimulate]** ボタンをクリックします。以下の画像のようになります。
 
 	![](T_FT01_Adjust_Settings.png)
-
-1. 最後に、**[Save All]** ボタンと **[Save]** ボタンの両方を押して、すべての作業を必ず保存します。
-
-	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\T_Uni_Save_Icons.png)
-
 
 %Steps%
