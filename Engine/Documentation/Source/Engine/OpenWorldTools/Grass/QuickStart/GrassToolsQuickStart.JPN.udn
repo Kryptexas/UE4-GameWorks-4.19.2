@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2557381
+﻿INTSourceChangelist:2576012
 Availability:Public
 Title:Grass ツールのクイック スタート
 Crumbs:
@@ -9,24 +9,39 @@ Version:4.8
 
 ## 概要
 
-Procedural Foliage（プロシージャルフォーリッジ）ツールは巨大なフォレストの木や茂みに生息するさまざまな生物のシミュレーションに最適なツールですが、草や岩で密に覆われた状態のランドスケープ作成に必要な数十万個のスタティックメッシュをうまくスポーンすることが唯一できません。 
-そこで作成を可能にするために、 UE4 は新たに **Grass ツール** を導入しました。 
-Grass ツールは、ランドスケープ上にいくらかのテクスチャがペイントされた時は、常にランドスケープテレインにスタティックメッシュとスポーン量を定義します。 
+生活の中のジョブの遂行に正しいツールを使用することがしばし結果の成功と失敗を左右する要因となるように、同じことが UE4 の Open World ツールに関しても言えます。 
+例えば Procedural Foliage ツールは、さまざまな種類の木々や低木で作成した広大な森林のシミュレーションの使用に適しています。 
+草や花々で密に覆われたランドスケープテレインの作成に Procedural Foliage ツールを使用すると、思い通りの画像の作成にとても時間がかかることがすぐにわかります。 
+この問題に対応するために、密にスポーンする草を作成するには Open World ツールのオプションツールとして使用可能な **Grass Tool** を使用します。
+Grass ツールは、テクスチャがランドスケープテレインでペイントされた時にかならずスポーンするスタティックメッシュを定義をします。
 以下の操作ガイドでは、レベルで Grass ツールを使用するうえでの必要事項を説明しています。
 
 ![](T_Grass_Intro.png)
 
 [region:note]
-現時点の Grass ツールは Landscape Terrain アクタとのみ機能します。他のタイプのアクタに草をスポーンさせるために Grass システムを使用しても機能しません。
+現時点では Grass ツールは Landscape Terrain アクタにだけ作用します。他のタイプのアクタに草をスポーンさせるために Grass システムを使用しても機能しません。
 [/region]
 
 ## 前提条件
-プロジェクトで Procedural Foliage ツールを使用する前に、 **メインツールバー** から **Edit** > **Editor Preferences** > **Experimental** の順に選択してツールを有効にしなくてはいけません。 
-Experimental セクションへ移動したら、 **Procedural Foliage** の横にあるチェックボックスをクリックして Procedural Foliage オプションを有効にします。
-コレクションからいくつかのコンテンツを 「Open World ツールのクイックスタート」で使用するので、UE4のランチャーから **Open World Demo Collection** コンテンツもダウンロードしてください。
 
-Open World Demo Collection をダウンロードしたら、クイックスタートと同設定にするためにコレクションを使用するプロジェクトに追加します。最初にUE4 ランチャーの **Vault（保管庫）** へ移動して、 **Add to Project（プロジェクトに追加する）** ボタンをクリックします。コレクションを追加するプロジェクトのリストが表示されます。クイックスタートと同設定しするために使用しているプロジェクトを選んで、 **Add to Project（プロジェクトに追加）** ボタンをクリックしてコンテンツを追加します。プロジェクトを再度開くと、 **Kite Demo** という名前のフォルダが表示されて、フォルダ内に必要なコンテンツがあります。
+コレクションからいくつかのコンテンツを以下のクイックスタートで使用するため、 **アンリアルエンジンマーケットプレイス** から **Open World Demo Collection** コンテンツパックもダウンロードしなくてはいけません。
+Open World Demo collection をダウンロードしたら、クイックスタートと一緒に使用するために以下の操作方法でプロジェクトに追加します。
 
+1. マーケットのランチャーから **Open World Demo Collection** を探してダウンロードします。
+	
+	![](Engine\OpenWorldTools\T_OWT_OWDC.png)
+
+1. ランチャーの **Library** セクションに移動して、 **Vault** セクションで Open World Demo Collection を探します。 
+	![](Engine\OpenWorldTools\T_OWT_Add_Content_00.png)
+
+1.  **Add to Project** ボタンをクリックします。
+
+	![](Engine\OpenWorldTools\T_OWT_Add_To_Project.png)
+
+
+1. 追加先としてプロジェクトの一覧が表示されます。クイックスタートと一緒に使用するために現行プロジェクトを選んで、 **Add to Project** ボタンをクリックします。
+
+	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -42,6 +57,7 @@ Open World Demo Collection をダウンロードしたら、クイックスタ�
 	* [](Engine\OpenWorldTools\Grass\QuickStart\2)
 	* [](Engine\OpenWorldTools\Grass\QuickStart\3)
 	* [](Engine\OpenWorldTools\Grass\QuickStart\4)
+	* [](Engine\OpenWorldTools\Grass\QuickStart\5)
 	[/PARAM]
 [/OBJECT]
 
