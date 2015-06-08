@@ -361,6 +361,7 @@ void FChunkWriter::FQueuedChunkWriter::SetNoMoreChunks()
 void FChunkWriter::FQueuedChunkWriter::GetChunkFilesizes(TMap<FGuid, int64>& OutChunkFileSizes)
 {
 	FScopeLock ScopeLock(&ChunkFileSizesCS);
+	OutChunkFileSizes.Empty(ChunkFileSizes.Num());
 	OutChunkFileSizes.Append(ChunkFileSizes);
 }
 
