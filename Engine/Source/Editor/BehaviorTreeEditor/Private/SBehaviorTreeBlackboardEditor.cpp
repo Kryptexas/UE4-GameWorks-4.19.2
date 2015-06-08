@@ -174,7 +174,7 @@ public:
 	{
 		if(InClass != nullptr)
 		{
-			return !InClass->HasAnyClassFlags(CLASS_Abstract) &&
+			return !InClass->HasAnyClassFlags(CLASS_Abstract | CLASS_HideDropDown) &&
 				InClass->HasAnyClassFlags(CLASS_EditInlineNew) &&
 				InClass->IsChildOf(UBlackboardKeyType::StaticClass());
 		}
