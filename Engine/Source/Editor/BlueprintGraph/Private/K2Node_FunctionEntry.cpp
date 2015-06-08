@@ -314,8 +314,8 @@ void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerCon
 								const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
 								check(ArrayProperty);
 
-								FScriptArrayHelper ArrayHelper(ArrayProperty, StructData->GetStructMemory());
-								FScriptArrayHelper DefaultArrayHelper(ArrayProperty, StructData->GetStructMemory());
+								FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, StructData->GetStructMemory());
+								FScriptArrayHelper_InContainer DefaultArrayHelper(ArrayProperty, StructData->GetStructMemory());
 
 								uint8* StructDefaults = NULL;
 								UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(ArrayProperty->Inner);
