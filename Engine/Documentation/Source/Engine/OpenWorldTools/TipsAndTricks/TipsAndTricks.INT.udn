@@ -105,7 +105,7 @@ In the image below you can see an example of this type of behavior:
 ![](T_Spawing_In_Row.png)
 
 To get the Grass tool to function like this, make sure that **Use Grid** is checked, that **Placement Jitter** is set to **0**, and **Grass Density** is set to something under 100. 
-The following image shows how the Landscape Grass Type was setup to achieve the results you saw in the first image.
+The following image shows how the Landscape Grass Type was set up to achieve the results you saw in the first image.
 
 ![](T_LGT_Crops_Setup.png)
 
