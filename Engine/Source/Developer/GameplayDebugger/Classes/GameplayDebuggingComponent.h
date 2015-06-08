@@ -124,9 +124,8 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	TArray<uint8> EQSRepData;
 	
 	/** local EQS debug data, decoded from EQSRepData blob */
-#if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
 	TArray<EQSDebug::FQueryData> EQSLocalData;	
-#endif
+
 	/** End EQS replication data */
 
 	UPROPERTY(Replicated)
