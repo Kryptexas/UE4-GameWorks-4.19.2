@@ -154,7 +154,6 @@ UPawnActionsComponent::UPawnActionsComponent(const FObjectInitializer& ObjectIni
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 
-	bAutoActivate = true;
 	bLockedAILogic = false;
 
 	ActionEventIndex = 0;

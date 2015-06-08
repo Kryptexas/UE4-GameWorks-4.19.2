@@ -102,7 +102,7 @@ bool FWindSourceSceneProxy::GetWindParameters(const FVector& EvaluatePosition, F
 		return false;
 	}
 
-	Weight				= Strength;
+	Weight = Strength;
 	WindData.Direction	= Direction;
 	WindData.Speed		= Speed;
 	WindData.MinGustAmt = MinGustAmt;
@@ -119,7 +119,7 @@ bool FWindSourceSceneProxy::GetDirectionalWindParameters(FWindData& WindData, fl
 		return false;
 	}
 
-	Weight				= Strength;
+	Weight = Strength;
 	WindData.Direction	= Direction;
 	WindData.Speed		= Speed;
 	WindData.MinGustAmt = MinGustAmt;
@@ -142,9 +142,6 @@ UWindDirectionalSourceComponent::UWindDirectionalSourceComponent(const FObjectIn
 	Speed = 0.1f;
 	MinGustAmount = 0.1f;
 	MaxGustAmount = 0.2f;
-
-	// wind will be activated automatically by default
-	bAutoActivate = true;
 }
 
 void UWindDirectionalSourceComponent::CreateRenderState_Concurrent()

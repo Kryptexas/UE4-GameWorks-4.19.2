@@ -12,7 +12,6 @@ USteamVRChaperoneComponent::USteamVRChaperoneComponent(const FObjectInitializer&
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 
 	bTickInEditor = true;
-	bAutoActivate = true;
 
 	bWasInsideSoftBounds = true;
 }

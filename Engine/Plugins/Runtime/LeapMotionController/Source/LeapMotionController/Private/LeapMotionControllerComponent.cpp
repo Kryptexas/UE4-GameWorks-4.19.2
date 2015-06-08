@@ -25,7 +25,6 @@ ULeapMotionControllerComponent::ULeapMotionControllerComponent(const class FObje
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	bAutoActivate = true;
 
 	Scale = 5.0f;
 

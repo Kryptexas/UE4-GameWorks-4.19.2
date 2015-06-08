@@ -134,7 +134,6 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 		
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
-	bAutoActivate = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
 	LastStoredPathTimeStamp = -1.f;

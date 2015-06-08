@@ -28,7 +28,6 @@ UPathFollowingComponent::FRequestCompletedSignature UPathFollowingComponent::Unb
 UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	bAutoActivate = true;
 
 	MinAgentRadiusPct = 1.1f;
 	MinAgentHalfHeightPct = 1.05f;

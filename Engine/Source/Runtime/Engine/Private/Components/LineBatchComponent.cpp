@@ -100,7 +100,6 @@ private:
 ULineBatchComponent::ULineBatchComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bAutoActivate = true;
 	bTickInEditor = true;
 	PrimaryComponentTick.bCanEverTick = true;
 

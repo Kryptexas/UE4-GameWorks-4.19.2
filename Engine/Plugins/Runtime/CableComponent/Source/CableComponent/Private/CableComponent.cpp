@@ -342,7 +342,6 @@ UCableComponent::UCableComponent( const FObjectInitializer& ObjectInitializer )
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = true;
-	bAutoActivate = true;
 
 	CableWidth = 10.f;
 	NumSegments = 10;

@@ -8,7 +8,6 @@ UScriptContextComponent::UScriptContextComponent(const FObjectInitializer& Objec
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bTickInEditor = false;
-	bAutoActivate = true;
 	bWantsInitializeComponent = true;
 
 	Context = NULL;
@@ -27,7 +26,6 @@ void UScriptContextComponent::OnRegister()
 			Context = FScriptContextBase::CreateContext(ScriptClass->SourceCode, ScriptClass, ContextOwner);
 			if (!Context || !Context->CanTick())
 			{
-				bAutoActivate = false;
 				PrimaryComponentTick.bCanEverTick = false;
 			}
 		}

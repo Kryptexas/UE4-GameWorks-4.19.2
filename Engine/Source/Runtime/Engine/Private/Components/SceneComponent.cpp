@@ -49,7 +49,6 @@ USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*=
 	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
 	// default behavior is visible
 	bVisible = true;
-	bAutoActivate = false;
 
 	NetUpdateTransform = false;
 }
