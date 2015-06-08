@@ -504,6 +504,8 @@ public:
 	// X2/Y2 Coordinates are "inclusive" max values
 	void SetCachedData(int32 X1, int32 Y1, int32 X2, int32 Y2, TArray<AccessorType>& Data, ELandscapeLayerPaintingRestriction::Type PaintingRestriction = ELandscapeLayerPaintingRestriction::None)
 	{
+		checkSlow(Data.Num() == (1 + Y2 - Y1) * (1 + X2 - X1));
+
 		// Update cache
 		for (int32 Y = Y1; Y <= Y2; Y++)
 		{
