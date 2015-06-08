@@ -680,7 +680,7 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
 	}
 
-	World->Tick(LEVELTICK_All, DeltaSeconds);
+	World->Tick(LEVELTICK_All, DeltaSeconds * SharedData->EditorSimOptions->TimeDilation);
 
 	if(SharedData->Recorder.InRecording())
 	{

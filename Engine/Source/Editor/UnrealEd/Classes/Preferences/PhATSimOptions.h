@@ -32,6 +32,10 @@ class UNREALED_API UPhATSimOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category = Simulation)
 	int32 MaxFPS;
 
+	/** Dilate time by scale*/
+	UPROPERTY(EditAnywhere, config, Category = Simulation, meta = (UIMin = 0) )
+	float TimeDilation;
+
 	/** Linear damping of mouse spring forces */
 	UPROPERTY(EditAnywhere, config, Category=MouseSpring)
 	float HandleLinearDamping;
