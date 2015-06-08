@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2573008
-Availability:Docs
+﻿INTSourceChangelist:2576221
+Availability:Public
 Title:4.Grass ツールの使用
 Crumbs:
 Description:Grass ツールの使用方法
@@ -18,6 +18,7 @@ Version:4.8
 		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
+	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\5 "%Engine\OpenWorldTools\Grass\QuickStart\5:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -61,7 +62,7 @@ Grass システムを使用するには、前の手順で作成したマテリ�
 	![](T_Painting_Grass.png)
 
 	[region:note]
-	開発PCのスペック次第で、ランドスケープ上にペイントを開始すると、草がスポーンされる時に無反応になる可能性があります。 
+	開発 PC のスペック次第で、ランドスケープ上にペイントを開始すると、草がスポーンされる時に無反応になる可能性があります。 
 	ペイントを終了すると、草は動的にスポーンされるため、これは通常の動作です。 
 	作業中は **Landscape Grass Type** の **Grass Density** をオフにして、作業が終了した後に設定レベルへ戻すのがこの問題を可能な限り軽減出来る最善策です。
 	[/region]
