@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2537337
+﻿INTSourceChangelist:2573984
 Availability:Public
-Title:1.UMG にモジュールの依存関係を設定する
+Title:1.UMG にモジュールの依存関係を設定する方法
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
 Description:メニュー作成に必要なモジュールを追加するためにプロジェクトを変更する
 
