@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2557359
+﻿INTSourceChangelist:2578359
 Availability:Docs
-Title:Procedural Foliage ツール クイックスタート
+Title:Procedural Foliage ツールのクイックスタート
 Crumbs:
 Description:Procedural Foliage ツールの設定および使用方法
 Navigation:topic
@@ -8,25 +8,43 @@ SkillLevel:Intermediate
 バージョン：4.8
 
 
-## 概要
-Procedural Foliage クイックスタートは、アンリアル エンジン 4 (UE4) のリリース 4.8 で利用可能となる **Procedural Foliage ツール** についての説明です。 
-Procedural Foliage ツールを UE4 の他のツールと連携して使用する方法を学習します。
-満足のいく結果を出しやすい主要なツール プロパティも紹介します。
-このクイックスタートを完了すると、以下のようなレベルが出来あがります。 
+このクイックスタート チュートリアルでは、アンリアル エンジン 4 (UE4) のリリース 4.8 で利用可能となった **Procedural Foliage ツール** を説明します。 
+このチュートリアルでは、Procedural Foliage ツールのみを使って UE4 内に森一個分の木を作成、設定、スポーンします。 
+プロジェクトのニーズを満たす形の仮想の森にするための主要なプロパティと設定も紹介します。 
 
 ![](T_PF_QS_Final_Product.png)
 
-また、Procedural Foliage ツールに必要なアクタ タイプや、正しく作業するための設定方法を深く理解できるようになります。
-さらに、ツールに関する注意事項およびワークフローの調整方法についても説明します。
+正確に機能し、求めている結果を出すために、Procedural Foliage ツールに必要なアクタとプロパティはすべて公開されます。
+このクイックスタートを完了すると、上のようなレベルが出来あがります。 
+
 
 ## 前提条件
-プロジェクトで Procedural Foliage ツールを使うには、まずメイン ツールバーから **[Edit]** > **[Editor Preferences]** > **[Experimental]** を選択して、プロジェクトの Procedural Foliage を必ず有効にしておいてください。 
-Experimental セクションの「 **Procedural Foliage** 」の文字の横にあるチェックマーク ボックスをクリックして、Procedural Foliage オプションを有効にします。
-コレクションのコンテンツの中には、Open World ツール クイックスタートで使われていものもあるので、アンリアル エンジン 4 から **Open World Demo Collection** コンテンツ パックもダウンロードしてください。
+プロジェクトで Procedural Foliage ツールを使う前に、以下の手順でプロジェクトの Procedural Foliage を有効にしなければなりません。
 
-Open World Demo Collection をダウンロードしたら、このクイックスタートで使用するプロジェクトに追加してください。方法は、UE 4 ランチャーの **Vault** セクションにある Open World Demo Collection を探して **[Add to Project]** ボタンをクリックします。追加先に選択可能なプロジェクトの一覧が表示されます。このクイックスタートで使用するプロジェクトを選んで、**[Add to Project]** を押してコンテンツを追加します。再度プロジェクトを開くと、「 **Kite Demo** 」というフォルダが出来ています。必要なコンテンツはこのフォルダの中にあります。
+1. **メイン ツールバー** の **[Edit]** オプションをクリックし、次に **[Editor Preferences]** をクリックします。
+1. Editor Preferences の **Experimental** セクションを **右クリック** します。
+1. Experimental セクションの「 **Procedural Foliage** 」の文字の横にあるチェックマーク ボックスをクリックして、Procedural Foliage オプションを有効にします。
 
+	![](Engine\OpenWorldTools\Overview\T_Enable_PFT.gif)(convert:false)
 
+コレクションのコンテンツの中には以下のクイックスタートで使われていものもあるので、**Unreal Engine Marketplace** から **Open World Demo Collection** コンテンツ パックもダウンロードしてください。
+Open World Demo Collection をダウンロードしたら、このクイックスタートで使用するプロジェクトに追加してください。
+
+1. Epic Games ランチャーでマーケットプレイスでを探し **Open World Demo Collection** をダウンロードします。
+
+	![](Engine\OpenWorldTools\T_OWT_OWDC.png)
+
+1. ランチャーの **Library** セクションにある **Vault** セクションの Open World Demo Collection を見つけます。 
+
+	![](Engine\OpenWorldTools\T_OWT_Add_Content_00.png)
+
+1. **[Add to Project]** ボタンをクリックします。
+
+	![](Engine\OpenWorldTools\T_OWT_Add_To_Project.png)
+
+1. このクイックスタートで使用するプロジェクトが表示されるので、このクイックスタートで使用するプロジェクトを選択して、**[Add to Project]** を押してコンテンツを追加します。
+
+	![](Engine\OpenWorldTools\T_OWT_ATP.png)
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -43,6 +61,7 @@ Open World Demo Collection をダウンロードしたら、このクイック�
 	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\3)
 	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\4)
 	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\5)
+	* [](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\6)
 	[/PARAM]
 [/OBJECT]
 
