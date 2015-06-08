@@ -546,6 +546,65 @@ void FPhATSharedData::SetSelectedBody(const FSelection* Body, bool bGroupSelect 
 	PreviewChangedEvent.Broadcast();
 }
 
+void FPhATSharedData::SetSelectedBodiesFromConstraints()
+{
+	if(SelectedConstraints.Num() == 0)
+	{
+		return;
+	}
+
+	SetSelectedBody(nullptr, false);
+	for (const FSelection& Selection : SelectedConstraints)
+	{
+		UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[Selection.Index];
+		FConstraintInstance & DefaultInstance = ConstraintTemplate->DefaultInstance;
+
+		for (int32 BodyIdx = 0; BodyIdx < PhysicsAsset->BodySetup.Num(); ++BodyIdx)
+		{
+			UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIdx];
+			if (DefaultInstance.JointName == BodySetup->BoneName && BodySetup->AggGeom.GetElementCount() > 0)
+			{
+				FSelection Selection(BodyIdx, KPT_Unknown, 0);
+				int32 PrimIndex = 0;
+				for(int32 GeomType = 0; GeomType < KPT_Unknown; ++GeomType)
+				{
+					if(BodySetup->AggGeom.GetElementCount(GeomType) > 0)
+					{
+						Selection.PrimitiveType = (EKCollisionPrimitiveType)GeomType;
+						break;
+					}
+				}
+				SetSelectedBody(&Selection, true);
+			}
+		}
+	}
+}
+
+void FPhATSharedData::SetSelectedConstraintsFromBodies()
+{
+	if (SelectedBodies.Num() == 0)
+	{
+		return;
+	}
+
+	TSet<int32> TmpSelectedConstraints;	//We could have multiple shapes selected which would cause us to add and remove the same constraint.
+	SetSelectedConstraint(INDEX_NONE, false);
+	for (const FSelection& Selection : SelectedBodies)
+	{
+		UBodySetup* BodySetup = PhysicsAsset->BodySetup[Selection.Index];
+		for(int32 ConstraintIdx = 0; ConstraintIdx < PhysicsAsset->ConstraintSetup.Num(); ++ConstraintIdx)
+		{
+			const UPhysicsConstraintTemplate* ConstraintTemplate = PhysicsAsset->ConstraintSetup[ConstraintIdx]; 
+			if(ConstraintTemplate->DefaultInstance.JointName == BodySetup->BoneName && !TmpSelectedConstraints.Contains(ConstraintIdx))
+			{
+				TmpSelectedConstraints.Add(ConstraintIdx);
+				SetSelectedConstraint(ConstraintIdx, true);
+			}
+		}
+	}
+}
+
+
 void FPhATSharedData::UpdateNoCollisionBodies()
 {
 	NoCollisionBodies.Empty();
@@ -860,6 +919,7 @@ bool FPhATSharedData::WeldSelectedBodies(bool bWeld /* = true */)
 	RefreshPhysicsAssetChange(PhysicsAsset);
 	return true;
 }
+
 
 void FPhATSharedData::InitConstraintSetup(UPhysicsConstraintTemplate* ConstraintSetup, int32 ChildBodyIndex, int32 ParentBodyIndex)
 {

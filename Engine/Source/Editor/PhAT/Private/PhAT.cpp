@@ -781,7 +781,9 @@ void FPhAT::ExtendToolbar()
 			//phat edit mode combo
 			FUIAction PhatMode;
 			PhatMode.CanExecuteAction = FCanExecuteAction::CreateSP(Phat, &FPhAT::IsNotSimulation);
-			ToolbarBuilder.BeginSection("PhATMode");
+			ToolbarBuilder.AddToolBarButton(Commands.EditingMode_Body);
+			ToolbarBuilder.AddToolBarButton(Commands.EditingMode_Constraint);
+			/*ToolbarBuilder.BeginSection("PhATMode");
 			{
 				ToolbarBuilder.AddComboButton(
 					PhatMode,
@@ -790,7 +792,7 @@ void FPhAT::ExtendToolbar()
 					TAttribute< FText >::Create( TAttribute< FText >::FGetter::CreateSP( Phat, &FPhAT::GetEditModeToolTip) ),
 					TAttribute< FSlateIcon >::Create( TAttribute< FSlateIcon >::FGetter::CreateSP( Phat, &FPhAT::GetEditModeIcon) )
 					);
-			}
+			}*/
 			ToolbarBuilder.EndSection();
 	
 	
@@ -2224,12 +2226,14 @@ void FPhAT::OnEditingMode(int32 Mode)
 	if (Mode == FPhATSharedData::PEM_BodyEdit)
 	{
 		SharedData->EditingMode = FPhATSharedData::PEM_BodyEdit;
+		SharedData->SetSelectedBodiesFromConstraints();
 		RefreshHierachyTree();
 		SharedData->SetSelectedBody(NULL, true); // Forces properties panel to update...
 	}
 	else
 	{
 		SharedData->EditingMode = FPhATSharedData::PEM_ConstraintEdit;
+		SharedData->SetSelectedConstraintsFromBodies();
 		RefreshHierachyTree();
 		SharedData->SetSelectedConstraint(INDEX_NONE, true);
 	}
