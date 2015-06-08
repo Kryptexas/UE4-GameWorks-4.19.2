@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2571771
-Availability:Docs
+﻿INTSourceChangelist:2576224
+Availability:Public
 Title:1. 初期レベル設定
 Crumbs:
 Description:Grass ツールの作業に必要な初期アクタの設定方法
@@ -34,15 +34,16 @@ Version:4.8
 
 	![](Engine\OpenWorldTools\ProceduralFoliage\QuickStart\1\T_Create_Landscape.gif)(convert:false)
 
-1. Grass ツールよりわかりやすく見せるために、ランドスケープテレインが完全にフラットにならないようにノイズを加えます。
+1. Grass ツールよりわかりやすく紹介するために、ランドスケープテレインが完全にフラットにならないようにノイズを加えます。
 	**Landscape ツール** へ移動して、 **Landscape Editor** セクションで利用可能なツールを表示するために **Sculpt Tool** アイコンをクリックして、リストから **Noise** ツールを選びます。 
 	以下に示す値でプロパティを設定しましょう。
+	
 	![](T_Sculpt_Tool_Settings.png) 
 
 	 |プロパティ名 | 値 | 理由 |
 	|--------------|-------|---------|
 	|**Brush Size**    |65536.0| ランドスケープテレインに同時に影響をもたらすのに十分な大きさのブラシを作成します。|
-	|**Tool Strength** |0.01   | 非常に微細なエフェクトを作成したいので、 Tool Strength を最小値に設定してペイントすることで明暗度を加えます。|
+	|**Tool Strength** |0.01   | わずかなエフェクトを作成するために、 Tool Strength をとても低い値に設定してペイントすることで明暗度を追加します。|
 	|**Noise Scale**   |256    | Noise Scale を大きい値に設定すればするほどノイズがより滑らかになり、ランドスケープに適用するとよりナチュラルな見た目になります。|
 
 1. ランドスケープテレイン 全体を覆うようにランドスケープブラシをビューポートを配置してから、左マウスボタンを **3** 、 **4** 回押して、非常に微細なノイズをランドスケープサーフェスに追加します。 
