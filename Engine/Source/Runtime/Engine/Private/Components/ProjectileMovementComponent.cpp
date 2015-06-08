@@ -378,7 +378,7 @@ FVector UProjectileMovementComponent::ComputeAcceleration(const FVector& InVeloc
 {
 	FVector Acceleration(FVector::ZeroVector);
 
-	Acceleration.Z += GetEffectiveGravityZ();
+	Acceleration.Z += GetGravityZ();
 
 	if (bIsHomingProjectile && HomingTargetComponent.IsValid())
 	{
@@ -395,10 +395,16 @@ FVector UProjectileMovementComponent::ComputeHomingAcceleration(const FVector& I
 	return HomingAcceleration;
 }
 
+// Deprecated
 float UProjectileMovementComponent::GetEffectiveGravityZ() const
 {
+	return GetGravityZ();
+}
+
+float UProjectileMovementComponent::GetGravityZ() const
+{
 	// TODO: apply buoyancy if in water
-	return ShouldApplyGravity() ? GetGravityZ() * ProjectileGravityScale : 0.f;
+	return ShouldApplyGravity() ? Super::GetGravityZ() * ProjectileGravityScale : 0.f;
 }
 
 
@@ -535,7 +541,7 @@ bool UProjectileMovementComponent::CheckStillInWorld()
 
 bool UProjectileMovementComponent::ShouldUseSubStepping() const
 {
-	return bForceSubStepping || (GetEffectiveGravityZ() != 0.f) || (bIsHomingProjectile && HomingTargetComponent.IsValid());
+	return bForceSubStepping || (GetGravityZ() != 0.f) || (bIsHomingProjectile && HomingTargetComponent.IsValid());
 }
 
 
