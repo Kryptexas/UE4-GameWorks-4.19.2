@@ -676,7 +676,7 @@ th a:visited
 #CrashDataContainer
 {
 	margin: 2px;
-	width: 440px;
+	width: 470px;
 	height: 640px;
 	float: left;
 	background: #2e363f;
@@ -698,26 +698,26 @@ th a:visited
 		text-align: right;
 		color: #718698;
 		/*border:dotted;
-	border-width:1px;*/
+		border-width:1px;*/
 	}
 
 	#CrashDataContainer dd
 	{
 		display: block;
 		float: left;
-		width: 210px;
+		width: 250px;
 		margin: 2px;
 		font-weight: normal;
 		color: #C3CAD0;
 		/*border:dotted;
-	border-width:1px;*/
+		border-width:1px;*/
 	}
 
 #CallStackContainer
 {
 	min-width: 900px;
 	margin: 1em;
-	margin-left: 450px;
+	margin-left: 480px;
 	padding: 1em;
 	background-color: #758a98;
 }

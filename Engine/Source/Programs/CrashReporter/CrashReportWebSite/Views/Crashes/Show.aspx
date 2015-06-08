@@ -186,7 +186,7 @@
 				<dd ><%=Html.DisplayFor(m => Model.Crash.LanguageExt) %></dd>
 			
 			<dt>Platform</dt>
-				<dd ><%=Html.DisplayFor(m => Model.Crash.PlatformName) %></dd>
+				<dd ><small><%=Html.DisplayFor(m => Model.Crash.PlatformName) %></small></dd>
 
 			<dt>Machine Id</dt> 
 				<dd class='even'><small><%=Html.DisplayFor(m => Model.Crash.MachineId) %></small></dd>
