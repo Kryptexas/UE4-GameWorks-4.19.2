@@ -306,3 +306,5 @@ bool FLightPointLightSetLocation::RunTest(const FString& Parameters)
 	AddError(TEXT("A point light already exists in this level which will block the verification of a new point light."));
 	return false;
 }
+
+#undef LOCTEXT_NAMESPACE
