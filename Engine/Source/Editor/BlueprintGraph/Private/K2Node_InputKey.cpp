@@ -198,12 +198,20 @@ FName UK2Node_InputKey::GetPaletteIcon(FLinearColor& OutColor) const
 
 bool UK2Node_InputKey::IsCompatibleWithGraph(UEdGraph const* Graph) const
 {
-	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
+	// This node expands into event nodes and must be placed in a Ubergraph
+	EGraphType const GraphType = Graph->GetSchema()->GetGraphType(Graph);
+	bool bIsCompatible = (GraphType == EGraphType::GT_Ubergraph);
 
-	UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
-	bool const bIsConstructionScript = (K2Schema != nullptr) ? K2Schema->IsConstructionScript(Graph) : false;
+	if (bIsCompatible)
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);
 
-	return (Blueprint != nullptr) && Blueprint->SupportsInputEvents() && !bIsConstructionScript && Super::IsCompatibleWithGraph(Graph);
+		UEdGraphSchema_K2 const* K2Schema = Cast<UEdGraphSchema_K2>(Graph->GetSchema());
+		bool const bIsConstructionScript = (K2Schema != nullptr) ? K2Schema->IsConstructionScript(Graph) : false;
+
+		bIsCompatible = (Blueprint != nullptr) && Blueprint->SupportsInputEvents() && !bIsConstructionScript && Super::IsCompatibleWithGraph(Graph);
+	}
+	return bIsCompatible;
 }
 
 UEdGraphPin* UK2Node_InputKey::GetPressedPin() const
