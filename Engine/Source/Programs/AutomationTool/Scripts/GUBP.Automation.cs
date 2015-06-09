@@ -6014,7 +6014,7 @@ public class GUBP : BuildCommand
             {
                 var Options = CodeProj.Options(HostPlatform);
 
-                if (!Options.bIsPromotable && !Options.bTestWithShared && !Options.bIsNonCode)
+                if (!Options.bIsPromotable && !Options.bTestWithShared && !Options.bIsNonCode && !Options.bBuildAnyway)
                 {
                     continue; // we skip things that aren't promotable and aren't tested - except noncode as code situations
                 }

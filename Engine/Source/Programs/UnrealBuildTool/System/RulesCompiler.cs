@@ -879,6 +879,7 @@ namespace UnrealBuildTool
         public class GUBPProjectOptions
         {
             public bool bIsPromotable = false;
+            public bool bBuildAnyway = false;
             public bool bSeparateGamePromotion = false;
             public bool bTestWithShared = false;
             public bool bIsMassive = false;
