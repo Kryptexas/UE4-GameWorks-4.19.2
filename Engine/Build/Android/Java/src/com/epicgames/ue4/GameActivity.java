@@ -1076,38 +1076,48 @@ public class GameActivity extends NativeActivity
 	{
 		if( requestCode == DOWNLOAD_ACTIVITY_ID)
 		{
-			int errorCode = data.getIntExtra(DOWNLOAD_RETURN_NAME, DOWNLOAD_NO_RETURN_CODE);
-			
-			String logMsg = "DownloadActivity Returned with ";
-			switch(errorCode)
+			int errorCode = 0;
+			if(resultCode == RESULT_OK)
 			{
-			case DOWNLOAD_FILES_PRESENT:
-				logMsg += "Download Files Present";
-				break;
-			case DOWNLOAD_COMPLETED_OK:
-				logMsg += "Download Completed OK";
-				break;
-			case DOWNLOAD_NO_RETURN_CODE:
-				logMsg += "Download No Return Code";
-				break;
-			case DOWNLOAD_USER_QUIT:
-				logMsg += "Download User Quit";
-				break;
-			case DOWNLOAD_FAILED:
-				logMsg += "Download Failed";
-				break;
-			case DOWNLOAD_INVALID:
-				logMsg += "Download Invalid";
-				break;
-			case DOWNLOAD_NO_PLAY_KEY:
-				logMsg +="Download No Play Key";
-				break;
-			default:
-				logMsg += "Unknown message!";
-				break;
+								
+				errorCode = data.getIntExtra(DOWNLOAD_RETURN_NAME, DOWNLOAD_NO_RETURN_CODE);
+				
+				String logMsg = "DownloadActivity Returned with ";
+				switch(errorCode)
+				{
+				case DOWNLOAD_FILES_PRESENT:
+					logMsg += "Download Files Present";
+					break;
+				case DOWNLOAD_COMPLETED_OK:
+					logMsg += "Download Completed OK";
+					break;
+				case DOWNLOAD_NO_RETURN_CODE:
+					logMsg += "Download No Return Code";
+					break;
+				case DOWNLOAD_USER_QUIT:
+					logMsg += "Download User Quit";
+					break;
+				case DOWNLOAD_FAILED:
+					logMsg += "Download Failed";
+					break;
+				case DOWNLOAD_INVALID:
+					logMsg += "Download Invalid";
+					break;
+				case DOWNLOAD_NO_PLAY_KEY:
+					logMsg +="Download No Play Key";
+					break;
+				default:
+					logMsg += "Unknown message!";
+					break;
+				}
+				
+				Log.debug(logMsg);
 			}
-			
-			Log.debug(logMsg);
+			else
+			{
+				Log.debug("Download activity cancelled by user.");
+				errorCode = DOWNLOAD_USER_QUIT;
+			}
 			
 			HasAllFiles = (errorCode == DOWNLOAD_FILES_PRESENT || errorCode == DOWNLOAD_COMPLETED_OK);
 			
