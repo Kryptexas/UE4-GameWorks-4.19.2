@@ -12,12 +12,14 @@ UMockTask_Log::UMockTask_Log(const FObjectInitializer& ObjectInitializer)
 
 }
 
-UMockTask_Log* UMockTask_Log::CreateTask(IGameplayTaskOwnerInterface& TaskOwner, FTestLogger<int32>& InLogger)
+UMockTask_Log* UMockTask_Log::CreateTask(IGameplayTaskOwnerInterface& TaskOwner, FTestLogger<int32>& InLogger, const FGameplayResourceSet& Resources, uint8 Priority)
 {
 	UMockTask_Log* Task = NewTask<UMockTask_Log>(TaskOwner);
 	if (Task)
 	{
 		Task->Logger = &InLogger;
+		Task->RequiredResources = Resources;
+		Task->Priority = Priority;
 	}
 	return Task;
 }

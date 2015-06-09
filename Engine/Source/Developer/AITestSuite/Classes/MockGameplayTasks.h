@@ -3,6 +3,7 @@
 #pragma once 
 
 #include "GameplayTask.h"
+#include "GameplayTasksComponent.h"
 #include "MockGameplayTasks.generated.h"
 
 namespace ETestTaskMessage
@@ -28,7 +29,7 @@ protected:
 public:
 	UMockTask_Log(const FObjectInitializer& ObjectInitializer);
 
-	static UMockTask_Log* CreateTask(IGameplayTaskOwnerInterface& TaskOwner, FTestLogger<int32>& InLogger);
+	static UMockTask_Log* CreateTask(IGameplayTaskOwnerInterface& TaskOwner, FTestLogger<int32>& InLogger, const FGameplayResourceSet& Resources = FGameplayResourceSet(), uint8 Priority = FGameplayTasks::DefaultPriority);
 
 protected:
 	virtual void Activate() override;
@@ -41,4 +42,16 @@ public:
 
 	// testing only hack-functions
 	void EnableTick() { bTickingTask = true; }
+};
+
+//
+// a Testing-time component that is a way to access UGameplayTasksComponent's protected properties
+//
+UCLASS()
+class UMockGameplayTasksComponent : public UGameplayTasksComponent
+{
+	GENERATED_BODY()
+
+public:	
+	int32 GetTaskPriorityQueueSize() const { return TaskPriorityQueue.Num(); }
 };
