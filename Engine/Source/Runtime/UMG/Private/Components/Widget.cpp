@@ -151,14 +151,7 @@ void UWidget::UpdateRenderTransform()
 		}
 		else
 		{
-			FSlateRenderTransform Transform2D =
-				::Concatenate(
-				FScale2D(RenderTransform.Scale),
-				FShear2D::FromShearAngles(RenderTransform.Shear),
-				FQuat2D(FMath::DegreesToRadians(RenderTransform.Angle)),
-				FVector2D(RenderTransform.Translation));
-
-			SafeWidget->SetRenderTransform(Transform2D);
+			SafeWidget->SetRenderTransform(RenderTransform.ToSlateRenderTransform());
 		}
 	}
 }
