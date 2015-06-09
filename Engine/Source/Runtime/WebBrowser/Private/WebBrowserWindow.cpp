@@ -2,28 +2,40 @@
 
 #include "WebBrowserPrivatePCH.h"
 #include "WebBrowserWindow.h"
-#include "SlateCore.h"
-#include "SlateBasics.h"
+#include "WebBrowserByteResource.h"
 #include "RHI.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool bInShowErrorMessage)
+
+#if PLATFORM_MAC
+// Needed for character code definitions
+#include <Carbon/Carbon.h>
+#include <AppKit/NSEvent.h>
+#endif
+
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, UpdatableTexture(nullptr)
 	, CurrentUrl(InUrl)
 	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
-	, bHasBeenPainted(false)
+	, bIsInitialized(false)
 	, ContentsToLoad(InContentsToLoad)
-	, ShowErrorMessage(bInShowErrorMessage)
+	, ShowErrorMessage(InShowErrorMessage)
+	, bThumbMouseButtonNavigation(InThumbMouseButtonNavigation)
+	, Cursor(EMouseCursor::Default)
+	, bIsHidden(false)
+	, bTickedLastFrame(true)
+	, PreviousKeyDownEvent()
+	, PreviousKeyUpEvent()
+	, PreviousCharacterEvent()
+	, bIgnoreKeyDownEvent(false)
+	, bIgnoreKeyUpEvent(false)
+	, bIgnoreCharacterEvent(false)
 {
-	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
-	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
-    bTextureDataDirty = true;
-
 	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
 	{
-		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(ViewportSize.X, ViewportSize.Y);
+		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(1,1); // Texture will be resized on first paint call
 	}
 }
 
@@ -45,6 +57,7 @@ void FWebBrowserWindow::LoadURL(FString NewURL)
 		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
 		if (MainFrame.get() != nullptr)
 		{
+			ContentsToLoad = TOptional<FString>();
 			CefString URL = *NewURL;
 			MainFrame->LoadURL(URL);
 		}
@@ -58,37 +71,23 @@ void FWebBrowserWindow::LoadString(FString Contents, FString DummyURL)
 		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
 		if (MainFrame.get() != nullptr)
 		{
-			CefString StringVal = *Contents;
+			ContentsToLoad = Contents;
 			CefString URL = *DummyURL;
-			MainFrame->LoadString(StringVal, URL);
+			MainFrame->LoadURL(URL);
 		}
 	}
 }
 
 void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 {
+	// SetViewportSize is called from the browser viewport tick method, which means that since we are receiving ticks, we can mark the browser as visible.
+	SetIsHidden(false);
+	bTickedLastFrame=true;
 	// Ignore sizes that can't be seen as it forces CEF to re-render whole image
 	if (WindowSize.X > 0 && WindowSize.Y > 0 && ViewportSize != WindowSize)
 	{
-		FIntPoint OldViewportSize = MoveTemp(ViewportSize);
-		TArray<uint8> OldTextureData = MoveTemp(TextureData);
 		ViewportSize = MoveTemp(WindowSize);
-		TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
-
-		// copy row by row to avoid texture distortion
-		const int32 WriteWidth = FMath::Min(OldViewportSize.X, ViewportSize.X) * 4;
-		const int32 WriteHeight = FMath::Min(OldViewportSize.Y, ViewportSize.Y);
-		for (int32 RowIndex = 0; RowIndex < WriteHeight; ++RowIndex)
-		{
-			FMemory::Memcpy(TextureData.GetData() + ViewportSize.X * RowIndex * 4, OldTextureData.GetData() + OldViewportSize.X * RowIndex * 4, WriteWidth);
-		}
-
-		if (UpdatableTexture != nullptr)
-		{
-			UpdatableTexture->ResizeTexture(ViewportSize.X, ViewportSize.Y);
-			UpdatableTexture->UpdateTextureThreadSafe(TextureData);
-            bTextureDataDirty = false;
-		}
+		
 		if (IsValid())
 		{
 			InternalCefBrowser->GetHost()->WasResized();
@@ -98,13 +97,8 @@ void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 
 FSlateShaderResource* FWebBrowserWindow::GetTexture()
 {
-	if (UpdatableTexture != nullptr)
+	if (UpdatableTexture != nullptr && IsInitialized())
 	{
-        if (bTextureDataDirty)
-        {
-            UpdatableTexture->UpdateTextureThreadSafe(TextureData);
-            bTextureDataDirty = false;
-        }
 		return UpdatableTexture->GetSlateResource();
 	}
 	return nullptr;
@@ -115,9 +109,9 @@ bool FWebBrowserWindow::IsValid() const
 	return InternalCefBrowser.get() != nullptr;
 }
 
-bool FWebBrowserWindow::HasBeenPainted() const
+bool FWebBrowserWindow::IsInitialized() const
 {
-	return bHasBeenPainted;
+	return bIsInitialized;
 }
 
 bool FWebBrowserWindow::IsClosing() const
@@ -150,56 +144,215 @@ FString FWebBrowserWindow::GetUrl() const
 	return FString();
 }
 
-void FWebBrowserWindow::OnKeyDown(const FKeyEvent& InKeyEvent)
+void FWebBrowserWindow::PopulateCefKeyEvent(const FKeyEvent& InKeyEvent, CefKeyEvent& OutKeyEvent)
 {
-	if (IsValid())
-	{
-		CefKeyEvent KeyEvent;
 #if PLATFORM_MAC
-		KeyEvent.native_key_code = InKeyEvent.GetKeyCode();
-		KeyEvent.character = InKeyEvent.GetCharacter();
+	OutKeyEvent.native_key_code = InKeyEvent.GetKeyCode();
+
+	FKey Key = InKeyEvent.GetKey();
+	if (Key == EKeys::BackSpace)
+	{
+		OutKeyEvent.unmodified_character = kBackspaceCharCode;
+	}
+	else if (Key == EKeys::Tab)
+	{
+		OutKeyEvent.unmodified_character = kTabCharCode;
+	}
+	else if (Key == EKeys::Enter)
+	{
+		OutKeyEvent.unmodified_character = kReturnCharCode;
+	}
+	else if (Key == EKeys::Pause)
+	{
+		OutKeyEvent.unmodified_character = NSPauseFunctionKey;
+	}
+	else if (Key == EKeys::Escape)
+	{
+		OutKeyEvent.unmodified_character = kEscapeCharCode;
+	}
+	else if (Key == EKeys::PageUp)
+	{
+		OutKeyEvent.unmodified_character = NSPageUpFunctionKey;
+	}
+	else if (Key == EKeys::PageDown)
+	{
+		OutKeyEvent.unmodified_character = NSPageDownFunctionKey;
+	}
+	else if (Key == EKeys::End)
+	{
+		OutKeyEvent.unmodified_character = NSEndFunctionKey;
+	}
+	else if (Key == EKeys::Home)
+	{
+		OutKeyEvent.unmodified_character = NSHomeFunctionKey;
+	}
+	else if (Key == EKeys::Left)
+	{
+		OutKeyEvent.unmodified_character = NSLeftArrowFunctionKey;
+	}
+	else if (Key == EKeys::Up)
+	{
+		OutKeyEvent.unmodified_character = NSUpArrowFunctionKey;
+	}
+	else if (Key == EKeys::Right)
+	{
+		OutKeyEvent.unmodified_character = NSRightArrowFunctionKey;
+	}
+	else if (Key == EKeys::Down)
+	{
+		OutKeyEvent.unmodified_character = NSDownArrowFunctionKey;
+	}
+	else if (Key == EKeys::Insert)
+	{
+		OutKeyEvent.unmodified_character = NSInsertFunctionKey;
+	}
+	else if (Key == EKeys::Delete)
+	{
+		OutKeyEvent.unmodified_character = kDeleteCharCode;
+	}
+	else if (Key == EKeys::F1)
+	{
+		OutKeyEvent.unmodified_character = NSF1FunctionKey;
+	}
+	else if (Key == EKeys::F2)
+	{
+		OutKeyEvent.unmodified_character = NSF2FunctionKey;
+	}
+	else if (Key == EKeys::F3)
+	{
+		OutKeyEvent.unmodified_character = NSF3FunctionKey;
+	}
+	else if (Key == EKeys::F4)
+	{
+		OutKeyEvent.unmodified_character = NSF4FunctionKey;
+	}
+	else if (Key == EKeys::F5)
+	{
+		OutKeyEvent.unmodified_character = NSF5FunctionKey;
+	}
+	else if (Key == EKeys::F6)
+	{
+		OutKeyEvent.unmodified_character = NSF6FunctionKey;
+	}
+	else if (Key == EKeys::F7)
+	{
+		OutKeyEvent.unmodified_character = NSF7FunctionKey;
+	}
+	else if (Key == EKeys::F8)
+	{
+		OutKeyEvent.unmodified_character = NSF8FunctionKey;
+	}
+	else if (Key == EKeys::F9)
+	{
+		OutKeyEvent.unmodified_character = NSF9FunctionKey;
+	}
+	else if (Key == EKeys::F10)
+	{
+		OutKeyEvent.unmodified_character = NSF10FunctionKey;
+	}
+	else if (Key == EKeys::F11)
+	{
+		OutKeyEvent.unmodified_character = NSF11FunctionKey;
+	}
+	else if (Key == EKeys::F12)
+	{
+		OutKeyEvent.unmodified_character = NSF12FunctionKey;
+	}
+	else if (Key == EKeys::CapsLock)
+	{
+		OutKeyEvent.unmodified_character = 0;
+		OutKeyEvent.native_key_code = kVK_CapsLock;
+	}
+	else if (Key.IsModifierKey())
+	{
+		// Setting both unmodified_character and character to 0 tells CEF that it needs to generate a NSFlagsChanged event instead of NSKeyDown/Up
+		OutKeyEvent.unmodified_character = 0;
+
+		// CEF expects modifier key codes as one of the Carbon kVK_* key codes.
+		if (Key == EKeys::LeftCommand)
+		{
+			OutKeyEvent.native_key_code = kVK_Command;
+		}
+		else if (Key == EKeys::LeftShift)
+		{
+			OutKeyEvent.native_key_code = kVK_Shift;
+		}
+		else if (Key == EKeys::LeftAlt)
+		{
+			OutKeyEvent.native_key_code = kVK_Option;
+		}
+		else if (Key == EKeys::LeftControl)
+		{
+			OutKeyEvent.native_key_code = kVK_Control;
+		}
+		else if (Key == EKeys::RightCommand)
+		{
+			// There isn't a separate code for the right hand command key defined, but CEF seems to use the unused value before the left command keycode
+			OutKeyEvent.native_key_code = kVK_Command-1;
+		}
+		else if (Key == EKeys::RightShift)
+		{
+			OutKeyEvent.native_key_code = kVK_RightShift;
+		}
+		else if (Key == EKeys::RightAlt)
+		{
+			OutKeyEvent.native_key_code = kVK_RightOption;
+		}
+		else if (Key == EKeys::RightControl)
+		{
+			OutKeyEvent.native_key_code = kVK_RightControl;
+		}
+	}
+	else
+	{
+		OutKeyEvent.unmodified_character = InKeyEvent.GetCharacter();
+	}
+	OutKeyEvent.character = OutKeyEvent.unmodified_character;
+
 #else
-		KeyEvent.windows_key_code = InKeyEvent.GetKeyCode();
-#endif
+	OutKeyEvent.windows_key_code = InKeyEvent.GetKeyCode();
 		// TODO: Figure out whether this is a system key if we come across problems
 		/*KeyEvent.is_system_key = message == WM_SYSCHAR ||
 			message == WM_SYSKEYDOWN ||
 			message == WM_SYSKEYUP;*/
+#endif
 
+	OutKeyEvent.modifiers = GetCefKeyboardModifiers(InKeyEvent);
+}
+
+bool FWebBrowserWindow::OnKeyDown(const FKeyEvent& InKeyEvent)
+{
+	if (IsValid() && !bIgnoreKeyDownEvent)
+	{
+		PreviousKeyDownEvent = InKeyEvent;
+		CefKeyEvent KeyEvent;
+		PopulateCefKeyEvent(InKeyEvent, KeyEvent);
 		KeyEvent.type = KEYEVENT_RAWKEYDOWN;
-		KeyEvent.modifiers = GetCefKeyboardModifiers(InKeyEvent);
-
 		InternalCefBrowser->GetHost()->SendKeyEvent(KeyEvent);
+		return true;
 	}
+	return false;
 }
 
-void FWebBrowserWindow::OnKeyUp(const FKeyEvent& InKeyEvent)
+bool FWebBrowserWindow::OnKeyUp(const FKeyEvent& InKeyEvent)
 {
-	if (IsValid())
+	if (IsValid() && !bIgnoreKeyUpEvent)
 	{
+		PreviousKeyUpEvent = InKeyEvent;
 		CefKeyEvent KeyEvent;
-#if PLATFORM_MAC
-		KeyEvent.native_key_code = InKeyEvent.GetKeyCode();
-		KeyEvent.character = InKeyEvent.GetCharacter();
-#else
-		KeyEvent.windows_key_code = InKeyEvent.GetKeyCode();
-#endif
-		// TODO: Figure out whether this is a system key if we come across problems
-		/*KeyEvent.is_system_key = message == WM_SYSCHAR ||
-			message == WM_SYSKEYDOWN ||
-			message == WM_SYSKEYUP;*/
-
+		PopulateCefKeyEvent(InKeyEvent, KeyEvent);
 		KeyEvent.type = KEYEVENT_KEYUP;
-		KeyEvent.modifiers = GetCefKeyboardModifiers(InKeyEvent);
-
 		InternalCefBrowser->GetHost()->SendKeyEvent(KeyEvent);
+		return true;
 	}
+	return false;
 }
 
-void FWebBrowserWindow::OnKeyChar(const FCharacterEvent& InCharacterEvent)
+bool FWebBrowserWindow::OnKeyChar(const FCharacterEvent& InCharacterEvent)
 {
-	if (IsValid())
+	if (IsValid() && !bIgnoreCharacterEvent)
 	{
+		PreviousCharacterEvent = InCharacterEvent;
 		CefKeyEvent KeyEvent;
 #if PLATFORM_MAC
 		KeyEvent.character = InCharacterEvent.GetCharacter();
@@ -215,14 +368,69 @@ void FWebBrowserWindow::OnKeyChar(const FCharacterEvent& InCharacterEvent)
 		KeyEvent.modifiers = GetCefInputModifiers(InCharacterEvent);
 
 		InternalCefBrowser->GetHost()->SendKeyEvent(KeyEvent);
+		return true;
 	}
+	return false;
 }
 
-void FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+/* This is an ugly hack to inject unhandled key events back into Slate.
+   During processing of the initial keyboard event, we don't know whether it is handled by the Web browser or not.
+   Not until after CEF calls OnKeyEvent in our CefKeyboardHandler implementation, which is after our own keyboard event handler
+   has returned.
+   The solution is to save a copy of the event and re-inject it into Slate while ensuring that we'll ignore it and bubble it up
+   the widget hierarchy this time around. */
+bool FWebBrowserWindow::OnUnhandledKeyEvent(const CefKeyEvent& CefEvent)
 {
+	bool bWasHandled = false;
+	if (IsValid())
+	{
+		switch (CefEvent.type) {
+			case KEYEVENT_RAWKEYDOWN:
+			case KEYEVENT_KEYDOWN:
+				if (PreviousKeyDownEvent.IsSet())
+				{
+					bIgnoreKeyDownEvent = true;
+					bWasHandled = FSlateApplication::Get().ProcessKeyDownEvent(PreviousKeyDownEvent.GetValue());
+					PreviousKeyDownEvent.Reset();
+					bIgnoreKeyDownEvent = false;
+				}
+				break;
+			case KEYEVENT_KEYUP:
+				if (PreviousKeyUpEvent.IsSet())
+				{
+					bIgnoreKeyUpEvent = true;
+					bWasHandled = FSlateApplication::Get().ProcessKeyUpEvent(PreviousKeyUpEvent.GetValue());
+					PreviousKeyUpEvent.Reset();
+					bIgnoreKeyUpEvent = false;
+				}
+				break;
+			case KEYEVENT_CHAR:
+				if (PreviousCharacterEvent.IsSet())
+				{
+					bIgnoreCharacterEvent = true;
+					bWasHandled = FSlateApplication::Get().ProcessKeyCharEvent(PreviousCharacterEvent.GetValue());
+					PreviousCharacterEvent.Reset();
+					bIgnoreCharacterEvent = false;
+				}
+				break;
+		  default:
+			break;
+	}
+	}
+	return bWasHandled;
+}
+
+FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	FReply Reply = FReply::Unhandled();
 	if (IsValid())
 	{
 		FKey Button = MouseEvent.GetEffectingButton();
+		// CEF only supports left, right, and middle mouse buttons
+		bool bIsCefSupportedButton = (Button == EKeys::LeftMouseButton || Button == EKeys::RightMouseButton || Button == EKeys::MiddleMouseButton);
+
+		if(bIsCefSupportedButton)
+		{
 		CefBrowserHost::MouseButtonType Type =
 			(Button == EKeys::LeftMouseButton ? MBT_LEFT : (
 			Button == EKeys::RightMouseButton ? MBT_RIGHT : MBT_MIDDLE));
@@ -234,14 +442,23 @@ void FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 		Event.modifiers = GetCefMouseModifiers(MouseEvent);
 
 		InternalCefBrowser->GetHost()->SendMouseClickEvent(Event, Type, false,1);
+			Reply = FReply::Handled();
+		}
 	}
+	return Reply;
 }
 
-void FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	FReply Reply = FReply::Unhandled();
 	if (IsValid())
 	{
 		FKey Button = MouseEvent.GetEffectingButton();
+		// CEF only supports left, right, and middle mouse buttons
+		bool bIsCefSupportedButton = (Button == EKeys::LeftMouseButton || Button == EKeys::RightMouseButton || Button == EKeys::MiddleMouseButton);
+
+		if(bIsCefSupportedButton)
+		{
 		CefBrowserHost::MouseButtonType Type =
 			(Button == EKeys::LeftMouseButton ? MBT_LEFT : (
 			Button == EKeys::RightMouseButton ? MBT_RIGHT : MBT_MIDDLE));
@@ -253,14 +470,41 @@ void FWebBrowserWindow::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoin
 		Event.modifiers = GetCefMouseModifiers(MouseEvent);
 
 		InternalCefBrowser->GetHost()->SendMouseClickEvent(Event, Type, true, 1);
+			Reply = FReply::Handled();
+		}
+		else if(Button == EKeys::ThumbMouseButton && bThumbMouseButtonNavigation)
+		{
+			if(CanGoBack())
+			{
+				GoBack();
+				Reply = FReply::Handled();
+			}
+			
+		}
+		else if(Button == EKeys::ThumbMouseButton2 && bThumbMouseButtonNavigation)
+		{
+			if(CanGoForward())
+			{
+				GoForward();
+				Reply = FReply::Handled();
+			}
+			
+		}
 	}
+	return Reply;
 }
 
-void FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	FReply Reply = FReply::Unhandled();
 	if (IsValid())
 	{
 		FKey Button = MouseEvent.GetEffectingButton();
+		// CEF only supports left, right, and middle mouse buttons
+		bool bIsCefSupportedButton = (Button == EKeys::LeftMouseButton || Button == EKeys::RightMouseButton || Button == EKeys::MiddleMouseButton);
+
+		if(bIsCefSupportedButton)
+		{
 		CefBrowserHost::MouseButtonType Type =
 			(Button == EKeys::LeftMouseButton ? MBT_LEFT : (
 			Button == EKeys::RightMouseButton ? MBT_RIGHT : MBT_MIDDLE));
@@ -272,11 +516,15 @@ void FWebBrowserWindow::OnMouseButtonDoubleClick(const FGeometry& MyGeometry, co
 		Event.modifiers = GetCefMouseModifiers(MouseEvent);
 
 		InternalCefBrowser->GetHost()->SendMouseClickEvent(Event, Type, false, 2);
+			Reply = FReply::Handled();
 	}
+	}
+	return Reply;
 }
 
-void FWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	FReply Reply = FReply::Unhandled();
 	if (IsValid())
 	{
 		CefMouseEvent Event;
@@ -286,15 +534,18 @@ void FWebBrowserWindow::OnMouseMove(const FGeometry& MyGeometry, const FPointerE
 		Event.modifiers = GetCefMouseModifiers(MouseEvent);
 
 		InternalCefBrowser->GetHost()->SendMouseMoveEvent(Event, false);
+		Reply = FReply::Handled();
 	}
+	return Reply;
 }
 
-void FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	FReply Reply = FReply::Unhandled();
 	if(IsValid())
 	{
 		// The original delta is reduced so this should bring it back to what CEF expects
-		const float SpinFactor = 120.0f;
+		const float SpinFactor = 50.0f;
 		const float TrueDelta = MouseEvent.GetWheelDelta() * SpinFactor;
 		CefMouseEvent Event;
 		FVector2D LocalPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
@@ -305,7 +556,9 @@ void FWebBrowserWindow::OnMouseWheel(const FGeometry& MyGeometry, const FPointer
 		InternalCefBrowser->GetHost()->SendMouseWheelEvent(Event,
 															MouseEvent.IsShiftDown() ? TrueDelta : 0,
 															!MouseEvent.IsShiftDown() ? TrueDelta : 0);
+		Reply = FReply::Handled();
 	}
+	return Reply;
 }
 
 void FWebBrowserWindow::OnFocus(bool SetFocus)
@@ -416,12 +669,14 @@ void FWebBrowserWindow::CloseBrowser()
 void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
 {
 	InternalCefBrowser = Browser;
-	// Need to wait until this point if we want to start with a page loaded from a string
-	if (ContentsToLoad.IsSet())
-	{
-		LoadString(ContentsToLoad.GetValue(), CurrentUrl);
-	}
 }
+
+
+CefRefPtr<CefBrowser> FWebBrowserWindow::GetCefBrowser()
+{
+	return InternalCefBrowser;
+}
+
 
 void FWebBrowserWindow::SetTitle(const CefString& InTitle)
 {
@@ -435,8 +690,24 @@ void FWebBrowserWindow::SetUrl(const CefString& Url)
 	OnUrlChanged().Broadcast(CurrentUrl);
 }
 
+void FWebBrowserWindow::SetToolTip(const CefString& CefToolTip)
+{
+	FString NewToolTipText = CefToolTip.ToWString().c_str();
+	if (ToolTipText != NewToolTipText)
+	{
+		ToolTipText = NewToolTipText;
+		OnToolTip().Broadcast(ToolTipText);
+	}
+}
+
+
 bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 {
+	if (ViewportSize == FIntPoint::ZeroValue)
+	{
+		return false;
+	}
+	
 	Rect.x = 0;
 	Rect.y = 0;
 	Rect.width = ViewportSize.X;
@@ -453,6 +724,11 @@ void FWebBrowserWindow::NotifyDocumentError()
 
 void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 {
+	if (! IsLoading)
+	{
+		bIsInitialized = true;
+	}
+	
 	EWebBrowserDocumentState NewState = IsLoading
 		? EWebBrowserDocumentState::Loading
 		: EWebBrowserDocumentState::Completed;
@@ -467,41 +743,132 @@ void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
-	const int32 BufferSize = Width*Height*4;
-	if (BufferSize == TextureData.Num() && DirtyRects.size() == 1 && DirtyRects[0].width == Width && DirtyRects[0].height == Height)
+	if (UpdatableTexture != nullptr)
 	{
-		FMemory::Memcpy(TextureData.GetData(), Buffer, BufferSize);
-	}
-	else
-	{
-        for (CefRect Rect : DirtyRects)
-        {
-            // Skip rect if fully outside the viewport
-            if (Rect.x > ViewportSize.X || Rect.y > ViewportSize.Y)
-                continue;
-            
-            const int32 WriteWidth = (FMath::Min(Rect.x + Rect.width, ViewportSize.X) - Rect.x) * 4;
-            const int32 WriteHeight = FMath::Min(Rect.y + Rect.height, ViewportSize.Y);
-            // copy row by row to skip pixels outside the rect
-            for (int32 RowIndex = Rect.y; RowIndex < WriteHeight; ++RowIndex)
-            {
-                FMemory::Memcpy(TextureData.GetData() + ( ViewportSize.X * RowIndex + Rect.x ) * 4 , static_cast<const uint8*>(Buffer) + (Width * RowIndex + Rect.x) * 4, WriteWidth);
-            }
-        }
+		int32 FirstRow = 0;
+		int32 LastRow = Height;
+		// Note that with more recent versions of CEF, the DirtyRects will always contain a single element, as it merges all dirty areas into a single rectangle before calling OnPaint
+		// In case that should change in the future, we'll simply update the entire area if DirtyRects is not a single element.
+		FIntRect Dirty = (DirtyRects.size() == 1)?FIntRect(DirtyRects[0].x, DirtyRects[0].y, DirtyRects[0].x + DirtyRects[0].width, DirtyRects[0].y + DirtyRects[0].height):FIntRect();
+		UpdatableTexture->UpdateTextureThreadSafeRaw(Width, Height, Buffer, Dirty);
 	}
 
-    bTextureDataDirty = true;
-    bHasBeenPainted = true;
-
-    NeedsRedrawEvent.Broadcast();
+	bIsInitialized = true;
+	NeedsRedrawEvent.Broadcast();
 }
 
-void FWebBrowserWindow::OnCursorChange(CefCursorHandle Cursor)
+void FWebBrowserWindow::OnCursorChange(CefCursorHandle CefCursor, CefRenderHandler::CursorType Type, const CefCursorInfo& CustomCursorInfo)
 {
-	// TODO: Figure out Unreal cursor type from this,
-	// may need to reload unreal cursors to compare handles
-	//::SetCursor( Cursor );
+	switch (Type) {
+		case CT_NONE:
+			Cursor = EMouseCursor::None;
+			break;
+		case CT_IBEAM:
+		case CT_VERTICALTEXT:
+			Cursor = EMouseCursor::TextEditBeam;
+			break;
+		case CT_EASTRESIZE:
+		case CT_WESTRESIZE:
+		case CT_EASTWESTRESIZE:
+		case CT_COLUMNRESIZE:
+			Cursor = EMouseCursor::ResizeLeftRight;
+			break;
+		case CT_NORTHRESIZE:
+		case CT_SOUTHRESIZE:
+		case CT_NORTHSOUTHRESIZE:
+		case CT_ROWRESIZE:
+			Cursor = EMouseCursor::ResizeUpDown;
+			break;
+		case CT_NORTHWESTRESIZE:
+		case CT_SOUTHEASTRESIZE:
+		case CT_NORTHWESTSOUTHEASTRESIZE:
+			Cursor = EMouseCursor::ResizeSouthEast;
+			break;
+		case CT_NORTHEASTRESIZE:
+		case CT_SOUTHWESTRESIZE:
+		case CT_NORTHEASTSOUTHWESTRESIZE:
+			Cursor = EMouseCursor::ResizeSouthWest;
+			break;
+		case CT_MOVE:
+		case CT_MIDDLEPANNING:
+		case CT_EASTPANNING:
+		case CT_NORTHPANNING:
+		case CT_NORTHEASTPANNING:
+		case CT_NORTHWESTPANNING:
+		case CT_SOUTHPANNING:
+		case CT_SOUTHEASTPANNING:
+		case CT_SOUTHWESTPANNING:
+		case CT_WESTPANNING:
+			Cursor = EMouseCursor::CardinalCross;
+			break;
+		case CT_CROSS:
+			Cursor = EMouseCursor::Crosshairs;
+			break;
+		case CT_HAND:
+			Cursor = EMouseCursor::Hand;
+			break;
+		case CT_GRAB:
+			Cursor = EMouseCursor::GrabHand;
+			break;
+		case CT_GRABBING:
+			Cursor = EMouseCursor::GrabHandClosed;
+			break;
+		case CT_NOTALLOWED:
+		case CT_NODROP:
+			Cursor = EMouseCursor::SlashedCircle;
+			break;
+		case CT_POINTER:
+		default:
+			Cursor = EMouseCursor::Default;
+			break;
+	}
+
+	// Tell Slate to update the cursor now
+	FSlateApplication::Get().QueryCursor();
 }
+
+
+bool FWebBrowserWindow::OnBeforeBrowse( CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefRequest> Request, bool bIsRedirect )
+{
+	if (InternalCefBrowser != nullptr && InternalCefBrowser->IsSame(Browser))
+	{
+		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
+		if (MainFrame.get() != nullptr)
+		{
+			if(OnBeforeBrowse().IsBound())
+			{
+				FString Url = Request->GetURL().ToWString().c_str();
+				return OnBeforeBrowse().Execute(Url, bIsRedirect);
+			}
+		}
+	}
+	return false;
+}
+
+CefRefPtr<CefResourceHandler> FWebBrowserWindow::GetResourceHandler(CefRefPtr< CefFrame > Frame, CefRefPtr< CefRequest > Request )
+{
+	if (ContentsToLoad.IsSet())
+	{
+		FTCHARToUTF8 Convert(*ContentsToLoad.GetValue());
+		CefRefPtr<CefResourceHandler> Resource = new FWebBrowserByteResource(Convert.Get(), Convert.Length());
+		ContentsToLoad = TOptional<FString>();
+		return Resource;
+	}
+	if (OnLoadUrl().IsBound())
+	{
+		FString Method = Request->GetMethod().ToWString().c_str();
+		FString Url = Request->GetURL().ToWString().c_str();
+		FString Response;
+		if ( OnLoadUrl().Execute(Method, Url, Response))
+	{
+			FTCHARToUTF8 Convert(*Response);
+			CefRefPtr<CefResourceHandler> Resource = new FWebBrowserByteResource(Convert.Get(), Convert.Length());
+			return Resource;
+		}
+	}
+	return NULL;
+}
+
 
 int32 FWebBrowserWindow::GetCefKeyboardModifiers(const FKeyEvent& KeyEvent)
 {
@@ -569,7 +936,12 @@ int32 FWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 	}
 	if (InputEvent.IsControlDown())
 	{
+#if PLATFORM_MAC
+		// Slate swaps the flags for Command and Control on OSX, so we need to swap them back for CEF
+		Modifiers |= EVENTFLAG_COMMAND_DOWN;
+#else
 		Modifiers |= EVENTFLAG_CONTROL_DOWN;
+#endif
 	}
 	if (InputEvent.IsAltDown())
 	{
@@ -577,7 +949,12 @@ int32 FWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 	}
 	if (InputEvent.IsCommandDown())
 	{
+#if PLATFORM_MAC
+		// Slate swaps the flags for Command and Control on OSX, so we need to swap them back for CEF
+		Modifiers |= EVENTFLAG_CONTROL_DOWN;
+#else
 		Modifiers |= EVENTFLAG_COMMAND_DOWN;
+#endif
 	}
 	if (InputEvent.AreCapsLocked())
 	{
@@ -592,24 +969,56 @@ int32 FWebBrowserWindow::GetCefInputModifiers(const FInputEvent& InputEvent)
 	return Modifiers;
 }
 
+void FWebBrowserWindow::CheckTickActivity()
+{
+	// Early out if we're currently hidden, not initialized or currently loading.
+	if (bIsHidden || !IsValid() || IsLoading() || ViewportSize == FIntPoint::ZeroValue)
+	{
+		return;
+	}
+
+	// We clear the bTickedLastFrame flag here and set it on every Slate tick.
+	// If it's still clear when we come back it means we're not getting ticks from slate.
+	// Note: The BrowserSingleton object will not invoke this method if Slate itself is sleeping.
+	// Therefore we can safely assume the widget is hidden in that case.
+	if (!bTickedLastFrame)
+	{
+		SetIsHidden(true);
+	}
+	bTickedLastFrame = false;
+}
+
+void FWebBrowserWindow::SetIsHidden(bool bValue)
+{
+	if( bIsHidden == bValue )
+	{
+		return;
+	}
+	bIsHidden = bValue;
+	if ( IsValid() )
+	{
+		InternalCefBrowser->GetHost()->WasHidden(bIsHidden);
+	}
+}
+
 bool FWebBrowserWindow::OnQuery(int64 QueryId, const CefString& Request, bool Persistent, CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback)
 {
-	if (OnJSQueryReceived().IsBound())
+	if ( OnJSQueryReceived().IsBound() )
 	{
 		FString QueryString = Request.ToWString().c_str();
 		FJSQueryResultDelegate Delegate = FJSQueryResultDelegate::CreateLambda(
-			[Callback](int ErrorCode, FString Message)
-		{
-			CefString MessageString = *Message;
-			if (ErrorCode == 0)
+			[Callback] (int ErrorCode, FString Message)
 			{
-				Callback->Success(MessageString);
+				CefString MessageString = *Message;
+				if (ErrorCode == 0)
+				{
+					Callback->Success(MessageString);
+				}
+				else
+				{
+					Callback->Failure(ErrorCode, MessageString);
+				}
 			}
-			else
-			{
-				Callback->Failure(ErrorCode, MessageString);
-			}
-		}
 		);
 		return OnJSQueryReceived().Execute(QueryId, QueryString, Persistent, Delegate);
 	}

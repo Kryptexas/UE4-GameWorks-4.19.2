@@ -33,13 +33,14 @@ public:
 	virtual FFeedbackContext* GetNativeFeedbackContext() override;
 
 	virtual FString GetUserTempPath() override;
+	virtual FString GetVersionSelectorPath() const override;
 
 private:
 	bool GetLauncherPath(FString& OutLauncherPath);
 	bool GetLauncherInstallerPath(FString& OutInstallerPath);
 	bool FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex);
 	void GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys);
-	int32 GetShellIntegrationVersion(const FString &FileName);
+	int32 GetShellIntegrationVersion(const FString &FileName) const;
 };
 
 typedef FDesktopPlatformWindows FDesktopPlatform;

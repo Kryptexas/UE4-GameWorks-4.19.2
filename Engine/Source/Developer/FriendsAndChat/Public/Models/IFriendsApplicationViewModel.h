@@ -8,5 +8,6 @@ public:
 
 	// IFriendsApplicationViewModel Interface
 	virtual bool IsAppJoinable() = 0;
+	virtual bool IsAppEntitlementGranted() = 0;
 	virtual void LaunchFriendApp(const FString& Commandline) = 0;
 };

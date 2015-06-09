@@ -24,16 +24,16 @@ public:
 		const TSharedRef<FOnlineSessionSearchResult>& InSessionResult,
 		const FString& InClientId,
 		const TSharedRef<FOnlineFriend>& InOnlineFriend,
-		const TSharedRef<class FFriendsAndChatManager> FriendsAndChatManager)
-		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay, FriendsAndChatManager)
+		const TSharedRef<class FFriendsAndChatManager> InFriendsAndChatManager)
+		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay, InFriendsAndChatManager)
 		, SessionResult(InSessionResult)
 		, ClientId(InClientId)
-		, FriendsAndChatManager(FriendsAndChatManager)
+		, FriendsAndChatManager(InFriendsAndChatManager)
 	{ }
 
 private:
 
 	TSharedPtr<FOnlineSessionSearchResult> SessionResult;
-	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 	FString ClientId;
+	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 };

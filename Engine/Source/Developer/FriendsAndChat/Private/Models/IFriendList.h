@@ -34,9 +34,14 @@ protected:
 	};
 };
 
-IFACTORY(TSharedRef<IFriendList>, IFriendList, 
-	EFriendsDisplayLists::Type ListType
-	);
+class IFriendListFactory
+{ 
+public: 
+	virtual TSharedRef<IFriendList> Create(EFriendsDisplayLists::Type ListType) = 0;
+
+	virtual TSharedRef<IFriendList> Create(TSharedRef<class IClanInfo> ClanInfo) = 0;
+};
 
 FACTORY(TSharedRef< IFriendListFactory >, FFriendListFactory,
+	const TSharedRef<class IFriendViewModelFactory>& FriendViewModelFactory,
 	const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager);

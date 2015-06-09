@@ -29,32 +29,36 @@ bool FWebBrowserViewport::RequiresVsync() const
 	return false;
 }
 
+bool FWebBrowserViewport::AllowScaling() const
+{
+	return false;
+}
+
 FCursorReply FWebBrowserViewport::OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent )
 {
-	// TODO: retrieve cursor type from WebBrowserWindow if we can figure that out from CefCursorHandle
-	return FCursorReply::Unhandled();
+	return WebBrowserWindow->OnCursorQuery(MyGeometry, CursorEvent);
 }
 
 FReply FWebBrowserViewport::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	// Capture mouse on left button down so that you can drag out of the viewport
-	WebBrowserWindow->OnMouseButtonDown(MyGeometry, MouseEvent);
+	FReply Reply = WebBrowserWindow->OnMouseButtonDown(MyGeometry, MouseEvent);
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton && ViewportWidget.IsValid())
 	{
-		return FReply::Handled().CaptureMouse(ViewportWidget.Pin().ToSharedRef());
+		return Reply.CaptureMouse(ViewportWidget.Pin().ToSharedRef());
 	}
-	return FReply::Handled();
+	return Reply;
 }
 
 FReply FWebBrowserViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	// Release mouse capture when left button released
-	WebBrowserWindow->OnMouseButtonUp(MyGeometry, MouseEvent);
+	FReply Reply = WebBrowserWindow->OnMouseButtonUp(MyGeometry, MouseEvent);
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
-		return FReply::Handled().ReleaseMouseCapture();
+		return Reply.ReleaseMouseCapture();
 	}
-	return FReply::Handled();
+	return Reply;
 }
 
 void FWebBrowserViewport::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -67,38 +71,33 @@ void FWebBrowserViewport::OnMouseLeave(const FPointerEvent& MouseEvent)
 
 FReply FWebBrowserViewport::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	WebBrowserWindow->OnMouseMove(MyGeometry, MouseEvent);
-	return FReply::Handled();
+	return WebBrowserWindow->OnMouseMove(MyGeometry, MouseEvent);
 }
 
 FReply FWebBrowserViewport::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	WebBrowserWindow->OnMouseWheel(MyGeometry, MouseEvent);
-	return FReply::Handled();
+	return WebBrowserWindow->OnMouseWheel(MyGeometry, MouseEvent);
 }
 
 FReply FWebBrowserViewport::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
 {
-	WebBrowserWindow->OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
-	return FReply::Handled();
+	FReply Reply = WebBrowserWindow->OnMouseButtonDoubleClick(InMyGeometry, InMouseEvent);
+	return Reply;
 }
 
 FReply FWebBrowserViewport::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	WebBrowserWindow->OnKeyDown(InKeyEvent);
-	return FReply::Handled();
+	return WebBrowserWindow->OnKeyDown(InKeyEvent) ? FReply::Handled() : FReply::Unhandled();
 }
 
 FReply FWebBrowserViewport::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
-	WebBrowserWindow->OnKeyUp(InKeyEvent);
-	return FReply::Handled();
+	return WebBrowserWindow->OnKeyUp(InKeyEvent) ? FReply::Handled() : FReply::Unhandled();
 }
 
 FReply FWebBrowserViewport::OnKeyChar( const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent )
 {
-	WebBrowserWindow->OnKeyChar(InCharacterEvent);
-	return FReply::Handled();
+	return WebBrowserWindow->OnKeyChar(InCharacterEvent) ? FReply::Handled() : FReply::Unhandled();
 }
 
 FReply FWebBrowserViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)

@@ -9,6 +9,9 @@ enum class EWebBrowserDocumentState;
 class IWebBrowserWindow;
 class FWebBrowserViewport;
 
+DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
+DECLARE_DELEGATE_RetVal_FourParams(bool, FOnJSQueryReceivedDelegate, int64, FString, bool, FJSQueryResultDelegate);
+DECLARE_DELEGATE_OneParam(FOnJSQueryCanceledDelegate, int64);
 
 DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
 DECLARE_DELEGATE_RetVal_FourParams(bool, FOnJSQueryReceivedDelegate, int64, FString, bool, FJSQueryResultDelegate);
@@ -19,13 +22,17 @@ class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget
 {
 public:
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString&, bool)
+	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnLoadUrl, const FString& /*Method*/, const FString& /*Url*/, FString& /* Response */)
+
 	SLATE_BEGIN_ARGS(SWebBrowser)
 		: _InitialURL(TEXT("www.google.com"))
 		, _ShowControls(true)
 		, _ShowAddressBar(false)
 		, _ShowErrorMessage(true)
 		, _SupportsTransparency(false)
-		, _ViewportSize(FVector2D(320, 240))
+		, _SupportsThumbMouseButtonNavigation(false)
+		, _ViewportSize(FVector2D::ZeroVector)
 	{ }
 
 		/** A reference to the parent window. */
@@ -49,6 +56,12 @@ public:
 		/** Should this browser window support transparency. */
 		SLATE_ARGUMENT(bool, SupportsTransparency)
 
+		/** Whether to allow forward and back navigation via the mouse thumb buttons. */
+		SLATE_ARGUMENT(bool, SupportsThumbMouseButtonNavigation)
+
+		/** Opaque background color used before a document is loaded and when no document color is specified. */
+		SLATE_ARGUMENT(FColor, BackgroundColor)
+
 		/** Desired size of the web browser viewport. */
 		SLATE_ATTRIBUTE(FVector2D, ViewportSize);
 
@@ -64,17 +77,23 @@ public:
 		/** Called when document title changed. */
 		SLATE_EVENT(FOnTextChanged, OnTitleChanged)
 
+		/** Called when the Url changes. */
 		SLATE_EVENT(FOnTextChanged, OnUrlChanged)
-		
+	
 		/** Called when a custom Javascript message is received from the browser process. */
 		SLATE_EVENT(FOnJSQueryReceivedDelegate, OnJSQueryReceived)
-
+	
 		/** Called when a pending Javascript message has been canceled, either explicitly or by navigating away from the page containing the script. */
 		SLATE_EVENT(FOnJSQueryCanceledDelegate, OnJSQueryCanceled)
 		
 		/** Called before a popup window happens */
 		SLATE_EVENT(FOnBeforePopupDelegate, OnBeforePopup)
 
+		/** Called before browser navigation. */
+		SLATE_EVENT(FOnBeforeBrowse, OnBeforeNavigation)
+	
+		/** Called to allow bypassing page content on load. */
+		SLATE_EVENT(FOnLoadUrl, OnLoadUrl)
 	SLATE_END_ARGS()
 
 
@@ -102,6 +121,9 @@ public:
 	* @param DummyURL Dummy URL for the page.
 	*/
 	void LoadString(FString Contents, FString DummyURL);
+
+	/** Reload browser contents */
+	void Reload();
 
 	/** Get the current title of the web page. */
 	FText GetTitleText() const;
@@ -135,10 +157,18 @@ private:
 	bool CanGoBack() const;
 
 	/** Navigate backwards. */
-	FReply OnBackClicked();
+	void GoBack();
 
 	/** Returns true if the browser can navigate forwards. */
 	bool CanGoForward() const;
+
+	/** Navigate forwards. */
+	void GoForward();
+
+private:
+
+	/** Navigate backwards. */
+	FReply OnBackClicked();
 
 	/** Navigate forwards. */
 	FReply OnForwardClicked();
@@ -169,6 +199,9 @@ private:
 
 	/** Callback for loaded url changes. */
 	void HandleUrlChanged(FString NewUrl);
+	
+	/** Callback for showing browser tool tips. */
+	void HandleToolTip(FString ToolTipText);
 
 	/** Callback for received JS queries. */
 	bool HandleJSQueryReceived(int64 QueryId, FString QueryString, bool Persistent, FJSQueryResultDelegate ResultDelegate);
@@ -176,6 +209,15 @@ private:
 	/** Callback for cancelled JS queries. */
 	void HandleJSQueryCanceled(int64 QueryId);
 
+	/**
+	 * A delegate that is executed prior to browser navigation.
+	 *
+	 * @return true if the navigation was handled an no further action should be taken by the browser, false if the browser should handle.
+	 */
+	bool HandleBeforeNavigation(const FString& Url, bool bIsRedirect);
+	
+	bool HandleLoadUrl(const FString& Method, const FString& Url, FString& OutResponse);
+	
 	/** Callback for popup window permission */
 	bool HandleBeforePopup(FString URL, FString Target);
 
@@ -186,6 +228,9 @@ private:
 
 	/** Viewport interface for rendering the web page. */
 	TSharedPtr<FWebBrowserViewport> BrowserViewport;
+
+	/** The actual viewport widget. Required to update its tool tip property. */
+	TSharedPtr<SViewport> ViewportWidget;
 
 	/** The url that appears in the address bar which can differ from the url of the loaded page */
 	FText AddressBarUrl;
@@ -207,16 +252,19 @@ private:
 
 	/** A delegate that is invoked when document address changed. */
 	FOnTextChanged OnUrlChanged;
-
+	
 	/** A delegate that is invoked when render process Javascript code sends a query message to the client. */
 	FOnJSQueryReceivedDelegate OnJSQueryReceived;
-
+	
 	/** A delegate that is invoked when render process cancels an ongoing query. Handler must clean up corresponding result delegate. */
 	FOnJSQueryCanceledDelegate OnJSQueryCanceled;
 	
 	/** A delegate that is invoked when the browser attempts to pop up a new window */
 	FOnBeforePopupDelegate OnBeforePopup;
 
-	/** A flag to avoid having more than one active timer delegate in flight at the same time */
-	bool IsHandlingRedraw;
+	/** A delegate that is invoked prior to browser navigation */
+	FOnBeforeBrowse OnBeforeNavigation;
+	
+	/** A delegate that is invoked when loading a resource, allowing the application to provide contents directly */
+	FOnLoadUrl OnLoadUrl;
 };

@@ -19,6 +19,11 @@ public:
 		: RecentPlayer(InRecentPlayer)
 	{ }
 
+	FFriendRecentPlayerItem(const TSharedPtr<const FUniqueNetId> InUniqueID, const FText InUsername)
+		:UniqueID(InUniqueID)
+		,Username(InUsername)
+	{}
+
 public:
 
 	/**
@@ -62,6 +67,12 @@ public:
 	virtual const FString GetClientName() const override;
 
 	/**
+	* Get the player's session id
+	* @return The session id the user is playing in
+	*/
+	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override;
+
+	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -77,7 +88,7 @@ public:
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
-	virtual const TSharedRef<const FUniqueNetId> GetUniqueID() const override;
+	virtual const TSharedRef< const FUniqueNetId > GetUniqueID() const override;
 
 	/**
 	 * Is this friend in the default list.
@@ -146,4 +157,6 @@ private:
 	// Holds the recent player struct
 	TSharedPtr< FOnlineRecentPlayer > RecentPlayer;
 	TSharedPtr<FOnlineUser> OnlineUser;
+	const TSharedPtr<const FUniqueNetId> UniqueID;
+	FText Username;
 };

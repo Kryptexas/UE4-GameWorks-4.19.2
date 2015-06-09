@@ -479,7 +479,6 @@ FBuildPatchAppManifest::FBuildPatchAppManifest()
 	, bNeedsResaving(false)
 {
 	Data = NewObject<UBuildPatchManifest>();
-	Data->AddToRoot();
 }
 
 FBuildPatchAppManifest::FBuildPatchAppManifest(const uint32& InAppID, const FString& AppName)
@@ -488,7 +487,6 @@ FBuildPatchAppManifest::FBuildPatchAppManifest(const uint32& InAppID, const FStr
 	, bNeedsResaving(false)
 {
 	Data = NewObject<UBuildPatchManifest>();
-	Data->AddToRoot();
 	Data->AppID = InAppID;
 	Data->AppName = AppName;
 }
@@ -509,15 +507,13 @@ FBuildPatchAppManifest::FBuildPatchAppManifest(const FBuildPatchAppManifest& Oth
 	Data->FileManifestList = Other.Data->FileManifestList;
 	Data->ChunkList = Other.Data->ChunkList;
 	Data->CustomFields = Other.Data->CustomFields;
-	Data->AddToRoot();
 	InitLookups();
 	bNeedsResaving = Other.bNeedsResaving;
 }
 
 FBuildPatchAppManifest::~FBuildPatchAppManifest()
 {
-	Data->RemoveFromRoot();
-//	Data->MarkPendingKill(); ??? Mark for destory and run GC?
+	Data = nullptr;
 }
 
 bool FBuildPatchAppManifest::SaveToFile(const FString& Filename, bool bUseBinary)
@@ -1618,6 +1614,15 @@ uint32 FBuildPatchAppManifest::GetNumberOfChunkReferences(const FGuid& ChunkGuid
 		}
 	}
 	return RefCount;
+}
+
+void FBuildPatchAppManifest::AddReferencedObjects( FReferenceCollector& Collector )
+{
+	if (Data != nullptr)
+	{
+		// Ensure Data is not garbage collected as long as this object is valid.
+		Collector.AddReferencedObject(Data);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

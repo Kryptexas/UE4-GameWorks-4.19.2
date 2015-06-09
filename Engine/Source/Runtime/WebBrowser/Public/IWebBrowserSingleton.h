@@ -27,7 +27,17 @@ public:
 	 * @param bUseTransparency Whether to allow transparent rendering of pages
 	 * @param ContentsToLoad Optional string to load as a web page
 	 * @param ShowErrorMessage Whether to show an error message in case of loading errors.
+	 * @param BackgroundColor Opaque background color used before a document is loaded and when no document color is specified.
 	 * @return New Web Browser Window Interface (may be null if not supported)
 	 */
-	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency, TOptional<FString> ContentsToLoad = TOptional<FString>(), bool ShowErrorMessage = true) = 0;
+	virtual TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
+		void* OSWindowHandle, 
+		FString InitialURL, 
+		uint32 Width, 
+		uint32 Height, 
+		bool bUseTransparency, 
+		bool bThumbMouseButtonNavigation,
+		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
+		bool ShowErrorMessage = true,
+		FColor BackgroundColor = FColor(255, 255, 255, 255)) = 0;
 };

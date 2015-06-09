@@ -644,9 +644,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 {
 	ECompilationResult::Type Result = ECompilationResult::Unsupported;
 #if WITH_HOT_RELOAD
+#if WITH_ENGINE
 	FBlueprintCompileReinstancer::FCDODuplicatesProvider& CDODuplicatesProvider = FBlueprintCompileReinstancer::GetCDODuplicatesProviderDelegate();
-
 	CDODuplicatesProvider.BindStatic(&GetCachedCDODuplicate);
+#endif
 
 	if (CompilationResult == ECompilationResult::Succeeded)
 	{
@@ -766,8 +767,10 @@ ECompilationResult::Type FHotReloadModule::DoHotReloadInternal(bool bRecompileFi
 		Result = ECompilationResult::OtherCompilationError;
 	}
 
+#if WITH_ENGINE
 	CDODuplicatesProvider.Unbind();
 	GetDuplicatedCDOMap().Empty();
+#endif
 #endif
 	bIsHotReloadingFromEditor = false;
 	return Result;

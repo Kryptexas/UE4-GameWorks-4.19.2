@@ -136,7 +136,7 @@ void FSlateD3DRenderer::LoadStyleResources( const ISlateStyle& Style )
 FSlateUpdatableTexture* FSlateD3DRenderer::CreateUpdatableTexture(uint32 Width, uint32 Height)
 {
 	FSlateD3DTexture* NewTexture = new FSlateD3DTexture(Width, Height);
-	NewTexture->Init(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, NULL, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	NewTexture->Init(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, NULL, true, true);
 	return NewTexture;
 }
 

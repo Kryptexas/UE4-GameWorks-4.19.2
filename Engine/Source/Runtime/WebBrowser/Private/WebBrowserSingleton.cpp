@@ -1,16 +1,23 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WebBrowserPrivatePCH.h"
+#include "SlateCore.h"
 #include "WebBrowserSingleton.h"
 #include "WebBrowserApp.h"
 #include "WebBrowserHandler.h"
 #include "WebBrowserWindow.h"
+#include "IPlatformTextField.h"
+#include "IVirtualKeyboardEntry.h"
+#include "SlateApplication.h"
 
 #if WITH_CEF3
 #if PLATFORM_WINDOWS
 	#include "AllowWindowsPlatformTypes.h"
 #endif
+	#pragma push_macro("OVERRIDE")
+	#undef OVERRIDE // cef headers provide their own OVERRIDE macro
 	#include "include/cef_app.h"
+	#pragma pop_macro("OVERRIDE")
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
 #endif
@@ -23,9 +30,9 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 #if PLATFORM_WINDOWS
 	CefMainArgs MainArgs(hInstance);
 #elif PLATFORM_MAC || PLATFORM_LINUX
-    //TArray<FString> Args;
-    //int ArgCount = GSavedCommandLine.ParseIntoArray(Args, TEXT(" "), true);
-    CefMainArgs MainArgs(0, nullptr);
+	//TArray<FString> Args;
+	//int ArgCount = GSavedCommandLine.ParseIntoArray(Args, TEXT(" "), true);
+	CefMainArgs MainArgs(0, nullptr);
 #endif
 
 	// WebBrowserApp implements application-level callbacks.
@@ -114,11 +121,20 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 #endif
 }
 
-TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency, TOptional<FString> ContentsToLoad, bool ShowErrorMessage)
+TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
+	void* OSWindowHandle, 
+	FString InitialURL, 
+	uint32 Width, 
+	uint32 Height, 
+	bool bUseTransparency,
+	bool bThumbMouseButtonNavigation,
+	TOptional<FString> ContentsToLoad, 
+	bool ShowErrorMessage,
+	FColor BackgroundColor)
 {
 #if WITH_CEF3
 	// Create new window
-	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage));
+	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation));
 
 	// WebBrowserHandler implements browser-level callbacks.
 	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
@@ -129,11 +145,17 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OS
 	CefWindowInfo WindowInfo;
 
 	// Always use off screen rendering so we can integrate with our windows
-	WindowInfo.SetAsOffScreen(WindowHandle);
-	WindowInfo.SetTransparentPainting(bUseTransparency);
+	WindowInfo.SetAsWindowless(WindowHandle, bUseTransparency);
 
 	// Specify CEF browser settings here.
 	CefBrowserSettings BrowserSettings;
+	
+	// Set max framerate to maximum supported.
+	BrowserSettings.windowless_frame_rate = 60;
+	BrowserSettings.background_color = CefColorSetARGB(BackgroundColor.A, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B);
+
+	// Disable plugins
+	BrowserSettings.plugins = STATE_DISABLED;
 
 	CefString URL = *InitialURL;
 
@@ -150,12 +172,19 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(void* OS
 bool FWebBrowserSingleton::Tick(float DeltaTime)
 {
 #if WITH_CEF3
-	// Remove any windows that have been deleted
+	bool bIsSlateAwake = !FSlateApplication::Get().IsSlateAsleep();
+	// Remove any windows that have been deleted and check wether it's currently visible
 	for (int32 Index = WindowInterfaces.Num() - 1; Index >= 0; --Index)
 	{
 		if (!WindowInterfaces[Index].IsValid())
 		{
 			WindowInterfaces.RemoveAtSwap(Index);
+		}
+		else if (bIsSlateAwake) // only check for Tick activity if Slate is currently ticking
+		{
+			TSharedPtr<FWebBrowserWindow> BrowserWindow = WindowInterfaces[Index].Pin();
+			// Test if we've ticked recently. If not assume the browser window has become hidden.
+			BrowserWindow->CheckTickActivity();
 		}
 	}
 	CefDoMessageLoopWork();

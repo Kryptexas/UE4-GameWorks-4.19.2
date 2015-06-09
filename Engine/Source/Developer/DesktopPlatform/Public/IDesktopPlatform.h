@@ -435,5 +435,12 @@ public:
 	* 
 	* @return Path to the folder
 	*/
-	virtual FString GetDefaultProjectCreationPath() = 0;
+	virtual FString GetDefaultProjectCreationPath() const = 0;
+
+	/**
+	* Gets the path to the unreal version selector
+	*
+	* @return Path to the folder
+	*/
+	virtual FString GetVersionSelectorPath() const = 0;
 };

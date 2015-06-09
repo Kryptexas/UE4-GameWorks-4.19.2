@@ -30,33 +30,38 @@ void FSlateOpenGLTexture::Init( GLenum TexFormat, const TArray<uint8>& TextureDa
 
 	// Upload the texture data
 	glTexImage2D( GL_TEXTURE_2D, 0, TexFormat, SizeX, SizeY, 0, Format, GL_UNSIGNED_INT_8_8_8_8_REV, TextureData.GetData() );
+	bHasPendingResize = false;
 	CHECK_GL_ERRORS;
 }
 
 void FSlateOpenGLTexture::Init( GLuint TextureID )
 {
 	ShaderResource = TextureID;
+	bHasPendingResize = false;
 }
 
 void FSlateOpenGLTexture::ResizeTexture(uint32 Width, uint32 Height)
 {
 	SizeX = Width;
 	SizeY = Height;
+	bHasPendingResize = true;
 }
 
 void FSlateOpenGLTexture::UpdateTexture(const TArray<uint8>& Bytes)
 {
-	UpdateTextureRaw(Bytes.GetData());
+	UpdateTextureRaw(Bytes.GetData(), FIntRect());
 }
 
-void FSlateOpenGLTexture::UpdateTextureThreadSafeRaw(uint32 Width, uint32 Height, const void* Buffer)
+void FSlateOpenGLTexture::UpdateTextureThreadSafeRaw(uint32 Width, uint32 Height, const void* Buffer, const FIntRect& Dirty)
 {
-	SizeX = Width;
-	SizeY = Height;
-	UpdateTextureRaw(Buffer);
+	if (SizeX != Width || SizeY != Height)
+	{
+		ResizeTexture(Width, Height);
+	}
+	UpdateTextureRaw(Buffer, Dirty);
 }
 
-void FSlateOpenGLTexture::UpdateTextureRaw(const void* Buffer)
+void FSlateOpenGLTexture::UpdateTextureRaw(const void* Buffer, const FIntRect& Dirty)
 {
 	// Ensure texturing is enabled before setting texture properties
 #if USE_DEPRECATED_OPENGL_FUNCTIONALITY
@@ -72,7 +77,18 @@ void FSlateOpenGLTexture::UpdateTextureRaw(const void* Buffer)
 	
 	// Upload the texture data
 #if !PLATFORM_USES_ES2
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, Buffer);
+
+	if (bHasPendingResize || Dirty.Area() == 0)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, Buffer);
+		bHasPendingResize = false;
+	}
+	else
+	{
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, SizeX);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, Dirty.Min.X, Dirty.Min.Y, Dirty.Width(), Dirty.Height(), GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, (uint8*)Buffer + Dirty.Min.Y * SizeX * 4 + Dirty.Min.X * 4);
+		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	}
 #else
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8_EXT, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, Buffer);
 #endif

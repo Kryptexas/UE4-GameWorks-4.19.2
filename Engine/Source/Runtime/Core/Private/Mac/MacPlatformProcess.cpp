@@ -504,6 +504,10 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 		}
 		@catch (NSException* Exc)
 		{
+			FString ExcName([Exc name]);
+			FString ExcReason([Exc reason]);
+			UE_LOG(LogMac, Warning, TEXT("CreateProc failed (%s: %s) %s %s"), *ExcName, *ExcReason, URL, Parms);
+
 			[ProcessHandle release];
 			ProcessHandle = nil;
 		}

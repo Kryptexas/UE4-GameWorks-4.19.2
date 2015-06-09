@@ -21,7 +21,7 @@ TSharedPtr<const FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const
 	TSharedPtr<const FUniqueNetId> SessionId = NULL;
 	if (SessionResult->Session.SessionInfo.IsValid())
 	{
-		SessionId = MakeShareable(new FUniqueNetIdString(SessionResult->Session.SessionInfo->GetSessionId().ToString()));
+		SessionId = FriendsAndChatManager.Pin()->GetGameSessionId(SessionResult->Session.SessionInfo->GetSessionId().ToString());
 	}
 	return SessionId;
 }

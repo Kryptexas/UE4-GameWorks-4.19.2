@@ -11,11 +11,12 @@
 FWebBrowserHandler::FWebBrowserHandler()
 	: ShowErrorMessage(true)
 {
-    // This has to match the config in UnrealCEFSubpProcess
-    CefMessageRouterConfig MessageRouterConfig;
-    MessageRouterConfig.js_query_function = "ueQuery";
-    MessageRouterConfig.js_cancel_function = "ueQueryCancel";
-    MessageRouter = CefMessageRouterBrowserSide::Create(MessageRouterConfig);
+	// This has to match the config in UnrealCEFSubpProcess
+	CefMessageRouterConfig MessageRouterConfig;
+	MessageRouterConfig.js_query_function = "ueQuery";
+	MessageRouterConfig.js_cancel_function = "ueQueryCancel";
+	MessageRouter = CefMessageRouterBrowserSide::Create(MessageRouterConfig);
+	MessageRouter->AddHandler(this, true);
 }
 
 void FWebBrowserHandler::OnTitleChange(CefRefPtr<CefBrowser> Browser, const CefString& Title)
@@ -41,6 +42,18 @@ void FWebBrowserHandler::OnAddressChange(CefRefPtr<CefBrowser> Browser, CefRefPt
 	}
 }
 
+bool FWebBrowserHandler::OnTooltip(CefRefPtr<CefBrowser> Browser, CefString& Text)
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->SetToolTip(Text);
+	}
+
+	return false;
+}
+
+
 void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 {
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
@@ -53,13 +66,34 @@ void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 
 void FWebBrowserHandler::OnBeforeClose(CefRefPtr<CefBrowser> Browser)
 {
-    MessageRouter->OnBeforeClose(Browser);
+	MessageRouter->OnBeforeClose(Browser);
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
 
 	if (BrowserWindow.IsValid())
 	{
 		BrowserWindow->BindCefBrowser(nullptr);
 	}
+}
+
+bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
+									   CefRefPtr<CefFrame> Frame,
+									   const CefString& TargetUrl,
+									   const CefString& TArgetFrameName,
+									   const CefPopupFeatures& PopupFeatures,
+									   CefWindowInfo& WindowInfo,
+									   CefRefPtr<CefClient>& Client,
+									   CefBrowserSettings& Settings,
+									   bool* NoJavascriptAccess )
+{
+	// By default, we ignore any popup requests unless they are handled by us in some way.
+	bool bSupressCEFWindowCreation = true;
+
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		bSupressCEFWindowCreation = BrowserWindow->OnCefBeforePopup(TargetUrl, TArgetFrameName);
+	}
+	return bSupressCEFWindowCreation;
 }
 
 void FWebBrowserHandler::OnLoadError(CefRefPtr<CefBrowser> Browser,
@@ -137,15 +171,17 @@ void FWebBrowserHandler::OnPaint(CefRefPtr<CefBrowser> Browser,
 	}
 }
 
-void FWebBrowserHandler::OnCursorChange(CefRefPtr<CefBrowser> Browser, CefCursorHandle Cursor)
+void FWebBrowserHandler::OnCursorChange(CefRefPtr<CefBrowser> Browser, CefCursorHandle Cursor, CefRenderHandler::CursorType Type, const CefCursorInfo& CustomCursorInfo)
 {
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
-
+	
 	if (BrowserWindow.IsValid())
 	{
-		BrowserWindow->OnCursorChange(Cursor);
+		BrowserWindow->OnCursorChange(Cursor, Type, CustomCursorInfo);
 	}
+	
 }
+
 
 bool FWebBrowserHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, CefRefPtr<CefRequest> Request)
 {
@@ -168,35 +204,35 @@ bool FWebBrowserHandler::OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser, Cef
 
 void FWebBrowserHandler::OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status)
 {
-    MessageRouter->OnRenderProcessTerminated(Browser);
+	MessageRouter->OnRenderProcessTerminated(Browser);
 }
 
 bool FWebBrowserHandler::OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
-    CefRefPtr<CefFrame> Frame,
-    CefRefPtr<CefRequest> Request,
-    bool IsRedirect)
-{
-    MessageRouter->OnBeforeBrowse(Browser, Frame);
-    return false;
-}
-
-bool FWebBrowserHandler::OnBeforePopup(CefRefPtr<CefBrowser> Browser, 
-	CefRefPtr<CefFrame> Frame, 
-	const CefString& Target_Url, 
-	const CefString& Target_Frame_Name,
-	const CefPopupFeatures& PopupFeatures, 
-	CefWindowInfo& WindowInfo, 
-	CefRefPtr<CefClient>& Client, 
-	CefBrowserSettings& Settings,
-	bool* no_javascript_access)
+	CefRefPtr<CefFrame> Frame,
+	CefRefPtr<CefRequest> Request,
+	bool IsRedirect)
 {
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
 	if (BrowserWindow.IsValid())
 	{
-		return BrowserWindow->OnCefBeforePopup(Target_Url, Target_Frame_Name);
+		if(BrowserWindow->OnBeforeBrowse(Browser, Frame, Request, IsRedirect))
+		{
+			return true;
+		}
 	}
 
+	MessageRouter->OnBeforeBrowse(Browser, Frame);
 	return false;
+}
+
+CefRefPtr<CefResourceHandler> FWebBrowserHandler::GetResourceHandler( CefRefPtr<CefBrowser> Browser, CefRefPtr< CefFrame > Frame, CefRefPtr< CefRequest > Request )
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		return BrowserWindow->GetResourceHandler(Frame, Request);
+	}
+	return NULL;
 }
 
 void FWebBrowserHandler::SetBrowserWindow(TSharedPtr<FWebBrowserWindow> InBrowserWindow)
@@ -205,12 +241,89 @@ void FWebBrowserHandler::SetBrowserWindow(TSharedPtr<FWebBrowserWindow> InBrowse
 }
 
 bool FWebBrowserHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
-    CefProcessId SourceProcess,
-    CefRefPtr<CefProcessMessage> Message)
+	CefProcessId SourceProcess,
+	CefRefPtr<CefProcessMessage> Message)
 {
-    return MessageRouter->OnProcessMessageReceived(Browser, SourceProcess, Message);
+	return MessageRouter->OnProcessMessageReceived(Browser, SourceProcess, Message);
 }
 
+bool FWebBrowserHandler::OnQuery(CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		int64 QueryId,
+		const CefString& Request,
+		bool Persistent,
+		CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback)
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		return BrowserWindow->OnQuery(QueryId, Request, Persistent, Callback);
+	}
+	return false;
+}
+
+void FWebBrowserHandler::OnQueryCanceled(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, int64 QueryId)
+{
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		BrowserWindow->OnQueryCanceled(QueryId);
+	}
+}
+
+bool FWebBrowserHandler::OnKeyEvent(CefRefPtr<CefBrowser> Browser,
+	const CefKeyEvent& Event,
+	CefEventHandle OsEvent)
+{
+#if PLATFORM_MAC
+	// We need to handle standard Copy/Paste/etc... shortcuts on OS X
+	if( (Event.type == KEYEVENT_RAWKEYDOWN || Event.type == KEYEVENT_KEYDOWN) &&
+		(Event.modifiers & EVENTFLAG_COMMAND_DOWN) != 0 &&
+		(Event.modifiers & EVENTFLAG_CONTROL_DOWN) == 0 &&
+		(Event.modifiers & EVENTFLAG_ALT_DOWN) == 0 &&
+		( (Event.modifiers & EVENTFLAG_SHIFT_DOWN) == 0 || Event.unmodified_character == 'z' )
+	  )
+	{
+		CefRefPtr<CefFrame> Frame = Browser->GetFocusedFrame();
+		if (Frame)
+		{
+			switch (Event.unmodified_character)
+			{
+				case 'a':
+					Frame->SelectAll();
+					return true;
+				case 'c':
+					Frame->Copy();
+					return true;
+				case 'v':
+					Frame->Paste();
+					return true;
+				case 'x':
+					Frame->Cut();
+					return true;
+				case 'z':
+					if( (Event.modifiers & EVENTFLAG_SHIFT_DOWN) == 0 )
+					{
+						Frame->Undo();
+					}
+					else
+					{
+						Frame->Redo();
+					}
+					return true;
+			}
+		}
+	}
+#endif
+
+	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+	if (BrowserWindow.IsValid())
+	{
+		return BrowserWindow->OnUnhandledKeyEvent(Event);
+	}
+
+	return false;
+}
 #endif
 
 #undef LOCTEXT_NAMESPACE

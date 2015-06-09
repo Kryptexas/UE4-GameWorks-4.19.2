@@ -111,6 +111,19 @@ const FString FFriendItem::GetClientName() const
 	return Result;
 }
 
+const TSharedPtr<const FUniqueNetId> FFriendItem::GetSessionId() const
+{
+	if (OnlineFriend.IsValid())
+	{
+		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
+		if (OnlinePresence.SessionId.IsValid())
+		{
+			return OnlinePresence.SessionId;
+		}
+	}
+	return nullptr;
+}
+
 const bool FFriendItem::IsOnline() const
 {
 	if(OnlineFriend.IsValid())

@@ -50,6 +50,7 @@ namespace EFriendsDisplayLists
 	enum Type
 	{
 		DefaultDisplay, 				// Default friend list display
+		OfflineFriends,					// Offline Friends display
 		RecentPlayersDisplay,			// Recent Players display
 		FriendRequestsDisplay,			// Friend request display
 		OutgoingFriendInvitesDisplay,	// Outgoing friends invites
@@ -60,7 +61,8 @@ namespace EFriendsDisplayLists
 
 	inline const FText ToFText(EFriendsDisplayLists::Type EnumVal)
 	{
-		static const FText FriendsList = NSLOCTEXT("FriendsListTypes", "FriendsList", "Friends");
+		static const FText FriendsList = NSLOCTEXT("FriendsListTypes", "FriendsList", "Online Friends");
+		static const FText OfflineFriendsList = NSLOCTEXT("FriendsListTypes", "OfflineFriendsList", "Offline Friends");
 		static const FText RecentPlayersList = NSLOCTEXT("FriendsListTypes", "RecentPlayersList", "Recent Players");
 		static const FText FriendRequestList = NSLOCTEXT("FriendsListTypes", "InvitesList", "Invitations");
 		static const FText OutgoingFriendRequestList = NSLOCTEXT("FriendsListTypes", "OutgoingInvites", "Outgoing");
@@ -70,6 +72,7 @@ namespace EFriendsDisplayLists
 		switch (EnumVal)
 		{
 			case DefaultDisplay: return FriendsList;
+			case OfflineFriends: return OfflineFriendsList;
 			case RecentPlayersDisplay : return RecentPlayersList;
 			case FriendRequestsDisplay: return FriendRequestList;
 			case OutgoingFriendInvitesDisplay : return OutgoingFriendRequestList;
@@ -102,7 +105,7 @@ public:
 	 * @param InMessage The message content.
 	 * @param InUniqueFriendID The Friend ID.
 	 */
-	FFriendsAndChatMessage(const FString& InMessage, const TSharedRef<const FUniqueNetId> InUniqueFriendID)
+	FFriendsAndChatMessage( const FString& InMessage, const TSharedRef<const FUniqueNetId> InUniqueFriendID )
 		: MessageConent( InMessage )
 		, UniqueFriendID( InUniqueFriendID )
 		, bAutoAccept( false )

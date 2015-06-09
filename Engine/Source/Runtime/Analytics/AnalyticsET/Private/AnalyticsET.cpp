@@ -100,14 +100,10 @@ private:
 	FCriticalSection CachedEventsCS;
 
 	/**
-	 * Delegate called when an event Http request completes
+	 * Called when an event Http request completes
 	 */
-	void EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
+	static void LogRequestComplete(bool bIsDataRouter, const FString& InAPIKey, FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 
-	/**
-	 * Delegate called when an event Http request completes (for DataRouter)
-	 */
-	void EventRequestCompleteDataRouter(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 };
 
 void FAnalyticsET::StartupModule()
@@ -291,6 +287,8 @@ void FAnalyticsProviderET::EndSession()
 
 void FAnalyticsProviderET::FlushEvents()
 {
+	// So we can capture a copy of APIKey to the finished calbacks futher down.
+	const FString& APIKeyRef = APIKey;
 	// Make sure we don't try to flush too many times. When we are not caching events it's possible this can be called when there are no events in the array.
 	if (CachedEvents.Num() == 0)
 	{
@@ -362,10 +360,13 @@ void FAnalyticsProviderET::FlushEvents()
 		HttpRequest->SetURL(APIServer + URLPath);
 		HttpRequest->SetVerb(TEXT("POST"));
 		HttpRequest->SetContentAsString(Payload);
-		if (!bInDestructor)
+		HttpRequest->OnProcessRequestComplete().BindLambda([APIKeyRef] (FHttpRequestPtr InHttpRequest, FHttpResponsePtr InHttpResponse, bool bSucceeded)
 		{
-			HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestComplete);
-		}
+			LogRequestComplete(false, APIKeyRef, InHttpRequest, InHttpResponse, bSucceeded);
+		});
+
+		UE_LOG(LogAnalytics, Display, TEXT("[%s] AnalyticsET URL:%s. Payload:%s"), *APIKey, *URLPath, *Payload);
+
  		HttpRequest->ProcessRequest();
 
 		if (UseDataRouter)
@@ -391,10 +392,11 @@ void FAnalyticsProviderET::FlushEvents()
 
 			HttpRequest->SetVerb(TEXT("POST"));
 			HttpRequest->SetContentAsString(Payload);
-			if (!bInDestructor)
+			HttpRequest->OnProcessRequestComplete().BindLambda([APIKeyRef] (FHttpRequestPtr InHttpRequest, FHttpResponsePtr InHttpResponse, bool bSucceeded)
 			{
-				HttpRequest->OnProcessRequestComplete().BindSP(this, &FAnalyticsProviderET::EventRequestCompleteDataRouter);
-			}
+				LogRequestComplete(true, APIKeyRef, InHttpRequest, InHttpResponse, bSucceeded);
+			});
+
 			HttpRequest->ProcessRequest();
 		}
 
@@ -453,26 +455,14 @@ void FAnalyticsProviderET::RecordEvent(const FString& EventName, const TArray<FA
 }
 
 
-void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
+void FAnalyticsProviderET::LogRequestComplete(bool bIsDataRouter, const FString& APIKey, FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 {
 	if (bSucceeded && HttpResponse.IsValid())
 	{
-		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET response for [%s]. Code: %d. Payload: %s"), *APIKey, *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
+		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET%s response for [%s]. Code: %d. Payload: %s"), *APIKey, bIsDataRouter?TEXT(" (DataRouter)"):TEXT(""), *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
 	}
 	else
 	{
-		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET response for [%s]. No response"), *APIKey, *HttpRequest->GetURL());
-	}
-}
-
-void FAnalyticsProviderET::EventRequestCompleteDataRouter(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
-{
-	if (bSucceeded && HttpResponse.IsValid())
-	{
-		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET (DataRouter) response for [%s]. Code: %d. Payload: %s"), *APIKey, *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
-	}
-	else
-	{
-		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET (DataRouter) response for [%s]. No response"), *APIKey, *HttpRequest->GetURL());
+		UE_LOG(LogAnalytics, VeryVerbose, TEXT("[%s] ET%s response for [%s]. No response"), *APIKey, bIsDataRouter?TEXT(" (DataRouter)"):TEXT(""), *HttpRequest->GetURL());
 	}
 }

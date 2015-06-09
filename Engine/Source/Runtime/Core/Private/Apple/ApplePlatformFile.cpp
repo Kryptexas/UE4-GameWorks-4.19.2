@@ -230,13 +230,24 @@ private:
 	int64 ReadInternal(uint8* Destination, int64 BytesToRead)
 	{
 		check(IsValid());
+		int64 MaxReadSize = READWRITE_SIZE;
 		int64 BytesRead = 0;
 		while (BytesToRead)
 		{
 			check(BytesToRead >= 0);
-			int64 ThisSize = FMath::Min<int64>(READWRITE_SIZE, BytesToRead);
+			int64 ThisSize = FMath::Min<int64>(MaxReadSize, BytesToRead);
 			check(Destination);
 			int64 ThisRead = read(FileHandle, Destination, ThisSize);
+			if (ThisRead == -1)
+			{
+				// Reading from smb can sometimes result in a EINVAL error. Try again a few times with a smaller read buffer.
+				if (errno == EINVAL && MaxReadSize > 1024)
+				{
+					MaxReadSize /= 2;
+					continue;
+				}
+				return BytesRead;
+			}
 			BytesRead += ThisRead;
 			if (ThisRead != ThisSize)
 			{

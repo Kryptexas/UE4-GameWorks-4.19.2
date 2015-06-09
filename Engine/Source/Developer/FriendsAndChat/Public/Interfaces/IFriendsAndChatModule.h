@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
 #pragma once
+#include "IFriendsAndChatManager.h"
 
 DECLARE_DELEGATE_RetVal(bool, FFriendsSystemReady )
 

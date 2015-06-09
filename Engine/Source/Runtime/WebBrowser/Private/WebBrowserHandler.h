@@ -8,8 +8,11 @@
 	#include "AllowWindowsPlatformTypes.h"
 #endif
 
+#pragma push_macro("OVERRIDE")
+#undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #include "include/cef_client.h"
 #include "include/wrapper/cef_message_router.h"
+#pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
@@ -29,6 +32,8 @@ class FWebBrowserHandler
 	, public CefLoadHandler
 	, public CefRenderHandler
 	, public CefRequestHandler
+	, public CefKeyboardHandler
+	, public CefMessageRouterBrowserSide::Handler
 {
 public:
 
@@ -49,6 +54,7 @@ public:
 	{
 		ShowErrorMessage = InShowErrorMessage;
 	}
+
 
 public:
 
@@ -79,9 +85,14 @@ public:
 		return this;
 	}
 
-    virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
-        CefProcessId SourceProcess,
-        CefRefPtr<CefProcessMessage> Message) override;
+	virtual CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override
+	{
+		return this;
+	}
+
+	virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,
+		CefProcessId SourceProcess,
+		CefRefPtr<CefProcessMessage> Message) override;
 
 
 public:
@@ -90,7 +101,7 @@ public:
 
 	virtual void OnTitleChange(CefRefPtr<CefBrowser> Browser, const CefString& Title) override;
 	virtual void OnAddressChange(CefRefPtr<CefBrowser> Browser, CefRefPtr<CefFrame> Frame, const CefString& Url) override;
-
+	virtual bool OnTooltip(CefRefPtr<CefBrowser> Browser, CefString& Text) override;
 
 public:
 
@@ -134,7 +145,10 @@ public:
 		const RectList& DirtyRects,
 		const void* Buffer,
 		int Width, int Height) override;
-	virtual void OnCursorChange(CefRefPtr<CefBrowser> Browser, CefCursorHandle Cursor) override;
+	virtual void OnCursorChange(CefRefPtr<CefBrowser> Browser,
+		CefCursorHandle Cursor,
+		CefRenderHandler::CursorType Type,
+		const CefCursorInfo& CustomCursorInfo) override;
 
 public:
 
@@ -143,11 +157,31 @@ public:
 	virtual bool OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
 		CefRefPtr<CefRequest> Request) override;
-    virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status) override;
-    virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
-        CefRefPtr<CefFrame> Frame,
-        CefRefPtr<CefRequest> Request,
-        bool IsRedirect) override;
+	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status) override;
+	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		CefRefPtr<CefRequest> Request,
+		bool IsRedirect) override;
+	virtual CefRefPtr<CefResourceHandler> GetResourceHandler( CefRefPtr<CefBrowser> Browser, CefRefPtr< CefFrame > Frame, CefRefPtr<CefRequest> Request ) override;
+public:
+	// CefMessageRouterBrowserSide::Handler Interface
+	
+	virtual bool OnQuery(CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		int64 QueryId,
+		const CefString& Request,
+		bool Persistent,
+		CefRefPtr<CefMessageRouterBrowserSide::Callback> Callback) override;
+
+	virtual void OnQueryCanceled(CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		int64 QueryId) override;
+
+public:
+	// CefKeyboardHandler interface
+	virtual bool OnKeyEvent(CefRefPtr<CefBrowser> Browser,
+		const CefKeyEvent& Event,
+		CefEventHandle OsEvent) override;
 
 private:
 
@@ -157,12 +191,11 @@ private:
 	/** Whether to show an error message in case of loading errors. */
 	bool ShowErrorMessage;
 
-    /** The message router is used as a part of a generic message api between Javascript in the render process and the application process */
-    CefRefPtr<CefMessageRouterBrowserSide> MessageRouter;
+	/** The message router is used as a part of a generic message api between Javascript in the render process and the application process */
+	CefRefPtr<CefMessageRouterBrowserSide> MessageRouter;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(FWebBrowserHandler);
 };
-
 
 #endif

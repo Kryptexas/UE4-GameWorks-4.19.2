@@ -21,7 +21,7 @@ public:
 	 * @param InOnlineUser The online user.
 	 * @param InListType The list type.
 	 */
-	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager)
+	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& InFriendsAndChatManager)
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
@@ -31,7 +31,7 @@ public:
 		, bIsPendingAccepted(false)
 		, bIsPendingInvite(false)
 		, bIsPendingDelete(false)
-		, FriendsAndChatManager(FriendsAndChatManager)
+		, FriendsAndChatManager(InFriendsAndChatManager)
 	{ }
 
 	/**
@@ -84,6 +84,12 @@ public:
 	 * @return The game name
 	*/
 	virtual const FString GetClientName() const override;
+
+	/**
+	* Get the player's session id
+	* @return The session id the user is playing in
+	*/
+	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override;
 
 	/**
 	 * Get if the user is online.
@@ -185,6 +191,7 @@ protected:
 	FFriendItem()
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
+		, PendingAction(EFriendActionType::MAX_None)
 	{ };
 
 private:
@@ -215,6 +222,8 @@ private:
 
 	/** Holds if we are pending delete. */
 	bool bIsPendingDelete;
+
+	EFriendActionType::Type PendingAction;
 
 	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 };

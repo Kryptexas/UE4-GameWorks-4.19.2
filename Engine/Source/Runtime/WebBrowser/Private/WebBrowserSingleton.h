@@ -8,9 +8,10 @@
 #if PLATFORM_WINDOWS
 	#include "AllowWindowsPlatformTypes.h"
 #endif
-
+#pragma push_macro("OVERRIDE")
+#undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #include "include/internal/cef_ptr.h"
-
+#pragma pop_macro("OVERRIDE")
 #if PLATFORM_WINDOWS
 	#include "HideWindowsPlatformTypes.h"
 #endif
@@ -48,7 +49,16 @@ public:
 
 	// IWebBrowserSingleton Interface
 
-	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(void* OSWindowHandle, FString InitialURL, uint32 Width, uint32 Height, bool bUseTransparency, TOptional<FString> ContentsToLoad = TOptional<FString>(), bool ShowErrorMessage = true) override;
+	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
+		void* OSWindowHandle, 
+		FString InitialURL, 
+		uint32 Width, 
+		uint32 Height, 
+		bool bUseTransparency, 
+		bool bThumbMouseButtonNavigation,
+		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
+		bool ShowErrorMessage = true,
+		FColor BackgroundColor = FColor(255, 255, 255, 255)) override;
 
 public:
 

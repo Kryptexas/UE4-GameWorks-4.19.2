@@ -608,6 +608,7 @@ void FModuleManager::UnloadModulesAtShutdown()
 		UE_LOG(LogModuleManager, Log, TEXT( "Shutting down and abandoning module %s (%d)" ), *ModulesToUnload[Index].ModuleName.ToString(), ModulesToUnload[Index].LoadOrder );
 		const bool bIsShutdown = true;
 		UnloadModule( ModulesToUnload[Index].ModuleName, bIsShutdown );
+		UE_LOG(LogModuleManager, Verbose, TEXT( "Returned from UnloadModule." ));
 	}
 }
 

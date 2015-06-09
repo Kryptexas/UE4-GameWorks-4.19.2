@@ -33,6 +33,10 @@ public class FriendsAndChat : ModuleRules
 				"Developer/FriendsAndChat/Private/UI/Widgets",
 				"Developer/FriendsAndChat/Private/Models",
 				"Developer/FriendsAndChat/Private/Core",
+				"Developer/FriendsAndChat/Private/Layers/DataAccess",
+				"Developer/FriendsAndChat/Private/Layers/Domain",
+				"Developer/FriendsAndChat/Private/Layers/Presentation",
+				"Developer/FriendsAndChat/Private/Layers/UI"
 
 			}
 		);
@@ -41,7 +45,11 @@ public class FriendsAndChat : ModuleRules
 			new string[]
 			{
 				"Developer/FriendsAndChat/Public/Models",
-				"Developer/FriendsAndChat/Public/Interfaces"
+				"Developer/FriendsAndChat/Public/Interfaces",
+// 				"Developer/FriendsAndChat/Source/Layers/DataAccess/Public",
+// 				"Developer/FriendsAndChat/Source/Layers/Domain/Public",
+				"Developer/FriendsAndChat/Public/Layers/Presentation",
+// 				"Developer/FriendsAndChat/Source/Layers/UI/Public"
 			}
 		);
 

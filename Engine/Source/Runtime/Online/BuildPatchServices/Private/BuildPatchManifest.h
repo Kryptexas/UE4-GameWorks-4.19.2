@@ -322,7 +322,7 @@ struct FFileChunkPart
  * Declare the FBuildPatchAppManifest object class. This holds the UObject data, and the implemented build manifest functionality
  */
 class FBuildPatchAppManifest
-	: public IBuildManifest
+	: public IBuildManifest, FGCObject
 {
 	// Allow access to build processor classes
 	friend class FBuildDataGenerator;
@@ -564,6 +564,10 @@ public:
 
 	/** @return True if this manifest is for the same build, i.e. same ID, Name, and Version */
 	bool IsSameAs(FBuildPatchAppManifestRef InstallManifest) const;
+public:
+
+	// FGCObject API
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 

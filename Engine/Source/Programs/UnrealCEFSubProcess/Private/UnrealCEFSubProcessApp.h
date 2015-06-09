@@ -7,8 +7,11 @@
 #include "AllowWindowsPlatformTypes.h"
 #endif
 
+#pragma push_macro("OVERRIDE")
+#undef OVERRIDE // cef headers provide their own OVERRIDE macro
 #include "include/cef_app.h"
 #include "include/wrapper/cef_message_router.h"
+#pragma pop_macro("OVERRIDE")
 
 #if PLATFORM_WINDOWS
 #include "HideWindowsPlatformTypes.h"
