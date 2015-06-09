@@ -150,6 +150,12 @@ void FMainMenu::FillEditMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FExte
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "ProjectSettings.TabIcon"),
 				FUIAction(FExecuteAction::CreateStatic(&FSettingsMenu::OpenSettings, FName("Project"), FName("Project"), FName("General")))
 			);
+
+			//@todo The tab system needs to be able to be extendable by plugins [9/3/2013 Justin.Sargent]
+			if (IModularFeatures::Get().IsModularFeatureAvailable(EditorFeatures::PluginsEditor))
+			{
+				FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "PluginsEditor");
+			}
 		}
 	}
 	MenuBuilder.EndSection();
@@ -180,12 +186,6 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon"),
 			FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenProjectLauncher))
 			);
-
-		//@todo The tab system needs to be able to be extendable by plugins [9/3/2013 Justin.Sargent]
-		if (IModularFeatures::Get().IsModularFeatureAvailable(EditorFeatures::PluginsEditor))
-		{
-			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "PluginsEditor");
-		}
 	}
 	MenuBuilder.EndSection();
 
