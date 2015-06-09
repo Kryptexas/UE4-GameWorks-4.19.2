@@ -5,9 +5,9 @@
 #include "NiagaraEffectRenderer.h"
 #include "VectorVM.h"
 
-
 FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) 
 : Age(0.0f)
+, Loops(0)
 , bIsEnabled(true)
 , SpawnRemainder(0.0f)
 , CachedBounds(ForceInit)
@@ -20,6 +20,7 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps)
 
 FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIFeatureLevel::Type InFeatureLevel)
 	: Age(0.0f)
+	, Loops(0)
 	, bIsEnabled(true)
 	, SpawnRemainder(0.0f)
 	, CachedBounds(ForceInit)
@@ -115,7 +116,7 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraTick);
 
-	if (!bIsEnabled)
+	if (!bIsEnabled || TickState==NTS_Suspended || TickState==NTS_Dead)
 		return;
 
 	SimpleTimer TickTime;
@@ -143,12 +144,14 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 	Constants.SetOrAdd(TEXT("Delta Time"), FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
 
 	// Simulate particles forward by DeltaSeconds.
+	if (TickState==NTS_Running || TickState==NTS_Dieing)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraSimulate);
 		RunVMScript(Props->UpdateScript, EUnusedAttributeBehaviour::Copy);
 	}
 	
 	//Init new particles with the spawn script.
+	if (TickState==NTS_Running)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraSpawn);
 		Data.SetNumParticles(MaxNewParticles);
@@ -175,7 +178,15 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 			}
 		}
 		Data.SetNumParticles(CurNumParticles);
+
+		// check if the emitter has officially died
+		if (GetTickState() == NTS_Dieing && CurNumParticles == 0)
+		{
+			SetTickState(NTS_Dead);
+		}
 	}
+
+
 
 	CPUTimeMS = TickTime.GetElapsedMilliseconds();
 

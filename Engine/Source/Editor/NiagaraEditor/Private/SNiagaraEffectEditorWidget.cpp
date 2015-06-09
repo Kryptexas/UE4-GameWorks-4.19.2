@@ -306,7 +306,7 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 						]
 
 
-						// Spawn rate
+						// Spawn rate and other emitter properties
 						+SHorizontalBox::Slot()
 							.AutoWidth()
 							.HAlign(HAlign_Left)
@@ -335,6 +335,27 @@ void SEmitterWidget::Construct(const FArguments& InArgs)
 												.Text(this, &SEmitterWidget::GetSpawnRateText)
 											]
 									]
+									+ SVerticalBox::Slot()
+									.Padding(4)
+									.AutoHeight()
+									[
+										SNew(SHorizontalBox)
+										+ SHorizontalBox::Slot()
+										.HAlign(HAlign_Center)
+										.VAlign(VAlign_Center)
+										.AutoWidth()
+										.Padding(4)
+										[
+											SNew(STextBlock)
+											.Text(LOCTEXT("LoopsLabel", "Loops"))
+										]
+										+ SHorizontalBox::Slot()
+											[
+												SNew(SEditableTextBox).OnTextChanged(this, &SEmitterWidget::OnNumLoopsChanged)
+												.Text(this, &SEmitterWidget::GetLoopsText)
+											]
+									]
+
 								]
 							]
 

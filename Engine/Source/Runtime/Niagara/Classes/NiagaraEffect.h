@@ -8,6 +8,14 @@
 #include "NiagaraEffect.generated.h"
 
 
+enum NiagaraTickState
+{
+	ERunning,		// normally running
+	ESuspended,		// stop simulating and spawning, still render
+	EDieing,		// stop spawning, still simulate and render
+	EDead			// no live particles, no new spawning
+};
+
 UCLASS()
 class NIAGARA_API UNiagaraEffect : public UObject
 {
@@ -90,6 +98,8 @@ public:
 		Component = InComponent;
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
 		RenderModuleupdate();
+
+		Age = 0.0f;
 	}
 
 	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(FNiagaraEmitterProperties *Properties);
@@ -126,12 +136,44 @@ public:
 
 		for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
 		{
-			it->SetConstants(Constants);
-			it->GetConstants().Merge(it->GetProperties()->ExternalConstants);
-			it->Tick(DeltaSeconds);
+			FNiagaraEmitterProperties *Props = it->GetProperties();
+
+			int Duration = Props->EndTime - Props->StartTime;
+			int LoopedStartTime = Props->StartTime + Duration*it->GetLoopCount();
+			int LoopedEndTime = Props->EndTime + Duration*it->GetLoopCount();
+
+			// manage emitter lifetime
+			//
+			if (Props->StartTime == 0.0f && Props->EndTime == 0.0f
+				|| (LoopedStartTime<Age && LoopedEndTime>Age))
+			{
+				it->SetTickState(NTS_Running);
+			}
+			else
+			{
+				// if we're past end time, manage looping; we reset the emitters age constant
+				// if it has one
+				if (Props->NumLoops > 1 && it->GetLoopCount()<Props->NumLoops)
+				{
+					it->LoopRestart();
+				}
+				else
+				{
+					it->SetTickState(NTS_Dieing);
+				}
+			}
+
+			if (it->GetTickState() != NTS_Dead && it->GetTickState() != NTS_Suspended)
+			{
+				it->SetConstants(Constants);
+				it->GetConstants().Merge(it->GetProperties()->ExternalConstants);
+				it->Tick(DeltaSeconds);
+			}
 
 			EffectBounds += it->GetEffectRenderer()->GetBounds();
 		}
+
+		Age += DeltaSeconds;
 	}
 
 	NIAGARA_API void RenderModuleupdate();
@@ -150,6 +192,7 @@ public:
 private:
 	UNiagaraComponent *Component;
 	FBox EffectBounds;
+	float Age;
 
 	/** Local constant table. */
 	FNiagaraConstantMap Constants;

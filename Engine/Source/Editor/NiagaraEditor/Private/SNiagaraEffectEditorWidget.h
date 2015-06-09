@@ -33,9 +33,6 @@ class SVectorConstantWidget : public SCompoundWidget, public FNotifyHook
 private:	
 	FName ConstantName;
 	TSharedPtr<FNiagaraSimulation> Emitter;
-
-	//SNumericEntryBox<float> XText, YText, ZText, WText;
-
 public:
 	SLATE_BEGIN_ARGS(SVectorConstantWidget) :
 	_Emitter(nullptr),
@@ -352,11 +349,23 @@ public:
 	FText GetSpawnRateText() const
 	{
 		TCHAR Txt[32];
-		//FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetSpawnRate() );
 		FCString::Snprintf(Txt, 32, TEXT("%f"), Emitter->GetProperties()->SpawnRate );
-
 		return FText::FromString(Txt);
 	}
+
+	void OnNumLoopsChanged(const FText &InText)
+	{
+		int Loops = FCString::Atoi(*InText.ToString());
+		Emitter->GetProperties()->NumLoops = Loops;
+	}
+
+	FText GetLoopsText() const
+	{
+		TCHAR Txt[32];
+		FCString::Snprintf(Txt, 32, TEXT("%i"), Emitter->GetProperties()->NumLoops);
+		return FText::FromString(Txt);
+	}
+
 
 	FText GetRenderModuleText() const
 	{

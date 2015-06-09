@@ -15,6 +15,18 @@ enum class ENiagaraDataType : uint8
 	Curve,
 };
 
+
+
+
+enum ENiagaraTickState
+{
+	NTS_Running,
+	NTS_Suspended,
+	NTS_Dieing,
+	NTS_Dead
+};
+
+
 USTRUCT()
 struct FNiagaraVariableInfo
 {

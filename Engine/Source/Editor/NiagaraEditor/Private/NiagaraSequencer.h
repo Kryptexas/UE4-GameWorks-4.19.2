@@ -1,4 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Editor/Sequencer/Public/ISequencerObjectBindingManager.h"
@@ -11,6 +12,9 @@
 
 #include "NiagaraSequencer.generated.h"
 
+/** 
+ *	Niagara editor movie scene section; represents one emitter in the timeline
+ */
 UCLASS()
 class UNiagaraMovieSceneSection : public UMovieSceneSection
 {
@@ -18,11 +22,17 @@ class UNiagaraMovieSceneSection : public UMovieSceneSection
 public:
 	FText GetEmitterName()	{ return EmitterName; }
 	void SetEmitterName(FText InName)	{ EmitterName = InName; }
+	void SetEmitterProps(const FNiagaraEmitterProperties *Props)	{ EmitterProps = Props; }
 
+	const FNiagaraEmitterProperties *GetEmitterProps() const	{ return EmitterProps; }
 private:
 	FText EmitterName;
+	const FNiagaraEmitterProperties *EmitterProps;
 };
 
+/**
+*	Visual representation of UNiagaraMovieSceneSection
+*/
 class INiagaraSequencerSection : public ISequencerSection
 {
 public:
@@ -41,6 +51,7 @@ public:
 
 	int32 OnPaintSection(const FGeometry &AllottedGeometry, const FSlateRect &SectionClippingRect, FSlateWindowElementList &OutDrawElements, int32 LayerId, bool  bParentEnabled) const
 	{
+		// draw the first run of the emitter
 		FSlateDrawElement::MakeBox
 			(
 			OutDrawElements,
@@ -52,6 +63,29 @@ public:
 			FLinearColor(0.3f, 0.3f, 0.6f)
 			);
 
+
+		// draw all loops of the emitter as 'ghosts' of the original section
+		float X = AllottedGeometry.AbsolutePosition.X;
+		float GeomW = AllottedGeometry.GetDrawSize().X;
+		float ClipW = SectionClippingRect.Right-SectionClippingRect.Left;
+		FSlateRect NewClipRect = SectionClippingRect;
+		NewClipRect.Left += 5;
+		NewClipRect.Right -= 10;
+		for (int32 Loop = 0; Loop < EmitterSection->GetEmitterProps()->NumLoops - 1; Loop++)
+		{
+			NewClipRect.Left += (GeomW) - FMath::Max(0.0f, GeomW - ClipW);
+			NewClipRect.Right += GeomW;
+			FSlateDrawElement::MakeBox
+				(
+				OutDrawElements,
+				LayerId,
+				AllottedGeometry.ToPaintGeometry(FVector2D(GeomW*(Loop+1), 0.0f), AllottedGeometry.GetDrawSize(), 1.0f),
+				FEditorStyle::GetBrush("CurveEd.TimelineArea"),
+				NewClipRect,
+				ESlateDrawEffect::None,
+				FLinearColor(0.3f, 0.3f, 0.6f, 0.25f)
+				);
+		}
 
 		return 0;
 	}
@@ -68,30 +102,36 @@ private:
 
 
 
+
+
+/**
+*	One instance of a UEmitterMovieSceneTrack
+*/
 class INiagaraTrackInstance : public IMovieSceneTrackInstance
 {
 public:
-	INiagaraTrackInstance(TSharedPtr<FNiagaraSimulation> InEmitter)
+	INiagaraTrackInstance(class UEmitterMovieSceneTrack *InTrack)
+		: Track(InTrack)
 	{
-		Emitter = InEmitter;
 	}
 
 	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
 	{
 	}
-	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player)
-	{}
 
+	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player);
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
+	class UEmitterMovieSceneTrack *Track;
 };
 
 
 
 
 
-
-
+/**
+*	Single track containing exactly one UNiagaraMovieSceneSection, representing one emitter
+*/
 UCLASS(MinimalAPI)
 class UEmitterMovieSceneTrack : public UMovieSceneTrack
 {
@@ -106,6 +146,8 @@ public:
 		const FNiagaraEmitterProperties *EmitterProps = InEmitter->GetProperties();
 
 		UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->Name);
+		Section->SetEmitterProps(EmitterProps);
+
 		Section->SetStartTime(EmitterProps->StartTime);
 		Section->SetEndTime(EmitterProps->EndTime);
 		Section->SetEmitterName(FText::FromString(EmitterProps->Name));
@@ -118,12 +160,15 @@ public:
 	virtual bool IsEmpty() const override { return false; }
 	virtual TSharedPtr<class IMovieSceneTrackInstance> CreateInstance()
 	{
-		return MakeShareable(new INiagaraTrackInstance(Emitter));
+		return MakeShareable(new INiagaraTrackInstance(this));
 	}
 	virtual TArray<UMovieSceneSection*> GetAllSections() const
 	{
 		return Sections;
 	}
+
+	TSharedPtr<FNiagaraSimulation> GetEmitter() { return Emitter; }
+
 private:
 	TSharedPtr<FNiagaraSimulation> Emitter;
 	TArray<UMovieSceneSection*> Sections;
@@ -131,6 +176,9 @@ private:
 
 
 
+/**
+*	Track editor for Niagara emitter tracks
+*/
 class FNiagaraTrackEditor : public FMovieSceneTrackEditor
 {
 public:
@@ -158,8 +206,8 @@ public:
 
 
 
-
-/** Sequencer object binding manager for Niagara effects;
+/**
+ * Sequencer object binding manager for Niagara effects; all of this is just stubbed out
 */
 class FNiagaraSequencerObjectBindingManager : public FGCObject, public ISequencerObjectBindingManager
 {

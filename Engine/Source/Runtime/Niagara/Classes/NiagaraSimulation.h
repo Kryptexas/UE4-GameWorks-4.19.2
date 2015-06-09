@@ -29,6 +29,7 @@ enum EEmitterRenderModuleType
 
 
 
+
 /** 
  *	FniagaraEmitterProperties stores the attributes of an FNiagaraSimulation
  *	that need to be serialized and are used for its initialization 
@@ -47,7 +48,8 @@ public:
 		RenderModuleType(RMT_Sprites),
 		StartTime(0.0f),
 		EndTime(0.0f),
-		RendererProperties(nullptr)
+		RendererProperties(nullptr),
+		NumLoops(0)
 	{
 		Name = FString(TEXT("New Emitter"));
 	}
@@ -80,6 +82,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
 	FNiagaraConstantMap ExternalSpawnConstants;		// these are the spawn script constants from the effect editor; will be added to the emitter's constant map
+
+	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	int32 NumLoops;
 };
 
 
@@ -125,15 +130,31 @@ public:
 	void NIAGARA_API SetSpawnScript(UNiagaraScript* Script);
 	void NIAGARA_API SetUpdateScript(UNiagaraScript* Script);
 	void NIAGARA_API SetEnabled(bool bEnabled);
+
+	float GetAge() { return Age; }
+	int32 GetLoopCount()	{ return Loops; }
+	void LoopRestart()	
+	{ 
+		Age = 0.0f;
+		Loops++;
+		SetTickState(NTS_Running);
+	}
+
+	ENiagaraTickState NIAGARA_API GetTickState()	{ return TickState; }
+	void NIAGARA_API SetTickState(ENiagaraTickState InState)	{ TickState = InState; }
 private:
 	FNiagaraEmitterProperties *Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
 
 	/* The age of the emitter*/
 	float Age;
+	/* how many loops this emitter has gone through */
+	uint32 Loops;
 	/* If false, don't tick or render*/
 	bool bIsEnabled;
 	/* Seconds taken to process everything (including rendering) */
 	float CPUTimeMS;
+	/* Emitter tick state */
+	ENiagaraTickState TickState;
 	
 	/** Local constant set. */
 	FNiagaraConstantMap Constants;
@@ -151,6 +172,11 @@ private:
 	/** Calc number to spawn */
 	int32 CalcNumToSpawn(float DeltaSeconds)
 	{
+		if (TickState == NTS_Dead || TickState == NTS_Dieing || TickState == NTS_Suspended)
+		{
+			return 0;
+		}
+
 		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * Props->SpawnRate);
 		int32 NumToSpawn = FMath::FloorToInt(FloatNumToSpawn);
 		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
