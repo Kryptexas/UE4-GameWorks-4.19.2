@@ -87,6 +87,17 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif // WITH_EDITOR
 
+#if ENABLE_VISUAL_LOG
+void ANavLinkProxy::BeginPlay()
+{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	if (NavSys)
+	{
+		REDIRECT_OBJECT_TO_VLOG(this, NavSys);
+	}
+}
+#endif // ENABLE_VISUAL_LOG
+
 void ANavLinkProxy::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	NavigationHelper::ProcessNavLinkAndAppend(&Data.Modifiers, this, PointLinks);
