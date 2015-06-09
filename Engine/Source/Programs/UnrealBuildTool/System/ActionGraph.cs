@@ -1297,8 +1297,7 @@ namespace UnrealBuildTool
 
 				if( ExpandCPPHeaderDependencies && bIsCPPFile )
 				{
-					bool HasUObjects;
-					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( Target, FileItem, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects );
+					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( Target, FileItem, BuildPlatform, bOnlyCachedDependencies:false );
 
 					// Resolve the included file name to an actual file.
 					var DirectlyIncludedFiles =

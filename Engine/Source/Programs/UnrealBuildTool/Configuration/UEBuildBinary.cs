@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Globalization;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace UnrealBuildTool
 {	
@@ -469,23 +470,21 @@ namespace UnrealBuildTool
 		/// <returns>List of all referenced modules</returns>
 		public override List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
 		{
-			var OrderedModules = new List<UEBuildModule>();
-			var ReferencedModules = new Dictionary<string, UEBuildModule>( StringComparer.InvariantCultureIgnoreCase );
+			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
 			foreach( var ModuleName in ModuleNames )
 			{
 				if( !ReferencedModules.ContainsKey( ModuleName ) )
 				{
 					var Module = Target.GetModuleByName( ModuleName );
-					ReferencedModules[ ModuleName ] = Module;
+					ReferencedModules[ ModuleName ] = null;
 
-					bool bOnlyDirectDependencies = false;
-					Module.GetAllDependencyModules(ReferencedModules, OrderedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
+					Module.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies: false);
 
-					OrderedModules.Add( Module );
+					ReferencedModules[ ModuleName ] = new UEBuildModule.ModuleIndexPair{ Module = Module, Index = ReferencedModules.Count };
 				}
 			}
 
-			return OrderedModules;
+			return ReferencedModules.Values.OrderBy(M => M.Index).Select(M => M.Module).ToList();
 		}
 
 		/// <summary>
@@ -655,28 +654,23 @@ namespace UnrealBuildTool
 			}
 			
 			// Add runtime dependencies for all the modules in this binary, and build up a list of all the referenced modules
-			Dictionary<string, UEBuildModule> ReferencedModules = new Dictionary<string,UEBuildModule>();
-			List<UEBuildModule> OrderedModules = new List<UEBuildModule>();
+			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
 			foreach (string ModuleName in ModuleNames)
 			{
-				UEBuildModule Module = Target.GetModuleByName(ModuleName); 
+				UEBuildModule Module = Target.GetModuleByName(ModuleName);
 				foreach(RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
 				{
 					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
 				}
-				Module.GetAllDependencyModules(ReferencedModules, OrderedModules, true, false, true);
+				Module.GetAllDependencyModules(ReferencedModules, true, false, true);
 			}
 
 			// Add runtime dependencies for all the referenced external modules. These may be introduce dependencies for the binary without actually being listed for inclusion in it.
-			foreach(UEBuildModule OrderedModule in OrderedModules)
+			foreach(UEBuildExternalModule ExternalModule in ReferencedModules.Values.OrderBy(x => x.Index).Select(x => x.Module).OfType<UEBuildExternalModule>())
 			{
-				UEBuildExternalModule ExternalModule = OrderedModule as UEBuildExternalModule;
-				if(ExternalModule != null)
+				foreach(RuntimeDependency RuntimeDependency in ExternalModule.RuntimeDependencies)
 				{
-					foreach(RuntimeDependency RuntimeDependency in ExternalModule.RuntimeDependencies)
-					{
-						Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
-					}
+					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
 				}
 			}
 			return Receipt;

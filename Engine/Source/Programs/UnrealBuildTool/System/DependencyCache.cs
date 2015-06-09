@@ -36,19 +36,6 @@ namespace UnrealBuildTool
 		}
 	}
 
-	[Serializable]
-	struct DependencyInfo
-	{
-		/** List of files this file includes.  These are direct include paths and cannot be resolved to an actual file on 
-		    disk without using the proper list of include directories for this file's module */
-		public List<DependencyInclude> Includes;
-
-		/** True if this file was found to contain UObject class or type definitions, and the file needs to be preprocessed
-		    by UnrealHeaderTool to generate reflection code */
-		public bool HasUObjects;
-	}
-
-
 	/**
 	 * Caches include dependency information to speed up preprocessing on subsequent runs.
 	 */
@@ -67,7 +54,7 @@ namespace UnrealBuildTool
 		private string CachePath;
 
 		/** Dependency lists, keyed (case-insensitively) on file's absolute path. */
-		private Dictionary<string, DependencyInfo> DependencyMap;
+		private Dictionary<string,  List<DependencyInclude>> DependencyMap;
 
 		[NonSerialized]
 		private Dictionary<string, bool> FileExistsInfo;
@@ -157,7 +144,7 @@ namespace UnrealBuildTool
 			CacheCreateDate = DateTimeOffset.Now;
 			CacheUpdateDate = DateTimeOffset.Now;
 			CachePath = Cache.AbsolutePath;
-			DependencyMap = new Dictionary<string, DependencyInfo>();
+			DependencyMap = new Dictionary<string, List<DependencyInclude>>();
 			bIsDirty = false;
 			CreateFileExistsInfo();
 		}
@@ -205,96 +192,58 @@ namespace UnrealBuildTool
 			}
 		}
 
-
-		/// <summary>
-		/// Gets information about this file from our dependency cache.  Only returns information if the file has already been 
-		/// cached, and the file has not been changed since the last time we updated our cache
-		/// </summary>
-		/// <param name="File">The file to check</param>
-		/// <returns>Information about this dependency, or null if we have nothing cached</returns>
-		DependencyInfo? GetCachedDependencyInfo( FileItem File )
-		{
-			// Check whether File is in cache.
-			DependencyInfo DependencyInfo;
-			if (DependencyMap.TryGetValue(File.AbsolutePath.ToLowerInvariant(), out DependencyInfo))
-			{
-				// File is in cache, now check whether last write time is prior to cache creation time.
-				if (File.LastWriteTime < CacheCreateDate)
-				{
-					return DependencyInfo;					
-				}
-				else
-				{
-					// Remove entry from cache as it's stale.
-					RemoveFileFromCache(File.AbsolutePath);
-					return null;
-				}
-			}
-
-			return null;
-		}
-
 		/**
-		 * Returns the direct dependencies of the specified FileItem if it exists in the cache and if the
-		 * file has a last write time before the creation time of the cache. 
-		 * 
-		 * The code also keeps track of whether dependencies have been successfully accessed for a given
-		 * file.
-		 * 
-		 * @param	File				File to try to find dependencies in cache
-		 * @param	Result	[out]		List of dependencies if successful, null otherwise
-		 * @param	HasUObjects			True if the file was found to have UObject classes, otherwise false
+		 * Returns the direct dependencies of the specified FileItem if it exists in the cache and they are not stale.
+		 *
+		 * @param  File  File to try to find dependencies in cache
+		 * @returns  Dependency info for File, or null if no dependencies are cached or if the cache is stale.
 		 */
-		public bool GetCachedDirectDependencies(FileItem File, out List<DependencyInclude> Result, out bool HasUObjects)
+		public List<DependencyInclude> GetCachedDependencyInfo(FileItem File)
 		{
-			Result = null;
-			HasUObjects = false;
+			string LowercaseFilePath = File.AbsolutePath.ToLowerInvariant();
 
 			// Check whether File is in cache.
-			DependencyInfo? DependencyInfo = GetCachedDependencyInfo(File);
-			if( DependencyInfo != null )
+			List<DependencyInclude> Result;
+			if (!DependencyMap.TryGetValue(LowercaseFilePath, out Result))
 			{
-				// Check if any of the resolved includes is missing
-				foreach (var Include in DependencyInfo.Value.Includes)
-				{
-					if (!String.IsNullOrEmpty(Include.IncludeResolvedName))
-					{
-						bool bIncludeExists = false;
-						string FileExistsKey = Include.IncludeResolvedName.ToLowerInvariant();
-						if (FileExistsInfo.TryGetValue(FileExistsKey, out bIncludeExists) == false)
-						{
-							bIncludeExists = System.IO.File.Exists(Include.IncludeResolvedName);
-							FileExistsInfo.Add(FileExistsKey, bIncludeExists);
-						}
-						if (!bIncludeExists)
-						{
-							// Remove entry from cache as it's stale, as well as the include which no longer exists
-							RemoveFileFromCache(Include.IncludeResolvedName);
-							RemoveFileFromCache(File.AbsolutePath);							
-							return false;
-						}
-					}						
-				}
-				// Cached version is up to date, return it.
-				Result = DependencyInfo.Value.Includes;
-				HasUObjects = DependencyInfo.Value.HasUObjects;
-				return true;
+				return null;
 			}
-			// Not in cache.
-			else
-			{
-				return false;
-			}
-		}
 
-		/// <summary>
-		/// Removes file entry from dependency cache.
-		/// </summary>
-		/// <param name="AbsolutePath"></param>
-		private void RemoveFileFromCache(string AbsolutePath)
-		{
-			DependencyMap.Remove(AbsolutePath.ToLowerInvariant());
-			bIsDirty = true;
+			// File is in cache, now check whether last write time is prior to cache creation time.
+			if (File.LastWriteTime >= CacheCreateDate)
+			{
+				// Remove entry from cache as it's stale.
+				DependencyMap.Remove(LowercaseFilePath);
+				bIsDirty = true;
+				return null;
+			}
+
+			// Check if any of the resolved includes is missing
+			foreach (var Include in Result)
+			{
+				if (!String.IsNullOrEmpty(Include.IncludeResolvedName))
+				{
+					bool bIncludeExists = false;
+					string LowercaseIncludePath = Include.IncludeResolvedName.ToLowerInvariant();
+					if (!FileExistsInfo.TryGetValue(LowercaseIncludePath, out bIncludeExists))
+					{
+						bIncludeExists = System.IO.File.Exists(Include.IncludeResolvedName);
+						FileExistsInfo.Add(LowercaseIncludePath, bIncludeExists);
+					}
+
+					if (!bIncludeExists)
+					{
+						// Remove entry from cache as it's stale, as well as the include which no longer exists
+						DependencyMap.Remove(LowercaseIncludePath);
+						DependencyMap.Remove(LowercaseFilePath);
+						bIsDirty = true;
+						return null;
+					}
+				}
+			}
+
+			// Cached version is up to date, return it.
+			return Result;
 		}
 
 		/**
@@ -304,9 +253,9 @@ namespace UnrealBuildTool
 		 * @param	Dependencies	List of dependencies to cache for passed in file
 		 * @param	HasUObjects		True if this file was found to contain UObject classes or types
 		 */
-		public void SetDependencyInfo(FileItem File, List<DependencyInclude> DirectDependencies, bool HasUObjects)
+		public void SetDependencyInfo(FileItem File, List<DependencyInclude> Info)
 		{
-			DependencyMap[File.AbsolutePath.ToLowerInvariant()] = new DependencyInfo() { Includes = DirectDependencies, HasUObjects = HasUObjects };
+			DependencyMap[File.AbsolutePath.ToLowerInvariant()] = Info;
 			bIsDirty = true;
 		}
 
@@ -327,7 +276,7 @@ namespace UnrealBuildTool
 		{
 			foreach (var Dependency in DependencyMap)
 			{
-				foreach (var Include in Dependency.Value.Includes)
+				foreach (var Include in Dependency.Value)
 				{
 					if (Include.IncludeResolvedName == String.Empty)
 					{
@@ -349,7 +298,7 @@ namespace UnrealBuildTool
 		{
 			if (BuildConfiguration.bUseIncludeDependencyResolveCache)
 			{
-				var Includes = DependencyMap[File.AbsolutePath.ToLowerInvariant()].Includes;
+				var Includes = DependencyMap[File.AbsolutePath.ToLowerInvariant()];
 				var IncludeToResolve = Includes[DirectlyIncludedFileNameIndex];
 				if (BuildConfiguration.bTestIncludeDependencyResolveCache)
 				{

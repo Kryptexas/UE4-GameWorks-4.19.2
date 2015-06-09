@@ -51,6 +51,7 @@
     </Compile>
     <Compile Include="CaselessDictionary.cs" />
     <Compile Include="ExecutingAssembly.cs" />
+    <Compile Include="FileContentsCacheType.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="HarvestEnvVars.cs" />
     <Compile Include="LaunchProcess.cs" />

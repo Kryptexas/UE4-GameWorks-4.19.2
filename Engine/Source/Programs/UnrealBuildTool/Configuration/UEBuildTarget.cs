@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Xml;
 using System.Runtime.Serialization;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace UnrealBuildTool
 {
@@ -188,9 +189,9 @@ namespace UnrealBuildTool
 				OnlyModules = new List<OnlyModule>();
 			}
 
-			if (ModuleCsMap == null)
+			if (FlatModuleCsData == null)
 			{
-				ModuleCsMap = new Dictionary<string,string>();
+				FlatModuleCsData = new CaselessDictionary<FlatModuleCsDataType>();
 			}
 		}
 
@@ -775,10 +776,23 @@ namespace UnrealBuildTool
 
 		/** Used to keep track of all modules by name. */
 		[NonSerialized]
-		private Dictionary<string, UEBuildModule> Modules = new Dictionary<string, UEBuildModule>(StringComparer.InvariantCultureIgnoreCase);
+		private Dictionary<string, UEBuildModule> Modules = new CaselessDictionary<UEBuildModule>();
+
+		[Serializable]
+		public class FlatModuleCsDataType
+		{
+			public FlatModuleCsDataType(string InBuildCsFilename)
+			{
+				BuildCsFilename = InBuildCsFilename;
+			}
+
+			public string       BuildCsFilename;
+			public string       ModuleSourceFolder;
+			public List<string> UHTHeaderNames = new List<string>();
+		}
 
 		/** Used to map names of modules to their .Build.cs filename */
-		private Dictionary<string, string> ModuleCsMap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+		public CaselessDictionary<FlatModuleCsDataType> FlatModuleCsData = new CaselessDictionary<FlatModuleCsDataType>();
 
 		/** The receipt for this target, which contains a record of this build. */
 		private BuildReceipt Receipt;
@@ -795,9 +809,18 @@ namespace UnrealBuildTool
 		/// A list of the module filenames which were used to build this target.
 		/// </summary>
 		/// <returns></returns>
-		public List<string> GetAllModuleBuildCsFilenames()
+		public IEnumerable<string> GetAllModuleBuildCsFilenames()
 		{
-			return new List<string>(ModuleCsMap.Values);
+			return FlatModuleCsData.Values.Select(Data => Data.BuildCsFilename);
+		}
+
+		/// <summary>
+		/// A list of the module filenames which were used to build this target.
+		/// </summary>
+		/// <returns></returns>
+		public IEnumerable<string> GetAllModuleFolders()
+		{
+			return FlatModuleCsData.Values.SelectMany(Data => Data.UHTHeaderNames);
 		}
 
 		/// <summary>
@@ -1540,52 +1563,58 @@ namespace UnrealBuildTool
 				var UObjectDiscoveryStartTime = DateTime.UtcNow;
 
 				// Reconstruct a full list of binaries. Binaries which aren't compiled are stripped out of AppBinaries, but we still need to scan them for UHT.
-				List<UEBuildBinary> AllAppBinaries = AppBinaries.Union(PrecompiledBinaries).Distinct().ToList();
+				List<UEBuildBinary> AllAppBinaries = AppBinaries.Union(PrecompiledBinaries).ToList();
 	
-				// Figure out which modules have UObjects that we may need to generate headers for
+				var ModulesToGenerateHeadersFor = new HashSet<UEBuildModuleCPP>();
 				foreach( var Binary in AllAppBinaries )
 				{
-					var LocalUObjectModules = UObjectModules;	// For lambda access
 					var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-					foreach( var DependencyModuleCPP in DependencyModules.OfType<UEBuildModuleCPP>().Where( CPPModule => !LocalUObjectModules.Any( Module => Module.ModuleName == CPPModule.Name ) ) )
+					foreach( var Module in DependencyModules.OfType<UEBuildModuleCPP>() )
 					{
-						if( !DependencyModuleCPP.bIncludedInTarget )
+						if( !Module.bIncludedInTarget )
 						{
-							throw new BuildException( "Expecting module {0} to have bIncludeInTarget set", DependencyModuleCPP.Name );
+							throw new BuildException( "Expecting module {0} to have bIncludeInTarget set", Module.Name );
 						}
 
-						var UHTModuleInfo = DependencyModuleCPP.GetUHTModuleInfo();
-						if( UHTModuleInfo.PublicUObjectClassesHeaders.Count > 0 || UHTModuleInfo.PrivateUObjectHeaders.Count > 0 || UHTModuleInfo.PublicUObjectHeaders.Count > 0 )
+						ModulesToGenerateHeadersFor.Add( Module );
+					}
+				}
+
+				foreach( var Module in ModulesToGenerateHeadersFor )
+				{
+					var UHTModuleInfo = Module.GetCachedUHTModuleInfo();
+					if( UHTModuleInfo.Info.PublicUObjectClassesHeaders.Count > 0 || UHTModuleInfo.Info.PrivateUObjectHeaders.Count > 0 || UHTModuleInfo.Info.PublicUObjectHeaders.Count > 0 )
+					{
+						// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
+						// engine files, so we don't need a .generated.cpp either
+						UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass BuildInfo = null;
+						UHTModuleInfo.Info.GeneratedCPPFilenameBase = Path.Combine( Module.GeneratedCodeDirectory, UHTModuleInfo.Info.ModuleName ) + ".generated";
+						if (Module.SourceFilesToBuild.Count != 0)
 						{
-							// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
-							// engine files, so we don't need a .generated.cpp either
-							UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass BuildInfo = null;
-							UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( DependencyModuleCPP.GeneratedCodeDirectory, UHTModuleInfo.ModuleName ) + ".generated";
-							if (DependencyModuleCPP.SourceFilesToBuild.Count != 0)
-							{
-								BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + "*.cpp" );
-							}
-
-							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass(BuildInfo);
-
-							// If we're running in "gather" mode only, we'll go ahead and cache PCH information for each module right now, so that we don't
-							// have to do it in the assembling phase.  It's OK for gathering to take a bit longer, even if UObject headers are not out of
-							// date in order to save a lot of time in the assembling runs.
-							UHTModuleInfo.PCH = "";
-							if( UnrealBuildTool.IsGatheringBuild && !UnrealBuildTool.IsAssemblingBuild )
-							{
-								// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
-								var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
-								DependencyModuleCPP.CachePCHUsageForModuleSourceFiles(ModuleCompileEnvironment);
-								if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
-								{
-									UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
-								}
-							}
-
-							UObjectModules.Add( UHTModuleInfo );
-							Log.TraceVerbose( "Detected UObject module: " + UHTModuleInfo.ModuleName );
+							BuildInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass.BuildInfoClass( UHTModuleInfo.Info.GeneratedCPPFilenameBase + "*.cpp" );
 						}
+
+						Module.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass(BuildInfo);
+
+						// If we're running in "gather" mode only, we'll go ahead and cache PCH information for each module right now, so that we don't
+						// have to do it in the assembling phase.  It's OK for gathering to take a bit longer, even if UObject headers are not out of
+						// date in order to save a lot of time in the assembling runs.
+						UHTModuleInfo.Info.PCH = "";
+						if( UnrealBuildTool.IsGatheringBuild && !UnrealBuildTool.IsAssemblingBuild )
+						{
+							// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
+							var ModuleCompileEnvironment = Module.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+							Module.CachePCHUsageForModuleSourceFiles(ModuleCompileEnvironment);
+							if (Module.ProcessedDependencies.UniquePCHHeaderFile != null)
+							{
+								UHTModuleInfo.Info.PCH = Module.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+							}
+						}
+
+						UObjectModules.Add( UHTModuleInfo.Info );
+						FlatModuleCsData[Module.Name].ModuleSourceFolder = Module.ModuleDirectory;
+						FlatModuleCsData[Module.Name].UHTHeaderNames     = UHTModuleInfo.HeaderFilenames.ToList();
+						Log.TraceVerbose( "Detected UObject module: " + UHTModuleInfo.Info.ModuleName );
 					}
 				}
 				
@@ -2145,10 +2174,9 @@ namespace UnrealBuildTool
 								var SharedPCHHeaderFileItem = FileItem.GetExistingItemByPath( SharedPCHHeaderFilePath );
 								if( SharedPCHHeaderFileItem != null )
 								{
-									var ModuleDependencies = new Dictionary<string, UEBuildModule>();
-									var ModuleList = new List<UEBuildModule>();
+									var ModuleDependencies = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
 									bool bIncludeDynamicallyLoaded = false;
-									CPPModule.GetAllDependencyModules(ModuleDependencies, ModuleList, bIncludeDynamicallyLoaded, bForceCircular: false, bOnlyDirectDependencies:false);
+									CPPModule.GetAllDependencyModules(ModuleDependencies, bIncludeDynamicallyLoaded, bForceCircular: false, bOnlyDirectDependencies:false);
 
 									// Figure out where to insert the shared PCH into our list, based off the module dependency ordering
 									int InsertAtIndex = SharedPCHHeaderFiles.Count;
@@ -2183,7 +2211,7 @@ namespace UnrealBuildTool
 									var NewSharedPCHHeaderInfo = new SharedPCHHeaderInfo();
 									NewSharedPCHHeaderInfo.PCHHeaderFile = SharedPCHHeaderFileItem;
 									NewSharedPCHHeaderInfo.Module = CPPModule;
-									NewSharedPCHHeaderInfo.Dependencies = ModuleDependencies;
+									NewSharedPCHHeaderInfo.Dependencies = ModuleDependencies.Values.OrderBy(x => x.Index).Select(x => x.Module).ToDictionary(M => M.Name);
 									SharedPCHHeaderFiles.Insert( InsertAtIndex, NewSharedPCHHeaderInfo );
 								}
 								else
@@ -2932,7 +2960,7 @@ namespace UnrealBuildTool
 		{
 			Debug.Assert(Module.Target == this);
 			Modules.Add(Module.Name, Module);
-			ModuleCsMap.Add(Module.Name, Module.BuildCsFilename);
+			FlatModuleCsData.Add(Module.Name, new FlatModuleCsDataType(Module.BuildCsFilename));
 		}
 
 		/** Finds a module given its name.  Throws an exception if the module couldn't be found. */

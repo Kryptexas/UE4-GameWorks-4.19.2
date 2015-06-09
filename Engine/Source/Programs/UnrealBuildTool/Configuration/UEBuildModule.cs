@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace UnrealBuildTool
 {
@@ -841,17 +842,22 @@ namespace UnrealBuildTool
 			return Name;
 		}
 
+		[DebuggerDisplay("{Index}: {Module}")]
+		public class ModuleIndexPair
+		{
+			public UEBuildModule Module;
+			public int           Index;
+		}
 
 		/**
 		 * Gets all of the modules referenced by this module
 		 * 
-		 * @param	ReferencedModules	Hash of all referenced modules
-		 * @param	OrderedModules		Ordered list of the referenced modules
+		 * @param	ReferencedModules	Hash of all referenced modules with their addition index.
 		 * @param	bIncludeDynamicallyLoaded	True if dynamically loaded modules (and all of their dependent modules) should be included.
 		 * @param	bForceCircular	True if circular dependencies should be processed
 		 * @param	bOnlyDirectDependencies	True to return only this module's direct dependencies
 		 */
-		public virtual void GetAllDependencyModules(Dictionary<string, UEBuildModule> ReferencedModules, List<UEBuildModule> OrderedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
+		public virtual void GetAllDependencyModules(CaselessDictionary<ModuleIndexPair> ReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies)
 		{
 		}
 
@@ -1373,14 +1379,13 @@ namespace UnrealBuildTool
 					if( bAllowSharedPCH && ( !bIsASharedPCHModule || bCanModuleUseOwnSharedPCH ) )
 					{
 						// Figure out which shared PCH tier we're in
-						var DirectDependencyModules = new List<UEBuildModule>();
-						{ 
-							var ReferencedModules = new Dictionary<string, UEBuildModule>( StringComparer.InvariantCultureIgnoreCase );
-							this.GetAllDependencyModules( ReferencedModules, DirectDependencyModules, bIncludeDynamicallyLoaded:false, bForceCircular:false, bOnlyDirectDependencies:true );
+						var ReferencedModules = new CaselessDictionary<ModuleIndexPair>();
+						{
+							this.GetAllDependencyModules( ReferencedModules, bIncludeDynamicallyLoaded:false, bForceCircular:false, bOnlyDirectDependencies:true );
 						}
 
 						int LargestSharedPCHHeaderFileIndex = -1;
-						foreach( var DependencyModule in DirectDependencyModules )
+						foreach( var DependencyModule in ReferencedModules.Values.OrderBy(P => P.Index).Select(P => P.Module) )
 						{
 							// These Shared PCHs are ordered from least complex to most complex.  We'll start at the last one and search backwards.
 							for( var SharedPCHHeaderFileIndex = GlobalCompileEnvironment.SharedPCHHeaderFiles.Count - 1; SharedPCHHeaderFileIndex > LargestSharedPCHHeaderFileIndex; --SharedPCHHeaderFileIndex )
@@ -1823,8 +1828,7 @@ namespace UnrealBuildTool
 		{
 			// @todo ubtmake: We don't really need to scan every file looking for PCH headers, just need one.  The rest is just for error checking.
 			// @todo ubtmake: We don't need all of the direct includes either.  We just need the first, unless we want to check for errors.
-			bool HasUObjects;
-			List<DependencyInclude> DirectIncludeFilenames = CPPEnvironment.GetDirectIncludeDependencies(Target, CPPFile, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects);
+			List<DependencyInclude> DirectIncludeFilenames = CPPEnvironment.GetDirectIncludeDependencies(Target, CPPFile, BuildPlatform, bOnlyCachedDependencies:false);
 			if (BuildConfiguration.bPrintDebugInfo)
 			{
 				Log.TraceVerbose("Found direct includes for {0}: {1}", Path.GetFileName(CPPFile.AbsolutePath), string.Join(", ", DirectIncludeFilenames.Select(F => F.IncludeName)));
@@ -1913,11 +1917,19 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		public HashSet<FileItem> _AllClassesHeaders     = new HashSet<FileItem>();
-		public HashSet<FileItem> _PublicUObjectHeaders  = new HashSet<FileItem>();
-		public HashSet<FileItem> _PrivateUObjectHeaders = new HashSet<FileItem>();
+		public class UHTModuleInfoCacheType
+		{
+			public UHTModuleInfoCacheType(IEnumerable<string> InHeaderFilenames, UHTModuleInfo InInfo)
+			{
+				HeaderFilenames = InHeaderFilenames;
+				Info            = InInfo;
+			}
 
-		private UHTModuleInfo CachedModuleUHTInfo = null;
+			public IEnumerable<string> HeaderFilenames = null;
+			public UHTModuleInfo       Info            = null;
+		}
+
+		private UHTModuleInfoCacheType UHTModuleInfoCache = null;
 
 		/// Total time spent generating PCHs for modules (not actually compiling, but generating the PCH's input data)
 		public static double TotalPCHGenTime = 0.0;
@@ -1926,69 +1938,23 @@ namespace UnrealBuildTool
 		public static double TotalPCHCacheTime = 0.0;
 
 
-
 		/// <summary>
 		/// If any of this module's source files contain UObject definitions, this will return those header files back to the caller
 		/// </summary>
-		/// <param name="PublicUObjectClassesHeaders">All UObjects headers in the module's Classes folder (legacy)</param>
-		/// <param name="PublicUObjectHeaders">Dependent UObject headers in Public source folders</param>
-		/// <param name="PrivateUObjectHeaders">Dependent UObject headers not in Public source folders</param>
 		/// <returns>
-		public UHTModuleInfo GetUHTModuleInfo()
+		public UHTModuleInfoCacheType GetCachedUHTModuleInfo()
 		{
-			if (CachedModuleUHTInfo != null)
+			if (UHTModuleInfoCache == null)
 			{
-				return CachedModuleUHTInfo;
+				IEnumerable<string> HeaderFilenames = Directory.GetFiles( ModuleDirectory, "*.h", SearchOption.AllDirectories );
+				UHTModuleInfo       Info            = ExternalExecution.CreateUHTModuleInfo(HeaderFilenames, Target, Name, ModuleDirectory, Type);
+				UHTModuleInfoCache = new UHTModuleInfoCacheType(Info.PublicUObjectHeaders.Concat(Info.PublicUObjectClassesHeaders).Concat(Info.PrivateUObjectHeaders).Select(x => x.AbsolutePath).ToList(), Info);
 			}
 
-			var ClassesFolder = Path.Combine(this.ModuleDirectory, "Classes");
-			var PublicFolder  = Path.Combine(this.ModuleDirectory, "Public");
-
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-
-			var ClassesFiles = Directory.GetFiles( this.ModuleDirectory, "*.h", SearchOption.AllDirectories );
-			foreach (var ClassHeader in ClassesFiles)
-			{
-				// Check to see if we know anything about this file.  If we have up-to-date cached information about whether it has
-				// UObjects or not, we can skip doing a test here.
-				var UObjectHeaderFileItem = FileItem.GetExistingItemByPath( ClassHeader );
-
-				bool HasUObjects;
-				var DirectIncludes = CPPEnvironment.GetDirectIncludeDependencies( Target, UObjectHeaderFileItem, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects );
-				Debug.Assert( DirectIncludes != null );
-				
-				if (HasUObjects)
-				{ 
-					if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
-					{
-						_AllClassesHeaders.Add(UObjectHeaderFileItem);
-					}
-					else if (UObjectHeaderFileItem.AbsolutePath.StartsWith(PublicFolder))
-					{
-						_PublicUObjectHeaders.Add(UObjectHeaderFileItem);
-					}
-					else
-					{
-						_PrivateUObjectHeaders.Add(UObjectHeaderFileItem);
-					}
-				}
-			}
-
-			CachedModuleUHTInfo = new UHTModuleInfo 
-			{
-				ModuleName                  = this.Name,
-				ModuleDirectory             = this.ModuleDirectory,
-				ModuleType					= this.Type.ToString(),
-				PublicUObjectClassesHeaders = _AllClassesHeaders    .ToList(),
-				PublicUObjectHeaders        = _PublicUObjectHeaders .ToList(),
-				PrivateUObjectHeaders       = _PrivateUObjectHeaders.ToList(),
-				GeneratedCodeVersion = this.Target.Rules.GetGeneratedCodeVersion()
-			};
-
-			return CachedModuleUHTInfo;
+			return UHTModuleInfoCache;
 		}
-	
-		public override void GetAllDependencyModules( Dictionary<string, UEBuildModule> ReferencedModules, List<UEBuildModule> OrderedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies )
+
+		public override void GetAllDependencyModules( CaselessDictionary<ModuleIndexPair> ReferencedModules, bool bIncludeDynamicallyLoaded, bool bForceCircular, bool bOnlyDirectDependencies )
 		{
 			var AllModuleNames = new List<string>();
 			AllModuleNames.AddRange(PrivateDependencyModuleNames);
@@ -2008,15 +1974,15 @@ namespace UnrealBuildTool
 					if (bForceCircular || !bIsCircular)
 					{
 						var Module = Target.GetModuleByName( DependencyName );
-						ReferencedModules[ DependencyName ] = Module;
+						ReferencedModules[ DependencyName ] = null;
 
 						if( !bOnlyDirectDependencies )
 						{ 
 							// Recurse into dependent modules first
-							Module.GetAllDependencyModules(ReferencedModules, OrderedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
+							Module.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
 						}
 
-						OrderedModules.Add( Module );
+						ReferencedModules[ DependencyName ] = new ModuleIndexPair{ Module = Module, Index = ReferencedModules.Where(x => x.Value != null).Count() - 1 };
 					}
 				}
 			}

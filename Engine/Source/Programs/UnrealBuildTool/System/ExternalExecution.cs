@@ -152,7 +152,56 @@ namespace UnrealBuildTool
 	 */
 	public class ExternalExecution
 	{
+		/// <summary>
+		/// Generates a UHTModuleInfo for a particular named module under a directory.
+		/// </summary>
+		/// <returns>
+		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<string> HeaderFilenames, UEBuildTarget Target, string ModuleName, string ModuleDirectory, UEBuildModuleType ModuleType)
+		{
+			var ClassesFolder = Path.Combine(ModuleDirectory, "Classes");
+			var PublicFolder  = Path.Combine(ModuleDirectory, "Public");
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 
+			var AllClassesHeaders     = new List<FileItem>();
+			var PublicUObjectHeaders  = new List<FileItem>();
+			var PrivateUObjectHeaders = new List<FileItem>();
+
+			foreach (var Header in HeaderFilenames)
+			{
+				// Check to see if we know anything about this file.  If we have up-to-date cached information about whether it has
+				// UObjects or not, we can skip doing a test here.
+				var UObjectHeaderFileItem = FileItem.GetExistingItemByPath( Header );
+
+				if (CPPEnvironment.DoesFileContainUObjects(UObjectHeaderFileItem.AbsolutePath))
+				{
+					if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
+					{
+						AllClassesHeaders.Add(UObjectHeaderFileItem);
+					}
+					else if (UObjectHeaderFileItem.AbsolutePath.StartsWith(PublicFolder))
+					{
+						PublicUObjectHeaders.Add(UObjectHeaderFileItem);
+					}
+					else
+					{
+						PrivateUObjectHeaders.Add(UObjectHeaderFileItem);
+					}
+				}
+			}
+
+			var Result = new UHTModuleInfo
+			{
+				ModuleName                  = ModuleName,
+				ModuleDirectory             = ModuleDirectory,
+				ModuleType                  = ModuleType.ToString(),
+				PublicUObjectClassesHeaders = AllClassesHeaders,
+				PublicUObjectHeaders        = PublicUObjectHeaders,
+				PrivateUObjectHeaders       = PrivateUObjectHeaders,
+				GeneratedCodeVersion        = Target.Rules.GetGeneratedCodeVersion()
+			};
+
+			return Result;
+		}
 
 		static ExternalExecution()
 		{

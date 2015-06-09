@@ -1659,10 +1659,10 @@ namespace UnrealBuildTool
                     // If we're generating project files, then go ahead and wipe out the existing UBTMakefile for every target, to make sure that
                     // it gets a full dependency scan next time.
                     // NOTE: This is just a safeguard and doesn't have to be perfect.  We also check for newer project file timestamps in LoadUBTMakefile()
+                    string UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
                     if( ProjectFileGenerator.bGenerateProjectFiles )	// @todo ubtmake: This is only hit when generating IntelliSense for project files.  Probably should be done right inside ProjectFileGenerator.bat
                     {													// @todo ubtmake: Won't catch multi-target cases as GPF always builds one target at a time for Intellisense
                         // Delete the UBTMakefile
-                        var UBTMakefilePath = UnrealBuildTool.GetUBTMakefilePath( TargetDescs );
                         if (File.Exists(UBTMakefilePath))
                         {
                             UEBuildTarget.CleanFile(UBTMakefilePath);
@@ -1684,8 +1684,7 @@ namespace UnrealBuildTool
 
                         // Try to load the UBTMakefile.  It will only be loaded if it has valid content and is not determined to be out of date.    
 						string ReasonNotLoaded;
-                        UBTMakefile = LoadUBTMakefile( TargetDescs, out ReasonNotLoaded );
-
+                        UBTMakefile = LoadUBTMakefile( UBTMakefilePath, out ReasonNotLoaded );
                         if( UBTMakefile == null )
                         { 
                             // If the Makefile couldn't be loaded, then we're not going to be able to continue in "assembler only" mode.  We'll do both
@@ -2271,14 +2270,14 @@ namespace UnrealBuildTool
         /// <summary>
         /// Loads a UBTMakefile from disk
         /// </summary>
-        /// <param name="TargetDescs">List of targets.  Order is not important</param>
+        /// <param name="MakefilePath">Path to the makefile to load</param>
 		/// <param name="ReasonNotLoaded">If the function returns null, this string will contain the reason why</param>
 		/// <returns>The loaded makefile, or null if it failed for some reason.  On failure, the 'ReasonNotLoaded' variable will contain information about why</returns>
-		static UBTMakefile LoadUBTMakefile( List<TargetDescriptor> TargetDescs, out string ReasonNotLoaded )
+		static UBTMakefile LoadUBTMakefile( string MakefilePath, out string ReasonNotLoaded )
 		{
 			// Check the directory timestamp on the project files directory.  If the user has generated project files more
 			// recently than the UBTMakefile, then we need to consider the file to be out of date
-			var UBTMakefileInfo = new FileInfo( GetUBTMakefilePath( TargetDescs ) );
+			var UBTMakefileInfo = new FileInfo( MakefilePath );
 			if( !UBTMakefileInfo.Exists )
 			{
 				// UBTMakefile doesn't even exist, so we won't bother loading it
@@ -2392,7 +2391,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				List<string> BuildCsFilenames = Target.GetAllModuleBuildCsFilenames();
+				IEnumerable<string> BuildCsFilenames = Target.GetAllModuleBuildCsFilenames();
 				foreach (var BuildCsFilename in BuildCsFilenames)
 				{
 					if (BuildCsFilename != null)
@@ -2405,6 +2404,39 @@ namespace UnrealBuildTool
 							ReasonNotLoaded = string.Format("changes to module files");
 							return null;
 						}
+					}
+				}
+			}
+
+			// We do a check to see if any modules' headers have changed which have
+			// acquired or lost UHT types.  If so, which should be rare,
+			// we'll just invalidate the entire makefile and force it to be rebuilt.
+			foreach (var Target in LoadedUBTMakefile.Targets)
+			{
+				// Get all H files in processed modules newer than the makefile itself
+				var HFilesNewerThanMakefile =
+					new HashSet<string>(
+						Target.FlatModuleCsData
+						.SelectMany(x => x.Value.ModuleSourceFolder != null ? Directory.EnumerateFiles(x.Value.ModuleSourceFolder, "*.h", SearchOption.AllDirectories) : Enumerable.Empty<string>())
+						.Where(y => Directory.GetLastWriteTime(y) > UBTMakefileInfo.LastWriteTime)
+						.OrderBy(z => z).Distinct()
+					);
+
+				// Get all H files in all modules processed in the last makefile build
+				var AllUHTHeaders = new HashSet<string>(Target.FlatModuleCsData.Select(x => x.Value).SelectMany(x => x.UHTHeaderNames));
+
+				// Makefile is invalid if:
+				// * There are any newer files which contain no UHT data, but were previously in the makefile
+				// * There are any newer files contain data which needs processing by UHT, but weren't not previously in the makefile
+				foreach (string Filename in HFilesNewerThanMakefile)
+				{
+					bool bContainsUHTData = CPPEnvironment.DoesFileContainUObjects(Filename);
+					bool bWasProcessed    = AllUHTHeaders.Contains(Filename);
+					if (bContainsUHTData != bWasProcessed)
+					{
+						Log.TraceVerbose("{0} {1} contain UHT types and now {2} , ignoring it ({3})", Filename, bWasProcessed ? "used to" : "didn't", bWasProcessed ? "doesn't" : "does", UBTMakefileInfo.FullName);
+						ReasonNotLoaded = string.Format("List of files containing UHT types has changed");
+						return null;
 					}
 				}
 			}

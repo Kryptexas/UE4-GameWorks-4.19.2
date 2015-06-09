@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace Tools.DotNETCommon.CaselessDictionary
 {
@@ -9,6 +10,7 @@ namespace Tools.DotNETCommon.CaselessDictionary
 	/// Equivalent of case insensitive Dictionary<string, T>
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
+	[Serializable]
 	public class CaselessDictionary<T> : Dictionary<string, T>
 	{
 		public CaselessDictionary()
@@ -23,6 +25,11 @@ namespace Tools.DotNETCommon.CaselessDictionary
 
 		public CaselessDictionary(IDictionary<string, T> Dict)
 			: base(Dict, StringComparer.InvariantCultureIgnoreCase)
+		{
+		}
+
+		protected CaselessDictionary(SerializationInfo Info, StreamingContext Context)
+			: base(Info, Context)
 		{
 		}
 	}
