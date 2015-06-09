@@ -84,12 +84,14 @@ void FALAudioDevice::TeardownHardware( void )
 	// Close the hardware device
 	if( &alcCloseDevice )
 	{
-		checkf(HardwareDevice, TEXT("Tearing down invalid OpenAL device! (HardwareDevice should not be null)."));
-		const ALCchar* DeviceName = alcGetString(HardwareDevice, ALC_DEVICE_SPECIFIER);
-		UE_LOG(LogALAudio, Log, TEXT("Closing ALAudio device : %s"), StringCast<TCHAR>(static_cast<const ANSICHAR*>(DeviceName)).Get());
+		if (HardwareDevice)
+		{
+			const ALCchar* DeviceName = alcGetString(HardwareDevice, ALC_DEVICE_SPECIFIER);
+			UE_LOG(LogALAudio, Log, TEXT("Closing ALAudio device : %s"), StringCast<TCHAR>(static_cast<const ANSICHAR*>(DeviceName)).Get());
 
-		alcCloseDevice( HardwareDevice );
-		HardwareDevice = nullptr;
+			alcCloseDevice(HardwareDevice);
+			HardwareDevice = nullptr;
+		}
 	}
 
 }
