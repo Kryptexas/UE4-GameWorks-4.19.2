@@ -33,6 +33,9 @@ protected:
 	virtual void HandleMoveFinished(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 	virtual void Activate() override;
 
+	virtual void Pause() override;
+	virtual void Resume() override;
+
 public:
 	UAITask_MoveTo(const FObjectInitializer& ObjectInitializer);
 

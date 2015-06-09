@@ -11,9 +11,12 @@
 
 #include "Net/UnrealNetwork.h"
 #include "Engine/ActorChannel.h"
+#include "VisualLogger.h"
 
 #include "GameplayTasksComponent.h"
 #include "GameplayTask.h"
 
 DECLARE_STATS_GROUP(TEXT("GameplayTasks"), STATGROUP_GameplayTasks, STATCAT_Advanced);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("TickGameplayTasks"), STAT_TickGameplayTasks, STATGROUP_GameplayTasks, );
+
+PRAGMA_DISABLE_OPTIMIZATION

@@ -107,6 +107,11 @@ struct ENGINE_API FVisualLogStatusCategory
 	int32 UniqueId;
 	TArray<FVisualLogStatusCategory> Children;
 
+	FVisualLogStatusCategory(const FString& InCategory = TEXT(""))
+		: Category(InCategory)
+	{
+	}
+
 	void Add(const FString& Key, const FString& Value);
 	bool GetDesc(int32 Index, FString& Key, FString& Value) const;
 	void AddChild(const FVisualLogStatusCategory& Child);

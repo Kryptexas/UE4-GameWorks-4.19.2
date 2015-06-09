@@ -42,7 +42,10 @@ UAITask_MoveTo* UAITask_MoveTo::AIMoveTo(AAIController* Controller, FVector Targ
 		//MyTask->MoveReq.SetUsePathfinding(bUsePathfinding);
 		//MyTask->MoveRequest.SetNavigationFilter(FilterClass);
 		//MyTask->MoveRequest.SetCanStrafe(bCanStrafe);
+
+		MyTask->RequireResource(UAIResource_Movement::StaticClass());
 	}
+
 	return MyTask;
 }
 
@@ -50,13 +53,20 @@ void UAITask_MoveTo::HandleMoveFinished(FAIRequestID RequestID, EPathFollowingRe
 {
 	if (RequestID == MoveRequestID)
 	{
-		EndTask();
-		OnMoveFinished.Broadcast(Result);
+		if (Result == EPathFollowingResult::Success)
+		{
+			EndTask();
+			OnMoveFinished.Broadcast(Result);
+		}
+		else
+		{
+			Pause();
+		}
 	}
 	else
 	{
 		// @todo report issue to the owner component
-		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTask, Warning, TEXT("%s got movement-finished-notification but RequestID doesn't match. Possible task leak"), *GetName());
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Warning, TEXT("%s got movement-finished-notification but RequestID doesn't match. Possible task leak"), *GetName());
 	}
 }
 
@@ -89,4 +99,19 @@ void UAITask_MoveTo::Activate()
 		checkNoEntry();
 		break;
 	}
+}
+
+void UAITask_MoveTo::Pause()
+{
+	if (OwnerController)
+	{
+		OwnerController->GetPathFollowingComponent()->OnMoveFinished.RemoveAll(this);
+	}
+	Super::Pause();
+}
+
+void UAITask_MoveTo::Resume()
+{
+	Activate();
+	Super::Resume();
 }

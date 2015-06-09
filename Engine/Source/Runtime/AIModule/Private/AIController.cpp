@@ -142,14 +142,19 @@ void AAIController::GrabDebugSnapshot(FVisualLogEntry* Snapshot) const
 		PathFollowingComponent->DescribeSelfToVisLog(Snapshot);
 	}
 
-	if (BrainComponent != NULL)
+	if (BrainComponent != nullptr)
 	{
 		BrainComponent->DescribeSelfToVisLog(Snapshot);
 	}
 
-	if (PerceptionComponent != NULL)
+	if (PerceptionComponent != nullptr)
 	{
 		PerceptionComponent->DescribeSelfToVisLog(Snapshot);
+	}
+
+	if (CachedGameplayTasksComponent != nullptr)
+	{
+		CachedGameplayTasksComponent->DescribeSelfToVisLog(Snapshot);
 	}
 }
 #endif // ENABLE_VISUAL_LOG
@@ -469,6 +474,11 @@ void AAIController::Possess(APawn* InPawn)
 		GTComp->RegisterComponent();
 	}
 	CachedGameplayTasksComponent = GTComp;
+
+	if (GTComp)
+	{
+		REDIRECT_OBJECT_TO_VLOG(GTComp, this);
+	}
 
 	OnPossess(InPawn);
 }

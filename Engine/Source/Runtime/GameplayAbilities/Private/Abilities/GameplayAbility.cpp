@@ -1033,11 +1033,11 @@ void UGameplayAbility::OnTaskInitialized(UGameplayTask& Task)
 	}
 }
 
-void UGameplayAbility::TaskStarted(UGameplayTask& NewTask)
+void UGameplayAbility::OnTaskActivated(UGameplayTask& Task)
 {
-	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *NewTask.GetName());
+	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *Task.GetName());
 
-	ActiveTasks.Add(&NewTask);
+	ActiveTasks.Add(&Task);
 }
 
 void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
@@ -1110,7 +1110,7 @@ void UGameplayAbility::EndAbilityState(FName OptionalStateNameToEnd)
 	}
 }
 
-void UGameplayAbility::TaskEnded(UGameplayTask& Task)
+void UGameplayAbility::OnTaskDeactivated(UGameplayTask& Task)
 {
 	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task.GetName());
 

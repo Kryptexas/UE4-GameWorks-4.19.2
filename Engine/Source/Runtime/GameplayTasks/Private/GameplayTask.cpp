@@ -2,6 +2,7 @@
 
 #include "GameplayTasksPrivatePCH.h"
 #include "GameplayTasksComponent.h"
+#include "GameplayTaskResource.h"
 #include "GameplayTask.h"
 
 UGameplayTask::UGameplayTask(const FObjectInitializer& ObjectInitializer)
@@ -12,6 +13,7 @@ UGameplayTask::UGameplayTask(const FObjectInitializer& ObjectInitializer)
 	bIsSimulating = false;
 	bOwnedByTasksComponent = false;
 	TaskState = EGameplayTaskState::Uninitialized;
+	ResourceOverlapPolicy = ETaskResourceOverlapPolicy::StartOnTop;
 	SetFlags(RF_StrongRefOnFrame);
 }
 
@@ -43,21 +45,16 @@ IGameplayTaskOwnerInterface* UGameplayTask::ConvertToTaskOwner(AActor& OwnerActo
 
 void UGameplayTask::ReadyForActivation()
 {
-	// default case, we instantly activate the task
-	TaskState = EGameplayTaskState::Active;
-
-	if (TaskOwner.IsValid())
+	if (TasksComponent.IsValid())
 	{
-		TaskOwner->TaskStarted(*this);
-
-		// If this task requires ticking, register it with TasksComponent
-		if (bOwnedByTasksComponent == false && TasksComponent.IsValid())
+		if (RequiresPriorityOrResourceManagement() == false)
 		{
-			TasksComponent->TaskStarted(*this);
+			PerformActivation();
 		}
-		// else: it's not supposed to work this way!
-
-		Activate();
+		else
+		{
+			TasksComponent->AddTaskReadyForActivation(*this);
+		}
 	}
 	else
 	{
@@ -128,6 +125,10 @@ AActor* UGameplayTask::GetAvatarActor() const
 
 void UGameplayTask::TaskOwnerEnded()
 {
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s TaskOwnerEnded called, current State: %s")
+		, *GetName(), *GetTaskStateName());
+
 	if (TaskState != EGameplayTaskState::Finished && !IsPendingKill())
 	{
 		OnDestroy(true);
@@ -136,6 +137,10 @@ void UGameplayTask::TaskOwnerEnded()
 
 void UGameplayTask::EndTask()
 {
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s EndTask called, current State: %s")
+		, *GetName(), *GetTaskStateName());
+
 	if (TaskState != EGameplayTaskState::Finished && !IsPendingKill())
 	{
 		OnDestroy(false);
@@ -144,6 +149,10 @@ void UGameplayTask::EndTask()
 
 void UGameplayTask::ExternalConfirm(bool bEndTask)
 {
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s ExternalConfirm called, bEndTask = %s, State : %s")
+		, *GetName(), bEndTask ? TEXT("TRUE") : TEXT("FALSE"), *GetTaskStateName());
+
 	if (bEndTask)
 	{
 		EndTask();
@@ -152,6 +161,10 @@ void UGameplayTask::ExternalConfirm(bool bEndTask)
 
 void UGameplayTask::ExternalCancel()
 {
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s ExternalCancel called, current State: %s")
+		, *GetName(), *GetTaskStateName());
+
 	EndTask();
 }
 
@@ -161,30 +174,165 @@ void UGameplayTask::OnDestroy(bool bOwnerFinished)
 
 	TaskState = EGameplayTaskState::Finished;
 
-	bool bMarkAsPendingKill = true;
-	// If this task required ticking, unregister it with TasksComponent
+	// First of all notify the TaskComponent
 	if (TasksComponent.IsValid())
 	{
-		TasksComponent->TaskEnded(*this);
-		// we need to mark task as pending kill only if there's no component that can 
-		// do that for us, latently
-		bMarkAsPendingKill = false;
+		TasksComponent->OnTaskDeactivated(*this);
 	}
 
-	// Remove ourselves from the owner's task list, if the ability isn't ending
+	// Remove ourselves from the owner's task list, if the owner isn't ending
 	if (bOwnedByTasksComponent == false && bOwnerFinished == false && TaskOwner.IsValid() == true)
 	{
-		TaskOwner->TaskEnded(*this);
+		TaskOwner->OnTaskDeactivated(*this);
 	}
 
-	if (bMarkAsPendingKill)
-	{
-		// this usually means the driven actor and/or the component are already gone
-		MarkPendingKill();
-	}
+	MarkPendingKill();
 }
 
 FString UGameplayTask::GetDebugString() const
 {
 	return FString::Printf(TEXT("Generic %s"), *GetName());
 }
+
+void UGameplayTask::RequireResource(TSubclassOf<UGameplayTaskResource> RequiredResource)
+{
+	check(RequiredResource);
+	const uint8 ResourceID = UGameplayTaskResource::GetResourceID(RequiredResource);
+	RequiredResources.AddID(ResourceID);	
+}
+
+void UGameplayTask::PerformActivation()
+{
+	TaskState = EGameplayTaskState::Active;
+
+	Activate();
+
+	TasksComponent->OnTaskActivated(*this);
+
+	if (bOwnedByTasksComponent == false && TaskOwner.IsValid())
+	{
+		TaskOwner->OnTaskActivated(*this);
+	}
+}
+
+void UGameplayTask::Activate()
+{
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s Activate called, current State: %s")
+		, *GetName(), *GetTaskStateName());
+}
+
+void UGameplayTask::Pause()
+{
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s Pause called, current State: %s")
+		, *GetName(), *GetTaskStateName());
+
+	TaskState = EGameplayTaskState::Paused;
+
+	TasksComponent->OnTaskDeactivated(*this);
+
+	if (bOwnedByTasksComponent == false && TaskOwner.IsValid())
+	{
+		TaskOwner->OnTaskDeactivated(*this);
+	}
+}
+
+void UGameplayTask::Resume()
+{
+	UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Verbose
+		, TEXT("%s Resume called, current State: %s")
+		, *GetName(), *GetTaskStateName());
+
+	TaskState = EGameplayTaskState::Active;
+
+	TasksComponent->OnTaskActivated(*this);
+
+	if (bOwnedByTasksComponent == false && TaskOwner.IsValid())
+	{
+		TaskOwner->OnTaskActivated(*this);
+	}
+}
+
+//----------------------------------------------------------------------//
+// GameplayTasksComponent-related functions
+//----------------------------------------------------------------------//
+void UGameplayTask::ActivateInTaskQueue()
+{
+	switch(TaskState)
+	{
+	case EGameplayTaskState::Uninitialized:
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Error
+			, TEXT("UGameplayTask::ActivateInTaskQueue Task %s passed for activation withouth having InitTask called on it!")
+			, *GetName());
+		break;
+	case EGameplayTaskState::AwaitingActivation:
+		PerformActivation();
+		break;
+	case EGameplayTaskState::Paused:
+		// resume
+		Resume();
+		break;
+	case EGameplayTaskState::Active:
+		// nothing to do here
+		break;
+	case EGameplayTaskState::Finished:
+		// If a task has finished, and it's being revived let's just treat the same as AwaitingActivation
+		PerformActivation();
+		break;
+	default:
+		checkNoEntry(); // looks like unhandled value! Probably a new enum entry has been added
+		break;
+	}
+}
+
+void UGameplayTask::PauseInTaskQueue()
+{
+	switch (TaskState)
+	{
+	case EGameplayTaskState::Uninitialized:
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Error
+			, TEXT("UGameplayTask::PauseInTaskQueue Task %s passed for pausing withouth having InitTask called on it!")
+			, *GetName());
+		break;
+	case EGameplayTaskState::AwaitingActivation:
+		// nothing to do here. Don't change the state to indicate this task has never been run before
+		break;
+	case EGameplayTaskState::Paused:
+		// nothing to do here. Already paused
+		break;
+	case EGameplayTaskState::Active:
+		// pause!
+		Pause();
+		break;
+	case EGameplayTaskState::Finished:
+		// nothing to do here. But sounds odd, so let's log this, just in case
+		UE_VLOG(GetGameplayTasksComponent(), LogGameplayTasks, Log
+			, TEXT("UGameplayTask::PauseInTaskQueue Task %s being pause while already marked as Finished")
+			, *GetName());
+		break;
+	default:
+		checkNoEntry(); // looks like unhandled value! Probably a new enum entry has been added
+		break;
+	}
+}
+
+#if ENABLE_VISUAL_LOG
+//----------------------------------------------------------------------//
+// debug
+//----------------------------------------------------------------------//
+FString UGameplayTask::GenerateDebugDescription() const
+{
+	return RequiresPriorityOrResourceManagement() == false ? GetName()
+		: FString::Printf(TEXT("%s: P:%d %s")
+			, *GetName(), int32(Priority), *RequiredResources.GetDebugDescription());
+}
+
+FString UGameplayTask::GetTaskStateName() const
+{
+	static const UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayTaskState"));
+	check(Enum);
+	return Enum->GetEnumName(int32(TaskState));
+}
+
+#endif // ENABLE_VISUAL_LOG

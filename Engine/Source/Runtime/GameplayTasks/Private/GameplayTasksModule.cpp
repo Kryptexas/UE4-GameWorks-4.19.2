@@ -22,5 +22,5 @@ public:
 //////////////////////////////////////////////////////////////////////////
 
 IMPLEMENT_MODULE(FGameplayTasksModule, GameplayTasks);
-DEFINE_LOG_CATEGORY(LogGameplayTask);
+DEFINE_LOG_CATEGORY(LogGameplayTasks);
 DEFINE_STAT(STAT_TickGameplayTasks);

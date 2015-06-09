@@ -255,10 +255,10 @@ public:
 	/** setup additional properties if given task is an AbilityTask */
 	virtual void OnTaskInitialized(UGameplayTask& Task) override;
 	/** Called by an ability task, originating from this ability, when it starts */
-	virtual void TaskStarted(UGameplayTask& NewTask) override;
+	virtual void OnTaskActivated(UGameplayTask& Task) override;
 
 	/** Called by an ability task, originating from this ability, when it ends */
-	virtual void TaskEnded(UGameplayTask& Task) override;
+	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
 
 	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override;
 	virtual AActor* GetOwnerActor() const override;

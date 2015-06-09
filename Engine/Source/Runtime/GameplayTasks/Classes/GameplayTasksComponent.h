@@ -3,11 +3,30 @@
 #pragma once
 
 #include "GameplayTaskOwnerInterface.h"
+#include "GameplayTaskTypes.h"
+#include "GameplayTask.h"
 #include "GameplayTasksComponent.generated.h"
 
 class FOutBunch;
 class UActorChannel;
-class UGameplayTask;
+
+enum class EGameplayTaskEvent
+{
+	Add,
+	Remove,
+};
+
+struct FGameplayTaskEventData
+{
+	EGameplayTaskEvent Event;
+	UGameplayTask& RelatedTask;
+
+	FGameplayTaskEventData(EGameplayTaskEvent InEvent, UGameplayTask& InRelatedTask)
+		: Event(InEvent), RelatedTask(InRelatedTask)
+	{
+
+	}
+};
 
 /**
 *	The core ActorComponent for interfacing with the GameplayAbilities System
@@ -22,14 +41,23 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_SimulatedTasks)
 	TArray<UGameplayTask*> SimulatedTasks;
 
-	/** tasks that have finished but have not been destroyed yet. We destroy tasks in a latent 
-	 *	manner mostly to be able to safely send out broadcast notifications after the task has 
-	 *	been marked as "finished" */
 	UPROPERTY()
-	TArray<UGameplayTask*> FinishedTasks;
+	TArray<UGameplayTask*> TaskPriorityQueue;
+
+	/** Transient array of events whose main role is to avoid
+	 *	long chain of recurrent calls if an activated/paused/removed task 
+	 *	wants to push/pause/kill other tasks.
+	 *	Note: this TaskEvents is assumed to be used in a single thread */
+	TArray<FGameplayTaskEventData> TaskEvents;
 
 	/** Array of currently active UAbilityTasks that require ticking */
-	TArray<TWeakObjectPtr<UGameplayTask> >	TickingTasks;
+	TArray<TWeakObjectPtr<UGameplayTask> > TickingTasks;
+
+	/** Indicates what's the highest priority among currently running tasks */
+	uint8 TopActivePriority;
+
+	/** Resources used by currently active tasks */
+	FGameplayResourceSet CurrentlyUsedResources;
 
 public:
 	UGameplayTasksComponent(const FObjectInitializer& ObjectInitializer);
@@ -49,12 +77,35 @@ public:
 	
 	virtual UGameplayTasksComponent* GetGameplayTasksComponent() override { return this; }
 	/** Adds a task (most often an UAbilityTask) to the list of tasks to be ticked */
-	virtual void TaskStarted(UGameplayTask& NewTask) override;
+	virtual void OnTaskActivated(UGameplayTask& Task) override;
 	/** Removes a task (most often an UAbilityTask) task from the list of tasks to be ticked */
-	virtual void TaskEnded(UGameplayTask& Task) override;
+	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
+
 	virtual AActor* GetOwnerActor() const override { return GetOwner(); }
 	virtual AActor* GetAvatarActor() const override;
+		
+	/** processes the task and figures out if it should get triggered instantly or wait
+	 *	based on task's RequiredResources, Priority and ResourceOverlapPolicy */
+	void AddTaskReadyForActivation(UGameplayTask& NewTask);
+
+	void RemoveResourceConsumingTask(UGameplayTask& Task);
+
+	FORCEINLINE FGameplayResourceSet GetCurrentlyUsedResources() const { return CurrentlyUsedResources; }
+
+#if ENABLE_VISUAL_LOG
+	static FString GetTaskStateName(EGameplayTaskState Value);
+	void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
+#endif // ENABLE_VISUAL_LOG
 
 protected:
 	void RequestTicking();
+	void ProcessTaskEvents();
+	void UpdateTaskActivationFromIndex(int32 StartingIndex, FGameplayResourceSet ResourcesUsedByActiveUpToIndex, FGameplayResourceSet ResourcesRequiredUpToIndex);
+
+private:
+	/** called when a task gets ended with an external call, meaning not coming from UGameplayTasksComponent mechanics */
+	void OnTaskEnded(UGameplayTask& Task);
+
+	void AddTaskToPriorityQueue(UGameplayTask& NewTask);
+	void RemoveTaskFromPriorityQueue(UGameplayTask& Task);
 };
