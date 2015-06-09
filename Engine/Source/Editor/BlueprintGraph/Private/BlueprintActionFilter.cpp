@@ -8,6 +8,7 @@
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintGraphModule.h"	// for GetExtendedActionMenuFilters
 #include "EdGraphSchema_K2.h"		// for FBlueprintMetadata
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
@@ -1890,6 +1891,20 @@ bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAct
 		{
 			bIsFiltered = true;
 			break;
+		}
+	}
+
+	if (!bIsFiltered)
+	{
+		FBlueprintGraphModule& BluprintGraphModule = FModuleManager::LoadModuleChecked<FBlueprintGraphModule>("BlueprintGraph");
+
+		for (auto& ExtraRejectionTest : BluprintGraphModule.GetExtendedActionMenuFilters())
+		{
+			if (ExtraRejectionTest.Execute(FilterRef, BlueprintAction))
+			{
+				bIsFiltered = true;
+				break;
+			}
 		}
 	}
 
