@@ -142,6 +142,21 @@ void UWidgetBlueprintLibrary::DrawLine(UPARAM(ref) FPaintContext& Context, FVect
 		bAntiAlias);
 }
 
+void UWidgetBlueprintLibrary::DrawLines(UPARAM(ref) FPaintContext& Context, const TArray<FVector2D>& Points, float Thickness, FLinearColor Tint, bool bAntiAlias)
+{
+	Context.MaxLayer++;
+
+	FSlateDrawElement::MakeLines(
+		Context.OutDrawElements,
+		Context.MaxLayer,
+		Context.AllottedGeometry.ToPaintGeometry(),
+		Points,
+		Context.MyClippingRect,
+		ESlateDrawEffect::None,
+		Tint,
+		bAntiAlias);
+}
+
 void UWidgetBlueprintLibrary::DrawText(UPARAM(ref) FPaintContext& Context, const FString& InString, FVector2D Position, FLinearColor Tint)
 {
 	Context.MaxLayer++;
@@ -158,6 +173,27 @@ void UWidgetBlueprintLibrary::DrawText(UPARAM(ref) FPaintContext& Context, const
 		Context.MyClippingRect,
 		ESlateDrawEffect::None,
 		Tint);
+}
+
+void UWidgetBlueprintLibrary::DrawTextFormatted(UPARAM(ref) FPaintContext& Context, const FText& Text, FVector2D Position, UFont* Font, int32 FontSize, FName FontTypeFace, FLinearColor Tint)
+{
+	if ( Font )
+	{
+		Context.MaxLayer++;
+
+		//TODO UMG Create a font asset usable as a UFont or as a slate font asset.
+		FSlateFontInfo FontInfo(Font, FontSize, FontTypeFace);
+
+		FSlateDrawElement::MakeText(
+			Context.OutDrawElements,
+			Context.MaxLayer,
+			Context.AllottedGeometry.ToPaintGeometry(),
+			Text,
+			FontInfo,
+			Context.MyClippingRect,
+			ESlateDrawEffect::None,
+			Tint);
+	}
 }
 
 FEventReply UWidgetBlueprintLibrary::Handled()
