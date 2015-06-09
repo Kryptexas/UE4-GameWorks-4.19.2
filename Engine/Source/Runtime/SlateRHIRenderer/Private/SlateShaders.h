@@ -41,6 +41,8 @@ public:
 
 	FSlateElementVS() {}
 
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment);
+
 	/** 
 	 * Sets the view projection parameter
 	 *

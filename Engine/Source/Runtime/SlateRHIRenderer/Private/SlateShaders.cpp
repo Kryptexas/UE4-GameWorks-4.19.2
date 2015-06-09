@@ -41,19 +41,20 @@ TGlobalResource<FSlateVertexDeclaration> GSlateVertexDeclaration;
 /************************************************************************/
 void FSlateVertexDeclaration::InitRHI()
 {
-	FVertexDeclarationElementList Elements;
-	uint32 Stride = sizeof(FSlateVertex);
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,TexCoords),VET_Float4,0,Stride));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Position),VET_Short2,1,Stride));
-	bool bUseFloat16 =
+	const bool bUseFloat16 =
 #if SLATE_USE_FLOAT16
 		true;
 #else
 		false;
 #endif
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipRect),bUseFloat16 ? VET_Half2 : VET_Float2,2,Stride));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,ClipRect)+STRUCT_OFFSET(FSlateRotatedClipRectType,ExtentX),bUseFloat16 ? VET_Half4 : VET_Float4,3,Stride));
-	Elements.Add(FVertexElement(0,STRUCT_OFFSET(FSlateVertex,Color),VET_Color,4,Stride));
+
+	FVertexDeclarationElementList Elements;
+	uint32 Stride = sizeof(FSlateVertex);
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, TexCoords), VET_Float4, 0, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, Position), bUseFloat16 ? VET_Short2 : VET_Float2, 1, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, ClipRect) + STRUCT_OFFSET(FSlateRotatedClipRectType, TopLeft), bUseFloat16 ? VET_Half2 : VET_Float2, 2, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, ClipRect) + STRUCT_OFFSET(FSlateRotatedClipRectType, ExtentX), bUseFloat16 ? VET_Half4 : VET_Float4, 3, Stride));
+	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, Color), VET_Color, 4, Stride));
 
 	VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 }
@@ -94,6 +95,17 @@ void FSlateElementVS::SetShaderParameters(FRHICommandList& RHICmdList, const FVe
 void FSlateElementVS::SetVerticalAxisMultiplier(FRHICommandList& RHICmdList, float InMultiplier )
 {
 	SetShaderValue(RHICmdList, GetVertexShader(), SwitchVerticalAxisMultiplier, InMultiplier );
+}
+
+void FSlateElementVS::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+{
+	OutEnvironment.SetDefine(TEXT("SLATE_USE_FLOAT16"),
+#if SLATE_USE_FLOAT16
+		(uint32)1
+#else
+		(uint32)0
+#endif
+		);
 }
 
 /** Serializes the shader data */

@@ -8,7 +8,7 @@ enum class EPopupMethod : uint8;
 
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
-#define SLATE_USE_FLOAT16 !PLATFORM_USES_ES2
+#define SLATE_USE_FLOAT16 0
 
 #if SLATE_USE_32BIT_INDICES
 typedef uint32 SlateIndex;
@@ -167,10 +167,18 @@ struct FSlateVertex
 {
 	/** Texture coordinates.  The first 2 are in xy and the 2nd are in zw */
 	float TexCoords[4]; 
+
+#if SLATE_USE_FLOAT16
 	/** Position of the vertex in window space */
 	int16 Position[2];
+#else
+	/** Position of the vertex in window space */
+	float Position[2];
+#endif
+
 	/** clip center/extents in render window space (window space with render transforms applied) */
 	FSlateRotatedClipRectType ClipRect;
+
 	/** Vertex color */
 	FColor Color;
 	

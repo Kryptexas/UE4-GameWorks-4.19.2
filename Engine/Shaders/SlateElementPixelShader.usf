@@ -27,6 +27,7 @@
 /** Enable to debug clipping issues */
 #define DEBUG_CLIPPING 0
 
+
 /** Display gamma x:gamma curve adjustment, y:inverse gamma (1/GEngine->DisplayGamma) */
 float2 GammaValues;
 /** Per element params */
@@ -53,7 +54,6 @@ float3 GammaCorrect(float3 InColor)
 
 	return CorrectedColor;
 }
-
 
 
 struct VertexOut

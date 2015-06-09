@@ -82,6 +82,7 @@ FSlateVertex::FSlateVertex(const FSlateRenderTransform& RenderTransform, const F
 	TexCoords[3] = InTexCoord2.Y;
 
 	const FVector2D WindowPosition = TransformPoint(RenderTransform, InLocalPosition);
+
 	// Pixel snapping here.
 	Position[0] = FMath::RoundToInt(WindowPosition.X);
 	Position[1] = FMath::RoundToInt(WindowPosition.Y);
@@ -97,6 +98,7 @@ FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const 
 	TexCoords[3] = 1.0f;
 
 	const FVector2D WindowPosition = TransformPoint(RenderTransform, InLocalPosition);
+
 	// Pixel snapping here.
 	Position[0] = FMath::RoundToInt(WindowPosition.X);
 	Position[1] = FMath::RoundToInt(WindowPosition.Y);
