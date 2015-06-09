@@ -4,6 +4,11 @@
 
 #include "AI/AISystemBase.h"
 
+namespace EAssetTypeCategories
+{
+	enum Type;
+}
+
 /**
  * The public interface to this module
  */
@@ -32,5 +37,9 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "AIModule" );
 	}
+
+#if WITH_EDITOR
+	virtual EAssetTypeCategories::Type GetAIAssetCategoryBit() const = 0;
+#endif // WITH_EDITOR
 };
 
