@@ -93,6 +93,30 @@ namespace AutomationTool
             }
         }
 
+		public static void Robust_CopyFile(string InputFileName, string OutputFileName)
+		{
+            if (OutputFileName.StartsWith("/Volumes/"))
+            {
+                int Retry = 0;
+                int NumRetries = 60;
+                bool bCopied = false;
+                while (!bCopied && Retry < NumRetries)
+                {
+                    if (Retry > 0)
+                    {
+                        CommandUtils.Log("*** Mac temp storage retry {0}", OutputFileName);
+                        System.Threading.Thread.Sleep(1000);
+                    }
+                    bCopied = CommandUtils.CopyFile_NoExceptions(InputFileName, OutputFileName, true);
+                    Retry++;
+                }
+            }
+            else
+            {
+                CommandUtils.CopyFile(InputFileName, OutputFileName);
+            }
+		}
+
         public static void Robust_FileExists_NoExceptions(string Filename, string Message)
         {
             Robust_FileExists_NoExceptions(false, Filename, Message);
