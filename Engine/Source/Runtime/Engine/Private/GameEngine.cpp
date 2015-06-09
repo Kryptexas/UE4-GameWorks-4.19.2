@@ -297,7 +297,14 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	// Do not set fullscreen mode here, since it doesn't take 
 	// HMDDevice into account. The window mode will be set properly later
 	// from SwitchGameWindowToUseGameViewport() method (see ResizeWindow call).
-	Window->SetWindowMode(EWindowMode::Windowed);
+	if (WindowMode == EWindowMode::Fullscreen)
+	{
+		Window->SetWindowMode(EWindowMode::WindowedFullscreen);
+	}
+	else
+	{
+		Window->SetWindowMode(WindowMode);
+	}
 
 	Window->ShowWindow();
 
