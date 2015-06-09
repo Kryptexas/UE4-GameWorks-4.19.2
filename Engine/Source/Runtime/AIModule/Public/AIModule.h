@@ -3,11 +3,9 @@
 #pragma once
 
 #include "AI/AISystemBase.h"
-
-namespace EAssetTypeCategories
-{
-	enum Type;
-}
+#if WITH_EDITOR
+#include "Developer/AssetTools/Public/IAssetTools.h"
+#endif // WITH_EDITOR
 
 /**
  * The public interface to this module
