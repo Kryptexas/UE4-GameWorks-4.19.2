@@ -13,6 +13,8 @@ namespace TextFilterTests
 		{
 			BasicStrings.Add(TEXT("Wooble"));
 			BasicStrings.Add(TEXT("Flibble"));
+			BasicStrings.Add(TEXT("Type'/Path/To/Asset.Asset'"));
+			BasicStrings.Add(TEXT("Other'/Path/To/Asset.Asset'FollowingText"));
 			BasicStrings.Add(TEXT("Funky<String>"));
 
 			KeyValuePairs.Add("StringKey", TEXT("Test"));
@@ -147,6 +149,8 @@ namespace TextFilterTests
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 OR Flibble"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 AND Flibble"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble && !Flibble"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("Type'/Path/To/Asset.Asset'"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("Other'/Path/To/Asset.Asset'FollowingText"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("\"Funky<String>\""), true);
 
 		return bResult;
