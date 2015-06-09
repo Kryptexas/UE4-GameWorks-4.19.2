@@ -328,7 +328,7 @@ int32 FUniformMeshConverter::Convert(
 	PrimitiveSceneInfo->Proxy->GetDynamicMeshElements(ViewsArray, *(View.Family), 0x1, Renderer.MeshCollector);
 	View.bRenderFirstInstanceOnly = false;
 
-	Renderer.MeshCollector.WaitForTasks();
+	Renderer.MeshCollector.ProcessTasks();
 
 	int32 NumTriangles = 0;
 

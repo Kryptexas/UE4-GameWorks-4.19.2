@@ -990,7 +990,7 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
     
 		    FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
 
-			Renderer.MeshCollector.WaitForTasks();
+			Renderer.MeshCollector.ProcessTasks();
 	    }
     }
 }

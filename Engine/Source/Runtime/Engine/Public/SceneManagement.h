@@ -1332,7 +1332,8 @@ public:
 	 */
 	inline FMeshBatch& AllocateMesh()
 	{
-		return *(new (MeshBatchStorage) FMeshBatch());
+		const int32 Index = MeshBatchStorage.Add(1);
+		return MeshBatchStorage[Index];
 	}
 
 	/** 
@@ -1360,12 +1361,12 @@ public:
 		return bUseAsyncTasks;
 	}
 
-	FORCEINLINE void AddTask(const FGraphEventRef& Task)
+	FORCEINLINE void AddTask(const TFunction<void()>& Task)
 	{
-		TasksToWaitFor.Add(Task);
+		ParallelTasks.Add(new (FMemStack::Get()) TFunction<void()>(Task));
 	}
 
-	ENGINE_API void WaitForTasks();
+	ENGINE_API void ProcessTasks();
 
 private:
 
@@ -1373,7 +1374,7 @@ private:
 
 	~FMeshElementCollector()
 	{
-		check(!TasksToWaitFor.Num()); // We should have blocked on this already
+		check(!ParallelTasks.Num()); // We should have blocked on this already
 		for (int32 ProxyIndex = 0; ProxyIndex < TemporaryProxies.Num(); ProxyIndex++)
 		{
 			delete TemporaryProxies[ProxyIndex];
@@ -1446,7 +1447,7 @@ private:
 	const bool bUseAsyncTasks;
 
 	/** Tasks to wait for at the end of gathering dynamic mesh elements. */
-	FGraphEventArray TasksToWaitFor;
+	TArray<TFunction<void()>*, SceneRenderingAllocator> ParallelTasks;
 
 
 	friend class FSceneRenderer;

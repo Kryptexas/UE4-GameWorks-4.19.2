@@ -176,6 +176,7 @@ FMeshBatchAndRelevance::FMeshBatchAndRelevance(const FMeshBatch& InMesh, const F
 	Mesh(&InMesh),
 	PrimitiveSceneProxy(InPrimitiveSceneProxy)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FMeshBatchAndRelevance);
 	EBlendMode BlendMode = InMesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode();
 	bHasOpaqueOrMaskedMaterial = !IsTranslucentBlendMode(BlendMode);
 	bRenderInMainPass = PrimitiveSceneProxy->ShouldRenderInMainPass();
@@ -194,16 +195,24 @@ FMeshElementCollector::FMeshElementCollector() :
 }
 
 
-void FMeshElementCollector::WaitForTasks()
+void FMeshElementCollector::ProcessTasks()
 {
 	check(IsInRenderingThread());
-	check(!TasksToWaitFor.Num() || bUseAsyncTasks);
+	check(!ParallelTasks.Num() || bUseAsyncTasks);
 
-	if (TasksToWaitFor.Num())
+	if (ParallelTasks.Num())
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FMeshElementCollector_WaitForTasks);
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(TasksToWaitFor, ENamedThreads::RenderThread_Local);
-		TasksToWaitFor.Empty();
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FMeshElementCollector_ProcessTasks);
+		TArray<TFunction<void()>*, SceneRenderingAllocator>& LocalParallelTasks(ParallelTasks);
+		ParallelFor(ParallelTasks.Num(), 
+			[&LocalParallelTasks](int32 Index)
+			{
+				TFunction<void()>* Func = LocalParallelTasks[Index];
+				(*Func)();
+				Func->~TFunction<void()>();
+			}
+			);
+		ParallelTasks.Empty();
 	}
 }
 

@@ -1000,9 +1000,10 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 			if ( Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()) )
 			{
 				// Sort the particles if needed.
-				FParticleOrder* ParticleOrder = NULL;
+				bool bSort = false;
 				if (SourceData->SortMode != PSORTMODE_None)
 				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_GetParticleOrderData);
 					// If material is using unlit translucency and the blend mode is translucent then we need to sort (back to front)
 					const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
 
@@ -1011,107 +1012,60 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 						((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
 						)
 					{
-						ParticleOrder = GParticleOrderPool.GetParticleOrderData(ParticleCount);
+						bSort = true;
 					}
 				}
-
-				if (Collector.ShouldUseTasks())
 				{
-					class FHandleParticleSortAndFill
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_PerParticleWorkOrTasks);
+					if (Collector.ShouldUseTasks())
 					{
-						const FDynamicSpriteEmitterData* Target;
-						const FSceneView* View;
-						FParticleOrder* ParticleOrder;
-						FMatrix LocalToWorld;
-						FGlobalDynamicVertexBuffer::FAllocation Allocation;
-						FGlobalDynamicVertexBuffer::FAllocation DynamicParameterAllocation;
-						bool bInstanced;
-					public:
-
-						FHandleParticleSortAndFill(						
-							const FDynamicSpriteEmitterData* InTarget,
-							const FSceneView* InView,
-							FParticleOrder* InParticleOrder,
-							const FMatrix& LocalToWorld,
-							const FGlobalDynamicVertexBuffer::FAllocation& InAllocation,
-							const FGlobalDynamicVertexBuffer::FAllocation& InDynamicParameterAllocation,
-							bool bInInstanced)
-							: Target(InTarget)
-							, View(InView)
-							, ParticleOrder(InParticleOrder)
-							, LocalToWorld(LocalToWorld)
-							, Allocation(InAllocation)
-							, DynamicParameterAllocation(InDynamicParameterAllocation)
-							, bInstanced(bInInstanced)
-						{
-						}
-
-						FORCEINLINE TStatId GetStatId() const
-						{
-							RETURN_QUICK_DECLARE_CYCLE_STAT(FHandleParticleSortAndFill, STATGROUP_TaskGraphTasks);
-						}
-
-						static FORCEINLINE ENamedThreads::Type GetDesiredThread()
-						{
-							return ENamedThreads::AnyThread;
-						}
-
-						static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
-
-						void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-						{
-							const FDynamicSpriteEmitterReplayDataBase* SourceData = Target->GetSourceData();
-							if (ParticleOrder)
+						Collector.AddTask(
+							[this, SourceData, View, Proxy, Allocation, DynamicParameterAllocation, bInstanced, bSort, ParticleCount]()
 							{
-								Target->SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
-									SourceData->ParticleData, SourceData->ParticleStride, SourceData->ParticleIndices,
-									View, LocalToWorld, ParticleOrder);
+								QUICK_SCOPE_CYCLE_COUNTER(STAT_FDynamicSpriteEmitterData_GetDynamicMeshElementsEmitter_Task);
+								FMemMark Mark(FMemStack::Get());
+								FParticleOrder* ParticleOrder = NULL;
+								if (bSort)
+								{
+									ParticleOrder = (FParticleOrder*)FMemStack::Get().Alloc(sizeof(FParticleOrder)* ParticleCount, ALIGNOF(FParticleOrder));
+									SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
+										SourceData->ParticleData, SourceData->ParticleStride, SourceData->ParticleIndices,
+										View, Proxy->GetLocalToWorld(), ParticleOrder);
+								}
+								// Fill vertex buffers.
+								if(bInstanced)
+								{
+									GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+								}
+								else
+								{
+									GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+								}
 							}
-							// Fill vertex buffers.
-							if(bInstanced)
-							{
-								Target->GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, LocalToWorld);
-							}
-							else
-							{
-								Target->GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, LocalToWorld);
-							}
-						}
-					};
-
-					check(IsInRenderingThread());
-
-					Collector.AddTask(
-						TGraphTask<FHandleParticleSortAndFill>::CreateTask(nullptr, ENamedThreads::RenderThread).ConstructAndDispatchWhenReady(
-							this,
-							View,
-							ParticleOrder,
-							Proxy->GetLocalToWorld(),
-							Allocation,
-							DynamicParameterAllocation,
-							bInstanced
-						)
-					);
-
-				}
-				else
-				{
-					if (ParticleOrder)
-					{
-						SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
-							SourceData->ParticleData, SourceData->ParticleStride, SourceData->ParticleIndices,
-							View, Proxy->GetLocalToWorld(), ParticleOrder);
-					}
-					// Fill vertex buffers.
-					if(bInstanced)
-					{
-						GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+						);
 					}
 					else
 					{
-						GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+						FParticleOrder* ParticleOrder = NULL;
+						if (bSort)
+						{
+							ParticleOrder = GParticleOrderPool.GetParticleOrderData(ParticleCount);
+							SortSpriteParticles(SourceData->SortMode, SourceData->bUseLocalSpace, SourceData->ActiveParticleCount, 
+								SourceData->ParticleData, SourceData->ParticleStride, SourceData->ParticleIndices,
+								View, Proxy->GetLocalToWorld(), ParticleOrder);
+						}
+						// Fill vertex buffers.
+						if(bInstanced)
+						{
+							GetVertexAndIndexData(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+						}
+						else
+						{
+							GetVertexAndIndexDataNonInstanced(Allocation.Buffer, DynamicParameterAllocation.Buffer, NULL, ParticleOrder, View->ViewMatrices.ViewOrigin, Proxy->GetLocalToWorld());
+						}
 					}
 				}
+
 
 				// Create per-view uniform buffer.
 				FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
@@ -1135,7 +1089,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 				// Set the sprite uniform buffer for this view.
 				SpriteVertexFactory->SetSpriteUniformBuffer( CollectorResources.UniformBuffer );
-				SpriteVertexFactory->SetInstanceBuffer( Allocation.VertexBuffer, Allocation.VertexOffset, GetDynamicVertexStride(FeatureLevel), bInstanced );
+				SpriteVertexFactory->SetInstanceBuffer( Allocation.VertexBuffer, Allocation.VertexOffset, VertexSize, bInstanced );
 				SpriteVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset, GetDynamicParameterVertexStride(), bInstanced );
 
 				// Construct the mesh element to render.
@@ -1479,7 +1433,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			FDynamicMeshEmitterCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicMeshEmitterCollectorResources>();
 			CollectorResources.VertexFactory.SetParticleFactoryType(PVFT_Mesh);
 			CollectorResources.VertexFactory.SetFeatureLevel(FeatureLevel);
-			CollectorResources.VertexFactory.SetStrides(GetDynamicVertexStride(FeatureLevel), GetDynamicParameterVertexStride());
+			CollectorResources.VertexFactory.SetStrides(InstanceVertexStride, GetDynamicParameterVertexStride());
 			CollectorResources.VertexFactory.InitResource();
 			SetupVertexFactory(&CollectorResources.VertexFactory, StaticMesh->RenderData->LODResources[0]);
 
@@ -1502,10 +1456,22 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				if(Allocation.IsValid() && (!bUsesDynamicParameter || DynamicParameterAllocation.IsValid()))
 				{
 					// Fill instance buffer.
-					GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, Proxy, View);
+					if (Collector.ShouldUseTasks())
+					{
+						Collector.AddTask(
+							[this, View, Proxy, Allocation, DynamicParameterAllocation]()
+							{
+								GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, Proxy, View);
+							}
+						);
+					}
+					else
+					{
+						GetInstanceData(Allocation.Buffer, DynamicParameterAllocation.Buffer, Proxy, View);
+					}
 				}
 
-				MeshVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, GetDynamicVertexStride(FeatureLevel));
+				MeshVertexFactory->SetInstanceBuffer(Allocation.VertexBuffer, Allocation.VertexOffset, InstanceVertexStride);
 				MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterAllocation.VertexBuffer, DynamicParameterAllocation.VertexOffset , GetDynamicParameterVertexStride());
 			}
 			else
@@ -1521,7 +1487,19 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 				}
 
 				// Fill instance buffer.
-				GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
+				if (Collector.ShouldUseTasks())
+				{
+					Collector.AddTask(
+						[this, View, Proxy, InstanceVerticesCPU]()
+						{
+							GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
+						}
+					);
+				}
+				else
+				{
+					GetInstanceData((void*)InstanceVerticesCPU->InstanceDataAllocationsCPU.GetData(), (void*)InstanceVerticesCPU->DynamicParameterDataAllocationsCPU.GetData(), Proxy, View);
+				}
 			}
 
 			Proxy->UpdateWorldSpacePrimitiveUniformBuffer();

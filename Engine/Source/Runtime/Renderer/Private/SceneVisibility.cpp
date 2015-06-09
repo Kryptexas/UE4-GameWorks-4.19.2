@@ -1273,7 +1273,7 @@ void FSceneRenderer::GatherDynamicMeshElements(
 			}
 		}
 	}
-	MeshCollector.WaitForTasks();
+	MeshCollector.ProcessTasks();
 }
 
 static void MarkAllPrimitivesForReflectionProxyUpdate(FScene* Scene)
