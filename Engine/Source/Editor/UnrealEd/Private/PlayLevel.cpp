@@ -1186,22 +1186,20 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 
 	FString GameNameOrProjectFile;
-	FString AdditionalParameters(TEXT(""));
 	if (FPaths::IsProjectFilePathSet())
 	{
 		GameNameOrProjectFile = FString::Printf(TEXT("\"%s\""), *FPaths::GetProjectFilePath());
-
-		//@todo.Rocket: Add shipping support
-		bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-
-		if (bRunningDebug)
-		{
-			AdditionalParameters = TEXT(" -debug");
-		}
 	}
 	else
 	{
 		GameNameOrProjectFile = FApp::GetGameName();
+	}
+
+	FString AdditionalParameters(TEXT(""));
+	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	if (bRunningDebug)
+	{
+		AdditionalParameters += TEXT(" -debug");
 	}
 
 	// apply additional settings
@@ -1793,6 +1791,12 @@ void UEditorEngine::PlayForMovieCapture()
 	if ( FRocketSupport::IsRocket() )
 	{
 		Params += TEXT(" -rocket");
+	}
+
+	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	if (bRunningDebug)
+	{
+		Params += TEXT(" -debug");
 	}
 
 	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, NULL, 0, NULL, NULL);
