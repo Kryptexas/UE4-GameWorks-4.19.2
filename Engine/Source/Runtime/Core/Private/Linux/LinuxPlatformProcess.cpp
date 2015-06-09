@@ -8,6 +8,7 @@
 #include <sys/resource.h>
 #include <sys/ioctl.h> // ioctl
 #include <asm/ioctls.h> // FIONREAD
+#include "LinuxApplication.h" // FLinuxApplication::IsForeground()
 
 void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -953,8 +954,8 @@ bool FLinuxPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 
 bool FLinuxPlatformProcess::IsThisApplicationForeground()
 {
-	STUBBED("FLinuxPlatformProcess::IsThisApplicationForeground");
-	return true;
+	extern FLinuxApplication* LinuxApplication;
+	return (LinuxApplication != nullptr) ? LinuxApplication->IsForeground() : true;
 }
 
 bool FLinuxPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )

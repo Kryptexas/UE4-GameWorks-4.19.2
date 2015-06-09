@@ -79,7 +79,7 @@ FLinuxApplication::FLinuxApplication()
 	bAllowedToDeferMessageProcessing = true;
 	MouseCaptureWindow = NULL;
 	ControllerStates = new SDLControllerState[SDL_NumJoysticks()];
-	memset( ControllerStates, 0, sizeof(SDLControllerState) * SDL_NumJoysticks() );
+	FMemory::Memset(ControllerStates, 0, sizeof(SDLControllerState) * SDL_NumJoysticks());
 
 	fMouseWheelScrollAccel = 1.0f;
 	if (GConfig)
