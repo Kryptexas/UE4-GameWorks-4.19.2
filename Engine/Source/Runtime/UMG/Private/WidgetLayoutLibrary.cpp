@@ -35,6 +35,13 @@ bool UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(APlayerControlle
 			// Remove the resolution quality scale.
 			ScreenPosition = PixelLocation / QualityScale;
 
+			// Round the pixel projected value to reduce jittering due to layout rounding,
+			// I do this before I remove scaling, because scaling is going to be applied later
+			// in the opposite direction, so as long as we round, before inverse scale, scale should
+			// result in more or less the same value, especially after slate does layout rounding.
+			ScreenPosition.X = FMath::RoundToInt(ScreenPosition.X);
+			ScreenPosition.Y = FMath::RoundToInt(ScreenPosition.Y);
+
 			// Get the application / DPI scale
 			const float Scale = UWidgetLayoutLibrary::GetViewportScale(PlayerController);
 
