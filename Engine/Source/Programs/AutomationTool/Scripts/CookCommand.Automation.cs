@@ -135,6 +135,10 @@ public partial class Project : CommandUtils
                 {
                     CommandletParams += " -unversioned";
                 }
+				if (Params.FastCook)
+				{
+					CommandletParams += " -FastCook";
+				}
                 if (Params.UseDebugParamForEditorExe)
                 {
                     CommandletParams += " -debug";
@@ -214,11 +218,18 @@ public partial class Project : CommandUtils
             }
 			catch (Exception Ex)
 			{
-				// Delete cooked data (if any) as it may be incomplete / corrupted.
-				Log("Cook failed. Deleting cooked data.");
-				CleanupCookedData(PlatformsToCook.ToList(), Params);
-				AutomationTool.ErrorReporter.Error("Cook failed.", (int)AutomationTool.ErrorCodes.Error_UnknownCookFailure);
-				throw Ex;
+				if (Params.IgnoreCookErrors)
+				{
+					LogWarning("Ignoring cook failure.");
+				}
+				else
+				{
+					// Delete cooked data (if any) as it may be incomplete / corrupted.
+					Log("Cook failed. Deleting cooked data.");
+					CleanupCookedData(PlatformsToCook.ToList(), Params);
+					AutomationTool.ErrorReporter.Error("Cook failed.", (int)AutomationTool.ErrorCodes.Error_UnknownCookFailure);
+					throw Ex;
+				}
 			}
 		}
 
