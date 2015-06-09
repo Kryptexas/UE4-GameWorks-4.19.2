@@ -165,6 +165,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	ConsumeMouseWheel = InArgs._ConsumeMouseWheel;
 	TickScrollDelta = 0;
 	AllowOverscroll = InArgs._AllowOverscroll;
+	bAnimateScrollingWidgetIntoView = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -211,45 +212,44 @@ void SScrollBox::ConstructVerticalLayout()
 {
 	TSharedPtr<SHorizontalBox> PanelAndScrollbar;
 	this->ChildSlot
+	[
+		SAssignNew(PanelAndScrollbar, SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
 		[
-			SAssignNew(PanelAndScrollbar, SHorizontalBox)
+			SNew(SOverlay)
 
-			+ SHorizontalBox::Slot()
-			.FillWidth(1)
+			+ SOverlay::Slot()
+			.Padding(FMargin(0.0f, 0.0f, 0.0f, 1.0f))
 			[
-				SNew(SOverlay)
-
-				+ SOverlay::Slot()
-				.Padding(FMargin(0.0f, 0.0f, 0.0f, 1.0f))
-				[
-					// Scroll panel that presents the scrolled content
-					ScrollPanel.ToSharedRef()
-				]
-
-				+ SOverlay::Slot()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Top)
-					[
-						// Shadow: Hint to scroll up
-						SNew(SImage)
-						.Visibility(EVisibility::HitTestInvisible)
-						.ColorAndOpacity(this, &SScrollBox::GetStartShadowOpacity)
-						.Image(&Style->TopShadowBrush)
-					]
-
-				+ SOverlay::Slot()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Bottom)
-					[
-						// Shadow: a hint to scroll down
-						SNew(SImage)
-						.Visibility(EVisibility::HitTestInvisible)
-						.ColorAndOpacity(this, &SScrollBox::GetEndShadowOpacity)
-						.Image(&Style->BottomShadowBrush)
-					]
+				// Scroll panel that presents the scrolled content
+				ScrollPanel.ToSharedRef()
 			]
 
-		];
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Top)
+			[
+				// Shadow: Hint to scroll up
+				SNew(SImage)
+				.Visibility(EVisibility::HitTestInvisible)
+				.ColorAndOpacity(this, &SScrollBox::GetStartShadowOpacity)
+				.Image(&Style->TopShadowBrush)
+			]
+
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Bottom)
+			[
+				// Shadow: a hint to scroll down
+				SNew(SImage)
+				.Visibility(EVisibility::HitTestInvisible)
+				.ColorAndOpacity(this, &SScrollBox::GetEndShadowOpacity)
+				.Image(&Style->BottomShadowBrush)
+			]
+		]
+	];
 
 	if (!bScrollBarIsExternal)
 	{
@@ -265,45 +265,44 @@ void SScrollBox::ConstructHorizontalLayout()
 {
 	TSharedPtr<SVerticalBox> PanelAndScrollbar;
 	this->ChildSlot
+	[
+		SAssignNew(PanelAndScrollbar, SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.FillHeight(1)
 		[
-			SAssignNew(PanelAndScrollbar, SVerticalBox)
+			SNew(SOverlay)
 
-			+ SVerticalBox::Slot()
-			.FillHeight(1)
+			+ SOverlay::Slot()
+			.Padding(FMargin(0.0f, 0.0f, 1.0f, 0.0f))
 			[
-				SNew(SOverlay)
-
-				+ SOverlay::Slot()
-				.Padding(FMargin(0.0f, 0.0f, 1.0f, 0.0f))
-				[
-					// Scroll panel that presents the scrolled content
-					ScrollPanel.ToSharedRef()
-				]
-
-				+ SOverlay::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Fill)
-					[
-						// Shadow: Hint to left
-						SNew(SImage)
-						.Visibility(EVisibility::HitTestInvisible)
-						.ColorAndOpacity(this, &SScrollBox::GetStartShadowOpacity)
-						.Image(&Style->LeftShadowBrush)
-					]
-
-				+ SOverlay::Slot()
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Fill)
-					[
-						// Shadow: a hint to scroll right
-						SNew(SImage)
-						.Visibility(EVisibility::HitTestInvisible)
-						.ColorAndOpacity(this, &SScrollBox::GetEndShadowOpacity)
-						.Image(&Style->RightShadowBrush)
-					]
+				// Scroll panel that presents the scrolled content
+				ScrollPanel.ToSharedRef()
 			]
 
-		];
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Fill)
+			[
+				// Shadow: Hint to left
+				SNew(SImage)
+				.Visibility(EVisibility::HitTestInvisible)
+				.ColorAndOpacity(this, &SScrollBox::GetStartShadowOpacity)
+				.Image(&Style->LeftShadowBrush)
+			]
+
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Fill)
+			[
+				// Shadow: a hint to scroll right
+				SNew(SImage)
+				.Visibility(EVisibility::HitTestInvisible)
+				.ColorAndOpacity(this, &SScrollBox::GetEndShadowOpacity)
+				.Image(&Style->RightShadowBrush)
+			]
+		]
+	];
 
 	if (!bScrollBarIsExternal)
 	{
@@ -367,6 +366,15 @@ void SScrollBox::ScrollToStart()
 void SScrollBox::ScrollToEnd()
 {
 	bScrollToEnd = true;
+}
+
+void SScrollBox::ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll)
+{
+	WidgetToScrollIntoView = WidgetToFind;
+	bAnimateScrollingWidgetIntoView = InAnimateScroll;
+
+	// This will force the active timer system to wakeup for a frame to ensure we tick at least once.
+	RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SScrollBox::UpdateInertialScroll));
 }
 
 bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll)
@@ -525,6 +533,13 @@ EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, fl
 void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	CachedGeometry = AllottedGeometry;
+
+	// If we needed a widget to be scrolled into view, make that happen.
+	if ( WidgetToScrollIntoView.IsValid() )
+	{
+		ScrollDescendantIntoView(AllottedGeometry, WidgetToScrollIntoView, bAnimateScrollingWidgetIntoView);
+		WidgetToScrollIntoView.Reset();
+	}
 
 	const FGeometry ScrollPanelGeometry = FindChildGeometry( AllottedGeometry, ScrollPanel.ToSharedRef() );
 	const float ContentSize = GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());

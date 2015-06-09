@@ -111,12 +111,10 @@ public:
 	/** 
 	 * Attempt to scroll a widget into view, will safely handle non-descendant widgets 
 	 *
-	 * @param MyGeometry   The geometry of this widget.
 	 * @param WidgetToFind The widget whose geometry we wish to discover.
 	 * @param InAnimateScroll	Whether or not to animate the scroll
-	 * @return true if descendant
 	 */
-	bool ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true);
+	void ScrollDescendantIntoView(const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true);
 
 	/** Get the current orientation of the scrollbox. */
 	EOrientation GetOrientation();
@@ -181,6 +179,9 @@ private:
 
 	/** Scroll offset that the user asked for. We will clamp it before actually scrolling there. */
 	float DesiredScrollOffset;
+
+	/** Scrolls or begins scrolling a widget into view, only valid to call when we have layout geometry. */
+	bool ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll);
 
 	/**
 	 * Scroll the view by ScrollAmount given its currently AllottedGeometry.
@@ -253,6 +254,12 @@ private:
 
 	/** Cached geometry for use with the active timer */
 	FGeometry CachedGeometry;
+
+	/** The widget to scroll into view next frame. */
+	TSharedPtr<SWidget> WidgetToScrollIntoView;
+
+	/** Whether we should scroll the widget into view over time. */
+	bool bAnimateScrollingWidgetIntoView : 1;
 
 	/**	Whether the software cursor should be drawn in the viewport */
 	bool bShowSoftwareCursor : 1;
