@@ -264,7 +264,7 @@ bool FProfilerSession::HandleTicker( float DeltaTime )
 			break;
 		}
 
-		FScopeSecondsCounter SecondsCounter(Seconds);
+		FSimpleScopeSecondsCounter SecondsCounter(Seconds);
 
 		const uint32 FrameIndex = FrameToProcess[0];
 		FrameToProcess.RemoveAt( 0 );
