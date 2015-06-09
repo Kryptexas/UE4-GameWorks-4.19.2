@@ -804,15 +804,6 @@ FORCEINLINE VectorRegister VectorTransformVector(const VectorRegister&  VecP,  c
 #define VectorMaskBits( VecMask )			_mm_movemask_ps( VecMask )
 
 /**
- * Returns the bitwise AND.
- *
- * @param	Vec1	Vector to AND
- * @param	Vec2	Vector to AND
- * @return	bitwise per component AND operation.
- */
-#define VectorBitwiseAND( Vec1, Vec2 )	_mm_and_ps( (Vec1), (Vec2) )
-
-/**
  * Divides two vectors (component-wise) and returns the result.
  *
  * @param Vec1	1st vector
