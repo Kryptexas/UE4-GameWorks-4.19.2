@@ -508,27 +508,30 @@ void FCoreAudioSoundSource::HandleRealTimeSource()
 {
 	bool bLooped = false;
 	const int32 BufferIndex = 1 - BufferInUse;
-	if (RealtimeAsyncTask && RealtimeAsyncTask->IsDone())
+	if (RealtimeAsyncTask)
 	{
-		switch(RealtimeAsyncTask->GetTask().GetTaskType())
+		if (RealtimeAsyncTask->IsDone())
 		{
-		case ERealtimeAudioTaskType::Decompress:
-			bLooped = RealtimeAsyncTask->GetTask().GetBufferLooped();
-			++NumActiveBuffers;
-			break;
-
-		case ERealtimeAudioTaskType::Procedural:
-			const int32 BytesWritten = RealtimeAsyncTask->GetTask().GetBytesWritten();
-			CoreAudioBuffers[BufferIndex].AudioDataSize = BytesWritten;
-			if (BytesWritten > 0)
+			switch(RealtimeAsyncTask->GetTask().GetTaskType())
 			{
+			case ERealtimeAudioTaskType::Decompress:
+				bLooped = RealtimeAsyncTask->GetTask().GetBufferLooped();
 				++NumActiveBuffers;
-			}
-			break;
-		}
+				break;
 
-		delete RealtimeAsyncTask;
-		RealtimeAsyncTask = nullptr;
+			case ERealtimeAudioTaskType::Procedural:
+				const int32 BytesWritten = RealtimeAsyncTask->GetTask().GetBytesWritten();
+				CoreAudioBuffers[BufferIndex].AudioDataSize = BytesWritten;
+				if (BytesWritten > 0)
+				{
+					++NumActiveBuffers;
+				}
+				break;
+			}
+
+			delete RealtimeAsyncTask;
+			RealtimeAsyncTask = nullptr;
+		}
 	}
 	else
 	{
