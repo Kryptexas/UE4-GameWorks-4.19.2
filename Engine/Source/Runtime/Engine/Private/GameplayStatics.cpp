@@ -19,6 +19,9 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
+#include "MessageLog.h"
+
+#define LOCTEXT_NAMESPACE "GameplayStatics"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
@@ -282,6 +285,74 @@ void UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACont
 	}
 }
 
+bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass)
+{
+	bool bBlueprintType = true;
+#if WITH_EDITOR
+	{
+		static const FName BlueprintTypeName(TEXT("BlueprintType"));
+		static const FName NotBlueprintTypeName(TEXT("NotBlueprintType"));
+		const UClass* ParentClass = ObjectClass;
+		while (ParentClass)
+		{
+			// Climb up the class hierarchy and look for "BlueprintType" and "NotBlueprintType" to see if this class is allowed.
+			if (ParentClass->GetBoolMetaData(BlueprintTypeName))
+			{
+				bBlueprintType = true;
+				break;
+			}
+			else if (ParentClass->GetBoolMetaData(NotBlueprintTypeName))
+			{
+				bBlueprintType = false;
+				break;
+			}
+			ParentClass = ParentClass->GetSuperClass();
+		}
+	}
+#endif // WITH_EDITOR
+
+	bool bForbiddenSpawn = false;
+#if WITH_EDITOR
+	static const FName DontUseGenericSpawnObjectName(TEXT("DontUseGenericSpawnObject"));
+	const UClass* ParentClass = ObjectClass;
+	while (ParentClass)
+	{
+		if (ParentClass->HasMetaData(DontUseGenericSpawnObjectName))
+		{
+			bForbiddenSpawn = true;
+			break;
+		}
+		ParentClass = ParentClass->GetSuperClass();
+	}
+#endif // WITH_EDITOR
+
+	return (nullptr != *ObjectClass)
+		&& bBlueprintType
+		&& !bForbiddenSpawn
+		&& !ObjectClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists)
+		&& !ObjectClass->IsChildOf(AActor::StaticClass())
+		&& !ObjectClass->IsChildOf(UActorComponent::StaticClass());
+}
+
+UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject* Outer)
+{
+	if (!CanSpawnObjectOfClass(ObjectClass))
+	{
+#if WITH_EDITOR
+		FMessageLog("PIE").Error(FText::Format(LOCTEXT("SpawnObjectWrongClass", "SpawnObject wrong class: {0}'"), FText::FromString(GetNameSafe(*ObjectClass))));
+#endif // WITH_EDITOR
+		UE_LOG(LogScript, Error, TEXT("UGameplayStatics::SpawnObject wrong class: %s"), *GetNameSafe(*ObjectClass));
+		return nullptr;
+	}
+
+	if (!Outer)
+	{
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject null outer"));
+		return nullptr;
+	}
+
+	return NewObject<UObject>(Outer, ObjectClass, NAME_None, RF_StrongRefOnFrame);
+}
 
 AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldContextObject, UBlueprint const* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail)
 {
@@ -1508,4 +1579,4 @@ int32 UGameplayStatics::GrassOverlappingSphereCount(UObject* WorldContextObject,
 	return Count;
 }
 
-
+#undef LOCTEXT_NAMESPACE
