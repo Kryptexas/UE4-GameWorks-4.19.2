@@ -232,9 +232,8 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		const bool bAutoCompleteWhenLoadingCompletes = LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes;
 
 		FSlateApplication& SlateApp = FSlateApplication::Get();
-
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
-		while ( !bUserCalledFinish && ( (!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes ) || ( bEnforceMinimumTime &&  (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime ) ) )
+		while ( !bUserCalledFinish && ( !bAutoCompleteWhenLoadingCompletes || ( !IsMovieStreamingFinished() && ( !bEnforceMinimumTime || (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime ) ) ) )
 		{
 			if (FSlateApplication::IsInitialized())
 			{
