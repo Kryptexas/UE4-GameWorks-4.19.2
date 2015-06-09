@@ -526,10 +526,7 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
 
 	int32 FringeQuality = CVar->GetValueOnRenderThread();
-	if(View->Family->EngineShowFlags.SceneColorFringe
-		// Removed this from the camera imperfections toggle because this no longer takes an extra pass.
-		// && Context->View.Family->EngineShowFlags.CameraImperfections
-		&& View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f
+	if( View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f
 		&& FringeQuality > 0)
 	{
 		Bitmask |= TonemapperColorFringe;

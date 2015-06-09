@@ -1273,6 +1273,11 @@ void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewIn
 		{
 			FinalPostProcessSettings.SceneFringeIntensity = FMath::Min(FinalPostProcessSettings.SceneFringeIntensity, Value);
 		}
+
+		if(!Family->EngineShowFlags.SceneColorFringe || !Family->EngineShowFlags.CameraImperfections)
+		{
+			FinalPostProcessSettings.SceneFringeIntensity = 0;
+		}
 	}
 
 	if (!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
