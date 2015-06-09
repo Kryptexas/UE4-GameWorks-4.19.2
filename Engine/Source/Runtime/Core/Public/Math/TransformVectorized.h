@@ -637,6 +637,8 @@ public:
 	}
 	*/
 
+private:
+
 	inline bool RotationEquals( const VectorRegister& InRotation, const ScalarRegister& Tolerance = ScalarRegister(GlobalVectorConstants::KindaSmallNumber)) const
 	{			
 		// !( (FMath::Abs(X-Q.X) > Tolerance) || (FMath::Abs(Y-Q.Y) > Tolerance) || (FMath::Abs(Z-Q.Z) > Tolerance) || (FMath::Abs(W-Q.W) > Tolerance) )
@@ -663,12 +665,35 @@ public:
 		return !VectorAnyGreaterThan(SizeSquared, VectorToleranceSqaured);
 	}
 
+public:
+
+	// Test if A's rotation equals B's rotation, within a tolerance. Preferred over "A.GetRotation().Equals(B.GetRotation())" because it is faster on some platforms.
+	FORCEINLINE static bool AreRotationsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
+	{
+		return A.RotationEquals(B.Rotation, ScalarRegister(Tolerance));
+	}
+
+	// Test if A's translation equals B's translation, within a tolerance. Preferred over "A.GetTranslation().Equals(B.GetTranslation())" because it avoids VectorRegister->FVector conversion.
+	FORCEINLINE static bool AreTranslationsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
+	{
+		return A.TranslationEquals(B.Translation, ScalarRegister(Tolerance));
+	}
+
+	// Test if A's scale equals B's scale, within a tolerance. Preferred over "A.GetScale3D().Equals(B.GetScale3D())" because it avoids VectorRegister->FVector conversion.
+	FORCEINLINE static bool AreScale3DsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
+	{
+		return A.Scale3DEquals(B.Scale3D, ScalarRegister(Tolerance));
+	}
+
+
+	// Test if all components of the transforms are equal, within a tolerance.
 	inline bool Equals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
 		const ScalarRegister ToleranceRegister(Tolerance);
 		return RotationEquals(Other.Rotation, ToleranceRegister) && TranslationEquals(Other.Translation, ToleranceRegister) && Scale3DEquals(Other.Scale3D, ToleranceRegister);
 	}
 
+	// Test if rotation and translation components of the transforms are equal, within a tolerance.
 	inline bool EqualsNoScale(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
 		const ScalarRegister ToleranceRegister(Tolerance);
@@ -752,6 +777,28 @@ public:
 	{		
 		Translation = VectorAdd(Translation, VectorLoadFloat3_W0(&DeltaTranslation));
 		DiagnosticCheckNaN_Translate();
+	}
+
+	/**
+	 * Add the translations from two FTransforms and return the result.
+	 * @return A.Translation + B.Translation
+	 */
+	FORCEINLINE static FVector AddTranslations(const FTransform& A, const FTransform& B)
+	{
+		FVector Result;
+		VectorStoreFloat3(VectorAdd(A.Translation, B.Translation), &Result);
+		return Result;
+	}
+
+	/**
+	 * Subtract translations from two FTransforms and return the difference.
+	 * @return A.Translation - B.Translation.
+	 */
+	FORCEINLINE static FVector SubtractTranslations(const FTransform& A, const FTransform& B)
+	{
+		FVector Result;
+		VectorStoreFloat3(VectorSubtract(A.Translation, B.Translation), &Result);
+		return Result;
 	}
 
 	/**

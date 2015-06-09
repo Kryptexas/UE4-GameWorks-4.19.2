@@ -728,7 +728,7 @@ void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const 
 
 	const FTransform DesiredRelTransform(NewRotation, NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
-	const FVector DesiredDelta = DesiredWorldTransform.GetTranslation() - ComponentToWorld.GetTranslation();
+	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 
 	MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation(), bSweep, OutSweepHitResult);
 }
@@ -790,7 +790,7 @@ void USceneComponent::AddWorldRotation(const FQuat& DeltaRotation, bool bSweep, 
 void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
 {
 	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
-	const FVector NewWorldLocation = DeltaTransform.GetTranslation() + ComponentToWorld.GetTranslation();
+	const FVector NewWorldLocation = FTransform::AddTranslations(DeltaTransform, ComponentToWorld);
 	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)));
 }
 
@@ -2450,7 +2450,7 @@ const TArray<FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd(class UPrimi
 			else
 			{
 				// Fill in EndOverlaps with overlaps valid at the end location.
-				const bool bMatchingScale = InitialTransform.GetScale3D().Equals(PrimComponent.GetComponentScale());
+				const bool bMatchingScale = FTransform::AreScale3DsEqual(InitialTransform, PrimComponent.GetComponentTransform());
 				if (bMatchingScale)
 				{
 					EndOverlapsPtr = PrimComponent.ConvertSweptOverlapsToCurrentOverlaps(

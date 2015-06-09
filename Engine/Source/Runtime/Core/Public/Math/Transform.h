@@ -610,14 +610,54 @@ public:
 	}
 	*/
 
-	inline bool Equals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
+private:
+
+	FORCEINLINE bool RotationEquals(const FQuat& InRotation, const float Tolerance = KINDA_SMALL_NUMBER) const
 	{
-		return Rotation.Equals(Other.Rotation, Tolerance) && Translation.Equals(Other.Translation, Tolerance) && ((Scale3D-Other.Scale3D).SizeSquared() <= FMath::Square(Tolerance));
+		return Rotation.Equals(InRotation, Tolerance);
 	}
 
+	FORCEINLINE bool TranslationEquals(const FVector& InTranslation, const float Tolerance = KINDA_SMALL_NUMBER) const
+	{
+		return Translation.Equals(InTranslation, Tolerance);
+	}
+
+	FORCEINLINE bool Scale3DEquals(const FVector& InScale3D, const float Tolerance = KINDA_SMALL_NUMBER) const
+	{
+		return (Scale3D-InScale3D).SizeSquared() <= FMath::Square(Tolerance);
+	}
+
+public:
+
+	// Test if A's rotation equals B's rotation, within a tolerance. Preferred over "A.GetRotation().Equals(B.GetRotation())" because it is faster on some platforms.
+	FORCEINLINE static bool AreRotationsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
+	{
+		return A.RotationEquals(B.Rotation, Tolerance);
+	}
+
+	// Test if A's translation equals B's translation, within a tolerance. Preferred over "A.GetTranslation().Equals(B.GetTranslation())" because it is faster on some platforms.
+	FORCEINLINE static bool AreTranslationsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
+	{
+		return A.TranslationEquals(B.Translation, Tolerance);
+	}
+
+	// Test if A's scale equals B's scale, within a tolerance. Preferred over "A.GetScale3D().Equals(B.GetScale3D())" because it is faster on some platforms.
+	FORCEINLINE static bool AreScale3DsEqual(const FTransform& A, const FTransform& B, float Tolerance=KINDA_SMALL_NUMBER)
+	{
+		return A.Scale3DEquals(B.Scale3D, Tolerance);
+	}
+
+
+	// Test if all components of the transforms are equal, within a tolerance.
+	inline bool Equals(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
+	{
+		return RotationEquals(Other.Rotation, Tolerance) && TranslationEquals(Other.Translation, Tolerance) && Scale3DEquals(Other.Scale3D, Tolerance);
+	}
+
+	// Test if rotation and translation components of the transforms are equal, within a tolerance.
 	inline bool EqualsNoScale(const FTransform& Other, float Tolerance=KINDA_SMALL_NUMBER) const
 	{
-		return Rotation.Equals(Other.Rotation, Tolerance) && Translation.Equals(Other.Translation, Tolerance);
+		return RotationEquals(Other.Rotation, Tolerance) && TranslationEquals(Other.Translation, Tolerance);
 	}
 
 	/**
@@ -703,6 +743,24 @@ public:
 	{
 		Translation += DeltaTranslation;
 		DiagnosticCheckNaN_Translate();
+	}
+
+	/**
+	 * Add the translations from two FTransforms and return the result.
+	 * @return A.Translation + B.Translation
+	 */
+	FORCEINLINE static FVector AddTranslations(const FTransform& A, const FTransform& B)
+	{
+		return A.Translation + B.Translation;
+	}
+
+	/**
+	 * Subtract translations from two FTransforms and return the difference.
+	 * @return A.Translation - B.Translation.
+	 */
+	FORCEINLINE static FVector SubtractTranslations(const FTransform& A, const FTransform& B)
+	{
+		return A.Translation - B.Translation;
 	}
 
 	/**
