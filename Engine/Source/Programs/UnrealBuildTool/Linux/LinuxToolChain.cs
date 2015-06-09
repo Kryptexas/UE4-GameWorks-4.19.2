@@ -353,7 +353,7 @@ namespace UnrealBuildTool
 
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
-				Result += " -Wshadow -Wno-error=shadow";
+				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors? "" : " -Wno-error=shadow");
 			}
 
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";

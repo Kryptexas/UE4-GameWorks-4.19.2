@@ -677,7 +677,7 @@ namespace UnrealBuildTool
 
 				if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 				{
-					Arguments.Append(" -Wshadow -Wno-error=shadow");
+					Arguments.Append(" -Wshadow" + (BuildConfiguration.bShadowVariableErrors? "" : " -Wno-error=shadow"));
 				}
 
 				// @todo clang: Kind of a shame to turn these off.  We'd like to catch unused variables, but it is tricky with how our assertion macros work.

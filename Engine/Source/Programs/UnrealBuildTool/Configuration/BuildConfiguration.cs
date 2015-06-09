@@ -38,6 +38,12 @@ namespace UnrealBuildTool
 		public static int MinGameModuleSourceFilesForUnityBuild;
 
 		/// <summary>
+		/// Forces shadow variable warnings to be treated as errors on platforms that support it.
+		/// </summary>
+		[XmlConfig]
+		public static bool bShadowVariableErrors;
+
+		/// <summary>
 		/// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 		/// </summary>
 		[XmlConfig]

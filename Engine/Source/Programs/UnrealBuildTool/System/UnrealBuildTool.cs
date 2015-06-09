@@ -749,6 +749,10 @@ namespace UnrealBuildTool
                 {
                     BuildConfiguration.bForceUnityBuild = true;
                 }
+                else if (LowercaseArg == "-shadowvariableerrors")
+                {
+                    BuildConfiguration.bShadowVariableErrors = true;
+                }
                 // New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
                 else if (LowercaseArg == "-fastmonocalls")
                 {

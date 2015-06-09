@@ -3515,14 +3515,14 @@ public class GUBP : BuildCommand
             Agenda.AddTargets(new string[] { "UnrealHeaderTool" }, HostPlatform, UnrealTargetConfiguration.Development);
             Agenda.AddTargets(
                 new string[] { bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName },
-                HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-skipnonhostplatforms");
+                HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-skipnonhostplatforms -shadowvariableerrors");
 
             foreach (var Kind in BranchInfo.MonolithicKinds)
             {
                 if (bp.Branch.BaseEngineProject.Properties.Targets.ContainsKey(Kind))
                 {
                     var Target = bp.Branch.BaseEngineProject.Properties.Targets[Kind];
-                    Agenda.AddTargets(new string[] { Target.TargetName }, HostPlatform, UnrealTargetConfiguration.Development);
+                    Agenda.AddTargets(new string[] { Target.TargetName }, HostPlatform, UnrealTargetConfiguration.Development, InAddArgs: "-shadowvariableerrors");
                 }
             }
 
