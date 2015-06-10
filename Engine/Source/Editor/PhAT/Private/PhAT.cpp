@@ -1314,10 +1314,7 @@ void FPhAT::BindCommands()
 		FExecuteAction::CreateSP(this, &FPhAT::OnToggleTwist),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation));
 
-	ToolkitCommands->MapAction(
-		Commands.FocusOnSelection,
-		FExecuteAction::CreateSP(this, &FPhAT::OnFocusSelection),
-		FCanExecuteAction());
+
 	
 	ToolkitCommands->MapAction(
 		Commands.SelectAllObjects,

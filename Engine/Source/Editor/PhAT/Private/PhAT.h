@@ -94,6 +94,8 @@ public:
 	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject interface
 
+	void OnFocusSelection();
+
 private:
 
 	enum EPhatHierarchyFilterMode
@@ -230,7 +232,7 @@ private:
 	void OnToggleSwing1();
 	void OnToggleSwing2();
 	void OnToggleTwist();
-	void OnFocusSelection();
+	
 	void Mirror();
 
 	//menu commands
