@@ -1,89 +1,11 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2099361
+Availability:Public
 Title:コントローラー
-Crumbs:%ROOT%, Programming/Gameplay/Framework
-Description:プレーヤーあるいは AI エンティティという文脈において、コントローラー は本質的に脳となります。
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description:プレーヤーあるいは AI エンティティとの関連で、コントローラー は本質的に脳として機能します。
 
-
-
-[INCLUDE:Shared/Glossary/C/#Glossary_Controller_Class]
-
-コントローラーは、制御しているポーンに発生する様々なイベントに対する通知を受け取ります。この動作によりコントローラーは、イベントを中断しポーンのデフォルト動作を優先して、
-当該イベントに応じた動作を実装する機会を与えられます。	所定のポーンの前にコントローラーをティックすることができ、 
-それにより入力処理とポーンの移動間の待ち時間が最短になります。
-
-プレーヤーのタイプが人による制御か AI による制御か、そのタイプによりコントローラーの種類も異なります: 人によって制御されているプレーヤーはPlayerController 、 
-AI によって制御されているプレーヤーは AIController を使用しています。これらのクラスはそれぞれ、移動といった一般化された機能を提供する基本 Controller クラスから派生しています。
-
-デフォルトで、コントローラーとポーンは 1 対 1 の関係になっています。つまり、各コントローラーはいつでもポーンを 1 つだけ管理します。ほとんどの種類のゲームでは大丈夫ですが、
-例えばリアルタイムストラテジーのように、複数のエンティティを 1 度に制御する能力を必要とするゲームもあるので、調整が必要な場合もあります。
-
-PlayerController はプレーヤーから入力データを受け取り、移動、アイテムの使用、武器の発砲などのアクションへ変換する機能を実装します。 
-これらのアクションは一般的にシステムの他のコンポーネント、特にポーンとカメラに渡されます。 
-
-AIController はむしろ環境およびゲームワールドからの入力の応答に集中します。PlayerController はゲーム内で何をするかの決定を人間のプレーヤーに委ね、その結果をゲーム内のアクションに変換しますが、 
-AIController は周りのワールドを観察し適切に対応して自分自身で 
-全て決断しなければなりません。AIController もアクションをポーンに渡します。ただし、この場合は明らかにカメラは必要ありません。
-
-
-### 所有
-
-$ Possess() :指定したポーンへこの制御のアタッチ処理をします。コントローラーが既に異なるポーンを所有している場合、コントローラーはまず所有中のポーンの所有を解除し、
-それから指定されたポーンへアタッチします。相応に、ポーンが既に別のコントローラーに所有されている場合、所有しているコントローラーはそのポーンの所有を強制的に解除します。PossessedBy() 関数を呼び出すことで、ポーンにも通知されます。
-
-<!--
-bAttachToPawn が true の場合のみアタッチする AttachToPawn を呼び出す SetPawn を呼び出します。
--->
-
-$ UnPossess() :何らかの理由により破壊されていないポーンの所有を解除するために呼ばれるとともに、UnPossessedBy() 関数を呼び出すことによって、もはやコントローラーに制御されなくなったことをポーンに対して通知します。UnPossessはEjectとも呼ばれます。  
-
-
-### 回転と照準
-制御回転 (GetControlRotation() 経由でアクセス) は制御しているポーンの照準方向を決定します。
-
-$ ControlRotation :コントローラーの制御回転を指定するローテーターGetControlRotation を参照してください。 
-
-$ LineOfSightTo :他のアクタの中央および上部のラインを確認し、コントローラーのポーンが他のアクタを見ることができれば _true_ を返します。
-
-
-### ポーンへアタッチする
-
-$ bAttachToPawn :_true_ の場合、コントローラーの位置は所有しているポーンの位置と一致します。_false_ の場合は更新されません。いずれの場合も回転は ControlRotation と一致します。
-	[REGION:note]
-	コントローラーの位置は通常アクセスできないため、所有しているポーンの位置を追跡しながらも
-	照準回転がまだ可能なアクタをアタッチ可能にするのが主な目的です。
-	(ポーンは回転のコンポーネントの幾つかしか更新しないため)
-	[/REGION:note]
-
-$ AttachToPawn() :コントローラーを指定のポーンに物理的にアタッチすると、コントローラーの位置がポーンの位置に反映されます。アタッチメントはポーンの所有中、持続されます。コントローラーの回転は 
- ControlRotation と一致するまで継続します。NULL Pawn へアタッチしようとすると、代わりに DetachFromPawn() が呼び出されます。 
-
-$ DetachFromPawn() :親から RootComponent を離しますが、bAttachToPawn が true であり、ポーンにアタッチしている場合に限ります。
-
-
-
-### ナビゲーション 
-
-$ InitNavigationControl() :パス検索とパスに従うコンポーネントを準備します
-
-$ UpdateNavigationComponents() :コントローラーにナビゲーションに関係するコンポーネントがある場合、この関数によりキャッシュされたデータをコンポーネントが更新します
-
-<!--
-// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE;
-	virtual FVector GetNavAgentLocation() const OVERRIDE;
-	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
-	// End INavAgentInterface Interface
--->
-
-
-### 追加事項 
-
-$ InitPlayerState() : このコントローラーのために PlayerState のスポーンと初期化を行います。
-
-$ NotifyKilled() :ゲームで誰かが殺されたという通知 (AI などに向けてオーバーライドされる)
-	* AController * Killer - 殺した側のプレーヤーのcCntroller
-	* AController * KilledPlayer - 殺されたプレーヤーのコントローラー
-	* APawn * KilledPawn - 殺されたプレーヤーのポーン
-	* UDamageType * DamageType - プレーヤーを殺すために使用されたダメージタイプ
-
-$ GameHasEnded() :ゲーム終了時にゲームモードから呼び出され、適切なステートへの推移に使用されます。 
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Controller)
+[/PARAM]
+[/OBJECT]
