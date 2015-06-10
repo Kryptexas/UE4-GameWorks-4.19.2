@@ -542,7 +542,7 @@ bool UUserWidget::IsInViewport() const
 	return FullScreenWidget.IsValid();
 }
 
-void UUserWidget::SetPlayerContext(FLocalPlayerContext InPlayerContext)
+void UUserWidget::SetPlayerContext(const FLocalPlayerContext& InPlayerContext)
 {
 	PlayerContext = InPlayerContext;
 }

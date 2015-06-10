@@ -231,7 +231,7 @@ public:
 	bool IsInViewport() const;
 
 	/** Sets the player context associated with this UI. */
-	void SetPlayerContext(FLocalPlayerContext InPlayerContext);
+	void SetPlayerContext(const FLocalPlayerContext& InPlayerContext);
 
 	/** Gets the player context associated with this UI. */
 	const FLocalPlayerContext& GetPlayerContext() const;
