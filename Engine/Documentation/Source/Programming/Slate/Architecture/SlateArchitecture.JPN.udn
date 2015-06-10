@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2390426
+﻿INTSourceChangelist:2568439
 Availability:Public
 Title: スレート アーキテクチャ
 Crumbs:%ROOT%, Programming, Programming/Slate
@@ -278,7 +278,8 @@ ArrangeChildren はトップダウンのパスです。スレートは上位の�
 .		// 割り当てられたあるジオメトリにすべての子供を配置します
 .		Array<ArrangedChild> ArrangedChildren = ArrangeChildrenGiven( AllottedGeometry );
 .	
-.		// それぞれに対して子供をペイントします ( Child in ArrangedChildren )	
+.		// それぞれに対して子供をペイントします 
+.		( Child in ArrangedChildren )
 .		{
 .			OutputElements.Append( Child.Widget.OnPaint( Child.Geometry ) );
 .		}
