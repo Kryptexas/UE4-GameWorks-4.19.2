@@ -1856,24 +1856,27 @@ void AActor::InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitive
 {
 	check(MyComp);
 
-	AActor* OtherActor = (OtherComp != NULL) ? OtherComp->GetOwner() : NULL;
-
-	// Call virtual
-	if(IsActorValidToNotify(this))
+	if (OtherComp != nullptr)
 	{
-		NotifyHit(MyComp, OtherActor, OtherComp, bSelfMoved, Hit.ImpactPoint, Hit.ImpactNormal, FVector(0,0,0), Hit);
-	}
+		AActor* OtherActor = OtherComp->GetOwner();
 
-	// If we are still ok, call delegate on actor
-	if(IsActorValidToNotify(this))
-	{
-		OnActorHit.Broadcast(this, OtherActor, FVector(0,0,0), Hit);
-	}
+		// Call virtual
+		if(IsActorValidToNotify(this))
+		{
+			NotifyHit(MyComp, OtherActor, OtherComp, bSelfMoved, Hit.ImpactPoint, Hit.ImpactNormal, FVector(0,0,0), Hit);
+		}
 
-	// If component is still alive, call delegate on component
-	if(!MyComp->IsPendingKill())
-	{
-		MyComp->OnComponentHit.Broadcast(OtherActor, OtherComp, FVector(0,0,0), Hit);
+		// If we are still ok, call delegate on actor
+		if(IsActorValidToNotify(this))
+		{
+			OnActorHit.Broadcast(this, OtherActor, FVector(0,0,0), Hit);
+		}
+
+		// If component is still alive, call delegate on component
+		if(!MyComp->IsPendingKill())
+		{
+			MyComp->OnComponentHit.Broadcast(OtherActor, OtherComp, FVector(0,0,0), Hit);
+		}
 	}
 }
 

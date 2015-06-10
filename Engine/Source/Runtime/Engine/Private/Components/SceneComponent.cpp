@@ -515,6 +515,12 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 					UPrimitiveComponent* PrimitiveThis = CastChecked<UPrimitiveComponent>(this);
 					for (const FHitResult& Hit : CurrentScopedUpdate->BlockingHits)
 					{
+						// Overlaps may have caused us to be destroyed, as could other queued blocking hits.
+						if (PrimitiveThis->IsPendingKill())
+						{
+							break;
+						}
+
 						// Collision response may change (due to overlaps or multiple blocking hits), make sure it's still considered blocking.
 						if (PrimitiveThis->GetCollisionResponseToComponent(Hit.GetComponent()) == ECR_Block)
 						{
@@ -1908,7 +1914,7 @@ bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewR
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentSceneComponentTime);
 
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	if (CheckStaticMobilityAndWarn(SceneComponentStatics::MobilityWarnText))
+	if (IsPendingKill() || CheckStaticMobilityAndWarn(SceneComponentStatics::MobilityWarnText))
 	{
 		if (OutHit)
 		{

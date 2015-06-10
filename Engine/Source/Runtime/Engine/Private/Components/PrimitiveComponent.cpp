@@ -1360,18 +1360,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 	CLOCK_CYCLES(MoveCompTakingLongTime);
 #endif
 
-	if ( IsPendingKill() )
-	{
-		//UE_LOG(LogPrimitiveComponent, Log, TEXT("%s deleted move physics %d"),*Actor->GetName(),Actor->Physics);
-		if (OutHit)
-		{
-			*OutHit = FHitResult();
-		}
-		return false;
-	}
-
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	if (CheckStaticMobilityAndWarn(PrimitiveComponentStatics::MobilityWarnText))
+	if (IsPendingKill() || CheckStaticMobilityAndWarn(PrimitiveComponentStatics::MobilityWarnText))
 	{
 		if (OutHit)
 		{
@@ -1635,8 +1625,8 @@ bool UPrimitiveComponent::MoveComponentImpl( const FVector& Delta, const FQuat& 
 		}
 	}
 
-	// Handle blocking hit notifications.
-	if (BlockingHit.bBlockingHit)
+	// Handle blocking hit notifications. Avoid if pending kill (which could happen after overlaps).
+	if (BlockingHit.bBlockingHit && !IsPendingKill())
 	{
 		if (IsDeferringMovementUpdates())
 		{
