@@ -878,6 +878,7 @@ void SPathView::TreeExpansionChanged( TSharedPtr< FTreeItem > TreeItem, bool bIs
 void SPathView::OnAssetTreeSearchBoxChanged( const FText& InSearchText )
 {
 	SearchBoxFolderFilter->SetRawFilterText( InSearchText );
+	SearchBoxPtr->SetError( SearchBoxFolderFilter->GetFilterErrorText() );
 }
 
 void SPathView::FilterUpdated()

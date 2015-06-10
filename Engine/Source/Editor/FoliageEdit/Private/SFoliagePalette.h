@@ -253,6 +253,9 @@ private:
 	/** Foliage mesh details widget  */
 	TSharedPtr<class IDetailsView> DetailsWidget;
 
+	/** Foliage items search box widget */
+	TSharedPtr<class SSearchBox> SearchBoxPtr;
+
 	/** Command list for binding functions for the context menu. */
 	TSharedPtr<FUICommandList> UICommandList;
 

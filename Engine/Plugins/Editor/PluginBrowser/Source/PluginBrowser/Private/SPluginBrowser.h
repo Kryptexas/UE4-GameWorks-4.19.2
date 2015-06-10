@@ -76,6 +76,9 @@ private:
 	/** The plugin list widget */
 	TSharedPtr< class SPluginTileList > PluginList;
 
+	/** The plugin search box widget */
+	TSharedPtr< class SSearchBox > SearchBoxPtr;
+
 	/** Text filter object for typing in filter text to the search box */
 	TSharedPtr< FPluginTextFilter > PluginTextFilter;
 

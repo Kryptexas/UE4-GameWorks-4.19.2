@@ -61,6 +61,11 @@ void FAddContentWidgetViewModel::SetSearchText(FText SearchTextIn)
 	UpdateFilteredContentSourcesAndSelection(true);
 }
 
+FText FAddContentWidgetViewModel::GetSearchErrorText() const
+{
+	return ContentSourceFilter->GetFilterErrorText();
+}
+
 const TArray<TSharedPtr<FContentSourceViewModel>>* FAddContentWidgetViewModel::GetContentSources()
 {
 	return &FilteredContentSourceViewModels;

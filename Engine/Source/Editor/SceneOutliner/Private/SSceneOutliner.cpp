@@ -1928,6 +1928,7 @@ namespace SceneOutliner
 	void SSceneOutliner::OnFilterTextChanged( const FText& InFilterText )
 	{
 		SearchBoxFilter->SetRawFilterText( InFilterText );
+		FilterTextBoxWidget->SetError( SearchBoxFilter->GetFilterErrorText() );
 	}
 
 	void SSceneOutliner::OnFilterTextCommitted( const FText& InFilterText, ETextCommit::Type CommitInfo )

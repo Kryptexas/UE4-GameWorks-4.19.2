@@ -321,6 +321,7 @@ TSharedPtr<FAttributeViewerNode> SAttributeListWidget::UpdatePropertyOptions()
 void SAttributeListWidget::OnFilterTextChanged(const FText& InFilterText)
 {
 	AttributeTextFilter->SetRawFilterText(InFilterText);
+	SearchBoxPtr->SetError(AttributeTextFilter->GetFilterErrorText());
 
 	UpdatePropertyOptions();
 }

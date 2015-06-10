@@ -239,7 +239,7 @@ public:
 					.Padding(2.0f, 0.0f)
 					.VAlign( VAlign_Center )
 					[
-						SNew(SSearchBox)
+						SAssignNew(SearchBoxPtr, SSearchBox)
 						.HintText(LOCTEXT("Search Animations", "Search Animations"))
 						.OnTextChanged(this, &SUMGAnimationList::OnSearchChanged)
 					]
@@ -347,6 +347,7 @@ private:
 			TTextFilter<UWidgetAnimation*> TextFilter(TTextFilter<UWidgetAnimation*>::FItemToStringArray::CreateStatic(&Local::UpdateFilterStrings));
 
 			TextFilter.SetRawFilterText(InSearchText);
+			SearchBoxPtr->SetError(TextFilter.GetFilterErrorText());
 
 			Animations.Reset();
 
@@ -362,6 +363,8 @@ private:
 		}
 		else
 		{
+			SearchBoxPtr->SetError(FText::GetEmpty());
+
 			// Just regenerate the whole list
 			UpdateAnimationList();
 		}
@@ -504,6 +507,7 @@ private:
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 	TSharedPtr<SWidgetAnimationListView> AnimationListView;
 	TArray< TSharedPtr<FWidgetAnimationListItem> > Animations;
+	TSharedPtr<SSearchBox> SearchBoxPtr;
 };
 
 

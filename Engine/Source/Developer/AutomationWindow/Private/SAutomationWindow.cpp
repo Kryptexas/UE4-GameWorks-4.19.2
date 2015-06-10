@@ -1566,6 +1566,7 @@ FReply SAutomationWindow::RunTests()
 void SAutomationWindow::OnFilterTextChanged( const FText& InFilterText )
 {
 	AutomationTextFilter->SetRawFilterText( InFilterText );
+	AutomationSearchBox->SetError( AutomationTextFilter->GetFilterErrorText() );
 
 	//update the widget
 	OnRefreshTestCallback();

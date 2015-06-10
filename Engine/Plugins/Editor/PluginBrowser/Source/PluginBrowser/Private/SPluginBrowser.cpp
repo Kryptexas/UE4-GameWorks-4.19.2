@@ -95,7 +95,7 @@ void SPluginBrowser::Construct( const FArguments& Args )
 				+SHorizontalBox::Slot()
 				.Padding( PaddingAmount )
 				[
-					SNew( SSearchBox )
+					SAssignNew( SearchBoxPtr, SSearchBox )
 					.OnTextChanged( this, &SPluginBrowser::SearchBox_OnPluginSearchTextChanged )
 				]
 			]
@@ -166,6 +166,7 @@ FReply SPluginBrowser::HandleRestartEditorButtonClicked() const
 void SPluginBrowser::SearchBox_OnPluginSearchTextChanged( const FText& NewText )
 {
 	PluginTextFilter->SetRawFilterText( NewText );
+	SearchBoxPtr->SetError( PluginTextFilter->GetFilterErrorText() );
 }
 
 

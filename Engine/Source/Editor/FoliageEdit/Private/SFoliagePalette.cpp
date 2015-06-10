@@ -235,7 +235,7 @@ void SFoliagePalette::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				.Padding(6.f, 0.f)
 				[
-					SNew(SSearchBox)
+					SAssignNew(SearchBoxPtr, SSearchBox)
 					.HintText(LOCTEXT("SearchFoliagePaletteHint", "Search Foliage"))
 					.OnTextChanged(this, &SFoliagePalette::OnSearchTextChanged)
 				]
@@ -641,6 +641,7 @@ void SFoliagePalette::GetPaletteItemFilterString(FFoliagePaletteItemModelPtr Pal
 void SFoliagePalette::OnSearchTextChanged(const FText& InFilterText)
 {
 	TypeFilter->SetRawFilterText(InFilterText);
+	SearchBoxPtr->SetError(TypeFilter->GetFilterErrorText());
 	UpdatePalette();
 }
 

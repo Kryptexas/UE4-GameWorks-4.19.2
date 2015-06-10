@@ -52,7 +52,7 @@ void SAddContentWidget::Construct(const FArguments& InArgs)
 					.AutoHeight()
 					.Padding(FMargin(0, 0, 0, 5))
 					[
-						SNew(SSearchBox)
+						SAssignNew(SearchBoxPtr, SSearchBox)
 						.OnTextChanged(this, &SAddContentWidget::SearchTextChanged)
 					]
 
@@ -304,6 +304,7 @@ ECheckBoxState SAddContentWidget::GetCategoryCheckBoxCheckState(FCategoryViewMod
 void SAddContentWidget::SearchTextChanged(const FText& SearchText)
 {
 	ViewModel->SetSearchText(SearchText);
+	SearchBoxPtr->SetError(ViewModel->GetSearchErrorText());
 }
 
 void SAddContentWidget::ContentSourceTileViewSelectionChanged( TSharedPtr<FContentSourceViewModel> SelectedContentSource, ESelectInfo::Type SelectInfo )

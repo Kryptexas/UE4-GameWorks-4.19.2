@@ -156,7 +156,7 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 
 						+SOverlay::Slot()
 						[
-							SNew(SSearchBox)
+							SAssignNew(SearchBoxPtr, SSearchBox)
 							.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
 							.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
 						]
@@ -1265,6 +1265,7 @@ FReply SProjectBrowser::HandleMarketplaceTabButtonClicked()
 void SProjectBrowser::OnFilterTextChanged(const FText& InText)
 {
 	ProjectItemFilter.SetRawFilterText(InText);
+	SearchBoxPtr->SetError(ProjectItemFilter.GetFilterErrorText());
 	PopulateFilteredProjectCategories();
 }
 
