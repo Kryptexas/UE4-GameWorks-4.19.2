@@ -6577,8 +6577,10 @@ public class GUBP : BuildCommand
                     {
                         if (GameProj.GameName.Equals(GameName, StringComparison.InvariantCultureIgnoreCase))
                         {
-
-                            NodesToDo.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
+                            if (GameProj.Options(UnrealTargetPlatform.Win64).bIsPromotable)
+                            {
+                                NodesToDo.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
+                            }
                             foreach (var Node in GUBPNodes)
                             {
                                 if (Node.Value.GameNameIfAnyForTempStorage() == GameProj.GameName)
