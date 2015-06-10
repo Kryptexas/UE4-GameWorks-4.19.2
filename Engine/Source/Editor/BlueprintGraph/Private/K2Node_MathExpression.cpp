@@ -2608,6 +2608,11 @@ FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			{
 				CachedDisplayExpression.SetCachedText(FText::FromString(SanitizeDisplayExpression(ExpressionRoot->ToDisplayString(GetBlueprint()))), this);
 			}
+			else
+			{
+				// Fallback and display the expression in it's raw form
+				CachedDisplayExpression.SetCachedText(FText::FromString(Expression), this);
+			}
 		}
 		return CachedDisplayExpression;
 	}
@@ -2656,6 +2661,34 @@ FText UK2Node_MathExpression::GetFullTitle(FText InExpression) const
 {
 	// FText::Format() is slow, so we cache this to save on performance
 	return FText::Format(LOCTEXT("MathExpressionSecondTitleLine", "{0}\nMath Expression"), InExpression);
+}
+
+void UK2Node_MathExpression::FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )
+{
+	UK2Node_MathExpression* MathExpression1 = this;
+	UK2Node_MathExpression* MathExpression2 = Cast<UK2Node_MathExpression>(OtherNode);
+
+	// Compare the visual display of a math expression (the visual display involves consolidating variable Guid's into readable parameters)
+	FText Expression1 = MathExpression1->GetNodeTitle(ENodeTitleType::EditableTitle);
+	FText Expression2 = MathExpression2->GetNodeTitle(ENodeTitleType::EditableTitle);
+	if (Expression1.CompareTo(Expression2) != 0)
+	{
+		FDiffSingleResult Diff;
+		Diff.Node1 = MathExpression2;
+		Diff.Node2 = MathExpression1;
+
+		Diff.Diff = EDiffType::NODE_PROPERTY;
+		FText NodeName = GetNodeTitle(ENodeTitleType::ListView);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Expression1"), Expression1);
+		Args.Add(TEXT("Expression2"), Expression2);
+
+		Diff.ToolTip =  FText::Format(LOCTEXT("DIF_MathExpressionToolTip", "Math Expression '{Expression1}' changed to '{Expression2}'"), Args);
+		Diff.DisplayColor = FLinearColor(0.85f,0.71f,0.25f);
+		Diff.DisplayString = FText::Format(LOCTEXT("DIF_MathExpression", "Math Expression '{Expression1}' changed to '{Expression2}'"), Args);
+		Results.Add(Diff);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

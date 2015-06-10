@@ -175,6 +175,9 @@ protected:
 	/** Event handler that updates the graph view when user selects a new graph */
 	void HandleGraphChanged( const FName GraphName );
 
+	/** Checks if a graph is valid for diff'ing */
+	bool IsGraphDiffNeeded(class UEdGraph* InGraph) const;
+
 	struct FDiffControl
 	{
 		FDiffControl()

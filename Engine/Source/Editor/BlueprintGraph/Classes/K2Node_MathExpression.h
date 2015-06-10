@@ -35,6 +35,7 @@ public:
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PostPlacedNewNode() override;
 	virtual void ReconstructNode() override;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

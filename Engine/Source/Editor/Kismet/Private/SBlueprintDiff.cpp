@@ -668,7 +668,11 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 				break;
 			}
 		}
-		CreateGraphEntry(GraphOld,GraphNew);
+		// Do not worry about graphs that are contained in MathExpression nodes, they are recreated each compile
+		if (IsGraphDiffNeeded(GraphOld))
+		{
+			CreateGraphEntry(GraphOld,GraphNew);
+		}
 	}
 
 	//Add graphs that only exist in 2nd(new) blueprint
@@ -677,7 +681,11 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 		UEdGraph* GraphNew = *It2;
 		if(GraphNew != NULL)
 		{
-			CreateGraphEntry(NULL,GraphNew);
+			// Do not worry about graphs that are contained in MathExpression nodes, they are recreated each compile
+			if (IsGraphDiffNeeded(GraphNew))
+			{
+				CreateGraphEntry(NULL,GraphNew);
+			}
 		}
 	}
 
@@ -1387,6 +1395,12 @@ void SBlueprintDiff::SetCurrentMode(FName NewMode)
 	{
 		ensureMsgf(false, TEXT("Diff panel does not support mode %s"), *NewMode.ToString() );
 	}
+}
+
+bool SBlueprintDiff::IsGraphDiffNeeded(class UEdGraph* InGraph) const
+{
+	// Do not worry about graphs that are contained in MathExpression nodes, they are recreated each compile
+	return !InGraph->GetOuter()->IsA<UK2Node_MathExpression>();
 }
 
 #undef LOCTEXT_NAMESPACE
