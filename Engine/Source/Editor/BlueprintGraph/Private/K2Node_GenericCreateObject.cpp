@@ -86,4 +86,9 @@ void UK2Node_GenericCreateObject::EarlyValidation(class FCompilerResultsLog& Mes
 	}
 }
 
+bool UK2Node_GenericCreateObject::IsCompatibleWithGraph(const UEdGraph* TargetGraph) const
+{
+	return UK2Node::IsCompatibleWithGraph(TargetGraph);
+}
+
 #undef LOCTEXT_NAMESPACE

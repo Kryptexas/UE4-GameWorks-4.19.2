@@ -341,13 +341,19 @@ UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject
 #if WITH_EDITOR
 		FMessageLog("PIE").Error(FText::Format(LOCTEXT("SpawnObjectWrongClass", "SpawnObject wrong class: {0}'"), FText::FromString(GetNameSafe(*ObjectClass))));
 #endif // WITH_EDITOR
-		UE_LOG(LogScript, Error, TEXT("UGameplayStatics::SpawnObject wrong class: %s"), *GetNameSafe(*ObjectClass));
+		UE_LOG(LogScript, Error, TEXT("UGameplayStatics::SpawnObject wrong class: %s"), *GetPathNameSafe(*ObjectClass));
 		return nullptr;
 	}
 
 	if (!Outer)
 	{
 		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject null outer"));
+		return nullptr;
+	}
+
+	if (ObjectClass->ClassWithin && !Outer->IsA(ObjectClass->ClassWithin))
+	{
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject outer %s is not %s"), *GetPathNameSafe(Outer), *GetPathNameSafe(ObjectClass->ClassWithin));
 		return nullptr;
 	}
 
