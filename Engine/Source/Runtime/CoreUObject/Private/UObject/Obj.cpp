@@ -2197,34 +2197,6 @@ void UObject::RetrieveReferencers( TArray<FReferencerInformation>* OutInternalRe
 	}
 }
 
-UObject* UObject::CreateArchetype( const TCHAR* ArchetypeName, UObject* ArchetypeOuter, UObject* AlternateArchetype/*=NULL*/, FObjectInstancingGraph* InstanceGraph/*=NULL*/ )
-{
-	check(ArchetypeName);
-	check(ArchetypeOuter);
-
-	EObjectFlags ArchetypeObjectFlags = RF_Public | RF_ArchetypeObject;
-	
-	// Archetypes residing directly in packages need to be marked RF_Standalone
-	if( dynamic_cast<UPackage*>(ArchetypeOuter) )
-	{
-		ArchetypeObjectFlags |= RF_Standalone;
-	}
-
-	UObject* ArchetypeObject = StaticConstructObject_Internal(GetClass(), ArchetypeOuter, ArchetypeName, ArchetypeObjectFlags, this, true, InstanceGraph);
-	check(ArchetypeObject);
-
-	UObject* NewArchetype = AlternateArchetype == NULL
-		? GetArchetype()
-		: AlternateArchetype;
-
-	check(NewArchetype);
-	// make sure the alternate archetype has the same class
-	check(NewArchetype->GetClass()==GetClass());
-
-	return ArchetypeObject;
-}
-
-
 void UObject::ParseParms( const TCHAR* Parms )
 {
 	if( !Parms )

@@ -862,26 +862,6 @@ public:
 	void SetLinker( FLinkerLoad* LinkerLoad, int32 LinkerIndex, bool bShouldDetachExisting=true );
 
 	/**
-	 * Creates a new archetype based on this UObject.  The archetype's property values will match
-	 * the current values of this UObject.
-	 *
-	 * @param	ArchetypeName			the name for the new class
-	 * @param	ArchetypeOuter			the outer to create the new class in (package?)
-	 * @param	AlternateArchetype		if specified, is set as the ObjectArchetype for the newly created archetype, after the new archetype
-	 *									is initialized against "this".  Should only be specified in cases where you need the new archetype to
-	 *									inherit the property values of this object, but don't want this object to be the new archetype's ObjectArchetype.
-	 * @param	InstanceGraph			contains the mappings of instanced objects and components to their templates
-	 *
-	 * @return	a pointer to a UObject which has values identical to this object
-	 */
-	UObject* CreateArchetype( const TCHAR* ArchetypeName, UObject* ArchetypeOuter, UObject* AlternateArchetype=NULL, struct FObjectInstancingGraph* InstanceGraph=NULL );
-
-	/**
-	 *	Update the ObjectArchetype of this UObject based on this UObject's properties.
-	 */
-	void UpdateArchetype();
-
-	/**
 	 * Return the template that an object with this class, outer and name would be
 	 * 
 	 * @return the archetype for this object
