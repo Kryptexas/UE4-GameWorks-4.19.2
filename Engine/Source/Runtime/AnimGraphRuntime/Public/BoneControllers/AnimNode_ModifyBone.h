@@ -8,13 +8,13 @@
 UENUM()
 enum EBoneModificationMode
 {
-	// The modifier ignores this channel (keeps the existing bone translation, rotation, or scale)
+	/** The modifier ignores this channel (keeps the existing bone translation, rotation, or scale). */
 	BMM_Ignore,
 
-	// The modifier replaces the existing translation, rotation, or scale
+	/** The modifier replaces the existing translation, rotation, or scale. */
 	BMM_Replace,
 
-	// The modifier adds to the existing translation, rotation, or scale
+	/** The modifier adds to the existing translation, rotation, or scale. */
 	BMM_Additive
 };
 
