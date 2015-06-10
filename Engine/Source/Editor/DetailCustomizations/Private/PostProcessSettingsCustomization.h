@@ -4,7 +4,7 @@
 
 
 /**
- * Implements a details view customization for the FTimespan structure.
+ * Implements a details view customization for the FPostProcessSettings structure.
  */
 class FPostProcessSettingsCustomization
 	: public IPropertyTypeCustomization
