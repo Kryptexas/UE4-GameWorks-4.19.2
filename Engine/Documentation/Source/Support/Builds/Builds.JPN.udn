@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2574308
+﻿INTSourceChangelist:2581858
 Availability:Public
 Title:ビルド
 Crumbs:%ROOT%
@@ -10,6 +10,19 @@ Description:アンリアル エンジン ビルドのリリースノート
 	[/PARAM]
 	[PARAM:title]
 	2015
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2015/4_8)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	2014
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
