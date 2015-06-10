@@ -51,8 +51,8 @@ TSharedRef<SWidget> UMultiLineEditableTextBox::RebuildWidget()
 //		.RevertTextOnEscape(RevertTextOnEscape)
 //		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 //		.SelectAllTextOnCommit(SelectAllTextOnCommit)
-//		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
-//		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
+		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		;
 
 	return MyEditableTextBlock.ToSharedRef();
