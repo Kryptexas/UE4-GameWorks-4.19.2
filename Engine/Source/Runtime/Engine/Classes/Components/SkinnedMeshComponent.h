@@ -23,7 +23,7 @@ UENUM()
 enum EBoneVisibilityStatus
 {
 	/** Bone is hidden because it's parent is hidden. */
-	BVS_HiddenByParent
+	BVS_HiddenByParent,
 	/** Bone is visible. */
 	BVS_Visible,
 	/** Bone is hidden directly. */
