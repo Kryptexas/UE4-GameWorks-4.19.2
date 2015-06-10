@@ -251,7 +251,7 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& CustomName, cons
 			FNetworkReplayUserList UserList;
 
 			UserList.Users = UserNames;
-			HttpRequest->SetContentAsString( UserList.ToJson() );
+			HttpRequest->SetContentAsString( UserList.ToJson(false) );
 			HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
 		}
 
