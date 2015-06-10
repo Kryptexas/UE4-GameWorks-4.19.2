@@ -270,6 +270,19 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Remove any inventory
 	FBuildPatchFileConstructor::PurgeFileDataInventory();
 
+	// Store some totals
+	const uint32 NumFilesInBuild = NewBuildManifest->GetNumFiles();
+
+	// Save stats
+	{
+		FScopeLock Lock(&ThreadLock);
+		BuildStats.AppName = NewBuildManifest->GetAppName();
+		BuildStats.AppPatchVersion = NewBuildManifest->GetVersionString();
+		BuildStats.AppInstalledVersion = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetVersionString() : TEXT("NONE");
+		BuildStats.CloudDirectory = FBuildPatchServicesModule::GetCloudDirectory();
+		BuildStats.NumFilesInBuild = NumFilesInBuild;
+	}
+
 	// Check if we should skip out of this process due to existing installation,
 	// that will mean we start with the verification stage
 	bool bFirstTimeRun = CorruptFiles.Num() == 0;
@@ -325,9 +338,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Hold the file constructor thread
 	FBuildPatchFileConstructor* FileConstructor = NULL;
 
-	// Store some totals
-	const uint32 NumFilesInBuild = NewBuildManifest->GetNumFiles();
-
 	// Stats for build
 	const uint32 NumFilesToConstruct = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumFilesToConstruct();
 	const uint32 NumRequiredChunks = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumRequiredChunks();
@@ -337,11 +347,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Save stats
 	{
 		FScopeLock Lock(&ThreadLock);
-		BuildStats.AppName = NewBuildManifest->GetAppName();
-		BuildStats.AppPatchVersion = NewBuildManifest->GetVersionString();
-		BuildStats.AppInstalledVersion = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetVersionString() : TEXT("NONE");
-		BuildStats.CloudDirectory = FBuildPatchServicesModule::GetCloudDirectory();
-		BuildStats.NumFilesInBuild = NumFilesInBuild;
 		BuildStats.NumFilesOutdated = NumFilesToConstruct;
 		BuildStats.NumChunksRequired = NumRequiredChunks;
 		BuildStats.ChunksQueuedForDownload = NumChunksToDownload;

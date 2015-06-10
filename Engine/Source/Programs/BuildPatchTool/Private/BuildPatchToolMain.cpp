@@ -142,13 +142,15 @@ namespace EBuildPatchToolMode
 
 int32 BuildPatchToolMain( const TCHAR* CommandLine )
 {
-	GEngineLoop.PreInit(CommandLine);
-
 	// Add log device
-	if (FParse::Param(FCommandLine::Get(), TEXT("stdout")))
+	if (FParse::Param(CommandLine, TEXT("stdout")))
 	{
 		GLog->AddOutputDevice(new FBuildPatchOutputDevice());
 	}
+
+	GEngineLoop.PreInit(CommandLine);
+	GConfig->InitializeConfigSystem();
+	IFileManager::Get().ProcessCommandLineOptions();
 
 	GLog->Logf(TEXT("BuildPatchToolMain ran with: %s"), CommandLine);
 
@@ -262,7 +264,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		switch (ToolMode)
 		{
 		case EBuildPatchToolMode::PatchGeneration:
-		bSuccess = bSuccess && FParse::Value( *Switches[CloudDirIdx], TEXT( "CloudDir=" ), CloudDirectory );
+			bSuccess = bSuccess && FParse::Value( *Switches[CloudDirIdx], TEXT( "CloudDir=" ), CloudDirectory );
 			bSuccess = bSuccess && FParse::Value(*Switches[BuildRootIdx], TEXT("BuildRoot="), RootDirectory);
 			bSuccess = bSuccess && FParse::Value(*Switches[AppIDIdx], TEXT("AppID="), AppID);
 			bSuccess = bSuccess && FParse::Value(*Switches[AppNameIdx], TEXT("AppName="), AppName);
@@ -372,7 +374,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		{
 			// Initialize the configuration system, we can only do this reliably if we have CloudDirectory (i.e. bSuccess is true)
 			IniFile = CloudDirectory / TEXT("BuildPatchTool.ini");
-			GConfig->InitializeConfigSystem();
 
 			if (DataAgeThresholdIdx != INDEX_NONE)
 			{
@@ -405,9 +406,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			}
 		}
 	}
-
-	// Initialize the file manager
-	IFileManager::Get().ProcessCommandLineOptions();
 
 	// Check for argument error
 	if( !bSuccess )
@@ -552,7 +550,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
-	FString CommandLine;
+	FString CommandLine = TEXT("-usehyperthreading");
 	for( int32 Option = 1; Option < ArgC; Option++ )
 	{
 		CommandLine += TEXT(" ");
