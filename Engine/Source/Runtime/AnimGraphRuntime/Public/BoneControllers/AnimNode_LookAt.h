@@ -41,7 +41,7 @@ namespace EInterpolationBlend
  *	Simple controller that make a bone to look at the point or another bone
  */
 USTRUCT()
-struct ENGINE_API FAnimNode_LookAt : public FAnimNode_SkeletalControlBase
+struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 

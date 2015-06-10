@@ -17,7 +17,7 @@ struct FWheelSimulator
  *	Simple controller that replaces or adds to the translation/rotation of a single bone.
  */
 USTRUCT()
-struct ENGINE_API FAnimNode_WheelHandler : public FAnimNode_SkeletalControlBase
+struct ANIMGRAPHRUNTIME_API FAnimNode_WheelHandler : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 

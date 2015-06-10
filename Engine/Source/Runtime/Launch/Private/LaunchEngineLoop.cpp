@@ -1786,6 +1786,8 @@ void FEngineLoop::LoadPreInitModules()
 
 	FModuleManager::Get().LoadModule(TEXT("Renderer"));
 
+	FModuleManager::Get().LoadModule(TEXT("AnimGraphRuntime"));
+
 	FPlatformMisc::LoadPreInitModules();
 	
 #if !UE_SERVER

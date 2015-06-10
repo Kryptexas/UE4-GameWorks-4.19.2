@@ -5,7 +5,7 @@
 #include "BlueprintGraphDefinitions.h"
 #include "AnimGraphNode_ModifyBone.h"
 #include "Animation/AnimSingleNodeInstance.h"
-#include "Animation/BoneControllers/AnimNode_ModifyBone.h"
+#include "BoneControllers/AnimNode_ModifyBone.h"
 #include "AnimPreviewInstance.generated.h"
 
 /** Enum to know how montage is being played */

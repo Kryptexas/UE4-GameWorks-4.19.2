@@ -10,7 +10,7 @@
  */
 
 USTRUCT()
-struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
+struct ANIMGRAPHRUNTIME_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 	

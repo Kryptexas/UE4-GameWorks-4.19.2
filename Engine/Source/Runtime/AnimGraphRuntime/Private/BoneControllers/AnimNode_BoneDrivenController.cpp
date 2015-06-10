@@ -1,17 +1,19 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
-#include "Animation/BoneControllers/AnimNode_BoneDrivenController.h"
+#include "AnimGraphRuntimePrivatePCH.h"
+#include "BoneControllers/AnimNode_BoneDrivenController.h"
+
+/////////////////////////////////////////////////////
+// FAnimNode_BoneDrivenController
 
 FAnimNode_BoneDrivenController::FAnimNode_BoneDrivenController()
-: SourceComponent(EComponentType::None)
-, TargetComponent(EComponentType::None)
-, Multiplier(1.0f)
-, bUseRange(false)
-, RangeMin(-1.0f)
-, RangeMax(1.0f)
+	: SourceComponent(EComponentType::None)
+	, TargetComponent(EComponentType::None)
+	, Multiplier(1.0f)
+	, bUseRange(false)
+	, RangeMin(-1.0f)
+	, RangeMax(1.0f)
 {
-
 }
 
 void FAnimNode_BoneDrivenController::GatherDebugData(FNodeDebugData& DebugData)

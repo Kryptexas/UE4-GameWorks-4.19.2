@@ -176,7 +176,7 @@ public:
 	bool IsNormalized() const;
 };
 
-struct FNodeDebugData
+struct ENGINE_API FNodeDebugData
 {
 private:
 	struct DebugItem
@@ -187,14 +187,14 @@ private:
 		FString DebugData;
 
 		// Whether we are supplying a pose instead of modifying one (e.g. an playing animation)
-		bool	bPoseSource;
+		bool bPoseSource;
 
 		// Nodes that we are connected to
 		TArray<FNodeDebugData> ChildNodeChain;
 	};
 
 	// This nodes final contribution weight (based on its own weight and the weight of its parents)
-	float			AbsoluteWeight;
+	float AbsoluteWeight;
 
 	// Nodes that we are dependent on
 	TArray<DebugItem> NodeChain;
@@ -204,10 +204,10 @@ public:
 	{
 		FFlattenedDebugData(FString Line, float AbsWeight, int32 InIndent, int32 InChainID, bool bInPoseSource) : DebugLine(Line), AbsoluteWeight(AbsWeight), Indent(InIndent), ChainID(InChainID), bPoseSource(bInPoseSource){}
 		FString DebugLine;
-		float	AbsoluteWeight;
-		int32	Indent;
-		int32	ChainID;
-		bool	bPoseSource;
+		float AbsoluteWeight;
+		int32 Indent;
+		int32 ChainID;
+		bool bPoseSource;
 
 		bool IsOnActiveBranch() { return AbsoluteWeight > ZERO_ANIMWEIGHT_THRESH; }
 	};
@@ -215,8 +215,8 @@ public:
 	FNodeDebugData(const class UAnimInstance* InAnimInstance) : AbsoluteWeight(1.f), AnimInstance(InAnimInstance) {}
 	FNodeDebugData(const class UAnimInstance* InAnimInstance, const float AbsWeight) : AbsoluteWeight(AbsWeight), AnimInstance(InAnimInstance) {}
 
-	void			AddDebugItem(FString DebugData, bool bPoseSource = false);
-	FNodeDebugData&	BranchFlow(float BranchWeight);
+	void AddDebugItem(FString DebugData, bool bPoseSource = false);
+	FNodeDebugData& BranchFlow(float BranchWeight);
 
 	template<class Type>
 	FString GetNodeName(Type* Node)
@@ -235,7 +235,7 @@ public:
 	}
 
 	// Anim instance that we are generating debug data for
-	const class UAnimInstance* AnimInstance;
+	const UAnimInstance* AnimInstance;
 };
 
 // The display mode of editable values on an animation node

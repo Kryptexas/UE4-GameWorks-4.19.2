@@ -3,7 +3,7 @@
 #pragma once
 
 #include "AnimGraphNode_SkeletalControlBase.h"
-#include "Animation/BoneControllers/AnimNode_WheelHandler.h"
+#include "BoneControllers/AnimNode_WheelHandler.h"
 #include "AnimGraphNode_WheelHandler.generated.h"
 
 UCLASS(MinimalAPI, meta=(Keywords = "Modify Wheel Vehicle"))

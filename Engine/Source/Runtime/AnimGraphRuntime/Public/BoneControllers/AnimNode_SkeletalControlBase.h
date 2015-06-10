@@ -7,13 +7,13 @@
 
 #pragma once
 
-#include "../AnimNodeBase.h"
-#include "../InputScaleBias.h"
+#include "Animation/AnimNodeBase.h"
+#include "Animation/InputScaleBias.h"
 #include "AnimNode_SkeletalControlBase.generated.h"
 
 
 USTRUCT()
-struct ENGINE_API FAnimNode_SkeletalControlBase : public FAnimNode_Base
+struct ANIMGRAPHRUNTIME_API FAnimNode_SkeletalControlBase : public FAnimNode_Base
 {
 	GENERATED_USTRUCT_BODY()
 

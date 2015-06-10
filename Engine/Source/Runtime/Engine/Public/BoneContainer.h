@@ -13,7 +13,7 @@ class USkeleton;
 * - BoneIndicesArray: Array of RequiredBoneIndices for Current Asset. In increasing order. Mapping to current Array of Transforms (Pose).
 * - BoneSwitchArray: Size of current Skeleton. true if Bone is contained in RequiredBones array, false otherwise.
 **/
-struct FBoneContainer
+struct ENGINE_API FBoneContainer
 {
 private:
 	/** Array of RequiredBonesIndices. In increasing order. */
@@ -176,13 +176,13 @@ public:
 	}
 
 	/** Get BoneIndex for BoneName for current Asset. */
-	ENGINE_API int32 GetPoseBoneIndexForBoneName(const FName& BoneName) const;
+	int32 GetPoseBoneIndexForBoneName(const FName& BoneName) const;
 
 	/** Get ParentBoneIndex for current Asset. */
-	ENGINE_API int32 GetParentBoneIndex(const int32& BoneIndex) const;
+	int32 GetParentBoneIndex(const int32& BoneIndex) const;
 
 	/** Get ParentBoneIndex for current Asset. */
-	ENGINE_API FCompactPoseBoneIndex GetParentBoneIndex(const FCompactPoseBoneIndex& BoneIndex) const;
+	FCompactPoseBoneIndex GetParentBoneIndex(const FCompactPoseBoneIndex& BoneIndex) const;
 
 	/** Get Depth between bones for current asset. */
 	int32 GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const;
@@ -256,7 +256,7 @@ public:
 
 private:
 	/** Initialize FBoneContainer. */
-	ENGINE_API void Initialize();
+	void Initialize();
 
 	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
 	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton& TargetSkeleton);

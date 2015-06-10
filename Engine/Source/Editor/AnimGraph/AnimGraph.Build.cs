@@ -15,6 +15,7 @@ public class AnimGraph : ModuleRules
 				"CoreUObject", 
 				"Engine", 
 				"Slate",
+				"AnimGraphRuntime",
 				"BlueprintGraph",
 			}
 		);

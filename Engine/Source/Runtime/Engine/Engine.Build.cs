@@ -78,6 +78,10 @@ public class Engine : ModuleRules
         CircularlyReferencedDependentModules.Add("UMG");
 		CircularlyReferencedDependentModules.Add("Niagara");
 
+		// The AnimGraphRuntime module is not needed by Engine proper, but it is loaded in LaunchEngineLoop.cpp,
+		// and needs to be listed in an always-included module in order to be compiled into standalone games
+		DynamicallyLoadedModuleNames.Add("AnimGraphRuntime");
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{

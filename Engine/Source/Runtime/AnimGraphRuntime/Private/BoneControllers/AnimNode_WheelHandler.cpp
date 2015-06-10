@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "EnginePrivate.h"
+#include "AnimGraphRuntimePrivatePCH.h"
 #include "AnimationRuntime.h"
-#include "Animation/BoneControllers/AnimNode_WheelHandler.h"
+#include "BoneControllers/AnimNode_WheelHandler.h"
 #include "GameFramework/WheeledVehicle.h"
 #include "Vehicles/WheeledVehicleMovementComponent.h"
 #include "Vehicles/VehicleWheel.h"

@@ -10,11 +10,8 @@
 */
 
 /** Transient structure for FABRIK node evaluation */
-USTRUCT()
 struct FABRIKChainLink
 {
-	GENERATED_USTRUCT_BODY()
-
 public:
 	/** Position of bone in component space. */
 	FVector Position;
@@ -30,7 +27,6 @@ public:
 
 	/** Child bones which are overlapping this bone. 
 	 * They have a zero length distance, so they will inherit this bone's transformation. */
-	UPROPERTY()
 	TArray<int32> ChildZeroLengthTransformIndices;
 
 	FABRIKChainLink()
@@ -41,7 +37,7 @@ public:
 	{
 	}
 
-	FABRIKChainLink(FVector const & InPosition, float const & InLength, const FCompactPoseBoneIndex& InBoneIndex, int32 const & InTransformIndex)
+	FABRIKChainLink(const FVector& InPosition, const float& InLength, const FCompactPoseBoneIndex& InBoneIndex, const int32& InTransformIndex)
 		: Position(InPosition)
 		, Length(InLength)
 		, BoneIndex(InBoneIndex)
@@ -51,7 +47,7 @@ public:
 };
 
 USTRUCT()
-struct ENGINE_API FAnimNode_Fabrik : public FAnimNode_SkeletalControlBase
+struct ANIMGRAPHRUNTIME_API FAnimNode_Fabrik : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 
