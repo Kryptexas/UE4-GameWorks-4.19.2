@@ -10,15 +10,15 @@ namespace ELandscapeToolFlattenMode
 {
 	enum Type
 	{
-		//Invalid = -1,
+		// Invalid = -1,
 
-		// Flatten may both raise and lower values
+		/** Flatten may both raise and lower values */
 		Both = 0,
 
-		// Flatten may only raise values, values above the clicked point will be left unchanged
+		/** Flatten may only raise values, values above the clicked point will be left unchanged */
 		Raise = 1,
 
-		// Flatten may only lower values, values below the clicked point will be left unchanged
+		/** Flatten may only lower values, values below the clicked point will be left unchanged */
 		Lower = 2,
 	};
 }
@@ -28,15 +28,15 @@ namespace ELandscapeToolErosionMode
 {
 	enum Type
 	{
-		//Invalid = -1,
+		// Invalid = -1,
 
-		// Apply all erosion effects, both raising and lowering the heightmap
+		/** Apply all erosion effects, both raising and lowering the heightmap */
 		Both = 0,
 
-		// Only applies erosion effects that result in raising the heightmap
+		/** Only applies erosion effects that result in raising the heightmap */
 		Raise = 1,
 
-		// Only applies erosion effects that result in lowering the heightmap
+		/** Only applies erosion effects that result in lowering the heightmap */
 		Lower = 2,
 	};
 }
@@ -46,12 +46,12 @@ namespace ELandscapeToolHydroErosionMode
 {
 	enum Type
 	{
-		//Invalid = -1,
+		// Invalid = -1,
 
-		// Rains in some places and not others, randomly
+		/** Rains in some places and not others, randomly */
 		Both = 0,
 
-		// Rain is applied to the entire area
+		/** Rain is applied to the entire area */
 		Positive = 1,
 	};
 }
@@ -63,15 +63,15 @@ namespace ELandscapeToolNoiseMode
 {
 	enum Type
 	{
-		//Invalid = -1,
+		// Invalid = -1,
 
-		// Noise will both raise and lower the heightmap
+		/** Noise will both raise and lower the heightmap */
 		Both = 0,
 
-		// Noise will only raise the heightmap
+		/** Noise will only raise the heightmap */
 		Raise = 1,
 
-		// Noise will only lower the heightmap
+		/** Noise will only lower the heightmap */
 		Lower = 2,
 	};
 }
@@ -82,15 +82,15 @@ namespace ELandscapeToolPasteMode
 {
 	enum Type
 	{
-		//Invalid = -1,
+		// Invalid = -1,
 
-		// Paste may both raise and lower values
+		/** Paste may both raise and lower values */
 		Both = 0,
 
-		// Paste may only raise values, places where the pasted data would be below the heightmap are left unchanged. Good for copy/pasting mountains
+		/** Paste may only raise values, places where the pasted data would be below the heightmap are left unchanged. Good for copy/pasting mountains */
 		Raise = 1,
 
-		// Paste may only lower values, places where the pasted data would be above the heightmap are left unchanged. Good for copy/pasting valleys or pits
+		/** Paste may only lower values, places where the pasted data would be above the heightmap are left unchanged. Good for copy/pasting valleys or pits */
 		Lower = 2,
 	};
 }
@@ -100,15 +100,15 @@ namespace ELandscapeConvertMode
 {
 	enum Type
 	{
-		//Invalid = -1,
+		// Invalid = -1,
 
-		// Given the new component size, the edges of the landscape will be expanded as necessary until its overall size is a whole number of landscape components.
+		/** Given the new component size, the edges of the landscape will be expanded as necessary until its overall size is a whole number of landscape components. */
 		Expand = 0,
 
-		// Given the new component size, the edges of the landscape will be trimmed until its overall size is a whole number of landscape components.
+		/** Given the new component size, the edges of the landscape will be trimmed until its overall size is a whole number of landscape components. */
 		Clip = 1,
 
-		// The landscape will have the same overall size in the world, and have the same number of components. Existing landscape geometry and layer data will be resampled to match the new resolution.
+		/** The landscape will have the same overall size in the world, and have the same number of components. Existing landscape geometry and layer data will be resampled to match the new resolution. */
 		Resample = 2,
 	};
 }

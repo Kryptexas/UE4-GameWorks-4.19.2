@@ -14,10 +14,10 @@
 UENUM()
 enum ERotationGridMode
 {
-	/** Using Divisions of 360 degrees (e.g 360/2. 360/3, 360/4, ... ) */
+	/** Using Divisions of 360 degrees (e.g 360/2. 360/3, 360/4, ... ). */
 	GridMode_DivisionsOf360,
 
-	/** Uses the user defined grid values */
+	/** Uses the user defined grid values. */
 	GridMode_Common,
 };
 

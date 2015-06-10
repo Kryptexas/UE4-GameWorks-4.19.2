@@ -48,6 +48,7 @@ UENUM()
 namespace ERecastPartitioning
 {
 	// keep in sync with rcRegionPartitioning enum!
+
 	enum Type
 	{
 		Monotone,
@@ -58,21 +59,21 @@ namespace ERecastPartitioning
 
 namespace ERecastPathFlags
 {
-	/** if set, path won't be post processed */
+	/** If set, path won't be post processed. */
 	const int32 SkipStringPulling = (1 << 0);
 
-	/** if set, path will contain navigation corridor */
+	/** If set, path will contain navigation corridor. */
 	const int32 GenerateCorridor = (1 << 1);
 }
 
-/** helper to translate FNavPathPoint.Flags */
+/** Helper to translate FNavPathPoint.Flags. */
 struct ENGINE_API FNavMeshNodeFlags
 {
-	/** Extra node information (like "path start", "off-mesh connection") */
+	/** Extra node information (like "path start", "off-mesh connection"). */
 	uint8 PathFlags;
-	/** Area type after this node */
+	/** Area type after this node. */
 	uint8 Area;
-	/** Area flags for this node */
+	/** Area flags for this node. */
 	uint16 AreaFlags;
 
 	FNavMeshNodeFlags() : PathFlags(0), Area(0), AreaFlags(0) {}

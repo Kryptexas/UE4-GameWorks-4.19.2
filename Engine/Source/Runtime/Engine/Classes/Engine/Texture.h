@@ -33,7 +33,7 @@ enum TextureFilter
 	TF_Nearest UMETA(DisplayName="Nearest"),
 	TF_Bilinear UMETA(DisplayName="Bi-linear"),
 	TF_Trilinear UMETA(DisplayName="Tri-linear"),
-	/** use setting from the Texture Group */
+	/** Use setting from the Texture Group. */
 	TF_Default UMETA(DisplayName="Default (from Texture Group)"),
 	TF_MAX,
 };
@@ -51,13 +51,13 @@ UENUM()
 enum ECompositeTextureMode
 {
 	CTM_Disabled UMETA(DisplayName="Disabled"),
-	// CompositingTexture needs to be a normal map with the same or larger size
+	/** CompositingTexture needs to be a normal map with the same or larger size. */
 	CTM_NormalRoughnessToRed UMETA(DisplayName="Add Normal Roughness To Red"),
-	// CompositingTexture needs to be a normal map with the same or larger size
+	/** CompositingTexture needs to be a normal map with the same or larger size. */
 	CTM_NormalRoughnessToGreen UMETA(DisplayName="Add Normal Roughness To Green"),
-	// CompositingTexture needs to be a normal map with the same or larger size
+	/** CompositingTexture needs to be a normal map with the same or larger size. */
 	CTM_NormalRoughnessToBlue UMETA(DisplayName="Add Normal Roughness To Blue"),
-	// CompositingTexture needs to be a normal map with the same or larger size
+	/** CompositingTexture needs to be a normal map with the same or larger size. */
 	CTM_NormalRoughnessToAlpha UMETA(DisplayName="Add Normal Roughness To Alpha"),
 	CTM_MAX,
 
@@ -78,11 +78,11 @@ enum ETextureMipCount
 UENUM()
 enum ETextureSourceArtType
 {
-	// FColor Data[SrcWidth * SrcHeight]
+	/** FColor Data[SrcWidth * SrcHeight]. */
 	TSAT_Uncompressed,
-	// PNG compresed version of FColor Data[SrcWidth * SrcHeight]
+	/** PNG compresed version of FColor Data[SrcWidth * SrcHeight]. */
 	TSAT_PNGCompressed,
-	// DDS file with header
+	/** DDS file with header. */
 	TSAT_DDSFile,
 	TSAT_MAX,
 };

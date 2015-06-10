@@ -52,10 +52,14 @@ namespace EEnvTestFilterType
 {
 	enum Type
 	{
-		Minimum,	// For numeric tests
-		Maximum,	// For numeric tests
-		Range,		// For numeric tests
-		Match		// For boolean tests
+		/** For numeric tests. */
+		Minimum,
+		/** For numeric tests. */
+		Maximum,
+		/** For numeric tests. */
+		Range,
+		/** For Boolean tests. */
+		Match
 	};
 }
 
@@ -67,6 +71,7 @@ namespace EEnvTestScoreEquation
 		Linear,
 		Square,
 		InverseLinear,	// For now...
+
 		Constant
 		// What other curve shapes should be supported?  At first I was thinking we'd have parametric (F*V^P + C), but
 		// many versions of that curve would violate the [0, 1] output range which I think we should preserve.  So instead
@@ -101,9 +106,12 @@ namespace EEnvTestCost
 {
 	enum Type
 	{
-		Low,				// reading data, math operations (e.g. distance)
-		Medium,				// processing data from multiple sources (e.g. fire tickets)
-		High,				// really expensive calls (e.g. visibility traces, pathfinding)
+		/** Reading data, math operations (e.g. distance). */
+		Low,
+		/** Processing data from multiple sources (e.g. fire tickets). */
+		Medium,
+		/** Really expensive calls (e.g. visibility traces, pathfinding).  */
+		High,
 	};
 }
 
@@ -204,8 +212,10 @@ namespace EEnvQueryTestClamping
 	enum Type
 	{
 		None,			
-		SpecifiedValue,	// Clamp to value specified in test
-		FilterThreshold	// Clamp to test's filter threshold
+		/** Clamp to value specified in test. */
+		SpecifiedValue,
+		/** Clamp to test's filter threshold. */
+		FilterThreshold
 	};
 }
 

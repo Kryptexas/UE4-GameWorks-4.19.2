@@ -8,9 +8,12 @@
 UENUM()
 enum class ELocalizationTargetConflictStatus : uint8
 {
-	Unknown, /* The status of conflicts in this localization target could not be determined. */
-	ConflictsPresent, /* The are outstanding conflicts present in this localization target. */
-	Clear, /* The localization target is clear of conflicts. */
+	/** The status of conflicts in this localization target could not be determined. */
+	Unknown,
+	/** The are outstanding conflicts present in this localization target. */
+	ConflictsPresent,
+	/** The localization target is clear of conflicts. */
+	Clear,
 };
 
 USTRUCT()
@@ -227,12 +230,18 @@ struct FCultureStatistics
 UENUM()
 enum class ELocalizationTargetLoadingPolicy : uint8
 {
-	Never,			/* This target's localization data will never be loaded automatically. */
-	Always,			/* This target's localization data will always be loaded automatically. */
-	Editor,			/* This target's localization data will only be loaded when running the editor. Use if this target localizes the editor. */
-	Game,			/* This target's localization data will only be loaded when running the game. Use if this target localizes your game. */
-	PropertyNames,	/* This target's localization data will only be loaded if the editor is displaying localized property names. */
-	ToolTips,		/* This target's localization data will only be loaded if the editor is displaying localized tool tips. */
+	/** This target's localization data will never be loaded automatically. */
+	Never,
+	/** This target's localization data will always be loaded automatically. */
+	Always,
+	/** This target's localization data will only be loaded when running the editor. Use if this target localizes the editor. */
+	Editor,
+	/** This target's localization data will only be loaded when running the game. Use if this target localizes your game. */
+	Game,
+	/** This target's localization data will only be loaded if the editor is displaying localized property names. */
+	PropertyNames,
+	/** This target's localization data will only be loaded if the editor is displaying localized tool tips. */
+	Tooltips,
 };
 
 USTRUCT()

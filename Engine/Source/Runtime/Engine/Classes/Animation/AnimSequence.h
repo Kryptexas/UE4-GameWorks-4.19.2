@@ -33,7 +33,7 @@ enum AnimationCompressionFormat
 };
 
 /**
- * Indicates animation data compression format.
+ * Indicates animation data key format.
  */
 UENUM()
 enum AnimationKeyFormat
@@ -45,35 +45,33 @@ enum AnimationKeyFormat
 };
 
 /** 
- * AdditiveAnimationType
- * 
- * This dictates if this is additive or not, If it is, what kind of additive
+ * Indicates whether an animation is additive, and what kind.
  */
 UENUM()
 enum EAdditiveAnimationType
 {
-	/** No additive */
+	/** No additive. */
 	AAT_None  UMETA(DisplayName="No additive"),
-	/* Create Additive from LocalSpace Base */
+	/* Create Additive from LocalSpace Base. */
 	AAT_LocalSpaceBase UMETA(DisplayName="Local Space"),
-	/* Create Additive from MeshSpace Rotation Only, Translation still will be LocalSpace */
+	/* Create Additive from MeshSpace Rotation Only, Translation still will be LocalSpace. */
 	AAT_RotationOffsetMeshSpace UMETA(DisplayName="Mesh Space"),
 	AAT_MAX,
 };
 
 /** 
- * What kind of additive animation
+ * For an additive animation, indicates what the animation is relative to.
  */
 UENUM()
 enum EAdditiveBasePoseType
 {
-	// will be deprecated
+	/** Will be deprecated. */
 	ABPT_None UMETA(DisplayName="None"),
-	// use ref pose of Skeleton as base
+	/** Use the Skeleton's ref pose as base. */
 	ABPT_RefPose UMETA(DisplayName="Reference Pose"),
-	// use whole animation as a base pose. Need BasePoseSeq.
+	/** Use a whole animation as a base pose. BasePoseSeq must be set. */
 	ABPT_AnimScaled UMETA(DisplayName="Selected animation scaled"),
-	// use animation as a base pose. Need BasePoseSeq and RefFrameIndex (will clamp if outside).
+	/** Use one frame of an animation as a base pose. BasePoseSeq and RefFrameIndex must be set (RefFrameIndex will be clamped). */
 	ABPT_AnimFrame UMETA(DisplayName="Selected animation frame"),
 	ABPT_MAX,
 };
@@ -115,11 +113,9 @@ struct FRawAnimSequenceTrack
 	}
 };
 
-/**
- * These two always should go together, but it is not right now. 
- * I wonder in the future, we change all compressed to be inside as well, so they all stay together
- * When remove tracks, it should be handled together
- */
+// These two always should go together, but it is not right now. 
+// I wonder in the future, we change all compressed to be inside as well, so they all stay together
+// When remove tracks, it should be handled together 
 USTRUCT()
 struct FAnimSequenceTrackContainer
 {
@@ -154,20 +150,20 @@ struct FAnimSequenceTrackContainer
 		return (AnimationTracks.Num());
 	}
 };
-/**
- *	@note we have plan to support skeleton hierarchy. 
- *	when that happens, we'd like to keep skeleton indexing
- */
+
+// @note We have a plan to support skeletal hierarchy. When that happens, we'd like to keep skeleton indexing.
 USTRUCT()
 struct FTrackToSkeletonMap
 {
 	GENERATED_USTRUCT_BODY()
 
+	// 0 is the current Skeleton (the one above), and N is the Nth parent.
 	UPROPERTY()
-	int32 SkeletonIndex_DEPRECATED;    // 0 as current Skeleton (the one above), and N is the N'th parent
+	int32 SkeletonIndex_DEPRECATED;
 
+	// Index of Skeleton.BoneTree this Track belongs to.
 	UPROPERTY()
-	int32 BoneTreeIndex;    // Index of Skeleton.BoneTree this Track belongs to
+	int32 BoneTreeIndex;
 
 
 	FTrackToSkeletonMap()
@@ -471,7 +467,7 @@ class UAnimSequence : public UAnimSequenceBase
 
 	class AnimEncoding* ScaleCodec;
 
-	/** Additive animation type **/
+	/** Additive animation type. **/
 	UPROPERTY(EditAnywhere, Category=AdditiveSettings, AssetRegistrySearchable)
 	TEnumAsByte<enum EAdditiveAnimationType> AdditiveAnimType;
 

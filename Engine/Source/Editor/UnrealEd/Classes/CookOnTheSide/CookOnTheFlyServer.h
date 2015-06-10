@@ -43,10 +43,14 @@ namespace ECookMode
 {
 	enum Type
 	{
-		CookOnTheFly,				// default mode, handles requests from network
-		CookOnTheFlyFromTheEditor,	// cook on the side
-		CookByTheBookFromTheEditor,	// precook all resources while in the editor
-		CookByTheBook,				// cooking by the book (not in the editor)
+		/** Default mode, handles requests from network. */
+		CookOnTheFly,
+		/** Cook on the side. */
+		CookOnTheFlyFromTheEditor,
+		/** Precook all resources while in the editor. */
+		CookByTheBookFromTheEditor,
+		/** Cooking by the book (not in the editor). */
+		CookByTheBook,
 	};
 }
 

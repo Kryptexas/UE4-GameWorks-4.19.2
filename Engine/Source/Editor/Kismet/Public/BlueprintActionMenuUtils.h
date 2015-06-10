@@ -18,7 +18,8 @@ namespace EContextTargetFlags
 		TARGET_SiblingPinObjects	= 0x00000010 UMETA(DisplayName="Other Object Outputs", ToolTip="Include functions and variables that belong to any of this node's output types."),
 		TARGET_BlueprintLibraries	= 0x00000020 UMETA(DisplayName="Libraries", ToolTip="Include static functions that are globally accessible (belonging to function/macro libraries, etc.)."),
 
-		ContextTargetFlagsEnd UMETA(Hidden), // +1 to the last flag (so we can easily iterate these flags)
+		// +1 to the last flag (so we can easily iterate these flags)
+		ContextTargetFlagsEnd UMETA(Hidden),
 	};
 }
 

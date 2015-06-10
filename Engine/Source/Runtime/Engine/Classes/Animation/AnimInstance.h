@@ -92,7 +92,7 @@ struct FA2Pose
 	FA2Pose() {}
 };
 
-/** component space poses **/
+/** Component space poses. */
 USTRUCT()
 struct ENGINE_API FA2CSPose : public FA2Pose
 {
@@ -102,7 +102,7 @@ private:
 	/** Pointer to current BoneContainer. */
 	const struct FBoneContainer * BoneContainer;
 
-	/** once evaluated to be mesh space, this flag will be set **/
+	/** Once evaluated to be mesh space, this flag will be set. */
 	UPROPERTY()
 	TArray<uint8> ComponentSpaceFlags;
 
@@ -112,25 +112,22 @@ public:
 	{
 	}
 
-	/** constructor - needs LocalPoses **/
+	/** Constructor - needs LocalPoses. */
 	void AllocateLocalPoses(const FBoneContainer& InBoneContainer, const FA2Pose & LocalPose);
 
-	/** constructor - needs LocalPoses **/
+	/** Constructor - needs LocalPoses. */
 	void AllocateLocalPoses(const FBoneContainer& InBoneContainer, const FTransformArrayA2 & LocalBones);
 
-	/** Returns if this struct is valid */
+	/** Returns if this struct is valid. */
 	bool IsValid() const;
 
 	/** Get parent bone index for given bone index. */
 	int32 GetParentBoneIndex(const int32& BoneIndex) const;
 
-	/** Returns local transform for the boneindex **/
+	/** Returns local transform for the bone index. **/
 	FTransform GetLocalSpaceTransform(int32 BoneIndex);
 
-	/**
-	 * Do not access Bones array directly but via this 
-	 * This will fill up gradually mesh space bases 
-	 */
+	/** Do not access Bones array directly; use this instead. This will fill up gradually mesh space bases. */
 	FTransform GetComponentSpaceTransform(int32 BoneIndex);
 
 	/** convert to local poses **/
@@ -149,8 +146,7 @@ private:
 
 	void SetLocalSpaceTransform(int32 Index, const FTransform& NewTransform);
 
-	/** this is not really best way to protect SetComponentSpaceTransform, but we'd like to make sure
-	 that isn't called by anywhere else */
+	// This is not really best way to protect SetComponentSpaceTransform, but we'd like to make sure that isn't called by anywhere else.
 	friend class FAnimationRuntime;
 };
 
@@ -158,10 +154,13 @@ USTRUCT(BlueprintType)
 struct FPerBoneBlendWeight
 {
 	GENERATED_USTRUCT_BODY()
+
+	/** Source index of the buffer. */
 	UPROPERTY()
-	int32 SourceIndex; // source index of the buffer
+	int32 SourceIndex;
+
 	UPROPERTY()
-	float BlendWeight; // how much blend weight
+	float BlendWeight;
 
 	FPerBoneBlendWeight()
 		: SourceIndex(0)

@@ -29,7 +29,7 @@ namespace EAnimEventTriggerOffsets
 
 ENGINE_API float GetTriggerTimeOffsetForType(EAnimEventTriggerOffsets::Type OffsetType);
 
-/** Ticking method for AnimNotifies in AnimMontages */
+/** Ticking method for AnimNotifies in AnimMontages. */
 UENUM()
 namespace EMontageNotifyTickType
 {
@@ -42,16 +42,16 @@ namespace EMontageNotifyTickType
 	};
 }
 
-/** Filtering method for deciding whether to trigger a notify */
+/** Filtering method for deciding whether to trigger a notify. */
 UENUM()
 namespace ENotifyFilterType
 {
 	enum Type
 	{
-		/** No filtering*/
+		/** No filtering. */
 		NoFiltering,
 
-		/** Filter By Skeletal Mesh LOD */
+		/** Filter By Skeletal Mesh LOD. */
 		LOD,
 	};
 }

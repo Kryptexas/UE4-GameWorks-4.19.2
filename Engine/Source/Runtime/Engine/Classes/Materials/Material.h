@@ -44,32 +44,32 @@ struct FMaterialsWithDirtyUsageFlags
 };
 #endif
 
-/** Defines how the GBuffer channels are getting manipulated by a decal material pass. Actual index is used to control shader parameters so don't change order */
+/** Defines how the GBuffer channels are getting manipulated by a decal material pass. Actual index is used to control shader parameters so don't change order. */
 UENUM()
 enum EDecalBlendMode
 {
-	// Blend full material, updating the GBuffer, does not work for baked lighting
+	/** Blend full material, updating the GBuffer, does not work for baked lighting. */
 	DBM_Translucent UMETA(DisplayName="Translucent"),
-	// Modulate BaseColor, blend rest, updating the GBuffer, does not work for baked lighting
+	/** Modulate BaseColor, blend rest, updating the GBuffer, does not work for baked lighting. */
 	DBM_Stain UMETA(DisplayName="Stain"),
-	// Only blend normal, updating the GBuffer, does not work for baked lighting
+	/** Only blend normal, updating the GBuffer, does not work for baked lighting. */
 	DBM_Normal UMETA(DisplayName="Normal"),
-	// Additive emissive only
+	/** Additive emissive only. */
 	DBM_Emissive UMETA(DisplayName="Emissive"),
 
-	// Non metal, put into DBuffer to work for baked lighting as well (becomes DBM_TranslucentNormal if normal is not hooked up)
+	/** Non metal, put into DBuffer to work for baked lighting as well (becomes DBM_TranslucentNormal if normal is not hooked up). */
 	DBM_DBuffer_ColorNormalRoughness UMETA(DisplayName="DBuffer Translucent Color,Normal,Roughness"),
-	// Non metal, put into DBuffer to work for baked lighting as well
+	/** Non metal, put into DBuffer to work for baked lighting as well. */
 	DBM_DBuffer_Color UMETA(DisplayName="DBuffer Translucent Color"),
-	// Non metal, put into DBuffer to work for baked lighting as well (becomes DBM_DBuffer_Color if normal is not hooked up)
+	/** Non metal, put into DBuffer to work for baked lighting as well (becomes DBM_DBuffer_Color if normal is not hooked up). */
 	DBM_DBuffer_ColorNormal UMETA(DisplayName="DBuffer Translucent Color,Normal"),
-	// Non metal, put into DBuffer to work for baked lighting as well
+	/** Non metal, put into DBuffer to work for baked lighting as well. */
 	DBM_DBuffer_ColorRoughness UMETA(DisplayName="DBuffer Translucent Color,Roughness"),
-	// Non metal, put into DBuffer to work for baked lighting as well
+	/** Non metal, put into DBuffer to work for baked lighting as well. */
 	DBM_DBuffer_Normal UMETA(DisplayName="DBuffer Translucent Normal"),
-	// Non metal, put into DBuffer to work for baked lighting as well (becomes DBM_DBuffer_Roughness if normal is not hooked up)
+	/** Non metal, put into DBuffer to work for baked lighting as well (becomes DBM_DBuffer_Roughness if normal is not hooked up). */
 	DBM_DBuffer_NormalRoughness UMETA(DisplayName="DBuffer Translucent Normal,Roughness"),
-	// Non metal, put into DBuffer to work for baked lighting as well
+	/** Non metal, put into DBuffer to work for baked lighting as well. */
 	DBM_DBuffer_Roughness UMETA(DisplayName="DBuffer Translucent Roughness"),
 
 	DBM_MAX,
@@ -91,26 +91,26 @@ enum EMaterialDomain
 };
 
 
-/** Defines how the material reacts on DBuffer decals, later we can expose more variants between None and Default */
+/** Defines how the material reacts on DBuffer decals, later we can expose more variants between None and Default. */
 UENUM()
 enum EMaterialDecalResponse
 {
 	/** Do not receive decals (Later we still can read the DBuffer channels to customize the effect, this frees up some interpolators). */
 	MDR_None UMETA(DisplayName="None"),
 
-	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_ColorNormalRoughness UMETA(DisplayName="Color Normal Roughness"),
-	// Receive Decals, applies color DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies color DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_Color UMETA(DisplayName="Color"),
-	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_ColorNormal UMETA(DisplayName="Color Normal"),
-	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_ColorRoughness UMETA(DisplayName="Color Roughness"),
-	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_Normal UMETA(DisplayName="Normal"),
-	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_NormalRoughness UMETA(DisplayName="Normal Roughness"),
-	// Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering
+	/** Receive Decals, applies all DBuffer channels, assumes the decal is non metal and mask the subsurface scattering. */
 	MDR_Roughness UMETA(DisplayName="Roughness"),
 	MDR_MAX
 };

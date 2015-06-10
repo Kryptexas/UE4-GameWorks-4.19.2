@@ -73,19 +73,19 @@ struct FBlendFilter
 	}
 };
 
-// Root Bone Lock options when extracting Root Motion
 UENUM()
+/** Root Bone Lock options when extracting Root Motion. */
 namespace ERootMotionRootLock
 {
 	enum Type
 	{
-		// Use reference pose root bone position
+		/** Use reference pose root bone position. */
 		RefPose,
 
-		// Use root bone position on first frame of animation.
+		/** Use root bone position on first frame of animation. */
 		AnimFirstFrame,
 
-		// FTransform::Identity
+		/** FTransform::Identity. */
 		Zero
 	};
 }
@@ -95,16 +95,16 @@ namespace ERootMotionMode
 {
 	enum Type
 	{
-		// Leave root motion in animation.
+		/** Leave root motion in animation. */
 		NoRootMotionExtraction,
 
-		// Extract root motion but do not apply it.
+		/** Extract root motion but do not apply it. */
 		IgnoreRootMotion,
 
-		// Root motion is taken from all animations contributing to the final pose, not suitable for network multiplayer setups
+		/** Root motion is taken from all animations contributing to the final pose, not suitable for network multiplayer setups. */
 		RootMotionFromEverything,
 
-		// Root motion is only taken from montages, suitable for network multiplayer setups
+		/** Root motion is only taken from montages, suitable for network multiplayer setups. */
 		RootMotionFromMontagesOnly,
 	};
 }
@@ -173,13 +173,13 @@ namespace EAnimGroupRole
 {
 	enum Type
 	{
-		// This node can be the leader, as long as it has a higher blend weight than the previous best leader
+		/** This node can be the leader, as long as it has a higher blend weight than the previous best leader. */
 		CanBeLeader,
 		
-		// This node will always be a follower (unless there are only followers, in which case the first one ticked wins)
+		/** This node will always be a follower (unless there are only followers, in which case the first one ticked wins). */
 		AlwaysFollower,
 
-		// This node will always be a leader (if more than one node is AlwaysLeader, the last one ticked wins)
+		/** This node will always be a leader (if more than one node is AlwaysLeader, the last one ticked wins). */
 		AlwaysLeader
 	};
 }

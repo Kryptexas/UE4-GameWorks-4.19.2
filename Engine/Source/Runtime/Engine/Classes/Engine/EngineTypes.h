@@ -37,14 +37,17 @@ enum EActorMetricsType
 };
 
 
-// Return values for UEngine::Browse
+/** Return values for UEngine::Browse. */
 namespace EBrowseReturnVal
 {
 	enum Type
 	{
-		Success,		// Successfully browsed to a new map
-		Failure,		// Immediately failed to browse
-		Pending,		// A connection is pending
+		/** Successfully browsed to a new map. */
+		Success,
+		/** Immediately failed to browse. */
+		Failure,
+		/** A connection is pending. */
+		Pending,
 	};
 }
 
@@ -76,9 +79,9 @@ namespace EAttachLocation
 UENUM()
 enum ESceneDepthPriorityGroup
 {
-	// world scene DPG
+	/** World scene DPG. */
 	SDPG_World,
-	// foreground scene DPG
+	/** Foreground scene DPG. */
 	SDPG_Foreground,
 	SDPG_MAX,
 };
@@ -162,19 +165,19 @@ namespace ETranslucentSortPolicy
 {
 	enum Type
 	{
-		// Sort based on distance from camera centerpoint to bounding sphere centerpoint. (default, best for 3D games)
+		/** Sort based on distance from camera centerpoint to bounding sphere centerpoint. (Default, best for 3D games.) */
 		SortByDistance = 0,
 
-		// Sort based on the post-projection Z distance to the camera.
+		/** Sort based on the post-projection Z distance to the camera. */
 		SortByProjectedZ = 1,
 
-		// Sort based on the projection onto a fixed axis. (best for 2D games)
+		/** Sort based on the projection onto a fixed axis. (Best for 2D games.) */
 		SortAlongAxis = 2,
 	};
 }
 
 
-/** Controls the way that the width scale property affects anim trails */
+/** Controls the way that the width scale property affects animation trails. */
 UENUM()
 enum ETrailWidthMode
 {
@@ -193,7 +196,9 @@ namespace EParticleCollisionMode
 	};
 }
 
-// Note: Check UMaterialInstance::Serialize if changed!!
+
+// Note: Check UMaterialInstance::Serialize if changed!
+
 UENUM()
 enum EMaterialShadingModel
 {
@@ -208,15 +213,15 @@ enum EMaterialShadingModel
 };
 
 
-// This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code.
+/** This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code. */
 UENUM()
 enum EMaterialTessellationMode
 {
-	/** Tessellation disabled */
+	/** Tessellation disabled. */
 	MTM_NoTessellation UMETA(DisplayName="No Tessellation"),
-	/** Simple tessellation */
+	/** Simple tessellation. */
 	MTM_FlatTessellation UMETA(DisplayName="Flat Tessellation"),
-	/** Simple Spline based tessellation */
+	/** Simple spline based tessellation. */
 	MTM_PNTriangles UMETA(DisplayName="PN Triangles"),
 	MTM_MAX,
 };
@@ -252,23 +257,17 @@ enum ELightingBuildQuality
 UENUM()
 enum ETriangleSortOption
 {
-	//0
 	TRISORT_None,
-	//1
 	TRISORT_CenterRadialDistance,
-	//2
 	TRISORT_Random,
-	//3
 	TRISORT_MergeContiguous,
-	//4
 	TRISORT_Custom,
-	//5
 	TRISORT_CustomLeftRight,
 	TRISORT_MAX,
 };
 
 
-/** Enum to specify which axis to use for the forward vector when using TRISORT_CustomLeftRight sort mode */
+/** Enum to specify which axis to use for the forward vector when using TRISORT_CustomLeftRight sort mode. */
 UENUM()
 enum ETriangleSortAxis
 {
@@ -493,11 +492,11 @@ enum ETraceTypeQuery
 UENUM()
 enum EPhysicsSceneType
 {
-	// The synchronous scene, which must finish before Unreal sim code is run
+	/** The synchronous scene, which must finish before Unreal simulation code is run. */
 	PST_Sync,
-	// The cloth scene, which may run while Unreal sim code runs
+	/** The cloth scene, which may run while Unreal simulation code runs. */
 	PST_Cloth,
-	// The asynchronous scene, which may run while Unreal sim code runs
+	/** The asynchronous scene, which may run while Unreal simulation code runs. */
 	PST_Async,
 	PST_MAX,
 };
@@ -818,7 +817,7 @@ enum class ESleepFamily : uint8
 };
 
 
-/** Enum used to indicate what type of timeline signature a function matches */
+/** Enum used to indicate what type of timeline signature a function matches. */
 UENUM()
 enum ETimelineSigType
 {
@@ -831,25 +830,25 @@ enum ETimelineSigType
 };
 
 
-/** Enum used to describe what type of collision is enabled on a body */
+/** Enum used to describe what type of collision is enabled on a body. */
 UENUM()
 namespace ECollisionEnabled 
 { 
 	enum Type 
 	{ 
-		/** No collision is enabled for this body */ 
+		/** No collision is enabled for this body. */
 		NoCollision UMETA(DisplayName="No Collision"), 
-		/** This body is used only for collision queries (raycasts, sweeps, and overlaps) */ 
+		/** This body is used only for collision queries (raycasts, sweeps, and overlaps). */
 		QueryOnly UMETA(DisplayName="Query Only (No Physics Collision)"),
-		/** This body is used only for physics collision */
+		/** This body is used only for physics collision. */
 		PhysicsOnly UMETA(DisplayName="Physics Only (No Query Collision)"),
-		/** This body interacts with all collision (Query and Physics) */ 
+		/** This body interacts with all collision (Query and Physics). */
 		QueryAndPhysics UMETA(DisplayName="Collision Enabled (Query and Physics)") 
 	}; 
 } 
 
 
-/** describes the physical state of a rigid body */
+/** Describes the physical state of a rigid body. */
 USTRUCT()
 struct FRigidBodyState
 {
@@ -1478,20 +1477,18 @@ enum ELightMapPaddingType
 };
 
 
-/**
- * Bit-field flags that affects storage (e.g. packing, streaming) and other info about a shadowmap.
- */
+/** Bit-field flags that affects storage (e.g. packing, streaming) and other info about a shadowmap. */
 UENUM()
 enum EShadowMapFlags
 {
-	// No flags
+	/** No flags. */
 	SMF_None			= 0,
-	// Shadowmap should be placed in a streaming texture
+	/** Shadowmap should be placed in a streaming texture. */
 	SMF_Streamed		= 0x00000001
 };
 
 
-/** reference to a specific material in a PrimitiveComponent */
+/** Reference to a specific material in a PrimitiveComponent. */
 USTRUCT()
 struct FPrimitiveMaterialRef
 {
@@ -2026,9 +2023,7 @@ struct FPOV
 };
 
 
-/**
- * The importance of a mesh feature when automatically generating mesh LODs.
- */
+/** The importance of a mesh feature when automatically generating mesh LODs. */
 UENUM()
 namespace EMeshFeatureImportance
 {
@@ -2044,9 +2039,7 @@ namespace EMeshFeatureImportance
 }
 
 
-/**
- * Settings used to reduce a mesh.
- */
+/** Settings used to reduce a mesh. */
 USTRUCT()
 struct FMeshReductionSettings
 {
@@ -2526,13 +2519,13 @@ struct ENGINE_API FRadialDamageEvent : public FDamageEvent
 UENUM()
 enum ENetRole
 {
-	// No role at all.
+	/** No role at all. */
 	ROLE_None,
-	// Locally simulated proxy of this actor.
+	/** Locally simulated proxy of this actor. */
 	ROLE_SimulatedProxy,
-	// Locally autonomous proxy of this actor.
+	/** Locally autonomous proxy of this actor. */
 	ROLE_AutonomousProxy,
-	// Authoritative control over the actor.
+	/** Authoritative control over the actor. */
 	ROLE_Authority,
 	ROLE_MAX,
 };
@@ -2541,15 +2534,15 @@ enum ENetRole
 UENUM()
 enum ENetDormancy
 {
-	// This actor can never go network dormant
+	/** This actor can never go network dormant. */
 	DORM_Never,
-	// This actor can go dormant, but is not currently dormant. Game code will tell it when it go dormant
+	/** This actor can go dormant, but is not currently dormant. Game code will tell it when it go dormant. */
 	DORM_Awake,
-	// This actor wants to go fully dormant for all connections
+	/** This actor wants to go fully dormant for all connections. */
 	DORM_DormantAll,
-	// This actor may want to go dormant for some connections, GetNetDormancy() will be called to find out which
+	/** This actor may want to go dormant for some connections, GetNetDormancy() will be called to find out which. */
 	DORM_DormantPartial,
-	// This actor is initially dormant for all connection if it was placed in map.
+	/** This actor is initially dormant for all connection if it was placed in map. */
 	DORM_Initial,
 	DORN_MAX,
 };
@@ -2576,10 +2569,14 @@ namespace EAutoReceiveInput
 UENUM()
 enum class EAutoPossessAI : uint8
 {
-	Disabled,				// Feature is disabled (do not automatically possess AI).
-	PlacedInWorld,			// Only possess by an AI Controller if Pawn is placed in the world.
-	Spawned,				// Only possess by an AI Controller if Pawn is spawned after the world has loaded.
-	PlacedInWorldOrSpawned, // Pawn is automatically possessed by an AI Controller whenever it is created.
+	/** Feature is disabled (do not automatically possess AI). */
+	Disabled,
+	/** Only possess by an AI Controller if Pawn is placed in the world. */
+	PlacedInWorld,
+	/** Only possess by an AI Controller if Pawn is spawned after the world has loaded. */
+	Spawned,
+	/** Pawn is automatically possessed by an AI Controller whenever it is created. */
+	PlacedInWorldOrSpawned,
 };
 
 
@@ -2588,11 +2585,16 @@ namespace EEndPlayReason
 {
 	enum Type
 	{
-		Destroyed,			// When the Actor or Component is explicitly destroyed
-		LevelTransition,	// When the world is being unloaded for a level transition
-		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
-		RemovedFromWorld,	// When the level it is a member of is streamed out
-		Quit,				// When the application is being exited
+		/** When the Actor or Component is explicitly destroyed. */
+		Destroyed,
+		/** When the world is being unloaded for a level transition. */
+		LevelTransition,
+		/** When the world is being unloaded because PIE is ending. */
+		EndPlayInEditor,
+		/** When the level it is a member of is streamed out. */
+		RemovedFromWorld,
+		/** When the application is being exited. */
+		Quit,
 	};
 
 }
@@ -2621,11 +2623,11 @@ struct FRepMovement
 	UPROPERTY()
 	FRotator Rotation;
 
-	/** if set, RootComponent should be sleeping */
+	/** If set, RootComponent should be sleeping. */
 	UPROPERTY()
 	uint8 bSimulatedPhysicSleep : 1;
 
-	/** if set, additional physic data (angular velocity) will be replicated */
+	/** If set, additional physic data (angular velocity) will be replicated. */
 	UPROPERTY()
 	uint8 bRepPhysics : 1;
 
@@ -3048,33 +3050,33 @@ class ENGINE_API UEngineTypes : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** Convert a trace type to a collision channel */
+	/** Convert a trace type to a collision channel. */
 	static ECollisionChannel ConvertToCollisionChannel(ETraceTypeQuery TraceType);
 
-	/** Convert an object type to a collision channel */
+	/** Convert an object type to a collision channel. */
 	static ECollisionChannel ConvertToCollisionChannel(EObjectTypeQuery ObjectType);
 
-	/** Convert a collision channel to an object type. Note: performs a search of object types */
+	/** Convert a collision channel to an object type. Note: performs a search of object types. */
 	static EObjectTypeQuery ConvertToObjectType(ECollisionChannel CollisionChannel);
 
-	/** Convert a collision channel to a trace type. Note: performs a search of trace types */
+	/** Convert a collision channel to a trace type. Note: performs a search of trace types. */
 	static ETraceTypeQuery ConvertToTraceType(ECollisionChannel CollisionChannel);
 };
 
 
-/** Type of a socket on a scene component */
+/** Type of a socket on a scene component. */
 UENUM()
 namespace EComponentSocketType
 {
 	enum Type
 	{
-		/** Not a valid socket or bone name */
+		/** Not a valid socket or bone name. */
 		Invalid,
 
-		/** Skeletal bone */
+		/** Skeletal bone. */
 		Bone,
 
-		/** Socket */
+		/** Socket. */
 		Socket,
 	};
 }
@@ -3107,11 +3109,11 @@ struct FComponentSocketDescription
 UENUM()
 enum EAngularConstraintMotion
 {
-	/** No constraint against this axis */ 
+	/** No constraint against this axis. */ 
 	ACM_Free		UMETA(DisplayName="Free"),
-	/** Limited freedom along this axis */ 
+	/** Limited freedom along this axis. */ 
 	ACM_Limited		UMETA(DisplayName="Limited"),
-	/** Fully constraint against this axis */
+	/** Fully constraint against this axis. */
 	ACM_Locked		UMETA(DisplayName="Locked"),
 
 	ACM_MAX,

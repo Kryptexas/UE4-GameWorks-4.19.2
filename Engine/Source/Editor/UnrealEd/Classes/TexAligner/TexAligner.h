@@ -16,21 +16,21 @@ class FPoly;
 UENUM()
 enum ETexAlign
 {
-	// When passed to functions it means "use whatever the aligners default is"
+	/** When passed to functions it means "use whatever the aligners default is". */
 	TEXALIGN_None,
-	// No special alignment (just derive from UV vectors).
+	/** No special alignment (just derive from UV vectors). */
 	TEXALIGN_Default,
-	// Aligns to best U and V axis based on polys normal
+	/** Aligns to best U and V axis based on polys normal. */
 	TEXALIGN_Box,
-	// Maps the poly to the axis it is closest to laying parallel to
+	/** Maps the poly to the axis it is closest to laying parallel to. */
 	TEXALIGN_Planar,
-	// Fits texture to a polygon
+	/** Fits texture to a polygon. */
 	TEXALIGN_Fit,
-	// Special version of TEXALIGN_Planar.
+	/** Special version of TEXALIGN_Planar. */
 	TEXALIGN_PlanarAuto,
-	// Special version of TEXALIGN_Planar.
+	/** Special version of TEXALIGN_Planar. */
 	TEXALIGN_PlanarWall,
-	// Special version of TEXALIGN_Planar.
+	/** Special version of TEXALIGN_Planar. */
 	TEXALIGN_PlanarFloor,
 	TEXALIGN_MAX,
 };
@@ -68,7 +68,7 @@ class UTexAligner : public UObject
 	// @todo document
 	void Align( UWorld* InWorld, ETexAlign InTexAlignType, UModel* InModel );
 	
-	// Aligns a specific BSP surface
+	/** Aligns a specific BSP surface */
 	virtual void AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FBspSurfIdx* InSurfIdx, FPoly* InPoly, FVector* InNormal );
 };
 

@@ -13,15 +13,15 @@
 UENUM()
 enum ECsgOper
 {
-	// Active brush. (deprecated do not use)
+	/** Active brush. (deprecated, do not use.) */
 	CSG_Active,
-	// Add to world. (deprecated do not use)
+	/** Add to world. (deprecated, do not use.) */
 	CSG_Add,
-	// Subtract from world. (deprecated do not use)
+	/** Subtract from world. (deprecated, do not use.) */
 	CSG_Subtract,
-	// Form from intersection with world.
+	/** Form from intersection with world. */
 	CSG_Intersect,
-	// Form from negative intersection with world.
+	/** Form from negative intersection with world. */
 	CSG_Deintersect,
 	CSG_None,
 	CSG_MAX,
@@ -31,11 +31,11 @@ enum ECsgOper
 UENUM()
 enum EBrushType
 {
-	// Default/builder brush.
+	/** Default/builder brush. */
 	Brush_Default UMETA(Hidden),
-	// Add to world.
+	/** Add to world. */
 	Brush_Add UMETA(DisplayName=Additive),
-	// Subtract from world.
+	/** Subtract from world. */
 	Brush_Subtract UMETA(DisplayName=Subtractive),
 	Brush_MAX,
 };

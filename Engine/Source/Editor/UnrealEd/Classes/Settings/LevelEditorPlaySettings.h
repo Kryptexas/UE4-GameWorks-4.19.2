@@ -61,10 +61,10 @@ enum EPlayModeType
 	/** Runs in VR. */
 	PlayMode_InVR,
 
-	/** Simulates in viewport without possessing the player */
+	/** Simulates in viewport without possessing the player. */
 	PlayMode_Simulate,
 
-	/** The number of different Play Modes */
+	/** The number of different Play Modes. */
 	PlayMode_Count,
 };
 
@@ -81,13 +81,13 @@ enum EPlayNetMode
 UENUM()
 enum EPlayOnBuildMode
 {
-	/** Always build */
+	/** Always build. */
 	PlayOnBuild_Always UMETA(DisplayName="Always Build"),
 
 	/** Never build. */
 	PlayOnBuild_Never UMETA(DisplayName="Never Build"),
 
-	/** Build based on project type */
+	/** Build based on project type. */
 	PlayOnBuild_Default UMETA(DisplayName="Only Build Code Projects"),
 };
 

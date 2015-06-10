@@ -12,7 +12,7 @@ class UEdGraphPin;
 class SGraphNode;
 struct FEdGraphPinType;
 
-/** Enum used to define which way data flows into or out of this pin */
+/** Enum used to define which way data flows into or out of this pin. */
 UENUM()
 enum EEdGraphPinDirection
 {
@@ -21,63 +21,63 @@ enum EEdGraphPinDirection
 	EGPD_MAX,
 };
 
-/** Enum to indicate what sort of title we want */
+/** Enum to indicate what sort of title we want. */
 UENUM()
 namespace ENodeTitleType
 {
 	enum Type
 	{
-		// The full title, may be multiple lines
+		/** The full title, may be multiple lines. */
 		FullTitle,
-		// More concise, single line title
+		/** More concise, single line title. */
 		ListView,
-		// Returns the editable title (which might not be a title at all)
+		/** Returns the editable title (which might not be a title at all). */
 		EditableTitle,
-		// Menu Title for context menus to be displayed in context menus referencing the node
+		/** Menu Title for context menus to be displayed in context menus referencing the node. */
 		MenuTitle,
 
 		MAX_TitleTypes,
 	};
 }
 
-/** Enum to indicate if a node has advanced-display-pins, and if they are shown */
+/** Enum to indicate if a node has advanced-display-pins, and whether they are shown. */
 UENUM()
 namespace ENodeAdvancedPins
 {
 	enum Type
 	{
-		// No advanced pins
+		/** No advanced pins. */
 		NoPins,
-		// There are some advanced pins, and they are shown
+		/** There are some advanced pins, and they are shown. */
 		Shown,
-		// There are some advanced pins, and they are hidden
+		/** There are some advanced pins, and they are hidden. */
 		Hidden
 	};
 }
 
-/** Holds metadata keys, so as to discourage text duplication throughout the engine */
+/** Holds metadata keys, so as to discourage text duplication throughout the engine. */
 struct ENGINE_API FNodeMetadata
 {
-	/** Identifies nodes that are defaultly added to populate new graphs (helps determine if a graph has any user placed nodes) */
+	/** Identifies nodes that are added to populate new graphs by default (helps determine if a graph has any user-placed nodes). */
 	static const FName DefaultGraphNode;
 private: 
 	FNodeMetadata() {}
 };
 
-// This is the context for a GetContextMenuActions call into a specific node
+/** This is the context for a GetContextMenuActions call into a specific node. */
 struct FGraphNodeContextMenuBuilder
 {
-	// The blueprint associated with this context; may be NULL for non-Kismet related graphs.
+	/** The blueprint associated with this context; may be NULL for non-Kismet related graphs. */
 	const UBlueprint* Blueprint;
-	// The graph associated with this context.
+	/** The graph associated with this context. */
 	const UEdGraph* Graph;
-	// The node associated with this context.
+	/** The node associated with this context. */
 	const UEdGraphNode* Node;
-	// The pin associated with this context; may be NULL when over a node.
+	/** The pin associated with this context; may be NULL when over a node. */
 	const UEdGraphPin* Pin;
-	// The menu builder to append actions to.
+	/** The menu builder to append actions to. */
 	class FMenuBuilder* MenuBuilder;
-	// Whether the graph editor is currently part of a debugging session (any non-debugging commands should be disabled).
+	/** Whether the graph editor is currently part of a debugging session (any non-debugging commands should be disabled). */
 	bool bIsDebugging;
 
 	FGraphNodeContextMenuBuilder(const UEdGraph* InGraph, const UEdGraphNode* InNode, const UEdGraphPin* InPin, class FMenuBuilder* InMenuBuilder, bool bInDebuggingMode);

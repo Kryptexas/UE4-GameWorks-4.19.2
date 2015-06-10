@@ -145,37 +145,37 @@ public:
 	ClothCollisionPrimType	PrimType;
 };
 
-/** to interact with environments */
+/** Used to define what type of objects cloth will react to. */
 struct FApexClothCollisionInfo
 {
 	enum OverlappedComponentType
 	{
-		// static objects
+		/** Interact with static objects only. */
 		OCT_STATIC,
-		// clothing objects
+		/** Interact with clothing objects. */
 		OCT_CLOTH,
 		OCT_MAX
 	};
 
 	OverlappedComponentType OverlapCompType;
-	// to verify validation of collision info
+	/** To verify validation of collision info. */
 	uint32 Revision;
-	// ClothingCollisions will be all released when clothing doesn't intersect with this component anymore
+	/** ClothingCollisions will be all released when clothing doesn't intersect with this component anymore. */
 	TArray<physx::apex::NxClothingCollision*> ClothingCollisions;			
 };
 #endif // #if WITH_CLOTH_COLLISION_DETECTION
 
-/** This enum defines how you'd like to update bones to physics world
-	If bone is simulating, you don't have to waste time on updating bone transform from kinematic
-	But also sometimes you don't like fixed bones to be updated by animation data **/
+/** This enum defines how you'd like to update bones to physics world.
+	If bone is simulating, you don't have to waste time on updating bone transform from kinematic.
+	But also sometimes you don't like fixed bones to be updated by animation data. */
 UENUM()
 namespace EKinematicBonesUpdateToPhysics
 {
 	enum Type
 	{
-		/** Update any bones that are not simulating*/
+		/** Update any bones that are not simulating. */
 		SkipSimulatingBones,
-		/** Skip physics update from kinematic changes **/
+		/** Skip physics update from kinematic changes. */
 		SkipAllBones
 	};
 }
@@ -206,19 +206,19 @@ struct FSingleAnimationPlayData
 	UPROPERTY()//EditAnywhere, BlueprintReadWrite, Category=Animation)
 	class UVertexAnimation* VertexAnimToPlay;
 
-	// Default setting for looping for SequenceToPlay. This is not current state of looping.
+	/** Default setting for looping for SequenceToPlay. This is not current state of looping. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Looping"))
 	uint32 bSavedLooping:1;
 
-	// Default setting for playing for SequenceToPlay. This is not current state of playing.
+	/** Default setting for playing for SequenceToPlay. This is not current state of playing. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Playing"))
 	uint32 bSavedPlaying:1;
 
-	// Default setting for position of SequenceToPlay to play. 
+	/** Default setting for position of SequenceToPlay to play. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Initial Position"))
 	float SavedPosition;
 
-	// Default setting for playrate of SequenceToPlay to play. 
+	/** Default setting for play rate of SequenceToPlay to play. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(DisplayName="PlayRate"))
 	float SavedPlayRate;
 
@@ -230,10 +230,10 @@ struct FSingleAnimationPlayData
 		SavedPosition = 0.f;
 	}
 
-	/** Called when initialized **/
+	/** Called when initialized. */
 	ENGINE_API void Initialize(class UAnimSingleNodeInstance* Instance);
 
-	/** Populates this play data with the current state of the supplied instance */
+	/** Populates this play data with the current state of the supplied instance. */
 	ENGINE_API void PopulateFrom(UAnimSingleNodeInstance* Instance);
 
 	void ValidatePosition();
@@ -247,18 +247,18 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** World this tick function belongs to **/
+	/** World this tick function belongs to. */
 	class USkeletalMeshComponent*	Target;
 
 	/**
-	* Abstract function actually execute the tick.
-	* @param DeltaTime - frame time to advance, in seconds
-	* @param TickType - kind of tick for this frame
-	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* Abstract function to execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds.
+	* @param TickType - kind of tick for this frame.
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created.
 	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
-	**/
+	*/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
-	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph. */
 	virtual FString DiagnosticMessage() override;
 };
 
@@ -278,39 +278,34 @@ class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent, public I
 	 * Animation 
 	 */
 	
-	/** @Todo anim: Matinee related data start - this needs to be replaced to new system **/
+	/** @Todo anim: Matinee related data start - this needs to be replaced to new system. */
 	
-	/** @Todo anim: Matinee related data end - this needs to be replaced to new system **/
+	/** @Todo anim: Matinee related data end - this needs to be replaced to new system. */
 
 protected:
-	/** Whether to use Animation Blueprint or play Single Animation Asset*/
+	/** Whether to use Animation Blueprint or play Single Animation Asset. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Animation)
 	TEnumAsByte<EAnimationMode::Type>	AnimationMode;
 
 public:
 #if WITH_EDITORONLY_DATA
-	/**
-	 * The blueprint for creating an AnimationScript
-	 */
+	/** The blueprint for creating an AnimationScript. */
 	UPROPERTY()
 	class UAnimBlueprint* AnimationBlueprint_DEPRECATED;
 #endif
 
-	/** 
-	 * The AnimBlueprint class to use
-	 * Use 'SetAnimInstanceClass' to change at runtime. 
-	 */
+	/* The AnimBlueprint class to use. Use 'SetAnimInstanceClass' to change at runtime. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
 	class UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass;
 
-	/** The active animation graph program instance */
+	/** The active animation graph program instance. */
 	UPROPERTY(transient)
 	class UAnimInstance* AnimScriptInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(ShowOnlyInnerProperties))
 	struct FSingleAnimationPlayData AnimationData;
 
-	/** Temporary array of local-space (ie relative to parent bone) rotation/translation for each bone. */
+	/** Temporary array of local-space (relative to parent bone) rotation/translation for each bone. */
 	TArray<FTransform> LocalAtoms;
 	
 	// Update Rate

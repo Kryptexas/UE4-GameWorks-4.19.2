@@ -22,7 +22,7 @@ class USceneCaptureComponent2D : public USceneCaptureComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Camera field of view (in degrees) */
+	/** Camera field of view (in degrees). */
 	UPROPERTY(interp, Category=SceneCapture, meta=(DisplayName = "Field of View", UIMin = "5.0", UIMax = "170", ClampMin = "0.001", ClampMax = "360.0"))
 	float FOVAngle;
 
@@ -33,11 +33,10 @@ class USceneCaptureComponent2D : public USceneCaptureComponent
 	UPROPERTY(interp, Category=SceneCapture, meta=(DisplayName = "Capture Source"))
 	TEnumAsByte<enum ESceneCaptureSource> CaptureSource;
 
-	// post process stuff
 	UPROPERTY(interp, Category=PostProcessVolume, meta=(ShowOnlyInnerProperties))
 	struct FPostProcessSettings PostProcessSettings;
 
-	/** 0:no effect, 1:full effect */
+	/** Range (0.0, 1.0) where 0 indicates no effect, 1 indicates full effect. */
 	UPROPERTY(interp, Category=PostProcessVolume, BlueprintReadWrite, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float PostProcessBlendWeight;
 

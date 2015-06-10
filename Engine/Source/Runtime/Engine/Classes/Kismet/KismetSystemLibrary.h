@@ -20,7 +20,7 @@ namespace EDrawDebugTrace
 	};
 }
 
-/** Enum used to indicate desired behavior for MoveComponentTo latent function */
+/** Enum used to indicate desired behavior for MoveComponentTo latent function. */
 UENUM()
 namespace EMoveComponentAction
 {
@@ -40,9 +40,9 @@ namespace EQuitPreference
 {
 	enum Type
 	{
-		/** Exit the game completely */
+		/** Exit the game completely. */
 		Quit,
-		/** Move the application to the background */
+		/** Move the application to the background. */
 		Background,
 	};
 }

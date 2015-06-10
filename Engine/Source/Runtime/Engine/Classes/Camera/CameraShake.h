@@ -12,7 +12,7 @@
 UENUM()
 enum EInitialOscillatorOffset
 {
-	/** Start with random offset (default) */
+	/** Start with random offset (default). */
 	EOO_OffsetRandom,
 	/** Start with zero offset. */
 	EOO_OffsetZero,

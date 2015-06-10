@@ -12,11 +12,11 @@ namespace EVertexColorImportOption
 {
 	enum Type
 	{
-		/** Import the static mesh using the vertex colors from the FBX file */
+		/** Import the static mesh using the vertex colors from the FBX file. */
 		Replace,
-		/** Ignore vertex colors from the FBX file, and keep the existing mesh vertex colors */
+		/** Ignore vertex colors from the FBX file, and keep the existing mesh vertex colors. */
 		Ignore,
-		/** Override all vertex colors with the specified color */
+		/** Override all vertex colors with the specified color. */
 		Override
 	};
 }

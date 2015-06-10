@@ -5,7 +5,7 @@
 #include "BonePose.h"
 #include "AnimNode_TransitionPoseEvaluator.generated.h"
 
-// Indicates which state is being evaluated by this node (source or destination)
+/** Indicates which state is being evaluated by this node (source or destination). */
 UENUM()
 namespace EEvaluatorDataSource
 {
@@ -16,26 +16,27 @@ namespace EEvaluatorDataSource
 	};
 }
 
-// Determines the behavior this node will use when updating and evaluating.
+/** Determines the behavior this node will use when updating and evaluating. */
 UENUM()
 namespace EEvaluatorMode
 {
 	enum Mode
 	{
-		// DataSource is ticked and evaluated every frame
+		/** DataSource is ticked and evaluated every frame. */
 		EM_Standard UMETA(DisplayName="Standard"),
 
-		// DataSource is never ticked and only evaluated on the first frame. Every frame after uses the cached pose from the first frame.
+		/** DataSource is never ticked and only evaluated on the first frame. Every frame after uses the cached pose from the first frame. */
 		EM_Freeze UMETA(DisplayName="Freeze"),
 
-		// DataSource is ticked and evaluated for a given number of frames, then freezes after and uses the cached pose for future frames.
+		/** DataSource is ticked and evaluated for a given number of frames, then freezes after and uses the cached pose for future frames. */
 		EM_DelayedFreeze UMETA(DisplayName="Delayed Freeze")
 	};
 }
 
 
-// Animation data node for state machine transitions.
-// Can be set to supply either the animation data from the transition source (From State) or the transition destination (To State).
+/** Animation data node for state machine transitions.
+ * Can be set to supply either the animation data from the transition source (From State) or the transition destination (To State).
+*/
 USTRUCT()
 struct ENGINE_API FAnimNode_TransitionPoseEvaluator : public FAnimNode_Base
 {

@@ -7,17 +7,17 @@
 UENUM()
 enum PropertEditorTestEnum
 {	
-	/** This comment should appear above enum 1*/
+	/** This comment should appear above enum 1 */
 	PropertyEditorTest_Enum1 UMETA(Hidden),
-	/** This comment should appear above enum 2*/
+	/** This comment should appear above enum 2 */
 	PropertyEditorTest_Enum2,
-	/** This comment should appear above enum 3*/
+	/** This comment should appear above enum 3 */
 	PropertyEditorTest_Enum3 UMETA(Hidden),
-	/** This comment should appear above enum 4*/
+	/** This comment should appear above enum 4 */
 	PropertyEditorTest_Enum4,
-	/** This comment should appear above enum 5*/
+	/** This comment should appear above enum 5 */
 	PropertyEditorTest_Enum5 UMETA(Hidden),
-	/** This comment should appear above enum 6*/
+	/** This comment should appear above enum 6 */
 	PropertyEditorTest_Enum6,
 	PropertyEditorTest_MAX,
 };

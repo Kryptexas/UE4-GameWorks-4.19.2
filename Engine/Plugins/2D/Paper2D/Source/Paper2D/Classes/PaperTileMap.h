@@ -18,16 +18,16 @@ namespace ETileMapProjectionMode
 {
 	enum Type
 	{
-		// Square tile layout
+		/** Square tile layout */
 		Orthogonal,
 
-		// Isometric tile layout (shaped like a diamond)
+		// Isometric tile layout (shaped like a diamond) */
 		IsometricDiamond,
 
-		// Isometric tile layout (roughly in a square with alternating rows staggered).  Warning: Not fully supported yet.
+		/** Isometric tile layout (roughly in a square with alternating rows staggered).  Warning: Not fully supported yet. */
 		IsometricStaggered,
 
-		// Hexagonal tile layout (roughly in a square with alternating rows staggered).  Warning: Not fully supported yet.
+		/** Hexagonal tile layout (roughly in a square with alternating rows staggered).  Warning: Not fully supported yet. */
 		HexagonalStaggered
 	};
 }

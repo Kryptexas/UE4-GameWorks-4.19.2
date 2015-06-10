@@ -87,8 +87,8 @@ struct TStructOpsTypeTraits< FKeyHandleMap > : public TStructOpsTypeTraitsBase
 };
 
 
+// @todo Some heavy refactoring can be done here. Much more stuff can go in this base class.
 /** A curve base class which enables key handles to index lookups */
-// @todo Some heavy refactoring can be done here. Much more stuff can go in this base class
 USTRUCT()
 struct ENGINE_API FIndexedCurve
 {
@@ -99,28 +99,28 @@ public:
 	/** Get number of keys in curve. */
 	virtual int32 GetNumKeys() const PURE_VIRTUAL(FIndexedCurve::GetNumKeys,return 0;);
 
-	/** Const iterator for the handles */
+	/** Const iterator for the handles. */
 	TMap<FKeyHandle, int32>::TConstIterator GetKeyHandleIterator() const;
 	
-	/** Gets the index of a handle, checks if the key handle is valid first */
+	/** Gets the index of a handle, checks if the key handle is valid first. */
 	int32 GetIndexSafe(FKeyHandle KeyHandle) const;
 
-	/** Checks to see if the key handle is valid for this curve */
+	/** Checks to see if the key handle is valid for this curve. */
 	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const;
 
 protected:
-	/** Internal tool to get a handle from an index */
+	/** Internal tool to get a handle from an index. */
 	FKeyHandle GetKeyHandle(int32 KeyIndex) const;
 	
-	/** Gets the index of a handle */
+	/** Gets the index of a handle. */
 	int32 GetIndex(FKeyHandle KeyHandle) const;
 
-	/** Makes sure our handles are all valid and correct */
+	/** Makes sure our handles are all valid and correct. */
 	void EnsureIndexHasAHandle(int32 KeyIndex) const;
 	void EnsureAllIndicesHaveHandles() const;
 
 protected:
-	/** Map of which key handles go to which indices */
+	/** Map of which key handles go to which indices. */
 	UPROPERTY(transient)
 	mutable FKeyHandleMap KeyHandlesToIndices;
 };
@@ -128,7 +128,7 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 // Rich curve data
 
-/** Method of interpolation between this key and the next */
+/** Method of interpolation between this key and the next. */
 UENUM()
 enum ERichCurveInterpMode
 {
@@ -137,7 +137,7 @@ enum ERichCurveInterpMode
 	RCIM_Cubic
 };
 
-/** If using RCIM_Cubic, this enum describes how the tangents should be controlled in editor */
+/** If using RCIM_Cubic, this enum describes how the tangents should be controlled in editor. */
 UENUM()
 enum ERichCurveTangentMode
 {
@@ -146,7 +146,7 @@ enum ERichCurveTangentMode
 	RCTM_Break
 };
 
-/** Enum to indicate whether if a tangent is 'weighted' (ie can be stretched) */
+/** Enum to indicate whether if a tangent is 'weighted' (ie can be stretched). */
 UENUM()
 enum ERichCurveTangentWeightMode
 {

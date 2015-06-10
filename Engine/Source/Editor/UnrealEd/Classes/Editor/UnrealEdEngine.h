@@ -10,13 +10,13 @@
 UENUM()
 enum EPackageNotifyState
 {
-	// The user has been prompted with the balloon taskbar message
+	/** The user has been prompted with the balloon taskbar message. */
 	NS_BalloonPrompted,
-	// The user responded to the balloon task bar message and got the modal prompt to checkout dialog and responded to it
+	/** The user responded to the balloon task bar message and got the modal prompt to checkout dialog and responded to it. */
 	NS_DialogPrompted,
-	// The package has been marked dirty and is pending a balloon prompt
+	/** The package has been marked dirty and is pending a balloon prompt. */
 	NS_PendingPrompt,
-	// The package has been marked dirty but cannot be checked out, and is pending a modal warning dialog
+	/** The package has been marked dirty but cannot be checked out, and is pending a modal warning dialog. */
 	NS_PendingWarning,
 	NS_MAX,
 };
@@ -24,11 +24,11 @@ enum EPackageNotifyState
 UENUM()
 enum EWriteDisallowedWarningState
 {
-	// The user needs to be warned about the package
+	/** The user needs to be warned about the package. */
 	WDWS_PendingWarn,
-	// The user has been warned about the package
+	/** The user has been warned about the package. */
 	WDWS_Warned,
-	// Warning for the package unnecessary
+	/** Warning for the package unnecessary. */
 	WDWS_WarningUnnecessary,
 	WDWS_MAX,
 };

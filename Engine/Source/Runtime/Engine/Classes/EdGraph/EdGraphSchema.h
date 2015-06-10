@@ -25,70 +25,70 @@ enum EGraphType
 UENUM()
 enum ECanCreateConnectionResponse
 {
-	// Make the connection; there are no issues (message string is displayed if not empty)
+	/** Make the connection; there are no issues (message string is displayed if not empty). */
 	CONNECT_RESPONSE_MAKE,
 
-	// Cannot make this connection; display the message string as an error
+	/** Cannot make this connection; display the message string as an error. */
 	CONNECT_RESPONSE_DISALLOW,
 
-	// Break all existing connections on A and make the new connection (it's exclusive); display the message string as a warning/notice
+	/** Break all existing connections on A and make the new connection (it's exclusive); display the message string as a warning/notice. */
 	CONNECT_RESPONSE_BREAK_OTHERS_A,
 
-	// Break all existing connections on B and make the new connection (it's exclusive); display the message string as a warning/notice
+	/** Break all existing connections on B and make the new connection (it's exclusive); display the message string as a warning/notice. */
 	CONNECT_RESPONSE_BREAK_OTHERS_B,
 
-	// Break all existing connections on A and B, and make the new connection (it's exclusive); display the message string as a warning/notice
+	/** Break all existing connections on A and B, and make the new connection (it's exclusive); display the message string as a warning/notice. */
 	CONNECT_RESPONSE_BREAK_OTHERS_AB,
 
-	// Make the connection via an intermediate cast node, or some other conversion node
+	/** Make the connection via an intermediate cast node, or some other conversion node. */
 	CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE,
 
 	CONNECT_RESPONSE_MAX,
 };
 
-/** This structure represents a context dependent action, with sufficient information for the schema to perform it */
+/** This structure represents a context dependent action, with sufficient information for the schema to perform it. */
 USTRUCT()
 struct ENGINE_API FEdGraphSchemaAction
 {
 	GENERATED_USTRUCT_BODY()
 
-	// Simple type info
+	/** Simple type info. */
 	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction"); return Type;}
 	virtual FName GetTypeId() const { return StaticGetTypeId(); }
 
-	/** The menu text that should be displayed for this node in the creation menu */
+	/** The menu text that should be displayed for this node in the creation menu. */
 	UPROPERTY()
 	FText MenuDescription;
 
-	/** The tooltip text that should be displayed for this node in the creation menu */
+	/** The tooltip text that should be displayed for this node in the creation menu. */
 	UPROPERTY()
 	FString TooltipDescription;
 
-	/** This is the UI centric category the action fits in (e.g., Functions, Variables).  Use this instead of the NodeType.NodeCategory because multiple NodeCategories might visually belong together. */
+	/** This is the UI centric category the action fits in (e.g., Functions, Variables). Use this instead of the NodeType.NodeCategory because multiple NodeCategories might visually belong together. */
 	UPROPERTY()
 	FText Category;
 
-	/** This is just an arbitrary dump of extra text that search will match on, in addition to the description and tooltip, e.g., Add might have the keyword Math */
+	/** This is just an arbitrary dump of extra text that search will match on, in addition to the description and tooltip, e.g., Add might have the keyword Math. */
 	UPROPERTY()
 	FText Keywords;
 
-	/** This is a priority number for overriding alphabetical order in the action list (higher value  == higher in the list) */
+	/** This is a priority number for overriding alphabetical order in the action list (higher value  == higher in the list). */
 	UPROPERTY()
 	int32 Grouping;
 
-	/** Section ID of the action list in which this action belongs */
+	/** Section ID of the action list in which this action belongs. */
 	UPROPERTY()
 	int32 SectionID;
 
-	/** Search title for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty)*/
+	/** Search title for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty). */
 	UPROPERTY()
 	FText CachedSearchTitle;
 
-	/** Search keywords for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty)*/
+	/** Search keywords for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty). */
 	UPROPERTY()
 	FText CachedSearchKeywords;
 
-	/** Search categories for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty)*/
+	/** Search categories for the action (doesn't have to be set when instantiated, will be constructed by GetSearchTitle() if left empty). */
 	UPROPERTY()
 	FText CachedSearchCategories;
 
@@ -108,13 +108,13 @@ struct ENGINE_API FEdGraphSchemaAction
 	{
 	}
 
-	/** Whether or not this action can be parented to other actions of the same type */
+	/** Whether or not this action can be parented to other actions of the same type. */
 	virtual bool IsParentable() const { return false; }
 
-	/** Execute this action, given the graph and schema, and possibly a pin that we were dragged from. Returns a node that was created by this action (if any).  */
+	/** Execute this action, given the graph and schema, and possibly a pin that we were dragged from. Returns a node that was created by this action (if any). */
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) { return NULL; }
 
-	/** Execute this action, given the graph and schema, and possibly a pin that we were dragged from. Returns a node that was created by this action (if any).  */
+	/** Execute this action, given the graph and schema, and possibly a pin that we were dragged from. Returns a node that was created by this action (if any). */
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location, bool bSelectNewNode = true)
 	{
 		UEdGraphNode* NewNode = NULL;
@@ -130,7 +130,7 @@ struct ENGINE_API FEdGraphSchemaAction
 		return NewNode;
 	}
 
-	/** Retrieves the full searchable title for this action */
+	/** Retrieves the full searchable title for this action. */
 	FText GetSearchTitle()
 	{
 		if(CachedSearchTitle.IsEmpty())
@@ -143,7 +143,7 @@ struct ENGINE_API FEdGraphSchemaAction
 		return CachedSearchTitle;
 	}
 
-	/** Retrieves the full searchable keywords for this action */
+	/** Retrieves the full searchable keywords for this action. */
 	FText GetSearchKeywords()
 	{
 		if(CachedSearchKeywords.IsEmpty())
@@ -156,7 +156,7 @@ struct ENGINE_API FEdGraphSchemaAction
 		return CachedSearchKeywords;
 	}
 
-	/** Retrieves the full searchable categories for this action */
+	/** Retrieves the full searchable categories for this action. */
 	FText GetSearchCategory()
 	{
 		if(CachedSearchCategories.IsEmpty())

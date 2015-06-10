@@ -10,7 +10,7 @@
 #include "AnimSequence.h"
 #include "BlendSpaceBase.generated.h"
 
-// Interpolation data types.
+/** Interpolation data types. */
 UENUM()
 enum EBlendSpaceAxis
 {
@@ -25,11 +25,11 @@ struct FInterpolationParameter
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Interpolation Time for input, when it gets input, it will use this time to interpolate to target, used for smoother interpolation **/
+	/** Interpolation Time for input, when it gets input, it will use this time to interpolate to target, used for smoother interpolation. */
 	UPROPERTY(EditAnywhere, Category=Parameter)
 	float InterpolationTime;
 
-	/** Interpolation Type for input, when it gets input, it will use this filter to decide how to get to target **/
+	/** Interpolation Type for input, when it gets input, it will use this filter to decide how to get to target. */
 	UPROPERTY(EditAnywhere, Category=Parameter)
 	TEnumAsByte<EFilterInterpolationType> InterpolationType;
 };
@@ -42,15 +42,15 @@ struct FBlendParameter
 	UPROPERTY(EditAnywhere, Category=BlendParameter)
 	FString DisplayName;
 
-	// min value for this parameter
+	/** Min value for this parameter. */
 	UPROPERTY(EditAnywhere, Category=BlendParameter)
 	float Min;
 
-	// max value for this parameter
+	/** Max value for this parameter. */
 	UPROPERTY(EditAnywhere, Category=BlendParameter)
 	float Max;
 
-	// how many grid for this parameter
+	/** how many grid for this parameter. */
 	UPROPERTY(EditAnywhere, Category=BlendParameter)
 	int32 GridNum;
 
@@ -66,7 +66,7 @@ struct FBlendParameter
 	{
 		return Max-Min;
 	}
-	/** return size of each grid **/
+	/** Return size of each grid. */
 	float GetGridSize() const
 	{
 		return GetRange()/(float)GridNum;
@@ -74,7 +74,7 @@ struct FBlendParameter
 	
 };
 
-/** Sample data **/
+/** Sample data */
 USTRUCT()
 struct FBlendSample
 {
@@ -83,7 +83,8 @@ struct FBlendSample
 	UPROPERTY(EditAnywhere, Category=BlendSample)
 	class UAnimSequence* Animation;
 
-	// blend 0->x, blend 1->y, blend 2->z
+	//blend 0->x, blend 1->y, blend 2->z
+
 	UPROPERTY(EditAnywhere, Category=BlendSample)
 	FVector SampleValue;
 

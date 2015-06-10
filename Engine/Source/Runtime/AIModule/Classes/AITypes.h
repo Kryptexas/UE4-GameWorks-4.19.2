@@ -46,6 +46,7 @@ namespace EAIOptionFlag
 	{
 		Default,
 		Enable UMETA(DisplayName = "Yes"),	// UHT was complaining when tried to use True as value instead of Enable
+
 		Disable UMETA(DisplayName = "No"),
 
 		MAX UMETA(Hidden)
@@ -86,7 +87,8 @@ namespace EPawnActionAbortState
 	{
 		NeverStarted,
 		NotBeingAborted,
-		MarkPendingAbort,	// this means waiting for child to abort before aborting self
+		/** This means waiting for child to abort before aborting self. */
+		MarkPendingAbort,
 		LatentAbortInProgress,
 		AbortDone,
 
@@ -126,11 +128,16 @@ namespace EAIRequestPriority
 {
 	enum Type
 	{
-		SoftScript, // actions requested by Level Designers by placing AI-hinting elements on the map
-		Logic,	// actions AI wants to do due to its internal logic				
-		HardScript, // actions LDs really want AI to perform
-		Reaction,	// actions being result of game-world mechanics, like hit reactions, death, falling, etc. In general things not depending on what AI's thinking
-		Ultimate,	// ultimate priority, to be used with caution, makes AI perform given action regardless of anything else (for example disabled reactions)
+		/** Actions requested by Level Designers by placing AI-hinting elements on the map. */
+		SoftScript,
+		/** Actions AI wants to do due to its internal logic. */
+		Logic,
+		/** Actions LDs really want AI to perform. */
+		HardScript,
+		/** Actions being result of game-world mechanics, like hit reactions, death, falling, etc. In general things not depending on what AI's thinking. */
+		Reaction,
+		/** Ultimate priority, to be used with caution, makes AI perform given action regardless of anything else (for example disabled reactions). */
+		Ultimate,
 
 		MAX UMETA(Hidden)
 	};

@@ -42,13 +42,13 @@ namespace ELogTimes
 {
 	enum Type
 	{
-		// Do not display log timestamps
+		/** Do not display log timestamps. */
 		None UMETA(DisplayName = "None"),
 
-		// Display log timestamps in UTC
+		/** Display log timestamps in UTC. */
 		UTC UMETA(DisplayName = "UTC"),
 
-		// Display log timestamps in seconds elapsed since GStartTime
+		/** Display log timestamps in seconds elapsed since GStartTime. */
 		SinceGStartTime UMETA(DisplayName = "Time since application start"),
 	};
 }
@@ -82,26 +82,27 @@ enum EInterpCurveMode
 // @warning:	When you update this, you must add an entry to GPixelFormats(see RenderUtils.cpp)
 // @warning:	When you update this, you must add an entries to PixelFormat.h, usually just copy the generated section on the header into EPixelFormat
 // @warning:	The *Tools DLLs will also need to be recompiled if the ordering is changed, but should not need code changes.
+
 UENUM()
 enum EPixelFormat
 {
 	PF_Unknown,
 	PF_A32B32G32R32F,
 	PF_B8G8R8A8,
-	// UNORM red (0..1)
+	/** UNORM red (0..1) */
 	PF_G8,
 	PF_G16,
 	PF_DXT1,
 	PF_DXT3,
 	PF_DXT5,
 	PF_UYVY,
-	// A RGB FP format with platform-specific implementation, for use with render targets
+	/** A RGB FP format with platform-specific implementation, for use with render targets. */
 	PF_FloatRGB,
-	// A RGBA FP format with platform-specific implementation, for use with render targets
+	/** A RGBA FP format with platform-specific implementation, for use with render targets. */
 	PF_FloatRGBA,
-	// A depth+stencil format with platform-specific implementation, for use with render targets
+	/** A depth+stencil format with platform-specific implementation, for use with render targets. */
 	PF_DepthStencil,
-	// A depth format with platform-specific implementation, for use with render targets
+	/** A depth format with platform-specific implementation, for use with render targets. */
 	PF_ShadowDepth,
 	PF_R32_FLOAT,
 	PF_G16R16,
@@ -114,10 +115,10 @@ enum EPixelFormat
 	PF_R16F,
 	PF_R16F_FILTER,
 	PF_BC5,
-	// SNORM red, green (-1..1)
+	/** SNORM red, green (-1..1). */
 	PF_V8U8,
 	PF_A1,
-	// A low precision floating point format.
+	/** A low precision floating point format. */
 	PF_FloatR11G11B10,
 	PF_A8,
 	PF_R32_UINT,
@@ -130,28 +131,35 @@ enum EPixelFormat
 	PF_R16G16B16A16_SINT,
 	PF_R5G6B5_UNORM,
 	PF_R8G8B8A8,
-	// Only used for legacy loading; do NOT use!
+	/** Only used for legacy loading; do NOT use! */
 	PF_A8R8G8B8,
-	// High precision single channel block compressed, equivalent to a single channel BC5, 8 bytes per 4x4 block.
+	/** High precision single channel block compressed, equivalent to a single channel BC5, 8 bytes per 4x4 block. */
 	PF_BC4,
-	// UNORM red, green (0..1)
+	/** UNORM red, green (0..1). */
 	PF_R8G8,
-	// ATITC formats
+	/** ATITC format. */
 	PF_ATC_RGB,
+	/** ATITC format. */
 	PF_ATC_RGBA_E,
+	/** ATITC format. */
 	PF_ATC_RGBA_I,
-	// Used for creating SRVs to alias a DepthStencil buffer to read Stencil.  Don't use for creating textures.
+	/** Used for creating SRVs to alias a DepthStencil buffer to read Stencil.  Don't use for creating textures. */
 	PF_X24_G8,
 	PF_ETC1,
 	PF_ETC2_RGB,
 	PF_ETC2_RGBA,
 	PF_R32G32B32A32_UINT,
 	PF_R16G16_UINT,
-	PF_ASTC_4x4,	// 8.00 bpp
-	PF_ASTC_6x6,	// 3.56 bpp
-	PF_ASTC_8x8,	// 2.00 bpp
-	PF_ASTC_10x10,	// 1.28 bpp
-	PF_ASTC_12x12,	// 0.89 bpp
+	/** 8.00 bpp */
+	PF_ASTC_4x4,
+	/** 3.56 bpp */
+	PF_ASTC_6x6,
+	/** 2.00 bpp */
+	PF_ASTC_8x8,
+	/** 1.28 bpp */
+	PF_ASTC_10x10,
+	/** 0.89 bpp */
+	PF_ASTC_12x12,
 	PF_BC6H,
 	PF_BC7,
 	PF_MAX,
@@ -162,46 +170,46 @@ namespace EMouseCursor
 {
 	enum Type
 	{
-		/** Causes no mouse cursor to be visible */
+		/** Causes no mouse cursor to be visible. */
 		None,
 
-		/** Default cursor (arrow) */
+		/** Default cursor (arrow). */
 		Default,
 
-		/** Text edit beam */
+		/** Text edit beam. */
 		TextEditBeam,
 
-		/** Resize horizontal */
+		/** Resize horizontal. */
 		ResizeLeftRight,
 
-		/** Resize vertical */
+		/** Resize vertical. */
 		ResizeUpDown,
 
-		/** Resize diagonal */
+		/** Resize diagonal. */
 		ResizeSouthEast,
 
-		/** Resize other diagonal */
+		/** Resize other diagonal. */
 		ResizeSouthWest,
 
-		/** MoveItem */
+		/** MoveItem. */
 		CardinalCross,
 
-		/** Target Cross */
+		/** Target Cross. */
 		Crosshairs,
 
-		/** Hand cursor */
+		/** Hand cursor. */
 		Hand,
 
-		/** Grab Hand cursor */
+		/** Grab Hand cursor. */
 		GrabHand,
 
-		/** Grab Hand cursor closed */
+		/** Grab Hand cursor closed. */
 		GrabHandClosed,
 
-		/** a circle with a diagonal line through it */
+		/** a circle with a diagonal line through it. */
 		SlashedCircle,
 
-		/** Eye-dropper cursor for picking colors */
+		/** Eye-dropper cursor for picking colors. */
 		EyeDropper,
 	};
 }
@@ -210,44 +218,65 @@ namespace EMouseCursor
 UENUM(BlueprintType)
 enum class EUnit
 {
-	/** Scalar distance/length units */
+	/** Scalar distance/length unit. */
+
 	Micrometers, Millimeters, Centimeters, Meters, Kilometers,
 	Inches, Feet, Yards, Miles,
 	Lightyears,
 
+
 	/** Angular units */
+
 	Degrees, Radians,
 
+
 	/** Speed units */
+
 	MetersPerSecond, KilometersPerHour, MilesPerHour,
 
+
 	/** Temperature units */
+
 	Celsius, Farenheit, Kelvin,
 
+
 	/** Mass units */
+
 	Micrograms, Milligrams, Grams, Kilograms, MetricTons,
 	Ounces, Pounds, Stones,
 
+
 	/** Force units */
+
 	Newtons, PoundsForce, KilogramsForce,
 
+
 	/** Frequency units */
+
 	Hertz, Kilohertz, Megahertz, Gigahertz, RevolutionsPerMinute,
 
+
 	/** Data Size units */
+	
 	Bytes, Kilobytes, Megabytes, Gigabytes, Terabytes,
 
+
 	/** Luminous flux units */
+	
 	Lumens,
 
+
 	/** Time units */
+	
 	Milliseconds, Seconds, Minutes, Hours, Days, Months, Years,
 
-	/** Symbolic entry, not specifyable on meta data */
+
+	/** Symbolic entry, not specifiable on meta data. */
+	
 	Unspecified
 };
 
-// A globally unique identifier.
+/** A globally unique identifier. */
 USTRUCT(immutable, noexport, BlueprintType)
 struct FGuid
 {

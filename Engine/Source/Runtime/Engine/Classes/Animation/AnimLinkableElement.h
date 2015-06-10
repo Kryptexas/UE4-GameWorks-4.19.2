@@ -14,11 +14,11 @@ namespace EAnimLinkMethod
 {
 	enum Type
 	{
-		// Element stays at a specific time without moving
+		/** Element stays at a specific time without moving. */
 		Absolute,
-		// Element moves with its segment, but not when the segment changes size
+		/** Element moves with its segment, but not when the segment changes size. */
 		Relative,
-		// Element moves with its segment and will stay at a certain proportion through the segment
+		/** Element moves with its segment and will stay at a certain proportion through the segment. */
 		Proportional
 	};
 }

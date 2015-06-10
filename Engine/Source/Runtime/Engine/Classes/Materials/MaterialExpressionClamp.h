@@ -10,7 +10,6 @@ enum EClampMode
 {
 	CMODE_Clamp,
 	CMODE_ClampMin,
-	// Extra x to differentiate from the special value CMODE_Max, which is ignored by the property window
 	CMODE_ClampMax,
 };
 

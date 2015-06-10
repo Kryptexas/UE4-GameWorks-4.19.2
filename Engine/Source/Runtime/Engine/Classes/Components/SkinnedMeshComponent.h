@@ -22,9 +22,12 @@ DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParamet
 UENUM()
 enum EBoneVisibilityStatus
 {
-	BVS_HiddenByParent,    // Bone is hidden because it's parent is hidden
-	BVS_Visible,    // Bone is visible
-	BVS_ExplicitlyHidden,    // Bone is hidden directly
+	/** Bone is hidden because it's parent is hidden. */
+	BVS_HiddenByParent
+	/** Bone is visible. */
+	BVS_Visible,
+	/** Bone is hidden directly. */
+	BVS_ExplicitlyHidden,
 	BVS_MAX,
 };
 
@@ -32,41 +35,41 @@ enum EBoneVisibilityStatus
 UENUM()
 enum EPhysBodyOp
 {
-	// don't do anything
+	/** Don't do anything. */
 	PBO_None,
-	// terminate - if you terminate, you won't be able to re-init when unhidden
+	/** Terminate - if you terminate, you won't be able to re-init when unhidden. */
 	PBO_Term,
-	// disable collision - it will enable collision when unhidden
+	/** Disable collision - it will enable collision when unhidden. */
 	PBO_Disable,
 	PBO_MAX,
 };
 
-/** Skinned Mesh Update Flag based on rendered or not */
+/** Skinned Mesh Update Flag based on rendered or not. */
 UENUM()
 namespace EMeshComponentUpdateFlag
 {
 	enum Type
 	{
-		// Always Tick and Refresh BoneTransforms whether rendered or not
+		/** Always Tick and Refresh BoneTransforms whether rendered or not. */
 		AlwaysTickPoseAndRefreshBones,
-		// Always Tick, but Refresh BoneTransforms only when rendered
+		/** Always Tick, but Refresh BoneTransforms only when rendered. */
 		AlwaysTickPose,
-		// Tick only when rendered, and it will only RefreshBoneTransforms when rendered
+		/** Tick only when rendered, and it will only RefreshBoneTransforms when rendered. */
 		OnlyTickPoseWhenRendered,
 	};
 }
 
-/** Flag for specifying bone space */
+/** Values for specifying bone space. */
 UENUM()
 namespace EBoneSpaces
 {
 	enum Type
 	{
-		/** Set absolute position of bone in world space */
+		/** Set absolute position of bone in world space. */
 		WorldSpace		UMETA(DisplayName = "World Space"),
-		/** Set position of bone in components reference frame */
+		/** Set position of bone in components reference frame. */
 		ComponentSpace	UMETA(DisplayName = "Component Space"),
-		/** Set position of bone relative to parent bone */
+		/** Set position of bone relative to parent bone. */
 		//LocalSpace		UMETA( DisplayName = "Parent Bone Space" ),
 	};
 }
@@ -81,15 +84,15 @@ struct FActiveVertexAnim
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The anim that we want to apply. */
+	/** The animation that we want to apply. */
 	UPROPERTY()
 	class UVertexAnimBase* VertAnim;
 
-	/** Strength of the vertex animation, between 0.0 and 1.0 */
+	/** Strength of the vertex animation, between 0.0 and 1.0. */
 	UPROPERTY()
 	float Weight;
 
-	/** Time to evaluate the anim at */
+	/** Time to evaluate the animation at. */
 	UPROPERTY()
 	float Time;
 
@@ -121,13 +124,13 @@ struct FActiveVertexAnim
 	}
 };
 
-/** LOD specific setup for the skeletal mesh component */
+/** LOD specific setup for the skeletal mesh component. */
 USTRUCT()
 struct FSkelMeshComponentLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Material corresponds to section. To show/hide each section, use this **/
+	/** Material corresponds to section. To show/hide each section, use this. */
 	UPROPERTY()
 	TArray<bool> HiddenMaterials;
 

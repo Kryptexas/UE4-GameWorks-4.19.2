@@ -27,11 +27,16 @@ struct FTCCommonVars;
 UENUM()
 enum class EUnitTestVerification : uint8
 {
-	Unverified,				// Unit test is not yet verified
-	VerifiedNotFixed,		// Unit test is verified as not fixed
-	VerifiedFixed,			// Unit test is verified as fixed
-	VerifiedNeedsUpdate,	// Unit test is no longer functioning, needs manual check/update (issue may be fixed, or unit test broken)
-	VerifiedUnreliable,		// Unit test is verified as having executed unreliably
+	/** Unit test is not yet verified */
+	Unverified,
+	/** Unit test is verified as not fixed */
+	VerifiedNotFixed,
+	/** Unit test is verified as fixed */
+	VerifiedFixed,
+	/** Unit test is no longer functioning, needs manual check/update (issue may be fixed, or unit test broken) */
+	VerifiedNeedsUpdate,
+	/** Unit test is verified as having executed unreliably */
+	VerifiedUnreliable,
 };
 
 

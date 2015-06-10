@@ -7,13 +7,13 @@
 UENUM()
 enum EUserDefinedStructureStatus
 {
-	// Struct is in an unknown state
+	/** Struct is in an unknown state. */
 	UDSS_UpToDate,
-	// Struct has been modified but not recompiled
+	/** Struct has been modified but not recompiled. */
 	UDSS_Dirty,
-	// Struct tried but failed to be compiled
+	/** Struct tried but failed to be compiled. */
 	UDSS_Error,
-	// Struct is a duplicate, the original one was changed
+	/** Struct is a duplicate, the original one was changed. */
 	UDSS_Duplicate,
 
 	UDSS_MAX,

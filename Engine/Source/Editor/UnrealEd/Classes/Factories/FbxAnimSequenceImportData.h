@@ -9,7 +9,7 @@
 	b) As for FbxNode::GetAnimationInternval, this one will iterate through all properties recursively, and then for all animation curves it finds, for the animation layer index specified. So in other words, if one property has been animated, it will modify this result. This is completely different from GetLocalTimeSpan since it calculates the time span depending on the keys rather than just using the start and stop time that was saved in the file.
 */
 
-/** animation length type when importing*/
+/** Animation length type when importing */
 UENUM()
 enum EFBXAnimationLengthImportType
 {

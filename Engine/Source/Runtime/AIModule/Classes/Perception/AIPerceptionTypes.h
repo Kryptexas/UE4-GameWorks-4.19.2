@@ -28,8 +28,10 @@ typedef FAIGenericID<FPerceptionListenerCounter> FPerceptionListenerID;
 UENUM()
 enum class EAISenseNotifyType : uint8
 {
-	OnEveryPerception,	// continuous update whenever target is perceived
-	OnPerceptionChange, // from "visible" to "not visible" or vice versa
+	/** Continuous update whenever target is perceived. */
+	OnEveryPerception,
+	/** From "visible" to "not visible" or vice versa. */
+	OnPerceptionChange,
 };
 
 struct FPerceptionChannelWhitelist

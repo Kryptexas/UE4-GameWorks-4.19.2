@@ -22,13 +22,13 @@ class USkeleton;
 UENUM()
 enum EMapSetBrushFlags				
 {
-	// Set brush color.
+	/** Set brush color. */
 	MSB_BrushColor	= 1,
-	// Set group.
+	/** Set group. */
 	MSB_Group		= 2,
-	// Set poly flags.
+	/** Set poly flags. */
 	MSB_PolyFlags	= 4,
-	// Set CSG operation.
+	/** Set CSG operation. */
 	MSB_BrushType	= 8,
 };
 

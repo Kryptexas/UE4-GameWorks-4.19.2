@@ -29,13 +29,13 @@ namespace EFlipbookCollisionMode
 {
 	enum Type
 	{
-		// The flipbook has no collision
+		/** The flipbook has no collision */
 		NoCollision,
 
-		// The flipbook has non-animated collision based on the first frame of the animation
+		/** The flipbook has non-animated collision based on the first frame of the animation */
 		FirstFrameCollision,
 
-		// The flipbook changes collision each frame based on the animation (Note: This setting is not recommended and is very expensive, recreating the physics state every frame)
+		/** The flipbook changes collision each frame based on the animation (Note: This setting is not recommended and is very expensive, recreating the physics state every frame) */
 		EachFrameCollision,
 	};
 }

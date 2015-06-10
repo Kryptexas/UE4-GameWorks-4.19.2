@@ -14,20 +14,20 @@ class FCanvas;
 
 
 /**
- * Enumerats types of fully loaded packages.
+ * Enumerates types of fully loaded packages.
  */
 UENUM()
 enum EFullyLoadPackageType
 {
-	/** Load the packages when the map in Tag is loaded */
+	/** Load the packages when the map in Tag is loaded. */
 	FULLYLOAD_Map,
-	/** Load the packages before the game class in Tag is loaded. The Game name MUST be specified in the URL (game=Package.GameName). Useful for loading packages needed to load the game type (a DLC game type, for instance) */
+	/** Load the packages before the game class in Tag is loaded. The Game name MUST be specified in the URL (game=Package.GameName). Useful for loading packages needed to load the game type (a DLC game type, for instance). */
 	FULLYLOAD_Game_PreLoadClass,
-	/** Load the packages after the game class in Tag is loaded. Will work no matter how game is specified in UWorld::SetGameMode. Useful for modifying shipping gametypes by loading more packages (mutators, for instance) */
+	/** Load the packages after the game class in Tag is loaded. Will work no matter how game is specified in UWorld::SetGameMode. Useful for modifying shipping gametypes by loading more packages (mutators, for instance). */
 	FULLYLOAD_Game_PostLoadClass,
-	/** Fully load the package as long as the DLC is loaded */
+	/** Fully load the package as long as the DLC is loaded. */
 	FULLYLOAD_Always,
-	/** Load the package for a mutator that is active */
+	/** Load the package for a mutator that is active. */
 	FULLYLOAD_Mutator,
 	FULLYLOAD_MAX,
 };
@@ -59,7 +59,7 @@ enum EConsoleType
 };
 
 
-/** Struct to help hold information about packages needing to be fully-loaded for DLC, etc */
+/** Struct to help hold information about packages needing to be fully-loaded for DLC, etc. */
 USTRUCT()
 struct FFullyLoadedPackagesInfo
 {

@@ -14,46 +14,44 @@
 UENUM()
 enum EBlueprintStatus
 {
-	// Blueprint is in an unknown state
+	/** Blueprint is in an unknown state. */
 	BS_Unknown,
-	// Blueprint has been modified but not recompiled
+	/** Blueprint has been modified but not recompiled. */
 	BS_Dirty,
-	// Blueprint tried but failed to be compiled
+	/** Blueprint tried but failed to be compiled. */
 	BS_Error,
-	// Blueprint has been compiled since it was last modified
+	/** Blueprint has been compiled since it was last modified. */
 	BS_UpToDate,
-	// Blueprint is in the process of being created for the first time
+	/** Blueprint is in the process of being created for the first time. */
 	BS_BeingCreated,
-	// Blueprint has been compiled since it was last modified. There are warnings.
+	/** Blueprint has been compiled since it was last modified. There are warnings. */
 	BS_UpToDateWithWarnings,
 	BS_MAX,
 };
 
 
-/**
- * Enumerates types of blueprints.
- */
+/** Enumerates types of blueprints. */
 UENUM()
 enum EBlueprintType
 {
-	// Normal blueprint
+	/** Normal blueprint. */
 	BPTYPE_Normal				UMETA(DisplayName="Blueprint Class"),
-	// Blueprint that is const during execution (no state graph and methods cannot modify member variables)
+	/** Blueprint that is const during execution (no state graph and methods cannot modify member variables). */
 	BPTYPE_Const				UMETA(DisplayName="Const Blueprint Class"),
-	// Blueprint that serves as a container for macros to be used in other blueprints
+	/** Blueprint that serves as a container for macros to be used in other blueprints. */
 	BPTYPE_MacroLibrary			UMETA(DisplayName="Blueprint Macro Library"),
-	// Blueprint that serves as an interface to be implemented by other blueprints
+	/** Blueprint that serves as an interface to be implemented by other blueprints. */
 	BPTYPE_Interface			UMETA(DisplayName="Blueprint Interface"),
-	// Blueprint that handles level scripting
+	/** Blueprint that handles level scripting. */
 	BPTYPE_LevelScript			UMETA(DisplayName="Level Blueprint"),
-	// Blueprint that servers as a container for functions to be used in other blueprints
+	/** Blueprint that servers as a container for functions to be used in other blueprints. */
 	BPTYPE_FunctionLibrary		UMETA(DisplayName="Blueprint Function Library"),
 
 	BPTYPE_MAX,
 };
 
 
-// Type of compilation
+/** Type of compilation. */
 namespace EKismetCompileType
 {
 	enum Type

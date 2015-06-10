@@ -7,7 +7,7 @@
 #pragma once
 #include "Scene.generated.h"
 
-/** used by FPostProcessSettings Depth of Field */
+/** Used by FPostProcessSettings Depth of Fields */
 UENUM()
 enum EDepthOfFieldMethod
 {
@@ -17,7 +17,7 @@ enum EDepthOfFieldMethod
 	DOFM_MAX,
 };
 
-/** used by FPostProcessSettings Anti-aliasing */
+/** Used by FPostProcessSettings Anti-aliasings */
 UENUM()
 enum EAntiAliasingMethod
 {

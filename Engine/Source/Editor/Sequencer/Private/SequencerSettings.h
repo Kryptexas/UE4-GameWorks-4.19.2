@@ -10,11 +10,11 @@ namespace ESequencerCurveVisibility
 {
 	enum Type
 	{
-		/** All curves should be visible. **/
+		/** All curves should be visible. */
 		AllCurves,
-		/** Only curves from selected nodes should be visible. **/
+		/** Only curves from selected nodes should be visible. */
 		SelectedCurves,
-		/** Only curves which have keyframes should be visible. **/
+		/** Only curves which have keyframes should be visible. */
 		AnimatedCurves
 	};
 }

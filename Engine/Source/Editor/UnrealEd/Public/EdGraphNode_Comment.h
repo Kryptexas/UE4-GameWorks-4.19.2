@@ -12,10 +12,10 @@ namespace ECommentBoxMode
 {
 	enum Type
 	{
-		// This comment box will move any fully contained nodes when it moves
+		/** This comment box will move any fully contained nodes when it moves. */
 		GroupMovement UMETA(DisplayName="Group Movement"),
 
-		// This comment box has no effect on nodes contained inside it
+		/** This comment box has no effect on nodes contained inside it. */
 		NoGroupMovement UMETA(DisplayName="Comment")
 	};
 }
