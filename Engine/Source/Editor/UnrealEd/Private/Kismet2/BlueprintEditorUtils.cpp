@@ -1448,7 +1448,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		// Make sure all used external classes/functions/structures/macros/etc are loaded and linked
 		FRegenerationHelper::LinkExternalDependencies(Blueprint, ObjLoaded);
 
-		FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
+		bool bSkeletonUpToDate = FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
 
 		static FBoolConfigValueHelper ReplaceBlueprintWithClass(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"));
 		if (ReplaceBlueprintWithClass)
@@ -1488,7 +1488,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			FBlueprintEditorUtils::ReconstructAllNodes(Blueprint);
 
 			// Compile the actual blueprint
-			FKismetEditorUtilities::CompileBlueprint(Blueprint, true);
+			FKismetEditorUtilities::CompileBlueprint(Blueprint, true, false, false, nullptr, bSkeletonUpToDate);
 		}
 		else if( bIsMacro )
 		{
@@ -1818,8 +1818,12 @@ void FBlueprintEditorUtils::PropagateParentBlueprintDefaults(UClass* ClassToProp
 	}
 }
 
+UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+
 void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
+	
 	// Only recompile after duplication if this isn't PIE
 	if (!GIsPlayInEditorWorld)
 	{
@@ -2033,10 +2037,14 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 // Blueprint has materially changed.  Recompile the skeleton, notify observers, and mark the package as dirty.
 void FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(UBlueprint* Blueprint)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
+	
 	struct FRefreshHelper
 	{
 		static void SkeletalRecompileChildren(TArray<UClass*> SkelClassesToRecompile, bool bIsCompilingOnLoad)
 		{
+			FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
+			
 			for (auto SkelClass : SkelClassesToRecompile)
 			{
 				if (SkelClass->HasAnyClassFlags(CLASS_NewerVersionExists))

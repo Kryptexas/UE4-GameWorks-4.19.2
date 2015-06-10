@@ -510,8 +510,12 @@ void FBlueprintCompileReinstancer::BlueprintWasRecompiled(UBlueprint* BP, bool b
 	}
 }
 
+extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+
 void FBlueprintCompileReinstancer::ReinstanceObjects(bool bForceAlwaysReinstance)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
+
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ReinstanceObjects);
 	
 	// Make sure we only reinstance classes once!

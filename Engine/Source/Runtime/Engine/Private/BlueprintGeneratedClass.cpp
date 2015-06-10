@@ -187,8 +187,12 @@ struct FConditionalRecompileClassHepler
 	}
 };
 
+extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+
 void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
+
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
 	if (GeneratingBP && (GeneratingBP->SkeletonGeneratedClass != this))
 	{

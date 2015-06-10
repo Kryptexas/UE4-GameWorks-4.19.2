@@ -70,10 +70,10 @@ public:
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);
 
 	/** Tries to compile a blueprint, updating any actors in the editor who are using the old class, etc... */
-	static void CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad=false, bool bSkipGarbageCollection=false, bool bSaveIntermediateProducts = false, class FCompilerResultsLog* pResults = NULL);
+	static void CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad=false, bool bSkipGarbageCollection=false, bool bSaveIntermediateProducts = false, class FCompilerResultsLog* pResults = NULL, bool bSkeletonUpToDate = false);
 
 	/** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
-	static void GenerateBlueprintSkeleton(UBlueprint* BlueprintObj, bool bForceRegeneration = false);
+	static bool GenerateBlueprintSkeleton(UBlueprint* BlueprintObj, bool bForceRegeneration = false);
 
 	/** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
 	static void RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded = NULL);

@@ -367,9 +367,12 @@ void FKismetEditorUtilities::CreateDefaultEventGraphs(UBlueprint* Blueprint)
 	Blueprint->LastEditedDocuments.AddUnique(Ubergraph);
 }
 
+extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+
 /** Create a new Blueprint and initialize it to a valid state. */
 UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, TSubclassOf<UBlueprintGeneratedClass> BlueprintGeneratedClassType, FName CallingContext)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	check(FindObject<UBlueprint>(Outer, *NewBPName.ToString()) == NULL); 
 
 	// Not all types are legal for all parent classes, if the parent class is const then the blueprint cannot be an ubergraph-bearing one
@@ -679,8 +682,9 @@ bool FKismetEditorUtilities::IsReferencedByUndoBuffer(UBlueprint* Blueprint)
 	return (TotalReferenceCount > NonUndoReferenceCount);
 }
 
-void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
+void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults, bool bSkeletonUpToDate )
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileBlueprint);
 
 	// Broadcast pre-compile
@@ -734,6 +738,7 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.bSaveIntermediateProducts = bSaveIntermediateProducts;
+	CompileOptions.bRegenerateSkelton = !bSkeletonUpToDate;
 	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, ReinstanceHelper);
 
 	FBlueprintEditorUtils::UpdateDelegatesInBlueprint(BlueprintObj);
@@ -871,8 +876,10 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 }
 
 /** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
-void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj, bool bForceRegeneration)
+bool FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj, bool bForceRegeneration)
 {
+	bool bRegeneratedSkeleton = false;
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
 	check(BlueprintObj);
 
 	if( BlueprintObj->SkeletonGeneratedClass == NULL || bForceRegeneration )
@@ -888,6 +895,7 @@ void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 		FKismetCompilerOptions CompileOptions;
 		CompileOptions.CompileType = EKismetCompileType::SkeletonOnly;
 		Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
+		bRegeneratedSkeleton = true;
 
 		// Restore the package dirty flag here
 		if( Package != NULL )
@@ -895,11 +903,14 @@ void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 			Package->SetDirtyFlag(bIsPackageDirty);
 		}
 	}
+	return bRegeneratedSkeleton;
 }
 
 /** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
 void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData); 
+	
 	check(BlueprintObj);
 	checkf(BlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *BlueprintObj->GetName());
 

@@ -76,6 +76,9 @@ public:
 	/** Whether or not to save intermediate build products (temporary graphs and expanded macros) for debugging */
 	bool bSaveIntermediateProducts;
 
+	/** Whether to regenerate the skeleton first, when compiling on load we don't need to regenerate the skeleton. */
+	bool bRegenerateSkelton;
+
 	/** Whether or not this compile is for a duplicated blueprint */
 	bool bIsDuplicationInstigated;
 
@@ -104,6 +107,7 @@ public:
 	FKismetCompilerOptions()
 		: CompileType(EKismetCompileType::Full)
 		, bSaveIntermediateProducts(false)
+		, bRegenerateSkelton(true)
 		, bIsDuplicationInstigated(false)
 	{
 	};
