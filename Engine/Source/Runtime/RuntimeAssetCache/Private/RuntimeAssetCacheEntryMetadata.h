@@ -82,21 +82,4 @@ private:
 	FThreadSafeBool bIsBuilding;
 };
 
-FArchive& operator<<(FArchive& Ar, FCacheEntryMetadata& Metadata)
-{
-	Ar << Metadata.CachedAssetSize;
-	Ar << Metadata.CachedAssetVersion;
-	FString String;
-	if (Ar.IsLoading())
-	{
-		Ar << String;
-		Metadata.Name = FName(*String);
-	}
-	else if (Ar.IsSaving())
-	{
-		Metadata.Name.ToString(String);
-		Ar << String; 
-	}
-
-	return Ar;
-}
+FArchive& operator<<(FArchive& Ar, FCacheEntryMetadata& Metadata);

@@ -226,3 +226,22 @@ void FRuntimeAssetCacheAsyncWorker::FreeCacheSpace(FName Bucket, int32 NumberOfB
 		CurrentBucket->RemoveMetadataEntry(OldestEntry->GetName().ToString());
 	}
 }
+
+FArchive& operator<<(FArchive& Ar, FCacheEntryMetadata& Metadata)
+{
+	Ar << Metadata.CachedAssetSize;
+	Ar << Metadata.CachedAssetVersion;
+	FString String;
+	if (Ar.IsLoading())
+	{
+		Ar << String;
+		Metadata.Name = FName(*String);
+	}
+	else if (Ar.IsSaving())
+	{
+		Metadata.Name.ToString(String);
+		Ar << String;
+	}
+
+	return Ar;
+}

@@ -12,6 +12,7 @@ DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("RAC Num Puts"), STAT_RAC_NumPuts, ST
 
 /** Forward declarations. */
 class FRuntimeAssetCacheBuilderInterface;
+class FRuntimeAssetCacheBucket;
 
 /**
  * Worker to retrieve entry from cache or build it in case of cache miss.
