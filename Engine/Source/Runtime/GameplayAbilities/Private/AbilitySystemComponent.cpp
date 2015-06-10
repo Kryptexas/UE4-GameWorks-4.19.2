@@ -1020,6 +1020,8 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, 
 	}
 	else if (ScopedPredictionKey.IsLocalClientKey())
 	{
+		ActiveGameplayCues.PredictiveAdd(GameplayCueTag, ScopedPredictionKey);
+
 		// Allow for predictive gameplaycue events? Needs more thought
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);

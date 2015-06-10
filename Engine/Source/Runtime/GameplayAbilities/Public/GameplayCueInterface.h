@@ -103,6 +103,8 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 	/** Marks as predictively removed so that we dont invoke remove event twice due to onrep */
 	void PredictiveRemove(const FGameplayTag& Tag);
 
+	void PredictiveAdd(const FGameplayTag& Tag, FPredictionKey& PredictionKey);
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FActiveGameplayCue>(GameplayCues, DeltaParms, *this);

@@ -132,11 +132,12 @@ void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueCont
 
 void FActiveGameplayCue::PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray)
 {
+	InArray.Owner->UpdateTagMap(GameplayCueTag, 1);
+
 	if (PredictionKey.IsLocalClientKey() == false)
 	{
 		// If predicted ignore the add/remove
 		InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
-		InArray.Owner->UpdateTagMap(GameplayCueTag, 1);
 	}
 }
 
@@ -185,4 +186,10 @@ void FActiveGameplayCueContainer::PredictiveRemove(const FGameplayTag& Tag)
 			return;
 		}
 	}
+}
+
+void FActiveGameplayCueContainer::PredictiveAdd(const FGameplayTag& Tag, FPredictionKey& PredictionKey)
+{
+	Owner->UpdateTagMap(Tag, 1);	
+	PredictionKey.NewRejectOrCaughtUpDelegate(FPredictionKeyEvent::CreateUObject(Owner, &UAbilitySystemComponent::RemoveOneTagCount_NoReturn, Tag));
 }

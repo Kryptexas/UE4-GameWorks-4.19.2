@@ -310,6 +310,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 		RemoveActiveGameplayEffect(Handle, StacksToRemove);
 	}
 
+	/** Needed for delegate callback for tag prediction */
+	void RemoveOneTagCount_NoReturn(FGameplayTag Tag)
+	{
+		UpdateTagMap(Tag, -1);
+	}
+
 	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
 
 	float GetGameplayEffectDuration() const;
