@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2573008
-Availability:Docs
+﻿INTSourceChangelist:2578359
+Availability:Public
 Title: 5. 프로시저럴 폴리지 블로킹 볼륨 구현
 Crumbs:
 Description:여기서는 폴리지 스폰 구역을 제한시키는 블로킹 볼륨을 구성해 봅니다.
