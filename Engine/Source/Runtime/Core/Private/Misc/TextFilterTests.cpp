@@ -144,7 +144,14 @@ namespace TextFilterTests
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Woo..."), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("...ble"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wo... AND ...le"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("'Wooble'"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("'Woo'"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+'Wooble'"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+'Woo'"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+Wooble"), true);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("+Woo"), false);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2"), false);
+		bResult &= InTestPayload.TestFilterExpression(TEXT("-Wooble2"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 Flibble"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 OR Flibble"), true);
 		bResult &= InTestPayload.TestFilterExpression(TEXT("Wooble2 AND Flibble"), false);
