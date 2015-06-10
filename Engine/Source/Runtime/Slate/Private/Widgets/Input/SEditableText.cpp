@@ -1700,7 +1700,7 @@ bool SEditableText::IsAtWordStart( const int32 Location ) const
 {
 	const FString& EditedTextString = EditedText.ToString();
 
-	if (Location > 0)
+	if (Location > 0 && Location < EditedTextString.Len())
 	{
 		const TCHAR CharBeforeCursor = EditedTextString[Location - 1];
 		const TCHAR CharAtCursor = EditedTextString[Location];
