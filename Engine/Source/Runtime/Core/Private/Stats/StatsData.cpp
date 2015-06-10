@@ -123,10 +123,10 @@ void FRawStatStackNode::CullByCycles( int64 MinCycles )
 			else
 			{
 				// Remove children.
-				for (TMap<FName, FRawStatStackNode*>::TIterator It( Child->Children ); It; ++It)
+				for (TMap<FName, FRawStatStackNode*>::TIterator InnerIt( Child->Children ); InnerIt; ++InnerIt)
 				{
-					delete It.Value();
-					It.RemoveCurrent();
+					delete InnerIt.Value();
+					InnerIt.RemoveCurrent();
 				}
 			}
 		}

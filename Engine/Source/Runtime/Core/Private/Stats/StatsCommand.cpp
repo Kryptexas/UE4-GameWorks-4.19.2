@@ -972,9 +972,9 @@ struct FHUDGroupManager
 				}
 
 				// Replace thread encoded id with the thread name.
-				for (auto& It : HudGroup.HierAggregate)
+				for (auto& HierIt : HudGroup.HierAggregate)
 				{
-					FComplexStatMessage& StatMessage = It;
+					FComplexStatMessage& StatMessage = HierIt;
 					const FString StatDescription = StatMessage.NameAndInfo.GetDescription();
 					if (StatDescription.Contains( FStatConstants::ThreadNameMarker ))
 					{
