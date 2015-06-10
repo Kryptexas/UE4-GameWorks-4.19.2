@@ -52,6 +52,12 @@ FFriendsFontStyle& FFriendsFontStyle::SetDefaultFontColor(const FLinearColor& Fo
 	return *this;
 }
 
+FFriendsFontStyle& FFriendsFontStyle::SetInvertedFontColor(const FLinearColor& FontColor)
+{
+	InvertedFontColor = FontColor;
+	return *this;
+}
+
 FFriendsFontStyle& FFriendsFontStyle::SetDefaultDullFontColor(const FLinearColor& FontColor)
 {
 	DefaultDullFontColor = FontColor;

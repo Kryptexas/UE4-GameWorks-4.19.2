@@ -74,6 +74,10 @@ struct FRIENDSANDCHAT_API FFriendsFontStyle
 	FLinearColor DefaultFontColor;
 	FFriendsFontStyle& SetDefaultFontColor(const FLinearColor& InFontColor);
 
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor InvertedFontColor;
+	FFriendsFontStyle& SetInvertedFontColor(const FLinearColor& InFontColor);
+
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor DefaultDullFontColor;
 	FFriendsFontStyle& SetDefaultDullFontColor(const FLinearColor& InFontColor);

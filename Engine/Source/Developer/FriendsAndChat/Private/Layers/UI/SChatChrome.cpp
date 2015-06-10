@@ -122,10 +122,10 @@ private:
 		{
 			if (Tab == ChromeViewModel->GetActiveTab())
 			{
-				return FLinearColor::Gray;
+				return FriendStyle.FriendsNormalFontStyle.DefaultFontColor;
 			}
 		}
-		return FLinearColor::White;
+		return FriendStyle.FriendsNormalFontStyle.InvertedFontColor;
 	}
 
 	FSlateColor GetTabFontColor(TWeakPtr<IChatTabViewModel> TabPtr) const
@@ -135,10 +135,10 @@ private:
 		{
 			if (Tab == ChromeViewModel->GetActiveTab())
 			{
-				return FLinearColor::Black;
+				return FriendStyle.FriendsNormalFontStyle.InvertedFontColor;
 			}
 		}
-		return FLinearColor::White;
+		return FriendStyle.FriendsNormalFontStyle.DefaultFontColor;
 	}
 
 	EVisibility GetTabVisibility(TWeakPtr<IChatTabViewModel> TabPtr) const
