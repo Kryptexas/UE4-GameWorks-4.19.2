@@ -11,6 +11,8 @@
 #include "Scalability.h"
 #include "WidgetLayoutLibrary.h"
 
+extern SLATECORE_API int32 bFoldTick;
+
 DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
 
 class SVirtualWindow : public SWindow
@@ -546,7 +548,10 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 				FGeometry WindowGeometry = FGeometry::MakeRoot(DrawSize, FSlateLayoutTransform());
 
-				SlateWidget->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
+				if ( !bFoldTick )
+				{
+					SlateWidget->TickWidgetsRecursively(WindowGeometry, FApp::GetCurrentTime(), DeltaTime);
+				}
 
 				// Ticking can cause geometry changes.  Recompute
 				SlateWidget->SlatePrepass();
@@ -562,7 +567,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 					// Paint the window
 					MaxLayerId = SlateWidget->Paint(
-						FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FSlateApplication::Get().GetCurrentTime(), FSlateApplication::Get().GetDeltaTime()),
+						FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime),
 						WindowGeometry, WindowGeometry.GetClippingRect(),
 						WindowElementList,
 						0,
