@@ -28,6 +28,7 @@ namespace NCachedCrashContextProperties
 	static FString PrimaryGPUBrand;
 	static FString UserName;
 	static FString DefaultLocale;
+	static int32 CrashDumpMode;
 
 	static FString CrashGUID;
 }
@@ -50,6 +51,17 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
 	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
 	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
+
+	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
+	CrashDumpMode = (int32)ECrashDumpMode::Default;
+	if (FCommandLine::IsInitialized())
+	{
+		const TCHAR* CmdLine = FCommandLine::Get();
+		if (FParse::Param( CmdLine, TEXT("fullcrashdump") ))
+		{
+			CrashDumpMode = (int32)ECrashDumpMode::FullDump;
+		}
+	}
 
 	const FGuid Guid = FGuid::NewGuid();
 	NCachedCrashContextProperties::CrashGUID = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
@@ -127,6 +139,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty(TEXT("MiscOSVersionMajor"), *NCachedCrashContextProperties::OsVersion);
 	AddCrashProperty(TEXT("MiscOSVersionMinor"), *NCachedCrashContextProperties::OsSubVersion);
 
+	AddCrashProperty( TEXT( "CrashDumpMode" ), CrashDumpMode );
+
 
 	// @TODO yrx 2014-10-08 Move to the crash report client.
 	/*if( CanUseUnsafeAPI() )
@@ -178,6 +192,11 @@ void FGenericCrashContext::SerializeContentToBuffer()
 const FString& FGenericCrashContext::GetUniqueCrashName()
 {
 	return NCachedCrashContextProperties::CrashGUID;
+}
+
+const bool FGenericCrashContext::IsFullCrashDump()
+{
+	return (CrashDumpMode == (int32)ECrashDumpMode::FullDump);
 }
 
 void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )
