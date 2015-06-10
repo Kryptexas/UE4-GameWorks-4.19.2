@@ -2617,6 +2617,7 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 	{
 		// Didn't find it. 
 		// Try to find in the dormancy map
+		TSharedPtr<FObjectReplicator> NewReplicator;
 		ReplicatorRefPtr = Connection->DormantReplicatorMap.Find( Obj );
 
 		if ( ReplicatorRefPtr == NULL )
@@ -2624,18 +2625,23 @@ TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject
 			// Still didn't find one, need to create
 			UE_LOG( LogNetTraffic, Log, TEXT( "Creating Replicator for %s" ), *Obj->GetName() );
 
-			ReplicatorRefPtr = new TSharedRef<FObjectReplicator>( new FObjectReplicator() );
-			ReplicatorRefPtr->Get().InitWithObject( Obj, Connection, true );
+			NewReplicator = TSharedRef<FObjectReplicator>(new FObjectReplicator());
+			NewReplicator->InitWithObject( Obj, Connection, true );
+		}
+		else
+		{
+			NewReplicator = *ReplicatorRefPtr;
 		}
 
 		// Add to the replication map
-		ReplicationMap.Add( Obj, *ReplicatorRefPtr );
+		TSharedRef<FObjectReplicator>& NewRef = ReplicationMap.Add(Obj, NewReplicator.ToSharedRef());
 
 		// Remove from dormancy map in case we found it there
 		Connection->DormantReplicatorMap.Remove( Obj );
 
 		// Start replicating with this replicator
-		ReplicatorRefPtr->Get().StartReplicating( this );
+		NewRef->StartReplicating(this);
+		return NewRef;
 	}
 
 	return *ReplicatorRefPtr;
