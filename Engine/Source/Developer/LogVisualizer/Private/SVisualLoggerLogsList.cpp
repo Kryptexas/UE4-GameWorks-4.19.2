@@ -105,6 +105,7 @@ TSharedRef<ITableRow> SVisualLoggerLogsList::LogEntryLinesGenerateRow(TSharedPtr
 						.ColorAndOpacity(FSlateColor(Item->Verbosity == ELogVerbosity::Error ? FLinearColor::Red : (Item->Verbosity == ELogVerbosity::Warning ? FLinearColor::Yellow : FLinearColor::Gray)))
 						.Text(FText::FromString(Item->Line))
 						.HighlightText(this, &SVisualLoggerLogsList::GetFilterText)
+						.TextStyle(FLogVisualizerStyle::Get(), TEXT("TextLogs.Text"))
 					]
 			];
 

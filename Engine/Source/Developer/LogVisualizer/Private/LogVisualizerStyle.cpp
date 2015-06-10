@@ -54,6 +54,11 @@ TSharedRef< FSlateStyleSet > FLogVisualizerStyle::Create()
 		.SetHighlightColor(FLinearColor(0.02f, 0.3f, 0.0f))
 		.SetHighlightShape(BOX_BRUSH("Common/TextBlockHighlightShape", FMargin(3.f / 8.f)));
 
+	const FTextBlockStyle LogsText = FTextBlockStyle(NormalText)
+		.SetFont(TTF_CORE_FONT("Fonts/DroidSansMono", 9));
+
+	Style.Set("TextLogs.Text", LogsText);
+
 	{
 		Style.Set("LogVisualizerApp.TabIcon", new IMAGE_BRUSH("Icons/icon_tab_DebugTools_40x", Icon16x16));
 		
