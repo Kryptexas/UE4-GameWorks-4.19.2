@@ -392,6 +392,16 @@ protected:
 	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 	/**
+	 * Verifies that the node text entered is valid for the node
+	 *
+	 * @param	NewText			New node text
+	 * @param	NodeBeingChanged	The node being changed
+	 * @param	OutErrorMessage		Error message to display if text is invalid
+	 * @return	True if the text is valid, false otherwise
+	 */
+	bool OnVerifyNodeTextCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged, FText& OutErrorMessage);
+
+	/**
 	 * Handles spawning a graph node in the current graph using the passed in chord
 	 *
 	 * @param	InChord		Chord that was just performed

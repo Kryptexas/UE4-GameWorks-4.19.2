@@ -10,7 +10,7 @@ class UEdGraph;
 struct FNotificationInfo;
 
 DECLARE_DELEGATE_ThreeParams( FOnNodeTextCommitted, const FText&, ETextCommit::Type, UEdGraphNode* );
-DECLARE_DELEGATE_RetVal_TwoParams( bool, FOnNodeVerifyTextCommit, const FText&, UEdGraphNode* );
+DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnNodeVerifyTextCommit, const FText&, UEdGraphNode*, FText& );
 
 typedef TSet<class UObject*> FGraphPanelSelectionSet;
 

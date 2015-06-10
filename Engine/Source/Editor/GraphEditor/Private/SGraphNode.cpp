@@ -1262,10 +1262,13 @@ bool SGraphNode::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMes
 
 	if ((GetEditableNodeTitle() != InText.ToString()) && OnVerifyTextCommit.IsBound())
 	{
-		bValid = OnVerifyTextCommit.Execute(InText, GraphNode);
+		bValid = OnVerifyTextCommit.Execute(InText, GraphNode, OutErrorMessage);
 	}
 
-	OutErrorMessage = FText::FromString(TEXT("Error"));
+	if( OutErrorMessage.IsEmpty() )
+	{
+		OutErrorMessage = FText::FromString(TEXT("Error"));
+	}
 
 	//UpdateErrorInfo();
 	//ErrorReporting->SetError(ErrorMsg);

@@ -6909,7 +6909,7 @@ bool FBlueprintEditor::CanRenameNodes() const
 	return false;
 }
 
-bool FBlueprintEditor::OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged)
+bool FBlueprintEditor::OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged, FText& OutErrorMessage)
 {
 	bool bValid(false);
 
