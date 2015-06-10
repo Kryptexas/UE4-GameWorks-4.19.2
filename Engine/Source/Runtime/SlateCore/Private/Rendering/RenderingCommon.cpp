@@ -6,9 +6,9 @@
 FSlateRotatedRect::FSlateRotatedRect() {}
 
 FSlateRotatedRect::FSlateRotatedRect(const FSlateRect& AlignedRect)
-	: TopLeft(AlignedRect.GetTopLeft())
-	, ExtentX(AlignedRect.Right - AlignedRect.Left, 0.0f)
-	, ExtentY(0.0f, AlignedRect.Bottom - AlignedRect.Top)
+	: TopLeft(FMath::RoundToInt(AlignedRect.Left), FMath::RoundToInt(AlignedRect.Top))
+	, ExtentX(FMath::RoundToInt(AlignedRect.Right) - FMath::RoundToInt(AlignedRect.Left), 0.0f)
+	, ExtentY(0.0f, FMath::RoundToInt(AlignedRect.Bottom) - FMath::RoundToInt(AlignedRect.Top))
 {
 }
 
@@ -50,22 +50,6 @@ bool FSlateRotatedRect::IsUnderLocation(const FVector2D& Location) const
 		return FMath::IsWithinInclusive(T, 0.0f, 1.0f);
 	}
 	return false;
-}
-
-FSlateRotatedRectHalf::FSlateRotatedRectHalf() {}
-
-FSlateRotatedRectHalf::FSlateRotatedRectHalf(const FSlateRotatedRect& RotatedRect)
-	: TopLeft(RotatedRect.TopLeft)
-	, ExtentX(RotatedRect.ExtentX)
-	, ExtentY(RotatedRect.ExtentY)
-{
-}
-
-FSlateRotatedRectHalf::FSlateRotatedRectHalf(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY)
-	: TopLeft(InTopLeft)
-	, ExtentX(InExtentX)
-	, ExtentY(InExtentY)
-{
 }
 
 FSlateVertex::FSlateVertex() 

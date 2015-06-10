@@ -17,10 +17,10 @@ struct VertexOut
 };
 
 VertexOut Main(
-	in int2 InPosition : POSITION,
+	in float2 InPosition : POSITION,
 	in float4 InTextureCoordinates : TEXCOORD0,
-	in half2 InClipOrigin : TEXCOORD1,
-	in half4 InClipExtents : TEXCOORD2,
+	in float2 InClipOrigin : TEXCOORD1,
+	in float4 InClipExtents : TEXCOORD2,
 	in float4 InColor : COLOR0
 	) 
 {
