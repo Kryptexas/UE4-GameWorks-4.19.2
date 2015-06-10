@@ -376,13 +376,6 @@ public:
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 };
 
-// Init type name static
-FName USkyLightComponent::GetComponentInstanceDataType() const
-{
-	static const FName PrecomputedSkyLightInstanceDataTypeName(TEXT("PrecomputedSkyLightInstanceData"));
-	return PrecomputedSkyLightInstanceDataTypeName;
-}
-
 FActorComponentInstanceData* USkyLightComponent::GetComponentInstanceData() const
 {
 	FPrecomputedSkyLightInstanceData* InstanceData = new FPrecomputedSkyLightInstanceData(this);

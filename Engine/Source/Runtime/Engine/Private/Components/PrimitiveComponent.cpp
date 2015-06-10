@@ -39,7 +39,6 @@ namespace PrimitiveComponentStatics
 	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
 	static const FName MoveComponentName(TEXT("MoveComponent"));
 	static const FName UpdateOverlapsName(TEXT("UpdateOverlaps"));
-	static const FName PrimitiveComponentInstanceDataTypeName(TEXT("PrimitiveComponentInstanceData"));
 }
 
 DEFINE_LOG_CATEGORY_STATIC(LogPrimitiveComponent, Log, All);
@@ -423,11 +422,6 @@ FActorComponentInstanceData* UPrimitiveComponent::GetComponentInstanceData() con
 	}
 
 	return InstanceData;
-}
-
-FName UPrimitiveComponent::GetComponentInstanceDataType() const
-{
-	return PrimitiveComponentStatics::PrimitiveComponentInstanceDataTypeName;
 }
 
 void UPrimitiveComponent::OnAttachmentChanged()

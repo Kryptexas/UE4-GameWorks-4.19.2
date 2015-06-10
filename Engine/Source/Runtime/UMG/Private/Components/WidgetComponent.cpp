@@ -658,12 +658,6 @@ public:
 	UTextureRenderTarget2D* RenderTarget;
 };
 
-FName UWidgetComponent::GetComponentInstanceDataType() const
-{
-	static const FName InstanceDataName(TEXT("WidgetInstanceData"));
-	return InstanceDataName;
-}
-
 FActorComponentInstanceData* UWidgetComponent::GetComponentInstanceData() const
 {
 	return new FWidgetComponentInstanceData( this );

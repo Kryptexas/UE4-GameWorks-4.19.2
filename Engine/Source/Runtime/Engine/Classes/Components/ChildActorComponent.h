@@ -48,7 +48,6 @@ public:
 	virtual void OnComponentDestroyed() override;
 	virtual void OnRegister() override;
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	// End ActorComponent interface.
 
 	/** Apply the component instance data to the child actor component */

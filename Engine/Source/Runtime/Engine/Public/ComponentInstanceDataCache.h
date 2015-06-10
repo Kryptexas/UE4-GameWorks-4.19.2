@@ -39,6 +39,8 @@ public:
 
 	bool ContainsSavedProperties() const { return SavedProperties.Num() > 0; }
 
+	UClass* GetComponentClass() const { return SourceComponentClass; }
+
 protected:
 	/** The name of the source component */
 	FName SourceComponentName;
@@ -74,13 +76,13 @@ public:
 	/** Iterates over components and replaces any object references with the reinstanced information */
 	void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap);
 
-	bool HasInstanceData() const { return TypeToDataMap.Num() > 0; }
+	bool HasInstanceData() const { return ComponentsInstanceData.Num() > 0; }
 
 	void AddReferencedObjects(FReferenceCollector& Collector);
 
 private:
 	/** Map of data type name to data of that type */
-	TMultiMap< FName, FActorComponentInstanceData* >	TypeToDataMap;
+	TArray< FActorComponentInstanceData* > ComponentsInstanceData;
 
 	TMap< USceneComponent*, FTransform > InstanceComponentTransformToRootMap;
 };

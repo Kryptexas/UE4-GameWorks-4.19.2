@@ -954,12 +954,6 @@ public:
 	bool bPrecomputedLightingIsValid;
 };
 
-FName ULightComponent::GetComponentInstanceDataType() const
-{
-	static const FName PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));
-	return PrecomputedLightInstanceDataTypeName;
-}
-
 FActorComponentInstanceData* ULightComponent::GetComponentInstanceData() const
 {
 	// Allocate new struct for holding light map data

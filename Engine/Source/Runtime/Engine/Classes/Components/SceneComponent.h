@@ -533,7 +533,6 @@ public:
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	// End ActorComponent interface
 
 	// Call UpdateComponentToWorld if bWorldToComponentUpdated is false.

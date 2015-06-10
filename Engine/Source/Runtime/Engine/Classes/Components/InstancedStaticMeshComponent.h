@@ -157,7 +157,6 @@ public:
 
 	// Begin UActorComponent interface 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	// End UActorComponent interface 
 
 	// Begin UPrimitiveComponent Interface

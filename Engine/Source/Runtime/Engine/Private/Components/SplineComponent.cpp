@@ -989,13 +989,6 @@ public:
 };
 
 
-FName USplineComponent::GetComponentInstanceDataType() const
-{
-	static const FName SplineInstanceDataTypeName(TEXT("SplineInstanceData"));
-	return SplineInstanceDataTypeName;
-}
-
-
 FActorComponentInstanceData* USplineComponent::GetComponentInstanceData() const
 {
 	FSplineInstanceData* SplineInstanceData = new FSplineInstanceData(this);

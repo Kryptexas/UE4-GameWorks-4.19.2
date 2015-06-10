@@ -142,12 +142,6 @@ public:
 	TArray<FAttachedActorInfo> AttachedActors;
 };
 
-FName UChildActorComponent::GetComponentInstanceDataType() const
-{
-	static const FName ChildActorComponentInstanceDataName(TEXT("ChildActorInstanceData"));
-	return ChildActorComponentInstanceDataName;
-}
-
 FActorComponentInstanceData* UChildActorComponent::GetComponentInstanceData() const
 {
 	FChildActorComponentInstanceData* InstanceData = CachedInstanceData;

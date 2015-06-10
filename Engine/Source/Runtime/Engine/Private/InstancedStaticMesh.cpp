@@ -805,12 +805,6 @@ public:
 };
 #endif
 
-FName UInstancedStaticMeshComponent::GetComponentInstanceDataType() const
-{
-	static const FName InstancedStaticMeshComponentInstanceDataName(TEXT("InstancedStaticMeshComponentInstanceData"));
-	return InstancedStaticMeshComponentInstanceDataName;
-}
-
 FActorComponentInstanceData* UInstancedStaticMeshComponent::GetComponentInstanceData() const
 {
 #if WITH_EDITOR

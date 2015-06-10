@@ -21,7 +21,6 @@
 namespace SceneComponentStatics
 {
 	static const FName DefaultSceneRootVariableName(TEXT("DefaultSceneRoot"));
-	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
 	static const FName MobilityName(TEXT("Mobility"));
 	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
 	static const FName PhysicsVolumeTraceName(TEXT("PhysicsVolumeTrace"));
@@ -1481,11 +1480,6 @@ FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 	}
 
 	return InstanceData;
-}
-
-FName USceneComponent::GetComponentInstanceDataType() const
-{
-	return SceneComponentStatics::SceneComponentInstanceDataTypeName;
 }
 
 void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, bool bTeleport)

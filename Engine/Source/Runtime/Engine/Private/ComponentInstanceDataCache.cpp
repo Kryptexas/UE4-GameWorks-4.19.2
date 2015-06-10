@@ -140,8 +140,9 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 {
 	if(Actor != NULL)
 	{
-		TInlineComponentArray<UActorComponent*> Components;
-		Actor->GetComponents(Components);
+		TInlineComponentArray<UActorComponent*> Components(Actor);
+
+		ComponentsInstanceData.Reserve(Components.Num());
 
 		// Grab per-instance data we want to persist
 		for (UActorComponent* Component : Components)
@@ -151,8 +152,7 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 				FActorComponentInstanceData* ComponentInstanceData = Component->GetComponentInstanceData();
 				if (ComponentInstanceData)
 				{
-					check(!Component->GetComponentInstanceDataType().IsNone());
-					TypeToDataMap.Add(Component->GetComponentInstanceDataType(), ComponentInstanceData);
+					ComponentsInstanceData.Add(ComponentInstanceData);
 				}
 			}
 			else if (Component->CreationMethod == EComponentCreationMethod::Instance)
@@ -172,9 +172,9 @@ FComponentInstanceDataCache::FComponentInstanceDataCache(const AActor* Actor)
 
 FComponentInstanceDataCache::~FComponentInstanceDataCache()
 {
-	for (auto InstanceDataPair : TypeToDataMap)
+	for (FActorComponentInstanceData* ComponentData : ComponentsInstanceData)
 	{
-		delete InstanceDataPair.Value;
+		delete ComponentData;
 	}
 }
 
@@ -190,20 +190,14 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor, const ECacheApplyP
 		{
 			if(Component->IsCreatedByConstructionScript()) // Only try and apply data to 'created by construction script' components
 			{
-				const FName ComponentInstanceDataType = Component->GetComponentInstanceDataType();
-
-				if (!ComponentInstanceDataType.IsNone())
+				for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 				{
-					TArray< FActorComponentInstanceData* > CachedData;
-					TypeToDataMap.MultiFind(ComponentInstanceDataType, CachedData);
-
-					for (FActorComponentInstanceData* ComponentInstanceData : CachedData)
+					if (	ComponentInstanceData 
+						&&	ComponentInstanceData->GetComponentClass() == Component->GetClass() // filter on class early to avoid unnecessary virtual and expensive tests
+						&&	ComponentInstanceData->MatchesComponent(Component))
 					{
-						if (ComponentInstanceData && ComponentInstanceData->MatchesComponent(Component))
-						{
-							ComponentInstanceData->ApplyToComponent(Component, CacheApplyPhase);
-							break;
-						}
+						ComponentInstanceData->ApplyToComponent(Component, CacheApplyPhase);
+						break;
 					}
 				}
 			}
@@ -226,11 +220,11 @@ void FComponentInstanceDataCache::ApplyToActor(AActor* Actor, const ECacheApplyP
 
 void FComponentInstanceDataCache::FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
-	for (auto ComponentInstanceDataPair : TypeToDataMap)
+	for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 	{
-		if (ComponentInstanceDataPair.Value)
+		if (ComponentInstanceData)
 		{
-			ComponentInstanceDataPair.Value->FindAndReplaceInstances(OldToNewInstanceMap);
+			ComponentInstanceData->FindAndReplaceInstances(OldToNewInstanceMap);
 		}
 	}
 	TArray<USceneComponent*> SceneComponents;
@@ -259,11 +253,11 @@ void FComponentInstanceDataCache::AddReferencedObjects(FReferenceCollector& Coll
 
 	Collector.AddReferencedObjects(SceneComponents);
 
-	for (auto ComponentInstanceDataPair : TypeToDataMap)
+	for (FActorComponentInstanceData* ComponentInstanceData : ComponentsInstanceData)
 	{
-		if (ComponentInstanceDataPair.Value)
+		if (ComponentInstanceData)
 		{
-			ComponentInstanceDataPair.Value->AddReferencedObjects(Collector);
+			ComponentInstanceData->AddReferencedObjects(Collector);
 		}
 	}
 }

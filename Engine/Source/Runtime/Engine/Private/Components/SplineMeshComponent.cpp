@@ -959,12 +959,6 @@ public:
 	FVector EndTangent;
 };
 
-FName USplineMeshComponent::GetComponentInstanceDataType() const
-{
-	static const FName SplineMeshInstanceDataTypeName(TEXT("SplineMeshInstanceData"));
-	return SplineMeshInstanceDataTypeName;
-}
-
 FActorComponentInstanceData* USplineMeshComponent::GetComponentInstanceData() const
 {
 	FActorComponentInstanceData* InstanceData = nullptr;

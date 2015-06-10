@@ -270,7 +270,6 @@ public:
 	virtual void CheckForErrors() override;
 #endif
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	// End UActorComponent interface.
 
 	// Begin UPrimitiveComponent interface.

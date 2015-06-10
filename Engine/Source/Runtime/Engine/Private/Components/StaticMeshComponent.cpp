@@ -1540,12 +1540,6 @@ int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 	return INDEX_NONE;
 }
 
-FName UStaticMeshComponent::GetComponentInstanceDataType() const
-{
-	static const FName StaticMeshComponentInstanceDataName(TEXT("StaticMeshInstanceData"));
-	return StaticMeshComponentInstanceDataName;
-}
-
 FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() const
 {
 	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
