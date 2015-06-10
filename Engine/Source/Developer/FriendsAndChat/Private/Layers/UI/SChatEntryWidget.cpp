@@ -50,7 +50,7 @@ public:
 			+SHorizontalBox::Slot()
 			[
 				SAssignNew(ChatTextBox, SMultiLineEditableTextBox)
-				.Style(InArgs._Style)
+				.Style(&FriendStyle.FriendsChatStyle.ChatEntryTextStyle)
 				.ClearKeyboardFocusOnCommit(false)
 				.OnTextCommitted(this, &SChatEntryWidgetImpl::HandleChatEntered)
 				.OnKeyDownHandler(this, &SChatEntryWidgetImpl::HandleChatKeydown)
