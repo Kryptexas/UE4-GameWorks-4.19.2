@@ -801,6 +801,11 @@ void FAssetTypeActions_SkeletalMesh::AssignSkeletonToMesh(USkeletalMesh* SkelMes
 				bool bSuccess = SelectedSkeleton->MergeBonesToBoneTree( SkelMesh, RequiredBones );
 				if ( bSuccess )
 				{
+					if (SkelMesh->Skeleton != SelectedSkeleton)
+					{
+						SkelMesh->Skeleton = SelectedSkeleton;
+						SkelMesh->MarkPackageDirty();
+					}
 					FAssetNotifications::SkeletonNeedsToBeSaved(SelectedSkeleton);
 				}
 				else

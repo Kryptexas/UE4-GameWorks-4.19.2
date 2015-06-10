@@ -1417,6 +1417,12 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 				FAssetNotifications::SkeletonNeedsToBeSaved(Skeleton);
 			}
 		}
+
+		if (SkeletalMesh->Skeleton != Skeleton)
+		{
+			SkeletalMesh->Skeleton = Skeleton;
+			SkeletalMesh->MarkPackageDirty();
+		}
 	}
 #if WITH_APEX_CLOTHING
 	//for supporting re-import 

@@ -204,7 +204,7 @@ void USkeleton::ConvertToFReferenceSkeleton()
 	ensure (AnimRetargetSources.Num() == 0);
 }
 
-bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, USkeletalMesh * InSkelMesh) const
+bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, const USkeletalMesh* InSkelMesh) const
 {
 	const FReferenceSkeleton& SkeletonRefSkel = ReferenceSkeleton;
 	const FReferenceSkeleton& MeshRefSkel = InSkelMesh->RefSkeleton;
@@ -249,7 +249,7 @@ bool USkeleton::DoesParentChainMatch(int32 StartBoneIndex, USkeletalMesh * InSke
 	return true;
 }
 
-bool USkeleton::IsCompatibleMesh(USkeletalMesh* InSkelMesh) const
+bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 {
 	// at least % of bone should match 
 	int32 NumOfBoneMatches = 0;
@@ -351,6 +351,36 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 	// so whenever map transition happens, this links will need to clear up
 	FSkeletonToMeshLinkup NewMeshLinkup;
 
+	// First, make sure the Skeleton has all the bones the SkeletalMesh possesses.
+	// This can get out of sync if a mesh was imported on that Skeleton, but the Skeleton was not saved.
+
+	const int32 NumMeshBones = MeshRefSkel.GetNum();
+	NewMeshLinkup.MeshToSkeletonTable.Empty(NumMeshBones);
+	NewMeshLinkup.MeshToSkeletonTable.AddUninitialized(NumMeshBones);
+
+	for (int32 MeshBoneIndex = 0; MeshBoneIndex < NumMeshBones; MeshBoneIndex++)
+	{
+		const FName MeshBoneName = MeshRefSkel.GetBoneName(MeshBoneIndex);
+		int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(MeshBoneName);
+
+#if WITH_EDITOR
+		// If we're in editor, and skeleton is missing a bone, fix it.
+		// not currently supported in-game.
+		if (SkeletonBoneIndex == INDEX_NONE)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("SkeletonBuildLinkupMissingBones", "The Skeleton {0}, is missing bones that SkeletalMesh {1} needs. They will be added now. Please save the Skeleton!"), FText::FromString(GetNameSafe(this)), FText::FromString(GetNameSafe(InSkelMesh))));
+
+			// Re-add all SkelMesh bones to the Skeleton.
+			MergeAllBonesToBoneTree(InSkelMesh);
+
+			// Fix missing bone.
+			SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(MeshBoneName);
+		}
+#endif
+
+		NewMeshLinkup.MeshToSkeletonTable[MeshBoneIndex] = SkeletonBoneIndex;
+	}
+
 	const int32 NumSkeletonBones = SkeletonRefSkel.GetNum();
 	NewMeshLinkup.SkeletonToMeshTable.Empty(NumSkeletonBones);
 	NewMeshLinkup.SkeletonToMeshTable.AddUninitialized(NumSkeletonBones);
@@ -359,19 +389,6 @@ int32 USkeleton::BuildLinkup(const USkeletalMesh* InSkelMesh)
 	{
 		const int32 MeshBoneIndex = MeshRefSkel.FindBoneIndex( SkeletonRefSkel.GetBoneName(SkeletonBoneIndex) );
 		NewMeshLinkup.SkeletonToMeshTable[SkeletonBoneIndex] = MeshBoneIndex;
-	}
-
-	// adding the other direction mapping table
-	// since now we're planning to use Skeleton.BoneTree to be main RequiredBones,
-	// we'll need a lot of conversion back/forth between ref pose and skeleton
-	const int32 NumMeshBones = MeshRefSkel.GetNum();
-	NewMeshLinkup.MeshToSkeletonTable.Empty(NumMeshBones);
-	NewMeshLinkup.MeshToSkeletonTable.AddUninitialized(NumMeshBones);
-
-	for (int32 MeshBoneIndex=0; MeshBoneIndex<NumMeshBones; MeshBoneIndex++)
-	{
-		const int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex( MeshRefSkel.GetBoneName(MeshBoneIndex) );
-		NewMeshLinkup.MeshToSkeletonTable[MeshBoneIndex] = SkeletonBoneIndex;
 	}
 
 	int32 NewIndex = LinkupCache.Add(NewMeshLinkup);
@@ -416,28 +433,13 @@ bool USkeleton::RecreateBoneTree(USkeletalMesh* InSkelMesh)
 		BoneTree.Empty();
 		ReferenceSkeleton.Empty();
 
-		bool bResult = MergeAllBonesToBoneTree(InSkelMesh);
-
-		if (bResult)
-		{
-			// this has to go through all assets and fix up
-			for (FObjectIterator Iter(UAnimationAsset::StaticClass()); Iter; ++Iter)
-			{
-				UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(*Iter);
-				if (AnimAsset->GetSkeleton() == this)
-				{
-					AnimAsset->ValidateSkeleton();
-				}
-			}
-		}
-		
-		return bResult;
+		return MergeAllBonesToBoneTree(InSkelMesh);
 	}
 
 	return false;
 }
 
-bool USkeleton::MergeAllBonesToBoneTree(USkeletalMesh * InSkelMesh)
+bool USkeleton::MergeAllBonesToBoneTree(const USkeletalMesh* InSkelMesh)
 {
 	if( InSkelMesh )
 	{
@@ -498,7 +500,7 @@ bool USkeleton::CreateReferenceSkeletonFromMesh(const USkeletalMesh* InSkeletalM
 }
 
 
-bool USkeleton::MergeBonesToBoneTree(USkeletalMesh * InSkeletalMesh, const TArray<int32> & RequiredRefBones)
+bool USkeleton::MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const TArray<int32> & RequiredRefBones)
 {
 	// see if it needs all animation data to remap - only happens when bone structure CHANGED - added
 	bool bSuccess = false;
@@ -550,17 +552,8 @@ bool USkeleton::MergeBonesToBoneTree(USkeletalMesh * InSkeletalMesh, const TArra
 	// if succeed
 	if (bSuccess)
 	{
-		if (InSkeletalMesh->Skeleton != this)
-		{
-			InSkeletalMesh->Skeleton = this;
-			InSkeletalMesh->MarkPackageDirty();
-		}
-
-		MarkPackageDirty();
-		// make sure to refresh all base poses
-		// so that they have same number of bones of ref pose
-#if WITH_EDITORONLY_DATA
-		RefreshAllRetargetSources();
+#if WITH_EDITOR
+		HandleSkeletonHierarchyChange();
 #endif
 	}
 
@@ -890,14 +883,22 @@ void USkeleton::HandleSkeletonHierarchyChange()
 
 	RegenerateGuid();
 
+	// Clear exiting MeshLinkUp tables.
+	ClearCacheData();
+
 	// Fix up loaded animations (any animations that aren't loaded will be fixed on load)
 	for(TObjectIterator<UAnimationAsset> It; It; ++It)
 	{
 		UAnimationAsset* CurrentAnimation = *It;
-		CurrentAnimation->ValidateSkeleton();
+		if (CurrentAnimation->GetSkeleton() == this)
+		{
+			CurrentAnimation->ValidateSkeleton();
+		}
 	}
 
+#if WITH_EDITORONLY_DATA
 	RefreshAllRetargetSources();
+#endif
 
 	OnSkeletonHierarchyChanged.Broadcast();
 }
