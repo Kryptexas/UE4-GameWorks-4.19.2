@@ -48,8 +48,7 @@ public:
 	virtual bool GetSolutionPath(FString& OutSolutionPath) override;
 
 	virtual bool EnumerateProjectsKnownByEngine(const FString &Identifier, bool bIncludeNativeProjects, TArray<FString> &OutProjectFileNames) override;
-	virtual FString GetDefaultProjectCreationPath() const override;
-	virtual FString GetVersionSelectorPath() const override;
+	virtual FString GetDefaultProjectCreationPath() override;
 
 private:
 	FString CurrentEngineIdentifier;

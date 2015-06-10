@@ -594,11 +594,17 @@ FString FDesktopPlatformWindows::GetUserTempPath()
 	return FString(FPlatformProcess::UserTempDir());
 }
 
-FString FDesktopPlatformWindows::GetVersionSelectorPath() const
+void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
 {
-	FString ExecutableFileName = FDesktopPlatformBase::GetVersionSelectorPath();
+	// Get the path to VersionSelector.exe. If we're running from UnrealVersionSelector itself, try to stick with the current configuration.
+	FString DefaultVersionSelectorName = FPlatformProcess::ExecutableName(false);
+	if (!DefaultVersionSelectorName.StartsWith(TEXT("UnrealVersionSelector")))
+	{
+		DefaultVersionSelectorName = TEXT("UnrealVersionSelector.exe");
+	}
+	FString ExecutableFileName = FString(FPlatformProcess::BaseDir()) / DefaultVersionSelectorName;
 
-	// Defer to UnrealVersionSelector in a launcher installation if it's got the same version number or greater.
+	// Defer to UnrealVersionSelector.exe in a launcher installation if it's got the same version number or greater.
 	FString InstallDir;
 	if (FWindowsPlatformMisc::QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("SOFTWARE\\EpicGames\\Unreal Engine"), TEXT("INSTALLDIR"), InstallDir) && (InstallDir.Len() > 0))
 	{
@@ -606,19 +612,13 @@ FString FDesktopPlatformWindows::GetVersionSelectorPath() const
 		FPaths::NormalizeDirectoryName(NormalizedInstallDir);
 
 		FString InstalledExecutableFileName = NormalizedInstallDir / FString("Launcher/Engine/Binaries/Win64/UnrealVersionSelector.exe");
-		if(GetShellIntegrationVersion(InstalledExecutableFileName) >= GetShellIntegrationVersion(ExecutableFileName))
+		if(GetShellIntegrationVersion(InstalledExecutableFileName) == GetShellIntegrationVersion(ExecutableFileName))
 		{
 			ExecutableFileName = InstalledExecutableFileName;
 		}
 	}
 
-	return ExecutableFileName;
-}
-
-void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)
-{
 	// Get the path to the executable
-	FString ExecutableFileName = GetVersionSelectorPath();
 	FPaths::MakePlatformFilename(ExecutableFileName);
 	FString QuotedExecutableFileName = FString(TEXT("\"")) + ExecutableFileName + FString(TEXT("\""));
 
@@ -688,7 +688,7 @@ void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegist
 	}
 }
 
-int32 FDesktopPlatformWindows::GetShellIntegrationVersion(const FString &FileName) const
+int32 FDesktopPlatformWindows::GetShellIntegrationVersion(const FString &FileName)
 {
 	::DWORD VersionInfoSize = GetFileVersionInfoSize(*FileName, NULL);
 	if (VersionInfoSize != 0)

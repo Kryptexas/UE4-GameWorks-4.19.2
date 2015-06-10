@@ -690,22 +690,11 @@ bool FDesktopPlatformBase::GetSolutionPath(FString& OutSolutionPath)
 	return false;
 }
 
-FString FDesktopPlatformBase::GetDefaultProjectCreationPath() const
+FString FDesktopPlatformBase::GetDefaultProjectCreationPath()
 {
 	// My Documents
 	const FString DefaultProjectSubFolder = TEXT("Unreal Projects");
 	return FString(FPlatformProcess::UserDir()) + DefaultProjectSubFolder;
-}
-
-FString FDesktopPlatformBase::GetVersionSelectorPath() const
-{
-	// Get the path to VersionSelector.exe. If we're running from UnrealVersionSelector itself, try to stick with the current configuration.
-	FString DefaultVersionSelectorName = FPlatformProcess::ExecutableName(false);
-	if (!DefaultVersionSelectorName.StartsWith(TEXT("UnrealVersionSelector")))
-	{
-		DefaultVersionSelectorName = TEXT("UnrealVersionSelector.exe");
-	}
-	return FString(FPlatformProcess::BaseDir()) / DefaultVersionSelectorName;
 }
 
 void FDesktopPlatformBase::ReadLauncherInstallationList()
