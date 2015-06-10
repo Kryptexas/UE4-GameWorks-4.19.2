@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2465713
+Title:ビデオ チュートリアル
+Description:アンリアル エンジン 4 の概念と技術を実演するビデオ チュートリアル
+Crumbs:%ROOT%
+Availability:Public
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](video_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Videos:title%
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://wiki.unrealengine.com/Videos
+	[/PARAMLITERAL]
+	[PARAM:description]
+	%Videos:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](video_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Videos:title%
+	[/PARAM]
+	[PARAMLITERAL:path]
+		https://wiki.unrealengine.com/Videos
+	[/PARAMLITERAL]
+	[PARAM:description]
+	%Videos:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:VideoChannelGallery]
+[/OBJECT]

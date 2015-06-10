@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:2087463
+Availability:Public
+Title:キューブマップの使用方法
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:エンジンにインポートした後のキューブマップの活用方法
+
+
+## 概要
+
+本ページでは、エンジンにインポートした後のキューブマップの活用方法について説明します。
+
+##キューブマップの使用
+
+アンリアル・エンジン 4 では様々な方法でキューブマップを適用できます。頻繁に使用される方法は、アンビエント キューブマップとマテリアル内のキューブマップです。
+
+### アンビエント キューブマップ
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/AmbientCubemap#AmbientCubemap]
+
+

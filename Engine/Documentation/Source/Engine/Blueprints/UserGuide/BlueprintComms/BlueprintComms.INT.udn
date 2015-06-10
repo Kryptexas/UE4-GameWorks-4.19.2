@@ -1,0 +1,186 @@
+Availability:Public
+Title:Direct Blueprint Communications
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:How to use one Blueprint's functions, events, and variables from another Blueprint.
+related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
+related:Engine/Blueprints/UserGuide/EventDispatcher
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[TOC(start:2)]
+
+## Overview
+
+When you are working with a Blueprint, you may sometimes find that you want to access the functions, events, and variables that are contained in another Blueprint. The simplest way to do so is to reference the "target" Blueprint through a publicly exposed object variable, and then specify which Blueprint instance you want to use.
+
+## Simple Way to Reference a Target Blueprint
+
+The following sections give an example of the simplest and most common way to reference a target Blueprint from the Blueprint you are working with (the "working" Blueprint).
+
+### Creating an Object Variable for the Target Blueprint
+
+When you are working in a Blueprint, creating an object variable that references a target Blueprint gives you access to its functions, events, and variables.
+
+**To create an object variable referencing a target Blueprint**:
+
+1. Open the Blueprint you are working on (the working Blueprint) in the Blueprint Editor.
+
+1. In the **My Blueprint** pane create a new variable by clicking the ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) button on the **Variables** category: ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_variable.png)
+
+1. Give your new variable a name related to the target Blueprint, such as "TargetBlueprint."
+
+1. In the **Details** panel, click the drop-down box next to **Variable Type**. Expand the **Object Reference** section.
+
+	[REGION:raw]
+	![Variable Type](BP_VarType.png)
+	[/REGION]
+
+1. Scroll through the list and select the name of the Blueprint you want to reference.
+
+	![Blueprint Reference](BP_Blueprint2Ref.png)
+
+1. As a best practice, add a tooltip to your new object variable by typing text into the **Tooltip** box, such as "Reference to the Blueprint we want to talk to."
+
+	[REGION:raw]
+	![Tooltip](BP_Tooltip.png)
+	[/REGION]
+
+1. In the **My Blueprint** panel, click the closed-eye icon next to the new object variable, to change it to an open eye. This exposes the variable by making it public, which makes it possible to set its value in the **Details** panel in the Level Editor.
+
+	[REGION:raw]
+	![Closed Eye](BP_ClosedEye_panel.png)(convert:false)
+	[/REGION]
+
+	The green around the open-eye icon indicates that the exposed variable has a tooltip. If the exposed variable did not have a tooltip, the area around the eye would instead be yellow.
+
+1. Compile and save the Blueprint.
+
+[REGION:note]
+Be careful about which variables, functions, and events you expose. Do not expose variables unless it is safe for other people to access and change them. As a best-practice guideline, expose only what other Blueprints need and what you want level designers to be able to change, as opposed to exposing everything.
+[/REGION]
+
+### Specifying the Blueprint Instance
+
+Blueprint Classes can be used as a kind of template or archetype from which you can create multiple instances. Because of this, when you are referencing a target Blueprint, you can specify which target Blueprint instance you want to use.
+
+**To specify which target Blueprint instance you want to use**:
+
+1. In the **Details** panel of the Level Editor, with the working Blueprint still selected, look for the section that contains the publicly exposed variable that you just created. If you did not specify a different section when creating the variable, you can find it in the **Default** section. (Note that you must have placed an instance of the target Blueprint in your level to be able to select an instance in the **Details** panel.)
+
+1. In the drop-down box next to the name of the object variable that references the target Blueprint, choose the Blueprint instance that you want to use.
+
+	![Details Panel](BP_DetailsRef.png)
+
+[REGION:note]
+If your working Blueprint is the Level Blueprint, you specify the Blueprint instance you want to use in the Blueprint Editor, not in the Level Editor. By default, the **Details** panel in the Blueprint Editor is in the lower-left corner.
+[/REGION]
+
+[REGION:tip]
+If you are not sure which instance in the list corresponds to the one you want to use, you can select the instance that you want to use in the World Outliner or the Viewport and then click **Use Selected** in the drop-down menu.
+[/REGION]
+
+### Using Functions, Events, and Variables from the Target Blueprint
+
+After you have created an object variable for the target Blueprint, you can get a reference to it by holding down **Ctrl** and dragging it onto the graph, which creates a variable "getter" node for it. If you then drag out from the node's output pin, a context menu appears, displaying the list of events, functions, and variables that you can use from the target Blueprint. You can now use these elements as you would any other scripting elements.
+
+![Context Menu](BP_Target_ContextMenu.png)
+
+## Other Ways to Reference Target Blueprints
+
+More complex methods for referencing a target Blueprint from a working Blueprint include:
+* Casting to target Blueprint types.
+* Specifying the target Blueprint type as a parameter of a function.
+
+### Casting to Blueprint Types
+
+You can cast to a Blueprint type as you would to any other Actor.
+
+**To cast to a Blueprint type:**
+
+1. In the Event Graph, drag off the output pin of a node that includes Casting nodes in its context menu, such as an object variable for an Actor. In the context menu that appears, start typing "cast." Scroll through the list under **Casting** to find your target Blueprint type and select it.
+
+	![Casting to a Blueprint](BP_FindCastType.png)
+
+	![Casting Node](BP_Cast_CastNode.png)
+
+1. Drag off the output pin that lists the target Blueprint type to see the context menu, which will include the target Blueprint's functions, events, and variables. 
+
+	![Casting Context Menu](BP_Cast_ContextMenu.png)
+	
+	If the cast succeeds, you can use any functions, events, and variables in the target Blueprint type. Any node you add from this context menu will automatically be linked to the "success" output execution pin of the casting node.
+
+	![Casting Nodes](BP_Casting.png)
+
+<!-----For more information about casting, see (link).---->
+
+### Specifying a Blueprint Type as a Function Parameter
+
+When you are working with a function in a Blueprint, you can specify a target Blueprint type as a parameter for that function.
+
+**To create a function that specifies a Blueprint type as a function parameter**:
+
+1. In the **My Blueprint** pane create a new function by clicking the ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) button on the **Functions** category: ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_function.png)
+
+1. In the **Details** panel, add an **Input** by clicking the **New** button.
+
+	![New Function Input](BP_Function_Input.png)
+
+1. In the drop-down box next to **NewParam**, expand the **Object** section, find the target Blueprint type and select it.
+
+	![Setting a Function Parameter](BP_Function_ObjectVariable.png)
+
+1. In the Event Graph, drag off the new parameter's output pin. The context menu that appears contains the functions, events, and variables of the target Blueprint, which you can now use.
+
+	![Function Parameter Pin](BP_Function_ParamPin.png)
+
+## Troubleshooting / Reference Links
+
+One common error occurs when no instance is specified at all in your variable. If you are having trouble getting the scripting from the target Blueprint to work when you call it from the working Blueprint, make sure that you have specified which Blueprint instance you want to use in the working Blueprint's **Details** panel. If, instead, you have set the variable from the result of a function call, you should see a warning in your logs that your variable has an "Access None" exception. If you have the Message Log window up, it should provide a clickable link to the node that is causing the problem.
+
+
+
+
+
+
+

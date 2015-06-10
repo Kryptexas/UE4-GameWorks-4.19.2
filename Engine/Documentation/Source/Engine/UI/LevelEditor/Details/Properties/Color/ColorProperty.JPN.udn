@@ -1,0 +1,19 @@
+﻿Title:カラー制御
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
+Description:バイトと線形カラーの値を格納するプロパティ
+Availability:Public
+
+ColorとLenearColorプロパティは、色を作り出す各コンポーネントの数値と共に、 
+_見本_ 形式で色を表示します。
+
+[REGION:imagetable]
+| ![Color control](color_property_byte.png) | ![Color with Alpha control](color_property_linear.png) |
+| ------ | ------ |
+| カラー | カラー＋アルファ値 |
+[/REGION]
+
+_見本_はカラーを表示し、修正された数値を更新します。RGBAカラープロパティの場合、 
+_見本_は格子柄の背景に適用されたアルファ値と共にカラーを表示します。_見本_をクリックすると、 
+カラーをインタラクティブに編集することができる[color picker](Engine/UI/ColorPicker) が開きます。
+
+　![Color Picker dialog](color_picker.png)

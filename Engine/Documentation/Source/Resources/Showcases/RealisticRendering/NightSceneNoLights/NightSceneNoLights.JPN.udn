@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2345306
+Availability:Public
+Title:ライティング無しの夜景の光源処理
+Crumbs:%ROOT%, Resources, Resources/Showcases/RealisticRendering
+Description:UE4 に含まれているリアリスティック レンダリングのデモコンテンツによる夜景の概要
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering\LightingAndShadows
+Related:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights
+Related:Engine/Rendering/LightingAndShadows/LightMobility/StaticLights
+Related:Engine/Rendering/LightingAndShadows/IESLightProfiles
+Related:Resources/ContentExamples/Lighting/4_2
+
+[REGION:fullwidth]
+![](RoomNightNoLights.png)
+[/REGION]
+
+ライティング無しの夜景には 4 タイプの光源処理が使用されています。
+
+1. **Directional Light Stationary** - シーンに月明かりを照らします。主にバルコニーに照らされるライトです。
+1. **Spot Light Static** - ウィンドウのすぐ外側に配置されアンビエント（環境）ソースから部屋へ差し込むソフトな光源処理をシミュレートします。
+1. **Spot Light Stationary** - 部屋の角に置かれたランプ内に光を配置して、ランプシェードの上下の光をシミュレートします。懐中電灯から床に照らされる円錐状の光源は他の手法で作成します。
+1. **Point Light Movable** - 床に照らされる懐中電灯の光へグループ化されます。懐中電灯から反射する光源をシミュレートします。
+
+
+## 設定配慮
+
+他の 2 つのレベルとは多少異なる役割があります。シネマティックシーケンスの代わりに、プレイヤーは浮遊する懐中電灯と一緒に部屋の中を移動します。 
+
+
+[INCLUDE:Resources/Showcases/RealisticRendering#IESProfiles]
+
+[INCLUDE:Resources/Showcases/RealisticRendering#InverseSquared]
+
+プレイヤーはこれら光源のうちどれか一つを持っている（懐中電灯）ため、このレベルには特に 4 つの光源に制限するのが適切です。これは懐中電灯を点灯させるために _3_ つ以上のシャドウイング ステーショナリー (固定性) 光源が重ならないようにレベルを作成することを意味します。

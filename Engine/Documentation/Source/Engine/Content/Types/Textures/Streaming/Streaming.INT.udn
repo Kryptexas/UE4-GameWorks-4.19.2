@@ -1,0 +1,213 @@
+Availability: Public
+Title:Texture Streaming
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:System for loading and unloading textures into and out of memory during play.
+
+
+[TOC (start:2 end:3)]
+
+
+## Overview
+
+The texture streaming system is multi-threaded and priority-based. When using a texture pool (i.e. on consoles), it will not stream out a texture until that memory is needed by another texture with higher priority, which makes texture quality more stable and prevents unnecessary disk access.
+
+The priority of a texture is primarily based on distance but it also takes other factors into account, such as time, wanted resolution, and whether it is forced (flagged to be fully streamed in).
+
+The system periodically calculates two values for each streaming texture: the wanted number of mip-levels and the priority. It then sorts all textures based on their priorities and tries to make sure that all textures have at least the number of wanted mip-levels in memory, starting with the texture with the highest priority. If a texture needs to stream in more mip-levels and there is not enough memory available at the time, it will start to stream out mip-levels from low-priority textures and try again next time.
+
+
+
+## Streaming Type
+
+The streaming system uses several different types of heuristics when it determines how many mip-levels a textures wants to have in memory. Normally a texture uses only one heuristic but in some cases it can use multiple, such as when the same texture is used on a Static Mesh as well as a Skeletal Mesh. In that case, it will pick the highest result (the highest number of wanted mip-levels) among the heuristics used.
+
+The number of wanted mip-levels is clamed to a certain valid range. This range is derived from a number of different factors, such as texture group LOD settings, cinematic mip-levels, packed mip-tails on Xbox, global min and max settings (GMinTextureResidentMipCount and GMaxTextureMipCount) and whether the texture is forced to be fully loaded.
+
+Some types of textures are not handled by any of the normal heuristics because they are not actively tracked by the streaming system. This applies in particular to effect textures. These textures are handled by a fallback heuristic that basically results in all-or-nothing, based on whether it has been rendered within the last 90 seconds. Since the streaming system does not track these textures, it can cause a problem if such a texture is also used by some other geometry. The streaming system will only know about the other geometry and will stream the texture solely based on that heuristic. The number of wanted mip-levels will be low when that geometry is far away, even if an effect that uses the same texture is close to the camera. Avoid sharing textures in these cases.
+
+
+
+### StreamType Static
+
+This stream type is used for all static objects that are placed in a level in the Unreal Editor. It is essentially distance-based, where it calculates approximately how many pixels the texture occupies on the screen and derives what mip-level it needs to match that resolution. 
+
+
+
+### StreamType Dynamic
+
+Textures on dynamic objects like Skeletal Meshes or spawned objects uses a dynamic heuristic. It is very similar to the static stream type, but the streaming system keeps track of attach/detach and position and bounding box changes and updates the calculations accordingly.
+
+
+
+### StreamType Forced
+
+Textures on objects that has the bForceMipStreaming flag set, or are forced by a Blueprint action or game code, will set its WantedMips to the maximum value. They will have a higher-than-normal priority and will be stream in all their mip-levels as soon as possible. Forced textures normally use a timer and will automatically go back to normal streaming behavior when the timer expires. This timer is provided for convenience and as a safe-guard against forgetting to turn off the forced flag. Set the timer to a comfortably large number so you are sure to cover the intended period of time, but it is still a good idea to manually disable it as soon as you know you will not need it anymore. It is very important to turn off Forced as soon as its not needed anymore since a lot of these Forced textures will use up a lot of texture memory and can cause other textures to be streamed out. You can monitor the Forced texture usage with STAT STREAMINGDETAILS or LISTSTREAMINGTEXTURES.
+
+
+
+### StreamType LastRenderTime
+
+When a texture is not tracked by the streaming system and is not handled by one of the normal heuristics, it will fall back to the LastRenderTime heuristic. This is a very simplistic heuristic that will stream in all mip-levels when a texture is rendered, and basically keep them in memory for 90 seconds after it is not rendered anymore (e.g. the texture may behind the camera, occluded by other geometry, or not part of the scene anymore).
+
+This stream type is normally used only by particle effect textures and should be used with care. Monitor memory usage with STAT STREAMINGDETAILS and LISTSTREAMINGTEXTURES.
+
+
+
+### StreamType Orphaned
+
+If streaming system recently lost track of a texture (e.g. because we are in a level transition or a dynamic object just despawned) but the texture still exist, it becomes _Orphaned_ for a while instead of immediately falling back to the LastRenderTime stream type. During this time, it will keep the mips it currently has (or one less of maximum, whichever is lower). This prevents textures from temporarily stream in all mip-levels in a transitional case, since LastRenderTime would stream in all mips if the texture has been rendered recently. The idea is to freeze the texture in its current state until it gets tracked again or deleted from memory.
+
+
+
+## Decals
+
+Static decals that are placed in the level uses the Static stream type. Dynamic decals that are spawned at run-time use LastRenderTime. Special care is taken to cases where a decal texture is used on both a static and dynamic object, such that LastRenderTime will take precedence in this case to avoid the problem particle effects have with texture sharing.
+
+
+
+## Pre-streaming Textures
+
+There are several ways to start streaming in textures before they are needed. When a level is loaded with a fullscreen loading movie and the loading movie is stopped, the streaming system will automatically block the CPU and stream in all textures it wants based on the current settings at the time (camera/player position, loaded and visible geometry, etc). It will add a line to the log on how long this took and how many textures was streamed in during this time. There is an .ini setting to set a time limit for this blocking operation (TextureStreaming -> LoadMapTimeLimit). This can be called manually at any time if necessary (IStreamingManager::Get().StreamAllResources).
+
+Specific textures or meshes can be streamed in ahead of time by forcing them into memory in the game code, by calling one of the PrestreamTextures() functions. For a specified time, all their mip-levels will be loaded even if nothing is using those textures yet. Once they start to get used, they can go back to be handled by the streaming system in the normal way again.
+
+It is also possible to add an additional view location to the streaming system, if the game code knows that we may be about to teleport to a new location soon, by calling IStreamingManager::Get().AddViewSlaveLocation(). The streaming system will treat both these locations and the normal camera view location the same way, streaming textures based on all locations.
+
+During gameplay and level are being streamed in and out by Blueprints, pre-streaming must be handled carefully in Kismet by using the Stream-In-Textures Kismet action node. This node can be used exactly like the PrestreamTextures() and AddViewSlaveLocation() functions. Keep in mind that a level must be loaded and visible to be taken into account by the streaming system.
+
+The Stream-In-Textures Blueprint node also has an "All Loaded" output, which is triggered when all wanted textures have been loaded or the specified duration has passed, whichever comes first. This can be used to trigger a loading screen, if necessary. Note that if you are over the texture budget, all wanted textures will not fit in memory and will never be loaded so make sure you have a reasonable time limit. (It is possible that this behavior will change in the future, so that it will instead be triggered when all textures that _can_ be loaded has been loaded, to avoid this special case.)
+
+
+
+## Boosting
+
+A specific view location or Actor can be boosted. A boost factor of 1.0 means normal operation, whereas a higher number will be more aggressive and boost the number of wanted mip-levels of the associated textures, as if they were closer to the camera, and a lower number will be less aggressive and keep the number of wanted mip-levels lower.
+
+Boost factors are automatically reset to 1.0, so you should keep setting the boost factor every frame and simply stop doing that when you do not need the boost factor anymore.
+
+This can be used to boost specific important characters, or to pre-stream textures more aggressively for a view that may be zoomed in soon (or is already zoomed in).
+
+
+
+## TexelFactor
+
+The TexelFactor directly affects the number of wanted mip-levels. The higher value, the more mip-levels will be streamed in. It is automatically pre-calculated during cooking where it looks at all triangles in the mesh and compares the ratio between the UV map and the size of the triangle. However, it can be adjusted manually by setting the **StreamingDistanceMultiplier** property on the component. Again, the higher value, the more mip-levels will be streamed in. A StreamingDistanceMultiplier of 2.0 will double the TexelFactor. A StreamingDistanceMultiplier of 0.5 will reduce the TexelFactor by half. The effect can be seen in the TexelFactor at run-time, using the InvestigateTexture or ListStreamingTextures console commands.
+
+
+
+## Cinematic Mip-Levels
+
+A texture can have extra high-resolution mip-levels that are only used for a cinematic, not during normal gameplay. The number of cinematic mip-levels is set in the texture properties. To enable these cinematic mip-levels, you must use the Stream-In-Textures Blueprint action to enable it for the texture group _and_ force-stream the texture. It can also be enabled by calling UTexture2D::SetForceMipLevelsToBeResident() in C++.
+
+
+
+## Special Texture Groups
+
+A few texture groups are handled specially. TEXTUREGROUP_Skybox textures are always fully streamed in, they are automatically marked _Forced_. TEXTUREGROUP_UI textures have all their mip-levels removed during cooking, so they will never be streamed. TEXTUREGROUP_Lightmap and TEXTUREGROUP_Shadowmap use extra boost factors from .ini settings ("LightmapStreamingFactor" and "ShadowmapStreamingFactor"). Textures using one of the three TEXTUREGROUP_Character groups has a slight preference in that they can be the first ones to stream in when loading a map and will be the last textures to stream out in a panic stream out.
+
+
+
+## Panic Stream Out
+
+When a texture is initially created synchronously (normally with just the smallest mip-levels), it must fit in memory or the game will go Out Of Texture Memory. If there is not enough memory, the streaming system can try to stream out texture data to make room. There is no time to be play nice here, and it will brutally stream out whatever it can to make room in the texture pool. The operation can take a little time because it will have to scan a lot of textures and defragment the texture pool memory to create a contiguous free space. There will be a line in the log whenever this happens.
+
+
+
+## Optimizing and debugging texture streaming
+
+The first thing to look at is the "Over Budget" value in STAT STREAMING. If it is 0, you are ok. If it is non-zero, you are using more textures than can fit in the texture pool and you should reduce memory usage and/or increase the texture pool size. In some cases, it can be acceptable with a non-zero "Over Budget", since the streaming system is priority-based and the visual quality may be ok anyway.
+
+To find candidates for reducing memory usage, use the "ListStreamingTextures" and "ListTextures" console commands. Note that the texture pool memory is used for both streaming textures (usage various over time) and non-streaming textures (usage is more constant). The ListStreamingTextures command lists streaming textures and information from the streaming system. ListTextures lists all textures, but more generic information.
+
+Check ListStreamingTextures for textures that are unnecessarily marked as Forced or LastRenderTime, and textures that are unnecessarily large. Check if you can share more textures and remove unique textures that are not really needed. Textures that are unnecessarily large could be adjusted by modifying the LODBias or the StreamingDistanceMultiplier property. Check for unnecessary use of memory-heavy cinematic mip-levels (the texture will be marked as Forced).
+
+Check ListTextures for textures that are not streamed and use a lot of memory and optimize as needed.
+
+To investigate a particular texture, use the "TrackTexture <name>" and "InvestigateTexture <name>" console commands. Check for unexpected stream outs or if it misses to detect a change. Check that WantedMips is what you expect. Check that it is using the expected stream type. Check that all texture instances (everywhere the texture is used) are accounted for. Check that it is not a case where a untracked texture (e.g. particle effect texture) is shared by a regular tracked instance (e.g. Static Mesh).
+
+If textures are blurry when loading a new map, check that the View Location is at the correct spot when FStreamingManagerCollection::StreamAllResources() is called when the loading screen is turned off (make sure you use a fullscreen loading movie). Make sure all your data has been fully loaded at that time.
+
+
+
+## Some .ini Settings
+
+The .ini settings are all contained under the TextureStreaming section.
+
+| Property | Description|
+| --- | --- |
+| **PoolSize** | The size of the texture pool, in MB. |
+| **MemoryMargin** | Amount of memory to keep free, to be used as temp memory when streaming in new data, in MB. |
+| **LoadMapTimeLimit** | Maximum number of seconds to block when streaming in all textures at the end of the loading screen. |
+| **LightmapStreamingFactor** | Extra boost factor for TEXTUREGROUP_Lightmap textures. |
+| **ShadowmapStreamingFactor** | Extra boost factor for TEXTUREGROUP_Shadowmap textures. |
+| **BoostPlayerTextures** | Boost factor that will be applied automatically to all textures on player characters. |
+
+
+
+## Stat Streaming
+
+| Property | Description|
+| --- | --- |
+| **Game Thread Update Time** | Time used per frame, on the game thread. |
+| **Pool Memory Used** | Total amount of memory currently allocated from the texture pool (not just streaming textures). |
+| **Required Streaming Textures** | Total memory wanted for all streaming textures. |
+| **Streaming Textures** | Total memory currently allocated from the texture pool, counting streaming textures only. |
+| **Over Budget** | Estimated amount of over budget texture memory (streaming textures only). |
+| **Num Wanting Textures** | Number of textures that currently wants to stream in mip-levels. |
+| **Streaming Textures** | Total number of streaming textures in memory. |
+
+
+
+## Stat StreamingDetails
+
+| Property | Description|
+| --- | --- |
+| **Under Budget** | Estimated amount of under budget texture memory (streaming textures only). |
+| **Rendering Thread Update Time** | Time used per frame to update a texture, on the render thread. |
+| **Rendering Thread Finalize Time** | Time used per frame to finalize a texture, on the render thread. |
+| **Static Textures In Memory** | Current total memory usage for Static textures. |
+| **Dynamic Textures In Memory** | Current total memory usage for Dynamic textures. |
+| **LastRenderTime Textures In Memory** | Current total memory usage for LastRenderTime textures. |
+| **Forced Textures In Memory** | Current total memory usage for Forced textures. |
+| **Lightmaps In Memory** | Current total memory usage for lightmaps and shadowmaps. |
+| **Lightmaps On Disk** | Total amount of lightmap and shadowmap data available on disk, for the currently active textures. |
+| **Intermediate Textures Size** | Current amount of temp memory used for streaming textures in/out. |
+| **Textures Streamed In (Frame)** | Number of textures streamed in this frame. |
+| **Textures Streamed In (Total)** | Number of textures streamed in since launch. |
+| **Lightmaps Streamed In (Total)** | Number of lightmaps and shadowmaps streamed in since launch. |
+| **Intermediate Textures** | Current number of temp textures used for streaming in/out. |
+| **Requests In Cancelation Phase** | Number of requests in cancelation phase. |
+| **Requests In Update Phase** | Number of requests in mip update phase. |
+| **Requests In Finalize Phase** | Number of requests in mip finalization phase. |
+| **Streaming Latency, Average (sec)** | Average of all latency samples in the ring buffer, in seconds. |
+| **Streaming Bandwidth, Average (MB/s)** | Average bandwidth usage, in MB/sec. |
+| **Growing Reallocations** | Total number of growing in-place reallocations, since launch. |
+| **Shrinking Reallocations** | Total number of shrinking in-place reallocations, since launch. |
+| **Full Reallocations** | Total number of full reallocations (involving a texture copy), since launch. |
+| **Failed Reallocations** | Total number of failed reallocation (stream operation silently ignored), since launch. |
+| **Panic Defragmentations** | Total number of panic defragmentations, since launch. |
+| **Num Textures Instances** | Current number of texture instances. |
+| **Num Lightmap Instances** | Current number of lightmap and shadowmap instances. |
+| **Dynamic Streaming Total Time (sec)** | Accumulated total time spent on dynamic primitives since launch, in seconds. |
+
+
+
+## Console commands
+
+| Property | Description|
+| --- | --- |
+| **STAT Streaming** | Displays information about the texture streaming system. |
+| **STAT StreamingDetails** | Displays additional detailed information about the texture streaming system. |
+| **ListStreamingTextures <partial-name>** | Prints a list of all streaming textures that matches <partial-name>. The list contains information such as current size, how many seconds ago it was rendered, which streaming heuristic it is using, etc. The format is CSV so it can be copy/pasted into Excel for further investigation. |
+| **InvestigateTexture <partial-name>** | Prints all information the streaming system has about all textures that contains the specified <partialname> string. |
+| **TrackTexture <partial-name>** | The streaming system will start to track textures that contains the specified <partial-name> string and log out any status changes. |
+| **UntrackTexture <partial-name>** | Removes the specified textures from the list of tracked textures. |
+| **ListTrackedTextures** | Prints the list of a currently tracked textures. |
+| **TextureGroups** | Prints memory information for all texture groups. |
+| **DumpTextureStreamingStats** | Prints memory information for the texture streaming system. |
+
+ 
+
+
+
+

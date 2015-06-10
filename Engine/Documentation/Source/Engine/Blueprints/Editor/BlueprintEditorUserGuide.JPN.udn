@@ -1,0 +1,94 @@
+﻿INTSourceChangelist:2444099
+Availability:Public
+Title:ブループリント エディタ リファレンス
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:このブループリント エディタのリファレンスページでは、そのインターフェース エレメントと基本的な操作手順について説明します。 
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints:title%](Engine/Blueprints/kismet_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリント エディタ
+	[/PARAM]
+	[PARAM:description]
+		ブループリント エディタ インターフェースと基本的な取扱説明の概要
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](blueprint_editor_example.png)
+[/REGION]
+
+[TOC (start:2)] 
+
+## 概要
+
+ブループリントのビジュアル スクリプティングは、多岐に渡る方法で UE4 の _あらゆる場面_ で使用可能なシステムです。ブループリントは、レベルベースのイベントの操作、ゲーム内のアクタ用に内部でスクリプト化された動作の制御、または極めてリアルなゲーム キャラクター システム全体で複雑なアニメーションをコントロールするために使用します。これらのブループリント アプリケーションに対し、ブループリント スクリプトの編集場所に加えツールの利用箇所などは、作業目的によって多少異なります。つまり、UE4 内部にはブループリント エディタを実際に表示できる複数の場所と方法があることを意味します。しかし上述の違いに関係なく、ブループリント エディタは常に同じ主要タスクを実行します。ゲームのさまざまな側面を動作させるために、パワフルなビジュアル スクリプトの作成と編集を有効にします。
+
+
+ブループリント エディタの本質は、ノードベースのグラフ エディタです。これはビジュアル スクリプティングのノードネットワークを作成および編集するための主要ツールで、一般的に _ブループリント_ と呼ばれます。ブループリント エディタは、やや特殊な作業が必要な際に柔軟性を提供すると同時に、特に必要なオブジェクトに対し、機能へのアクセスを支援する _状況に応じた_ デザインを使用しています。
+
+以下はブループリント エディタに関して知っておくべき重要事項です。
+
+* ユーザー独自の変数、関数、配列などの作成を支援するいくつかのツールやパネルが含まれています。
+* ネットワーク内で素早いデバッグ作業やデータフローの改善を行うためにさまざまなデバッグおよび分析ツールが内蔵されています。
+* アンリアル エンジン 4 内で、ブループリント エディタには _ユーザーが編集中のブループリントのネットワーク タイプに応じて_ 、さまざまな特殊な形式があります。
+
+
+ブループリント エディタを使用した作業に没頭する前に、ブループリントについて少なくとも正しい認識をしていることを確認してください。詳細は、[ブループリント入門](Engine/Blueprints\GettingStarted) と [ブループリントの概要](Engine/Blueprints\Overview) を参照してください。
+
+
+## インターフェースの内容 
+
+ブループリント エディタの位置や利用可能なツールセットは、ユーザーが現在編集中のブループリント タイプによって若干異なります。そのため、このドキュメントでは、ブループリント エディタの特別な形式の UI の内容を表示させるか、もしくは利用可能な全ての機能を順次リストで表示させるかをユーザーが選択できるようにします。 
+
+[REGION:note]
+ブループリントの編集が初めてのユーザー、または現在作業中のブループリントのタイプについてよくわからない場合は、[ブループリントのタイプ](Engine/Blueprints\UserGuide\Types) からさまざまなタイプに慣れ親しんでください。
+[/REGION]
+
+
+
+[REGION:topics third]
+%Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI:topic%
+%Engine/Blueprints/Editor/UIBreakdowns/ClassBPUI:topic%
+%Engine/Blueprints/Editor/UIBreakdowns/InterfaceUI:topic%
+%Engine/Blueprints/Editor/UIBreakdowns/MacroLibraryUI:topic%
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Animation ブループリント UI
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+ 
+
+
+
+
+
+
+
+
+
+

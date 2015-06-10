@@ -11,6 +11,7 @@
 #include "TargetPlatform.h"
 #include "IConsoleManager.h"
 #include "ShaderCompiler.h"
+#include "DistanceFieldAtlas.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDerivedDataCacheCommandlet, Log, All);
 
@@ -55,7 +56,25 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 
 		Tokens.Empty(2);
 		Tokens.Add(FString("*") + FPackageName::GetAssetPackageExtension());
-		Tokens.Add(FString("*") + FPackageName::GetMapPackageExtension());
+
+		FString MapList;
+		if(FParse::Value(*Params, TEXT("Map="), MapList))
+		{
+			for(int StartIdx = 0; StartIdx < MapList.Len(); StartIdx++)
+			{
+				int EndIdx = StartIdx;
+				while(EndIdx < MapList.Len() && MapList[EndIdx] != '+')
+				{
+					EndIdx++;
+				}
+				Tokens.Add(MapList.Mid(StartIdx, EndIdx - StartIdx) + FPackageName::GetMapPackageExtension());
+				StartIdx = EndIdx + 1;
+			}
+		}
+		else
+		{
+			Tokens.Add(FString("*") + FPackageName::GetMapPackageExtension());
+		}
 		
 		uint8 PackageFilter = NORMALIZE_DefaultFlags;
 		if ( Switches.Contains(TEXT("MAPSONLY")) )
@@ -63,9 +82,19 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 			PackageFilter |= NORMALIZE_ExcludeContentPackages;
 		}
 
+		if ( Switches.Contains(TEXT("PROJECTONLY")) )
+		{
+			PackageFilter |= NORMALIZE_ExcludeEnginePackages;
+		}
+
 		if ( !Switches.Contains(TEXT("DEV")) )
 		{
 			PackageFilter |= NORMALIZE_ExcludeDeveloperPackages;
+		}
+
+		if( !Switches.Contains(TEXT("NOREDIST")) )
+		{
+			PackageFilter |= NORMALIZE_ExcludeNoRedistPackages;
 		}
 
 		// assume the first token is the map wildcard/pathname
@@ -139,7 +168,8 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 								GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
 								for( int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++ )
 								{
-									ObjectsInPackage[IndexPackage]->CookerWillNeverCookAgain();
+									ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
+									ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
 								}
 							}
 						}
@@ -211,6 +241,7 @@ int32 UDerivedDataCacheCommandlet::Main( const FString& Params )
 	IConsoleManager::Get().ProcessUserConsoleInput(TEXT("Tex.DerivedDataTimings"), *GWarn, NULL);
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Waiting for shaders to finish."));
 	GShaderCompilingManager->FinishAllCompilation();
+	GDistanceFieldAsyncQueue->BlockUntilAllBuildsComplete();
 	UE_LOG(LogDerivedDataCacheCommandlet, Display, TEXT("Done waiting for shaders to finish."));
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
 

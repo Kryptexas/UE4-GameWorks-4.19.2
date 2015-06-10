@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title:BlueprintSpawnableComponent
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description: 
+Availability:Public
+Version:4.5
+
+ 存在する場合、コンポーネント クラスはブループリントでスポーンすることが可能です。

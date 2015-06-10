@@ -1,0 +1,467 @@
+Availability: Public
+Title:虚幻 Matinee 用户指南
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools, Engine/Matinee
+
+[TOC(start:2)]
+
+
+
+## 概述
+
+Matinee 是一种为您的场景中 Actor 的属性随着时间变化设置关键帧的工具，这些属性包括它们的位置。它也可以用于创建您关卡中的过场动画序列。
+
+本文档解释了如何使 Matinee 和 Kismet 游戏性脚本系统进行集成、如何创建新的 Matinee 序列。
+
+
+## 打开 Matinee
+
+为了打开Matinee工具本身，您仅需在Kismet中双击Matinee操作，或右击它，并选择"打开 UnrealMatinee"选项。Matinee 序列还可以通过在关卡编辑器工具栏中点击 ![toolbar_matinee.jpg](toolbar_matinee.jpg)按钮或者在关卡编辑器的 _视图_ 菜单中选择 _UnrealMatinee_ ，然后从显示的列表中选择所要的 matinee 序列。建议您在使用 Matinee 时设置至少一个"实时"模式视口，以便您在播放或修改您的序列时它将会被更新。
+
+在Matinee 中操作时，关卡中的 Actor 将会被到处移动，并将它们的属性改变作为序列预览的一部分。然而，当您退出 Matinee 时，所有的关卡状态均会被恢复为您 Matinee 进入时的状态。正是由于这个原因，您应当避免在 Matinee 中尝试修改关卡，或创建新的 Actor，并且在 Matinee 打开的时候，您将无法保存关卡。如果您在 Matinee 打开的情况下尝试保存您的贴图，那么您将会被提示首先关闭它。
+
+
+
+## Matinee 界面
+
+这里是 Matinee 工具本身的一个截图：
+
+![matinee.jpg](matinee.jpg)
+
+
+1. [菜单栏](#MenuBar)
+1. [工具栏](#ToolBar)
+1. [曲线编辑器](#CurveEditor)
+1. [时间轴面板](#TimelinePane)
+1. [属性面板](#PropertiesPane)
+
+
+
+###菜单栏
+
+
+#### 文件
+
+
+* **Import（导入）...** - 导入 FBX / COLLADA 或场景。
+* **Export All（全部导出）...** - 可以将整个场景（虽然有些项不能导出）一个 FBX / COLLADA 文件，在外部 3D 内容创建包中进行编辑。
+* **Export Sound Cue Info（导出声效信息）...** - 可以将 Matinee 序列的所有 SoundCue 信息导出到一个 CSV 文件。
+* **Bake Transforms on Export（烘焙导出上的变换）** - 启用在导出场景之前是否对变换进行烘焙。
+
+
+请参阅[导入和导入 Matinee 数据](#ExportingandImportingMatineeData)部分了解更多有关这些主题的信息。
+
+
+#### 编辑
+
+
+* **Undo** - 取消上一个完成的操作。
+* **Redo(重复)** - 执行上一次取消的操作。
+* **Delete Selected Keys** - 删除当前在时间轴中选择的帧。在曲线编辑器中选择帧不会在时间轴中选择它们。
+* **Duplicate Selected Keys** - 复制（使用细微的时间偏移）当前在时间轴中选择的帧。
+* **Insert Space At Current** - 在当前时间光标位置将指定时间量插入到 matinee 序列。
+* **Stretch Section** - 拉伸（或收缩）循环去中包含的序列，使其与指定的时间量匹配。
+* **Delete Section** - 删除循环区中包含的序列部分。
+* **Select Keys In Section** - 选择在循环区内包含的所有帧。
+* **Reduce Keys** - 减少当前在选中轨迹中的帧数。它可以用于在外部应用程序中边界的轨迹，同时可能会有很多对于得到想要的动画来说不需要的冗余帧。请参阅[帧冗余](#KeyReduction)了解更多详细信息。
+* **Save As Path-Building Positions** - 保存在构建路径时要使用的移动 actor 当前时间和位置。
+* **Jump To Path-Building Positions** - 将时间光标移动到保存的路径构建位置。
+* **Configure Keyboard Shortcuts**  - 打开热键编辑器。
+
+
+
+#### 视图
+
+
+* **Draw 3D Trajectories** - 在视窗中启用显示 3D 运动路径。通过点击轨迹列表中轨迹上的 ![togglepath.jpg](togglepath.jpg)按钮可以打开或关闭单个轨迹的路径显示。
+* **Show Trajectories for All Tracks** - 开启序列中所有运动轨迹的 3D 运动路径显示。
+* **Hide All Trajectories** - 禁用序列中所有运动轨迹的 3D 运动路径。
+* **Snap keys** - 启用时间光标和帧的捕捉。
+* **Snap Time to Frames** - 将时间轴光标对齐到 Snap Size（捕捉大小）下拉菜单中指定的帧速率。只有在捕捉大小设置是以帧每秒为单位的情况下才启用。
+* **Fixed Time Step Playback** - 将回放速率锁定为 Snap Size（捕捉大小）下拉菜单中指定的帧速率。只有在捕捉大小设置是以帧每秒为单位的情况下才启用。
+* **Show Frame Numbers in Anim Tracks** - 启用显示 Anim Control 轨迹当前光标的帧数而不是时间（以秒为单位）。
+* **Show Cursor Position for All Anim Keys** - 启用是应该只为当前选中的 Anim Control 轨迹还是为序列中的所有 Anim Control 轨迹显示 Anim Control 轨迹的光标位置信息。
+* **Zoom To Time Cursor Position** - 启用时间轴是应该在当前光标位置还是在可视时间轴的中心上缩放。
+* **Display Frame Stats in Viewport** - 在视窗中启用显示帧统计数据。
+* **Fit View to Sequence** - 缩放时间轴使其可以容纳整个序列。
+* **Fit View to Selected** - 缩放时间轴使其可以显示选中的帧。
+* **Fit View to Loop** - 缩放时间轴使其可以显示循环区。
+* **Fit View/Loop to Sequence** - 将循环区的开始和结束设置为整个序列的开始和结束。
+* **Enable Gore in Editor Preview** - 在编辑器预览中启用血块显示。
+* **Toggle Curve Editor** - 启用曲线编辑器显示。
+
+
+
+#### 窗口
+
+
+* **UnrealMatinee Curve Editor** - 启用曲线编辑器显示。
+* **Properties(属性)** - 切换属性面板的显示状态。
+
+
+
+###工具栏
+
+以下是工具栏上每个按钮的描述，按照它们在工具栏上的出现顺序从左到右介绍。
+
+|  **图标**  |  **描述**  |
+| --- | --- |
+| ![toolbar_addkey.jpg](toolbar_addkey.jpg)| 在选中的轨迹上的当前位置添加关键帧。|
+| ![toolbar_keytype.jpg](toolbar_keytype.jpg)| 设置在添加新的帧时要使用的默认 InterpMode。|
+| ![toolbar_play.jpg](toolbar_play.jpg)| 从当前位置开始预览回放。|
+| ![toolbar_loop.jpg](toolbar_loop.jpg)| 循环区的循环预览回放。|
+| ![toolbar_stop.jpg](toolbar_stop.jpg)| 停止预览回放。|
+| ![toolbar_reverse.jpg](toolbar_reverse.jpg)| 以相反顺序开始预览回放。|
+| ![toolbar_playbackspeed.jpg](toolbar_playbackspeed.jpg)| 调整预览回放速度。|
+| ![toolbar_undo.jpg](toolbar_undo.jpg)| 取消上一个操作。|
+| ![toolbar_redo.jpg](toolbar_redo.jpg)| 重复上一个未完成的操作。|
+| ![toolbar_togglecurve.jpg](toolbar_togglecurve.jpg)| 开启显示曲线编辑器。|
+| ![toolbar_snap.jpg](toolbar_snap.jpg)| 开启捕捉时间光标和帧。|
+| ![toolbar_snapframes.jpg](toolbar_snapframes.jpg)| 将时间轴光标对齐到 Snap Size（捕捉大小）下拉菜单中指定的帧速率。只有在捕捉大小设置是以帧每秒为单位的情况下才启用。|
+| ![toolbar_fixedtime.jpg](toolbar_fixedtime.jpg)| 将回放速率锁定为 Snap Size（捕捉大小）下拉菜单中指定的帧速率。只有在捕捉大小设置是以帧每秒为单位的情况下才启用。|
+| ![toolbar_snapsize.jpg](toolbar_snapsize.jpg)| 设置时间轴间隔尺寸进行捕捉和可视化显示。|
+| ![toolbar_zoomsequence.jpg](toolbar_zoomsequence.jpg)| 缩放时间轴使其可以显示整个序列。|
+| ![toolbar_zoomselected.jpg](toolbar_zoomselected.jpg)| 缩放时间轴使其可以显示选中的关键帧。|
+| ![toolbar_zoomloop.jpg](toolbar_zoomloop.jpg)| 缩放时间轴使其可以显示循环区。|
+| ![toolbar_fitloop.jpg](toolbar_fitloop.jpg)| 将循环区的开始和结束设置为整个序列的开始和结束。|
+| ![toolbar_gore.jpg](toolbar_gore.jpg)| 在编辑器预览中开启血块显示。|
+| ![toolbar_record.jpg](toolbar_record.jpg)| 启动 Matinee 的 [Gamecaster 录制窗口](#GamecasterIntegration)。|
+| ![toolbar_capture.jpg](toolbar_capture.jpg)| 开始 Matinee [视频捕获](Engine/Matinee/MovieCapture)。|
+
+
+### 曲线编辑器
+
+曲线编辑器允许您图形化显示并编辑供 Matinee 序列中的轨迹使用的动画曲线。在 Matinee 中，其中具有可以在曲线编辑器中进行编辑的动画曲线的轨迹中包含 ![curve_send.jpg](curve_send.jpg)开启按钮。点击这个按钮会将这个轨迹的曲线信息发送到曲线编辑器中，曲线在这里将会变为可见的，同时轨迹信息将会显示在轨迹列表中。
+
+![curve_tracklist.jpg](curve_tracklist.jpg)
+
+请参阅[曲线编辑器用户指南](Engine/UI/UserGuide/CurveEditor)页面了解更多有关使用曲线编辑器中的曲线信息的详细情况。
+
+
+### 时间轴面板
+
+时间轴面板包含一个列表，其中是 Matinee 序列中的所有文件夹、组和轨迹，与此同时还会在可以对它们进行编辑的时间轴上显示它们的关键帧信息。它由以下几个部分组成：
+
+![timelinepane.jpg](timelinepane.jpg)
+
+
+1. [组选项卡](#GroupTabs)
+1. [组/轨迹列表](#GroupandTrackList)
+1. [时间轴信息](#TimelineInfo)
+1. [时间轴](#Timeline)
+
+
+
+#### 组选项卡
+
+![grouptabs.jpg](grouptabs.jpg)
+
+位于时间轴顶部的选项卡可以显示在当前 Matinee 序列中存在的所有组选项卡。组选项卡是一种根据组和轨迹的功能组织它们的简便方法。是否使用它们完全是一个可选项。对于非常简单的序列，您可能只需将所有组和轨迹保留在默认的 _All（所有）_ 选项卡中。但是对于复杂的序列，像那些用于创建游戏中过程动画的序列，您要尽量充分利用这些选项卡，因为序列中组和轨迹数量可能会快速增加并变得很难进行导航。_All（所有）_ 选项卡通常会显示序列中的所有组和轨迹，这样向一个对应的组选项卡中添加相关轨迹将会是查找并编辑这些组和轨迹的快捷简便方法。除那些默认情况下提供的选项卡外，您还可以创建您自己定义的选项卡，根据您所选择的标准条件组织您的组和轨迹。
+
+
+#### 组和轨迹列表
+
+![tracklist.jpg](tracklist.jpg)
+
+组和轨迹列表会显示当前选中的组选项卡中的所有组和轨迹。在一个新的 Matinee 序列中默认情况下为空。
+
+
+#### 时间轴
+
+![timeline.jpg](timeline.jpg)
+
+时间轴是对序列中所有轨迹的全部关键帧的图形表示形式。它可以显示底部水平方向上的时间，其中还包含循环区（绿色）和序列本身（红色）的开始和结束标记。可以直接在时间轴上选择并修改关键帧。有些关键帧只简单地显示为三角形，而其他关键帧则显示为后面带有颜色条的三角形。这些是具有特定持续时间的动画、声音等的关键帧。颜色条可以显示关键帧所触发的动作的持续时间。
+
+
+###属性面板
+
+![propertiespane.jpg](propertiespane.jpg)
+
+属性面板是一个标准的虚幻属性窗口，它可以显示当前在时间轴面板的轨迹列表中选中的文件夹、组或轨迹的属性。
+
+
+### 控制
+
+
+####鼠标控制
+
+| --- | --- |
+| _Click-drag on background（点击拖动背景）_  | 平移序列 |
+| _鼠标滚轮_  |缩放控制 |
+| _Click on key（点击按键）_  | 选择关键帧 |
+
+
+####键盘控制
+
+| --- | --- |
+| _Ctrl-click on object（点击对象）_  | 开启对象的选中状态  |
+| _Ctrl-drag（拖动）_  | 移动当前选择  |
+| _按下 Ctrl 和 Alt 并拖拽_  |通过鼠标拖动的方盒进行区域选择 |
+| _按下 Ctrl、Alt 和 Shift 键并拖拽_  | 通过鼠标拖动的方盒进行区域选择（添加到当前的选项中）|
+
+
+####热键
+
+| --- | --- |
+| _Enter（进入）_  | 在已选定轨迹上的当前位置添加关键帧  |
+| _Ctrl-W_  | 复制已选定的关键帧  |
+| _Delete（删除）_  | 删除已选定的关键帧  |
+| _Left/Right Cursor（左右行光标）_  | 跳至已选定轨迹上的前一个/下一个关键帧  |
+| _Up/Down Cursor（上下行光标）_  | 在列表中上下移动已选定 Group（组） |
+| _Ctrl-Z_  | 取消 |
+| _Ctrl-Y_  | 重复 |
+| _R_  | Razor Tool（剃刀工具）（适用于 AnimControl 轨迹 - 参阅下文） |
+
+
+
+## 创建 Matinee 动作
+
+Matinee 与 Kismet 紧密集成。它显示为 Kismet 中的一种 Action（动作）类型，将它的一个输入端连接到关卡中的某个事件，便可开始播放动作了。如果您对 Kismet 还不够熟悉的话，您可能需要查阅 [Kismet 用户指南](Engine/Blueprints/Editor)。
+
+为了创建一个新 Matinee 序列，打开 Kismet，在背景上右击鼠标，调出"New Object（新对象）"菜单。在"Actions（动作）"下，您将会发现"Matinee"。可替换地，在那个菜单下，还可能有一个选项"New Matineee（新 Matineee）"，您可以选择它，或您还可以在 Kismet 中按住 M 键，在您需要 Action（动作）的地方点击。均会出现一个新的 Matinee 动作，以及一个橙色的"Matinee 数据"变量。
+
+![matinee_action.jpg](matinee_action.jpg)
+
+"Matinee 数据"指的是序列的实际关键帧数据。您必须将一个"Matinee 数据"对象连接到您的Matinee 动作上，方可让其正常运行。左侧的不同输入将允许您的 Kismet 脚本控制 Matinee 序列的播放，其方式与 DVD 播放器相似。当序列播放结束时，将会触发右侧的 Completed（已完成）和 Reversed（倒退）输出端 — 当序列别播放到末端并完成时触发"Completed（已完成）"，当序列倒着播放到始端并完成时触发"Reversed（倒退）"。激活 Stop（停止）输入端不会触发 Completed（已完成）或 Reversed（倒退）。与 Matinee Action（动作）相连的 Object Variables（对象变量）是序列将要修改的 Actor。
+
+您可以在 Kismet 中设置 Mainee Action 的几个选项：
+
+
+* **Client Side Only** - 这个属性告诉引擎该序列不会影响游戏性的任何方面，因此不需要进行复制或在网络上的机器上执行。
+* **Force Start Pos** - 如果选中该项，那么将总是让该序列从ForceStartPosition属性所指出的事件 * -或时间轴位置处* 开始播放。
+* **Force Start Position** - 沿着时间轴设置一个指定位置，当激活Play输入端时从该位置开始播放动画。需要选中Force Start Pos项。
+* **Interp For Path Building** - 如果选中该项，那么当构建路径时将会让序列跳转到时间轴上Path-Building Position(路径构建)位置中所指出的时间。
+* **Is Skippable** - 如果选中该项，那么可以使用CANCELMATINEE控制台命令跳过该序列。
+* **Looping** - 如果选中该项，那么当序列播放到尾部时将会循环回到开始处播放。
+* **No Reset On Rewind** - 如果选中该项，那么当倒回该序列时，会使得任何受到使用RelativeToInitial插值的actors使用在当前位置设置的初始位置。这意味着，actor将会从何动画结束处的相同位置开始下一轮的动画播放。
+* **Play Rate** - 设置动画最终播放速度的乘数。值为1等于正常的实时速度。
+* **Rewind If Already Playing** - 如果用户在播放过程中再次激活了Play输入端，那么这个属性将使得动画自动地倒回到开始处。
+* **Rewind On Play** - 当Play输入端被激活时，这个属性将使得动画总是从开始处进行播放，即时动画处于在听状态也是如此。
+
+
+
+
+## Mover（移动者）
+
+通常情况下，您想在关卡中放置一些被 Matinee 序列到处移动的 Actor。您完成这项操作的最简单方式是将一个"Mover（移动者）"actor 添加到关卡中。它们的添加方式与添加 StaticMesh Actor（静态网格物体 Actor）相似 - 在 Browser（浏览器）中选择一个静态网格物体，在关卡中右击鼠标，从"Add Actor（添加 Actor）"菜单中选择"Add InterpActor（添加 InterpActor）"。
+
+注意，对于其它类型的动态对象而言，可以很容易使用来自 Matinee 序列的移动信息。例如，如果您想要针对一个粒子 Emitter Actor（发射器 Actor）的移动设置关键帧，那么仅需将它的 Physics（物理）模式从 PHYS_None 切换为 PHYS_Interpolating。
+
+
+
+## 使用组和轨迹
+
+Matinee 的架构是围绕 Group（组）概念来设计的，每个组均包含多个不同的 Track（轨迹）。Group（组）与关卡中的特定 Actor 相关联。
+
+
+### 创建新的组
+
+为了在您的 Matinee 序列中创建一个新的 Group（组），首先在关卡中选择您希望修改的 Actor。然后在 Matinee 左侧的灰色栏中右击鼠标，选择"Add New Group（添加新组）"（我们以后会介绍 Director Groups（导演组））。
+
+![new_group_menu.jpg](new_group_menu.jpg)
+
+您将会被提示为新的 Group（组）命名 - 它在 Matinee 序列中应该是独一无二的，不得含有任何空格。当您选择 OK 时，您将会发现一个新的 Group（组）标题。如果此时在 Kismet 中查看您的 Matinee Action（操作），您将会发现它已创建了一个新的变量连接器，连接您的 Group（组）名称，此外还创建了一个新的对象变量，含有您希望此 Group（组）操作的 Actor 的引用。多个 Actor 可能连接着同一个 Group（组）连接器。在您希望以相同方式控制多光源亮度等情况下将非常有用。
+
+在 Group（组）标题中的小颜色条是这个编辑器的"Group（组）色彩"。它被用于 Matinee 中的不同事物，帮助您辨识场景中哪些对象是被 Matinee 中的哪个 Group（组）所控制。选择 Group（组），并修改窗口底部的 GroupColor（组色彩）属性，即可修改它。在 Group（组）标题上右击鼠标，将允许您重命名或删除整个 Group（组）。只要您选定了一个 Group（组），按住上下行箭头键，将允许您在列表中到处移动它，这对整理相似的 Group（组）较为有用。
+
+注意，无论您何时选择一个 Group（组）（或 Group（组）中的轨迹），关卡中的 Actor 均会为您选定，反之亦然。
+
+
+### 创建新的轨迹
+
+Group（组）自身并不影响对应的 Actor。为了利用某种方式修改它，我们必须将一条 Track（轨迹）添加到这个 Group（组）中。在 Group（组）文件头上，右击鼠标，它将会调出 New Track（新建轨迹）菜单。它列出了所有可添加的不同类型的 Matinee Track（轨迹）。选择您需要的等级，它将会出现在这个 Group（组）中。根据 Track（轨迹）类型，您在进行添加之前，可能被提示更多的信息。
+
+![new_track_menu.jpg](new_track_menu.jpg)
+
+一些 Track（轨迹）类（如 Movement Track（移动轨迹）），允许您让每个 Group（组）只拥有一个轨迹，而其他类型却允许您同一 Group（组）拥有多个轨迹（如 Float Property Tracks（浮点数属性轨迹））。
+
+如果您想要隐藏一个 Group（组）中所有的轨迹，您可以按下 Group（组）文件头上的箭头，将其"折叠"起来。你可以修改一个 Group（组）中的轨迹顺序，操作方式与您移动 Group（组）的方式相同 - 仅需选中它，使用上下行箭头键即可。
+
+通过选择轨迹名称旁边的复选框，即可打开和关闭轨迹效果。 例如，在下图中，在 matinee 序列运行时，移动轨迹被禁用，轨迹效果也无法看到。
+
+![disabletrack.jpg](disabletrack.jpg)
+
+
+### 关键帧
+
+Matinee 的选择和操作控件与 UnrealEngine 3（虚幻引擎 3）其他部件中使用的工具相似。
+
+点击一个关键帧，将播放位置移至那个关键帧上，并让 Matinee 进入"记录"模式。修改由该轨迹所控制的 Actor 的属性，从而修改关键帧的数值。在编辑关键帧时，一个小红圈将会出现在 Matinee 信息框中：
+
+![rec_indicator.jpg](rec_indicator.jpg)
+
+拖拉至一个不同位置或开始播放，均会让您退出"记录"模式，从而无法记住对场景中 Actor 的修改。
+
+
+### 调整序列长度
+
+您对序列长度的修改非常简单 - 仅需抓住那个标明您序列结束的红色柄（在示意图中，编号为 22），并将其拖至您希望序列结束的新时间点。让关键帧处于序列范围之外亦绝对安全。
+
+将播放位置移至您希望嵌入时间的位置点，然后从"Edit（编辑）"菜单中选择"Insert Space At Current（在当前位置插入空白时间）"，即可在序列中的一个特殊点添加时间。
+
+
+### 循环区
+
+Matinee 中高亮显示的绿色区域即为"Loop Section（循环区）"。这在 Matinee 中有多种用途，并且通过拖动修改栏中的绿色句柄（标志着区域的开始和结束位置）即可予以调整。
+
+如果您按下"Loop preview playback（循环预览回放）"按钮（在示意图中编号为 3），则播放位置将跳至循环区的开始位置，播放它，然后再次跳回开始位置。这将允许您重复查看序列中的小块区域，确保它准确执行您要求的工作。
+
+您还可以将将当前循环区"伸展"成一个新的长度。想要实现上述目的，可在您想要伸展的区域上设置循环区，并在"Edit（编辑）"菜单中，选择"Stretch Section（伸展区域）"。一个文本输入的对话框将为您显示该区域的当前长度，并允许您输入你希望的新长度。关键帧将会在该区域的新长度上被定位。此外，在"Edit（编辑）"菜单中选择"Delete Section（删除区域）"，您可以完全删除循环区。
+
+
+
+## 共享 Matinee 数据
+
+由于 Matinee 序列的所有数据均存储在 Matinee 数据变量中，并且它不包含关卡中特定 Actor 的任何直接引用，因此您可以在多个 Matinee 操作之间共享这些数据。如果您正在制作开门之类的动画，并且希望在同一个关卡中不同 Actor 上使用这类动画，那么这种功能将非常有用。共享 Matinee 数据将避免复制数据（从而减少额外的内存占用），并且易于修改关卡中所有门体的移动。Matinee 操作将完全独立运行 - 打开一扇门，不会影响其他门的操作。如果您希望复制一个 Matinee 数据变量，那么您可以使用 Kismet 中的 Ctrl-W 以及任何其他对象。
+
+下文列举了一个在不同 Actor 上进行的两个不同 Matinee 操作之间共享一组 Matinee 数据的实例。当您双击 Matinee 操作时，它将会打开 Matinee，编辑共享数据，但使用与该特定实例相链接的 Actor。
+
+![sharing_matineedata.jpg](sharing_matineedata.jpg)
+
+在您将一个 Matinee 数据变量连接到一个 Matinee 操作上的时候，所有的 Object Variable（对象变量）和事件输出连接器均会出现。您还可以通过 Named（已命名）或 External（外部）变量，连接 Matinee Data（更多信息，请参阅[Kismet User Guide](Engine/Blueprints/Editor)）。
+
+在多个操作之间共享的数据中使用移动轨迹时，您肯定希望使用"Relative To Initial（相对初始）"帧。
+
+
+
+## 锁定视图至组
+
+在 Matinee 中，尤其是在创建电影效果时，可将编辑器视图锁定到一个您在场景中控制的 Actor 上。当您按下 Group（组）标题栏上的 ![lockview.jpg](lockview.jpg)按钮后，它将所有的透视视窗锁定在该 Group（组）控制的 Actor 位置。当你拖动穿过序列时，相机将与对象一起移动。此外，当您移动编辑器相机时，它将会移动 Actor，以跟随此相机。在您调节对象的关键帧使其指向特定方向时，它可能较为实用。
+
+当您将相机锁定到导演 Group（组）上的时候，它将会从当前的'活动'相机看出去。这将允许您预览场景在游戏中的实际效果。无论您何时打开一个含有导演 Group（组）的 Matinee 序列，它均将自动打开各个透视窗口上的'实时'模式，并将相机锁定到导演 Group（组）上。
+
+
+
+## 相机 Actor
+
+在创建一个电影效果序列时，利用在关卡上放置的相机 Actor 可能相当实用。尽管您可从任意 Group（组）所控制的 Actor 看出去，CameraActor 利用浮点数属性轨迹，如相机 FOV 和纵横比，为您提供了更多的属性以便控制 ，此外还允许您通过图形化方式观看编辑器中的相机视锥。
+
+打开 Actor 的浏览器，从 Actor 类层级中，选择 CameraActor，在关卡中右击，选择"Add CameraActor Here（在这里添加相机 Actor）"，即可将一个 Camera Actor（相机 Actor）添加到关卡上。
+
+![camera_actor_class.jpg](camera_actor_class.jpg)
+
+这里是一个关卡中的 CameraActor：
+
+![camera_actor.jpg](camera_actor.jpg)
+
+相机网格物体和视锥只会出现在编辑器中，而不会出现在游戏中。当您在 Matinee 中到处拖动时，处于活动状态的视锥将会高亮显示为黄色。另外，利用 Group（组）编辑器色彩，绘制各个视锥，即可轻松表明哪个 Group（组）正在控制哪台相机。
+
+在将 _Constrain Aspect Ratio_ 设为真的情况下查看 CameraActor（相机 Actor）时，黑色栏将会被添加到视口上，用以强化屏面外形。在编辑器中，只有当视图正被锁定到一个 CameraActor（相机 Actor）上时，才会添加这些。
+
+
+
+## Matinee 复制
+
+在 bClientSideOnly 被设置为假的情况下，Matinee 对象将自动从服务器复制给客户端。在服务器上激活相关操作时，服务器将会把这个信息发送给客户端，并使其保持同步。
+
+注意，这个自动复制仅处理带有 bStatic 或 bNoDelete 设置的 Actor（即这类 Actor 必须被放置在 UnrealEd 中的关卡上），并且与 matinee 相连的对象变量必须被设置为 UnrealEd 中期望的对象（不在运行时间利用其他操作产生的）。不是此类情况的 Actor 应当利用自身的 UnrealScript 或 C++ 复制代码，复制因 matinee 本身造成的变化。
+
+
+
+## 过场动画
+
+在您的游戏中您或许会有很多过场动画序列，但是使用光照环境设置的人物上的光照可能看上去是很简单的基本的，而要想使得模型真正完好地展现可能有点困难。在这种情况下，您可以使用自定义光照通道（有时候为每个人物设置一个独立的光照通道来控制每个人物上的光照的量），然后在特写镜头过程中自定义地放置动态光源来照亮人物。
+
+对于这些序列，您可以使用真正的动态光源，因为它们可以看上去更好并且可以给予您更多的控制。您仍然应该使用非常少的光源，并且通常仅使用一个光源用于投射阴影。
+
+这会产生一个小的性能差别，但是因为过场动画没有游戏性来进一步使性能下降，您应该可以中和这些性能消耗。您必须让 LD 进入到过场动画地图中，并优化它们几次来使得它们可以在控制台上平滑地运行。在大多数情况下，镜头剪切中的所有静态几何体（除了人物所站立的地面，它需要真实的光照来产生阴影）仍然可以进行光照映射。
+
+
+
+## 导入和导出 Matinee 数据
+
+Matinee 有'导出'和'导入'选项，允许您将整个 Matinee 序列导出到可以加载到 3D 内容创建包中的 FBX / COLLADA 文件中。 它允许您使用外部程序来让您的 actor、相机以及其它属性，比如运动模糊量和相机视角的运动产生动画效果。 场景中的很多东西都可以被导出，比如您可以在使用动画序列时可以看到您的世界几何体。
+
+当导出 Matinee 时，UnrealEd 将尝试导出场景中和动画曲线数据相关的大多数几何体。
+
+以下数据将会被导出：
+
+
+* 绑定到动画序列的相机
+* 绑定到动画序列的 Actor
+    * 特定轨迹的动画曲线
+    * 运动轨迹
+* 浮点型属性轨迹
+* 当前关卡中的所有光源
+* 当前关卡中的所有静态网格物体（包括多边形、画刷几何体以及材质）
+* 当前关卡中的所有发射器（仅位置信息）
+
+
+注意，目前还不支持导出地形 actor、源画刷模型以及某些其它的对象类型。
+
+导出的对象的命名和它们在 UnrealEd 中的命名类似。 当在 3D 建模包中改变了导出数据后，您需要把改变导回到 FBX / COLLADA 文件中，FBX / COLLADA 文件可以被再次导入到 Matinee 中。 在这个过程中使场景中的对象的名称保持一致是很重要的！
+
+当把一个新的 FBX / COLLADA 文件导回到编辑器中时，Matinee 将会尝试导入所有和绑定到活动的 Matinee 序列的 actor 名称相匹配的所有 actor 的动画曲线。 在某些情况下（比如相机），您也可以通过在建模包中创建新的对象然后把它们导出为 FBX / COLLADA 格式来添加新的对象。
+
+**注意：**
+
+* 现在推荐使用 FBX。
+* 目前的 UE4 版本仅针对 ColladaMAX 3.05B 和 ColladaMaya 3.05B 进行了测试。
+
+
+
+
+## 关键帧简化
+
+关键帧简化工具可以轻松地删除单独轨迹动画曲线中不需要的关键帧。您可以有一条轨迹，其中曲线中的一些关键帧几乎全部落在一条直线上。在这样的情况下，实际上只需要第一帧和最后一帧。关键帧简化工具可以删除中间关键帧，减少对内存的影响，并避免执行无用计算。
+
+![reducekeystool.jpg](reducekeystool.jpg)
+
+这个工具有一些属性：
+
+
+* **Tolerance** - 设置一个关键距离前一帧和下一帧之间的直线多远才可以被删除。
+* **Full interval** - 如果该项为 true，那么在简化关键帧时将会使用轨迹关键帧的全部间隔。
+* **Interval Start** - 设置要开始简化关键帧的时间。
+* **Interval End** - 设置要停止简化关键帧的时间。
+
+
+
+
+## Gamecaster 集成
+
+![recordingwindow.jpg](recordingwindow.jpg)
+
+虚幻支持 Gamecaster 虚拟相机外围设备，它可以为过场动画制作者提供快速录制相机轨迹的功能。 当前，记录窗口可以在 Matinee 工具栏的最右边进行访问，而且其中包含帮助文本"Launch Recording Window for Matinee（为 Matinee 启动录制窗口）"。
+
+基本的控件方案如下所示：
+
+
+* 平移运动 - 左摇杆
+* 相机缩放 - 右摇杆
+* "录制"/"停止录制" - 左侧按钮
+* 更改选中的菜单选项 - 左滑轮
+* 更改选中的菜单值 - 右滑轮
+* 重新设置菜单值 - 按下右滑轮
+* 开启菜单显示 - 按下左滑轮
+* 回放前面录制的过场动画 - 按下右摇杆
+
+
+**录制模式**
+
+
+* New Camera Mode（新相机模式） - 每次录制都会创建一个新的相机 actor，选中它，然后创建一个要录制进去的运动和 FOV 轨迹
+* New Attached Camera Track（新附加的相机轨迹） - 每次录制都会创建一个新的相机，选中它，创建相应的轨迹，然后"附加"这个选中的对象。 对于附加到 actor 或其他相机创建复杂的移动摄影车非常适用。
+* Duplicate selected tracks（复制选中的轨迹） - 它将会复制选中的轨迹，选中它们，然后录制到这些轨迹中。 它对于进行一个镜头的多次"拍摄"供稍后查看来说非常重要。
+* Replace selected tracks（替换选中的轨迹） - 用于覆盖现有的轨迹。 使用它可以快速擦除并重新录制最终效果不理想的轨迹。
+
+
+**相机运动**
+
+
+* Free Camera（自由相机） - 左摇杆将会在相机的平面中平移（例如，向前移动摇杆会将相机移入画面）
+* Planar Camera（平面相机） - 左摇杆将只会在 xy 平面中平移。
+
+
+**注意**
+
+
+* 录制完成后，建议尽量在所选轨迹上 Reduce Key（简化关键帧）。
+* 为了最大化帧速率，推荐所有标准编辑器视窗都在录制过程中采用"实时"模式。
+* 同时这个录制系统还可以与控制台控制器兼容，支持 x 和 y 轴反转。
+
+ 
+
+
+
+
+

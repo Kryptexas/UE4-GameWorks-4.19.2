@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2464839
+Availability:Public
+Title:2.Android Device を設定する
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:Android Device を開発用に設定する
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Android/GettingStarted/1 "%Platforms/Android/GettingStarted/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+
+1.	デバイスを接続します。
+1.	デバイス ドライバ ソフトウェアは自動的にインストールされますが、そうでない場合は、 [Android の OEM USB ドライバ](http://developer.android.com/tools/extras/oem-usb.html) ページでドライバ インストール リンクと追加情報を確認してください。  
+1.	デバイスの **[Settings]** アプリケーションを開きます。
+1.	**[Developer Options]** メニューを見ます。このメニューがない場合、デバイスの **Developer Options** を有効にする必要があります。デベロッパー オプションの詳細は、 [Android で使用しているハードウェア](http://developer.android.com/tools/device.html) ページをご覧ください。
+	1.	下へスクロールして **About Phone** を選びます。Android デバイスによっては、 **About Device** 、 **About Tablet** 、または **About Shield** というオプションが出る場合があります。
+		[REGION: note]
+		注記：新しい Andorid のバージョンでは **[More]** セクションにあるかも知れません。
+		[/REGION]
+	1.	**Build Number** を 7 回たたきます。数回たたいた段階で、 **「You are now # steps away from becoming a developer」** というメッセージが表示さｒます。
+	1.	**Developer Mode** が起動すると、成功を示すメッセージが表示されます。
+	1.	再度 **[Settings]** メニューへ戻ると **Developer Options** が利用できるようんなっているので、選択します。
+1.	**[Developer Options]** メニューの USB デバッグを有効にします。 
+1. **OK** が表示されたら選択します。
+1.	デバイスが正しく設定されているか確認するために、 **Windows+R** を押して **[Run]** ウィンドウに `cmd.exe` と入力してコマンド プロンプトを開きます。
+1.	コマンド ウィンドウに `adb devices` とタイプします。デバイスがリスト化されるはずです。ここでは以下のようなトラブルシューティングがあります。
+	* デバイスが表示されてはいても権限がないことが表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。
+	* デバイスを表示させるためには、デバイスをアンプラグし再接続する必要のある場合があります。
+	* [Always allow] チェックボックスにチェックを入れておくことを推奨します。
+	* **Camera (PTP)** ではなく **Media Device (MTP)** として接続されている場合、正しく設定されているデバイスが表示されない場合があります。この段階でご自分のデバイスが「adb devices」として全く表示されない場合は、 **Camera (PTP)** オプションを選択してください。
+
+
+
+
+
+%Steps%
+

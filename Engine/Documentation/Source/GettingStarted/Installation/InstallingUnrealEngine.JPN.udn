@@ -1,0 +1,97 @@
+﻿INTSourceChangelist:2467017
+Availability:Public
+Title:アンリアル・エンジンのインストール方法
+Crumbs: %ROOT%, GettingStarted
+Description:アンリアル・エンジンのインストール手順
+
+%Globals:OSSelect%
+
+## インストーラーのダウンロード
+
+インストーラーは[UnrealEngine.com](http://unrealengine.com) ウェブサイトからダウンロードできます。
+
+1. [UnrealEngine.com](http://unrealengine.com) へ移動してログインします。 
+
+	[REGION:note]
+	アンリアルエンジンをダウンロードするには、アカウントを作成して会員登録することが必要になります。まだアカウントを作成していない場合、ページ上部にあるオレンジ色の **[Get Unreal]** ボタンをクリックして、表示される指示に従ってください。
+	[/REGION]
+
+1. アカウントページから、使用している OS に応じてダウンロード ボタンをクリックします。
+
+	![](ue4_install_downlader.png)
+
+
+## 基本インストール
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#Windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOS]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Windows]
+1. ダウンロードしたインストーラーを実行して、アンリアルエンジンをインストールする場所を選択します。
+
+	![](ue4_install_location.png)
+
+	[REGION:warning]
+	[REGION:largetitle]
+	必要な空き容量
+	[/REGION]
+	アンリアルエンジンのそれぞれのバージョンのインストールには、およそ 8GB のディスク容量が必要となります。全てのバージョンはインストール手順の過程で選択した場所へ保存されます。十分な空き容量がある場所を選択してインストールを開始してください。
+	[/REGION]
+
+1. **Install** をクリックしてインストール プロセスを継続してください。アンリアル エンジンがインストールされたら、アンリアル エンジン ランチャーが開きます。
+
+[/EXCERPT:Windows]
+[EXCERPT:MacOS]
+1. `Rocket.dmg` アイコンをダブルクリックして Finder を開きます。 **License Agreement（ライセンス契約）** に同意後、新しい **Finder Window** が開きます。
+1. **RocketEditor** アイコンを **Applications** フォルダへドラッグします。
+
+	![](ue4_mac_install.png)
+
+1. Finder でファイルのコピーが終了すると、アンリアルエンジンが **Launchpad** で利用出来るようになります。ここからアンリアル エンジンを起動します。 
+
+[/EXCERPT:MacOS]
+-->
+
+## サインインとダウンロード
+
+アンリアル エンジン ランチャーが起動したら、サインインを行って、エンジンの現バージョンをダウンロードしなくてはいけません。
+
+1. ユーザーのアカウント情報でサインインします。
+
+	[REGION:fullwidth]
+	![](ue4_installer_login.png)
+	[/REGION]
+
+1. アンリアル エンジン 4 の現行バージョンのダウンロードが開始します。
+
+	![](ue4_installer_download.png)
+
+1. ダウンロードが終了したら、**Launch** ボタンでアンリアルエンジンを起動できます。
+
+	![](launch.png)

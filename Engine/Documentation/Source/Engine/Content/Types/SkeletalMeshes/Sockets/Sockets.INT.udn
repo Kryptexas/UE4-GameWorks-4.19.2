@@ -1,0 +1,126 @@
+Availability: Public
+Title:SkeletalMeshSockets
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/SkeletalMeshes
+Description:Locators that can be added to SkeletalMeshes to use as attachment points for weapons, effects, and more.
+
+
+
+[TOC(start:2)]
+
+
+
+## Overview
+[INCLUDE:Shared/Glossary/S/#Glossary_socket]
+
+
+## Creating a Socket
+To add a Socket to a Skeletal Mesh, you must first open that mesh in Persona. This is done by **double-clicking** on a Skeletal Mesh within the **Content Browser**.
+
+![](Persona_Skeleton_Socket.png)(w:800)
+
+Sockets can be easily added onto joints within the Skeleton Tree panel by **right-clicking** on the appropriate joint and choosing **Add Socket** from the context menu.
+
+![](AddSocket.png)
+
+Sockets appear next to the name of a bone as a red socket icon, as shown in the image below.
+
+![](SocketsIcon.png)
+
+Once a socket is named, it will immediately be created and its properties will appear in the **Persona Details** panel.
+
+
+
+## Socket Editing
+
+Sockets can be edited directly within Persona by way of the **Skeleton Tree**, the **Details** panel, and the **Viewport** window.
+
+By clicking on a socket within the **Skeleton Tree**, a translation or rotation widget becomes available in the viewport. You may use these to reposition the socket relative to the bone.
+
+![](EditingSockets.png)(w:500)
+
+You can also edit the location of sockets numerically using the **Details** panel.
+
+![](SocketDetails.png)(w:500)
+
+
+
+
+
+## Viewing sockets
+Along with the pink socket icon in the **Skeleton Tree** hierarchy, you can also view sockets directly on a mesh within the **Viewport** by using the **Show** menu and choosing **Sockets**.
+
+![](ShowSockets.png)
+
+![](SocketVisible.png)
+
+
+## Using sockets
+
+Actors can be attached to Skeletal Mesh Sockets in a few ways, depending on your needs.
+
+| **Desired type of attachment** | **Method** |
+| --- | --- |
+| Permanent attachment. Always part of the Skeletal Mesh. | Done via Persona and then saved as part of the Skeletal Mesh. Uses the **Skeleton Tree**, the **Content Browser**, and the **Viewport**. See [Drag & Drop Assets](#PermanentAttachment) below. |
+| Per-instance attachment on Skeletal Mesh placed within a level. | Can be done in the main editor within the **Viewport**, using the **Content Browser**. See [Socket Snapping](#SocketSnapping) and [Context Menu Attachment](#ContextMenuAttachment) below. |
+| Snapping Based on Gameplay | This should typically be done by way of a Blueprint. See Blueprint Attachment below. |
+
+
+
+### Permanent Attachment
+
+If you would like to permanently attach an Actor to a Socket so that it is always part of the Skeletal Mesh, you can do so via Persona. Meshes and other assets can be dragged and dropped directly onto sockets in the **Skeleton Tree**. The following types of assets are supported:
+
+* Static Meshes
+* Skeletal Meshes
+* Particle Systems
+
+
+
+![](DragAndDrop.png)(w:700)
+
+
+### Socket Snapping
+
+You can attach Actors to Skeletal Mesh Sockets within the editor via Socket Snapping. This is useful when you need to make an attachment to a particular Skeletal Mesh that is already placed in the level.
+
+First, enable socket snapping from the View Menu of the main editor Toolbar.
+
+![](ViewModeSocketSnapping.png)
+
+The viewport will then render all sockets visible. Select the Actor you wish to attach. Click on the socket that you wish to attach to.
+
+![](SocketSnappingViewport.png)
+
+The Actor is now at the location and rotation of the socket and is attached to the Actor who owns the skeletal mesh component of the target socket.
+
+![](SocketSnapped.png)
+
+
+### Context Menu Attachment
+ 
+You can also attach Actors to Skeletal Mesh Sockets by way of the context menu within the main editor viewport. This does not require Socket Snapping to be activated, and as long as you know the name of the Socket you want to attach to, this can be a very fast way to make the attachment. As with the Socket Snapping technique, this is best suited to making attachments on Skeletal Meshes that have already been placed in the level.
+
+**Right-click** on the mesh you want to attach. Choose **Attach To > <Name of your target Skeletal Mesh>**:
+
+![](AttachToMenu.png)(w:800)
+
+From the flyout menu that appears, choose the name of the desired Socket.
+
+![](ChooseSocket.png)
+
+The Actor snaps to the location of the Socket.
+
+![](SocketSnapped.png)
+
+
+### Blueprint Attachment
+
+There will almost certainly come times when you want a Skeletal Mesh to receive an attachment that is determined by gameplay in some way. For instance, maybe a character needs to pick up a weapon when they run across it. This can easily be done in Blueprints. Since there are myriad ways in which this could be applied, we will simplify our discussion here to simply pointing out useful nodes, from which point you may create whatever type of logic needed to make the attachment happen when and how you desire. For more information on Blueprint, please see the [Blueprint documentation pages.](Engine/Blueprints)
+
+
+* Attach Actor to Actor
+* Attach Actor to Component
+* Attach To
+
+
+![](AttachActorToActor.png) ![](AttachActorToComponent.png) ![](AttachTo.png)

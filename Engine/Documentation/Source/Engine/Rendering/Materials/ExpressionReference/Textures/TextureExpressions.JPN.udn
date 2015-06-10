@@ -1,0 +1,103 @@
+﻿INTSourceChangelist:2281696
+Availability:Public
+Title:Texture 表現式
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
+Description:テクスチャをサンプリングおよび出力する表現式
+
+[EXCERPT:TOC]
+[TOC(start:2)]
+[/EXCERPT:TOC]
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Font#FontSample]
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Font#FontSampleParameter]
+
+
+## SceneColor
+
+SceneColor 表現式は、既存シーンの色を出力します。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]入力値[/REGION] ||
+| **OffsetFraction** | スクリーン空間でシーンの色をオフセットする二次元のベクター値を受け取ります。このアイテムを 0.1 または 1.0 に設定すると、シーンの色が若干明るくなります。 1.1 に設定するとより明るい結果となります。|
+
+
+![SceneColorExample.png](SceneColorExample.png)
+
+
+## SpriteTextureSampler
+
+カスタム仕様のスプライト マテリアルの作成は、既存するマテリアルの 1 つを複製して作成、または **コンテンツ ブラウザ** で新規マテリアルを作成して行います。スプライトがレンダリングされると、スプライト アセットで定義されたテクスチャはマテリアルの「SpriteTexture」というテクスチャ パラメータに繋がります。SpriteTextureSampler ノードを配置することで、この作業が自動的に行えます。  
+
+![](SpriteMaterial.png)(w:720)
+
+スプライト インスタンスはカラーを頂点カラーとして引き渡しますが、マテリアル内では色調を弱めるだけでなく全ての事に使用できます。 
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Texture** | 表現式によってサンプル化されたテクスチャを指定します。テクスチャの設定は、最初に **コンテンツ ブラウザ** でテクスチャを選択します。次に、表現式のプロパティウィンドウから Texture プロパティを選択して、 [Use Current Selection] ボタンをクリックします。|
+| **Sampler Type** | サンプル化されてノードから出力されるデータ タイプです。 |
+| **MipValueMode** | 外観と動作に影響するテクスチャへノイズ値を適用します。 |
+| [REGION:tablesection]入力値[/REGION] ||
+| **UVs** | テキスチャに使用する UV テクスチャ座標を受け取ります。UV に値が入力されなかった場合、マテリアルが適用されているメッシュのテクスチャ座標が使用されます。|
+| [REGION:tablesection]出力値[/REGION] ||
+| **RGB** | カラーの 3 チャンネルの RGB ベクター値を出力します。 |
+| **R** | カラーの赤チャンネルを出力します。 |
+| **G** | カラーの緑チャンネルを出力します。 |
+| **B** | カラーの青チャンネルを出力します。 |
+| **A** | カラーのアルファチャンネルを出力します。テクスチャにアルファ チャンネルが含まれていない場合、「アルファ」チャンネルへ何かを接続すると、表向きは不正行為ではないものの常に結果はゼロ (黒) となります。|
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Functions#TextureObject]
+
+
+<!---
+## シーン テクスチャ
+
+
+## テクスチャ オブジェクト
+
+
+--->
+
+## TextureSample
+
+TextureSample 表現式は、テクスチャからカラー値を出力します。テキスチャは、通常の Texture2D (法線マップを含む) 、キューブマップまたはムービーテクスチャとなります。
+
+| アイテム | 説明 |
+| -------- | ----------- |
+| [REGION:tablesection]プロパティ[/REGION] ||
+| **Texture** | 表現式によってサンプル化されたテクスチャを指定します。テクスチャの設定は、最初に **コンテンツ ブラウザ** でテクスチャを選択します。次に、表現式のプロパティウィンドウから Texture プロパティを選択して、 [Use Current Selection] ボタンをクリックします。|
+| **Sampler Type** | サンプル化されてノードから出力されるデータ タイプです。 |
+| **MipValueMode** | 外観と動作に影響するテクスチャへノイズ値を適用します。 |
+| [REGION:tablesection]入力値[/REGION] ||
+| **UVs** | テキスチャに使用する UV テクスチャ座標を受け取ります。UV に値が入力されなかった場合、マテリアルが適用されているメッシュのテクスチャ座標が使用されます。TextureSample はキューブマップを表現します。 UV 座標は単に 2 チャンネル値ではなく、 3 チャンネル値でなくてはいけません。 |
+| [REGION:tablesection]出力値[/REGION] ||
+| **RGB** | カラーの 3 チャンネルの RGB ベクター値を出力します。 |
+| **R** | カラーの赤チャンネルを出力します。 |
+| **G** | カラーの緑チャンネルを出力します。 |
+| **B** | カラーの青チャンネルを出力します。 |
+| **A** | カラーのアルファチャンネルを出力します。テクスチャにアルファ チャンネルが含まれていない場合、「アルファ」チャンネルへ何かを接続すると、表向きは不正行為ではないものの常に結果はゼロ (黒) となります。|
+
+
+![TextureSampleExample.png](TextureSampleExample.png)
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#TextureObjectParameter]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#TextureSampleParameter2D]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#TextureSampleParameterSubUV]
+
+
+[INCLUDE:Engine/Rendering/Materials/ExpressionReference/Parameters#TextureSampleParameterCube]
+
+
+

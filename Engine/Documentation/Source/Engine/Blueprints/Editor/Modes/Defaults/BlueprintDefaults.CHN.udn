@@ -1,0 +1,46 @@
+﻿Availability:Public
+Title: 蓝图编辑器默认模式
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
+Description:
+
+[EXCERPT:Intro]
+
+[INCLUDE:Shared/Glossary/D/#Glossary_Defaults_Mode]
+
+[/EXCERPT:Intro]
+
+[EXCERPT:Main]
+![](bp_empty_defaults.png)(w:700)
+
+
+|默认可见的用户界面组件| 窗口菜单中可用的组件|
+|-----------------------------|-----------------------------|
+|[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
+
+
+
+<!----------
+[EXCERPT:Visible]
+1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
+1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [蓝图编辑器默认值选卡](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
+
+[/EXCERPT:Visible]
+
+[EXCERPT:Invisible]
+* [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
+[/EXCERPT:Invisible]
+------------->
+
+[REGION:note]
+**Defaults** （默认）选项卡也可通过打开 **Window** （窗口）菜单并选择 **Blueprint Defaults** （蓝图默认值），从 **Components** （组件）模式或 **Graph** （图表）模式中打开。或者，您也可以在 **内容浏览器** 中 **右击** 一个 **蓝图**并选择 **Edit Defaults（编辑默认值）** 
+访问 **Blueprint Defaults* （蓝图默认值选卡）。
+
+
+![](Edit_Defaults1.png)
+[/REGION]
+
+[/EXCERPT:Main]
+
+
+[INCLUDE:Engine/Blueprints/Editor/Modes#modes]

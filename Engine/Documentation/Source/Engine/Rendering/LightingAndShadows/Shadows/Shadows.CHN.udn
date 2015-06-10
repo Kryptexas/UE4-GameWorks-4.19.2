@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:1944055
+Availability: Public
+Title:阴影投射
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/LightingAndShadows
+Description:阴影的总体概述。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/Shadows:title%](LO_Shadows_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/Shadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/Shadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/Shadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/Shadows:title%](LO_Shadows_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/Shadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/Shadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/Shadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概述
+
+阴影让您的世界产生对比，使得世界中的物体感觉更加真实，并营造一种氛围。静态阴影无论怎么渲染，实际上都几乎没有任何性能消耗，但是动态阴影是造成较大性能消耗的原因之一。本文介绍了虚幻引擎4中具有的四种类型的阴影投射。
+
+## 静态光源
+
+[EXCERPT:StaticLightShadows]
+静态光源投射完全静态的阴影 **和光照** ，这意味着它们对动态对象（比如下面的铜人）没有 _直接_ 影响（静态光照由于烘焙到了间接光照缓存中，所以它们会有 _一些_ 影响）。
+[/EXCERPT:StaticLightShadows]
+
+![](LI_StaticMeansStatic.png)(w:900)
+
+_左侧的古铜色角色站在一个静态光源的光照中, 该光源对角色没有任何影响 (光照或阴影)；而右侧的角色位于一个固定光源的光照中。_
+
+## 间接光照层叠(cascading)阴影贴图(全景阴影)
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights#CascadedShadowMaps]
+
+## 固定光源阴影
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights#StationaryShadows]
+
+## 动态阴影
+
+可移动光源在任何物体上都投射完全动态的阴影(和光照)。它的光照数据不会烘焙到光照贴图中，它可以自由地在任何物体上投射动态阴影。静态网格物体、骨架网格物体、特效等，都将会从可移动光源投射或接收阴影。
+
+一般，投射可移动动态阴影的光源是性能消耗最大的。
+
+## 所有阴影类型同时存在
+
+当把所有阴影类型放在一起时，每种类型的阴影都会利用其优势来弥补另一种类型阴影的劣势，从而可以快速地渲染出令人印象深刻的栩栩如生的视觉效果。
+
+![](LO_Shadows_Footer.png)
+

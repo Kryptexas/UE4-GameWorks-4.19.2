@@ -1,0 +1,54 @@
+﻿Availability:Public
+Title:配列制御
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/Details
+Description:その他のプロパティタイプの動的リスト
+
+「配列」はその他のプロパティタイプの動的リストです。例えばオブジェクト参照が挙げられます。エレメントのリストは 
+プロパティタイプの標準制御を使用して、個々のエレメントが縦に 
+表示されます。
+
+![Array control](array.png)
+
+アイテムは右上に位置する [![Add Item](button_array_new.png)] ボタンを押して追加します。
+
+![Array with new element](array_new.png)
+
+配列に存在する全てのエレメントは![Clear Array](button_array_empty.png) ボタンで削除できます。
+
+![Array with no elements](array_empty.png)
+
+配列の各エレメントは ![Element Options](button_array_element_options.png) ボタンを押して表示されるいくつかのオプションのうちのどれかで実行します。
+
+![Element Options Menu](array_element_options_menu.png)
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **Insert** | 現在のエレメントの前に新規のエレメントを配列へ挿入します。 [INCLUDE:#ArrayInsert] |
+| **Delete** | 現在のエレメントを削除します。 [INCLUDE:#ArrayDelete] |
+| **Duplicate** | 現在のエレメントの後に新規のエレメントを配列へ挿入します。 [INCLUDE:#ArrayDuplicate] |
+
+<!--
+[EXCERPT:ArrayInsert]
+[REGION:imagetable]
+| ![](array.png) | ![Array with inserted element](array_insert.png) |
+| ------------ | ----------- |
+| 前 | 後 |
+[/REGION]
+[/EXCERPT:ArrayInsert]
+
+[EXCERPT:ArrayDelete]
+[REGION:imagetable]
+| ![](array.png) | ![Array with deleted element](array_delete.png) |
+| ------------ | ----------- |
+| 前 | 後 |
+[/REGION]
+[/EXCERPT:ArrayDelete]
+
+[EXCERPT:ArrayDuplicate]
+[REGION:imagetable]
+| ![](array.png) | ![Array with copied element](array_duplicate.png) |
+| ------------ | ----------- |
+| 前 | 後 |
+[/REGION]
+[/EXCERPT:ArrayDuplicate]
+-->

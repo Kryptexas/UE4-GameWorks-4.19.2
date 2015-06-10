@@ -1,0 +1,243 @@
+Availability: Public
+Title:4. Displaying Ammo, Health and Energy
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:The fourth step in the UMG Quick Start is to hook up the Ammo, Health and Energy so they are displayed in-game. 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/UMG\QuickStart\3 "%Engine/UMG\QuickStart\3:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\5 "%Engine/UMG\QuickStart\5:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Creating the HUD elements
+	[/PARAM]
+	[PARAM:description]
+
+In this section, we will add the elements we want to display on the HUD. 
+
+1. Inside the **UMG** folder that you created, open the **GameHUD** Blueprint to open it in the **Widget Blueprint Editor** (shown below). 
+	
+		![](New_1.png)(w:720)
+
+1. Inside the **Palette** window under **Panel**, drag a **Horizontal Box** onto the **CanvasPanel** in the **Hierarchy** window. 
+
+		![](UMG_Update1.png)
+
+1. Also under **Panel**, drag two **Vertical Boxes** onto the **Horizontal Box** in the **Hierarchy** window. 
+
+		![](UMG_Update2.png)
+
+1. Under **Common**, drag two **Text Blocks** onto the first **Vertical Box** and two **Progress Bars** onto the second **Vertical Box**. 
+
+		![](UMG_Update3.png)
+
+1. With the **Horizontal Box** selected, re-size and arrange the box so it appears in the upper left corner of the window. 
+
+		![](UMG_Update4.png)
+
+		The progress bars will appear very small, however we will fix that in the next step.
+
+1. Click on one of the **Progress Bars**, then in the **Details** panel, click the **Fill** button under **Layout** / **Size**. 
+
+		![](UMG_Update5.png)
+
+1. Click the other **Progress Bar**, set it to **Fill** under **Size** as performed in the previous step. 
+
+1. Click the **Vertical Box** containing the **Progress Bars**, and set its **Size** to **Fill** as well. 
+
+		![](UMG_Update6.png)
+
+1. Once you have done so, re-size the box in the **Visual Designer** as seen below. 
+
+		![](UMG_Update7.png)
+
+1. Click on the top **Text Block** and in the **Details** panel, change the text to **Health :** and align it to the right. 
+
+		![](UMG_Update8.png)
+
+1. Do the same for the other **Text Block** however, for its text, enter **Energy :**. 
+
+1. For reference, select the **Horizontal Box** and in the **Details** panel, rename it to **PlayerCondition**. 
+
+		![](UMG_Update9.png)
+
+1. In the **Palette**, drag another **Horizontal Box** onto the **CanvasPanel** in the **Hierarchy**. 
+
+1. Drag 4 **Text Blocks** onto the new **Horizontal Box** and for each, set the text in order as follows: **Ammo :**, **25**, **/** and **25**. 
+
+		![](UMG_Update10.png)
+
+1. Under **Appearance** and **Font**, you can change the font size for each text (we set each to 32). 
+
+		![](UMG_Update11.png)
+
+1. Drag the **Horizontal Box** with the Ammo Display to the upper right portion of the screen and resize as desired. 
+
+		![](UMG_Update12.png)
+
+1. With the **Horizontal Box** selected, in the **Details** panel, click the **Anchors** button and choose the upper right anchor. 
+
+		![](UMG_Update13.png)(w:800)
+
+		By **Anchoring** a Widget, you are indicating to the Widget that it is to appear in the location specified or relative to the position based on the screen size. You can verify this by clicking the **Resolution** drop-down menu in the **Visual Designer** and changing aspect ratios. You should see that the Widgets maintain their relative positions. 
+
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Retrieving the Variables
+	[/PARAM]
+	[PARAM:description]
+
+In this section, we will hook up the variables from our **MyCharacter** Blueprint so they are passed to the HUD. 
+
+1. Click on the **Progress Bar** which represents Health. 
+
+1. In the **Details** panel under **Appearance**, click on **Bind** next to **Percent** option, then **Create Binding**. 
+
+		![](UMG_Update14.png)
+
+		Here we are going to Bind the Percent value of the Progress Bar to a value in our Character Blueprint. 
+
+1. On the graph that opens, **Right-click** and search for and add a **Get Player Character** node. 
+
+1. Off the **Get Player Character** add the **Cast to MyCharacter** node and connect as shown. 
+
+		![](UMG_Update15.png)
+
+1. Off the **As MyCharacter C** pin, search for **Get P Health** and connect it as show below. 
+
+		![](UMG_Update16.png)(w:820)
+
+		This will always get the value associated with our player's Health and pass it to the HUD automatically. 
+
+1. On the **Designer** tab, click the Energy Progress Bar and create a Binding for the Percent as done with the Health. 
+
+1. On the graph that opens, **Get Player Character** and **Cast To MyCharacter**, then get P Energy and connect as shown. 
+
+		![](UMG_Update17.png)(w:820)
+
+1. Return to the **Designer** tab and click on the first number in the Ammo display, then in the **Details** for the **Text**, **Create Binding**. 
+
+		![](UMG_Update18.png)
+
+1. In the graph that opens, **Get Player Character** and **Cast To MyCharacter**, then get P Current Ammo and connect as shown. 
+
+		![](UMG_Update19.png)(w:820)
+
+		When connecting the Ammo to the ReturnNode's Return Value, a conversion node will automatically be created. 
+
+1. While still on the **Graph** tab, create a new **Integer** variable from the **MyBlueprint** window. 
+
+1. In the **Details** panel for the variable, name it **H_MaxAmmo** and check the **Editable** and **Expose on Spawn** checkboxes. 
+
+		![](UMG_Update20.png)
+
+		Since the Max Ammo Count value will not change for this example, we are going to initialize it when the HUD is created. 
+
+1. Return to the **Designer** tab. 
+
+1. Click the second number in the Ammo display, then in the **Details** for the **Text** click **Bind** then **Create Binding**. 
+
+1. When the graph opens, drag the **H_MaxAmmo** variable into the graph onto the **Return Value**. 
+
+		![](UMG_Update21.png)
+
+		This will create a conversion node and connect it to the Return Value in pin. 
+
+1. Return to the **Designer** tab and click on the Health's progress bar again. 
+
+1. Under **Appearance** in the **Details** panel, select any color you wish to use as your Health Bar's color. 
+
+		![](UMG_Update22.png)
+
+1. Do the same for the **Energy** progress bar and set your Energy Bar's color. 
+
+1. You can verify the color of the bar by setting the percent value to 1.0 (just remember to set it back to 0.0 after selecting a color). 
+
+		![](UMG_Update23.png)
+
+1. **Compile** and **Save** then close the **GameHUD** Blueprint. 
+
+[REGION:note]
+Note: If you are not getting the colors you desire, there is an option under **Style** you may need to change. 
+
+![](UMG_Update24.png)
+
+As of Engine Version 4.5, the **Fill Image** defaults to Orange. By assigning a plain White texture as the Fill Image, you should fix any issues you have with incorrect colors appearing. This particular issue will be addressed in a future version update. 
+
+[/REGION]  
+	[/PARAM]
+[/OBJECT]
+		
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Displaying the HUD
+	[/PARAM]
+	[PARAM:description]
+
+In this final section, we will call the HUD to be displayed from **MyCharacter** and assign the default **MaxAmmo** to be displayed. 
+
+1. Inside the **Game/Blueprints** folder, open the **MyCharacter** Blueprint. 
+
+1. **Right-click** anywhere in the graph and add an **Event Begin Play** node. 
+
+1.	Drag off the out pin and add a **Create Widget** node, and set the **Class** to **GameHUD_C**. 
+
+		![](UMG_Update25.png)
+
+1.	Drag in the P Ammo Max variable and connect it to the H Max Ammo in pin. 
+
+1.	Drag off the **Return Value** of the Create Widget node and **Promote to Variable** called **GameHUDWidget**. 
+
+1.	Drag off the **Return Value** again and add the **Add to Viewport** node. 
+
+		![](UMG_Update26.png)
+
+		We are creating a **Variable** for the Game HUD Widget so that we can access it later. 
+		
+1. **Compile** and **Save** then play in the editor.
+
+		![](GIF1.gif)(convert:false)
+
+		You should see that when you press **F** you are "taking damage" and losing Health, jumping will deplete Energy and ammo count represents how many shots you have left (where you are unable to fire when you have 0 shots left).
+
+	[/PARAM]
+[/OBJECT]
+		
+In the next section, we will add an "Experience Bar" where shooting blocks increases your experience (you would probably want this to be tied to kill counts or some other meaningful gameplay situation; however this will show how you can set it up). When you "Level Up", you will unlock the ability to use an "Action Bar" button ability which will allow the character to perform a super jump. 
+
+---
+
+%Steps%
+
+
+
+
+

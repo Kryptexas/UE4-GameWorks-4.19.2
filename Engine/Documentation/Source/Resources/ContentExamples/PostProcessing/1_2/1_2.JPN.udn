@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2350233
+Availability:Public
+Title:1.2 - フィルム
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
+Description:ポストプロセスの事例概要、例 1.2：フィルム
+Related:Engine/Rendering/Overview
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing/1_2:title%](Resources/ContentExamples/PostProcessing/PP_2.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing/1_2:title%](Resources/ContentExamples/PostProcessing/PP_2.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:lightbox]
+[![](1_2_01.png)(w:302)](1_2_01.png) [![](1_2_02.png)(w:302)](1_2_02.png) [![](1_2_03.png)(w:302)](1_2_03.png)
+[/REGION:lightbox]
+
+フィルムのカテゴリには、シーンの色を調整するための様々なプロパティがあります。シャドウの着色、色混合チャンネル、サチュレーション、コントラスト、黒つぶれ、白飛び、ダイナミックレンジが含まれます。
+

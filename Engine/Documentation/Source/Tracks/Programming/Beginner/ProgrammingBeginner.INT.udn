@@ -1,0 +1,22 @@
+﻿Title:Beginning Programming Track
+Crumbs:%ROOT%, Tracks
+Description:
+Availability:Docs
+
+[OBJECT:TrackButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Beginning Programming
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAMLITERAL:id]
+	Programming_Beginner
+	[/PARAMLITERAL]
+	[PARAM:links]
+		* [](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:description%")
+		* [](Engine/Actors "%Engine/Actors:description%")
+	[/PARAM]
+[/OBJECT]

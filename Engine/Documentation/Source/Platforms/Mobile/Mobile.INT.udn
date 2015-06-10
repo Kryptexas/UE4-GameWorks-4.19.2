@@ -1,0 +1,61 @@
+Availability:Public
+Title:Mobile Game Development
+Crumbs:%ROOT%, Platforms
+Description:Information for developers creating mobile games.
+Platform:Mobile
+Navigation:platform
+
+[REGION:banner]
+![](mobile_banner.png)
+[/REGION]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		General Mobile Development
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Mobile/Materials "%Platforms/Mobile/Materials:description%")
+	* [](Platforms/Mobile/Textures "%Platforms/Mobile/Textures:description%")
+	* [](Platforms/Mobile/Lighting "%Platforms/Mobile/Lighting:description%")
+	* [](Platforms/Mobile/Content "%Platforms/Mobile/Content:description%")
+	* [](Platforms/Mobile/PostProcessEffects "%Platforms/Mobile/PostProcessEffects:description%")
+	* [](Platforms/Mobile/Performance "%Platforms/Mobile/Performance:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Mobile Quick Starts
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/iOS/QuickStart "%Platforms/iOS/QuickStart:description%")
+	* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Mobile Platforms
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/iOS "%Platforms/iOS:description%")
+	* [](Platforms/Android "%Platforms/Android:description%")
+	[/PARAM]
+[/OBJECT]

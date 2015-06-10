@@ -1,0 +1,10 @@
+Availability:Public
+Title:GameState
+Crumbs:%ROOT%, Gameplay/Framework
+Description:The GameState is responsible for monitoring the state of the game on the client.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/GameState)
+[/PARAM]
+[/OBJECT]

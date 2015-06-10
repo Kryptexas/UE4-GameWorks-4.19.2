@@ -1,0 +1,77 @@
+Availability: Public
+Title:Viewing FBX with QuickTime
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Guide to using the Quicktime FBX viewer to preview skeletal meshes and animations.
+ 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/QuicktimeViewer:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/QuicktimeViewer:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/QuicktimeViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/QuicktimeViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## Overview
+
+
+Viewing FBX files often involved importing it into your favorite 3D content creation package and then viewing it from there. However, this can be tricky if you normally do not work with 3D models (that is, if you are mostly a programmer). Fortunately, Autodesk has made a plug-in for QuickTime which allows you to view FBX files without having those 3D content creation packages installed. 
+
+
+## Downloading the plug-in and QuickTime
+
+You can download the latest plug-in from [Autodesk's website](http://usa.autodesk.com/adsk/servlet/pc/item?siteID=123112&id=22694824). The plug-in is available for both Windows and Mac.
+
+If you do not have QuickTime installed, then you will need to download it from [Apple's website](http://www.apple.com/quicktime/download/) and then install it. 
+
+
+## Opening the FBX file
+
+The plug-in does not add an extension to the list of files that QuickTime can view. To bypass this, select the "All Files(<literal>*.*</literal>)" option. Your FBX files should then appear, then **double-click** your FBX file or select your FBX file and then press Open.
+
+![QTFBX_OpeningFiles.jpg](QTFBX_OpeningFiles.jpg)(w:664 h:636)
+
+
+## Playing back animations
+
+Viewing FBX files within QuickTime also allows you to play back animations by either scrubbing the timeline or by pressing the Play button.
+
+![QTFBX_PlayingAnimations.png](QTFBX_PlayingAnimations.png)
+
+
+## Other controls
+
+More control information can be found within the plug-in's read me. However some will be listed here for your convenience. 
+
+![QTFBX_OpenedFBX.png](QTFBX_OpenedFBX.png)
+
+
+* **Rotating the camera** - Mouse **left-click** and hold within the viewport. Dragging the mouse around will rotate the camera.
+* **Panning the camera** - Hold the **Shift** key, and then mouse **left-click** and hold within the viewport. Dragging the mouse around will pan the camera.
+* **Zooming the camera** - Hold the **Z** key, and then mouse **left-click** and hold within the viewport. Dragging the mouse forward and backwards will zoom the camera.
+* **Cycling between camera views** - Press the **C** key to switch between camera view modes.
+* **Getting more help** - Press the **H** key to bring up more help options.
+
+
+![QTFBX_PressHForHelp.png](QTFBX_PressHForHelp.png)
+
+ 
+
+
+
+
+ 

@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title: 언리얼 빌드 시스템
+Crumbs: %ROOT%, Programming
+Description:엔진 및 게임 프로젝트를 컴파일하는 데 사용되는 언리얼 엔진의 커스텀 빌드 시스템입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/UnrealBuildSystem:title%](Engine/build_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/UnrealBuildSystem:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/UnrealBuildSystem:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/UnrealBuildSystem]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![언리얼 빌드 시스템](build.png)
+[/REGION]
+
+### UnrealBuildTool
+UnrealBuildTool (언리얼 빌드 툴, UBT) 는 여러가지 가능한 빌드 구성에 대해 UE4 소스 코드를 빌드하는 프로세스를 관리하는 커스텀 툴입니다. BuildConfiguration.cs 파일을 살펴보면 다양한 사용자 
+구성 가능 빌드 옵션을 확인할 수 있습니다.
+
+[REGION:note]
+Mac OS X 에서 UnrealBuildTool 또는 UnrealAutomationTool 을 디버깅하려는 경우, [MonoDevelop 4.2.2](http://monodevelop.com/Download) 과 [Mono 3.2.7](http://www.go-mono.com/mono-downloads/download.html) 를 설치해야 합니다. 
+[/REGION]
+
+### UnrealHeaderTool
+UnrealHeaderTool (언리얼 헤더 툴, UHT) 는 UObject 시스템을 지원하는 커스텀 파싱 및 코드 생성 툴입니다. 코드 컴파일은 두 단계로 이루어집니다:
+
+1.	UHT 를 실행합니다. 언리얼 관련 클래스 메타데이터에 대한 C++ 헤더를 파싱하고, 다양한 UObject 관련 기능 구현을 위한 커스텀 코드를 생성하는 툴입니다.
+1.	보통 C++ 컴파일러를 실행하여 그 결과를 컴파일합니다.
+
+컴파일시, 둘 중 어느 툴에서도 오류가 날 수 있으므로, 유심히 살펴 보시기 바랍니다.
+
+### 프로젝트 파일
+빌드 프로세스는 Visual Studio 용 .sln 이나 .vcproj 파일처럼, 개발 환경용 프로젝트 파일과 무관하게 일어납니다. 물론 이러한 파일이 있으면 편집에 용이하기는 하므로,
+프로젝트 디렉토리 트리 내용에 따라 동적으로 생성해 주는 툴이 제공되어 있습니다. 이 툴은 /UE4 루트 디렉토리에 위치한 [GenerateProjectFiles.bat](Programming\UnrealBuildSystem\ProjectFileGenerator) 파일로 실행시킬 수 있습니다.
+ 일반적으로는 이 배치 파일을 때때로 실행시켜 디스크에 추가하고 제거시킨 코드 파일과 에디터의 동기 상태를 유지하는 것이 좋습니다.
+
+### 모듈식 아키텍처
+UE4 는 다수의 모듈로 나뉘어 있습니다. 각 모듈에는 .build.cs 파일이 있으며, 이를 통해 그 빌드 방식을 제어하고, 모듈 종속성, 부가 라이브러리, 인클루드 경로 등의 정의를 위한 옵션도 포함되어 있습니다.
+
+기본적으로, 이 모듈은 DLL 에 컴파일되어 하나의 실행파일로 로드됩니다. BuildConfiguration.cs 파일에서 monolithic 실행파일 빌드를 선택할 수 있습니다.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		요점
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/UnrealBuildSystem/ProjectFileGenerator "%Programming/UnrealBuildSystem/ProjectFileGenerator:description%")
+		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		셋업 & 환경설정
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/UnrealBuildSystem/Configuration "%Programming/UnrealBuildSystem/Configuration:description%")
+		* [](Programming/UnrealBuildSystem/TargetFiles "%Programming/UnrealBuildSystem/TargetFiles:description%")
+	[/PARAM]
+[/OBJECT]
+

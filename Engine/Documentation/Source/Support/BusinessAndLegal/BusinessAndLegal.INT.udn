@@ -1,0 +1,40 @@
+Availability:Licensee
+Title:Business and Legal
+Crumbs:%ROOT%
+Description:Business and legal information for those developing games with Unreal Engine 4.
+Navigation:role
+
+[REGION:banner]
+![Business and Legal](business.png)
+[/REGION]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Legal
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Support/BusinessAndLegal/TermsAndConditions "%Support/BusinessAndLegal/TermsAndConditions:description%")
+		* [](Support/BusinessAndLegal/TrademarksAndLogos "%Support/BusinessAndLegal/TrademarksAndLogos:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/business_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Business
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Support/BusinessAndLegal/IntegratedPartnersProgram "%Support/BusinessAndLegal/IntegratedPartnersProgram:description%")
+		* [](Support/BusinessAndLegal/ShippingChecklist "%Support/BusinessAndLegal/ShippingChecklist:description%")
+		* [](Support/BusinessAndLegal/ThirdPartySoftware "%Support/BusinessAndLegal/ThirdPartySoftware:description%")
+	[/PARAM]
+[/OBJECT]

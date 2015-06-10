@@ -1,0 +1,19 @@
+﻿INTSourceChangelist:2087463
+Availability:Public
+Title:导入立方体贴图
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:如何将立方体贴图导入到虚幻引擎4中。
+
+## 概述
+
+本文介绍了如何将立方体贴图导入到虚幻引擎4中。
+
+## 导入立方体贴图
+
+要想导入您的立方体贴图，请跳转到 **Content Browser（内容浏览器）** 并点击 **Import（导入）** 。找到您的文件并点击 **Open（打开）** 按钮。
+
+[REGION:raw]
+![](ContentBrowserImport.png)(convert:false)
+[/REGION]
+
+另外，您可以点击图片并将它们直接拖拽到 **内容浏览器** 中。

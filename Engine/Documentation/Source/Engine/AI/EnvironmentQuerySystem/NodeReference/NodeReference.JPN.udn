@@ -1,0 +1,283 @@
+﻿INTSourceChangelist:2400172
+Availability:Public
+Title:The  Environment Query System ノードのリファレンス
+Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
+Description:Environment Query System エディタで利用できる各種ノードの詳細と説明
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/AI/EnvironmentQuerySystem/NodeReference:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/EnvironmentQuerySystem/NodeReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/EnvironmentQuerySystem/NodeReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/EnvironmentQuerySystem/NodeReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[toc]
+
+## 概要
+
+環境クエリ エディタ内で利用できるノードとテストのクイック リファレンスです。
+
+## ジェネレータ
+
+### Actors of Class
+
+コンテキスト周囲のにある Search Radius 内のクラスのアクタを全て探します。そのアクタは、テストで使用するアイテムとして返されます。
+
+![](gen_actor.png)(convert:false)
+
+![](gen_actor_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Search Radius** | 対象のアクタを探す最長距離です。 |
+| **Searched Actor Class** | 検索するアクタのクラスです (Pawn 、Character 、など)。 |
+| **Search Center** | Querier あるいは他のコンテキストからなど、検索に重点を置くコンテキストです。 |
+
+### On circle
+
+ヒットあるいは (生成された円の) 半径のエッジをアイテムとして返して、コンテキストからトレースを放射状に広げます。
+
+![](gen_circle.png)(convert:false)
+
+![](gen_circle_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Circle Radius** | Circle Center Context から拡大する円の半径です。 |
+| **Space Between** | 円の外側のエッジ上に生成されるアイテム間の空間 (cm 単位)。 
+| **Arc Direction** | Arc Direction 機能を有効にして、コンテキストの回転あるいは位置間に生じたベクターに合わせた方向で、円弧をフォーカスすることができます。 |
+| **Arc Angle** | 円弧の角度です。 |
+| **Circle Center** | 円の中心として使われるコンテキストです。 |
+| **Trace Data** | 使用するトレースのタイプです。 |
+| **Projection Data** | 結果のアイテムを NavMesh 上に投影するかどうか (およびどの NavMesh データセットを使用するか) です。 |
+
+### Pathing Grid
+
+Grid と似ていますが、NavMesh 上の様々なポイントにパスし、Max Distance 以下のアイテムのみを返します。
+
+![](gen_pathing.png)(convert:false)
+
+![](gen_pathing_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Max Distance** | パスする際の Querier からの距離です。 |
+| **Distance Between** | 生成されたアイテム間の距離です。 |
+| **Path to Item** | アイテム **へ** パスするのか、アイテム **から** パスするのか設定します。 |
+| **Generate Around** | Pathing Grid を周りに生成するコンテキストです。 |
+| **Navigation Filter** | 使用するナビゲーション フィルタです。 | 
+
+### Simple Grid
+
+Querier の周囲にアイテムのグリッドを生成します。
+
+![](gen_grid.png)(convert:false)
+
+![](gen_grid_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Grid Size** | 生成するアイテムのグリッドの高さと幅です。 |
+| **Space Between** | グリッド アイテム間の距離です。 |
+| **Generated Around** | グリッドの生成に使うコンテキストです。 |
+| **Projected Data** | NavMesh 上へのグリッドの投影を決めます。ウォール内にあるアイテム、あるいはブロックされているアイテムを NavMesh 上に戻すことにより、グリッド線が NavMesh のエッジをちょうど越える場合にバンチングを起こすことができます。
+
+
+## テスト
+
+### Distance
+
+アイテムと選択されたコンテキスト間の直接距離を返します。コンテキストが複数の場所に位置する場合、それぞれの距離を確認した結果の平均値になります。
+
+![](test_dist.png)
+
+![](test_dist_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Test Mode** | 距離のチェックを 3D で行う場合、2D XY plane 、または単に Z 軸沿いにします。 |
+| **Distance To** | 距離の測定に使用するコンテキストです。 |
+| **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
+| **Filter Type** | フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Float Value Min** | この値と同等またはそれ以下の値をフィルタします。 |
+| **Float Value Max** | この値と同等またはそれ以上の値をフィルタします。 |
+| **Clamping** | 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
+| **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。
+| **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
+| **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。負の値の場合もあります。 |
+
+
+### Dot
+
+2 つのベクターの Dot Product を計算します。Context Rotation 、または、ある点から別の点が、2 つのベクターとなることができます。点同士が向かいあっているかどうかの算定に有用です。
+
+![](test_dot.png)
+
+![](test_dot_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Line A** | [INCLUDE:#dotline] |
+| **Line B** | [INCLUDE:#dotline] |
+| **Test Mode** | テストの計算に使用するベクターを、完全に 3D ベクターにするか、Line A ベクターと Line B ベクターの 2D ヘディング ベクターのみにするかです。 |
+| **Absolute Value** | Dot product が -1.0 から 1.0 までの値を返すことで、テストが Dot product の絶対値を返します。 |
+| **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
+| **Filter Type** | フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Float Value Min** | この値と同等またはそれ以下の値をフィルタします。 |
+| **Float Value Max** | この値と同等またはそれ以上の値をフィルタします。 |
+| **Clamping** | 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
+| **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。
+| **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
+| **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。
+
+<!--
+[EXCERPT:dotLine]
+Rotation の **Mode** 設定:
+
+| プロパティ | 説明 |
+|---|---|
+| Rotation | 回転ベクターまたは選択されたコンテキストを返します。 |
+
+Two Points の **Mode** 設定:
+
+| プロパティ | 説明 |
+|---|---|
+| Line From | このコンテキストの位置をベクターの最初のポイントとして使用し、回転を定義します。 |
+| Line To | このコンテキストの位置をベクターのエンド ポイントとして使用して、回転を定義します。 |
+[/EXCERPT:dotLine]
+-->
+ 
+### Gameplay Tags
+
+![](test_tags.png)
+
+![](test_tags_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Tags to Match** | Gameplay Tags プロパティのうち **のどれか** あるいは **すべての** タグを一致させるかどうかです。処理分は基本的に、 **or** または **and** になります。 
+| **Gameplay Tags** | 一致すべきタグです。 |
+| **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
+| **Bool Match** | 基本的に、true 一致と false 一致のどちらを使うのか決めます。タグがあるとアイテムが返せば、それを保持せずに _取り除く_ ことができます。 |
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+
+
+### Path Finding
+
+![](test_path.png)
+
+![](test_path_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Test Mode** | [INCLUDE:#path1] |
+| **Context** | Path へ、または Path からのコンテキストです。 |
+| **Path From Context** | パスファインダはコンテキストまでなのか、コンテキストからなのかを設定します。 |
+| **Skip Unreachable** | 到達できないアイテムを除外します。 |
+| **Use Hierarchical Pathfinding** | 精度は落ちても早い階層的パスファインディングを使用します。 |
+| **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
+| **Filter Type** | フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Float Value Min** | この値と同等またはそれ以下の値をフィルタします。 |
+| **Float Value Max** | この値と同等またはそれ以上の値をフィルタします。 |
+| **Clamping** | 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
+| **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。 |
+| **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
+| **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+
+<!--
+[EXCERPT:path1]
+| --- | --- |
+| **Path Exist** | コンテキストまでの (からの) パスが存在するかどうか |
+| **Path Cost** | コンテキストまでの (からの) パスの負荷 |
+| **Path Length** | コンテキストまでの (からの) 長さ |
+[/EXCERPT:path1]
+-->
+
+
+### Random
+
+(アイテムをランダムに除外するために使用もできますが) テストというより、AI が決めたことに対して曖昧さを追加するために、アイテムのウェイトを修正する方法です。これにより、0.0 から 1.0 の値が生成されます。
+
+![](test_rand.png)
+
+![](test_rand_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
+| **Filter Type** | フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Float Value Min** | この値と同等またはそれ以下の値をフィルタします。 |
+| **Float Value Max** | この値と同等またはそれ以上の値をフィルタします。 |
+| **Clamping** | 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
+| **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。 |
+| **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
+| **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+
+
+### Trace
+
+コンテキストへのアイテムまで (から) 追跡し、ヒットするかどうかを返します。**Bool Match** プロパティを使って、結果を反転させることができます。
+
+![](test_vis.png)
+
+![](test_vis_props.png)
+
+| プロパティ | 説明 |
+| --- | --- |
+| **Test Purpose** | テストで結果をフィルタリングするのか、採点するのか、あるいはフィルタをかけて採点するのか設定します。フィルタリングはテストに失敗したアイテムを除去し、採点はアイテムにウェイトを付けます。 |
+| **Filter Type** | フィルタのタイプを、最小、最大、値域に変更します。 **Float Value Min** または **Float Value Max** での設定値から外れると、値はカリングされます。 |
+| **Float Value Min** | この値と同等またはそれ以下の値をフィルタします。 |
+| **Float Value Max** | この値と同等またはそれ以上の値をフィルタします。 |
+| **Clamping** | 値をフィルタしない場合、クランプしてテストの影響を制限することができます。有効にするには、Clamp Min/Max Type プロパティを変更します。 |
+| **Clamp Min Type** | 採点計算式の適用前の生のテスト値の標準化の下限バウンドの決定に使う値を、検索された最低値、フィルタリング用の低めの閾値、別に指定した標準化用の最低値の中から選択します。 |
+| **Clamp Max Type** | 採点計算式の適用前の生のテスト値の標準化の上限バウンドの決定に使う値を、検索されたうちの最高値 (rested) 、フィルタリングに高い方の閾値か、あるいは別に指定した標準化された最低値の中から選択します。 |
+| **Scoring Equation** | 以下のカーブに付いているテストの点数を修正します。 **Constant** カーブ、 **Linear** カーブ、 **Squared** カーブ、 **Inverse Linear** カーブ |
+| **Scoring Factor** | このテストがすべてのテストに対して適用するウェイトです。 
+
+## コンテキスト
+
+Contexts はノードではありませんが、Environment Query が機能するあたり、重要な役割をもっています。
+
+### EnvQueryContext_Item
+
+**Items** はジェネレータで生成されるものを言います。最も簡単に説明すると、EQS Testing Pawn を使う場合、エディタに現れる球体です。
+
+### EnvQueryContext_Querier
+
+**Querier** は、この Environment Query に呼び出されているビヘイビア ツリーを実行している AI コントローラによって、現在所有されているポーンのことを言います。

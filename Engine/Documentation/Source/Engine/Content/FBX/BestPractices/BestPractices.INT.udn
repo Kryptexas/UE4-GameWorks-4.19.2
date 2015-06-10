@@ -1,0 +1,189 @@
+Availability: Public
+Title:FBX Best Practices
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Tips, tricks, and best practices for working with the FBX content pipeline in Unreal Engine 4.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/BestPractices:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/BestPractices:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## Overview
+
+
+This page contains tips, tricks, and best practices for working with the FBX content pipeline in Unreal Engine 4 used by artists at Epic Games.
+
+
+## Static Mesh Workflow
+
+
+
+* Export the mesh to an FBX file from your 3D application.
+    * Common export settings used by artists at Epic include:
+        * **Smoothing Groups** enabled
+        * **Tangents and Binormals** disabled
+        * **Preserve Edge Orientation** enabled
+* Import the FBX file using the **Content Browser** in Unreal.
+
+
+![](BestPracticesOptions.png)(w:594 h:572 convert:false)
+
+
+### Useful Links
+
+* [Exporting Static Meshes](Engine/Content/FBX/StaticMeshes#ExportMesh)
+* [Importing Static Meshes](Engine/Content/FBX/StaticMeshes#ImportMesh)
+
+
+
+## Skeletal Mesh Workflow
+
+
+
+* Export the mesh and skeleton to an FBX file.
+    * Select the items you want to export (mesh and joint chain root) and 'export selected'.
+    * Common export settings used by artists at Epic include:
+        * **Smooth Mesh** disabled
+        * **Smoothing Groups** enabled
+* Import the FBX file using the **Content Browser** in Unreal.
+
+
+
+### Useful Links
+
+
+* [Exporting Skeletal Meshes](Engine/Content/FBX/SkeletalMeshes#ExportMesh)
+* [Importing Skeletal Meshes](Engine/Content/FBX/SkeletalMeshes#ImportMesh)
+
+
+
+## Animation Workflow
+
+
+
+* Export the animation to an FBX file.
+    * Select the items you want to export (joint chain root, mesh if desired) and 'export selected'.
+    * Export settings:
+        * **Animation** enabled
+* Import the FBX file as an animation into the **Content Browser**.
+
+
+
+### Useful Links
+
+
+* [Exporting Animations](Engine/Content/FBX/Animations#ExportingAnimations)
+* [Importing Animations](Engine/Content/FBX/Animations#ImportingAnimations)
+
+
+
+## Morph Target Workflow
+
+
+
+* Export the morph target(s) to an FBX file.
+    * Select the items you want to export (mesh with blendshapes/morpher modifier) and 'export selected'.
+    * Export settings:
+        * **Animation** enabled
+        * **Deformed Models/Deformations** enabled - all options
+* Import the FBX file as an animation into the **Content Browser**.
+
+
+
+### Useful Links
+
+
+* [Exporting Morph Targets](Engine/Content/FBX/MorphTargets#ExportingMorphs)
+* [Importing Morph Targets](Engine/Content/FBX/MorphTargets#ImportingMorphs)
+
+
+
+## Naming Schemes
+
+Epic's artists typically follow the following naming schemes for exported files:
+
+* **Static Meshes:** SM\_**&lt;PackageName&gt;\_&lt;AssetName&gt;\_&lt;Index&gt;**
+* **Skeletal Meshes:** SK\_**&lt;PackageName&gt;\_&lt;AssetName&gt;\_&lt;Index&gt;**
+
+
+Using a project-wide naming scheme makes it easy to organize and identify asset files.
+
+However, the concept of a "Package", that many long time Unreal users will be intimately familiar with, has changed dramatically in Unreal 4 versus previous incarnations. Package files now only contain one file, and the directory structure of the game defines the various levels of what you would find in a old .upk file. See [Assets and Packages](Engine/Basics/AssetsAndPackages) for more information.
+
+![](FBXBestPractices_packages.png)
+
+_In this image, the **StoneBox** is in a folder called **Meshes**, much in the same way UE3 would have a package (**Game**) with a grouping (**Meshes**) that contains the asset (**StoneBox**)._
+
+
+## Scene Management
+
+
+Epic's artists usually store similar assets in a single file. For example, for a **Static Mesh** that has three different states: normal, damaged, and broken; all three are in the same file. However, each mesh is exported as a single FBX file.
+
+![FBXBestPractices_MultipleColumn.jpg](FBXBestPractices_MultipleColumn.jpg)(w:410 h:810)
+
+It is easier to have a clean "export" file which is the mesh bound to the skeleton. This mesh will only be used for exporting. The rig is built from this file, but saved into a separate rig file.
+
+![FBXBestPractices_Character.jpg](FBXBestPractices_Character.png)(convert:false)
+
+Separate rig file.
+
+![FBXBestPractices_CharacterRig.jpg](FBXBestPractices_CharacterRig.png)(convert:false)
+
+Each animation is usually stored in its own file as well so that it is simple to keep track of all the different animations in the file system.
+
+
+## Renaming Content in Unreal Editor
+
+You can rename any object in the **Content Browser** either by selecting the item you wish to rename and hitting **F2** or by **Right-Clicking** it and selecting **Rename**. This will highlight the object's name in the **Content Browser** and allow you to type in a new name, just like editing a file name in Windows.
+
+![FBXBestPractices_MoveOrRename.jpg](FBXBestPractices_MoveOrRename.png)
+
+You will probably get a notification about the undo cache.  This is normal as the object in the cache is listed under the old name and it will need to be cleared as to not to cause an issue later.
+
+### Useful Links
+
+
+* [Naming conventions when importing FBX](Engine/Content/FBX/ImportOptions#NamingConventions)
+
+
+
+## Whole Scene Import/Export
+
+This is useful for exporting out cameras that have been created in Matinee, or vehicle paths that have been animated in Matinee, as well as all of the information is needed to recreate a cinematic in a 3D content creation package. After tweaking is done inside a 3D content creation package, it can then be exported out as a FBX and imported back into Unreal Engine 4.
+
+Exporting out from Matinee.
+
+![](FBXBestPractices_MatineeExportAll.png)
+
+FBX is currently the only supported export type for **Export All** so just give it a name and click OK.
+
+![](FBXBestPractices_MatineeExportDiag.png)
+
+From within the Matinee interface, you can also import FBX data (presumably after tweaking has been done in the 3rd party package).
+
+![](FBXBestPractices_MatineeImport.png)
+
+ 
+
+
+
+

@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:2215046
+Availability: Public
+Title:필터
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저의 필터에 대한 개념과 사용법을 다룬 문서입니다.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](FiltersTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Filters:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Filters]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+	
+[TOC(start:2 end:3)]
+
+## 개요
+
+![FilterList.png](FilterList.png)
+
+프로젝트에 애셋이 너무 많아지면 콘텐츠 브라우저에서 애셋을 찾는 데 시간이 너무 오래 걸려 생산성이 저하됩니다. 그럴 때 _필터_ 가 딱입니다.
+
+필터를 통해 콘텐츠 브라우저의 애셋 뷰에서 볼 수 있는 애셋 유형을 빠르게 좁혀볼 수 있습니다. 각 필터는 특정 애셋 유형이나 부가 범주를 나타내는 것으로, 콘텐츠 브라우저에 보이는 애셋 유형을 제한시키는 데 사용할 수 있습니다.
+
+## 필터 추가하기
+
+필터 추가는 콘텐츠 브라우저의 애셋 뷰 상단에 위치한 ![FiltersButton.png](icon_FiltersButton.png) 버튼을 클릭하기만 하면 됩니다. 원하는 필터 유형에 클릭하는 것으로, 그 필터가 *필터 바* 에 추가되는데, 이 *필터 바* 는 **하나 이상의 필터가 적용되어 있을 때만 보입니다.**
+
+![FilterBar.png](FilterBar.png)
+
+현재 애셋 뷰에는 원하는 갯수만큼 필터를 추가할 수 있습니다. 필터는 원래부터 더하기 속성을 갖고 있어, 시작서부터 **스태틱 메시** 필터를 선택했다면 스태틱 메시만 보이게 됩니다. 그 상태에서 **블루프린트** 필터를 선택했다면, 스태틱 메시 *와* 블루프린트가 보입니다. 필터를 추가할 때마다 사용가능한 애셋 유형의 수가 늘어나는 것입니다. 언제든 애셋 뷰의 좌하단에 현재 보이는 애셋 수를 확인할 수 있다는 점, 알아두시면 좋습니다.
+
+[REGION:note]
+	카테고리 이름 자체를 클릭하는 것으로, 주어진 카테고리에 해당하는 모든 필터를 추가할 수도 있습니다.
+[/REGION]
+
+## 필터 끄기
+
+필터는 그 위에 클릭하는 것으로 켜고 끌 수 있습니다. 꺼진 필터는 효과가 없으며, 회색으로 나타납니다. 필터를 도로 켜려면 다시 클릭하면 됩니다.
+
+![ActiveInactive.png](ActiveInactive.png)
+
+위 이미지에서는 **스태틱 메시** 필터가 켜진 반면 블루프린트 필터는 꺼져 있습니다.
+
+## 필터 제거하기
+
+더이상 필요하지 않은 필터는 리스트에서 제거하면 됩니다. 그 방법은 두가지입니다:
+
+1. 리스트의 필터에 우클릭하여 나타나는 맥락 메뉴에서 **필터 제거** 를 선택합니다.
+
+	![button_RemoveFilter.png](button_RemoveFilter.png)
+
+1. ![FiltersButton.png](icon_FiltersButton.png) 버튼을 클릭한 다음 선택된 필터의 체크박스를 클릭하여 선택을 해제합니다. 그러면 필터 바에서 해당 필터가 제거됩니다.
+
+[REGION:tip]
+카테고리를 선택한 다음 선택 해제하여 해당 카테고리의 모든 필터를 제거할 수도 있습니다.
+[/REGION]
+
+## 필터와 다중 콘텐츠 브라우저
+
+다중 콘텐츠 브라우저에서 필터를 결합해 쓰는 것도 유용할 수 있습니다. 예를 들면 한 콘텐츠 브라우저는 블루프린트만, 다른 브라우저는 스태틱 브라우저만 표시되도록 하는 것입니다:
+
+![TwoContentBrowsers.png](TwoContentBrowsers.png)(w:600)
+

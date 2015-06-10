@@ -1,0 +1,208 @@
+﻿INTSourceChangelist:2467511
+Availability: Public
+Title:애디티브 애니메이션 사용하기
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:애니메이션끼리 블렌딩하는 방법, 여기서는 이동하면서 무기를 발사하는 캐릭터 만드는 법에 대해 알아봅니다.
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Animation/AnimMontage
+Related: Engine/Animation/NodeReference/Blend
+Related: Engine/Animation/AnimationBlending
+
+애니메이션 블렌딩이란, 개념상 단순히 하나의 캐릭터 또는 스켈레탈 메시에 둘 이상의 애니메이션이 부드럽게 전환되도록 만드는 것을 말합니다. 언리얼 엔진 4 에는 그러한 블렌딩을 적용할 수 있는 방법이 여러가지 있는데, [](Engine/Animation/Blendspaces) 를 통하거나, 애디티브 메소드 즉 말 그대로 가중 편향치나 알파값에 따라 두 애니메이션을 조합하거나, 심지어 기존 포즈를 직접 덮어쓰는 방법도 있습니다.
+
+애니메이션을 스켈레톤 내 특정 본과 그 자손 전부에 직접 전송할 수도 있습니다. 예를 들어, 캐릭터가 달리는 애니메이션으로 시작했다가, 캐릭터 상체에 발사 애니메이션을 선택적으로 적용할 수 있습니다. 최종 결과는 달리면서 동시에 발사하는 캐릭터가 될 것으로, 여기서는 그 방법을 알려드리도록 하겠습니다.
+
+[TOC(start:2 end:2)]
+
+[EXCERPT:Intro]
+[REGION:note]
+이 안내서에서는 **시작용 콘텐츠** 포함 **블루프린트 삼인칭** 템플릿을 사용하여 새 프로젝트를 만들었습니다.
+
+**마켓플레이스** 를 통해 무료로 다운로드 가능한 **Animation Starter Pack** 도 사용중입니다.
+
+![](AnimationAssetPack.png)
+
+다운로드한 이후, 런처의 **프로젝트에 추가** 버튼을 통해 Animation Starter Pack 을 프로젝트에 추가시킬 수 있습니다.
+[/REGION]
+[/EXCERPT:Intro]
+
+## 애니메이션에 블렌딩 셋업하기
+
+여기서는 플레이어 캐릭터를 할당하고, 이동 애니메이션과 블렌딩할 애니메이션을 수정하도록 하겠습니다.
+
+1.  프로젝트를 열고, **콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **MyGame** 블루프린트를 엽니다.
+
+1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭한 다음 **ASP_Character** 를 선택합니다. 
+
+	![](Animations1.png)
+
+1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
+
+1.	**콘텐츠 브라우저** 에서 **Game/AnimStarterPack** 폴더를 엽니다.
+
+1.	**Fire_Shotgun_Ironsights** 애니메이션에 **우클릭** 한 다음 **생성** 을 선택하고 **애님 몽타** 를 생성합니다.
+  
+	![](Animations2.png)
+
+	위와 같이 검색창에 **Fire** 를 입력하여 창에 필터를 적용할 수 있습니다.
+
+1.	원한다면 몽타주 이름을 변경한 뒤 열고서 확대경 아이콘을 클릭합니다.
+
+	![](Animations3.png)
+
+	그러면 **애님 슬롯 매니저** 가 열리며, 여기서 **슬롯**을 생성한 뒤 이름으로 호출하면 블렌딩하는 데 사용할 수 있습니다.
+
+1.	**슬롯 추가** 버튼을 클릭하고, 슬롯 이름을 **UpperBody** 로 한 다음 **저장** 하고 창을 닫습니다.
+
+	![](Animations4.png)
+
+1.	**Montage Group** 섹션 안의 드롭다운을 클릭한 다음 **DefaultGroup.UpperBody** 로 변경하고 창을 닫습니다.
+
+	![](Animations5.png)
+
+	이 몽타주를 **DefaultGroup.UpperBody** 에 연동시켰으니, 슬롯을 호출하여 재생시키는 것이 가능합니다.
+
+## 캐릭터 블루프린트 업데이트하기
+
+다음으로 언제 발사 버튼을 눌렀는지 알 수 있도록 캐릭터 블루프린트를 약간 업데이트하도록 하겠습니다.
+
+1.	**콘텐츠 브라우저** 안에서 **Game/AnimStarterPack/Character** 아래 **ASP_Character** 블루프린트를 엽니다.
+
+1.	**Crouching** 섹션을 찾은 다음 (경고! 가 있는) **InputAction Crouch** 이벤트 사인을 삭제합니다.
+
+	![](Animations6.png)
+
+	이 노드에는 경고가 있는데, 프로젝트가 InputAction 이벤트 "Crouch" 를 사용하도록 구성되지 않았기 때문입니다.
+
+1.	그래프에 **우클릭** 한 다음 **C** 키 이벤트를 추가하고 아래와 같이 연결합니다.
+
+	![](Animations7.png)
+
+	Crouch 동작을 **C** 키에 연동시켰으나, 이 입력은 원하는 대로 바꿔도 됩니다.
+
+1.	**내 블루프린트** 창에서 **변수 추가** 버튼을 눌러 **Boolean** 변수를 생성합니다.
+
+1.	변수 이름을 **Fire Button Down** 로 하고 눈 아이콘을 눌러 퍼블릭 변수로 만듭니다.
+
+	![](Animations8.png)
+
+1.	그래프에 **우클릭** 한 다음 **Left Mouse Button** 키 이벤트를 추가합니다.
+
+1.	**Alt** 키를 누른 채 **Fire Button Down** 변수를 그래프에 끌어 놓아 **Set** 노드를 만듭니다.
+
+1.	기존 단계를 반복(하거나 **Set** 노드를 복사)하고 아래와 같이 연결합니다.
+
+	![](Animations9.png)
+
+	**Left Mouse Button** 이 **Pressed** (왼쪽 마우스 버튼이 눌렸으)면 **Fire Button Down** 이 **True** 이고, **Released** (떼었으)면 **False** 입니다.
+
+1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
+
+## 애니메이션 그래프 셋업하기
+
+여기서는 애니메이션 그래프를 셋업하고 현재 포즈와 무기 발사 애니메이션을 블렌딩하는 데 필요한 노드를 배치하도록 하겠습니다.
+
+1.	또 **Game/AnimStarterPack/Character** 아래, **ASP_HeroTPP_AnimBlueprint** 애니메이션 블루프린트를 엽니다.
+
+1.	**내 블루프린트** 창에서 **애님 그래프** 를 엽니다.
+
+	![](Animations9b.png)
+
+1.	**Locomotion** 스테이트 머신을 끌어 놓은 다음 **New Save cached pose** 를 검색 추가합니다. 
+
+	![](Animations10.png)
+
+	여기서 Locomotion State Machine 의 결과 포즈를 구해 다른 데서 사용할 수 있는 캐시 포즈에 저장합니다.
+
+1.	캐시 포즈에 **LocomotionCache** 식으로 이름을 짓습니다. 
+
+	![](Animations11.png)
+
+1.	그래프에 **우클릭** 한 다음 **Use cached pose 'LocomotionCache'** (또는 별도로 지은 이름)을 추가합니다.
+
+	![](Animations12.png)
+
+1.	**Use cached pose** 노드를 끌어 놓은 다음 **Layered blend per bone** 노드를 검색 추가합니다.
+
+	![](Animations13.png)
+
+	**Layered Blend Per Bone** 노드는 스켈레톤의 지정된 본에서 애니메이션을 블렌딩할 수 있도록 해 줍니다.
+
+1.	**Use cached pose 'LocomotionCache'** 노드를 복사/붙여넣은 다음, 거기서 끌어놓고 **Slot 'DefaultSlot'** 노드를 추가합니다.
+
+	![](Animations14.png)
+
+1.	**Slot** 노드에 대한 **Settings** 에서, 드롭다운 메뉴를 클릭한 다음 **DefaultGroup.UpperBody** 를 선택합니다.
+
+	![](Animations15.png)
+
+1.	**Slot** 을 **Layered blend per bone** 노드의 **Blend Poses 0** 핀에 연결한 다음, 그 출력을 **결과** 에 연결합니다.
+
+	![](Animations16.png)
+
+	우리 애님 그래프가 완료되었으나, 여전히 **Layered blend per bone** 노드에 몇 가지 세팅을 변경해 줘야 합니다.
+
+## 블렌드 세팅 조절하기
+
+마지막으로, 상체에는 이 애니메이션, 하체에는 저 애니메이션을 재생할 수 있도록 애니메이션 블렌딩 방식을 업데이트해야 합니다.
+
+1.	**Layered blend per bone** 노드에 클릭한 다음 **Layer Setup** 섹션을 펼치고 **+** 부호를 클릭합니다.
+
+	![](Animations17.png)
+
+1.	**Bone Name** 아래 **spine_01** 을 입력한 다음 **Blend Depth** 를 **1** 로 하고 **Mesh Space Rotation Blend** 를 체크합니다. 
+
+	![](Animations18.png)
+
+	이 세팅으로 **spine_01** 본부터 시작해서 발사 애님 몽타주를 우리 스켈레톤에 블렌딩할 수 있습니다.
+
+1.	**내 블루프린트** 창에서 **이벤트 그래프** 를 엽니다. 
+
+	![](Animations18b.png)
+
+1.	**Cast To ASP_Character** 노드의 **As ASP Character** 핀을 끌어 놓은 다음 **Get Fire Button Down** 노드를 추가합니다.
+
+	![](Animations19.png)
+
+	그러면 플레이어가 버튼을 누르고 있는지 아닌지 알려줍니다.
+
+1.	**B** 키를 누르고 그래프에 **좌클릭** 하여 **Branch** (분기) 노드를 추가한 다음 **Set Crouching** 노드에 연결합니다.
+
+	![](Animations20.png)
+
+	**Condition** 에는 **FireButtonDown** 핀을 꽂습니다.
+
+1.	그래프에 **우클릭** 한 다음 **Montage Is Playing** 노드를 추가합니다.
+
+	![](Animations21.png)
+
+1.	**Montage Is Playing** 노드를 **Branch** (분기)의 **True** 에 연결합니다.
+
+	![](Animations22.png)
+
+	**Montage** 에 대해서는 (**Fire_Shotgun_Ironsights_Montage**) 몽타주를 선택합니다. 
+
+1.	**Montage Is Playing** 노드의 **Return Value** 를 끌어 놓고 **Branch** (분기)를 추가합니다. 
+
+1.	새로운 **Branch** (분기)의 **False** 를 끌어놓고 **Montage Play** 노드를 추가한 뒤 **Montage to Play** 는 우리 몽타주로 설정합니다.
+
+	![](Animations23.png)
+
+	그러면 몽타주가 현재 재생중인지 검사한 다음, 그렇다면 재생하지 않습니다 (재생중이지 않으면 몽타주를 재생합니다).
+
+1.	**컴파일**, **저장** 후 **블루프린트** 를 닫고 에디터에서 플레이합니다.
+
+	![](AdditiveGIF.gif)(convert:false)
+
+이제 **왼쪽 마우스 버튼** 을 누르면 캐릭터에 발사 애님 몽타주가 재생되는 것이 보일 것입니다. 발사하면서 돌아다닐 수도 있고, 심지어 발사하면서 (**C** 키를 눌러) 웅크리는 것도 가능합니다.
+
+이 방법을 사용하여 근접 공격이나 재장전 애니메이션을 재생할 수도 있습니다. 이동 애니메이션 세트와 블렌딩하고자 하는 애니메이션에 대한 **애님 몽타주** 를 만든 다음, 위 8 단계에서 한 것처럼 **UpperBody** 슬롯에 할당해 주면 됩니다. 캐릭터의 애니메이션 블루프린트 내 애님 그래프에 슬롯이 구성되었기 때문에, 해당 슬롯을 사용하도록 설정된 애니메이션은 애니메이션 그래프에 전달되어 호출시 블렌드 인 됩니다.
+
+
+
+
+
+
+
+
+

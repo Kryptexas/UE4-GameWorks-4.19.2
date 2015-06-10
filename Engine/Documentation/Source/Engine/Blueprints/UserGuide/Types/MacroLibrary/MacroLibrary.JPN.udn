@@ -1,0 +1,125 @@
+﻿INTSourceChangelist:2501141
+Availability:Public
+Title:ブループリント マクロ ライブラリ
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Description:他のブループリントで再利用するためにマクロを宣言し定義するブループリント
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%](Engine/Blueprints/UserGuide/Types/macro_blueprint.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\MacroLibrary:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\MacroLibrary]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%](Engine/Blueprints/UserGuide/Types/macro_blueprint.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\MacroLibrary:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\MacroLibrary:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\MacroLibrary]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+[EXCERPT:Intro]
+**Blueprint Macro Library** は、他の _ブループリント_ のノードとして配置可能な 
+ _マクロ_ または内蔵グラフのコレクションを保持するコンテナです。実行とデータ移行両方の入出力データを完全に備えた頻繁に使用するノードのシーケンスを格納できるので、 
+時間節約の手段となります。
+
+_マクロ_ は参照される全グラフで共有されますが、 
+コンパイル時の折りたたまれたノードのようにグラフ内へ自動的に展開されます。つまり _Blueprint Macro Libraries_ はコンパイルを必要としませんが、 _マクロ_ への変更は、 
+これらのグラフを含んだ _ブループリント_ の再コンパイル時のみ 
+その _マクロ_ を参照するグラフへ反映されます。
+[/EXCERPT:Intro]
+
+## ブループリント マクロ ライブラリの作成
+
+_Blueprint Macro Libraries_ はパッケージに格納され、他のアセット同様 **コンテンツ ブラウザ** で作成することができます。
+
+1. **コンテンツブラウザ** で ![New Asset button](button_new_asset_blueprint.png) ボタンをクリックします。
+
+1. メニューが表示されたら、 **[New Asset]** から **[Miscellaneous] > [Blueprint Macro Library]** を選択します。
+
+	![](new_asset_macrolib.png)
+
+1. _Blueprint Macro Library_ から **[Parent Class]** を選択します。
+
+	![Choose a Parent Class](new_asset_parent_class.png)
+
+1. **コンテンツブラウザ** に _Blueprint Macro Library_ が表示されます。**コンテンツブラウザ** のアイコンの下に、 _Blueprint Macro Library_ の名前を入力します。
+
+	![](name_macro_library.png)
+
+	_Blueprint Macro Library_ を最初に作成した時、もしくは **ブループリント エディタ** で変更を加えると、コンテンツブラウザの _Blueprint Macro Library_ のアイコンにアスタリスクが追加されます。_Blueprint Macro Library_ が保存されていないことを意味します。
+
+	![](unsaved_macro_library.png)
+
+<!--
+1. **コンテンツ ブラウザ** から直接 _Blueprint Macro Library_ を保存するには、 **コンテンツ ブラウザ** のナビゲーション バーの **[Save...]** をクリックします。
+
+	![](save_macrolib_content_browser.png)
+
+1. **[Save Content]** ウィンドウが表示されたら、新規 _Blueprint Macro Library_ のチェックボックスが選択されていることを確認し、 ![Save Selected](button_save_selected.png) をクリックします。
+
+	![](save_selected_macrolib.png)
+
+1. _ブループリントエディタ_ 内で _Blueprint Macro Library_ のアイコンを **ダブルクリック** して開きます。
+-->
+
+**コンテンツ ブラウザ** から _Blueprint Macro Library_ Creation メニューにアクセスする方法はあと 2 種類あります。
+
+1. **コンテンツ ブラウザ** の [Asset Tree] （右側の）パネル、あるいは、 **コンテンツ ブラウザ** の [Asset Tree] （左側の）パネルのフォルダを **右クリック** します。 
+
+1. メニューが表示されたら、 **[New Asset]** から **[Miscellaneous] > [Blueprint Macro Library]** を選択します。  
+
+	![](rt_click_content_browser_macrolib.png)
+
+1. **[Pick Parent Class]** ウィンドウが表示されたら、ここからの _Blueprint Macro Library_ 作成プロセスは **[New Asset]** ボタンを使った場合と同じです。 
+
+
+## ブループリント マクロ
+
+[INCLUDE:Engine/Blueprints/UserGuide/Macros#Intro]
+
+### ブループリント マクロの作成
+
+[INCLUDE:Engine/Blueprints/UserGuide/Macros#MacroCreationLib]
+
+
+### マクロ ライブラリの構築
+
+[INCLUDE:Engine/Blueprints/UserGuide/Macros#BuildingMacros]
+
+### Blueprint Macro Libraries に格納されたマクロの使用
+
+_ブループリントマクロライブラリ_ に _マクロ_ を格納すると、プロジェクト全期間を通して _Blueprint クラス_ と _Level ブループリント_ で使用することができます。  
+[INCLUDE:Engine/Blueprints/UserGuide/Macros#UniversalImplement]
+
+_Macro_ ノードがグラフへ追加されると、その他のノード同様に動作して入出力ピンは状況に応じてワイヤー接続されます。いずれかの _Blueprint_ グラフの _Macro_ を **ダブルクリック** すると
+  _Macro_ のグラフが開きます。
+

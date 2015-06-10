@@ -1,0 +1,10 @@
+Availability:Public
+Title:Controller
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description: In the context of a player or AI entity, the **Controller** is essentially the brain.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Controller)
+[/PARAM]
+[/OBJECT]

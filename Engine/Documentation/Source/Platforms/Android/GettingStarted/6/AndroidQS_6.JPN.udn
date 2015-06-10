@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:6.追加のリソース
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:アンリアル エンジンによる Android 開発についての追加情報
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+互換性およびパフォーマンスに関する詳細です。
+* [](Platforms\Android\DeviceCompatibility)
+* [](Platforms\DeviceProfiles)
+* [](Platforms\Mobile\Performance)
+
+モバイル デバイス用ゲームコンテンツおよびレベルのデザインに関する詳細です。
+* [](Platforms\Mobile\Content)
+* [](Platforms\Mobile\Lighting)
+* [](Platforms\Mobile\Materials)
+* [](Platforms\Mobile\PostProcessEffects)
+* [](Platforms\Mobile\Textures)
+
+[](Platforms\Mobile\Previewer) を使用すれば、デバイスにデプロイせずにご自分のモバイルゲームをプレビューすることもできます。
+
+
+%Steps%

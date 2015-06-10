@@ -1,0 +1,250 @@
+﻿INTSourceChangelist:2420314
+Availability:Public
+Title:ペルソナのビューポート
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ アニメーション エディタのビューポート プレビューのユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Viewport:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Viewport:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Viewport:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Viewport]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+[EXCERPT:Overview]
+**[ビューポート]** パネルは、_アニメーションブループリント_ のアニメーションシーケンス、ブレンドスペース、その他の外観のプレビューを特定のスケルタルメッシュ上で有効にします。パネルは 3D perspective (透視図法) ビューポート、移動ツールバー、ビューオプション ツールバー、およびプレビューの再生を制御するタイムライン / コントロールバーで構成されています。
+[/EXCERPT:Overview]
+
+![Viewport Panel with Callouts](ViewportPanel.png)(w:720)
+
+1. **移動ツールバー**
+1. **ビューオプション ツールバー** 
+1. **ビューポート** 
+1. **タイムライン / コントロールバー**
+
+## 移動ツールバー
+[EXCERPT:movement]
+移動ツールバーには、移動、回転、ボーンのスケーリングのためのツールだけでなく、グリッドスナッピングで移動、回転、スケーリングする動作のためのツール一式があります。このツールバーには、移動、回転の相対座標系を設定するためのオプションだけでなく、ビューポート内で移動する場合のカメラの移動速度を設定するオプションもあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| ![](Persona_Translate.png)| スケルタルボーンを平行移動します。|
+| ![](Persona_Rotate.png)| スケルタルボーンを回転します。|
+| ![](Persona_Scale.png) | この最後のオプションでは、スケルタルボーンをスケーリングします (該当する場合、デフォルトではグレイアウト)。  |
+| ![](button_Persona_Local.png) ![](Persona_World.png)| メッシュを移動、回転するための相対座標系を設定します (**ワールド** または **ローカル**) |
+| ![](Persona_GridSnap.png) | オブジェクトをドラッグする時に、グリッドへのオブジェクトのスナッピングを有効または無効にします。およびその Position Grid Snap 値。 |
+| ![](Persona_RotationSnap.png)| オブジェクトを回転する時に、グリッドへのオブジェクトのスナッピングを有効または無効にします。およびその Rotation Grid Snap 値。  |
+| ![](Persona_ScaleSnapping.png) | オブジェクトをスケーリングする時に、グリッドへのオブジェクトのスナッピングを有効または無効にします。およびその Scale Grid Snap 値。  |
+| ![](Persona_CameraMoveSpeed.png) | ビューポートを移動するカメラの速度を調整します。|
+
+[/EXCERPT:movement]
+
+## 表示オプション ツールバー
+
+[EXCERPT:viewoptions]
+View Options ツールバーにはビューポートで何を表示するかのオプションのための一連のメニューボタンがあります。
+
+###プレビュー モード
+
+[プレビュー モード] ボタン ![](Persona_PreviewMode1.png) には、以下のオプションがあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **Auto** | ビューポートでアクティブなもの全てをプレビューします。 |
+| **Lock** | 現在プレビュー中のものに対してビューポートをロックします。別のメッシュを表示中または編集中は、1 つのアイテム限定でプレビューが有効です。 |
+| **Camera Follow** | メッシュの境界を追跡します。 |
+| **In-game Bound** | プレビューメッシュにゲーム内の境界を使用します。 |
+
+###パースペクティブ
+
+パースペクティブ ボタン ![](Persona_Perspective.png) には以下のオプションがあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **Perspective** | ビューポートをパースペクティブビューに切り替えます (これはデフォルト設定です)。 |
+| **Top** | ビューポートを上面ビューに切り替えます。 |
+| **Side** | ビューポートを側面ビューに切り替えます。 |
+| **Front** | ビューポートを全面ビューに切り替えます。 |
+
+
+###ビュー モード
+
+[ビュー モード] ボタン ![](Persona_LitOptions.png) には、以下のオプションがあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **Lit** |標準ライティングでシーンをレンダリングします (これはデフォルト設定です)。 |
+| **Unlit** | ライティングなしでシーンをレンダリングします。 |
+| **Wireframe** | ブラシワイヤーフレームでシーンをレンダリングします。 |
+| **Detail Lighting** | 詳細ライティングのみでシーンをレンダリングします。 |
+| **Lighting Only** | ライティングのみ (テクスチャなし) でシーンをレンダリングします。 |
+| **Light Complexity** | ライティングの複雑度を可視化させたシーンをレンダリングします。 |
+| **Shader Complexity** | シェーダーの複雑度を可視化させたシーンをレンダリングします。 |
+| **Stationary Light Overlap** | 固定ライトのオーバーラップを視覚化します。 |
+| **Lightmap Density** | ライトマップ密度を可視化させたシーンをレンダリングします。 |
+| **Reflections** | 反射のみでシーンをレンダリングします。 |
+| **Exposure** | 自動露出を使用または固定露出値を設定します。  |
+
+
+###表示
+
+表示ボタン ![](Persona_Show.png) には、以下のオプションがあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **Field of View** | ビューポートの FOV (視野角) を調整します。 |
+| **Mute Audio** | プレビューからのオーディオをミュートにします。 |
+| **Reference Pose** | プレビューメッシュに参照ポーズを表示します。 |
+| **Bound** | プレビューメッシュに境界を表示します。|
+| **Mesh** | プレビューメッシュを表示します。 |
+| **Uncompressed Animation** | 非圧縮アニメーションデータと一緒にスケルトンを表示します。 |
+| **NonRetargeted Animation** | non-retargetedアニメーションデータと一緒にスケルトンを表示します。|
+| **Additive Base** | スケルトンを加算的な基本ポーズで表示します。|
+| **Sockets** | ソケットのヒットポイントを表示します。 |
+| **Bones** | ビューポートにスケルトンを表示します。 |
+| **Bone Names** | スケルトンのボーンの名前をビューポートに表示します。 |
+| **View Selected Bone Weight** | 選択したボーンのウェイトをビューポートに表示します。 |
+| **Display Info** | メッシュに関する情報をビューポートに表示します。 |
+
+**シーン設定**
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **Floor** | フロアーの表示を切り替えます。  |
+| **Sky** | 空の表示を切り替えます。 |
+| **Floor Height Offset** | フロアメッシュの高さオフセット（メッシュごとに保存）。 |
+| **Grid** | グリッドの表示を切り替えます。 |
+| **Highlight Origin** | グリッドの起点となる線をハイライトします。 |
+| **Background Brightness** | バックグラウンドの色を変更し、輝度値を割り当てます。 |
+
+**詳細設定**
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **UV Visualization** | 指定チャンネルのメッシュの UV 表示を切り替えます。 |
+| **Normals** | [プレビュー] ペインでの頂点法線の表示を切り替えます。 |
+| **Tangents** | [プレビュー] ペインでの頂点の接線の表示を切り替えます。 |
+| **Binormals** | [プレビュー] ペインでの頂点の従法線 (法線と接線に対して垂直なベクトル) の表示を切り替えます。 |
+| **Hierarchy Local Axes** | ローカルのボーン軸を表示または非表示にします (All, Selected Hierarchy または None)。 |
+
+
+<!--
+[EXCERPT:ShowBones]
+[REGION:imagetable]
+| ![](viewport_wire.png)(h:256 convert:false) | ![](viewport_wire_show_bones.png)(h:256) |
+| ------ | ------ |
+| Wireframe Without Bones Displayed | ボーンが表示されたワイヤーフレームです。 |
+[/REGION]
+[/EXCERPT:ShowBones]
+
+[EXCERPT:Lit]
+![](viewport_lit.png)(h:256)
+[/EXCERPT:Lit]
+
+[EXCERPT:Unlit]
+![](viewport_unlit.png)(h:256)
+[/EXCERPT:Unlit]
+
+[EXCERPT:Wireframe]
+![](viewport_wire.png)(h:256)
+[/EXCERPT:Wireframe]
+-->
+
+###LOD をプレビュー
+
+Preview LOD ボタン ![](Persona_LODAuto.png) には以下のオプションがあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **LOD Auto** | LOD (Level of Detail) を自動選択します (これはデフォルト設定です)。 |
+| **LOD 0** | LOD に LOD 0 を選択します。|
+| **Level of Detail Settings** | LOD 設定を調整するダイアログボックスを開きます。 |
+
+![](LODSettingsMenu.png)
+
+LOD (Level of Detail) 設定メニューには 2 つのセクションがあります。1 つめの **Current LODs** は、現在適用されている LOD の情報を表示、または LOD のために FBX アセットをインポートすることもできます。 
+
+2 つめのセクション、**Generate LOD Chain** では、LOD に関する設定を調整することで、LOD を生成 (または複数の LOD をチェーン生成) します。 
+
+**Import LOD** オプションまたは **Generate LOD** オプションのいずれかによって LOD が適用されると、以下の図のように **Current LODs** セクションに追加されます。 
+
+![](LODAdded.png)
+
+_追加された LOD(s) は、取り除くこともできますし、LOD のために FBX アセットをインポートすることもできます。_
+
+
+### 再生速度
+
+Playback Speed ボタン ![](Persona_PlaybackSpeed.png) には以下のオプションがあります。 
+
+| オプション | 説明 |
+| ------ | ----------- |
+| **x0.1** | 再生速度を 0.1 に設定します。 |
+| **x0.25** | 再生速度を 0.25 に設定します。 |
+| **x0.5** | 再生速度を 0.5 に設定します。 |
+| **x1.0** | 再生速度を 1.0 (デフォルト設定) に設定します。 |
+| **x2.0** | 再生速度を 2.0 に設定します。 |
+| **x5.0** | 再生速度を 5.0 に設定します。 |
+|**x10.0** | 再生速度を 10.0 に設定します。 |
+[/EXCERPT:viewoptions]
+
+## ビューポート
+
+ビューポートには、スケルタルメッシュ、ツールバーとメニューバーの任意のオプション一式、また任意に選択したアニメーションが表示されます。
+
+![Viewport Panel](ViewportPanel_Viewport.png)
+
+## タイムラインとコントロールバー
+
+[EXCERPT:PreviewControls]
+ タイムラインとコントロールバーには以下の制御が表示されます。
+
+| 制御 | 説明 |
+| ------- | ----------- |
+| ![Control bar - Timeline](CE_button_timeline.png) | タイムライン表示です。 _AnimationSequence_ または  _AnimationMontage_ のフレームを通じてスクラブ再生を表示および有効にします。現在位置に赤いバーが表示されます。この赤いバーを **ドラッグ** してスクラブ再生を行います。 |
+| ![Control bar - Skip to Beginning](CE_button_beginning.png) | _AnimationSequence_ または _AnimationMontage_ で最初のフレームへスキップします。 |
+| ![Control bar - Step Backward](CE_button_step_back.png) | _AnimationSequence_ または _AnimationMontage_ で前回のフレームへスキップします。|
+| ![Control bar - Play in Reverse](CE_button_play_back.png) ![Control bar - Pause](CE_button_pause.png) | _AnimationSequence_ または _AnimationMontage_ の逆再生を開始します。再生中は、一時停止ボタンが表示されます。 |
+| ![Control bar - Play Forward](CE_button_play_forward.png) ![Control bar - Pause](CE_button_pause.png) | _AnimationSequence_ または _AnimationMontage_ の再生を開始します。再生中は、一時停止ボタンが表示されます。 |
+| ![Control bar - Step Forward](CE_button_step_forward.png) | _AnimationSequence_ または _AnimationMontage_ で次のフレームへスキップします。 |
+| ![Control bar - Skip to End](CE_button_end.png) | _AnimationSequence_ または _AnimationMontage_ で最終フレームへスキップします。 |
+| ![Control bar - Enable Looping](CE_button_loop.png) ![Control bar - Disable Looping](CE_button_loop_enabled.png) | 一度きりの再生かループ再生のどちらかに再生をトグルします。ループ再生が有効になると、ボタンは赤表示になります。 |
+
+[REGION:note]
+_ブレンドスペース_ や _Aim Offset_ を開くと、**Preview** が有効になっている場合はアニメーションが自動的に開きます。_AnimationSequence_ または _AnimationMontage_ でルーピング オプションを一時停止または無効にしている場合、 _ブレンドスペース_ または _Aim Offset_ を開くとアニメーションが自動的に再生されます。_ブレンドスペース_ や _Aim Offset_ を開いたときに自動的に開始するようにするにはアニメーションの再生 / ルーピングを設定する必要があります。 
+[/REGION]
+
+[/EXCERPT:PreviewControls]
+
+
+
+<!---- I don't see this in the viewport or anywhere else. 
+## Anim プレビューの設定パネル
+
+![Persona: Anim Preview Setup Panel](CE_anim_preview_setup_panel.png)
+
+プレビュービューポートの設定に ** [Anim Preview Setup] ** パネルを使用します。このパネルには、編集中の _VimBlueprint_ の作成元となる 
+スケルトンを使用する全スケルタルメッシュのリストが表示されます。プレビュービューポートで使用したプレビューメッシュとしてメッシュを設定するには、 
+リストでメッシュを選択して、** [Use as preview mesh] ** をクリックします。 
+プレビュービューポートで使用中の現行メッシュを削除するには、** [Clear preview] ** ボタンをクリックします。エレメントのリストは 
+リストの上にあるテキストボックスを利用してフィルタリングすることができます。
+
+----------->
+

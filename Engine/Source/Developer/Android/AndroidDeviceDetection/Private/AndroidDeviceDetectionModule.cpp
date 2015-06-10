@@ -117,7 +117,7 @@ private:
 		// separate out each line
 		TArray<FString> DeviceStrings;
 		StdOut = StdOut.Replace(TEXT("\r"), TEXT("\n"));
-		StdOut.ParseIntoArray(&DeviceStrings, TEXT("\n"), true);
+		StdOut.ParseIntoArray(DeviceStrings, TEXT("\n"), true);
 
 		// a list containing all devices found this time, so we can remove anything not in this list
 		TArray<FString> CurrentlyConnectedDevices;
@@ -331,7 +331,7 @@ public:
 				delete FileReader;
 
 				TArray<FString> Lines;
-				FString(ANSI_TO_TCHAR(AnsiContents)).ParseIntoArrayLines(&Lines);
+				FString(ANSI_TO_TCHAR(AnsiContents)).ParseIntoArrayLines(Lines);
 				FMemory::Free(AnsiContents);
 
 				for (int32 Index = 0; Index < Lines.Num(); Index++)

@@ -1,0 +1,250 @@
+﻿INTSourceChangelist:2444099
+Availability:Public
+Title:ブループリントの概要
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:ブループリントの概要を、ブループリントのアナトミーと使用可能な各種タイプに分類して説明します。 
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Overview:title%](blueprint_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Overview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Overview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Overview]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Overview:title%](blueprint_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Overview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/Overview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Overview]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+## 概要
+
+[INCLUDE:Engine/Blueprints/GettingStarted/#BlueprintIntro]
+
+**これは、 _ブループリント_ がアンリアル スクリプトに取って替わるということでしょうか？** Yes でもあり No でもあります。 
+過去にアンリアル スクリプトを使用したゲームプレイ プログラミングやその他全てのゲームプレイ要素は今なお C++ 言語で処理することができます。同時に、_ブループリント_ はアンリアル スクリプトの代替ではないものの、 
+以下のような、アンリアル スクリプトで処理する多くの目的を遂行できます。
+
+* クラスの拡張
+* デフォルト プロパティの格納および修正
+* クラスのサブ オブジェクト (例えばコンポーネント) のインスタンス化の管理
+
+ゲームプレイ プログラマーによる、ブループリントを作成する便利な関数やプロパティ一式をエクスポーズするベースクラスの設定が期待されます。 
+これらのベースクラスは使用はもちろん、その後拡張することもできます。 
+
+[EXCERPT:GameplayEquivalents]
+下表は、ネイティブコードと _Blueprints_ の比較だけでなく、エンジンの前のバージョンからの推移しやすいように、 
+アンリアル スクリプト (アンリアル エンジン 3 より)、 C++、ブループリントにおいて各種アスペクトがどのように処理されるのかを 
+比較しています。
+
+| アンリアル スクリプト (UE3)  | ブループリント (UE4)         | C++ (UE4)          |
+| ------------------- | ------------------------ | ------------------ |
+| .uc file            | Blueprint Asset          | .h/.cpp files      |
+| UClass              | UBlueprintGeneratedClass | UClass             |
+| extends [ClassName] | ParentClass              | : [ClassName]      |
+| Variable            | Variable                 | UProperty()        |
+| Function            | Graphs/Events            | UFunction()        |
+| defaultproperties{} | Class Defaults           | native constructor |
+| Default Components  | Components List          | native constructor |
+[/EXCERPT:GameplayEquivalents]
+
+
+[](Engine/Blueprints\GettingStarted) では、より入門向けの概要がご覧いただけます。
+
+## ブループリントのタイプ
+
+_ブループリント_ は、新規タイプからスクリプトレベルイベントの作成まで、それぞれに特定用途がある数種類の中のいずれかのタイプになります。 
+他の _ブループリント_ が使用するインターフェースやマクロを定義します。
+
+[EXCERPT:Types]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Types/ClassBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		データのみのブループリント
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#DataBlueprint]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![Blueprints](%ROOT%/levelscript_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Types/LevelBlueprint)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![Blueprints](%ROOT%/interface_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Types/Interface)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/Interface#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![Blueprints](%ROOT%/library_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Types/MacroLibrary)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		![Blueprints](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリント ユーティリティ
+	[/PARAM]
+	[PARAM:description]
+		**ブループリント ユーティリティ** は、エディタの機能のみを持つ _ブループリント_ で、 
+		エディタの実行や機能の拡張に使用します。これらは UI のボタンとしてパラメータなしで [](Engine/Blueprints/UserGuide/Events) をエクスポーズすることができます。 
+		_ブループリント_ にエクスポーズされた全ての機能を実行する能力があり、現ビューポートで選択されたアクタ一式を実行します。
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Types]
+
+## ブループリントのアナトミー (分析)
+
+_ブループリント_ の機能はさまざまなエレメントによって定義されます。その中にはデフォルトで存在する機能もあれば、 
+必要に応じて追加する機能もあります。これらの機能により、 _コンポーネント_ の定義、初期化の実行、 
+設定操作、イベントへの対応、操作の構造化およびモジュール化、 
+プロパティの定義などが可能になります。
+
+
+[EXCERPT:Sections]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/components_list.png)(w:256)](Engine/Blueprints/UserGuide/Components)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Components)
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Components]
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Components#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_thumb.png)(w:256)](Engine/Blueprints/UserGuide/UserConstructionScript)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/UserConstructionScript)
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/UserConstructionScript]
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/UserConstructionScript#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints/UserGuide/EventGraph/eventgraph_thumb.png)(w:256)](Engine/Blueprints/UserGuide/EventGraph)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/EventGraph)
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/EventGraph#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints/UserGuide/Functions/functions_thumb.png)(w:256)](Engine/Blueprints/UserGuide/Functions)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Blueprints/UserGuide/Functions)
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Functions]
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/Variables:title%](Engine/Blueprints/UserGuide/Variables/Variables.png)(w:256)](Engine/Blueprints/UserGuide/Variables)
+	[/PARAM]
+	[PARAM:title]
+		[Variables](Engine/Blueprints/UserGuide/Variables)
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Variables]
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Variables#Intro]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Sections]
+
+<!--
+### ブループリントのモード
+
+ブループリントの _モード_ は、ウィンドウの表示状態を決定します。Level ブループリントにはグラフモードだけしかありませんが、、ブループリント Class には次の 3 つのモードがあります。
+
+* **[グラフ モード](Engine/Blueprints\Editor\Modes\GraphPanel)** - レベルのゲームプレイ機能を作成するために、スクリプティングノードを追加したり接続するモードです。
+* **[デフォルト モード](Engine/Blueprints\Editor\Modes\Defaults)** - ブループリントのデフォルトを設定するモードです。
+* **[コンポーネントモード](Engine/Blueprints\Editor\Modes\Components)** - ブループリントを構成するコンポーネントを追加、除去、そして修正するモードです。
+
+Blueprint Class モードに関する詳細は、 [](Engine/Blueprints\Editor\Modes) を参照してください。
+-->

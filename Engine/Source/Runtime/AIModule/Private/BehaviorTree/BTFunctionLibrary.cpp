@@ -142,8 +142,8 @@ void UBTFunctionLibrary::SetBlackboardValueAsEnum(UBTNode* NodeOwner, const FBla
 	check(NodeOwner != NULL);
 	UBlackboardComponent* BlackboardComp = GetBlackboard(*NodeOwner);
 	if (BlackboardComp != NULL)
-	{ // Blackboard component will deal with Native vs Script Enums.
-		BlackboardComp->SetValueAsEnum(Key.SelectedKeyName, Value);
+	{
+		BlackboardComp->SetValue<UBlackboardKeyType_Enum>(Key.SelectedKeyName, Value);
 	}
 }
 

@@ -1,0 +1,26 @@
+Availability: Public
+Title: iOS Game Development
+Crumbs:%ROOT%, Platforms
+Description:Developing games for the iOS platform.
+Platform:iOS
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		iOS Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/iOS/QuickStart "%Platforms/iOS/QuickStart:description%")
+		[PUBLISH:Licensee]
+		* [](Platforms/iOS/GettingStarted "%Platforms/iOS/GettingStarted:description%")
+		[/PUBLISH]
+		* [](Platforms/iOS/DeviceCompatibility "%Platforms/iOS/DeviceCompatibility:description%")
+		* [](Platforms/iOS/PackagedGameSize "%Platforms/iOS/PackagedGameSize:description%")
+	[/PARAM]
+[/OBJECT]

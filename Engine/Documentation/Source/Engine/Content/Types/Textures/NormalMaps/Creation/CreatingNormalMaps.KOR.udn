@@ -1,0 +1,52 @@
+INTSourceChangelist:2087493
+Availability:Public
+Title:노멀맵 생성 안내
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:XNormal 을 사용하여 고사양 셰이딩용 노멀맵 제작 안내서입니다.
+
+XNormal 을 사용하여 노멀맵을 굽는 작업방식은, 예전보다 훨씬 
+고품질의 셰이딩이 가능합니다. 예전의 노멀맵 작업방식 역시 통하긴 하나, 
+셰이딩 품질을 높이고자 한다면 이 방법이 현재로서는 최선입니다. 잘못된 셰이딩으로 
+골치아플 일도 없기에 보조 지오메트리의 수도 확 줄일 수 있습니다.
+
+이 메소드 사용 방법은 두 가지입니다. 하나는 모델에 하나의 스무딩 그룹을 주는 방법입니다. 굉장히 기울기가 심한 
+노멀맵이 생성되나 UV 에지에 이음새가 적습니다. 다른 방법은 UV 이음새를 따라 스무딩 그룹을 나누는 것입니다. 
+조금 더 평이한 노멀맵이 생성되긴 하나 UV 에지에 이음새가 약간 있습니다.
+
+## 작업방식
+
+1. 우선 모델이 하나의 스무딩 그룹으로 이루어져 있나 확인해야 합니다. 
+트라이앵글 변경에 대한 걱정을 덜기 위해서는, 모디파이어를 사용해서 
+모델을 트라이앵글화 시키는 것도 도움이 됩니다.
+
+1. XNormal 에 쓸 로우폴리 모델을 익스포트할 때는 이 세팅으로 합니다:
+
+	![FBX Settings](fbx_settings.png)
+
+	중요한 부분은 스무딩 그룹(smoothing groups)과 탄젠트 & 바이노멀(tangents & binormals) 입니다.
+
+1. XNormal 에 로우폴리 모델을 로드할 때, **Use exported normals** (익스포트된 노멀 사용) 옵션이 켜져 있는지 확인하세요.
+
+	![XNormal Settings](xnormal_settings.png)
+
+1. 노멀맵을 구운 후, 전과 **똑같은** FBX 세팅을 사용하여 언리얼에 쓸 로우폴리 모델을 익스포트합니다.
+
+1. 모델을 언리얼로 임포트할 때, **Explicit Normals** (명시적 노멀)은 켜고 **Import Tangents** (탄젠트 임포트)는 껐는지 확인합니다.
+
+	![Import Settings](import_settings.png)
+
+
+## 결과
+
+이 방법을 사용해서 만든 메시 예제입니다. 전보다 폴리곤 수도 훨씬 적은데도 
+보조 챔퍼나 서브디비전이 없는 것에 주목해 봅시다.
+
+![Mesh Wireframe](wireframe.png)
+
+새로운 방법을 사용한 모델입니다.
+
+![New Shading](shading_good.jpg)
+
+예전 모델입니다.
+
+![Old Shading](shading_old.png)

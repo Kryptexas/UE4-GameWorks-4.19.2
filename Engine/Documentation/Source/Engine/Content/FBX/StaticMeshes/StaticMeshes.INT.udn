@@ -1,0 +1,515 @@
+Availability: Public
+Title:FBX Static Mesh Pipeline
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Setting up, exporting, and importing Static Meshes using the FBX content pipeline.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/StaticMeshes:title%](Engine/Content/FBX/fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/fbx_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## Overview
+
+[EXCERPT:FBX_StaticMesh]
+The _StaticMesh_ support in the FBX import pipeline makes getting meshes from 3D applications into Unreal Engine 4 a simple, painless task. When meshes are imported, the textures used in the materials applied to those meshes in their respective 3D application (diffuse and normal map only) are also imported and, in turn, used to generate the materials applied to the mesh in UE4.
+[/EXCERPT:FBX_StaticMesh]
+
+Features supported for importing _Static Meshes_ using FBX:
+
+
+* [_Static Meshes_ with materials including textures](#Materials)
+* [Custom collision](#Collision)
+* [Multiple UV sets](#UVTextureCoordinates)
+* Smoothing groups
+* [Vertex colors](#VertexColors)
+* [LODs](#StaticMeshLODs)
+* Multiple separate _Static Meshes_ (can also be combined into a single mesh at import)
+
+
+[REGION:note]
+Currently, when importing multiple meshes with custom collision in a single file, only the first mesh's collision will be imported.
+[/REGION]
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+This page includes information on both Autodesk Maya and Autodesk 3ds Max, please choose your preferred content creation tool below and the information relevant only to the chosen tool will be displayed:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## General Setup
+
+
+In general, you are free to create _Static Meshes_ using any tools and methods you want. There are some stipulations as far as setting up UVs, placement of the mesh, etc. that you need to account for in order for the exporting and importing to go smoothly and for the mesh to work properly in Unreal Editor.
+
+### Pivot Point
+
+The pivot point of the mesh in Unreal Engine determines the point around which any transformations (translation, rotation, scale) will be performed. 
+
+![pivot.jpg](pivot.jpg)(w:640 h:340)
+
+The pivot point is always located at the origin (0,0,0) when exporting from a 3D modeling application. Because of this, it is best to create your meshes at the origin, with the origin generally being located at one corner of the mesh to allow for proper alignment when snapping to the grid inside of Unreal Editor.
+
+![pivot_origin.jpg](pivot_origin.jpg)(w:640 h:329)
+
+
+### Triangulation
+
+Meshes in Unreal Engine must be triangulated as the graphics hardware only deals with triangles.
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+There are several ways you can ensure your mesh is triangulated.
+
+
+* Model the mesh with only tris - best solution, provides the most control over the end result.
+* Triangulate the mesh in the 3D app - good solution, allows cleanup and modification before export.
+* Allow the FBX exporter to triangulate the mesh - okay solution, allows no cleanup but can work for simple meshes.
+* Allow the importer to triangulate the mesh - okay solution, allows no cleanup but can work for simple meshes.
+
+
+It will always be best to manually triangulate the mesh in the 3D application, controlling the direction and placement of edges. Automatic triangulation can lead to undesirable results.
+
+![tris_bad.jpg](tris_bad.jpg)(w:744 h:382)
+
+(#UVTextureCoordinates)
+
+
+### UV Texture Coordinates
+
+The import of multiple UV sets is supported by the FBX pipeline in Unreal Engine 4. For _Static Meshes_, this is generally used to handle one set of UVs for the diffuse. There are no special requirements for setting up the UVs for _Static Meshes_ using the FBX pipeline.
+
+
+### Creating Normal Maps
+
+Normal maps can be created for your meshes directly inside of most modeling applications by creating both a low-res render mesh and a high-res detail mesh.
+
+![SideBySide.jpg](SideBySide.jpg)(w:700 h:398)
+
+The geometry of the high-res detail mesh is used to generate the normals for the normal map. Epic uses a workflow internally that introduces XNormal into the process and generally results in much better normals when rendering inside of Unreal Engine 4. For details on this process, see [](Engine/Content/Types/Textures/NormalMaps/Creation).
+
+### Materials
+
+The materials applied to meshes modeled in external applications will be exported along with the mesh and then imported into Unreal. This streamlines the process as textures do not need to be imported separately in Unreal, materials do not need to be created and applied, etc. The import process is capable of performing all of these actions when using the FBX pipeline.
+
+These materials also need to be set up in a specific way, especially when the mesh has multiple materials or the order of the materials on the mesh is important (i.e. for character models where material 0 needs to be the body and material 1 needs to be the head).
+
+For complete details of setting up materials for export, see the [FBX Material Pipeline](Engine/Content/FBX/Materials) page.
+
+
+### Collision
+
+Simplified collision geometry is important for optimizing collision detection in-game. Unreal Engine 4 provides basic tools for creating collision geometry within the **Static Mesh Editor**. Some circumstances, though, are best handled by creating custom collision geometry within your 3D modeling application and exporting it with the render mesh. Generally, this is true for any mesh with an opening or concave area that objects need to not collide with.
+
+For instance:
+
+
+* Doorway meshes
+* Walls with window cutouts
+* Oddly shaped meshes
+
+
+Collision meshes are identified by the importer based on their name. The collision naming syntax should be:
+
+
+| **Mesh Prefix and Name** | **Description** |
+| ------ | --- |
+| **UBX_[RenderMeshName]\_##** | Boxes are created with the _Box_ objects type in Max or with the _Cube_ polygonal primitive in Maya. You cannot move the vertices around or deform it in any way to make it something other than a rectangular prism, or else it will not work. |
+| **USP_[RenderMeshName]\_##** | Spheres are created with the _Sphere_ object type. The sphere does not need to have many segments (8 is a good number) at all because it is converted into a true sphere for collision. Like boxes, you should not move the individual vertices around. |
+| **UCX_[RenderMeshName]\_##** | Convex objects can be any completely closed convex 3D shape. For example, a box can also be a convex object. The diagram below illustrates what is convex and what is not: ![Convex.gif](Convex.gif)
+
+
+#### Caveats and Considerations
+
+* `RenderMeshName`** must be identical to the name of the render mesh the collision mesh is associated with in the 3D application. So if you have a render mesh named **`Tree_01`** in your 3D application, your collision mesh should be in the scene with that mesh and named **`UCX_Tree_01`**, and then exported along with the render mesh to the same FBX file. If you need more than one collision object for a mesh, you can extend their names with further identifiers, such as:** `UCX_Tree_01_00`, `UCX_Tree_01_01`, `UCX_Tree_01_02`, **etc... and they all will be associated as collision for that mesh.**
+
+
+* Currently, spheres are only used for rigid-body collision and Unreal's zero-extent traces (e.g. weapons), not non-zero extent traces (e.g. Player movement). Also, spheres and boxes do not work if the _StaticMesh_ is non-uniformly scaled. In general you probably want to create _UCX_ primitives.  
+
+* Once your collision objects are set up, you can export both the render and collision mesh in the same .FBX file. When you import the .FBX file into Unreal Editor, it will find the collision mesh, remove it from the render mesh, and turn it into the collision model.
+
+* Breaking up a non-convex mesh into convex primitives is a complex operation, and can give unpredictable results. Another approach is to break the collision model into convex pieces yourself in Max or Maya.
+
+* In the case of an object whose collision is defined by multiple convex hulls, results are best when the hulls do not intersect with one another. For example, if the collision for a lollipop were defined by two convex hulls, one for the candy and one for the stick, a gap should be left between the two as in the following illustration:
+
+![](CandyCollision.png)(w:400)
+
+1. _UCX_Candy_
+1. Small gap between collision surfaces
+1. _UCX_Stick_
+
+
+
+
+(#VertexColors)
+
+
+### Vertex Colors
+
+Vertex colors for _Static Meshes_ can be transferred using the FBX pipeline. No special setup is necessary
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#ExportMesh)
+
+
+## Export Mesh
+
+
+_Static Meshes_ can be exported individually or multiple meshes can be exported to a single FBX file. The import pipeline will separate multiple _Static Meshes_ into multiple assets within the destination package unless specified to combine the meshes by enabling the **Combine Meshes** setting at the time of import.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. Select the mesh(es) to be exported in the viewport.   
+
+	![max_export_1.png](max_export_1.png)(w:720 h:480)
+
+1. In the **File** menu, choose **Export Selected** (or **Export** if you want to export everything in the scene regardless of selection).   
+
+	![max_export_2.png](max_export_2.png)(w:424 h:577)
+
+1. Choose the **Content** folder inside your UE4 Project (1) and a name for the FBX file (2) then click the ![max_save_button.jpg](max_save_button.jpg) button.   
+
+	![max_export_3.jpg](max_export_3.png)
+
+1. Set your options in the **FBX Export** dialog, then click the ![max_ok_button.jpg](max_ok_button.jpg) button to create the FBX file containing the mesh(es).   
+
+	![max_export_4.png](max_export_4.png)
+
+	_The settings in the Geometry category above are the most basic requirements for exporting _Static Meshes_ to Unreal Engine 4._
+
+1.	On your disk, browse to the **Content** folder of your Project. You will see that your FBX file has been added. 
+
+	![max_export_5.png](max_export_5.png)
+
+1.	If you have the UE4 Editor open (or next time you run it) you will be prompted with an **FBX Import Options** dialog, click **Import** or **Import All**. 
+
+	![](max_export_6.png)
+
+	_You can leave the default options for importing. Refer to [](Engine/Content/FBX/ImportOptions) for more information on each option._
+
+1.	Your asset has now been imported and you can drag-and-drop it from the **Content Browser** into your level. 
+
+	![](max_export_7.png)
+
+	_In the example above (as part of our Import Options), we imported **Materials** and **Textures**._
+
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. Select the mesh(es) to be exported in the viewport.   
+
+	![](maya_export_1.png)(w:720)
+
+1. In the **File** menu, choose **Export Selection** (or **Export All** if you want to export everything in the scene regardless of selection).   
+
+	![](maya_export_2.png)
+
+1. In the **Export** dialog box: 
+*	Choose the **Content** folder inside your UE4 Project (1)
+*	Enter a name for the file and set it to FBX Export (2)
+*	Set your Export Options (3)
+*	Click **Export All** (4)
+
+	![](maya_export_3.png)
+
+	_The settings in the Geometry category above are the most basic requirements for exporting _Static Meshes_ to Unreal Engine 4._
+	
+1.	On your disk, browse to the **Content** folder of your Project. You will see that your FBX file has been added. 
+
+	![](maya_export_4.png)
+
+1.	If you have the UE4 Editor open (or next time you run it) you will be prompted with an **FBX Import Options** dialog, click **Import** or **Import All**. 
+
+	![](max_export_6.png)
+
+	_You can leave the default options for importing. Refer to [](Engine/Content/FBX/ImportOptions) for more information on each option._
+
+1.	Your asset has now been imported and you can drag-and-drop it from the **Content Browser** into your level. 
+
+	![](max_export_7.png)
+
+	_In the example above (as part of our Import Options), we imported **Materials** and **Textures**._
+
+[/EXCERPT:mayaExport]
+
+-->
+
+## Import Mesh
+
+
+1. Click the ![](button_new.png) button in the **Content Browser** and choose _Import_. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.   
+
+	![import_file.jpg](import_file.png)
+
+	[REGION:note]
+		The path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+	[/REGION]
+
+1. Choose the appropriate settings in the **Import** dialog. The defaults should be sufficient in most cases. See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. Click the ![button_import.png](button_import.png) button to import the mesh(es). The resulting mesh, material(s), and texture(s) will be displayed in the **Content Browser** if the process was successful.   
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		Although textures and materials can be imported with a Static Mesh, only **Color** and **Normal** will automatically be connected (assuming a [supported material was used in Max/Maya](Engine/Content\FBX\Materials)), **Specular** maps will be imported but not connected, other maps, like **Ambient Occlusion** map in the **Diffuse** slot of a maya material, would not even be imported; it is best to check your materials and connect any unconnected maps and check which maps did not import. Simply **double-click** the new material and connect the available textures into their appropriate inputs.
+	[/REGION]
+
+	By viewing the imported mesh in the **Static Mesh Editor** and enabling the display of collision, you can determine that the process worked as expected.
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+	
+
+[REGION:tip]
+Alternatively, you can actually just click and drag an FBX file from Windows into the **Content Browser** and it will bring up the import dialog for you.
+[/REGION]
+
+(#MeshLODs)
+
+
+## Static Mesh LODs
+
+
+_Static Meshes_ can make use of levels of detail (LODs) in-game in order to limit the impact of meshes as they get farther from the camera. Generally, this means each level of detail will have a reduced number of tris and, perhaps, a simpler material (or materials) applied to it.
+
+![lods.jpg](lods.jpg)(w:744 h:382)
+
+The FBX pipeline can be used to export/import these LOD meshes.
+
+
+### LOD Setup
+
+**General**
+
+In general, LODs are handled by creating models of varying complexity going from the full-detail base mesh to the lowest-detail LOD mesh. These should all be aligned and occupying the same space with the same pivot point. Each LOD mesh can have completely different materials assigned, including different amounts of materials. This means the base mesh could use multiple materials to give the desired amount of detail up close, but the lower-detail meshes could use a single material since details will be less noticeable.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. Select all of the meshes (base plus LODs - the order is not important) and then select the _Group_ command from the _Group_ menu.   
+
+	![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:214)
+
+1. Enter a name for the new group in the dialog that opens and the click the ![max_lod_ok_button.jpg](max_lod_ok_button.jpg) button to create the group.   
+
+	![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. Click the ![max_utilities_button.jpg](max_utilities_button.jpg) button to view the _Utilities_ panel and then choose the _Level of Detail_ utility. **Note:** You may need to click ![max_utility_more_button.jpg](max_utility_more_button.jpg) and select it from the list.   
+
+	![max_lod_utility.jpg](max_lod_utility.jpg)(w:168 h:561)
+
+1. With the group selected, click the ![max_lod_create_button.jpg](max_lod_create_button.jpg) button to create a new LOD Set and add the meshes in the selected group to it. The meshes will automatically be ordered according to their complexity.   
+
+	![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+[EXCERPT:mayaLODSetup]
+1. Select all of the meshes (base plus LODs) in order from the base LOD down to the last LOD. This is important so that they are added in the correct order in terms of complexity. Then select the _Level of Detail > Group_ command from the _Edit_ menu.   
+
+	![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. You should now have the meshes all grouped under the LOD Group.
+
+	![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:160 h:175)
+[/EXCERPT:mayaLODSetup]
+-->
+
+### Export LODs
+
+To export the _StaticMesh_ LODs:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODS]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODS]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxLODS]
+1. In 3ds Max: select the Group of meshes that comprise the LOD Set and any collision geometry.   
+
+	![max_lod_export_select.jpg](max_lod_export_select.jpg)(w:744 h:382)
+
+1. Follow the same export steps used for the base mesh (described above in the [Export Mesh](#ExportMesh) section). Make sure to enable export of animations in the FBX exporter properties. This is required for LODs to be exported.
+[/EXCERPT:maxLODS]
+
+[EXCERPT:mayaLODS]
+1. In Maya: select the LOD Group and any collision geometry.   
+
+	![maya_lod_export_select.jpg](maya_lod_export_select.jpg)(w:769 h:376)
+
+1. Follow the same export steps used for the base mesh (described above in the [Export Mesh](#ExportMesh) section). Make sure to enable export of animations in the FBX exporter properties. This is required for LODs to be exported.
+[/EXCERPT:mayaLODS]
+-->
+
+
+### Import LODs
+
+Static Mesh LODs can be imported along with the base mesh in the **Content Browser** or they can be imported individually through the Static Mesh Editor.
+
+**Mesh with LODs**
+
+
+1. Click the ![](button_new.png) button in the **Content Browser** and choose _Import_. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.   
+
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+   
+	[REGION:note]
+		The imported path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+	[/REGION]
+
+1. Choose the appropriate settings in the **Import** dialog. The defaults should be sufficient, but also make sure that _Import LODs_ is enabled. **Note:** When importing LODs, the name of the imported mesh will follow the default [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions). See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
+
+	![](ImportOptions_LOD.png)
+
+1. Click the ![button_import.png](button_import.png) button to import the mesh and LODs. The resulting mesh, material(s), and texture(s) will be displayed in the **Content Browser** if the process was successful.  
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		Although textures and materials can be imported with a Static Mesh, only **Color** and **Normal** will automatically be connected (assuming a [supported material was used in Max/Maya](Engine/Content\FBX\Materials)), **Specular** maps will be imported but not connected, other maps, like **Ambient Occlusion** map in the **Diffuse** slot of a maya material, will not even be imported; it is best to check your materials and connect any unconnected maps and check which maps did not import. Simply **double-click** the new material and connect the available textures into their appropriate inputs.
+	[/REGION]
+
+	By viewing the imported mesh in the **Static Mesh Editor**, you can cycle through the LODs using the ![](button_AutoLOD.png) dropdown at the far right side of the toolbar.
+
+	
+<!----Currently commented out. It seems this functionality no longer exists!-----------
+
+**Individual LOD**
+
+
+1. Open the base mesh in the **Static Mesh Editor** by double-clicking it in the Content Browser or right-clicking and choosing _Edit Using Static Mesh Editor_.   
+
+	![lod_smeditor.jpg](lod_smeditor.jpg)(w:738 h:340)
+
+1. In the _Mesh_ menu, select _Import Mesh LOD_.   
+
+	![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:283 h:270)
+
+1. Navigate to and select the FBX file containing the LOD meshes in the file browser. **Note:** You may need to set the file format to ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) to see your file.   
+
+	![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:763 h:330)
+
+1. In the **Import LOD** dialog, select the LOD level of the mesh you wish to import from the dropdown menu. Then press the ![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg) to import the LOD mesh.   
+
+	![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:244 h:158)
+
+1. You will be notified if the import process was successful and the button for the LOD that was imported should be enabled in the ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) toolbar buttons.   
+
+	![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:290 h:149)
+
+1. Repeat the process for each LOD mesh you want to import. 
+
+1. Once all LOD meshes have been imported, you can preview the LOD meshes by using the ![lod_buttons.jpg](lod_buttons.jpg) buttons in the toolbar.</p>
+
+	![lod_anim.gif](lod_anim.gif)(w:238 h:190)
+
+------------------------------------------------------------>

@@ -1,0 +1,146 @@
+﻿INTSourceChangelist:2517815
+Availability:Public
+Title:데칼 액터 사용 안내서
+Crumbs:%ROOT%, Engine, Engine/Actors
+Description:Deferred Decal, 디퍼드 데칼 액터 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors/DecalActor:title%](Engine/Actors/DecalActor/decal_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/DecalActor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/DecalActor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/DecalActor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors/DecalActor:title%](Engine/Actors/DecalActor/decal_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/DecalActor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/DecalActor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/DecalActor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[TOC(start:2)]
+
+## 개요
+
+Deferred decal (디퍼드 데칼)은 향상된 퍼포먼스에 관리도 더욱 쉽습니다. 라이팅을 재계산하지 않고 GBuffer 에 쓸 수 있다는 것은 여러가지 장점이 있습니다:
+
+* 라이트의 갯수나 유형이 얼마나 되든, 그 전부에 같은 코드 패쓰가 사용되기에, 라이트가 많은 환경에서의 퍼포먼스 예측이 훨씬 쉬워집니다.
+* 스크린 스페이스 마스크 조작을 통해 (젖은 레이어 등) 다른 방식으로는 만들어내기 어려운 이펙트가 쉽게 가능합니다.
+
+
+데칼의 렌더링 방식은 데칼이 영향을 끼치는 영역에 박스를 렌더링하는 것으로 이루어집니다.
+
+## 레벨에 데칼 추가하기
+
+씬에 데칼을 추가하는 가장 쉬운 방법은 콘텐츠 브라우저에서 적합한 데칼 머티리얼을 선택한 다음 뷰포트에 우클릭하여 뜨는 우클릭 맥락 메뉴에서 **액터 배치** 를 선택하면 됩니다. 그런 다음 트랜스폼 툴을 사용하여 데칼의 크기나 방향을 조절할 수 있습니다.
+
+![Decal_1.png](Decal_1.png)(w:720)
+
+
+## 크기, 타일링, 오프셋 조절
+
+데칼을 만들고 나면 트랜슬레이션 / 로테이션 위젯을 사용하여 위치와 방향을 조절할 수 있습니다.
+
+![Decal_2.png](Decal_2.png)(w:720)
+
+비균등 스케일 위젯으로 데칼 볼륨의 폭, 높이, 최대 표시 거리(far-plane distance)를 조절할 수 있습니다.
+
+
+## Deferred Decal 프로퍼티
+
+디퍼드 데칼의 프로퍼티는 딱 두 개입니다.
+
+| 항목 | 설명 | 
+|--- | --- |
+|**Material**| 머티리얼 - 데칼로 사용할 머티리얼입니다. |
+|**Sort Order** | 정렬 순서 - 여러 데칼이 쌓였을 때의 정렬 방식을 결정하는 값을 설정합니다. 값이 크면 맨 위에 렌더링됩니다. |
+
+[REGION:warning]
+	정렬값을 설정할 때는 조심할 점이 있습니다. 너무 다양한 데칼에 너무 많은 정렬값을 설정하면 스테이트를 통한 정렬이 불가능해져, 퍼포먼스가 떨어질 수 있습니다. 
+[/REGION]
+
+## 머티리얼 세팅
+
+새로운 **DecalBlendMode** 세팅이 (디퓨즈, 스페큘러, 노멀, 오파시티 등의) 머티리얼 속성이 GBuffer 에 어떻게 적용되는지를 정의합니다. 머티리얼은 **DBM_Auto** 모드로 놔두면 됩니다. 이 모드는 연결된 입력에 따라 다른 모드 중 하나를 선택하는 모드입니다. 오파시티는 데칼의 기여를 블렌딩하는 데 사용됩니다. 효율적인 데칼은 소수의 GBuffer 속성만 조작합니다. 현재 최적화 대상인 경우는 **_DBM_Diffuse_**, **_DBM_Specular_**, **_DBM_Emissive_**, **_DBM_Normal_** 와 같은 모드로 나타냅니다.
+
+**_DBM_ScreenSpaceMask_** 는 현재 SSAO (앰비언트 오클루전)에 사용되는 특수 마스킹 채널에 영향을 끼친다는 점에서 특별합니다. 이를 통해 데칼이 일정 영역에서 기여하는 부분을 덮어쓰거나 희미하게 만들 수 있습니다.
+
+**_DBM_DiffuseSpecularEmissive_** 는 다수의 GBuffer 채널에 영향을 끼치는 모드입니다.
+
+참고로 머티리얼 블렌드 모드는 GBuffer 값 끼리의 블렌딩 방식에도 영향을 끼칩니다. 그러므로 디퓨즈 컬러를 곱하는 것이 가능합니다.
+
+GBuffer 뷰 모드를 사용하여 픽셀별로 저장된 GBuffer 값을 조사해 볼 수 있습니다.
+
+데칼의 로컬 위치는 0 에서 1 범위의 3D 위치입니다. 텍스처 UV 는 X 와 Y 성분을 줍니다. Z 성분이 필요한 경우, CameraVector 노드를 연결해 주면 세 개의 벡터 컴포넌트 전부를 구할 수 있습니다.
+
+## 퍼포먼스
+
+데칼에 의해 영향받는 오브젝트의 메시 복잡도는 퍼포먼스에 영향을 끼치지 않습니다. 데칼의 퍼포먼스는 셰이더의 복잡도와 화면상의 셰이더 박스 크기에 영향을 받습니다.
+
+데칼별 퍼포먼스를 추가로 향상시킬 수도 있습니다. 이상적으로 데칼의 바운딩 박스가 작을 수록 픽셀별 퍼포먼스가 나아지기에, 이 부분을 수동 설정해 줄 수 있습니다. 자동 설정 방식도 가능은 하지만, 실력있는 디자이너라면 배치를 조정해서 퍼포먼스를 더욱 향상시키는 것도 가능합니다.
+
+
+**셰이더 복잡도** 뷰 모드 (에디터 UI 또는 "viewmode ShaderComplexity") 를 사용하면 픽셀 셰이딩 비용에 대한 임팩트를 확인할 수 있으며, 픽셀 셰이더 비용을 추정하여 다수의 데칼이 겹치는 곳에 누산됩니다.
+현재 데칼 마스킹 기능에는 효과가 없습니다 (마스크 부분에는 스텐실 하드웨어 기능 사용때문에 약간의 고정비가 있을 것입니다).
+다음은 데칼이 없는 씬(왼쪽)과 있는 씬(오른쪽), 보통 렌더링(위쪽)과 셰이더 복잡도 렌더링(아래쪽)입니다:
+
+![](DecalShaderComplexity.jpg)
+
+색이 짙은 부분은 해당 픽셀의 퍼포먼스 비용이 높음을 나타냅니다. 이 정보를 사용해서 셰이더를 최적화시키고, 거의 보이지 않는 데칼을 제거하거나 좀 더 효율적인 배치가 가능합니다.
+
+## 현재 한계
+
+* 현재는 디퍼드 데칼만 지원하며, 스태틱 오브젝트에서만 작동합니다.
+* 현재 노멀 블렌딩이 오브젝트를 제대로 둘러싸고 있지 못합니다.
+* 스트리밍이 하직 지원되지 않으므로, 텍스처가 스트리밍 되지 않도록 해야 합니다.
+* (다른 오브젝트에는 영향을 끼치지 않는) 마스킹 데칼은 아직 완벽 지원되지 않습니다.
+
+## 2x2 블록 부작용 픽스
+
+아래 스크린샷에서 보이는 것처럼 데칼에는 에지에 2x2 픽셀 블록 부작용이 생길 수 있습니다.
+
+![](2x2_artifacts.bmp)
+
+여기서 "Decal Mipmap Level" 노드가 쓰입니다. 이 노드는 조심해서 사용해야 하는데, 퍼포먼스 영향이 매우 크기 때문입니다.
+
+![](decal_mipmap_material_1.png)
+
+사용하면 그 혜택을 받는 데칼의 부작용이 수정됩니다.
+
+![](2x2_no_artifacts.bmp)
+
+### 샘플 텍스처 UV 없음
+
+이 노드는 계산하는 관점에서 매우 비싸기때문에, UV 입력을 SampleTexture 로 갖지 않습니다. 하지만 타일링의 경우, 밉맵 레벨을 수동으로 기워붙이는 것으로 여전히 가능합니다. 2^4 = 16 타일링 반복 예제는 이렇습니다.
+
+![](decal_mipmap_material_2.png)
+
+### 현재 한계
+
+* DecalMipmapLevel 은 UV 를 지원하지 않습니다.
+* DecalMipmapLevel 은 어나이소트로픽 필터링에 작동하지 않습니다.

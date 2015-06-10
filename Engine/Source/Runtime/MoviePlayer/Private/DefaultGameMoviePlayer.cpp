@@ -115,6 +115,8 @@ void FDefaultGameMoviePlayer::Initialize()
 		MovieViewport->SetViewportInterface( MovieStreamer->GetViewportInterface().ToSharedRef() );
 	}
 	
+	MovieViewport->SetActive(true);
+
 	// Register the movie viewport so that it can receive user input.
 	if (!FPlatformProperties::SupportsWindowedMode())
 	{
@@ -177,12 +179,12 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		
 		LastPlayTime = FPlatformTime::Seconds();
 
-        bool bInitialized = true;
+        bool bIsInitialized = true;
 		if (MovieStreamingIsPrepared())
 		{
-			bInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
+			bIsInitialized = MovieStreamer->Init(LoadingScreenAttributes.MoviePaths);
 		}
-        if (bInitialized)
+        if (bIsInitialized)
         {
 			MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
 			LoadingIsDone.Set(0);
@@ -258,13 +260,13 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		LoadingIsDone.Set(1);
 
 		MovieStreamingIsDone.Set(1);
+
+		FlushRenderingCommands();
+
 		if( MovieStreamer.IsValid() )
 		{
 			MovieStreamer->ForceCompletion();
 		}
-
-		LastPlayTime = 0;
-		FlushRenderingCommands();
 
 		// Allow the movie streamer to clean up any resources it uses once there are no movies to play.
 		if( MovieStreamer.IsValid() )
@@ -272,10 +274,11 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 			MovieStreamer->Cleanup();
 		}
 	
-
 		// Finally, clear out the loading screen attributes, forcing users to always
 		// explicitly set the loading screen they want (rather than have stale loading screens)
 		LoadingScreenAttributes = FLoadingScreenAttributes();
+
+		BroadcastMoviePlaybackFinished();
 	}
 	else
 	{	

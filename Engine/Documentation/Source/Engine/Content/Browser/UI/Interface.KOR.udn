@@ -1,0 +1,144 @@
+﻿INTSourceChangelist:2273049
+Availability: Public
+Title:콘텐츠 브라우저 UI
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저의 유저 인터페이스에 대한 묘사와 설명입니다.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](InterfaceTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UI:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+
+## 개요
+
+콘텐츠 브라우저 인터페이스의 주요 부분에 대한 간략한 묘사입니다.
+
+![](ContentBrowser_12_10_2013.png)
+
+| 번호 | 이름 |
+| ---- | ---- |
+| **1** | **내비게이션 바** |
+| **2** | **소스 뷰** |
+| **3** | **콜렉션 패널** |
+| **4** | **애셋 관리 영역** |
+| **5** | **애셋 뷰** |
+
+## 내비게이션 바
+
+콘텐츠 브라우저 상단에 위치한 내비게이션 바를 통해 웹 브라우저 스타일로 애셋 폴더를 둘러볼 수 있으며, 소스 뷰를 표시하거나 숨길 수도 있습니다.
+
+![CB_NavBar.png](CB_NavBar.png)
+
+| 번호 | 이름 | 설명 |
+| ---- | ---- | ---- |
+| **1** | **Show/Hide Sources and Collections** | 소스와 콜렉션 표시/숨김 - 소스 뷰와 콜렉션 영역을 토글하는 버튼으로, 브라우저의 해당 부분을 빠르게 숨겨 화면 공간을 확보할 수 있습니다. |
+| **2** | **History Back and Forward Buttons** | 히스토리 앞뒤 버튼 - 웹 브라우저의 앞뒤 버튼같은 기능으로, 최근 파일 경로를 둘러볼 수 있습니다. |
+| **3** | **Breadcrumb Trail Path** | 지나온 자취 경로 - 현재 파일 경로를 표시, 부모 폴더를 빠르게 둘러볼 수 있습니다. |
+
+## 소스 패널
+
+소스 패널은 콘텐츠 브라우저 인터페이스의 왼편에 위치해 있으며, 게임 프로젝트 내 모든 폴더와 콜렉션 리스트가 표시됩니다.
+
+패널 범위에 넘칠 정도로 폴더가 많은 경우, 스크롤바로 리스트를 스크롤시킬 수 있습니다. 마우스 휠 굴리기나 우클릭 드래그로도 리스트의 위아래 스크롤이 가능합니다.
+
+![CB_SourcesPanel.png](CB_SourcesPanel.png)
+
+| 번호 | 이름 | 설명 |
+| ---- | ---- | ---- |
+| **1** | **Search Bar** | 검색 바 - 검색어를 입력하여 사용가능한 폴더 리스트를 좁혀줍니다. 글자를 입력할 때마다 소스 패널에 입력된 문자열이 포함된 폴더만 표시됩니다. |
+| **2** | **Asset Tree** | 애셋 트리 - 현재 게임 프로젝트의 모든 폴더가 표시되는 계층형 리스트입니다. 각 폴더는 이름 옆에 달린 작은 트라이앵글로 펼치고 접을 수 있습니다. |
+
+
+[REGION:tip]
+검색어 앞에 하이픈(-)을 붙여 검색되는 애셋을 제외시킬 수 있습니다.
+[/REGION]
+
+소스 패널 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\WorkingWithSources) 문서를 참고해 주시기 바랍니다.
+
+## 콜렉션 패널
+
+**콜렉션** 패널에서는 자신의 컴퓨터에서 만들거나 퍼포스 소스 콘트롤을 통해 구성된 모든 콜렉션을 빠르게 접할 수 있습니다.
+
+![CB_Collections.png](CB_Collections.png)
+
+| 번호 | 이름 | 설명 |
+| ---- | ---- | ---- |
+| **1** | **Collapse/Expand Button** | 접기/펼치기 버튼 - 콜렉션 영역을 빠르게 접고 펼칠 수 있는 삼각형 버튼으로, 소스 패널 사용시의 공간 확보에 좋습니다. |
+| **2** | **Collections List** | 콜렉션 리스트 - 이 프로젝트에 있는 모든 콜렉션의 알파벳순 리스트입니다. |
+| **3** | **Add Collections Button** | 콜렉션 추가 버튼 - 새 콜렉션을 추가할 수 있는 버튼입니다. |
+
+콜렉션과 그 사용법 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\Collections) 문서를 참고해 주시기 바랍니다.
+
+
+
+## 애셋 관리 영역
+
+애셋 관리 영역에는 애셋의 생성, 저장, 검색, 필터링 등 폭넓은 범위의 기능이 제공됩니다. 이 UI 부분은 애셋 뷰와 밀접한 관계가 있어, 여기에 적용된 필터와 검색어가 그곳에도 적용되어 그에 일치하지 않는 애셋은 모두 숨깁니다.
+
+필터 작업 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\Filters) 문서를 참고해 주시기 바랍니다.
+
+
+![CB_AssetManagement.png](CB_AssetManagement.png)
+
+
+| 번호 | 이름 | 설명 |
+| ---- | ---- | ---- |
+| **1** | **New Asset Button** | 새 애셋 버튼 - 이 버튼을 클릭하면 만들 수 있는 애셋 유형이 전부 나열된 맥락 메뉴가 뜹니다. |
+| **2** | **Filters Button** | 필터 버튼 - 필터 선택 패널을 열어, 애셋 뷰에 적용할 수 있는 필터를 선택할 수 있습니다. |
+| **3** | **Save Button** | 저장 버튼 - 새로 추가되거나 수정된 애셋을 전부 저장합니다. |
+| **4** | **Search Bar** | 검색 바 - 입력된 검색어로 사용가능한 애셋 리스트를 추립니다. 글자가 입력될 때마다 소스 패널에는 입력된 문자열이 포함된 애셋만 표시됩니다. |
+| **5** | **Filters Bar** | 필터 바 - 현재 애셋 폴더에 적용된 필터를 모두 표시합니다. |
+
+애셋 생성 및 저장 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\BrowserAssetCreation) 문서를 참고해 주시기 바랍니다.
+
+
+## 애셋 뷰
+
+애셋 뷰는 콘텐츠 브라우저의 주요 구역입니다. 이 구역에는 모든 필터와 검색어 적용 이후 폴더 내 사용가능한 애셋 전부가 그리드나 리스트로 표시됩니다.
+
+애셋 뷰에서 사용가능한 애셋은 씬에 끌어 놓는 식으로 빠르게 배치할 수 있습니다. 애셋 뷰에 우클릭한 다음 맥락 메뉴에서 원하는 애셋을 선택하여 새로운 애셋을 빠르게 만들 수도 있습니다. 애셋 리스트는 스크롤 바, 마우스 휠, 우클릭 드래그를 통해 스크롤 가능합니다.
+
+![CB_AssetView.png](CB_AssetView.png)(w:500)
+
+| 번호 | 이름 | 설명 |
+| ---- | ---- | ---- |
+| **1** | **View Area** | 뷰 영역 - 선택된 폴더 내 필터와 검색어가 적용된 이후의 애셋들을 표시합니다. |
+| **2** | **Asset Count** | 애셋 수 - 모든 필터와 검색어 적용 후 현재 표시된 애셋 수를 나타냅니다. |
+| **3** | **View Options** | 뷰 옵션 - 썸네일 크기 슬라이더, 애셋에 대한 뷰 스타일 선택, 3D 애셋 썸네일 미리보기 및 변경 기능이 들어있습니다. |
+
+애셋 작업 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\BrowserAssetCreation) 문서를 참고해 주시기 바랍니다.
+
+### 뷰 스타일
+
+애셋 뷰의 애셋은 세 가지 스타일로 볼 수 있습니다: 타일, 리스트, 컬럼.
+
+#### 타일
+
+타일 뷰는 바둑판 형식으로 애셋을 나열합니다:
+
+![CB_AssetView_Tiles.png](CB_AssetView_Tiles.png)(w:500)
+
+#### 리스트
+
+리스트 뷰는 모든 애셋을 썸네일 옆에 이름을 붙인 목록으로 나열합니다:
+
+![CB_AssetView_List.png](CB_AssetView_List.png)(w:200)
+
+#### 컬럼
+
+컬럼 뷰는 모든 애셋을 스프레드 시트같은 속성 배치 형식으로 나열합니다:
+
+![CB_AssetView_Columns.png](CB_AssetView_Columns.png)(w:500)

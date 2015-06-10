@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:2033300
+Availability:Docs
+Title:高度なマテリアル
+Crumbs:%ROOT%, Resources
+Description:マテリアルの高度な例の概要
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialAdvanced:title%](MaterialAdvancedTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialAdvanced:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialAdvanced:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialAdvanced:title%](MaterialAdvancedTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialAdvanced:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialAdvanced:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+<!--Insert path when done! [RELATIVE:Resources/ContentExamples/MaterialAdvanced]-->
+
+## 概要
+
+[REGION:fullwidth]
+
+[/REGION]
+
+**マテリアルの高度な** 事例へようこそ！
+
+[INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
+
+## 例
+
+[REGION:topics fifth]
+%Resources/ContentExamples/MaterialAdvanced/1_1:Topic%
+%Resources/ContentExamples/MaterialAdvanced/1_2:Topic%
+%Resources/ContentExamples/MaterialAdvanced/1_3:Topic%
+%Resources/ContentExamples/MaterialAdvanced/1_4:Topic%
+[/REGION]
+
+
+## 関連トピックと参考文献

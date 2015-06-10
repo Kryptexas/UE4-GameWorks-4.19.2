@@ -1,0 +1,104 @@
+﻿INTSourceChangelist:1791359
+Availability:Public
+Title:Project Settings
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:Dialog for configuring options specific to the current project.
+
+[REGION:fullwidth]
+[PUBLISH:Licensee]
+![](project_settings.png)
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+![](project_settings_rocket.png)
+[/PUBLISH:Rocket]
+[/REGION]
+
+[TOC (start:2)]
+
+[EXCERPT:Intro]
+The **Project Settings** editor provides access to configuration options that specify information about 
+your project, as well as define how the engine behaves when running the project. Some of these options 
+are specific to the game itself, while others are more general with regards to the engine or platforms 
+you are running on.
+[/EXCERPT:Intro]
+
+[REGION:note]
+All of the settings here are stored in the default engine configuration file (`Engine.ini`) for your 
+project, and can be manually edited there if desired. The **Project Settings** editor simply provides an 
+intuitive user interface for editing these.
+[/REGION]
+
+## Accessing Project Settings
+
+The **Project Settings** editor can be opened from the **Edit** menu:
+
+![](menu_project_settings.png)
+
+## Categories and Sections
+
+The **Project Settings** editor is divided up into various categories and sections of related options. Categories 
+are displayed as headings, while each of these section is displayed as a hyperlink that opens the options for that 
+section in the editor.
+
+While viewing a particular section, you can navigate back to the main view by using the **< Back** link at the top of the left sidebar:
+
+![](back_nav.png)
+
+### Controls
+
+When viewing the settings within a particular section, the following controls are available along the top of the dialog:
+
+| Control | Description |
+| ------- | ----------- |
+| ![](button_save_defaults.png) | Saves the values of the settings to the default configuration file used by the engine. [REGION:note]If the configuration file is under source control or otherwise not writable, the editor displays a warning and you will not be able to save the file.[/REGION] |
+| ![](button_export.png) | Exports the values of the settings to an external configuration file (`.ini`), which can later be loaded back in. |
+| ![](button_import.png) | Loads values stored in a configuration file (`.ini`), replacing the current values. |
+| ![](button_reset_defaults.png) | Resets any modified values to their default values stored in the default configuration file. |
+
+### Game Category
+
+Contains options that describe and control how the game behaves. 
+
+| Section | Description |
+| ------- | ----------- |
+| **General** | Allows you to set information about your project, such as the project name, version, company name, copyright, etc. These are mainly for informational purposes and will not affect how the project runs or behaves. |
+| **Maps** | Contains options for specifying which maps are loaded by default and how they are loaded. |
+
+
+### Engine Category
+
+| Section | Description |
+| ------- | ----------- |
+| **General** | Contains options used by the engine and editor for initialization and setup, such as default fonts, base classes, materials, frame rate, etc. |
+| **Navigation System** | Allows you to configure the navigation system. |
+%Engine%
+
+[PUBLISH:Licensee]
+[VAR:Engine]
+| **Navigation Mesh** | Contains options for configuring how navigation meshes are generated and displayed. |
+| **Input** | Allows you to set up action and axis bindings (keybinds and other input mapping) for your game. [REGION:note]These are in-game keybinds, not editor keybinds.[/REGION] |
+[/VAR]
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[VAR:Engine]
+
+[/VAR]
+[/PUBLISH:Rocket]
+
+### Platforms Category
+
+| Section | Description |
+| ------- | ----------- |
+| **Windows** | Contains options used only when running on Windows platforms. |
+%Platform_iOS%
+
+[PUBLISH:Licensee]
+[VAR:Platform_iOS]
+| **iOS** | Allows you to configure options specific to running on the iOS platform. |
+[/VAR]
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+[VAR:Platform_iOS]
+
+[/VAR]
+[/PUBLISH:Rocket]

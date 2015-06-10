@@ -1,0 +1,385 @@
+﻿INTSourceChangelist:2407684
+Availability:Public
+Title:物理ベースのマテリアル		
+Crumbs: %ROOT%, Engine
+Description:主要マテリアルの入力とこれらを最大限に活用するための概要
+
+[REGION:fullwidth]
+![](PhysMatHeader.png)
+[/REGION]
+
+
+このドキュメントは、アンリアル エンジン 4 の物理ベースのマテリアル システムに、ユーザーが早く慣れ親しむための支援を目的に作成しています。少なくとも、アンリアル エンジン 3 かそれ以降のバージョンを利用した
+マテリアル作成を理解しているユーザーを対象としています。アンリアルを使用したマテリアル作成が全く初めての方は、
+ [](Engine/Rendering/Materials\IntroductionToMaterials) ページから始めることをお勧めします。
+
+以前のアンリアル エンジンでのイタレーション開発経験があっても混乱しやすいと思うので、
+本ページでは、このシステムを使用して一般的なマテリアルを作成するため必須の要素を分かりやすく説明していきます。物理ベースのアプローチを伴うマテリアルの側面にのみ
+焦点をあてます。利用可能な入力値に関する完全な概要は、 [](Engine/Rendering/Materials\MaterialInputs) を参照してください。
+
+## 物理ベースについて
+
+物理ベースのシェーディングとは、直観的に感じ取るライトの動作とは対照的に、
+ライトの実際の動作の近似値を求めることです。最終結果は、より正確で典型的な自然な外観となります。物理ベースのマテリアルは、
+全てのライティング環境下で平等に機能します。またマテリアルの設定値はより単純で独立した値であるため、
+以前にもまして直観的なインターフェースとなります。これらの実用性は、最新の Pixar [[4]](#Smits) や Disney[[3]](#Burley) フィルムにも見受けられるように、
+非写実的画像にさえも適用することができます。
+
+このような理由から、アンリアル エンジン 4 は新しく物理ベースのマテリアルとシェーディング モデルを適用しました。UE4 の物理ベース マテリアルやシェーディング モデルに関する技術的側面の詳細は、
+SIGGRAPH プレゼンテーション [[2]](#Karis) を参照してください。
+
+## マテリアル パラメータ
+
+マテリアル システムの「物理ベース」の側面から言うと、実際には 4 種類の異なるプロパティを理解するのみです。以下の 4 種類です。
+
+
+
+* **Base Color** (基本色)  
+* **Roughness** (ラフネス)  
+* **Metallic** (メタリック) 
+* **Specular**  (スペキュラ(鏡面反射色)) 
+
+
+[REGION:note]
+これらの入力値は **すべて** 、 0 から 1 の間の値を受け取るように設計されています。_Base Color_ については、RGB 値が 0 から 1 の間にある色を意味します。
+[/REGION]
+
+物理ベースの値は、現実社会のマテリアルから計測することも出来ます。以下にいくつかの例を示します。
+
+### Base Color (基本色) 
+
+[EXCERPT:BaseColor] 
+**Base Color** は、マテリアルの全体の色を定義します。Vector3 (RGB) 値を受け取り、各チャンネルは自動的に 0 と 1 の間にクランプされます。
+
+現実世界から取得した場合、偏光角フィルタを使用して写真を撮影した色です。 
+(偏光は、アライメントされた時に非メタルのスペキュラを消去します)。
+
+[REGION:fullwidth]
+![](BaseColor_QS.png)
+[/REGION]
+[/EXCERPT:BaseColor]
+
+[EXCERPT:MeasuredBaseColor] 
+**非メタルの計測 BaseColor 値 (明暗度のみ):**
+
+| マテリアル       | BaseColor の明暗度 |
+| -------------- | ------------------- |
+| Charcoal       | 0.02                |
+| Fresh asphalt  | 0.02                |
+| Worn asphalt   | 0.08                |
+| Bare soil      | 0.13                |
+| Green grass    | 0.21                |
+| Desert sand    | 0.36                |
+| Fresh concrete | 0.51                |
+| Ocean Ice      | 0.56                |
+| Fresh snow     | 0.81                |
+
+**メタルの計測 BaseColors 値:**
+
+| マテリアル | BaseColor (R, G, B)   |
+| -------- | --------------------- |
+| Iron     | (0.560, 0.570, 0.580) |
+| Silver   | (0.972, 0.960, 0.915) |
+| Aluminum | (0.913, 0.921, 0.925) |
+| Gold     | (1.000, 0.766, 0.336) |
+| Copper   | (0.955, 0.637, 0.538) |
+| Chromium | (0.550, 0.556, 0.554) |
+| Nickel   | (0.660, 0.609, 0.526) |
+| Titanium | (0.542, 0.497, 0.449) |
+| Cobalt   | (0.662, 0.655, 0.634) |
+| Platinum | (0.672, 0.637, 0.585) |
+[/EXCERPT:MeasuredBaseColor] 
+
+### Roughness (ラフネス)
+
+[EXCERPT:Roughness]
+**Roughness** 入力値は、その言葉通りマテリアルのラフネス (粗さ) の度合いを制御します。ラフなマテリアルはスムーズなマテリアルと比較して、より多くの方向へ反射光を散乱させます。
+この効果は、反射のぼやけ具合やはっきり加減、 
+もしくは広域またはタイトなスペキュラハイライトとして見ることができます。値 0 のラフネス (スムーズ) はミラー反射、値 1 のラフネス (ラフ) は完全な艶消しまたはディフューズ (拡散色) となります。
+[/EXCERPT:Roughness]
+
+![](roughness_nonmetal.png)(convert:false)
+![](roughness_metal.png)(convert:false)
+[REGION:caption]
+0 から 1 のラフネス (粗さ)。上段は非メタル、下段はメタル。
+[/REGION]
+
+[INCLUDE:Engine/Rendering/Materials\PhysicallyBased#RoughnessSlider]
+
+
+#### Mapping Roughness (粗さのマッピング) 
+
+[EXCERPT:RoughnessMap]
+Roughness (粗さ) は、サーフェスに最も物理的なバリエーションを加えるためにオブジェクトに頻繁にマッピングするプロパティです。
+[/EXCERPT:RoughnessMap]
+
+[REGION:fullwidth]
+[INCLUDE:Engine/Rendering/Materials\PhysicallyBased#RoughBiasSlider]
+[/REGION]
+
+[EXCERPT:RoughnessTip]
+[REGION:tip]
+以前のアンリアル エンジンのイタレーション開発でマテリアルの作成経験があり、物理的なマテリアルに慣れていないユーザーは、 Roughness マップでほとんどのスペキュラリティ (鏡面反射性) のテクスチャリングを処理するということを覚えておいてください。
+[/REGION]
+[/EXCERPT:RoughnessTip]
+
+
+### Metallic (メタリック)
+
+[EXCERPT:Metallic]
+**Metallic** 入力は、文字通りサーフェスをどのように「メタル状」にするかを制御します。非メタルは、値 0 のメタリック値を使用し、
+メタルには、値 1 のメタリック値を使用します。純粋な金属、石、プラスチックなどの純粋なサーフェスでは、
+この値は 0 ** または ** 1 を使用し、その中間値は使用しません。腐食したメタル、埃っぽいメタル、または錆びたメタルなどのハイブリッドなサーフェスを作成する場合には、
+ 0 と 1 の中間値を使用する場合もあります。 
+[/EXCERPT:Metallic]
+
+![](metallic.png)(convert:false)
+[REGION:caption]
+0 から 1 のメタリック。
+[/REGION]
+
+[REGION:tip]
+初めは、マテリアルに完全な金属表現をすることに抵抗を感じるかもしれませんが、そこは我慢してください。
+[/REGION]
+
+この例は、Roughness (粗さ) が若干加えられていることがわかります。これは純粋に芸術的な選択肢によるものです。 
+
+[INCLUDE:Engine/Rendering/Materials\PhysicallyBased#MetallicSlider]
+
+
+### Specular (スペキュラ)
+
+[EXCERPT:Specular]
+ほとんどの使用例で、 **Specular** 入力を接続してデフォルト値を 0.5 のままにしておいてはいけません。
+
+0 と 1 の間の値を設定して、 _非メタリック_ なサーフェス上のスペキュラリティの量のスケーリングに使用します。メタルには無効です。
+[/EXCERPT:Specular]
+
+[REGION:tip]
+非常に拡散反射したマテリアルは、値を 0 に設定する傾向があります。そこは我慢してください。全てのマテリアルにはスペキュラ反射があります。 [[5]](#Hable) から例を参照してください。 
+非常に拡散反射したマテリアルに本当に必要なのは、マテリアルをラフに 
+作成することです。
+[/REGION]
+
+一般的にスペキュラを変更する場合、マイクロ オクルージョンや小さなスケール シャドウを追加して変更を行います。ノーマルマップに表現したクラック (割れ目) が例として挙げられます。これらは時々空洞を指す場合もあります。
+ハイポリゴンで法線マップにベイク処理された詳細のみを表す小型のスケーリングジオメトリの場合は特に、リアルタイム シャドウとしてレンダラーに選択されることはありません。このシャドウイングをキャプチャするには、キャビティ (空洞) マップを作成します。
+このマップは通常、非常に短い追跡距離を使用した AO (アンビエント オクルージョン) マップです。スペキュラ出力値として 0.5 (スペキュラ値のデフォルト) で出力値を乗算する前に、最終的な BaseColor で乗算処理されます。
+つまり、BaseColor = Cavity*OldBaseColor、Specular = Cavity*0.5 ということです。
+
+高度な使用法として、これを屈折率 (IOR) として使用することも可能です。99% のマテリアルに対して、これが必要なことはまだわかっていません。以下は測定した IOR に基づいたスペキュラ値です。
+
+**測定スペキュラ値:**
+
+| マテリアル | スペキュラ |
+| -------- | -------- |
+| Glass    | 0.5      |
+| Plastic  | 0.5      |
+| Quartz   | 0.570    |
+| Ice      | 0.224    |
+| Water    | 0.255    |
+| Milk     | 0.277    |
+| Skin     | 0.35     |
+
+
+[INCLUDE:Engine/Rendering/Materials\PhysicallyBased#SpecularSlider]
+
+
+
+![](measured_materials.png)(convert:false)
+[REGION:caption]
+測定マテリアルの例。上部：Charcoal、 fresh concrete、 worn asphalt下部：Copper、 iron、 gold、 aluminum、 silver、 nickel、 titanium
+[/REGION]
+
+
+##リファレンス
+
+(#Lagarde)
+**1.**Lagarde, [Feeding a physically based shading model](http://seblagarde.wordpress.com/2011/08/17/feeding-a-physical-based-lighting-mode/)
+(#Karis)
+**2**.Karis, [Real Shading in Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf)
+(#Burley)
+**3**.Burley, [Physically-Based Shading at Disney](http://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_slides_v2.pdf)
+(#Smits)
+**4**.Smits, [Reflection Model Design for WALL-E and Up](http://blog.selfshadow.com/publications/s2012-shading-course/smits/s2012_pbs_pixar_model_slides_v2.pdf)
+(#Hable)
+**5**.Hable, [Everything is Shiny](http://filmicgames.com/archives/547)
+
+
+
+
+<!-------------
+
+* **Base Color**  - オブジェクトの色UE3 を含む他のマテリアル システムのディフューズに似ています。
+***Metallic** - 文字通りサーフェスをどのように「メタル状」にするかを制御します。純粋な金属、石、プラスチックなどの純粋なサーフェスでは、この値は 0 または 1 になり、その間の他の値にはなりません。腐食した、錆びたメタルなどのサーフェスを作成する場合には、 0 と 1 の間の値にする必要があります。
+* **Roughness** - 顕微鏡レベルでサーフェスの粗さを制御します。鏡や光沢のあるプラスチックなどのサーフェスは、非常に低い、 0 に近い Roughness 値を持ちます。チョークや光沢のないゴムなど、つや消しのシェーディングのオブジェクトを扱うと、粗さは増します。圧倒的なリアリティを表現するには、サーフェスの Roughness 値が実際に 0 や 1 の範囲にはほとんどならないということを覚えておいてください。通常は、その中間値になります。
+
+
+
+
+[EXCERPT:MetallicSlider]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	21
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Metallic (メタリック)
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Metallic 値の更新を見るには、スライダをドラッグします** 
+	[/PARAM]
+	[PARAM:image_list]
+	![](Metallic_1.png)
+	![](metallic_2.png)
+	![](metallic_3.png)
+	![](metallic_4.png)
+	![](metallic_5.png)
+	![](metallic_6.png)
+	![](metallic_7.png)
+	![](metallic_8.png)
+	![](metallic_9.png)
+	![](metallic_10.png)
+	![](metallic_11.png)
+	![](Metallic_12.png)
+	![](Metallic_13.png)
+	![](Metallic_14.png)
+	![](Metallic_15.png)
+	![](Metallic_16.png)
+	![](Metallic_17.png)
+	![](Metallic_18.png)
+	![](Metallic_19.png)
+	![](Metallic_20.png)
+	![](Metallic_21.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:MetallicSlider]
+
+
+
+
+[EXCERPT:RoughnessSlider]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	21
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Roughness
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Roughness 値の更新を見るには、スライダをドラッグします**
+	[/PARAM]
+	[PARAM:image_list]
+	![](Roughness_1.png)
+	![](Roughness_2.png)
+	![](Roughness_3.png)
+	![](Roughness_4.png)
+	![](Roughness_5.png)
+	![](Roughness_6.png)
+	![](Roughness_7.png)
+	![](Roughness_8.png)
+	![](Roughness_9.png)
+	![](Roughness_10.png)
+	![](Roughness_11.png)
+	![](Roughness_12.png)
+	![](Roughness_13.png)
+	![](Roughness_14.png)
+	![](Roughness_15.png)
+	![](Roughness_16.png)
+	![](Roughness_17.png)
+	![](Roughness_18.png)
+	![](Roughness_19.png)
+	![](Roughness_20.png)
+	![](Roughness_21.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:RoughnessSlider]
+
+
+
+[EXCERPT:RoughBiasSlider]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	21
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	RoughBias (ラフ バイアス)
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**テクスチャを通してバイアスをかけた Roughness 値の更新を見るには、スライダをドラッグします。最も興味深い結果は、 0.5 付近で見られます。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](RoughBias_1.png)
+	![](RoughBias_2.png)
+	![](RoughBias_3.png)
+	![](RoughBias_4.png)
+	![](RoughBias_5.png)
+	![](RoughBias_6.png)
+	![](RoughBias_7.png)
+	![](RoughBias_8.png)
+	![](RoughBias_9.png)
+	![](RoughBias_10.png)
+	![](RoughBias_11.png)
+	![](RoughBias_12.png)
+	![](RoughBias_13.png)
+	![](RoughBias_14.png)
+	![](RoughBias_15.png)
+	![](RoughBias_16.png)
+	![](RoughBias_17.png)
+	![](RoughBias_18.png)
+	![](RoughBias_19.png)
+	![](RoughBias_20.png)
+	![](RoughBias_21.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:RoughBiasSlider]
+
+
+[EXCERPT:SpecularSlider]
+[OBJECT:SliderSequence]
+	[PARAMLITERAL:max]
+	21
+	[/PARAMLITERAL]
+	[PARAMLITERAL:ext]
+	jpg
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Specular (スペキュラ)
+	[/PARAMLITERAL]
+	[PARAM:caption]
+	**Specular 値の更新を見るには、スライダをドラッグします。**
+	[/PARAM]
+	[PARAM:image_list]
+	![](Specular_1.png)
+	![](Specular_2.png)
+	![](Specular_3.png)
+	![](Specular_4.png)
+	![](Specular_5.png)
+	![](Specular_6.png)
+	![](Specular_7.png)
+	![](Specular_8.png)
+	![](Specular_9.png)
+	![](Specular_10.png)
+	![](Specular_11.png)
+	![](Specular_12.png)
+	![](Specular_13.png)
+	![](Specular_14.png)
+	![](Specular_15.png)
+	![](Specular_16.png)
+	![](Specular_17.png)
+	![](Specular_18.png)
+	![](Specular_19.png)
+	![](Specular_20.png)
+	![](Specular_21.png)
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:SpecularSlider]
+
+-->

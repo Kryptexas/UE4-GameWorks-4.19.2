@@ -1,0 +1,249 @@
+Availability:Public
+Title:Persona Viewport
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Viewport preview in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Viewport:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Viewport:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Viewport:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Viewport]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+[EXCERPT:Overview]
+The **Viewport** panel allows Animation Sequences, Blendspaces, and other aspects of the _Animation Blueprint_ to be previewed on a specific Skeletal Mesh. The panel consists of a 3D perspective viewport, a movement toolbar, a view options toolbar, and a timeline/control bar for controlling playback of the preview.
+[/EXCERPT:Overview]
+
+![Viewport Panel with Callouts](ViewportPanel.png)(w:720)
+
+1. **Movement Toolbar**
+1. **View Options Toolbar** 
+1. **Viewport** 
+1. **Timeline and Control Bar**
+
+## Movement Toolbar
+[EXCERPT:movement]
+The Movement Toolbar contains a collection of tools for moving, rotating, or scaling bones as well as how they are moved, rotated, or scaled with Grid Snapping. This toolbar also has an option for setting the relative coordinate system for movement or rotation as well as an option to set the camera movement speed when moving around in the viewport. 
+
+| Option | Description |
+| ------ | ----------- |
+| ![](Persona_Translate.png)| Translates skeletal bones. |
+| ![](Persona_Rotate.png)| Rotates skeletal bones. |
+| ![](Persona_Scale.png) | The last option scales skeletal bones (if applicable, grayed out by default).  |
+| ![](button_Persona_Local.png) ![](Persona_World.png)| Sets the relative coordinate system for moving and rotating the mesh (**World** or **Local**).|
+| ![](Persona_GridSnap.png) | Enables or disables snapping to the grid when dragging objects around and the Position Grid Snap value. |
+| ![](Persona_RotationSnap.png)| Enables or disables snapping to the grid when rotating objects around and the Rotation Grid Snap value.  |
+| ![](Persona_ScaleSnapping.png) | Enables or disables snapping to the grid when scaling objects and the Scale Grid Snap value.  |
+| ![](Persona_CameraMoveSpeed.png) | Adjust the speed of the camera while moving around in the viewport.|
+
+[/EXCERPT:movement]
+
+## View Options Toolbar
+
+[EXCERPT:viewoptions]
+The View Options Toolbar contains a series of buttons that hold options for what is displayed in the viewport.
+
+### Preview Mode
+
+The Preview Mode Button ![](Persona_PreviewMode1.png) provides the following options: 
+
+| Option | Description |
+| ------ | ----------- |
+| **Auto** | Previews whatever is active in the viewport. |
+| **Lock** | Locks the viewport to what is currently being previewed. This allows you to preview one item while viewing or editing another. |
+| **Camera Follow** | Follow the bounds of the mesh. |
+| **In-game Bound** | Uses in-game bounds on the preview mesh. |
+
+### Perspective
+
+The Perspective Button ![](Persona_Perspective.png) provides the following options: 
+
+| Option | Description |
+| ------ | ----------- |
+| **Perspective** | Switches the viewport to perspective view (this is the default setting). |
+| **Top** | Switches the viewport to top view. |
+| **Side** | Switches the viewport to side view. |
+| **Front** | Switches the viewport to front view. |
+
+
+### View Mode
+
+The View Mode Button ![](Persona_LitOptions.png) provides the following options: 
+
+| Option | Description |
+| ------ | ----------- |
+| **Lit** | Renders the scene with normal lighting (this is the default setting). |
+| **Unlit** | Renders the scene with no lighting. |
+| **Wireframe** | Renders the scene in brush wireframe. |
+| **Detail Lighting** | Renders the scene with detail lighting only. |
+| **Lighting Only** | Renders the scene with lights only, no textures. |
+| **Light Complexity** | Renders the scene with light complexity visualization. |
+| **Shader Complexity** | Renders the scene with shader complexity visualization. |
+| **Stationary Light Overlap** | Visualizes overlap of stationary lights. |
+| **Lightmap Density** | Renders the scene with lightmap density visualization. |
+| **Reflections** | Renders the scene with reflections only. |
+| **Exposure** | Use automatic exposure or set a fixed exposure value.  |
+
+
+### Show
+
+The Show Button ![](Persona_Show.png) provides the following options: 
+
+| Option | Description |
+| ------ | ----------- |
+| **Field of View** | Adjust the viewports field of view. |
+| **Mute Audio** | Mutes audio from the preview. |
+| **Reference Pose** | Shows the reference pose on the preview mesh. |
+| **Bound** | Shows bounds on the preview mesh. |
+| **Mesh** | Shows the preview mesh. |
+| **Uncompressed Animation** | Displays the skeleton with uncompressed animation data. |
+| **NonRetargeted Animation** | Displays the skeleton with non-retargeted animation data.|
+| **Additive Base** | Displays the skeleton in an additive base pose. |
+| **Sockets** | Display socket hitpoints. |
+| **Bones** | Display skeleton in viewport. |
+| **Bone Names** | Display Bone Names of the skeleton in the viewport. |
+| **View Selected Bone Weight** | Displays the weights of the selected bones in the viewport. |
+| **Display Info** | Displays information about the mesh in the viewport. |
+
+**Scene Setup**
+
+| Option | Description |
+| ------ | ----------- |
+| **Floor** | Toggle the display of the floor.  |
+| **Sky** | Toggle the display of the sky. |
+| **Floor Height Offset** | Height offset for the floor mesh (stored per-mesh). |
+| **Grid** | Toggle the display of the grid. |
+| **Highlight Origin** | Highlight the origin lines on the grid. |
+| **Background Brightness** | Change background color and assign a brightness value. |
+
+**Advanced**
+
+| Option | Description |
+| ------ | ----------- |
+| **UV Visualization** | Toggles the display of the mesh's UVs for the specified channel. |
+| **Normals** | Toggles the display of vertex normals in the Preview Pane. |
+| **Tangents** | Toggles the display of vertex tangents in the Preview Pane. |
+| **Binormals** | Toggles the display of vertex binormals (orthogonal vector to normal and tangent) in the Preview Pane. |
+| **Hierarchy Local Axes** | Show or hide local bone axis (All, Selected Hierarchy or None). |
+
+
+<!--
+[EXCERPT:ShowBones]
+[REGION:imagetable]
+| ![](viewport_wire.png)(h:256 convert:false) | ![](viewport_wire_show_bones.png)(h:256) |
+| ------ | ------ |
+| Wireframe Without Bones Displayed | Wireframe With Bones Displayed |
+[/REGION]
+[/EXCERPT:ShowBones]
+
+[EXCERPT:Lit]
+![](viewport_lit.png)(h:256)
+[/EXCERPT:Lit]
+
+[EXCERPT:Unlit]
+![](viewport_unlit.png)(h:256)
+[/EXCERPT:Unlit]
+
+[EXCERPT:Wireframe]
+![](viewport_wire.png)(h:256)
+[/EXCERPT:Wireframe]
+-->
+
+### Preview LODs
+
+The Preview LODs Button ![](Persona_LODAuto.png) provides the following options: 
+
+| Option | Description |
+| ------ | ----------- |
+| **LOD Auto** | Automatically selects the Level Of Detail (LOD) (this is the default setting). |
+| **LOD 0** | Selects LOD 0 as the LOD. |
+| **Level of Detail Settings** | Opens a dialog box in where you can adjust LOD Settings (pictured below). |
+
+![](LODSettingsMenu.png)
+
+The LOD Settings menu contains two sections, the first section **Current LODs** displays information about the currently applied LODs or allows for importing of FBX assets for the LOD. 
+
+The second section **Generate LOD Chain** allows you to generate an LOD (or chain generate multiple LODs) by adjusting settings pertaining to the LOD. 
+
+When an LOD is applied, either through the **Import LOD** option or through the **Generate LOD** option, they will be added to the **Current LODs** section as pictured below. 
+
+![](LODAdded.png)
+
+_The added LOD(s) can either be removed or an FBX asset can be imported for the LOD._
+
+
+### Playback Speed
+
+The Playback Speed Button ![](Persona_PlaybackSpeed.png) provides the following options: 
+
+| Option | Description |
+| ------ | ----------- |
+| **x0.1** | Sets the playback speed to 0.1.|
+| **x0.25** | Sets the playback speed to 0.25. |
+| **x0.5** | Sets the playback speed to 0.5. |
+| **x1.0** | Sets the playback speed to 1.0 (this is the default setting). |
+| **x2.0** | Sets the playback speed to 2.0. |
+| **x5.0** | Sets the playback speed to 5.0. |
+| **x10.0** | Sets the playback speed to 10.0. |
+[/EXCERPT:viewoptions]
+
+## Viewport
+
+The viewport displays a preview of the Skeletal Mesh, any options set in the Toolbar and menu bar, and any selected animation.
+
+![Viewport Panel](ViewportPanel_Viewport.png)
+
+## Timeline and Control Bar
+
+[EXCERPT:PreviewControls]
+The timeline and control bar contain the following controls:
+
+| Control | Description |
+| ------- | ----------- |
+| ![Control bar - Timeline](CE_button_timeline.png) | The timeline. This shows and allows scrubbing through the frames of the _AnimationSequence_ or _AnimationMontage_. A red bar is displayed at the current position. **Drag** the red bar to scrub. |
+| ![Control bar - Skip to Beginning](CE_button_beginning.png) | Skips to the first frame in the _AnimationSequence_ or _AnimationMontage_. |
+| ![Control bar - Step Backward](CE_button_step_back.png) | Skips to the previous frame in the _AnimationSequence_ or _AnimationMontage_. |
+| ![Control bar - Play in Reverse](CE_button_play_back.png) ![Control bar - Pause](CE_button_pause.png) | Begins playback of the _AnimationSequence_ or _AnimationMontage_ in reverse. When playing, the pause button is displayed. |
+| ![Control bar - Play Forward](CE_button_play_forward.png) ![Control bar - Pause](CE_button_pause.png) | Begins playback of the _AnimationSequence_ or _AnimationMontage_. When playing, the pause button is displayed. |
+| ![Control bar - Step Forward](CE_button_step_forward.png) | Skips to the next frame in the _AnimationSequence_ or _AnimationMontage_. |
+| ![Control bar - Skip to End](CE_button_end.png) | Skips to the last frame in the _AnimationSequence_ or _AnimationMontage_. |
+| ![Control bar - Enable Looping](CE_button_loop.png) ![Control bar - Disable Looping](CE_button_loop_enabled.png) | Toggles playback between play once and looping. When looping is enabled, the button turns red. |
+
+[REGION:note]
+When opening a _Blend Space_ or _Aim Offset_, the animation will play automatically if **Preview** is enabled. If you pause or disable the looping option in an _AnimationSequence_ or _AnimationMontage_ and then open a _Blend Space_ or _Aim Offset_, the animation will not automatically play. You will need to set an animation to play/looping in order for it to autostart when opening a _Blend Space_ or _Aim Offset_. 
+[/REGION]
+
+[/EXCERPT:PreviewControls]
+
+
+
+<!---- I don't see this in the viewport or anywhere else. 
+## Anim Preview Setup Panel
+
+![Persona: Anim Preview Setup Panel](CE_anim_preview_setup_panel.png)
+
+The **Anim Preview Setup** panel is used to configure the preview viewport. It displays a list of all of the 
+Skeletal Meshes that use the Skeleton the _VimBlueprint_ being edited was created from. To set a mesh as the 
+preview mesh used in the preview viewport, select the mesh in the list and click the **Use as preview mesh**. 
+To remove the current mesh being used in the preview viewport, click the **Clear preview** button. The list of 
+Skeletal Meshes can be filtered using the text box above the list.
+
+----------->
+

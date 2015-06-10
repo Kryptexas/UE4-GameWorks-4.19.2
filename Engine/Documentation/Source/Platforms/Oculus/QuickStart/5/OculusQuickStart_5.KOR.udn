@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:2318890
+Title:5. VR 콘텐츠 테스트
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:언리얼 엔진 4 를 사용하여 오큘러스 리프트용으로 디자인된 콘텐츠를 로드하고 플레이합니다.
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Platforms/Oculus/QuickStart/4 "%Platforms/Oculus/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/Oculus/QuickStart/6 "%Platforms/Oculus/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. 없다면 [](Resources\ContentExamples) 프로젝트를 다운로드합니다.
+1. **Content Examples** 프로젝트를 엽니다.
+	
+	![](CE_Start.png)(w:500)
+1. **파일 > 레벨 열기** 를 클릭합니다.
+1. `VR.umap` 을 선택한 다음 **열기** 를 클릭합니다.
+
+	![](VRmap.png)
+1. **레벨 에디터 툴바** 의 **플레이** 버튼 옆 화살표를 클릭한 다음 **에디터에서 플레이** 옵션을 엽니다.
+
+	![](PlayDropdown.png)
+1. **독립형 게임** 을 선택하여 게임을 실행합니다. **독립형 게임** 은 오큘러스와 호환되는 유일한 **에디터에서 플레이** 게임 테스트 모드입니다.
+
+	![](StandAloneGame.png)
+
+	[REGION:tip]
+	프로젝트에 **독립형 게임** 을 선택하고나면, 다른 것을 선택하기 전까지 그 모드에 남아있게됩니다. 즉 **플레이** 버튼만 눌러도 계속 테스트를 할 수 있다는 뜻입니다.
+	[/REGION]
+
+1. **Alt+Enter** 키를 눌러 VR 모드로 들어갑니다. 그러면 게임의 디스플레이가 오큘러스로 전송될 뿐만 아니라, 화면상의 뷰가 스테레오 뷰로 변경됩니다.
+
+	![](VRMode.png)(w:800)
+1. 이쯤에서 오큘러스를 차고 레벨을 돌아다닐 수 있습니다. 게임플레이를 끝내려면:
+	* **~** 키를 친 다음 콘솔에 `quit` 라 입력하거나,
+	* **Shift+F1** 키를 쳐 마우스 콘트롤을 회복한 다음 창을 닫습니다.
+
+
+%Steps%

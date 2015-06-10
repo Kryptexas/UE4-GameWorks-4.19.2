@@ -1,0 +1,21 @@
+﻿INTSourceChangelist:2293265
+Title:インターフェイス指定子
+Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Interfaces
+Description:エンジンおよびエディタの各種特性でのインターフェースの動作を指定する、ゲームプレイ インターフェースの宣言時に使用するキーワード
+Availability:Public
+
+[EXCERPT:main]
+インターフェースを宣言する場合に、各種アスペクトでのインターフェースがどのように動作するのか制御する指定子を 
+宣言に追加することができます。クラス宣言時に、インターフェースは利用可能な指定子のサブセットを使用します。
+
+
+* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/Blueprintable)
+* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/DependsOn)
+* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/MinimalAPI)
+* [](Programming/UnrealArchitecture/Reference/Classes/Specifiers/NotBlueprintable)
+
+## メタデータ指定子
+[INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]
+[INCLUDE:Programming/UnrealArchitecture/Reference/Metadata#MetadataUsage]
+
+[/EXCERPT:main]

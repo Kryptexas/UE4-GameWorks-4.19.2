@@ -35,12 +35,22 @@ const FString FFriendRecentPlayerItem::GetClientId() const
 	return TEXT("");
 }
 
+const FString FFriendRecentPlayerItem::GetClientName() const
+{
+	return TEXT("");
+}
+
+const TSharedPtr<FUniqueNetId> FFriendRecentPlayerItem::GetSessionId() const
+{
+	return nullptr;
+}
+
 const bool FFriendRecentPlayerItem::IsOnline() const
 {
 	return false;
 }
 
-EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() const
+const EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() const
 {
 	return EOnlinePresenceState::Offline;
 }
@@ -97,9 +107,9 @@ bool FFriendRecentPlayerItem::CanInvite() const
 	return false;
 }
 
-FString FFriendRecentPlayerItem::GetGameSessionId() const
+TSharedPtr<FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
 {
-	return FString();
+	return nullptr;
 }
 
 void FFriendRecentPlayerItem::SetPendingInvite()

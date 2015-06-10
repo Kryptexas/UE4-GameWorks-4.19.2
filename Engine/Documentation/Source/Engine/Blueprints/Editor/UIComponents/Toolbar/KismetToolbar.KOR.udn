@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:2500145
+Availability:Public
+Title: 툴바
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
+Description:
+
+[TOC (start:2)]
+
+## 개요
+
+[EXCERPT:Intro]
+**툴바** 는 기본적으로 블루프린트 에디터 좌상단에 표시됩니다. 블루프린트 에디터 툴바 버튼에는 블루프린트 편집시 자주 쓰이는 명령에 대한 바로가기가 제공됩니다. 툴바에 표시되는 버튼은 현재 편집중인 블루프린트 유형과 어떤 모드에 있는가에 따라 각기 달라집니다.
+[/EXCERPT:Intro]
+
+[REGION:fullwidth]
+![](ToolbarBP.png)
+[/REGION]
+
+툴바는 두 부분으로 이루어집니다:
+* **툴바 옵션** - 블루프린트 작업에 쓰이는 툴입니다.
+* **모드 버튼** - 블루프린트의 모드 전환에 사용되는 버튼입니다.
+
+## 툴바 옵션
+
+블루프린트 툴바에는 여러가지 옵션이 들어있습니다. 사용할 수 있는 옵션은 블루프린트의 유형과 어떤 모드에 있는가에 따라 달라집니다.
+
+툴바 옵션 관련 상세 정보는 [](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions) 문서를 참고하세요.

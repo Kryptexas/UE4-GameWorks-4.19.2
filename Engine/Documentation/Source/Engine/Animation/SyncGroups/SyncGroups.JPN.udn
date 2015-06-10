@@ -1,0 +1,103 @@
+﻿INTSourceChangelist:2410076
+Availability:Public
+Title:Sync Group
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Sync Group は、異なる長さのアニメーションの同期の維持を可能にします。
+
+
+## 概要
+[EXCERPT:Intro]
+**Sync Group** は、異なる同期の長さのアニメーションを _関連_ させ続けるものです。例えば、キャラクターの加速や減速を滑らかするために、歩きサイクルと走りサイクルをブレンドさせたい場合があります。でも、これらのアニメーションが異なる長さだったらどうなるでしょうか？例えば、歩行は走行よりもかなり時間がかかります。そのような場合、あるワールドをもう 1 つのワールドに直接ブレンドすると、足のアニメーションの切り替え時にビートが醜く、不自然な結果が生じることになります。
+
+**Sync Group** は、主要なアニメーション ノード 1 つを _リーダー_ にし、関連するその他全てのアニメーションは単に時間の長さが一致するようにスケールすることで、この問題を解消します。通常、リーダーはブレンド ウェイトが一番大きいノードになります。ウェイトがブレンドされ、フォロワーのウェイトがリーダーのウェイトより重くなったら、このフォロワーがリーダーと _なります_ 。このように、 2 つのアニメーションが共に円滑に機能して、 1 つのモーションから次のモーションへシームレスに移れるようにします。 
+
+ただし、アニメーションの時間は変更しているので、アニメーションに対しある程度の考慮が必要です。例えば、異なる歩きサイクルと走りサイクルをブレンドさせた例では、アニメーションは動き始めと終わりが必ず同じ足になるようにすると思います。こういった標準を早めに作成しておくと、全てのブレンドをもっとスムーズにできるようになります！
+[/EXCERPT:Intro]
+
+###グループの役割：リーダーとフォロワー
+
+Sync Group は、 1 つのアニメーションが _リーダー_ となり、その他は全て _フォロワー_ となるグループ ロールの概念で機能します。 
+
+| | |
+|---|---|
+|Leader|[INCLUDE:#leaderlist]|
+|Follower|[INCLUDE:#followerlist]|
+
+リーダーとフォロワーは、どちらのアニメーションの方がブレンド ウェイトがあるかによって指定されます。以下がその例です。
+
+| 画像 | 説明 |
+|---|---|
+|[INCLUDE:#runanimation]| 走行アニメーション、元のサイズ、 Sync Group 名 _WalkRun_ に設定 |
+|[INCLUDE:#walkanimation]| 歩行アニメーション、元のサイズ、同じく Sync Group 名 _WalkRun_ に設定 |
+|[INCLUDE:#walkanimationscaled] | このインスタンスでは、走行アニメーションのブレンド ウェイトが歩行アニメーションより重くなります。これらは同じ Sync グループなので、歩行アニメーションが走行アニメーションの長さに一致するように短縮されます。
+|[INCLUDE:#runanimationscaled]| ここで、歩行アニメーションのブレンド ウェイトの方が重たくなります。この結果、走行アニメーションは走行の長さに一致するように拡大されます。 
+
+<!--
+
+
+[EXCERPT:RunAnimation]
+[REGION:raw]
+![](diagram_RunAnimation.png)
+[/REGION]
+[/EXCERPT:RunAnimation]
+
+[EXCERPT:RunAnimationScaled]
+[REGION:raw]
+![](diagram_RunAnimationScaledUp.png)
+[/REGION]
+[/EXCERPT:RunAnimationScaled]
+
+[EXCERPT:WalkAnimation]
+[REGION:raw]
+![](diagram_WalkAnimation.png)
+[/REGION]
+[/EXCERPT:WalkAnimation]
+
+[EXCERPT:WalkAnimationScaled]
+[REGION:raw]
+![](diagram_walkAnimationScaledDown.png)
+[/REGION]
+[/EXCERPT:WalkAnimationScaled]
+
+
+
+
+[EXCERPT:LeaderList]
+* 全てのフォロワーに使用するマスターとなるアニメーションの長さを提供します。
+* Notifies の全てを実行します。
+[/EXCERPT:LeaderList]
+
+[EXCERPT:FollowerList]
+* リーダーに合わせてアニメーションの長さをスケールします。
+* 自分の Notifies を抑止して、リーダーの Notifies に従います。
+[/EXCERPT:FollowerList]
+
+---->
+
+
+##Sync Group の設定
+
+Sync Group の設定を行うには、AnimGraph で Animation ノードを選んで、 **[詳細]** パネルを見ます。Sync Group プロパティがあります。
+
+![](AnimationSyncGroup.png)
+
+| プロパティ | 説明 |
+|---|---|
+|**Group Name**| Sync Group の名前を入力します。通常、一緒にブレンドする予定の関連する全てのアニメーション (蛇のボディ モーション、歩行、走行、スプリントなど) は同じ Sync Group になるようにしておくと良いでしょう。
+|**Group Role**| グループのメンバーのタイプ (潜在リーダー、常にフォロワーなど)  |
+
+<!--
+グループの役割には 3 つのオプションがあります。
+* Can Be Leader - デフォルト設定です。このアニメーションのブレンド ウェイトが一番大きい場合にリーダーとなり、他のアニメーションはその長さに一致するようにスケールします。
+* Always Leader - この設定がされたアニメーションが常にリーダーとなり、全てのアニメーションはリーダーの長さと一致するように常にスケールされます。
+* Never Leader - この設定がされたアニメーションは決してリーダーにはならず、次にウェイトのあるアニメーションにマッチするように常にスケールされます。
+
+--->
+
+
+[REGION:note]
+Sync Group は、ステートマシーンと同様、 AnimGraph 内の AnimSequence ノードおよび BlendSpace ノードで設定可能です。
+[/REGION]
+
+
+

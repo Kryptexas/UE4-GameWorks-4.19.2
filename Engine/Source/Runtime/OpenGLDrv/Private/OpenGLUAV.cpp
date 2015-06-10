@@ -2,13 +2,14 @@
 
 
 #include "OpenGLDrvPrivate.h"
+#include "ShaderCache.h"
 
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertexBufferRHIParamRef VertexBufferRHI, uint32 Stride, uint8 Format)
 {
 	GLuint TextureID = 0;
 	if ( FOpenGL::SupportsResourceView() )
 	{
-		DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,VertexBuffer);
+		FOpenGLVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 
 		const uint32 FormatBPP = GPixelFormats[Format].BlockBytes;
 
@@ -31,11 +32,16 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertex
 	// and the next draw will take care of cleaning it up; or
 	// next operation that needs the stage will switch something else in on it.
 
-	return new FOpenGLShaderResourceView(this,TextureID,GL_TEXTURE_BUFFER,VertexBufferRHI,Format);
+	FShaderResourceViewRHIRef Result = new FOpenGLShaderResourceView(this,TextureID,GL_TEXTURE_BUFFER,VertexBufferRHI,Format);
+	FShaderCache::LogSRV(Result, VertexBufferRHI, Stride, Format);
+
+	return Result;
 }
 
 FOpenGLShaderResourceView::~FOpenGLShaderResourceView()
 {
+	FShaderCache::RemoveSRV(this);
+	
 	if (Resource && OwnsResource)
 	{
 		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
@@ -45,14 +51,14 @@ FOpenGLShaderResourceView::~FOpenGLShaderResourceView()
 
 FUnorderedAccessViewRHIRef FOpenGLDynamicRHI::RHICreateUnorderedAccessView(FStructuredBufferRHIParamRef StructuredBufferRHI, bool bUseUAVCounter, bool bAppendBuffer)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(StructuredBuffer,StructuredBuffer);
+	FOpenGLStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__)); 
 	return new FOpenGLUnorderedAccessView();
 }
 
 FUnorderedAccessViewRHIRef FOpenGLDynamicRHI::RHICreateUnorderedAccessView(FTextureRHIParamRef TextureRHI)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(Texture,Texture);
+	FOpenGLTexture* Texture = ResourceCast(TextureRHI);
 	check(Texture->GetFlags() & TexCreate_UAV);
 	return new FOpenGLTextureUnorderedAccessView(TextureRHI);
 }
@@ -76,7 +82,7 @@ FOpenGLVertexBufferUnorderedAccessView::FOpenGLVertexBufferUnorderedAccessView(	
 	OpenGLRHI(InOpenGLRHI)
 {
 	VERIFY_GL_SCOPE();
-	DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer, InVertexBuffer);
+	FOpenGLVertexBuffer* InVertexBuffer = FOpenGLDynamicRHI::ResourceCast(InVertexBufferRHI);
 
 
 	const FOpenGLTextureFormat& GLFormat = GOpenGLTextureFormats[Format];
@@ -108,13 +114,13 @@ FOpenGLVertexBufferUnorderedAccessView::~FOpenGLVertexBufferUnorderedAccessView(
 
 FUnorderedAccessViewRHIRef FOpenGLDynamicRHI::RHICreateUnorderedAccessView(FVertexBufferRHIParamRef VertexBufferRHI,uint8 Format)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,VertexBuffer);
+	FOpenGLVertexBuffer* VertexBuffer = ResourceCast(VertexBufferRHI);
 	return new FOpenGLVertexBufferUnorderedAccessView(this, VertexBufferRHI, Format);
 }
 
 FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FStructuredBufferRHIParamRef StructuredBufferRHI)
 {
-	DYNAMIC_CAST_OPENGLRESOURCE(StructuredBuffer,StructuredBuffer);
+	FOpenGLStructuredBuffer* StructuredBuffer = ResourceCast(StructuredBufferRHI);
 	UE_LOG(LogRHI, Fatal,TEXT("OpenGL RHI doesn't support RHICreateShaderResourceView yet!"));
 	return new FOpenGLShaderResourceView(this,0,GL_TEXTURE_BUFFER);
 }

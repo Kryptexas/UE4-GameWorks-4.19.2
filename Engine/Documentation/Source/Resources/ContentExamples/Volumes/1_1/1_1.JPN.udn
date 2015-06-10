@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2438685
+Availability:Docs
+Title:1.1 - 配置
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:ボリュームの事例概要、例 1.1：配置
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_1:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+ボリュームは以下の手順で追加できます。**Place Mode > All Content** を使用して、ボリュームをシーンへドラッグしてドロップします。
+
+
+配置すると、ブラシ編集モードででスケーリングまたは修正できます。
+
+これは Blocking Vlolume の例ですが、どんなボリュームでもこのように配置することができます。
+
+

@@ -1,0 +1,104 @@
+﻿INTSourceChangelist:2509035
+Availability:Public
+Title:콘텐츠 브라우저
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:패키지 파일 관리는 물론 애셋을 정리하고 생성하여 유용한 작업을 하기도 하는 툴입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](ContentBrowserInterface.png)(w:800)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+## 개요
+
+[EXCERPT:Intro]
+[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
+
+[/EXCERPT:Intro]
+
+콘텐츠 브라우저에서 할 수 있는 일은:
+
+* 게임에서 찾을 수 있는 모든 애셋을 로드된 상태든 아니든 둘러보고 상호작용합니다.
+* 애셋을 저장된 상태든 아니든 찾아줍니다:
+    * 텍스트 필터: **애셋 검색** 박스에서 찾을 애셋의 이름, 경로, 태그, 유형별로 검색합니다. 검색어 앞에 '-' 를 붙이면, 해당 애셋은 검색에서 제외됩니다.
+    * 확장 필터: **필터** 버튼을 클릭하면 애셋을 오브젝트 유형 및/또는 태그 조합별로 둘러봅니다.
+* 소스 콘트롤에서 패키지를 체크아웃 시키지 않고도 애셋을 로드된 상태든 아니든 체계적으로 정리할 수 있습니다:
+    * 로컬 또는 개인 콜렉션을 만들어 애셋을 그 안에 저장해 둔 다음 나중에 사용할 수 있습니다.
+    * 공유 콜렉션을 만들어 팀원들과 흥미로운 애셋을 공유합니다.
+* 개발 보조:
+    * 문제가 있을 수 있는 애셋을 표시합니다.
+* **이주** 툴을 사용하면 애셋뿐만 아니라 그 종속성까지 다른 콘텐츠 폴더로 자동으로 옮겨줍니다.
+
+
+## 콘텐츠 브라우저 열기
+
+**콘텐츠 브라우저** 는 **창** 메뉴를 통해 열 수 있습니다. 콘텐츠 브라우저는 동시에 최대 네 개의 인스턴스까지 열 수 있으며, 다음과 같은 여러가지 방식으로 유용합니다:
+
+* 스태틱 메시만, 또는 머티리얼만 표시하는 등, 콘텐츠 브라우저마다 각기 다른 애셋 유형 필터를 적용시키는 경우.
+* 애셋을 다른 폴더로 이동시킬 때, 각 폴더에 있는 다른 애셋을 확인하고자 하는 경우.
+
+
+[REGION:caption]
+	기본적으로 콘텐츠 브라우저는 메인 레벨 에디터 인터페이스의 좌하단에 붙어있지만, 레벨 에디터 어느 곳이든 붙일 수도 있고, 독립된 창으로 띄울 수도 있습니다.
+[/REGION]
+
+
+
+## 콘텐츠 브라우저 글타래
+
+[REGION:topics fourth]
+%Engine/Content/Browser/UI:TopicCompact%
+%Engine/Content/Browser/UserGuide/WorkingWithSources:TopicCompact%
+%Engine/Content/Browser/UserGuide/BrowserAssetCreation:TopicCompact%
+%Engine/Content/Browser/UserGuide/Collections:TopicCompact%
+%Engine/Content/Browser/UserGuide/Filters:TopicCompact%
+%Engine/Content/Browser/UserGuide/Folders:TopicCompact%
+%Engine/Content/Browser/UserGuide/DevelopersFolder:TopicCompact%
+%Engine/UI/SourceControl:TopicCompact%
+%Engine/Content/Browser/AssetConsolidationTool:TopicCompact%
+%Engine/Content/Browser/UserGuide/Migrate:TopicCompact%
+%Engine/Content/Browser/ReferenceViewer:TopicCompact%
+[/REGION]
+

@@ -26,7 +26,7 @@ void UCanvasRenderTarget2D::UpdateResource()
 	UCanvas* Canvas = (UCanvas*)StaticFindObjectFast(UCanvas::StaticClass(), GetTransientPackage(), CanvasName );
 	if (Canvas == nullptr)
 	{
-		Canvas = ConstructObject<UCanvas>(UCanvas::StaticClass(), GetTransientPackage(), CanvasName );
+		Canvas = NewObject<UCanvas>(GetTransientPackage(), CanvasName);
 		Canvas->AddToRoot();
 	}
 
@@ -85,7 +85,7 @@ UCanvasRenderTarget2D* UCanvasRenderTarget2D::CreateCanvasRenderTarget2D(UObject
 {
 	if ((Width > 0) && (Height > 0) && (CanvasRenderTarget2DClass != NULL))
 	{
-		UCanvasRenderTarget2D* NewCanvasRenderTarget = ConstructObject<UCanvasRenderTarget2D>(CanvasRenderTarget2DClass, GetTransientPackage());
+		UCanvasRenderTarget2D* NewCanvasRenderTarget = NewObject<UCanvasRenderTarget2D>(GetTransientPackage(), CanvasRenderTarget2DClass);
 		if (NewCanvasRenderTarget)
 		{
 			NewCanvasRenderTarget->World = GEngine->GetWorldFromContextObject(WorldContextObject);

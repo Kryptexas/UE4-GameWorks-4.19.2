@@ -1019,7 +1019,7 @@ void FLayers::AddAllLayersTo( TArray< TWeakObjectPtr< ULayer > >& OutLayers ) co
 
 TWeakObjectPtr< ULayer > FLayers::CreateLayer( const FName& LayerName )
 {
-	ULayer* NewLayer = ConstructObject< ULayer >( ULayer::StaticClass(), GetWorld(), NAME_None, RF_Transactional );
+	ULayer* NewLayer = NewObject<ULayer>(GetWorld(), NAME_None, RF_Transactional);
 	check( NewLayer != NULL );
 
 	GetWorld()->Modify();

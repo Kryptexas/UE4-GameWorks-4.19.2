@@ -21,53 +21,69 @@ enum EHlslccBackend
 };
 
 /** Debug output. */
+static char* DebugBuffer = 0;
 static void dprintf(const char* Format, ...)
 {
 	const int BufSize = (1 << 20);
-	static char* Buf = 0;
 	va_list Args;
 	int Count;
 
-	if (Buf == 0)
+	if (DebugBuffer == nullptr)
 	{
-		Buf = (char*)malloc(BufSize);
+		DebugBuffer = (char*)malloc(BufSize);
 	}
 
 	va_start(Args, Format);
 #if WIN32
-	Count = vsnprintf_s(Buf, BufSize, _TRUNCATE, Format, Args);
+	Count = vsnprintf_s(DebugBuffer, BufSize, _TRUNCATE, Format, Args);
 #else
-	Count = vsnprintf(Buf, BufSize, Format, Args);
+	Count = vsnprintf(DebugBuffer, BufSize, Format, Args);
 #endif
 	va_end(Args);
 
 	if (Count < -1)
 	{
 		// Overflow, add a line feed and null terminate the string.
-		Buf[sizeof(Buf) - 2] = '\n';
-		Buf[sizeof(Buf) - 1] = 0;
+		DebugBuffer[BufSize - 2] = '\n';
+		DebugBuffer[BufSize - 1] = 0;
 	}
 	else
 	{
 		// Make sure the string is null terminated.
-		Buf[Count] = 0;
+		DebugBuffer[Count] = 0;
 	}
 	
 #if WIN32
-	OutputDebugString(Buf);
+	OutputDebugString(DebugBuffer);
 #elif __APPLE__
-	syslog(LOG_DEBUG, "%s", Buf);
+	syslog(LOG_DEBUG, "%s", DebugBuffer);
 #endif
-	fprintf(stdout, "%s", Buf);
+	fprintf(stdout, "%s", DebugBuffer);
 }
+
+#include "ir.h"
+#include "irDump.h"
 
 struct FGlslCodeBackend : public FCodeBackend
 {
 	FGlslCodeBackend(unsigned int InHlslCompileFlags) : FCodeBackend(InHlslCompileFlags) {}
 
-
-	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) 
+	// Returns false if any issues
+	virtual bool GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) override
 	{
+		ir_function_signature* EntryPointSig = FindEntryPointFunction(Instructions, ParseState, EntryPoint);
+		if (EntryPointSig)
+		{
+			EntryPointSig->is_main = true;
+			return true;
+		}
+
+		return false;
+	}
+
+	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override
+	{
+		IRDump(ir);
 		return 0;
 	}
 };
@@ -78,7 +94,7 @@ struct FGlslLanguageSpec : public ILanguageSpec
 {
 	virtual bool SupportsDeterminantIntrinsic() const {return false;}
 	virtual bool SupportsTransposeIntrinsic() const {return false;}
-	virtual bool SupportsIntegerModulo() const {return false;}
+	virtual bool SupportsIntegerModulo() const {return true;}
 
 	// half3x3 <-> float3x3
 	virtual bool SupportsMatrixConversions() const {return false;}
@@ -105,6 +121,7 @@ struct SCmdOptions
 	bool bGroupFlattenedUB;
 	bool bExpandExpressions;
 	bool bCSE;
+	bool bSeparateShaderObjects;
 	const char* OutFile;
 
 	SCmdOptions() 
@@ -121,6 +138,7 @@ struct SCmdOptions
 		bGroupFlattenedUB = false;
 		bExpandExpressions = false;
 		bCSE = false;
+		bSeparateShaderObjects = false;
 		OutFile = nullptr;
 	}
 };
@@ -209,6 +227,10 @@ static int ParseCommandLine( int argc, char** argv, SCmdOptions& OutOptions)
 			else if (!strncmp(*argv, "-o=", 3))
 			{
 				OutOptions.OutFile = (*argv) + 3;
+			}
+			else if (!strcmp( *argv, "-separateshaders"))
+			{
+				OutOptions.bSeparateShaderObjects = true;
 			}
 			else
 			{
@@ -325,6 +347,7 @@ int main( int argc, char** argv)
 	Flags |= Options.bGroupFlattenedUB ? HLSLCC_GroupFlattenedUniformBuffers : 0;
 	Flags |= Options.bCSE ? HLSLCC_ApplyCommonSubexpressionElimination : 0;
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
+	Flags |= Options.bSeparateShaderObjects ? HLSLCC_SeparateShaderObjects : 0;
 
 	FGlslCodeBackend GlslCodeBackend(Flags);
 	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);
@@ -340,47 +363,58 @@ int main( int argc, char** argv)
 		Flags |= HLSLCC_DX11ClipSpace;
 		break;
 	}
-	int Result = HlslCrossCompile(
-		Options.ShaderFilename,
-		HLSLShaderSource,
-		Options.Entry,
-		Options.Frequency,
-		CodeBackend,
-		LanguageSpec,
-		Flags,
-		Options.Target,
-		&GLSLShaderSource,
-		&ErrorLog
-		);
+	int Result = 0;
 
-	if (GLSLShaderSource)
 	{
-		dprintf("GLSL Shader Source --------------------------------------------------------------\n");
-		dprintf("%s",GLSLShaderSource);
-		dprintf("\n-------------------------------------------------------------------------------\n\n");
-	}
-
-	if (ErrorLog)
-	{
-		dprintf("Error Log ----------------------------------------------------------------------\n");
-		dprintf("%s",ErrorLog);
-		dprintf("\n-------------------------------------------------------------------------------\n\n");
-	}
-
-	if (Options.OutFile && GLSLShaderSource)
-	{
-		FILE *fp = fopen( Options.OutFile, "w");
-
-		if (fp)
+		//FCRTMemLeakScope::BreakOnBlock(33758);
+		FCRTMemLeakScope MemLeakScopeContext;
+		FHlslCrossCompilerContext Context(Flags, Options.Frequency, Options.Target);
+		if (Context.Init(Options.ShaderFilename, LanguageSpec))
 		{
-			fprintf( fp, "%s", GLSLShaderSource);
-			fclose(fp);
+			FCRTMemLeakScope MemLeakScopeRun;
+			Result = Context.Run(
+				HLSLShaderSource,
+				Options.Entry,
+				CodeBackend,
+				&GLSLShaderSource,
+				&ErrorLog) ? 1 : 0;
+		}
+
+		if (GLSLShaderSource)
+		{
+			dprintf("GLSL Shader Source --------------------------------------------------------------\n");
+			dprintf("%s",GLSLShaderSource);
+			dprintf("\n-------------------------------------------------------------------------------\n\n");
+		}
+
+		if (ErrorLog)
+		{
+			dprintf("Error Log ----------------------------------------------------------------------\n");
+			dprintf("%s",ErrorLog);
+			dprintf("\n-------------------------------------------------------------------------------\n\n");
+		}
+
+		if (Options.OutFile && GLSLShaderSource)
+		{
+			FILE *fp = fopen( Options.OutFile, "w");
+
+			if (fp)
+			{
+				fprintf( fp, "%s", GLSLShaderSource);
+				fclose(fp);
+			}
+		}
+
+		free(HLSLShaderSource);
+		free(GLSLShaderSource);
+		free(ErrorLog);
+
+		if (DebugBuffer)
+		{
+			free(DebugBuffer);
+			DebugBuffer = nullptr;
 		}
 	}
-
-	free(HLSLShaderSource);
-	free(GLSLShaderSource);
-	free(ErrorLog);
 
 	return 0;
 }

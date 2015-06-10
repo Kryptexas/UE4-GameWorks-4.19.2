@@ -1,0 +1,93 @@
+Availability: Public
+Title:Sources Panel In-Depth
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:This document covers the nuances of working with source folders in the Content Browser Sources Panel.
+	
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](SourcesPaneltopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/WorkingWithSources:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/WorkingWithSources]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+## Overview
+
+Since the **Sources** panel gives you a hierarchical representation of all the folders in your project, it is important to know all the ways in which the **Content Browser** allows you to access the assets within those folders. 
+
+
+![SourcesPanel.png](Engine/Content/Browser/UserGuide/WorkingWithSources/SourcesPanel.png)(h:400)
+
+For more information about the **Developers** folder, see [](Engine/Content/Browser\UserGuide\DevelopersFolder).
+
+## Toggling the Sources Panel
+
+If you like, you can close the **Sources** panel when you are working with the **Content Browser**. By clicking the ![Collapse Button](Engine/Content/Browser/UserGuide/WorkingWithSources/icon_CollapseButton.png) button at the top of the window, you can display or hide the **Sources** panel at will. This is highly useful when you need more screen real estate space, or when you are working with multiple **Content Browsers**.
+
+[REGION:note]
+	Hiding the **Sources** panel also hides the **Collections** panel.
+[/REGION]
+
+
+## Selecting Sources
+
+The Asset View can only show assets based on the following criteria: selected sources, then any filters and searches. For this reason, it is important to know that you must have the appropriate source folder(s) selected in order to see the assets within them.
+
+[REGION:note]
+	In order to search for assets in multiple folders, you must select all the folders you want to search. The Asset View will not display assets of any unselected folders. This means that in order to search all assets within your project, you must have all project folders (or a parent folder that contains all of them) selected in the Sources View.
+[/REGION]
+
+Like with folder and file listings in many programs and operating systems, the following key combinations apply:
+
+* **Mouse Click** - Replaces current selection with whatever folder was clicked.
+* **Shift+click** - Toggles a folder's selection status. Will also range-select all folders between a start and end point.
+* **Ctrl+click** - Toggles a folder's selection status, but does nothing to any folders that were not clicked.
+
+
+## Right-Click Context Menu
+
+If you **right-click** on any of the folders within the **Sources** panel, the following context menu will appear:
+
+
+| Name | Description |
+| -------- | ----------- |
+| **[New Folder](Engine/Content/Browser\UserGuide\Folders)** | Creates a new folder underneath the currently selected one. |
+| [REGION:tablesection]Folder Options[/REGION] ||
+| **[New Asset](Engine/Content/Browser\UserGuide\BrowserAssetCreation)** | Opens another submenu showing the various types of assets that can be created. |
+| **Show in Explorer** | Opens up the folder in Windows explorer. See Browsing Assets in Windows below. |
+| **Rename** | Rename the selected folder.|
+| **Set Color** | Allows you to set the color of a selected folder for organizational purposes.|
+| [REGION:tablesection]Bulk Operations[/REGION] ||
+| **Save** | Saves all new or changed assets, as well as all new folders. Remember to do this often when making changes. |
+| **Delete** | Deletes the currently selected folder and all of its contents. |
+| **[Reference Viewer](Engine/Content/Browser\ReferenceViewer)** | Displays a graph of references for the folder. |
+| **Fixed Up Redirectors in Folder** | Finds referencers to all redirectors in the selected folders and resaves them if possible, then deletes any redirectors that had all their referencers fixed.|
+| [REGION:tablesection]Source Control (options are only visible if the source control setting is active in the Level Editor's [Preferences](Engine/UI/EditorSettings))[/REGION] ||
+| **Check Out** | Marks the selected folder as "checked out," locking it from edits by other users. |
+| **Mark For Add** | Marks the selected folder for addition onto the source control server. |
+| **Check In** | Submits all edits and additions, and unlocks the checked-out folder. |
+| **Sync** | Syncs all the assets in this folder to the latest version. |
+
+For information about setting up and using source control, see [](Engine/UI/SourceControl).
+
+## Moving and Copying
+
+You can move or copy folders from one folder location to another by dragging and dropping selected folders within the **Sources** panel. When you do this, the following context menu will appear:
+
+
+
+| Name | Description |
+| -------- | ----------- |
+| [REGION:tablesection]Move/Copy[/REGION] ||
+| **Copy Folder Here** | Makes a duplicate of the selected folder in the destination folder. |
+| **Move Folder Here** | Moves the folder to the new location, meaning that it will no longer be in the original location. |
+

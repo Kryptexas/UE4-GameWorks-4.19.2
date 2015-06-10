@@ -1,0 +1,69 @@
+Availability: Public
+Title:Filters
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:This document covers the concepts and uses of filters in the Content Browser.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](FiltersTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Filters:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Filters]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+	
+[TOC(start:2 end:3)]
+
+## Overview
+
+![FilterList.png](FilterList.png)
+
+You may find that your project contains so many assets that scanning through the **Content Browser** to look for an individual asset becomes time-consuming and slows down your productivity. This is where _filters_ come in.
+
+Filters provide a fast way to narrow down the types of assets visible in the Asset View of the **Content Browser**. Each filter represents either a specific asset type or additional criteria that may be used to limit the types of assets visible in the **Content Browser**.
+
+## Adding Filters
+
+Adding filters is as easy as clicking on the ![FiltersButton.png](icon_FiltersButton.png) button, located at the top of the Asset View in the **Content Browser**. This will bring up the Filters List, with flyout submenus available in each category. Select each type of filter you want to add it to the Filter Bar, which is **only visible when you have one or more active filters**.
+
+![FilterBar.png](FilterBar.png)
+
+You may add as many filters to your current Asset View as you like. Filters are additive by nature, meaning that if you start by selecting the **Static Mesh** filter, you will only see Static Meshes. If you then select the **Blueprint** filter, you will see Static Meshes *and* Blueprints. Each filter you add increases the number of available asset types. Keep in mind that you can always see how many assets are currently visible in the lower-left corner of the Asset View.
+
+[REGION:note]
+	You can add all filters under a given category of the filters list by selecting the category itself.
+[/REGION]
+
+## Deactivating Filters
+
+Filters can be turned on and off by clicking on them. A deactivated filter has no effect, and will appear grayed out. To turn a filter back on, simply click it again.
+
+![ActiveInactive.png](ActiveInactive.png)
+
+In the above image, the **Static Mesh** filter is active while the **Blueprint** filter has been deactivated.
+
+## Removing Filters
+
+You can remove a filter from the list when you no longer need it. This can be done in two different ways:
+
+1. **Right-click** on the filter in the list, and choose **Remove Filter** from the context menu that appears.
+
+	![button_RemoveFilter.png](button_RemoveFilter.png)
+
+1. Click on the ![FiltersButton.png](icon_FiltersButton.png) button, and deselect the selected filter by clicking its check box. This will remove those filters from the filters bar.
+
+[REGION:tip]
+You can also select and then deselect any category to remove all the filters in that category.
+[/REGION]
+
+## Filters and Multiple Content Browsers
+
+It can be useful to combine the use of filters with multiple **Content Browsers**. This would, for instance, allow you to have one **Content Browser** showing only a given asset type, such as Blueprints, while a second **Content Browser** shows only Static Meshes, as shown here:
+
+![TwoContentBrowsers.png](TwoContentBrowsers.png)(w:600)
+

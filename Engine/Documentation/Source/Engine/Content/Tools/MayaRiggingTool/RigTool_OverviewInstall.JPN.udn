@@ -1,0 +1,102 @@
+﻿INTSourceChangelist:2108142
+Availability:Public
+Title:Maya アニメーション リギング ツールセット
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:Maya アニメーションリギングツールセット（ART）の概要
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Tools/MayaRiggingTool:title%](Rigging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Tools/MayaRiggingTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Tools/MayaRiggingTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Tools/MayaRiggingTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:raw]
+![](CharacterSetupImage.jpg)
+[/REGION]
+
+
+## 概要
+
+[EXCERPT:Intro]
+アニメーションとリギング ツールセット (A.R.T) は、アニメーターのワークフローを迅速化するたくさんのアニメーションツールだけではなく、スケルトン作成、スケルトンの配置、リグの作成などからキャラクターを取り入れることができる総合ツールセットです。現時点では Maya2013 とそれ以降のバージョンでテストを終了し互換性を確認しています。以下の機能が含まれます。
+
+* 各プロセスをユーザーに対し直観的に指導するユーザーインターフェース
+* 完全なスケルタルの作成
+* 直観的な位置調整リグを用いたスケルトンのカスタム配置
+* アニメーションチームへリグ全体の公開および送信が **一分足らず** で可能
+* 最終キャラクターに簡易なスキニングを設定
+* アニメーションツール一式には、モーキャップまたはアニメーションデータのインポートを含むユーザーインターフェース、 FBX フォーマットへの書き出し、一時停止ツール、空間の切り替えなどが完備されています。
+[/EXCERPT:Intro]
+
+[REGION:note]
+最初は、 ART が Epic のアニメーションチーム用に社内ツールセットとして開発したのがきっかけでした。現在は、主に二足歩行をする人間の形をしたキャラクター用に最適化されています。しかしながら、より幅広いキャラクターに対して適用できるように進化し続けています。
+[/REGION]
+
+
+## インストールマニュアル
+
+
+1. インストールした UE4 でファイルを検索します。通常は **UE4/Engine/Extras/Maya_AnimationRiggingTools** 配下に保存されています。 
+
+1. **userSetup.py** ファイル (_Engine\Extras\Maya_AnimationRiggingTools\MayaTools_ に保存) を **Maya scripts directory** (通常は _C:\Users\user.name\Documents\maya\scripts_ に保存) へコピーします。ここで、既存ファイルを上書きするか問われる可能性があります。修正を加えていない場合、上書きしても構いません。別のスクリプトフォルダに、 userSetup.py の別のインスタンスが保存されている場合、そちらを削除してください。
+
+	[REGION:warning]
+	カスタムの userSetup.py を既に使用している場合、このツールセットで提供している 1 つのコンテンツのとのマージを TD に頼んでください。
+	[/REGION]
+
+1. Maya を起動します。
+
+1. 最初に Maya のツールインストールダイアログが表示されて、 MayaTools ディレクトリを検索するように促されます。_userSetup.py_ ファイルが保存されているディレクトリである _UE4/Engine/Extras/Maya_AnimationRiggingTools_ です。
+
+	![](MayaToolInstallWindow.png)
+
+1. これで Maya のメニューバーの上部に Epic Games のメニューが表示されているはずです。楽しんでください！
+
+	![](MayaMenu.png)
+
+
+[PUBLISH:licensee]
+[REGION:warning]
+Perforce などソース管理システムを使用している場合、クライアント スペック ライン編集の設定をローカルの代わりに Unix へ編集します。ローカルに設定したままだと、なんらかの理由でテキストファイルのフォーマットが破壊されてエラーが発生します。後に強制的に同期して変更を反映させます。
+
+P4V でこの変更を行うには、 **Connection > Edit Current Workspace** 設定を使用してください。
+
+![](PerforceSetting.png)
+
+
+[/REGION]
+[/PUBLISH:licensee]
+
+## ツールセットを使用する
+
+ART は次の 2 つのモードに分けられます。リギングとアニメーションです。それぞれ独自のインターフェイスを持ちます。キャラクターが ART アニメーション インターフェイスを使用するには、リギング インターフェイスから作成されなければなりません。
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		アニメーション＆リギングツール
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:Description%
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Animation) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Animation:Description%
+		
+	[/PARAM]
+[/OBJECT]

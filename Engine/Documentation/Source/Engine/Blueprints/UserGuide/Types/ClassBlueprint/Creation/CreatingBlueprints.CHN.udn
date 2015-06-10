@@ -1,0 +1,181 @@
+﻿INTSourceChangelist:1782020
+Availability:Public
+Title:创建类蓝图
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/ClassBlueprint
+Description: 关于通过内容浏览器和类别查看器创建新蓝图的指南。
+
+[TOC(start:2)]
+
+
+
+## 选择蓝图类型
+
+有时候乍一看，您很难判断您应该使用哪种 _蓝图_ 类型，尤其是 
+当谈到[_蓝图宏库_](Engine/Blueprints/UserGuide/Types/MacroLibrary) 和 [_类蓝图_](Engine/Blueprints/UserGuide/Types/ClassBlueprint)时。一个很好的经验方法就是问你自己：
+
+* **有多个实例吗?**
+
+如果您要具有的不只是一两个实例(比如，一台可以拍摄或 打开/关闭 的电视机)， 
+那么创建 _Class Blueprint（类蓝图）_ 可能是有意义的，它具备了相关的代码。
+如果不需要多个实例，且您仅是需要一些辅助函数(比如查找X单元中的所有actor)，那么这些函数 
+位于 [_蓝图宏库_](Engine/Blueprints/UserGuide/Types/MacroLibrary)中是理想的。
+
+## 通过内容浏览器创建蓝图
+
+_Blueprint（蓝图）_ 存储在包中，可以像创建任何其他资源一样通过内容浏览器来创建蓝图。
+
+1. 在内容浏览器中，点击 ![New Asset button](button_new_asset_blueprint.png) 。
+
+1. 在出现的菜单中选择 **New Asset（新建资源）** 下的 **Blueprint（蓝图）** 选项。
+
+	![New Asset menu](new_asset_blueprint_menu.png)
+
+1. 选择您的 _蓝图_ 的 **Parent Class（父类）** 。
+
+	![Choose a Parent Class](new_asset_parent_class.png)
+
+1. 您的 _蓝图_ 将会立即出现在内容浏览器中。请在内容浏览器中您的 _蓝图_ 图标的下面输入它的名称。
+
+	![Name Your Blueprint](content_browser_new_bp_name.png)
+
+	当您第一次创建 _蓝图_ 或者当您在 **蓝图编辑器** 中修改它时，在内容浏览器中蓝图的图标上将会添加一个星号。这意味着没有保存该 _蓝图_ 。
+
+	![Unsaved Blueprint Icon](unsaved_blueprint.png)
+
+1. 要想从内容浏览器中直接保存 _蓝图_ ，请点击内容浏览器导航条中的 **Save（保存）...** 按钮。
+
+	![Save in Content Browser](content_browser_new_bp_save.png)
+
+1. 在出现的 **Save Content（保存内容）** 窗口中，请确保选中了您的新 _蓝图_ 的复选框，然后点击![Save Selected](button_save_selected.png) 按钮。
+	
+	![Save Content](save_content.png)
+
+1. 双击 _蓝图_ 的图标来在 _蓝图编辑器_ 中打开它。
+
+
+还有两种从内容浏览器中访问 _蓝图_ 创建菜单的其他方法。
+
+1. 右击内容浏览器的Asset View（资源视图）面板(右侧)。
+
+1. 从出现的菜单中，选择 **New Asset（新建资源）** 下的 **Blueprint（蓝图）** 菜单。
+
+	![](rtclick_content_browser_right_menu.png)
+
+1. **Pick Parent Class(选择父类)** 窗口将会出现，从这里开始， _蓝图_ 的创建过程就和您使用 **新建资源** 按钮创建时一样了。
+
+
+另一种方法:
+
+1. 在 **Asset Tree（资源树）** 中的一个文件夹上右击鼠标，该资源树位于内容浏览器的左侧。
+
+1. 在出现的菜单中，将鼠标移动到 **New Asset(新建资源)** 项。
+
+	![](rtclick_content_browser_asset_tree.png)
+
+1. 在出现的子菜单中，选择 **New Asset（新建资源）** 下的 **Blueprint（蓝图）** 选项。
+
+	![](rtclick_content_browser_asset_tree_bp.png)
+
+1. **Pick Parent Class(选择父类)** 窗口将会出现，从这里开始， _蓝图_ 的创建过程就和您使用 **新建资源** 按钮创建时一样了。
+
+<!--
+1.	在内容浏览器中，右击并选择您想创建的 _蓝图_ 类  
+型的选项。在该示例中，通过选中 **New Blueprint（新建蓝图）** 创建了一个正常的 _蓝图_ 。
+
+![Create Blueprint Menu Option](k2_create_menu.png)
+
+或者点击 ![Content Browser New Button](k2_create_new.png)并设置  **Factory** 为您想创建的 
+ _蓝图_ 的类型。在该示例中，通过选择 **Blueprint（蓝图）** 创建了一个正常的 _蓝图_ 。
+
+![New Dialog Blueprint Factory Option](k2_create_factory.png)
+
+显示了针对创建 _蓝图_ 的选项。
+
+![New Dialog Blueprint Optionts](k2_create_options.png)
+
+1.	在 **New（新建）** 对话框中，输入新 _蓝图_ 的  **Path（路径）** 。
+
+![New Dialog Info](k2_create_info.png)
+
+1.	点击 ![New Dialog OK Button](k2_create_ok.png) 来创建该 _蓝图_ 。新的 _蓝图_ 资源 
+显示在了内容浏览器中。
+
+![Blueprint Asset Thumbnail](k2_create_asset.png)
+
+-->
+##通过类别查看器创建蓝图
+
+当通过类别查看器创建蓝图时，首先把所显示的类别过滤为仅显示 _蓝图_ 基类是有用的。
+
+1. 在类别查看器工具条中，点击 **Filters（过滤器）** 。
+
+	![](class_viewer_filters.png)
+
+1. 在 **Filters(过滤器)** 菜单中，选择 **Blueprint Bases Only（仅蓝图基类）** 。
+
+	![](filter_blueprint_class_viewer.png)
+
+
+一旦您过滤了类的列表后，导航到您想将其作为您的蓝图基类的类。在这个示例中，我们使用 **CameraActor** 作为基类创建一个 _蓝图_ 。
+
+1. 点击您选择的类的右侧的向下箭头图标。
+
+	![](class_viewer_arrow.png)
+
+1. 将会出现 **Create Blueprint（创建蓝图）** 选项。点击该项，将会出现创建 _蓝图_ 的对话框。
+
+	![](class_viewer_down_arrow.png)
+
+1. 输入您的蓝图的名称，并选择应该用于保存该蓝图的文件夹。
+
+1. 点击 _蓝图_ 创建对话框顶部的 "创建[路径]/[名称]" 选项，将会创建您的 _蓝图_ ，并在 _蓝图编辑器_ 中打开它。
+	
+	![](class_viewer_create_complete.png)
+
+1. 要想在编辑器中保存您的 _蓝图_ ，请点击 _蓝图编辑器_ 工具条内的 ![Save](blueprint_editor_save.png) 按钮。
+
+
+
+您也可以在类别查看器中直接点击您想用作为您的蓝图基类的类，来进行 _蓝图_ 创建。
+这个 _蓝图_ 创建过程和您使用该类右侧的![Down Arrow Icon](button_down_arrow.png) 按钮是一样的。
+
+![](rtclick_class_viewer_bp.png)
+
+##基于选中的Actor创建蓝图
+
+1. 在虚幻编辑器中，选择您想基于其创建 _蓝图_ 的 **Actor** (StaticMesh、Camera等)。
+
+1. 在 **详细信息** 面板内，在Blueprint（蓝图）下，点击 **Create Blueprint（创建蓝图）...** 。
+
+	![](actor_details_create_blueprint.png)
+
+1. 选择您的蓝图应该保存到的路径。
+
+	![](actor_select_path_menu.png)
+
+1. 您的 _蓝图_ 将会立即出现在内容浏览器中。在内容浏览器的导航条上点击 **Save（保存）...** 来保存该蓝图。
+
+	![Save in Content Browser](content_browser_new_bp_save.png)
+
+1. 直接基于actor创建的蓝图会自动生成名称。要想改变该名称，请在内容浏览器中右击该蓝图，并在出现的菜单中选择 **Rename（重命名）** 。
+
+	![](rename_blueprint.png)
+
+1. 双击 _蓝图_ 的图标来在 _蓝图编辑器_ 中打开它。
+
+
+直接基于关卡中的一个 _Actor_ 来创建蓝图有两种方法。
+
+1. 直接右击该 _Actor_ 并在出现的菜单中选择 **Create Blueprint（创建蓝图）...** 。
+
+	![](rtclick_actor_menu.png)
+
+ 
+或者：
+
+1. 右击 **Scene Viewer(场景查看器)** 下的该Actor项，并在出现的菜单中选择 **Create Blueprint（创建蓝图）...** 。
+
+	![](actor_scene_outliner_bp.png)
+
+
+这两种 **Create Blueprint...（创建蓝图）** 的方法，都会弹出 **Select Path(选择路径)** 对话框，接下来创建 _蓝图_ 的过程和您使用 **详细信息** 选卡中的 **Create Blueprints（创建蓝图）...** 按钮一样。

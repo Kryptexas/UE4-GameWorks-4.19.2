@@ -1,0 +1,26 @@
+Availability:docs
+Title:Output Log
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:Overview and usage of the Output Log.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Editor/ClassViewer:title%](Engine/UI/OutputLog_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Output Log
+	[/PARAM]
+	[PARAM:description]
+		Overview and usage of the Output Log.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/OutputLog]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## Overview

@@ -1,0 +1,197 @@
+Availability: Public
+Title:FBX Content Pipeline
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:Content import pipeline using the FBX format for meshes, animations, materials, and textures.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/FBX:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:banner]
+![FBX](fbx_banner.png)
+[/REGION]
+
+[EXCERPT:Intro]
+FBX is a file format owned and developed by Autodesk. It is used to provide interoperability between digital content creation applications such as Autodesk MotionBuilder, Autodesk Maya, and Autodesk 3ds Max. Autodesk MotionBuilder software supports FBX natively, while Autodesk Maya and Autodesk 3ds Max software include FBX plug-ins.
+
+Unreal Engine features an FBX import pipeline which allows simple transfer of content from any number of digital content creation applications that support the format.
+[/EXCERPT:Intro]
+
+The advantages of the Unreal FBX Importer over other importing methods are:
+
+* Static Mesh, Skeletal Mesh, animation, and morph targets in a single file format.
+* Multiple assets/content can be contained in a single file.
+* Import of multiple LODs and Morphs/Blendshapes in one import operation.
+* Materials and textures imported with and applied to meshes.
+
+
+[EXCERPT:VersionWarning]
+[REGION:warning]
+The UE4 FBX import pipeline uses **FBX 2014**. Using a different version during export may result in incompatibilities.
+[/REGION]
+[/EXCERPT:VersionWarning]
+
+[EXCERPT:Reference]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Content Import Reference
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
+		* [](Engine/Content/FBX/ImportOptions "%Engine/Content/FBX/ImportOptions:description%")
+		* [](Engine/Content/FBX/BestPractices "%Engine/Content/FBX/BestPractices:description%")
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Reference]
+
+[EXCERPT:Guides]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Content Import Guides
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
+		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
+		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
+		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
+		* [](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%")
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Guides]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Additional Resources
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/FBX/QuicktimeViewer "%Engine/Content/FBX/QuicktimeViewer:description%")
+	[/PARAM]
+[/OBJECT]
+
+<!-- Vars and Objects for INCLUDEs
+
+
+[VAR:FBX_ImportOptions]
+[](Engine/Content/FBX/ImportOptions) - %Engine/Content/FBX/ImportOptions:description%
+[/VAR]
+
+[EXCERPT:FBX_ImportOptions]
+%FBX_ImportOptions%
+[/EXCERPT:FBX_ImportOptions]
+
+[VAR:FBX_QT]
+[](Engine/Content/FBX/QuicktimeViewer) - %Engine/Content/FBX/QuicktimeViewer:description%
+[/VAR]
+
+[EXCERPT:FBX_QT]
+%FBX_QT%
+[/EXCERPT:FBX_QT]
+
+[VAR:FBX_BestPractices]
+[](Engine/Content/FBX/BestPractices) - %Engine/Content/FBX/BestPractices:description%
+[/VAR]
+
+[EXCERPT:FBX_BestPractices]
+%FBX_BestPractices%
+[/EXCERPT:FBX_BestPractices]
+
+[VAR:FBX_StaticMeshLink]
+[](Engine/Content/FBX/StaticMeshes) - %Engine/Content/FBX/StaticMeshes:description%
+[/VAR]
+
+[EXCERPT:FBX_StaticMeshLink]
+%FBX_StaticMeshLink%
+[/EXCERPT:FBX_StaticMeshLink]
+
+[VAR:FBX_SkeletalMeshLink]
+[](Engine/Content/FBX/SkeletalMeshes) - %Engine/Content/FBX/SkeletalMeshes:description%
+[/VAR]
+
+[EXCERPT:FBX_SkeletalMeshLink]
+%FBX_SkeletalMeshLink%
+[/EXCERPT:FBX_SkeletalMeshLink]
+
+[VAR:FBX_Animations]
+[](Engine/Content/FBX/Animations) - %Engine/Content/FBX/Animations:description%
+[/VAR]
+
+[EXCERPT:FBX_Animations]
+%FBX_Animations%
+[/EXCERPT:FBX_Animations]
+
+[VAR:FBX_Morph]
+[](Engine/Content/FBX/MorphTargets) - %Engine/Content/FBX/MorphTargets:description%
+[/VAR]
+
+[EXCERPT:FBX_Morph]
+%FBX_Morph%
+[/EXCERPT:FBX_Morph]
+
+[VAR:FBX_Mats]
+[](Engine/Content/FBX/Materials) - %Engine/Content/FBX/Materials:description%
+[/VAR]
+
+[EXCERPT:FBX_Mats]
+%FBX_Mats%
+[/EXCERPT:FBX_Mats]
+
+[VAR:FBX_ART]
+[](Engine/Content/Tools/MayaRiggingTool) - %Engine/Content/Tools/MayaRiggingTool:description%
+[/VAR]
+
+[EXCERPT:FBX_ART]
+%FBX_ART%
+[/EXCERPT:FBX_ART]
+
+-->

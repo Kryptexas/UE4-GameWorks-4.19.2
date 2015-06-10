@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:2286665
+Availability:NoPublish
+Title:Perforce でアンリアル エンジンをダウンロードする
+Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
+Description:Perforce でアンリアル エンジンのソース コードをダウンロードするためのマニュアル
+
+## Epic の VPN に接続する
+
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
+
+## Epic の Perforce サーバーに接続する
+
+1.	Windows 版 P4V Perforce クライアントをインストールします。クライアントは [Perforce をダウンロード](http://www.perforce.com/downloads/complete_list) ページからダウンロードすることができます。
+
+	[REGION:fullwidth]
+	![Perforce Client](p4v.png)
+	[/REGION]
+
+1.	Open Connection ダイアログで、以下の接続情報を入力します。
+
+	* **Server**: _p4-licensee-proxy.epicgames.net:1667_
+
+	[REGION:note]
+		東アジアと欧州では、ライセンシーは追加のプロキシを利用できます。該当地域では、こうしたプロキシを使用することでパフォーマンスが向上するはずです。
+		* **東アジアのプロキシ**: _p4-licensee-proxy-asia.epicgames.net:1667_
+		* **欧州のプロキシ**: _p4-licensee-proxy-euro.epicgames.net:1667_
+	[/REGION]
+
+	* **User**: Epic Games が付与する Perforce のユーザー名です。
+	* **Password**: Epic Games が付与する Perforce のパスワードです。
+	* **Workspace**: _UE4_Sample_TeamName_ (これは推奨例です。チーム名で終わっている限り、何でもお好みのワークスペース名を選ぶことができます)。
+
+1.	 [OK]  をクリックしてPerforce サーバーに接続します。
+
+
+##アンリアル エンジン 4 のダウンロード
+
+Perforce デポで _UE4-QA_ ブランチ経由でライセンシーにアンリアル エンジン 4 を配布しています。以下が含まれます。 
+エンジン全体と合わせてゲーム例、サンプル、デモという形式でいくつかの追加プロジェクトを配布します。お好みによって、全てをダウンロード、または必要な部分のみを選んでダウンロードすることができます。 
+すべてをダウンロードするか、必要なものだけを選んでダウンロードするかのオプションがあります。設定時間をなるべく短くするために、 
+まず最初に最低限必要なものをダウンロードし、後から随時追加していく方法をお勧めします。 
+この方法ですと、ダウンロード完了までの待ち時間を劇的に短縮することができます。
+
+[REGION:warning]
+	[UE4-QA] ブランチには多くのファイルが格納されておりダウンロードのトータル サイズが数ギガバイトになります。 
+	このため、ブランチ全体の同期にはかなりの時間がかかります。
+[/REGION]
+
+1.	** _UE4-QA_ ブランチで **右クリック** して、 **Get Revision** を選択します。
+
+	![Perforce - Get Revision Option](get_revision_menu.png)
+
+1. 	**[Specify revision using] ** ラジオボタンを選択してコンボボックスから [ラベル] を選択します。
+
+	![Perforce - Specify Label](specify_label.png)
+
+1.	 **Browse** ボタンを押します。表示されるダイアログで以下のいずれかを選択します。 *QA_APPROVED_UE4_BUILD_MINIMUM* (エンジンの実行に必要な最小限のファイル) または *QA_APPROVED_UE4_BUILD_CURRENT* (サンプル プロジェクトが含まれるかなり大きめのファイル)** [OK] ** を押します。
+
+1.	アンリアル エンジン 4 のダウンロードを開始するには、 **Get Revision** を押します。. 

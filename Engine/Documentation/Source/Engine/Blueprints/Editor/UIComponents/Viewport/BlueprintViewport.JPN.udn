@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2444099
+Availability:Public
+Title:ブループリントエディタのビューポート
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
+Description:ブループリントのクラスの [コンポーネント] モードにおけるビューポートの概要
+
+[TOC (start:2)]
+
+## 概要
+
+ブループリント エディタの **ビューポート** では、ブループリントのコンポーネントを表示および操作できます。 
+
+![](BP_Viewport.png)
+
+[REGION:note]
+**[詳細](Engine/Blueprints/Editor/UIComponents/Details)** パネルで手動で値を調整して選択したコンポーネントを操作することもできます。
+[/REGION]
+
+**[コンポーネント](Engine/Blueprints/UserGuide/Components)** リストでコンポーネントを選択すると、**ビューポート** でもそのコンポーネントを選択したことになり、**[詳細]** パネルにそのプロパティ情報が追加されます。 
+
+**ビューポート** で変形ウィジェットを使用して選択したコンポーネントの位置、回転、スケールを調整できます。変形ウィジェットの詳細については、[インタラクティブな変形](Engine/Actors/Transform#インタラクティブな変形) をご覧ください。
+
+ブループリント エディタの **ビューポート** は、レベル エディタの **ビューポート** と同じようにナビゲーションできます。詳細は、[ビューポートの制御](Engine/UI/LevelEditor/Viewports/ViewportControls) をご覧ください。
+
+## [View] メニュー
+
+**ビューポート** の左上隅にある **View** のドロップダウン メニューには、レベル エディタの **ビューポート** メニューとは少し違うオプションがあります。
+
+![](BP_Viewport_Viewmenu.png)
+
+| アイテム | 説明 |
+| ---- | ----------- |
+| **Reset Camera** | コンポーネントにカメラを再フォーカスします。 |
+| **Realtime** | ビューポートのリアルタイム レンダリングを切り替えます。 |
+| **Show Floor** | コンポーネントの配置を支援するためにフロアを表示するか、または非表示にするかを切り替えます。 |
+| **Show Grid** | ビューポートのグリッドを切り替えます。 |
+
+レベルエディタの **ビューポート** に関する詳細は、[メインエディタのビューポート](Engine/UI/LevelEditor/Viewports) のドキュメントを参照してください。 
+
+

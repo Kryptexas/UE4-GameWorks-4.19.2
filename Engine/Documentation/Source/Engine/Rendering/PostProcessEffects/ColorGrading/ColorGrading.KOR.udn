@@ -1,0 +1,121 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:컬러 그레이딩
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:씬 컬러 조절을 위한 톤매핑과 색보정 이펙트입니다.
+
+언리얼 엔진에서 용어 **컬러 그레이딩** (Color Grading) 은 *톤 매핑* (HDR to LDR 변형) 및 그에 따른 *색 보정* (LDR color to color 변형) 기능을 포함합니다. (HDR/LDR = High/Low Dynamic Range)
+
+## 톤 매핑
+
+[EXCERPT:ToneMapping_Desc]
+**Tone Mapping** 함수의 목적은 HDR의 넓은 색 범위를 모니터가 표현할 수 있는 작은 LDR 범위로 매핑시키기 위함입니다. 이는 일반 렌더링 후의 포스트 프로세싱 중 수행됩니다. 글로벌 톤 매퍼는 3개의 입력(RGB)과 출력(RGB)을 가진 기능입니다. 로컬 톤 매퍼는 인접 픽셀을 고려하지만, 훨씬 엄격하게 (즉 느리게) 계산합니다. 톤 매퍼의 좋은 기능은 색이 매우 밝아도 픽셀의 색을 보존하려 한다는 점입니다.
+[/EXCERPT:ToneMapping_Desc]
+
+다음 그래프는 0 에서 5 사이의 각 채널이 0 에서 1 사이의 새 범위에 어떻게 매핑되는지 보여줍니다:
+
+![Tone Mapping Graphs](newtone.jpg)
+
+사용된 함수는 이렇습니다:
+
+	GammaColor = LinearColor / (LinearColor + 0.187) * 1.035;
+
+밝은 색은 점점 더 밝아지긴 하지만 어두운 것보단 훨씬 덜한 것에 주목하십시오. 검정은 그대로 검정이지만, 톤 매핑되지 않은 곡선보다 굴곡진 곡선은 거의 직선인 부분이 있습니다. 이는 약간의 대비(contrast) 강화 효과로 나타납니다. 톤 매퍼를 사용할 때, 그리고 소스 이미지를 밝기에서 좀 더 동적(HDR)으로 보이게 하고 싶을 때 좋은 결과를 얻기 위한 일반적이고 예상 가능한 수준입니다. 이는 더욱 실제 필름같은 모습으로 나타납니다.
+
+제시된 톤 매퍼 공식에는 조절할 수 있는 상수가 이미 둘 있으며 조금 더 복잡한 수식도 가능합니다만, 품질/유연성/성능 등이 고려되어야 하므로 좋은 함수를 찾는게 그리 쉽지만은 않습니다. 간단한 공식을 고수하고 LDR색 결과물을 간단한 색 룩업으로 수정하기로 결정했습니다. 이미 HDR 색을 제한된 색 범위로 매핑해 본 바, 어두운 색에 대해 다양한 표현이 가능함과 동시에 밝은 색도 수정할 수 있었습니다. 이 방법은 이해하기 좋으며, 지역적인 콘트롤 등의 유연성을 크게 얻을 수 있으며, 성능도 거의 일정합니다.
+
+| 프로퍼티 | 설명 |
+| -------- | ---- |
+| **Scene Color Tint** | 씬 컬러 색조 - HDR 씬 컬러에 적용되는 (곱) 필터색입니다. [INCLUDE:#SceneColorTint] |
+| **Tonemapper Toe Factor** |톤매퍼 토 팩터 - 톤매퍼의 어두운 색을 조정할 수 있습니다. 값의 범위는 [0.0, 1.0] 입니다. [INCLUDE:#TonemapperToeFactor] |
+
+<!--
+[EXCERPT:SceneColorTint]
+[REGION:imagetable]
+| ![Scene Color Tint - (1.0, 1.0, 1.0)](scene_tint_full_small.png)(w:365) | ![Scene Color Tint - (0.25, 0.25, 0.25)](scene_tint_quarter_small.png)(w:365)
+| ------ | ------ |
+| (1.0, 1.0, 1.0) | (0.25, 0.25, 0.25) |
+[/REGION]
+[/EXCERPT:SceneColorTint]
+
+[EXCERPT:TonemapperToeFactor]
+[REGION:imagetable]
+| ![Toe Factor - 0](toe_factor_0_small.png)(w:365) | ![Toe Factor - 1](toe_factor_1_small.png)(w:365)
+| ------ | ------ |
+| 0.0 | 1.0 |
+[/REGION]
+[/EXCERPT:TonemapperToeFactor]
+-->
+
+## 색 보정
+
+[EXCERPT:LookupTexture]
+색 보정은 룩업 테이블(Look-Up Table, LUT)를 통해 구현됩니다. 세 개의 1d 룩업 테이블 대신, 조금 더 (채도감소(desaturation)와 같은) 세련된 색 변환이 가능해지는 3d 룩업 테이블 하나를 사용합니다. 다음 이미지는 (현재 텍스쳐 브라우저에 보이는 모습 그대로) 256x16 텍스쳐에 풀린 16x16x16 색 중립 LUT(룩업 테이블)의 모습입니다: 
+
+[REGION:raw]
+![Neutral LUT](RGBTable16x1.png)
+[/REGION]
+
+[REGION:note]
+이 이미지의 RGBTable16x1.png 를 사용하셔도 되지만, 모니터에 표시되는 이미지가 반드시 원본 표현물은 아니므로 복사해서 붙여넣기 하지는 마시기 바랍니다.
+
+* [LUT 텍스처 예제](RGBTable16x1.png) - 우클릭후 **다른 이름으로 저장**
+
+[/REGION]
+
+수정된 텍스쳐는 아래와 같아 보입니다:
+
+[REGION:raw]
+![Sepia Tone LUT](LUT_Sepia.png)
+[/REGION]
+
+LUT를 활용하려면, 사용하려는 LUT 텍스쳐를 포스트 프로세스 볼륨에 할당할 필요가 있습니다.
+
+| 프로퍼티 | 설명 |
+| -------- | ---- |
+| **Color Grading Intensity** | 컬러 그레이딩 강도 - 색 보정 이펙트 세기를 조절하는 인수입니다. |
+| **Color Grading LUT** | 컬러 그레이딩 LUT - 색 보정용 룩업 테이블로 사용할 LUT 텍스처입니다. [INCLUDE:Engine/Rendering/PostProcessEffects/ColorGrading#ColorGradingLUT] |
+
+<!--
+[EXCERPT:ColorGradingLUT]
+[REGION:imagetable]
+| ![Natural Scene](lut_none.png)(w:265) | ![Greenish Scene](lut_green.png)(w:265) | ![Reddish Scene](lut_red.png)(w:265) |
+| ------ | ------ | ------ |
+| ![Neutral LUT](RGBTable16x1.png) | ![Greenish LUT](LUT_Greenish.png) | ![Reddish LUT](LUT_Reddish.png) |
+[/REGION:imagetable]
+[/EXCERPT:ColorGradingLUT]
+-->
+
+### LUT 텍스처 제작
+
+절차:
+
+1. 조절하고자 하는 씬 대표 스크린샷을 만든 후 포토샵 도큐먼트에 넣습니다.
+1. 포토샵에서 중립 256x16 LUT 를 로드합니다.
+
+	[REGION:note]
+	이 이미지의 RGBTable16x1.png 를 사용하셔도 되지만, 모니터에 표시되는 이미지가 반드시 원본 표현물은 아니므로 복사해서 붙여넣기 하지는 마시기 바랍니다.
+
+	* [LUT 텍스처 예제](RGBTable16x1.png) - 우클릭후 **다른 이름으로 저장**
+
+	[/REGION]
+
+1. LUT를 스크린샷 포함하여 포토샵 도큐먼트에 삽입합니다. (LUT 도큐먼트에서 전체 선택, 복사, 스크린샷 도큐먼트로 전환, 붙여넣기)
+1. 색 조작(manipulation)을 적용합니다. (조절(adjustment) 레이어를 추가하는 식이 좋습니다. 그렇지 않으면 모두 일일히 사전에 flatten 시키고 사후에 256x16 으로 잘라내야 하므로 까다로워집니다.)
+1. 256x16 LUT 를 선택합니다. (레이어 패널에서 LUT 레이어 선택, Menu: Select/Load Selection, Ok)
+1. LUT 콘텐츠를 병합하여 복사합니다. (Menu: Edit/Copy Merged)
+1. 붙여넣고 엔진이 읽을 수 있는 비압축 포맷으로 256x16 텍스처를 저장합니다. (Menu: File/New, Menu: Edit/Paste, Menu: File/Save As)
+1. 에디터에서 텍스처 가져오기 및 ColorLookupTable(색 룩업 테이블) 텍스처 그룹 지정
+
+
+다양한 색 보정이 가능합니다. 예를 들면:
+
+* 밝기(Brightness)
+* 채도(Saturation)
+* 단순 대비(Contrast) (제한된 선형)
+* 상위품질 대비 (중간이 급경사진 곡선 등)
+* 이미지의 어둡거나 중간톤 및 밝은 (커브 등의) 부분에 대한 선택적인 변경
+* 특정 색(LAB처럼 밝기가 별개의 채널에 있는 색 공간에 최적)에 대한 선택적인 변경
+* 심지어 다른 색 공간에 대한 조절도 가능 (예를 들어 LAB 는 밝기와 색이 독립적으로 유지되어 꽤나 유용합니다.)
+
+[/EXCERPT:LookupTexture]

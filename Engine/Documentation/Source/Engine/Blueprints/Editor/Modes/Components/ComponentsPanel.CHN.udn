@@ -1,0 +1,49 @@
+﻿Availability:Public
+Title: 蓝图编辑器组件模式
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
+Description:
+
+[TOC (start:2)]
+
+
+
+## 概述
+
+[EXCERPT:Intro]
+
+[INCLUDE:Shared/Glossary/C/#Glossary_Components_Mode]
+
+[/EXCERPT:Intro]
+
+
+[REGION:fullwidth]
+![](ClassBlueprint_ComponentMode.png)
+[/REGION:fullwidth]
+
+
+|默认可见的用户界面组件| 窗口菜单中可用的组件|
+|-----------------------------|-----------------------------|
+|[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
+
+
+
+<!----------
+[EXCERPT:Visible]
+1. [菜单](Engine/Blueprints/Editor\UIComponents\Menu)
+1. [工具栏](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [组件列表](Engine/Blueprints/UserGuide\Components)
+1. [详细信息](Engine/Blueprints/Editor\UIComponents\Details)
+1. [视口](Engine/Blueprints/Editor\UIComponents\Viewport)
+
+[/EXCERPT:Visible]
+
+[EXCERPT:Invisible]
+* [蓝图编辑器默认值选卡](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
+* [查找结果](Engine/Blueprints/Editor\UIComponents\FindResults)
+[/EXCERPT:Invisible]
+------------->
+
+
+
+[INCLUDE:Engine/Blueprints/Editor/Modes#modes]
+

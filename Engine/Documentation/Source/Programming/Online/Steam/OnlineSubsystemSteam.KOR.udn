@@ -1,0 +1,118 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title: 온라인 서브시스템 스팀
+Crumbs:%ROOT%, Programming
+Description:Steam 온라인 서브시스템에 관한 정보입니다.
+Version: 4.5
+
+[TOC(start:2)]
+
+
+[EXCERPT:Intro] 
+이 곳에 있는 정보는 구체적으로 스팀 구현에 관련된 것입니다. 단계별 셋업 관련 부가 정보, 팁과 꼼수, 우회법 등을 찾을 수 있습니다.
+[/EXCERPT:Intro]
+
+## 개요
+
+스팀 모듈에는 온라인 서브시스템을 통해 노출된 인터페이스 대부분이 구현되어 있으며, Steamworks SDK 를 통해 Valve 가 제공하는 대부분의 것들을 지원합니다.
+
+스팀 인터페이스
+* 상대검색 (로비 / 게임서버 API)
+* 순위표
+* 업적
+* 음성
+* 사용자 클라우드
+* 공유 클라우드
+* 외부 UI
+
+
+
+모든 게임은 유효한 Steam App ID 가 있어야 합니다. 개발 도중 이 App ID 는 steam_appid.txt 라는 파일로 SDK 에 노출되는데, 실행 파일과 같은 디렉토리에 있어야 합니다. 이 파일은 언리얼 엔진 실행시 생성되며, 정상적인 종료시 삭제됩니다. 이로써 (이미 실행중이기는 하겠지만) 스팀 클라이언트를 통해 게임을 실행시킬 필요가 없습니다. 이 파일은 스팀 이미지에 포함시켜서는 안됩니다.
+
+shipping 빌드에서 엔진은 로그인한 사용자가 제대로 게임을 구독했는지를 확인한 다음 그렇지 않은 경우 엔진을 종료시키기도 합니다. 그저 게임 보안을 위한 한 가지 방법일 뿐입니다. Steam DRM 을 사용하면 (Steamworks SDK 참고) 게임 불법 조작에 대한 보안이 강화될 것입니다.
+
+## 기본 셋업
+
+스팀 서브시스템은 Valve 를 통한 추가적인 셋업이 약간 필요합니다. 언리얼 엔진에 스팀을 사용하기 전 Valve 에 연락하여 그들의 문서대로 셋업이 되어 있는지 확인해 줘야 합니다.
+
+### Steamworks SDK 설치하기
+법적인 이유로 Steam 을 사용하려면 Valve 에서 최신 SDK 를 다운로드해야 합니다. 현재 *v1.29a* 이지만, 앞으로의 업데이트도 경로명이 바뀌므로 쉽게 알 수 있습니다. ThirdParty/Steamworks 디렉토리의 *Steamworks.build.cs* 를 확인하세요.
+
+미리 컴파일된 엔진 버전에 Steam 을 사용하려면 Valve 의 SDK  에 있는 DLL 일부를 적합한 곳에 복사해 주기만 하면 됩니다. 소스에 대해 엔진을 리컴파일하려는 경우, SDK 를 제 위치에 놓아주기도 해야 합니다.
+
+* SDK 는 다음 경로에 압축풀어/복사해 줘야 합니다.
+	* /YourUnrealEnginePath/Engine/Source/ThirdParty/Steamworks/Steamv130/sdk
+* SDK 의 /redistributable_bin/ 디렉토리에서 다음 바이너리를 찾아 참고 위치에 복사합니다.  <br>*참고:* 64비트 dll 중 몇 가지는 보통의 Steam 클라이언트 디렉토리에서 찾을 수 있습니다. 어떤 이유에서인지 Valve 는 SDK 에 그 전부를 포함시키지 않고 있습니다.
+	* /YourUnrealEnginePath/Engine/Binaries/ThirdParty/Steamworks/Steamv130/Win64
+		* steam_api64.dll
+		* steamclient64.dll
+		* tier0_s64.dll
+		* vstdlib_s64.dll
+	* /YourUnrealEnginePath/Engine/Binaries/ThirdParty/Steamworks/Steamv130/Win32
+		* steam_api.dll
+		* steamclient.dll
+		* tier0_s.dll
+		* vstdlib_s.dll
+	* /YourUnrealEnginePath/EngineOrGameFolder/Binaries/Mac/YourGame.app/Contents/MacOS
+		* libsteam_api.dylib (/redistributable_bin/osx32 에서 - dylib 하나에 32 와 64 비트 둘 다 지원됩니다).
+		
+*주:* 전체 엔진을 컴파일하는 경우, OnlineSubsystemSteam\Private\OnlineSubsystemSteamPrivatePCH.h 에서 다음 줄을 수정해 주는 것이 좋습니다:
+
+define STEAM_SDK_VER TEXT("Steamv130")
+
+그래야 새로운 SDK 디렉토리 위치 / 버전을 가리킵니다.
+
+### INI 환경설정
+
+게임의 `DefaultEngine.ini` 에 몇 가지 세팅을 켜 줍니다. *참고:* SteamDevAppId 480 은 Valve 의 테스트 앱 id 로 모두에게 공유된 것입니다. 언젠가 별도의 앱 id 가 필요하긴 하겠지만, 그때까지는 대부분의 Steam 기능이 작동할 것입니다.
+
+    [/Script/Engine.GameEngine]
+    +NetDriverDefinitions=(DefName="GameNetDriver",DriverClassName="OnlineSubsystemSteam.SteamNetDriver",DriverClassNameFallback="OnlineSubsystemUtils.IpNetDriver")
+    
+    [OnlineSubsystem]
+    DefaultPlatformService=Steam
+
+    [OnlineSubsystemSteam]
+    bEnabled=true
+    SteamDevAppId=480
+
+    [/Script/OnlineSubsystemSteam.SteamNetDriver]
+    NetConnectionClassName="OnlineSubsystemSteam.SteamNetConnection"
+
+### 모듈 셋업
+
+프로젝트의 일부로 언리얼 엔진 스팀 모듈을 추가하도록 하십시오 (추가적인 도움말은 [](Programming/UnrealBuildSystem/TargetFiles) 문서를 참고하시기 바랍니다).
+
+다음 줄을 추가하는 것으로 게임과 함께 스팀 모듈을 빌드되도록 하는 데 충분합니다. mygame.build.cs 의 생성자 안에 들어갑니다.
+
+    DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+
+### 맥에서의 스팀 오버레이
+
+윈도우와는 달리 맥에서의 Steam Overlay 는 Steam 클라이언트를 사용하여 게임을 실행시켜야 합니다. 그러기 위해서는 먼저 Steam 의 Game 메뉴에서 "Add a Non-Steam Game to My Library" 로 라이브러리에 게임을 추가해 줘야 합니다.
+
+<!--
+### 스팀 소켓
+
+### 스팀 넷 드라이버
+
+### 스팀 넷 커넥션
+
+
+
+## 참고자료
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	인터페이스
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/Online/): %Programming/Online/:Description%
+	[/PARAM]
+[/OBJECT]
+   
+  --> 

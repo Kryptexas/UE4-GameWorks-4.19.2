@@ -1,0 +1,76 @@
+Availability: Docs
+Title: Content Comparison Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet that compares the relative cost between assets used in-game.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Purpose One Liner
+
+Looks at all content and allows you to see the relative costs between assets. 
+
+
+## Detailed Motivation
+
+When you have lots of content, you can often have vastly different memory costs for Objects that are used in the game.  Often these massive differences are a side effect of having multiple people create assets.  Or from having something change from a "Boss Encounter" to just being a mini-boss encounter.    Over time things change.   If you do not have a way to track and compare assets to each other, then you will end up mis-using resources.
+
+Basically, we want a have Weapons of the same type cost about the same.  Characters of the same type cost about the same.  Doing so allows us to more easily plan out levels that will work without special casing everything. 
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [GameName].exe ContentComparisonCommandlet
+    
+
+## How to use / turn on
+
+NOTE:  You probably want to run this nightly.
+
+This will break down the asset's total memory into a number of "key" categories for better comparison.
+
+Those are currently located in the BaseEngine.ini and are the following:
+
+    
+    [ContentComparisonReferenceTypes]
+    +Class=AnimSet
+    +Class=SkeletalMesh
+    +Class=SoundCue
+    +Class=StaticMesh
+    +Class=Texture2D
+    
+
+
+
+We are using these attributes as they usually represent the majority of memory usage and are also the easiest to compare across assets.
+
+For example, if you have N weapons.  You can probably break them up into:  Small, Medium, and Large weapons.    In general we do not want to have small weapons cost more than Large weapon.  So being able to visualize how much each weapon cost is a great way to make certain our costs are in line.
+
+More generally, we want to have a really low standard deviation across our asset types.    Example:  If we have N similar characters, we do not want one character to cost 1.5 to 2.0 times more than all the other characters in terms of SkeletalMesh.
+
+
+There are lots of reasons why a character could end up costing more than others.  And some of those reasons are just ignorance.  The idea with this commandlet is to list out the costs and then make certain they fall in line with our expectations.   This also provides a nice way to investigate outliers.
+
+To set up which classes the ContentComparisionCommandlet looks at modify DefaultEditor.ini ContentComparisonClassesToCompare
+
+
+## Detailed Example(s)
+
+
+
+ 
+
+
+
+

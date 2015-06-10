@@ -1,0 +1,58 @@
+INTSourceChangelist:1571365
+Availability:Public
+Title:内容浏览器
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:该工具用于管理包文件、组织资源、创建资源及在资源上执行有用的操作。
+
+[REGION:full_feature]
+[OBJECT:Feature]
+	[PARAMLITERAL:image]
+		![%Engine/Content/Browser/UserGuide:title%](content_browser_feature.png)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAMLITERAL]
+	[PARAMLITERAL:title]
+		%Engine/Content/Browser/UserGuide:title%
+	[/PARAMLITERAL]
+	[PARAMLITERAL:description]
+		%Engine/Content/Browser/UserGuide:description%
+	[/PARAMLITERAL]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+[EXCERPT:Intro]
+ **内容浏览器** 是在虚幻编辑器中创建、查看级修改资源的主要界面区域 
+。它提供了管理资源文件夹及在资源上执行有用操作的功能， 
+比如重命名、移动、复制及查看资源引用。 **内容浏览器** 
+可以查看游戏中的 _所有资源_ 并与之进行交互，而不必把它们加载到内存中。
+[/EXCERPT:Intro]
+
+* 浏览游戏中可找到的所有资源并进行交互处理: 已加载的资源和未加载的资源。
+* 查找已加载和未加载的资源：
+    * Text Filter(文本过滤器): 通过输入名称、路径、标签或类型来查找资源。您可以在搜索关键字前使用前缀 '-'来从您的搜索中排除掉一些资源。
+    * Extended Filter(扩展过滤器): 通过使用Object Type(对象类型) 和/或 标签组合来浏览资源。
+* 管理加载的和未加载的资源,不必再将资源从包中迁出。
+    * 创建私有收藏夹并在其中存储资源以备将来使用。
+    * 创建共享收藏夹来和您的同事分享有趣的资源。
+* 开发助手:
+    * 显示可能存在问题的资源。
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAMLITERAL:title]
+		内容浏览器工具
+	[/PARAMLITERAL]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Browser/AssetConsolidationTool) - %Engine/Content/Browser/AssetConsolidationTool:Description%
+		* [](Engine/Content/Browser/ReferenceTreeTool) - %Engine/Content/Browser/ReferenceTreeTool:Description%
+	[/PARAM]
+[/OBJECT]

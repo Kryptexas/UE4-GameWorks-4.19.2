@@ -1,0 +1,76 @@
+﻿INTSourceChangelist:2499033
+Availability:Public
+Title:コレクション
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:コンテンツ ブラウザでのコレクションの使用方法
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CollectionsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Collections:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Collections]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 概要
+
+![CB_Collections.png](CB_Collections.png)
+
+[EXCERPT:Collections]
+コレクションは、個人的に定義されたフォルダなどのグループへ対象アセットを整理する手段となります。例えば、後からすぐにアクセスできるように、ある外観スタイルにフィットする環境ベースの全てのスタティックメッシュのコレクションを作成するために便利だと感じることでしょう。 
+
+内部では、コレクションは任意のアセットに対するただの参照リストです。アセットそれ自体はコレクションの中へは移動しません。つまり、 1 つのアセットが複数のコレクションに存在したり、好きな数だけコレクションを作成する場合があるということです。
+[/EXCERPT:Collections]
+
+##コレクションの作成
+
+![](Collections_New.png)
+
+コレクションの作成は非常に簡単で、 **[Collections]** パネル内で右クリックして、新規コレクション名を入力するだけです。
+
+##コレクション タイプ
+
+コレクションは 3 タイプに分けることができます。
+
+* **L** - ローカル コレクション。ローカルマシーンでのみ利用することができます。
+* **S** - シェアード コレクション。他のユーザーが閲覧可能なコレクションです。
+* **P** - プライベート コレクション。コレクションの閲覧に特別に招待されたユーザーのみが利用できるコレクションです。
+
+[REGION:note]
+	**シェアード** と **プライベート** コレクションは メイン エディタの [環境設定](Engine/UI/EditorSettings) のソース コントロールがアクティブな場合のみ利用することができます。
+[/REGION]
+
+
+## アセットの参照をコレクションに追加する
+
+アセットの参照は、対象アセットを任意のコレクションにドラッグすれば簡単に追加できます。
+
+![](AddingReferencesToACollection.png)
+
+## コレクションからアセットの参照を取り除く
+
+アセットの参照を取り除くには、選択中の 1 つ以上のアセットを右クリックし、コンテキスト メニューから **[Remove from Collection]** を選択します。この操作ではアセットの参照はコレクションから取り除かれただけで、アセットが削除されたわけではありません。
+
+![](RemovingAssetsFromCollections.png)
+
+[REGION:warning]
+コレクションにあるアセットを選択し **[Delete]** を押せば、アセットを完全に削除することが _できます_ 。そのような操作をしたいのか確認のプロンプトが表示されます。アセットの _削除_ は _破壊_ を意味することを覚えておいてください。コレクションから単純にアセットの参照を取り除きたい場合は、上記の方法を使用してください。
+[/REGION]
+
+##コレクション名の変更とコレクションの破壊
+
+![](button_CollectionContextMenu.png)
+
+
+
+コレクションを **右クリック** し、 **[Rename]** を選択すれば、コレクション名を変更することができます。新しい名前を入力すれば完了です。
+
+コレクションを削除するには、 **右クリック** メニューから **[Delete]** を選択するだけです。コレクションは実際のアセットの単なる参照なので、コレクションを削除してもコレクション内のアセットは削除されないことに注意してください。 
+

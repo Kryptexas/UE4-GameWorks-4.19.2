@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2472960
+Availability: Public
+Title:텍스처에 타일링 머티리얼 렌더
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Tools/RenderToTextureTools
+Description:
+
+
+[REGION:note]
+UE4.3 에 이 특정 함수에는 머티리얼 타겟을 지정하는 세팅이 빠져있습니다. 우회 방법은, 잇따르는 메시를 월드의 0,0,0 에 배치한 다음, 블루프린트에서 "Sheet Size" 에 지정된 수치(기본값은 1000)와 일치하도록 스케일을 설정합니다:
+
+[REGION:raw]
+![](plane.png)(convert:false)
+[/REGION]
+
+`/Engine/ArtTools/RenderToTexture/Meshes/S_1_Unit_Plane.S_1_Unit_Plane`
+
+그런 다음 원하는 머티리얼을 적용하기만 하면 됩니다.
+[/REGION]
+
+[EXCERPT:HRSS1]
+에디터에서 버퍼 시각화 타겟을 익스포트하는 기능을 켜야합니다. 그러기 위해서는 원근 뷰포트 좌상단의 아래 화살표 버튼을 클릭한 다음 **고해상도 스크린샷** 을 선택하고 **버퍼 시각화 타겟 포함** 옵션을 켜면 됩니다.
+
+[REGION:raw] 
+![](Enable_IBVT.png)
+[/REGION]
+
+[REGION:warning]
+**이 창을 열어두세요!** 이 창은 에디터 뒤로 들어가 방해하지 않을 것입니다. 실수로 창을 닫은 경우, 버퍼 이미지는 렌더링되지 않습니다.
+[/REGION]
+[/EXCERPT:HRSS1]
+
+## 텍스처 렌더링하기
+
+[EXCERPT:RT1]
+**캡처 세팅** 아래 원하는 버퍼 타겟을 선택합니다. **고해상도 스크린샷** 창이 열려있는지, **버퍼 시각화 포함** 옵션이 켜져있는지 확인합니다. **새 창** 에서 게임을 **플레이** 하고, ~ 키를 눌러 _콘솔_ 을 띄운 다음 `ke * rendertextures` 를 입력합니다.
+
+![](renderTextures.png)
+
+이미지가 저장되었다는 메시지가 뜰 것입니다. 그 메시지는 사실 클릭하면 해당 폴더 위치로 이동되는 링크입니다. 제때 링크를 클릭할 수 없었다면, 저장된 텍스처는 다음 위치에서 찾을 수 있습니다:
+
+`\\YourProject\Saved\Screenshots\Windows\`
+[/EXCERPT:RT1]

@@ -1,0 +1,10 @@
+﻿Availability:Public
+Title:カメラ
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+Description: **Camera** は、ワールドを見るプレーヤーの視点を表します。
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Camera)
+[/PARAM]
+[/OBJECT]

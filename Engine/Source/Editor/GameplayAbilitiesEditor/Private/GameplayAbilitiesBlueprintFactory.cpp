@@ -4,13 +4,14 @@
 
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
+#include "BlueprintEditorSettings.h"
 
 #include "Abilities/GameplayAbility.h"
 #include "GameplayAbilityBlueprint.h"
 #include "GameplayAbilityGraph.h"
 #include "GameplayAbilityGraphSchema.h"
 
-#include "Editor/ClassViewer/Public/ClassViewerFilter.h"
+#include "ClassViewerFilter.h"
 
 #include "GameplayAbilityBlueprintGeneratedClass.h"
 #include "GameplayAbilitiesBlueprintFactory.h"
@@ -290,12 +291,13 @@ UObject* UGameplayAbilitiesBlueprintFactory::FactoryCreateNew(UClass* Class, UOb
 				NewBP->LastEditedDocuments.Add(NewGraph);
 				NewGraph->bAllowDeletion = false;
 
-				int32 NodePositionY = 0;
-				if (UEdGraphNode* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_ActivateAbility")), UGameplayAbility::StaticClass()))
+				UBlueprintEditorSettings* Settings = GetMutableDefault<UBlueprintEditorSettings>();
+				if(Settings && Settings->bSpawnDefaultBlueprintNodes)
 				{
-					NodePositionY = EventNode->NodePosY + EventNode->NodeHeight + 200;
+					int32 NodePositionY = 0;
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_ActivateAbility")), UGameplayAbility::StaticClass(), NodePositionY);
+					FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_OnEndAbility")), UGameplayAbility::StaticClass(), NodePositionY);
 				}
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewGraph, FName(TEXT("K2_OnEndAbility")), UGameplayAbility::StaticClass(), NodePositionY);
 			}
 		}
 

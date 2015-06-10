@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:SpeedTree
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:언리얼 엔진 4 에서 SpeedTree 사용법 관련 홈페이지입니다.
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Content/SpeedTree:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/import_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content/SpeedTree:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content/SpeedTree:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content/SpeedTree]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/Content/SpeedTree:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/content_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content/SpeedTree:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content/SpeedTree:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content/SpeedTree]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[PARAMLITERAL:id]
+contentcreator
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:note]
+이 섹션은 [SpeedTree 의 Wiki](http://docs.speedtree.com/doku.php?id=ue4_introduction) 문서에서 발췌한 사본으로, SpeedTree 의 언리얼 엔진 관련 부분에만 초점을 맞춘 것입니다. 자세한 정보는 [SpeedTree Documentation](http://docs.speedtree.com/doku.php?) 을 참고하세요.
+[/REGION]
+
+언리얼 엔진 4 용 SpeedTree 에 오신 것을 환영합니다. 이 섹션의 문서는 SpeedTree 툴 사용법과 언리얼 엔진 어플리케이션에서 최대의 효과를 내기 위한 모델링 방법을 자세히 알아봅니다. 여기서 다루는 기법은 프리미엄 / 멤버쉽 라이선시 모두에게 적용됩니다.
+
+## 작동 방법
+
+UE4 에서 SpeedTree 를 사용하는 방법은 세 단계로 나뉩니다:
+
+* **SpeedTree 모델을 생성 또는 구매합니다**. [SpeedTree library](http://www.speedtree.com/ue4/ue4trees.php) 의 모델을 사용하든 SpeedTree Modeler 를 사용하여 처음서부터 만들든, 시작할 모델이 필요합니다. 모델은 SpeedTree 파일들(.spm, .srt)과 거기에 연관된 텍스처 및 컴포넌트 메시(.obj, .fbx)들로 구성됩니다. SpeedTree 에서 모델을 만드는 법을 알아보려면 [여기를](http://docs.speedtree.com/doku.php?id=gettingstarted) 클릭하세요.
+
+* **모델을 UE4 에 임포트합니다**. SpeedTree 모델은 다른 애셋처럼 UE4 에 임포트됩니다. 스태틱 메시에 추가적인 버텍스 특성을 통해 바람과 부드러운 LOD 를 구현합니다. UE4 안에서 스태틱 메시에 할 수 있는 작업은 무엇이든 할 수 있습니다. UE4 에 SpeedTree 모델을 임포트하는 법을 알아보려면 [여기를](Engine/Content/SpeedTree/ImportingModelsIntoUE4) 클릭하세요.
+
+* **씬에 모델을 배치합니다.** 임포트한 이후, SpeedTree 모델은 다른 스태틱 메시와 마찬가지로 배치 또는 페인팅 가능합니다. UE4 에서 SpeedTree 모델을 배치하는 법을 알아보려면 [여기를](Engine/Content/SpeedTree/WorkingWithModelsinUE4) 클릭하세요.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		언리얼 엔진 4 SpeedTree 파이프라인
+	[/PARAM]
+	[PARAM:description]
+	
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/SpeedTree/CreatingModelsForUE4 "%Engine/Content/SpeedTree/CreatingModelsForUE4:description%")
+		* [](Engine/Content/SpeedTree/ImportingModelsIntoUE4 "%Engine/Content/SpeedTree/ImportingModelsIntoUE4:description%")
+		* [](Engine/Content/SpeedTree/WorkingWithModelsinUE4 "%Engine/Content/SpeedTree/WorkingWithModelsinUE4:description%")
+		* [](Engine/Content/SpeedTree/ComputingLightmapUVs "%Engine/Content/SpeedTree/ComputingLightmapUVs:description%")
+	[/PARAM]
+[/OBJECT]
+
+

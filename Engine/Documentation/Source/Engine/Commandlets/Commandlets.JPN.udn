@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:2291853
+Availability:Docs
+Title:コマンドレット
+Crumbs: %ROOT%, Engine
+Description:アンリアルエンジン環境内部で実行するコマンドラインプログラム。一般的に分析やパッケージやマップのアクションの実行に使用。
+
+
+[REGION:header_img]
+![commandlets.jpg](commandlets.jpg)
+[/REGION]
+
+コマンドレットはアンリアルエンジン環境内部で実行するコマンドラインプログラムです。コンテンツの大幅な変更、情報を得るためにコンテンツのイタレーション、または単体テストの機構として最も良く使用します。エンジンは初期設定でたくさんのコマンドレットを格納し、付加的機能を実行するために新規のコマンドレットを追加することができます。
+
+コマンドレットはゲームに必要なパラメータと一緒にコマンドレットの名前をコマンドラインへ渡して実行します。Windowsのコマンドプロンプトからゲームを実行、もしくは実行ファイルへショートカットの **ターゲット** を渡して実行します（例えば「UE4Editor.exe」）。
+
+例えばUE4の **FixupRedirects** コマンドレットは以下を利用してコマンドラインから実行します。
+
+    UE4.exe -run=fixupredirects
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		参考ドキュメント
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Commandlets/CommandletList "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/BatchExport "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/ContentAudit "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/ContentComparison "%Engine/Commandlets/ContentComparison:Description%")
+		* [](Engine/Commandlets/DeleteQuarantinedContent "%Engine/Commandlets/DeleteQuarantinedContent:Description%")
+		* [](Engine/Commandlets/FixUpRedirects "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/Help "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/MineCookedPackages "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/SetTextureLODGroup "%Engine/Commandlets/CommandletList:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[PUBLISH:Docs]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		 技術参考ドキュメント
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/Tools/Commandlets/MakingACommandlet "%Programming/Development/Tools/Commandlets/MakingACommandlet:Description%")
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Docs]

@@ -1,0 +1,614 @@
+Availability: Docs
+Title:Matinee 轨迹参考指南
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/Tools, Engine/Matinee
+
+[TOC(start:2)]
+
+
+
+## 概述
+
+Matinee提供了许多内置轨迹类型，从而可以使得各种不同类型的actor上的不同的数据类型产生动画。
+
+
+
+## Bool Property Track(布尔型属性轨迹)
+
+Bool Property(布尔型属性)轨迹控制和包含该轨迹的组相连的actor中的布尔变量。当添加这种类型的轨迹时，将弹出一个对话框允许您从可以由Matinee控制的属于该连接actor的所有布尔型属性中选择一个进行控制。
+
+**属性**
+
+
+* **Property name（属性名称）** - 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。
+
+
+
+
+## Event Track(事件轨迹)
+
+Event Track（事件轨迹）给Matinee提供了一种在序列的特定点处激活事件使它返回到Kismet中的机制。当您在Event Track上放置一个关键帧时，它将会要求您提供一个Event Name（事件名称）。每个离散的事件名称将会在Matinee Action上创建一个新的Output连接器。当序列到达Event关键帧时，将会激活那个连接到Ouptput端的Kismet Sequence Objet（Kismet序列对象）。如果您有多个具有相同名称的关键帧，那么将会创建一个Output连接器，但是每当经过这些关键帧中的每一个时都会触发该Output端。
+
+这里是具有一个关键帧`SpawnBeasts'的Event Track(事件轨迹)。
+
+![event_track.jpg](event_track.jpg)
+
+这是Kismet中的Matinee Action，显示了新的输出连接器，这些连接器可以连接到一组脚本事件上。
+
+![event_connector.jpg](event_connector.jpg)
+
+Event Track手柄上的![eventarrows.jpg](eventarrows.jpg)按钮允许您控制当序列正向播放、逆向播放或者双向播放时是否应该触发Output端。如果右箭头按钮是黄色的，那么当正向播放序列经过轨迹上的这些事件时触发它们。如果左箭头是黄色，那么当反向播放经过这些事件时触发它们。
+
+Event Track在哪个Group（组）中都没有关系，并不是必须要有附加到该组上的Actor。
+
+右击Event Key（事件关键帧），您可以重命名它。这样做将会重命名任何具有相同名称的关键帧和Matinee Action上的输出连接器。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Fire Events When Backwards（当反向播放时激活事件）** - 如果该项为true，那么当Matinee反向播放时激活该轨迹上的事件。
+* **Fire Events When Forwards(当正向播放时激活事件)** - 如果该项为true，那么当Matinee正向播放时激活该轨迹上的事件。
+* **Fire Events When Jumping Forward（当跳跃正向播放时激活事件）** - 如果该项为true，将允许激活轨迹上的所有事件，即时Matinee跳跃播放也可以。
+
+
+
+
+## FaceFX Track(FaceFx轨迹)
+
+FaceFX轨迹提供了一种播放骨架网格物体actor上指定的 FaceFX AnimSets数组中的FaceFX脸部动画的功能。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **FaceFX AnimSets** - 用于从中抽取动画数据的附加FaceFX AnimSets列表。
+
+
+
+
+## Anim Control Track(动画控制轨迹)
+
+该轨迹类型使您可以轻松地在场景中的actor上分配及预览动画。默认情况下，它仅对SkeletalMeshActors有效，但程序员可以非常容易地添加对其他任何Actor类的支持。
+
+当使用Anim Control轨迹时要做的第一件事情是在组属性中把您想使用的AnimSets（动画集）添加到GroupAnimSets数组中。完成这步后，拖拽到您想开始播放动画的地方，选中轨迹和一个新的关键帧。这将会弹出一个组合框，包含了您选择的AnimSet中的所有AnimSequences(动画序列)的名称。简单地选择您想播放的动画并点击确定，您将会看到动画在轨迹上呈现为蓝色的块。然后，您可以像修改其他任何类型的关键帧一样到处移动该动画。拖拽轨迹允许您在编辑器中预览应用到Actor上的动画，这使得设置复杂的相机移动和镜头特写变得更加容易。
+
+您也可以设置动画循环播放，可以通过右击动画并选择'Set Looping(设置循环)' 或'Set Non-Looping(设置非循环)'来实现。当动画正在循环时，它将持续播放直到到达Matinee序列的尾部为止，或者直到在轨迹上播放了另一个动画为止。循环播放的动画将会把每次重复播放显示为暗蓝色并具有黑色标记，正如您在以下屏幕截图中所看到的Fire_Auto_01 animation：
+
+![matinee_animcontrol.jpg](matinee_animcontrol.jpg)
+
+您也可以通过右击动画并从菜单中选择选项来修改动画的起始及结束偏移量。当使用AnimControl Track进行工作时另一个有用的功能是'Razor'工具。这允许您在特定的位置把一个动画块分割为两段。简单地选择AnimControl轨迹，拖拽到期望位置并按下'R '键即可。
+
+也可以使用当选中动画的结束标志来 剪辑动画/调整动画大小。 如果正常地拖拽这些标记，它们将会修改动画的起始和结束偏移量(剪辑动画)。 如果按下Ctl并拖拽标记，那么它们将修改动画的播放速率(拉伸动画)。 如果按下ALT键的同时拖拽标记，那么它们将保持动画的时间长度不变，但是会修改 起始/结束 偏移量，然后自动调整播放速率来保持动画具有同样的长度。
+
+![animcrop.jpg](animcrop.jpg)
+
+注意，仅当Matinee 序列正在正向播放时才会执行动画中的通知。
+
+请参照[Matinee动画控制轨迹](Engine/Matinee/AnimControlTrack)页面获得关于使用这个轨迹的更多信息。
+
+
+
+## Float Material Param Track(浮点型材质参数轨迹)
+
+Float Material Param(浮点型材质参数)轨迹用于在运行时修改材质中的Scalar Parameters(标量参数)。该轨迹会获取一个材质列表，并修改这些材质中给定的参数的值。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Materials(材质)** - 将要修改其参数的材质列表，并且在关卡中需要对这些材质的引用赋予MaterialInstanceConstants ，这些材质引用在保存时编译。
+* **Param Name** - 材质中要修改的参数的名称。
+
+
+
+
+## Float Particle Param Track(浮点型粒子参数轨迹)
+
+Float Particle Param Track(浮点型粒子参数轨迹)轨迹用于在运行时修改粒子系统中的参数分布。将会修改连接到包含该轨迹的组上的粒子系统中具有给定参数名称的任何参数。这意味着您可以有一个火焰粒子系统，该系统有针对火焰、火花、及烟雾的发射器，这里每个发射器都有一个控制产生速率的参数 _SpawnRate_ 。一个单独的Float Particle Param Track(浮点型粒子参数轨迹)可以驱动所有这些参数来控制火焰。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Param Name** - 粒子系统中要修改的参数的名称。
+
+
+
+
+## Float Property Track(浮点型属性轨迹)
+
+Float Property Track(浮点型属性轨迹)允许您随着时间修改浮点型属性的值，比如光源的亮度、或者静态网格物体的描画比例。当您创建这种类型的轨迹时，将会弹出一个组合框显示了那个组的Actor的所有可修改的属性。选择其中一个您想修改的属性，然后使用和操作Movement Track(运动轨迹)一样的方式来 添加/修改关键帧。您可以使用[曲线编辑器](Engine/UI/UserGuide/CurveEditor)来随着时间调整参数的值。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Property Name（属性名称）** - 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。
+
+
+
+
+## Morph Weight Track(顶点变形权重轨迹)
+
+Morph Weight Track(顶点变形权重轨迹)控制应用到和包含该轨迹的组相连接的actor上的AnimTree（动画树）中变形节点的权重。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Morph Node Name(变形节点名称)** - 要控制的动画树中的变形节点的名称。
+
+
+
+
+## SkelControl Scale Track(骨架控制缩放轨迹)
+
+SkelControl Scale Track(骨架控制缩放轨迹)可以控制应用到和包含该轨迹的组相连接的actor上的AnimTree中的骨架控制器的比例。这可以用于在骨架网格物体上执行自定义动画。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Skel Control Name(骨架控制名称)** - AnimTree中要控制的骨架控制器的名称。
+
+
+
+
+## Linear Color Property Track(线性颜色属性轨迹)
+
+Linear Color Property Track(线性颜色属性轨迹)用于修改附加actor中的线性颜色变量。线性颜色的分量所使用的值的范围在0到1之间(较高的值将超出分量的范围)。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Property Name（属性名称）** - 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。
+
+
+
+
+## Movement Track(运动轨迹)
+
+其中一个最重要的轨迹类就是Movement Track（运动轨迹）。这用于在场景中随着时间到处移动Actor。创建一个Actor能遵循的路径只需要简单的选择您想修改的Movement track并执行以下操作即可：
+
+
+* 拖拽到您想添加新的关键帧的时间点处。
+* 按下回车键或者'Add Key（添加关键帧）'按钮来在那个时刻创建一个新的关键帧。
+* 把Actor移动到在那帧处所期望的放置位置。
+
+
+然后，为每个关键帧重复这个步骤。在关卡加载时在Actor的初始位置为其创建一个初始关键帧然后再也不移动那个关键帧是个好主意。否则随着Actor向动画数据禁止的地方移动，动画开始播放时将会看到'跳跃'现象。
+
+![move_3dpath.jpg](move_3dpath.jpg)
+
+您将会在3D视口看到Actor的路径。当选中组时路径描画为黄色，组编辑器着色剩余的时间。您可以在3D视口中点击大的关键帧来选中关键帧，这使您可以像在主要Matinee窗口中选中它们进行编辑时那样对其进行编辑。较小的更新预示是0.1秒时间间隔，从而让您了解物体的速度。
+
+当在关卡中选中关键帧时将会看到一个白色的手柄，这允许您控制那个关键帧处的速度并允许重新调整曲线形状。默认情况下，关键帧之间的插值模式是曲线，但是您可以通过在主要Matinee中右击一个关键帧并使用'Interp Mode（插值模式）'菜单来改变插值模式。Matinee窗口中的关键帧三角形的颜色指出了它当前使用的插值模式。
+
+![interp_mode_menu.jpg](interp_mode_menu.jpg)
+
+您也可以使用'Send To Curve Editor（发送到曲线编辑器）'按钮(参照图表中的第16个)来使用[曲线编辑器](Engine/UI/UserGuide/CurveEditor)精细地控制Actor随着时间的平移及旋转情况。请使用Movement Track中的bShowRotationOnCurveEd和bShowTranslationOnCurveEd选项来控制您是正在查看的 旋转曲线 和/或 平移曲线。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Ang Curve Tension（角度曲线张力）** - 当没有手动地调整关键帧切线时该项控制旋转方向上的改变的'尖锐明显'程度。仅当使用Euler旋转插值模式时有效。
+* **Disable Movement(禁用运动)** - 允许您在预览时禁用这个运动轨迹。当相对于另个Actor设置Actor的关键帧这是有用的。
+* **Hide 3D Track(隐藏3D轨迹)** - 在视口中切换轨迹的3D运动路径的显示。
+* **Lin Curve Tension(线性曲线张力)** - 当没有手动地调整关键帧切线时，该项控制运动轨迹中的拐角的'尖锐明显'程度。
+* **Look At Group Name(查看组名)** - 这个Actor应该指向的组的名称(仅当RotMode是IMR_LookAtGroup时使用)。
+* **Move Frame(移动帧)** - 该项是个只读变量，它指出运动轨迹是在World（世界）中还是在 Relative To Initial(相对于初始)参考帧中。通过右击轨迹标题可以进行修改。
+* **Rot Mode(旋转模式)** - 允许您选择决定所控制的Actor的旋转制的方法。
+* **Show Arrow At Keys(在关键帧处显示箭头)** - 在每个关键帧处显示个箭头，从而允许您看到每个关键帧处的方位。
+* **Show Rotation On Curve Ed(在曲线编辑器上显示旋转值)** - 当在曲线编辑器上显示Movement Track时，显示旋转值曲线。仅当bUseQuatInterpolation 为false时有效。
+* **Show Translation On Curve Ed(在曲线编辑器上显示平移)** - 当在曲线编辑器上显示Movement Track时，显示平移值曲线。
+* **Use Quat Interpolation(使用Quat插值)** - 在Quaternion和Euler旋转插值方法之间选择。
+
+
+
+### Movement Reference Frames(运动参考帧)
+
+您可以在两种参考帧中设置您的对象的关键帧 - `World(世界)' 和`Relative To Initial(相对于初始处)'。
+
+`World'是最简单的 - 它仅把每个关键帧存储为相对于关卡的位置。当您播放序列时，对象将会跳转到关卡中您放置关键帧的地方。这保证了对象的位置，但是当您想到处移动部分关卡时或者重新在其他对象上使用您的动画时这可能会很麻烦（稍后讲述关于重用Matinee数据的更多信息）。
+
+`Relative To Initial(相对于初始位置)' 将初始化插值来以正在修改的Actor的当前姿势启动它。所以，如果Actor放在了关卡的其他地方，那么也会移动运动，并且相对于Actor的初始位置执行。同时，如果对象的`Relative To Initial'运动轨迹将对象沿着它的局部X轴移动，那么旋转Actor将会导致它以旋转的方向移动。这对于把一个动画应用到您的关卡中的很多不同的Actors上的情况非常有用。如果使用'World（世界）'参考帧这样做，那么当序列启动时所有的Actors将跳转到相同的位置处。
+
+这个图表显示了应用到两个具有不同位置和旋转值的对象上的 `Relative To Initial'运动。
+
+![reltoinitial_motion.jpg](reltoinitial_motion.jpg)
+
+要想选择Movement(运动)轨迹在哪个参考帧中工作，那么可以右击左侧标题头并从菜单中选择期望的帧即可。
+
+![reframe_menu.jpg](reframe_menu.jpg)
+
+
+### 旋转插值
+
+Matinee使用两种不同的旋转插值机制来在关键帧之间旋转Actor，即`Euler' 和 `Quaternion'。
+
+`Euler'是默认使用的机制，它通过在关键帧的值之间插值Actor的Yaw(偏转)、Pitch(倾斜)及Roll(旋转)进行工作。这允许您在曲线编辑器中随着时间编辑这三条曲线来调整方位并控制关键帧之间的 缓入/缓出。它也支持绕圈 -  也就是，如果您把一个对象旋转很多次，那么关键帧将存放整个旋转的次数，而不是丢弃它。这使得给某些对象添加关键帧变得容易，比如正在拧到墙里的螺丝钉，同时使您可以完全地控制当Actor在两个方位之间移动时Actor所采用的方向。
+
+`Quaternion'插值不支持绕圈，从本质上讲在关键帧之间它是线性的，不支持 缓入/缓出。但是，它更加强大，它总是可以找到两个不同方位之间的最短路线。
+
+您可以通过切换bUseQuatInterpolation 选项来控制正在使用的方法(如下所示)。
+
+
+### 旋转模式
+
+有时候，您不想精确地设置对象或相机的方位的关键帧。目前在Matinee中有两种不同的旋转模式：
+
+`Keyframed'是默认模式，Actor的方位位置由关键帧决定。
+
+`Look At Group' 指出您想让 Actor 总是指向另一个组控制的 Actor。当使用相机时这是有用的，因为无论它移动到哪里您可以使它总是朝向特定目标。要想使用该模式，需要在 LookAtGroupName 域中输入您想让 Actor 指向的组的名称，并设置RotMode为 IMR_LookAtGroup。
+
+
+### 相对于其他组的 Movers (移动对象)
+
+让一个运动轨迹关键帧从同一个Matinee序列中的另一个组中查找它的变换信息是可能的。 这意味着一个关键帧可以指向一个运动的对象，并且让运动轨迹在哪个位置处进行插值。 这个应用的一个示例是设置一个总是能射中以不可预知方式移动的角色的射弹。
+
+要想设置一个关键帧来在另一个组中查找它的位置，那么请右击关键帧并选择 "Select Transform Lookup Group(选择变换查找组)..."。
+
+![lookup_track1.jpg](lookup_track1.jpg)
+
+这将显示一个对话框，让选择一个组，以便从该组中查找变换信息。
+
+![lookup_track2.jpg](lookup_track2.jpg)
+
+当选择组后，关键帧将把查找组的名称显示在其上面。 以下图片显示了4个使用组Box1和Box2的关键帧在查找它们的位置信息。
+
+![lookup_track3.jpg](lookup_track3.jpg)
+
+要想清除一个关键真的查找组，那么请右击关键帧并选择"Clear Transform Lookup Group(清除变换查找组)"。
+
+![lookup_track4.jpg](lookup_track4.jpg)
+
+MatineeLookupTest.ut3是使用了这个功能示例地图，可以在DemoContent/TestMaps文件夹中找到它。 
+
+
+### Movers(移动对象)相对于Movers（运动对象）
+
+在虚幻引擎 3 中，可以设置一个对象的关键帧使该对象相对于另一对象移动。比如当您想设置打开一节移动的火车车厢上的门的关键帧时这可能是有用的。
+
+要想完成这个处理，只要在您开始设置关键帧之前，把您想对其设置关键帧的 Actor 的 Base（基座）设置为您想让该 Actor 相对于其进行运动的 Actor 即可。
+
+
+### 路径构建
+
+一般来说Actor的初始位置是'关闭'姿势，比如门。当构建AI系统的路径网络时，将不能找到通过门口的路径，因为被Mover(移动者)挡住了。要想解决这个问题，您可以在您的Matinee序列中设置一个特殊的点以便在构建路径时使用。简单地拖拽到当构建路径时您期望Actors所在的点处，并从'编辑'菜单中选择'Save As Path-Building Positions(保存为路径构建位置)'。在拖拽条上会出现一个小蓝色的对号显示了当前路径构建的播放位置：
+
+![pathbuild_pos.jpg](pathbuild_pos.jpg)
+
+对于在路径构建发生时移动 Actor 的 Matinee Action，您需要选中该 Action 本身上的`bInterpForPathBuilding' 标志。注意，您不能让多个设置 bInterpForPathBuilding 为 true 的 Matinee Action 作用于某特定 Actor 上，因为这会使得需要的位置产生歧义。
+
+
+### 分离平移分量和旋转分量
+现在，可以把一个运动轨迹的平移分量和旋转分量分离开来，以便可以在每个坐标轴上独立地对其添加关键帧。 这允许对运动轨迹曲线进行更加精细的控制。 "分离"运动轨迹是个可选过程。 最初，所有运动轨迹组合到一起，这意味着平移和旋转曲线具有相同数量的关键帧，并且所有关键帧在时间上存在于相同的位置处。 要想分离运动轨迹，只要简单地右击运动轨迹并从关联菜单中选择"Split Translation and Rotation(分离平移分量和旋转分量)"。
+
+![MoveTrackMenu.jpg](MoveTrackMenu.jpg)
+
+只要分离了运动轨迹后，它将如下所示：
+
+![SplitMoveTrack.jpg](SplitMoveTrack.jpg)
+
+每个坐标轴可以作为独立轨迹操作，以便您可以在它们内设置任何数量的关键帧。
+
+当不使用时，可以把平移和旋转分量放到一个组中，并且可以合并到一起。 在平移和旋转组附近描画的垂直条代表一个或多个坐标轴上的一个关键帧。 选中一个垂直条，将选中它下面的所有关键帧。 这允许您一次选择多个关键帧。 
+
+注意： 当平移分量和旋转分量分离开时不能使用Quaternion插值模式。
+
+
+### 正规化速度 
+
+当使用Bezier曲线时，通常可以使得对象根据曲线形状和关键帧之间的间距而沿着曲线加速运动或减速运动。 正规化速度选项可以修改运动轨迹的平移曲线，以便使得对象沿着曲线以恒定速度运动。 知道恒定速度使用您的运动轨迹曲线生成的3D路径是非常重要的。 当使用正规化速度时，平移分量的每个轴的2D曲线可以改变形状，但是它生成的3D路径必须和原始路径一致。 
+
+当选中Normalize velocity(正规化速度)菜单项后，它不会强制曲线变为恒定速度。 它简单地通过检查原始曲线并把修改它们，进行一次性的调整以保持恒定速度。 任何对曲线的后续修改都会导致它不再具有恒定速度。
+
+注意：
+
+* 仅在分离了平移分量和旋转分量的运动轨迹上具有正规化速度功能(请参照上面)。 
+* 可以只正规化曲线片段上的速度而不是整个间隔上的速度。当这种情况发生时，正规化速度操作会在该曲线部分的前面和后面分别添加关键帧。 这样做是为了确保没有正规化的曲线部分仍然不影响。 当对象沿着曲线变换到正规划速度部分时或者当从正规化部分变换到曲线的其他部分时您可能会注意到会出现"跳跃"运动。 为了修复该问题，我们必须手动地调整正规化部分前面和后面的关键帧。
+
+
+
+
+## Particle Replay Track(粒子重放轨迹)
+
+Particle Replay Track（粒子重放轨迹）允许您创建并播放预先录制的粒子仿真。当您想让所有射击的粒子行为都一样时这是非常有用的。当您向Particle Replay Track（粒子重放轨迹）添加一个新的关键帧时，从本质上讲您是添加了一个新的要录制的剪辑。对于每个剪辑，在时间轴上会显示一个横条，显示了剪辑的持续时间。
+
+![replay_bar.jpg](replay_bar.jpg)
+
+当选中该横条时，您可以通过使用时间轴中的剪辑横条任何一段的手柄来调整剪辑的起始点和持续时间。在任何手柄上左击并拖拽鼠标，通过移动那个手柄来调整剪辑的持续时间。要想在不调整期持续时间的情况下移动剪辑，那么需要按下Ctrl并点击拖拽关键帧本身来完成。
+
+![replay_handles.jpg](replay_handles.jpg)
+
+通过在时间轴上右击剪辑的横条并从菜单中选择适当的选项，您也可以调整剪辑的起始位置、持续时间和剪辑修改 ID。
+
+![replay_menu.jpg](replay_menu.jpg)
+
+要想开始录制粒子系统，只要右击轨迹并从关联菜单中选择 _Start Recording Particles(开始录制粒子)_ 即可。
+
+![replay_start.jpg](replay_start.jpg)
+
+当录制激活时，剪辑横条在时间条上高亮显示。
+
+![replay_start_bar.jpg](replay_start_bar.jpg)
+
+按下工具条上的![replay_play.jpg](replay_play.jpg)按钮开始播放。当录制启用时，轨迹将会在播放期间录制粒子。一旦录制完成，再次右击轨迹并选择 _Stop Recording Particles(停止录制粒子)_ 即可。
+
+![replay_stop.jpg](replay_stop.jpg)
+
+现在，当您按下 ![replay_play.jpg](replay_play.jpg)按钮时，粒子系统将从录制的剪辑初开始播放，您可以拖拽时间条来向前播放或向后播放剪辑来检查录制情况。
+
+
+
+## Toggle Track(切换轨迹)
+
+Toggle Track(切换轨迹)为matinee提供了一种在序列的特定点处切换Emitter(发射器)actor打开或关闭状态的机制。当您在Toggle Track放置一个关键帧时，您将看到以下对话框：
+
+![PSysToggle_Key.jpg](PSysToggle_Key.jpg)
+
+选项是:
+
+
+* **Trigger(触发器)** - 一次性激活粒子系统。
+* **On** - 打开粒子系统。
+* **Off** - 关闭粒子系统。
+
+
+当启动发射器时，轨迹将显示一个绿条，使得辨别actor的状态变得更加容易。以下是个Toggle Track，它打开了发射器然后又将其设置为关闭状态。
+
+![PSysToggle_Track.jpg](PSysToggle_Track.jpg)
+
+**属性**
+
+
+* **Activate System Each Update(每次更新时激活系统)** - 如果该项为ture，那么每次更新 (旧的'错误' 行为)都会在发射器上调用ActivateSystem。如果该项为false，仅当粒子系统先前为非激活状态时才激活它。
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Fire Events When Backwards（当反向播放时激活事件）** - 如果该项为true，那么当Matinee反向播放时激活该轨迹上的事件。
+* **Fire Events When Forwards(当正向播放时激活事件)** - 如果该项为true，那么当Matinee正向播放时激活该轨迹上的事件。
+* **Fire Events When Jumping Forward（当跳跃正向播放时激活事件）** - 如果该项为true，将允许激活轨迹上的所有事件，即时Matinee跳跃播放也可以。
+
+
+
+
+## Color Property Track(颜色属性轨迹)
+
+Color Property Track(颜色属性轨迹)用于控制附加的actor中的基于字节的Color（颜色）变量。这类属性的一个示例是光源对象中的LightColor(光源颜色)变量。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Property Name（属性名称）** - 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。
+
+
+
+
+## Sound Track(声效轨迹)
+
+Sound Track(声效轨迹)用于在Matinee序列过程中从SoundCues播放音频。当放置一个关键帧时，将会使用内容浏览器中当前选中的SoundCue。Sound Track(声效轨迹)的关键帧看上去和AnimControl Track的关键帧类似。您将会看到一个具有该SoundCue名称的横条，代表SoundCue的持续时间。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Continue Sound On Matinee End(当到达Matinee尾端时继续播放声效)** - 如果该项为true，那么如果声效的持续时间超出Matinee序列的尾端时将不会终止音效播放。而是继续播放音效直到其结束为止。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Play On Reverse(反向播放)** - 如果该项为true，那么仅当Matinee序列反向播放时才播放在这个轨迹的声效。当正向播放序列时不播放声效。使用这个功能的一个示例是具有不同开始音乐和结束音乐的Movers（移动对象）。
+* **Suppress Subtitles（禁止字幕）** - 如果该项为true，那么将不显示在这个轨迹上播放的声效相关的任何字幕。
+
+
+
+
+## Vector Material Param Track(向量材质参数轨迹)
+
+Vector Material Param Track(向量材质参数轨迹)用于在运行时修改材质中的Scalar Parameters(向量参数)。该轨迹会获取一个材质列表，并修改这些材质中给定的参数的值。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Materials(材质)** -将要修改其参数的材质列表，并且在关卡中需要对这些材质的引用赋予MaterialInstanceConstants ，这些材质引用在保存时编译。
+* **Param Name** - 材质中要修改的参数的名称。
+
+
+
+
+## Vector Property Track(向量属性轨迹)
+
+Vector Property Track(向量属性轨迹)允许您随着时间修改Actor的Vector（向量）属性的值，比如静态网格物体的DrawScale3D变量。当您创建这种类型的轨迹时，将会弹出一个组合框显示了那个组的Actor的所有可修改的属性。选择其中一个您想修改的属性，然后使用和操作Movement Track(运动轨迹)一样的方式来 添加/修改关键帧。您可以使用[曲线编辑器](Engine/UI/UserGuide/CurveEditor)来随着时间调整参数的值。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Property Name（属性名称）** - 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。
+
+
+
+
+## Visibility Track(可见性轨迹)
+
+Visibility Track(可见性轨迹)用于控制一个actor是否可以见(通过使用bHidden属性)。当给该轨迹添加一个新的关键帧时，将会为您呈现几个和这个actor相关的选项 _Show(显示)_ 、 _Hide(隐藏)_ 和 _Toggle(切换)_ 。
+
+![visibilitymenu.jpg](visibilitymenu.jpg)
+
+当actor设置为可见稍后又设置为不可见状态时该轨迹将显示一个绿色的横条，使得actor状态的辨别变得更加容易。从以下的可见性轨迹中可以看到actor在~1.0秒时显示，在~2.0秒时隐藏。
+
+![visibilitytrack.jpg](visibilitytrack.jpg)
+
+用于切换actor可见性而设置的关键帧显示为小红条，代表它们是用于切换的关键帧。
+
+![visibilitytoggle.jpg](visibilitytoggle.jpg)
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+* **Property Name（属性名称）** - 它是个只读变量，指出了该轨迹随着时间所修改的连接actor中的属性的名称。
+
+
+
+
+## AI Group(AI 组)
+
+AI Group(AI组)是供游戏中产生的AI(Controller或Pawn)使用的。这可以在过场动画和游戏之间创建无缝的体验。
+
+使用运行时产生的actor可能会产生很多问题，这包括在编辑器中预览、如何处理过场动画和游戏之间的变换。
+
+因为您没有在编辑器中产生角色，所以作为标记AI开始启动位置的一种方式，我们使用Stage Mark Group(阶段标记组)。
+
+当您创建AI组时，它将为您创建一个 Stage Mark Group，您需要把actor连接到该Stage Mark Group组上。 
+
+这个actor的 位置/旋转值 将指出actor的产生点或者预览actor的位置及朝向。
+
+![AIMatinee.jpg](AIMatinee.jpg)
+
+第二部是选择 Preview Pawn 类。默认情况下，该类别是在 DefaultEditor.ini 文件中指定的类。
+
+**`AIGroupPreviewPawnClassName="MyGame.DefaultGamePawn"`**
+
+您还需要设置很多可配置的信息。
+
+**`AIGroupPreviewAnimTreeName="EditorMeshes.PreviewTree"`**
+
+**`DefaultAnimSlotName="Custom_FullBody"`**
+
+如果预览pawn没有AnimTreeTemplate，并且DefaultAnimSlot是AnimControlTrack的插槽节点的名称，那么AIGroupPreviewAnimTreeName是编辑器中的预览树。
+
+
+* Anim Node Slot(动画节点插槽)
+* [Matinee动画控制轨迹](Engine/Matinee/AnimControlTrack)
+
+
+和DefaultAnimSlotName不同，它是所有的预览信息。在运行过程中，我们不会改变AnimTree，而是使用产生的其插槽节点名称是DefaultSlotName的actor的当前AnimeTree。
+
+所以您需要确保您上面指定的插槽节点存在于AnimTree和预览AnimTree中。
+
+一旦设置完成，您需要使用您选择的Pawn预览一切是否正确。
+
+预览不会改变游戏中的actor。在运行过程中，它会使用Matinee中和组变量相连接的actor。请确保该这个actor是Pawn或Controller类。
+
+最后一件需要注意的事情是如果游戏中的AI决定在游戏过程中做其他事情，在Matinee代码中没有任何阻止它们那样做的处理。
+
+Matinee代码处理AI和SkeletalMeshActor完全一样。所以您要确保在这段时间内您的AI没有尝试做其他事情。
+如果在这段时间内AI需要做其他处理，那么您将会看到Matinee和游戏之间出现竞争状态。
+
+**`event MAT_BeginAIGroup(vector StartLoc, rotator StartRot);`**
+
+**`event MAT_FinishAIGroup();`**
+
+请使用这些事件来处AI的行为。
+
+
+
+##Director Group(导演组)
+
+Director Groupa(导演组)是一种特殊类型的组，它不会作用于在场景中任意Actor上，比如正常的Actor，但是它间接地作用于'玩家'。当您想把序列设计为过场动画时或者您想控制玩家视角时就要使用到它。
+
+和正常的Group（组）一样，您可以使用相同的方式来把Director Group（导演组）添加到Matinee序列中，但是这次要选择'Add New Director Group（添加新的调导演组）'。Director Group的标头的颜色和正常组的标头的颜色是不同的，所以很容易找到它。
+
+有几种仅能添加到Director Group（导演组）的轨迹类型。
+
+
+### Director Track(导演轨迹)
+
+Director Track(导演轨迹)允许随着序列的进行把玩家视角附加到不同的Actor上。当您向Director Track添加新的关键帧时，将会弹出一个组合框允许您选择此处要分配给视图的Group（组）。Director Track上的彩色横条允许您查看在序列的每个点处相机正在通过哪个组查看 - 颜色对应着每个组的编辑器组颜色。如果您想把相机视角交还给玩家，那么简单地向Director Group本身添加迅速返回功能即可。可以吧Director Group看着一个和'玩家'相关的特殊组。在序列的尾端视图将自动返还给玩家。
+
+![dir_track.jpg](dir_track.jpg)width="" height="" />
+
+
+#### 镜头
+
+Director(导演)轨迹细分为所谓的 **镜头** ，就像您在标准的电影制作中所遇到的一样。每个帧代表一个新的镜头，并且该镜头持续那帧那么长的时间。
+
+![shot_label.jpg](shot_label.jpg)width="" height="" />
+
+当在编辑器中预览 Matinee 时以及当在游戏中播放该 Matinee 时都会显示镜头名称。 
+
+**视口预览：**
+
+![shot_previewdisplay.jpg](shot_previewdisplay.jpg)width="" height="" />
+
+**游戏中播放：**
+
+![shot_gamedisplay.jpg](shot_gamedisplay.jpg)width="" height="" />
+
+**注意：** 要想在游戏过程中 Matinee 播放时显示镜头的名称，需要在 **`*Game.ini`** 文件中设置 **`bShowDirectorInfoHUD=true`** 并且需要该游戏类型支持播放 Kismet 信息（通过在描画循环中调用 **`DisplayKismetMessages()`** 来实现）。
+
+默认情况下，会根据镜头在时间轴上的位置对镜头进行编号。在两个现有关键帧之间添加一个新的关键帧将会导致和新关键帧相关的镜头编号在这个现有镜头之间。
+
+**现有关键帧：**
+
+![shot_before.jpg](shot_before.jpg)width="" height="" />
+
+**添加新的关键帧后：**
+
+![shot_after.jpg](shot_after.jpg)width="" height="" />
+
+可以通过关联菜单来重命名镜头。
+
+
+1. 现有镜头名称： <br />
+    ![shot_label.jpg](shot_label.jpg)(w:309 h:17)
+1. 2.选择和该镜头相关的关键帧，右击它，并在关联菜单中选择 **Rename（重命名）** 。<br />
+    ![track_menu.jpg](track_menu.jpg)width="" height="" />
+1. 在 **Set Camera Shot Number（设置相机镜头编号）** 对话框中输入该镜头的编号： <br />
+    ![shot_dialog.jpg](shot_dialog.jpg)width="" height="" />
+1. 现在该镜头被重命名为： <br />
+    ![shot_renamed.jpg](shot_renamed.jpg)(w:309 h:17)
+
+
+
+### Fade Track(渐变轨迹)
+
+Fade Track用于控制场景向某个特定颜色渐变过程。该轨迹的工作方式和 Float Property Track 类似，但是您必须使用[曲线编辑器](Engine/UI/UserGuide/CurveEditor)来控制渐变量随着时间的变化。当Fade Amount(渐变量)是0.0时，不会发生渐变；当它是1.0时，场景将完全淡出。
+
+
+### Slomo Track(慢动作轨迹)
+
+这是个可以应用到过场动画上的特效，即降低游戏速度。该轨迹的工作方式和 Float Property Track 类似，但是您必须使用[曲线编辑器](Engine/UI/UserGuide/CurveEditor)来控制慢动作随着时间的变化。Slomo Factor（慢动作因数）为1.0，意味着将使用默认的游戏速度；将其设置为较低的值将会降低游戏速度，设置为较高的值将会加速游戏速度。
+
+Slomo（慢动作）处理影响所有游戏动作、物理、粒子等,同时也影响序列本身的处理速度。
+
+
+### Audio Master Track(音频控制轨迹)
+
+Audio Master Track(音频控制轨迹)允许您控制游戏音频的整体音量和音调。当把一个Audio Master Track(音频控制轨迹)添加到Director Group（导演组）中时，它在序列的开始处有一个默认的关键帧，其插值模式是线性插值。添加新的关键帧允许您在序列播放过程中修改 音量 和/或 音调。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+
+
+
+### Color Scale Track(颜色比例轨迹)
+
+Color Scale Track(颜色比例轨迹)可以修改渲染的场景输出的颜色比例，允许您给场景着色。
+
+**属性**
+
+
+* **Active Condition(激活条件)** - 设置什么时候启用轨迹：总是启用、当启用血腥时、或当禁用血腥时。
+* **Curve Tension(曲线张力)** - 当没有手动地调整关键帧切线时，该项用于控制动画曲线拐角处的'尖锐'程度。
+
+ 
+
+
+
+
+

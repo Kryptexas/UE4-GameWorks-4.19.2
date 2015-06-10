@@ -1,0 +1,84 @@
+Availability: Docs
+Title: MineCookedPackages 命令行开关
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+
+[TOC(start:2)]
+
+## 概述
+
+minecookedpackages命令行开关的作用是将烘焙包及其导出数据的信息存入到数据库中。这可以使您不必修改代码或保留旧数据就可以执行大范围的数据查询。
+
+
+
+##如何使它工作
+
+
+### 设置
+
+
+* 安装Microsoft SQL Server 或 Microsoft SQL Server Express。
+    * VS.NET 2005/ 2008中附带了SQL Server Express。
+* 安装Microsoft SQL Server Management Studio Express (SMS)。
+    * 我认为您可在 Visual Studio完成所需的大部分处理，但以SQL Server Management Studio的Express版本是免费的，所以您也可以安装并使用它。
+* 创建数据库。
+    * 通过SMS连接到您的数据库。
+    * 右击Databases（数据库）并点击new(新建)
+    * 输入名称，比如CookedContent-1。
+* 创建表格。
+    * 右击CookedContent-1并选择"new query(新建查询)"。
+        * 以后计划把每次单独的运行的数据标记一个唯一ID，从而使得在不同的运行中连通及共享数据，但是暂时我们需要针对每次运行创建一个新的数据库。
+    * 将[MineCookedPackages.sql](MineCookedPackages.sql)的内容粘帖到刚刚打开的文本窗口中并按下执行按钮。这将会在您的数据库中创建所有的相关表格。
+
+
+
+
+## 操作
+
+要通过一个命令提示窗口运行这个命令行开关，请浏览到  _UnrealEngine3\Binaries_ 目录。
+
+
+### 语法
+
+语法如下所示：
+
+    [Gamename].exe minecookedpackages ..\MyGame\CookedXenon\\*.xxx -DATABASE=machinename\sqlexpress -CATALOG=CookedContent-1
+    
+
+目前，它将跳过完全压缩的包。在我们的应用实例中，这些包仅是启动包。
+
+
+### 查询
+
+以下查询操作将会按照类别分组导出数据,并按照它们的累计大小进行排序，列出它们的累计大小、平均大小及找到的实例数量。
+
+
+    
+    SELECT ClassName, SUM(Size) / 1024 / 1024 AS SumSize, AVG(Size) / 1024 AS AvgSize, COUNT(ClassName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ClassName
+    ORDER BY SUM(SIZE) DESC
+    
+
+
+
+以下查询将按照唯一对象分组导出数据，并按照累计大小排序列出累计大小和数量。
+
+
+    
+    SELECT ClassName, ObjectName, SUM(Size) / 1024 AS Size, COUNT(ObjectName) AS Count
+    FROM Exports
+    JOIN Objects ON Exports.ObjectID = Objects.ObjectID
+    JOIN Classes ON Objects.ClassID = Classes.ClassID
+    GROUP BY ObjectName, ClassName
+    ORDER BY SUM(Size) DESC
+    
+
+
+
+ 
+
+
+
+

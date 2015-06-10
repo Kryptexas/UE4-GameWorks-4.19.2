@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2092049
+Availability: Docs
+Title:1.5 - 월드 지지대
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:Destructibility 예제 레벨에 대한 개요로, 예제 1.5: WorldSupport 입니다.
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_3:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+이렇게 하면 디스트럭터블 메시가 스태틱 월드 지오메트리 조각에 묶입니다. **스타틱 메시** 에 접한 디스트럭터블 메시의 모든 부분은 환경에 고정된 것처럼 작동합니다.
+
+[REGION:lightbox]
+[![](1_3_solid.png)(w:300)](1_3_solid.png) [![](1_3_fractured.png)(w:300)](1_3_fractured.png) [![](1_3_blown.png)(w:300)](1_3_blown.png)
+[/REGION]

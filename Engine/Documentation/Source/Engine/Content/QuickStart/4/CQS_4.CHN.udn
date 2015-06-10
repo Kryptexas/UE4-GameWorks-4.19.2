@@ -1,0 +1,77 @@
+﻿INTSourceChangelist:2087262
+Availability: Public
+Title:4. 导入您的内容
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description: 准备好您的资源后，该美术师快速入门指南将向您介绍如何将这些资源导入到虚幻引擎4中。
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [前一步 - %Engine/Content/QuickStart/3:Title%](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+		* **当前步骤 - %Engine/Content/QuickStart/4:Title%**
+		* [下一步 - %Engine/Content/QuickStart/5:Title%](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+将内容导入到虚幻引擎4中有两种方法：
+* 使用 **内容浏览器** 的导入功能。
+* 从您的硬盘中将文件拖拽到 **内容浏览器** 中。
+
+虚幻编辑器4可以很好地识别出您正在导入何种类型的文件，并且具有一个可以进行批量导入的系统。
+
+
+## 使用内容浏览器导入资源
+
+通过使用 **内容浏览器** 的![Import](import_button.png)按钮，将打开一个文件对话框，该对话框使您可以将资源导入到虚幻引擎4中。如果您在上一步中下载了这些资源或者您已经具有了一些资源，现在就可以导入这些资源了。
+
+1. 点击 **内容浏览器** 上的导入按钮。
+1. 浏览到您想解压所下载的示例内容的地方。
+1. 选择两个FBX文件： `Basic_Asset1.fbx` 和 `Basic_Asset2.fbx` 。
+1. 点击 **打开** 。
+
+	[REGION:raw]
+	![](StaticMeshContentBrowserImport.png)
+	[/REGION]
+
+1. 将出现一个FBX导入对话框：
+
+	![](StaticMeshImportShortForm.png)
+
+1. 使用默认设置，然后点击 "**Import（导入）** 。
+1. 这时将出现第二个对话框，然后再次点击 **Import（导入）** 。
+1. 现在， **内容浏览器** 中应该有两个资源： 一个盒体形状和一个环形节形状。
+
+	![](CB_w2assets.png)
+
+1. 现在针对 `T_Rock_04_D.TGA` 和 `T_Rock_04_n.TGA` 图像文件执行同样的操作。
+	- 没有针对这些图像的导入对话框。
+1. **内容浏览器** 现在应该如下所示：
+
+	![](CB_w4assets.png)
+
+1. 您导入所有内容后，现在您可以继续执行 [下一步](Engine/Content/QuickStart/5)。
+
+## 使用点击并拖拽操作来导入资源
+
+另一种导入资源的方法是简单地将它们从您的操作系统中拖拽到 **内容浏览器** 内。将会提示您为每个FBX文件定义导入选项，但是贴图将会简单地进行批量导入。
+
+[REGION:raw]
+![](CnD_importAll.png)
+[/REGION]
+
+---
+
+%Steps%

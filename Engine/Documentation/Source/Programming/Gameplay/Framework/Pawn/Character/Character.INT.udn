@@ -1,0 +1,11 @@
+Availability:Public
+Title:Character
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Pawn
+Description:A **Character** is a Pawn which has some basic bipedal movement functionality by default.
+
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Pawn/Character)
+[/PARAM]
+[/OBJECT]

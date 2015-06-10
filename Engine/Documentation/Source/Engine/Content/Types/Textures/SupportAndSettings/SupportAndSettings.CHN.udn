@@ -1,0 +1,207 @@
+Availability: Public
+Title: 贴图支持及设置
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Programming
+
+[TOC]
+
+
+
+## 概述
+
+该页面详细描述了在引擎和硬件内部的贴图支持。
+
+
+
+## 贴图分辨率
+
+虚幻引擎 3 支持的贴图分辨率从 1x1 到 4096x4096。  
+目前 DirectX 视频适配器及游戏控制台支持从 1x1 到 2048x2048 以及到 8192x8192 的各种贴图分辨率。一个特定硬件设备的最高贴图分辨率随着生产商和模型不同而变化。可用的贴图内存量随着硬件不同而变化。  
+在虚幻引擎 3 中提供了很多功能和设置来管理渲染到不同地方比如世界几何体或用户界面的贴图分辨率。
+
+
+
+## 引擎贴图分辨率范围
+
+虚幻引擎 3 默认限制贴图 mip 的最大值为 13，它有效地限制了最大渲染的贴图分辨率为 4096（从 1x1 到 4096x4096 是 13 mip）。有一个负面影响是当导入的贴图分辨率为 8192 时，它在进行渲染时分辨率最多达到 4096 的 mip1。在引擎源代码文件中的常量值 MAX_TEXTURE_MIP_COUNT 默认为 13，它的值可以被改为 14 来支持分辨率 8192 的贴图渲染。这个常量是在以下源代码文件中被定义的（从版本 QAMar09 开始，请一定要在其他的 QA 版本上进行验证）。
+
+Src\D3D10Drv\Src\D3D10Device.cpp   
+Src\Engine\Inc\RHI.h   
+Src\Engine\Inc\UnTex.h   
+Src\Engine\Src\RHI.cpp   
+Src\Engine\Src\TextureCube.cpp
+
+
+
+## 已压缩贴图的内存需求
+
+DXT 是一种基于把像素放入到具有调色板颜色和插值颜色的 4x4 块中的有损压缩。这将导致一个 8:1 DXT1 和 4:1 DXT5 的常量压缩文件大小。因为一个特定平台和硬件的视频内存和贴图工具资源是固定的，所以必须在贴图分辨率和资源应用上寻求平衡。以下表格列出了 DXT1 和 DXT5 贴图在各种常用的分辨率并具有完全的 mip（1x1 到完全 native mip0）情况下的贴图内存需求。注意内存需求几乎是贴图分辨率比率的常量倍数，DXT5 贴图需要的内存几乎是它们的对应物 DXT1 的两倍。  
+因为分辨率和压缩比率的比值是常量，所以为了计算没有在这里列出的贴图分辨率的内存需求，只要简单地乘以分辨率比率即可。比如，一个分辨率为 1024x512 的贴图所需要的内存是 1024x1024 贴图的一半。  
+表格数据是通过使用 Box-Filter mip 生成和 DirectX Texture Compression(DirectX贴图压缩)的 ATI 的 Compressonator 创建的材质中编译出来的结果。
+
+| --- | --- | --- | --- |
+| 分辨率  | 从 1x1 开始的 Mip 总量  | DXT1  | DXT5  |
+| 16x16  | 5 mip  | 312 字节  | 496 字节  |
+| 32x32  | 6 mip  | 824 字节  | 1.48kb  (1,520 字节)  |
+| 64x64  | 7 mip  | 2.80kb  (2,872 字节)  | 5.48kb  (5,616 字节)  |
+| 128x128  | 8 mip  | 10.8kb  (11,064 字节)  | 21.4kb  (22,000 字节)  |
+| 256x256  | 9 mip  | 42.8kb  (43,832 字节)  | 85.4kb  (87,536 字节)  |
+| 512x512  | 10 mip  | 170kb  (174,904 字节)  | 341kb  (349,680 字节)  |
+| 1024x1024  | 11 mip  | 682kb  (699,192 字节)  | 1.33MB  (1,398,256 字节)  |
+| 2048x2048  | 12 mip  | 2.66MB  (2,796,344 字节)  | 5.33MB  (5,592,560 字节)  |
+| 4096x4096  | 13 mip  | 10.6MB  (11,184,952 字节)  | 21.3MB  (22,369,776 字节)  |
+| 8192x8192  | 14 mip  | 42.6MB  (44,739,384 字节)  | 85.3MB  (89,478,640 字节)  |
+
+
+
+## 法线贴图格式
+
+请查看文章[法线贴图格式](Engine/Content/Types/Textures/NormalMaps/Formats)来获得虚幻引擎 3 所支持的法线贴图格式的更多信息。
+
+
+
+## 引擎配置 TextureGroup（贴图组）属性
+
+特定游戏的 TextureGroups（贴图组）支持的最大和最小 LOD (mip) 定义在一些引擎配置文件中。  
+配置设置文件的源集合放置在文件 UnrealEngine3\Engine\Config\BaseEngine.ini 中的[SystemSettings]部分。  
+对于开发中的游戏，[My] Documents\My Games\\[your_game]\Config\\[your_game]Engine.ini文件也包含了一个在Engine\Config\ 文件夹下的基本属性的镜像集合，并且它通常应该是针对您游戏的特定设置进行修改的副本。
+
+注意对于虚幻编辑器及在游戏中的情况，有独立的 TextureGroup（贴图组）项的集合。这两个集合分别放置在 config（配置）文件的[SystemSettingsEditor]和[SystemSettings]部分。
+
+在 BaseEngine.ini 文件中的 TextureGroup（贴图组）设置项看上去和这个类似。注意：老的 QA 版本可能不是在每个设置中都包括 MinMagFilter 和 MipFilter 属性。
+
+TEXTUREGROUP_World=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_WorldNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_WorldSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_Character=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_CharacterNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_CharacterSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_Weapon=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_WeaponNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_WeaponSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_Vehicle=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_VehicleNormalMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_VehicleSpecular=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_Cinematic=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_Effects=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=linear,MipFilter=point)   
+TEXTUREGROUP_EffectsNotFiltered=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_Skybox=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_UI=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_LightAndShadowMap=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)   
+TEXTUREGROUP_RenderTarget=(MinLODSize=1,MaxLODSize=4096,LODBias=0,MinMagFilter=aniso,MipFilter=point)
+
+在<您的游戏> Engine.ini 文件中的 TextureGroup（贴图组设置）通常会和这个类似。注意 LOD 设置一般设置为游戏设计及目标平台范围极限。
+
+TEXTUREGROUP_World=(MinLODSize=256,MaxLODSize=1024,LODBias=1)   
+TEXTUREGROUP_WorldNormalMap=(MinLODSize=256,MaxLODSize=1024,LODBias=1)   
+TEXTUREGROUP_WorldSpecular=(MinLODSize=256,MaxLODSize=1024,LODBias=1)   
+TEXTUREGROUP_Character=(MinLODSize=256,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_CharacterNormalMap=(MinLODSize=256,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_CharacterSpecular=(MinLODSize=256,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_Weapon=(MinLODSize=256,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_WeaponNormalMap=(MinLODSize=256,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_WeaponSpecular=(MinLODSize=256,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_Vehicle=(MinLODSize=512,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_VehicleNormalMap=(MinLODSize=512,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_VehicleSpecular=(MinLODSize=512,MaxLODSize=1024,LODBias=0)   
+TEXTUREGROUP_Cinematic=(MinLODSize=256,MaxLODSize=4096,LODBias=0)   
+TEXTUREGROUP_Effects=(MinLODSize=128,MaxLODSize=512,LODBias=1)   
+TEXTUREGROUP_Skybox=(MinLODSize=512,MaxLODSize=2048,LODBias=0)   
+TEXTUREGROUP_UI=(MinLODSize=512,MaxLODSize=1024,LODBias=1)   
+TEXTUREGROUP_LightAndShadowMap=(MinLODSize=512,MaxLODSize=4096,LODBias=0)   
+TEXTUREGROUP_RenderTarget=(MinLODSize=1,MaxLODSize=4096,LODBias=0)
+
+
+
+## PC AppCompat 散列表元
+
+AppCompat 是用于覆盖各种基于在启动时收集到的客观的及有经验的依据的 SystemSettings（系统设置）。当启用了 app 兼容性（仅限于 PC）,系统将会衡量机器的兼容性然后使用 5 个"buckets（散列表元）"中其中一个的预制值来覆盖 Engine.ini 文件中的值。请查看 UTGame 中的 DefaultCompat.ini 文件来获得关于这个功能的应用实例。
+
+AppCompat 被规定为仅在游戏第一次运行（不是编辑器）时检查一次。它通过检查[游戏]Engine.ini 文件的 [AppCompat] 部分是来探测这项是否存在，[AppCompat] 部分包含了机器以前计算的分数。如果 AppCompat 已经被应用了一次，它将不会再次改变来允许用户进行不是每次都会覆盖的自定义改变。
+
+对于编辑器要特别地禁用 AppCompat，这样机器的规格说明不会影响在开发期间资源是如何在各种不同的机器上显示的。这也是把 SystemSettings 和 SystemSettingsEditor 分开的原因。
+
+您可以通过为您的游戏提供一个空的 DefaultCompat.ini 文件来有效地禁用 AppCompat 功能（请查看 UTGame 中的例子），这将会使它初始化在 Engine.ini 文件的[SystemSettings]的所有散列表元。在这种情况下，系统的操作方式和在没有引入 AppCompat 之前是完全一样的。
+
+
+
+## TEXTUREGROUP 属性
+
+每个TextureGroup（贴图组）项为一个正如在游戏渲染中所使用的特定的贴图集合定义了贴图属性。将贴图分组为普通的集合可以更好地控制各种游戏贴图资源所使用的贴图内存。
+
+| --- | --- |
+| MinLODSize  | 将会渲染的最小 mip 尺寸，在像素中指定，范围是从 1 到 8192 之间，它的值必须是 2 的幂数，必须比 MaxLODSize 小。|
+| MaxLODSize  | 将会渲染的最大 mip 尺寸，在像素中指定，范围是从 1 到 8192 之间，它的值必须是 2 的幂数，必须比 MinLODSize 大。|
+| LODBias  | 一个负值或正值，它决定了在加载数值进行渲染前要偏移的 mip 等级的数量，值在 MinLODSize 和 MaxLODSize 之间。|
+| MinMagFilter  | 可以在通过使用 GPU 缩放贴图时指定贴图筛选类型。请参阅下面的图表。|
+| MipFilter  | 可以在从一定距离或在掠角位置观看贴图的时候指定 GPU 是否应该将这两个 mip 混合在一起。请参阅下面的图表。|
+| NumStreamedMips | 允许动态载入或载出的 mip 数量。如果贴图有 10 个 mip，NumStreamedMips 为 2，那么将只允许动态载入或载出这 2 个最高的 mip。因此，在任何给定时间这个贴图在内存中都会有 8-10 个 mip。将 NumStreamedMips 设置为 0 意味着将不会动态加载 mip，而且通常会完全加载使用这个 LOD 组的贴图。将 NumStreamedMips 设置为 -1 意味着也允许动态载入或载出所有 mip（但是仍然还有一些其他大的限制条件）。NumStreamedMips 是一个默认值为 -1 的可选设置。|
+
+| --- | --- | --- |
+| MinMagFilter  | MipFilter  | 过滤类型 |
+| point  | -  | Point（点）  |
+| linear  | point（点）  | Bilinear（双线性）  |
+| linear  | -  | Trilinear（三线性）  |
+| aniso  | point  | Anisotropic Point（各向相异的点）  |
+| aniso  | -  | Anisotropic Linear（各向相异的直线） |
+
+
+
+## TextureGroup、LODGroup 和 LODBias
+
+TextureGroup（贴图组）和 LODBias（LOD偏移量）的设置在配置文件 ini 文件中指定，它连同在 Texture Properties（贴图属性）中指定的 LODGroup 和 LODBias 决定了用于单独贴图的贴图 mip 的最终集合。
+
+在 <your_game>Engine.ini 中的一个示例 TextureGroup 项如下所示：
+
+TEXTUREGROUP_World=(MinLODSize=256,MaxLODSize=1024,LODBias=0,MinMagFilter=aniso,MipFilter=point,NumStreamedMips=3)
+
+任何分配给 TEXTUREGROUP_World LODGroup 的贴图都将会使用这些设置来决定在渲染时使用的 mip 的范围。  
+在 Texture Properties（贴图属性）中附加的 LODBias 设置和在配置 ini 文件 TextureGroup（贴图组）指定的 LODBias 相加。
+
+LODBias 的 _偏移_ 或偏移量指出了选择要进行渲染的 mip。LODBias 在 LODGroup 的 Min/Max 范围前进行计算。在 Texture Properties（贴图属性）中的 LODBias 和 TextureGroup 的 LODBias 相加来决定要使用的最终 LODBias 值。  
+LODBias 的值为 0 是指贴图分辨率。LODBias 值为 1是指贴图的向下数第一个 mip、 LODBias 的值为 2 是指向下数第二个 mip等等。比如，一个分辨率为 1024x1024 的贴图的 LODBias 值为 1，则会导致在渲染时使用 512x512 mip。
+
+在贴图属性中为每个独立贴图指定的 LODBias 可以是正值或者负值，以便它能偏移 TextureGroup（贴图组）的默认的 LODBias 值来使 mip 的值变得或者较高或者较低。  
+比如，一个 TextureGroup（贴图组）的 LODBias 为 0 并且 Texture Properties（贴图属性）的 LODBias 值也为 0，那么将导致最终的 LODBias 值为 0。  
+TextureGroup（贴图组）的 LODBias 值为 0，Texture Properties（贴图属性）的 LODBias 为 1，将导致最终的 LODBias 值为 1。
+TextureGroup（贴图组）的 LODBias 值为 1，Texture Properties（贴图属性）的 LODBias 为 1，将导致最终的 LODBias 值为 2。
+TextureGroup（贴图组）的 LODBias 值为 1，Texture Properties（贴图属性）的 LODBias 为 -1，将导致最终的 LODBias 值为 0。
+
+计算出了最终的 LODBias 后，检查贴图 mip 来看它是否适合 TextureGroup（贴图组）的 Min/Max LODSize 范围，如果需要则进行调整。这允许简单地改变配置 ini 文件来有效地将特定的 TextureGroup（贴图组）限定在区间 min/max（最小/最大）LOD 范围内。比如，一个 LODBias 为 1 分辨率为 1024x1024 的贴图使用 512x512 的 mip，如果它在上面显示的 TEXTUREGROUP_World LODGroup 中，那么将会检查它来确定它是否在 TextureGroup（贴图组）的 Minimu（最小）和 Maximum（最大）的 LODSize 范围内，在这里它们是 256 和 1024。
+
+由于每个游戏名称有它们自己独特的 TextureGroup 设置，美工人员及关卡设计者应该意识到每个组 MinLODSize 和 MaxLODSize。  
+如果一个游戏随带发行了具有 2048 个贴图的 TextureGroup（贴图组）并且 MaxLODSize 值为 1024，那么它将会增加发行的包的大小，且不会在渲染质量方面带来好处。
+
+
+
+## 贴图导入属性
+
+对于 24-位的 RGB 贴图在导入时指出 CompressionNoAlpha 来制作一张 DXT1 贴图。  
+对于 32-位的 ARGB 则不用勾选 CompressionNoAlpha 项来一张 DXT5 贴图。
+
+高光(Specular)和透明性(Opacity)信息通常最好放置到 32-位 DXT5 贴图的 Alpha 通道中而不是使用两个 24-位的 DXT1 贴图。尽管两个 DXT1 贴图和一个 DXT5 贴图的文件大小一样，但是在引擎中 DXT5 使用一个 TextureSampler(贴图取样器)而两个 DXT1 将使用两个 TextureSamplers(贴图取样器)。视频适配器一般有 16 个 TextureSamplers(贴图取样器)（SM3 和 SM4）。  
+DXT5 贴图的 Alpha 通道也更适于保存灰度数据，因为它没有使用和 RGB 平面一样的有损耗压缩方式。
+
+如果一个贴图必须比任何特定的 TextureGroup(贴图组)的最大 LOD 值都大，请一定要选择本来就支持那个贴图尺寸的 TextureGroup(贴图组)并且不要降低 mip。
+
+当使用许多 2048 及大贴图时一定要小心，尤其是当目标支持平台是游戏控制台时。通过覆盖 TextureGroups(贴图组)的默认应用，您可以影响贴图的内存池，并可能会在视频内存较少的系统中引发一些问题，比如多个场景贴图剧烈地降低 mip 从而看上去非常的模糊。
+
+当导入贴图时，一定要选择合适的附加设置，比如当导入 NormalMap(法线贴图)时选择 TC_NormalMap 的 CompressionSettings。
+
+![UE4ImportTexture.gif](UE4ImportTexture.gif)
+
+
+
+## 贴图查看器属性
+
+每个导入的贴图的属性都可以被修改，并且允许修改诸如 LODGroup 和 LODBias 这样的设置。  
+在通用浏览器中双击一个贴图，或者在一个贴图上右击并从弹出的菜单中选择 Texture Viewer（贴图查看器）。
+
+![UE4TextureProperties.gif](UE4TextureProperties.gif)
+
+
+ 
+
+
+
+

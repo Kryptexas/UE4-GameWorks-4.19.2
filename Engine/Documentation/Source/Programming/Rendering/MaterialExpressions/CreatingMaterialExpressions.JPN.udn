@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2481343
+Availability:Docs
+Title:Math 表現式の技術ガイド
+Crumbs:%ROOT%, Programming, Programming/Rendering
+Description:マテリアル エディタで使用するマテリアル式の新規作成ガイド
+バージョン：4.5
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+UE4 でマテリアル式を新規作成する方法は単純です。例として、MaterialExpressionSquare を 2 乗するマテリアル式を新規作成します。UE4 では、マテリアル式はすべて `MaterialExpressions.cpp` で実装されることに注意してください。
+
+
+
+## 宣言
+
+まず、 MaterialExpression から抽出した新しいタイプで、エンジン スクリプト ファイルを追加します。表現式の入力と仮想関数を宣言します。例えば:<br>  
+
+`MaterialExpressionSquare.h`
+
+	UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+	public class UMaterialExpressionSquare : public UMaterialExpression
+	{
+		GENERATED_UCLASS_BODY()
+
+		UPROPERTY()
+		FExpressionInput   A;
+
+	#if CPP
+		virtual int32 Compile(FMaterialCompiler* Compiler);
+		virtual FString GetCaption() const;
+	#endif
+
+	}
+
+マテリアル エディタのプロパティ ページで編集可能にしたい表現式の変数を追加する場合は、 `UPROPERTY()` マクロの UPROPERTY(Category=MaterialExpressionSquare) でカテゴリを定義することを覚えておいてください。
+
+	UPROPERTY(Category=MaterialExpressionSquare)
+	float ClampMin;
+
+
+## 実装
+
+コンストラクタは、プロパティのデフォルト値を設定するために使います。この例では、マテリアル式をマテリアル エディタの表現式ライブラリの様々なカテゴリに代入します。
+
+	UMaterialExpressionSquare::UMaterialExpressionSquare(const FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_Particles;
+			FName NAME_Constants;
+			FConstructorStatics()
+				:NAME_Particles(TEXT("Particles"))
+				, NAME_Constants(TEXT("Constants"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		// Property initialization
+		MenuCategories.Add(ConstructorStatics.NAME_Particles);
+		MenuCategories.Add(ConstructorStatics.NAME_Constants);
+	}
+
+`Compile()` は `FMaterialCompiler` 上で適切な関数を呼び出します。このケースでは、既存のコンパイラ機能 (`Mul`) を使って Square を実装することができますが、カスタム仕様の表現式よってはマテリアル コンパイラ機能を追加する必要があるかもしれません。
+
+	int32 UMaterialExpressionSquare::Compile(FMaterialCompiler* Compiler)
+	{
+	   if(!A.Expression)
+		  return Compiler->Errorf(TEXT("Missing Multiply input A"));
+	   else
+	   {
+		  int32 Arg1 = A.Compile(Compiler);
+		  return Compiler->Mul(
+			 Arg1,
+			 Arg1
+			 );
+	   }
+	}
+
+`GetCaption()` は、マテリアル エディタ グラフでノードのキャプションとして表示するためにテキストを返します。
+
+	FString UMaterialExpressionSquare::GetCaption() const
+	{
+	   return TEXT("Square");
+	}
+
+
+新しいマテリアル式がマテリアル エディタのリストに追加されました。実際の Square 表現式がこちらになります。  
+
+[REGION:todo]
+![SquareMaterialExpression.jpg](SquareMaterialExpression.jpg)
+[/REGION]

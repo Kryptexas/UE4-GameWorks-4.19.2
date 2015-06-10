@@ -1,0 +1,106 @@
+﻿Availability:Public
+Title:ポーン
+Crumbs:%ROOT%, Programming/Gameplay/Framework
+Description:ワールド内でプレイヤーを物理的に表現する **ポーン**
+
+[TOC (start:2 end:3)]
+
+**Pawn** クラスはプレイヤーまたはAIによって制御可能なアクタ全てのベースクラスです。Pawnは、ワールド内のプレイヤーまたはAIエンティティの物理的表現です。 
+PawnはプレイヤーまたはAIエンティティの視覚的な表現のみならず、コリジョンや物理的インタラクションにおいて、これらのワールド内における相互作用方法を 
+決定します。ゲームの種類によっては、ゲーム内に表示されるメッシュまたはアバタ―が存在しないため特定の状況下では混乱を招く場合もあります。いずれにせよ、 
+Pawnクラスはゲーム内のプレイヤーまたはエンティティの物理的な位置、回転を表します。 [**キャラクター**] (Programming/Gameplay/Framework\Pawn\Character) は、歩行能力を持つ特別な種類のポーンです。　  
+
+デフォルトで、コントローラーとポーンは 1 対 1 の関係です。つまり、各コントローラーはいつでもポーンを 1 つだけ管理します。また、ゲームプレイ中にスポーンされたポーンは 
+コントローラーに自動的に所有されません。
+
+## ポーンの機能とプロパティ
+
+### ControllersとPosession
+
+$ PossessedBy() :このポーンの所有時に呼ばれます。サーバー上のみで呼ばれます（またはスタンドアローン環境）。NewControllerはこのPawnを所有するコントローラーです。この関数はPlayerStateとControllerをポーンに設定します。
+
+$ UnPossessed() :コントローラーにもはや所有されなくなると呼ばれます。PlayerState、Owner、そしてControllerをNULLへ設定して、入力コンポーネントが設定された場合これを非登録にします。 
+
+#### 便利なブループリント
+
+$ SpawnDefaultController() :このポーンに対し既定のコントローラーをスポーンして、ポーンに所有されます。
+
+$ IsControlled() :ポーンが現時点でコントロールされているかを確認してBooleanを返します。
+	$ GetController() :このアクタに対しコントローラーを返します。
+
+
+$ AutoPossess():レベル開始時またはポーンのスポーン時に、ポーンを自動的に所有するプレイヤーコントローラー（存在する場合）を指定する列挙型変数です。 
+
+$ AIControllerClass :ポーンがAIにコントロールされている時に使用するデフォルトクラスです。ブループリントの初期設定です。
+
+$ bTakeCameraControlWhenPossessed: _True_ の場合、クライアント側で所有時はポーンが自動的にカメラ制御を引き継ぎます。ブループリントの初期設定です。
+
+$ bUseControllerRotationPitch : _True_ の場合、PlayerControllerでコントロールされている場合はこのポーンのピッチ（上下動）はコントローラーのControlRotationピッチに合わせて更新されます。ブループリントの初期設定です。
+
+$ bUseControllerRotationYaw : _True_ の場合、PlayerControllerでコントロールされている場合はこのポーンのヨー（左右回転）はコントローラーのControlRotationヨーに合わせて更新されます。ブループリントの初期設定です。
+
+$ bUseControllerRotationRoll: _True_ の場合、PlayerControllerでコントロールされている場合はこのポーンのロール（進行軸回転）はコントローラーのControlRotationロールに合わせて更新されます。ブループリントの初期設定です。
+
+
+### Movement
+
+$ GetMovementComponent() :存在する場合はPawnMovementComponentを返します。デフォルト設定は、最初に発見したPawnMovementComponentを返します。独自の動作コンポーネントを作成するネイティブクラスは、効率性を向上させるためにこのメソッドをオーバーライドします。BlueprintCallable 
+
+ブループリントでポーンから派生したクラスへ動作を追加する最善の方法は、**SetActorLocation**の使用です。 **SetActorLocation**の使用で、特定の位置へテレポートまたはスウィープを決定することができます。 
+スウィープ時は、ポーンは進行方向に沿って移動し、何かに衝突すると停止します。
+
+### Input
+
+$ CreatePlayerInputComponent() :カスタム入力バインディングに使用可能なInputComponentを作成します。所有後すぐにPlayerControllerに呼ばれます。必要ない場合はNULLを返します。
+
+$ SetupPlayerInputComponent() :カスタム入力バインディングの設定をポーンに有効にします。CreatePlayerInputComponent()で作成するInputComponentを使用して、所有後すぐにPlayerControllerに呼ばれます。デフォルト設定はバインディングしません。
+
+$ DestroyPlayerInputComponent() :プレイヤーの入力コンポーネントを破壊し、コンポーネントに対する全てのリファレンスを取り除きます。
+
+
+#### 便利なブループリント
+
+$ bBlockInput: _True_ の場合、アクタは以下のスタックにある全入力を考慮しません。 
+
+$ bEnableInput:このポーンの入力処理を有効にするかどうかを決定します。 _True_ の場合でも、ポーンは入力を得るために所有されなくてはいけません。
+
+$ EAutoReceiveInput:レベル開始時またはポーンのスポーン時に、ポーンを自動的に所有するプレイヤーコントローラー（存在する場合）を指定する列挙型変数です。「PostLoad();」が呼ばれると強制的に「無効」にされます。
+
+### その他のPawn関数
+
+$ TurnOff():フリーズポーンは、サウンド、アニメーション、物理現象、武器の発射などを停止します。
+
+$ Restart():ポーンの再スタート時に呼ばれます（通常はコントローラーに所有されて）。
+
+$ PawnStartFire() :PlayerControllerから渡されるStartFire()を処理します。
+
+#### 便利なブループリント
+
+$ BaseEyeHeight :コリジョン中心点上のベースとなる目の高さです。
+
+
+## 初期設定のポーン
+
+Pawnクラスはワールド内のプレイヤーまたはAIエンティティの物理表現の作成に不可欠な要素のみを提供しますが、_DefaultPawn_サブクラスにはいくつかの追加のコンポーネントと機能があります。
+
+DefaultPawnクラスは、ネイティブDefaultPawnMovementComponent、球体のCollisionComponent、そしてStaticMeshComponentを格納します。カメラだけでなくDefaultPawnMovementComponentをコントロールするには、
+デフォルト動作バインディングを追加するためのBooleanがDefaultPawnクラスにも存在し、デフォルトは _True_ に設定します。
+
+$ bAddDefaultMovementBindings: _True_ の場合、移動とカメラ目線にデフォルトバインディング（WASD/アナログスティック/マウス）を追加します。
+
+### DefaultPawnMovementComponent
+
+DefaultPawnMovementComponentの動作スタイル一式は無重力で飛行スタイルです。通常のMovementComponentプロパティに加えて、`MaxSpeed`、`Acceleration`、`Deceleration`の浮動小数点値を含みます。この3つのプロパティは
+DefaultPawnから派生したブループリントでもアクセスが可能です。
+
+### Spectator Pawn
+
+_SpectatorPawn_ クラスはDefaultPawnのサブクラスです。GameModeで、PawnとSpectatorPawnに別々のクラスをデフォルトに設定することができます。このクラスは観戦機能に適した
+シンプルなフレームワークを提供します。「.DoNotCreateDefaultSubobject(Super::MeshComponentName)」の実装によりStaticMeshComponentは作成されませんが、DefaultPawnのように球体のCollisionComponentを保持します。
+SpectatorPawnクラスの動作はSpectatorPawnMovementComponentで処理されます。必要に応じて時間膨張の処理またはこれを無視するためのコードが追加された 
+DefaultPawnMovementComponentの無重力な飛行動作と一緒です。
+
+
+
+
+

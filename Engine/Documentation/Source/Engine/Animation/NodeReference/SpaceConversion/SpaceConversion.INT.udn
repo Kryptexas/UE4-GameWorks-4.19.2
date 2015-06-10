@@ -1,0 +1,62 @@
+Availability:Public
+Title:Convert Spaces Nodes
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
+Description:Animation nodes that convert poses between local and component space.
+
+[REGION:banner]
+![Space Conversion](spaceconversion_banner.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+## Overview
+
+[EXCERPT:Intro]
+Poses can either be in _local-space_ or _component-space_. The **Convert Spaces** nodes available in the **AnimGraph** 
+of _Animation Blueprints_ provide the ability to convert poses between _local_ and _component_ space. Local space assumes 
+the transform of a bone to be relative to that bone. Component space assumes the bone's transform to be relative to 
+the _SkeletalMeshComponent_.
+
+Generally, when working with poses in an _Animation Blueprint_, they will be in local-space. However, certain blend 
+nodes and all _SkeletalControls_ operate in component-space. This means that the input pose needs to be transformed 
+prior to being passed in to one of these types of nodes. If the input pose is coming from a node that outputs a local 
+space pose, the pose must be converted to the correct space before a _SkeletalControl_ can perform operations on it. 
+The resulting pose, after the _SkeletalControl_ have performed the operations, then must be converted back to 
+local space for input to additional blends or the **Result** node.
+[/EXCERPT:Intro]
+
+[REGION:fullwidth]
+![Usage in graph](graph_usage.png)
+[/REGION]
+
+Because there is a cost associated with each conversion to or from component space, it is best to group any nodes that 
+operate in component-space, such as _SkeletalControls_, so that they are all performed in a row, limiting the number 
+of conversions needed.
+
+
+
+## Component to Local
+
+The **Component to Local** node converts a component-space pose to a local-space pose.
+
+![Component to Local](node_comptolocal.png)
+
+| Pin | Description |
+| --- | ----------- |
+| [REGION:tablesection]**Input Pins**[/REGION] ||
+| Component Pose (Blank) | The component-space input pose to be converted. |
+| [REGION:tablesection]**Output Pins**[/REGION] ||
+| Local Pose (Blank) | The local space pose after the conversion. |
+
+## Local to Component
+
+The **Local to Component** node converts a local-space pose to a component-space pose.
+
+![Local to Component](node_localtocomp.png)
+
+| Pin | Description |
+| --- | ----------- |
+| [REGION:tablesection]**Input Pins**[/REGION] ||
+| Local Pose (Blank) | The local-space input pose to be converted. |
+| [REGION:tablesection]**Output Pins**[/REGION] ||
+| Component Pose (Blank) | The component-space pose after the conversion. |

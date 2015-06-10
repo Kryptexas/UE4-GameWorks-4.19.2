@@ -1,0 +1,80 @@
+﻿INTSourceChangelist:2384003
+Availability: Docs
+Title: BatchExport 커맨드렛
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:패키지의 리소스를 다양한 파일 유형으로 익스포트하는 커맨드렛 입니다.
+
+[REGION:todo]
+	언리얼 엔진 3 에서 이식해 온 문서로 현재 검토중에 있습니다. 정보가 맞지 않을 수 있습니다.
+[/REGION]
+
+[TOC(start:2)]
+
+## 개요
+
+batchexport 커맨드렛은 리소스를 Unreal 패키지 파일로부터 다양한 외부 파일 타입으로 익스포트하는데 사용됩니다.
+
+
+
+## 실행
+
+이 커맨드렛을 실행하려면, 도스 명령창에서 _UnrealEngine3\Binaries_ 디렉토리를 탐색합니다.
+
+
+### 구문
+
+구문은 다음과 같습니다:
+
+    [GameName].exe BatchExport <package.ext> <classname> <export_ext> [dest_path_name]
+    
+
+패키지 내의 각 리소스가 _dest_path_name_ 에 의해 지정된 경로에 저장될 것입니다. 각 리소스는 리소스의 이름을 파일 이름으로 사용하고 _export_ext_ 에 의해 지정된 확장자를 파일 확장자로 사용하여, 그 고유의 파일에 저장됩니다.
+
+
+### 매개변수들
+
+$ **package.ext**: 리소스를 익스포트하는 패키지의 이름. 경로 이름은 선택입니다 .
+$ **classname**: "Class", "Texture" 등, 익스포트할 객체의 클래스 .
+$ **export_ext**: 출력 파일의 확장자. 이것은 리소스의 익스포트에 어떤 타입의 팩토리가 사용되는지를 결정합니다. 다음의 값들이 유효합니다:
+    * 텍스트 리소스 타입
+        * TXT - 지정된 패키지 내의 모든 텍스트 버퍼들을 익스포트합니다. 현재 텍스트 버퍼의 유일한 용도는 UnrealScript의 소스를 패키지 파일 내로 저장하는 것이며, 이러한 종류의 익스포트에는 uc를 확장자로 사용하는 것이 더 낫습니다.
+        * UC - 지정된 패키지 내의 각 클래스에 대한 UnrealScript 소스를 익스포트 합니다. (소스가 StripSource 커맨드렛을 통해 패키지로부터 제거되었다면 작용하지 않을 것입니다).
+        * T3D - 지정된 패키지 내의 subobject 정의(Begin Object 및 End Object 블록)로 포맷된 객체들을 모두 익스포트 합니다. 여기에는 한 개의 일반 객체 익스포터와 여러 개의 특수화된 객체 익스포터가 있습니다. 익스포트하는 리소스의 타입에 따라, 특수화된 익스포터 중의 하나를 사용하는 것이 더 적절할 것입니다. 어느 익스포터가 사용되는지는 _classname_ 에 대해 지정된 값에 의해 결정됩니다. 기본으로, 지정된 리소스 타입에 대해 가장 특수화된 익스포터가 사용됩니다. 따라서 "Object" 를 클래스로서 지정하더라도, 일반 객체 익스포터를 사용하기보다는 모델 익스포터를 사용해서 UModel 객체가 익스포트될 것입니다. _classname_ 에 대한 값으로서 "Model" 을 지정하면, 오직 UModel 객체만 익스포트될 것입니다. 다음의 값들이 유효합니다:
+            * Poly - 지정된 패키지에 대한 폴리곤 데이터를 익스포트하는데 사용됩니다.
+            * Model - 지정된 패키지에 대한 모델들을 익스포트하는데 사용됩니다.
+            * World - 맵 패키지를 익스포트하는데 사용됩니다.
+            * Sequence - Kismet 시퀀스를 익스포트하는데 사용됩니다.
+            * Terrain - 지형 데이터를 익스포트하는데 사용됩니다.
+        * STL - 지정된 패키지에 대한 모든 삼각형 데이터를 3DMax 내로 임포트할 수 있는 포맷으로 익스포트 합니다.
+        * OBJ - 지정된 패키지에 대한 모든 폴리 데이터를 Lightwave내로 임포트할 수 있는 포맷으로 익스포트 합니다.
+    * 오디오 리소스 타입
+        * WAV - 지정된 패키지내의 모든 사운드를 .wav 포맷으로 익스포트 합니다.
+    * 이미지 리소스 타입
+        * PCX -지정된 패키지내의 모든 텍스처를 .pcx 포맷으로 익스포트 합니다. 이 값을 _export_ext_ 에 대해 사용할 경우에는, _classname_ 이 반드시 Texture2D (또는 파생된) 클래스여야 합니다.
+        * BMP -지정된 패키지내의 모든 텍스처를 .bmp 포맷으로 익스포트 합니다. 이 값을 _export_ext_ 에 대해 사용할 경우에는, _classname_ 이 반드시 Texture2D (또는 파생된) 클래스여야 합니다.
+        * TGA -지정된 패키지내의 모든 텍스처를 .tga 포맷으로 익스포트 합니다. 이 값을 _export_ext_ 에 대해 사용할 경우에는, _classname_ 이 반드시 Texture2D (또는 파생된) 클래스여야 합니다.
+$ **dest_path_name**: 출력 파일을 저장할 경로. 디렉토리가 존재하지 않으면 새로 만들어집니다.
+
+
+
+## 예
+
+
+* 다음의 명령은 Engine.u 패키지에 저장되어 있는 각 컴포넌트에 대해 한 개의.T3D 파일을 UnrealEngine3\ExportedObjects\Engine 디렉토리에 만들어 냅니다:  
+   
+		gamename.exe batchexport Engine.u Component T3D ..\ExportedObjects\Engine
+
+* 다음의 명령은 ExampleSounds.upk 패키지에 저장되어 있는 각 사운드 노드에 대해 한 개의 .wav 파일을 UnrealEngine3\ExportedSounds\ 디렉토리에 만들어 냅니다:  
+   
+		gamename.exe batchexport ExampleSounds.upk SoundNodeWave .WAV ..\ExportedObjects\ExportedSounds\
+
+* 다음 명령은 EditorResources.upk 패키지에 저장되어 있는 각 텍스처에 대해 한 개의 .bmp 파일을 C:\ExportedTextures\ 디렉토리에 만들어 냅니다:  
+   
+		gamename.exe batchexport EditorResources.upk Texture2D BMP C:\ExportedTextures\
+
+ 
+
+
+
+
+

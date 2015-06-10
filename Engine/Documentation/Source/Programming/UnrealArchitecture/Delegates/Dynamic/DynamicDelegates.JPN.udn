@@ -1,0 +1,39 @@
+﻿INTSourceChangelist:2033300
+Availability:Public
+Title:動的デリゲート
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture, Programming/UnrealArchitecture/Delegates
+Description:反射をシリアル化およびサポートするデリゲート
+
+動的なデリゲートはシリアル化することができます。デリゲートの関数は名前で検索され、通常のデリゲートよりも動作が遅くなります。
+
+## 動的デリゲートの宣言
+
+動的デリゲートは、動的デリゲート固有の可変長マクロを使用する点を除いて [通常のデリゲートを宣言](Programming/UnrealArchitecture/Delegates#デリゲートの宣言) と同じ方法で宣言します。
+
+| マクロ宣言 | 説明 |
+| --- | --- |
+| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 動的なデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | 動的なマルチキャストのデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なマルチキャストのデリゲートを作成します。 |
+
+## 動的デリゲートのバインディング
+
+| ヘルパーマクロ | 説明 |
+| --- | --- |
+| `BindDynamic( UserObject, FuncName )` | 動的デリゲートでBindDynamic() を呼ぶヘルパーマクロです。自動的に関数名の文字列を生成します。 |
+| `AddDynamic( UserObject, FuncName )` | 動的なマルチキャストデリゲートで AddDynamic() を呼ぶヘルパーマクロです。自動的に関数名の文字列を生成します。 |
+| `RemoveDynamic( UserObject, FuncName )` | 動的なマルチキャストデリゲートで RemoveDynamic() を呼ぶヘルパーマクロです。自動的に関数名の文字列を生成します。 |
+
+## 動的デリゲートの実行
+
+[INCLUDE:Programming/UnrealArchitecture/Delegates#ExecutingDelegates]
+
+## ラップされた動的デリゲート
+
+デリゲートの実行をするには、ラップされたプロキシメソッドで動的デリゲートを宣言します。
+
+| マクロ宣言 | 説明 |
+| --- | --- |
+| `DECLARE_DYNAMIC_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なデリゲートを作成します。 |
+| `DECLARE_DYNAMIC_MULTICAST_DELEGATE[_Const, _RetVal, etc.]( DelegateName )` | ラップされた動的なマルチキャストのデリゲートを作成します。 |

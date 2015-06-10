@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:Android クイックスタート
+Crumbs:%ROOT%, Platforms, Platforms/Android
+Description:Android プラットフォーム開発の設定
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](AndroidTopic.jpg)
+	[/PARAM]
+	[PARAM:title]
+		%Platforms/Android/GettingStarted:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Platforms/Android/GettingStarted]
+	[/PARAM]
+	[PARAM:description]
+	%Platforms/Android/GettingStarted:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](AndroidTopic.jpg)
+	[/PARAM]
+	[PARAM:title]
+		%Platforms/Android/GettingStarted:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Platforms/Android/GettingStarted]
+	[/PARAM]
+	[PARAM:description]
+	%Platforms/Android/GettingStarted:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+Android クイックスタートは、コンピュータと Android デバイスをデプロイ用に設定し、起動機能およびパッケージ機能の両方を使ってデバイス上にテンプレート ゲームを置く方法を取り扱います。
+このガイドでは、 TADP を Android SDK として使用します。他の SDK をアンリアル エンジンと使用する方法については [](Platforms\Android\Reference) ページをご覧ください。
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ステップ
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Android/GettingStarted/1 "%Platforms/Android/GettingStarted/1:description%")
+	* [](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:description%")
+	* [](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:description%")
+	* [](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:description%")
+	* [](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:description%")
+	* [](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:description%")
+	[/PARAM]
+[/OBJECT]

@@ -1,0 +1,113 @@
+Availability: Public
+Title:5. Manually Importing Content
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:In this section we take a look at the options for manually importing content into Unreal Engine 4. 
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+There are two methods for manually importing content into Unreal Engine 4:
+* Using the **Content Browser's** Import function. 
+* Dragging files from your hard drive into the **Content Browser**.
+
+Unreal Editor 4 does a good job of identifying the type of file you are importing, and has a system for batch importing assets.
+
+
+## Importing with the Content Browser
+
+Inside your project, locate the **Content Browser** window in the lower-left corner of the Editor interface. 
+
+![](ContentBrowser.png)
+
+Using the **Content Browser's** ![](ImportButton.png) button will open a file dialog that will enable you to import your assets into Unreal Engine 4. 
+
+If you downloaded the sample assets, or you have your own assets, you can import them with the following steps. 
+
+1. Click the Import button on the **Content Browser**.
+1. Browse to the location where you extracted the downloaded [Sample Assets](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip).
+1. Select the following files: **Basic_Asset2.fbx** and **T_Rock_04_n.tga** then click **Open**. 
+
+	![](ImportManual1.png)
+
+	[REGION:note]
+	If you already imported the sample assets earlier in this guide, you may be prompted to overwrite them. 
+	[/REGION]
+
+1. You will be prompted with an FBX import dialog:
+
+	![](ImportManual2.png)
+
+1. Use the default settings then click the ![](ImportAll.png) button to import both assets.
+
+1. There should be three new assets in the **Content Browser** now: a torus knot shape, the **blinn2** Material and a Normal Map Texture. 
+
+	![](ImportManual3.png)
+
+	The **blinn2** Material we imported along with the torus know Static Mesh. The Normal Map texture that was imported can be used with the rock texture we imported earlier to create a more detailed looking Material. 
+
+	[REGION:note]
+	For more information on adding detail to your Materials, see the [](Engine/Rendering/Materials/HowTo/DetailTexturing) page. 
+	[/REGION]
+
+1. Click the ![](SaveAllButton.png) button to save all your assets. 
+
+
+## Importing using Click and Drag
+
+The other way to import assets is simply to drag them from your OS into an empty space (or folder) inside the **Content Browser**. You will be prompted for each FBX file to define its import options, but textures will simply batch import. Your mouse cursor will also change to reflect that you are importing assets when dragging them into the **Content Browser**. 
+
+![](CnD_importAll.png)
+
+[REGION:note]
+Remember to click the ![](saveAllbutton.png) button after importing your assets so that they are saved.
+[/REGION]
+
+In the next step, you will be asked to create/apply your own Materials and links to additional documentation will be provided. 
+
+<!--
+To apply a **Material** to a **Static Mesh**:
+
+1. Inside the **Content Browser**, **Double-click** on the _Basic_Asset1_ to open the **Static Mesh Editor**.
+
+	![](Engine/Content/QuickStart/6/SMEditor.png)
+
+1. In the **Details** Panel on the right side of the editor, in the **LOD0** category, change the **Element 0** Material Property by clicking on the pull down and changing the material to the "Rock" material.
+	
+	![](Engine/Content/QuickStart/6/SMEditor2.png)
+	
+	_After selecting the new Material, the preview window will update and apply the new Material._
+
+	![](assignedMaterial.png)
+	
+To apply a Material to a **Static Mesh Actor** in a level, click-and-drag a Material from the **Content Browser** onto the Static Mesh Actor:
+
+[REGION:note]
+To place a **Static Mesh Actor** in a level, click-and-drag a Static Mesh from the **Content Browser** into the **Level Viewport**.
+[/REGION]
+
+![](draganddropMaterial.png)
+
+_When releasing the mouse button on top of the Static Mesh Actor, it will become updated with the selected Material._
+
+![](appliedMaterial.png)
+
+-->
+
+%Steps%
+
+

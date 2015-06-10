@@ -1,0 +1,350 @@
+Availability: Public
+Title:Foliage Instanced Meshes
+Crumbs:%ROOT%, Engine
+Description:System for rendering instanced meshes on the surfaces of other geometry for use as foliage or other ground cover effects.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/foliage_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Foliage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Foliage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Foliage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Foliage:title%](Engine/Foliage/foliage_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/foliage_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Foliage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Foliage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Foliage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:header_img]
+![Foliage Tool](Foliage_Banner.png)(w:900)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## Overview
+
+[EXCERPT:Intro]
+
+The Foliage system allows you to quickly paint or erase sets of Static Meshes on Landscape Actors, other Static Mesh Actors, and legacy terrain. These meshes are automatically grouped together into batches that are rendered using hardware instancing, meaning that many instances can be rendered with only a single draw call.
+
+[/EXCERPT:Intro]
+
+For examples of the Foliage tool in action, see the [Foliage](Resources\ContentExamples\Landscapes\1_3) section of the [](Resources\ContentExamples\Landscapes) Content Example.
+
+## Foliage Edit Mode
+
+To use the Foliage tool, click the Foliage button(**Shift+4**) in the **Modes** panel. 
+
+![FoliageMode.png](FoliageMode.png)
+ 
+The Foliage Edit Mode window appears in the **Modes** panel.
+
+![FoliageWindowInitial.png](FoliageWindowInitial.png)
+
+
+
+## Mesh List
+
+At first, there will be no foliage meshes listed. Before you can paint foliage, you must drag a Static Mesh from the **Content Browser** directly onto the black bar that says **Drag Static Meshes from the Content Browser into this area**.
+
+![](Foliage_TextBar.png)
+
+[REGION:tip]
+Do not try dropping the first Static Mesh into the empty space underneath the black bar; you must drop it onto the black bar itself.
+[/REGION]
+
+[REGION:note]
+After you have added the first Static Mesh to the list, you can add more Static Meshes by dragging them into the Foliage Edit Mode window, and dropping them on top of existing meshes in the list.
+[/REGION]
+
+<!----
+![FoliageWindowDrag.png](FoliageWindowDrag.png)
+---->
+
+A Static Mesh in the mesh list can be displayed in one of three modes:
+* **Hide Details** - Hides all parameters and properties, to make the entire list easier to see.
+	![FoliageWindowAfterDrag.png](FoliageWindowAfterDrag.png)
+* **Show Painting Settings** - Displays parameters that affect how the mesh will be placed in the level.  (This is the default mode when a Static Mesh is added.)
+
+	![Moliage Painting Settings](Foliage_MeshParams.png)
+* **Show Instance Settings** - Displays parameters that control the instances that are already placed in the level.
+	![Mesh Instance Settings](Foliage_ShowInstance.png)
+
+When the mesh is in either the **Paint Settings** or **Instance Settings** mode, three buttons also appear above the mesh icon.
+
+| Item | Description |
+| --- | --- |
+| ![](Shared/Icons/icon_assign_left_16x.png) | This button replaces all instances of the mesh already placed in the current level with the Static Mesh that is currently selected in the **Content Browser**. |
+| ![](Shared/Icons/icon_delete.png)(w:16) | This button removes the mesh from the mesh list as well as **all instances of this mesh already placed in the current level**. |
+| ![](Shared/Icons/icon_MeshPaint_Find_16x.png) | This button locates the Static Mesh in the **Content Browser**. |
+
+### Selected Meshes in the Mesh List
+
+Meshes can be selected and deselected by clicking on them in the **Meshes** list (orange is selected). When creating or erasing meshes in the Level Editor viewport, only the meshes currently selected in the **Meshes** list will be affected. Foliage instances of other Static Meshes already in the level will not be affected in any way, and no instances of the deselected **Meshes** list items will be added to the level.
+
+The following example shows two meshes selected. The **SM_Rock** mesh will not be painted or erased from the level as it is not selected.
+
+![Two Meshes Selected](Foliage_MeshList.png)
+
+#### Brush Settings
+
+Above the **Meshes** list, the Mesh Edit Tool displays properties related to the foliage tool that is currently selected. (Not every setting is displayed with every foliage tool.)
+
+| Item | Description |
+| ---- | ----------- |
+| **Brush Size** | The size of the brush in Unreal units. | 
+| **Paint Density** |  [INCLUDE:Engine/Foliage#PaintDensity] |
+| **Erase Density** |  [INCLUDE:Engine/Foliage#EraseDensity] |
+| **Filter** | [INCLUDE:Engine/Foliage#Filter] |
+
+<!---
+[EXCERPT:PaintDensity]
+The target density at which you will add instances when using **Ctrl+click**.
+* This is a value from 0 to 1 where 1 paints mesh instances at the maximum density listed in the Mesh Properties for each mesh (see below).
+* If the density of meshes in the brush is already greater than this, no meshes will be added.
+[/EXCERPT:PaintDensity]
+--->
+
+
+<!---
+[EXCERPT:EraseDensity]
+The target density you would like to achieve when you erase instances using **Ctrl+Shift+click**.
+* This is a value from 0 to 1 where 0 represents no meshes. If there are fewer meshes than this desired erase density, no more meshes will be erased. 
+* This allows you to thin out meshes already painted without completely removing all instances.
+[/EXCERPT:EraseDensity]
+--->
+
+<!---
+[EXCERPT:Filter]
+The kinds of objects you want to place instances on. 
+* Note the foliage sphere brush will disappear when it is not over an object that matches the filter type. 
+* Also note that you can only paint on objects that are in the active streaming level.
+[/EXCERPT:Filter]
+--->
+
+
+[REGION:note]
+Tablet pressure sensitivity is also supported. The pen pressure will modulate the number of foliage mesh instances added or removed, after all other parameters are considered.
+[/REGION]
+
+
+
+## Foliage Tools
+There are five tools available by selecting the appropriate button in the Toolbar at the top of the foliage window. 
+
+| Item | Description |
+| --- | --- |
+| ![Paint Tool](ToolPaint.png) | **Paint tool**, used for adding and removing foliage instances from the world. |
+| ![Reapply Tool](ToolReapply.png) | **Reapply tool**, used to change the parameters of instances already painted in the world. |
+| ![Select Tool](ToolSelect.png) | **Selection tool**, used to select individual instances, for moving, deleting etc. |
+| ![Paint Select Tool](ToolPaintSelect.png) | **Lasso tool**, used to select many instances using the paint brush. |
+| ![Fill Tool](ToolFill.png) | **Fill Tool**, used to determine the number of meshes to place with the Paint tool. |
+
+
+
+### Paint Tool
+
+![Paint Tool](ToolPaint.png)
+
+The Paint tool is Foliage Edit Mode's default tool. You can use it to paint instances of the Static Meshes in the **Meshes** list in your level.
+
+When Foliage Edit Mode is active, a transparent sphere brush is drawn in the level indicating where the foliage brush will operate.
+
+**To add foliage to the brush area:**  
+* Holding down **Ctrl**, click where you want to add foliage.  All currently selected meshes in the mesh list will be added according to their current parameters and settings.
+
+When painting meshes, the engine performs a number of line traces inside the sphere parallel to your viewing direction, meaning any surface you can see inside the sphere will be a potential target for foliage instances.
+
+**To erase foliage from the brush area:**  
+* Holding down **Ctrl+Shift**, click where you want to remove foliage. Note that only instances of meshes that are currently selected in the mesh list will be erased.
+
+
+#### Paint Settings
+
+Each mesh in the Mesh List has a number of properties that control how instances are placed for this mesh when painting. The properties are accessible by pressing the middle paint brush icon.
+
+![Paint Settings](Foliage_PaintSettings.png)
+
+| **Property** | **Description** |
+| --- | --- |
+| **Density / 1Kuu&sup2;** | The number of instances that will be placed for this mesh, for each 1000x1000 Unreal unit area. |
+| **Radius** | Minimum distance between instances of this mesh.  |
+| **Align to Normal** | Whether or not the foliage mesh should be oriented vertically or follow the direction of the surface it is placed upon. |
+| **Max Angle** | If non-zero, this specifies the maximum angle to follow when aligning to the normal. For example, if ground is 30&deg; slope, and you set the Max Angle to 10&deg;, the foliage will try to follow the direction of the ground but it placed at 10&deg; to the vertical.  If you place an instance on 5&deg; surface, the angle is less than 10&deg; so the foliage will be oriented to match the 5&deg; slope. |
+| **Random Yaw** | Whether or not meshes will be placed rotated randomly along the Z axis. |
+| **Uniform Scale** | Whether or not you wish to scale instances' X, Y and Z scales independently. |
+| **Scale Min/Max** | Instances will be randomly scaled between the minimum and maximum scale range. |
+| **Random Pitch &plusmn;** | Adds variation up to &plusmn; the angle you specify, so the instances are not all pointing exactly the same direction. |
+| **Ground Slope** | If non-zero, if the surface you are painting on is steeper than this angle, no foliage instances will be placed. A negative value will place foliage instances only on surfaces steeper than the angle specified. |
+| **Height Min/Max** | If specified, if the World space Z (height) value is outside this range, no instances will be applied. |
+| **Landscape Layer** | If entered, foliage instances will be painted proportional in density to the Landscape layer specified, after all the other parameters have been applied. |
+
+
+
+### Reapply Tool
+
+![Reapply Tool](ToolReapply.png)
+
+The Reapply tool allows you to selectively change parameters for instances already placed in the world. The settings available are very similar to those of the Paint tool, but there is an extra checkbox to the left, to choose which parameters to reapply:
+
+![](Foliage_Reapply.png)(w:400)
+
+If a checkbox is set, the corresponding parameter will be reapplied when painting the brush over existing instances. Most settings are the same as when using the Paint Tool, however there are a few differences:
+
+| Item | Description |
+| --- | --- |
+| **Density Adjust** |This is a density multiplier for existing instances. If you set the slider to 2.0, the number of instances in a particular area will be doubled. A value of 0.5 will leave only 50% of the instances remaining after painting.|
+| **Ground Slope** |This will remove instances that do not meet the ground slope criteria. No new instances will be added.|
+| **Height Min/Max** |This will remove instances that do not meet the height range criteria. No new instances will be added.|
+| **Landscape Layer** |This will remove instances in proportion to the specified layer density. No new instances will be added.|
+
+
+### Select Tool
+![Select Tool](ToolSelect.png)
+
+When the Select tool is active, you can select individual instances of foliage meshes by clicking on them. **Ctrl+click** will multi-select.
+
+![Selected Instance](Foliage_SelectInstance.png)(w:600)
+
+Once instances are selected, a number of actions are available:
+
+| **Action** | **Result** |
+| --- | --- |
+| **Drag a widget axis** | The selected instances will move following the widget, be rotated or scaled depending on the widget mode. |
+| **Alt+drag a widget axis** | The selected instances will first be duplicated and then will move following the widget. |
+| **Delete key** | The selected instances will be deleted. |
+| **End key** | The selected instances will attempt to snap to the floor. They will be aligned to the normal if originally placed with this setting enabled. |
+
+
+
+### Lasso Tool
+
+![Lasso Tool](ToolPaintSelect.png)
+
+The Lasso tool allows you to select a number of instances simultaneously by using the sphere brush that is also used with the Paint tool. The **Meshes** list selection and filter settings apply, just as they do for regular mesh painting. Holding down **Shift** while painting deselects instances. Once you have a selection, you can switch to the regular Select tool and perform some of the actions listed above.
+
+![Lasso Tool](Foliage_Lasso.png)(w:600)
+
+### Fill Tool
+
+![Fill Tool](ToolFill.png)
+
+The Fill tool is used to cover an entire Static Mesh Actor in your level with the selected foliage meshes, with the fill density and other properties set according to the paint settings.
+
+To use the Fill tool, **Ctrl+click** on the Static Mesh you want covered with foliage.
+
+![Foliage Tool](Foliage_Fill.png)(w:600)
+
+
+## Instance Settings Mode
+
+You can use Instance Settings Mode to modify mesh instances that you have already placed in your level with the Foliage tool.
+
+![Instance Settings Mode](Foliage_Instance.png)(w:500)
+
+| **Property** | **Description** |
+| --- | --- |
+| **Instance Count** | This shows the number of instances of this mesh currently placed in the current streaming level. |
+| **Cluster Count** | This shows the number of clusters used to render instances of this mesh in the current streaming level. Groups of instances are rendered together in a single draw call, called a cluster, to improve rendering efficiency. The cluster allocation is determined automatically based on the number of instances already in the cluster and the radius of the cluster in world space. The following two parameters can adjust this. |
+| **Max Instances Per Cluster** | This sets the maximum number of instances per cluster. Remember that all the instances in a single cluster are always rendered in a single draw call with the total number of triangles equal to the polygons per mesh multiplied by the instances per cluster. The ideal number depends on the polygon count of the mesh. |
+| **Max Cluster Radius** | This is the maximum size a cluster can grow before instances are allocated to a new cluster. Reducing this number increases the number of clusters but improves occlusion as the cluster has a smaller bounding box. |
+| **Start Cull Distance** | This is the distance in world units at which the instances will begin to fade out. Note that this needs to be set up in the Material. See the "Culling" section below. |
+| **End Cull Distance** | This is the distance in world units at which the instances will be completely culled. If the Material is not set up to fade individual instances, entire clusters will disappear and reappear together. See the "Culling" section below. |
+
+
+
+## Culling
+
+Because foliage instances are rendered as clusters in a single draw call, each cluster is either rendered or not rendered based on occlusion. If you set a value in the **End Cull Distance** parameter, the clusters will also be culled beyond that distance. However this will cause groups of meshes to disappear abruptly as the entire cluster goes out of range.
+
+This can be reduced by adding a **Start Cull Distance** parameter and then setting up the Material appropriately. In the vertex shader, a per-instance fading factor is calculated, which goes from 1.0 at the start distance to 0.0 at the end distance. This is accessible in the Material using a PerInstanceFadeAmount node. If you connect that to an opacity or masking value, you can use it to fade instances over a distance before they reach the **Cull Distance End** and are removed from rendering.
+
+The example Material below multiplies the Material mask by the fading factor to thin out the foliage mesh's leaves until they completely disappear.
+
+![Culling Material Example](Foliage_MaterialSetup.png)
+
+
+<!-----
+![Culling Material Example](CullingMaterial.png)(w:752 h:378)
+---->
+
+## Static Mesh Settings
+
+You can set foliage-related options for a Static Mesh in the **Static Mesh Editor** instead of in the Foliage tool.
+
+In the **Static Mesh Editor**, in the **Details** panel, in the **Static Mesh Settings** section, there is a **Foliage Default Settings** option. By default, it is set to **None**.  But if you click the drop-down arrow, you can choose **InstancedFoliageSettings**, which opens a whole sub-area of settings that apply to using this Static Mesh with the Foliage tool.  These settings mirror the settings in the Foliage tool's **Show Painting Settings** and **Show Instance Settings**.
+
+![Static Mesh Editor Foliage Settings](Foliage_StaticMeshEditor.png)
+
+### LOD
+
+Static Mesh LOD is supported on foliage. There are a few caveats:
+
+* You should ensure your Static Mesh has only one entry in the Elements array (visible under **LOD0**).
+* Note that light and shadowmaps are shared between all LOD levels, so all LODs need to use the same unwrapping.
+* Currently the entire cluster of instances change LODs simultaneously. We may add support for distance-based fading per instance in the future.
+
+
+
+### Lighting
+
+Each individual mesh instance has its own shadow and/or light map generated by Lightmass, and these are tiled together for each precomputed batch. There are several settings on the Static Mesh that should be checked for precomputed lighting to operate well with instanced foliage. Lightmass is less forgiving when generating shadow maps for instanced meshes, and incorrect settings could lead to black meshes after rebuilding lighting.
+
+
+* **Light Map Coordinate Index** - This must be set to a valid UV channel that has a unique UV unwrapping. The Static Mesh Editor's **Generate Unique UVs** feature, which you can access from the **Window** menu, can quickly generate a unique unwrapping.
+* **Lightmap Resolution** - This must be a small enough number so that all the shadow map for instances in a single cluster (by default 100) can be tiled together without exceeding the maximum texture resolution (4094x4096).
+
+
+[PUBLISH:Licensee]
+
+
+### Settings for Instancing on Consoles
+
+Hardware instancing on consoles such as Xbox360 and PS3 works a little differently than on PC. In order to render multiple instances in a single draw call, the index buffer data for the Static Mesh needs to be duplicated. There is a setting in the Static Mesh called **Console Preallocate Instance Count**. This value controls how many instances we want to preallocate, to be rendered in a single draw call.
+
+For example, if you had a foliage mesh with 100 triangles, normally this would need 300 vertex indices (3 for each triangle) to render as a regular Static Mesh. These are 2 bytes each, so 600 bytes of data are stored for the Static Mesh. 
+
+If you wanted to be able to render a maximum of 20 instances of this mesh as foliage in a single draw call, we could set the ConsolePreallocateInstanceCount to 20, which would store duplicate values of those 300 indices 20 times. That would mean the total memory requirement for the indices of that Static Mesh would increase to 12,000 bytes (20 x 300 x 2).
+
+This overhead is incurred only once for the Static Mesh regardless of how many instances will be placed in the level, but simply preallocating that data allows us to render up to 20 instances of this Static Mesh in a single draw call any time we want, rendering up to 2000 triangles
+
+The engine will automatically issue multiple draw calls should the ConsolePreallocateInstanceCount be insufficient for the number of instances we wish to render in a cluster (the Instances Per Cluster setting above).
+
+On consoles, draw calls are relatively inexpensive provided the total number of triangles rendered in the draw call is sufficiently large. So using memory to preallocate more instances in a single drawcall will not provide any significant performance gains.
+
+So you should set the ConsolePreallocateInstanceCount number for Static Meshes used for foliage to a number that, taking into account the number of triangles in an instance, will keep the console's GPU busy. Setting the number too small could cause the console's GPU to be idle waiting for the individual draw calls, and a number too large will waste memory without any significant performance increase.
+[/PUBLISH:Licensee]
+
+ 
+
+
+
+

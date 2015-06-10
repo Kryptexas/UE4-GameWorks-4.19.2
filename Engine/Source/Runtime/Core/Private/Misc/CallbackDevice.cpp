@@ -33,6 +33,7 @@ FCoreDelegates::FGetSerialNumberBlocksForDebugVisualizersDelegate& FCoreDelegate
 }
 
 FCoreDelegates::FOnMountPak FCoreDelegates::OnMountPak;
+FCoreDelegates::FOnUnmountPak FCoreDelegates::OnUnmountPak;
 FCoreDelegates::FOnUserLoginChangedEvent FCoreDelegates::OnUserLoginChangedEvent; 
 FCoreDelegates::FOnUserControllerConnectionChange FCoreDelegates::OnControllerConnectionChange;
 FCoreDelegates::FOnSafeFrameChangedEvent FCoreDelegates::OnSafeFrameChangedEvent;
@@ -67,3 +68,4 @@ FCoreDelegates::FStatDisabled FCoreDelegates::StatDisabled;
 FCoreDelegates::FStatDisableAll FCoreDelegates::StatDisableAll;
 
 FCoreDelegates::FApplicationLicenseChange FCoreDelegates::ApplicationLicenseChange;
+FCoreDelegates::FPlatformChangedLaptopMode FCoreDelegates::PlatformChangedLaptopMode;

@@ -1,0 +1,90 @@
+﻿Availability: Docs
+Title:后期处理内容示例
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:后期处理示例关卡概述
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing:title%](physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing:title%](physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](PostProcHeader.png)
+
+
+
+## 概述
+
+
+欢迎来到 **Post Processing** （后期处理）内容示例！ [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
+
+ 本关卡展示了不同的后期处理效果，通过Post Processing Volumes（后期处理空间）的方法来实现。 当您站在每个底座前时，您将会看到地面上的记号，显示您应该如何放置摄像机以查看所期望见到的效果。
+ 
+ ![](PostProcessingDesignations.png)
+
+[EXCERPT:Topics]
+## 示例
+
+[REGION:topics third]
+%Resources/ContentExamples/PostProcessing/1_1:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_2:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_3:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_4:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_5:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_6:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_7:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_8:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_9:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_10:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_11:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_12:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_13:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_14:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_15:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_16:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_17:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_18:TopicCompact%
+%Resources/ContentExamples/PostProcessing/1_19:TopicCompact%
+[/REGION]
+[/EXCERPT:Topics]
+
+## 扩展阅读
+
+* [后期处理特效](Engine/Rendering\PostProcessEffects)
+
+
+[/REGION]

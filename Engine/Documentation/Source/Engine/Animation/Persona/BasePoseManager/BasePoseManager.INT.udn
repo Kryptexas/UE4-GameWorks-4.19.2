@@ -1,0 +1,37 @@
+Availability:Public
+Title:Persona Retarget Source Manager
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Retarget Source Manager in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/BasePoseManager:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/BasePoseManager:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/BasePoseManager]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+Persona's **Retarget Source Manager** enables you to create a list of potential base poses for a specific skeleton, which aids in retargeting skeletons for use with multiple Skeletal Meshes.
+
+![](BasePoseManager.png)
+
+**To add a new retarget source for reference:**
+
+1. **Right-click** in the **Retarget Source Manager**, and click **Add**.
+1. Select the Skeletal Mesh whose base pose you want to use from the list.
+
+[region:note]
+After you have added a base pose in the **Retarget Source Manager**, you can choose it for a specific animation asset in the **Anim Asset Details** panel, under **Animation**, in the **Retarget Source** drop-down list.
+[/region]

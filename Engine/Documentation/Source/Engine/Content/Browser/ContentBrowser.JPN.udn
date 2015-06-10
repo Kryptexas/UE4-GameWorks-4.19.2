@@ -1,0 +1,104 @@
+﻿INTSourceChangelist:2107358
+Availability:Public
+Title:コンテンツ ブラウザ
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:アセット上での整理、作成、便利な操作の実施に加え、パッケージ ファイルの管理を行うツール
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](ContentBrowserInterface.png)(w:800)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+## 概要
+
+[EXCERPT:Intro]
+[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
+
+[/EXCERPT:Intro]
+
+**コンテンツ ブラウザ** では以下の事が可能です。
+
+* ゲーム内で見つかった全てのアセットを参照し相互作用します。
+* アセットが保存されているのかどうか検索します。
+    * テキスト フィルタ **Search Assets** ボックスで、テキストを入力して、名前、パス、タグ、タイプでアセットを検索します。検索トークンに接頭辞「-」を付ければアセットを検索から除外することができます。
+    * 拡張フィルタ **Filters** ボタンをクリックして、アセット タイプやその他の条件でアセットをフィルタします。
+* パッケージをソース コントロールからチェックアウトせずにアセットが整理できます。
+    * ローカルおよびプライベート コレクションを作成し、今後の使用に備えてそれらの中にアセットを格納します。
+    * 面白いアセットを同僚と共有するために、シェアード コレクションを作成します。
+* 開発支援です。
+    * 問題が内在する可能性のアセットを表示します。
+* **Migrate** ツールを使ってアセットおよび自動的にそれらに依存する全てのアセットを他のコンテンツ フォルダに移動します。
+
+
+##コンテンツ ブラウザにアクセスする
+
+ **コンテンツ ブラウザ** は **[Window]** メニューからアクセスすることができます。**コンテンツ ブラウザ** で 4 つのインスタンスを同時に開くことができます。これは、以下のように、いろいろな場面で便利です。
+
+* スタティック メッシュだけを表示するものと、マテリアルのみを表示するものなど、異なるアセット タイプを異なる **コンテンツ ブラウザ** でフィルタした場合。
+* 別のアセットも利用可能にしたいフォルダとの間でアセットを移動する場合。
+
+
+[REGION:caption]
+	デフォルトで、**コンテンツ ブラウザ** はメインのレベル エディタ インターフェースの左下隅にドッキングしていますが、レベル エディタ内であればどこでも再ドッキングができますし、または独立したウィンドウとしてフロートすることもできます。
+[/REGION]
+
+
+
+## コンテンツ ブラウザのトピックス
+
+[REGION:topics fourth]
+%Engine/Content/Browser/UI:TopicCompact%
+%Engine/Content/Browser/UserGuide/WorkingWithSources:TopicCompact%
+%Engine/Content/Browser/UserGuide/BrowserAssetCreation:TopicCompact%
+%Engine/Content/Browser/UserGuide/Collections:TopicCompact%
+%Engine/Content/Browser/UserGuide/Filters:TopicCompact%
+%Engine/Content/Browser/UserGuide/Folders:TopicCompact%
+%Engine/Content/Browser/UserGuide/DevelopersFolder:TopicCompact%
+%Engine/UI/SourceControl:TopicCompact%
+%Engine/Content/Browser/AssetConsolidationTool:TopicCompact%
+%Engine/Content/Browser/UserGuide/Migrate:TopicCompact%
+%Engine/Content/Browser/ReferenceViewer:TopicCompact%
+[/REGION]
+

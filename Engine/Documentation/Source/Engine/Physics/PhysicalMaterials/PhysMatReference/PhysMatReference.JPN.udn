@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:2088596
+Availability:Public
+Title:物理マテリアルリファレンス
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:シミュレーションする物理プロパティの設定および制御に利用した、物理的なシミュレーションプリミティブに直接またはマテリアルを用いて適用したアセット
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+[INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
+
+![PhysicalMaterialProperties.png](PhysicalMaterialProperties.png)
+
+## プロパティ
+
+| プロパティ | 説明 |
+| ---- | ----- |
+| [REGION:tablesection]物理マテリアル[/REGION] ||
+| **Friction** | %doxygen:UPhysicalMaterial::Friction% |
+| **Restitution** | %doxygen:UPhysicalMaterial::Restitution% |
+| **Density** | %doxygen:UPhysicalMaterial::Density% |
+|[REGION:tablesection]Advanced[/REGION]||
+| **RaiseMassToPower** | %doxygen:UPhysicalMaterial::RaiseMassToPower% |
+|[REGION:tablesection]Destruction[/REGION]||
+| **DestructibleDamageThresholdScale** | %doxygen:UPhysicalMaterial::DestructibleDamageThresholdScale% |
+|[REGION:tablesection]Physical Properties[/REGION]||
+| **SurfaceType** | %doxygen:UPhysicalMaterial::SurfaceType% [INCLUDE:#one]|
+|[REGION:tablesection]Vehicles[/REGION]||
+| **TireFrictionScale** | %doxygen:UPhysicalMaterial::TireFrictionScale% |
+| **TireFrictionScales** | %doxygen:UPhysicalMaterial::TireFrictionScales% |
+
+<!--
+[EXCERPT:one]
+Surface Typesはユーザーのプロジェクトの `DefaultEngine.ini` ファイルに設定されてます。Surface Typesはいろいろなことを定義するために、エンジンで使用する列挙型変数を定義します。キャラクターがサーフェスを歩き回ると再生されるサウンドや、爆発がさまざまなサーフェスに残すデカールのタイプなどを定義します。
+
+ProjectSetting/Physics/Physical Surfaces を使用できます。
+
+このコードはコードかブループリントで取り込みます。
+
+![](SurfaceType.png)
+
+ソースコード編集無しのデフォルト設定では、Surface Types は 30 までに制限されています。SurfaceType1 から SurfaceType30 までのタイプで表示されます。
+
+[/EXCERPT:one]
+-->

@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:2088596
+Availability: Public
+Title:피지컬 머티리얼 참고서
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:물리 시뮬레이션이 적용되는 프리미티브에 바로, 또는 시뮬레이션에 쓰이는 물리 속성을 환경설정하고 제어하는 데 사용되는 머티리얼을 통해 적용되는 애셋입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 개요
+
+[INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
+
+![PhysicalMaterialProperties.png](PhysicalMaterialProperties.png)
+
+## 프로퍼티
+
+| 프로퍼티 | 설명 |
+| ---- | ----- |
+|[REGION:tablesection]Physical Material (피지컬 머티리얼)[/REGION]||
+| **Friction** | 마찰 - %doxygen:UPhysicalMaterial::Friction% |
+| **Restitution** | 복원력 - %doxygen:UPhysicalMaterial::Restitution% |
+| **Density** | 밀도 - %doxygen:UPhysicalMaterial::Density% |
+|[REGION:tablesection]Advanced (고급)[/REGION]||
+| **RaiseMassToPower** | 질량을 제곱으로 올림 - %doxygen:UPhysicalMaterial::RaiseMassToPower% |
+|[REGION:tablesection]Destruction (디스트럭션)[/REGION]||
+| **DestructibleDamageThresholdScale** | 디스트럭터블 대미지 한계치 스케일 - %doxygen:UPhysicalMaterial::DestructibleDamageThresholdScale% |
+|[REGION:tablesection]Physical Properties (피지컬 프로퍼티)[/REGION]||
+| **SurfaceType** | 서피스 타입 - %doxygen:UPhysicalMaterial::SurfaceType% [INCLUDE:#one]|
+|[REGION:tablesection]Vehicles (비히클)[/REGION]||
+| **TireFrictionScale** | 타이어 마찰 스케일 - %doxygen:UPhysicalMaterial::TireFrictionScale% |
+| **TireFrictionScales** | 전체 타이어 마찰 스케일 - %doxygen:UPhysicalMaterial::TireFrictionScales% |
+
+<!--
+[EXCERPT:one]
+Surface Types (서피스 타입)은 프로젝트의 DefaultEngine.ini 에 설정됩니다. 캐릭터가 표면을 걸을 때 나는 소리에서부터 폭발시 표면 유형에 따라 어떤 데칼을 남길 것인지까지, 엔진에서 사용되는 여러가지 표면에 대한 열거형을 정의합니다.
+
+프로젝트 세팅 -> 피직스 -> Physical Surfaces 를 사용하면 됩니다.
+
+이 데이터는 코드나 블루프린트에서 끌어올 수 있습니다:
+
+![](SurfaceType.png)
+
+기본적으로 소스 코드 수정 없이 서피스 타입은 30 개 까지로 제한되며, 라벨은 SurfaceType1 부터 SurfaceType30 까지입니다.
+
+[/EXCERPT:one]
+-->

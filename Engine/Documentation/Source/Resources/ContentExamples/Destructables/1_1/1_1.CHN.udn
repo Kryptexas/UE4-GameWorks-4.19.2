@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:1903621
+Availability: Docs
+Title:1.1 -  Voronoi
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Destructables
+Description: 破坏性示例关卡概述，示例1.1： Voronoi
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_1:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+这是使用算法来自动创建的可破坏物体。 您可以在编辑器内完成对它的创建。 只要在Destructible（破坏性）网格物体编辑器内点击fracture(破裂）按钮就可以。 系统会根据右下角的设置来破裂网格物体。
+
+[REGION:lightbox]
+[![](1_1_solid.png)(w:300)](1_1_solid.png) [![](1_1_fractured.png)(w:300)](1_1_fractured.png) [![](1_1_blown.png)(w:300)](1_1_blown.png)
+[/REGION]

@@ -1,0 +1,202 @@
+﻿INTSourceChangelist:2362600
+Availability: Public
+Title:5. 경험치 바와 핫바 버튼
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:UMG 퀵스타트의 다섯 번째 단계는 경험치 바와 핫바 버튼을 만드는 것입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/UMG\QuickStart\4 "%Engine/UMG\QuickStart\4:title%") 
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		경험치 바와 핫 바 버튼 추가하기
+	[/PARAM]
+	[PARAM:description]
+	이번 섹션에서는 HUD 에 경험치 바, 레벨업 텍스트, 액션 바 버튼을 추가해 보겠습니다.
+	[/PARAM]
+[/OBJECT]
+
+1. **콘텐츠 브라우저** 에서 **UMG** 폴더를 선택한 다음 **GameHUD** 블루프린트를 엽니다.
+
+1. **팔레트** 창 **일반** 아래 **Progress Bar** 를 끌어 **계층구조** 창의 **CanvasPanel** 에 놓습니다.
+
+1. 바를 원하는 만큼 이동시켜 크기를 조절합니다 (저는 하단에 배치했습니다).
+
+	![](New_1.png)
+
+	**디테일** 패널에서 원하는 곳에 **앵커** 설정을 하도록 하세요 (저는 하단 중앙에 앵커 설정을 했습니다).
+
+1. **Text Block** 을 **CanvasPanel** 에 추가합니다. 이 텍스트는 사용자에게 "레벨 업" 했음을 알려주는 데 사용할 것입니다.
+
+1. **Text Block** 위치와 그 내용을 원하는 대로 잡고 설정합니다.
+
+	![](New_2.png)
+
+	 저는 "Super Jump Unlocked!" 라 하고 앵커를 하단에 잡았습니다.
+
+1. 다음으로 **Button** 을 **CanvasPanel** 에 추가한 다음 원하는 대로 이동 및 크기를 조정합니다 (저는 경험치 바 아래 배치했습니다).
+
+	![](New_4.png)
+
+1. 버튼의 **디테일** 패널에서 **Behavior** 아래, **Is Enabled** 버튼 체크를 해제합니다 (플레이어가 레벨업하면 활성화시킬 것입니다).
+
+	![](New_3.png)
+
+1. **IsEnabled** 체크박스 옆에, **바인드** 버튼을 누른 다음 **바인딩 생성** 합니다. 
+
+1. 그래프에서 **불리언** 변수를 새로 만들어 **H_LevelUp** 이라 하고 **Return Value** 에 연결합니다. 
+
+	![](New_5.png)
+
+1. **Design** 탭으로 돌아가서 경험치 바를 클릭합니다.
+
+1. **디테일** 패널에서 바에 컬러를 설정한 다음 **퍼센트** 옆의 **바인드** 를 클릭하고 **바인딩 생성** 합니다.
+
+1. 그래프에서 **플로트** 변수를 새로 만들어 **H_Experience** 라 하고 **Return Value** 에 연결합니다. 
+
+	![](New_7.png)
+
+1. **내 블루프린트** 창에서 **이벤트 그래프** 를 더블클릭하여 이동합니다.
+
+	![](New_15.png)
+
+1. 그래프에 **우클릭** 한 다음 **분기** 에 연결된 **Event Tick** 을 추가합니다.
+
+1. Condition (조건)에는 **H_Experience** 변수를 **Ctrl** 드래그한 다음 (**1.0** 으로 설정된) **>=** 노드에 연결합니다.
+
+1. 새로운 **Text** 변수 **H_UnlockedText** 를 만듭니다. 
+
+1. 다음으로, **H_UnlockedText** 변수를 **Alt** 드래그한 다음 능력 활성화시 표시할 텍스트를 입력합니다.
+
+	![](New_13.png)
+
+1.	**디자이너** 탭으로 돌아온 다음 언록 텍스트를 선택하고, **Text** 칸 옆의 **바인트** 를 클릭한 다음 **H_UnlockedText** 변수를 선택합니다.
+
+	![](New_13b.png)
+
+	그러면 표시된 텍스트를 어떤 변수든지간에 바인딩합니다.
+
+1. **그래프** 탭으로 돌아옵니다.
+
+1. (1 초로 설정된) **Delay** 노드를 언록 텍스트 뒤에 추가합니다.
+
+1. **Delay** 뒤에 **Set H_Experience** 를 **0.0**, **Set H_UnlockedText** 를 **공백**, 끝으로 **H_LevelUp** 을 **True** 로 설정합니다. 
+
+	[REGION:lightbox]
+	[![](New_14.png)(w:840)](New_14.png)
+	[/REGION]
+	
+	최종 그래프는 위와 같은 모습이며, 이미지를 클릭하면 크게 볼 수 있습니다. 여기서는 경험치가 충분하면 능력을 활성화시키면서 그 내용을 알리는 텍스트를 표시한 다음, 텍스트를 제거하고 경험치 바를 리셋시키고 있습니다.
+	
+1. **컴파일**, **저장** 한 다음 블루프린트를 닫습니다.
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		경험치 생성 및 마무리
+	[/PARAM]
+	[PARAM:description]
+	이번 섹션에서는 박스를 쏘면 경험치를 얻어 HUD 를 업데이트해 보겠습니다.
+	[/PARAM]
+[/OBJECT]
+
+1. **콘텐츠 브라우저** 에서 **Game/Blueprints** 아래 **MyProjectile** 블루프린트를 엽니다.
+
+1. 그래프에서 **Destroy Actor** 노드 다음 **Get Player Character** 노드를 추가하여 **Cast To MyCharacter** 시킵니다.
+
+1. **As My Character C** 핀을 끌어놓고 (우리 위젯 블루프린트인) **Get GameHUDWidget** 노드를 추가합니다.
+
+	![](New_8.png)
+
+1. **GameHUDWidget** 에서 끌어놓은 다음 , **Set H_Experience** 를 **H_Experience** + **0.10** 로, 아래와 같이 설정합니다.
+
+	![](New_9.png)
+	
+	최종 시퀀스는 위와 같은 모습일 것입니다. 이미지를 클릭하면 크게 볼 수 있습니다.
+
+1. **컴파일**, **저장** 후 블루프린트를 닫습니다.
+
+1. **콘텐츠 브라우저** 에서 **Game/Blueprints** 아래 **MyCharacter** 블루프린트를 엽니다.
+
+1. **우클릭** 후 **1** Key Press 이벤트를 추가하고, **GameHUDWidget** 변수를 드래그하여 거기서 끌어놓은 다음 **Get H_LevelUp** 합니다.
+
+1. **1** Key Press Event 의 **Pressed** 핀을 끌어 놓은 다음, **분기** 를 추가하여 조건을 **H_LevelUp** 로 합니다.
+
+	![](New_10.png)
+
+1. **분기** 의 **True** 를 끌어놓고, **Launch Character** 노드를 추가한 다음 **Launch Velocity** X 를 **50**, Z 를 **1000.0** 으로 설정합니다. 
+
+1. **P_Energy** 변수를 **Alt** 드래그한 다음 **Ctrl** 드래그도 해 놓고 **0.5** 로 설정된 **Float - Float** 노드에 연결합니다.
+
+	![](New_11.png)
+
+	그러면 캐릭터를 공중으로 쏘아올리고 캐릭터에서 에너지를 뺀 다음 HUD 를 통해 표시됩니다.
+
+1. 이 시퀀스에서 **GameHUDWidget** 노드를 다시 끌어 놓은 다음 **Set H_LevelUp** 를 **False** (체크해제)로 설정합니다.
+
+1. 예전 단계에 이어 (**2** 로 설정된) **Delay** 노드를 추가한 다음, **Set H_LevelUp** 을 **True** (체크)로 설정합니다.
+
+	[REGION:lightbox]
+	[![](New_12.png)(w:840)](New_12.png)
+	[/REGION]
+
+	_이미지를 클릭하면 크게 볼 수 있습니다._
+
+	**1** 키가 눌리면, 플레이어가 능력이 활성화된 경우, 실행시키고 약간의 에너지를 제한 다음, 능력에 2 초 간의 재사용 대기시간을 추가합니다.
+
+1. 다음, **F** 키 눌림 이벤트 부분을 찾아서, **Set P_Health** 노드 다음에 **분기** 노드를 추가하고 Condition 은 **P_Health** <= **0.0** 를 답니다. 
+
+1. **Ctrl** 을 누르고 **GameHUDWidget** 변수를 끌어놓은 다음 **분기** 아래 놓고서, 거기서 끌어 놓은 다음 **Remove from Viewport** 노드를 추가합니다.
+
+1. **Remove from Viewport** 노드를 **분기** 의 **True** 에 연결한 다음, 출력 핀을 끌어놓고 **Print String** 을 추가하고서 **You're Dead!** 라는 텍스트를 설정합니다.
+
+	[REGION:lightbox]
+	[![](New_16.png)(w:800)](New_16.png)
+	[/REGION]
+
+	최종 몇 단계의 결과는 위와 같을 것이며, 클릭하면 크게 볼 수 있습니다. 플레이어의 Health 가 떨어지(거나 "사망하")면 HUD 를 제거합니다.
+
+	[REGION:note]
+	주: **Remove from Viewport** (뷰포트에서 제거) 옵션이 보이지 않는 경우, **Remove from Parent** (부모에서 제거) 옵션을 대신 사용하세요.
+	[/REGION]
+
+1. **컴파일**, **저장** 후 블루프린트를 닫고 에디터에서 플레이합니다.
+
+	![](Gif1.gif)(convert:false)
+
+	이제 박스를 10 개 맞추면 레벨 업을 하고 텍스트가 화면에 뜨는 것을 볼 수 있습니다. 잠시 후 1 키를 누르면 능력이 발동되고, 버튼에 재사용 대기시간이 적용됩니다. **F** 키를 여러 번 눌러 Health 가 바닥나는 시점이 되면 HUD 가 사라질 것입니다.
+
+	
+간단한 예제이긴 하지만 여기서도 할 일은 많이 있습니다. 이제 **UMG** 를 사용하여 화면을 생성하고 구현하는 법은 물론, 여러가지 메소드를 사용하여 변수를 전달하고 서로 통신하는 법에 대한 이해가 생겼을 것입니다. 이 가이드의 마지막 단계에서는 **UMG** 및 **블루프린트 비주얼 스크립팅** 관련 상세 문서에 대한 링크를 제공해 드립니다. 이 예제를 직접 더욱 자세히 살펴보실 수 있을 것입니다!
+
+---
+
+%Steps%
+
+
+
+
+

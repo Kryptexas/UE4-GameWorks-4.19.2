@@ -1,0 +1,92 @@
+﻿INTSourceChangelist:2219625
+Availability:Public
+Title:スタティックメッシュ モーフターゲット
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
+Description:モーフターゲットと WorldPositionOffset を使用したスタティックメッシュの変形
+
+[TOC(start:2)]
+
+モーフターゲットは、元の形状から _ターゲット_ とする形状へメッシュを変形させる手段です。 
+一般的には、アニメーションシステムの一部としてスケルタルメッシュと併用しますが、 
+ Maxscript 言語で書かれた「StaticMeshMorpher.ms」と 
+ **StaticMeshMorphtarget**[マテリアル関数](Engine/Rendering/Materials/Functions) を使って、 
+スタティックメッシュにモーフターゲットを利用した変形の設定をすることもできます。
+
+この手法は、複数の UV チャンネル、頂点カラー、そして **WorldPositionOffset** を使用して変形を実行します。
+各モーフターゲットの頂点のオフセットは、 UV チャンネルに頂点カラーとして格納されます。 
+そして **StaticMeshMorphTarget** マテリアル関数がこれを抽出して、 
+マテリアル内での利用を可能にします。頂点のオフセットをマテリアルの **WorldPositionoffset** 入力へ渡すことによって、 
+モーフターゲットでメッシュの頂点を頂点の位置へ変換することができます。
+
+## スクリプトの設定とインストール
+
+「StaticMeshMorpher.ms」 maxscript は、ビルド内の「UE4/Engine/Extras/FX_tools/3DSMax2012_x64/」に格納されています。 
+
+StaticMeshMorpher.ms **maxscript** **を実行する**
+
+1. 3dsMax の **MAXScript** メニューから **Run Script...** を選択します。
+
+1. ビルド内の「StaticMeshMorpher.ms」 maxscript が格納されている場所へ移動してファイルを開きます。
+
+1. スクリプトのインターフェースが表示されて使用可能になります。
+
+
+[REGION:tip]
+スクリプトをキーの組み合わせと結合したり、カスタムメニューを追加して簡単で高速な実行ができます。
+[/REGION]
+
+## モーフターゲットの作成
+
+モーフターゲットは、頂点を変形させた同一メッシュの複数インスタンスを必要とします。例えば、 
+溶けかかっている球氷を、以下の 3 つの形状にすることができます。
+
+[REGION:imagetable]
+| ![Game Model](game_model_table.png) | ![Morph target 1](morph_1_table.png) | ![Morph target 1](morph_2_table.png) |
+| ------ | ------ | ------ |
+| ゲームモデル | モーフターゲット1 | モーフターゲット2 |
+[/REGION]
+
+モーフターゲットは、 UV チャンネル 2 と 3 に圧縮して埋め込み (2 つのモーフターゲットが埋め込まれてれていると仮定します) 、 
+モーフターゲット 1 のノーマルはメッシュの頂点カラーへ保存することができます。
+
+**モーフターゲットを圧縮して埋め込む**
+
+1. ![Pick Game Mesh](button_pick_gamemesh.png) ボタンを押して、シーンからゲームモデルメッシュを選択します。
+
+	![Game Mesh Selected](game_mesh_selected.png)
+
+1. ![Pick Morph Target 1](button_pick_morph1.png) ボタンを押して、シーンから最初のモーフターゲットとなるメッシュを選択します。
+
+	![Morph Target 2 Selected](morph_1_selected.png)
+
+1. 必要に応じ、シーンの 2 番目のモーフターゲットに上記のステップを繰り返します。
+
+	![Morph Target 2 Selected](morph_2_selected.png)
+
+1. 必要に応じて、 **Store Morph 1 Normals** チェックボックスにチェックを入れます。
+
+1. モーフターゲットを UV チャンネルへ圧縮および埋め込み作業を開始するには ![Pack Morph Targets](button_pack_morphs.png) ボタンを押します。
+
+	![Morph Packing Progress](processing_progress.png)
+
+1. メッシュは 3ds Max からエクスポートして、アンリアルへインポートすることができます。このプロセスに関する詳細は、 [](Engine/Content/FBX/StaticMeshes) を参照してください。
+
+
+##マテリアル設定
+
+_StaticMeshMorphTargets_ 関数はモーフターゲットと _StaticMesh_ に適用された _マテリアル_ 内の法線へのアクセスを提供します。 
+この関数には、 2 つのモーフターゲットと 1 つのノーマルの出力に対応する 2 つの出力があります。モーフターゲットの出力は、 
+ _Material_ ノードの **WorldPositionOffset** 入力チャンネルに接続する値を提供する一方で、法線出力はご推察の通り、 
+ _Material_ ノードの _Normal_ 入力チャンネルへ接続することができます。
+
+ベースメッシュとモーフターゲット間の _モーフィング_ を有効にするために、 **アルファ** 入力を操作する単一 _ScalarParameter_ と一緒に 
+ 1 つ以上の _LinearInterpolate_ 式を使用します。ゲームプレイコードまたはマチネによって、モーフターゲットがランタイム時に 
+操作されます。
+
+以下は設定例 (モーフネットワークのみ) です。
+
+![](morph_material_setup.png)
+
+上記ネットワークの _Time_ パラメータとしての結果は、以下に示すように 0 から 1 となります。
+
+![](morph_result.png)

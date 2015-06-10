@@ -10,7 +10,7 @@ class FFriendItem : public IFriendItem
 {
 public:
 
-	const static FString LauncherClientId;
+	const static FString LauncherClientIds;
 	const static FString FortniteClientId;
 	const static FString UnrealTournamentClientId;
 
@@ -65,7 +65,7 @@ public:
 	 * @return The user name.
 	 */
 	virtual const FString GetName() const override;
-
+	
 	/**
 	 * Get the user location.
 	 * @return The user location.
@@ -79,6 +79,18 @@ public:
 	virtual const FString GetClientId() const override;
 
 	/**
+	 * Get the name of the game the client is logged in on
+	 * @return The game name
+	*/
+	virtual const FString GetClientName() const override;
+
+	/**
+	* Get the player's session id
+	* @return The session id the user is playing in
+	*/
+	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override;
+
+	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -88,7 +100,7 @@ public:
 	 * Get the online status of the user
 	 * @return online presence status
 	 */
-	virtual EOnlinePresenceState::Type GetOnlineStatus() const override;
+	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override;
 
 	/**
 	 * Get if the user is online and his game is joinable
@@ -106,7 +118,7 @@ public:
 	 * Get if the user is online and his game is joinable
 	 * @return The user joinable game state.
 	 */
-	virtual FString GetGameSessionId() const override;
+	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
 
 	/**
 	 * Get the Unique ID.

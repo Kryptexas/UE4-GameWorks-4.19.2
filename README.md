@@ -53,7 +53,7 @@ The steps below will take you through cloning your own private fork, then compil
    This will download binary content for the engine, as well as installing prerequisites and setting up Unreal file associations. 
    On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
    
-   A clean download of the engine binaries is currently around 2.5gb, which may take some time to complete.
+   A clean download of the engine binaries is currently 3-4gb, which may take some time to complete.
    Subsequent checkouts only require incremental downloads and will be much quicker.
  
 1. Run **GenerateProjectFiles.bat** to create project files for the engine. It should take less than a minute to complete.  
@@ -117,14 +117,12 @@ The steps below will take you through cloning your own private fork, then compil
 
 
 
-Contributing
-------------
+Licensing and Contributions
+---------------------------
 
-We welcome any contributions to Unreal Engine development through [pull requests](https://help.github.com/articles/using-pull-requests/) on GitHub. 
+Your access to and use of Unreal Engine on GitHub is governed by the [Unreal Engine End User License Agreement](https://www.unrealengine.com/eula). If you don't agree to those terms, as amended from time to time, you are not permitted to access or use Unreal Engine.
 
-Most of our active development is in the **master** branch, so we prefer to take pull requests there (particularly for new features). We try to make sure that all new code adheres to the [Epic coding standards](https://docs.unrealengine.com/latest/INT/Programming/Development/CodingStandard/). 
-
-Contributions are governed by terms in the [Unreal Engine EULA](https://www.unrealengine.com/eula).
+We welcome any contributions to Unreal Engine development through [pull requests](https://help.github.com/articles/using-pull-requests/) on GitHub. Most of our active development is in the **master** branch, so we prefer to take pull requests there (particularly for new features). We try to make sure that all new code adheres to the [Epic coding standards](https://docs.unrealengine.com/latest/INT/Programming/Development/CodingStandard/).  All contributions are governed by the terms of the EULA.
 
 
 

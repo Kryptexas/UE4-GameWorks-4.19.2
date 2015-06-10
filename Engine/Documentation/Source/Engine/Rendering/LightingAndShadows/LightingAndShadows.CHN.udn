@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:1918907
+Availability:Public
+Title: Lighting & Shadows
+Crumbs: %ROOT%, Engine, Engine/Rendering
+Description:Subsystem for lighting and shadowing geometry in Unreal Engine 4.
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows:title%](%ROOT%/Engine/Rendering/LightingAndShadows/lighting_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[PUBLISH:Docs]
+
+[REGION:topics half]
+	%Engine/Rendering/LightingAndShadows/Overview:Topic%
+[/REGION]
+
+[/PUBLISH:Docs]
+
+
+## Essentials
+
+[REGION:topics third]
+%Engine/Rendering/LightingAndShadows/Overview:Topic%
+[/REGION]
+
+## Precomuputed Lighting
+
+[REGION:topics third]
+%Engine/Rendering/LightingAndShadows/Lightmass:Topic%
+%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:Topic%
+%Engine/Rendering/LightingAndShadows/IndirectLightingCache:Topic%
+%Engine/Rendering/LightingAndShadows/LightMobility/StaticLights:Topic%
+%Engine/Rendering/LightingAndShadows/LightMobility/StationaryLights:Topic%
+[/REGION]
+
+
+## Dynamic Lighting
+
+[REGION:topics third]
+%Engine/Rendering/ParticleSystems/ParticleLights:Topic%
+%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:Topic%
+[/REGION]
+
+## General
+
+[REGION:topics third]
+%Engine/Rendering/LightingAndShadows/LitTranslucency:Topic%
+%Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace:Topic%
+%Engine/Rendering/LightingAndShadows/IESLightProfiles:Topic%
+[/REGION]

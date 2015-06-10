@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:2215003
+Availability: Public
+Title:레퍼런스 뷰어
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저의 폴더 레퍼런스 뷰어에 대한 설명입니다.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CB_ReferenceViewer_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceViewer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 개요
+
+_Reference Viewer_ (레퍼런스 뷰어)에는 현재 콘텐츠 브라우저에 선택된 애셋이 레퍼런싱하거나 그 애셋을 레퍼런싱하고 있는 애셋을 그래프로 표시해 줍니다.
+
+레퍼런스 뷰어를 표시하려면, 콘텐츠 브라우저에서 선택된 애셋(들)에 우클릭하여 뜨는 맥락 메뉴에서 **레퍼런스 뷰어** 를 선택합니다.
+
+![Reference Viewer](CB_ReferenceViewer.png)(w:800)
+
+1. 선택된 애셋을 레퍼런싱하는 다른 애셋입니다.
+1. 선택된 애셋입니다.
+1. 선택된 애셋이 레퍼런싱하는 다른 애셋입니다.
+
+[REGION:tip]
+**애셋 트리** 의 폴더에 우클릭하여 레퍼런스 뷰어를 열 수도 있습니다. 레퍼런스 뷰어는 해당 폴더의 모든 애셋에 대한 레퍼런스 그래프가 표시됩니다.
+[/REGION]
+
+콘텐츠 브라우저 관련 상세 정보는 [](Engine/Content/Browser) 문서를 참고해 주시기 바랍니다.
+
+
+## 검색 옵션
+
+레퍼런스 뷰어의 좌상단 구석에는 언리얼 에디터가 그래프 제작시 사용되는 검색 옵션이 둘 있습니다.
+
+![Search Options](CB_RefViewer2.png)
+
+
+| 항목 | 설명 |
+| ---- | ----------- |
+| **Search Depth Limit** | 검색 깊이 한계 - 엔진이 검색해들어갈 레퍼런스 깊이입니다. 예를 들어 값이 2 이면 그래프는 선택된 애셋에 관련된 애셋뿐만 아니라, 그 관련 애셋에 관련된 애셋을 다시 한 번 검색합니다. |
+| **Search Breadth Limit** | 검색 폭 한계 - 주어진 (레퍼런싱한 또는 레퍼런싱된) 열에 나열되는 레퍼런스 갯수입니다. 예를 들어, 한 애셋에 20 개의 애셋을 레퍼런싱하나 이 값이 10 으로 설정된 경우, 해당 열에는 10 개의 애셋만 표시됩니다. |
+
+
+## 맥락 메뉴 옵션
+
+그래프의 애셋에 대한 옵션을 확인하려면, 애셋에 우클릭합니다. 맥락 메뉴가 나타납니다.
+
+| 항목 | 설명 |
+| ---- | ----------- |
+| **Find in Content Browser** | 콘텐츠 브라우저에서 찾기 - 선택된 애셋을 콘텐츠 브라우저에서 찾습니다. |
+| **Re-Center Graph** | 그래프 중앙 재조정 - 선택된 애셋을 중심으로, 레퍼런싱한/된 애셋을 포함시켜 그래프를 재구성합니다. |
+| **List Referenced Objects** | 레퍼런싱된 오브젝트 나열 - 선택된 애셋에 레퍼런싱된 애셋 목록을 표시합니다. |
+| **List Objects That Reference** | 레퍼런싱한 오브젝트 나열 - 선택된 애셋이 레퍼런싱한 애셋 목록을 표시합니다. |
+| **Make Collection With Referenced Assets** | 레퍼런싱된 애셋으로 콜렉션 만들기 - 선택된 애셋을/에 레퍼런싱한/된 애셋으로 콜렉션을 만듭니다. |
+| **Show Reference Tree** | 레퍼런스 트리 표시 - 선택된 애셋에 대한 레퍼런스 트리를 표시합니다. 참고로 게임의 복잡도에 따라 시간이 조금 걸릴 수 있습니다. 레퍼런스 트리 관련 상세 정보는 [](Engine/Content/Browser\ReferenceTreeTool) 문서를 참고해 주세요. |
+
+

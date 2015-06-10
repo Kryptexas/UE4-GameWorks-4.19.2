@@ -1,0 +1,244 @@
+﻿INTSourceChangelist:2227436
+Availability:Public
+Title:アニメーション システムの概要
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:アニメーション ブループリント、ブレンドスペース、アニメーションシーケンスを使用したアニメーション データに基づいてスケルタルメッシュを変形させるシステムの概要
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+[EXCERPT:Intro]
+アンリアル エンジン 4 (UE4) のアニメーション システムは、キャラクタとスケルタルメッシュを高度に管理できます。このドキュメントでは、 UE4 でアニメーションがどのように動作するか、またアニメーションを動かす基本概念について、おおまかに説明します。 <!---In the documents that follow, we'll cover the---> 
+
+
+
+**アニメーション** システムは、スケルタル ベースのメッシュ変形にモーフ ベースの頂点変形を組み合わせて 
+複雑なアニメーションを作成します。このシステムは、あらかじめ準備された _AnimationSequences_ の再生およびブレンディング、 
+ _AnimMontages_ を使用したレッジや壁のスケーリングなど特別なカスタム動作、 
+ MorphTargets_ を使用したダメージエフェクトまたは顔の表情の適用、 _MorphTargets_ を使用した骨格の変形の直接制御、あるいは _SkeletalControls_ を使用したボーン変形の制御など、 
+基本的なプレイヤーの動きをより現実味を帯びた表現にします。
+[/EXCERPT:Intro]
+
+
+このページの目的は、 UE4 のアニメーション システムのおおまかな概要を説明することです。初めてアンリアル エンジンでアニメートするユーザーを主な対象とします。ただし、これはアンリアル エンジンでスケルタル アセットをアニメートする方法に関する総合マニュアルではありません。むしろ、様々なアニメーション システムに慣れ親しむための入門書としてお考えください。こうしたシステムがどのように組み合わされるか、 UE4 のアニメーションがかつてないほどパワフルで柔軟性があるかについて説明します。 
+
+まず、 UE4 のアニメーション システムの主な用語と概念について説明します。
+
+
+(#Skeleton)
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](PersonaIcon.png)(w:192)](Engine/Animation/Persona)
+	[/PARAM]
+	[PARAM:title]
+		[ペルソナ](Engine/Animation/Persona)
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Animation/Persona#Intro]
+		[/PARAM]
+
+[/OBJECT]
+
+
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](SkeletonImage.png)(w:192)](Engine/Content\Types\SkeletalMeshes)
+	[/PARAM]
+	[PARAM:title]
+		[Skeleton](Engine/Content\Types\SkeletalMeshes)
+	[/PARAM]
+	[PARAM:description]
+		**スケルトン** は、スケルタルメッシュを変形するために使用するボーンの位置と回転の階層です。UE4 では、スケルトンはその独自のアセットにあるスケルタルメッシュから抽出されます。つまり、アニメーションは、スケルタルメッシュではなくスケルトンに適用されます。同じスケルトンを使用することで、複数のスケルタルメッシュがアニメーションを共有できます。
+		[/PARAM]
+
+
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Sequences)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Sequences#Intro]
+		**Additive Animation (加算的アニメーション)**
+
+
+
+		アニメーションはいつでも絶対的もしくは加算的に使用できます。システムは、必要に応じてデータをオフセットに変換する 
+
+		適切な演算を実行します。この機能により、あらかじめ加算的アニメーションであることを指定する必要がないため、 
+		前バージョンのエンジンよりもよりシステムの柔軟性が高まりました。
+		**Blending Animations (アニメーション ブレンディング)**
+
+		[](Engine/Animation/NodeReference/Blend) および [](Engine/Animation/Blendspaces) を使用して 
+
+		アニメーションをブレンディングすることで一段と複雑な最終ポーズを作成できます。例えば、ランニング用のアニメーションと照準を定めるポーズとブレンドしたり、 
+		ソースアニメーションとは別に、走っているプレイヤー、照準を定めているプレイヤー、話をしているプレイヤーと 
+		表情用のアニメーションを同時に出力アニメーションとして作成することができます。これにより、さまざまな状況で単一ソースアニメーションの 
+		再利用が可能となります。
+
+		**Animation Poses (アニメーションのポーズ)**
+
+		**Animation Pose** は、本質的には全てのボーンの位置と回転を含んだ、 
+		スケルトンのスナップショットです。ご覧になるポーズはアニメーションの再生を一時停止したものとお考えください。例えば、ランニングするアニメーションを途中で一時停止すると、 
+		以下のような表示となります。
+
+		![](AnimationPose_Running.png)(w:600)
+
+		まるでメッシュが潜在するスケルトンを通じて **一時停止** されているかのようです。 _スケルトン_ の全てのボーンの変形を表現するデータが、 
+		実際のアニメーションポーズを作成しています。
+
+		いくつかの _AnimationSequences_ は、純粋にポーズの使用を目的にデザインされています。例えば、単純にポーズを定義する、 1 または 2 フレームの 
+		短い一連のアニメーションを使用するかもしれません。以下のポーズは、このタイプのアニメーション シーケンスです。 
+		これは、プレイヤーが見ている方向にメッシュが武器の照準を定めるようにデザインされています。
+
+		![](AnimationPose_Aiming.png)(w:600)
+
+		アニメーションシステムは、 _AnimGraph_ 内のアニメーションポーズのコンセプトを使用します。_AnimationSequence_ 、 _Blendspace_ 、または単純なブレンドノードからのデータ出力は、 
+		アニメーションポーズです。もしくは、 _SkeletalMesh_ に適用する 
+		その時点までのアニメーションのスナップショットです。 
+
+		**コンポーネント対ローカル空間**
+
+		[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+		**モーフ ターゲット**
+
+		[INCLUDE:Engine/Content\FBX\MorphTargets#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Sequences/Notifies)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Vim Blueprint](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints#Intro]
+
+		[/PARAM]
+
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![Blendspace](Engine/Animation/Blendspaces/edit.png)(w:192)](Engine/Animation/Blendspaces)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/Blendspaces)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/Blendspaces#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](MontageIcon.png)(w:192)](Engine/Animation/AnimMontage)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/AnimMontage)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimMontage#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![SkelControl](Engine/Animation/NodeReference/SkeletalControls/skelcontrol.png)(w:192)](Engine/Animation/NodeReference/SkeletalControls)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/NodeReference/SkeletalControls)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#Intro]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](StateMachines.png)(w:192)](Engine/Animation/StateMachines)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Animation/StateMachines)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/StateMachines#Intro]
+	[/PARAM]
+[/OBJECT]
+-->
+
+
+## システムの内訳
+
+以下は、アニメーション システムのある部分を作成し、編集する場所の簡単な内訳です。
+
+[REGION:raw]
+![](CreationDiagram.png)
+[/REGION] 
+
+この図は、アンリアルでアニメートされた典型的なキャラクタに対するデータのフローとオーナーシップを示したものです。
+
+[REGION:raw]
+![](AnimationDiagram.png)
+[/REGION] 
+
+## アニメーションのサンプル コンテンツ
+
+アニメーション システムおよびその機能の実用的な適用が、 [アニメーションのサンプル コンテンツ](Resources\ContentExamples\Animation) ページに表示されています。 
+
+ここには、機能別にちょっとした例をあげて説明を付け加えています。 
+
+サンプル コンテンツの詳細については、 [サンプル コンテンツの概要](Resources\ContentExamples) をご覧ください。 
+
+
+##アニメーション デバッグ機能
+
+デバッグ機能は、プレイモードの間にコンソールを呼び出すキーを押すことで使用できるようになります。 
+
+### スケルタルメッシュ ボーンのレンダリング
+
+![](ShowDebugBones.png)(h:320)
+
+**Skeletal Mesh Bones** を表示するには、コンソール内に ShowDebug Bones コマンドを入力します。上図のように、ボーンは個別の白い線で表されます。 
+
+コンソール内に ShowDebugToggleSubCategory 3DBones と入力すれば、 **ペルソナ** で表示されるボーンと一致させて表示できます。 
+
+###アニメーション デバッグ出力
+
+![](ShowDebugAnimation.png)
+
+**Animation Debug Output** 情報は、コンソール内で ShowDebug Animation コマンドを使用すれば有効にすることができます。 
+
+表示される情報は 5 つのセクションに分けられます。以下のリストのカテゴリ名の前に ShowDebugToggleSubCategory コマンドを使ってオンオフを切り替えます (例えば、 ShowDebugToggleSubCategory SyncGroups)。 
+
+| ボタン | 説明 |
+|-------|------|
+| **SyncGroups** | 最終ポーズに現在関係しているアニメーション アセットを sync グループ (グループに属さない場合は Ungrouped) ごとに、表示します。このセクションにリスト化されている Blendspaces は、デフォルトではすべてアニメーション / ウェイトに関係します。 ShowDebugToggleSubCategory FullBlendspaceDisplay でオフに切り替えて、出力で使用するスクリーン空間を減らすことができます。 |
+| **Montages** | キャラクターが使用中のモンタージュをリスト表示します。アクティブなモンタージュは緑で強調表示されます。 |
+| **Curves** | アニメーションの再生でアクティブにされたカーブ値 (名前:値の組み合わせで) をリスト表示します。 |
+| **Notifies** | 現在有効になっている通知ステートを表示します。 |
+| **Graph** | アクティブなポーズ グラフを表示します。最終ポーズを表す最終ノード (ルートノード) から表示が始まり、最終ポーズを構成するすべてのノードがリスト化されていきます。ノードは階層が保たれるように表されるので、ユーザーは元のブループリント アセットを参照しなくてもノードの接続関係を理解することができます。アクティブなノードは緑、(ShowDebugToggleSubCategory FullGraph を使って表示するよう切り替えてある場合は) アクティブでないノードはグレーで表示されます。

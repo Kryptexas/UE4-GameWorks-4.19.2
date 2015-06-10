@@ -1,0 +1,144 @@
+﻿INTSourceChangelist:2490853
+Availability:Public
+Title:ポイントライト
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
+Description:ポイントライトの基礎
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%](PointLight_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Point:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Point]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%](PointLight_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Point:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightTypes/Point:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightTypes/Point]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](PointLight_Header.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+[EXCERPT:Intro]
+**ポイントライト** は、電球のタングステン フィラメントから全方向に光を放射する現実世界の電球のように機能します。しかし、ポイントライトは、パフォーマンス上の理由から単純化されて、単に空間内のひとつのポイントから全方向に均一に光を放射するようになっています。**ポイントライト** を配置する場合、以下の3 つの可動設定のいずれかを設定できます。
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+		![](PointLight_stationary.png)(w:150 convert:false)
+	[/PARAM]
+	[PARAM:description]
+	**Static** 静的 - (左側の図) ゲーム内でライトは変更できません。これは、レンダリングが最速になる方法であり、ベイクしたライティングを使用することができます。
+
+	**Stationary** (固定) - (これも左側の図) このライトは **ライトマス** によってベイクされた静的ジオメトリからのシャドウイングとバウンスしたライトのみを持ち、他のすべてのライティングは動的になります。この設定では、ライトの色と強度をゲーム内で変更可能ですが、ライトは動かず、部分的にベイクされたライティングになります。 
+	[/PARAM]
+[/OBJECT]
+
+[REGION:raw]
+![](spacer.png)
+[/REGION]
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+		![](PointLight_movable.png)(w:150 convert:false)
+	[/PARAM]
+	[PARAM:description]
+	**Moveable** - (左側の図) ライトは完全に動的で動的シャドウイングを使用できます。これはレンダリングという点では最も処理が遅くなりますが、ゲームプレイ中のフレキシビリティは最も高くなります。 
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Intro]
+
+[REGION:raw]
+![](spacer.png)
+[/REGION]
+
+レベル内に配置された **ポイントライト** の 2 つの例を以下に示します。
+
+![](pointLight_004.png)(w:450) ![](pointLight_005.png)(w:450 convert:false)
+
+_左側の図は、半径が表示されていない **ポイントライト** です。右側の図は、同じポイントライトで半径表示が有効になっているものです。半径表示があると、ライトがワールドに影響を及ぼす範囲がよくわかります。_
+
+**ポイントライト** からの光は、空間のある点から一定の形状を持たない光を放出するのみですが、アンリアル・エンジン 4 のポイントライトは反射とスペキュラハイライト内で半径と長さを使用し、ポイントライトにより一層の物理感覚をもたせることができます。
+
+![](pointLight_001.png)(w:300 convert:false) ![](pointLight_002.png)(w:300) ![](pointLight_003.png)(w:300)
+
+
+##ポイントライトのプロパティ
+
+**ポイント ライト** のプロパティは、**Light**、**Light Profiles**、**Lightmass**、および **Light Function** の 4 つのカテゴリに分類されます。 
+
+###Light
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Intensity** | ライトが放射するエネルギーの合計 |
+| **Light Color** | ライトが放射する色 |
+| **Attenuation Radius** | ライトの可視範囲の境界 |
+| **Source Radius** | ライトソース形状の半径 |
+| **Source Length** | ライトソース形状の長さ |
+| **Affects World** | ライトを完全に無効にします。ランタイム時に設定することはできません。ランタイム中にライトのエフェクトを無効にするには、**Visibility** プロパティを変更します。 |
+| **Casts Shadows** | ライトにシャドウをキャストさせる場合に使用します。 |
+| **Indirect Lighting Intensity** | ライトからの間接光の寄与をスケーリングします。 |
+| **Use Inverse Squared Falloff** | **AttenuationRadius** がライトの寄与のみをクランプしている場合に、物理ベースの逆 2 乗フォールオフを使用するか否かを設定するプロパティです。 |
+| **Light Falloff Exponent** | **UseInverseSquaredFalloff** が無効になっている場合にライトの放射状フォールオフを制御します。 |
+| **Min Roughness** | ライトに有効なラフネス (粗さ) の最低値です。スペキュラ ハイライトをソフトにする際に使用します。 |
+| **Shadow Bias** | ライトが作成するシャドウの精度を制御します。 |
+| **Shadow Filter Sharpen** | ライトのシャドウ フィルタリングをシャープにする度合いです。 |
+| **Cast Translucent Shadows** | ライトが透過オブジェクトを通過して動的シャドウをキャストさせるか否かを設定するプロパティです。 |
+| **Affect Dynamic Indirect Lighting** | **Light Propagation Volume** にライトを注入するか否かを指定します。 |
+| **Cast Static Shadows** | ライトに静的シャドウをキャストさせるか否かを設定するプロパティです。 |
+| **Cast Dynamic Shadows** | ライトに動的シャドウをキャストさせるか否かを設定するプロパティです。 |
+| **Affect Translucent Lighting** | ライトが透過に影響を与えるか否かを設定するプロパティです。 |
+
+### Light Profiles
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **IES Texture** | ライトプロファイルに使用した IES 「テクスチャ」です。アンリアルでは IES ファイルは ASCII ファイルで格納し、テクスチャを表現します。これらは画像ファイルではありません。 |
+| **Use IES Brightness** | _false_ の場合、ライトの生成量を決定するためにライトの **Brightness (輝度)** を使用します。_true_ の場合、ルーメン単位の IES ファイルの輝度を使用します (アンリアルのライトのデフォルト値よりもはるかに大きな数値です)。 |
+| **IES Brightness Scale** | シーンを大幅に超えることもあるため、IES 輝度の寄与をスケーリングします。 |
+
+### Lightmass
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Indirect Lighting Saturation** | 値 0 はライトマスのライトを完全に減じます。値 1 は何も変わりません。 |
+| **Shadow Exponent** | シャドウ暗部のフォールオフを制御します。 |
+
+
+### Light Function
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Light Function Material** | ライトに適用するライト関数マテリアルです。 |
+| **Light Function Scale** | ライト関数のプロジェクションをスケーリングします。 |
+| **Light Function Fade Distance** | ライト関数が **Disabled Brightness** の値で完全に弱まる距離です。 |
+| **Disabled Brightness** | ライト関数が指定されていながら無効になっている時、ライトに適用する輝度係数です。仮に上記のプロパティをあげるなら **Light Function Fade Distance** です。 |
+

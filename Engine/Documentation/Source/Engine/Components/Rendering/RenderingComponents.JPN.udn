@@ -1,0 +1,155 @@
+﻿INTSourceChangelist:2508900
+Availability:Public
+Title:レンダリング コンポーネント
+Crumbs:%ROOT%, Engine, Engine/Components
+Description:レンダリング ベースのコンポーネントの概要。ParticleSystemComponents、 DecalComponets、BillboardComponents など。 
+Related:Engine/Rendering
+Related:Engine/Rendering/ParticleSystems
+Related:Engine/Blueprints
+Related:Engine/Blueprints/UserGuide/Components
+
+[TOC (start:2 end:2)]
+
+## 大気フォグ コンポーネント
+
+**AtmosphericFogComponents** は、レベル内の雲やアンビエント フォグなどのフォグ エフェクト作成に使用します。このコンポーネントには、配置時にレベルでのエフェクトがどのように生成されるかに影響を及ぼす調整可能な設定がいくつかあります。 
+
+このタイプのコンポーネントで **Decay Height** 設定 (霧密度の減衰の高さを制御します。すなわち、値が低ければ霧の密度が高くなります。一方、値が高ければ霧が薄くなり、散乱が少なくなります) を様々な値に変えた使用例を以下に示します。詳細は [](Engine/Actors/FogEffects/AtmosphericFog) ページをご覧ください。 
+
+[INCLUDE:Engine/Actors/FogEffects/AtmosphericFog#examples]
+
+## Exponential Height Fog コンポーネント
+
+**ExponentialHeightFogComponent** は、フォグ エフェクト作成に使用しますが、フォグの高さに関連する密度も伴います。 
+
+[INCLUDE:Engine/Actors/FogEffects/HeightFog#intro]
+
+詳しい情報と調整可能な設定については、[](Engine/Actors/FogEffects/HeightFog) をご覧ください。 
+
+## ビルボード コンポーネント
+
+**BillboardComponent** は、常にカメラに向いてレンダリングされる 2D テクスチャです。配置と簡単な選択に使用できるという点において **ArrowComponent** と機能が似ています。例えば、作成した以下のフォグ シートでは、追加した唯一のコンポーネントは **BillboardComponent** だけです (実際のフォグ エフェクトはスクリプトによって動的に作成されるマテリアルです)。 
+
+![](billboard1.png)
+
+レベル内で、フォグ シートを操作できます。これは、 **BillboardComponent** アイコン (これは指定可能なテクスチャです) を選択して行います。 
+
+![](billboard2.png)
+
+フォグ シートの作成方法例については、 [](Resources/Showcases/BlueprintExamples/FogSheet) ドキュメントをご覧ください。 
+
+## マテリアル ビルボード コンポーネント
+
+**MaterialBillboardComponent** は、常にカメラに向いてレンダリングされる 2D マテリアルです。このタイプのコンポーネントの使用場所の一例として、2D の草やフォーリッジがあります。スタティックメッシュを使用して草むらや、場合によっては個々の草の葉を表すのではなく、**MaterialBillboardComponent** をマテリアルと合わせて使用して生えている草を表現します。草の 3D 表現を用意する必要はありません。ビルボードが自動的に回転し、プレイヤーの方を向きます。これにより、3 次元の草であるかのような錯覚を与えます。 
+
+
+## ケーブル コンポーネント
+
+**CableComponent** を使用すると、2 つのコンポーネント間のケーブルをレンダリングしながら 2 つのコンポーネントを合わせてアタッチすることができます。ケーブル上で、ケーブルがどのように表示されるかに影響を与えるマテリアルを割り当て、パラメータを定義することができます。 
+
+このタイプのコンポーネントの使用例としては、ロープや、プレイヤー キャラクターがぶら下がることができる何かが必要である場合が考えられます。スクリプトで、ひとつのポイントを固定位置にアタッチし、もうひとつのポイントをプレイヤー キャラクターにアタッチすると、キャラクターはロープにぶら下がり揺れます。以下では、銃からケーブルを撃ち込むことができるファースト パーソン キャラクターを使用して、それを衝撃位置にアタッチし、フックガン (grappling gun) のようなものを作ります。 
+
+![](cable.png)(w:440)
+
+この単純なビジュアル要素はもちろん、物体を接続するワイヤーをあらわすものなどを使用することもできます。 
+
+## カスタム メッシュのコンポーネント
+
+**CustomMeshComponent** では、カスタム仕様のトライアングル メッシュ ジオメトリを指定できます。 
+
+## Poseable（変形可能）Mesh コンポーネント
+
+**PoseableMeshComponent** では、**ブループリント** を介してボーンを変形させることができます。 
+
+## デカール コンポーネント
+
+**DecalComponent** はメッシュのサーフェス上にレンダリングするマテリアルです (モデルに対してバンパースティッカーのような役割を果たします)。デカールは数多くの用途に使用できます。例えば、銃撃時の壁への銃弾の衝撃デカール、道路に沿って生じた車のタイヤのスリップ痕デカール、銃撃されたときに地面に飛び散る血しぶきなどがあります (デカールの例は以下で示します)。 
+
+![](Engine/Actors/DecalActor/Decal_1.png)(w:440)
+
+デカールを使った作業の詳細については、以下のページをご覧ください。 
+
+* [](Engine/Actors/DecalActor) 
+* [](Resources/ContentExamples/Decals/1_1) 
+* [デカールのコンテンツ サンプル](Resources/ContentExamples/Materials#Decalsマップ) 
+
+## インスタンス化されたスタティックメッシュのコンポーネント
+
+**InstancedStaticMeshComponent** は、同一スタティックメッシュの複数インスタンスを効率よくレンダリングするコンポーネントです。 
+このタイプのコンポーネントは、プロシージャルなレベルや部屋を制作するうえで特に役立ちます。レベルに数百 (場合によっては数千) という **Static Mesh Actors** を配置する代わりに、はるかに低いパフォーマンス負荷でひとつの **Instanced Static Mesh** を配置し、複数のスタティックメッシュのインスタンス (例、花や壁) を追加できます。 
+
+**InstancedStaticMesh** の作業と任意の部屋をプロシージャルに生成する例については、[プロシージャルな部屋生成](https://docs.unrealengine.com/latest/INT/Videos/Player/index.html?series=PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f&video=mI7eYXMJ5eI&utm_source=uelauncher&utm_medium=software&utm_campaign=learntab) のトレーニング ストリームをご覧ください。 
+
+## パーティクル システムのコンポーネント
+
+**ParticleSystemComponent** では、別のオブジェクトのサブオブジェクトとしてパーティクル エミッタを追加できます。**ParticleSystemComponent** の追加は、いくつかの理由によって使用されます。破壊される何かに爆発エフェクトを追加することや、火をつける何かに炎のエフェクトを追加するなどが考えられます。このタイプのコンポーネントを別のオブジェクトに追加することで、スクリプトを通してゲームプレイ中にパーティクル エフェクトのパラメータにアクセスし、設定することができます (すなわち、エフェクトをオン、オフする)。 
+
+例えば、以下はセキュリティ カメラであり、スパーク エフェクト用に **ParticleSystemComponent** を追加しました。 
+
+![](particle1.png)
+
+スクリプトを通して、スパーク エフェクトはデフォルトでオフであるが、カメラで撮影時にはアクティベートするように指示しています。 
+
+![](particle2.png)
+
+詳細は [](Engine/Rendering/ParticleSystems) を参照してください。 
+
+
+## ポストプロセス コンポーネント
+
+**PostProcessComponets** は **ブループリント** のポストプロセス コントロールを有効にします。**PostProcessComponets** では利用可能であれば、ボリュームデータの設定に親 `UShapeComponent` を使用します。このタイプのコンポーネントは、ポストプロセス設定が適用されている場合にレベルのトーンを変えるために使用できます。例えば、ゲームで使用するデフォルトのポストプロセス設定を定義したことを想定します。プレイヤーが損傷を受けると (またはキルされる可能性がある場合)、**Scene Color Tint** の黒白のトーンの設定をスクリプトを通して変更できます。 
+
+詳細は、 [](Resources/ContentExamples/PostProcessing) または [](Engine/Rendering/PostProcessEffects) のドキュメントをご覧ください。 
+
+## シーンキャプチャ 2D コンポーネント
+
+**SceneCapture2DComponent** は、単一面からシーンの「スナップショット」をキャプチャして、レンダリング ターゲットへ入力するために使用します。キャプチャ時および **Render Target** テクスチャ指定時 (他に設定がある中で特にこの設定) に **視野角 (FOV)** を制御するための設定があります。この使用例は、ミラー (以下参照) またはモニタ上のセキュリティ カメラ ビューを作成する場合が考えられます ([](Resources/Showcases/BlueprintExamples/SecurityCameraAndAlarm) を参照)。 
+
+![](2dRender.png)(w:440)
+
+上の画面では、**SceneCapture2DComponent** を使用して **ブループリント** を作成し、**Render Target** テクスチャを割り当て、これは、レベル内のひとつのジオメトリに割り当てる **マテリアル** として使用されます。詳細は、[シーン キャプチャの 2D コンテンツ サンプル](Resources/ContentExamples/Reflections/1_7) をご覧ください。 
+
+## シーン キャプチャ キューブ コンポーネント
+
+**SceneCaptureCubeComponent** は、6 つの面からシーンの「スナップショット」をキャプチャして、レンダリング ターゲットへ入力するために使用します。 
+
+![](Resources/ContentExamples/Reflections/1_6/Reflections_1_6_Header.png)(w:640)
+
+ほとんどの場合、**SceneCapture2DComponent** はシーン キャプチャのニーズを満たすはずです。環境の 3D キャプチャが必要な場合はこのタイプのコンポーネントを使用できます。ただし、使用方法には注意してください。これらは非常にパフォーマンス的に負荷が高いものであり、絶対的に必要な場合に限り使用するようにします。レベル内で反射を作成するために使用可能な様々な方法についての情報は、 [](Resources/Showcases/Reflections) をご覧ください。 
+
+## スプライン メッシュ コンポーネント
+
+**SplineMeshComponents** を使用して、スタティックメッシュ アセットを伸縮することができます。**SplineMeshesComponents** では、スプラインの位置ベクターと開始および終了のタンジェントを設定しなければなりません。以下では、**SplineMeshComponent** が **ブループリント** に追加され、パイプの **スタティックメッシュ** が影響を与えるアセットとして割り当てられました。 
+
+![](splinemesh.png)(w:800)
+
+コンポーネント自体の位置とタンジェントのベクタを指定しながら、スクリプトを使用してこれらを変数として設定し、以下のようにエディタ ビューポート内で編集できるように公開できます。 
+
+![](splinemesh2.png)
+
+上の画面では、**Start Transform** と **End Transform** をアクタ全体の動きとは個別に動かし、必要に応じて伸縮できます。この例とセットアップは、[](Resources/ContentExamples/Blueprint_Splines) コンテンツ サンプルのマップ内にあります。 
+
+## テキスト レンダリング コンポーネント
+
+**TextRenderComponent** は任意のフォントでワールドにテキストをレンダリングします。このコンポーネントには、スケール、アラインメント、カラーなどの通常のフォント関連の属性が含まれます。このコンポーネントを使用して、オブジェクトがレベル内で簡単には処理できないものとして示すことができます。 
+
+例えば、プレイヤーが近づき、ボタンを押せば座ることができる椅子がレベルにあるとします。プレイヤーが入るとテキストの可視性を true に設定する (以下参照) トリガーとして使用する **BoxComponent** と共に、座るコマンドを実行するために必要な命令を含む **TextRenderComponent** を追加(可視性はオフに設定)できます 。 
+
+![](text1.png)(w:800)
+
+ゲーム内でプレイヤーがトリガーに入ると、 **TextRenderComponent** テキストが表示され、プレイヤーに座り方を知らせます。 
+
+![](text2.png)(w:500)
+
+
+## ベクター フィールド コンポーネント
+
+**VectorFieldComponent** は、 [ベクター フィールド](Engine/Rendering/ParticleSystems/VectorFields) を参照するために使用します。ベクターフィールドはベロシティ ベクターのグリッド付きの 3D コンテナで、GPU スプライトのベロシティまたは加速度を決定するために使用します。 
+ベクター フィールドは、レベル内での突風などの小規模エフェクトから、大規模なブリザード (猛吹雪) まで使用することができます。詳細は [ローカル ベクター フィールド](Resources/ContentExamples/EffectsGallery/2_A) および [グローバル ベクター フィールド](Resources/ContentExamples/EffectsGallery/2_B) をご覧ください。 
+
+![](Resources/ContentExamples/EffectsGallery/2_B/image050.png)(w:640)
+
+
+
+
+

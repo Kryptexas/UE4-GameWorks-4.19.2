@@ -1,0 +1,516 @@
+﻿INTSourceChangelist:2511878
+Availability: Public
+Title:FBX 스태틱 메시 파이프라인
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX 콘텐츠 파이프라인을 사용하여 스태틱 메시를 임포트, 익스포트하고 셋업하는 방법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/StaticMeshes:title%](Engine/Content/FBX/fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/fbx_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 개요
+
+[EXCERPT:FBX_StaticMesh]
+FBX 임포트 파이프라인에 스태틱 메시가 지원됨에 따라, 3D 어플리케이션에서 언리얼 엔진으로 메시를 구해오는 작업이 쉽고 간편해 졌습니다. 메시를 임포트할 때, 각각의 3D 어플리케이션에서 그 메시에 적용된 머티리얼에 사용된 텍스처도 (디퓨즈와 노멀맵만) 같이 임포트되며, 이는 UE4 의 메시에 적용되는 머티리얼을 생성하는 데도 사용됩니다.
+[/EXCERPT:FBX_StaticMesh]
+
+FBX 를 사용한 스태틱 메시 임포트에 지원되는 기능은:
+
+
+* [텍스처 포함 머티리얼을 가진 스태틱 메시](#머티리얼)
+* [커스텀 컬리전](#콜리전)
+* [멀티 UV 세트](#UV텍스처좌표)
+* 스무딩 그룹
+* [버텍스 컬러](#버텍스컬러)
+* [LOD](#스태틱메시LOD)
+* 멀티 스태틱 메시(를 임포트시 하나의 메시로 합치는 것도 가능)
+
+
+[REGION:note]
+현재 커스텀 콜리전을 가진 여러 개의 메시를 하나의 파일로 임포트할 때는, 첫 메시의 콜리전만 임포트됩니다.
+[/REGION]
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+이 페이지에는 Autodesk Maya 와 Autodesk 3ds Max 모두에 대한 정보가 포함되어 있습니다. 아래에서 선호하는 툴을 선택하시면 그 툴에 관련된 정보만 표시됩니다:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 일반 셋업
+
+
+일반적으로 스태틱 메시를 만드는 데는 어떤 툴과 어떤 방법을 사용해도 괜찮습니다. 그러나 익스포트와 임포트가 부드럽게 진행되고 언리얼 에디터에서 메시가 제대로 돌아가게 하기 위해서는 UV 셋업이라든가, 메시의 배치같은 것에 고려해야 할 조건이 조금 있습니다. 
+
+### 피벗 포인트
+
+언리얼 엔진에서 메시의 피벗 포인트는 트랜스폼 (트랜슬레이션, 로테이션, 스케일) 적용 기준점을 결정합니다.
+
+![pivot.jpg](pivot.jpg)(w:640 h:340)
+
+피벗 포인트는 3D 모델링 어플리케이션에서 익스포트할 때 항상 원점 (0,0,0) 에 위치합니다. 이때문에 원점 위치에 메시를 만드는 것이 좋으며, 일반적으로 메시의 한 쪽 코너에 원점을 맞춰야 언리얼 에디터 안에서 그리드 스냅 정렬이 가능합니다.
+
+![pivot_origin.jpg](pivot_origin.jpg)(w:640 h:329)
+
+
+### 트라이앵글화
+
+언리얼 엔진의 메시는 트라이앵글로 만들어 줘야 하는데, 그래픽 하드웨어는 트라이앵글만 취급하기 때문입니다.
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+메시가 트라이앵글화 되었는지 확인할 수 있는 방법은 여럿 있습니다.
+
+
+* 메시를 트라이앵글로만 모델링 - 최적의 해결책으로, 최종 결과물에 대해 최상의 콘트롤이 가능합니다.
+* 3D 앱에서 메시 트라이앵글화 - 좋은 해결책으로, 익스포트 전에 청소(cleanup)와 수정이 가능합니다.
+* FBX 익스포터로 메시를 트라이앵글화 - 괜찮은 해결책으로, 청소는 안되나 단순한 메시엔 괜찮습니다.
+* 임포터로 메시를 트라이앵글화 - 괜찮은 해결책으로, 청소는 안되나 단순한 메시엔 괜찮습니다.
+
+
+메시의 트라이앵글화는 항상 3D 어플리케이션에서 수동으로 에지의 방향과 배치를 조절하는 것이 가장 좋습니다. 자동 트라이앵글화는 언제나 삼천포로 빠질 수 있다는 점에 유념하십시오.
+
+![tris_bad.jpg](tris_bad.jpg)(w:744 h:382)
+
+(#UVTextureCoordinates)
+
+
+### UV 텍스처 좌표
+
+언리얼 엔진 4 의 FBX 파이프라인에는 멀티 UV 세트 임포트가 지원됩니다. 스태틱 메시의 경우 보통 디퓨즈용 UV 세트 하나와 라이트맵과 함께 사용할 겹치지 않는 별도의 UV 세트 또하나를 처리하는 데 사용됩니다.
+
+
+### 노멀 맵 만들기
+
+대부분의 모델링 어플리케이션에서 저해상도 렌더 (로우폴) 메시와 고해상도 디테일 (하이폴) 메시 둘 다 생성하여, 메시용 노멀 맵을 직접 만들 수 있습니다.
+
+![SideBySide.jpg](SideBySide.jpg)(w:700 h:398)
+
+고해상도 디테일 메시의 지오메트리는 노멀맵의 노멀을 생성하는 데 사용됩니다. 에픽 내부적으로는 XNormal 을 사용하고 있으며, 언리얼 엔진 4 에서의 렌더링에는 더 나은 노멀이 나오고 있습니다. 이 프로세스 관련 상세 내용은 [](Engine/Content/Types/Textures/NormalMaps/Creation) 문서를 참고해 주시기 바랍니다.
+
+### 머티리얼
+
+외부 어플리케이션에서 모델링한 메시에 적용된 머티리얼은 메시와 함께 익스포트되어 언리얼 에디터로 임포트됩니다. 텍스처를 별도로 임포트해온 다음 머티리얼을 만들어 적용해 주는 등의 작업을 할 필요가 없으니 프로세스가 물흐르듯 흐릅니다. FBX 파이프라인을 사용하면 이러한 모든 작업이 임포트 프로세스에서 가능합니다.
+
+머티리얼을 별도로 셋업해줘야 할 때도 있는데, 메시에 머티리얼이 여럿 있거나 (캐릭터 모델에서 머티리얼 0 은 바디고, 머티리얼 1 은 머리여야 할 때처럼) 그 순서가 중요할 경우입니다.
+
+익스포트용 머티리얼 셋업 관련 세부사항은 [FBX 머티리얼 파이프라인](Engine/Content/FBX/Materials) 페이지를 참고하시기 바랍니다.
+
+
+### 콜리전
+
+단순화된 콜리전 지오메트리는 게임내 콜리전 감지 최적화에 중요합니다. 언리얼 엔진 3 는 스태틱 메시 에디터 안에서 콜리전 지오메트리를 만들 수 있는 기본 툴을 제공하고 있습니다. 그래도 상황에 따라서는 3D 모델링 어플리케이션에서 커스텀 콜리전 지오메트리를 만들어 렌더 메시로 익스포트해 주는 것이 나을 수도 있습니다. 보통 트였거나 오목한 부분이 있어 충돌없는 부분이 있는 메시가 그렇습니다.
+
+예를 들어:
+
+
+* 출입구 메시
+* 창문 부분을 도려낸 벽 메시
+* 기이한 모양의 메시
+
+
+콜리전 메시는 그 이름에 따라 임포터로 식별됩니다. 콜리전 이름 문법은:
+
+
+| **메시 접두사와 이름** | **설명** |
+| --- | --- |
+| **UBX_[렌더 메시 이름]\_##** | 박스는 맥스에서 _Box_ 오브젝트 타입으로, 마야에서 _Cube_ 폴리곤 프리미티브로 만든 것입니다. 버텍스를 옮기거나 변형시켜서 사각형 프리즘 이외의 것으로 만들거나 할 수 없으며, 그렇게 되면 작동하지 않습니다. |
+| **USP_[렌더 메시 이름]\_##** | 구체는 _Sphere_ 오브젝트 타입으로 만든 것입니다. 구체는 세그먼트(분절)이 전혀 많을 필요가 없는데 (8 정도면 충분), 콜리전용 진짜 구체로 변환되기 때문입니다. 박스와 마찬가지로 개별 버텍스를 옮길 수 없습니다. |
+| **UCX_[렌더 메시 이름]\_##** | 컨벡스(볼록) 오브젝트는 어떠한 형태든 완전히 닫힌 3D 모양입니다. 예를 들어 박스 역시도 컨벡스 오브젝트가 될 수 있습니다. 아래 그림은 어느 것이 컨벡스이고 아닌지를 나타내 줍니다: ![Convex.gif](Convex.gif) |
+
+
+#### 주의 및 고려사항
+
+* **`렌더 메시 이름`** 은 3D 프로그램에서 콜리전 메시가 연결되어 있는 렌더 메시의 이름과 같아야 합니다. 즉 3D 프로그램에 **`Tree_01`** 이라는 이름의 렌더 메시가 있다면, 씬에서 그 메시와 함께 콜리전 메시는 **`UCX_Tree_01`** 이라는 이름으로 있어야 하고, 같은 FBX 파일로 렌더 메시와 함께 익스포트해야 합니다. 하나의 메시에 콜리전 오브젝트가 둘 이상 필요한 경우, 다음과 같이 식별자를 붙여 이름을 확장하면 됩니다: **`UCX_Tree_01_00`**, **`UCX_Tree_01_01`**, **`UCX_Tree_01_02`**, ... 그러면 해당 메시의 콜리전으로 연결될 것입니다.
+
+
+* 구체는 현재 리짓 바디 콜리전과 언리얼의 (무기 등) 0-규모 트레이스에만 사용되며, (플레이어 이동 등) 0-이외-규모 트레이스에는 사용되지 않습니다. 또한 구체와 박스는 스태틱 메시가 균등 스케일 조절되지 않은 경우에도 작동하지 않습니다. 일반적으로 _UCX_ 프리미티브를 만드는 것이 좋습니다.
+
+* 콜리전 오브젝트 구성이 완료되면 렌더 메시와 콜리전 메시 둘 다를 같은 .FBX 파일에 익스포트할 수 있습니다. .FBX 파일을 언리얼 에디터로 임포트할 때, 콜리전 메시를 찾은 다음 거기서 렌더 메시를 제거하고 콜리전 모델로 변환시킵니다.
+
+* 컨벡스 메시가 아닌 것을 컨벡스 프리미티브로 분해하려는 것은 복잡한 작업으로, 예상치못한 결과가 날 수도 있습니다. 다른 접근법이라면 콜리전 모델을 맥스나 마야에서 직접 컨벡스 조각으로 분해하는 것입니다.
+
+* 다수의 컨벡스 헐로 콜리전이 정의된 오브젝트의 경우, 그 헐이 서로 겹치지 않아야 최적의 결과가 납니다. 예를 들어 막대사탕 콜리전을 사탕에 하나, 막대에 하나, 두 개의 컨벡스 헐로 정의한 경우, 다음과 같이 그 사이에 공간을 두어야 합니다:
+
+![](CandyCollision.png)(w:400)
+
+1. _UCX_Candy_
+1. 콜리전 면 사이의 작은 간극
+1. _UCX_Stick_
+
+
+
+
+(#VertexColors)
+
+
+### 버텍스 컬러
+
+스태틱 메시에 대한 버텍스 컬러는 FBX 파이프라인을 통해 전송 가능합니다. 별도의 셋업은 필요치 않습니다.
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#ExportMesh)
+
+
+## 메시 익스포트
+
+
+스태틱 메시는 개별 파일로 익스포트할 수도, 여러 메시를 하나의 FBX 파일로 익스포트할 수도 있습니다. 임포트 파이프라인에서는 임포트 당시 **Combine Meshes** 세팅을 켜서 메시를 합치도록 지정하지 않은 경우, 다수의 스태틱 메시를 대상 패키지 안에 다수의 애셋으로 나눕니다.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. 뷰포트에서 익스포트할 메시 선택
+
+	![max_export_1.png](max_export_1.png)(w:720 h:480)
+
+1. _File_ 메뉴에서 _Export Selected_ (또는 선택에 상관없이 씬의 모든 것을 익스포트하려면 _Export) 선택
+
+	![max_export_2.png](max_export_2.png)(w:424 h:577)
+
+1. UE4 프로젝트 내 **Content** 폴더(1)와 FBX 파일 이름(2)을 선택한 다음 ![max_save_button.jpg](max_save_button.jpg) 버튼을 누릅니다.
+
+	![max_export_3.jpg](max_export_3.png)
+
+1. **FBX Export** 대화창에 옵션을 설정한 다음 ![max_ok_button.jpg](max_ok_button.jpg) 버튼을 눌러 메시를 포함하는 FBX 파일 생성
+
+	![max_export_4.png](max_export_4.png)
+
+	_위의 지오메트리 세팅은 언리얼 엔진 4 에 스태틱 메시를 익스포트하기 위한 가장 기본적인 요건입니다._
+
+1.	디스크에서 프로젝트의 **Content** 폴더를 탐색합니다. FBX 파일이 추가된 것이 보일 것입니다.
+
+	![max_export_5.png](max_export_5.png)
+
+1.	UE4 에디터가 열린 경우 (아니면 다음 번 실행시) **FBX 임포트 옵션** 창이 뜨는데, **임포트** 또는 **모두 임포트** 를 선택합니다.
+
+	![](max_export_6.png)
+
+	_임포트 옵션은 기본으로 놔둬도 됩니다. 각 옵션 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions) 문서를 참고하세요._
+
+1.	이제 애셋이 임포트되어 **콘텐츠 브라우저** 에서 레벨로 끌어놓는 것이 가능합니다.
+
+	![](max_export_7.png)
+
+	_(임포트 옵션의 일부인) 위 예제에서, **머티리얼** 과 **텍스처** 를 임포트했습니다.
+
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 뷰포트에서 익스포트할 메시 선택를 선택합니다.
+
+	![](maya_export_1.png)(w:720)
+
+1. _File_ 메뉴에서 _Export Selection_ (또는 선택과 무관하게 씬의 모든 것을 익스포트하려면 _Export All_) 을 선택합니다.
+
+	![](maya_export_2.png)
+
+1. **익스포트** 대화창에서:
+*	UE4 프로젝트 안의 **Content** 폴더를 선택합니다 (1)
+*	파일 이름을 입력하고 FBX 익스포트로 설정합니다 (2)
+*	익스포트 옵션을 설정합니다 (3)
+*	**모두 익스포트** 를 선택합니다. (4)
+
+	![](maya_export_3.png)
+
+	_위의 지오메트리 세팅은 언리얼 엔진 4 에 스태틱 메시를 익스포트하기 위한 가장 기본적인 요건입니다._
+	
+1.	디스크에서 프로젝트의 **Content** 폴더를 탐색합니다. FBX 파일이 추가된 것을 볼 수 있을 것입니다.
+
+	![](maya_export_4.png)
+
+1.	UE4 에디터가 열려있는 경우 (또는 다음 번 실행시) **FBX 임포트 옵션** 대화창이 뜨는데, **임포트** 또는 **모두 임포트** 를 클릭합니다.
+
+	![](max_export_6.png)
+
+	_임포트 옵션은 기본으로 놔둬도 됩니다. 각 옵션 관련 상세 정보는 [](Engine/Content/FBX/ImportOptions) 문서를 참고하세요._
+
+1.	이제 애셋이 임포트되었으니 **컨텐츠 브라우저** 에서 끌어 레벨에 놓으면 됩니다.
+
+	![](max_export_7.png)
+
+	_위 (임포트 옵션의 일부인) 예제에서는, **머티리얼** 과 **텍스처** 를 임포트했습니다._
+
+[/EXCERPT:mayaExport]
+
+-->
+
+## 메시 임포트
+
+
+1. 콘텐츠 브라우저에서 ![](button_new.png) 버튼을 누른 다음 _임포트_ 버튼을 선택합니다. 열리는 파일 브라우저에서 임포트하려는 FBX 파일 위치로 이동하여 선택합니다. **주:** 드롭다운에 ![import_fbxformat.jpg](import_fbxformat.jpg) 버튼을 선택하면 필터링이 가능합니다.   
+
+	![import_file.jpg](import_file.png)
+
+	[REGION:note]
+		임포트되는 애셋의 경로는 임포트시 콘텐츠 브라우저의 현재 위치에 따라 달라집니다. 임포트 작업 전 적합한 폴더로 이동해 두도록 하세요. 임포트 완료 후 임포트된 애셋을 새로운 폴더로 끌어도 됩니다.
+	[/REGION]
+
+1. **Import** 대화창에 옵션을 적절히 설정합니다. 대부분의 경우는 디폴트로 충분할 것입니다. 모든 세팅에 대한 세부사항은 [FBX 임포트 대화창](Engine/Content/FBX/ImportOptions) 부분을 참고하십시오.   
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. ![button_import.png](button_import.png) 버튼을 눌러 메시를 임포트합니다. 프로세스가 성공하면 콘텐츠 브라우저에 메시, 머티리얼, 텍스처 결과물이 표시됩니다.   
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		텍스처와 머티리얼을 스태틱 메시와 함께 임포트할 수는 있지만, ( [지원되는 머티리얼이 맥스/마야에 사용되었다](Engine/Content\FBX\Materials) 가정하고) **Color** (컬러)와 **Normal** (노멀)만 자동 연결됩니다. **Specular** (스페큘러) 맵은 임포트는 되지만 연결은 되지 않고, 마야 머티리얼의 **Diffuse** (디퓨즈) 슬롯에 있는 **Ambient Occlusion** (앰비언트 오클루전) 맵같은 다른 맵은 임포트조차 되지 않습니다. 머티리얼을 확인해서 연결되지 않은 맵이 있으면 연결해 주고, 임포트되지 않은 맵은 없나 확인해 주는 것이 최선입니다. 새 머티리얼을 더블클릭한 다음 사용가능한 텍스처를 적합한 입력에 연결해 주기만 하면 됩니다.
+	[/REGION]
+
+	스태틱 메시 에디터에서 임포트된 메시를 불러와 콜리전 표시를 켜 보면, 제대로 임포트됐는지 확인해 볼 수 있습니다.
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+	
+
+[REGION:tip]
+다른 방법으로는 그냥 윈도우에서 FBX 파일을 클릭한 다음 **콘텐츠 브라우저** 로 끌어 놓으면 임포트 대화창을 띄워 줍니다.
+[/REGION]
+
+(#MeshLODs)
+
+
+## 스태틱 메시 LOD
+
+
+스태틱 메시는 카메라에서 멀어져 가는 메시의 영향령을 제한하기 위해 레벨 오브 디테일(Level Of Detail, LOD)을 활용합니다. 일반적으로 각 LOD 마다 트라이앵글 수가 줄어들며, 단순해진 머티리얼(들)이 적용되기도 합니다.
+
+![lods.jpg](lods.jpg)(w:744 h:382)
+
+이러한 LOD 메시를 임포트/익스포트하는 데도 FBX 파이프라인을 쓸 수 있습니다.
+
+
+### LOD 셋업
+
+**일반**
+
+일반적으로 LOD 는 최고 디테일의 베이스 메시에서 최저 디테일의 LOD 메시까지 다양한 복잡도의 모델을 만드는 방식으로 이루어집니다. 이들 모두 동일한 기준점에 정렬시키고 같은 공간을 차지하도록 해야 합니다. 각 LOD 메시마다 완전 다른 머티리얼을, 개수까지도 다르게 해서 할당할 수도 있습니다. 즉 베이스 메시에서는 머티리얼을 여러개 사용하여 원하는 만큼의 디테일을 내도록 하면서도, 디테일이 낮은 메시에서는 알아보기 힘드니 머티리얼을 하나만 쓸 수도 있다는 뜻입니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. 메시를 전부 (순서에 관계 없이 베이스와 LOD도) 선택한 다음 _Group_ 메뉴의 _Group_ 명령을 선택합니다.
+
+	![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:214)
+
+1. 열리는 대화창에 새 그룹 이름을 입력한 다음 ![max_lod_ok_button.jpg](max_lod_ok_button.jpg) 버튼을 눌러 그룹을 만듭니다.
+
+	![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. ![max_utilities_button.jpg](max_utilities_button.jpg) 버튼을 클릭하여 _Utilities_ 패널을 띄우고 _Level of Detail_ 유틸리티를 선택합니다. **주:** ![max_utility_more_button.jpg](max_utility_more_button.jpg) 버튼을 클릭하고 목록에서 선택해야 할 수도 있습니다.
+
+	![max_lod_utility.jpg](max_lod_utility.jpg)(w:168 h:561)
+
+1. 그룹을 선택한 상태로, ![max_lod_create_button.jpg](max_lod_create_button.jpg) 버튼을 클릭하여 새 LOD 세트를 만들고, 선택된 그룹에 있는 메시를 그 안에 추가합니다. 메시가 복잡도에 따라 자동으로 정렬됩니다.
+
+	![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+[EXCERPT:mayaLODSetup]
+1. 베이스에서 마지막 LOD 메시까지 순서대로 모든 메시를 선택합니다. 복잡도 순서를 올바르게 하기 위해서 필수입니다. 그런 다음 _Edit_ 메뉴에서 _Level of Detail > Group_ 명령을 선택합니다.
+
+	![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. LOD Group 아래 모든 메시가 그룹으로 되어 있을 것입니다.
+
+	![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:160 h:175)
+[/EXCERPT:mayaLODSetup]
+-->
+
+### LOD 익스포트
+
+스태틱 메시 LOD 를 익스포트하려면:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaLODS]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxLODS]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxLODS]
+1. 3ds Max 에서: LOD Set 와 콜리전 지오메트리를 이루는 메시 그룹을 선택합니다.
+
+	![max_lod_export_select.jpg](max_lod_export_select.jpg)(w:744 h:382)
+
+1. 위의 [메시 익스포트](#메시익스포트) 부분에서 설명한 베이스 메시 익스포트 절차를 그대로 따릅니다. FBX 익스포터 프로퍼티에서 애니메이션 익스포트를 켰는지 확인하십시오. LOD 를 익스포트하는 데 필요합니다.
+[/EXCERPT:maxLODS]
+
+[EXCERPT:mayaLODS]
+1. 마야에서: LOD Group 과 콜리전 지오메트리를 선택합니다.
+
+	![maya_lod_export_select.jpg](maya_lod_export_select.jpg)(w:769 h:376)
+
+1. 위의 [메시 익스포트](#메시익스포트) 부분에서 설명한 베이스 메시 익스포트 절차를 그대로 따릅니다. FBX 익스포터 프로퍼티에서 애니메이션 익스포트를 켰는지 확인하십시오. LOD 를 익스포트하는 데 필요합니다.
+[/EXCERPT:mayaLODS]
+-->
+
+
+### LOD 임포트
+
+스태틱 메시 LOD 는 콘텐츠 브라우저 안에 베이스 메시와 함께 임포트해 오거나, 스태틱 메시 에디터를 통해 개별적으로 임포트해도 됩니다.
+
+*LOD 를 가진 메시*
+
+
+1. 콘텐츠 브라우저에서 ![](button_new.png) 버튼을 클릭하고 _임포트_ 를 선택합니다. 열리는 파일 브라우저에서 임포트하려는 FBX 파일로 이동하여 선택합니다. *주*: 드롭다운에서 ![import_fbxformat.jpg](import_fbxformat.jpg) 버튼을 선택하여 무관한 파일을 걸러낼 수 있습니다.
+
+	[REGION:lightbox]
+	[![](MeshInSME.png)(w:920)](MeshInSME.png)
+	[/REGION]
+   
+	[REGION:note]
+		임포트되는 애셋의 경로는 임포트시 콘텐츠 브라우저의 현재 위치에 따라 달라집니다. 임포트 작업 전 적합한 폴더로 이동해 두도록 하세요. 임포트 완료 후 임포트된 애셋을 새로운 폴더로 끌어도 됩니다.
+	[/REGION]
+
+1. **Import** 대화창 세팅을 적절히 해 줍니다. 기본 상태로도 충분합니다만, _Import LODs_ 도 켜져있는지 확인해 주세요. **주:** LOD 를 임포트할 때 임포트한 메시의 이름은 디폴트 [작명 규칙](Engine/Content/FBX/ImportOptions#작명규칙) 을 따릅니다. 모든 세팅에 대한 세부 정보는 [FBX 임포트 대화창](Engine/Content/FBX/ImportOptions) 부분을 참고하시기 바랍니다.
+
+	![](ImportOptions_LOD.png)
+
+1. ![button_import.png](button_import.png) 버튼을 클릭하여 메시와 LOD 를 임포트합니다. 성공했다면 메시, 머티리얼(들), 텍스처(들) 결과물이 콘텐츠 브라우저에 표시됩니다.  
+
+	![](ImportedMeshAndTex.png)
+
+	[REGION:note]
+		텍스처와 머티리얼을 스태틱 메시와 함께 임포트할 수는 있지만, ( [지원되는 머티리얼이 맥스/마야에 사용되었다](Engine/Content\FBX\Materials) 가정하고) **Color** (컬러)와 **Normal** (노멀)만 자동 연결됩니다. **Specular** (스페큘러) 맵은 임포트는 되지만 연결은 되지 않고, 마야 머티리얼의 **Diffuse** (디퓨즈) 슬롯에 있는 **Ambient Occlusion** (앰비언트 오클루전) 맵같은 다른 맵은 임포트조차 되지 않습니다. 머티리얼을 확인해서 연결되지 않은 맵이 있으면 연결해 주고, 임포트되지 않은 맵은 없나 확인해 주는 것이 최선입니다. 새 머티리얼을 더블클릭한 다음 사용가능한 텍스처를 적합한 입력에 연결해 주기만 하면 됩니다.
+	[/REGION]
+
+스태틱 메시 에디터에서 임포트한 메시를 불러온 다음 툴바 한참 오른쪽에 있는 ![lod_buttons.jpg](lod_buttons.jpg) 드롭다운을 사용하여 LOD 를 순환시켜 볼 수 있습니다. 
+
+	
+<!----Currently commented out. It seems this functionality no longer exists!-----------
+
+**개별 LOD**
+
+
+1. 콘텐츠 브라우저에서 베이스 메시를 더블클릭하거나 우클릭한 다음 _스태틱 메시 에디터를 사용하여 편집..._ 을 선택하여 스태틱 메시 에디터로 엽니다.
+
+	![lod_smeditor.jpg](lod_smeditor.jpg)(w:738 h:340)
+
+1. _메시_ 메뉴에서 _메시 LOD 임포트..._ 를 선택합니다.
+
+	![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:283 h:270)
+
+1. 파일 브라우저에서 LOD 메시가 담긴 FBX 파일 위치로 이동하여 선택합니다. **주:** 파일 포맷을 ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) 로 설정하지 않으면 파일이 안보일 수도 있습니다.
+
+	![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:763 h:330)
+
+1. **Import LOD** 대화창에서 드롭다운 메뉴를 통해 임포트하려는 메시의 LOD 레벨을 선택합니다. 그런 다음 ![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg) 버튼을 눌러 LOD 메시를 임포트합니다.
+
+	![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:244 h:158)
+
+1. 임포트 프로세스 결과가 뜰 것이며, 그 LOD 임포트에 성공했다면 ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) 툴바 버튼이 켜질 것입니다.
+
+	![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:290 h:149)
+
+1. 임포트하려는 LOD 메시마다 이 프로세스를 반복합니다.
+
+1. 모든 LOD 메시를 임포트하고난 후 툴바의  ![lod_buttons.jpg](lod_buttons.jpg) 버튼을 사용하면 LOD 메시를 미리볼 수 있습니다. 
+
+	![lod_anim.gif](lod_anim.gif)(w:238 h:190)
+
+------------------------------------------------------------>

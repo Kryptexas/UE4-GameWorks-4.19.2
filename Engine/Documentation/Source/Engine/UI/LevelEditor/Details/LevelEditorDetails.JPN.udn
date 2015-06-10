@@ -1,0 +1,259 @@
+﻿INTSourceChangelist:2436929
+Availability:Public
+Title:詳細パネル
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
+Description:レベル エディタで選択したアクタに対する情報とカスタム仕様の編集ツールを備えたパネル
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[前のトピック](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:title%")
+	[/PARAM]
+	[PARAM:next]
+		[次のトピック](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+[TOC(start:2 end:3)]
+
+## 概要
+
+[EXCERPT:DetailsOverview]
+**[Details]** パネルは、現在のビューポート内の選択内容に関連する情報、ユーティリティ、そして関数を表示します。 
+移動、回転、アクタのスケーリングのための変換編集ボックスがあり、選択されたアクタに対して編集可能なプロパティを全て表示します。 
+またビューポートで選択されたアクタのタイプに応じて、追加編集機能へ 
+すばやくアクセスすることができます。例えば、選択したアクタを FBX へエクスポートし、互換性のある別タイプのアクタへ変換することが出来ます。**[Details]** パネルは、 
+選択したアクタで使用したマテリアルの表示も有効にして、必要に応じて編集のためにこれらを素早く開くことが出来ます。
+[/EXCERPT:DetailsOverview]
+
+![Level Editor Details Panel](LE_DetailsUI2.png)
+
+**[Details]** パネル UI については、 [](Engine/UI/LevelEditor\Details\Interface) を参照してください。
+
+## アクタの名前
+
+デザイナーがエディタから直接アクタに _分かりやすい_ 名前を付けます。アクタへのアクセスに使用したり、  
+[ワールドアウトライナー パネル](Engine/UI/LevelEditor\SceneOutliner) で検索機能を利用してアクタを検索します。
+
+**アクタの名前** の編集をするには、 **[Details]** パネルの上部に表示されているテキスト欄に名前を入力します。
+
+![Actor Name Field](LE_DetailsFriendlyName.png)
+
+## 検索フィルタ
+
+**[Details]** パネル内に表示されるプロパティは、 **検索** 欄を利用してフィルタリングすることが出来ます。検索欄に文字が入力がされるとプロパティは自動的にフィルタリングされて、 
+テキストと一致するプロパティのみを表示します。
+
+![Properties filtered](LE_DetailsSearch2.png)
+
+フィルタをクリアするには、 **検索** 欄の右に位置する ![Clear Search](button_clear_search.png) ボタンをクリックします。
+
+[REGION:tip]
+検索基準に一致しない詳細は全てこの行で非表示となります。 
+検索しているプロパティが表示されない場合は、フィルタがクリアされたことを確認してください。
+[/REGION]
+
+## デフォルト値
+
+プロパティが _デフォルト_ 値以外の値に修正されると、インジケーターが表示されます。
+
+![Property not set to default](default_indicator.png)
+
+![Reset to Default](button_reset_default.png) インジケーターをクリックしてメニューから値のリセットを選択することによって、 
+全てのプロパティを簡単にデフォルト値に再設定することが出来ます。
+
+![Reset to Default Menu](reset_default_menu.png)
+
+メニューに示されるようにプロパティの値がデフォルト値にリセットされ、インジケーターが非表示となります。
+
+![Property set to default](default_property.png)
+
+## 編集条件
+
+プロパティは有効または無効どちらかに設定できます。有効時のみプロパティの編集が可能です。デフォルトは、 
+ **編集条件** が無い限り、全てのプロパティで有効となっています。編集条件のあるプロパティは、 
+有効設定と編集の可否状況の決定に別の変数値を使用します。 
+
+場合によっては、プロパティによる別の値の上書きやそれによる影響度の判断に 
+編集条件を使用します。ある特定のプロパティは、一定の条件が一致しない限り意味をなさない場合もあります。例えば、 
+非間接照明の有効または無効化をグローバルにトグルする、非間接照明と `bool` プロパティに関連した 
+プロパティのグループがあるとします。グループの各プロパティは、グローバルなトグルが条件付きになる場合もあるので、非間接照明が使用された時のみ 
+有効となります。
+
+単純な編集条件を持つプロパティは、チェックボックスの左余白に表示されます。チェックボックスの切り替えがオンになると、 
+プロパティは有効になります。チェックが無い場合は、プロパティは無効となりグレーアウト表示されます。
+
+![EditConsition Properties](edit_condition.png)
+
+## EditConst プロパティ
+
+`editconst` と宣言したプロパティはエディタでの修正が不可能で、表示された値がハイライトされて編集不可であることを示します。
+
+![EditConst Property](edit_const.png)
+
+## プロパティ制御
+
+プロパティの基本タイプのほとんどは、なじみのある編集ウィジェットとして **[Details]** パネルに表示されます。 
+その他のタイプのプロパティは、カスタマイズされたウィジェットを使用して、値の修正時に直観的な操作性を提供します。
+
+[REGION:topics fourth]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Basic/basic_property_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Basic:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Basic]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/ObjectReference/object_ref_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/ObjectReference:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/ObjectReference]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/VectorAndRotator/vector_property_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/VectorAndRotator:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/VectorAndRotator]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Color/color_property_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Color:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Color]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Properties/Array/array_property_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Properties/Array:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Properties/Array]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+## カテゴリ
+
+**[Display]** パネルのプロパティは _カテゴリ_ に表示されます。一般的なカテゴリは、 **Rendering** 、 **Lighting** 、 **Collision** などです。 
+これらのカテゴリはコード上のプロパティ宣言方法によって決定し、 
+関連性のあるプロパティ毎のグループ分けに使用されます。**[Details]** パネルに表示されるその他のカテゴリは、 **Transform** 、 
+**Static Mesh** 、 **Materials** 、 **Actor** 、 **Code View** 、 **Layers** などです。 
+これらはある特定のプロパティまたは機能性を目につきやすい方法で公開するためのカスタムウィジェットで、検索、修正および使用が簡単に出来ます。
+
+### 高度なプロパティ
+
+一部のプロパティは **高度な** プロパティとして宣言され、デフォルト設定では **[Details]** パネルで非表示となっています。高度なプロパティを含んだカテゴリには、 
+展開ボタン ![](button_advanced.png) があります。このボタンをクリックすると、 
+高度なプロパティが表示されます。
+
+
+
+### カスタム カテゴリ
+
+[EXCERPT:CustomCategories]
+[REGION:topics fourth]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Customizations/Transform/details_transform_topic.png)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Customizations/Transform:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/Transform]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Customizations/Materials/details_materials_topic.png)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Customizations/Materials:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/Materials]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Customizations/StaticMeshes/details_sm_topic.png)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Customizations/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+<!--
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes/details_sk_topic.png)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+-->
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Customizations/CodeView/code_view_topic.png)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Customizations/CodeView:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/CodeView]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	![](Engine/UI/LevelEditor/Details/Customizations/Layers/layers_details_topic.png)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/UI/LevelEditor/Details/Customizations/Layers:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Engine/UI/LevelEditor/Details/Customizations/Layers]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+[/EXCERPT:CustomCategories]
+
+
+%playlistnav%

@@ -1,0 +1,289 @@
+Availability: Public
+Title:FBX Morph Target Pipeline 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Creating and importing Morph Targets for Skeletal Meshes using the FBX content pipeline.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/MorphTargets:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/MorphTargets:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/MorphTargets:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/MorphTargets]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## Overview
+
+[EXCERPT:Intro]
+[EXCERPT:FBX_morph]
+A Morph Target is a snapshot of vertex locations for a specific mesh that have been deformed in some way. For instance, you can take a character model, reshape their face to create a facial expression, and then save that edited version as a Morph Target. In Unreal, you can blend the Morph Target to cause the character's face to make that expression. Morph Targets can be imported into Unreal via FBX, and will be encapsulated within an Animation Sequence. 
+[/EXCERPT:FBX_morph]
+
+This makes it very easy to import complex Morph Target animations into Unreal, since you can have any number of Morph Targets driving a single animation. For instance, you could use Morph Targets in your animation package to animate a character speaking some dialog. This animation may use any number of Morph Targets to capture the full motion of the face. However, when imported, the result will appear to be just a single Animation Sequence. You still have access to the animation data for each Morph Target via [Curves](Engine/Animation/Sequences\Curves).
+[/EXCERPT:Intro]
+
+Morph Target support in the FBX import pipeline provides an easy method for getting morph targets for skeletal meshes from 3D applications into Unreal for use in games. The pipeline allows for any number of morph targets for any number of Skeletal Meshes to be imported within a single file.
+
+This page is a technical overview of using the FBX content pipeline to import morph targets into Unreal. See the [FBX Best Practices](Engine/Content/FBX/BestPractices) page for more information, tips, and tricks on working with the FBX content pipeline in a development environment.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+This page includes information on both Autodesk Maya and Autodesk 3ds Max, please choose your preferred content creation tool below and the information relevant only to the chosen tool will be displayed:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## Naming
+
+
+When importing morph targets into Unreal using the FBX format, the individual morph targets will be named according to the names of the blend shapes or morphs in the 3D application.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* The name will be the name of the blendshape added to the name of the blendshape node, i.e. `[BlendShapeNode]_[BlendShape]`.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* The name will be the name of the channel in the Morpher modifier.
+	[/PARAM]
+[/OBJECT]
+
+
+## Setting Up Morph Targets
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSetup]
+
+Setting up morph targets in 3dsMax to be exported to FBX requires the use of the Morpher modifier. The steps below provide a brief explanation of the steps necessary to set up a morph target for export. Refer to the help files of the application for more detailed information.
+
+
+1. Start with the base mesh.    
+    
+	![max_setup_1.jpg](max_setup_1.jpg)(w:744 h:354)
+
+1. Duplicate the mesh that will be modified to create the target pose. In this case, it is the head. Create the target pose. For this example, the target pose is the character winking.    
+    
+	![max_setup_2.jpg](max_setup_2.jpg)(w:744 h:354)
+
+1. Add a **Morpher** modifier to the base mesh. It needs to be before the **Skin** modifier in the stack.    
+    
+	![max_setup_3.jpg](max_setup_3.jpg)(w:161 h:123)
+
+1. With the morph channel you want to populate selected, press the ![max_pick_button.jpg](max_pick_button.jpg) in the **Morpher** modifier's properties rollout or **right-click** on the channel and choose _Pick Object From Scene_.    
+    
+	![max_setup_4.jpg](max_setup_4.jpg)(w:168 h:667)
+
+1. In the viewport, click on the target mesh.    
+    
+	![max_setup_5.jpg](max_setup_5.jpg)(w:744 h:354)
+
+1. The morph channel is now populated and displays the name of the target mesh. This is the name that will be given to the morph target in Unreal. You can change it in the **Channel Parameters** section of the **Morpher** modifier's rollout.    
+    
+	![max_setup_6.jpg](max_setup_6.jpg)(w:162 h:414)
+
+1. Adjusting the channel's weight up to 100.0 causes the base mesh to interpolate toward the target pose.    
+    
+	![max_setup_7.jpg](max_setup_7.jpg)(w:744 h:354)
+[/EXCERPT:maxSetup]
+
+
+[EXCERPT:mayaSetup]
+Setting up morph targets in Maya to be exported to FBX requires the use of blend shapes. The steps below provide a brief explanation of the steps necessary to set up a morph target for export. Refer to the help files of the application for more detailed information.
+
+
+1. Start with the base mesh.    
+    
+	![maya_setup_1.png](maya_setup_1.png)
+
+1. Duplicate the mesh that will be modified to create the target pose. In this case, it is the head. Create the target pose. For this example, the target pose is the character winking.    
+    
+	![maya_setup_2.png](maya_setup_2.png)
+
+1. Select the target mesh and then the base mesh in that order.    
+    
+	![maya_setup_3.png](maya_setup_3.png)
+
+1. In the **Create Deformers** menu of the **Animation** menu set, select **Blend Shape**. The target mesh can be deleted after this step if desired.    
+    
+	![maya_setup_4.jpg](maya_setup_4.jpg)
+
+1. The blend shape node is now visible in the base mesh's properties. These are the names that will be used in Unreal. You can change the names of the blendshape node and the blendshape here.    
+    
+	![maya_setup_5.png](maya_setup_5.png)
+
+1. Adjusting the blendshape's weight up to 1.0 causes the base mesh to interpolate toward the target pose.    
+    
+	![maya_setup_6.png](maya_setup_6.png)
+
+[/EXCERPT:mayaSetup]
+-->
+
+(#ExportingMorphs)
+
+
+## Exporting Morph Targets
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+
+[EXCERPT:maxExport]
+1. Select the base mesh(es) and bones to be exported in the viewport.    
+    
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. In the _File_ menu, choose _Export Selected_ (or _Export All_ if you want to export everything in the scene regardless of selection).    
+    
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. Choose the location and name for the FBX file to export the morph target to and click the ![max_save_button.jpg](max_save_button.jpg)button.    
+    
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. Set the appropriate options in the **FBX Export** dialog. For the purposes of exporting morph targets, you must enable the **Animations** checkbox and all of the **Deformations** options.    
+    
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. Click the ![max_ok_button.jpg](max_ok_button.jpg) button to create the FBX file containing the morph target(s).
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. Select the base mesh(es) and joints to be exported in the viewport.    
+    
+	![maya_export_1.png](maya_export_1.png)
+
+1. In the _File_ menu, choose _Export Selection_ (or _Export All_ if you want to export everything in the scene regardless of selection).    
+    
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. Choose the location and name for the FBX file to export the morph target to and set the appropriate options in the **FBX Export** dialog. For the purposes of exporting morph targets, you must enable the **Animations** checkbox and all of the **Deformed Models** options.    
+    
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. Click the ![maya_export_button.jpg](maya_export_button.jpg) button to create the FBX file containing the morph target(s).
+[/EXCERPT:mayaExport]
+
+-->
+
+
+(#ImportingMorphs)
+
+
+## Importing Morph Targets
+
+
+The FBX morph target import pipeline allows for importing both a _SkeletalMesh_ and morph target all at once, or importing one or the other individually.
+
+**Skeletal Mesh with Morph Targets**
+
+
+1. Click the **Import** button in the **Content Browser**. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.    
+    
+	![](import_file.jpg)
+
+1. Choose the appropriate settings in the **Import** dialog. Make sure that _Import Morph Targets_ is enabled. **Note:** The name of the imported mesh will follow the default [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions). See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.    
+    
+	![](ImportMorphTargets.png)
+
+1. Click the **OK** button to import the mesh and LODs. The resulting mesh, morph target (MorphTargetSet), material(s), and texture(s) will be displayed in the **Content Browser** if the process was successful. You can see the MorphTargetSet that was created to hold the morph target was named after the root bone of the skeleton by default.    
+    
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+    
+    By viewing the imported mesh in Persona and using the **Morph Target Previewer** tab, you can adjust the strength of the imported morph target and see that it is working as expected.
+  
+  	[REGION:lightbox]
+		[![](InfSkelMesh_Morph1.png)(w:375)](InfSkelMesh_Morph1.png) [![](InfSkelMesh_Morph2.png)(w:375)](InfSkelMesh_Morph2.png)
+	[/REGION]
+	
+	The effect of **Morph Targets** is often subtle, but the control it offers the animator and the believability it adds to a character cannot be overstated.
+

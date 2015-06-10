@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:2258076
+Availability:Public
+Title:一様でないスケール アニメーション
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:一様でないスケール アニメーションの使用方法の概要
+
+## 概要
+アンリアル エンジン 4 のアニメーション システムは、一様でないスケール アニメーションをサポートしていません。スケールが存在場合、アニメーションをインポートすると、追加オプションの設定をする必要なく自動的にインポートされます。メモリ保存のため、エンジンは全てのアニメーションのスケールを保存するわけではなく、アニメーションが 1 以外のスケールの場合にのみ保存します。 
+
+例として、以下のビデオを参照してください。 
+
+[REGION:lightbox]
+[![](AngryChest.png)(w:300 h:200)](AngryChest.wmv) [![](CastSpell.png)(w:300 h:200)](CastSpell.wmv) [![](Trooper.png)(w:300 h:200)](Trooper.wmv)
+[/REGION]
+
+
+**クリックして各ビデオを再生**
+
+FBX アニメーションに関する情報については、[FBX アニメーション パイプライン](Engine\Content\FBX\Animations) を参照してください。 
+

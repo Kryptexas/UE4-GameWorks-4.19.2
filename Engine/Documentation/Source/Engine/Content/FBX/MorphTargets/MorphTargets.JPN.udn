@@ -1,0 +1,290 @@
+﻿INTSourceChangelist:2386009
+Availability:Public
+Title:FBX モーフターゲット パイプライン 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX コンテンツ パイプラインを利用してスケルタルメッシュに対してモーフターゲットを作成およびインポートする方法
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/MorphTargets:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/MorphTargets:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/MorphTargets:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/MorphTargets]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概要
+
+[EXCERPT:Intro]
+[EXCERPT:FBX_morph]
+モーフ ターゲットは、何らかの方法で変形された特定メッシュの頂点位置のスナップショットです。例えば、キャラクター モデルを取り出し、顔を再形成して表情を作ります。次に、その編集バージョンをモーフ ターゲットとして保存します。アンリアル エンジンでは、モーフ ターゲットをブレンドし、キャラクターの顔が表情を作るようにします。モーフ ターゲットは、FBX 経由でアンリアル エンジンにインポートできます。アニメーション シーケンス内でカプセル化されます。 
+[/EXCERPT:FBX_morph]
+
+これにより、複雑なモーフターゲットのアニメーションをアンリアル エンジンに非常に簡単にインポートできるようにします。単独のアニメーションを動かすモーフ ターゲットをいくつでも持つことができるからです。例えば、アニメーション パッケージでモーフ ターゲットを使用して、キャラクターが会話をするようにアニメートできます。このアニメーションでは、顔のフルモーションをキャプチャーするためにモーフ ターゲットをいくつでも使用します。しかし、インポート時には、最終結果は、単一のアニメーション シーケンスのように見えます。それにもかかわらず、[Curves](Engine/Animation/Sequences\Curves) 経由で、各モーフ ターゲットのアニメーション データにアクセスできます。
+[/EXCERPT:Intro]
+
+FBX インポート パイプラインのモーフ ターゲット サポートは、3D アプリケーションからアンリアルへ、ゲームで使用するスケルタルメッシュのモーフ ターゲットを取得する簡易な方法を提供します。FBX インポート パイプラインでは、スケルタルメッシュのモーフ ターゲットをいくつでも単一ファイル内でインポートすることができます。
+
+このページは、FBX コンテンツ パイプラインを使用してアンリアルにモーフ ターゲットをインポートする方法について専門的に概説しています。開発環境で FBX コンテンツ パイプラインを利用した作業に関する詳細、秘訣などは [FBX Best Practices](Engine/Content/FBX/BestPractices) ページを参照してください。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+このページでは、Autodesk Maya と Autodesk 3ds Max の両方の情報を載せています。以下の表からお好きなコンテンツをお選び頂きますと、それに関連した情報のみが表示されるようになります。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 命名
+
+
+FBX フォーマットを利用してアンリアルへのモーフ ターゲットをインポートする場合、各モーフ ターゲットは 3D アプリケーションのブレンド シェイプまたはモーフの名前に従った名前が付けられます。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* 名前はブレンド シェイプ ノードの名前にブレンド シェイプの名前を追加したものになります。すなわち、次のようになります。`[BlendShapeNode]_[BlendShape]`
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* 名前は、モーファー モディファイアのチャンネル名になります。
+	[/PARAM]
+[/OBJECT]
+
+
+##モーフ ターゲットをセットアップする
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSetup]
+
+3dsMax でモーフ ターゲットをセットアップし、FBX にエクスポートするにはモーファー モディファイアを使用する必要があります。以下では、エクスポート用にモーフ ターゲットをセットアップするために必要なステップについて簡単に説明します。詳しい情報については、アプリケーションのヘルプファイルを参照してください。
+
+
+1. ベース メッシュから始めます。    
+    
+	![max_setup_1.jpg](max_setup_1.jpg)(w:744 h:354)
+
+1. ターゲット ポーズを作るために修正されるメッシュを複製します。この場合、頭部です。ターゲット ポーズを作ります。この例では、ターゲット ポーズはキャラクターがウィンクすることです。    
+    
+	![max_setup_2.jpg](max_setup_2.jpg)(w:744 h:354)
+
+1. ベースメッシュに **モーファー** モディファイアを追加します。これは、スタックで**Skin** モディファイアの前である必要があります。    
+    
+	![max_setup_3.jpg](max_setup_3.jpg)(w:161 h:123)
+
+1. モーフ チャンネルで、選択したものを追加したい場合は、**モーファー** モディファイアのプロパティの展開にある ![max_pick_button.jpg](max_pick_button.jpg) を押します。または、チャンネル上で **右クリック** して _Pick Object From Scene_ を選択します。    
+    
+	![max_setup_4.jpg](max_setup_4.jpg)(w:168 h:667)
+
+1. ビューポートで、ターゲット メッシュ上でクリックします。    
+    
+	![max_setup_5.jpg](max_setup_5.jpg)(w:744 h:354)
+
+1. これでモーフ チャンネルに追加され、ターゲットメッシュの名前が表示されます。これは、アンリアルでモーフ ターゲットに与えられる名前です。**モーファー モディファイア** を展開した **Channel Parameters** セクションでこの名前を変更できます。    
+    
+	![max_setup_6.jpg](max_setup_6.jpg)(w:162 h:414)
+
+1. チャンネルのウェイトを 100.0 まで調整すると、ベース メッシュはターゲット ポーズに向かって補間されます。    
+    
+	![max_setup_7.jpg](max_setup_7.jpg)(w:744 h:354)
+[/EXCERPT:maxSetup]
+
+
+[EXCERPT:mayaSetup]
+Maya でモーフ ターゲットをセットアップし、FBX にエクスポートするにはブレンド シェイプを使用する必要があります。以下では、エクスポート用にモーフ ターゲットをセットアップするために必要なステップを簡単に説明します。詳しい情報は、アプリケーションのヘルプファイルを参照してください。
+
+
+1. ベース メッシュから始めます。    
+    
+	![maya_setup_1.png](maya_setup_1.png)
+
+1. ターゲット ポーズを作るために修正されるメッシュを複製します。この場合、頭部です。ターゲット ポーズを作ります。この例では、ターゲット ポーズはキャラクターがウィンクすることです。    
+    
+	![maya_setup_2.png](maya_setup_2.png)
+
+1. ターゲット メッシュを選択してから、ベースメッシュを選択するという順番で選択します。    
+    
+	![maya_setup_3.png](maya_setup_3.png)
+
+1. **Animation** メニューセットの **Create Deformers** メニューで、**ブレンド シェイプ** を選択します。このステップ後、必要に応じてターゲットメッシュを削除できます。    
+    
+	![maya_setup_4.jpg](maya_setup_4.jpg)
+
+1. これでブレンド シェイプ ノードがベース メッシュのプロパティで見えるようになります。これは、アンリアルで使用される名前です。ここで、ブレンド シェイプノードとブレンド シェイプの名前を変更することができます。    
+    
+	![maya_setup_5.png](maya_setup_5.png)
+
+1. ブレンド シェイプのウェイトを 1.0 まで調整すると、ベース メッシュはターゲット ポーズに向かって補間されます。    
+    
+	![maya_setup_6.png](maya_setup_6.png)
+
+[/EXCERPT:mayaSetup]
+-->
+
+(#ExportingMorphs)
+
+
+##モーフ ターゲットをエクスポートする
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+
+[EXCERPT:maxExport]
+1. ビューポートで、エクスポートすべきベース メッシュとボーンを選択します。    
+    
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. _[File]_ メニューから _[Export Selected]_ を選択します (選択に関係なくシーンの全てをエクスポートする場合は _[Export All]_ )     
+    
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. モーフ ターゲットをエクスポートする FBX ファイルの位置と名前を選択し、 ![max_save_button.jpg](max_save_button.jpg) ボタンをクリックします。    
+    
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. **[FBX Export]** ダイアログで適切なオプションを設定します。モーフ ターゲットをエクスポートするために、 **[Animations]** チェックボックスとそのすべての **[Deformations]** オプションを有効にしなくてはいけません。    
+    
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. ![max_ok_button.jpg](max_ok_button.jpg) ボタンをクリックして、モーフ ターゲット (複数可) を含んだFBXファイルを作成します。
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. ビューポートでエクスポートすべきベースメッシュとジョイントを選択します。    
+    
+	![maya_export_1.png](maya_export_1.png)
+
+1. [File] メニューから _[Export Selection ]_ を選択します (選択に関係なくシーンの全てをエクスポートする場合は _[Export All]_ )     
+    
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. モーフ ターゲットのエクスポート先となる FBX ファイルの位置と名前を選択して、**[FBX Export]** ダイアログで適切なオプションを設定します。モーフ ターゲットをエクスポートするために、 **[Animations]** チェックボックスとそのすべての **[Deformed Models]** オプションを有効にしなくてはいけません。    
+    
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. ![maya_export_button.jpg](maya_export_button.jpg) ボタンをクリックして、モーフ ターゲット (複数可) を含んだ FBX ファイルを作成します。
+[/EXCERPT:mayaExport]
+
+-->
+
+
+(#ImportingMorphs)
+
+
+## モーフ ターゲットをインポートする
+
+
+FBX モーフ ターゲット インポート パイプラインは、 _スケルタルメッシュ_ とモーフ ターゲットを同時にインポートすることができます。もしくはそれぞれを個別にインポートすることができます。
+
+**モーフ ターゲットを持つスケルタルメッシュ**
+
+
+1. **コンテンツ ブラウザ** で **[Import]** ボタンをクリックします。開いているファイル ブラウザで、インポートすべき FBX ファイルに進み、それを選択します。**注意：**ドロップダウン リストから ![import_fbxformat.jpg](import_fbxformat.jpg) を選択することによって、不要なファイルを除去しなければならない場合があります。    
+    
+	![](import_file.jpg)
+
+1. **Import** ダイアログから適切な設定値を選択します。_Import Morph Targets_ を有効にします。**注記：** インポートされるメッシュの名前はデフォルトの命名規則 [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions) に従います。全設定値の詳細は、 [FBX Import Dialog](Engine/Content/FBX/ImportOptions) セクションを参照してください。    
+    
+	![](ImportMorphTargets.png)
+
+1. メッシュと LOD をインポートするために、**OK** ボタンをクリックします。プロセスが成功した場合、最終結果のメッシュ、モーフ ターゲット(MorphTargetSet)、マテリアル、テクスチャはコンテンツブラウザに表示されます。モーフ ターゲットを保持するために作成された MorphTargetSet のデフォルトの名前が、スケルトンのルートボーンの名前から命名されていることが分かります。    
+    
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+    
+    ペルソナでインポートされたメッシュを見て、**Morph Target Previewer** タブを使用することで、インポートされたモーフ ターゲットの強度を調整し、予想どおりに機能するかを確認することができます。
+  
+  	[REGION:lightbox]
+		[![](InfSkelMesh_Morph1.png)(w:375)](InfSkelMesh_Morph1.png) [![](InfSkelMesh_Morph2.png)(w:375)](InfSkelMesh_Morph2.png)
+	[/REGION]
+	**モーフ ターゲット** のエフェクトは多くの場合、些細なものですが、アニメータに与える制御やキャラクターに付加される現実感はかなりのものです。
+
+

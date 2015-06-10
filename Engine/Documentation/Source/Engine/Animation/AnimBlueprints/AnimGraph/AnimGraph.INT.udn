@@ -1,0 +1,105 @@
+Availability:Public
+Title:AnimGraph
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:Graph used to sample, blend, and manipulate poses to be applied to SkeletalMeshes by the Animation Blueprint.
+
+[REGION:banner]
+![AnimGraph](animgraph_banner.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+[EXCERPT:Intro]
+The **AnimGraph** is used to evaluate a final pose for the _SkeletalMesh_ for the current frame. By default, 
+each _Animation Blueprint_ has an **_AnimGraph_** which can have [animation nodes](Engine/Animation/AnimBlueprints/AnimGraph#AnimationNodes) placed within it 
+to sample _AnimationSequences_, perform animation blends, or control bone transforms using _SkeletalControls_. 
+The resulting pose is then applied to the _SkeletalMesh_ each frame.
+[/EXCERPT:Intro]
+
+![Anim Graph](animgraph.png)(w:720)
+
+Inside the **AnimGraph** you can use values calculated in the **EventGraph** or elsewhere, likely in code, 
+and use those as inputs for _BlendSpaces_ or other blend nodes. Of course, you can also just sample 
+_AnimationSequences_ directly without any special blending. The **AnimGraph** also allows for the use of 
+_SkeletalControls_ to modify bone positions, rotations, and scales directly.
+
+## Execution Flow
+
+All graphs have a flow of execution shown as pulsing links between _exec pins_ on the graph's nodes. For 
+regular graphs, such as the **EventGraph** of a _Blueprint_, this flow is visualized during play as it is 
+dependent on the firing of events. The **AnimGraph** is different in that it displays the flow of execution 
+at all times since it is not event-based and is being evaluated each frame.
+
+![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
+
+In the **AnimGraph**, the flow of execution represents _poses_ being passed from one node to another. Some 
+nodes, such as [blends](Engine/Animation/NodeReference/Blend), have multiple inputs and make a 
+decision internally on which input is currently part of the flow of execution. This determination is usually 
+dependent on some external input, like the value passed to a _data pin_.
+
+In the example below, the same blend node from above switched the execution flow between its inputs based on 
+the value of its _Alpha_ pin (the value is being manually set for simplicity):
+
+![Blend - Alpha 1.0](exec_flow_1.png)(w:720)
+[REGION:caption]Blend with Alpha of 1.0 - Input B is used[/REGION]
+
+## Working with the AnimGraph
+
+The **AnimGraph** works by evaluating a graph of nodes. Some of these nodes perform some specific operation 
+on one or more input poses, while others are used to access or sample other types of assets, such as _AnimationSequences_, 
+_BlendSpaces_, or _AnimMontages_. These assets and nodes, as well as how they fit into the **AnimGraph**, are described below.
+
+### AnimationSequences
+
+[INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
+
+![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
+
+See the [](Engine/Animation/Sequences/UserGuide) for more details.
+
+### Blendspaces
+
+[INCLUDE:Engine/Animation/Blendspaces/UserGuide#Intro]
+
+![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
+
+See [](Engine/Animation/Blendspaces/UserGuide) for more details.
+
+### Animation Nodes
+
+[INCLUDE:Engine/Animation/NodeReference#Intro]
+
+See [](Engine/Animation/NodeReference) for more descriptions of all available nodes.
+
+#### Animation Blending
+
+[INCLUDE:Engine/Animation/NodeReference/Blend#intro]
+
+![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
+
+See [](Engine/Animation/NodeReference/Blend) for more information on the space conversion nodes.
+
+#### Skeletal Controls
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
+
+See [](Engine/Animation/NodeReference/SkeletalControls) for more information on the various 
+types of _SkeletalControls_ available.
+
+#### Space Conversion
+
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+[REGION:fullwidth]
+![Usage in graph](Engine/Animation/NodeReference/SpaceConversion/graph_usage.png)
+[/REGION]
+
+See [](Engine/Animation/NodeReference/SpaceConversion) for more information on the space conversion nodes.
+
+#### Sync Groups
+
+[INCLUDE:Engine\Animation\SyncGroups#intro]
+
+![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
+
+See [](Engine\Animation\SyncGroups) for more information on Sync Group usage and additional details.

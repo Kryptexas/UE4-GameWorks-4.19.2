@@ -1,0 +1,43 @@
+﻿Availability: Public
+Title:5.3 - 光源长度
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:光源示例关卡的概述,示例5.3: 光源长度 (反射特效)
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\5_3:title%](Resources\ContentExamples\Lighting\Lighting_5_3.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\5_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\5_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\5_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\5_3:title%](Resources\ContentExamples\Lighting\Lighting_5_3.png)
+[/REGION]
+
+
+本示例示范了在反射性表面对光源长度的使用。 设置光源长度的目的是给予光源拉长的或筒状的反射形状，犹如光源来自于荧光灯一般。 请注意光发射仍按从单一点处发射般进行计算。 该特效仅存在于反射中。
+
+光源长度沿着光源的Y轴向下拉伸，并且可通过旋转光源来进行旋转。 另外，在选中光源后，可通过观察从光源处伸展出的黄色线条来观察到光源的长度。
+
+
+![](SourceLength.png)(w:400)
+
+
+
+
+[INCLUDE:Resources\ContentExamples\Lighting#Examples]

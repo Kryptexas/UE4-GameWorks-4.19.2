@@ -1,0 +1,35 @@
+﻿Availability:Docs
+Title: デストラクタブル アクタの入門書
+Crumbs: %ROOT%, Engine
+Description: デストラクタブル アクタの基本
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Subsystems/Physics/Destructibles/Intro:title%](Engine/Subsystems/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Subsystems/Physics/Destructibles/Intro:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Subsystems/Physics/Destructibles/Intro:description%
+	[/PARAM]
+	[PARAMLITERAL:path]
+		Engine/Subsystems/Physics/Destructibles/Intro
+	[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Physics](Engine/Subsystems/Physics/physics_landing_banner.png)
+[/REGION]
+
+##  デストラクタブル アクタ
+
+デストラクタブル アクタは**スタティックメッシュ** および **スケルタルメッシュ**アクタと同種で、**デストラクタブル アクタ**はその両者の組み合わせです。デストラクタブル アクタは**スタティック メッシュ**を基盤として受け取りますが、破砕された数多くのピースを全て 1 つのドローコールにして、破砕されたチャンクを全て制御する _fracturing_ プロセスが**スケルタル メッシュ**を作成します。**スタティック アクタ**と同様に**デストラクタブル アクタ**を配置し、スタティック アクタと同様に物理シミュレーションを設定したり、粉々になるくらいのダメージを受けるまでは、アニメーションに従って、あるいは別の移動オブジェクトに固定してキネマティックにすることができます。
+
+デストラクタブルとはなにか、どのように使用されるのか、作成概要に関する入門書

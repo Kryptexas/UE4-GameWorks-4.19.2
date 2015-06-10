@@ -1,0 +1,156 @@
+﻿Availability:Public
+Title:ブループリントインターフェースの実装
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types/Interface
+Description:ブループリントインターフェースでは、相手側もインターフェースを実装していれば異なるタイプのターゲットでも関数を呼び出すことができます。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%](Engine\Blueprints\UserGuide\using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+## ブループリントでインターフェースを使用する
+
+ _ブループリント インターフェース_ を使用すると、ある特有の機能を共有する複数の異種タイプのオブジェクトの相互作用に 
+共通メソッドを使用することができます。つまり車や木など、狙撃されてダメージを受けるといったある特定の共通項を持つ、 
+まったく異なるタイプのオブジェクトを持つことができます。`OnTakeWeaponFire` 関数を格納する _ブループリント インターフェース_ を作成し 
+車と木の両方に _ブループリントインターフェース_ を実装することで、 
+車と木を同タイプのオブジェクトとみなし、いずれかが撃たれた時に`OnTakeWeaponFire` 関数を呼び出すことができます。
+
+
+### インターフェースの追加
+
+_ブループリントインターフェース_ およびネイティブコード (C++) で定義された _インターフェース_ は、_レベルブループリント_ 以外の全ての _ブループリント_ へ追加することができます。
+
+1. [ツールバー](Engine/Blueprints/Editor/UIComponents/Toolbar) で、 [ ![](BlueprintProps.png) ] ボタンをクリックします。
+
+1. **[詳細]** タブで **[インターフェース]** カテゴリにスクロールします。有効なインターフェースのリストを閲覧するには、 ![](button_AddInterface.png) ボタンをクリックします。追加したいインターフェースをクリックしてください。
+
+	![](InterfacesCategory.png)
+
+	![](InterfacesListPopulated.png)
+
+[REGION:tip]
+	インターフェースは、各 _Implemented Interfaces_ リストの横にある ![](button_X_Remove.png) ボタンをクリックして削除できます。ブループリント インターフェースから通常のブループリント関数に移動することもできます。詳細は、[](Engine/Blueprints\UserGuide\BlueprintComms\InterfaceMigration) を参照してください。
+[/REGION]
+
+[REGION:note]
+	インターフェース カテゴリ内の _Inherited Interfaces_ セクションに、オブジェクトによって継承されたインターフェース (すなわち、現在のブループリントが派生したブループリントで実装されているもの) があれば 自動的にエントリされます 。
+[/REGION]
+
+
+
+### インターフェース メンバーの実装
+
+_インターフェース_ が _ブループリント_ へ追加されると、 _ブループリント_ は呼び出された時にアクションを実行するために 
+_インターフェース_ の関数を **実装** しなくてはいけません。実装は、**EventGraph** で _インターフェース_ 関数用に _Event_ ノードを配置して行います。 
+_Event_ に接続したノードは、関数の機能の定義や実装を行います。
+
+1. _ブループリント_ の **EventGraph** で **右クリック** をして、 **Add Event > Event Example Function** の順に選択します 
+ ( **Example Function** に実装している _インターフェース_ で、関数名を置き換えます)。_イベント_ ノードは **[Graph]** タブに表示されます。 
+
+	![Implement Interface - Add Event](k2_interface_event_menu.png) ![Implement Interface - Event Node](k2_interface_event_graph.png)
+
+1.  _Event_ の実行ピンに接続しているノードのネットワークを作成して機能を持たせます。
+
+	![Implement Interface - Event Implementation](k2_interface_event_implementation.png)
+
+	### Interface 関数の呼び出し
+
+
+ _Interface_ 関数は**[Interface Message]**ノードを使用して実行されます。 
+ターゲットが _Interface_ を実装していない場合失敗となる点を除いて、通常の[](Engine/Blueprints/UserGuide/Functions/FunctionCalls) 
+のような動作をします。
+
+![Implement Interface - Call Function](k2_interface_event_call.png)
+
+
+### 他のブループリントでインターフェース関数を呼び出す
+
+インターフェースは異なるブループリント間のコミュニケーションに役立ちます。単一のインターフェースの関数は、他のブループリントで呼び出すことができます。これは以下の 2 つの基準が合致すると可能になります。
+
+* 両ブループリントが必須の関数を伴って同一インターフェースを実装している時
+* 呼び出し側のブループリントが、相手のブループリントのインゲームのインスタンス名を把握している時
+
+
+イベントグラフ内に Interface Function ノードを作成する際、コンテキストメニューにしばしば 2 通りの関数がリスト表示されます。 
+
+![](MyFunctionInMenu.png)
+
+**Call Function** 配下にリストされている関数はローカルバージョンであり、このブループリント内のみで呼ばれることを覚えておくことが重要です。 
+
+**Interface Messages** 配下にリストされている関数は、同一インターフェースを実装している別のブループリントのインターフェースを介して関数を呼び出すようにつくられています。
+
+ノードタイトルの下に、区別するためにラベルが配置されています。
+
+[REGION:imagetable]
+| ![](Local_MyFunction.png)| ![](Interface_MyFunction.png) |
+| ------ | ------ |
+| ローカル バージョン | インターフェース メッセージ バージョン |
+[/REGION]
+
+Interface Message 関数の呼び出しは、関数を呼び出している適切なブループリントのインスタンスの提供が必須となります。
+
+この画像は、ターゲット入力値として別のブループリントを送信しています。これにより供給されるブループリント上で関数が呼ばれます。このブループリントがインターフェースを実装していない場合、何も起こりません。
+
+![](InterfaceMessageFunctionCalled.png)
+
+[REGION:tip]
+	レベル内に存在するブループリントを指定するには、'Actor' タイプのパブリック変数の作成が最適です。レベルエディタの **[詳細]** タブを使用して、その変数の値に適切なブループリントを割り当てます。
+[/REGION]
+
+### Interface 関数のオーバーライド
+
+Interface 関数の最も重要な側面の 1 つに、独自の実装を持たないため、インターフェースを実装する各ブループリントで、個別に機能を定義できる点が挙げられます。
+
+Interface 関数がブループリントによって実装されると、インターフェースの関数は**[マイブループリント]** パネルに表示されます。
+
+![](iFunctionInExplorer.png)
+
+関数を **ダブルクリック** すると、ブループリントエディタで関数が開きます。関数のローカル実装が表示されます。ここで定義される機能はすべて、ブループリント固有となります。このようにインターフェース実装済みの各ブループリントにカスタム機能を定義することができます。
+
+例えばこの画像では、ブループリント内で開くと基本的なインターフェース関数があるのがわかります。現時点で関数は何もしません。
+
+![](DefaultFunction.png)(w:600)
+
+数値の比較や値の出力などを実行する簡単なネットワークを作成することができます。
+
+![](ComparisonFunction.png)(w:600)
+
+関数がローカルで呼ばれると、浮動小数値を受け取りその値を 10 と比較して、結果として画面に boolean 値を出力します。
+
+![](FunctionLogging.png)

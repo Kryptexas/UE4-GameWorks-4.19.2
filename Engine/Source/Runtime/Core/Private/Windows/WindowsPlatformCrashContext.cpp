@@ -61,7 +61,9 @@ bool WriteMinidump(const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo)
 	CrashContextStreamInformation.UserStreamCount = 1;
 	CrashContextStreamInformation.UserStreamArray = &CrashContextStream;
 
-	const BOOL Result = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MiniDumpNormal, &DumpExceptionInfo, &CrashContextStreamInformation, NULL);
+	MINIDUMP_TYPE MinidumpType = MiniDumpNormal;//(MINIDUMP_TYPE)(MiniDumpWithPrivateReadWriteMemory|MiniDumpWithDataSegs|MiniDumpWithHandleData|MiniDumpWithFullMemoryInfo|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
+
+	const BOOL Result = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MinidumpType, &DumpExceptionInfo, &CrashContextStreamInformation, NULL);
 	CloseHandle(FileHandle);
 
 	return Result == TRUE;
@@ -91,7 +93,7 @@ void GetCrashDescription(WER_REPORT_INFORMATION& ReportInformation)
  */
 void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
 {
-	StringCchCopy( StringBuffer, MaxSize, TEXT( "0.0.0.0" ) );
+	StringCchCopy( StringBuffer, MaxSize, TEXT( "0.0.0" ) );
 	
 	DWORD Handle = 0;
 	DWORD InfoSize = GetFileVersionInfoSize( ModuleName, &Handle );
@@ -107,8 +109,8 @@ void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
 			UINT InfoLength = 0;
 			if( VerQueryValue( VersionInfo.GetData(), TEXT( "\\" ), ( void** )&FixedFileInfo, &InfoLength ) )
 			{
-				StringCchPrintf( StringBuffer, MaxSize, TEXT( "%u.%u.%u.%u" ), 
-					HIWORD( FixedFileInfo->dwProductVersionMS ), LOWORD( FixedFileInfo->dwProductVersionMS ), HIWORD( FixedFileInfo->dwProductVersionLS ), LOWORD( FixedFileInfo->dwProductVersionLS ) );
+				StringCchPrintf( StringBuffer, MaxSize, TEXT( "%u.%u.%u" ), 
+					HIWORD( FixedFileInfo->dwProductVersionMS ), LOWORD( FixedFileInfo->dwProductVersionMS ), HIWORD( FixedFileInfo->dwProductVersionLS ) );
 			}
 		}
 	}
@@ -161,7 +163,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 
 	INT_PTR ExceptionOffset = ( char* )( ExceptionInfo->ExceptionRecord->ExceptionAddress ) - ( char* )FaultModuleHandle;
 	CA_SUPPRESS(6066) // The format specifier should probably be something like %tX, but VS 2013 doesn't support 't'.
-		StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%p" ), ExceptionOffset );
+		StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%p" ), (void *)ExceptionOffset );
 	Result = WerReportSetParameter( ReportHandle, WER_P7, TEXT( "Exception Offset" ), StringBuffer );
 
 	// Use LocalBuffer to store the error message.
@@ -185,40 +187,13 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	}
 
 	// AssertLog should be ErrorMessage, but this require crash server changes, so don't change this.
-	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::Get(), LocalBuffer );
+	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::GetOriginal(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
 	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), BUILT_FROM_CHANGELIST );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
-/**
- * Add a minidump to the Windows Error Report
- *
- * Note this has to be a minidump (and not a microdump) for the dbgeng functions to work correctly
- */
-void AddMiniDump(HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo)
-{
-	// Add GetMinidumpFile
-	const FString MinidumpFileName = FString::Printf(TEXT("%sDump%d.dmp"), *FPaths::GameLogDir(), FDateTime::UtcNow().GetTicks());
-	
-	if (WriteMinidump(*MinidumpFileName, ExceptionInfo))
-	{
-		WerReportAddFile(ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA);
-	}
-}
-
-/** 
- * Add miscellaneous files to the report. Currently the log and the video file
- */
-void AddMiscFiles( HREPORT ReportHandle )
-{
-	FString LogFileName = FPaths::GameLogDir() / FApp::GetGameName() + TEXT( ".log" );
-	WerReportAddFile( ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA ); 
-
-	FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
-	WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
-}
 
 /**
  * Force WER queuing on or off
@@ -312,11 +287,27 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 			// Set the standard set of a crash parameters
 			SetReportParameters( ReportHandle, ExceptionInfo, ErrorMessage );
 
-			// Add a manually generated minidump
-			AddMiniDump( ReportHandle, ExceptionInfo );
+			{
+				// No super safe due to dynamic memory allocations, but at least enables new functionality.
+				// Introduces a new runtime crash context. Will replace all Windows related crash reporting.
+				FPlatformCrashContext CrashContext;
 
-			// Add the log and video
-			AddMiscFiles( ReportHandle );
+				const FString CrashContextXMLPath = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), FPlatformCrashContext::CrashContextRuntimeXMLNameW );
+				CrashContext.SerializeAsXML( *CrashContextXMLPath );
+				WerReportAddFile( ReportHandle, *CrashContextXMLPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
+
+				const FString MinidumpFileName = FPaths::Combine( *FPaths::GameLogDir(), *CrashContext.GetUniqueCrashName(), TEXT("UE4Minidump.dmp") );
+				if( WriteMinidump( *MinidumpFileName, ExceptionInfo ) )
+				{
+					WerReportAddFile( ReportHandle, *MinidumpFileName, WerFileTypeMinidump, WER_FILE_ANONYMOUS_DATA );
+				}
+
+				const FString LogFileName = FPaths::GameLogDir() / FApp::GetGameName() + TEXT( ".log" );
+				WerReportAddFile( ReportHandle, *LogFileName, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );
+
+				const FString CrashVideoPath = FPaths::GameLogDir() / TEXT( "CrashVideo.avi" );
+				WerReportAddFile( ReportHandle, *CrashVideoPath, WerFileTypeOther, WER_FILE_ANONYMOUS_DATA );		
+			}
 
 			// Submit
 			WER_SUBMIT_RESULT SubmitResult;
@@ -339,13 +330,6 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 		if( bNoDialog )
 		{
 			CrashReportClientArguments += TEXT( " -Unattended" );
-		}
-
-		if( FApp::IsInstalled() )
-		{
-			// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
-			// following ensures that logs are saved to the user directory when UE4 is installed.
-			CrashReportClientArguments += TEXT( " -Installed" );
 		}
 
 		CrashReportClientArguments += FString( TEXT( " -AppName=" ) ) + ReportInformation.wzApplicationName;
@@ -376,11 +360,25 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 
 } // end anonymous namespace
 
+static FCriticalSection EnsureLock;
+static bool bReentranceGuard = false;
+
 /** 
  * Report an ensure to the crash reporting system
  */
 void NewReportEnsure( const TCHAR* ErrorMessage )
 {
+	// Simple re-entrance guard.
+	EnsureLock.Lock();
+
+	if( bReentranceGuard )
+	{
+		EnsureLock.Unlock();
+		return;
+	}
+
+	bReentranceGuard = true;
+
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 	__try
@@ -395,6 +393,9 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 	}
 #endif
 #endif	// WINVER
+
+	bReentranceGuard = false;
+	EnsureLock.Unlock();
 }
 
 #include "HideWindowsPlatformTypes.h"

@@ -9,7 +9,7 @@
  *	
  *	@see https://docs.unrealengine.com/latest/INT/Engine/Actors/PlayerStart/
  */
-UCLASS(ClassGroup=Common, hidecategories=Collision)
+UCLASS(Blueprintable, ClassGroup=Common, hidecategories=Collision)
 class ENGINE_API APlayerStart : public ANavigationObjectBase
 {
 	/** To take more control over PlayerStart selection, you can override the virtual AGameMode::FindPlayerStart and AGameMode::ChoosePlayerStart function */
@@ -28,11 +28,6 @@ private_subobject:
 	class UArrowComponent* ArrowComponent;
 public:
 #endif
-
-	// Begin AActor interface
-	virtual void PostInitializeComponents() override;	
-	virtual void PostUnregisterAllComponents() override;
-	// End AActor interface
 
 #if WITH_EDITORONLY_DATA
 	/** Returns ArrowComponent subobject **/

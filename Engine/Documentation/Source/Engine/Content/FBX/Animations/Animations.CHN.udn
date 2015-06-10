@@ -1,0 +1,200 @@
+﻿Availability: Public
+Title:FBX动画通道
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:使用FBX内容通道为骨架网格物体设置、导出及导入动画。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Animations:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Animations:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Animations:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Animations]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概述
+
+[EXCERPT:FBX_Animation001]
+FBX 导入通道的动画支持提供了一种简单的处理过程，来将骨架网格物体的动画从 3D 应用程序导入虚幻引擎中供游戏中使用。目前，只可以将每个骨架网格物体的一个单独动画导出/导入到一个单独的文件中。
+[/EXCERPT:FBX_Animation001]
+
+该页面是一个有关使用 FBX 内容通道将动画导入到虚幻编辑器中的技术性概述。请参照 [FBX最佳实践](Engine/Content/FBX/BestPractices)页面获得关于在开发环境中使用FBX内容通道的更多信息、帮助及技巧。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+本文包含了关于Autodesk Maya和Autodesk 3ds Max的信息，请在下面选择您喜欢的内容创建工具，就会仅显示和所选工具相关的信息。
+[/REGION]
+
+%Globals:DCCSelect%
+
+
+
+
+## 命名
+
+
+在使用 FBX 格式将动画导入到虚幻编辑器中后，会将这个动画序列命名为与该文件相同的名称。随骨架网格物体一起导入动画时，将会从动画序列中根骨骼的名称中取得创建的AnimationSequence (动画序列)。在完成该导入过程之后，通过 **内容浏览器** 可以轻松地对其进行重命名。
+
+
+## 创建动画
+
+[EXCERPT:FBX_Animation002]
+可以针对单独的骨架网格物体制作唯一的动画，或者很多骨架网格物体重复使用这些动画，前提是每个骨架网格物体使用的是相同的骨架。为了要创建动画并使用 FBX 通道将其导入到虚幻编辑器中，您唯一真正需要的是一个已经进行动画处理的骨架。完全可以选择将网格物体绑定到这个骨架上，这样做会使创建动画的过程变得更加简单，因为您可以在动画制作过程中看到这个网格是如何变换的。但是在导出的时候，只需要导出这个骨架。
+[/EXCERPT:FBX_Animation002]
+
+(#ExportingAnimations)
+
+
+## 从 3D 应用程序中导出动画
+
+
+动画必须进行独立地导出；每个 _骨架网格物体_ 的一个动画会导入到一个单独的文件中。下面是单独将一个动画导出到一个文件中的步骤。已经将绑定到该骨架的网格物体隐藏起来，因为导出这些动画本身完全不需要它。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxExport]
+1. 在视口中选择与要导出的动画对应的骨骼。 
+
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. 在 **文件** 菜单中，选择 **导出选中项** (或者，如果您想不管选中项为什么都到处该场景中的所有内容，那么请选择 **导出所有** )。 
+
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 选择要将动画导出到的 FBX 文件的位置及名称，并点击![max_save_button.jpg](max_save_button.jpg)按钮。 
+
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. 在 *FBX Export（FBX导出）* 对话框中设置适当的选项。为了能够导出动画，您必须启用 *Animations（动画）* 复选框。 
+
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. 点击![max_ok_button.jpg](max_ok_button.jpg)按钮创建包含这些网格物体的 FBX 文件。
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 在视口中选中要导出的关节。 
+
+	![maya_export_1.jpg](maya_export_1.jpg)(w:769 h:376)
+
+1. 在 **文件** 菜单中，选择 **导出选中项** (或者，如果您想不管选中项为什么都到处该场景中的所有内容，那么请选择 **导出所有** )。 
+
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. 选择要放置导出动画的 FBX 文件的位置和名称，然后在 **FBX 导出** 对话框中设置相应的选项。为了能够导出动画，您必须启用 **Animations（动画）** 复选框。 
+
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. 点击 ![maya_export_button.jpg](maya_export_button.jpg)按钮创建包含这些网格物体的 FBX 文件。
+[/EXCERPT:mayaExport]
+-->
+
+(#ImportingAnimations)
+
+
+##导入动画
+
+
+FBX 动画导入通道可以同时导入骨架网格物体和动画，或一个一个分别导入。
+
+**带有动画的骨架网格物体**
+
+
+1. 在内容浏览器中点击  ![](import_button.png)按钮。再打开的文件浏览器中导航到您想导入的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。 
+
+	![import_file.jpg](import_file.jpg)
+	
+	[REGION:note]
+		所导入的资源的导入路径是由导入时 **内容浏览器** 的当前位置所决定的。请确保在执行导入之前导航到适当的文件夹。您也可以在导入完成时将导入的资源拖拽大一个新文件夹中。
+	[/REGION]
+      
+1. 在 **FBX导入选项** 对话框中选择适当的设置。导入的网格物体的名称将会遵循默认的[命名规则](Engine/Content/FBX/ImportOptions#NamingConventions)。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。 
+   
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+   
+1. 点击![button_import.png](button_import.png)按钮来导入网格物体和LOD。如果导入过程成功，那么将会在内容浏览器中显示最终的网格物体、动画 (动画序列)、材质和贴图。您会发现创建用来包含动画的AnimationSequence  默认情况下是以这个骨架的根骨骼名称命名的。 
+   
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+
+
+*单独的动画*
+
+要导入一个动画，您首先需要一个可以导入动画信息的AnimationSequence 。它可以通过内容浏览器或者直接在AnimationSequence(动画序列)编辑器中创建。
+
+[REGION:note]
+	虚幻编辑器可以支持导入多个内置在一个单独的 FBX 文件中的动画，但是很多诸如 3ds Max 和 Maya 这样的 DCC 工具目前都不支持将多个动画保存到一个单独的文件中。如果您从一个支持的应用程序（例如，Motion Builder）中导出，那么虚幻会将所有动画导入到这个文件中。
+[/REGION]
+
+1. 在内容浏览器中点击  ![](import_button.png)按钮。再打开的文件浏览器中导航到您想导入的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。 
+
+	![import_file.jpg](import_file.jpg)
+   
+	[REGION:note]
+		所导入的资源的导入路径是由导入时 **内容浏览器** 的当前位置所决定的。请确保在执行导入之前导航到适当的文件夹。您也可以在导入完成时将导入的资源拖拽大一个新文件夹中。
+	[/REGION]
+      
+1. 在 **FBX导入选项** 对话框中选择适当的设置。导入的网格物体的名称将会遵循默认的[命名规则](Engine/Content/FBX/ImportOptions#NamingConventions)。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。 
+   
+	![](Engine\Content\FBX\ImportOptions\AnimationImportOptions.png)
+
+	[REGION:Warning]
+		到在其自身上导入动画时，您必须指定一个现有骨架！
+	[/REGION]
+   
+1. 点击![button_import.png](button_import.png)按钮来导入网格物体和LOD。如果导入过程成功，那么将会在内容浏览器中显示最终的网格物体、动画 (动画序列)、材质和贴图。您会发现创建用来包含动画的AnimationSequence  默认情况下是以这个骨架的根骨骼名称命名的。 
+   
+	![](AnimSequenceImported.png)
+
+
+[REGION:note]
+	虚幻编辑器支持非均匀缩放的动画。当导入一个动画时，如果存在缩放，那么它也会进行导入，不需要设置任何额外选项。处于内存考虑，引擎不会为所有动画保存缩放比例，仅当动画具有不止一个缩放比例时才保存它。
+	
+	请参考 [非均匀缩放动画](Engine\Animation\NonUniformScale)页面来获得更多信息及视频示例。
+[/REGION]
+
+
+
+
+

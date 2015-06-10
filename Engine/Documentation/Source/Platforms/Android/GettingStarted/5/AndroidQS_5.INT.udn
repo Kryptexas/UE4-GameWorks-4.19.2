@@ -1,0 +1,46 @@
+Availability:Public
+Title:5. Package Your Game
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:Package your game for installation.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+1.	Now, to push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled). If you are unsure what to select, use **ETC1**.
+
+	[REGION:raw]  
+	![](package_menu.png)
+	[/REGION]
+
+1.	You will be prompted for a save location for your packaged game, which should default to your project folder.
+	![](package_folder.png)
+1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+	![](package_toast.png)
+1.	Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
+1.	Navigate to the save location you just set. 
+1.	In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named `Android_DXT`. Open this folder.
+1.	**Double-click** on the `Install_[ProjectName]_Development.bat` batch file.
+	![](batch_file.png)
+1.	Your game is now installed and you can open it from your Apps drawer.
+
+
+
+%Steps%

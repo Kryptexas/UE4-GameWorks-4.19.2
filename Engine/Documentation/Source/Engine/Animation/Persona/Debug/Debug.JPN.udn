@@ -1,0 +1,26 @@
+﻿Availability:Public
+Title:ペルソナ (Persona) のデバッグ
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ (Persona) のアニメーション エディタのスケルトン ツリーのユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AssetBrowser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AssetBrowser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AssetBrowser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[INCLUDE:Engine/Blueprints/UserGuide/Debugging#debugtab]

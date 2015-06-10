@@ -1,0 +1,88 @@
+﻿INTSourceChangelist:2518095
+Availability: Public
+Title:콜렉션
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저 내에서의 콜렉션 사용법에 대한 문서입니다.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CollectionsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Collections:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Collections]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+	
+
+## 개요
+
+![CB_Collections.png](CB_Collections.png)
+
+[EXCERPT:Collections]
+콜렉션을 통해 애셋들의 집합을 폴더처럼 개인적으로 정의된 그룹으로 정리해 넣을 수 있습니다. 예를 들어 일정한 비주얼 스타일에 맞는 배경 관련 스태틱 메시들 전부를 콜렉션으로 만들어 두면 나중에 빠르게 열어볼 수 있습니다.
+
+내부적으로 콜렉션은 그저 주어진 애셋에 대한 레퍼런스 리스트일 뿐으로, 애셋 자체가 콜렉션 안으로 이동되는 것은 아닙니다. 즉 하나의 애셋이 다수의 콜렉션에 있을 수 있으며, 콜렉션은 원하는 만큼 많이 만들 수 있습니다.
+[/EXCERPT:Collections]
+
+[REGION:note]
+	**주**: 콜렉션 패널은 기본으로 켜있지 않을 수 있습니다. 콜렉션 패널을 열려면, **뷰 옵션** 드롭다운 메뉴 아래 **콜렉션 표시** 를 클릭하면 됩니다.
+[/REGION]
+![](ViewCollections.png)
+
+
+## 콜렉션 만들기
+
+첫 콜렉션을 만들려면, 콜렉션 패널 우상단 구석의 콜렉션 추가 아이콘을 **좌클릭** 하고 이름을 입력합니다.
+
+![](AddNewCollections.png)
+
+첫 콜렉션 생성 이후, 콜렉션 추가는 **콜렉션** 패널에 **우클릭** 한 다음 새 콜렉션 이름을 입력해 주기만 하면 됩니다.
+
+![](Collections_New.png)
+
+
+
+## 콜렉션 유형
+
+콜렉션에는 세 가지 유형이 있는데, 그 이름 옆의 작은 글자로 알 수 있습니다.
+
+* **L** - Local, 로컬 콜렉션으로 자신의 컴퓨터에서만 사용할 수 있는 콜렉션입니다.
+* **S** - Shared, 공유 콜렉션으로 다른 사용자에게 보이는 콜렉션입니다.
+* **P** - Private, 개인 콜렉션으로 초대를 받은 사람만 볼 수 있는 콜렉션입니다.
+
+[REGION:note]
+**공유** 와 **개인** 콜렉션은 메인 에디터 [개인설정](Engine/UI/EditorSettings) 에서 소스 콘트롤을 켜뒀을 때만 사용할 수 있습니다.
+[/REGION]
+
+
+## 콜렉션에 애셋 레퍼런스 추가하기
+
+콜렉션에 애셋 레퍼런스를 추가하는 작업은 간단한데, 해당 애셋을 끌어 콜렉션에 놓기만 하면 됩니다.
+
+![](AddingReferencesToACollection.png)
+
+## 콜렉션에서 애셋 레퍼런스 제거하기
+
+애셋 레퍼런스를 제거하려면 하나 이상의 애셋을 선택한 다음 우클릭하여 뜨는 맥락 메뉴에서 **Remove from Collection** (콜렉션에서 제거)를 선택하기만 하면 됩니다. 그런다고 애셋이 실제로 지워지는 것은 아니며, 해당 애셋에 대한 레퍼런스만 그 콜렉션에서 제거하는 것입니다.
+
+![](RemovingAssetsFromCollections.png)
+
+[REGION:warning]
+콜렉션에서 애셋을 선택한 다음 **Delete** 키를 누르면 실제로 애셋을 완전히 삭제하는 것이 _가능합니다_. 확인하는 창이 뜨기야 하겠지만, 애셋을 _삭제_ 한다는 것은 완전히 지워버린 다는 것임에 유의하십시오. 콜렉션에서 애셋 레퍼런스만 없애려는 경우에는, 위에 설명된 방법대로 해 주시기 바랍니다.
+[/REGION]
+
+## 콜렉션 이름변경 및 삭제
+
+![](button_CollectionContextMenu.png)
+
+
+
+콜렉션 이름변경은 주어진 콜렉션에 우클릭한 다음 **이름변경** 을 선택하면 됩니다. 그리고서 원하는 이름을 새로 입력해 주기만 하면 됩니다.
+
+콜렉션을 삭제하려면, 우클릭 메뉴에서 **Delete** (삭제)를 선택하면 됩니다. 참고로 콜렉션은 실제 애셋으로의 레퍼런스일 뿐이기에, 콜렉션을 지운다고 콜렉션 안에 있는 애셋까지 지워지는 것은 아닙니다.
+

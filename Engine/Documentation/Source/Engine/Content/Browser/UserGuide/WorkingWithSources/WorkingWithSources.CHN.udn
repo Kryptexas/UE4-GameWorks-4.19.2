@@ -1,0 +1,92 @@
+﻿Availability: Public
+Title:源面板深入解析
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:本文介绍了在内容浏览器源面板中应用源文件夹的相关详情。
+	
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](SourcesPaneltopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/WorkingWithSources:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/WorkingWithSources]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+## 概述
+
+由于 **Sources（源）** 面板层次化地展现了您项目中的所有文件夹，所以知道在 **内容浏览器** 中访问这些文件夹中的资源的所有方法是非常重要的。
+
+
+![SourcesPanel.png](Engine/Content/Browser/UserGuide/WorkingWithSources/SourcesPanel.png)(h:400)
+
+关于 **Developer(开发者)** 文件夹的更多信息，请参照[](Engine/Content/Browser\UserGuide\DevelopersFolder)。
+
+## 切换源面板
+
+如果您愿意，您可以在应用 **内容浏览器** 时关闭 **Sources(源)** 面板。通过点击位于窗口顶部的 ![Collapse Button](Engine/Content/Browser/UserGuide/WorkingWithSources/icon_CollapseButton.png)按钮，您可以根据需要显示或隐藏 **Sources(源)** 面板。当您需要更多的屏幕空间或者当您在应用多个 **内容浏览器** 时，这是非常有用的。
+
+[REGION:note]
+	隐藏 **源** 面板时也会隐藏  **Collections(收藏夹)** 面板。
+[/REGION]
+
+
+##选择源
+
+资源视图仅能基于以下标准显示资源： 选中的源，任何过滤器及搜索关键字。因此，需要知道的很重要的一点是，要想查看源文件夹中的资源，您必须适当地选中该源文件夹。
+
+[REGION:note]
+	为了在多个文件夹中搜索资源，您必须选择您想搜索的所有文件夹。资源视图将不会显示任何未选中的文件夹中的资源。这意味着，为了搜索您的项目中的所有资源，您必须在源视图中选择所有项目文件夹(或者包含所有子项的父项文件夹)。
+[/REGION]
+
+同很多程序及操作系统中的文件夹及文件列表一样，可以应用以下这些按键组合：
+
+* **鼠标单击** - 使用选中的文件夹替换当前的选中项。
+* **Shift+单击** - 切换一个文件夹的选中状态。也可以用于区域选择一个起始文件夹和结束文件夹之间的所有文件夹。
+* **Ctrl+单击** - 切换一个文件夹的选中状态，但对没有单击到的文件夹没有任何影响。
+
+
+## 右键关联菜单
+
+如果您右击 **Sources(源)** 面板中的任何文件夹，则会出现以下关联菜单：
+
+
+|  名称  |  描述  |
+| -------- | ----------- |
+| **[New Folder(新建文件夹)](Engine/Content/Browser\UserGuide\Folders)** | 在当前选中的文件夹下创建一个新文件夹。|
+| [REGION:tablesection]文件夹选项[/REGION] ||
+| **[New Asset（新建资源）](Engine/Content/Browser\UserGuide\BrowserAssetCreation)** |打开另一个子菜单，该菜单显示了可以创建的各种资源类型。|
+| **Show in Explorer（在内容浏览器中显示）** | 在Windows浏览器中打开该文件夹。请参照下面的‘在Windows中浏览资源’部分。|
+| **Rename（重命名）** | 重命名选中的文件夹。|
+| **Set Color（设置颜色）** | 允许您设置选中文件夹的颜色，以便您进行更好的组织管理。|
+| [REGION:tablesection]批处理操作[/REGION] ||
+| **Save（保存）** | 保存所有新资源或者已经修改的资源及新文件夹。记得每次进行修改时都要执行此操作。|
+| **Delete（删除）** |删除当前选中的文件夹及其所有内容。|
+| **[Reference Viewer(引用查看器)](Engine/Content/Browser\ReferenceViewer)** | 显示到该文件夹的引用图表。|
+| **Fixed Up Redirectors in Folder（修复文件夹中的重定向）** |查找到该选中文件夹中所有重定向器的引用，并在可能的情况下重新保存它们，然后删除所有已经修复了引用者的重定向器。|
+| [REGION:tablesection]Source Control（源码控制）(仅当在关卡编辑器的 [偏好设置](Engine/UI/EditorSettings)中激活了源码控制设置时这些选项才可用)[/REGION] ||
+| **Check Out（迁出）** | 将选中文件夹标记为"迁出状态"，以锁定它，防止其他用户编辑它。|
+| **Mark For Add（标记为添加）** | 标记选中文件为添加状态，以添加到源码控制服务器中。|
+| **Check In（迁入）** | 提交所有编辑及新增内容，并解锁迁出的文件夹。|
+| **Sync（同步）** | 将该文件夹中的所有资源同步为最新版本。|
+
+关于设置及使用源码控制的更多信息，请参照 [](Engine/UI/SourceControl)。
+
+## 移动和复制
+
+您可以通过在 **源** 面板中拖拽并放置选中的文件夹来将文件夹从一个位置移动或复制到另一个位置。当您这样做时，将会出现以下关联菜单：
+
+
+
+|  名称  |  描述  |
+| -------- | ----------- |
+| [REGION:tablesection]移动/复制[/REGION] ||
+| **Copy Folder Here（复制文件夹到这里）** | 在目标文件夹内创建一个选中文件夹的副本。|
+| **Move Folder Here（移动文件夹到这里）** | 将文件夹移动到新的位置处，这意味着在原始位置处将不再存在该文件夹。|

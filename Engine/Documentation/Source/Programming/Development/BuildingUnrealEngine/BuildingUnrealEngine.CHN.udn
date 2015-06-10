@@ -1,0 +1,238 @@
+﻿Availability:Public
+Title:编译虚幻引擎
+Crumbs: %ROOT%, Programming, Programming/Development
+Description:编译虚幻引擎。
+
+%Globals:OSSelect%
+
+[TOC (start:2 end:3)]
+
+## 设置虚幻引擎
+
+[EXCERPT:Main]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		在继续前请确认您使用的是Microsoft Visual Studio 2013。
+		[/REGION]
+
+		在您使用虚幻引擎大干一场之前，先完成几个基本设置步骤:
+
+		1.	运行根目录下的`GenerateProjectFiles.bat`批处理文件。
+
+			[REGION:warning]
+				所有的项目文件，甚至虚幻引擎4解决方案都为中间文件-位于`[UE4Root]\Engine\Intermediate\ProjectFiles`。您必须在每次同步新版本时都生成这些文件，确保这些文件存在且为最新。这同时意味着如果您删除您的`Intermediate`文件夹，您必须使用以上提到的批处理文件重新生成项目文件。
+			[/REGION]
+
+		1.	打开根目录下的Visual Studio解决方案`UE4.sln`文件。这是整个引擎的主要Visual Studio解决方案。引擎核心和游戏的项目都包含在此解决方案内。
+
+		1.	**右键** 单击 **UE4** （虚幻4）项目并选择 **Set As StartUp Project** （设置为启动项目）。
+
+		1.	保存`UE4.sln`。确认您已经保存了所有对文件的变更，这样下次您打开解决方案时，您不用再次重新操作一遍。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		在继续前请确认您使用的是Xcode 5.1。
+		[/REGION]
+
+		在您开始使用引擎大干一场前，您需要项目文件以供编译： 
+		
+		1. 运行位于根目录的`GenerateProjectFiles.command`。您只需不到一分钟的时间就可以完成。
+		
+		1. 在操作完成后，关闭终端窗口。
+
+		1. 打开位于根目录的`UE4.xcodeproj` Xcode项目。这是整个引擎的主要项目。引擎核心、工具和游戏都包含在此项目内。
+
+		1. 在Xcode中，对激活的模式选择 **UE4Editor - Mac** 以及 **My Mac 64-bit** 。
+
+	[/PARAM]
+[/OBJECT]
+
+
+## 编译虚幻引擎
+
+虚幻引擎4通过UnrealBuildTool来使用自定义版本模式。此工具处理所有编译引擎的复杂操作及所有相关操作。
+
+### 编译配置
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		默认情况下不会出现所有配置文件。编辑主虚幻引擎4目录的[GenerateProjectFiles.bat](Programming/UnrealBuildSystem/ProjectFileGenerator)文件来生成项目文件以获得所需的额外配置。
+
+		虚幻引擎4和UnrealBuildTool使用不同的版本配置来决定引擎如何被编译。使用何种配置将会由您创建版本的目的来决定。
+
+		可用的配置有：
+
+		|编译配置 | 描述 |
+		|-------------|-------------|
+		| **Debug** （调试）| 该配置在调试模式中同时编译引擎和游戏代码。|
+		|  **DebugGame** （调试游戏）| 该配置按最优方式编译引擎，但游戏代码可被调试。此配置对于仅使用调试的游戏模块是非常有用的。|
+		|  **Development** (开发）| 该配置等同于发布。引擎和游戏代码都将在此配置中被编译。|
+		| **Shipping** （发行)|该配置在设置后可达到最佳性能并能发行您的游戏。此配置剥离了控制台命令行，统计数据和分析工具。|
+		| **Test** (测试）| 该配置就是启用了一些控制台命令，统计数据和分析工具后的 **Shipping** （发行）配置。|
+
+		编译配置可在Visual Studio工具条中进行设置。
+
+		![UE4 Solution - Configuration Menu](configuration_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		可用的配置有：
+
+		|编译配置 | 描述 |
+		| ------------------- | ----------- |
+		|**Product（产品） > Build For（编译） > Running（运行）**| 该配置在调试模式中同时编译引擎和游戏代码。|
+		|  **Product（产品） > Build For （编译）> Profiling（分析）**| 该配置等同于发布。引擎和游戏代码都将在此配置中被编译。|
+		
+	[/PARAM]
+[/OBJECT]
+
+### 对象平台
+
+虚幻引擎4当前支持以下平台：
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Windows 32位**
+		* **Windows 64位**
+
+
+		在构建引擎时，您将使用 **Win64** 平台。
+
+		![UE4 Solution - Platform Menu](platform_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Mac 64位**
+		* **iOS设备**
+
+
+		在构建引擎时，您将使用 **Mac64位** 平台。
+	[/PARAM]
+[/OBJECT]
+
+(#BinaryNamingConvention)
+### 二进制文件命名规则
+
+根据编译时使用的配置不同，生成的二进制名称也不同。一般的命名规则是：
+
+|引擎模式 | 命名规则 |
+|----------- | ------------------|
+| Editor	  | UE4Editor-Platform-Configuration.extension |
+| Uncooked Game | UE4-Platform-Configuration.extension |
+
+这个准则的例外情况是PC平台，在编译开发配置时，会省略平台和配置。举例来说，为Win64平台生成的编辑器可执行文件的名称包括：
+
+| 配置 | EXE名称 |
+| ------------- | -------- |
+| Debug | UE4Editor-Win64-Debug.exe |
+| DebugGame | UE4Editor-Win64-DebugGame.exe |
+| Development | UE4Editor.exe |
+
+
+### 编译引擎
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1.	设置 **Build Configuration** （编译配置文件）为您想要编译的配置。在本示例中，它被设置为 **Development** （开发）。请参照 [编译配置](#编译配置) 章节以获得每个可用配置的描述。
+
+			![UE4 Solution - Set Configuration to Development](config_development_menu.png)
+
+		1.	**右击** **UE4** 项目: 
+
+			1. 选择 **清除** 来移除任意已编译或临时文件。这样将可以确保下一个版本为完全的重新编译版本。
+
+			1.	选择 **重新编译** 来重新编译引擎。
+
+		或者，如果 **UE4** 项目仍被设置为您的启动项目：
+
+		1. 设置 **Build Configuration** （编译配置）。
+
+		1. 在 **Build** （编译）菜单：
+
+			1. **Clean UE4** （清除UE4）。
+	
+			1. **Rebuild UE4** （重新编译UE4）。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1. 请确认当前激活的模式为 **UE4Editor - Mac > My Mac 64-bit** 。
+
+		1. 在 **product** （产品）菜单，选择 **Build For > Running** （编译 > 运行）。
+	[/PARAM]
+[/OBJECT]
+
+[/EXCERPT:Main]

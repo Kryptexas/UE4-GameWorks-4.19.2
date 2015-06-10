@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title:NotBlueprintable
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description:
+Availability:Public
+Version:4.5
+
+ブループリントを作成するための基本クラスとして許容不可としてクラスを設定します。それ以外を継承していない限り、初期設定は NotBlueprintable です。これはサブクラスで継承されます。

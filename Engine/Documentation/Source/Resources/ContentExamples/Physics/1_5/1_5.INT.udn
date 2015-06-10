@@ -1,0 +1,69 @@
+Availability: Public
+Title:1.5 - PhysicsContraints
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
+Description:An overview of the Physics example level, example 1.5: PhysicsContraints
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+	![](physics_1_5_001.png)
+[/REGION]
+
+
+[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
+
+In the content example, working from left to right:
+
+1. Swings freely on its first axis, has a 45 degree limit on the 2nd, and is locked on the "twist" axis.
+
+1. This cube is has a free motion on **Angular Swing 2Motion**, and locked on the others.
+
+1. Free on **Twist**, locked on the others.
+
+1. The last cube is free on all axes.
+
+
+
+
+
+

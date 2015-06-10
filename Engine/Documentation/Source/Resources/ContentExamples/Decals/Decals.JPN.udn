@@ -1,0 +1,74 @@
+﻿INTSourceChangelist:2410153
+Availability:Public
+Title:デカール
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:デカールの事例概要
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals:title%](Decals_3.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Decals]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals:title%](Decals_3.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Decals]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 概要
+
+[REGION:fullwidth]
+
+[/REGION]
+
+**デカール** 事例レベルへようこそ!ここではレベルでのデカールの使用方法について説明します。 
+
+デカール アクタを作成するには、**[クラス ビューア]**パネルからデカール アクタをドラッグ & ドロップします。
+
+![](DecalActorList.png)
+
+この後、デカール マテリアルを適用するだけです。デカール マテリアルは通常のマテリアルであり、その**Material Domain** プロパティは _Deferred Decal_ に設定されています。
+
+![](DeferredDecalSetting.png)
+
+[INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
+
+## 例
+
+[REGION:topics third]
+%Resources/ContentExamples/Decals/1_1:TopicCompact%
+%Resources/ContentExamples/Decals/1_2:TopicCompact%
+%Resources/ContentExamples/Decals/1_3:TopicCompact%
+%Resources/ContentExamples/Decals/1_4:TopicCompact%
+%Resources/ContentExamples/Decals/1_5:TopicCompact%
+%Resources/ContentExamples/Decals/1_6:TopicCompact%
+%Resources/ContentExamples/Decals/1_7:TopicCompact%
+[/REGION]
+
+
+## 関連トピックと参考文献
+
+* [Decals](Engine/Actors/DecalActor)

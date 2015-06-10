@@ -1,0 +1,47 @@
+﻿Availability:Docs
+Title:1.2 - 天候
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/WeatherSelector
+Description: 天候セレクター事例レベルの概要　例 1.2:天候
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/WeatherSelector/1_2:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/WeatherSelector/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/WeatherSelector/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/WeatherSelector/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/WeatherSelector/1_2:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/WeatherSelector/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/WeatherSelector/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/WeatherSelector/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+[/REGION]

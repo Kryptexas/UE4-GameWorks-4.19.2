@@ -14,7 +14,7 @@ FIOSTargetPlatform::FIOSTargetPlatform()
 {
 #if WITH_ENGINE
 	FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
-	TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
+	TextureLODSettings = nullptr; // TextureLODSettings are registered by the device profile.
 	StaticMeshLODSettings.Initialize(EngineSettings);
 #endif // #if WITH_ENGINE
 
@@ -296,8 +296,6 @@ bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
 /* ITargetPlatform interface
  *****************************************************************************/
 
-#if WITH_ENGINE
-
 static bool SupportsES2()
 {
 	// default to supporting ES2
@@ -338,6 +336,28 @@ static bool CookASTC()
 	return bCookASTCTextures;
 }
 
+bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const
+{
+	switch (Feature)
+	{
+		case ETargetPlatformFeatures::Packaging:
+			return true;
+			
+		case ETargetPlatformFeatures::LowQualityLightmaps:
+			return SupportsES2() || SupportsMetal();
+			
+		case ETargetPlatformFeatures::HighQualityLightmaps:
+			return SupportsMetalMRT();
+		default:
+			break;
+	}
+	
+	return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
+}
+
+
+#if WITH_ENGINE
+
 
 void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
@@ -361,7 +381,6 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	}
 }
 
-
 void FIOSTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
 {
 	GetAllPossibleShaderFormats(OutFormats);
@@ -380,8 +399,6 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 		FName(TEXT("DXT5n")),	FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalAG")),
 		FName(TEXT("BC5")),		FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalRG")),
 		FName(TEXT("AutoDXT")),	FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
-		FName(TEXT("BC6H")),	FName(TEXT("RGBA16F")),		FName(TEXT("RGBA16F")),
-		FName(TEXT("BC7")),		FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
 	};
 
 	FName TextureFormatName = NAME_None;
@@ -395,7 +412,7 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 	// if we didn't assign anything specially, then use the defaults
 	if (TextureFormatName == NAME_None)
 	{
-		TextureFormatName = GetDefaultTextureFormatName(Texture, EngineSettings);
+		TextureFormatName = GetDefaultTextureFormatName(Texture, EngineSettings, false);
 	}
 
 	// perform any remapping away from defaults
@@ -428,9 +445,9 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 }
 
 
-const FTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
+const UTextureLODSettings& FIOSTargetPlatform::GetTextureLODSettings() const
 {
-	return TextureLODSettings;
+	return *TextureLODSettings;
 }
 
 
@@ -441,3 +458,4 @@ FName FIOSTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 }
 
 #endif // WITH_ENGINE
+

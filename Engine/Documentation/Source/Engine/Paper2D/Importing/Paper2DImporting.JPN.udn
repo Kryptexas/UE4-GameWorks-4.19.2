@@ -1,0 +1,85 @@
+﻿INTSourceChangelist:2514961
+Title:Paper 2D のインポートオプション
+Crumbs: %ROOT%, Engine, Engine/Paper2D
+Description:サードパーティアプリケーションからPaper 2D で使用するアセットをインポートする方法 
+Availability:Public
+Related:Engine\Paper2D\Sprites
+Related:Engine\Paper2D\Flipbooks
+Related:Engine\Paper2D\TileMaps
+
+
+[TOC (start:2 end:2)]
+
+## 概要
+
+アンリアルエンジンに搭載されている **Paper 2D** は、ユーザーが外部で作成したコンテント向けにさまざまなインポートオプションをサポートしています。一般的に使用されているコンテント作成アプリケーションからのアセットのインポート方法を以下にいくつか紹介します。 
+
+
+##TexturePacker からコンテントをインポートする方法
+
+コンテント作成にサードパーティスプライトシート生成ツール、 **Texture Packer** を使用している場合は、 **「.paper2dsprites」** ファイルを作成してコンテントをアンリアルエンジン4へ簡単にインポートが出来る内蔵プラグインがあります。このファイルは、UE4 へのインポート時にスプライトシートをテクスチャとして自動的にインポート、スプライトの抽出と作成に加えて、スプライトから **Flipbooks** の自動生成に使用できる **Sprite Asset** を作成します。 
+
+**ワークフロー例**
+
+1.	 **Texture Packer** で **UnrealEngine - Paper2d** フレームワークオプションを選択します。 
+
+	![](NewProjectTP.png)(w:640)
+
+1.	スプライトシートに含めるアセットを追加します。 
+
+	![](Assets_Added.png)(w:640)
+
+1.	 **Layout** セクションで **Size Constraints** を **POT (Power of 2)** に設定します。 
+
+1.	 **Sprites** セクションで「show advanced（高度なオプションを表示」して **Border** と **Shape Padding** を **0** に設定します。 
+
+	![](ExportSettings.png)(w:800)
+
+	これによりスプライト間のスペースを削除して、スプライトのタイル処理を行ったり、 **Flipbook** アニメーションを簡単に作成することができます。 
+
+1.	 **Publish** スプライトオプションをクリックします ( **.png** スプライトシートと一緒に **「.paper2dsprites」** ファイルを作成します) 
+
+1.	 **「.paper2dsprites」** ファイルをプロジェクトの **コンテンツブラウザ** にドラッグしてインポートします。 
+
+	![](DragAndDrop.png)(w:800)
+
+	「 .png 」ファイルはすでに「.paper2dsprites 」ファイルに含まれているため、このファイルをインポートする必要はありません。 
+
+1.	 **Sprite Sheet** アセットと **Frames** (抽出したスプライト) と **Textures** (ユーザーのスプライトシート)2つのフォルダを作成します。 
+
+	![](ContentAdded.png)
+
+ここからは以下の対象を **右クリック** してさまざまな操作ができます...
+
+* **Sprite Sheet** アセットを右クリックして、スプライトに基づく **Flipbooks** を自動生成。 
+* インポートしたテクスチャを右クリックして、テクスチャの設定、レトロスプライトを構成、またはこれに基づく **Tile Set** を作成。 
+* 個別にフレームを右クリックして、これを **Flipbook** へ手動で追加。 
+
+
+## Tiled / Adobe Flash CS6からインポートする方法
+
+**Tiled** や **Adobe Flash CS6** などの外部コンテント生成ツールを使用してコンテントをビルドしている場合は、これまでの作業内容を **「.json」** ファイルフォーマットでアンリアルエンジン4へインポートすることができます。マップの作成に使用したスプライトシートを自動的にインポートして、これらのアセットに基づく **Tile Sets** と **Tile Map** を作成します。 
+
+**Tiled のワークフロー例**
+
+1.	**Tiled** で File/Save As オプションを選んで、 [Save as type] オプションに  **「.json」** を選択します。 
+	[REGION:lightbox]
+	[![](TiledExport.png)(w:640)](TiledExport.png)
+	[/REGION]
+
+	_フルサイズ表示にはここをクリック_ 
+
+1.	「 **.json** 」アセットをプロジェクトの **コンテンツブラウザ** へドラッグ＆ドロップします。 
+
+	![](JSONImport.png)(w:640)
+
+1.	ユーザーのスプライトシートテクスチャをインポートして、これらのテクスチャから **Tile Sets** と **Tile Map** を作成します。 
+
+	![](JSONAssets.png)
+
+	作成した **Tile Map** を開くと、アンリアルエンジン4内部で修正が出来る外部で作成したマップが表示されます。 
+
+
+
+
+

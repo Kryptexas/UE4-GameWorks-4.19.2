@@ -1,0 +1,28 @@
+Availability: Docs
+Title:1.2 - Blocking Volume
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:An overview of the Volumes example level, example 1.2: Blocking Volume
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_2:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+This is simple invisible collision we use to block off areas the player should not have access or to smooth out collision in the environment that is not good enough with just the simple collision from the Static Meshes.

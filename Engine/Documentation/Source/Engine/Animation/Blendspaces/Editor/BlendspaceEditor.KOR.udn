@@ -1,0 +1,180 @@
+INTSourceChangelist:2170734
+Availability:Public
+Title: 블렌드 스페이스 편집하기
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:복잡한 다중입력 애니메이션 블렌딩을 위해 블렌드 스페이스에 샘플 파라미터와 애니메이션 샘플을 셋업하는 방법 안내서입니다.
+
+
+[VAR:topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/BlendSpaces/Editor:title%](Engine/Animation/BlendSpaces/edit.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/BlendSpaces/Editor:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/BlendSpaces/Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/BlendSpaces/Editor]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:banner]
+![Blendspace Editor](bs_editor_banner.png)(convert:false)
+[/REGION]
+
+[EXCERPT:overview]
+**Blend Space Editor**, 블렌드 스페이스 에디터는 _블렌드 스페이스_ 의 _블렌드 파라미터_ 설정은 물론 
+샘플 포즈의 위치를 그래픽으로 보며 편집하고, 그 샘플 포즈간의 블렌딩 결과를 대화식으로 
+확인할 수도 있습니다.
+[/EXCERPT:overview]
+
+[TOC(start:2)]
+
+## 인터페이스
+
+![](TestBlendShape.png)(w:720)
+
+1. **Parameters** - _블렌드 스페이스_ 셋업을 위한 _블렌드 파라미터_ 프로퍼티 부분입니다.
+1. **Samples** - _블렌드 스페이스_ 의 모든 샘플 편집가능 목록입니다.
+1. **Options** - _블렌드 스페이스_ 에 대한 미리보기 옵션입니다.
+1. **Graph** - 샘플을 놓고 그 블렌딩을 미리보기 위한 2D 그래프입니다.
+
+
+## 파라미터 셋업
+
+_블렌드 스페이스_ 에 대한 파라미터의 셋업은 UI 의 **파라미터** 부분에서 이루어집니다.
+
+![Blendspace Parameters](bs_params.png)
+
+[INCLUDE:Engine/Animation/Blendspaces#BlendParameters]
+
+각각의 블렌드 파라미터에 적합한 값을 설정한 뒤, ![Apply Parameter Changes](button_apply_changes.png) 버튼을 누르면 
+_블렌드 스페이스_ 에 값이 적용되고, **그래프** 가 업데이트됩니다.
+
+![](BlendSpaceSetup.png)
+
+## 샘플 포즈 작업하기
+
+[INCLUDE:Engine/Animation/Blendspaces#SampleData]
+
+### 샘플 추가하기
+
+**애셋 브라우저** 에서 _애니메이션 시퀀스_ 를 **그래프** 에 끌어놓는 방식으로 
+_블렌드 스페이스_ 에 샘플을 추가합니다.
+
+[REGION:note]
+_에임오프셋 블렌드스페이스_ 작업을 할 때, _애니메이션 시퀀스_ 는 반드시 **Additive Anim Type** 을 
+_AAT_RotationOffsetMeshSpace_ 로 설정해 둬야 샘플로 추가할 수 있습니다.
+[/REGION]
+
+![](BlendShapeDragDrop.png)(w:720)
+
+**그래프** 내 위치에 노드가 놓입니다:
+
+![Sample node](bs_sample_node.png)
+
+### 샘플 위치조정
+
+샘플의 위치 이동은 대화식 또는 수동식으로 가능합니다. 대화식 이동은 
+매우 직관적이나 수동식에 비해 정확도가 떨어집니다.
+
+**대화식 샘플 이동:**
+
+**그래프** 에서 노드를 클릭하고 끕니다:
+
+![Move Sample by Dragging](bs_sample_move_drag.png)(convert:false)
+ 
+**수동식 샘플 이동:**
+
+노드를 클릭한 다음 노드를 위치시킬 **X**, **Y** 값을 지정합니다:
+
+![Move Node Manually](bs_sample_move_manual.png)
+
+### 샘플 대체
+
+_블렌드 스페이스_ 에 놓은 샘플은 _드래그 앤 드롭_ 또는 UI 의 **샘플** 부분을 통해 다른 샘플로 
+대체 가능합니다.
+
+**_드래그 앤 드롭_ 대체:**
+
+**그래프** 의 샘플을 대체하려면, **애셋 브라우저** 에서 새로운 _애니메이션 시퀀스_ 를 기존 노드에 
+직접 끌어다 놓습니다.
+
+[REGION:fullwidth]
+![Replace Sample by Dragging](bs_sample_replace_drag.png)(convert:false)
+[/REGION]
+
+[REGION:imagetable]
+| ![Original Sample](bs_sample_replace_before.png)(h:220) |  ![Replaced Sample](bs_sample_replace_after.png)(w:175 h:220) |
+| ------ | ------ |
+| 원래 샘플 | 대체된 샘플 |
+[/REGION]
+
+**수동식 대체:**
+
+**샘플** 부분의 샘플을 대체하려면 **콘텐츠 브라우저** 에서 새로운 _애니메이션 시퀀스_ 를 선택한 다음 
+목록에 있는 샘플에 대해 ![Use Selected Asset](button_use_selected.png) 버튼을 누릅니다.
+
+[REGION:note]
+	이 경우 반드시 콘텐츠 브라우저에서 애니메이션 시퀀스를 선택해야 합니다. 페르소나의 **애셋 브라우저** 에서는 애셋을 선택해도 읽지 _않습니다_.
+[/REGION]
+
+![Select New Animation](bs_sample_replace_manual_select.png)(convert:false)
+
+![Replace Sample Manually](bs_sample_replace_manual.png)(convert:false)
+
+### 샘플 제거
+
+UI 의 **샘플** 부분을 사용하거나 아니면 **그래프** 에서 바로 샘플을 지울 수 있습니다.
+
+**그래프에서 삭제하려면:**
+
+**그래프** 의 Sample 노드를 선택하여 편집창을 띄운 다음 ![Delete](button_delete.png) 버튼을 눌러
+샘플을 제거합니다.
+
+![Remove Sample in Graph](bs_sample_remove.png)(convert:false)
+
+**샘플 섹션에서 삭제하려면:**
+
+목록에서 제거할 샘플에 대해 ![Remove Sample](button_clear_reference.png) 버튼을 누릅니다.
+
+![Remove Sample Manually](bs_sample_remove_manual.png)(convert:false)
+
+## 미리보기
+
+포즈간의 블렌딩 결과는 **그래프** 를 사용하여 **페르소나** 의 **뷰포트** 패널에서 대화식으로 
+미리볼 수 있습니다. 커서의 위치가 블렌딩을 하는 데 사용되는 **X**, **Y** 파라미터 값을 결정하며,
+그 결과 포즈가 **뷰포트** 패널에 표시됩니다.
+
+_블렌드 스페이스_ 미리보기를 켜려면, UI 의 **옵션** 부분에서 **블렌드 스페이스 미리보기 켜기** 옵션을 
+체크합니다.
+
+![Enable Preview Blendspace Option](bs_options_preview.png)
+
+미리보기를 켠 후, **그래프** 에서 커서를 움직이면 그 위치에 따라 블렌딩되는 포즈가 **뷰포트** 패널에 
+표시됩니다. 커서가 들어있는 그리드 블록은 음영 표시되고,
+블록을 이루는 샘플 지점 사이의 블렌딩을 나타내는 값이 표시됩니다.
+
+![Graph Grid Block](bs_samples_block.png)
+
+커서 위치와 블렌딩중인 샘플 관련 상세 정보를 확인하려면 **툴팁 표시 켜기** 옵션을 
+체크하면 됩니다.
+
+![Enable Tooltip Display Option](bs_options_tooltip.png)
+
+![Graph Tooltip](bs_samples_tooltip.png)
+
+[REGION:caption]
+**우클릭 - 다른 이름으로 저장으로 비디오를 내려받을 수 있습니다.**
+[/REGION]
+
+[![](PlayBlendSpaceVideo.png)(w:640)](BlendSpace.mp4)

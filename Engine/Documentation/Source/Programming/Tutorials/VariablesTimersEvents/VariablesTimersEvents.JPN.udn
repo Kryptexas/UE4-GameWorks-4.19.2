@@ -1,0 +1,73 @@
+﻿INTSourceChangelist:2489335
+Availability:Public
+Title:変数、タイマー、イベント
+Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
+Description:変数と関数をエディタに公開、タイマーの使用、C++関数をブループリントでオーバーライド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](newclass_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Tutorials\VariablesTimersEvents:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Tutorials\VariablesTimersEvents]
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Tutorials\VariablesTimersEvents:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](newclass_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Programming\Tutorials\VariablesTimersEvents:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming\Tutorials\VariablesTimersEvents]
+	[/PARAM]
+	[PARAM:description]
+		%Programming\Tutorials\VariablesTimersEvents:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+このチュートリアルは、変数と関数をエディタに公開、コード実行を遅延またはリピートするためにタイマーを使用、アクタ間のコミュニケーションにイベントを使用する方法を紹介します。
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	V3IygewkowM
+	[/PARAMLITERAL]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming\Tutorials\VariablesTimersEvents\1 "%Programming\Tutorials\VariablesTimersEvents\1:description%")
+	* [](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:description%")
+	* [](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:description%")
+	* [](Programming\Tutorials\VariablesTimersEvents\4 "%Programming\Tutorials\VariablesTimersEvents\4:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

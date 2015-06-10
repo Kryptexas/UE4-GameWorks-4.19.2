@@ -1,0 +1,680 @@
+Availability: Public
+Title:FBX Skeletal Mesh Pipeline
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Setting up, exporting, and importing Skeletal Meshes using the FBX content pipeline.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## Overview
+
+[EXCERPT:FBX_SkeletalMeshes]
+_Skeletal Mesh_ support in the FBX import pipeline provides a streamlined workflow for getting animated meshes 
+from 3D applications into Unreal for use in games. In addition to the meshes being imported, animations and 
+morph targets can be transferred using the FBX format all within the same file if desired. Also, the textures 
+(diffuse and normal map only) used in the materials applied to those meshes in the 3D application will be 
+imported and materials will be automatically created and applied to the imported meshes.
+[/EXCERPT:FBX_SkeletalMeshes]
+
+Features supported for importing Skeletal Meshes using FBX:
+
+
+* [Materials including textures](#Materials)
+* [Animations](#Animations)
+* [Morph Targets](#MorphTargets)
+* Multiple UV sets
+* Smoothing groups
+* [Vertex colors](#VertexColors)
+* [LODs](#SkeletalMeshLODs)
+
+
+[REGION:note]
+Currently, only a single animation for each _Skeletal Mesh_ can be imported in a single file. Multiple morph 
+targets can be transferred for a _Skeletal Mesh_ in one file, though.
+[/REGION]
+
+This page is a technical overview of using the FBX content pipeline to import Skeletal Meshes into Unreal. 
+See the [FBX Best Practices](Engine/Content/FBX/BestPractices) page for more information, tips, and tricks on working 
+with the FBX content pipeline in a development environment.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+
+[REGION:tip]
+In any case below where the document tells you to use the **Import Asset** button, you can also just click and drag an FBX file in from your OS's file browser.
+[/REGION]
+
+[REGION:tip]
+This page includes information on both Autodesk Maya and Autodesk 3ds Max, please choose your preferred content creation tool below and the information relevant only to the chosen tool will be displayed:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## General Setup
+
+
+
+### Single Mesh vs Multi-Part Mesh
+
+_Skeletal Meshes_ can be comprised of a single, contiguous mesh or they can be made up of several separate meshes 
+all skinned to the same skeleton. 
+
+![multipart.png](multipart.png)(w:750 convert:false)
+
+Using multiple meshes makes it possible to LOD individual parts differently as well as exporting parts separately 
+for use in modular character systems. There is no performance penalty for creating your _Skeletal Meshes_ this way. 
+The individual parts are all combined when being imported into Unreal Editor.
+
+
+### Rigging
+
+Rigging refers to the binding of a mesh to a skeletal hierarchy of bones/joints. This allows the bones/joints of the underlying skeleton to influence the vertices of the mesh, deforming it as they move.
+
+For Maya, you can find the [Animation & Rigging Tools](Engine/Content\Tools\MayaRiggingTool) in your UE4 Install Path\Engine\Extras\Maya_AnimationRiggingTools\MayaTools. These tools include a very in depth character rigging and animation solution for Maya.
+
+
+#### Skeleton
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaSkeleton]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxSkeleton]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSkeleton]
+How you go about creating skeletal hierarchies in 3dsMax is up to you. You may use the standard _Bones Tools_ as 
+they work quite well, or create your own hierarchy of objects to allow for completely custom geometry and controls. 
+There are many ways to skin a cat (pardon the pun) and tons of tutorials out there that show how to create animation 
+rigs for game characters. You can also refer to the 3dsMax Help for complete details on how the tools work.
+
+![max_rig.png](max_rig.png)(w:769)
+[/EXCERPT:maxSkeleton]
+
+
+[EXCERPT:mayaSkeleton]
+In Maya, you will generally use the _Joint Tool_ to create the skeleton for your _Skeletal Mesh_. Again, there are 
+endless tutorials on using this tool and creating rigs in Maya. The Maya help is also a good source of information 
+on the subject.
+
+[REGION:lightbox]
+[![maya_rig.png](maya_rig.png)(w:769)](maya_rig.png)
+
+_Skeletal density has increased dramatically since Unreal 3_
+[/REGION]
+[/EXCERPT:mayaSkeleton]
+-->
+
+#### Binding
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaBind]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxBind]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxBind]
+In 3dsMax, the mesh(es) must be bound to the skeleton using the _Skin_ modifier. The process is the same whether the 
+_Skeletal Mesh_ consists of a single complete mesh or is made up of multiple mesh parts.
+
+
+1. Select the mesh to be bound.   
+
+    ![max_skin_1.png](max_skin_1.png)(w:744)
+
+1. Add a _Skin_ modifier from the _Modifier List_.   
+
+    ![max_skin_2.jpg](max_skin_2.jpg)(w:175 h:202)
+
+1. In the Parameters rollout of the _Skin_ modifier, click the ![skin_add_button.jpg](skin_add_button.jpg) button to add the bones that will influence the mesh. The **Select Bones** window will open.   
+
+    ![max_skin_3.jpg](max_skin_3.jpg)(w:468 h:513)
+
+1. Select the bones in the **Select Bones** window and click the **Select** button to add the bones.   
+
+    ![max_skin_4.jpg](max_skin_4.jpg)(w:468 h:513)
+
+1. The bones are now displayed in the _Bones_ list of the modifier.   
+
+    ![max_skin_5.jpg](max_skin_5.jpg)(w:156 h:182)
+
+1. Now you can adjust the weights of the vertices of the mesh for each bone to determine which vertices are influenced by which bones and to what degree. This can be done using envelopes, directly entering the weights for the vertices, or whichever method you prefer.   
+
+    ![max_skin_6.png](max_skin_6.png)(w:744)
+[/EXCERPT:maxBind]
+
+
+[EXCERPT:mayaBind]
+In Maya, the mesh(es) are bound to the skeleton using the _Smooth Bind_ command. The process is the same whether 
+the _Skeletal Mesh_ consists of a single complete mesh or is made up of multiple mesh parts.
+
+
+1. Select the mesh(es) to be bound.   
+	
+	[REGION:lightbox]
+	[![maya_skin_1.png](maya_skin_1.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+	    
+1. **Shift** + Select the root joint of the skeleton.   
+
+    [REGION:lightbox]
+	[![maya_skin_2.png](maya_skin_2.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+
+1. Select _Smooth Bind_ from the _Skin > Bind Skin_ menu.   
+
+    ![maya_skin_3.jpg](maya_skin_3.jpg)(w:287 h:130)
+
+1. Now you can adjust the weights of the vertices of the mesh for each joint to determine which vertices are influenced by which bones and to what degree. This can be done using the _Paint Skin Weights Tool_ or whichever method you prefer.   
+
+    [REGION:lightbox]
+	[![maya_skin_4.png](maya_skin_4.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+[/EXCERPT:mayaBind]
+-->
+
+### Pivot Point
+
+The pivot point of the mesh in Unreal Engine determines the point around which any transformations (translation, 
+rotation, scale) will be performed. 
+
+![pivot.png](pivot.png)(w:769)
+
+The pivot point of a _Skeletal Mesh_ is always located at the root bone/joint of the skeleton. This means it does 
+not matter where the root of the skeleton is located within the scene. It will be as though it is at the origin 
+(0,0,0) when exporting from a 3D modeling application.
+
+![pivot_root.png](pivot_root.png)(w:769)
+
+
+### Triangulation
+
+Meshes in Unreal Engine must be triangulated as the graphics hardware only deals with triangles.
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+There are several ways you can ensure your mesh is triangulated.
+
+
+* Model the mesh with only tris - best solution, provides the most control over the end result.
+* Triangulate the mesh in the 3D app - good solution, allows cleanup and modification before export.
+* Allow the importer to triangulate the mesh - okay solution, allows no cleanup but can work for simple meshes.
+* Allow the FBX exporter to triangulate the mesh - okay solution, allows no cleanup but can work for simple meshes.
+
+
+**Note:** Allowing the FBX exporter to triangulate the mesh results in completely random smoothing when Split Non-Matching 
+Triangles is checked. Importing an FBX-triangulated mesh back into Maya and re-exporting shows proper smoothing. 
+
+It will always be best to manually triangulate the mesh in the 3D application, controlling the direction and placement of 
+edges. Automatic triangulation can lead to undesirable results.
+
+![tris_bad.jpg](tris_bad.jpg)
+
+
+### Creating Normal Maps
+
+Normal maps can be created for your meshes directly inside of most modeling applications by creating both a low-res render mesh and a high-res detail mesh.
+
+![SideBySide.jpg](SideBySide.jpg)
+
+The geometry of the high-res detail mesh is used to generate the normals for the normal map. Epic uses a workflow internally that introduces XNormal into the process and generally results in much better normals when rendering inside of Unreal Engine 4. For details on this process, see [](Engine/Content/Types/Textures/NormalMaps/Creation).
+
+
+### Materials
+
+The materials applied to meshes modeled in external applications will be exported along with the mesh and then imported into 
+Unreal. This streamlines the process as textures do not need to be imported separately in Unreal Ed, materials do not need 
+to be created and applied, etc. The import process is capable of performing all of these actions when using the FBX pipeline.
+
+These materials also need to be set up in a specific way, especially when the mesh has multiple materials or the order of the 
+materials on the mesh is important (i.e. for character models where material 0 needs to be the body and material 1 needs to be 
+the head).
+
+For complete details of setting up materials for export, see the [FBX Material Pipeline](Engine/Content/FBX/Materials) page.
+
+(#VertexColors)
+
+
+### Vertex Colors
+
+Vertex colors (one set only) for _Skeletal Meshes_ can be transferred using the FBX pipeline. No special setup is necessary.
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#ExportMesh)
+
+
+## Export Mesh from 3D App
+
+
+_Skeletal Meshes_ can be exported individually or multiple meshes can be exported to a single FBX file. The import pipeline will separate multiple _Skeletal Meshes_ into multiple assets within the destination package.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. Select the mesh(es) and bones to be exported in the viewport.   
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. In the _File_ menu, choose _Export Selected_ (or _Export All_ if you want to export everything in the scene regardless of selection).   
+
+    ![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. Choose the location and name for the FBX file to export the mesh(es) to and click the ![max_save_button.jpg](max_save_button.jpg) button.   
+
+    ![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. Set the appropriate options in the **FBX Export** dialog and then click the ![max_ok_button.jpg](max_ok_button.jpg) button to create the FBX file containing the mesh(es).   
+
+    ![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. Select the mesh(es) and joints to be exported in the viewport. 
+  
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. In the _File_ menu choose _Export Selection_ (or _Export All_ if you want to export everything in the scene regardless of selection).   
+
+    ![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. Choose the location and name for the FBX file to export the mesh(es) to and set the appropriate options in the **FBX Export** dialog and then click the ![maya_export_button.jpg](maya_export_button.jpg) button to create the FBX file containing the mesh(es).   
+
+    ![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+[/EXCERPT:mayaExport]
+
+-->
+
+(#ImportMesh)
+
+
+## Import Mesh 
+
+
+
+1. Click the ![](import_button.png) button in the **Content Browser**. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.   
+	
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+  
+	[REGION:note]
+		The path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+	[/REGION]
+   
+1. Choose the appropriate settings in the **FBX Import Options** dialog. The defaults should be sufficient when importing a mesh that does not share an existing Skeleton. See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
+	
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+
+	If the _Skeletal Mesh_ being imported shares an existing Skeleton, click the **Select Skeleton** dropdown menu and select the Skeleton asset from the list.
+
+	![FBX Skeletal Mesh Skeleton Browser](import_settings_skeletonbrowser.png)(h:480)
+ 
+1. Click the ![Import Button](button_import.png) button to import the mesh(es). The resulting mesh (as well as materials and textures if those options were enabled) are displayed in the **Content Browser** if the process was successful.   
+   
+	![](ImportedCharacter.png)
+   
+	By viewing the imported mesh within Persona, you can determine that the process worked as expected. 
+   
+	[REGION:lightbox]
+	[![](CharacterInPersona.png)(w:600)](CharacterInPersona.png)
+	[/REGION]
+
+
+(#MeshLODs)
+## Skeletal Mesh LODs
+
+
+_Skeletal Meshes_ can make use of levels of detail (LODs) in-game in order to limit the impact of meshes as they get farther 
+from the camera. Generally, this means each level of detail will have a reduced number of tris, simpler skeleton, and, perhaps, 
+a simpler material (or materials) applied to it.
+
+The FBX pipeline can be used to export/import these LOD meshes.
+
+
+### LOD Setup
+
+In general, LODs are handled by creating models of varying complexity going from the full-detail base mesh to the lowest-detail 
+LOD mesh. These should all be aligned and occupying the same space with the same pivot point and should all be skinned to the 
+same skeleton. It is also possible for _Skeletal Meshes_ to be made up of multiple individual meshes within the 3D application. 
+Each of these parts can have LODs independent of the rest of the mesh. This means that some parts can have simplified versions 
+in different LODs while other parts continue to use higher detail versions. Each LOD mesh can have completely different materials 
+assigned, including different amounts of materials. This means the base mesh could use multiple materials to give the desired 
+amount of detail up close, but the lower-detail meshes could use a single material since details will be less noticeable.
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. Select all of the meshes (base plus LODs - the order is not important) and then select the _Group_ command from the _Group_ menu.   
+
+    ![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:234)
+
+1. Enter a name for the new group in the dialog that opens and the click the ![max_lod_ok_button.jpg](max_lod_ok_button.jpg) button to create the group.   
+
+    ![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. Click the ![max_utilities_button.jpg](max_utilities_button.jpg) button to view the _Utilities_ panel and then choose the _Level of Detail_ utility. **Note:** You may need to click ![max_utility_more_button.jpg](max_utility_more_button.jpg) and select it from the list.   
+
+    ![max_lod_utility.jpg](max_lod_utility.jpg)(w:170 h:561)
+
+1. With the group selected, click the ![max_lod_create_button.jpg](max_lod_create_button.jpg) button to create a new LOD Set and add the meshes in the selected group to it. The meshes will automatically be ordered according to their complexity.   
+
+    ![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+
+[EXCERPT:mayaLODSetup]
+1. Select all of the meshes (base plus LODs) in order from the base LOD down to the last LOD. This is important so that they are added in the correct order in terms of complexity. Then select the _Level of Detail > Group_ command from the _Edit_ menu.   
+
+    ![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. You should now have the meshes all grouped under the LOD Group.   
+
+    ![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:213 h:150)
+[/EXCERPT:mayaLODSetup]
+-->
+
+#### Multi-Part LODs
+
+Setting up LODs for multi-part _Skeletal Meshes_ is almost identical to setting up LODs for a full mesh with the exception that 
+each individual part that has LODs will have an LOD group created for it. The process for setting up those individual LOD groups 
+is identical to the process outlined above.
+
+
+### Export LODs
+
+To export the _Skeletal Mesh_ LODs:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODExport]
+1. Select the Group(s) of meshes that comprise the LOD Set and the bones to be exported.   
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. Follow the same export steps used for the base mesh (described above in the [Export Mesh](#ExportMesh) section).
+[/EXCERPT:maxLODExport]
+
+
+[EXCERPT:mayaLODExport]
+1. Select the LOD Group(s) and the joints to be exported.   
+
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. Follow the same export steps used for the base mesh (described above in the [Export Mesh](#ExportMesh) section).
+[/EXCERPT:mayaLODExport]
+-->
+
+### Import LODs
+
+**Skeletal Mesh** LODs can be imported easily through the **Mesh Details** panel in **Persona** under **LOD Settings**. 
+
+1. Open the **Skeletal Mesh** you wish to apply an LOD to in **Persona** and go to the **Mesh** Tab. 
+1. In the **Mesh Details** panel, scroll down and find the **LOD Settings** section and click the **LOD Import** option. 
+
+	![](LOD_Import.png)
+1. Navigate to and select the FBX file you want to import in the file browser that opens. 
+
+	![](ImportFileBrowser.png)
+
+1. The imported LOD will be added to the **Mesh Details** panel.
+
+ 	![](LOD_Added.png)
+1. Under each LOD, the **Display Factor** setting indicates when to use the LOD. 
+
+	![](LODs_Set.png)
+	
+	**Note:** Using a smaller number means use the LOD when further away while larger numbers mean use the LOD when closer. 
+	In the image above, LOD0 is used when closer to the **Skeletal Mesh** while LOD1 is used when further away.
+
+1. When importing or adding LODs, **Reduction Settings** can also be adjusted for the LOD. 
+
+	![](LOD_ReductionSettings.png)
+
+
+<!-- Old Method, updated for TTP 340109 ----
+
+_Skeletal Mesh_ LODs can be imported along with the base mesh in the **Content Browser**.
+
+**Mesh with LODs**
+
+
+1. Click the ![](import_button.png) button in the **Content Browser** and choose _Import_. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.   
+	
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+  
+	[REGION:note]
+		The imported path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+	[/REGION]
+
+1. Choose the appropriate settings in the **Import** dialog. Make sure that _Import Mesh LODs_ is enabled. **Note:** When importing LODs, the name of the imported mesh will follow the default [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions). See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
+
+    ![](SkelMeshImportOptions.png)
+
+1. Click the ![Import Button](button_import.png) button to import the mesh and LODs. The resulting mesh (as well as materials and textures if those options were enabled) are displayed in the **Content Browser** if the process was successful.   
+
+    ![](ImportedCharacter.png)
+
+    By viewing the imported mesh in **Persona** you can cycle through the LODs using the ![](LODButton.png) button located at the top of the viewport.
+	
+**Individual LOD**
+
+1. Open the base mesh in **Persona** by double-clicking it in the Content Browser or right-clicking and choosing _Edit_ this will automatically open the **Persona** editor.   
+
+1. In the _File_ menu of **Persona**, select _Import Mesh LOD_.   
+
+    ![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:352 h:262)
+
+1. Navigate to and select the FBX file containing the LOD meshes in the file browser. **Note:** You may need to set the file format to ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) to see your file.   
+
+    ![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:611 h:363)
+
+1. In the **Import LOD** dialog, select the LOD level of the mesh you wish to import from the dropdown menu. Then press the ![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg) to import the LOD mesh.   
+
+    ![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:248 h:158)
+
+1. You will be notified if the import process was successful and the button for the LOD that was imported should be enabled in the ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) toolbar buttons.   
+
+    ![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:294 h:111)
+
+1. Repeat the process for each LOD mesh you want to import. 
+
+1. Once all LOD meshes have been imported, you can preview the LOD meshes by using the ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) buttons in the toolbar.
+
+--------->
+
+(#FbxExport)
+
+
+## Export to FBX from Unreal Editor
+
+
+_Skeletal Meshes_ previously imported into Unreal Editor can be exported back to an FBX file from within the **Content Browser**.
+
+[REGION:note]
+Assets in cooked packages cannot be exported as the source data which has been cooked out is required for the export process.
+[/REGION]
+
+1. In the **Content Browser**, select the _Skeletal Mesh_ you want to export.   
+
+    ![](SelectSkeletalMesh.png)
+
+1. **Right-click** on the _Skeletal Mesh_ and choose **Export**.   
+
+    ![](ExportMenu.png)
+
+1. Choose a location and name for the file to export in the file browser that appears. **Note:** make sure _FBX File (*.FBX)_ is selected as the file type.   
+
+    ![export_file.jpg](export_file.jpg)(w:625 h:434)
+
+
+
+## Physics Assets
+
+For complete details on using the Physics Asset Tool (PhAT), see the [Physics Asset Tool](Engine/Physics\PhAT) user documentation.
+
+## Animations
+
+
+For complete details on using the FBX content pipeline to create and import animations, see the [FBX Animation Pipeline](Engine/Content/FBX/Animations) page.
+
+
+(#MorphTargets)
+
+## Morph Targets
+
+
+For complete details on using the FBX content pipeline to create and import morph targets, see the [FBX Morph Target Pipeline](Engine/Content/FBX/MorphTargets) page.
+
+ 
+
+
+ 
+

@@ -339,7 +339,7 @@ namespace APIDocTool
 				Writer.EnterSection("examplecode", "Example Code");
 				foreach (string SnippetLine in SnippetLines)
 				{
-					Writer.WriteLine("\t" + SnippetLine + "  ");
+					Writer.WriteLine(SnippetLine + "  ");
 				}
 				Writer.LeaveSection();
 			}

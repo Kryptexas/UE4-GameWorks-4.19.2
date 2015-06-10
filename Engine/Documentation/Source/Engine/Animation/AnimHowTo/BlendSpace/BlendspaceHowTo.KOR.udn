@@ -1,0 +1,170 @@
+﻿INTSourceChangelist:2420416
+Availability: Public
+Title:블렌드 스페이스 만들기
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:블렌드 스페이스를 사용하여, 버튼이 눌리면 캐릭터를 걷기/뛰기 블렌딩합니다.
+Related: Engine/Animation/Blendspaces
+Related: Engine/Animation/NodeReference/Blend
+Related: Engine/Animation/CharacterSetupOverview
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Animation/StateMachines
+
+
+[블렌드 스페이스](Engine/Animation/Blendspaces) 는 **애님 그래프** 에서 샘플링 가능한 특수 애셋으로, 두 입력 값에 따라 애니메이션 블렌딩이 가능합니다. 단일 입력에 따른 두 애니메이션 사이의 단순 블렌딩은 _애니메이션 블루프린트_ 에서 사용할 수 있는 표준 [블렌드 모드](Engine/Animation/NodeReference/Blend) 중 하나를 사용하여 가능합니다. _블렌드 스페이스_ 는 (현재는 둘로 제한되어 있지만) 다수의 값에 따라 다수의 애니메이션에 대해 보다 복잡한 블렌딩을 할 수 있는 방편을 마련해 줍니다.
+
+여기서는 기존 캐릭터에 _블렌드 스페이스_ 를 적용하여 캐릭터의 이동 속력에 따라 걷기/뛰기 애니메이션을 블렌딩하도록 하겠습니다.
+
+
+[EXCERPT:Intro]
+[REGION:note]
+이 안내에서는 **시작용 콘텐츠** 포함 **블루프린트 삼인칭** 템플릿을 사용하여 새 프로젝트를 만들었습니다.
+
+**마켓플레이스** 를 통해 무료로 다운로드 가능한 **Animation Starter Pack** 도 사용하고 있습니다.
+
+![](Engine\Animation\AnimHowTo\AdditiveAnimations\AnimationAssetPack.png)
+
+다운로드한 이후에는, 런처의 **프로젝트에 추가** 버튼을 통해 프로젝트에 Animation Starter Pack 을 추가할 수 있습니다.
+[/REGION]
+[/EXCERPT:Intro]
+
+1.  프로젝트를 열고 **콘텐츠 브라우저** 안에서 **Game/Blueprints** 폴더 아래 **MyGame** 블루프린트를 엽니다.
+
+1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭하고 **ASP_Character** 를 선택합니다. 
+
+	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
+
+1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
+
+1.	**콘텐츠 브라우저** 에서 **생성** 버튼을 누른 다음 _애니메이션_ 아래 **블렌드 스페이스** 를 선택합니다.
+
+	![](BlendSpace1.png)(w:400)
+
+1.	**스켈레톤 선택** 창에서 **Game/AnimStaterPack/Character** 폴더에 있는 **HeroTPP_Skeleton** 를 선택합니다. 
+
+	![](BlendSpace2.png)(w:400)
+
+	_블렌드 스페이스_ 에 **Walk_Jog_BS** 같은 이름을 짓습니다. 
+
+	![](BlendSpace3.png)
+
+1.	**Walk_Jog_BS** 를 연 다음 중앙 창의 **Parameters** 섹션 아래 표시된 값을 입력합니다.
+
+	![](BlendSpace4.png)
+
+	**X Axis Label** 은 **Direction** 으로, 그 범위는 **-180 to 180** 으로 설정합니다. **Y Axis Label** 은 **Speed** 로, 그 범위는 **150 to 270** 으로 설정합니다. 값을 설정한 이후 **Apply Parameter Changes** 버튼을 누르면 왼쪽의 그리드 공간이 입력한 값으로 업데이트됩니다. 여기서는 (제공된 값으로 제한된) **Direction** 과 **Speed** 변수에 따라 _블렌드 스페이스_ 가 만들어 낼 모션을 결정할 파라미터를 정의하고 있으며, 이는 플레이어 캐릭터에서 구해오게 됩니다.
+
+1.	**애셋 브라우저** 창에서 **Walk_Fwd_Rifle_Ironsights** 애니메이션을 끌어 그래프의 중앙 하단 위치에 놓습니다.
+
+	![](BlendSpace5.png)
+
+1.	**Walk_Lt_Rifle_Ironsights** 애니메이션을 아래의 1 위치로, **Walk_Rt_Rifle_Ironsights** 애니메이션을 아래 2 위치로 끌어 놓습니다.
+
+	![](BlendSpace6.png)(w:640)
+
+1.	**Walk_Bwd_Rifle_Ironsights** 애니메이션을 아래 1, 2 위치로 끌어 놓습니다.
+
+	![](BlendSpace7.png)(w:640)
+
+1.	**Jog_Fwd_Rifle** 애니메이션을 그리드의 중앙 상단 위치로 끌어 놓습니다.
+
+	![](BlendSpace8.png)
+
+1.	**Jog_Lt_Rifle** 애니메이션을 아래 1 위치로, **Jog_Rt_Rifle** 애니메이션을 아래 2 위치로 끌어 놓습니다.
+
+	![](BlendSpace9.png)(w:640)
+
+1.	**Jog_Bwd_Rifle** 애니메이션을 아래 1, 2 위치로 끌어 놓습니다.
+
+	![](BlendSpace10.png)(w:640)
+
+	그리드 안에서 마우스를 움직이면, 캐릭터에 다양한 걷기/뛰기 애니메이션 블렌딩이 시작되는 것이 보일 것입니다.
+
+1.	**애님 애셋 디테일** 창 안에서 _Sample Interpolation_ 아래 **Target Weight Interpolation Speed Per Sec** 를 **4.0** 으로 설정합니다. 
+
+	![](BlendSpace11.png)
+
+	그러면 _블렌드 스페이스_ 의 애니메이션 사이의 전환을 부드럽게 하여 포즈에서 포즈 사이 튀는 현상이 방지됩니다.
+
+1.	**저장** 을 누른 다음 _블렌드 스페이스_ 를 닫고, **콘텐츠 브라우저** 에서 **ASP_HeroTPP_AnimBlueprint** 를 엽니다. 
+
+1.	_애니메이션 블루프린트_ 안에서 **내 블루프린트** 탭을 클릭한 다음, **애님 그래프** 를 펼치고 **Locomotion** 을 **더블클릭** 합니다. 
+
+	![](BlendSpace12.png)(w:640)
+
+	그러면 캐릭터의 애니메이션 상태를 돌리는 데 사용되는 [스테이트 머신](Engine/Animation/StateMachines) 이 열립니다.
+
+1.	**Jog** 스테이트를 **더블클릭** 하여 그래프를 엽니다.
+
+	![](BlendSpace13.png)(w:640)
+
+1.	**애셋 브라우저** 탭을 클릭한 다음, **Walk_Jog_BS** 를 끌어 그래프에 놓습니다.
+
+	![](BlendSpace14.png)(w:640)
+
+1.	**R_Jog** 를 **Walk_Jog_BS** _블렌드 스페이스_ 로 대체한 다음 **Direction** 과 **Speed** 를 **결과** 에 물려줍니다.
+
+	![](BlendSpace15.png)(w:640)
+
+1.	**컴파일**, **저장** 을 클릭한 다음 _애니메이션 블루프린트_ 를 닫습니다.
+
+1.	**콘텐츠 브라우저** 에서 **ASP_Character** _블루프린트_ 를 엽니다.
+
+1.	_블루프린트_ 를 열고 **Crouching** 섹션을 찾은 다음 **InputAction Crouch** 노드를 **C** Key Event 로 대체합니다. 
+
+	![](BlendSpace17.png)(w:640)
+
+	이 _애님 블루프린_ 는 **Crouch** 라는 **액션 매핑** 이 있을 것으로 기대하고 만들어졌는데, 새로운 프로젝트에는 존재하지 않기에 노랑 경고 신호를 없애기 위해 **C** Key Event 로 대체하여 플레이어가 C 키를 누르면 웅크릴 수 있도록 합니다.
+
+1.	**Pressed** 핀을 끌어 놓은 다음 **FlipFlop** 노드를 추가하고, 아래와 같이 **A** 와 **B** 핀을 연결합니다.
+
+	![](BlendSpace18.png)(w:640)
+
+	_FlipFlop_ 노드는 C 키를 처음 누르면 캐릭터를 웅크리도록, 두 번째 누르면 서도록 만드는 토글 역할을 합니다.
+
+1.	**내 블루프린트** 안에서 **Show inherited variables** (상속된 변수 표시) 박스를 클릭한 다음, **Ctrl** 키를 누르고 **CharacterMovement** 를 그래프에 끌어 놓습니다.
+
+	![](BlendSpace19.png)
+
+1.	그래프에 **CharacterMovement** 노드를 끌어 놓은 다음, **Set Max Walk Speed** 노드를 검색 추가하고 **125** 로 설정합니다. 
+
+1.	**Set Max Walk Speed** 노드를 복제한 다음 새 노드를 **150** 으로 설정한 뒤 아래와 같이 노드에 연결합니다.
+
+	![](BlendSpace20.png)
+
+1.	_Crouch_ 섹션 아래, 그래프에 **우클릭** 한 다음 **Left Shift** Key Event 를 추가합니다. 
+
+1.	**Pressed** 핀을 끌어 놓은 다음 **Branch** (분기) 노드를 추가한 뒤, **Released** 핀에서도 **Branch** 노드를 추가합니다.
+
+1.	둘 다의 **Condition** 에는, **Crouch Button Down** 변수를 **Ctrl** 클릭하여 끌어 놓은 다음 양쪽 **Condition** 핀에 연결합니다.
+
+	![](BlendSpace21.png)
+
+1.	_Crouch_ 섹션에서 **CharacterMovement** 와 **Set Max Walk Speed** 노드를 복제합니다.
+
+1.	각 **Branch** (분기)의 **False** 핀에서 아래와 같이 연결한 다음 **Max Walk Speed** 값을 **270** 과 **150** 으로 설정합니다. 
+
+	![](BlendSpace22.png)
+
+1.	_블루프린트_ 우상단의 **디폴트** 탭을 클릭합니다.
+
+1.	검색창에 **Max Walk Speed** 를 입력한 다음, **Max Walk Speed** 를 **150** 으로, **Max Walk Speed Crouched** 를 **125** 로 설정합니다. 
+
+	![](BlendSpace23.png)
+
+1.	**컴파일**, **저장** 을 클릭한 다음 _블루프린트_ 를 닫고 **플레이** 를 클릭하여 에디터에서 플레이합니다.
+
+에디터에서 플레이하면 **WASD** 키로 움직이며, 캐릭터는 기본적으로 걸어다니다가 방향을 바꾸면 걷기 애니메이션이 블렌딩됩니다. **C** 키를 누르면 웅크리고, 캐릭터는 서서 걸을 때보다 약간 감소된 속도로 웅크린 자세를 유지하며 걷습니다. 서 있을 때 WASD 키를 누르며 **왼쪽 Shift** 를 누르고 있으면 캐릭터가 걷기/조준 애니메이션에서 낮춘/조준 뛰기 애니메이션으로 블렌딩되어, 사실상 캐릭터의 "질주" 자세가 됩니다.
+
+
+
+
+	
+
+
+
+
+	
+
+
+
+

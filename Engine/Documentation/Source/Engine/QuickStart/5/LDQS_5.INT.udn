@@ -1,0 +1,56 @@
+﻿Availability: Public
+Title:5. Running the Build Process
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:With a number of Actors placed and customized, one of the final steps for creating any level is the Build Process.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/QuickStart/4 "%Engine/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/QuickStart/6 "%Engine/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+![](Engine\QuickStart\5\beforeBake.png)(w:940)
+
+By now you have noticed the "Preview" labels in the shadows and the light leaking under walls. This is because all the lights in the scene are static and use precomputed, or baked lighting, which has not been calculated yet. The "Preview" text is there to remind you that what you are seeing in the viewport currently is not what you will see in the game. To get the scene looking better, we need to run the **Build** process.
+
+**Building** in Unreal Editor is fairly straight forward: choose your quality setting and click the ![**Build**](Engine\QuickStart\6\build_button.png) button.
+
+
+
+1. To choose your quality level, click the ![**Down Arrow**](Engine\QuickStart\6\downArrow_button.png) next to the ![**Build**](Engine\QuickStart\6\build_button.png) button to expand the **Build Options** then expand the **Lighting Quality** menu:
+
+	![](Engine\QuickStart\6\buildSettings.png)
+
+1. Set the **Quality Level** to **Production**.
+
+	[REGION:note]
+	Before beginning a **Build**, remember, it can take a while on larger levels. Our small hut may not take too long, but a scene with hundreds of lights that covers many square kilometers will take substantially longer.
+	[/REGION]
+
+1. Click the ![**Build**](Engine\QuickStart\6\build_button.png) button.
+1. Wait for the **Build** to complete.
+
+	![](Engine\QuickStart\6\wait.png)
+
+1. When it completes, your lighting should automatically update:
+
+![](Engine\QuickStart\6\built.png)(w:940)
+
+
+Finally, remember that **Player Start** you placed? If you hit the ![**Play**](Engine\QuickStart\6\play_button.png) button, you will be able to fly around your level using the **Mouse** and **WASD** keys. While in Play mode, your game is actually running and the renderer is exactly the same thing you would see in a stand alone client.
+
+%Steps%

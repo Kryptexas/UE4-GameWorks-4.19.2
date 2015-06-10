@@ -1,0 +1,681 @@
+﻿INTSourceChangelist:2511767
+Availability: Public
+Title:FBX 스켈레탈 메시 파이프라인
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX 콘텐츠 파이프라인을 사용하여 스켈레탈 메시를 임포트, 익스포트하고 셋업하는 방법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 개요
+
+[EXCERPT:FBX_SkeletalMeshes]
+FBX 임포트 파이프라인의 스켈레탈 메시가 지원되어, 효율적인 방식으로 게임에서 사용할 애니메이션 메시를 
+3D 어플리케이션에서 언리얼로 구해올 수 있게 되었습니다. 임포트되는 메시에 더해, 애니메이션과 모프 타겟도 원한다면 
+모두 같은 파일 안에서 FBX 포맷으로 전송할 수 있습니다. 
+또한 3D 어플리케이션에서 그 메시에 적용되었던 머티리얼에 사용된 텍스처( 디퓨즈와 노멀맵만이긴 해)도 
+임포트하여 머티리얼을 자동으로 만든 다음 임포트된 메시에 적용합니다.
+[/EXCERPT:FBX_SkeletalMeshes]
+
+FBX 를 사용한 스켈레탈 메시 임포트에 지원되는 것들은:
+
+
+* [텍스처 포함 머티리얼](#머티리얼)
+* [애니메이션](#애니메이션)
+* [모프 타겟](#모프타겟)
+* 여러 UV 세트
+* 스무딩 그룹
+* [버텍스 컬러](#VertexColors)
+* [LOD](#스켈레탈메시LOD)
+
+
+[REGION:note]
+현재 각 스켈레탈 메시에 대해 하나의 애니메이션만 하나의 파일로 임포트할 수 있습니다. 
+다만 한 스켈레탈 메시에 대한 여러 모프 타겟은 한 파일로 전송할 수 있습니다.
+[/REGION]
+
+이 문서는 언리얼 에디터로 스켈레탈 메시를 임포트하기 위해 FBX 콘텐츠 파이프라인을 사용하는 법에 대한 기술적인 개요서입니다.
+개발 환경에서 FBX 콘텐츠 파이프라인 작업에 관련된 자세한 정보, 팁과 꼼수에 대해서는 
+[FBX 우수 사례](Engine/Content/FBX/BestPractices) 페이지를 확인하시기 바랍니다.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+
+[REGION:tip]
+이 문서에서 **애셋 임포트** 버튼을 누르라는 경우, 그냥 OS 의 파일 브라우저에서 FBX 파일을 클릭하여 끌어 놓아도 됩니다.
+[/REGION]
+
+[REGION:tip]
+이 페이지에는 Autodesk Maya 와 Autodesk 3ds Max 모두에 대한 정보가 포함되어 있습니다. 아래에서 선호하는 툴을 선택하시면 그 툴에 관련된 정보만 표시됩니다:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 일반 셋업
+
+
+
+### 단일 메시 vs 다조각 메시
+
+스켈레탈 메시는 하나의 연속적인 메시로, 아니면 모두 동일한 스켈레탈 메시에 스키닝된 여러 개의 메시로 
+이루어질 수도 있습니다.
+
+![multipart.png](multipart.png)(w:750 convert:false)
+
+여러 개의 메시를 사용하면 LOD 를 각 부분마다 다르게 할 수도 있고, 모듈식 캐릭터 시스템에서 사용할 부분을 
+별도로 익스포트할 수도 있습니다. 스켈레탈 메시를 이런 식으로 만든다고 별도의 퍼포먼스 비용이 드는 것은 아닙니다. 
+언리얼 에디터로 임포트될 때 모든 각각의 부분이 합쳐집니다.
+
+
+### 리깅
+
+리깅(Rigging)이란 메시를 본/조인트의 스켈레탈 계층구조에 바인딩하는 것을 말합니다. 그렇게 하면 아래 놓인 스켈레톤의 본/조인트가 움직이면서 메시의 버텍스를 변형(deform)시키는 식으로 영향을 끼치게 할 수 있습니다.
+
+UE4 인스톨 경로\Engine\Extras\Maya_AnimationRiggingTools\MayaTools 안에 마야용 [애니메이션 & 리깅 툴](Engine/Content\Tools\MayaRiggingTool) 을 찾을 수 있습니다. 이 툴을 통해 마야에서 매우 자세한 캐릭터 리깅과 애니메이션 솔루션이 가능합니다.
+
+
+#### 스켈레톤
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaSkeleton]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxSkeleton]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSkeleton]
+3dsMax 에서 스켈레탈 계층구조를 어떻게 만들 것인가는 여러분께 달렸습니다. 아주 잘 돌아가는 
+표준 _Bones Tools_ 를 사용해도 되고, 완전 자신만의 모양으로 제어되는 자체 오브젝트 계층구조를 만들어도 됩니다. 
+스키닝 방법은 많이 있으며, 게임 캐릭터의 애니메이션 릭을 만드는 법에 대한 튜토리얼도 쌓여 있습니다. 
+툴 작동법에 대한 세부적인 내용은 3dsMax 도움말을 참고해도 됩니다.
+
+![max_rig.png](max_rig.png)(w:769)
+[/EXCERPT:maxSkeleton]
+
+
+[EXCERPT:mayaSkeleton]
+마야에서는 스켈레탈 메시용 스켈레톤을 만드는 데 보통 _Joint Tool_ 을 사용합니다. 
+여기서도 물론, 마야 툴 사용법이나 릭 제작법 관련 튜토리얼은 셀 수도 없습니다. 
+마야 도움말 역시 괜찮은 정보원입니다.
+
+[REGION:lightbox]
+[![maya_rig.png](maya_rig.png)(w:769 convert:false)](maya_rig.png)
+
+_스켈레탈 밀도는 언리얼 3 이후 극적으로 늘어나고 있습니다._
+[/REGION]
+[/EXCERPT:mayaSkeleton]
+-->
+
+#### 바인딩
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaBind]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxBind]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxBind]
+3dsMax 에서, 메시는 _Skin_ 모디파이어를 사용하여 스켈레톤에 바인딩해야 합니다. 스켈레탈 메시가 
+하나의 온전한 메시로 되어 있든, 여러 메시 조각으로 기워져 있든, 절차는 같습니다.
+
+
+1. 바인딩할 메시를 선택합니다.   
+
+    ![max_skin_1.png](max_skin_1.png)(w:744)
+
+1. _Modifier List_ 에서 _Skin_ 모디파이어를 추가합니다.   
+
+    ![max_skin_2.jpg](max_skin_2.jpg)(w:175 h:202)
+
+1. _Skin_ 모디파이어의 Parameters 롤아웃(펼쳐나오는 부분)에서, ![skin_add_button.jpg](skin_add_button.jpg)버튼을 클릭하여 메시에 영향을 끼칠 본을 추가합니다. **Select Bones** 창이 열릴 것입니다.   
+
+    ![max_skin_3.jpg](max_skin_3.jpg)(w:468 h:513)
+
+1. **Select Bones** 창에서 본을 선택한 다음 Select 버튼을 클릭하여 본을 추가합니다.   
+
+    ![max_skin_4.jpg](max_skin_4.jpg)(w:468 h:513)
+
+1. 본이 모디파이어의 _Bones_ 목록에 표시됩니다.   
+
+    ![max_skin_5.jpg](max_skin_5.jpg)(w:156 h:182)
+
+1. 이제 각 본에 대한 메시의 버텍스 웨이트를 조절하여 어느 버텍스가 어느 본에 어느 정도로 영향받는지를 결정할 수 있습니다. 이 작업은 엔벨롭이든 버텍스 웨이티를 직접 입력해서든 다른 어떤 방법으로든 좋을 대로 해 주면 됩니다.   
+
+    ![max_skin_6.png](max_skin_6.png)(w:744)
+[/EXCERPT:maxBind]
+
+
+[EXCERPT:mayaBind]
+마야에서는, _Smooth Bind_ 명령을 사용하여 메시를 스켈레톤에 바인딩합니다. 
+스켈레탈 메시가 하나의 온전한 메시로 되어 있든, 여러 메시 조각으로 기워져 있든, 절차는 같습니다.
+
+
+1. 바인딩할 메시를 선택합니다.   
+	
+	[REGION:lightbox]
+	[![maya_skin_1.png](maya_skin_1.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+	    
+1. 스켈레톤의 루트 조인트를 Shift + 선택합니다.   
+
+    [REGION:lightbox]
+	[![maya_skin_2.png](maya_skin_2.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+
+1. _Skin > Bind Skin_ 메뉴에서 _Smooth Bind_ 를 선택합니다.   
+
+    ![maya_skin_3.jpg](maya_skin_3.jpg)(w:287 h:130)
+
+1. 이제 각 본에 대한 메시의 버텍스 웨이트를 조절하여 어느 버텍스가 어느 본에 어느 정도로 영향받는지를 결정할 수 있습니다. 이 작업은 _Paint Skin Weight Tool_ 이든 다른 어떤 방법으로선 좋을 대로 해 주면 됩니다.   
+
+    [REGION:lightbox]
+	[![maya_skin_4.png](maya_skin_4.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+[/EXCERPT:mayaBind]
+-->
+
+### 피벗 포인트
+
+언리얼 엔진 내 메시의 피벗 포인트는 트랜스폼(트랜슬레이션, 
+로테이션, 스케일)이 이루어지는 중심점을 결정합니다.
+
+![pivot.png](pivot.png)(w:769)
+
+스켈레탈 메시의 피벗 포인트는 항상 스켈레톤의 루트 본/조인트에 위치합니다. 
+즉 스켈레톤의 루투는 씬 어디에 있어도 상관 없다는 뜻입니다. 그렇기에 3D 모델링 어플리케이션에서 
+익스포트할 때 원점(0,0,0)에 있습니다.
+
+![pivot_root.png](pivot_root.png)(w:769)
+
+
+### 트라이앵글화
+
+그래픽 하드웨어는 트라이앵글만 취급하기에 언리얼 엔진의 메시는 트라이앵글화 시켜야 합니다.
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+메시를 확실히 트라이앵글화 시키는 방법은 여럿 있습니다.
+
+
+* 메시 모델링을 트라이로만 - 최상책으로, 최종 결과물에 최고의 콘트롤이 가능합니다.
+* 3D 앱에서 매시를 트라이앵글화 - 차선책으로, 익스포트 전 정리(cleanup)와 변경이 가능합니다.
+* 임포터가 메시를 트라이앵글화 - 그럭저럭, 정리는 안되지만 단순 메시에는 괜찮을 수 있습니다.
+* FBX 익스포터가 메시를 트라이앵글화 - 그럭저럭, 정리는 안되지만 단순 메시에는 괜찮을 수 있습니다.
+
+
+**주:** FBX 익스포터가 메시를 트라이앵글화 시킬 수 있도록 하면, Split Non-Matching Triangles (불일치 트라이앵글 분할) 옵션을 
+켰을 때 스무딩이 완전히 뒤섞입니다. FBX 트라이앵글화된 메시를 Maya 로 도로 임포트한 뒤 다시 익스포트하면 스무딩이 제대로 나옵니다.
+
+3D 어플리케이션에서는 항상 에지의 방향과 위치를 조절하여 메시를 수동으로 트라이앵글화해 주는 것이 좋습니다. 
+자동 트라이앵글화는 바람직하지 못한 결과가 날 수 있습니다.
+
+![tris_bad.jpg](tris_bad.jpg)
+
+
+### 노멀맵 만들기
+
+메시에 대한 노멀맵은 저해상도 렌더 메시와 고해상도 디테일 메시를 둘 다 만드는 식으로 대부분의 모델링 어플리케이션 안에서 직접 만들 수 있습니다.
+
+![SideBySide.jpg](SideBySide.jpg)
+
+고해상도 디테일 메시의 지오메트리는 노멀 맵의 노멀을 생성하는 데 사용됩니다. 에픽 내부적인 작업방식에서는 이 프로세스에 XNormal 을 도입하며, 일반적으로 언리얼 엔진 4 안에서 렌더링할 때 훨씬 나은 노멀이 생성됩니다. 이 프로세스 관련 상세 내용은 [](Engine/Content/Types/Textures/NormalMaps/Creation) 문서를 참고해 주시기 바랍니다.
+
+
+### 머티리얼
+
+외부 어플리케이션에서 모델링한 메시에 적용된 머티리얼은 메시와 함께 익스포트된 다음 언리얼 에디터로 임포트됩니다. 
+텍스처를 따로 언리얼 에디터에 임포트한다거나, 머티리얼을 만들어서 적용한다거나 할 필요가 없으니, 그 과정이 
+효율화됩니다. FBX 파이프라인 사용시 임포트 과정에서 이러한 모든 작업을 해줄 수 있습니다.
+
+이 머티리얼은 특정한 방식으로 셋업해 줄 필요도 있는데, 메시에 머티리얼이 여러 개 있거나 메시에 있는 머티리얼의 
+순서가 중요하거나 할 때 (즉 머티리얼 0 은 몸통이 되고 머티리얼 1 은 머리가 되어야 하는 모델인 경우) 특히나 
+그렇습니다.
+
+익스포트용 머티리얼 셋업 관련 자세한 내용은 [FBX 머티리얼 파이프라인](Engine/Content/FBX/Materials) 페이지를 참고하시기 바랍니다.
+
+(#VertexColors)
+
+
+### 버텍스 컬러
+
+스켈레탈 메시용 버텍스 컬러는 (한 세트만) FBX 파이프라인을 사용하여 전송 가능합니다. 별다른 셋업은 필요치 않습니다.
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#ExportMesh)
+
+
+## 3D 앱에서 메시 익스포트
+
+
+스켈레탈 메시는 개별적으로 익스포트하거나 여러 메시를 하나의 FBX 파일로 익스포트할 수도 있습니다. 임포트 파이프라인은 여러 개의 스켈레탈 메시를 대상 패키지 안에 여러 개의 애셋으로 나누어 넣습니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. 뷰포트에서 익스포트할 메시와 본을 선택합니다.   
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. _File_ 메뉴에서 _Export Selected_ (또는 선택된 것과 상관없이 씬에 있는 모든 것을 익스포트하려면 _Export All_) 를 선택합니다.   
+
+    ![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 메시를 익스포트할 FBX 파일 위치와 이름을 선택한 다음 ![max_save_button.jpg](max_save_button.jpg)버튼을 클릭하십시오.   
+
+    ![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. **FBX Export** 대화창에서 적절한 옵션을 선택한 다음 ![max_ok_button.jpg](max_ok_button.jpg)버튼을 클릭하여 메시를 담는 FBX 파일을 만듭니다.   
+
+    ![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 뷰포트에서 익스포트할 메시와 조인트를 선택합니다. 
+  
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. _File_ 메뉴에서 _Export Selection_ (또는 선택된 것과 상관없이 씬에 있는 모든 것을 익스포트하려면 _Export All_) 를 선택합니다.   
+
+    ![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. 메시를 익스포트할 FBX 파일 위치와 이름을 선택한 다음 **FBX Export** 대화창에서 옵션을 적절히 선택해 주고 ![maya_export_button.jpg](maya_export_button.jpg)버튼을 눌러 메시를 담는 FBX 파일을 만듭니다.   
+
+    ![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+[/EXCERPT:mayaExport]
+
+-->
+
+(#ImportMesh)
+
+
+## 메시 임포트
+
+
+
+1. 콘텐츠 브라우저에서 ![](button_new.png) 버튼을 클릭한 다음 _임포트_ 를 선택합니다. 열리는 파일 브라우저에서 임포트하려는 FBX 파일 위치로 찾아가 선택합니다. **주:** 불필요한 파일을 걸러내려면 드롭다운에서 ![import_fbxformat.jpg](import_fbxformat.jpg) 를 선택하면 됩니다.   
+
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+
+	[REGION:note]
+			임포트된 애셋의 경로는 임포트시 콘텐츠 브라우저의 현재 위치에 따라 달라집니다. 임포트 전 적절한 폴더로 이동해 주시기 바랍니다. 물론 임포트 완료 후 임포트된 애셋을 새로운 폴더로 끌어 옮겨도 됩니다.
+	[/REGION]
+  
+1. **FBX Import Options** 대화창에서 적절히 세팅해 줍니다. 기존 스켈레톤을 공유하지 않는 메시를 임포트하는 경우 디폴트 세팅으로 충분할 것입니다. 모든 세팅에 대한 세부적인 내용은 [FBX 임포트 대화창](Engine/Content/FBX/ImportOptions) 부분을 참고하시기 바랍니다.
+	
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+
+	임포트중인 스켈레탈 메시가 기존 스켈레톤을 공유한다면, **스켈레톤 선택** 드롭다운 메뉴를 클릭하고 리스트에서 스켈레톤 애셋을 선택합니다.
+
+	![FBX Skeletal Mesh Skeleton Browser](import_settings_skeletonbrowser.png)(h:480)
+ 
+1. ![Import Button](button_import.png) 버튼을 눌러 메시를 임포트합니다. 임포트에 성공하면 콘텐츠 브라우저에 결과 메시(는 물론 옵션을 켠 경우 머티리얼과 텍스처 역시)가 표시됩니다.
+   
+	![](ImportedCharacter.png)
+   
+	페르소나에서 임포트된 메시를 살펴보면, 임포트가 제대로 되었는지 확인할 수 있습니다.
+   
+	[REGION:lightbox]
+	[![](CharacterInPersona.png)(w:600)](CharacterInPersona.png)
+	[/REGION]
+
+
+(#MeshLODs)
+## 스켈레탈 메시 LOD
+
+
+스켈레탈 메시가 카메라에서 멀어져 감에 따라 그 영향력을 제한하기 위해, 게임내 레벨 오브 디테일(LOD) 을 
+활용할 수 있습니다. 일반적으로 각 레벨 오브 디테일에는 트라이앵글 수도 적고, 
+스켈레톤도 단순하며, 적용된 머티리얼(들)도 단순하게 마련이라는 뜻입니다.
+
+이러한 LOD 메시를 익스포트/임포트하는 데 FBX 파이프라인을 사용할 수 있습니다.
+
+
+### LOD 구성
+
+일반적으로 풀-디테일의 베이스 메시에서 최저-디테일의 LOD 메시에 이르기까지, 복잡도가 다양한 모델을 만들어 LOD 를 
+처리합니다. 이들 모두 같은 기준점으로 정렬되어 같은 공간을 차지하면서, 모두 같은 스켈레톤에 입히(skin)기도 해야 합니다. 
+3D 어플리케이션에서 다수의 개별 메시로 스켈레탈 메시를 이루는 것도 가능합니다. 이들 각 부분에 나머지 메시와 다른 
+LOD 를 갖게 할 수 있습니다. 즉 일부는 각기 다른 LOD 버전을 사용하면서 일부는 높은 디테일 버전을 계속 사용할 수 있는 
+것입니다. 각 LOD 메시에 완전히 다른 머티리얼을, 그 갯수 조차 달리 해서 할당할 수도 있습니다. 즉 베이스 메시는 여러 
+머티리얼을 통해 확대시 바라는 만큼의 디테일을 낼 수 있도록 하면서도, 디테일이 눈에 띄지 않는 부분에는 단일 머티리얼을 
+사용하여 낮은 디테일 메시를 사용할 수도 있습니다.
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. 모든 메시를 (베이스와 LOD, 순서와 무관하게)선택한 다음 _그룹_ 메뉴의 _그룹_ 명령을 선택합니다.   
+
+    ![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:234)
+
+1. 열리는 대화창에 새 그룹 이름을 입력하고 ![max_lod_ok_button.jpg](max_lod_ok_button.jpg) 버튼을 눌러 그룹을 만듭니다.   
+
+    ![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. ![max_utilities_button.jpg](max_utilities_button.jpg)버튼을 눌러 _유틸리티_ 패널을 띄운 다음 _레벨 오브 디테일_ 유틸티를 선택합니다. **주:** ![max_utility_more_button.jpg](max_utility_more_button.jpg)를 클릭한 다음 목록에서 선택해 줘야 할 수도 있습니다.   
+
+    ![max_lod_utility.jpg](max_lod_utility.jpg)(w:170 h:561)
+
+1. 그룹을 선택한 상태로 ![max_lod_create_button.jpg](max_lod_create_button.jpg)버튼을 눌러 새로운 LOD 세트를 만들고, 선택된 그룹에 있는 메시를 추가합니다. 메시의 순서는 복잡도에 따라 자동으로 결정됩니다.   
+
+    ![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+
+[EXCERPT:mayaLODSetup]
+1. 모든 메시를 (베이스와 LOD) 베이스에서 마지막 LOD 까지 순서대로 선택합니다. 순서대로 추가되니 복잡도 순서를 유지하기 위해서는 중요합니다. _편집_ 메뉴에서 _레벨 오브 디테일 > 그룹_ 명령을 선택합니다.   
+
+    ![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. LOD Group 아래 모든 메시가 그룹되어 있을 것입니다.   
+
+    ![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:213 h:150)
+[/EXCERPT:mayaLODSetup]
+-->
+
+#### 다조각 LOD
+
+다조각 스켈레탈 메시용 LOD 구성 작업은, LOD 를 가진 개별 조각마다 
+LOD 그룹이 있다는 점만 제외하고는, 풀 메시용 LOD 구성 작업과 거의 같습니다. 
+그 개별 LOD 그룹 구성 과정도 위에 서술한 과정과 같습니다.
+
+
+### LOD 익스포트
+
+스켈레탈 메시 LOD 를 익스포트하려면:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODExport]
+1. 익스포트할 LOD 세트와 본을 이루는 메시 그룹을 선택합니다.   
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. 베이스 메시에 사용한 (위의 [메시 익스포트](#ExportMesh) 부분) 익스포트 절차를 그대로 따릅니다. 
+[/EXCERPT:maxLODExport]
+
+
+[EXCERPT:mayaLODExport]
+1. 익스포트할 LOD 그룹과 조인트를 선택합니다.   
+
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. 베이스 메시에 사용한 (위의 [메시 익스포트](#ExportMesh) 부분) 익스포트 절차를 그대로 따릅니다.
+[/EXCERPT:mayaLODExport]
+-->
+
+### LOD 임포트
+
+**스켈레탈 메시** LOD 는 **페르소나** 의 **메시 디테일** 패널 내 **LOD 세팅** 아래에서 쉽게 임포트할 수 있습니다.
+
+1. **페르소나** 에서 LOD 를 적용하고자 하는 **스켈레탈 메시** 를 연 다음 **메시** 탭으로 갑니다.
+1. **메시 디테일** 패널에서 창 스크롤을 내려 **LOD 세팅** 섹션에서 **LOD 임포트** 옵션을 클릭합니다.
+
+	![](LOD_Import.png)
+1. 열리는 파일 탐색기에서 임포트하고자 하는 FBX 파일을 찾아 선택합니다.
+
+	![](ImportFileBrowser.png)
+
+1. 임포트된 LOD 가 **메시 디테일** 패널에 추가됩니다.
+
+ 	![](LOD_Added.png)
+1. 각 LOD 아래 **Display Factor** 세팅은 언제 LOD 를 사용할지를 나타냅니다.
+
+	![](LODs_Set.png)
+	
+	**주:** 수치가 작을 수록 멀리 있을 때 LOD 를 사용하고, 클 수록 가까이 있을 때 LOD 를 사용합니다.
+	위 그림에서 LOD0 은 **스켈레탈 메시** 에 가까이 있을 때 사용되는 반면, LOD1 은 멀리 있을 때 사용됩니다.
+
+1. LOD 를 임포트 또는 추가할 때, **Reduction Settings** (감소 세팅)으로 LOD 를 조정할 수도 있습니다.
+
+	![](LOD_ReductionSettings.png)
+
+
+<!-- Old Method, updated for TTP 340109 ----
+
+_스켈레탈 메시_ LOD 는 **콘텐츠 브라우저** 에서 베이스 메시와 함께 임포트 가능합니다.
+
+**메시와 LOD**
+
+
+1. 콘텐츠 브라우저에서 ![](button_new.png) 버튼을 클릭하고 _임포트_ 를 선택합니다. 열리는 파일 브라우저에서 임포트하려는 FBX 파일 위치로 이동하여 선택홥니다. **주:** 필터를 적용하려면 ![import_fbxformat.jpg](import_fbxformat.jpg) 드롭다운을 선택하면 됩니다.   
+	
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+  
+	[REGION:note]
+		임포트된 애셋의 경로는 임포트시 콘텐츠 브라우저의 현재 위치에 따라 달라집니다. 임포트 전 적절한 폴더로 이동해 주시기 바랍니다. 물론 임포트 완료 후 임포트된 애셋을 새로운 폴더로 끌어 옮겨도 됩니다.
+	[/REGION]
+
+1. **Import** 대화창에 적절한 세팅을 선택합니다. _Import Mesh LODs_ 가 켜져있는지 확인합니다. **주:** LOD 를 임포트할 때, 임포트하는 메시 이름은 기본 [작명 규칙](Engine/Content/FBX/ImportOptions#NamingConventions) 을 따릅니다. 모든 세팅에 대한 상세 설명은 [FBX Import 대화창](Engine/Content/FBX/ImportOptions) 부분을 참고하시기 바랍니다.   
+
+    ![](SkelMeshImportOptions.png)
+
+1. ![Import Button](button_import.png) 버튼을 눌러 메시와 LOD 를 임포트합니다. 임포트에 성공하면 콘텐츠 브라우저에 결과 메시(는 물론 옵션을 켠 경우 머티리얼과 텍스처 역시)가 표시됩니다.   
+
+    ![](ImportedCharacter.png)
+
+**페르소나** 에서 임포트한 메시를 띄운 상태로 뷰포트 상단에 위치한 ![](LODButton.png) 버튼을 사용하면 LOD 를 순환해 가며 볼 수 있습니다.
+	
+**개별 LOD**
+
+1. 콘텐츠 브라우저에서 베이스 메시를 더블클릭하거나 우클릭 > _편집_ 을 선택하면 **페르소나** 에디터에서 자동으로 열립니다.
+
+1. **페르소나** 의 _파일_ 메뉴에서, _메시 LOD 임포트_ 를 선택합니다.   
+
+    ![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:352 h:262)
+
+1. 파일 브라우저에서 LOD 메시를 담고 있는 FBX 파일 위치로 이동하여 선택합니다. **주:** 파일 포맷을 ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg)로 설정하지 않으면 파일이 보이지 않을 수 있습니다.   
+
+    ![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:611 h:363)
+
+1. **Import LOD** 대화창의 드롭다운 메뉴에서 임포트하려는 메시의 LOD 레벨을 선택합니다. 그런 다음 ![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg)버튼을 눌러 LOD 메시를 임포트합니다.   
+
+    ![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:248 h:158)
+
+1. 임포트가 성공하면 알림창이 뜨며, ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg)툴바 버튼 중 임포트한 LOD 에 대한 버튼이 켜집니다.   
+
+    ![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:294 h:111)
+
+1. 임포트하려는 LOD 메시에 대해 위 과정을 반복합니다.
+
+1. 모든 LOD 메시 임포트를 마친 후, 툴바의 ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg)버튼을 사용하여 LOD 메시를 미리볼 수 있습니다.
+
+--------->
+
+(#FbxExport)
+
+
+## 언리얼 에디터에서 FBX 로 익스포트
+
+
+예전에 언리얼 에디터로 임포트한 스켈레탈 메시는 콘텐츠 브라우저 안에서 FBX 파일로 다시 익스포트할 수 있습니다.
+
+[REGION:note]
+쿠킹된 패키지에 있는 애셋은 익스포트 불가능합니다. 쿠킹해 버리는 소스 데이터가 익스포트 과정에 필요하기 때문입니다.
+[/REGION]
+
+1. 콘텐츠 브라우저에서 익스포트하려는 스켈레탈 메시를 선택합니다.  
+
+    ![](SelectSkeletalMesh.png)
+
+1. 스켈레탈 메시에 우클릭하고 **익스포트** 를 누릅니다. 
+
+    ![](ExportMenu.png)
+
+1. 뜨는 파일창에서 익스포트할 파일 위치와 이름을 선택합니다. **주:** 파일 종류로 _FBX 파일 (*.FBX)_ 가 선택되었는지 확인하세요.  
+
+    ![export_file.jpg](export_file.jpg)(w:625 h:434)
+
+
+
+## 피직스 애셋
+
+피직스 애셋 툴(PhAT)의 자세한 사용법은 [피직스 애셋 툴](Engine/Physics\PhAT) 사용 안내서를 참고해 주시기 바랍니다.
+
+## 애니메이션
+
+
+FBX 콘텐츠 파이프라인을 사용하여 애니메이션을 만들고 임포트하는 법 관련 세부 내용은, [FBX Animation Pipeline KR](Engine/Content/FBX/Animations) (FBX 애니메이션 파이프라인) 페이지를 확인하시기 바랍니다.
+
+
+(#MorphTargets)
+
+## 모프 타겟
+
+
+FBX 콘텐츠 파이프라인을 사용하여 모프 타겟을 만들고 임포트하는 법 관련 세부 내용은, [FBX Morph Target Pipeline KR](Engine/Content/FBX/MorphTargets) (FBX 모프 타겟 파이프라인) 페이지를 확인하시기 바랍니다.
+
+ 
+
+
+ 
+

@@ -1,0 +1,72 @@
+﻿INTSourceChangelist:2215003
+Availability:Public
+Title:Reference Viewer (参照ビューア) 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:コンテンツブラウザの参照ビューアについて説明します。
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CB_ReferenceViewer_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/ReferenceViewer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser/ReferenceViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/ReferenceViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 概要
+
+_Reference Viewer_ には、**コンテンツ ブラウザ** で現在選択中のアセットを参照する、または選択中のアセットから参照されているアセットのグラフが表示されます。
+
+ [Reference Viewer] を表示するには、**コンテンツ ブラウザ** で選択した単一アセット (または複数のアセット) を右クリックしてから、表示されるコンテキスト メニューで **Reference Viewer** をクリックします。
+
+![Reference Viewer](CB_ReferenceViewer.png)(w:800)
+
+1. 選択中のアセットを参照するその他のアセット。
+1. 選択中の単一アセット (複数アセット)
+1. 選択中のアセットによって参照されるその他のアセット。
+
+[REGION:tip]
+**Asset Tree** にあるフォルダを右クリックしても、Reference Viewer にアクセスできます。Reference Viewer はフォルダ内にあるすべてのアセットに対する参照のグラフを表示します。
+[/REGION]
+
+**コンテンツ ブラウザ** に関する詳細は、[](Engine/Content/Browser) を参照してください。
+
+
+## 検索オプション
+
+Reference Viewer の左上隅にアンリアル エディタがグラフをビルドするために使用する検索関連の 2 つのオプションがあります。
+
+![Search Options](CB_RefViewer2.png)
+
+
+| アイテム | 説明 |
+| ---- | ----------- |
+| **Search Depth Limit** | エンジンが参照を検索する深さです。例えば、2 という値は、選択したアセットに関連するアセットだけでなく、こうした関連アセットに関連するアセットもグラフに表示されることを意味します。 |
+| **SearchBreadth Limit** |任意の列に一覧表示される参照 (参照する、または参照される) の数。例えば、あるアセットが 20 のアセットを参照していても、**Search Breadth Limit** の値が 10 に設定されていると、その列には 10 のアセットだけが表示されます。|
+
+
+##コンテキスト メニューのオプション
+
+グラフでアセットのオプションを表示するには、アセットを **右クリック** します。コンテキストメニューが表示されます。
+
+| アイテム | 説明 |
+| ---- | ----------- |
+| **Find in Content Browser** | **コンテンツ ブラウザ** で選択中のアセットを検索します。
+| **Re-Center Graph** | 選択中のアセットが参照するアセッﾄおよび参照されるアセットと共に選択中のアセット周囲にグラフを再作成します。 |
+| **List Referenced Objects** | 選択中のアセットによって参照されるアセットを一覧表示します。 |
+| **List Objects That Reference** | 選択中のアセットを参照するアセットを一覧表示します。 |
+| **Make Collection With Referenced Assets** | 選択中のアセットが参照する、または選択中のアセットによって参照されるアセットのコレクションを作成します。 |
+| **Show Reference Tree** | 選択中のアセットに対する参照ツリーを表示します。これはゲームの複雑さに応じて、時間がかかる場合があります。参照ツリーに関する詳細は、 [](Engine/Content/Browser\ReferenceTreeTool) を参照してください。
+
+

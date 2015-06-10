@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:2521087
+Availability: Public
+Title:5. 빌드 프로세스 실행하기
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:다수의 액터를 배치하고 커스터마이징한 상태로, 레벨 제작의 마지막 단계는 빌드 프로세스입니다.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/QuickStart/4 "%Engine/QuickStart/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/QuickStart/6 "%Engine/QuickStart/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+![](Engine\QuickStart\5\beforeBake.png)(w:940)
+
+이제 보면 그림자에 "Preview" 라벨과 벽 아래 라이트가 새는 것을 볼 수 있습니다. 씬에 있는 모든 라이트가 스태틱이며 미리계산된, 다른 말로 구워진 라이팅을 사용하나 아직 계산되지 않았기 때문입니다. "Preview" 텍스트는 뷰포트에 보이는 화면이 실제 게임에서 보는 화면이 아니라는 것을 알리기 위함입니다. 더 나은 씬을 만들려면, **빌드** 프로세스를 실행시켜 줘야 합니다.
+
+언리얼 에디터에서의 **빌드** 작업은 꽤나 간단합니다: 퀄리티 세팅을 선택한 다음 ![**Build**](Engine\QuickStart\6\build_button.png) 버튼을 누르면 됩니다.
+
+
+
+1. 퀄리티 레벨을 변경하려면, ![**Build**](Engine\QuickStart\6\build_button.png) 버튼 옆의 아래 화살표 ![**Down Arrow**](Engine\QuickStart\6\downArrow_button.png) 를 클릭하여 **빌드 옵션** 을 펼친 다음 **라이팅 퀄리티** 메뉴를 펼치면 됩니다:
+
+	![](Engine\QuickStart\6\buildSettings.png)
+
+1. **퀄리티 레벨** 을 **Production** (프로덕션)으로 선택합니다.
+
+	[REGION:note]
+	**빌드** 시작 전 기억해야 할 것은, 레벨이 클 수록 시간이 많이 걸릴 수 있습니다. 여기 작은 집은 그리 오래 걸리지 않겠지만, 수평방 킬로미터를 덮는 라이트가 수백개 있는 씬은 훨씬 오래 걸릴 것입니다.
+	[/REGION]
+
+1. ![**Build**](Engine\QuickStart\6\build_button.png) 버튼을 클릭합니다.
+1. **빌드** 완료시까지 기다립니다.
+
+	![](Engine\QuickStart\6\wait.png)
+
+1. 완료되면 라이팅이 자동으로 업데이트될 것입니다:
+
+![](Engine\QuickStart\6\built.png)(w:940)
+
+
+마지막으로, **플레이어 스타트** 배치했던 것 기억나시나요? ![**Play**](Engine\QuickStart\6\play_button.png) 버튼을 누르면, **마우스** 와 **WASD** 키를 사용하여 레벨을 날아다닐 수 있을 것입니다. 플레이 모드에서는 게임이 실제로 실행되어 독립형 클라이언트에서 보는 것과 똑같은 것이 렌더링됩니다.
+
+%Steps%

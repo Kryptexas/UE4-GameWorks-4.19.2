@@ -1,0 +1,224 @@
+INTSourceChangelist:2109550
+Availability:Public
+Title: 리플렉션 인바이언먼트
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description:국소적 광택 리플렉션을 캡처하여 표시하는 시스템입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%](%ROOT%/Engine/Rendering/LightingAndShadows/ReflectionEnvironment/reflection_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	![](%ROOT%/ue4_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%](%ROOT%/Engine/Rendering/LightingAndShadows/ReflectionEnvironment/reflection_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	![](%ROOT%/ue4_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:title%
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Rendering/LightingAndShadows/ReflectionEnvironment:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/ReflectionEnvironment]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:ReflectionEnv001]
+**Reflection Environment** (반사 환경, 리플렉션 인바이언먼트)란 씬의 모든 영역에 효율적인 광택 리플렉션을 내는 
+기능입니다. 메탈같은 여러 중요 머티리얼에는 모든 방향의 반사가 있어야 하는데, Reflection Environment 로 가능합니다.
+콘솔과 중간 사양 PC 를 대상으로 잡고 있으니, 실행 속도도 매우 빠를 것입니다. 다이내믹 오브젝트의 리플렉션이나 
+선명한 리플렉션은 지원하지 않으니, 그러한 것들은 Reflection Environment 에 
+Screen Space Reflection 같은 다른 리플렉션 기법으로 보완해 줘야 합니다.
+[/EXCERPT:ReflectionEnv001]
+
+[REGION:fullwidth]
+![Reflection Environment](reflection_environment.png)
+[/REGION]
+
+## 간단 셋업
+
+Reflection Environment 사용을 위해서는, 라이팅 설치 후 라이팅 빌드를 한 번 먼저 해 줘야 합니다. **Reflection Environment 가 
+제대로 나타나도록 하기 위해서는 약간의 간접 디퓨즈 라이팅이 있어야 합니다.** 다음으로 배치 브라우저의 _비주얼_ 탭에서 _SphereReflectionCapture_ 
+액터를 끌어 레벨에 놓고, 머티리얼의 스페큘러는 잘 보이는지, 러프니스는 낮은지 확인합니다.
+Reflection Override 뷰모드를 통해 캡처중인 모습을 확인할 수 있습니다.
+
+ ## 광택 간접 스페큘러
+
+기술적인 부분에 있어서 Reflection Environment 에는 간접 스페큘러가 제공됩니다. 분석적 라이트를 통해 
+직접 스페큘러를 구하기는 하지만, 약간 밝은 방향의 리플렉션이 나올 뿐입니다. 스카이 라이트를 통해서도 
+하늘의 스페큘러를 구하기도 하지만, 스카이 라이트 큐브맵은 무한히 먼 거리에 있는 것이기에 국소적 반사에는 쓸 수 없습니다. 간접 스페큘러는 씬의 모든 부분이 다른 모든 부분에 반사되도록 하는데, 
+이러한 것은 디퓨즈 반응이 없는 메탈같은 재질에 특히나 중요합니다.
+
+[REGION:imagetable]
+| ![Diffuse Only](DiffuseOnly.png)(w:465) | ![Reflection Only](ReflectionOnly.png)(w:465) |
+| ------ | ------ |
+| 디퓨즈만 | 리플렉션만 |
+[/REGION]
+
+**풀 라이팅**
+
+[REGION:fullwidth]
+![Full Scene](Complete.png)
+[/REGION]
+
+[EXCERPT:RefEnvIntro]
+Reflection Environment 작동방식은 여러 지점에서 정적인 씬을 캡처한 다음 그 내용을 리플렉션 안에서 구체같은 
+단순한 모양에 재투영하는 식입니다. **_ReflectionCapture_** 액터를 놓아 아티스트가 캡처 지점을 선택합니다.
+리플렉션 업데이트는 배치상의 편의를 위해 편집 도중 실시간으로 일어나지만 실행시간에는 정적입니다.
+캡처된 신을 단순한 모양에 투영하면 리플렉션에 유사 시차 효과가 납니다. 각 픽셀은 
+여러 큐브맵을 혼합하여 최종 결과를 냅니다. 작은 ReflectionCapture 액터로 큰 것을 덮어써서, 영역의 리플렉션 시차 정확도를 필요한 대로 높일 수 있습니다. 
+예를 들어 방 중앙에 캡처를 놓은 다음 방 구석에 작은 캡처를 놓는 식으로 리플렉션을 
+개선시킬 수 있습니다.
+[/EXCERPT:RefEnvIntro]
+
+다양한 광택의 머티리얼은 캡쳐된 큐브맵의 뿌연 버전 밉맵을 생성하는 식으로 지원됩니다.
+  
+![Varying Glossiness](VaryingGlossiness.png)
+
+그러나 매우 거친 표면에 큐브맵 리플렉션만 사용해서는 과도히 밝은 리플렉션이 나오는데, 여기에는 
+로컬 오클루전의 부재로 인해 누수가 심각합니다. 이 문제는 라이트매스가 생성한 라이트맵을 재사용하여 
+해결합니다. 큐브맵 리플렉션은 머티리얼의 거칠기에 따라 라이트맵 간접 스페큘러와 혼합시킵니다.
+매우 거친 (완전 디퓨즈) 머티리얼은 라이트맵 결과에 수렴됩니다.
+이 혼합은 본질적으로 라이팅 데이터 한 세트의 높은 디테일 부분(큐브맵)을 또다른 라이팅 데이터 세트의 
+빈도가 낮은 부분(라이트맵)과 합치는 것입니다. 그러나 이 방법이 올바르게 작동하기 위해서는, 라이트맵에 
+간접광만이 있어야 합니다. 즉 고정된(Stationary) 라이트에서의 간접광만이 거친 표면의 리플렉션 질을 
+향상시킬 수 있다는 뜻입니다. **스태틱 라이트 유형을 Reflection Environment 와 같이 사용해서는 안되는데, 
+라이트맵에 직사광이 들어가기 때문입니다.** 참고로 이런 라이트맵과의 혼합은 
+맵에 유의미한 간접 디퓨즈 라이팅이 있어야 함을, 그리고 그 라이팅 빌드가 이미 끝나서 결과를 볼 수 있어야 함을 
+뜻합니다.
+
+[REGION:imagetable]
+| ![Rough with no Shadowing](2RoughWithNoShadowing.png)(w:465) | ![Rough with Shadowing](2RoughWithShadowing.png)(w:465) |
+| ------ | ------ |
+| 셰이딩 없이 거친 표면 위의 리플렉션 | 라이트맵에서의 섀도잉과 SSAO 결합 |
+[/REGION]
+
+## 리플렉션 캡처 모양
+
+[EXCERPT:RefCaptures]
+리플렉션 캡처 모양은 현재 두 가지, 구체와 박스 입니다. 이 모양은 매우 중요한데, 씬의 어떤 부분이 
+큐브맵 속에 캡쳐되는지, 리플렉션에서 씬을 어떤 모양 위에 재투영할지, 씬의 어떤 부분이 
+그 큐브맵에서 리플렉션을 받을 수 있는지 (영향력 범위) 등을 그 모양이 결정하기 때문입니다. 
+[/EXCERPT:RefCaptures]
+
+### 구체 모양
+
+구체 모양은 현재 가장 유용합니다. 반사되는 지오메트리 모양이 일치될 일도 없지만, 
+불연속도 모서리도 없으므로 오차가 균일합니다.
+
+![Sphere Shape](SphereShape.png)(w:720)
+
+구체 모양에는 어느 픽셀이 그 큐브맵의 영향을 받을 수 있는지 제어할 수 있는 주황색 영향력 반경이 있어, 그 구체에 
+씬이 재투사됩니다.
+
+캡처의 크기가 작은 것이 큰 것을 덮어써서, 씬 주변에 작은 캡처를 놓는 식으로 개선이 가능합니다.
+
+### 박스 모양
+
+박스 모양은 활용도 면에서는 매우 제한적이며 일반적으로 통로나 사각형 방에서만 쓸 수 있습니다.
+그 이유는 박스 안의 픽셀만이 리플렉션을 볼 수 있으며, 동시에 그 박스 안의 모든 지오메트리가 
+박스 모양에 투영되어서, 심각한 부작용이 생기는 경우가 많이 때문입니다.
+
+![Box Shape](BoxShape.png)
+
+박스에는 선택했을 때 주황색으로 나오는 투영 모양 미리보기가 있습니다. 이 박스 밖의 **Box Transition Distance** 
+(박스 이행 거리) 범위 내 씬만 캡처합니다. 이 캡처의 영향력은 박스 내 전환 거리에 걸쳐서도 페이드 인이 
+일어납니다.
+
+## 편집
+
+참고로 리플렉션 캡처는 자동으로 최신 상태로 유지되지 않는다는 점이 중요합니다. 맵을 로드하거나, 
+캡처를 직접 편집하거나, 라이팅을 빌드할 때만 리플렉션 캡처가 업데이트됩니다. 라이트의 밝기를 바꾸거나 
+씬 지오메트리를 옮기거나 했다면, 캡처를 선택한 다음 '캡처 업데이트' 를 선택해 줘야 
+변경내용이 전파됩니다.
+
+### 시각화
+
+리플렉션이 잘 구성되었나 쉬운 확인을 위해 Reflection Override (리플렉션 덮어쓰기) 뷰모드가 추가되었습니다. 
+이 뷰모드는 모든 노멀을 부드러운 버텍스 노멀로 덮어쓰고, 모든 표면을 (거울처럼) 완벽히 매끄러운 
+최대 스페큘러 면으로 만듭니다. 이 모드에서는 Reflection Environment 의 한계와 부작용 역시 명확히 
+보이므로, 가끔씩 Lit 모드로 바꿔 (굴곡진 노멀, 다양한 광택, 어두운 스페큘러 등의) 보통 상황에서 
+리플렉션이 어때 보이는지 확인하는 것이 중요합니다.
+
+![Reflection Override](ReflectionOverride.png)
+
+라이팅 성분을 따로 떼어내는 데 유용한 표시 플래그 몇 가지가 새로 추가되었습니다:
+
+| 플래그 | 설명 |
+| ---- | ---- |
+| **Lighting Components > Diffuse** | 디퓨즈를 모든 라이팅 메소드에서의 디퓨즈 기여를 숨깁니다. |
+| **Lighting Components > Specular** | 스페큘러를 끄면 모든 리플렉션 메소드에서의 스페큘러 기여를 숨깁니다. |
+| **Lighting Features > ReflectionEnvironment** | Reflection Environment 기능은 끄지만, 다른 리플렉션 기능은 (SSR, 분석적 스페큘러) 남아있습니다. |
+
+
+## Reflection Environment 사용하도록 레벨 구성하기
+
+1. 좋은 리플렉션을 만들기 위한 첫 번째 단계는 라이트맵을 통한 간접광을 포함해서 디퓨즈 라이팅을 구성하는 
+것입니다. 자세한 정보는 라이트맵 문서를 참고해 보세요. 빌드 후 라이트매스 간접광이 작동하지 않는 
+흔한 이유라면 스카이박스가 그림자를 드리우거나, **_LightmassImportanceVolume_** 이 없다거나, 라이트맵 
+UV 구성이 잘못 혹은 안되어 있다거나, **월드 프로퍼티** 에 **Force No Precomputed Lighting** 설정이 되어 있는 경우입니다.
+
+	씬의 디퓨즈는 Reflection Environment 를 통해 무엇을 반사시킬 것인가 입니다. 
+	최적의 결과를 위해서는 직접 라이팅과 섀도잉된 영역 사이의 대비를 심하게 주세요. 
+	밝게 디퓨즈 라이팅된 영역은 리플렉션에 명확히 나타나는 곳이고, 어둡게 그늘진 영역은 
+	리플렉션에 겨우 보이는 곳입니다. 리플렉션 캡처가 보는 씬의 모습을 확인하려면 
+	Specular 표시 옵션을 끈 상태로 Lit 뷰모드를 사용하면 됩니다.
+
+1. 씬의 머티리얼이 Reflection Environment 와 잘 작동하도록 구성하는 것이 매우 중요합니다.
+평평한 거울 표면에는 단순한 모양에 투영된 큐브맵 합체의 부정확도가 명확히 드러나게 됩니다.
+그러나 굴곡진 지오메트리라던가 거친 표면 모두 이러한 부작용이 희석되어 그럴싸한 결과를 내게 됩니다.
+그러므로 디테일 노멀 맵과 아울러 평평한 부분에 사용되는 머티리얼은 적당한 수준으로 거칠게 만들어 
+주는 것이 중요합니다.
+
+	[REGION:imagetable]
+	| ![Curvy and Sharp](1CurvyAndSharp.png)(w:290) | ![Flat and Rough](1FlatAndRough.png)(w:290) | ![Flat and Sharp](1FlatAndSharp.png)(w:290) |
+	| ------ | ------ | ------ |
+	| 매끄러운 표면에 굴곡진 지오메트리: 리플렉션 퀄리티 좋음 | 거친 표면에 평평한 지오메트리: 리플렉션 퀄리티 좋음 | 부드러운 표면에 평평한 지오메트리: 리플렉션이 맞지 않는다는게 드러납니다.
+	[/REGION]
+
+1. 리플렉션이 있었으면 하는 곳에 리플렉션 캡처를 놓습니다. 반사시키고자 하는 레벨 부분이 반경 
+안에 꼭 맞게끔 구체 캡처를 놓도록 해 보세요. 씬이 그 구체 모양에 재투영될 것이기 때문입니다. 
+씬 지오메트리 너무 가까이에는 캡처를 놓지 않는 것이 좋은데, 그 지오메트리가 반사면의 주를 이뤄 
+뒤쪽의 디테일이 먹히기 때문입니다.
+
+## 퍼포먼스 고려사항
+
+Reflection Environment 비용은 화면상의 픽셀에 얼마나 많은 캡처가 영향을 끼치는가에 따라서만 달라집니다.
+이런 관점에서 보면 디퍼드 라이팅과 매우 비슷합니다. 리플렉션 캡처는 그 영향력 반경에 따라 바운드가 
+정해지므로, 매우 효율적으로 컬링됩니다. 광택은 큐브맵 밉맵을 통해 구현되므로,
+리플렉션이 선명하냐 거치냐에 따라서는 퍼포먼스 차이가 미미합니다.
+
+## 한계
+
+* 이 방법을 통한 리플렉션은 추정치입니다. 구체적으로, 오브젝트를 단순한 모양 위에 투영한 것이기에 
+씬의 실제 오브젝트와 거의 맞아 떨어지지 않습니다. 혼합되고 있는 큐브맵의 수가 여럿이기에, 
+리플렉션에서 해당 오브젝트는 여러 버전이 만들어지게 됩니다. 평평하고 매끄러운 표면에는 
+거울 반사의 오차가 눈에 띄게 표시됩니다. 
+디테일 노멀 맵과 거칠기(roughness)를 사용하여 리플렉션을 흐트려 주세요.
+* 씬을 큐브맵에 캡처해 넣는 것은 느린 작업으로 게임 세션 밖에서 해 놔야 합니다. 즉 동적인 오브젝트는 
+반사가 불가능하다는 뜻으로, 정적인 씬의 리플렉션을 받을 수는 있습니다.
+* 오차 감소를 위해 씬의 디퓨즈만 캡처합니다. 즉 순수 스페큘러 표면(메탈)은 캡처 도중 그 스페큘러가 디퓨즈인 것처럼 적용된다는 뜻입니다.
+* 벽의 양쪽 면에 라이팅 조건이 다를 경우 심각한 누수가 발생할 수 있습니다.
+한 면에 올바른 리플렉션 셋업이 가능하기는 하지만, 반대편에는 항상 누수가 생깁니다.
+* DX11 하드웨어의 한계로 인해 씬을 캡처하는 데 사용되는 큐브맵은 각 면이 모두 128 이며, 
+월드에 최대로 가능한 리플렉션 캡처 수는 한 번에 341 개입니다.

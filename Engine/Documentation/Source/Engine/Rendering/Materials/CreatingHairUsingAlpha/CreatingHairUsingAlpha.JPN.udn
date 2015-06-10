@@ -1,0 +1,66 @@
+﻿INTSourceChangelist:2074246
+Availability:Docs
+Title:ヘアの作成：マテリアルとメッシュ
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:透過処理とアニソトロピック（異方性）ライティングを使用してヘアを作成するテクニック
+
+[REGION:todo]
+	このページはアンリアル エンジン 3 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
+[/REGION]
+
+[TOC(start:2)]
+
+
+
+## 概要
+
+このページは、透過ブレンドモードと アニソトロピック (異方性) ライティング モデルを使用してヘア マテリアルを作成する最新の方法で更新されています。
+
+
+
+## スクリーンショット
+
+[REGION:fullwidth]
+![Hair_01.jpg](Hair_01.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_02.jpg](Hair_02.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_03.jpg](Hair_03.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_04.jpg](Hair_04.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_05.jpg](Hair_05.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_06.jpg](Hair_06.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![updatedHairMaterial.jpg](updatedHairMaterial.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_07.jpg](Hair_07.jpg)
+[/REGION]
+
+ 
+
+
+
+

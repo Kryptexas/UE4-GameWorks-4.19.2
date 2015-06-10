@@ -1,0 +1,214 @@
+﻿INTSourceChangelist:2504305
+Availability:Public
+Title:ノード
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:ブループリントに関連するゲームプレイイベントに応じたアクションを実行するためにイベントと関数呼び出しを利用するノードグラフ
+
+## 概要
+
+
+**ノード** は、イベント、関数呼び出し、フロー制御、変数等のオブジェクトです。 
+これらは、オブジェクトを含んだ特定のグラフやブループリントの機能性を定義するために 
+グラフで使用します。利用可能な各種ノードの説明は以下となります。
+
+[INCLUDE:Engine/Blueprints/UserGuide#Nodes]
+
+
+
+## ノードの作業
+
+ノードはタイプ別に独自の機能を実行しますが、ノードの作成および使用方法は全ノードに共通しています。ノードグラフの作成時に、直観的なユーザーエクスペリエンスを提供します。
+
+### ノードの配置
+
+新規ノードは、 **コンテキストメニュー** からノードのタイプを選択してグラフへ追加します。コンテクスト メニューにリスト表示されるノードのタイプは、リストへのアクセスや現選択内容によって異なります。
+
+* **{グラフ エディタ]** タブで空スペースを **右クリック** すると、グラフに追加することが可能な全ノードのリストを呼び出します。アクタを選択している場合は、このアクタタイプがサポートしているイベントもリストに表示されます。
+
+	![Blueprint Context Menu](k2_context.png)
+
+* ノードのピンから接続部をドラッグして空のスペースで解放すると、接続に由来するピンタイプと互換性があるノードのリストを呼び出します。
+
+	![Blueprint New Connection](k2_connection_new.png)![Blueprint Context Menu - Pin Specific](k2_context_compat.png)
+
+
+### ノードの選択
+
+ノードは **[グラフエディタ]** タブのノード上をクリックして選択します。
+
+![Blueprint Node Selected](k2_select_node.png)
+
+ノードは **[Ctrl]** キーを押しながらノードをクリックして、現選択内容に追加したり削除することができます。
+
+![Blueprint Multiple Nodes Selected](k2_select_multiple.png)
+
+マーキー選択を作成するには、クリック＋ドラッグ操作で複数のノードを一度に選択します。**[Ctrl]** キーを押しながらクリック+ドラッグすると、選択/非選択を切り替えるマーキー選択を作成します。**[Shift]** キーを押しながらクリック、ドラッグすると、現選択内容へ追加するマーキー選択を作成します。
+
+![Blueprint Marquee Selection](k2_select_marquee.png)(w:820)
+
+全ノードを非選択にするには、 **グラフエディタ** タブの空スペースをクリックします。
+
+### ノードの移動
+
+ノード上をクリックしてドラッグするとノードが移動します。複数のノードが選択された場合、選択範囲のどのノードをクリック＆ドラッグしても全ノードが移動します。
+
+![Blueprint Moving Nodes](k2_move.png)(w:820)
+
+### ピン
+
+ノードの両側にはピンがあります。左側のピンは入力ピン、右側のピンは出力ピンです
+
+![Blueprint Input and Output Pins](k2_pins.png)
+
+ピンの主な種類に実行ピンとデータピンの2つがあります。
+
+#### 実行ピン
+
+[INCLUDE:Shared/Glossary/E/#Glossary_execution_pin]
+
+#### データピン
+
+[INCLUDE:Shared/Glossary/D/#Glossary_data_pin]
+
+#### 自動キャスティング
+
+_ブループリント_ の自動キャスティング機能を使用して、さまざまなデータタイプの特定ピン同士をつなげることができます。2つのピンの間に接続を作成すると、表示されるツールヒントによって互換タイプを確認することができます。
+
+![Blueprint - Compatible Types Message](k2_autocast_message.png)
+
+あるタイプのピンから別タイプのピンへ接続ワイヤーをドラッグすると、ピン同士に互換性がある場合は、両ピンを接続する **autocast** ノードが作成されます。
+
+![Blueprint - Autocast Node](k2_autocast_node.png)
+
+
+
+####変数化
+
+データピンが表す値は、**Promote to Variable** コマンドを使用して、ブループリント内の変数へ変換することができます。このコマンドは _ブループリント_ へ新規の変数を作成し、変数化しているデータピンへ接続します。出力データピンは、新規変数の値の設定にSetノードを使用します。新変数の追加、新変数をグラフへ追加、そして変数をデータピンへ接続、基本的にこれらを手動で行うためのショートカットです。
+
+[INCLUDE:Engine/Blueprints\UserGuide\Variables#PromoteVariable]
+
+### ワイヤー
+
+ピンの間の接続は **ワイヤー** と呼びます。ワイヤーは、実行フローまたはデータフローのどちらかを表します。
+
+#### 実行ワイヤー
+
+実行ピンの間のワイヤーは実行フローを表します。実行ワイヤーは、出力実行ピンから入力実行ピンへ繋がる白い矢印で表示されます。矢印の方向は実行フローを表しています。
+
+![Blueprint Exec Wire](k2_select_node.png)
+
+実行ワイヤーは、実行時にビジュアルインジケータを作成します。プレイ中に1つのノードの実行が完了して次のノードがアクティベートされると、実行ピンの間のワイヤーは、実行がノードから別ノードへ移動中であることを強調して表示されます。
+
+![Blueprint Exec Wire - Attack State](k2_flow_exec.png)
+
+実行ワイヤーのビジュアル インジケータは時間経過と共に消滅します。
+
+[REGION:lightbox fullwidth]
+[![](k2_flow_sustain.png)](k2_flow_sustain.png "Blueprint Exec Wire - Sustain State")
+[/REGION]
+
+#### データワイヤー
+
+データワイヤーは、あるデータピンを同一タイプの別のデータピンへ接続します。ワイヤーは色付けされた矢印で表示され、データ転送を可視化します。矢印の方向はデータが移動している方向を示しています。データワイヤーの色は、データピンのようにデータのタイプによって異なります。
+
+![Blueprint Data Wire](k2_flow_data.png)
+
+#### ワイヤーの作業
+
+ワイヤーは以下に示すいずれかの手法を用いて **[グラフ エディタ]** タブで作成されます。
+
+* あるピンをクリックしてドラッグし、同一タイプの別のピン上で解放して直接接続させます。
+
+	![Blueprint Wire Creation - Compatible Pin](k2_connection_direct.png)
+
+	互換性のあるピンタイプ間のみで接続が可能です。非互換タイプのピンへ接続をドラッグすると、接続ができない由を伝えるエラーメッセージが表示されます。
+
+	![Blueprint Wire Creation - Incompatible Pin](k2_connection_bad.png)
+
+* 「状況に合わせて表示される」メニューの呼び出しに、ピンから接続をドラッグして空スペースで解放すると、接続元のピンタイプと互換性をもつノードのリストが表示されます。リストからノードを選択すると、このノードの新規インスタンスが作成されて、新ノードの互換性のあるピンと接続します。
+
+	![Blueprint Wire Creation - New Node](k2_connection_new.png)
+
+	![Blueprint Wire Creation - New Node Created](k2_connection_new2.png)
+
+	2つのピンを接続するワイヤーは、以下のいずれかの手法で切断することができます。
+
+* 接続中のいずれかのピン上で **[Alt + Click]** キーを押します。
+
+* 接続中のいずれかのピン上で **右クリック** をして [リンクを切断] を選択します。
+
+	![Blueprint Break Wire](k2_connection_break.png)
+
+
+###折りたたみグラフ
+
+グラフのノードのコレクションは構成目的のためサブグラフへ折りたたむことができます。グラフの階層を作成し、入力値や出力値と一緒に、単グラフの膨大で複雑な情報を一ノードとして親グラフに表示することができます。折りたたみグラフのコンテンツは修正が可能です。
+
+[REGION:lightbox fullwidth]
+[![](k2_collapse_select.png)](k2_collapse_select.png "Blueprint Collapse Nodes - Selection")
+
+[![](k2_collapsed_node.png)](k2_collapsed_node.png "Blueprint Collapse Node")
+[/REGION]
+
+[](Engine/Blueprints\UserGuide\Macros) とは異なり、折りたたみノード一式は、単一の _Level ブループリント_ または _Blueprint クラス_ 内で共有されません。折りたたみノードをコピーすると内部のグラフに複製ができてしまいます。類似動作を行うバリアント数個の作成などに便利な機能ですが、それぞれのコピーに対してバグ修正が必要になります。この機能は共有や再利用ではなく、内部の複雑性を非表示ににすることで「きちんと片づける」ことを意図しています。
+
+#### Tunnels
+
+折りたたみグラフは、グラフの内部コミュニケーションと相互作用に Tunnel ノードを使用します。
+
+[REGION:lightbox fullwidth]
+[![](k2_tunnels.png)](k2_tunnels.png "Blueprint Tunnel Nodes")
+[/REGION]
+
+**Inputs** Tunnel ノードは、折りたたみグラフへのエントリーポイントとして機能します。親グラフの折りたたみグラフノード上の入力ピンに対応する実行およびデータピンがあります。
+
+![Blueprint Tunnel Entrance Node](k2_tunnel_entrance.png)
+
+**Outputs** トンネルノードは折りたたみグラフの出口として機能します。親シーケンスの折りたたみグラフノード上の出力ピンに対応する実行およびデータピンがあります。
+
+![Blueprint Tunnel Exit Node](k2_tunnel_exit.png)
+
+これらのピンはノードが折りたたまれると自動生成されます。シーケンスの最初のノードのピンと接続している実行またはデータワイヤーに対応するピンが **Inputs** トンネルノードに作成されます。このピンは親シーケンスの折りたたまれたグラフノードに入力ピンとして表示されます。同様に、シーケンスの最後のノードのピンと接続している実行またはデータワイヤーに対応するピンが **Outputs** トンネル ノードに作成されます。このピンは親シーケンスの折りたたまれたグラフノードに出力ピンとして表示されます。
+
+#### ノードコレクションの折りたたみ
+
+1.	マーキーセクションをクリックしてドラッグしながら折りたたむノードを選択、または各ノードを **[Ctrl + クリック]** しながら選択します。
+	[REGION:lightbox fullwidth]
+
+	[![](k2_collapse_select.png)](k2_collapse_select.png "Blueprint Collapse Nodes - Selection")
+	[/REGION]
+
+1.	いずれかのノードを **右クリック** して **Collapse Nodes** を選択します。
+
+	![Blueprint Collapse Nodes - Menu Option](k2_collapse_menu.png)
+
+1.	新規ノードのテキスト欄に表示される折りたたみグラフの名前を入力して **[Enter]** を押します。
+
+	![Blueprint Collapse Nodes - Graph Name](k2_collapse_name.png)
+
+1.	その折りたたみグラフが今度は、単一ノードおよび [**My Blueprint**] タブに表示される折りたたみグラフに対する参照として表示されます。
+	[REGION:lightbox fullwidth]
+
+	[![](k2_collapsed_node.png)](k2_collapsed_node.png "Blueprint Collapse Node")
+	[/REGION]
+
+	![](collapsed_graph_myblueprint.png)
+
+1.	折りたたみノードの編集は、折りたたんだグラフノードを **ダブルクリック** 、または [**My Blueprint**] タブでサブグラフを選択します。
+	[REGION:lightbox fullwidth]
+
+	[![](k2_collapse_edit.png)](k2_collapse_edit.png "Blueprint Collapse Nodes - Resulting Graph")
+	[/REGION]
+
+
+#### 折りたたみグラフの展開
+
+1.	折りたたみグラフノードを **右クリック** して [**Expand Node（ノードを展開）**] を選択します。
+
+	![Blueprint Expand Node - Menu Option](k2_expand_menu.png)
+
+1.	折りたたまれたグラフノードはこのノードが格納していたノードと置換されて、 **[マイブループリント]** タブグラフの階層には表示されなくなります。
+
+	![Blueprint Expand Node - Resulting Nodes](k2_expand_graph.png)(w:900)
+

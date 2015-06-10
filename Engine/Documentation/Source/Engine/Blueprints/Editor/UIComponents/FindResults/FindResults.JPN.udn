@@ -1,0 +1,36 @@
+﻿INTSourceChangelist:2492158
+Availability:Public
+Title:Find Results パネル
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
+Description:
+
+
+## 概要
+
+[Find Results] パネルはブループリント エディタ内の強力な検索ツールであり、以下の条件に基づき様々なオブジェクトを見つけることができます。
+
+* ノード名
+* ピン名
+* ノードのコメント
+* プロパティ名
+* プロパティの値
+
+**[Find Results]** パネルが検索の一致を見つけると、結果の一覧を表示し、各結果はグラフビューを検索結果のノードにジャンプさせるハイパーリンクのように機能します。これは、ブループリントのスクリプティング ノードの複雑なネットワークに埋もれてしまう可能性がある特定のノードや情報を探す優れた方法です。
+
+ウェブ ブラウザで検索するのと同じ様に、 **[Find Results]** パネルはブループリント エディタで作業中に **Ctrl-F** を押して利用できます。一般的にこのパネルは、現在の **グラフ** パネルの下部に表示されます。**[Compiler Results]** パネルが表示されている場合は、 **[Find Results]** パネルがドッキングされます。
+
+[REGION:note]
+アンリアル エンジン 4 の多くの検索フィールドとは異なり、 **[Find Results]** パネルは入力中にアクティブに結果をフィルタリングしません。これは、得られる結果の量が非常に多いためです。_Enter_ を押すと、リストが追加されます。
+[/REGION]
+
+## インターフェース
+
+[REGION:raw]
+![](FindResults.png)(w:940)
+[/REGION]
+
+1. **Results list** - 検索条件に合致するすべてのノード、ピン、プロパティ名、コメント、プロパティの値を一覧表示します
+1. **Search filter** - 検索対象を入力する場所です。
+1. **Property values** - 結果の中央に明示的に設定されたプロパティ値が括弧内に表示されます。
+1. **Comments** - 存在する場合は、Node コメントがパネルの右側に黄色いテキストで表示されます。
+1. **Find in Current Blueprint Only** - 有効時は、検索は現在のブループリントのみに制限されます。無効時は、検索はプロジェクト内のすべてのブループリントを対象にします。

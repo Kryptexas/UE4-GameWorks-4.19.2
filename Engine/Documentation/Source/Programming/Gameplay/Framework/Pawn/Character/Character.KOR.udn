@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:2099361
+Availability:Public
+Title:캐릭터
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework, Gameplay/Framework/Pawn
+Description:Character, 캐릭터는 원래부터 약간의 기본적인 이족보행 운동 기능을 가지고 있는 Pawn 입니다.
+
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/Pawn/Character)
+[/PARAM]
+[/OBJECT]

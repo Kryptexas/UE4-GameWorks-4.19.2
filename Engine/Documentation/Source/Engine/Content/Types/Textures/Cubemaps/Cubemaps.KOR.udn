@@ -1,0 +1,29 @@
+INTSourceChangelist:2070770
+Availability:Public
+Title:큐브맵
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:언리얼 엔진 4 에서의 큐브맵 생성, 익스포트, 임포트, 사용법 관련 홈페이지입니다.
+
+
+큐브맵은 주변을 둘러싸고 있는 하늘같은 원경을 파노라마 텍스처로 매핑시켜 단순한 환경 매핑 방법을 제공해 줍니다. 내부적으로 이러한 텍스처는 큐브의 안쪽 면에 매핑되는 여섯 장의 이미지 시리즈로 저장됩니다.
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		텍스처 콘텐츠 생성
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures/Cubemaps/CubemapTools) - %Engine/Content/Types/Textures/Cubemaps/CubemapTools:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ExportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/ImportingCubemaps:description%
+		* [](Engine/Content/Types/Textures/Cubemaps/UsingCubemaps) - %Engine/Content/Types/Textures/Cubemaps/UsingCubemaps:description%
+	[/PARAM]
+[/OBJECT]
+
+
+

@@ -1,0 +1,11 @@
+﻿INTSourceChangelist:2374181
+Title:AutoCollapseCategories
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description:
+Availability:Public
+バージョン：4.5
+
+**AutoCollapseCategories** クラス指定子は、 
+親クラス上の **AutoExpandCategories** 指定子を使って、リスト化されたカテゴリのエフェクトを無効にします。
+
+AutoCollapseCategories=(Category, Category, ...)

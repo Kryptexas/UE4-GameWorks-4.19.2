@@ -1,0 +1,524 @@
+﻿INTSourceChangelist:2286776
+Availability:Public
+Title:アンリアル エンジンの実行
+Crumbs: %ROOT%, GettingStarted
+Description:特定のマップや実用的なインゲーム コマンドの起動方法など、エンジンをゲームまたはエディタとして実行する方法
+
+%Globals:OSSelect%
+
+[TOC (start:2 end:4)]
+
+[EXCERPT:Main]
+
+
+本ページでは、 **開発** ビルド コンフィギュレーションにコンパイルされたプロジェクトで、エンジンを実行する方法を説明します。他のコンフィギュレーションにビルドされたプロジェクトを開くために必要な UE4Editor-*.exe または UE4-*.exe を代用できます。
+バイナリの命名規則に関する詳細は、 [アンリアル エンジンのビルド](Programming/Development/BuildingUnrealEngine) ページを参照してください。
+
+## エディタの実行
+[EXCERPT:RunEditor]
+[PUBLISH:Licensee]
+
+このプロセスは、アンリアルエディタのコピーを読み込みます。
+
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+
+エディタを実行するには、ゲームプロジェクトの名前を実行ファイルへ渡さなくてはいけません。
+
+[REGION:tip]
+ユーザーのプロジェクトのデバッグ バージョンのモジュールを実行ファイルへ強制的に読み込ませるために、「-debug」スイッチを追加することができます。 
+スイッチには全てのデバッグシンボルが含まれています。主な実行ファイルは常に **Development** コンフィギュレーションを使用してコンパイルするため、 
+ Visual Studio からデバッグ作業を行う際もコンフィギュレーションを **Debug** に設定する必要があります。当然ながら、 
+実行ファイルを読み込むためには、まず **Debug** コンフィギュレーションに設定してモジュールをコンパイルしなくてはいけません。
+[/REGION]
+
+[/PUBLISH:Rocket]
+
+### コマンドラインからエディタを実行する
+
+[PUBLISH:Licensee]
+1.	コマンドプロンプトから、 UE4 ディレクトリの「\Engine\Binaries\Win64」 ディレクトリへ移動します。
+
+1.	ゲーム名を渡して「UE4Editor.exe」 を実行します。
+
+| プロジェクトの保存位置 | コマンド プロンプト |
+|----------------|--------------|
+| UE4 のルート | UE4Editor.exe MyGame |
+| 別の保存位置 | UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" |
+
+
+
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	コマンド プロンプトから、「[RocketInstall]\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+	1.	ユーザーのプロジェクトのパスを渡して「RocketEditor.exe」を実行します。
+
+			RocketEditor.exe "[ProjectPath]\[ProjectName].uproject"
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	コマンド プロンプトから、「[RocketInstall]/Engine/Binaries/Mac」ディレクトリへ移動します。
+
+	1.	ユーザーのプロジェクトのパスを渡して「RocketEditor.app」を実行します。
+
+			open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject"
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+
+### 実行ファイルからエディタを実行する
+
+[PUBLISH:Licensee]
+
+
+1.	 UE4 ディレクトリ内の「\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+1.	「UE4Editor.exe」ファイルを **右クリック** して **[ショートカットを作成]** を選択します。
+
+1.	ゲームを実行、そしてエディタを起動する事実を反映させた名前へショートカット名を変更します。 **MyGameEditor.exe** などです。
+
+1.	新規に作成したショートカットを **右クリック** して、 **[プロパティ]** を選択します。
+
+1.	引数として実行するゲームの名前を、 **Target** プロパティの最後に追加します。
+
+| プロジェクトの保存位置 | ターゲット |
+|----------------|--------------|
+|UE4 Root | '[UE4Directory]\Engine\Binaries\Win64\UE4Editor.exe MyGame' |
+| 別の保存位置 | `UE4Editor.exe "[ProjectPath]\[ProjectName].uproject"`|
+
+
+1. **[OK]** をクリックして変更を保存します。
+
+1.	ショートカットを **ダブルクリック** してエディタを起動します。
+
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	「[RocketInstall]\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+	1.	** 「RocketEditor.exe」実行ファイルを右クリックして **[ショートカットを作成]** を選択します。
+
+	1.	ゲームの実行、そしてエディタの起動を反映させた名前へショートカット名を変更します。 **MyProject - Editor.exe** などです。
+
+	1.	新規に作成したショートカットを **右クリック** して、 **[プロパティ]** を選択します。
+
+	1.	引数として実行するゲームの名前を、 **Target** プロパティの最後に追加します。
+
+			[RocketInstall]\Engine\Binaries\Win64\RocketEditor.exe "[ProjectPath]\[ProjectName].uproject"
+
+	1. **[OK]** をクリックして変更を保存します。
+
+	1.	ショートカットを **ダブルクリック** してエディタを起動します。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	ある特定のプロジェクトを読み込むためには、エディタは [コマンドラインから実行](#コマンドラインからエディタを実行する) しなくてはいけません。もしくは、プロジェクトブラウザへアクセスするために [引数を使用せずに実行](#引数を使用せずにエディタを実行_スタンドアロン_) しなくてはいけません。
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+### 引数を使用せずにエディタを実行 (スタンドアロン)
+
+エディタが起動時に直近のプロジェクトを開く設定になっている場合、引数なしでエディタの実行ファイルを実行するとプロジェクト ブラウザが起動します。実際の画像がこちらになります。 
+[新規プロジェクトの作成](Engine/Basics/Projects/Browser#新規プロジェクトの作成) 、[プロジェクトを開く](Engine/Basics/Projects/Browser#プロジェクトを開く) 、
+または [コンテンツ事例とサンプルゲーム](Resources) を開くことができます。
+
+[/EXCERPT:RunEditor]
+
+##クックされていないゲームの実行
+
+プロジェクトがアンリアル エディタへ読み込まれると、 **[Play In]** メニューからクックされていないゲームで [ゲームプレイをテストする](Engine/UI/LevelEditor/InEditorTesting#モード) ことができます。 
+独自のウィンドウでクックされていないゲームをプレイするには、レベルエディタツールバーの [**Play In** ドロップダウン メニュー](Engine/UI/LevelEditor/InEditorTesting#ツールバー) を使用して  
+[**New Window At** > **Default Playaer Start** モード](Engine/UI/LevelEditor/InEditorTesting#モード) を選択します。
+
+**クリックして実物大表示にする**
+
+[REGION:lightbox]
+[![](Engine/UI/LevelEditor/InEditorTesting/PIE_newwindow.png)(w:300)](Engine/UI/LevelEditor/InEditorTesting/PIE_newwindow.png)
+[/REGION:lightbox]
+
+以下のいずれかの方法でクックされていないゲームをエンジンの実行ファイルで実行すると、結果的に動作が同じになります。
+
+###コマンドラインでクックされていないゲームを実行する
+
+[PUBLISH:Licensee]
+コマンドラインからゲームを実行する際は、エディタの UI を表示するのではなく、ゲームモードで実行するようエディタに指示するために「-game」パラメータを指定するだけでなく、 
+ショートカットの **Target** プロパティを経由して、 UE4Editor.exe 実行ファイルに対し引数を実行したいゲームを指定しなければなりません。
+
+1.	コマンド プロンプトから、 UE4 ディレクトリの「\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+1.	ゲーム名を渡して「UE4Editor.exe -game」 を実行します。
+
+| プロジェクトの保存位置 | コマンド プロンプト |
+|----------------|--------------|
+| UE4 のルート | UE4Editor.exe MyGame -game |
+| 別の保存位置 | UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" -game |
+
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+コマンドラインから実行するには、実行するプロジェクト名を「-game」スイッチと一緒に引数として渡さなくてはいけません。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	コマンド プロンプトから、「[RocketInstall]\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+	1.	-game パラメータと一緒に実行するプロジェクトのパスへ **RocketEditor.exe** を渡して実行します。
+
+			RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" -game
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	コマンド プロンプトから、「[RocketInstall]/Engine/Binaries/Mac」ディレクトリへ移動します。
+
+	1.	-game パラメータと一緒に実行するプロジェクトのパスへ **RocketEditor.exe** を渡して実行します。
+
+			open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject" -game
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+
+###実行ファイルでクックされていないゲームを実行する
+
+[PUBLISH:Licensee]
+
+実行ファイルからからゲームを実行する際は、エディタの UI を表示するのではなく、ゲームモードで実行するようエディタに指示するために「-game」パラメータを指定するだけでなく、 
+ショートカットの **Target** プロパティを経由して、 UE4Editor.exe 実行ファイルに対し引数を実行したいゲームを指定しなければなりません。
+
+1.	 UE4 ディレクトリ内の「\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+1.	「UE4Editor.exe」ファイルを **右クリック** して **[ショートカットを作成]** を選択します。
+
+1.	ゲームを実行、そしてエディタを起動する事実を反映させた名前へショートカット名を変更します。 **MyGameUncooked.exe** などです。
+
+1.	新規に作成したショートカットを **右クリック** して、 **[プロパティ]** を選択します。
+
+1.	引数として実行するゲームの名前を、 **Target** プロパティの最後に追加します。
+
+| プロジェクトの保存位置 | ターゲット |
+|----------------|--------------|
+|UE4 Root | [UE4Directory]\Engine\Binaries\Win64\UE4Editor.exe MyGame -game |
+| 別の保存位置 | UE4Editor.exe "[ProjectPath]\[ProjectName].uproject" -game |
+
+
+1. **[OK]** をクリックして変更を保存します。
+
+1.	ショートカットを **ダブルクリック** してエディタを起動します。
+[/PUBLISH:Licensee]
+
+
+[PUBLISH:Rocket]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	実行ファイルからの実行は、実行するゲームのパスと「-game」スイッチを引数として、ショートカットの 
+	 **Target** プロパティ経由で実行ファイルに指定しなくてはいけません。
+
+	1.	「[RocketInstall]\Engine\Binaries\Win64」ディレクトリへ移動します。
+
+	1.	**RocketEditor.exe** 実行ファイルを **右クリック** して **[Create shortcut]** を選択します。
+
+	1.	実行するゲーム名を反映した名前へショートカット名を変更します。 **MyProject.exe** などです。
+
+	1.	新規に作成したショートカットを **右クリック** して、 **[プロパティ]** を選択、ショートカットのプロパティを表示します。
+
+	1.	引数として実行するために **Target** プロパティの最後にフルパスをプロジェクトに追加します。
+
+			[RocketInstall]\Engine\Binaries\Win64\RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" -game
+
+		**[OK]** をクリックして変更を保存します。
+
+	1.	ショートカットを **ダブルクリック** してゲームを実行します。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	ある特定のプロジェクトを直接読み込むには、エディタは [コマンドラインから](#コマンドラインからエディタを実行する) 実行しなくてはいけません。
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+##クックされたゲームの実行
+
+[INCLUDE:Engine/Basics/Projects/Packaging#runcooked]
+
+クックされたゲーム ビルドのパッケージおよび実行方法については、 [](Engine/Basics/Projects/Packaging) をご覧ください。
+
+## 便利なインゲーム コマンド
+
+ゲームの実行中に、ゲームのコンソールから数多くの **コンソール コマンド** を使用することができます。 
+コンソールは **[ ~ (波形ダッシュ)]** または **[Tab]** キーを押して開くことが出来ます。いくつかの最も有用なコマンドを以下に 
+紹介します。
+
+$ EXIT/QUIT : 
+ゲームを終了して、エンジンを終了します。
+$ DISCONNECT : 
+ゲームを終了して、メインメニューへ戻ります (存在する場合) 。
+$ OPEN [MapURL] : 
+以前の設定で指定された URL を使用して新しいマップを読み込みます。URL はマップ名 (ファイル拡張子無し) にパラメータの任意のリストが続きます。このリストは、ゲームタイプ、プレイヤーのクラス、プレイヤー名、チーム数など特定のオプションを指定する際に使用されます。
+$ TRAVEL [MapURL] : 
+指定 URL を使用して新しいマップをロードすると、全ての設定がリセットされます。マップ URL の説明は上記を参照してください。
+$ VIEWMODE [Mode] : 
+ゲーム ビューポートのレンダリング モードを指定モードへ設定します。以下が利用可能なモードです。
+	| モード | 説明 |
+	| ---- | ----------- |
+	| WIREFRAME | 全てのメッシュのワイヤーフレームを表示します。|
+	| UNLIT | マテリアルのデフューズチャンネルのみを使用してメッシュをレンダリングします。|
+	| LIT | デフォルト設定です。ライティングから影響を受けているマテリアルを使用してメッシュをレンダリングします。|
+	| DETAILLIGHTING | 光源から影響を受けている法線と一緒に自然色のマテリアルを使用して、メッシュをレンダリングします。|
+	| LIGHTINGONLY | 光源から影響を受けている法線無しで自然色のマテリアルを使用してメッシュをレンダリングします。|
+	| LIGHTCOMPLEXITY | メッシュに影響を与えている動的ライトの数に基づく無色を使用してメッシュをレンダリングします。黒はメッシュに影響を与える動的ライトが無いことを意味します。より多くのライトがメッシュに影響を与えると、色は緑から赤へ変化します。 |
+	| SHADERCOMPLEXITY | 表面に適用されたマテリアルで実行されたシェーダー インストラクションの数に基づく無色を使用してメッシュをレンダリングします。カラーの範囲は、緑 (0) 、赤 (300) 、ピンク (600) 、白 (900) と多岐に渡ります。 |
+
+## マップの読み込み
+
+エンジンまたはエディタの実行時やエンジン実行中の新しいマップの読み込み時に、特定のマップを指定して 
+読み込むことができます。一連のメニュー操作をせずに必要なマップへ素早く移動できるため、 
+テストの際に大変便利です。
+
+### スタートアップ時のマップの読み込み
+
+エンジンは、実行時に常にデフォルトマップの読み込みを試みます。このマップは、ゲームプロジェクトの「Config」フォルダに格納されている 
+「DefaultEngine.ini」コンフィグファイルで指定されています。デフォルトで実行するマップは、「ini」ファイルの [URL] セクションにある 
+ **Map** プロパティで設定します。例えば、 VehicleGame は「DefaultEngine.ini」ファイルに以下を 
+格納しています。
+
+	[URL]
+	...
+	Map=/Game/Maps/VehicleMenu
+	...
+
+オーバーライドされない限りは 「VehicleMenu.umap」 (「[UE4Directory]\VehicleGame\Content\Maps」に格納) がスタートアップ時に読み込まれます。通常は、メインメニューの背景に 
+読み込みまたは使用するマップをデフォルトマップとして使用します。
+
+[PUBLISH:Licensee]
+デフォルトマップをオーバーライドするには、コマンドライン引数としてマップ名 (ファイル拡張子無しで) を渡します。先に述べたように、 
+コマンドラインにゲーム名を必ず指定してください。この後、デフォルト設定以外のマップを 
+エンジンへ強制的に読み込むためにマップ名を指定することもできます。例えば以下のコマンドラインは、 
+「ExampleMap」マップを実行しているクックされていないゲームモードへエンジンを読み込む際に使用します。
+
+	UE4Editor.exe [Gamename] ExampleMap -game
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+デフォルトマップをオーバーライドするには、コマンドライン引数としてマップ名 (ファイル拡張子無しで) を渡します。先に述べたように、 
+コマンドラインにプロジェクト名を必ず指定してください。この後、デフォルト設定以外のマップを 
+エンジンへ強制的に読み込むためにマップ名を指定することもできます。例えば以下のコマンドラインは、 
+「ExampleMap」マップを実行しているエンジンの読み込みに使用します。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	~~~
+	RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" ExampleMap -game
+	~~~
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	~~~
+	open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject" ExampleMap -game
+	~~~
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
+エディタの実行時にも同コンセプトが通用します。「editor」引数に続いて読み込むマップ名を指定すると、 
+エディタが開くとデフォルトやブランクマップの代わりに指定マップが読み込まれます。「ExampleMap」マップを搭載したエディタを読み込むには、 
+以下のコマンドラインを使用します。
+
+	UE4Editor.exe [GameName] ExampleMap
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+エディタの実行時にも同コンセプトが通用します。読み込みにマップ名を指定すると、エディタが開くと 
+デフォルトやブランクマップの代わりに指定マップが読み込まれます。「ExampleMap」マップを搭載したエディタを読み込むには、 
+以下のコマンドラインを使用します。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	~~~
+	RocketEditor.exe "[ProjectPath]\[ProjectName].uproject" ExampleMap
+	~~~
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	~~~
+	open RocketEditor.app --args "[ProjectPath]/[ProjectName].uproject" ExampleMap
+	~~~
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Rocket]
+
+[REGION:tip]
+	ゲームタイプなどの追加設定を指定することによって、マップ名にフルマップ URL を使用することもできます。設定はキー値のペアが「?」で区切られて 
+	マップ名に追加されます。例：
+	DM-Deck?Game=CaptureTheFlag
+
+
+[/REGION]
+
+### 新しいマップの読み込み
+
+再生中に、開発テストやゲームプレイ中のマップの切り替え目的で新規のマップを読み込むには、 
+マップ名 (ファイル拡張子なし) の後に「OPEN」または「TRAVEL」コンソール　コマンドを使用することによって 
+読み込みが可能となります。 
+
+[REGION:note]
+「OPEN」と「TRAEL」コマンドの違いは上記の [便利なインゲーム コマンド](#便利なインゲームコマンド) セクションで説明しています。
+[/REGION]
+
+下記のコマンドは、それぞれのコマンドに対し、プレイ中に同じ設定または設定をリセットして DM-Deck マップをロードします。
+
+	open DM-Deck
+
+もしくは、
+
+	travel DM-Deck
+
+
+<!--
+[PUBLISH:Licensee]
+## ゲームをクック済みのコンテンツと実行する
+
+ゲームの実行ファイルは、実行にクック済みのコンテンツを必要とします。
+
+
+### コマンドラインから実行する
+
+1.	コマンド プロンプトから、 ゲームディレクトリ内の「\Binaries\Win32」ディレクトリへ移動します。
+
+1.	 **[GameName].exe** を実行します。
+
+		[GameName].exe
+
+
+### 実行ファイルから実行する
+
+
+1.	ゲームディレクトリの「\Binaries\Win32」フォルダへ移動します。
+
+1.	****[GameName].exe** をダブルクリックしてゲームを実行します。
+
+
+[/PUBLISH:Licensee]
+-->
+
+
+
+
+[/EXCERPT:Main]

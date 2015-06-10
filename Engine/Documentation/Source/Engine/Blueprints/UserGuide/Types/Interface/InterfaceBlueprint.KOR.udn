@@ -1,0 +1,151 @@
+﻿INTSourceChangelist:2495740
+Availability:Public
+Title:블루프린트 인터페이스
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Description:블루프린트 사이의 인터페이스 정의를 위한 함수를 선언하는 블루프린트 입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\Interface:title%](Engine/Blueprints/UserGuide/Types/blueprint_interface.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+## 개요
+
+[EXCERPT:Intro]
+**Blueprint Interface** (블루프린트 인터페이스)란 하나 이상의 함수를 구현 없이 이름만 모아놓은 것으로, 다른 블루프린트에 
+추가할 수 있습니다. 인터페이스가 추가된 블루프린트는 해당 함수를 갖는 것이 보장됩니다.
+인터페이스의 함수에는 그것을 추가한 각각의 블루프린트에서 함수성을 줄 수 있습니다. 이는 본질적으로 일반 프로그래밍에서 
+인터페이스의 개념과 비슷한 것으로, 여러가지 유형의 Object 다수에 공통의 인터페이스를 통해 접근할 수 있도록 
+하는 것입니다. 간단히 말해서, 블루프린트 인터페이스는 블루프린트끼리 데이터를 공유하며 주고 받을 수 있도록 해 주는 것입니다.
+
+블루프린트 인터페이스는 다른 블루프린트와 비슷한 방식으로 콘텐츠 제작자가 에디터를 통해 만들 수 있습니다만, 
+다음과 같은 제한되는 부분이 몇 가지 있습니다:
+
+* 새 변수 추가
+* 그래프 편집
+* 컴포넌트 추가
+
+
+[/EXCERPT:Intro]
+
+블루프린트 인터페이스를 사용하면 일정한 함수성을 공유하는 다수의 각기 다른 유형의 오브젝트와 공통된 방법으로 
+상호작용할 수 있습니다. 즉 차와 나무처럼 완전히 다른 유형의 오브젝트일지라도, 무기로 쏠 수 있다거나 대미지를 입는 등의 
+구체적인 것 한 가지를 공유할 수 있다는 것입니다. `OnTakeWeaponFire` 함수가 들어있는 블루프린트 인터페이스 를 만들고, 
+차와 나무 둘 다 그 블루프린트 인터페이스 를 구현하게 하면, 차와 나무 둘 다 같은 유형으로 간주해서 
+어느 것이 맞았더라도 `OnTakeWeaponFire` 를 호출하기만 하면 됩니다. 블루프린트 인터페이스 구현 관련해서는 
+[](Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces) 문서를 참고하세요.
+
+## 블루프린트 인터페이스 만들기
+
+블루프린트 인터페이스는 콘텐츠 브라우저에서 우클릭한 후 맥락 메뉴의 새 애셋 - Blueprint Interface 를 선택한 다음 이름을 지어주는 것으로 쉽게 만들 수 있습니다.
+
+![](CreateInterface.gif)
+
+![](CreatedBlueprintInterface.gif)
+
+만들고 나서는 인터페이스의 함수를 편집해 줘야 합니다.
+
+## 블루프린트 인터페이스 편집하기
+
+블루프린트 인터페이스는 특수한 버전의 블루프린트 에디터에서 편집됩니다. 변수, 그래프, 컴포넌트를 만들 수 없기 때문에 인터페이스 편집 과정은 표준 블루프린트 클래스 편집 과정과 크게 다릅니다.
+
+새 인터페이스를 처음 열 때의 에디터 모습은 이렇습니다:
+
+![](InterfaceEditor.png)
+
+인터페이스를 방금 생성했다면, `NewFunction_0` 라는 이름의 공백 함수가 새로 생성되어 이름을 변경할 수 있도록 선택되어 있는 것을 확인할 수 있습니다.
+
+### 함수 추가하기
+
+함수는 인터페이스의 주요 성분입니다. 인터페이스의 함수에는 구현이 없습니다. 그저 입력과 출력의 정의로만 존재할 뿐입니다. 이를 사용하여 인터페이스를 통해 데이터를 전송하거나, 해당 인터페이스를 구현하는 다른 블루프린트에서 덮어쓸 수 있는 것입니다.
+
+새 함수를 추가하려면:
+
+1. **내 블루프린트** 탭에서 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\myblueprint_function.png) 함수 목록 제목줄의 ![](Engine\Blueprints\Editor\UIComponents\MyBlueprint\plus_Button.png) **추가 버튼** 을 클릭하여 새 함수를 만듭니다.
+
+1. **내 블루프린트** 패널에서 새 함수의 이름을 입력합니다.
+
+	![](RenameMyFunction.png)
+
+1. 새 함수와 함께 새 그래프 영역이 나타납니다. 함수에 입력도 출력도 없는 것을 볼 수 있습니다.
+
+	![](NewFunctionCreated.png)
+
+
+### 함수 시그너처 편집하기
+
+인터페이스 함수에는 구현이 없기 때문에, 디자이너로서 할 수 있는 것은 일련의 입출력 유형을 지정하는 것 뿐입니다.
+
+함수의 시그너처를 편집하려면:
+
+1. 디테일 탭에서 _Inputs_ 카테고리의 ![](button_New.png) 버튼을 클릭하여 Input Parameter 를 새로 만듭니다.
+
+	![](Details_Signature.png)
+
+1. Input Name 과 Type 을 원하는 대로 설정합니다. 이름 옆의 ![](button_DropdownArrow.png) 버튼을 사용하여 이름을 펼칠 수도 있고, 거기서 Default Value 설정을 할 수도 있습니다.
+
+	![](FloatInput.png) ![](MyFunctionGraph.png)
+
+1. 같은 방식으로 출력을 추가할 수도 있습니다. 그래프가 자동으로 업데이트되어 표시되는 것을 확인할 수 있습니다.
+
+	![](OutputBool.png) ![](InputWithOutput.png)
+
+
+
+
+### 다른 고려사항
+
+* 어느 입력이나 출력 파라미터에도 ![](button_X_Remove.png) 버튼을 클릭하여 제거할 수 있습니다.
+
+* 입력 파라미터에는 파라미터 이름 칸 바로 아래의 작은 글상자를 통해 기본값을 설정할 수 있습니다. 해당 부분을 확인하려면 _디테일_ 탭의 프로퍼티 항목을 펼쳐야 합니다.
+
+* _디테일_ 탭에서 파라미터 프로퍼티를 펼쳤을 때 찾을 수 있는 ![](button_moveUp.png), ![](button_moveDown.png) 버튼을 사용하여 노드에 나타나는 입출력 파라미터를 바꿀 수 있습니다.
+
+* 서버간에 리플리케이션이 필요한 함수가 들어있는 인터페이스에 대해서는 "리플리케이트" 체크박스를 사용하면 됩니다. 이 박스는 _디테일_ 탭에서 ![](BlueprintProps.png) 버튼을 처음 클릭할 때 찾을 수 있습니다.
+
+## 참고 링크
+
+**블루프린트 통신** 관련 추가 문서는 다음 링크를 참고하세요:
+
+* **블루프린트 통신 안내** 관련 정보: [](Engine\Blueprints\UserGuide\BlueprintCommsUsage) 
+
+* **다양한 블루프린트 통신 구성 방법** 관련 정보: [](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo) 
+
+* **이벤트 디스패처** 관련 정보: [](Engine\Blueprints\UserGuide\EventDispatcher) 
+
+* **직접 블루프린트 통신** 관련 정보: [](Engine\Blueprints\UserGuide\BlueprintComms)

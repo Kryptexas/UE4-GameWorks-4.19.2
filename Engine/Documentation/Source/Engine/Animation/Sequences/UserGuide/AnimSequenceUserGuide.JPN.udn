@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:2187607
+Availability:Public
+Title:アニメーション シーケンスのユーザーガイド
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
+Description:VimBlueprint にアニメーション シーケンスを配置し、サンプリングするためのガイド
+
+[EXCERPT:Intro]
+**AnimationSequences** の再生はコードから実行できますが、通常は _SkeletalMeshComponent_ に適用された 
+_Animation Blueprint_ インスタンス内で処理されます。_Animation Blueprint_ が作成された _Skeleton_ の全ての 
+ **AnimationSequences** は、 **AnimGraph** 内でサンプリング可能です。これらは、出力が **AnimationSequence** をサンプリングすることによって生成されたポーズである 
+シーケンスプレイヤー ノードとして配置できます。
+[/EXCERPT:Intro]
+
+**シーケンスプレイヤーを配置するには、以下の手順に従います。**
+
+1. **Animation Graph** 内で右クリックして、 **Animations** カテゴリを展開します。
+
+	![Using Animation Sequences - List](CE_anim_list.png)
+
+1. サンプリングする _AnimationSequence_ をリストから選択します。ノードがシーケンスのためにグラフに配置されます。
+
+	![Using Animation Sequences - Node](CE_anim_node.png)
+
+1. 新規ノードのポーズ出力は、 animation ノード上の対応するポーズ入力と接続し、アニメーションをサンプリングすることができます。
+
+	![Using Animation Sequences - Sample](CE_anim_sample.png)
+

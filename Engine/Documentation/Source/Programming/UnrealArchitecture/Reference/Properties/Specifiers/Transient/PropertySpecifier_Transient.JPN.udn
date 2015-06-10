@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title:Transient
+Crumbs: %ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/Reference/Properties/Specifiers
+Description: 
+Availability:Public
+Version:4.5
+
+プロパティは一過性です。読み込み時に保存したり 0 で埋めてはいけません。

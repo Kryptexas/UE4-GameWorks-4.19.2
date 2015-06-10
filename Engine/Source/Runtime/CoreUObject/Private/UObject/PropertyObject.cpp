@@ -24,7 +24,7 @@ FString UObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("OBJECT");
 }
 
-void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes, void const* Defaults ) const
+void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
 {
 	UObject* ObjectValue = GetObjectPropertyValue(Value);
 	Ar << ObjectValue;
@@ -37,7 +37,7 @@ void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadByt
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 		if (ULinkerPlaceholderExportObject* PlaceholderVal = Cast<ULinkerPlaceholderExportObject>(ObjectValue))
 		{
-			PlaceholderVal->AddReferencingProperty(this);
+			PlaceholderVal->AddReferencingPropertyValue(this, Value);
 		}
 		else if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(ObjectValue))
 		{
@@ -55,20 +55,13 @@ void UObjectProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadByt
 		//        we'd have to modify ULinkerPlaceholderExportObject::ReplaceReferencingObjectValues()
 		//        to accommodate this (as it depends on finding itself as the set value)
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
-		
+
 		CheckValidObject(Value);
 	}
 }
 
 void UObjectProperty::SetObjectPropertyValue(void* PropertyValueAddress, UObject* Value) const
 {
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	if (ULinkerPlaceholderExportObject* PlaceholderVal = Cast<ULinkerPlaceholderExportObject>(Value))
-	{
-		check(PlaceholderVal->IsReferencedBy(this));
-	}
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-
 	SetPropertyValue(PropertyValueAddress, Value);
 }
 

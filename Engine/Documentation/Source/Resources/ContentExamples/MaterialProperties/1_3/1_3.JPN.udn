@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:1.3 - Translucent Light モード
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
+Description:マテリアル インスタンスの事例概要、例 1.3：Translucent Light モード
+Related: Engine/Rendering/LightingAndShadows/LitTranslucency
+Related: Engine/Rendering/Materials/PhysicallyBased
+Related: Engine/Rendering/Materials
+Related: Engine/Rendering/Materials/MaterialProperties/LightingModels
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/LayeredMaterials
+Related: Engine/Rendering/Materials/MaterialInstances
+Related: Engine/Actors/DecalActor
+
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialProperties/1_3:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialProperties/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialProperties/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/MaterialProperties/1_3:title%](Resources/ContentExamples/MaterialProperties/rendering_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/MaterialProperties/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/MaterialProperties/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/MaterialProperties/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](MP_1_3_001.png)
+[/REGION]
+
+**Default Lit** に **半透明マテリアル** が設定されている場合、シェーダーの光り方の調整オプションは 3 通りあります。
+
+| Translucent Lighting モード| 説明文 |
+| ---- | ----- |
+| **Volumetric Non Directional**| スモークのようなボリューメトリックなエフェクトを生み出すために使用されているかのように、メッシュが光ります。ディフューズ ライティングだけが表示され、法線は使用されません。これは lit ( ライティング有り) の透過処理で最も安価な方法です。 |
+| **Volumetric Non Directional** | スモークのようなボリューメトリックなエフェクトを生み出すために使用されているかのように、メッシュが光りますが、ライティングに影響を及ぼす法線を持ちます。ディフューズ ライティングだけが表示されます。
+| **Surface**| 光、反射を受け取りますが、反射は限定され、 **Opaque** マテリアル上での反射に劣ります。1 番近くの **反射キャプチャ** アクタをピックし、オブジェクト全体に適用します。 |
+

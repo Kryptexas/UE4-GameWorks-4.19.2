@@ -1,0 +1,58 @@
+Availability: Public
+Title:Migrating Assets 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:This document covers how to migrate assets into other projects within the Content Browser
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](MigrateTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Migrate:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Migrate]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](MigrateBanner.png)
+[/REGION]
+
+## Overview
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Migrate_Tool]
+
+## Usage
+
+To use the Migrate Tool:
+
+1. Select the assets you wish to migrate in the **Content Browser**.
+
+	![](SelectedAssetsForMigration.png)(w:400)
+
+1. **Right-click** on any of the selected assets and choose **Asset Actions** then **Migrate** from the context menu.
+
+	![](MigrateContextMenu.png)![](MigrateContextMenu2.png)
+
+1. The **Asset Report** dialog appears, showing all the assets and dependencies that will be migrated. Confirm and click **Ok**.
+
+	![](AssetReport.png)
+
+1. Choose the appropriate content folder from another Unreal Engine project. This is the target location for the migration.
+
+	![](ChooseFolderForMigration.png)
+
+1. If the migration is successful, you will see a confirmation message stating which assets were copied into the target folder.
+
+	![](AssetsMigrated.png)
+
+
+If you attempt to migrate into anything other than a game content folder, you may receive the following message:
+
+![](assetMigrationWarning.png)
+
+In this case, simply confirm the location and either click **Yes** or **No**.

@@ -1,0 +1,55 @@
+Availability: Docs
+Title: Fix Up Redirects Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet that removes any redirectors to make sure content is not loaded when it should not be.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Overview
+
+Makes certain that there are no redirectors causing content to be loaded when it should not be. 
+
+
+
+## Detailed Motivation
+
+Someone has checked in material into an always loaded package that should not be there.  In the **Content Browser**, you move the Material to a new location.  Doing so will leave a redirector so that objects pointing to the previous Material will know where the new location is.  The redirector will cause that content to be loaded until fixupredirects can be run.
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [GameName].exe fixupredirects
+    
+
+## How to use / turn on
+
+Just run GAMENAME FixUpRedirects.
+
+
+NOTE:  if you have more than one game you will want to do the following method:
+
+
+* run the commandlet on each of your games one at a time.
+* revert any changes to engine content after each game is run except the last one.
+* check in all the changed content.
+
+
+This will ensure that each game is correctly updated with the new location of Engine Content.
+
+ 
+
+
+
+

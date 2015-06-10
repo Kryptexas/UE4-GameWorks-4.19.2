@@ -1,0 +1,187 @@
+Availability:Public
+Title:Simplygon LODs
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes
+Description:Pipeline and tools for management and automatic generation of level of detail meshes for StaticMeshes.
+
+[TOC(start:2)]
+
+## Overview
+
+[REGION:note]
+ This section covers the usage of the Simplygon features to create LODs for **StaticMeshes** in Unreal Engine 4. If you do not have a Simplygon license, the standard FBX pipeline has a method for importing LODs for **StaticMeshes**. See the [**FBX Static Mesh Pipeline**](Engine/Content/FBX/StaticMeshes#StaticMeshLODs) documentation for more details.
+[/REGION]
+
+The _StaticMesh_ pipeline provides the ability to create presets and automatically generate complete 
+level of detail (LOD) chains as a core feature. This allows artists to create a mesh, import it, and 
+have optimized versions created to be rendered at distance to improve rendering performance with no 
+additional work required on their part.
+
+The main features include:
+
+* LOD Groups that define default level-of-detail settings, light map resolution, and permit global overrides 
+(e.g. reduce all SmallProp LODs by 10%). You may select an LOD group at import time and change it at any 
+time in the Static Mesh editor.
+* Define and override LOD group settings on a per-platform or device basis.
+* Normals and tangents are always imported from the FBX. At any time you may choose whether to use the imported 
+normals/tangents or have Unreal recompute them.
+* Streamlined workflow of setting up and tweaking LODs in the [**StaticMesh Editor**](Engine/Content/Types/StaticMeshes/Editor).
+* Automatic generation of LODs using Simplygon.
+
+[INCLUDE:Engine/UI/Tools/Simplygon#License]
+
+## LOD Management
+
+The **Level of Detail** (LOD) panel in the **StaticMesh Editor** provides the ability to manage and generate complete chains of level of detail meshes according to rules you set up, either in the form of [LOD Groups](#LODGroups) or on a per-mesh and per-LOD basis.
+
+![Level of Detail Panel](lod_panel.png)
+
+### LOD Generation
+
+Automatic LOD generation uses [](Engine/UI/Tools/Simplygon) to create simplified versions of the base mesh to be 
+used as LODs. These algorithms take into account factors such as target complexity, preservation of 
+silhouette and texture coordinates, and more in order to generate a new mesh that can be displayed at 
+a distance without noticeable degradation or artifacts.
+
+**To apply an LOD Group:**
+
+1. Select the **LOD Group** to use in the [LOD settings](#LODSettings).
+
+![](group_select.png)
+
+1. Press the ![Apply](button_apply.png) button to create the new LOD meshes.
+
+
+**To generate a custom LOD chain:**
+
+1. Select the number of LOD meshes to generate in the [LOD settings](#LODSettings).
+
+	[REGION:tip]
+		You can also select an **LOD Group** to use as a starting point and then alter the settings from there.
+	[/REGION]
+
+	![](lod_number.png)
+
+1. Set the [Reduction Settings](#ReductionSettings) for each LOD mesh to be generated.
+
+	![](lod_settings.png)
+
+1. Press the ![Apply](button_apply.png) button to create the new LOD meshes.
+
+
+### LOD Preview
+
+The LOD meshes can be previewed using the controls in the toolbar:
+
+![](lod_preview.gif)(convert:false)
+
+
+### LOD Settings
+
+| Setting | Description |
+| ------- | ----------- |
+| **LOD Group** | Specifies the [LOD Group](#LODGroups) to use for the mesh. |
+| **Number of LODs** | Sets the number of LODs for the mesh. The list of LODs updates as this value is modified, but no actual changes are made until the ![Apply](button_apply.png) button is pressed. |
+| **Auto compute LOD Distance** | If enabled, a simple error metric is used to determine the distances at which transitions between LODs occur. Otherwise, the **Distance** property for each LOD is used to determine when transitions to that LOD occur. |
+| **LOD Distance Error** | Scales the distances at which transitions between LODs occur when using automatic computation. |
+
+### Build Settings
+
+| Setting | Description |
+| ------- | ----------- |
+| **Recompute Normals** | If enabled, the smoothing groups will be recomputed by Unreal. Otherwise, smoothing groups will be retained from the FBX file. |
+| **Recompute Tangents** | If enabled, the tangents will be recomputed by Unreal. Otherwise, tangents will be retained from the FBX file. |
+| **Remove Degenerates** | If enabled, degenerate triangles found during import will be removed. Disabling this option will keep degenerate triangles found. In general, this option should be enabled. |
+| **Use Full Precision UVs** | If enabled, the UVs for the mesh will be stored as 32-bit floats instead of 16-bit. |
+
+### Reduction Settings
+
+| Setting | Description |
+| ------- | ----------- |
+| **Percent Triangles** | The editor simplifies the mesh until it has the exact number of triangles specified. |
+| **Max Deviation** | The maximum deviation from the base mesh as a percentage of the bounding sphere. The editor uses the desired quality to compute an error metric for the mesh. This error metric prevents the tool from simplifying a mesh such that the surface of the new mesh deviates too much from the surface of the source mesh. The advantage to this approach is that the tool can intelligently optimize the mesh within some deviation of the source mesh without stopping at an arbitrary triangle limit. |
+| **Silhouette** | Specifies how important the silhouette of the mesh is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to better preserve the geometric shape of the mesh but will result in a higher triangle count. |
+| **Texture** | Specifies how important texture density is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to avoid texture stretching artifacts but will result in a higher triangle count. |
+| **Shading** | Specifies how important shading quality is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to better preserve shading quality but will result in a higher triangle count. |
+| **Welding Threshold** | Vertices within this distance from one another will automatically be welded. This can help to eliminate small faces. Using large values can produce undesirable results. |
+| **Hard Edge Angle Threshold** | Angles larger than this value between faces will result in hard edges between faces. Smaller angles will create soft egdes. |
+
+<!--
+[EXCERPT:Type]
+Specifies the method to use to determine the quality or complexity of the resulting LOD mesh:
+
+[REGION:simpletable]
+| Type | Description |
+| ---- | ----------- |
+| **Max Deviation** | The maximum deviation from the base mesh as a percentage of the bounding sphere. The editor uses the desired quality to compute an error metric for the mesh. This error metric prevents the tool from simplifying a mesh such that the surface of the new mesh deviates too much from the surface of the source mesh. The advantage to this approach is that the tool can intelligently optimize the mesh within some deviation of the source mesh without stopping at an arbitrary triangle limit. |
+| **Percent Triangles** | The editor simplifies the mesh until it has the exact number of triangles specified. |
+[/REGION]
+[/EXCERPT:Type]
+-->
+
+## LOD Groups
+
+LOD groups define default level-of-detail settings as well as some options for globally modifying Static Meshes. 
+
+Groups are defined in the `[StaticMeshLODSettings]` section of the `Engine.ini` file. E.g.:
+
+	[StaticMeshLODSettings]
+	LevelArchitecture=(NumLODs=4,LightMapResolution=32,LODPercentTriangles=0.5,SilhouetteImportance=4)
+	SmallProp=(NumLODs=4,LODPercentTriangles=0.5)
+	LargeProp=(NumLODs=4,LODPercentTriangles=0.5)
+	Vista=(NumLODs=1)
+	Foliage=(NumLODs=1)
+
+These settings define five LOD groups:
+
+* LevelArchitecture
+* SmallProp
+* LargeProp
+* Vista
+* Foliage. 
+
+
+LOD groups may be added and removed without code modifications simply by editing the INI. Additional LOD groups will 
+automatically appear in the Editor UI. Meshes that are in groups that have been removed will use default settings 
+determined by code. Those default settings may also be overridden in the INI by defining the None LOD group.
+
+### Group Default Settings
+
+The following settings define the defaults for each group. They are applied only when a mesh is imported or a 
+mesh's LOD group is changed.
+
+| Setting | Description |
+| ------- | ----------- |
+| **NumLODs** | The default number of LODs to generate. This value must be in the range 1-4. |
+| **LightMapResolution** | The lightmap resolution to use. |
+| **BasePercentTriangles** | The percentage of triangles to keep in the base LOD, 0.0-1.0. |
+| **LODPercentTriangles** | The percentage of triangles to reduce each LOD. E.g. if this is set to 0.5 for a mesh with 4 LODs and LOD0 has 5000 triangles then the remaining LODs will have 2500, 1250, and 625 triangles respectively. |
+| **MaxDeviation** | The maximum distance by which the surface of an LOD may deviate from the base LOD in local space. |
+| **WeldingThreshold** | If the distance between two vertices is less than this value they will be welded together. |
+| **HardAngleThreshold** | If the angle between two triangles is above this value (in degrees), the normals will not be smooth over the edge between those two triangles. |
+| **SilhouetteImportance** | Higher values try to preserve the silhouette of the object when generating LODs. |
+| **TextureImportance** | Higher values try to prevent texture stretching when generating LODs. |
+| **ShadingImportance** | Higher values try to minimize changes to normal when generating LODs. |
+
+### Group Global Settings
+
+The following settings can be used to make changes to all meshes in the group. These settings affect both new and existing meshes:
+
+| Setting | Description |
+| ------- | ----------- |
+| **BasePercentTrianglesMult** | Further reduces the base LOD. E.g. if this is set to 0.9, the base LOD of all meshes in the group will have their triangles reduced by 10%. |
+| **LODPercentTrianglesMult** | Further reduces the triangles of each LOD. Similar to BasePercentTrianglesMult but does not apply to the base LOD. |
+| **MaxDeviationBias** | Tweak the maximum deviation used during reduction for all meshes. |
+| **WeldingThreshold** | Tweak the welding threshold used during reduction for all meshes. |
+| **HardAngleThreshold** | Tweak the hard angle threshold used during reduction for all meshes. |
+| **SilhouetteImportance** | Tweak the silhouette importance used during reduction for all meshes. |
+| **TextureImportance** | Tweak the texture importance used during reduction for all meshes. |
+| **ShadingImportance** | Tweak the shading importance used during reduction for all meshes. |
+
+
+## Simplygon®
+
+![Simplygon](Engine/UI/Tools/Simplygon/simplygon_logo.png)
+
+Simplygon is used to automatically generate game-ready Level of Detail models (LODs) for a specific pixel resolution by removing as much information as possible without degrading LOD quality for a certain onscreen size. Simplygon uses a proprietary mesh reduction method that retains geometrical LOD integrity and visual quality of LOD switching, producing AutoLODs that can directly be used inside triple-A games. 
+
+Unreal Engine 4 leverages Simplygon to provide high-quality mesh reduction without having to leave the Unreal Editor. Developers can quickly simplify meshes, generate LODs, and immediately see the results in their maps.

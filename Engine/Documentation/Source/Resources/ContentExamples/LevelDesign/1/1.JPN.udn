@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2346177
+Availability:Public
+Title:1 - プロトタイプ評価
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/LevelDesign
+Description:レベルデザインの事例概要、例 1：プロトタイプ評価
+Related: Engine/Actors/Brushes
+Related:Engine/UI/LevelEditor
+Related: Engine/UI/LevelEditor/Modes
+Related: Engine/Actors/Volumes
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\LevelDesign\1:title%](leveldesign_1_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\LevelDesign\1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\LevelDesign\1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\LevelDesign\1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+
+![](leveldesign_1.png)
+
+レベルデザイン時の初回評価はプロトタイプ評価です。この評価時は、ブラシかキューブや球体などの基本的なジオメトリスタティックメッシュを使用して、ごく一般的なレベルプロトタイプが配置されています。 
+基本的なマテリアルはどんなスタティックメッシュにも適用可能ですが、これは美的効果よりもレベル内の異なるオブジェクトや領域を区別するためのものです。基本的なライティングも
+この時点でレベルへ追加されます。  
+
+プロトタイプ評価は、大まかな基本ゲームプレイ領域で素早く簡単に作業を行います。レベル内でゲームプレイのテストを実行し、レベル内の領域のレイアウトや相対的なサイズ等に加え、
+これらがゲーム実行中にプレイヤーの動作に及ぼす影響を観察することができます。この評価の終了時には、プレイ性や作業領域の環境を適切に判断できるようになります。
+[/REGION]

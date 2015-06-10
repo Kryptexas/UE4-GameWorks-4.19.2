@@ -1,0 +1,62 @@
+﻿INTSourceChangelist:2492260
+Availability:Public
+Title:1.1 - アクタのレプリケーション
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
+Description:Network Features の事例概要、例1.1: アクタのレプリケーション
+Related:Gameplay/Networking
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
+Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples\Networking\1_1:title%](1_1.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples\Networking\1_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples\Networking\1_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples\Networking\1_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](1_1.png)
+[/REGION]
+
+[REGION:tip]
+**サーバー** と **クライアント** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients]** 欄を 2 に設定します。
+[/REGION]
+
+
+
+## 概要
+
+ここでは、アクタで **Replicates** boolean を使用する例を示しています。有効な場合、ネットワーキングの視点からサーバーでスポーンされたアクタをクライアントが認識することができます。 
+
+以下のように、 **Replication** セクションの下にある **[Defaults]** タブで、アクタをレプリケートするか、しないかを設定できます。 
+
+![](1_1_Replicates.png)
+
+## Level ブループリント
+プレイ セッションに入る場合、2 つのアクタが **Level ブループリント** を介してスポーンされます。
+
+[REGION:fullwidth]
+![](1_1_LevelBlueprint.png)
+[/REGION]
+
+**[Switch Has Authority]** ノードを使用して、ネットワーク権限を持つマシン上 (ほとんどのユースケースでは、サーバー) または、リモート マシン (ほとんどのユースケースではクライアント) のいずれかでスクリプトが実行されているかをチェックします。 
+
+この例では、サーバーのみで実行されており、スポーンされた 2 つのアクタのうちの 1 つはレプリケートに設定されていて、もう 1 つはレプリケートに設定されていません。以下の画像のように、サーバー側では両方のアクターを見ることが可能であり、クライアント側ではレプリケートに設定されているアクタだけを見ることができます。 
+
+[REGION:fullwidth]
+![](1_1_Play.png)
+[/REGION]

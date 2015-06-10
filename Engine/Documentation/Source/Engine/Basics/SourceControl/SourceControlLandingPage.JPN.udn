@@ -1,0 +1,31 @@
+﻿INTSourceChangelist:2385598
+Availability:Public
+Title:アンリアル エンジン 4 におけるコラボレーション
+Crumbs: %ROOT%, Engine
+Description:チーム内の他のメンバーとアセットを共有できるように Perforce または SVN をセットアップする 
+
+
+## 概要 
+Unreal Engine 4 には、Perforce および SVN などのバージョン管理ソフトウェアを使用してプロジェクトで共同作業できる 2 種類の完全に統合された方法があります。 
+バージョン管理を使用すると、チーム内のユーザーはアセットやコードを互いに共有し、変更のバックアップや履歴を提供することもできます。 
+こうすることで、ファイルに何か問題が生じた場合に前のバージョンに戻ることができます。
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ソースコントロール ソフトウェア
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\Basics\SourceControl\InEditor "%Engine\Basics\SourceControl\InEditor:description%")
+	* [](Engine\Basics\SourceControl\Perforce "%Engine\Basics\SourceControl\Perforce:description%")
+	* [](Engine\Basics\SourceControl\SVN "%Engine\Basics\SourceControl\SVN:description%")
+
+	[/PARAM]
+[/OBJECT]
+
+

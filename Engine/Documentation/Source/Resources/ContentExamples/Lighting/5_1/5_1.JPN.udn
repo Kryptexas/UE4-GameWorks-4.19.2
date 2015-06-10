@@ -1,0 +1,56 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:5.1 - Source Radius
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 5.1：Source Radius (静的ライト)
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\5_1:title%](Resources\ContentExamples\Lighting\Lighting_5_1.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\5_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\5_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\5_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\5_1:title%](Resources\ContentExamples\Lighting\Lighting_5_1.png)
+[/REGION]
+
+この例は静的ライトに Source Radius プロパティを変化させた場合の影響を示します。静的オブジェクトの両側には色が異なる 2 つの静的ライトがあります。色は変化をより簡単に表示するために使用しています。
+
+
+Source Radius は光源のサイズをシミュレーションします。お気づきになった方もいるかもしれませんが、小さな LED ライトなど小さな光源は、特に表面間近にキャストした際にはっきりとしたシャドウを生成します。一方でより大きな光源はソフトで不鮮明なシャドウ (境界がくっきりしていないシャドウ) を生成します。[事例 2.1](Resources/ContentExamples/Lighting/2_1) で説明しましたが、静的ライトは独自の情報をライトマップへベイクします。つまりシャドウの品質を高く保つには、特にソフトなシャドウの場合は Lightmap Resolution プロパティがカギとなります。
+
+
+
+Source Radius (静的ライト)
+-	前述の通り、静的ライトは Distance Field Shadow を使用せずに全情報をライトマップへベイクします。
+-	これにより光源のサイズとオブジェクトの距離に依存するソフトなシャドウの作成が可能になります。
+-	大きな光源はソフトなシャドウを意味します。小さな光源ははっきりとしたシャドウを意味します。
+-	遠距離はソフトなシャドウを意味します。短距離ははっきりとしたシャドウを意味します。
+-	カラーはシャドウをよりリアル見せるために使用します。
+-	ライトマップの解像度は品質を変化させます。
+-	窓から入り込む間接的なスカイライトをシミュレートし、部屋へ差し込むとてもソフトでわずかなシャドウをキャストする際に使用します。

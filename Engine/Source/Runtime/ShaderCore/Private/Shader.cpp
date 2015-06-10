@@ -12,6 +12,7 @@
 #include "ModuleManager.h"
 #include "TargetPlatform.h"
 #include "RHICommandList.h"
+#include "ShaderCache.h"
 
 
 DEFINE_LOG_CATEGORY(LogShaders);
@@ -74,13 +75,15 @@ FShaderType::FShaderType(
 	const TCHAR* InSourceFilename,
 	const TCHAR* InFunctionName,
 	uint32 InFrequency,
-	ConstructSerializedType InConstructSerializedRef
+	ConstructSerializedType InConstructSerializedRef,
+	GetStreamOutElementsType InGetStreamOutElementsRef
 	):
 	Name(InName),
 	SourceFilename(InSourceFilename),
 	FunctionName(InFunctionName),
 	Frequency(InFrequency),
 	ConstructSerializedRef(InConstructSerializedRef),
+	GetStreamOutElementsRef(InGetStreamOutElementsRef),
 	GlobalListLink(this)
 {
 	for (int32 Platform = 0; Platform < SP_NumPlatforms; Platform++)
@@ -227,9 +230,11 @@ FArchive& operator<<(FArchive& Ar,FShaderType*& Ref)
 }
 
 
-FShader* FShaderType::FindShaderById(const FShaderId& Id) const
+TRefCountPtr<FShader> FShaderType::FindShaderById(const FShaderId& Id)
 {
-	return ShaderIdMap.FindRef(Id);
+	FScopeLock MapLock(&ShaderIdMapCritical);
+	TRefCountPtr<FShader> Result = ShaderIdMap.FindRef(Id);
+	return Result;
 }
 
 FShader* FShaderType::ConstructForDeserialization() const
@@ -286,20 +291,25 @@ void FShaderType::Uninitialize()
 }
 
 TMap<FShaderResourceId, FShaderResource*> FShaderResource::ShaderResourceIdMap;
+FCriticalSection FShaderResource::ShaderResourceIdMapCritical;
 
 FShaderResource::FShaderResource()
-	: NumInstructions(0)
+	: SpecificType(NULL)
+	, NumInstructions(0)
 	, NumTextureSamplers(0)
 	, NumRefs(0)
+	, Canary(FShader::ShaderMagic_Uninitialized)
 {
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
 }
 
 
-FShaderResource::FShaderResource(const FShaderCompilerOutput& Output) 
-	: NumInstructions(Output.NumInstructions)
+FShaderResource::FShaderResource(const FShaderCompilerOutput& Output, FShaderType* InSpecificType) 
+	: SpecificType(InSpecificType)
+	, NumInstructions(Output.NumInstructions)
 	, NumTextureSamplers(Output.NumTextureSamplers)
 	, NumRefs(0)
+	, Canary(FShader::ShaderMagic_Initialized)
 	
 {
 	Target = Output.Target;
@@ -309,7 +319,11 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output)
 	OutputHash = Output.OutputHash;
 	checkSlow(OutputHash != FSHAHash());
 
-	ShaderResourceIdMap.Add(GetId(), this);
+	{
+		FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
+		ShaderResourceIdMap.Add(GetId(), this);
+	}
+	
 	INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
@@ -318,6 +332,10 @@ FShaderResource::FShaderResource(const FShaderCompilerOutput& Output)
 
 FShaderResource::~FShaderResource()
 {
+	check(Canary == FShader::ShaderMagic_Uninitialized || Canary == FShader::ShaderMagic_CleaningUp || Canary == FShader::ShaderMagic_Initialized);
+	check(NumRefs == 0);
+	Canary = 0;
+
 	DEC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), Code.Num());
 	DEC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
 	DEC_DWORD_STAT_BY(STAT_Shaders_NumShaderResourcesLoaded, 1);
@@ -326,12 +344,14 @@ FShaderResource::~FShaderResource()
 
 void FShaderResource::Register()
 {
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	ShaderResourceIdMap.Add(GetId(), this);
 }
 
 
 void FShaderResource::Serialize(FArchive& Ar)
 {
+	Ar << SpecificType;
 	Ar << Target;
 	Ar << Code;
 	Ar << OutputHash;
@@ -342,45 +362,60 @@ void FShaderResource::Serialize(FArchive& Ar)
 	{
 		INC_DWORD_STAT_BY_FName(GetMemoryStatType((EShaderFrequency)Target.Frequency).GetName(), (int64)Code.Num());
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderResourceMemory, GetSizeBytes());
+		
+		FShaderCache::LogShader((EShaderPlatform)Target.Platform, (EShaderFrequency)Target.Frequency, OutputHash, Code);
+
+		// The shader resource has been serialized in, so this shader resource is now initialized.
+		check(Canary != FShader::ShaderMagic_CleaningUp);
+		Canary = FShader::ShaderMagic_Initialized;
 	}
 }
 
 
 void FShaderResource::AddRef()
 {
+	// Lock shader id map to prevent anything from acquiring shaders while we manipulate their references
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
+	check(Canary != FShader::ShaderMagic_CleaningUp);
 	++NumRefs;
 }
 
 
 void FShaderResource::Release()
 {
+	// We need to lock the resource map so that no resource gets acquired by
+	// FindShaderResourceById while we (potentially) remove this resource
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	check(NumRefs != 0);
 	if(--NumRefs == 0)
 	{
-		ShaderResourceIdMap.Remove(GetId());
+			ShaderResourceIdMap.Remove(GetId());
 
 		// Send a release message to the rendering thread when the shader loses its last reference.
 		BeginReleaseResource(this);
 
+		Canary = FShader::ShaderMagic_CleaningUp;
 		BeginCleanup(this);
 	}
 }
 
 
-FShaderResource* FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
+TRefCountPtr<FShaderResource> FShaderResource::FindShaderResourceById(const FShaderResourceId& Id)
 {
-	return ShaderResourceIdMap.FindRef(Id);
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
+	TRefCountPtr<FShaderResource> Result = ShaderResourceIdMap.FindRef(Id);
+	return Result;
 }
 
 
-FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompilerOutput& Output)
+FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompilerOutput& Output, FShaderType* SpecificType)
 {
-	const FShaderResourceId ResourceId(Output);
+	const FShaderResourceId ResourceId(Output, SpecificType ? SpecificType->GetName() : NULL);
 	FShaderResource* Resource = FindShaderResourceById(ResourceId);
 
 	if (!Resource)
 	{
-		Resource = new FShaderResource(Output);
+		Resource = new FShaderResource(Output, SpecificType);
 	}
 
 	return Resource;
@@ -388,6 +423,7 @@ FShaderResource* FShaderResource::FindOrCreateShaderResource(const FShaderCompil
 
 void FShaderResource::GetAllShaderResourceId(TArray<FShaderResourceId>& Ids)
 {
+	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
 	ShaderResourceIdMap.GetKeys(Ids);
 }
 
@@ -396,7 +432,7 @@ void FShaderResource::FinishCleanup()
 	delete this;
 }
 
-bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform)
+bool FShaderResource::ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform TargetPlatform)
 {
 	bool bFeatureLevelCompatible = CurrentPlatform == TargetPlatform;
 	
@@ -417,10 +453,12 @@ bool ArePlatformsCompatible(EShaderPlatform CurrentPlatform, EShaderPlatform Tar
 
 		bool bIsTargetD3D = TargetPlatform == SP_PCD3D_SM5 ||
 								TargetPlatform == SP_PCD3D_SM4 ||
+								TargetPlatform == SP_PCD3D_ES3_1 ||
 								TargetPlatform == SP_PCD3D_ES2;
 
 		bool bIsCurrentPlatformD3D = CurrentPlatform == SP_PCD3D_SM5 ||
 								CurrentPlatform == SP_PCD3D_SM4 ||
+								TargetPlatform == SP_PCD3D_ES3_1 ||
 								CurrentPlatform == SP_PCD3D_ES2;
 
 		bFeatureLevelCompatible = bFeatureLevelCompatible && (bIsCurrentPlatformD3D == bIsTargetD3D);
@@ -447,29 +485,50 @@ void FShaderResource::InitRHI()
 	INC_DWORD_STAT_BY(STAT_Shaders_NumShadersUsedForRendering, 1);
 	SCOPE_CYCLE_COUNTER(STAT_Shaders_RTShaderLoadTime);
 
+	FShaderCache* ShaderCache = FShaderCache::GetShaderCache();
+
 	if(Target.Frequency == SF_Vertex)
 	{
-		VertexShader = RHICreateVertexShader(Code);
+		VertexShader = ShaderCache ? ShaderCache->GetVertexShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateVertexShader(Code);
 	}
 	else if(Target.Frequency == SF_Pixel)
 	{
-		PixelShader = RHICreatePixelShader(Code);
+		PixelShader = ShaderCache ? ShaderCache->GetPixelShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreatePixelShader(Code);
 	}
 	else if(Target.Frequency == SF_Hull)
 	{
-		HullShader = RHICreateHullShader(Code);
+		HullShader = ShaderCache ? ShaderCache->GetHullShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateHullShader(Code);
 	}
 	else if(Target.Frequency == SF_Domain)
 	{
-		DomainShader = RHICreateDomainShader(Code);
+		DomainShader = ShaderCache ? ShaderCache->GetDomainShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateDomainShader(Code);
 	}
 	else if(Target.Frequency == SF_Geometry)
 	{
-		GeometryShader = RHICreateGeometryShader(Code);
+		if (SpecificType)
+		{
+			FStreamOutElementList ElementList;
+			TArray<uint32> StreamStrides;
+			int32 RasterizedStream = -1;
+			SpecificType->GetStreamOutElements(ElementList, StreamStrides, RasterizedStream);
+			checkf(ElementList.Num(), *FString::Printf(TEXT("Shader type %s was given GetStreamOutElements implementation that had no elements!"), SpecificType->GetName()));
+
+			//@todo - not using the cache
+			GeometryShader = RHICreateGeometryShaderWithStreamOutput(Code, ElementList, StreamStrides.Num(), StreamStrides.GetData(), RasterizedStream);
+		}
+		else
+		{
+			GeometryShader = ShaderCache ? ShaderCache->GetGeometryShader((EShaderPlatform)Target.Platform, OutputHash, Code) : RHICreateGeometryShader(Code);
+		}
 	}
 	else if(Target.Frequency == SF_Compute)
 	{
-		ComputeShader = RHICreateComputeShader(Code);
+		ComputeShader = ShaderCache ? ShaderCache->GetComputeShader((EShaderPlatform)Target.Platform, Code) : RHICreateComputeShader(Code);
+	}
+
+	if (Target.Frequency != SF_Geometry)
+	{
+		checkf(!SpecificType, *FString::Printf(TEXT("Only geometry shaders can use GetStreamOutElements, shader type %s"), SpecificType->GetName()));
 	}
 
 	if (!FPlatformProperties::HasEditorOnlyData())
@@ -622,6 +681,14 @@ const FComputeShaderRHIRef& FShaderResource::GetComputeShader()
 	return ComputeShader; 
 }
 
+FShaderResourceId FShaderResource::GetId() const
+{
+	FShaderResourceId ShaderId;
+	ShaderId.Target = Target;
+	ShaderId.OutputHash = OutputHash;
+	ShaderId.SpecificShaderTypeName = SpecificType ? SpecificType->GetName() : NULL;
+	return ShaderId;
+}
 
 FShaderId::FShaderId(const FSHAHash& InMaterialShaderMapHash, FVertexFactoryType* InVertexFactoryType, FShaderType* InShaderType, FShaderTarget InTarget)
 	: MaterialShaderMapHash(InMaterialShaderMapHash)
@@ -755,7 +822,7 @@ FShader::FShader(const CompiledShaderInitializerType& Initializer):
 
 FShader::~FShader()
 {
-	check(Canary == ShaderMagic_Uninitialized || Canary == ShaderMagic_Initialized);
+	check(Canary == ShaderMagic_Uninitialized || Canary == ShaderMagic_CleaningUp || Canary == ShaderMagic_Initialized);
 	check(NumRefs == 0);
 	Canary = 0;
 
@@ -804,6 +871,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 		}
 
 		// The shader has been serialized in, so this shader is now initialized.
+		check(Canary != ShaderMagic_CleaningUp);
 		Canary = ShaderMagic_Initialized;
 	}
 	else
@@ -833,7 +901,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			FShaderResource* ShaderResource = new FShaderResource();
 			ShaderResource->Serialize(Ar);
 
-			FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(ShaderResource->GetId());
+			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ShaderResource->GetId());
 
 			// Reuse an existing shader resource if a matching one already exists in memory
 			if (ExistingResource)
@@ -861,7 +929,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			ResourceId.OutputHash = OutputHash;
 
 			// use it to look up in the registered resource map
-			FShaderResource* ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
+			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
 			SetResource(ExistingResource);
 		}
 	}
@@ -871,18 +939,25 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 
 void FShader::AddRef()
 {
+	check(Canary != ShaderMagic_CleaningUp);
+	// Lock shader Id maps
+	LockShaderIdMap();
 	++NumRefs;
 	if (NumRefs == 1)
 	{
 		INC_DWORD_STAT_BY(STAT_Shaders_ShaderMemory, GetSizeBytes());
 		INC_DWORD_STAT_BY(STAT_Shaders_NumShadersLoaded,1);
 	}
+	UnlockShaderIdMap();
 }
 
 
 void FShader::Release()
 {
-	check(NumRefs != 0);
+	// Lock the shader id map. Note that we don't necessarily have to deregister at this point but
+	// the shader id map has to be locked while we remove references to this shader so that nothing
+	// can find the shader in the map after we remove the final reference but before we deregister the shader
+	LockShaderIdMap();
 	if(--NumRefs == 0)
 	{
 		DEC_DWORD_STAT_BY(STAT_Shaders_ShaderMemory, GetSizeBytes());
@@ -891,8 +966,10 @@ void FShader::Release()
 		// Deregister the shader now to eliminate references to it by the type's ShaderIdMap
 		Deregister();
 
+		Canary = ShaderMagic_CleaningUp;
 		BeginCleanup(this);
 	}
+	UnlockShaderIdMap();
 }
 
 
@@ -902,15 +979,23 @@ void FShader::Register()
 	check(ShaderId.MaterialShaderMapHash != FSHAHash());
 	check(ShaderId.SourceHash != FSHAHash());
 	check(Resource);
-	Type->GetShaderIdMap().Add(ShaderId, this);
+	Type->AddToShaderIdMap(ShaderId, this);
 }
 
+void FShader::LockShaderIdMap()
+{
+	Type->LockShaderIdMap();
+}
 
 void FShader::Deregister()
 {
-	Type->GetShaderIdMap().Remove(GetId());
+	Type->RemoveFromShaderIdMap(GetId());
 }
 
+void FShader::UnlockShaderIdMap()
+{
+	Type->UnlockShaderIdMap();
+}
 
 FShaderId FShader::GetId() const
 {
@@ -937,7 +1022,6 @@ void FShader::FinishCleanup()
 {
 	delete this;
 }
-
 
 void FShader::VerifyBoundUniformBufferParameters()
 {
@@ -1129,23 +1213,31 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("Compat.UseDXT5NormalMaps"));
-		KeyString += (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("_DXTN") : TEXT("_BC5N");
+		KeyString += (CVar && CVar->GetValueOnAnyThread() != 0) ? TEXT("_DXTN") : TEXT("_BC5N");
 	}
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.CompileShadersForDevelopment"));
-		KeyString += (CVar && CVar->GetValueOnGameThread() != 0) ? TEXT("_DEV") : TEXT("_NoDEV");
+		KeyString += (CVar && CVar->GetValueOnAnyThread() != 0) ? TEXT("_DEV") : TEXT("_NoDEV");
 	}
 
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
-		const bool bValue = CVar ? CVar->GetValueOnGameThread() != 0 : true;
+		const bool bValue = CVar ? CVar->GetValueOnAnyThread() != 0 : true;
 		KeyString += bValue ? TEXT("_SL") : TEXT("_NoSL");
 	}
 
 	{
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BasePassOutputsVelocity"));
+		if (CVar && CVar->GetValueOnGameThread() != 0)
+		{
+			KeyString += TEXT("_GV");
+		}
+	}
+
+	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
-		if(CVar ? CVar->GetValueOnGameThread() == 0 : false)
+		if (CVar ? CVar->GetValueOnAnyThread() == 0 : false)
 		{
 			KeyString += TEXT("_NoGB");
 		}
@@ -1170,7 +1262,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 	{
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4MixedModeShaderDebugInfo"));
-			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			if (CVar && CVar->GetValueOnAnyThread() != 0)
 			{
 				KeyString += TEXT("_MMDBG");
 			}
@@ -1178,7 +1270,7 @@ void ShaderMapAppendKeyString(EShaderPlatform Platform, FString& KeyString)
 
 		{
 			static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PS4DumpShaderSDB"));
-			if( CVar && CVar->GetValueOnGameThread() != 0 )
+			if (CVar && CVar->GetValueOnAnyThread() != 0)
 			{
 				KeyString += TEXT("_SDB");
 			}

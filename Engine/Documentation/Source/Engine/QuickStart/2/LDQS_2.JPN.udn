@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2429044
+Availability:Public
+Title:2.新規レベルのスタート
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:[新規レベル] ダイアログ ウィンドウで Empty Level を作成します。
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/QuickStart/3 "%Engine/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+次に、ゲーム環境を構築するための新規レベルを作成します新規レベルを作成する場合、新規プロジェクトを作成したときと同じように、 
+アンリアル エンジンでは、 _テンプレート_ から選択することができます。デフォルトで、選択肢として _Default_ テンプレートがあります。これは、非常にシンプルな環境であり、 
+完全にブランクな _Empty Level_ のテンプレートです。
+
+新規レベルの作成を開始します。
+
+1. ** [レベル エディタ] ** ウィンドウの [ファイル] メニューから ![](Engine/QuickStart/3/new_button.png) **[New Level...]** を選択します。**[新規レベル]** ダイアログが表示されます。
+
+	![](Engine/QuickStart/3/level_new.png)
+
+1. このガイドの用途では、作業用に完全にブランクのスレートが必要です。**Empty Level** テンプレート上でクリックして選択します。
+
+1. この新規のブランク レベルには、必要なすべてのビジュアル、ゲームプレイ関連のアイテムを入れる準備が整っています。
+
+	![](Engine/QuickStart/3/level_empty.png)
+
+%Steps%

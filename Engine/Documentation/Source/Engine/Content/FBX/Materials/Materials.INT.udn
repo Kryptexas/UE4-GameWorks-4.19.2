@@ -1,0 +1,211 @@
+Availability: Public
+Title:FBX Material Pipeline
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Guide to transferring basic materials and textures with meshes using the FBX content pipeline.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Materials:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Materials:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## Overview
+
+The FBX pipeline has the ability to transfer materials and textures applied to meshes (both Static Meshes and Skeletal Meshes) in 3D applications into Unreal. Simple materials can be converted by importing the textures used in those materials, creating materials in Unreal with those textures hooked up to the appropriate channels, and then applying the materials to the imported meshes. This simplifies and streamlines the mesh import process by automating what used to be a tedious manual process.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+This page includes information on both Autodesk Maya and Autodesk 3ds Max, please choose your preferred content creation tool below and the information relevant only to the chosen tool will be displayed:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## Material Support
+
+Only basic materials are supported for importing through the FBX pipeline. The types of materials which can be transferred are:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Surface
+    * Anisotropic
+    * Blinn
+    * Lambert
+    * Phong
+    * Phone E
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Standard
+	* Multi/Sub-Object
+	[/PARAM]
+[/OBJECT]
+
+
+In addition to these types of materials being able to be transferred, only specific features of those materials are transferred. The FBX material pipeline does not transfer individual settings, but it does support the transfer of certain maps or textures used within the materials. 
+
+[REGION:warning]
+	Currently, the supported maps (textures) which are imported with the mesh will be added to the material and even a few will be connected to their default inputs on the material, but some will require manual connections. Further, the more uncommon map types will not be imported such as using the **Diffuse** channel in Maya for **Ambient Occlusion**.
+[/REGION]
+
+## Multiple Materials
+
+Meshes can have multiple materials applied to them, each covering certain faces of the mesh. The FBX pipeline has the ability to handle the import of meshes with multiple materials, assuming they have been set up correctly in the 3D application.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#mayaMultiMat]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#maxMultiMat]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxMultiMat]
+In 3dsMax, multiple materials are handled by the use of a **Multi/Sub-Object** material. Each face of a mesh has a _Material ID_ and each Standard material within the Multi/Sub-Object material is applied to the corresponding _Material ID_.
+
+![mat_multi_max.jpg](mat_multi_max.jpg)(w:359 h:444)
+
+![mat_multi_max_result.jpg](mat_multi_max_result.jpg)(w:744 h:382)
+
+A material will be created in Unreal Editor for each of the Standard materials within the Multi/Sub-Object material and the imported mesh will have material slots for each of these materials. When applied to the mesh, the materials will only affect the corresponding polys of the mesh, just as they did in 3dsMax.
+[/EXCERPT:maxMultiMat]
+
+[EXCERPT:mayaMultiMat]
+Maya is pretty straightforward when it comes to the use of multiple materials on a mesh. You simply select the faces of the mesh you want to have the material applied to and then apply the material.
+
+![mat_mult_maya.jpg](mat_mult_maya.jpg)(w:827 h:442)
+
+![mat_mult_maya_result.jpg](mat_mult_maya_result.jpg)(w:827 h:442)
+
+A material will be created in Unreal Editor for each material applied to the mesh in Maya and the imported mesh will have material slots for each of these materials. When applied to the mesh, the materials will only affect the corresponding polys of the mesh, just as they did in Maya.
+[/EXCERPT:mayaMultiMat]
+-->
+
+
+## Material Naming
+
+The materials which are created in Unreal Editor will be named the same as the materials in the 3D application. Where the name is pulled from depends on which application the mesh is being exported from.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	For Maya, the material name in Unreal Editor is transferred from the name of the shading engine applied to the mesh in Maya.
+
+	![mat_name_maya.jpg](mat_name_maya.jpg)(w:423 h:448)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	For 3dsMax, the material name in Unreal Editor is transferred directly from the name of the material applied to the mesh in 3dsMax.
+
+	![mat_name_max.jpg](mat_name_max.jpg)(w:359 h:438)
+	[/PARAM]
+[/OBJECT]
+
+
+
+### Material Ordering
+
+When the order of the materials applied to the mesh is important, you can specify a particular order by using a special naming convention for the materials. By default, the materials will be created in Unreal Editor randomly so there is no guarantee as to what order the materials will be. This can be a problem, for example, when dealing with characters when your character system relies on the body material being the first material, the head material being the second material, etc.
+
+Unreal uses the `skin##` naming convention to specify ordering for materials. This can be the entirety of the name of the material or appended onto the existing name of the material. It just has to be found within the name of the material.
+
+So, if you have two materials that need to be ordered consistently, you might have them named:
+
+* `M_ExampleMesh_skin00`
+* `M_ExampleMesh_skin01`
+
+
+![mat_order_max.jpg](mat_order_max.jpg)(w:320 h:92)
+
+## Texture Import
+
+If the material has a texture assigned as either the diffuse or normal map in the 3D application, those textures will be imported into Unreal as long as the **Import Textures** setting is enabled in the [FBX Import Properties](Engine/Content/FBX/ImportOptions). 
+
+![](Engine/Content/FBX/StaticMeshes/ImportedMeshAndTex.png)
+
+A Texture Sample expression will be created in the newly created material in Unreal Editor and the imported texture will be assigned to that Texture Sample. A Texture Coordinate expression will also be added to the material and connected to the UVs input of the Texture Sample. However, you will need to connect some textures to their material slots.
+
+![](FBXMaterial.png)
+
+If the textures applied to the material in the 3D application are in a format that is not compatible with Unreal or are connected to an unknown material attribute (**Diffuse** in Maya for example), they will not be imported. In this case, and also if no textures we present in the material to begin with, the material in Unreal Editor will be populated with a randomly colored Vector Parameter.
+
+![](NoTexture.png)
+
+ 
+
+
+
+

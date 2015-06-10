@@ -1,0 +1,30 @@
+﻿INTSourceChangelist:2033300
+Availability: Docs
+Title:1.9 - 피해 유발 볼륨
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:Volumes 예제 레벨에 대한 개요로, 예제 1.9: Pain Causing Volume (피해 유발 볼륨)입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_9:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_9:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_9:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_9]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+볼륨 안에 있는 액터에게 대미지를 입힙니다. 액터에도 적절한 세팅이 필요합니다.
+

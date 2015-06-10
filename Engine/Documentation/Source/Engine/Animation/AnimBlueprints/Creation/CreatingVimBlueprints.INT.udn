@@ -1,0 +1,47 @@
+Availability:Public
+Title:Animation Blueprint Creation
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:Guide to creating new Animation Blueprints from Skeleton assets
+
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+You can create an _Animation Blueprint_ in one of two ways:
+* Targeting a specific Skeletal Mesh asset.
+* Not associating with a specific Skeletal Mesh asset.
+
+## Creating an Animation Blueprint Targeting a Skeletal Mesh
+
+You can create an _Animation Blueprint_ that targets a specific Skeletal Mesh asset by doing the following:
+
+1. **Right-click** on the Skeletal Mesh asset you want the _Animation Blueprint_ to target and click **Create** > **Create Animation Assets** > **Create Anim Blueprint**.
+
+	![Create Animation Blueprint - Menu](CE_create_menu.png)
+
+1. The _Animation Blueprint_ is created in the same folder as the target Skeletal Mesh asset, with the name ready to be edited.
+
+	![Create Animation Blueprint - New](CE_create_new.png)
+
+1. If you want to, type a new name for the new _Animation Blueprint_ and press **Enter**.
+
+	![Create Animation Blueprint - Rename](CE_create_name.png)
+
+1. If you are not happy with the default location, drag the new _Animation Blueprint_ to another folder.
+
+	![Create Animation Blueprint - Change Location](CE_create_move.png)(convert:false)
+
+## Creating an Animation Blueprint Not Associated with a Skeletal Mesh
+
+You can also create an _Animation Blueprint_ that is not yet associated with a specific Skeletal Mesh asset.  To do so, do the following:
+
+1. Either **right-click** in an empty space in the **Content Browser** or click the **New Asset** button.
+
+1. On the context menu that appears, click **Animation**.
+
+1. Click **Animation Blueprint**.
+
+	![](CE_create_NoSkel.png)
+
+You can then rename and/or move your new _Animation Blueprint_ by following the steps in the previous section on this page.

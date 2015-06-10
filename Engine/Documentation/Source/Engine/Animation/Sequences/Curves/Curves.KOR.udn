@@ -1,0 +1,63 @@
+﻿INTSourceChangelist:2497555
+Availability:Public
+Title:애니메이션 커브
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
+Description:애니메이션 재생 전반에 걸쳐 모프 타겟과 머티리얼의 프로퍼티를 구동하는 데 사용되는 커브 시스템입니다.
+
+[EXCERPT:Intro]
+커브를 통해 애니메이션이 재생중인 동안 머티리얼 파라미터나 모프 타겟의 값을 바꿀 수 있습니다. 그 작업방식은 매우 간단합니다. (머티리얼이든 모프 타겟이든) 변경하고자 하는 애셋을 지정한 다음, 그에 맞는 커브 이름을 대 주고, 애니메이션 기간에 걸쳐 키프레임 값을 조절해 주기만 하면 됩니다.
+[/EXCERPT:Intro]
+
+
+FBX 를 통해 UE4 에 모프 타겟 애니메이션을 임포트할 때, 해당 애님 시퀀스에 대한 모프 타겟 커브가 자동 생성됩니다. 그러나 기본적으로 숨겨집니다. 이는 의도된 바인데, 여러가지 다양한 모프 타겟 커브를 숨기면 에디터의 속도 저하를 방지할 수 있기 때문입니다.
+
+참고로 모프 타겟에 대한 커브를 조정할 수 있는 기능이 유용하기는 하지만, 단순한 편의 기능일 뿐입니다. 매우 복잡한 모프 타겟 애니메이션을 다루는 경우에는 보통 원래 모프 타겟을 익스포트한 3D 애니메이션 프로그램에서 애니메이션 작업을 하는 것이 훨씬 수월할 것입니다.
+
+## 머티리얼 커브 셋업
+
+이 예제에서는 캐릭터가 애니메이션 도중 얼굴을 붉히도록 (blush) 하는 간단한 머티리얼 커브 구성 방법을 보여드리도록 하겠습니다. 모프 타겟 커브 셋업은 비슷할 텐데, 커브의 이름이 임포트된 모프 타겟의 이름과 정확히 일치하도록만 해 주면 됩니다. 모프 타겟 관련 상세 정보는 [](Engine/Content\FBX\MorphTargets), [](Engine/Animation\Persona\MorphTargetPreviewer) 문서를 참고해 주시기 바랍니다.
+
+캐릭터가 해머를 들고 앞으로 돌진하는 간단한 애니메이션으로 시작해 보겠습니다. 그 후 단순한 머티리얼 커브 셋업을 하여, 이 동작 와중에 얼굴을 심하게 붉히도록 해 보겠습니다. 우선 애니메이션을 살펴봅시다:
+
+![](Engine/Animation/RootMotion\HammerSlam.gif)(convert:false)
+
+콘텐츠 브라우저에서 애니메이션 시퀀스를 더블클릭하면 페르소나에서 열어볼 수 있습니다.
+
+[REGION:fullwidth]
+![](Persona_HammerSlam.png)
+[/REGION]
+
+캐릭터의 머리에 _Blush_ 라는 이름의 파라미터가 있는 간단한 머티리얼이 있습니다. 머티리얼 그래프는 이렇습니다:
+
+[REGION:fullwidth]
+![](BlushMaterial.png)
+[/REGION]
+
+[REGION:note]
+이 머티리얼에서 [머티리얼 인스턴스](Engine/Rendering/Materials\MaterialInstances) 도 만든 다음 캐릭터에 적용시켜 줬습니다.
+[/REGION]
+
+페르소나에서 커브 영역에 위치한 ![](button_AddFloatTrack.png) 버튼을 클릭하는 것으로 시작합니다. 이 이름은 머티리얼 파라미터에 사용된 이름과 _반드시_ 일치해야 합니다.
+
+![](AddingBlushCurve.png)
+
+그러면 필요한 커브가 생성됩니다만, 머티리얼 커브인지 확실히 식별해 줘야 합니다. 이 작업은 커브 저 멀리 오른편에 있는 드롭다운을 사용해 줍니다.
+
+![](SettingCurveToMaterial.png)
+
+드롭다운 옆의 작은 눈 모양 아이콘을 클릭하면 커브 영역 크기를 확장할 수 있습니다.
+
+![](ExpandingCurve.png)
+
+커브 영역에 shift 클릭하면 새 키프레임을 만들 수 있습니다. 키프레임 값과 시간은 키프레임을 선택하면 나타나는 칸을 사용하여 조절할 수 있습니다.
+
+![](CreateMaterialCurve.png)
+
+키프레임에 우클릭한 다음 탄젠트 유형을 변경하는 것도 가능합니다:
+
+
+![](CurveType.png)
+
+최종 결과 커브가 이제 연결된 머티리얼 파라미터를 구동시켜, 캐릭터가 해머를 휘두르는 와중에 얼굴을 붉히도록 만듭니다.
+
+![](BlushInAction.png)

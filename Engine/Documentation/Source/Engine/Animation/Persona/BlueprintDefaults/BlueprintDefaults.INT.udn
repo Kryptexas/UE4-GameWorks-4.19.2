@@ -1,0 +1,60 @@
+Availability:Public
+Title:Persona Anim Blueprint Editor
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Anim Blueprint Editor panel in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/BlueprintDefaults:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/BlueprintDefaults:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/BlueprintDefaults]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+
+## Overview
+
+The **Anim Blueprint Editor** panel in Persona lists the variables and variable categories of the **Animation Blueprint**.
+
+![](BlueprintDefaults.png)
+
+When you create or modify a Blueprint variable, it is assigned to the **Default** category by default. To organize your assets, you can assign it to a different category by typing in a new category name in the **Category** box.
+
+![](AB_Details.png)
+
+For the most part, an Animation Blueprint's **Anim Blueprint Editor** panel can be modified in the same way as the Blueprint Editor Defaults mode.  For more information about the Blueprint Editor Defaults mode, see [](Engine/Blueprints\Editor\Modes\Defaults).
+
+## Previewing
+
+You can preview your various animation assets by manually modifying the values of the variables that control them in the **Anim Blueprint Editor** panel. As you modify the values of the variables, the Viewport displays the appropriate animation assets based on the new values. 
+
+![](BlueprintDefaults_Preview.png)
+
+## Edit Modes
+
+Along the top of the **Anim Blueprint Editor** panel are two modes that can be switched between and affect the permanancy of changes made to variable values in the panel.
+
+| Edit Mode | Description | |
+| --- | ----------- | --- |
+| **Edit Preview** | Changes made to variables in the **Anim Blueprint Editor** will only reflect in the Viewport preview and will not be saved. Changes will revert to default values when the Blueprint is recompiled. | ![](EditPreview.png) |
+| **Edit Defaults** | Changes made to variables in the **Anim Blueprint Editor** affect both the preview and the default values of the variables and will be saved.<br>[INCLUDE:#publicview]| ![](EditDefaults.png) |
+
+<!--
+[EXCERPT:publicview]
+* **Public View** - An option to toggle whether or not to display only variables marked as Public. After toggling **Public View** on or off, the Blueprint must be recompiled before changes can be seen. Only available in **Edit Defaults** mode.
+[/EXCERPT:publicview]
+-->

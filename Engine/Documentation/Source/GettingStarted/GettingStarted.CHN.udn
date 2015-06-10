@@ -1,0 +1,251 @@
+﻿Availability:Public
+Title: 入门指南
+Crumbs: %ROOT%
+Description:为使用虚幻引擎的游戏开发入门人员提供的入门信息。
+Navigation:start
+related:Programming/QuickStart
+
+[VAR:Params]
+[PARAM:image]
+	![](gettingstarted_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/start_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%GettingStarted:title%
+[/PARAM]
+[PARAM:description]
+	%GettingStarted:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:GettingStarted]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+gettingstarted
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		开始入门
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [要求的硬件和软件](GettingStarted/RecommendedSpecifications "%GettingStarted/RecommendedSpecifications:description%")		
+		[PUBLISH:Licensee]
+		* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
+		[/PUBLISH:Licensee]
+		[PUBLISH:Rocket]
+		* [安装引擎](GettingStarted/Installation "%GettingStarted/Installation:description%")
+		[/PUBLISH:Rocket]
+		* [版本说明](Support/Builds "%Support/Builds:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		编辑器基础知识
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Shared/Glossary/P/#Glossary_project]
+
+		[INCLUDE:Engine/UI/LevelEditor#levels]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/QuickStart "%Engine/QuickStart:description%")
+		* [](Engine/QuickStart/1 "%Engine/QuickStart/1:description%")
+		* [](Engine/QuickStart/2 "%Engine/QuickStart/2:description%")
+		* [](Engine/QuickStart/3 "%Engine/QuickStart/3:description%")
+		* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
+		* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
+		* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
+		* [](Engine/QuickStart/7 "%Engine/QuickStart/7:description%")
+	* [关卡编辑器简介](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:description%")
+	* [](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/viewport_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		编辑器视口
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:description%")
+	* [](Engine/UI/LevelEditor/Viewports/ViewportControls "%Engine/UI/LevelEditor/Viewports/ViewportControls:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/profile_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		"编辑器模式"
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Shared/Glossary/M#glossary_modes_panel]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Actors & 几何体
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/UI/LevelEditor#actors]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
+	* [几何体Actor](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
+	* [](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/cb_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		内容浏览器
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Basics/AssetsAndPackages "%Engine/Basics/AssetsAndPackages:description%")
+	* [](Engine/Content/Browser "%Engine/Content/Browser:description%")
+	* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")	
+		* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+		* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+		* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+		* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+		* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+		* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+		* [](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		光照
+	[/PARAM]
+	[PARAM:description]
+		在本快速指南中，您将通过所有必要步骤来创建一个基本的房间，并使用多种类型的光源照亮它。您将使用一个 **点光源** 和 一个 **静态网格物体** 创建一个顶棚吊灯，使用一个 **聚光源** 为我们的角色创建一个手电筒，使用 **Light Profile（光照概述文件）** 来模拟从光照设备发出的光照，并且使用 **定向光源** 来添加环境中的月光。
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine\Rendering\LightingAndShadows\QuickStart "%Engine\Rendering\LightingAndShadows\QuickStart:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\1 "%Engine\Rendering\LightingAndShadows\QuickStart\1:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\2 "%Engine\Rendering\LightingAndShadows\QuickStart\2:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\3 "%Engine\Rendering\LightingAndShadows\QuickStart\3:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\4 "%Engine\Rendering\LightingAndShadows\QuickStart\4:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\5 "%Engine\Rendering\LightingAndShadows\QuickStart\5:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\6 "%Engine\Rendering\LightingAndShadows\QuickStart\6:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\7 "%Engine\Rendering\LightingAndShadows\QuickStart\7:description%")
+		* [](Engine\Rendering\LightingAndShadows\QuickStart\8 "%Engine\Rendering\LightingAndShadows\QuickStart\8:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		蓝图可视化脚本
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Blueprints#intro]
+	[/PARAM]
+	[PARAM:links]
+	* [蓝图简介](Engine/Blueprints/GettingStarted "%Engine/Blueprints/GettingStarted:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		编程
+	[/PARAM]
+	[PARAM:description]
+	实现游戏功能和修改引擎是任何游戏项目都必须处理的方面。虚幻引擎使您可以 
+	修改游戏可玩性，这可以通过代码、可视化的脚本、甚至创建插件来完成。这些插件修改或扩展了编辑器， 
+	以供设计人员或美术师使用它来 
+	添加完整的自定义功能。
+	[/PARAM]
+	[PARAM:links]
+	* [](Programming/QuickStart "%Programming/QuickStart:description%")
+		* [](Programming\QuickStart\1 "%Programming/QuickStart/1:description%")
+		* [](Programming\QuickStart\2 "%Programming/QuickStart/2:description%")
+		* [](Programming\QuickStart\3 "%Programming/QuickStart/3:description%")
+		* [](Programming\QuickStart\4 "%Programming/QuickStart/4:description%")
+		* [](Programming\QuickStart\5 "%Programming/QuickStart/5:description%")
+		* [](Programming\QuickStart\6 "%Programming/QuickStart/6:description%")
+		* [](Programming\QuickStart\7 "%Programming/QuickStart/7:description%")
+	* [](Programming/Basics "%Programming/Basics:description%")
+	* [学习游戏架构](Gameplay/Framework/QuickReference "%Gameplay/Framework/QuickReference:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/gameplay_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		测试游戏
+	[/PARAM]
+	[PARAM:description]
+		使用虚幻引擎的内置功能来测试及调试您的关卡及游戏可玩性。使用 Play In Editor(在编辑器中运行)模式， 
+		您可以从编辑器中直接获得反馈；使用Simulate In Editor(在编辑器中模拟)模式您甚至可以查看及操作游戏中 
+		的对象。使用Hot Reload（热重载）模式，您可以在游戏运行过程中修改游戏代码、重新编译并 
+		更新游戏。
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/UI/LevelEditor/InEditorTesting "%Engine/UI/LevelEditor/InEditorTesting:description%")
+	* [](Engine/Blueprints/UserGuide/Debugging "%Engine/Blueprints/UserGuide/Debugging:description%")
+	[/PARAM]
+[/OBJECT]

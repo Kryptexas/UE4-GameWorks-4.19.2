@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:1941792
+Availability: Docs
+Title:1.2 -金属
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
+Description:反射示例关卡概述，示例1.2： 金属
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Reflections/1_2:title%](Reflections_1_2_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Reflections/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Reflections/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Reflections/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Reflections/1_2:title%](Reflections_1_2_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Reflections/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Reflections/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Reflections/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![](Reflections_1_2_Header.png)
+
+## 概述
+
+无论是盒体还是球体的 **反射捕获** actor，都会在其特效空间内或半径内对反射进行投射。 对金属材质来说，**Metallic** （金属）属性值越高，材质看起来就越像铬合金。 这些材质的颜色大部分来自于其反射属性，同时它们的 **Base Color** （底色）将会令反射上色。
+
+
+[/REGION]

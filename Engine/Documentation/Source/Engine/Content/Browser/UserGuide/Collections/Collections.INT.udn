@@ -1,0 +1,87 @@
+Availability: Public
+Title:Collections
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:This document covers the use of Collections within the Content Browser.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CollectionsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Collections:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Collections]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+	
+
+## Overview
+
+![CB_Collections.png](CB_Collections.png)
+
+[EXCERPT:Collections]
+Collections serve as a way to organize sets of assets into personally defined groups, like folders. For instance, you may find it useful to create a Collection of all environment-based Static Meshes that fit a certain visual style, for quick access later. 
+
+Under the hood, Collections are really just lists of references to given assets. The assets themselves are not moved into the Collection. This means that a single asset can exist in any number of Collections, and you can create as many Collections as you wish.
+[/EXCERPT:Collections]
+
+[REGION:note]
+	**Note**: The Collections panel may not be available by default. To open the Collections panel, simply open the **View Options** drop down menu, then click on **Show Collections**.	
+[/REGION]
+![](ViewCollections.png)
+
+
+## Creating Collections
+
+To create your first Collection **left-click** on the add Collection icon in the top right corner of the Collections panel and name. 
+
+![](AddNewCollections.png)
+
+After your first Collection has been created, additional Collections are as easy as **right-clicking** within the **Collections** panel and entering a name for the new Collection.		
+
+![](Collections_New.png)
+
+
+
+## Collection Types
+
+Collections can come in three different types, as defined by the small letter to the right of their name.
+
+* **L** - Local Collection; these Collections are available only on your local machine.
+* **S** - Shared Collection; these Collections are visible to other users.
+* **P** - Private Collection; these Collections are available only to those that have been specifically invited to view the Collection.
+
+[REGION:note]
+	**Shared** and **Private** Collections are available only if Source Control is active under the main Editor [preferences](Engine/UI/EditorSettings).
+[/REGION]
+
+
+## Adding Asset References to Collections
+
+To add an asset reference to a Collection, just drag the asset into the given Collection.
+
+![](AddingReferencesToACollection.png)
+
+## Removing Asset References from Collections
+
+Removing asset references simply requires that you **right-click** on one or more selected assets and choose **Remove from Collection** from the context menu. This does not delete the asset; it only removes the reference to that asset from the Collection.
+
+![](RemovingAssetsFromCollections.png)
+
+[REGION:warning]
+If you select an asset in a Collection and press **Delete**, you _can_ delete the asset entirely. You will get a prompt verifying that this is what you want to do, but keep in mind that _deleting_ an asset means it is _destroyed_. If you simply want the asset reference out of the Collection, use the method described above.
+[/REGION]
+
+## Renaming and Destroying Collections
+
+![](button_CollectionContextMenu.png)
+
+
+
+A Collection can be renamed by **right-clicking** on the given Collection and choosing **Rename**. Just enter the new name you are set to go.
+
+To delete a Collection, just choose **Delete** from the **right-click** menu. Note that since Collections are just references to the actual assets, deleting your Collections will not delete the assets within the Collection. 
+

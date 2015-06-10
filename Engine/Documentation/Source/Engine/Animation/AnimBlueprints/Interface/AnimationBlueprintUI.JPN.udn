@@ -1,0 +1,191 @@
+﻿INTSourceChangelist:2419781
+Availability:Public
+Title:Animation ブループリントのユーザー インターフェース
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:アニメーション ブループリントの UI の概要
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+以下のセクションでは、アニメーション ブループリント の ユーザー インターフェース ( UI) のエリアについて説明します。
+
+
+![](AnimGraphUI.png)(w:900)
+
+1. **メニューバー**
+1. **ツールバー**
+1. **ビューポート**
+1. **クラス デフォルト パネル**
+1. **グラフ**
+1. **アセット ブラウザ タブ**
+1. **My Blueprint タブ**
+1. **[詳細] パネル**
+1. **パレット**
+
+##メニュー バー
+
+###ファイル
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#FileMenu]
+
+###編集
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#EditMenu]
+
+###アセット
+| コマンド | 説明 |
+| --- | --- |
+| [REGION:tablesection]**アクション**[/REGION] ||
+|Find in Content Browser... | **コンテンツ ブラウザ** を呼び出してこのアセットへナビゲートします。 |
+| View References | 選択したアセットの参照を表示して参照ビューアーを起動します |
+|Reimport... | 現在のアセットを再インポートします。 |
+| [REGION:tablesection]**アニメーション**[/REGION] ||
+| Set Preview Mesh as Default | スケルトンのプレビューメッシュを現在開いているプレビューメッシュへ変更します。変更後はスケルトンを保存しなくてはいけません。 |
+| Remove Unused Bones from Skeleton | メッシュが使用していないすべてのボーンをスケルトンから取り除きます。その後、スケルトンと関連性のあるアニメーションを保存しなくてはいけません。 |
+| Record to new Animation | 現在再生中のアニメーションから新規アニメーションを作成します。 |
+
+### 表示
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#ViewMenu]
+
+###デバッグ
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/Menu/#DebugMenu]
+
+### ウィンドウ
+
+| コマンド | 説明 |
+| --- | --- |
+| Toolbar | 現在表示されていない場合、ツールバーを表示します。 |
+| Details | 現在表示されていない場合、[詳細](Engine/Blueprints\Editor/UIComponents\Details) パネルを表示します。 |
+| Debug | 現在表示されていない場合、 **[デバッグ]** パネルを表示します。|
+| Palette | 現在表示されていない場合、[](Engine/Blueprints\Editor/UIComponents\Palette) パネルを表示します。 |
+| My Blueprint | 現在表示されていない場合、 [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) パネルを表示します。 |
+| Compiler Results | 現在表示されていない場合、 **[Compiler Results]** パネルを表示します。 |
+| Find Results | 現在表示されていない場合、 **[Find Results]** パネルを表示します。  | 
+| Skeleton Tree | **[スケルトン ツリー]** パネルを表示します。このパネルには、そのアニメーション ブループリントに関連するスケルタルメッシュにある全てのボーンが表示されます。|
+| Asset Browser | 現在表示されていない場合、 **[アセット ブラウザ]** パネルを表示し、開くとフォーカスを移動します。 |
+| Viewport | 現在表示されていない場合、 **[プレビュー ビューポート]** パネルを表示します。 |
+| Animation Notifies | **[Animation Notifies]** ウィンドウを開きます。現在、スケルタルメッシュのアニメーション アセットに関連付けられているすべてのアニメーション通知がリスト表示されます。 |
+| Animation Blueprint Editor | 現在表示されていなければ、**Animation Blueprint Editor** ウィンドウを開きます。 |
+| Asset Override Editor | 現在表示されていなければ、**Asset Override Editor** ウィンドウを開きます。 |
+| Animation SlotName | 現在表示されていなければ、**Animation SlotName** ウィンドウを開きます。 |
+| Animation Slot Group Name |現在表示されていなければ、**Animation Slot Group Name** ウィンドウを開きます。 |
+| Content Browser | 4 つ全ての **コンテンツ ブラウザ** にアクセスができるサブメニューを開きます。|
+| Developer Tools | **Camera Debugger**、 **Collision Analyzer** 、 **Debug Tools** 、 **Modules** 、 **Widget Reflector** にアクセスができるサブメニューを開きます。 |
+| Blueprint Debugger | **[Blueprint Debugger]** を開きます。 |
+| Class Viewer | **[クラスビューア]** を開きます。|
+| Device Profile Editor | **Device Profile Editor** を開きます。.|
+| Output Log | **[Output Log]** を開きます。 |
+| Undo History | **[Undo History]** ウィンドウを開きます。 |
+| [REGION:tablesection]**[Unreal Frontend]**[/REGION] ||
+| Device Manager | **[Device Manager]** を開きます。|
+| Session Frontend | **[Session Frontend]** を開きます。 |
+| [REGION:tablesection]**レイアウト**[/REGION] ||
+| Reset Layout | レイアウトをデフォルトの設定にリセットします (エディタの自動再起動が必要です)。 |
+| Save Layout | 現在のパネルのレイアウトを保存します。 |
+| Enable Fullscreen | エディタの全画面表示モードを有効 / 無効にします。|
+
+
+
+## ツールバー
+
+アニメーション ブループリントのツールバーには、他のブループリントのツールバーと同じオプションが多く含まれています。
+
+![](AnimGraphUI_Toolbar.png)(w:900)
+
+[EXCERPT:Toolbar]
+| アイテム | 説明 |
+| ---- | ----------- |
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png) | ブループリントをコンパイルします。| 
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Save] |
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#FindInCB] | 
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#Search] | 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#BlueprintProps] | 
+| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png) | シミュレーション モードでゲームを開始します。|
+| ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png) | レベル エディタで通常のプレイ モードでゲームを開始します。矢印をクリックすると **[Launch Options]** メニューが表示されます。 | 
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png) | [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions/#DebugObject]  | 
+[/EXCERPT:Toolbar]
+
+ブループリント ツールバーに関する詳細は、[](Engine/Blueprints\Editor/UIComponents\Toolbar) をご覧ください。
+
+上記のオプション以外にアニメーション ブループリント ツールバーには、ペルソナ(Persona) の様々なモードに対するタブもあります。
+
+| アイテム | 説明 |
+| ---- | ----------- |
+|  ![](button_AnimGraphUI_Skeleton.png) | スケルトンのプロパティを含む [ペルソナ] タブを開きます。 |
+|  ![](button_AnimGraphUI_Mesh.png) | スケルタルメッシュのプロパティを含む [ペルソナ] タブを開きます。 |
+|  ![](button_AnimGraphUI_Animation.png) | アニメーション アセットのプロパティを含む [ペルソナ] タブを開きます。 |
+|  ![](button_AnimGraphUI_Graph.png) | [Animation Blueprint] タブを開きます。 |
+
+
+
+## ビューポート
+ビューポートには、現在の変数値によってアクティベートされたアニメーションと共にそのスケルタルメッシュが表示されます。
+
+![](AnimGraphUI_Viewport.png)
+
+## クラスのデフォルト
+
+**[クラスのデフォルト]** パネルには、すべてのアニメーション ブループリントのすべての変数がカテゴリ別に表示されます。ここで手動で変数値を変更し、ビューポートで様々なアニメーションをプレビューし表示できます。
+
+![](AnimGraphUI_BPDefaults.png)
+
+詳細は、 [](Engine/Animation/Persona\BlueprintDefaults) を参照してください。
+
+## グラフ
+
+タブで表示されるグラフ パネルは、現在選択されているグラフが表示されます。
+
+### EventGraph（イベントグラフ）タブ
+
+**[イベントグラフ]** タブには、スケルタル メッシュのポーズの更新をトリガーするアニメーション イベントノードがあります。どのアニメーション アセットをいつ再生するかを決定する変数値を設定するアニメーション ノードも含まれる場合があります。
+
+![](AnimGraphUI_Graph.png)(w:900)
+
+### [AnimGraph] タブ
+
+**[AnimGraph]** タブには、すべての実際のアニメーションとステートを、必要なアニメーション ノードにつなげるステートマシーンがあります。
+
+![](AnimGraphUI_AnimGraph.png)
+
+ステートマシンに関する詳細については、[](Engine/Animation/StateMachines) をご覧ください。
+
+[REGION:note]
+すべてのアニメーションノードを直接 **[AnimGraph]** タブに入れることもできます。しかし、維持管理しやすく単純化するには、ステートマシーン、ステート、トランジション (ルール) で構成すると効率が高まります。
+[/REGION]
+
+##[アセット ブラウザ] タブ
+
+**[アセット ブラウザ]** タブには、アニメーション ブループリントのすべてのアニメーション アセットのリストがあります。
+
+![](AnimGraphUI_AssetBrowser.png)
+
+デフォルトで、グラフの下の** [My Blueprint]**タブの隣に **[アセット ブラウザ]** タブがあります。
+
+
+## [My Blueprint] タブ
+
+**[My Blueprint]** タブには、アニメーション ブループリントのすべてのグラフと変数のリストがあります。
+
+![](AnimGraphUI_MyBP.png)
+
+デフォルトで、グラフの下の**[アセット ブラウザ]**タブの隣に **[My Blueprint]** タブがあります。
+
+
+## [詳細] パネル
+
+**[詳細]** パネルには、選択したエレメントのプロパティが表示されます。
+
+![](AnimGraphUI_Details.png)
+
+## パレット
+
+**[パレット]** パネルには、アニメーション ブループリントの様々なグラフで使用可能なすべてのノードがあります。
+
+![](AnimGraphUI_Palette.png)
+
+[REGION:note]
+デフォルトでは **[パレット]** は表示されない場合があります。表示されていない場合は、**[ウィンドウ]** メニューで **[パレット]** をクリックして開くことができます。
+[/REGION]

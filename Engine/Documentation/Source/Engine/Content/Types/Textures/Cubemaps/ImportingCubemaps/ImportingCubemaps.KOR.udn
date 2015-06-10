@@ -1,0 +1,19 @@
+INTSourceChangelist:2087463
+Availability:Public
+Title:큐브맵 임포트
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:언리얼 엔진 4 에 큐브맵을 임포트하는 방법입니다.
+
+## 개요
+
+큐브맵을 언리얼 엔진 4 에 임포트하는 법을 다루는 문서입니다.
+
+## 큐브맵 임포트하기
+
+큐브맵 이미지를 임포트 하려면 **콘텐츠 브라우저** 에서 **임포트** 를 클릭합니다. 파일을 찾아 **열기** 를 선택합니다.
+
+[REGION:raw]
+![](ContentBrowserImport.png)(convert:false)
+[/REGION]
+
+다른 방법으로는, 그냥 이미지 파일을 끌어 **콘텐츠 브라우저** 에 놓아도 됩니다.

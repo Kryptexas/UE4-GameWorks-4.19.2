@@ -1,0 +1,43 @@
+Availability: Public
+Title:物理
+Crumbs: %ROOT%, Engine
+Navigation:topic
+
+[REGION:header_img]
+![PhysXHomeTitle.jpg](PhysXHomeTitle.jpg)
+[/REGION]
+
+虚幻引擎 3 会使用 PhysX 物理引擎来驱动它的物理仿真计算。PhysX 提供了可以执行准确的碰撞检测以及仿真世界中对象之间的物理互动的功能。 在您的游戏中包含物理将会帮助改善每个场景的代入感值，因为它可以使玩家认为他们正在与场景进行互动，而这个场景会以某种方式或其他方式对此作出回应。
+
+
+[REGION:titlebar]
+通用主题
+[/REGION]
+[REGION:contentsection]
+
+* [碰撞参考指南](Engine/Subsystems/Physics/Collision/Reference) - 一个关于如何在虚幻引擎 3 中处理碰撞的参考指南。
+* [PhysX 约束参考指南](Engine/Subsystems/Physics/Physx/Constraints) - 有关约束骨骼之间的关节的指南。
+* [阻尼和摩擦](Engine/Subsystems/Physics/PhysX/DampingAndFriction) - 有关虚幻引擎 3 中阻尼和摩擦的说明。
+
+[/REGION]
+
+[REGION:titlebar]
+内容创建主题
+[/REGION]
+[REGION:contentsection]
+
+* [PhAT用户指南](Engine/Subsystems/Physics/PhAT) - 设置骨架网格物体的刚体物理。
+* [物理材质](Engine/Subsystems/Physics/PhysicalMaterials) - 使用物理材质定义材质的物理属性。
+* [物理蒙板](Engine/Subsystems/Physics/PhysicalMaterials) - 使用不同的物理材质将材质分为几个区域。
+ 
+
+[/REGION]
+
+[REGION:titlebar]
+关卡创建 主题
+[/REGION]
+[REGION:contentsection]
+
+* [使用 KActor](Engine/Subsystems/Physics/PhysicsBodies) - 有关在虚幻引擎编辑器中使用刚体 actor 的信息。
+
+[/REGION]

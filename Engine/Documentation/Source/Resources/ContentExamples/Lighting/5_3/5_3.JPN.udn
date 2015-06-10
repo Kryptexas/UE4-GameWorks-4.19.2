@@ -1,0 +1,52 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:5.3 - Lightsource Length
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 5.3：Lightsource length (反射への影響)
+Related:Engine/Rendering/LightingAndShadows/Basics
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related:Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related:Engine/Rendering/LightingAndShadows/Lightmass
+Related:Engine/Rendering/LightingAndShadows/Shadows
+Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\5_3:title%](Resources\ContentExamples\Lighting\Lighting_5_3.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\5_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\5_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\5_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\5_3:title%](Resources\ContentExamples\Lighting\Lighting_5_3.png)
+[/REGION]
+
+
+これは反射表面へ Source Length を利用した実例です。Source Length の目的は、蛍光灯から照らされているかのようにライトを伸長させたり、チューブのような反射形状へ変化させることです。光は、今もなお一点から放射されているかのように計算されていることに留意してください。効果は反射光の範囲内に現れます。
+
+Source Length はライトの Y 軸に沿って実行し、ライトを回転させることにより回転することが可能です。またライトの選択時に、ライトから広がる黄色い線で Source Length を可視化することができます。
+
+
+![](SourceLength.png)(w:400)
+
+
+
+
+

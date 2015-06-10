@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:2.3 - 可動ライト
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:ライティングの事例概要、例 2_3：可動ライト
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\2_3:title%](Resources\ContentExamples\Lighting\Lighting_2_3.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\2_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\2_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\2_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\2_3:title%](Resources\ContentExamples\Lighting\Lighting_2_3.png)
+[/REGION]
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Movable_Lights]
+
+固定ライトは [Example 3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES プロファイルをサポートします。また、[Example 3.2](Resources\ContentExamples\Lighting\3_2) で説明する Light 関数もサポートします。
+
+
+
+
+

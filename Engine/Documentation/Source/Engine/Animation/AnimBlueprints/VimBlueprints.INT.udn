@@ -1,0 +1,86 @@
+Availability:Public
+Title: Animation Blueprints
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Animation Blueprints are visual scripts created in Persona that allow for the creation and control of complex animation behaviors.
+Related: Engine/Blueprints/Overview
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Animation/StateMachines
+Related: Gameplay/AI
+Related: Engine/Content/Tools/MayaRiggingTool
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/AnimBlueprints:title%](AnimBP_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/AnimBlueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/AnimBlueprints:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/AnimBlueprints]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## Overview
+
+[EXCERPT:Intro]
+An **Animation Blueprint** is essentially a specialized [Blueprint](Engine/Blueprints) whose graphs 
+control the animation of a _SkeletalMesh_. It can perform blending of animations, directly control the 
+bones of the skeleton, and output a final pose for a _SkeletalMesh_ each frame.
+
+The _Controller_ directs its _Pawn_ (or _Character_) to move based on player input or decisions made based on the gameplay 
+environment. Each _Pawn_ has a _SkeletalMeshComponent_ that references the _SkeletalMesh_ to animate and 
+has an instance of a _Animation Blueprint_. The _Animation Blueprint_, through its two graphs, can access properties 
+of the owning _Pawn_, compute values used for blending or state transitions or driving _AnimMontages_, and 
+calculate the current pose of the _SkeletalMesh_ based on blending of _AnimationSequences_ and direct 
+transformations of the _Skeleton_ from _SkeletalControls_.
+[/EXCERPT:Intro]
+
+[REGION:tip]
+A simple example of an **Animation Blueprint** is demonstrated on the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.2.
+[/REGION]
+
+## Working with Animation Blueprints
+
+[EXCERPT:Graphs]
+There are two main components in an _Animation Blueprint_ that work in conjunction to create the final animation 
+for each frame. The **EventGraph** can perform updates to values which can then be used in the **AnimGraph** 
+to drive _State Machines_, _BlendSpaces_, or other nodes allowing blending between multiple _AnimationSequences_ or poses 
+that can fire off notifications to other systems to enable dynamic animation-driven effects to occur.
+[/EXCERPT:Graphs]
+
+[OBJECT:IconSection]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints/EventGraph)
+	[/PARAM]
+	[PARAM:icon]
+		[![Event Graph](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/EventGraph)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints/EventGraph#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints/AnimGraph)
+	[/PARAM]
+	[PARAM:icon]
+		[![Anim Graph](Engine/Animation/AnimBlueprints/AnimGraph/animgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/AnimGraph)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
+	[/PARAM]
+[/OBJECT]
+

@@ -1,0 +1,81 @@
+﻿INTSourceChangelist:2346177
+Availability:Public
+Title:レベル デザインのコンテンツ例
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:レベル デザインのコンテンツ例で提供されるサンプルの概要
+Related: Engine/Actors/Brushes
+Related:Engine/UI/LevelEditor
+Related: Engine/UI/LevelEditor/Modes
+Related: Engine/Actors/Volumes
+
+
+
+[REGION:banner]
+![](leveldesign_header.png)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/LevelDesign:title%](LD_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/LevelDesign:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/LevelDesign:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/LevelDesign]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/LevelDesign:title%](LD_Topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/LevelDesign:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/LevelDesign]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+**Leveldesign_Workflow** マップでは、意欲的なレベル デザイナーの洞察力を、反復的なレベル デザイン プロセスに加えます。こうしたプロセスはこの例では次の 4 つのフェーズに分けられます。**プロトタイプ**、**メッシュ化**、**ライティング**、および **ポリッシュ**  
+
+各フェーズ中には、異なる目標が設定されます。初期フェーズでは、基礎を配置することに集中します (手っ取り早く考えてレベルをプレイ可能なものにします)。後の方のフェーズでは、その基礎上に構築することに気を配ります (配置されているものを改善し、詳細を微調整します)。
+
+このマップのエディタ内では、各キーを押して各フェーズを迅速に切り替えることができます。プロトタイプは **1 key**、メッシュ化は **2 key**、ライティングは **3 key**、ポリッシュは **4 key** です。**5 key** を押してズームアウトし、各フェーズがどのようなもので構成されるかについての簡単な説明と共に4 つのフェーズの全容をわかりやすく把握することもできます。 
+[region:note]
+それぞれのサンプル別にさらにリソースを見る場合は、サンプル名をクリックしてください。
+[/region]
+ 
+
+## Leveldesign_Workflow マップ
+
+![](LD_Topic.png)
+
+
+レベルを再生すると、緑色のボタン付きのコンソールがあることに気づかれるでしょう (上の図にあります)。ボタンに近づくと、次の (または前の) フェーズにジャンプすることができます。各レベルを移動中に **Shift** ボタンを押し続けて素早く移動することもできます。 
+
+以下の各セクションでは、**Leveldesign_Workflow** マップの各フェーズに何が含まれるかについての詳しい情報を示します。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **[1.1 Prototype Pass](Resources\ContentExamples\LevelDesign\1)** | 基本的な **スタティックメッシュ アクタ** や **ジオメトリ プリミティブ** を使用して基本的なライティングと共にプレイ可能なレベルの概略計画を迅速に立てます。 |
+| **[1.2 Meshing Pass](Resources\ContentExamples\LevelDesign\2)** | プロトタイプ フェーズからの基本的なメッシュやプリミティブを、最終段階に近いアセットに置き換え、基本的なマテリアルを適用します。  |
+| **[1.3 Lighting Pass](Resources\ContentExamples\LevelDesign\3)** | ライティングの改善、**PostProcess** エフェクトの付加、マテリアルの更新に重点を置きます。 |
+| **[1.4 Polish Pass](Resources\ContentExamples\LevelDesign\4)** | エフェクト、オーディオ、ボリュームをさらに追加し、最終アセットと詳細を微調整します。 |
+
+
+
+
+

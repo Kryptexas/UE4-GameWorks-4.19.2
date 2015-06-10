@@ -51,6 +51,9 @@ public:
 	// delegate type for prompting the pak system to mount a new pak
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnMountPak, const FString&, uint32);
 
+	// delegate type for prompting the pak system to mount a new pak
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnUnmountPak, const FString&);
+
 	// Callback for PER_MODULE_BOILERPLATE macro's GSerialNumberBlocksForDebugVisualizers
 	DECLARE_DELEGATE_RetVal(int32***, FGetSerialNumberBlocksForDebugVisualizersDelegate);
 
@@ -58,7 +61,7 @@ public:
 	DECLARE_DELEGATE_RetVal_ThreeParams(EAppReturnType::Type, FOnModalMessageBox, EAppMsgType::Type, const FText&, const FText&);
 
 	// Callback for PER_MODULE_BOILERPLATE macro's GObjectArrayForDebugVisualizers
-	DECLARE_DELEGATE_RetVal(TArray<class UObjectBase*>*, FObjectArrayForDebugVisualizersDelegate);
+	DECLARE_DELEGATE_RetVal(class UObjectBase***, FObjectArrayForDebugVisualizersDelegate);
 
 	// Called in PER_MODULE_BOILERPLATE macro.
 	static FObjectArrayForDebugVisualizersDelegate& GetObjectArrayForDebugVisualizersDelegate();
@@ -97,6 +100,9 @@ public:
 
 	// Callback for mounting a new pak file.
 	static FOnMountPak OnMountPak;
+
+	// Callback for unmounting a pak file.
+	static FOnUnmountPak OnUnmountPak;
 
 	// Callback when an ensure has occurred
 	static FOnHandleSystemEnsure OnHandleSystemEnsure;
@@ -192,6 +198,10 @@ public:
 	// The new license data should be polled and steps taken based on the results (i.e. halt application if license is no longer valid).
 	DECLARE_MULTICAST_DELEGATE(FApplicationLicenseChange);
 	static FApplicationLicenseChange ApplicationLicenseChange;
+
+	/** Sent when the platform changed its laptop mode (for convertible laptops).*/
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChangedLaptopMode, EConvertibleLaptopMode);
+	static FPlatformChangedLaptopMode PlatformChangedLaptopMode;
 
 private:
 

@@ -1,0 +1,43 @@
+﻿INTSourceChangelist:2033300
+Availability:Public
+Title:Slate用户界面架构
+Crumbs:%ROOT%, Programming
+Description: 创建工具及游戏用户界面的跨平台用户界面架构。
+Navigation:topic
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Programming/Slate:title%](Engine/UI/editor_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Slate:title%
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Slate:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Slate]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+Slate是虚幻引擎的自定义用户界面系统的名称。该编辑器大部分界面都是使用Slate构建的，当然它也可以用于制作游戏中的用户界面。
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		Slate主题
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Slate/Architecture) - %Programming/Slate/Architecture:Description%
+		* [](Programming/Slate/DetailsCustomization) - %Programming/Slate/DetailsCustomization:Description%
+		* [](Programming/Slate/Overview) - %Programming/Slate/Overview:Description%
+		* [](Programming/Slate/Widgets) - %Programming/Slate/Widgets:Description%
+	[/PARAM]
+[/OBJECT]

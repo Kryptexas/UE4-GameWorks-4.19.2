@@ -1,0 +1,240 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title:언리얼 엔진 빌드하기
+Crumbs: %ROOT%, Programming, Programming/Development
+Description:언리얼 엔진 컴파일하기 입니다.
+Version: 4.5
+
+%Globals:OSSelect%
+
+[TOC (start:2 end:3)]
+
+## 언리얼 엔진 셋업하기
+
+[EXCERPT:Main]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		진행하기 전 Microsoft Visual Studio 2013 이 실행중인지 확인하세요.
+		[/REGION]
+
+		엔진속으로 빠져들기 전에 먼저 해 줘야 할 기본적인 작업이 있습니다:
+
+		1.	루트 디렉토리에 있는 `GenerateProjectFiles.bat` 배치 파일을 실행합니다.
+
+			[REGION:warning]
+				퍼포스에는 모든 프로젝트 파일은 물론 UE4 솔루션이나 `[UE4Root]\Engine\Intermediate\ProjectFiles` 에 위치한 중간 파일들도 저장되지 않습니다. 새 빌드로 동기화할 때마다 매번 생성하여 최신 상태로 업데이트해 줘야 합니다. 즉 `Intermediate` 폴더를 삭제했다면 위의 배치 파일을 사용하여 프로젝트 파일을 재생성해 줘야 한다는 뜻이기도 합니다.
+			[/REGION]
+
+		1.	루트 디렉토리에 있는 **UE4.sln** Visual Studio 솔루션을 엽니다. 전체 엔진에 대한 메인 Visual Studio 솔루션 파일입니다. 엔진 코어와 게임에 대한 프로젝트는 이 솔루션 안에 포함되어 있습니다.
+
+		1.	**UE4** 프로젝트에 우클릭하고 **Set As StartUp Project** 를 선택합니다.
+
+		1.	`UE4.sln` 을 저장합니다. 다음 번 솔루션을 열 때 이러한 과정을 반복하지 않도록 변경 내용을 꼭 저장하시기 바랍니다.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		진행하기 전 Xcode 5.1 이 설치되어 있는지 확인해 주시기 바랍니다.
+		[/REGION]
+
+		엔진속으로 빠져들기 전, 컴파일하기 위해서는 프로젝트 파일이 필요할 것입니다:
+		
+		1. 루트 디렉토리에 위치한 `GenerateProjectFiles.command` 파일을 실행합니다. 완료하는 데 일 분이 채 걸리지 않을 것입니다.
+		
+		1. 작업이 완료되면 Terminal 창을 닫습니다.
+
+		1.	루트 디렉토리에 있는 `UE4.xcodeproj` Xcode 프로젝트 파일을 엽니다. 전체 엔진에 대한 메인 프로젝트 파일입니다. 엔진 코어와 게임에 대한 모든 프로젝트가 이 프로젝트 안에 포함되어 있습니다.
+
+		1. Xcode 에서 **UE4Editor - Mac** 을 선택한 다음 활성 스키마로 **My Mac 64-bit** 를 선택합니다.
+
+	[/PARAM]
+[/OBJECT]
+
+
+## 언리얼 엔진 컴파일하기
+
+언리얼 엔진 4 는 UnrealBuildTool 을 통한 커스텀 빌딩 방법을 사용합니다. 이 툴은 엔진과 그 모든 부속의 컴파일에 관련된 복잡한 부분 전부를 처리합니다.
+
+### 빌드 환경설정
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		기본적으로 모든 환경설정이 나타나지는 않습니다. 메인 UE4 디렉토리의 [GenerateProjectFiles.bat](Programming/UnrealBuildSystem/ProjectFileGenerator) 파일을 편집하여 필요에 따라 추가적인 환경설정에 대한 프로젝트 파일을 생성합니다.
+
+		언리얼 엔진 4 와 UnrealBuildTool 은 엔진 컴파일 방법 결정을 위해 다양한 빌드 환경설정을 사용합니다. 어느 환경설정을 사용할 것인지는 생성하고자 하는 빌드의 용도에 따라 결정됩니다.
+
+		사용가능한 환경설정:
+
+		|빌드 환경설정 | 설명 |
+		|-------------|-------------|
+		| **Debug** | 엔진과 게임 코드 둘 다를 디버그 환경설정으로 빌드합니다. |
+		| **DebugGame** | 엔진은 최적화시키고 게임 코드는 디버깅 가능하도록 놔두는 빌드입니다. 이 환경설정은 디버깅 전용 게임 모듈에 이상적입니다. |
+		| **Development** | Release 에 해당하는 환경설정입니다. 엔진과 게임 코드 둘 다 이 환경설정으로 빌드됩니다. |
+		| **Shipping** | 최상의 퍼포먼스를 내는 게임 출하용 환경설정입니다. 콘솔 명령, 통계, 프로파일링 툴을 제거하는 환경설정입니다. |
+		| **Test** | 콘솔 명령, 통계, 프로파일링 툴을 약간 포함시킨 것을 제외하고는 **Shipping** 환경설정과 같습니다. |
+
+		빌드 환경설정은 Visual Studio 툴바에서 설정할 수 있습니다.
+
+		![UE4 Solution - Configuration Menu](configuration_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		사용가능한 환경설정:
+
+		| 빌드 환경설정 | 설명 |
+		| ------------------- | ----------- |
+		| **Product > Build For > Running** | 이 환경설정은 엔진과 게임 코드 둘 다 Debug 환경설정으로 빌드합니다. |
+		| **Product > Build For > Profiling** | 이 환경설정은 Release 에 해당합니다. 엔진과 게임코드 둘 다 이 환경설정으로 빌드됩니다. |
+		
+	[/PARAM]
+[/OBJECT]
+
+### 타겟 플랫폼
+
+언리얼 엔진 4 에서 지원하는 플랫폼은 현재 다음과 같습니다:
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Windows 32-bit**
+		* **Windows 64-bit**
+
+
+		엔진 자체를 빌드할 때는 **Win64** 플랫폼을 사용하게 됩니다.
+
+		![UE4 Solution - Platform Menu](platform_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Mac 64-bit**
+		* **iOS Device**
+
+
+		엔진 자체를 빌드할 때는, **Mac 64-bit** 플랫폼을 사용하게 됩니다.
+	[/PARAM]
+[/OBJECT]
+
+(#BinaryNamingConvention)
+### 바이너리 작명 규칙
+
+생성되는 바이너리 이름은 빌드시 사용된 환경설정에 따라 달라집니다. 일반적인 작명 규칙은 이렇습니다:
+
+|엔진 모드| 작명 규칙|
+|----------- | ------------------|
+| Editor	  | UE4Editor-Platform-Configuration.extension |
+| Uncooked Game | UE4-Platform-Configuration.extension |
+
+PC 플랫폼에 대해서는 예외인데, Development 환경설정으로 빌드할 때는 플랫폼과 환경설정 부분이 생략됩니다. 예를 들어 Win64 플랫폼에 대해 생성되는 실행파일 이름은 다음과 같습니다:
+
+| 환경설정 | EXE 이름 |
+| ------------- | -------- |
+| Debug | UE4Editor-Win64-Debug.exe |
+| DebugGame | UE4Editor-Win64-DebugGame.exe |
+| Development | UE4Editor.exe |
+
+
+### 엔진 빌드하기
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1.	**Build Configuration** 을 빌드하고자 하는 환경설정으로 맞춥니다. 이 예제에서는 **Development** 로 합니다. 가능한 환경설정 각각에 대한 설명은 [빌드 환경설정](#빌드환경설정) 섹션을 참고하시기 바랍니다.
+
+			![UE4 Solution - Set Configuration to Development](config_development_menu.png)
+
+		1.	**UE4** 프로젝트에 우클릭합니다:
+
+			1. 컴파일된 파일이나 임시 파일 제거를 위해 **Clean** 을 선택합니다. 그러면 다음 빌드는 풀 리빌드가 됩니다.
+
+			1.	**Rebuild** 를 선택하여 엔진을 리컴파일합니다.
+
+		또는, **UE4** 프로젝트가 스타트업 프로젝트로 설정되어 있는 경우:
+
+		1. **Build Configuration** 을 설정합니다.
+
+		1. **Build** 메뉴에서:
+
+			1. **Clean UE4**.
+	
+			1. **Rebuild UE4**.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1. 활성 스키마가 **UE4Editor - Mac > My Mac 64-bit** 로 설정되어 있는지 확인합니다.
+
+		1. **product** 메뉴에서 **Build For > Running** 을 선택합니다.
+	[/PARAM]
+[/OBJECT]
+
+[/EXCERPT:Main]

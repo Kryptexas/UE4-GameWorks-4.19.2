@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:2445736
+Availability:Public
+Title:レベル ブループリント UI
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
+Description:レベル ブループリントのエディタ インターフェースの概要
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI:title%](Engine/Blueprints\UserGuide\Types\level_blueprint_test_image.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI:title%
+	[/PARAM]
+	[PARAM:description]
+		%description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC (start:2)]
+
+## 概要
+
+[INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
+
+## インターフェース
+
+
+
+レベルブループリントの編集時は、以下のセクションがブループリントエディタにあります。
+
+[REGION:fullwidth]
+![](LevelBlueprintUI.png)
+[/REGION]
+
+|デフォルトで表示される UI コンポーネント|  [Window] メニューで利用可能な機能|
+|-----------------------------|-----------------------------|
+|[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
+
+
+
+<!----------
+[EXCERPT:Visible]
+1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
+1. [ツールバー](Engine/Blueprints/Editor\UIComponents\Toolbar\ToolbarOptions)
+1. [My Blueprint](Engine/Blueprints/Editor\UIComponents\MyBlueprint)
+1. [詳細](Engine/Blueprints/Editor\UIComponents\Details)
+1. [グラフ エディタ](Engine/Blueprints/Editor\UIComponents\GraphEditor)
+[/EXCERPT:Visible]
+
+[EXCERPT:Invisible]
+* [クラスのデフォルト](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
+* [コンパイラの結果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
+* [デバッグ](Engine/Blueprints/Editor\UIComponents\Debug)
+* [検索結果の表示 (Find Results)](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [パレット](Engine/Blueprints/Editor\UIComponents\Palette)
+* [ビューポート](Engine/Blueprints/Editor\UIComponents\Viewport)
+[/EXCERPT:Invisible]
+------------->
+
+
+

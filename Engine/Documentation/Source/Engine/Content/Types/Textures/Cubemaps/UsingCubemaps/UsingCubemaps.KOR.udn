@@ -1,0 +1,20 @@
+INTSourceChangelist:2087463
+Availability:Public
+Title:큐브맵 사용하기
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:엔진에 임포트한 큐브맵을 활용하는 방법에 대한 문서입니다.
+
+
+## 개요
+
+큐브맵을 엔진에 임포트한 이후 활용하는 법에 대한 문서입니다.
+
+##큐브맵 사용하기
+
+언리얼 엔진 4 에서 큐브맵을 적용할 수 있는 방법은 여러가지 있습니다. 두 가지 대중적인 방법은 머티리얼 내 큐브맵과 앰비언트 큐브맵을 활용하는 것입니다.
+
+### 앰비언트 큐브맵
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/AmbientCubemap#AmbientCubemap]
+
+

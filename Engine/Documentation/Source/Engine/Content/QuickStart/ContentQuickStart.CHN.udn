@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2087274
+Availability: Public
+Title:美术师快速入门指南
+Crumbs:%ROOT%, GettingStarted
+Description:针对内容创建者的虚幻引擎4入门指南。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/QuickStart:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Content/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+在本快速指南的整个过程中，您将创建一个新项目，导入网格物体及贴图，并制作材质。这将是一个聚焦教程，带您学习了一些基本知识；但是，在很多地方，都有到更加详细信息的文档链接，以回答您可能存在的深层问题。
+
+
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	* [](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:description%")
+	[/PARAM]
+[/OBJECT]
+
+

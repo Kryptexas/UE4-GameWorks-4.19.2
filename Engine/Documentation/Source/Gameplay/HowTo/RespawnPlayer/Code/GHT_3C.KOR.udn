@@ -1,0 +1,15 @@
+﻿INTSourceChangelist:2300047
+Availability: Docs
+Title:코드에서 플레이어 리스폰 비법
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
+Description:언리얼 엔진 4 에서 코드를 통해 플레이어 캐릭터를 리스폰하는 비법 안내입니다.
+
+[TOC (start:2)]
+
+## 개요
+
+ 여기서는 **코드** 에서 싱글 플레이어 게임의 플레이어 캐릭터를 리스폰하는 법에 대해 배워보겠습니다.
+
+## 액터 스폰하기
+
+키를 눌러 레벨에 액터를 스폰하는 법은 다음과 같습니다.

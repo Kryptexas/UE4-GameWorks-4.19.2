@@ -1,0 +1,124 @@
+Availability: Public
+Title:材质 & 贴图
+Crumbs: %ROOT%, Engine, Engine/Rendering
+Navigation:topic
+
+[REGION:header_img]
+![materials.jpg](materials.jpg)
+[/REGION]
+
+在它们中使用的材质和贴图决定了世界内部的表面外观。它们不仅可以控制表面的颜色，还可以控制每个表面与应用了所选择的光照模式和混合模式的光源进行交互的方式。光照模型可以决定光源与表面的交互方式，而混合模型可以控制所渲染的表面与其他场景的混合方式。
+
+
+## 材质
+
+材质是可以应用到网格物体上的资源，用它来控制场景的可视外观。一般情况下，在场景中的光源照射到表面上时，可以使用材质的光照模型计算该光源与表面的交互方式。在虚幻引擎 3 的材质系统中提供了一些不同的光照模型，但是 Phong 光照模型可以作为所谓的"常规"光照使用。
+
+在执行光照计算的时候，需要使用一些材质属性才可以得出表面的最终颜色。这些材质属性在材质编辑器中也被称为材质输入，例如，DiffuseColor、EmissiveColor、SpecularColor、SpecularPower 等等。
+
+**漫反射 (Diffuse)**
+
+材质的漫反射颜色可以表现所有方向平均反射的入射光的量。值 (1,1,1) 表示所有方向可以反射 100% 的入射光。漫反射不会根据视图进行变化，所以它从任何角度看起来都是一样的，但是它每个像素都是依赖法线。漫反射颜色将只会在受一些无阴影的光照影响时显示，因为它会缩放入射光照。
+
+**自发光 (Emissive)**
+
+材质的自发光颜色可以表现该材质散发出的光线多少，就好像它是一个光源，尽管它实际上没有照亮场景中的其他表面。由于自发光表现得像一个光源，所以它不会受到光源或阴影的影响。 有时候使用自发光表现环境光照术语。
+
+**高光 (Specular)**
+
+高光颜色可以表现在某个方向反射的入射光线多少。高光反应在您的眼睛与反射的入射光线的方向对齐的时候是最亮的，所以高光是根据视图进行变化的。法线也会影响高光，因为它会影响反射的光源方向。高光强度可以控制表全面的光泽或光泽程度。非常高的高光强度可以表现如镜面一般的表面，而低强度可以表现比较粗糙的表面。
+
+**不透明度 (Opacity)**
+
+不透明度可以控制透过半透明材质表面的光线多少。这意味着半透明表面就好像是屏幕上的过滤器，您可以透过它看到一些东西。 不透明度为 1 的材质是完全不透明的，而不透明度是 0 则意味着它允许所有光线穿过。
+
+**法线 (Normal)**
+
+法线属性可以表现表面方向。 通过使用法线贴图可以指定每个像素的法线属性，而且它可以同时对漫反射和高光光照产生影响。
+
+[REGION:titlebar]
+材质 一般主题
+[/REGION]
+[REGION:contentsection]
+
+* [材质编辑器用户指南](Engine/Rendering/Materials/Editor) - 关于UE4中基于节点的材质编辑器的概述。
+* [材质实例编辑器用户指南](Engine/Rendering/Materials/MaterialInstanceEditor) - 关于UE4中材质实例编辑器的概述。
+* [实例化材质](Engine/Rendering/Materials/InstancedMaterials) - 关于UE4中材质实例化系统的概述。
+* [材质实例常量](Engine/Rendering/Materials/MaterialInstanceConstants) - 关于使用参数化的材质实例的指南。
+
+[/REGION]
+
+[PUBLISH:Licensee]
+
+[REGION:titlebar]
+材质技术主题
+[/REGION]
+[REGION:contentsection]
+
+* [着色器主页](Engine/Rendering/Materials/Shaders) - 有关在虚幻引擎 3 中创建和调试着色器的信息。
+* [着色器版本控制](Engine/Rendering/Materials/Shaders/Versioning) - 维护着色器版本的说明。
+* [引用着色器缓存](Engine/Rendering/Materials/Shaders/ReferenceShaderCache) - 着色器缓存系统说明。
+* [创建材质表达式](Engine/Rendering/Materials/CreatingMaterialExpressions) - 创建新的材质编辑器表达式的指南。
+
+[/REGION]
+
+[/PUBLISH:Licensee]
+
+[REGION:titlebar]
+材质 内容创建主题
+[/REGION]
+[REGION:contentsection]
+
+* [材质指南](Engine/Rendering/Materials/Tutorial) - 关于创建简单材质的指南。
+* [材质概要](Engine/Rendering/Materials/ExpressionReference) - 关于材质系统中所有可用材质节点的解释。
+* [材质实例](Engine/Rendering/Materials/Examples) - 创建不同类型材质的帮助、技巧及技术。
+* [材质函数](Engine/Rendering/Materials/Functions) - 有关材质函数的说明。
+* [使用 Alpha 创建头发](Engine/Rendering/Materials/CreatingHairUsingAlpha) - 在虚幻引擎 3 中使用材质和网格物体创建头发。
+* [世界位置偏移](Engine/Rendering/Materials/WorldPositionOffset) - 如何使用 WorldPositionOffset 材质输入。
+* [材质蒙板](Engine/Rendering/Materials/Masks) - 使用材质表达式算法创建蒙板和渐变效果。
+
+[/REGION]
+
+
+## 贴图
+
+贴图是在材质中使用的图像。将它们映射到应用这个材质的表面，然后直接应用到诸如漫反射贴图之类的地方，或者在材质中将贴图的贴图像素值作为蒙板使用，或用于其它计算。在一些实例中，在材质外部也可以直接使用贴图，例如绘制到 HUD。大部分时候，在诸如 Photoshop 这样的图像编辑应用程序中对外创建贴图，然后通过[内容浏览器](Engine/Content/Browser/UI/UserGuide)导入到虚幻编辑器中。但是，一些贴图是在虚幻中生成的，例如，渲染贴图。通常情况下，它们会从场景中选取一些信息，然后将其渲染为可以在其他地方使用的贴图。
+
+单独的材质可以使用出于不同的目的而完全取样并应用的贴图。例如，一个样本材质可以由一个漫反射贴图、一个高光贴图和一个法线贴图。此外，这里可能有一个存储在一个或多个这些贴图的 alpha 通道中存储的自发光和高光强度贴图。
+
+![textures.jpg](textures.jpg)(w:670 h:201)
+
+您可以看到，在它们全部共享同一个布局时，会根据贴图的不同意图使用颜色。
+
+[REGION:titlebar]
+贴图常见主题
+[/REGION]
+[REGION:contentsection]
+
+* [贴图支持和设置](Engine/Content/Types/Textures/SupportAndSettings) - 有关引擎和硬件贴图支持的信息。
+* [贴图属性](Engine/Content/Types/Textures/Properties) - 有关虚幻引擎 3 中贴图的各个属性的说明。
+* [法线贴图格式](Engine/Content/Types/Textures/NormalMaps/Formats) - 有关应用到法线贴图的不同压缩类型的概述。
+* [动画贴图](Engine/Content/Types/Textures/Movies) - 有关集成的动画贴图系统的概述。
+* [贴图动态加载](Engine/Content/Types/Textures/Streaming) - 有关 UE4 中贴图动态加载系统的概述。
+
+[/REGION]
+
+[REGION:titlebar]
+贴图内容创建主题
+[/REGION]
+[REGION:contentsection]
+
+* [创建贴图](Engine/Content/Types/Textures/CreationGuide) - 创建和法线贴图材质协同使用的贴图的技巧。
+* [导入贴图指南](Engine/Content/Types/Textures/ImportingGuide) - 如何把贴图导入到虚幻引擎3中。
+* [创建法线贴图](Engine/Content/Types/Textures/CreatingNormalMaps) - 创建法线贴图的实用建议及资源。
+* [导入字体](UIAndHUD/ImportingFonts) - 如何导入可以在虚幻引擎 3 中使用的 true type 字体。
+* [为贴图拍摄更好的照片](Engine/Content/Types/Textures/PhotoReference) - 有关将照片作为贴图引用使用的建议。
+* [贴图优化技术](Engine/Content/Types/Textures/OptimizationTechniques) - 减少贴图占用的内存量的方法。
+
+[/REGION]
+
+ 
+
+
+
+

@@ -1,0 +1,89 @@
+﻿INTSourceChangelist:2087154
+Availability:Public
+Title:外部コンテンツ開発標準
+Crumbs: %ROOT%, Engine/Content
+Description:HUD によってサーフェスへ適用またはオンスクリーンへ描画するマテリアルに使用する画像アセット
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/ContentStandards:title%](Engine/Content/ContentStandards/ContentCreation.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/ContentStandards:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/ContentStandards:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/ContentStandards]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/ContentStandards:title%](Engine/Content/ContentStandards/ContentCreation.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/ContentStandards:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/ContentStandards:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/ContentStandards]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+アンリアル エンジンのコンテンツ作成に対し、以下のリストを考慮してください。_個人の_ プロジェクトには好きな標準を使用することができますが、配布を希望するコンテンツは全てこれらの標準に準拠する必要があります。
+
+## スタティック メッシュ (3D Models) に関する標準
+
+* **ファイル形式：**FBX
+* **スケール：**1 アンリアル単位 = 1 センチ (cm)
+* **原点 (ピボット)：**配置に便利なスポットに置かれます。通常はオブジェクトの下部中心です。
+* **方向：**全てのモデルは「前面」が **positive X-Axis** の方へ向いていなければなりません。
+* **UV レイアウト (テクスチャ座標)：**テクスチャを最大に活用するために、メッシュを使って UV パッチをオーバーラップさせることもあります。ただしこれらは、特にライトマップに対しては全ての UV パッチがオーバーラップすることなく均一に並べられている UV チャネルを別に持っています。ライトマップ UV は [スタティックメッシュ エディタ](Engine\Content\Types\StaticMeshes\Editor) 内で生成することができることに注目してください。ただし、 3D で作成した方が編集機能は増えます。
+* **マテリアル：**全てのメッシュには対応するマテリアルが適用されているはずです。
+* **頂点法線：**モデルのビジュアル クオリティのために頂点法線 (スムージング グループとしても知られている) のカスタマイズが必要な場合は、お持ちの 3D パッケージからそれらがエクスポーズされていること、そしてコンテンツのインポート時にそれらが UE4 へインポートされていることを確認してください。
+* **最大頂点数：**モバイル デバイスの 1 メッシュあたりの最大頂点数は **65,535** です。PC など他のプラットフォーム上では、コンソールに制限されるため、随時テストが必要なります。
+* **コリジョン：**必要に応じて、メッシュにはコリジョンが適用されています。詳細は [スタティックメッシュ コリジョン リファレンス](Engine\Physics\Collision\Reference) をご覧ください。
+
+
+## スケルタル メッシュ (スケルトンでアニメートされるメッシュ) の標準
+
+* **ファイル形式：**FBX
+* **スケルトン：**全てのスケルタル メッシュには対応する互換性のあるスケルトン アセットを適用してください。ただし、スケルタル メッシュにいくつかボーン階層がある場合は、スケルトン アセットを共有する場合もあります。
+* **スケール：**1 アンリアル単位 = 1 センチ (cm)
+* **原点 (ピボット)：**配置のスポットに便利な位置に置かれます。スケルタル メッシュの場合、足では通常右になります。
+* **方向：**全てのモデルは「前面」が **正の X 軸** の方へ向いていなければなりません。
+* **UV レイアウト (テクスチャ座標)：**テクスチャを最大に活用するために、メッシュを使って UV パッチをオーバーラップさせることもあります。ただしこれらは、特にライトマップに対しては全ての UV パッチがオーバーラップすることなく均一に並べられている UV チャネルを別に持っています。ライトマップ UV は [スタティックメッシュ エディタ](Engine\Content\Types\StaticMeshes\Editor) 内で生成することができることに注目してください。ただし、 3D で作成した方が編集機能は増えます。
+* **マテリアル：**全てのメッシュには対応するマテリアルを適用してください。
+* **頂点法線：**モデルのビジュアル クオリティのために頂点法線 (スムージング グループとしても知られている) のカスタマイズが必要な場合は、お持ちの 3D パッケージからそれらがエクスポーズされていること、そしてコンテンツのインポート時にそれらが UE4 へインポートされていることを確認してください。
+* **最大頂点数：**モバイル デバイスの 1 メッシュあたりの最大頂点数は **65,535** です。PC など他のプラットフォーム上では、コンソールに制限されるため、随時テストが必要なります。
+* **コリジョン：**全てのスケルタル メッシュには対応する物理アセットを適用してください。UE4 へのインポート中に生成することができます。詳細は [物理アセット ユーザーガイド](Engine\Physics\PhAT\UserGuide) を参照してください。
+
+##テクスチャ
+
+* **形式：**
+	[INCLUDE:Engine/Content/Types/Textures/Importing#supportedtextureformats]
+* **ディメンション：** 
+	* 全てのテキストのディメンションは 2 のべき乗 (32, 62, 1024, 2048) となります。 
+	* ミップマップを使用した場合は、テクスチャを 4096px (4K) 以下にしてください。
+	* ハードウェアの制限が 8192px (8K) の GPU もあることにご注意ください。
+	* **Epic はほとんどのテクスチャ コンテンツを 2048px で作成しています。**
+* **ヒント：**
+	* テクスチャ内のアルファ チャネルに便利かつ効率的にマスク情報を格納できる場合が多いです。

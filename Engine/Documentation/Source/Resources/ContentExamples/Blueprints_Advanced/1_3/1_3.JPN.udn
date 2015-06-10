@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:1.3 - Automatic Ring
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
+Description: 高度なブループリント事例レベルの概要　例 1.3:Automatic Ring
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Components
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Blueprints_Advanced\1_3:title%](blueprint_advanced_1_3_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Blueprints_Advanced\1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Blueprints_Advanced\1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Blueprints_Advanced\1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![](blueprint_advanced_1_3.png)
+
+## 概要
+
+**BP_Radial_Array** _ブループリント_ はコンストラクション スクリプトを使用して等間隔の _Static Mesh Components_ のリングを生成します。_Actor_ の** [Details]**タブで編集できるように、ここではいくつかの変数がパブリックに設定されています。以下の変数があります。 
+ ここでは、追加する _Static Mesh Components_ の数、リングの直径、追加回転オフセットを追加する機能、リングへのギャップの挿入機能などを指定する変数があります。
+
+
+
+## コンストラクションスクリプト
+
+[REGION:lightbox]
+[![](AdvBP_1_3_ConstructionScript.png)](AdvBP_1_3_ConstructionScript.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+[/REGION]
+
+
+
+**ForLoop** ノードの **Index** 出力を使用して、追加した各 _Static Mesh Component_ に対する位置オフセットを決定します。この場合のインデックス番号は、**メッシュ数** とそれぞれの **StaticMeshComponent** に対する回転値および円において配置する位置オフセットの両方を作り出す **半径** 変数の組み合わせになります。
+
+[/REGION]

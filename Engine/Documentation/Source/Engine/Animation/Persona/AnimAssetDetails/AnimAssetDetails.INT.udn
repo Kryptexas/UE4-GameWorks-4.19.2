@@ -1,0 +1,49 @@
+Availability:Public
+Title:Persona Anim Asset Details
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Anim Asset Details in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AnimAssetDetails:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AnimAssetDetails:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AnimAssetDetails:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AnimAssetDetails]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Overview]
+![](AnimAssetDetails.png)(w:520)
+
+The **Anim Asset Details** panel is a context-sensitive property editor that allows you to change settings on various animation assets, such as Anim Sequences, Blend Spaces, Anim Montages, and so on. By default, the **Anim Asset Details** panel is only visible when Persona is in **Animation** mode.
+
+**To open an animation asset in the Anim Asset Details panel:**
+* **Double-click** it in the Persona **Asset Browser**.
+
+For more information about the Persona **Asset Browser**, see [](Engine/Animation/Persona\AssetBrowser).
+
+[region:note]
+Opening an animation asset in the **Anim Asset Details** panel also opens it in the Asset Editor. For more information about the Asset Editor, see [](Engine/Animation/Persona\AssetEditor).
+[/region]
+
+[/EXCERPT:Overview]
+
+The **Anim Asset Details** panel shows a different set of properties based on the type of animation asset being edited. Outside the fact that this panel is reserved for specific animation assets, it is functionally identical to the standard **Details** panel of the main editor. 
+
+For more information about the basics of using this panel, please see the [Editor Details Panel](Engine/UI/LevelEditor\Details) documentation.
+
+
+[REGION:note]
+The **Anim Asset Details** panel only shows content with animation-based assets. Selecting things like Sockets will not show any properties in this panel. For information about such assets, refer to the Persona **Details** panel (in the upper-right corner of the Persona UI by default).
+[/REGION]

@@ -1,0 +1,28 @@
+Title:Oculus Rift Development
+Crumbs:%ROOT%, Platforms
+Description:
+Availability:Public
+Navigation:platform
+Platform:Oculus
+
+[EXCERPT:warning]
+[REGION:warning]
+Developing for Oculus on Mac currently requires Unreal Engine 4.3
+[/REGION]
+[/EXCERPT:warning]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vr_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Oculus Rift Development
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
+		* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+		* [Lessons from Integrating the Oculus Rift into Unreal Engine 4](https://de45xmedrsdbp.cloudfront.net/Resources/files/UE4-Integration-and-Demos_OC-100270768.pptx "Oculus Connect 2014 Presentation")
+	[/PARAM]
+[/OBJECT]

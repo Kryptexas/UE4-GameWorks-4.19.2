@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:2460163
+Availability:Public
+Title:유틸리티 컴포넌트
+Crumbs:%ROOT%, Engine, Engine/Components
+Description:유틸리티 기반 컴포넌트에 대한 설명 및 그 사용법입니다.
+Related: Engine/Blueprints/UserGuide/Components
+
+
+## 어플리케이션 수명 컴포넌트
+
+**ApplicationLifecycleComponent** 는 OS 에서 (활성화됨, 정지됨, 종료됨 등) 어플리케이션 상태에 대해 알림받은 것을 처리합니다.
+
+## 자손 액터 컴포넌트
+
+**ChildActorComponent** 는 액터가 등록(register)되면 스폰시키고 등록해제되면 소멸시키는 컴포넌트입니다.
+
+## 씬 컴포넌트
+
+**SceneComponent** 에는 트랜스폼이 있고 어태치를 지원하지만, 렌더링이나 콜리전 능력은 없습니다. 계층구조 내 다른 것들에 대한 오프셋 적용을 위한 "더미" 컴포넌트로 유용합니다.
+

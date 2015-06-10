@@ -1,0 +1,50 @@
+﻿Availability:Public
+Title:ブレンド スペースの作成
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:アニメーション ブループリント アセットの AnimGraph に使用するブレンド スペースの他入力アニメーション ブレンディング アセットの新規作成ガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blendspaces/Creation:title%](Engine/Animation/Blendspaces/create.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blendspaces/Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blendspaces/Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blendspaces/Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+_ブレンド_ スペースは通常のアセットで、他のアセット同様コンテンツ ブラウザで作成しなければいけません。
+
+**新規 _ブレンド スペース_ を作成する**
+
+1. **コンテンツ ブラウザ** で 新規に _ブレンド スペース_ を作成したいフォルダへ移動し、 ![](Shared/EditorButtons/button_NewAsset.png) をクリック、または右クリックして **Animation** > **[BlendSpace]** を選択します。
+
+	![](NewBlendSpace.png)
+
+1. **[Choose Skeleton]** ダイアログで _Blend Space_ がターゲットとするスケルトンを選択します。
+
+	![](SkeletonList.png)
+
+1. 新しい _Blend Space_ アセットが **コンテンツ ブラウザ** の指定場所に表示されます。
+
+	![Create Blueprint - Asset Created](bs_create_asset.png)
+
+	_Blend Space_ は、 _ブレンドスペース_ と同様のスケルトンをターゲットとして、_アニメーション ブループリント_ の **AnimGraphs** でも利用が可能です。
+
+	[REGION:imagetable]
+	| ![](AssetBrowserBlendList.png)(h:400) | ![](ContextMenuBlendList.png)(h:400) |
+	| :---: | :---: |
+	| **アセット ブラウザ** | **コンテキスト メニュー** |
+	[/REGION]
+

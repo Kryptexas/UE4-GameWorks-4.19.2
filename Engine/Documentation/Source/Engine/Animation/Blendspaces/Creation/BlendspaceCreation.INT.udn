@@ -1,0 +1,50 @@
+Availability:Public
+Title: Creating Blend Spaces
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Blendspaces
+Description:Guide to creating new BlendSpace multi-input animation blending assets for use in AnimGraphs of Animation Blueprint assets.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blendspaces/Creation:title%](Engine/Animation/Blendspaces/create.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blendspaces/Creation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blendspaces/Creation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blendspaces/Creation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+_Blend Spaces_ are regular assets and must be created through the **Content Browser** like any other asset.
+
+**To create a new _Blend Space_:**
+
+1. In the **Content Browser**, navigate to the folder within which you want to create your new _Blend Space_, then click ![](Shared/EditorButtons/button_NewAsset.png) or **right-click** and choose **Animation** > **Blend Space**:
+
+	![](NewBlendSpace.png)
+
+1. In the **Choose Skeleton** dialog, select the Skeleton the _Blend Space_ should target:
+
+	![](SkeletonList.png)
+
+1. The new _Blend Space_ asset is displayed in the **Content Browser** at the location specified:
+
+	![Create Blueprint - Asset Created](bs_create_asset.png)
+
+	The _Blend Space_ is also available to be used in the **Anim Graphs** of _Animation Blueprints_ targeting the same Skeleton as the _Blend Space_:
+
+	[REGION:imagetable]
+	| ![](AssetBrowserBlendList.png)(h:400) | ![](ContextMenuBlendList.png)(h:400) |
+	| :---: | :---: |
+	| **Asset Browser** | **Context Menu** |
+	[/REGION]
+

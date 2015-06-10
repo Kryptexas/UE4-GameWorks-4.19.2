@@ -1,0 +1,106 @@
+﻿INTSourceChangelist:2495730
+Availability:Public
+Title:애님 그래프
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description: _애니메이션 블루프린트_ 를 통해 _스켈레탈 메시_ 에 적용시킬 포즈의 샘플링, 블렌딩, 조작에 사용되는 그래프입니다.
+
+[REGION:banner]
+![AnimGraph](animgraph_banner.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+[EXCERPT:Intro]
+**AnimGraph** (애님 그래프)는 현재 프레임에 대한 _스켈레탈 메시_ 의 최종 포즈를 구하는 데 사용됩니다.
+기본적으로 각각의 _애니메이션 블루프린트_ 에는 **_애님 그래프_** 가 있으며, 그 안에는 [애니메이션 노드](Engine/Animation/AnimBlueprints/AnimGraph#애니메이션노드) 를 놓아 
+_애니메이션 시퀀스_ 샘플링, 애니메이션 블렌딩, _스켈레탈 콘트롤_ 을 사용한 본 트랜스폼 작업을 합니다.
+그 결과 포즈를 매 프레임 _스켈레탈 메시_ 에 적용합니다.
+[/EXCERPT:Intro]
+
+![Anim Graph](animgraph.png)(w:720)
+
+**애님 그래프** 안에서는 **이벤트 그래프** 나 다른 곳, 이를테면 코드에서 계산된 값을 사용할 수 있으며, 
+그것을 _블렌드 스페이스_ 나 다른 블렌드 노드의 입력으로 사용할 수 있습니다. 물론 별도의 블렌딩 없이 바로 
+_애니메이션 시퀀스_ 만 샘플링할 수도 있습니다. **애님 그래프** 에서는 _스켈레탈 콘트롤_ 을 사용하여 
+본 위치, 방향, 크기를 직접 조절할 수도 있습니다.
+
+## 실행 흐름
+
+모든 그래프에는 그래프 노드상의 _실행 핀_ 사이를 흐르는 신호선으로 실행 흐름이 표시됩니다. 
+_Blueprint_ 의 **이벤트 그래프** 와 같은 일반 그래프의 경우, 플레이 도중 이벤트 발동에 따라 
+그 실행 흐름이 표시됩니다. **애님 그래프** 는 이벤트 기반이 아니라 매 프레임마다 
+실행 흐름이 결정되기 때문에 항상 표시된다는 점이 다릅니다.
+
+![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
+
+**애님 그래프** 에서의 실행 흐름은 한 노드에서 다른 노드로 전해지는 _포즈_ 를 나타냅니다. 
+[Blend](Engine/Animation/NodeReference/Blend) 같은 일부 노드는 입력이 여럿 있어, 현재 
+실행 흐름의 어느 부분에 있는 입력인가에 따라 내부적으로 결정을 내립니다. 이러한 결정은 보통 
+_데이터 핀_ 에 전해진 값과 같은 외부 입력에 따라 달라집니다.
+
+아래 예제에서 위와 똑같은 블렌드 노드의 실행 흐름이 _Alpha_ 핀의 값에 따라 전환되었습니다 
+(여기서는 단순하게 하기 위해 값을 수동 설정하고 있습니다):
+
+![Blend - Alpha 1.0](exec_flow_1.png)(w:720)
+[REGION:caption]Alpha 1.0 인 Blend - Input B 사용[/REGION]
+
+## 애님 그래프 작업하기
+
+**애님 그래프** 는 노드 그래프 값을 구하는 식으로 작동합니다. 이 노드 중 일부는 하나 이상의 인풋 포즈에 특정 연산을 하는 반면, 
+다른 노드는 _애니메이션 시퀀스_, _블렌드 스페이스_, _애님 몽타주_ 등 다른 유형의 애셋에 접근하거나 샘플링하는 데 사용됩니다. 
+이러한 애셋과 노드에 대한 설명은 물론 이들이 **애님 그래프** 에 어찌 들어맞는지에 대한 설명은 아래와 같습니다.
+
+### 애니메이션 시퀀스
+
+[INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
+
+![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
+
+자세한 것은 [](Engine/Animation/Sequences/UserGuide) 문서를 참고해 주시기 바랍니다.
+
+### 블렌드 스페이스
+
+[INCLUDE:Engine/Animation/Blendspaces/UserGuide#Intro]
+
+![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
+
+자세한 것은 [](Engine/Animation/Blendspaces/UserGuide) 문서를 참고해 주시기 바랍니다.
+
+### 애니메이션 노드
+
+[INCLUDE:Engine/Animation/NodeReference#Intro]
+
+사용가능한 모든 노드에 대한 설명은 [](Engine/Animation/NodeReference) 문서를 확인해 주시기 바랍니다.
+
+#### 애니메이션 블렌딩
+
+[INCLUDE:Engine/Animation/NodeReference/Blend#intro]
+
+![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
+
+스페이스 변환 노드 관련 상세 정보는 [](Engine/Animation/NodeReference/Blend) 문서를 참고해 주시기 바랍니다.
+
+#### 스켈레탈 콘트롤
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
+
+사용가능한 여러 _스켈레탈 콘트롤_ 관련 상세 정보는 [](Engine/Animation/NodeReference/SkeletalControls) 
+문서를 참고해 주시기 바랍니다.
+
+#### 스페이스 변환
+
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+[REGION:fullwidth]
+![Usage in graph](Engine/Animation/NodeReference/SpaceConversion/graph_usage.png)
+[/REGION]
+
+스페이스 변환 노드 관련 상세 정보는 [](Engine/Animation/NodeReference/SpaceConversion) 문서를 참고하세요.
+
+#### 싱크 그룹
+
+[INCLUDE:Engine\Animation\SyncGroups#intro]
+
+![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
+
+싱크 그룹 사용법 및 부가적인 디테일 관련 정보는 [](Engine\Animation\SyncGroups) 문서를 참고하세요.

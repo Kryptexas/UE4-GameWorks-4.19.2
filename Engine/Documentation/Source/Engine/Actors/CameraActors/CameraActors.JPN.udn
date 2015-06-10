@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2490625
+Availability:Public
+Title:カメラ アクタ
+Crumbs: %ROOT%, Engine, Engine/Actors
+Description:エディタでカメラを配置および使用するためのガイド
+
+![](CameraActorHeader.png)
+
+## 概要
+
+プロジェクトにはすべて表示方法が必要です。中でも最も基本的な方法が **カメラ アクタ** を使った方法です。カメラ アクタは主に、 **マチネ** と組み合わせて使われますが、ブループリントや C++ と使用すれば固定カメラゲーム、セキュリティ カメラ、またはカメラ アニメーションを使った短いカットシーンの作成まで可能になります。
+
+カメラ アクタ (または、カメラ コンポーネントを含むブループリント) を選択すると、メインの 3D ビューポートに (上の画像のような) カメラからの「ピクチャーインピクチャー」ビューが表示されます。
+
+## カメラ アクタを配置する
+
+カメラ アクタは、 **[Basic]** カテゴリの **[Modes]** パネルにあります。カメラ アクタは、 **[Modes]** パネルからｊゲーム ワールドにドラッグすれば、ワールド内に配置することができます。
+
+![](cameraPlacedAnim.gif)(convert:false)
+
+## カメラ アクタを使用する
+
+カメラ アクタの使用方法は簡単です。 **[Modes]** パネルで選択してワールド内へドラッグするだけです。カメラ アクタをワールドに配置すると、ブループリントやマチネと併用して、レベル用のビューポイントとして使うことができます。
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Related
+	[/PARAM]
+	[PARAM:links]
+		* [カメラを使用する](Gameplay/HowTo/UsingCameras "%Gameplay/HowTo/UsingCameras%")
+		* [ブループリントでカメラを使用する](Gameplay/HowTo/UsingCameras/Blueprints "Gameplay/HowTo/UsingCameras/Blueprints:description)
+	[/PARAM]
+[/OBJECT]
+

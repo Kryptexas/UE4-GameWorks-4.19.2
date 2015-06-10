@@ -18,9 +18,11 @@ const TCHAR* FAndroidPlatformProcess::ComputerName()
 
 void FAndroidPlatformProcess::SetThreadAffinityMask( uint64 InAffinityMask )
 {
+	/* Skip setting mask for now due to issues with Big/Little CPUs
 	pid_t ThreadId = gettid();
 	int AffinityMask = (int)InAffinityMask;
 	syscall(__NR_sched_setaffinity, ThreadId, sizeof(AffinityMask), &AffinityMask);
+	*/
 }
 
 const TCHAR* FAndroidPlatformProcess::BaseDir()

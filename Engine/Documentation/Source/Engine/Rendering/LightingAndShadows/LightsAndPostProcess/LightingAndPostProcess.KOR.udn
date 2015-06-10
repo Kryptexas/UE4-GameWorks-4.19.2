@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:2420636
+Availability: Docs
+Title:포스트 프로세스 이펙트 포함 라이팅
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
+Description:라이트와 포스트 프로세스 체인의 상호작용에 대해서 입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+포스트 프로세스 파이프라인은 씬의 라이팅을 받아 여러가지 방식으로 활용하여, 광량의 변화에 맞춘 유기적인 눈 순응 효과나, 카메라의 다양한 굴절 렌즈 효과를 시뮬레이션해 냅니다. 첫 단추를 끼우는 것은 씬의 라이팅 단계겠지만, 다수의 이펙트를 돌리는 것은 포스트 프로세스 단계입니다.
+
+포스트 프로세싱 이펙트 사용법 관련 상세 정보는 [포스트 프로세스 이펙트](Engine/Rendering/PostProcessEffects) 문서를 참고하시기 바랍니다.
+
+## 빛 순응
+
+화창한 밝은 곳에서 어두운 방으로 들어갈 때와 같이, 라이팅 조건의 변화에 카메라나 인간의 눈이 순응하는 효과를 흉내내는 데 사용됩니다.
+
+[REGION:lightbox]
+[![](LO_Adapt_003.png)(w:302)](LO_Adapt_003.png) [![](LO_Adapt_001.png)(w:302)](LO_Adapt_001.png) [![](LO_Adapt_002.png)(w:302)](LO_Adapt_002.png) 
+[/REGION]
+
+## 블룸
+
+[EXCERPT:LightingAndPostProcess_Bloom]
+광륜 효과에 대한 시뮬레이션입니다. 블룸 세팅 관련 상세 정보는 [](Engine/Rendering\PostProcessEffects\Bloom) 문서를 참고해 주시기 바랍니다.
+[/EXCERPT:LightingAndPostProcess_Bloom]
+
+[REGION:lightbox]
+[![](LO_Bloom_001.png)(w:450)](LO_Bloom_001.png) [![](LO_Bloom_002.png)(w:450)](LO_Bloom_002.png)
+[/REGION]
+
+## 렌즈 플레어
+
+렌즈 플레어란 "카메라가 광원 쪽으로 향해 있어서 빛이 직접 렌즈로 들어올 때 보통 렌즈 조리개 모양으로 보이는 부작용으로, 렌즈 표면에서의 반사상이 하나 이상 포함"되는 것을 말합니다. 플레어는 매우 밝은 표면이나 이펙트에서 나타날 수 있습니다.
+
+![](LI_LFnBloom.png)
+
+
+
+

@@ -1,0 +1,20 @@
+Availability:Public
+Title:贴图动态载入
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Programming
+
+[TOC]
+
+ 
+
+
+## 概述
+
+本文将讲述贴图动态载入和光照贴图动态载入。
+
+ 
+
+
+
+
+

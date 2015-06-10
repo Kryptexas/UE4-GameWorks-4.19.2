@@ -1,0 +1,144 @@
+﻿INTSourceChangelist:2422946
+Availability:Public
+Title:ランダム ストリーム
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:ランダム ストリームの説明とブループリントにおける使用方法
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/RandomStreams:title%](Engine\Blueprints\UserGuide\random_stream.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/RandomStreams:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/RandomStreams:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/RandomStreams:title%](Engine\Blueprints\UserGuide\random_stream.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/RandomStreams:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/RandomStreams:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[TOC (start:2)]
+
+[EXCERPT:Intro]
+**_RandomStreams_** は、再現性のあるランダム値を生成し、_ブループリント_ や _レベル ブループリント_、さらに _AnimBlueprints_ の中でも利用できるようにします。これは次のような場合に非常に役立ちます。 
+すなわち、ランダム エフェクトが必要だが、同時にグラフが評価されるたびに一定の分布も必要となるようなオブジェクトを散乱させる、プロシージャルな環境を構築するなどのエフェクトをセットアップする場合です。これまでは、 
+ランダム値を使用するとグラフが評価されるたびに毎回違う分布になっていました。つまり、 _ブループリント_ を移動したり、グラフの再評価を生じるような操作を行うと、 
+全く違うエフェクトが得られることを意味します。 _RandomStreams_ を使用すると、望ましい結果を得るためのシード値に基づきエフェクトを微調整し、その後、 
+全体的なエフェクトを維持しながら修正を加えることができます。
+[/EXCERPT:Intro]
+
+## RandomStream 変数
+
+_RandomStreams_ は、 _ブループリント_ の構造体変数の特殊タイプとして利用できます。**グラフ** モードの ** [My Blueprint] ** タブから作成して他の変数と同じように追加することができます。
+
+![RandomStream Variable](variable.png)
+
+新しい変数を _ブループリントのクラス_ や _レベル ブループリント_ 内に追加する方法の詳細手順については、[変数の作成](Engine/Blueprints/UserGuide\Variables#変数の作成) をご覧ください。
+
+## RandomStream 関数
+
+_RandomStream_ 変数を利用するために、 _RandomStream_ を入力としてとり、関数に応じて様々なタイプのランダム値を出力する関数一式があります。
+
+![Random Stream Context Menu](context_functions.png)
+
+| 関数 | 説明 |
+| -------- | ----------- |
+| `Random Bool from Stream` | 0 または 1 をランダムに出力します。 |
+| `Random Float from Stream` | (0.0, 1.0) の範囲でランダム `浮動小数` 値を出力します。 |
+| `Random Float in Range from Stream` | (Min, Max) の範囲でランダム `浮動小数` 値を出力します。 |
+| `Random Integer From Stream` | (0, Max - 1) の範囲で均一に分散されたランダム `整数` 値を出力します。|
+| `Random Integer In Range From Stream` | (Min, Max) の範囲でランダムな `整数` 値を出力します。|
+| `Random Rotator From Stream` | ランダム `Rotator` 値を出力します。 |
+| `Random Unit Vector From Stream` | ランダム ユニット長 `Vector` 値を出力します。 |
+
+上記の関数を 1 つ選択すると、 _RandomStream_ 変数に接続されたグラフに配置されます。
+
+![Random Stream Function](function.png)
+
+以下は、 _RandomStream_ 関数を使用して _ブループリント_ に属するコンポーネントをランダムに配置し、回転させる例です。
+
+[REGION:fullwidth]
+![Random Stream Functions Example](functions_example.png)
+[/REGION]
+
+ご覧になってわかるように、ランダムな _Booleans_、 _Floats_、 _Integers_、 _Vectors_、_Rotators_ は、すべて同じストリームから引き出すことができます。
+
+## 初期シード値
+
+**初期シード値** プロパティを使用して、ランダム値のストリームを計算します。単一のシード値から生成されたランダム値のシーケンスは、計算されるたびに常に同じになり、 
+前述のような一貫性を実現します。シードが異なると、異なる値のシーケンスが生成されます。
+
+そのため、 _RandomStream_ の **初期シード値** を修正すると、生成される値が変化します。これを使用して、ニーズに合ったシーケンスや分布が得られるまで、ランダム エフェクトを 
+微調整することができます。 _ブループリント_ のインスタンス毎に新規の **初期シード値** が生成されます。_ブループリント_ のインスタンスがワールドに配置された時や既存のインスタンスの複製が作られたときに、 
+毎回、 _ブループリント_ に属する各 _RandomStream_ 変数に、新しい **初期シード値** が与えられます。そのため、各インスタンスは異なり、ちょうど必要な結果を得るために微調整することができます。
+
+<!--
+Same Blueprint, Different Playthroughs
+
+LogBlueprintUserMessages:HHTTHTHTHH
+
+LogBlueprintUserMessages:HHTTHTHTHH
+
+Different Instances of the Same Blueprint, seed set to 0 in Defaults:
+
+LogBlueprintUserMessages:THTTTHHHHT
+
+LogBlueprintUserMessages:HHTTHTHTHH
+
+Different Instances of the Same Blueprint, seed set to 0 with Set Random Stream Seed in Construction Script (same for Set Random Stream Seed when Gameplay Begins):
+
+LogBlueprintUserMessages:THTHTTTHHH
+
+LogBlueprintUserMessages:THTHTTTHHH
+
+Different Instances of the Same Blueprint, seed set to 0 in Defaults: 
+
+LogBlueprintUserMessages:TTTTHTTHTT
+
+LogBlueprintUserMessages:HTHTHTTHTT
+-->
+
+
+### 初期シード値を修正する
+
+
+**初期シード値** プロパティを変数上に直接設定するには、 _RandomStream_ 変数を編集のために必ず公開しなければなりません。一度公開されると、 _ブループリント_ のインスタンスが選択された場合、** [詳細] ** タブで **初期シード値** プロパティが見えるようになります。 
+
+![Exposed Initial Seed Property](seed_exposed.png)
+
+ _ブループリント_ グラフ内で **初期シード値** を特定の値や新しいランダム値に設定することもできます。
+
+**Set Random Stream Seed** ノードは、草の葉や石のような多くのオブジェクトを配置する 1 つの _ブループリント_ を持っていて、テストや他の目的で常に同じように配置したい場合に役立つことがあります。
+これは、 _ブループリント_ がレベルに配置されると、ランダムに設定されている **初期シード値** をオーバーライドします。 
+
+
+<!--### Resetting a Random Stream-->
+
+

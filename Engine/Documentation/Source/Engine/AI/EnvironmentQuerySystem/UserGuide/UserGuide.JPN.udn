@@ -1,0 +1,278 @@
+﻿INTSourceChangelist:2411776
+Availability:Public
+Title:Environment Query System ユーザーガイド
+Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
+Description:本ページでは、インターフェースと最もよく使用されるビヘイビア ツリーを備えた Environment Query System のワークフローについて説明します。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/AI/EnvironmentQuerySystem/UserGuide:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/EnvironmentQuerySystem/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/EnvironmentQuerySystem/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/EnvironmentQuerySystem/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## Environment Query System を有効にする
+
+1. **[Edit] メニュー** -> **[Editor Preferences]**
+1. **[Experimental]**
+1. **AI** までスクロールします。
+1. **Environment Query System** を有効にします。
+
+
+## Environment Query の構成要素
+
+Environment Query は実際には異なる沢山の要素で構成されています。ビヘイビア ツリーから Environment Query を呼び出してから、実際の Environment Query はジェネレータを使用してコンテキストを参照し、テキストを使用してビヘイビアツリーにウェイトが最も高い結果が出るようにします。
+
+### ビヘイビアツリー
+
+ビヘイビアツリーで Environment Query を使用するためには、 **EQS Query** Task ノードを **実行する** 必要があります。
+
+![](runEQS.png)
+
+ビヘイビアツリーで **EQS Query** Task ノードを有効にすると、 **Query Template** プロパティ (Environment Query アセット) 、そして(Environment Query アセットにパスされた指定値である) **Query Params** プロパティ、および最もウェイトの高い結果を返すブラックボード キーの設定が可能になります。
+
+![](runEQS_details.png)
+
+使用方法については [ビヘイビアツリー](Engine/Matinee) ドキュメントをご覧ください。
+
+
+### Environment Query
+
+アクタや位置をいろいろテストして「一番良いもの」を決めるために、 **Run EQS Query** node 経由で Environment Query アセットをビヘイビアツリーに呼び出されます。どれが本当に「一番良い」のかは、テストの Environment Query 内での構築のされ方によって大きく変わります。
+
+**環境クエリ** は、ブループリントと C++ で作成することができます。
+
+
+### ジェネレータ 
+
+ジェネレータは、いわゆる **アイテム** と呼ばれる位置またはアクタを生成し、それが実際にテストされウェイト付けされて、ウェイトの一番高い位置またはアクタがビヘイビアツリーに返されます。
+
+**ジェネレータ** は、ブループリントと C++ で作成することができます。
+
+
+### コンテキスト
+
+コンテキストとは、様々なテストとジェネレータに対するリファレンスのフレームです。**The Querier** のように単純の時もあれば、 **All Actors of a Type** のように複雑な場合もあります。
+
+Simple Grid Generator のようなジェネレータが複数の位置あるいはアクタを返すコンテキストを使用できる点は注目すべきです。これにより、定義したサイズと密度でSimple Grid が各コンテキストの位置に作成されます。
+
+**コンテキスト** は、ブループリントと C++ で作成することができます。
+
+
+### テスト
+
+テストとは、Environment Query がどのように「一番良いアイテム」を決めるかです。デフォルト テストの内容には、別の位置へアイテムを追跡できるのか、または、アイテムとコンテキスト間の距離は指定範囲内になったいるか、などの使用事例がかなりの割合で含まれています。
+
+[REGION:note]
+現在、 **テスト** は C++ で作成されなければなりません。ブループリントには実装できるバージョンはありません。
+[/REGION]
+
+
+## クエリの作成
+
+[REGION:raw]
+![](newQuery.png)
+[/REGION]
+
+1. コンテンツ ブラウザで、 **[Create]** ボタンを **左クリック** します。
+1. **[Miscellaneous]** -> **[Environment Query]** を選択します。
+
+## ブループリント コンテキストの作成
+
+1. コンテンツ ブラウザで、 **[Create]** ボタンを **左クリック** します。
+1. **[Blueprint]** を選択します。
+1. **[All Classes]** を展開します。
+1. **「EnvQueryContext」** を検索します。
+1. **[EnvQueryContext_BlueprintBase]** を選択します。
+
+## ブループリント ジェネレータの作成
+
+1. コンテンツ ブラウザで、 **[Create]** ボタンを **左クリック** します。
+1. **[Blueprint]** を選択します。
+1. **[All Classes]** を展開します。
+1. **「EnvQueryGenerator」** を検索します。
+1. **[EnvQueryGenerator_BlueprintBase]** を選択します。
+
+## Root を Generator へ接続する
+
+![](connectRootToGen.png)
+
+Root ノードの下の黒い部分を左クリックして Generator ノードの上の部分の暗い部分へドラッグして接続します。
+
+または、左クリックしてグラフエリアへドラッグすると、Generator ノードを新規作成するオプションが現れます。
+
+[REGION:note]
+Root へ複数の Generator ノードを接続することができますが、クエリ内で使用できるのは、一番左の有効な Generator のみです。
+[/REGION]
+
+## ビヘイビアツリーへクエリを追加する
+
+ビヘイビアツリーで Environment Query を使用するためには、 **EQS Query** Task ノードを **実行する** 必要があります。
+
+![](runEQS.png)
+
+1. ビヘイビアツリー グラフ エリア内を 右クリックします。
+1. **Task** -> **Run EQSQuery** ノードを作成します。
+1. 新規に作成された **Run EQSQuery** ノードを選択し、Query Template プロパティを Environment Query アセットに変更します (あるいは、プルダウンから新規に作成します)。
+1. Environment Query が検索する可能性のある **Query Params** をオプションで設定します。
+1. 最後に、ブラックボードのキーが、Object と Vector ブラックボード キーのみ使用可能になるように Environment Query で設定されるように設定します。
+
+## クエリの編集
+
+### ジェネレータの追加
+
+1. クエリのグラフ エリアを右クリックして、ジェネレータを選択します。
+
+![](addGenToQuery.png)
+
+### テストの追加
+
+1. ジェネレータを右クリックして、追加するテストを選択します。
+
+![](addTest.png)
+
+### テストの修正
+
+1. ジェネレータでテストを選択し、[詳細] パネルで修正します。
+
+![](editTest.png)
+
+個々のテストの使用方法に関しては、 [Environmental Query System Node Reference](Engine/AI/EnvironmentQuerySystem/NodeReference) を参照してください。
+
+### クエリ結果のプレビュー
+
+クエリ結果のプレビューについては、 [Environmental Query System Test Pawn](Engine/AI/EnvironmentQuerySystem/EQSPawn) を参照してください。
+
+![](Engine\AI\EnvironmentQuerySystem\EQSPawn\testingPawnBanner.png)
+
+
+## コンテキストの編集
+
+新規作成されたEnvQueryContext ブループリントには、4 つの機能が実装されています。
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+		![](implementableFunctions.png)(convert:false)
+	[/PARAM]
+	[PARAM:description]
+		* **Provide Single Location**
+		* **Provide Single Actor**
+		* **Provide Locations Set**
+		* **Provide Actors Set**
+
+		これらの 1 つを実行すると、クエリ内のテストで使えるようにコンテキストをカスタム化して作成できるようになります。実行したい関数 (複数可) を右クリックして、 **[Implement Function]** を選択してください。
+	[/PARAM]
+[/OBJECT]
+
+
+* ###Provide Single Location
+
+単一の位置 (ベクター) を返します。この位置は自由な方法で生成することができます。例えばこの関数は、Querier から 1500 cm 以内で検出された (ポーン、ビークルなど、 DesiredObjectType 配列で検出されたタイプの 1 つである) ランダムなアクタの追跡ヒット位置を返します 
+
+[REGION:lightbox]
+[![](ProvideSingleLocationImplmented.png)](ProvideSingleLocationImplmented.png)
+[/REGION]
+
+
+### Provide Single Actor
+
+単一のアクタを返します。このアクタは自由な方法で検出することができます。このサンプルでは、関数は Player 0 で制御された (所有された) アクタを返します。
+
+[REGION:lightbox]
+[![](provideSingleActorImp.png)](provideSingleActorImp.png)
+[/REGION]
+
+
+### Provide Locations Set
+
+位置 (ベクター) の配列を返します。これらの位置の生成方法は自由です。サンプルのグラフでは、環境上でのヒットを返しながら、半径が 1500 の円上で均等に間隔をあけて 16 の位置から追跡しています。
+
+[REGION:lightbox]
+[![](provideLocSetFunction.png)](provideLocSetFunction.png)
+[/REGION]
+
+
+### Provide Actors Set
+
+アクタの配列を返します。これらのアクタの検索方法は自由です。この関数は、例えば変数 **Team Number** を `1` に設定させる **MyCharacter** アクタの配列を返します。
+
+[REGION:lightbox]
+[![](provideActorSetFunction.png)](provideActorSetFunction.png)
+[/REGION]
+
+
+## ジェネレータの編集
+
+### Event Do Item Generation
+
+[REGION:raw]
+![](implementDoItem.png)
+[/REGION]
+
+ジェネレータの主要関数です。この関数を実行すると、Environment Query から渡されたコンテキスト位置である位置の配列を受け取ります。この関数は、コンテキストによって Querier の位置を持つ 1 つのエントリの配列であったり、またはレベル内それぞれのヘルス値パックの位置であったりします。
+
+
+### Add Generated Actor
+
+![](AddGenActor.png)(convert:false)
+
+関数は値を 1 つだけしか返せないので、 "Do Item Generation" 関数は実際には Environment Query に戻すことができる配列を 2 つ持ちます。このノードは Actor return array にアクタを追加し、位置の値を返すために Add Generated Vector ノードと一緒に使うことができます。
+
+ジェネレータは、EnvQuery ノードから何をブラックボード キーに設定したかに基いて、実際にビヘイビアツリーに何を戻すかを決定します。
+
+
+### Add Generated Vector
+
+![](AddGenVec.png)(convert:false)
+
+関数は値を 1 つだけしか返せないので、 "Do Item Generation" 関数は実際には Environment Query に戻すことができる配列を 2 つ持ちます。このノードはベクターを返す配列をベクターに追加します。また、Add Generated Actor ノードと一緒に使って Actor 値を返すこともできます。
+
+ジェネレータは、EnvQuery ノードから何をブラックボード キーに設定したかに基いて、実際にビヘイビアツリーに何を戻すかを決定します。
+
+### Example Generator
+
+Querier に向かって **Rad** の半径を持つ円のエッジから追跡します。そして、追跡の **Number of Spokes** 値 (つまり 360/**Number of Spokes**) に基いた度数ずつ離れて追跡します。追跡の位置は、基本的には呼び出し元が分からないサーフェスを検索で、その環境にヒットした場合のみ格納されます。
+
+[REGION:lightbox]
+[![](customGenExample.png)](customGenExample.png)
+[/REGION]
+
+このようになります。
+
+![](customGenOutput.png)
+
+[REGION:note]
+このサンプルで唯一すべきことは、円の生成場所を変更するために **Do Item Generation** に渡された **Context Locations** を使用することです。単に画像サイズ コンストレイントのために行ったのではありません。
+[/REGION]

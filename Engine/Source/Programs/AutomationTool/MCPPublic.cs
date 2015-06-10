@@ -72,9 +72,14 @@ namespace EpicGames.MCP.Automation
         Windows,
 
         /// <summary>
-        /// Only other platform MCP understands is Mac.
+        /// Mac platform.
         /// </summary>
         Mac,
+
+		/// <summary>
+		/// Linux platform.
+		/// </summary>
+		Linux
     }
 
     /// <summary>
@@ -155,22 +160,42 @@ namespace EpicGames.MCP.Automation
         /// </summary>
         static public MCPPlatform ToMCPPlatform(UnrealTargetPlatform TargetPlatform)
         {
-            if (TargetPlatform != UnrealTargetPlatform.Win64 && TargetPlatform != UnrealTargetPlatform.Win32 && TargetPlatform != UnrealTargetPlatform.Mac)
+            if (TargetPlatform != UnrealTargetPlatform.Win64 && TargetPlatform != UnrealTargetPlatform.Win32 && TargetPlatform != UnrealTargetPlatform.Mac && TargetPlatform != UnrealTargetPlatform.Linux)
             {
                 throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
             }
-            return (TargetPlatform == UnrealTargetPlatform.Win64 || TargetPlatform == UnrealTargetPlatform.Win32) ? MCPPlatform.Windows : MCPPlatform.Mac;
+
+			if (TargetPlatform == UnrealTargetPlatform.Win64 || TargetPlatform == UnrealTargetPlatform.Win32)
+			{
+				return MCPPlatform.Windows;
+			}
+			else if (TargetPlatform == UnrealTargetPlatform.Mac)
+			{
+				return MCPPlatform.Mac;
+			}
+
+			return MCPPlatform.Linux;
         }
         /// <summary>
         /// Determine the platform name (Win32/64 becomes Windows, Mac is Mac, the rest we don't currently understand)
         /// </summary>
         static public UnrealTargetPlatform FromMCPPlatform(MCPPlatform TargetPlatform)
         {
-            if (TargetPlatform != MCPPlatform.Windows && TargetPlatform != MCPPlatform.Mac)
+            if (TargetPlatform != MCPPlatform.Windows && TargetPlatform != MCPPlatform.Mac && TargetPlatform != MCPPlatform.Linux)
             {
                 throw new AutomationException("Platform {0} is not properly supported by the MCP backend yet", TargetPlatform);
             }
-            return (TargetPlatform == MCPPlatform.Windows) ? UnrealTargetPlatform.Win64 : UnrealTargetPlatform.Mac;
+
+			if (TargetPlatform == MCPPlatform.Windows)
+			{
+				return UnrealTargetPlatform.Win64;
+			}
+			else if (TargetPlatform == MCPPlatform.Mac)
+			{
+				return UnrealTargetPlatform.Mac;
+			}
+
+			return UnrealTargetPlatform.Linux;
         }
         /// <summary>
         /// Returns the build root path (P:\Builds on build machines usually)
@@ -331,6 +356,64 @@ namespace EpicGames.MCP.Automation
 			public List<KeyValuePair<string, float>> CustomFloatArgs;
 		}
 
+		/// <summary>
+		/// Represents the options passed to the compactify process
+		/// </summary>
+		public class CompactifyOptions
+		{
+			private static readonly int DefaultDataAgeThreshold = PatchGenerationOptions.DEFAULT_DATA_AGE_THRESHOLD + 2;
+
+			public CompactifyOptions()
+			{
+				DataAgeThreshold = DefaultDataAgeThreshold;
+			}
+
+			/// <summary>
+			/// BuildPatchTool will run a compactify on this directory.
+			/// </summary>
+			public string CompactifyDirectory;
+			/// <summary>
+			/// Corresponds to the -preview parameter
+			/// </summary>
+			public bool bPreviewCompactify;
+			/// <summary>
+			/// Corresponds to the -nopatchdelete parameter
+			/// </summary>
+			public bool bNoPatchDeleteCompactify;
+			/// <summary>
+			/// The full list of manifest files in the compactify directory that we wish to keep; all others will be deleted.
+			/// </summary>
+			public string[] ManifestsToKeep;
+			/// <summary>
+			/// A filename (relative to the compactify directory) which contains a list of manifests to keep, one manifest per line.
+			/// N.b. If ManifestsToKeep is specified, then this option is ignored.
+			/// </summary>
+			public string ManifestsToKeepFile;
+			/// <summary>
+			/// Path data files modified within this number of days will *not* be deleted, allowing them to be reused by patch generation processes.
+			/// IMPORTANT: This should always be larger than the data age threshold for any build processes which will run on the directory, to ensure
+			/// that we do not delete any files which could be reused by a concurrently running build. It is recommended that this number be at least
+			/// two days greater than the build data age threshold.
+			/// </summary>
+			public int DataAgeThreshold;
+		}
+
+		public class DataEnumerationOptions
+		{
+			/// <summary>
+			/// Matches the corresponding BuildPatchTool command line argument.
+			/// </summary>
+			public string ManifestFile;
+			/// <summary>
+			/// Matches the corresponding BuildPatchTool command line argument.
+			/// </summary>
+			public string OutputFile;
+			/// <summary>
+			/// When true, the output will include the size of individual files
+			/// </summary>
+			public bool bIncludeSize;
+		}
+
         static BuildPatchToolBase Handler = null;
 
         public static BuildPatchToolBase Get()
@@ -363,6 +446,18 @@ namespace EpicGames.MCP.Automation
         /// </summary>
 		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
 		public abstract void Execute(PatchGenerationOptions Opts);
+
+		/// <summary>
+		/// Runs the Build Patch Tool executable to compactify a cloud directory using the supplied parameters.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
+		public abstract void Execute(CompactifyOptions Opts);
+
+		/// <summary>
+		/// Runs the Build Patch Tool executable to enumerate patch data files referenced by a manifest using the supplied parameters.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool enumeration process</param>
+		public abstract void Execute(DataEnumerationOptions Opts);
 
     }
 
@@ -534,6 +629,167 @@ namespace EpicGames.MCP.Automation
         public abstract string SendWebRequest(WebRequest Upload, string Method, string ContentType, byte[] Data);
     }
 
+	/// <summary>
+	/// Helper class to manage files stored in some arbitrary cloud storage system
+	/// </summary>
+	public abstract class CloudStorageBase
+	{
+		private static readonly object LockObj = new object();
+		private static CloudStorageBase Handler = null;
+
+		public static CloudStorageBase Get()
+		{
+			if (Handler == null)
+			{
+				lock (LockObj)
+				{
+					if (Handler == null)
+					{
+						Assembly[] LoadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+						foreach (var Dll in LoadedAssemblies)
+						{
+							Type[] AllTypes = Dll.GetTypes();
+							foreach (var PotentialConfigType in AllTypes)
+							{
+								if (PotentialConfigType != typeof(CloudStorageBase) && typeof(CloudStorageBase).IsAssignableFrom(PotentialConfigType))
+								{
+									Handler = Activator.CreateInstance(PotentialConfigType) as CloudStorageBase;
+									break;
+								}
+							}
+						}
+					}
+				}
+				if (Handler == null)
+				{
+					throw new AutomationException("Attempt to use CloudStorageBase.Get() and it doesn't appear that there are any modules that implement this class.");
+				}
+			}
+			return Handler;
+		}
+
+		/// <summary>
+		/// Initializes the provider.
+		/// <param name="Config">Configuration data to initialize the provider. The exact format of the data is provider specific. It might, for example, contain an API key.</param>
+		/// </summary>
+		abstract public void Init(Dictionary<string,object> Config);
+
+		/// <summary>
+		/// Retrieves a file from the cloud storage provider
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which contains the file being checked.</param>
+		/// <param name="Identifier">The identifier or filename of the file to check.</param>
+		/// <returns>True if the file exists in cloud storage, false otherwise.</returns>
+		abstract public bool FileExists(string Container, string Identifier);
+
+		/// <summary>
+		/// Retrieves a file from the cloud storage provider
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which to retrieve the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to retrieve.</param>
+		/// <param name="ContentType">An OUTPUT parameter containing the content's type (null if the cloud provider does not provide this information)</param>
+		/// <returns>A byte array containing the file's contents.</returns>
+		abstract public byte[] GetFile(string Container, string Identifier, out string ContentType);
+
+		/// <summary>
+		/// Posts a file to the cloud storage provider
+		/// NOTE: the method returns void, rather than bSuccess as you might imagine, because of an apparent bug in VS2013 debugger, where an AccessViolationExeption is
+		/// thrown when stepping in to an overridden method, with a return value, and at least one out parameter, when optimizations are enabled.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		/// <param name="Contents">A byte array containing the data to write.</param>
+		/// <param name="ObjectURL">An OUTPUT parameter which will be set to the URL of the uploaded file on success.</param>
+		/// <param name="bSuccess">An OUTPUT parameter which will be set to true if the write succeeds, false otherwise.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
+		abstract public void PostFile(string Container, string Identifier, byte[] Contents, out string ObjectURL, out bool bSuccess, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false);
+
+		/// <summary>
+		/// Posts a file to the cloud storage provider.
+		/// NOTE: the method returns void, rather than bSuccess as you might imagine, because of an apparent bug in VS2013 debugger, where an AccessViolationExeption is
+		/// thrown when stepping in to an overridden method, with a return value, and at least one out parameter, when optimizations are enabled.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		/// <param name="SourceFilePath">The full path of the file to upload.</param>
+		/// <param name="ObjectURL">An OUTPUT parameter which will be set to the URL of the uploaded file on success.</param>
+		/// <param name="bSuccess">An OUTPUT parameter which will be set to true if the write succeeds, false otherwise.</param>
+		/// <param name="ContentType">The MIME type of the file being uploaded.</param>
+		/// <param name="bOverwrite">If true, will overwrite an existing file.  If false, will throw an exception if the file exists.</param>
+		/// <param name="bMakePublic">Specified whether the file should be made public readable.</param>
+		abstract public void PostFile(string Container, string Identifier, string SourceFilePath, out string ObjectURL, out bool bSuccess, string ContentType = null, bool bOverwrite = true, bool bMakePublic = false);
+
+		/// <summary>
+		/// Deletes a file from cloud storage
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store the file.</param>
+		/// <param name="Identifier">The identifier or filename of the file to write.</param>
+		abstract public void DeleteFile(string Container, string Identifier);
+
+		/// <summary>
+		/// Deletes a folder from cloud storage
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which to delete the file.</param>
+		/// <param name="FolderIdentifier">The identifier or name of the folder to delete.</param>
+		abstract public void DeleteFolder(string Container, string FolderIdentifier);
+
+		/// <summary>
+		/// Retrieves a list of files from the cloud storage provider
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which to list files.</param>
+		/// <param name="Prefix">A string with which the identifier or filename should start. Typically used to specify a relative directory within the container to list all of its files recursively. Specify null to return all files.</param>
+		/// <param name="Recursive">Indicates whether the list of files returned should traverse subdirectories</param>
+		/// <returns>An array of paths to the files in the specified location and matching the prefix constraint.</returns>
+		abstract public string[] ListFiles(string Container, string Prefix = null, bool bRecursive = true);
+
+		/// <summary>
+		/// Sets one or more items of metadata on an object in cloud storage
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which the file is stored.</param>
+		/// <param name="Identifier">The identifier of filename of the file to set metadata on.</param>
+		/// <param name="Metadata">A dictionary containing the metadata keys and their values</param>
+		/// <param name="bMerge">If true, then existing metadata will be replaced (or overwritten if the keys match). If false, no existing metadata is retained.</param>
+		abstract public void SetMetadata(string Container, string Identifier, IDictionary<string, object> Metadata, bool bMerge = true);
+
+		/// <summary>
+		/// Gets all items of metadata on an object in cloud storage. Metadata values are all returned as strings.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which the file is stored.</param>
+		/// <param name="Identifier">The identifier of filename of the file to get metadata.</param>
+		abstract public Dictionary<string, string> GetMetadata(string Container, string Identifier);
+
+		/// <summary>
+		/// Gets an item of metadata from an object in cloud storage. The object is casted to the specified type.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which the file is stored.</param>
+		/// <param name="Identifier">The identifier of filename of the file to get metadata.</param>
+		/// <param name="MetadataKey">The key of the item of metadata to retrieve.</param>
+		abstract public T GetMetadata<T>(string Container, string Identifier, string MetadataKey);
+
+		/// <summary>
+		/// Updates the timestamp on a particular file in cloud storage to the current time.
+		/// </summary>
+		/// <param name="Container">The identifier of filename of the file to touch.</param>
+		/// <param name="Identifier">The identifier of filename of the file to touch.</param>
+		abstract public void TouchFile(string Container, string Identifier);
+
+		/// <summary>
+		/// Copies chunks from a staged location to cloud storage.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store files.</param>
+		/// <param name="stagingInfo">Staging info used to determine where the chunks are to copy.</param>
+		abstract public void CopyChunksToCloudStorage(string Container, BuildPatchToolStagingInfo StagingInfo);
+
+		/// <summary>
+		/// Verifies whether a manifest for a given build is in cloud storage.
+		/// </summary>
+		/// <param name="Container">The name of the folder or container in which to store files.</param>
+		/// <param name="stagingInfo">Staging info representing the build to check.</param>
+		/// <returns>True if the manifest exists in cloud storage, false otherwise.</returns>
+		abstract public bool IsManifestOnCloudStorage(string Container, BuildPatchToolStagingInfo StagingInfo);
+	}
 }
 
 namespace EpicGames.MCP.Config

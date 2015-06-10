@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2321350
+Availability:Public
+Title:アクタのスポーン/ 破壊方法の概要
+Crumbs: %ROOT%, Gameplay
+Description:アンリアル エンジン 4 においてアクタをスポーン / 破壊するための操作ガイド 
+
+
+## 概要
+
+ゲームプレイ中にアイテムを動的にレベルに追加したい場合がよくあります。 **アクタ** を **スポーンする** といいます。スポーンしたいアイテムは、他のプレイヤーや敵からヘルス値、武器、報酬などのピックアップに至るまで、何でも選ぶことができます。このページでは、 **ブループリント** を使って **アクタ** をスポーンする方法を説明し、さらに **アクタのスポーン** に関する情報と詳細ドキュメントへのリンクを紹介します。 
+
+## 設定
+
+ブループリントで アクタをスポーン / 参照する 方法については、次のいずれかを参照してください。
+
+[REGION:buttonlist]
+* [](Gameplay\HowTo\SpawnAndDestroyActors\Blueprints)
+[PUBLISH:Docs]
+* [](Gameplay\HowTo\SpawnAndDestroyActors\Code)
+[/PUBLISH:Docs]
+[/REGION]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

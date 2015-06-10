@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:2454950
+Availability:Public
+Title:Widget ブループリント
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
+Description:Widget ブループリントの作成方法とWidget ブループリント インターフェースの概要
+
+**Unreal Motion Graphics** (UMG) で作業を開始するためには、まず以下のように **Widget ブループリント** を作成する必要があります。 
+
+1.	**コンテンツ ブラウザ** で、 **[Add New]** ボタンをクリックし、 **ユーザーインターフェース** の **Widget ブループリント** オプションをクリックします。 
+
+	[REGION:raw]
+	![](NewWidgetBlueprint.png)
+	[/REGION]
+
+	[REGION:note]
+	**[Create]** ボタンをクリックする代わりに **コンテンツ ブラウザ** で右クリックすることもできます。 
+	[/REGION]
+
+1.	**コンテンツ ブラウザ** で **Widget ブループリント** アセットが作成されます。この名前を変更するか、デフォルトの名前を使用することができます。 
+
+	![](RenameWidgetBlueprint.png)
+
+1.	**Widget ブループリント** アセットを **ダブルクリック** すると **Widget ブループリント エディタ** が開きます。 
+
+	[REGION:lightbox]
+	[![](WidgetBPWindow.png)(w:520)](WidgetBPWindow.png)
+	[/REGION]
+
+	_クリックしてフルサイズで表示_
+
+## Widget ブループリント エディタ
+
+**Widget ブループリント** が開いている場合、**Widget ブループリント エディタ** は、デフォルトでは **[Designer]** タブで開きます。**[Designer]** タブは、レイアウトを視覚的に表したもので、ゲーム内で画面がどのように表示されるかがわかります。  
+
+[REGION:lightbox]
+	[![](WidgetBlueprintNumbers.png)(w:840 h:480)](WidgetBlueprintNumbers.png)
+[/REGION]
+
+_クリックしてフルサイズで表示_
+
+| ウィンドウ | 説明 |
+| -------- | ----------- |
+| **(1) メニューバー** | 一般的なメニューバー |
+| **(2) ツールバー** | ブループリント エディタで一般的に使用する多数の機能があります。コンパイル、保存、プレイなどがあります。 |
+| **(3) エディタ モード** | UMG Widget ブループリント エディタで、デザイナ モードとグラフ モードとの間を切り替えます。 |
+| **(4) パレット** | Visual Designer にドラッグ＆ドロップ可能なウィジェットのリストです。**UWidget** から継承したクラスを表示します。 |
+| **(5) 階層** | User Widget の親子付け構造を表示します。このウィンドウにウイジェットをドラッグすることもできます。 |
+| **(6) ビジュアル デザイナ** | レイアウトを視覚的に表したものです。ビジュアル デザイナ にドラッグされたウィジェットはウィンドウで操作できます。|
+| **(7) 詳細** | 現在選択されているウィジェットのプロパティを表示します。 |
+| **(8) アニメーション** | UMG のアニメーション トラックです。ウィジェットのアニメーションを補完して作ることができます。 |
+
+[REGION:note]
+**ビジュアル デザイナ** ウィンドウはデフォルトで 1:1 スケールになっています。ただし、**Control** を押したまま **マウスホイール** を上方向に動かすとさらにズームすることができます。
+[/REGION]
+
+以下の画像は、**Widget ブループリント エディタ** の **[グラフ]** タブです。 
+
+[REGION:lightbox]
+	[![](WidgetBlueprintGraph.png)(w:840)](WidgetBlueprintGraph.png)
+[/REGION]
+
+_クリックしてフルサイズで表示_
+
+**[グラフ]** タブは、デフォルトのブループリント エディタと同じように機能します。**[グラフ]** タブの詳しい情報については、[](Engine/Blueprints/Editor/UIComponents/GraphEditor) のドキュメントをご覧ください。 
+

@@ -1,0 +1,82 @@
+﻿INTSourceChangelist:2410153
+Availability:Public
+Title:1.5 - デカールのオフ設定
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
+Description:デカールの事例概要、例 1.5：デカールのオフ設定
+Related: Engine/Actors/DecalActor
+Related: Engine/Rendering/Materials/PhysicallyBased
+Related: Engine/Rendering/Materials
+Related: Engine/Rendering/Materials/MaterialProperties/BlendModes
+Related: Engine/Rendering/Materials/ExpressionReference
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/LayeredMaterials
+Related: Engine/Rendering/Materials/MaterialInstances
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_5:title%](Resources\ContentExamples\Decals\Decals_5.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Decals/1_5:title%](Resources\ContentExamples\Decals\Decals_5.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Decals/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Decals/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Decals/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![%Resources/ContentExamples/Decals/1_1:title%](Resources\ContentExamples\Decals\Decals_5.png)
+
+## 概要
+
+
+[Rendering] カテゴリにある **[Receive Decals]** プロパティから、特定のスタティックメッシュ上でデカールをオフにすることができます。このプロパティを表示するには、カテゴリの拡張矢印をクリックする必要があります。
+
+![](ReceivesDecals.png)
+
+[Buffer Visualization] の配下にある **[Decal Mask]** のビューモードでデカールを受け取らないメッシュを表示させることができます。
+
+![](DecalMaskViewMode.png)
+
+実際の画像がこちらになります。
+
+[VAR:DecalViewMode]
+w:450
+[/VAR]
+
+[REGION:imagetable]
+|![](DecalMaskOFF.png)(%DecalViewMode%)|![](DecalMaskON.png)(%DecalViewMode%)|
+|---|---|
+|デカールマスク、ビューモード _オフ_ |デカールマスク、ビューモード _オン_ |
+[/REGION]
+
+
+[/REGION]

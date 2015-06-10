@@ -1,0 +1,161 @@
+Availability:Public
+Title: Blend Spaces
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Blend Spaces are assets that allow any number of animations to be blended between based on the values of multiple inputs.
+Related: Engine/Animation/AnimBlueprints
+Related: Engine/Content/FBX/Animations
+Related: Engine/Animation/AnimMontage
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Animation/NodeReference/Blend
+Related: Engine/Animation/StateMachines
+Related: Engine/Animation/AnimBlueprints/AnimGraph
+Related: Engine/Content/Tools/MayaRiggingTool
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Blend Spaces:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Blend Spaces:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Blend Spaces:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Blend Spaces]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+## Overview
+
+[EXCERPT:Intro]
+**_Blend Spaces_** are special assets which can be sampled in **AnimGraphs** that allow for blending of 
+animations based on the values of two inputs. Simple blending between two animations based on a 
+single input can be performed using one of the standard [blend nodes](Engine/Animation/NodeReference/Blend) 
+available in _Animation Blueprints_. _Blend Spaces_ provide a means of doing more complex blending 
+between multiple animations based on multiple values (currently limited to two).
+
+The goal of _Blend Spaces_ is to reduce the need for creating individual, hard-coded nodes to perform 
+blending based on specific properties or conditions. By allowing the animator or programmer to specify 
+the inputs, the animations, and how the inputs are used to blend between animations, virtually any 
+type of blending can be performed using the generic _Blend Space_.
+[/EXCERPT:Intro]
+
+
+
+
+[REGION:topics third]
+%Engine/Animation/Blendspaces/Creation:topic%
+%Engine/Animation/Blendspaces/Editor:topic%
+%Engine/Animation/Blendspaces/UserGuide:topic%
+[/REGION]
+
+[REGION:tip]
+An example of a Locomotion **Blendspace** is also shown in the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.3.
+[/REGION]
+
+## How Blend Spaces Work
+
+The goal of _Blend Spaces_ is to reduce the need for creating individual, hard-coded nodes to perform 
+blending based on specific properties or conditions. By allowing the animator or programmer to specify 
+the inputs, the animations, and how the inputs are used to blend between animations, virtually any 
+type of blending can be performed using the generic _Blend Space_. This is completely contrary to how 
+AnimTrees in Unreal Engine 3 handled the same tasks. Any complex blending required the creation of a 
+new node to handle that blending. _Blend Spaces_ are completely generic allowing the factors that determine 
+the blending to be specified on each individual _Blend Space_. Each _Blend Space_ has inputs that simply take 
+in values. These values can be calculated during the update cycle of an _Animation Blueprint_ (via the **EventGraph**), 
+driven by gameplay code, or any other means. This makes them extremely flexible and puts the power into 
+the hands of the person creating the _AnimGraph_ to blend animations in any way they see fit.
+
+![Input Flow](bs_flow.png)
+
+You can think of a _Blend Space_ like a 2D graph with each input value along one axis and animations plotted 
+on the graph at various points. The blended animation is calculated by blending between the animations 
+on the graph based on the location designated by the current input values.
+
+![](BlendSpaceLayout_2.png)
+
+1. Animation Sequence 1
+1. Animation Sequence 2
+1. Animation Sequence 3
+1. Input 1 Axis (X-Axis)
+1. Input 2 Axis (Y-Axis)
+
+
+As an example, take the typical blending between directional run animations and an idle animation based on 
+the direction and speed of the movement of the player.
+
+In Unreal Engine 3, this was performed using the directional blending node in combination with a speed 
+blending node. Each of these nodes was hard-coded to only do that specific blend. The values used to 
+perform the blending were hidden away in the code, so no modifications could be made to tweak the blend 
+except by a programmer; and if you modified the value in the code, it affected every instance of the node 
+in every AnimTree making use of it. This is far from ideal.
+
+With _Blend Spaces_, this same blend can be performed using a single _Blend Space_. The direction (e.g., -180 to 
+180 representing degrees) and speed (e.g., 0 to 250 representing units per second) of the player would be 
+values passed to the _Blend Space_ as inputs and the animations would be set up to blend appropriately based 
+on the values of these inputs. 
+
+![](BlendSpaceDirection.png)(w:720)
+
+In addition to only requiring a single node, the values used as inputs can be calculated directly in the 
+_Animation Blueprint's_ **EventGraph** and then passed to the _Blend Space_ in the **AnimGraph**. The input values can be 
+tweaked easily. The thresholds for animation blending can be quickly and intuitively adjusted using a 
+graphical editor. The flexibility and ease of use represent a huge win over previous systems.
+
+## One-Dimensional Blend Spaces
+
+_Blend Spaces_ can also be created in a one-dimensional format, known as a **_Blend Space 1D_**. These can blend between any number of poses or animations, but do so based on a single input value. An example that we use is to make a character lean when sprinting. We have two poses, one leaning left and one leaning right, and use an input driven by how much the player is turning the character while sprinting. By blending into the additive leaning poses, we can give the running animation a bit more life as the character seems to lean into hard turns.
+
+Aside from having only one axis instead of two, a _Blend Space 1D_ is exactly the same as a standard two-axis _Blend Space_. As such, this document will focus on the 2D version. But you should know that all the rules and properties still carry over.
+
+![](BlendSpace_1D.gif)(convert:false)
+
+## Architecture
+
+The underlying architecture of _Blend Spaces_ is fairly simple. The main parts were touched on previously: 
+inputs values and sampled animations.
+
+### Skeleton
+
+Each _Blend Space_, as with other animation asset types, is targeted to a specific **Skeleton**. The Skeleton 
+associated with the _Blend Space_ is set when the _Blend Space_ is created and determines what animations can be 
+sampled within the _Blend Space_. It also determines which _Animation Blueprints_ the _Blend Space_ can be sampled within 
+as they both must target the same Skeleton.
+
+### Blend Parameters
+
+[EXCERPT:BlendParameters]
+The **Blend Parameters** of a _Blend Space_ represent the input values used to drive the blending between 
+sample poses. Each _Blend Space_ has two Blend Parameters - **X** and **Y** - and each Blend Parameter has 
+the following properties:
+
+| Property | Description |
+| -------- | ----------- |
+| **Label** | The readable name displayed in the **BlendSpace Editor** along the axis for this input and on the data pin for this input on the _BlendSpace_ node in the _AnimGraph_ of a _Animation Blueprint_. |
+| **Range** | The minimum and maximum values to which any input data will be clamped. |
+| **Divisions** | The number of sampled points from the animation data used for interpolating. Higher values give more precise results. Displayed as grid lines in the **BlendSpace Editor** along the axis for this input. |
+[/EXCERPT:BlendParameters]
+
+### Sample Data
+
+[EXCERPT:SampleData]
+The **Sample Data** for the _Blend Space_ is a collection of animations and sample values. The sample values are 
+used to determine the weight of that particular animation. For instance, using the directional movement example 
+above, a **_Run_Fwd_** animation with a sample value of (0.0, 250.0, 0.0) would be fully blended to when the 
+direction input was 0.0 and the speed input was 250.0.
+[/EXCERPT:SampleData]
+
+Each item in the Sample Data array has the following properties:
+
+| Property | Description |
+| -------- | ----------- |
+| **Animation** | The AnimationSequence asset to blend to. |
+| **Sample Value** | The input values (X and Y corresponding to the Blend Parameters) where the **Animation** has full influence. |

@@ -1,0 +1,116 @@
+﻿INTSourceChangelist:2086995
+Availability:Docs
+Title:ヘルプ コマンドレット
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:使用できるコマンドレットの概要と使用方法に関する情報を表示するコマンドレット
+
+[REGION:todo]
+	このページはアンリアル エンジン 3 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
+[/REGION]
+
+[TOC(start:2)]
+
+## 概要
+
+help コマンドレットは、実行可能なコマンドレット、その目的、パラメータを使用するコマンドレットを見極めるために使用されます。
+
+
+
+## 操作
+
+このコマンドレットを実行するには、 コマンド プロンプト ウィンドウから、「_UnrealEngine3\Binaries_ 」ディレクトリに進みます。
+
+
+### シンタックス
+
+シンタックスは次のようになります。 
+
+    [GameName].exe help <list | commandletname | webhelp commandletname>
+    
+
+### パラメータ
+
+   **list** - 利用可能なすべてのコマンドレットの一覧です。   
+   **commandlet name** - 指定したコマンドレットのヘルプ情報を表示します。  
+   **webhelp** - 指定したコマンドレットの説明をしているウェブページの URL でブラウザを起動します。
+
+
+
+## 例
+
+利用可能なコマンドレットは以下を実行して確認してください。
+
+
+    
+    game.exe help list
+    
+
+
+
+出力は以下のようになります。
+
+
+    
+    Core.Help                                - 他のコマンドリストのヘルプ情報を表示するコマンドレットです。
+    Engine.SmokeTest                         - ビルド検証用の一連のテストを実行するコマンドレットです
+    Editor.CutDownContent                    - 使用しないコンテンツをパッケージから除外します。
+    Editor.Make                              - Rebuild UnrealScript パッケージです。
+    Editor.PkgInfo                           - アンリアル パッケージの情報を表示します。
+    Editor.ScaleAudioVolume                  - 全てのパッケージのオーディオ データのボリュームをスケールします。
+    Editor.StripSource                       - コンパイルされたスクリプト パッケージからソースコードを除外します。
+    
+
+
+
+特定のコマンドレットのヘルプ情報を見るには、以下を実行します。
+
+
+    
+    game.exe help <commandlet name>
+    
+
+
+
+すると、ヘルプ コマンドレットにより以下が表示されます。
+
+
+    
+    名前：             Core.Help
+    説明：      他のコマンドリストのヘルプ情報を表示するコマンドレットです。
+    使用方法：             gamename.exe help <list | commandletname | webhelp commandletname>
+    オプション：
+       list                 - 利用可能なすべてのコマンドレットの一覧です。
+       commandlet name - 指定したコマンドレットのヘルプ情報を表示します。
+       webhelp - そのコマンドレットのドキュメントが記載されているウェブページの URL でブラウザを起動します。
+    
+
+
+
+コマンドレットに UDN ドキュメントがあれば、以下のようなウェブヘルプ オプションで表示することができます。
+
+
+    
+    game.exe help webhelp help
+    
+
+
+
+上記のオプションを使うとこのページを見ることができます。
+
+
+[PUBLISH:Docs]
+## その他のコマンドレットのヘルプ
+
+ご自分のコマンドレットにヘルプ情報を追加するには、 [コマンドレットの作成方法](Programming/Development/Tools/Commandlets/MakingACommandlet) ドキュメントをご覧ください。
+[/PUBLISH:Docs]
+
+
+## コマンドレット一覧
+
+全コマンドレットの一覧は、 [コマンドレット リスト](Engine/Commandlets/CommandletList) をご覧ください。
+
+ 
+
+
+
+

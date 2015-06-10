@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:2067472
+Availability: Public
+Title:6. 应用材质
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description: 创建您的材质后，现在可以把它们应用到您导入的网格物体上。
+
+
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [前一步 - %Engine/Content/QuickStart/5:Title%](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+		* **当前步骤 - %Engine/Content/QuickStart/6:Title%**
+		* [下一步 - %Engine/Content/QuickStart/7:Title%](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+要想给一个 _静态网格物体_ 应用 _材质_ ：
+
+1. 双击 Basic_Asset1来打开 **静态网格物体编辑器** 。
+
+	![](SMEditor.png)
+
+1. 在编辑器右侧的 **详细信息** 面板中的 **LOD0** 类目下，通过点击下拉菜单来修改 **Element 0** 材质属性，将材质改为"Rock"材质。
+	[REGION:raw]
+	![](SMEditor2.png)
+	[/REGION]
+
+
+您也可以通过从 **内容浏览器** 中将 _材质_ 点击并拖拽到 _Static Mesh Actor_ 上来给它应用材质。
+
+![](CnDMatToActor.png)
+
+要想在关卡中放置 _Static Mesh Actor_ ，请从 **内容浏览器** 中点击并拖拽一个 _静态网格物体_ 到主视口中。
+
+---
+
+%Steps%

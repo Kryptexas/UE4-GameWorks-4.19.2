@@ -44,6 +44,7 @@
 !/Engine/Binaries/ThirdParty/Mono/Mac
 /Engine/Binaries/ThirdParty/Mono/Mac/**
 !/Engine/Binaries/ThirdParty/Mono/Mac/bin
+!/Engine/Binaries/ThirdParty/Mono/Mac/bin/*
 
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc
 !/Engine/Binaries/ThirdParty/Mono/Mac/etc/mono
@@ -93,7 +94,12 @@
 
 # Ignore various other dependencies that are never checked in
 /Engine/Content/**
-/Engine/Documentation/**
+/Engine/Documentation/**/*.psd
+/Engine/Documentation/**/*.png
+/Engine/Documentation/**/*.cur
+/Engine/Documentation/**/*.gif
+/Engine/Documentation/**/*.jpg
+/Engine/Documentation/CHM/**
 
 # Ignore all binary types in the extras folder
 /Engine/Extras/*/**
@@ -102,10 +108,18 @@
 /Engine/Extras/Maya_AnimationRiggingTools/**/*.pyd
 /Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/ART/**
 /Engine/Extras/Maya_AnimationRiggingTools/MayaTools/General/Icons/**
+/Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/MayaTools/General/ART/
+/Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/MayaTools/General/Icons/
+/Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/MayaTools/General/Scripts/projectSettings.txt
+/Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/MayaTools/General/Scripts/settings.txt
+/Engine/Extras/Maya_AnimationRiggingTools/ArtToolsOSX/README.md
 !/Engine/Extras/VisualStudioSnippets/**
 
 # Ignore any saved local files
 /Engine/Saved/**
+
+# Ignore any build receipts
+/Engine/Build/Receipts/**
 
 # Install stamp linux dependencies
 /Engine/Build/BatchFiles/Linux/dependencies.sha1sums.installed
@@ -130,9 +144,19 @@
 /Engine/Source/ThirdParty/**/*.pak
 /Engine/Source/ThirdParty/**/*.framework
 /Engine/Source/ThirdParty/**/*.tga
+/Engine/Source/ThirdParty/**/*.tiff
+/Engine/Source/ThirdParty/**/*.icns
+
+# Ignore PLCrashReporter binaries
+/Engine/Source/ThirdParty/PLCrashReporter/**/bin/**
 
 # Ignore LinuxNativeDialogs build files (all extensions)
 /Engine/Source/ThirdParty/LinuxNativeDialogs/UELinuxNativeDialogs/build/**
+
+# Ignore PhysX binaries
+/Engine/Source/ThirdParty/PhysX/APEX-1.3/externals/CUDA_6.5.19/bin/
+/Engine/Source/ThirdParty/PhysX/PhysX-3.3/externals/clang/3.3.2/linux32/bin/
+/Engine/Source/ThirdParty/PhysX/PhysX-3.3/externals/clang/3.3.2/osx/bin/
 
 # Ignore sample and template projects
 /Samples/**
@@ -150,3 +174,9 @@
 
 # Ignore package version counter
 /Engine/Build/IOS/UE4Client.PackageVersionCounter
+
+# Ignore linux project files
+*.user
+*.pro
+*.pri
+*.kdev4

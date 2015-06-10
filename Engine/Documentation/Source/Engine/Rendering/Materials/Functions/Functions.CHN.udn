@@ -1,0 +1,148 @@
+Availability:Public
+Title:材质函数
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+
+[TOC(start:2)]
+
+
+## 概述
+
+Material Function（材质函数）是可以保存在包中并且在多个材质之间重复使用的材质图形的一小部分。它们像正常的材质一样在材质编辑器中进行编辑，但是对于可以使用的节点有一些限制。使用正确，它们可以减少材质冗余，反过来会减少美术人员为了使这些副本表达式同步而付出的努力以及由于在修改过程中遗漏了一个副本而造成的不可避免的 bug。
+
+
+## 函数基础知识和快速设置
+
+像一个材质一样通过内容浏览器创建函数。右击空白区域并选择 New Material Function（新材质函数）。
+
+通过函数输入和输出函数（也就是您放置在函数中的节点）可以将它们的接口定义给任何其中使用这些函数的材质。可以命名输入和输出，这样在他们的材质中使用该函数的人就会知道它代表什么。一个函数必须至少有一个输出是有效的，而且输入和输出必须是唯一的。
+
+![FunctionNodes.jpg](FunctionNodes.jpg)
+
+函数的重点是它在这些输入和输出之间都做了些什么。该示例选取了两个图层并像 [photoshop 屏幕混合](http://www.webdesign.org/photoshop/photoshop-basics/using-blend-modes-screen.14859.html)一样将它们混合在一起。该函数会从可能想要使用它的美术人员那里提取详细信息，这样他们实际上不需要知道屏幕混合的数学原理就可以使用屏幕混合操作。如果以后有人想要更改屏幕混合操作的工作方式，那么他们可以对这个函数进行此项操作，而且会自动将这个更改普及到所有使用它的材质。
+
+![ScreenBlendFunction.jpg](ScreenBlendFunction.jpg)
+
+只要您对一个函数进行了更改，您就需要点击应用按钮，将这个更改普及到这个函数资源以及使用这个函数的所有材质。
+
+要在材质中使用函数，只需从内容浏览器中将这个函数的图标拖拽到材质中。您还可以选择在内容浏览器中选中这个函数后按住 F 同时点击材质编辑器。这样可以创建引用您创建的函数资源的 MaterialFunctionCall 节点。然后您需要将节点连接到输入，将输出连接到您希望在材质中使用它的具体地方。
+
+![ScreenBlendInMaterial.jpg](ScreenBlendInMaterial.jpg)
+
+输入具有一个特定的类型，所有表达式都需要连接它到输入，当在材质中使用这个函数时会在输入接口旁边用一些字母表示这个类型。在这个实例中，这两个输入都是 vector3，所以显示的是 V3。连接到输入的所有内容在材质中使用时都必须可以转换为这个输入类型。
+
+
+## 普及
+
+在您编辑一个函数并点击应用更改后，将新版本普及使用到所有引用这个函数的加载材质或函数。任何引用该函数的未加载材质都将会在下一次加载的时候随更改进行更新。
+
+**在将输入和输出从一个函数中删除并普及使用这个更改后，所有到这些在使用该函数的材质中删除的接口的连接都会中断！**  重点是注意这种情况，因为这样的话就无法取消普及使用的更改。其中使用函数的材质越多，中断的可能性越大，所以要小心。
+
+所有使用该函数的加载材质都会在普及使用这个函数更改的时候被标记为已修改，可以通过它知道可以重新保存哪些软件包以防加载时间增加。您可以通过在内容浏览器中右击并选择下面的选项找到所有使用函数的加载材质：
+
+![FindUsingMaterials.jpg](FindUsingMaterials.jpg)
+
+
+## 组织结构
+
+预计创建函数的人会比较少，而使用的人很多，所以完整记录函数的操作以及它们的输入和输出需要的值，这些很重要。由于这个原因，函数在函数名称和输入/输出名称顶部有一些记录字段：
+
+
+* **Function description（函数描述）** - 点击空白预取查看函数的属性，也就是 Description（描述）所在位置。**如果您只填写了一个描述字段，那么将其放在这个位置！**  它将会在该函数显示的位置（内容浏览器、材质函数库、函数调用节点）被显示为工具提示信息。
+* **输入 / 输出描述** - 它们位于函数中的输入和输出节点上。悬停在函数调用节点的输入和输出上方时，它们会显示为工具提示信息。
+
+
+已经填写的函数描述：
+
+![FunctionProperties2.jpg](FunctionProperties2.jpg)
+
+在材质中使用时对应的工具提示信息：
+
+![FunctionTooltip.jpg](FunctionTooltip.jpg)
+
+
+### 材质函数库
+
+材质编辑器有一个名为材质函数库的窗口，其中包含一个对现有材质函数进行分类的可筛选列表。这个列表中包含所有加载函数以及所有没有加载但是通过供内容浏览器使用的[内容浏览器数据库](Engine/Content/Browser/UI/Database)找到的函数。
+
+![MaterialFunctionLibrary.jpg](MaterialFunctionLibrary.jpg)
+
+您可以悬停在这些项上方，查看它们的 Description 工具提示信息，或者将其中一个拖拽到您的材质中。为了使函数显示在函数库中，需要在函数属性中勾选 bExposeToLibary 值。
+
+![FunctionProperties.jpg](FunctionProperties.jpg)
+
+确保指定易于理解的库类别，然后尽量反复使用现有类别，而不要创建新类别。
+
+
+## 预览
+
+在编辑一个材质函数时，预览窗口会显示正在预览的节点。大多数时候您会需要预览函数输出。
+
+![PreviewingOutput.jpg](PreviewingOutput.jpg)
+
+函数输入节点有一些可以指定预览值的选项，因为它们不知道他们在材质中将要实际使用的值。每个输入都有一个内置的 PreviewValue，可以使用它显示浮点输入类型的常量。函数输入还有一个'预览'接口，它允许您使用任何与输入类型匹配的值覆盖这个内置的值。在这个示例中，使用了一个贴图样本为一个浮点 3 输入提供预览。
+
+![PreviewTexture.jpg](PreviewTexture.jpg)
+
+在这个示例中，使用的是 Static Bool（静态布尔变量）节点为一个静态布尔变量输入提供一个默认值。
+
+![PreviewStaticBool.jpg](PreviewStaticBool.jpg)
+
+注意，这个输入具有一个名为"Use Preview Value As Default（将预览值作为默认值）"的选项。启用这个选项后，只要在材质中使用这个函数的时候就会使用这个预览值，而且没有任何东西会连接到这个输入，相反会出现一个编译错误。它可以使这个输入变为一个可选的输入，所以它显示为灰色。
+
+
+## 参数
+
+函数不得包含参数节点类型，因为它会使名称与其他声明相同名称的函数发生冲突，但是您仍然可以通过在输入之间传递值使用参数。要将向量或标量参数与函数结合使用，只需传递它作为函数输入向量类型。
+
+要想将贴图参数与函数结合使用，生成一个贴图输入并将其连接到在贴图样本节点中重载的贴图对象：
+
+![TextureParameterFunction.jpg](TextureParameterFunction.jpg)
+
+然后在使用该函数的材质中，放置一个 TextureObjectParameter 节点并将其连接到这个贴图输入：
+
+![TextureParameterMaterial.jpg](TextureParameterMaterial.jpg)
+
+与静态开关参数相似，生成一个静态布尔变量输入并将其连接到 StaticSwitch 节点：
+
+![StaticSwitchFunction.jpg](StaticSwitchFunction.jpg)
+
+然后在使用该函数的材质中，放置一个 StaticBoolParameter 节点并将其连接到这个静态布尔变量输入：
+
+![StaticSwitchMaterial.jpg](StaticSwitchMaterial.jpg)
+
+
+## 函数相关节点
+
+
+* **MaterialFunctionCall** - 允许在另一个材质或函数中使用一个外部函数。外部函数的输入和输出节点会变为这个函数调用节点的输入和输出。
+* **FunctionInput** - 只可以放置在材质函数中，在这里它定义了其中一个函数输入。
+* **FunctionOutput** - 只可以放置在材质函数中，在这里它定义了其中一个函数输出。
+* **TextureObject** - 用于为函数中的贴图函数提供一个默认贴图。该节点实际上没有对这个贴图进行采样，所以必须将它与一个 TextureSample 节点结合在一起使用。 
+* **TextureObjectParameter** - 定义一个贴图参数并输出这个贴图对象，在调用一个其中含有贴图输入的函数的材质中使用。该节点实际上没有对这个贴图进行采样，所以必须将它与一个 TextureSample 节点结合在一起使用。
+* **StaticSwitch** - 在两个输入之间根据输入值进行编译时间选择。
+* **StaticBool** - 用于为函数中的静态布尔变量函数输入提供一个默认布尔变量值。该节点不会在任何输入之间切换，所以必须将它与一个 StaticSwitch 节点结合起来使用。
+* **StaticBoolParameter** - 定义一个静态布尔变量参数并输出这个静态布尔变量值，在调用一个其中含有静态布尔变量输入的函数的材质中使用。该节点不会在任何输入之间切换，所以必须将它与一个 StaticSwitch 节点结合起来使用。
+
+
+
+## 高级
+
+可以任意对函数进行嵌套（函数中包含一个函数）并将它们链接在一起，只是它们不可以创建一个循环的依赖关系。
+
+函数中的编译错误将会在使用它的材质中使用红色高亮显示这个 MaterialFunctionCall 节点。这个错误消息也会说明出现这个错误的具体函数。在这个示例中，错误是还没有连接该函数的输入。
+
+![CompileErrors0.jpg](CompileErrors0.jpg)
+
+现在已经连接函数的输入，但是根据错误消息，函数中的 Add（添加）节点出现了问题。
+
+![CompileErrors1.jpg](CompileErrors1.jpg)
+
+双击这个函数打开它的编辑器，其中 Add（添加）节点由于出现问题用红色标出：
+
+![CompileErrors2.jpg](CompileErrors2.jpg)
+
+ 
+
+
+
+

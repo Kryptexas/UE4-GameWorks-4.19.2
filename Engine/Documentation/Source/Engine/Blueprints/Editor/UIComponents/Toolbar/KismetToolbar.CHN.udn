@@ -1,0 +1,32 @@
+﻿Availability:Public
+Title: 工具条
+Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes
+Description:
+
+[TOC (start:2)]
+
+## 概述
+
+[EXCERPT:Intro]
+默认情况下， **工具条** 显示在蓝图编辑器的左上角。蓝图编辑器工具条按钮允许您快速访问编辑蓝图时所需的常见命令。根据所激活的模式及您当前正在编辑的 _蓝图_ 类型的不同，该工具条会提供不同的按钮。
+[/EXCERPT:Intro]
+
+[REGION:fullwidth]
+![](ToolbarBP.png)
+[/REGION]
+
+该工具条包含两部分：
+* **工具条选项** - 处理您蓝图的工具。
+* **模式按钮** - 您用于切换您的蓝图所处模式的按钮。
+
+##工具条选项
+
+蓝图工具条包含了很多不同的选项。根据蓝图类型、类蓝图及蓝图所处模式的不同，所提供的选项也会有所不同。
+
+关于蓝图工具栏的更多信息，请参照[](Engine/Blueprints\Editor/UIComponents\Toolbar\ToolbarOptions)。
+
+## 类蓝图模式
+
+工具条右侧有三个按钮，允许您切换蓝图的模式或视图。
+
+关于类蓝图模式及如何切换它们的更多信息，请参照[](Engine/Blueprints\Editor\Modes)。

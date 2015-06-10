@@ -1,0 +1,383 @@
+Availability:Public
+Title: Lightmass的功能
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/LightingAndShadows
+Crumbs:%ROOT%, Engine
+Description: Lightmass的所有功能及设置的概述。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/Lightmass:title%](%ROOT%/Engine/Rendering/LightingAndShadows/lighting_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/Lightmass:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/Lightmass:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/Lightmass]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+
+## 概述
+
+[EXCERPT:LightMass_002]
+Lightmass可以创建光照贴图，该光照贴图具有像区域阴影和间接漫反射这样的复杂光照交互。它不会影响其它的渲染管线(动态光照及阴影),仅是提供了具有更高质量的光照贴图和阴影贴图。
+[/EXCERPT:LightMass_002]
+
+虚幻引擎3编辑器和Lightmass间的通信是通过Unreal Swarm来进行处理的，UnrealSwarm可以在本地管理光照构建，并且还可以将光照构建分布到远程机器上。
+
+Swarm Agent还可以跟踪光照构建进程，并使您实时地知道正在使用哪些机器进行工作、它们正在做什么处理及每台机器使用了多少线程。在底部附近的长条显示了光照构建完成情况。
+
+下面是一个使用8个线程进行本地构建光照的图片。
+
+![SwarmAgent.jpg](SwarmAgent.jpg)
+
+## Lightmass 功能
+
+### 区域光源和阴影
+
+在旧的UE3静态光照中，光源没有任何表面区域。所有的光照都当作是从一个单独的点 (或者一个方向，对于定向光源来说)发出来的。
+
+区域阴影通过过滤光照贴图中的阴影效果来进行近似计算，这意味着阴影半影的尖锐程度是由光照贴图分辨率决定的；且在具有相同光照贴图分辨率的所有平面上，半影的大小是一样的。
+
+对于Lightmass，所有的光源在默认情况下都是区域光源。点光源和聚光源所使用的形状是球型，它们的半径通过使用在LightmassSettings下的LightSourceRadius进行设置。定向光源使用一个放置在场景边缘的圆盘。控制阴影的柔和度的两个因素中的之一是光源的大小，光源越大将会产生更加柔和的阴影。另一个因素是从接受阴影位置到阴影投射物之间的距离。随着这个距离的增加，区域阴影将会变得越柔和，就像现实生活中的情形一样。
+
+第一个图片是一个使用旧的UE3静态光照的定向光源，半影的大小在每处都是一样的。第二个图片是由Lightmass计算出的区域阴影，阴影的尖锐程度使用光源的大小和遮光板的距离控制。注意柱子的阴影在柱子越接近地面的地方变得越来越尖锐。
+
+[REGION:imagetable]
+| ![7OldUE3Shadows.jpg](7OldUE3Shadows.jpg)(h:520) | ![7LightmassShadows.jpg](7LightmassShadows.jpg)(h:520) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+点光源和聚光源的光源半径描画在了黄色线框里，但是光源的影响半径描画在了青色线框里。大多数情况下，您要确保光源不会和任何投射阴影的几何体相交，否则光源将在那个几何体的两侧都投射光照。
+
+![AreaLight.jpg](AreaLight.jpg)
+
+
+
+### 间接漫反射
+
+到目前为止，间接漫反射（Diffuse Interreflection)是在视觉效果上最重要的全局光照效果。光源默认使用Lightmass进行反射，您的材质上的Diffuse(漫反射)因素将会控制在各个方向上将反射多少光线(及什么颜色)。这个效果有时称为颜色扩散。请记住间接漫反射是在所有方向均匀地反射的入射光线，这就意味着观看方向及位置的不同对于看到效果没有影响。
+
+这里是一个使用单一的定向光源且仅显示直接光照的情况下使用Lightmass构建的场景。注意阴影半影的尺寸是如何随着遮光板的距离变化的。光源没有直接照射到的地方是黑色的。这便是没有全局光照的效果。
+
+![3DirectOnly.jpg](3DirectOnly.jpg)(w:720)
+
+这是第一次漫反射全局光照的效果。请注意左侧椅子下面的阴影，这称为间接阴影，因为它是间接光照的阴影。漫反射的反射光线的亮度和颜色，是由入射光线及同光源进行交互的材质的漫反射条件决定的。每次漫反射光线比上一次更暗，因为表面会吸收光源的某些光线，而不是将其反射回去。由于柱子的基部更加靠近直接光源区域，所以它们比其它的表面获得了更多的间接光照。
+
+![3FirstBounceOnly.jpg](3FirstBounceOnly.jpg)(w:720)
+
+这是第二次漫反射。光源已经变得更加的微弱，并且最终将会分散。
+
+![3SecondBounceOnly.jpg](3SecondBounceOnly.jpg)(w:720)
+
+这里是组合了4个漫反射的场景。模拟全局光照创建了比手动放置填充光源更加详细并真实的光照。尤其是间接阴影，这是使用填充光源所不能实现的。
+
+![3FourBounces.jpg](3FourBounces.jpg)(w:720)
+
+
+反射光线获得底下材质的漫反射颜色，正如您在下面所看到的。这便是术语'color bleeding(颜色扩散)'产生的原因。颜色扩散在使用高饱和颜色处是最明显的。您可以通过提高在图元、材质或关卡中的DiffuseBoost来夸大这个效果。
+
+[REGION:imagetable]
+| ![diffusebounce_T.JPG](diffusebounce_T.JPG)(h:445) | ![diffusebounce_L.JPG](diffusebounce_L.JPG)(h:445) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+### 角色光照
+
+Lightmass在[Lightmass重要体积](#Lightmass重要体积)内均匀的3d网格中以较低的分辨率放置样本；同时在角色可能会其上面行走的向上平面上以较高的分辨率放置样本。每个光照样本可以捕获各个方向的间接光照，但是不捕获直接光照。
+
+第一个图片是地面上放置的光照样本在调试状态下呈现的效果，第二个图片是同一场景在带光照模式下的效果。注意在红色挂毯上的样本是如何获得红色的反射光线的。样本看上去是单一的颜色，但它们确实在从各个方向捕获光照。
+
+[REGION:imagetable]
+| ![02CharacterLighting.jpg](02CharacterLighting.jpg)(w:465) | ![02CharacterLightingLit.jpg](02CharacterLightingLit.jpg)(w:465) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+LightEnvironments 然后在使用这些光照样本的actor的位置上查找间接光照。这些间接光照影响光照环境阴影的颜色，但不影响方向。
+
+以下角色是由楼梯下面的第一次漫反射全局光照照亮的效果。
+
+![01CharacterLighting.jpg](01CharacterLighting.jpg)(w:720)
+
+
+#### 限制
+
+   * 目前光照样本会占用很多的内存，通过学习更多的关于角色的哪个部分需要详细的间接光照的知识，可以优化样本的放置。
+   * 没有使用光照环境的动态地照亮的物体将仅受到直接光照的影响。
+   * 在LightmassImportanceVolume(Lightmass重要体积)之外的光照环境将有黑色的间接光照。
+
+### 半透明阴影
+
+光源穿过投射静态阴影的网格物体的半透明材质将会丢失一些能量，从而导致半透明阴影。
+
+![translucent_T.JPG](translucent_T.JPG)(h:400)
+
+
+#### 半透明阴影颜色
+
+穿过材质的光线量称为 _Transmission_ (它们和材质编辑器中在不透明的材质上进行操作的 _TransmissionColor_  及 _TransmissionMask_ 不同。)，每种颜色的通道的范围是0到1。值0将会是完全地不透明，值1则意味着入射光线穿过且没有受到影响。因为Transmission没有材质输入，所以当前它从其他的材质输入输入衍生而来，如下所示：
+
+* Lit materials(带光照的材质)
+	* BLEND_Translucent and BLEND_Additive: Transmission = Lerp(White, Diffuse, Opacity)
+	* BLEND_Modulate: Transmission = Diffuse
+* Unlit materials(无光照的材质)
+	* BLEND_Translucent and BLEND_Additive: Transmission = Lerp(White, Emissive, Opacity)
+	* BLEND_Modulate: Transmission = Emissive
+
+
+这意味着在不透明性为0时，材质将不会过滤入射光线，将不会产生半透明阴影。当透明性为1时，入射光线将被材质的自发光或漫反射(依赖于它是否被照亮)过滤。注意：间接光照有时会冲掉半透明阴影，并使它们的颜色不像半透明材质的自发光或漫反射光线的颜色那样深。
+
+#### 半透明阴影尖锐度
+
+有几个控制半透明阴影尖锐度的因素。
+
+在第一个图片中，使用了一个大的光源(LightSourceAngle为5 的定向光源)；在第二个图片中，使用了一个小的光源(LightSourceAngle为0)。
+
+[REGION:imagetable]
+| ![5LargeLightSource.jpg](5LargeLightSource.jpg)(h:560) | ![5SmallLightSource.jpg](5SmallLightSource.jpg)(h:560) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+在第一个图片中，使用了一个小的光源，但是光照贴图分辨率太低，以至于不能捕获到尖锐的半透明阴影。在第二个图片中，导出材质的分辨率(由材质编辑器中的 _ExportResolutionScale_ 控制)太低，以至于不能捕获到尖锐的阴影。
+
+[REGION:imagetable]
+| ![5LowLightmapResolution.jpg](5LowLightmapResolution.jpg)(h:565) | ![5LowExportResolutionScale.jpg](5LowExportResolutionScale.jpg)(h:565) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+间接光源也会受到半透明材质的影响。这个图片中的窗子基于它的Transmission来过滤了入射光线，然后那个光源使用改变后的颜色在场景的周围进行反射。
+
+![TranslucentShadowIndirectLight.jpg](TranslucentShadowIndirectLight.jpg)
+
+
+#### 限制
+
+   * 目前半透明材质还不能散射光线，所以它们将不能把颜色扩散到它们周围的物体上。
+   * 目前第一次漫反射不会受到半透明阴影的影响。这意味着，穿过透明材质的第一次反射的间接光照将不会通过材质的Transmission进行过滤。
+   * 目前，不支持折射(光线传播时被改变方向吸收) 。
+
+
+### 蒙板阴影
+
+Lightmass在计算阴影时考虑了BLEND_Masked材质的不透明蒙板。在编辑器视口中剪掉的那部分材质也不会产生任何阴影，这允许从树木和植被获得更加详细的阴影。
+
+[REGION:imagetable]
+| ![masked.JPG](masked.JPG)(h:420) | ![masked_L.JPG](masked_L.JPG)(h:420) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+### 环境遮挡
+
+Lightmass自动地计算详细的间接阴影，但是为了达到艺术目的或者提高场景中的真实程度，夸大间接阴影是有帮助的。
+
+环境遮挡是您从具有均匀光照的上半球上获得的间接阴影，就像阴暗的天空。Lightmass支持计算环境遮挡，并可以把它应用到直接及间接光照上，然后把它烘焙到光照贴图中。环境遮挡在默认情况下是禁用的，可以通过在View(视图)->World Properties(世界属性)->Lightmass 中勾选 _bUseAmbientOcclusion_ 来启用它。
+
+第一个图片的场景是具有间接光照，但是没有环境遮挡的效果。第二个图片的场景还是和刚才一样的场景，但是它的直接和间接光照都应用了环境遮挡，请注意查看物体结合处的地方变暗了。
+
+[REGION:imagetable]
+![9NoAO.jpg](9NoAO.jpg)(w:465) | ![9WithAO.jpg](9WithAO.jpg)(w:465) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+Ambient Occlusion(环境遮挡)设置:
+
+   * *bVisualizeAmbientOcclusion(是否显示环境遮挡)* -当构建光照时，仅使用遮挡因素覆盖光照贴图。这对查看具体的遮挡因素及比较不同的设置的效果是有用的。
+   * *MaxOcclusionDistance(最大遮挡距离)* - 一个物体对另一个物体产生遮挡的最大距离。
+   * *FullyOccludedSamplesFraction(完全被遮挡的样本片段)* -为了达到完全遮挡，所采样的必须遮挡的样本部分。注意还有一个基于每个图元的FullyOccludedSamplesFraction项，它允许控制一个对象对其他对象的遮挡程度。
+   * *OcclusionExponent(遮挡指数)* -指数越高，对比越明显。
+
+
+[REGION:imagetable]
+| ![92Defaults.jpg](92Defaults.jpg)(w:230) | ![92MaxDist5.jpg](92MaxDist5.jpg)(w:230) | ![92MaxPct80.jpg](92MaxPct80.jpg)(w:230) | ![92Exponent2.jpg](92Exponent2.jpg)(w:230) |
+| ------ | ------ | ------ | ------ |
+| 默认环境遮挡设置(MaxOcclusionDistance为200、FullyOccludedSamplesFraction为1.0、OcclusionExponent为1.0) | MaxOcclusionDistance 为5。删除了低频率遮挡，仅保留了角落处的遮挡。| FullyOccludedSamplesFraction的值为0.8。遮挡在整个范围内逐渐变暗，遮挡范围大于等于80%的区域会设置为黑色。|OcclusionExponent 为2。遮挡从中间范围处快速地转换为饱和的黑色，遮挡被推向了角落处。|
+[/REGION]
+
+
+在NumIndirectLightingBounces大于0的情况下进行光照构建时，Ambient Occlusion(环境遮挡)几乎没有消耗性能。
+
+#### 限制
+
+   * 如果要使Ambient Occlusion(环境遮挡)的效果看上去很好，则需要使用一个相当高的贴图分辨率，因为它在角落的变化很快。由于顶点通常在角落处，而这些地方的环境遮挡是最高的，从而使得网格物体的大部分区域都是黑色的，最终导致顶点光照贴图会产生奇怪的效果。
+   * 环境遮挡的在预览级别下进行构建的质量不会很好，因为环境遮挡需要很多密集的光照样本(就像间接阴影一样)。
+
+
+## 使用Lightmass来获得最佳质量
+
+### 使得光照变得显而易见
+
+#### 漫反射贴图
+
+在渲染过程中，带光照像素的颜色作为Diffuse* Lighting(漫反射光照)，所以漫反射的颜色直接影响着光照的视觉效果。高对比度的或较暗的漫反射贴图使光照很难被注意到，然而低对比度、中间范围的漫反射贴图将会使光照的细节进行完整的显示。
+
+第一个图片中场景使用中间范围漫反射贴图，第二个图片的场景也是使用Lightmass进行构建，但是使用了噪声和较暗的漫反射贴图，比较这两个场景中光照的清晰度。第二个图片的场景中只有最高频率的改变效果是显著的，像阴影变换。
+
+[REGION:imagetable]
+![94MidToneDiffuse.jpg](94MidToneDiffuse.jpg)(w:465) | ![94DarkDiffuse.jpg](94DarkDiffuse.jpg)(w:465) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+无光照视图模式对于查看Diffuse的信息是有用的。第一个图片中的场景在Unlit（无光照）视图模式下看上去更单调，这意味着是光照完成了所有的工作，最终像素颜色的变化主要依赖于光照的不同。
+
+[REGION:imagetable]
+![94MidToneDiffuseUnlit.jpg](94MidToneDiffuseUnlit.jpg)(w:465) | ![94DarkDiffuseUnlit.jpg](94DarkDiffuseUnlit.jpg)(w:465) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+
+在无光照模式图片的几个部分上，应用编辑器的颜色选择器，我们会看到第一个图片中场景的漫反射值大约是0.5，然而第二个图片中场景的漫反射值大约是0.8。在Photoshop中查看这些无光模式下的图片的柱状图，使可以您更好地看到这些漫反射贴图的分布。*注意： Photoshop 是在gamma 空间中显示您的颜色值，所以值186 (.73)事实上是黑色和白色之间的部分，而不是值127 (.5)* 。第一个图片显示了要获得显著的光照效果时，柱状图应该呈现的样子。
+
+![hist_Spo.jpg](hist_Spo.jpg)
+![hist_UT.jpg](hist_UT.jpg)
+
+
+#### 光照设置
+
+   * 避免Skylights(天空光源)！  Skylights(天空光源)会给您的关卡添加一个常量环境条件，这会降低在非直接照亮的区域中的对比度。
+   * 设置光源，以便在直接光照区域和间接光照区域有较高的对比度。这个对比将使它很容易地找到阴影变换发生的位置，并使您的关卡具有更好的深度感。
+   * 设置光源，使得明亮的区域不会太明亮，而黑暗的区域也不会是完全地变黑，但是仍然可以看到细节。在最终的目标显示器上检查黑暗区域是很重要的。
+
+###改进光照质量
+
+#### 光照贴图分辨率
+
+具有高分辨率的光照贴图是获得详细的、高质量的光照贴图的最好方法。顶点光照贴图是依赖于细分的，所以它们通常不能像区域阴影那样展现光照细节，它们仅能显示网格物体所在区域的大体颜色。使用高分辨率的光照贴图会由于占用了更多的贴图共享内存及增加构建时间而带来性能上的下降，所以这是一个妥协。理想状态下，高光照贴图分辨率应该分配在视觉效果影响比较重要的区域周围及频繁出现阴影的地方。
+
+#### Lightmass Solver质量
+
+Lightmass Solver的设置基于在Lighting Build Options(光照构建选项)对话框中所要求的构建质量来自动地进行相应设置。Production(产品级)将会提供足够好的质量，以至于应用漫反射贴图导致失真都不会被察觉。有一个设置对质量有巨大的影响，它便是StaticLightingLevelScale。降低缩放因数将会产生更多的间接光照样本，它会以增加构建时间的代价来提高间接光照和阴影的质量。在大多数情况下，这仅对增加大关卡的光照缩放因数有用。
+
+
+## 获得最佳的光照构建时间
+
+有几种改善您的Lightmass构建时间的方法：
+
+   * 仅在拥有高频率(变化很快)的光照区域内使用高分辨率光照贴图。降低BSP及不在直接光照中或不受尖锐的间接阴影影响的静态网格物体的光照贴图分辨率。这样会在最容易引起注意的区域产生高分辨率阴影。
+   * 玩家永远不会看到的表面，应该设置为尽可能低的光照贴图分辨率。
+   * 使用[Lightmass重要体积](#LightmassImportanceVolume) 来包含最重要的区域(恰好在活动区域的周围)。
+   * 在整个地图上优化光照贴图分辨率，以便网格物体的构建时间更加均衡。光照构建的速度永远不会快于那个构建速度最慢的单一物体，无论有多少个机器在同时进行分布式构建。
+
+
+## Lightmass设置
+
+### Lightmass重要体积
+
+[EXCERPT:LightMass_001]
+虽然许多地图中的网格物体都位于编辑器网格边缘的外面，但实际上需要高质量光照的活动区域(playable area)是非常小的。Lightmass基于关卡的大小来发射光量子，所以这些不易引起人注意的网格物体将会大大地增加需要发射的粒子的数量，并且会增加光照的构建时间。LightmassImportanceVolume控制Lightmass发射光量子的范围，允许您将粒子集中在需要详细间接光照的区域。在重要体积之外的区域仅获得低级质量的间接反射光照。
+[/EXCERPT:LightMass_001]
+
+第一个图片显示的是MP_Jacinto的线框俯视图。实际上需要高质量光照的活动区域是在中央的小绿色斑点。
+
+第二个图片中显示了活动区域MP_Jacinto的封闭区域，选择了正确的LightmassImportanceVolume设置。LightmassImportanceVolume降低了光源的区域半径，从80,000个单位到10,000个单位，要照亮的面积减少了64倍。
+
+[REGION:imagetable]
+![JacintoImportanceFar.jpg](JacintoImportanceFar.jpg)(w:465) | ![JacintoImportanceNear.jpg](JacintoImportanceNear.jpg)(w:465) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+[EXCERPT:LightMass_003]
+**Lightmass Importance Volume(Lightmass重要体积)** ，可以通过使用构建画刷来定义它的区域，然后右击 Add Volume(添加体积)按钮，并选择LightmassImportanceVolume来进行创建，如下所示：
+
+![VolumeMenu.png](VolumeMenu.png)
+
+或者，您可以从 **Placement Mode（放置模式）** 工具中直接拖拽一个 **Lightmass Importance Volume** 对象，然后将其缩放到需要的大小。
+
+此时，使用多个LightmassImportanceVolumes将要照亮的区域更紧密地包围起来并不会带来好处，因为光照是使用包围所有重要体积的边界框进行处理的。
+[/EXCERPT:LightMass_003]
+
+### 世界设置
+
+![worldlightmasssettings.png](worldlightmasssettings.png)
+
+   * *Force No Precomputed Lighting（强制禁用预计算光照）* - 这项从本质上禁用了Lightmass创建光照和阴影贴图的功能，强制关卡仅使用动态光照。
+
+   * *StaticLightingLevelScale(静态光照关卡缩放比例)* - 关卡的缩放和游戏的缩放是成比例的。这用于决定在光照计算中要详细到何种程度，较小的缩放比例将会大大地增加构建时间。默认为1.0，意味着这个关卡需要的比例和游戏的光照缩放比例一样。缩放比例为2意味着当前关卡仅需要计算比默认情况大2倍的间接光照交互作用，光照构建将会更快。战争机器2中的SP_Assault是说明何时使用StaticLightingLevelScale的一个例子。关卡很大(占据了编辑器网格的3/4)并且大多数时候您都是开车经过它，而不是步行，并且详细光照不明显。在这个关卡中StaticLightingLevelScale设置为4是合适的，这将会大大地减少构建时间。
+   * *Num Indirect Lighting Bounces(间接光照的反射次数)* -  允许光源在表面上进行反射的次数，从光源开始。0仅是指直接光照，1是指第一次反射等。第一次反射在计算时所用的时间最长，以下以此类推，接下来是第2次反射。后续的反射几乎是不占用时间的，但也不会增加很多光线，因为光源在每次反射时都会衰减。
+   * *Environment Color(环境颜色)* -未到达场景的光线所使用的颜色。环境可以被可视化地作为一个包围关卡的球体，在各个方向发出这个颜色的光。
+   * *Environment Intensity(环境亮度)* -缩放EnvironmentColor来允许一个HDR环境颜色。
+   * *Diffuse Boost(漫反射改进)* -缩放场景中所有材质的漫反射分布。增加DiffuseBoost的值是增加场景中间接光照亮度的有效方式。为了保存材质的能量(意思是光源在每次漫反射后都会减少而不是增加)，漫反射条件在应用了DiffuseBoost后在亮度上限定为1.0。如果增加的DiffuseBoost没有产生更亮的间接光照，且漫反射条件已经被限定了，应该使用光源的IndirectLightingScale来增加间接光照。
+   * *Use Ambient Occlusion (使用环境遮挡)* - 启用静态环境遮挡，使用Lightmass对其进行计算并把它构建到光照贴图中。
+   * *Enable Image Reflection Shadowing（启用图像反射阴影）* - 如果启用该项，Lightmass将会计算场景中所有图像反射的阴影。
+   * *Direct Illumination Occlusion Fraction(直接光照环境遮挡部分)* -应用到直接光照的环境遮挡的量。
+   * *Indirect Illumination Occlusion Fraction(间接光照环境遮挡部分)* -应用到间接光照的环境遮挡的量。
+   * *Occlusion Exponent(遮挡指数)* -指数越高，对比越明显。
+   * *Fully Occluded Samples Fraction(完全被遮挡的样本片段)* -为了达到完全遮挡，所采样的必须遮挡的样本部分。
+   * *Max Occlusion Distance(最大遮挡距离)* - 一个物体对另一个物体产生遮挡的最大距离。
+   * *Visualize Material Diffuse(显示材质漫反射)* -使用已导出到Lightmass中的材质漫反射条件来覆盖正常的直接和间接光照。当确认导出的材质漫反射和实际的漫反射相匹配时是有用的。
+   * *Visualize Ambient Occlusion(显示环境遮挡)* -仅使用环境遮挡条件覆盖正常的直接和间接光照。这在调整环境遮挡设置时是有用的，因为它隔离了遮挡条件。
+   * *Compress Shadowmap(压缩阴影贴图)* - 如果设置该项为true，则使用DXT1压缩阴影贴图。
+
+   * *Level Lighting Quality（光卡光照质量）* - 这反映了当前的关卡光照构件质量的设置。
+
+
+### 光照设置
+
+![LightLightmassSettings.png](LightLightmassSettings.png)
+
+   * *Light Source Radius(光源半径)* - (仅用于点光源和聚光源)光源的自发光球体的半径，不是光源影响范围的半径，光源的影响范围不是由半径控制的。一个较大的LightSourceRadius(光源半径)将会导致产生较大的阴影半影。
+   * *Light Source Angle(光源角度)* - (仅用于定向光源)从接收者到定向光源的自发光圆盘的角度(以度数为单位)。较大的角度将导致较大的阴影。注意这个角度是从定向光源的圆盘中心到圆盘边缘的角度，而不是从圆盘的一个边缘到另一个边缘的角度。太阳的角度大约是25度。
+   * *Indirect Lighting Saturation(间接光照饱和度)* - 0将会导致完全地降低间接光照的饱和度，1将保持间接光照的饱和度不变。
+   * *Shadow Exponent(阴影指数)* -控制阴影半影的衰减，或者区域从完全照亮状态到完全阴影状态的速度。
+
+
+### 主要组件设置
+
+![objectlightmasssettings.png](objectlightmasssettings.png)
+
+
+   * *Diffuse Boost(漫反射改进)* -缩放应用到这个物体的所有材质的漫反射分布。
+   * *Fully Occluded Samples Fraction(完全被遮挡的样本部分)* - 为了达到完全遮挡，必须遮挡的从这个物体采样的AO样本部分。这允许控制一个对象对其他对象的遮挡程度。
+   * *Shadow Indirect Only（仅投射间接光照的阴影）* - 如果选中该项，这个对象将仅呈现间接光照阴影。这对于草来说是有用的，因为所渲染的几何体就是真实几何体的展现，不必再投射具有精确形状的阴影。这个设置对于草来说有用的另一个原因是：所获得阴影的频率太高以至于不能存储在预计算光照贴图中。
+   * *Use Two Sided Lighting（使用两面光照）* - 如果选中该项，那么这个对象被照亮，就像从多边形的两面都接收光照一样。
+
+
+###基础材质设置
+
+关于材质编辑器的更多信息，请参照[材质编辑器用户指南](Engine/Rendering/Materials/Editor)。
+
+![materialsettings.png](materialsettings.png)
+
+
+   * *Diffuse Boost(漫反射改进)* -将这个材质的漫反射分布缩放为静态光照。
+   * *Export Resolution Scale(导出分辨率缩放比例)* -缩放导出这个材质的属性时所使用的分辨率。这对在需要细节时增加材质的分辨率是有用的。
+   * *Distance Field Penumbra Scale（距离场半影缩放比例）* - 缩放距离场阴影的半影大小。这对于在某些类型的植被上获得比较柔和的阴影是有用的。
+
+
+### 材质实例常量设置
+
+关于材质实例编辑器的更多信息，请参照[材质实例编辑器用户指南](Engine/Rendering/Materials/MaterialInstances/Editor)页面。
+
+[REGION:fullwidth]
+![materialinstance.JPG](materialinstance.JPG)
+[/REGION]
+
+   * *Cast Shadow As Masked（投射阴影作为蒙版）* - 如果该项为true，则强制半透明物体投射阴影，就像材质有蒙板一样。
+   * *Diffuse Boost(漫反射改进)* -当勾选该项，将覆盖父项的DiffuseBoost。
+   * *Export Resolution Scale（导出分辨率缩放比例）* - 当选中该项，则覆盖父项的ExportResolutionScale。

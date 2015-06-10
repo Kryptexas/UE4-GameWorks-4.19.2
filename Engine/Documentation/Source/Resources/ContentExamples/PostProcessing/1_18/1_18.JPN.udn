@@ -1,0 +1,58 @@
+﻿INTSourceChangelist:2350233
+Availability:Public
+Title:1.18  ブレンド半径とウェイト
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
+Description:ポストプロセスの事例概要、例 1.18ブレンド半径とウェイト
+Related:Engine/Rendering/Overview
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing/1_18:title%](Resources/ContentExamples/PostProcessing/PP_18.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing/1_18:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing/1_18:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing/1_18]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/PostProcessing/1_18:title%](Resources/ContentExamples/PostProcessing/PP_18.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/PostProcessing/1_18:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/PostProcessing/1_18:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/PostProcessing/1_18]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+[/REGION]
+
+[REGION:lightbox]
+[![](1_18_01.png)(w:302)](1_18_01.png) [![](1_18_02.png)(w:302)](1_18_02.png) [![](1_18_03.png)(w:302)](1_18_03.png)
+[/REGION:lightbox]
+
+ある PostProcessVolume から別の PostProcessVolume へのある距離にわたるトランジションを変更するために使用されます。ボリュームはポストプロセスのパイプラインを制御できます。またはこうした設定を使用して半径によって設定される距離にわたる 2 つのボリューム間のトランジションをスムージングすることができます。
+

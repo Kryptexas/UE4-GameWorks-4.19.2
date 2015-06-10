@@ -1,0 +1,211 @@
+﻿INTSourceChangelist:2454837
+Availability:Public
+Title:C++ とブループリント
+Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
+Description:ゲームプレイ プログラマ向けのアンリアル エンジン入門
+バージョン4.6
+
+## 概要
+
+C++ クラスをブループリントで拡張できます。プログラマーが、新しいゲームプレイ クラスをコードで作成し、それをレベル デザイナーがブループリントで設定および変更することができます。
+C++ クラスがどのようにブループリント システムとインタラクションするかを変更する多数の指定子があります。この例では、一部の指定子に焦点をあてます。
+
+## クラス設定
+
+クラス設定の最初のセクションでは、[](Programming\Development\ManagingGameCode\CppClassWizard) を使用して「LightSwitchBoth」という名前のクラスを作成します。 
+
+「LightSwitchBoth」クラスの大部分のコード設定は、[C++ Only LightSwitch example](Gameplay\ClassCreation\CodeOnly) のコードと類似しています。ブループリントで「LightSwitchCodeOnly」クラスの拡張が可能でも、 
+クラスに作成されたコンポーネント、プロパティ、関数にブループリント グラフでアクセスすることはできません。この例は、「LightSwitchBoth」クラスをブループリントのテンプレートとして機能させる 
+`UPROPERTY()`と`UFUNCTION()` 指定子について理解を深めていきます。
+
+最初に、LightSwitchComponent、 SphereComponent、 DesiredBrightness プロパティ、そして OnOverlap 関数を作成するためにヘッダファイルとソースファイルをどのように設定するかについて、
+[C++ Only LightSwitch example](Gameplay\ClassCreation\CodeOnly) をご覧になると役立つでしょう。
+
+ヘッダ ファイルは、以下の機能を追加するために、[C++ Only LightSwitch example](Gameplay\ClassCreation\CodeOnly) から適用されます。 
+
+* PointLightComponent と SphereComponent はブループリントで読み取り専用です。**[My Blueprint]** タブの **[Switch Component]** カテゴリに表示されます。
+* OnOverlapBegin と OnOverlapEnd は BlueprintNativeEvents となりました。**[My Blueprint]** タブの **[Switch Component]** カテゴリに表示されます。
+* DesiredIntensity はブループリントでリード/ライト専用です。**[My Blueprint]** タブの **[Switch Component]** カテゴリに表示されます。
+* DesiredIntensity は VisibleAnywhere の代わりに EditAnywhere となりました。
+
+[REGION:tip]
+`UCLASS()`マクロには「ブループリントで利用可能」な指定子があります。このケースでは不要です。LightSwitchBoth は、ブループリントで利用可能なアクタから直接継承し、そのブループリントで利用可能な指定子が継承されるからです。
+[/REGION]
+
+`UPROPERTY()` と `UFUNCTION()` マクロの追加の指定子で、「LightSwitchBoth」クラスのヘッダファイルは以下の通りです。
+
+[REGION:codetitlebar]
+LightSwitchBoth.h
+[/REGION:codetitlebar]
+		// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+
+		#pragma once
+
+		#include "GameFramework/Actor.h"
+		#include "LightSwitchBoth.generated.h"
+
+		/**
+		 * 
+		 */
+		UCLASS()
+		class [PROJECTNAME]_API ALightSwitchBoth : public AActor
+		{
+			GENERATED_BODY()
+			public:
+			/** ポイントライト コンポーネント */
+			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Switch Components")
+			class UPointLightComponent* PointLight1;
+
+			/** スフィア コンポーネント */
+			UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Switch Components")
+			class USphereComponent* Sphere1;
+
+			ALightSwitchBoth(const FObjectInitializer& ObjectInitializer);
+
+			/** 何かがスフィア コンポーネントに入ると呼び出されます。 */
+			UFUNCTION(BlueprintNativeEvent, Category="Switch Functions")
+			void OnOverlapBegin(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	/** 何かがスフィア コンポーネントを離れると呼び出されます。 */
+
+			UFUNCTION(BlueprintNativeEvent, Category="Switch Functions")
+			void OnOverlapEnd(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+			/** ライト コンポーネントの可視性を切り替えます。*/
+			UFUNCTION()
+			void ToggleLight();
+	/** ライトの望ましい明るさ */
+
+			UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Switch Variables")
+			float DesiredIntensity;
+	};
+
+
+
+LightSwitchBoth のソースファイルでは、コンストラクタに変更はありません。しかし、`OnOverlapBegin` 関数と `OnOverlapEnd` 関数に変更を加える必要があります。こうした関数は BlueprintNativeEvent となりました。つまり、
+このクラスから派生するブループリントに、`OnOverlapBegin` と`OnOverlapEnd` をオーバーライドするイベントを配置して、通常関数が呼ばれるタイミングでこれを実行することができます。こうしたイベントのひとつが存在しない場合、 
+C++ コードで実装した関数を代わりに実行します。この設定を機能させるには、C++ 関数を`OnOverlapBegin_Implementation` と`OnOverlapEnd_Implementation` に名前を変えなくてはいけません。ブループリントの設定は、後に紹介するこの例の一部で取り上げます。  
+`OnOverlapBegin` と `OnOverlapEnd` の定義に変更を加えると、LightSwitchBoth のソースファイルは以下のようになります。
+
+[REGION:codetitlebar]
+LightSwitchBoth.cpp
+[/REGION:codetitlebar]
+
+	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+	#include "BasicClasses.h"
+	#include "LightSwitchBoth.h"
+
+	ALightSwitchBoth::ALightSwitchBoth(const FObjectInitializer& ObjectInitializer)
+		:Super(ObjectInitializer)
+	{
+
+		DesiredIntensity = 3000.0f;
+
+		PointLight1 = ObjectInitializer.CreateDefaultSubobject<UPointLightComponent>(this, "PointLight1");
+		PointLight1->Intensity = DesiredIntensity;
+		PointLight1->bVisible = true;
+		RootComponent = PointLight1;
+
+		Sphere1 = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("Sphere1"));
+		Sphere1->InitSphereRadius(250.0f);
+		Sphere1->AttachParent = RootComponent;
+
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapBegin);		// このコンポーネントが何かとオーバーラップした場合の通知をセットアップします。
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapEnd);		// このコンポーネントが何かとオーバーラップした場合の通知をセットアップします。
+	}
+
+	void ALightSwitchBoth::OnOverlapBegin_Implementation(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+	{
+		if (OtherActor && (OtherActor != this) && OtherComp)
+		{
+			ToggleLight();
+		}
+	}
+
+	void ALightSwitchBoth::OnOverlapEnd_Implementation(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+	{
+		if (OtherActor && (OtherActor != this) && OtherComp)
+		{
+			ToggleLight();
+		}
+	}
+
+	void ALightSwitchBoth::ToggleLight()
+	{
+		PointLight1->ToggleVisibility();
+	}
+
+
+これがブランク オブジェクトに追加した最初のコード クラスである場合は、Visual Studio または Xcode でプロジェクトをコンパイルした後に、アンリアルエディタを開いてゲームモジュールが適切に再ロードされていることを確認するために、
+ アンリアル エディタを再び開きます。プロジェクトを開くために使用しているアンリアルエディタの実行ファイルと **Build Configuration** が同じバージョンである確認も重要となります。[](Programming\Development\CompilingProjects) ページで 
+ビルド設定とプロジェクトのコンパイルに関する情報を参照してください。
+
+コードを既存の C++ プロジェクトに追加する場合は、ホットリロード機能を使用してアンリアル エディタ内で新規コードをコンパイルすることができます。 
+
+この新規クラスをコンパイル後に、新規の[ブループリント クラス](Engine/Blueprints\UserGuide\Types\ClassBlueprint) を [作成](Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation) することができます。
+この場合、ブループリントの親クラスに「LightSwitchBoth」を選択して、名前を **LightSwitchBoth_BP** とします。
+
+![](BPBoth_ParentClass.png)
+
+C++ に追加した PointLightComponent と SphereComponent も **ブループリントエディタ** の **[コンポーネント]** タブに表示されます。
+アイコンはダークブルーで表示されて、ネイティブ コンポーネントであること、親 LightSwitchBoth クラスから継承されたことを示します。**LightSwitchBoth_BP** ブループリントのみに追加された新規コンポーネントは、 
+ライトブルーのアイコンで表示されます。**コンポーネント** タブを使用したコンポーネントの追加と配置についての詳しい情報は、[](Engine/Blueprints\UserGuide\Components) タブのドキュメントを参照してください。
+
+![](Both_ComponentList.png)
+
+**ブループリント エディタ** の **グラフ パネル** はブループリントの編集の中心となる部分です。**グラフ パネル** では、新しい [変数](Engine/Blueprints\UserGuide\Variables)、 
+[関数](Engine/Blueprints\UserGuide\Functions) と [マクロ](Engine/Blueprints\UserGuide\Macros) を [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) タブに追加することができます。ブループリント クラスに含まれている全ての [グラフ](Engine/Blueprints\UserGuide\Graphs) にも 
+アクセスできます。グラフには、設計時間とゲームプレイ機能を作成する [ノード](Engine/Blueprints\UserGuide\Nodes) が接続されています。機能はクラスプロパティ、ゲームプレイ イベント、
+さらにアクタの環境などで操作されます。 
+
+**[グラフ パネル]** の **[My Blueprint]** タブには、C++コードで「LightSwitchBoth」クラスに追加した PointLightComponent と SphereComponent が表示されます。これは`BlueprintReadOnly` 指定子によって表示されます。
+これらのコンポーネントのノードは、**[My Blueprint]** タブからグラフへ名前をクリックしてドラッグすると、グラフへ追加することができます。その後ノード群は、可視性やライト色などのプロパティを変更するノードへ
+接続することができます。**[DesiredIntensity]** 変数は **[My Blueprint]** タブにも表示されます。コンポーネントではなく変数であるため、
+`BlueprintReadWrite` 指定子を使用できます。つまり、ブループリントグラフに **DesiredIntensity** の値を取得および設定するノードの作成が可能です。または使用に関する一般情報については [](Engine/Blueprints\Editor/UIComponents\MyBlueprint) のドキュメントを参照してください。
+
+[REGION:tip]
+親「LightSwitchBoth」クラスのコンポーネントと変数は、デフォルトで表示されない場合もあります。**[My Blueprint]** タブの下にある **[Show inherited variables]** (継承した変数を表示) チェックボックスにチェックを入れると、
+親クラスから継承された変数が表示されます。
+[/REGION]
+
+| 全ての変数を表示 | ユーザー作成の変数のみを表示 |
+| ---------------------- | ------------------- |
+| [REGION:raw]![](showInhVar2.PNG)[/REGION] | [REGION:raw]![](showInhVar.PNG)[/REGION] |
+| ![](BP_Only_MyBlueprint.png) | ![](Both_MyBlueprint.png) |
+
+
+**LightSwitchBoth_BP** クラスの挙動をセットアップするために使用するグラフが 2 つあります。1 つめのグラフは、[](Engine/Blueprints\UserGuide\UserConstructionScript) グラフで、特殊な **Construction Script**  
+イベントを含みます。**Construction Script** 設定無しの状態では、新規の **LightSwitchBoth_BP** アクタは、LightSwitchBoth コンストラクタのみを使用します。しかし、アクタがレベル内で移動した時と **DesiredIntensity** の変更時に、 
+**[Construction Script]** は実行されます。**[Construction Script] ** を使用するということは、ブループリントに公開されたアクタ変数を簡単に変更することが可能であり、 
+変更によってもたらされるエフェクトを直ぐに確認できることを意味します。
+
+**LightSwitchBoth_BP** クラスで、**Construction Script** イベントは **Set Brightness** ノードと接続しています。 
+そのため **Point Light 1** （PointLightComponent）のBrightness（輝度）は、アクタの追加時、レベル内で移動時、または **[Desired Brightness]** が変更された時に **DesiredIntensity** の値に設定されます。 
+
+![](Both_ConstructionScript.png)
+
+**LightSwitch_BPOnly** クラスでセットアップされたもうひとつのグラフは、[](Engine/Blueprints\UserGuide\EventGraph) です。イベントグラフの実行は、イベントから開始します。この場合、C++関数 `OnOverlap` が呼ばれると常に
+**OnOverlap** イベントが実行されます。LightSwitchBoth ソースファイルのデリゲートは、アクタが SphereComponent へ立ち入った時または退出した時に **OnOverlap** イベントが実行するように設定されています。
+
+		Sphere1->OnComponentBeginOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapBegin);		// このコンポーネントが何かとオーバーラップした場合の通知をセットアップします。
+		Sphere1->OnComponentEndOverlap.AddDynamic(this, &ALightSwitchBoth::OnOverlapEnd);		// このコンポーネントが何かとオーバーラップした場合の通知をセットアップします。
+
+**OnOverlap** イベントノードは、**Set Light Color** ノードと接続されています。イベントが実行されると、常に PointLightComponent のライト色をランダムな色にするように設定されています。これは、PointLightComponentの可視性をトグルする、
+ソースファイルの `OnOverlap_Implementation` 関数をオーバーライドします。
+
+イベントおよびグラフでの作業に関する詳しい情報は、[](Engine/Blueprints\UserGuide\Events)、[](Engine/Blueprints\UserGuide\EventGraph)、および [グラフモード](Engine/Blueprints\Editor\Modes\GraphPanel) をご覧ください。
+
+![](Both_EventGraph_2.png)
+
+**DesiredIntensity** 変数は、LightSwitchBoth ヘッダファイルで EditAnywhere に設定されます。そのため、**ブループリント エディタ** の[デフォルトで見て、![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) をクリックして編集し、 [詳細] パネルでクラス デフォルトを見ることができます。
+クラスの各インスタンスに対して、変数の変更が可能であることも意味します。各アクタは独自の **DesiredIntensity** を保持することができます。**DesiredIntensity** は **ブループリントでリード/ライト可能** でもあるため、これを **コンストラクション スクリプト** で使用すると、 
+更新された時に **コンストラクション スクリプト** が再び実行される原因となります。
+
+![](Both_Defaults.png)
+
+ブループリントに作成したクラスは、別のブループリント クラスへ拡張することができます。新規ブループリントを作成するには **クラスビューア** のクラスの横にあるドロップダウンボタンをクリックするか、
+ブループリントを **右クリック** して、**Create New Blueprint Based on This** を選択します。
+
+ブループリント クラス、 **LightSwitchBoth_BP** は[](Engine/Content/Browser) にあり、そこからレベルにドラッグできます。[](Engine/UI/ClassViewer) にもあります。
+**コンテンツ ブラウザ** または **クラスビューア** を使用したレベルでのアクタの配置については、[](Engine/Actors/Placement) のドキュメントを参照してください。

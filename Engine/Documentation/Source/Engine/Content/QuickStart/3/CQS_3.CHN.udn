@@ -1,0 +1,77 @@
+﻿Availability: Public
+Title:3. 准备您的资源
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:我们在将任何内容导入到虚幻引擎4之前，要按照这里提供的基本步骤和注意事项准备这些内容。
+
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [前一步 - %Engine/Content/QuickStart/2:Title%](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+		* **当前步骤 - %Engine/Content/QuickStart/3:Title%**
+		* [下一步 - %Engine/Content/QuickStart/4:Title%](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+首先，如果您手头没有任何内容，或者仅是向快速验证下导入流程，那么您可以下载这里的资源：
+
+[](QuickStartSampleAssets.zip)
+
+将这些资源解压到一个容易访问的位置处，然后继续进行下一步操作。但是，如果您您已经制作了一些资源，那么请继续阅读该页面获得关于FBX导入设置及所支持的图片格式的基本介绍。
+
+## 准备网格物体
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+关于FBX工作流程的更多信息，请参照： [**%Engine/Content/FBX:title%**](Engine/Content/FBX)
+
+## 支持的图像格式
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+---
+
+%Steps%

@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2033300
+Availability: Docs
+Title:1.8 - 피직스 볼륨
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:Volumes 예제 레벨에 대한 개요로, 예제 1.8: Physics Volume (피직스 볼륨)입니다.
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_8:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_8:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_8:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_8]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+월드의 디폴트 피직스 세팅을 덮어쓸 수 있도록 해 줍니다.

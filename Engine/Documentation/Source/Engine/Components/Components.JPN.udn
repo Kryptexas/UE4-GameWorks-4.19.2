@@ -1,0 +1,87 @@
+﻿INTSourceChangelist:2498841
+Availability:Public
+Title: コンポーネント
+Crumbs:%ROOT%, Engine
+Description:コンポーネントは、アクタ内のサブオブジェクトとして使用するように設計された特別なタイプのオブジェクトです。このページでは、様々なタイプのコンポーネントについて説明します。  
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](components_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Components:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Components]
+	[/PARAM]
+	[PARAM:description]
+	%Engine\Components:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](components_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Components:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Components]
+	[/PARAM]
+	[PARAM:description]
+	%Engine\Components:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[INCLUDE:Shared\Glossary\C#glossary_component]
+
+アクタにコンポーネントを追加すると、レベルに配置するアクタ全体の構成要素を断片的に作り上げていることになります。 
+前述の車の例を引き続き使用します。車輪、ハンドル、車体、ライトなどはすべてコンポーネントと考えることができます。車自体はアクタです。 
+
+アクタを特徴付けるコンポーネントを追加したら、車の動作をコントロールする **ブループリント** スクリプト (または C++ コード) を用意しなくてもレベルに配置できることに注意しなくてはいけません。 (ドライバーが車の運転操作をしなくてもオブジェクトとして存在する現実世界の車と同じです)。 
+「アクセル」はコンポーネントであるため、スクリプトやコードがアクセルが踏み込まれることを示し、同様に車を加速させるロジックを組み立ててくれます。 
+各コンポーネントはこれと同じ方法で利用できます (ライトをオンにする、クラクションを鳴らす、ラジオをつける、ステアリングなど)。 
+
+## コンポーネントのインスタンス化
+
+一般的にサブオブジェクトのデフォルト ビヘイビアとは逆に、アクタ内でサブオブジェクトとして作成されたコンポーネントはインスタンス化されます。つまり、各アクタの特定クラスのインスタンスは、コンポーネント独自の固有インスタンスを取得します。 
+これを単純に視覚化するには上述の乗り物の例を仮定してみましょう。Car クラスは、車輪の表現にコンポーネントを使用する場合もあります。 
+クラスのデフォルトプロパティにはサブオブジェクトとして 4 つの **Wheel** コンポーネントが作成され、"Wheels" 配列へ割り当てられます。新規の **Car** インスタンスが作成されると、Wheel コンポーネントの新しいインスタンスがその特別な **Car** 専用に作成されます。 
+これが該当しない場合、ワールド内のある一台の **Car** が動き出すと全ての **Car** の車輪も回転します。これは明らかに望ましい動作ではありません。デフォルトでコンポーネントをインスタンス化することにより、固有のサブオブジェクトを **アクタ** へすぐに追加するプロセスを簡素化します。
+
+[REGION:note]
+コンポーネントをインスタンス化しないと、全てのコンポーネント変数を [](Programming/UnrealArchitecture/Reference/Properties/Specifiers/Instanced) プロパティ指定子を使用して宣言しなくてはいけません。 
+[/REGION]
+
+## コンポーネントのタイプ
+
+さまざまな種類のコンポーネントをアクタへ追加することができます。詳細は以下のリンクを参照してください。 
+
+[OBJECT:TopicButtonList]
+	[PARAM:links] 
+		* [](Engine\Components\AI "%Engine\Components\AI:description%")
+		* [](Engine\Components\Audio "%Engine\Components\Audio:description%") 
+		* [](Engine\Components\Camera "%Engine\Components\Camera:description%") 
+		* [](Engine\Components\Lights "%Engine\Components\Lights:description%") 
+		* [](Engine\Components\Movement "%Engine\Components\Movement:description%") 
+		* [](Engine/Components/Navigation "%Engine/Components/Navigation:description%") 
+		* [](Engine\Components\Paper2D "%Engine\Components\Paper2D:description%") 
+		* [](Engine\Components\Physics "%Engine\Components\Physics:description%") 
+		* [](Engine\Components\Rendering "%Engine\Components\Rendering:description%") 
+		* [](Engine\Components\Shapes "%Engine\Components\Shapes:description%") 
+		* [](Engine\Components\SkeletalMesh "%Engine\Components\SkeletalMesh:description%") 
+		* [](Engine\Components\StaticMesh "%Engine\Components\StaticMesh:description%") 
+		* [](Engine\Components\Utility "%Engine\Components\Utility:description%") 
+		* [](Engine\Components\Widget "%Engine\Components\Widget:description%") 
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+上記以外のコンポーネントについては、 [アンリアル エンジンAPI リファレンス](https://docs.unrealengine.com/latest/INT/API/index.html) の [コンポーネント](https://docs.unrealengine.com/latest/INT/API/Runtime/Engine/Components/index.html) セクションを参照することもできます。 
+[/REGION]

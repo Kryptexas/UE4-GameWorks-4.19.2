@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2463144
+Availability:Public
+Title:Title: HTML5 ゲームの開発
+Crumbs:%ROOT%, Platforms
+Description:HTML5 プラットフォーム向けゲームの開発
+Platform:HTML5
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		HTML5 Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
+	[PUBLISH:Docs]
+	* [](Platforms/HTML5/BuildingEmscripten "%Platforms/HTML5/BuildingEmscripten:description%")
+	[/PUBLISH:Docs]
+	[/PARAM]
+[/OBJECT]
+
+				      
+
+
+
+
+
+	       
+
+	   
+
+	   
+
+	  
+

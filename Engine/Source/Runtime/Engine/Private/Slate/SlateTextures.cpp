@@ -6,7 +6,6 @@
 #include "RenderingCommon.h"
 #include "Slate/SlateTextures.h"
 
-
 FSlateTexture2DRHIRef::FSlateTexture2DRHIRef( FTexture2DRHIRef InRef, uint32 InWidth, uint32 InHeight )
 	: TSlateTexture( InRef )
 	, Width( InWidth )
@@ -119,17 +118,17 @@ void FSlateTexture2DRHIRef::ClearTextureData()
 	TextureData.Reset();
 }
 
-void FSlateTexture2DRHIRef::ResizeTexture(uint32 Width, uint32 Height)
+void FSlateTexture2DRHIRef::ResizeTexture(uint32 InWidth, uint32 InHeight)
 {
-	if (GetWidth() != Width || GetHeight() != Height)
+	if (GetWidth() != InWidth || GetHeight() != InHeight)
 	{
 		if (IsInRenderingThread())
 		{
-			Resize(Width, Height);
+			Resize(InWidth, InHeight);
 		}
 		else
 		{
-			FIntPoint Dimensions(Width, Height);
+			FIntPoint Dimensions(InWidth, InHeight);
 			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(ResizeSlateTexture,
 			FSlateTexture2DRHIRef*, TextureRHIRef, this,
 			FIntPoint, InDimensions, Dimensions,
@@ -162,6 +161,26 @@ void FSlateTexture2DRHIRef::UpdateTexture(const TArray<uint8>& Bytes)
 		});
 	}
 }
+
+void FSlateTexture2DRHIRef::UpdateTextureThreadSafe(const TArray<uint8>& Bytes)
+{
+	if(IsInGameThread())
+	{
+		// Make bulk data for updating the texture memory later
+		FSlateTextureData* BulkData = new FSlateTextureData( Bytes.Num(), 0, 1, Bytes );
+
+		// Update the texture RHI
+		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+			FSlateTexture2DRHIRef_UpdateTextureThreadSafe,
+			FSlateTexture2DRHIRef*, ThisTexture, this,
+			FSlateTextureData*, BulkData, BulkData,
+			{
+				ThisTexture->UpdateTexture( BulkData->GetRawBytes() );
+				delete BulkData;
+			});
+	}
+}
+
 
 void FSlateRenderTargetRHI::SetRHIRef( FTexture2DRHIRef InRenderTargetTexture, uint32 InWidth, uint32 InHeight )
 {

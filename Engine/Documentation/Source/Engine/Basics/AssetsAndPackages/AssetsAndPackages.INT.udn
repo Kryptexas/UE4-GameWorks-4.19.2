@@ -1,0 +1,79 @@
+Availability:Public
+Title: Assets and Packages
+Crumbs: %ROOT%, Engine, Engine/Basics
+Description:Overview of the asset and package system used in Unreal Engine 4.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Basics/AssetsAndPackages:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Basics/AssetsAndPackages:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Basics/AssetsAndPackages:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Basics/AssetsAndPackages]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+When a workflow includes package files that each contain several assets, source-control contention can be an issue. A workflow that instead supports and encourages creating many individual asset files means that each asset can be checked out individually. This reduces source-control contention and bottlenecks in workflow.
+
+Additionally, sync time in content management systems is faster with individual asset files than with packages containing multiple assets, because a change to a single asset requires only one small file update.
+
+In the Unreal Editor, assets are stored in .uasset files, each of which typically contains only a single asset. Each asset reference contains a directory-style path that uniquely identifies any asset in the game.
+
+You create assets in, or import them into, the **Content Browser**. For information about creating assets, see [](Engine/Content/AssetCreation). For information about working with the **Content Browser**, see [](Engine/Content/Browser).
+
+## Working with Assets
+
+You can find a list of assets in the **Asset Tree**, which is in the **Content Browser**. You can expand or collapse the **Asset Tree** in the **Content Browser** by clicking its button (![Asset Tree button](AssetTree_button.png)).
+
+* The **Asset Tree** displays a list of folders in your content directories where .uasset files reside.
+* Clicking on a folder in the **Asset Tree** shows you all the assets found in that folder and its subfolders.
+* **Right-clicking** on a folder shows you a list of actions you can do to that folder and assets in the folder or its subfolders. You can add new folders to the **Asset Tree** via this context menu.
+
+[REGION:note]
+You can no longer freely move asset files between folders outside of the Unreal Editor and expect references to remain intact. Instead, you must move assets from within the **Content Browser**. This is because references to assets include the full directory path to the asset. If you move an asset, its path will change. 
+
+Level (.umap) files are not affected by this restriction.
+[/REGION]
+
+For more information on using the **Content Browser** to move, rename, add, and delete assets, see [](Engine/Content/Browser\UserGuide\BrowserAssetCreation).
+
+### Asset Naming
+
+You name assets at the time that you create or import them. Your asset's path is set automatically by the folder in which you create or import it, which is directly associated with the asset's location on disk. For example, a path of `Content/Characters/MyCharacter` would save to `/UE4/MyProject/Content/Characters/MyCharacter.MyCharacter.uasset`.
+
+References to assets contain the path in the reference, for example: `Blueprint'/MyProject/Content/Characters/MyCharacter.MyCharacter'`.
+
+### Copying Assets to Other Projects
+
+You can use the Migrate Tool in the **Content Browser** to create a copy of an asset (and any dependent assets) for use in another project.
+
+For more information about the Migrate Tool, see [](Engine/Content/Browser\UserGuide\Migrate).
+
+### Asset Packs
+
+If you have downloaded asset packs through the Launcher, you can add the entire contents of the pack to your project without needing to open it or migrate specific assets.
+
+To add an asset pack to your project:
+
+1. Find the asset pack in your Vault.
+	![](Vault.png)
+1. Click on **Add to Project**.
+1. Select your project in the list that appears.
+	![](SelectedProject.png)
+1. Click on **Add to Project**.
+
+When you next open your project, all of the content will be there, inside a folder named for the asset pack.

@@ -1,0 +1,56 @@
+Availability:Public
+Title: Properties
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:Reference for creating and implementing properties for gameplay classes.
+Version: 4.5
+
+## Property Declaration
+
+UProperty variables are declared using standard C++ syntax with additional descriptors, such as variable specifiers and metadata placed above the declaration.
+
+	UPROPERTY([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	Type VariableName;
+
+## Core Data Types
+
+
+### Integers
+The convention for integral data types is "int" or "uint" followed by the size in bits.
+
+|Variable Type | Description | 
+| ------------| -------------|
+|uint8	 | 8-bit  unsigned|
+|uint16	| 16-bit unsigned|
+| uint32	| 32-bit unsigned|
+| uint64	| 64-bit unsigned|
+| int8	| 8-bit  signed|
+| int16	| 16-bit signed|
+| int32	| 32-bit signed|
+| int64 | 64-bit signed|
+
+### Floating Point Types
+Unreal uses the standard C++ floating point types, float and double.
+
+### Boolean Types
+Boolean types can be represented either with the C++ bool keyword or as a bitfield.
+
+	uint32 bIsHungry : 1;
+
+### Strings
+Unreal supports 3 core types of strings.
+* FString is a classic "dynamic array of chars" string type.
+* FName is a reference to an immutable case-insensitive string in a global string table.  It is smaller and more efficient to pass around than a FString, but more difficult to manipulate.
+* FText is a more robust string representation designed to handle localization.
+
+For most uses, Unreal relies on the TCHAR type for characters.  The TEXT() macro is available to denote TCHAR literals.
+
+	MyDogPtr->DogName = FName(TEXT("Samson Aloysius"));
+
+For more on the three string types, when to use each one, and how to work with them, see the [String Handling documentation](Programming/UnrealArchitecture/StringHandling).
+
+
+
+### Property Specifiers
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Properties/Specifiers#main(offset:2)]
+

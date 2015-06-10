@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:2102220
+Availability:Public
+Title:共有の参照
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
+Description:初期化されていないまたは NULL をアサインすることができないスマートポインタ型
+
+[TOC(start:2)]
+
+**共有の参照** は non-nullable 型のシェアードポインタです。つまり空の共有参照を作成してはならず、また共有の参照に NULL をアサインすることもできません。オブジェクトへのアクセスの安全性が確保されるため、より安全でクリーンなコードが書けます。実際に、共有のポインタとは異なり常に有効となるため、共有の参照には`IsValid()`メソッドさえありません。できれば、共有のポインタの代わりに常に共有の参照の使用が推奨されています。
+
+空/nullable 参照が必要な場合、 [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedPointer) を代わりに使用してください。
+
+## 宣言と初期化
+
+共有の参照は常に有効なオブジェクトと初期化され、初期化せずに宣言することはできません。
+
+新規の共有参照の作成例：
+
+	// 新しいノードに共有の参照を作成します
+	TSharedRef<FTreeNode> NodeRef( new FTreeNode() );
+
+初期化せずにまたは NULL をアサインした共有の参照の宣言は絶対にできません。
+
+	TSharedRef<UBool> EmptyBool;			// コンパイルしません !!
+
+##共有参照の使用法
+
+ほとんどの場合、共有参照の使用は共有ポインタの使用に似ています。
+
+	// 新しいノードに共有の参照を作成します
+	TSharedRef<FTreeNode> NodeRef( new FTreeNode() );
+
+	NodeRef->ListChildren();
+	( *NodeRef ).ListChildren();
+	const FTreeNode& NodeVar = NodeRef.Get();
+
+繰り返しになりますが、主な違いは共有参照 をNULL に設定することはできません。
+
+	TSharedRef<FTreeNode> Node = NULL;		// コンパイルしません !!
+
+### ポインタと参照変換
+
+共有参照は共有ポインタを黙示的に変換するため、参照からのポインタの作成は常に安全が確保されます。共有参照を共有ポインタへアサインしたり、共有ポインタを要求するメソッドへ共有参照を渡すなどが例としてあげられます。
+
+	TSharedPtr<FTreeNode> SomeNodePtr = NodeRef;
+
+しかし、ポインタからの変換は潜在的に危険な行為であるため、`ToSharedRef()`関数を使用した明示的な変換の実行が強制されます。
+
+	// 明示的にポインタを参照する。ポインタが無効な場合アサートします！
+	NodeRef = SomeNodePtr.ToSharedRef();
+
+[REGION:note]
+C++ ポインタの`*`オペレータと同じような方法で、`ToSharedRef()`関数の使用はオブジェクトが無効な場合アサートします。
+[/REGION]

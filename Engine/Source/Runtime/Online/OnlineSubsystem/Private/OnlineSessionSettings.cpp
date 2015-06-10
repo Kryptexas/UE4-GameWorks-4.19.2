@@ -133,7 +133,7 @@ template ONLINESUBSYSTEM_API bool FOnlineSessionSettings::Get(FName Key, TArray<
 
 bool FOnlineSessionSettings::Remove(FName Key)
 {
-	return Settings.Remove(Key);
+	return Settings.Remove(Key) > 0;
 }
 
 EOnlineDataAdvertisementType::Type FOnlineSessionSettings::GetAdvertisementType(FName Key) const

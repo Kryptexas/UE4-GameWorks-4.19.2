@@ -1,0 +1,126 @@
+﻿INTSourceChangelist:2489703
+Availability:Public
+Title:アクタ＆ジオメトリ
+Crumbs:%ROOT%, Engine
+Description:アクタの配置と操作テクニックを含む、レベルデザインにおけるアクタとアクタの使用方法の定義
+Navigation:topic
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Next Topic](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/Actors/Placement "%Engine/Actors/Placement:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		Programming_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/Programming/Beginner)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+[REGION:banner]
+![](actorBanner.png)
+[/REGION]
+
+<!-- 最も基本的なレベルでは、[**アクタ**](Gameplay/UnrealTerminology) はレベルに配置可能、または [スポーン/インスタンス化](Gameplay/HowTo/SpawnAndDestroyActors) できるゲームプレイ オブジェクトです。アンリアル エンジン 4 は、非常に一般的に使用されるケースを自動的に処理します。例えば、**コンテンツ ブラウザ** からスタティックメッシュをレベルにドラッグすると、**スタティックメッシュ アクタ** が得られます。
+-->
+
+[INCLUDE:Shared/Glossary/A#glossary_actor]
+
+ライト、スタティックメッシュ、パーティクルシステム エミッタ アクタやその他、どのアクタのタイプをレベルで使用しても、シーンにおける作成方法および操作方法に関する基礎が少々必要になります。
+
+このプロセスには、アクタの配置、アクタの選択、アクタの位置決め、そしてアクタの修正など必要不可欠な作業がいくつかあります。つまり、 
+レベルを作成するには、アクタをマップへ配置および移動して環境を構築します。 
+そして適切な外観や動きをするようにアクタのプロパティを修正します。
+
+## アクタの作業
+
+[REGION:topics half]
+%Engine/Actors/Placement:topiccompact%
+%Engine/Actors/Selection:topiccompact%
+%Engine/Actors/Transform:topiccompact%
+%Engine/Actors/Grouping:topiccompact%
+[/REGION]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Actors/Types "%Engine/Actors/Types:description%")
+	[/PARAM]
+	[PARAM:links]	
+	* [スタティックメッシュ アクタ](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
+	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
+	* [ジオメトリ ブラシ アクタ](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
+	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
+	* [](Engine/Actors/DecalActor "%Engine/Actors/DecalActor:description%")
+	* [](Engine/Actors/FogEffects "%Engine/Actors/FogEffects:description%")
+	* [](Engine/Actors/TargetPoint "%Engine/Actors/TargetPoint:description%")
+	* [](Engine/Actors/Mobility "%Engine/Actors/Mobility:description%")
+	* [](Engine/Actors/PlayerStart "%Engine/Actors/PlayerStart:description%")
+	* [](Engine/Actors/CameraActors "%Engine/Actors/CameraActors:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+%playlistnav%

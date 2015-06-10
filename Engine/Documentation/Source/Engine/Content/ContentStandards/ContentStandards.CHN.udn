@@ -1,0 +1,88 @@
+﻿Availability:Public
+Title:外部内容开发标准
+Crumbs: %ROOT%, Engine/Content
+Description:应用到表面上的材质所使用的图像资源或者HUD在屏幕上描画的图像资源。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/ContentStandards:title%](Engine/Content/ContentStandards/ContentCreation.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/ContentStandards:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/ContentStandards:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/ContentStandards]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/ContentStandards:title%](Engine/Content/ContentStandards/ContentCreation.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/ContentStandards:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/ContentStandards:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/ContentStandards]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2 end:2)]
+
+## 概述
+
+以下列表是创建虚幻引擎内容所需要考虑的制作标准。尽管您的 _个人_ 项目可以使用您期望的任何标准，但是任何您想发布的内容都应该符合以下这些标准。
+
+## 静态网格物体 (3D 模型)标准
+
+* **文件格式:** FBX.
+* **比例:** 1 虚幻单位 = 1 厘米(cm)。
+* **原点(支点):** 应该位于方便放置的位置处，一般位于对象的底部中心处。
+* **朝向:** 所有模型 _朝前_ 的面都应该朝向 **正X-轴** 方向。
+* **UV 布局(贴图坐标):** 网格物体可以使用重叠的UV补丁块来最大化地利用贴图。但是，它们应该具有单独的UV通道，尤其是对于光照贴图来说，它的所有UV块都应该均匀分布，不能有任何重叠。注意，光照贴图UV可以在[静态网格物体编辑器](Engine\Content\Types\StaticMeshes\Editor)中生成，但是在您的3D包中创建的光照贴图UV可以提供额外的可编辑性。
+* **材质:** 所有网格物体应该应用一致的材质。
+* **顶点法线:** 如果您模型的视觉效果质量要求具有自定义的顶点法线(也就是，平滑组)，那么请您确保从3D包中导出这些顶点法线，并在导入您内容时将它们导入到UE4中。
+* **最大顶点数量:** 对于移动设备来说，每个网格物体最多可以有 **65,535** 个顶点。在其他平台上，比如PC上，您会受到控制台的限制，应该进行相应测试。
+* **碰撞:** 任何地方都应用碰撞，网格物体应该应用碰撞。请参照[静态网格物体碰撞参考指南](Engine\Physics\Collision\Reference)获得更多详情。
+
+
+## 骨架网格物体标准(通过骨架产生动画的网格物体)
+
+* **文件格式:** FBX.
+* **骨架:** 所有骨架网格物体应该应用对应的兼容骨架资源。但是，具有相同骨架层次结构的骨架网格物体可以共享一个骨架资源。
+* **比例:** 1 虚幻单位 = 1 厘米(cm)。
+* **原点(支点):** 应该位于方便放置的地方。对于骨架网格物体来说，这个地方一般恰好在脚底下。
+* **朝向:** 所有模型 _朝前_ 的面都应该朝向 **正X-轴** 方向。
+* **UV 布局(贴图坐标):** 网格物体可以使用重叠的UV补丁块来最大化地利用贴图。但是，它们应该具有单独的UV通道，尤其是对于光照贴图来说，它的所有UV块都应该均匀分布，不能有任何重叠。注意，光照贴图UV可以在[静态网格物体编辑器](Engine\Content\Types\StaticMeshes\Editor)中生成，但是在您的3D包中创建的光照贴图UV可以提供额外的可编辑性。
+* **材质:** 所有网格物体应该应用一致的材质。
+* **顶点法线:** 如果您模型的视觉效果质量要求具有自定义的顶点法线(也就是，平滑组)，那么请您确保从3D包中导出这些顶点法线，并在导入您内容时将它们导入到UE4中。
+* **最大顶点数量:** 对于移动设备来说，每个网格物体最多可以有 **65,535** 个顶点。在其他平台上，比如PC上，您会受到控制台的限制，应该进行相应测试。
+* **碰撞:** 所有骨架网格物体应该应用对应的物理资源。这些物理资源可以在导入到UE4过程中生成。请参照[物理资源工具 (PhAT) User Guide](Engine\Physics\PhAT\UserGuide)获得更多信息。
+
+## 贴图
+
+* **格式:**
+	[INCLUDE:Engine/Content/Types/Textures/Importing#支持的贴图格式]
+* **Dimensions（大小）:** 
+	* 所有贴图的维度大小都应该是2的幂数 (32, 62, 1024, 2048)。
+	* 如果您想使用mipmaps，那么您的贴图不能超过4096像素 (4K)。
+	* 记住一些GPU有硬性限制：8192像素 (8K)。
+	* **Epic创作者的大部分贴图内容都是 2048像素。**
+* **技巧:**
+	* 通常在您贴图的alpha通道中存储蒙板信息是有用的、高效的。

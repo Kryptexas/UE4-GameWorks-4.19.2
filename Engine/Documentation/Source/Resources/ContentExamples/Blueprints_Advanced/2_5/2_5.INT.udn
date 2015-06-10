@@ -1,0 +1,82 @@
+Availability: Public
+Title:2.5 - Child Blueprints
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
+Description:An overview of the Advanced Blueprints example level, example 2.5: Child Blueprints
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Blueprints_Advanced\2_5:title%](blueprint_advanced_2_5_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Blueprints_Advanced\2_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Blueprints_Advanced\2_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Blueprints_Advanced\2_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+![](blueprint_advanced_2_5.png)
+
+## Overview
+
+It is possible to create a child _Blueprint_ based on a parent _Blueprint_, similar to the way you would create a Material Instance of a master Material. The children automatically inherit the functionality of their parent, which can then be augmented, added to, or altered. In this example, the three collectible pickup _Blueprints_ are children of a generic pickup _Blueprint_. 
+
+The parent _Blueprint_ is **BP_Pickup_Parent_C**, and the three child _Blueprints_ are:
+
+*  **BP_Pickup_Child_Health**
+* **BP_Pickup_Child_Coin**
+* **BP_Pickup_Child_Cupcake**
+
+## Parent Blueprint's Event Graph
+
+[EXCERPT:CoinParent]
+
+[REGION:lightbox]
+[![](AdvBP_2_5_Parent_EventGraph.png)](AdvBP_2_5_Parent_EventGraph.png)
+[/REGION]
+[REGION:caption]
+Click for full size or **right-click** and Save As.
+[/REGION]
+
+
+The parent Blueprint, **BP_Pickup_Parent**, contains script for basic pickup behavior, such as a timeline animation to make the pickup spin and float, and a sequence for collecting the pickup. 
+The child Blueprints inherit all of this script, but have additional script for when they are collected, so that each pickup does something different while sharing the same basic features. 
+This is useful because any updates made to the parent Blueprint's script will also apply to all its child Blueprints.
+
+
+The **OnPickedUp** [event dispatcher](Engine/Blueprints\UserGuide\EventDispatcher) is called when the player's Pawn overlaps the **Pickup Trigger** _SphereComponent_. Each child _Blueprint_ binds a different 
+event to **OnPickedUp**, so that a different string prints when the player collects each pickup and **OnPickedUp** is called.
+[/EXCERPT:CoinParent]
+
+## Child Blueprints' Event Graph
+
+[EXCERPT:CoinChild]
+[REGION:lightbox]
+[![](AdvBP_2_5_Child1_EventGraph.png)](AdvBP_2_5_Child1_EventGraph.png)
+[/REGION]
+[REGION:caption]
+Click for full size or **right-click** and Save As.
+[/REGION]
+
+
+
+As a rule, Blueprint graphs cannot contain duplicates of the same event, so if both the parent script and the child script each contain a **ReceiveBeginPlay** event, only the event in the parent script will fire. You can get around this in the child script by **right-clicking** an event and selecting **Add call to parent function**. This will create a function that will trigger the corresponding event in the parent script when it is called.
+
+[/EXCERPT:CoinChild]
+
+[/REGION]

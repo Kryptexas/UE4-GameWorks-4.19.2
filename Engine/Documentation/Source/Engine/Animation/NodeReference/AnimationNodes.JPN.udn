@@ -1,0 +1,54 @@
+﻿INTSourceChangelist:2350233
+Availability:Public
+Title:Animation ノードの参照
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Animation ブループリントに使用できる各種 Animation ノードの説明
+
+[EXCERPT:Intro]
+_Animation ブループリント_ は、ブレンディング、直接的な骨格操作など、入力ポーズのオペレーションを実行するために、 
+グラフ内のさまざまなノードを活用します。エンジンの Animation ノードには、イベント、ブレンド ノード、スケルタル コントローラー、空間、変換のノードなど、 
+特徴的を持つタイプが幾つか存在します。 
+
+[/EXCERPT:Intro]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	EventGraph ノード
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Animation/NodeReference/Events "%Engine/Animation/NodeReference/Events:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	AnimGraph ノード
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Animation/NodeReference/Blend "%Engine/Animation/NodeReference/Blend:description%")
+	* [](Engine/Animation/NodeReference/SkeletalControls "%Engine/Animation/NodeReference/SkeletalControls:description%")
+	* [](Engine/Animation/NodeReference/SpaceConversion "%Engine/Animation/NodeReference/SpaceConversion:description%")
+	* [](Engine/Animation/NodeReference/Fabrik "%Engine/Animation/NodeReference/Fabrik:description%")
+	[/PARAM]
+[/OBJECT]
+
+## ピンとプロパティ
+
+Animation ノードには、入力、出力両方のピンがあります。ピンの値は 
+**EventGraph** または **AnimGraph** 、および **[詳細]** パネルで編集可能なプロパティへ渡されます。ピンは、以下のいずれかになります。 
+データを変数もしくは _純粋_ 関数から受け取る通常の _ブループリント_ にあるノードで見つかるピンと同一、 
+または実行フローを決定する 
+通常の _ブループリント_ にある _実行ピン_ に似た _ポーズピン_ です。
+
+データピンはその他のピンと同様に実質的にはプロパティで、 **[詳細]** パネルでエクスポーズされます。データ ピンは、 
+グラフでノード上のデータピンとしての使用、単純なプロパティの間での切り替えが可能です。データ ピンとしてエクスポーズされた時、 
+プロパティは値とリンク付けをすることによってグラフでのみ修正が可能です。データピンとしてエクスポーズされない時は、 
+プロパティの修正は **[詳細]** パネルでのみ修正ができます。

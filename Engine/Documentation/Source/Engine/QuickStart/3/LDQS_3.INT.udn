@@ -1,0 +1,131 @@
+﻿Availability: Public
+Title:3. Place Actors
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:Placing and Manipulating Actors is the foundation of building any level.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/QuickStart/2 "%Engine/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/QuickStart/4 "%Engine/QuickStart/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+The concept of "placement" is something that extends to many portions of the editor. It almost always involves clicking and dragging something into the level viewport.
+
+**Place Mode** in the **Modes Panel** enables you place many commonly used **Actors**, like lights and geometry. In the following steps, you will place a floor, Directional Light, Atmospheric Fog Actor and a Player Start Actor. 
+
+[REGION:tip]
+In the simplest of terms, an **Actor** is any object that can be placed into a level, and in your time creating levels with Unreal Engine 4, you will place, move, and edit many **Actors**.
+
+For more information on **Actors**, see: [**Actors & Geometry**](Engine\Actors).
+[/REGION]
+
+First you will need a floor to place everything on, for this, use a Box Geometry Actor.
+
+1. In the **Modes Panel**, with **Place** mode enabled, click the **BSP** Category.
+1. Place a Box Geometry Actor from the **Modes Panel** by clicking and dragging it into the level.
+
+	![](Engine/QuickStart/4/placeBox.png)
+
+	_Upon releasing the **Left Mouse Button**, the **Box Brush** will be added to the level._
+
+	![](place2.png)
+
+1. With the Box selected, in the **Details** panel (lower-right window of the editor), set **Location** and **Rotation** all to **0**. 
+
+1. Set the **Scale** to **4 x 4 x 0.10** to create a floor looking surface. 
+
+	![](resize_floor.png)
+
+1. With the floor placed and positioned, switch to the **Lights** category in the **Modes Panel**.
+
+1. Place a **Directional Light** into the level, on top of the floor box.
+
+	![](Engine/QuickStart/4/placeLight.png)
+	
+1. To make it easier to find, **Move** it up above the floor by switching to the **Translation Tool** ("**W**" key).
+
+1. Click and drag the Z Axis (Blue) gizmo on the **Translation Tool**, up from the surface of the floor.
+
+	![](Engine/QuickStart/4/moveLight.png)
+
+	_If the Directional Light is not selected (1), you can **Left-click** on it in the viewport to select it (2). With the light selected, you can then click on and drag the Z Axis upward away from the floor to move the light upwards (3)._ 
+
+1. Switch to the **Visual Effects** category in the **Modes Panel**.
+
+1. Place an **Atmospheric Fog** into the level.
+	
+	![](Engine/QuickStart/4/placeFog.png)
+	
+	_The **Atmospheric Fog** Actor will add a basic sky to the scene and the viewport will become lit instead of black._
+
+1. Switch to the **Basic** category in the **Modes Panel**.
+
+1. Place a **Player Start** in the level.
+
+	![](Engine/QuickStart/4/placeStart.png)
+
+1. The **Player Start Actor** in the image above is facing down the X Axis (Red) of the Translation gizmo, which means it is pointing off the edge of the Floor. You will need to rotate it so it faces towards the center of the floor by using the **Rotation Tool**. Enable the **Rotation Tool** by pressing the "**E**" key inside the viewport.
+1. Rotate the **Player Start Actor** by clicking and dragging on the Z Axis (Blue) arc gizmo so that the light blue arrow on the **Player Start Actor** faces in towards the center of the floor.
+
+	![](rotate1.png) ![](rotate2.png)(h:320)
+
+1. Switch to the **Volumes** category in the **Modes Panel**.
+1. Place a **Lightmass Importance Volume** in the level.
+
+	![](Engine/QuickStart/4/placeVolume.png)
+
+	_The **Lightmass Importance Volume** is used to control and concentrate lighting and shadowing affects within the volume. See [**Lightmass Basics**](Engine/Rendering/LightingAndShadows/Lightmass/Basics) for more information._
+	
+1. The **Lightmass Importance Volume** will be the same size as the floor, but we need it to be larger so it can encompass everything we are going to place in the level. Switch to the **Scale Tool** by pressing the "**R**" key.
+
+1. Click and drag on each axis of the **Scale Tool** so that the **Lightmass Importance Volume** is larger than the floor box.
+
+	![](Engine/QuickStart/4/scaleVolume.png)
+
+	_Above the viewport's render mode has been set to **Unlit** (**Alt+3**) to see the volume more clearly (press **Alt+4** to return to **Lit**)._
+
+At this point, all the Actors you have placed have come from the **Modes Panel**, but you can also place things from the **Content Browser**. 
+
+Locate the **Content Browser**, it looks like this:
+
+![](Engine/QuickStart/4/contentBrowser.png)
+
+From here, you can place things like Static Meshes, Skeletal Meshes, Blueprints, and you can even place Materials onto Actors already placed in the level. For more information on the **Content Browser**, see: [**Content Browser**](Engine\Content\Browser). 
+
+Let's add some **Static Meshes** to the level: 
+	
+1. Included in the **Starter Content** is a props folder. **Left-click** on the **Props** folder in the **Asset Tree** view (highlighted below). 
+
+	![](Engine/QuickStart/4/openProps.png)
+
+	_The **Content Window** (right-side of the **Content Browser**) will become populated with assets that are located inside that folder._
+
+1. Scroll down and find the Static Mesh asset named **SM_TableRound**.
+
+	![](Engine/QuickStart/4/findSMTableRound.png)
+
+1. Click and drag the **SM_TableRound** Static Mesh asset into the level.
+
+	![](Engine/QuickStart/4/placeTable.png)
+
+1. Using what you have learned, make a small scene by adding more Actors from the **Modes Panel** and **Content Browser**.  
+
+	![](Engine/QuickStart/4/placeThings.png)
+
+	_Place some **Point Lights**, more **Props** and some walls with a roof from the **Architecture** folder!_
+
+In the next section, you will learn how to edit the Actors you have placed in the level.
+
+%Steps%

@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:2087454
+Availability:Public
+Title:立方体贴图工具
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:关于用于创建立方体贴图的Nvidia和AMD工具的概述。
+
+## 概述
+
+如果您有适当的工具，那么创建立方体贴图的过程非常简单。本文介绍了用于生成立方体贴图的几个有用的工具。
+
+
+### 针对Adobe Photoshop的NVIDIA贴图工具
+
+其中最常用的一个工具是针对Adobe Photoshop的NVIDIA Texture Tools插件。该工具集可以创建DDS贴图、立方体贴图及法线贴图。
+
+您可以从 [**NVIDIA**](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop)获得该插件。
+
+[REGION:note]
+	目前，当您尝试导出16-位的浮点型(HDR)立方体贴图时，NVidia插件会产生错误。想创建这种贴图的人可以考虑不提供支持的ATI Cubemap Generator。
+[/REGION]
+
+![NvidiaExport.png](NvidiaExport.png)
+
+### AMD CubeMapGen
+
+另外，您可以使用AMD CubeMapGen来生成立方体贴图。该工具可以创建16位的浮点型立方体贴图。但是，请注意以下事项：
+
+1. 官方已经结束了对该工具的开发，AMD不再提供相关支持。
+2. 该工具使用Y-朝上的世界朝向，这意味着您必须考虑坐标轴转换，以便使得贴图能在虚幻引擎4中正常应用。
+
+
+您可以直接从 [**AMD**](http://developer.amd.com/tools-and-sdks/archive/legacy-cpu-gpu-tools/cubemapgen/)下载该工具。
+
+![AMDCubeMapGen.png](AMDCubeMapGen.png)(w:600)
+
+### 其他工具
+
+Epic Games也会利用其它工具来创建立方体贴图图片，包括：
+
+1. HDR Light Studio，可以从[http://www.hdrlightstudio.com/](http://www.hdrlightstudio.com/)获得。
+
+2. VUE可以输出全景HDR图片，这对于包含天空的HDR是非常有用的。[http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/](http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/)
+
+3. 如果您使用Mental Ray进行渲染，那么你可以使用Wrap Around (lume)镜头着色器。
+
+4. 您可以从各种网站上购买灯光探测图片。

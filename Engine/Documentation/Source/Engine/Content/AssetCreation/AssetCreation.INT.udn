@@ -1,0 +1,97 @@
+Availability:Public
+Title: Asset Creation
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:Explanation of where various assets will be created - within Unreal Editor or externally - along with links to FBX pipeline documentation.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/AssetCreation:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/AssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/AssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/AssetCreation:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/AssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/AssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:banner]
+![%Engine/Content/FBX:title%](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+## Editor-Created Content Vs. Imported Content
+
+Not all of the content you need for your game is intended to be created within the Editor. Most of your artistic assets will be created externally, using such tools as 3ds Max, Maya, Photoshop, ZBrush, and others. Below is a very general breakdown of the types of assets that will be created in the Editor versus those that will be created externally.
+
+|Asset Creation Locations||
+| ------------------------ | ---------------------------------- |
+| [REGION:tablesection]Created in Unreal Editor[/REGION] | [REGION:tablesection]Created Using External Application[/REGION] |
+| [INCLUDE:#InEditor] |[INCLUDE:#External]|
+
+<!------------------------------
+
+
+[EXCERPT:InEditor]
+* Game Levels
+* Materials
+* Particle Systems
+* Cinematic Sequences
+* Blueprint Scripts
+* AI Navigation Meshes
+* Precalculated Light Maps
+* Level Lights
+[/EXCERPT:InEditor]
+
+[EXCERPT:External]
+* Static Meshes
+* Skeletal Meshes
+* Skeletal Animation
+* Textures
+* Sounds (WAVs)
+* IES Light Profiles
+* Nvidia APEX files (APB and APX)
+[/EXCERPT:External]
+--------------------->
+
+
+## External Asset Creation
+
+Below are some links to creating external assets for Unreal Engine 4.
+
+
+[REGION:topics half]
+%Engine/Content/FBX:Topic%
+[INCLUDE:Engine/Content/Types#Types]
+%Engine/Content/ContentStandards:topic%
+[/REGION]
+
+

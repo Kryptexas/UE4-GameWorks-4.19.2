@@ -1,0 +1,312 @@
+﻿INTSourceChangelist:2519916
+Availability:Public
+Title:物理アセットツール ユーザーガイド
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
+Description:スケルタル メッシュに対して物理アセットを作成する物理アセットツールの使用方法
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/UserGuide:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhAT/UserGuide:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhAT/UserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhAT/UserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Phat/UserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+**Physics Asset ツール** (物理アセットツール)は **スケルタル メッシュ** を使用して **物理アセット** を作成するためのツールです。ゼロの状態からフルセットアップのラグドールをビルドしたり、オートメーション ツールを使って物理ボディの基本セットや物理コンストレイントを作成することができます。
+
+このページでは、Physics Asset ツールの中で最も一般的な動作のための手順を順番に説明していきます。
+
+## 新規の物理アセット
+
+スケルタル メッシュをインポートする場合、インポートされているスケルタル メッシュに対し物理アセットを生成するオプションがあります。インポートされたファイルが処理されると、[New Asset] ダイアログが表示されます。
+
+[REGION:raw]
+![](PhATUG_ImportPA.png)
+[/REGION]
+
+ただし、後からスケルタル メッシュに対して物理アセットを作成する必要が出てきた場合には、次の手順を行います。
+
+1. 物理アセットに追加したいスケルタル メッシュ アセットを 
+ **コンテンツ ブラウザ** から見つけます。
+1. **コンテンツ ブラウザ** の **スケルタル メッシュ** を **右クリック** して、 **コンテキスト メニューを右クリック** して **[Create]** から **[Create Physics Asset]** を表示します。
+1. ここで設定をします。
+
+	![](Shared\PhAT\PhAT_restetDefault.png)
+
+1. **[OK]** をクリックします。
+
+## 物理アセットの編集
+
+1. **コンテンツ ブラウザ** に Physics Asset があります。
+
+	![](Engine/Physics\PhysicalMaterials\PhysMatUserGuide\PhysMat_PhAT_02.png)
+
+1. その中を **ダブルクリック** して開きます。
+
+	![](PhATUG_FullWindow.png)(w:900)
+
+
+##物理ボディ
+
+###物理ボディの編集
+
+1. [Body Editing Mode] ![](Shared\Icons\icon_PHatMode_Body_40x.png) を有効にします。
+1. ビューポートまたは **[Hierarchy] ペイン** で物理ボディを選択します。
+	* 探している物理ボディが表示されていない場合は、 **ビューポート** から **[Modes]** を選択し **[MeshRender Mode]** の **[Wireframe/None]** を使ってスケルタル メッシュの可視性を調節します。
+1. 平行移動、回転、スケールツールを使って物理ボディを移動、回転、スケールして、スケルタル メッシュおよびスケルタル ジョイントに合わせます。
+1. **[Details]** パネルで 物理ボディのプロパティを編集します。
+1. _Collision On_ と _Collision Off_ を使って、現在の物理ボディと物理アセットの物理ボディ間のコリジョンを有効あるいは無効にします。現在選択中の物理ボディと衝突できる物理ボディは全てブルー、衝突できない物理ボディはグレーになります。
+1. ねじれたジョイントで手首が形成される等、ひと続きのボディが 1 つの動作をする場合、望ましくない物理シミュレーション ビヘイビアにならないように _Weld (結合)_ ツールを使用します。結合された物理ボディは黄色くなります。
+1. 頻繁に [Save] ![](Shared\Icons\icon_SaveAsset_40x.png) で保存してください。
+
+Physics Asset ツールで利用できる各種ボタンおよびプロパティ情報については、 [Physics Asset ツール リファレンス](Engine/Physics\PhAT\Reference) および [物理アセット プロパティ リファレンス](Engine/Physics\PhAT\Properties) をご覧ください。
+
+[PUBLISH:licensee]
+[REGION:note]
+チェンジリスト #1977557 の段階で、物理ボディおよび物理コンストレイントに対して複数選択が有効になっているので、複数のボディあるいはコンストレイントを同時に修正することができます。
+[/REGION]
+[/PUBLISH]
+
+###物理ボディの削除
+
+1. [Body Editing Mode] ![](Shared\Icons\icon_PHatMode_Body_40x.png) を有効にします。
+1. 削除したい物理ボディを選択します。
+	* 探している物理ボディが見えにくい場合は、 **ビューポート > [Modes] >し [MeshRender Mode] > [Wireframe/None]** の順に選択してスケルタル メッシュの可視性を調節します。
+1. **[Delete]** キーを押します。
+
+	![](Shared\PhAT\PhAT_DelBone.png)
+
+###物理ボディの新規作成
+
+![](PhATUG_addBody.png)(w:900)
+
+1. 既に **[Hierarchy]** パネルにある物理ボディあるいはボーンを **右クリック** します。
+1. 追加したい物理ボディのタイプをコンテキスト メニューからクリックして選択します。
+
+	**[Hierarchy]** パネルにボーンにまだ物理ボディがないと、 **右クリック** のコンテキスト メニュー オプションには [Add Body] しか表示されません。
+
+	最後に、物理ボディをもたないボーンを **[Hierarchy]** パネルで **ダブルクリック** して「ボディを追加」します。
+
+
+### 物理ボディ間のコリジョンの有効化 / 無効化
+
+[REGION:simpletable]
+| --- | --- |
+|[INCLUDE:#ImgColOn]| [INCLUDE:#ColOn] |
+|[INCLUDE:#ImgColOff]| [INCLUDE:#ColOff] |
+[/REGION]
+
+<!--
+
+[EXCERPT:ImgColOn]
+[REGION:lightbox]
+[![](Shared\PhAT\PhAT_collisionOn.png)(w:350)](Shared\PhAT\PhAT_collisionOn.png)
+[/REGION]
+[/EXCERPT:ImgColOn]
+
+[EXCERPT:ImgColOff]
+[REGION:lightbox]
+[![](Shared\PhAT\PhAT_collisionOff.png)(w:350)](Shared\PhAT\PhAT_collisionOff.png)
+[/REGION]
+[/EXCERPT:ImgColOff]
+
+[EXCERPT:ColOn]
+[REGION:raw]
+**コリジョンを有効にする**
+
+1. **Ctrl + クリック** で、物理ボディを 2 つ以上選択します。
+1. [Collision On] ![](Shared\Icons\icon_PhAT_EnableCollision_40x.png) ボタンをクリックします。
+
+
+[/REGION]
+[/EXCERPT:ColOn]
+
+[EXCERPT:ColOff]
+**コリジョンを無効化する** 
+
+1. **Ctrl + クリック** で、物理ボディを 2 つ以上選択します。
+1. [Collision Off] ![](Shared\Icons\icon_PhAT_DisableCollision_40x.png) ボタンをクリックします。
+
+[/EXCERPT:ColOff]
+
+-->
+
+
+###結合
+
+物理ボディを結合すると、関連しているスケルタル メッシュ ジョイントをまとめてロックするたけでなく、複数のボディを 1 つのボディとして作用させることができます。1 つの物理ボディを他のボディに結合するには以下を行います。
+
+1. **Ctrl + クリック** で、物理ボディを 2 つ以上選択します。
+1. [Weld] ![](Shared\Icons\icon_PhAT_Weld_40x.png) ボタンをクリックします。
+
+
+現在選択されている物理ボディに結合された物理ボディは全て黄色で表示されます。
+
+
+###物理マテリアル
+
+物理アセットの物理ボディには、それぞれ物理マテリアルを割り当てることができます。物理マテリアルを単一の物理ボディに適用するには、以下の操作を行います。
+
+1. [Body Editing Mode] ![](Shared\Icons\icon_PHatMode_Body_40x.png) を有効にします。
+1. ビューポートまたは **[Hierarchy]** ペインで物理ボディを選択します。
+	* 探している物理ボディが表示されていない場合は、 **ビューポート** から **[Modes]** を選択し **[MeshRender Mode]** の **[Wireframe/None]** を使ってスケルタル メッシュの可視性を調節します。
+1. **[Details]** ペインで Simple Collision Physical Material プロパティを見つけて物理マテリアルを割り当てます。
+
+[REGION:raw]
+![](Engine/Physics\PhysicalMaterials\PhysMatUserGuide\PhysMat_PhAT_04.png)(w:920)
+[/REGION]
+
+
+## コンストレイント
+
+[REGION:note]
+物理コンストレイントの使用についての説明は [物理コンストレイント ユーザー ガイド](Engine/Physics\Constraints\ConstraintsUserGuide) 、プロパティについての説明は [物理コンストレイント リファレンス](Engine/Physics\Constraints\ConstraintsReference) でご覧いただけます。このページでは、物理アセットツール用のワークフローまたは大幅に標準から外れたワークフローのみを説明します。
+[/REGION]
+
+### 物理コンストレイントの編集
+
+1. [Constraint Editing Mode] ![](Shared\Icons\icon_PHatMode_Joint_40x.png) を有効にします。
+1. ビューポートまたは **[Hierarchy]** ペインで物理コンストレイントを選択します。
+1. 平行移動と回転を使って物理コンストレイントを移動と回転を行い、物理コンストレイントが形成する「ジョイント」の回転ポイントを作成します。
+1. **[Details]** パネルで物理コンストレイントのプロパティを編集します。
+
+	[REGION:tip]
+	"**1**" 、 "**2**" 、 "**3**" キーで、 Swing1 、 Swing2 、 Twist を Limited (制限付き) から Locked (ロック) に簡単に切り替えることができます。"**4**" キーで、 1 つは設定を Limited にして、残り 2 つを Locked にすることができます。
+	[/REGION]
+
+1. 頻繁に [Save] ![](Shared\Icons\icon_SaveAsset_40x.png) で保存してください。
+
+
+
+Physics Asset ツールで利用できる各種ボタンおよびプロパティ情報については、 [Physics Asset ツール リファレンス](Engine/Physics\PhAT\Reference) および [物理アセット プロパティ リファレンス](Engine/Physics\PhAT\Properties) をご覧ください。
+
+
+
+
+### 物理コンストレイントを調整する
+
+物理コンストレイントの線形制限あるいは角度制限を使用している場合、それらのアラインメントが表示されます。
+
+![](PhATUG_Limits.png)(w:300 convert:false)
+
+物理コンストレイントを平行移動および回転させて、望みの結果になるように制限を調整します。基本的な言葉で言い換えると、物理コンストレイントが制限された場合、緑の円弧あるいはコーンの構造体に黄色の線が表示されます。線はこの円弧またはコーン内に「制約」されます。
+
+物理コンストレイントとこれらのプロパティに関する詳細は、 [物理コンストレイント ユーザー ガイド](Engine/Physics\Constraints\ConstraintsUserGuide) を参照してください。
+
+
+### 物理コンストレイントの削除
+
+[REGION:note]
+物理コンストレイントを再生成するのは難しいので、削除には注意してください。
+[/REGION]
+
+1. [Constraint Editing Mode] ![](Shared\Icons\icon_PHatMode_Joint_40x.png) を有効にします。
+1. 削除したい物理コンストレイントを選択します。
+1. **[Delete]** キーを押します。
+
+
+### 物理アセットの再生成
+
+[REGION:note]
+物理コンストレイントを再生成するのは難しいので、削除には注意してください。
+[/REGION]
+
+物理コンストレイントの生成は、物理ボディの作成時のみ行われ、アップストリーム生成のみです。肩から物理コンストレイントを削除する場合、上腕の物理ボディを削除 (それにより肘の物理コンストレイントも削除されます) してから上腕の物理ボディを再生成する必要があります。これにより、肩の物理コンストレイントは作成されますが、肘の物理コンストレイントは作成されませんので、このプロセスを腕まで続けなければなりません。
+
+
+### コンストレイントのスナップ機能
+
+物理コンストレイントのスナップ機能は、物理コンストレイントに対し青いロケーターを取り、赤のロケーターに対する位置と回転へスナップします。
+
+[Snap Constraint] ![](Shared\Icons\icon_PhAT_SnapConstraint_40x.png) ボタンを使って現在選択されている物理コンストレイントをスナップします。
+
+
+## 物理ボディと物理コンストレイントの両方
+
+### ボディとコンストレイントのコピー
+
+いずれかのモードの場合、ある物理ボディまたはコンストレイントのプロパティを別の物理ボディまたはコンストレイントへコピーすることができます。
+
+1. データをコピーしたい物理ボディまたはコンストレイントを選択します。
+1. **Ctrl + C** を押します。
+1. データを適用したい物理ボディまたはコンストレイントを選択します。
+1. **Ctrl + V** を押します。
+
+
+この操作は物理ボディの形状をオーバーライトしません。
+
+
+## テスト
+
+**[Simulation]** ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) ボタンをクリックすると、物理アセットをテストできます。
+
+![](Shared\PhAT\PhAT_Sim.png)
+
+**[Simulation]** ボタンの隣のダウンロード用三角印で、 **[Real Simulation]** と **[No Gravity]** へアクセスすることができます。
+
+* **Real Simulation** - 重力を有効にして物理アセット全体をシミュレートします。
+* **No Gravity** - 物理アセット全体をシミュレートしますが重力は有効にせず、無重力環境で物理ボディをいじる時に **ctrl + クリック** します。
+
+	貫通している物理ボディや、制限対象なのに既に制限外にある物理コンストレイントを見つけるのに便利です。
+
+ **[Selected Simulation]** ![](selectedToggle_button.png) を切り替えてから **[Simulation]** ![](Shared\Icons\icon_PhAT_PlaySim_40x.png) ボタンをクリックすれば、ジョイントのチェーンをシミュレートすることもできます。
+
+* **Selected Simulation** - その名の通り、選択している **[Physics Bodies]** (ctrl + クリックで複数の物理ボディを選択可能) **かつ** 選択された物理ボディの階層から下の物理ボディのみをシミュレートします。従って、肩を選択した場合、腕全体がシミュレートされます。
+
+
+
+## 爆発
+
+これは、貫通している 2 つの物理ボディと、お互いから物理ボディを追い出すために莫大な力を加えることでそれを修正しようとしている物理システムが原因です。物理コンストレイントは問題となっている物理ボディと一緒になろうとするので、物理システムはそれらを離す力を適用し続け、非常に不規則で極端な動きを引き起こします。
+
+![](brokenPhAT.png)
+
+これは問題となっている 2 つの物理ボディ間のコリジョンを無効にする、またはそれらが貫通しないように位置またはスケールを変更することで通常解決されます。また、結合された物理ボディは貫通に関わらず 1 つとして動作します。
+
+## ジッター
+
+物理アセットが、激しく跳ね返るのではなく、グラウンド上で震えたりピクピクしている状態でほぼ「崩壊」状態にある場合、その動作を停止して眠らせるように調整する値が幾つかあります。 
+
+まず最初に、 **No Gravity** を使ってシミュレートしてください。コンストレイントが正しく調整されていないと、物理アセットがグラウンドにぶつかる前に修正しようとします。
+
+多くの場合、全ての物理アセットの物理ボディの **Linear** および **Angular Damping** の値は小さくてもアセットの揺れは十分止まります。ただし、 **Linear Damping** で大きい値を使用すると、いくら重力があるとはいえ、物理ボディがワールドを移動する速度が遅くなります。実行されている **Damping** は、「ドラッグ」ではありません。**Damping** はここで実行されているように、「ドラッグ」というよりはむしろ粘質物の間を移動する感じです。
+
+ジッターがまだ起こるようであれば、小さい物理ボディが多いのかもしれません。 [Substepping](Engine/Physics/Substepping) ドキュメントをクリックして参照するか、物理シミュレーションにソリューションを計算させてください。
+
+物理コンストレイントのプロパティの詳細については、 [](Engine/Physics/PhAT/Reference) と [](Engine/Physics/Constraints/ConstraintsReference) をご覧ください。
+

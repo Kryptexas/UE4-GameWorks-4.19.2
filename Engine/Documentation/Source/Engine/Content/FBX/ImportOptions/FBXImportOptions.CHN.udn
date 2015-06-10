@@ -1,0 +1,221 @@
+﻿Availability:Public
+Title:FBX导入选项参考指南
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:对FBX导入选项对话框中可用选项的解释。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/ImportOptions:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/ImportOptions:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/ImportOptions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/ImportOptions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+## 概述
+
+尽管把FBX文件导入虚幻引擎4是一个相对简单的过程，但对调整导入资源仍有一些选项可供使用。本文将介绍这些选项。
+
+当您使用FBX通道通过 **内容浏览器** 导入内容时，会出现 **FBX Import Options** （FBX导入选项）对话框。导入器将自动检测您正在尝试导入的文件是何种类型，并相应地调整其界面。
+
+
+[EXCERPT:staticMeshes]
+## 静态网格物体选项
+
+下面介绍了使用FBX导入 _StaticMesh（静态网格物体）_ 时可用的选项。
+
+![](StaticMeshImportOptions.png)
+
+| 选项 | 描述|
+| ------ | ----------- |
+| [REGION:tablesection]网格物体[/REGION] ||
+| **Import as Skeletal（导入为骨架）** | 对于静态网格物体: 该项将尝试将此FBX文件导入为骨架网格物体。导入选项将会切换为将正在导入的FBX文件作为骨架网格物体处理。|
+| **Auto Generate Collision（自动生成碰撞）** | 这将会自动生成您的静态网格物体的碰撞。如果在FBX文件中检测到了自定义碰撞，则不使用该项。|
+| **Static Mesh LODGroup（静态网格物体LOD组）** |该下拉菜单允许您选择将该网格物体分配到的LOD组。网格物体LOD组定义了默认的细节层次设置、光照分辨率并允许进行全局设置覆盖（比如，将所有 _SmallProp_ 的LOD降低10%）。网格物体LOD组设置可以基于每个平台或设备概述文件进行覆盖。您可以在导入时选择一个LOD组，并且在 **静态网格物体编辑器** 中可以随时修改它。| 
+| **Replace Vertex Colors（替换顶点颜色）** | 如果启用了这个选项，会将已存网格物体上的顶点颜色替换为FBX文件中的顶点颜色。如果禁用该项，则使用[网格物体描画](Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor)工具在编辑器中描画的顶点颜色。|
+| **Remove Degenerates（删除退化的三角形）** | 如果启用该项，将会在导入过程中删除所发现的退化的三角形。禁用该项将会保留所发现的退化的三角形。一般，应该启用该选项。|
+| **Generate Lightmap UVs(生成光照贴图UV)** | 如果启用该项，那么该导入器将会生成一组唯一的、不重叠的UV，来同静态光照结合使用。|
+| **One Convex Hull per UCX（每个UCX一个凸面壳体）** |该选项强制所有UCX网格物体接收一个凸面壳体。如果禁用该项，那么引擎则把该UCX网格物体拆解为一系列的凸面壳体来获得适当的形状。|
+| **Import Mesh LODs（导入网格物体LODs)** | [INCLUDE:#FBX_LODs] |
+| **Normals（法线）** | [INCLUDE:#NormalsImport] [INCLUDE:#NormalsDesc] |
+| **Combine Meshes(组合网格物体)** |如启用，那么FBX页面中包含的所有静态网格物体都会组合到一个单独的静态网格物体中。| 
+| [REGION:tablesection]材质[/REGION] ||
+| **Import Materials（导入材质）** | [INCLUDE:#FBX_ImportMaterials] |
+| **Import Textures(导入贴图)** | 如启用, 将会把FBX文件中引用的贴图导入到虚幻引擎中。如果 **Import materials** （导入材质）为true，那么无论这项设置为什么，都将总是导入贴图。|
+| **Invert Normal Maps(反转法线贴图)** | 如启用并且正在导入贴图，那么将会反转法线贴图的值。|
+| [REGION:tablesection]其他[/REGION] ||
+| **Override Full Name(覆盖全名)** | 如果该项为TRUE并且FBX文件仅包含一个网格物体，将会使用 _Name(名称）_ 域中指定的名称作为导入的网格物体的全名。否则，将使用[命名规则](#NamingConventions)。|
+| **Convert Scene（转换场景）** | 如果启用该项，那么这将会把FBX场景坐标系统转换为虚幻引擎4坐标系统。|
+
+[/EXCERPT:staticMeshes]
+
+## 骨架网格物体选项
+
+下面介绍了使用FBX导入 _SkeletalMesh(骨架网格物体)_ 时的可用选项。
+
+![](SkeletalMeshFBXOptions.png)
+
+
+| 选项 | 描述|
+| ------ | ----------- |
+| [REGION:tablesection]网格物体[/REGION] ||
+| **Import Mesh（导入网格物体）** | 对于骨架网格物体，禁用该项将会使得导入器尝试将FBX文件导入为动画。|
+| **Import as Skeletal（导入为骨架）** | 对于骨架网格物体，禁用该项将会使得导入器常是将该FBX文件导入为一个静态网格物体。|
+| **Skeleton（骨架）** | 该骨架网格物体应该指向的[骨架](Engine/Animation/Overview#Skeleton)。如果没有选中现有骨架，那么将根据正在导入的骨架网格物体创建一个新骨架。新骨架的名称是该骨架网格物体名称附加上 _Skeleton_ 后缀。|
+| **Update Skeleton Reference Pose（更新骨架参考姿势）** | 如果启用该项，那么将会把正在导入的 骨架网格物体/动画 的骨架资源的参考姿势更新为正在导入的FBX文件中的参考姿势。|
+| **Use T0As Ref Pose(使用T0作为参考姿势)** | 如启用,那么将使用动画轨迹的首帧(帧0)替换骨架网格物体的参考姿势。|
+| **Preserve Smoothing Group(保留平滑组)** | 如启用，那么将对具有不匹配的平滑组的三角形进行物理分割，复制共享的顶点。|
+| **Import Meshes in Bone Hierarchy（导入骨骼层次结构的网格物体）** |如启用，骨骼层次结构的网格物体将被导入，而不是转换到骨骼中。|
+| **Import Morph Targets（导入顶点变形目标）** | 如果启用该项，则从FBX文件中随同骨架网格物体一同导入 [顶点变形目标](Engine/Content/FBX/MorphTargets)。|
+| **Import Mesh LODs(导入网格物体LOD)** | 如果启用该选项，那么将根据文件中定义的LOD创建虚幻网格物体的LOD模型。否则，则仅从LOD组中导入基本的网格物体。对于骨架网格物体来说，LOD模型可以植皮到同样的骨架或不同的骨架上。如果LOD模型被植皮到了不同的骨架上，那么它必须满足虚幻引擎LOD的要求，但是根骨骼的名称是不同的，因为FBX导入器会自动地重命名根骨骼。|
+| **Normal Import Method（法线导入方法）** | 允许控制如何处理法线。选项如下所示： [INCLUDE:#NormalsDesc] |
+| **Create PhysicsAsset（创建物理资源）** | 如果启用该项，将会为导入的骨架网格物体生成一个新的物理资源。该物理资源主要由球体构成(除了根部是胶囊体或SphrL对象)，所有旋转轴上没有任何约束，完全锁定定位轴。|
+| **Select PhysicsAsset（选择物理资源）** | 如果禁用了‘创建物理资源’项，那么您可以选择一个现有物理资源，或者选择 **none(无)** 来简单使得骨架网格物体没有关联的物理资源。|
+| [REGION:tablesection]动画[/REGION] ||
+| **Import Animation（导入动画）** | 如果启用该项，则从FBX文件中随同骨架网格物体一同导入[动画](Engine/Content/FBX/Animations)。可以在该文本框中输入该动画的名称来覆盖默认命名。|
+| **Animation Length（动画长度）** | [INCLUDE:#animlength] |
+| **Start Frame（起始帧）** |当在 **Animation Length（动画长度)** 中使用了 _Set Range（设置范围)_ 项时，该项允许您设置您想导入的动画的起始帧。|
+| **End  Frame（结束帧）** |当在 **Animation Length（动画长度)** 中使用了 _Set Range（设置范围)_ 项时，该项允许您设置您想导入的动画的结束帧。|
+| **Import Custom Attribute(导入自定义属性)** | 这将会把自定义属性导入为动画曲线。|
+| **Animation Name（动画名称）** | 分配给该动画的名称。如果没有输入任何名称，则使用[命名规则](#NamingConventions)。|
+| **Use Default Sample Rate（使用默认采样率）** |如果为 _true_ , 则为该动画使用默认采样率，即每秒钟30帧。如果未选中该项，系统则根据FBX文件决定采样率。|
+| [REGION:tablesection]材质[/REGION] ||
+| **Import Materials（导入材质）** | [INCLUDE:#FBX_ImportMaterials] |
+| **Import Textures(导入贴图)** | 如启用, 将会把FBX文件中引用的贴图导入到虚幻引擎中。如果 **Import materials** （导入材质）为true，那么无论这项设置为什么将总是导入贴图。|
+| **Invert Normal Maps(反转法线贴图)** | 如启用并且正在导入贴图，那么将会反转法线贴图的值。|
+| [REGION:tablesection]其他[/REGION] ||
+| **Override Full Name(覆盖全名)** | 如果该项为TRUE并且FBX文件仅包含一个网格物体，将会使用 _Name(名称）_ 域中指定的名称作为导入的网格物体的全名。否则，将使用[命名规则](#NamingConventions)。|
+| **Convert Scene（转换场景）** | 如果启用该项，那么这将会把FBX场景坐标系统转换为虚幻引擎4坐标系统。|
+
+## 动画选项
+
+以下介绍了当使用FBX导入一个动画时可用的选项：
+
+![](AnimationImportOptions.png)
+
+
+| 选项 | 描述|
+| ------ | ----------- |
+| [REGION:tablesection]网格物体[/REGION] ||
+| **Skeleton（骨架）** | 该骨架网格物体应该指向的[骨架](Engine/Animation/Overview#Skeleton)。如果没有选中现有骨架，那么将从正在导入的骨架网格物体创建一个新骨架。新骨架的名称是该骨架网格物体名称附加上 _Skeleton_ 后缀。|
+| [REGION:tablesection]动画[/REGION] ||
+| **Animation Length（动画长度）** | [INCLUDE:#animlength] |
+| **Start Frame（起始帧）** |当在**Animation Length（动画长度）** 中使用了 _Set Range（设置范围）_ 项时，该项允许您设置您想导入的动画的起始帧。|
+| **End  Frame（结束帧）** |当在**Animation Length（动画长度）** 中使用了 _Set Range（设置范围）_ 项时，该项允许您设置您想导入的动画的结束帧。|
+| **Import Custom Attribute(导入自定义属性)** | 这将会把自定义属性导入为动画曲线。|
+| **Animation Name（动画名称）** | 分配给该动画的名称。如果没有输入任何名称，则使用[命名规则](#NamingConventions)。|
+| **Use Default Sample Rate（使用默认采样率）** |如果为 _true_ , 则为该动画使用默认采样率，即每秒钟30帧。如果未选中该项，系统则根据FBX文件决定采样率。|
+| [REGION:tablesection]其他[/REGION] ||
+| **Override Full Name(覆盖全名)** | 如果该项为TRUE并且FBX文件仅包含一个网格物体，将会使用 _Name(名称）_ 域中指定的名称作为导入的网格物体的全名。否则，将使用[命名规则](#NamingConventions)。|
+| **Convert Scene（转换场景）** | 如果启用该项，那么这将会把FBX场景坐标系统转换为虚幻引擎4坐标系统。|
+
+
+(#NamingConventions)
+##命名规则
+
+以下表格解释了当启用 **Override FullName(覆盖全名)** 时，将如何命名各种类型的内容。
+
+[REGION:note]
+该表格做了以下假设：
+* **%1** 时正在导入的资源的名称，也就是， **导入路径** 的最后一部分。
+* **%2** 是FBX文件中的网格物体节点名称。对于骨架网格物体，如果它是由多个FBX网格物体组成，那么则使用第一个FBX网格物体名称作为FBX节点名称的一部分。
+[/REGION]
+
+| 内容类型 | 命名规则 |
+| ------------ | ------------ |
+|  **StaticMesh（静态网格物体）**  | [INCLUDE:#StaticMeshNaming] |
+|  **SkeletalMesh（骨架网格物体）**  | [INCLUDE:#SkeletalMeshNaming] |
+|  **AnimationSequence（动画序列）**  | [INCLUDE:#AnimationNaming] |
+|  **MorphTarget（顶点变形目标）**  | [INCLUDE:#MorphTargetNaming] |
+
+
+
+<!--
+[EXCERPT:StaticMeshNaming]
+如果 **Override FullName（覆盖全名）**  是：
+* **启用**
+	* 如果文件中只有一个网格物体 - 则命名为 _%1_
+	* 如果文件中有多个网格物体，且 **Combine Meshes（组合网格物体）** 是:
+		* **启用** - 则命名为 _%1_
+		* **禁用** - 则命名为 _%1\_%2_
+* **禁用**
+	* 如果文件中只有一个网格物体 - 则命名为 _%1\_%2_
+	* 如果文件中有多个网格物体，且 **Combine Meshes（组合网格物体）** 是:
+		* **启用** - 则命名为 _%1_
+		* **禁用** - 则命名为 _%1\_%2_
+[/EXCERPT:StaticMeshNaming]
+
+[EXCERPT:SkeletalMeshNaming]
+如果 **Override FullName（覆盖全名）**  是：
+* **启用**
+	* 如果文件中只有一个网格物体 - 则命名为 _%1_
+	* 如果文件中有多个网格物体 - 则命名为 _%1\_%2_
+* **禁用** - 则命名为 _%1\_%2_
+[/EXCERPT:SkeletalMeshNaming]
+
+[EXCERPT:AnimationNaming]
+如果随同骨架网格物体导入动画：
+* 如果输入了动画名称 (在该示例中假设是 %1 ):
+	* 如果文件中只有一个序列 - 则命名为 _%1_
+	* 如果文件中有多个序列 - 则命名为 _%1\_%2_
+* 如果没有输入名称 - 则命名为 _%1\_%2_
+
+
+如果仅导入动画：
+* 如果文件中只有一个序列 - 则命名为 _%1_
+* 如果文件中有多个序列 - 则命名为 _%1\_%2_
+[/EXCERPT:AnimationNaming]
+
+[EXCERPT:MorphTargetNaming]
+使用FBX文件中的 顶点变形目标节点的名称。
+[/EXCERPT:MorphTargetNaming]
+
+
+[EXCERPT:NormalsImport]
+这个导入选项调整如何处理法线。选项如下所示：
+[/EXCERPT:NormalsImport]
+
+[EXCERPT:NormalsDesc]
+[REGION:simpletable]
+	| **选项** | **描述**|
+	| ---- | ---- |
+	| **Calculate Normals（计算法线）** | 引擎计算法线和切线。从FBX信息中丢弃平滑组和法线信息。|
+	| **Import Normals（导入法线）** |法线从FBX文件中导入，而切线则由引擎计算。|
+	| **Import Normals and Tangents（导入法线和切线）** | 法线和切线都从FBX文件中导入，引擎不需要计算它们。|
+[/REGION]
+[/EXCERPT:NormalsDesc]
+
+
+[EXCERPT:FBX_ImportMaterials]
+[REGION:raw]
+将会在虚幻引擎中创建FBX文件中的每个材质。不仅如此，还会自动导入FBX材质中引用的贴图，如果对应的属性存在，这些贴图将会连接到这些属性上。那些不支持的贴图则留下来不进行处理，等待连接到虚幻材质编辑器上。
+[/REGION]
+[/EXCERPT:FBX_ImportMaterials]
+
+[EXCERPT:FBX_LODs]
+将会根据文件中定义的LOD为虚幻网格物体创建LOD模型。否则，则仅从LOD组中导入基本网格物体。对于骨架网格物体来说，LOD模型可以植皮到同样的骨架或不同的骨架上。如果LOD模型被植皮到了不同的骨架上，那么它必须满足虚幻引擎LOD的要求，但是根骨骼的名称是不同的，因为FBX导入器会自动地重命名根骨骼。
+[/EXCERPT:FBX_LODs]
+
+[EXCERPT:AnimLength]
+[REGION:simpletable]
+	| **选项** | **描述**|
+	| ---- | ---- |
+	| **Exported Time（导出时间）** | 该选项基于导出时定义的内容导入动画帧。|
+	| **Animated Time（动画时间）** | 将会导入具有动画的一系列帧。如果导出范围比FBX文件中的实际动画长，这是非常有用的。|
+	| **Set Range（设置范围）** | 这将启用‘起始帧’和‘结束帧’属性，以便您定义要导入的动画的帧范围。|
+[/REGION]
+[/EXCERPT:AnimLength]
+-->

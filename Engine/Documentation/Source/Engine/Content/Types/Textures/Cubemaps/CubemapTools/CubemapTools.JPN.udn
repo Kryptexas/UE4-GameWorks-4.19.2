@@ -1,0 +1,47 @@
+﻿INTSourceChangelist:2087454
+Availability:Public
+Title:キューブマップ ツール
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:キューブマップの作成に利用できる Nvidia ツールと AMS ツールの概要
+
+## 概要
+
+正しいツールを用意すれば、キューブマップは簡単に構築することができます。このページでは、キューブマップの作成に使われる便利なツールを説明していきます。
+
+
+### Adobe Photoshop 向けの NVIDIA テクスチャ ツール
+
+利用できるツールの中で一般的なものの 1 つは Adobe Photoshop 向けの NVIDIA Texture Tools プラグインです。このツールセットで、 DDS テクスチャ、キューブマップ、法線マップを作成することができます。 
+
+プラグインは [**NVIDIA**](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop) から取得できます。
+
+[REGION:note]
+	現時点では、 NVidia プラグインで 16 ビット浮動小数点 (HDR) キューブマップをエクスポートしようとするとエラーが起こります。そのようなマップの作成をする場合は、サポート対象ではない ATI Cubemap Generator を考慮します。
+[/REGION]
+
+![NvidiaExport.png](NvidiaExport.png)
+
+### AMD CubeMapGen
+
+あるいは AMD CubeMapGen を使用してもキューブマップを作成することができます。このツールは 16 ビット浮動小数点 (HDR) キューブマップを作成することが可能です。ただし、以下の注意事項に留意してください。
+
+1. このツールは正式には製品寿命が終了しており、 AMD によるサポート期限は切れています。
+2.　このツールは Y-Up ワールド方向を使用します。つまり、アンリアルでうまく動作するマップを作成するために軸のシフトを考慮する必要があります。
+
+
+このツールは [**AMD**](http://developer.amd.com/tools-and-sdks/archive/legacy-cpu-gpu-tools/cubemapgen/) から直接ダウンロードが可能です。
+
+![AMDCubeMapGen.png](AMDCubeMapGen.png)(w:600)
+
+### その他のツール
+
+Epic Games は、以下を始めとするキューブマップ画像作成ツールを使用しています。
+
+1. HDR Light Studio： [http://www.hdrlightstudio.com/](http://www.hdrlightstudio.com/) から取得します。
+
+2. VUE はパノラマ HDR 画像の出力が可能で、 HDR がスカイを含む場合に便利です。 [http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/](http://www.e-onsoftware.com/products/vue/vue_10.5_xstream/) から取得します。
+
+3. Mental Ray でレンダリングをすると、 Wrap Around (lume) レンズ シェーダーを利用できます。
+
+4. ライト プローブ画像は様々なウェブサイトから購入することができます。
+

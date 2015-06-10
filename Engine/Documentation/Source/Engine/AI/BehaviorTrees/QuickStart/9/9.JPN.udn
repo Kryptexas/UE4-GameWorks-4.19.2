@@ -1,0 +1,32 @@
+﻿INTSourceChangelist:2482628
+Availability:Public
+Title:9.キャラクターを配置する
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:ステップ 9.キャラクターを配置する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/8 "%Engine/AI/BehaviorTrees/QuickStart/8:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/10 "%Engine/AI/BehaviorTrees/QuickStart/10:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. **コンテンツ ブラウザ** からステップ 3 で作成した **キャラクター** をクリックしレベル内にドラッグします。
+
+[REGION:lightbox]
+[![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
+[/REGION]
+
+
+%Steps%

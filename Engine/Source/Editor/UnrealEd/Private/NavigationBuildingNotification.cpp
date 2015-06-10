@@ -73,15 +73,14 @@ void FNavigationBuildingNotificationImpl::BuildFinished()
 
 	if (EEngine != NULL && (FEditorBuildUtils::IsBuildingNavigationFromUserRequest()))
 	{
+		// remove existing item, if any
+		ClearCompleteNotification();
+
 		FNotificationInfo Info( NSLOCTEXT("NavigationBuild", "NavigationBuildDoneMessage", "Navigation building completed.") );
-		Info.bFireAndForget = false;
+		Info.bFireAndForget = true;
 		Info.bUseThrobber = false;
-		Info.FadeOutDuration = 0.0f;
-		Info.ExpireDuration = 0.0f;
-		Info.ButtonDetails.Add(FNotificationButtonInfo(
-			NSLOCTEXT("NavigationBuild", "NavigationBuildOk","Ok"),
-			FText(),
-			FSimpleDelegate::CreateRaw(this, &FNavigationBuildingNotificationImpl::ClearCompleteNotification)));
+		Info.FadeOutDuration = 3.0f;
+		Info.ExpireDuration = 3.0f;
 
 		NavigationBuiltCompleteNotification = FSlateNotificationManager::Get().AddNotification(Info);
 		if (NavigationBuiltCompleteNotification.IsValid())

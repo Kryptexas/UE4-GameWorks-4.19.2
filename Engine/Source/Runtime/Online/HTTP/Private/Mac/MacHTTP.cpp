@@ -15,6 +15,8 @@ FMacHttpRequest::FMacHttpRequest()
 :	Connection(NULL)
 ,	CompletionStatus(EHttpRequestStatus::NotStarted)
 ,	ProgressBytesSent(0)
+,	StartRequestTime(0.0)
+,	ElapsedTime(0.0f)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FMacHttpRequest()"));
 	Request = [[NSMutableURLRequest alloc] init];
@@ -31,6 +33,7 @@ FMacHttpRequest::~FMacHttpRequest()
 
 FString FMacHttpRequest::GetURL()
 {
+	SCOPED_AUTORELEASE_POOL;
 	FString URL([[Request URL] absoluteString]);
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetURL() - %s"), *URL);
 	return URL;
@@ -39,6 +42,7 @@ FString FMacHttpRequest::GetURL()
 
 void FMacHttpRequest::SetURL(const FString& URL)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetURL() - %s"), *URL);
 	[Request setURL: [NSURL URLWithString: URL.GetNSString()]];
 }
@@ -100,10 +104,7 @@ const TArray<uint8>& FMacHttpRequest::GetContent()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetContent()"));
 	RequestPayload.Empty();
-	RequestPayload.Reserve( GetContentLength() );
-
-	FMemory::Memcpy( RequestPayload.GetData(), [[Request HTTPBody] bytes], RequestPayload.Num() );
-
+	RequestPayload.Append((const uint8*)[[Request HTTPBody] bytes], GetContentLength());
 	return RequestPayload;
 }
 
@@ -158,6 +159,7 @@ void FMacHttpRequest::SetVerb(const FString& Verb)
 
 bool FMacHttpRequest::ProcessRequest()
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::ProcessRequest()"));
 	bool bStarted = false;
 
@@ -199,7 +201,7 @@ FHttpRequestCompleteDelegate& FMacHttpRequest::OnProcessRequestComplete()
 
 FHttpRequestProgressDelegate& FMacHttpRequest::OnRequestProgress() 
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::OnRequestProgress()"));
+	UE_LOG(LogHttp, VeryVerbose, TEXT("FMacHttpRequest::OnRequestProgress()"));
 	return RequestProgressDelegate;
 }
 
@@ -246,6 +248,9 @@ bool FMacHttpRequest::StartRequest()
 		UE_LOG(LogHttp, Warning, TEXT("ProcessRequest failed. Could not initialize Internet connection."));
 		CompletionStatus = EHttpRequestStatus::Failed;
 	}
+	StartRequestTime = FPlatformTime::Seconds();
+	// reset the elapsed time.
+	ElapsedTime = 0.0f;
 
 	return bStarted;
 }
@@ -253,6 +258,7 @@ bool FMacHttpRequest::StartRequest()
 void FMacHttpRequest::FinishedRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::FinishedRequest()"));
+	ElapsedTime = (float)(FPlatformTime::Seconds() - StartRequestTime);
 	if( Response.IsValid() && Response->IsReady() && !Response->HadError())
 	{
 		UE_LOG(LogHttp, Verbose, TEXT("Request succeeded"));
@@ -274,7 +280,10 @@ void FMacHttpRequest::FinishedRequest()
 	CleanupRequest();
 
 	// Remove from global list since processing is now complete
-	FHttpModule::Get().GetHttpManager().RemoveRequest(SharedThis(this));
+	if (FHttpModule::Get().GetHttpManager().IsValidRequest(this))
+	{
+		FHttpModule::Get().GetHttpManager().RemoveRequest(SharedThis(this));
+	}
 }
 
 
@@ -299,7 +308,6 @@ void FMacHttpRequest::CancelRequest()
 	if(Connection != NULL)
 	{
 		[Connection cancel];
-		Connection = NULL;
 	}
 	FinishedRequest();
 }
@@ -322,13 +330,13 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 {
 	if( CompletionStatus == EHttpRequestStatus::Processing || Response->HadError() )
 	{
-		if( OnRequestProgress().IsBound() )
+		if (OnRequestProgress().IsBound())
 		{
-			const int32 NumBytesReceived = Response->GetNumBytesReceived();
-			if( ProgressBytesSent < NumBytesReceived )
+			const int32 BytesWritten = Response->GetNumBytesWritten();
+			const int32 BytesRead = Response->GetNumBytesReceived();
+			if (BytesWritten > 0 || BytesRead > 0)
 			{
-				ProgressBytesSent = NumBytesReceived;
-				OnRequestProgress().Execute(SharedThis(this), NumBytesReceived);
+				OnRequestProgress().Execute(SharedThis(this), BytesWritten, BytesRead);
 			}
 		}
 		if( Response->IsReady() )
@@ -338,6 +346,10 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 	}
 }
 
+float FMacHttpRequest::GetElapsedTime()
+{
+	return ElapsedTime;
+}
 
 
 /****************************************************************************
@@ -346,9 +358,9 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 
 @implementation FHttpResponseMacWrapper
 @synthesize Response;
-@synthesize Payload;
 @synthesize bIsReady;
 @synthesize bHadError;
+@synthesize BytesWritten;
 
 
 -(FHttpResponseMacWrapper*) init
@@ -361,21 +373,29 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 }
 
 
+-(void) connection:(NSURLConnection *)connection didSendBodyData:(NSInteger)bytesWritten totalBytesWritten:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite
+{
+	UE_LOG(LogHttp, Verbose, TEXT("didSendBodyData:(NSInteger)bytesWritten totalBytes:Written:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite"));
+	self.BytesWritten = totalBytesWritten;
+	UE_LOG(LogHttp, Verbose, TEXT("didSendBodyData: totalBytesWritten = %d, totalBytesExpectedToWrite = %d: %p"), totalBytesWritten, totalBytesExpectedToWrite, self);
+}
+
 -(void) connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
 {
 	UE_LOG(LogHttp, Verbose, TEXT("didReceiveResponse:(NSURLResponse *)response"));
 	self.Response = (NSHTTPURLResponse*)response;
 	
 	// presize the payload container if possible
-	self.Payload = [NSMutableData dataWithCapacity:([response expectedContentLength] != NSURLResponseUnknownLength ? [response expectedContentLength] : 0)];
-	UE_LOG(LogHttp, Verbose, TEXT("didReceiveResponse: expectedContentLength = %d. Length = %d: %p"), [response expectedContentLength], [self.Payload length], self);
+	Payload.Empty();
+	Payload.Reserve([response expectedContentLength] != NSURLResponseUnknownLength ? [response expectedContentLength] : 0);
+	UE_LOG(LogHttp, Verbose, TEXT("didReceiveResponse: expectedContentLength = %d. Length = %d: %p"), [response expectedContentLength], Payload.Max(), self);
 }
 
 
 -(void) connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
 {
-	[self.Payload appendData:data];
-	UE_LOG(LogHttp, Verbose, TEXT("didReceiveData with %d bytes. After Append, Payload Length = %d: %p"), [data length], [self.Payload length], self);
+	Payload.Append((const uint8*)[data bytes], [data length]);
+	UE_LOG(LogHttp, Verbose, TEXT("didReceiveData with %d bytes. After Append, Payload Length = %d: %p"), [data length], Payload.Num(), self);
 }
 
 
@@ -394,6 +414,16 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("connectionDidFinishLoading: %p"), self);
 	self.bIsReady = YES;
+}
+
+- (TArray<uint8>&)getPayload
+{
+	return Payload;
+}
+
+-(int32)getBytesWritten
+{
+	return self.BytesWritten;
 }
 
 @end
@@ -416,8 +446,10 @@ FMacHttpResponse::FMacHttpResponse(const FMacHttpRequest& InRequest)
 FMacHttpResponse::~FMacHttpResponse()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::~FMacHttpResponse()"));
-	[[ResponseWrapper Payload] release];
+	[ResponseWrapper getPayload].Empty();
+
 	[ResponseWrapper release];
+	ResponseWrapper = nil;
 }
 
 
@@ -485,7 +517,7 @@ int32 FMacHttpResponse::GetContentLength()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContentLength()"));
 
-	return [[ResponseWrapper Payload] length];
+	return [ResponseWrapper getPayload].Num();
 }
 
 
@@ -497,11 +529,8 @@ const TArray<uint8>& FMacHttpResponse::GetContent()
 	}
 	else
 	{
-		Payload.Empty();
-		Payload.AddZeroed( [[ResponseWrapper Payload] length] );
-	
-		FMemory::Memcpy( Payload.GetData(), [[ResponseWrapper Payload] bytes], [[ResponseWrapper Payload] length] );
-		UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContent() - Num: %i"), [[ResponseWrapper Payload] length]);
+		Payload = [ResponseWrapper getPayload];
+		UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::GetContent() - Num: %i"), [ResponseWrapper getPayload].Num());
 	}
 
 	return Payload;
@@ -565,5 +594,11 @@ bool FMacHttpResponse::HadError()
 
 const int32 FMacHttpResponse::GetNumBytesReceived() const
 {
-	return [[ResponseWrapper Payload] length];
+	return [ResponseWrapper getPayload].Num();
+}
+
+const int32 FMacHttpResponse::GetNumBytesWritten() const
+{
+    int32 NumBytesWritten = [ResponseWrapper getBytesWritten];
+    return NumBytesWritten;
 }

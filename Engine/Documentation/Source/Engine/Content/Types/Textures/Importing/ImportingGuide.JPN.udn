@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2465039
+Availability:Public
+Title:テクスチャのインポート ガイド
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:画像をテクスチャ アセットとしてアンリアル エンジンにインポートするためのガイド
+
+[TOC(start:2)]
+
+## 概要
+
+本ページでは、テクスチャをアンリアル エンジン 4 へインポートするプロセスを説明します。
+
+**コンテンツブラウザ** に関する詳細は、 [コンテンツ ブラウザのリファレンス](Engine/Content/Browser) を参照してください。
+
+
+### 画像 - テクスチャをインポートする
+
+画像テクスチャをインポートするには、 **コンテンツ ブラウザ** から **[Import]** をクリックします。ファイルを見つけて **[Open]** をクリックします。
+
+[REGION:raw]
+![](ContentBrowserImport.png)
+[/REGION]
+
+または、 TutorialShape.fbx を **コンテンツブラウザ** へドラッグ＆クリックします。
+
+サポートされているテクスチャ形式は以下の通りです。
+
+[EXCERPT:SupportedTextureFormats]
+* .bmp
+* .float
+* .pcx
+* .png
+* .psd
+* .tga
+* .jpg
+* .dds - Cubemap Texture (32bits/Channel, 8.8.8.8 ARGB 32 bpp, unsigned) 詳細は [**キューブマップ ツール**](Engine/Content/Types/Textures\Cubemaps\CubemapTools) を参照してください。
+* .hdr - Cubemap Texture (LongLat unwrap)
+[/EXCERPT:SupportedTextureFormats]
+
+<!--
+
+### LOD グループ
+
+エンジン内にインポートされた各テキスチャのために、デフォルトのLODGroupが割り当てられます。これはini ファイルどのテクスチャのミップマップが、特定されたカレントのディティールレベルを基にしてレンダーされるかを決めるためにエンジンで使われます。 
+
+テクスチャがインポートされたら、 [Texture Editor] タブのテクスチャをダブルクリックして開きます。すると LODBias プロパティがエクスポーズされます。LODBias 設定はグループ内にある値でその設定値をオフセットします。
+
+![LODBiasProperty.png](LODBiasProperty.png)
+
+エンジンにインポートするテクスチャは必ず 2 倍になっていなければいけないことに留意してください。例えば、 512x512 、 1024x1024 、512x1024 、2048x256 などです。
+
+例:
+
+TEXTUREGROUP_WORLD に割りあてられた 4096 正方テクスチャ
+
+0 の LODBias 、グループは最高値に設定される、テキスチャは最高のミップレベル (4069) をロードします。
+
+0 の LODBias 、グループは2 ミップレベルをドロップして設定される、テキスチャは 3 番目のミップレベル (1024) をロードします。
+
+1 の LODBias 、グループは2 ミップレベルをドロップして設定される、テキスチャは 4 番目のミップレベル (512) をロードします。
+
+-2 の LODBias 、グループは 2 ミップレベルをドロップして設定される、テキスチャは最高のミップレベル (4096) をロードします。
+
+LOD Group 設定はゲーム固有 ini に存在しています (例：ExampleGame.ini)。それらのグループ設定 (および独自のグループの作成) を操作することで、特定のアセットタイプでどのくらいディティールが使われるかをコントロールできるようになります。
+
+<!--
+### イメージのアニメーション化 - Flipbook テクスチャ
+
+Flipbook テクスチャは、単一のテクスチャとして演算されるイメージのシリーズです。そのため、さまざまなイメージシリーズやマテリアルでのアニメーションのサンプル化が可能です。
+
+Flipbook テクスチャを作成するには、複数のテクスチャをインポートし、 Flipbook プロパティをチェックします。
+
+![GenericBrowser_File-Import_Flipbook.JPG](GenericBrowser_File-Import_Flipbook.JPG)
+-->
+
+-->
+
+## テクスチャのプロパティ
+
+さまざまなテクスチャプロパティの意味の説明については、 [**テクスチャ プロパティ**](Engine/Content/Types/Textures/Properties) を参照してください。
+
+ 
+
+
+
+

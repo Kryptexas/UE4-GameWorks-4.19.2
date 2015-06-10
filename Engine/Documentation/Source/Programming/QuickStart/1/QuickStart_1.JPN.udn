@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:2478927
+Availability:Public
+Title:1.基本プロジェクト設定
+Crumbs:%ROOT%, Programming, Programming/QuickStart
+Description:必要な仕様を使って新規プロジェクトを作成する。
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Programming\QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Programming\QuickStart\2 "%Programming\QuickStart\2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+1. ランチャーから **アンリアル エンジン** を開きます。[](Engine/Basics/Projects/Browser) が表示されます。
+
+1. **[New Project]** タブをクリックして、 **[C++]** タブを選択します。そこで **Basic Code** を選択して開始点をクリーンにします。"With Starter Content" が設定されていることを確認してください。プロジェクト名を入力する必要があるので、ここでは「QuickStart」とします。**[Create Project]** をクリックすると開始します。
+
+	[![](CreateProject.png)](CreateProject.png)
+
+----
+
+**アンリアル エディタ** が新規プロジェクトを開きます。
+
+%Steps%

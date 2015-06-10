@@ -413,6 +413,8 @@ div#utils
 	background : url('/Content/Images/Searchbutton.png') no-repeat left top;
 	outline: none;
 	color: white;
+	margin-top: 39px;
+	float: right;
 }
 
 .SetButton
@@ -425,6 +427,12 @@ div#utils
 	background : url('/Content/Images/Setbutton.png') no-repeat left top;
 	outline: none;
 	color: white;
+}
+
+.searchText {
+	margin: 10px 13px;
+	margin-bottom: 10px;
+	text-decoration: underline;
 }
 
 .SetButtonGreen
@@ -441,14 +449,14 @@ div#utils
 
 #SearchBox #SearchQuery
 {
-	width: 492px;
+	width: 326px;
 	height: 23px;
 	border: none;
 	padding: 0;
 	padding-left: 4px;
 	padding-right: 4px;
 	margin-left: 1em;
-	background-image: url('/Content/Images/RoundedInputBarBlack-500px.png');
+	/*background-image: url('/Content/Images/RoundedInputBarBlack-500px.png');*/
 	background-repeat: no-repeat;
 	outline: none;
 }
@@ -458,17 +466,18 @@ input.date,
 #GameName,
 #BuildVersion
 {
-	width: 67px;
+	width: 70px;
 	height: 23px;
 	border: none;
 	padding: 0;
 	padding-left: 4px;
 	padding-right: 4px;
 	vertical-align: middle;
-	background-image: url('/Content/Images/RoundedInputBarBlack.png');
+	/*background-image: url('/Content/Images/RoundedInputBarBlack.png');*/
 	background-repeat: no-repeat;
 	outline: none;
 	color: black;
+	margin-left: 12px;
 }
 
 .selectedPage
@@ -686,12 +695,12 @@ th a:visited
 
 #CrashDataContainer 
 {
-	margin: 1em;
-	width: 400px;
-	height: 850px;
+	margin: 2px;
+	width: 440px;
+	height: 640px;
 	float: left;
 	background: #2e363f;
-	font-size: 14px;
+	font-size: 12px;
 	border-top: 1px solid black;
 	border-left: 1px solid black;
 	border-right: 1px solid #718698;
@@ -703,21 +712,27 @@ th a:visited
 	clear: both;
 	display: block;
 	float: left;
-	width: 150px;
-	margin: 0.5em 0.5em 0.5em 0.5em;
+	width: 210px;
+	margin: 2px;
 	font-weight: bold;
 	text-align: right;
 	color: #718698;
+
+	/*border:dotted;
+	border-width:1px;*/
 }
 
 #CrashDataContainer dd
 {
 	display: block;
 	float: left;
-	width: 150px;
-	margin: 0.5em 0.5em 0.5em 0.5em;
+	width: 210px;
+	margin: 2px;
 	font-weight: normal;
 	color: #C3CAD0;
+
+	/*border:dotted;
+	border-width:1px;*/
 }
 
 #CallStackContainer
@@ -798,8 +813,10 @@ th a:visited
 #CrashCommandLine,
 #ErrorMessage
 {
-	min-height: 1em;
-	padding: .3em;
+	word-wrap: break-word;
+	width: 1024px;
+	max-height: 128px;
+	padding: 4px;
 	background-color: #eeeeee;
 	border: 1px solid #ccc;
 	color: black;
@@ -812,34 +829,91 @@ th a:visited
 	border: 1px solid #ccc;
 }
 
-/* Custom styles for the dashboard
+
+/* User admin screen
 ----------------------------------------------------------*/
 
-#DashBoard
+#UserNames
 {
-	min-width: 1600px;
-	min-height: 1200px;
-}
-
-#DashBoard h2
-{
-	margin: 0;
 	padding: 1em;
+}
+
+#UserNames form
+{
+	font-weight: bold;
+	font-size: 1.25em;
+	color: #c3cad0;
+}
+
+#searchTypeBox {
+	width: 13%;
+	display: inline-block;
+	vertical-align: top;
+}
+
+#searchTypeBox ul {
+	padding-left: 10px;
+	list-style-type: none;
+}
+
+#searchTypeBox ul li {
+	margin-bottom: 12px;
+}
+
+#BranchName {
+	width: 200px;
+}
+
+#fieldSeperator {
+	display: inline-block;
+}
+
+#dateBox {
+	width: 26%;
+	display: inline-block;
+}
+
+#searchFields {
+	width: 29%;
+	display: inline-block;
+	vertical-align: top;
+	border-left: 1px solid rgba(128, 128, 128, 0.44);
+	border-right: 1px solid rgba(128, 128, 128, 0.44);
+}
+
+#titleText {
+	color: #718698;
+	margin: 0px;
+}
+
+#Container {
+	width:1230px; 
+	border: 1px solid rgba(128, 128, 128, 0.44);
+	border-top: none; 
+	padding:10px; 
+	padding-bottom: 25px;
+}
+
+.CopyToJiraStyle
+{
+	/*padding: 0;*/
+
+	cursor:pointer;
+
+	border: solid;
+	border-width: 1px;
+
 	color: white;
+	background-color: black;
+
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 12px;
+
 }
 
-#weekly_chart
+.CopyToJiraStyle:hover
 {
-	width: 100%; 
-	height: 40em;
-	padding: 0.75em;
-}
-
-#daily_chart
-{
-	width: 100%; 
-	height: 40em;
-	padding: 0.75em;
+	color: blue;
 }
 
 /* User admin screen

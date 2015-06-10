@@ -77,6 +77,8 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 */
 void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FForwardShadingSceneRenderer_Render);
+
 	if(!ViewFamily.EngineShowFlags.Rendering)
 	{
 		return;
@@ -127,7 +129,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (GIsEditor)
 	{
-		RHICmdList.Clear(true, Views[0].BackgroundColor, false, 0, false, 0, FIntRect());
+		RHICmdList.Clear(true, Views[0].BackgroundColor, false, (float)ERHIZBuffer::FarPlane, false, 0, FIntRect());
 	}
 
 	RenderForwardShadingBasePass(RHICmdList);

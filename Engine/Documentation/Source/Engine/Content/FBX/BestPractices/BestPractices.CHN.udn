@@ -1,0 +1,188 @@
+Availability: Public
+Title:FBX最佳实践
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:关于在虚幻引擎4中应用FBX内容通道的技巧、帮助及最佳实践。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/BestPractices:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/BestPractices:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概述
+
+
+本文介绍了关于 Epic Games 的美术人员所使用的虚幻引擎 4 中的 FBX 内容通道的建议、技巧和最佳实践方案。
+
+
+## 静态网格物体处理流程
+
+
+
+* 将网格物体从您的 3D 应用程序中导出到 FBX 文件。
+    * 供 Epic 的美术人员使用的常见导出设置包括：
+        * 启用 **Smoothing Groups（平滑组）**
+        * 启用 **Tangents and Binormals（切线和副法线）**
+        * 启用 **Preserve Edge Orientation（保留边朝向）** 
+* 使用虚幻编辑器中的内容浏览器导入该 FBX 文件。
+
+
+![](BestPracticesOptions.png)(w:594 h:572 convert:false)
+
+
+### 有用的链接
+
+* [导出静态网格物体](Engine/Content/FBX/StaticMeshes#ExportMesh)
+* [导入静态网格物体](Engine/Content/FBX/StaticMeshes#导入网格物体)
+
+
+
+## 骨架网格物体处理流程
+
+
+
+* 将网格物体和骨架导出到一个 FBX 文件。
+    * 选择您想要导出的项（网格物体和关节链根项），然后‘导出选中项’。
+    * 供 Epic 的美术人员使用的常见导出设置包括：
+        * 禁用 **Smooth Mesh（平滑网格物体）** 
+        * 启用 **Smoothing Groups（平滑组）**
+* 使用虚幻编辑器中的内容浏览器导入该 FBX 文件。
+
+
+
+### 有用的链接
+
+
+* [导出骨架网格物体](Engine/Content/FBX/SkeletalMeshes#从3D应用程序中导出网格物体)
+* [导入骨架网格物体](Engine/Content/FBX/SkeletalMeshes#导入网格物体)
+
+
+
+## 动画处理流程
+
+
+
+* 将动画导出到一个 FBX 文件。
+    * 选择您想要导出的项（如果需要可以是关节链根项、网格物体），然后‘导出选中项’。
+    * 导出设置：
+        * 启用 **Animation（动画）**
+* 将该FBX文件作为动画导入到 **内容浏览器** 中。
+
+
+
+### 有用的链接
+
+
+* [导出动画](Engine/Content/FBX/Animations#从3D应用程序中导出动画)
+* [导入动画](Engine/Content/FBX/Animations#导入动画)
+
+
+
+## 顶点变形目标处理流程
+
+
+
+* 将顶点变形目标导出到一个 FBX 文件。
+    * 选择您想要导出的项（具有 blendshapes/morpher 修饰符的网格物体），然后‘导出选中项’。
+    * 导出设置：
+        * 启用 **Animation（动画）**
+        * 启用 **Deformed Models/Deformations（变形的模型/变形）** - 所有选项
+* 将该FBX文件作为动画导入到 **内容浏览器** 中。
+
+
+
+### 有用的链接
+
+
+* [导出顶点变形目标](Engine/Content/FBX/MorphTargets#导出顶点变形目标)
+* [导入顶点变形目标](Engine/Content/FBX/MorphTargets#导入顶点变形目标)
+
+
+
+## 命名机制
+
+Epic 的美术人员通常按照以下命名方案为导出的文件命名：
+
+* **Static Meshes（静态网格物体）:** SM\_**&lt;PackageName&gt;\_&lt;AssetName&gt;\_&lt;Index&gt;**
+* **Skeletal Meshes（骨架网格物体）:** SK\_**&lt;PackageName&gt;\_&lt;AssetName&gt;\_&lt;Index&gt;**
+
+
+使用涵盖整个项目的命名方案可以更轻松地组织和识别资源文件。
+
+然而，长久以来虚幻引擎用户非常熟的“包”的概念，在虚幻引擎4中同以前的版本相比已经发生了巨大的改变。” 现在包文件仅包含一个文件，并且游戏的目录结构定义了您想在旧式的.upk文件中找到的各种级别。请参见[资源和包](Engine/Basics/AssetsAndPackages)以获得更多信息。
+
+![](FBXBestPractices_packages.png)
+
+_在该图片中,  **StoneBox** 位于文件夹 **Meshes** 内。这和虚幻引擎3中有一个包(**Game**)，该包内有一个组(**Meshes**)，组内包含了资源 (**StoneBox**)的意义类似。_
+
+
+## 场景管理
+
+
+Epic 的美术人员通常将相近的资源存储在一个单独的文件中。例如，对于具有三个不同状态的静态网格物体： 正常、销毁和损坏，所有这三个状态都存储在同一个文件中。但是将每个网格物体导出为一个单独的 FBX 文件。
+
+![FBXBestPractices_MultipleColumn.jpg](FBXBestPractices_MultipleColumn.jpg)(w:410 h:810)
+
+对于把绑定到骨架上的网格物体，很容易就可以导出一个干净的文件。该网格物体将会仅用于导出。骨架绑定可以通过该文件构建，但是将它保存到一个单独的骨架文件中。
+
+![FBXBestPractices_Character.jpg](FBXBestPractices_Character.png)(convert:false)
+
+单独的骨架绑定文件。
+
+![FBXBestPractices_CharacterRig.jpg](FBXBestPractices_CharacterRig.png)(convert:false)
+
+每个动画通常也分别存储在其各自的文件中，这样使得追踪文件系统中所有不同的动画变得很简单。
+
+
+## 在虚幻编辑器中重命名内容
+
+在 **内容浏览器** 中，您通过选中您想重命名的内容并按下 **F2** 或 右击它并选择 **重命名** 来重命名任何对象。这将会在内容浏览器中突出显示该对象的名称，并允许您输入一个新名称，就像在Windows中编辑文件名称一样。
+
+![FBXBestPractices_MoveOrRename.jpg](FBXBestPractices_MoveOrRename.png)
+
+您可能会收到一个关于取消缓存的通知。这是正常的，因为内缓存中的对象是以旧名称列入的，所以首先需要清除它，以防导致后续问题。
+
+### 有用的链接
+
+
+* [导入FBX文件时的命名规则](Engine/Content/FBX/ImportOptions#命名规则)
+
+
+
+## 整个场景的导入/导出
+
+这对于导出那些在 Matinee 中创建的相机、在 Matinee 中进行动画处理的载具路径、以及在 3D 内容创建包中重新创建一个过场动画所需的所有信息是非常有用的。在3D 内容创建包中进行调整后，可以将它作为一个 FBX 导出，然后再将它导回到虚幻引擎 4 中。
+
+从 Matinee 导出。
+
+![](FBXBestPractices_MatineeExportAll.png)
+
+FBX目前仅支持到导出类型  **Export All（导出所有）** ，所以仅需赋予它一个名称并点击确认即可。
+
+![](FBXBestPractices_MatineeExportDiag.png)
+
+在Matinee界面中，您也可以导入FBX数据(假设已经在第三方包中进行了一些调整)。
+
+![](FBXBestPractices_MatineeImport.png)
+
+ 
+
+
+

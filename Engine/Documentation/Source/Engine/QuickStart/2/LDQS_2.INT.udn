@@ -1,0 +1,41 @@
+Availability: Public
+Title:2. Start a New Level
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:Creating an empty level via the New Level dialog window.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/QuickStart/3 "%Engine/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Next, create a new level to build your game environment in. When creating a new level, just as when you created a new project, 
+Unreal Engine enables you to select from _templates_. By default, there is a _Default_ template - which has a very simple environment - 
+and an _Empty Level_ template - which is completely blank - to choose from.
+
+Let's get started creating a new level:
+
+1. From the File menu of the **Level Editor** window, choose ![](Engine/QuickStart/3/new_button.png) **New Level...**. This will display the **New Level** dialog:
+
+	![](Engine/QuickStart/3/level_new.png)
+
+1. For the purposes of this guide, you need a completely blank slate to work with. Click on the **Empty Level** template to select it.
+
+1. The new blank level will be ready for you to populate with all the visual and gameplay related items you desire.
+
+	![](Engine/QuickStart/3/level_empty.png)
+
+%Steps%

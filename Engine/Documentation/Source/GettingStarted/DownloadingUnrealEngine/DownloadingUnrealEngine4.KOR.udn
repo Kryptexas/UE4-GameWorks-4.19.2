@@ -1,0 +1,33 @@
+﻿INTSourceChangelist:2456362
+Availability:Public
+Title:언리얼 엔진 소스 코드 내려받기
+Crumbs: %ROOT%, Programming, Programming/Development
+Description:소스 코드 저장소에 접속하여 언리얼 엔진 최신 빌드를 다운로드하는 법에 대한 단계별 안내입니다.
+
+[TOC (start:2 end:3)]
+
+## 개요
+
+[EXCERPT:Main]
+[PUBLISH:Licensee]
+라이선시께서는 에픽의 퍼포스 서버에 직접 연결하여 언리얼 엔진 4 를 내려받을 수 있습니다. 서버에 접속하기 전, 보안 VPN 연결을 먼저 구성해야 합니다. VPN 와 퍼포스 서버 둘 다에 대한 로그인 인증 정보는 에픽 게임스가 귀하의 기술팀장께 보내드린 UDN 환영 이메일에 제공되어 있습니다. 각 팀마다 한 세트의 로그인 인증정보만 제공됩니다.
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+언리얼 엔진 4 소스 코드의 다운로드는 멤버쉽 라이선스 회원의 경우 Unreal Engine GitHub 저장소에서 가능합니다. 소스 코드 접근권한이 있으면 엔진과 툴을 프로젝트의 필요에 따라 입맛대로 변경할 수 있습니다. 윈도우 및 맥 용으로 에디터를 빌드할 수 있으며, 게임 컴파일은 안드로이드와 iOS 용으로도 가능합니다. 언리얼 라이트매스나 언리얼 프론트엔드 등 모든 툴에 대한 소스 코드 역시도 포함되어 있습니다.
+
+[REGION:note]
+[저장소](https://github.com/EpicGames/UnrealEngine) 에 접근하려면 언리얼 엔진 멤버쉽 회원이 되어야 하며, 언리얼 엔진 계정과 GitHub 계정을 연동시켜 줘야 합니다.
+
+계정 연동 관련 안내는 [GitHub 에서의 UE4](https://www.unrealengine.com/ue4-on-github) 페이지를 참고해 주시기 바랍니다.
+[/REGION]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
+[/PUBLISH:Rocket]
+
+[/EXCERPT:Main]

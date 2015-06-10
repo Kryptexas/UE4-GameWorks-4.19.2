@@ -1,0 +1,78 @@
+﻿INTSourceChangelist:2511763
+Availability:Public
+Title:QuickTime で FBX ファイルを表示する
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Quicktime FBX ビューアでスケルタル メッシュとアニメーションを表示するためのガイド
+ 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/QuicktimeViewer:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/QuicktimeViewer:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/QuicktimeViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/QuicktimeViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概要
+
+
+FBX ファイルの表示は、お気に入りの 3D コンテンツ作成パッケージをインポートして表示さなければならない場合が多いです。しかし、普段 3D モデルの作業をしないプログラマーの方などは注意が必要となります。Autodesk が開発した QuickTime プラグインは、3D コンテンツ作成パッケージをインストールすることなく FBX ファイルの表示を可能とします。 
+
+
+## プラグインと QuickTime をダウンロードする
+
+最新のプラグインは [Autodesk 社のウェブサイト](http://usa.autodesk.com/adsk/servlet/pc/item?siteID=123112&id=10775855) からダウンロードできます。プラグインは Windows と Mac で利用可能です。
+
+QuickTime がインストールされていない場合、 [Apple 社のウェブサイト](http://www.apple.com/quicktime/download/) からダウンロードしてインストールをしてください。 
+
+
+## FBX ファイルを開く
+
+プラグインは QuickTime で表示するファイルのリストへ拡張子を追加しません。これを回避するには、[All Files(<literal>*.*</literal>)] オプションを選択します。そして FBX ファイルが表示されたら **ダブルクリック** 、またはファイルを選択して [Open] をクリックします。
+
+![QTFBX_OpeningFiles.jpg](QTFBX_OpeningFiles.jpg)(w:664 h:636)
+
+
+##アニメーションを再生する
+
+QuickTime 内で FBX ファイルを表示すると、タイムラインのドラッグや [Play] ボタンを押すことによってアニメーションの再生が可能となります。
+
+![QTFBX_PlayingAnimations.png](QTFBX_PlayingAnimations.png)
+
+
+## その他の操作
+
+操作に関する更なる情報はプラグインに同梱されている「リード・ミー」でご覧ください。いくつかの操作はご参考までにこのページに記載しています。 
+
+![QTFBX_OpenedFBX.png](QTFBX_OpenedFBX.png)
+
+
+* **Rotating the camera** - マウスを **左クリック** してビューポート内でホールドします。マウスをドラッグするとカメラが回転します。
+* **Panning the camera** -  **Shift** キーを押しながら、マウスを **左クリック** してビューポート内でホールドします。マウスをドラッグするとカメラがパンされます。
+* **Zooming the camera** - **Z** キーを押しながら、マウスを **左クリック** してビューポート内でホールドします。マウスを前方や後方へドラッグするとカメラがズームします。
+* **Cycling between camera views** - **C** キーを押すと、カメラ表示モード間を切り替えます。 
+* **Getting more help** - **H** キーを押すと、さらにヘルプ オプションが表示されます。
+
+
+![QTFBX_PressHForHelp.png](QTFBX_PressHForHelp.png)
+
+ 
+
+
+
+
+ 

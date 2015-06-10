@@ -1,0 +1,133 @@
+Availability: Public
+Title:Color Picker
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:Tool for interactively choosing colors to assign to color properties of actors.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Editor/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Editor/ColorPicker:title%
+	[/PARAM]
+	[PARAM:description]
+		%Editor/ColorPicker:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/ColorPicker]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Editor/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Editor/ColorPicker:title%
+	[/PARAM]
+	[PARAM:description]
+		%Editor/ColorPicker:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/ColorPicker]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Intro]
+The **Color Picker** allows you to easily adjust a color value for a color property in the Unreal Editor.  You can adjust colors by RGBA (red, green, blue, alpha), HSV(hue, saturation, value), and Hex (ARGB). Alternatively you can select a color by clicking anywhere in the color wheel or by capturing the color under your mouse, anywhere on your monitors.
+[/EXCERPT:Intro]
+
+[REGION:imagetable]
+| ![ColorPicker.jpg](ColorPicker.png) | [INCLUDE:#Properties] |
+| ------ | ------ |
+|  |  |
+[/REGION]
+
+<!--
+[EXCERPT:Properties]
+| Item | Description |
+| ---- | ----------- |
+| ![Color Wheel](color_wheel.png)(w:96) | A Color wheel that allows a color to be selected graphically by clicking and dragging with the mouse. |
+| ![Color Swatches](color_swatches.png) | Displays the color currently assigned to the property and the color currently selected in the **Color Picker** [Top: solid color, Bottom: color with alpha]. Colors can be dragged from here to the **Themes** shelf to save them for reuse later on. See [Themes](#Themes) for more information. |
+| ![Red Channel](channel_r.png) | Drag or type value to set the **red** channel. |
+| ![Green Channel](channel_g.png) | Drag or type value to set the **green** channel. |
+| ![Blue Channel](channel_b.png) | Drag or type value to set the **blue** channel. |
+| ![Hue Channel](channel_h.png) | Drag or type value to set the **hue**. |
+| ![Saturation Channel](channel_s.png) | Drag or type value to set the **saturation**. |
+| ![Value Channel](channel_v.png) | Drag or type value to set the **value** (color brightness). |
+| ![Alpha Channel](channel_a.png) | Drag or type value to set the **alpha** channel. |
+| ![OK Button](button_ok.png) | Closes the picker and assigns the color in the picker to the property. |
+| ![Cancel Button](button_cancel.png) | Closes the picker without modifying the property's value. |
+[/EXCERPT:Properties]
+-->
+
+## Themes
+
+**Themes** are collections of colors that can be easily reused. These can be used to make commonly used colors available or to restrict the colors used by artists and deisgners to a specific pallette.
+
+![Exmaple Theme](theme_spring.png)
+
+### Creating Themes
+
+New themes can be added through the **Theme Menu** accessible via the ![Theme Menu](button_menu.png) button.
+
+![Theme Menu](theme_menu.png)
+
+Clicking the ![New Theme](button_new.png) button will add an empty theme to the list.
+
+![Theme Menu](theme_menu_new.png)
+
+Themes can also be created by duplicating an existing theme using the ![Duplicate](button_duplicate.png) button.
+
+![Duplicated Theme](theme_duplicate.png)
+
+### Renaming Themes
+
+Themes can be renamed through the **Theme Menu** by clicking the ![Rename](button_rename.png) button.
+
+[REGION:imagetable]
+| ![Theme Menu](theme_menu_rename_0.png)(w:300) | ![Theme Menu](theme_menu_rename_1.png)(w:300) | ![Theme Menu](theme_menu_rename_2.png)(w:300) |
+| ------ | ------ | ------ |
+| Edit box for theme name | Enter new name for theme | Press ![Accept](button_accept.png) to set the name |
+[/REGION]
+
+### Adding and Removing Colors
+
+Colors can be added, removed, or reordered within the theme using drag and drop.
+
+[REGION:imagetable]
+| ![Add color](theme_add_color.png)(w:300 convert:false) | ![Reorder Colors](theme_edit.png)(w:300 convert:false) | ![Remove Color](theme_edit_color_delete.png)(w:300 convert:false) |
+| ------ | ------ | ------ |
+| Drag from main swatch to add a color | Drag color within theme to reorder | Drag color to trashcan to delete |
+[/REGION]
+
+Colors can also be reordered and removed from the **Theme Menu**.
+
+[REGION:imagetable]
+| ![Reorder Colors](theme_edit_menu.png)(convert:false) | ![Remove Color](theme_menu_color_delete.png)(convert:false) |
+| ------ | ------ |
+| Drag color within theme to reorder | Drag color to trashcan to delete |
+[/REGION]
+
+### Using Themes
+
+To change themes, select the theme you want to be active from the **Theme Menu**.
+
+![Select Theme](theme_select.png)
+
+To use a color from the current theme, simply **double-click** the color to be applied. This will update the color in the picker to match the saved color from the theme.
+
+![Use Color](theme_use_color.png)
+
+Hovering the cursor over a color in the theme will display the color information.
+
+![Color Info](theme_color_info.png)

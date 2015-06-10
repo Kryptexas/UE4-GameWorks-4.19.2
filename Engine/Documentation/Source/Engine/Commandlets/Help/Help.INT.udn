@@ -1,0 +1,115 @@
+Availability: Docs
+Title: Help Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet that displays available commandlets and information on their usage.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Overview
+
+The `help` commandlet is used to find out which commandlets are available to run, their purpose, and what those commandlets expect for parameters.
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [GameName].exe help <list | commandletname | webhelp commandletname>
+    
+
+### Parameters
+
+   **list** - Lists all commandlets that are available.   
+   **commandlet name** - Displays help information for the specified commandlet.  
+   **webhelp** - Launches a browser with the URL of the web page that documents the specified commandlet.
+
+
+
+## Examples
+
+To find out which commandlets are available, run:
+
+
+    
+    game.exe help list
+    
+
+
+
+The output looks something like:
+
+
+    
+    Core.Help                                - This commandlet displays help information on other commandlets
+    Engine.SmokeTest                         - This commandlet runs a series of tests to validate a build
+    Editor.CutDownContent                    - Removes unused content from packages
+    Editor.Make                              - Rebuild UnrealScript packages
+    Editor.PkgInfo                           - Display information about Unreal packages
+    Editor.ScaleAudioVolume                  - Scales the volume of audio data across all packages
+    Editor.StripSource                       - Removes source code from compiled script packages
+    
+
+
+
+To look at the help information for a specific commandlet, run:
+
+
+    
+    game.exe help <commandlet name>
+    
+
+
+
+Doing so for the help commandlet yields:
+
+
+    
+    Name:             Core.Help
+    Description:      This commandlet displays help information on other commandlets
+    Usage:             gamename.exe help <list | commandletname | webhelp commandletname>
+    Options:
+       list                 - Lists all commandlets that are available
+       commandlet name      - Displays help information for the specified commandlet
+       webhelp              - Launches a browser with the URL of the web page that documents the commandlet
+    
+
+
+
+If a commandlet has a UDN document, you can view it by using the webhelp option like:
+
+
+    
+    game.exe help webhelp help
+    
+
+
+
+The above command will view this page.
+
+
+[PUBLISH:Docs]
+## Help in other commandlets
+
+To add help information to your own commandlet, please read the [Making A Commandlet](Programming/Development/Tools/Commandlets/MakingACommandlet) document.
+[/PUBLISH:Docs]
+
+
+## Commandlet List
+
+For a complete list of commandlets, see the [Commandlet List](Engine/Commandlets/CommandletList) page.
+
+ 
+
+
+
+

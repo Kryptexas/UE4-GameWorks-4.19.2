@@ -1,0 +1,218 @@
+Availability: Public
+Title:4. Applying Materials
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:Now that we have imported a texture, we will create a Material and apply it to a Static Mesh. 
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+On this page, we will take the **Material** created in the previous step and apply it to the Static Mesh we imported. 
+
+## Setting a Default Material 
+
+In this section, we will assign the default Material to use for a Static Mesh whenever it is placed in the level. 
+
+1.	In the **Content Browser**, **Double-click** on the asset you imported from Step 2 of this guide.
+
+	![](ContentBrowserAsset.png)
+
+	[REGION:note]
+	Your asset and asset name may differ from the one pictured above based on your import method. 
+	[/REGION]
+
+	This will open it in the [Static Mesh](Engine/Content/Types/StaticMeshes/Editor) Editor pictured below.
+	
+	[REGION:lightbox]
+	[![](StaticMeshEditor.png)(w:600)](StaticMeshEditor.png)
+	[/REGION:lightbox]
+
+	_Click image for full view._
+
+1.	In the **Details** panel under **LOD0**, click the Material drop-down menu. 
+
+	![](Element0.png)
+
+1.	Select the **Material** created in the previous step from the selection window. 
+
+	![](SelectMaterial.png)
+
+	You will see the preview pane update to reflect the new Material we applied. 
+
+	![](NewDefaultMaterial.png)
+
+1.	Click the **Save** button, then close the **Material Editor**. 
+
+1.	In the **Content Browser**, drag-and-drop the Static Mesh into the level. 
+
+	![](NewMaterialInLevel.png)
+
+	Any time you place this asset in the level, it will use the Material we specified. 
+
+## Changing the Material used by an Actor 
+
+By placing the Static Mesh object in our level in the section above, we have created an [Actor](Engine/Actors) and for each instance of that Actor, we can specify a Material for it to use. This means you can have several different "versions" of the Static Mesh each using a different Material. 
+
+Let us change the Material for our Static Mesh Actor. 
+
+1.	Select the Static Mesh placed from the previous section in the level. 
+
+	![](StaticMeshSelected.png)
+
+1.	In the **Details** panel, (lower-right window in the Editor) you will see a **Materials** section, click the Materials drop-down box. 
+
+	![](ActorMaterial.png)
+
+1.	In the pop-up menu, select a different Material to use. 
+
+	![](TutorialMaterial.png)
+
+	Here we re-selected the default Material, however if you include [](Engine/Content/Packs) with your project you will have additional options. 
+
+1.	You can also drag-and-drop a Material onto a Static Mesh Actor in the level to apply a new Material. 
+
+	![](draganddropMaterial.png)
+		
+<!--
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+
+## Creating a Material
+
+To create a new Material:
+
+1. Click **Add New** in the **Content Browser**, then under _Basic Assets_ select **Material**. 
+
+	![](newMaterial.png)
+
+	[REGION:tip]
+	Instead of clicking **Add New**, you can **Right-click** in an empty space inside the **Content Browser**. 
+	[/REGION]
+
+1. The new Material will be selected and awaiting a name in the **Content Browser**.
+
+1. Give it a name, in this case, name it "Rock" or something descriptive of the red rock texture we are going to use in it.
+	
+	![](Engine/Content/QuickStart/5/materialNaming.png)
+	
+	If you happened to click elsewhere before naming the Material, you can **Right-click** on the asset and select **Rename**.
+	
+1. Once the material is created, you can **Double-click** it to open the **Material Editor**.
+
+	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
+
+This is the **Material Editor**. The areas we are going to be concerned with in this guide are the **Graph** and **Details Panels**. The **Graph Panel** is the large panel in the center of the window with the "Rock" node in it, while the **Details Panel** is in the lower left of the window.
+
+[REGION:tip]
+The **Material** system in Unreal Engine 4 is incredibly powerful. If you would like to know more, see the [](Engine/Rendering/Materials) documentation.
+[/REGION]
+
+
+## Rock Material
+
+Using the two textures you imported earlier or any other textures you happened to have imported, we will now flesh out the Material.
+
+1. Select the Main Material Node in the center of the Material Graph. 
+
+	![](Engine/Content/QuickStart/5/mainNide.png)
+
+	_It is the only node in the Graph area and it will be named after your Material. It will become highlighted when selected._
+
+1. In the **Details Panel**, change the **Shading Model** from **Default Lit** to **Subsurface**.
+
+	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
+
+1. You will notice that two more pins are enabled on the Main Material Node: **Opacity** and **Subsurface Color**.
+
+	![](Engine/Content/QuickStart/5/morePins.png)
+
+1. Now you will need to get your textures into the Graph. While there are multiple ways to do this, we will do this using shortcuts. Hold the "**T**" key and **Left-click** in the Graph area of the editor. This will create a **Texture Sample** Node.
+
+	[REGION:tip]
+	You can find a list of all Material Editor keyboard shortcuts in the **Edit Menu** -> **Editor Preferences** -> **Keyboard Shortcuts** -> "**Material Editor**" and "**Material Editor - Spawn Nodes**" categories.
+	[/REGION]
+
+1. You should have at least 2 textures, so repeat this process for another **Texture Sample** Node.
+
+	![](textureSampleNodes.png)
+
+1. Select one of the **Texture Sample** Nodes, and in the **Details Panel** under the **Material Expression Texture Base** category, there is a property named **Texture**. **Left-click** on the pull down labeled "None" and select the color texture named **T_Rock_04_D**.
+
+	![](Engine/Content/QuickStart/5/textureNone.png)
+
+	[REGION:tip]
+	You can use the search field to locate the texture asset by entering **T_Rock_04_D** in the search field. 
+	[/REGION]
+
+1. Do the same for the other Texture Sample Node, but select the normal map texture named **T_Rock_04_n**.
+
+	At this point, the Material Graph should look like this:
+
+	![](Engine/Content/QuickStart/5/bothTexturesSelected.png)
+
+1. The white pin at the top contains all the color channels in the Texture, connect it to the **Base Color** pin. 
+
+	![](Engine/Content/QuickStart/5/connectColorPin.png)
+
+1. Repeat this process for the Normal Map and the **Normal** pin.
+
+	![](Engine/Content/QuickStart/5/connectNormalPin.png)
+
+	The Preview should look similar to this:
+
+	![](Engine/Content/QuickStart/5/preview_DN.png)
+
+1.  You will need a few Constants (scalar floats) and a Constant3Vector (a color without an alpha channel).
+
+	To easily create Constants, you can hold "**1**" key and **Left-click** in the **Graph** Panel. Create a total of **3** Constants.
+
+	![](Engine/Content/QuickStart/5/Constants.png)
+
+1. To create the Constant3Vector, hold the "**3**" key and **Left-click** in the **Graph** Panel.
+
+	![](Engine/Content/QuickStart/5/Constant3.png)
+
+1. Arrange the nodes like this:
+
+	![](Engine/Content/QuickStart/5/MatConstantsAdded.png)
+
+	_This is just so the connections can be easily made and none of the wires will slide underneath any nodes nor will they cross each other._
+
+1. Using the same process that you used to connect the textures to the **Base Color** and **Normal** pins, connect the **Constants** and the **Constant3Vector** as seen in the following image:
+
+	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
+
+1. You can now adjust the values of each of the **Constants** by selecting them and changing the **Value** parameter in the **Details** Panel.
+
+	* Metallic/Specular Value = 0.0
+	* Roughness Value = 0.8
+	* Opacity Value = 0.95
+	* Subsurface Color = Red (1, 0, 0)
+
+	![](Engine/Content/QuickStart/5/allConnectedAllAdjusted.png)
+
+1. The Preview should look similar to this:
+
+	![](Engine/Content/QuickStart/5/preview_All.png) 
+
+-->
+
+In the next step, we will learn about the different methods of manually importing assets. 
+
+%Steps%
+

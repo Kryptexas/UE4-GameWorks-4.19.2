@@ -1,0 +1,200 @@
+Availability: Public
+Title:FBX Animation Pipeline
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:Setting up, exporting, and importing animations for Skeletal Meshes using the FBX content pipeline.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Animations:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Animations:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Animations:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Animations]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## Overview
+
+[EXCERPT:FBX_Animation001]
+Animation support in the FBX import pipeline provides a simple workflow for getting animations for _Skeletal Meshes_ from 3D applications into Unreal for use in games. Currently, only a single animation for each _Skeletal Mesh_ can be exported/imported in a single file.
+[/EXCERPT:FBX_Animation001]
+
+This page is a technical overview of using the FBX content pipeline to import animations into Unreal. See the [FBX Best Practices](Engine/Content/FBX/BestPractices) page for more information, tips, and tricks on working with the FBX content pipeline in a development environment.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+This page includes information on both Autodesk Maya and Autodesk 3ds Max, please choose your preferred content creation tool below and the information relevant only to the chosen tool will be displayed:
+[/REGION]
+
+%Globals:DCCSelect%
+
+
+
+
+## Naming
+
+
+When importing animations into Unreal using the FBX format, the **AnimationSequence** will be named the same as the name of the file. When importing animations along with a Skeletal Mesh, the AnimationSequence that is created will be taken from the name of the root bone in the animation sequence. This can easily be renamed after the import process is complete through the **Content Browser**.
+
+
+## Creating Animations
+
+[EXCERPT:FBX_Animation002]
+Animations can be unique to a single _Skeletal Mesh_ or they can be reused for any number of Skeletal Meshes as long as each _Skeletal Mesh_ uses the same skeleton. All you really need to create an animation and export it into Unreal using the FBX pipeline is a skeleton that has been animated. Having a mesh bound to the skeleton is completely optional, though it makes the process of creating the animation much easier as you can see how the mesh is deforming during the animation. At export time, only the skeleton is required though.
+[/EXCERPT:FBX_Animation002]
+
+(#ExportingAnimations)
+
+
+## Exporting Animations from 3D Apps
+
+
+Animations must be exported individually; one animation per _Skeletal Mesh_ to a single file. The steps below are for exporting a single animation into a file by itself. The mesh bound to this skeleton has been hidden as it is not absolutely necessary for exporting animations by themselves.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxExport]
+1. Select the bones corresponding to the animation to be exported in the viewport.   
+
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. In the **File** menu, choose **Export Selected** (or **Export All** if you want to export everything in the scene regardless of selection).   
+
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. Choose the location and name for the FBX file to export the animation to and click the ![max_save_button.jpg](max_save_button.jpg) button.   
+
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. Set the appropriate options in the **FBX Export** dialog. For the purposes of exporting animations, you must enable the **Animations** checkbox.   
+
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. Click the ![max_ok_button.jpg](max_ok_button.jpg) button to create the FBX file containing the mesh(es).
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. Select the joints to be exported in the viewport.   
+
+	![maya_export_1.jpg](maya_export_1.jpg)(w:769 h:376)
+
+1. In the **File** menu, choose **Export Selection** (or **Export All** if you want to export everything in the scene regardless of selection).   
+
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. Choose the location and name for the FBX file to export the animation to and set the appropriate options in the **FBX Export** dialog. For the purposes of exporting animations, you must enable the **Animations** checkbox.   
+
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. Click the ![maya_export_button.jpg](maya_export_button.jpg) button to create the FBX file containing the mesh(es).
+[/EXCERPT:mayaExport]
+-->
+
+(#ImportingAnimations)
+
+
+## Importing Animations
+
+
+The FBX animation import pipeline allows for importing both a _Skeletal Mesh_ and animation all at once, or importing one or the other individually.
+
+**Skeletal Mesh with Animation**
+
+
+1. Click the ![](import_button.png) button in the **Content Browser**. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.   
+
+	![import_file.jpg](import_file.jpg)
+	
+	[REGION:note]
+		The imported path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+	[/REGION]
+      
+1. Choose the appropriate settings in the **FBX Import Options** dialog. The name of the imported mesh will follow the default [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions). See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
+   
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+   
+1. Click the ![button_import.png](button_import.png) button to import the mesh and LODs. The resulting mesh, animation (AnimationSequence), material(s), and texture(s) will be displayed in the **Content Browser** if the process was successful. You can see the AnimationSequence that was created to hold the animation was named after the root bone of the skeleton by default.   
+   
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+
+
+**Individual Animations**
+
+To import animations, you first need an AnimationSequence to import the animation into. This can be created through the **Content Browser** or directly in the AnimationSequence Editor.  
+
+[REGION:note]
+	Unreal Editor supports importing multiple animations contained in a single FBX file; however, many DCC tools such as 3ds Max and Maya do not currently support saving multiple animations to a single file. If you export from a supporting application such as Motion Builder, Unreal will import all the animations in that file.
+[/REGION]
+
+1. Click the ![](import_button.png) button in the **Content Browser**. Navigate to and select the FBX file you want to import in the file browser that opens. **Note:** you may want to select ![import_fbxformat.jpg](import_fbxformat.jpg) in the dropdown to filter out unwanted files.   
+
+	![import_file.jpg](import_file.jpg)
+   
+	[REGION:note]
+		The imported path of the imported asset depends on the current location of the **Content Browser** while importing. Make sure to navigate to the appropriate folder prior to performing the import. You may also drag the imported assets into a new folder once import is complete.
+	[/REGION]
+      
+1. Choose the appropriate settings in the **FBX Import Options** dialog. The name of the imported mesh will follow the default [Naming Rules](Engine/Content/FBX/ImportOptions#NamingConventions). See the [FBX Import Dialog](Engine/Content/FBX/ImportOptions) section for complete details of all of the settings.   
+   
+	![](Engine\Content\FBX\ImportOptions\AnimationImportOptions.png)
+
+	[REGION:Warning]
+		When importing animation on its own, you must specify an existing skeleton!
+	[/REGION]
+   
+1. Click the ![button_import.png](button_import.png) button to import the mesh and LODs. The resulting mesh, animation (AnimationSequence), material(s), and texture(s) will be displayed in the **Content Browser** if the process was successful. You can see the AnimationSequence that was created to hold the animation was named after the root bone of the skeleton by default.   
+   
+	![](AnimSequenceImported.png)
+
+
+[REGION:note]
+	Unreal Editor supports non-uniform scale animations. When importing an animation, if scale exists, it will also import without the need for setting additional options. For memory reasons, the engine does not save scale for all animations and only saves it if it has scale that is not 1. 
+	
+	Refer to the [Non-Uniform Scale Animations](Engine\Animation\NonUniformScale) page for more information and video samples.
+[/REGION]
+
+
+
+
+

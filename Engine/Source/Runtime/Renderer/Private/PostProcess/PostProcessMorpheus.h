@@ -8,7 +8,7 @@
 
 #include "RenderingCompositionGraph.h"
 
-#if MORPHEUS_ENGINE_DISTORTION
+#if HAS_MORPHEUS
 
 // derives from TRenderingCompositePassBase<InputCount, OutputCount>
 // ePId_Input0: SceneColor
@@ -16,9 +16,9 @@ class FRCPassPostProcessMorpheus : public TRenderingCompositePassBase<1, 1>
 {
 public:
 	// interface FRenderingCompositePass ---------
-	virtual void Process(FRenderingCompositePassContext& Context);
+	virtual void Process(FRenderingCompositePassContext& Context) override;
 	virtual void Release() { delete this; }
-	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const;
+	FPooledRenderTargetDesc ComputeOutputDesc(EPassOutputId InPassOutputId) const override;
 };
 
 #endif

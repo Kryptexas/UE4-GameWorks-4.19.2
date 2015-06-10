@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:2396981
+Availability:Public
+Title:スタティックメッシュの操作方法
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes
+Description:スタティックメッシュ エディタ使用の基本について学習する操作ガイドです。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+以下の操作ガイドでは、スタティックメッシュとスタティックメッシュ エディタの基本について説明します。この操作ガイドシリーズではスタティックメッシュ エディタについての理解を深め、レベル内で使用するスタティックメッシュをセットアップするあらゆる側面に慣れ親しんでいただくための支援をします。その内容は、外部の 3D モデリング プログラムからメッシュをインポートすることから、レベル内の他のオブジェクトに反応するコリジョンをセットアップ、メッシュをシーン内の別のオブジェクトにアタッチできるようにするためのソケットのセットアップに至るまであります。
+
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		スタティックメッシュの操作方法
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [スタティックメッシュのインポート方法](Engine/Content/Types/StaticMeshes/HowTo/Importing "%Engine/Content/Types/StaticMeshes/HowTo/Importing:Description%")
+		* [マテリアルの設定方法](Engine/Content/Types/StaticMeshes/HowTo/SettingMaterial "%Engine/Content/Types/StaticMeshes/HowTo/SettingMaterial:Description%")
+		* [コリジョンの設定方法](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%")
+		* [LOD の設定方法](Engine/Content/Types/StaticMeshes/HowTo/LODs "%Engine/Content/Types/StaticMeshes/HowTo/LODs:Description%")
+		* [ソケットの作成と使用方法](Engine/Content/Types/StaticMeshes/HowTo/Sockets "%Engine/Content/Types/StaticMeshes/HowTo/Sockets:Description%")
+	[/PARAM]
+[/OBJECT]

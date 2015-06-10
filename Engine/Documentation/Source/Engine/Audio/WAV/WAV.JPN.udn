@@ -1,0 +1,134 @@
+﻿Availability:Public
+Title:オーディオ ファイル
+Crumbs: %ROOT%, Engine, Engine/Audio
+Description:サウンド ファイルをアンリアル エンジン 4 に取り込むための基本要件。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Audio/WAV:title%](Engine/Audio/audio_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio/WAV:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio/WAV:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio/WAV]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Audio/WAV:title%](Engine/Audio/audio_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/audio_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Audio/WAV:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Audio/WAV:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Audio/WAV]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Audio](audio_landing_banner.png)
+[/REGION]
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+[OBJECT:topiclistnotitle]
+	[PARAM:icon]
+		![](WAV_TitleIcon.png)(w:200 convert:false) 
+	[/PARAM]
+	[PARAM:description]
+	アンリアル エンジン 4 (UE4) のオーディオ システムでは、ゲーム内のサウンドを望ましいものにするツールと機能が提供されています。これはすべてオーディオ ソース ファイルから始まります。Mono またはステレオ ファイルとして、UE 4 に迅速にインポートし、作品をさらに生き生きとしたものにします。以下は、オーディオ コンテンツの基本要件とクイック インポート ガイドです。
+	[/PARAM]
+[/OBJECT]
+
+
+##インポート
+
+[EXCERPT:wav01]
+現在のエンジンは、任意のサンプルレートによる非圧縮のリトルエンディアン 16 ビット wave ファイルのインポートをサポートしています (44100 Hz または22050 Hz のサンプルレートを推奨しています)。 
+
+| --- | --- |
+| 仕様| PCM、ADPCM、DVI ADPCM |
+| フォーマット | .WAV |
+| ビットレート | 16 |
+| スピーカー チャンネル | Mono、Stereo、2.1、4.1、 5.1、6.1、 7.1 |
+
+標準のサウンド ファクトリでインポートを行うと、再生用のサンドキューによって参照が可能なシンプルなサウンドノード ウェーブを生み出します。これらのサウンドは、モノラルあるいはステレオのいずれかです。特別な命名規則でインポートすると、マルチチャンネル (5.1 など) サウンドが可能となります。プラットフォームはすべて 8 チャンネルまでのサウンドの圧縮が可能ですが、これらを効率的に再生できるプラットフォームは限られます。パッケージの保存プロセスでは、プラットフォームのネイティブのフォーマットに変換するすべての作業を行います。スピーカーの厳密なマッピングはないため、チャンネルの番号により、どのチャンネルがどのスピーカーで再生されるかが決まります (下の表を参照)。
+
+[REGION:raw]
+|                   | 拡張子 | 4.0 | 5.1 | 6.1 | 7.1 |  
+| --- | --- | --- | --- | --- | --- | 
+| **FrontLeft**     | _fl       | ![](icon_MatEd_Apply_40x.png) | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
+| **FrontRight**    | _fr       | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
+| **FrontCenter**   | _fc       |     | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
+| **LowFrequency**  | _lf       |     | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
+| **SideLeft**      | _sl       | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
+| **SideRight**     | _sr       | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | ![]( icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   | 
+|**BackLeft**      | _bl       |     |     | ![](icon_MatEd_Apply_40x.png)   | ![](icon_MatEd_Apply_40x.png)   |  
+| **BackRight**     | _br       |     |     |     | ![](icon_MatEd_Apply_40x.png)   |  
+[/REGION]
+
+
+
+圧縮設定を微調整することにより、すべてのプラットフォームに対して同品質を保つことができます。数多くのサウンドをテストした結果、弊社のミュージシャンは 40 のXMA 品質が0.15 の ogg vorbis 品質と同等であると判断しました。 
+
+### 単一ファイルのインポート
+
+**コンテンツ ブラウザ** から以下の操作を行います。
+
+1. **[新規アセット]** ![](CB_button_NewAsset.png) ボタンをクリックします。
+1. メニューから _[Import]_ を選択します。
+1. インポートする「.WAV」ファイルを選択します。
+
+もしくは、
+
+1. Windows のファイル エクスプローラー ウィンドウからサウンド ファイルを選択します。
+1. ファイルをクリックして、アンリアルエディタ 4 の **コンテンツ ブラウザ** へドラッグします。
+
+### マルチチャンネルのインポート
+
+**コンテンツ ブラウザ** から以下の操作を行います。
+
+1. **[新規アセット]** ![](CB_button_NewAsset.png) ボタンをクリックします。
+1. メニューから _[Import]_ を選択します。
+1. 適切な命名規則が設けられたファイルを選択します。これらのファイルは次のようなサウンドアセットを作成します。"Surround_fl.wav"、 "Surround_fr.wav"、 "Surround_sl.wav"、 "Surround_sr.wav"
+1. 「Surround」と呼ばれる 4 つのチャンネルアセットを作成します。
+
+もしくは、
+
+1. Windows のファイル エクスプローラー ウィンドウからサウンドファイルを選択します。
+1. ファイルをクリックして、アンリアル エディタ 4 の **コンテンツ ブラウザ** へドラッグします。
+
+[/EXCERPT:wav01]
+
+
+
+[REGION:note]
+マルチチャンネル サウンドアセットをエクスポートすると、上述の拡張子命名規則によって、各チャンネルに「.WAV」ファイル (モノラル) が作成されます。
+[/REGION]
+
+
+## 関連
+
+[REGION:topics half]
+%Engine/Audio:topiccompact%
+%Engine/Audio/Overview:topiccompact%
+[/REGION]

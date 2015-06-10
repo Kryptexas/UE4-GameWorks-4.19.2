@@ -1,0 +1,297 @@
+﻿INTSourceChangelist:2394183
+Availability:Public
+Title:Media Framework
+Crumbs:%ROOT%, Engine
+Description:UE 4 の Media Playback 機能の概要 
+Related:Engine/Blueprints
+Related:Engine/UMG
+Related:Engine/Rendering/Materials
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/MediaFramework:title%](MediaFrameworkTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/MediaFramework:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/MediaFramework:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/MediaFramework]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/MediaFramework:title%](MediaFrameworkTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/MediaFramework:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/MediaFramework:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/MediaFramework]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](MediaBanner.png)(w:920)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概要
+
+UE4 には現在 **MoviePlayer** システムが入っていますが、これはエンジン ロード中の起動ムービーの再生にしか使用できません。例えば UI エレメントの一部としての使用、あるいは恐らくテレビで再生するムービーレベルでのスタティック メッシュに対しての使用といった、インゲームでのムービー再生には使用できません。 **Media Framework** を備えることで、これら両方の動作が実行可能になりますし、 (以下のような) より一般的なメディア再生機能が提供されます。  
+
+以下が、アンリアル エンジン 4 の **Media Framework** です。
+* エンジンにもスレートにも依存しない
+* ローカライズされた Audio & Video Track をサポート
+* **コンテンツ ブラウザ** 、マテリアル エディタ、サウンド システムで使用できる
+* ブループリントおよび UMG UI デザイナを使用できる
+* Streaming Media をサポート
+* 早送り、逆再生、再生、一次停止、スクラブメディアが可能
+* プラグ脱着可能なプレイヤーをサポート
+
+上記のように、 Media Framework 自体はエンジンとスレートの両方には依存しません。つまり、ゲームエンジンやエディタだけでなく、かなり広い範囲のアプリケーションで使用することができます。フレームワークの一番上に、 **エンジン** 、 **ブループリント** 、 **スレート** 、 **UMG UI デザイナ** などの他のサブシステムにもメディア再生機能を提供するレイヤーがあります。インゲーム テクスチャ＆ UI 、インエディタ ビデオ チュートリアル、マーケットプレイス ビデオなど、予想されるほとんどのユースケースに当てはまります。 
+
+[REGION:warning]
+Media Framework は制作段階ではなく、まだ実験的な段階です。期待通りの動作をしない機能もありますが、現在これらの問題の解決に全力を注ぎつつ、新機能とサポートも追加しています。 
+[/REGION]
+
+## Media Framework について
+
+Media Framework は主に、 C++ インターフェース、 一般的なユースケースで使われるヘルパクラス、いわゆる Media Player プラグインで拡張可能なメディア プレイヤー ファクトリーのコレクションです。ムービーやその他のメディア ファイルの再生に関する興味深い機能は、すべてプラグインで行われます。 
+
+[REGION:note]
+プログラマー: 
+* Media Framework 用のコードの場所は _/Engine/Source/Runtime/Media/_ です。
+* 既存のプレイヤー プラグインの場所は _/Engine/Plugins/Media/_ です。
+[/REGION:note]
+
+現在、内部で Windows Media Foundation API を使用する、Windows 用のプレイヤー プラグインが使用されています。Apple の AV Foundation を使用している MacOS 用のプラグインもあります。使用は非常に限られますが、iOS では動作するはずです。Android 向けプレイヤー プラグイン用の作業も開始しました。 
+
+[REGION:warning]
+Windows のプラグインはほぼ完成していますが、H.264 エンコードの .mp4 ファイルなど、一定のムービー形式では問題があります。 
+[/REGION]
+
+
+## メディア アセットの種類とインポート用メディア
+
+Media Framework を実装すると、3 種類のアセットを **コンテンツ ブラウザ** から新規に作成することができます。 
+
+### MediaPlayer アセット
+
+**MediaPlayer** アセットは、ディスク上のムービーファイルなどのメディア ソースまたはインターネット上のストリーミング メディア URL を表します。アンリアル エンジン 3 の `UTextureMovie` のように、MediaPlayer アセットは実際には何もデータを含んでおらず、メディアソースへのパスや URL のみを格納しています。 
+
+以下の説明のように、様々な方法で MediaPlayer アセットを作成することができます。 
+
+**MediaPlayer アセットの作成**
+
+1. **[Create]** ボタンをクリックして、 **[Miscellaneous]** と **[Media Player]** を選択します。 
+
+	![](CreateMediaPlayerAsset.png)
+
+[REGION:note]
+**[Create]** ボタンをクリックする代わりに **コンテンツ ブラウザ** で右クリックしても、コンテンツ メニューを表示させることができます。
+[/REGION]
+
+1. これにより、MediaPlayer アセットが作成されます (**ダブルクリック** して開きます)。 
+
+	![](MediaPlayerAsset.png)(w:720)
+
+1. MediaPlayer アセットの **[詳細]** パネルで、 **[Browse]** ボタンをクリックします。 
+
+	![](AddMediaButton.png)
+
+1. メディアをブラウズし、ファイルを選択します。 
+
+	![](BrowseToMovie.png)
+
+1. 追加したら、MediaPlayer の **[Play]** ボタンをクリックしてメディアを再生します。 
+
+	![](MediaPlay.png)
+
+1. **[詳細]** パネルに警告のアイコンがあることに気が付くと思います。 
+
+	![](WarningIcon.png)
+
+1. 正しくパッケージ化するために、ローカルのメディア ファイルはプロジェクトの **Content/Movies/** ディレクトリに置く **必要があります**。 
+
+	![](NoWarning.png)
+
+	プロジェクトの「Content/Movies/」フォルダにメディアを置くと、警告のアイコンは表示されなくなります。 
+	**ドラッグ＆ドロップによるインポート**
+
+
+メディアをインポートする一番簡単な方法は、ドラッグ＆ドロップです。 
+
+1. プロジェクトの **Content/Movies/** フォルダのメディアを **コンテンツ ブラウザ** に **ドラッグ＆ドロップ** します。 
+
+	![](DragAndDropMedia.png)
+
+	これにより、自動で MediaPlayer アセットが作成され、その場所に割り当てられます。 
+
+#### MediaPlayer アセットの詳細
+
+MediaPlayer アセットは、オーディオ、ビデオ、キャプション テキストを含む、様々なコンテンツ ストリームを出力することができます。再生コントロールの下のメディア ウィンドウの上部にあるドロップダウン メニューで、これらを設定できます。 
+
+![](OutputStreams.png)
+
+**[詳細]** パネルで、メディアソースのプロパティを確認することができます。 
+
+![](MediaPlayerDetails.png)
+
+**Playback** オプションで、メディアを **Auto Play** (ロード時にメディアを自動再生する) と **Auto Play Rate** (Auto Play が有効の場合、再生レートを定義する) に加えて、最後まで再生されるとメディアがループする機能を設定できます。 
+
+**Source** セクションの場合、パスをメディアにローカルにまたは URL 経由のインターネットで指定して、更に Streaming Mode を設定します。最後のセクションには、メディア自体の **Information** を表示します。 
+
+### MediaTexture アセット
+
+**MediaPlayer** アセットを作成すると、ビデオ システムの抽出を可能にする **MediaTexture** アセットをそこから作成することが可能になります。MediaTexture は、ビデオ ストリーム (1 つ以上が利用可能な場合) を選び、エンジンのその他のテクスチャと同じように使用することを可能にします。
+
+MediaPlayer から MediaTexture を作成するには、MediaPlayer アセット上を **右クリック** して **Create Media Texture** オプションを選択します。 
+
+![](MediaTextureAsset.png)
+
+その後で、MediaTexture アセットが新規作成されます。 
+
+![](MediaTextureCreated.png)
+
+MediaTexture を **右クリック** して、エンジンの他のマテリアルのように使用できる **マテリアル** を作成します。 
+
+![](CreateMaterial.png)
+
+[REGION:note]
+ビデオが Media Asset Editor で再生されているのにテクスチャに表示されない場合は、間違ったビデオ ドライブが選択されている可能性が高いです。MediaTexture を **ダブルクリック** してテクスチャ エディタを開き、MediaPlayer の **[詳細]** パネルでトラックを選択して、これを変更します。 
+
+それでも問題が解決しない場合、MediaPlayer アセットの **Auto Play** オプションでビデオがテクスチャ内にストリームしているか確認してください。これで問題が解決したら、 **Auto Play** をそのまま使うか、または **ブループリント** でアセットを再生するスクリプトを設定します (後述の [Media Framework でブループリントを使用する](#MediaFrameworkでブループリントを使用する) セクションをご覧ください)。 
+[/REGION]
+
+### MediaSoundWaves
+
+**MediaSoundWaves** は、他の Sound Actor と同じようにレベル内に置くことができるオーディオ コンポーネントです。MediaPlayer アセットに依存していますが、サウンドを再生するには MediaPlayer Asset に再生するよう指示を出す必要があります (Audio Play に設定されていない場合)。 
+
+MediaPlayer アセットを **右クリック** して **[Create Media Sound Wave]** を選択すると MediaSoundWave を作成することができます。 
+
+![](MediaSoundWave.png)
+
+[REGION:note]
+MediaSoundWaves はまだ開発の初期段階です。ドキュメントが追加された場合は、追って更新します。 
+[/REGION]
+
+## Media Framework でテクスチャとマテリアルを使用する
+
+このセクションでは、テクスチャとマテリアルで Media Framework を早く使用する方法を紹介します。 
+
+###テクスチャ
+
+これは、TV で MediaTexture を再生している例です。 
+
+![](TextureGIF.gif)(convert:false)
+
+_この例では、 Learn Tab に存在する **Realistic Rendering** プロジェクトから **SM_TV** アセットを **移行** しました。_
+
+1. 本ページで説明されているステップを踏んで、希望するビデオで **MediaPlayer** と **MediaTexture** アセットを作成します。 
+
+1. **MediaPlayer** アセットを開いて、 **Auto Play** に設定します。 
+
+1. **「Game/ArchVis/Materials」** フォルダに存在する **M_TV** マテリアルを開きます。 
+
+1. MediaTexture を **M_TV** マテリアルにドラッグして、 **ScreenColor** ノードの横に配置します。 
+
+	![](Texture1.png)(w:800)
+
+1. **ScreenColor** ノードを削除して、テクスチャを **Lerp** ノードにプラグインします。 
+
+1. Texture Sample へ接続された **TextureCoordinate** ノードを追加し、必要に応じて **UTiling** と **VTiling** を調整します。 
+
+	![](Texture2.png)
+
+
+###マテリアル 
+
+マテリアルに関して必要な作業は、 **MediaTexture** から **Material** を作成して、オブジェクトにマテリアルを適用するだけです。 
+
+![](MaterialsExample.png)
+
+マテリアルをレベル内の基本的なキューブに、マテリアルを適用するとこうなります。MediaPlayer アセットは、 **Auto Play** に設定されています。 
+
+
+##Media Framework でブループリントを使用する
+
+ブループリントを使って MediaPlayer アセットに直接アクセスして制御することも可能です。この例では、MediaTexture が適用される TV の正面にトリガーを設定しました。MediaPlayer アセットは、 **Auto Play** に設定していません。 
+
+![](Blueprint1.png)
+
+プレイヤーがトリガーに入ると TV に適用された MediaTexture を再生し、トリガーから出ると MediaTexture をポーズします。 
+
+![](BlueprintGIF.gif)(convert:false)
+
+**Level ブループリント** 内に、次のスクリプトを作成しました。 
+
+[REGION:lightbox]
+[![](LevelBlueprintExample.png)(w:800)](levelBlueprintExample.png)
+[/REGION:lightbox]
+
+_クリックして全画面表示にします。_
+
+**MediaPlayer** タイプの変数を新規作成し、デフォルト値として MediaPlayer アセットに割り当てました。そして、プレイヤー キャラクター (MyCharacter) が (変数に割り当てられた) MediaPlayer アセットを **再生** してもらいたいトリガー ボックスにいつオーバーラップするかを示しました。 
+
+キャラクターがトリガー ボックスを去る時にも同様の処理をします。 **Pause** ノードを使用した点が違っています。**Event End Play** ノードは、Play in Editor セッションに存在した後で MediaPlayerのポーズ操作にも使用します。MediaPlayer に使用できるのはこれらの 2 つのノードだけです。MediaPlayer 変数をドラッグすると、一緒に使用することができるノードが分かります。 
+
+![](BlueprintActions.png)
+
+
+## Media Framework で UMG を使用する
+
+メディアプレイヤーを UI の一部、あるいはインゲーム ムービープレイヤーにしたい場合、 **Widget ブループリント** を作成し、 (MediaPlayer から順番に作成された) MediaTexture から作成されたマテリアルを割り当てると UMG を使ってそのような処理ができます。 
+
+プレイヤーがインゲームで M キーを押すと、再生中のビデオの再生、ポーズ、巻き戻しコントロールと一緒にムービー プレイヤーが画面上に表示される設定を作成したのが、以下です。 
+
+![](UMGGIF.gif)(convert:false)
+
+まず最初に [Widget ブループリント](Engine\UMG\UserGuide\WidgetBlueprints) を作成しました。 
+
+![](WidgetBlueprint.png)
+
+Widget ブループリント内の **画像** に対して、MediaTexture を使うマテリアルを割り当てました。 
+
+![](BrushImage.png)
+
+Widget ブループリントのグラフには、配置済みのビデオを再生、巻き戻し、ポーズするボタン用のコマンドしかありません。 
+
+MediaPlayer 変数を追加して、使用したい MediaPlayer アセットも割り当てました。 
+
+![](WidgetBlueprint2.png)(w:840)
+
+そのマテリアルをブラシに割り当てるために、1 つだけ小さな変更をして **Emmissive** に設定する必要があります。 
+
+![](Material.png)
+
+**Level ブループリント** で、作成したインゲーム ムービー プレイヤーをプレイヤーが有効化 / 無効化できるようなスクリプトを設定します。 
+
+[REGION:lightbox]
+[![](LevelBlueprint.png)(w:840)](LevelBlueprint.png)
+[/REGION:lightbox]
+
+_クリックして全画面表示にします。_
+
+[REGION:note]
+**コンテンツ事例** 、 **UMG** 、 **Media** マップで他の例もご覧いただけます。 
+[/REGION]
+
+
+

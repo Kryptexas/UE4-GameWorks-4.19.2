@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2492474
+Availability:Public
+Title:2.Launchpad を構成する
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:最も一般的に使われるビューポートのナビゲーション制御の概要
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Engine/Blueprints/QuickStart/1 "%Engine/Blueprints/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタートのホーム画面](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+Launchpadはレベルエディタでビルドして、ゲームプレイビヘイビアを追加するためにその後 Blueprint クラスに変換します。 
+
+1. まずレベルの一番上のプラットフォームが見えるまで、ビューポートを移動します。
+
+	![](TopPlatforms.png)(w:500)
+
+	Empty Actor（空のアクタ）を使用してLaunchpadの要素すべてを保持するコンテナを作成します。必要となる2つの要素（またはコンポーネント）は、Launchpadを表す形状とキャラクターがこれにオーバーラップした時の
+	トリガーです。 
+
+1. **[モード]** パネルで **[Basic]** をクリック、そして **[Empty Actor]** を探します。
+
+	 ![](EmptyActor.png)
+1. 表示されているプラットフォームのどれかにアクタを配置するためにレベルへドラッグします。
+
+	![](DragEmptyActor.png)
+1. レベルでアクタを選択すると、アクタのプロパティが **[詳細]** パネルに表示されます。[詳細] パネルの上部でアクタの名前を変更することができます。テキストボックスをクリックして、「LaunchPad」など新しい名前を入力してください。
+
+	![](NameLaunchpad.png)
+
+	プラットフォームサイズに収まるように多少縮小しますが、最初に追加するコンポーネントはキューブです。最初に追加したコンポーネントはRoot コンポーネントになります。その他のコンポーネントは
+	このRoot に従ってシーン内に配置、スケール、そして移動します。作業しながらコンポーネントを再配置することもできるので、これが最終決定となるわけではありません。
+1. **詳細** パネルで **Add Component（コンポーネントを追加）** ボタンをクリックして、 **Basic Shapes（基本形状）** から **キューブ** を選択します。
+1. **キューブ** コンポーネントを選択すると、このコンポーネントの調整が可能になります。キューブを（1、1、0.1）にサイズ変更します。
+
+1. ここで、何かとオーバーラップすると必ずイベントを発行するBox Collision コンポーネントを追加します。**詳細** パネルで **Add Component（コンポーネントを追加）** ボタンをクリックして、 **コリジョン** から **キューブコリジョン** を選択します。
+1. ボックスのXとYのサイズをプラットフォームのサイズに変更して、Zのサイズを少しだけプラットフォームの上へ拡張します。直接 **スケール** を入力する場合は、（1.25、1.25、15.0）と入力します。
+
+[REGION:tip]
+例えばLaunchpad全体を拡張するなどアクタのプロパティを変更する時は、 **詳細** パネルの **Add Components（コンポーネントを追加）** ボタン真下にある **LaunchPad (Instance)** をクリックします。
+[/REGION]
+
+
+![](LaunchPadActor.png)
+
+設定通りにアクタを作成したので、これをブループリントに変換します。ブループリントエディタ内でコンポーネントをさらに追加して、これまでと同じ操作でレベルのコンポーネントを調整できます。
+
+
+---
+
+%Steps%

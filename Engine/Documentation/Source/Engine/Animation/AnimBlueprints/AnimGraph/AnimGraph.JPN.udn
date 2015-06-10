@@ -1,0 +1,106 @@
+﻿INTSourceChangelist:2495730
+Availability:Public
+Title:AnimGraph
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:Animation ブループリントと使ってスケルタル メッシュに適用するポーズのサンプリング、ブレンド、操作に使用するグラフ
+
+[REGION:banner]
+![AnimGraph](animgraph_banner.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+[EXCERPT:Intro]
+**AnimGraph** を使用して、現在のフレームに対する _スケルタルメッシュ_ の最終ポーズを評価します。デフォルトは、 
+各アニメーション ブループリントには、 **_AnimGraph_** がデフォルトで付いており、その中には _アニメーション シーケンス_ のサンプリング、アニメーションのブレンド、 
+または _SkeletalControl_ を使用してボーンの変換を制御を行う [Animation ノード](Engine/Animation/AnimBlueprints/AnimGraph#Animationノード) が配置されています。 
+結果として得られたポーズは、スケルタルメッシュの各フレームに適用されます。
+[/EXCERPT:Intro]
+
+![Anim Graph](animgraph.png)(w:720)
+
+**AnimGraph** 内では、コードなど **EventGraph** などで計算した値を使用でき、 
+これらを _BlendSpaces_ や他のブレンド ノードへの入力値として使うことができます。特別なブレンド処理をせずに、 
+直接 _AnimationSequences_ をサンプリングすることも可能です。**AnimGraph** により、_SkeletalControls_ を使って 
+ボーンの配置、回転、スケールの修正が直接できるようになります。
+
+## 実行フロー
+
+すべてのグラフには実行フローがあります。グラフのノードの _実行ピン_ の間のパルスリンクとして表示されます。_ブループリント_ の **EventGraph** などの一般的なグラフの場合、 
+このフローはイベントの発行に依存しているので 
+再生中に表示されます。**AnimGraph** の場合は、 
+イベントベースではなくフレームごとに評価されるので、常に実行フローを表示するいう点で異なります。
+
+![Blend - Alpha 0.0](exec_flow_0.png)(w:720)
+
+**AnimGraph** では、実行フローは 1 つのノードから他のノードへ _ポーズ_ が渡されたことを表します。ただし 
+[Blend ノード](Engine/Animation/NodeReference/Blend) など、 
+複数のインプットをもち、現在の実行フローに関係しているインプットを内部で判断するノードもあります。こうした判断は通常、 _データピン_ へ渡された値など、 
+外部のインプットに依存します。
+
+以下のサンプルでは、上図と同じ Blend ノードが _Alpha_ ピンの値に応じて 
+インプット間で実行フローを切り替えています (わかりやすくするため、値は手動で設定しています)。
+
+![Blend - Alpha 1.0](exec_flow_1.png)(w:720)
+[REGION:caption]Alpha 1.0 とのブレンドの場合、入力 B を使用する[/REGION]
+
+## AnimGraph の操作
+
+**AnimGraph** はノードグラフを評価することにより機能します。1 つ以上の入力ポーズに対して特定の操作を実行するノードもあれば、 
+ _AnimationSequences_ 、 _BlendSpaces_ 、 
+ _AnimMontages_ など別のアセットタイプのアクセスやサンプリングに使用されるノードもあります。これらのアセットとノード、および **AnimGraph** との関わり方を説明します。
+
+### AnimationSequences
+
+[INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
+
+![Animation Sequences](Engine/Animation/Sequences/UserGuide/CE_anim_sample.png)
+
+詳細は [](Engine/Animation/Sequences/UserGuide) を参照してください。
+
+### Blendspaces
+
+[INCLUDE:Engine/Animation/Blendspaces/UserGuide#Intro]
+
+![Output Pose - Result](Engine/Animation/Blendspaces/UserGuide/bs_output_result.png)
+
+詳細は [](Engine/Animation/Blendspaces/UserGuide) を参照してください。
+
+### Animation ノード
+
+[INCLUDE:Engine/Animation/NodeReference#Intro]
+
+使用可能なノード一覧の説明は、 [](Engine/Animation/NodeReference) を参照してください。
+
+#### Animation Blending
+
+[INCLUDE:Engine/Animation/NodeReference/Blend#intro]
+
+![Two-way Blend](Engine/Animation/NodeReference/Blend/CE_blend_twoway.png)
+
+SpaceConversion (空間変換) ノードに関する詳細は、[](Engine/Animation/NodeReference/Blend) を参照してください。
+
+#### Skeletal Controls
+
+[INCLUDE:Engine/Animation/NodeReference/SkeletalControls#intro]
+
+使用できる _SkeletalControls_ の各種タイプに関する詳細は、 
+ [](Engine/Animation/NodeReference/SkeletalControls) を参照してください。
+
+#### Space Conversion
+
+[INCLUDE:Engine/Animation/NodeReference/SpaceConversion#intro]
+
+[REGION:fullwidth]
+![Usage in graph](Engine/Animation/NodeReference/SpaceConversion/graph_usage.png)
+[/REGION]
+
+SpaceConversion (空間変換) ノードに関する詳細は、 [](Engine/Animation/NodeReference/SpaceConversion) を参照してください。
+
+#### Sync Groups
+
+[INCLUDE:Engine\Animation\SyncGroups#intro]
+
+![Usage in graph](Engine\Animation\SyncGroups\AnimationSyncGroup.png)(w:480)
+
+Sync Group の使用方法および詳細は [](Engine\Animation\SyncGroups) を参照してください。

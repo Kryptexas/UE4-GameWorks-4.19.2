@@ -1,0 +1,89 @@
+Availability: Public
+Title:2. Importing Meshes via .FBX
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:Here we will go through the process of exporting/importing meshes into Unreal Engine 4. 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+If you have assets to import, you can jump to the [Mesh Preparation](#meshpreparation) section below. 
+
+If you do not have any assets or access to a modeling package, you can download some sample assets below:
+
+* [Sample Assets](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+Extract these to a location on your computer then drag the **Basic_Asset1** and **Basic Asset2** into the **Content** folder of your UE4 Project. 
+
+ ![](ExplorerImport.png)(w:640)
+
+ From here, you can continue from **Step 4** below. 
+ 
+[REGION:note]
+ The naming convention and file structure may look slightly different depending upon your asset name and project location. 
+[/REGION]
+ 
+
+## Mesh Preparation
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+For more information on the FBX pipeline, see the [](Engine/Content/FBX) documentation.
+[/REGION]
+
+
+
+<!--
+## Supported Image Formats
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+-->
+
+%Steps%

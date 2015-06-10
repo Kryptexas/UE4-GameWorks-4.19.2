@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title:BlueprintPure
+Crumbs:%ROOT%, Programming,  Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference/Functions, Programming/UnrealArchitecture/Reference/Functions/Specifiers
+Description: 
+Availability:Public
+Version:4.5
+
+この関数は所有するオブジェクトに決して影響することはなく、ブループリントあるいは Level ブループリント グラフで実行可能です。 

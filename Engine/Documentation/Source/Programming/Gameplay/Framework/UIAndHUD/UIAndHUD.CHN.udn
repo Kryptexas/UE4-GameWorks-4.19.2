@@ -1,0 +1,28 @@
+Availability: Public
+Title:用户界面 & HUDs
+Crumbs:%ROOT%, Gameplay, Gameplay/Framework
+
+[REGION:header_img]
+![hud.jpg](hud.jpg)
+[/REGION]
+
+游戏和玩家通信及交互的方式是非常重要的。用户界面(UIs)和平视显示器(HUDs)是游戏给玩家提供游戏相关信息的方法，并且在某些情况下允许玩家和游戏交互。
+
+虚幻引擎3提供了多种创建UI和HUD的方法。Canvas(画布)类可以用于在低层次上直接向屏幕描画信息，覆盖到世界上。 Scaleform GFx也集成到了引擎中，通过使用专业级的工具（比如Adobe Flash Professional）提供了完整的菜单和HUD解决方案。对于移动设备平台的游戏来说，也有基于Canvas功能上的移动设备菜单系统，提供了创建使用触摸输入菜单的功能。
+
+
+[REGION:titlebar]
+技术 主题
+[/REGION]
+[REGION:contentsection]
+
+
+[/REGION]
+
+[REGION:titlebar]
+内容创建 主题
+[/REGION]
+[REGION:contentsection]
+
+
+[/REGION]

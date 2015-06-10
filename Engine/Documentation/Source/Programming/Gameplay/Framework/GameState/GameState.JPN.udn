@@ -1,0 +1,10 @@
+﻿Availability:Public
+Title:ゲームステート
+Crumbs:%ROOT%, Gameplay/Framework
+Description:GameState はクライアント上でゲームのステートをモニタする役割をします。
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Framework/GameState)
+[/PARAM]
+[/OBJECT]

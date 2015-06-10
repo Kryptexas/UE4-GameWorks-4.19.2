@@ -1,0 +1,87 @@
+﻿INTSourceChangelist:2519824
+Availability:Public
+Title: 애니메이션 블루프린트
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Animation Blueprint, 애니메이션 블루프린트란 페르소나에서 생성되는 비주얼 스크립트로, 복잡한 애니메이션 동작의 생성 및 제어가 가능합니다.
+Related: Engine/Blueprints/Overview
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Animation/StateMachines
+Related: Gameplay/AI
+Related: Engine/Content/Tools/MayaRiggingTool
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/AnimBlueprints:title%](AnimBP_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/AnimBlueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/AnimBlueprints:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/AnimBlueprints]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+[EXCERPT:Intro]
+**Animation Blueprint** (애니메이션 블루프린트)는 본질적으로 그 그래프가 스켈레탈 메시의 애니메이션을 
+제어하는 특수 [블루프린트](Engine/Blueprints) 입니다. 애니메이션 블렌딩, 스켈레톤의 본 
+직접 제어, 매 프레임 스켈레탈 메시에 대한 최종 포즈 출력 등이 가능합니다.
+
+_Controller_ (콘트롤러)는 게임플레이 환경에 의해 이뤄진 결정이나 플레이어 입력에 따라 _Pawn_ (또는 _Character_, 폰 또는 캐릭터)의 이동을 
+지시합니다. 각 폰에는 애니메이션을 적용할 스켈레탈 메시를 레퍼런싱하는 _SkeletalMeshComponent_ (스켈레탈 메시 컴포넌트)가 있으며
+애니메이션 블루프린트 인스턴스가 있습니다. 애니메이션 블루프린트는 그 두 개의 그래프를 통해 소유중인 폰의 의 프로퍼티에 접근 가능하며,
+블렌딩이나 스테이트 트랜지션(상태 이행)이나 _Animation Montage_ (애니메이션 몽타주) 구동에 사용되는 값을 계산하고,
+_AnimationSequence_ (애니메이션 시퀀스)를 기준으로 스켈레탈 메시의 현재 포즈를 알아낸 다음
+_SkeletalControl_ (스켈레탈 콘트롤)에서 _Skeleton_ (스켈레톤)의 이동을 지시합니다.
+[/EXCERPT:Intro]
+
+[REGION:tip]
+**애니메이션 블루프린트** 의 단순한 예제는 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 문서의 1.2 섹션에서 찾아보실 수 있습니다.
+[/REGION]
+
+## 애니메이션 블루프린트 작업하기
+
+[EXCERPT:Graphs]
+각 프레임의 최종 애니메이션 제작을 위해 함께 사용되는 애니메이션 블루프린트의 주요 컴포넌트는 두 가지입니다.
+**이벤트 그래프** 는 값을 업데이트한 다음 그 값을 **애님 그래프** 에 사용하여 스테이트 머신, 
+블렌드 스페이스, 또는 기타 노드를 돌릴 수 있으며, 이로 인해 여러 애니메이션 시퀀스나 포즈와의 블렌딩으로 
+다른 시스템에 _Notify_ (노티파이)를 발동시켜 동적인 애니메이션 주도형 이펙트가 일어나도록 할 수 있습니다.
+[/EXCERPT:Graphs]
+
+[OBJECT:IconSection]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints/EventGraph)
+	[/PARAM]
+	[PARAM:icon]
+		[![Event Graph](Engine/Animation/AnimBlueprints/EventGraph/eventgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/EventGraph)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints/EventGraph#Intro]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:IconSection]
+	[PARAM:title]
+		[](Engine/Animation/AnimBlueprints/AnimGraph)
+	[/PARAM]
+	[PARAM:icon]
+		[![Anim Graph](Engine/Animation/AnimBlueprints/AnimGraph/animgraph_thumb.png)(w:192)](Engine/Animation/AnimBlueprints/AnimGraph)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
+	[/PARAM]
+[/OBJECT]
+

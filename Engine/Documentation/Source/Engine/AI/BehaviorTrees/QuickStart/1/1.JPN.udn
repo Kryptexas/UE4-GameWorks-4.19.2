@@ -1,0 +1,35 @@
+﻿INTSourceChangelist:2515016
+Availability:Public
+Title:1. 基本設定
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:ステップ 1.基本設定
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+[EXCERPT:AIProjectStart]
+
+1. アンリアル エディタ 4 を開きます。
+
+1. **Blueprint Top Down** テンプレートを元に新規プロジェクトを作成します。
+
+	このクイック スタート ガイドにはオプションで **Starter Assets** があります。
+
+
+新規プロジェクトの開始について詳細が必要な場合は、 [エディタ クイックスタート ガイド](Engine/Basics/Projects/Browser) ユーザーガイドをご覧ください。
+
+[/EXCERPT:AIProjectStart]
+%Steps%

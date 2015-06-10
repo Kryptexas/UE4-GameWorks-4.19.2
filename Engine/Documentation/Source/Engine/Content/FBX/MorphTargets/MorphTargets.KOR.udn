@@ -1,0 +1,289 @@
+﻿INTSourceChangelist:2511696
+Availability: Public
+Title:FBX 모프 타겟 파이프라인
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX 콘텐츠 파이프라인을 사용하여 모프 타겟을 임포트, 익스포트하고 셋업하는 방법에 대해서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/MorphTargets:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/MorphTargets:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/MorphTargets:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/MorphTargets]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 개요
+
+[EXCERPT:Intro]
+[EXCERPT:FBX_morph]
+Morph Target (모프 타겟)이란 일정한 방식으로 변형되어 버린 특정 메시의 버텍스 위치에 대한 스냅샷을 말합니다. 예를 들어 캐릭터 모델을 선택하여, 그 얼굴 모양을 바꿔 얼굴 표정을 만든 다음, 그 수정된 버전을 모프 타겟으로 저장합니다. 언리얼에서 그 모프 타겟으로 블렌딩하여, 캐릭터의 얼굴이 그 표정을 짓도록 만들 수 있습니다. 모프 타겟은 FBX 를 통해 언리얼로 임포트되며, 애니메이션 시퀀스 안에서 캡슐화됩니다.
+[/EXCERPT:FBX_morph]
+
+하나의 애니메이션에 모프 타겟을 몇 개든 돌릴 수 있기 때문에, 복잡한 모프 타겟 애니메이션을 언리얼로 임포트하는 작업이 매우 수월해집니다. 예를 들어 애니메이션 패키지의 모프 타겟을 사용하여 어떤 대화를 하는 캐릭터의 애니메이션을 만들 수 있습니다. 이 애니메이션은 모프 타겟을 몇 개든 사용해서 얼굴 동작을 통으로 잡아낼 수 있습니다. 그러나 임포트하면 그 결과는 하나의 단 하나의 애니메이션 시퀀스로 보입니다. 물론 [커브](Engine/Animation\Sequences\Curves) 를 통해 각 모프 타겟의 애니메이션 데이터에 대한 접근도 여전히 가능합니다.
+[/EXCERPT:Intro]
+
+FBX 임포트 파이프라인에 모프 타겟이 지원되어, 3D 어플리케이션에서 언리얼로 게임에 사용할 스켈레탈 메시용 모프 타겟을 쉬운 방식으로 가져올 수 있습니다. 몇 개의 스켈레탈 메시에 대한 몇 개의 모프 타겟이든, 하나의 파일 안에 임포트할 수 있습니다.
+
+여기서는 모프 타겟을 언리얼로 임포트하는 FBX 콘텐츠 파이프라인 사용법에 대한 기술적인 개요를 다루겠습니다. 개발 환경에서의 FBX 콘텐츠 파이프라인 작업에 관련된 상세 정보, 팁과 꼼수에 대해서는 [](Engine/Content/FBX/BestPractices) 페이지를 참고해 주시기 바랍니다.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+이 페이지에는 Autodesk Maya 와 Autodesk 3ds Max 모두에 대한 정보가 포함되어 있습니다. 아래에서 선호하는 툴을 선택하시면 그 툴에 관련된 정보만 표시됩니다:
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 이름짓기
+
+
+FBX 포맷을 사용하여 모프 타겟을 언리얼 에디터로 임포트할 때, 각각의 모프 타겟 이름은 3D 프로그램의 블렌드 셰이프나 모프 이름을 따 옵니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* 블렌드셰이프 노드 이름에 블렌드셰이프 이름을 더한, `[BlendShapeNode]_[BlendShape]` 식이 됩니다.
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Morpher 모디파이어의 채널 이름이 됩니다.
+	[/PARAM]
+[/OBJECT]
+
+
+## 모프 타겟 구성하기
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSetup]
+
+3dsMax 에서 FBX 로 익스포트할 모프 타겟을 구성하는 데는 Morpher 모디파이어 사용을 요합니다. 아래에 익스포트할 모프 타겟을 구성하는 데 필요한 절차를 간략히 기술해 놓았습니다. 자세한 정보는 해당 프로그램의 도움말을 참고하시기 바랍니다.
+
+
+1. 베이스 메시로 시작합니다.   
+    
+	![max_setup_1.jpg](max_setup_1.jpg)(w:744 h:354)
+
+1. 타겟 포즈를 만들기 위해 수정해야 할 메시를 복제합니다. 여기서는 머리입니다. 타겟 포즈를 만듭니다. 이 예제에서 타겟 포즈는 캐릭터 윙크입니다.   
+    
+	![max_setup_2.jpg](max_setup_2.jpg)(w:744 h:354)
+
+1. 베이스 메시에 **Morpher** 모디파이어를 추가합니다. 스택의 **Skin** 모디파이어 앞에 와야 합니다.   
+    
+	![max_setup_3.jpg](max_setup_3.jpg)(w:161 h:123)
+
+1. 채우려는 모프 채널을 선택한 상태로 공개된 **Morpher** 모디파이어 프로퍼티의 ![max_pick_button.jpg](max_pick_button.jpg)버튼을 누르거나, 채널에 우클릭하고 _Pick Object From Scene_ 을 선택합니다.   
+    
+	![max_setup_4.jpg](max_setup_4.jpg)(w:168 h:667)
+
+1. 뷰포트에서 타겟 메시를 클릭합니다.   
+    
+	![max_setup_5.jpg](max_setup_5.jpg)(w:744 h:354)
+
+1. 이제 모프 채널이 채워져 타겟 메시의 이름이 표시됩니다. 바로 이 이름이 언리얼 에디터의 모프 타겟에 주어집니다. 공개된 **Morpher** 모디파이어의 **Channel Parameters** 부분에서 바꿔줄 수 있습니다.   
+    
+	![max_setup_6.jpg](max_setup_6.jpg)(w:162 h:414)
+
+1. 채널의 웨이트를 100.0 으로 조절하면 베이스 메시가 타겟 포즈로 보간하도록 만듭니다.   
+    
+	![max_setup_7.jpg](max_setup_7.jpg)(w:744 h:354)
+[/EXCERPT:maxSetup]
+
+
+[EXCERPT:mayaSetup]
+마야에서 FBX 로 익스포트할 모프 타겟을 구성하는 데는 블렌드 셰이프 사용을 요합니다. 아래 절차는 익스포트용 모프 타겟을 구성하는 데 필수적인 절차에 대한 간략한 설명입니다. 자세한 정보는 프로그램의 도움말을 참고하시기 바랍니다.
+
+
+1. 베이스 메시로 시작합니다.   
+    
+	![maya_setup_1.png](maya_setup_1.png)
+
+1. 타겟 포즈를 만들기 위해 수정할 메시를 복제합니다. 여기서는 머리입니다. 타겟 포즈를 만듭니다. 이 예제에서 타겟 포즈는 캐릭터 윙크입니다.   
+    
+	![maya_setup_2.png](maya_setup_2.png)
+
+1. 타겟 메시 이후 베이스 메시를 순서대로 선택합니다.   
+    
+	![maya_setup_3.png](maya_setup_3.png)
+
+1. **Animation** 메뉴 세트의 **Create Deformers** 메뉴에서 **Blend Shape** 를 선택합니다. 원한다면 이 단계 이후 타겟 메시를 지울 수도 있습니다.   
+    
+	![maya_setup_4.jpg](maya_setup_4.jpg)
+
+1. 이제 베이스 메시의 프로퍼티에 블렌드 셰이프 노드가 보입니다. 이 이름이 언리얼 에디터에 사용됩니다. 여기서 블렌드셰이프 노드와 블렌드셰이프 이름을 바꿔줄 수 있습니다.   
+    
+	![maya_setup_5.png](maya_setup_5.png)
+
+1. 블렌드셰이프의 웨이트를 1.0 으로 조절하면 베이스 메시가 타겟 포즈 쪽으로 보간되도록 합니다.   
+    
+	![maya_setup_6.png](maya_setup_6.png)
+
+[/EXCERPT:mayaSetup]
+-->
+
+(#ExportingMorphs)
+
+
+## 모프 타겟 익스포트하기
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+
+[EXCERPT:maxExport]
+1. 뷰포트에서 익스포트할 베이스 메시(들)와 본을 선택합니다.   
+    
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. _File_ 메뉴에서 _Export Selected_ (또는 선택에 관계 없이 모든 것을 익스포트하려면 _Export All_ ) 을 선택합니다.   
+    
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 모프 타겟을 익스포트할 FBX 파일 위치와 이름을 선택하고 ![max_save_button.jpg](max_save_button.jpg)버튼을 누릅니다.   
+    
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. **FBX Export** 창에 옵션을 알맞게 설정합니다. 모프 타겟 익스포트를 위해서는 **Animations** 박스와 모든 **Deformations** 옵션을 체크해야 합니다.   
+    
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. ![max_ok_button.jpg](max_ok_button.jpg)버튼을 눌러 모프 타겟을 담고 있는 FBX 파일을 만듭니다.
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 뷰포트에서 익스포트하려는 메시(들)와 조인트를 선택합니다.   
+    
+	![maya_export_1.png](maya_export_1.png)
+
+1. _File_ 메뉴에서 _Export Selection_ (또는 선택에 관계 없이 모든 것을 익스포트하려면 _Export All_ )을 선택합니다.   
+    
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. 모프 타겟을 익스포트하려는 FBX 파일 위치와 이름을 선택하고 **FBX Export** 대화창에 옵션을 적합하게 설정합니다. 모프 타겟 익스포트를 위해서는 **Animations** 와 모든 **Deformed Models** 옵션을 체크해야 합니다.   
+    
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. ![maya_export_button.jpg](maya_export_button.jpg)버튼을 눌러 모프 타겟이 들어있는 FBX 파일을 만듭니다.
+[/EXCERPT:mayaExport]
+
+-->
+
+
+(#ImportingMorphs)
+
+
+## 모프 타겟 임포트하기
+
+
+FBX 모프 타겟 임포트 파이프라인으로는 스켈레탈 메시와 모프 타겟을 한꺼번에, 아니면 개별적으로 임포트할 수 있습니다.
+
+**스켈레탈 메시와 모프 타겟 함께**
+
+
+1. 콘텐츠 브라우저의 임포트 버튼을 클릭합니다. 열리는 파일 브라우저에서 임포트하려는 FBX 파일로 이동하여 선택합니다. **주:** ![import_fbxformat.jpg](import_fbxformat.jpg)드롭다운으로 필터를 적용할 수도 있습니다.   
+    
+	![](import_file.jpg)
+
+1. **Import** 대화창 세팅을 적절히 설정해 줍니다. _Import Morph Targets_ 체크 확인하시구요. **주:** 임포트되는 메시의 이름은 기본 [작명 규칙](Engine/Content/FBX/ImportOptions#NamingConventions) 을 따릅니다. 모든 세팅 관련 자세한 내용은 [FBX 임포트 대화창](Engine/Content/FBX/ImportOptions) 부분을 참고하시기 바랍니다.   
+    
+	![](ImportMorphTargets.png)
+
+1. OK 버튼을 클릭하여 메시와 LOD 를 임포트합니다. 과정이 성공적이었으면 콘텐츠 브라우저에 결과 메시, 모프 타겟 (MorphTargetSet), 머티리얼, 텍스처가 표시됩니다. 모프 타겟을 담기 위해 생성된 MorphTargetSet 이름이 기본적으로 스켈레톤의 루트 본 이름을 딴 것을 확인할 수 있습니다.   
+    
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+    
+    페르소나에서 **모프 타겟 프리뷰어** 탭을 사용하여 임포트된 메시를 보면, 임포트된 모프 타겟의 세기를 조절하면서 예상대로 돌아가는지 확인할 수 있습니다.
+  
+  	[REGION:lightbox]
+		[![](InfSkelMesh_Morph1.png)(w:375)](InfSkelMesh_Morph1.png) [![](InfSkelMesh_Morph2.png)(w:375)](InfSkelMesh_Morph2.png)
+	[/REGION]
+	
+	**모프 타겟** 의 효과는 종종 미묘한 면이 있지만, 그를 통해 애니메이터가 가능한 제어의 폭과 캐릭터에 추가되는 사실성은 무시할 수 없습니다.

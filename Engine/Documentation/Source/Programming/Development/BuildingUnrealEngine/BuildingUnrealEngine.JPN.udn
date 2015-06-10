@@ -1,0 +1,241 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title:アンリアル エンジンのビルド
+Crumbs:%ROOT%, Programming, Programming/Development
+Description:アンリアル・エンジンのコンパイル
+バージョン4.5
+
+%Globals:OSSelect%
+
+[TOC (start:2 end:3)]
+
+##アンリアル エンジンの設定
+
+[EXCERPT:Main]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		開始前に、Visual Studio 2013 が実行されていることを確認してください。
+		[/REGION]
+
+		エンジンでの作業に取り掛かる前に、行うべき基本的な設定手順がいくつかあります。
+
+		1.	ルート ディレクトリに格納されている `GenerateProjectFiles.bat` バッチファイルを実行します。
+
+			[REGION:warning]
+				全てのプロジェクトファイルと UE4 ソリューションは中間ファイルであり、`[UE4Root]\Engine\Intermediate\ProjectFiles` に格納されています。新しいビルドと同期する度にこうしたファイルを生成し、ファイルが存在することと最新状態であることを確認してください。もし`Intermediate` フォルダを削除したら、上記のバッチファイルを使用してプロジェクトファイルを再生成する必要があります。
+			[/REGION]
+
+		1. 	ルート ディレクトリにある `UE4.sln` Visual Studio ソリューションを開きます。これはエンジン全体に対する主要な Visual Studio ソリューションです。エンジンコアやゲームのプロジェクトはこのソリューション内にあります。 
+
+		1. 	**UE4** プロジェクトを **右クリック** して、**「Set As StartUp Project」** を選びます。
+
+		1. 	`UE4.sln` を保存します。次回ソリューションを開く際に上記の手順を再度繰り返さなくていいように、変更を必ず保存してください。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		[REGION:note]
+		開始前に、Xcode 5.1 が実行されていることを確認してください。
+		[/REGION]
+
+		エンジンでの作業に取り掛かる前に、コンパイルするためにプロジェクト ファイルが必要です。 
+		1. ルート ディレクトリにある `GenerateProjectFiles.command` を実行します。完了までに 1 分弱程度かかります。 
+
+		1. オペレーションが完了したら、Terminal ウィンドウを閉じます。
+
+
+		1. ルート ディレクトリにある `UE4.xcodeproj` Xcode プロジェクトを開きます。これはエンジン全体に対する主要なプロジェクトです。エンジンコア、ツール、ゲームのプロジェクトはすべてこのプロジェクトに格納されています。
+
+		1. Xcode では、アクティブ スキームに対して **UE4Editor - Mac** と **My Mac 64-bit** を選択します。
+
+	[/PARAM]
+[/OBJECT]
+
+
+##アンリアル エンジンのコンパイル
+
+アンリアル エンジン4 は、UnrealBuildTool を利用したカスタム ビルド方法を使用します。このツールはエンジンのコンパイルに関する全ての複雑な側面と要素を処理します。 
+
+###ビルド コンフィギュレーション
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		全てのコンフィギュレーションがデフォルトで表示されるわけではありません。メインの UE4 ディレクトリにある [GenerateProjectFiles.bat](Programming/UnrealBuildSystem/ProjectFileGenerator) ファイルを編集して、随時追加されるコンフィギュレーションに対してプロジェクト ファイルを生成します。
+
+		エンジンのコンパイル方法を決定する際に、アンリアル エンジン 4 と UnrealBuildTool は異なるビルド コンフィギュレーションを使用します。使用するコンフィギュレーションは、作成するビルドの目的によって決定されます。
+
+		下記が利用可能なコンフィギュレーションになります：
+
+		| ビルド コンフィギュレーション | 説明 |
+		|-------------|-------------|
+		| **Debug** | デバッグ コンフィギュレーションでエンジンとゲームコードの両方をビルドします。|
+		| **DebugGame** | エンジンを最適化してビルドしますが、ゲームコードはデバッグ可能な状態のままにします。ゲーム モジュールのみをデバッグする場合に理想的なコンフィギュレーションです。|
+		| **Development** | リリースと同等のコンフィギュレーションです。エンジンとゲームコードの両方がこのコンフィギュレーションでビルドされます。 |
+		| **Shipping** | 最適なパフォーマンスでゲームを出荷するためのコンフィギュレーションです。コンソール コマンド、統計情報、プロファイリング ツールが取り除かれます。|
+		| **Test** | このコンフィギュレーションは、**Shipping** コンフィギュレーションですが、一部のコンソール コマンド、統計情報、プロファイリング ツールが有効になっています。 |
+
+		このビルド コンフィギュレーションは、Visual Studio のツールバーから設定が出来ます。
+
+		![UE4 Solution - Configuration Menu](configuration_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		下記が利用可能なコンフィギュレーションになります：
+
+		| ビルド コンフィギュレーション | 説明 |
+		| ------------------- | ----------- |
+		| **Product > Build For > Running** | デバッグ コンフィギュレーションでエンジンとゲームコードの両方をビルドします。|
+		| **Product > Build For > Profiling** | Release と同等のコンフィギュレーションです。エンジンとゲームコードの両方がこのコンフィギュレーションでビルドされます。 |
+		[/PARAM]
+
+[/OBJECT]
+
+### ターゲット プラットフォーム
+
+現在アンリアル・エンジン 4 は、以下のプラットフォームをサポートしています。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Windows 32-bit**
+		* **Windows 64-bit**
+
+
+		エンジンそのものをビルドする場合は、**Win64** プラットフォームを使用します。
+
+		![UE4 Solution - Platform Menu](platform_menu.png)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		* **Mac 64-bit**
+		* **iOS Device**
+
+
+		エンジンそのものをビルドする場合は、**Mac 64-bit** プラットフォームを使用します。
+	[/PARAM]
+[/OBJECT]
+
+(#BinaryNamingConvention)
+### バイナリー命名規則
+
+生成されるバイナリーの名前は、ビルド時に使用されたコンフィギュレーションによって異なります。以下は一般的な命名規則です。
+
+|エンジン モード | 命名規則 |
+|----------- | ------------------|
+| Editor	  | UE4Editor-Platform-Configuration.extension |
+| Uncooked Game | UE4-Platform-Configuration.extension |
+
+このルールの例外は PC プラットフォームで、開発コンフィギュレーションのビルド時に、このプラットフォームとコンフィギュレーションが省略されます。例えば、Win64 プラットフォームに対して生成されるエディタ実行ファイルの名前は以下となります。
+
+| コンフィギュレーション | EXE 名 |
+| ------------- | -------- |
+| Debug | UE4Editor-Win64-Debug.exe |
+| DebugGame | UE4Editor-Win64-DebugGame.exe |
+| Development | UE4Editor.exe |
+
+
+### エンジンのビルド
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1.	ビルドしたいコンフィギュレーションに **Build Configuration** を設定します。この例では、**Development** に設定されています。利用可能な各コンフィギュレーションの詳細は [ビルドコンフィギュレーション](#ビルドコンフィギュレーション) セクションを参照してください。
+
+			![UE4 Solution - Set Configuration to Development](config_development_menu.png)
+
+		1.	**UE4** プロジェクトを **右クリック** します。 
+
+			1. **Clean** を選んで、コンパイル済みまたは仮のファイルをクリーンアップします。この作業によって、次回のビルドが確実に完全な再ビルドになるようにします。
+
+			1.	**Rebuild** を選んでエンジンを再コンパイルします。
+
+		または、**UE4** プロジェクトがまだスタートアップ プロジェクトに設定されていない場合は
+
+		1. **Build Configuration** を設定します。
+
+		1. **Build** メニューから以下を行います。
+
+	1. **UE4 をクリーンアップ**
+
+	1. **UE4 を再ビルド**
+
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+		1. アクティブ スキームを **UE4Editor - Mac > My Mac 64-bit** に設定するようにします。
+
+		1. **[product]** メニューから **Build For > Running** を選択します。
+	[/PARAM]
+[/OBJECT]
+
+[/EXCERPT:Main]

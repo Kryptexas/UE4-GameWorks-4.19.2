@@ -1,0 +1,216 @@
+﻿INTSourceChangelist:2500071
+Availability:Public
+Title:ランドスケープの屋外テレイン
+Crumbs:%ROOT%, Engine
+Description:広大でオープンな屋外背景を作成するテレインシステム
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Landscape:title%](Engine/Landscape/landscape_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape:title%](Engine/Landscape/landscape_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![Landscape](landscape_landing_banner.png)
+[/REGION]
+
+[EXCERPT:landscape002]
+
+[REGION:topics third]
+%Engine/Landscape/QuickStart:topiccompact%
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Creation:title%](Engine/Landscape/Creation/landscape_create_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Creation:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Creation]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing:title%](Engine/Landscape/Editing/landscape_editing_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/UI:title%](Engine/Landscape/UI/Landscape_UI_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/UI:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/UI]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/Materials:title%](Engine/Landscape/Materials/landscape_materials_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Materials:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Materials]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Landscape/TechnicalGuide:title%](Engine/Landscape/Materials/LS_Technical.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/TechnicalGuide:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/TechnicalGuide]
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+[/REGION]
+
+[/EXCERPT:landscape002]
+
+[TOC(start:2 end:3)]
+
+
+## 概要
+
+[EXCERPT:Intro]
+ランドスケープシステムを使ってワールドにテレインシステムを作成できます。山々、渓谷、起伏または傾斜のある地表や洞くつの開口部でさえ作成可能です。さまざまなツールを利用して、形状や外観を簡単に修正できます。
+[/EXCERPT:Intro]
+
+ランドスケープツールの使用に関する情報は、 [](Engine/Landscape\Creation)を参照してください。
+
+
+## [Landscape Tool] モード
+[EXCERPT:LandscapeToolModes1] 
+![Landscape Tool Modes](Landscape_Modes.png)
+[/EXCERPT:LandscapeToolModes1]
+
+ランドスケープツールには、ランドスケープツールウィンドウの上部アイコンからアクセスが可能な3つのモードがあります。
+
+[EXCERPT:LandscapeToolModes2] 
+| アイコン | モード | 説明 |
+| ---- | ---- | ----------- |
+| ![](Engine/Landscape\Editing\Landscape_ManageMode.png) | **Manage モード** | で新規ランドスケープの作成と、Landscape コンポーネントを修正することができます。 **Manage** モードは、ランドスケープのパーツをコピー、貼り付け、インポート、エクスポートするために **[Landscape Gizmos](Engine/Landscape\Editing\Gizmos)** と連携するモードでもあります。 <br/> **Manage** モードに関する詳細は、 [](Engine/Landscape\Editing\ManageMode) を参照してください。|
+| ![](Engine/Landscape\Editing\Landscape_SculptMode.png)| **Sculpt モード** | 特定のツールを選択および使用してランドスケープ形状の修正ができます。 <br/> **Sculpt** モードに関する詳細は、[](Engine/Landscape\Editing\SculptMode)を参照してください。|
+| ![](Engine/Landscape\Editing\Landscape_PaintMode.png)| **Paint モード** | ランドスケープのマテリアルに定義したレイヤーに基づいてランドスケープ上のテクスチャをペイントすることにより、ランドスケープの外観の一部を修正できます。 <br/> **Paint** モードに関する詳細は、 [](Engine/Landscape\Editing\PaintMode)を参照してください。|
+[/EXCERPT:LandscapeToolModes2]
+
+[REGION:tip]
+ランドスケープの作成は、Landscape アクタの作成を意味します。他のアクタも同様に、レベルエディタの [**詳細**] パネルから、割り当てられたマテリアル含めて多数のアクタのプロパティを編集できます。**詳細** パネルに関する詳細は、 [](Engine/UI/LevelEditor/Details) を参照してください。
+[/REGION]
+
+
+##ランドスケープの機能
+
+以下は、ランドスケープ テレインで使用している主な機能とテクニックの概要です。
+
+###大型のテレインサイズ
+
+[EXCERPT:landscape001]
+ランドスケープシステムによって、作成可能なテレインのサイズがこれまでのアンリアル エンジンに比べてはるかに大きくなりました。強力な LOD システムとメモリ使用の効率化によって、最大 8192x8192 の高さマップが正式に実現可能になりました。アンリアルエンジンは、ストックエンジンンやツールの修正を必要とせずに、さまざまな種類のゲームを迅速に作成することができる巨大な屋外ワールドの作成をサポートするようになりました。
+[/EXCERPT:landscape001]
+
+[REGION:raw]
+![Landscape_Terrain_Size.jpg](Landscape_Terrain_Size.jpg)
+[/REGION]
+
+### ランドスケープのメモリ使用量
+
+広大なテレインの作成は、一般的にはスタティックメッシュよりもランドスケープの使用が最良と言えます。
+
+ランドスケープは、頂点データの格納に、頂点ごとに4バイト使用します。スタティックメッシュは、位置を12バイトベクターとして保存し、タンジェントXとZベクターは各4バイトにパックされています。頂点ごとに合計で24もしくは28バイトの、16ビットもしく32ビット浮動小数値UVのどちらかになります。
+
+つまりスタティックメッシュは、同じ頂点密度に対して、ランドスケープのメモリ使用量よりも6から7倍のメモリを使用します。ランドスケープはデータをテクスチャとして保存し、遠く離れた領域に対し未使用のLODをストリーム出力することができます。ユーザーがレベルへ近づくにつれて、背景でディスクから読み込みます。ランドスケープは標準の高度フィールドを使用するため、スタティックメッシュのコリジョンデータよりもより効率的にデータを保存することも出来ます。
+
+
+### GPU メモリにテクスチャとして保存される静的なレンダリング データ
+
+ランドスケープシステムは、テレインのためのレンダリングデータを、GPU メモリのテクスチャに保存し、頂点シェーダーでルックアップできるようにしています。データは、32 ビットのテクスチャにパックされています。テクスチャは高さがRとGチャンネル形状で16ビットで占められ、X および Y オフセットがそれぞれ、B および A チャンネルに 8 ビットの値として保存されます
+
+### 継続的なジオミップマップ LOD
+
+ランドスケープテレインの LOD は、標準のテクスチャ ミップマップを使用して処理されます。各ミップマップは詳細度であり、サンプリングすべきミップマップは、 text2Dlod HLSL命令を使用して指定することができます。これによって多数の LOD が可能になるとともに、スムーズな LOD 遷移も可能となります。これは、両方のミップマップ レベルをサンプリングすることが可能であり、高さと X および Y オフセットが頂点シェーダーで補間されてきれいなモーフィング エフェクトを作成することができるためです。
+
+[REGION:fullwidth raw]
+![Landscape_LOD_Morph.jpg](Landscape_LOD_Morph.jpg)
+[/REGION]
+
+### 高さマップおよび重みデータ ストリーミング
+
+データがテクスチャに保存されているため、アンリアル エンジン 4の標準テクスチャ ストリーミング システムを利用して、ミップマップを必要に応じてストリームイン / アウトすることができます。これは、高さマップデータにのみ適用されるのではなく、テクスチャレイヤの重みに対しても適用されます。各 LOD に必要なミップマップだけを用いるならば、常時使用されるメモリ量を最小限に抑えることができます。これによって、メモリが解放され、作成できるテレインのサイズを大きくすることができます。
+
+### 高解像度の LOD 非依存型光源処理
+
+ランドスケープの X および Y スロープが保存されているため、光源処理において使用する計算を工夫することによって、高解像度 (非 LOD) の法線データをマテリアル エディタ内で使用することができます。 
+
+![Landscape_HighRes_Normals.jpg](Landscape_HighRes_Normals.jpg)(w:900 h:272)
+
+これによって、LOD アウトされた遠くのコンポーネント上であっても、ピクセル単位の光源処理のためにテレインの高解像度を常に利用することが可能になります。
+
+![Landscape_HighRes_Lighting.jpg](Landscape_HighRes_Lighting.jpg)(w:900 h:272)
+
+この高解像度の法線データが詳細法線マップと組み合わされると、ランドスケープ テレインは、ごくわずかなオーバーヘッドで極めて詳細な光源処理を実現することができるようになります。
+
+![Landscape_Normals_Comparison.jpg](Landscape_Normals_Comparison.jpg)(w:900 h:272)
+
+### PhysX コリジョン
+
+ランドスケープは、アンリアルと剛体コリジョン両方にPhysX heightfield オブジェクトを使用します。 [物理マテリアル](https://docs.unrealengine.com/latest/INT/Engine/Physics/PhysicalMaterials/index.html) は各レイヤに指定することができ、コリジョンシステムは使用する物理マテリアルの判断に、それぞれの位置でドミナントレイヤを使用します。大規模なランドスケープのメモリ必要量を節約するために低解像度のコリジョン高度フィールドを使用することもできます。レベルストリーミング システムを使用すれば、遠方のランドスケープ用のコリジョンとレンダーコンポーネントをストリームアウトすることも可能です。
+
+ 
+
+
+
+

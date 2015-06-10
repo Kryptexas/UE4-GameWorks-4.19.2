@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:2299868
+Availability:Public
+Title:VR 일람표
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:VR 개발시 간단히 참고할 수 있는 팁과 꼼수입니다.
+Navigation:platform
+
+
+[TOC(start:2)]
+
+## 키보드 단축키
+
+| 단축키 | 설명 |
+| --------| -------------|
+| **Control+R** | 게임플레이 도중 뷰를 리셋시킵니다. 헤드셋을 차기 전 게임을 실행했을 경우, 게임플레이를 시작할 때 바로 도움이 됩니다. |
+| **Alt+Enter** | VR 모드를 토글합니다. 독립형 게임 프리뷰 창을 전체화면 및 스테레오 모드로 만들어, 게임 디스플레이를 헤드셋으로 전송합니다. |
+
+## 독립형 게임 실행하기
+
+VR 헤드셋에 게임을 보여주려면, **에디터에서 플레이** 의 독립형 모드를 사용하면 됩니다. 하지만 퍼포먼스를 더욱 향상시키려면, 에디터와는 별도로 게임을 실행하면 됩니다.
+
+콘솔을 사용해서, 또는 `UE4Editor.exe` 의 바로가기를 만든 뒤 다음과 같이 인수를 붙여줍니다:
+	
+	UE4Editor.exe [MyProject] [MyMap] -game
+
+[REGION:tip]
+참고로 [MyProject] 는 `.uproject` 파일에 대한 절대 또는 상대 경로여야 합니다.
+[/REGION]
+
+## 유용한 VR 콘솔 명령
+
+UE4 는 VR 디바이스 사용시 겪을 수 있는 문제 디버깅에 도움이 되는 유용한 [콘솔 명령](GettingStarted/RunningUnrealEngine#유용한게임내명령) 을 
+다수 제공합니다. 가장 자주 사용하게될 명령 몇 가지를 목록으로 뽑아보면 이렇습니다.
+
+| 명령 | 설명 |
+| ------- | ----------- |
+| `Stereo Show` | 세팅 목록을 로그에 출력합니다. |
+| `Stereo On/Off` | Head Mounted Display (HMD) 디바이스에 대한 스테레오 렌더링을 켜거나 끕니다. |
+| `Stereo Reset` | Inter-Pupillary Distance (IPD) 리셋 및 IPD 와 Stereo 오버리아드를 비웁니다. |
+| `HMD [Enable|Disable]` | HMD 디바이스를 켜거나 끕니다. |
+| `HMD sp [30-3oka00]` | 화면 백분율을 설정합니다. 수치가 높을수록 퀄리티는 높아지고, 낮을 수록 퍼포먼스가 높아집니다. |
+| `HMD Vsync [On|Off|Reset]` | VR 디바이스의 Vsync 를 제어 또는 리셋합니다. |
+| `Ovrversion` | LibOVR 버전 및 빌드 날짜를 로그에 출력합니다. |
+

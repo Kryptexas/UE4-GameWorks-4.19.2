@@ -1,0 +1,38 @@
+﻿Availability:Docs
+Title:1.6 - Precomputed Visibility Volume
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Volumes
+Description:ボリュームの事例概要 1.6:Precomputed Visibility Volume
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes/1_6:title%](Resources\ContentExamples\Volumes\content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes/1_6:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes/1_6:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Volumes/1_6]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+これはストリーミング レベルでは機能しません。マルチプレイヤーのためにパフォーマンスを最適化します。これはオブジェクトのビジビリティを保存します。レベルがリビルドされるときに Precomputed Visibility (事前計算されたビジビリティ) が作成されます。これをアクティベートするには、以下の手順で有効にする必要があります。'WORLD SETTING -> PRECOMPUTED VISIBILITY'
+
+Place Cells along Camera Paths  (カメラパスに沿ってセルを配置) は、マチネシネマティック中の性能を確実に高める機能です。
+
+Visibility Cell  (ビジビリティ セル) サイズは、計算がどれくらい詳細に行われるかを表します。 
+
+Aggressiveness は、メッシュが可視状態ではないとみなされる閾値を設定します。
+
+これを適切に使用すれば、視覚的違いは感じることなく、パフォーマンスははるかに向上するでしょう。 
+
+

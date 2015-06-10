@@ -1,0 +1,68 @@
+﻿Availability: Public
+Title:过滤器
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description: 本文介绍了内容浏览器中过滤器的概念及应用。
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](FiltersTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Filters:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Filters]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+	
+[TOC(start:2 end:3)]
+
+## 概述
+
+![FilterList.png](FilterList.png)
+
+您可能发现您的项目包含的如此多的资源，以至于扫描整个 **内容浏览器** 来查找一个单独的特定资源变得如此耗时，并且降低了您的工作效率。这时候就该用到 _过滤器_ 了。
+
+过滤器提供了一种快速缩小 **内容浏览器** 中的资源视图内可见资源类型的方法。每个过滤器或者代表一种特定类型的资源，或者代表用于限制 **内容浏览器** 可见资源类型的额外标准。
+
+## 添加过滤器
+
+添加过滤器非常简单，只要点击位于 **内容浏览器** 资源视图顶部的  ![FiltersButton.png](icon_FiltersButton.png)按钮即可。这将会调出过滤器列表，并且每个类目中都有可展开的子菜单。选择您想添加到过滤器工具条中的每种过滤器类型，该过滤器工具条 **仅当您激活一个或多个过滤器时可用** 。
+
+![FilterBar.png](FilterBar.png)
+
+您可以根据需要向您当前资源视图中添加多个过滤器。过滤器本质上是可以叠加应用的，这意味着如果您开始选择了一个 **静态网格物体** 过滤器，那么您将仅看到静态网格物体。如果您稍后选择了 **蓝图** 过滤器，那么您将看到静态网格物体和蓝图。您每添加一种过滤器，都会增加可见资源类型的数量。请记住，您时刻可以在资源视口的左下角看到当前可见资源的数量。
+
+[REGION:note]
+	您可以通过选择一个过滤器列表的类别来添加该类别下的所有过滤器。
+[/REGION]
+
+## 禁用过滤器
+
+通过点击过滤器，可以打开及关闭它们。一个禁用的过滤器是没有作用的，并且将会灰掉。要想再次打开过滤器，仅需简单地再次点击它既可。
+
+![ActiveInactive.png](ActiveInactive.png)
+
+在上面的图片中， **静态网格物体** 过滤器是激活的，而 **蓝图** 过滤器则是禁用的。
+
+## 删除过滤器
+
+当您不再需要某个过滤器时您可以从列表中删除该过滤器。这可以通过两种不同的方式来完成：
+
+1. 在列表中 **右击** 该过滤器，然后从出现的关联菜单中选择 **Remove Filter（删除过滤器）** 。
+
+	![button_RemoveFilter.png](button_RemoveFilter.png)
+
+1. 点击 ![FiltersButton.png](icon_FiltersButton.png) 按钮，并通过点击该复选框来取消选择选中的过滤器。这将会从过滤器工具条中删除这些过滤器。
+
+[REGION:tip]
+您可以通过选择然后再取消选择任何过滤器类别来删除那个类别中的所有过滤器。
+[/REGION]
+
+## 过滤器和多个内容浏览器
+
+将过滤器和多个内容浏览器结合使用是非常有用的。比如，这将允许你使得一个 **内容浏览器** 仅显示一种给定的资源类型，比如蓝图，而另外一个 **内容浏览器** 则仅显示静态网格物体，如下所示：
+
+![TwoContentBrowsers.png](TwoContentBrowsers.png)(w:600)

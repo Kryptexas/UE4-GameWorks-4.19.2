@@ -1,0 +1,171 @@
+﻿INTSourceChangelist:2466035
+Availability:Public
+Title:アンリアル エディタのインターフェイス
+Crumbs:%ROOT%, Engine
+Description:インターフェースの基本原理とアンリアル エディタ ユーザーインターフェース各部の概要
+Navigation:topic
+
+[EXCERPT:LevelEditor]
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/editor_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/UI:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/UI:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/UI]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/UI:title%](Engine/UI/UserInterfaceTopic.png)(convert:false)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/editor_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	エディタのリファレンス
+[/PARAM]
+[PARAM:description]
+	%Engine/UI:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/UI]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[/OBJECT]
+[/VAR]
+
+
+## エディタUIの基礎
+
+
+アンリアル・エディタに馴染みのないユーザーは、ユーザーインターフェースと一般的なワークフローに関するいくつかの基本コンセプトの習熟がエディタを使用する上で役立ちます。アンリアルエディタの使用を開始したばかりのユーザーは、作業を始める前に以下の主要トピックをご覧ください。 
+
+
+
+[REGION:topics fourth]
+%Engine/UI/LevelEditor:topiccompact%
+%Engine/UI/LevelEditor/Viewports:topiccompact%
+%Engine/UI/InterfaceOverview:topiccompact%
+%Engine/UI/LevelEditor/InEditorTesting:topiccompact%
+[/REGION]
+
+
+
+
+## エディタ、ブラウザ、ツール
+
+エディタ全体を表示するにはたくさんのスクリーン空間が必要なため、デフォルトでアンリアル エディタ全体が表示されているわけではありません。特定の種類のアセットを編集をすると、エディタのある構成部のみが表示される場合があります。その他の部分は特定タイプのプロパティ変更時に利用可能になります。いずれにせよその他の構成部は、レベルや環境へアセットを追加するなど、特定のオペレーションの実行を簡易に行うために存在します。
+
+[REGION:raw]
+![](OpenParticleSystem.png)(w:930)
+[/REGION]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		プロジェクトとアセットへのアクセス
+	[/PARAM]
+	[PARAM:description]
+		レベルへ配置する特別なアセットの検索が必要な場合、またはプロジェクトで利用可能な全アセットのリストを取得する場合に関わらず、以下のツールで全オブジェクトを自由に使用することができます。
+	[/PARAM]
+	[PARAM:links]
+		* [プロジェクト ブラウザ](Engine/Basics/Projects/Browser "アンリアルエンジンの全ゲームプロジェクトへのアクセスに加え、新規プロジェクトを作成出来るブラウザです。")
+		* [コンテンツ ブラウザ](Engine/Content/Browser "ユーザープロジェクトの全アセットを素早く検索し、アクセスを可能にする使用頻度の高いパネルです。")
+		* [クラスビューア](Engine/UI/ClassViewer "ゲームで利用可能な全オブジェクトクラスの階層リストです。")
+		* [グローバルアセット ピッカー](Engine/UI/GlobalAssetPicker "ビューポートへ直接ゲームアセットを配置およびアセットの編集を可能にする高速アクセスツールです。")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/outline_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		プロパティの編集
+	[/PARAM]
+	[PARAM:description]
+		UE4 には、レベル上のアクタのプロパティの編集を可能とするさまざまな手法が用意されています。以下はプロパティへアクセスしたり編集するために一般的に使用するツールです。
+	[/PARAM]
+	[PARAM:links]
+		* [プロパティ マトリックス](Engine/UI/PropertyMatrix "スプレッドシートのようなフォーマットで複数のメッシュのプロパティを同時に変更することができるパネルです。")
+		* [カラーピッカー](Engine/UI/ColorPicker "色に基づいたプロパティを設定するパネルです。色の継続性と使いやすい特別な機能がいくつかあります。")
+		* [カーブ エディタ](Engine/UI/CurveEditor "時間経過とともに変化するプロパティの関数カーブを調整できるパネルです。")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/library_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		設定と環境設定
+	[/PARAM]
+	[PARAM:description]
+		ユーザーのプロジェクトに適したエディタの動作を設定するパネルです。
+	[/PARAM]
+	[PARAM:links]
+		* [エディタの設定](Engine/UI/EditorSettings "エディタで利用可能な様々な設定を収納するウィンドウです。")
+		* [プロジェクトの設定](Engine/UI/ProjectSettings "ユーザー固有のゲームプロジェクトとそのパッケージ方法を設定します。")
+		* [キーのバインド](Engine/UI/KeyBindings "エディタのショートカットキーの変更と作成を行うパネルです。")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/cine_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ビデオ チュートリアル
+	[/PARAM]
+	[PARAM:description]
+		[REGION:simplegallery]
+		[OBJECT:VideoLink]
+			[PARAMLITERAL:videoid]
+			QMsFxzYzFJ8
+			[/PARAMLITERAL]
+			[PARAMLITERAL:playlistid]
+			PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl
+			[/PARAMLITERAL]
+			[PARAMLITERAL:width]
+			275
+			[/PARAMLITERAL]
+			[PARAMLITERAL:image]
+			[/PARAMLITERAL]
+			[PARAMLITERAL:playerurl]
+				https://wiki.unrealengine.com/Videos/Player
+			[/PARAMLITERAL]
+		[/OBJECT]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:LevelEditor]

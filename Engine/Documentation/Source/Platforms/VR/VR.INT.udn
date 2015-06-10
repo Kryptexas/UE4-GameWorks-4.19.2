@@ -1,0 +1,91 @@
+Availability:Public
+Title:Virtual Reality Development
+Crumbs:%ROOT%, Platforms
+Description:Information over developing for virtual reality platforms.
+Navigation:platform
+
+
+[VAR:Params]
+[PARAM:image]
+	![%Platforms/VR:title%](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/platform_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Platforms/VR:title%
+[/PARAM]
+[PARAM:description]
+	%Platforms/VR:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Platforms/VR]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+vr
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vr_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Virtual Reality Topics
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/VR/CheatSheet "%Platforms/VR/CheatSheet:description%")
+		* [](Platforms/VR/ContentSetup "%Platforms/VR/ContentSetup:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/oculus_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/Oculus "%Platforms/Oculus:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
+		* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vr_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/GearVR "%Platforms/GearVR:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
+		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
+	[/PARAM]
+[/OBJECT]

@@ -1,0 +1,156 @@
+INTSourceChangelist:2087544
+Availability:Public
+Title:페르소나 툴바
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Toolbar:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Toolbar:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Toolbar:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Toolbar]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](PersonaToolbar.png)
+
+[TOC(start:2)]
+
+## 개요
+
+[EXCERPT:Overview]
+**툴바** 는 기본적으로 페르소나 인터페이스 창 상단에 걸쳐 표시됩니다. 애니메이션 애셋 편집시 자주 쓰이는 여러가지 기능이 들어있습니다.
+[/EXCERPT:Overview]
+
+[REGION:tip]
+툴바가 보이지 않는 경우, 페르소나 안의 **Window** (창) 메뉴에서 보이도록 할 수 있습니다.
+[/REGION]
+
+## 툴바 모드
+
+아시다시피, 페르소나에는 네 가지 _모드_ 가 있어, 사용자가 현재 하고있는 작업에 따라 인터페이스 각 부분이 선택적으로 표시됩니다. 즉 페르소나에서 흔히 사용하게 되는 명령도 모드에 따라 달라진다는 뜻입니다. 툴바는 현재 모드에서 사용되지 않는 명령은 자동으로 숨겨지도록 업데이트됩니다. 예를 들어:
+
+**스켈레톤**, **메시**, **애니에미션** 모드에 있을 때는 이런 모습입니다:
+
+
+![](Toolbar_01.png)
+
+ 그러나 **그래프** 모드에 있을 때 툴바는 추가 기능으로 확장되며, 이런 모습입니다:
+
+![](Toolbar_2.png)
+
+추가되는 버튼이 블루프린트 에디터 창에서 보던 것과 같다는 것, 눈치채실 수 있을 것입니다.
+
+
+## 툴바 버튼
+
+페르소나 툴바 버튼으로 스켈레톤, 메시, 애니메이션 등의 애셋 모드 전환을 쉽게 할 수 있습니다. 애니메이션 블루프린트 편집시 자주 사용되는 명령도 들어있습니다.
+
+
+| 버튼  																						| 설명        														|
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | 
+| ![Compile Successful Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_compile_successful.png)	| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilesuccessful]	|
+| ![Compile Needed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_needs_compile.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compileneeded]		|
+| ![Compile Warning Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_warning.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilewarning]		|
+| ![Compile Failed Button](Engine/Blueprints/Editor/UIComponents/Toolbar/compile_failed.png)				| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#compilefailed]		|
+| ![Save Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_save.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#save]					|
+| ![Find in Content Browser Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_in_cb.png)		| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findincb]				| 
+| ![Blueprint Properties Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_properties.png)			| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#blueprintprops]		|
+| ![Search Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_search.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#search]				|
+| ![Simulate Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_simulate.png)						| [INCLUDE:Engine/UI/LevelEditor/Toolbar#simulate]			|
+| ![Play In Editor Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_play_in.png)					| [INCLUDE:Engine/UI/LevelEditor/Toolbar#playin]				|
+| ![Pause Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_pause.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#pause]				|
+| ![Resume Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_resume.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#resume]				|
+| ![Frame Skip Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_frameskip.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#frameskip]			|
+| ![Stop Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_stop.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#stop]					|
+| ![Possess Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_possess.png)							| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#possess]				|
+| ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#eject]				|
+| ![Find Node Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_find_node.png)						| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#findnode]				|
+| ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#step]					|
+| ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)					| [INCLUDE:Engine/Blueprints\Editor/UIComponents\Toolbar\Toolbaroptions#debugobject]			| 
+
+
+## 모드 전환 탭
+
+![](Engine/Animation/Persona\ModeSelector.gif)(convert:false)
+
+페르소나 툴바에는 네 가지 모드를 전환하는 버튼도 들어있습니다. 이 버튼 자체적으로 특정 애니메이션 애셋 추적시 유용하게 쓸 수 있는 기능이 있습니다. 페르소나의 모드는 단순히 해당 모드 버튼을 클릭하는 것으로 바꿀 수 있습니다.
+
+| 버튼 | 설명 |
+|-------|------|
+| ![](button_SkeletonMode.png)| [INCLUDE:#skeletonbutton] |
+| ![](button_MeshMode.png) | [INCLUDE:#meshbutton] |
+| ![](button_AnimationMode.png) | [INCLUDE:#animationbutton] |
+| ![](button_GraphMode.png) | [INCLUDE:#graphbutton] |
+
+
+
+
+
+<!--
+[EXCERPT:SkeletonButton]
+페르소나를 [스켈레톤 모드](Engine/Animation/Persona) 로 전환합니다.
+
+[REGION:simpletable]
+| 요소 | 설명 |
+|---|---|
+|![](button_SkeletonField.png)| 현재 페르소나에 사용되는 스켈레톤 애셋 이름을 표시합니다. |
+%search%
+[/REGION]
+[/EXCERPT:SkeletonButton]
+
+
+[EXCERPT:MeshButton]
+페르소나를 [메시 모드](Engine/Animation/Persona) 로 전환합니다.
+
+[REGION:simpletable]
+| 요소 | 설명 |
+|---|---|
+|![](button_MeshField.png)| 현재 페스소나에서 편집중인 스켈레탈 메시 애셋의 이름을 표시합니다. |
+%pickasset%
+%search%
+[/REGION]
+[/EXCERPT:MeshButton]
+
+[EXCERPT:AnimationButton]
+페르소나를 [애니메이션 모드](Engine/Animation/Persona) 로 전환합니다.
+
+[REGION:simpletable]
+| 요소 | 설명 |
+|---|---|
+|![](button_AnimationField.png)| 현재 페르소나에서 편집중인 애니메이션 애셋의 이름을 표시합니다. |
+%pickasset%
+%search%
+[/REGION]
+[/EXCERPT:AnimationButton]
+
+[EXCERPT:GraphButton]
+페르소나를 [그래프 모드](Engine/Animation/Persona) 로 전환합니다.
+
+[REGION:simpletable]
+| 요소 | 설명 |
+|---|---|
+|![](button_GraphField.png)| 현재 페르소나에서 편집중인 애니메이션 블루프린트의 이름을 표시합니다. |
+%search%
+[/REGION]
+[/EXCERPT:GraphButton]
+
+[VAR:PickAsset]|![](button_AssetSelection.png)|현재 프로젝트에 호환되는 애셋을 빠르게 선택할 수 있도록 해 줍니다.|[/VAR]
+[VAR:Search]|![](button_Search.png)| 클릭하면 콘텐츠 브라우저를 띄워 현재 각각의 칸에 표시된 애셋을 강조시켜 표시해 줍니다. |[/VAR]
+
+-->
+
+[/REGION]

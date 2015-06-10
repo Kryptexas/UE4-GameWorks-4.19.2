@@ -1,0 +1,74 @@
+﻿INTSourceChangelist:2228544
+Availability:Public
+Title:ビューポート オプション
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
+Description:エディタ ビューポート内で利用できる各種オプションの説明
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](ViewportOptions_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ViewportOptions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ViewportOptions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ViewportOptions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](ViewportOptions_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ViewportOptions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ViewportOptions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ViewportOptions]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+ビューポートの左上隅にある ![](button_ViewportOptions.png) ボタンをクリックすると **[Viewport Options]** メニューへアクセスし、ビューポート用の基本的なレンダリング設定ができます。
+
+![](ViewportOptionsMenu.png)
+
+## オプションのリファレンス
+
+| オプション | 説明 |
+|--------|-------------|
+| [REGION:tablesection]**ビューポート オプション**[/REGION] ||
+| **リアルタイム** | ビューポートのリアルタイム レンダリングをトグルします。 |
+| **統計情報** | ビューポートに統計を表示する機能をトグルしますこのオプションが有効になると **Realtime** も有効になります。|
+| **FPS を表示** | ビューポートにフレームレート (FPS) 情報の表示をトグルします。このオプションが有効になると **Realtime** も有効になります。|
+| **FOV**| ビューポート カメラの FOV が変更できるようになります。カメラのレンズを効率的にズームインおよびズームアウトします。
+| **遠方のビュープレーン**| 遠方のビュープレーンとして使用する距離を選択できます。ゼロに設定すると、無限の遠方のビュープレーンとして機能します。 |
+|**マチネのプレビューを許可** | ビューポートでマチネ シネマティックスをプレビューする機能をトグルします。 |
+| **ゲームビュー** | アクタ アイコンをレンダリングしない、インゲームのシーンを表示するゲームビューをトグルします。|
+| **没入モード** | [没入] モードをビューポートにトグルします。[没入] モード時は、アンリアル エディタ ウィンドウの全領域がビューポートとなります。|
+| **ビューポートをアクタにロック** | ビューポートにアクタをロックします。詳細については、以下をご覧ください。 [ビューポートをアクタにロック](Engine/UI/LevelEditor\Viewports\ActorLocking) |
+| **ブックマーク** | ブックマークとしてカメラ位置と回転の設定と、既存のブックマークへジャンプができるようになります。ブックマークを作成するには、**Ctrl** キーとキーボートの最上列の数字 1 から 0 のどれかを押します。ブックマークを呼び出すには、そのブックマーク用に選択した数を押すだけです。|
+|**ここにカメラを作成** | ビューポートの現在位置および回転でカメラアクタを作成します。 |
+|**高解像度スクリーンショット...** | [高解像度スクリーンショット](Engine/Basics/Screenshots) ウィンドウを開きます。 ![](HighResScreenshotDialog.png) |
+|**レイアウト**| ビューポート用に様々なレイアウトから選択できるようになります。|
+|**詳細設定...**| より詳細なビューポート設定をするには、[エディタの環境設定](Engine/UI/EditorSettings) ウィンドウを開き、**Viewports** セクションを選択します。 |

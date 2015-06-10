@@ -1,0 +1,89 @@
+﻿INTSourceChangelist:2086984
+Availability:Docs
+Title:コンテンツ監査コマンドレット
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:疑わしいアセットを見つけるためにゲームで使用されるコンテンツを分析するためのコマンドレット。
+
+[REGION:todo]
+	このページはアンリアル エンジン 3 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
+[/REGION]
+
+[TOC(start:2)]
+
+## 目的
+
+調べるべき、そしておそらく修正すべき「疑わしい」コンテンツを見つけます。
+
+
+
+## 動機
+
+負荷を最大限に減らすためにコンテンツを最適化するうえで、コンテンツが従うべき/守るべき多くのルールを導きました。   コンテンツ監査コマンドレットはゲーム全体のコンテンツを調べて、疑わしい/ルールを破ったコンテンツをレポートします (タグを使用)。
+
+
+
+## 操作
+
+このコマンドレットを実行するには、コマンド プロンプト ウィンドウから、「_UnrealEngine3\Binaries_ 」ディレクトリに進みます。
+
+
+### シンタックス
+
+シンタックスは次のようになります。
+
+    [GameName].exe ContentAuditCommandlet
+    
+
+##使用方法/実行方法
+
+タグを確実に最新にするには GAMENAME ContentAuditCommandlet を毎晩実行するのが、おそらく最良の方法でしょう。
+
+「ルール」に従わないコンテンツはタグを介して **コンテンツ ブラウザ** にエクスポーズされます。
+
+各「ルール」に対して、その「ルール」を表すタグがあります。各タグには、_whitelist タグもあります。ホワイトリストの考え方としては、「疑わしい」コンテンツの中には、実際に有効なものもあるということです。  
+
+ContentAuditCommandlet はすべての監査タグとそのカウントのリストも出力します。これにより、プロダクション スタッフによるトレンディングもできます。目標は、各セクションでゼロカウントになることです。
+
+さらに以下の注意事項があります。時間の経過に伴い、_whitelist はおそらく増々多くの「エントリ」が含まれることでしょう。そのため、各_whitelist を「監査」して、その中のものが実際にホワイトリストに入れるべきものであるかを確認します。   _whitelist に大量のエントリがあることがわかったら、なぜ多くのアセットがそのようにタグ付けされたかを調べます (常にホワイトリストに入れられるオブジェクトを取り除くために、よりよい「ルール」が必要でしょう)。
+
+
+
+## 詳細例
+
+例： G8 テクスチャは、メモリに対する負荷が非常に高いものです。通常、G8 テクスチャは、クオリティを損なうことなく、DXT1 に置き換えることができます。
+
+例： テクスチャは G8 で、多くのメモリを使用していますが、実際にG8 である必要があります。そのため、Texture_G8_Whitelist とタグ付けしてそのアセットを「ホワイトリスト」に入れます。これは基本的に、誰かがそのテクスチャを見て、有効とみなしたことを意味します。
+
+以下は、ContentAuditCommandlet がチェックするいくつかの対象です。
+
+
+* Texture_NormalmapNonDXT1CompressionNoAlphaIsTrue
+* Texture_LODBiasIsNegative
+* Texture_NeverStream
+* Texture_G8
+
+* Material_MissingPhysicalMaterial
+
+* PhysAsset_MissingPhysicalMaterial
+
+* Particle_BadFixedRelativeBoundingBox
+* Particle_MissingFixedRelativeBoundingBox
+
+* SoundCue_DiconnectedSoundNodes
+* SoundCue_MoreThan3Waves
+* SoundCue_HasMixerWithMoreThan2Children
+* SoundCue_NoSoundClass
+* SoundCue_IncorrectAmbientSoundClass
+
+* SoundWave_QualityHigherThan40
+
+* StaticMesh_WithMissingUVSets
+* StaticMesh_WithBadUVSets
+* StaticMesh_EmptySections
+
+ 
+
+
+
+
+

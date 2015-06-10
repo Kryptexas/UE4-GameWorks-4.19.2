@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2465039
+Availability: Public
+Title:6. 직접 해보기!
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:머티리얼을 직접 만들어 적용해 보고, 아티스트 퀵스타트 가이드에 다룬 추가적인 주제에 대한 링크를 제공해 드립니다.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+지금까지 배운 것을 토대로, 이 그래프와 비슷한 **머티리얼** 을 새로 만들어 보세요:
+
+![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+
+메인 머티리얼 노드에 별다른 설정을 한 것은 없습니다. 단순한 플라스틱 머티리얼입니다.
+
+레벨에 _Basic_Asset1_ 을 추가한 다음 거기에 머티리얼을 적용하고 "Brick" (벽돌) 노멀 맵 텍스처를 추가하여 업데이트합니다.
+
+![](NormalMapAdded.png)
+
+
+
+
+이 퀵 스타트 가이드에 다룬 주제, 에디터 전반에 대한 상세 정보는 [언리얼 에디터 매뉴얼](Engine) 을 참고하시기 바랍니다.
+
+다양한 유형의 콘텐츠 임포트 관련 정보:
+
+* FBX 파이프라인 전반적인 정보: [](Engine/Content/FBX)
+
+* FBX 스켈레탈 메시 파이프라인 관련 정보: [](Engine/Content/FBX/SkeletalMeshes)
+
+* FBX 애니메이션 파이프라인 관련 정보: [](Engine/Content/FBX/Animations)
+
+* FBX 모프 타겟 파이프라인 관련 정보: [](Engine/Content/FBX/MorphTargets)
+
+* FBX 머티리얼 파이프라인 관련 정보: [](Engine/Content/FBX/Materials)
+
+* 오디오 임포트 관련 정보: [](Engine/Audio/WAV)
+
+이 퀵스타트에서 다룬 내용에 대한 구체적인 정보:
+
+* 지원되는 이미지 유형 관련 정보: [](Engine/Content/Types/Textures/Importing)
+
+* 머티리얼 관련 정보: [](Engine/Rendering/Materials)
+
+* **콘텐츠 브라우저** 관련 정보: [](Engine\Content\Browser)
+
+* 스태틱 메시 에디터 관련 정보: [](Engine/Content/Types/StaticMeshes/Editor)
+
+
+
+%Steps%

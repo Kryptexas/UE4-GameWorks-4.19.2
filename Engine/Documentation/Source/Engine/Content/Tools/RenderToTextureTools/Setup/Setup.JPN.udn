@@ -1,0 +1,81 @@
+﻿INTSourceChangelist:2390113
+Availability:Public
+Title:Render To Texture ツールセットのセットアップ
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:
+
+RenderToTexture ブループリントは、必要最低限の **GameMode** セットアップを使用することで機能します。**RenderToTexture_Game** と呼ばれる比較アセットがあります。これは、**RenderToTexture_Pawn** を参照します。Pawn は非常に基本的なブループリントで正投影に設定された **Camera Component** とレンダリング コンソール コマンドをセットアップするためのいくつかのイベントグラフノードを持ちます。 
+
+Render to Texture ツールを使用する基本的なセットアップは以下のとおりです。
+
+1. 新規ブランクレベルを作成します。
+1. **Modes** パネル、**Basic** カテゴリから **Player Start** を 0,0,0 の位置に配置します。**Player Start** の回転を 0,0,0 に設定するようにしてください。
+
+	![](ZeroedTrans.png)
+
+1. **コンテンツ ブラウザ** の **View Options** で、**Show Engine Content** を有効にします。
+
+	[REGION:raw]
+	![](viewOptions.png)
+	[/REGION]
+
+1. **コンテンツ ブラウザ** で以下の順序でブラウズします。**Engine** -> **ArtTools** -> **RenderToTexture** -> **Blueprints** 
+1. ワールドで **RenderToTexture_LevelBP** ブループリントを 0,0,0 に配置します。
+
+	[REGION:raw]
+	![](placeRTT_LBP.png)(w:880 convert:false)
+	[/REGION]
+
+1. **[World Settings]** ボタンをクリックします。**[Details]** パネルが (デフォルトで) ドッキングされている場所で **[World Settings]** パネルが開きます。
+
+	![](worldSettingsBar.png)
+
+1. **World Settings** で **RenderToTexture_GameMode** ブループリント (RenderToTexture/Blueprints/ にあります) を **GameMode** として割り当てます。
+
+	[REGION:raw]
+	![](worldSettings.png)
+	[/REGION]
+
+1. [INCLUDE:Engine/Content/Tools/RenderToTextureTools/1#hrss1]
+
+1. **[High Resolution Screenshot]** ダイアログは開いたままにします。
+1. **Editor** -> **Preferences** -> **Play** にある ** [New Window Size]** プロパティを 2 の累乗にします。512x512 のサイズをお勧めします。このサイズは出力画像の品質に影響を与えません。
+
+	[REGION:lightbox]
+	[![](windowSize.png)(w:880)](windowSize.png)(convert:false)
+	[/REGION]
+
+どのタイプの基本的な関数を行うかの設定は、**[Default]** カテゴリにあります。
+
+![](defaultCat.png)
+
+以下は、**Render Type** プロパティの値に対応するカテゴリです。
+
+デフォルト以外ですべての関数に関係がある唯一のプロパティ カテゴリは、**Capture Settings** カテゴリです。このカテゴリでは、どのバッファ ターゲットを保存するかを選択できます。ほとんどの場合、**Base Color** と **Normal** で十分です。オパシティ マスクをレンダリングするには、**Decal Mask** オプションが効果的です。
+
+![](captureSettings.png)
+ 
+解像度の乗数は、エディタ設定で **New Window Size** に入力した設定を乗算処理します。そのため、512 x 512 と入力すると、乗数 2 の場合、テクスチャ サイズは 1024x1024 のテクスチャ サイズになります。乗数 4 の場合、テクスチャ サイズは 2048x2048 のテクスチャ サイズになります。求める結果に応じて、Adobe Photoshop でダウンサンプリングするために 4096 や 8192 という高さでテクスチャをレンダリングする場合もあるでしょう。こうした場合には、ポスト プロセス ボリュームを追加し、Anti Aliasing 設定を "none" に設定してより鮮明な結果を得るようにします。 
+
+ この方法では現在、`.bmp` フォーマットの画像を保存します。現時点では、画像処理ツールを使用して開いて、`.tga` として再保存する必要があります。実際にはこれは大きな問題ではありません。ほとんどの場合、高解像度でレンダリングしてから後で画像処理パスを使用してダウンサンプリングするからです。
+
+ 最後に必要に応じてシーンにライトを追加することができます。これは、レンダリングされるビジュアル化バッファには何も影響を与えません。
+
+## 具体的な手順
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Content/Tools/RenderToTextureTools/1 "%Engine/Content/Tools/RenderToTextureTools/1:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/2 "%Engine/Content/Tools/RenderToTextureTools/2:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/3 "%Engine/Content/Tools/RenderToTextureTools/3:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/4 "%Engine/Content/Tools/RenderToTextureTools/4:description%")
+	* [](Engine/Content/Tools/RenderToTextureTools/5 "%Engine/Content/Tools/RenderToTextureTools/5:description%")
+	[/PARAM]
+[/OBJECT]
+

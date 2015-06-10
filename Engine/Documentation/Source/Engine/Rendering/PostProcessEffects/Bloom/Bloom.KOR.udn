@@ -1,0 +1,60 @@
+﻿INTSourceChangelist:2424327
+Availability:Public
+Title:블룸
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:광륜을 통해 라이트처럼 밝은 오브젝트를 밝게 빛나게 만드는 글로우 이펙트입니다.
+
+[EXCERPT:Bloom_Desc]
+**Bloom** (블룸)이란 중간 정도의 렌더링 퍼포먼스 비용으로 이미지 렌더링에 사실감을 크게 더해줄 수 있는, 현실에서도 볼 수 있는 광학 현상입니다. 블룸 현상은 훨씬 어두운 배경에 있는 매우 밝은 물체를 맨눈으로 바라볼 때 목격할 수 있습니다. 그보다 밝아지면 (빛줄기나 렌즈 플레어같은) 다른 현상도 생길 수 있지만, 고전적인 블룸 효과에서는 다루지 않습니다. 보통 쓰는 (TV, TFT 등의) 디스플레이에서는 HDR(High Dynamic Range)이 지원되지 않기에, 너무 밝은 오브젝트는 렌더링할 수가 없습니다. 대신 빛이 필름에 내리쬐거나(필름 피하산란) 카메라 앞에 내리쬘 때(유윳빛 유리 필터) 눈에서 벌어지는 (망막 피하산란) 현상을 흉내냅니다. 그 효과가 물리적으로야 항상 옳지는 않겠지만, 오브젝트의 상대적 밝기를 살려주거나 화면에 표시되는 LDR(Low Dynamic Range) 이미지에 사실감을 더하는 데 도움이 될 수는 있습니다.
+[/EXCERPT:Bloom_Desc]
+
+[REGION:fullwidth]
+![Bloom Effect](bloom.png)
+[/REGION]
+
+블룸은 하나의 가우시안 블러(Gaussian blur)로 구현할 수 있습니다. 품질을 높이기 위해서는, 반경이 다른 가우시안 블러 여럿을 합칩니다. 퍼포먼스를 높이기 위해서는, 매우 넓은 블러를 훨씬 낮은 해상도로 합니다. UE3 에서는 1/4, 1/8, 1/16 해상도의 가우시안 블러 셋을 썼었습니다. 현재는 Blur1 부터 5 까지, 1/2 (Blur1) 에서 1/32 (Blur5) 해상도의 블러를 씁니다. 필요하다면 최대 해상도 블러용 Blur0 을 추가할 수도 있습니다.
+
+제어할 수 있는 폭과 품질을 높이기 위해 블러를 합치는 방식을 다양화시킬 수 있습니다. 최적의 퍼포먼스를 위해서는, 고해상도 (낮은 번호) 블러는 좁게, 넓은 블러에는 주로 저해상도 (높은 번호) 블러를 사용해야 할 것입니다.
+
+| 프로퍼티 | 설명 |
+| -------- | ---- |
+| **Intensity** | 블룸 강도 - 전체 블룸 이펙트의 (선형) 색 스케일입니다. 시간에 따른 페이드 인이나 아웃, 어둡게 만드는 데 사용할 수 있습니다. [INCLUDE:#Intensity] |
+| **Threshold** | 블룸 한계치 - 블룸을 적용하기 시작할 색의 휘도를 정의합니다. 한계치 이외에 색이 블룸에 부분적으로만 영향을 끼치는 (1 유닛 폭) 선형 부분이 있습니다. 씬의 모든 색이 블룸에 공헌하게 하려면, -1 볼륨을 사용해야 합니다. 일부 비현실적인 HDR 콘텐츠, 몽환적인 부분 트윅에 사용할 수 있습니다. [INCLUDE:#Threshold] |
+| **#1/#2/#3/#4/#5 Tint** | 블룸 #1/#2/#3/#4/#5 색조 - 각 블룸의 밝기와 색을 변경합니다. 검정색을 사용한다고 그 패스가 빨라지지는 않지만, 가능은 합니다. |
+| **#1/#2/#3/#4/#5 Size** | 블룸 #1/#2/#3/#4/#5 크기 - 화면 폭을 기준으로 한 백분율 크기입니다. 일정 수치로 제한됩니다. 큰 수치가 필요하다면 한 단계 낮은 해상도 (높은 번호) 블러를 대신 사용하세요. [INCLUDE:#Size] |
+
+<!--
+[EXCERPT:Intensity]
+[REGION:imagetable]
+| ![Bloom Intensity - 0](bloom_intensity_0_small.png)(w:250) | ![Bloom Intensity - 1](bloom_intensity_1_small.png)(w:250) | ![Bloom Intensity - 5](bloom_intensity_5_small.png)(w:250) |
+| ------ | ------ | ------ |
+| 0.0 | 1.0 | 5.0 |
+[/REGION]
+[/EXCERPT:Intensity]
+
+[EXCERPT:Threshold]
+[REGION:imagetable]
+| ![Bloom Threshold - 0](bloom_threshold_0_small.png)(w:380) | ![Bloom Threshold - 10](bloom_threshold_10_small.png)(w:380) |
+| ------ | ------ |
+| 0.0 | 10.0 |
+[/REGION]
+[/EXCERPT:Threshold]
+
+[EXCERPT:Size]
+[REGION:imagetable]
+| ![Bloom Tint 1](bloom_tint_1_small.png)(w:145) | ![Bloom Tint 2](bloom_tint_2_small.png)(w:145) | ![Bloom Tint 3](bloom_tint_3_small.png)(w:145) | ![Bloom Tint 4](bloom_tint_4_small.png)(w:145) | ![Bloom Tint 5](bloom_tint_5_small.png)(w:145) |
+| --- | --- | --- | --- | --- |
+| #1 | #2 | #3 | #4 | #5 |
+[/REGION]
+[/EXCERPT:Size]
+-->
+
+## 블룸 더트 마스크
+
+**Bloom Dirt Mask** (블룸 더트 마스크) 이펙트는 텍스처를 사용해서 일부 정의된 화면 영역의 블룸을 밝게 만드는 것을 말합니다. 전장의 카메라, 더욱 인상깊은 HDR 이펙트, 카메라 결함 등의 효과를 내는 데 사용할 수 있습니다.
+
+| 프로퍼티 | 설명 |
+| -------- | ---- |
+| **Dirt Mask** | 블룸 더트 마스크 - 마스크로 사용할 Texture2D 입니다. 화면 측면에 더 잘 맞고 밉 생성과 스트리밍을 피하게 되므로 2 제곱이 아닌 텍스처를 사용하는 것이 좋습니다. 카메라에 붙은 먼지는 초점이 안맞아 흐려지게 마련이므로, 보통은 저해상도 텍스처로 충분합니다. 이 텍스처는 포토샵 렌즈 블러로 만들 수 있습니다. 색수차(Chromatic aberration, 또는 color fringe) 효과로 느낌을 살릴 수도 있습니다. 압축 부작용에 주의하세요. 이 프로퍼티는 블렌딩 불가능하며, 나중에 커스텀 셰이더를 통해 동적으로 프로그래밍 가능하도록 만들 계획입니다. |
+| **Dirt Mask Tint Color** | 블룸 더트 마스크 색조 - 더트 마스크 텍스처에 색을 입히거나 어둡게 만듭니다. 더트 마스크 밝기와 색을 조정하는 데 사용할 수 있습니다.|
+| **Dirt Mask Intensity** | 블룸 더트 마스크 강도 - 블룸 더트 마스크의 (선형) 색 스케일입니다. 이 프로퍼티는 더트 마스크의 밝기를 조정하는 데 사용됩니다. |

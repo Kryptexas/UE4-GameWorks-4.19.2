@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:2286665
+Availability:NoPublish
+Title:퍼포스로 언리얼 엔진 내려받기
+Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine, GettingStarted/DownloadingUnrealEngine/Perforce
+Description:퍼포스로 언리얼 엔진 소스 코드 내려받는 방법 안내서입니다.
+
+## 에픽의 VPN 접속
+
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/VPNSetup#Browser]
+
+## 에픽의 퍼포스 서버에 접속
+
+1. 윈도우용 P4V 퍼포스 클라이언트를 설치합니다. 클라이언트 내려받기는 [Perforce Downloads](http://www.perforce.com/downloads/complete_list) 페이지에서 가능합니다.
+
+	[REGION:fullwidth]
+	![Perforce Client](p4v.png)
+	[/REGION]
+
+1.	Open Connection 대화창에 다음과 같이 접속 정보를 입력합니다:
+
+	* **Server**: _p4-licensee-proxy.epicgames.net:1667_
+		
+	[REGION:note]
+		동아시아와 유럽 사용자용 프록시가 준비되어 있습니다. 해당 지역의 라이선시 께서는 이 프록시를 사용하시면 퍼포먼스가 나아질 것입니다.
+		* **동아시아 프록시**: _p4-licensee-proxy-asia.epicgames.net:1667_
+		* **유럽 프록시**: _p4-licensee-proxy-euro.epicgames.net:1667_
+	[/REGION]
+
+	* **User**: 에픽 게임스가 제공한 퍼포스 사용자명입니다.
+	* **Password**: 에픽 게임스가 제공한 암호입니다.
+	* **Workspace**: _UE4_팀이름_ (이와 같이 지으실 것을 추천합니다. 팀 이름으로 끝나기만 한다면 어떠한 이름이든 상관 없습니다.)
+
+1.	OK 를 누르면 퍼포스 서버에 접속합니다.
+
+
+## 언리얼 엔진 4 내려받기
+
+라이선시에게 언리얼 엔진 4 를 배포하는 방식은, 퍼포스 디포의 _UE4-QA_ 브랜치를 통해 이루어집니다. 여기에는 
+전체 엔진은 물론 예제 게임, 샘플, 데모와 같은 형태의 부가 프로젝트도 여럿 포함되어 있습니다. 모든 것을 내려받아도 되고,
+필요하거나 원하는 부분만 선택적으로 받아도 됩니다. 가급적 빠른 준비를 위해서는,
+최소한의 부분만 내려받아 시작한 다음, 필요에 따라 다른 부분을 내려받는 것을 추천합니다.
+내려받기 완료를 기다리느라 허비되는 시간을 크게 줄일 수 있습니다.
+
+[REGION:warning]
+	_UE4-QA_ 브랜치에는 많은 수의 파일이 있으며, 총 크기가 수 기가바이트에 달하므로, 
+	전체 브랜치를 동기화시키는 데는 시간이 꽤 걸릴 수 있습니다.
+[/REGION]
+
+1.	_UE4-QA_ 브랜치에 우클릭한 다음 **Get Revision** 을 선택합니다.
+
+	![Perforce - Get Revision Option](get_revision_menu.png)
+
+1.	**Specify revision using** 동글 버튼을 클릭한 다음 콤보 박스에서 Label 을 선택합니다.
+
+	![Perforce - Specify Label](specify_label.png)
+
+1.	**Browse** 버튼을 누르면 열리는 대화창에서 *QA_APPROVED_UE4_BUILD_MINIMUM* (엔진 실행에 필수적인 최소한) 또는 *QA_APPROVED_UE4_BUILD_CURRENT* (크기는 훨씬 크지만 샘플 프로젝트 포함) 중에서 선택합니다. **OK** 를 누릅니다.
+
+1.	**Get Revision** 을 눌러 언리얼 엔진 4 내려받기를 시작합니다.

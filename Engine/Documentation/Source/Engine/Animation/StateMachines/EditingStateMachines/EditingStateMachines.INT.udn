@@ -1,0 +1,57 @@
+Availability:Public
+Title: Editing State Machines
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
+Description:Guide to editing animation State Machines.
+
+
+[TOC(start:2)]
+
+
+
+Although a State Machine serves as a convenient way to break down the flow of animation transitions in a Skeletal Mesh, the most important aspect of them is what actually happens within each node of a State Machine. With this in mind, it is important to remember the primary purposes of each of a State Machine's node types:
+
+| **Node** | **Purpose** |
+| --- | --- |
+| **State** | Output a pose or animation result. |
+| **Transition Rule** | Govern whether animation will flow from one state into another. Uses a Boolean value to determine if transition will take place. |
+| **Conduit** | Also governs the flow of animation, but with the ability to share the transition cause among many different states. Uses a Boolean value to determine if transition will take place. |
+
+Keeping this in mind will make it much easier to determine what types of nodes to place into each part of the State Machine.
+
+## Editing States
+
+A State's job is to produce a final animation or pose. This can be something as simple as a single AnimSequence, a BlendSpace, or any type of network so long as it produces a final animation or pose. 
+
+![](PlayAnimSequence.png)
+
+![](PlayBlendSpace.png) 
+ 
+![](PlayBlendAnimation.png)
+
+
+### Adding Animation Elements
+
+To add an AnimSequence or BlendSpace into a State, you can drag & drop from the Persona **Asset Browser**, as well as **right-click** and choose the animation from the context menu.
+
+To drag and drop:
+
+![](DragDropAnimSeqState.png)(w:505)
+
+To use the context menu:
+
+![](ContextMenuAnimSeqState.png)
+
+### Automatic State Creation
+
+As a time saver, you can also drag an AnimSequence or BlendSpace into a State Machine (outside of a given state) and a State will automatically be created with the name of the asset, and will automatically consist of that asset feeding into the output result. 
+
+
+![](AutoStateCreationDrag.png)(w:505)
+
+Once dragged in, the State is automatically created and named after the asset.
+
+![](AutoStateCreation.png)(w:505)
+
+Inside, you can see that the animation asset has been connected to the result automatically.
+
+![](AutoStateCreationInside.png)(w:505)

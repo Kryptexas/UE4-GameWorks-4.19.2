@@ -1,0 +1,39 @@
+Availability:Public
+Title:EventGraph
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/AnimBlueprints
+Description:Event-based graph used to update the Animation Blueprint and calculate values for use in the AnimGraph.
+
+[REGION:banner]
+![EventGraph](eventgraph_banner.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+[EXCERPT:Intro]
+Every _Animation Blueprint_ has a single **EventGraph**, which is a standard [graph](Engine/Blueprints/Editor/UIComponents/GraphEditor) 
+that uses a collection of special animation-related events to initiate sequences of nodes. The most common use of the **EventGraph** 
+is to update values used by _BlendSpaces_ and other blend nodes to drive animations within the **AnimGraph**.
+[/EXCERPT:Intro]
+
+![Event graph](eventgraph.png)(w:720)
+		
+For example, the **EventGraph** of an _Animation Blueprint_ could use the velocity of the owning Pawn to determine direction and speed. These two values can then be used as inputs into a _BlendSpace_ within the **AnimGraph** to blend between an idle animation and various directional movement animations. Similarly, the pitch and yaw of the owning Pawn can be used as inputs into another _BlendSpace_ to blend between various aiming poses applied additively in order to cause the mesh to aim where it is looking while still maintaining the previously mentioned movement animations.
+
+## Working with the EventGraph
+
+For general information on working with node graphs, see the [Working with Nodes](Engine/Blueprints/Editor/UIComponents/GraphEditor) documentation.
+
+## Animation Events
+
+[INCLUDE:Engine/Animation/NodeReference/Events#Intro]
+
+
+### BlueprintInitializeAnimation
+
+[INCLUDE:Engine/Animation/NodeReference/Events#Initialize]
+
+
+### BlueprintUpdateAnimation
+
+[INCLUDE:Engine/Animation/NodeReference/Events#Update]
+

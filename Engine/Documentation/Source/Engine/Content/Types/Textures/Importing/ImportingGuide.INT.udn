@@ -1,0 +1,85 @@
+Availability: Public
+Title:Texture Import Guide
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:Guide to importing an image file into Unreal Engine as a texture asset.
+
+[TOC(start:2)]
+
+## Overview
+
+This document covers the process of importing textures into Unreal Engine 4.
+
+For more information on the **Content Browser**, see the [Content Browser Reference](Engine/Content/Browser).
+
+
+### Importing Images - Textures
+
+To import your image texture, go to the **Content Browser** and click **Import**. Find your file and click **Open**.
+
+[REGION:raw]
+![](ContentBrowserImport.png)
+[/REGION]
+
+Alternatively, you can click and drag images directly into the **Content Browser**.
+
+The following Texture formats are supported:
+
+[EXCERPT:SupportedTextureFormats]
+* .bmp
+* .float
+* .pcx
+* .png
+* .psd
+* .tga
+* .jpg
+* .dds - Cubemap Texture (32bits/Channel, 8.8.8.8 ARGB 32 bpp, unsigned) See [Cubemap Tools](Engine/Content/Types/Textures\Cubemaps\CubemapTools) for more information.
+* .hdr - Cubemap Texture (LongLat unwrap)
+[/EXCERPT:SupportedTextureFormats]
+
+<!--
+
+### LOD Groups
+
+For every texture imported into the engine, it gets assigned a default LODGroup, which is used by the engine to determine what mip level of the texture will be rendered based on the current detail levels specified in the .ini files. 
+
+Once the texture is imported, you can double-click it to open the texture in the Texture Editor tab. This exposes the LODBias property. This setting is used to offset the LOD Group setting by its value.
+
+![LODBiasProperty.png](LODBiasProperty.png)
+
+Keep in mind that any texture you import into the engine has to be a power of 2. Some examples include 512x512, 1024x1024, 512x1024, 2048x256, ect.
+
+Example:
+
+4096 square texture, assigned to TEXTUREGROUP_WORLD.
+
+LODBias of 0, group is set to highest, texture will load highest miplevel (4096).
+
+LODBias of 0, group is set to drop 2 miplevels, texture will load third miplevel (1024).
+
+LODBias of 1, group is set to drop 2 miplevels, texture will load fourth miplevel (512).
+
+LODBias of -2, group is set to drop 2 miplevels, texture will load highest miplevel (4096).
+
+The LOD Group settings exist in the game-specific ini (e.g. ExampleGame.ini).  Manipulating these group settings (and creating your own groups) will allow you to control how much detail is used in particular asset types.
+
+<!--
+### Animating Images - Flipbook Textures
+
+A Flipbook Texture is a series of images that are calculated as a single texture, thus allowing you to sample a variety of image series or animation in your materials.
+
+To create a Flipbook Texture, simply import multiple textures, and check the _Flipbook_ property.
+
+![GenericBrowser_File-Import_Flipbook.JPG](GenericBrowser_File-Import_Flipbook.JPG)
+-->
+
+-->
+
+## Texture Properties
+
+For an explanation of the meaning of the various texture properties, see the [Texture Properties](Engine/Content/Types/Textures/Properties) page.
+
+ 
+
+
+
+

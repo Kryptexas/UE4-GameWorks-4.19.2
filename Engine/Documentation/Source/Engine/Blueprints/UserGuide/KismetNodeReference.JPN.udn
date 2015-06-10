@@ -1,0 +1,552 @@
+﻿INTSourceChangelist:2493873
+Availability:Public
+Title:ブループリント ユーザーガイド
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:ユーザーガイドに含まれるソースを使って、ブループリント グラフ内で使用できる、ブループリントの様々な箇所とノードについて学習することができます。
+
+
+## 概要
+
+[INCLUDE:Engine\Blueprints#intro]
+
+このページでは、様々なタイプのブループリント、グラフ タイプ、ブループリント エレメント (_変数_ 、 _コンポーネント_ および _グラフ_ など)、通信方法、ブループリント間での情報の渡し方、ブループリントの作成時に操作することになる各種グラフ ノードの分類の概要になります。 
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリントのタイプ
+	[/PARAM]
+	[PARAM:description]
+	このセクションでは、様々なブループリントについて説明します (それぞれの見出しにマウスを当ててください)。各ブループリントの詳細については 、[](Engine\Blueprints\UserGuide\Types) ページをご覧ください。 
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics fourth]
+		[INCLUDE:#topics]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Topics]
+%Engine/Blueprints\UserGuide\Types\ClassBlueprint:topiccompact%
+%Engine/Blueprints\UserGuide\Types\LevelBlueprint:topiccompact%
+%Engine/Blueprints\UserGuide\Types\Interface:topiccompact%
+%Engine/Blueprints\UserGuide\Types\MacroLibrary:topiccompact%
+[/EXCERPT:Topics]
+-->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/Editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリントのグラフのタイプ
+	[/PARAM]
+	[PARAM:description]
+	このセクションでは、作業に使用する各種ブループリント グラフへのリンクが提供されています (見出しにマウスを当ててください)。**EventGraph** およびブループリントのその他の Graphs の詳細な作業ガイドは [ブループリント エディタ グラフ モード](Engine/Blueprints/Editor/Modes/GraphPanel) をご覧ください。
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics fourth]
+		[INCLUDE:#topics_graph]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Topics_Graph]
+%Engine/Blueprints/UserGuide/EventGraph:topiccompact%
+%Engine/Blueprints/UserGuide/UserConstructionScript:topiccompact%
+%Engine/Blueprints/UserGuide/Functions:topiccompact%
+%Engine/Blueprints/UserGuide/Macros:topiccompact%
+[/EXCERPT:Topics_Graph]
+-->
+
+<!--
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/Gear_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリントのモード
+	[/PARAM]
+	[PARAM:description]
+	本セクションでは、Blueprint モードについて説明します。各モードには独自の機能と目的があり、ブループリントの異なる特性を制御しています (見出しにマウスを当ててください)。**Animation ブループリント** については、[](Engine/Animation/AnimBlueprints) のドキュメントをご覧ください。**Widgetブループリント** については、[](Engine/UMG/UserGuide/WidgetBlueprints) のドキュメントをご覧ください。 
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics fourth]
+		[INCLUDE:#topics_elements]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+-->
+
+<!--
+[EXCERPT:topics_elements]
+%Engine\Blueprints\Editor\Modes\Defaults:topiccompact%
+%Engine\Blueprints\Editor\Modes\Components:topiccompact%
+%Engine\Blueprints\Editor\Modes\GraphPanel:topiccompact%
+[/EXCERPT:topics_elements]
+-->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ブループリント通信方法
+	[/PARAM]
+	[PARAM:description]
+	以下のリンクでは、ブループリント間での双方向の通信方法や、状況に合わせた各種通信方法に関するガイダンスが提供されてます (簡単な説明にマウスを当ててください)。 
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics fourth]
+		[INCLUDE:#topics_communication]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:topics_communication]
+%Engine\Blueprints\UserGuide\BlueprintCommsUsage:topiccompact%
+%Engine/Blueprints\UserGuide\BlueprintComms:topiccompact%
+%Engine\Blueprints\UserGuide\Types\Interface\UsingInterfaces:topiccompact%
+%Engine\Blueprints\UserGuide\EventDispatcher\CreatingEvents\:topiccompact%
+[/EXCERPT:topics_communication]
+-->
+
+<!--
+##Graph ノード
+
+-->
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/Blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Graph ノード
+	[/PARAM]
+	[PARAM:description]
+	以下のリンクは、機能を提供するためにブループリント内で使用可能な各種ノードに関する説明です (簡単な説明にマウスを当ててください)。これらのノードとブループリントを使って一般に作業するために、 [](Engine/Blueprints/BP_HowTo) セクションを見直すようにしてください。ブループリントでのスポーン / リスポーン、タイマーの使用、入力の設定、ネットワークの構築に対するゲームプレイ ベースのブループリントの使用方法 [](Gameplay) も見直すようにしてください。 
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics fourth]
+		[INCLUDE:#topic_graphnodes]
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:topic_graphnodes]
+%Engine/Blueprints/UserGuide/Events:topiccompact%
+%Engine/Blueprints/UserGuide/Events/Custom:topiccompact%
+%Engine/Blueprints/UserGuide/Functions/FunctionCalls:topiccompact%
+%Engine/Blueprints/UserGuide/EventDispatcher:topiccompact%
+%Engine/Blueprints/UserGuide/CastNodes:topiccompact%
+%Engine/Blueprints/UserGuide/FlowControl:topiccompact%
+%Engine/Blueprints/UserGuide/Arrays/ArrayNodes:topiccompact%
+%Engine/Blueprints/UserGuide/Timelines/TimelineNodes:topiccompact%
+%Engine/Blueprints/UserGuide/OnlineNodes:topiccompact%
+%Engine/Blueprints/UserGuide/MathNode:topiccompact%
+%Engine/Blueprints/UserGuide/Variables:topiccompact%
+%Engine/Blueprints/UserGuide/RandomStreams:topiccompact%
+%Engine/Blueprints/UserGuide/Comments:topiccompact%
+[/EXCERPT:topic_graphnodes]
+-->
+
+
+< 前のページ バックアップ
+## ブループリントのタイプ
+
+[REGION:topics half]
+%Engine/Blueprints\UserGuide\Types\ClassBlueprint:topic%
+%Engine/Blueprints\UserGuide\Types\LevelBlueprint:topic%
+%Engine/Blueprints\UserGuide\Types\Interface:topic%
+%Engine/Blueprints\UserGuide\Types\MacroLibrary:topic%
+[/REGION]
+
+##ブループリント通信方法
+
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](using_interface_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\Interface\UsingInterfaces]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](dispatcher_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\EventDispatcher:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\EventDispatcher:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\EventDispatcher]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+##ブループリントのエレメント
+
+[EXCERPT:Elements]
+[REGION:topics third]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Variables:title%](Engine/Blueprints/UserGuide/Variables/variables_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Variables:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Variables:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Variables]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Components:title%](Engine/Blueprints/UserGuide/Components/componentslist_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Components:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Components:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Components]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Graphs]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+[/EXCERPT:Elements]
+
+##ブループリントのグラフのタイプ
+
+[EXCERPT:GraphTypes]
+[REGION:topics fourth]
+
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints/UserGuide/EventGraph/eventgraph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/EventGraph:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/EventGraph:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/UserConstructionScript:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/UserConstructionScript:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/UserConstructionScript]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints/UserGuide/Functions/function_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Functions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Functions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Functions]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](macro_topic_2.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Macros:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Macros:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Macros]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+[/EXCERPT:GraphTypes]
+
+##Graph ノード
+
+[EXCERPT:NodeIntro]
+ノードは _ブループリント_ _グラフ_ 作成時の基本的な構成要素です。各ノードには、設定できるプロパティだけでなく、入力と出力のピンもあります。こうしたピンは、ユーザーが設定したい _ブループリント_ の機能性をプログラミングするために、実行またはデータワイヤーと接続することができます。
+[/EXCERPT:NodeIntro]
+
+
+[EXCERPT:Nodes]
+[REGION:topics fourth]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Events:title%](Events.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Events:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Events:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Events]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Events/Custom:title%](CustomEvents.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Events/Custom:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Events/Custom:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Events/Custom]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Functions/FunctionCalls:title%](Functions.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Functions/FunctionCalls:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Functions/FunctionCalls:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Functions/FunctionCalls]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](event_dispatcher_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/EventDispatcher:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/EventDispatcher:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventDispatcher]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](CastToNode.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/CastNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/CastNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/CastNodes]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/FlowControl:title%](FlowControl.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/FlowControl:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/FlowControl:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/FlowControl]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Arrays/ArrayNodes:title%](ArrayNodes.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Arrays/ArrayNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Arrays/ArrayNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Arrays/ArrayNodes]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/Timelines:title%](Timelines.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Timelines:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Timelines:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Timelines]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](OnlineNodesTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/OnlineNodes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/OnlineNodes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/OnlineNodes]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/MathNode:title%](math_topic.jpg)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/MathNode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/MathNode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/MathNode]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](random_stream.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/RandomStreams:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/RandomStreams:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/RandomStreams]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Comments.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/Comments:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/Comments:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Comments]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+[/EXCERPT:Nodes]
+-->

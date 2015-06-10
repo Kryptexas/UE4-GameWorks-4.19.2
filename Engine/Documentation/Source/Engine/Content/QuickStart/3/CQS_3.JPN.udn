@@ -1,0 +1,295 @@
+﻿INTSourceChangelist:2500409
+Availability:Public
+Title:3.画像をインポートしてマテリアルを作成する
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:アンリアル エンジン 4 でサポートされている各種画像タイプと、マテリアルのインポートおよび作成方法の概要です。 
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+アンリアル エンジン 4 からインポートされた画像ファイルは主に [マテリアル](Engine/Rendering/Materials) で使用されますが、ハイトマップやペイント ブラシ マスクとしてランドスケープ エディタや各種ペイントツールでも使用することができます。直接画像を HUD に適用できるケースもあります。.raw ファイルはハイトマップとしてランドスケープ エディタへインポートすることが可能ですが、.hdr ファイル タイプと .dds 形式は **Cubemaps** に使用されるなど、用途が非常に特殊な形式のものもあります。
+
+##サポート対象の画像形式
+
+ほとんどのゲームには、UE4 以外で作成されたコンテンツが使用されます。これを想定して、エディタでは数種類の画像形式がサポートされています。 
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+サポート対象の画像形式については、以下をご覧ください。[%Engine/Content/Types/Textures/Importing:title%](Engine/Content/Types/Textures/Importing).
+
+## 画像をインポートする
+
+インポートするアセットが既にある場合、以下の [画像エディタからインポートする](#画像エディタからインポートする) セクションへ進んでください。 
+
+Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pixlr 、 Slashup を始めとする無料画像エディタで画像を処理することができます。このガイドで使用するサンプル アセットは以下 (前の手順で提供したサンプル アセットです) からも入手可能です。 
+
+* [サンプル アセット](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+サンプル アセットをコンピューター上に展開し、 **T_Rock_04_D** と **T_Rock_04_n** を UE4 プロジェクトの「 **コンテンツ** 」フォルダにドラッグします。 
+
+ ![](ExplorerImport2.png)(w:640)
+
+メッシュをインポートすると、UE4 は UE4 Project ディレクトリに追加された画像をインポートします。 
+
+ここから、この後の **手順 4** を続けることができます。 
+ 
+### 画像エディタからインポートする
+
+このセクションでは、Photoshop (または同等の画像エディタ) からアセットを自動インポートする手順について説明します。 
+
+1. 画像エディタで **[File]** 、次に **[Save As]** をクリックします。 
+
+	![](photoshop_export1.png)
+
+1. ダイアログ ボックスで、UE4 Project ディレクトリで「 **Content** 」フォルダを探し、フォルダ名とサポート形式を入力して (2) 、 **保存** します (3)。 
+
+	![](photoshop_export2.png)
+
+1.	ディスク上でプロジェクトの「 **Content** 」フォルダをブラウズします。画像ファイルが追加されているのが分かります。 
+
+	![](photoshop_export6.png)(w:800)	
+
+1.	UE4 エディタを開いていると (または次回実行する際) 、「 **Processing outstanding content changes** 」というメッセージが表示されます。 
+
+	![](photoshop_export4.png)
+
+1.	完了すると、アセットはインポートされ、使用が可能になります。 
+
+	![](photoshop_export5.png)(w:900)
+
+	_アセットをインポートすると、対応する .uasset も作成されます。_
+
+これで Sample Assets ファイルにあるアセットはすべてインポートされ、使用することが可能になりました。次は、画像から **マテリアル** を作成するための方法をいくつか見ていきましょう。 
+
+## マテリアルを作成する
+
+**マテリアル** は、シーンの視覚的な外観を制御するために、メッシュに適用することができるアセットです。概要として、マテリアルはオブジェクトに適用する「ペイント」として捉えるのがおそらく一番わかりやすいでしょう。ただし、この考え方は誤解につながる恐れがあります。マテリアルは文字通り、そこからオブジェクトが作成されたかのように見えるサーフェスのタイプを定義するものだからです。色、光沢の度合い、オブジェクトの透過可否などを定義することができます。 
+
+### テクスチャからマテリアルを作成する
+
+マテリアルの作成方法は何通りかありますが、マテリアルにテクスチャを与える方法が最も早いです。 
+
+1.	サンプル アセットの入っている **コンテンツ ブラウザ** で **T_Rock_04_D** を **右クリック** して、 **Create Material** を選択します。 
+
+	![](createMaterial.png)
+
+1.	作成した **Material** アセット名を入力します。 
+
+	![](MaterialName.png)
+
+1.	**Material** 名を入力すると、使用可能になります。 
+
+	![](MaterialCreated.png)
+
+4.	**Material** を **ダブルクリック** するとこのように [マテリアル エディタ](Engine/Rendering/Materials/Editor) が開きます。 
+
+	[REGION:lightbox]
+	[![](MaterialEditor.png)(w:720)](MaterialEditor.png)
+	[/REGION]
+
+	_画像をクリックしてフルサイズで表示_
+
+	このサンプルでは、テクスチャに対して 1 つしか **Texture Sample** ノードを使用していませんが、いろいろなテクスチャや設定を組み合わせて複雑なエフェクトを実現することができます。
+
+	[REGION:note]
+	Material (マテリアル) の作業については、 [](Engine/Rendering/Materials/HowTo) を参照してください。 
+	[/REGION]
+
+### マテリアルを作成する
+
+このセクションでは、ゼロから新しいマテリアルを作成する方法を説明します。 
+
+マテリアルを作成するには以下の操作を行います。
+
+1. **コンテンツ ブラウザ** の **[Add New]** をクリックして、 _Create Basic Asset_ の中から **[Material]** を選択します。 
+
+	![](Engine/Content/QuickStart/4/newMaterial.png)
+
+	[REGION:tip]
+	**[Add New]** ボタンをクリックする代わりに **コンテンツ ブラウザ** 内の空いているスペースを**右クリックしてコンテキスト メニューを呼び出すこともできます。 
+	[/REGION]
+
+1. 新しいマテリアルが選択され、 **コンテンツ ブラウザ** で名前を入力できるようになります。
+
+1. このケースでは、名前を「 **Rock** 」と付けます。 
+	![](Engine/Content/QuickStart/5/materialNaming.png)
+
+	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename]** を選択します。
+
+1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
+
+	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
+
+	これで、Main Material ノードだけを含むブランクのマテリアルができました。 
+
+次に、岩のように見える Material を作成するために提供されているサンプル アセットの使用方法について説明します。 
+
+## Rock Material
+
+既にインポートした 2 つのテクスチャ、あるいはたまたまインポートしておいた他のテクスチャを使って、このマテリアルに肉付けをしていきましょう。
+
+1. マテリアル グラフの中央の Main Material ノードを選択します。 
+
+	![](Engine/Content/QuickStart/5/mainNide.png)
+
+	グラフエリア内にはこのノードしかありません。マテリアルに因んだ名前が付けられます。選択されるとハイライトされます。
+
+1. **[Details] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
+
+	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
+
+1. メインの Material ノード上で 2 つのピンが有効になったことが分かります。**Opacity** と **Subsurface Color** です。
+
+	![](Engine/Content/QuickStart/5/morePins.png)
+
+1. テクスチャをグラフに入れる必要があります。方法は何通りかありますが、ここではショートカットを使用します。**[T]** キーを押して エディタのグラフ エリアを **クリック** します。**Texture Sample** ノードが作成されます。
+
+	[REGION:tip]
+	マテリアル エディタのキーボード ショートカットの一覧は**[Edit Menu]** -> **[Editor Preferences]** -> **[Keyboard Shortcuts]** -> **[Material Editor]** および **[Material Editor - Spawn Nodes]** カテゴリでご覧いただけます。
+	[/REGION]
+
+1. テクスチャは最低 2 つ必要です。もう 1 つの **Texture Sample** ノードでこのプロセスを繰り返します。
+
+	![](Engine/Content/QuickStart/4/textureSampleNodes.png)
+
+1. Texture Sample ノードをどれか 1 つ選択すると、 **Material Expression Texture Base** カテゴリの **[Details] パネル** に **Texture** という名前のプロパティがあります。[None] とラベルされたプルダウンを **左クリック** して **[T_Rock_04_D]** というカラーテクスチャを選択します。
+
+	![](Engine/Content/QuickStart/5/textureNone.png)
+
+	[REGION:tip]
+	テクスチャ アセットを見つけるために検索フィールドをを使う場合は、検索フィールドに「 **T_Rock_04_D** 」と入力します。 
+	[/REGION]
+
+1. もう片方の Texture Sample ノードにも同様のプロセスを行いますが、 **T_Rock_04_n** という法線マップテクスチャを選択します。
+
+	この時点で Material グラフは、このようになっているはずです。
+
+	![](Engine/Content/QuickStart/5/bothTexturesSelected.png)
+
+1. 一番上の白いピンにはテクスチャの全てのカラーチャンネルが含まれます。それを **Base Color** ピンに接続します。 
+
+	![](Engine/Content/QuickStart/5/connectColorPin.png)
+
+1. Normal Map と **Normal** ピンにも同様のプロセスを行います。
+
+	![](Engine/Content/QuickStart/5/connectNormalPin.png)
+
+	プレビューはこのような感じになっているはずです。
+
+	![](Engine/Content/QuickStart/5/preview_DN.png)
+
+1. Constant (スカラ型浮動小数点) および Constant3Vector (アルファ チャンネルなしのカラー) が必要になります。
+
+	**[1]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、 Constant を簡単に作ることができます。全部で Constant が **3** つできました。
+
+	![](Engine/Content/QuickStart/5/Constants.png)
+
+1. **[3]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、 Constant3Vector を簡単に作ることができます。
+
+	![](Engine/Content/QuickStart/5/Constant3.png)
+
+1. ノードを以下のように調整します。
+
+	![](Engine/Content/QuickStart/5/MatConstantsAdded.png)
+
+	これは接続を簡単にし、ワイヤーがノードの下でずれたり重なってしまったりしないようにするためです。
+
+1. テクスチャを **Base Color** と **Norml** ピンに接続するのに使用したのを同じプロセスを使って、下の画像のように **Constants** と **Constant3Vector** を接続します。
+
+	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
+
+1. **Constant** を選択して **[Details]** パネルの **Value** パラメータを変更することで、それぞれの値の調節が可能になります。
+
+	* Metallic/Specular Value = 0.0
+	* Roughness Value = 0.8
+	* Opacity Value = 0.95
+	* Subsurface Color = Red (1, 0, 0)
+
+	![](Engine/Content/QuickStart/5/allConnectedAllAdjusted.png)
+
+1. プレビューはこのような感じになっているはずです。
+
+	![](Engine/Content/QuickStart/5/preview_All.png) 
+
+次のステップでは、このページで作成したマテリアルをスタティックメッシュに適用します。 
+
+<!--
+
+[REGION:note]
+このチュートリアル シリーズでは **Starter Content** を有効にした新規の **ブランク** のプロジェクトを使用しています。_新規プロジェクトの作成、プロジェクト テンプレートの使用およびプロジェクト設置の定義 (**Starter Content** を含む) については、 [](Engine/Basics/Projects/Browser) ページを参照してください。 
+[/REGION]
+
+コンテンツをアンリアル エンジン 4 にインポートする方法は 2 種類あります。
+* **コンテンツ ブラウザ** のインポート機能を使用する 
+* ファイルをハードドライブから **コンテンツ ブラウザ** へドラッグする
+
+アンリアル エンジン 4 はインポートしているファイルのタイプをきちんと認識し、アセットをバッチ インポートします。
+
+
+## コンテンツ ブラウザでインポートする
+
+新規プロジェクトを作成し開いた状態で、エディタ インターフェースの左隅下の **コンテンツ ブラウザ** を見つけてください。 
+
+![](contentBrowser.png)
+
+**コンテンツブラウザの** ![Import](Engine/Content/QuickStart/4/import_button.png) ボタンを使用するとファイル ダイアログが開き、アセットをアンリアル エンジン 4 へインポートすることが可能になります。前のステップで既にアセットをダウンロードしていれば、それを今からインポートをしてみましょう。
+
+1. **コンテンツ ブラウザ** の [Import] ボタンをクリックします。
+1. ダウンロードしたサンプル コンテンツを展開した位置を表示します。
+1. 2 つの FBX ファイル、「Basic_Asset1.fbx」と「Basic_Asset2.fbx」を選択します。
+1. **[Open]** をクリックします。
+
+	[REGION:raw]
+	![](Engine/Content/QuickStart/4/StaticMeshContentBrowserImport.png)
+	[/REGION]
+
+1. FBX インポート ダイアログが表示されます。
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. デフォルト設定を使用して **[Import All]** をクリックして、同じ設定のアセットを両方ともインポートします。
+1. 今、**コンテンツ ブラウザ** の中には、箱のような形のアセット、トーラスノットの形をしたアセット、あと **Material** アセットが 2 つの合計 4 つのアセットがあるはずです。 
+
+	![](Engine/Content/QuickStart/4/CB_w2assets.png)
+
+1. 次は、画像ファイル「T_Rock_04_D.TGA」と「T_Rock_04_n.TGA」に同じことをしてみましょう。
+	- この画像に対してはインポート ダイアログは出てきません。
+1. **コンテンツ ブラウザ** はこのようになっているはずです。
+
+	![](Engine/Content/QuickStart/4/CB_w4assets.png)
+
+	_各アセットのサムネイルの左隅下にアスタリスク記号がついていると思います。これは、追加されたアセットはまだ保存されておらず、最初に保存せずにエディタを閉じると消えてしまうことを表しています。 _
+
+1. ![](saveAllbutton.png) ボタンをクリックして、全てのアセットを保存します。 
+
+1. インポートし保存したアセットを使って、[**次のステップ**](Engine/Content/QuickStart/4) へ進みましょう。
+
+## クリック＆ドラッグでインポートする
+
+アセットを OS から **コンテンツ ブラウザ** 内の空きスペースにドラッグするだけでもインポートが可能です。FBX ファイルごとにインポート オプションを定義するよう促されますが、テクスチャは単純にバッチ インポートされます。**コンテンツ ブラウザ** にドラッグすると、アセットをインポート中であることを反映するために、マウス カーソルも変化します。 
+
+![](Engine/Content/QuickStart/4/CnD_importAll.png)
+
+アセットのインポート後に ![](saveAllbutton.png) ボタンを必ずクリックしてアセットを保存するようにしてください。
+
+-->
+
+%Steps%
+
+

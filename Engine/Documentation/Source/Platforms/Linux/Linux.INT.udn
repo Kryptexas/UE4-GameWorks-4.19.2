@@ -1,0 +1,46 @@
+Availability: Docs
+Title: Linux Game Development
+Crumbs:%ROOT%, Platforms
+Description:Developing games for the Linux platform.
+Platform:Linux
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Linux Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
+	[/PARAM]
+[/OBJECT]
+
+	
+
+		
+
+	      
+
+	       
+
+	   
+
+	   
+
+	  
+
+		
+
+		
+
+		
+
+		
+
+		
+

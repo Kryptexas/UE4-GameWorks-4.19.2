@@ -1,0 +1,117 @@
+﻿Availability:Public
+Title:物理ボディのリファレンス
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description:物理ボディについて
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicsBodies:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicsBodies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicsBodies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicsBodies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2)]
+
+## 概要
+
+3D メッシュがますます複雑化していることを考えると、リアルタイム 3D レンダリング アプリケーションで物理シミュレーションを動かすためにプロキシ形状を使用しなければなりません。物理ボディは、アンリアル エンジン 4 が物理シミュレーションのために使用する単純化された 3D メッシュです。ボックス、球体、カプセル、凸包の形状にすることができます。
+
+以下のリンクには、物理ボディを作成し、物理ボディで作業するための様々なエディタとワークフローに関する情報があります。
+
+
+###スタティック メッシュ
+
+ご利用の 3D アートプログラムで物理ボディを作成するには以下を参照してください。[FBX: Static Meshes](Engine/Content\FBX\StaticMeshes#Collision)
+
+スタティックメッシュ エディタを使用して物理ボディを作成するには以下を参照してください。[Collision Reference: Static Mesh Editor](Engine/Physics\Collision\Reference#CreatingStaticMeshCollisionHullsintheStaticMeshEditor)
+
+
+###物理アセット/ スケルタルメッシュ
+
+スケルタルメッシュで使用する物理アセットの作成に関するドキュメントは以下を参照してください。[](Engine/Physics\PhAT) ドキュメント
+
+
+### 形状のコンポーネント
+
+何らかのコリジョン、オーバーラップ、その他の物理シミュレーションのイベントに対してボックス、球体、カプセルのコンポーネントが設定されていれば、自動的に物理ボディを得ます。
+
+
+##参照
+
+すべての物理ボディには共有する一連のプロパティがあります。以下は物理ボディと合わせて表示される主なカテゴリにあるプロパティです。アクタやコンポーネントで必ずしもすべてのプロパティが表示されるわけではありません。プロパティのコンテキストによって変わります。
+
+
+### 物理
+
+| プロパティ | 説明 |
+| --- | --- |
+|[REGION:tablesection]Physics[/REGION]||
+| **Mass in KG** | ボディの質量 KG 単位 |
+| **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
+| **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
+| **Phys Material** | %doxygen:UBodySetup::PhysMaterial% |
+| **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
+| **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
+| **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
+| **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
+| **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
+| **Phys Material Override** | %doxygen:FBodyInstance::PhysMaterialOverride% |
+| **COMNudge** | %doxygen:FBodyInstance::COMNudge% |
+| **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
+| **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
+| **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
+| **Linear Damping** | %doxygen:FBodyInstance::LinearDamping% |
+| **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
+| **Velocity Solver Iteration Count** | %doxygen:FBodyInstance::VelocitySolverIterationCount% |
+
+
+### コリジョン
+
+| プロパティ | 説明 |
+| --- | --- |
+|[REGION:tablesection]Collision[/REGION]||
+| **Notify Rigid Body Collision** | %doxygen:FBodyInstance::bNotifyRigidBodyCollision% |
+| **Always Create Physics State** | %doxygen:UPrimitiveComponent::bAlwaysCreatePhysicsState% |
+| **Generate Overlap Events** | %doxygen:UPrimitiveComponent::bGenerateOverlapEvents% |
+| **Multi Body Overlap** | %doxygen:UPrimitiveComponent::bMultiBodyOverlap% | 
+| **Trace Complex On Move** | %doxygen:UPrimitiveComponent::bTraceComplexOnMove% |
+| **Return Material On Move** | %doxygen:UPrimitiveComponent::bReturnMaterialOnMove% |
+|[REGION:tablesection]Collision Responses[/REGION]||
+| | 詳しい情報については、[](Engine/Physics\Collision) ドキュメントを参照してください。 |
+|[REGION:tablesection]Extras[/REGION]||
+| **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
+| **Check Async Scene On Move** | %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
+| **Can Ever Affect Navigation** | %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |

@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:2220735
+Availability:Public
+Title:Animation モード
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Description:ペルソナ アニメーション エディタ ツールバーのユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes/Animation:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes/Animation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes/Animation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes/Animation]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 概要
+
+[REGION:fullwidth]
+![](AnimationModeWindow.png)
+[/REGION]
+
+**ペルソナ** の **Animation モード** (ツールバー ウィンドウから **[Animation]** タブを選択するとアクセス可能な) には他のモードでも表示されるウィンドウが幾つか含まれていますが、 **Animation モード** で作業する場合は 3 つのウィンドウが主に使用されます。 
+
+1. [Anim Asset Details](Engine\Animation\Persona\AnimAssetDetails) - **[Anim Asset Details]** パネルは、 Anim Sequences 、 Blend Spaces 、 Anim Montages などの様々なアニメーション アセットの設定変更を可能にする文脈依存のプロパティ エディタです。デフォルト設定では、 **[Anim Asset Details]** パネルはペルソナが **Animation** モードの時のみ表示されます。
+1. [Anim Sequence Editor](Engine\Animation\Sequences\Editor) - **アニメーション シーケンス エディタ** は単一の _アニメーションシーケンス_ アセットのプレビューと編集を行うための機能です。圧縮スキームを含めて _アニメーションシーケンス_ のプロパティを設定することができます。また Notify (通知) とも呼ばれるアニメーション通知イベントを、カメラエフェクト、パーティクル エフェクト、サウンドなどをアニメーションに基づいてトリガーするために追加することも出来ます。
+1. [Asset Browser](Engine\Animation\Persona\AssetBrowser) - **[アセット ブラウザ]** パネルは 小さな **Content Browser**-形式のインターフェースでターゲットの _Skeleton_ に対して有効な _AnimSequences_ 、 _BlendSpaces_ 、 _AnimMontages_ 、 _AimOffsetBlendSpaces_ を表示します。 
+
+
+
+
+
+
+

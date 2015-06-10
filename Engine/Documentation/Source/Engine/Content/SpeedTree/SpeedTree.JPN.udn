@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:SpeedTree
+Crumbs:%ROOT%, Engine, Engine/Content
+Description:アンリアル エンジン 4 で SpeedTree を使用するためのランディングページ
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Content/SpeedTree:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/import_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content/SpeedTree:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content/SpeedTree:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content/SpeedTree]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/Content/SpeedTree:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/content_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content/SpeedTree:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content/SpeedTree:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content/SpeedTree]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[PARAMLITERAL:id]
+contentcreator
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:note]
+このセクションは、[SpeedTree の Wiki](http://docs.speedtree.com/doku.php?id=ue4_introduction) からのドキュメントをコピーしたものです。SpeedTree のアンリアル エンジン部分のみに焦点をあてています。詳細は、[SpeedTree のドキュメント](http://docs.speedtree.com/doku.php?) ページを参照してください。
+[/REGION]
+
+アンリアル・エンジン 4 (UE4) の SpeedTree へようこそ！このセクションのページでは、UE4 アプリケーションで SpeedTree のツールとモデルの最大限のエフェクトを得るための使用方法について詳しく説明します。ここで説明するテクニックは、カスタム ライセンシーとサブスクリプション ライセンシーの両方でご利用いただけます。
+
+## どのように機能するのでしょう？
+
+UE4 で SpeedTree を使用するには、次の 3 ステップのプロセスに従います。
+
+* **SpeedTree のモデルを作成または購入** [SpeedTree ライブラリ](http://www.speedtree.com/ue4/ue4trees.php) のモデルを使用するか、SpeedTree Modeler を使用してゼロから作成するかのいずれにせよ、開始するにはモデルが必要です。モデルは、SpeedTree ファイル (.spm、.srt) とそれに関連するテクスチャとコンポーネントのメッシュ (.obj, .fbx) で構成されます。SpeedTree でモデルを作成する方法を詳しく学習するには、 [ここを](http://docs.speedtree.com/doku.php?id=gettingstarted) クリックします。
+
+* **UE4 にモデルをインポートする** SpeedTree モデルは、他のアセットと同様に UE4 にインポートされます。風と滑らかな LOD を実装するための追加の頂点属性を持つスタティックメッシュとしてインポートされます。こうした SpeedTree モデルに対して、UE4 内でスタティックメッシュで行えることは何でも行うことができます。SpeedTree モデルの UE4 へのインポートについて詳しく学習するには、[ここを](Engine/Content/SpeedTree/ImportingModelsIntoUE4) クリックします。
+
+* **モデルをシーンに配置する** 一度インポートしたら、他のスタティックメッシュ同様に SpeedTree モデルを配置したり、ペイントすることができます。SpeedTree モデルの UE4 への配置について詳しく学習するには、[ここを](Engine/Content/SpeedTree/WorkingWithModelsinUE4) クリックします。
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		UE4 SpeedTree Pipeline
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+
+	[PARAM:links]
+		* [](Engine/Content/SpeedTree/CreatingModelsForUE4 "%Engine/Content/SpeedTree/CreatingModelsForUE4:description%")
+		* [](Engine/Content/SpeedTree/ImportingModelsIntoUE4 "%Engine/Content/SpeedTree/ImportingModelsIntoUE4:description%")
+		* [](Engine/Content/SpeedTree/WorkingWithModelsinUE4 "%Engine/Content/SpeedTree/WorkingWithModelsinUE4:description%")
+		* [](Engine/Content/SpeedTree/ComputingLightmapUVs "%Engine/Content/SpeedTree/ComputingLightmapUVs:description%")
+	[/PARAM]
+[/OBJECT]
+
+

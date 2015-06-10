@@ -1,0 +1,213 @@
+﻿Availability:Public
+Title:1.コンポーネントの作成と親子付け
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
+Description:さまざまなコンポーネントを作成してカスタマイズしたポーンに親子付けする
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Programming Tutorials Home](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Programming\Tutorials\Components\2 "%Programming\Tutorials\Components\2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:tip]**アンリアルエンジン 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 **アンリアルエディタ** でプロジェクトを作成、プロジェクトにC++コードを追加、および 入力値の設定ができる方を想定しています。独自の **Pawn** クラス作成や入力設定に不慣れなユーザーは、 [%Programming\Tutorials\PlayerInput:title% tutorial](Programming\Tutorials\PlayerInput) から開始されると良いでしょう。[/REGION]
+
+1. まず「HowTo_Components」という名前のスターターコンテンツを使用して、Basic Code（基本コード）プロジェクトを作成します。まず必要なことは、プロジェクトに **コンポーネント** を保持し、レベルの移動、そしてソリッドなオブジェクトと衝突するカスタマイズした **ポーン** をプロジェクトに追加することです。このチュートリアルでは「CollidingPawn」と名前を付けます。
+
+	[![](ChooseParentClass.png)](ChooseParentClass.png)
+
+	[![](NamePawnClass.png)](NamePawnClass.png)
+
+1. **Visual Studio** で 「CollidingPawn.h」 ファイルを開いて、以下のコードをクラス定義の下に追加します：
+
+		UParticleSystemComponent *OurParticleSystem;
+
+	この変数は後に作成する **Particle System Component** の追跡に使用します。変数で追跡を行わない **コンポーネント** も作成できますが、コードでこの **コンポーネント** を使用する場合は、以下のようにクラスメンバ変数に保存しなくてはいけません。
+
+1. さまざまな有用な **コンポーネント** のスポーンとこれらの階層をアレンジするコードを追加することにより、"CollidingPawn.cpp" ファイルを開いてコンストクション関数 **ACollidingPawn::ACollidingPawn** を編集します。物理ワールドとインタラクションを行う **スフィアコンポーネント** 、コリジョン形状を視覚的に表現する **スタティックメッシュコンポーネント** 、意図的にオン/オフに出来る **パーティクルシステムコンポーネント** 、またインゲームパースペクティブをコントロールするために **カメラコンポーネント** を親子付けして使用できる **スプリングアームコンポーネント** を作成します。
+
+1. 最初に階層のルートとなる **コンポーネント** を決めます。このチュートリアルは、ゲームワールドとのインタラクションや衝突が可能な物理プレゼンスである **スフィアコンポーネント** をルートに使用します。**アクタ** は複数の物理が有効な **コンポーネント** を階層に設定できますが、チュートリアルでは1つのみを有効にします。
+			// Our root component will be a sphere that reacts to physics（ルートコンポーネントは物理に反応するスフィアコンポーネント）
+			USphereComponent* SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent"));
+			RootComponent = SphereComponent;
+			SphereComponent->InitSphereRadius(40.0f);
+			SphereComponent->SetCollisionProfileName(TEXT("Pawn"));
+	1. 次に半径50の **Static Mesh** アセットから目に見えるスフィアを作成してこれを親子付けします。直前に作成した半径40の **スフィアコンポーネント** とピッタリ整列しないため、80％に縮小します。これに加えて、中心を **スフィアコンポーネント** の中心と整列させるために40単位移動させなくてはいけません。
+
+			// Create and position a mesh component so we can see where our sphere is（スフィアの位置が分かるようにメッシュコンポーネントを作成して配置）
+			UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
+			SphereVisual->AttachTo(RootComponent);
+			static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
+			if (SphereVisualAsset.Succeeded())
+			{
+				SphereVisual->SetStaticMesh(SphereVisualAsset.Object);
+				SphereVisual->SetRelativeLocation(FVector(0.0f, 0.0f, -40.0f));
+				SphereVisual->SetWorldScale3D(FVector(0.8f));
+			}
+
+	[REGION:note]**Static Mesh** アセットのアセット位置をコードで確認することができますが、パスコードのハードコーディングは一般的にアセットのロードに最適な方法とを言えません。クラスでコンポーネントを使用するには、コードに **コンポーネント** 自体を作成して、 **アンリアルエディタ** でアセットを選択することが一般的に望ましいとされます。しかしながら、コードで直接アセットをロードすることも可能で、プログラマーのデバッグ作業や新規機能の作成を高速に行える場合もあります。[/REGION]
+
+1. 階層に非アクティブな **パーティクルシステムコンポーネント** を親子付けが出来るようになりました。このコンポーネントはコードで操作可能で、後にオン/オフを切り替える入力を設定出来ます。**パーティクルシステムコンポーネント** は **スタティックメッシュコンポーネント** に直接親子付けできることに注目してください。プレイ中の表示をより良くするために、メッシュの下部中央から少しだけオフセットも行います。
+			// Create a particle system that we can activate or deactivate（アクティベートにしたり非アクティベートが可能なパーティクルシステムを作成）
+			OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
+			OurParticleSystem->AttachTo(SphereVisual);
+			OurParticleSystem->bAutoActivate = false;
+			OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
+			static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
+			if (ParticleAsset.Succeeded())
+			{
+				OurParticleSystem->SetTemplate(ParticleAsset.Object);
+			}
+
+1. **スプリングアームコンポーネント** は、追跡している **ポーン** よりもゆっくりとカメラを加速したり減速させるためによりスムーズな固定点を提供します。サードパーソンゲームでプレイヤーがコーナーへ追いつめられるシチュエーションなど、カメラがソリッドなオブジェクトを通り抜けてしまうことを防止する内蔵機能も備わっています。必須ではありませんが、ゲーム内のカメラワークにスムースな感覚を作成する迅速かつ簡単な方法です。
+			// Use a spring arm to give the camera smooth, natural-feeling motion（カメラにスムースで自然な移動を再現するためにスプリングアームを使用）
+			USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
+			SpringArm->AttachTo(RootComponent);
+			SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
+			SpringArm->TargetArmLength = 400.0f;
+			SpringArm->bEnableCameraLag = true;
+			SpringArm->CameraLagSpeed = 3.0f;
+
+1. 実際の **カメラコンポーネント** の作成は簡単で、特別な設定は必要ありません。**スプリングアーム** にはベース以外に親子付けが出来る特別な内蔵 **ソケット** があります。
+			// Create a camera and attach to our spring arm（カメラを作成してスプリングアームに親子付け）
+			UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
+			Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+
+1. コンポーネントを作成および親子付けしたので、この **ポーン** をデフォルトプレイヤーがコントロールするように設定します。以下が必要なコード全てです：
+			// Take control of the default player（デフォルトプレイヤーをコントロール）
+			AutoPossessPlayer = EAutoReceiveInput::Player0;
+
+----
+
+新規の **ポーン** に便利な **コンポーネント** のコレクションを親子付けしました。またユーザーによるコントロール設定の準備も整いました。**アンリアルエディタ** に戻ります。
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    コード
+    [/PARAMLITERAL]
+    [PARAM:heading]
+	    作業中のコード
+    [/PARAM]
+    [PARAM:content]
+		**CollidingPawn.h**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/Pawn.h"
+			#include "CollidingPawn.generated.h"
+
+			UCLASS()
+			class HOWTO_COMPONENTS_API ACollidingPawn : public APawn
+			{
+				GENERATED_BODY()
+
+			public:
+				// Sets default values for this pawn's properties（このポーンのプロパティのデフォルト値を設定）
+				ACollidingPawn();
+
+				// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+				virtual void BeginPlay() override;
+	// Called every frame（フレームごとに呼ばれます）
+
+				virtual void Tick( float DeltaSeconds ) override;
+
+				// Called to bind functionality to input（入力と機能を連結するために呼ばれます）
+				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
+
+				UParticleSystemComponent* OurParticleSystem;
+			};
+
+		**CollidingPawn.cpp**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#include "HowTo_Components.h"
+			[INCLUDE:Included]
+			#include "CollidingPawnMovementComponent.h"
+
+			// Sets default values（デフォルト値を設定）
+			ACollidingPawn::ACollidingPawn()
+			{
+ 				// Set this pawn to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このアクタがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+				PrimaryActorTick.bCanEverTick = true;
+
+				// Our root component will be a sphere that reacts to physics（ルートコンポーネントは物理に反応するスフィアコンポーネント）
+				USphereComponent* SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent"));
+				RootComponent = SphereComponent;
+				SphereComponent->InitSphereRadius(40.0f);
+				SphereComponent->SetCollisionProfileName(TEXT("Pawn"));
+
+				// Create and position a mesh component so we can see where our sphere is（スフィアの位置が分かるようにメッシュコンポーネントを作成して配置）
+				UStaticMeshComponent* SphereVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualRepresentation"));
+				SphereVisual->AttachTo(RootComponent);
+				static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereVisualAsset(TEXT("/Game/StarterContent/Shapes/Shape_Sphere.Shape_Sphere"));
+				if (SphereVisualAsset.Succeeded())
+				{
+					SphereVisual->SetStaticMesh(SphereVisualAsset.Object);
+					SphereVisual->SetRelativeLocation(FVector(0.0f, 0.0f, -40.0f));
+					SphereVisual->SetWorldScale3D(FVector(0.8f));
+				}
+
+				// Create a particle system that we can activate or deactivate（アクティブまたは非アクティブに出来るパーティクルシステムを作成）
+				OurParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("MovementParticles"));
+				OurParticleSystem->AttachTo(SphereVisual);
+				OurParticleSystem->bAutoActivate = false;
+				OurParticleSystem->SetRelativeLocation(FVector(-20.0f, 0.0f, 20.0f));
+				static ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(TEXT("/Game/StarterContent/Particles/P_Fire.P_Fire"));
+				if (ParticleAsset.Succeeded())
+				{
+					OurParticleSystem->SetTemplate(ParticleAsset.Object);
+				}
+
+				// Use a spring arm to give the camera smooth, natural-feeling motion（カメラにスムースで自然な移動を再現するためにスプリングアームを使用）
+				USpringArmComponent* SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraAttachmentArm"));
+				SpringArm->AttachTo(RootComponent);
+				SpringArm->RelativeRotation = FRotator(-45.f, 0.f, 0.f);
+				SpringArm->TargetArmLength = 400.0f;
+				SpringArm->bEnableCameraLag = true;
+				SpringArm->CameraLagSpeed = 3.0f;
+
+				// Create a camera and attach to our spring arm（カメラを作成してスプリングアームに親子付け）
+				UCameraComponent* Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("ActualCamera"));
+				Camera->AttachTo(SpringArm, USpringArmComponent::SocketName);
+
+				// Take control of the default player（デフォルトプレイヤーをコントロール）
+				AutoPossessPlayer = EAutoReceiveInput::Player0;
+			}
+
+			// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+			void ACollidingPawn::BeginPlay()
+			{
+				Super::BeginPlay();
+	}
+
+
+			// Called every frame（フレームごとに呼ばれます）
+			void ACollidingPawn::Tick( float DeltaTime )
+			{
+				Super::Tick( DeltaTime );
+
+			}
+
+			// Called to bind functionality to input（入力と機能を連結するために呼ばれます）
+			void ACollidingPawn::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+			{
+				Super::SetupPlayerInputComponent(InputComponent);
+
+			}
+
+
+    [/PARAM]
+[/OBJECT]
+
+%Steps%

@@ -84,12 +84,12 @@ public:
 	// Reference counting.
 	void AddRef()
 	{
-		check( IsInGameThread() );
+		check(IsInGameThread() || IsInAsyncLoadingThread());
 		NumRefs++;
 	}
 	void Release()
 	{
-		check( IsInGameThread() );
+		check(IsInGameThread() || IsInAsyncLoadingThread());
 		checkSlow(NumRefs > 0);
 		if(--NumRefs == 0)
 		{
@@ -124,7 +124,10 @@ private:
 
 
 
-/** Lightmap reference serializer */
+/**
+ * Lightmap reference serializer
+ * Intended to be used by TRefCountPtr's serializer, not called directly
+ */
 extern ENGINE_API FArchive& operator<<(FArchive& Ar, FLightMap*& R);
 
 /** 
@@ -209,6 +212,12 @@ public:
 	ENGINE_API UTexture2D* GetTexture(uint32 BasisIndex);
 
 	/**
+	 * Returns SkyOcclusionTexture.
+	 * @return	The SkyOcclusionTexture.
+	 */
+	ENGINE_API UTexture2D* GetSkyOcclusionTexture();
+
+	/**
 	 * Returns whether the specified basis has a valid lightmap texture or not.
 	 * @param	BasisIndex - The basis index.
 	 * @return	true if the specified basis has a valid lightmap texture, otherwise false
@@ -273,7 +282,7 @@ public:
 	}
 
 protected:
-	friend class UStaticMeshComponent;
+
 	friend struct FLightMapPendingTexture;
 
 	FLightMap2D(const TArray<FGuid>& InLightGuids);

@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2347406
+Availability:Public
+Title:Snow (雪) の例
+Crumbs:%ROOT%, Resources, Resources/Showcases/Effects
+Description:パーティクル エフェクト例の一部として UE4 に同梱されている Snow (雪) エフェクトの概要
+Related:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
+Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+Related:Resources/ContentExamples/EffectsGallery/1_E
+Related:Engine/Rendering/ParticleSystems/Optimization
+
+
+
+[REGION:fullwidth]
+![](title_Snow.png)
+[/REGION]
+
+[TOC (start:2)]
+
+
+
+
+
+以下のパーティクル システムは紹介例として作成した雪のエフェクトです。それぞれのエフェクトがどのように作成されているかを理解するために、これらのエフェクトをカスケードで開くことを推奨します。
+
+カスケードやパーティクル システムに関する詳細は [パーティクル システムのドキュメント](Engine/Rendering/ParticleSystems) を参照してください。
+
+## Blizzard (ブリザード)
+
+![](section_Blizzard.png)(w:600)
+
+**コンテンツブラウザの位置：** _Game/Effects/Particles/Snow/P_Blizzard_
+
+Blizzard エフェクトは、Lit Translucent マテリアルを使用した大量の小さなスプライトから構成されている [GPUスプライト パーティクル システム](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) です。これらの雪片に使用しているマテリアルは、 **Enable Responsive AA** フラグを使用しています。マテリアルエディタの [プロパティ] パネルの _Translucency_ カテゴリから利用可能です。
+
+![](enableResponsiveAA.png)
+
+このプロパティは、アンリアルエンジンのテンポラル アンチエイリアシングにより輪郭の品質が損なわれるため、小さな透過オブジェクトに有益です (この例では _雪片_ )。背景にエイリアシングが発生してしまうため、 **Enable Responsive AA** フラグはこのようなケースのみに使用するべきです。 
+
+[REGION:imagetable]
+| ![](WithEnable.png)(w:450)  | ![](WithoutEnable.png)(w:450)  |
+| :---: | :---: |
+| _Enable Responsive AA_ 有り | _Enable Responsive AA_ なし |
+[/REGION]
+
+大きな _アンリット_ (例 _エミッシブ_) スプライトは、もやや霧など広範囲に広がった大気中の煙を生成します。エフェクトを適用して、より道理にかなった雰囲気をもたらします。 
+
+ブリザード パーティクルシステムもまた、ボリュームに突入した雪片スプライトを減速させるために、低いベロシティベクターのベロシティ グリッドを利用します。この減速の効果は、引きずり込むような感覚をパーティクルにシミュレーションし、コリジョンを支援して固定されている感覚にならないようにします。ベクターフィールドは [ビューポート] メニューから、 **View > Vector Fields** を選択するととても簡単にカスケードで表示することができます。
+
+![](ShowVectorFields.png)
+<br>_黄色い指定枠はベクターフィールドを表し、その中の赤線はボリューム内の各位置にあるベクターを表します。_
+
+[REGION:tip]
+	 _Collision (Scene Depth)_ モジュールを使用している場合、表面に「滑らかな動作」のパーティクルを表示するために **Radius Bias** プロパティを増加させます。このトリックは、サーフェス周りの大気の雰囲気に錯覚を与えるためにブリザード パーティクルシステムで使用しました。
+[/REGION]
+
+
+## エッジを吹き抜ける雪
+
+![](EdgeBlown.png)(w:600)
+
+
+**コンテンツブラウザの位置：** _Game/Effects/Particles/Snow/P_Blizzard_EdgeBlow_
+
+Edge Blown Snowエフェクトは簡易な [GPUスプライト パーティクル システム](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) で、洞くつの隙間や岩などの裂け目、また入り口付近を吹き抜ける雪をシミュレートします。このエフェクトは、洞くつの天井穴付近に適用されています。コリジョンは主に _Collision (Scene Depth)_ モジュールで処理されます。GPU パーティクルが _Scene Depth_ ジオメトリ バッファに基づいて衝突する要因となります。 
+
+![](EdgeBlownCascade.png) ![](CollisionSettings.png)(h:442)
+
+このモジュールによって、サーフェスと衝突するワールドとパーティクルのインタラクションが可能になります。Collision (Scene Depth) モジュールの設定方法によっては、コリジョンをレベルの表面に沿って貼り付けたりスライドしたりすることもできます。
+
+
+* ワールドと FX をよりうまく統合させるため深度ベースのコリジョンを使用
+* 雪パーティクル衝突と表面に沿った貼り付け / スライド
+
+## Snow Flare (雪のフレア)
+
+![](SnowFlare.png)(w:600)
+
+Snow Flareエフェクトはブリザードパーティクルシステムを縮小、単純化したバージョンの [GPU スプライト パーティクル システム](Engine/Rendering/ParticleSystems\Reference\TypeData\GPUSprites) で、特に雪や霧とライトのインタラクションが必要な領域で使用します。このエフェクトは洞くつ外側の銅像付近にみることができます。
+
+主な違いは、 _Blizzard_ エフェクトのミストパーティクルは **unlit (ライティングなし)** になっています。つまり、パーティクルはレベルのライトの色を吸収することができず、代わりに色彩には _Emissive_ チャンネルを使用しています。 _Snow Flare_ エフェクトの場合、ミストパーティクルはマテリアルに _Lit Translucency_ を使用します。つまり、ライトの色を吸収することができます。この違いは、Lit Translucency はシェーダーで追加の指示コストが必要になるためです。つまり、全てのスノーミストパーティクルが Lit Translucency を使用すると、時折変化させる色だけのために多くの処理がシーンに必要になります。結果として非効率性およびパフォーマンス・ヒットの可能性が高まります。 
+
+Snow Flare パーティクルは Blizzard エフェクトのローカライズ バージョンに使用し、ミストパーティクルがライトに対応する箇所のみに配置します。この手法は全てのミストパーティクルを常に処理するよりもずっと効率的です。
+
+
+
+[INCLUDE:Resources\Showcases\Effects#ParticleTopics]

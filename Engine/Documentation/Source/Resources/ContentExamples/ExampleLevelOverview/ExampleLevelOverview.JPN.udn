@@ -1,0 +1,107 @@
+﻿INTSourceChangelist:2294103
+Availability:Public
+Title:機能別サンプルの使い方
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:「機能別サンプル」をランチャーのラーニングタブからダウンロードして各機能を勉強しましよう。
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/ExampleLevelOverview:title%](ExampleMapTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/ExampleLevelOverview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/ExampleLevelOverview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/ExampleLevelOverview]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/ExampleLevelOverview:title%](ExampleMapTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/ExampleLevelOverview:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/ExampleLevelOverview:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/ExampleLevelOverview]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](ExampleMap.png)
+[/REGION]
+
+アンリアル・エンジン 4 に含まれているレベル例は、ユーザーが様々な技術と芸術性の高いアプリケーションを使用して、独自のゲーム制作に迅速に対応するための情報提供を目的に構築されています。このドキュメントは、対応するドキュメントと一緒にこれらの例を最も効果的に使用するプロセスを概観します。
+
+## レベル レイアウト
+
+[REGION:fullwidth]
+![](ExampleLevelsLayout.png)
+[/REGION]
+
+各レベル例をインタラクティブな美術館や科学展と捉えると理解しやすいでしょう。各部屋の壁沿いにはいくつものデモステーションが展示されています。各展示台は課題トピックに関するさまざまなアプリケーションを紹介しています。例えば Effects Gallery (エフェクト ギャラリー) のレベル例は、各ステーションでさまざまなパーティクル効果を紹介します。ステーションには、特定効果の実現方法をユーザーが対応ドキュメントと簡単に相互参照できるように番号及びラベル付けがされています。 
+
+複数の部屋、吹き抜けまたは天井のある空間、またその他のたくさんのレベル例が設定されています。レイアウトやスタイルのコンセプトは全ての例に共通しています。
+
+
+## レベル例の使用 
+
+各レベル例は別々の個別レベル例へ分割することができるため、単一エフェクトの選択やさらなる情報の開示が簡単にできます。アンリアル・エンジン 4 で利用可能なさまざまなツールや技術に関する知識を高めるためにうってつけの方法です。 
+
+
+[REGION:imagetable]
+|![](ParticleDemo.png)(w:463)|![](ParticleDemo_Cascade.png)(w:437)|
+|:---:|:---:|
+|レベル例のデモステーション|各エディタで開くアセット|
+
+[/REGION]
+
+
+特定の例を開く方法はアセットのタイプによって異なる場合があります。大抵の場合、アセットを **右クリック** して、**[Find in Content Browser]** を選択します。**コンテンツ ブラウザ** で右クリックしたアセットが自動選択されます。アセットを **ダブルクリック** するとそれぞれのエディタでアセットが開きます。上記に示すのはカスケードでパーティクルシステムを開いた例です。
+
+## ドキュメントとのクロスリファレンス
+
+各レベル例は個々のエフェクトレベルへ分解した最良の方法として独立しますが、各例に対応するドキュメントと組み合わせると最も効果的な学習情報となります。例えばエフェクト ギャラリーのレベル例を参照する際は、エフェクト ギャラリーの例に関するドキュメントも同時に開いてください。 
+
+<!--TODO - ADD PIC OF EFFECTS GALLERY CROSS REFERENCE-->
+
+
+レベルをあちこちへ移動するにつれて、各ステーションにはすでに設定されている各アセットをクロスリファレンスするためのコールアウト番号がふられていることに気付かれるかと思います。あるステーションは **2.3** とラベル付けがされていて、Blackbody ノードを使用するマテリアルで色付けされているパーティクル システムを説明しています。ドキュメントページ内には同ラベルが付けられたセクションがあります。セクションには、設定方法や重要な機能や懸念事項など、このエフェクトに関連する情報が含まれています。
+
+
+
+<!--
+[EXCERPT:ExampleLevel]
+レベルを移動するにつれて、ラベル付けされた一連の展示台が表示されます。各展示台には番号と簡単な説明があり、このドキュメント内のセクションと対応しています。レベルの参照例とドキュメント内容を相互参照することによって、各レベルの作成方法を効率よく理解することができます。レベル例の利用方法に関する詳細は [](Resources\ContentExamples\ExampleLevelOverview) でドキュメントを参照してください。
+
+[REGION:note]
+レベルに表示されるいくつかの例は、エフェクトの最大効果を表示させるために **プレイ (Alt-P)** または **シミュレート (Alt-S)** が必要な場合があります。その場合、展示台に表示される指示に従ってください。自由にエディタでゲームをプレイしたり展示台を参照してください！
+[/REGION]
+[/EXCERPT:ExampleLevel]
+
+
+[EXCERPT:PlaySim]
+[REGION:note]
+この例は **プレイ (Alt-P)** または **シミュレーション (Alt-S)** 中に最も良く見られます。
+[/REGION]
+[/EXCERPT:PlaySim]
+
+-->

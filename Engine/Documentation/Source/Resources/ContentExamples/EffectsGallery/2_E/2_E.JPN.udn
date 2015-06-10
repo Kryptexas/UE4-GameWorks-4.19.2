@@ -1,0 +1,63 @@
+﻿INTSourceChangelist:2346406
+Availability:Public
+Title:2.5 - 他のパーティクルから射出されるリボン形状のトレイル （軌跡）
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
+Description:エフェクト ギャラリーの事例概要
+Related: Engine/Rendering/ParticleSystems/Reference/TypeData/Ribbon
+Related: Engine/Rendering/ParticleSystems/Overview
+Related: Engine/Rendering/ParticleSystems/Reference
+Related: Engine/Rendering/ParticleSystems/Optimization
+Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
+Related: Engine/Rendering/ParticleSystems/ParticleLights
+Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\2_E:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\2_E\2_ETopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\2_E:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\2_E:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\2_E]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\EffectsGallery\2_E:title%](%ROOT%\Resources\ContentExamples\EffectsGallery\2_E\2_ETopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\EffectsGallery\2_E:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\EffectsGallery\2_E:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\EffectsGallery\2_E]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+![](image066.png)
+[/REGION]
+
+Ribbon TypeData モジュールは、プロジェクタイル (射出) ベースのさまざまな効果に非常に便利なトレイルの作成を有効にします。トレイルを機能させるには、最低 2 つのパーティクル エミッタが必要です。
+
+* ソースとなるパーティクルを放射するパーティクル エミッタ (このエミッタからリボンがスポーンされます) 。ここで留意すべきは GPU パーティクルは使用できないことです。
+* ソースとして使用するエミッタを定義する、Ribbon TypeData モジュールとSource モジュール ( _Trail_ グループに設置されています) が設定されたパーティクルエミッタ。
+
+
+![](image068.png)

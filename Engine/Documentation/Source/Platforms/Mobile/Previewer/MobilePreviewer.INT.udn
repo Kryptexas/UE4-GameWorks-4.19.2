@@ -1,0 +1,8 @@
+Availability:Public
+Title:Mobile Previewer
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:Previewing games on mobile platforms.
+Platform:Mobile
+
+There is currently no in-editor preview. You have to launch a standalone game with the 'Enable Mobile Preview' 
+option set. The mobile previewer is intended to match devices as closely as possible.

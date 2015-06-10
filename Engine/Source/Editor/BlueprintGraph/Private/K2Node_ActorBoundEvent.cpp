@@ -10,16 +10,6 @@
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_ActorBoundEventEntry
 
-struct FActorBoundEventHelper
-{
-	static UClass* GetSignatureClass(const UK2Node_ActorBoundEvent* Node)
-	{
-		check(Node);
-		auto EventOwnerClass = Node->EventOwner ? Node->EventOwner->GetClass() : nullptr;
-		return Node->EventSignatureClass ? (UClass*)Node->EventSignatureClass : EventOwnerClass;
-	}
-};
-
 class FKCHandler_ActorBoundEventEntry : public FKCHandler_EventEntry
 {
 public:
@@ -99,14 +89,14 @@ FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) cons
 		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
 		return FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} (None)"), Args);
 	}
-	else if (CachedNodeTitle.IsOutOfDate())
+	else if (CachedNodeTitle.IsOutOfDate(this))
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
 		Args.Add(TEXT("TargetName"), FText::FromString(EventOwner->GetActorLabel()));
 
 		// FText::Format() is slow, so we cache this to save on performance
-		CachedNodeTitle = FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} ({TargetName})"), Args);
+		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} ({TargetName})"), Args), this);
 	}
 	return CachedNodeTitle;
 }
@@ -126,7 +116,7 @@ FText UK2Node_ActorBoundEvent::GetTooltipText() const
 
 FString UK2Node_ActorBoundEvent::GetDocumentationLink() const
 {
-	if (EventSignatureClass)
+	if (UClass* EventSignatureClass = EventReference.GetMemberParentClass(GetBlueprintClassFromNode()))
 	{
 		return FString::Printf(TEXT("Shared/GraphNodes/Blueprint/%s%s"), EventSignatureClass->GetPrefixCPP(), *EventSignatureClass->GetName());
 	}
@@ -151,9 +141,9 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 	{
 		EventOwner = InEventOwner;
 		DelegatePropertyName = InDelegateProperty->GetFName();
-		EventSignatureName = InDelegateProperty->SignatureFunction->GetFName();
-		EventSignatureClass = CastChecked<UClass>(InDelegateProperty->SignatureFunction->GetOuter())->GetAuthoritativeClass();
-		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventSignatureName.ToString()) );
+		DelegateOwnerClass = CastChecked<UClass>(InDelegateProperty->GetOuter())->GetAuthoritativeClass();
+		EventReference.SetFromField<UFunction>(InDelegateProperty->SignatureFunction, false);
+		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventReference.GetMemberName().ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;
 		CachedNodeTitle.MarkDirty();
@@ -162,29 +152,22 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyConst() const
 {
-	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(FActorBoundEventHelper::GetSignatureClass(this), DelegatePropertyName));
+	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 }
 
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
 {
-	auto ActualEventSignatureClass = FActorBoundEventHelper::GetSignatureClass(this);
-	if (!EventSignatureClass && ActualEventSignatureClass)
-	{
-		EventSignatureClass = ActualEventSignatureClass;
-	}
-
-	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(EventSignatureClass, DelegatePropertyName));
+	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(DelegateOwnerClass, DelegatePropertyName));
 
 	// If we couldn't find the target delegate, then try to find it in the property remap table
 	if (!TargetDelegateProp)
 	{
-		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FindRemappedField(EventSignatureClass, DelegatePropertyName));
+		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegateOwnerClass, DelegatePropertyName));
 		if (NewProperty)
 		{
 			// Found a remapped property, update the node
 			TargetDelegateProp = NewProperty;
 			DelegatePropertyName = NewProperty->GetFName();
-			EventSignatureClass = Cast<UClass>(NewProperty->GetOuter());
 			CachedNodeTitle.MarkDirty();
 		}
 	}
@@ -208,8 +191,25 @@ FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate()
 
 bool UK2Node_ActorBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 {
-	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(FActorBoundEventHelper::GetSignatureClass(this), DelegatePropertyName));
+	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>( DelegateOwnerClass, DelegatePropertyName ));
 	return (TargetDelegateProp && TargetDelegateProp->HasAnyPropertyFlags(CPF_BlueprintAuthorityOnly));
+}
+
+void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	// Fix up legacy nodes that may not yet have a delegate pin
+	if(Ar.IsLoading())
+	{
+		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
+		{
+			DelegateOwnerClass = EventSignatureClass_DEPRECATED;
+			UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+			check(TargetDelegateProp);
+			EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

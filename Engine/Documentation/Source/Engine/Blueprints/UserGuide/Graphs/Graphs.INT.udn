@@ -1,0 +1,131 @@
+Availability:Public
+Title:Graphs
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:Node graph that uses events and function calls to perform actions in response to events associated with the Blueprint.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Graphs:title%](Engine\Blueprints\UserGuide\graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Graphs]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\Graphs:title%](Engine\Blueprints\UserGuide\graph_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\Graphs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\Graphs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\Graphs]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+[EXCERPT:GraphIntro]
+A **Graph** is a network of nodes that can be connected to one another in order to define the flow of execution for the network. Graphs are the basis for implementing functionality in Blueprints. 
+Each Blueprint can contain one or more graphs, depending on the type of Blueprint, that define the implementation of a particular aspect of the Blueprint. Each graph within a Blueprint can also 
+contain sub-graphs, which are essentially collections of nodes collapsed into their own separate graph, mainly for organizational purposes. There are specialized types of Graphs that have unique 
+properties, but the key principles of adding variable references, adding and connecting Nodes, and debugging will apply throughout.
+[/EXCERPT:GraphIntro]
+
+
+## Overview of Graph Types
+
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints/UserGuide/EventGraph/eventgraph_topic.png)(w:300)](Engine/Blueprints\UserGuide\EventGraph)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/EventGraph:title%](Engine/Blueprints\UserGuide\EventGraph)
+	[/PARAM]
+	[PARAM:description]
+		**EventGraphs** are the most general type of _Blueprint_ graph.  Each new _Blueprint Class_ will contain one **EventGraph** when it is created, although more can be added.  These additional **EventGraphs** can
+help to organize your _Blueprint_ networks.  **EventGraphs** generally contain the networks for the gameplay behavior of the _Blueprint_, with [**Events**](Engine/Blueprints\UserGuide\Events), 
+[**CustomEvents**](Engine/Blueprints\UserGuide\Events\Custom), and **Input** nodes serving to initiate the flow of execution through the **EventGraph**.
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/EventGraph]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints/UserGuide/UserConstructionScript/ucs_topic.png)(w:300)](Engine/Blueprints\UserGuide\UserConstructionScript)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/UserConstructionScript:title%](Engine/Blueprints\UserGuide\UserConstructionScript)
+	[/PARAM]
+	[PARAM:description]
+		**ConstructionScripts** are unique to _Blueprint Classes_, with only one **ConstructionScript** graph present in each _Blueprint Class_.  **ConstructionScripts** are useful for _Blueprint Class_ initialization,
+as they run right after the **Components** list is set up for the _Blueprint Class_.  
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/UserConstructionScript]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints/UserGuide/Functions/function_topic.png)(w:300)](Engine/Blueprints\UserGuide\Functions)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/Functions:title%](Engine/Blueprints\UserGuide\Functions)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Functions#Intro]
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Functions]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:IconSection]
+	[PARAM:icon]
+		[![](Engine/Blueprints/UserGuide/macro_topic_2.png)(w:300)](Engine/Blueprints\UserGuide\Macros)
+	[/PARAM]
+	[PARAM:title]
+		[%Engine/Blueprints/UserGuide/Macros:title%](Engine/Blueprints\UserGuide\Macros)
+	[/PARAM]
+	[PARAM:description]
+		[INCLUDE:Engine/Blueprints/UserGuide/Macros#Intro]
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/Macros]
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+## Working with Graphs
+
+Whether your _Graph_ is a _Construction Script_, _EventGraph_, _Function_, or _Macro_, you will edit it in the [Graph](Engine/Blueprints\Editor\Modes\GraphPanel) mode of the [](Engine/Blueprints\Editor). Fundamentally,
+all _Graphs_ contain networks of _Nodes_ connected by _Wires_.
+
+
+

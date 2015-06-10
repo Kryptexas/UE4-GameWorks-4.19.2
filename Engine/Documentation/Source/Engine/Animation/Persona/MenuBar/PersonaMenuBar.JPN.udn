@@ -1,0 +1,135 @@
+﻿INTSourceChangelist:2419781
+Availability:Public
+Title:ペルソナ (Persona) メニュー バー
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ (Persona) アニメーション エディタのメニューバーのユーザーガイド
+
+
+## 概要
+
+![](PersonaMenuBar.png)
+
+
+ウィンドウの上部にメニューが表示されます。全てのメニューオプションが常に利用可能なわけではありません。編集しているアセットのタイプに応じて利用可能なものが変わります。このページでは、**Animation ブループリント** を開いたときのように全てを掲載していきます。 
+
+[REGION:note]
+_スケルタル メッシュ_ や _アニメーション シーケンス_ などのアニメーション アセットの編集中は、表示されるメニュー数が減ります。
+[/REGION]
+
+##ファイル
+
+| コマンド | 説明 |
+| ------- | ----------- |
+| [REGION:tablesection]**ロードと保存**[/REGION] ||
+| **Save** | 編集中のアニメーション アセットを保存します。 |
+| **Save All** | 全てのアセットを保存します。|
+| **Choose Files to Save** | 保存オプションでアセット用にダイアログを開きます。 |
+| **Connect to Source Control** | Perforce など、ソースコントロール サーバーに接続します。詳細は、[](Engine/UI/SourceControl) ドキュメントを参照してください。|
+| [REGION:tablesection]ブループリント - このセクションは _アニメーションブループリント_ 経由でペルソナ(Persona)が開いている時のみ有効です。[/REGION] ||
+| **Compile** | Animation ブループリントをコンパイルします。 |
+| **Refresh All Nodes** | 外部変更を反映させるためにブループリント内の全ノードをリフレッシュします。|
+| **Reparent Blueprint** | 開いているブループリントの親の変更をユーザーができるようにします。 |
+| **Diff** | 現在のバージョンとこれまでのバージョン間の差分を見つけるためにソース コントロール diff 操作を実行します。ソース コントロールに接続されていない場合は機能しません。|
+| **Developer** | ペルソナやペルソナ内の各種モジュールに対する C++ コードのコンパイルを可能にするオプションを含みます。
+
+
+###編集
+
+
+| コマンド | 説明 |
+| ------- | ----------- |
+%Engine/UI/LevelEditor/MenuBar:edithistory%
+| [REGION:tablesection]**Search** - Animation ブループリントの編集時のみ利用できます。[/REGION]||
+%Engine/Blueprints/Editor/UIComponents/Menu:blueprintsearch%
+%Engine/UI/LevelEditor/MenuBar:editconfig%
+
+
+### アセット
+| コマンド | 説明 |
+| ------- | ----------- |
+| [REGION:tablesection]**アクション**[/REGION] ||
+| **Find in Content Browser** | コンテンツ ブラウザ を呼び出してこのアセットへナビゲートします。 |
+| **View References** | 選択したアセットの参照を表示して参照ビューアーを起動します |
+| [REGION:tablesection]**アニメーション**[/REGION] ||
+| **Reimport** | 現在編集中のスケルタル メッシュの FBX ファイルを再インポートします。|
+| **Set Preview Mesh as Default** | スケルトンのプレビューメッシュを現在開いているプレビューメッシュへ変更します。変更後はスケルトンを保存しなくてはいけません。変更後はスケルトンを保存しなくてはいけません。 |
+| **Remove Unused Bones from Skeleton** | メッシュが使用していないすべてのボーンをスケルトンから取り除きます。その後、スケルトンと関連性のあるアニメーションを保存しなくてはいけません。 |
+| **Record to new Animation** | 現在再生中のアニメーションから新規アニメーションを作成します。 |
+| [REGION:tablesection]**以下のセクションは、_Animation_** アセット経由でペルソナを開いた場合に限り該当します。[/REGION] ||
+| **Reimport** (アニメーション) | アニメーション シーケンスを再インポートします。 |
+| **Apply Compression** | 現在のアニメーションに圧縮を適用します。 |
+| **Export to FBX** | 現在のアニメーションを FBX にエクスポートします。|
+| **Add Looping Interpolation** | アニメーションの最後にもうひとつ1番めのフレームを追加し、ループ時に補間を作成します。 |
+
+
+### 表示
+
+ [View] メニューはアニメーションブループリントの編集時のみ有効です。
+
+| コマンド | 説明 |
+| ------- | ----------- |
+| [REGION:tablesection]**ピンの可視性**[/REGION] ||
+| **Show All Pins** | 全ノードにあるピンを全て表示します。 |
+| **Hide Unused Pins** | 非接続およびデフォルト値を持たないピンを全て隠します。 |
+| **Hide Unconnected Pins** | 非接続のピンを全て隠します。このオプションは、ノードに直接設定された入力用の入力ピンを隠します。 |
+| [REGION:tablesection]**Zoom**[/REGION] ||
+| **Zoom to Graph Extents** | 現在のビューをグラフ全体に合わせます。|
+| **Zoom to Selection** | 現在の表示を選択した大きさに合わせます。 |
+
+
+
+###デバッグ
+
+ [デバッグ] メニューは Animation ブループリントの編集時のみ有効です。
+
+| コマンド | 説明 |
+| ------- | ----------- |
+| [REGION:tablesection]**ブレークポイント**[/REGION] ||
+| **Disable all Breakpoints** | ブループリント上の全ての[ブレークポイント](Engine/Blueprints\UserGuide\Debugging#ブレークポイント) を非アクティブにします。これにより実行は停止しません。 |
+| **Enable all Breakpoints** | デバッグ作業のために再び実行を一時停止できるように、全ての[ブレークポイント](Engine/Blueprints\UserGuide\Debugging#ブレークポイント) をアクティベートします。 |
+| **Delete all Breakpoints** | ブループリント経由で全ての [ブレークポイント](Engine/Blueprints\UserGuide\Debugging#ブレークポイント) を削除します。 |
+|| [REGION:tablesection]**ウォッチ**[/REGION] ||
+| **Delete all Watches** | ブループリント経由で全ての [ウォッチ値](Engine/Blueprints\UserGuide\Debugging#ウォッチ値) を削除します。 |
+
+
+
+### ウィンドウ
+
+[REGION:note]
+**[ウィンドウ]** メニューで有効なパネルや表示される順番はペルソナ (Persona) の現在のモードによってさまざまです。
+[/REGION]
+
+| コマンド | 説明 |
+| ------- | ----------- |
+| **ツール バー** |ツールバーを開きます。これにより、一般的な操作の一連のショートカットが横方向に並びます。
+| **スケルトンツリー** | **[スケルトンツリー]** ウィンドウを開きます。これにより、階層リストにキャラクターのスケルトンが表示されます。 |
+| **Asset Browser** | **アセット ブラウザ** を開きます。これにより、このスケルタル メッシュに関連づいている全てのアニメーション、ブレンドスペース、その他のアニメーション アセットを一覧化します。 |
+| **Viewport** | アニメート中のスケルタル メッシュを見ることができる **Viewport** を開きます。 |
+| **Morph Target Previewer** | **Morph Target Previewer** を開くと、メッシュと関連づいているモーフ ターゲットをテストすることができます。|
+| **Animation Notifies** | それぞれの notify とアニメーションの関連付けが一覧化された **[アニメーション通知]** パネルを開きます。 |
+| **Retarget Source Manager** |**Retarget Source Manager** を開きます。異なる体型を持つメッシュで作成されたアニメーション、例えば太めのキャラクターから痩せたキャラクターへのアニメーションを正確に [リターゲット](Engine/Animation/AnimationRetargeting) するのに役立ちます。|
+| **Details** | 各種ノードのプロパティを編集できる **[詳細]** ウィンドウを表示します。 |
+| **Mesh Details**  _(Mesh mode)_ | マテリアルの適用、LOD、物理アセットなどのメッシュの特性を変更できる **[Mesh Details]** パネルを開きます。 |
+| **Anim Asset Details** _(Animation mode)_ | アニメーション シーケンス、ブレンド スペース、アニメーション モンタージュ、照準オフセットに必要とされる編集のほとんどを行うことができる **[Anim Asset Details]** パネルを開きます。 |
+| **Anim Blueprint Editor** _(Animation Blueprint)_| 開いていない場合は、**[Anim Blueprint Editor]** パネルを開きます。このパネルで、モードに応じてブループリント内の変数すべてのデフォルト値の設定や、プレビューインスタンスの値を変更することができます
+| **Asset Override Editor** _(Animation Blueprint)_| 開いていない場合は、**[Asset Override Editor]** パネルを開きます。このエディタは、親アニメーショングラフが参照するアニメーションアセットのオーバライドに使用します。
+| **Animation SlotName** | **Animation SlotName** パネルを開き、カスタム アニメーション SlotNames を変更できます。 |
+| **Animation Slot Group Name** | **Animation Slot Group Name** パネルを開きます。このパネルでカスタム アニメーション Slot Group Names を変更できます。 |
+| **Debug** | ブループリントにある全てのブレイクポイントを表示する **[デバッグ]** ウィンドウを開きます。 |
+| **Class Defaults** | 各種デフォルトの設定が可能な **[クラスのデフォルト]** ウィンドウを表示します。 |
+| **Palette** | 利用できる全てのノードのリストである **[パレット]** ウィンドウを開きます。 |
+| **My Blueprint** | エクスプローラーと似ているが、ブループリントの全てノード、関数、変数を表示するエクスプローラーのような **[My Blueprint]** ウィンドウを表示します。 |
+| **Compiler Results** | ブループリントのあらゆるコンパイラー エラーを表示する **[Compiler Results]** ウィンドウを開きます。 |
+| **Find Results** | Animation ブループリント全体を見やすくする検索メカニズムの役割をする **[Find Results]** パネルを開きます。 |
+%Engine/UI/LevelEditor/MenuBar:commonwindowmenu%
+
+### ヘルプ
+
+| コマンド | 説明 |
+| ------- | ----------- |
+| [REGION:tablesection]**Browse**[/REGION] ||
+| **Documentation** | アンリアル エンジン 4 のドキュメントを開きます。 |
+| [REGION:tablesection]**Online**[/REGION] ||
+| エピック ゲームズとアンリアル エンジンのサポート サイトへのリンクを含みます。 ||
+| [REGION:tablesection]**アプリケーション**[/REGION] ||
+| **About Unreal Editor** | エンジンのバージョン情報を表示する [About] ダイアログを開きます。 |

@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2521138
+Availability: Public
+Title:2. 새 레벨 시작
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:새 레벨 대화창을 통해 빈 레벨을 만듭니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/QuickStart/1 "%Engine/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/QuickStart/3 "%Engine/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+다음으로, 환경 제작을 시작할 레벨을 새로 만듭니다. 새 레벨을 만들 때는, 새 프로젝트를 만들 때처럼,
+언리얼 엔진에서 기준이 되는 _템플릿_ 을 제공합니다. 기본적으로 매우 단순한 환경인 _디폴트_ 템플릿이 있고,
+완전히 비어있는 _빈 레벨_ 템플릿이 있습니다.
+
+새 레벨 생성 작업을 시작해 봅시다:
+
+1. **레벨 에디터** 창의 파일 메뉴에서 ![](Engine/QuickStart/3/new_button.png) **새 레벨...** 을 선택합니다. **새 레벨** 대화창이 표시됩니다:
+
+	![](Engine/QuickStart/3/level_new.png)
+
+1. 이 가이드의 목적상, 완전히 비어있는 평판 작업실이 필요합니다. **빈 레벨** 템플릿을 클릭하여 선택합니다.
+
+1. 새로운 공백 레벨이 준비되어, 원하는 비주얼 / 게임플레이 관련 항목을 채워넣을 수 있습니다.
+
+	![](Engine/QuickStart/3/level_empty.png)
+
+%Steps%

@@ -1,0 +1,40 @@
+Availability:Public
+Title:Persona Animation Notifies
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the Animation Notifies window in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AnimationNotifies:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AnimationNotifies:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AnimationNotifies]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+The Personal **Animation Notifies** window displays custom Animation Notifies created in the Asset Editor.
+
+The **Animation Notifies** window is not visible by default. To view it, on Persona's **Window** menu, click **Animation Notifies**.
+
+![Animation Notifies Window](AnimationNotifies.png)
+
+[REGION:note]
+Selecting a custom Animation Notify in the **Animation Notifies** window exposes its properties in Persona's **Details** panel.
+[/REGION]
+
+To delete a custom Animation Notify, **right-click** it, and then click **Delete**.
+
+To rename a custom Animation Notify, **right-click** it, and then click **Rename**.
+
+For more information about Persona's **Asset Editor**, see [](Engine/Animation/Persona\AssetEditor).

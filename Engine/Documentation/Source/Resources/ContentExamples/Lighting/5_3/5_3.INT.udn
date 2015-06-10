@@ -1,0 +1,51 @@
+Availability: Public
+Title:5.3 - Lightsource Length
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
+Description:An overview of the Lighting example level, example 5.3: Lightsource Length (Effect on Reflections)
+Related: Engine/Rendering/LightingAndShadows/Basics
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Point
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Spot
+Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight
+Related: Engine/Rendering/LightingAndShadows/LightTypes/Directional
+Related: Engine/Rendering/LightingAndShadows/Lightmass
+Related: Engine/Rendering/LightingAndShadows/Shadows
+Related: Engine/Rendering/LightingAndShadows/IndirectLightingCache
+Related: Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Lighting\5_3:title%](Resources\ContentExamples\Lighting\Lighting_5_3.png)(w:192)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Lighting\5_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Lighting\5_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Lighting\5_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![%Resources\ContentExamples\Lighting\5_3:title%](Resources\ContentExamples\Lighting\Lighting_5_3.png)
+[/REGION]
+
+
+This example demonstrates the use of Source Length on reflective surfaces. The purpose of Source Length is to give lights an elongated or tube-like reflective shape, as if the light were coming form a fluorescent light fixture. It should be noted that light emission is still calculated as if it is coming from a single point. The effect exists only within reflections.
+
+The Source Length runs down the Y-Axis of the light, and can be rotated by rotating the light. Also, while the light is selected, Source Length can be visualized by a yellow line stretching out from the light itself.
+
+
+![](SourceLength.png)(w:400)
+
+
+
+
+

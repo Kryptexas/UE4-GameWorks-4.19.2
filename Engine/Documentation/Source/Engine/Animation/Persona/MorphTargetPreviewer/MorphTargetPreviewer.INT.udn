@@ -1,0 +1,89 @@
+Availability:Public
+Title:Morph Target Previewer
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:User guide for the editing modes available in the Persona animation editor.
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/FBX/MorphTargets
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Content/Tools/MayaRiggingTool
+Related: Engine/Content/Types/StaticMeshes/MorphTargets
+Related: Engine/Animation/AnimBlueprints
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/MorphTargetPreviewer:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/MorphTargetPreviewer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/MorphTargetPreviewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/MorphTargetPreviewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+
+## Overview
+
+[EXCERPT:Overview]
+
+![](MorphGif.gif)(w:720 convert:false)
+
+The **Morph Target Previewer** allows you to preview any morph targets (also known as "morphs" and "blend shapes", depending on what 3D animation package you are using) that are applied to your Skeletal Meshes. Each Morph Target is additively blended into the existing Skeletal Mesh geometry. This allows for multiple morph targets to be combined to create complex vertex-driven animation, which is often ideal for such things as facial expressions.
+[/EXCERPT:Overview]
+
+The **Morph Target Previewer** is visible by default when Persona is in **Mesh** mode.
+
+[REGION:tip]
+To see an example of a **Morph Target** applied to a character, refer to the [Animation Content Examples](Resources\ContentExamples\Animation) page under section 1.6.
+[/REGION]
+
+
+## Interface
+
+The **Morph Target Previewer** panel has a fairly straightforward interface:
+
+![](MorphTargetPreviewerInterface.png)
+
+1. Search Bar
+1. Morph Target List
+
+The Search Bar allows you to quickly filter the list of Morph Targets to quickly find the one you need. Simply type the first few letters of the desired target and the list will begin filtering.
+
+You can also **Right Click** on a **Morph Target** which will pop-up a dialog box with additional actions such as **Delete**. 
+
+![](RightClickDelete.png)
+
+## Creating Morph Targets
+
+Morph Targets are importable as a part of a Skeletal Mesh, as well as independently of a given mesh. This is supported via the FBX file format. For more information on the setup procedure, as well as how to import Morph Targets into Unreal, please see [](Engine/Content\FBX\MorphTargets).
+
+[REGION:tip]
+To delete a Morph Target, **right-click** its name in the **Morph Target Previewer** window, and click **Delete** on the context menu that appears.
+[/REGION]
+
+## Using Morph Targets
+
+Once your Morph Targets are in place, you will need to set up your **Animation Blueprint** to utilize them. This is done within your Event Graph via the **Set Morph Target** node.
+
+![](SetMorphTarget.png)
+
+| Pin | Description |
+| --- | --- |
+| [REGION:tablesection] Input Pins [/REGION] ||
+| Execution | An execution wire to trigger the effect of the node. |
+| Target | The target Skeletal Mesh. For most circumstances, this will point to **self**. |
+| Morph Target Name | The name of the Morph Target being edited. |
+| Value | A float value (between 0 and 1) used to set the value of the Morph Target being edited. |
+| [REGION:tablesection] Output Pins [/REGION] ||
+| Execution | Passes execution on to the next node. |
+

@@ -1,0 +1,57 @@
+﻿INTSourceChangelist:2346368
+Availability:Public
+Title:2.2 - アクタの追跡
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
+Description: 高度なブループリント事例レベルの概要 例 2.2:アクタの追跡
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Blueprints_Advanced\2_2:title%](blueprint_advanced_2_2_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Blueprints_Advanced\2_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Blueprints_Advanced\2_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Blueprints_Advanced\2_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+
+![](blueprint_advanced_2_2.png)
+
+## 概要
+
+この **BP_Spotlight_Follow** _ブループリント_ では、イベントグラフにスクリプトが含まれています。どんな遠くにいるプレーヤー ポーンも探知し、指定範囲内に来るとプレーヤーポーンに向けられます。**Spotlight mesh** コンポーネントがヒンジ経由でのクリッピングを防ぐために取り付けられたピッチのみを変更するのに対して、 **Hinge mesh** コンポーネントはスポットライトの左右揺れを操作します。
+
+
+## イベントグラフ
+
+[REGION:lightbox]
+[![](AdvBP_2_2_EventGraph.png)](AdvBP_2_2_EventGraph.png)
+[/REGION]
+[REGION:caption]
+フルサイズ表示するには、**右クリック** または [Save As] を選択します。
+[/REGION]
+
+**Find Look at Rotation** ノードは、開始位置と終了位置が与えられている場合、回転値を生成する便利なノードです。生成された回転値は、終了位置へ向くように開始位置のコンポーネントに適用されます。この _Blueprint_ では、開始位置はスポットライトの位置となり、終了位置はプレーヤーのポーンの位置になります。 Rotator の値は分離され、その結果の **Pitch** 値と **Yaw** 値は分けられて、スポットライトと _Static Mesh Components_ にそれぞれ適用されます。
+
+**RInterp** (2 つの回転値の間を補間するための) などの Interpolation ノードの目的は、タイムライン上の **ReceiveTick** イベントや **Update** ピンに接続されるノードなどフレーム毎に実行するノードに値を送り込むことです。基本的には、指定され た **補間速度** に基づいて **現在の値** から **ターゲットの値** へスムーズにブレンドします。Interp ノードを操作するには、**デルタ時間** 値を受け取る必要があります。
+この _ブループリント_ では、**Delta seconds** 変数が **Event Tick** 出力から設定されます。この場合、**RInterp** ノードは、**Spotlight mesh** コンポーネントと **Hinge mesh** コンポーネントをスムーズに回転させる **Set World Rotation** ノードに、スポットライトがターゲットより若干遅れるように遅めの **補間速度** で接続されています。
+
+[/REGION]

@@ -1,0 +1,60 @@
+﻿Availability:Public
+Title:物理ベースのアニメーション
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:物理ベースのアニメーションの結果をブレンドしてキャラクターを「ラグドール化」することができます。
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/StateMachines
+Related: Gameplay/AI
+Related: Engine/Content/Tools/MayaRiggingTool
+
+[REGION:fullwidth]
+![](PhysicsBlend.png)
+
+## 概要
+
+このドキュメントでは、物理駆動型のアニメーションをキャラクターとスケルタルメッシュに適用する方法について説明します。コンセプトは、シミュレーション結果を、キーフレーム アニメーションとブレンドインし、「ラグドール」効果を示す必要があるキャラクターに対して自然にシミュレーションされた感覚を持たせることができるというものです。
+
+このコンセプトの実際例は、[Content Examples](Resources\ContentExamples\Animation) プロジェクトにある _PhysicalAnimation.umap_ という名前のマップ内にあります。このマップには、アニメーションが適用された一連のスケルタルメッシュがあります。各スケルタルメッシュで、何らかの方法でインタラクションすることも可能で、物理アニメーションが既存のモーションを引き継いでいることがわかります。
+
+いかなる形態であれスケルタルメッシュで物理を使用するには、そのメッシュで物理アセットがセットアップされ、適用されている必要があることにご注意ください。以下の関連ドキュメントを参照してください。[Physics Asset Tool (PhAT)](Engine/Physics\PhAT)
+
+[REGION:note]
+この例では全体的に単純化するためにスケルタルメッシュが使用されています。キャラクターやポーンに対して同様の技術を使用できます。これは、この例で行うようなシンプルなブループリント アクタのイベントグラフではなく、アニメーションブループリントのイベントグラフ内で **Set All Bodies Simulate Physics** ノードと **Set All Bodies Below Physics Blend Weight** ノードを使用すれば可能です。
+[/REGION]
+
+
+## 設定
+
+物理をキャラクターに適用するには多くの方法があります。ここでは、限られた例だけを示します。この方法では、以下の 2 つの主要ツールが必要です。**Set All Bodies Simulate Physics** ノードと **Set All Bodies Below Physics Blend Weight**　ノードです。これは、通常はキャラクターのアニメーション ブループリントのイベント グラフ内に配置されます。
+
+![](PhysicsWeghtNodes.png)
+
+### Set All Bodies Below Simulate Physics
+
+**Set All Bodies Below Simulate Physics** ノードは、物理アセット ボディをスケルタルメッシュ上で再帰的にアクティベートし、任意のボーンで物理のシミュレーションを開始し、ボーン チェーンを再帰的に下方に移動します。たとえば、左鎖骨にシミュレーションを開始するように指示すると、スケルタル階層でそこから下方のすべてのボーンもシミュレーションし、足を引きずって歩いたり、ラグドールのアームを得ることができます。簡単に言うと、このノードは任意のボーンから物理シミュレーションを開始または停止するためのオン / オフのスイッチであると考えることができます。
+
+### Set All Bodies Below Physics Blend Weight
+
+このノードは、アニメートされたスケルタルメッシュに対して物理アセットがどの程度影響を及ぼすかを簡単に制御します。値 1.0 で任意のボーンとその配下にあるすべてのボーンが完全に物理によって動作します。値 0.0 でスケルタルメッシュはオリジナルのキーフレーム アニメーションに戻ります。多くの場合、Physics Blend Weight 値をスムーズにアニメートできるように、このノードを各ティックで動作させます。
+
+
+## ヒットベースのリアクションの概要
+
+ヒットベースの物理リアクションは、キャラクターのシミュレーションで一般的なユースケースです。たとえば、キャラクターが発射物によって攻撃された場合などがあります。概要としては、以下を必要とします。
+
+* 攻撃されるボーンの名前を取得します。名前取得は、即時効果がある武器の追跡、または該当する場合は projectile クラス内の追跡によって行うことができます。
+* 一般的に **Set All Bodies Below Simulate Physics** ノードを介してイベントグラフが使用するために、そのボーン名をキャラクターのアニメーション ブループリントに入れます。これによってシミュレーション システムがアクティベートします。
+* **Set All Below Physics Blend Weight** ノードで [Physics Blend Weight ] プロパティを制御します。物理リアクションがブレンドインして、その後バックアウトするように、一般的にこれを 1.0 まで迅速にアニメートしてから、 0.0 に戻します。これは一般的にアニメーション ブループリントのイベントグラフ内から行います。
+* リアクションが完了し、Physics Blend Weight が 0 に戻ったら、**Set All Bodies Below Simulate Physics** ノードを再度使用して、シミュレーションを非アクティブにします。
+
+[REGION:note]
+この技術の例は、Content Examples プロジェクト内の PhysicalAnimation.umap level の Example 1.2 にあります。
+[/REGION]
+
+
+
+
+
+
+[/REGION]

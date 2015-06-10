@@ -1,0 +1,190 @@
+﻿INTSourceChangelist:2435757
+Availability:Public
+Title:ブループリント コンテンツのサンプル
+Crumbs:%ROOT%, Resources, Resources/ContentExamples
+Description:ブループリントのコンテンツ例で提供されるサンプルの概要
+Related: Engine/Blueprints/Overview 
+Related: Engine/Blueprints/UserGuide/Variables
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related: Engine/Animation/AnimBlueprints/EventGraph
+Related: Engine/Blueprints/UserGuide/UserConstructionScript
+Related: Gameplay/HowTo/SetUpInput/Blueprints
+
+
+[REGION:banner]
+![](BlueprintInput_Header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Blueprints:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Blueprints]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Blueprints:title%](blueprint_ce_compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Blueprints:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Blueprints]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+
+**ブループリント** システムの強さと柔軟性の実演のため、**Content Examples** プロジェクト内に幾つか **Blueprint Maps** を用意いたしました。プレイヤー制御の定義、ヘルス値 / ピックアップ システムの実装、あるいはプレイヤーが近づくと開くドアを考えているのであれば、これらのマップで説明されている例からアプローチのアイデアを得ることができるはずです。 
+
+このページでは、マップ内の例の位置を示してありますので、興味のある場所へジャンプしてすぐにスクリプトを開始できます。ただし、**ブループリント** を初めてご利用になる場合は、**Blueprints_Overview** マップ から始めることをお勧めします。システムのコアとなる特性が説明されているので、着手しやすくなります。 
+
+[region:note]
+以下の表のサンプル名をクリックすると、サンプルがどのようにビルドされたか (該当する場合) 確認することができます。
+[/region]
+ 
+## Blueprints_Overview Map
+
+![](blueprint_ce_header.png)(w:640)
+
+**Blueprints_Overview** マップには以下をはじめとする **ブループリント** の基本的な特性が含まれています。すなわち、**コンストラクション スクリプト** と **イベントグラフ** を使用した **コンポーネント** 、 **変数** とその編集 / 設定方法、簡単な計算、および様々なタイプの **Flow Control** ノードを使用した **ブループリント** のフロー制御などがあります。 
+将来、**ブループリント** で作業する際に頻繁に使用することになるため、このようなセクションに時間をかけてください。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **[1.1 Hello World Example](Resources\ContentExamples\Blueprints\1_1)** | 基本的な **ブループリント** を使用してレベル内にフローティング テキストを表示します (例えば、レベル内で再生すると「Hello World」と表示されます)。 |
+| **[1.2 Components Example](Resources\ContentExamples\Blueprints\1_2)** | **コンポーネント** の例と 1 つの **ブループリント** で使用できる複数の **コンポーネント** (例えば、 1 つの **ブループリント** で使用されるスプライト、スタティック メッシュ、ライト)。 |
+| **[1.3 Variables Example](Resources\ContentExamples\Blueprints\1_3)** | 「Public」 または 「Private」 への 変数 の設定および編集方法 (例えば、**[詳細]** パネルで変更可能または **ブループリント** のみで変更可能なライト カラー)。 |
+| **[1.4 Construction Script Example](Resources\ContentExamples\Blueprints\1_4)** | **ブループリント** の **コンポーネント** を **コンストラクション スクリプト** で有効化 / 無効化する方法を表示します (例えば、チェックボックスを使って **ブループリント** の **コンポーネント** のオンオフを切り替えます)。 |
+| **[1.5 Event Graph Example](Resources\ContentExamples\Blueprints\1_5)** | **コンストラクション スクリプト** と **イベント グラフ** を使って、マテリアルを編集せずにメッシュのカラーをカスタム化します (例えば、ユーザーは **[詳細]** パネルでロケットのカラーを定義します)。 |
+| **[1.6 Simple Math Example](Resources\ContentExamples\Blueprints\1_6)** | この **ブループリント** では、**イベント ティック** を使って時間経過に伴う単純に追加を行います (例えば、タイマーは 0 から 1 秒ずつ増えて表示されます)。 |
+| **[1.7 Flow Example](Resources\ContentExamples\Blueprints\1_7)** | オブジェクトの移動、色、エフェクトの修正に様々なタイプの **フロー制御** を使う **ブループリント** です (例えば、コインが移動する方向、カラー、 **[詳細]** パネルでそのエフェクトを適用する場合)。 |
+
+
+## Blueprints_Advanced Map
+
+![](BlueprintAdvanced_Header.png)(w:640)
+
+**Blueprints_Advanced** マップは、コンテンツを作成するために **コンストラクション スクリプト** と **イベント グラフ** の使用方法の奥深くにジャンプします。 
+
+### コンストラクション スクリプトのサンプル
+**[Construction Script]** セクションでは、指定された半径内でランダムにメッシュをスポーンする方法、アクターの回転軸に合わせて自動的にメッシュをスポーンする方法、シンメトリにメッシュをスポーンする方法、あるいはカスタマイズ可能なスポットライトに対して全てのコンポーネントを作成する方法について説明します。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **[1.1 Randomly Scattered Meshes Example](Resources\ContentExamples\Blueprints_Advanced\1_1)** | 指定された半径内でランダムにスタティック メッシュをスポーンする方法 (例えば、半径内にグラウンド クラッターあるいは岩をランダムにスポーンする)。 |
+| **[1.2 Automatic Wall Example](Resources\ContentExamples\Blueprints_Advanced\1_2)** | アクタの回転軸からメッシュの行を拡張する方法 (例えば、長さでスケーリングが可能なフェンス)。 |
+| **[1.3 Automatic Ring Example](Resources\ContentExamples\Blueprints_Advanced\1_3)** | メッシュごとに定義された回転を使って、円の中で指定された数のメッシュを配置する方法 (例えば、メッシュのリングを等間隔で配置する)。 |
+| **[1.4 Customizable Spotlight Example](Resources\ContentExamples\Blueprints_Advanced\1_4)** | スポットライトのコンポーネントを全部まとめて 1 つのアクタにするための **コンストラクション スクリプト** の使用方法 (例えば、オンオフのステート、ライト カラー、方向、半径などのカスタマイズが可能なスポットライト)。  |
+
+
+### イベント グラフのサンプル
+**イベント グラフ** のサンプルには、タイムラインによるスタティック メッシュのアニメート方法、アクタを自動回転させてプレイヤーの動きをトラックする方法、 **ブループリント** 間での変数の渡し方、異なるタイプのピックアップがトリガーまたは作成された場合に自動で開くドアの作成方法が含まれます。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **[2.1 Timeline Animation Example](Resources\ContentExamples\Blueprints_Advanced\2_1)** | 指定したポイントでエミッターをスポーンするために **タイムライン** を使って **イベント トラック** でスタティック メッシュをアニメートする方法 (例えば、アニメートされた跳ね返るボールを作成する)。 |
+| **[2.2 Actor Tracking Example](Resources\ContentExamples\Blueprints_Advanced\2_2)** | 指定範囲に入ってきた時、アクタをプレイヤーの方に向かせる方法 (例えば、プレイヤーに反応し付いていくスポットライト)。  |
+| **[2.3 Button Trigger (Blueprint Interface) Example](Resources\ContentExamples\Blueprints_Advanced\2_3)** | **ブループリント インターフェース** を使ってある **ブループリント** から別のブループリントへ変数を渡す方法 (例えば、アニメートのギア設定のためにオンオフ変数がボタンから渡される)。 |
+| **[2.4 Opening Door (Trigger) Example](Resources\ContentExamples\Blueprints_Advanced\2_4)** | **トリガー** と **タイムライン** で自動的にドアを開閉する方法。 |
+| **[2.5 Child Blueprints Example](Resources\ContentExamples\Blueprints_Advanced\2_5)** | 同じ **Parent Class** から派生した異なるピックアップを実装する方法 (例えば、ピックアップされた時、ヘルス値、コイン、カップケーキのピックアップはそれぞれに異なる機能を持たせる)。 |
+
+
+## Blueprint_Communication Map
+
+![](BlueprintCommunication_Header.png)(w:640)
+
+**ブループリント** で作業する時、別の **ブループリント** から関数を実行したり、ある変数にアクセスする必要があったり、必要に応じて別の通信手段が提供されます。 
+**Blueprint_Communication** マップでは、**Direct Blueprint Communication**、**イベント ディスパッチャー**、**ブループリント インターフェース** 経由である 1 つの **ブループリント** から別のブループリントへ情報を渡す様々な方法を紹介します。 
+
+### ブループリント通信の例
+**ダイレクト ブループリント通信** または **ブループリント通信** のセクションでは、 **ブループリント** をターゲットとして、または **ブループリント** にキャストして **ブループリント** にアクセスし、ブループリント間で情報を提供する基本的な方法を示します。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **1.1 基本的な通信 (ターゲット ブループリント)** | カスタム イベントを介してライトの **Blueprint** のオンオフを切り替えるボタン、**Blueprint** の例。 |
+| **1.2 基本的な通信 (アクタのキャスティング)** | オーバーラップ イベントを使用して、特定クラスの **ブループリント** を検知する方法 (例、バッテリを接続することで電球がオン/オフする)。|
+| **1.3 Communication (Actor Casting To Child Blueprints)** | 親と機能を共有すると同時に固有の機能も所有する **子ブループリント** の使用方法 (例えば、異なるエネルギー値でのバッテリー接続によるライトのオンオフ)。  |
+| **1.4 Communication with All Actors of a Specific Class** | 特定のクラスの複数のアクタとの通信方法 (例えば、それぞれ別の機能で幾つかのライトを一度にオンにする)。  |
+
+
+### イベント ディスパッチャーの例
+**イベント ディスパッチャー** のサンプルでは、**ブループリント** と **Level ブループリント** 間の別の通信方法が紹介されています。
+さらに、1 つ以上のイベントを **イベント ディスパッチャー** へ **結合** すると、イベント ディスパッチャーが呼び出された時にイベントへ結合される複数のイベントを一度に発行することができます。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **2.1 イベント ディスパッチャーを使用する** | **レベルブループリント** 内でイベントを呼び出すために **イベントディスパッチャー** を使用する方法 (例、 **Event Dispatcher** を使用してライトのオンオフを切り替える)。 |
+| **2.2 Binding Event Dispatchers to A Custom Event** | **イベント ディスパッチャー** の **Level ブループリント** 内のカスタム イベントへの結合を示しています　(例えば、時間経過とともにオブジェクトを回転させるボタンの切り替え)。 |
+| **2.3 Binding Event Dispatchers to A Custom Event on Spawn** | スポーンされたアクタが破壊されると呼ばれる **イベント ディスパッチャー** でのトリガーを有効 / 無効化する方法を示します (例えば、爆弾をスポーンするボタンを押すと、前の爆弾が爆発するまで別の爆弾はスポーンされません)。 |
+
+
+### ブループリント インターフェイスの例
+基本的な共通性があるが、全く異なるエンティティである (車や木など) 複数の **ブループリント** を持つ場合があるかもしれませんが (発射物によって撃たれ、何らかの損傷を負う)。 
+**ブループリント インターフェイス** では、車と木の両方が通信し、損傷を受けたときにどのように反応するかを共有する方法が可能ですが、それ自体は異なるコンポーネントと機能性を持ちます。 
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **3.1 Blueprint Interface (Array of Blueprints)** | 複数の **ブループリント** で異なるクラスのそれぞれが配列経由で通信する方法を示します (例えば、 1 つのスイッチで異なるライトと回転しているオブジェクトのオンオフの切り替え)。 |
+| **3.2 Blueprint Interface (Interactive Blueprints)** | 入力に応じたプレイヤー **ブループリント** からアクタ **ブループリント** への通信方法 (例えば、滑車チェーンのついたインタラクティブ スイッチ、クランク、あるいはレバー)。 |
+| **3.3 Blueprint Interface (Projectile Collision)** | **Blueprint Interface** を使用して、撃たれたアクタ タイプを確認する方法 (例えば、火や水で撃たれた場合、 3 つのオブジェクトはそれぞれ異なる反応をする)。 |
+
+## Blueprint_Input_Examples Map
+
+![](BlueprintInput_Header.png)(w:640)
+
+**Blueprint_Input_Examples** マップでは 3 つのサンプルを提供し、2D 横スクロール型、トップダウン 2D スペース シューティング、 3D フライング UFO の　3 つの異なるゲームスタイルにおいて **ブループリント** 経由でプレイヤー入力を作成します。 
+
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **1.1 2D Input (Side Scrolling Character)** | 2D 横スクロール型ゲーム サンプルで左右の移動とジャンプを紹介します。  |
+| **1.2 2D Input (Space Shooter)** | 2D スペース シューティング ゲームで左右の移動と発砲する発射物を紹介します。 |
+| **1.3 Physics Driven Input (UFO Example)** | WASD 操作、離陸と着陸、スピード アップ、外転光線手法を使って空飛ぶ宇宙船形式のゲームサンプルを紹介します。 |
+
+
+## Blueprint_Mouse_Interaction Map
+
+![](BlueprintMouse_Header.png)(w:640)
+
+**Blueprint_Mouse_Interaction** は、マウス入力の統合方法の他に、マウスあるいは **ブループリント** 経由のタッチ入力にオブジェクトを反応させる方法を紹介します。 
+これらのサンプルでは、移動中のコンポーネントと相互作用したり相互作用された時に反応するオブジェクトをオンスクリーンでクリック＆ドラッグすることができます。 
+
+Blueprint_HUD マップの詳細は以下でご覧いただけます。 
+
+* [1.1 Blueprint Mouse Interaction](Resources\ContentExamples\MouseInterface)
+
+
+## Blueprint_HUD Map
+
+![](BlueprintHUD_Header.png)(w:640)
+
+**Blueprint_HUD** マップでは、**HUD ブループリント** で HUD エレメントを作成する方法および基本的な Pause Menu の作成方法が紹介されています。さらに、ヘルス値 / ダメージ、ピックアップ システム、ウェイポイント オブジェクティブ マーキング システムの作成方法も紹介しています。 
+
+Blueprint_HUD マップの詳細は以下でご覧いただけます。 
+
+* [HUD の事例](Resources\ContentExamples\Blueprints_HUD\1_1)
+
+<!--
+[EXCERPT:BlueprintsCEInstructions]
+コンテンツの例の [ブループリントを開く] (Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening)から、各ブループリントの作成に設定された [デフォルト] (Engine/Blueprints/Editor\Modes\Defaults), [コンポーネント] (Engine/Blueprints/UserGuide\Components)、そして [グラフ] (Engine/Blueprints/Editor\Modes\GraphPanel) を確認することができます。
+[/EXCERPT:BlueprintsCEInstructions]
+
+-->

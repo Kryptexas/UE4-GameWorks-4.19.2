@@ -1,0 +1,105 @@
+﻿INTSourceChangelist:2514483
+Availability: Public
+Title:스태틱 메시 - LOD 생성 및 사용 비법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description: LOD 생성 및 사용 비법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 개요
+
+플레이어가 레벨에 배치된 스태틱 메시에 가까이 다가갈 때 메시에 디테일이 살아있으면 보기 좋을 것입니다. 하지만 플레이어가 메시에서 멀어진 이후에도 디테일이 살아있는 복잡한 모습일 필요는 없습니다. 화면상에 겨우 몇 픽셀 차지해서 잘 보이지도 않는데 매우 복잡하고 디테일한 메시가 있어봐야 소용이 없지요. 하지만 플레이어가 가까이 갔을 때는 디테일을 명확히 볼 수 있어야 할 것입니다. UE4 에서는 메시를 레벨에 배치한 뒤 플레이어가 그 메시에서 멀어지면 덜 복잡한 버전으로 바꾸어 레벨 퍼포먼스를 높이는 것이 가능합니다. 이는 **레벨 오브 디테일**, 줄여서 **LOD** 라는 것을 통해 가능합니다. 이 비법에서는 UE4 에 메시의 디테일이 덜한 버전을 임포트하여 플레이어와의 거리에 따라 필요한 대로 매끄럽게 바꾸는 방법을 보여드리도록 하겠습니다.
+
+## 셋업
+
+이 비법에서는 UE4 에 바로 임포트할 수 있는 **.FBX** 로 저장된 메시가 이미 있어야 합니다. 이 예제에서는, Maya 에서 만든 간단한 폴리곤 구체를 사용하겠습니다.
+
+메시를 익스포트했으면, UE4 를 실행합니다. 작업하고자 하는 프로젝트가 이미 있는 경우, 그 프로젝트를 사용하셔도 됩니다. 없으시다면, **새 프로젝트** 탭에서 블루프린트 일인칭 템플릿을 선택합니다. 그 후 **시작용 콘텐츠** 가 포함되었는지 확인합니다. 포함시키지 않으면 나중에 이 비법에서 사용할 애셋이 없어 따라하기 힘들 것입니다.
+
+![](NewProjectWithStarterContent.png)
+
+완료되었으면 프로젝트에 이름과 위치를 지정하고 **프로젝트 생성** 버튼을 클릭합니다.
+
+## LOD 생성
+
+프로젝트가 로드된 이후, **콘텐츠 브라우저** 에서 **Meshes** 폴더로 이동하여 **TemplateCube_Rounded** 라는 애셋을 찾습니다.
+
+![](CubeInContentBrowser.png)
+
+찾았으면 **더블클릭** 또는 **우클릭** 맥락 메뉴에서 **편집** 을 선택하여 스태틱 메시 에디터에서 엽니다. 그러면 아래와 비슷해 보일 것입니다.
+
+![](CubeInStaticMeshEditor.png)
+
+스태틱 메시 에디터에서 애셋을 연 이후에는, **디테일** 패널을 찾습니다. 기본적으로 우상단 구석에 있습니다. 찾았으면, 아래와 같을 것입니다.
+
+![](DetailsLOD0.png)
+
+맨 위 섹션 라벨은 **LOD0** 입니다. LOD 는 0 부터 시작하므로, LOD0 이 첫 항목이며, LOD1 이 두 번째 식입니다. LOD0 은 메시의 바탕 LOD 로, 메시에 LOD 가 한 개 밖에 없을 때 사용되는 것이기에 현재는 이것이 사용될 것입니다. 이제 그것을 바꿔보도록 하겠습니다.
+
+그 바로 아래 섹션 이름은 **LOD Settings** (LOD 세팅)입니다. 이 섹션에는 다뤄볼 옵션이 몇 가지 있습니다. 먼저 **Number of LODs** (LOD 수)입니다. 기본적으로 1 이지만, LOD 를 임포트하면서 늘어나게 됩니다. 이 값은 자동 메시 감소 기능을 사용할 수 있는 경우 편집도 가능합니다. 하지만 그러기 위해서는, [**Simplygon**](https://www.simplygon.com/) 라이선스가 필요합니다.
+
+다음으로 다룰 옵션은 **LOD Import** (LOD 임포트)입니다. 이 옵션은 ![](ImportLODLevel1.png) 와 같은 드롭다운 메뉴가 뜹니다. 여기서 **Import LOD Level 1** (LOD 레벨 1 임포트)를 선택합니다. 그러면 이 전의 비법에서 언급한 **.FBX** 파일을 탐색할 수 있는 창이 열립니다. **.FBX** 파일을 탐색하여 선택하면 LOD1, 즉 두 번째 LOD 를 임포트합니다. 그러고나면 화면 우하단에 다음과 같은 알림창이 보일 것입니다.
+
+![](SuccessfulImport.png)
+
+이 예제에서는 LOD 를 한 개만 임포트하므로 총 두 개가 생길 것이지만, 원하는 만큼 더 임포트해도 됩니다. 그 방법은, **LOD 임포트** 드롭다운 메뉴를 다시 선택한 다음 **LOD 레벨 X 임포트** (X 는 다음에 임포트할 번호)를 선택하면 됩니다. 이미 임포트한 LOD 를 다시 임포트해도 됩니다. LOD1 에 이미 임포트한 것 대신 다른 것을 임포트하려는 경우, **LOD 임포트** 의 드롭다운을 선택한 다음 **Reimport LOD Level 1** (LOD 레벨 1 리임포트)를 선택하면 됩니다. 이제 드롭다운 메뉴를 클릭하면 옵션이 다음과 같아 보일 것입니다.
+
+![](ImportLODLevel2.png)
+
+LOD1 에 대한 메시가 임포트되었으니, 값을 몇 개 조정하여 LOD 의 위력을 선보이도록 하겠습니다. **디테일** 패널의 **LOD Settings** 섹션에서 먼저 살펴볼 옵션은 **Auto Compute LOD Distances** (LOD 거리 자동 계산)인데요. 화면 크기 백분율을 LOD 갯수로 균등하게 나누어, 한 LOD 에서 다른 LOD 로 전환시켜 주는 것입니다. 예를 들어 여기서는, LOD 가 두 개 있으니 메시가 화면의 50% 이상을 차지하면, LOD0 이 나타납니다. 메시가 화면의 50% 미만을 차지하는 경우, LOD1 이 나타납니다. LOD 가 셋이라면, LOD0 은 메시가 화면의 66.7% 이상을 차지할 때, LOD1 은 33.3% 에서 66.7% 사이일 때, LOD2 는 33% 미만일 때 나타납니다. 우리가 사용하는 메시가 화면의 50% 이상을 차지할 일은 거의 없으니, 그리 유용하지는 않습니다. 그냥 (아래 초록색 부분) **Auto Compute LOD Distances** 체크를 해제한 다음, (아래 노랑색 부분) 개별 LOD 에 **Screen Size** (화면 크기) 값을 수동 조절해 주면 됩니다.
+
+![](AutoComputeLODDist.png)
+
+이 데모의 목적상, **Auto Compute LOD Distances** 체크를 해제하겠습니다. 그리고서 **LOD1** 아래 **Screen Size** 값을 찾아 **0.01** 로 변경합니다. 레벨에 있는 큐브 메시가 화면 크기의 1% 미만을 차지하면, 큐브를 LOD1 에 임포트한 메시(여기서는 구체)로 변환한다는 뜻입니다. 각 LOD 의 머티리얼을 변경할 수도 있습니다. LOD 의 위력과 유용성을 더욱 잘 보여드리기 위해, LOD1 의 머티리얼을 **M_Metal_Gold** 로 변경하겠습니다.
+
+![](ChangeMaterial1.png)
+
+## 사용중인 LOD
+
+그렇게 한 이후에는, 메시를 저장한 다음 **레벨 에디터** 로 돌아갑니다. 메시에 가까이 가면 라운딩 처리된 큐브입니다. 메시에서 멀어지면 임포트한 구체가 됩니다. 참고로 거리에 따라 계산되는 것이 아닌, 화면 크기에 따라 계산되므로, 메시의 작은 인스턴스 옆에 메시의 커다란 인스턴스를 배치한 다음 그 둘과 동일한 거리를 움직이면, 큰 인스턴스보다 작은 인스턴스가 먼저 다음 LOD 로 전환됩니다. 아래 예제를 살펴보세요.
+
+![](LODExampleFar.png)
+![](LODExampleNear.png)
+
+멀리 움직이는 와중에 앞쪽의 큐브만 화면 1% 이상을 차지했기에 여전히 LOD0, 즉 큐브입니다. 하지만 뒤쪽의 작은 메시는 1% 미만을 차지했으므로 LOD1, 즉 이 예제에서는 황금 구체로 전환되었습니다. 또한 이 부분은 화면 크기에 따라 스케일이 조절되므로, 뷰포트를 떼어내서 크기를 조절하면, 메시가 차지하는 비율이 뷰포트 비율에 따라 같이 조절되므로 사용하는 LOD 도 바뀝니다.
+
+분명 큐브를 구체로 바꾸는 것은 LOD 를 제대로 활용하는 것이 되지 못합니다만, 사용법을 익히기에는 충분할 것입니다. 이제 레벨의 메시에 LOD 를 적용하여 가까이서는 디테일을, 멀리서는 퍼포먼스를 살릴 수 있는 준비가 되셨습니다.

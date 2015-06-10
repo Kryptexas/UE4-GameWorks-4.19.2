@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:2466505
+Availability:Public
+Title:2..FBX でメッシュをインポートする
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:アンリアル エンジン 4 へメッシュをエクスポート / インポートするプロセスを説明します。 
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+インポートするアセットが既にある場合、以下の [メッシュを準備する](#メッシュを準備する) セクションへ進んでください。 
+
+何もアセットがない場合、あるいはモデリング パッケージにアクセスしたい場合は、以下のサンプル アセットをダウンロードしてください。
+
+* [サンプル アセット](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+サンプル アセットをコンピューター上に展開し、 **Basic_Asset1** と **Basic Asset2** を UE4 Project の「 **コンテンツ** 」フォルダにドラッグします。 
+
+ ![](ExplorerImport.png)(w:640)
+
+ ここから、この後の **手順 4** を続けることができます。 
+ 
+[REGION:note]
+ 命名規則とファイル構造の表示は、アセット名とプロジェクトの場所によって若干異なる場合があります。 
+[/REGION]
+ 
+
+## メッシュを準備する
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+[REGION:note]
+FBX パイプラインの情報については、 [](Engine/Content/FBX) ドキュメントを参照してください。
+[/REGION]
+
+
+
+<!--
+##サポート対象の画像形式
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+-->
+
+%Steps%

@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:4. 레벨 디플로이
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:원클릭 디플로이로 레벨을 실행시킵니다.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+
+1.	레벨 에디터 툴바의 Launch (실행) 버튼 옆 드롭다운 화살표를 클릭합니다. 안드로이드 디바이스에 대해 여러가지 항목이 있는 것을 확인할 수 있습니다.
+텍스처 포맷이 여러가지 있기 떄문입니다. 포맷 목록과 아울러 사용하는 디바이스는 이와 같습니다:
+
+[INCLUDE:Platforms/Android/Reference#androidformats]
+
+1.	먼저 게임 실행을 테스트하여 현재 레벨을 빠르게 테스트할 수 있습니다.
+1.	실행 옵션에서 디바이스에 맞는 포맷을 선택합니다.  
+	![](launch_rightformat.png)
+	[REGION:tip]
+	포맷을 모르는 경우, 라벨이 없는 것 또는 ETC1 포맷을 선택하세요.  
+	![](launch_noformat.png)
+
+	게임 실행시 화면을 4 손가락으로 한 번에 터치하면 대화창이 뜹니다. 이 대화창은 보통 (`stat fps` 같은) 콘솔 명령을 입력하는 데 사용되지만, 디바이스가 지원하는 포맷이 표시되기도 합니다. 리스트를 얻고 나면 그것을 통해 디플로이/패키지 작업시 좀 더 이상적인 유형을 선택할 수 있습니다.
+	[/REGION:tip]
+1. 실행 프로세스 도중 우하단 구석에 메시지가 뜹니다.
+	![](launch_toast.png)
+1.	쿠킹 및 실행 프로세스 이후 게임이 디바이스에 자동으로 나타날 것이며, 앱 드로어에서도 접근할 수 있을 것입니다.
+1.	이제 게임의 설치를 해제하거나, 게임 패키지 설치를 위해 사용하게 될 배치 파일로 나중의 설치해제를 관리할 수 있습니다.
+
+
+
+
+
+
+%Steps%

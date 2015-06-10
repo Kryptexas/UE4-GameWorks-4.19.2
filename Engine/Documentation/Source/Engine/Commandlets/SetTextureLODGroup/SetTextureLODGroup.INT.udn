@@ -1,0 +1,68 @@
+Availability: Docs
+Title: Set Texture LOD Group Commandlet
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:Commandlet that iterates through all textures used and makes sure they are using the appropriate LODGroup.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+## Purpose One Liner
+
+Makes certain that textures are in the correct LOD group and fixes incorrect texture settings. 
+
+
+
+## Detailed Motivation
+
+All textures are part of a TextureGroup.  A TextureGroup specifies a number of things including:  Min/Max size, LODBias, and Filtering.
+
+You want to make certain that textures are in the correct group so they are not abusing the texture pool.
+
+Usually there are LOTS of textures and usually they are misclassified.  Additionally, they sometimes also have incorrect settings for the type of texture they are. (e.g. they are a normal map but are no being compressed!)
+
+To fix up a large number of these issues, we use the SetTextureLODGroup Commandlet,  which will set TextureLODGroups, LODBias, and fix up incorrect settings on a texture based on what type of texture it is (e.g. NormalMap).
+
+
+
+## Operation
+
+To run this commandlet, from a command prompt window, navigate to the _UnrealEngine3\Binaries_ directory.
+
+
+### Syntax
+
+The syntax is as follows:
+
+    [GameName].exe SetTextureLODGroup 
+
+
+## How to use / turn on
+
+NOTE:  You will probably want to have a programmer look at the commandlet's code to see how it infers the TextureGroup.
+
+Places to look for more details on TextureGroups:
+
+
+* DefaultEngine.ini  SystemSettings
+* Texture.uc  enum TextureGroup
+
+
+
+Basically, if you have your content structured in a well defined way you can gain a lot of semantic details from just where the textures are located.  We will utilize that to make certain that textures are in the correct TextureGroup.
+
+
+
+## Detailed Example(s)
+
+Someone has imported a new texture that is going to be used on a gun shell particle effect.  By default the TextureGroup is World.  That someone forgets to correctly set the TextureGroup.  That texture is also 1024x1024 because that shell particle effect LOOKS AWESOME! :-)   In the texture pool, we are now paying for a 1024x1024 :-(  
+
+When the SetTextureLODGroupCommandlet runs, it will set that texture to be in the Effects Group which more than likely will have a smaller MaxLODSize than 1024.  This results in texture pool savings with basically no extra effort.
+
+ 
+
+
+
+

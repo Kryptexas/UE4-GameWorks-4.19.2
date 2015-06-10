@@ -1,0 +1,145 @@
+﻿INTSourceChangelist:2495706
+Availability:Public
+Title:Blend ノード
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/NodeReference
+Description:複数のアニメーションを一連の基準に基づいてまとめてブレンドするAnimation ノード。
+
+[REGION:banner]
+![Blend Nodes](blend_banner.png)(convert:false)
+[/REGION]
+
+[TOC(start:2)]
+
+[EXCERPT:Intro]
+Blend ノードは複数のアニメーションをまとめてブレンドするために使用します。Blend ノードは、 _AnimationBlueprint_ の **Anim Graph** に配置する場合にのみ利用できます。各 Blend ノードは複数のポーズ、最終アウトプットの各ポーズの重み付けを計算するために使用するアルファ値やウェイト値を取り込みます。Blend ノードの中には、他ノードよりも複雑で、追加のデータ入力を必要とするものもあります。
+[/EXCERPT:Intro]
+
+## Apply Additive
+
+**Apply Additive** ノードは、アルファ値に基づき、ベースの通常のアニメーション ポーズに加算ポーズを追加します。
+
+![](ApplyAdditive.png)
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Base | ベースとして使用する通常のポーズ。 |
+|Additive| 上にブレンドする加算ポーズ。 |
+| Alpha | 加算ポーズが与える影響度の判断にアルファ値として使用する **[0.0, 1.0]** の範囲の **浮動小数点値** です。**0.0**の値は、**加算** ポーズが **ベース** 入力に全く加算されないことを意味し、 **1.0** の値は、**加算** ポーズが **ベース** 入力ポーズに完全に加算されることを意味します。
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose | ブレンディング適用後の最終ポーズ |
+
+## Blendノード
+
+一般的な**Blend**ノードはアルファ入力値に基づいた2つの入力ポーズを正しく混ぜ合わせます。
+
+![](Blend.png)
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| A | ブレンドする最初のポーズ |
+| B | ブレンドする2番目のポーズ |
+| アルファ | 2つのポーズの重み付けを設定する際にアルファ値として使用する **[0.0, 1.0]** の範囲の「浮動小数点」値です。値 **0.0** は、 **A** の入力ポーズに対して最大限の重み付けをしますが、値 **1.0** は、**B** の入力ポーズに対して最大限の重み付けをします。
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose | ブレンディング適用後の最終ポーズ |
+
+
+## Blend Poses by Bool
+
+**Blend Poses by Bool** ノードは、Boolean 値をキーとして使用し、 2 つのポーズ間の時間ベースのブレンドを行うノードです。Boolean が _True_の場合、 _True_ 入力ピンに接続されているポーズを使用します。Boolean が _False_ の場合、 _False_ のポーズを使用します。各ポーズには、浮動小数点値、 Blend Time があります。これは、ポーズにブレンドする所要時間を制御するために使用します。
+
+![](BlendPosesByBool.png)
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Active Value | これは2 つのポーズのうちどちらを使用するかを決める入力 Boolean です。|
+| True Pose | Boolean が _True_ に設定されている場合にブレンドするポーズを取り込みます。|
+| False Pose | Boolean が _False_ に設定されている場合にブレンドするポーズを取り込みます。|
+| True Blend Time | _True_ ポーズにブレンドするための所要時間を定義します。|
+| True Blend Time | _False_ ポーズにブレンドするための所要時間を定義します。|
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose | ブレンディング適用後の最終ポーズ |
+
+## Blend Poses by Int
+
+**Blend Poses by Int** ノードは、整数値をキーとして使用し、 任意の数のポーズを時間ベースでブレンドするノードです。各入力整数値に対して、その値の入力ピンに関連付けられたポーズが使用されます。例えば、整数が 0 に設定されている場合、_Blend Pose 0_ に接続されているポーズが使用されます。各ポーズには、浮動小数点値、 Blend Time があります。これは、ポーズにブレンドする所要時間を制御するために使用します。
+
+![](BlendPosesByInt.png)
+
+追加で Blend Pose 入力を作成するには、対象ノード上で **右クリック** し、コンテキスト メニューから **Add Blend Pin** を選択します。
+
+![](AddBlendInput.png)
+
+入力を削除するには、削除対象の入力上で **右クリック** して **Remove Blend Pin** を選択します。
+
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| Active Child Index | これは2 つのポーズのうちどちらを使用するかを決める入力 int です。|
+| Blend Pose X | Active Child Index が X に設定されている場合にブレンドするポーズを取り込みます。|
+| Blend Time X | X ポーズにブレンドするための所要時間を定義します。|
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| Pose | ブレンディング適用後の最終ポーズ |
+
+
+
+## Layered Blend Per Bone
+
+**Layered Blend Per Bone** ノードは、Skeletonでボーンの特定のサブセットのみに影響を与えるマスクブレンドを実行します。例えば、キャラクターの上半身のみにアニメーションを適用する場合、 **Blend Per Bone** を使用します。
+
+![Blend Nodes - Blend Per Bone](CE_nodes_blend_per_bone.png)
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| BasePose | ブレンドする最初のポーズ |
+| BlendPose | ブレンドする 2 番目のポーズ |
+| BlendWeight | 加算ポーズが与える影響度の判断にアルファ値として使用する **[0.0, 1.0]** の範囲の **浮動小数点値** です。**0.0**の値は、**加算** ポーズが **ベース** 入力に全く加算されないことを意味し、 **1.0** の値は、**加算** ポーズが **ベース** 入力ポーズに完全に加算されることを意味します。
+| Add Pin | もうひとつブレンド ポーズとベース入力ポーズを作成します。 |
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| OutPose | ブレンディング適用後の最終ポーズ |
+
+
+
+## Slot
+
+![](Slotnode.png)
+
+**Slot** ノードは、任意のアニメーション スロットから結果として得られるアニメーションを再生します。 
+
+[INCLUDE:Engine/Animation/AnimMontage#slots]
+
+アニメーション モンタージュ システムでスロットを使用する詳細情報については、 [](Engine/Animation/AnimMontage) 参照してください。
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- Hidden for now.Seems no longer available.
+
+## Two-Way Additive Blend
+
+**Two-way Additive Blend** は、実質的に前述の **Two-way Blend** と同じです。加算ポーズのみを処理および出力します。
+
+![Blend Nodes - Two-way Additive Blend](CE_nodes_blend_twoway_additive.png)
+
+| ピン | 説明 |
+| --- | ----------- |
+| [REGION:tablesection]**入力ピン**[/REGION] ||
+| A | ブレンドする最初の加算ポーズ |
+| B | ブレンドする 2 番目の加算ポーズ |
+| アルファ | 2つのポーズの重み付けを設定する際にアルファ値として使用する **[0.0, 1.0]** の範囲の「浮動小数点」値です。値 **0.0** は、 **A** の入力ポーズに対して最大限の重み付けをしますが、値 **1.0** は、**B** の入力ポーズに対して最大限の重み付けをします。
+| [REGION:tablesection]**出力ピン**[/REGION] ||
+| ポーズ | ブレンディング適用後の最終加算ポーズ |
+--->

@@ -1,0 +1,7 @@
+﻿Availability:Public
+Title:プレイヤーコントローラー
+Crumbs:%ROOT%, Programming, Programming/Gameplay/Framework, Programming/Gameplay/Framework/Controller
+Description: **プレイヤーコントローラー** は、プレイヤーから入力データを受け取る機能を実装し、入力を移動、アイテムの使用、武器の発砲などアクションへ変換します。
+
+
+プレイヤーコントローラーは、ポーンと、人プレーヤーがこのポーンを操作する間のインターフェースです。プレイヤーコントローラーは、基本的に人プレイヤーの意思を表します。

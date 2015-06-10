@@ -1,0 +1,94 @@
+Availability:Docs
+Title: SkeletalMesh Level of Detail
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/SkeletalMeshes
+Description:Tool for management and automatic generation of level of detail meshes for SkeletalMeshes.
+
+[TOC(start:2)]
+
+The **Level of Detail** panel provides the ability to manage and generate complete chains 
+of level of detail meshes (LODs) in the **Mesh Viewer**. LODs can be imported from FBX files created 
+in external modeling applications or generated automatically according to rules you set up.
+
+![](lod_panel.png)
+
+[INCLUDE:Engine/UI/Tools/Simplygon#License]
+
+## LOD Management
+
+LODs are managed in the **Current LODs** section. Listed here are all of the LODs that are 
+currently contained within the _SkeletalMesh_.
+
+![](lod_current.png)
+
+Individual LODs within the chain can be updated or removed using the ![](button_lod_import.png) and 
+![](button_lod_remove.png) buttons.
+
+New LODs can be added to the chain using the button at the bottom of the section to import a new mesh, 
+which will be set to the next LOD in the chain (LOD 2 in the example below):
+
+![](lod_new.png)
+
+## LOD Generation
+
+Automatic LOD generation uses [](Engine/UI/Tools/Simplygon) to create simplified versions of the base mesh to be 
+used as LODs. These algorithms take into account factors such as target complexity, preservation of 
+silhouette and texture coordinates, and more in order to generate a new mesh that can be displayed at 
+a distance without noticeable degradation or artifacts.
+
+**To generate an LOD chain:**
+
+1. Select the number of LOD meshes to generate.
+
+	![](lod_number.png)
+
+1. Set the [quality options](#QualitySettings) for each LOD mesh to be generated.
+
+	![](lod_settings.png)
+
+1. Press the ![Generate LOD Chain](button_lod_generate.png) button to create the new LOD meshes.
+
+	![](lod_generated.png)
+
+1. The LOD meshes can be previewed using the controls in the toolbar:
+
+	![](lod_preview.gif)(convert:false)
+
+
+### Quality Settings
+
+| Setting | Description |
+| ------- | ----------- |
+| [REGION:tablesection]Quality[/REGION] ||
+| **Simplification Type** | [INCLUDE:#Type]  |
+| **Silhouette** | Specifies how important the silhouette of the mesh is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to better preserve the geometric shape of the mesh but will result in a higher triangle count. |
+| **Texture** | Specifies how important texture density is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to avoid texture stretching artifacts but will result in a higher triangle count. |
+| **Shading** | Specifies how important shading quality is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to better preserve shading quality but will result in a higher triangle count. |
+| **Animation** | You can select how important animation is. You can choose from _Off_, _Lowest_, _Low_, _Normal_, _High_, and _Highest_. Choosing a higher setting will cause the simplification to avoid animation artifacts but will result in a higher triangle count. |
+| [REGION:tablesection]Repair Options[/REGION] ||
+| **Welding Threshold** | Vertices within this distance from one another will automatically be welded. This can help to eliminate small faces. Using large values can produce undesirable results. |
+| **Recompute Normals** | If _true_, the smoothing groups will be recomputed based on the simplified geometry. Otherwise, smoothing groups will be retained from the original mesh. |
+| **Hard Edge Angle Threshold** | When recomputing normals, angles larger than this value between faces will result in hard edges between faces. Smaller angles will create soft edges. |
+| [REGION:tablesection]Skeleton Simplification[/REGION] ||
+| **Number of Bones** | The ratio of bones that are mapped to vertices in the simplified LOD mesh compared to the original mesh. Lower values result in more bones being removed from the mapping. |
+| **Max Bones Per Vertex** | The maximum number of bones that can be assigned to each vertex in the simplified LOD mesh. |
+
+<!--
+[EXCERPT:Type]
+Specifies the method to use to determine the quality or complexity of the resulting LOD mesh:
+
+[REGION:simpletable]
+| Type | Description |
+| ---- | ----------- |
+| _Max Deviation_ | The maximum deviation from the base mesh as a percentage of the bounding sphere. The editor uses the desired quality to compute an error metric for the mesh. This error metric prevents the tool from simplifying a mesh such that the surface of the new mesh deviates too much from the surface of the source mesh. The advantage to this approach is that the tool can intelligently optimize the mesh within some deviation of the source mesh without stopping at an arbitrary triangle limit. |
+| _Number of Triangles_ | The editor simplifies the mesh until it has the exact number of triangles specified. |
+[/REGION]
+[/EXCERPT:Type]
+-->
+
+## Simplygon®
+
+![Simplygon](Engine/UI/Tools/Simplygon/simplygon_logo.png)
+
+Simplygon is used to automatically generate game-ready Level of Detail models (LODs) for a specific pixel resolution by removing as much information as possible without degrading LOD quality for a certain onscreen size. Simplygon uses a proprietary mesh reduction method that retains geometrical LOD integrity and visual quality of LOD switching, producing AutoLODs that can directly be used inside triple-A games. 
+
+Unreal Engine 4 leverages Simplygon to provide high-quality mesh reduction without having to leave the Unreal Editor. Developers can quickly simplify meshes, generate LODs, and immediately see the results in their maps.

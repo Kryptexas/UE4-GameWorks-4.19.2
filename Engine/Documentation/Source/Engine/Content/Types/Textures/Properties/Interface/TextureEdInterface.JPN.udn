@@ -1,0 +1,120 @@
+﻿INTSourceChangelist:2219885
+Availability:Public
+Title:テクスチャ エディタ UI
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures, Engine/Content/Types/Textures/Properties
+Description:テクスチャ エディタ UI の説明
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](TextureTopic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures/Properties/Interface]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](TextureTopicCompact.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/Textures/Properties/Interface:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/Textures/Properties/Interface:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(end:2)]
+
+
+## 概要
+
+[EXCERPT:Intro]
+**テクスチャ プロパティ エディタ** では、テクスチャ アセットをプレビューし、そのプロパティを編集できます。カラー調整を適用したり、圧縮と LOD (Level of Detail) 設定を変更することもできます。
+
+[/EXCERPT:Intro]
+
+**コンテンツ ブラウザ** のテクスチャ アセットを **ダブルクリック** するか、テクスチャ アセットを **右クリック** し、次に表示されるコンテクスト メニューの **[編集]** をクリックするとテクスチャ エディタを開くことができます。
+
+![Texture Editor UI](Texture_UI.png)
+
+1. **メニューバー**
+1. **ツールバー**
+1. **ビューポート**
+1. **詳細パネル**
+
+##メニュー バー
+
+### ファイル
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+###編集
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+###アセット
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
+
+
+### ウィンドウ
+
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+[INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+## ツールバー
+
+
+| アイテム | 説明 |
+| ---- | ----------- |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
+| [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [INCLUDE:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
+| ![](TextureUI_Toolbar_Compress.png) | **[詳細]** パネルの **[Compression]** セクションにある設定に従い、テクスチャを圧縮します。 |
+| ![](TextureUI_Toolbar_Reimport.png) | ディスク上にある元の場所から現在のアセットを再インポートします。 |
+| ![](TextureUI_Toolbar_Mip.png) | チェック ボックスをクリックし、スライダーバーをドラッグする (またはプラス ボタンまたはマイナス ボタンをクリックする) ことでテクスチャのミップレベルを変更できます。 |
+
+
+## ビューポート
+
+![](Texture_UI_Viewport.png)
+
+ビューポートにはテクスチャ アセットのプレビューが表示されます。
+
+ビューポートの左上隅にはドロップダウンの **[表示]** メニューがあります。このメニューは様々なチャンネルや設定を切り替えるオプション、テクスチャがどのように表示されるかを変更するためのオプションがあります。
+
+![](TextureUI_Viewport_ViewMenu.png)
+
+ビューポートの右下隅にある **Zoom** スライダーをドラッグ、または、ドロップダウン メニューの **[Fill]** 設定を変更することで、プレビューしているテクスチャ アセットをリサイズできます。
+
+## 詳細パネル
+
+**[詳細]** パネルはテクスチャの様々なプロパティを表示し、変更できるようにします。テクスチャ エディタの **[詳細]** パネルに関する詳細は、 [](Engine/Content/Types/Textures\Properties) を参照してください。
+
+アンリアル エンジンの [詳細] パネルに関する詳細は、 [](Engine/UI/LevelEditor\Details) を参照してください。

@@ -2,14 +2,22 @@
 
 #pragma once
 
-// Forward Declarations
+
 struct FGeometry;
 struct FKeyEvent;
 struct FCharacterEvent;
 struct FPointerEvent;
 class FSlateShaderResource;
 
-DECLARE_MULTICAST_DELEGATE_OneParam( FOnTitleChangedDelegate, FString );
+
+enum class EWebBrowserDocumentState
+{
+	Completed,
+	Error,
+	Loading,
+	NoDocument
+};
+
 
 /**
  * Interface for dealing with a Web Browser window
@@ -17,12 +25,28 @@ DECLARE_MULTICAST_DELEGATE_OneParam( FOnTitleChangedDelegate, FString );
 class IWebBrowserWindow
 {
 public:
+
+	/**
+	 * Load the specified URL
+	 *
+	 * @param NewURL New URL to load
+	 */
+	virtual void LoadURL(FString NewURL) = 0;
+
+	/**
+	 * Load a string as data to create a web page
+	 *
+	 * @param Contents String to load
+	 * @param DummyURL Dummy URL for the page
+	 */
+	virtual void LoadString(FString Contents, FString DummyURL) = 0;
+
 	/**
 	 * Set the desired size of the web browser viewport
 	 * 
 	 * @param WindowSize Desired viewport size
 	 */
-	virtual void SetViewportSize(FVector2D WindowSize) = 0;
+	virtual void SetViewportSize(FIntPoint WindowSize) = 0;
 
 	/**
 	 * Gets interface to the texture representation of the browser
@@ -46,10 +70,20 @@ public:
 	 */
 	virtual bool IsClosing() const = 0;
 
+	/** Gets the loading state of the current document. */
+	virtual EWebBrowserDocumentState GetDocumentLoadingState() const = 0;
+
 	/**
 	 * Gets the current title of the Browser page
 	 */
 	virtual FString GetTitle() const = 0;
+
+	/**
+	 * Gets the currently loaded URL.
+	 *
+	 * @return The URL, or empty string if no document is loaded.
+	 */
+	virtual FString GetUrl() const = 0;
 
 	/**
 	 * Notify the browser that a key has been pressed
@@ -117,9 +151,7 @@ public:
 	 */
 	virtual void OnFocus(bool SetFocus) = 0;
 
-	/**
-	 * Called when Capture lost
-	 */
+	/** Called when Capture lost */
 	virtual void OnCaptureLost() = 0;
 
 	/**
@@ -127,9 +159,7 @@ public:
 	 */
 	virtual bool CanGoBack() const = 0;
 
-	/**
-	 * Navigate backwards.
-	 */
+	/** Navigate backwards. */
 	virtual void GoBack() = 0;
 
 	/**
@@ -137,9 +167,7 @@ public:
 	 */
 	virtual bool CanGoForward() const = 0;
 
-	/**
-	 * Navigate forwards.
-	 */
+	/** Navigate forwards. */
 	virtual void GoForward() = 0;
 
 	/**
@@ -147,30 +175,32 @@ public:
 	 */
 	virtual bool IsLoading() const = 0;
 
-	/**
-	 * Reload the current page.
-	 */
+	/** Reload the current page. */
 	virtual void Reload() = 0;
 
-	/**
-	 * Stop loading the page.
-	 */
+	/** Stop loading the page. */
 	virtual void StopLoad() = 0;
 
-	/**
-	 * Accesses a delegate to allow callbacks when a browser title changes
-	 *
-	 * @return A multicast delegate that you can register with
-	 */
-	FOnTitleChangedDelegate& OnTitleChanged() {return OnTitleChangedDelegate;}
+public:
+
+	/** A delegate that is invoked when the loading state of a document changed. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnDocumentStateChanged, EWebBrowserDocumentState /*NewState*/);
+	virtual FOnDocumentStateChanged& OnDocumentStateChanged() = 0;
+
+	/** A delegate to allow callbacks when a browser title changes. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnTitleChanged, FString /*NewTitle*/);
+	virtual FOnTitleChanged& OnTitleChanged() = 0;
+
+	/** A delegate to allow callbacks when a frame url changes. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnUrlChanged, FString /*NewUrl*/);
+	virtual FOnUrlChanged& OnUrlChanged() = 0;
+
+	/** A delegate that is invoked when the off-screen window has been repainted and requires an update. */
+	DECLARE_EVENT(IWebBrowserWindow, FOnNeedsRedraw)
+	virtual FOnNeedsRedraw& OnNeedsRedraw() = 0;
 
 protected:
 
-	/**
-	 * Virtual Destructor
-	 */
-	virtual ~IWebBrowserWindow() {};
-
-	/** Delegate for broadcasting title changes */
-	FOnTitleChangedDelegate OnTitleChangedDelegate;
+	/** Virtual Destructor. */
+	virtual ~IWebBrowserWindow() { };
 };

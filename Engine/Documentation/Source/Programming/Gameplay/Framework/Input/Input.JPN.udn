@@ -1,0 +1,11 @@
+﻿INTSourceChangelist:2099361
+Availability:Public
+Title:入力値
+Crumbs:%ROOT%, Gameplay
+Description: プレイヤーからの入力値をアクタに理解させて使用できるデータ形式へ変換する **入力** オブジェクト。
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Gameplay/Input)
+[/PARAM]
+[/OBJECT]

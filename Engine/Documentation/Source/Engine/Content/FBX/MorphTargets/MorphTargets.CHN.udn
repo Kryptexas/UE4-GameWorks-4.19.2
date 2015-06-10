@@ -1,0 +1,289 @@
+﻿Availability: Public
+Title:FBX顶点变形目标通道 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:使用FBX内容通道为骨架网格物体创建及导入顶点变形目标。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/MorphTargets:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/MorphTargets:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/MorphTargets:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/MorphTargets]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 概述
+
+[EXCERPT:Intro]
+[EXCERPT:FBX_morph]
+顶点变形目标是已经以某种方式发生变形的特定网格物体的顶点位置的快照。比如，您可以取一个角色模型，重新塑造他们面部的形状来创建面部表情，然后将已编辑的版本保存为顶点变形目标。在虚幻编辑器中，您可以混合顶点变形目标，来使得角色面部产生那个表情。顶点变形目标可以通过FBX导入到虚幻编辑器中，并且将会被封装在一个动画序列内。
+[/EXCERPT:FBX_morph]
+
+这使得可以轻松地将复杂的顶点变形目标导入到虚幻编辑器中，因为您可以具有启动一个动画的多个顶点变形目标。比如，您可以在您的动画包中使用顶点变形目标来使得角色产生动画来说一段对话。该动画可以使用任何数量个顶点变形目标来捕捉脸部的完整动作。然而，当导入时，结果看上去就仅是一个单独的动画序列。您仍然可以通过[曲线](Engine/Animation/Sequences\Curves)来访问每个顶点变形目标的动画数据。
+[/EXCERPT:Intro]
+
+FBX导入通道中的顶点变形目标支持提供了一种从3D应用程序中将骨架网格物体的顶点变形目标导入到Unreal中以便在游戏中使用的简单方法。该通道允许将任何数量的骨架网格物体的任何变形目标导入到一个单独的文件中。
+
+本文是关于使用FBX内容通道将顶点变形目标导入到虚幻编辑器中的技术概述。请参照 [FBX最佳实践](Engine/Content/FBX/BestPractices)页面获得关于在开发环境中使用FBX内容通道的更多信息、帮助及技巧。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+本文包含了关于Autodesk Maya和Autodesk 3ds Max的信息，请在下面选择您喜欢的内容创建工具，就会仅显示和所选工具相关的信息。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 命名
+
+
+当使用FBX格式将顶点变形目标导入到虚幻编辑器时，将会根据3D应用程序中混合变形或顶点变形的名称来命名单独的顶点变形目标。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* 名称是添加到blendshape（混合变形）节点上的混合变形的名称，也就是 `[BlendShapeNode]_[BlendShape]` 。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* 名称是Morpher修改器中的通道的名称。
+	[/PARAM]
+[/OBJECT]
+
+
+## 设置顶点变形目标
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSetup]
+
+在3dsMax中设置要导出到FBX中的顶点变形目标需要使用Morpher修改器。以下的步骤提供了设置顶点变形目标以便进行导出所需的步骤的简单介绍。请参照该应用程序的帮助文档获得更多详细信息。
+
+
+1. 从基础网格物体开始。 
+    
+	![max_setup_1.jpg](max_setup_1.jpg)(w:744 h:354)
+
+1. 复制将要修改的网格物体来创建目标姿势。在这个实例中，它是头部。创建目标姿势。在这个实例中，目标姿势是角色眨眼。 
+    
+	![max_setup_2.jpg](max_setup_2.jpg)(w:744 h:354)
+
+1. 添加一个 **Morpher** 修改器到基础网格物体。在堆栈中，它需要放在 **Skin（皮肤修改器）** 的前面。 
+    
+	![max_setup_3.jpg](max_setup_3.jpg)(w:161 h:123)
+
+1. 选中您想填充的顶点变形通道，按下 **Morpher**  修改器属性展开图中按下 ![max_pick_button.jpg](max_pick_button.jpg) 或右击该通道并选择 _Pick Object From Scene（从场景中选择对象）_ 。 
+    
+	![max_setup_4.jpg](max_setup_4.jpg)(w:168 h:667)
+
+1. 在视图中，点击目标网格物体。 
+    
+	![max_setup_5.jpg](max_setup_5.jpg)(w:744 h:354)
+
+1. 现在填充了顶点变形通道，并显示了目标网格物体的名称。这是在虚幻编辑器中赋给顶点变形目标的名称。您可以在 **Morpher** 修改器的展开列表中的 **Channel Parameters（通道参数）** 部分修改它。 
+    
+	![max_setup_6.jpg](max_setup_6.jpg)(w:162 h:414)
+
+1. 将通道的权重调整为100.0将会导致基本网格物体朝目标姿势插值。 
+    
+	![max_setup_7.jpg](max_setup_7.jpg)(w:744 h:354)
+[/EXCERPT:maxSetup]
+
+
+[EXCERPT:mayaSetup]
+在Maya 中设置要导出到FBX中的顶点变形目标需要使用混合变形。以下的步骤提供了设置顶点变形目标以便进行导出所需的步骤的简单介绍。请参照该应用程序的帮助文档获得更多详细信息。
+
+
+1. 从基础网格物体开始。 
+    
+	![maya_setup_1.png](maya_setup_1.png)
+
+1. 复制将要修改的网格物体来创建目标姿势。在这个实例中，它是头部。创建目标姿势。在这个实例中，目标姿势是角色眨眼。 
+    
+	![maya_setup_2.png](maya_setup_2.png)
+
+1. 按照那个顺序选择目标网格物体，然后选择基础网格物体。 
+    
+	![maya_setup_3.png](maya_setup_3.png)
+
+1. 在 **Animation(动画)** 菜单集合中的 **Create Deformers** 菜单中，选择 **Blend Shape（混合变形）** 。如果需要，在这步之后可以删除目标网格物体。 
+    
+	![maya_setup_4.jpg](maya_setup_4.jpg)
+
+1. 现在可以在基础网格物体的属性中看到blend shape(混合变形)节点。这些是将要在虚幻引擎中使用的名称。这里，您可以修改blendshape（混合变形）节点的名称和该混合变形。 
+    
+	![maya_setup_5.png](maya_setup_5.png)
+
+1. 将混合变形的权重调整为1.0将会导致基本网格物体向目标姿势插值。 
+    
+	![maya_setup_6.png](maya_setup_6.png)
+
+[/EXCERPT:mayaSetup]
+-->
+
+(#ExportingMorphs)
+
+
+## 导出顶点变形目标
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/MorphTargets#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+
+[EXCERPT:maxExport]
+1. 在视口中选中要导出的基础网格物体和骨骼。 
+    
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. 在 _File(文件)_ 菜单中选择 _Export Selected(导出选中项)_ (或者您不管选中项是什么而是想导出场景中的所有资源，那么则选择 _Export All(导出所有)_ ) 。 
+    
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 选择要将顶点变形目标导出到的 FBX 文件的位置及名称，并点击![max_save_button.jpg](max_save_button.jpg)按钮。 
+    
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. 在 *FBX Export（FBX导出）* 对话框中设置适当的选项。为了导出顶点变形目标，您必须启用 **Animations** 复选框及所有 *Deformations（变形）* 选项。 
+    
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. 点击 ![max_ok_button.jpg](max_ok_button.jpg) 按钮来创建包含该顶点变形目标的FBX文件。
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 在视口中选中要导出的网格物体和关节。 
+    
+	![maya_export_1.png](maya_export_1.png)
+
+1. 在 _File(文件)_ 菜单中选择 _Export Selection(导出选中项)_ (或者您不管选中项是什么而是想导出场景中的所有资源，那么则选择 _Export All(导出所有)_ ) 。 
+    
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. 选择要将顶点变形目标导出到的FBX文件的位置及名称，并在 **FBX Export（FBX导出）** 对话框中设置适当的选系那个 。为了导出顶点变形目标，您必须启用 **Animations** 复选框及所有 **Deformed Models（变形模型）** 选项。 
+    
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. 点击![maya_export_button.jpg](maya_export_button.jpg) 按钮来创建包含该顶点变形目标的FBX文件。
+[/EXCERPT:mayaExport]
+
+-->
+
+
+(#ImportingMorphs)
+
+
+## 导入顶点变形目标
+
+
+FBX顶点变形目标导入通道允许您一次性同时导入骨架网格物体和顶点变形目标，也允许您单独地导出它们。
+
+**具有顶点变形目标的骨架网格物体**
+
+
+1. 点击 **内容浏览器** 上的 **导入** 按钮。再打开的文件浏览器中导航到您想导入的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。 
+    
+	![](import_file.jpg)
+
+1. 在 **Import(导入)** 对话框中选择适当的设置。确保启用  _Import Morph Targets(导入顶点变形目标)_ 。**注意:** 导入的网格物体的名称将会遵循默认的[命名规则](Engine/Content/FBX/ImportOptions#NamingConventions)。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。 
+    
+	![](ImportMorphTargets.png)
+
+1. 点击 **OK（确定）** 按钮来导入网格物体和LOD。如果导入过程成功，那么将会在内容浏览器中显示最终的网格物体、顶点变形目标(MorphTargetSet)、材质和贴图。您会发现默认情况下所创建的用于存放顶点变性目标的MorphTargetSet （顶点变形目标集）是以骨架网格物体的根骨骼命名的。 
+    
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+    
+    通过在角色编辑器中查看该导入的网格物体并使用  **Morph Target Previewer（顶点变形目标预览器）** 选卡，您可以调整导入网格物体的力度并查看它是否按照期望正常工作。
+  
+  	[REGION:lightbox]
+		[![](InfSkelMesh_Morph1.png)(w:375)](InfSkelMesh_Morph1.png) [![](InfSkelMesh_Morph2.png)(w:375)](InfSkelMesh_Morph2.png)
+	[/REGION]
+	
+	**Morph Targets（顶点变性目标）** 的影响通常是非常微妙的，但是它为美术师所提供的控制及为角色所添加的真实度是不可低估的。
+

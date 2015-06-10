@@ -1,0 +1,212 @@
+﻿INTSourceChangelist:2385991
+Availability:Public
+Title:FBX マテリアル パイプライン
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX コンテンツ パイプラインを使ってメッシュで基本的なマテリアルとテクスチャを移行する
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Materials:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Materials:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概要
+
+FBX パイプラインでは、 3D アプリケーションのメッシュ (スタティック メッシュおよびスケルタル メッシュ) に適用されたテクスチャおよびマテリアルを、アンリアルに移すことができます。単純なマテリアルを変換するには、マテリアル内で使用されているテクスチャをインポートし、これらテクスチャが適切なチャンネルに接続されるようにしてアンリアルでマテリアルを作成し、さらに、これらマテリアルをインポートされたメッシュに適用します。これによって、かつては煩雑であった手作業によるプロセスが自動化され、メッシュのインポート プロセスが簡略化され効率的なものになります。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+このページでは、 Autodesk Maya と Autodesk 3ds Max の両方の情報を載せています。以下の表からお好きなコンテンツをお選び頂きますと、それに関連した情報のみが表示されるようになります。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## マテリアルのサポート
+
+FBX パイプラインによるインポートは、基本的なマテリアルのみサポートされています。移行可能なマテリアルの種類は次のとおりです。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Surface (サーフェス)
+    * Anisotropic (異方性)
+    * Blinn
+    * Lambert (ランバート)
+    * Phong
+    * Phone E
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	* Standard (標準)
+	* Multi/Sub-Object (マルチ / サブ オブジェクト)
+	[/PARAM]
+[/OBJECT]
+
+
+移行可能なマテリアルのタイプに加えて、それらマテリアルがもつ特定の機能に限り移行することができます。FBX マテリアル パイプラインは、個々の設定値を移行しませんが、マテリアル内で使用される特定のマップまたはテクスチャの移行はサポートされています。 
+
+[REGION:warning]
+	現在のところ、メッシュでインポートされたマップ (テクスチャ) はマテリアルに追加され、マテリアル上のデフォルト入力に接続されるものもありますが、手作業による接続が必要なものもあります。さらに、 **Ambient Occlusion** 用に Maya の **Diffuse** チャネルの使用などの通常とは違うマップ タイプはインポートされません。
+[/REGION]
+
+##複数のマテリアル
+
+メッシュには、複数のマテリアルを適用することができます。各マテリアルは、メッシュの特定の面をカバーします。FBX パイプラインは、マルチ マテリアルをともなったメッシュをインポートすることができます。その場合、 3D アプリケーションで適切にセットアップされていることが想定されています。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#mayaMultiMat]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Materials#maxMultiMat]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxMultiMat]
+3dsMax では、 **Multi/Sub-Object** マテリアルを使用してマルチ マテリアルを処理します。Multi/Sub-Object メッシュの各面は_Material ID_ をもっており、 Multi/Sub-Object 内の各 Standard マテリアルは、対応する _Material ID_ に適用されます。
+
+![mat_multi_max.jpg](mat_multi_max.jpg)(w:359 h:444)
+
+![mat_multi_max_result.jpg](mat_multi_max_result.jpg)(w:744 h:382)
+
+Multi/Sub-Object 内の各 Standard マテリアルのためにアンリアル エディタ内でマテリアルが作成されるとともに、インポートされたメッシュが、それらマテリアルそれぞれのためのマテリアル スロットをもつことになります。マテリアルがメッシュに適用されると、 3dsMax におけるのと同様に、メッシュのうちの対応するポリゴンにのみ影響を与えることになります。
+[/EXCERPT:maxMultiMat]
+
+[EXCERPT:mayaMultiMat]
+Maya で、メッシュにマルチ マテリアルを適用するのは非常に簡単です。マテリアルを適用したいメッシュの面を選択し、マテリアルを適用するだけです。
+
+![mat_mult_maya.jpg](mat_mult_maya.jpg)(w:827 h:442)
+
+![mat_mult_maya_result.jpg](mat_mult_maya_result.jpg)(w:827 h:442)
+
+Multi/Sub-Object 内の各 Standard マテリアルのためにアンリアル エディタ内でマテリアルが作成されるとともに、インポートされたメッシュが、このマテリアル 1 つ 1 つに対しマテリアル スロットをもつことになります。マテリアルがメッシュに適用されると、 Maya におけるのと同様に、メッシュのうちの対応するポリゴンにのみ影響を与えることになります。
+[/EXCERPT:mayaMultiMat]
+-->
+
+
+## マテリアルの命名
+
+アンリアル エディタで作成されたマテリアルは、 3D アプリケーションにおけるマテリアルと同一の名前をもつことになります。名前が引き出される場所は、メッシュがエクスポートされたアプリケーションに依存します。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	Maya の場合、アンリアル エディタ内のマテリアル名は、 Maya 内のメッシュに適用されたシェーディング エンジン名から取られます。
+
+	![mat_name_maya.jpg](mat_name_maya.jpg)(w:423 h:448)
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	3dsMax の場合、アンリアル エディタ内のマテリアル名は、 3dsMax 内のメッシュに適用されたマテリアル名から直接転送されます。
+
+	![mat_name_max.jpg](mat_name_max.jpg)(w:359 h:438)
+	[/PARAM]
+[/OBJECT]
+
+
+
+### マテリアルの順序
+
+メッシュに適用されるマテリアルの順序が重要な場合、マテリアルのための特別な命名規則を使用することによって、特定の順序を指定することができます。デフォルトでは、マテリアルがアンリアル エディタ内でランダムに作成されます。したがって、マテリアルの順序を保証することができません。これは、たとえば、胴体のマテリアルが第 1 のマテリアルであり、頭部のマテリアルが第 2 のマテリアルであるというように、キャラクターのシステムがマテリアルの順序に依存しているキャラクターを扱う場合に問題となります。
+
+アンリアルでは、 skin## という命名規則を使用することによって、マテリアルの順序を指定します。これをマテリアル名の全体とすることが可能です。また、マテリアルの既存の名前に追加することも可能です。マテリアル名の中に入っているだけでよいのです。
+
+したがって、 2 個のマテリアルを常に一定の順序にしておく必要がある場合は、例えば、つぎのように命名します。
+
+* `M_ExampleMesh_skin00`
+* `M_ExampleMesh_skin01`
+
+
+![mat_order_max.jpg](mat_order_max.jpg)(w:320 h:92)
+
+##テクスチャのインポート
+
+3D アプリケーションにおいて、マテリアルのテクスチャを、ディフューズまたは法線マップのどちらかとして指定した場合は、それらのテクスチャがアンリアル エディタにインポートされることになります。ただし、 **Import Textures** 設定項目が [FBX Import Properties] (Engine/Content/FBX/ImportOptions) において有効になっている場合に限ります。 
+
+![](Engine/Content/FBX/StaticMeshes/ImportedMeshAndTex.png)
+
+Texture Sample (テクスチャ サンプル) 式が、アンリアル エディタにおいて新たに作成されたマテリアル内に作成されるとともに、インポートされたテクスチャがその Texture Sample に割り当てられます。Texture Coordinate の表現式もマテリアルに追加され、 Texture Sample の UVs の入力 に接続されます。 ただし、幾つかのテクスチャをマテリアル スロットに接続する必要があります。
+
+![](FBXMaterial.png)
+
+3D アプリケーション内でマテリアルに適用されたテクスチャが、アンリアルで使用できないフォーマットだったり、未知のマテリアル属性 (例えば Maya の **Diffuse**) である場合、インポートされません。このような場合や、そもそもマテリアルにテクスチャがない場合は、アンリアル エディタ内のマテリアルに、ランダムにカラー化された Vector パラメータが入れられます。
+
+![](NoTexture.png)
+
+ 
+
+
+
+

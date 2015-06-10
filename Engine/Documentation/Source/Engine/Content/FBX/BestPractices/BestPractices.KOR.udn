@@ -1,0 +1,190 @@
+﻿INTSourceChangelist:2499062
+Availability: Public
+Title:FBX 실전 사례
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:언리얼 엔진 4 의 FBX 콘텐츠 파이프라인 작업에 있어서의 실전 사례, 팁과 꼼수입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/BestPractices:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/BestPractices:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/BestPractices:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/BestPractices]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 개요
+
+
+여기서는 에픽 게임스의 아티스트들이 사용하는 언리얼 엔진 3 내 FBX 콘텐츠 파이프라인 작업시의 팁과 꼼수, 실전 사례들을 담아보겠습니다.
+
+
+## 스태틱 메시 작업방식
+
+
+
+* 3D 어플리케이션에서 FBX 파일로 메시를 익스포트합니다.
+    * 에픽의 아티스트가 익스포트할 때 흔히 사용하는 세팅은:
+        * **Smoothing Groups** (스무딩 그룹) 켬
+        * **Tangents and Binormals** (탄젠트와 바이노멀) 끔
+        * **Preserve Edge Orientation** (에지 방향 보존) 켬
+* 언리얼 에디터의 콘텐츠 브라우저를 사용해서 FBX 파일을 임포트합니다.
+
+
+![](BestPracticesOptions.png)(w:594 h:572 convert:false)
+
+
+### 유용한 링크
+
+* [스태틱 메시 익스포트하기](Engine/Content/FBX/StaticMeshes#메시익스포트)
+* [스태틱 메시 임포트하기](Engine/Content/FBX/StaticMeshes#메시임포트)
+
+
+
+
+## 스켈레탈 메시 작업방식
+
+
+* 메시와 스켈레톤을 FBX 파일로 익스포트합니다.
+    * 익스포트할 (메시와 조인트 체인 루트같은) 것들을 선택한 다음 'export selected' 를 선택합니다.
+    * 에픽의 아티스트가 흔히 사용하는 익스포트 세팅은:
+        * **Smooth Mesh** (메시 부드럽게) 끄기
+        * **Smoothing Groups** (스무딩 그룹) 켜기
+* 언리얼 에디터의 콘텐츠 브라우저를 사용하여 FBX 파일을 임포트합니다.
+
+
+
+### 유용한 링크
+
+
+* [스켈레탈 메시 익스포트하기](Engine/Content/FBX/SkeletalMeshes#ExportMesh)
+* [스켈레탈 메시 임포트하기](Engine/Content/FBX/SkeletalMeshes#ImportMesh)
+
+
+
+## 애니메이션 작업방식
+
+
+
+* 애니메이션을 FBX 파일로 익스포트합니다.
+    * 익스포트할 (조인트 체인 루트, 필요하다면 메시같은) 것들을 선택한 다음 'export selected' 를 선택합니다.
+    * 익스포트 세팅은:
+        * **Animation** (애니메이션) 켜기
+* FBX 파일을 **콘텐츠 브라우저** 에 애니메이션으로 임포트합니다.
+
+
+
+### 유용한 링크
+
+
+* [애니메이션 익스포트하기](Engine/Content/FBX/Animations#ExportingAnimations)
+* [애니메이션 임포트하기](Engine/Content/FBX/Animations#ImportingAnimations)
+
+
+
+## 모프 타겟 작업방식
+
+
+
+* 모프 타겟(들)을 FBX 파일로 익스포트합니다.
+    * 익스포트할 (블렌드셰이프/모퍼 모디파이어 포함 메시같은) 것들을 선택하고 'export selected' 를 선택합니다.
+    * 익스포트 세팅은:
+        * **Animation** (애니메이션) 켜기
+        * **Deformed Models/Deformations** (디폼된 모델/디포메이션) - 모든 옵션 켜기
+* FBX 파일을 **콘텐츠 브라우저** 에 애니메이션으로 임포트합니다.
+
+
+
+### 유용한 링크
+
+
+* [모프 타겟 익스포트하기](Engine/Content/FBX/MorphTargets#ExportingMorphs)
+* [모프 타겟 임포트하기](Engine/Content/FBX/MorphTargets#ImportingMorphs)
+
+
+
+## 작명 규칙
+
+전형적으로 에픽의 아티스트는 익스포트되는 파일 이름을 다음과 같은 작명 규칙으로 짓습니다:
+
+* **스태틱 메시:** SM\_**&lt;패키지명&gt;\_&lt;애셋명&gt;\_&lt;인덱스&gt;**
+* **스켈레탈 메시:** SK\_**&lt;패키지명&gt;\_&lt;애셋명&gt;\_&lt;인덱스&gt;**
+
+
+프로젝트 전반적으로 작명 규칙을 사용하면 애셋 파일 정돈이 쉬워집니다.
+
+그러나 오랜 기간 언리얼을 사용해 온 분들께 익숙할 "패키지" 라는 개념은 언리얼 엔진 4 에서 획기적으로 변경되었습니다. 이제 패키지 파일에는 파일이 하나만 들어가며, 게임의 디렉토리 구조가 예전 .upk 파일에서 찾아볼 수 있는 다양한 레벨을 정의합니다. 자세한 내용은 [애셋과 패키지](Engine/Basics/AssetsAndPackages) 문서를 참고해 주시기 바랍니다.
+
+![](FBXBestPractices_packages.png)
+
+_이 이미지에서 **StoneBox** 는 **Meshes** 라는 폴더 안에 있는데, UE3 에서라면 (**StoneBox**) 애셋이 포함된 (**Meshes**) 그룹의 (**Game**) 패키지가 될 것입니다.
+
+
+## 씬 관리
+
+
+에픽의 아티스트는 보통 비슷한 애셋을 하나의 파일에 모아놓습니다. 예를 들어 보통, 부분파괴, 완전파괴 같은 세 가지 상태가 있는 스태틱 메시의 경우, 그 세 가지 모두 같은 파일에 넣습니다. 그래도 각 메시는 하나의 FBX 파일로 익스포트됩니다.
+
+![FBXBestPractices_MultipleColumn.jpg](FBXBestPractices_MultipleColumn.jpg)(w:410 h:810)
+
+스켈레톤이 묶인 메시인 깨끗한 "익스포트" 파일을 갖는 것이 쉽습니다. 이 메시는 익스포트에만 사용됩니다. 이 파일에서 릭이 만들어지나, 별도의 릭 파일로 저장됩니다.
+
+![FBXBestPractices_Character.jpg](FBXBestPractices_Character.png)(convert:false)
+
+별도의 릭 파일입니다.
+
+![FBXBestPractices_CharacterRig.jpg](FBXBestPractices_CharacterRig.png)(convert:false)
+
+각 애니메이션은 보통 자체 파일에 저장되는데, 파일 시스템에 있는 다양한 애니메이션 관리를 간단히 하기 위해서입니다.
+
+
+## 언리얼 에디터에서 콘텐츠 이름바꾸기
+
+**콘텐츠 브라우저** 에서 오브젝트 이름을 바꾸는 방법은, 바꾸고자 하는 것을 선택한 다음 **F2** 키를 치거나, **우클릭** 한 다음 **Rename** (이름변경)을 선택하면 됩니다. 그러면 **콘텐츠 브라우저** 에 그 오브젝트의 이름이 반전되어 보이며, 윈도우에서 파일 이름을 수정하듯 새 이름을 입력할 수 있게 됩니다.
+
+![FBXBestPractices_MoveOrRename.jpg](FBXBestPractices_MoveOrRename.png)
+
+되돌리기 캐시 관련 알림이 뜨는 것은 정상입니다. 어차피 캐시의 오브젝트는 예전 이름 아래 나열되어 있고, 나중에 문제를 일으키지 않기 위해서는 지워줘야 하기 때문입니다.
+
+### 유용한 링크
+
+
+* [FBX 임포트시 작명 규칙](Engine/Content/FBX/ImportOptions#NamingConventions)
+
+
+
+## 전체 씬 FBX 익스포트/임포트
+
+마티네에서 만든 카메라 또는 마티네에서 애니메이트된 차량 경로와 아울러, 3D 콘텐츠 제작 프로그램으로 시네마틱을 재생성하는 데 필요한 모든 정보를 익스포트하기에 좋습니다. 3D 콘텐츠 제작 프로그램에서 트윅 작업을 거친 후 FBX 파일로 익스포트한 다음 다시 언리얼 엔진 3 로 임포트해 오면 됩니다.
+
+마티네에서 익스포트합니다.
+
+![](FBXBestPractices_MatineeExportAll.png)
+
+**Export All** (모두 익스포트)에 대해 지원되는 익스포트 유형은 현재 FBX 가 유일하니, 이름을 짓고 OK 를 눌러 주세요.
+
+![](FBXBestPractices_MatineeExportDiag.png)
+
+마티네 인터페이스 안에서도 (아마 외부 프로그램으로 트윅 작업을 한 후에) FBX 데이터를 임포트할 수 있습니다.
+
+![](FBXBestPractices_MatineeImport.png)
+
+ 
+
+
+
+

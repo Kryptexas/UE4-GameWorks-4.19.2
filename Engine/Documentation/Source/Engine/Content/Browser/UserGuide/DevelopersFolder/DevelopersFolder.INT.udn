@@ -1,0 +1,36 @@
+Availability: Public
+Title:Developers Folder
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:This document covers the use of the Developers Folder within the Content Browser's Sources Panel.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](DeveloperFolderTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/DevelopersFolder:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/DevelopersFolder]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## Overview
+
+![DevelopersFolder.png](DevelopersFolder.png)(w:220)
+
+Underneath the Assets area, within the Game folder, you will see a Developers folder. This contains all assets that are currently in the works by fellow developers. This makes for a useful collaborative environment when trying out new techniques and assets. However, there are some guidelines you should keep in mind:
+
+1. **This is intended to be used for your own personal research or experimental and test work only**, as it allows you to test things without disturbing other aspects of the game.
+ 
+2. Since this is meant to be strictly personal work, it is a good policy to never reference work from this folder to anywhere outside your folder. 
+
+3. Think of your developer folder like a sandbox environment that should remain isolated from the remainder of your game production.
+ 
+4. The name of your developer folder will be the same as your Windows username, minus any illegal characters such as spaces or periods.
+ 
+5. Other developers can see what assets are in your folder, **but only if you are using Source Control and if they have activated the "Show Other Developers" checkbox**, located under **Filters > Other Filters > Other Developers** in the **Content Browser**.
+
+For more information about working with the **Sources** Panel, see [](Engine/Content/Browser\UserGuide\WorkingWithSources).

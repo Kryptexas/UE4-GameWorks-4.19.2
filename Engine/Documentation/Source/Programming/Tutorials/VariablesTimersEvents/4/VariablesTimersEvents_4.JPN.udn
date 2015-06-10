@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2489335
+Availability:Public
+Title:4.応用編
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
+Description:入力と C++ コードのバインド
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+これまでに学んだ知識を活かして、以下の操作をしてみましょう。
+
+* **イベント** を実行した時にターゲット変形へ移動または回転する **アクタ** を作成します。ゲーム内の移動プラットフォームやドアとして使用できます。2番目の **イベント** をトリガーするために **タイマー** を始動する **イベント** を作成します。このイベントは **アクタ** を元の位置に戻します。ハードコードされた値の代わりに公開された変数（ **UPROPERTY** を用いて）を適切な場所に使用します。
+* **タイマー** ハンドルといくつかのカスタム **イベント** を使用して、じきに燃え尽きる（火の **Particle System Component** を非アクティブにするなど）火のついたトーチを作成します。例えば _AddFuel_ **イベント** でトーチの燃焼時間を延長することができます。_DouseWithWater_ **イベント** はトーチを瞬時に消化して、今後 _AddFuel_ が機能しないように設定します。これらの機能両方は **ティック** を使用しないで記述できます。ハンドルで実行している **タイマー** を単に修正するだけです。
+
+以下はこのチュートリアルで取り扱った詳細です。
+
+* **タイマー** に関する詳細は [%Programming/UnrealArchitecture/Timers:title%](Programming/UnrealArchitecture/Timers) ページを参照してください。
+* クラスまたは構造体の変数と一緒に **UPROPERTY** タグを使用した完全リファレンスは、 [%Programming/UnrealArchitecture/Reference/Properties:title%](Programming/UnrealArchitecture/Reference/Properties) ページを参照してください。
+* **UFUNCTIONS** と **イベント** の作成について学ぶには、 [%Programming/UnrealArchitecture/Reference/Functions:title%](Programming/UnrealArchitecture/Reference/Functions) ページを参照してください。
+* その他のチュートリアルは [%Programming/Tutorials:title%](Programming/Tutorials) ページを参照してください。
+
+
+%Steps%

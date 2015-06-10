@@ -1,0 +1,153 @@
+﻿INTSourceChangelist:2327713
+Availability:Public
+Title:메시 모드
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Description:페르소나 애니메이션 에디터의 메시 모드 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes/Mesh:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes/Mesh:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes/Mesh:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes/Mesh]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+##Overview 
+[EXCERPT:Overview]
+**페르소나** 애니메이션 에디터의 (**메시** 탭을 클릭하여 접근할 수 있는) **메시 모드** 는 다른 편집 모드에 있을 때 사용 가능한 몇 가지 창이 공유됩니다만, **메시 모드** 에만 있는 창이 두 개 있습니다 (아래 강조): [메시 디테일](Engine/Animation/Persona\MeshDetails), [모프 타겟 프리뷰어](Engine/Animation/Persona\MorphTargetPreviewer) 입니다. 
+[/EXCERPT:Overview]
+
+[REGION:fullwidth]
+![](MeshModeWindows.png)
+[/REGION]
+
+##메시 디테일** 창에서는 **머티리얼** 이나 **LOD** 세팅처럼 스켈레탈 메시에서 메시 관련 프로퍼티를 변경하고, **Apex 클로딩** 을 할당하며, 기존 메시에 메시를 추가하고, **미러링** 세팅을 조절하거나, 메시에 **피직스 애셋** 을 할당할 수 있습니다. 애셋 데이터를 **리임포트** 하고, **썸네일 오빗** 또는 **텍스처 스트리밍** 세팅을 조절할 수도 있습니다.
+
+###LOD 세팅
+
+[REGION:fullwidth]
+![](LOD_Settings.png)
+[/REGION]
+
+여기서는 스켈레탈 메시에 **머티리얼** 을 할당하고 그 머티리얼이 그림자를 드리울지 말지를 토글시킬 수 있습니다.
+
+**LOD Info** 섹션에서는 **LOD** 의 기능을 변경할 수 있는 세팅이 있습니다:
+
+| 프로퍼티| 설명|
+|--- | --- |
+| **Display Factor** | 표시 인수 - LOD 를 언제 사용할지 나타냅니다. 수치가 작을 수록 멀리 있을 때 LOD 를 사용한다는 뜻입니다. |
+| **LODHysteresis** | LOD 이력 - LOD 경계에서의 "깜빡임" 을 피하는 데 사용됩니다. 복합에서 단일로 이동할 때만 고려됩니다. |
+| **LODMaterial Map** | LOD 머티리얼 맵 - LOD 의 머티리얼에서 USkeletalMesh 머티리얼 배열로의 매핑 테이블을 지정합니다. |
+| **Triangle Sorting** | 트라이앵글 소팅 - 현재 트라이엥글 소팅 메소드를 설정합니다. |
+| **Custom Left Right Axis** | 커스텀 좌우축 - 좌우축을 설정합니다. |
+| **Custom Left Right Bone Name** | 커스텀 좌우 본 이름 - 좌우 본 이름을 설정합니다. |
+
+###클로딩
+
+![](AddClothing.png)
+
+**메시 디테일** 이 섹션에서는 메시에 **Apex Cloth** 애셋을 할당하고 할당된 애셋에 대한 정보를 보여주며, 할당된 각 애셋에 대해 조절할 수 있는 **피직스 프로퍼티** 도 있습니다. 
+
+| 프로퍼티| 설명|
+|--- | --- |
+| **Bend Resistance** | 휨 저항 - [0,1] 범위의 클로쓰 휨 강도입니다. |
+| **Shear Resistance** | 전단 저항 - [0,1] 범위의 클로쓰 전단 강도입니다. |
+| **Stretch Limit** | 신축 한도 - 클로쓰 시뮬레이션의 신축성을 줄입니다. 값이 1 보다 작으면 끕니다. |
+| **Friction** | 마찰 - [0,1] 범위의 마찰 계수입니다. |
+| **Damping** | 제동 - [0,1] 범위의 클로쓰 스프링 제동치입니다. |
+| **Drag** | 인력 - [0,1] 범위의 인력 지수입니다. |
+| **Gravity Scale** | 중력 스케일 - 클로쓰에 적용되는 중력의 양입니다. |
+| **Inertia Blend** | 관성 혼합 - 로컬 스페이스 시뮬레이션 사용시 유지되는 관성의 양입니다. 내부적인 이름은 관성 스케일입니다. |
+| **Self Collision Thickness** | 셀프 콜리전 두께 - 서로 유지되는 원거리 파티클의 최소 양입니다. |
+
+###부가 메시
+
+여기서는 기존의 메시에 메시를 추가하거나 추가된 메시를 제거할 수 있습니다.
+
+###메시
+
+여기서는 **스켈레탈 메시와** 함께 사용되는 **스켈레톤** 및 **콘텐츠 브라우저** 내 그 위치를 나열합니다. 
+
+###스켈레탈 메시
+
+![](SkeletalMeshSection.png)
+
+**Skeletal Mesh** 섹션은 기존의 **머티리얼 인터페이스** 에 대한 **머티리얼** 을 정의하고, 그 **머티리얼** 의 **그림자 드리우기** 를 켤지 말지를 설정합니다. **Use Full Precision UVs** (최대 정밀도 UVs 사용)할지 말지 설정할 수도 있는데, _true_ 면 32 비트 UVs 를 사용하고, _false_ 면 16 비트 UVs 를 사용하여 메모리를 절약합니다.
+
+###미러링
+
+![](MirroringSection.png)
+
+**Mirroring** 섹션에서 설정할 수 있는 옵션은 두 가지 있습니다:
+
+| 프로퍼티| 설명|
+|--- | --- |
+| **Skel Mirror Table** | 스켈 미러 테이블 - 미러링해야 할 본을 전부 나열합니다. |
+| **Skel Mirror Axis** | 스켈 미러 축 - 미러링 축을 X, Y, Z, 없음 으로 설정합니다. |
+| **Skel Mirror Flip Axis** | 스켈 미러 플립 축 - 미러 플립 축을 X, Y, Z, 없음 으로 설정합니다. |
+
+###피직스
+
+**Physics** 섹션에서는 메시에 **피직스 애셋** 을 할당할 수 있습니다. (적용 가능한 경우) **콘텐츠 브라우저** 에서 애셋의 위치 역시도 표시됩니다.
+
+###리임포트
+
+![](ReimportSection.png)
+
+여기서는 사용중인 애셋을 리임포트하고 임포트 세팅을 조절할 수 있습니다 (현재 사용되는 임포트 데이터와 적용된 세팅도 표시합니다).
+
+| 프로퍼티| 설명|
+|--- | --- |
+| **Update Skeleton Reference Pose** | 스켈레톤 레퍼런스 포즈 업데이트 - 켜면 (임포트중인 메시의) 스켈레톤의 레퍼런스 포즈를 업데이트합니다.|
+| **Use T0As Ref Pose** | T0 을 레퍼런스 포즈로 사용 - 이 옵션을 켜면 0 프레임을 레퍼런스 포즈로 사용합니다. |
+| **Preserve Smoothing Groups** | 스무딩 그룹 보존 - 체크하면, 스무딩 그룹이 일치하지 않는 트라이앵글은 물리적으로 분리됩니다. |
+| **Import Meshes in Bone Hierachy** | 본 계층구조의 메시 임포트 - 체크하면, 본 계층구조의 중첩된 메시는 본으로 변환하지 않고 임포트합니다. |
+| **Import Morph Targets** | 모프 타겟 임포트 - 켜면, 임포트한 메시에 대해 언리얼 모프 타겟 오브젝트를 생성합니다. |
+| **Import Mesh LODs** | 메시 LOD 임포트 - 켜면 임포트된 파일의 LOD 에서 언리얼 메시에 대한 LOD 모델을 생성합니다. 켜지 않으면, LOD 그룹에서 베이스 메시만 임포트합니다. |
+| **Normal Import Method** | 노멀 임포트 방법 - 이 옵션을 켜면 탄젠트(와 바이노멀과 노멀)를 자동 생성하는 대신 FBX 파일에서 읽습니다. |
+| **Source File Path** | 소스 파일 경로 - 스태틱 메시를 구성하는 데 사용되는 리소스 경로입니다. |
+| **Source File Timestamp** | 지난 번 임포트한 파일의 날짜/시간 스탬프입니다. |
+
+###썸네일
+
+![](ThumbnailSection.png)
+
+**Thumbnail** 섹션에서는 애셋을 중심으로 한 카메라의 **Orbit Pitch**, **Orbit Yaw**, **Orbit Zoom** 을 설정할 수 있습니다.
+
+| 프로퍼티| 설명|
+|--- | --- |
+| **Orbit Pitch** | 오빗 핏치 - 애셋을 중심으로 한 오빗 카메라의 핏치입니다. |
+| **Orbit Yaw** | 오빗 요 - 애셋을 중심으로 한 오빗 카메라의 요 입니다. |
+| **Orbit Zoom** | 오빗 줌 - 애셋에서의 바운드 구체 거리에 적용할 오프셋입니다. |
+
+###텍스처 스트리밍
+
+![](TextureStreamingSection.png)
+
+**Texture Streaming** 은 아티스트가 UV 0 을 사용하는 텍스처의 스트림 인/아웃 거리를 조절할 수 있도록 해 줍니다.
+
+| 프로퍼티| 설명|
+|--- | --- |
+| **Streaming Distance Multiplier** | 스트리밍 거리 배수 - 기본값은 1.0 이며, 값이 클 수록 스트림 인 해상도가 늘어납니다. |
+
+
+
+##모프 타겟 프리뷰어
+
+[INCLUDE:Engine/Animation/Persona/MorphTargetPreviewer#Overview]
+
+자세한 정보는 [](Engine/Animation/Persona/MorphTargetPreviewer/) 문서를 참고하세요.
+
+

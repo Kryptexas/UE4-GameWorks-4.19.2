@@ -1,0 +1,219 @@
+﻿INTSourceChangelist:2511975
+Availability:Public
+Title:4.マテリアルを適用する
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:テクスチャをインポートしたら、次はマテリアルを作成してスタティックメッシュに適用します。 
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+このページでは、前のステップで作成した **マテリアル** をインポートしたスタティックメッシュに適用します。 
+
+## デフォルトのマテリアルを設定する 
+
+このセクションでは、レベル内に配置された時にスタティックメッシュに使用するデフォルトのマテリアルを割り当てます。 
+
+1.	**コンテンツ ブラウザ** で、ステップ 2 の中でインポートしたアセットを **ダブルクリック** します。
+
+	![](ContentBrowserAsset.png)
+
+	[REGION:note]
+	インポート方法によって、アセットとアセット名は上記の画像と異なる場合があります。 
+	[/REGION]
+
+	以下の画像のように、[スタティックメッシュ](Engine/Content/Types/StaticMeshes/Editor) エディタ内で開きます。
+	[REGION:lightbox]
+
+	[![](StaticMeshEditor.png)(w:600)](StaticMeshEditor.png)
+	[/REGION:lightbox]
+
+	_画像をクリックしてフルサイズで表示_
+
+1.	**[Details]** パネルの **[Default Value]** で [Material] ドロップダウン メニューをクリックします。 
+
+	![](Element0.png)
+
+1.	前のステップで作成した **マテリアル** を [Selection] ウィンドウで選択します。 
+
+	![](SelectMaterial.png)
+
+	プレビュー ペインを更新すると、適用した新規マテリアルが反映されて表示されます。 
+
+	![](NewDefaultMaterial.png)
+
+1.	**[Save]** ボタンをクリックして、 **Material Editor** を閉じます。 
+
+1.	**コンテンツ ブラウザ** で、スタティックメッシュをレベルへドラッグします。 
+
+	![](NewMaterialInLevel.png)
+
+	レベルにこのアセットを配置すると必ず、指定されたマテリアルを使用します。 
+
+## アクタが使用するマテリアルを変更する 
+
+前のセクションでは、レベル内にスタティックメッシュのオブジェクトを配置することで、 [アクタ](Engine/Actors) とアクタの各インスタンスが作成され、それに対して使用するマテリアルを指定することができました。つまり、それぞれが異なるマテリアルを使っている、いろいろな「バージョン」のスタティックメッシュを作ることができるのです。 
+
+Static Mesh アクタのマテリアルを変えてみます。 
+
+1.	前のセクションでレベル内に配置したスタティックメッシュを選択します。 
+
+	![](StaticMeshSelected.png)
+
+1.	**[Details]** パネル (エディタの右下のウィンドウ) の **[Materials]** セクションで、[Material] ドロップダウン ボックスをクリックします。 
+
+	![](ActorMaterial.png)
+
+1.	ポップアップ メニューで、使用する別のマテリアルを選択します。 
+
+	![](TutorialMaterial.png)
+
+	ここで、デフォルトのマテリアルを再度選択しますが、プロジェクトに [](Engine/Content/Packs) が含まれている場合、さらにオプションがあります。 
+
+1.	新規マテリアルを適用するために、レベル内の Static Mesh アクタ上にマテリアルをドロップ＆ドラッグすることもできます。 
+
+	![](draganddropMaterial.png)
+		<!--
+
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+
+## マテリアルの作成
+
+マテリアルを作成するには以下の操作を行います。
+
+1. **Content Browser** で **[Add New]** をクリックし、 _[Basic Assets]_ から **Material** を選択します。 
+
+	![](newMaterial.png)
+
+	[REGION:tip]
+	**[Add New]** ボタンをクリックする代わりに **コンテンツ ブラウザ** 内の空いているスペースを **右クリック** してコンテキスト メニューを呼び出すこともできます。 
+	[/REGION]
+
+1. 新しいマテリアルが選択され、 **コンテンツ ブラウザ** で名前を入力できるようになります。
+
+1. このケースでは、名前を「Rock」、またはこれから使用する赤い岩状のテクスチャを表すような名前にします。
+	![](Engine/Content/QuickStart/5/materialNaming.png)
+
+	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename]** を選択します。
+
+	1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
+
+
+	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
+
+これが **マテリアル エディタ** です。このクイックスタートでは、 **グラフパネル** と **詳細パネル** について説明します。**グラフパネル** はその中にある Rock ノードのあるウィンドウの中央の大きなパネルで、 **詳細パネル** はウィンドウの左下にあります。
+
+[REGION:tip]
+アンリアル エンジン 4 の **マテリアル** システムは非常にパワフルです。詳細は [](Engine/Rendering/Materials) をご覧ください。
+[/REGION]
+
+
+## Rock マテリアル
+
+既にインポートした 2 つのテクスチャ、あるいはたまたまインポートしておいた他のテクスチャを使って、このマテリアルに肉付けをしていきましょう。
+
+1. マテリアル グラフの中央の Main Material ノードを選択します。 
+
+	![](Engine/Content/QuickStart/5/mainNide.png)
+
+	_グラフエリア内にはこのノードしかありません。マテリアルに因んだ名前が付けられます。選択されるとハイライトされます。_
+
+1. **[Details] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
+
+	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
+
+1. メインの Material ノード上で 2 つのピンが有効になったことが分かります。**Opacity** と **Subsurface Color** です。
+
+	![](Engine/Content/QuickStart/5/morePins.png)
+
+1. テクスチャをグラフに入れる必要があります。方法は何通りかありますが、ここではショートカットを使用します。**[T]** キーを押して エディタのグラフ エリアを **クリック** します。**Texture Sample** ノードが作成されます。
+
+	[REGION:tip]
+	マテリアル エディタのキーボード ショートカットの一覧は**[Edit Menu]** -> **[Editor Preferences]** -> **[Keyboard Shortcuts]** -> **[Material Editor]** および **[Material Editor - Spawn Nodes]** カテゴリでご覧いただけます。
+	[/REGION]
+
+1. テクスチャは最低 2 つ必要です。もう 1 つの **Texture Sample** ノードでこのプロセスを繰り返します。
+
+	![](textureSampleNodes.png)
+
+1. Texture Sample ノードをどれか 1 つ選択すると、 **Material Expression Texture Base** カテゴリの **[Details] パネル** に **Texture** という名前のプロパティがあります。[None] とラベルされたプルダウンを **左クリック** して **[T_Rock_04_D]** というカラーテクスチャを選択します。
+
+	![](Engine/Content/QuickStart/5/textureNone.png)
+
+	[REGION:tip]
+	テクスチャ アセットを見つけるために検索フィールドをを使う場合は、検索フィールドに「 **T_Rock_04_D** 」と入力します。 
+	[/REGION]
+
+1. もう片方の Texture Sample ノードにも同様のプロセスを行いますが、 **T_Rock_04_n** という法線マップテクスチャを選択します。
+
+	この時点で Material グラフは、このようになっているはずです。
+
+	![](Engine/Content/QuickStart/5/bothTexturesSelected.png)
+
+1. 一番上の白いピンにはテクスチャの全てのカラーチャンネルが含まれます。それを **Base Color** ピンに接続します。 
+
+	![](Engine/Content/QuickStart/5/connectColorPin.png)
+
+1. Normal Map と **Normal** ピンにも同様のプロセスを行います。
+
+	![](Engine/Content/QuickStart/5/connectNormalPin.png)
+
+	プレビューはこのような感じになっているはずです。
+
+	![](Engine/Content/QuickStart/5/preview_DN.png)
+
+1. Constant (スカラ型浮動小数点) および Constant3Vector (アルファ チャンネルなしのカラー) が必要になります。
+
+	**[1]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、 Constant を簡単に作ることができます。全部で Constant が **3** つできました。
+
+	![](Engine/Content/QuickStart/5/Constants.png)
+
+1. **[3]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、Constant3Vector を簡単に作ることができます。
+
+	![](Engine/Content/QuickStart/5/Constant3.png)
+
+1. ノードを以下のように調整します。
+
+	![](Engine/Content/QuickStart/5/MatConstantsAdded.png)
+
+	_これは接続を簡単にし、ワイヤーがノードの下でずれたり重なってしまったりしないようにするためです。_
+
+1. テクスチャを **Base Color** と **Norml** ピンに接続するのに使用したのを同じプロセスを使って、下の画像のように **Constants** と **Constant3Vector** を接続します。
+
+	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
+
+1. **Constant** を選択して **[Details]** パネルの **Value** パラメータを変更することで、それぞれの値の調節が可能になります。
+
+	* Metallic/Specular Value = 0.0
+	* Roughness Value = 0.8
+	* Opacity Value = 0.95
+	* Subsurface Color = Red (1, 0, 0)
+
+	![](Engine/Content/QuickStart/5/allConnectedAllAdjusted.png)
+
+1. プレビューはこのような感じになっているはずです。
+
+	![](Engine/Content/QuickStart/5/preview_All.png) 
+
+-->
+
+次のステップ では、手動でアセットをインポートする方法について学びます。 
+
+%Steps%
+

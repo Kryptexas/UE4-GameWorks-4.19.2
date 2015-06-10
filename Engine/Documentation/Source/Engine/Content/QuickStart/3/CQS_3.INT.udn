@@ -1,0 +1,295 @@
+Availability: Public
+Title:3. Importing Images and Creating Materials
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:This page provides an overview of the different types of images supported and how to import as well as how to Create Materials in Unreal Engine 4. 
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+Image files imported into Unreal Engine 4 (UE4) are primarily used in [Materials](Engine/Rendering/Materials), but can also be used in the Landscape Editor and various paint tools as height maps or paint brush masks. In some cases, they can be applied directly to the HUD. Some formats have very specific uses, for example, the file types of .hdr and some formats of .dds are used for **Cubemaps** while .raw files can be imported as a height map into the Landscape Editor.
+
+## Supported Image Formats
+
+Almost every game will use content created externally to UE4. Given this, the editor supports multiple file formats for images: 
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+For more information on supported image types, see: [%Engine/Content/Types/Textures/Importing:title%](Engine/Content/Types/Textures/Importing).
+
+## Importing Images
+
+If you have assets to import, you can jump to the [Importing from an Image Editor](#ImportingfromanImageEditor) section below. 
+
+If you do not have access to an image editor such as Photoshop, you can use a free image editor such as GIMP, Pixlr, Splashup or others to process your images. You can also grab the sample assets below (which are the same assets that were provided in the previous step) to use for this guide. 
+
+* [Sample Assets](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+Extract these to a location on your computer then drag the **T_Rock_04_D** and **T_Rock_04_n** into the **Content** folder of your UE4 Project. 
+
+ ![](ExplorerImport2.png)(w:640)
+
+As with importing meshes, UE4 will automatically import any supported images that are added to your UE4 Project directory. 
+
+From here, you can continue from **Step 4** below. 
+ 
+### Importing from an Image Editor
+
+Below we will take you through the process of auto-importing an asset from Photoshop (or similar image editor). 
+
+1. Inside your image editor, click **File** and **Save As**. 
+
+	![](photoshop_export1.png)
+	
+1. In the dialog box, find your UE4 Project Directory and **Content** folder (1), enter a name and supported format (2), then **Save** (3). 
+
+	![](photoshop_export2.png)
+
+1.	On your disk, browse to the **Content** folder of your Project. You will see that your image has been added. 
+
+	![](photoshop_export6.png)(w:800)	
+
+1.	If you have the UE4 Editor open (or next time you run it) you will see the **Processing outstanding content changes** message. 
+
+	![](photoshop_export4.png)
+
+1.	Once complete, your asset will have been imported and ready to use. 
+
+	![](photoshop_export5.png)(w:900)
+
+	_Once you save an imported asset, a corresponding .uasset will also be created._
+	
+Above all the assets from the Sample Assets file have been imported and are ready to use. Next we will take a look at the different ways you can create **Materials** out of your images. 
+
+## Creating Materials
+
+A **Material** is an asset that can be applied to a mesh to control the visual look of the scene. At a high level, it is probably easiest to think of a Material as the "paint" that is applied to an object. But even that can be a little misleading, since a Material literally defines the type of surface from which your object appears to be made. You can define its color, how shiny it is, whether you can see through the object, and much more. 
+
+### Creating a Materials from a Texture
+
+Creating a Material can be accomplished in a few different ways, the quickest way is by providing a Texture for the Material. 
+
+1.	In the **Content Browser** of your project with the Sample Assets, **Right-click** on the **T_Rock_04_D** and choose **Create Material**. 
+
+	![](createMaterial.png)
+
+1.	Enter in a name for your new **Material** asset that has been created. 
+
+	![](MaterialName.png)
+
+1.	After you enter a name for the **Material** it will be ready to use. 
+
+	![](MaterialCreated.png)
+
+4.	If you **Double-click** on the **Material** it will open up in the [Material Editor](Engine/Rendering/Materials/Editor) pictured below. 
+
+	[REGION:lightbox]
+	[![](MaterialEditor.png)(w:720)](MaterialEditor.png)
+	[/REGION]
+
+	_Click image for full view._
+
+	Our example uses only a single **Texture Sample** node pointing to our texture, however it is possible to combine several different textures or settings to achieve a more complex effect.
+
+	[REGION:note]
+	For more information and guides on working with Materials, see the [](Engine/Rendering/Materials/HowTo) documentation. 
+	[/REGION]
+
+### Creating a New Material
+
+In this section, we will take a look at how we can create a brand new Material from scratch. 
+
+To create a new Material:
+
+1. Click **Add New** in the **Content Browser**, then under _Create Basic Asset_ select **Material**. 
+
+	![](Engine/Content/QuickStart/4/newMaterial.png)
+
+	[REGION:tip]
+	Instead of clicking **Add New**, you can **Right-click** in an empty space inside the **Content Browser**. 
+	[/REGION]
+
+1. The new Material will be selected and awaiting a name in the **Content Browser**.
+
+1. Give it a name, in this case, name it **Rock**. 
+	
+	![](Engine/Content/QuickStart/5/materialNaming.png)
+	
+	If you happened to click elsewhere before naming the Material, you can **Right-click** on the asset and select **Rename**.
+	
+1. Once the material is created, you can **Double-click** it to open the **Material Editor**.
+
+	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
+
+	Above we have a blank Material which includes only the Main Material Node. 
+
+Below we will take a look at how we can use the Sample Assets provided to create a Rock looking Material. 
+
+## Rock Material
+
+Using the two textures you imported earlier or any other textures you happened to have imported, we will now flesh out the Material.
+
+1. Select the Main Material Node in the center of the Material Graph. 
+
+	![](Engine/Content/QuickStart/5/mainNide.png)
+
+	It is the only node in the Graph area and it will be named after your Material. It will become highlighted when selected.
+
+1. In the **Details Panel**, change the **Shading Model** from **Default Lit** to **Subsurface**.
+
+	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
+
+1. You will notice that two more pins are enabled on the Main Material Node: **Opacity** and **Subsurface Color**.
+
+	![](Engine/Content/QuickStart/5/morePins.png)
+
+1. Now you will need to get your textures into the Graph. While there are multiple ways to do this, we will do this using shortcuts. Hold the "**T**" key and **Left-click** in the Graph area of the editor. This will create a **Texture Sample** Node.
+
+	[REGION:tip]
+	You can find a list of all Material Editor keyboard shortcuts in the **Edit Menu** -> **Editor Preferences** -> **Keyboard Shortcuts** -> "**Material Editor**" and "**Material Editor - Spawn Nodes**" categories.
+	[/REGION]
+
+1. You should have at least 2 textures, so repeat this process for another **Texture Sample** Node.
+
+	![](Engine/Content/QuickStart/4/textureSampleNodes.png)
+
+1. Select one of the **Texture Sample** Nodes, and in the **Details Panel** under the **Material Expression Texture Base** category, there is a property named **Texture**. **Left-click** on the pull down labeled "None" and select the color texture named **T_Rock_04_D**.
+
+	![](Engine/Content/QuickStart/5/textureNone.png)
+
+	[REGION:tip]
+	You can use the search field to locate the texture asset by entering **T_Rock_04_D** in the search field. 
+	[/REGION]
+
+1. Do the same for the other Texture Sample Node, but select the normal map texture named **T_Rock_04_n**.
+
+	At this point, the Material Graph should look like this:
+
+	![](Engine/Content/QuickStart/5/bothTexturesSelected.png)
+
+1. The white pin at the top contains all the color channels in the Texture, connect it to the **Base Color** pin. 
+
+	![](Engine/Content/QuickStart/5/connectColorPin.png)
+
+1. Repeat this process for the Normal Map and the **Normal** pin.
+
+	![](Engine/Content/QuickStart/5/connectNormalPin.png)
+
+	The Preview should look similar to this:
+
+	![](Engine/Content/QuickStart/5/preview_DN.png)
+
+1.  You will need a few Constants (scalar floats) and a Constant3Vector (a color without an alpha channel).
+
+	To easily create Constants, you can hold "**1**" key and **Left-click** in the **Graph** Panel. Create a total of **3** Constants.
+
+	![](Engine/Content/QuickStart/5/Constants.png)
+
+1. To create the Constant3Vector, hold the "**3**" key and **Left-click** in the **Graph** Panel.
+
+	![](Engine/Content/QuickStart/5/Constant3.png)
+
+1. Arrange the nodes like this:
+
+	![](Engine/Content/QuickStart/5/MatConstantsAdded.png)
+
+	This is just so the connections can be easily made and none of the wires will slide underneath any nodes nor will they cross each other.
+
+1. Using the same process that you used to connect the textures to the **Base Color** and **Normal** pins, connect the **Constants** and the **Constant3Vector** as seen in the following image:
+
+	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
+
+1. You can now adjust the values of each of the **Constants** by selecting them and changing the **Value** parameter in the **Details** panel.
+
+	* Metallic/Specular Value = 0.0
+	* Roughness Value = 0.8
+	* Opacity Value = 0.95
+	* Subsurface Color = Red (1, 0, 0)
+
+	![](Engine/Content/QuickStart/5/allConnectedAllAdjusted.png)
+
+1. The Preview should look similar to this:
+
+	![](Engine/Content/QuickStart/5/preview_All.png) 
+
+In the next step, we will apply the Material created on this page to a Static Mesh. 
+	
+<!--
+
+[REGION:note]
+For this tutorial series, we are using a new **Blank** project with **Starter Content** enabled. Please see the [](Engine/Basics/Projects/Browser) page for information on creating new projects, using templates and defining project settings (including **Starter Content**). 
+[/REGION]
+
+There are two methods for importing content into Unreal Engine 4:
+* Using the **Content Browser's** Import function. 
+* Dragging files from your hard drive into the **Content Browser**.
+
+Unreal Editor 4 does a good job of identifying the type of file you are importing, and has a system for batch importing assets.
+
+
+## Importing with the Content Browser
+
+With a new project created and open, locate the **Content Browser** window in the lower-left corner of the Editor interface. 
+
+![](contentBrowser.png)
+
+Using the **Content Browser's** ![Import](Engine/Content/QuickStart/4/import_button.png) button will open a file dialog that will enable you to import your assets into Unreal Engine 4. If you downloaded the assets in the previous step, or you have some assets, you should import those now.
+
+1. Click the Import button on the **Content Browser**.
+1. Browse to the location where you extracted the downloaded Example Content.
+1. Select the two FBX files: `Basic_Asset1.fbx` and `Basic_Asset2.fbx`.
+1. Click **Open**.
+
+	[REGION:raw]
+	![](Engine/Content/QuickStart/4/StaticMeshContentBrowserImport.png)
+	[/REGION]
+
+1. You will be prompted with an FBX import dialog:
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. Use the default settings then click **Import All** to import both assets with the same settings.
+1. There should be four assets in the **Content Browser** now: a box like shape, a torus knot shape and two **Material** assets. 
+
+	![](Engine/Content/QuickStart/4/CB_w2assets.png)
+
+1. Now do the same but for the `T_Rock_04_D.TGA` and `T_Rock_04_n.TGA` image files.
+	- There are no import dialogs for images.
+1. The **Content Browser** should now look like this:
+
+	![](Engine/Content/QuickStart/4/CB_w4assets.png)
+
+	_You may notice that each of the assets now have an asterisk symbol in the lower-left corner of their thumbnails, this indicates that although the asset has been added it has not been saved yet and will disappear if you close the Editor without saving it first. _
+
+1. Click the ![](saveAllbutton.png) button to save all your assets. 
+
+1. With everything imported and saved you can now proceed to the [**Next Step**](Engine/Content/QuickStart/4).
+
+## Importing using Click and Drag
+
+The other way to import assets is simply to drag them from your OS into an empty space (or folder) inside the **Content Browser**. You will be prompted for each FBX file to define its import options, but textures will simply batch import. Your mouse cursor will also change to reflect that you are importing assets when dragging them into the **Content Browser**. 
+
+![](Engine/Content/QuickStart/4/CnD_importAll.png)
+
+Remember to click the ![](saveAllbutton.png) button after importing your assets so that they are saved.
+
+-->
+
+%Steps%
+
+

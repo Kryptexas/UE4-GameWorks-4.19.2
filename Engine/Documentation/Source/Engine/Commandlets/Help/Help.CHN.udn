@@ -1,0 +1,114 @@
+Availability: Docs
+Title: Help 命令行开关
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:该命令行开关显示了可用的命令行开关并介绍了如何使用它们。
+
+[REGION:todo]
+	本文从虚幻引擎3中转换而来，目前正在审阅中。有些信息可能过期了。
+[/REGION]
+
+[TOC(start:2)]
+
+## 概述
+
+`help`  命令行开关用于查找您可以运行那些命令行开关、它们的作用以及这些命令行开关的参数。
+
+
+
+## 操作
+
+要通过一个命令提示窗口运行这个命令行开关，请浏览到  _UnrealEngine3\Binaries_ 目录。
+
+
+### 语法
+
+语法如下所示：
+
+    [GameName].exe help <list | commandletname | webhelp commandletname>
+    
+
+### 参数
+
+   **list** - 列出所有可用的命令行开关。 
+   **commandlet name** - 显示特定命令行开关的帮助信息。
+   **webhelp** - 使用记录特定命令行开关的网页的 URL 启动浏览器。
+
+
+
+## 示例
+
+如果想查找可用的命令行开关，请运行：
+
+
+    
+    game.exe help list
+    
+
+
+
+输出应该是这样的：
+
+
+    
+    Core.Help                                - 这个命令行开关显示关于其它命令行开关的帮助信息。
+    Engine.SmokeTest                         - 这个命令行开关运行一系列的测试来验证编译版本。
+    Editor.CutDownContent                    - 从包中删除没有使用的内容。
+    Editor.Make                              - 重新构建UnrealScript包。
+    Editor.PkgInfo                           - 显示关于Unreal包的信息。
+    Editor.ScaleAudioVolume                  - 缩放所有包中的音频数据的音量。
+    Editor.StripSource                       - 从编译好的脚本包中删除源代码。
+    
+
+
+
+要想查看特定命令行开关的帮助信息，请运行以下命令：
+
+
+    
+    game.exe help <commandlet name>
+    
+
+
+
+这样执行help命令行开关将会产生以下信息：
+
+
+    
+    Name(名称):             Core.Help
+    Description:      这个命令行开关显示关于其它命令行开关的帮助信息。
+    Usage(应用)：             gamename.exe help <list | commandletname | webhelp commandletname>
+    Options(选项):
+       list                 - 列出所有可用的命令行开关。
+       commandlet name      - 显示特定命令行开关的帮助信息。
+       webhelp              - 使用讲述特定命令行开关的网页的 URL 启动浏览器。
+    
+
+
+
+如果一个命令行开关有UDN文档，那么您可以通过使用webhelp选项来查看该文档，如下所示： 
+
+
+    
+    game.exe help webhelp help
+    
+
+
+
+上面的命令将会查看这个页面。
+
+
+[PUBLISH:Docs]
+## 其他命令行开关中的帮助
+
+要想为您自己的命令行开关添加帮助信息，那么请阅读[制作命令行开关](Programming/Development/Tools/Commandlets/MakingACommandlet)页面。
+[/PUBLISH:Docs]
+
+
+## 命令行开关列表
+
+要想获得命令行开关的完整列表，请参照 [命令行开关列表](Engine/Commandlets/CommandletList) 页面。
+
+ 
+
+
+

@@ -1,0 +1,36 @@
+Availability: Docs
+Title:1.2 - Custom Destruction
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:An overview of the Destructibility example level, example 1.2: Custom Destruction
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_2:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+Unreal Engine 4 has the ability to import custom destruction from a 3rd Party program like Max or Maya. You can use any kind of plugin to create your destruction meshes as long as you can export it as FBX. This FBX file can then be imported to Unreal Engine 4 as the first **Destruction Depth** inside the Destructible editor window. Then Voronoi can then be used to create second **Destruction Depth**. Right now **Destruction Depths** beyond 2 can only be created in Nvidia Physix Lab, otherwise using just Unreal Engine 4, you can achieve levels 1 and 2 by importing a custom destruction FBX then running Voronoi on it.
+
+[REGION:lightbox]
+[![](1_2_solid.png)(w:300)](1_2_solid.png) [![](1_2_fractured.png)(w:300)](1_2_fractured.png) [![](1_2_blown.png)(w:300)](1_2_blown.png)
+[/REGION]

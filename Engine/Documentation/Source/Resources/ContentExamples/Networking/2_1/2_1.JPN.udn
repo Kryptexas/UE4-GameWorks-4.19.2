@@ -1,0 +1,64 @@
+﻿INTSourceChangelist:2492260
+Availability:Public
+Title:2.1 - ネットワークの関連性 (パート 1 - 全くレプリケートされていない場合)
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
+Description:ネットワーク機能の事例レベルの概要 事例 2.1:ネットワークの関連性 (パート 1 - 全くレプリケートされていない場合)
+Related:Gameplay/Networking
+Related:Gameplay/Networking/Actors/Components
+Related:Gameplay/Networking/Actors
+Related:Gameplay/Networking/Actors/RPCs
+Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples\Networking\2_1:title%](2_1.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples\Networking\2_1:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples\Networking\2_1:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples\Networking\2_1]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](2_1.png)
+[/REGION]
+
+[REGION:tip]
+**Server** と **Client** の両側から見るために、 **[Play]** ダウンリストで、 **[Number of Clients]** 欄を 2 に設定します。
+[/REGION]
+
+
+## 概要
+ブループリントで正しくネットワーク化されたゲームプレイを作成するために、 **ネットワークの関連性** のコンセプトを理解することが大切です。 
+クライアント マシンの場合、すべてのアクタのネットワーク データをいちいち受け取っても意味のない場合が多いです。大きなマップの片方にいるプレイヤーは、ネットワークの構築の観点すると、マップの逆側で起こっていることを全部知る必要はないのです。 
+この場合、ある時間でプレイヤーに「関連する」のは、幾つかのアクタのみだということになります。関連するアクタは通常、プレイヤーが見ることができ、相互に作用し、あるいは近くにいます。プレイヤーは、最適化として、関連するアクタのみに対してネットワークを完全に更新します。 
+
+この最適化の副作用の 1 つは、関連していなかったアクタが、後に関連するようになった場合の対処方法を考えておく必要がある点です (プレイヤーが近くへ移動した結果の場合が多い)。進行中のゲームに参加してきたプレイヤーに対処する場合と非常によく似ています。 
+
+このサンプル、および **ネットワークの関連性** の残りのサンプルでは、関連性を考慮しながら 木箱を開くビヘイビアを再生していきます。
+
+
+## ブループリントの詳細
+**BP_Relevancy_Replication_None** ブループリントのイベント グラフでは、誰かがトリガーを重複したというシグナルを Authorigy が受け取ると、 **DoOnce** ノードにより **OnChestTouched** 関数が呼び出されて実行されます。 
+
+**クリックしてフルサイズで表示**
+[REGION:lightbox]
+	[![](Resources/ContentExamples/Networking/2_1/2_1_EventGraph.png)(w:640)](Resources/ContentExamples/Networking/2_1/2_1_EventGraph.png)
+[/REGION]
+
+**OnChestTouched** 関数がその後 2 つの関数を追加で実行します。 1 つは木箱を開くための関数、そしてもう 1 つは木箱を開くことに結びついたエフェクトを再生するための関数です。 
+
+**クリックしてフルサイズで表示**
+[REGION:lightbox]
+	[![](Resources/ContentExamples/Networking/2_1/2_1_OnChestTouched.png)(w:640)](Resources/ContentExamples/Networking/2_1/2_1_OnChestTouched.png)
+[/REGION]
+
+このサンプルではレプリケーションや関連性は取り扱いませんので、 Server のみが木箱が開くところを見ることができます。 

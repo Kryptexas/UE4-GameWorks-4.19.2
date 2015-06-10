@@ -1,0 +1,97 @@
+﻿Availability:Public
+Title:アセットの作成
+Crumbs:%ROOT%, Engine, Engine/UI
+Description: FBX パイプライン ドキュメントへのリンクも含めたアンリアル・エディタ内、または外部における各種アセットの作成個所の説明
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/AssetCreation:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/AssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/AssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/AssetCreation:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/AssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/AssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:banner]
+![%Engine/Content/FBX:title%](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+## エディタで作成したコンテンツ VS. インポートしたコンテンツ
+
+ゲームに必要なコンテンツ全てをエディタで作成するわけではありません。芸術的なアセットのほとんどは、3ds Max、Maya、Photoshop、ZBrushなどを使用して外部で作成します。以下は、エディタで作成するアセットタイプと外部で作成するアセットタイプの一般的な内訳です。
+
+|アセットの作成場所||
+| ------------------------ | ---------------------------------- |
+| [REGION:tablesection]アンリアルエディタによる作成[/REGION] | [REGION:tablesection]外部アプリケーションによる作成[/REGION] |
+| [INCLUDE:#InEditor] |[INCLUDE:#External]|
+
+<!------------------------------
+
+
+[EXCERPT:InEditor]
+* ゲームレベル
+* マテリアル
+* パーティクルシステム
+* シネマティックシーケンス
+* ブループリントスクリプト
+* AIナビゲーションメッシュ
+* 事前計算されたライトマップ
+* レベルライト
+[/EXCERPT:InEditor]
+
+[EXCERPT:External]
+* スタティック メッシュ
+* スケルタル メッシュ
+* スケルタルアニメーション
+* テクスチャ
+* サウンド (WAVs)
+* IESライトプロファイル
+* Nvidia APEX ファイル (APBとAPX)
+[/EXCERPT:External]
+--------------------->
+
+
+## 外部でのアセット作成
+
+以下は、アンリアル・エンジン 4 用のアセットの外部作成のためのリンクの一部です。
+
+
+[REGION:topics half]
+%Engine/Content/FBX:Topic%
+[INCLUDE:Engine/Content/Types#Types]
+%Engine/Content/ContentStandards:topic%
+[/REGION]
+
+

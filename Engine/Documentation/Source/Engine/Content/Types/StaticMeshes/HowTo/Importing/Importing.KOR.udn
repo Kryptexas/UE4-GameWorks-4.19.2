@@ -1,0 +1,94 @@
+﻿INTSourceChangelist:2514207
+Availability: Public
+Title:스태틱 메시 - 스태틱 메시 임포트 비법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description: 스태틱 메시를 UE4 에 임포트하는 비법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 개요
+
+UE4 에는 레벨에 쓰이는 애셋을 만드는 데 도움이 될 수 있는 툴이 여럿 있습니다. 하지만 외부 어플리케이션에서 애셋을 만들어 UE4 에 임포트해야 하는 때가 올 수 있습니다. 이 비법에서는 다른 3D 어플리케이션에서 만든 스태틱 메시를 레벨에서 사용할 수 있도록 UE4 에 임포트하는 법에 대한 기본을 다뤄보도록 하겠습니다.
+
+## 셋업
+
+UE4 에서 레벨을 제작중이라면, 다른 어플리케이션에서 3D 모델을 조금 만든 다음 그 모델을 UE4 에 들여올 수가 있습니다. 사용하시는 3D 모델링 소프트웨어가 3ds Max 나 Maya 가 됐든, 다른 모델링 프로그램이 됐든, 매끄러운 전환이 가능하려면 검사해야 할 것이 몇 가지 있습니다. 먼저 모델링 도중이나 익스포트 전에 기억해 두면 좋을 것은, UE4 에 사용되는 척도는 언리얼 유닛으로, 1 언리얼 유닛은 1 센티미터입니다. 또한, UE4 에는 임포트 가능한 파일형이 제한되어 있는데, 3D 오브젝트에는 FBX 를 추천하고 있습니다. 마찬가지로 메시에 적용되는 텍스처와 머티리얼 역시도 지원되는 파일형인지 확인하시기 바랍니다.
+
+## 익스포트
+
+이 예제에서는, Maya 에서 UE4 의 레벨로 이 상자 모델을 익스포트하려 합니다.
+
+![](CrateModel.png)
+
+모델링 작업 완료후 UE4 에 임포트하기 위한 첫 단계는, 메시를 만들었던 3D 어플리케이션에서 익스포트하는 것입니다. 이 예제에서는 Maya 를 사용했지만, FBX 파일로 익스포트하는 기능이 있는 어플리케이션 아무거나 사용하셔도 됩니다. 쓰시는 어플리케이션의 파일 메뉴로 가서 **Export** 를 선택합니다.
+
+![](MayaFileMenu.png)
+
+선택한 이후, 메시를 저장하고자 하는 경로를 선택합니다. 이름을 짓고 메시를 익스포트하고자 하는 파일 유형도 선택해 주세요. (다시 한 번 말씀드리지만, FBX 를 추천합니다).
+
+![](ExportAll2.png)
+
+## 임포트
+
+3D 어플리케이션에서 메시를 익스포트했으니, 메시를 임포트해올 프로젝트가 필요합니다. 이미 작업중인 프로젝트가 있는 경우, 이 단계는 건너뛸 수 있습니다. 하지만 작업할 프로젝트가 필요한 경우, 런처를 연 다음 새로운 프로젝트를 선택하면 됩니다. 템플릿이나 **시작용 콘텐츠** 포함 여부는 이 비법 목적상 중요치 않습니다. 경로를 선택하고 저장한 다음 이름을 짓고 **프로젝트 생성** 을 클릭합니다.
+
+![](NewProjectBlank.png)
+
+프로젝트가 로드된 이후, **콘텐츠 브라우저** 를 찾습니다. **콘텐츠 브라우저** 에서 임포트하려는 메시가 저장될 폴더를 찾아갑니다. 이 예제에서는 상자 메시를 **Meshes** 라는 이름의 폴더로 임포트하겠습니다. 메시를 저장하고자 하는 폴더 안에서, 두 가지 방법 중 하나로 메시를 임포트할 수 있습니다. 첫 번째 방법은 **콘텐츠 브라우저** 폴더 내 빈 공간에 **우클릭** 한 다음 맥락 메뉴에서 **임포트...** 를 선택하는 것입니다. 또는, **콘텐츠 브라우저** 상단의 **임포트** 버튼을 클릭해도 됩니다. 아래 그림에서 초록으로 강조된 부분입니다.
+
+![](ImportContentBrowser.png)
+
+**임포트...** 옵션이나 **임포트** 버튼을 선택한 이후에는, 3D 어플리케이션에서 메시를 익스포트하여 저장한 위치로 이동합니다. 메시를 찾았으면, **더블클릭** 또는 **열기** 를 선택하여 임포트할 수 있습니다.
+
+![](OpenFBX.png)(w:720h:450)
+
+메시를 선택한 이후 파일에 **더블클릭** 하거나 **열기** 를 선택하여 임포트한 이후에는, **FBX 임포트 옵션** 메뉴가 나타납니다. 기본적으로 왼쪽의 이미지와 매우 비슷해 보일 것입니다. 하지만 오른쪽 그림에 표시된 것처럼, 메시 임포트시 가지고 놀 수 있는 옵션이 여러가지 많습니다. 이 비법 목적상 기본값 그대로 놔두고 메시를 있는 그대로 임포트하면 됩니다.
+
+![](ImportOptionsDefault.png) ![](ImportOptionsExpanded.png)(a:right)
+
+참고할 것이 몇 가지 있습니다. 스켈레탈 메시로 임포트하고자 하는 메시가 있다면, 프로세스는 매우 비슷하며, **메시** 섹션의 첫 체크박스 **Import as Skeletal** (스켈레탈로 임포트) 옵션이 체크되었는지 확인만 하면 됩니다. 지금은 스태틱 메시로 임포트할 것이기 때문에, 그 옵션은 해제된 상태로 놔두겠습니다. 또한 여러가지 다른 메시에 이 과정을 반복하는 것 보다는, 지난 번 단계에서 했던 것처럼 임포트할 메시를 하나 선택하는 대신 둘 이상 선택해도 됩니다. 그렇게 한 다음 **임포트** 를 클릭하면 각 메시에 대해 임포트 옵션을 선택할 수 있고, **모두 임포트** 를 클릭하면 모두 같은 옵션으로 임포트할 수도 있습니다.
+
+**임포트** 를 클릭하면, **콘텐츠 브라우저** 안에 **임포트** 를 선택했을 때 있었던 폴더 안에 메시가 나타납니다. 참고로 메시를 하나 이상 임포트한 경우, **임포트** 를 클릭하면 또다른 **FBX 임포트 옵션** 메뉴가 나타납니다. 이 예제에서는 메시를 하나만 임포트했으므로, **임포트** 든 **모두 임포트** 든 같은 결과가 나며, **콘텐츠 브라우저** 로 되돌아옵니다. 또 메시를 임포트할 때, 개본적으로 **FBX 임포트 옵션** 에서 **Import Materials** (머티리얼 임포트) 와 **Import Textures** (텍스처 임포트) 둘 다 _true_ 로 체크되어 있어서, 3D 어플리케이션에서 메시에 적용한 머티리얼이나 텍스처도 같이 임포트됩니다. 썸네일 하단 다양한 색의 바를 통해 애셋의 유형을 알 수 있습니다. 하단이 연파랑색 바인 애셋은 스태틱 메시입니다.
+
+![](AfterMeshIsImported.png)
+
+UE4 에 메시를 임포트하여 저장했으니, 이제 레벨에 사용할 수 있습니다. 다른 애셋과 마찬가지로 **콘텐츠 브라우저** 에서 끌어 뷰포트에 놓기만 하면 됩니다.

@@ -1,0 +1,40 @@
+INTSourceChangelist:2087244
+Availability:Public
+Title:페르소나 애셋 브라우저
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터의 애셋 브라우저 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AssetBrowser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AssetBrowser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AssetBrowser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Overview]
+![](AssetBrowser.png)
+
+**애셋 브라우저** 패널에는 미니 **콘텐츠 브라우저** 스타일 인터페이스로 타겟 _스켈레톤_ 에 대해 쓸 수 있는
+_애님 시퀀스_, _블렌드 스페이스_, _애님 몽타주_, _에임 오프셋 블렌드 스페이스_ 가 표시됩니다.
+[/EXCERPT:Overview]
+
+**애셋 브라우저** 패널은 페르소나가 **애니메이션** 모드에 있을 때만 보입니다.
+
+| 동작 | 설명 |
+| ---- | ---- |
+| **애셋 클릭** | 그 애셋을 선택하여 미리보기 뷰포트에 띄웁니다. |
+| **애셋 더블클릭** | 그 애셋을 선택하고 **애님 애셋 디테일** 패널과 **애셋 에디터** 에 그 프로퍼티를 표시합니다. 자세한 정보는 [](Engine/Animation/Persona\AnimAssetDetails), [](Engine/Animation/Persona\AssetEditor) 문서를 참고하세요.|
+| **레벨 에디터 뷰포트에 애셋 끌어놓기 ** | 레벨 에디터 뷰포트에 해당 애셋의 인스턴스를 스켈레탈 메시 액터로 만듭니다. |

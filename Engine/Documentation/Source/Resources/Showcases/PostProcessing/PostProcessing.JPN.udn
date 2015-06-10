@@ -1,0 +1,260 @@
+﻿INTSourceChangelist:2438071
+Availability:Docs
+Title:ポストプロセス マチネの例
+Crumbs:%ROOT%, Resources
+Description:UE4 に同梱されているポストプロセス マチネ例の概観
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/Showcases/PostProcessing:title%](PostProcessing_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/PostProcessing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/PostProcessing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/Showcases/PostProcessing:title%](PostProcessing_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/Showcases/PostProcessing:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/Showcases/PostProcessing:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/Showcases/PostProcessing]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:fullwidth]
+	![](DragonFlyIntro.png)
+[/REGION]
+
+[TOC(start:2 end:3)]
+
+## 概要
+
+この例は、アンリアル・エンジン 4 で利用できるさまざまなポストプロセス技術を紹介します。ポストプロセス エフェクトは、レンダリング プロセスの最終ステップとして画像のピクセルに適用するビジュアル エフェクトのことです。全てのシーンの演算が終了後、ピクセルがスクリーンに描画される直前に適用されます。 
+
+ポストプロセス エフェクトに関する詳細は [ポストプロセス エフェクトのドキュメント](Engine/Rendering\PostProcessEffects) を参照してください。
+
+[REGION:note]
+	この例では、全てのポストプロセス エフェクトはカメラを通して適用されています。最終結果に Post Process Volumes (ポストプロセス ボリューム) は使用していません。
+[/REGION]
+
+## シーン処理の内訳
+
+紹介例のレベルを再生時に、カメラは継続的にトンボのキャラクターをパンしながら通り超えて行きます。それぞれのパスに、ポストプロセス エフェクトの異なるアプリケーションが見えます。デモを通じてレベルの光源処理が一定のままであることを理解することは重要です。変更はアニメーションのポストプロセス設定のみからもたらされます。
+
+たくさんのポストプロセス エフェクトが有効な中、以下のエフェクトが例に使用されています。
+
+* シーンカラー
+* ブルーム
+* レンズフレア
+* アンビエント オクルージョン
+* グローバル イルミネーション
+* フィールドの深度
+
+
+シーンには 97 秒間のマチネアニメーションが含まれています。ショットとショットの間をカメラがフェードしながら 8 ショットを 2 つのカメラで移動します。最初の 4 ショットは短めで、単に基礎的なポストプロセスを確立し、レベルで有効な光源処理が誇示されています。次の 3 ショットは、劇的に異なる結果を生み出すために、主に全体的な色補正の変更を行います。
+
+[REGION:imagetable]
+| [![](PPE_BaseScene.png)(w:222)](#ポストプロセスエフェクトの基礎) | [![](PPE_BW.png)(w:222)](#色補正シーン) | [![](PPE_ColorGraded.png)(w:222)](#色補正シーン) | [![](PPE_Night.png)(w:222)](#色補正シーン) |
+| :---: | :---: | :---: | :---: |
+| [ポストプロセスエフェクトの基礎](#ポストプロセスエフェクトの基礎) | [白黒](#色補正シーン) | [Color Graded](#色補正シーン) | [夜景の光源処理](#色補正シーン) | 
+[/REGION]
+
+このドキュメントでは、初めに基礎的なポストプロセス エフェクトを分析してからハイレベルなエフェクトについて紹介していきます。次にシーケンスを通じて、ショットの雰囲気を劇的に変化させるための色補正の利用方法について触れていきます。それぞれの技術に関するより詳細な情報は[the Post Process Effects documentation.](Engine/Rendering\PostProcessEffects) を参照してください。
+
+
+
+
+
+
+## ポストプロセスエフェクトの基礎
+
+
+
+レベルの再生時に見られる最初の 4 つのカメラショットは、光源処理の基本的な発想を伝えるために確立されたショットです。しかし、ここでもいくつかのポストプロセス エフェクトが動作しています。この設定を実際に見てみるには、 _[ワールドアウトライナー]_ パネルから **Camera Actor 2** を選択します。以下のセクションは最終結果に反映されているそれぞれのポストプロセス エフェクトへ分類されています。
+
+
+
+
+[REGION:topics fifth]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\SceneColor:title%](SceneColor_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\SceneColor:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\SceneColor]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\Bloom:title%](Bloom_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\Bloom:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\Bloom]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\AmbientOcclusion:title%](AmbientOcclusion_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\AmbientOcclusion:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\AmbientOcclusion]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\GlobalIllumination:title%](GI_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\GlobalIllumination:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\GlobalIllumination]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\DepthOfField:title%](DOF_Intro.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\DepthOfField:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\DepthOfField]
+	[/PARAM]
+[/OBJECT]
+
+
+
+[/REGION]
+
+
+
+
+##色補正シーン
+
+シーケンスの最初の数ショット後のポストエフェクトはより印象的になります。完全な白黒へとすっかり彩度が減じられたシーンの後に、カラーを入念に和らげ彩度を半分減じたショットへ移動、そして月明かりに照らされた夜のショットへと続きます。以下のセクションで各シーンがどのように作成されたか理解が深まります。
+
+[REGION:topics third]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\BWScene:title%](topic_BW.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\BWScene:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\BWScene]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\ColorGradedScene:title%](topic_ColorGraded.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\ColorGradedScene:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\ColorGradedScene]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\NightScene:title%](topic_Night.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\NightScene:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\NightScene]
+	[/PARAM]
+[/OBJECT]
+
+[/REGION]
+
+
+## マチネ
+
+このシーンにおけるポストプロセス エフェクトが印象的であるのは、シーンの最終仕上がりはマチネが提供するアニメーションなしには実現しないからです。次のセクションではマチネでポストプロセス エフェクトをアニメートする方法と、独自にシーンを分解するためにマチネを **[詳細]** パネルと一緒に使用する方法を紹介していきます。
+
+このシーンでは単一のマチネオブジェクトに二つのカメラが追加されています。時間と共に変化する各プロパティに浮動プロパティトラックが追加されます。彩度を減じたカメラから夜のショットへ基本カメラの切り替えを実行するためにDirector トラックも使用しています。
+
+マチネに関する詳細は、[マチネのドキュメント](Engine/Matinee) を参照してください。
+
+[REGION:topics half]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\MatineeSetup:title%](topic_MatineeSetup.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\MatineeSetup:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\MatineeSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\Showcases\PostProcessing\MatineeDeconstruction:title%](topic_MatineeDecon.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\Showcases\PostProcessing\MatineeDeconstruction:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\Showcases\PostProcessing\MatineeDeconstruction]
+	[/PARAM]
+[/OBJECT]
+
+
+
+[/REGION]
+
+## 関連トピック
+
+*  [ポストプロセスのエフェクト](Engine/Rendering\PostProcessEffects)
+* [マチネ](Engine/Matinee)
+

@@ -31,7 +31,6 @@ public:
 		, _BorderForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		, _BorderBackgroundColor(FLinearColor::White)
 		, _UndeterminedString( SNumericEntryBox<NumericType>::DefaultUndeterminedString )
-		, _Font( FCoreStyle::Get().GetFontStyle( TEXT("NormalFont") ) )
 		, _AllowSpin(false)
 		, _Delta(0)
 		, _MinValue(TNumericLimits<NumericType>::Lowest())
@@ -86,7 +85,9 @@ public:
 		/** Called right after the slider handle is released by the user */
 		SLATE_EVENT( FOnValueChanged, OnEndSliderMovement )		
 		/** Menu extender for right-click context menu */
-		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )		
+		SLATE_EVENT( FMenuExtensionDelegate, ContextMenuExtender )
+		/** Provide custom type conversion functionality to this spin box */
+		SLATE_ARGUMENT( TSharedPtr< INumericTypeInterface<NumericType> >, TypeInterface )
 
 	SLATE_END_ARGS()
 	SNumericEntryBox()
@@ -109,12 +110,14 @@ public:
 		BorderImageFocused = &InArgs._EditableTextBoxStyle->BackgroundImageFocused;
 		const FMargin& TextMargin = InArgs._EditableTextBoxStyle->Padding;
 		
+		Interface = InArgs._TypeInterface.IsValid() ? InArgs._TypeInterface : MakeShareable( new TDefaultNumericTypeInterface<NumericType> );
+
 		TSharedPtr<SWidget> FinalWidget;
 		if( bAllowSpin )
 		{
 			SAssignNew( SpinBox, SSpinBox<NumericType> )
 				.Style( FCoreStyle::Get(), "NumericEntrySpinBox" )
-				.Font( InArgs._Font )
+				.Font( InArgs._Font.IsSet() ? InArgs._Font : InArgs._EditableTextBoxStyle->Font )
 				.ContentPadding( TextMargin )
 				.Value( this, &SNumericEntryBox<NumericType>::OnGetValueForSpinBox )
 				.Delta( InArgs._Delta )
@@ -127,14 +130,15 @@ public:
 				.SliderExponent(InArgs._SliderExponent)
 				.OnBeginSliderMovement(InArgs._OnBeginSliderMovement)
 				.OnEndSliderMovement(InArgs._OnEndSliderMovement)
-				.MinDesiredWidth(InArgs._MinDesiredValueWidth);
+				.MinDesiredWidth(InArgs._MinDesiredValueWidth)
+				.TypeInterface(Interface);
 		}
 
 		// Always create an editable text box.  In the case of an undetermined value being passed in, we cant use the spinbox.
 		SAssignNew( EditableText, SEditableText )
 			.Text( this, &SNumericEntryBox<NumericType>::OnGetValueForTextBox )
 			.Visibility( bAllowSpin ? EVisibility::Collapsed : EVisibility::Visible )
-			.Font( InArgs._Font )
+			.Font( InArgs._Font.IsSet() ? InArgs._Font : InArgs._EditableTextBoxStyle->Font )
 			.SelectAllTextWhenFocused( true )
 			.ClearKeyboardFocusOnCommit( false )
 			.OnTextChanged( this, &SNumericEntryBox<NumericType>::OnTextChanged  )
@@ -295,8 +299,7 @@ private:
 			// If the value was set convert it to a string, otherwise the value cannot be determined
 			if( Value.IsSet() == true )
 			{
-				auto CurrentValue = Value.GetValue();
-				NewText = FText::FromString(TTypeToString<NumericType>::ToSanitizedString(CurrentValue));
+				NewText = FText::FromString(Interface->ToString(Value.GetValue()));
 			}
 			else
 			{
@@ -377,34 +380,19 @@ private:
 		{
 			if( bCommit )
 			{
-				bool bEvalResult = false;
-				NumericType NumericValue = 0;
-
-				// Convert string to an underlying type in case text is not math equation
-				// Try to parse equation otherwise
-				if ( NewValue.IsNumeric() )
+				TOptional<NumericType> NumericValue = Interface->FromString(NewValue.ToString());
+				if( NumericValue.IsSet() )
 				{
-					TTypeFromString<NumericType>::FromString( NumericValue, *NewValue.ToString() );
-					bEvalResult = true;
-				}
-				else
-				{
-					// Only evaluate equations on commit or else they could fail because the equation is still being typed
-					float Value = 0.f;
-					bEvalResult = FMath::Eval( NewValue.ToString(), Value );
-					NumericValue = NumericType(Value);
-				}
-				
-				if( bEvalResult )
-				{
-					OnValueCommitted.ExecuteIfBound(NumericValue, CommitInfo );
+					OnValueCommitted.ExecuteIfBound(NumericValue.GetValue(), CommitInfo );
 				}
 			}
-			else if( NewValue.IsNumeric() )
+			else
 			{
-				NumericType Value = 0;
-				TTypeFromString<NumericType>::FromString( Value, *NewValue.ToString() );
-				OnValueChanged.ExecuteIfBound( Value );
+				NumericType NumericValue;
+				if( LexicalConversion::TryParseString(NumericValue, *NewValue.ToString()) )
+				{
+					OnValueChanged.ExecuteIfBound( NumericValue );
+				}
 			}
 		}
 	}
@@ -461,6 +449,8 @@ private:
 	const FSlateBrush* BorderImageFocused;
 	/** Prevents the value portion of the control from being smaller than desired in certain cases. */
 	TAttribute<float> MinDesiredValueWidth;
+	/** Type interface that defines how we should deal with the templated numeric type. Always valid after construction. */
+	TSharedPtr< INumericTypeInterface<NumericType> > Interface;
 };
 
 

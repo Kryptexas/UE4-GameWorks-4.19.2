@@ -7,7 +7,7 @@
 // This number identifies a particular API revision, and is used to determine module compatibility. Hotfixes should retain the API version of the original release.
 // This define is parsed by the build tools, and should be a number or BUILT_FROM_CHANGELIST.
 #if BUILT_FROM_CHANGELIST > 0
-#define MODULE_API_VERSION 2455222
+#define MODULE_API_VERSION BUILT_FROM_CHANGELIST
 #else
 #define MODULE_API_VERSION 0
 #endif

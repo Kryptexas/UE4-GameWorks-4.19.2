@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:2033300
+Availability:Public
+Title:シェアード ポインタ
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
+Description:共有のオーナーシップ、自動的な無効化、弱い参照などをサポートするスマートポインタ
+
+[TOC(start:2)]
+
+**シェアードポインタ** は、非侵入型、参照重視のスマートポインタの特別なタイプで、強い参照と弱い参照両方をサポートします。シェアードポインタは本質的に、スマートポインタの全ての基本的なメリットを持ち、メモリーリークや未初期化のメモリなどを防ぎます。同時に以下のような追加機能もあります。
+
+* 共有のオーナーシップ - 参照カウント
+* 自動無効化 - volatile なオブジェクトを安全に参照できます。
+* 弱い参照 - [](Programming/UnrealArchitecture/SmartPointerLibrary/WeakPointer) を介して循環参照を回避します。
+* プログラマの目的表示の改善 - オブザーバーとオーナーを区別し、non-nullable 型の参照を提供します。( [](Programming/UnrealArchitecture/SmartPointerLibrary/SharedReference) )
+
+
+シェアードポインタのその他の基本性質
+
+* 非常に堅牢なシンタックス
+* 非侵入型 (しかしリフレクションは可能) 
+* スレッドセーフ (条件付き)
+* 優れたパフォーマンス、メモリへの負担が軽減
+
+
+## 宣言と初期化
+
+共有の参照は常に有効なオブジェクトと初期化され、初期化せずに宣言することはできません。
+
+新規シェアードポインタの作成例：
+
+	// 空のシェアードポインタを作成
+	TSharedPtr<FTreeNode> EmptyNode;
+
+	// 新規オブジェクトにシェアードポインタを作成
+	TSharedPtr<FTreeNode> Node( new FTreeNode() );
+
+2 番めの例では、新しい FTreeNodeオブジェクトは、オブジェクトを指すシェアードポインタによって実際に所有されています。シェアードポインタのスコープが外れると、オブジェクトは破壊されます。
+
+シェアードポインタをコピーすると、ポインタが指しているオブジェクトへの参照が追加されます。
+
+	TSharedPtr<FTreeNode> OtherNodeRef = Node;
+
+参照しているシェアードポインタがなくなるまでオブジェクトは存在し続けます。
+
+シェアードポインタは、`Reset()` メソッドまたは NULL をアサインしてリセットできます。
+
+	Node.Reset();
+	Node = NULL;
+
+## 逆参照とアクセス
+
+ポインタの逆参照、呼出し方法、そしてメンバへのアクセスは、通常の C++ ポインタと同じ方法で設定します。
+
+	Node->ListChildren();
+	Node.Get()->ListChildren();
+	( *Node ).ListChildren();
+
+## 比較
+
+シェアードポインタの品質をテストできます。すなわち、ポインタが同じオブジェクトを指しているかなどです。
+
+	TSharedPtr<FTreeNode NodeA, NodeB;
+
+	if( NodeA == NodeB )
+	{
+		...
+	}
+
+シェアードポインタは、`IsValid()` 手法または生のポインタへのアクセスを使用して NULL をテストしたり、比較を実行します。
+
+	if( Node.IsValid() )
+	{
+		...
+	}
+
+	if( Node.Get() != NULL )
+	{
+		...
+	}
+
+## 変換
+
+暗黙の変換は非常に危険なため禁止されています。例えば以下はコンパイルされません。
+
+	TSharedPtr<float> Height = 45.0f;
+
+しかし、`MakeShareable()`手法で明示的な変換ができます。
+
+	TSharedPtr<float> Height = MakeShareable( new float( 45.0f ) );
+

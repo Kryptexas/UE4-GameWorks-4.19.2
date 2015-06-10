@@ -1,0 +1,40 @@
+Availability: Docs
+Title:7. Further Reading
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:Further reading on the topics covered in the Artist Quick Start Guide.
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+For more information on the topics covered in this quick start guide, and across the entire editor, see the [**Unreal Editor Manual**](Engine).
+
+As for specifics covered in this quick start:
+
+* For more information on the FBX pipeline, see: [**%Engine/Content/FBX:title%**](Engine/Content/FBX)
+
+* For more information on supported image types, see: [**%Engine/Content/Types/Textures/Importing:title%**](Engine/Content/Types/Textures/Importing)
+
+* For more information on Materials, see: [**Materials Landing Page**](Engine/Rendering/Materials)
+
+* For more information on the **Content Browser**, see: [**Content Browser**](Engine\Content\Browser)
+
+* For more information on the Static Mesh Editor, see: [**Static Mesh Editor**](Engine/Content/Types/StaticMeshes/Editor)
+
+
+%Steps%

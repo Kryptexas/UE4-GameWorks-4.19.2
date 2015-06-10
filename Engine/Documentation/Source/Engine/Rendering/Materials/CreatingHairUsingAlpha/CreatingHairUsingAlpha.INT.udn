@@ -1,0 +1,65 @@
+Availability: Docs
+Title:Creating Hair: Materials and Meshes
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:Technique for creating hair using translucency and anisotropic lighting.
+
+[REGION:todo]
+	This page is converted from Unreal Engine 3 documentation and currently being reviewed. Information may be outdated.
+[/REGION]
+
+[TOC(start:2)]
+
+
+
+## Overview
+
+This page has been updated with the latest method for creating a hair material using Translucent blend modes and Anisotropic lighting model.
+
+
+
+## Screenshots
+
+[REGION:fullwidth]
+![Hair_01.jpg](Hair_01.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_02.jpg](Hair_02.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_03.jpg](Hair_03.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_04.jpg](Hair_04.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_05.jpg](Hair_05.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_06.jpg](Hair_06.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![updatedHairMaterial.jpg](updatedHairMaterial.jpg)
+[/REGION]
+
+
+[REGION:fullwidth]
+![Hair_07.jpg](Hair_07.jpg)
+[/REGION]
+
+ 
+
+
+
+

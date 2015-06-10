@@ -1,0 +1,56 @@
+Availability: Docs
+Title: Commandlets
+Crumbs: %ROOT%, Engine
+Description:Command-line programs that run within the Unreal Engine environment, generally used to analyze or perform actions on packages and maps.
+
+
+[REGION:header_img]
+![commandlets.jpg](commandlets.jpg)
+[/REGION]
+
+Commandlets are command line programs that run inside of the Unreal Engine environment. They are most often used to make bulk changes to content, iterate over content to get information about it, or as a unit testing mechanism. The engine contains many commandlets by default and new commandlets can be added to perform additional functions.
+
+Commandlets are executed by passing the name of the commandlet along with any necessary parameters to the game on the command line, either by running the game from a command prompt in Windows or through the **target** of a shortcut to the executable (i.e. UE4Editor.exe).
+
+For example, the UE4 **FixupRedirects** commandlet can be run from the command line using the following:
+
+    UE4.exe -run=fixupredirects
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Reference
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Commandlets/CommandletList "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/BatchExport "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/ContentAudit "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/ContentComparison "%Engine/Commandlets/ContentComparison:Description%")
+		* [](Engine/Commandlets/DeleteQuarantinedContent "%Engine/Commandlets/DeleteQuarantinedContent:Description%")
+		* [](Engine/Commandlets/FixUpRedirects "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/Help "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/MineCookedPackages "%Engine/Commandlets/CommandletList:Description%")
+		* [](Engine/Commandlets/SetTextureLODGroup "%Engine/Commandlets/CommandletList:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[PUBLISH:Docs]
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Technical
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/Tools/Commandlets/MakingACommandlet "%Programming/Development/Tools/Commandlets/MakingACommandlet:Description%")
+	[/PARAM]
+[/OBJECT]
+[/PUBLISH:Docs]

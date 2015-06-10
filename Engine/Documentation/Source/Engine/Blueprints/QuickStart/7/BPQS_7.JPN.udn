@@ -1,0 +1,51 @@
+﻿INTSourceChangelist:2465824
+Availability:Public
+Title:7.応用編
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:コンテンツのクイックスタートガイドで扱ったトピックに関する参考文献
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタートのホーム画面](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+クイックスタートガイドを通じて学んだ知識を活かして、以下の操作をしてみましょう。
+
+* キャラクターを起動時に [Audio Component](Engine/Components/Audio) を使用してサウンドを再生します。
+* Launch Velocity を格納する [変数](Engine/Blueprints/UserGuide/Variables) を作成して、レベル内の各コピーにこの変数を設定できるように公開します。
+* ブループリントに [パーティクルシステムコンポーネント](Engine/Components/Rendering#particlesystemcomponent) を追加して、スターターコンテンツから [パーティクルシステム](Engine/Rendering/ParticleSystems) を1つ使用します。
+* [Arrow Component](Engine/Components/Shapes) を追加して、キャラクターを起動する方向を定義するためにコンポーネントの回転を使用します。
+* [Timelines](Engine/Blueprints/UserGuide/Timelines) を使用して、キャラクターの起動を表現するために Box Mesh にアニメーションをいくつか追加します。
+
+ブループリントビジュアルスクリプティングに関する詳細は、 [](Engine/Blueprints) ページを参照してください。
+
+このクイックスタートガイドで取り上げている詳細は以下の通りです。
+
+* 種類の異なる Blueprint クラスを作成するための簡単な概要は [](Engine\Blueprints\GettingStarted) を参照してください。
+
+* Blueprint クラスに関する詳細は [](Engine\Blueprints\UserGuide\Types\ClassBlueprint) を参照してください。
+
+* Blueprint クラス の作成と作業に関する簡単なチュートリアルは [](Engine\Blueprints\BP_HowTo) を参照してください。
+
+* ブループリントエディタに関する詳細は [](Engine\Blueprints\Editor) を参照してください。
+
+
+---
+
+%Steps%

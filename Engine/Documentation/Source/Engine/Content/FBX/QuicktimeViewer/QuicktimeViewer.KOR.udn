@@ -1,0 +1,78 @@
+﻿INTSourceChangelist:2511763
+Availability: Public
+Title:퀵타임으로 FBX 보기
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:퀵타임 FBX 뷰어를 사용해서 스켈레탈 메시와 애니메이션을 미리보는 방법 안내서입니다.
+ 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/QuicktimeViewer:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/QuicktimeViewer:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/QuicktimeViewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/QuicktimeViewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+
+## 개요
+
+
+FBX 파일을 보려면 종종 자주 쓰는 3D 콘텐츠 제작 프로그램으로 임포트한 다음 그 안에서 봐야 했습니다. 그러나 이마저도 3D 모델링 작업을 하지 않는 경우, 보통 프로그래머의 경우라면 문제가 될 수 있습니다. 다행히도 오토데스크가 3D 콘텐츠 제작 프로그램을 설치하지 않고도 FBX 파일을 볼 수 있도록 해 주는 퀵타임용 플러그인을 만들었습니다.
+
+
+## 플러그인과 퀵타임 내려받기
+
+[오토데스크 웹사이트](http://usa.autodesk.com/adsk/servlet/pc/item?siteID=123112&id=22694824) 에서 최신 플러그인을 받으실 수 있습니다. 윈도우용과 맥용 둘 다 있습니다.
+
+퀵타임이 설치되어 있지 않으면, [애플 웹사이트](http://www.apple.com/quicktime/download/) 에서 내려받은 다음 설치하면 됩니다.
+
+
+## FBX 파일 열기
+
+플러그인은 퀵타임이 볼 수 있는 파일 목록에 확장자를 추가하지 않습니다. 대신 "All File(<literal>*.*</literal>)" 옵션을 선택하면 FBX 파일이 보일 테니 거기서 FBX 파일을 더블클릭하거나 클릭한 다음 Open 을 선택하면 됩니다.
+
+![QTFBX_OpeningFiles.jpg](QTFBX_OpeningFiles.jpg)(w:664 h:636)
+
+
+## 애니메이션 재생하기
+
+퀵타임 안에서 FBX 파일을 볼 때 시간선을 문대거나 Play 버튼을 누르는 것으로 애니메이션을 재생할 수 있습니다.
+
+![QTFBX_PlayingAnimations.png](QTFBX_PlayingAnimations.png)
+
+
+## 다른 조작법
+
+자세한 조작법 관련 정보는 플러그인의 리드미 파일에서 찾으실 수 있습니다만, 편의를 위해 여기에 조금 나열해 보겠습니다.
+
+![QTFBX_OpenedFBX.png](QTFBX_OpenedFBX.png)
+
+
+* *카메라 로테이션* - 뷰포트 안에 좌클릭한 상태에서 마우스를 끌면 카메라를 회전합니다.
+* *카메라 패닝* - 뷰포트 안에 Shift 키 + 좌클릭한 상태에서 마우스를 끌면 카메라를 패닝합니다.
+* *카메라 주밍* - 뷰포트 안에 Z 키 + 좌클릭한 상태에서 마우스를 앞뒤로 끌면 카메라를 주밍합니다.
+* *카메라 뷰 순환* - C 키를 치면 카메라 뷰 모드를 순환식으로 전환합니다.
+* *도움말* - H 키를 치면 도움말 옵션이 표시됩니다.
+
+
+![QTFBX_PressHForHelp.png](QTFBX_PressHForHelp.png)
+
+ 
+
+
+
+
+ 

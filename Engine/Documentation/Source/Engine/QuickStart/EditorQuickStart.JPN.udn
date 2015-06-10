@@ -1,0 +1,65 @@
+﻿INTSourceChangelist:2465567
+Availability:Public
+Title:レベル デザイナ向けクイックスタート
+Crumbs: %ROOT%, GettingStarted
+Description:アンリアルエディタの基礎を用いて作業を開始します。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](engine_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](engine_qs_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+![](Engine\QuickStart\6\built.png)(w:940)
+
+アンリアル エディタのクイックスタートガイドでは、新規プロジェクトの作成、ビューポートのナビゲーション、新規レベルの作成、アクタのレベル内への配置と編集に加えて、レベルのビルドと実行など、アンリアル エンジン 4 の基本操作に関して説明します。ガイドを終える頃には、上図のような部屋が出来上がります。本ガイドの最終ステップでは、自分の知識を応用して仕上げ、また関連するトピックスへのリンクも紹介します。 
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		ステップ
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/QuickStart/1 "%Engine/QuickStart/1:description%")
+	* [](Engine/QuickStart/2 "%Engine/QuickStart/2:description%")
+	* [](Engine/QuickStart/3 "%Engine/QuickStart/3:description%")
+	* [](Engine/QuickStart/4 "%Engine/QuickStart/4:description%")
+	* [](Engine/QuickStart/5 "%Engine/QuickStart/5:description%")
+	* [](Engine/QuickStart/6 "%Engine/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

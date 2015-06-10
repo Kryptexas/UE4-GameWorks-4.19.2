@@ -15,7 +15,7 @@
 
 #if WITH_EDITOR
 #define MAC_OPENGL_SETTINGS TEXT("/Script/MacGraphicsSwitching.MacGraphicsSwitchingSettings")
-#define MAC_OPENGL_INI GEditorGameAgnosticIni
+#define MAC_OPENGL_INI GEditorSettingsIni
 #else
 #define MAC_OPENGL_SETTINGS TEXT("OpenGL")
 #define MAC_OPENGL_INI GEngineIni
@@ -155,13 +155,9 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 			}
 		}
 	}
-	
+
 	int32 SyncInterval = 0;
 	[Context setValues: &SyncInterval forParameter: NSOpenGLCPSwapInterval];
-	
-	// Setup Opacity - can't change it dynamically later!
-	int32 SurfaceOpacity = 0;
-	[Context setValues: &SurfaceOpacity forParameter: NSOpenGLCPSurfaceOpacity];
 
 	extern int32 GMacUseMTGL;
 	if (GMacUseMTGL)
@@ -206,17 +202,20 @@ void MacOpenGLContextReconfigurationCallBack(CGDirectDisplayID Display, CGDispla
 
 FPlatformOpenGLContext::FPlatformOpenGLContext()
 : OpenGLContext(nil)
+, OpenGLPixelFormat(nil)
 , OpenGLView(nil)
 , WindowHandle(nil)
 , EmulatedQueries(nullptr)
 , VertexArrayObject(0)
 , ViewportFramebuffer(0)
+, ViewportRenderbuffer(0)
 , SyncInterval(0)
 , VirtualScreen(0)
 , VendorID(0)
 , RendererID(0)
 , SupportsDepthFetchDuringDepthTest(true)
 {
+	FMemory::Memzero(ViewportSize);
 }
 
 FPlatformOpenGLContext::~FPlatformOpenGLContext()
@@ -232,6 +231,13 @@ FPlatformOpenGLContext::~FPlatformOpenGLContext()
 		bMadeCurrent = true;
 	}
 	
+	if (ViewportRenderbuffer)
+	{
+		// this can be done from any context, as long as it's not nil.
+		glDeleteRenderbuffers(1, &ViewportRenderbuffer);
+		ViewportRenderbuffer = 0;
+	}
+
 	if (ViewportFramebuffer)
 	{
 		// this can be done from any context, as long as it's not nil.
@@ -280,6 +286,7 @@ void FPlatformOpenGLContext::Initialise( NSOpenGLContext* const SharedContext )
 	if ( !OpenGLContext )
 	{
 		OpenGLContext = CreateContext(SharedContext);
+		OpenGLPixelFormat = PixelFormat;
 	}
 	check(OpenGLContext);
 	
@@ -319,13 +326,22 @@ void FPlatformOpenGLContext::Reset(void)
 		bMadeCurrent = true;
 	}
 	
+	FMemory::Memzero(ViewportSize);
+	
+	if (ViewportRenderbuffer)
+	{
+		// this can be done from any context, as long as it's not nil.
+		glDeleteRenderbuffers(1, &ViewportRenderbuffer);
+		ViewportRenderbuffer = 0;
+	}
+
 	if (ViewportFramebuffer)
 	{
 		// this can be done from any context, as long as it's not nil.
 		glDeleteFramebuffers(1, &ViewportFramebuffer);
 		ViewportFramebuffer = 0;
 	}
-	
+
 	[OpenGLContext clearDrawable];
 	
 	if ( OpenGLView )
@@ -387,14 +403,14 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 		bool const bGPUChange = (GMacUseAutomaticGraphicsSwitching || GMacUseMultipleGPUs && GMacExplicitRendererID);
 		if(bGPUChange && RendererID != RendererToMatch)
 		{
-			CGLPixelFormatObj PixelFormat = CGLGetPixelFormat(Current);
+			CGLPixelFormatObj CurrentPixelFormat = CGLGetPixelFormat(Current);
 			GLint NumVirtualScreens = 0;
-			CGLDescribePixelFormat(PixelFormat, 0, kCGLPFAVirtualScreenCount, &NumVirtualScreens);
+			CGLDescribePixelFormat(CurrentPixelFormat, 0, kCGLPFAVirtualScreenCount, &NumVirtualScreens);
 			if(NumVirtualScreens > 1)
 			{
 				for(GLint i = 0; i < NumVirtualScreens; i++)
 				{
-					CGLDescribePixelFormat(PixelFormat, i, kCGLPFARendererID, &RendererID);
+					CGLDescribePixelFormat(CurrentPixelFormat, i, kCGLPFARendererID, &RendererID);
 					if(RendererID == RendererToMatch)
 					{
 						CGLSetVirtualScreen(Current, i);

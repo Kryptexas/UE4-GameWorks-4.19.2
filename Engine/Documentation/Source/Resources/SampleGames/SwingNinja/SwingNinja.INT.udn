@@ -1,0 +1,11 @@
+Availability: Docs
+Title:Swing Ninja Sample
+Crumbs:%ROOT%, Resources
+Description:Documentation covering the Swing Ninja Game.
+
+[REGION:banner]
+![](SwingNinjaBanner.png)
+[/REGION]
+
+**Swing Ninja** is a simplified demo sample game in which the player controls a ninja character who uses a grappling rope to sling himself around the level, collecting coins. The game was constructed entirely with Blueprint visual scripting and developed by a single artist, instead of a programmer. The goal of the project was to produce a simplified proof of concept game with a focus on small team development for mobile platforms.
+

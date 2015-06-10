@@ -26,6 +26,7 @@ struct FOpenGL3 : public FOpenGLBase
 	static FORCEINLINE bool AmdWorkaround()							{ return bAmdWorkaround; }
 	static FORCEINLINE bool SupportsTessellation()					{ return bSupportsTessellation; }
 	static FORCEINLINE bool SupportsTextureSwizzle()				{ return true; }
+	static FORCEINLINE bool SupportsSeparateShaderObjects()			{ return bSupportsSeparateShaderObjects; }
 
 	// Optional
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
@@ -129,16 +130,13 @@ struct FOpenGL3 : public FOpenGLBase
 				break;
 			case RLM_WriteOnly:
 				Access = (GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_WRITE_BIT);
-#if !PLATFORM_MAC // On OS X using the UNSYNCHRONIZED_BIT here is unsafe & out-of-spec. which will lead to corrupt rendering when using MTGL.
+#if 1
 				// Temp workaround for synchrnoization when a UBO is discarded while being referenced
 				Access |= GL_MAP_UNSYNCHRONIZED_BIT;
 #endif
 				break;
 			case RLM_WriteOnlyUnsynchronized:
 				Access = (GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-#if PLATFORM_MAC
-				Access |= GL_MAP_INVALIDATE_RANGE_BIT;
-#endif
 				break;
 			case RLM_WriteOnlyPersistent:
 				Access = (GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
@@ -415,6 +413,43 @@ struct FOpenGL3 : public FOpenGLBase
 	{
 		glCopyBufferSubData(ReadTarget, WriteTarget, ReadOffset, WriteOffset, Size);
 	}
+	
+	static FORCEINLINE GLuint CreateShader(GLenum Type)
+	{
+#if USE_OPENGL_NAME_CACHE
+		static TMap<GLenum, TArray<GLuint>> ShaderNames;
+		TArray<GLuint>& Shaders = ShaderNames.FindOrAdd(Type);
+		if(!Shaders.Num())
+		{
+			while(Shaders.Num() < OPENGL_NAME_CACHE_SIZE)
+			{
+				GLuint Resource = glCreateShader(Type);
+				Shaders.Add(Resource);
+			}
+		}
+		return Shaders.Pop();
+#else
+		return glCreateShader(Type);
+#endif
+	}
+	
+	static FORCEINLINE GLuint CreateProgram()
+	{
+#if USE_OPENGL_NAME_CACHE
+		static TArray<GLuint> ProgramNames;
+		if(!ProgramNames.Num())
+		{
+			while(ProgramNames.Num() < OPENGL_NAME_CACHE_SIZE)
+			{
+				GLuint Resource = glCreateProgram();
+				ProgramNames.Add(Resource);
+			}
+		}
+		return ProgramNames.Pop();
+#else
+		return glCreateProgram();
+#endif
+	}
 
 	static FORCEINLINE void GenBuffers( GLsizei n, GLuint *buffers)
 	{
@@ -512,12 +547,187 @@ struct FOpenGL3 : public FOpenGLBase
 		glGetIntegerv(GL_MINOR_VERSION, &MinorVersion);
 		return MinorVersion;
 	}
+	static FORCEINLINE void ProgramParameter (GLuint Program, GLenum PName, GLint Value)
+	{
+		check(FOpenGL3::SupportsSeparateShaderObjects());
+		glProgramParameteri(Program, PName, Value);
+	}
+	static FORCEINLINE void UseProgramStages(GLuint Pipeline, GLbitfield Stages, GLuint Program)
+	{
+		if(FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glUseProgramStages(Pipeline, Stages, Program);
+		}
+		else
+		{
+			glAttachShader(Pipeline, Program);
+		}
+	}
+	static FORCEINLINE void BindProgramPipeline(GLuint Pipeline)
+	{
+		if(FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glBindProgramPipeline(Pipeline);
+		}
+		else
+		{
+			glUseProgram(Pipeline);
+		}
+	}
+	static FORCEINLINE void DeleteShader(GLuint Program)
+	{
+		if(FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			GLsizei NumShaders = 0;
+			glGetProgramiv(Program, GL_ATTACHED_SHADERS, (GLint*)&NumShaders);
+			if(NumShaders > 0)
+			{
+				GLuint* Shaders = (GLuint*)FMemory::Malloc(sizeof(GLuint) * NumShaders);
+				glGetAttachedShaders(Program, NumShaders, &NumShaders, Shaders);
+				for(int32 i = 0; i < NumShaders; i++)
+				{
+					glDetachShader(Program, Shaders[i]);
+					glDeleteShader(Shaders[i]);
+				}
+				FMemory::Free(Shaders);
+			}
+			
+			glDeleteProgram(Program);
+		}
+		else
+		{
+			glDeleteShader(Program);
+		}
+	}
+	static FORCEINLINE void DeleteProgramPipelines(GLsizei Number, const GLuint *Pipelines)
+	{
+		if(FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glDeleteProgramPipelines(Number, Pipelines);
+		}
+		else
+		{
+			for(GLsizei i = 0; i < Number; i++)
+			{
+				glDeleteProgram(Pipelines[i]);
+			}
+		}
+	}
+	static FORCEINLINE void GenProgramPipelines(GLsizei Number, GLuint *Pipelines)
+	{
+		if(FOpenGL3::SupportsSeparateShaderObjects())
+		{
+#if USE_OPENGL_NAME_CACHE
+			if ( Number < OPENGL_NAME_CACHE_SIZE - NextPipelineName)
+			{
+				FMemory::Memcpy( Pipelines, &PipelineNamesCache[NextPipelineName], sizeof(GLuint)*Number);
+				NextPipelineName += Number;
+			}
+			else
+			{
+				if ( Number >= OPENGL_NAME_CACHE_SIZE)
+				{
+					glGenProgramPipelines(Number, Pipelines);
+				}
+				else
+				{
+					GLsizei Leftover = OPENGL_NAME_CACHE_SIZE - NextPipelineName;
+
+					FMemory::Memcpy( Pipelines, &PipelineNamesCache[NextPipelineName], sizeof(GLuint)*Leftover);
+
+					glGenProgramPipelines( OPENGL_NAME_CACHE_SIZE, PipelineNamesCache);
+
+					Number -= Leftover;
+					Pipelines += Leftover;
+
+					FMemory::Memcpy( Pipelines, PipelineNamesCache, sizeof(GLuint)*Number);
+					NextPipelineName = Number;
+				}
+			}
+#else
+			glGenProgramPipelines(Number, Pipelines);
+#endif
+		}
+		else
+		{
+			for(GLsizei i = 0; i < Number; i++)
+			{
+				Pipelines[i] = FOpenGL3::CreateProgram();
+			}
+		}
+	}
+	static FORCEINLINE void ProgramUniform1i(GLuint Program, GLint Location, GLint V0)
+	{
+		if (FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glProgramUniform1i(Program, Location, V0);
+		}
+		else
+		{
+			glUniform1i(Location, V0);
+		}
+	}
+	static FORCEINLINE void ProgramUniform4iv(GLuint Program, GLint Location, GLsizei Count, const GLint *Value)
+	{
+		if (FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glProgramUniform4iv(Program, Location, Count, Value);
+		}
+		else
+		{
+			glUniform4iv(Location, Count, Value);
+		}
+	}
+	static FORCEINLINE void ProgramUniform4fv(GLuint Program, GLint Location, GLsizei Count, const GLfloat *Value)
+	{
+		if (FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glProgramUniform4fv(Program, Location, Count, Value);
+		}
+		else
+		{
+			glUniform4fv(Location, Count, Value);
+		}
+	}
+	static FORCEINLINE void ProgramUniform4uiv(GLuint Program, GLint Location, GLsizei Count, const GLuint *Value)
+	{
+		if (FOpenGL3::SupportsSeparateShaderObjects())
+		{
+			glProgramUniform4uiv(Program, Location, Count, Value);
+		}
+		else
+		{
+			glUniform4uiv(Location, Count, Value);
+		}
+	}
+	static FORCEINLINE void GetProgramPipelineiv(GLuint Pipeline, GLenum Pname, GLint* Params)
+	{
+		glGetProgramPipelineiv(Pipeline, Pname, Params);
+	}
+	static FORCEINLINE void ValidateProgramPipeline(GLuint Pipeline)
+	{
+		glValidateProgramPipeline(Pipeline);
+	}
+	static FORCEINLINE void GetProgramPipelineInfoLog(GLuint Pipeline, GLsizei BufSize, GLsizei* Length, GLchar* InfoLog)
+	{
+		glGetProgramPipelineInfoLog(Pipeline, BufSize, Length, InfoLog);
+	}
+	static FORCEINLINE bool IsProgramPipeline(GLuint Pipeline)
+	{
+		return (glIsProgramPipeline(Pipeline) == GL_TRUE);
+	}
 
 	static FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel()
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")) && !GIsEditor)
+		static bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		static bool bForceES3_1 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"));
+		if (bForceES2 && !GIsEditor)
 		{
 			return ERHIFeatureLevel::ES2;
+		}
+		else if (bForceES3_1 && !GIsEditor)
+		{
+			return ERHIFeatureLevel::ES3_1;
 		}
 		// Shader platform & RHI feature level
 		switch(GetMajorVersion())
@@ -539,6 +749,12 @@ struct FOpenGL3 : public FOpenGLBase
 		if (bForceFeatureLevelES2)
 		{
 			return SP_OPENGL_PCES2;
+		}
+
+		static bool bForceFeatureLevelES3_1 = (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES31")) || FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES3_1"))) && !GIsEditor;
+		if (bForceFeatureLevelES3_1)
+		{
+			return SP_OPENGL_PCES3_1;
 		}
 
 		// Shader platform
@@ -571,9 +787,12 @@ protected:
 	static GLuint TextureNamesCache[OPENGL_NAME_CACHE_SIZE];
 	static GLsizei NextBufferName;
 	static GLuint BufferNamesCache[OPENGL_NAME_CACHE_SIZE];
+	static GLsizei NextPipelineName;
+	static GLuint PipelineNamesCache[OPENGL_NAME_CACHE_SIZE];
 
 	static GLint TimestampQueryBits;
 	
 	static bool bDebugContext;
 	static bool bSupportsTessellation;
+	static bool bSupportsSeparateShaderObjects;
 };

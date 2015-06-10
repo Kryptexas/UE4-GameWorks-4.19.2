@@ -4,6 +4,39 @@
 
 class FString;
 
+/** 
+ * Symbol information associated with a program counter. 
+ * FString version.
+ * To be used by external tools.
+ */
+struct CORE_API FProgramCounterSymbolInfoEx
+{
+	/** Module name. */
+	FString	ModuleName;
+
+	/** Function name. */
+	FString	FunctionName;
+
+	/** Filename. */
+	FString	Filename;
+
+	/** Line number in file. */
+	uint32	LineNumber;
+
+	/** Symbol displacement of address.	*/
+	uint64	SymbolDisplacement;
+
+	/** Program counter offset into module. */
+	uint64	OffsetInModule;
+
+	/** Program counter. */
+	uint64	ProgramCounter;
+
+	/** Default constructor. */
+	FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter );
+};
+
+
 /** Enumerates crash description versions. */
 enum class ECrashDescVersions
 {
@@ -49,6 +82,11 @@ public:
 		return CommonBuffer;
 	}
 
+	/**
+	 * @return a globally unique crash name.
+	 */
+	const FString& GetUniqueCrashName();
+
 	/** Serializes crash's informations to the specified filename. */
 	void SerializeAsXML( const TCHAR* Filename );
 
@@ -72,8 +110,11 @@ private:
 	/** Writes footer to the buffer. */
 	void AddFooter();
 
+	void BeginSection( const TCHAR* SectionName );
+	void EndSection( const TCHAR* SectionName );
+
 	/** The buffer used to store the crash's properties. */
-	FString& CommonBuffer;
+	FString CommonBuffer;
 
 	// FNoncopyable
 	FGenericCrashContext( const FGenericCrashContext& );

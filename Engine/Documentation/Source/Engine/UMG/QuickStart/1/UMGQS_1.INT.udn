@@ -1,0 +1,45 @@
+Availability: Public
+Title:1. Create a New Project
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
+Description:The first step in the UMG Quick Start is to create a New Project.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/UMG\QuickStart) 
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/UMG\QuickStart\2 "%Engine/UMG\QuickStart\2:title%") 
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+
+
+1. From the Unreal Engine Launcher, click the **Launch Unreal Engine** Button. 
+
+1. The [Unreal Project Browser](Engine/Basics/Projects/Browser) will appear. Click on the **New Project** tab.
+
+1. For this guide, we will be using the **Blueprint First Person** template. On the **Blueprint** tab, select **First Person** (1 below). 
+
+	![](UMGQS_1.png)(w:600)
+	
+1. Make sure that **Include starter content** is enabled (2), enter a project name in the **Name** field (3), then select **Create Project** (4).
+
+1. The new project will now open up in the Unreal Editor. 
+
+[REGION: note]
+If this is your first time running the editor, you will be greeted with the Unreal Editor 4 **Welcome Tutorial**. This is an interface walkthrough and is a really good way to catch your bearings and learn how to navigate the editor.
+[/REGION]
+
+
+
+%Steps%

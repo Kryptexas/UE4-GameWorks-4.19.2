@@ -1,0 +1,140 @@
+﻿INTSourceChangelist:2514808
+Availability: Public
+Title:스태틱 메시 - 소켓 셋업 및 사용 비법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description: 소켓 셋업 및 사용 비법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 개요
+
+UE4 에서 레벨을 제작하는 도중, 스태틱 메시에 무언가를 붙이고 싶을 때가 있습니다. **월드 아웃라이너** 에서 스태틱 메시에 오브젝트를 부모화시킬 수도 있지만, 여전히 메시를 기준으로 정확한 위치를 잡아줘야 하기에 지루한 작업이 될 수 있습니다. 하지만 소켓을 통해 스켈레탈 메시에 오브젝트를 붙이듯이, 스태틱 메시에도 소켓을 사용하여 오브젝트를 붙일 수 있습니다. 스태틱 메시 에디터에서 소켓을 만든 다음 메시를 기준으로 위치를 잡고서, 라이트든 파티클 이펙트든 심지어 다른 스태틱 메시든, 오브젝트를 붙이면 됩니다. 이 비법에서는 스태틱 메시에 소켓을 만들고, 레벨에서 사용할 수 있는 방법을 보여드리도록 하겠습니다.
+
+
+## 셋업
+
+이미 작업할 레벨과 스태틱 메시가 있으실테지요. 그렇다면 이 단계는 건너뛰셔도 됩니다. 아니라면, 런처에서 UE4 를 실행시킨 다음 새 프로젝트를 생성합니다. 프로젝트를 저장할 경로를 선택하고 이름을 짓습니다. 작업할 템플릿도 선택해 줍니다. 아래 그림에서는 블루프린트 일인칭 템플릿을 선택했지만, 다른 것을 선택하셔도 됩니다.
+
+![](NewProjectBlank.png)
+
+ 또 **시작용 콘텐츠** 도 포함시키도록 합니다. 포함시키지 않으면, 나중에 이 비법에서 작업할 애셋이 없어 따라하기 어려울 수 있습니다.
+
+![](NewProjectWithStarterContent.png)
+
+## 첫 소켓 만들기
+
+프로젝트가 열리면, **콘텐츠 브라우저** 에서 **Starter Content** 폴더를 찾습니다. 찾았으면 **Props** 폴더로 이동하여 **SM_DoorFrame** 라는 스태틱 메시를 찾습니다.
+
+![](ContentBrowserWithStarterContent.png)(w:462)
+![](DoorFrameInContentBrowser.png)(w:462)
+
+**SM_DoorFrame** 를 찾았으면 애셋을 **더블클릭** 하거나 **우클릭** 맥락메뉴에서 **편집** 을 선택하여 스태틱 메시 에디터에서 엽니다. 그 이후에는 아래와 비슷한 것을 확인할 수 있을 것입니다.
+
+![](DoorFrameInEditor.png)
+
+스태틱 메시 에디터에서 메시를 열었으니, 문틀 가운데 화염 파티클같은 것을 배치하여 죽음의 통로같은 느낌을 낼 수 있도록 소켓을 만들겠습니다. 우선 소켓을 만들어 줘야 합니다. 그 방법은, 에디터 상단의 **창** 드롭다운 메뉴에서 **소켓 매니저** 를 선택합니다. 그러면 **소켓 매니저** 가 나타납니다. 아래 오른쪽과 같은 모습일 것입니다.
+
+![](WindowMenu.png)(h:450)
+![](CreateSocketButton.png)(w:650 a:right)
+
+**소켓 매니저** 창이 열렸으면, 초록색으로 강조된 **소켓 생성** 버튼을 클릭합니다. 버튼을 클릭한 이후에는 소켓이 생성되어 이름을 지으라 합니다. 이 예제에서는 **Fire** 라 지어주겠습니다. **소켓 생성** 버튼을 클릭한 이후 **소켓 매니저** 창 모습은 아래 그림과 같을 것입니다.
+
+![](NewSocket.png)
+
+뷰포트에서 메시를 보면, 이동 3D 위젯이 보입니다. 보이지 않는다면, 툴바의 **소켓** (![](SocketsButton.png)) 버튼을 클릭하여 소켓이 보이도록 되어있는지 확인하세요. 
+
+소켓이 보이긴 해도, 그리 원하는 위치가 아닙니다. 기본적으로 소켓을 새로 만들면, 스태틱 메시의 원점, 여기서는 메시의 하단 정중앙에 위치하게 됩니다. 우리가 원하는 소켓 위치는, 플레이어가 불길을 뚫고 들어가는 느낌이 날 수 있도록 문틀 가운데 오도록 하고 싶습니다. 뷰포트의 이동 위젯을 사용하여 소켓을 수동으로 이동시키거나, **소켓 매니저** 패널 안에서 상대 위치, 회전, 스케일을 변경하면 됩니다. 원하는 효과를 내기 위해, 상대 위치의 **Z** 값을 0 에서 115 로 바꿨습니다. 그 이후에는 이와 같은 모습일 것입니다.
+
+![](FireSocket.png)
+
+## 스태틱 메시에 오브젝트 붙이기
+
+이제 스태틱 메시에 무언가를 붙일 소켓이 생겼으니, 레벨의 스태틱 메시에 오브젝트를 붙여보도록 하겠습니다. 스태틱 메시 에디터의 툴바에서 **저장** 버튼을 누른 다음, 레벨 에디터로 돌아갑니다. **콘텐츠 브라우저** 에서 **SM_DoorFrame** 을 찾은 다음 그 사본을 레벨에 끌어 놓습니다. 그 이후에는 **Starter Content** 폴더 안의 **Particles** 폴더로 이동하여 **P_Fire** 라는 애셋을 찾습니다.
+
+![](FireParticle.png)
+
+**P_Fire** 를 찾았으면 역시 레벨에 사본을 끌어 놓습니다. 플레이어가 통과하게 될 화염 역할을 할 것이므로, **SM_DoorFrame** 에 붙일 오브젝트가 됩니다. **P_Fire** 인스턴스를 끌어 놓은 이후, 뷰포트 안에서 파티클에 **우클릭** 합니다. 아래와 같은 메뉴가 보일 것입니다.
+
+![](ContextMenuForFire.png)
+
+맥락 메뉴에서 **Attach To** (붙이기)를 선택하여 나타나는 검색창 안에, **Door Frame** 이라 입력합니다. 우리 **SM_DoorFrame** 이 나타날 것입니다.
+
+![](FireAttachToFrame.png)
+
+**SM_DoorFrame** 를 선택했으면, 오브젝트를 어디에 붙이겠냐고 묻습니다. 리스트에는 **None** 과 스태틱 메시용으로 생성한 소켓이 전부 나열됩니다. **Fire** 와 **P_Fire** 라는 파티클 이펙트를 선택하면, 스태틱 메시의 소켓 위치에 마법처럼 달라붙습니다. 이제 파티클 이펙트가 스태틱 메시에 붙었습니다.
+
+![](ChooseSocket.png)
+![](FireInFrameComplete.png)
+
+소켓을 통해 파티클 이펙트를 스태틱 메시에 붙이기는 했지만, 여전히 스태틱 메시와 별도로 파티클 이펙트를 이동, 회전, 스케일 조절할 수 있으며, 스태틱 메시에 대한 트랜스폼 역시도 붙어있는 오브젝트에 영향을 끼치는 것을 볼 수 있습니다.
+
+## 떼기
+
+다른 것에 붙어있는 오브젝트를 떼어야 할 때도, 붙일 때처럼 쉽습니다. 단순히 떼고자 하는 오브젝트에 **우클릭** 한 다음 뜨는 맥락 메뉴에서 **Detach** (떼기)를 선택하면 됩니다. 그러면 더이상 오브젝트가 다른 오브젝트에 붙어있지 않습니다.
+
+![](Detach.png)
+
+## 견고한 문이 달린 통로 만들기
+
+### 개요
+
+소켓을 사용해서 파멸의 통로를 만들었으니, 이제 소켓을 사용해서 무언가 조금 더 실용적인 것을 만들어 보겠습니다. **Starter Content** 아래 **Props** 폴더에서 **SM_DoorFrame** 을 찾은 다음 사본을 레벨에 끌어 놓습니다. 그런 다음 **SM_Door** 를 찾아 마찬가지로 사본을 레벨에 끌어 놓습니다. 이제 이미 만들어 둔 소켓을 사용하여 문틀에 문을 붙이면 되는데, 문제가 있습니다. 다른 오브젝트에 한 오브젝트를 붙일 때, 소켓의 원점에 붙는다는 점입니다. **SM_Door** 스태틱 메시는 하단 구석에 원점이 있는데, **Fire** 소켓에 문을 붙이면 문이 공중에 떠 통로 구석에 불쑥 나오게 됩니다. 이 문제를 고치기 위해 소켓을 하나 더 만들어 주겠습니다.
+
+### 새 소켓 만들기
+
+**SM_DoorFrame** 를 **콘텐츠 브라우저** 에서 찾은 다음 애셋에 **더블클릭** 하여 스태틱 메시 에디터에서 엽니다. **소켓 매니저** 패널이 열려있는 경우, **소켓 추가** 버튼을 누릅니다. 열려있지 않으면, 에디터 상단의 **창** 드롭다운 메뉴에서 **소켓 매니저** 를 선택하여 **소켓 매니저** 패널을 다시 엽니다. 그 후 계속해서 **소켓 추가** 버튼을 누릅니다.
+
+소켓을 만든 이후에는 이름을 입력하게 됩니다. 이 예제의 목적상, 소켓 이름을 **Door** 로 하여 나중에 문 메시를 붙이려는 소켓이구나 알 수 있도록 합니다. 다시 한 번 말씀드리지만, 소켓을 만들면 메시의 원점에 생깁니다. 여기서는 문틀 하단 중앙이 되겠지요. 문 메시의 원점은 하단 구석에 있으므로, 그쪽으로 **Door** 소켓을 이동시켜 줘야 하겠습니다. 3D 위젯을 사용하여 소켓을 수동으로 이동시킬 수도 있고, **소켓 매니저** 패널에서 상대 위치, 회전, 스케일을 조절할 수도 있습니다. 여기서는 소켓의 **Y** 상대 위치를 45 로 변경하면 원하는 결과를 얻을 수 있습니다. 소켓을 하단 구석으로 옮긴 이후 문틀 메시는 아래와 비슷한 모습일 것입니다.
+
+![](DoorSocket.png)
+
+소켓이 보이지 않는 경우, 소켓이 보이도록 ![](SocketsButton.png) 버튼이 선택되었는지 확인하세요.
+
+
+###  문틀에 문 붙이기
+
+문틀에 문을 붙일 소켓이 생겼으니, 계속해서 문틀 메시를 저장하고 레벨 에디터로 돌아갑니다. 레벨에 있는 문 인스턴스를 선택한 다음 **우클릭** 맥락 메뉴를 띄웁니다. 맥락 메뉴에서 **붙이기** 를 선택한 다음 **SM_DoorFrame** 을 검색합니다. 문을 붙이려는 문틀 인스턴스를 찾은 다음 **좌클릭** 하여 선택합니다. 어느 소켓에 붙이겠느냐 물어오면, **Door** 를 선택합니다. 다 됐으면, 아래와 같은 모습일 것입니다.
+
+![](DoorSocketComplete.png)
+
+기본적으로 **SM_Door** 에는 콜리전이 설정되어 있지 않을 것입니다. 그 상태에서 레벨을 플레이해 보면, 플레이어는 그냥 견고한 문을 지나가 버리는데, 좋지 않지요. 플레이어가 문이 닫혔을 때는 걸어 지나가지 못하도록 스태틱 메시 에디터 안에서 문에 단순한 박스 콜리전을 설정해 줍니다. 그 방법을 잘 모르겠는 경우, [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%") 문서를 참고하세요.
+
+이제 플레이어가 지나갈 수 없는 견고한 문이 되었으니, 블루프린트를 사용하여 문이 열리고 닫힐 수 있도록 작동방식 스크립트를 짜면 됩니다. 그것까지는 이 비법의 범위를 넘어서는 일이긴 하지만, 플레이어를 막을 수 있는 문을 만들어 문틀에 붙였으니, 문을 여닫는 방법에 대해서는 [](Engine/Blueprints/UserGuide/Timelines/Examples/OpeningDoors) 문서를 참고해 주시기 바랍니다.

@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:2033300
+Availability:Public
+Title: 애셋 생성
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:언리얼 에디터 내부든 외부든, 여러가지 애셋이 생성되는 곳에 대한 설명과 아울러, FBX 파이프라인 문서 링크가 포함된 문서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/AssetCreation:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/AssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/AssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/AssetCreation:title%](Engine/Content/AssetCreation/FBXTopic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/AssetCreation:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/AssetCreation:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[REGION:banner]
+![%Engine/Content/FBX:title%](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+## 에디터 생성된 콘텐츠 대 임포트된 콘텐츠
+
+게임에 필요한 콘텐츠를 전부 에디터 안에서 만들 필요는 없습니다. 아트 애셋 대부분은 3ds Max, Maya, Photoshop, ZBrush 와 같은 외부 툴을 사용해서 만들어집니다. 아래는 에디터 안에서 생성되는 것과 외부에서 생성되는 애셋 유형을 매우 포괄적으로 나눠본 것입니다.
+
+|애셋 생성 위치||
+| ------------------------ | ---------------------------------- |
+| [REGION:tablesection]언리얼 에디터 내부에서 생성[/REGION] | [REGION:tablesection]외부 어플리케이션을 사용하여 생성[/REGION] |
+| [INCLUDE:#InEditor] |[INCLUDE:#External]|
+
+<!------------------------------
+
+
+[EXCERPT:InEditor]
+* 게임 레벨
+* 머티리얼
+* 파티클 시스템
+* 시네마틱 시퀀스
+* 블루프린트 스크립트
+* AI 내비게이션 메시
+* 미리계산된 라이트 맵
+* 레벨 라이트
+[/EXCERPT:InEditor]
+
+[EXCERPT:External]
+* 스태틱 메시
+* 스켈레탈 메시
+* 스켈레탈 애니메이션
+* 텍스처
+* 사운드 (WAV)
+* IES 라이트 프로파일
+* Nvidia APEX 파일 (APB, APX)
+[/EXCERPT:External]
+--------------------->
+
+
+## 외부 애셋 제작
+
+아래는 언리얼 엔진 4 용 외부 애셋 제작을 위한 링크입니다.
+
+
+[REGION:topics half]
+%Engine/Content/FBX:Topic%
+[INCLUDE:Engine/Content/Types#Types]
+%Engine/Content/ContentStandards:topic%
+[/REGION]
+
+

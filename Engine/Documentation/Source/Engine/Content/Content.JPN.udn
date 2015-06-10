@@ -1,0 +1,192 @@
+﻿INTSourceChangelist:2498976
+Availability:Public
+Title:コンテンツの管理
+Crumbs:%ROOT%, Engine
+Description:外部アプリケーションでアート コンテンツを作成、コンテンツをアンリアル エンジンにインポート、およびアンリアル エンジンで使用するためにコンテンツをセットアップすることに関する情報。
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Content:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/import_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/Content:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/content_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	コンテンツ クリエーター
+[/PARAM]
+[PARAM:description]
+	%Engine/Content:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[PARAMLITERAL:id]
+contentcreator
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![FBX](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+ゲームに必要なコンテンツ全てをエディタで作成するわけではありません。芸術的なアセットのほとんどは、3ds Max、Maya、Photoshop、ZBrush などを使用して外部で作成します。以下は、エディタで作成するアセットタイプと外部で作成するアセットタイプの一般的な内訳です。
+
+|アセットの作成場所||
+| ------------------------ | ---------------------------------- |
+| [REGION:tablesection]アンリアルエディタによる作成[/REGION] | [REGION:tablesection]外部アプリケーションによる作成[/REGION] |
+| [INCLUDE:#InEditor] |[INCLUDE:#External]|
+
+<!------------------------------
+
+
+[EXCERPT:InEditor]
+* ゲームレベル
+* マテリアル
+* パーティクル システム
+* シネマティック シーケンス
+* ブループリント スクリプト
+* AI ナビゲーション メッシュ
+* 事前計算されたライトマップ
+* レベルライト
+[/EXCERPT:InEditor]
+
+[EXCERPT:External]
+* スタティック メッシュ
+* スケルタル メッシュ
+* スケルタル アニメーション
+* テクスチャ
+* サウンド (WAVs)
+[/EXCERPT:External]
+--------------------->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/cb_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Content/Browser "%Engine/Content/Browser:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Browser/UI "%Engine/Content/Browser/UI:description%")
+		* [](Engine/Content/Browser/UserGuide/BrowserAssetCreation "%Engine/Content/Browser/UserGuide/BrowserAssetCreation:description%")
+		* [](Engine/Content/Browser/UserGuide/WorkingWithSources "%Engine/Content/Browser/UserGuide/WorkingWithSources:description%")
+		* [](Engine/Content/Browser/UserGuide/Folders "%Engine/Content/Browser/UserGuide/Folders:description%")
+		* [](Engine/Content/Browser/UserGuide/Filters "%Engine/Content/Browser/UserGuide/Filters:description%")
+		* [](Engine/Content/Browser/UserGuide/Migrate "%Engine/Content/Browser/UserGuide/Migrate:description%")
+		* [](Engine/Content/Browser/UserGuide/Collections "%Engine/Content/Browser/UserGuide/Collections:description%")
+		* [](Engine/Content/Browser/UserGuide/DevelopersFolder "%Engine/Content/Browser/UserGuide/DevelopersFolder:description%")
+		* [](Engine/Content/Browser/ReferenceViewer "%Engine/Content/Browser/ReferenceViewer:description%")
+		* [](Engine/Content/Browser/ReferenceTreeTool "%Engine/Content/Browser/ReferenceTreeTool:description%")
+		* [](Engine/Content/Browser/AssetConsolidationTool "%Engine/Content/Browser/AssetConsolidationTool:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tutorial_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		アーティスト向けクイックスタートガイド
+	[/PARAM]
+	[PARAM:description]
+	コンテンツ クリエイターとしてアンリアル エンジン 4 を迅速に習得するには、 **アーティスト向けクイックスタートガイド** をご覧ください。アーティスト向けクイックスタートガイドでは、メッシュやテクスチャのインポート、マテリアル作成の基礎、およびマテリアルをメッシュに適用する手順を紹介します。
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		FBX インポート パイプライン
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Content/FBX#intro]
+	[/PARAM]
+	[PARAM:links]
+		* [FBX インポート パイプライン](Engine/Content/FBX "%Engine/Content/FBX:description%")
+		* [](Engine/Content/FBX/ImportOptions "%Engine/Content/FBX/ImportOptions:description%")
+		* [FBX パイプライン：スタティックメッシュ](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
+		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
+		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
+		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
+		* [](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		コンテンツ タイプのリファレンス
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures "%Engine/Content/Types/Textures:description%")
+		* [](Engine/Content/Types/StaticMeshes "%Engine/Content/Types/StaticMeshes:description%")
+		* [](Engine/Content/Types/SkeletalMeshes "%Engine/Content/Types/SkeletalMeshes:description%")
+		* [](Engine/Rendering/LightingAndShadows/IESLightProfiles "%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%")
+		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
+		* [](Engine/Physics/Apex/ApexTypes "%Engine/Physics/Apex/ApexTypes:description%")
+		* [](Engine/Content/SpeedTree "%Engine/Content/SpeedTree:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		高度なコンテンツ作成
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool "%Engine/Content/Tools/MayaRiggingTool:description%")
+		* [](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+[/OBJECT]

@@ -1,0 +1,86 @@
+﻿INTSourceChangelist:2468958
+Availability: Public
+Title:머티리얼 - 비법
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:언리얼 엔진 4 내 머티리얼 에디터의 여러 부분에 대한 비법 안내서입니다.
+Related: Engine/Rendering/Materials/Editor/Interface
+Related: Engine/Rendering/Materials/MaterialInputs
+Related: Engine/Rendering/Materials/Editor
+Related: Engine/Rendering/Materials/IntroductionToMaterials
+Related: Engine/Rendering/Materials/MaterialProperties
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/HowTo:title%](%ROOT%/Engine/Rendering/Materials/HowTo/Materail_How_To.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/HowTo:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/HowTo:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/HowTo]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 개요
+
+The following How-To tutorials will demonstrate how you can utilize the full potential of the Material Editor in Unreal Engine 4 (UE4).
+From tips on How - To correctly set up Human Skin to How - To use Layered Materials, the How - To tutorials are a must read for anyone who wants to know more about UE4�s Material Editor.
+
+
+## Creating a New Project
+
+If you have not done so already, please create a new **Third Person** project to work from by following the steps below. 
+All of the How - To tutorials below are set up assuming that you created a new project following the directions listed below. 
+If you would like to follow along but use a different project, you can, however make sure that the project you use has the **Starter Content** included (or similar content) as many of the examples below will make use of  the content during the tutorial.
+
+[region:note]
+If you already have a project that also includes the Starter Content, please feel free to skip this section. 
+[/region]
+
+![](Engine\Rendering\Materials\HowTo\Main_Material_Node\Materail_HT_New_Project.png)
+
+1. From the **Unreal Project Browser** window, create a **New Project** and use the **Blueprint Third Person** template. 
+
+1. Make sure that **Include Starter Content** is enabled. 
+
+1. Give the project a location to be saved to. 
+
+1. Give the project a name. 
+
+1. With each of the above defined, click **Create Project** to create a new project. 
+
+
+## Material How - To's 
+
+Listed below are several How - To guides covering a wide range of topics regarding Materials. 
+Read over each description to get an understanding of what the How - To will cover then click to open and begin that How - To.
+
+
+|비법... | 설명 |
+| ------- | ------------ |
+| **[메인 머티리얼 노드 사용하기](Engine\Rendering\Materials\HowTo\Main_Material_Node)** | 메인 머티리얼 노드 셋업이야말로 머티리얼 정상 작동의 핵심입니다. 메인 머티리얼 노드 셋업 관련 알아야 할 것들에 대해 보여드리는 비법입니다. |
+| **[머티리얼 미리보기와 적용하기](Engine\Rendering\Materials\HowTo\Previewing_Applying)** | 머티리얼을 미리보고 적용할 수 있는 능력은 UE4 로 제작된 3D 프로젝트를 좋아보이게 만드는 핵심입니다. 이 비법에서는 머티리얼을 미리보는 방법뿐 아니라 그 머티리얼을 레벨에 있는 적용하는 법도 알아봅니다. |
+| **[머티리얼에서 인스턴싱 사용하기](Engine\Rendering\Materials\HowTo\Instancing)** | 머티리얼 인스턴싱은 작업방식 속도 개선에 크게 기여할 수 있는 강력한 개념입니다. 이 비법 튜토리얼에서는 머티리얼 인스턴싱을 활용할 수 있도록 머티리얼을 구성하는 법을 알아봅니다. |
+| **[머티리얼 표현식 및 함수 배치하기](Engine\Rendering\Materials\HowTo\Placing_Expressions_Functions)** | 머티리얼 표현식 노드를 배치하는 것은 셰이더 제작의 근본적인 부분입니다. 이 비법은 머티리얼 그래프에 표현식을 배치하는 데 있어서 알아야 할 모든 것들에 대해 다룹니다. |
+| **[머티리얼에 쓸 머티리얼 함수 만들기](Engine\Rendering\Materials\HowTo\Making_Functions)** | 머티리얼 함수는 재활용 가능한 머티리얼 코드 조각입니다. 이 비법에서는 머티리얼에서 함수를 사용하는 법을 알아봅니다. |
+| **[머티리얼 파라미터 만들기](Engine\Rendering\Materials\HowTo\Making_Parameters)** | 머티리얼 파라미터를 통해 머티리얼 인스턴스와의 상호작용이 가능합니다. 이 비법 안내에서는 머티리얼에서 머티리얼 파라미터를 구성하고 사용하는 법에 대해 알아봅니다. |
+| **[Bump Offset 노드 사용하기](Engine\Rendering\Materials\HowTo\BumpOffset)** | Bump Offset 머티리얼 노드는 머티리얼에 추가적인 깊이 정보를 더할 수 있습니다. 이 비법 안내에서는 머티리얼에서 Bump Offset 머티리얼 노드를 사용하는 데 있어서 알아야 할 모든 것을 보여드립니다. |
+| **[사람 피부 구성하기](Engine\Rendering\Materials\HowTo\Human_Skin)** | 사실적인 사람 피부는 제대로 구성해 내기가 굉장히 까다롭습니다. 이 비법 튜토리얼에서는 가능한 한 사람 피부에 가까운 결과물을 내는 법을 알아봅니다. |
+| **[이미시브 머티리얼 구성하기](Engine\Rendering\Materials\HowTo\EmissiveGlow)** | 라이팅 조건이 어떠하든 빛나는 머티리얼을 만드는 것은 어떤 3D 프로젝트에서도 필요한 것입니다. 이번 튜토리얼에서는 이미시브 머티리얼 입력을 사용하여 빛나는 머티리얼 셋업을 하는 방법에 대해 알아보겠습니다. |
+| **[머티리얼에서 마스킹 사용하기](Engine\Rendering\Materials\HowTo\Masking)** |텍스처 마스킹은 아주 적은 비용으로 오브젝트에 끝없는 다양성을 추가할 수 있는 강력한 도구입니다. 이 비법에서는 머티리얼에서 텍스처 마스크를 사용하는 데 있어 알아야 할 모든 것을 다룹니다. |
+| **[머티리얼에서 프레넬 사용하기](Engine\Rendering\Materials\HowTo\Fresnel)** |가끔은 캐릭터의 실루엣을 증폭시켜 씬에서 드러나 보이도록 하고플 때가 있습니다. 이러한 기법을 흔히 림 라이팅이라고도 하는데, UE4 에서는 프레넬이라고 합니다. 이 비법에서는 머티리얼에 프레넬을 추가하기 위해 알아야 할 모든 것을 보여드립니다. |
+| **[UV 좌표 애니메이션](Engine\Rendering\Materials\HowTo\AnimatingUVCoords)** |UV 좌표에 애니메이션을 추가하면 저렴한 비용에 아주 효과적으로 움직이는 것처럼 만들어 줄 수 있습니다. 이 비법에서는 머티리얼에 UV 애니메이션을 셋업하는 방법을 보여드립니다. |
+| **[디테일 텍스처](Engine\Rendering\Materials\HowTo\DetailTexturing)** | 표면을 매우 가까이서 봐도 훌륭해 보이도록 디테일을 추가시키는 효과를 낼 수가 있는데, 바로 디테일 매핑을 통해 가능합니다. 이번 비법에서는 머티리얼을 어떤 거리에서 봐도 괜찮아 보이도록 디테일 매핑을 추가하는 법을 보여드립니다. |
+| **[굴절 활성화 및 사용](Engine\Rendering\Materials\HowTo\Refraction)** |빛이 유리같은 물체에 닿을 때, 그 빛의 일부는 굴절때문에 바뀝니다. 이번 비법에서는 머티리얼에서 굴절을 사용하는 법을 다룹니다. |
+| **[투명도 활성화 및 사용](Engine\Rendering\Materials\HowTo\Transparency)** | 투명도 시뮬레이션 능력은 그럴싸한 물이나 유리를 만드는 데 있어서 핵심입니다. 이번 비법에서는 머티리얼에서 투명도를 활용하는 방법을 다룹니다. |
+| **[레이어드 머티리얼 사용](Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials)** | %Engine/Rendering/Materials/HowTo/CreatingLayeredMaterials:description% |
+| **[머티리얼 광택 내기](Engine/Rendering/Materials/HowTo/ShinyMaterials)** | 반짝이는 머티리얼은 마우스 클릭 몇 번이면 만들 수 있습니다. 이번 비법에서는 어떤 머티리얼이든 반짝이는 것으로 변환하는 법에 대해 다룹니다. |
+| **[유색 반투명 그림자](Engine/Rendering/Materials/HowTo/ColoredTransluscentShadows)** |월드에 색이 있는 듯한 그림자를 드리우도록 만드는 것은, Colored Translucent Shadows (유색 반투명 그림자)를 사용하면 됩니다. 이번 비법에서는 유색 반투명 그림자를 활용하는 머티리얼 제작법을 다뤄보도록 하겠습니다. |

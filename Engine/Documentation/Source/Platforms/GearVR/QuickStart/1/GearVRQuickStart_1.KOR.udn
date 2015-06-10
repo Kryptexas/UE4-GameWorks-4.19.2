@@ -1,0 +1,60 @@
+﻿INTSourceChangelist:2508659
+Availability:Public
+Title:1. 기어 VR C++ 프로젝트 생성
+Crumbs:%ROOT%, Platforms/GearVR
+Description:기어 VR 헤드셋에 사용할 수 있는 UE4 C++ 기반 프로젝트 생성 방법 안내입니다.
+Navigation:platform
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/GearVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+삼성 기어 VR 헤드셋과 작동하는 UE4 프로젝트 구성에는 보통의 UE4 프로젝트와는 살짝 다른 구성이 필요합니다.
+기어 VR 헤드셋 프로젝트는 C++ 프로젝트로 만든 다음 프로젝트 바이너리 파일 안에 기어 VR 헤드셋용 파일이 제대로 컴파일되도록 해줘야 하기 때문입니다.
+다음 섹션에서는 기어 VR 헤드셋과 작동하는 프로젝트를 제대로 구성하기 위해 알아야 하는 모든 것에 대해서 다루도록 하겠습니다.
+
+[REGION:warning]
+현재 블루프린트 기반 템플릿으로 생성되는 프로젝트는 기어 VR 헤드셋과 작동하지 **않습니다**.
+새로 생성되는 기어 VR 프로젝트는 모두 **반드시** C++ 기반 템플릿 중 하나를 사용해야 한다는 뜻입니다.
+하지만 C++ 기반 템플릿을 사용해서 만들었다고 해서 프로젝트에 블루프린트를 사용할 수 없다는 뜻은 아닙니다.
+[/REGION]
+
+1. 우선 개발 PC 에 UE4 버전 **4.7.4** 이상을 다운로드 & 설치했는지 확인합니다.
+[언리얼 엔진 런처](http://tinyurl.com/oawb7x2) 또는 [Github](https://www.unrealengine.com/ue4-on-github) 에서 UE4 버전 **4.7.4** 이상을 구할 수 있습니다.
+
+	[Region:note]
+	UE4 [Github](https://www.unrealengine.com/ue4-on-github) 버전을 사용하시는 경우, 우선 **Setup.Bat** 파일을 실행해야 적당한 파일이 개발 PC 에 다운로드됩니다.
+	[/REGION]
+
+	![](GVR_New_Project_03.png)
+
+1. 개발 PC 에 UE4 **4.7.4** 이상 버전이 설치되었으면 **새 프로젝트 탭** 에서 **C++ 프로젝트** 를 새로 생성합니다.
+	![](GVR_New_Project_00.png)
+
+1. 다음으로 사용할 템플릿을 **일인칭 템플릿** 을 선택하고 다음 옵션을 변경하도록 합니다.
+	* **모바일 / 타블렛**
+	* **스케일가능 3D / 2D** 
+	* 프로젝트 크기 감소를 위해 **시작용 콘텐츠** 는 포함시키지 않도록 합니다.
+	![](GVR_New_Project_01.png)
+
+1. 마지막으로 프로젝트에 저장할 위치와 이름을 지정합니다. 이 예제에서는 프로젝트 이름을 **GearVR_QS** 라 합니다. 모든 것이 완료되면 녹색 **프로젝트 생성** 버튼을 눌러 프로젝트를 만듭니다.
+	![](GVR_New_Project_02.png)
+
+
+
+%Steps%

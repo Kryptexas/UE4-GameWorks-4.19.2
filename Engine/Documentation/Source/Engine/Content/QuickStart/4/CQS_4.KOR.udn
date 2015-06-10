@@ -1,0 +1,219 @@
+﻿INTSourceChangelist:2511975
+Availability: Public
+Title:4. 머티리얼 적용
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:텍스처를 임포트했으니, 머티리얼을 생성하여 스태틱 메시에 적용하도록 하겠습니다.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+이 글에서는 예전 단계에서 만든 **머티리얼** 을 가지고 임포트한 스태틱 메시에 적용하도록 하겠습니다.
+
+## 디폴트 머티리얼 설정
+
+이 섹션에서는 레벨에 스태틱 메시를 배치할 때마다 기본적으로 적용할 디폴트 머티리얼을 할당하도록 하겠습니다.
+
+1.	**콘텐츠 브라우저** 에서 2 단계에서 임포트했던 애셋에 **더믈클릭** 합니다.
+
+	![](ContentBrowserAsset.png)
+
+	[REGION:note]
+	임포트한 방법에 따라 위 그림과 애셋 또는 애셋 이름이 다를 수 있습니다.
+	[/REGION]
+
+	그러면 아래 그림과 같이 [스태틱 메시 에디터](Engine/Content/Types/StaticMeshes/Editor) 가 열립니다.
+	
+	[REGION:lightbox]
+	[![](StaticMeshEditor.png)(w:600)](StaticMeshEditor.png)
+	[/REGION:lightbox]
+
+	_이미지를 클릭하면 원래 크기로 봅니다._
+
+1.	**디테일** 패널에서 **LOD0** 아래, 머티리얼 드롭다운 메뉴를 클릭합니다.
+
+	![](Element0.png)
+
+1.	선택 창에서 예전 단계에 만들었던 **머티리얼** 을 선택합니다.
+
+	![](SelectMaterial.png)
+
+	프리뷰 패널에 새로 적용한 머티리얼이 반영되는 것이 보일 것입니다.
+
+	![](NewDefaultMaterial.png)
+
+1.	**저장** 버튼을 클릭한 다음, **머티리얼 에디터** 를 닫습니다.
+
+1.	**콘텐츠 브라우저** 에서 스태틱 메시를 끌어 레벨에 놓습니다.
+
+	![](NewMaterialInLevel.png)
+
+	레벨에 이 애셋을 배치할 때마다, 지정한 머티리얼을 사용할 것입니다.
+
+## 액터에 사용되는 머티리얼 변경
+
+위 섹션에서 레벨에 스태틱 메시 오브젝트를 배치하여 [액터](Engine/Actors) 를 만들었으며, 그 액터의 각 인스턴스에 대해 사용할 머티리얼을 지정할 수 있습니다. 즉 각기 다른 머티리얼을 사용하는 여러가지 버전의 스태틱 메시를 만들 수 있다는 뜻입니다.
+
+스태틱 메시 액터에 사용할 머티리얼을 변경해 봅시다.
+
+1.	레벨에 기존 섹션에서 배치한 스태틱 메시를 선택합니다.
+
+	![](StaticMeshSelected.png)
+
+1.	(에디터 우하단의) **디테일** 패널에서 **Materials** 섹션 아래 Materials 드롭다운 박스를 선택합니다.
+
+	![](ActorMaterial.png)
+
+1.	팝업 메뉴에서 다른 머티리얼을 선택합니다.
+
+	![](TutorialMaterial.png)
+
+	여기서는 기본 머티리얼을 다시 선택했지만, 프로젝트에 [콘텐츠 팩](Engine/Content/Packs) 을 포함시켰다면 추가적인 옵션이 있을 것입니다.
+
+1.	머티리얼을 끌어 레벨에 있는 스태틱 메시 액터에 놓는 것으로 새 머티리얼을 적용할 수 있습니다.
+
+	![](draganddropMaterial.png)
+		
+<!--
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+
+## Creating a Material
+
+To create a new Material:
+
+1. Click **Add New** in the **Content Browser**, then under _Basic Assets_ select **Material**. 
+
+	![](newMaterial.png)
+
+	[REGION:tip]
+	Instead of clicking **Add New**, you can **Right-click** in an empty space inside the **Content Browser**. 
+	[/REGION]
+
+1. The new Material will be selected and awaiting a name in the **Content Browser**.
+
+1. Give it a name, in this case, name it "Rock" or something descriptive of the red rock texture we are going to use in it.
+	
+	![](Engine/Content/QuickStart/5/materialNaming.png)
+	
+	If you happened to click elsewhere before naming the Material, you can **Right-click** on the asset and select **Rename**.
+	
+1. Once the material is created, you can **Double-click** it to open the **Material Editor**.
+
+	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
+
+This is the **Material Editor**. The areas we are going to be concerned with in this guide are the **Graph** and **Details Panels**. The **Graph Panel** is the large panel in the center of the window with the "Rock" node in it, while the **Details Panel** is in the lower left of the window.
+
+[REGION:tip]
+The **Material** system in Unreal Engine 4 is incredibly powerful. If you would like to know more, see the [](Engine/Rendering/Materials) documentation.
+[/REGION]
+
+
+## Rock Material
+
+Using the two textures you imported earlier or any other textures you happened to have imported, we will now flesh out the Material.
+
+1. Select the Main Material Node in the center of the Material Graph. 
+
+	![](Engine/Content/QuickStart/5/mainNide.png)
+
+	_It is the only node in the Graph area and it will be named after your Material. It will become highlighted when selected._
+
+1. In the **Details Panel**, change the **Shading Model** from **Default Lit** to **Subsurface**.
+
+	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
+
+1. You will notice that two more pins are enabled on the Main Material Node: **Opacity** and **Subsurface Color**.
+
+	![](Engine/Content/QuickStart/5/morePins.png)
+
+1. Now you will need to get your textures into the Graph. While there are multiple ways to do this, we will do this using shortcuts. Hold the "**T**" key and **Left-click** in the Graph area of the editor. This will create a **Texture Sample** Node.
+
+	[REGION:tip]
+	You can find a list of all Material Editor keyboard shortcuts in the **Edit Menu** -> **Editor Preferences** -> **Keyboard Shortcuts** -> "**Material Editor**" and "**Material Editor - Spawn Nodes**" categories.
+	[/REGION]
+
+1. You should have at least 2 textures, so repeat this process for another **Texture Sample** Node.
+
+	![](textureSampleNodes.png)
+
+1. Select one of the **Texture Sample** Nodes, and in the **Details Panel** under the **Material Expression Texture Base** category, there is a property named **Texture**. **Left-click** on the pull down labeled "None" and select the color texture named **T_Rock_04_D**.
+
+	![](Engine/Content/QuickStart/5/textureNone.png)
+
+	[REGION:tip]
+	You can use the search field to locate the texture asset by entering **T_Rock_04_D** in the search field. 
+	[/REGION]
+
+1. Do the same for the other Texture Sample Node, but select the normal map texture named **T_Rock_04_n**.
+
+	At this point, the Material Graph should look like this:
+
+	![](Engine/Content/QuickStart/5/bothTexturesSelected.png)
+
+1. The white pin at the top contains all the color channels in the Texture, connect it to the **Base Color** pin. 
+
+	![](Engine/Content/QuickStart/5/connectColorPin.png)
+
+1. Repeat this process for the Normal Map and the **Normal** pin.
+
+	![](Engine/Content/QuickStart/5/connectNormalPin.png)
+
+	The Preview should look similar to this:
+
+	![](Engine/Content/QuickStart/5/preview_DN.png)
+
+1.  You will need a few Constants (scalar floats) and a Constant3Vector (a color without an alpha channel).
+
+	To easily create Constants, you can hold "**1**" key and **Left-click** in the **Graph** Panel. Create a total of **3** Constants.
+
+	![](Engine/Content/QuickStart/5/Constants.png)
+
+1. To create the Constant3Vector, hold the "**3**" key and **Left-click** in the **Graph** Panel.
+
+	![](Engine/Content/QuickStart/5/Constant3.png)
+
+1. Arrange the nodes like this:
+
+	![](Engine/Content/QuickStart/5/MatConstantsAdded.png)
+
+	_This is just so the connections can be easily made and none of the wires will slide underneath any nodes nor will they cross each other._
+
+1. Using the same process that you used to connect the textures to the **Base Color** and **Normal** pins, connect the **Constants** and the **Constant3Vector** as seen in the following image:
+
+	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
+
+1. You can now adjust the values of each of the **Constants** by selecting them and changing the **Value** parameter in the **Details** Panel.
+
+	* Metallic/Specular Value = 0.0
+	* Roughness Value = 0.8
+	* Opacity Value = 0.95
+	* Subsurface Color = Red (1, 0, 0)
+
+	![](Engine/Content/QuickStart/5/allConnectedAllAdjusted.png)
+
+1. The Preview should look similar to this:
+
+	![](Engine/Content/QuickStart/5/preview_All.png) 
+
+-->
+
+다음 단계에서는 애셋을 수동으로 임포트하는 여러가지 방법을 배워보도록 하겠습니다.
+
+%Steps%
+

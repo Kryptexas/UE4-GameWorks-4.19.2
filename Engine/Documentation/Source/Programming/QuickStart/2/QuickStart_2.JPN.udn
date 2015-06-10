@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2481542
+Availability:Public
+Title:2.C++ クラスを作成する
+Crumbs:%ROOT%, Programming, Programming/QuickStart
+Description:C++ クラスを作成する
+Version:4.7
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Programming\QuickStart\1 "%Programming\QuickStart\1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Programming\QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Programming\QuickStart\3 "%Programming\QuickStart\3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+ 1. **Unreal Editor** では、 **[File]** ドロップダウン メニューの **Add Code to Project** コマンドを使って C++ クラスを作成することができます。
+ 
+	[![](AddCPPCode.png)](AddCPPCode.png)
+
+ 2. **[Choose Parent Class]** メニューが開きます。**Actor** は **Unreal Engine** レベルに存在可能な最も基本的なクラスなので、 **Actor** クラスをベースとして使用します。
+ 
+	[![](ChooseParentClass.png)](ChooseParentClass.png)
+
+ 3. **[Name Your New Actor]** メニューが開きます。ここでは名前を「FloatingActor」と入力して、 **[Create Class]** をクリックします。
+ 
+	[![](NameActorClass.png)](NameActorClass.png)
+
+----
+
+**アンリアル エンジン** が **Visual Studio** を開いて、新規プロジェクトをロードします。
+
+%Steps%

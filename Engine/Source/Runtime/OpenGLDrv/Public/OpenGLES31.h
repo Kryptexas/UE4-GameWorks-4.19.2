@@ -84,7 +84,9 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool RequiresDontEmitPrecisionForTextureSamplers() { return bRequiresDontEmitPrecisionForTextureSamplers; }
 	static FORCEINLINE bool RequiresTextureCubeLodEXTToTextureCubeLodDefine() { return bRequiresTextureCubeLodEXTToTextureCubeLodDefine; }
 	static FORCEINLINE bool SupportsStandardDerivativesExtension()		{ return true; }
+	static FORCEINLINE bool RequiresGLFragCoordVaryingLimitHack()		{ return bRequiresGLFragCoordVaryingLimitHack; }
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return bES2Fallback ? GL_HALF_FLOAT_OES : GL_HALF_FLOAT; }
+	static FORCEINLINE bool RequiresTexture2DPrecisionHack()			{ return bRequiresTexture2DPrecisionHack; }
 
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
@@ -346,6 +348,11 @@ struct FOpenGLES31 : public FOpenGLBase
 	}
 
 	static FORCEINLINE void Uniform4uiv(GLint Location, GLsizei Count, const GLuint* Value)
+	{
+		glUniform4uiv(Location, Count, Value);
+	}
+	
+	static FORCEINLINE void ProgramUniform4uiv(GLuint Program, GLint Location, GLsizei Count, const GLuint *Value)
 	{
 		glUniform4uiv(Location, Count, Value);
 	}
@@ -928,6 +935,12 @@ public:
 
 	/* Some android platforms require textureCubeLod to be used some require textureCubeLodEXT however they either inconsistently or don't use the GL_TextureCubeLodEXT extension definition */
 	static bool bRequiresTextureCubeLodEXTToTextureCubeLodDefine;
+
+	/* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
+	static bool bRequiresGLFragCoordVaryingLimitHack;
+
+	/* This hack fixes an issue with SGX540 compiler which can get upset with some operations that mix highp and mediump */
+	static bool bRequiresTexture2DPrecisionHack;
 };
 
 // yes they are different between the ES2 extension and ES3.x and GL3.x core

@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:2457314
+Availability:Public
+Title:1.必要なプロジェクト設定
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:ゲームプロジェクトの開始に Side Scroller Blueprint テンプレートを使用する
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+1. [新規プロジェクトの作成](Engine/Basics/Projects/Browser#新規プロジェクトの作成)
+
+1. [新規プロジェクト] ウィザードの[ブループリント] タブから Side Scroller テンプレートを選択します。
+
+1. [自身の設定に最適なスケーラビリティと品質設定を選択しますが、その際に必ずスターターコンテンツを選択してください](Engine/Basics/Projects/Browser#プロジェクト設定)
+
+1. プロジェクトに名前を付けて、 [Create Project（プロジェクトを作成）] ボタンをクリックして作成します。 
+
+
+プロジェクトを開始できるサイドスクローラーレベルが表示されるはずです。 
+
+![](Step1End.png)
+
+
+---
+
+%Steps%
+
+

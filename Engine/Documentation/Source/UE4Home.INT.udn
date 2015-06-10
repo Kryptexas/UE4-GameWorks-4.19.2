@@ -1,0 +1,75 @@
+Availability:Public
+Title: Unreal Engine 4 Documentation
+Crumbs:
+Description: UE4 top level links document
+Navigation:home
+
+[PUBLISH:Rocket]
+## Search
+
+[REGION:frontpage]
+	[OBJECT:SearchBox]
+		[PARAM:path]
+		[RELATIVE:Search]
+		[/PARAM]
+		[PARAMLITERAL:placeholder]
+		Need Help? Find a topic by searching the documentation.
+		[/PARAMLITERAL]
+		[PARAM:message]
+		[/PARAM]
+		[PARAMLITERAL:label]
+			Quick Search Terms:
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Quick Start
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			How-To
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Actor
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Component
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Blueprint
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Materials
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Lighting
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Camera
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			UMG UI
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Android
+		[/PARAMLITERAL]
+	[/OBJECT]
+[/REGION]
+
+## Browse by Topic
+
+[/PUBLISH:Rocket]
+
+[REGION:frontpage]
+	[REGION:features third]
+	%GettingStarted:role%
+	%Engine:role%
+	%Programming:topicrole%
+	%Engine/Blueprints:role%
+	%Platforms:role%
+	%Resources:role%
+	[/REGION]
+[/REGION]

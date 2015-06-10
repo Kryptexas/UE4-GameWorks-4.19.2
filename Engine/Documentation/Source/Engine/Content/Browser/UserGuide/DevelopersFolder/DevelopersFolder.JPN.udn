@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2274158
+Availability:Public
+Title:デベロッパー フォルダ
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:コンテンツ ブラウザのソース パネル内のデベロッパー フォルダの使用方法に関するドキュメントです。
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](DeveloperFolderTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/DevelopersFolder:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/DevelopersFolder]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 概要
+
+![DevelopersFolder.png](DevelopersFolder.png)(w:220)
+
+アセット エリアの下にあるゲーム フォルダ内にデベロッパー フォルダがあります。デベロッパー フォルダには、他のデベロッパーが作業中のすべてのアセットが入っています。新たな技術やアセットを試みる際に役立つ協調的な環境になります。しかし、覚えておくべきルールがいくつかあります。
+
+1. **これは独自の個人的なリサーチ、実験、テストの作業に用途を限定しています。**　ゲームの他の部分を妨げることなくテストが可能となります。
+ 
+2. 完全に個人の作業用であるため、このフォルダからフォルダ外部にある作業を参照しないルールを適用してください。 
+
+3. デベロッパー フォルダは、サンドボックス環境のような、ゲーム制作の残り部分から孤立しているものとお考えください。
+ 
+4. デベロッパー フォルダ名は、Windows のユーザー名から、スペースやピリオドなどの不正文字を除いたものになります。
+ 
+5. 他のデベロッパーからもフォルダ内のアセットを見ることができます。ただし、ソースコントロールを使用し、 **コンテンツブラウザ** の **Filters > Other Filters > Other Developers** の下にある「Show Other Developers」チェックボックスが有効になっている時に限ります。
+
+**[ソース]** パネルの作業に関する詳細は、 [](Engine/Content/Browser\UserGuide\WorkingWithSources) を参照してください。

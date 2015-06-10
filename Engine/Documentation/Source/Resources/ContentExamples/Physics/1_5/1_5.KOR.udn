@@ -1,0 +1,70 @@
+﻿INTSourceChangelist:2094639
+Availability: Public
+Title:1.5 - 피직스 컨스트레인트
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
+Description:Physics 예제 레벨에 대한 개요로, 예제 1.5: PhysicsContraints 입니다.
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources\ContentExamples\Physics\1_5:title%](physics_1_5_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources\ContentExamples\Physics\1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources\ContentExamples\Physics\1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources\ContentExamples\Physics\1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+	![](physics_1_5_001.png)
+[/REGION]
+
+
+[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
+
+콘텐츠 예제에서는 왼쪽에서 오른쪽 순으로 작동합니다:
+
+1. 첫 축은 자유롭게 흔들리며, 둘째 축은 45 도 제한이 있고, "트위스트" 축 상으로 고정되어 있습니다.
+
+1. 이 큐브는 **Angular Swing 2Motion** (각형 스윙 2 모션)상에서 자유로이 움직이며, 그 이외에는 고정되어 있습니다.
+
+1. **Twist** 에는 자유롭고, 그 이외에는 고정되어 있습니다.
+
+1. 마지막 큐브는 모든 축에 자유롭습니다.
+
+
+
+
+
+

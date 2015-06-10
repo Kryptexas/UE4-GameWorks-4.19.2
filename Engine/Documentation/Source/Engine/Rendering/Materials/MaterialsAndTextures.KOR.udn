@@ -1,0 +1,320 @@
+﻿INTSourceChangelist:2367933
+Availability:Public
+Title:머티리얼
+Crumbs: %ROOT%, Engine
+Description:셰이더를 활용하여 월드의 표면 외형을 제어하는 방법입니다.
+Navigation:topic
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/Materials:title%](%ROOT%/Engine/Rendering/Materials/Materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials:title%](%ROOT%/Engine/Rendering/Materials/Materials_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:banner]
+![Materials](materials.png)
+[/REGION]
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+
+[REGION:topics third]
+%Engine/Rendering/Materials/IntroductionToMaterials:topiccompact%
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\Editor:title%](MatEditorUserGuideTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		머티리얼 에디터 사용 안내서
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\Editor:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\Editor]
+	[/PARAM]  
+[/OBJECT]
+
+%Engine/Rendering/Materials/HowTo:topiccompact%
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\MaterialProperties:title%](MatProps.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\MaterialProperties:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\MaterialProperties:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\MaterialProperties]
+	[/PARAM]  
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\MaterialInputs:title%](MaterialInputsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\MaterialInputs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\MaterialInputs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\MaterialInputs]
+	[/PARAM]  
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\MaterialInstances:title%](InstanceTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\MaterialInstances:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\MaterialInstances:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\MaterialInstances]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\LayeredMaterials:title%](LayeredMaterialsTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\LayeredMaterials:title%
+	[/PARAM]c
+	[PARAM:description]
+		%Engine/Rendering/Materials\LayeredMaterials:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\LayeredMaterials]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](Engine/Rendering/Materials/ExpressionReference/exp_ref_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/ExpressionReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/ExpressionReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](FunctionTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/Functions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/Functions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/Functions]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ParameterCollections:title%](ParamCollectTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/ParameterCollections:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\ParameterCollections:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\ParameterCollections]
+	[/PARAM]  
+[/OBJECT]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/CustomizedUVs:title%](Engine/Rendering/Materials/CustomizedUVs/CUVs_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/CustomizedUVs:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/CustomizedUVs:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/CustomizedUVs]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+## 물리 기반 셰이딩
+
+언리얼 엔진 4 에서는 _물리 기반 셰이딩 모델_ 을 활용합니다. 즉 (디퓨즈 컬러, 스페큘러 파워같은) 임의의 프로퍼티를 사용해서 머티리얼을 정의한다기 보다는, 현실에서 더욱 쉽게 연관지을 수 있는 프로퍼티를 사용한다는 뜻입니다. 거기에는 베이스 컬러(바탕색), 메탈릭(금속성), 스페큘러(반사성), 러프니스(거칠기) 등이 있습니다. 자세한 정보는 아래를 참고해 주시기 바랍니다.
+
+[REGION:topics half]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials\PhysicallyBased:title%](Engine/Rendering/Materials/PhysicallyBased/physically_based_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials\PhysicallyBased:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials\PhysicallyBased:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials\PhysicallyBased]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+_위 글은 저희가 이 모델로 전환하게된 데 대한 심화 내용과 아울러 약간의 기술적인 고려사항에 대해 알려드리기 위한 것입니다._
+
+## 입문 튜토리얼
+
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](Engine/Content/Types/Textures/Importing/ImportingTextures.png)
+	[/PARAM]
+	[PARAM:title]
+		텍스처 임포트
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/Textures\Importing]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+
+
+<!---
+
+[REGION:topics third]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/PhysicallyBased:title%](Engine/Rendering/Materials/PhysicallyBased/physically_based_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/PhysicallyBased:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/PhysicallyBased:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/PhysicallyBased]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](Engine/Rendering/Materials/ExpressionReference/exp_ref_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		퀵 스타트: 물리 기반 머티리얼
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/ExpressionReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/ExpressionReference]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/Materials/ExpressionReference:title%](Engine/Rendering/Materials/Functions/matfunc_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/Materials/Functions:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/Materials/Functions:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/Materials/Functions]
+	[/PARAM]
+[/OBJECT]
+
+
+[/REGION]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		머티리얼 요약
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [머티리얼 에디터 사용 안내서](Engine/Rendering/Materials/Editor) - UE4 의 노드 기반 머티리얼 에디터에 대한 개요입니다.
+		* [머티리얼 인스턴스 에디터 사용 안내서](Engine/Rendering/Materials/MaterialInstances/Editor) - UE4 의 머티리얼 인스턴스 에디터에 대한 개요입니다.
+		* [인스턴싱된 머티리얼](Engine/Rendering/Materials/MaterialInstances) - UE4 의 머티리얼 인스턴싱 시스템에 대한 개요입니다.
+		* 머티리얼 레이어 - 머티리얼 함수를 사용하여 하나의 오브젝트에 여러 머티리얼을 픽셀 단위로 적용하는 방법입니다.
+
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/texture_icon.png)
+	[/PARAM]
+	[PARAM:title]
+		머티리얼 콘텐츠 제작
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [알파를 사용한 헤어 제작](Engine/Rendering/Materials/CreatingHairUsingAlpha) - UE4 에서 머티리얼과 메시를 사용한 헤어 제작법입니다.
+		* [월드 포지션 오프셋](Engine/Rendering/Materials/WorldPositionOffset) - WorldPositionOffset 머티리얼 입력 사용법입니다.
+		* [머티리얼 마스크](Engine/Rendering/Materials/Masks) - 머티리얼 표현식을 사용해서 알고리즘적으로 마스크과 그레디언트를 만드는 법입니다.
+	[/PARAM]
+[/OBJECT]
+
+--->
+

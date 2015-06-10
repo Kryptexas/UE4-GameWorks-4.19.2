@@ -1,0 +1,149 @@
+Availability:Public
+Title: Animation Retargeting (Same Skeleton)
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Retargeting allows you to reuse animations between characters with highly differed proportions.
+
+[REGION:fullwidth]
+![](RetargetingHeader.png)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+
+## Overview
+**Animation Retargeting (Same Skeleton)** is a feature that allows animations to be reused between characters that share the same Skeleton asset, but have vastly different proportions. Through retargeting, you can prevent your animated skeletons from losing their proportions or becoming unnecessarily deformed when using animations from differently shaped characters.
+
+[REGION:warning]
+In order for different Skeletal Meshes to take advantage of retargeting, they **must** use the same Skeleton asset to ensure Bone Hierarchy, but also the same Joint Rotation in the Bind pose. Please see the [](Engine/Animation/Skeleton) documentation for details.
+[/REGION]
+
+### Animation Retargeting for Different Skeletons
+
+The content on this page covers the concepts behind **Animation Retargeting** and cites examples where it can be used for retargeting animations for characters that use the same Skeleton asset. There may be instances when you want to retarget animations for a character that uses a different Skeleton asset, at which point **Animation Retargeting (Different Skeletons)** will show you how you can accomplish this. 
+
+Please see [Animation Retargeting (Different Skeletons)](Engine\Animation\RetargetingDifferentSkeletons) for more information. 
+
+
+## Why Use Retargeting?
+
+Consider three characters that you would like to share animation: A base character, a short stocky version, and a tall skinny version.
+
+[VAR:Chars]w:300[/VAR]
+
+[REGION:imagetable]
+|![](BaseCharacter.png)(%chars%)|![](ShortStocky.png)(%chars%)|![](TallSkinny.png)(%chars%)|
+|---|---|---|
+|Base Character|Short Stocky Character|Tall Skinny Character|
+[/REGION]
+
+
+### Results Before Retargeting
+
+Before retargeting is applied, you can already use animations between any Skeletal Meshes that share the same Skeleton. However, when you have differing proportions as shown above, you can get some unsightly results. Notice how the short character gets unnecessarily stretched and the tall character gets compacted, both so that they can fit onto the Base Character's skeletal proportions.
+
+
+[REGION:imagetable]
+|![](BaseCharacterRunning.png)(%chars%)|![](ShortStockyRunning.png)(%chars%)|![](TallSkinnyRunning.png)(%chars%)|
+|---|---|---|
+|Base Character|Short Stocky Character|Tall Skinny Character|
+[/REGION]
+
+### Results After Retargeting
+
+Once retargeting is applied to the characters, the differences in their proportions are taken out of the equation and the animation plays properly on the characters. You can also go to **Show > Non-Retargeted Animation** and see the difference in the original skeleton (shown in beige) and the current skeleton (white). Notice how on the Base Character, the beige non-retargeted bones perfectly match the skeleton.
+[EXCERPT:AfterTable]
+[REGION:imagetable]
+|![](BaseCharacterRunningRetargetedBones.png)(%chars%)|![](ShortStockyRunningRetargetedBones.png)(%chars%)|![](TallSkinnyRunningRetargetedBones.png)(%chars%)|
+|---|---|---|
+|Base Character|Short Stocky Character|Tall Skinny Character|
+[/REGION]
+[/EXCERPT:AfterTable]
+
+## Does Retargeting Affect Performance?
+
+There is no significant difference of performance between using retargeted and non-retargeted animations. The benefit of using animation retargeting is increasing the number of unique characters without having to create an entirely new set of matching animations which could seriously cut down on your animation memory budget.
+
+
+## How Does Retargeting Work?
+
+Animations are bound to a [Skeleton asset](Engine/Animation/Skeleton). The Skeleton asset is really just a list of bone names and hierarchy data, but it also stores the initial proportions from the original Skeletal Mesh used to define the Skeleton asset. This data is stored as bone translation data. It is important to note that the retargeting system only retargets the bone's translation component. The bone's rotation always comes from the animation data.
+
+Because the original Skeletal Mesh is used to define the proportions of the Skeleton asset, any other Skeletal Meshes using that Skeleton asset that have different proportions (such as a mesh that is much shorter than the original one) will require retargeting to work properly. Without it, the Skeletal Meshes of varied proportions would try to use the translation data of the original mesh, leading to the types of errors seen at the beginning of this document.
+
+To solve this problem, the Skeleton List within Persona offers a few settings to change how translation retargeting between bones is handled. There are 3 different settings for bone translation retargeting:
+
+![](RetargetingSettings.png)
+
+-	**Animation** - Bone Translation comes from the animation data, unchanged.
+-	**Skeleton** - Bone Translation comes from the Target Skeleton's bind pose.
+-	**AnimationScaled** - Bone translation comes from the animation data, but is scaled by the Skeleton's proportions. This is the ratio between the bone length of the Target Skeleton (the skeleton the animation is being played on), and the Source Skeleton (the skeleton the animation was authored for).
+
+
+## How Are End Effectors Handled With Retargeting?
+
+Do tall characters run faster, can they still hold the same props - these are questions that may arise when working with retargeting. In short, there is no automatic work happening and it is up to the user to decide what they want it to do. 
+
+One method that can be taken regarding the holding of props is to create a separate chain of bones that follow the hands in the original animation, called "Hand IK Bones". Then retarget the body and arms, but not the "Hand IK Bones", so they remain identical after retargeting. This will allow you to have characters of different proportions manipulating the same props (for example, reloading a rifle). 
+
+Having a separate chain of bones allows you to switch smoothly between FK and IK easily when you want to (for example, you would want the Hand IK ON when reloading the weapon, and OFF when reaching for a magazine in a pocket). 
+
+The system is very flexible and can be customized to fit your needs. Perhaps you only want the left hand to be IK and the right hand to use its FK position, but IK rotation. Feet are sometimes handled this way, sometimes not. When stepping on a very precise props, you would want to turn on IK; when you are just running around, you would want to use the FK, so you do not end up with a bow legged character (or the opposite). 
+
+
+## Setting Up Retargeting
+
+<!---Establishing animation retargeting on your --->
+
+
+
+Retargeting can be set up from the **Skeleton Tree** panel in **Persona**.
+ 
+Typically, you will want to use these settings for bipeds:
+
+* Root Bone, IK Bones, weapon bones, and any kind of markers will use the `Animation` mode.
+* The pelvis will use `AnimationScaled` so it sits at the right height and is still animated. And any other bone you want translation to be animated and retargeted should also use `AnimationScaled`.
+* All other bones will use `Skeleton`. They will use the static translation from the target skeleton.
+
+This means that if you want to use retargeting, a fast workflow would be:
+
+![](RecursivelySet.png)
+
+1. **Right-click** on your root bone and recursively set all bones to **Skeleton**.
+1. Find the Pelvis or equivalent bone and set that to **AnimationScaled**.
+1. Find the Root bone, any IK bones, any weapon bones, or other marker-style bones and set them to use **Animation**.
+
+[REGION:tip]
+In the `Show` menu from the viewport, you can check `NonRetargeted Animation` and `Bones` to compare the original with the retargeted animation.
+[/REGION]
+
+
+## Using the Retarget Source Manager
+
+![](BasePoseManager.png)
+
+Since retargeting uses the Skeleton asset, and since the Skeleton has its original proportions defined by the Skeletal Mesh for which it was initially created, it follows that one-directional retargeting will work smoothly using the steps described above. However, there will often come times when you will have special animations that are built just for the variant versions. For example, consider a special animation that was created just for the tall version of the character.
+
+If you imported this new "tall-only" animation in, you would still need to use the same Skeleton asset as before, which was created from the Base version of the character. This causes the new animation's proportions to be distorted. The solution is to use the **Retarget Source Manager**.
+
+The **Retarget Source Manager** allows you to associate an Animation Sequence with the actual Skeletal Mesh for which it was designed. In this way, any problems of retargeting for special animations will be fixed.
+
+### Using the Retarget Source Manager
+
+Think of the **Retarget Source Manager** as a list of Skeletal Meshes that you can use to designate proportions. If you ever need a special animation for a retargeted Skeletal Mesh, you would need to make sure that the mesh was listed in the **Retarget Source Manager**.
+
+1. In Persona's menu bar, choose **Window > Retarget Source Manager**.
+1. **Right-click** in the list area (center) of the **Retarget Source Manager** panel and choose **Add...** from the context menu.
+1. Choose the Skeletal Mesh for which the special animation was created. You should now see that Skeletal Mesh listed in the **Retarget Source Manager**.
+1. In Persona's **Asset Browser**, **double-click** the Animation Sequence asset for the special animation you created for the Skeletal Mesh.
+1. In the Anim Asset **Details** panel, locate the **Animation** category and locate the **Retarget Source** property. In the dropdown, you should now see the Skeletal Mesh you added to the **Retarget Source Manager**. By choosing this mesh, you are specifying that you want to use the proportions of that mesh to drive this animation.
+
+
+<!----
+
+If you are creating all of your animations for a single Skeletal Mesh and retargeting them to some other variations, then the information presented so far will get you a nice retargeted result. The reason it works is that using just one original Skeletal Mesh as the base is like a one-way connection, from the original to all the variations. But what happens if you need special animations just for the variants?
+
+Consider if we needed a special set of animations for our tall character, such as a different idle animation. An animator could take that Skeletal Mesh, create the necessary animation, then import it using the same Skeleton asset as before, but there is now a problem. Since the original proportions of the Skeleton asset were based off the Base Character's proportions, the animation will be distorted.
+j
+
+
+--->

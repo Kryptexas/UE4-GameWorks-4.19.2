@@ -1,0 +1,134 @@
+﻿INTSourceChangelist:2314747
+Availability:Public
+Title:カラーピッカー
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:アクタのカラー プロパティに割り当てる色をインタラクティブに選択するツール
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Editor/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Editor/ColorPicker:title%
+	[/PARAM]
+	[PARAM:description]
+		%Editor/ColorPicker:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/ColorPicker]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Editor/ColorPicker:title%](Engine/UI/colorPicker_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Editor/ColorPicker:title%
+	[/PARAM]
+	[PARAM:description]
+		%Editor/ColorPicker:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/ColorPicker]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Intro]
+**カラーピッカー** を使うと、アンリアル エディタのカラー プロパティの値を簡単に調整できます。RGBA (レッド、グリーン、ブルー、アルファ) 、 HSV (色相、彩度、値) および Hex (ARGB) によるカラー調整が可能です。別の方法としては、カラーホィールの任意の場所をクリックして、またはモニタの任意の場所にマウスを移動してその下にある色をキャプチャして色を選択することができます。
+[/EXCERPT:Intro]
+
+[REGION:imagetable]
+| ![ColorPicker.jpg](ColorPicker.png) | [INCLUDE:#Properties] |
+| ------ | ------ |
+|  |  |
+[/REGION]
+
+<!--
+[EXCERPT:Properties]
+| アイテム | 説明 |
+| ---- | ----------- |
+| ![Color Wheel](color_wheel.png)(w:96) | マウスでクリックまたはドラッグすると色が変化します |
+| ![Color Swatches](color_swatches.png) | 現在 **カラーピッカー** [Top: solid color, Bottom: color with alpha] で選択されているプロパティと色に対して現在割り当てられている色を表示します。色はここから **Themes** シェルフへドラッグして保存し、後で再利用する事ができます。詳細は [Themes](#Themes) をご覧ください。 |
+| ![Red Channel](channel_r.png) | ドラッグまたは値を入力すると **レッド** チャネルが設定されます。 |
+| ![Green Channel](channel_g.png) |ドラッグまたは値を入力すると **グリーン** チャネルが設定されます。 |
+| ![Blue Channel](channel_b.png) | ドラッグまたは値を入力すると **ブルー** チャネルが設定されます。 |
+| ![Hue Channel](channel_h.png) | ドラッグまたは値を入力すると **色調** が設定されます。 |
+| ![Saturation Channel](channel_s.png) | ドラッグまたは値を入力すると **彩度** が設定されます。 |
+| ![Value Channel](channel_v.png) | ドラッグまたは値を入力すると **値** (色の明るさ) が設定されます。 |
+| ![Alpha Channel](channel_a.png) | ドラッグまたは値を入力すると **アルファ** チャネルが設定されます。 |
+| ![OK Button](button_ok.png) | ピッカーを閉じ、ピッカーの色をプロパティに割り当てます。 |
+| ![Cancel Button](button_cancel.png) | プロパティの値を修正することなくピッカーを閉じます。 |
+[/EXCERPT:Properties]
+-->
+
+## Themes
+
+**Themes (テーマ)** は簡単に再利用できる色のコレクションです。特定のパレットにアーティストやデザイナーが特定のパレットに使用する色を制限するために、共通して利用される色を利用可能にするために使われます。
+
+![Exmaple Theme](theme_spring.png)
+
+### テーマの作成
+
+新規テーマは ![Theme Menu](button_menu.png) ボタンで **[Theme] メニュー** にアクセスして追加します。
+
+![Theme Menu](theme_menu.png)
+
+![New Theme](button_new.png) ボタンをクリックし、空のテーマをリストに追加します。
+
+![Theme Menu](theme_menu_new.png)
+
+テーマは、 ![Duplicate](button_duplicate.png) ボタンを使って既存するテーマを複製して作成することもできます。
+
+![Duplicated Theme](theme_duplicate.png)
+
+### テーマ名の変更
+
+テーマ名の変更はby ![Rename](button_rename.png) ボタンをクリックして **[Theme] メニュー** で行います。
+
+[REGION:imagetable]
+| ![Theme Menu](theme_menu_rename_0.png)(w:300) | ![Theme Menu](theme_menu_rename_1.png)(w:300) | ![Theme Menu](theme_menu_rename_2.png)(w:300) |
+| ------ | ------ | ------ |
+| テーマ名用のボックスを編集 | テーマの新規の名前を入力 | ![Accept](button_accept.png) を押して名前を設定 |
+[/REGION]
+
+### 色の追加と削除
+
+ドラッグ＆ドロップを使えば、テーマ内で色の追加、削除、最順序付けが可能です。
+
+[REGION:imagetable]
+| ![Add color](theme_add_color.png)(w:300 convert:false) | ![Reorder Colors](theme_edit.png)(w:300 convert:false) | ![Remove Color](theme_edit_color_delete.png)(w:300 convert:false) |
+| ------ | ------ | ------ |
+| メインの見本からドラッグして色を追加 | テーマ内で色をドラッグして際順序づけ | 色をゴミ箱へドラッグして削除 |
+[/REGION]
+
+色は **[Theme] メニュー** でも視順序付けや削除ができます。
+
+[REGION:imagetable]
+| ![Reorder Colors](theme_edit_menu.png)(convert:false) | ![Remove Color](theme_menu_color_delete.png)(convert:false) |
+| ------ | ------ |
+| テーマ内で色をドラッグして際順序づけする | 色をゴミ箱へドラッグして削除する |
+[/REGION]
+
+### テーマの使用
+
+テーマを変更するには、 **[Theme] メニュー** からアクティブにしたいテーマを選択します。
+
+![Select Theme](theme_select.png)
+
+現在のテーマの色を使用するには、適用する色を **ダブルクリック** するだけです。これにより、テーマから保存された色と一致させるためピッカーの色が更新されます。
+
+![Use Color](theme_use_color.png)
+
+テーマの色上にカーソルを合わせると、色情報が表示されます。
+
+![Color Info](theme_color_info.png)

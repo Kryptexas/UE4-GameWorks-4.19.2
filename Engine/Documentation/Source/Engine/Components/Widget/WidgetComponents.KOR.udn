@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2498962
+Availability:Public
+Title:위젯 컴포넌트
+Crumbs:%ROOT%, Engine, Engine/Components
+Description:월드와의 상호작용이 가능한 위젯 블루프린트의 3D 인스턴스인 Widget Component, 위젯 컴포넌트에 대한 설명입니다.
+Related: Engine/UMG
+Related: Engine/UMG/UserGuide/WidgetBlueprints
+Related: Engine/MediaFramework
+Related: Engine/Blueprints/UserGuide/Components
+
+Widget Component, 위젯 컴포넌트로 게임 월드에서 [언리얼 모션 그래픽](Engine/UMG/UserGuide) 을 통해 제작된 3D UI 요소를 조작할 수 있습니다.
+
+## 위젯 컴포넌트
+
+**WidgetComponent** 자체는 게임 월드에서 상호작용 가능한 **위젯 블루프린트** 의 3D 인스턴스입니다.
+
+아래 예제에서, **WidgetComponent** 를 추가하였기에 **위젯 클래스 블루프린트** 를 지정할 수 있습니다.
+
+![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_21.png)
+
+_이 예제에서는 게임 월드에 나타나는 상호작용형 메뉴 표시를 위해 **위젯 블루프린트** 를 사용합니다._
+
+**Draw Size** 나 **Max Interaction** 거리와 같은 세팅 변경을 통해 월드에서의 **WidgetComponent** 인식 방식을 변경할 수 있습니다.
+
+![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_22.png)(w:720)
+
+레벨에 **WidgetComponent** 가 들어있는 액터를 배치하면, 월드에 **위젯 클래스 블루프린트** 가 표시됩니다.
+
+![](Engine/UMG/HowTo/Create3DWidgets/UMG_3D_30.png)(w:720)
+
+[](Engine/UMG/HowTo/Create3DWidgets) 에서 **WidgetComponent** 와 **위젯 블루프린트** 를 사용해서 이 예제를 만드는 법에 대한 단계별 안내를 살펴보실 수 있습니다.
+
+[REGION:note]
+이 컴포넌트는 실험단계 기능으로, 앞으로의 릴리즈에서 크게 변경되거나 제거될 수 있습니다.
+[/REGION]
+
+

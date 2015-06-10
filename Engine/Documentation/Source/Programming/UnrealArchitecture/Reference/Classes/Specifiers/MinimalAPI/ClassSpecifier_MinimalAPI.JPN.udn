@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:2374181
+Title:MinimalAPI
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description:
+Availability:Public
+Version:4.5
+
+他のモジュールで使用するために、クラスタイプの情報のみエクスポートさせます。クラスはキャストされますが、そのクラスの関数を呼び出すことはできません (インライン メソッドの場合を除く)。これにより、他のモジュールではすべての関数にアクセスする必要のないクラスに対し、何かをエクスポートする再のコンパイル時間を短縮できます。
+
+[REGION:note]
+**RequiredAPI** 関数指定子は、他のモジュールでアクセスできるように個々の関数と併用されます。コンパイル時間をできる限り短く抑えながら、関数のクラスとサブセットを利用可能にするために、 MinimalAPI クラス指定子と併用することができます。
+[/REGION]

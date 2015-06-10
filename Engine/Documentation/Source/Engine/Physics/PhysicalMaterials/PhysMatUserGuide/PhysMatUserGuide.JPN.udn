@@ -1,0 +1,183 @@
+﻿INTSourceChangelist:2277845
+Availability:Public
+Title:物理マテリアルのユーザーガイド
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:物理マテリアルのユーザーガイド - 物理マテリアルの作成および利用
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatUserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatUserGuide:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatUserGuide]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2)]
+
+## 概要
+
+このガイドは、 **物理マテリアル** の作成および利用方法に加えて、ユーザーのプロジェクトの **SurfaceTypes** を有効にする方法や編集方法について説明します。
+
+## 作成
+
+1. **コンテンツ ブラウザ** から、 ![](Engine/Audio\SoundCues\Editor\button_CB_NewAsset.png) **[新規アセット]** -> **[物理]** -> **[物理マテリアル]** の順に選択、もしくは **コンテンツ ブラウザ** を右クリックして **[物理]** -> **[物理マテリアル]** の順で選択します。
+
+	![](PhysMat_Creation_01.png)
+
+1. プロパティを編集するために、新規の **物理マテリアル** を **ダブルクリック** します。
+
+	![](PhysMat_Creation_02.png)
+
+1. プロパティを調整します。
+
+	![](PhysMat_Creation_03.png)
+
+1. [保存] ![](Shared\Icons\icon_SaveAsset_40x.png)
+
+物理マテリアルのプロパティに関する情報は、 [物理マテリアル リファレンス](Engine/Physics\PhysicalMaterials\PhysMatReference) を参照してください。
+
+### Surface Type
+
+アンリアル エンジン 4 はデフォルトで 30 種類の Surface Types をサポートしています。 Surface Types はユーザーが名前を付けて設定することが可能で、プロジェクトの「DefaultEngine.ini」ファイルに格納します。ファイルは「YourProjectRoot\Config\DefaultEngine.ini」にあります。ほとんどのプロジェクト テンプレートは、「\[PhysicalMaterial.SurfaceTypes\]」カテゴリや Surface Types の定義を含んでいませんが、「DefaultEngine.ini」ファイルに以下を追加することで簡単に有効にすることができます。
+
+	[PhysicalMaterial.SurfaceTypes]
+	SurfaceType1=Glass
+	SurfaceType2=Metal
+	SurfaceType3=Wood
+	SurfaceType4=Concrete
+	...
+	SurfaceType30=CollapsedStar
+
+追加したら「DefaultEngine.ini」ファイルを保存します。Surface Types を物理マテリアルで表示させたりブループリントで列挙型変数として使用するには、プロジェクトを再読み込みする必要があります。
+
+## 使用法
+
+###マテリアル
+
+1. マテリアルを開く、もしくは新規に作成します。
+
+	![](PhysMat_Material_01.png)
+
+1. 主なマテリアルノードを選択します。
+
+	![](PhysMat_Material_02.png)
+
+1. 物理マテリアルを変更します。
+
+	![](PhysMat_Material_03.png)
+
+
+
+###マテリアル インスタンス
+
+1. マテリアル インスタンスを開く、もしくは新規に作成します。
+
+	![](PhysMat_MaterialInst_01.png)
+
+1. 物理マテリアルを変更します。
+
+	![](PhysMat_MaterialInst_02.png)
+
+
+
+### 物理アセット (スケルタルメッシュ)
+
+物理アセットの物理マテリアルを調整する際は、最も一般的に使用する物理マテリアルを物理アセットの物理ボディに割り当てることから開始すると良いでしょう。
+
+[EXCERPT:PhysMatSkelMesh1]
+1. PhAT で物理アセットを開きます。
+
+	![](PhysMat_PhAT_02.png)
+
+1. **コンテンツ ブラウザ** から物理マテリアルを選択します。
+
+	![](PhysMat_PhAT_03.png)
+
+1. PhAT の [PhysMat を適用] ボタンをクリックします。 ![](Shared\Icons\icon_PhAT_PhysMat_40x.png)
+	[REGION:raw]
+	![](PhysMat_PhAT_01.png)(w:860)
+	[/REGION]
+[/EXCERPT:PhysMatSkelMesh1]
+
+
+ある特定の物理ボディと物理マテリアルを区別する必要がある場合は、個々に調整することができます。
+
+1. PhAT の [Body Edit] モードを有効にします。
+1. 物理ボディを選択します。
+1. **[詳細]** ペインの [物理] カテゴリで **Simple Collision Physical Material** を変更します。
+
+
+[REGION:raw]
+![](PhysMat_PhAT_04.png)(w:920)
+[/REGION]
+
+スケルタルメッシュを割り当てた物理的インタラクションは、デフォルト動作では関連する物理アセットのみと相互作用します。そのため、スケルタルメッシュのマテリアルの物理マテリアルは使用しません。
+
+[REGION:note]
+物理アセットを Simple Collision Physical Material 設定で使用するかもしれませんが、物理アセットをトレースする場合、ヒットした物理ボディの **Simple Collision Physical Material** プロパティにリスト表示される物理マテリアルを返す複雑なトレースにしなくてはいけません。
+[/REGION]
+
+### スタティックメッシュ
+
+スタティックメッシュには Simple コリジョン (3D アートパッケージまたはスタティックメッシュ エディタで作成する物理ボディ) と Complex コリジョン (ポリゴンごとのコリジョン) があります。コリジョンは、独自の異なる物理マテリアルを持つさまざまなマテリアルから構成されています。 
+
+| コリジョン | 物理マテリアルの順序 |
+| ----- | ----- |
+| **Simple** | コリジョンまたはトレースで **Simple Collision** を使用すると、スタティックメッシュエディタで設定されたスタティックメッシュの物理マテリアルを参照します。あるいは、 **スタティックメッシュ アクタ** の _Phys Material Override_ が「None」以外に設定された場合、プロパティにリスト表示されたマテリアルを使用します。|
+| **Complex** | コリジョンまたはトレースで **Complex Collision** を使用すると、 **スタティックメッシュ アクタ** に適用した **マテリアル** または **マテリアル インスタンス** を参照します。あるいは、スタティックメッシュ アクタの [Phys Material Override] が「None」以外に設定された場合、プロパティにリスト表示されたマテリアルを使用します。|
+
+**スタティック メッシュ** に Simple Collision Physical Material を設定する方法です。
+
+1. **コンテンツ ブラウザ** でスタティックメッシュを **ダブルクリック** して、スタティックメッシュ エディタを開きます。
+
+	![](PhysMat_StaticMeshEd_01.png)
+
+1. **Static Mesh Settings** カテゴリの **Simple Collision Physical Material** プロパティを使用する物理マテリアルに設定します。
+
+	![](PhysMat_StaticMeshEd_02.png)
+
+1. [保存] ![](Shared\Icons\icon_SaveAsset_40x.png)
+
+
+### その他
+
+![](PhysMat_Override.png)
+
+**Phys Material Override** プロパティはあらゆる **Physics** カテゴリに存在します。**アクタ** の Simple Collision Physical Materials 設定や、選択した物理マテリアルの **コンポーネント** を完全にオーバーライドするために使用します。
+
+* スタティックメッシュのシンプルコリジョンの物理マテリアルをオーバーライドします。
+* スケルタルメッシュの物理アセットは常に Simple Collision を返すため、配置されたスケルタルメッシュアクタに適用された物理マテリアル全てのオーバーライドに使用することができます。
+
+Complex Collision トレースには影響を及ぼしません。

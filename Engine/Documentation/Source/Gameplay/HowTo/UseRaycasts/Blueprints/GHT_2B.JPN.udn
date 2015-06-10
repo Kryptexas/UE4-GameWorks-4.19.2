@@ -1,0 +1,229 @@
+﻿INTSourceChangelist:2428846
+Availability:Public
+Title:ブループリントにおけるレイキャスト（トレーシング）の使い方
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
+Description:ブループリントにおけるレイキャスト（トレーシング）の使い方 
+
+[TOC (start:2 end:2)]
+
+## 概要
+
+このページでは、 **シングル** レイキャストと **マルチ** レイキャストの違い、およびコリジョン情報を引き出すための設定方法を学習します。 
+
+## Single Line Trace
+
+### Single Line Trace by Channel
+
+**Single Line Trace by Channel** は、所定の行に沿ってコリジョン トレースを実行しトレースがヒットした (トレース チャネルに反応した) 最初のオブジェクトを返します。 
+
+**Single Line Trace by Channel** を設定するには、以下を行います。 
+
+1. **Include Starter Content** の **Blueprint First Person** テンプレートを使ってプロジェクトを作成し **Include Starter Content** プロジェクトを開きます。 
+
+1. 「**ゲーム / ブループリント** 」フォルダから **MyCharacter** ブループリントを開きます。 
+
+1. グラフをどこか **右クリック** して、 **Event Tick** ノードを検索して追加します。 
+
+	![](GHT2B_1.png)
+
+	こうすることで、フレームごとにトレースが実行されるようになります。
+
+1. 実行ピンをドラッグして、 **Single Line** を検索し、 **Single Line Trace by Channel** ノードを追加します。 
+
+	![](GHT2B_2.png)
+
+1. **Control** キーを押したまま、 **FirstPersonCamera** コンポーネントにドラッグします。 
+
+	![](GHT2B_3.png)
+
+	ここがトレースの開始点となるカメラになります。 
+
+1. **FirstPersonCamera** ノードを引き出し **Get World Location** を追加したら、それをトレースの **Start** に接続します。 
+
+1.	**FirstPersonCamera** ノードを再び引き出して **Get World Rotation** ノードを追加します。 
+
+	![](GHT2B_4.png)(w:800)
+
+	ここで **FirstPersonCamera** の位置からトレースを開始し、 **FirstPersonCamera** の回転を追加します。 
+
+1.	**Get World Rotation** を引き出して **Get Forward Vector** を追加したら、それを引き出して **Vector * Float** ノードを追加し **1500** に設定します。 
+
+	![](GHT2B_5.png)
+
+	回転と forward ベクターができ、そこから 1500 (この値はトレースの長さです) だけ外へ伸ばします。 
+
+1.	**Get World Location** を引き出して **Vector + Vector** ノードを追加し、以下のようにトレース ノードの **End** に接続します。 
+
+	![](GHT2B_6.png)(w:800)
+
+	**FirstPersonCamera** の位置をここにして、回転と forward ベクターに合わせて 1500 ユニット伸ばします。
+
+1.	Trace ノード上で、 **Draw Debug Type** を **For One Frame** に設定します。 
+
+	![](GHT2B_7.png)
+
+	これで、ライン トレースを確認するためにインゲームを再生しながら、デバッグ ラインを見ることができるようになります。 
+
+1.	トレースから実行ピンをドラッグして **Print String** ノードを追加します。 
+
+	![](GHT2B_8.png)
+
+1.	**Out Hit** ピンを引き出して **Break Hit** を検索し、 **Break Hit Result** ノードを追加します。 
+
+	![](GHT2B_9.png)
+
+1.	**Break Hit Result** の **Hit Actor** ピンを引き出して **To String (Object)** ノードを追加したら、それを **Print String** ノードに接続します。 
+
+	[REGION:lightbox]
+	[![](GHT2B_10.png)(w:800)](GHT2B_10.png)
+	[/REGION]
+
+	_画像をクリックして全画面表示にします。_
+
+	これで、トレースでヒットしたオブジェクトを画面にプリントすることができます。
+
+1.	**[Compile]** ボタンをクリックし、エディタを再生し、レベル内のキューブを見ます。 
+
+	![](GHT2B_11.png)(w:800)
+
+	_ここでは一人称視点から離れているので、トレースの視野角を見ることができます。_
+
+	トレースがキューブにヒットすると、キューブが画面へプリントされるので、いつヒットしたか分かります。 
+
+上の例では、提供されている Trace Channel へ反応する設定のすべてのオブジェクトを返しますが、所定のオブジェクトだけを返したい場合もあると思います。上の例では、トレースに無視されるアクタの **Array** を受け取る **Actors to Ignore** ピンを使うことができますが、無視する個々のアクタを指定しなければなりません。 
+
+指定された **ObjectTypes** が返された場合のみ **Single Line Trace by Object** を実行することもできます。こうすると、特定のオブジェクト対象のみをトレースに含むことができます。 
+
+### Single Line Trace by Object
+
+**Single Line Trace by Object** は、所定の行に沿ってコリジョン トレースを実行し、トレースがヒットした (ObjectType に反応した) 最初のオブジェクトを返します。 
+
+**Single Line Trace by Object** を設定するには、以下を行います。 
+
+1. **Single Line Trace by Channel** を設定するには、以下を行います。 
+
+1. **Single Line Trace by Channel** ノードを **Single Line Trace by Object** ノードに置き換えます。 
+
+1. **Object Types** ピンを引き出して **Make Array** ノードを追加します。 
+
+	![](GHT2B_12.png)
+
+1. **Make Array** ノード上で、トレースしたい **ObjectType** をドロップダウン メニューで指定します。 
+
+	![](GHT2B_13.png)
+
+	ここでは、**WorldDyanmic** オブジェクトをトレースします。追加するには、 **[Add Pin]** ボタンをクリックします。  
+
+1. 残りのトレースも、 **Single Line Trace by Channel** と同様に設定することができます。 
+
+	[REGION:lightbox]
+	[![](GHT2B_15.png)(w:800)](GHT2B_15.png)
+	[/REGION]
+
+	_画像をクリックして全画面表示にします。_
+
+1. レベル内に **WorldDynamic** を 1 追加しました。 
+
+	![](GHT2B_16.png)
+
+	物理アクタはヒットを返さないので、追加したアクタのみがヒットとしてキューブを返します。 
+
+
+## Multi Line Trace
+
+### Multi Line Trace by Channel
+
+**Multi Line Trace by Channel** は、所定の行に沿ってコリジョン トレースを実行し、最初にブロックするヒットを含めて、指定した Trace Channel に反応するオブジェクトのみを返しながら、遭遇するすべてのヒットを返します。 
+
+**Multi Line Trace by Channel** を設定するのは、以下を行います。 
+
+1. **Single Line Trace by Channel** を設定するには、以下を行います。 
+
+1. **Single Line Trace by Channel** ノードを **Multi Line Trace by Channel** ノードに置き換えます。 
+
+1. **Out Hits** ピンを引き出して **ForEachLoop** ノードを追加します。 
+
+	![](GHT2B_18.png)
+
+	複数のアクタがヒットするので、それぞれに何かをします (この例ではアクタを画面に印刷します)。 
+
+1. **Array Element** を引き出して **Break Hit Result** を追加したら、 **Hit Actor** を引き出して **To String (Object)** を追加して **Print String** に接続します。 
+
+	[REGION:lightbox]
+
+	[![](GHT2B_19.png)(w:800)](GHT2B_19.png)
+	[/REGION]
+
+	_画像をクリックして全画面表示にします。_
+
+	これにより、配列がヒットしたそれぞれのアクタが文字列に印刷されるようになります。 
+
+1. 物理アクタの正面に Glass Window があります。 
+
+	![](GHT2B_17.png)
+
+	物理アクタ (キューブ) の **Visibility** は **Block** に設定されていますが、Glass Window は **Destructible Mesh**で、コリジョン設定での **可視性** に対する **Trace Response** は **Overlap** となっています。 
+
+	オブジェクトを貫通 (破砕) してプレイヤーや敵にもヒットさせたい場合に使用することができます。 
+
+### Multi Line Trace by Object
+
+**Single Line Trace by Object** は、所定の行に沿ってコリジョン トレースを実行し、トレースがヒットした ( ObjectType に反応した) 最初のオブジェクトを返します。 
+
+**Multi Line Trace by Object** を設定するのは、以下を行います。 
+
+1. **Single Line Trace by Channel** を設定するには、以下を行います。 
+
+1. **Single Line Trace by Channel** ノードを **Multi Line Trace by Object** ノードに置き換えます。 
+
+1. **Object Types** ピンを引き出して、 **Make Array** ノードを追加して、ドロップダウン メニューを使って配列にオブジェクトを追加します。 
+
+	![](GHT2B_21.png)
+
+	**WorldDynamic** と **Physics Body** をオブジェクト タイプとして割り当てます。**Add Pin** ボタンを使って、オブジェクト タイプを配列に追加することができます。 
+
+1. Trace ノードの **Out Hits** ピンを引き出して **ForEachLoop** ノードを追加します。 
+
+	![](GHT2B_22.png)
+
+	これにより、トレースがヒットしたアクタのそれぞれに対して、何かができるようになります。 
+
+1. **Array Element** を引き出して **Break Hit Result** を追加したら、 **Hit Actor** を引き出して **To String (Object)** を追加して **Print String** に接続します。 
+
+	[REGION:lightbox]
+	[![](GHT2B_23.png)(w:800)](GHT2B_23.png)
+	[/REGION]
+
+	_画像をクリックして全画面表示にします。_
+
+	これにより、配列がヒットしたアクタが印刷されるようになります。 
+
+1. 物理アクタ (物理ボディ オブジェクト タイプ) の正面に天井から吊り下がる照明があります。 
+
+	![](GHT2B_20.png)
+
+	**Multi Line Trace by Object** は **Multi Line Trace by Channel** とは違って、ヒットした最初のオブジェクトで停止しないので、キューブまでライトのトレースが継続されます。 
+
+
+## Shape Traces
+
+[REGION:fullwidth]
+![](GHT2B_24.png)
+[/REGION]
+
+Line Trace では不十分な場合は、その後で **Shape Trace** を使ってみると結果が出る場合があります。例えば、敵に対して "視覚的なコーン" を作成して、そこに入ったプレイヤーを見つけようとしても、プレイヤーは Line Trace の下を潜り抜ければ検出されないので、 Line Trace では不十分です。 
+
+そのような場合は、 **Box Trace** 、 **Capsule Trace** 、 **Sphere Trace** を使うことができます。それぞれの Shape Trace は Line Trace と同様に、開始ポイントから終了ポイントまでコリジョンに対するスイープとチェックを行います。ただし、 レイキャストで形状をボリュームの種類として使用している、 Shape Traces はチェックするレイヤーを追加します。 
+
+Shape Trace を **Single Trace** または **Multi Trace** として使用し、それぞれを Line Trace として同じ方法で設定することができます。ただし、使用する形状のサイズまたは方向に関して追加の詳細を与える必要があります。 
+
+
+
+
+
+
+
+
+
+
+

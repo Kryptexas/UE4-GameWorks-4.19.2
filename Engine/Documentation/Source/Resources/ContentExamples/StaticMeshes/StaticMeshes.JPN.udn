@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:2346120
+Availability:Public
+Title:スタティックメッシュのコンテンツ例
+Crumbs: %ROOT%, Resources, Resources/ContentExamples
+Description:スタティックメッシュのコンテンツ例で提供されるサンプルの概要
+Related: Engine/Content/Types/StaticMeshes
+Related: Engine/Physics/Collision/Reference
+Related: Engine/Content/Types/StaticMeshes/Editor
+Related: Engine/Actors/StaticMeshActor
+Related: Engine/Content/FBX/BestPractices
+
+
+
+[REGION:banner]
+![](StaticMeshes_Header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/StaticMeshes:title%](StaticMeshes_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/StaticMeshes:title%](StaticMeshes_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+
+**スタティックメッシュ** のコンテンツ例マップ内には、**可動性** の設定、**UV** の割り当て、**コリジョン** 設定の追加や調整の方法を含む **スタティックメッシュ** を使用した重要な例があります。他の例には、**マテリアル エレメント** を用いて **スタティックメッシュ** をカスタマイズする方法 (これにより、**スタティックメッシュ** の一部に適用される **マテリアル** を指定可能)、**メッシュペイント ツール** を使用して **スタティックメッシュ** に手動でペイントする方法が含まれます。 
+最後に、プレイヤーの距離に基づきメッシュのクオリティを低くすることで、**LOD (Level of Detail)** によってパフォーマンスが向上することがわかります。
+
+
+## スタティックメッシュのマップ
+
+![](StaticMeshes_Map.png)(w:640)
+
+以下は、**スタティックメッシュ** マップ内にある例です。
+
+| 例 | 実演内容 |
+| ------- | ------------|
+| **1.1 スタティックメッシュ** | サードパーティ ツールでモデル化された基本的な **スタティックメッシュ** であり、FBX ファイルとしてインポートされたもの。 |
+| **1.2 可動性** | **スタティックメッシュ** の **Static** (ベイクしたライティング/シャドウは、プレイ時に非可動) と **Moveable** (動的ライティング/シャドウは、プレイ時に可動) の **可動性** の違い。 |
+| **1.3 UV マッピング** | **マテリアル** の **テクスチャ** のアライメントを定義する **UV マッピング** の正しい例と誤った例、および **スタティックメッシュ** への適用方法。 |
+| **1.4 ライトマップ UV** | **マテリアル** 内の **テクスチャ** が、**スタティックメッシュ** に適用された場合に、ライトにどのように反応するかを定義する **ライトマップ UV** の正しい例と誤った例。 |
+| **1.5 固有の UV を生成** | 固有の UV を生成するための 3 種類の方法。サードパーティ ツールを使用、チャンネル 0 から自動生成されたチャンネル 1、自動生成された新規チャンネル 1。  |
+| **1.6 マテリアル エレメント** | **マテリアル エレメント** を使用して、**スタティックメッシュ** の様々な部分に様々な **マテリアル** を割り当てることができる方法を示します。 |
+| **1.7 コリジョン** | **コリジョン** を **スタティックメッシュ** に割り当てる方法のいくつかの例。 |
+| **1.8 ソケット** | **ソケット** を使用して 2 つの **スタティックメッシュ** をアタッチする方法 (例、スポットライトは回転可能なヒンジにアタッチされます)。 |
+| **1.9 頂点カラー** | **メッシュペイント** ツールを用いて **スタティックメッシュ** に適用された インポートされた **頂点カラー**。|
+| **1.10 メッシュ ペイント ツール(頂点)** | **メッシュ ペイント** ツールを使用して **スタティックメッシュ** に色をペイントする方法。 |
+| **1.11 メッシュ ペイント ツール (テクスチャ)** | **メッシュ ペイント** ツールを使用して **スタティックメッシュ** 上にテクスチャをペイントする方法。 |
+| **1.12 LOD (Level of Detail) ** | プレイヤーからの距離に応じて **LOD (Level of Detail)** を変更する方法。 | 
+
+
+
+
+
+
+

@@ -1,0 +1,100 @@
+Availability:NoPublish
+Title:Downloading Unreal Engine from GitHub
+Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
+Description:Downloading the Unreal Engine source code from GitHub.
+
+There are two ways to get the source code for Unreal Engine from GitHub:
+
+* Create a fork and clone the repository. 
+* Download the source and unzip it to a folder.
+
+
+## Fork and Clone
+
+Forking the Unreal Engine repository gives you your own Unreal Engine repository on GitHub that you can clone, 
+make changes to, etc. This is the preferred method of working with Unreal Engine source code. In addition, 
+it enables you to take advantage of features such as being notified of changes to the Unreal Engine repository 
+when we commit updates, easily pull in those updates, submit code back to Epic, and lots more.
+
+**To fork the repository:**
+
+1. Go to the [EpicGames/UnrealEngine repository](https://github.com/EpicGames/UnrealEngine) on GitHub.
+
+1. Click the ![Fork](button_fork_main.png) button.
+
+1. Select your account in the popup.
+
+
+Forking the repository is the first step, but the fork only exists on GitHub at this point. To actually work with the 
+source code, you need to clone the repository to your computer. This basically makes a local working copy which you 
+can then make changes to and commit those changes back to your repository on GitHub.
+
+**To clone your repository:**
+
+1. Go to your Unreal Engine repository on GitHub. This should be [YourGitHubUsername]/UnrealEngine.
+
+1. Click the ![Clone in Dekstop](button_clone.png) button.
+
+	If you do not have the GitHub client already installed, this will take you to the GitHub client installation page. Install the 
+	client to proceed.
+
+1. In the GitHub client, choose to clone the repository:
+
+	![](client_clone.png)
+
+	[REGION:note]
+	You can choose the location to clone your repositories to:
+	
+	1. Choose **Options** from the Tools menu:
+
+		![](tools_options.png)
+
+	1. Set the default directory to clone repositories to:
+
+		![](repo_directory.png)
+	[/REGION]
+
+1. This will create an UnrealEngine folder on your local machine with all of the source code from the repository in it.
+
+[REGION:warning]
+If you clone, do not forget to switch to the correct branch for this release! (The 'master' branch has unstable code, 
+so you will want to make sure to choose a release branch.)
+[/REGION]
+
+See [Fork A Repo](https://help.github.com/articles/fork-a-repo) for complete instructions on forking repositories 
+on GitHub.
+
+## Download Source Archive
+
+You can download an archive of the source code for the current release directly from the repository page or 
+from the [releases](https://github.com/EpicGames/UnrealEngine/releases) page. This is an easy way to get access 
+to the source code, but it means you are just using GitHub as a means of downloading the source and you will 
+lose out on all of the cool features associated with having the source on GitHub, such as being notified of 
+changes to the source repository, submitting code back to Epic, and all of the community aspects involved.
+
+Download one of the following:
+
+* Download ZIP
+* Source Code (zip)
+* Source Code (tar.gz)
+
+
+Unpack the downloaded archive to a location of your choosing on your computer.
+
+## Installing Dependencies
+
+In addition to the source code, there are dependencies that need to be installed in order to compile and run the 
+engine. These are mostly binary files, content assets, and external libraries. You can download these in a series 
+of .zip files from the [releases](https://github.com/EpicGames/UnrealEngine/releases) page.
+
+Download the required dependencies files for the latest release (Unreal Engine %Globals:current_release_number%): 
+
+%Globals:current_release_dependencies%
+
+Unzip the dependencies into the UnrealEngine folder alongside the source. Be careful to make sure the folders are 
+merged together correctly. 
+
+[REGION:tip]
+On Mac, we recommend **Option** + dragging the unzipped files into the UnrealEngine folder, then selecting Keep Newer 
+if prompted.
+[/REGION]

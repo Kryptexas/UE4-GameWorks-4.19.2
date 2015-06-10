@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2270955
+Availability:Public
+Title:Transition Rules （遷移ルール）
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
+Description:ステートマシンの遷移を規定するルールのガイド
+
+
+**遷移ルール** は **ステートマシン** 内のフローを制御する方法です。 
+**遷移ルール** は、**States** と **Conduits** を接続するワイヤーと共に自動的に作成されます。変数値に対していくつものチェックやテストを遷移ルールで実行可能であり、_True_ または _False_ の値を出力することを目的とします。 
+**Boolean** 出力は遷移を経たアニメーションの移動が可能か否か決定します。 
+
+視覚的には、**遷移ルール** は 以下のように **AnimationGraph** 内の小さな丸い方向を持ったアイコンで表示されます。 
+
+![](TransitionRule.png)
+
+アイコンにマウスをかざすと、ルールが視覚的に表示されます。 
+
+![](TransitionRuleMouseOver.png)
+
+_この例では、**JumpLoop** から **JumpEnd** に遷移するために、変数 **IsInAir?** が true であっては **なりません**。_ 
+
+ルールは遷移のフローを双方向で判断するように設定することもできます。 
+
+![](RulesBothWays.png)
+
+つまり、あるステートから出て、他のステートに移動するようにルールを設定可能であり、そのステートから戻る遷移になるようにルールを適用できます。 
+
+**遷移ルール** を **左クリック** すると、**[詳細]** パネルが更新され、追加のオプションが利用できるようになります。 
+
+![](TransitionDetails.png)
+
+| **プロパティ** | **説明** |
+| --- | --- |
+| **Transition Priority Order** | 遷移の優先順位。あるステートからの複数の遷移が同時に _true_ である場合、優先順位の高いものが優先されます。 |
+| **Bidirectional** | 遷移が双方向であるか否かを決定します。 |
+| **Blend Logic** | 使用する遷移ロジックを指定します。標準ブレンドまたはカスタム ブレンド。カスタムを選択すると、ブレンドグラフにカスタムのブレンド遷移を設定するように入力できます。 |
+| **Transition Rule Sharing** | 他の遷移とルールを共有できるか否か、または他の遷移からのルールを使用するかを設定することができます。  |
+| **Transition Interrupt** | **Trigger Weight Threshold** を設定し、**Notify State Class** を指定します。  |
+| **Transition Crossfade Sharing** | 既存の **Transition Crossfade Blend** を使用する、または既存の **Transition Crossfade** を共有にプロモートします。  |
+| **Duration** | クロスフェードに適用する持続時間。 |
+| **Mode** | クロスフェードに適用するブレンドのタイプ。 |
+| **Start Transition Event / Custom Blueprint Event** | 遷移開始時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
+| **Blueprint Notify** | 遷移開始時に通知された **ブループリント** |
+| **End Transition Event / Custom Blueprint Event** | 遷移終了時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
+| **Blueprint Notify** | 遷移終了時に通知された **ブループリント** |
+| **Interrupt Transition Event / Custom Blueprint Event** | 遷移中断時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
+| **Blueprint Notify** | 遷移中断時に通知された **ブループリント** |
+
+**Transition Rule** を **ダブルクリック** すると、ウィンドウが開きます。このウィンドウで、遷移が起こるために満たさなければならない変数を定義できます。 
+
+[REGION:lightbox]
+[![](EditRule.png)(w:480)](EditRule.png)
+[/REGION]
+
+_クリックしてフルサイズで表示_
+
+**ブループリント** と同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグできます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ でなければならないかを定義できます。 
+
+**ブループリント** の使用を開始するための情報は、[ブループリント入門](Engine/Blueprints/GettingStarted) のドキュメントをご覧ください。 
+
+

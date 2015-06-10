@@ -1,0 +1,430 @@
+﻿INTSourceChangelist:2467660
+Availability: Public
+Title:에임 오프셋 만들기
+Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
+Description:에임 오프셋을 사용하여, 캐릭터가 마우스 또는 콘트롤러 방향으로 무기를 조준하도록 합니다.
+Related: Engine\Animation\AimOffset
+Related: Engine/Animation/AnimBlueprints
+Related: Engine\Content\Types\SkeletalMeshes\Sockets
+Related: Engine\Animation\AnimHowTo\AdditiveAnimations
+
+이 가이드에서는 캐릭터의 무기 조준을 돕기 위해 포즈의 블렌딩가능 시리즈를 저장하는 애셋인 [에임 오프셋](Engine/Animation/AimOffset) 을 만들겠습니다. 아래 예제에서 보듯이, 애니메이션 시퀀스를 잡아 에임 오프셋에 사용할 수 있는 포즈로 쪼갠 다음, 마우스의 위치로 플레이어의 핏치/요 를 구하고, 그를 통해 블렌딩할 포즈를 결정한 뒤, 캐릭터가 이동하면서 마우스 방향으로 (약간의 제한을 두고) 조준할 수 있도록 합니다.
+
+![](AimGIF.gif)(convert:false)
+
+[TOC(start:2 end:2)]
+
+[INCLUDE:Engine\Animation\AnimHowTo\AdditiveAnimations#intro]
+
+## 에임 포즈 만들기
+
+여기서는 애니메이션 시퀀스를 쪼개 에임 오프셋에 필요한 조준 포즈를 만들도록 하겠습니다.
+
+1.  프로젝트를 열고, **콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **MyGame** 블루프린트를 엽니다.
+
+1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭한 다음 **ASP_Character** 를 선택합니다. 
+
+	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
+
+1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
+
+1.	**콘텐츠 브라우저** 에서 **Game/AnimStarterPack** 폴더를 엽니다.
+
+1.	**생성** 버튼을 클릭한 다음 **AimPoses** 라는 폴더를 만듭니다.
+
+	![](AimOffset1.png)
+
+1.	**Aim_Space_Ironsights** 애셋을 끌어 **AimPoses** 폴더에 놓고 **복사** 를 선택합니다. 
+
+	![](AimOffset2.png)
+
+	포즈로 쪼갤 무기 조준용 동작 범위가 들어있는 애니메이션 시퀀스입니다.
+
+1.	**AimPoses** 폴더 안에, **Aim_Space_Ironsights** 를 선택한 채로 **Ctrl+W** 키를 눌러 복제하고 이름을 **Aim_Center** 라 짓습니다. 
+
+	![](AimOffset3.png)
+
+1.	**Aim_Center** 애셋을 열고, 재생 콘트롤의 **일시정지** 버튼을 클릭한 뒤, **ToFront** 버튼을 클릭합니다.
+
+	![](AimOffset4.png)
+
+	그러면 애니메이션이 현재 0/102 프레임에 있도록 합니다.
+
+1.	타임라인의 스크럽 바에 **우클릭** 한 다음 **Remove from frame 1 to frame 102** 옵션을 선택합니다.
+
+	![](AimOffset5.png)
+
+1.	타임라인의 스크럽 바를 다시 **우클릭** 한 다음 **Remove from frame 1 to frame 2** 옵션을 선택합니다.
+
+	![](AimOffset6.png)
+
+	타임라인이 아래와 같을 것입니다.
+
+	![](AimOffset7.png)
+
+	이제 에임 오프셋에 사용할 수 있는 포즈가 들어있는 프레임이 하나 생겼습니다.
+
+1.	**저장** 을 클릭한 다음 **Aim_Center** 애니메이션을 닫습니다.
+
+1.	**AimPoses** 에서 **Aim_Space_Ironsights** 를 선택한 채로 **Ctrl+W** 키를 눌러 복제하고 이름을 **Aim_CenterDown** 라 합니다.  
+
+	![](AimOffset8.png)
+
+1.	**Aim_CenterDown** 를 열고, **0** 프레임에 있는지 확인한 다음, **ToNext** 버튼을 클릭한 뒤 **20** 프레임으로 갑니다.
+
+	![](AimOffset9.png)
+
+	뷰포트에 캐릭터가 아래쪽을 조준하고 있을텐데, 아래 조준에 사용하려는 포즈입니다.
+
+1.	타임라인의 스크럽 바에 **우클릭** 한 다음 **Remove frame 0 to frame 19** 옵션을 선택합니다.
+
+	![](AimOffset10.png)
+
+	스크럽 바의 어디를 클릭했는가에 따라 프레임 범위는 다를 수 있지만, 캐릭터가 아래를 조준하고 있는지만 확인하면 됩니다.
+	
+1.	타임라인의 스크럽 바에 다시 **우클릭** 한 다음, **Remove from frame 1 to frame 83** 옵션을 선택합니다.
+
+	![](AimOffset11.png)
+
+	뷰포트에서 캐릭터가 아래를 조준하는 채로 **Aim_CenterDown** 애니메이션이 타임라인에서 아래와 같아 보일 것입니다.
+
+	![](AimOffset12.png)
+
+1.	**AimPoses** 에서 **Aim_Space_Ironsights** 를 선택한 채로 **Ctrl+W** 키를 눌러 복제한 다음 이름을 **Aim_CenterUp** 이라 짓습니다.  
+
+	![](AimOffset13.png)
+
+1.	**Aim_CenterUp** 을 열고 **0** 프레임에 있는지 확인한 다음 **ToNext** 버튼을 클릭하여 **10** 프레임으로 갑니다.
+
+1.	타임라인의 스크럽 바에 **우클릭** 한 다음 **Remove frame 0 to frame 10** 옵션을 선택합니다.
+
+	![](AimOffset14.png)
+
+	마찬가지로, 프레임 범위는 우클릭 위치에 따라 살짝 다를 수 있지만, 캐릭터가 위를 조준하고 있는지만 확인하면 됩니다.
+
+1.	타임라인의 스크럽 바에 다시 **우클릭** 한 다음 **Remove from frame 1 to frame 92** 옵션을 선택합니다. 
+
+	![](AimOffset15.png)
+
+	뷰포트에 캐릭터가 위를 조준하면서 타임라인에 **Aim_CenterUp** 애니메이션이 아래와 같아 보일 것입니다.
+
+	![](AimOffset16.png)
+
+	Aim Center, Aim Down, Aim Up 포즈를 만들었으니, 위 과정을 반복하여 Aim Left (Center, Up, Down) 및 Aim Right (Center, Up, Down) 도 만들어 줍니다. 아래 표를 참고하여 포즈 생성을 위해 시작할 키프레임과 제거할 키프레임을 알아볼 수 있습니다.
+
+1.	매번 **Aim_Space_Ironsights** 애셋을 **복제** 한 다음 아래 표를 참고하여 나머지 모즈 각각을 만듭니다.
+	
+	| 애님 이름 | 시작 키프레임 | 제거 프레임 1 | 제거 프레임 2 |
+	| ------- | ------ | ------ | ------ |
+	| **Aim_LeftCenter** | 35 | 0 - 34 | 1 - 68 |
+	| **Aim_LeftUp** | 40 | 0 - 39 | 1 - 63 |
+	| **Aim_LeftDown** | 50 | 0 - 49 | 1 - 53 |
+	| **Aim_RightCenter** | 65 | 0 - 64 | 1 - 38 |
+	| **Aim_RightUp** | 71 | 0 - 70 | 1 - 32 |
+	| **Aim_RightDown** | 81 | 0 - 80 | 1 - 32 |
+
+	각 애니메이션에 대해 위의 **시작 키프레임** 에서 시작한 다음, 스크럽 바에 **우클릭** 하고 **제거 프레임 1** 을 제거하고, 다시 스크럽 바에 우클릭한 다음 **제거 프레임 2** 를 제거합니다. 각 애니메이션은 캐릭터가 그 이름 방향으로 조준하는 단일 프레임일 것입니다.
+
+	전부 만들고나면 **AimPoses** 폴더에는 각 조준 방향에 대한 포즈가 여럿 있을 것입니다.
+
+	![](AimOffset17.png)
+
+1.	**AimPoses** 폴더에서 **Aim_Center** 애니메이션을 엽니다.
+
+1.	**애님 애셋 디테일** 창에서 **Additive Settings** 아래 **No additive** 옵션을 클릭한 다음 **Mesh Space** 로 변경합니다. 
+
+	![](AimOffset18.png)
+
+	[REGION:note]
+	애니메이션이 에임 오프셋과 호환되도록 하려면, Additive Anim Type 이 **Mesh Space** 를 사용하도록 설정되어 있어야 합니다.
+	[/REGION:note]
+
+1.	**Reference Pose** 옵션을 클릭한 다음 **Selected animation frame** 으로 변경합니다. 
+
+	![](AimOffset19.png)
+
+1.	**None** 드롭다운 옵션을 클릭한 다음, **Idle_Rifle_Ironsights** 애니메이션을 검색 및 선택하여 베이스 포즈로 사용합니다.
+
+	![](AimOffset20.png)
+
+1.	**애셋 브라우저** 에서 에임 포즈를 하나씩 연 다음 22 - 24 단계를 반복합니다.
+
+	![](AimOffset21.png)
+
+	각각 **Additive Anim Type** 이 **Mesh Space** 를 사용중인지, **Idle_Rifle_Ironsights** 베이스 포즈가 할당되었는지 확인합니다.
+
+1.	완료되었으면 **콘텐츠 브라우저** 로 돌아와 **모두 저장** 버튼을 클릭합니다.
+
+	![](AimOffset22.png)
+
+## 에임 오프셋 만들기
+
+포즈를 생성하였으니, 다음에는 에임 오프셋 애셋을 생성하여 블렌딩에 쓸 포즈를 구성해 주도록 하겠습니다.
+
+1.	**콘텐츠 브라우저** 에서 **생성** 버튼을 클릭한 다음 **애니메이션** 아래 **에임 오프셋** 을 선택합니다.
+
+	![](AimOffset23.png)
+
+1.	**스켈레톤 선택** 창에서 **Game/AnimStarterPack/Character** 폴더에 있는 **HeroTPP_Skeleton** 을 선택합니다.
+
+	![](AimOffset24.png)
+
+	에임 오프셋 이름을 **Hero_AimOffset** 라 짓고 엽니다.
+
+1.	**Hero_AimOffset** 의 **애님 애셋 디테일** 패널에서, **Additive Settings** 아래 **Preview Base Pose** 를 클릭합니다.
+
+1.	팝업창에서 **Idle_Rifle_Ironsights** 애니메이션 시퀀스를 검색하여 추가합니다.
+
+	![](AimOffset25.png)
+
+	에임 오프셋에 에임 포즈를 추가하기 시작하면 여기에 블렌딩하여 프리뷰 베이스 포즈로 사용할 것입니다.
+
+1.	**Hero_AimOffset** (가운데) 창의 **Parameters** 아래, 아래 표시된 파라미터를 입력합니다.
+
+	![](AimOffset26.png)
+
+	**X Axis Label** 을 **Yaw** 로, **Y Axis Label** 을 **Pitch** 로, 두 Axis Ranges 모두 **-90 to 90** 로 설정한 다음 **Apply Parameter Changes** 를 클릭합니다. 
+
+	[REGION:note]
+	(에임 오프셋의 기반이 되는) **블렌드 스페이스** 작동 방식에 대한 정보는 [](Engine/Animation/Blendspaces) 문서를 참고하세요. 
+	[/REGION]
+
+1.	**애셋 브라우저** 에서 **Aim** 을 검색한 다음, **Aim_Center** 애니메이션을 끌어 아래와 같이 그래프 중앙에 놓습니다.
+	
+	![](AimOffset27.png)
+
+1.	**Aim_CenterUp** 을 끌어 아래의 **1** 위치에, **Aim_CenterDown** 을 **2** 위치에 놓습니다.
+	
+	![](AimOffset28.png)
+
+1.	**Aim_LeftCenter** 를 끌어 아래의 **1** 위치에, **Aim_RightCenter** 는 **2** 위치에 놓습니다.
+
+	![](AimOffset29.png)
+
+	이제 그리드 안에서 마우스를 움직이면, 캐릭터가 조준하며 포즈를 블렌딩하기 시작합니다.
+
+1.	**Aim_LeftUp** (1), **Aim_RightUp** (2), **Aim_LeftDown** (3), **Aim_RightDown** (4) 포즈를 추가하여 에임 오프셋을 마무리합니다.
+
+	![](AimOffset30.png)
+
+	이제 에임 오프셋이 구성되었으니, **애니메이션 블루프린트** 안에서 사용하도록 연결해 줘야 합니다.
+
+
+## 에임 오프셋 구현하기
+
+여기서는 캐릭터의 **애니메이션 블루프린트** 안에 에임 오프셋을 구현하여 애니메이션 세트의 일부가 되도록 해 주겠습니다.
+
+1.	**콘텐츠 브라우저** 안에서 **Game/AnimStarterPack/Character** 아래 **ASP_HeroTPP_AnimBlueprint** 를 엽니다. 
+
+	![](AimOffset31.png)
+
+	플레이가능 캐릭터에 할당된 애니메이션 블루프린트로, 캐릭터의 애니메이션에 대한 로직을 담당합니다.
+
+	[REGION:note]
+	**애니메이션 블루프린트** 작동 방식에 대한 정보는, [](Engine/Animation/AnimBlueprints) 문서를 참고하세요. 
+	[/REGION]
+
+1.	애니메이션 블루프린트 내 창 하단 중앙에, **내 블루프린트** 탭을 클릭한 다음 **애님 그래프** 를 **더블클릭** 합니다.
+
+	![](AimOffset32.png)
+
+	그러면 [](Engine/Animation/AnimBlueprints/AnimGraph) 탭이 열리며, 여기서 에임 오프셋을 구현합니다.
+
+1.	**내 블루프린트** 창에서 **변수 추가** 버튼을 눌러 변수를 추가합니다.
+
+	![](AimOffset33.png)
+
+1.	오른쪽의 **디테일** 패널에서 **변수 이름** 을 **PlayerAimYaw** 로, **변수 유형** 을 **Float** 로 변경합니다. 
+
+	![](AimOffset34.png)
+
+1.	**내 블루프린트** 창에서 **변수 추가** 버튼을 한 번 더 누른 다음 새 변수 이름을 **PlayerAimPitch** (, 유형은 마찬가지로 **Float**) 라 합니다.
+
+1.	**애셋 브라우저** 탭을 클릭한 다음, **Hero** 를 검색하여 **Hero_AimOffset** 를 그래프에 끌어 놓습니다.
+
+	![](AimOffset35.png)
+
+1.	**내 블루프린트** 탭을 클릭한 다음, **PlayerAimYaw** 변수를 끌어 **Hero_AimOffset** 노드의 **Yaw** 에 놓습니다.
+
+	![](AimOffset36.png)
+
+	또한 **PlayerAimPitch** 변수를 끌어 **Hero_AimOffset** 노드의 **Pitch** 에 놓습니다.
+	 
+1.	**Locomotion** 포즈를 **Hero_AimOffset** 의 **Base Pose** 에 연결한 다음, 출력 포즈를 **결과** 에 연결합니다.
+
+	![](AimOffset37.png)
+
+	그러면 **Locomotion** 스테이트 머신의 포즈가 무엇이든 취한 다음 그 위에 **에임 오프셋** 을 최종 포즈로 적용합니다.
+
+1.	창 중앙 하단의 **내 블루프린트** 탭을 클릭한 다음, **이벤트 그래프** 를 더블클릭하여 엽니다.
+
+	![](AimOffset38.png)
+
+	그러면 [](Engine/Animation/AnimBlueprints/EventGraph) 탭이 열리며, 여기서 캐릭터 애니메이션을 게임내 벌어지는 상태로 유지되도록 업데이트시킵니다.
+
+1.	**이벤트 그래프** 에서 **Sequence** (시퀀스) 노드 위치를 찾습니다.
+
+	![](AimOffset39.png)
+
+	**Sequence** (시퀀스) 노드에 **핀 추가** 버튼을 클릭합니다.
+
+	![](AimOffset40.png)
+
+1.	**내 블루프린트** 창에서 **Alt** 키를 누르고 **PlayerAimYaw** 변수를 끌어 그래프에 놓습니다.
+
+	![](AimOffset41.png)
+
+	그러면 **Set** 노드가 생성되며, 이를 사용하여 플레이어의 현재 Yaw 를 구하고 에임 오프셋의 블렌드 지점을 결정합니다.
+
+1.	**Alt** 키를 누르고 **PlayerAimPitch** 를 끌어놓은 다음, 둘 다 **Sequence** (시퀀스) 노드의 **Then 2** 핀으로 연결합니다.
+
+	![](AimOffset42.png)
+
+1.	**Cast to ASP_Character** 노드의 **As ASP Character** 핀을 끌어 놓은 다음 **Get Control Rotation** 노드를 검색 추가합니다.
+
+	![](AimOffset43.png)
+
+1.	위 단계를 반복하여 **Get Actor Rotation** 노드를 검색 추가합니다.
+
+	![](AimOffset44.png)
+
+1.	그래프에 **우클릭** 한 다음 **Delta (Rotator)** 노드를 검색 추가합니다.
+
+	![](AimOffset45.png)
+
+1.	**Get Control Rotation** 를 **Delta(Rotator)** 노드의 **A** 에, **Get Actor Rotation** 을 **B** 에 연결합니다.
+
+1.	그래프에 **우클릭** 한 다음, **RInterp To** 노드를 검색 추가합니다.
+
+	![](AimOffset46.png)
+
+1.	그래프에 **우클릭** 한 다음, **MakeRot** (Make Rotation) 노드를 검색 추가합니다.
+
+	![](AimOffset47.png)
+
+1.	**PlayerAimPitch** 와 **PlayerAimYaw** 변수를 끌어 **MakeRot** 노드의 **Pitch/Yaw** 에 놓습니다.
+
+	![](AimOffset48.png)
+
+	위와 같이 노드를 연결합니다.
+	
+	그러면 **PlayerAimPitch** 와 **PlayerAimYaw** 의 현재 값을 구한 다음 플레이어의 실제 Pitch/Yaw 에 부드럽게 전환시킵니다.
+
+1.	**Movement** 섹션 처음에 **Event Blueprint Update Animation** 의 **Delta Time X** 를 끌어 놓은 다음 **변수로 승격** 시킵니다.
+
+	![](AimOffset49.png)
+
+	이를 사용하여 **RInterp** 노드와 사용할 Delta Time 까지의 변수를 저장합니다.
+
+1.	변수 이름을 **Time** 으로 하고 아래와 같이 연결합니다.
+
+	![](AimOffset50.png)
+
+1.	**Time** 변수를 끌어 **RInterp To** 노드의 **DeltaTime** 핀에 놓은 다음 **Interp Speed** 를 **15** 로 설정합니다. 
+
+	![](AimOffset51.png)
+
+	시간에 대한 레퍼런스를 할당하고 플레이어의 예전 Pitch/Yaw 위치에서 새로운 위치로의 이동 속도를 설정했습니다.
+
+1.	**RInterp To** 노드의 **Return Value** 를 끌어 놓은 다음 **Break Rot** (Break Rotation) 노드를 추가합니다.
+
+	![](AimOffset52.png)
+
+1.	**Pitch** 를 끌어 놓고 **Clamp Angle** 노드를 추가합니다.
+
+	![](AimOffset53.png)
+
+	**Min Angle** 를 **-90** 로, **Max Angle** 를 **90** 로 설정합니다. 
+
+1.	**Clamp Angle** 노드를 **복사/붙여넣기** 한 다음 **Yaw** 에 연결한 뒤, 둘 다 **PlayerAimYaw** 와 **PlayerAimPitch** 노드에 연결합니다.
+
+	![](AimOffset54.png)
+
+	에임 오프셋으로 플레이어의 Pitch/Yaw 를 구하고/사용하도록 로직을 구성했으며, 마무리까지 거의 다 됐습니다.
+
+## 마무리
+
+최종적으로 에임 오프셋을 제대로 활용하기 위해 캐릭터 블루프린트를 업데이트하여 기본 idle 포즈를 변경하도록 하겠습니다.
+
+1.	앞 부분에서 이어, **내 블루프린트** 탭을 클릭한 다음 **Locomotion** 에 **더블클릭** 하여 그래프를 엽니다.
+
+	![](AimOffset55.png)
+
+1.	**Locomotion** 그래프 안의 **Idle** 스테이트를 **더블클릭** 합니다.
+
+	![](AimOffset56.png)
+
+1.	**애셋 브라우저** 에서 **Idle_Rifle_Ironsights** 를 끌어놓은 다음 **결과** 핀에 연결합니다.
+
+	![](AimOffset57.png)
+
+	나중에 이리로 돌아오려면 **Play Idle_Rifle_Hip** 노드는 놔둬도 됩니다.
+
+1.	**컴파일**, **저장** 후 애니메이션 블루프린트를 닫습니다.
+
+1.	**콘텐츠 브라우저** 안에서 **Game/AnimStarterPack/Character** 아래 **ASP_Character** 블루프린트를 엽니다. 
+
+	![](AimOffset58.png)
+
+1.	**디폴트** 탭에서 **Rotation** 을 검색한 다음 **Use Controller Rotation Yaw** 옵션 체크를 해제합니다.
+
+	![](AimOffset59.png)
+
+	그러면 캐릭터가 콘트롤러의 Yaw 위치로 자동 회전하지 못하도록 합니다.
+
+1.	**그래프** 탭을 클릭한 다음 **Crouching** 섹션을 찾아 **InputAction Crouch** 노드를 **C** Key Event 로 대체합니다.
+
+	![](AimOffset60.png)
+
+	그러면 창 좌상단의 컴파일 버튼에 노랑 경고 신호가 제거됩니다. 프로젝트에 기본적으로 Crouch 에 대한 액션 매핑이 없기 때문인데, **C** 버튼을 사용하도록 하겠습니다 (원하는 아무 키 이벤트나 사용해도 됩니다).
+
+1.	**컴파일**, **저장** 한 다음 블루프린트를 닫고 메인 에디터 툴바의 **플레이** 를 클릭하여 게임을 플레이합니다.
+
+에디터에서 플레이하면, 캐릭터는 고정 상태에서 마우스 이동에 반응하여 그 방향을 가리키도록 조준합니다. 마우스가 캐릭터 뒤에 있을때 돌아서 뒤쪽을 향하지 않도록 약간의 제약을 두었으며, 캐릭터가 조깅하는 도중 마우스를 움직이면 캐릭터의 가슴도 가리키는 방향으로 회전합니다.
+
+여기서 조금 더 나아가 [](Engine\Animation\AnimHowTo\AdditiveAnimations) 문서에서 여러 애니메이션을 블렌딩하는 방법을 배워 캐릭터가 한 방향으로 조준하다가 발사 애니메이션을 재생하도록 하거나, 한 방향으로 움직이거나 웅크린 상태에서 발사 애니메이션을 재생하도록 할 수도 있습니다. 아니면 이제 캐릭터가 조준이 가능하니, [](Engine\Content\Types\SkeletalMeshes\Sockets) 문서를 참고하여 캐릭터의 손에 무기를 붙이는 예제를 찾아볼 수도 있습니다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+

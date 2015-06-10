@@ -26,7 +26,7 @@ enum EColorVisionDeficiency
 /**
  * Implements the Editor style settings.
  */
-UCLASS(config=EditorUserSettings)
+UCLASS(config=EditorPerProjectUserSettings)
 class EDITORSTYLE_API UEditorStyleSettings
 	: public UObject
 {
@@ -74,9 +74,21 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, AdvancedDisplay)
 	uint32 bExpandConfigurationMenus:1;
 
+	/** When enabled, the Editor Preferences and Project Settings menu items in the main menu will be expanded with sub-menus for each settings section. */
+	UPROPERTY(config)
+	uint32 bShowProjectMenus : 1;
+
+	/** When enabled, the Launch menu items will be shown. */
+	UPROPERTY(config)
+	uint32 bShowLaunchMenus : 1;
+
 	/** The display mode for timestamps in the output log */
-	UPROPERTY(EditAnywhere, config, Category=UserInterface)
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=UserInterface)
 	TEnumAsByte<ELogTimes::Type> LogTimestampMode;
+
+	/** If checked, new asset editor tabs will open in a new window instead of docked in the tab from which they were opened */
+	UPROPERTY(EditAnywhere, config, Category=UserInterface)
+	bool bOpenAssetEditorTabsInNewWindow;
 
 public:
 

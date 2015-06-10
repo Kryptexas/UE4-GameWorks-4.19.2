@@ -6,16 +6,32 @@
 
 // UInheritableComponentHandler
 
+void UInheritableComponentHandler::PostLoad()
+{
+	Super::PostLoad();
+
+	for (int32 Index = Records.Num() - 1; Index >= 0; --Index)
+	{
+		FComponentOverrideRecord& Record = Records[Index];
+		if (Record.ComponentTemplate && !CastChecked<UActorComponent>(Record.ComponentTemplate->GetArchetype())->IsEditableWhenInherited())
+		{
+			Record.ComponentTemplate->MarkPendingKill(); // hack needed to be able to identify if NewObject returns this back to us in the future
+			Records.RemoveAtSwap(Index);
+		}
+	}
+}
+
 #if WITH_EDITOR
 UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(FComponentKey Key)
 {
 	for (int32 Index = 0; Index < Records.Num(); ++Index)
 	{
-		if (Records[Index].ComponentKey.Match(Key))
+		FComponentOverrideRecord& Record = Records[Index];
+		if (Record.ComponentKey.Match(Key))
 		{
-			if (Records[Index].ComponentTemplate)
+			if (Record.ComponentTemplate)
 			{
-				return Records[Index].ComponentTemplate;
+				return Record.ComponentTemplate;
 			}
 			Records.RemoveAtSwap(Index);
 			break;
@@ -30,8 +46,18 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 		return NULL;
 	}
 	ensure(Cast<UBlueprintGeneratedClass>(GetOuter()));
-	auto NewComponentTemplate = ConstructObject<UActorComponent>(
-		BestArchetype->GetClass(), GetOuter(), BestArchetype->GetFName(), RF_ArchetypeObject | RF_Public | RF_InheritableComponentTemplate, BestArchetype);
+	auto NewComponentTemplate = NewObject<UActorComponent>(
+		GetOuter(), BestArchetype->GetClass(), BestArchetype->GetFName(), RF_ArchetypeObject | RF_Public | RF_InheritableComponentTemplate, BestArchetype);
+
+	// HACK: NewObject can return a pre-existing object which will not have been initialized to the archetype.  When we remove the old handlers, we mark them pending
+	//       kill so we can identify that situation here (see UE-13987/UE-13990)
+	if (NewComponentTemplate->IsPendingKill())
+	{
+		NewComponentTemplate->ClearFlags(RF_PendingKill);
+		UEngine::FCopyPropertiesForUnrelatedObjectsParams CopyParams;
+		CopyParams.bDoDelta = false;
+		UEngine::CopyPropertiesForUnrelatedObjects(BestArchetype, NewComponentTemplate, CopyParams);
+	}
 
 	FComponentOverrideRecord NewRecord;
 	NewRecord.ComponentKey = Key;
@@ -39,6 +65,20 @@ UActorComponent* UInheritableComponentHandler::CreateOverridenComponentTemplate(
 	Records.Add(NewRecord);
 
 	return NewComponentTemplate;
+}
+
+void UInheritableComponentHandler::RemoveOverridenComponentTemplate(FComponentKey Key)
+{
+	for (int32 Index = 0; Index < Records.Num(); ++Index)
+	{
+		FComponentOverrideRecord& Record = Records[Index];
+		if (Record.ComponentKey.Match(Key))
+		{
+			Record.ComponentTemplate->MarkPendingKill(); // hack needed to be able to identify if NewObject returns this back to us in the future
+			Records.RemoveAtSwap(Index);
+			break;
+		}
+	}
 }
 
 void UInheritableComponentHandler::UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass)
@@ -192,21 +232,6 @@ bool UInheritableComponentHandler::IsRecordNecessary(const FComponentOverrideRec
 	return !FComponentComparisonHelper::AreIdentical(ChildComponentTemplate, ParentComponentTemplate);
 }
 
-void UInheritableComponentHandler::PreloadAllTempates()
-{
-	for (auto Record : Records)
-	{
-		if (Record.ComponentTemplate && Record.ComponentTemplate->HasAllFlags(RF_NeedLoad))
-		{
-			auto Linker = Record.ComponentTemplate->GetLinker();
-			if (Linker)
-			{
-				Linker->Preload(Record.ComponentTemplate);
-			}
-		}
-	}
-}
-
 UActorComponent* UInheritableComponentHandler::FindBestArchetype(FComponentKey Key) const
 {
 	UActorComponent* ClosestArchetype = nullptr;
@@ -260,11 +285,39 @@ FComponentKey UInheritableComponentHandler::FindKey(UActorComponent* ComponentTe
 
 #endif
 
+void UInheritableComponentHandler::PreloadAllTempates()
+{
+	for (auto Record : Records)
+	{
+		if (Record.ComponentTemplate && Record.ComponentTemplate->HasAllFlags(RF_NeedLoad))
+		{
+			auto Linker = Record.ComponentTemplate->GetLinker();
+			if (Linker)
+			{
+				Linker->Preload(Record.ComponentTemplate);
+			}
+		}
+	}
+}
+
+void UInheritableComponentHandler::PreloadAll()
+{
+	if (HasAllFlags(RF_NeedLoad))
+	{
+		auto Linker = GetLinker();
+		if (Linker)
+		{
+			Linker->Preload(this);
+		}
+	}
+	PreloadAllTempates();
+}
+
 FComponentKey UInheritableComponentHandler::FindKey(const FName VariableName) const
 {
 	for (const FComponentOverrideRecord& Record : Records)
 	{
-		if (Record.ComponentKey.VariableName == VariableName)
+		if (Record.ComponentKey.VariableName == VariableName || (Record.ComponentTemplate && Record.ComponentTemplate->GetFName() == VariableName))
 		{
 			return Record.ComponentKey;
 		}

@@ -1,0 +1,98 @@
+Availability:Public
+Title:C++ Class Wizard
+Crumbs: %ROOT%, Programming, Programming\Development
+Description:An overview of the C++ Class Wizard in UE4.
+Version: 4.5
+
+%Globals:OSSelect%
+
+[EXCERPT:main]
+
+
+The _C++ Class Wizard_ provides a fast and easy way to add native C++ code classes into your project for you to extend 
+with your own functionality, if you wish. This converts a content-only project into a code project. You can access the C++ Class Wizard like so:
+
+[REGION:note]
+On Windows, please make sure you are have Visual Studio 2013 Professional or Express for Windows Desktop installed before proceeding.  On Mac, make sure to have Xcode installed.
+[/REGION:note]
+
+
+1. In the main editor, select **File > Add Code to Project...**
+
+	![](FileCPP.png)
+
+1. The **C++ Class Wizard** will appear, showing commonly added classes. If you do not see the class you are looking for, then you will need to view the entire Class hierarchy listing. Click the ![](button_ShowAllClasses.png)(h:25) checkbox in the upper-right corner of the window. 
+
+	[REGION:imagetable]
+		| [REGION:lightbox][![](CppClassWizard.png)(w:430)](CppClassWizard.png)[/REGION] | [REGION:lightbox][![](AllClasses.png)(w:430)](AllClasses.png)[/REGION] |
+		| :---: | :---: |
+		| Default Classes | All Classes |
+	[/REGION]
+
+	Choose the Class you wish to add and click the ![](button_Next.png) button.
+
+1. You will then be prompted to enter a **name** for your new Class. Do so and click the ![](button_Create.png) button. This will create the header (.h) and source (.cpp) files.
+	
+	[REGION:lightbox]
+		[![](NameNewActor.png)(w:600)](NameNewActor.png)
+	[/REGION]
+	[REGION:note]
+		Class names may only contain alphanumeric characters and cannot contain spaces. The field will notify you if you enter an invalid name.
+	[/REGION]
+
+1. After a moment of calculation, the Editor will ask if you would like to edit the code now. Click ![](button_Yes.png).
+
+	![](EditNow.png)
+
+	[OBJECT:ToggleButtonContent]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		windows
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button_content
+		[/PARAMLITERAL]
+		[PARAM:content]
+		The code will immediately open in _Visual Studio 2013_, ready for editing.
+	
+		![](CodeEditing.png)
+
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButtonContent]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		mac
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:content]
+		The code will immediately open in _Xcode_, ready for editing.
+
+		![](CodeEditing_xcode.png)
+
+		[/PARAM]
+	[/OBJECT]
+
+[PUBLISH:Licensee]
+For instructions on compiling your Class when finished editing, please see [](Programming\Development\BuildingUnrealEngine).
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+For instructions on compiling your Class when finished editing, please see [the Compiling Projects documentation.](Programming\Development\CompilingProjects)
+[/PUBLISH:Rocket]
+
+[/EXCERPT:main]
+
+## Related Topics
+
+* [](Programming\Development\VisualStudioSetup)
+* [](Programming\Development\CodingStandard)
+[PUBLISH:Licensee]
+* [](Programming\Development\BuildingUnrealEngine)
+[/PUBLISH:Licensee]
+* [](Programming\Development\CompilingProjects)
+

@@ -1,0 +1,76 @@
+﻿INTSourceChangelist:2482628
+Availability:Public
+Title:7.AI Controller ブループリント:ブラックボードの初期値
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:ステップ 7AI Controller ブループリント:ブラックボードの初期値
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/6 "%Engine/AI/BehaviorTrees/QuickStart/6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/8 "%Engine/AI/BehaviorTrees/QuickStart/8:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:lightbox]
+[![](fullEG.png)(w:940 convert:false)](fullEG.png)
+[/REGION]
+
+ここで **Blackboard** 上の "HomeLocation" キーを設定する必要があります。少々入り組んだステップですが、度を超えて難しいわけではありません。
+
+1. **Get Blackboard** ノードと **Get Controlled Pawn** ノードが必要です。
+
+	![](getBBandCPnodes.png)
+
+1. コンテキスト メニューを **右クリック** して **Reference to Self** ノードを取得し、 **Get Blackboard** ノードへ接続します。
+
+	![](addSelf.png)
+
+1. **Get Blackboard** ノードの **Return Value** をドラッグして、「Vector」を検索し、 **Set Value as Vector** ノードを作成します。
+
+	[REGION:raw]
+	![](createSetKeyVectorNode.png)(w:920)
+	[/REGION]
+
+1. **Get Controlled Pawn** ノードから **Return Value** を引き出して **Get Actor Location** ノードを作成します。
+
+	![](actorLoc.png)
+
+1. **Get Actor Location** の **Return Value** ピンを **Set Value as Vector** ノードの **Vector Value** に接続します。
+
+	![](connectedALtoSV.png)
+
+1. **Set Value as Vector** ノードにある **Key Name** を引き出してコンテキスト メニューから **Promote to Variable** を使用します。
+
+	![](promoteText.png)
+
+	1. **[My Blueprint]** パネルで変数に名前をつけます。「 **HomeLocation** ]という名前を付けます。
+
+	* 変数に名前をつける前にどこかをクリックしてしまった場合は、コンテクスト メニューを **右クリック** して **[My Blueprint]** パネルで名前を変更することができます。
+
+
+	![](hlconnected.png)
+
+1. ブループリント ![](button_compile.png) をコンパイルします。
+1. **[My Blueprint] パネル** で **HomeLocationKey** 変数を選択します。
+1. **[Details]** パネルで **Default Value** をブラックボードの Vector Value の名前と全く同じものに変更します。この場合は、 `HomeLocation` になります。
+
+	![](homeLocationDetails.png)
+
+1. **Use Blackboard** ノードの出力実行ピンを **Set Value as Vector** ノードの入力実行ピンに接続します。
+
+	![](execution2.png)
+
+次のステップでは、引き続きグラフを編集し、そのグラフを追加して AI Controller に希望するビヘイビア ツリーを実行させます。
+
+%Steps%

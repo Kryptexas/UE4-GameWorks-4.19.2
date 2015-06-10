@@ -1,0 +1,103 @@
+Availability:Public
+Title:Content Browser
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:Tool that allows for managing package files as well as organizing, creating, and performing useful operations on assets.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Browser:title%](Engine/Content/Browser_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/project_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Browser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth]
+![](ContentBrowserInterface.png)(w:800)
+[/REGION]
+
+
+[TOC(start:2 end:3)]
+
+## Overview
+
+[EXCERPT:Intro]
+[INCLUDE:Shared/Glossary/C/#Glossary_Content_Browser]
+
+[/EXCERPT:Intro]
+
+In the **Content Browser**, you can:
+
+* Browse to and interact with all assets found in the game.
+* Find assets, whether saved or unsaved:
+    * Text Filter: In the **Search Assets** box, type text to find assets by Name, Path, Tags, or Type. You can exclude assets from your search by prefixing a search token with a '-'.
+    * Extended Filter: Click the **Filters** button to filter by asset type(s) and other criteria.
+* Organize assets without ever needing to check out packages from source control:
+    * Create Local or Private Collections and store assets in them for future use.
+    * Create Shared Collections to share interesting assets with your coworkers.
+* Get development assistance:
+    * Show assets that may contain problems.
+* Use the **Migrate** tool to move assets and all their dependent assets to other content folders automatically.
+
+
+## Accessing the Content Browser
+
+The **Content Browser** is accessible from the **Window** menu. You can open up to four concurrent instances of the **Content Browser** at a time. This is useful in a variety of ways, such as:
+
+* Having different asset types filtered in different **Content Browsers**, such as one that just shows Static Meshes and another that just shows Materials.
+* Moving assets between different folders where you would like to see the other assets available in the folders.
+
+
+[REGION:caption]
+	By default, the **Content Browser** is docked in the lower left corner of the main Level Editor interface, but it can be re-docked anywhere within the Level Editor or floated as its own window.
+[/REGION]
+
+
+
+## Content Browser Topics
+
+[REGION:topics fourth]
+%Engine/Content/Browser/UI:TopicCompact%
+%Engine/Content/Browser/UserGuide/WorkingWithSources:TopicCompact%
+%Engine/Content/Browser/UserGuide/BrowserAssetCreation:TopicCompact%
+%Engine/Content/Browser/UserGuide/Collections:TopicCompact%
+%Engine/Content/Browser/UserGuide/Filters:TopicCompact%
+%Engine/Content/Browser/UserGuide/Folders:TopicCompact%
+%Engine/Content/Browser/UserGuide/DevelopersFolder:TopicCompact%
+%Engine/UI/SourceControl:TopicCompact%
+%Engine/Content/Browser/AssetConsolidationTool:TopicCompact%
+%Engine/Content/Browser/UserGuide/Migrate:TopicCompact%
+%Engine/Content/Browser/ReferenceViewer:TopicCompact%
+[/REGION]
+

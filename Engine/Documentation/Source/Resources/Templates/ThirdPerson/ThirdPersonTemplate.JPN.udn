@@ -1,0 +1,80 @@
+﻿INTSourceChangelist:2482206
+Availability:Public
+Title:サードパーソンシューター
+Crumbs:%ROOT%
+Description:各種サンプル シーン、サンプル ゲーム、チュートリアルへのリンク
+Navigation:topic
+
+
+[VAR:Params]
+[PARAM:image]
+	![](TP_ThirdPersonBP_Preview.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/tutorial_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Resources/Templates/ThirdPerson:title%
+[/PARAM]
+[PARAM:description]
+	%Resources/Templates/ThirdPerson:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Resources/Templates/ThirdPerson]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+リソース
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+![](templateMore.png)(convert:false)
+
+**Third Person Template（サードパーソンテンプレート）** をもとに新たなゲームプロジェクが開始ですね！具体的な操作方法が知りたい、またはまだ何も描かれていない無限の可能性を秘めたキャンバスをとりあえず眺めるためのガイダンスが必要なら、このページにはゲームに実装できるアイディアが含まれています。
+
+* **ブループリントビジュアルスクリプティング** ページの [ブループリント関連ページ] (Engine/Blueprints) を参照して [ビデオチュートリアル] (Videos) を再生してみてください。何を行うかではなくどのように行うか、そしてブループリント機能の理解を深めることで、最終的には C++ で作業を進めてもアイデアを迅速にプロトタイプ化できるでしょう。
+* [モーショングラフィックス](Engine/UMG) を使用してサード・パーソンゲームに [**HUD** を作成](Engine/UMG/QuickStart) します。
+* 被破壊メッシュを背景に追加してみてはどうでしょう？[被破壊アクタに関するドキュメント](Engine/Physics/Destructibles) と [](Engine/Blueprints/HowTo) で作成方法を確認してください！
+* [ビヘイビアツリー](Gameplay/AI/BehaviorTreeQuickStart) を使用して、 プレイヤーを追跡、プレイヤーから逃走、プレイヤーをヘルプしたりダメージを加えるために、ゲームに **AI Characters** を追加できます。
+	* **ボーナス**:**ThirdPersonCharacter** と 新規作成した **AI Character** に [Event Any Damage](Engine/Blueprints/UserGuide/Events#eventanydamage) を実装して、キャラクター同士が [Event End Play](Engine/Blueprints/UserGuide/Events#eventendplay) を出来るようにします。この方法に関する詳しい情報は、[](Gameplay/HowTo/SpawnAndDestroyActors/Blueprints) ガイドに掲載されています。
+	* **ダブルボーナス**:以下の [](Gameplay/HowTo/CharacterMovement/Blueprints) ガイドは、 AI と **ThirdPersonCharacter** に関連するその他の移動オプションを紹介します！
+* 自分のプレイヤーが死んでしまったら、プレイヤーを再びスポーンさせたいですよね？[プレイヤーを再スポーンする](Gameplay/HowTo/RespawnPlayer/Blueprints) 操作のハウツーガイドを参照してください。
+* デフォルトキャラクターは若干面白みに欠けるので、 [独自のキャラクターを作成](Engine/Content/FBX/SkeletalMeshes) したり、弊社が提供するランチャーのマーケットプレイスから新しいキャラクターをダウンロードしてください。
+	* **ボーナス**:**ThirdPersonCharacter** に「帽子」の [スタティックメッシュ](Engine/Content/Types/StaticMeshes) 、キャラクター頭部のジョイント箇所に [ソケット](Engine/Content/Types/SkeletalMeshes/Sockets) を作成して、帽子をこのソケットに親子付けします。
+* [](Engine/Blueprints/HowTo) チュートリアルで学んだことを活用して、背景に危険要素をいくつか追加してみましょう。爆発する樽はゲームの代表的な存在ですが、その他にもたくさんの危険要素をゲームのワールドに再現することができます。
+	* 大勢のファン！彼らもプレイヤーやAIを押したり引っ張ったりできます。
+	* 有毒ガス！拡散させたりあちこちへ移動させたりします。
+	* 溶岩！溶岩という理由で！環境を破壊する溶融物質だからです。
+	* 氷上など滑りやすい表面。プレイヤーが氷の上を滑れるようにサーフェスの摩擦を変更できます！
+* [**Character Movement Component**](Engine/Components/Movement) の **ThridPersonCharacter** のジャンプの高さ、走行速度、質量、またはその他たくさんのプロパティを変更して、ユニークな感覚のゲームプレイを作成します。
+* [Launch Pads](Engine/Blueprints/QuickStart) はファーストパーソンゲームを含めて、多数のゲームタイプに一般的な機能です。
+* アンリアルエンジンの [フォーラム](https://forums.unrealengine.com/) にアクセスして、より多くのヒント、チュートリアル、ガイド、そしてアイディアを得てください！
+	* インベントリシステム
+	* 高度な移動
+	* 武器の切り替えシステム
+	* プロシージャルなコンテンツ
+	* カバーシステム
+
+<!--
+
+* マズルフラッシュを表現する [カスケードパーティクルエディタ](Engine/Rendering/ParticleSystems/Cascade) を使用して [パーティクルエフェクト](Engine/Rendering/ParticleSystems) を作成しましょう！その後に [Particle System Component](Engine/Components/Rendering#particlesystemcomponent) を **FirstPersonCharacter** ブループリントに追加して、 **InputAction Fire** イベントでコンポーネントをアクティベートします。
+	* ボーナス： **FirstPersonProjectile** にパーティクルシステムコンポーネントを追加して、背後の煙がたなびいているような表現にします。[ここ](Engine/Rendering/ParticleSystems/Reference/Modules/Required) をクリックして **Use Local Space** プロパティを探します。
+
+-->

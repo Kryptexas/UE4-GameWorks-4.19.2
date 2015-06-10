@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title: ShowFunctions
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description:
+Availability:Public
+Version: 4.5
+
+프로퍼티 뷰어에 지정된 함수를 표시합니다. 사용법: showFunctions=FunctionName 또는 showFunctions=(category0, category1, ...)

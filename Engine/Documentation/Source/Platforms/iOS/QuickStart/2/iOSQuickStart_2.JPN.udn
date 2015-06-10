@@ -1,0 +1,80 @@
+﻿INTSourceChangelist:2430520
+Title:2.プロジェクトを作成
+Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
+Description:アンリアル エンジンのゲーム プロジェクトを作成する
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/iOS/QuickStart/1 "%Platforms/iOS/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/iOS/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/iOS/QuickStart/3 "%Platforms/iOS/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:note]
+この時点でこの手順は必ずしも必要ではありませんが、デプロイのテストを行うためにプロジェクトの準備ができているのは良いことです。[プロジェクトの準備ができていれば、このセクションはスキップできます。](Platforms/iOS/QuickStart/3 "")
+[/REGION]
+
+%Globals:OSSelect%
+
+ゲーム開発を開始する最初のステップは、[プロジェクト](Engine/Basics/Projects) を作成することです。 
+これにより、最終的に iOS デバイスを起動またはインストールします。
+
+1. **[New Project]** から、ゲームの新規プロジェクトを作成します。
+
+	![](create_project.png)(w:640)
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macos]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:windows]
+
+[REGION:warning]
+このガイドで説明する PC のみのワークフローでは、純粋なブループリント プロジェクトを必要とします。プロジェクトでコードを使用する場合、 
+コードをコンパイルするために Mac も必要になります。PC で iOS 用のコード ベースのプロジェクトを開発する場合は、 
+[](Platforms/iOS/GettingStarted) ページで概説しているワークフローに従ってください。
+[/REGION]
+[/EXCERPT:windows]
+[EXCERPT:macos]
+[/EXCERPT:macos]
+-->
+
+%Steps%

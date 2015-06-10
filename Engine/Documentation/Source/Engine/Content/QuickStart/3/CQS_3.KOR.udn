@@ -1,0 +1,296 @@
+﻿INTSourceChangelist:2500409
+Availability: Public
+Title:3. 이미지 임포트 및 머티리얼 제작
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:언리얼 엔진 4 에 지원되는 임포트 이미지 유형 및 그 방법은 물론 머티리얼 제작법에 대한 개요입니다.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵 스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+언리얼 엔진 4 (UE4) 에 임포트된 이미지 파일은 주로 [머티리얼](Engine/Rendering/Materials) 에 사용되지만, 랜드스케이프 에디터나 하이트맵 또는 페인트 브러시 마스크와 같은 다양한 페인트 툴에도 사용 가능합니다. HUD 에 직접 적용할 수 있는 경우도 있습니다. 어떤 포맷은 매우 특정한 용도로 사용되는데, 예를 들면 .hdr 이나 일부 .dds 파일 유형은 **큐브맵** 에 사용되는 반면, .raw 파일은 랜드스케이프 에디터에 하이트맵으로 임포트할 수 있습니다.
+
+## 지원되는 이미지 포맷
+
+거의 모든 게임에서는 UE4 외부에서 제작된 콘텐츠를 사용합니다. 이를 전제로, 에디터터는 이미지에 여러가지 파일 포맷을 지원합니다:
+
+[INCLUDE:Engine/Content/Types/Textures/Importing#SupportedTextureFormats]
+
+지원되는 이미지 유형 관련 상세 정보는 [](Engine/Content/Types/Textures/Importing) 문서를 참고하세요.
+
+## 이미지 임포트
+
+임포트할 애셋이 있는 경우, 아래 [이미지 에디터에서 임포트하기](#이미지에디터에서임포트하기) 부분으로 넘어가도 됩니다.
+
+포토샵같은 이미지 에디터가 없는 경우, GIMP, Pixlr, Splashup 등의 무료 이미지 에디터를 사용하면 됩니다. 이 가이드 용으로 아래 샘플 애셋을 받아도 됩니다 (예전 단계에서 제공된 것과 동일한 애셋입니다).
+
+* [샘플 애셋](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
+
+로컬 컴퓨터 위치에 압축을 푼 다음 **T_Rock_04_D** 와 **T_Rock_04_n** 를 UE4 프로젝트의 **Content** 폴더에 끌어 놓습니다.
+
+ ![](ExplorerImport2.png)(w:640)
+
+메시 임포트와 마찬가지로, UE4 는 프로젝트 디렉토리에 지원되는 이미지가 추가되면 자동으로 임포트해 줍니다.
+
+여기서, 아래 **4 단계** 로 넘어갈 수 있습니다.
+ 
+### 이미지 에디터에서 임포트하기
+
+포토샵(이나 유사 이미지 에디터)에서 애셋을 자동으로 임포트하는 프로세스를 안내해 드리겠습니다.
+
+1. 이미지 에디터에서 **File** - **Save As** 를 선택합니다.
+
+	![](photoshop_export1.png)
+	
+1. 대화창에서 UE4 프로젝트 디렉토리를 찾은 다음 **Content** 폴더를 찾고 (1), 이름과 지원되는 포맷을 입력한 다음 (2), **Save** 를 누릅니다 (3). 
+
+	![](photoshop_export2.png)
+
+1.	디스크에서 프로젝트의 **Content** 폴더로 탐색해 이동합니다. 이미지가 추가된 것을 확인할 수 있습니다.
+
+	![](photoshop_export6.png)(w:800)	
+
+1.	UE4 에디터가 열려있다면 (또는 다음 번 실행할 때) **미해결 콘텐츠 변경사항 처리중** 메시지가 보일 것입니다.
+
+	![](photoshop_export4.png)
+
+1.	완료되면 애셋이 임포트되어 사용할 수 있습니다.
+
+	![](photoshop_export5.png)(w:900)
+
+	_임포트된 애셋을 저장하면, 그에 해당하는 .uasset 역시 생성됩니다._
+	
+위의 샘플 애셋 파일 전부 임포트되어 사용 가능합니다. 이제 이미지에서 **머티리얼** 을 만드는 여러가지 방법을 살펴보겠습니다.
+
+## 머티리얼 제작
+
+**Material**, 머티리얼은 메시에 적용하여 씬의 시각적 모습을 조절하는 애셋입니다. 하이 레벨 관점에서 머티리얼이란 오브젝트에 칠하는 "페인트" 개념으로 생각하면 쉽습니다. 그것도 딱 들어맞지는 않는데 머티리얼, 재질이란 말 그대로 사물의 표면이 어떠한 유형의 재질로 만들어졌는가를 정의하는 것이기 때문입니다. 사물의 색, 광택, 투명도 등을 정의할 수 있습니다.
+
+### 텍스처에서 머티리얼 만들기
+
+머티리얼은 여러가지 방법으로 만들 수 있는데, 가장 빠른 방법은 머티리얼에 텍스처를 제공하는 것입니다.
+
+1.	샘플 애셋이 포함된 프로젝트의 **콘텐츠 브라우저** 에서 **T_Rock_04_D** 에 **우클릭** 한 다음 **머티리얼 생성** 을 클릭합니다. 
+
+	![](createMaterial.png)
+
+1.	새로 생성된 **머티리얼** 애셋에 이름을 입력합니다.
+
+	![](MaterialName.png)
+
+1.	**머티리얼** 에 이름을 입력한 이후에는 사용할 수 있습니다.
+
+	![](MaterialCreated.png)
+
+4.	**머티리얼** 에 **더블클릭** 하면 아래와 같이 [머티리얼 에디터](Engine/Rendering/Materials/Editor) 에서 열립니다.
+
+	[REGION:lightbox]
+	[![](MaterialEditor.png)(w:720)](MaterialEditor.png)
+	[/REGION]
+
+	_이미지를 클릭하면 원래 크기로 봅니다._
+
+	이 예제에서는 우리 텍스처를 가리키는 **Texture Sample** 노드를 하나만 사용하고 있으나, 여러가지 다양한 텍스처나 세팅을 조합하여 좀 더 복잡한 효과를 내는 것이 가능합니다.
+
+	[REGION:note]
+	머티리얼 작업 관련 정보 및 안내는 [](Engine/Rendering/Materials/HowTo) 문서를 참고하세요.
+	[/REGION]
+
+### 새 머티리얼 만들기
+
+여기서는 처음서부터 완전 새로운 머티리얼을 만드는 법을 살펴보겠습니다.
+
+새로운 머티리얼을 만들려면:
+
+1. **콘텐츠 브라우저** 의 **신규 추가** 를 클릭한 다음, _기본 애셋 생성_ 아래 **머티리얼** 을 선택합니다.
+
+	![](Engine/Content/QuickStart/4/newMaterial.png)
+
+	[REGION:tip]
+	**신규 추가** 대신 **콘텐츠 브라우저** 내 빈 공간에 **우클릭** 을 해도 됩니다.
+	[/REGION]
+
+1. **콘텐츠 브라우저** 에 새 머티리얼이 선택되어 이름을 기다리고 있습니다.
+
+1. 이름을 지어줍니다. 여기서는 **Rock** 이라 합니다. 
+	
+	![](Engine/Content/QuickStart/5/materialNaming.png)
+	
+	머티리얼 이름을 짓다가 실수로 다른 곳을 클릭했다면, 애셋에 **우클릭** 한 뒤 **이름변경** 을 선택하면 됩니다.
+	
+1. 머티리얼이 생성되면, **더블클릭** 하여 **머티리얼 에디터** 에서 열 수 있습니다.
+
+	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
+
+	위는 메인 머티리얼 노드만 있는 빈 머티리얼입니다.
+
+이제 제공된 샘플 애셋을 사용하여 바위같아 보이는 재질을 만들어 보겠습니다.
+
+## 바위 머티리얼
+
+앞서 임포트한 두 개의 텍스처 또는 다른 것이 있으면 그 텍스처를 사용하여 머티리얼에 살을 붙여 보겠습니다.
+
+1. 머티리얼 그래프 중앙의 메인 머티리얼 노드를 선택합니다.
+
+	![](Engine/Content/QuickStart/5/mainNide.png)
+
+	그래프 영역에 있는 유일한 노드로, 머티리얼 이름이 그대로 붙어있을 것입니다. 선택하면 강조됩니다.
+
+1. **디테일 패널** 에서 **Shading Model** 을 **Default Lit** 에서 **Subsurface** 로 변경합니다.
+
+	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
+
+1. 메인 머티리얼 노드에 **오파시티** 와 **서브서피스 컬러** 두 개의 핀이 추가로 켜진 것을 확인할 수 있습니다.
+
+	![](Engine/Content/QuickStart/5/morePins.png)
+
+1. 이제 그래프에 텍스처를 가져와야 합니다. 그 방법은 여러가지 있지만, 단축키를 사용해 보겠습니다. **T** 키를 누른 채 에디터의 그래프 영역에 **좌클릭** 합니다. 그러면 **Texture Sample** 노드가 생성됩니다.
+
+	[REGION:tip]
+	머티리얼 에디터 키보드 단축키 전체 목록은 메뉴의 **편집** -> **에디터 개인설정** -> **키보드 단축키** -> "**머티리얼 에디터**" 와 "**머티리얼 에디터 - 노드 스폰**" 카테고리에서 확인할 수 있습니다.
+	[/REGION]
+
+1. 텍스처가 최소 두 개는 있어야 하니, 위 과정을 반복하여 **Texture Sample** 노드를 또하나 만듭니다.
+
+	![](Engine/Content/QuickStart/4/textureSampleNodes.png)
+
+1. **Texture Sample** 노드 중 하나를 선택한 다음 **디테일 패널** 에서 **Material Expression Texture Base** 카테고리 아래 **Texture** 라는 이름의 프로퍼티가 있습니다. "없음" 이라 되어있는 풀다운에 **좌클릭** 한 다음 **T_Rock_04_D** 라는 이름의 컬러 텍스처를 선택합니다.
+
+	![](Engine/Content/QuickStart/5/textureNone.png)
+
+	[REGION:tip]
+	검색칸에 **T_Rock_04_D** 를 입력하여 텍스처 애셋을 찾을 수도 있습니다.
+	[/REGION]
+
+1. 다른 Texture Sample 노드에도 똑같은 작업을 해 주되, **T_Rock_04_n** 라는 노멀 맵 텍스처를 선택합니다.
+
+	이 시점에서, 머티리얼 그래프는 이런 모습입니다:
+
+	![](Engine/Content/QuickStart/5/bothTexturesSelected.png)
+
+1. 상단의 하양 핀에는 텍스처의 모든 컬러 채널이 포함되는데, 그것을 **베이스 컬러** 핀에 연결합니다.
+
+	![](Engine/Content/QuickStart/5/connectColorPin.png)
+
+1. 이 과정을 노멀 맵과 **노멀** 핀에도 반복해 줍니다.
+
+	![](Engine/Content/QuickStart/5/connectNormalPin.png)
+
+	프리뷰가 이와 비슷할 것입니다:
+
+	![](Engine/Content/QuickStart/5/preview_DN.png)
+
+1.  (스칼라 플로트) Constant 몇 개와 (알파채널 없는 컬러인) Constant3Vector 가 필요할 것입니다.
+
+	Constant 를 쉽게 만들려면, **1** 키를 누르고 **그래프** 패널에 **좌클릭** 하면 됩니다. Constant 를 총 3 개 만듭니다.
+
+	![](Engine/Content/QuickStart/5/Constants.png)
+
+1. Constant3Vector 를 만들려면, **3** 키를 누르고 **그래프** 패널에 **좌클릭** 합니다.
+
+	![](Engine/Content/QuickStart/5/Constant3.png)
+
+1. 노드를 이런 식으로 배치합니다:
+
+	![](Engine/Content/QuickStart/5/MatConstantsAdded.png)
+
+	연결을 쉽게 하여 선이 다른 노드 아래 깔리거나 꼬이지 않도록 하기 위함입니다.
+
+1. 텍스처를 **베이스 컬러** 와 **노멀** 핀에 연결하는 데 사용했던 것과 같은 프로세스를 사용하여, **Constant** 와 **Constant3Vector** 를 다음 이미지와 같이 연결합니다:
+
+	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
+
+1. 이제 각 **Constant** 를 선택한 다음 **디테일** 패널에서 **Value** 파라미터를 편집하여 값을 조절할 수 있습니다.
+
+	* 메탈릭/스페큘러 값 = 0.0
+	* 러프니스 값 = 0.8
+	* 오파시티 값 = 0.95
+	* 서브서피스 컬러 = 빨강 (1, 0, 0)
+
+	![](Engine/Content/QuickStart/5/allConnectedAllAdjusted.png)
+
+1. 프리뷰가 이와 비슷할 것입니다:
+
+	![](Engine/Content/QuickStart/5/preview_All.png) 
+
+다음 단계에서는 이 페이지에서 만든 머티리얼을 스태틱 메시에 적용해 보도록 하겠습니다.
+	
+<!--
+
+[REGION:note]
+For this tutorial series, we are using a new **Blank** project with **Starter Content** enabled. Please see the [](Engine/Basics/Projects/Browser) page for information on creating new projects, using templates and defining project settings (including **Starter Content**). 
+[/REGION]
+
+There are two methods for importing content into Unreal Engine 4:
+* Using the **Content Browser's** Import function. 
+* Dragging files from your hard drive into the **Content Browser**.
+
+Unreal Editor 4 does a good job of identifying the type of file you are importing, and has a system for batch importing assets.
+
+
+## Importing with the Content Browser
+
+With a new project created and open, locate the **Content Browser** window in the lower-left corner of the Editor interface. 
+
+![](contentBrowser.png)
+
+Using the **Content Browser's** ![Import](Engine/Content/QuickStart/4/import_button.png) button will open a file dialog that will enable you to import your assets into Unreal Engine 4. If you downloaded the assets in the previous step, or you have some assets, you should import those now.
+
+1. Click the Import button on the **Content Browser**.
+1. Browse to the location where you extracted the downloaded Example Content.
+1. Select the two FBX files: `Basic_Asset1.fbx` and `Basic_Asset2.fbx`.
+1. Click **Open**.
+
+	[REGION:raw]
+	![](Engine/Content/QuickStart/4/StaticMeshContentBrowserImport.png)
+	[/REGION]
+
+1. You will be prompted with an FBX import dialog:
+
+	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
+
+1. Use the default settings then click **Import All** to import both assets with the same settings.
+1. There should be four assets in the **Content Browser** now: a box like shape, a torus knot shape and two **Material** assets. 
+
+	![](Engine/Content/QuickStart/4/CB_w2assets.png)
+
+1. Now do the same but for the `T_Rock_04_D.TGA` and `T_Rock_04_n.TGA` image files.
+	- There are no import dialogs for images.
+1. The **Content Browser** should now look like this:
+
+	![](Engine/Content/QuickStart/4/CB_w4assets.png)
+
+	_You may notice that each of the assets now have an asterisk symbol in the lower-left corner of their thumbnails, this indicates that although the asset has been added it has not been saved yet and will disappear if you close the Editor without saving it first. _
+
+1. Click the ![](saveAllbutton.png) button to save all your assets. 
+
+1. With everything imported and saved you can now proceed to the [**Next Step**](Engine/Content/QuickStart/4).
+
+## Importing using Click and Drag
+
+The other way to import assets is simply to drag them from your OS into an empty space (or folder) inside the **Content Browser**. You will be prompted for each FBX file to define its import options, but textures will simply batch import. Your mouse cursor will also change to reflect that you are importing assets when dragging them into the **Content Browser**. 
+
+![](Engine/Content/QuickStart/4/CnD_importAll.png)
+
+Remember to click the ![](saveAllbutton.png) button after importing your assets so that they are saved.
+
+-->
+
+%Steps%
+
+

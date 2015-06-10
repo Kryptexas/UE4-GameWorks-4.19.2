@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:2346177
+Availability:Public
+Title:アニメーション シーケンス
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:単一のアニメーションを構成する変形データのすべてを含む各アセット
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Animation/StateMachines
+Related: Gameplay/AI
+Related: Engine/Content/Tools/MayaRiggingTool
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Sequences:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Sequences:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Sequences:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Sequences]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+[EXCERPT:Intro]
+**アニメーション シーケンス** は _スケルタルメッシュ_ 上で再生可能な単一のアニメーション アセットです。時間の特定点でボーンの位置、回転、スケーリングを指定するキーフレームを含みます。こうしたキーフレーム間でブレンディングしながら順番にキーフレームを再生することで、_スケルタルメッシュ_ のボーンをスムーズにアニメートすることができます。 
+[/EXCERPT:Intro]
+
+![](HuskRun2.gif)(w:720 convert:false)
+
+各 **アニメーション シーケンス** アセットは、特定の _スケルトン_ をターゲットとし、その _スケルトン_ 上でのみプレイ可能です。つまり、複数のスケルタルメッシュでアニメーションを共有するには、各 _スケルタルメッシュ_ は同じ _スケルトン_ アセットを使用しなければなりません。
+
+[REGION:tip]
+**アニメーション シーケンス** を使用した **スケルトン** の例は、セクション 1.1 の [アニメーション コンテンツの例](Resources\ContentExamples\Animation) のページにもあります。 
+[/REGION]
+
+## 編集
+
+[INCLUDE:Engine/Animation/Sequences/Editor#overview]
+
+詳細については、[](Engine/Animation/Sequences/Editor) を参照してください。
+
+## 再生
+
+[INCLUDE:Engine/Animation/Sequences/UserGuide#Intro]
+
+**アニメーション ブループリント** 内で、**アニメーション シーケンス** を使用する手順については、[](Engine/Animation/Sequences/UserGuide) をご覧ください。
+
+## 通知
+
+[INCLUDE:Engine/Animation/Sequences/Notifies#Intro]
+
+利用可能な様々なタイプの通知に関する説明と使用については、[](Engine/Animation/Sequences/Notifies) をご覧ください。
+
+通知の作成と編集はペルソナ (Persona) の [Animation Sequence Editor](Engine/Animation/Sequences/Editor) を使用して実行します。
+
+##曲線
+
+[INCLUDE:Engine/Animation/Sequences/Curves#Intro]
+
+ペルソナでカーブをセットアップし、適用する方法の説明と用途については、[](Engine/Animation/Sequences/Curves) をご覧ください。 
+
+
+## 圧縮
+
+**アニメーション シーケンス** アセットが、**ペルソナ** で開かれると、アセットに圧縮が適用されます。 
+
+これを行うには、**メニューバー** から、**アセット** を選択します。次に、(以下のように) **Apply Compression** を選択します。 
+
+![](ApplyCompression.png)
+
+Apply Compression (圧縮適用) を選択すると、**[Animation Compression]** ウィンドウが開きます。 
+
+![](AnimationCompressionWindow.png)
+
+各オプションには、以下の表で説明するように様々な圧縮方式があります。 
+
+| 圧縮タイプ | 説明|
+| --- | --- |
+| **Automatic** | アニメーション圧縮アルゴリズム。一連の他の圧縮スキームを試み、設定可能なエラー閾値内で最小の結果を選ぶシェルです。 |
+| **Bitwise Compress Only** | ビット単位のアニメーション圧縮のみ。キー削減は行いません。 |
+| **Least Destructive** | アニメーション圧縮を元に戻し、アニメーションを生データに復元します。 |
+| **Remove Every Second Key** | キーを 1 つおきに取り除くキーフレーム削減アルゴリズム。 |
+| **Remove Linear Keys** | 周囲のキーの線形補間となっているキーを取り除くキーフレーム削減アルゴリズム。 |
+| **Compress each track independently** | 各トラックに対して個別に最良のビット単位圧縮を選択するとともに、周囲のキーの線形補間となっているキーを取り除くキーフレーム削減アルゴリズム。 |
+| **Remove Trivial Keys** | アニメーション全体にわたり位置や方向が一定な場合、生のアニメーション データからトラックの小さなフレームを取り除きます。 |
+
+

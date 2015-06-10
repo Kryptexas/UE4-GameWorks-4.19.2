@@ -1,0 +1,187 @@
+﻿INTSourceChangelist:2446184
+Availability:Public
+Title:ダイレクト ブループリント通信
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:ブループリントの関数、イベント、変数を別のブループリントから使用する方法。
+related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
+related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
+related:Engine/Blueprints/UserGuide/EventDispatcher
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/UserGuide/BlueprintComms:title%](Engine/Blueprints/UserGuide/direct_comm_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/UserGuide/BlueprintComms:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints/UserGuide/BlueprintComms:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/UserGuide/BlueprintComms]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+[TOC(start:2)]
+
+## 概要
+
+ブループリントで作業していると、他のブループリントに含まれている関数、イベント、変数を利用したくなる場合があります。その場合は、「ターゲット」ブループリントを公開されているオブジェクト変数を使って参照してから、使用したいブループリント インスタンスを指定する方法が一番簡単です。
+
+##ターゲット ブループリントを簡単に参照する方法
+
+以下のセクションでは、作業中のブループリント (「作業」ブループリント) からターゲット ブループリントを参照する最も簡単で一般的な方法例を示します。
+
+### ターゲット ブループリントのオブジェクト変数を作成する
+
+ブループリントで作業する場合、ターゲットブループリントを参照するオブジェクト変数を作成すると、その関数、イベント、変数にアクセスできるようになります。
+
+**ターゲット ブループリントを参照するオブジェクト変数を作るには、以下の手順に従います。**
+
+1. ブループリント エディタで作業中のブループリント (作業ブループリント) を開きます。
+
+1. **[My Blueprint]** ペインの **Variables** カテゴリ: ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_variable.png) 上にある ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) ボタンをクリックして、変数を新規作成します。
+
+1. 作成した新しい変数に「TargetBlueprint」など、ターゲット ブループリントに関連した名前を付けます。
+
+1. **[詳細]** パネルで **[Variable Type]** の隣にあるドロップダウン ボックスをクリックします。**[Object Reference]** セクションを展開します。
+
+	[REGION:raw]
+	![Variable Type](BP_VarType.png)
+	[/REGION]
+
+1. リストをスクロールし、参照したいブループリントの名前を選択します。
+
+	![Blueprint Reference](BP_Blueprint2Ref.png)
+
+1. ベストプラクティスは、 **[ツールチップ]** ボックスにテキストを入力して作成した新しいオブジェクト変数にツールチップを追加することです。例えば、 "Reference to the Blueprint we want to talk to." (通信するブループリントのへの参照) などがあります。
+
+	[REGION:raw]
+	![Tooltip](BP_Tooltip.png)
+	[/REGION]
+
+1. **[My Blueprint]** パネルでは、新規オブジェクト変数の隣にある目を閉じたアイコンをクリックし、目が開いたアイコンに変更します。この操作によって、変数を公開し、レベル エディタの **[Details]** パネルでその値を設定することが可能になります。
+
+	[REGION:raw]
+	![Closed Eye](BP_ClosedEye_panel.png)(convert:false)
+	[/REGION]
+
+	目が開いたアイコンの周囲の緑色は、公開された変数がツールチップを持っていることを表します。公開された変数にツールチップがない場合、目の周囲の領域は黄色になります。
+
+1. ブループリントをコンパイルおよび保存します。
+
+[REGION:note]
+十分な注意を払って、公開する変数、関数、イベントを判断してください。変数の公開は、他人がアクセスおよび変更しても安全な場合のみ行うようにしてください。ベストプラクティスの指針としては、すべてを公開するのではなく、ブループリントが必要とするもの、レベル デザイナーが変更できるようにしたいもののみを公開するようにします。
+[/REGION]
+
+###ブループリントのインスタンスを指定する
+
+Blueprint クラスは、そこから複数のインスタンスを作成可能なある種のテンプレートすなわちアーキタイプとして使用できます。このため、ターゲット ブループリントを参照する場合、ターゲット ブループリントのどのインスタンスを使用するかを指定できます。
+
+**使用するターゲット ブループリントのインスタンスを指定するには、以下の手順に従います。**
+
+1. レベル エディタの **[Details]** パネルで、作業中のブループリントを選択した状態で、作成したばかりの公開されている変数を含むセクションを探します。変数を作成する場合に他のセクションを指定していなければ、 **[Default]** セクションにあるはずです。(**[Details]** パネルでインスタンスを選択できるようにするには、レベルにターゲット ブループリントのインスタンスを必ず配置するようにします。)
+
+1. ターゲット ブループリントを参照するオブジェクト変数名のとなりにあるドロップダウンボックスで使用するブループリント インスタンスを選択します。
+
+	![Details Panel](BP_DetailsRef.png)
+
+[REGION:note]
+作業ブループリントがレベル ブループリントである場合、使用するブループリント インスタンスをレベル エディタではなくブループリント エディタで指定します。デフォルトでブループリント エディタの **[Details]** パネルは、左下隅にあります。
+[/REGION]
+
+[REGION:tip]
+リストのどのインスタンスが使用したいものであるかわからない場合は、ワールドアウトライナーまたはビューポートで使用したいインスタンスを選択し、次にそのドロップダウンメニューで **[Use Selected]** をクリックします。
+[/REGION]
+
+### ターゲット ブループリントから関数、イベント、変数を使用する
+
+ターゲット ブループリントに対して作成したオブジェクト変数を、 Ctrl キーを押しながらグラフにドラッグすると、変数 getter ノードが作成され、そのオブジェクト変数への参照を得ることができます。ノードの出力ピンからドラッグすると、コンテキスト メニューが表示され、ターゲット ブループリントから使用可能なイベント、関数、変数のリストが表示されます。これで、こうしたエレメントを他のスクリプティング エレメントで行うのと同様に使用できます。
+
+![Context Menu](BP_Target_ContextMenu.png)
+
+## その他のターゲット ブループリント参照方法
+
+作業ブループリントからターゲット ブループリントを参照するためのさらに複雑な方法としては以下があります。
+* ターゲット ブループリント タイプにキャストする。
+* ターゲット ブループリント タイプを関数のパラメータとして指定する。
+
+### ブループリント タイプにキャストする
+
+他のアクタに対して行うように ブループリント タイプにキャストできます。
+
+**ブループリント タイプにキャストするには以下の手順に従います。**
+
+1. イベントグラフでは、アクタに対するオブジェクト変数などコンテキスト メニューに Casting ノードを含むノードの出力ピンを引き出します。コンテキスト メニューが表示されたら、 cast と入力します。**Casting** のリストをスクロールし、ターゲット ブループリント タイプを捜して選択します。
+
+	![Casting to a Blueprint](BP_FindCastType.png)
+
+	![Casting Node](BP_Cast_CastNode.png)
+
+1. ターゲット ブループリント タイプをリストする出力ピンを引き出し、コンテキスト メニューを表示します。このコンテキスト メニューには、ターゲット ブループリントの関数、イベント、変数が含まれます。 
+
+	![Casting Context Menu](BP_Cast_ContextMenu.png)
+
+	キャストが成功すると、ターゲット ブループリント タイプにあるどの関数、イベント、変数も使用できます。コンテキスト メニューから追加したノードは、 casting ノードの「成功」出力実行ピンに自動的にリンクされます。
+
+	![Casting Nodes](BP_Casting.png)
+
+<!-----For more information about casting, see (link).---->
+
+### ブループリント タイプを関数パラメータとして指定する
+
+ブループリントで関数の作業を行う場合、その関数に対するパラメータとしてターゲット ブループリント タイプを指定できます。
+
+**ブループリント タイプを関数パラメータとして指定する関数を作成するには、以下の手順に従います。**
+
+1. **[My Blueprint]** ペインの **Functions** カテゴリ: ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/myblueprint_function.png) 上にある ![](Engine/Blueprints/Editor/UIComponents/MyBlueprint/plus_Button.png) ボタンをクリックして、変数を新規作成します。
+
+1. **[Details]** パネルで、 **[New]** ボタンをクリックして **[Input]** を追加します。
+
+	![New Function Input](BP_Function_Input.png)
+
+1. **[NewParam]** の隣にあるドロップダウン ボックスで、 **[Object]** セクションを展開し、ターゲットブループリントを探して選択します。
+
+	![Setting a Function Parameter](BP_Function_ObjectVariable.png)
+
+1. イベントグラフで新しいパラメータの出力ピンを引き出します。表示されるコンテキスト メニューには、ターゲット ブループリントの関数、イベント、変数が含まれており、使用することができます。
+
+	![Function Parameter Pin](BP_Function_ParamPin.png)
+
+## トラブルシューティング / 参照へのリンク
+
+変数でインスタンスを何も指定していない場合、一般的なエラーが発生します。作業ブループリントから呼び出した場合に、ターゲット ブループリントからのスクリプティングの開始でトラブルが発生したら、作業ブループリントの **[Details]** パネルで使用するブループリント インスタンスが指定されていることを確認してください。かわりに、関数呼び出しの結果から変数を設定した場合、変数が "Access None" の例外を持っているという警告がログに表示されます。[Message Log] ウィンドウが表示されると、問題発生源のノードへのクリック可能なリンクが示されます。
+
+
+
+
+
+
+

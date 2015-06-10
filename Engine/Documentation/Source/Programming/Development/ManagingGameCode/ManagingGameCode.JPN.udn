@@ -1,0 +1,199 @@
+﻿INTSourceChangelist:2431860
+Availability:Public
+Title:ゲームコードの管理
+Crumbs: %ROOT%, Programming, Programming\Development
+Description:コードの追加とプロジェクトファイルの生成 
+Version:4.5
+
+%Globals:OSSelect%
+
+## プロジェクトへコードを追加する方法
+
+### C++ クラスウィザード
+
+[INCLUDE:Programming\Development\ManagingGameCode\CppClassWizard#main]
+
+### 開発環境
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	コードファイルはVisual Studioを通じて作成して、通常の方法で 
+	 **Solution Explorer** からゲームプロジェクトへ追加します。Visual Studio外部の適切なフォルダへコードファイルを追加したり、 
+	ソリューションやプロジェクトファイルを自動的に再構築することができます。オペレーティングシステムUIを通じてたくさんのファイルを簡単に素早く追加することができ、 
+	チームメンバー間でソリューションおよびプロジェクトファイルの同期が不必要となるためチーム内の共同作業が容易になります。それぞれが行う作業は、 
+	コードファイルの同期とプロジェクトファイルの再構築をローカルで行うのみです。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	 Mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	コードファイルはXcodeを介して作成し、 [**Project Navigator**] から通常の方法でゲームプロジェクトへ追加出来ます。 
+	Xcode外部の適切なフォルダへコードファイルを追加したり、自動的にプロジェクトファイルを再構築することができます。 
+	オペレーティングシステムUIを通じてたくさんのファイルを簡単に素早く追加することができ、 
+	チームメンバー間でソリューションおよびプロジェクトファイルの同期が不必要となるためチーム内の共同作業が容易になります。それぞれが行う作業は、 
+	コードファイルの同期とプロジェクトファイルの再構築をローカルで行うのみです。
+	[/PARAM]
+[/OBJECT]
+
+
+## 開発環境でプロジェクトを開く
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	プロジェクトを既にエディタで開いている場合、 [**File**] メニューから [**Open in Visual Studio**] を選択すると、プロジェクトをVisual Studioで簡単に開くことができます。
+
+	![](open_visual_studio.png)
+
+	プロジェクトは、Windows Explorer経由でVisual Studioで開いたり、Visual Studioの [**File > Open > Project/Solution**] を選択して開くことも出来ます。 
+
+	[PUBLISH:Licensee]
+	**ユーザーのプロジェクトがUE4のルートディレクトリ内に格納されている場合：**
+
+	* `UE4`のルートディレクトリに格納されている 「`UE4.sln`」 Visual Studioソリューションを開きます。
+
+	**ユーザーのプロジェクトがUE4のルートディレクトリ外部に格納されている場合：**
+	[/PUBLISH:Licensee]
+
+	* `UE4`のルートディレクトリに格納されている 「`[ProjectName].sln`」 Visual Studioソリューションを開きます。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	 Mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	プロジェクトを既にエディタで開いている場合、 [**File**] メニューから [**Open in Xcode**] を選択すると、プロジェクトをXcodeで簡単に開くことができます。
+
+	![](open_xcode.png)
+
+	 [Finder] 、またはXcodeの [**File > Open**] からもプロジェクトを開くことができます。
+
+	* プロジェクトのルートディレクトリに格納されている「`[ProjectName].xcodeproj`」Xcodeプロジェクトを開きます。 
+	[/PARAM]
+[/OBJECT]
+
+
+
+## プロジェクトファイルの生成方法
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[REGION:warning]
+		プロジェクトファイルは [[ProjectDirectory]\Intermediate\ProjectFiles`] に格納される中間ファイルとして考えます。つまり「`Intermediate`」フォルダを削除した場合、プロジェクトファイルを再生成しなくてはいけません。
+	[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+[PUBLISH:Licensee]
+### GenerateProjectFiles.bat
+
+**ユーザーのプロジェクトがUE4のルートディレクトリ内に格納されている場合：**
+
+1.* `UE4`のルートディレクトリに格納されている 「`GenerateProjectFiles.bat`」 バッチファイルを実行します。
+1.* `UE4`のルートディレクトリに格納されている 「`UE4.sln`」 Visual Studioソリューションを開きます。
+
+[](Programming/UnrealBuildSystem/ProjectFileGenerator)の高度なオプションが利用可能です。このオプションは出荷、追加のプラットフォーム、またはVisual Studio 2010に対応するプロジェクトファイルの生成に使用します。 
+
+[/PUBLISH:Licensee]
+
+### 「.uproject」ファイル
+[PUBLISH:Licensee]
+ [**Generate Visual Studio Files**] メニューアイテムを「`.uproject`」ファイルの **右クリック** メニューに表示させるには、最初に 「`UE4\Engine\Build\BatchFiles`」で「`RegisterShellCommands.bat`」ファイルを実行しなくてはいけません。 
+
+**ユーザーのプロジェクトがUE4のルートディレクトリ外部に格納されている場合：**
+[/PUBLISH:Licensee]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	Windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	アクティブな_ボタン_コンテンツ
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.Windows Explorerから `[ProjectName].uproject` の保存場所へ移動します。
+	1. `[ProjectName].uproject` ファイルを **右クリック** して **Generate Visual Studio Files** を選択します。
+
+	![](Generate_Visual_Studio_Files.png)
+
+
+	1.UnrealbuildToolが、Intellisenseデータの生成も含めてプロジェクトファイルとソリューションを更新します。
+
+		![](generate_project_files.png)
+
+	1.プロジェクトディレクトリのルートに格納されている「[ProjectName].sln」 Visual Studioソリューションのファイルを開いて、Visual Studioで作成したゲームプロジェクト表示します。
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	 Mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.Finderから `[ProjectName].uproject` の保存場所へ移動します。 
+
+	1. [ProjectName].uproject ファイルを **右クリック** して 「Generate Xcode」ファイルを選択します。 
+
+		![](Generate_Xcode_Files.png)
+
+	1.UnrealBuildToolでプロジェクトを更新します。
+
+		![](generate_project_files_xcode.png)
+
+	1.プロジェクトディレクトリのルートに格納されている「[ProjectName].xcodeproj 」 Xcodeプロジェクトを開いて、Xcodeで作成したゲームプロジェクト表示します。 
+	[/PARAM]
+[/OBJECT]
+
+[PUBLISH:Licensee]
+[REGION:note]
+UE4ルートディレクトリ外部プロジェクト用の詳細プロジェクトファイル生成オプションは、「`RegisterShellCommands.bat`」バッチファイルを編集します。 [`Generate Visual Studio projects (all platforms)`] 入力には、
+追加のメニュー入力例が表示されます。この場合、`-AllPlatforms`フラグを表示します。 [available options](Programming/UnrealBuildSystem/ProjectFileGenerator)  はメインの「`GenerateProjectFiles.bat`」ファイルと同一です。  
+[/REGION:note]
+[/PUBLISH:Licensee]
+

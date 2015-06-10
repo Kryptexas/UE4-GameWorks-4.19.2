@@ -37,9 +37,17 @@ public:
 	virtual void ResizeTexture( uint32 Width, uint32 Height ) = 0;
 
 	/**
-	 * Updates the texture contents via a byte array
+	 * Updates the texture contents via a byte array. 
+	 * Note: This method is not thread safe so make sure you do not use the Bytes data on another after it is passed in
 	 *
 	 * @param Bytes Array of texture data
 	 */
 	virtual void UpdateTexture(const TArray<uint8>& Bytes) = 0;
+
+	/**
+	 * Updates the texture contents via a byte array making a copy first for thread safety
+	 *
+	 * @param Bytes Array of texture data
+	 */
+	virtual void UpdateTextureThreadSafe(const TArray<uint8>& Bytes) = 0;
 };

@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:1939815
+Availability: Public
+Title:移植资源 
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:本文介绍了如何在内容浏览器中将资源移植到其他项目中。
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](MigrateTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Migrate:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Migrate]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](MigrateBanner.png)
+[/REGION]
+
+## 概述
+
+内容浏览器包含了 Migrate Tool（移植工具），该工具允许将资源及其任何依赖资源从一个项目复制到另一个项目中。比如，您可以移植一个材质，定义那个材质的所有贴图资源都将会自动随之进行复制。当您需要融合项目或者对项目进行分支时，或者从测试环境转换成为一个产品项目时，这是非常有用的。
+
+## 应用
+
+要想使用移植工具：
+
+1. 在内容浏览器中选择您要移植的资源
+
+	![](SelectedAssetsForMigration.png)(w:400)
+
+1. 右击任何选中的资源并从关联菜单中选择 **Migrate（移植）...** 。
+
+	![](MigrateContextMenu.png)
+
+1. 资源报告对话框将会出现，显示了将要移植的所有资源及其依赖项。确认并点击 **Ok（确定）** 。
+
+	![](AssetReport.png)
+
+1. 从另一个虚幻引擎项目中选择适当的内容文件夹。这是此次移植的目标位置。
+
+	![](ChooseFolderForMigration.png)
+
+1. 如果成功，您将会看到确认信息，说明了向目标文件夹导入了哪些资源。
+
+	![](AssetsMigrated.png)
+
+
+如果您尝试导入到其他文件夹内，而不是导入游戏内容文件夹内，那么您可能会收到以下信息：
+
+![](assetMigrationWarning.png)
+
+在这种新情况下，简单地确认位置，点击 **Yes(是)** 或 **Cancel（取消）** 即可。

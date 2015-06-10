@@ -1,0 +1,80 @@
+﻿INTSourceChangelist:2384003
+Availability:Docs
+Title:BatchExport コマンドレット
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:パッケージから各種ファイル タイプへリソースをエクスポートするコマンドレット
+
+[REGION:todo]
+	このページはアンリアル エンジン 4 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
+[/REGION]
+
+[TOC(start:2)]
+
+## 概要
+
+Batchexport コマンドレットは、 アンリアル パッケージ ファイルのリソースを、様々な外部ファイル タイプにエクスポートするために使用します。
+
+
+
+##操作
+
+このコマンドレットを実行するためには、コマンド プロンプト ウィンドウから、 _UnrealEngine3\Binaries_ ディレクトリにナビゲートします。
+
+
+### 記法
+
+記法は以下の通りです。
+
+    [GameName].exe BatchExport <package.ext> <classname> <export_ext> [dest_path_name]
+    
+
+パッケージにある各リソースは、 dest_path_name によって指定されたパスに保存されます。各リソースは独自のファイルに保存され、リソース名をファイル名として使用し、 export_ext がファイル拡張子として指定する拡張子を使用します。
+
+
+### パラメータ
+
+$ **package.ext**:リソースのエクスポート元となるパッケージの名前。パス名はオプションです。
+$ **classname**:エクスポートするオブジェクトのクラス。Class、Texture など。
+$ **export_ext**:出力ファイルのための拡張子。リソースのエクスポートに使用するファクトリのタイプを決定します。有効値は以下の通りです。
+    * テキスト リソース タイプ
+        * TXT - すべてのテキストバッファを、指定されたパッケージにエクスポートします。現在のところ、テキスト バッファは UnrealScript ソースのパッケージ ファイルの保存のみに使用するので、このタイプのエクスポートの拡張子には uc を使用する方が適しています。
+        * UC - 各クラスの UnrealScript ソースを、指定されたパッケージにエクスポートします。(ソースが、 StripSource コマンドレットによってパッケージから取り除かれている場合は機能しません)。
+        * T3D - サブオブジェクト定義 (Begin Object/End Object ブロック) としてフォーマットされた指定のパッケージに、すべてのオブジェクトをエクスポートします。特定のオブジェクト エクスポーター幾つかの他に、一般のオブジェクト エクスポーターがあります。エキスポートするリソース タイプによっては、特定のエクスポーターを使用する方が適切な場合もあります。使用するエクスポーターは、 classname に対して指定された値によって決まります。デフォルトでは、大部分の専門のエクスポーターは、指定したリソースのために使用されます。したがって、Object をクラスに指定しても、 UModel オブジェクトは、一般のオブジェクト エクスポーターではなく、モデル エクスポーターを使用してエクスポートされます。_classname_ の値に Model を指定することによって、 UModel オブジェクトのみがエクスポートされます。有効値は次の通りです。有効値は以下の通りです。
+            * Poly (ポリ) - 指定されたパッケージのためのポリゴン データのエクスポートに使用します。
+            * Model (モデル) - 指定されたパッケージ モデルのエクスポートに使用します。
+            * World (ワールド) - マップ パッケージのエクスポートに使用します。
+            * Sequence (シーケンス) - Kismet シーケンスのエクスポートに使用します。
+            * Terrain (テレイン) - テレイン データのエクスポートに使用します。
+        * STL - 3DMax にインポートできるフォーマットで指定されたパッケージのすべてのトライアングル データをエクスポートします。
+        * OBJ - Lightwave にインポートできるフォーマットで指定されたパッケージのすべてのポリ データをエクスポートします。
+    * オーディオ リソース タイプ
+        * WAV - .wav フォーマットに指定されたパッケージのすべてのサウンドをエクスポートします。
+    * イメージ リソース タイプ
+        * PCX - .pcx フォーマットに指定されたパッケージのすべてのテクスチャをエクスポートします。この値を _export_ext_ に対して使用するときは、 _classname_ は、Texture2D (または派生) クラスである必要があります。 
+        * BMP - .bmp フォーマットに指定されたパッケージのすべてのテクスチャをエクスポートします。この値を _export_ext_ に対して使用するときは、 _classname_ は、Texture2D (または派生) クラスである必要があります。 
+        * TGA - .tga フォーマットに指定されたパッケージのすべてのテクスチャをエクスポートします。この値を _export_ext_ に対して使用するときは、 _classname_ は、Texture2D (または派生) クラスである必要があります。 
+$ **dest_path_name**:出力ファイルを保存するパスです。ディレクトリが存在しない場合は、作成されます。
+
+
+
+## 例
+
+
+* 次のコマンドによって、UnrealEngine3\ExportedObjects\Engine ディレクトリに、 Engine.u パッケージに保存された各コンポネントのためのシングル .T3D ファイルが生成されます。  
+   
+		gamename.exe batchexport Engine.u Component T3D ..\ExportedObjects\Engine
+
+* 次のコマンドによって、 UnrealEngine3\ExportedSounds\ ディレクトリに、 ExampleSounds.upk パッケージに保存された各サウンド ノード リソースのためのシングル .wav ファイルが生成されます。   
+   
+		gamename.exe batchexport ExampleSounds.upk SoundNodeWave .WAV ..\ExportedObjects\ExportedSounds\
+
+* 次のコマンドにより、 C:\ExportedTextures\ ディレクトリに、 EditorResources.upk パッケージに保存された各テクスチャのためのシングル .bmp ファイルが生成されます。   
+   
+		gamename.exe batchexport EditorResources.upk Texture2D BMP C:\ExportedTextures\
+
+ 
+
+
+
+
+

@@ -65,7 +65,9 @@ private:
 	bool IsRecordNecessary(const FComponentOverrideRecord& Record) const;
 
 public:
+
 	UActorComponent* CreateOverridenComponentTemplate(FComponentKey Key);
+	void RemoveOverridenComponentTemplate(FComponentKey Key);
 	void UpdateOwnerClass(UBlueprintGeneratedClass* OwnerClass);
 	void ValidateTemplates();
 	bool IsValid() const;
@@ -84,14 +86,20 @@ public:
 		return 0 == Records.Num();
 	}
 
-	void PreloadAllTempates();
-
 	bool RenameTemplate(FComponentKey OldKey, FName NewName);
 
 	FComponentKey FindKey(UActorComponent* ComponentTemplate) const;
 #endif
 
 public:
+
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End UObject interface
+
+	void PreloadAllTempates();
+	void PreloadAll();
+
 	FComponentKey FindKey(const FName VariableName) const;
 
 	UActorComponent* GetOverridenComponentTemplate(FComponentKey Key) const;
@@ -101,6 +109,4 @@ private:
 	
 	UPROPERTY()
 	TArray<FComponentOverrideRecord> Records;
-
-	friend class UBlueprintGeneratedClass;
 };

@@ -1,0 +1,69 @@
+﻿INTSourceChangelist:2087004
+Availability:Docs
+Title:Set Texture LOD Group コマンドレット
+Crumbs: %ROOT%, Engine, Engine/Commandlets
+Description:使用されているすべてのテクスチャをイテレートし、適切な LODGroup を使用するようにするコマンドレット
+
+[REGION:todo]
+	このページはアンリアル エンジン 3 のドキュメントから転載され現在見直しがされています。古い情報が含まれる場合もありますので予めご了承ください。
+[/REGION]
+
+[TOC(start:2)]
+
+## 目的
+
+テクスチャが正しい LOD グループに入っているようにし、誤ったテクスチャ設定を修正します。 
+
+
+
+## 動機
+
+すべてのテクスチャは TextureGroup の一部です。TextureGroup は、以下を含む数多くのものを指定します。Min/Max サイズ、 LODBias、および Filtering.
+
+テクスチャ プールを誤用しないように、テクスチャが正しいグループに入っているようにします。
+
+通常、多くのテクスチャがあり、誤って分類されています。さらに、テクスチャのタイプに対して誤った設定がされている場合もあります (例、法線マップだが圧縮されていない)。
+
+こうした数多くの問題を修正するために、SetTextureLODGroup コマンドレットを使用します。SetTextureLODGroup コマンドレットは、TextureLODGroups、LODBias を設定し、テクスチャのタイプ (例、法線マップ) に基づきテクスチャの誤った設定を修正します。
+
+
+
+## 操作
+
+このコマンドレットを実行するには、コマンド プロンプト ウィンドウから、「_UnrealEngine3\Binaries_ 」ディレクトリに進みます。
+
+
+### シンタックス
+
+シンタックスは次のようになります。
+
+    [GameName].exe SetTextureLODGroup 
+
+
+##使用方法/実行方法
+
+注記：プログラマにコマンドレットのコードを見せてTextureGroup をどのように推定するかを見てほしいかもしれません。
+
+TextureGroups の詳細は以下を参照してください。
+
+
+* DefaultEngine.ini  SystemSettings
+* Texture.uc  enum TextureGroup
+
+
+
+基本的に、コンテンツ構造を適切に定義すれば、テクスチャがどこにあるかだけで、意味的な詳細を知ることができます。これを利用して、テクスチャを正しい TextureGroup に入れるようにします。
+
+
+
+## 詳細例
+
+銃の砲弾のパーティクルエフェクトで使用する新規テクスチャを誰かがインポートしたとします。デフォルトで TextureGroup はワールドになっています。その誰かが TextureGroup を正しく設定するのを忘れています。この銃の砲弾のパーティクルエフェクトは非常に見栄えがよいため、このテクスチャは 1024x1024 でもあります。残念ながらテクスチャ プールでは、1024x1024 の負荷がかかっています。  
+
+SetTextureLODGroupCommandlet を実行すると、このテクスチャを Effects Group に入れますが、高い確率で 1024 よりも小さい MaxLODSize を持つことになります。その結果、追加の作業なしにテクスチャ プールの節減につながります。
+
+ 
+
+
+
+

@@ -1,0 +1,198 @@
+﻿INTSourceChangelist:2489335
+Availability:Public
+Title:3.ブループリントでC++コードを拡張およびオーバーライドする
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
+Description:ブループリントを使用したC++機能の追加または置換
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\VariablesTimersEvents\2 "%Programming\Tutorials\VariablesTimersEvents\2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Programming\Tutorials\VariablesTimersEvents\4 "%Programming\Tutorials\VariablesTimersEvents\4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:tip]このチュートリアルは、 **ブループリント** を使用したC++クラスの機能拡張方法を紹介します。**ブループリント** チュートリアルではなくC++コードの記述にミスがないことを確認するテストを目的としています。**ブループリント** の導入に関しては [%Engine\Blueprints\QuickStart:title%](Engine\Blueprints\QuickStart) をお勧めします。[/REGION]
+
+1. "Countdown1" と名付けられた **ACountdown** インスタンスのビヘイビアを変更するには、まず編集可能な "Countdown1" の **ブループリント** バージョンをエディタで作成しなくてはいけません。**ワールドアウトライナー** で "Countdown1" 選択して **詳細パネル** の **Blueprint/Add Script** ボタンをクリックします。
+
+	[![](AddScript.png)](AddScript.png)
+
+	ここで修正した **ACountdown** クラスを格納する **Blueprint** アセットにパスを割り当てて名称を付けることができます。
+
+	[![](SelectBlueprintPath.png)](SelectBlueprintPath.png)
+
+	**ブループリント** バージョンの "Countdown1" を表す新規アセットが作成されます。"Countdown1" もこの新規 **ブループリント** のインスタンスと置換するため、 **ブループリント** を変更するとゲーム内の "Countdown1" に影響を及ぼします。
+
+1. **アンリアルエディタ** は **コンテンツブラウザ** に表示される新規アセットへ自動的に移動します。アセットを右クリック、「Edit（編集）...」を選択して、 **Blueprint Graph**、 **Component** 階層、 **Default Values** を修正します。
+
+	[![](BlueprintInContentBrowser.png)](BlueprintInContentBrowser.png)
+
+	[![](EditBlueprint.png)](EditBlueprint.png)
+
+1. 関数とイベントは **イベントグラフ** タブに表示されます。最初にこれを選択しましょう。
+
+	[![](SelectEventGraph.png)](SelectEventGraph.png)
+
+	**Event Graph** ウィンドウのどこかを右クリックして、ビヘイビアを決定するイベントノードとして **CountdownHasFinished** 関数を追加します。
+
+	[![](SelectEvent.png)](SelectEvent.png)
+
+1. 新規ノードの右側にある白い（実行）ピンを左クリック+ドラッグして、追加機能を追加することができます。
+
+	[![](DragExecPin.png)](DragExecPin.png)
+
+	左マウスボタンをリリースすると、実行したい関数またはイベント名の入力が促されます。チュートリアルでは、カウントダウン終了時に **パーティクルシステム** をスポーンしましょう。**Spawn Emitter At Location** ノードが必要なので、このノードをリストから選択します。例えば「spawn loc」など名前の一部を検索欄に入力すると検索時間を短縮できます。次に黄色の「Location」ピンを左クリック+ドラッグして、 **Get Actor Location** 関数に親子付けします。
+
+	[![](GetActorLocation.png)](GetActorLocation.png)
+
+	後は作成したいエフェクトを選択するのみです。"Emitter Template"から "Select Asset" をクリックすると、適切なエフェクトアセットのリストを取得出来ます。"P_Explosion" を選択します。
+
+	[![](SelectParticle.png)](SelectParticle.png)
+
+1. ここで **Play（再生）** を押すと、カウントダウンが始まって、カウントダウン数がゼロになると爆発します。
+
+	[![](Explosion_Zero.png)](Explosion_Zero.png)
+
+	しかしカウントダウンは最後に「0」ではなく「GO!」と言うようにプログラミングされています。C++機能は **ブループリント** ビジュアルスクリプティングと完全に置換されたため、これはもう起こりません。この状況は想定していなかったので、この関数のC++バージョンにコールを追加しなくてはいけません。 **Countdown Has Finished** ノードを右クリックして、コンテキストメニューから「Add call to parent function」を選択します。
+
+	[![](CallToParent_Menu.png)](CallToParent_Menu.png)
+
+	この作業が終了すると **Parent:Countdown Has Finished** と分類されたノードが **イベントグラフ** に配置されます。「Parent」ノードの典型的な接続位置は、イベントノードへの直接接続です。やってみましょう。Parent-call ノードはその他のノード同様に、何度でもどこからでも呼び出すことができるため、これは必須ではありません。
+
+	[![](CallToParent_ConnectPins.png)](CallToParent_ConnectPins.png)
+
+	これにより **Spawn Emitter At Location** への接続が置換されるため、 **Parent:Countdown Has Finished** ノードの右（出力）にある実行ピンに接続しなければ実行しません。
+
+	[![](CallToParent_FixPins.png)](CallToParent_FixPins.png)
+
+	これでゲームの実行時にカウントダウンが終了すると "GO!" （ C++ コード）と爆発（ **ブループリントグラフ**) が表示されます！
+
+	[![](Explosion_Go.png)](Explosion_Go.png)
+
+----
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    コード
+    [/PARAMLITERAL]
+    [PARAM:heading]
+	    完成コード
+    [/PARAM]
+    [PARAM:content]
+		**Countdown.h**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#pragma once
+
+			#include "GameFramework/Actor.h"
+			#include "Countdown.generated.h"
+
+			UCLASS()
+			class HOWTO_VTE_API ACountdown : public AActor
+			{
+				GENERATED_BODY()
+	public:
+
+				// Sets default values for this actor's properties（このアクタのプロパティのデフォルト値を設定）
+				ACountdown();
+
+				// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+				virtual void BeginPlay() override;
+	// Called every frame（フレームごとに呼ばれます）
+
+				virtual void Tick( float DeltaSeconds ) override;
+
+				//How long, in seconds, the countdown will run（カウントダウンの実行時間（秒）
+				UPROPERTY(EditAnywhere)
+				int32 CountdownTime;
+
+				UTextRenderComponent* CountdownText;
+
+				void UpdateTimerDisplay();
+
+				void AdvanceTimer();
+
+				UFUNCTION(BlueprintNativeEvent)
+				void CountdownHasFinished();
+				virtual void CountdownHasFinished_Implementation();
+
+				FTimerHandle CountdownTimerHandle;
+			};
+
+
+		**Countdown.cpp**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#include "HowTo_VTE.h"
+			#include "Countdown.h"
+
+			// Sets default values（デフォルト値を設定）
+			ACountdown::ACountdown()
+			{
+ 				// Set this actor to call Tick() every frame.You can turn this off to improve performance if you don't need it.（このポーンがフレームごとにTick()を呼び出すように設定。必要なければパフォーマンスを向上させるためにオフにします）
+				PrimaryActorTick.bCanEverTick = false;
+	CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
+
+				CountdownText->SetHorizontalAlignment(EHTA_Center);
+				CountdownText->SetWorldSize(150.0f);
+				CountdownText->AttachTo(RootComponent);
+				RootComponent = CountdownText;
+
+				CountdownTime = 3;
+			}
+
+			// Called when the game starts or when spawned（ゲーム開始またはスポーン時に呼ばれます）
+			void ACountdown::BeginPlay()
+			{
+				Super::BeginPlay();
+	UpdateTimerDisplay();
+
+				GetWorldTimerManager().SetTimer(CountdownTimerHandle, this, &ACountdown::AdvanceTimer, 1.0f, true);
+			}
+
+			// Called every frame（フレームごとに呼ばれます）
+			void ACountdown::Tick( float DeltaTime )
+			{
+				Super::Tick( DeltaTime );
+
+			}
+
+			void ACountdown::UpdateTimerDisplay()
+			{
+				CountdownText->SetText(FString::FromInt(FMath::Max(CountdownTime, 0)));
+			}
+
+			void ACountdown::AdvanceTimer()
+			{
+				--CountdownTime;
+				UpdateTimerDisplay();
+				if (CountdownTime < 1)
+				{
+					//We're done counting down, so stop running the timer.（カウントダウン終了。タイマーを終了します）
+					GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+					//Perform any special actions we want to do when the timer ends.（タイマー終了時に特別なアクションを実行）
+					CountdownHasFinished();
+				}
+			}
+
+			void ACountdown::CountdownHasFinished_Implementation()
+			{
+				//Change to a special readout（特別な読み出しに変更）
+				CountdownText->SetText(TEXT("GO!"));
+			}
+
+    [/PARAM]
+[/OBJECT]
+
+%Steps%

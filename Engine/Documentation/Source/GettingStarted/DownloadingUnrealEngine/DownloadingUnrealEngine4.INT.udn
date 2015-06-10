@@ -1,0 +1,32 @@
+Availability:Public
+Title:Downloading Unreal Engine Source Code
+Crumbs: %ROOT%, Programming, Programming/Development
+Description:Steps for connecting to the source code repository and downloading the latest build of Unreal Engine.
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+[EXCERPT:Main]
+[PUBLISH:Licensee]
+Unreal Engine 4 is available to be downloaded by licensees directly from Epic's Perforce server. Before you can connect to the server, a secure VPN connection must be established. The login credentials for both the VPN and Perforce server are provided to your team's technical lead by Epic Games in your UDN welcome email. Only one set of login credentials is provided to each team.
+[/PUBLISH:Licensee]
+[PUBLISH:Rocket]
+Unreal Engine 4 source code is available to subscribers to be downloaded from the Unreal Engine GitHub repository. With access to the source code, you can modify the engine and tools to customize them to meet the needs of your project. You can build the editor for Windows and Mac and compile games for both Android and iOS. Source code for all tools is included as well, such as Unreal Lightmass and Unreal Frontend.
+
+[REGION:note]
+Before you can access the [repository](https://github.com/EpicGames/UnrealEngine), you must be an Unreal Engine subscriber and associate your GitHub account with your Unreal Engine account.
+
+For instructions on associating your account, visit the [UE4 on GitHub](https://www.unrealengine.com/ue4-on-github) page.
+[/REGION]
+[/PUBLISH:Rocket]
+
+[PUBLISH:Licensee]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/Perforce/Basics]
+[/PUBLISH:Licensee]
+
+[PUBLISH:Rocket]
+[INCLUDE:GettingStarted/DownloadingUnrealEngine/GitHub]
+[/PUBLISH:Rocket]
+
+[/EXCERPT:Main]

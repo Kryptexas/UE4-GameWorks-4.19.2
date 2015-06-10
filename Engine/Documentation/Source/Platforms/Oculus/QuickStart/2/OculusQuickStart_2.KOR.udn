@@ -1,0 +1,79 @@
+﻿INTSourceChangelist:2385999
+Title:2. 오큘러스 런타임 다운로드
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:오큘러스 리프트에서 게임을 실행하는 데 필요한 소프트웨어를 다운로드합니다.
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Platforms/Oculus/QuickStart/1 "%Platforms/Oculus/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+[REGION:note]
+언리얼 엔진 4 와 현재 호환되는 오큘러스 런타임 버전은 **Oculus SDK v0.4.2 Beta** 입니다. 
+[/REGION]
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macos]
+	[/PARAM]
+[/OBJECT]
+<!--
+[EXCERPT:windows]
+1. [Oculus Runtime for Windows version 0.4.2-beta](https://developer.oculus.com/downloads/#id=9f27e6a8) 를 클릭합니다. 
+
+	![](3-oculus-runtime-for-windows.jpg)
+1. EULA 조항을 읽고 동의하여 다운로드를 시작합니다.
+
+	![](3-oculus-eula.jpg)
+[/EXCERPT:windows]
+[EXCERPT:macos]
+[INCLUDE:Platforms/Oculus#warning]
+1. [Oculus Runtime for OS X version 0.4.2-beta](https://developer.oculus.com/downloads/#id=4d85655b) 를 클릭합니다.
+	![](3-oculus-runtime-for-os-x.jpg)
+1. EULA 조항을 읽고 동의하여 다운로드를 시작합니다.
+
+	![](3-oculus-eula.jpg)
+[/EXCERPT:macos]
+-->
+
+%Steps%

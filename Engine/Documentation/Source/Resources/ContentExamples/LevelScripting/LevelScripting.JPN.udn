@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:2419450
+Availability:Docs
+Title:レベルスクリプト
+Crumbs:%ROOT%, Resources
+Description:レベルスクリプトのサンプル レベルの概要
+
+[REGION:banner]
+![](level_scripting_header.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/LevelScripting:title%](level_scripting_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/LevelScripting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/LevelScripting:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/LevelScripting:title%](level_scripting_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/LevelScripting:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/LevelScripting:description%
+	[/PARAM]
+	[PARAM:path]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+<!--Insert path when done! [RELATIVE:Resources/ContentExamples/LevelScripting]-->
+
+**レベルスクリプト** のサンプルの概要へようこそ！
+
+
+[INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
+
+このコンテンツ サンプルでは、ゲームレベル用のゲームプレイの作成手段としてレベルスクリプトに焦点を当てていきます。[Class ブループリント](Engine/Blueprints\UserGuide\Types\ClassBlueprint) の作成と非常に似ています。大きな違いは、レベルスクリプトでは作成対象のレベルが _常に_ ネイティブとなる点です。つまり、 Class ブループリントが配置可能なアセットであるのに対して、レベルスクリプトは配置可能なアセットではありません。
+
+[レベルブループリントを開く](Engine/Blueprints\UserGuide\Types\LevelBlueprint) からコンテンツ例に設定したレベルスクリプトを全て参照することができます。
+
+##例
+
+[REGION:topics fourth]
+%Resources/ContentExamples/LevelScripting/1_1:TopicCompact%
+%Resources/ContentExamples/LevelScripting/1_2:TopicCompact%
+%Resources/ContentExamples/LevelScripting/1_3:TopicCompact%
+%Resources/ContentExamples/LevelScripting/1_4:TopicCompact%
+[/REGION]
+
+
+## 関連トピックと参考文献
+* [ブループリント](Engine/Blueprints)
+* [マチネとシネマチック](Engine/Matinee)

@@ -1,0 +1,159 @@
+﻿INTSourceChangelist:2089930
+Availability: Public
+Title:5. 制作材质
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:既然您已经将网格物体和贴图导入到了虚幻引擎4中，现在就可以制作一些材质了。
+
+[VAR:Steps]
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		步骤
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [前一步 - %Engine/Content/QuickStart/4:Title%](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+		* **当前步骤 - %Engine/Content/QuickStart/5:Title%**
+		* [下一步 - %Engine/Content/QuickStart/6:Title%](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Material]
+
+
+## 创建材质
+
+要创建一个新材质：
+
+1. 在 **内容浏览器** 中点击 **New(新建)** 或者通过右击 **内容浏览器** 中的资源来调出关联菜单。
+1. 点击 "Material（材质）" 。
+
+	![](NewMaterialSource.png)(w:400 convert:false) ![](NewMaterialContext.png)(w:400 convert:false)
+
+1. 在 **内容浏览器** 中将会选中该新材质，并等待命名。
+1. 赋予它一个名称，在这个示例中，将它命名为"Rock"，或者命名为可以描述我们将要使用的红色岩石贴图的名称。
+	
+	![](materialNaming.png)
+	
+	如果您在命名该材质之前恰好点击了其他地方，那么您可以右击并 **重命名** 它。
+	
+1. 一旦创建了该材质后，您可以双击它来打开材质编辑器。
+
+![](materialEditorInterface.png)(convert:false)
+
+这就是 **材质编辑器** 。在本指南中，我们将关注的部分是  **Graph(图表)** 和 **Details Panels（详细信息）** 面板。**图表面板** 是窗口中居中的大面板，它里面包含了  "Rock" 节点，而 **Details Panel（详细信息）** 面板则位于窗口的左下角。
+
+[REGION:tip]
+虚幻引擎 4 中的 **材质** 系统非常强大。如果您想了解更多信息，请参照[**材质主页**](Engine/Rendering/Materials)。
+[/REGION]
+
+<!--
+## 材质编辑器介绍
+
+![](materialEditorInterface.png)(convert:false)
+
+我们假设您的技术水平达到何种程度？
+-->
+
+## 岩石材质
+
+使用您先前导入的那两个张贴图，或者您手头恰好有的任何贴图，让我们一起来丰富这个材质。
+
+1. 选择材质图表中心的主要材质节点。它是图表区域中的唯一节点，该节点以您的材质名称命名。在这些屏幕截图中，该节点命名为 "Rock" 。
+
+	![](mainNide.png)
+
+1. 在 **详细信息** 面板中，将 **Shading Model（阴影模式）** 从 **Default Lit（默认带光照）** 改为 **Subsurface（次表面）** 。
+
+	![](subsurfaceEnable.png)
+
+1. 您会注意到，主材质节点上多启用了两个引脚： Opacity（不透明度）和Subsurface Color（次表面颜色）。
+
+	![](morePins.png)
+
+1. 现在，您需要将您的贴图添加到图表中。尽管有很多种完成该处理的方法，但是我们将使用快捷方式完成这个处理。按住 "T" 键并在编辑器的图表区域中左击。这将创建一个Texture Sample 节点。
+
+	[REGION:tip]
+	在 **编辑菜单** -> **编辑器偏好设置** -> **键盘快捷方式** -> "**材质编辑器**" 和 "**材质编辑器 - 生成节点**" 类目中您可以找到所有材质编辑器键盘快捷方式的列表。
+	[/REGION]
+
+1. 因为您至少应该具有2张贴图，所以要针对另一个Texture Sample Node重复执行这个过程。
+
+1. 选择第一个Texture Sample Node(贴图样本节点)，在 **详细面板** 的 **Material Expression Texture Base** 类目下，有一个 **Texture（贴图）** 属性。左击标签为  "None" 的下拉列表，并选择名称为 **T_Rock_04_D** 的颜色贴图。
+
+	![](textureNone.png)
+
+1. 针对另一个Texture Sample Node(贴图样本节点)执行同样的处理，但是选择名称为 **T_Rock_05_n** 的法线贴图。
+
+	此时，材质图表应该如下所示：
+
+	![](bothTexturesSelected.png)(convert:false)
+
+1. 连接Color(颜色)引脚。顶部的白色引脚包含了贴图中的所有颜色通道，将它连接到彩色引脚： 
+
+	![](connectColorPin.png)
+
+1. 针对Normal Map（法线贴图）和Normal Pin（法线引脚）执行这个过程。
+
+	![](connectNormalPin.png)
+
+	预览效果应该如下所示：
+
+	![](preview_DN.png)
+
+1.  您需要几个Constants（标量型浮点值）和一个Constant3Vector (没有alpha通道的颜色)。
+
+	要想简单地创建Constants（常量），您需要按住  "1"  键并在图表面板中左击。总共创建 **3** 个Constant。
+
+	![](Constants.png)
+
+1. 要想Constant3Vector，您需要按住  "3"  键并在图表面板中左击。
+
+	![](Constant3.png)
+
+1. 像这样排列节点：
+
+	![](MatConstantsAdded.png)
+
+	这样做仅是为了使得轻松地进行连接，使得连线不会滑到任何节点的下面，也不会彼此交叉。
+
+1. 使用您连接贴图到Base Color（基色） 和Normal（法线）引脚的过程，像以下图像这样连接 Constant和Constant3Vector。
+
+	![](allNodesConnectedNoVal.png)
+
+1. 现在，您可以通过选择这些Constant(常量)并在 **详细信息** 面板中修改 **Value** 参数来调整每个常量的值。
+
+	* Metallic/Specular Value = 0.0
+	* Roughness Value = 0.8
+	* Opacity Value = 0.95
+	* Subsurface Color = Red (1, 0, 0)
+
+	![](allConnectedAllAdjusted.png)
+
+1. 预览效果应该如下所示：
+
+	![](preview_All.png) 
+
+
+
+
+
+## 简单的材质 (塑料)
+
+现在，利用您所需到的知识，创建一个新 **材质** ，然后创建这个图表：
+
+![](PlasticMaterialNetwork.png)
+
+在主材质节点上没有任何复杂设置，这仅是一个简单的塑料 **材质** 。一旦您完成这个处理，请继续执行下一步。
+
+---
+
+%Steps%

@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2276197
+Availability:Public
+Title:큐브맵 익스포트하기
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:NVIDIA 의 Texture Tool 플러그인을 사용하여 포토샵에서 큐브맵을 익스포트하는 방법을 알아보는 개요서입니다.
+
+## 개요
+
+NVIDIA Texture Tool 플러그인을 사용하여 포토샵에서 큐브맵을 익스포트하는 법에 대한 문서입니다.
+
+## 큐브맵 익스포트 (포토샵)
+
+포토샵에 일련의 이미지들을 놓아두고 큐브맵으로 사용할 준비가 되고나면, 익스포트 준비가 된 것입니다. 이 예제에서는 포토샵 CSG 에 대해 NVIDIA Texture Tool 플러그인을 사용하겠습니다.
+
+이 플러그인을 설치하지 않은 경우, [여기에서](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop) 내려받을 수 있습니다.
+
+1. 우선 큐브맵용 텍스처들이 하나의 도큐먼트에 배열되어 있는지, 모두 같은 크기인지 확인합니다. 이 크기는 2 의 제곱이어야 하기도 합니다. 프레임이 제대로 회전되었는지도 [여기](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps) 설명된 대로 확인해 보세요.
+
+![ExportCubemap.png](ExportCubemap.png)(w:800)
+
+2. **파일** 메뉴에서 **다른 이름으로 저장** 을 선택합니다. 
+
+![PhotoshopSaveAs.png](PhotoshopSaveAs.png)
+
+3. 다른 이름으로 저장 창에서 **D3D/DDS (*.DDS; *.DDS)** 를 선택하고 파일 이름을 짓습니다.
+
+![PhotoshopSaveAsDialog.png](PhotoshopSaveAsDialog.png)(w:600)
+
+4. NVIDIA dds 포맷 창의 상단 콤보 박스에서 **8.8.8.8  ARGB 32 bpp | unsigned** 를 선택합니다. 아래 있는 콤보박스를 **Cube Map** 으로 설정합니다. MIP Map Generation 그룹은 **No MIP maps** 로 선택합니다.
+
+![PhotoshopDDSDialog.png](PhotoshopDDSDialog.png)(w:600)
+
+5. **Save** 를 누릅니다.
+
+
+
+여기 사용된 이미지는 원래 Paul Debevec 의 웹사이트 [http://www.pauldebevec.com](http://www.pauldebevec.com/index.html) 에서 따온 것입니다.

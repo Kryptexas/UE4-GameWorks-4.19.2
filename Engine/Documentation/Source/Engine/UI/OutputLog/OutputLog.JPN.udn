@@ -1,0 +1,27 @@
+﻿INTSourceChangelist:2094953
+Availability:docs
+Title:出力ログ
+Crumbs:%ROOT%, Engine, Engine/UI
+Description:出力ログの概要と使用方法
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Editor/ClassViewer:title%](Engine/UI/OutputLog_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		出力ログ
+	[/PARAM]
+	[PARAM:description]
+		出力ログの概要と使用方法
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/OutputLog]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 概要

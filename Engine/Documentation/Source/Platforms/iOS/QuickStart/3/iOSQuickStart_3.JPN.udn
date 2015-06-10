@@ -1,0 +1,142 @@
+﻿INTSourceChangelist:2430528
+Title:3. iOS プロビジョニング- 署名証明書の生成
+Crumbs:%ROOT%, Platforms, Platforms/iOS, Platforms/iOS/QuickStart
+Description:iOS 開発の署名証明書のセットアップ
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/iOS/QuickStart/2 "%Platforms/iOS/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/iOS/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/iOS/QuickStart/4 "%Platforms/iOS/QuickStart/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:note]
+プロビジョンと署名証明書を既にお持ちですか？[このセクションはスキップできます。](Platforms/iOS/QuickStart/4)
+[/REGION]
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macos]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:windows]
+Windows で iOS 開発をするための署名証明書の生成は、Apple 社のデベロッパー サイトと 
+Unreal iOS Configuration Wizard (iPhonePackager) アプリケーション (`Engine\Binaries\DotNET\IOS\IPhonePackager.exe`) を 
+併用して行います。
+
+[REGION:note]
+過去に Mac で iOS アプリケーションを開発したことがあるが、Windows PC で iOS ゲームを開発するためにアンリアル エンジンを使用する場合、 
+このステップをスキップして、ご自身の証明書を **キーチェーン (Keychain)** の `.p12` ファイルにエクスポートし、Unreal iOS Configuration Wizard で使用するようにします。
+[/REGION]
+
+**証明書要求を生成するには:**
+
+1. `Engine\Binaries\DotNET\IOS\` ディレクトリに移動し、`iPhonePackager.exe` を実行します。
+
+1. プロビジョニングはプロジェクト固有のものです。指示が表示されたら、iPhonePackager アプリケーションに関連付けるプロジェクトの .uproject ファイルを選択し、**Open** をクリックします。
+
+	![](select_uproject.png)
+
+	[REGION:note]
+	この操作は、iPhonePackager アプリケーションを実行するたびに行わなければなりませんが、 
+	最後に選択したプロジェクトの位置は記憶されます。
+	[/REGION]
+
+1. **[New User]** タブを選択し、**[Create certificate request and a key pair]** をクリックします。
+
+	![](create_certificate.png)
+
+	**[Generate Certificate Request]** ダイアログが開きます。
+
+1. Apple ID の電子メールアドレスや名前 (または会社の名前) を含む必須情報を入力します。
+
+	![](developer_info.png)
+
+1. **[Generate a key pair]** をクリックし、.key ファイルを保存する場所を選択します。
+
+	![](generate_key.png)
+
+1. **[Generate Certificate Request]** をクリックし、.csr ファイルを保存する場所を選択します。
+
+	**[Generate Certificate Request]** ダイアログが閉じて、メインの iPhonePackager ウィンドウに戻ります。
+
+
+**証明書を生成するには:**
+
+1. Apple iOS Developer サイトの [iOS Certificates](https://developer.apple.com/account/ios/certificate/certificateList.action) ページに進みます。
+
+1. 新規証明書を生成するには、 ![Add](button_add.png) ボタンをクリックします。
+
+1. **[iOS App Development]** を選択し、**[Continue]** をクリックします。
+
+	![](cert_development.png)
+
+1. **[Continue]** をクリックします。
+
+1. **[Choose File]** をクリックし、前に生成した証明書署名要求 (`.csr`) ファイルを選択し、**[Generate]** をクリックします。
+
+	![](cert_csr.png)
+
+1. 証明書ファイル (`.cer`) をコンピュータにダウンロードします。
+
+	![](cert_download.png)
+
+[/EXCERPT:windows]
+[EXCERPT:macos]
+**証明書を生成するには:**
+
+1. Xcode ドロップダウンメニューで、**[Preferences]** を選択します。
+
+1. **[Accounts]** タブを選択します。
+
+1. 左下隅にあるプラス記号をクリックして、**Add Apple ID** を選択します。
+
+1. Apple ID 情報を入力し、**Add** をクリックします。
+
+1. 左ペインにある Apple ID を選択し、**View Details** をクリックします。
+
+1. プラス記号をクリックし、**iOS Development** を選択し、証明書生成プロセスを完了します。
+
+[/EXCERPT:macos]
+-->
+
+%Steps%

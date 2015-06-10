@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:2482628
+Availability:Public
+Title:4. Character ブループリントの設定
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:ステップ 4Character ブループリントの設定
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/AI/BehaviorTrees/QuickStart/3 "%Engine/AI/BehaviorTrees/QuickStart/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/AI/BehaviorTrees/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/AI/BehaviorTrees/QuickStart/5 "%Engine/AI/BehaviorTrees/QuickStart/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+キャラクターでプロジェクトが既に作成されているの、人間の形をしたスケルタルメッシュとその Animation ブループリントを利用することができます。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+
+1. **コンテンツ ブラウザ** の **AI_Character ブループリント** をダブルクリックして、編集用に開きます。
+
+1. **[Components]** パネルで **メッシュ** コンポーネントを選択します。
+
+	![](meshComp.png)
+
+1. **[詳細]** パネルの **Mesh** カテゴリで HeroTPP (または自分自身の) **スケルタルメッシュ** を割り当てます。
+
+	![](assignSkelMesh.png)
+
+1. **Mesh** コンポーネントを、カプセルの真ん中に来るように移動させます。
+
+1. **[Details]** パネルの **Animation** カテゴリで HeroTPP _AnimBlueprint を **Animation Blueprint Generated Class** に割り当てます。
+
+	![](assignAnimBP.png)
+
+1. **[Components]** パネルで ** CapsuleComponent** を選び、 **[Details]** パネルで **スケルタル メッシュ** が囲まれるように **Capsule Half Height** と **Capsule Radius** を調整します。
+
+	![](shapeCat.png)
+
+1. **Character Movement** コンポーネントを選択します。
+
+	![](charmve.png)
+
+1. **[Details]** パネルの Movement Component カテゴリで、 Agent Radius と Agent Height の値を調整します。
+
+	![](agentProps.png)
+
+	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセル半高2 倍になるように設定します。_
+
+1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed** プロパティを 400 に変更します。
+	![](maxWalk.png)
+
+
+1. **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) ボタンをクリックして、新規 AI Controller (「Follower_AI_CON」) を **AI** カテゴリの **AIController Class** プロパティに割り当てます。
+
+	![](AI_con.png)
+
+1. ![](compile_button.png) をコンパイルして ![](save_button.png) を保存します。
+
+
+%Steps%

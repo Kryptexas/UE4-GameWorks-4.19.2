@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:2187667
+Availability:Public
+Title:アセットエディタ
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナ (Persona) アニメーション エディタのアセットエディタのユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/AssetBrowser:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/AssetBrowser:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/AssetBrowser:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/AssetBrowser]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+**アセットブラウザ** でアニメーションアセットを **ダブルクリック** するとペルソナ (Persona) のアセットエディタが開きます。**アセットブラウザ** に関する詳細は、[](Engine/Animation/Persona\AssetBrowser) を参照してください。
+
+**アセットエディタ** を使用して、パーティクルシステム、サウンドキュー、アニメーション通知を含めた通知を、アニメーションアセットのトラック上のある一定時点に追加することができます。
+
+![](AssetEditor.png)
+
+アニメーショントラックに通知を追加するには、トラックを **右クリック** して **[ Add Notify]** をクリックした後に、以下のいずれかの操作を行います。
+* 新規のパーティクルシステムを追加するには、**[PlayParticleEffect]** をクリックします。
+* 新規のサウンドキューを追加するには、**[PlaySound]** を追加します。
+* 新規のカスタム仕様のアニメーション通知を追加するには、**[New Notify]** をクリックして、アニメーション通知に名前を付けます。
+
+![](AssetEditor_AddNotify.png)
+
+アニメーション通知に関する詳細は、[](Engine/Animation/Sequences\Notifies) を参照してください。
+

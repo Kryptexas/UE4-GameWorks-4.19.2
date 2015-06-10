@@ -1,0 +1,19 @@
+﻿INTSourceChangelist:2087463
+Availability:Public
+Title:应用立方体贴图
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:一旦您将立方体贴图导入到引擎中后如何应用立方体贴图。
+
+
+## 概述
+
+本文介绍了一旦您将立方体贴图导入到引擎中后如何应用立方体贴图。
+
+##应用立方体贴图
+
+虚幻引擎4中，有多种应用立方体贴图的方法。其中两个最普遍的方法使通过环境立方体贴图和材质中的立方体贴图进行应用。
+
+### 环境立方体贴图
+
+[INCLUDE:Engine/Rendering/LightingAndShadows/AmbientCubemap#AmbientCubemap]
+

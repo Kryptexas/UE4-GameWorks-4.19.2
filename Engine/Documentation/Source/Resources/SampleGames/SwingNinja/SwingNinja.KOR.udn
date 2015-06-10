@@ -1,0 +1,12 @@
+﻿INTSourceChangelist:2422269
+Availability: Docs
+Title:스윙 닌자 샘플
+Crumbs:%ROOT%, Resources
+Description:Swing Ninja, 스윙 닌자 게임에 대한 문서입니다.
+
+[REGION:banner]
+![](SwingNinjaBanner.png)
+[/REGION]
+
+**Swing Ninja** (스윙 닌자)는 플레이어가 갈고리줄을 사용해서 레벨을 돌아다니며 동전을 획득하는 닌자 캐릭터를 조정하는 간단한 데모 샘플 게임입니다. 이 게임은 프로그래머가 아닌 아티스트 한 명이 순전히 블루프린트 비주얼 스크립트로만 제작한 게임입니다. 이 프로젝트의 목표는 모바일 플랫폼용 소규모 개발팀에 초점을 맞춘 단순화된 개념증명 게임을 제작하기 위함입니다.
+

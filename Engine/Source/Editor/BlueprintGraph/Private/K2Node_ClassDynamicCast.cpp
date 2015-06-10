@@ -67,15 +67,14 @@ void UK2Node_ClassDynamicCast::AllocateDefaultPins()
 
 FLinearColor UK2Node_ClassDynamicCast::GetNodeTitleColor() const
 {
-	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
 	return GetDefault<UGraphEditorSettings>()->ClassPinTypeColor;
 }
 
 FText UK2Node_ClassDynamicCast::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (CachedNodeTitle.IsOutOfDate())
+	if (CachedNodeTitle.IsOutOfDate(this))
 	{
-		CachedNodeTitle = FText::Format(LOCTEXT("NodeTitle", "{0} Class"), Super::GetNodeTitle(TitleType));
+		CachedNodeTitle.SetCachedText(FText::Format(LOCTEXT("NodeTitle", "{0} Class"), Super::GetNodeTitle(TitleType)), this);
 	}
 	return CachedNodeTitle;
 }

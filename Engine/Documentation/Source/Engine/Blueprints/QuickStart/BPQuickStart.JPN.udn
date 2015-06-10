@@ -1,0 +1,77 @@
+﻿INTSourceChangelist:2465824
+Availability:Public
+Title:ブループリントのクイックスタートガイド
+Crumbs: %ROOT%, Engine, Engine/Blueprints
+Description:初めてのブループリント作成
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](engine_qs_topic.jpg)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Blueprints/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](engine_qs_topic.jpg)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints/QuickStart:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/QuickStart]
+	[/PARAM]
+	[PARAM:description]
+	%Engine/Blueprints/QuickStart:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	Ax4Xgu2Zb4g
+	[/PARAMLITERAL]
+[/OBJECT]
+
+このクイックスタートガイドはさまざまなコンポーネントでレベルにアクタを作成します。キャラクターがレベル内で飛行できるように、起動ビヘイビアを追加することができる Blueprint クラスへ変換する方法を説明します！
+Blueprint クラスへの変換は、 **コンテンツブラウザ** からレベルへドラッグするだけでたくさんの Launchpad を作成できることも意味します。
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		手順
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/Blueprints/QuickStart/1 "%Engine/Blueprints/QuickStart/1:description%")
+	* [](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:description%")
+	* [](Engine/Blueprints/QuickStart/3 "%Engine/Blueprints/QuickStart/3:description%")
+	* [](Engine/Blueprints/QuickStart/4 "%Engine/Blueprints/QuickStart/4:description%")
+	* [](Engine/Blueprints/QuickStart/5 "%Engine/Blueprints/QuickStart/5:description%")
+	* [](Engine/Blueprints/QuickStart/6 "%Engine/Blueprints/QuickStart/6:description%")
+	* [](Engine/Blueprints/QuickStart/7 "%Engine/Blueprints/QuickStart/7:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+

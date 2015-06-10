@@ -1,0 +1,32 @@
+﻿INTSourceChangelist:2428653
+Availability:Public
+Title:アクタを参照する方法
+Crumbs: %ROOT%, Gameplay
+Description:アンリアル エンジン 4 においてアクタを参照するための操作ガイド 
+
+
+## 概要
+[EXCERPT:ReferenceOverview]
+アクタへの参照を確立することで、ゲームプレイ中にそのプロパティ、変数、イベント、関数 (該当する場合) に、ブループリント、C++ を介してまたはゲームプレイのニーズに合わせてこれらを変更してアクセスすることができます。 
+
+例えば、プレイヤーがトリガーボックスに入ったら点灯するライトが必要だとします。ライトへの参照を持っているトリガーボックスは、このライト アクタをトリガーボックスの OnComponentBeginOverlap イベント (この場合にライトをオンにする) に結び付けてこれを行うことができます。 
+
+アクタへの適切な参照を取得することは、アクタ間のやりとりでも重要です。参照を誤って指定するとやりとりに失敗して望ましくない結果を招くからです。 
+[/EXCERPT:ReferenceOverview]
+
+**[Setup]** セクションの下の方にあるリンクで、ブループリントと C++ の両方のケースでの **アクタを参照する方法** を紹介しています。
+
+## 設定
+
+ブループリントで **アクタを参照する** 方法については、次のいずれかを参照してください。
+
+[REGION:buttonlist]
+* [](Gameplay\HowTo\ReferenceAssets\Blueprints)
+[PUBLISH:Docs]
+* [](Gameplay\HowTo\ReferenceAssets\Code)
+[/PUBLISH:Docs]
+[/REGION]
+
+
+
+

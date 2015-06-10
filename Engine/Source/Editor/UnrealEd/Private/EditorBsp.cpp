@@ -1146,11 +1146,12 @@ int UEditorEngine::bspBrushCSG
 		}
 
 		GWarn->BeginSlowTask( Description, true );
+		// Transform original brush poly into same coordinate system as world
+		// so Bsp filtering operations make sense.
+		GWarn->StatusUpdate(0, 0, NSLOCTEXT("UnrealEd", "Transforming", "Transforming"));
 	}
 
-	// Transform original brush poly into same coordinate system as world
-	// so Bsp filtering operations make sense.
-	if( ReallyBig ) GWarn->StatusUpdate(0,0, NSLOCTEXT("UnrealEd", "Transforming", "Transforming"));
+
 
 	UMaterialInterface* SelectedMaterialInstance = GetSelectedObjects()->GetTop<UMaterialInterface>();
 

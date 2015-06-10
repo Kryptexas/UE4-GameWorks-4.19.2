@@ -1,0 +1,90 @@
+﻿INTSourceChangelist:2373753
+Availability:Public
+Title:モーフ ターゲット プレビューア
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナのアニメーション エディタで利用可能な編集モードのユーザーガイド
+Related:Engine/Content/FBX/Animations
+Related:Engine/Content/FBX/MorphTargets
+Related:Engine/Content/Types/SkeletalMeshes
+Related:Engine/Content/Tools/MayaRiggingTool
+Related:Engine/Content/Types/StaticMeshes/MorphTargets
+Related:Engine/Animation/AnimBlueprints
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/MorphTargetPreviewer:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/MorphTargetPreviewer:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/MorphTargetPreviewer:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/MorphTargetPreviewer]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2 end:3)]
+
+
+## 概要
+
+[EXCERPT:Overview]
+
+![](MorphGif.gif)(w:720 convert:false)
+
+モーフ ターゲット プレビューアは、スケルタル メッシュに適用されたモーフ ターゲット (ご使用の 3D アニメーション パッケージによって「モーフ」や「ブレンドシェイプ」としても知られています) のプレビューを可能にします。それぞれのモーフ ターゲットは、既存のスケルタル メッシュ ジオメトリへ加算的にブレンドされます。これによって複数のモーフターゲットが結合し、複雑で頂点に依存するアニメーションを作成します。表情の作成などに最適な場合が多いです。
+[/EXCERPT:Overview]
+
+**モーフ ターゲット プレビューア** はペルソナが **Mesh** モードの場合のみ表示されます。
+
+[REGION:tip]
+キャラクターに適用されている **モーフ ターゲット** の例は、セクション 1.6 の [アニメーション コンテンツ事例](Resources\ContentExamples\Animation) ページを参照してください。
+[/REGION]
+
+
+## インターフェース
+
+** [Morph Target Previewer]** パネルは比較的単純なインターフェースを利用します。
+
+![](MorphTargetPreviewerInterface.png)
+
+1. 検索バー
+1. モーフターゲットのリスト
+
+検索バーで、モーフ ターゲットのリストを素早くフィルタリングして、必要なモーフ ターゲットが迅速に見つかります。ターゲットの最初の文字をいくつかタイプすると、リストのフィルタリングが開始します。
+
+**[Morph Target]** を **右クリック** すると、 **[Delete]** などの追加アクションでダイアログ ボックスがポップアップ表示されます。 
+
+![](RightClickDelete.png)
+
+## モーフ ターゲットの作成
+
+モーフ ターゲットはスケルタル メッシュの一部として、また任意のメッシュとして単独でインポートが可能です。これは FBX ファイル フォーマットでサポートされています。設定手順、アンリアルへモーフ ターゲットをインポートする方法についての詳細は、 [](Engine/Content\FBX\MorphTargets) を参照してください。
+
+[REGION:tip]
+モーフ ターゲットを削除するには、 **[モーフ ターゲット プレビューア]** ウィンドウの名前を右クリックし、表示されるコンテクスト メニュー上の **[Delete]** をクリックします。
+[/REGION]
+
+## モーフ ターゲットの使用
+
+モーフターゲットが作成されたら、今度はこれを使うために **Animation ブループリント** を設定します。設定は **Set Morph Target** ノードの Event Graph 内で行います。
+
+![](SetMorphTarget.png)
+
+| ピン | 説明 |
+| --- | --- |
+| [REGION:tablesection] 入力ピン [/REGION] ||
+| Execution | ノードのエフェクトをトリガーする実行ワイヤーを受け取ります。 |
+| Target | ターゲットとなるスケルタルメッシュです。ほとんどの状況において、 **自ら** をポイントします。|
+| Morph Target Name | 編集中のモーフ ターゲットの名前を受け取ります。 |
+| Value | この浮動小数値は 0 と 1 の間の値を受け取り、編集中のモーフターゲットの値の設定に使用します。 |
+|[REGION:tablesection] 出力ピン [/REGION] ||
+| Execution | 次のノードへ実行を渡します。 |
+

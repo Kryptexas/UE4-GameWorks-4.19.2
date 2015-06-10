@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:1903621
+Availability: Docs
+Title:1.3 -世界支持
+Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Destructables
+Description: 破坏性示例关卡概述，示例1.3： 世界支持
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_3:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_3:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_3:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_3]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+世界支持会把可破坏网格物体与静态世界几何体的一部分进行绑定。 与 **Static Mesh** （静态网格物体）接触的可破坏网格物体的每个部分，都感觉像是固定于环境中一般。
+
+[REGION:lightbox]
+[![](1_3_solid.png)(w:300)](1_3_solid.png) [![](1_3_fractured.png)(w:300)](1_3_fractured.png) [![](1_3_blown.png)(w:300)](1_3_blown.png)
+[/REGION]

@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title:オブジェクト
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
+Description:基本的なゲームプレイ要素であるアクタとオブジェクトの説明
+Version:4.5
+
+[TOC (start:2 end:3)]
+
+## 概要
+
+[EXCERPT:ObjectIntro]
+アンリアルにはゲーム オブジェクトを扱う堅牢なシステムがあります。アンリアルのオブジェクトの基本クラスは、UObject です。UObject の処理システムで認識できるように、
+UCLASS マクロを使用して UObject から派生したクラスにタグ付けすることができます。 
+[/EXCERPT:ObjectIntro]
+このシステムをすべてのクラスで使用することは必須ではありませんし、適切でもありませんが、、使用すると多くのメリットがあります。例えば、以下がその例です。
+
+*	ガーベジ コレクション
+*	参照の更新
+*	リフレクション
+*	シリアル化
+*	デフォルトのプロパティ変更の自動更新
+*	プロパティの自動初期化
+*	エディタの自動統合
+*	ランタイムに利用可能なタイプ情報
+*	ネットワークのレプリケーション
+
+こうした各システムの詳しい情報については、以下のドキュメントをご覧ください。 [](Programming\UnrealArchitecture\Objects\Optimizations)
+
+UClass マクロは、UObject に対して、アンリアル ベースのタイプを記述する UClass への参照を与えます。各 UClass は、「class default Object」 (短縮すると CDO) と呼ばれるひとつのオブジェクトを維持しています。この CDO は、 
+基本的にデフォルトの「テンプレート」オブジェクトで、クラス コンストラクタによって生成され、その後は修正されません。UClass と CDO は通常は読み取り専用と見なされますが、 
+両方とも所定の Object インスタンスに対して抽出することができます。オブジェクト インスタンスの UClass は、GetClass() 関数を使用していつでもアクセスできます。
+
+UClass には、クラスを定義するプロパティと関数のセットがあります。これらは、ネイティブ コードで使用可能な通常の C++ 関数および変数ですが、 
+このオブジェクト システム内でどのように振る舞うかを制御するアンリアル固有のメタデータでタグ付けされています。タグ付けのシンタックスの詳細は [プログラミングのリファレンス](Programming\UnrealArchitecture\Reference) を参照してください。 
+
+UObject のクラスには、対応する UClass 内には存在しないネイティブのみのプロパティも含まれることに注意してください。 
+
+
+## オブジェクト作成
+
+新規 `UObject` インスタンスおよび標準の `new` 演算子を作成するために使用可能な関数はいくつかあり、それぞれ独自の使用事例があります。
+
+| メソッド | 説明 |
+| --- | --- |
+| [`NewObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#NewObject) | 自動生成される名前で新規のインスタンスを作成します。単純なケースに対するベストプラクティスです。 |
+| [`NewNamedObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#NewNamedObject) | いくつかの他のオプションのパラメータと共に、指定された名前を使用して新規インスタンスを作成します。新規インスタンスの Outer 内で名前のコンフリクトがあれば、アサートします。|
+| [`ConstructObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#ConstructObject) | すべての利用可能な作成オプションを提供する新規インスタンスを作成します。フレキシビリティが必要な場合に限り、使用してください。 |
+| `new` | 一部の低レベルの状況でオブジェクトを構築するために使用します。コンストラクタが引数を必要とする場合などです。 |
+
+ゲームプレイ用に `UObject` クラスのインスタンスを作成する様々な方法に関する詳細情報については、以下をご覧ください。 [](Programming/UnrealArchitecture/Objects/Creation)
+
+## ティック
+
+ティックとは、アンリアル エンジンでどのようにオブジェクトが更新されるかを表します。すべてのオブジェクトには、各フレームでティックする機能があり、必要な更新の計算やアクションを行うことができるようにします。
+
+**オブジェクト** には、ビルトインされた更新機能はありません。しかし、必要があれば、`inherits` クラス指定子を使用して `FTickableGameObject` クラスから継承することができます。 
+これで、`Tick()` 関数を実装できるようになります。この関数は、アンリアル エンジンによって各フレームで呼び出されます。
+

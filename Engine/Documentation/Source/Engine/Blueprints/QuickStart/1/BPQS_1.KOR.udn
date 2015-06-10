@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:2457314
+Availability: Public
+Title:1. 필수 프로젝트 구성
+Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
+Description:블루프린트 횡스크롤 템플릿을 게임의 시작점으로 사용합니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/Blueprints/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/Blueprints/QuickStart/2 "%Engine/Blueprints/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+---
+
+1. [새 프로젝트를 만듭니다](Engine/Basics/Projects/Browser).
+
+1. 새 프로젝트 마법사에서 블루프린트 횡스크롤 템플릿을 선택 합니다.
+
+1. [대상 디바이스 및 엔진 퀄리티 설정은 가장 잘 맞는대로 설정하시되, 시작용 콘텐츠를 포함하여](Engine/Basics/Projects/Browser) 선택합니다.
+
+1. 프로젝트의 이름을 짓고, **프로젝트 생성** 버튼을 눌러서 만들어 줍니다. 
+
+
+횡스크롤 레벨이 나타나며, 이제 추가 작업을 시작하면 됩니다.
+
+![](Step1End.png)
+
+
+---
+
+%Steps%
+

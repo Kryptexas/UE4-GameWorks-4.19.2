@@ -1,0 +1,256 @@
+Availability: Public
+Title:Physics Constraint Reference
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description:A reference for all the properties available on Physics Constraints in Unreal Editor.
+
+[TOC(start:2)]
+
+## Overview
+
+[EXCERPT:PhysXConstraints_001]
+A constraint is basically a type of joint. It allows you to connect two Actors together (presumably one physically simulating), and also apply limits or forces. Unreal Engine 4 has a very flexible and data-driven constraint system that allows designers to make many different types of joints simply by changing some options. The engine has a few default joint types (ball-and-socket, hinge, prismatic) but they only differ in their settings. You should feel free to start with any joint type and experiment with making your own configurations.
+[/EXCERPT:PhysXConstraints_001]
+
+## Property Reference
+
+There are 3 ways to create PhysX Constraints: **Blueprint**, **Actor**, and in the **Physics Asset Tool** (**PhAT**).
+
+### Actor Constraint
+
+| Property | Description |
+| -------- | ----------- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Constraint Actor 1** | %doxygen:UPhysicsConstraintComponent::ConstraintActor1% |
+| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Constraint Actor 2** | %doxygen:UPhysicsConstraintComponent::ConstraintActor2% |
+| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+
+![](PhysCon_JointPresets.png)(convert:false) 
+
+[INCLUDE:#presetTable]
+
+* For information on using **Physics Constraint Actor**, see: [**%Engine/Physics\Constraints\ConstraintsUserGuide:title%**](Engine/Physics\Constraints\ConstraintsUserGuide)
+<!--
+[EXCERPT:presetTable]
+| Joint Preset | Description |
+| --- | ---- |
+| **Hinge** | _Locks_ the **Linear Motions**, _Locks_ the **Swing Motions**, and sets **Angular Twist Motion** to _Free_. The classic door hinge or knee joint.  |
+| **Prismatic** | _Locks_ the **Swing Motions**, _Locks_ the **Angular Twist Motion**, _Locks_ **Linear Y** and **Linear Z motions**, and sets **Linear ZMotion** to _Free_. Like a hydraulic piston. |
+| **Ball and Socket** | _Locks_ all **Linear Motions**, sets the **Swing Motions** and **Twist Motions** to _Free_. Completely free to rotate, similar to a punching bag or wrecking ball. |
+[/EXCERPT:presetTable]
+-->
+
+### Blueprint Constraint
+
+| Property | Description |
+| -------- | ----------- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Component Name 1** | %doxygen:UPhysicsConstraintComponent::ComponentName1% |
+| **Component Name 2** | %doxygen:UPhysicsConstraintComponent::ComponentName2%  |
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+
+* For information on using **Physics Constraints** as a Blueprint Component, see: [**%Engine/Physics\Constraints\ConstraintsBlueprints:title%**](Engine/Physics\Constraints\ConstraintsBlueprints)
+
+### Physics Asset Tool Constraint
+
+| Property | Description |
+| -------- | ----------- |
+|[REGION:tablesection]Constraint[/REGION]||
+| **Joint Name** | %doxygen:FConstraintInstance::JointName% |
+| **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
+| **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
+| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+
+* For further reference on the **Physics Asset Tool** (**PhAT**), see: [**%Engine/Physics\PhAT\Reference:title%**](Engine/Physics\PhAT\Reference)
+
+* For information on using **Physics Constraints** in the **Physics Asset Tool** (**PhAT**), see: [**%Engine/Physics\PhAT\UserGuide:title%**](Engine/Physics\PhAT\UserGuide)
+
+* For information on using the **Physics Asset Tool** (**PhAT**), see: [**%Engine/Physics\PhAT:title%**](Engine/Physics\PhAT)
+
+### Shared Properties
+
+| Property | Description |
+| -------- | ----------- |
+|[REGION:tablesection]Linear Limits[/REGION]||
+| **Linear XMotion** | %doxygen:FConstraintInstance::LinearXMotion% |
+| **Linear YMotion** | %doxygen:FConstraintInstance::LinearYMotion% |
+| **Linear ZMotion** | %doxygen:FConstraintInstance::LinearZMotion% |
+| **Linear Limit Types** | [INCLUDE:#linearMotionEnum] |
+| **Linear Limit Size** | %doxygen:FConstraintInstance::LinearLimitSize% |
+| **Linear Limit Soft** | %doxygen:FConstraintInstance::bLinearLimitSoft% |
+| **Linear Limit Stiffness** | %doxygen:FConstraintInstance::LinearLimitStiffness% |
+| **Linear Limit Damping** | %doxygen:FConstraintInstance::LinearLimitDamping% |
+| **Linear Breakable** | %doxygen:FConstraintInstance::bLinearBreakable% |
+| **Linear Break Threshold** | %doxygen:FConstraintInstance::LinearBreakThreshold% |
+|[REGION:tablesection]Projection[/REGION]||
+| **Enable Projection** | %doxygen:FConstraintInstance::bEnableProjection% |
+| **Projection Linear Tolerance** | %doxygen:FConstraintInstance::ProjectionLinearTolerance% |
+| **Projection Angular Tolerance** | %doxygen:FConstraintInstance::ProjectionAngularTolerance% |
+|[REGION:tablesection]Angular Limits[/REGION]||
+| **Angular Swing 1Motion** | %doxygen:FConstraintInstance::AngularSwing1Motion% |
+| **Angular Swing 2Motion** | %doxygen:FConstraintInstance::AngularSwing2Motion% |
+| **Angular Twist Motion** | %doxygen:FConstraintInstance::AngularTwistMotion% |
+| **Angular Limit Types** | [INCLUDE:#angularMotionEnum] |
+| **Swing 1Limit Angle** | %doxygen:FConstraintInstance::Swing1LimitAngle% |
+| **Swing 2Limit Angle** | %doxygen:FConstraintInstance::Swing2LimitAngle% |
+| **Twist Limit Angle** | %doxygen:FConstraintInstance::TwistLimitAngle% |
+| **Swing Limit Soft** | %doxygen:FConstraintInstance::bSwingLimitSoft% |
+| **Swing Limit Stiffness** | %doxygen:FConstraintInstance::SwingLimitStiffness% |
+| **Swing Limit Damping** | %doxygen:FConstraintInstance::SwingLimitDamping% |
+| **Twist Limit Soft** | %doxygen:FConstraintInstance::bTwistLimitSoft% |
+| **Twist Limit Stiffness** | %doxygen:FConstraintInstance::TwistLimitStiffness% |
+| **Twist Limit Damping** | %doxygen:FConstraintInstance::TwistLimitDamping% |
+| **Angular Breakable** | %doxygen:FConstraintInstance::bAngularBreakable% |
+| **Angular Break Threshold** | %doxygen:FConstraintInstance::AngularBreakThreshold% |
+|[REGION:tablesection]Linear Motor[/REGION]||
+| **Linear Position Drive** | %doxygen:FConstraintInstance::bLinearPositionDrive% |
+| **Linear XPosition Drive** | %doxygen:FConstraintInstance::bLinearXPositionDrive% |
+| **Linear YPosition Drive** | %doxygen:FConstraintInstance::bLinearYPositionDrive% |
+| **Linear ZPosition Drive** | %doxygen:FConstraintInstance::bLinearZPositionDrive% |
+| **Linear Position Target** | %doxygen:FConstraintInstance::LinearPositionTarget% |
+| **Linear Velocity Drive** | %doxygen:FConstraintInstance::bLinearVelocityDrive% |
+| **Linear Velocity Target** | %doxygen:FConstraintInstance::LinearVelocityTarget% |
+| **Linear Drive Spring** | %doxygen:FConstraintInstance::LinearDriveSpring% |
+| **Linear Drive Damping** | %doxygen:FConstraintInstance::LinearDriveDamping% |
+| **Linear Drive Force Limit** | %doxygen:FConstraintInstance::LinearDriveForceLimit% |
+|[REGION:tablesection]Angular Motor[/REGION]||
+| **Angular Orientation Drive** | %doxygen:FConstraintInstance::bAngularOrientationDrive% |
+| **Angular Orientation Target** | %doxygen:FConstraintInstance::AngularOrientationTarget% |
+| **Angular Velocity Drive** | %doxygen:FConstraintInstance::bAngularVelocityDrive% |
+| **Angular Velocity Target** | %doxygen:FConstraintInstance::AngularVelocityTarget% |
+| **Angular Drive Force Limit** | %doxygen:FConstraintInstance::AngularDriveForceLimit% |
+| **Angular Drive Spring** | %doxygen:FConstraintInstance::AngularDriveSpring% |
+| **Angular Drive Damping** | %doxygen:FConstraintInstance::AngularDriveDamping% |
+
+<!--
+
+[EXCERPT:linearMotionEnum]
+| **Type** | **Description** |
+| --- | ---- |
+| **LCM_Limited** | Limited freedom along this axis. The limit is defined for all axes by the **Linear Limit Size** property. |
+| **LCM_Locked** | Fully constraint along this axis. |
+| **LCM_Free** | No constraint along this axis. |
+[/EXCERPT:linearMotionEnum]
+
+[EXCERPT:angularMotionEnum]
+| **Type** | **Description** |
+| --- | ---- |
+| **ACM_Limited** | Limited freedom around this axis. The limit for each Angular Motion is controlled individually by a correspondingly named Limit property: **Swing 1Limit Angle**, **Swing 2Limit Angle**, and **Twist Limit Angle**. |
+| **ACM_Locked** | Fully constraint around this axis. |
+| **ACM_Free** | No constraint around this axis. |
+[/EXCERPT:angularMotionEnum]
+
+-->
+
+## Further Information
+
+### Joint Setup
+
+By using the Joint Presets, you can quickly generate the basic settings for the most common of joint types.
+
+![](PhysCon_JointPresets.png)
+
+Note that the icon for the Physics Constraint changes based on the type of joint it is.
+
+[REGION:lightbox]
+[![](PhysCon_Hinge.png)(w:300)](PhysCon_Hinge.png) [![](PhysCon_Prismatic.png)(w:300)](PhysCon_Prismatic.png) [![](PhysCon_BallNJoint.png)(w:300)](PhysCon_BallNJoint.png) 
+[/REGION]
+
+_From left to right: Hinge, Prismatic, and Ball and Socket icons._
+
+### Linear Freedom and Limits
+
+![](PhysCon_LinearProps.png)
+
+Under most circumstances, the Linear Motions' freedoms will remain locked. However, there are times when having a joint free or having limited motion along one of these Linear Motions makes sense. Here is how a Physics Constraint will appear if a Linear Motion or Motions are set to Limited and Free:
+
+[REGION:lightbox]
+[![](PhysCon_Linear_15uu.png)(w:453)](PhysCon_Linear_15uu.png) [![](PhysCon_Linear_Free.png)(w:453)](PhysCon_Linear_Free.png)
+[/REGION]
+
+_From left to right (Physics Constraint scaled up 4x): Linear Motions limited to 15 Units, and Linear Motions set to free._
+
+<!-- For information on all the properties relating to Linear Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+
+### Angular Freedom and Limits
+
+![](PhysCon_AngularLimitsProps.png)
+
+Physics Constraints can have their 3 rotational axes set to **Locked**, **Free**, or **Limited**. This will form the basis for a joint such as a hinge that can only rotate on one axis for 90 degrees. The location of the Actor defines where the joint is, thusly, it defines the point at which the constrained Actors will rotate from.
+
+Physics Constraints define their Swing Motions as rotations on the Y and Z axes, while Twist is rotation along the X axis **of the Physics Constraint Actor**, not of either of the constrained Actors. So rotating the Physics Constraint Actor can drastically change your results. Swing Limits will be shown as a green cone (or arc if only one is used or the other is limited to 0), and the twist will be shown as an Arc around the X axis.
+
+[REGION:lightbox]
+[![](PhysCon_Swing1_45.png)(w:300)](PhysCon_Swing1_45.png) [![](PhysCon_Swing2_45.png)(w:300)](PhysCon_Swing2_45.png) [![](PhysCon_Twist_135.png)(w:300)](PhysCon_Twist_135.png) 
+[/REGION]
+
+_From left to right: Swing 1 limited to 45 degrees, Swing 2 limited to 45 degrees, and Twist limited to 135 degrees._
+
+Further, since the joint is located where the Physics Constraint Actor is located, different results will be had by moving it.
+
+[REGION:lightbox]
+[![](PhysCon_AngPos1.png)(h:312)](PhysCon_AngPos1.png) [![](PhysCon_AngPos2.png)(h:312)](PhysCon_AngPos2.png) 
+[/REGION]
+
+<!-- For information on all the properties relating to Angular Freedom and Limits see: [%Engine/Physics\Constraints\ConstraintsReferencetitle%](Engine/Physics\Constraints\ConstraintsReference -->
+
+### Orientation
+
+The axes of a Physics Constraint Actor are in line with the rotation of the Physics Constraint Actor, and not aligned between the two objects. Given you desired effect, you will need to be aware of how the constraint is oriented.
+
+For Linear Motions, gravity will drag a constrained Actor down. 
+
+[REGION:lightbox]
+[![](PhysCon_Flat.png)(w:453)](PhysCon_Flat.png) [![](PhysCon_Angled.png)(w:453)](PhysCon_Angled.png)
+[/REGION]
+
+In either setup, the Physics Constraint has its Linear XMotion set to free, and the constraint is moved up to further reinforce the effect. The setup on the left will remain still until an outside force influences the blue constrained cube, while on the right, due to the orientation of the Physics Constraint Actor, gravity will immediately take over and the blue (Constrained Actor 2) cube will slide down X axis, towards the stack of cubes.
+
+[REGION:lightbox]
+[![](PhysCon_SimFlat.png)(w:453)](PhysCon_SimFlat.png) [![](PhysCon_SimAngled.png)(w:453)](PhysCon_SimAngled.png)
+[/REGION]
+
+When using Angular limits, it is assumed that the Twist Axis (positive X) will be aligned pointing towards the blue constrained Actor (Constrained Actor 2). <!---This is really important because the ---> 
+
+[REGION:lightbox]
+[![](PhysCon_Angular.png)(w:453)](PhysCon_Angular.png) [![](PhysCon_AngularSim.png)(w:453)](PhysCon_AngularSim.png)
+[/REGION]
+
+Also, while simulating, you will notice that the cone that represents the angular limits rotates with the blue constrained Actor (Constrained Actor 2), and a yellow line becomes visible (it can be seen in the editor but is drawn behind the blue line). This yellow line represents the neutral position of the constraint and it will remain within the green cone (and the green arc representation that is shown when the Twist limit is enabled).
+
+![](PhysCon_AngularCone_2.png)(h:300 convert:false) ![](PhysCon_Arc.png)(h:300 convert:false)
+
+<!--
+
+### Ball And Socket
+A ball-and-socket joint is simply a joint that has all its linear parts locked and all its angular parts free.
+
+
+### Hinge
+A hinge is like a ball-and-socket in that all its linear parts are locked, but its swing parts are also locked, so it can only rotate around its twist axis.
+
+
+### Prismatic
+A prismatic joint has 2 out of its 3 linear degrees of freedom locked, and also has all its angular degrees of freedom locked. This allows is to slide down a 'rail' but cannot rotate at all.
+
+
+### Joint Friction
+You can simulate joint friction using the drive settings. Turn on velocity drive with a target velocity of zero, and use the LinearDriveForceLimit and AngularDriveForceLimit settings to control how strongly the joint will resist motion.
+
+
+### Punch bag
+You could simulate something like a punch-bag (a ball on the top of a vertical pole that can be knocked around) with a joint by first creating a ball-and-socket joint. Then turn on swing position drive and adjust the **AngularDriveSpring** and **AngularDriveDamping** until it springs nicely around the upright position when pushed. You could turn on swing limits as well to ensure that it cannot bend over too far.
+
+-->
+ 
+
+
+
+

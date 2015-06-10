@@ -1,0 +1,64 @@
+Availability:Public
+Title: Environment Query System
+Crumbs:%ROOT%, Engine, Gameplay/AI
+Description:Landing Page for all the documentation relating to the Environment Query System.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/BehaviorTrees:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/BehaviorTrees:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/BehaviorTrees]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/AI/BehaviorTrees:title%](AI_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/AI/BehaviorTrees:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/AI/BehaviorTrees:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/AI/BehaviorTrees]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tech_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Environment Query System Topics
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/AI/EnvironmentQuerySystem/UserGuide "%Engine/AI/EnvironmentQuerySystem/UserGuide:description%")
+	* [](Engine/AI/EnvironmentQuerySystem/EQSPawn "%Engine/AI/EnvironmentQuerySystem/EQSPawn:description%")
+	* [](Engine/AI/EnvironmentQuerySystem/NodeReference "%Engine/AI/EnvironmentQuerySystem/NodeReference:description%")
+	* [](Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions "%Engine/AI/EnvironmentQuerySystem/AskingSmartQuestions:description%")
+	[/PARAM]
+[/OBJECT]
+
+<!---
+* [](Engine/AI/EnvironmentQuerySystem/QuickStart "%Engine/AI/EnvironmentQuerySystem/QuickStart:description%")
+--->

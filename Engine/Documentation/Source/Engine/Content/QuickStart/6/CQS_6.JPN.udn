@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:2465039
+Availability:Public
+Title:6.自分自身のマテリアルを作成し適用する
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:自分自身のマテリアルの作成と適用、およびアーティスト向けクイックスタートガイドで説明した追加トピックスへのリンク
+
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+知っていることを活用して、このグラフと同様の **マテリアル** を新規作成します。
+
+![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+
+メインのマテリアル ノードには特別な設定はなにもありません。単なるプラスチックの マテリアル です。 
+
+_Basic_Asset1_ をレベルへ追加し、それにマテリアルを適用し、マテリアルを更新して "Brick" のノーマル マップ テクスチャを追加します。 
+
+![](NormalMapAdded.png)
+
+
+
+
+コンテンツ クイック スタートガイドおよびエディタ全般にで説明したトピックスに関しては、 [アンリアル エディタのマニュアル](Engine) をご覧ください。
+
+以下は、コンテンツの各種タイプのインポートに関する情報です。 
+
+* FBX パイプライン全般の情報に関しては、 [%Engine/Content/FBX:title%](Engine/Content/FBX) を参照してください。
+
+* FBX スケルタル メッシュ パイプラインの情報に関しては、 [%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/FBX/SkeletalMeshes) を参照してください。
+
+* FBX アニメーション パイプラインの情報に関しては、 [%Engine/Content/FBX/Animations:title%](Engine/Content/FBX/Animations) を参照したください。
+
+* FBX モーフ ターゲット パイプラインの情報に関しては、 [%Engine/Content/FBX/MorphTargets:title%](Engine/Content/FBX/MorphTargets) を参照してください。
+
+* FBX マテリアル パイプラインの情報に関しては、 [%Engine/Content/FBX/Materials:title%](Engine/Content/FBX/Materials) を参照してください。
+
+* オーディオのインポートに関する情報に関しては [](Engine/Audio/WAV) を参照してください。
+
+以下は、このクイックスタートガイドで扱った詳細です。
+
+* サポート対象の画像ファイルの情報については、 [%Engine/Content/Types/Textures/Importing:title%](Engine/Content/Types/Textures/Importing) を参照してください。
+
+* マテリアルに関する詳細は [Materials Landing Page](Engine/Rendering/Materials) を参照してください。
+
+* **コンテンツブラウザ** に関する詳細は、[Content Browser](Engine\Content\Browser) を参照してください。
+
+* スタティック メッシュ エディタの情報については、 [Static Mesh Editor](Engine/Content/Types/StaticMeshes/Editor) を参照してください。
+
+
+
+%Steps%

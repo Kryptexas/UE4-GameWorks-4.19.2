@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:2396981
+Availability: Public
+Title:스태틱 메시 비법
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes
+Description: 기본적인 스태틱 메시 에디터 사용법을 익히는 데 도움이 되는 비법 시리즈입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+다음의 비법 시리즈는 스태틱 메시와 스태틱 메시 에디터의 기본에 대해 알려드립니다. 외부 3D 모델링 프로그램에서 메시를 임포트하는 법에서부터 레벨의 다른 오브젝트와 반응하도록 콜리전을 구성하는 법을 거쳐 씬에 있는 다른 오브젝트에 메시를 붙일 수 있도록 소켓을 구성하는 법에 이르기까지, 이 비법 시리즈는 스태틱 메시 에디터에 대한 이해를 도와 더욱 편안하게 레벨에서 스태틱 메시를 사용할 수 있도록 모든 면을 구성할 수 있게 될 것입니다.
+
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		스태틱 메시 비법...
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/StaticMeshes/HowTo/Importing "%Engine/Content/Types/StaticMeshes/HowTo/Importing:Description%")
+		* [](Engine/Content/Types/StaticMeshes/HowTo/SettingMaterial "%Engine/Content/Types/StaticMeshes/HowTo/SettingMaterial:Description%")
+		* [](Engine/Content/Types/StaticMeshes/HowTo/SettingCollision "%Engine/Content/Types/StaticMeshes/HowTo/SettingCollision:Description%")
+		* [](Engine/Content/Types/StaticMeshes/HowTo/LODs "%Engine/Content/Types/StaticMeshes/HowTo/LODs:Description%")
+		* [](Engine/Content/Types/StaticMeshes/HowTo/Sockets "%Engine/Content/Types/StaticMeshes/HowTo/Sockets:Description%")
+	[/PARAM]
+[/OBJECT]

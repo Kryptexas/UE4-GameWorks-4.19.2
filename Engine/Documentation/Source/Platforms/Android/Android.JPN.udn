@@ -1,0 +1,24 @@
+﻿INTSourceChangelist:2298956
+Availability:Public
+Title: Android ゲームの開発
+Crumbs:%ROOT%, Platforms
+Description:Android プラットフォーム向けゲームの開発
+Platform:Android
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Android の必須情報
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
+		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
+		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+	[/PARAM]
+[/OBJECT]

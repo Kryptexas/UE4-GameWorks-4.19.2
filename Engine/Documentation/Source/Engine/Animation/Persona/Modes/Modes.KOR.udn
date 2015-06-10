@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:2419781
+Availability: Public
+Title:페르소나 편집 모드
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터에서 사용가능한 편집 모드 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 개요
+
+[EXCERPT:Overview]
+페르소나에 대해 중요한 점 한 가지는, 그 자체로 하나의 툴이라기 보다는 사실상 여러가지 애니메이션 툴과 에디터 모음이라는 점입니다. 스켈레톤, 메시, 애니메이션, 애니메이션 블루프린트 등을 편집 가능하지요. 그렇기에 페르소나에는 여러가지 다양한 _모드_ 가 있어서 편리하게 최적의 편집 작업을 할 수 있습니다. 
+
+각 모드마다 각기 다른 레이아웃의 툴과 에디터로, 페르소나의 UI 가 업데이트됩니다.
+[/EXCERPT:Overview]
+
+[REGION:note]
+	항상 모든 모드가 사용가능한 것은 아닙니다. 예를 들어 애니메이션 블루프린트 모드는 _오직_ 콘텐츠 브라우저에서 애니메이션 블루프린트를 열었을 때만 사용가능합니다.
+
+	또한 편집 레이아웃에 가한 변경사항도 유지된다는 점 유념하세요. 예를 들어 스켈레톤 편집 모드에서 패널을 하나 옮긴 후 애니메이션 모드로 전환한 뒤, 나중에 다시 스켈레톤 모드로 전환했다면, 그 패널은 이동되었던 위치에 있게 됩니다.
+[/REGION]
+
+
+[EXCERPT:SkeletonMode]
+## 스켈레톤 편집 모드
+
+[![](Persona_Mode_Skeleton.png)(w:800)](Engine/Animation/Persona/Modes/Skeleton)
+
+(이미지를 클릭하면 **스켈레톤 편집 모드** 페이지로 이동합니다.)
+
+[EXCERPT:SkeletonModeUI]
+1. [툴바](Engine/Animation/Persona\Toolbar) 
+1. [스켈레톤 트리](Engine/Animation/Persona\SkeletonTree)
+1. [뷰포트](Engine/Animation/Persona\Viewport)
+1. [디테일](Engine/UI/LevelEditor\Details) 
+1. [애셋 브라우저](Engine/Animation/Persona\AssetBrowser)
+[/EXCERPT:SkeletonModeUI]
+[/EXCERPT:SkeletonMode]
+
+[REGION:note]
+페르소나의 **디테일** 패널에는 애니메이션 애셋에 관계된 프로퍼티만 표시됩니다. 그러나 기능적으로는 메인 에디터 창의 표준 디테일 패널과 똑같습니다.
+[/REGION]
+
+[EXCERPT:MeshMode]
+## 메시 편집 모드
+
+[![](Persona_Mode_Mesh.png)(w:800)](Engine/Animation/Persona/Modes/Mesh)
+
+(이미지를 클릭하면 **메시 편집 모드** 페이지로 이동합니다.)
+
+[EXCERPT:MeshModeUI]
+1. [툴바](Engine/Animation/Persona\Toolbar) 
+1. [스켈레톤 트리](Engine/Animation/Persona\SkeletonTree)
+1. [메시 디테일](Engine/Animation/Persona\MeshDetails)
+1. [뷰포트](Engine/Animation/Persona\Viewport)
+1. [디테일](Engine/UI/LevelEditor\Details)/[애셋 브라우저](Engine/Animation/Persona\AssetBrowser)
+1. [모프 타겟 프리뷰어](Engine/Animation/Persona\MorphTargetPreviewer)
+[/EXCERPT:MeshModeUI]
+[/EXCERPT:MeshMode]
+
+
+[EXCERPT:AnimationMode]
+## 애니메이션 편집 모드
+
+[![](Persona_Mode_Anmation.png)(w:800)](Engine/Animation/Persona/Modes/Animation)
+
+(이미지를 클릭하면 **애니메이션 편집 모드** 페이지로 이동합니다.)
+
+[EXCERPT:AnimationModeUI]
+1. [툴바](Engine/Animation/Persona\Toolbar) 
+1. [스켈레톤 트리](Engine/Animation/Persona\SkeletonTree)
+1. [애님 애셋 디테일](Engine/Animation/Persona\AnimAssetDetails)
+1. [뷰포트](Engine/Animation/Persona\Viewport)
+1. [애님 시퀀스 에디터](Engine/Animation/Sequences\Editor)
+1. [디테일](Engine/UI/LevelEditor\Details)
+1. [애셋 브라우저](Engine/Animation/Persona\AssetBrowser)
+[/EXCERPT:AnimationModeUI]
+[/EXCERPT:AnimationMode]
+
+
+[EXCERPT:GraphMode]
+## 그래프 편집 모드
+
+[![](Persona_Mode_Vim.png)(w:800)](Engine/Animation/Persona/Modes/Graph)
+
+(이미지를 클릭하면 **그래프 편집 모드** 페이지로 이동합니다.)
+
+[EXCERPT:GraphModeUI]
+1. [툴바](Engine/Animation/Persona\Toolbar) 
+1. [뷰포트](Engine/Animation/Persona\Viewport)
+1. [프리뷰 세팅 (클래스 디폴트)](Engine/Blueprints\Editor\Modes\Defaults)
+1. [블루프린트 그래프 패널](Engine/Animation/AnimBlueprints)
+1. [애셋 브라우저](Engine/Animation/Persona\AssetBrowser)/[내 블루프린트](Engine/Blueprints\Editor\UIComponents\MyBlueprint)
+1. [디테일](Engine/UI/LevelEditor\Details)
+[/EXCERPT:GraphModeUI]
+[/EXCERPT:GraphMode]

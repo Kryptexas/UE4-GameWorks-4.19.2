@@ -1,0 +1,17 @@
+﻿INTSourceChangelist:2026706
+Title:構造体指定子
+Crumbs:%ROOT%, Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties
+Description:エンジンおよびエディタの各種特性とのプロパティの動作を指定する、ゲームプレイ プロパティの宣言時に使用するキーワード
+Availability:Public
+
+
+[EXCERPT:main]
+構造体を宣言する場合に、各種特性と構造体がどのように動作するのか制御する指定子を 
+追加することができます。
+
+
+* [](Programming/UnrealArchitecture/Reference/Structs/Specifiers/Atomic)
+* [](Programming/UnrealArchitecture/Reference/Structs/Specifiers/BlueprintType)
+* [](Programming/UnrealArchitecture/Reference/Structs/Specifiers/Immutable) 
+* [](Programming/UnrealArchitecture/Reference/Structs/Specifiers/NoExport) 
+[/EXCERPT:main]

@@ -1,0 +1,143 @@
+﻿INTSourceChangelist:2495733
+Availability:Public
+Title:ブループリントのクラス
+Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
+Description:新規のクラスまたはアクタの種類を定義し、その後他種のアクタと同じ動作をするインスタンスとして配置することができます。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\ClassBlueprint:title%](Engine/Blueprints/UserGuide/Types/class_blueprint_test_image.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\ClassBlueprint:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\ClassBlueprint:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\ClassBlueprint]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\ClassBlueprint:title%](Engine/Blueprints/UserGuide/Types/class_blueprint_test_image.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\ClassBlueprint:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Blueprints\UserGuide\Types\ClassBlueprint:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\ClassBlueprint]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC (start:2)]
+
+## 概要
+
+[EXCERPT:Intro]
+**_ブループリントのクラス_** は、しばしば **_ブループリント_** の省略形で呼ばれ、コンテンツ クリエーターが既存のゲームプレイ クラスに機能性を簡単に追加できるようにするアセットです。 
+_ブループリント_ はコード入力ではなく、アンリアルエディタで作成して視覚的に表示されます。コンテンツ パッケージにアセットとして保存されます。 
+これらは実質的に新規のクラスまたはアクタのタイプを定義し、他のアクタタイプ同様に動作する 
+インスタンスとしてマップへ配置することができます。
+[/EXCERPT:Intro]
+
+## 親クラス
+
+ブループリントの様々なタイプを作成するにはいくつかの方法があります。しかし、作業開始前にブループリントの元となる **親クラス** を指定する必要があります。 
+親クラスを選択することで、作成するブループリントで使用するプロパティを親から継承することができます。 
+
+以下は、新規ブループリントを作成する場合に使用する非常に一般的な親クラスです。 
+
+|クラスのタイプ|説明|
+| ------- | ---------- |
+| **アクタ** | ワールドに配置またはスポーンすることができるオブジェクトです。 |
+| **ポーン** | 「所有可能」なコントローラから入力値を受け取るアクタです |
+| **キャラクター** | 歩行、走る、ジャンプなどの能力を含んだポーンの一種です。 |
+| **プレイヤー コントローラ** | プレイヤーが利用するポーンの制御を行います |
+| **ゲーム モード** | プレイ中のゲーム、ゲームのルール、スコア採点方法やゲームのさまざまな側面を定義します。 |
+
+上記は非常に一般的なものですが、すべての既存クラスを (他のブループリントのクラスであっても) 新規ブループリントの親クラスとして使用することができます。 
+
+例えば、_Animals_ という **Actor ブループリント** を作成し、その中にすべての動物が共有する一部のスクリプト、 _Hunger_、 _Thirst_、 _Energy_ などやその他のスクリプトを含む場合を考えます。続いて _Dogs_ という別のブループリントを作成し、 _Animals_ ブループリントのクラスを親クラスとして選択します。_Animals_ ブループリントからすべての動物が共有できる機能を継承しながら、_Dogs_ ブループリント内で犬のみに適用される特定の機能を指定することができます。例えば、_Play Fetch_ や _Roll Over_ などがあります。 
+
+[REGION:note]
+[ブループリントのクラスの作成](Engine\Blueprints\UserGuide\Types\ClassBlueprint\Creation) に使用する方法によっては、親クラスが作成時に既に割り当てられている場合があります。 
+[/REGION]
+
+## ブループリントのクラスで作業する
+
+**ブループリントのクラス** を使った作業の詳細については、以下のセクションをご覧ください。 
+
+[REGION:topics half]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation:title%](create_blueprints_landing2.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints\UserGuide\Types\ClassBlueprint\Opening:title%](open_existing_BP.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Blueprints\UserGuide\Types\ClassBlueprint\Opening:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\UserGuide\Types\ClassBlueprint\Opening]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![Editing Blueprint Classes](ClassBPEdit.png)
+	[/PARAM]
+	[PARAM:title]
+		ブループリントのクラスを編集する
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints\Editor/UIBreakdowns\ClassBPUI]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Blueprints/Editor:title%](edit_blueprints_landing.png)
+	[/PARAM]
+	[PARAM:title]
+		ブループリント エディタの概要
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Blueprints/Editor]
+	[/PARAM]
+[/OBJECT]
+[/REGION]
+
+## データのみのブループリント
+[EXCERPT:DataBlueprint]
+**データのみのブループリント** は、_親_ から継承した _コード_ (ノードグラフ形式) 、 
+変数、そしてコンポーネントのみを格納するブループリントのクラスです。継承したプロパティは微調整や修正が可能ですが、新規のエレメントを追加することはできません。 
+基本的にこれらはアーキタイプの代わりで、デザイナーがプロパティや設定アイテムを変化させるために使用します。
+_データのみのブループリント_ は小型のプロパティエディタで編集されますが、全 **ブループリントエディタ** 機能を使用してコード、変数、またはコンポーネントを単に追加するだけで、完全な **ブループリント エディタ** へ変換することができます。 
+
+ _データのみのブループリント_ は小型のプロパティエディタで編集されますが、全 **ブループリントエディタ** 機能を使用してコード、変数、またはコンポーネントを単に追加するだけで、完全な **ブループリント エディタ** へ変換することができます。
+[/EXCERPT:DataBlueprint]
+
+

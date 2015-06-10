@@ -1,0 +1,213 @@
+﻿INTSourceChangelist:2465567
+Availability:Public
+Title:エディタとツール
+Crumbs: %ROOT%, Gameplay, GettingStarted
+Description:アンリアル エンジン 4 に含まれている数種類のエディタを 1 つずつ紹介します。 
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](editortypes_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%GettingStarted\SubEditors:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:GettingStarted\SubEditors]
+	[/PARAM]
+	[PARAM:description]
+	%GettingStarted\SubEditors:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](editortypes_topic.png)
+	[/PARAM]
+	[PARAM:title]
+		%GettingStarted\SubEditors:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:GettingStarted\SubEditors]
+	[/PARAM]
+	[PARAM:description]
+	%GettingStarted\SubEditors:description%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+本ページでは、アンリアル エンジン 4 内で操作することになる各種エディタの概要を紹介します。**Level Editor** ではゲームレベルをビルドし、 **Blueprint Editor** はレベル内にアクタのビヘイビアを書くために使用し、 **Cascade Editor** はパーティクル エフェクトの作成に使用し、 **Persona Editor** ではキャラクターのアニメーションを設定します。これら、それぞれのエディタの役割と遷移方法を十分理解しておくと、ワークフローを改善することができ、開発中に遭遇する障害を避けることができます。 
+
+概要は以下のセクションを参照してください。詳細はリンク先でご覧いただけます。 
+
+
+| ------- | ------------ |
+|![](LevelEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#leveleditor]| 
+|![](MaterialEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#materialeditor]| 
+|![](BlueprintEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#blueprinteditor]| 
+|![](BehaviorTreeImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#behavioreditor]| 
+|![](PersonaEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#personaeditor]| 
+|![](CascadeEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#cascadeeditor]| 
+|![](UMGUIEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#umguieditor]| 
+|![](MatineeEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#matineeeditor]| 
+|![](SoundCueEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#soundcueeditor]| 
+|![](SpriteEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#spriteeditor]| 
+|![](FlipbookEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#flipbookeditor]| 
+|![](PhatEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#phateditor]| 
+|![](StaticMeshEditorImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#staticmesheditor]| 
+|![](MediaFrameworkImage.png)(w:400 h:240)|[INCLUDE:GettingStarted\SubEditors#mediaeditor]| 
+
+
+<!---
+[EXCERPT:leveleditor]
+**レベル エディタ**
+
+**レベル エディタ** は、ゲームプレイ レベルを構築する際に主力となるエディタです。一般的には、 [](Engine/Actors) 、 [ブループリント](Engine/Blueprints) 、 [](Engine/Rendering/ParticleSystems) 他、レベルに追加したいもののタイプを追加して、ゲームの再生スペースを定義します。デフォルトでは、プロジェクトを作成もしくはオープンすると、レベル エディタも開きます。 
+
+詳細は、以下をご覧ください。[](Engine/UI/LevelEditor)
+[/EXCERPT:leveleditor]
+
+---
+
+[EXCERPT:materialeditor]
+**マテリアル エディタ**
+
+**マテリアル エディタ** では、メッシュに適用して外見の制御を可能にするアセットである**マテリアル** を作成 (既存しているものの編集を) します。例えば、「汚い」マテリアルを作成しレベルまたはテレインのフロアにそれを適用し、汚れて見えるサーフェスを作成することができます。 
+
+詳細は、以下をご覧ください。[](Engine/Rendering/Materials/Editor)
+[/EXCERPT:materialeditor]
+
+---
+
+[EXCERPT:blueprinteditor]
+**ブループリント エディタ**
+
+**ブループリント エディタ** では、アクタの新規タイプの作成やレベル イベントの記述に使用可能な特別なアセットである **ブループリント** の操作や修正を、 C++ コードを書かずに行うことができます。 
+
+詳細は、以下をご覧ください。[](Engine/Blueprints/Editor)
+[/EXCERPT:blueprinteditor]
+
+---
+
+[EXCERPT:behavioreditor]
+**ビヘイビア ツリー エディタ**
+
+**ビヘイビア ツリー エディタ** では、 (ブループリントとよく似た) 視覚的なノードをベースとしたシステムによって、レベルに AI (敵、 NPC キャラクタ、ビークルなど、異なるビヘイビアを好きなだけ)を記述することができます。 
+
+詳細は、以下をご覧ください。[](Engine/AI/BehaviorTrees/UserGuide)
+[/EXCERPT:behavioreditor]
+
+---
+
+[EXCERPT:personaeditor]
+**ペルソナ エディタ**
+
+**ペルソナ エディタ** はアンリアル エンジン 4 のアニメーション編集ツールセットであり、 [](Engine/Animation/Skeleton) 、 [](Engine/Content/Types/SkeletalMeshes) 、 [](Engine/Animation/AnimBlueprints) 他、各種アニメーション アセットの編集に使用されます。アンリアル エンジン 4 のアニメーション作業のほとんど (全てでない場合) のほとんどは、このエディタ内で行われます。 
+
+
+詳細は、以下をご覧ください。[](Engine/Animation/Persona)
+[/EXCERPT:personaeditor]
+
+---
+
+[EXCERPT:cascadeeditor]
+**カスケード エディタ**
+
+アンリアル エンジン 4 の[](Engine/Rendering/ParticleSystems) は、完全統合型のモジュラー パーティクル エフェクト エディタ である **カスケード エディタ** で編集されます。**カスケード** は、最も複雑なエフェクトさえも迅速かつ簡単に作成して、リアルタイムなフィードバックとモジュラーエフェクト編集を提供します。 
+
+詳細は、以下をご覧ください。[](Engine/Rendering/ParticleSystems/Cascade)
+[/EXCERPT:cascadeeditor]
+
+---
+
+[EXCERPT:umguieditor]
+**UMG UI エディタ**
+
+**UMG UI エディタ** は、インゲーム HUD、メニュー他、ユーザーに見てもらいたいインターフェース関連のグラフィックを作成するための、視覚的な UI オーサリング ツールです。 
+
+
+詳細は、以下をご覧ください。[](Engine/UMG/UserGuide)
+[/EXCERPT:umguieditor]
+
+---
+
+[EXCERPT:matineeeditor]
+**マチネ エディタ**
+
+**マチネ エディタ** は、レベル内にあるアクタの所定のプロパティ値を設定するためにキーフレームを配置できる、特別なアニメーション トラックを使用しています。インゲームのシネマティクス、ダイナミックなゲームプレイ イベントを作成したり、時間の経過と共にアクタのプロパティをアニメートする (ライトの輝度の操作など) こともできます。 
+
+詳細は、以下をご覧ください。[](Engine/Matinee/UserGuide)
+[/EXCERPT:matineeeditor]
+
+---
+
+[EXCERPT:soundcueeditor]
+**サウンド キュー エディタ**
+
+アンリアル エンジン 4 におけるオーディオ再生のビヘイビアは、 **サウンド キュー エディタ** を使って編集を行う **サウンド キュー** において定義されます。**サウンド キュー エディタ** では、サウンド アセットを幾つか組み合わせて、混ぜ合わさった 1 つの「出力」作成し **サウンド キュー** として保存することができます。 
+
+
+詳細は、以下をご覧ください。[](Engine/Audio/SoundCues/Editor)
+[/EXCERPT:soundcueeditor]
+
+
+[EXCERPT:spriteeditor]
+**Paper2D スプライト エディタ**
+
+**Paper2D スプライト エディタ** により、個々の(Engine/Paper2D/Sprites) (要は、アンリアル エンジン 4 で 2D イメージを早く簡単に描画する手段) の設定および編集が可能になります。 
+
+
+詳細は、以下をご覧ください。[](Engine/Paper2D/Sprites/Editor)
+[/EXCERPT:spriteeditor]
+
+---
+
+[EXCERPT:flipbookeditor]
+**Paper2D フリップブック エディタ**
+
+**Paper2D フリップブック エディタ** を使って、 **フリップブック** と呼ばれる 2D アニメーションを作成することができます。**Paper2D フリップブック エディタ** 内で所定のキーフレームに沿ってスプライト群を指定すると、これらのフレームが「パラパラと」めくれることで、アニメーションを作成します。**フリップブック** は、手書きのアニメーションを思い浮かべるのが一番良いでしょう。 
+
+詳細は、以下をご覧ください。[](Engine/Paper2D/Flipbooks/Editor)
+[/EXCERPT:flipbookeditor]
+
+---
+
+[EXCERPT:phateditor]
+**物理アセット ツール エディタ**
+
+**物理アセット ツール** (略して **PhAT**) は、 [](Engine/Content/Types/SkeletalMeshes) と一緒に使用する **物理アセット** の作成に使用します。全くのゼロから始めて、ラグドール全体のセットアップをビルドしたり、物理ボディと物理コンストレイントの基本設定を作成するために自動化ツールを使用することができます。 
+
+
+
+詳細は、以下をご覧ください。[](Engine/Physics/PhAT)
+[/EXCERPT:phateditor]
+
+---
+
+[EXCERPT:staticmesheditor]
+**スタティック メッシュ エディタ**
+
+**スタティック メッシュ エディタ** は、外見、コリジョン、UV のプレビュー、そして [](Engine/Content/Types/StaticMeshes) のプロパティの設定および操作に使用します。**スタティック メッシュ エディタ** では、スタティック メッシュ アセットに[LODs](Engine/Content/Types/StaticMeshes/HowTo/LODs) (あるいは LOD 設定) を設定することもできます。 
+
+詳細は、以下をご覧ください。[](Engine/Content/Types/StaticMeshes/Editor)
+[/EXCERPT:staticmesheditor]
+
+---
+
+[EXCERPT:mediaeditor]
+**メディア プレイヤー エディタ**
+
+**メディア プレイヤー エディタ** で、アンリアル エンジン 4 での再生のためのソース メディアとして使用するために、メディア ファイルもしくは URL を定義することができます。 
+
+メディア プレイヤー エディタではメディア ファイルを編集できないので、必ずしも「エディタ」ではないのですが、自動再生、再生レート、ループといったソース メディアの再生に関する設定を定義します。 
+
+エディタ内のメディアに関する情報を確認したり、標準再生を使ってメディアのビューを制御することもできます。 
+
+
+詳細は、以下をご覧ください。[](Engine/MediaFramework)
+[/EXCERPT:mediaeditor]
+
+--->	

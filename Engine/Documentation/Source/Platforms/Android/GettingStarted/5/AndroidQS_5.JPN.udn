@@ -1,0 +1,47 @@
+﻿INTSourceChangelist:2464839
+Availability:Public
+Title:5. ゲームをパッケージ化する
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:ゲームをインストール用にパッケージ化する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+1.	ゲームをまるごと Android デバイスに入れるために、ゲームをパッケージ化する必要があります。**[ファイル]** メニューの **[Package Project]** にカーソルを当て、オプションを全表示します。ここで再びテクスチャ フォーマット リストが表示されるので、右側 (または名前なしの方) を選んでください。どれを選択してよいか分からない場合は、 **ETC1** を選択してください。
+
+	[REGION:raw]  
+	![](package_menu.png)
+	[/REGION]
+
+1.	パッケージ化したゲームの保存場所を聞かれます。保存場所のデフォルトはプロジェクト フォルダです。
+	![](package_folder.png)
+1. ゲームがパッケージ化されている間、パッケージ化のメッセージが右下隅に表示されます。
+	![](package_toast.png)
+1.	パッケージ化が正常に終了すると、パッケージ化完了メッセージがエディアの右下隅に表示されます。
+1.	さきほど設定した保存場所へ行きます。
+1.	このフォルダには、ユーザーのテクスチャ タイプに特化した名前のフォルダがあります。この例では、そのフォルダ名は「Android_DXT」です。このフォルダを開きます。
+1.	「Install_[ProjectName]_Development.bat」バッチ ファイルを **ダブルクリック** します。
+	![](batch_file.png)
+1.	これでゲームはインストールされました。 App ドロワーから開くことができます。
+
+
+
+%Steps%

@@ -36,7 +36,11 @@
 #include "hlslcc_private.h"
 #include "GlslBackend.h"
 #include "compiler.h"
+
+PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "glsl_parser_extras.h"
+PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+
 #include "hash_table.h"
 #include "ir_rvalue_visitor.h"
 #include "PackUniformBuffers.h"
@@ -563,9 +567,32 @@ class ir_gen_glsl_visitor : public ir_visitor
 			const char *name = (const char *) hash_table_find(this->printable_names, var);
 			if (name == NULL)
 			{
-				bool is_global = (scope_depth == 0 && var->mode != ir_var_temporary);
-				const char *prefix = is_global ? "g" : "t";
-				int var_id = is_global ? global_id++ : temp_id++;
+				bool bIsGlobal = (scope_depth == 0 && var->mode != ir_var_temporary);
+				const char* prefix = "g";
+				if (!bIsGlobal)
+				{
+					if (var->type->is_matrix())
+					{
+						prefix = "m";
+					}
+					else if (var->type->is_vector())
+					{
+						prefix = "v";
+					}
+					else
+					{
+						switch (var->type->base_type)
+						{
+						case GLSL_TYPE_BOOL: prefix = "b"; break;
+						case GLSL_TYPE_UINT: prefix = "u"; break;
+						case GLSL_TYPE_INT: prefix = "i"; break;
+						case GLSL_TYPE_HALF: prefix = "h"; break;
+						case GLSL_TYPE_FLOAT: prefix = "f"; break;
+						default: prefix = "t"; break;
+						}
+					}
+				}
+				int var_id = bIsGlobal ? global_id++ : temp_id++;
 				name = ralloc_asprintf(mem_ctx, "%s%d", prefix, var_id);
 				hash_table_insert(this->printable_names, (void *)name, var);
 			}
@@ -782,7 +809,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			int layout_bits =
 				(var->origin_upper_left ? 0x1 : 0) |
 				(var->pixel_center_integer ? 0x2 : 0);
-
+			
 			if (scope_depth == 0 &&
 			   ((var->mode == ir_var_in) || (var->mode == ir_var_out)) && 
 			   var->is_interface_block)
@@ -805,54 +832,70 @@ class ir_gen_glsl_visitor : public ir_visitor
 				that dependency, we use structs.
 
 				*/
-
-				ralloc_asprintf_append(
-					buffer,
-					"%s%s%s%s%s",
-					layout_str[layout_bits],
-					centroid_str[var->centroid],
-					invariant_str[var->invariant],
-					patch_constant_str[var->is_patch_constant],
-					mode_str[var->mode]
-					);
-
-				if (bGenerateLayoutLocations && var->explicit_location)
+				
+				if(bGenerateLayoutLocations && var->explicit_location && var->is_patch_constant == 0)
 				{
 					check(layout_bits == 0);
-
+					
 					ralloc_asprintf_append(
 						buffer,
-						"layout(location=%d) %s struct ",
+						"INTERFACE_BLOCK(%d, %s, %s%s%s%s, ",
 						var->location,
-						interp_str[var->interpolation]
-						);
-				}
+						interp_str[var->interpolation],
+						centroid_str[var->centroid],
+						invariant_str[var->invariant],
+						patch_constant_str[var->is_patch_constant],
+						mode_str[var->mode]);
 
-				print_type_pre(var->type);
-
-				const glsl_type* inner_type = var->type;
-				if (inner_type->is_array())
-				{
-					inner_type = inner_type->fields.array;
-				}
-				check(inner_type->is_record());
-				check(inner_type->length==1);
-				const glsl_struct_field* field = &inner_type->fields.structure[0];
-				check(strcmp(field->name,"Data")==0);
-
-				if (bGenerateLayoutLocations && var->explicit_location)
-				{
-					ralloc_asprintf_append(buffer, " { ");
+					print_type_pre(var->type);
+					ralloc_asprintf_append(buffer, ", ");
+					
+					const glsl_type* inner_type = var->type;
+					if (inner_type->is_array())
+					{
+						inner_type = inner_type->fields.array;
+					}
+					check(inner_type->is_record());
+					check(inner_type->length==1);
+					const glsl_struct_field* field = &inner_type->fields.structure[0];
+					check(strcmp(field->name,"Data")==0);
+					
+					print_type_pre(field->type);
+					ralloc_asprintf_append(buffer, ", Data");
+					print_type_post(field->type);
+					ralloc_asprintf_append(buffer, ")");
 				}
 				else
 				{
-					ralloc_asprintf_append(buffer, " { %s", interp_str[var->interpolation]);
-				}
+					ralloc_asprintf_append(
+						buffer,
+						"%s%s%s%s%s",
+						layout_str[layout_bits],
+						centroid_str[var->centroid],
+						invariant_str[var->invariant],
+						patch_constant_str[var->is_patch_constant],
+						mode_str[var->mode]
+						);
+					
+					print_type_pre(var->type);
 
-				print_type_pre(field->type);
-				ralloc_asprintf_append(buffer, " Data");
-				print_type_post(field->type);
-				ralloc_asprintf_append(buffer, "; }");
+					const glsl_type* inner_type = var->type;
+					if (inner_type->is_array())
+					{
+						inner_type = inner_type->fields.array;
+					}
+					check(inner_type->is_record());
+					check(inner_type->length==1);
+					const glsl_struct_field* field = &inner_type->fields.structure[0];
+					check(strcmp(field->name,"Data")==0);
+					
+					ralloc_asprintf_append(buffer, " { %s", interp_str[var->interpolation]);
+					
+					print_type_pre(field->type);
+					ralloc_asprintf_append(buffer, " Data");
+					print_type_post(field->type);
+					ralloc_asprintf_append(buffer, "; }");
+				}
 			}
 			else if (var->type->is_image())
 			{
@@ -920,7 +963,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 				if (bGenerateLayoutLocations && var->explicit_location)
 				{
 					check(layout_bits == 0);
-					layout = ralloc_asprintf(nullptr, "layout(location=%d) ", var->location);
+					layout = ralloc_asprintf(nullptr, "INTERFACE_LOCATION(%d) ", var->location);
 				}
 				
 				ralloc_asprintf_append(
@@ -2520,13 +2563,6 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 					type = type->fields.structure->type;
 				}
-
-				// In and out variables may be packed in structures, or array of structures.
-				// But we're interested only in those that aren't, ie. inputs for vertex shader and outputs for pixel shader.
-				if (type->is_array() || type->is_record())
-				{
-					continue;
-				}
 			}
 			bool is_array = type->is_array();
 			int array_size = is_array ? type->length : 0;
@@ -2543,7 +2579,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			{
 				ralloc_asprintf_append(buffer, "[%u]", array_size);
 			}
-			ralloc_asprintf_append(buffer, ":%s", var->name);
+			ralloc_asprintf_append(buffer, ";%d:%s", var->location, var->name);
 			need_comma = true;
 		}
 	}
@@ -2719,13 +2755,19 @@ class ir_gen_glsl_visitor : public ir_visitor
 #endif		
 	}
 
-	void print_extensions(bool bUsesFramebufferFetchES2, bool bUsesES31Extensions)
+	void print_extensions(_mesa_glsl_parse_state* state, bool bUsesFramebufferFetchES2, bool bUsesES31Extensions)
 	{
 		if (bUsesES2TextureLODExtension)
 		{
 			ralloc_asprintf_append(buffer, "#ifndef DONTEMITEXTENSIONSHADERTEXTURELODENABLE\n");
 			ralloc_asprintf_append(buffer, "#extension GL_EXT_shader_texture_lod : enable\n");
 			ralloc_asprintf_append(buffer, "#endif\n");
+		}
+
+		if (state->bSeparateShaderObjects && !state->bGenerateES && 
+			((state->target == tessellation_control_shader) || (state->target == tessellation_evaluation_shader)))
+		{
+			ralloc_asprintf_append(buffer, "#extension GL_ARB_tessellation_shader : enable\n");
 		}
 
 		if (bUsesDXDY && bIsES)
@@ -2755,10 +2797,9 @@ class ir_gen_glsl_visitor : public ir_visitor
 			if (ShaderTarget == tessellation_control_shader || ShaderTarget == tessellation_evaluation_shader)
 			{
 				ralloc_asprintf_append(buffer, "#extension GL_EXT_tessellation_shader : enable\n");
-	}
+			}
 
 		}
-
 	}
 
 public:
@@ -2815,6 +2856,18 @@ public:
 			ralloc_asprintf_append(buffer, "precision %s sampler2D;\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "precision %s samplerCube;\n\n", DefaultPrecision);
 			ralloc_asprintf_append(buffer, "#endif\n");
+
+			// SGX540 compiler can get upset with some operations that mix highp and mediump.
+			// this results in a shader compile fail with output "compile failed."
+			// Although the actual cause of the failure hasnt been determined this code appears to prevent
+			// compile failure for cases so far seen.
+			ralloc_asprintf_append(buffer, "\n#ifdef TEXCOORDPRECISIONWORKAROUND\n");
+			ralloc_asprintf_append(buffer, "vec4 texture2DTexCoordPrecisionWorkaround(sampler2D p, vec2 tcoord)\n");
+			ralloc_asprintf_append(buffer, "{\n");
+			ralloc_asprintf_append(buffer, "	return texture2D(p, tcoord);\n");
+			ralloc_asprintf_append(buffer, "}\n");
+			ralloc_asprintf_append(buffer, "#define texture2D texture2DTexCoordPrecisionWorkaround\n");
+			ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
 		if ((state->language_version == 310) && (ShaderTarget == fragment_shader))
@@ -2870,7 +2923,60 @@ public:
 
 		char* Extensions = ralloc_asprintf(mem_ctx, "");
 		buffer = &Extensions;
-		print_extensions(bUsesFramebufferFetchES2, state->language_version == 310);
+		print_extensions(state, bUsesFramebufferFetchES2, state->language_version == 310);
+		if (state->bSeparateShaderObjects && !state->bGenerateES)
+		{
+			switch (state->target)
+			{
+				case geometry_shader:
+					ralloc_asprintf_append(buffer, "in gl_PerVertex\n"
+										   "{\n"
+										   "\tvec4 gl_Position;\n"
+										   "\tfloat gl_ClipDistance[6];\n"
+										   "} gl_in[];\n"
+										   );
+				case vertex_shader:
+					ralloc_asprintf_append(buffer, "out gl_PerVertex\n"
+										   "{\n"
+										   "\tvec4 gl_Position;\n"
+										   "\tfloat gl_ClipDistance[6];\n"
+										   "};\n"
+										   );
+					break;
+				case tessellation_control_shader:
+					ralloc_asprintf_append(buffer, "in gl_PerVertex\n"
+										   "{\n"
+										   "\tvec4 gl_Position;\n"
+										   "\tfloat gl_ClipDistance[6];\n"
+										   "} gl_in[gl_MaxPatchVertices];\n"
+										   );
+					ralloc_asprintf_append(buffer, "out gl_PerVertex\n"
+										   "{\n"
+										   "\tvec4 gl_Position;\n"
+										   "\tfloat gl_ClipDistance[6];\n"
+										   "} gl_out[];\n"
+										   );
+					break;
+				case tessellation_evaluation_shader:
+					ralloc_asprintf_append(buffer, "in gl_PerVertex\n"
+										   "{\n"
+										   "\tvec4 gl_Position;\n"
+										   "\tfloat gl_ClipDistance[6];\n"
+										   "} gl_in[gl_MaxPatchVertices];\n"
+										   );
+					ralloc_asprintf_append(buffer, "out gl_PerVertex\n"
+										   "{\n"
+										   "\tvec4 gl_Position;\n"
+										   "\tfloat gl_ClipDistance[6];\n"
+										   "};\n"
+										   );
+					break;
+				case fragment_shader:
+				case compute_shader:
+				default:
+					break;
+			}
+		}
 		buffer = 0;
 
 		char* full_buffer = ralloc_asprintf(
@@ -3019,7 +3125,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 				YYLTYPE loc;
 				loc.first_column = IR->SourceLocation.Column;
 				loc.first_line = IR->SourceLocation.Line;
-				loc.source_file = IR->SourceLocation.SourceFile.c_str();
+				loc.source_file = IR->SourceLocation.SourceFile;
 				_mesa_glsl_error(&loc, ParseState, "Vertex texture fetch currently not supported on GLSL ES\n");
 			}
 			else
@@ -3039,7 +3145,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 			YYLTYPE loc;
 			loc.first_column = IR->SourceLocation.Column;
 			loc.first_line = IR->SourceLocation.Line;
-			loc.source_file = IR->SourceLocation.SourceFile.c_str();
+			loc.source_file = IR->SourceLocation.SourceFile;
 			_mesa_glsl_error(&loc, ParseState, "Texture offset not supported on GLSL ES\n");
 		}
 
@@ -3249,6 +3355,52 @@ FSystemValue* SystemValueTable[HSF_FrequencyCount] =
 
 #define CUSTOM_LAYER_INDEX_SEMANTIC "HLSLCC_LAYER_INDEX"
 
+static void ConfigureInOutVariableLayout(EHlslShaderFrequency Frequency,
+										 _mesa_glsl_parse_state* ParseState,
+										 const char* Semantic,
+										 ir_variable* Variable,
+										 ir_variable_mode Mode
+										 )
+{
+	if (Frequency == HSF_VertexShader && Mode == ir_var_in)
+	{
+		const int PrefixLength = 9;
+		if ( (FCStringAnsi::Strnicmp(Semantic, "ATTRIBUTE", PrefixLength) == 0) &&
+			(Semantic[PrefixLength] >= '0') &&	 (Semantic[PrefixLength] <= '9')
+			)
+		{
+			int AttributeIndex = atoi(Semantic + PrefixLength);
+			
+			Variable->explicit_location = true;
+			Variable->location = AttributeIndex;
+			Variable->semantic = ralloc_strdup(Variable, Semantic);
+		}
+		else
+		{
+#if DEBUG
+	#define _mesh_glsl_report _mesa_glsl_warning
+#else
+	#define _mesh_glsl_report _mesa_glsl_error
+#endif
+			_mesh_glsl_report(ParseState, "Vertex shader input semantic must be ATTRIBUTE and not \'%s\' in order to determine location/semantic index", Semantic);
+#undef _mesh_glsl_report
+		}
+	}
+	else if (Semantic && FCStringAnsi::Strnicmp(Variable->name, "gl_", 3) != 0)
+	{
+		Variable->explicit_location = 1;
+		Variable->semantic = ralloc_strdup(Variable, Semantic);
+		if(Mode == ir_var_in)
+		{
+			Variable->location = ParseState->next_in_location_slot++;
+		}
+		else
+		{
+			Variable->location = ParseState->next_out_location_slot++;
+		}
+	}
+}
+
 /**
 * Generate an input semantic.
 * @param Frequency - The shader frequency.
@@ -3270,7 +3422,6 @@ static ir_rvalue* GenShaderInputSemantic(
 	bool& ApplyClipSpaceAdjustment
 	)
 {
-	ir_variable* Variable = NULL;
 	if (Semantic && FCStringAnsi::Strnicmp(Semantic, "SV_", 3) == 0)
 	{
 		FSystemValue* SystemValues = SystemValueTable[Frequency];
@@ -3284,7 +3435,7 @@ static ir_rvalue* GenShaderInputSemantic(
 				{
 					// Built-in array variable. Like gl_in[x].gl_Position.
 					// The variable for it has already been created in GenShaderInput().
-					/*ir_variable**/ Variable = ParseState->symbols->get_variable("gl_in");
+					ir_variable* Variable = ParseState->symbols->get_variable("gl_in");
 					check(Variable);
 					ir_dereference_variable* ArrayDeref = new(ParseState)ir_dereference_variable(Variable);
 					ir_dereference_array* StructDeref = new(ParseState)ir_dereference_array(
@@ -3368,6 +3519,7 @@ static ir_rvalue* GenShaderInputSemantic(
 		}
 	}
 
+	ir_variable* Variable = NULL;
 	if (Variable == NULL && Frequency == HSF_DomainShader)
 	{
 		const int PrefixLength = 13;
@@ -3429,10 +3581,12 @@ static ir_rvalue* GenShaderInputSemantic(
 			"value input '%s'", Semantic);
 	}
 
-	if (Frequency == HSF_VertexShader || ParseState->bGenerateES)
+	// Patch constants must be variables, not structs or interface blocks, in GLSL <= 4.10
+	bool bUseGLSL410Rules = InputQualifier.Fields.bIsPatchConstant && ParseState->language_version <= 410;
+	if (Frequency == HSF_VertexShader || ParseState->bGenerateES || bUseGLSL410Rules)
 	{
 		const char* Prefix = "in";
-		if (ParseState->bGenerateES && Frequency == HSF_PixelShader)
+		if ((ParseState->bGenerateES && Frequency == HSF_PixelShader) || bUseGLSL410Rules)
 		{
 			Prefix = "var";
 		}
@@ -3441,7 +3595,7 @@ static ir_rvalue* GenShaderInputSemantic(
 		if (ParseState->bGenerateES && Type->is_integer())
 		{
 			// Convert integer attributes to floats
-			ir_variable* Variable = new(ParseState)ir_variable(
+			Variable = new(ParseState)ir_variable(
 				Type,
 				ralloc_asprintf(ParseState, "%s_%s_I", Prefix, Semantic),
 				ir_var_temporary
@@ -3487,30 +3641,9 @@ static ir_rvalue* GenShaderInputSemantic(
 		Variable->interpolation = InputQualifier.Fields.InterpolationMode;
 		Variable->is_patch_constant = InputQualifier.Fields.bIsPatchConstant;
 
-		// this is kinda hacky, but all the UE4 vertex shaders have ATTRIBUTE0 ... ATTRIBUTEN as the input semantics
-		// so we use the semantic index as the location.
-		if (Frequency == HSF_VertexShader && ParseState->bGenerateLayoutLocations)
+		if(ParseState->bGenerateLayoutLocations && !InputQualifier.Fields.bIsPatchConstant)
 		{
-			const int PrefixLength = 9;
-			if ( (FCStringAnsi::Strnicmp(Semantic, "ATTRIBUTE", PrefixLength) == 0) &&
-				 (Semantic[PrefixLength] >= '0') &&	 (Semantic[PrefixLength] <= '9') 
-				)
-			{
-				int AttributeIndex = atoi(Semantic + PrefixLength);
-
-				Variable->explicit_location = true;
-				Variable->location = AttributeIndex;
-			}
-			else
-			{
-#if DEBUG				
-				_mesa_glsl_warning(
-#else
-				_mesa_glsl_error(
-#endif
-					ParseState, "Vertex shader input semantic must be ATTRIBUTE and not \'%s\' in order to determine location/semantic index", Semantic);
-				
-			}
+			ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_in);
 		}
 
 		DeclInstructions->push_tail(Variable);
@@ -3536,7 +3669,7 @@ static ir_rvalue* GenShaderInputSemantic(
 			VariableType = glsl_type::get_array_instance(VariableType, SemanticArraySize);
 		}
 
-		ir_variable* Variable = new(ParseState)ir_variable(VariableType, ralloc_asprintf(ParseState, "in_%s", Semantic), ir_var_in);
+		Variable = new(ParseState)ir_variable(VariableType, ralloc_asprintf(ParseState, "in_%s", Semantic), ir_var_in);
 		Variable->read_only = true;
 		Variable->is_interface_block = true;
 		Variable->centroid = InputQualifier.Fields.bCentroid;
@@ -3547,8 +3680,7 @@ static ir_rvalue* GenShaderInputSemantic(
 
 		if (ParseState->bGenerateLayoutLocations && !Variable->is_patch_constant)
 		{
-			Variable->location = ParseState->next_in_location_slot++;
-			Variable->explicit_location = true;
+			ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_in);
 		}
 
 		ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
@@ -3564,7 +3696,7 @@ static ir_rvalue* GenShaderInputSemantic(
 	else
 	{
 		// Array variable, not first pass. It already exists, get it.
-		ir_variable* Variable = ParseState->symbols->get_variable(ralloc_asprintf(ParseState, "in_%s", Semantic));
+		Variable = ParseState->symbols->get_variable(ralloc_asprintf(ParseState, "in_%s", Semantic));
 		check(Variable);
 
 		ir_rvalue* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
@@ -3703,7 +3835,8 @@ static ir_rvalue* GenShaderOutputSemantic(
 		}
 	}
 
-	if (Variable == NULL && ParseState->bGenerateES)
+	bool bUseGLSL410Rules = OutputQualifier.Fields.bIsPatchConstant && ParseState->language_version == 410;
+	if (Variable == NULL && (ParseState->bGenerateES || bUseGLSL410Rules))
 	{
 		// Create a variable so that a struct will not get added
 		Variable = new(ParseState)ir_variable(Type, ralloc_asprintf(ParseState, "var_%s", Semantic), ir_var_out);
@@ -3752,8 +3885,7 @@ static ir_rvalue* GenShaderOutputSemantic(
 
 	if (ParseState->bGenerateLayoutLocations && !Variable->is_patch_constant)
 	{
-		Variable->location = ParseState->next_out_location_slot++;
-		Variable->explicit_location = true;
+		ConfigureInOutVariableLayout(Frequency, ParseState, Semantic, Variable, ir_var_out);
 	}
 
 	DeclInstructions->push_tail(Variable);

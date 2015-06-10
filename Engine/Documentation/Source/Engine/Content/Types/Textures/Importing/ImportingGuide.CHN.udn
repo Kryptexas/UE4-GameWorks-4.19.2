@@ -1,0 +1,85 @@
+﻿Availability: Public
+Title:贴图导入指南
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/Textures
+Description:关于讲一个图片文件导入到虚幻引擎中作为贴图资源的指南。
+
+[TOC(start:2)]
+
+## 概述
+
+本文介绍了将贴图导入到虚幻引擎4中的过程。
+
+关于 **内容浏览器** 的更多信息，请参照 [内容浏览器参考指南](Engine/Content/Browser)。
+
+
+### 导入图片 - 贴图
+
+要想导入您的图片贴图，请跳转到 **Content Browser（内容浏览器）** 并点击 **Import（导入）** 。找到您的文件并点击 **Open（打开）** 按钮。
+
+[REGION:raw]
+![](ContentBrowserImport.png)
+[/REGION]
+
+另外，您可以点击图片并将它们直接拖拽到 **内容浏览器** 中。
+
+支持以下贴图格式：
+
+[EXCERPT:SupportedTextureFormats]
+* .bmp
+* .float
+* .pcx
+* .png
+* .psd
+* .tga
+* .jpg
+* .dds - 立方体贴图 (32位/通道, 8.8.8.8 ARGB 32 bpp, 无符号)， 请参照[**立方体贴图工具**](Engine/Content/Types/Textures\Cubemaps\CubemapTools)获得更多信息。
+* .hdr - 立方体贴图(LongLat unwrap)
+[/EXCERPT:SupportedTextureFormats]
+
+<!--
+
+### LOD组
+
+对于每一个导入到引擎中的贴图，都会被分配一个默认的 LOD组 (LODGroup)，引擎基于 .ini 文件中指定的当前细节层次使用 LODGroup 来决定即将渲染哪个 mip 级别的贴图。
+
+一旦导入贴图后，您可以双击它来在贴图编辑器选卡中打开该贴图。这将会呈现LODBias属性。该设置通过使用其值来偏移LOD 组的设置。
+
+![LODBiasProperty.png](LODBiasProperty.png)
+
+记住任何您导入到引擎中的贴图都必须是 2 的指数。其中一些示例包括 512x512、1024x1024、512x1024 和 2048x256 等等。
+
+示例：
+
+4096 个方形贴图，分配给了组 TEXTUREGROUP_WORLD。
+
+LODBias 为 0，组设置为最高的 miplevels，贴图将加载最高的 miplevel (4096)。
+
+LODBias 为 0，组设置为下降 2 个 miplevels，贴图将会加载第三个 miplevel (1024)。
+
+LODBias 为 1，组设置为下降 2 个 miplevels，贴图将会加载第四个 miplevel (512)。
+
+LODBias 为 -2，组设置为下降 2 个 miplevels，贴图将会加载最高的 miplevel (4096)。
+
+LOD组 (LOD Group) 设置存在于特定游戏的 ini 文件中（比如：ExampleGame.ini）。操作这些组的设置(及创建您自己的组)将允许您控制在特定资源类型中使用的细节程度。
+
+<!--
+### 动画图片 - 翻书贴图 
+
+翻书贴图是作为一个单独的贴图计算的一些列图片，因此允许您对您的材质中的各种不同的图片系列或动画进行采样。
+
+要想创建翻书贴图，只要简单地导入多个贴图并选中 _Flipbook_ 属性即可。
+
+![GenericBrowser_File-Import_Flipbook.JPG](GenericBrowser_File-Import_Flipbook.JPG)
+-->
+
+-->
+
+## 贴图属性
+
+要获得关于各种贴图属性的意思的解释，请参照[**贴图属性**](Engine/Content/Types/Textures/Properties)页面。
+
+ 
+
+
+
+

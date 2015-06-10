@@ -1,0 +1,8 @@
+﻿INTSourceChangelist:2374181
+Title:Const
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
+Description:
+Availability:Public
+Version:4.5
+
+このクラスの全プロパティと関数は定数です。また、定数としてエクスポートされなくてはいけません。このフラグはサブクラスで継承されます。

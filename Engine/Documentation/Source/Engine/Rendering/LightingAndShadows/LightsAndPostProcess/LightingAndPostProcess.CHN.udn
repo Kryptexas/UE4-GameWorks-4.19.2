@@ -1,0 +1,88 @@
+﻿Availability: Docs
+Title:光源和后期处理管线
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/LightingAndShadows
+Description: 光源如何和后期处理链交互。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%](LO_VFX_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightsAndPostProcess:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightsAndPostProcess]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## 概述
+
+后期处理管线可以获得场景中的光照，并以各种方式使用这些光照，包括模拟视觉对光源变化的感知，或是摄像机透镜的折射效果。尽管场景的光照可能是需要处理的第一步，但是后期处理这步确实会产生很多效果。
+
+Engine/Rendering/PostProcessEffects
+
+<!--
+
+## 适应性光源
+
+用于模拟适应光照变化情况（比如从黑暗的房间内走入到明亮的太阳光下）的相机或人眼。
+
+<div align="center">
+[REGION:lightbox]
+[![](LO_Adapt_003.png)(w:305)](LO_Adapt_003.png) [![](LO_Adapt_001.png)(w:305)](LO_Adapt_001.png) [![](LO_Adapt_002.png)(w:305)](LO_Adapt_002.png) 
+[/REGION]
+</div>
+
+## 光溢出
+
+[EXCERPT:LightingAndPostProcess_Bloom]
+光溢出模拟了光晕的效果。关于光溢出设置的更多信息，可以在 [后期处理特效文档的光溢出部分](Engine/Rendering\PostProcessEffects\Bloom)找到。
+[/EXCERPT:LightingAndPostProcess_Bloom]
+
+<div align="center">
+[REGION:lightbox]
+[![](LO_Bloom_001.png)(w:450)](LO_Bloom_001.png) [![](LO_Bloom_002.png)(w:450)](LO_Bloom_002.png)
+[/REGION]
+</div>
+
+## 镜头眩光
+
+镜头眩光是指这些"当光源通过镜头沿着路途面照射，且该镜头包含了一个或多个镜头表面反射时，形成的视觉效果失真，通常以镜头光圈的形状呈现。" 任何非常明亮的表面或特效都可以产生耀斑。
+
+![](LI_LFnBloom.png)
+
+
+

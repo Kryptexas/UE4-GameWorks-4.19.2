@@ -1,0 +1,58 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title: 오브젝트 (Object)
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture
+Description:기본 게임플레이 요소인 Actor 와 Object 에 대한 설명입니다.
+Version: 4.5
+
+[TOC (start:2 end:3)]
+
+## 개요
+
+[EXCERPT:ObjectIntro]
+언리얼에는 게임 오브젝트 처리용 탄탄한 시스템이 있습니다. 언리얼에서 오브젝트의 베이스 클래스는 UObject 입니다. UObject 에서 파생되는 클래스에 UCLASS 매크로를 사용하여 태그를 해 주면 UObject 처리 
+시스템에서 인식하게 됩니다.
+[/EXCERPT:ObjectIntro]
+모든 경우에 이 시스템을 사용하는 것이 필수적이지도 심지어 적절하지도 않지만, 그렇게 해 주면 다음과 같은 장점이 있습니다:
+
+*	가비지 콜렉션
+*	레퍼런스 업데이트
+*	Reflection
+*	Serialization
+*	디폴트 프로퍼티 변경사항 자동 업데이트
+*	자동 프로퍼티 초기화
+*	자동 에디터 통합
+*	실행시간에 유형 정보 사용가능
+*	네트워크 리플리케이션
+
+이들 각 시스템에 대한 상세 정보는 [](Programming\UnrealArchitecture\Objects\Optimizations) 문서를 참고하세요.
+
+UClass 매크로는 UObject 에게 자신의 언리얼에서 기반으로 삼은 유형에 대해 설명해 주는 UClass 로의 레퍼런스를 넘겨줍니다. 각 UClass 는 "class default object", 줄여서 CDO 라 불리는 오브젝트를 하나 유지합니다.
+CDO 는 본질적으로 기본 "템플릿" 오브젝트로, 클래스 생성자에 의해 생성된 이후 변경되지 않습니다. 주어진 오브젝트 인스턴스에 대해 UClass 와 CDO 둘 다 구할 수는 있지만, 일반적으로는 읽기 전용으로 
+간주되어야 합니다. 오브젝트 인스턴스에 대한 UClass 는 GetClass() 함수를 사용하여 언제든 접근 가능합니다.
+
+UClass 에는 클래스를 정의하는 프로퍼티와 함수 세트가 들어있습니다. 이들은 네이티브 코드에서 사용할 수 있는 일반 C++ 함수와 변수이지만, 오브젝트 시스템 안에서의 동작을 제어하는 언리얼 전용 메타데이터가 
+붙어 있습니다. 태그 시스템 관련 상세 정보는 [](Programming\UnrealArchitecture\Reference) 문서를 참고해 주시기 바랍니다.
+
+참고로 UObject 클래스는 그에 상응하는 UClass 에는 존재하지 않는 네이티브 전용 프로퍼티를 포함할 수도 있습니다.
+
+
+## 오브젝트 생성
+
+new `UObject` 인스턴스는 물론 그 표준 `new` 연산자를 만드는 데도 사용할 수 있는 함수가 여럿 있으며, 각각의 용례는 다음과 같습니다:
+
+| 메소드 | 설명 |
+| --- | --- |
+| [`NewObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#NewObject) | 자동 생성되는 이름으로 새 인스턴스를 만듭니다. 단순한 클래스를 생성할 때 자주 쓰이는 방법입니다. |
+| [`NewNamedObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#NewNamedObject) | 지정된 이름과 함께 약간의 파라미터 옵션으로 새 인스턴스를 만듭니다. 이름이 새 인스턴스의 Outer 와 충돌하는 경우 어서트가 발생합니다. |
+| [`ConstructObject<class>()`](Programming/UnrealArchitecture/Objects/Creation#ConstructObject) | 가능한 모든 생성 옵션으로 새 인스턴스를 만듭니다. 유연성이 필요한 때만 사용합니다. |
+| `new` | 생성자가 인수를 필요로 할 때와 같이, 특정 로우 레벨 환경에서 오브젝트를 생성할 때 사용합니다. |
+
+게임플레이용 `UObject` 클래스 인스턴스 생성을 위한 여러가지 메소드 관련 상세 정보는 [](Programming/UnrealArchitecture/Objects/Creation) 문서를 참고하세요.
+
+## 틱
+
+Tick (틱)이란 언리얼 엔진에서 오브젝트가 어떻게 업데이트되는지를 일컫습니다. 모든 오브젝트는 매 프레임마다 틱 가능해서, 필요한 동작이나 계산을 업데이트할 수 있습니다.
+
+**Object** 에는 내장된 업데이트 기능이 없습니다만, `inherits` 클래스 지정자를 사용하여 `FTickableGameObject` 클래스를 상속받음으로써 필요에 따라 추가시킬 수는 있습니다.
+그런 다음 `Tick()` 함수를 구현하면 엔진에 의해 매 프레임마다 호출됩니다.

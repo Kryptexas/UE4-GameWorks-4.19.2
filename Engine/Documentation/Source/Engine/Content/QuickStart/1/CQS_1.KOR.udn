@@ -1,0 +1,102 @@
+﻿INTSourceChangelist:2511899
+Availability: Public
+Title:1. UE4 프로젝트에 콘텐츠 임포트하기
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:언리얼 엔진 4 에서 사용할 수 있는 중요 외부 콘텐츠 파일 유형에 대한 개요입니다.
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+콘텐츠 임포트 작업을 시작하기 전, 먼저 언리얼 엔진 4 (UE4) **프로젝트** 라는 개념에 익숙해 질 필요가 있습니다.
+
+**Project**, 프로젝트란 각 게임을 이루는 콘텐츠와 코드가 전부 들어있는 단위를 말하며, 디스크상의 디렉토리 세트와도 일치합니다. 예를 들어 아래 그림에서 [](Engine/Content/Browser) 의 계층구조 트리에는 디스크의 Project 폴더에서 찾을 수 있는 디렉토리와 같은 계층구조를 갖습니다.
+
+![](ProjectHierarchy.png)
+
+[REGION:note]
+새로운 게임 프로젝트를 만드는 법을 잘 모르겠는 경우, [](Engine/Basics/Projects/Browser) 문서를 참고하세요.
+[/REGION]
+
+애셋을 수동으로 임포트할 수도 있지만, UE4 는 디스크의 디렉토리 구조에 추가된 애셋을 자동으로 임포트해 줍니다. UE4 가 실행중인 동안 프로젝트의 디렉토리에 애셋을 추가하면, 즉시 임포트해 줍니다 (아니면 다음 번 UE4 실행시 임포트됩니다). 궁극적으로 프로젝트의 디렉토리 구조대로 결정되는 위치에서 UE4 안의 **콘텐츠 브라우저** 에 모든 파일이 자동으로 나타나게 됩니다.
+
+[REGION:tip]
+UE4 외부에서 제작된 콘텐츠는 자동으로 임포트되도록 UE4 프로젝트 디렉토리에 저장하세요.
+[/REGION]
+
+<!--
+
+## Content File Types
+
+Almost every game will use content created externally to Unreal Engine 4. Given this, the editor supports importing a number of file formats for 3D, 2D, audio, and animation assets. For the purposes of this quick start guide, we will be focusing on 3D and 2D assets, specifically **Static Meshes** and **Textures**.
+
+[OBJECT:iconsection]
+	[PARAM:title]
+	FBX
+	[/PARAM]
+	[PARAM:icon]
+		![](Engine/Content/QuickStart/2/FBX_Icon.png)(w:218 convert:false)
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Content/FBX#intro]
+
+	In Unreal Engine 4, the FBX format is used for **Static Meshes**, **Skeletal Meshes**, and **Animation Sequences**.
+
+	For more information on the FBX pipeline, see: [**%Engine/Content/FBX:title%**](Engine/Content/FBX).
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:iconsection]
+	[PARAM:title]
+	Image Files
+	[/PARAM]
+	[PARAM:icon]
+		![](Engine/Content/QuickStart/2/ImagesIcon.png)(w:218 convert:false)
+	[/PARAM]
+	[PARAM:description]
+	Image files imported into Unreal Engine 4 are primarily used in **Materials**, but can also be used in the Landscape Editor and various paint tools as height maps or paint brush masks. In some cases, they can be applied directly to the HUD.
+
+	Some formats have very specific uses. The file types of .hdr and some formats of .dds are used for **Cubemaps** while .raw files can be imported as a height map into the Landscape Editor.
+
+	For more information on supported image types, see: [**%Engine/Content/Types/Textures/Importing:title%**](Engine/Content/Types/Textures/Importing).
+	
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[OBJECT:iconsection]
+	[PARAM:title]
+	Cubemaps
+	[/PARAM]
+	[PARAM:icon]
+		![](Cubemap_Icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:description]
+	DESCRIPTION
+	[/PARAM]
+[/OBJECT]
+-->
+
+[REGION:raw]
+![](Engine/Content/QuickStart/2/spacer.png)
+[/REGION]
+
+In the next step, we will be going over the import of a few files, including an FBX file and a few images to be used in a material.
+-->
+
+
+%Steps%

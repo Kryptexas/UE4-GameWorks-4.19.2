@@ -1,0 +1,53 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:4.レベルをデプロイする
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description: ワンクリック デプロイでレベルを起動する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Platforms/Android/GettingStarted/3 "%Platforms/Android/GettingStarted/3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+
+1.	 **レベル エディタ** ツールバーの **[起動]** の横にあるドロップダウン矢印をクリックします。お持ちの Android デバイスには複数のエントリが存在することに気がつくと思います。 
+これは、テクスチャ フォーマットが複数存在するためです。フォーマットおよび使用デバイスの一覧はこちらになります。
+
+[INCLUDE:Platforms/Android/Reference#androidformats]
+
+1.	まず最初に、ゲームの起動をテストを、現在のレベルで簡単に行うことができます。
+1.	テストしたいデバイスに対して正しいフォーマットで **[起動]** オプションを選択します。  
+	![](launch_rightformat.png)
+	[REGION:tip]
+	フォーマットが分からない場合は、名前なし、または ETC1 形式を選んでください。  
+	![](launch_noformat.png)
+
+	ゲームの実行時にスクリーンを指 4 本で一度にタップすると、ダイアログが表示されます。通常このダイアログはコンソールコマンド (stat fps などの) の入力に使用しますが、ユーザーのデバイスがサポートしているフォーマットも表示します。リストが表示されたら、これを活用してデプロイ/パッケージング適した最良のタイプを選択します。
+	[/REGION:tip]
+1. 起動プロセス中にメッセージが右下隅に表示されます。
+	![](launch_toast.png)
+1.	クックおよび起動プロセス後、ゲームがデバイス上に自動表示され、 Apps ドロワーからアクセスすることもできます。 
+1.	ここでゲームをアンインストールすることができます。または、ゲームパッケージのインストールに使用するバッチファイルが後でアンインストール処理を管理してくれます。
+
+
+
+
+
+
+%Steps%

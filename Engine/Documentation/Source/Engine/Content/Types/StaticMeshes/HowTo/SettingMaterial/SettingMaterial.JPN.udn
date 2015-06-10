@@ -1,0 +1,95 @@
+﻿INTSourceChangelist:2488290
+Availability:Public
+Title:スタティックメッシュ - マテリアルの設定方法
+Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types, Engine/Content/Types/StaticMeshes, Engine/Content/Types/StaticMeshes/HowTo
+Description:スタティックメッシュ エディタ内でメッシュのマテリアルを設定する方法。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Content/Types/StaticMeshes:title%](Engine/Content/Types/StaticMeshes/staticmesh_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/env_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Types/StaticMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Types/StaticMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Types/StaticMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 概要
+
+どのタイプのスタティックメッシュをレベルに配置した場合でも、プレイヤーがそのオブジェクトを見るときに何らかのマテリアルが適用された状態にしたいことでしょう。この操作ガイドでは、スタティックメッシュにマテリアルを適用するいくつかの方法を説明します。
+
+## セットアップ
+
+まず最初に、作業を行うプロジェクトとレベルをセットアップします。既に作業するプロジェクトをお持ちの場合は、それをお使いいただくこともできます。そうでなければ、UE4 を起動して新規プロジェクトを作成して開始することができます。この例では、Blueprint First Person テンプレートを使用しますが、このチュートリアルでは、どのテンプレートをご利用いただいてもかまいません。重要なのは、新規プロジェクトを作成する場合には必ず **Starter Content** を含めることです。有効にしないと、この操作ガイドで後で使用することになる一部のアセットが存在せず、理解が難しくなるかもしれません。**Starter Content** が含まれていることを確認したら、プロジェクトのパスと名前を選んで **Create Project** ボタンをクリックします。
+
+![](NewProjectWithStarterContent.png)
+
+
+プロジェクトが読み込まれたら **コンテンツ ブラウザ** を探します。**スターター コンテンツ** を有効にしたら **コンテンツ ブラウザ** に **Starter Content** という名前のフォルダが存在するはずです。以下のようになるはずです。
+
+![](ContentBrowserWithStarterContent.png)(w:400 h:500)
+
+## 詳細パネルを使用してマテリアルを適用する
+
+スタティックメッシュのひとつのコピーのマテリアルを切り替える最も簡単な方法は、メッシュの特定インスタンスをハイライトし、 **[詳細]** パネルでマテリアルを変更するやり方です。以下のセクションでは、その方法を説明します。
+
+
+**「Starter Content」** フォルダの中に **「Props」** という名前のフォルダがあります。このフォルダを開きフォルダ内で、 **SM_Chair** という名前のスタティックメッシュを探します。 
+
+![](ChairInContentBrowser.png)(w:400 h:500)
+
+**SM_Chair** 上で **左マウスボタン** をクリックし、**左マウスボタン** を押したままの状態でマウスをビューポートにドラッグして放します。正しく行われると、スタティックメッシュのコピーがレベルに追加されます。他の場所をどこもクリックしていなければ、スタティックメッシュはまだハイライトされたままですが、スタティックメッシュを選択していなければ、ビューポート内でスタティックメッシュ上でクリックするか、 **SM_Chair** を検索し、 **ワールド アウトライナー** から選択します。スタティックメッシュを選択した状態で、 **[詳細]** パネルに情報が入ります。**[詳細]** パネルのセクションのひとつに、**[マテリアル]** があります。このセクション内で、使用するマテリアルのサムネイルとその横にそのマテリアル名が表示されたドロップダウン メニューがあります。ドロップダウン メニューを選択し、別のマテリアルを選択すると、メッシュのインスタンスに適用されるマテリアルを変更することができます。変更は以下のようにビューポートに反映されます。
+
+![](NormalChairWithDetails.png)(w:433 h:300)
+![](BrickChairWithDetails.png)(w:433 h:300 a:right)
+
+##スタティックメッシュ エディタを使用してマテリアルを適用する
+
+レベル内のスタティックメッシュのひとつのインスタンスのマテリアルを変更できるようになりましたが、スタティックメッシュそのもののデフォルトのマテリアルを変更したい場合はどうでしょう？これは、スタティックメッシュ エディタ内から行うことができます。**コンテンツ ブラウザ** の **Props** フォルダ内の **SM_Chair** に戻ります。これを一度選択したら、以下の 2 つの簡単な方法でスタティックメッシュ エディタにアクセスできます。最初の方法は、**コンテンツ ブラウザ** のメッシュ上でダブルクリックするやり方です。ほとんどのアセットの各エディタにアクセスする方法と同じ方法です。メッシュ上で **右クリック** して、コンテキスト メニューを開くこともできます。メニュー内から **Edit** を選択します。
+
+![](RightClickMenu.png)
+
+**コンテンツ ブラウザ** 内でアセット上で **ダブル クリック**、またはアセットを **右クリック** してコンテキスト メニューから **Edit** を選択した後、以下の画面のようなスタティックメッシュ エディタが開きます。
+
+![](StaticMeshEditorMaterial.png)
+
+このエディタの右側にデフォルトで **[詳細]** パネルが表示され、パネル上部に上記の画像でハイライトされているスタティックメッシュで使用するマテリアルのサムネイルがあります。その横にはマテリアル名が示されたドロップダウン メニューがあります。ドロップダウン メニューをクリックし、別のマテリアルを選択すると、以下の画面のようにスタティックメッシュに適用されているマテリアルが変更されます。
+
+![](MaterialInEditorChanged.png)
+
+![](ConcreteChairInEditor.png)
+
+スタティックメッシュ エディタ上部にあるツールバーで **Save** をクリックすると、適用された新しいマテリアルがスタティックメッシュのデフォルト マテリアルになり、レベルにドラッグしたメッシュのインスタンスにはこのデフォルト マテリアルが適用されます。ただし、上記で行ったようにデフォルト マテリアルを変更したか、スタティックメッシュ エディタ内でメッシュのインスタンスが変更された場合は、このマテリアルは適用されません。
+
+![](ConcreteChairInLevel.png)

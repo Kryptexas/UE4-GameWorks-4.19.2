@@ -1,0 +1,102 @@
+INTSourceChangelist:2108142
+Availability: Public
+Title:마야 애니메이션 리깅 툴셋
+Crumbs: %ROOT%, Engine, Engine/Content
+Description:마야 애니메이션 리깅 툴셋에 대한 개요입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/Tools/MayaRiggingTool:title%](Rigging_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Tools/MayaRiggingTool:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/Tools/MayaRiggingTool:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Tools/MayaRiggingTool]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:raw]
+![](CharacterSetupImage.jpg)
+[/REGION]
+
+
+## 개요
+
+[EXCERPT:Intro]
+애니메이션과 리깅 툴셋(A.R.T)은 캐릭터의 스켈레톤 생성, 스켈레톤 배치, 릭 생성은 물론 애니메이터의 작업 속도를 향상시켜주는 종합 툴셋으로, 현재 마야 2013 버전 이상에서 테스트를 마쳤습니다. 포함된 기능은:
+
+* 사용자에게 모든 과정을 안내해 주는 직관적 유저 인터페이스
+* 완벽한 스켈레톤 생성
+* 직관적인 포지셔닝 릭을 통한 맞춤형 스켈레톤 배치
+* 전체 릭 퍼블리싱과 애니메이션 팀으로의 전송에 걸리는 시간 **1분 미만!**
+* 최종 캐릭터에 단순한 스키닝 제공 기능
+* 모션 캡처나 애니메이션 데이터 임포트, FBX 익스포트, 포즈 툴, 미러링, 스페이스 전환 등등, 유저 인터페이스까지 완벽 포함된 종합 애니메이션 툴 세트.
+[/EXCERPT:Intro]
+
+[REGION:note]
+ART 는 원래 에픽의 애니메이션 팀이 내부적으로 사용하는 툴세트에서 시작되었습니다. 현재는 주로 바이페드 인간형 캐릭터에 맞춰 최적화되어 있습니다. 그러나 툴세트의 발전에 따라 폭넓은 캐릭터가 지원될 것입니다.
+[/REGION]
+
+
+## 설치 안내
+
+
+1. UE4 인스톨 디렉토리, 보통 **UE4/Engine/Extras/Maya_AnimationRiggingTools** 아래서 파일을 찾습니다. 
+
+1. (_Engine\Extras\Maya_AnimationRiggingTools\MayaTools_ 에 위치한) **userSetup.py** 파일을 복사하여 **마야 스크립트 디렉토리** (보통 _C:\Users\user.name\Documents\maya\scripts_) 로 복사합니다. 거의 기존 파일을 덮어쓰겠냐고 물어옵니다. 직접 수정한 것이 있지 않는 이상 덮어써도 괜찮습니다. 다른 스크립트 폴더에 userSetup.py 가 있는 경우, 지워주시기 바랍니다.
+
+	[REGION:warning]
+	이미 커스텀 userSetup.py 파일을 사용중인 경우, TD 를 통해 쓰시던 것과 이 툴세트에 제공된 것을 머지해 주시기 바랍니다.
+	[/REGION]
+
+1. 마야를 실행합니다.
+
+1. 처음에는 MayaTools 디렉토리의 위치를 묻는 Maya Tools Install 대화창이 뜨게 됩니다. _userSetup.py_ 파일을 찾은 곳과 같은 위치입니다: _UE4/Engine/Extras/Maya_AnimationRiggingTools_.
+
+	![](MayaToolInstallWindow.png)
+
+1. 이제 마야 메뉴 바 상단에 Epic Games 메뉴가 보일 것입니다. 즐기세요!
+
+	![](MayaMenu.png)
+
+
+[PUBLISH:licensee]
+[REGION:warning]
+퍼포스같은 소스 콘트롤을 사용하시는 경우, 클라이언스 스펙 라인 엔딩 설정을 local 에서 unix 로 바꿔 주셔야 합니다. 어떤 이유로든 local 로 설정하면 텍스트 파일 포맷이 깨져 오류가 발생하게 됩니다. 나중에 강제 싱크를 통해 해당 변경내용을 적용해도 됩니다.
+
+P4V 에서는 **Connection -> Edit Current Workspace** 를 해 주면 됩니다.
+
+![](PerforceSetting.png)
+
+
+[/REGION]
+[/PUBLISH:licensee]
+
+## 툴셋 사용하기
+
+ART 는 두 가지 모드, 리깅과 애니메이션으로 나뉘며, 인터페이스도 구분이 됩니다. ART 애니메이션 인터페이스를 사용하려는 캐릭터는 반드시 리깅 인터페이스에서 제작해야 합니다.
+
+[OBJECT:TopicList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		애니메이션 & 리깅 툴 (영문)
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Rigging:Description%
+		* [](Engine/Content/Tools/MayaRiggingTool/RigTool_Animation) - %Engine/Content/Tools/MayaRiggingTool/RigTool_Animation:Description%
+		
+	[/PARAM]
+[/OBJECT]

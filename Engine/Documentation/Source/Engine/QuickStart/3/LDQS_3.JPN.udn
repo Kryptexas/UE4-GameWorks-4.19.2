@@ -1,0 +1,132 @@
+﻿INTSourceChangelist:2467410
+Availability:Public
+Title:3.アクタの配置
+Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
+Description:アクタの配置および操作は、レベルをビルドする基礎となります。
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のステップ](Engine/QuickStart/2 "%Engine/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[クイックスタート ホーム](Engine/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Engine/QuickStart/4 "%Engine/QuickStart/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+「配置」という考え方は、エディタの多くの部分に及ぶものです。常に何かをクリックし、レベルのビューポートにドラッグする操作を伴います。
+
+**[Modes] パネル** にある** [Place] モード** では、ライトやジオメトリなどの一般的に使用する多くのアクタを配置することができます。次のステップでは、フロアー、平行光源、 Atmospheric Fog アクタ、 Player Start アクタを配置します。 
+
+[REGION:tip]
+ごく簡単に言うと、 **アクタ** はレベルに配置可能な任意のオブジェクトで、アンリアル エンジン 4 でレベルを作成するときに、多くの **アクタ** を配置、移動、編集することでしょう。
+
+**アクタ** についての詳細は、 [アクタとジオメトリ](Engine\Actors) を参照してください。
+[/REGION]
+
+何を配置するにしても、まずは配置するフロアーが必要です。そのために、 Box Geometry アクタを使用します。
+
+1. **[Modes] パネル** で、 **Place** モードを有効にした状態で、 **BSP** カテゴリをクリックします。
+1. **[Modes] パネル** で Box Geometry アクタをクリックし、レベルにドラッグすることで、Box Geometry アクタを配置します。
+
+	![](Engine/QuickStart/4/placeBox.png)
+
+	_**マウスの左ボタン** を放すと、 **Box Brush** がレベルに追加されます。_
+
+	![](place2.png)
+
+1. Box を選択し、 (エディタの右下のウィンドウの) **[Details]** パネルで **Location** と **Rotation** をすべて **0** に設定します。 
+
+1. **Scale** を **4 x 4 x 0.10** に設定して、フロアのようなサーフェスを作成します。 
+
+	![](resize_floor.png)
+
+1. フロアーを配置し、位置合わせした状態で、 **[Modes] パネル** の **Lights** カテゴリに切り替えます。
+
+1. レベル内でフロアー ボックスの上に **Directional Light** (平行光源) を配置します。
+
+	![](Engine/QuickStart/4/placeLight.png)
+
+1. (**[W]** キーを用いて) **Translation (平行移動) ツール** に切り替えて、フロアーの上方向に **移動** しておくと見つけやすいです。
+
+1. **Translation (平行移動) ツール** の Z 軸 (青色) ギズモをクリックし、フロアーから上方にドラッグします。
+
+	![](Engine/QuickStart/4/moveLight.png)
+
+	_平行光源が選択されていない場合 (1)、ビューポート内でそれを **左クリック** して選択すると、現在の変形ギズモが表示されます (2)。光を選択すると、Z 軸をクリックしてフロアから上方にドラッグして、光を上方へ移動することができます (3)。_ 
+
+1. **[Modes] パネル** の **Visual Effects** カテゴリに切り替えます。
+
+1. **Atmospheric Fog** をレベルに配置します。
+
+	![](Engine/QuickStart/4/placeFog.png)
+
+	_Atmospheric Fog アクタは基本的な空をシーンに付け加え、ビューポートが黒ではなく lit になります。_
+
+1. **[Modes]** パネルの **Basic** カテゴリに切り替えます。
+
+1. **[Player Start]** をレベルに配置します。
+
+	![](Engine/QuickStart/4/placeStart.png)
+
+1. 上図の **Player Start アクタ** は、平行移動ギズモのX 軸 (赤) が下を向いています。つまり、フロアーの端から離れてポイントしています。**回転ツール** を使用して、フロアーの中央に向くように回転させる必要があります。ビューポート内の **[E]** キーを押して **回転ツール** に切り替えます。
+1. Z 軸 (青色) 円弧ギズモ上でクリックしドラッグして、 **Player Start Actor** 上の青色矢印がフロアーの中央を向くように、 **Player Start Actor** を回転させます。
+
+	![](rotate1.png) ![](rotate2.png)(h:320)
+
+1. **[Modes]** パネルの **[Volumes]** カテゴリに切り替えます。
+1. **Lightmass Importance Volume** をレベルに配置します。
+
+	![](Engine/QuickStart/4/placeVolume.png)
+
+	**Lightmass Importance Volume** を使って、ボリューム内で光源とシャドウイング エフェクトを制御および集中させます。詳細は [ライトマスの基礎](Engine/Rendering/LightingAndShadows/Lightmass/Basics) をご覧ください。
+
+1. **[Lightmass Importance Volume]** は、フロアーと同じサイズです。しかし、レベル内に配置するすべての物を包含できるように、さらに大きくする必要があります。**[R]** キーを押して **スケールツール** に切り替えます。
+
+1. **[Lightmass Importance Volume]** がフロアー ボックスよりも大きくなるように **スケールツール** の軸をそれぞれクリックし、ドラッグします。
+
+	![](Engine/QuickStart/4/scaleVolume.png)
+
+	_上の画像では、ボリュームを一段とくっきり表示するために、ビューポートのレンダリング モードは **Unlit** (**Alt+3**) に設定されています (**Alt+4** を押すと **Lit** へ戻ります)。_
+
+この時点で、配置したすべてのアクタは **[Modes] パネル** からのものです。しかし、 **コンテンツ ブラウザ** からも配置できます。 
+
+このような **コンテンツ ブラウザ** を探します。
+
+![](Engine/QuickStart/4/contentBrowser.png)
+
+ここから、スタティックメッシュ、スケルタルメッシュ、ブループリントなどを配置可能です。既にレベル内に配置されているアクタにマテリアルを追加することもできます。**コンテンツ ブラウザ** に関する詳細は、[**コンテンツ ブラウザ**](Engine\Content\Browser) 以下を参照してください。 
+
+**スタティックメッシュ** をレベルに追加していきましょう。 
+
+1. **[Starter Content]** には、「props」フォルダが含まれています。**Asset Tree** ビューの**「Props」** フォルダを　**左クリック** します (下図でハイライトされています)。 
+
+	![](Engine/QuickStart/4/openProps.png)
+
+	_**[Content] ウィンドウ** (**コンテンツ ブラウザ** の右側) に、フォルダ内に存在するアセットが表示されます。_
+
+1. 下方にスクロールし、 **SM_TableRound** という名前がついているスタティックメッシュ アセットを探します。
+
+	![](Engine/QuickStart/4/findSMTableRound.png)
+
+1. **SM_TableRound** スタティック メッシュ アセットをクリックしレベル内へドラッグします。
+
+	![](Engine/QuickStart/4/placeTable.png)
+
+1. 学んだことを活かして、 **[Modes] パネル** と **コンテンツ ブラウザ** からさらにアクタを追加して、小さなシーンを作ります。  
+
+	![](Engine/QuickStart/4/placeThings.png)
+
+	_**「Architecture」** フォルダから **ポイントライト** 、 **Props** 、屋根のついたウォールを追加します！_
+
+次のセクションでは、レベル内に配置したアクタを編集する方法について学びます。
+
+%Steps%

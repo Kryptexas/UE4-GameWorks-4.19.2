@@ -11,6 +11,13 @@ if [ ! -f Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh ]; then
   exit 1
 fi 
 
+if [ -f Setup.sh ]; then
+	if [ ! -f .ue4dependencies ]; then
+		echo "Please run Setup to download dependencies before generating project files."
+		exit 1
+	fi
+fi
+
 if [ "$(uname)" = "Darwin" ]; then
 	cd Engine/Build/BatchFiles/Mac
 	sh ./GenerateLLDBInit.sh

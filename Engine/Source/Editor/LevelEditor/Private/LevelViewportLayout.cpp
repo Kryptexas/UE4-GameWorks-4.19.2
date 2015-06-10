@@ -71,6 +71,9 @@ public:
 
 private:
 	
+	/** Ticks the level viewport tab */
+	EActiveTimerReturnType ActiveTimer( double InCurrentTime, float InDeltaTime );
+
 	/** Reference to the owning level viewport tab */
 	TSharedPtr<FLevelViewportTabContent> LevelViewportTab;
 
@@ -86,6 +89,9 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 {
 	const TSharedRef<SWidget>& ContentWidget = InArgs._Content.Widget;
 	LevelViewportTab = InArgs._LevelViewportTab;
+
+	//RegisterActiveTimer( 0.f, FTickWidgetDelegate::CreateSP( this, &SViewportsOverlay::ActiveTimer ) );
+
 	ChildSlot
 		[
 			SAssignNew( OverlayWidget, SOverlay )
@@ -94,6 +100,12 @@ void SViewportsOverlay::Construct( const FArguments& InArgs )
 				ContentWidget
 			]
 		];
+}
+
+EActiveTimerReturnType SViewportsOverlay::ActiveTimer( double InCurrentTime, float InDeltaTime )
+{
+	// Exists to ensure slate is ticked
+	return EActiveTimerReturnType::Continue;
 }
 
 void SViewportsOverlay::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
@@ -224,9 +236,9 @@ void FLevelViewportLayout::InitCommonLayoutFromString( const FString& SpecificLa
 	{
 		const FString& IniSection = FLayoutSaveRestore::GetAdditionalLayoutConfigIni();
 
-		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bShouldBeMaximized, GEditorUserSettingsIni);
-		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bShouldBeImmersive, GEditorUserSettingsIni);
-		GConfig->GetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorUserSettingsIni);
+		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bShouldBeMaximized, GEditorPerProjectIni);
+		GConfig->GetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bShouldBeImmersive, GEditorPerProjectIni);
+		GConfig->GetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorPerProjectIni);
 	}
 	// Replacement layouts (those selected by the user via a command) don't start maximized so the layout can be seen clearly.
 	if (!bIsReplacement && bIsMaximizeSupported && MaximizedViewportID >= 0 && MaximizedViewportID < Viewports.Num() && (bShouldBeMaximized || bShouldBeImmersive))
@@ -256,9 +268,9 @@ void FLevelViewportLayout::SaveCommonLayoutString( const FString& SpecificLayout
 		}
 	}
 
-	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bIsMaximizeSupported && bIsMaximized, GEditorUserSettingsIni);
-	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bIsImmersive, GEditorUserSettingsIni);
-	GConfig->SetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorUserSettingsIni);
+	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsMaximized")), bIsMaximizeSupported && bIsMaximized, GEditorPerProjectIni);
+	GConfig->SetBool(*IniSection, *(SpecificLayoutString + TEXT(".bIsImmersive")), bIsImmersive, GEditorPerProjectIni);
+	GConfig->SetInt(*IniSection, *(SpecificLayoutString + TEXT(".MaximizedViewportID")), MaximizedViewportID, GEditorPerProjectIni);
 }
 
 void FLevelViewportLayout::RequestMaximizeViewport( TSharedRef<class SLevelViewport> ViewportToMaximize, const bool bWantMaximize, const bool bWantImmersive, const bool bAllowAnimation )
@@ -360,6 +372,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 		// Update state
 		bWasMaximized = bIsMaximized;
 		bWasImmersive = bIsImmersive;
+
 		bIsMaximized = bWantMaximize;
 		bIsImmersive = bWantImmersive;
 
@@ -380,7 +393,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 			// the current state of bIsMaximized, we'll transition to either a maximized state or a "restored" state
 			MaximizeAnimation = FCurveSequence();
 			MaximizeAnimation.AddCurve( 0.0f, ViewportLayoutDefs::RestoreTransitionTime, ECurveEaseFunction::CubicIn );
-			MaximizeAnimation.PlayReverse();
+			MaximizeAnimation.PlayReverse( ViewportsOverlayWidget->AsShared() );
 			
 			if( bWasImmersive && !bIsImmersive )
 			{
@@ -433,7 +446,7 @@ void FLevelViewportLayout::MaximizeViewport( TSharedRef<SLevelViewport> Viewport
 			// Play the "maximize" transition
 			MaximizeAnimation = FCurveSequence();
 			MaximizeAnimation.AddCurve( 0.0f, ViewportLayoutDefs::MaximizeTransitionTime, ECurveEaseFunction::CubicOut );
-			MaximizeAnimation.Play();
+			MaximizeAnimation.Play( ViewportsOverlayWidget->AsShared() );
 		}
 
 
@@ -574,7 +587,7 @@ bool FLevelViewportLayout::IsViewportImmersive( const SLevelViewport& InViewport
 EVisibility FLevelViewportLayout::OnGetNonMaximizedVisibility() const
 {
 	// The non-maximized viewports are not visible if there is a maximized viewport on top of them
-	return (!bIsQueryingLayoutMetrics && MaximizedViewport.IsValid() && !bIsTransitioning && DeferredMaximizeCommands.Num() == 0) ? EVisibility::Collapsed : EVisibility::Visible;
+	return ( !bIsQueryingLayoutMetrics && MaximizedViewport.IsValid() && !bIsTransitioning && DeferredMaximizeCommands.Num() == 0 ) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 
@@ -704,5 +717,5 @@ void FLevelViewportLayout::Tick( float DeltaTime )
 
 bool FLevelViewportLayout::IsTickable() const
 {
-	return DeferredMaximizeCommands.Num() > 0 || (bIsTransitioning && !MaximizeAnimation.IsPlaying());
+	return DeferredMaximizeCommands.Num() > 0 || ( bIsTransitioning && !MaximizeAnimation.IsPlaying() );
 }

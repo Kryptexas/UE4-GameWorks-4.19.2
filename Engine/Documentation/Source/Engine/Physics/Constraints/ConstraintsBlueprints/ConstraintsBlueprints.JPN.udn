@@ -1,0 +1,63 @@
+﻿INTSourceChangelist:2222701
+Availability:Public
+Title:物理コンストレイント コンポーネントのユーザーガイド
+Crumbs: %ROOT%, Engine, Engine/Physics
+Description: ブループリントで物理コンストレイント コンポーネントの使用に関するユーザー ガイド。
+
+[REGION:fullwidth raw]
+![](Engine/Physics\physics_banner.png)
+[/REGION]
+
+[TOC(start:2)]
+
+## 概要
+
+Physics Constraint Component（物理コンストレイントコンポーネント）は、ブループリントで使用したり C++ コードで作成出来る点を除いて、[Physics Constraints Actors](Engine/Physics\Constraints\ConstraintsUserGuide) とほぼ同じです。ブループリントの柔軟性と C++ のパワーを持ち合わせたPhysics Constraint Component (物理コンストレイントコンポーネント) を使用して、プロジェクトのほとんどの物体をコンストレイント (制約) することができます。
+
+このドキュメントは、ブループリントで基本的な Physics Constraint Component (物理コンストレイントコンポーネント) を作成する方法を説明します。
+
+[REGION:note]
+このドキュメントは、ユーザーが **ブループリント** と **ブループリントエディタ** についてある程度の知識があることを想定しています。詳細はこちらを参照してください。 [%Engine/Blueprints:title%](Engine/Blueprints)
+[/REGION]
+
+## 使用法
+
+1. コンストレイント (制約) に使用するコンポーネントを作成します。このデモでは、スタティックメッシュ「Shape_Cube」を参照する2つの **スタティックメッシュ** コンポーネントを使用します。
+	[REGION:raw]
+	 ![](PhysConBP_Cubes.png)
+	[/REGION]
+	_ユーザーは、コンストレイント（制約）するコンポーネントの位置を決めなくてはいけません。このガイド用に 2 つのキューブを使用します。_
+1. [Add Component] => **[Physics Constraint]**
+	[REGION:raw]
+	![](PhysConBP_AddCon.png)
+	[/REGION]
+1. ジョイントをコンストレイント (制約) する場所に Physics Constraint Component (物理コンストレイントコンポーネント) を位置づけます。
+
+	![](PhysConBP_Loc.png)(h:300)
+1. コンストレイント (制約) するコンポーネント名は、手入力で入力しなくてはいけません。コンストレイント (制約) するコンポーネントの名前を、**[Component Name 1] => [Component Name]** プロパティに入力します。
+	[REGION:raw]
+	![](PhysConBP_Comp1.png)
+	[/REGION]
+1. コンストレイント (制約) するコンポーネントの名前を、**[Component Name 2] => [Component Name]** プロパティに入力します。
+	[REGION:raw]
+	![](PhysConBP_RedBlue2.png)
+	[/REGION]
+1. [Physics Constraint] プロパティを設定します。
+	* **Angular Swing 1Motion** と **Angular Swing 2Motion** が **ACM_Limited** になっています。
+	* **Swing 1Limit Angle** と **Swing 2Limit Angle** が 45 度です。
+	* **Swing Limit Soft** が無効になっています。
+	[REGION:raw]
+
+	![](PhysConBP_ConSettingsVis.png)
+	[/REGION]
+	Physics Constraint Component (物理コンストレイント コンポーネント) のプロパティ全体がどのような影響を受けるか知りたいですか？具体的な詳細は、 [%Engine/Physics\Constraints\ConstraintsReference:title%](Engine/Physics\Constraints\ConstraintsReference) を参照してください。
+1. Linear LimitとAngular Limitの構成に必要な Physics Constraint Component (物理コンストレイント コンポーネント)を回転します。
+
+	![](PhysConBP_Rotated.png)
+1. レベルにブループリントアクタを配置して、必要な場所に位置づけます。
+
+	![](PhysConBP_IntoWorld.png)(w:900)
+1. エディタで [シミュレート] を使用してテスト、または PIE でテストを行います。
+	![](PhysConBP_Sim.png)(h:600)
+
+

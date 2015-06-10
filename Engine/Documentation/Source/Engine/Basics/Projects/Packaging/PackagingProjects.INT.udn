@@ -1,0 +1,119 @@
+Availability:Public
+Title:Packaging Projects
+Crumbs: %ROOT%, Engine, Engine/Basics/Projects
+Description:Packaging Unreal game projects for distribution.
+
+[TOC(start:2)]
+
+
+## Overview
+
+[EXCERPT:Intro]
+Before an Unreal project can be distributed to users, it must be properly packaged. Packaging ensures that all code and content is up to date and in the proper format to run on the desired target platform. 
+[/EXCERPT:Intro]
+
+A number of steps will be performed during the packaging process. When a project has custom source code, this code will first be compiled. Then, all required content needs to be converted into a format that can be used by the target platform (so called content cooking). After that, compiled code and cooked content will be bundled up into a distributable set of files, such as an installer for Windows.
+
+
+Under the main **File** menu, there is an option called **Package Project**, with a submenu. This sub menu shows all the platforms that you can prepare a package for. The purpose of packaging is to test your 
+full game instead of a single map, or to prepare your game for submission/distribution.
+
+For Android, there will be multiple selections. See the Android Texture Formats page for more information.
+
+There are also some **Advanced** options you can set before packaging. 
+
+Once you select the platform, the editor will compile your game if it contains code, cook all of your game data, and then package the content. This can end up being a slow process if you included the 
+Starter Content in your project, or if you have made a lot of test/temporary content and maps.
+
+
+
+
+## Creating Packages
+
+To package a project for a specific platform, click on **File > Package Project > [PlatformName]** in the Editor's main menu:
+
+![](packaging_menu.png)
+
+You will be presented with a dialog for selecting the target directory. If packaging completes successfully, this directory will then contain the packaged project.
+
+Confirming the target directory will then initiate the actual process that packages the project for the selected platform. Because packaging can be very time consuming, this process is executed in the background, and you can continue to use the Editor. A status indicator will be displayed in the bottom right corner of the Editor to indicate the progress:
+
+![](progress.png)
+
+The status indicator provides a way to cancel the active packaging process by clicking the Cancel button. It is also possible to display extended output log information by clicking the Show Log link. The output log is useful for figuring out what went wrong in case a packaging process did not complete successfully:
+
+![](log.png)
+
+For less experienced users, the most important log messages, such as errors and warnings, are logged to the regular Message Log window:
+
+![](message_log.png)
+ 
+## Running Packaged Games
+
+When you packaged, you selected a directory for the output. If packaging completes successfully, your packaged game will be in a platform-specific subdirectory. For instance, if you selected TappyChicken/Final, then the iOS build would be 
+in `TappyChicken/Final/IOS` and an Android build would be in `TappyChicken/Final/Android`. When you go to that subdirectory, you will see the packaged game, in a format appropriate for the platform. 
+For Android, you will see .apk, .obb, and .bat files (run the .bat to install the game on your device). For IOS, you will see an .ipa file. This can be installed via iTunes or Xcode.
+The number and type of files created will vary depending on the target platform. The following image shows example output for a Windows project:
+
+![](results.png)
+
+[EXCERPT:RunCooked]
+**To run your packaged game:**
+
+1. Find the executable for your packaged game using the table below:
+
+	| Configuration | EXE Name                             | EXE Location                                                    |
+	| ------------- | ------------------------------------ | --------------------------------------------------------------- |
+	| Development   | [ProjectName].exe                    | [PackageDirectory]\WindowsNoEditor |
+	| Shipping      | [ProjectName]-Win32-Shipping.exe.exe | [PackageDirectory]\WindowsNoEditor |
+
+1. **Double-click** the executable to run the game.
+[/EXCERPT:RunCooked]
+
+
+## Distribution
+
+To submit an IOS or Android game to the App Store or Google Play Store, you need to create your package in Distribution mode. To do this, go to the **Packaging Settings** option in the **Packaging** menu, 
+and check the Distribution check box. This will sign the final package appropriately.
+
+On IOS, you will need to create a distribution Certificate and MobileProvision on Apple's developer website. Install the certificate the same way as your Development certificate, and name your 
+distribution provision with a `Distro_` prefix, next to your other one (so you would have `Distro_MyProject.mobileprovision` and `MyProject.mobileprovision`).
+
+On Android, you will need to create a key to sign the .apk, and give some information to our build tools with a file called `SigningConfig.xml`. This file exists in the installed Engine directory 
+(`Engine/Build/Android/Java`). If you edit this file, it will apply to all your projects. However, you can copy this file to your project's `Build/Android` directory (no Java directory), and it 
+will be used for just that project. Directions for how to generate the key and fill out the file are found in the file itself.
+
+
+## Advanced Settings
+
+Clicking **File > Package Project > Packaging Settings...** in the main menu will present you with a number of advanced configuration options for the packaging feature.
+
+![](settings.png)
+
+ Currently, these include:
+
+| Option | Description |
+| ------ | ----------- |
+| Build Configuration | The build configuration to compile your code-based project with. For debugging select Debug, for most other development with minimal debugging support, but better performance select Development, and for the final shipping build select Shipping. |
+| Staging Directory | The directory that will contain your packaged build. This will be updated automatically when you pick a different directory in the target directory selection. |
+| Full Rebuild | Whether all of your code should be compiled. If disabled, only the modified code will be compiled. This may speed up the packaging process. For shipping builds you should always do a full rebuild to make sure nothing is missing or outdated. This option is enabled by default. |
+| Use Pak File | Whether to package your project's assets as individual files or a single package. If enabled, all assets will be put into a single .pak file instead of copying out all the individual files. If your project has a lot of asset files, using a Pak may make it easier to distribute it, because you do not have to transfer so many files. This option is enabled by default. |
+[PUBLISH:Licensee]
+| Directories to Always Cook | The list of directories with files that should always be cooked. By default, the packaging feature automatically detects and cooks all content that is referenced by your game. Some required content may not be referenced directly, such as textures for a custom Slate UI. The directories in which such content resides should be listed here in order to also include it in the package. |
+[/PUBLISH:Licensee]
+
+[PUBLISH:Licensee]
+## Supported Platforms
+
+At the time of this writing, the only support platform is Windows. We are in the process of adding support for other platforms, such as iOS, PS4, and Android. Although these platforms may already be listed in the Package Project menu, they are currently grayed out and cannot be selected.
+
+Creating an installer for Windows is not yet supported. The packaged files are simply copied out to the staging directory for the time being.
+[/PUBLISH:Licensee]
+
+
+
+## Content Cooking
+
+As a developer, when iterating over new or modified game content, you may not always want to go through the lengthy process of packaging everything into the staging directory and then running it from there. It is therefore possible to only cook the content for a particular target platform without packaging it by clicking **File > Cook Content > [PlatformName]**.
+
+Please note that this feature will update the content in your project's local developer workspace, and it will not copy out any assets to the staging directory. You can run your game directly from your local developer workspace for fast iteration.

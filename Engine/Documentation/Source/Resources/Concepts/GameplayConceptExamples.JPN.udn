@@ -1,0 +1,122 @@
+﻿INTSourceChangelist:2474005
+Availability:Public
+Title:ゲームプレイのコンセプト例
+Crumbs:%ROOT%
+Description:フレームワーク例であり、デザイン ツールやゲーム機能の追加方法を示します。
+Navigation:topic
+
+[VAR:Params]
+[PARAM:image]
+	![](UnrealStickFigure2D_Featured.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/tutorial_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Resources/Concepts:title%
+[/PARAM]
+[PARAM:description]
+	%Resources/Concepts:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Resources/Concepts]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+resources
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+以下は、特定のビジュアル スタイルやスクリプト処理スタイルを必要とする場合、具体的課題に対するアプローチを見る手段として紹介されています。当然、ある問題を解決する _唯一_ の方法ではなく、プロジェクトによっては別のアプローチの方が適している場合もあります。
+
+こうした例を開いてエレメントを分析するだけでなく、ご自分のプロジェクトでも使ってみてください。
+
+[REGION:topics third]
+%Resources/Showcases/BlueprintMultiplayer:topiccompact%
+%sticktopic%
+%splinestopic%
+%strategytopic%
+%umgtopic%
+[/REGION]
+
+[VAR:splinestopic]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	ブループリントのスプライン トラック
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	wR0fH6O9jD8
+	[/PARAMLITERAL]
+	[PARAM:image]
+	![](store_Racetrack_screenshot_2.PNG)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:sticktopic]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	アンリアル スティック フィギュア 2D
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	qWUEkTd2Xu8
+	[/PARAMLITERAL]
+	[PARAM:image]
+	![](UnrealStickFigure2D_Featured.png)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:umgtopic]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	UMG のインベントリ UI
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1gZo6zXTHGGSH8gxaA7a_zCt
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	RQm6cm05SLc
+	[/PARAMLITERAL]
+	[PARAM:image]
+	![](store_UMGDemo_Featured.png)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:strategytopic]
+[OBJECT:TopicCompactVideo]
+	[PARAMLITERAL:title]
+	ターン制ストラテジー (Turn Based Strategy、TBS) 
+	[/PARAMLITERAL]
+	[PARAMLITERAL:playlistid]
+	PLZlv_N0_O1ga0aV9jVqJgog0VWz1cLL5f
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mI7eYXMJ5eI
+	[/PARAMLITERAL]
+	[PARAM:image]
+	![](TurnBasedStrategy_Screenshot02.png)
+	[/PARAM]
+[/OBJECT]
+[/VAR]

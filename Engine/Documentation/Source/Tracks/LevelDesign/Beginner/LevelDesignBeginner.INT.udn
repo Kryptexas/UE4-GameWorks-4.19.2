@@ -1,0 +1,54 @@
+Title:Beginning Level Design Track
+Crumbs:%ROOT%, Tracks
+Description:
+Availability:Docs
+
+[OBJECT:TrackButtonList]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Beginning Level Design
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAMLITERAL:id]
+	LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:links]
+		%Tracks/LevelDesign/Beginner:links%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:links]
+* [](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:description%")
+	* [](Engine/UI/LevelEditor/Toolbar "%Engine/UI/LevelEditor/Toolbar:description%")
+	* [](Engine/UI/LevelEditor/Modes "%Engine/UI/LevelEditor/Modes:description%")
+	* [](Engine/UI/LevelEditor/SceneOutliner "%Engine/UI/LevelEditor/SceneOutliner:description%")
+	* [](Engine/UI/LevelEditor/Details "%Engine/UI/LevelEditor/Details:description%")
+	* [](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:description%")
+* [](Engine/Actors "%Engine/Actors:description%")
+	* [](Engine/Actors/Placement "%Engine/Actors/Placement:description%")
+	* [](Engine/Actors/Selection "%Engine/Actors/Selection:description%")
+	* [](Engine/Actors/Transform "%Engine/Actors/Transform:description%")
+	* [](Engine/Actors/Mobility "%Engine/Actors/Mobility:description%")
+	* [](Engine/Actors/Grouping "%Engine/Actors/Grouping:description%")
+* [](Engine/Actors/Types "%Engine/Actors/Types:description%")
+	* [](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
+	* [](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
+	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
+* [](Engine/Rendering/Materials/IntroductionToMaterials "%Engine/Rendering/Materials/IntroductionToMaterials:description%")
+* [](Engine/Rendering/LightingAndShadows/Basics "%Engine/Rendering/LightingAndShadows/Basics:description%")
+* [](Engine/UI/LevelEditor/InEditorTesting "%Engine/UI/LevelEditor/InEditorTesting:description%")
+[/VAR]
+
+[VAR:menu]
+[REGION:menu]
+[REGION:menu_container]
+[REGION:buttonlist]
+%Tracks/LevelDesign/Beginner:links%
+[/REGION]
+[/REGION]
+[/REGION]
+[/VAR]

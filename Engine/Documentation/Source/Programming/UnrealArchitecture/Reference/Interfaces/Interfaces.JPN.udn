@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:2374181
+Availability:Public
+Title:インターフェース
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:インターフェースの作成および実装に関する参照ページ
+Version:4.5
+
+[TOC(start:2)]
+
+
+インターフェース クラスの宣言は普通のクラスの宣言と似ています。記法における大きな違いは、内容を `UCLASS` マクロではなく `UINTERFACE` マクロへ渡すことです。
+
+	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	class ClassName :ParentName
+
+## Interface 指定子
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]

@@ -1,0 +1,68 @@
+Availability:Public
+Title:Movable Lights
+Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
+Description:A fully dynamic light capable of changing all of its properties during runtime.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%](PL_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%](PL_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Rendering/LightingAndShadows/LightMobility/DynamicLights]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
+[/REGION]
+
+[TOC(start:2 end:2)]
+
+## Overview
+
+[EXCERPT:Movable001]
+
+**Movable Lights** cast completely dynamic light and shadows, can change position, rotation, color, brightness, falloff, radius, and just about every other property they have. None of the light they cast gets baked into the light maps, and currently they cannot have any indirect lighting.
+
+[/EXCERPT:Movable001]
+
+## Shadowing
+
+Movable lights setup to cast shadows use whole scene dynamic shadows, which have a significant performance cost.  The performance cost comes primarily from the number of meshes affected by the light, and the triangle count of those meshes.  This means that a shadow casting movable light with a large radius will cost many times more than a movable light with a small radius.
+
+## Usage
+
+On any light, under the **Transform** category, you will find a pull down property called **Mobility**; change that to **Movable**. This property also appears on light components added to a Blueprint.
+
+![](ML_movableProp.png)
+

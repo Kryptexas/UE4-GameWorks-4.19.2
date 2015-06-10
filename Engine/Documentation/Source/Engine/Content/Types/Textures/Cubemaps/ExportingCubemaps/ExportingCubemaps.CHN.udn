@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2087463
+Availability:Public
+Title:导出立方体贴图
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Types/Textures/Cubemaps
+Description:关于如何使用NVIDIA贴图工具插件从Photoshop导出立方体贴图的指南。
+
+## 概述
+
+本文介绍了如何使用NVIDIA贴图工具插件从Photoshop导出立方体贴图。
+
+##导出立方体贴图 (Photoshop)
+
+一旦您在Photoshop中设置了一些列的图片并准备将它们用作为立方体贴图，那么您就可以进行导出了。在这个示例中，我们将使用Photoshop CS6的NVIDIA贴图工具。
+
+如果您还没有安装该插件，那么您可以从[这里](http://developer.nvidia.com/content/nvidia-texture-tools-adobe-photoshop)获取它。
+
+1. 首先，确保该立方体贴图的贴图排列在一个文档中，且这些贴图具有同样的尺寸。该尺寸也应该是2的幂数。请确保按照[这样](Engine/Content/Types/Textures/Cubemaps/CreatingCubemaps)来旋转帧。
+
+![ExportCubemap.png](ExportCubemap.png)(w:800)
+
+2. 在 **文件** 菜单下，选择 **Save As（另存为）** 。
+
+![PhotoshopSaveAs.png](PhotoshopSaveAs.png)
+
+3. 在 Save As(另存为)窗口中，选择 **D3D/DDS (*.DDS; *.DDS)** 并命名您的文件。
+
+![PhotoshopSaveAsDialog.png](PhotoshopSaveAsDialog.png)(w:600)
+
+4. 在NVIDIA dds Format窗口中，从顶部的组合框中选择 **8.8.8.8  ARGB 32 bpp | unsigned** 。设置下面的组合框为 **Cube Map（立方体贴图）** 。设置MIP Map Generation组为 **No MIP maps** 。
+
+![PhotoshopDDSDialog.png](PhotoshopDDSDialog.png)(w:600)
+
+5. 点击 **Save（保存）** 。
+
+
+
+这里使用的图片是源自Paul Debevec网站的灯光探测器[http://www.pauldebevec.com](http://www.pauldebevec.com/index.html)。

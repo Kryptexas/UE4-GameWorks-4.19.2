@@ -1,0 +1,140 @@
+﻿INTSourceChangelist:2415526
+Availability: Public
+Title:스태틱 메시 콜리전 참고서
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
+Description:Collilsion, 콜리전 지오메트리 생성 및 구성을 위한 콘텐츠 가이드입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/Collision/Reference:title%](Engine/Physics/Collision/Reference/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/Collision:/Reference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/Collision/Reference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/Collision/Reference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+## 개요
+
+그래픽적인 디테일이 늘어감에 따라, 게임 내 콜리전(collision, 충돌)을 간단히 유지시키는 것이 매우 중요합니다. 두 가지 이유에서 그런데, 적은 폴리곤에 대한 콜리전 계산이 훨씬 빠르기 때문이고, 플레이어가 작은 지오메트리 조각에 걸리지 않도록 하여 조작감을 부드럽게 하기 위해서입니다. 콜리전 반응은 언리얼 콜리전과 PhysX, 별개의 두 부분으로 나뉘어 있습니다.
+
+[REGION:tip]
+**스태틱 메시 에디터** 에서 제작된 모든 콜리전 모양은, 생성 이후 이동, 회전, 스케일 조절 가능합니다. 스태틱 메시별로 콜리전 모양을 하나 이상 만들어 스태틱 메시의 콜리전에 필요한 정밀도에 맞출 수 있습니다.
+
+(박스, 구체, 캡슐 등의) 단순한 콜리전 모양에 가장 유용하지만, 컨벡스 헐 생성기나 K-DOP 헐에도 사용 가능합니다.
+[/REGION]
+
+## 스켈레탈 메시 콜리전 헐 만들기
+
+스켈레탈 메시가 사용하는 콜리전 헐 제작법에 대해서는 [](Engine/Physics/PhAT) 페이지를 참고하시기 바랍니다.
+
+## 스태틱 메시 에디터에서 스태틱 메시 콜리전 헐 만들기
+
+![](COLREF_collisionMenu.png)
+
+### K-DOP
+
+
+
+[REGION:raw]
+![](COLREF_collisionMenu_KDOP.png)
+[/REGION]
+
+**스태틱 메시 에디터** 의 **콜리전** 메뉴 항목 아래에는 _##DOP_ 라는 이름의 메뉴 옵션 시리즈가 있는데, 이들은 **K-DOP** 심플 콜리전 생성을 위한 것입니다. **K-DOP** 는 일종의 바운딩 볼륨으로, _K Discrete Oriented Polytope_ 의 약자입니다. (K 는 축에 평행인 면의 수를 뜻하기에, 쉬운 이해를 위해 DOP 는 '면체'로 번역했습니다.) 기본적으로는 K 개의 축 평행면을 메시에 가급적 가까이 밀어 넣는 것입니다. 그 결과 나오는 모양을 콜리전 헐로 사용합니다. 스태틱 메시 에디터에서 가능한 K 는:
+
+
+* **10** - 네 변을 각지게 만든 박스입니다. X-, Y-, Z- 축을 선택할 수 있습니다.
+* **18** - 모든 변을 각지게 만든 박스입니다.
+* **26** - 모든 변과 모서리를 각지게 만든 박스입니다.
+
+예제는 아래를 참고하십시오. 이 툴은 파이프, 기둥, 레일같은 것이 가득한 패키지에 꽤나 좋습니다:
+
+![kdop_sizes.jpg](kdop_sizes.jpg)
+
+
+### 자동 컨벡스 콜리전 툴을 사용하여 콜리전 헐 만들기
+
+[REGION:raw]
+![](COLREF_collisionMenu_Auto.png)
+[/REGION]
+
+**스태틱 메시 에디터** 에서는 컨벡스 헐의 갯수를 사용하여 콜리전을 생성할 수 있습니다.
+
+![Collision_CreateCollisionHullWithAutoConvex_0.jpg](Collision_CreateCollisionHullWithAutoConvex_0.png)(convert:false)
+
+**6면체 단순화된 콜리전** 에는 이렇게 라운딩 처리된 큐브로 충분할 테지만, 더 필요하다 가정해 봅시다.
+
+**콜리전 메뉴 -> 자동 컨벡스 콜리전** 을 선택하면 우하단 측면에 이 패널이 뜹니다:
+
+![Collision_CreateCollisionHullWithAutoConvex_1.jpg](Collision_CreateCollisionHullWithAutoConvex_1.png)(convert:false)
+
+* **Max Hulls** 최대 헐 - 오브젝트의 모양에 가장 근접하게 생성되는 헐 수를 결정합니다.
+* **Max Hull Verts** 최대 헐 버텍스 - 최대 콜리전 헐 버텍스 수입니다. 이 값을 올리면 최대로 가능한 콜리전 헐 복잡도도 올라갑니다.
+* **Apply** 적용 - 위 세팅에 따라 오브젝트에 콜리전을 추가합니다.
+* **Defaults** 디폴트 - **Max Hulls** 와 **Max Hull Verts** 값을 위 그림에서 보이는 값으로 리셋시킵니다.
+
+![Collision_CreateCollisionHullWithAutoConvex_2.jpg](Collision_CreateCollisionHullWithAutoConvex_2.png)(convert:false)
+
+보시듯이 자동 컨벡스 콜리전은 꽤나 정확합니다.
+
+### 단순 모양을 사용하여 콜리전 만들기
+
+[REGION:raw]
+![](COLREF_collisionMenu_BuildYourOwn.png)
+[/REGION]
+
+기본적인 콜리전 모양을 만드는 옵션은 이와 같습니다:
+
+[REGION:raw]
+![](COLREF_BuildYourOwn_01.png)(convert:false)
+[/REGION]
+
+단순한 콜리전 모양 생성 이후에는 원하는 위치로 이동, 회전, 스케일 조절 가능합니다. 복잡한 스태틱 메시의 경우 콜리전 모양을 하나 이상 만들 수도 있습니다.
+
+| **콘트롤** | **동작** |
+| --- | --- |
+| **W, E, R** | 이동, 회전, 스케일 툴로 전환합니다. |
+| **Delete** | 현재 선택된 피직스 바디(들)을 삭제합니다. |
+| **F** | 현재 선택된 피직스 바디(들)에 포커스를 맞춥니다. |
+| **Ctrl + 좌클릭** | 선택에 피직스 바디를 추가합니다. |
+| **(위젯 위에) Alt + 좌클릭 드래그** | 피직스 바디를 복제합니다. |
+
+
+### 3D 콘텐츠 제작 프로그램을 사용하여 콜리전 헐 만들기
+
+3D 콘텐츠 프로그램 안에서 스태틱 메시 콜리전 헐을 만드는 법에 대해서는 [FBX 스태틱 메시 파이프라인](Engine/Content/FBX/StaticMeshes#콜리전) 페이지를 확인하시기 바랍니다.
+
+
+## 콜리전 반응
+
+언리얼 엔진 4 는 콜리전 오브젝트 상호간의 작용에 있어 꽤나 다른 부분이 있습니다. 각 오브젝트는 임의의 오브젝트 유형이므로 (예를 들어 **스태틱 메시** 가 **WorldDynamic** 콜리전 반응 그룹에 있다면) 다른 반응 그룹의 오브젝트를 **무시**, **블록**, **오버랩** 하도록 선택할 수 있습니다.
+
+짧게 말하자면, 오브젝트가 "나는 충돌하도록 설정된 것이랑 충돌할거야"  라기 보다는, 오브젝트가 "나는 _Pawn_ 인 오브젝트랑만 충돌하고, _WorldDynamic_ 인 것과는 오버랩하면서 다른 것들은 무시할거야" 라고 설정할 수 있는 것입니다. 나아가 그 오브젝트를 사용하면 _Pawn_ 과만 충돌하고, _Pawn_ 반응 그룹에 있는 오브젝트는 우리 폰 충돌자가 들어있는 그룹을 **무시** 하도록 선택할 수 있는 것입니다.
+
+정말 복잡해 질 수는 있지만, 활용할 수 있는 툴을 통해 쉽게 처리할 수 있습니다. 자세한 것은 [콜리전 반응](Engine/Physics\Collision) 문서를 참고해 주시기 바랍니다.
+
+
+## 게임내 콜리전 검토
+
+게임내에서 콜리전 셋업 검토를 위해 사용할 수 있는 콘솔 명령은 많이 있는데, 몇 가지 살펴보면 이렇습니다. 명령을 입력하면 껐다 켰다 토글됩니다.
+
+* **show COLLISION** - 레벨에 사용중인 모든 콜리전 모델과 블로킹 볼륨을 그립니다.
+
+![](COLREF_showCollision.png)(w:900)
+
+* **stat game** - 여러가지 유형별 콜리전이 얼마나 오래 걸리는가에 대해 다양한 통계를 표시해 줍니다.
+
+![](Collision_StatGame.png)(w:900)
+

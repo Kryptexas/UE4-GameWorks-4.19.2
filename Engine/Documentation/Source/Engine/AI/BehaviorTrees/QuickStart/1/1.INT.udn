@@ -1,0 +1,34 @@
+﻿Availability:Public
+Title: 1. Essential Setup
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
+Description:Step 1. Essential Setup
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/AI/BehaviorTrees/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/AI/BehaviorTrees/QuickStart/2 "%Engine/AI/BehaviorTrees/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+[EXCERPT:AIProjectStart]
+
+1. Open Unreal Editor 4.
+
+1. Generate a new project based on the **Blueprint Top Down** template.
+
+	The **Starter Assets** are optional for this quick start guide.
+
+
+If you need a more in depth explanation of starting a new project, see the [Project Browser](Engine/Basics/Projects/Browser) User Guide.
+
+[/EXCERPT:AIProjectStart]
+%Steps%

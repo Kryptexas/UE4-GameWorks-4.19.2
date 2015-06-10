@@ -1,0 +1,856 @@
+﻿INTSourceChangelist:2472241
+Title:UE4 C++ 프로그래밍 입문
+Crumbs:
+Description:언리얼 엔진이 처음이신 C++ 프로그래머를 위한 입문 안내서입니다.
+Availability:Public
+Version:4.7
+
+![image alt text](image_0.png)
+
+## 언리얼 C++ 는 쩝니다!
+
+언리얼 엔진에서 C++ 코드를 작성하는 법을 배워보는 안내서입니다. 걱정마세요, 언리얼 엔진에서의 C++ 프로그래밍은 재밌고, 실제로 시작하기도 어렵지 않습니다! 언리얼 C++ 는 "보조 C++" 정도로 생각해 주시면 좋겠는데, 모두가 C++ 를 쉽게 사용할 수 있도록 도와주는 기능이 정말 많기 때문입니다.
+
+진행하기 전 정말 중요한 점은, 이미 C++ 나 다른 프로그래밍 언어에 이미 익숙하셔야 한다는 점입니다. 이 글은 약간의 C++ 경험이 있는 분들을 대상으로 하지만, C#, Java, JavaScript 를 아시는 경우 여러가지 유사한 부분을 확인하실 수 있을 것입니다.
+
+프로그래밍 경험이 전혀 없는 분들의 경우에도 커버 가능한 부분이 있습니다! [블루프린트 비주얼 스크립트 안내서](Engine/Blueprints) 를 확인해 보시면 되겠습니다. 블루프린트 스크립트만 사용해서도 충분히 게임을 만들 수 있거든요!
+
+언리얼 엔진에서 "일반적인 고전 C++ 코드" 작성을 하는 것도 가능하지만, 이 안내서를 통독하고 언리얼 프로그래밍 모델의 기본에 대해 알아두시는 편이 가장 나을 것입니다. 진행하면서 자세히 말씀드리겠습니다.
+
+## C++ 및 블루프린트
+
+언리얼 엔진에는 새로운 게임플레이 요소 제작에 있어 C++ 및 블루프린트 비주얼 스크립트, 두 가지 방법이 제공됩니다. C++ 를 사용해서 프로그래머가 바탕이 되는 게임플레이 시스템을 추가하면, 디자이너는 이를 토대로 레벨이나 게임에 맞는 게임플레이를 작성합니다. 이 때 C++ 프로그래머는 Microsoft Visual Studio 나 Apple 의 Xcode 등) 자주 쓰는 IDE 에서 작업을 하고, 디자이너는 언리얼 에디터의 블루프린트 에디터에서 작업을 합니다.
+
+게임플레이 API 및 프레임워크 클래스는 두 시스템 모두에서 사용 가능하며, 별개로 사용할 수도 있지만, 서로를 보완해 주는 식으로 사용할 때 진정한 위력이 발휘됩니다. 그런데 이게 무슨 소릴까요? 프로그래머가 C++ 로 게임플레이 기본 구성요소를 만들고, 디자이너가 그 요소를 가지고 재미난 게임플레이를 만들 때 엔진이 최대한의 위력을 발휘한다는 뜻입니다.
+
+그렇게 알아 두시고, 디자이너가 쓸 기본 구성요소를 만드는 C++ 프로그래머의 전형적인 작업방식을 살펴봅시다. 여기서는 나중에 디자이너나 프로그래머가 블루프린트를 통해 확장하는 클래스를 하나 만들겠습니다. 이 클래스에서는, 디자이너가 설정할 수 있는 프로퍼티를 몇 개 만든 다음, 그 프로퍼티에서 새로운 값을 파생시키도록 하겠습니다. 제공된 툴과 C++ 매크로를 사용하면 전체 프로세스가 매우 쉽습니다.
+
+### 클래스 마법사
+
+먼저 언리얼 에디터 안의 클래스 마법사를 사용하여 나중에 블루프린트로 확장시킬 기본 C++ 클래스를 만들겠습니다. 아래 그림은 새 액터를 만드는 마법사의 첫 단계에서 새 액터를 만드는 것을 보여줍니다.
+
+![image alt text](image_1.png)
+
+프로세스의 두 번째 단계는 마법사에게 생성하고자 하는 이름을 알려줍니다. 여기서는 기본 이름을 사용했습니다.
+
+![image alt text](image_2.png)
+
+클래스 생성 선택 이후에는 마법사가 파일을 생성해 주며 개발 환경 프로그램을 열어 편집을 시작할 수 있습니다. 자동 생성되는 클래스 정의는 이렇습니다. 클래스 마법사 관련 상세 정보는 [](Programming/Development/ManagingGameCode/CppClassWizard) 문서를 참고하세요.
+
+	#include "GameFramework/Actor.h"
+	#include "MyActor.generated.h"
+
+	UCLASS()
+	class AMyActor : public AActor
+	{
+		GENERATED_BODY()
+		
+	public:	
+		// 이 액터의 프로퍼티에 기본값을 설정합니다
+		AMyActor();
+		// 게임 시작시 또는 스폰시 호출됩니다
+		virtual void BeginPlay() override;
+		
+		// 매 프레임 호출됩니다
+		virtual void Tick( float DeltaSeconds ) override;
+	};
+
+클래스 마법사는 BeginPlay() 와 Tick() 을 오버로딩하는 클래스를 생성합니다. BeginPlay() 는 액터가 플레이 가능한 상태로 게임에 들어왔음을 알려주는 이벤트입니다. 클래스에 대한 게임플레이 로직을 초기화시키기에 좋은 곳입니다. Tick() 는 지난 번 들여온 이후의 경과된 시간만큼 프레임당 한 번씩 호출됩니다. 여기서 어떠한 반복 로직도 가능합니다. 하지만 그러한 함수성이 필요치 않은 경우, 약간의 퍼포먼스 향상을 위해 제거해 주는 것이 좋습니다. 제거한 경우, 생성자에서 틱이 일어나야 한다고 나타낸 줄도 제거해 줘야 합니다. 아래 생성자에 그 줄이 들어있습니다.
+
+	AMyActor::AMyActor()
+
+	{
+
+		// 이 액터가 Tick() 을 매 프레임 호출하도록 설정합니다. 필요치 않은 경우 이 옵션을 끄면 퍼포먼스가 향상됩니다.
+
+		PrimaryActorTick.bCanEverTick = true;
+
+	}
+
+### 프로퍼티가 에디터에 보이도록 만들기
+
+클래스를 생성했으니, 디자이너가 언리얼 에디터에서 설정할 수 있는 프로퍼티를 만들어 봅시다. 프로퍼티를 에디터에 노출시키는 작업은 전용 매크로 UPROPERT() 를 사용하면 매우 쉽습니다. 아래 클래스에서 보이는 것처럼, UPROPERTY(EditAnymore) 매크로를 프로퍼티 선언 앞에 두기만 하면 됩니다.
+
+	UCLASS()
+	class AMyActor : public AActor
+	{
+		GENERATED_BODY()
+
+		UPROPERTY(EditAnywhere)
+		int32 TotalDamage;
+
+		...
+	};
+
+에디터에서의 값 편집 허용을 위해 필요한 작업은 그게 전부입니다. 편집 방법이나 위치에 대한 추가적인 제어를 위한 방법이 몇 가지 더 있습니다. UPROPERTY() 매크로에 추가 정보를 전달하는 식으로 이루어집니다. 예를 들어 TotalDamage 프로퍼티가 다른 유사 프로퍼티와 한 섹션에 나타나도록 하려면, 카테고리 분류 기능을 사용하면 됩니다. 그 프로퍼티 선언 방법은 아래와 같습니다.
+
+	UPROPERTY(EditAnywhere, Category="Damage")
+	int32 TotalDamage;
+
+사용자가 이 프로퍼티를 편집하려 할 때, 카테고리 이름이 똑같이 설정된 다른 프로퍼티와 함께 Damage 라는 제목의 섹션 아래 나타납니다. 디자이너에게 자주 쓰이는 세팅을 모아놓기에 좋은 방법입니다.
+
+이제 같은 프로퍼티를 블루프린트로 노출시켜 봅시다.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	int32 TotalDamage;
+
+보시다시피 프로퍼티를 읽고 쓸 수 있도록 만들기 위한 블루프린트 전용 파라미터가 있습니다. 프로퍼티가 블루프린트에서 *const* (상수) 취급하도록 하고자 하는 경우 사용할 수 있는 옵션도 BlueprintReadOnly 라고 따로 있습니다. 엔진에 프로퍼티를 노출시키는 방법을 제어할 수 있는 옵션은 몇 가지 더 있습니다. 자세한 정보는 [](Programming/UnrealArchitecture/Reference/Properties/Specifiers) 문서를 참고하세요.
+
+다음 섹션으로 넘어가기 전, 이 샘플 클래스에 프로퍼티를 몇 가지 추가해 봅시다. 이 액터가 내는 총 대미지 양 조절을 위한 프로퍼티는 이미 있습니다. 하지만 이를 토대로 시간에 걸쳐 서서히 대미지를 입히도록 만들어 봅시다. 아래 코드는 디자이너 설정가능 프로퍼티를 하나, 디자이너에게 보이긴 하지만 변경은 불가능한 프로퍼티를 하나 추가합니다.
+
+	UCLASS()
+	class AMyActor : public AActor
+	{
+		GENERATED_BODY()
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+		int32 TotalDamage;
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+		float DamageTimeInSeconds;
+
+		UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Transient, Category="Damage")
+		float DamagePerSecond;
+	
+		...
+	};
+
+DamageTimeInSeconds 는 디자이너 변경가능 프로퍼티입니다. DamagePerSecond 프로퍼티는 디자이너의 세팅을 사용하여 계산된 값입니다 (다음 섹션 참고). VisibleAnywhere 플래그는 프로퍼티가 보이기는 하되 언리얼 에디터에서 편집은 불가능하도록 마킹합니다. Transient (휘발성) 플래그는 디스크에(서) 저장되거나 로드되지 않고, 지속되지 않는 파생 값이라는 뜻입니다. 아래 그림은 클래스 디폴트 일부러써의 프로퍼티를 나타냅니다.
+
+![image alt text](image_3.png)
+
+### 생성자에서 기본값 설정
+
+생성자에서 프로퍼티의 기본값을 설정하는 것은 전형적인 C++ 클래스와 동일합니다. 아래는 생성자에서 기본값을 설정하는 예제 둘로, 함수성은 동일합니다.
+
+	AMyActor::AMyActor()
+	{
+		TotalDamage = 200;
+		DamageTimeInSeconds = 1.f;
+	}
+
+	AMyActor::AMyActor() :
+		TotalDamage(200),
+		DamageTimeInSeconds(1.f)
+	{
+	}
+
+생성자에 기본값을 추가한 이후 같은 프로퍼티를 본 모습입니다.
+
+![image alt text](image_4.png)
+
+인스턴스별 디자이너 설정 프로퍼티를 지원하기 위해, 주어진 오브젝트에 대한 인스턴스 데이터에서 값을 로딩하기도 합니다. 이 데이터는 생성자 이후에 적용됩니다. PostInitProperties() 콜 체인에 걸어주는 것으로 디자이너 설정 값을 기반으로 기본값을 만들 수 있습니다. 다음은 그러한 프로세스에 대한 예제로서, TotalDamage 와 DamageTimeInSeconds 를 디자이너 지정 값으로 한 것입니다. 디자이너가 지정한 것이긴 하지만, 위 예제에서처럼 거기에 대해 적당한 기본값을 지정해 줄 수는 있습니다. 주: 프로퍼티에 기본값을 지정해 주지 않으면, 엔진에서 자동으로 0 또는 포인터의 경우 널 포인터로 설정합니다.
+
+	void AMyActor::PostInitProperties()
+	{
+		Super::PostInitProperties();
+		DamagePerSecond = TotalDamage / DamageTimeInSeconds;
+	}
+
+위의 PostInitProperties() 코드를 추가한 이후 같은 프로퍼티를 다시 확인한 모습입니다.
+
+![image alt text](image_5.png)
+
+**핫 리로드**
+
+다른 프로젝트에서 C++ 프로그래밍에 익숙했다면 놀라실만한 언리얼의 멋진 기능입니다. **에디터를 닫지 않고도 C++ 변경내용을 컴파일** 할 수 있습니다! 그 방법은 두 가지입니다:
+
+1. 에디터를 열어둔 채로, 평소처럼 **Visual Studio 나 Xcode 에서 Build** 를 합니다. 에디터가 새로 컴파일된 DLL 을 감지하여 변경내용을 즉시 리로드합니다!
+
+	![image alt text](image_6.png)
+
+	(참고로 디버거가 붙어있는 경우, Visual Studio 에서 Build 를 할 수 있도록 하려면 먼저 떼어줘야 합니다.)
+
+2. 아니면 그냥 에디터 메인 툴바의 **컴파일** 버튼을 클릭합니다!
+
+	![image alt text](image_7.png)
+
+이 기능의 덕은 튜토리얼을 진행하면서 앞으로 느껴보실 수 있습니다. 시간이 얼마나 절약되는지를요!
+
+### 블루프린트를 통한 C++ 클래스 확장
+
+지금까지 C++ 클래스 마법사로 간단한 게임플레이 클래스를 만들고 디자이너가 설정할 수 있는 프로퍼티를 추가해 봤습니다. 이제 어떻게 하면 디자이너가 이렇게 미약한 시작에서 창대한 고유 클래스를 만들 수 있을지 그 방법을 살펴봅시다.
+
+먼저 AMyActor 클래스에서 블루프린트 클래스를 새로 만들어 주겠습니다. 아래 그림에서 보면 선택된 베이스 클래스의 이름이 AMyActor 가 아닌 MyActor 로 나타납니다. 이는 의도된 것으로, 디자이너에게 툴 내부적으로 쓰이는 이름으로 보이지 않도록 하여 보다 친근감을 주기 위한 것입니다.
+
+![image alt text](image_8.png)
+
+선택하고나면, 기본 이름의 블루프린트 클래스가 새로 생성됩니다. 이 경우 아래 콘텐츠 브라우저 스냅샷에서 보시듯이 CustomActor1 이라고 이름을 설정했습니다.
+
+![image alt text](image_9.png)
+
+디자이너가 걸칠 수 있도록 맞춤 제작한 클래스 1 호입니다. 먼저 바꿔줄 것은, 대미지 프로퍼티의 기본값입니다. 이 경우 디자이너가 TotalDamage 를 300 으로, 그만큼의 대미지를 입히는 데 걸리는 시간을 2 초로 설정했습니다. 그러면 프로퍼티는 이렇게 보입니다.
+
+![image alt text](image_10.png)
+
+잠깐만요... 계산된 값이 기대한 대로 나오지 않는데요. 150 이 되어야 하겠지만, 여전히 기본값 200 으로 표시됩니다. 그 이유는, 로딩 프로세스에서 프로퍼티가 초기화된 이후의 초당 대미지 값만 계산하고 있기 때문입니다. 언리얼 에디터의 실행시간 변경사항은 반영되지 않습니다. 에디터에서 타겟 오브젝트의 값이 변경되면 알려주므로 이 문제에는 간단한 해법이 있습니다. 아래 코드는 에디터에서 변해가는 파생된 값의 계산에 필요한 후크 추가를 나타냅니다.
+
+	void AMyActor::PostInitProperties()
+	{
+		Super::PostInitProperties();
+
+		CalculateValues();
+	}
+
+	void AMyActor::CalculateValues()
+	{
+		DamagePerSecond = TotalDamage / DamageTimeInSeconds;
+	}
+
+	#if WITH_EDITOR
+	void AMyActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+	{
+		CalculateValues();
+
+		Super::PostEditChangeProperty(PropertyChangedEvent);
+	}
+	#endif
+
+한 가지 참고할 것은 PostEditChangeProperty() 메소드가 에디터 전용 #ifdef 안에 있다는 것입니다. 이는 게임에 필요한 코드로만 게임을 만들 수 있도록 하여, 실행파일 크기를 불필요하게 늘릴 수 있는 여타 코드를 제거하는 것입니다. 그 코드를 컴파일해 넣고나면, 아래 그림에서 보시듯이 DamagePerSecond 값이 예상대로 나옵니다.
+
+![image alt text](image_11.png)
+
+### C++ 및 블루프린트 경계를 넘는 함수 호출
+
+지금까지는 블루프린트에 프로퍼티를 노출시키는 법을 보여드렸는데, 엔진에 더욱 깊숙히 뛰어들기 전에 소개해 드렸으면 하는 주제가 마지막 하나 있습니다. 게임플레이 시스템 생성 도중에는, 디자이너가 C++ 프로그래머에 의해 생성된 함수를 호출할 수도, 게임플레이 프로그래머가 블루프린트나 C++ 코드로 구현된 함수를 호출할 수도 있어야 합니다. 먼저 CalculateValues() 함수를 블루프린트에서 호출가능하도록 만들어 봅시다. 함수를 블루프린트에 노출시키는 것은, 프로퍼티 노출만큼이나 간단합니다. 함수 선언 전 매크로 하나만 배치해 주면 됩니다! 무엇이 필요한지는 아래 코드 스니펫으로 알 수 있습니다.
+
+	UFUNCTION(BlueprintCallable, Category="Damage")
+	void CalculateValues();
+
+UFUNCTION() 매크로가 반영 시스템으로의 C++ 함수 노출을 처리합니다. BlueprintCallable 옵션이 그것을 블루프린트 가상 머신에 노출시켜 주지요. 모든 블루프린트 노출 함수는 카테고리를 할당해 주어야 우클릭 맥락 메뉴가 정상 작동합니다. 아래 이미지는 카테고리가 맥락 메뉴에 끼치는 영향을 보여줍니다.
+
+![image alt text](image_12.png)
+
+보시듯이 Damage 카테고리에서 함수를 선택할 수 있습니다. 아래 블루프린트 코드는 TotalDamage 값의 변화 뒤에 종속 데이터 재계산을 위한 호출이 오고 있습니다.
+
+![image alt text](image_13.png)
+
+여기서는 앞서 종속 프로퍼티 계산을 위해 추가했던 바로 그 함수를 사용합니다. 엔진 많은 부분이 UFUNCTION() 매크로를 통해 블루프린트에 노출되어 있어, C++ 코드를 작성하지 않고도 게임을 만들 수 있는 것입니다. 기반이 되는 게임플레이 시스템과 퍼포먼스가 중요한 코드는 C++ 를 사용하고, 그 C++ 기본 구성요소를 토대로 복합적인 작동방식을 만들거나 입맛대로 수정하는 데는 블루프린트를 사용하는 것이 최적의 접근법입니다.
+
+디자이너가 C++ 코드를 호출할 수 있게 되었으니, C++/블루프린트 경계를 넘나드는 비법을 한 가지 더 알아봅시다. 이 접근법은 C++ 코드에서 블루프린트에 정의된 함수를 호출할 수 있도록 해 주는 것입니다. 종종 디자이너가 알맞게 반응할 수 있도록 디자이너에게 이벤트를 알리는 접근법을 사용합니다. 거기에는 액터를 숨기거나 보이게 만드는 등의 시각적인 영향이나 이펙트 스폰 작업이 수반되게 마련인데요. 블루프린트로 구현된 함수를 나타내 주는 코드 스니펫은 아래와 같습니다.
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Damage")
+	void CalledFromCpp();
+
+이 함수는 다른 C++ 함수처럼 호출됩니다. 내부적으로 언리얼 엔진은 블루프린트 가상머신으로 호출해 들어가는 방법을 이해하는 베이스 C++ 함수 구현을 생성합니다. 이를 가르켜 흔히 Thunk, 썽크라고 합니다. 해당 블루프린트가 이 메소드에 대한 함수 바디를 제공해 주지 않는 경우, 그 함수는 본래 동작이 없는 C++ 함수인 것처럼 작동합니다: 아무것도 하지 않는 것입니다. 블루프린트가 메소드를 덮어쓸 수 있도록 하면서도 C++ 기본 구현을 제공하려면 어떻게 해야 할까요? UFUNCTION() 매크로에 그에 대한 옵션도 있습니다. 그것을 이뤄내기 위해 헤더를 어떻게 변경해야 하는지 나타내는 코드 스니펫은 아래와 같습니다.
+
+	UFUNCTION(BlueprintNativeEvent, Category="Damage")
+	void CalledFromCpp();
+
+이 버전은 여전히 블루프린트 가상 머신으로 호출해 들어가는 썽크 메소드를 생성합니다. 그러면 기본 구현은 어떻게 제공할까요? 툴에서는 <함수명>_Implementation() 같이 보이는 함수 선언을 새로 생성하는 툴도 제공해 줍니다. 이 버전의 함수를 제공해 주지 않으면 프로젝트가 링크하는 데 실패할 것입니다. 위 선언에 대한 구현 코드는 이렇습니다.
+
+	void AMyActor::CalledFromCpp_Implementation()
+	{
+		// 여기서 어떤 작업을 해라
+	}
+
+이제 이 버전의 함수가 호출되면 해당 블루프린트는 메소드를 덮어쓰지 않습니다. 한 가지 참고할 것은, 빌드 툴 미래 버전에서는 자동 생성되는 _Implementation() 선언이 없어져 헤더에 명시적으로 추가해 줘야 할 수도 있습니다. 4.7 버전을 기준으로, 그 선언 자동 생성은 여전히 일어나고 있습니다.
+
+일반적인 게임플레이 프로그래머 작업방식과 디자이너와 함께 게임플레이 기능을 만들어 나가는 방법을 안내해 드렸으니, 여러분 자신의 여정을 선택할 시간입니다. 이 문서를 계속 읽어보면서 엔진에서 C++ 를 어떻게 사용하는지 더 알아보거나, 런처에 포함된 샘플 중 하나에 바로 뛰어들어 실전 경험을 쌓아 보실 수도 있겠습니다. (역주: 기술적으로 깊이 들어가는 이후 부분은, 현 단계에서 번역 제공하지 않습니다.)
+
+## Diving Deeper
+
+I see you’re still with me on this adventure. Excellent. The next topics of discussion revolve around what our gameplay class hierarchy looks like. In this section, we’ll start with the base building blocks and talk through how they relate to each other. This is where we’ll look at how the Unreal Engine uses both inheritance and composition to build custom gameplay features.
+
+### Gameplay Classes: Objects, Actors, and Components
+
+There are 4 main class types that you derive from for the majority of gameplay classes.  They are **UObject**, **AActor**, **UActorComponent**, and **UStruct**. Each of these building blocks are described in the following sections. Of course, you can create types that don’t derive from any of these classes, but they will not participate in the features that are built into the engine. Typical use of classes that are created outside of the **UObject** hierarchy are: integrating 3rd party libraries; wrapping of OS specific features; etc.
+
+#### Unreal Objects (UObject)
+
+The base building block in the Unreal Engine is called **UObject**. This class, coupled with **UClass**, provides a number of the most important base services in the engine:
+
+* Reflection of properties and methods
+* Serialization of properties
+* Garbage collection
+* Finding **UObjects** by name
+* Configurable values for properties
+* Networking support for properties and methods
+
+Each class that derives from **UObject** has a singleton **UClass** created for it that contains all of the meta data about the class instance. **UObject** and **UClass** together are at the root of everything that a gameplay object does during its lifetime. The best way to think of the difference between a **UClass** and a **UObject** is that the **UClass** *describes* what an instance of a **UObject** will look like, what properties are available for serialization, networking, etc. Most gameplay development doesn’t involve directly deriving from **UObjects**, but instead from **AActor** and **UActorComponent**. You don’t need to know the details of how **UClass**/**UObject** works in order to write gameplay code, but it’s good to know that these systems exist.
+
+#### AActor
+
+An **AActor** is an object that is meant to be part of the gameplay experience. **AActors** are either placed in a level by a designer or created at runtime via gameplay systems. All objects that can be placed into a level extend from this class. Examples include **AStaticMeshActor**, **ACameraActor**, and **APointLight** actors. **AActor** derives from **UObject**, so enjoys all of the standard features listed in the previous section. **AActors** can be explicitly destroyed via gameplay code (C++ or Blueprints) or via the standard garbage collection mechanism when the owning level is unloaded from memory. **AActors** are responsible for the high-level behaviors of your game’s objects. **AActors** are also the base type that can be replicated during networking. During network replication, **AActors** can also distribute information for any **UActorComponents** owned by that **AActor** that require network support.
+
+**AActors** have their own behaviors (specialization through inheritance), but they also act as containers for a hierarchy of **UActorComponents** (specialization through composition). This is done through the **AActor’s** RootComponent member, which contains a single **UActorComponent** that, in turn, can contain many others. Before an **AActor** can be placed in a level, that **AActor** must contain at least a **USceneComponent** which contains the translation, rotation, and scale for that **AActor**. 
+
+**AActors** have a series of events that are called during the lifecycle of the **AActor**. The list below is a simplified set of the events that illustrate the lifecycle.
+
+* BeginPlay - called when the object first comes into gameplay existence
+* Tick - called once per frame to do work over time
+* EndPlay - called when the object is leaving the gameplay space
+
+See [](Programming/UnrealArchitecture/Actors) for a more detailed discussion on AActor.
+
+##### Runtime Lifecycle
+
+Just above we discussed a subset of an **AActor’s** lifecycle. For actors that are placed in a level, understanding the lifecycle is pretty easy to imagine: actors are loaded and come into existence and eventually the level is unloaded and the actors are destroyed. What is the process for runtime creation and destruction? Unreal Engine calls the creation of an **AActor** at runtime *spawning*. Spawning an actor is a bit more complicated than creating a normal object in the game. The reason is that an **AActor** needs to be registered with a variety of runtime systems in order to serve all of its needs. The initial location and rotation for the actor need to be set. Physics may need to know about it. The manager responsible for telling an actor to tick needs to know. And so on. Because of this, we have a method devoted to the spawning of an actor, **UWorld::SpawnActor()**. Once that actor is spawned successfully, its **BeginPlay()** method is called, followed by **Tick()** the next frame.
+
+Once an actor has lived out its lifetime, you can get rid of it by calling **Destroy()**. During that process **EndPlay()** will be called where you can do any custom logic for destruction. Another option for controlling how long an actor exists is to use the Lifespan member. You can set a timespan in the constructor of the object or with other code at runtime. Once that amount of time has expired, the actor will automatically have Destroy() called on it.
+
+To learn more about spawning actors see the [](Programming/UnrealArchitecture/Actors/Spawning) page.
+
+#### UActorComponent
+
+**UActorComponents** have their own behaviors and are usually responsible for functionality that is shared across many types of **AActors**, e.g. providing visual meshes, particle effects, camera perspectives, and physics interactions. While **AActors** are often given high-level goals related to their overall roles your game, **UActorComponents** usually perform the individual tasks that support those higher-level objectives. Components can also be attached to other Components, or can be the root Component of an Actor. A Component can only attach to one parent Component or Actor, but it may have many child Components attached to itself. Picture a tree of Components. Child Components have location, rotation, and scaling relative to their parent Component or Actor.
+
+While there are many ways to use Actors and Components, one way to think of the Actors-Component relationship is that Actors might answer the question "what is this thing?" while Components might answer “what is this thing made of?”
+
+* RootComponent - this is the member of AActor that holds the top level Component in the AActor’s tree of Components
+* Ticking - Components are ticked as part of the owning AActor’s Tick()
+
+##### Dissecting the First Person Character
+
+Over the last few sections we’ve done a lot of talking and not a lot of showing. In order to illustrate the relationship of an **AActor** and its **UActorComponents**, let’s dig into the Blueprint that is created when you generate a new project based off of the First Person Template. The image below is the Component tree for the FirstPersonCharacter Actor. The RootComponent is the CapsuleComponent. Attached to the CapsuleComponent is the ArrowComponent, the Mesh component, and the FirstPersonCameraComponent. The leaf most component is the Mesh1P component which is parented to the FirstPersonCameraComponent, meaning that the first person mesh is relative to the first person camera. 
+
+![image alt text](image_14.png)
+
+Visually, this tree of Components looks like the image below, where you see all of the components in 3D space except for the Mesh component.
+
+![image alt text](image_15.png)
+
+This tree of components is attached to the one actor class. As you can see from this example, you can build complex gameplay objects using both inheritance and composition. Use inheritance when you want to customize an existing **AActor** or **UActorComponent**. Use composition when you want many different **AActor** types to share the functionality.
+
+#### UStruct
+
+To use a **UStruct**, you don’t have to extend from any particular class, you just have mark the struct with **USTRUCT()** and our build tools will do the base work for you. Unlike a **UObject**, **UStructs** are *not* garbage collected. If you create dynamic instances of them, you must manage their lifecycle yourself. **UStructs** are meant to be plain old data types that have the **UObject** reflection support for editing within the Unreal Editor, Blueprint manipulation, serialization, networking, etc.
+
+Now that we’ve talked about the basic hierarchy used in our gameplay class construction, it’s time to choose your path again. You can read about our gameplay classes [here](Programming/UnrealArchitecture/Reference/Classes), head out to our samples in the launcher armed with more information, or continue digging deeper into our C++ features for building games.
+
+## Diving Deeper Still
+
+Alright, it’s clear you want to know more. Let’s keep on going deeper into how the engine works.
+
+### Unreal Reflection System
+
+[Blog Post: Unreal Property System (Reflection)](https://www.unrealengine.com/blog/unreal-property-system-reflection)
+
+Gameplay classes make use of special markup, so before we go over them, let’s cover some of the basics of the Unreal property system.  UE4 uses its own implementation of reflection that enables dynamic features such as garbage collection, serialization, network replication, and Blueprint/C++ communication.  These features are opt-in, meaning you have to add the correct markup to your types, otherwise Unreal will ignore them and not generate the reflection data for them.  Here is a quick overview of the basic markup:
+
+* **UCLASS() **- Used to tell Unreal to generate reflection data for a class.  The class must derive from **UObject**. 
+* **USTRUCT() **- Used to tell Unreal to generate reflection data for a struct.
+* **GENERATED_BODY()** - UE4 replaces this with all the necessary boilerplate code that gets generated for the type.
+* **UPROPERTY() **- Enables a member variable of a **UCLASS **or a **USTRUCT** to be used as a  **UPROPERTY**.  A **UPROPERTY** has many uses.  It can allow the variable to be replicated, serialized, and accessed from Blueprints.  They are also used by the garbage collector to keep track of how many references there are to a **UObject**.
+* **UFUNCTION() **- Enables a class method of a **UCLASS** or a **USTRUCT **to be used as a **UFUNCTION**.  A **UFUNCTION** can allow the class method to be called from Blueprints and used as RPCs, among other things.
+
+Here is an example declaration of a **UCLASS**:
+
+	#include "MyObject.generated.h"
+
+	UCLASS(Blueprintable)
+	class UMyObject : public UObject
+	{
+		GENERATED_BODY()
+
+	public:
+		MyUObject();
+
+		UPROPERTY(BlueprintReadOnly, EditAnywhere)
+		float ExampleProperty;
+
+		UFUNCTION(BlueprintCallable)
+		void ExampleFunction();
+	};
+
+You’ll first notice the inclusion of "MyClass.generated.h".  Unreal will generate all the reflection data and put it into this file.  You must include this file as the last include in the header file that declares your type.
+
+You’ll also have noticed that we can also add additional specifiers to the markup.  I’ve added some of the more common ones for demonstration.  These allow us to specify certain behaviour that our types have.
+
+* **Blueprintable** - This class can be extended by a Blueprint.
+* **BlueprintReadOnly **- This property can only be read from a Blueprint, and not written to.
+* **Category** - Defines what section this property appears under in the Details view of the Editor.  For organizational purposes.
+* **BlueprintCallable **- This function can be called from Blueprints.
+
+There are too many specifiers to list here, so I’ll link to the docs for them:
+
+[List of UCLASS Specifiers](Programming/UnrealArchitecture/Reference/Classes/Specifiers)
+
+[List of UPROPERTY Specifiers](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/UP___367/index.html)
+
+[List of UFUNCTION Specifiers](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/UF___366/index.html)
+
+[List of USTRUCT Specifiers](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/US___368/index.html)
+
+### Object/Actor Iterators
+
+Object iterators are a very useful tool to iterate over all instances of a particular **UObject** type and it’s subclasses.
+
+	// Will find ALL current UObjects instances
+	for (TObjectIterator<UObject> It; It; ++It)
+	{
+		UObject* CurrentObject = *It;
+		UE_LOG(LogTemp, Log, TEXT("Found UObject named: %s"), *CurrentObject.GetName());
+	}
+
+You can limit the scope of the search by providing a more specific type to the iterator.  Suppose you had a class called **UMyClass** that derived from **UObject**.  You could find all instances of that class (and those that derive from it) like this:
+
+	for (TObjectIterator<UMyClass> It; It; ++It)
+	{
+		// ...
+	}
+
+Warning: Using object iterators in PIE (Play In Editor) can lead to unexpected results.  Since the editor is loaded, the object iterator will return all **UObjects** created for your game world instance, in addition to those that are just being used by the editor.
+
+Actor iterators work in much the same way as object iterators, but only work for objects that derive from **AActor**.  Actor iterators don’t have the problem noted below, and will only return objects being used by the current game world instance.
+
+When creating an actor iterator, you need to give it a pointer to a **UWorld** instance.  Many **UObject** classes, such as **APlayerController**, provide a **GetWorld** method to help you.  If you’re not sure, you can check the **ImplementsGetWorld** method on a **UObject** to see if it implements the **GetWorld** method.
+
+	APlayerController* MyPC = GetMyPlayerControllerFromSomewhere();
+	UWorld* World = MyPC->GetWorld();
+
+	// Like object iterators, you can provide a specific class to get only objects that are
+	// or derive from that class
+	for (TActorIterator<AEnemy> It(World); It; ++It)
+	{
+		// ...
+	}
+
+[REGION:note]
+Since **AActor** derives from **UObject**, you can use **TObjectIterator** to find instances of **AActors** as well.  Just be careful in PIE!
+[/REGION]
+
+## Memory Management and Garbage Collection
+
+In this section we will go over basic memory management and the garbage collection system in UE4.
+
+[Wiki: Garbage Collection & Dynamic Memory Allocation](https://wiki.unrealengine.com/Garbage_Collection_%26_Dynamic_Memory_Allocation)
+
+### UObjects and Garbage Collection
+
+UE4 uses the reflection system to implement a garbage collection system.  With garbage collection, you will not have to manually manage deleting your **UObjects**, you just need to maintain valid references to them.  Your classes needs to derive from **UObject** in order to be enabled for garbage collection.  Here is the simple example class we will be using:
+
+	UCLASS()
+	class MyGCType : public UObject
+	{
+		GENERATED_BODY()
+	};
+
+In the garbage collector, there is this concept called the *root set*.  This root set is basically a list of objects that the collector knows about will never be garbage collected.  An object will not be garbage collected as long as there is a path of references from an object in the root set to the object in question.  If no such path to the root set exists for an object, it is called *unreachable *and will be collected (deleted) the next time the garbage collector is ran.  The engine runs the garbage collector at certain intervals.
+
+What counts as a "reference"?  Any **UObject** pointer stored in a **UPROPERTY**.  Let’s start with a simple example.
+
+	void CreateDoomedObject()
+	{
+		MyGCType* DoomedObject = NewObject<MyGCType>();
+	}
+
+When we call the above function, we create a new **UObject**, but we don’t store a pointer to it in any **UPROPERTY**, and it isn’t a part of the root set.  Eventually, the garbage collector will detect this object is unreachable, and destroy it.
+
+### Actors and Garbage collection
+
+Actors are not usually garbage collected.  Once spawned, you must manually call **Destroy()** on them.  They will not be deleted immediately, and instead will be cleaned up during the next garbage collection phase.
+
+This is a more common case, where you have actors with **UObject** properties.
+
+	UCLASS()
+	class AMyActor : public AActor
+	{
+		GENERATED_BODY()
+
+	public:
+		UPROPERTY()
+		MyGCType* SafeObject;
+
+		MyGCType* DoomedObject;
+
+		AMyActor(const FObjectInitializer& ObjectInitializer)
+			: Super(ObjectInitializer)
+		{
+			SafeObject = NewObject<MyGCType>();
+			DoomedObject = NewObject<MyGCType>();
+		}
+	};
+
+	void SpawnMyActor(UWorld* World, FVector Location, FRotator Rotation)
+	{
+		World->SpawnActor<AMyActor>(Location, Rotation);
+	}
+
+When we call the above function, we spawn an actor into the world.  The actor’s constructor creates two objects.  One gets assigned to a **UPROPERTY**, the other to a bare pointer.  Since actors are automatically a part of the root set, **SafeObject** will not be garbage collected because it can be reached from a root set object.  **DoomedObject**, however, will not fare so well.  We didn’t mark it with **UPROPERTY**, so the collector doesn’t know its being referenced, and will eventually destroy it.
+
+When a **UObject** is garbage collected, all **UPROPERTY** references to it will be set to **nullptr** for you.  This makes it safe for you to check if an object has been garbage collected or not.
+
+	if (MyActor->SafeObject != nullptr)
+	{
+		// Use SafeObject
+	}
+
+This is important since, as mentioned before, actors that have had **Destroy() **called on them are not removed until the garbage collector runs again.  You can check the **IsPendingKill()** method to see if a **UObject** is awaiting it’s deletion.  If that method returns **true**, you should consider the object dead and not use it.
+
+### UStructs
+
+**UStructs**, as mentioned earlier, are meant to be a lightweight version of a **UObject**.  As such, **UStructs** cannot be garbage collected.  If you must use dynamic instances of **UStructs**, you may want to use smart pointers instead, which we will go over later.
+
+### Non-UObject References
+
+Normal, non-**UObjects** can also have the ability to add a reference to an object and prevent garbage collection.  To do that, your object must derive from **FGCObject **and override its **AddReferencedObjects** class.
+
+	class FMyNormalClass : public FGCObject
+	{
+	public:
+		UObject* SafeObject;
+
+		FMyNormalClass(UObject* Object)
+			: SafeObject(Object)
+		{
+		}
+
+		void AddReferencedObjects(FReferenceCollector& Collector) override
+		{
+			Collector.AddReferencedObject(SafeObject);
+		}
+	};
+
+We use the **FReferenceCollector** to manually add a hard reference to the **UObject **we need and don’t want garbage collected.  When the object is deleted and its destructor is run, the object will automatically clear all references that it added.
+
+### Class Naming Prefixes
+
+Unreal Engine provides tools that generate code for you during the build process. These tools have some class naming expectations and will trigger warnings or errors if the names don’t match the expectations. The list of class prefixes below delineates what the tools are expecting.
+
+* Classes derived from **Actor** prefixed with **A**, e.g. AController.
+* Classes derived from **Object** are prefixed with **U**, e.g. UComponent.
+* **Enums** are prefixed with **E**, e.g. EFortificationType.
+* **Interface** classes are usually prefixed with **I**, e.g. IAbilitySystemInterface.
+* **Template** classes are prefixed by **T**, e.g. TArray.
+* Classes that derive from **SWidget** (Slate UI) are prefixed by **S**, e.g. SButton.
+* Everything else is prefixed by the [letter F](https://forums.unrealengine.com/showthread.php?60061-Unreal-trivia-What-does-the-F-prefix-on-classes-and-structs-stand-for), e.g. FVector.
+
+### Numeric Types
+
+Since different platforms have different sizes for basic types such as **short**, **int**, and **long**, UE4 provides the following types which you should use as an alternative:
+
+* **int8**/**uint8 **: 8-bit signed/unsigned integer
+* **int16**/**uint16 **: 16-bit signed/unsigned integer
+* **int32**/**uint32 **: 32-bit signed/unsigned integer
+* **int64**/**uint64 **: 64-bit signed/unsigned integer
+
+Floating point numbers are also supported with the standard **float **(32-bit)** **and **double** (64-bit) types.
+
+Unreal Engine has a template, **TNumericLimits<t>**, for finding the minimum and maximum ranges value types can hold. For more information follow this [link](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Math/TNumericLimits/index.html).
+
+### Strings
+
+UE4 provides several different classes for working with strings, depending on your needs.
+
+[Full Topic: String Handling](Programming/UnrealArchitecture/StringHandling)
+
+#### FString
+
+**FString **is a mutable string, analogous to std::string.  **FString** has a large suite of methods for making it easy to work with strings.  To create a new **FString**, use the **TEXT()** macro:
+
+FString MyStr = TEXT("Hello, Unreal 4!").
+
+[Full Topic: FString API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Containers/FString/index.html)
+
+#### FText
+
+**FText** is similar to **FString**, but it is meant for localized text.  To create a new **FText**, use the **NSLOCTEXT** macro.  This macro takes a namespace, key, and a value for the default language:
+
+	FText MyText = NSLOCTEXT("Game UI", “Health Warning Message”, “Low Health!”)
+
+You could also use the **LOCTEXT** macro, so you only have to define a namespace once per file.  Make sure to undefine it at the bottom of your file.
+
+	// In GameUI.cpp
+	#define LOCTEXT_NAMESPACE "Game UI"
+	
+	//…
+	FText MyText = LOCTEXT("Health Warning Message", “Low Health!”)
+	//…
+	
+	#undef LOCTEXT_NAMESPACE
+	// End of file
+
+[Full Topic: FText API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Internationalization/FText/index.html)
+
+#### FName
+
+A **FName** stores a commonly recurring string as an identifier in order to save memory and CPU time when comparing them. Rather than storing the complete string many times across every object that references it, a **FName** uses a smaller storage footprint **Index** that maps to a given string. This stores the contents of the string once, saving memory when that string is used across many objects. Two strings can be compared quickly by checking to see if **NameA.Index** equals **NameB.Index**, avoiding checking each character in the string for equality.
+
+[Full Topic: FName API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/UObject/FName/index.html)
+
+#### TCHAR
+
+**TCHARs** are used as a way of storing characters independent of the character set being used, which may differ between platforms.  Under the hood, UE4 strings use **TCHAR** arrays to store data in the **UTF-16** encoding.  You can access the raw data by using the overloaded dereference operator which returns **TCHAR***.  
+
+[Full Topic: Character Encoding](Programming/UnrealArchitecture/StringHandling/CharacterEncoding)
+
+This is needed for some functions, such as **FString::Printf**, where the **‘%s’** string format specifier expects a **TCHAR*** instead of an **FString**.
+
+	FString Str1 = TEXT("World");
+	int32 Val1 = 123;
+	FString Str2 = FString::Printf(TEXT("Hello, %s! You have %i points."), *Str1, Val1);
+
+The **FChar** type provides a set of static utility functions for working with individual **TCHARs**.
+
+	TCHAR Upper(‘A’);
+	TCHAR Lower = FChar::ToLower(Upper); // ‘a’
+
+[REGION:note]
+The **FChar** type is defined as **TChar<TCHAR>** (as it is listed in the API).
+[/REGION]
+
+[Full Topic: TChar API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Misc/TChar/index.html)
+
+### Containers
+
+Containers are classes whose primary function is to store collections of data.  The most common of these classes are **TArray**,** TMap**,** **and** TSet**.  Each of these are dynamically sized, and so will grow to whatever size you need.
+
+[Full Topic: Containers API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Containers/index.html)
+
+#### TArray
+
+Of these three containers the primary container you’ll use in Unreal Engine 4 is **TArray**, it functions much like **std::vector **does, but offers a lot more functionality.  Here are some common operations:
+
+	TArray<AActor*> ActorArray = GetActorArrayFromSomewhere();
+
+	// Tells how many elements (AActors) are currently stored in ActorArray.
+	int32 ArraySize = ActorArray.Num();
+
+	// TArrays are 0-based (the first element will be at index 0)
+	int32 Index = 0;
+	// Attempts to retrieve an element at the given index
+	TArray* FirstActor = ActorArray[Index];
+
+	// Adds a new element to the end of the array
+	AActor* NewActor = GetNewActor();
+	ActorArray.Add(NewActor);
+
+	// Adds an element to the end of the array only if it is not already in the array
+	ActorArray.AddUnique(NewActor); // Won’t change the array because NewActor was already added
+
+	// Removes all instances of ‘NewActor’ from the array
+	ActorArray.Remove(NewActor);
+
+	// Removes the element at the specified index
+	// Elements above the index will be shifted down by one to fill the empty space
+	ActorArray.RemoveAt(Index);
+
+	// More efficient version of ‘RemoveAt’, but does not maintain order of the elements
+	ActorArray.RemoveAtSwap(Index);
+
+	// Removes all elements in the array
+	ActorArray.Empty();
+
+**TArrays **have the added benefit of having their elements garbage collected.  This assumes that the **TArray** is marked as a **UPROPERTY**, and that it stores **UObject** derived pointers.
+
+	UCLASS()
+	class UMyClass : UObject
+	{
+		GENERATED_BODY();
+
+		// …
+
+		UPROPERTY()
+		TArray<AActor*> GarbageCollectedArray;
+	};
+
+We’ll cover the garbage collection in depth in a later section.
+
+[Full Topic: TArrays](Programming/UnrealArchitecture/TArrays)
+
+[Full Topic: TArray API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Containers/TArray/index.html)
+
+#### TMap
+
+A **TMap** is a collection of key-value pairs, similar to **std::map**.  **TMap** has quick methods for finding, adding, and removing elements based on their key.  You can use any type for the key, as long as it has a **GetTypeHash** function defined for it, which we will go over later.
+
+Let’s say you were creating a grid-based board game and needed to store and query what piece is on each square.  A **TMap **would provide you with an easy way to do that.  If your board size is small and is always the same size, there are obviously more efficient ways at going about this, but let’s roll with it for example’s sake!
+
+	enum class EPieceType
+	{
+		King,
+		Queen,
+		Rook,
+		Bishop,
+		Knight,
+		Pawn
+	};
+
+	struct FPiece
+	{
+		int32 PlayerId;
+		EPieceType Type;
+		FIntPoint Position;
+
+		FPiece(int32 InPlayerId, EPieceType InType, FIntVector InPosition) :
+			PlayerId(InPlayerId),
+			Type(InType),
+			Position(InPosition)
+		{
+		}
+	};
+
+	class FBoard
+	{
+	private:
+
+		// Using a TMap, we can refer to each piece by it’s position
+		TMap<FIntPoint, FPiece> Data;
+
+	public:
+		bool HasPieceAtPosition(FIntPoint Position)
+		{
+			return Data.Contains(Position);
+		}
+		FPiece GetPieceAtPosition(FIntPoint Position)
+		{
+			return Data[Position];
+		}
+
+		void AddNewPiece(int32 PlayerId, EPieceType Type, FIntPoint Position)
+		{
+			FPiece NewPiece(PlayerId, Type, Position);
+			Data.Add(Position, NewPiece);
+		}
+
+		void MovePiece(FIntPoint OldPosition, FIntPoint NewPosition)
+		{
+			FPiece Piece = Data[OldPosition];
+			Piece.Position = NewPosition;
+			Data.Remove(OldPosition);
+			Data.Add(NewPosition, Piece);
+		}
+
+		void RemovePieceAtPosition(FIntPoint Position)
+		{
+			Data.Remove(Position);
+		}
+
+		void ClearBoard()
+		{
+			Data.Empty();
+		}
+	};
+
+[Full Topic: TMaps](Programming/UnrealArchitecture/TMap)
+
+[Full Topic: TMap API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Containers/TMapBase/index.html)
+
+#### TSet
+
+A **TSet** stores a collection of unique values, similar to **std::set**.  With the **AddUnique** and **Contains** methods, **TArrays** can already be used as sets.  However, **TSet** has faster implementations of these operations, at the cost of not being able to use them as **UPROPERTYs** like **TArrays**.  **TSets** are also do not index their elements like **TArrays** do.
+
+	TSet<AActor*> ActorSet = GetActorSetFromSomewhere();
+
+	int32 Size = ActorSet.Num();
+
+	// Adds an element to the set, if the set does not already contain it
+	AActor* NewActor = GetNewActor();
+	ActorSet.Add(NewActor);
+
+	// Check if an element is already contained by the set
+	if (ActorSet.Contains(NewActor))
+	{
+		// ...
+	}
+
+	// Remove an element from the set
+	ActorSet.Remove(NewActor);
+
+	// Removes all elements from the set
+	ActorSet.Empty();
+
+	// Creates a TArray that contains the elements of your TSet
+	TArray<AActor*> ActorArrayFromSet = ActorSet.Array();
+
+[Full Topic: TSet API](https://docs.unrealengine.com/latest/INT/API/Runtime/Core/Containers/TSet/index.html)
+
+Remember!  Currently, the only container class that can be marked as a **UPROPERTY** is **TArray**.  This means other container classes cannot be replicated, saved, or have their elements garbage collected for you.
+
+#### Container Iterators
+
+Using iterators, you can loop through each element of a container.  Here is an example of what the iterator syntax looks like, using a **TSet.**
+
+	void RemoveDeadEnemies(TSet<AEnemy*>& EnemySet)
+	{
+		// Start at the beginning of the set, and iterate to the end of the set
+		for (auto EnemyIterator = EnemySet.CreateIterator(); EnemyIterator; ++EnemyIterator)
+		{
+			// The * operator gets the current element
+			AEnemy* Enemy = *EnemyIterator;
+			if (Enemy.Health == 0)
+			{
+				// ‘RemoveCurrent’ is supported by TSets and TMaps
+				EnemyIterator.RemoveCurrent();
+			}
+		}
+	}
+
+Other supported operations you can use with iterators:
+
+	// Moves the iterator back one element
+	--EnemyIterator;
+
+	// Moves the iterator forward/backward by some offset, where Offset is an integer
+	EnemyIterator += Offset;
+	EnemyIterator -= Offset;
+
+	// Gets the index of the current element
+	int32 Index = EnemyIterator.GetIndex();
+
+	// Resets the iterator to the first element
+	EnemyIterator.Reset();
+
+#### For-each Loop
+
+Iterators are nice, but can be a bit cumbersome if you just want to loop through each element once.  Each container class also supports the "for each" style syntax to loop over the elements.  **TArray and TSet** return each element, whereas **TMap** returns a key-value pair.
+
+	// TArray
+	TArray<AActor*> ActorArray = GetArrayFromSomewhere();
+	for (AActor* OneActor : ActorArray)
+	{
+		// ...
+	}
+
+	// TSet - Same as TArray
+	TSet<AActor*> ActorSet = GetSetFromSomewhere();
+	for (AActor* UniqueActor : ActorSet)
+	{
+		// ...
+	}
+
+	// TMap - Iterator returns a key-value pair
+	TMap<FName, AActor*> NameToActorMap = GetMapFromSomewhere();
+	for (auto& KVP : NameToActorMap)
+	{
+		FName Name = KVP.Key;
+		AActor* Actor = KVP.Value;
+
+		// ...
+	}
+
+Remember that the **auto** keyword doesn’t automatically specify a pointer/reference for you, you need to add that yourself!
+
+#### Using your own types with TSet/TMap (Hash Functions)
+
+**TSet **and **TMap **require the use of *hash functions* internally.  If you create your own class that you want to use it in a **TSet** or as the key to a **TMap**, you need to create your own hash function first.  Most UE4 types that you would commonly put in these types already define their own hash function.
+
+A hash function takes a const pointer/reference to your type and returns a **uint64**.  This return value is known as the *hash code *for an object, and should be a number that is pseudo-unique to that object.  Two objects that are equal should always return the same hash code.
+
+	class FMyClass
+	{
+		uint32 ExampleProperty1;
+		uint32 ExampleProperty2;
+
+		// Hash Function
+		friend uint32 GetTypeHash(const FMyClass& MyClass)
+		{
+			// HashCombine is a utility function for combining two hash values
+			uint32 HashCode = HashCombine(MyClass.ExampleProperty1, MyClass.ExampleProperty2);
+			return HashCode;
+		}
+
+		// For demonstration purposes, two objects that are equal
+		// should always return the same hash code.
+		bool operator==(const FMyClass& LHS, const FMyClass& RHS)
+		{
+			return LHS.ExampleProperty1 == RHS.ExampleProperty1
+				&& LHS.ExampleProperty2 == RHS.ExampleProperty2;
+		}
+	};
+
+Now, **TSet&lt;FMyClass&gt; **and **TMap&lt;FMyClass, ...&gt; **will use the proper hash function when hashing keys.  If you using pointers as keys (i.e. **TSet&lt;FMyClass*&gt;**) implement **uint32 GetTypeHash(const FMyClass* MyClass)** as well.
+
+[Blog Post: UE4 Libraries You Should Know About](https://www.unrealengine.com/blog/ue4-libraries-you-should-know-about)
+

@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2083418
+Availability:Public
+Title:페르소나 메시 디테일
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:페르소나 애니메이션 에디터의 메시 디테일 패널에 대한 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/MeshDetails:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/MeshDetails:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/MeshDetails:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/MeshDetails]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Overview]
+![](MeshDetails.png)
+
+
+**메시 디테일** 패널에는 스켈레탈 메시의 메시에 관계된 특정 프로퍼티가 표시되는데, 이를테면 표면에 적용된 머티리얼이라던가, 스키닝이나 LOD 옵션을 말합니다. 이 패널은 페르소나가 **메시** 모드에 있을 때만 보입니다.
+[/EXCERPT:Overview]
+
+이 패널은 페르소나의 특정 메시 편집 전용이라는 사실 외에도, 메인 에디터의 표준 디테일 패널과 기능적으로 동일합니다.
+
+이 패널 사용법에 대한 기본 정보는 [](Engine/UI/LevelEditor\Details) 문서를 참고해 주시기 바랍니다.
+

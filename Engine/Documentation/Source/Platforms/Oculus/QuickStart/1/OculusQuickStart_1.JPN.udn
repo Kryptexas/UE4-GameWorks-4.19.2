@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:2385999
+Title:1.Oculus Developer として登録する
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:Register as an Oculus デベロッパーとして登録すると、必要なプログラムとドキュメントを利用できるようになります。
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Oculus/QuickStart/2 "%Platforms/Oculus/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+1. [Oculus Developer Center](https://developer.oculus.com/) へアクセスし、 [ダウンロード](https://developer.oculus.com/downloads/) をクリックします。 
+
+	![](Oculus_Downloads.png)
+
+[Oculus Developer Center](https://developer.oculus.com/) の Log In リンクをクリックしても、アカウントを作成したり、既存のアカウントへアクセスすることができます。アカウントを作成すると
+フォーラムへの投稿、Oculus Share へのゲームの提出などが可能になります。
+
+* Oculus アカウントをお持ちの方は、e-mail アドレスとパスワードを入力し **[Log In]** ボタンをクリックします。
+
+	![](2-2-click-the-log-in-link.jpg)
+
+* Oculus Developer アカウントをお持ちでない方は、**[Create a free account]** をクリックしてください。
+	1. ページに記載されているインストラクションに従って、登録フォームに記入します。
+	1. Oculus からメールアドレスと登録を確認するためのリンクを知らせるメールが届きます。
+	1. [Oculus Developer Center](https://developer.oculus.com/) に戻り、 **Design** リンクをクリックします。
+
+
+%Steps%

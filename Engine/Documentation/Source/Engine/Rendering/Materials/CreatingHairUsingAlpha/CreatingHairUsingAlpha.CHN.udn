@@ -1,0 +1,44 @@
+Availability: Public
+Title:制作毛发：材质和网格物体
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/Materials
+
+[TOC(start:2)]
+
+
+
+## 概述
+
+该页面已经更新，现在可以使用 Translucent（半透明）混合模式和 Anisotropic（各向异性）光照模型制作毛发材质这种最新方法。
+
+
+
+## 屏幕截图
+
+![Hair_01.jpg](Hair_01.jpg)
+
+
+![Hair_02.jpg](Hair_02.jpg)
+
+
+![Hair_03.jpg](Hair_03.jpg)
+
+
+![Hair_04.jpg](Hair_04.jpg)
+
+
+![Hair_05.jpg](Hair_05.jpg)
+
+
+![Hair_06.jpg](Hair_06.jpg)
+
+
+![updatedHairMaterial.jpg](updatedHairMaterial.jpg)(w:1182)
+
+
+![Hair_07.jpg](Hair_07.jpg)
+
+ 
+
+
+
+

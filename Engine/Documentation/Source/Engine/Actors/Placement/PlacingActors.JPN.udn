@@ -1,0 +1,171 @@
+﻿NTSourceChangelist:2490749
+Availability:Public
+Title:アクタの配置
+Crumbs: %ROOT%, Engine, Engine/Actors
+Description:プロップ、ライト、カメラなどのアクタをレベルに配置する方法を説明します。 
+Related:Engine/UI/ClassViewer
+Related:GettingStarted\HowTo
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/Actors "%Engine/Actors:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/Actors/Selection "%Engine/Actors/Selection:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/Placement:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/Placement:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/Placement]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors/Placement:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/Placement:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/Placement:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/Placement]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+最も基本的なレベルでは、 **アクタ** はレベルに配置可能なオブジェクトです。このページではアクタをレベル内に配置する様々な方法について説明します。 
+
+[TOC(start:2)]
+
+## 概要
+
+[EXCERPT:Place01]
+新規にプロジェクトを作成する場合、プロジェクトを開いた時にロードされたレベルは、通常ブランクのスレートです。望ましい背景やワールドを構築するには、アクタをレベルに配置しなくてはいけません。2 通りの方法がありますが、どちらも **コンテンツ ブラウザ** を使用し、結果としてアクタのインスタンスが新規作成されます。そのレベルのインスタンスは、移動やプロパティの変更が可能です。
+[/EXCERPT:Place01]
+
+[REGION:note]
+レベルに追加されたアクタは、デフォルトではアンリアル エンジンの右上隅の **[ワールド アウトライナー]** パネルのリストにも自動的に追加されます。ワールド アウトライナーに関する詳細は、 [ワールド アウトライナー](Engine/UI/LevelEditor\SceneOutliner) を参照してください。
+[/REGION]
+
+## 配置モードでアクタを配置する
+
+[EXCERPT:PlaceMode]
+このセクションでは [配置モード](Engine/UI/LevelEditor/Modes/PlaceMode) で **モード** メニューからアクタを配置する方法について説明します。 
+
+1. プロジェクトを開くと、画面の左上隅に **[Modes]** ウィンドウが表示されます。 
+
+	![](Place0.png)
+
+1.	 **[Place]** モード (1) の時に **[Basic]** タブ (2) をクリックして **マウスの左ボタンをクリック** し、アクタ (3) をレベル ビューポートにドラッグします。 
+
+	![](Place1.png)
+
+	Place モードのタブに表示されているアクタは、レベル内にドラッグ＆ドロップすることができます。 
+[/EXCERPT:PlaceMode]
+
+## コンテクスト メニューを用いてアクタを配置する
+
+このセクションではレベルの [コンテンツ ブラウザ](Engine/Content/Browser) から **コンテキスト メニュー** を使用してアクタを配置する方法について説明します。 
+
+1. プロジェクト内で画面の左下隅に **コンテンツ ブラウザ** が表示されます。 
+
+	![](Place2.png)
+
+1.	配置したいアセットを探します。例えば、 **カメラ** 、 **スタティックメッシュ** 、 **パーティクル エフェクト** 、 **サウンド キュー** などです。
+
+1.	アセットを **左クリック** すると強調表示されます。 
+
+	![](Place3.png)
+
+1.	レベル ビューポート内をどこか **右クリック** して **コンテキスト メニュー** を表示させて [_Place Actor_] セクションからアセットを選択します。
+
+	![](Place4.png)
+
+	コンテキスト メニュー選択したアセットが、レベル内に表示されるのが分かります。 
+
+**コンテンツ ブラウザ** で特定のアセットを選択した場合でも、異なるアセットタイプを追加するオプションがあります。以下の画像のように、コンテキスト メニューの**[Add Actor]** セクションのフライアウト メニューを開くと、追加可能なアセットタイプを確認することができます。 
+
+![](PlaceActorSubMenu.png)
+
+ビューポートで 1 つ以上のアクタおよび **コンテンツ ブラウザ** からアセットを選択している場合、以下の画像のようにコンテキスト メニューの **[Replace Selected Actors with]** セクションでアセット名をクリックすれば、レベル内の選択したアクタが選択したアセットに変更することもできます。複数のアセットの変更を一気に行いたい場合、この方法が便利です。 
+
+![](ReplaceMenu.png)
+
+
+## ドラッグ＆ドロップを使用してアクタを配置する
+
+ビューポートのコンテキスト メニューを使えば、 **コンテンツ ブラウザ** からある特定のアクタをマップへ追加するだけでなく、アセットを **コンテンツ ブラウザ** から配置したいビューポートへ単にドラッグ＆ドロップすることもできます。アセットをビューポートにドラッグし始めるとカーソルが変化し、そのアセットのタイプがビューポートにドロップされることが分かります。
+
+1. プロジェクト内の画面の左上隅に **コンテンツ ブラウザ** が表示されます。 
+
+	![](Place2.png)
+
+1.	追加したいセットを見つけたら **左クリック** してレベル ビューポートへ **ドラッグ＆ドロップ** します。 
+
+	![](Place5.png)
+
+**コンテンツ ブラウザ** からアセットをドラッグ＆ドロップする時に、アセットの関連タイプとして以下のアクタタイプが作成されます。
+
+* **ブループリント** - ブループリントのインスタンスを配置する
+* **パーティクル システム** - エミッターを配置する
+* **スケルタルメッシュ** - SkeletalMeshActor を配置する
+* **スタティック メッシュ** - StaticMeshActor を配置する
+* **サウンドキュー** - AmbientSound を配置する
+* **サウンドウェイブ** - AmbientSound を配置する
+
+
+## クラスビューアから配置する
+
+エディタで使うクラスの階層リストである **クラス ビューア** を使う方法は、さらに高度になります。
+
+1. **Class Viewer** を開くには、**Window** をクリックし、次に **Developer Tools** をクリックし、 _Miscellaneous_ で **クラス ビューア** を選択します。 
+
+	![](Place6.png)
+
+	**クラスビューア** ウィンドウが開きます。 
+
+	![](Place7.png)
+
+	レベルに配置できるアクタはこのウィンドウでは **青味を帯びた色** になっています。 
+
+1.	配置したいアセットを選択したら、レベル ビューポートへ **ドラッグ＆ドロップ** します。 
+
+	![](Place8.png)
+
+クラス ビューアを使った作業の詳細については、 [](Engine/UI/ClassViewer) のドキュメントを参照してください。 
+
+
+%playlistnav%

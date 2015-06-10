@@ -1,0 +1,233 @@
+﻿INTSourceChangelist:2520064
+Availability:Public
+Title:ビューポートの制御
+Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
+Description:エディタのビューポートに関するさまざまな制御スキームを学ぶ
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![](ViewportControls_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ViewportControls:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ViewportControls:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ViewportControls]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](ViewportControls_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UI/LevelEditor/Viewports/ViewportControls:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UI/LevelEditor/Viewports/ViewportControls:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UI/LevelEditor/Viewports/ViewportControls]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:3)]
+
+## 概要
+
+ビューポートで作業中に、シーンをナビゲート、アクタの選択や操作、表示オプションの変更ができる制御が 
+いろいろあります。
+
+このページでは、以下の省略表現を使用します。
+
+[REGION:simpletable]
+| 制御 | 省略形 |
+| ------- | ------------ |
+| 左マウスボタン | **LMB** |
+| マウスの右ボタン | **RMB** |
+| マウスホイール | **MMB** |
+[/REGION]
+
+## ナビゲーション制御
+
+アンリアル・エディタのビューポートをさまざまな方法で移動することができます。一部の移動はすべてマウス操作、キーボード操作、 
+もしくは両操作を組み合わせて行います。
+
+[REGION:note]
+キーバインディング エディタ](Engine/UI/KeyBindings) で設定可能な制御をいくつか紹介します。これはデフォルト状態の 
+一覧です。変更を加えると、一致しなくなる場合があります。
+[/REGION]
+
+### 標準
+
+[EXCERPT:StandardControls]
+他のキーやボタンを一切使わずにビューポートでクリック＆ドラッグした時、これらの制御が 
+デフォルト ビヘイビアとなります。正投影ビューポートをナビゲートするために使われる、唯一の制御でもあります。
+
+| 制御 | アクション |
+| ------- | ------- |
+| [REGION:tablesection]パースペクティブ[/REGION] |||
+| **LMB + ドラッグ** | カメラは前後に移動し、左右に回転します。 |
+| **RMB + Drag** | ビューポートカメラが回転します。 |
+| **LMB + RMB + ドラッグ** | カメラは上下に移動します。 |
+| [REGION:tablesection]正投影 (上面、前面、側面)[/REGION] |||
+| **LMB + ドラッグ** | マーキー選択ボックスを作成します。 |
+| **RMB + ドラッグ** | ビューポートカメラがパンします。 |
+| **LMB + RMB + ドラッグ** | ビューポートカメラがズームイン/ズームアウトします。 |
+| [REGION:tablesection]フォーカス[/REGION] |||
+| **F** |選択したオブジェクトにカメラがフォーカスします。これらはカメラのタンブルを最大限に活用するために必要な操作です。 |
+[/EXCERPT:StandardControls]
+
+### Magic Mouse と Magic Trackpad
+
+**System Preference** -> **Mouse** を選択してMagic Mouse にセカンダリ クリックを有効、または **System Preference** -> **Trackpad** を選択して Magic Trackpad に 2 本指でセカンダリ クリックを有効にすると、以下の制御が可能になります。
+
+| Magic Mouse | Magic Trackpad | 動作 |
+| ------- | ------- | ------- |
+| [REGION:tablesection]パースペクティブ[/REGION] |||
+| **LMB + ドラッグ** | **1 本指でクリック + ドラッグ** | カメラが前後に移動および左右に回転します。 |
+| **RMB + Drag** | **2 本指でクリック + ドラッグ** | ビューポートカメラが回転します。 |
+| **1 本指でタッチ + ドラッグ** | **2 本指でタッチ + ドラッグ** | ビューポートカメラが回転します  |
+| [REGION:tablesection]正投影 (上面、前面、側面)[/REGION] |||
+| **LMB + ドラッグ** | **1 本指でクリック + ドラッグ ** | マーキー選択ボックスを作成します。 |
+| **RMB + Drag** | **2 本指でクリック + ドラッグ** | ビューポートカメラがパンします。 |
+| **1 本指でタッチ + ドラッグ** | **2 本指でタッチ + ドラッグ** | ビューポートカメラがパンします  |
+| [REGION:tablesection]フォーカス[/REGION] |||
+| **F** | **F** | 選択したオブジェクトにカメラがフォーカスします。これらはカメラのタンブルを最大限に活用するために必要な操作です。 |
+
+
+### ゲームスタイル
+
+PC でシューターゲームをプレイされる方は、WASD キーで行うビューポートの制御はごく自然な感覚かもしれません。 
+WASD 移動はデフォルトで有効になっていて、 **RMB** を押すといつでも使用できます。つまり WASD キーで移動中にカメラを回転させるには 
+ここでも **RMB** ボタンを使用します。
+
+これらの制御は、別の操作方法として矢印キーとテンキーで同じように操作できます。
+
+[EXCERPT:GameControls]
+これらすべての制御方法は Perspective (透視図法) ビューポートのみで有効です。 
+デフォルトで WASD ゲームスタイルの制御を使用するには **RMB** ボタンを押します。
+
+| 制御 | アクション |
+| ------- | ------ |
+| **W** &#124; **Numpad8** &#124; **Up** | カメラが前方へ移動します。 |
+| **S** &#124; **Numpad2** &#124; **Down** | カメラが後方へ移動します。 |
+| **A** &#124; **Numpad4** &#124; **Left** | カメラが左へ移動します。 |
+| **D** &#124; **Numpad6** &#124; **Right** | カメラが右へ移動します。 |
+| **E** &#124; **Numpad9** &#124; **Page Up** | カメラが上方へ移動します。 |
+| **Q** &#124; **Numpad7** &#124; **Page Dn** | カメラが下方へ移動します。 |
+| **Z** &#124; **Numpad1** | カメラがズームアウトします (FOV (視野角) が上がります)。 |
+| **C** &#124; **Numpad3** | カメラがズームインします (FOV (視野角) が下がります)。 |
+[/EXCERPT:GameControls]
+
+カメラをズームさせるときに **RMB** ボタンを押下すると、FOV（Field of View:視野角）を一定に保ち、デフォルト設定に 
+戻ることを防ぎます。 **RMB** ボタンが解放されるまでFOVを保持します。
+
+[REGION:tip]
+**RMB** ボタンを押下しながら行う **WASD** キー移動時に、マウスホイールを上に回転させて移動速度を上げたり、 
+下に回転させて速度を下げることができます。
+[/REGION]
+
+[REGION:note]
+Magic Mouse または Magic Track の使用中は、 **RMB** + **Mouse Scroll Wheel** によるカメラ速度の変更ができません。ビューポートのカメラ速度オプションで速度調節しなくてはいけません。
+[/REGION]
+
+###パン、周回、ズーム
+
+[EXCERPT:MayaLikeControls]
+アンリアル エディタは Maya スタイル同様のパン、周回、ズームを行うビューポート制御をサポートしています。Maya を得意とするアーティストは、ツールの使用を簡単に行えます。 
+Maya の基本操作に不慣れなユーザーは以下の説明を参照してください。
+
+| コマンド | 説明 |
+| ------- | ----------- |
+|**Alt + LMB + ドラッグ**| 単一ピボットまたは注視点周りでビューポートをタンブル（回転）させます。 |
+| **Alt + RMB + ドラッグ** | 単一ピボットまたは注視店からカメラを近づけたり離したりドリーさせます。 |
+| **Alt + MMB + ドラッグ** | マウスの移動方向に合わせてカメラを上下、左右に追跡します。 |
+[/EXCERPT:MayaLikeControls]
+
+
+[ **F** ] キーの利用はMayaスタイルの制御に限定されるものではありません。いつでも **F** キーを押して選択したオブジェクトまたは 
+オブジェクトのグループをフォーカスすることができます。
+
+
+
+## 選択制御
+
+ビューポート内で単にクリックするだけで個別にアクタを選択、または 2D ビューポートの範囲指定を使ってアクタをグループ選択することができます。
+
+[REGION:imagetable]
+| ![](Engine/Actors/Selection/LE_SelectedActors.png)(w:400) | ![](Engine/Actors/Selection/Select_Marquee.png)(w:400 convert:false)
+| --- | --- |
+| 簡単な選択方法 | 範囲指定 |
+[/REGION]
+
+| 制御 | アクション |
+| ------- | ------ |
+| [REGION:tablesection]簡単な選択方法[/REGION] |||
+| **LMB**  | カーソルを合わせたアクタが現在の選択対象と置き換わります。 |
+| **Ctrl + LMB**  | カーソルを合わせたアクタが、現在の選択対象に追加されます。 |
+| [REGION:tablesection]範囲指定 (2D ビューポート対象)[/REGION] |||
+| **LMB + ドラッグ**  | 現在の選択内容を指定枠内のアクタと置き換えます。 |
+| **Shift + LMB + Drag** | 指定枠内のアクタを現在の選択内容に追加します。 |
+| **Ctrl + RMB + ドラッグ** | 指定枠内の選択アクタを現在の選択内容から削除します。 |
+
+## 変換制御
+
+ここでの制御は、変換ツールで行うビューポート内の移動、回転、スケールに関連します。
+
+[REGION:imagetable]
+| ![](Engine/Actors/Transform/LE_Trans_Widget.png)(w:160) | ![](Engine/Actors/Transform/Transform_Rotate.png)(w:160) | ![](Engine/Actors/Transform/LE_Trans_ScaleWidget.png)(w:160) |
+| --- | --- | --- |
+| 移動ツール (W) | 回転ツール (E) | スケールツール (R) |
+[/REGION]
+
+ビューポート ツールバーでアクティブになっているツールが分かります。
+
+![](Engine/Actors/Transform/LE_Trans_WidgetIcons.png)
+
+| 制御 | アクション |
+| ------- | ------ |
+| **LMB + ドラッグ (変換ツール上で)** | アクティブな変換ギズモに応じて、選択中のアクタを移動、回転、スケーリングさせます。 |
+| **W** | 移動ツールを選択します。 |
+| E | 回転ツールを選択します。 |
+| **R** | スケールツールを選択します。 |
+| **V** | ワールド内の別のジオメトリの頂点にスナップできるように、頂点スナップを切り替えます。 |
+| **MMB + ドラッグ (ピボット上で)** | 選択したピボットを一時的に移動して変換をオフセットします。 |
+| [REGION:tablesection] 移動ツール制御 (パースペクティブ ビューポート対象) [/REGION] |||
+| **Ctrl + LMB + ドラッグ** | X 軸に沿って選択中のアクタを移動します。 |
+| **Ctrl + RMB + ドラッグ** | Y 軸に沿って選択中のアクタを移動します。 |
+| **Ctrl + LMB + RMB + ドラッグ** | Z 軸に沿って選択中のアクタを移動します。 |
+| [REGION:tablesection] 移動ツール制御 (正投影ビューポート対象) [/REGION] |||
+| **Ctrl + LMB + ドラッグ** | 表示された 2 本の軸で定義したプレーンに沿って選択中のアクタを移動します。 |
+| [REGION:tablesection] 回転ツール制御 (パースペクティブ ビューポート対象)[/REGION] |||
+| **Ctrl + LMB + ドラッグ** | X 軸に沿って選択中のアクタを回転します。 |
+| **Ctrl + RMB + ドラッグ** | Y 軸に沿って選択中のアクタを移動します。 |
+| **Ctrl + LMB + RMB + ドラッグ** | Z 軸に沿って選択中のアクタを回転します。 |
+| [REGION:tablesection] スケールツール制御 [/REGION] |||
+| **Ctrl + LMB + ドラッグ** | 全ての軸に沿って選択中のアクタを均等にスケーリングします。 |
+| [REGION:tablesection] 移動 / スケール制御 (正投影ビューポート対象) [/REGION] |||
+| **Ctrl + RMB + ドラッグ** | 表示されている軸に沿って選択中のアクタを回転します。 |
+
+## 表示制御
+
+レベルがビューポートに表示される方法を制御します。
+
+| 制御 | アクション |
+| ------- | ------ |
+| **G** | インゲームに表示される要素のみがビューポートでレンダリングするようにGame Mode を切り替えます。 |
+| **Ctrl + R** | アクティブなビューポートでリアルタイム再生を切り替えます。 |
+| **F11** | イマーシブ (没入型) モードを切り替えて、ビューポートを全画面表示にします。 |
+

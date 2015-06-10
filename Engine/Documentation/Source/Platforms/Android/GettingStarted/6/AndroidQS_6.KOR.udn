@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title:6. 추가 자료
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:언리얼 엔진으로 안드로이드 개발을 하는 데 있어 추가로 참고할 자료입니다.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 단계](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+디바이스 호환성과 퍼포먼스 관련 상세 정보입니다:
+* [](Platforms\Android\DeviceCompatibility)
+* [](Platforms\DeviceProfiles)
+* [](Platforms\Mobile\Performance)
+
+모바일 디바이스용 게임 콘텐츠 및 레벨 디자인 관련 상세 정보입니다:
+* [](Platforms\Mobile\Content)
+* [](Platforms\Mobile\Lighting)
+* [](Platforms\Mobile\Materials)
+* [](Platforms\Mobile\PostProcessEffects)
+* [](Platforms\Mobile\Textures)
+
+[](Platforms\Mobile\Previewer) 를 사용하면 디바이스에 디플로이하지 않고도 모바일 게임을 미리볼 수 있습니다.
+
+
+%Steps%

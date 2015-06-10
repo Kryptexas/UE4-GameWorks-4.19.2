@@ -1,0 +1,60 @@
+Availability:Public
+Title:Bloom
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:Haloing to produce glow effects for bright objects such as lights.
+
+[EXCERPT:Bloom_Desc]
+**Bloom** is a real world light phenomena that can greatly add to the perceived realism of a rendered image at a moderate render performance cost. Bloom can be seen by the naked eye when looking at very bright objects that are on a much darker background. Even brighter objects also cause other effects (streaks, lens flares), but those are not covered by the classic bloom effect. Because our displays (e.g. TV, TFT, ...) usually do not support HDR (high dynamic range), we cannot really render very bright objects. Instead we simulate the effects that happen in the eye (retina subsurface scattering), when light hits the film (film subsurface scattering), or in front of the the camera (milky glass filter). The effect might not always be physically correct but it can help to hint the relative brightness of objects or add realism to the LDR (low dynamic range) image that is shown on the screen.
+[/EXCERPT:Bloom_Desc]
+
+[REGION:fullwidth]
+![Bloom Effect](bloom.png)
+[/REGION]
+
+Bloom can be implemented with a single Gaussian blur. For better quality, we combine multiple Gaussian blurs with different radius. For better performance, we do the very wide blurs in much lower resolution. In UE3, we had 3 Gaussian blurs in the resolution 1/4, 1/8, and 1/16. We now have multiple blurs name Blur1 to 5 in the resolution 1/2 (Blur1) to 1/32 (Blur5). We might add Blur 0 for full resolution blur if ever needed.
+
+We combine the blurs differently to get more control and higher quality. For best performance, the high resolution blurs (small number) should be small and wide blurs should mostly make use of the low resolution blurs (large number).
+
+| Property | Description |
+| -------- | ----------- |
+| **Intensity** | Scales the color of the whole bloom effect (linear). Possible uses: fade in or out over time, darken. [INCLUDE:#Intensity] |
+| **Threshold** | Defines how many luminance units a color needs to have to affect bloom. In addition to the threshold, there is a linear part (one unit wide) where the color only partly affects the bloom. To have all scene colors contributing to the bloom, a volume of -1 needs to be used. Possible uses: tweak for some not real HDR content, dream sequence. [INCLUDE:#Threshold] |
+| **#1/#2/#3/#4/#5 Tint** | Modifies the brightness and color of each bloom. Using a black color will not make this pass faster but that can be done. |
+| **#1/#2/#3/#4/#5 Size** | The size in percent of the screen width. Is clamped by some number. If you need a larger number, use the next lower resolution blur instead (higher number). [INCLUDE:#Size] |
+
+<!--
+[EXCERPT:Intensity]
+[REGION:imagetable]
+| ![Bloom Intensity - 0](bloom_intensity_0_small.png)(w:250) | ![Bloom Intensity - 1](bloom_intensity_1_small.png)(w:250) | ![Bloom Intensity - 5](bloom_intensity_5_small.png)(w:250) |
+| ------ | ------ | ------ |
+| 0.0 | 1.0 | 5.0 |
+[/REGION]
+[/EXCERPT:Intensity]
+
+[EXCERPT:Threshold]
+[REGION:imagetable]
+| ![Bloom Threshold - 0](bloom_threshold_0_small.png)(w:380) | ![Bloom Threshold - 10](bloom_threshold_10_small.png)(w:380) |
+| ------ | ------ |
+| 0.0 | 10.0 |
+[/REGION]
+[/EXCERPT:Threshold]
+
+[EXCERPT:Size]
+[REGION:imagetable]
+| ![Bloom Tint 1](bloom_tint_1_small.png)(w:145) | ![Bloom Tint 2](bloom_tint_2_small.png)(w:145) | ![Bloom Tint 3](bloom_tint_3_small.png)(w:145) | ![Bloom Tint 4](bloom_tint_4_small.png)(w:145) | ![Bloom Tint 5](bloom_tint_5_small.png)(w:145) |
+| --- | --- | --- | --- | --- |
+| #1 | #2 | #3 | #4 | #5 |
+[/REGION]
+[/EXCERPT:Size]
+-->
+
+## Bloom Dirt Mask
+
+The **Bloom Dirt Mask** effect uses a texture to brighten up the bloom in some defined screen areas. This can be used to create a war camera look, more impressive HDR effect, or camera imperfections.
+
+| Property | Description |
+| -------- | ----------- |
+| **Dirt Mask** | The Texture2D to use as the mask. It is recommended that a non power of two texture is used as it fits the screen size better and it avoids mip creation and streaming. A low resolution texture is often sufficient as dirt on the camera is likely to be out of focus and blurry anyway. The texture can be created with the Photoshop Lens blur. Chromatic aberration (color fringe) can improve the look. Beware of compression artifacts. This property cannot be blended. We plan to make this more dynamic and programmable through custom shaders. |
+| **Dirt Mask Tint Color** | Used to darken or color tint the dirt mask texture. This can be used to tweak the dirt mask brightness and color. |
+| **Dirt Mask Intensity** | Scales the color of the bloom dirt mask effect (linear). This property is used to tweak dirt mask brightness. |
+

@@ -1,0 +1,201 @@
+﻿INTSourceChangelist:2385439
+Availability: Public
+Title:FBX 애니메이션 파이프라인
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:FBX 콘텐츠 파이프라인을 사용하여 스켈레탈 메시에 대한 애니메이션을 임포트, 익스포트하고 셋업하는 방법입니다.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/Animations:Title%](Engine/Content\FBX\fbx_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/Animations:Title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/Animations:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/Animations]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 개요
+
+[EXCERPT:FBX_Animation001]
+FBX 임포트 파이프라인에 애니메이션이 지원되어, 3D 어플리케이션에서 언리얼로 게임에 사용할 스켈레탈 메시를 단순한 방식으로 가져올 수 있습니다. 현재는 각 스켈레탈 메시에 대해 하나의 애니메이션만 하나의 파일로 익스포트/임포트 할 수 있습니다.
+[/EXCERPT:FBX_Animation001]
+
+여기서는 애니메이션을 언리얼 에디터로 임포트하는 FBX 콘텐츠 파이프라인 사용법에 대한 기술적인 개요를 다루겠습니다. 개발 환경에서의 FBX 콘텐츠 파이프라인 작업에 관련된 상세 정보, 팁과 꼼수에 대해서는 [FBX 우수 사례](Engine/Content/FBX/BestPractices) 페이지를 참고해 주시기 바랍니다.
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+[REGION:tip]
+이 페이지에는 Autodesk Maya 와 Autodesk 3ds Max 모두에 대한 정보가 포함되어 있습니다. 아래에서 선호하는 툴을 선택하시면 그 툴에 관련된 정보만 표시됩니다:
+[/REGION]
+
+%Globals:DCCSelect%
+
+
+
+
+## 이름짓기
+
+
+FBX 포맷으로 애니메이션을 언리얼 에디터로 임포트할 때, **애니메이션 시퀀스** 이름은 파일 이름과 같습니다. 스켈레탈 메시와 함께 애니메이션을 임포트할 때, 생성되는 **애니메이션 시퀀스** 이름은 **애니메이션 시퀀스** 에 있는 루트 본 이름에서 따옵니다. 이 이름은 임포트 과정이 끝난 이후 **콘텐츠 브라우저** 에서 쉽게 바꿀 수 있습니다.
+
+
+## 애니메이션 만들기
+
+[EXCERPT:FBX_Animation002]
+애니메이션은 하나의 스켈레탈 메시에 고유할 수도 있고, 각 스켈레탈 메시가 같은 스켈레톤을 사용하기만 하면 몇 개의 스켈레탈 메시에 재사용할 수도 있습니다.  애니메이션을 만들고 FBX 파이프라인을 사용하여 언리얼 에디터로 익스포트하는 데 필요한 것은, 애니메이트된 스켈레톤이 전부입니다. 스켈레톤에 메시를 묶는 것은, 애니메이션 도중 메시가 어떻게 변해가는지를 볼 수 있어 애니메이션 제작 과정이 쉬워진다는 장점이 있긴 하지만, 전적으로 선택에 따른 것입니다. 익스포트할 때 필요한 것은 스켈레톤 뿐이니까요.
+[/EXCERPT:FBX_Animation002]
+
+(#ExportingAnimations)
+
+
+## 3D 앱에서 애니메이션 익스포트하기
+
+
+애니메이션은 개별적으로 익스포트해야 합니다. 스켈레탈 메시당 하나의 애니메이션을 하나의 파일로요. 아래는 하나의 애니메이션을 하나의 파일에 자체적으로 익스포트하는 법입니다. 이 스켈레톤에 묶인 메시는 숨겨져 있는데, 애니메이션 익스포트에 필수는 아니기 때문입니다.
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/Animations#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxExport]
+1. 뷰포트에서 익스포트하려는 애니메이션에 해당하는 본을 선택합니다.
+
+	![max_export_1.jpg](max_export_1.jpg)(w:744 h:354)
+
+1. _File_ 메뉴에서 _Export Selected_ (나 선택한 것에 관계 없이 모든 것을 익스포트하려면 _Export All_ ) 을 선택합니다.
+
+	![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 애니메이션을 익스포트하려는 FBX 파일 위치와 이름을 선택한 다음 ![max_save_button.jpg](max_save_button.jpg) 버튼을 누릅니다.
+
+	![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. **FBX Export** 대화창 옵션을 적절히 설정합니다. 애니메이션 익스포트를 위해서는 **Animations** 박스를 체크해야 합니다.
+
+	![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+
+1. ![max_ok_button.jpg](max_ok_button.jpg) 버튼을 클릭하여 메시가 들어있는 FBX 파일을 만듭니다.
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 뷰포트에서 익스포트하려는 조인트를 선택합니다.
+
+	![maya_export_1.jpg](maya_export_1.jpg)(w:769 h:376)
+
+1. _File_ 메뉴에서 _Export Selection_ (이나 선택한 것에 관계 없이 모든 것을 익스포트하려면 _Export All_ ) 을 선택합니다.
+
+	![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. 애니메이션을 익스포트하려는 FBX 파일 위치와 이름을 선택하고 **FBX Export** 대화창 옵션을 적절히 설정해 줍니다. 애니메이션 익스포트를 위해서는 **Animation** 박스를 체크해야 합니다.
+
+	![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+
+1. ![maya_export_button.jpg](maya_export_button.jpg) 버튼을 눌러 메시가 들어있는 FBX 파일을 만듭니다.
+[/EXCERPT:mayaExport]
+-->
+
+(#ImportingAnimations)
+
+
+## 애니메이션 임포트하기
+
+
+FBX 애니메이션 임포트 파이프라인으로는 스켈레탈 메시와 애니메이션을 한꺼번에, 또는 개별적으로도 임포트할 수 있습니다.
+
+**스켈레탈 메시와 애니메이션**
+
+
+1. 콘텐츠 브라우저에서 ![](import_button.png) 버튼을 클릭한 다음 _임포트_ 를 선택합니다. 열리는 파일 브라우저에서 임포트하려는 FBX 파일 위치로 이동하여 선택합니다. **주:** ![import_fbxformat.jpg](import_fbxformat.jpg) 드롭다운으로 필터를 적용할 수도 있습니다.
+
+	![import_file.jpg](import_file.jpg)
+	
+	[REGION:note]
+			임포트된 애셋의 경로는 임포트시 콘텐츠 브라우저의 현재 위치에 따라 달라집니다. 임포트 전 적절한 폴더로 이동해 주시기 바랍니다. 물론 임포트 완료 후 임포트된 애셋을 새로운 폴더로 끌어 옮겨도 됩니다.
+	[/REGION]
+      
+1. **FBX Import Options** 대화창 설정을 적절히 선택합니다. 임포트한 메시 이름은 디폴트 [작명 규칙](Engine/Content/FBX/ImportOptions#작명규칙) 을 따릅니다. 모든 세팅 관련 자세한 내용은 [FBX 임포트 대화창](Engine/Content/FBX/ImportOptions) 부분을 확인하시기 바랍니다.
+   
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+   
+1. ![button_import.png](button_import.png) 버튼을 눌러 메시와 LOD 를 임포트합니다. 과정이 잘 진행됐으면 콘텐츠 브라우저에 결과 메시, 애니메이션 (애니메이션 시퀀스), 머티리얼, 텍스처 등이 표시됩니다. 애니메이션을 담기 위해 생성된 애니메이션 시퀀스 이름이 디폴트로 스켈레톤의 루트 본 이름을 따서 지어졌음을 볼 수 있습니다.
+   
+	![](Engine\Content\FBX\SkeletalMeshes\ImportedCharacter.png)
+
+
+**개별 애니메이션**
+
+애니메이션을 임포트하려면 먼저 애니메이션을 임포트해 넣으려는 애니메이션 시퀀스가 필요합니다. 애니메이션 시퀀스는 콘텐츠 브라우저를 통해서든, 애니메이션 시퀀스 에디터에서 직접이든 만들 수 있습니다.
+
+[REGION:note]
+	언리얼 에디터는 하나의 FBX 파일에 들어있는 여러 개의 애니메이션을 임포트하는 기능을 지원합니다만, 3ds Max 나 Maya 같은 여러 DCC 툴은 현재 하나의 파일에 여러 개의 애니메이션을 저장하는 기능을 지원하지 않고 있습니다. Motion Builder 처럼 그런 기능을 지원하는 어플리케이션에서 익스포트를 하는 경우, 언리얼은 그 파일에 있는 모든 애니메이션을 임포트할 것입니다.
+[/REGION]
+
+1. 콘텐츠 브라우저에서 ![](import_button.png) 버튼을 클릭합니다. 열리는 파일 브라우저 창에서 임포트하려는 FBX 파일로 이동하여 선택합니다. **주:** 원하지 않는 파일을 걸러내려면 드롭다운에서 ![import_fbxformat.jpg](import_fbxformat.jpg) 를 선택하면 됩니다.   
+   
+	![import_file.jpg](import_file.jpg)
+   
+	[REGION:note]
+			임포트된 애셋의 경로는 임포트시 콘텐츠 브라우저의 현재 위치에 따라 달라집니다. 임포트 전 적절한 폴더로 이동해 주시기 바랍니다. 물론 임포트 완료 후 임포트된 애셋을 새로운 폴더로 끌어 옮겨도 됩니다.
+	[/REGION]
+      
+1. **FBX Import Options** 대화창의 옵션을 적절히 설정합니다. 임포트되는 메시의 이름은 기본 [작명 규칙](Engine/Content/FBX/ImportOptions#NamingConventions) 을 따르게 됩니다. 모든 세팅에 대한 상세 내용은 [FBX 임포트 대화창](Engine/Content/FBX/ImportOptions) 부분을 참고하시기 바랍니다.   
+   
+	![](Engine\Content\FBX\ImportOptions\AnimationImportOptions.png)
+
+	[REGION:Warning]
+		애니메이션 자체만 임포트하는 경우, 반드시 존재하는 스켈레톤을 지정해야 합니다!
+	[/REGION]
+   
+1. ![button_import.png](button_import.png) 버튼을 클릭하여 메시와 LOD 를 임포트합니다. 성공한 경우 결과 메시, 애니메이션(애니메이션 시퀀스), 머티리얼, 텍스처가 콘텐츠 브라우저에 표시됩니다. 애니메이션을 담기 위해 생성된 애니메이션 시퀀스가 기본적으로 스켈레톤의 루트 본 이름을 따서 지어진 것을 확인할 수 있습니다.   
+   
+	![](AnimSequenceImported.png)
+
+
+[REGION:note]
+	언리얼 에디터는 비균등 스케일 애니메이션을 지원합니다. 애니메이션을 임포트할 때 스케일이 존재하면 추가적인 옵션 설정을 할 필요도 없이 임포트합니다. 메모리상의 이유로 엔진은 모든 애니메이션에 대한 스케일을 저장하지는 않으며, 스케일이 1 이 아닐 때만 저장합니다.
+	
+	[](Engine\Animation\NonUniformScale) 문서에서 자세한 정보와 비디오 샘플을 참고해 보세요.
+[/REGION]
+
+
+
+
+

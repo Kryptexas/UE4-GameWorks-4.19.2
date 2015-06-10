@@ -101,9 +101,12 @@ public:
 				FMemory::Memcpy(CopyOut, UncompressedBuffer+CopyOffset, CopyLength);
 			}
 		}
-		static const TCHAR *Name()
+
+		FORCEINLINE TStatId GetStatId() const
 		{
-			return TEXT("FPakUncompressTask");
+			// TODO: This is called too early in engine startup.
+			return TStatId();
+			//RETURN_QUICK_DECLARE_CYCLE_STAT(FPakUncompressTask, STATGROUP_ThreadPoolAsyncTasks);
 		}
 	};
 
@@ -454,6 +457,11 @@ public:
 			PlatformFile.HandleMountCommand(Cmd, Ar);
 			return true;
 		}
+		if (FParse::Command(&Cmd, TEXT("Unmount")))
+		{
+			PlatformFile.HandleUnmountCommand(Cmd, Ar);
+			return true;
+		}
 		else if (FParse::Command(&Cmd, TEXT("PakList")))
 		{
 			PlatformFile.HandlePakListCommand(Cmd, Ar);
@@ -471,6 +479,15 @@ void FPakPlatformFile::HandleMountCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 	{
 		const FString MountPoint = FParse::Token(Cmd, false);
 		Mount(*PakFilename, 0, MountPoint.IsEmpty() ? NULL : *MountPoint);
+	}
+}
+
+void FPakPlatformFile::HandleUnmountCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	const FString PakFilename = FParse::Token(Cmd, false);
+	if (!PakFilename.IsEmpty())
+	{
+		Unmount(*PakFilename);
 	}
 }
 
@@ -494,6 +511,7 @@ FPakPlatformFile::FPakPlatformFile()
 FPakPlatformFile::~FPakPlatformFile()
 {
 	FCoreDelegates::OnMountPak.Unbind();
+	FCoreDelegates::OnUnmountPak.Unbind();
 
 	// We need to flush async IO... if it hasn't been shut down already.
 	if (FIOSystem::HasShutdown() == false)
@@ -579,7 +597,7 @@ void FPakPlatformFile::GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutP
 	if (FParse::Value(CmdLine, TEXT("-pakdir="), PakDirs))
 	{
 		TArray<FString> CmdLineFolders;
-		PakDirs.ParseIntoArray(&CmdLineFolders, TEXT("*"), true);
+		PakDirs.ParseIntoArray(CmdLineFolders, TEXT("*"), true);
 		OutPakFolders.Append(CmdLineFolders);
 	}
 #endif
@@ -640,7 +658,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	FString CmdLinePaksToLoad;
 	if (FParse::Value(CmdLine, TEXT("-paklist="), CmdLinePaksToLoad))
 	{
-		CmdLinePaksToLoad.ParseIntoArray(&PaksToLoad, TEXT("+"), true);
+		CmdLinePaksToLoad.ParseIntoArray(PaksToLoad, TEXT("+"), true);
 	}
 #endif
 
@@ -662,7 +680,27 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 		}
 		if (bLoadPak)
 		{
-			Mount(*PakFilename, 0);
+			// hardcode default load ordering of game main pak -> game content -> engine content -> saved dir
+			// would be better to make this config but not even the config system is initialized here so we can't do that
+			uint32 PakOrder = 0;
+			if (PakFilename.StartsWith(FString::Printf(TEXT("%sPaks/%s-"), *FPaths::GameContentDir(), FApp::GetGameName())))
+			{
+				PakOrder = 4;
+			}
+			else if (PakFilename.StartsWith(FPaths::GameContentDir()))
+			{
+				PakOrder = 3;
+			}
+			else if (PakFilename.StartsWith(FPaths::EngineContentDir()))
+			{
+				PakOrder = 2;
+			}
+			else if (PakFilename.StartsWith(FPaths::GameSavedDir()))
+			{
+				PakOrder = 1;
+			}
+
+			Mount(*PakFilename, PakOrder);
 		}
 	}
 
@@ -671,6 +709,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 #endif // !UE_BUILD_SHIPPING
 
 	FCoreDelegates::OnMountPak.BindRaw(this, &FPakPlatformFile::HandleMountPakDelegate);
+	FCoreDelegates::OnUnmountPak.BindRaw(this, &FPakPlatformFile::HandleUnmountPakDelegate);
 	return !!LowerLevel;
 }
 
@@ -686,6 +725,11 @@ bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const 
 			if (InPath != NULL)
 			{
 				Pak->SetMountPoint(InPath);
+			}
+			FString PakFilename = InPakFilename;
+			if ( PakFilename.EndsWith(TEXT("_P.pak")) )
+			{
+				PakOrder += 100;
 			}
 			{
 				// Add new pak file
@@ -708,6 +752,25 @@ bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const 
 		UE_LOG(LogPakFile, Warning, TEXT("Pak \"%s\" does not exist!"), InPakFilename);
 	}
 	return bSuccess;
+}
+
+bool FPakPlatformFile::Unmount(const TCHAR* InPakFilename)
+{
+	{
+		FScopeLock ScopedLock(&PakListCritical); 
+
+		for (int32 PakIndex = 0; PakIndex < PakFiles.Num(); PakIndex++)
+		{
+			if (PakFiles[PakIndex].PakFile->GetFilename() == InPakFilename)
+			{
+				delete PakFiles[PakIndex].PakFile;
+				PakFiles.RemoveAt(PakIndex);
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFile* PakFile, const FPakEntry* FileEntry)
@@ -744,7 +807,12 @@ bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath, uint32
 	return Mount(*PakFilePath, PakOrder);
 }
 
-IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename)
+bool FPakPlatformFile::HandleUnmountPakDelegate(const FString& PakFilePath)
+{
+	return Unmount(*PakFilePath);
+}
+
+IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 {
 	IFileHandle* Result = NULL;
 	FPakFile* PakFile = NULL;

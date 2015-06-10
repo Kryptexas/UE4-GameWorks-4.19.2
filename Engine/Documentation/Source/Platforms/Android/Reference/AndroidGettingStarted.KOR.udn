@@ -1,0 +1,187 @@
+﻿INTSourceChangelist:2289467
+Availability:Public
+Title: 안드로이드 개발 참고서
+Crumbs:%ROOT%, Platforms, Platforms/Android
+Description:다양한 안드로이드 SDK 설치, 환경 변수 설정, 텍스처 포맷 작업 방법 설명입니다.
+
+[TOC(start:2 end:3)]
+
+
+## 개요
+
+현재 안드로이드 게임 개발용 필수 사항은 이와 같습니다:
+
+
+| 프로젝트 유형 | 컴포넌트 | 환경 변수 |
+| ------------- | ---------- | --------------------- |
+| 블루프린트만 프로젝트 |  [INCLUDE:#bpcomponents] |      [INCLUDE:#bpenvvar] |
+| C++ 프로젝트 |   [INCLUDE:#codecomponents] |  [INCLUDE:#codeenvvar] |
+
+<!--
+[EXCERPT:BPComponents]
+* Android SDK
+* Java Development Kit
+* Ant Scripting Tool
+[/EXCERPT:BPComponents]
+
+[EXCERPT:CodeComponents]
+[INCLUDE:#bpcomponents]
+* **Android NDK**
+[/EXCERPT:CodeComponents]
+
+[EXCERPT:BPEnvVar]
+* ANDROID_HOME
+* JAVA_HOME
+* ANT_HOME
+[/EXCERPT:BPEnvVar]
+
+[EXCERPT:CodeEnvVar]
+[INCLUDE:#bpenvvar]
+* **NDKROOT**
+[/EXCERPT:CodeEnvVar]
+-->
+
+## 컴포넌트 설치하기
+
+컴포넌트를 구하는 방법은 여러가지 있습니다. 이미 이들 중 한가지를 설치한 경우, 추가 요소에 대한 부분을 참고해 주세요:
+
+### TADP (Tegra Android Development Pack)
+
+TADP 는 NVIDIA 가 개발한 Tegra Android Development Pack, 테그라 안드로이드 개발 팩의 약자로, 안드로이드 개발에 있어서의 원스톱 센터입니다. TADP 를 설치하는 것으로 모든 요건은 충족됩니다.
+
+TADP 인스톨러는 윈도우용 언리얼 엔진 4 에 포함되어 있습니다. 위치는 다음과 같습니다:
+
+	[엔진 설치 위치]\Engine\Extras\Android\tadp-2.0r8-windows.exe 
+
+중요한 부분은:
+* SDK
+* NDK
+* JDK
+* Ant 
+* Nsight 
+	
+기본 설치 세트를 사용하면, 딱 최소한의 컴포넌트 세트만 설치됩니다. 사용자 구성 설치를 하는 경우, (프로파일러와 같은) 다른 항목을 추가할 수 있습니다. 참고로 설치 도중,
+하위 인스톨러 하나 둘 정도에 응답이 없는 것으로 보일 수도 있으나, 결국은 정상 완료됩니다. 설치 소요 시간은 30 분에서 45 분 정도 걸립니다. 코드 작성 계획이 전혀 없는 경우, 
+**Customize** (사용자 지정)을 선택한 다음, (NDK 와 Nsight 디버거는 생략하고) SDK, Ant, Java 만 설치하면 빠른 설치가 가능합니다. TADP 의 Nsight 부분은 디바이스에서 안드로이드 게임 디버깅에 사용됩니다.
+C++ 코드 컴파일에 필수는 아닙니다.
+
+
+
+![](TADPSetup.png)
+
+### ADT (Android Development Tools)
+
+구글의 추천 개발 환경으로, SDK, Ant, Eclipse 가 들어있습니다 (하지만 언리얼 엔진 4 에는 Eclipse 가 지원되지 않습니다).
+ 모든 것은 단순함을 위해 C:\Android 에 설치하실 것을 추천합니다.
+
+* [여기서 내려받기](http://developer.android.com/sdk/installing/bundle.html).
+
+추가적으로 JDK 6 이상을 설치해 줘야 합니다.
+
+* [여기서 내려받기](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
+
+코드만 있는 프로젝트의 경우, NDK 를 설치해 줘야 합니다:
+* [여기서 내려받기](http://developer.android.com/tools/sdk/ndk/index.html).
+
+### Android SDK (Software Development Kit)
+
+좀 더 최소한의 SDK 설치입니다 (Eclipse 나 Ant 가 포함되어 있지 않습니다).
+* [여기서 내려받기](http://developer.android.com/sdk/index.html).
+
+추가적으로 JDK 6 이상을 설치해 줘야 합니다.
+* [여기서 내려받기](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
+
+Ant 툴 (버전 1.8 이상)을 설치해 줘야 합니다.
+* [여기서 내려받기](http://ant.apache.org/) 한 다음 압축 파일을 풉니다.
+
+코드만 있는 프로젝트의 경우, NDK 를 설치해 줘야 합니다:
+* [여기서 내려받기](http://developer.android.com/tools/sdk/ndk/index.html).
+
+
+## 환경 변수
+
+TADP 를 설치한 것이 아니라면, 일부 환경 변수가 제대로 설정되었는지 확인해 줘야 합니다.
+
+[REGION:note]
+(시스템 제어판의 환경 변수 설정을 통해서든, TADP 설치를 통해서든) 설치가 완료되면, 에디터와 런처 어플리케이션을 재시작해 줘야 합니다.
+윈도우 어플리케이션이 환경 변수를 저장하고, 시작시키는 어플리케이션에 예전 버전을 전달하는 방식때문입니다.
+
+안드로이드 SDK 가 제대로 설치되지 않았다는 메시지가 계속해서 뜨면, 컴퓨터 리부팅을 추천합니다.
+
+[/REGION:note]
+
+환경 변수를 설정하려면:
+
+* **컴퓨터** 아이콘에 우클릭하거나 키보드의 **윈도우+Pause Break** 키를 누릅니다.
+* 왼편의 **고급 시스템 설정** 을 선택합니다.
+* **환경 변수...** 를 클릭합니다.
+* 각 변수에 대해 (아래 확인):
+	* (아래에서) 환경 변수가 목록 중 최소 하나에 (System 또는 User) 이미 설정되어 있는지 찾아봅니다.
+	* 찾지 못했으면, System 섹션 옆의 **새로 만들기...** 를 클릭합니다.
+	* 이름과 값을 입력합니다.
+	* **확인** 을 클릭합니다.
+* **확인** 을 클릭하여 **환경 변수** 창을 닫습니다.
+
+저희가 의존하는 변수, 그리고 가리키는 대상은 다음과 같습니다:
+
+**ANDROID_HOME**
+* Android SDK 를 설치한 디렉토리 또는 ADT 를 설치한 경우 `sdk` 디렉토리로 설정합니다.
+* `platform-tools` 라는 디렉토리를 포함해야 합니다.
+
+**JAVA_HOME**
+* JDK 가 설치된 디렉토리로 설정합니다. `jdk1.6.0_24` 식의 이름일 것입니다.
+* `javac.exe` 가 들어있는 `bin` 디렉토리가 들어있어야 합니다.
+
+**ANT_HOME** [ADT 를 설치한 경우 불필요]
+* Ant 압축을 푼 디렉토리로 설정합니다.
+* `ant.bat` 가 들어있는 `bin` 디렉토리가 들어있어야 합니다.
+
+**NDKROOT** [C++ 코드를 컴파일하지 않는 경우 불필요]
+* NDK 압축을 푼 디렉토리로 설정합니다. `android-ndk-r9c` 식의 이름일 것입니다.
+* `ndk-build.cmd` 라는 파일이 들어있어야 합니다.
+
+## 안드로이드 꼼수
+
+**실행* 메뉴에 디바이스가 나열되지 않는 경우 해 볼 수 있는 작업은 다음과 같습니다:
+- 몇 초 기다린 다음 다시 살펴봅니다. 연결된 디바이스의 백그라운드 탐색 작업에 시간이 약간 걸릴 수 있기 때문입니다.
+- USB 디버깅 연결이 모두 작동중인지 점검합니다.
+- 명령줄을 엽니다 (**윈도우+R** 키를 누른 다음 `cmd.exe` 를 실행시킵니다).
+	- 이 명령을 입력합니다: `adb devices`
+	- 디바이스가 나열되지 않으면, USB 드라이버가 제대로 설치되지 않은 것입니다. 드라이버 설치 방법은 안드로이드 디바이스 모델에 따라 다릅니다. 디바이스 모델명에 "usb driver" 를 붙여 검색한 
+	다음 드라이버를 설치하세요.
+	- 추가적으로, 디바이스에 개발자 모드가 켜졌는지, USB 디버깅 기능이 켜졌는지 확인하십시오. 자세한 정보는 [Android Developer Using Hardware Devices guide](http://developer.android.com/tools/device.html) 문서를 (특히 2, 3 번 항목을) 참고하세요.
+	- 이후, `adb devices` 명령이 정상 작동하는지 확인합니다. 이 부분이 되지 않으면, 엔진에서는 안드로이드 디바이스 관련해서 어떠한 작업도 할 수 없습니다.
+	
+디바이스가 실행 메뉴에 나타나긴 하는데 디바이스에 디플로이할 때 멈추는 경우, 거의 디바이스가 PC 와의 통신 권한이 없기 때문입니다. 진행상황 막대의 **Show Log** (로그 표시) 줄을 
+클릭하면, 마지막 줄에서 `adb uninstall` 를 호출중임을 볼 수 있을 것입니다.
+- 위와 마찬가지로, `cmd.exe` 에서 `adb devices` 명령을 실행합니다.
+- 디바이스가 나오긴 하는데 권한이 없는 것으로 나오는 경우, 디바이스에게 PC 와의 통신을 허가해야 함을 나타냅니다.
+- 디바이스 케이블을 뽑은 다음 다시 연결해야 나타날 수도 있습니다.
+- **Always allow** (항상 허용) 체크박스가 체크되었는지도 확인할 것을 추천합니다.
+
+## 안드로이드 텍스처 포맷
+모든 안드로이드 디바이스가 똑같지는 않습니다. 특히 렌더링 하드웨어는 4 종류나 됩니다. 각각 각기 다른 압축 텍스처 포맷을 지원합니다.
+
+[EXCERPT:AndroidFormats]
+|포맷 | 설명 |
+|-------|------------|
+|DXT |데스크탑 컴퓨터에서 사용되는 방식으로, Tegra 기반 디바이스에도 사용됩니다. |
+|ATC |Qualcomm Snapdragon 기반 디바이스에 사용됩니다.|
+|PVR |ImgTec PowerVR 기반 디바이스에 사용됩니다.|
+|ETC1 |모든 디바이스에 지원되지만, 알파 채널이 있는 텍스처를 지원하지 않으므로, 텍스처가 압축되지 않아 게임의 다운로드 크기가 커지고 실행시간 메모리를 더욱 많이 사용합니다.|
+|ETC2 |MALI 기반 디바이스 등에 사용됩니다.|
+[/EXCERPT:AndroidFormats]
+
+안드로이드용 게임을 디플로이하고 패키징할 때, 데이터는 안드로이드 디바이스에서 사용가능한 포맷으로 변환됩니다 (이 프로세스를 "쿠킹"이라 부릅니다). 다양한 디바이스에 다양한 
+압축 포맷이 지원되므로 쿠킹할 포맷을 선택할 수 있습니다. **Launch** (실행) 또는 **Package** (패키지) 서브메뉴에서 **Android** (안드로이드) 아래 가능한 포맷을 확인할 수 있습니다.
+
+첫 번째(Android)는 모든 포맷을 쿠킹된 패키지에 담아 넣습니다. 시간도 오래 걸리고 패키지 크기도 커 지지만, 실행시간에 최적의 포맷을 선택하므로 최소의 메모리 사용량이 보장됩니다.
+(**Andoird (ETC1)** 과 마찬가지로) 모든 디바이스에서 작동할 것입니다.
+
+### 포맷 선택하기
+대부분 디바이스에 최적의 포맷을 선택하는 것이 좋을 것입니다. 디바이스에 어떤 GPU 유형이 탑재되어 있는지 알고 있다면, 위의 표를 참고하여 포맷을 선택하면 됩니다.
+
+하지만 알지 못하는 경우, **Android** 또는 **Android (ETC1)** 을 선택하면 됩니다. 게임을 실행할 때 화면을 네 손가락으로 한 번에 터치하면 대화창이 뜰 것입니다. 이 대화창은 보통 
+(`stat fps` 같은) 콘솔 명령을 입력하는 데 사용되지만, 디바이스에서 지원하는 포맷을 표시하는 데도 사용됩니다. 목록을 확인한 후 거기서 디플로이/패키지 작업에 보다 적합한 유형을 선택하면 됩니다.
+
+디바이스에서 지원하지 않는 포맷을 선택하는 경우, 로드에 실패하게 됩니다.

@@ -1,0 +1,313 @@
+﻿INTSourceChangelist:2516256
+Availability: Public
+Title:조각 모드
+Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
+Description:랜드스케이프 툴의 Sculpt, 조각 모드 사용 안내서입니다.
+
+[VAR:Topic]
+[OBJECT:Topiccompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/SculptMode:title%](Landscape_Sculpt_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![Landscape Icon](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/SculptMode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Editing/SculptMode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/SculptMode]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2 end:3)]
+
+
+## 개요
+
+
+랜드스케이프 조각 과정에는, 하나 이상의 툴을 사용하여 내재된 하이트맵을 변경하는 작업이 포함됩니다. 이러한 툴에는 단순한 Sculpt (조각) 툴에서부터 erosion(침식)처럼 하이트맵에 재밌는 효과를 적용하는 복잡한 알고리즘을 사용하는 툴까지 다양합니다. 각 툴에는 랜드스케이프에 어떤 영향을 끼치는가 결정하는 프로퍼티 세트가 있습니다.
+
+현재 선택된 툴은 랜드스케이프에 할 작업을 결정합니다. 이 툴은 스트로크 사용시 이펙트에 사용할 [브러시](Engine\Landscape\Editing\Brushes) 를 적용합니다.
+
+| **공통 콘트롤** | **작업** |
+| --- | --- |
+| **왼쪽 마우스 버튼** | 하이트맵에 선택된 툴의 효과를 적용하는 스트로크입니다. |
+| **Ctrl + Z** | 지난 스트로크를 되돌립니다. |
+| **Ctrl + Y** | 지난 되돌리기를 다시합니다. |
+
+랜드스케이프 툴의 여러가지 모드, 툴, 브러시에 대한 것은 [](Engine/Landscape/UI) 문서를 참고해 주세요.
+
+## 조각 툴
+
+Sculpt (조각) 툴은 랜드스케이프의 모양을 다양한 방법으로 변경하는 데 사용됩니다.
+
+### 조각
+
+![Sculpt Tool](Landscape_Sculpt.png)
+
+조각 툴은 현재 선택된 브러시와 감쇠 모양대로 하이트맵의 높이를 늘이거나 줄입니다.
+
+| **대체 콘트롤** | **작업** |
+| --- | --- |
+| **왼쪽 마우스 버튼** | 하이트맵이나 선택된 레이어의 웨이트를 낮추거나 줄입니다. |
+| **Shift + 왼쪽 마우스 버튼** | 하이트맵이나 선택된 레이어의 웨이트를 낮추거나 줄입니다. |
+
+**옵션:**
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크 효과의 세기를 조절합니다. |
+
+브러시 세기는 증감되는 양을 결정합니다.
+
+
+### 스무드
+
+![Smooth Tool](Landscape_Smooth.png)
+
+Smooth (스무드) 툴은 하이트맵을 부드럽게 만듭니다. 세기는 얼마나 부드럽게 만들지를 결정합니다.
+
+**하이트맵 스무딩**
+
+![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:900 h:325)
+
+![Landscape_Smooth_After_HighDetail.jpg](Landscape_Smooth_After_HighDetail.jpg)(w:900 h:325)
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크마다 발생하는 스무딩 정도를 조절합니다. |
+| **Filter Kernel Scale** | 필터 커널 스케일 - 필터 커널 스무딩에 사용되는 스케일 배수를 설정합니다. |
+| **Detail Smooth** | 디테일 스무드 - 체크하면 지정된 디테일 스무딩 값을 사용하여 디테일을 보존하는 스무딩을 합니다. 스무딩 값이 클 수록 더 많은 디테일이 제거되며, 작을 수록 더 많이 보존됩니다. [INCLUDE:#DetailSmooth] |
+
+<!--
+[EXCERPT:DetailSmooth]
+![Landscape_Smooth_After_LowDetail.jpg](Landscape_Smooth_After_LowDetail.jpg)(w:720)
+
+![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:720)
+[/EXCERPT:DetailSmooth]
+-->
+
+
+### 평탄화
+
+![Flatten Tool](Landscape_FlattenTool.png)
+
+Flatten (평탄화) 툴은, 처음 사용한 높이를 기준으로 주변 랜드스케이프의 높이를 평탄화시키는 툴입니다.
+
+![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
+
+![Landscape_Flatten.jpg](Landscape_Flatten.jpg)(w:900 h:325)
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크마다 발생하는 스무딩 정도를 조절합니다. |
+| **Flatten Mode** | 평탄화 모드 - 브러시 아래 하이트맵 섹션을 높일지 낮출지 결정합니다. |
+| **Use Slope Flatten** | 경사면 평탄화 사용 - 체크하면, 수평면이 아닌 랜드스케이프의 기존 경사면을 기준으로 평탄화시킵니다. |
+| **Pick Value Per Apply** | 적용시마다 값 선택 - 체크하면, 처음 클릭한 지점만 사용하는 대신, 평탄화를 진행하면서 계속해서 새 값을 선택합니다. |
+| **Flatten Target** | 평탄화 목표 - 평탄화 목표 높이를 설정합니다. |
+
+
+### 경사로
+
+![Ramp Tool](Landscape_Ramp.png)
+
+Ramp (경사로) 툴은 랜드스케이프의 두 지점을 선택하여 그 사이에 평평한 경사로를 만들어 줍니다. 측면에는 지정한 감쇠가 적용됩니다.
+
+**랜드스케이프에 경사로를 추가하려면:**
+
+1. 경사로의 시작과 끝 두 지점에 **Ctrl + 클릭** 합니다.
+
+	![Ramp Setup](Landscape_RampSetup.png)(w:700)
+
+1. 필요하다면 경사로의 폭과 감쇠 옵션을 조절합니다.
+
+	![Ramp Settings](Landscape_RampSettings.png)
+
+1. **Add Ramp** (경사로 추가)를 클릭하여 경사로를 만듭니다.
+
+	![Add Ramp](Landscape_RampAdd.png)
+
+	![Ramp Added](Landscape_RampAddedSprites.png)(w:700)
+
+![Ramp Tool Before](Landscape_RampBefore4.png)(w:900)
+
+![Ramp Tool After](Landscape_RampAddedNoSprites.png)(w:900)
+
+
+[REGION:tip]
+경사로 시작과 끝 점 설정을 시작한 이후 마음이 바뀐 경우, **Reset** (리셋)을 클릭하여 지울 수 있습니다.
+[/REGION]
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Ramp Width** | 경사로 폭 - 경사로의 폭을 설정합니다. |
+| **Side Falloff** | 측면 감쇠 - 나머지 랜드스케이프에 합쳐지는 경사로 측면 부분의 감쇠를 설정합니다. 세팅이 **0** 이면 감쇠가 없음을, **1** 이면 평면 없이 전체적으로 감쇠가 적용됨을 뜻합니다. |
+
+
+### 침식
+
+![Erosion Tool](Landscape_Erosion.png)
+
+Erosion (침식) 툴은 융해 침식 시뮬레이션을 사용하여 하이트맵의 높이를 조절합니다. 높은 지대에서 낮은 지대로의 토양 침식 작용을 흉내냅니다. 고도 차이가 심할 수록 발생하는 침식량도 많아집니다. 원한다면 침식면 꼭대기에 노이즈 이펙트를 적용하여 좀 더 자연스런 모습을 낼 수도 있습니다.
+
+
+![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
+
+![Landscape_Thermal_Erosion.jpg](Landscape_Thermal_Erosion.jpg)(w:900 h:325)
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크마다 발생하는 스무딩 정도를 조절합니다. |
+| **Threshold** | 한계치 - 높이 차가 최소 이정도는 되어야 침식을 적용합니다. 값이 작을 수록 많이 침식됩니다. |
+| **Surface Thickness** | 표면 두께 - 레이어 웨이트 침식 효과에 대한 표면 두께입니다. |
+| **Iteration Num** | 반복처리 횟수 - 반복처리할 횟수입니다. 값이 클 수록 침식 수준도 커 집니다. |
+| **Noise Mode** | 노이즈 모드 - 노이즈를 적용할 때 하이트맵을 낮출지, 높일지, 또는 둘다 가능한지 입니다.|
+| **Noise Scale** 노이즈 스케일 | 사용된 노이즈 필터의 크기입니다. 노이즈 필터는 위치와 스케일에 관계되어 있는데, **Noise Scale** 을 변경하지만 않으면 같은 필터가 같은 위치에 몇 번이고 적용된다는 뜻입니다. | 
+| ![Landscape_Thermal_Erosion_Filter.jpg](Landscape_Thermal_Erosion_Filter.jpg)(w:900 h:325) ||
+
+
+
+### 수성 침식
+
+![Hydro Erosion Tool](Landscape_HydroErosion.png)
+
+Hydro Erosion (수성 침식) 툴은 강우로 인한 침식 시뮬레이션을 사용하여 하이트맵의 높이를 조절합니다. 처음 비를 뿌릴 지역을 결정하는 데는 노이즈 필터가 사용됩니다. 그 후 계산을 통해 처음 비가 내린 지역에서부터 물이 흘러내리며 용해되고 운반하며 증발되는 과정을 흉내냅니다. 그 계산 결과가 하이트맵을 실제로 낮추는 데 사용되는 값입니다.
+
+![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
+
+![Landscape_Hydraulic_Erosion.jpg](Landscape_Hydraulic_Erosion.jpg)(w:900 h:325)
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크마다 발생하는 스무딩 정도를 조절합니다. |
+| **Rain Amount** | 강우량 - 표면에 적용할 비의 양입니다. 값이 클 수록 침식량도 늘어납니다. |
+| **Sediment Cap.** | 퇴적 제한량 - 물이 운반할 수 있는 퇴적량입니다. 값이 클 수록 침식량도 늘어납니다. |
+| **Iterations** | 반복처리 횟수 - 반복처리할 횟수입니다. 값이 클 수록 침식 레벨도 높아집니다. |
+| **Initial Rain Distribution** | 초기 강우 분포 - 강우 지역을 노이즈 필터가 양성인 곳으로만 할 지, 전체 영역으로 할 지 입니다.|
+| ![Landscape_Hydraulic_Erosion_Filter.jpg](Landscape_Hydraulic_Erosion_Filter.jpg)(w:900 h:325) ||
+| **Rain Dist Scale** | 강우 분포 스케일 - 표면의 초기 강우지역에 적용할 노이즈 필터 크기입니다. 노이즈 필터는 위치와 스케일에 관련되어 있는데, **Rain Dist Scale** 을 바꾸지 않는 다면 같은 필터가 같은 위치에 몇 번이고 적용된다는 뜻입니다. | 
+| **Detail Smooth** | 디테일 스무드 - 체크하면 지정된 디테일 스무딩 값을 사용하여 침식 효과에 디테일을 보존하는 스무딩 작업을 합니다. 스무딩 값이 클수록 디테일 제거량도 늘어나는 반면, 작을수록 디테일 보존량이 늘어납니다. |
+
+
+
+### 노이즈
+
+![Noise Tool](Landscape_Noise.png)
+
+Noise (노이즈) 툴은 하이트맵이나 레이어 웨이트에 노이즈 필터를 적용합니다. 세기는 노이즈 양을 결정합니다.
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Tool Strength** | 툴 세기 - 각 브러시 스트로크마다 발생하는 스무딩 정도를 조절합니다. |
+| **Use Target Value** | 목표 값 사용 - 체크하면, 목표 값을 향해 노이즈 값 블렌딩이 일어나도록 합니다. |
+| **Noise Mode** | 노이즈 모드 - 노이즈 이펙트를 전부 적용할지, 하이트맵을 올리도록만 아니면 내리도록만 적용할지 입니다. |
+| ![Landscape_Noise_Filter.jpg](Landscape_Noise_Filter.jpg)(w:900 h:325) ||
+| **Noise Scale** | 노이즈 스케일 - 사용된 펄린(perlin) 노이즈 필터의 크기입니다. 노이즈 필터는 위치와 스케일에 관련되어 있는데, **Noise Scale** 을 바꾸지 않는다면 같은 필터가 같은 위치에 몇 번이고 적용된다는 뜻입니다. |
+
+
+### 리토폴로지
+
+![Retopologize Tool](Landscape_Retopologize.png)
+
+Retopologize (리토폴로지) 툴은 랜드스케이프 버텍스를 X/Y 오프셋 맵으로 조절하여 절벽에서의 버텍스 밀도를 개선, 텍스처가 늘어나는 현상을 감소시킬 수 있습니다.
+
+[REGION:note]
+X/Y 오프셋 맵은 랜드스케이프의 렌더링 속도와 다른 툴의 칠하기 작업 속도가 느려지게 만들기에, 리토폴로지 툴은 필요한 경우에만 사용하시기 바랍니다.
+[/REGION]
+
+
+### 표시여부
+
+![Visibility Tool](Landscape_Visibility.png)
+
+Visibility (표시여부) 툴은 랜드스케이프에 동굴 등 구멍을 만들 수 있습니다.
+
+| **대체 콘트롤** | **작업** |
+| --- | --- |
+| **Shift + 왼쪽 마우스 버튼** | 표시여부 마스크를 제거, 랜드스케이프 컴포넌트를 다시 표시하도록 만듭니다. |
+
+#### 오파시티 마스크를 사용해서 구멍 만들기
+
+[EXCERPT:LandscapeHole]
+조각 툴을 사용해서 랜드스케이프에 세로 구멍을 만들 수는 있지만, 동굴같은 것에 쓸 가로 구멍을 만들어야 할 수도 있습니다. 그 때 Visibility (표시여부) 툴을 가지고 오파시티 마스크를 사용해서 랜드스케이프 섹션의 표시여부를 "칠해" 없애버리면 됩니다.
+[/EXCERPT:LandscapeHole]
+
+랜드스케이프 섹션의 표시여부를 칠해 없애버리기 위해서는, 랜드스케이프 머티리얼을 올바르게 구성해 줘야 합니다. 랜드스케이프 홀 머티리얼 셋업 관련 정보는, [랜드스케이프 홀 머티리얼](Engine\Landscape\Materials\#랜드스케이프홀머티리얼) 부분을 참고하세요.
+
+[REGION:note]
+랜드스케이프 홀 머티리얼을 할당하지 않은 채 표시여부 툴을 사용하면, 선택된 섹션에 적용된 머티리얼 레이어가 지워질 뿐, 랜드스케이프 자체에는 구멍이 생기지 않습니다.
+[/REGION]
+
+랜드스케이프 홀 머티리얼을 구성한 이후에는, 페인트 툴을 사용하여 랜드스케이프에 구멍을 만들 수 있습니다.
+
+**랜드스케이프에 구멍을 만들려면:**
+
+1. 랜드스케이프 홀 머티리얼이 랜드스케이프에 할당되었는지 확인합니다.
+
+	![](Engine/Landscape/Materials/Landscape_HoleSettings.png)
+
+1. 랜드스케이프 툴의 조각 모드에서 표시여부 툴을 선택합니다.
+
+	![Visibility Tool](Landscape_Visibility.png)
+
+1. 랜드스케이프에 구멍을 만들고자 하는 위치를 찾습니다.
+
+	![](Landscape_MountainNoCave.png)(w:640)
+
+1. 브러시 크기와 감쇠를 적당히 조절합니다.
+
+	![](Landscape_MountainCaveMask.png)(w:640)
+
+1. **왼쪽 마우스 버튼** 을 눌러 구멍을 만들거나 **Shift + 왼쪽 마우스 버튼** 으로 만든 구멍을 지웁니다.
+
+	![](Landscape_MountainHole.png)(w:640)
+
+	이제 랜드스케이프의 구멍에 스태틱 메시 액터를 맞춰 동굴을 만들 수 있습니다.
+
+	[REGION:tip]
+	PIE 모드로 새로 만든 구멍의 콜리전을 테스트하기 위해서는, 랜드스케이프 모드를 배치 모드로 전환해야 합니다.
+	[/REGION]
+
+(#RegionTools)
+
+## 리전 툴
+
+Region (리전) 툴은 랜드스케이프 특정 리전(구역)에 특정 동작을 하는 데 사용되는 툴입니다.
+
+
+### 리전 선택
+
+![Region Selection Tool](Landscape_RegionSelect.png)
+
+Region Selection (리전 선택) 툴은 현재 브러시 세팅을 사용하여 랜드스케이프 리전을 선택하고, 툴 세기를 사용하여 랜드스케이프 [기즈모](Engine\Landscape\Editing\Gizmos) 를 특정 영역에 맞추거나, 한 기즈모에(서) 데이터를 복사하(거나 붙여넣)기 위한 마스크로 쓸 수도 있습니다.
+
+![region_selection.jpg](region_selection.jpg)(w:640 h:322)
+
+| **콘트롤** | **작업** |
+| --- | --- |
+| **왼쪽 마우스 버튼** | 선택된 리전에 추가합니다. |
+| **Shift + 왼쪽 마우스 버튼** | 선택된 리전에서 제거합니다. |
+
+| **옵션** | **설명** |
+| --- | --- |
+| **Clear Region Selection** | 리전 선택 비우기 - 현재 선택된 리전을 비웁니다. |
+| **Total Strength** | 툴 세기 - 각 브러시 스트로크마다 이펙트를 얼마나 줄 것인가 입니다. |
+| **Use Region as Mask** | 리전을 마스크로 사용 - 켜면 선택된 리전은 그 부분이 활성 영역이 되는 마스크로 작용합니다.  
+|    ![region_mask.jpg](region_mask.jpg)(w:640 h:322) ||
+| **Negative Mask** | 음각 마스크 - 이 옵션과 **Use Region as Mask** 옵션도 켜져 있으면, 리전 선택은 마스크처럼 작용하나 활성 영역은 선택되지 않은 리전이 됩니다.  
+|    ![region_mask_negative.jpg](region_mask_negative.jpg)(w:640 h:322) ||
+
+
+(#RegionCopy)
+### 복사/붙여넣기
+
+![Copy/Paste Tool](Landscape_CopyPaste.png)
+
+이 툴을 사용해서 랜드스케이프 한 영역의 높이 데이터를 [](Engine/Landscape\Editing\Gizmos) 사용을 통해 다른 랜드스케이프로 복사할 수 있습니다. 기즈모 데이터를 임포트 / 익스포트할 수도 있습니다.
+[INCLUDE:Engine/Landscape#landscape002]

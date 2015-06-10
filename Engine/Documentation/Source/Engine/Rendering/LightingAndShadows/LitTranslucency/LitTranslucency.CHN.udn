@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:1716463
+Availability:Public
+Title: 带光照的半透明物体
+Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/LightingAndShadows
+Description:解释如何对半透明表面进行光照，以及如何投射阴影（包括自投阴影）。
+
+半透明物体的光照和着色都是单次的，这样可以确保将其正确地与其他半透明物体混合，而如果采用多遍光照技术是无法完成的。  当前设置的目标之一是对带光照的半透明物体采用尽可能少的着色消耗，从而使之能在任意位置都能使用。  这样的话，诸如逐帧链表的延迟着色或随机半透明等性能消耗大的技术不会被使用。  同时，对于烟雾和泥土等体积类型特效的光照来说，这是一种解决思路。  对于反射玻璃等半透明表面来说，这是不行的。
+
+## 接受光照
+
+带光照的半透明物体的光照来源于一系列面向视锥体的cascade处理过的体积贴图。  这样在体积内的任意点，光照均为单次，但缺点就是体积贴图的分辨率比较低，而且从观察者角度来说，只涵盖了有限的深度范围。  
+
+半透明光照体积包含所有可移动光源类型的带阴影的直接光照。  同时应考虑光照函数。   
+
+[REGION:fullwidth]
+![Lit Translucency](Engine/Rendering/Overview/3LitSnow4.png)
+[/REGION]
+
+### 系统设置
+
+| 属性 | 描述 |
+| -------- | ----------- |
+| [REGION:tablesection]System Settings[/REGION] ||
+| `TranslucencyLightingVolumeDim` | 控制半透明光照体积贴图的分辨率。 |
+| `TranslucencyLightingVolumeInnerDistance` | 内部cascade结束处的虚幻单位间的距离。 |
+| `TranslucencyLightingVolumeOuterDistance` | 外部cascade结束处的虚幻单位间的距离。 |
+
+
+## 阴影投射和自投阴影
+
+半透明物体可以将阴影投射于不透明的世界，其本身和其他带光照的半透明物体。这是通过傅里叶不透明贴图来实现的，这对斑点体积投射阴影非常重要，但对于更为不透明的半透明表面会有严重的环形失真现象。半透明自投阴影穿过光源体积以获得点光源和聚光源，这样除非特效非常大且密集，否则由于其低分辨率会经常看不到。而方向光源逐帧进行半透明自投阴影，而且会得到更高质量。方向光同时使用次表面光照模型对带光源的材质进行次表面着色。
+
+半透明自投阴影使用基于对象的阴影，这意味着它需要用户指定的固定的粒子系统边界，而且必须要是正确的。设置的最简单办法就是创建粒子运动，然后右击Cascade工具条上的‘show bounds（显示边界）’按钮，它会弹出对话框让您生成固定边界。非常大的自投阴影粒子系统会降低阴影贴图分辨率，因为阴影贴图被拉伸以覆盖系统边界。在Show（显示） -> Advanced（高级）-> Bounds（边界）下启用Show Bounds（显示边界）来确认您设置的边界为合理值。  然后选择编辑器中的发射器，它会描画边界框和球体。
+
+[REGION:imagetable]
+![Translucent Particle Self-Shadowing](Engine/Rendering/Overview/self_shadow_1.png)(w:465) | ![Translucent Particle Self-Shadowing](Engine/Rendering/Overview/self_shadow_2.png)(w:465) |
+| ------ | ------ |
+| | |
+[/REGION]
+
+### 设置
+
+| 属性 | 描述 |
+| -------- | ----------- |
+| [REGION:tablesection]LightComponent[/REGION] ||
+| **bCastTranslucentShadows** | 如果启用，半透明表面将会从光源中投射阴影。 默认开启DirectionalLights并关闭其他所有类型。 |
+| [REGION:tablesection]PrimitiveComponent[/REGION] ||
+| **CastShadow** | 如果启用，组件将会从它的几何体中投射阴影。 如需在世界中投射任何阴影以及自投阴影，此项必须启用。 |
+| **bCastVolumetricTranslucentShadow** | 如果启用，组件的几何体将会投射不透明阴影。 在粒子组件中，默认值为 **true** 。 |
+| [REGION:tablesection]Material[/REGION] ||
+| **TranslucentShadowDensityScale** | 在世界中以及自投阴影中， 控制阴影亮度的比例系数。 |
+| **TranslucentSelfShadowDensityScale** |  仅供设置自投阴影不透明度的额外比例系数。 |
+| **TranslucentBackscatteringExponent** | 控制反向散射角；使之随角度减少或增加而变得更大或更尖锐。 |
+| **TranslucentMultipleScatteringExtinction** | 此颜色会在部分穿越体积的光源间执行多重散射。 |
+| **TranslucentShadowStartOffset** | 用来偏移阴影的本地空间的距离。 这可以用来纠正不正确的自投阴影。 |
+
+## 限制
+
+* 对于光源半透明的表面，诸如玻璃和水，目前没有办法解决。这需要高光和反射以及细节阴影。
+* 带光源的半透明物体目前无法处理固定光源和静态光源的静态阴影。
+*  Lightmass的间接光照目前未被应用于半透明物体。

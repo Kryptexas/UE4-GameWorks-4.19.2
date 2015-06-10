@@ -1,0 +1,125 @@
+﻿INTSourceChangelist:2289480
+Availability:Public
+Title:入門編:HTML5 プロジェクトの開発
+Crumbs:%ROOT%, Platforms, Platforms/HTML5
+Description:HTML5 プラットフォーム開発の設定
+
+[TOC(start:2 end:3)]
+
+## 免責条項
+
+[REGION:todo]
+HTML5 パイプラインは現在実験版です。HTML5 プラットフォーム向けにビルドした場合、適切に動かないプロジェクトがあるかもしれません。ラフエッジを予期してください。
+[/REGION:todo]
+
+## 必須条件
+
+### ソースコード
+
+Empscripten は HTML5 プラットフォームと使用するためにエンジンをコンパイルするので、エンジン ソースコードが存在しなくてはなりません。 
+
+* [](GettingStarted/DownloadingUnrealEngine).
+
+### git
+
+コマンドラインからアクセスするために、 git コマンドが必要です。Emscripten SDK は最新版のダウンロードに git を使用します。
+
+Windows には GitHub の使用を推奨します。インストールされると、 Git Shell のショートカットがスタートメニューに表示され (デスクトップに表示されることもあります) 、GitHub 認証情報で事前に印象されている Windows Powershell のインスタンスを起動するために使用します。
+
+* [ここからダウンロード](https://windows.github.com/)
+
+## Emscripten のインストール
+
+HTML5 プロジェクトのビルドに必要とされる主なツールチェーンは Emscripten です。Emscripten を最も簡単に取得する方法は、 Emscripten Wiki で利用できるインストール パッケージをどれかダウンロードすることです。
+
+* [ここからパッケージを見る](https://github.com/kripken/emscripten/wiki/Emscripten-SDK)
+
+##Emscripten の更新
+
+Emscripten はインストレーション フォルダのルートに置かれている「emsdk」というタイトルの bootstrap ツールを提供します。 
+
+このツールにより、以下のコマンドを実行すれば Emscripten SDK の最新版に簡単に更新することができます。
+
+    emsdk update
+    emsdk install latest
+    emsdk activate latest
+
+
+## 環境変数
+
+Emscripten SDK は環境の修正を処理することになっています。もし適切に動作していないような場合は、このセクションで記載している変数に対する値を手書きのコードで確認するといいかも知れません。
+
+環境変数の設定は以下の方法で行います。
+
+* **Computer** アイコン上を右クリックするか、キーボードの **[Windows] - [Break]** を押します。
+* 左側の **Advanced system settings** を選択します。
+* **Environment Variables...** をクリックします。
+* それぞれに変数に対して (以下を行います)：
+	* (以下から) 環境変数を探して両方のリストに既に設定されていることを確認します。
+	* 見つからない場合、画面上にある **[New...]** をクリックします。
+	* 名前と値を入力します。
+	* **[OK]** をクリックします。
+* **[OK]** をクリックして **[Environment Variables]** ウィンドウを閉じます。
+
+以下は、依存する変数と、それが示す場所です。
+
+**EMSCRIPTEN**
+* 主要な Emscripten ツールを含むディレクトリにこれを設定します。
+* 「emcc」と呼ばれるファイルを含まなければなりません。
+
+<!--
+[](Platforms/HTML5/BuildingEmscripten) のステップに従えば、この変数に対する適切な値は以下になります。
+
+`C:\Emscripten\emscripten\incoming`
+-->
+
+### .emscripten ファイル
+
+Emscripten ツールチェーンは「.emscripten」という名前の HOME ディレクトリのファイルに依存します。 
+
+このファイルには、Emscripten ツールチェーンを構成する各種ツールへのパスが含まれる変数定義が入っています。 
+
+お好きなテキスト エディタでファイルを開き、以下の変数のパスを確認してください。
+
+**LLVM_ROOT**
+* 主要な LLVM/Clang バイナリを含むディレクトリにこれを設定します。
+* llvm.exe と clang.exe が含まれなければなりません。
+
+**NODE_JS**
+* 主要な NodeJS バイナリを含むディレクトリにこれを設定します。
+* node.exe が含まれなければなりません。
+
+**PYTHON**
+* 主要な Python バイナリを含むディレクトリにこれを設定します。
+* python.exe が含まれなければなりません。
+
+**EMSCRIPTEN_ROOT**
+* 主要な Emscripten ツールを含むディレクトリにこれを設定します。
+* 「emcc」と呼ばれるファイルを含まなければなりません。
+
+## 最後のステップ
+
+HTML5 プラットフォーム オプションが UE4 ソリューション ファイルで選択可能になる前に、プロジェクト ファイルを再生成する必要があります。[必須条件](#ソースコード) でも記載したとおり、エンジン ソース コードが存在しないと正常に実施できません。
+
+Emscripten の実行中に Unreal Frontend を実行していた場合、再起動する必要があります。
+
+## ヒントとトリック
+
+### 64 ビット ブラウザが必要
+HTML5 ビルドを実行するには、現在 64 ビット ブラウザが必要です。
+
+* [Firefox nightlies をダウンロード](ftp://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/)
+* [Chromium ビルドをダウンロード](http://chromium.woolyss.com/#windows-64-bit)
+
+###メモリ サイズを増やす 
+プロジェクトの中には、 Soul のように、 HTML5 ビルドが使用できるメモリ ヒープの合計を拡張する必要があります。 
+
+そのためには、「HTML5ToolChain.cs」で以下のラインを変更します。
+
+    Result += " -s TOTAL_MEMORY=1610612736";
+
+このラインを変更したら、必要に応じて **UnrealFrontend** プロジェクトをビルドし UFE を再起動します。
+
+### クック フェーズでのエラー
+
+プロジェクトのクック中にエラーが発生したら、そのプロジェクトの **Development** コンフィギュレーションを **Windows** プラットフォーム用にビルドし、エディタでクックしようとしたマップを少なくとも 1 回はロードする必要があります。

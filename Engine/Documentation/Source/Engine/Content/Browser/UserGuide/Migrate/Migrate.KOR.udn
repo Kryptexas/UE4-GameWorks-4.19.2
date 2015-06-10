@@ -1,0 +1,59 @@
+﻿INTSourceChangelist:2518148
+Availability: Public
+Title:애셋 이주하기
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저에서 애셋을 다른 프로젝트로 이주시키는 법에 대한 문서입니다.
+
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](MigrateTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/Migrate:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/Migrate]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![](MigrateBanner.png)
+[/REGION]
+
+## 개요
+
+[INCLUDE:Shared/Glossary/M/#Glossary_Migrate_Tool]
+
+## 사용법
+
+이주 툴을 사용하려면:
+
+1. 콘텐츠 브라우저에서 이주시키고자 하는 애셋을 선택합니다.
+
+	![](SelectedAssetsForMigration.png)(w:400)
+
+1. 선택된 애셋에 우클릭하여 뜨는 맥락 메뉴에서 **애셋 액션** - **이주...** 를 선택합니다.
+
+	![](MigrateContextMenu.png)![](MigrateContextMenu2.png)
+
+1. **애셋 보고** 대화창이 떠, 이주되는 애셋과 종속성이 전부 표시됩니다. 확인하고 **Ok** 를 클릭합니다.
+
+	![](AssetReport.png)
+
+1. 다른 언리얼 엔진 프로젝트에 적당한 콘텐츠 폴더를 선택합니다. 이주 대상 위치가 됩니다.
+
+	![](ChooseFolderForMigration.png)
+
+1. 이주가 성공하면 확인창을 통해 대상 폴더에 어떠한 애셋들이 복사되었는지 알 수 있습니다.
+
+	![](AssetsMigrated.png)
+
+
+게임 콘텐츠 폴더 이외의 곳에 이주를 시도하면, 다음과 같은 메시지가 뜹니다:
+
+![](assetMigrationWarning.png)
+
+이 경우, 그냥 위치를 확인한 다음 **예** 또는 **아니오** 를 클릭하면 됩니다.

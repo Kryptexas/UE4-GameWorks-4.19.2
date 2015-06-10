@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2274158
+Availability: Public
+Title:Developers 폴더
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/Browser
+Description:콘텐츠 브라우저의 소스 패널 내 Developers 폴더 사용법에 대한 문서입니다.
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![](DeveloperFolderTopic.png)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/Browser/UserGuide/DevelopersFolder:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/Browser/UserGuide/DevelopersFolder]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+## 개요
+
+![DevelopersFolder.png](DevelopersFolder.png)(w:220)
+
+Game 폴더 내 애셋 Assets 영역 아래 보면 Developers 폴더가 보입니다. 여기에는 현재 동료 개발자들이 작업중인 모든 애셋이 들어있습니다. 새로운 기법이나 애셋을 실험할 때 유용한 협업 환경이 될 수 있습니다. 그러나 유념해 둘 규칙이 몇 가지 있습니다:
+
+1. **이 기능의 용도는 개인적인 연구나 실험 또는 테스트 전용입니다**, 게임의 다른 부분에 영향을 끼치지 않고 여러가지 것들을 시험해 볼 수 있습니다.
+ 
+2. 이 기능은 엄격히 개인적인 작업용이기에, 이 폴더에서 외부 폴터로 레퍼런스하지 않도록 하는 방침을 세우는 것이 좋습니다.
+
+3. Developers 폴더는 나머지 게임 프로덕션과는 고립된 상태로 있어야 하는 샌드박스 환경같은 것으로 간주하시면 됩니다.
+ 
+4. 자신의 Developers 폴더 이름은 윈도우 사용자명에서 공백이나 점과 같이 허용되지 않는 문자를 뺀 것입니다.
+ 
+5. 다른 개발자들이 자신의 폴더에 있는 애셋을 볼 수는 있으나, **자신이 소스 콘트롤을 사용중이고 다른 사람들은 "Show Other Developers" 옵션을 체크해둔 상태여야 합니다**. 해당 옵션의 위치는 콘텐츠 브라우저에서 **Filters > Other Filters > Other Developers** (필터 > 기타 필터 > 다른 개발자) 입니다.
+
+소스 패널 작업 관련 상세 정보는 [](Engine/Content/Browser\UserGuide\WorkingWithSources) 문서를 참고해 주시기 바랍니다.

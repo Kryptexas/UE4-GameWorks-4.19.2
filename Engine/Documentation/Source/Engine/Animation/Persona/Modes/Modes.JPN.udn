@@ -1,0 +1,115 @@
+﻿INTSourceChangelist:2419781
+Availability:Public
+Title:ペルソナの編集モード
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
+Description:ペルソナのアニメーション エディタで利用出来る編集モードのユーザーガイド
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+## 概要
+
+[EXCERPT:Overview]
+ペルソナは、単なる単一ツールというよりはむしろ、実際は様々なアニメーションツールやエディタ群から構成されていることを忘れてはいけません。ペルソナで、スケルトン、メッシュ、アニメーション、そして Animation ブループリントの編集が可能です。そのためペルソナにはさまざまな _モード_ が含まれていて、手元の編集作業を最適に処理する操作が可能です。 
+
+ペルソナの UI はツールとエディタのさまざまなレイアウトを表示するために、各モードで更新されます。
+[/EXCERPT:Overview]
+
+[REGION:note]
+	全てのモードが常に利用可能なわけではありません。例えば Animation ブループリント モードは、 Animation ブループリントがコンテンツ ブラウザから開かれた時 _のみ_ 利用が可能です。 
+
+	また、編集レイアウトへの変更はそのまま保持されるのでご注意ください。例として、 Skeleton editing モード中にパネルを移動すると、 Animation モードへ切り替わります。 Skeleton editing モードへ再度切り替えても、移動したパネルは与えられた位置を保ちます。
+[/REGION]
+
+
+[EXCERPT:SkeletonMode]
+## Skeleton Editing Mode (スケルトン編集モード)
+
+[![](Persona_Mode_Skeleton.png)(w:800)](Engine/Animation/Persona/Modes/Skeleton)
+
+(画像をクリックして **スケルトン編集モード** ページへ移動)
+
+[EXCERPT:SkeletonModeUI]
+1. [ツール バー](Engine/Animation/Persona\Toolbar) 
+1. [スケルトン ツリー](Engine/Animation/Persona\SkeletonTree)
+1. [ビューポート](Engine/Animation/Persona\Viewport)
+1. [詳細](Engine/UI/LevelEditor\Details) 
+1. [アセット ブラウザ](Engine/Animation/Persona\AssetBrowser)
+[/EXCERPT:SkeletonModeUI]
+[/EXCERPT:SkeletonMode]
+
+[REGION:note]
+ペルソナの **[詳細]** パネルには、アニメーション アセットに関連したプロパティのみが表示されます。ただし、機能的にはメイン エディタ ウィンドウの標準的な [詳細] パネルと同様です。
+[/REGION]
+
+[EXCERPT:MeshMode]
+## Mesh Editing Mode (メッシュ編集モード)
+
+[![](Persona_Mode_Mesh.png)(w:800)](Engine/Animation/Persona/Modes/Mesh)
+
+(画像をクリックして **メッシュ編集モード** ページへ移動)
+
+[EXCERPT:MeshModeUI]
+1. [ツール バー](Engine/Animation/Persona\Toolbar) 
+1. [スケルトン ツリー](Engine/Animation/Persona\SkeletonTree)
+1. [メッシュの詳細](Engine/Animation/Persona\MeshDetails)
+1. [ビューポート](Engine/Animation/Persona\Viewport)
+1. [詳細](Engine/UI/LevelEditor\Details)/[アセット ブラウザ](Engine/Animation/Persona\AssetBrowser)
+1. [モーフ ターゲット プレビューア](Engine/Animation/Persona\MorphTargetPreviewer)
+[/EXCERPT:MeshModeUI]
+[/EXCERPT:MeshMode]
+
+
+[EXCERPT:AnimationMode]
+## Animation Editing Mode (アニメーション編集モード)
+
+[![](Persona_Mode_Anmation.png)(w:800)](Engine/Animation/Persona/Modes/Animation)
+
+(画像をクリックして **アニメーション編集モード** ページへ移動)
+
+[EXCERPT:AnimationModeUI]
+1. [ツール バー](Engine/Animation/Persona\Toolbar) 
+1. [スケルトン ツリー](Engine/Animation/Persona\SkeletonTree)
+1. [アニメーション アセットの詳細](Engine/Animation/Persona\AnimAssetDetails)
+1. [ビューポート](Engine/Animation/Persona\Viewport)
+1. [アニメーション シーケンス エディタ](Engine/Animation/Sequences\Editor)
+1. [詳細](Engine/UI/LevelEditor\Details)
+1. [アセット ブラウザ](Engine/Animation/Persona\AssetBrowser)
+[/EXCERPT:AnimationModeUI]
+[/EXCERPT:AnimationMode]
+
+
+[EXCERPT:GraphMode]
+## Graph Editing Mode (グラフ編集モード)
+
+[![](Persona_Mode_Vim.png)(w:800)](Engine/Animation/Persona/Modes/Graph)
+
+(画像をクリックして **グラフ編集モード** ページへ移動)
+
+[EXCERPT:GraphModeUI]
+1. [ツール バー](Engine/Animation/Persona\Toolbar) 
+1. [ビューポート](Engine/Animation/Persona\Viewport)
+1. [プレビュー設定 (クラス デフォルト)](Engine/Blueprints\Editor\Modes\Defaults)
+1. [ブループリント グラフ パネル](Engine/Animation/AnimBlueprints)
+1. [アセット ブラウザ](Engine/Animation/Persona\AssetBrowser)/[My Blueprint](Engine/Blueprints\Editor\UIComponents\MyBlueprint)
+1. [詳細](Engine/UI/LevelEditor\Details)
+[/EXCERPT:GraphModeUI]
+[/EXCERPT:GraphMode]

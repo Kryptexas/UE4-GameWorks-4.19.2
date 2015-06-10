@@ -1,0 +1,135 @@
+﻿INTSourceChangelist:2436813
+Availability:Public
+Title:アクタを選択する
+Crumbs: %ROOT%, Engine, Engine/Actors
+Description:レベルエディタのビューポートでアクタを選択するために利用可能な方法の概要
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/Actors "%Engine/Actors:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/Actors/Transform "%Engine/Actors/Transform:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors/Selection:title%](Engine/Actors/Selection/actorselection_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/Selection:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/Selection:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/Selection]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors/Selection:title%](Engine/Actors/Selection/actorselection_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors/Selection:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors/Selection:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors/Selection]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+
+[TOC(start:2)]
+
+## 概要
+
+アクタの選択は本質的には単純なものですが、レベルの編集プロセスの重要な部分です。作業を行いたいアクタを迅速かつ容易に選択できる機能があれば、生産性が高まりデザイン プロセスがはかどります。
+
+アクタやアクタのグループを選択する方法は数多くあります。以下で、各方法について詳細に説明します。
+
+
+## 単純な選択
+
+アクタを選択する最も基本的な方法としては、ビューポートにあるアクタ上で **左クリック** します。アクタ上でクリックすると、現在選択中のアクタの選択が解除され、代わりに新しいアクタが選択されます。新しい (まだ選択されていない) アクタ上でクリックしながら、**[Ctrl]** キーを押すと、その新しいアクタが選択に追加されます。選択済みのアクタ上でクリックしながら、**[Ctrl]** キーを押すと、そのアクタは選択から削除されます。
+
+この方法は、少数のアクタやマップに広がる複数の個々のアクタを選択するには適しています。しかし、大量のアクタを選択するには時間がかかり、手間のかかる作業になる場合があります。
+
+[REGION:fullwidth]
+![](LE_SelectedActors.png)
+[/REGION]
+
+複数のアクタを選択すると、それを 1 つのグループとして移動したり、**[詳細]** パネルでそのプロパティを修正したりすることができます。
+
+[REGION:tip]
+2 つ以上のアクタを選択する場合、選択と操作を行いやすくするために、そうしたアクタを 1 つのグループに追加することができます。アクタのグループ化に関する詳細については、[](Engine/Actors/Grouping) をご覧ください。
+[/REGION]
+
+## ワールド アウトライナーで選択を行う
+
+**ワールド アウトライナー** はレベル内にある全アクタのリストを含んでいる アンリアル エディタにあるパネルです。このリストでは、ビューポートでの操作と同じように、各アクタの選択、選択解除を行うことができます。さらに、アクタを範囲選択するには、1 つのアクタをクリックし、**[Shift]** キーを押しながら、別のアクタをクリックすることで、この 2 つのアクタとリスト内でその間にあるアクタのすべてを選択することができます。
+
+[REGION:note]
+**ワールド アウトライナー** でアクタを選択すると、ビューポートでもそれを選択することになります。逆にビューポートでアクタを選択すると、ワールド アウトライナーでも選択することになります。
+[/REGION]
+
+## マーキー選択
+
+マーキーによる選択は、ビューポート内の特定エリア内に存在するアクタのグループを素早く選択および選択解除できます。この選択方法では、複数のキーを組み合わせて押して、マウスボタンの 1 つをクリックし、マウスをドラッグし、指定枠を定義します。指定枠内にあるアクタはすべて、押されているキーの組み合わせとマウスのドラッグ中に押下されているマウスボタンにしたがって、選択または選択解除されます。
+
+[REGION:fullwidth]
+![](Select_Marquee.png)
+[/REGION]
+
+以下はマーキー選択で使用可能なキーの組み合わせです。
+
+| **キーのショートカット** | **効果** |
+| ---------| ---------|
+| **LMB (左マウスボタン) ** | 現在選択されているものを、指定枠に含まれるアクタに置き換えます。 |
+| **Shift+LMB** | 指定枠に含まれるアクタを、現在の選択に追加します。 |
+| **Ctrl+Alt+LMB** | 指定枠内で選択されているアクタを、現在の選択から削除する。 |
+
+## 高度な選択テクニック
+
+クラス、アセット タイプ、マテリアルなど特定のものを共有しているアクタを選択することができます。選択オプションを表示するには、選択したアクタを **右クリック** し、 **[Select]** をクリックし、コンテキスト メニューでオプションのリストを検討してください。
+
+[REGION:tip]
+**[Select]** コンテキスト メニューで利用可能なオプションは、何を選択するかによって変わります。たとえば、スタティックメッシュを選択すると、ブループリントを選択した場合とは違うオプションが表示されます。
+[/REGION]
+
+![Select by Asset](LE_SelectClass.png)
+
+関連するアクタの選択以外に**[Select]** コンテキスト メニューでは以下を行うこともできます。
+
+* 現在の選択項目の反転 (つまり、選択をすべて解除し、代わりに選択されていなかったものをすべて選択) を行うには、 **[Invert Selection]** (選択項目の反転) をクリックします。
+* アクタに影響を与えるライトを選択するには、 **[Select Relevant Lights]** (関連性のあるライトを選択) をクリックします。
+
+
+%playlistnav%
+
+

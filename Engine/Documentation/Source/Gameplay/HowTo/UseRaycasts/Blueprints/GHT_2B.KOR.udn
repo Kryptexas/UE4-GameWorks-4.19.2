@@ -1,0 +1,228 @@
+﻿INTSourceChangelist:2428846
+Availability: Public
+Title:블루프린트에서 레이캐스트 (트레이싱) 사용 비법
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
+Description:블루프린트에서 레이캐스트, 다른 말로 트레이싱 사용 비법 안내입니다.
+
+[TOC (start:2 end:2)]
+
+## 개요
+
+여기서는 **싱글** 및 **멀티** 레이캐스트 사이의 차이점은 물론, 콜리전 정보 수집을 위한 각각의 구성 방법을 배워보도록 하겠습니다.
+
+## 싱글 라인 트레이스
+
+### 채널별 싱글 라인 트레이스
+
+**Single Line Trace by Channel** 는 주어진 선을 따라 콜리전 트레이스를 하여, 걸리는 (트레이스 채널에 반응하는) 첫 오브젝트를 반환합니다.
+
+**Single Line Trace by Channel** 구성 방법은 다음과 같습니다.
+
+1.  **블루프린트 일인칭** 템플릿에 **시작용 콘텐츠 포함** 시켜 새 프로젝트를 만들고 프로젝트를 엽니다.
+
+1.  **Game/Blueprints** 폴더에서 **MyCharacter** 블루프린트를 엽니다.
+
+1.  그래프에 **우클릭** 한 다음 **Event Tick** 노드를 검색 추가합니다.
+
+	![](GHT2B_1.png)
+
+	그러면 트레이스가 매 프레임마다 실행됩니다.
+	
+1.  실행 핀을 끌어놓은 다음, **Single Line** 을 검색하여 **Single Line Trace by Channel** 노드를 추가합니다.
+
+	![](GHT2B_2.png)
+
+1.  **Control** 키를 누른 채 **FirstPersonCamera** 컴포넌트를 끌어 놓습니다.
+
+	![](GHT2B_3.png)
+
+	트레이스 시작 지점으로, 바로 카메라 입니다.
+
+1.  **FirstPersonCamera** 노드를 끌어놓고 **Get World Location** 노드를 추가한 다음 트레이스의 **Start** 에 연결합니다.
+
+1.	다시 한 번 **FirstPersonCamera** 노드를 끌어놓은 다음 **Get World Rotation** 노드를 추가합니다.
+
+	![](GHT2B_4.png)(w:800)
+
+	여기서는 **FirstPersonCamera** 위치에서 트레이스를 시작한 다음, **FirstPersonCamera** 의 회전을 구하고 있습니다.
+
+1.	**Get World Rotation** 를 끌어놓고 **Get Forward Vector** 를 추가한 다음, 거기서 다시 끌어놓고 **Vector * Float** 노드를 추가한 뒤 **1500** 으로 설정합니다. 
+
+	![](GHT2B_5.png)
+
+	로테이션과 포워드 벡터를 구한 다음 밖으로 1500 만큼 뻗어나갑니다 (이 값이 트레이스 길이입니다).
+
+1.	**Get World Location** 를 끌어놓고 **Vector + Vector** 노드를 추가한 다음 아래와 같이 트레이스 노드의 **End** 에 연결합니다.
+
+	![](GHT2B_6.png)(w:800)
+
+	여기서는 **FirstPersonCamera** 위치를 구하여, 거기서부터 그 로테이션과 포워드 벡터에 따라 1500 유닛만큼 뻗어나갑니다.
+
+1.	트레이스 노드에서, **Draw Debug Type** 을 **For One Frame** 으로 설정합니다.
+
+	![](GHT2B_7.png)
+
+	그러면 게임내에서 플레이 도중 라인 트레이스를 확인할 수 있도록 디버그 라인이 그려집니다.
+
+1.	트레이스의 실행 핀을 끌어 놓고 **Print String** 노드를 추가합니다.
+
+	![](GHT2B_8.png)
+
+1.	**Out Hit** 핀을 끌어놓은 다음 **Break Hit** 노드를 검색하여 **Break Hit Result** 노드를 추가합니다.
+
+	![](GHT2B_9.png)
+
+1.	**Break Hit Result** 노드의 **Hit Actor** 핀을 끌어놓고 **To String (Object)** 노드를 추가한 다음 **Print String** 노드에 연결합니다.
+
+	[REGION:lightbox]
+	[![](GHT2B_10.png)(w:800)](GHT2B_10.png)
+	[/REGION]
+
+	_이미지를 클릭하면 원래 크기로 볼 수 있습니다._
+
+	그러면 트레이스에 걸리는 오브젝트를 화면에 출력할 수 있습니다.
+
+1.	**컴파일** 버튼을 클릭한 다음, 에디터에서 플레이한 뒤 레벨에서 큐브를 바라봅니다.
+
+	![](GHT2B_11.png)(w:800)
+
+	_트레이스의 뷰 앵글을 확인할 수 있도록 일인칭 관점에서 탈출했습니다._
+	
+	트레이스가 큐브에 걸리면, 큐브를 화면에 출력하는 것이 보일 것입니다.
+
+위 예제는 제공된 트레이스 채널에 반응하도록 설정된 모든 오브젝트를 반환하지만, 특정 오브젝트에만 반응하도록 하고픈 경우가 있을 수 있습니다. 위 예제에서는 **Actors to Ignore** 핀을 사용하여 트레이스에 무시하도록 만들 액터 **배열** 을 받도록 할 수 있지만, 무시할 액터를 일일히 지정해야 한다는 뜻이기도 합니다.
+
+지정된 **오브젝트 유형** 만 반환하도록 하는 **Single Line Trace by Object** 도 가능합니다. 그러면 지정된 오브젝트 세트만을 대상으로 트레이스에 포함시킬 수 있습니다.
+
+### 오브젝트별 싱글 라인 트레이스
+
+**Single Line Trace by Object** 는 주어진 선을 따라 콜리전 트레이스를 하여 걸리는 (오브젝트 유형에 반응하는) 첫 오브젝트를 반환합니다.
+
+**Single Line Trace by Object** 트레이스 구성 방법은 다음과 같습니다:
+
+1.  **Single Line Trace by Channel** 예제에 사용된 방법대로 트레이스를 구성합니다.
+
+1.  **Single Line Trace by Channel** 노드를 **Single Line Trace by Object** 노드로 대체합니다.
+
+1.  **Object Types** 핀을 끌어놓고 **Make Array** 노드를 추가합니다.
+
+	![](GHT2B_12.png)
+
+1.  **Make Array** 노드에서 드롭다운 메뉴를 통해 트레이스하려는 **ObjectType** 을 지정합니다.
+
+	![](GHT2B_13.png)
+
+	여기서는 **WorldDyanmic** 오브젝트에 트레이스를 합니다. **Add Pin** 버튼을 클릭하여 핀을 추가할 수 있습니다.
+
+1.  나머지 트레이스도 **Single Line Trace by Channel** 구성 방식과 똑같이 구성하면 됩니다.
+
+	[REGION:lightbox]
+	[![](GHT2B_15.png)(w:800)](GHT2B_15.png)
+	[/REGION]
+
+	_이미지를 클릭하면 원래 크기로 볼 수 있습니다._
+
+1. 레벨에 하나의 **WorldDynamic** 오브젝트를 추가했습니다.
+
+	![](GHT2B_16.png)
+
+	추가된 액터만 걸린 것으로 반환되는데, 피직스 액터는 히트를 반환하지 않기 때문입니다.
+
+
+## 멀티 라인 트레이스
+
+### 채널별 멀티 라인 트레이스
+
+**Multi Line Trace by Channel** 는 주어진 선을 따라 콜리전 트레이스를 하여 처음 걸린 것을 포함한 모든 것을 반환하며, 지정된 트레이스 채널에 반응하는 오브젝트만 반환합니다.
+
+**Multi Line Trace by Channel** 구성 방법은 다음과 같습니다.
+
+1.  **Single Line Trace by Channel** 예제에 사용된 방법대로 트레이스를 구성합니다.
+
+1.  **Single Line Trace by Channel** 노드를 **Multi Line Trace by Channel** 노드로 대체합니다.
+
+1.  **Out Hits** 핀을 끌어놓고 **ForEachLoop** 노드를 추가합니다.
+
+	![](GHT2B_18.png)
+
+	다수의 액터가 걸리므로, 그 각각에 대해 어떤 작업을 해 줍니다 (이 예제에서는 액터를 화면에 출력합니다).
+
+1.  **Array Element** 를 끌어놓고 **Break Hit Result** 를 추가한 다음, **Hit Actor** 를 끌어놓고 **To String (Object)** 를 추가한 뒤 **Print String** 에 연결합니다. 
+	
+	[REGION:lightbox]
+	[![](GHT2B_19.png)(w:800)](GHT2B_19.png)
+	[/REGION]
+
+	_이미지를 클릭하면 원래 크기로 볼 수 있습니다._
+
+	그러면 배열을 통해 걸리는 액터 각각을 화면에 출력합니다.
+
+1.  여기 피직스 액터 앞에 Glass Window (유리창)이 있습니다.
+
+	![](GHT2B_17.png)
+
+	유리창은 **디스트럭터블 메시** 이며, 콜리전 세팅에서 **Visibility** (표시여부)에 대한 **Trace Response** (트레이스 반응)이 **Overlap** (겹침)으로 설정되어 있는 반면, 피직스 액터 (큐브) 에는 그 **Visibility** 설정이 **Block** (막음)으로 되어있습니다.
+
+	오브젝트를 관통하여 (부수면서) 플레이어나 적도 맞출 수 있도록 하는 상황에 쓸 수 있습니다.
+
+### 오브젝트별 멀티 라인 트레이스
+
+**Multi Line Trace by Object** 는 주어진 선을 따라 콜리전 트레이스를 한 다음, 걸리는 모든 것을 반환하되, 지정된 오브젝트 유형에 반응하는 오브젝트만 반환합니다.
+
+**Multi Line Trace by Object** 구성 방법은 다음과 같습니다.
+
+1.  **Single Line Trace by Channel** 예제에 사용된 방법대로 트레이스를 구성합니다.
+
+1.  **Single Line Trace by Channel** 노드를 **Multi Line Trace by Object** 노드로 대체합니다.
+
+1.  **Object Types** 핀을 끌어놓고 **Make Array** 노드를 추가한 다음, 드롭다운 메뉴를 사용하여 배열에 오브젝트를 추가합니다.
+
+	![](GHT2B_21.png)
+
+	여기서 Object Types 에 **WorldDynamic** 및 **Physics Body** 를 할당합니다. **Add pin** 버튼을 사용하여 배열에 오브젝트 유형을 추가시킬 수 있습니다.
+	
+1.  트레이스 노드의 **Out Hits** 핀을 끌어놓고, **ForEachLoop** 노드를 추가합니다.
+
+	![](GHT2B_22.png)
+
+	이를 통해 트레이스에 걸리는 액터 각각에 대해 어떤 작업을 할 수 있습니다.
+
+1.  **Array Element** 를 끌어놓고 **Break Hit Result** 를 추가한 다음, **Hit Actor** 를 끌어놓고 **To String (Object)** 를 추가한 뒤 **Print String** 에 연결합니다. 
+
+	[REGION:lightbox]
+	[![](GHT2B_23.png)(w:800)](GHT2B_23.png)
+	[/REGION]
+
+	_이미지를 클릭하면 원래 크기로 볼 수 있습니다._
+
+	그러면 배열을 통해 걸리는 액터 각각을 화면에 출력합니다.
+
+1.  피직스 액터 (Physics Body Object Type) 앞에 걸려있는 천정 라이트 (World Dynamic Object Type) 가 있습니다.
+
+	![](GHT2B_20.png)
+
+	**Multi Line Trace by Object** 는 **Multi Line Trace by Channel** 와 다르게 걸린 첫 번째 오브젝트에서 멈추지 않고, 라이트를 통해 큐브까지 이어집니다.
+
+
+## 셰이프 트레이스
+
+[REGION:fullwidth]
+![](GHT2B_24.png)
+[/REGION]
+
+라인 트레이스로 충분치 않을 때는, **Shape Trace** 를 사용하여 얻고자 하는 결과를 얻을 수도 있습니다. 예를 들어, 적의 "시야 원뿔"을 만들어 그 안에 들어있는 플레이어를 감지하도록 할 수가 있습니다. 라인 트레이스 감지는 플레이어가 수그리는 것으로 피할 수도 있으니 충분치 않을 수가 있습니다.
+
+이러한 상황에서는 **박스 트레이스**, **캡슐 트레이스**, **구체 트레이스** 같은 것을 대신 사용할 수 있습니다. 각 모양 트레이스는 시작점에서 끝점까지 휩쓰는 콜리전 검사같은 기능을 하며, 셰이프 트레이스는 레이캐스트를 일정한 볼륨 모양을 사용하여 부가적인 레이어 검사를 합니다. 
+
+셰이프 트레이스는 **싱글 트레이스** 로든 **멀티 트레이스** 로든 가능하며, 각각은 라인 트레이스와 같은 방식으로 구성되지만, 사용하는 셰이프의 크기나 방향에 관련해서는 추가적인 디테일이 제공될 것입니다.
+
+
+
+
+
+
+
+
+
+
+

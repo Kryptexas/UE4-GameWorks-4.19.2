@@ -1,0 +1,236 @@
+﻿INTSourceChangelist:2510725
+Availability:Public
+Title: マテリアル エディタUI
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/Editor
+Description:マテリアルエディタUIのユーザーガイド
+
+
+[TOC(start:2)]
+
+## 概要
+
+マテリアルエディタUIは、メニューバー、ツールバー、そしてデフォルト設定では4つのオープンパネルで構成されています。
+
+ ![materialEditorAlt.png](materialEditor.png)
+
+1. [メニューバー](#メニューバー) - 現在のマテリアルのメニューオプションをリスト表示します。
+1. [Toolbar（ツールバー）](#Toolbar（ツールバー）) - マテリアルの作業に使用するツールを収容しています。
+1. [ビューポートパネル](#ビューポートパネル) - メッシュのマテリアルをプレビューするパネルです。
+1. [詳細パネル](#詳細パネル) - マテリアルのプロパティ、または選択したマテリアルか関数ノードをリスト表示します。
+1. [グラフパネル](#グラフパネル) - マテリアルのシェーダー命令を作成するマテリアル式と関数ノードを表示します。
+1. [パレットパネル](#パレットパネル) - 利用可能なマテリアル式と関数ノード全てをリスト表示します。
+[REGION:note]
+HLSLコードパネルもありますが、デフォルトでは非表示になっています。このパネルを表示するには、 **[Window]** メニューで **[HLSL Code]** をクリックします。詳細は、 [HLSL Code](#hlslcodepanel)を参照してください。
+[/REGION]
+
+[Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
+
+##メニューバー
+
+### File（ファイル）
+
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
+
+### Edit（編集）
+
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
+
+### Assets（アセット）
+
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
+
+### Window（ウィンドウ）
+
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
+* **[グラフ]** - **[グラフ]** パネルの表示を切り替えます。
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
+* **[パレット]** - **[パレット]** パネルの表示を切り替えます。
+* **[統計情報]** - **[統計情報]** パネルの表示を切り替えます。
+* **[HLSL Code]** - **[HLSL Code]** パネルの表示を切り替えます（デフォルトでは閉じています）。
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
+
+### Help（ヘルプ）
+
+[Include:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
+
+
+## Toolbar（ツールバー）
+
+![Material Editor Toolbar](MaterialEditor_Toolbar.png)
+
+以下の表に、ツールバーのオプションとその説明を示します。
+
+| **アイコン**  | **説明** | 
+| --- | --- |
+| [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveIcon] | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarSaveDescription] |
+| [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBIcon] | [Include:Shared/Editors/Common/EditorToolbarItems/#ToolbarCBDescription] |
+| ![toolbar_apply.png](toolbar_apply.png)| マテリアルエディタで行った変更を、オリジナルのマテリアルとワールドでこのマテリアルを使用している箇所へ適用します。|
+|![toolbar_search.png](Material_Toolbar_Button_Search.png) | 現行マテリアルの表現式とコメントを検索します。 |
+| ![toolbar_home.png](toolbar_home.png)| ベースのマテリアル ノードを **[グラフ]** パネルの中央に配置します。 |
+| ![toolbar_clean.png](toolbar_clean.png)| マテリアルと接続していないマテリアルノードを全て削除します。|
+| ![toolbar_show.png](toolbar_show.png)| 何にも接続していないマテリアルノードを表示または非表示にします。|
+| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)|  有効になると、各マテリアルノードのマテリアルをリアルタイムで更新します。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。 [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) セクションも参照してください。|
+| ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|有効になると、ノードが追加、削除、接続、非接続、またはプロパティ値に変更があるたびに全ての副次式のシェーダーがコンパイルされます。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。 [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) セクションも参照してください。|
+| ![toolbar_stats.png](Engine/Rendering/Materials/Editor/toolbar_stats.png)| **[グラフ]** パネルにマテリアル統計値を表示または非表示にします。 |
+| ![toobar_release_stats](Material_Toolbar_Button_Release_Stats.png)| 統計情報の報告に使用するリリースまたは開発シェーダーを切り替えます。 |
+| ![toolbar_built_in_stats](Material_Toolbar_Button_Built_In_Stats.png)| 空のマテリアルの統計情報の表示を切り替えます。グラフでコスト変更の特定に役立ちます。|
+| ![toolbar_mobile_stats](Material_Toolbar_Button_Mobile_Stats.png)| モバイルのマテリアル統計情報とコンパイルエラーを切り替えます。 |
+
+## ビューポートパネル
+
+![Material Editor Preview Panel](MaterialEditor_Preview.png)
+
+**[Viewport]** は、編集中のマテリアルおよびメッシュに適用したマテリアルを表示します。 
+
+以下の表のオプションを利用して **[Viewport]** パネルをナビゲートします。
+
+| **アクション** | **説明** |
+| ----- | ----- |
+| マウスの左ボタン＋ドラッグ |  メッシュを回転  |
+| マウスホイール＋ドラッグ |  パン  |
+| マウスの右ボタン＋ドラッグ |  ズーム  |
+| **L** キーを押下＋マウスの左ボタン＋ドラッグ |  ライト方向を回転  |
+
+
+ビューポートメッシュは、関連するツールバー制御を利用して変更できます（形状ボタンの **[Select Preview Mesh]** コンボと **[Use Selected StaticMesh]** ボタン）。次にマテリアルエディタでマテリアルを開いた時に同一メッシュ上でプレビューができるように、 
+ビューポートメッシュはマテリアルと一緒に保存されます。
+
+以下の表は、 **[プレビュー]** パネルの上部に表示される各アイコンの詳細です。
+
+| **アイコン**  | **説明** | 
+| --- | --- |
+| ![toolbar_cylinder.png](toolbar_cylinder.png)![toolbar_sphere.png](toolbar_sphere.png)![toolbar_plane.png](toolbar_plane.png)![toolbar_cube.png](toolbar_cube.png)| **[プレビュー]** パネルのそれぞれのプリミティブ形状の現在のマテリアルの結果を表示します。 |
+| ![toolbar_mesh.png](toolbar_mesh.png)| **コンテンツ ブラウザ** で選択したスタティックメッシュのプレビューメッシュを作成します。|
+| ![toolbar_grid.png](toolbar_grid.png)| **[プレビュー]** パネルの背景のグリッド線をトグルします。 |
+| ![toolbar_realtime_preview.png](toolbar_realtime_preview.png)| 有効になると、プレビューメッシュのマテリアルをリアルタイムで更新します。マテリアルエディタのパフォーマンスを高速にするためにこのオプションを無効にします。 |
+
+## 詳細パネル
+
+![Material Editor Details Panel](MaterialEditor_Details.png)
+
+このパネルは、現在選択されているマテリアル式と関数ノード全てのプロパティウィンドウを収容しています。ノードが何も選択されていない場合、 
+編集中のプロパティが表示されます。
+
+全マテリアルプロパティの説明は、 [](Engine/Rendering/Materials/MaterialProperties) を参照してください。 
+　　
+
+## グラフパネル
+
+![Material Editor Graph Panel](MaterialEditor_Graph.png)
+
+このパネルは、例に挙げているマテリアルに属する全てのマテリアル表現式のグラフを収容します。マテリアルに使用したシェーダー命令の数や [コンパイラーエラー](Engine/Rendering/Materials/Editor/#CompilerErrors)  が画面左上隅に表示されます。 
+　　 
+　シェーダー命令の数が少なければ少ないほど、マテリアルの処理コストが低下します。　 
+ベースとなるマテリアルノードに接続していないマテリアル式ノードは、マテリアルの命令数（コスト）にはカウントされません。 
+　
+
+それぞれのマテリアルは、デフォルトで1つのベースMaterialノードを収容しています。ノードに対する一連の入力値は、それぞれがマテリアルの異なる側面と関連性があり、別のマテリアルノードと接続することができます。 
+　
+
+![Material Editor Material Node](MaterialEditor_MaterialNode.png)
+
+ベースMaterialノードのさまざまな入力に関する詳細は、 [](Engine/Rendering/Materials\MaterialInputs) を参照してください。 
+　　
+
+## パレットパネル
+
+**[パレット]** パネルは「ドラッグ＋ドロップ操作」でマテリアルを配置できるマテリアルノードのリストを収容しています。新規のマテリアルノードを配置するには、ノードを [Graph] パネルへドラッグします。 
+　
+
+[REGION:tip]
+**[Palette]** パネルの **[カテゴリ]** ドロップダウンリストから **[Expressions]** または **[Functions]** を選択して、マテリアルノードをフィルタリングすることができます。
+[/REGION]
+
+マテリアル関数に関する詳細は、[Material Functions](Engine/Rendering/Materials/Functions)を参照してください。
+
+
+## [HLSL Code] パネル
+
+![](MaterialEditor_HLSLPanel.png)
+
+このパネルは、現在のマテリアルで生成されたHigh Level Shader Language（HLSL）を表示します。このパネルはエディタではないためHLSLコードの変更はできませんのでご注意ください。 
+　どちらかといえば単なるビューアーに過ぎず、ユーザーのマテリアルネットワークで定義したコードの表示を有効にします。 
+　
+
+[REGION:note]
+[Code View ] パネルはデフォルトで表示されません。このパネルを表示するには、 **[Window]** メニューで **[HLSL Code]** をクリックします。
+[/REGION]
+
+
+## グラフ制御
+
+マテリアルエディタの制御です。アンリアルエディタの別のツール制御とほとんどの場合一致します。例えば、　 
+マテリアル式グラフをその他とリンクしたオブジェクトエディタのようにナビゲートしたり、マテリアルプレビューメッシュをその他のメッシュツールのように位置づけたりすることができます。 
+　
+
+
+### マウスの操作
+
+| **制御** | **アクション** |
+| --- | --- |
+| **背景で左マウスボタンまたは右マウスボタンをドラッグ**  | マテリアル式グラフをパンします |
+| **マウスホイールをスクロール**  | ズームインまたはズームアウトします  |
+| **左マウスボタン + 右マウスボタンをドラッグ**  | ズームインまたはズームアウトします |
+| **オブジェクトの上で左マウスボタンをクリック**  | 表現式またはコメントを選択します |
+| **Ctrl + オブジェクトの上で左マウスボタンをクリック**  | 表現式またはコメントの選択をトグルします |
+| **Ctrl + 左マウスボタンをドラッグ**  | 現在の選択またはコメントを移動させます  |
+| **Ctrl + Alt + 左マウスボタンをドラッグ**  | ボックスを選択します  |
+| **Ctrl + Alt + Shift + 左マウスボタンをドラッグ**  | ボックスを選択します（現在の選択に追加）  |
+| **コネクターを左マウスボタンでドラッグ**  | 接続を作成します（コネクタを解放）  |
+| **接続から左マウスボタンをドラッグ**  | 接続を移動します（同一タイプのコネクタを解放）  |
+| **Shift + コネクタの上で左マウスボタンをクリック**  | コネクタに印をつけます。印をつけたコネクタにアクションをもう一度実行すると、2つのコネクタ間に接続が作成されます。距離が離れているノード間の接続を最も速く作成する方法です。 |
+| **背景で右マウスボタンをクリック**  | **[New Expression]** メニューを開きます  |
+| **オブジェクトで右マウスボタンをクリック**  | **[Object]** メニューを開きます  |
+| **コネクターで右マウスボタンをクリック**  | **[Object]** メニューを開きます |
+| **Alt + コネクタで左マウスボタンをクリック**  | コネクターの接続全てを切断します  |
+
+
+### キーボードの操作
+
+| **制御** | **アクション** |
+| --- | --- |
+| **Ctrl + B**  | コンテンツブラウザ検索します|
+| **Ctrl + C**  | 選択した表現式をコピーします |
+| **Ctrl + S**  | 全て保存します |
+| **Ctrl + V**  | 貼り付けます  |
+| **Ctrl + W**  | 選択したオブジェクトを複製します  |
+| **Ctrl + Y**  | やり直します  |
+| **Ctrl + Z**  | 元に戻します  |
+| **Delete**  | 選択したオブジェクトを削除します |
+| **スペースバー**  | マテリアル表現式のプレビューを強制的に全て更新します |
+| **Enter**  | (クリックして「適用」と同じです) |
+
+
+###ホットキー（ショートカットキー）
+
+一般に使用するマテリアル表現式のタイプの配置にホットキーを使用します。ホットキーを押したまま、 
+ノードにドロップするために **左クリック** します。ホットキーは以下ように割り当てられています。
+
+| **ホットキー** | **表現式** |
+| --- | --- |
+| **A** | Add（追加） |
+| **B** | BumpOffset（バンプオフセット） |
+| **C** | Comment（コメント） |
+| **D** | Divide（分割） |
+| **E** | Power（累乗） |
+| **F** | MaterialFunctionCall（マテリアル関数呼び出し） |
+| **I** | If |
+| **L** | LinearInterpolate（線形補間） |
+| **M** | Multiply（乗算） |
+| **N** | Normalize（ノーマライズ） |
+| **O** | OneMinus（マイナス1） |
+| **P** | Panner（パナー） |
+| **R** | ReflectionVector（反射ベクトル） |
+| **S** | ScalarParameter（スカラーパラメータ） |
+| **T** | TextureSample（テクスチャサンプル） |
+| **U** | TexCoord（テクスチャ座標） |
+| **V** | VectorParameter（ベクトルパラメータ） |
+| **1** | Constant（定数） |
+| **2** | Constant2Vector |
+| **3** | Constant3Vector |
+| **4** | Constant4Vector |
+| **Shift + C**  | ComponentMask |
+

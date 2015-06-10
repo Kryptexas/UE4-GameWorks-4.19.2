@@ -1,0 +1,23 @@
+﻿INTSourceChangelist:2498901
+Availability:Public
+Title:スタティックメッシュのコンポーネント
+Crumbs:%ROOT%, Engine, Engine/Components
+Description:スタティックメッシュのコンポーネントとその使用方法 
+Related:Engine/Content/Types/StaticMeshes
+Related:Engine/Actors/StaticMeshActor
+Related:Engine/Physics/Collision/Reference
+Related:Engine/Blueprints/UserGuide/Components
+
+スタティックメッシュのコンポーネントでは、別のアクタのサブオブジェクトとしてひとつのジオメトリを使用することができます。 
+
+## スタティックメッシュのコンポーネント
+
+**StaticMeshComponent** は `UStaticMesh` のインスタンスを作成するために使用します。**スタティックメッシュ** は、ポリゴンの静的セットで構成されるひとつのジオメトリであり、アンリアル エンジン 4 のレベルのワールド ジオメトリ作成に使用する基本単位です。レベル構築以外に、スタティックメッシュは以下のような物の作成に使用できます。すなわち、ドアやエレベーターなどの動くもの、剛体物理オブジェクト、フォーリッジやテレインの装飾、プロシージャルに作成した建造物、ゲームの目的、その他多くのビジュアル要素の作成に使用できます。 
+
+以下は、照明器具を表す **StaticMeshComponent** が **SpotLightComponent** および **PointLightComponent** と合わせて使用され、2 種類のライト間で循環するアラームを作っています。
+
+![](static_mesh.png)(w:720)
+
+他の例としては、ドアがあります。この場合、2 つの **StaticMeshComponents** が並んで配置されています。スクリプトを通してひとつ (または両方) を動かして通路を開けることができます。 
+
+![](static_mesh2.png)(w:720)

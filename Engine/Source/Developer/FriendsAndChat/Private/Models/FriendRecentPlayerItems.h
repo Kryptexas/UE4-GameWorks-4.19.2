@@ -15,8 +15,8 @@ public:
 	 *
 	 * @param RecentPlayer The recent friend.
 	 */
-	FFriendRecentPlayerItem(TSharedPtr< FOnlineRecentPlayer > RecentPlayer)
-		: RecentPlayer(RecentPlayer)
+	FFriendRecentPlayerItem(TSharedPtr< FOnlineRecentPlayer > InRecentPlayer)
+		: RecentPlayer(InRecentPlayer)
 	{ }
 
 public:
@@ -56,6 +56,18 @@ public:
 	virtual const FString GetClientId() const override;
 
 	/**
+	* Get the name of the client the user is logged in on
+	* @return The client name
+	*/
+	virtual const FString GetClientName() const override;
+
+	/**
+	* Get the player's session id
+	* @return The session id the user is playing in
+	*/
+	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override;
+
+	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -65,7 +77,7 @@ public:
 	 * Get the online status of the user
 	 * @return online presence status
 	 */
-	virtual EOnlinePresenceState::Type GetOnlineStatus() const override;
+	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override;
 
 	/**
 	 * Get the Unique ID.
@@ -120,7 +132,7 @@ public:
 	virtual bool CanInvite() const override;
 
 	/** Get if the user is online and his game is joinable */
-	virtual FString GetGameSessionId() const override;
+	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
 
 	/**
 	 * Get the invitation status.

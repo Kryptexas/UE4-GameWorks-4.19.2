@@ -1,0 +1,679 @@
+﻿Availability: Public
+Title:FBX骨架网格物体通道
+Crumbs: %ROOT%, Engine, Engine/Content, Engine/Content/FBX
+Description:使用FBX内容通道设置、导出及导入骨架网格物体。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Content/FBX/SkeletalMeshes:title%](Engine/Content/content_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Content/FBX/SkeletalMeshes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Content/FBX/SkeletalMeshes:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Content/FBX/SkeletalMeshes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2)]
+
+## 概述
+
+[EXCERPT:FBX_SkeletalMeshes]
+FBX 导入通道中的 _Skeletal Mesh（骨架网格物体）_ 支持提供了一种简化的处理流程来将带动画的 
+网格物体从3D应用程序中导入到虚幻引擎内，以便在游戏中使用。除了导入网格物体外， 
+如果需要，还可以使用FBX格式转移动画和顶点变形目标，所有内容全部在一个文件中。同时，还可以导入3D应用程序中给这些网格物体应用的 
+材质所使用的贴图(仅漫反射贴图和法线贴图)，  
+并且将会自动创建材质，将其应用到导入的网格物体。
+[/EXCERPT:FBX_SkeletalMeshes]
+
+使用FBX导入骨架网格物体所支持的功能：
+
+
+* [具有包含贴图的材质的 _骨架网格物体_ ](#材质)
+* [动画](#动画)
+* [顶点变形目标](#顶点变形目标)
+* 多个UV集合
+* 平滑组
+* [顶点颜色](#VertexColors)
+* [LODs](#骨架网格物体LOD)
+
+
+[REGION:note]
+目前，每个单独文件内仅能导入每个骨架网格物体的一个单独动画 。但是在一个文件中 
+可以转移一个骨架网格物体的多个顶点变形目标。
+[/REGION]
+
+本文是使用 FBX 内容通道将骨架网格物体导入到虚幻编辑器中的技术性概述。
+请参照 [FBX最佳实践](Engine/Content/FBX/BestPractices)页面获得 
+在开发环境中应用FBX内容通道的更多信息、帮助及技巧。
+
+[INCLUDE:Engine/Content/FBX#VersionWarning]
+
+
+[REGION:tip]
+在下文中任何让您使用 **导入资源** 按钮的地方，您也可以通过在您的操作系统文件浏览器中点击并拖拽一个FBX文件来完成相同处理。
+[/REGION]
+
+[REGION:tip]
+本文包含了关于Autodesk Maya和Autodesk 3ds Max的信息，在下面选择您喜欢的内容创建工具，就会仅显示和所选工具相关的信息。
+[/REGION]
+
+%Globals:DCCSelect%
+
+## 一般设置
+
+
+
+###  单一网格物体和由多部分构成的网格物体
+
+_Skeletal Meshe（骨架网格物体）_ 可以由一个单独的、连续的网格物体构成，也可以由多个植皮到同一骨架 
+的多个网格物体构成。
+
+![multipart.png](multipart.png)(w:750 convert:false)
+
+使用多个网格物体时，可以针对每个构成部分应用不同的LOD，并且可以单独地导出各个部分， 
+以便在模块化的角色系统中使用。这样创建骨架网格物体不会导致性能消耗过多。
+当把独立的部分导入到虚幻编辑器时它们会组合到一起。
+
+
+### 绑定
+
+骨架绑定(Rigging)是指把网格物体绑定到 骨骼/关节的骨架层次结构上。这使得底下骨架的 骨骼/关节 可以影响网格物体的顶点，当骨骼或关节移动时会使得网格物体发生变形。
+
+对于Maya，您可以在您的 虚幻引擎4安装路径\Engine\Extras\Maya_AnimationRiggingTools\MayaTools 目录找到[动画 & 绑定工具](Engine/Content\Tools\MayaRiggingTool)。这些工具针对Maya提供一种非常深入的角色绑定和动画解决方案。
+
+
+#### 骨架
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaSkeleton]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxSkeleton]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxSkeleton]
+如何在3dsmax中创建骨架层次结构由您自己决定。您可以使用标准的 _骨骼工具_ ，因为它们 
+非常好用，或者您可以创建您自己的对象层次结构来获得完全自定义的几何体和控制。
+有很多给猫植皮的方法(开个玩笑)，也有很多指南告诉你如何为游戏角色 
+创建动画绑定。您也可以参照3dsMax帮助获得关于如何使用这个工具的完整信息。
+
+![max_rig.png](max_rig.png)(w:769)
+[/EXCERPT:maxSkeleton]
+
+
+[EXCERPT:mayaSkeleton]
+在Maya中，一般您会使用 _Joint Tool(关节工具)_ 来为您的骨架网格物体创建骨架。同样， 
+也有无数的关于在Maya中如何使用这个工具及创建绑定的指南。Maya帮助文档也是获得关于这个主题的信息的 
+很好的资源。
+
+[REGION:lightbox]
+[![maya_rig.png](maya_rig.png)(w:769)](maya_rig.png)
+
+_和虚幻引擎3相比，骨架密度增加了很多_
+[/REGION]
+[/EXCERPT:mayaSkeleton]
+-->
+
+#### 绑定
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaBind]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxBind]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxBind]
+在3dsMax中，网格物体必须使用  _Skin(皮肤)_ 修改器绑定到骨架上。无论这个骨架网格物体是由单一的完整网格物体构成还是由多个网格物体部分构成， 
+这个过程都是一样的。
+
+
+1. 选择要绑定的网格物体。
+
+    ![max_skin_1.png](max_skin_1.png)(w:744)
+
+1. 从 _Modifier List(修改器列表)_ 中添加一个 _Skin(皮肤)_ 修改器。
+
+    ![max_skin_2.jpg](max_skin_2.jpg)(w:175 h:202)
+
+1. 在 _Skin(皮肤)_ 修改器的展开Parameters (参数)中，点击 ![skin_add_button.jpg](skin_add_button.jpg) 按钮来添加影响网格物体的骨骼。这时  **Select Bones(选择骨骼)** 窗口将打开。
+
+    ![max_skin_3.jpg](max_skin_3.jpg)(w:468 h:513)
+
+1. 在 **Select Bones（选择骨骼）** 窗口中选择骨骼，并点击 **Select（选择）** 按钮来添加骨骼。
+
+    ![max_skin_4.jpg](max_skin_4.jpg)(w:468 h:513)
+
+1. 现在，骨骼显示在了修改器的 _Bones(骨骼)_ 列表中。
+
+    ![max_skin_5.jpg](max_skin_5.jpg)(w:156 h:182)
+
+1. 现在，您可以为每个骨骼调整网格物体的顶点的权重，从而决定哪些顶点受到哪些骨骼的影响及影响的程度。这可以通过使用envelope(封袋)来完成，直接输入顶点的权重；或者您可以使用你喜欢的其他方法来完成。
+
+    ![max_skin_6.png](max_skin_6.png)(w:744)
+[/EXCERPT:maxBind]
+
+
+[EXCERPT:mayaBind]
+在Maya中，网格物体使用 _Smooth Bind(平滑绑定)_ 命令绑定到骨骼上。无论这个骨架网格物体是由单一的完整网格物体构成还是由多个网格物体部分构成， 
+这个过程都是一样的。
+
+
+1. 选择要绑定的网格物体。
+	
+	[REGION:lightbox]
+	[![maya_skin_1.png](maya_skin_1.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+	    
+1. 按下Shift键并选择骨架的根关节。
+
+    [REGION:lightbox]
+	[![maya_skin_2.png](maya_skin_2.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+
+1. 从  _Skin(皮肤) > Bind Skin（绑定皮肤）_ 菜单选择 _Smooth Bind(平滑绑定)_ 。
+
+    ![maya_skin_3.jpg](maya_skin_3.jpg)(w:287 h:130)
+
+1. 现在，您可以为每个关节调整网格物体的顶点的权重，从而决定哪些顶点受到哪些骨骼的影响及影响的程度。这可以通过使用 _Paint Skin Wieghts Tool(描画皮肤权重工具)_ 来完成或者使用其他你喜欢的方法完成。
+
+    [REGION:lightbox]
+	[![maya_skin_4.png](maya_skin_4.png)(w:769)](maya_skin_1.png)
+	[/REGION]
+[/EXCERPT:mayaBind]
+-->
+
+### 支点
+
+虚幻引擎中，网格物体的支点决定了执行任何变换(平移、 
+旋转、缩放)时所围绕的点。
+
+![pivot.png](pivot.png)(w:769)
+
+骨架网格物体的支点总是位于骨架的 根骨骼/关节 处。这意味着 
+骨架位于场景中的哪个位置并没有关系。当从3D建模应用程序导出时， 
+它就像在原点(0,0,0)一样。
+
+![pivot_root.png](pivot_root.png)(w:769)
+
+
+### 三角化
+
+虚幻引擎中的网格物体必须进行三角化处理，因为图形硬件仅处理三角形。
+
+![tris.jpg](tris.jpg)(w:744 h:382)
+
+有很多三角化网格物体的方法。
+
+
+* 仅使用三角形建模网格物体 — 最好的解决方案，为最终结果提供了最大控制。
+* 在3D应用程序中三角化网格物体  -  较好的解决方案，允许在导出之前进行整理和修改。
+* 让导入器三角化网格物体 - 一般解决方案，不允许进行清除整理但对于简单网格物体来说是有效的。
+* 让FBX导出器三角化网格物体 - 一般解决方案，不允许进行清除整理但对于简单网格物体来说是有效的。
+
+
+*注意:* 当选中Split Non-Matching Triangles(分割不匹配的三角形)时，允许FBX导出器三角化网格物体将会导致完全的 
+随机化平滑处理。将一个经过FBX三角化的网格物体导回到Maya中并重新导入将会呈现正确的平滑效果。
+
+在3D应用程序中手动地三角化网格物体将总是最好的解决方案，这样可以控制边的方向和 
+放置位置。自动三角化处理可能会导致意想不到的结果。
+
+![tris_bad.jpg](tris_bad.jpg)
+
+
+###创建法线贴图
+
+在大部分建模应用程序中可以通过创建低分辨率的渲染网格物体和高分辨率的细节网格物体来直接地为您的网格物体创建法线贴图。
+
+![SideBySide.jpg](SideBySide.jpg)
+
+高分辨率细节网格物体的几何体用于生成法线贴图的法线。Epic内部处理流程中引入了 XNormal，从而在虚幻引擎4中渲染时生成更好的法线。关于这个过程的更多详情，请参照[](Engine/Content/Types/Textures/NormalMaps/Creation)。
+
+
+### 材质
+
+在外部应用程序中建模的应用到网格物体上的材质将会随着网格物体一同导出，然后会一同导入到 
+虚幻编辑器中。这简化了处理流程，因为不需要再单独地在虚幻编辑器中导入贴图，也不需要 
+创建及应用材质等。当使用FBX通道时，导入过程可以处理所有这些操作。
+
+这些材质也需要以特定的方式进行设置，尤其是当该网格物体有多个材质或者网格物体上的材质的顺序 
+非常重要时(也就是，对于角色模型来说，材质0应该是躯干， 
+材质1应该是头部。)
+
+关于设置材质进行导出的完整细节，请参照[FBX材质通道](Engine/Content/FBX/Materials)页面。
+
+(#VertexColors)
+
+
+### 顶点颜色
+
+骨架网格物体的顶点颜色(仅一个集合)可以通过FBX通道转换。不需要特殊设置。
+
+![vertex_color.jpg](vertex_color.jpg)(w:769 h:376)
+
+(#ExportMesh)
+
+
+## 从3D应用程序中导出网格物体
+
+
+骨架网格物体可以独立地进行导出或者也可以把多个网格物体导出到一个单独的FBX文件中。导入过程将会把多个骨架网格物体分割为目标包中的多个资源。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxExport]
+	[/PARAM]
+[/OBJECT]
+
+
+<!--
+[EXCERPT:maxExport]
+1. 在视口中选中要导出的网格物体和骨骼。
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. 在 _File(文件)_ 菜单中选择 _Export Selected(导出选中项)_ (或者如果您不管选中项是什么都想导出场景中的所有资源，那么则选择 _Export All(导出所有)_ ) 。
+
+    ![max_export_2.jpg](max_export_2.jpg)(w:424 h:577)
+
+1. 选择要将网格物体导出到的FBX文件的位置及名称，并点击![max_save_button.jpg](max_save_button.jpg) 按钮。
+
+    ![max_export_3.jpg](max_export_3.jpg)(w:616 h:452)
+
+1. 在 **FBX Export(FBX导出)** 对话框中设置适当的选项，然后点击 ![max_ok_button.jpg](max_ok_button.jpg)按钮来创建包含网格物体的FBX文件。
+
+    ![max_export_4.jpg](max_export_4.jpg)(w:584 h:562)
+[/EXCERPT:maxExport]
+
+
+[EXCERPT:mayaExport]
+1. 在视口中选中要导出的网格物体和关节。
+  
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. 在 _File(文件)_ 菜单中选择 _Export Selected(导出选中项)_ (或者您不管选中项是什么而是想导出场景中的所有资源，那么则选择 _Export All(导出所有)_ ) 。
+
+    ![maya_export_2.jpg](maya_export_2.jpg)(w:184 h:446)
+
+1. 选择用于导入网格物体的FBX文件的位置和名称，并在 *FBX Export(FBX导出)* 对话框中设置适当的选项，然后点击 ![maya_export_button.jpg](maya_export_button.jpg)按钮来创建包含网格物体的FBX文件。
+
+    ![maya_export_3.jpg](maya_export_3.jpg)(w:734 h:556)
+[/EXCERPT:mayaExport]
+
+-->
+
+(#ImportMesh)
+
+
+## 导入网格物体 
+
+
+
+1. 在内容浏览器中点击  ![](import_button.png)按钮。再打开的文件浏览器中导航到您想导入到的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。
+	
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+  
+	[REGION:note]
+		所导入的资源的导入路径是由导入时 **内容浏览器** 的当前位置所决定的。请确保在执行导入之前导航到适当的文件夹。您也可以在导入完成时将导入的资源拖拽大一个新文件夹中。
+	[/REGION]
+   
+1. 在 **FBX导入选项** 对话框中选择适当的设置。当导入一个没有共享现有骨架的网格物体时，默认设置应该是足够满足需求的。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。
+	
+	![](Engine/Content\FBX\ImportOptions\SkeletalMeshFBXOptions.png)
+
+	如果所导入的骨架网格物体共享一个现有骨架，请点击 **选择骨架** 下拉菜单，并从列表中选择该骨架资源。
+
+	![FBX Skeletal Mesh Skeleton Browser](import_settings_skeletonbrowser.png)(h:480)
+ 
+1. 点击  ![Import Button](button_import.png) 按钮来导入网格物体。如果处理成功，最终的网格物体(及材质和贴图，如果启用了相关选项)将会显示在 **内容浏览器** 中。
+   
+	![](ImportedCharacter.png)
+   
+	通过在角色编辑器中查看所导入的网格物体，您可以判断这个处理过程是如期进行。
+   
+	[REGION:lightbox]
+	[![](CharacterInPersona.png)(w:600)](CharacterInPersona.png)
+	[/REGION]
+
+
+(#MeshLODs)
+## 骨架网格物体LOD
+
+
+为了限制随着骨架网格物体距离相机逐渐变远而产生的性能影响，我们可以在游戏中使用骨架网格物体 
+的细节层次(LODs)。一般，这意味着每个细节层次级别将具有较少的三角形、简化的骨骼、或者 
+可能会应用更简单的材质。
+
+可以使用FBX通道来 导入/导出 这些LOD网格物体。
+
+
+### LOD设置
+
+一般情况下，LOD通过创建具有不同复杂程度的模型来进行处理，包括从具有完整细节的基本网格物体到最有最低细节的 
+的LOD网格物体。这些LOD应该和相同的顶点对齐并占用相同的空间，并且应该植皮到 
+同一个骨架上。在3D应用程序中，骨架网格物体可以由多个单独的网格物体构成。
+每个部分可以具有独立于其他部分的LODs。这意味着，某些部分可以具有属于不同LOD的简化版本， 
+而其他部分则继续使用具有较高细节的版本。每个LOD 可以使用完全不同的材质 
+包括不同的材质数量。这意味着基础网格物体可以使用多个材质来呈现聚焦 
+时所需的足够细节，而低细节网格物体可以使用一个单独的材质，因为这些细节是不太会被注意到的。
+
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODSetup]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODSetup]
+1. 选中所有网格物体(基本网格物体和LODs - 选中顺序不重要)，然后从 _Group(组)_ 菜单中选择 _Group(组合)_ 命令。
+
+    ![max_lod_group.jpg](max_lod_group.jpg)(w:141 h:234)
+
+1. 在打开的对话框中输入新的组的名称，并点击 ![max_lod_ok_button.jpg](max_lod_ok_button.jpg) 按钮来创建该组。
+
+    ![max_lod_group_name.jpg](max_lod_group_name.jpg)(w:306 h:147)
+
+1. 点击 ![max_utilities_button.jpg](max_utilities_button.jpg)按钮来查看 _Utilities(工具)_ 面板，然后选择  _Level of Detail（细节层次级别）_ 工具。*注意:* 您可能需要点击 ![max_utility_more_button.jpg](max_utility_more_button.jpg) 并从列表中选择它。
+
+    ![max_lod_utility.jpg](max_lod_utility.jpg)(w:170 h:561)
+
+1. 选中该组合，点击![max_lod_create_button.jpg](max_lod_create_button.jpg)按钮来创建新的LOD集合，并将选中组中的网格物体添加到它内部。这些网格物体将会根据它们的复杂度自动地排序。
+
+    ![max_lod_contents.jpg](max_lod_contents.jpg)(w:146 h:94)
+[/EXCERPT:maxLODSetup]
+
+
+
+[EXCERPT:mayaLODSetup]
+1. 选中所有网格物体(基础网格物体和LODs)，按照从基础网格物体向下到最低级LOD的顺序进行选择。按顺序选择很重要，以便可以在复杂度方面以正确的顺序添加它们。然后从 _Edit(编辑)_ 菜单中选择 _Level of Detail（细节层次级别） > Group（分组）_ 命令。
+
+    ![maya_lod_group.jpg](maya_lod_group.jpg)(w:316 h:599)
+
+1. 现在所有的网格物体都应该分组到了LOD Group（LOD组）下。
+
+    ![maya_lod_contents.jpg](maya_lod_contents.jpg)(w:213 h:150)
+[/EXCERPT:mayaLODSetup]
+-->
+
+#### 多个构成部分的 LOD
+
+设置由多个部分组成的_骨架网格物体_ 的LOD几乎和设置一个完整网格物体的LOD一样， 
+只是会为具有LOD的每个独立部分创建一个LOD组。创建这些单独的LOD组的过程和 
+上面介绍的过程一样。
+
+
+### 导出LOD
+
+要想导出 _骨架网格物体_ LOD：
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#mayaLODExport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/SkeletalMeshes#maxLODExport]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:maxLODExport]
+1. 选中要导出的构成LOD集合的成组的网格物体及其骨骼。
+
+    ![max_export_1.png](max_export_1.png)(w:769)
+
+1. 遵循导出基本网格物体所使用的同样的导出步骤进行操作(正如在上面的[导出网格物体](#ExportMesh) 部分所描述的 )。
+[/EXCERPT:maxLODExport]
+
+
+[EXCERPT:mayaLODExport]
+1. 选择要导出的LOD组及关节。
+
+    ![meshAndJointsSel.png](meshAndJointsSel.png)(w:769)
+
+1. 遵循导出基本网格物体所使用的同样的导出步骤进行操作(正如在上面的[导出网格物体](#ExportMesh) 部分所描述的 )。
+[/EXCERPT:mayaLODExport]
+-->
+
+### 导入LOD...
+
+通过使用 **角色编辑器** 中的 **网格物体详细信息** 面板中的 **LOD设置** ，您可以轻松地导入 **骨架网格物体** LOD。
+
+1. 在 **角色编辑器** 中打开您想为其应用LOD的 **骨架网格物体** 并跳转到 **网格物体** 选卡。
+1. 在 **网格物体详细信息** 面板中，向下滚动并找到 **LOD设置** 部分，并点击 **LOD** 导入。
+
+	![](LOD_Import.png)
+1. 再打开的文件浏览器中导航到您想导入的文件并选中它。
+
+	![](ImportFileBrowser.png)
+
+1. 导入的LOD将会被添加到 **网格物体详细信息** 面板中。
+
+ 	![](LOD_Added.png)
+1. 在每个LOD下， **Display Factor（显示因素）** 设置表示了何时应用该LOD。
+
+	![](LODs_Set.png)
+	
+	**注意:** 使用较小的数值，则意味着在较远的地方时使用该LOD；而使用较大的数值则意味着在较近的地方使用该LOD。
+	在上面的图片中，当距离该 **骨架网格物体** 较近时使用LOD0，而当距离较远时则使用LOD1。
+
+1. 当导入或添加LOD时，也可以调整该LOD的 **Reduction Settings（简化设置）** 项。
+
+	![](LOD_ReductionSettings.png)
+
+
+<!-- Old Method, updated for TTP 340109 ----
+
+_骨架网格物体_ LOD可以随同基础网格物体一同导入到 **内容浏览器** 中。
+
+*具有LOD的网格物体*
+
+
+1. 在内容浏览器中点击![](import_button.png)按钮。再打开的文件浏览器中导航到您想导入的文件并选中它。*注意:* 您可以在下拉菜单中选择 ![import_fbxformat.jpg](import_fbxformat.jpg)来过滤不需要的文件。
+	
+	![import_file.jpg](import_file.jpg)(w:764 h:362)
+  
+	[REGION:note]
+		所导入的资源的导入路径是由导入时 **内容浏览器** 的当前位置所决定的。请确保在执行导入之前导航到适当的文件夹。您也可以在导入完成时将导入的资源拖拽到一个新文件夹中。
+	[/REGION]
+
+1. 在 **Import(导入)** 对话框中选择适当的设置。确保启用了 _Import Mesh LODs（导入网格物体LODs）_ 。**注意:** 当导入LOD时，导入的网格物体的名称将会遵循默认的[命名规则](Engine/Content/FBX/ImportOptions#命名规则)。请参照[FBX导入对话框](Engine/Content/FBX/ImportOptions)部分获得关于这些设置的完整信息。
+
+    ![](SkelMeshImportOptions.png)
+
+1. 点击 ![Import Button](button_import.png) 按钮来导入网格物体。如果处理成功，最终的网格物体(及材质和贴图，如果启用了相关选项)将会显示在 **内容浏览器** 中。
+
+    ![](ImportedCharacter.png)
+
+    通过在 **角色编辑器** 中查看所导入的网格物体，您可以使用位于视口顶部的![](LODButton.png)按钮循环设置LOD。
+	
+**单独的LOD**
+
+1. 通过在内容浏览器中双击基础网格物体来在角色动画编辑器中打开它或者通过右击并选择 _Edit(编辑)_ 来自动地打开角色动画编辑器。
+
+1. 在 角色动画编辑器的 _File（文件）_ 菜单中，选择 _Import Mesh LOD（导入 网格物体LOD）_ 。
+
+    ![lod_mesh_menu.jpg](lod_mesh_menu.jpg)(w:352 h:262)
+
+1. 在文件浏览器中导航到包含这个LOD网格物体的 FBX 文件，并选择它。**注意：**  您可能需要将文件格式设置为  ![lod_mesh_fbx_button.jpg](lod_mesh_fbx_button.jpg) 才能看到您的文件。
+
+    ![lod_mesh_file.jpg](lod_mesh_file.jpg)(w:611 h:363)
+
+1. 在 **Import LOD（导入LOD）** 对话框中，从下拉菜单中选中您想导入的网格物体的LOD级别。按下 ![lod_mesh_ok_button.jpg](lod_mesh_ok_button.jpg)按钮来导入LOD网格物体。
+
+    ![lod_mesh_dialog.jpg](lod_mesh_dialog.jpg)(w:248 h:158)
+
+1. 如果导入过程成功，那么将会通知您，并且在工具条按钮  ![lod_mesh_buttons.jpg](lod_mesh_buttons.jpg)中应该启用了刚导入的LOD对应的按钮。
+
+    ![lod_mesh_success.jpg](lod_mesh_success.jpg)(w:294 h:111)
+
+1. 针对您想导入的每个LOD网格物体重复这个过程。
+
+1. 一旦导入了所有的LOD网格物体，您可以通过使用工具条中的[lod_mesh_buttons.jpg](lod_mesh_buttons.jpg) 按钮来预览这些LOD网格物体。
+
+--------->
+
+(#FbxExport)
+
+
+## 从虚幻编辑器导出到FBX文件
+
+
+先前导入到虚幻编辑器中的骨架网格物体可以在内容浏览器中再次导出到一个FBX文件中。
+
+[REGION:note]
+不能导出烘焙包中的资源，因为该导出过程需要已经烘焙的源码数据。
+[/REGION]
+
+1. 在内容浏览器中，选择你想导出的骨架网格物体。
+
+    ![](SelectSkeletalMesh.png)
+
+1. 右击该骨架网格物体，并选择 **导出** 。
+
+    ![](ExportMenu.png)
+
+1. 在出现的文件浏览器中选择要导出的文件的位置和名称。**注意:** 确保选择 _FBX文件(*.FBX)_ 作为文件类型。
+
+    ![export_file.jpg](export_file.jpg)(w:625 h:434)
+
+
+
+## 物理资源
+
+关于使用物理资源工具(PhAT)的完整信息，请参照 [物理资源工具](Engine/Physics\PhAT)用户文档。
+
+## 动画
+
+
+关于使用FBX内容通道来创建及导入动画的完整细节，请参照 [FBX动画通道](Engine/Content/FBX/Animations)页面。
+
+
+(#MorphTargets)
+
+## 顶点变形目标
+
+
+关于使用FBX内容通道来创建及导入顶点变形目标的完整细节，请参照[FBX顶点变形目标通道](Engine/Content/FBX/MorphTargets) 页面。
+
+ 
+
+
+ 

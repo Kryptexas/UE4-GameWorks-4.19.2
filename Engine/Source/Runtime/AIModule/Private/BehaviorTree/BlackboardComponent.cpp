@@ -45,6 +45,8 @@ void UBlackboardComponent::UninitializeComponent()
 			AISystem->UnregisterBlackboardComponent(*BlackboardAsset, *this);
 		}
 	}
+
+	DestroyValues();
 	Super::UninitializeComponent();
 }
 
@@ -81,6 +83,7 @@ void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
 	if (NewAsset)
 	{
 		InitializeParentChain(NewAsset->Parent);
+		NewAsset->UpdateDeprecatedKeys();
 		NewAsset->UpdateKeyIDs();
 	}
 }
@@ -88,7 +91,7 @@ void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
 bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 {
 	// if we re-initialize with the same asset then there's no point
-	// in reseting, since we'd loose all the accumulated knowledge
+	// in reseting, since we'd lose all the accumulated knowledge
 	if (&NewAsset == BlackboardAsset)
 	{
 		return false;
@@ -103,6 +106,7 @@ bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 	if (BlackboardAsset && BlackboardAsset->HasSynchronizedKeys())
 	{
 		AISystem->UnregisterBlackboardComponent(*BlackboardAsset, *this);
+		DestroyValues();
 	}
 
 	BlackboardAsset = &NewAsset;
@@ -125,9 +129,13 @@ bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 		{
 			for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
 			{
-				if (It->Keys[KeyIndex].KeyType)
+				UBlackboardKeyType* KeyType = It->Keys[KeyIndex].KeyType;
+				if (KeyType)
 				{
-					InitList.Add(FBlackboardInitializationData(KeyIndex + It->GetFirstKeyID(), It->Keys[KeyIndex].KeyType->GetValueSize()));
+					KeyType->PreInitialize(*this);
+
+					const uint16 KeyMemory = KeyType->GetValueSize() + (KeyType->HasInstance() ? sizeof(FBlackboardInstancedKeyMemory) : 0);
+					InitList.Add(FBlackboardInitializationData(KeyIndex + It->GetFirstKeyID(), KeyMemory));
 				}
 			}
 		}
@@ -146,12 +154,11 @@ bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 		ValueMemory.AddZeroed(MemoryOffset);
 
 		// initialize memory
+		KeyInstances.AddZeroed(InitList.Num());
 		for (int32 Index = 0; Index < InitList.Num(); Index++)
 		{
 			const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[Index].KeyID);
-			uint8* RawData = GetKeyRawData(InitList[Index].KeyID);
-
-			KeyData->KeyType->Initialize(RawData);
+			KeyData->KeyType->InitializeKey(*this, InitList[Index].KeyID);
 		}
 
 		// naive initial synchronization with one of already instantiated blackboards using the same BB asset
@@ -167,6 +174,26 @@ bool UBlackboardComponent::InitializeBlackboard(UBlackboardData& NewAsset)
 	}
 
 	return bSuccess;
+}
+
+void UBlackboardComponent::DestroyValues()
+{
+	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
+	{
+		for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
+		{
+			UBlackboardKeyType* KeyType = It->Keys[KeyIndex].KeyType;
+			if (KeyType)
+			{
+				const int32 UseIdx = KeyIndex + It->GetFirstKeyID();
+				uint8* KeyMemory = GetKeyRawData(UseIdx);
+				KeyType->WrappedFree(*this, KeyMemory);
+			}
+		}
+	}
+
+	ValueOffsets.Reset();
+	ValueMemory.Reset();
 }
 
 void UBlackboardComponent::PopulateSynchronizedKeys()
@@ -187,12 +214,19 @@ void UBlackboardComponent::PopulateSynchronizedKeys()
 				if (Key.bInstanceSynced)
 				{
 					const int32 KeyID = BlackboardAsset->GetKeyID(Key.EntryName);
-					check(BlackboardAsset->GetKeyID(Key.EntryName) == OtherBlackboard->BlackboardAsset->GetKeyID(Key.EntryName));
-					check(BlackboardAsset->GetKeyType(KeyID) == OtherBlackboard->BlackboardAsset->GetKeyType(KeyID));
+					const FBlackboardEntry* OtherKey = OtherBlackboard->GetBlackboardAsset()->GetKey(KeyID);
 
-					const TSubclassOf<UBlackboardKeyType> ValueType = BlackboardAsset->GetKeyType(KeyID);
-					const UBlackboardKeyType* ValueTypeInstance = GetDefault<UBlackboardKeyType>(*ValueType);
-					ValueTypeInstance->CopyValue(GetKeyRawData(KeyID), OtherBlackboard->GetKeyRawData(KeyID));
+					check(Key.EntryName == OtherKey->EntryName);
+					check(Key.KeyType == OtherKey->KeyType);
+
+					const uint16 DataOffset = Key.KeyType->IsInstanced() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
+					uint8* RawData = GetKeyRawData(KeyID) + DataOffset;
+					uint8* RawSource = OtherBlackboard->GetKeyRawData(KeyID) + DataOffset;
+
+					UBlackboardKeyType* KeyOb = Key.KeyType->IsInstanced() ? KeyInstances[KeyID] : Key.KeyType;
+					const UBlackboardKeyType* SourceKeyOb = Key.KeyType->IsInstanced() ? OtherBlackboard->KeyInstances[KeyID] : Key.KeyType;
+
+					KeyOb->CopyValues(*this, RawData, SourceKeyOb, RawSource);
 				}
 			}
 			break;
@@ -244,7 +278,7 @@ int32 UBlackboardComponent::GetNumKeys() const
 	return BlackboardAsset ? BlackboardAsset->GetNumKeys() : 0;
 }
 
-FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChange ObserverDelegate)
+FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChangeNotification ObserverDelegate)
 {
 	for (auto It = Observers.CreateConstKeyIterator(KeyID); It; ++It)
 	{
@@ -261,15 +295,17 @@ FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, 
 	return Handle;
 }
 
-void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate)
+void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FDelegateHandle ObserverHandle)
 {
-	for (auto It = Observers.CreateKeyIterator(KeyID); It; ++It)
+	// this loop is only here for deprecated code support. Will go away
+	// DEPRECATED BEGIN
+	for (auto It = Observers_DEPRECATED.CreateKeyIterator(KeyID); It; ++It)
 	{
-		if (It.Value().DEPRECATED_Compare(ObserverDelegate))
+		if (It.Value().GetHandle() == ObserverHandle)
 		{
 			for (auto HandleIt = ObserverHandles.CreateIterator(); HandleIt; ++HandleIt)
 			{
-				if (HandleIt.Value() == It.Value().GetHandle())
+				if (HandleIt.Value() == ObserverHandle)
 				{
 					HandleIt.RemoveCurrent();
 					break;
@@ -280,10 +316,8 @@ void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackb
 			break;
 		}
 	}
-}
+	// DEPRECATED END
 
-void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FDelegateHandle ObserverHandle)
-{
 	for (auto It = Observers.CreateKeyIterator(KeyID); It; ++It)
 	{
 		if (It.Value().GetHandle() == ObserverHandle)
@@ -307,6 +341,18 @@ void UBlackboardComponent::UnregisterObserversFrom(UObject* NotifyOwner)
 {
 	for (auto It = ObserverHandles.CreateKeyIterator(NotifyOwner); It; ++It)
 	{
+		// deprecated code support
+		// DEPRECATED BEGIN
+		for (auto ObsIt = Observers_DEPRECATED.CreateIterator(); ObsIt; ++ObsIt)
+		{
+			if (ObsIt.Value().GetHandle() == It.Value())
+			{
+				ObsIt.RemoveCurrent();
+				break;
+			}
+		}
+		// DEPRECATED END
+
 		for (auto ObsIt = Observers.CreateIterator(); ObsIt; ++ObsIt)
 		{
 			if (ObsIt.Value().GetHandle() == It.Value())
@@ -346,10 +392,23 @@ void UBlackboardComponent::NotifyObservers(FBlackboard::FKey KeyID) const
 	}
 	else
 	{
-		for (TMultiMap<uint8, FOnBlackboardChange>::TConstKeyIterator KeyIt(Observers, KeyID); KeyIt; ++KeyIt)
+		// DEPRECATED BEGIN
+		for (TMultiMap<uint8, FOnBlackboardChange>::TConstKeyIterator KeyIt(Observers_DEPRECATED, KeyID); KeyIt; ++KeyIt)
 		{
 			const FOnBlackboardChange& ObserverDelegate = KeyIt.Value();
 			ObserverDelegate.ExecuteIfBound(*this, KeyID);
+		}
+		// DEPRECATED END
+
+		for (TMultiMap<uint8, FOnBlackboardChangeNotification>::TKeyIterator KeyIt(Observers, KeyID); KeyIt; ++KeyIt)
+		{
+			const FOnBlackboardChangeNotification& ObserverDelegate = KeyIt.Value();
+			const bool bWantsToContinueObserving = ObserverDelegate.IsBound() && (ObserverDelegate.Execute(*this, KeyID) == EBlackboardNotificationResult::ContinueObserving);
+
+			if (bWantsToContinueObserving == false)
+			{
+				KeyIt.RemoveCurrent();
+			}
 		}
 	}
 }
@@ -374,8 +433,11 @@ bool UBlackboardComponent::IsCompatibleWith(UBlackboardData* TestAsset) const
 
 EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const
 {	
-	// no point in checking KeyType. If it was null it would explode a lot sooner.
-	return KeyType->GetDefaultObject<UBlackboardKeyType>()->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
+	const uint8* KeyAMemory = GetKeyRawData(KeyA) + (KeyInstances[KeyA] ? sizeof(FBlackboardInstancedKeyMemory) : 0);
+	const uint8* KeyBMemory = GetKeyRawData(KeyB) + (KeyInstances[KeyB] ? sizeof(FBlackboardInstancedKeyMemory) : 0);
+
+	const UBlackboardKeyType* KeyAOb = KeyInstances[KeyA] ? KeyInstances[KeyA] : KeyType->GetDefaultObject<UBlackboardKeyType>();
+	return KeyAOb->CompareValues(*this, KeyAMemory, KeyInstances[KeyB], KeyBMemory);
 }
 
 FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mode) const 
@@ -406,8 +468,17 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 		DebugString += TEXT("Observed Keys:\n");
 
 		TArray<uint8> ObserversKeys;
-		if (Observers.GetKeys(ObserversKeys) > 0)
+		if (Observers.Num() > 0
+			// DEPRECATED BEGIN
+			|| Observers_DEPRECATED.Num() > 0
+			// DEPRECATED END
+			)
 		{
+			Observers.GetKeys(ObserversKeys);
+			// DEPRECATED BEGIN
+			Observers_DEPRECATED.GetKeys(ObserversKeys);
+			// DEPRECATED END
+
 			for (int32 KeyIndex = 0; KeyIndex < ObserversKeys.Num(); ++KeyIndex)
 			{
 				const FBlackboard::FKey KeyID = ObserversKeys[KeyIndex];
@@ -437,7 +508,7 @@ FString UBlackboardComponent::DescribeKeyValue(FBlackboard::FKey KeyID, EBlackbo
 	if (Key)
 	{
 		const uint8* ValueData = GetKeyRawData(KeyID);
-		FString ValueDesc = Key->KeyType && ValueData ? *(Key->KeyType->DescribeValue(ValueData)) : TEXT("empty");
+		FString ValueDesc = Key->KeyType && ValueData ? *(Key->KeyType->WrappedDescribeValue(*this, ValueData)) : TEXT("empty");
 
 		if (Mode == EBlackboardDescription::OnlyValue)
 		{
@@ -467,20 +538,25 @@ void UBlackboardComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	FVisualLogStatusCategory Category;
 	Category.Category = FString::Printf(TEXT("Blackboard (asset: %s)"), *GetNameSafe(BlackboardAsset));
 
-	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
+	// describe only when values are initialized
+	if (ValueMemory.Num())
 	{
-		for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
+		for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 		{
-			const FBlackboardEntry& Key = It->Keys[KeyIndex];
+			for (int32 KeyIndex = 0; KeyIndex < It->Keys.Num(); KeyIndex++)
+			{
+				const FBlackboardEntry& Key = It->Keys[KeyIndex];
 
-			const uint8* ValueData = GetKeyRawData(It->GetFirstKeyID() + KeyIndex);
-			FString ValueDesc = Key.KeyType ? *(Key.KeyType->DescribeValue(ValueData)) : TEXT("empty");
+				const uint8* ValueData = GetKeyRawData(It->GetFirstKeyID() + KeyIndex);
+				FString ValueDesc = Key.KeyType ? *(Key.KeyType->WrappedDescribeValue(*this, ValueData)) : TEXT("empty");
 
-			Category.Add(Key.EntryName.ToString(), ValueDesc);
+				Category.Add(Key.EntryName.ToString(), ValueDesc);
+			}
 		}
+
+		Category.Data.Sort();
 	}
 
-	Category.Data.Sort();
 	Snapshot->Status.Add(Category);
 }
 
@@ -498,19 +574,7 @@ UClass* UBlackboardComponent::GetValueAsClass(const FName& KeyName) const
 
 uint8 UBlackboardComponent::GetValueAsEnum(const FName& KeyName) const
 {
-	FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	TSubclassOf<UBlackboardKeyType> KeyType = GetKeyType(KeyID);
-
-	if (KeyType == UBlackboardKeyType_Enum::StaticClass())
-	{
-		return GetValue<UBlackboardKeyType_Enum>(KeyName);
-	}
-	else if (KeyType == UBlackboardKeyType_NativeEnum::StaticClass())
-	{
-		return GetValue<UBlackboardKeyType_NativeEnum>(KeyName);
-	}
-
-	return UBlackboardKeyType_Enum::InvalidValue;
+	return GetValue<UBlackboardKeyType_Enum>(KeyName);
 }
 
 int32 UBlackboardComponent::GetValueAsInt(const FName& KeyName) const
@@ -563,16 +627,7 @@ void UBlackboardComponent::SetValueAsClass(const FName& KeyName, UClass* ClassVa
 void UBlackboardComponent::SetValueAsEnum(const FName& KeyName, uint8 EnumValue)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
-	TSubclassOf<UBlackboardKeyType> KeyType = GetKeyType(KeyID);
-
-	if (KeyType == UBlackboardKeyType_Enum::StaticClass())
-	{
-		SetValue<UBlackboardKeyType_Enum>(KeyID, EnumValue);
-	}
-	else if (KeyType == UBlackboardKeyType_NativeEnum::StaticClass())
-	{
-		SetValue<UBlackboardKeyType_NativeEnum>(KeyID, EnumValue);
-	}
+	SetValue<UBlackboardKeyType_Enum>(KeyID, EnumValue);
 }
 
 void UBlackboardComponent::SetValueAsInt(const FName& KeyName, int32 IntValue)
@@ -662,22 +717,23 @@ void UBlackboardComponent::ClearValue(const FName& KeyName)
 void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
 {
 	check(BlackboardAsset);
+	const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
 
 	uint8* RawData = GetKeyRawData(KeyID);
 	if (RawData)
 	{
-		TSubclassOf<UBlackboardKeyType> ValueType = GetKeyType(KeyID);
-		check(ValueType);
-		
-		const UBlackboardKeyType* ValueTypeInstance = GetDefault<UBlackboardKeyType>(*ValueType);
-
-		const bool bChanged = ValueTypeInstance->Clear(RawData);
-		if (bChanged)
+		const bool bHasData = (EntryInfo->KeyType->WrappedIsEmpty(*this, RawData) == false);
+		if (bHasData)
 		{
+			EntryInfo->KeyType->WrappedClear(*this, RawData);
 			NotifyObservers(KeyID);
 
 			if (BlackboardAsset->HasSynchronizedKeys() && IsKeyInstanceSynced(KeyID))
 			{
+				UBlackboardKeyType* KeyOb = EntryInfo->KeyType->IsInstanced() ? KeyInstances[KeyID] : EntryInfo->KeyType;
+				const uint16 DataOffset = EntryInfo->KeyType->IsInstanced() ? sizeof(FBlackboardInstancedKeyMemory) : 0;
+				uint8* InstancedRawData = RawData + DataOffset;
+
 				// grab the value set and apply the same to synchronized keys
 				// to avoid virtual function call overhead
 				UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
@@ -686,7 +742,11 @@ void UBlackboardComponent::ClearValue(FBlackboard::FKey KeyID)
 					UBlackboardComponent* OtherBlackboard = Iter.Value();
 					if (OtherBlackboard != nullptr && ShouldSyncWithBlackboard(*OtherBlackboard))
 					{
-						ValueTypeInstance->CopyValue(OtherBlackboard->GetKeyRawData(KeyID), RawData);
+						const FBlackboardEntry* OtherEntryInfo = OtherBlackboard->BlackboardAsset->GetKey(KeyID);
+						UBlackboardKeyType* OtherKeyOb = EntryInfo->KeyType->IsInstanced() ? OtherBlackboard->KeyInstances[KeyID] : EntryInfo->KeyType;
+						uint8* OtherRawData = OtherBlackboard->GetKeyRawData(KeyID) + DataOffset;
+
+						OtherKeyOb->CopyValues(*OtherBlackboard, OtherRawData, KeyOb, InstancedRawData);
 						OtherBlackboard->NotifyObservers(KeyID);
 					}
 				}
@@ -709,7 +769,7 @@ bool UBlackboardComponent::GetLocationFromEntry(FBlackboard::FKey KeyID, FVector
 		if (EntryInfo && EntryInfo->KeyType)
 		{
 			const uint8* ValueData = ValueMemory.GetData() + ValueOffsets[KeyID];
-			return EntryInfo->KeyType->GetLocation(ValueData, ResultLocation);
+			return EntryInfo->KeyType->WrappedGetLocation(*this, ValueData, ResultLocation);
 		}
 	}
 
@@ -730,7 +790,7 @@ bool UBlackboardComponent::GetRotationFromEntry(FBlackboard::FKey KeyID, FRotato
 		if (EntryInfo && EntryInfo->KeyType)
 		{
 			const uint8* ValueData = ValueMemory.GetData() + ValueOffsets[KeyID];
-			return EntryInfo->KeyType->GetRotation(ValueData, ResultRotation);
+			return EntryInfo->KeyType->WrappedGetRotation(*this, ValueData, ResultRotation);
 		}
 	}
 
@@ -833,4 +893,45 @@ FVector UBlackboardComponent::GetValueAsVector(FBlackboard::FKey KeyID) const
 FRotator UBlackboardComponent::GetValueAsRotator(FBlackboard::FKey KeyID) const
 {
 	return GetValue<UBlackboardKeyType_Rotator>(KeyID);
+}
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+FDelegateHandle UBlackboardComponent::RegisterObserver(FBlackboard::FKey KeyID, UObject* NotifyOwner, FOnBlackboardChange ObserverDelegate)
+{
+	for (auto It = Observers_DEPRECATED.CreateConstKeyIterator(KeyID); It; ++It)
+	{
+		// If the pair's value matches, return a pointer to it.
+		if (It.Value().GetHandle() == ObserverDelegate.GetHandle())
+		{
+			return It.Value().GetHandle();
+		}
+	}
+
+	FDelegateHandle Handle = Observers_DEPRECATED.Add(KeyID, ObserverDelegate).GetHandle();
+	ObserverHandles.Add(NotifyOwner, Handle);
+
+	return Handle;
+}
+
+void UBlackboardComponent::UnregisterObserver(FBlackboard::FKey KeyID, FOnBlackboardChange ObserverDelegate)
+{
+	for (auto It = Observers_DEPRECATED.CreateKeyIterator(KeyID); It; ++It)
+	{
+		if (It.Value().DEPRECATED_Compare(ObserverDelegate))
+		{
+			for (auto HandleIt = ObserverHandles.CreateIterator(); HandleIt; ++HandleIt)
+			{
+				if (HandleIt.Value() == It.Value().GetHandle())
+				{
+					HandleIt.RemoveCurrent();
+					break;
+				}
+			}
+
+			It.RemoveCurrent();
+			break;
+		}
+	}
 }

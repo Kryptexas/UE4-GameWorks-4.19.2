@@ -1,0 +1,84 @@
+﻿INTSourceChangelist:2346121
+Availability:Public
+Title:ボリュームのコンテンツ サンプル
+Crumbs: %ROOT%, Resources, Resources/ContentExamples
+Description:ボリュームのコンテンツ サンプルで提供されるサンプルの概要
+Related:Engine/Actors/Volumes
+Related:Engine/Rendering/PostProcessEffects
+Related:Engine/Rendering/LightingAndShadows/LightPropagationVolumes
+Related:Engine/AI/BehaviorTrees/QuickStart/2
+Related:Engine/Actors/Triggers
+
+
+[REGION:banner]
+![](Volumes_Header.png)(convert:false)
+[/REGION]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes:title%](Volumes_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Volumes:description%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Volumes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Volumes:title%](Volumes_Compact.png)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Volumes:title%
+	[/PARAM]
+	[PARAM:path]
+	[RELATIVE:Resources/ContentExamples/Volumes]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[TOC(start:2 end:2)]
+
+
+## 概要
+
+**ボリューム** のコンテンツ サンプル マップでは、様々なタイプの **ボリューム** を使用して、ゲーム エフェクトの各種生成、境界の設定、パフォーマンスの改善、ライティング ビルド時間の短縮を実施する方法を説明しています。 
+1.1 の例にあるように、 **ボリューム** は **[ボリューム] タブ** の中から **Volume** を選択し、レベル内へドラッグ＆ドロップすると作成できます。使用する **ボリューム** によって、編集設定は異なります。 
+
+
+ゲームプレイ用途でもっともよく使用されるボリュームは、 **Blocking Volumes** (目に見えないコリジョンでプレイヤーをプレイ空間に閉じ込めたままにする) 、重力の増減や水中でのシミュレーションなどのゲームプレイ エフェクトを追加する **Physics** ボリューム、侵入してきた **アクタ** に爆発を起こしたりダメージを作動させる **Pain Causing Volumes** です。
+
+
+## ボリューム マップ
+
+![](Volumes_Map.png)(w:640)
+
+**ボリューム** マップで提供されているサンプルは以下の通りです。
+
+| 例 | 実演内容 |
+| ------- | ------------ |
+| **1.1 配置** | レベル内への **Volume** の配置方法および **Geometry Editing** モードでの編集方法を説明します。 |
+| **1.2 Blocking Volume** | レベル内に **Blocking Volume** を配置して目に見えないコリジョンを作成する方法を説明します。 |
+| **1.3 Cull Distance Volume (カリング距離のボリューム)** | オブジェクトのサイズに応じて **Cull Distances** の手順を設定する方法です (プレイヤーとの距離に基いてオブジェクトを非表示にします) 。 |
+| **1.4 Lightmass Importance Volume** | ボリューム内の **動的** オブジェクトに対しプレイヤーの高さで間接ライトのサンプルを生成し、ライトのリビルド時間を短縮します (典型的な用途としては、プレイヤー領域を取り囲むために使用します) 。 |
+| **1.5 Lightmass Character Indirect Detail Volume** | 1.4 と似ていますが、プレイヤーの高さではなく間接ライトのサンプルをボリューム全体で作成します (エレベータのシャフトに使用して、移動時の間接ライティングが正しくなるようにします) 。 |
+| **1.6 Precomputed Visibility Volume** | パフォーマンスの最適化として、ワールドの位置での **アクタ** のビジビリティを保存します (注記：プレイヤーがアクセス可能なエリアにのみ配置します) 。|
+| **1.7 Precomputed Visibility Override Volume** | ビジビリティの自動生成を望まない場合、 **Precomputed Visibility Volume** のビジビリティに手動でオーバーライドできます。 |
+| **1.8 Physics Volume** | ボリュームに入ってきた **アクタ** の物理設定をオーバーライドします (無重力や水中でのシミュレーションに使用します) 。|
+| **1.9 Pain Causing Volume** | **Pain Causing Volume** に入ってきた **アクタ** はダメージ イベントを登録し受け取ります (火によるダメージの適用に使用できます) 。 |
+
+
+
+
+
+
+
+

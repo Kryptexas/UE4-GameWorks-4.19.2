@@ -1,0 +1,125 @@
+Availability:Public
+Title: Actors & Geometry
+Crumbs:%ROOT%, Engine
+Description:A definition of Actors and how they are used in level design, including placement and manipulation techniques.
+Navigation:topic
+
+[VAR:playlistnav]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		LevelDesign_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Next Topic](Engine/UI/LevelEditor/Viewports/Basics "%Engine/UI/LevelEditor/Viewports/Basics:title%")
+	[/PARAM]
+	[PARAM:next]
+		[Next Topic](Engine/Actors/Placement "%Engine/Actors/Placement:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/LevelDesign/Beginner)
+		%Tracks/LevelDesign/Beginner:menu%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:PlaylistNavigation]
+	[PARAMLITERAL:id]
+		Programming_Beginner
+	[/PARAMLITERAL]
+	[PARAM:previous]
+		[Previous Topic](Engine/UI/LevelEditor "%Engine/UI/LevelEditor:title%")
+	[/PARAM]
+	[PARAM:home]
+		[](Tracks/Programming/Beginner)
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Actors:title%](Engine/Actors/Placement/actorplacement_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Actors:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Actors:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Actors]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%playlistnav%
+
+[REGION:banner]
+![](actorBanner.png)
+[/REGION]
+
+<!-- At the most fundamental level, an [**Actor**](Gameplay/UnrealTerminology) is any gameplay Object that you can place, or [spawn/instantiate](Gameplay/HowTo/SpawnAndDestroyActors), in a level. Unreal Engine 4 handles the most commonly used cases automatically, like when you drag an Static Mesh from the **Content Browser** into a level, you will get a **Static Mesh Actor**.
+-->
+
+[INCLUDE:Shared/Glossary/A#glossary_actor]
+
+No matter the type of Actor you are using in your level - be it a light, a Static Mesh, a Particle System Emitter Actor, or anything else - you will need to know a few basics on how to create and manipulate them in your scenes.
+
+This involves a few integral tasks: placing Actors, selecting Actors, positioning Actors, and modifying Actors. In 
+other words, to create a level, Actors will be placed into a map, moved around to create an environment, and their 
+properties will be modified to cause them to look or behave appropriately.
+
+## Working with Actors
+
+[REGION:topics half]
+%Engine/Actors/Placement:topiccompact%
+%Engine/Actors/Selection:topiccompact%
+%Engine/Actors/Transform:topiccompact%
+%Engine/Actors/Grouping:topiccompact%
+[/REGION]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	[](Engine/Actors/Types "%Engine/Actors/Types:description%")
+	[/PARAM]
+	[PARAM:links]	
+	* [Static Mesh Actors](Engine/Actors/StaticMeshActor "%Engine/Actors/StaticMeshActor:description%")
+	* [](Engine/Actors/SkeletalMeshActors "%Engine/Actors/SkeletalMeshActors:description%")
+	* [Geometry Brush Actors](Engine/Actors/Brushes "%Engine/Actors/Brushes:description%")
+	* [](Engine/Actors/Volumes "%Engine/Actors/Volumes:description%")
+	* [](Engine/Actors/Triggers "%Engine/Actors/Triggers:description%")
+	* [](Engine/Actors/DecalActor "%Engine/Actors/DecalActor:description%")
+	* [](Engine/Actors/FogEffects "%Engine/Actors/FogEffects:description%")
+	* [](Engine/Actors/TargetPoint "%Engine/Actors/TargetPoint:description%")
+	* [](Engine/Actors/Mobility "%Engine/Actors/Mobility:description%")
+	* [](Engine/Actors/PlayerStart "%Engine/Actors/PlayerStart:description%")
+	* [](Engine/Actors/CameraActors "%Engine/Actors/CameraActors:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+%playlistnav%

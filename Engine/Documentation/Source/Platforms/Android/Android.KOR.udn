@@ -1,0 +1,24 @@
+﻿INTSourceChangelist:2298956
+Availability: Public
+Title: 안드로이드 게임 개발
+Crumbs:%ROOT%, Platforms
+Description:안드로이드 플랫폼용 게임 개발 관련입니다.
+Platform:Android
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		안드로이드 요약
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
+	* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
+	* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+	[/PARAM]
+[/OBJECT]

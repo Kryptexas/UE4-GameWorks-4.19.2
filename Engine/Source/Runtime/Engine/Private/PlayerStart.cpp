@@ -11,7 +11,7 @@ APlayerStart::APlayerStart(const FObjectInitializer& ObjectInitializer)
 	GetCapsuleComponent()->InitCapsuleSize(40.0f, 92.0f);
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
+	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 
 	if (!IsRunningCommandlet())
 	{
@@ -59,26 +59,6 @@ APlayerStart::APlayerStart(const FObjectInitializer& ObjectInitializer)
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
-}
-
-void APlayerStart::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-	if ( !IsPendingKill()  && GetWorld()->GetAuthGameMode() )
-	{
-		GetWorld()->GetAuthGameMode()->AddPlayerStart(this);
-	}
-}
-
-void APlayerStart::PostUnregisterAllComponents()
-{
-	Super::PostUnregisterAllComponents();
-
-	UWorld* ActorWorld = GetWorld();
-	if ( ActorWorld && ActorWorld->GetAuthGameMode() )
-	{
-		ActorWorld->GetAuthGameMode()->RemovePlayerStart(this);
-	}
 }
 
 #if WITH_EDITORONLY_DATA

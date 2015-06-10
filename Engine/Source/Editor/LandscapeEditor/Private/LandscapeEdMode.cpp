@@ -30,7 +30,7 @@
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeMaterialInstanceConstant.h"
 #include "LandscapeSplinesComponent.h"
-#include "Foliage/InstancedFoliageActor.h"
+#include "InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
 #include "Engine/Selection.h"
 #include "LandscapeGizmoActiveActor.h"
@@ -53,7 +53,7 @@ struct HNewLandscapeGrabHandleProxy : public HHitProxy
 	{
 	}
 
-	virtual EMouseCursor::Type GetMouseCursor()
+	virtual EMouseCursor::Type GetMouseCursor() override
 	{
 		switch (Edge)
 		{
@@ -206,7 +206,7 @@ FEdModeLandscape::FEdModeLandscape()
 	CurrentToolTarget.TargetType = ELandscapeToolTargetType::Heightmap;
 	CurrentToolTarget.LayerInfo = nullptr;
 
-	UISettings = ConstructObject<ULandscapeEditorObject>(ULandscapeEditorObject::StaticClass(), GetTransientPackage(), NAME_None, RF_Transactional);
+	UISettings = NewObject<ULandscapeEditorObject>(GetTransientPackage(), TEXT("UISettings"), RF_Transactional);
 	UISettings->SetParent(this);
 }
 
@@ -331,7 +331,7 @@ void FEdModeLandscape::Enter()
 	if (CurrentGizmoActor.IsValid() && !CurrentGizmoActor->GizmoTexture)
 	{
 		// Init Gizmo Texture...
-		CurrentGizmoActor->GizmoTexture = ConstructObject<UTexture2D>(UTexture2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient);
+		CurrentGizmoActor->GizmoTexture = NewObject<UTexture2D>(GetTransientPackage(), NAME_None, RF_Transient);
 		if (CurrentGizmoActor->GizmoTexture)
 		{
 			CurrentGizmoActor->GizmoTexture->Source.Init(
@@ -715,7 +715,7 @@ bool FEdModeLandscape::LandscapeMouseTrace(FEditorViewportClient* ViewportClient
 	TArray<FHitResult> Results;
 	// Each landscape component has 2 collision shapes, 1 of them is specific to landscape editor
 	// Trace only ECC_Visibility channel, so we do hit only Editor specific shape
-	World->LineTraceMulti(Results, Start, End, FCollisionQueryParams(TraceTag, true), FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility));
+	World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
 
 	for (int32 i = 0; i < Results.Num(); i++)
 	{
@@ -826,7 +826,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditDuplicate()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditDuplicate();
 		}
@@ -841,7 +841,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditDelete()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditDelete();
 		}
@@ -876,7 +876,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditCut()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditCut();
 		}
@@ -898,7 +898,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditCopy()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditCopy();
 		}
@@ -924,7 +924,7 @@ EEditAction::Type FEdModeLandscape::GetActionEditPaste()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->GetActionEditPaste();
 		}
@@ -955,7 +955,7 @@ bool FEdModeLandscape::ProcessEditDuplicate()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditDuplicate();
 		}
@@ -975,7 +975,7 @@ bool FEdModeLandscape::ProcessEditDelete()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditDelete();
 		}
@@ -995,7 +995,7 @@ bool FEdModeLandscape::ProcessEditCut()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditCut();
 		}
@@ -1015,7 +1015,7 @@ bool FEdModeLandscape::ProcessEditCopy()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditCopy();
 		}
@@ -1057,7 +1057,7 @@ bool FEdModeLandscape::ProcessEditPaste()
 
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool != NULL && CurrentTool != NULL)
+		if (CurrentTool != NULL)
 		{
 			Result = CurrentTool->ProcessEditPaste();
 		}
@@ -1369,6 +1369,9 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 				UISettings->NewLandscape_Location += Transform.TransformVector(FVector(((float)ActualDelta / 2), 0, 0));
 			}
 				break;
+			case  ELandscapeEdge::Y_Negative:
+			case  ELandscapeEdge::Y_Positive:
+				break;
 			}
 
 			switch (DraggingEdge)
@@ -1396,6 +1399,9 @@ bool FEdModeLandscape::InputDelta(FEditorViewportClient* InViewportClient, FView
 				const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.Y - InitialComponentCountY;
 				UISettings->NewLandscape_Location += Transform.TransformVector(FVector(0, (float)ActualDelta / 2, 0));
 			}
+				break;
+			case  ELandscapeEdge::X_Negative:
+			case  ELandscapeEdge::X_Positive:
 				break;
 			}
 
@@ -1529,13 +1535,11 @@ void FEdModeLandscape::SetCurrentTool(int32 ToolIndex)
 		}
 	}
 
-	if (CurrentTool)
-	{
-		CurrentTool->EnterTool();
+	CurrentTool->EnterTool();
 
-		CurrentTool->SetEditRenderType();
-		//bool MaskEnabled = CurrentTool->SupportsMask() && CurrentToolTarget.LandscapeInfo.IsValid() && CurrentToolTarget.LandscapeInfo->SelectedRegion.Num();
-	}
+	CurrentTool->SetEditRenderType();
+	//bool MaskEnabled = CurrentTool->SupportsMask() && CurrentToolTarget.LandscapeInfo.IsValid() && CurrentToolTarget.LandscapeInfo->SelectedRegion.Num();
+
 	CurrentToolMode->CurrentToolName = CurrentTool->GetToolName();
 
 	// Set Brush
@@ -1942,7 +1946,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 		}
 		else //if (NewLandscapePreviewMode == ENewLandscapePreviewMode::NewLandscape)
 		{
-			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY)
+			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY || ViewportType == LVT_OrthoNegativeXY)
 			{
 				for (int32 x = 0; x <= ComponentCountX * QuadsPerComponent; x++)
 				{
@@ -1988,7 +1992,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 				PDI->DrawLine(Transform.TransformPosition(FVector(ComponentCountX * QuadsPerComponent, 0, 0)), Transform.TransformPosition(FVector(ComponentCountX * QuadsPerComponent, ComponentCountY * ComponentSize, 0)), EdgeColour, SDPG_World);
 			}
 
-			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY)
+			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY || ViewportType == LVT_OrthoNegativeXY)
 			{
 				for (int32 y = 0; y <= ComponentCountY * QuadsPerComponent; y++)
 				{
@@ -2121,7 +2125,7 @@ FVector FEdModeLandscape::GetWidgetLocation() const
 			// Apply Landscape transformation when it is available
 			ULandscapeInfo* Info = CurrentGizmoActor->TargetLandscapeInfo;
 			return CurrentGizmoActor->GetActorLocation()
-				+ FRotationMatrix(Info->GetLandscapeProxy()->GetActorRotation()).TransformPosition(FVector(0, 0, CurrentGizmoActor->GetLength()));
+				+ FQuatRotationMatrix(Info->GetLandscapeProxy()->GetActorQuat()).TransformPosition(FVector(0, 0, CurrentGizmoActor->GetLength()));
 		}
 		return CurrentGizmoActor->GetActorLocation();
 	}
@@ -2453,7 +2457,7 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 			{
 				if (RawData->Num() == SizeX * SizeY)
 				{
-					FAlphamapAccessor<false, true> AlphamapAccessor(LandscapeInfo, TargetInfo.LayerInfoObj.Get());
+					FAlphamapAccessor<false, false> AlphamapAccessor(LandscapeInfo, TargetInfo.LayerInfoObj.Get());
 					AlphamapAccessor.SetData(MinX, MinY, MaxX, MaxY, RawData->GetData(), ELandscapeLayerPaintingRestriction::None);
 				}
 				else
@@ -2629,13 +2633,8 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 						if (OldCollisionComponent && NewCollisionComponent)
 						{
-							AInstancedFoliageActor* OldFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(OldCollisionComponent->GetLandscapeProxy()->GetLevel());
-							if (OldFoliageActor)
-							{
-								OldFoliageActor->MoveInstancesToNewComponent(OldCollisionComponent, NewCollisionComponent);
-								AInstancedFoliageActor* NewFoliageActor = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(NewCollisionComponent->GetTypedOuter<ULevel>());
-								NewCollisionComponent->SnapFoliageInstances(*NewFoliageActor, FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
-							}
+							AInstancedFoliageActor::MoveInstancesToNewComponent(OldCollisionComponent->GetWorld(), OldCollisionComponent, NewCollisionComponent);
+							NewCollisionComponent->SnapFoliageInstances(FBox(FVector(-WORLD_MAX), FVector(WORLD_MAX)));
 						}
 					}
 				}

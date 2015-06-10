@@ -1,0 +1,194 @@
+﻿INTSourceChangelist:2509035
+Availability:Public
+Title:콘텐츠 관리하기
+Crumbs:%ROOT%, Engine
+Description:외부 프로그램에서 만든 아트 콘텐츠를 언리얼 엔진에서 사용할 수 있도록 임포트하고 셋업하는 데 관련된 정보입니다.
+
+[VAR:Params]
+[PARAM:image]
+	![%Engine/Content:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/import_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Engine/Content:title%
+[/PARAM]
+[PARAM:description]
+	%Engine/Content:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content]
+[/PARAM]
+[/VAR]
+
+[VAR:HomeParams]
+[PARAM:image]
+	![%Engine/Content:title%](Engine/Content/content_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/content_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	콘텐츠 제작자
+[/PARAM]
+[PARAM:description]
+	%Engine/Content:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Engine/Content]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%homeparams%
+[PARAMLITERAL:id]
+contentcreator
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[REGION:banner]
+![FBX](Engine/Content/FBX/fbx_banner.png)
+[/REGION]
+
+게임에 필요한 콘텐츠를 전부 에디터 안에서 만들 필요는 없습니다. 아트 애셋 대부분은 3ds Max, Maya, Photoshop, ZBrush 와 같은 외부 툴을 사용해서 만들어집니다. 아래는 에디터 안에서 생성되는 것과 외부에서 생성되는 애셋 유형을 매우 포괄적으로 나눠본 것입니다.
+
+|애셋 생성 위치||
+| ------------------------ | ---------------------------------- |
+| [REGION:tablesection]언리얼 에디터 내부에서 생성[/REGION] | [REGION:tablesection]외부 어플리케이션을 사용하여 생성[/REGION] |
+| [INCLUDE:#InEditor] |[INCLUDE:#External]|
+
+<!------------------------------
+
+
+[EXCERPT:InEditor]
+* 게임 레벨
+* 머티리얼
+* 파티클 시스템
+* 시네마틱 시퀀스
+* 블루프린트 스크립트
+* AI 내비게이션 메시
+* 미리계산된 라이트 맵
+* 레벨 라이트
+[/EXCERPT:InEditor]
+
+[EXCERPT:External]
+* 스태틱 메시
+* 스켈레탈 메시
+* 스켈레탈 애니메이션
+* 텍스처
+* 사운드 (WAV)
+* IES 라이트 프로파일
+* Nvidia APEX 파일 (APB 및 APX)
+[/EXCERPT:External]
+--------------------->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/cb_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Engine/Content/Browser "%Engine/Content/Browser:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Browser/UI "%Engine/Content/Browser/UI:description%")
+		* [](Engine/Content/Browser/UserGuide/BrowserAssetCreation "%Engine/Content/Browser/UserGuide/BrowserAssetCreation:description%")
+		* [](Engine/Content/Browser/UserGuide/WorkingWithSources "%Engine/Content/Browser/UserGuide/WorkingWithSources:description%")
+		* [](Engine/Content/Browser/UserGuide/Folders "%Engine/Content/Browser/UserGuide/Folders:description%")
+		* [](Engine/Content/Browser/UserGuide/Filters "%Engine/Content/Browser/UserGuide/Filters:description%")
+		* [](Engine/Content/Browser/UserGuide/Migrate "%Engine/Content/Browser/UserGuide/Migrate:description%")
+		* [](Engine/Content/Browser/UserGuide/Collections "%Engine/Content/Browser/UserGuide/Collections:description%")
+		* [](Engine/Content/Browser/UserGuide/DevelopersFolder "%Engine/Content/Browser/UserGuide/DevelopersFolder:description%")
+		* [](Engine/Content/Browser/ReferenceViewer "%Engine/Content/Browser/ReferenceViewer:description%")
+		* [](Engine/Content/Browser/ReferenceTreeTool "%Engine/Content/Browser/ReferenceTreeTool:description%")
+		* [](Engine/Content/Browser/AssetConsolidationTool "%Engine/Content/Browser/AssetConsolidationTool:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/tutorial_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		아티스트 퀵스타트 가이드
+	[/PARAM]
+	[PARAM:description]
+	콘텐츠 제작자용 언리얼 엔진 4 속성 매뉴얼을 찾고 계시는 경우, 이 **아티스트 퀵스타드 가이드** 를 참고해 보세요. 메시와 텍스처 임포트 방법, 머티리얼 제작 기초, 메시에 머티리얼 적용하기 등을 단계별로 안내해 드립니다.
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/QuickStart "%Engine/Content/QuickStart:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		FBX 임포트 파이프라인
+	[/PARAM]
+	[PARAM:description]
+	[INCLUDE:Engine/Content/FBX#intro]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/FBX "%Engine/Content/FBX:description%")
+		* [](Engine/Content/FBX/ImportOptions "%Engine/Content/FBX/ImportOptions:description%")
+		* [](Engine/Content/FBX/StaticMeshes "%Engine/Content/FBX/StaticMeshes:description%")
+		* [](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%")
+		* [](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%")
+		* [](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%")
+		* [](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/reference_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		콘텐츠 유형 참고서
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Types/Textures "%Engine/Content/Types/Textures:description%")
+		* [](Engine/Content/Types/StaticMeshes "%Engine/Content/Types/StaticMeshes:description%")
+		* [](Engine/Content/Types/SkeletalMeshes "%Engine/Content/Types/SkeletalMeshes:description%")
+		* [](Engine/Rendering/LightingAndShadows/IESLightProfiles "%Engine/Rendering/LightingAndShadows/IESLightProfiles:description%")
+		* [](Engine/Audio/WAV "%Engine/Audio/WAV:description%")
+		* [](Engine/Physics/Apex/ApexTypes "%Engine/Physics/Apex/ApexTypes:description%")
+		* [](Engine/Content/SpeedTree "%Engine/Content/SpeedTree:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/anim_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		고급 콘텐츠 제작
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Content/Tools/MayaRiggingTool "%Engine/Content/Tools/MayaRiggingTool:description%")
+		* [](Engine/Content/Tools/RenderToTextureTools "%Engine/Content/Tools/RenderToTextureTools:description%")
+	[/PARAM]
+[/OBJECT]
