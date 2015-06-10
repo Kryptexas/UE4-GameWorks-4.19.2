@@ -200,6 +200,14 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=PlayInStandaloneGame)
 	int32 StandaloneWindowHeight;
 
+	/** The position of the standalone game window on the screen in pixels. */
+	UPROPERTY(config, EditAnywhere, Category=PlayInStandaloneGame)
+	FIntPoint StandaloneWindowPosition;
+
+	/** Whether the standalone game window should be centered on the screen. */
+	UPROPERTY(config, EditAnywhere, Category=PlayInStandaloneGame)
+	bool CenterStandaloneWindow;
+
 	/** Whether sound should be disabled when playing standalone games. */
 	UPROPERTY(config , EditAnywhere, Category=PlayInStandaloneGame, AdvancedDisplay)
 	uint32 DisableStandaloneSound:1;

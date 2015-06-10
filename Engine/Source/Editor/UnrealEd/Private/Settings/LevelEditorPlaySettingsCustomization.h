@@ -389,9 +389,13 @@ public:
 			// standalone window size
 			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowHeight));
 			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowWidth));
+			TSharedRef<IPropertyHandle> WindowPositionHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowPosition));
+			TSharedRef<IPropertyHandle> CenterNewWindowHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, CenterStandaloneWindow));
 
 			WindowHeightHandle->MarkHiddenByCustomization();
 			WindowWidthHandle->MarkHiddenByCustomization();
+			WindowPositionHandle->MarkHiddenByCustomization();
+			CenterNewWindowHandle->MarkHiddenByCustomization();
 
 			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("PlayInStandaloneWindowDetails", "Standalone Window Size"), false)
 				.NameContent()
@@ -406,6 +410,21 @@ public:
 				[
 					SNew(SScreenResolutionCustomization, &LayoutBuilder, WindowHeightHandle, WindowWidthHandle)
 				];
+
+			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("PlayInStandaloneWindowDetails", "Standalone Window Position"), false)
+				.NameContent()
+				[
+					SNew(STextBlock)
+						.Font(LayoutBuilder.GetDetailFont())
+						.Text(LOCTEXT("StandaloneWindowPosName", "Standalone Window Position"))
+						.ToolTipText(LOCTEXT("StandaloneWindowSizeTooltip", "Sets the width and height of standalone game windows (in pixels)"))
+				]
+				.ValueContent()
+				.MaxDesiredWidth(MaxPropertyWidth)
+				[
+					SNew(SScreenPositionCustomization, &LayoutBuilder, WindowPositionHandle, CenterNewWindowHandle)
+				];
+
 
 			// command line options
 			TSharedPtr<IPropertyHandle> DisableStandaloneSoundProperty = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, DisableStandaloneSound));
