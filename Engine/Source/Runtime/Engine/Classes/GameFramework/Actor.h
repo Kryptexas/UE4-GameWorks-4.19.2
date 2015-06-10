@@ -2477,7 +2477,7 @@ class TInlineComponentArray : public TArray<T, TInlineAllocator<NumElements>>
 
 public:
 	TInlineComponentArray() : Super() { }
-	TInlineComponentArray(class AActor* Actor) : Super()
+	TInlineComponentArray(const class AActor* Actor) : Super()
 	{
 		if (Actor)
 		{
