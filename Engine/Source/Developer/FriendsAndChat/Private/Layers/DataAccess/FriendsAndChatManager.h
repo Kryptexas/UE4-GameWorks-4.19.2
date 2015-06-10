@@ -126,7 +126,7 @@ public:
 
 	// IFriendsAndChatManager
 	virtual void Logout() override;
-	virtual void Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame = false) override;
+	virtual void Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame = false, int32 LocalUserID = 0) override;
 	virtual bool IsLoggedIn() override;
 	virtual void SetOnline() override;
 	virtual void SetAway() override;

@@ -62,7 +62,7 @@ void FFriendsAndChatManager::Initialize()
 /* IFriendsAndChatManager interface
  *****************************************************************************/
 
-void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame)
+void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame, int32 LocalUserID)
 {
 	// Clear existing data
 	Logout();
@@ -147,7 +147,7 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 			SetState(EFriendsAndManagerState::RequestFriendsListRefresh);
 			RequestRecentPlayersListRefresh();
 
-			MessageManager->LogIn();
+			MessageManager->LogIn(OnlineSub, LocalUserID);
 			MessageManager->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnChatPublicRoomJoined);
 			for (auto RoomName : ChatRoomstoJoin)
 			{
@@ -405,8 +405,8 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 
 	if (WindowPtr.IsValid())
 	{
-		WindowPtr->SetOnWindowActivated(FOnWindowActivated::CreateSP(ChatWidget.Get(), &SChatWindow::HandleWindowActivated));
-		WindowPtr->SetOnWindowDeactivated(FOnWindowDeactivated::CreateSP(ChatWidget.Get(), &SChatWindow::HandleWindowDeactivated));
+		WindowPtr->GetOnWindowActivatedEvent().AddSP(ChatWidget.Get(), &SChatWindow::HandleWindowActivated);
+		WindowPtr->GetOnWindowDeactivatedEvent().AddSP(ChatWidget.Get(), &SChatWindow::HandleWindowDeactivated);
 	}
 
 	return ChatWidget;

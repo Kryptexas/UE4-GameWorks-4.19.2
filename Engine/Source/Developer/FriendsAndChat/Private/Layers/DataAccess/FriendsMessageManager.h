@@ -32,7 +32,7 @@ public:
 	/** Destructor. */
 	virtual ~FFriendsMessageManager( ) {};
 
-	virtual void LogIn() = 0;
+	virtual void LogIn(IOnlineSubsystem* InOnlineSub, int32 LocalUserNum = 0) = 0;
 	virtual void LogOut() = 0;
 	virtual const TArray<TSharedRef<FFriendChatMessage> >& GetMessages() const = 0;
 	virtual void JoinPublicRoom(const FString& RoomName) = 0;

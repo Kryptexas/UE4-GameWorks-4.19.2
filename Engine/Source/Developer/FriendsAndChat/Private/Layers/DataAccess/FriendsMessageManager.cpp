@@ -22,14 +22,18 @@ class FFriendsMessageManagerImpl
 {
 public:
 
-	virtual void LogIn() override
+	virtual void LogIn(IOnlineSubsystem* InOnlineSub, int32 LocalUserNum) override
 	{
-		Initialize();
+		// Clear existing data
+		LogOut();
 
+		OnlineSub = InOnlineSub;
+
+		Initialize();
 		if (OnlineSub != nullptr &&
 			OnlineSub->GetIdentityInterface().IsValid())
 		{
-			LoggedInUser = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0);
+			LoggedInUser = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(LocalUserNum);
 		}
 
 		for (auto RoomName : RoomJoins)
@@ -187,16 +191,11 @@ private:
 
 	void Initialize()
 	{
-		// Clear existing data
-		LogOut();
-
 		GlobalMessagesCount = 0;
 		WhisperMessagesCount = 0;
 		GameMessagesCount = 0;
 		PartyMessagesCount = 0;
 		ReceivedMessages.Empty();
-
-		OnlineSub = IOnlineSubsystem::Get( TEXT( "MCP" ) );
 
 		if (OnlineSub != nullptr)
 		{
