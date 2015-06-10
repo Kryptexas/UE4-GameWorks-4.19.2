@@ -490,8 +490,9 @@ struct FInternalGroup
 	FInternalGroup(const FName InGroupName, const FName InGroupCategory, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, const FString& InGroupDescription)
 		: GroupName( InGroupName )
 		, GroupCategory(InGroupCategory)
-		, DisplayMode( InDisplayMode )
 		, GroupDescription( InGroupDescription )
+		, DisplayMode( InDisplayMode )
+		
 	{
 		// To avoid copy.
 		Exchange( EnabledItems, InEnabledItems );
