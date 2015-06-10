@@ -4,7 +4,7 @@
 
 #include "AI/AISystemBase.h"
 #if WITH_EDITOR
-#include "Developer/AssetTools/Public/IAssetTools.h"
+#include "Developer/AssetTools/Public/AssetTypeCategories.h"
 #endif // WITH_EDITOR
 
 /**
