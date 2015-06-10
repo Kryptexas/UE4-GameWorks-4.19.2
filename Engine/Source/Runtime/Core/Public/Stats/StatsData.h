@@ -70,7 +70,10 @@ public:
 	TParsedValueWithDefault( const TCHAR* Stream, const TCHAR* Match, const T& Default )
 		: Value( Default )
 	{
-		ParseTypedValue<T>( Stream, Match, Value );
+		if (Stream && Match)
+		{
+			ParseTypedValue<T>( Stream, Match, Value );
+		}
 	}
 
 	const T& Get() const
@@ -254,8 +257,11 @@ struct CORE_API FRawStatStackNode
 	void MergeAdd(FRawStatStackNode const& Other);
 	void Divide(uint32 Div);
 
-	/** Cull this tree, merging children below MinCycles long **/
-	void Cull(int64 MinCycles, int32 NoCullLevels = 0);
+	/** Cull this tree, merging children below MinCycles long. */
+	void CullByCycles(int64 MinCycles);
+
+	/** Cull this tree, merging children below NoCullLevels. */
+	void CullByDepth(int32 NoCullLevels);
 
 	/** Adds name hiearchy. **/
 	void AddNameHierarchy(int32 CurrentPrefixDepth = 0);
@@ -377,6 +383,12 @@ public:
 	/** Divides this stack by the specified value. */
 	void Divide(uint32 Div);
 
+	/** Cull this tree, merging children below MinCycles long. */
+	void CullByCycles( int64 MinCycles );
+
+	/** Cull this tree, merging children below NoCullLevels. */
+	void CullByDepth( int32 NoCullLevels );
+
 	/** Copies exclusive times from the self node. **/
 	void CopyExclusivesFromSelf();
 
@@ -407,13 +419,14 @@ struct IItemFiler
 
 
 
-// @TODO yrx 2014-12-03 Separete stats thread state vs rawstats thread state?
-// @TODO yrx 2014-03-21 Move metadata functionality into a separate class
+// #YRX_STATS 2014-12-03 Separate stats thread state vs raw stats thread state?
+// #YRX_STATS 2014-03-21 Move metadata functionality into a separate class
+// 
 /**
-* Tracks stat state and history
-*  GetLocalState() is a singleton to the state for stats being collected in this executable.
-*  Other instances can be used to load stats for visualization.
-*/
+ * Tracks stat state and history
+ * GetLocalState() is a singleton to the state for stats being collected in this executable.
+ *  Other instances can be used to load stats for visualization.
+ */
 class CORE_API FStatsThreadState
 {
 	friend class FStatsThread;
@@ -449,6 +462,7 @@ public:
 	/** Toggles tracking the most memory expensive stats. */
 	void ToggleFindMemoryExtensiveStats();
 
+	/** Resets stats for raw stats. */
 	void ResetStatsForRawStats()
 	{
 		MaxNumStatMessages = 0;
@@ -457,10 +471,10 @@ public:
 
 private:
 	/** Internal method to accumulate any non-frame stats. **/
-	void ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound);
+	void ProcessNonFrameStats( FStatMessagesArray& Data, TSet<FName>* NonFrameStatsFound );
 
 	/** Internal method to place the data into the history, discard and broadcast any new frames to anyone who cares. **/
-	void AddToHistoryAndEmpty(FStatPacketArray& NewData);
+	void AddToHistoryAndEmpty( FStatPacketArray& NewData );
 
 	/** Does basic processing on the raw stats packets, discard and broadcast any new raw stats packets to anyone who cares. */
 	void ProcessRawStats(FStatPacketArray& NewData);
