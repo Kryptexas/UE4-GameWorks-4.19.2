@@ -139,14 +139,14 @@ private:
 	/** Updates the collections shown in the list view */
 	void UpdateCollectionItems();
 
-	/** Update the visible collections based on the active search text */
-	void ApplyCollectionsSearchFilter();
+	/** Update the visible collections based on the active filter text */
+	void UpdateFilteredCollectionItems();
 
-	/** Update the visible collections based on the given search text */
-	void ApplyCollectionsSearchFilter( const FText& InSearchText );
+	/** Set the active filter text */
+	void SetCollectionsSearchFilterText( const FText& InSearchText );
 
-	/** Get the currently filter text */
-	FText GetFilterText() const;
+	/** Get the active filter text */
+	FText GetCollectionsSearchFilterText() const;
 
 private:
 
@@ -181,6 +181,10 @@ private:
 
 	/** The list of visible collections based on the current filter */
 	TArray< TSharedPtr<FCollectionItem> > FilteredCollectionItems;
+
+	/** The filter to apply to the available collections */
+	typedef TTextFilter<const FCollectionItem&> FCollectionItemTextFilter;
+	TSharedPtr< FCollectionItemTextFilter > CollectionItemTextFilter;
 
 	/** The context menu logic and data */
 	TSharedPtr<class FCollectionContextMenu> CollectionContextMenu;
