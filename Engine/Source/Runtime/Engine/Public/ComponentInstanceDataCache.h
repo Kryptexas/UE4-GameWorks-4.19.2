@@ -4,6 +4,7 @@
 
 class UActorComponent;
 class AActor;
+enum class EComponentCreationMethod : uint8;
 
 /** At what point in the rerun construction script process is ApplyToActor being called for */
 enum class ECacheApplyPhase
@@ -16,11 +17,7 @@ enum class ECacheApplyPhase
 class ENGINE_API FActorComponentInstanceData
 {
 public:
-	FActorComponentInstanceData()
-		: SourceComponentClass(nullptr)
-		, SourceComponentTypeSerializedIndex(-1)
-	{}
-
+	FActorComponentInstanceData();
 	FActorComponentInstanceData(const UActorComponent* SourceComponent);
 
 	virtual ~FActorComponentInstanceData()
@@ -51,6 +48,10 @@ protected:
 	/** The index of the source component in its owner's serialized array 
 		when filtered to just that component type */
 	int32 SourceComponentTypeSerializedIndex;
+
+	/** The index of the source component in its owner's serialized array 
+		when filtered to just that component type */
+	EComponentCreationMethod SourceComponentCreationMethod;
 
 	TArray<uint8> SavedProperties;
 };

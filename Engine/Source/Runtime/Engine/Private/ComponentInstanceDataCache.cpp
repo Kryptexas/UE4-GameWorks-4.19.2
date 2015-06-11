@@ -3,11 +3,19 @@
 #include "EnginePrivate.h"
 #include "ComponentInstanceDataCache.h"
 
+FActorComponentInstanceData::FActorComponentInstanceData()
+	: SourceComponentClass(nullptr)
+	, SourceComponentTypeSerializedIndex(-1)
+	, SourceComponentCreationMethod(EComponentCreationMethod::Native)
+{
+}
+
 FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* SourceComponent)
 {
 	check(SourceComponent);
 	SourceComponentName = SourceComponent->GetFName();
 	SourceComponentClass = SourceComponent->GetClass();
+	SourceComponentCreationMethod = SourceComponent->CreationMethod;
 	SourceComponentTypeSerializedIndex = -1;
 	
 	AActor* ComponentOwner = SourceComponent->GetOwner();
@@ -24,7 +32,8 @@ FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* 
 					bFound = true;
 					break;
 				}
-				else if (BlueprintCreatedComponent->GetClass() == SourceComponentClass)
+				else if (   BlueprintCreatedComponent->GetClass() == SourceComponentClass
+						 && BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
 				{
 					++SourceComponentTypeSerializedIndex;
 				}
@@ -67,9 +76,12 @@ FActorComponentInstanceData::FActorComponentInstanceData(const UActorComponent* 
 bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Component) const
 {
 	bool bMatches = false;
-	if (Component && Component->GetClass() == SourceComponentClass)
+	if (   Component 
+		&& (Component->CreationMethod == SourceComponentCreationMethod)
+		&& (Component->GetClass() == SourceComponentClass))
 	{
-		if (Component->GetFName() == SourceComponentName)
+		if (   (SourceComponentCreationMethod != EComponentCreationMethod::UserConstructionScript)
+			&& (Component->GetFName() == SourceComponentName))
 		{
 			bMatches = true;
 		}
@@ -83,6 +95,7 @@ bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Compon
 				{
 					if (   BlueprintCreatedComponent
 						&& (BlueprintCreatedComponent->GetClass() == SourceComponentClass)
+						&& (BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
 						&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
 					{
 						bMatches = (BlueprintCreatedComponent == Component);
