@@ -26,7 +26,7 @@ If that did not fix your issues the next thing to check is to make sure that the
 do this, you need to do the following steps:
 
 * First run a [Standalone Game](Engine/UI/LevelEditor/InEditorTesting/Settings#playinstandalonegame). 
-* Once the Standalone game has been started, bring up the Unreal Console by using the tilde (`) key. 
+* Once the Standalone game has been started, bring up the Unreal Console by using the Backtick (`) key. 
 * Then type `showlog`.
 * Next type `ovrversion`.
 * The current LibOVR version and build date should be printed in the log window like in the following picture:
@@ -53,7 +53,7 @@ to view your work is to run a Standalone Game. To run a Standalone game please d
 
 * Select a Non-PIE game mode like a [Standalone Game](Engine/UI/LevelEditor/InEditorTesting#playineditor). 
 * If the game launches in non-full screen, press **ALT+Enter** to full screen the game window or type **fullscreen** in the [Console](GettingStarted/RunningUnrealEngine#usefulin-gamecommands).
-* Bring up the [Console](GettingStarted/RunningUnrealEngine#usefulin-gamecommands) (`/tilde key) and then type **stereo on**.
+* Bring up the [Console](GettingStarted/RunningUnrealEngine#usefulin-gamecommands) (`/backtick) and then type **stereo on**.
 
 ## Oculus Specific Confg Settings
 

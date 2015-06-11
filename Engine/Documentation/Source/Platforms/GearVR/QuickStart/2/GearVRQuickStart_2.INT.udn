@@ -27,6 +27,10 @@ Navigation:platform
 
 	![](GVR_Editor_Opened.png)
 
+	[region:note]
+	If you are using Unreal Engine 4.8 or later and a Blueprint based project Visual Studio 2013 will not open up as it is not needed. 
+	[/region]
+
 1. Once the UE4 Editor has loaded, from the **Main Toolbar**, open the **Windows** tab and select the **Plugins** menu item. 
 
 	![](GVR_Plugins_Menu.gif)(convert:false)

@@ -1,8 +1,8 @@
 ﻿Availability:Public
 Title:Samsung Gear VR Debugging
-Crumbs:%ROOT%, Platforms
 Description:Information on how to debug applications for the Gear VR headset.
 Navigation:platform
+Crumbs:
 Platform:Gear VR
 Related: Platforms/Mobile/Performance
 Related: Engine/Performance
