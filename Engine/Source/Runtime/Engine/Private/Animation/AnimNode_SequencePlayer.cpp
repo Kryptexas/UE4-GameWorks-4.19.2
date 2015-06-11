@@ -24,7 +24,7 @@ void FAnimNode_SequencePlayer::CacheBones(const FAnimationCacheBonesContext& Con
 {
 }
 
-void FAnimNode_SequencePlayer::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
@@ -72,4 +72,9 @@ void FAnimNode_SequencePlayer::GatherDebugData(FNodeDebugData& DebugData)
 	
 	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *Sequence->GetName(), InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine, true);
+}
+
+float FAnimNode_SequencePlayer::GetTimeFromEnd(float CurrentNodeTime)
+{
+	return Sequence->GetMaxCurrentTime() - CurrentNodeTime;
 }

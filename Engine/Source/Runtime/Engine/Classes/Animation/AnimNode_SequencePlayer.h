@@ -2,23 +2,20 @@
 
 #pragma once
 #include "Animation/AnimNodeBase.h"
+#include "AnimNode_AssetPlayerBase.h"
 #include "AnimNode_SequencePlayer.generated.h"
 
 #pragma once
 
 // Sequence player node
 USTRUCT()
-struct ENGINE_API FAnimNode_SequencePlayer : public FAnimNode_Base
+struct ENGINE_API FAnimNode_SequencePlayer : public FAnimNode_AssetPlayerBase
 {
 	GENERATED_USTRUCT_BODY()
 public:
 	// The animation sequence asset to play
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	UAnimSequenceBase* Sequence;
-
-	// The internal time accumulator (position within the animation asset being played)
-	UPROPERTY(BlueprintReadWrite, Transient, Category=DoNotEdit)
-	float InternalTimeAccumulator;
 
 	// Should the animation continue looping when it reaches the end?
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
@@ -38,7 +35,6 @@ public:
 public:	
 	FAnimNode_SequencePlayer()
 		: Sequence(NULL)
-		, InternalTimeAccumulator(0.0f)
 		, bLoopAnimation(true)
 		, PlayRate(1.0f)
 		, GroupIndex(INDEX_NONE)
@@ -48,9 +44,13 @@ public:
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) override;
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void OverrideAsset(UAnimationAsset* NewAsset) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
+	UAnimationAsset* GetAnimAsset() {return Sequence;}
+
+	float GetTimeFromEnd(float CurrentNodeTime);
 };

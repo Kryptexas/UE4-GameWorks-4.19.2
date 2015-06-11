@@ -14,7 +14,7 @@ void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& 
 {
 }
 
-void FAnimNode_SequenceEvaluator::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 }

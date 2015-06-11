@@ -18,9 +18,9 @@ void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesCo
 	BasePose.CacheBones(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_RotationOffsetBlendSpace::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_BlendSpacePlayer::Update(Context);
+	FAnimNode_BlendSpacePlayer::UpdateAssetPlayer(Context);
 	BasePose.Update(Context);
 }
 

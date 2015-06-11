@@ -466,7 +466,7 @@ bool FAnimNode_StateMachine::FindValidTransition(const FAnimationUpdateContext& 
 				if ((SequencePlayer != nullptr) && (SequencePlayer->Sequence != nullptr))
 				{
 					const float SequenceLength = SequencePlayer->Sequence->GetMaxCurrentTime();
-					const float PlayerTime = SequencePlayer->InternalTimeAccumulator;
+					const float PlayerTime = SequencePlayer->GetAccumulatedTime();
 					const float PlayerTimeLeft = SequenceLength - PlayerTime;
 
 					const FAnimationTransitionBetweenStates& TransitionInfo = GetTransitionInfo(TransitionRule.TransitionIndex);
@@ -881,5 +881,10 @@ void FAnimNode_StateMachine::EvaluateState(int32 StateIndex, FPoseContext& Outpu
 bool FAnimNode_StateMachine::IsAConduitState(int32 StateIndex) const
 {
 	return ((PRIVATE_MachineDescription != NULL) && (StateIndex < PRIVATE_MachineDescription->States.Num())) ? GetStateInfo(StateIndex).bIsAConduit : false;
+}
+
+bool FAnimNode_StateMachine::IsValidTransitionIndex(int32 TransitionIndex) const
+{
+	return PRIVATE_MachineDescription->Transitions.IsValidIndex(TransitionIndex);
 }
 

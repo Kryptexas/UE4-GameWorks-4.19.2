@@ -2,12 +2,13 @@
 
 #pragma once
 #include "AnimGraphNode_Base.h"
+#include "AnimGraphNode_AssetPlayerBase.h"
 #include "Animation/AnimNode_SequenceEvaluator.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "AnimGraphNode_SequenceEvaluator.generated.h"
 
 UCLASS(MinimalAPI)
-class UAnimGraphNode_SequenceEvaluator : public UAnimGraphNode_Base
+class UAnimGraphNode_SequenceEvaluator : public UAnimGraphNode_AssetPlayerBase
 {
 	GENERATED_UCLASS_BODY()
 

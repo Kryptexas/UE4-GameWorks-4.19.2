@@ -3,11 +3,12 @@
 #pragma once
 
 #include "AnimNodeBase.h"
+#include "AnimNode_AssetPlayerBase.h"
 #include "AnimNode_BlendSpacePlayer.generated.h"
 
 //@TODO: Comment
 USTRUCT()
-struct ENGINE_API FAnimNode_BlendSpacePlayer : public FAnimNode_Base
+struct ENGINE_API FAnimNode_BlendSpacePlayer : public FAnimNode_AssetPlayerBase
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -44,8 +45,6 @@ public:
 	UPROPERTY()
 	TEnumAsByte<EAnimGroupRole::Type> GroupRole;
 protected:
-	UPROPERTY(BlueprintReadWrite, Transient, Category=DoNotEdit)
-	float InternalTimeAccumulator;
 
 	UPROPERTY()
 	FBlendFilter BlendFilter;
@@ -59,11 +58,15 @@ public:
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context) override;
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) override;
 	virtual void Evaluate(FPoseContext& Output) override;
 	virtual void OverrideAsset(UAnimationAsset* NewAsset) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
+
+	float GetTimeFromEnd(float CurrentTime);
+
+	UAnimationAsset* GetAnimAsset();
 
 protected:
 	void UpdateInternal(const FAnimationUpdateContext& Context);

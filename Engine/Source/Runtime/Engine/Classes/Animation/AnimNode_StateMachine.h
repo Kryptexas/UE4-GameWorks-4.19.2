@@ -182,6 +182,8 @@ public:
 	const FBakedAnimationState& GetStateInfo(int32 StateIndex) const;
 	const FAnimationTransitionBetweenStates& GetTransitionInfo(int32 TransIndex) const;
 	
+	bool IsValidTransitionIndex(int32 TransitionIndex) const;
+
 protected:
 	// Tries to get the instance information for the state machine
 	FBakedAnimationStateMachine* GetMachineDescription();

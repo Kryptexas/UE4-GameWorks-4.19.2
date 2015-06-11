@@ -22,6 +22,7 @@ class UCanvas;
 class UWorld;
 struct FTransform;
 class FDebugDisplayInfo;
+struct FAnimNode_AssetPlayerBase;
 
 DECLARE_DELEGATE_OneParam(FOnMontageStarted, UAnimMontage*)
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
@@ -605,31 +606,139 @@ private:
 	void TriggerMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent);
 
 public:
+
+	/** 
+	 * NOTE: Derived anim getters
+	 *
+	 * Anim getter functions can be defined for any instance deriving UAnimInstance.
+	 * To do this the function must be marked BlueprintPure, and have the AnimGetter metadata entry set to
+	 * "true". Following the instructions below, getters should appear correctly in the blueprint node context
+	 * menu for the derived classes
+	 *
+	 * A context string can be provided in the GetterContext metadata and can contain any (or none) of the
+	 * following entries separated by a pipe (|)
+	 * Transition  - Only available in a transition rule
+	 * AnimGraph   - Only available in an animgraph (also covers state anim graphs)
+	 * CustomBlend - Only available in a custom blend graph
+	 *
+	 * Anim getters support a number of automatic parameters that will be baked at compile time to be passed
+	 * to the functions. They will not appear as pins on the graph node. They are as follows:
+	 * AssetPlayerIndex - Index of an asset player node to operate on, one getter will be added to the blueprint action list per asset node available
+	 * MachineIndex     - Index of a state machine in the animation blueprint, one getter will be added to the blueprint action list per state machine
+	 * StateIndex       - Index of a state inside a state machine, also requires MachineIndex. One getter will be added to the blueprint action list per state
+	 * TransitionIndex  - Index of a transition inside a state machine, also requires MachineIndex. One getter will be added to the blueprint action list per transition
+	 */
+
+	/** Gets the length in seconds of the asset referenced in an asset player node */
+	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Length", BlueprintInternalUseOnly="true", AnimGetter="true"))
+	float GetInstanceAssetPlayerLength(int32 AssetPlayerIndex);
+
+	/** Get the current accumulated time in seconds for an asset player node */
+	UFUNCTION(BlueprintPure, Category="Asset Player", meta = (DisplayName = "Current Time", BlueprintInternalUseOnly = "true", AnimGetter = "true"))
+	float GetInstanceAssetPlayerTime(int32 AssetPlayerIndex);
+
+	/** Get the current accumulated time as a fraction for an asset player node */
+	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Current Time (ratio)", BlueprintInternalUseOnly="true", AnimGetter="true"))
+	float GetInstanceAssetPlayerTimeFraction(int32 AssetPlayerIndex);
+
+	/** Get the time in seconds from the end of an animation in an asset player node */
+	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Time Remaining", BlueprintInternalUseOnly="true", AnimGetter="true"))
+	float GetInstanceAssetPlayerTimeFromEnd(int32 AssetPlayerIndex);
+
+	/** Get the time as a fraction of the asset length of an animation in an asset player node */
+	UFUNCTION(BlueprintPure, Category="Asset Player", meta=(DisplayName="Time Remaining (ratio)", BlueprintInternalUseOnly="true", AnimGetter="true"))
+	float GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetPlayerIndex);
+
+	/** Get the blend weight of a specified state */
+	UFUNCTION(BlueprintPure, Category="States", meta = (DisplayName="State Weight", BlueprintInternalUseOnly = "true", AnimGetter="true"))
+	float GetInstanceStateWeight(int32 MachineIndex, int32 StateIndex);
+
+	/** Get the current elapsed time of a state within the specified state machine */
+	UFUNCTION(BlueprintPure, Category="States", meta = (DisplayName="Current State Time", BlueprintInternalUseOnly = "true", AnimGetter="true", GetterContext="Transition"))
+	float GetInstanceCurrentStateElapsedTime(int32 MachineIndex);
+
+	/** Get the crossfade duration of a specified transition */
+	UFUNCTION(BlueprintPure, Category="Transitions", meta = (DisplayName="Get Transition Crossfade Duration", BlueprintInternalUseOnly = "true", AnimGetter="true"))
+	float GetInstanceTransitionCrossfadeDuration(int32 MachineIndex, int32 TransitionIndex);
+
+	/** Get the elapsed time in seconds of a specified transition */
+	UFUNCTION(BlueprintPure, Category="Transitions", meta = (DisplayName="Get Transition Time Elapsed", BlueprintInternalUseOnly = "true", AnimGetter="true", GetterContext="CustomBlend"))
+	float GetInstanceTransitionTimeElapsed(int32 MachineIndex, int32 TransitionIndex);
+
+	/** Get the elapsed time as a fraction of the crossfade duration of a specified transition */
+	UFUNCTION(BlueprintPure, Category="Transitions", meta = (DisplayName="Get Transition Time Elapsed (ratio)", BlueprintInternalUseOnly = "true", AnimGetter="true", GetterContext="CustomBlend"))
+	float GetInstanceTransitionTimeElapsedFraction(int32 MachineIndex, int32 TransitionIndex);
+
+	/** Get the time remaining in seconds for the most relevant animation in the source state */
+	UFUNCTION(BlueprintPure, Category="Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter="true", GetterContext="Transition"))
+	float GetRelevantAnimTimeRemaining(int32 MachineIndex, int32 StateIndex);
+
+	/** Get the time remaining as a fraction of the duration for the most relevant animation in the source state */
+	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
+	float GetRelevantAnimTimeRemainingFraction(int32 MachineIndex, int32 StateIndex);
+
+	/** Get the length in seconds of the most relevant animation in the source state */
+	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
+	float GetRelevantAnimLength(int32 MachineIndex, int32 StateIndex);
+
+	/** Get the current accumulated time in seconds for the most relevant animation in the source state */
+	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
+	float GetRelevantAnimTime(int32 MachineIndex, int32 StateIndex);
+
+	/** Get the current accumulated time as a fraction of the length of the most relevant animation in the source state */
+	UFUNCTION(BlueprintPure, Category = "Asset Player", meta = (BlueprintInternalUseOnly = "true", AnimGetter = "true", GetterContext = "Transition"))
+	float GetRelevantAnimTimeFraction(int32 MachineIndex, int32 StateIndex);
+
+protected:
+
+	/** Gets the runtime instance of the specified state machine */
+	FAnimNode_StateMachine* GetStateMachineInstance(int32 MachineIndex);
+
+	/** Gets a checked node given an index into the node property array */
+	template<class NodeType>
+	NodeType* GetCheckedNodeFromIndex(int32 NodeIdx);
+
+	/** Gets an unchecked (can return nullptr) node given an index into the node property array */
+	template<class NodeType>
+	NodeType* GetNodeFromIndex(int32 NodeIdx);
+
+	/** Gets the most relevant asset player in a specified state */
+	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex);
+
+	//////////////////////////////////////////////////////////////////////////
+
+public:
 	/** Returns the value of a named curve. */
 	UFUNCTION(BlueprintPure, Category="Animation")
 	float GetCurveValue(FName CurveName);
 
 	/** Returns the length (in seconds) of an animation AnimAsset. */
+	DEPRECATED(4.9, "GetAnimAssetPlayerLength is deprecated, use GetInstanceAssetPlayerLength instead")
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
 	static float GetAnimAssetPlayerLength(UAnimationAsset* AnimAsset);
 
 	//** Returns how far through the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
+	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFraction is deprecated, use GetInstanceAssetPlayerTimeFraction instead")
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
 	static float GetAnimAssetPlayerTimeFraction(UAnimationAsset* AnimAsset, float CurrentTime);
 
 	/** Returns how long until the end of the animation AnimAsset (in seconds). */
+	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFromEnd is deprecated, use GetInstanceAssetPlayerTimeFromEnd instead")
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
-	static float GetAnimAssetPlayerTimeFromEnd(UAnimationAsset* AnimAsset, float CurrentTime);
+	float GetAnimAssetPlayerTimeFromEnd(UAnimationAsset* AnimAsset, float CurrentTime);
 
 	/** Returns how long until the end of the animation AnimAsset we are (as a proportion between 0.0 and 1.0). */
+	DEPRECATED(4.9, "GetAnimAssetPlayerTimeFromEndFraction is deprecated, use GetInstanceAssetPlayerTimeFromEndFraction instead")
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
 	static float GetAnimAssetPlayerTimeFromEndFraction(UAnimationAsset* AnimAsset, float CurrentTime);
 
 	/** Returns the weight of a state in a state machine. */
+	DEPRECATED(4.9, "GetStateWeight is deprecated, use GetInstanceStateWeight instead")
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
 	float GetStateWeight(int32 MachineIndex, int32 StateIndex);
 
 	/** Returns (in seconds) the time a state machine has been active. */
+	DEPRECATED(4.9, "GetCurrentStateElapsedTime is deprecated, use GetInstanceCurrentStateElapsedTime instead")
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintInternalUseOnly = "true"))
 	float GetCurrentStateElapsedTime(int32 MachineIndex);
 

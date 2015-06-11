@@ -226,6 +226,9 @@ struct FBakedAnimationState
 	UPROPERTY()
 	int32 EntryRuleNodeIndex;
 
+	// Indices into the property array for player nodes in the state
+	UPROPERTY()
+	TArray<int32> PlayerNodeIndices;
 
 public:
 	FBakedAnimationState()
