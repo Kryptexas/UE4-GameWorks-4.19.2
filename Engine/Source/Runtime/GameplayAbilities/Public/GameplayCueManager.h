@@ -101,6 +101,9 @@ struct GAMEPLAYABILITIES_API FScopedGameplayCueSendContext
 	~FScopedGameplayCueSendContext();
 };
 
+/** Delegate for when GC notifies are added or removed from manager */
+DECLARE_MULTICAST_DELEGATE(FOnGameplayCueNotifyChange);
+
 /**
  *	A self contained handler of a GameplayCue. These are similar to AnimNotifies in implementation.
  */
@@ -189,6 +192,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	bool RegisteredEditorCallbacks;
 
 	bool bAccelerationMapOutdated;
+
+	FOnGameplayCueNotifyChange	OnGameplayCueNotifyAddOrRemove;
 #endif
 
 protected:

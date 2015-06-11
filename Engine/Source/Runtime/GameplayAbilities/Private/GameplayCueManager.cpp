@@ -340,6 +340,8 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 
 				check(GlobalCueSet);
 				GlobalCueSet->AddCues(CuesToAdd);
+
+				OnGameplayCueNotifyAddOrRemove.Broadcast();
 			}
 		}
 	}
@@ -367,6 +369,8 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 		StringRefs.Add(StringRefToRemove);
 		check(GlobalCueSet);
 		GlobalCueSet->RemoveCuesByStringRefs(StringRefs);
+
+		OnGameplayCueNotifyAddOrRemove.Broadcast();
 	}
 }
 

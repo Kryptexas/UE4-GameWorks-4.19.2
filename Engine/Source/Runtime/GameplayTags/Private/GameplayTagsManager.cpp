@@ -116,17 +116,27 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 	if (!GameplayRootTag.IsValid())
 	{
 		GameplayRootTag = MakeShareable(new FGameplayTagNode());
-		
-		for (auto It(GameplayTagTables.CreateIterator()); It; It++)
 		{
-			if (*It)
+#if STATS
+			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: Construct from data asset"));
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+#endif
+		
+			for (auto It(GameplayTagTables.CreateIterator()); It; It++)
 			{
-				PopulateTreeFromDataTable(*It);
+				if (*It)
+				{
+					PopulateTreeFromDataTable(*It);
+				}
 			}
 		}
 
 		if (ShouldImportTagsFromINI())
 		{
+#if STATS
+			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: ImportINI"));
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+#endif
 			// Load any GameplayTagSettings from config (their default object)
 			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 			{
@@ -150,10 +160,20 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 
 		if (ShouldUseFastReplication())
 		{
+#if STATS
+			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: Reconstruct NetIndex"));
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+#endif
 			ConstructNetIndex();
 		}
 
-		GameplayTagTreeChangedEvent.Broadcast();
+		{
+#if STATS
+			FString PerfMessage = FString::Printf(TEXT("UGameplayTagsManager::ConstructGameplayTagTree: GameplayTagTreeChangedEvent.Broadcast"));
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+#endif
+			GameplayTagTreeChangedEvent.Broadcast();
+		}
 	}
 }
 

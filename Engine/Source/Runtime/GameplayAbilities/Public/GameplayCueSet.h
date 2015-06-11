@@ -69,10 +69,9 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	/** Maps GameplayCue Tag to index into above GameplayCues array. */
 	TMap<FGameplayTag, int32> GameplayCueDataMap;
 
+	static FGameplayTag	BaseGameplayCueTag();
+
 protected:
 	virtual bool HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
-	virtual void BuildAccelerationMap_Internal();
-	
-	static FGameplayTag	BaseGameplayCueTag();
-	
+	virtual void BuildAccelerationMap_Internal();	
 };
