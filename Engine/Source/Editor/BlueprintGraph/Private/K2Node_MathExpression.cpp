@@ -9,6 +9,7 @@
 #include "UnrealMathUtility.h"
 #include "BlueprintEditorUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "DiffResults.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
