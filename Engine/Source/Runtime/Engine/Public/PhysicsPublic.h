@@ -430,6 +430,9 @@ public:
 	/** Waits for all physics scenes to complete */
 	ENGINE_API void WaitPhysScenes();
 
+	/** Kill the visual debugger */
+	ENGINE_API void KillVisualDebugger();
+
 	/** Waits for cloth scene to complete */
 	ENGINE_API void WaitClothScene();
 

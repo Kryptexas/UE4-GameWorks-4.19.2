@@ -665,6 +665,14 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 #endif
 }
 
+void FPhysScene::KillVisualDebugger()
+{
+	if (GPhysXSDK)
+	{
+		GPhysXSDK->getPvdConnectionManager()->disconnect();
+	}
+}
+
 void FPhysScene::WaitPhysScenes()
 {
 	FGraphEventArray ThingsToComplete;

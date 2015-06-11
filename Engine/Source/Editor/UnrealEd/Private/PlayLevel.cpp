@@ -531,6 +531,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	if (PhysScene)
 	{
 		PhysScene->WaitPhysScenes();
+		PhysScene->KillVisualDebugger();
 	}
 
 	// Clean up the temporary play level.
