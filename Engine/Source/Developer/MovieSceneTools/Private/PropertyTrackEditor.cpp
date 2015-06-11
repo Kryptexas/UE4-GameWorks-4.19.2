@@ -278,9 +278,9 @@ public:
 class FBytePropertySection : public FPropertySection
 {
 public:
-	FBytePropertySection(UMovieSceneSection& InSectionObject, FName SectionName, UEnum* Enum)
-		: FPropertySection(InSectionObject, SectionName)
-		, Enum(Enum) {}
+	FBytePropertySection(UMovieSceneSection& InSectionObject, FName InSectionName, UEnum* InEnum)
+		: FPropertySection(InSectionObject, InSectionName)
+		, Enum(InEnum) {}
 
 	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override
 	{

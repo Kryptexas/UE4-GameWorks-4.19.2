@@ -760,7 +760,7 @@ void GetBindableObjects(UWidget* RootWidget, TArray<FObjectAndDisplayName>& Bind
 	}
 }
 
-TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TSharedRef<ISequencer> Sequencer)
+TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TSharedRef<ISequencer> InSequencer)
 {
 	TArray<FObjectAndDisplayName> BindableObjects;
 	GetBindableObjects(GetPreview()->GetRootWidget(), BindableObjects);
@@ -769,7 +769,7 @@ TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TShared
 	FMenuBuilder AddMenuBuilder(true, NULL);
 	for (FObjectAndDisplayName& BindableObject : BindableObjects)
 	{
-		FGuid BoundObjectGuid = SequencerObjectBindingManager->FindGuidForObject(*Sequencer->GetFocusedMovieScene(), *BindableObject.Object);
+		FGuid BoundObjectGuid = SequencerObjectBindingManager->FindGuidForObject(*InSequencer->GetFocusedMovieScene(), *BindableObject.Object);
 		if (BoundObjectGuid.IsValid() == false)
 		{
 			FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));

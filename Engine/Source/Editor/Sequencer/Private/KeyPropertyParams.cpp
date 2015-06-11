@@ -16,7 +16,7 @@ void PropertyHandleToPropertyPath(const UClass* OwnerClass, const IPropertyHandl
 
 FCanKeyPropertyParams::FCanKeyPropertyParams()
 {
-	UClass* ObjectClass = nullptr;
+	ObjectClass = nullptr;
 }
 
 FCanKeyPropertyParams::FCanKeyPropertyParams(UClass* InObjectClass, TArray<UProperty*> InPropertyPath)

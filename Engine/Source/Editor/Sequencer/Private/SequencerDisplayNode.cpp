@@ -345,12 +345,12 @@ bool FSectionKeyAreaNode::GetShotFilteredVisibilityToCache() const
 TSharedRef<SWidget> FSectionKeyAreaNode::GenerateEditWidgetForOutliner()
 {
 	// @todo - Sequencer - Support multiple sections/key areas?
-	TArray<TSharedRef<IKeyArea>> KeyAreas = GetAllKeyAreas();
-	if (KeyAreas.Num() > 0)
+	TArray<TSharedRef<IKeyArea>> AllKeyAreas = GetAllKeyAreas();
+	if (AllKeyAreas.Num() > 0)
 	{
-		if (KeyAreas[0]->CanCreateKeyEditor())
+		if (AllKeyAreas[0]->CanCreateKeyEditor())
 		{
-			return KeyAreas[0]->CreateKeyEditor(&GetSequencer());
+			return AllKeyAreas[0]->CreateKeyEditor(&GetSequencer());
 		}
 	}
 	return FSequencerDisplayNode::GenerateEditWidgetForOutliner();
