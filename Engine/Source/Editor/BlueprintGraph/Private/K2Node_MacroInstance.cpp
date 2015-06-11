@@ -471,6 +471,15 @@ bool UK2Node_MacroInstance::HasExternalDependencies(TArray<class UStruct*>* Opti
 		{
 			OptionalOutput->AddUnique(OtherClass);
 		}
+
+		for (UEdGraphNode* Node : GetMacroGraph()->Nodes)
+		{
+			UK2Node* K2Node = Cast<UK2Node>(Node);
+			if (K2Node)
+			{
+				K2Node->HasExternalDependencies(OptionalOutput);
+			}
+		}
 	}
 	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
 	return bSuperResult || bResult;
