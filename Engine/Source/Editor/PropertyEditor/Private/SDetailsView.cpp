@@ -387,6 +387,11 @@ bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > 
 			}
 		}
 	}
+	
+	if (!bShouldSetObjects && AssetSelectionUtils::IsAnySurfaceSelected(nullptr))
+	{
+		bShouldSetObjects = true;
+	}
 
 	return bShouldSetObjects;
 }

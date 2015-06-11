@@ -317,7 +317,7 @@ namespace AssetSelectionUtils
 
 	int32 GetNumSelectedSurfaces( UWorld* InWorld )
 	{
-		int32 NumSurfs = 0;
+		int32 NumSelectedSurfs = 0;
 		UWorld* World = InWorld;
 		if( !World )
 		{
@@ -325,19 +325,61 @@ namespace AssetSelectionUtils
 		}
 		if( World )
 		{
-			// Count the number of selected surfaces
-			for( int32 Surface=0; Surface<World->GetModel()->Surfs.Num(); ++Surface )
+			const int32 NumLevels = World->GetNumLevels();
+			for (int32 LevelIndex = 0; LevelIndex < NumLevels; LevelIndex++)
 			{
-				FBspSurf *Poly = &World->GetModel()->Surfs[Surface];
+				ULevel* Level = World->GetLevel(LevelIndex);
+				UModel* Model = Level->Model;
+				check(Model);
+				const int32 NumSurfaces = Model->Surfs.Num();
 
-				if( Poly->PolyFlags & PF_Selected )
+				// Count the number of selected surfaces
+				for (int32 Surface = 0; Surface < NumSurfaces; ++Surface)
 				{
-					++NumSurfs;
+					FBspSurf *Poly = &Model->Surfs[Surface];
+
+					if (Poly->PolyFlags & PF_Selected)
+					{
+						++NumSelectedSurfs;
+					}
 				}
 			}
 		}
 
-		return NumSurfs;
+		return NumSelectedSurfs;
+	}
+
+	bool IsAnySurfaceSelected( UWorld* InWorld )
+	{
+		UWorld* World = InWorld;
+		if (!World)
+		{
+			World = GWorld;	// Fallback to GWorld
+		}
+		if (World)
+		{
+			const int32 NumLevels = World->GetNumLevels();
+			for (int32 LevelIndex = 0; LevelIndex < NumLevels; LevelIndex++)
+			{
+				ULevel* Level = World->GetLevel(LevelIndex);
+				UModel* Model = Level->Model;
+				check(Model);
+				const int32 NumSurfaces = Model->Surfs.Num();
+
+				// Count the number of selected surfaces
+				for (int32 Surface = 0; Surface < NumSurfaces; ++Surface)
+				{
+					FBspSurf *Poly = &Model->Surfs[Surface];
+
+					if (Poly->PolyFlags & PF_Selected)
+					{
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 
 	bool IsBuilderBrushSelected()

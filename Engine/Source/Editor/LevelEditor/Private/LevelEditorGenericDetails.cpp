@@ -23,7 +23,7 @@ TSharedRef<IDetailCustomization> FLevelEditorGenericDetails::MakeInstance()
 void FLevelEditorGenericDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	FSelectedActorInfo SelectionInfo = AssetSelectionUtils::GetSelectedActorInfo();	
-	if( AssetSelectionUtils::GetNumSelectedSurfaces( SelectionInfo.SharedWorld ) > 0 )
+	if( AssetSelectionUtils::IsAnySurfaceSelected( SelectionInfo.SharedWorld ) )
 	{
 		AddSurfaceDetails( DetailLayout );
 	}
