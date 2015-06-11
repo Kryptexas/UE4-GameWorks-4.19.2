@@ -24,6 +24,7 @@ UPawnSensingComponent::UPawnSensingComponent(const FObjectInitializer& ObjectIni
 
 	PrimaryComponentTick.bCanEverTick = false;
 	bWantsInitializeComponent = true;
+	bAutoActivate = false;
 
 	bEnableSensingUpdates = true;
 }

@@ -4692,6 +4692,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	: Super(ObjectInitializer)
 	, AnimUpdateRateParams(NULL)
 {
+	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;	
 	WireframeColor = FColor(221, 221, 28, 255);

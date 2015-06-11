@@ -25,6 +25,7 @@ UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectI
 	bLoopExecution = false;
 	bWaitingForAbortingTasks = false;
 	bRequestedFlowUpdate = false;
+	bAutoActivate = true;
 	bWantsInitializeComponent = true; 
 	bIsRunning = false;
 	bIsPaused = false;

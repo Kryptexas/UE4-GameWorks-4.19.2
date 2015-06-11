@@ -15,6 +15,7 @@ USpringArmComponent::USpringArmComponent(const FObjectInitializer& ObjectInitial
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	
+	bAutoActivate = true;
 	bTickInEditor = true;
 	bUsePawnControlRotation = false;
 	bDoCollisionTest = true;

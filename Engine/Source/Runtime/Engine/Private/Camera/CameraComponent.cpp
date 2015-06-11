@@ -36,6 +36,7 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	PostProcessBlendWeight = 1.0f;
 	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
 	bUsePawnControlRotation = false;
+	bAutoActivate = true;
 
 	// Init deprecated var, for old code that may refer to it.
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);

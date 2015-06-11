@@ -35,6 +35,7 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
+	bAutoActivate = false;
 	bTickInEditor=true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 

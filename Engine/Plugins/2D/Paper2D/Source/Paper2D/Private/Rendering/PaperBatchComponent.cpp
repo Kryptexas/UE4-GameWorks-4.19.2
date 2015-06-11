@@ -12,6 +12,7 @@ UPaperBatchComponent::UPaperBatchComponent(const FObjectInitializer& ObjectIniti
 {
 	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	bAutoActivate = true;
 	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	PrimaryComponentTick.bCanEverTick = true;
 }
