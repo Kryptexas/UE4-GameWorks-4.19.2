@@ -13,6 +13,7 @@
 #include "IAssetRegistry.h"
 #include "ComponentAssetBroker.h"
 #include "AssetSelection.h"
+#include "PackageHelperFunctions.h"
 
 //Materials
 #include "AssetEditorManager.h"
@@ -1030,9 +1031,24 @@ namespace EditorBuildPromotionTestUtils
 		// Save all packages that were found
 		if (Packages.Num())
 		{
-			const bool bCheckDirty = false;
-			const bool bPromptToSave = false;
-			FEditorFileUtils::PromptForCheckoutAndSave(Packages, bCheckDirty, bPromptToSave);
+			if (FApp::IsUnattended())
+			{
+				// When unattended, prompt for checkout and save does not work.
+				// Save the packages directly instead
+				for (UPackage* Package : Packages)
+				{
+					const bool bIsMapPackage = UWorld::FindWorldInPackage(Package) != nullptr;
+					const FString& FileExtension = bIsMapPackage ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+					const FString Filename = FPackageName::LongPackageNameToFilename(Package->GetName(), FileExtension);
+					SavePackageHelper(Package, Filename);
+				}
+			}
+			else
+			{
+				const bool bCheckDirty = false;
+				const bool bPromptToSave = false;
+				FEditorFileUtils::PromptForCheckoutAndSave(Packages, bCheckDirty, bPromptToSave);
+			}
 		}
 	}
 
