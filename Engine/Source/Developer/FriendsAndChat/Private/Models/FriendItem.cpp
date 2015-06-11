@@ -111,19 +111,6 @@ const FString FFriendItem::GetClientName() const
 	return Result;
 }
 
-const TSharedPtr<const FUniqueNetId> FFriendItem::GetSessionId() const
-{
-	if (OnlineFriend.IsValid())
-	{
-		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
-		if (OnlinePresence.SessionId.IsValid())
-		{
-			return OnlinePresence.SessionId;
-		}
-	}
-	return nullptr;
-}
-
 const bool FFriendItem::IsOnline() const
 {
 	if(OnlineFriend.IsValid())
@@ -148,9 +135,20 @@ bool FFriendItem::IsGameJoinable() const
 	{
 		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
 		const bool bIsOnline = FriendPresence.Status.State != EOnlinePresenceState::Offline;
-		bool bIsJoinable = FriendPresence.bIsJoinable && !FriendsAndChatManager.Pin()->IsFriendInSameSession(AsShared());
-
-		return bIsOnline && bIsJoinable;
+		if (bIsOnline)
+		{
+			const bool bIsGameJoinable = FriendPresence.bIsJoinable && !FriendsAndChatManager.Pin()->IsFriendInSameSession(AsShared());
+			if (bIsGameJoinable)
+			{
+				return true;
+			}
+			//@todo samz1 - determine if party is joinable
+			const bool bIsPartyJoinable = GetPartyJoinInfo().IsValid() && !FriendsAndChatManager.Pin()->IsFriendInSameParty(AsShared());
+			if (bIsPartyJoinable)
+			{
+				return true;
+			}
+		}
 	}
 	return false;
 }
@@ -172,6 +170,12 @@ TSharedPtr<const FUniqueNetId> FFriendItem::GetGameSessionId() const
 		}
 	}
 	return nullptr;
+}
+
+TSharedPtr<IOnlinePartyJoinInfo> FFriendItem::GetPartyJoinInfo() const
+{
+	// obtain party info from presence
+	return FriendsAndChatManager.Pin()->GetPartyJoinInfo(AsShared());
 }
 
 const TSharedRef<const FUniqueNetId> FFriendItem::GetUniqueID() const

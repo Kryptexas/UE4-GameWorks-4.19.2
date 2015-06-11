@@ -44,7 +44,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconHostObject : public AActor
 	 * @param NewClientActor new client beacon actor
 	 * @param ClientConnection new connection established
 	 */
-	virtual void ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection);
+	virtual void OnClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection);
 
 	/**
 	 * Disconnect a given client from the host

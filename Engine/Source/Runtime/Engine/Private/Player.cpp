@@ -30,6 +30,9 @@ UPlayer::UPlayer(const FObjectInitializer& ObjectInitializer)
 
 FString UPlayer::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 {
+	UNetConnection* NetConn = Cast<UNetConnection>(this);
+	bool bIsBeacon = NetConn && NetConn->OwningActor && !PlayerController;
+
 	UConsole* ViewportConsole = (GEngine->GameViewport != nullptr) ? GEngine->GameViewport->ViewportConsole : nullptr;
 	FConsoleOutputDevice StrOut(ViewportConsole);
 
@@ -45,7 +48,7 @@ FString UPlayer::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 	while (FParse::Line(&Command, Line, CmdLen + 1))	// The FParse::Line function expects the full array size, including the NULL character.
 	{
 		// if dissociated with the PC, stop processing commands
-		if (PlayerController)
+		if (bIsBeacon || PlayerController)
 		{
 			if (!Exec(GetWorld(), Line, StrOut))
 			{

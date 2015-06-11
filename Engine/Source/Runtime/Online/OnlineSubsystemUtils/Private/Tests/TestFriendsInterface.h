@@ -45,6 +45,8 @@
 	/** true to query for recent players */
 	bool bQueryRecentPlayers;
 
+	FString RecentPlayersNamespace;
+
 	/** Hidden on purpose */
 	FTestFriendsInterface()
 		: SubsystemName()
@@ -78,7 +80,7 @@
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 * @param Error string representing the error condition
 	 */
-	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr);
+	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, const FString& Namespace, bool bWasSuccessful, const FString& ErrorStr);
 
 	/**
 	 * Delegate used when an invite accept request has completed
@@ -139,6 +141,7 @@
 		, bDeleteFriends(true)
 		, bDeleteFriendsList(false)
 		, bQueryRecentPlayers(true)
+		, RecentPlayersNamespace(TEXT("ut"))
 	{
 	}
 

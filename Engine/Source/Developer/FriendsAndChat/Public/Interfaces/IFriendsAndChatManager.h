@@ -157,6 +157,11 @@ public:
 	 */
 	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) = 0;
 
+	/**
+	 * Add a namespace to use when querying for recent players
+	 */
+	virtual void AddRecentPlayerNamespace(const FString& Namespace) = 0;
+
 	virtual void ClearApplicationViewModels() = 0;
 
 	DECLARE_EVENT_OneParam(IFriendsAndChatManager, FOnFriendsNotificationEvent, const bool /*Show or Clear */)
@@ -170,6 +175,9 @@ public:
 
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FUniqueNetId& /*SessionId*/)
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
+
+	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FOnFriendsJoinPartyEvent, const FUniqueNetId& /*SenderId*/, const TSharedRef<class IOnlinePartyJoinInfo>& /*PartyJoinInfo*/)
+	virtual FOnFriendsJoinPartyEvent& OnFriendsJoinParty() = 0;
 
 	DECLARE_EVENT_TwoParams(IFriendsAndChatManager, FChatMessageReceivedEvent, EChatMessageType::Type /*Type of message received*/, TSharedPtr<IFriendItem> /*Friend if chat type is whisper*/);
 	virtual FChatMessageReceivedEvent& OnChatMessageRecieved() = 0;

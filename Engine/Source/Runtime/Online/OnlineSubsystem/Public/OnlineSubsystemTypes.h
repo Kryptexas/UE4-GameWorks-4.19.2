@@ -1031,6 +1031,11 @@ struct FCloudFile
 class FOnlineUser
 {
 public:
+	/**
+	 * destructor
+	 */
+	virtual ~FOnlineUser() {}
+
 	/** 
 	 * @return Id associated with the user account provided by the online service during registration 
 	 */

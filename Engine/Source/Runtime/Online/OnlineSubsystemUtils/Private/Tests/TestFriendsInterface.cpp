@@ -59,7 +59,7 @@ void FTestFriendsInterface::StartNextTest()
 		if (OnlineSub->GetIdentityInterface().IsValid() &&
 			OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0).IsValid())
 		{
-			OnlineSub->GetFriendsInterface()->QueryRecentPlayers(*OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0));
+			OnlineSub->GetFriendsInterface()->QueryRecentPlayers(*OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0), RecentPlayersNamespace);
 		}
 		bQueryRecentPlayers = false;
 	}
@@ -164,7 +164,7 @@ void FTestFriendsInterface::OnReadFriendsComplete(int32 LocalPlayer, bool bWasSu
 	StartNextTest();
 }
 
-void FTestFriendsInterface::OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr)
+void FTestFriendsInterface::OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, const FString& Namespace, bool bWasSuccessful, const FString& ErrorStr)
 {
 	UE_LOG(LogOnline, Log,
 		TEXT("QueryRecentPlayers() for player (%s) was success=%d error=%s"), *UserId.ToDebugString(), bWasSuccessful, *ErrorStr);
@@ -173,7 +173,7 @@ void FTestFriendsInterface::OnQueryRecentPlayersComplete(const FUniqueNetId& Use
 	{
 		TArray< TSharedRef<FOnlineRecentPlayer> > Players;
 		// Grab the friends data so we can print it out
-		if (OnlineSub->GetFriendsInterface()->GetRecentPlayers(UserId, Players))
+		if (OnlineSub->GetFriendsInterface()->GetRecentPlayers(UserId, Namespace, Players))
 		{
 			UE_LOG(LogOnline, Log,
 				TEXT("GetRecentPlayers returned %d players"), Players.Num());

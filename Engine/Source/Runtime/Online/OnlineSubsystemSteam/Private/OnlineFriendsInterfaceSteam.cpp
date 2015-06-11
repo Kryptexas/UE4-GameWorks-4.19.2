@@ -175,16 +175,16 @@ bool FOnlineFriendsSteam::IsFriend(int32 LocalUserNum, const FUniqueNetId& Frien
 	return bIsFriend;
 }
 
-bool FOnlineFriendsSteam::QueryRecentPlayers(const FUniqueNetId& UserId)
+bool FOnlineFriendsSteam::QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsSteam::QueryRecentPlayers()"));
 
-	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, Namespace, false, TEXT("not implemented"));
 
 	return false;
 }
 
-bool FOnlineFriendsSteam::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+bool FOnlineFriendsSteam::GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
 {
 	return false;
 }

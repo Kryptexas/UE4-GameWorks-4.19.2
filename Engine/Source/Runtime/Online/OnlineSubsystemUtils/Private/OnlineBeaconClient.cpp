@@ -11,7 +11,8 @@
 AOnlineBeaconClient::AOnlineBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	BeaconOwner(nullptr),
-	BeaconConnection(nullptr)
+	BeaconConnection(nullptr),
+	ConnectionState(EBeaconConnectionState::Invalid)
 {
 	NetDriverName = FName(TEXT("BeaconDriverClient"));
 	bOnlyRelevantToOwner = true;
@@ -37,6 +38,16 @@ class UNetConnection* AOnlineBeaconClient::GetNetConnection() const
 	return BeaconConnection;
 }
 
+EBeaconConnectionState AOnlineBeaconClient::GetConnectionState() const
+{
+	return ConnectionState;
+}
+
+void  AOnlineBeaconClient::SetConnectionState(EBeaconConnectionState NewConnectionState)
+{
+	ConnectionState = NewConnectionState;
+}
+
 bool AOnlineBeaconClient::InitClient(FURL& URL)
 {
 	bool bSuccess = false;
@@ -48,6 +59,8 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 			FString Error;
 			if (NetDriver->InitConnect(this, URL, Error))
 			{
+				SetConnectionState(EBeaconConnectionState::Pending);
+
 				NetDriver->SetWorld(GetWorld());
 				NetDriver->Notify = this;
 				NetDriver->InitialConnectTimeout = BeaconConnectionInitialTimeout;
@@ -68,7 +81,8 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 			else
 			{
 				// error initializing the network stack...
-				UE_LOG(LogNet, Log, TEXT("AOnlineBeaconClient::InitClient failed"));
+				UE_LOG(LogBeacon, Log, TEXT("AOnlineBeaconClient::InitClient failed"));
+				SetConnectionState(EBeaconConnectionState::Invalid);
 				OnFailure();
 			}
 		}
@@ -80,12 +94,15 @@ bool AOnlineBeaconClient::InitClient(FURL& URL)
 void AOnlineBeaconClient::OnFailure()
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Client beacon (%s) connection failure, handling connection timeout."), *GetName());
+	SetConnectionState(EBeaconConnectionState::Invalid);
 	HostConnectionFailure.ExecuteIfBound();
 	Super::OnFailure();
 }
 
 void AOnlineBeaconClient::ClientOnConnected_Implementation()
 {
+	SetConnectionState(EBeaconConnectionState::Open);
+
 	Role = ROLE_Authority;
 	SetReplicates(true);
 	SetAutonomousProxy(true);
@@ -106,6 +123,8 @@ void AOnlineBeaconClient::ClientOnConnected_Implementation()
 
 void AOnlineBeaconClient::DestroyBeacon()
 {
+	SetConnectionState(EBeaconConnectionState::Closed);
+
 	UWorld* World = GetWorld();
 	if (World)
 	{
@@ -118,6 +137,8 @@ void AOnlineBeaconClient::DestroyBeacon()
 
 void AOnlineBeaconClient::OnNetCleanup(UNetConnection* Connection)
 {
+	SetConnectionState(EBeaconConnectionState::Closed);
+
 	AOnlineBeaconHostObject* BeaconHostObject = GetBeaconOwner();
 	if (BeaconHostObject)
 	{
@@ -133,7 +154,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 
 		// We are the client
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-		UE_LOG(LogNet, Log, TEXT("Beacon: Client received: %s"), FNetControlMessageInfo::GetName(MessageType));
+		UE_LOG(LogBeacon, Log, TEXT("Client received: %s"), FNetControlMessageInfo::GetName(MessageType));
 #endif
 		switch (MessageType)
 		{
@@ -151,7 +172,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				else
 				{
 					// Force close the session
-					UE_LOG(LogNet, Log, TEXT("Beacon close from invalid beacon type"));
+					UE_LOG(LogBeacon, Log, TEXT("Beacon close from invalid beacon type"));
 					OnFailure();
 				}
 				break;
@@ -175,7 +196,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				else
 				{
 					// Force close the session
-					UE_LOG(LogNet, Log, TEXT("Beacon close from invalid NetGUID"));
+					UE_LOG(LogBeacon, Log, TEXT("Beacon close from invalid NetGUID"));
 					OnFailure();
 				}
 				break;
@@ -200,7 +221,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 				}
 
 				// Force close the session
-				UE_LOG(LogNet, Log, TEXT("Beacon close from NMT_Failure %s"), *ErrorMsg);
+				UE_LOG(LogBeacon, Log, TEXT("Beacon close from NMT_Failure %s"), *ErrorMsg);
 				OnFailure();
 				break;
 			}
@@ -209,7 +230,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 		default:
 			{
 				// Force close the session
-				UE_LOG(LogNet, Log, TEXT("Beacon close from unexpected control message"));
+				UE_LOG(LogBeacon, Log, TEXT("Beacon close from unexpected control message"));
 				OnFailure();
 				break;
 			}

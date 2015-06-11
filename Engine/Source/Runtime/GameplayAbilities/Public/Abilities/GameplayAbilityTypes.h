@@ -308,11 +308,11 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 
 	// An optional ability-specific object to be passed though the event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	UObject* OptionalObject;
+	const UObject* OptionalObject;
 
 	// A second optional ability-specific object to be passed though the event
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)
-	UObject* OptionalObject2;
+	const UObject* OptionalObject2;
 
 	// Polymorphic context information
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayAbilityTriggerPayload)

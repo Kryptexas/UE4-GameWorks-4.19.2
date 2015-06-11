@@ -29,9 +29,9 @@ AOnlineBeaconClient* AOnlineBeaconHostObject::SpawnBeaconActor(UNetConnection* C
 	return nullptr;
 }
 
-void AOnlineBeaconHostObject::ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection)
+void AOnlineBeaconHostObject::OnClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection)
 {
-	UE_LOG(LogBeacon, Verbose, TEXT("ClientConnected %s from (%s)"),
+	UE_LOG(LogBeacon, Verbose, TEXT("OnClientConnected %s from (%s)"),
 		NewClientActor ? *NewClientActor->GetName() : TEXT("NULL"),
 		NewClientActor ? *NewClientActor->GetNetConnection()->LowLevelDescribe() : TEXT("NULL"));
 

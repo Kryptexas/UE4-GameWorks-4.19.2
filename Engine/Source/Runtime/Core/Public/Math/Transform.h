@@ -44,17 +44,17 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
-		checkf(!Scale3D.ContainsNaN(), TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
+		ensureOnceMsgf(!Scale3D.ContainsNaN(), TEXT("FTransform Scale3D contains NaN: %s"), *Scale3D.ToString());
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Translate() const
 	{
-		checkf(!Translation.ContainsNaN(), TEXT("FTransform Translation contains NaN: %s"), *Translation.ToString());
+		ensureOnceMsgf(!Translation.ContainsNaN(), TEXT("FTransform Translation contains NaN: %s"), *Translation.ToString());
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_Rotate() const
 	{
-		checkf(!Rotation.ContainsNaN(), TEXT("FTransform Rotation contains NaN: %s"), *Rotation.ToString());
+		ensureOnceMsgf(!Rotation.ContainsNaN(), TEXT("FTransform Rotation contains NaN: %s"), *Rotation.ToString());
 	}
 
 	FORCEINLINE void DiagnosticCheckNaN_All() const

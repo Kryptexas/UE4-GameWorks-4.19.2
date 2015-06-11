@@ -7,43 +7,132 @@
 
 APartyBeaconClient::APartyBeaconClient(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
+	RequestType(EClientRequestType::ExistingSessionReservation),
 	bPendingReservationSent(false),
 	bCancelReservation(false)
 {
 }
 
-void APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers)
+bool APartyBeaconClient::RequestReservation(const FString& ConnectInfoStr, const FString& InSessionId, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers)
 {
 	bool bSuccess = false;
-	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(GetWorld());
-	if (OnlineSub)
+
+	FURL ConnectURL(NULL, *ConnectInfoStr, TRAVEL_Absolute);
+	if (InitClient(ConnectURL))
 	{
-		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
-		if (SessionInt.IsValid())
-		{
-			FString ConnectInfo;
-			if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
-			{
-				FURL ConnectURL(NULL, *ConnectInfo, TRAVEL_Absolute);
-				if (InitClient(ConnectURL) && DesiredHost.Session.SessionInfo.IsValid())
-				{
-					DestSessionId = DesiredHost.Session.SessionInfo->GetSessionId().ToString();
-					PendingReservation.PartyLeader = RequestingPartyLeader;
-					PendingReservation.PartyMembers = PartyMembers;
-					bPendingReservationSent = false;
-					bSuccess = true;
-				}
-				else
-				{
-					UE_LOG_ONLINE(Warning, TEXT("RequestReservation: Failure to init client beacon with %s."), *ConnectURL.ToString());
-				}
-			}
-		}
+		DestSessionId = InSessionId;
+		PendingReservation.PartyLeader = RequestingPartyLeader;
+		PendingReservation.PartyMembers = PartyMembers;
+		bPendingReservationSent = false;
+		bSuccess = true;
 	}
+	else
+	{
+		UE_LOG_ONLINE(Warning, TEXT("RequestReservation: Failure to init client beacon with %s."), *ConnectURL.ToString());
+	}
+
 	if (!bSuccess)
 	{
 		OnFailure();
 	}
+
+	return bSuccess;
+}
+
+bool APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers)
+{
+	bool bSuccess = false;
+
+	if (DesiredHost.IsValid())
+	{
+		UWorld* World = GetWorld();
+
+		IOnlineSubsystem* OnlineSub = Online::GetSubsystem(World);
+		if (OnlineSub)
+		{
+			IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+			if (SessionInt.IsValid())
+			{
+				FString ConnectInfo;
+				if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
+				{
+					FString SessionId = DesiredHost.Session.SessionInfo->GetSessionId().ToString();
+					return RequestReservation(ConnectInfo, SessionId, RequestingPartyLeader, PartyMembers);
+				}
+			}
+		}
+	}
+
+	if (!bSuccess)
+	{
+		OnFailure();
+	}
+
+	return bSuccess;
+}
+
+bool APartyBeaconClient::RequestReservationUpdate(const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PlayersToAdd)
+{
+	bool bWasStarted = false;
+
+	EBeaconConnectionState ConnectionState = GetConnectionState();
+	if (ensure(ConnectionState == EBeaconConnectionState::Open))
+	{
+		RequestType = EClientRequestType::ReservationUpdate;
+		PendingReservation.PartyLeader = RequestingPartyLeader;
+		PendingReservation.PartyMembers = PlayersToAdd;
+		ServerUpdateReservationRequest(DestSessionId, PendingReservation);
+		bPendingReservationSent = true;
+		bWasStarted = true;
+	}
+
+	return bWasStarted;
+}
+
+bool APartyBeaconClient::RequestReservationUpdate(const FString& ConnectInfoStr, const FString& InSessionId, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PlayersToAdd)
+{
+	bool bWasStarted = false;
+
+	EBeaconConnectionState ConnectionState = GetConnectionState();
+	if (ConnectionState != EBeaconConnectionState::Open)
+	{
+		// create a new pending reservation for these players in the same way as a new reservation request
+		bWasStarted = RequestReservation(ConnectInfoStr, InSessionId, RequestingPartyLeader, PlayersToAdd);
+		if (bWasStarted)
+		{
+			// Treat the new reservation as an update to an existing reservation on the host
+			RequestType = EClientRequestType::ReservationUpdate;
+		}
+	}
+	else if (ConnectionState == EBeaconConnectionState::Open)
+	{
+		RequestReservationUpdate(RequestingPartyLeader, PlayersToAdd);
+	}
+
+	return bWasStarted;
+}
+
+bool APartyBeaconClient::RequestReservationUpdate(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PlayersToAdd)
+{
+	bool bWasStarted = false;
+
+	EBeaconConnectionState ConnectionState = GetConnectionState();
+	if (ConnectionState != EBeaconConnectionState::Open)
+	{
+		// create a new pending reservation for these players in the same way as a new reservation request
+		bWasStarted = RequestReservation(DesiredHost, RequestingPartyLeader, PlayersToAdd);
+		if (bWasStarted)
+		{
+			// Treat the new reservation as an update to an existing reservation on the host
+			RequestType = EClientRequestType::ReservationUpdate;
+		}
+	}
+	else if (ConnectionState == EBeaconConnectionState::Open)
+	{
+		RequestReservationUpdate(RequestingPartyLeader, PlayersToAdd);
+	}
+
+	return bWasStarted;
 }
 
 void APartyBeaconClient::CancelReservation()
@@ -72,23 +161,36 @@ void APartyBeaconClient::OnConnected()
 {
 	if (!bCancelReservation)
 	{
-		UE_LOG(LogBeacon, Verbose, TEXT("Party beacon connection established, sending join reservation request."));
-		ServerReservationRequest(DestSessionId, PendingReservation);
-		bPendingReservationSent = true;
+		if (RequestType == EClientRequestType::ExistingSessionReservation)
+		{
+			UE_LOG(LogBeacon, Verbose, TEXT("Party beacon connection established, sending join reservation request."));
+			ServerReservationRequest(DestSessionId, PendingReservation);
+			bPendingReservationSent = true;
+		}
+		else if (RequestType == EClientRequestType::ReservationUpdate)
+		{
+			UE_LOG(LogBeacon, Verbose, TEXT("Party beacon connection established, sending reservation update request."));
+			ServerUpdateReservationRequest(DestSessionId, PendingReservation);
+			bPendingReservationSent = true;
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("Failed to handle reservation request type %s"), ToString(RequestType));
+		}
 	}
 	else
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("Reservation request previously canceled, aborting reservation request."));
-		ReservationRequestComplete.ExecuteIfBound( EPartyReservationResult::ReservationRequestCanceled );
+		ReservationRequestComplete.ExecuteIfBound(EPartyReservationResult::ReservationRequestCanceled);
 	}
 }
 
-bool APartyBeaconClient::ServerReservationRequest_Validate(const FString& SessionId, FPartyReservation Reservation)
+bool APartyBeaconClient::ServerReservationRequest_Validate(const FString& SessionId, const FPartyReservation& Reservation)
 {
 	return !SessionId.IsEmpty() && Reservation.PartyLeader.IsValid() && Reservation.PartyMembers.Num() > 0;
 }
 
-void APartyBeaconClient::ServerReservationRequest_Implementation(const FString& SessionId, FPartyReservation Reservation)
+void APartyBeaconClient::ServerReservationRequest_Implementation(const FString& SessionId, const FPartyReservation& Reservation)
 {
 	APartyBeaconHost* BeaconHost = Cast<APartyBeaconHost>(GetBeaconOwner());
 	if (BeaconHost)
@@ -98,12 +200,27 @@ void APartyBeaconClient::ServerReservationRequest_Implementation(const FString& 
 	}
 }
 
-bool APartyBeaconClient::ServerCancelReservationRequest_Validate(FUniqueNetIdRepl PartyLeader)
+bool APartyBeaconClient::ServerUpdateReservationRequest_Validate(const FString& SessionId, const FPartyReservation& ReservationUpdate)
+{
+	return !SessionId.IsEmpty() && ReservationUpdate.PartyLeader.IsValid() && ReservationUpdate.PartyMembers.Num() > 0;
+}
+
+void APartyBeaconClient::ServerUpdateReservationRequest_Implementation(const FString& SessionId, const FPartyReservation& ReservationUpdate)
+{
+	APartyBeaconHost* BeaconHost = Cast<APartyBeaconHost>(GetBeaconOwner());
+	if (BeaconHost)
+	{
+		PendingReservation = ReservationUpdate;
+		BeaconHost->ProcessReservationUpdateRequest(this, SessionId, ReservationUpdate);
+	}
+}
+
+bool APartyBeaconClient::ServerCancelReservationRequest_Validate(const FUniqueNetIdRepl& PartyLeader)
 {
 	return true;
 }
 
-void APartyBeaconClient::ServerCancelReservationRequest_Implementation(FUniqueNetIdRepl PartyLeader)
+void APartyBeaconClient::ServerCancelReservationRequest_Implementation(const FUniqueNetIdRepl& PartyLeader)
 {
 	APartyBeaconHost* BeaconHost = Cast<APartyBeaconHost>(GetBeaconOwner());
 	if (BeaconHost)

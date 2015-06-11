@@ -178,6 +178,7 @@ struct ENGINE_API FSimpleLinkNavModifier : public FNavigationModifier
 	void AppendSegmentLinks(const TArray<FNavigationSegmentLink>& InLinks);
 	void AddLink(const FNavigationLink& InLink);
 	void AddSegmentLink(const FNavigationSegmentLink& InLink);
+	void UpdateFlags();
 
 protected:
 	/** set to true if any of links stored is a "fall down" link, i.e. requires vertical snapping to geometry */

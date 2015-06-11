@@ -620,8 +620,6 @@ void UNetDriver::Shutdown()
 				}
 			}
 
-			UE_LOG(LogNet, Display, TEXT("JMDEBUG Shutdown:  CleanUp client connection %d"), ClientIndex);
-
 			// Calls Close() internally and removes from ClientConnections
 			ClientConnections[ClientIndex]->CleanUp();
 		}
@@ -656,13 +654,7 @@ void UNetDriver::TickDispatch( float DeltaTime )
 		{
 			if( ClientConnections[i]->State==USOCK_Closed )
 			{
-				UE_LOG(LogNet, Display, TEXT("JMDEBUG TickDispatch:   CleanUp client connection %d"), i);
 				ClientConnections[i]->CleanUp();
-
-				if (i >= ClientConnections.Num())
-				{
-					UE_LOG(LogNet, Display, TEXT("JMDEBUG TickDispatch:   ClientConnection array mismatch"), i);
-				}
 			}
 		}
 	}

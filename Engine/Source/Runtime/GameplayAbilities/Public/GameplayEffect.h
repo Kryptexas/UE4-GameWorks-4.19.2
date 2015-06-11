@@ -452,7 +452,7 @@ struct FGameplayEffectCue
 	}
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FInheritedTagContainer
 {
 	GENERATED_USTRUCT_BODY()

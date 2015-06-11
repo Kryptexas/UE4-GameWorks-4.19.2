@@ -109,10 +109,11 @@ typedef FOnDeleteFriendComplete::FDelegate FOnDeleteFriendCompleteDelegate;
  * Delegate used when the query for recent players has completed
  *
  * @param UserId the id of the user that made the request
+ * @param Namespace the recent players namespace
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 typedef FOnQueryRecentPlayersComplete::FDelegate FOnQueryRecentPlayersCompleteDelegate;
 
 /**
@@ -323,29 +324,32 @@ public:
 	 * Query for recent players of the current user
 	 *
 	 * @param UserId user to query recent players for
+	 * @param Namespace the recent players namespace to retrieve
 	 *
 	 * @return true if query was started
 	 */
-	virtual bool QueryRecentPlayers(const FUniqueNetId& UserId) = 0;
+	virtual bool QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace) = 0;
 
 	/**
 	 * Delegate used when the query for recent players has completed
 	 *
 	 * @param UserId the id of the user that made the request
+	 * @param Namespace the recent players namespace 
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 * @param Error string representing the error condition
 	 */
-	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, const FString& /*Namespace*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
 
 	/**
 	 * Copies the cached list of recent players for a given user
 	 *
 	 * @param UserId user to retrieve recent players for
+	 * @param Namespace the recent players namespace to retrieve (if empty retrieve all namespaces)
 	 * @param OutRecentPlayers [out] array that receives the copied data
 	 *
 	 * @return true if recent players list was found for the given user
 	 */
-	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers) = 0;
+	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers) = 0;
 };
 
 typedef TSharedPtr<IOnlineFriends, ESPMode::ThreadSafe> IOnlineFriendsPtr;

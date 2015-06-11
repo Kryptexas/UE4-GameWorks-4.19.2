@@ -938,8 +938,9 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		// Don't load packages that are only compatible with an engine version newer than the current one.
 		if( !GEngineVersion.IsCompatibleWith(Summary.CompatibleWithEngineVersion) )
 		{
-			UE_LOG(LogLinker, Warning, TEXT("Asset '%s' has been saved with engine version newer than current and therefore can't be loaded. CurrEngineVersion: %s AssetEngineVersion: %s"), *Filename, *GEngineVersion.ToString(), *Summary.CompatibleWithEngineVersion.ToString() );
-			return LINKER_Failed;
+			UE_LOG(LogLinker, Warning, TEXT("Asset '%s' has been saved with engine version newer than current, The asset will be loaded but may be incompatible. CurrEngineVersion: %s AssetEngineVersion: %s"), *Filename, *GEngineVersion.ToString(), *Summary.CompatibleWithEngineVersion.ToString() );
+			// TEMP HACK: disable this for now on the fortnite branch because of the UnrealGameSync tool
+			// return LINKER_Failed;
 		}
 		else if( !FPlatformProperties::RequiresCookedData() && !Summary.SavedByEngineVersion.IsPromotedBuild() && GEngineVersion.IsPromotedBuild() )
 		{

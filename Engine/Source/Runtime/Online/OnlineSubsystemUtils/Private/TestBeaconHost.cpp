@@ -18,10 +18,10 @@ bool ATestBeaconHost::Init()
 	return true;
 }
 
-void ATestBeaconHost::ClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection)
+void ATestBeaconHost::OnClientConnected(AOnlineBeaconClient* NewClientActor, UNetConnection* ClientConnection)
 {
 #if !UE_BUILD_SHIPPING
-	Super::ClientConnected(NewClientActor, ClientConnection);
+	Super::OnClientConnected(NewClientActor, ClientConnection);
 
 	ATestBeaconClient* BeaconClient = Cast<ATestBeaconClient>(NewClientActor);
 	if (BeaconClient != NULL)

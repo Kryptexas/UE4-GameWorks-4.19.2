@@ -29,6 +29,9 @@ private:
 	/** Mapping of all currently loaded platform service subsystems to their name */
 	TMap<FName, IOnlineSubsystemPtr> OnlineSubsystems;
 
+	/** Have we warned already for a given online subsystem creation failure */
+	TMap<FName, bool> OnlineSubsystemFailureWarnings;
+
 	/**
 	 * Transform an online subsystem identifier into its Subsystem and Instance constituents
 	 *

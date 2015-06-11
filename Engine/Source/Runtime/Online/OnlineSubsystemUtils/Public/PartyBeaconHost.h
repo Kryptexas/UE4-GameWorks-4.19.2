@@ -194,11 +194,39 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	EPartyReservationResult::Type AddPartyReservation(const FPartyReservation& ReservationRequest);
 
 	/**
+	 * Updates an existing party reservation on the beacon
+	 * An existing reservation for this party leader must already exist
+	 * 
+	 * @param ReservationUpdateRequest reservation update information (doesn't need existing party members, simply a delta)
+	 *
+	 * @return update attempt result
+	 */
+	EPartyReservationResult::Type UpdatePartyReservation(const FPartyReservation& ReservationUpdateRequest);
+
+	/**
 	 * Attempts to remove a party reservation from the beacon
      *
      * @param PartyLeader reservation leader
 	 */
-	virtual void RemovePartyReservation(const FUniqueNetIdRepl& PartyLeader);
+	virtual EPartyReservationResult::Type RemovePartyReservation(const FUniqueNetIdRepl& PartyLeader);
+
+	/**
+	 * Register user auth ticket with the reservation system
+	 * Must have an existing reservation entry
+	 *
+	 * @param InPartyMemberId id of player logging in 
+	 * @param InAuthTicket auth ticket reported by the user
+	 */
+	void RegisterAuthTicket(const FUniqueNetIdRepl& InPartyMemberId, const FString& InAuthTicket);
+
+	/**
+	 * Update party leader for a given player with the reservation beacon
+	 * (needed when party leader leaves, reservation beacon is in a temp/bad state until someone updates this)
+	 *
+	 * @param InPartyMemberId party member making the update
+	 * @param NewPartyLeaderId id of new leader
+	 */
+	virtual void UpdatePartyLeader(const FUniqueNetIdRepl& InPartyMemberId, const FUniqueNetIdRepl& NewPartyLeaderId);
 
 	/**
 	 * Handle a reservation request received from an incoming client
@@ -208,6 +236,15 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconHost : public AOnlineBeaconHostObject
 	 * @param ReservationRequest payload of request
 	 */
 	virtual void ProcessReservationRequest(APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationRequest);
+
+	/**
+	 * Handle a reservation update request received from an incoming client
+	 *
+	 * @param Client client beacon making the request
+	 * @param SessionId id of the session that is being checked
+	 * @param ReservationRequest payload of the update request (existing reservation for party leader required)
+	 */
+	virtual void ProcessReservationUpdateRequest(APartyBeaconClient* Client, const FString& SessionId, const FPartyReservation& ReservationUpdateRequest);
 
 	/**
 	 * Handle a reservation cancellation request received from an incoming client

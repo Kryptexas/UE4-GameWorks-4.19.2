@@ -245,6 +245,10 @@ void UGameplayCueSet::BuildAccelerationMap_Internal()
 				break;
 			}
 			Parent = Parent.RequestDirectParent();
+			if (Parent.GetTagName() == NAME_None)
+			{
+				break;
+			}
 		}
 	}
 

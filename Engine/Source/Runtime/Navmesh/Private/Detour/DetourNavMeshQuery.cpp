@@ -219,10 +219,10 @@ dtNavMeshQuery::~dtNavMeshQuery()
 /// functions are used.
 ///
 /// This function can be used multiple times.
-dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes, const dtQuerySpecialLinkFilter* linkFilter)
+dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes, dtQuerySpecialLinkFilter* linkFilter)
 {
 	m_nav = nav;
-	m_linkFilter = linkFilter;
+	updateLinkFilter(linkFilter);
 
 	if (maxNodes > 0)
 	{
@@ -276,9 +276,13 @@ dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes, const dt
 	return DT_SUCCESS;
 }
 
-void dtNavMeshQuery::updateLinkFilter(const dtQuerySpecialLinkFilter* linkFilter)
+void dtNavMeshQuery::updateLinkFilter(dtQuerySpecialLinkFilter* linkFilter)
 {
 	m_linkFilter = linkFilter;
+	if (m_linkFilter)
+	{
+		m_linkFilter->initialize();
+	}
 }
 
 dtStatus dtNavMeshQuery::findRandomPoint(const dtQueryFilter* filter, float (*frand)(),

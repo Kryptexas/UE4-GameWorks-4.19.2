@@ -371,6 +371,13 @@ public:
 
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
+	/**
+	 * Get the world the connection belongs to
+	 *
+	 * @return  Returns the world of the net driver, or the owning actor on this connection
+	 */
+	ENGINE_API virtual UWorld* GetWorld() const override;
+
 	// End UObject interface.
 
 

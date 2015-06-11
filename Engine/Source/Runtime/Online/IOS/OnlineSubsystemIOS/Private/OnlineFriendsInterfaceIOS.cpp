@@ -271,16 +271,16 @@ bool FOnlineFriendsIOS::IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendI
 	return false;
 }
 
-bool FOnlineFriendsIOS::QueryRecentPlayers(const FUniqueNetId& UserId)
+bool FOnlineFriendsIOS::QueryRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsIOS::QueryRecentPlayers()"));
 
-	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, Namespace, false, TEXT("not implemented"));
 
 	return false;
 }
 
-bool FOnlineFriendsIOS::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+bool FOnlineFriendsIOS::GetRecentPlayers(const FUniqueNetId& UserId, const FString& Namespace, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
 {
 	return false;
 }

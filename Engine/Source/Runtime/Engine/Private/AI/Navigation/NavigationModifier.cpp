@@ -446,6 +446,21 @@ void FSimpleLinkNavModifier::AddSegmentLink(const FNavigationSegmentLink& InLink
 	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
 }
 
+void FSimpleLinkNavModifier::UpdateFlags()
+{
+	bHasMetaAreasPoint = false;
+	bHasMetaAreasSegment = false;
+	bHasFallDownLinks = false;
+
+	for (int32 Idx = 0; Idx < Links.Num(); Idx++)
+	{
+		bHasMetaAreasPoint |= Links[Idx].AreaClass->IsChildOf(UNavAreaMeta::StaticClass());
+		bHasFallDownLinks |= Links[Idx].MaxFallDownLength > 0.f;
+	}
+	
+	bHasMetaAreas = bHasMetaAreasSegment || bHasMetaAreasPoint;
+}
+
 
 //----------------------------------------------------------------------//
 // FCompositeNavMeshModifier

@@ -75,18 +75,18 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeacon : public AActor, public FNetworkNot
 	 *
 	 * @bPause should the beacon stop accepting requests
 	 */
-	void PauseReservationRequests(bool bPause)
+	void PauseBeaconRequests(bool bPause)
 	{
 		if (bPause)
 		{
-			UE_LOG(LogBeacon, Verbose, TEXT("Reservation Beacon Requests Paused."));
+			UE_LOG(LogBeacon, Verbose, TEXT("All Beacon Requests Paused."));
 			NetDriver->SetWorld(nullptr);
 			NetDriver->Notify = this;
 			BeaconState = EBeaconState::DenyRequests;
 		}
 		else
 		{
-			UE_LOG(LogBeacon, Verbose, TEXT("Reservation Beacon Requests Resumed."));
+			UE_LOG(LogBeacon, Verbose, TEXT("All Beacon Requests Resumed."));
 			NetDriver->SetWorld(GetWorld());
 			NetDriver->Notify = this;
 			BeaconState = EBeaconState::AllowRequests;

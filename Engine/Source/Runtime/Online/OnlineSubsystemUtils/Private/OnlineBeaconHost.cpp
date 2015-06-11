@@ -14,6 +14,7 @@ AOnlineBeaconHost::AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer
 void AOnlineBeaconHost::OnNetCleanup(UNetConnection* Connection)
 {
 	UE_LOG(LogBeacon, Error, TEXT("Cleaning up a beacon host!"));
+	ensure(0);
 }
 
 bool AOnlineBeaconHost::InitHost()
@@ -45,7 +46,7 @@ bool AOnlineBeaconHost::InitHost()
 			else
 			{
 				// error initializing the network stack...
-				UE_LOG(LogNet, Log, TEXT("AOnlineBeaconHost::InitHost failed"));
+				UE_LOG(LogBeacon, Log, TEXT("AOnlineBeaconHost::InitHost failed"));
 				OnFailure();
 			}
 		}
@@ -74,13 +75,13 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 		// We are the server.
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-		UE_LOG(LogNet, Verbose, TEXT("Beacon: Host received: %s"), FNetControlMessageInfo::GetName(MessageType));
+		UE_LOG(LogBeacon, Verbose, TEXT("Host received: %s"), FNetControlMessageInfo::GetName(MessageType));
 #endif
 		switch (MessageType)
 		{
 		case NMT_Hello:
 			{
-				UE_LOG(LogNet, Log, TEXT("Beacon Hello"));
+				UE_LOG(LogBeacon, Log, TEXT("Beacon Hello"));
 				uint8 IsLittleEndian;
 
 				uint32 RemoteNetworkVersion = 0;
@@ -90,6 +91,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 				if (!FNetworkVersion::IsNetworkCompatible(LocalNetworkVersion, RemoteNetworkVersion))
 				{
+					UE_LOG(LogBeacon, Log, TEXT("Client not network compatible %s"), *Connection->GetName());
 					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
 					bCloseConnection = true;
 				}
@@ -106,7 +108,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 				int32 Rate;
 				FNetControlMessage<NMT_Netspeed>::Receive(Bunch, Rate);
 				Connection->CurrentNetSpeed = FMath::Clamp(Rate, 1800, NetDriver->MaxClientRate);
-				UE_LOG(LogNet, Log, TEXT("Beacon: Client netspeed is %i"), Connection->CurrentNetSpeed);
+				UE_LOG(LogBeacon, Log, TEXT("Client netspeed is %i"), Connection->CurrentNetSpeed);
 				break;
 			}
 		case NMT_BeaconJoin:
@@ -114,7 +116,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 				FString ErrorMsg;
 				FString BeaconType;
 				FNetControlMessage<NMT_BeaconJoin>::Receive(Bunch, BeaconType);
-				UE_LOG(LogNet, Log, TEXT("Beacon Join %s"), *BeaconType);
+				UE_LOG(LogBeacon, Log, TEXT("Beacon Join %s"), *BeaconType);
 
 				if (Connection->ClientWorldPackageName == NAME_None)
 				{
@@ -133,6 +135,8 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 						if (NewClientActor && BeaconType == NewClientActor->GetBeaconType())
 						{
+							NewClientActor->SetConnectionState(EBeaconConnectionState::Pending);
+
 							FNetworkGUID NetGUID = Connection->Driver->GuidCache->AssignNewNetGUID_Server( NewClientActor );
 							NewClientActor->SetNetConnection(Connection);
 							Connection->OwningActor = NewClientActor;
@@ -160,7 +164,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 				if (!ErrorMsg.IsEmpty())
 				{
-					UE_LOG(LogNet, Log, TEXT("%s"), *ErrorMsg);
+					UE_LOG(LogBeacon, Log, TEXT("%s: %s"), *Connection->GetName(), *ErrorMsg);
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					bCloseConnection = true;
 				}
@@ -182,9 +186,10 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 						ClientActor->Role = ROLE_Authority;
 						ClientActor->SetReplicates(true);
 						ClientActor->SetAutonomousProxy(true);
+						ClientActor->SetConnectionState(EBeaconConnectionState::Open);
 						// Send an RPC to the client to open the actor channel and guarantee RPCs will work
 						ClientActor->ClientOnConnected();
-						UE_LOG(LogNet, Log, TEXT("Beacon Handshake complete!"));
+						UE_LOG(LogBeacon, Log, TEXT("Handshake complete for %s!"), *ClientActor->GetName());
 
 						OnBeaconConnectedDelegate->ExecuteIfBound(ClientActor, Connection);
 					}
@@ -202,7 +207,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 				if (!ErrorMsg.IsEmpty())
 				{
-					UE_LOG(LogNet, Log, TEXT("%s"), *ErrorMsg);
+					UE_LOG(LogBeacon, Log, TEXT("%s: %s"), *Connection->GetName(), *ErrorMsg);
 					FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 					bCloseConnection = true;
 				}
@@ -214,7 +219,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 		default:
 			{
 				FString ErrorMsg = NSLOCTEXT("NetworkErrors", "BeaconSpawnUnexpectedError", "Join failure, unexpected control message.").ToString();
-				UE_LOG(LogNet, Log, TEXT("%s"), *ErrorMsg);
+				UE_LOG(LogBeacon, Log, TEXT("%s: %s"), *Connection->GetName(), *ErrorMsg);
 				FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 				bCloseConnection = true;
 			}
@@ -223,12 +228,15 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 		if (bCloseConnection)
 		{		
+			UE_LOG(LogBeacon, Verbose, TEXT("Closing connection %s"), *Connection->GetName());
 			AOnlineBeaconClient* ClientActor = GetClientActor(Connection);
 			if (ClientActor)
 			{
+				UE_LOG(LogBeacon, Verbose, TEXT("- BeaconActor: %s %s"), *ClientActor->GetName(), *ClientActor->GetBeaconType());
 				AOnlineBeaconHostObject* BeaconHostObject = GetHost(ClientActor->GetBeaconType());
 				if (BeaconHostObject)
 				{
+					UE_LOG(LogBeacon, Verbose, TEXT("- HostObject: %s"), *BeaconHostObject->GetName());
 					BeaconHostObject->NotifyClientDisconnected(ClientActor);
 				}
 
@@ -237,6 +245,7 @@ void AOnlineBeaconHost::NotifyControlMessage(UNetConnection* Connection, uint8 M
 
 			Connection->FlushNet(true);
 			Connection->Close();
+			UE_LOG(LogBeacon, Verbose, TEXT("--------------------------------"));
 		}
 	}
 }
@@ -245,6 +254,8 @@ void AOnlineBeaconHost::DisconnectClient(AOnlineBeaconClient* ClientActor)
 {
 	if (ClientActor)
 	{
+		ClientActor->SetConnectionState(EBeaconConnectionState::Closed);
+
 		// Closing the connection will start the chain of events leading to the removal from lists and destruction of the actor
 		UNetConnection* Connection = ClientActor->GetNetConnection();
 		if (Connection)
@@ -287,7 +298,7 @@ void AOnlineBeaconHost::RegisterHost(AOnlineBeaconHostObject* NewHostObject)
 	{
 		NewHostObject->SetOwner(this);
 		OnBeaconSpawned(BeaconType).BindUObject(NewHostObject, &AOnlineBeaconHostObject::SpawnBeaconActor);
-		OnBeaconConnected(BeaconType).BindUObject(NewHostObject, &AOnlineBeaconHostObject::ClientConnected);
+		OnBeaconConnected(BeaconType).BindUObject(NewHostObject, &AOnlineBeaconHostObject::OnClientConnected);
 	}
 	else
 	{

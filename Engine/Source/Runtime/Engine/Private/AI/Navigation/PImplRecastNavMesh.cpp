@@ -228,9 +228,13 @@ uint16 FRecastQueryFilter::GetExcludeFlags() const
 bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 {
 	const INavLinkCustomInterface* CustomLink = NavSys ? NavSys->GetCustomLink(UserId) : NULL;
-	return (CustomLink != NULL) && CustomLink->IsLinkPathfindingAllowed(SearchOwner);
+	return (CustomLink != NULL) && CustomLink->IsLinkPathfindingAllowed(CachedOwnerOb);
 }
 
+void FRecastSpeciaLinkFilter::initialize()
+{
+	CachedOwnerOb = SearchOwner.Get();
+}
 
 //----------------------------------------------------------------------//
 // FPImplRecastNavMesh

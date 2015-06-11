@@ -60,11 +60,6 @@ public:
 		return TEXT("Test Client");
 	}
 
-	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override
-	{
-		return nullptr;
-	}
-
 	virtual const bool IsOnline() const override
 	{
 		return false;
@@ -134,6 +129,11 @@ public:
 	}
 
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override
+	{
+		return nullptr;
+	}
+
+	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const override
 	{
 		return nullptr;
 	}

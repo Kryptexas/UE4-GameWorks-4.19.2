@@ -32,7 +32,11 @@ namespace EPartyReservationResult
 		/** This player is banned. */
 		ReservationDenied_Banned,
 		/** The reservation request was canceled before being sent. */
-		ReservationRequestCanceled
+		ReservationRequestCanceled,
+		// The reservation was rejected because it was badly formed
+		ReservationInvalid,
+		// The reservation was rejected because this was the wrong session
+		BadSessionId
 	};
 }
 
@@ -91,6 +95,14 @@ namespace EPartyReservationResult
 			{
 				return TEXT("Request Canceled");
 			}
+			case ReservationInvalid:
+			{
+				return TEXT("Invalid reservation");
+			}
+			case BadSessionId:
+			{
+				return TEXT("Bad Session Id");
+			}
 		}
 		return TEXT("");
 	}
@@ -116,7 +128,10 @@ namespace EPartyReservationResult
 			return NSLOCTEXT("EPartyReservationResult", "Accepted", "Accepted");
 		case EPartyReservationResult::ReservationDuplicate:
 			return NSLOCTEXT("EPartyReservationResult", "DuplicateReservation", "Duplicate reservation detected");
+		case EPartyReservationResult::ReservationInvalid:
+			return NSLOCTEXT("EPartyReservationResult", "InvalidReservation", "Bad reservation request");
 		case EPartyReservationResult::NoResult:
+		case EPartyReservationResult::BadSessionId:
 		default:
 			return FText::GetEmpty();
 		}
@@ -129,11 +144,9 @@ struct FPlayerReservation
 {
 	GENERATED_USTRUCT_BODY()
 	
-	#if CPP
 	FPlayerReservation() :
 		ElapsedTime(0.0f)
 	{}
-	#endif
 
 	/** Unique id for this reservation */
 	UPROPERTY(Transient)
@@ -153,6 +166,10 @@ USTRUCT()
 struct ONLINESUBSYSTEMUTILS_API FPartyReservation
 {
 	GENERATED_USTRUCT_BODY()
+
+	FPartyReservation() :
+		TeamNum(INDEX_NONE)
+	{}
 
 	/** Team assigned to this party */
 	UPROPERTY(Transient)
@@ -220,6 +237,24 @@ class ONLINESUBSYSTEMUTILS_API UPartyBeaconState : public UObject
 	 * @return true if successful, false if reservation not found
 	 */
 	virtual bool RemoveReservation(const FUniqueNetIdRepl& PartyLeader);
+
+	/**
+	 * Register user auth ticket with the reservation system
+	 * Must have an existing reservation entry
+	 *
+	 * @param InPartyMemberId id of player logging in 
+	 * @param InAuthTicket auth ticket reported by the user
+	 */
+	void RegisterAuthTicket(const FUniqueNetIdRepl& InPartyMemberId, const FString& InAuthTicket);
+
+	/**
+	 * Update party leader for a given player with the reservation beacon
+	 * (needed when party leader leaves, reservation beacon is in a temp/bad state until someone updates this)
+	 *
+	 * @param InPartyMemberId party member making the update
+	 * @param PartyLeaderId id of new leader
+	 */
+	virtual void UpdatePartyLeader(const FUniqueNetIdRepl& InPartyMemberId, const FUniqueNetIdRepl& NewPartyLeaderId);
 
 	/**
 	 * Swap the parties between teams, parties must be able to fit on other team after swap

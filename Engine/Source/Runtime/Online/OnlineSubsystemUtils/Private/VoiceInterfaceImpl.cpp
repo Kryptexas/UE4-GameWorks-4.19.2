@@ -73,6 +73,18 @@ bool FOnlineVoiceImpl::Init()
 	return bSuccess;
 }
 
+void FOnlineVoiceImpl::Shutdown()
+{
+	VoiceData.RemotePackets.Empty();
+
+	LocalTalkers.Empty();
+	RemoteTalkers.Empty();
+
+	VoiceEngine = nullptr;
+	SessionInt = nullptr;
+	IdentityInt = nullptr;
+}
+
 void FOnlineVoiceImpl::ClearVoicePackets()
 {
 	for (uint32 Index = 0; Index < MAX_SPLITSCREEN_TALKERS; Index++)

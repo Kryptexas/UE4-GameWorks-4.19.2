@@ -2071,6 +2071,15 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 			static FName InvalidSoundName(TEXT("INVALID_Sound"));
 			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
 		}
+		else if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
+			*ActiveSound->Sound->GetPathName(),
+			ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
+			(int32)ActiveSound->Sound->IsPendingKill(),
+			(int32)ActiveSound->Sound->HasAnyFlags(RF_BeginDestroyed)))
+		{
+			static FName InvalidSoundName(TEXT("DESTROYED_Sound"));
+			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
+		}
 		else
 		{
 			ActiveSound->DebugOriginalSoundName = ActiveSound->Sound->GetFName();

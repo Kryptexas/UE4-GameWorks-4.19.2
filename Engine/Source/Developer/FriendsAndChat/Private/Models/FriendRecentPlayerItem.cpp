@@ -44,11 +44,6 @@ const FString FFriendRecentPlayerItem::GetClientName() const
 	return TEXT("");
 }
 
-const TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetSessionId() const
-{
-	return nullptr;
-}
-
 const bool FFriendRecentPlayerItem::IsOnline() const
 {
 	return false;
@@ -116,6 +111,11 @@ bool FFriendRecentPlayerItem::CanInvite() const
 }
 
 TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
+{
+	return nullptr;
+}
+
+TSharedPtr<IOnlinePartyJoinInfo> FFriendRecentPlayerItem::GetPartyJoinInfo() const
 {
 	return nullptr;
 }

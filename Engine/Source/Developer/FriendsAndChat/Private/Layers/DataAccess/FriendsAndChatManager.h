@@ -132,6 +132,7 @@ public:
 	virtual void SetAway() override;
 	virtual EOnlinePresenceState::Type GetOnlineStatus() override;
 	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
+	virtual void AddRecentPlayerNamespace(const FString& Namespace) override;
 	virtual void ClearApplicationViewModels() override;
 	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) override;
 	virtual TSharedRef< IChatSettingsService > GenerateChatSettingsService() override;
@@ -224,6 +225,30 @@ public:
 	 * @param reference to a friend item
 	 */
 	bool IsFriendInSameSession( const TSharedPtr< const IFriendItem >& FriendItem ) const;
+
+	/**
+	 * Is this friend in the same party as I am
+	 *
+	 * @param reference to a friend item
+	 */
+	bool IsFriendInSameParty( const TSharedPtr< const IFriendItem >& FriendItem ) const;
+
+	/**
+	 * Obtain the party join info for a friend entry if avaialble
+	 *
+	 * @param reference to a friend item
+	 *
+	 * @return party info or null if not avail
+	 */
+	TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo(const TSharedPtr<const IFriendItem>& FriendItem) const;
+
+	/**
+	 * Get if the current player is in a party and is joinable.
+	 *
+	 * @return true if the local user considers their party joinable, otherwise false
+	 */
+	
+	bool IsInJoinableParty() const;
 
 	/**
 	 * Get if the current player is in a session and that game is joinable.
@@ -325,6 +350,13 @@ public:
 	*/
 	void SendGameInvite(const FUniqueNetId& ToUser);
 
+	/**
+	 * Send a party invite to a user by id
+	 *
+	 * @param UserId user to send party invite to
+	 */
+	bool SendPartyInvite(const FUniqueNetId& ToUser);
+
 	/** Send a game invite notification. */
 	void SendGameInviteNotification(const TSharedPtr<IFriendItem>& FriendItem);
 
@@ -415,6 +447,12 @@ public:
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() override
 	{
 		return FriendsJoinGameEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnFriendsJoinPartyEvent, FOnFriendsJoinPartyEvent)
+	virtual FOnFriendsJoinPartyEvent& OnFriendsJoinParty() override
+	{
+		return FriendsJoinPartyEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FChatMessageReceivedEvent, FChatMessageReceivedEvent);
@@ -509,10 +547,11 @@ private:
 	 * Delegate used when the query for recent players has completed
 	 *
 	 * @param UserId the id of the user that made the request
+	 * @param Namespace the recent players namespace to retrieve
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 * @param Error string representing the error condition
 	 */
-	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr);
+	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, const FString& Namespace, bool bWasSuccessful, const FString& ErrorStr);
 
 	/**
 	 * Delegate used when an invite send request has completed.
@@ -607,10 +646,20 @@ private:
 	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FString& ClientId, const FOnlineSessionSearchResult& InviteResult);
 
 	/**
+	 * Delegate callback when an invite is received to a party session
+	 *
+	 * @param RecipientId - id of user that this invite is for
+	 * @param PartyId - id associated with the party
+	 * @param SenderId - id of member that sent the invite
+	 */
+	void OnPartyInviteReceived(const FUniqueNetId& RecipientId, const FOnlinePartyId& PartyId, const FUniqueNetId& SenderId);
+
+	/**
 	 * Process any invites that were received and are pending. 
 	 * Will remove entries that are processed
 	 */
 	void ProcessReceivedGameInvites();
+
 	/**
 	 * Query for user info associated with user invites
 	 *
@@ -618,6 +667,9 @@ private:
 	 */
 	bool RequestGameInviteUserInfo();
 
+	/**
+	 * Detect cleanup of game session
+	 */
 	void OnGameDestroyed(const FName SessionName, bool bWasSuccessful);
 
 	/**
@@ -626,7 +678,7 @@ private:
 	 * @param PartyId party that member joined
 	 * @param MemberId member that joined
 	 */
-	void OnPartyMemberJoined(const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId);
+	void OnPartyMemberJoined(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId);
 
 	/**
 	 * Handle removing party chat channel option when party becomes empty
@@ -634,7 +686,7 @@ private:
 	 * @param PartyId party that member left
 	 * @param MemberId member that left
 	 */
-	void OnPartyMemberLeft(const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId);
+	void OnPartyMemberExited(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId, const EMemberExitedReason Reason);
 
 	/**
 	 * Delegate used when a friend is removed.
@@ -749,16 +801,41 @@ private:
 		TSharedRef<const FUniqueNetId> FromId;
 		// session info needed to join the invite
 		TSharedRef<FOnlineSessionSearchResult> InviteResult;
-		// Clietn id for user that sent hte invite
+		// Client id for user that sent the invite
 		FString ClientId;
 		// equality check
 		bool operator==(const FReceivedGameInvite& Other) const
 		{
-			return Other.FromId == FromId && Other.ClientId == ClientId;
+			return *Other.FromId == *FromId && Other.ClientId == ClientId;
 		}
 	};
-	// List of invites that need to be processed
+	// List of game invites that need to be processed
 	TArray<FReceivedGameInvite> ReceivedGameInvites;
+
+	/**
+	 * Party invite that needs to be processed before being displayed
+	 */
+	class FReceivedPartyInvite
+	{
+	public:
+		FReceivedPartyInvite(
+			const TSharedRef<const FUniqueNetId>& InFromId,
+			const TSharedRef<IOnlinePartyJoinInfo>& InPartyJoinInfo)
+			: FromId(InFromId)
+			, PartyJoinInfo(InPartyJoinInfo)
+		{}
+		// who sent the invite (could be non-friend)
+		TSharedRef<const FUniqueNetId> FromId;
+		// info needed to join the party
+		TSharedRef<IOnlinePartyJoinInfo> PartyJoinInfo;
+		// equality check
+		bool operator==(const FReceivedPartyInvite& Other) const
+		{
+			return *Other.FromId == *FromId || *Other.PartyJoinInfo->GetPartyId() == *PartyJoinInfo->GetPartyId();
+		}
+	};
+	// List of party invites that need to be processed
+	TArray<FReceivedPartyInvite> ReceivedPartyInvites;
 
 	/* Delegates
 	*****************************************************************************/
@@ -783,12 +860,14 @@ private:
 	FOnInviteReceivedDelegate OnFriendInviteReceivedDelegate;
 	// Delegate for a game invite received
 	FOnSessionInviteReceivedDelegate OnGameInviteReceivedDelegate;
+	// Delegate for a party invite received
+	FOnPartyInviteReceivedDelegate OnPartyInviteReceivedDelegate;
 	// Delegate for a game session being destroyed
 	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
 	// Delegate for a player joining your party
 	FOnPartyMemberJoinedDelegate OnPartyMemberJoinedDelegate;
 	// Delegate for a player leaving your party
-	FOnPartyMemberLeftDelegate OnPartyMemberLeftDelegate;
+	FOnPartyMemberExitedDelegate OnPartyMemberExitedDelegate;
 
 	// Delegate for friend removed
 	FOnFriendRemovedDelegate OnFriendRemovedDelegate;
@@ -807,6 +886,8 @@ private:
 	FOnFriendsUserSettingsUpdatedEvent FriendsUserSettingsUpdatedDelegate;
 	// Holds the join game request delegate
 	FOnFriendsJoinGameEvent FriendsJoinGameEvent;
+	// Holds the join party request delegate
+	FOnFriendsJoinPartyEvent FriendsJoinPartyEvent;
 	// Holds the chat message received delegate
 	FChatMessageReceivedEvent ChatMessageReceivedEvent;
 	// Delegate callback for determining if joining games functionality should be allowed
@@ -886,6 +967,13 @@ private:
 	// The local player index that we use to talk to OSS
 	int32 LocalControllerIndex;
 
+	/** Party that may have been passed on command line to auto-join */
+	FString CmdLinePartyId;
+
+	/** Recent players namespace to query */
+	TArray<FString> RecentPlayersNamespaces;
+	TArray<FString> PendingRecentPlayersQueries;
+
 private:
 
 	FFriendsAndChatAnalytics Analytics;
@@ -903,8 +991,9 @@ private:
 	FDelegateHandle OnQueryUserInfoCompleteDelegateHandle;
 	FDelegateHandle OnPresenceReceivedCompleteDelegateHandle;
 	FDelegateHandle OnGameInviteReceivedDelegateHandle;
+	FDelegateHandle OnPartyInviteReceivedDelegateHandle;
 	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
 	FDelegateHandle OnPartyMemberJoinedDelegateHandle;
-	FDelegateHandle OnPartyMemberLeftDelegateHandle;
+	FDelegateHandle OnPartyMemberExitedDelegateHandle;
 	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };

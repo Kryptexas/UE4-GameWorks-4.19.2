@@ -199,6 +199,11 @@ bool FOnlineSubsystemNull::Shutdown()
 		delete OnlineAsyncTaskThreadRunnable;
 		OnlineAsyncTaskThreadRunnable = nullptr;
 	}
+
+	if (VoiceInterface.IsValid())
+	{
+		VoiceInterface->Shutdown();
+	}
 	
  	#define DESTRUCT_INTERFACE(Interface) \
  	if (Interface.IsValid()) \

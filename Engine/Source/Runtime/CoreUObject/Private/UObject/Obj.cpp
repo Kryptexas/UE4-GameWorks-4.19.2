@@ -438,8 +438,15 @@ void UObject::PropagatePostEditChange( TArray<UObject*>& AffectedObjects, FPrope
 	{
 		UObject* Obj = Instances[i];
 
+		// check for and set up the active member node
+		FPropertyChangedEvent PropertyEvent(PropertyChangedEvent.PropertyChain.GetActiveNode()->GetValue(), PropertyChangedEvent.ChangeType);
+		if ( PropertyChangedEvent.PropertyChain.GetActiveMemberNode() )
+		{
+			PropertyEvent.SetActiveMemberProperty(PropertyChangedEvent.PropertyChain.GetActiveMemberNode()->GetValue());
+		}
+
 		// notify the object that all changes are complete
-		Obj->PostEditChangeProperty(PropertyChangedEvent);
+		Obj->PostEditChangeProperty(PropertyEvent);
 
 		// now recurse into this object, loading its instances
 		Obj->PropagatePostEditChange(AffectedObjects, PropertyChangedEvent);

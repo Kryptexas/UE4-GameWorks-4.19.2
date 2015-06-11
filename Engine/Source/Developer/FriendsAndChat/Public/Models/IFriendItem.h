@@ -109,12 +109,6 @@ public:
 	virtual const FString GetClientName() const = 0;
 
 	/**
-	* Get the player's session id
-	* @return The session id the user is playing in
-	*/
-	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const = 0;
-
-	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -137,6 +131,12 @@ public:
 	 * @return The id of the game session
 	 */
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const = 0;
+
+	/**
+	 * Obtain info needed to join a party for this friend item
+	 * @return party info if available or null
+	 */
+	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const = 0;
 
 	/**
 	 * Get the Unique ID.

@@ -11,6 +11,18 @@ class UNetConnection;
 class FInBunch;
 
 /**
+ * State of a connection.
+ */
+UENUM()
+enum class EBeaconConnectionState : uint8
+{
+	Invalid = 0,// Connection is invalid, possibly uninitialized.
+	Closed = 1,	// Connection permanently closed.
+	Pending = 2,// Connection is awaiting connection.
+	Open = 3,	// Connection is open.
+};
+
+/**
  * Delegate triggered on failures to connect to a host beacon
  */
 DECLARE_DELEGATE(FOnHostConnectionFailure);
@@ -63,6 +75,22 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	FOnHostConnectionFailure& OnHostConnectionFailure() { return HostConnectionFailure; }
 
 	/**
+	 * Set the connection state
+	 * Higher level than the net connection because of the handshaking of the actors
+	 *
+	 * @return connection state of the beacon
+	 */
+	void SetConnectionState(EBeaconConnectionState NewConnectionState);
+
+	/**
+	 * Get the connection state
+	 * Higher level than the net connection because of the handshaking of the actors
+	 *
+	 * @return connection state of the beacon
+	 */
+	EBeaconConnectionState GetConnectionState() const;
+
+	/**
 	 * Get the owner of this beacon actor, some host that is listening for connections
 	 * (server side only, clients have no access)
 	 *
@@ -90,13 +118,17 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 
 protected:
 
-	/** Owning beacon host of this beacon actor */
+	/** Owning beacon host of this beacon actor (server only) */
 	UPROPERTY()
 	AOnlineBeaconHostObject* BeaconOwner;
 
 	/** Network connection associated with this beacon client instance */
 	UPROPERTY()
 	UNetConnection* BeaconConnection;
+
+	/** State of the connection */
+	UPROPERTY()
+	EBeaconConnectionState ConnectionState;
 
 	/** Delegate for host beacon connection failures */
 	FOnHostConnectionFailure HostConnectionFailure;
@@ -108,9 +140,10 @@ private:
 
 	/**
 	 * Called on the server side to open up the actor channel that will allow RPCs to occur
+	 * (DO NOT OVERLOAD, implement OnConnected() instead)
 	 */
 	UFUNCTION(client, reliable)
-	virtual void ClientOnConnected();
+	void ClientOnConnected();
 
 	friend class AOnlineBeaconHost;
 	friend class AOnlineBeaconHostObject;

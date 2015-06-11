@@ -17,18 +17,6 @@ enum class EOnlineNotificationResult
 };
 
 /**
-* Macro to parse a notification struct into a passed in UStruct.
-* Example:
-*
-* FNotificationData Data;
-*
-* if (READ_NOTIFICATION_JSON(Data,Notification)) {}
-*
-* You'll need to include JsonUtilities.h to use it
-*/
-#define READ_NOTIFICATION_JSON(Struct, Notification) FJsonObjectConverter::JsonObjectToUStruct(Notification.Payload->AsObject().ToSharedRef(), Struct.StaticStruct(), &Struct, 0, 0)
-
-/**
 * Delegate type for handling a notification
 *
 * The first parameter is a notification structure

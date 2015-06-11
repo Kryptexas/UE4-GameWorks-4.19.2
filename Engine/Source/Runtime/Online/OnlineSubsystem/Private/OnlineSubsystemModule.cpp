@@ -203,7 +203,12 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 				}
 				else
 				{
-					UE_LOG(LogOnline, Warning, TEXT("Unable to create OnlineSubsystem module %s"), *SubsystemName.ToString());
+					bool* bWarnedPreviously = OnlineSubsystemFailureWarnings.Find(KeyName);
+					if (!bWarnedPreviously || !(*bWarnedPreviously))
+					{
+						UE_LOG(LogOnline, Warning, TEXT("Unable to create OnlineSubsystem module %s"), *SubsystemName.ToString());
+						OnlineSubsystemFailureWarnings.Add(KeyName, true);
+					}
 				}
 			}
 			else
@@ -230,6 +235,7 @@ void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
 		if (OnlineSubsystem.IsValid())
 		{
 			OnlineSubsystem->Shutdown();
+			OnlineSubsystemFailureWarnings.Remove(KeyName);
 		}
 		else
 		{

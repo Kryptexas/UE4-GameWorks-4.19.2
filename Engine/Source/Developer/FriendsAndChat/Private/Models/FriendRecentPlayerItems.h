@@ -67,12 +67,6 @@ public:
 	virtual const FString GetClientName() const override;
 
 	/**
-	* Get the player's session id
-	* @return The session id the user is playing in
-	*/
-	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override;
-
-	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -138,6 +132,8 @@ public:
 
 	/** Get if the user is online and his game is joinable */
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
+	
+	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const override;
 
 	/**
 	 * Get the invitation status.

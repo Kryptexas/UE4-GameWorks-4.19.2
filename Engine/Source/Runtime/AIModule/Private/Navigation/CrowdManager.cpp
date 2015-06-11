@@ -1168,6 +1168,12 @@ void UCrowdManager::DebugTick() const
 					UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P0 + CrowdDebugDrawing::Offset, FVector(10, 10, 10)), CrowdDebugDrawing::CornerFixed, TEXT(""));
 				}
 
+				if (CrowdAgent->corridor.hasNextFixedCorner2())
+				{
+					FVector P0 = Recast2UnrealPoint(CrowdAgent->corridor.getNextFixedCorner2());
+					UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P0 + CrowdDebugDrawing::Offset, FVector(10, 10, 10)), CrowdDebugDrawing::CornerFixed, TEXT(""));
+				}
+
 				for (int32 Idx = 0; Idx < CrowdAgent->boundary.getSegmentCount(); Idx++)
 				{
 					const float* s = CrowdAgent->boundary.getSegment(Idx);

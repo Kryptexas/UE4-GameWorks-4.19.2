@@ -16,8 +16,6 @@ public:
 
 	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false) override
 	{
-		bool bIsFriendInSameSession = FriendsAndChatManager.Pin()->IsFriendInSameSession(FriendItem);
-
 		if(FriendItem->IsGameRequest())
 		{
 			if (FriendItem->IsGameJoinable())
@@ -37,7 +35,7 @@ public:
 			{
 				Actions.Add(EFriendActionType::SendFriendRequest);
 			}
-			if (FriendsAndChatManager.Pin()->IsInJoinableGameSession() && FriendItem->IsOnline())
+			if (FriendItem->IsOnline() && (FriendsAndChatManager.Pin()->IsInJoinableGameSession() || FriendsAndChatManager.Pin()->IsInJoinableParty()))
 			{
 				Actions.Add(EFriendActionType::InviteToGame);
 			}
@@ -48,16 +46,21 @@ public:
 			{
 				case EInviteStatus::Accepted :
 				{
-					if (FriendItem->IsOnline() && !bIsFriendInSameSession && FriendItem->IsGameJoinable())
+					if (FriendItem->IsOnline() && FriendItem->IsGameJoinable())
 					{
 						if(CanPerformAction(EFriendActionType::JoinGame))
 						{
 							Actions.Add(EFriendActionType::JoinGame);
 						}
 					}
-					if (FriendItem->IsOnline() && !bIsFriendInSameSession && FriendItem->CanInvite() && FriendsAndChatManager.Pin()->IsInJoinableGameSession())
+					if (FriendItem->IsOnline() && FriendItem->CanInvite())
 					{
-						Actions.Add(EFriendActionType::InviteToGame);
+						const bool bIsJoinableGame = FriendsAndChatManager.Pin()->IsInJoinableGameSession() && !FriendsAndChatManager.Pin()->IsFriendInSameSession(FriendItem);
+						const bool bIsJoinableParty = FriendsAndChatManager.Pin()->IsInJoinableParty() && !FriendsAndChatManager.Pin()->IsFriendInSameParty(FriendItem);
+						if (bIsJoinableGame || bIsJoinableParty)
+						{
+							Actions.Add(EFriendActionType::InviteToGame);
+						}
 					}
 					if(!bFromChat)
 					{

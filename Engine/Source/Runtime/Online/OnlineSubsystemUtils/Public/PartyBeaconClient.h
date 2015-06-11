@@ -7,7 +7,57 @@
 
 #include "PartyBeaconClient.generated.h"
 
+struct FUniqueNetIdRepl;
+struct FPartyReservation;
+class FOnlineSessionSearchResult;
+
 #define PARTY_BEACON_TYPE TEXT("PartyBeacon")
+
+/**
+ * Types of reservation requests that can be made by this beacon
+ */
+UENUM()
+enum class EClientRequestType : uint8
+{
+	/** Make a reservation with an existing session */
+	ExistingSessionReservation,
+	/** Make an update to an existing reservation */
+	ReservationUpdate,
+	/** Reservation to configure an empty server  */
+	EmptyServerReservation,
+	/** Attempt to change an existing session to use a new world */
+	ChangeWorldRequest,
+	/** Simple reconnect (checks for existing reservation) */
+	Reconnect
+};
+
+inline const TCHAR* ToString(EClientRequestType RequestType)
+{
+	switch (RequestType)
+	{
+	case EClientRequestType::ExistingSessionReservation:
+	{
+		return TEXT("Existing Session Reservation");
+	}
+	case EClientRequestType::ReservationUpdate:
+	{
+		return TEXT("Reservation Update");
+	}
+	case EClientRequestType::EmptyServerReservation:
+	{
+		return TEXT("Empty Server Reservation");
+	}
+	case EClientRequestType::ChangeWorldRequest:
+	{
+		return TEXT("Change World Request");
+	}
+	case EClientRequestType::Reconnect:
+	{
+		return TEXT("Reconnect Only");
+	}
+	}
+	return TEXT("");
+}
 
 /**
  * Delegate triggered when a response from the party beacon host has been received
@@ -43,13 +93,64 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 	 * Sends a request to the remote host to allow the specified members to reserve space
 	 * in the host's session. Note this request is async.
 	 *
-	 * @param DesiredHost the server that the connection will be made to
+	 * @param ConnectInfoStr the URL of the server that the connection will be made to
+	 * @param InSessionId Id of the session expected to be found at this destination
 	 * @param RequestingPartyLeader the leader of this party that will be joining
-	 * @param Players the list of players that want to reserve space
+	 * @param PartyMembers the list of players that want to reserve space
 	 *
 	 * @return true if the request able to be sent, false if it failed to send
 	 */
-	virtual void RequestReservation(const class FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers);
+	virtual bool RequestReservation(const FString& ConnectInfoStr, const FString& InSessionId, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers);
+
+	/**
+	 * Sends a request to the remote host to allow the specified members to reserve space
+	 * in the host's session. Note this request is async.
+	 *
+	 * @param DesiredHost a search result describing the server that the connection will be made to
+	 * @param RequestingPartyLeader the leader of this party that will be joining
+	 * @param PartyMembers the list of players that want to reserve space
+	 *
+	 * @return true if the request able to be sent, false if it failed to send
+	 */
+	virtual bool RequestReservation(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers);
+
+	/**
+	 * Sends an update request to the remote host to append additional members to an existing party
+	 * in the host's session. Note this request is async.
+	 *
+	 *  ** This version is for existing / established connections only, it will not actually attempt a connection **
+	 *
+	 * @param RequestingPartyLeader the leader of the party that will be updated
+	 * @param PlayersToAdd the list of players that will be added to the party
+	 *
+	 * @return true if the request able to be sent, false if it failed to send
+	 */
+	virtual bool RequestReservationUpdate(const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PlayersToAdd);
+
+	/**
+	 * Sends an update request to the remote host to append additional members to an existing party
+	 * in the host's session. Note this request is async.
+	 *
+	 * @param ConnectInfoStr the URL of the server that the connection will be made to
+	 * @param InSessionId Id of the session expected to be found at this destination
+	 * @param RequestingPartyLeader the leader of the party that will be updated
+	 * @param PlayersToAdd the list of players that will be added to the party
+	 *
+	 * @return true if the request able to be sent, false if it failed to send
+	 */
+	virtual bool RequestReservationUpdate(const FString& ConnectInfoStr, const FString& InSessionId, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PlayersToAdd);
+
+	/**
+	 * Sends an update request to the remote host to append additional members to an existing party
+	 * in the host's session. Note this request is async.
+	 *
+	 * @param DesiredHost a search result describing the server that the connection will be made to
+	 * @param RequestingPartyLeader the leader of the party that will be updated
+	 * @param PlayersToAdd the list of players that will be added to the party
+	 *
+	 * @return true if the request able to be sent, false if it failed to send
+	 */
+	virtual bool RequestReservationUpdate(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PlayersToAdd);
 
 	/**
 	 * Cancel an existing request to the remote host to revoke allocated space on the server.
@@ -100,23 +201,46 @@ protected:
 	FOnReservationCountUpdate ReservationCountUpdate;
 
 	/** Session Id of the destination host */
+	UPROPERTY()
 	FString DestSessionId;
 	/** Pending reservation that will be sent upon connection with the intended host */
+	UPROPERTY()
 	FPartyReservation PendingReservation;
 
+	/** Type of request currently being handled by this client beacon */
+	UPROPERTY()
+	EClientRequestType RequestType;
+
 	/** Has the reservation request been delivered */
+	UPROPERTY()
 	bool bPendingReservationSent;
 	/** Has the reservation request been canceled */
+	UPROPERTY()
 	bool bCancelReservation;
 
 	/**
 	 * Tell the server about the reservation request being made
 	 *
+	 * @param SessionId expected session id on the other end (must match)
 	 * @param Reservation pending reservation request to make with server
 	 */
 	UFUNCTION(server, reliable, WithValidation)
-	virtual void ServerReservationRequest(const FString& SessionId, struct FPartyReservation Reservation);
-
+	virtual void ServerReservationRequest(const FString& SessionId, const FPartyReservation& Reservation);
+	
+	/**
+	 * Tell the server about the reservation update request being made
+	 *
+	 * @param SessionId expected session id on the other end (must match)
+	 * @param ReservationUpdate pending reservation request to make with server
+	 */
 	UFUNCTION(server, reliable, WithValidation)
-	virtual void ServerCancelReservationRequest(struct FUniqueNetIdRepl PartyLeader);
+	virtual void ServerUpdateReservationRequest(const FString& SessionId, const FPartyReservation& ReservationUpdate);
+
+	/**
+	 * Tell the server to cancel a pending or existing reservation
+	 *
+	 * @param PartyLeader id of the party leader for the reservation to cancel
+	 */
+	UFUNCTION(server, reliable, WithValidation)
+	virtual void ServerCancelReservationRequest(const FUniqueNetIdRepl& PartyLeader);
 };

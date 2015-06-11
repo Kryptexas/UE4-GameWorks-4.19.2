@@ -363,6 +363,22 @@ void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	Super::AddReferencedObjects(This, Collector);
 }
 
+UWorld* UNetConnection::GetWorld() const
+{
+	UWorld* World = nullptr;
+	if (Driver)
+	{
+		World = Driver->GetWorld();
+	}
+
+	if (!World && OwningActor)
+	{
+		World = OwningActor->GetWorld();
+	}
+
+	return World;
+}
+
 bool UNetConnection::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if ( Super::Exec( InWorld, Cmd,Ar) )

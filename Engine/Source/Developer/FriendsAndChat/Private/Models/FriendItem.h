@@ -21,8 +21,9 @@ public:
 	 * @param InOnlineUser The online user.
 	 * @param InListType The list type.
 	 */
-	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& InFriendsAndChatManager)
-		: bIsUpdated(true)
+	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& FriendsAndChatManager)
+		: FriendsAndChatManager(FriendsAndChatManager)
+		, bIsUpdated(true)
 		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
 		, OnlineUser( InOnlineUser )
@@ -31,7 +32,6 @@ public:
 		, bIsPendingAccepted(false)
 		, bIsPendingInvite(false)
 		, bIsPendingDelete(false)
-		, FriendsAndChatManager(InFriendsAndChatManager)
 	{ }
 
 	/**
@@ -86,12 +86,6 @@ public:
 	virtual const FString GetClientName() const override;
 
 	/**
-	* Get the player's session id
-	* @return The session id the user is playing in
-	*/
-	virtual const TSharedPtr<const FUniqueNetId> GetSessionId() const override;
-
-	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -120,6 +114,12 @@ public:
 	 * @return The user joinable game state.
 	 */
 	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
+
+	/**
+	 * Obtain info needed to join a party for this friend item
+	 * @return party info if available or null
+	 */
+	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const override;
 
 	/**
 	 * Get the Unique ID.
@@ -191,8 +191,9 @@ protected:
 	FFriendItem()
 		: bIsUpdated(true)
 		, GroupName(TEXT(""))
-		, PendingAction(EFriendActionType::MAX_None)
 	{ };
+
+	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 
 private:
 
@@ -222,8 +223,4 @@ private:
 
 	/** Holds if we are pending delete. */
 	bool bIsPendingDelete;
-
-	EFriendActionType::Type PendingAction;
-
-	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 };

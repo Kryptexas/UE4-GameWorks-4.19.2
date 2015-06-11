@@ -311,6 +311,24 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			}
 		}
 
+		if (m_hasNextExpectedCorner2 && m_isInSkipRange && foundIdx == 0)
+		{
+			m_hasNextExpectedCorner2 = false;
+			dtVcopy(m_nextExpectedCorner, m_nextExpectedCorner2);
+
+			foundIdx = -1;
+			for (int i = 1; i < ncorners; i++)
+			{
+				// can't use equal here, expected coords are offset from corner
+				const float dist = dtVdistSqr(m_nextExpectedCorner, &cornerVerts[i * 3]);
+				if (dist <= dtSqr(radius))
+				{
+					foundIdx = i;
+					break;
+				}
+			}
+		}
+
 		if (foundIdx > 0)
 		{
 			ncorners -= foundIdx;
@@ -321,6 +339,11 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 		}
 
 		m_hasNextExpectedCorner = (foundIdx >= 0);
+		if (!m_hasNextExpectedCorner && m_hasNextExpectedCorner2)
+		{
+			m_hasNextExpectedCorner2 = false;
+			dtVcopy(m_nextExpectedCorner, m_nextExpectedCorner2);
+		}
 	}
 
 	// [UE4] Offset path points from corners
@@ -377,6 +400,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 	{
 		const bool bSame = dtVequal(m_prevMovePoint, cornerVerts);
 		dtVcopy(m_prevMovePoint, cornerVerts);
+		m_isInSkipRange = false;
 
 		const float segAngleThr = 0.8f;
 		if (!bSame && ncorners > 1)
@@ -391,7 +415,15 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			if (m_moveSegAngle > segAngleThr)
 			{
 				// prepare for skipping to forced corner
-				dtVcopy(m_nextExpectedCorner, &cornerVerts[3]);
+				if (m_hasNextExpectedCorner)
+				{
+					dtVcopy(m_nextExpectedCorner2, &cornerVerts[3]);
+					m_hasNextExpectedCorner2 = true;
+				}
+				else
+				{
+					dtVcopy(m_nextExpectedCorner, &cornerVerts[3]);
+				}
 			}
 		}
 
@@ -406,6 +438,7 @@ int dtPathCorridor::findCorners(float* cornerVerts, unsigned char* cornerFlags,
 			{
 				// skip to known corner (in next tick)
 				m_hasNextExpectedCorner = true;
+				m_isInSkipRange = true;
 			}
 		}
 	}
@@ -707,6 +740,8 @@ void dtPathCorridor::setCorridor(const float* target, const dtPolyRef* path, con
 	memcpy(m_path, path, sizeof(dtPolyRef)*npath);
 	m_npath = npath;
 	m_hasNextExpectedCorner = false;
+	m_hasNextExpectedCorner2 = false;
+	m_isInSkipRange = false;
 }
 
 bool dtPathCorridor::fixPathStart(dtPolyRef safeRef, const float* safePos)
