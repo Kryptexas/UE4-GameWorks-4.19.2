@@ -447,6 +447,7 @@ private:
 	float GetWrappingDrawWidth() const;
 
 	void FlowLayout();
+	void MarginLayout();
 
 	void FlowLineLayout(const int32 LineModelIndex, const float WrappingDrawWidth, TArray<TSharedRef<ILayoutBlock>>& SoftLine);
 
