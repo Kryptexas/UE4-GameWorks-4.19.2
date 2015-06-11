@@ -41,6 +41,7 @@ struct TIsDerivedFrom
 	// Overloading Test() s.t. only calling it with something that is
 	// a BaseType (or inherited from the BaseType) will return a Yes.
 	static Yes& Test( BaseType* );
+	static Yes& Test( const BaseType* );
 	static No& Test( ... );
 
 	// Makes a DerivedType ptr.
