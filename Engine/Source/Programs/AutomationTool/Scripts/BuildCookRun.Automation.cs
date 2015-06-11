@@ -297,7 +297,7 @@ public class BuildCookRun : BuildCommand
 				}
 				else
 				{
-					var OriginalProjectName = ParseParamValue("project", CombinePaths("Samples", "Sandbox", "BlankProject", "BlankProject.uproject"));
+					var OriginalProjectName = ParseParamValue("project", "");
 					var ProjectName = OriginalProjectName;
 					ProjectName = ProjectName.Trim(new char[] { '\"' });
 					if (ProjectName.IndexOfAny(new char[] { '\\', '/' }) < 0)

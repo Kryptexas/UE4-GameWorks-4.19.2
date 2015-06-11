@@ -739,10 +739,10 @@ namespace AutomationTool
             }
             var FinishTime = DateTime.Now.ToString();
             CommandUtils.PrintCSVFile(String.Format("UAT,SortProjects,{0},{1}", StartTime, FinishTime));            
-            if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
+ /*           if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
             {
                 throw new AutomationException("All branches must have the blank project /Samples/Sandbox/BlankProject");
-            }
+            }*/
 
             CommandUtils.Log("  Base Engine:");
             var StartBranchDump = DateTime.Now.ToString();
