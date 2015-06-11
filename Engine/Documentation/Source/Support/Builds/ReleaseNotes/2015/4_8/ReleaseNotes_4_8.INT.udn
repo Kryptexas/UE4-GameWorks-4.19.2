@@ -5,6 +5,40 @@ Description:4.8 Release Notes
 
 [TOC(start:2 end:2)]
 
+[PUBLISH:Licensee]
+## Build Info
+
+[REGION:simpletable]
+| Item | Info |
+| ---- | ---- |
+| **Labels** | [INCLUDE:#labels] |
+| **Built from Changelist #** | 2582554 (//depot/UE4-QA/Promotable-CL-2582554) |
+| **Branched from Changelist #** | 2577408 (//depot/UE4-Releases/4.8/Promoted-CL-2577408) |
+| **Branched from Changelist #** | 2522625 (//depot/UE4/Promoted-CL-2522625) |
+| [REGION:tablesection]IDEs[/REGION] ||
+| **Visual Studio Version** | Microsoft Visual Studio 2013 12.0.21005.1 REL |
+| **Xcode Version** | 6.3 |
+| [REGION:tablesection]SDKs[/REGION] ||
+| **DirectX** | June 2010 |
+| **HTML5** | 1.25.0 |
+| **Linux Toolchain** | v4_clang-3.5.0_ld-2.24_glibc-2.12.2  _(downloadable from [](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip))_ |
+| **Oculus Runtime** | 0.5.0 |
+| **PlayStation 4** | 2.5 (2.0 for Morpheus) |
+| **Steam** | 130  |
+| **Xbox One** | April 2015 XDK (Requires Visual Studio 2012) |
+[/REGION]
+
+<!--
+[EXCERPT:Labels]
+[REGION:plainlist]
+* QA_APPROVED_UE4_BUILD_4.8.0_Release
+* QA_APPROVED_UE4_BUILD_CURRENT  
+* QA_APPROVED_UE4_BUILD_MINIMUM
+[/REGION]
+[/EXCERPT:Labels]
+-->
+[/PUBLISH:Licensee]
+
 This release includes 189 great changes that were submitted from Unreal Engine's amazing community of developers.  Thanks to all of these contributors to Unreal Engine 4.8:
 
 3dluvr, Adrian Gasinski (gasnica), Adrian Irwin (adrianirwin), Albino Rodrigues (Bino-), Alexander O'Mara (AlexanderOMara), Andrew Zhilin (zoon), Angelo Miner (angjminer), Artem V. Navrotskiy (bozaro), Ash Matheson (Nuclearfossil), Audiokinetic Inc. (audiokinetic), Ben Rog-Wilhelm(zorbathut), BhaaL (BhaaLseN), Black Phoenix (PheonixBlack), Błażej Szczygieł (zaps166), Cengiz Terzibas (yaakuro), Christopher P. Yarger (cpyarger), codetackler, Craig Wilson (hamo2k1), Dainius Masiliūnas (GreatEmerald), Daniel Mahashin (dmahashin), Daniel Zeligman (dzeligman), David Palacios (hevedy), Derek van Vliet (derekvanvliet), devbm, Dewitt Buckingham (DaJoker29), Eugene Elkin (eelkin2000), Ezekiel Warren (zaucy), gatools, Henrik Danielsson (TwoD), Jackson Egan (Sneagan), JaredTherriault, Jason (Abatron), Jason Maskell (TamedTornado), Jay Mattis (braindx), jdh84, Jeff Rous (JeffRous), Jefferson Pinheiro (Ixiguis), Jeremy (OPTIPlanet), jlamarche, Joshua Sheard (jsheard), karolz, Kazumasa Ohashi (KazumasaOhashi), Korshikov Anton (tnako), korypostma, Lee Berger (MrCrowbar), Leon Rosengarten (lion03), Leszek Godlewski (inequation), Lucas Dohring (nykac), Lukasz Baran (iniside), Luna Duclos (PSG-Luna), Marat Radchenko (slonopotamus), Marc Kamradt (MarcKamradt), Marco Antonio Alvarez (surakin), marynate, Maurice Laveaux (mlaveaux), Michael Allar (Allar), nsf, Omar Pakker (Omar007), Paul Eremeeff (PaulEremeeff), Pierdek, PjotrSvetachov, radu-danciu, Rama (EverNewJoy), Rene Rivera (grafikrobot), Richárd Németh (hsdxpro), Richard Biely (richardbiely), Robert Chubb (SaxonRah), Robert Williams (Rottbott), Salamanderrake, Sasha Petrovich (xulture), Satheesh (ryanjon2040), Sebastian Köcke (byte3), Sébastien Rombauts (SRombauts), Stephen Whittle (stephenwhittle), Simon Taylor (simontaylor81), Spencer Brown (JedTheKrampus), thk123, Thomas Mayer (tommybear), threadlock, Tobias Mollstam (mollstam), Tore Lervik (hallatore), Will Stahl (merlin91), x414e54, Yohann Martel (ymartel06), zombiesnu
