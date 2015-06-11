@@ -7,8 +7,11 @@
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_BoneDrivenController.generated.h"
 
-UCLASS(MinimalAPI)
-class UAnimGraphNode_BoneDrivenController : public UAnimGraphNode_SkeletalControlBase
+/**
+ * This is the 'source version' of of a bone driven controller, which copies part of the state from one bone to another
+ */
+UCLASS()
+class ANIMGRAPH_API UAnimGraphNode_BoneDrivenController : public UAnimGraphNode_SkeletalControlBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -19,19 +22,18 @@ public:
 
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	//////////////////////////////////////////////////////////////////////////
+	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_SkeletalControlBase interface
-	ANIMGRAPH_API virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const override;
-	//////////////////////////////////////////////////////////////////////////
+	virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const override;
+	// End of UAnimGraphNode_SkeletalControlBase interface
 
 protected:
 
-	// UAnimGraphNode_SkeletalControlBase interface
+	// UAnimGraphNode_SkeletalControlBase protected interface
 	virtual FText GetControllerDescription() const override;
-	//////////////////////////////////////////////////////////////////////////
+	// End of UAnimGraphNode_SkeletalControlBase protected interface
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */
