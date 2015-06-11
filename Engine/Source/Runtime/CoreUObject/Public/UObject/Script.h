@@ -239,6 +239,7 @@ enum EExprToken
 	EX_ArrayConst			= 0x65,
 	EX_EndArrayConst		= 0x66,
 	EX_AssetConst			= 0x67,
+	EX_CallMath				= 0x68, // static pure function from on local call space
 	EX_Max					= 0x100,
 };
 

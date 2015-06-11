@@ -480,6 +480,17 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			SerializeExpr( ScriptIndex ); // Return expression.
 			break;
 		}
+	case EX_CallMath:
+		{
+			UStruct* StackNode = ReadPointer<UStruct>(ScriptIndex);
+			Ar.Logf(TEXT("%s $%X: Call Math (stack node %s::%s)"), *Indents, (int32)Opcode, *GetNameSafe(StackNode ? StackNode->GetOuter() : nullptr), *GetNameSafe(StackNode));
+
+			while (SerializeExpr(ScriptIndex) != EX_EndFunctionParms)
+			{
+				// Params
+			}
+			break;
+		}
 	case EX_FinalFunction:
 		{
 			UStruct* StackNode = ReadPointer<UStruct>(ScriptIndex);

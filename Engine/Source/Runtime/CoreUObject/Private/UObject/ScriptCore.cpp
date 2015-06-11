@@ -408,6 +408,27 @@ void UObject::SkipFunction(FFrame& Stack, RESULT_DECL, UFunction* Function)
 #pragma warning (disable : 4750) // warning C4750: function with _alloca() inlined into a loop
 #endif
 
+void UObject::execCallMathFunction(FFrame& Stack, RESULT_DECL)
+{
+	UFunction* Function = (UFunction*)Stack.ReadObject();
+	checkSlow(Function);
+	checkSlow(Function->FunctionFlags & FUNC_Native);
+	UObject* NewContext = Function->GetOuterUClass()->GetDefaultObject(false);
+	checkSlow(NewContext);
+	{
+		FScopeCycleCounterUObject ContextScope(Stack.Object);
+		FScopeCycleCounterUObject FunctionScope(Function);
+
+		// CurrentNativeFunction is used so far only by FLuaContext::InvokeScriptFunction
+		// TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, Function);
+		
+		Native Func = Function->GetNativeFunc();
+		checkSlow(Func);
+		(NewContext->*Func)(Stack, RESULT_PARAM);
+	}
+}
+IMPLEMENT_VM_FUNCTION(EX_CallMath, execCallMathFunction);
+
 void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 {
 	checkSlow(Function);

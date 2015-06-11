@@ -695,7 +695,7 @@ public:
 				NumParams += Param->HasAnyPropertyFlags(CPF_ReturnParm) ? 0 : 1;
 			}
 		}
-		
+
 		// The target label will only ever be set on a call function when calling into the Ubergraph, which requires a patchup
 		// or when re-entering from a latent function which requires a different kind of patchup
 		if ((Statement.TargetLabel != NULL) && !bIsUbergraph)
@@ -739,13 +739,23 @@ public:
 			}
 		}
 
-		// Handle the function calling context if needed
-		FContextEmitter CallContextWriter(*this);
+		const bool bFinalFunction = FunctionToCall->HasAnyFunctionFlags(FUNC_Final) || Statement.bIsParentContext;
+		const bool bMathCall = bFinalFunction
+			&& FunctionToCall->HasAllFunctionFlags(FUNC_Static | FUNC_BlueprintPure | FUNC_Final | FUNC_Native)
+			&& !FunctionToCall->HasAnyFunctionFlags(FUNC_BlueprintAuthorityOnly | FUNC_BlueprintCosmetic)
+			&& !FunctionToCall->GetOuterUClass()->IsChildOf(UInterface::StaticClass())
+			&& FunctionToCall->GetOwnerClass()->GetName() == TEXT("KismetMathLibrary");
 
-		// RValue property is used to clear value after Access Violation. See UObject::ProcessContextOpcod
-		// If the property from LHS is used, then the retured property (with CPF_ReturnParm) is cleared. But properties returned by ref are not cleared. 
-		UProperty* RValueProperty = nullptr; //Statement.LHS ? Statement.LHS->AssociatedVarProperty : nullptr;
-		CallContextWriter.TryStartContext(Statement.FunctionContext, /*bUnsafeToSkip=*/ bHasOutputValue, Statement.bIsInterfaceContext, RValueProperty);
+		if (!bMathCall) // math call doesn't need context
+		{
+			// Handle the function calling context if needed
+			FContextEmitter CallContextWriter(*this);
+
+			// RValue property is used to clear value after Access Violation. See UObject::ProcessContextOpcod
+			// If the property from LHS is used, then the retured property (with CPF_ReturnParm) is cleared. But properties returned by ref are not cleared. 
+			UProperty* RValueProperty = nullptr; //Statement.LHS ? Statement.LHS->AssociatedVarProperty : nullptr;
+			CallContextWriter.TryStartContext(Statement.FunctionContext, /*bUnsafeToSkip=*/ bHasOutputValue, Statement.bIsInterfaceContext, RValueProperty);
+		}
 
 		// Emit the call type
 		if (FunctionToCall->HasAnyFunctionFlags(FUNC_Delegate))
@@ -753,10 +763,17 @@ public:
 			// @todo: Default delegate functions are no longer callable (and also now have mangled names.)  FindField will fail.
 			check(false);
 		}
-		else if (FunctionToCall->HasAnyFunctionFlags(FUNC_Final) || Statement.bIsParentContext)
+		else if (bFinalFunction)
 		{
+			if (bMathCall)
+			{
+				Writer << EX_CallMath;
+			}
+			else
+			{
+				Writer << EX_FinalFunction;
+			}
 			// The function to call doesn't have a native index
-			Writer << EX_FinalFunction;
 			Writer << FunctionToCall;
 		}
 		else

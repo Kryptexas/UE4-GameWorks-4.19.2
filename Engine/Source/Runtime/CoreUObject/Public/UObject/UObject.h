@@ -1142,6 +1142,8 @@ public:
 
 	DECLARE_FUNCTION(execLetValueOnPersistentFrame);
 
+	DECLARE_FUNCTION(execCallMathFunction);
+
 	// -- K2 support functions
 	struct Object_eventExecuteUbergraph_Parms
 	{

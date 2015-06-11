@@ -218,6 +218,7 @@
 			SerializeExpr( iCode, Ar ); // Return expression.
 			break;
 		}
+		case EX_CallMath:
 		case EX_FinalFunction:
 		{
 			XFER_FUNC_POINTER;											// Stack node.
