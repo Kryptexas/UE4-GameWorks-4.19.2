@@ -287,3 +287,22 @@ void STimeline::GotoPreviousItem()
 { 
 	TimelineBar->GotoPreviousItem(); 
 }
+
+void STimeline::MoveCursorByDistance(int32 Distance)
+{
+	if (Distance > 0)
+	{
+		TimelineBar->GotoNextItem(FMath::Abs(Distance));
+	}
+	else
+	{
+		TimelineBar->GotoPreviousItem(FMath::Abs(Distance));
+	}
+	
+}
+
+
+void STimeline::UpdateCameraPosition()
+{
+	TimelineBar->UpdateCameraPosition();
+}

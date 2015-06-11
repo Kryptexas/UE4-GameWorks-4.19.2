@@ -60,7 +60,7 @@ public:
 
 	/** Callback for for when the owner tab's visual state is being persisted. */
 	void HandleMajorTabPersistVisualState();
-	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual bool SupportsKeyboardFocus() const override { return true; }
 
 	void OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry);
 	void CollectNewCategories(const FVisualLogDevice::FVisualLogEntryItem& Entry);
@@ -69,6 +69,8 @@ public:
 	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine);
 	void OnFiltersSearchChanged(const FText& Filter);
 	void OnLogLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName);
+	FReply OnKeyboaedRedirection(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
+
 
 	bool HandleStartRecordingCommandCanExecute() const;
 	void HandleStartRecordingCommandExecute();

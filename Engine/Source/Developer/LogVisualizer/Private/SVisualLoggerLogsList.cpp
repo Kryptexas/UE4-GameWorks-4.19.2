@@ -64,7 +64,7 @@ FReply SVisualLoggerLogsList::OnKeyDown(const FGeometry& MyGeometry, const FKeyE
 		return FReply::Handled();
 	}
 
-	return FReply::Unhandled();
+	return SVisualLoggerBaseWidget::OnKeyDown(MyGeometry, InKeyEvent);
 }
 
 void SVisualLoggerLogsList::OnFiltersChanged()

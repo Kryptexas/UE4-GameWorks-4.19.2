@@ -6,7 +6,7 @@
 * A list of filters currently applied to an asset view.
 */
 class SFilterWidget;
-class SVisualLoggerFilters : public SCompoundWidget
+class SVisualLoggerFilters : public SVisualLoggerBaseWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SVisualLoggerFilters) { }

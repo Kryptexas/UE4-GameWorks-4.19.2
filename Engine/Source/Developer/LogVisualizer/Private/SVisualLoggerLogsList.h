@@ -2,7 +2,7 @@
 
 #pragma once
 
-class SVisualLoggerLogsList : public SCompoundWidget
+class SVisualLoggerLogsList : public SVisualLoggerBaseWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SVisualLoggerLogsList){}
@@ -12,7 +12,6 @@ public:
 
 	TSharedRef<ITableRow> LogEntryLinesGenerateRow(TSharedPtr<struct FLogEntryItem> Item, const TSharedRef<STableViewBase>& OwnerTable);
 	void LogEntryLineSelectionChanged(TSharedPtr<FLogEntryItem> SelectedItem, ESelectInfo::Type SelectInfo);
-	virtual bool SupportsKeyboardFocus() const override { return true; }
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 	void ObjectSelectionChanged(TArray<TSharedPtr<class STimeline> >& TimeLines);
 

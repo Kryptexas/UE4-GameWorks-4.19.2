@@ -130,7 +130,7 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 	FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged = FOnFiltersChanged::CreateRaw(this, &SVisualLogger::OnFiltersChanged);
 	FLogVisualizer::Get().GetVisualLoggerEvents().OnObjectSelectionChanged = FOnObjectSelectionChanged::CreateRaw(this, &SVisualLogger::OnObjectSelectionChanged);
 	FLogVisualizer::Get().GetVisualLoggerEvents().OnLogLineSelectionChanged = FOnLogLineSelectionChanged::CreateRaw(this, &SVisualLogger::OnLogLineSelectionChanged);
-
+	FLogVisualizer::Get().GetVisualLoggerEvents().OnKeyboardEvent = FOnKeyboardEvent::CreateRaw(this, &SVisualLogger::OnKeyboaedRedirection);
 	//////////////////////////////////////////////////////////////////////////
 	// Command Action Lists
 	const FVisualLoggerCommands& Commands = FVisualLoggerCommands::Get();
@@ -307,12 +307,6 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 	//UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.AddSP(this, &SVisualLogger::SelectionChanged);
 }
 
-FReply SVisualLogger::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
-{
-	FUICommandList& ActionList = *CommandList;
-	return ActionList.ProcessCommandBindings(InKeyEvent) ? FReply::Handled() : FReply::Unhandled();
-}
-
 void SVisualLogger::HandleMajorTabPersistVisualState()
 {
 	// save any settings here
@@ -389,7 +383,7 @@ TSharedRef<SDockTab> SVisualLogger::HandleTabManagerSpawnTab(const FSpawnTabArgs
 	bool AutoSizeTab = false;
 
 	if (TabIdentifier == ToolbarTabId)
-	{
+	{ 
 		TabWidget = SNew(SVisualLoggerToolbar, CommandList);
 		AutoSizeTab = true;
 	}
@@ -413,10 +407,10 @@ TSharedRef<SDockTab> SVisualLogger::HandleTabManagerSpawnTab(const FSpawnTabArgs
 		TabWidget = SAssignNew(StatusView, SVisualLoggerStatusView, CommandList);
 		AutoSizeTab = false;
 	}
-	
-	return SNew(SDockTab)
+
+	return SNew(SVisualLoggerTab)
 		.ShouldAutosize(AutoSizeTab)
-		.TabRole(ETabRole::PanelTab)
+		.TabRole(ETabRole::DocumentTab)
 		[
 			TabWidget.ToSharedRef()
 		];
@@ -866,12 +860,38 @@ void SVisualLogger::OnLogLineSelectionChanged(TSharedPtr<struct FLogEntryItem> S
 
 void SVisualLogger::OnMoveCursorLeftCommand()
 {
-	FLogVisualizer::Get().GotoNextItem();
+	FLogVisualizer::Get().GotoNextItem(1);
 }
 
 void SVisualLogger::OnMoveCursorRightCommand()
 {
-	FLogVisualizer::Get().GotoPreviousItem();
+	FLogVisualizer::Get().GotoPreviousItem(1);
+}
+
+FReply SVisualLogger::OnKeyboaedRedirection(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	FReply ReturnValue = FReply::Unhandled();
+
+	if (InKeyEvent.GetKey() == EKeys::Left)
+	{
+		FLogVisualizer::Get().GotoPreviousItem(InKeyEvent.IsLeftControlDown() ? InKeyEvent.IsLeftShiftDown() ? 20 : 10 : 1);
+		ReturnValue = FReply::Handled();
+	}
+	else if (InKeyEvent.GetKey() == EKeys::Right)
+	{
+		FLogVisualizer::Get().GotoNextItem(InKeyEvent.IsLeftControlDown() ? InKeyEvent.IsLeftShiftDown() ? 20 : 10 : 1);
+		ReturnValue = FReply::Handled();
+	}
+	else if (InKeyEvent.GetKey() == EKeys::Enter)
+	{
+		FLogVisualizer::Get().MoveCamera();
+		ReturnValue = FReply::Handled();
+	}
+	else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down)
+	{
+		ReturnValue = FReply::Handled();
+	}
+	return ReturnValue;
 }
 
 void SVisualLogger::GetTimelines(TArray<TSharedPtr<class STimeline> >& TimeLines, bool bOnlySelectedOnes)

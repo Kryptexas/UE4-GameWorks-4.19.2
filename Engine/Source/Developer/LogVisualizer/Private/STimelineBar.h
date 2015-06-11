@@ -33,6 +33,7 @@ public:
 	void OnDeselect();
 	void GotoNextItem(int32 MoveDistance = 1);
 	void GotoPreviousItem(int32 MoveDistance = 1);
+	void UpdateCameraPosition();
 
 protected:
 	TSharedPtr<class FVisualLoggerTimeSliderController> TimeSliderController;
