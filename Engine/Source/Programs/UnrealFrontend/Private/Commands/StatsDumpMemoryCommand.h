@@ -23,9 +23,6 @@ protected:
 	/** Executes the command. */
 	void InternalRun();
 
-	/** Creates thread mapping, some kind of metadata. */
-	void CreateThreadsMapping();
-
 	/** Basic memory profiling, only for debugging purpose. */
 	void ProcessMemoryOperations( const TMap<int64, FStatPacketArray>& CombinedHistory );
 

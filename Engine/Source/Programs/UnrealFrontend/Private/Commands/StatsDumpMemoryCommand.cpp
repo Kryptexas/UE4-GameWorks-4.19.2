@@ -60,9 +60,6 @@ void FStatsMemoryDumpCommand::InternalRun()
 
 		const int64 CurrentFilePos = FileReader->Tell();
 
-		// Update profiler's metadata.
-		CreateThreadsMapping();
-
 		// Read frames offsets.
 		Stream.ReadFramesOffsets( *FileReader );
 
