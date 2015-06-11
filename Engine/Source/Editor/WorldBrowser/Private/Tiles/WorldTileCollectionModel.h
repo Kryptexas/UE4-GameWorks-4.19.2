@@ -143,6 +143,12 @@ public:
 	 *  Builds context menu for a world composition
 	 */
 	void BuildWorldCompositionMenu(FMenuBuilder& InMenuBuilder) const;
+	
+	/** Whether tile view should update tile thumbnail */
+	bool ShouldUpdateTileThumbnail(const TSharedPtr<FWorldTileModel>& TileModel);
+	
+	/** Notification from tile view that tile thumbnail was updated */
+	void OnTileThumbnailUpdated(const TSharedPtr<FWorldTileModel>& TileModel);
 
 private:
 	FWorldTileCollectionModel(UEditorEngine* InEditor);
@@ -265,6 +271,8 @@ private:
 
 	/** All selected layers */
 	TArray<FWorldTileLayer>				SelectedLayers;
+
+	float								TileThumbnailUpdateCooldown;
 
 	// Is in process of saving a level
 	bool								bIsSavingLevel;

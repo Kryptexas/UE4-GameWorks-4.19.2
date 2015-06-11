@@ -380,10 +380,11 @@ int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedG
 	if (bIsVisible)
 	{
 		// Redraw thumbnail image if requested
-		if (bNeedRefresh)
+		if (bNeedRefresh && WorldModel->ShouldUpdateTileThumbnail(TileModel))
 		{
-			Thumbnail->UpdateThumbnail();
 			bNeedRefresh = false;
+			Thumbnail->UpdateThumbnail();
+			WorldModel->OnTileThumbnailUpdated(TileModel);
 		}
 		
 		LayerId = SNodePanel::SNode::OnPaint(Args, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
