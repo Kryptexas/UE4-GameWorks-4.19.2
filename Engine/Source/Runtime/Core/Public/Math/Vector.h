@@ -909,6 +909,12 @@ public:
 		return Ar << V.X << V.Y << V.Z;
 	}
 	
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
+
 	/** 
 	 * Network serialization function.
 	 * FVectors NetSerialize without quantization (ie exact values are serialized).

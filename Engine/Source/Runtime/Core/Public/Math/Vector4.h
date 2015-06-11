@@ -368,6 +368,12 @@ public:
 		return Ar << V.X << V.Y << V.Z << V.W;
 	}
 
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
+
 } GCC_ALIGN(16);
 
 
@@ -678,3 +684,5 @@ FORCEINLINE FVector4 FVector4::operator/( const FVector4& V ) const
 {
 	return FVector4( X / V.X, Y / V.Y, Z / V.Z, W / V.W );
 }
+
+template <> struct TIsPODType<FVector4> { enum { Value = true }; };

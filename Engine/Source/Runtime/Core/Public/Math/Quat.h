@@ -455,6 +455,12 @@ public:
 		return Ar << F.X << F.Y << F.Z << F.W;
 	}
 
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
+
 } GCC_ALIGN(16);
 
 

@@ -445,6 +445,12 @@ public:
 	{
 		return Ar << Box.Min << Box.Max << Box.IsValid;
 	}
+
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
 };
 
 

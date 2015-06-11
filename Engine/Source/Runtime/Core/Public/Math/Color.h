@@ -64,6 +64,12 @@ struct FLinearColor
 		return Ar << Color.R << Color.G << Color.B << Color.A;
 	}
 
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
+
 	// Conversions.
 	CORE_API FColor ToRGBE() const;
 
@@ -443,6 +449,12 @@ public:
 	friend FArchive& operator<< (FArchive &Ar, FColor &Color )
 	{
 		return Ar << Color.DWColor();
+	}
+
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
 	}
 
 	// Operators.

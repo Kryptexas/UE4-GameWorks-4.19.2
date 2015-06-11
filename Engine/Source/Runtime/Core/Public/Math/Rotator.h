@@ -378,6 +378,12 @@ public:
 		Ar << R.Pitch << R.Yaw << R.Roll;
 		return Ar;
 	}
+
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
 };
 
 

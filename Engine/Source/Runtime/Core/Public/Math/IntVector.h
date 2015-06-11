@@ -238,6 +238,12 @@ public:
 	{
 		return Ar << Vector.X << Vector.Y << Vector.Z;
 	}
+
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
 };
 
 
@@ -416,3 +422,5 @@ FORCEINLINE uint32 GetTypeHash(const FIntVector& Vector)
 {
 	return FCrc::MemCrc_DEPRECATED(&Vector,sizeof(FIntVector));
 }
+
+template <> struct TIsPODType<FIntVector> { enum { Value = true }; };

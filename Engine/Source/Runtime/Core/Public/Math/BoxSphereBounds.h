@@ -324,3 +324,5 @@ FORCEINLINE FString FBoxSphereBounds::ToString() const
 {
 	return FString::Printf(TEXT("Origin=%s, BoxExtent=(%s), SphereRadius=(%f)"), *Origin.ToString(), *BoxExtent.ToString(), SphereRadius);
 }
+
+template <> struct TIsPODType<FBoxSphereBounds> { enum { Value = true }; };

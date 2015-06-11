@@ -20,6 +20,7 @@ struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Vector);
@@ -31,19 +32,10 @@ struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(IntPoint);
-
-template<>
-struct TStructOpsTypeTraits<FIntRect> : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithZeroConstructor = true,
-	};
-};
-IMPLEMENT_STRUCT(IntRect);
 
 template<>
 struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
@@ -53,6 +45,7 @@ struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Vector2D);
@@ -64,6 +57,7 @@ struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Vector4);
@@ -76,6 +70,7 @@ struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Plane);
@@ -88,6 +83,7 @@ struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Rotator);
@@ -99,6 +95,7 @@ struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Box);
@@ -110,20 +107,10 @@ struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Matrix);
-
-template<>
-struct TStructOpsTypeTraits<FSphere> : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithNoInitConstructor = true,
-		WithZeroConstructor = true,
-	};
-};
-IMPLEMENT_STRUCT(Sphere);
 
 template<>
 struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase
@@ -149,6 +136,7 @@ struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(LinearColor);
@@ -160,6 +148,7 @@ struct TStructOpsTypeTraits<FColor> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Color);
@@ -183,6 +172,7 @@ struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
 	enum 
 	{
 		WithZeroConstructor = true,
+		WithSerializer = true,
 		WithNoDestructor = true,
 	};
 };
@@ -196,6 +186,7 @@ struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
 		WithExportTextItem = true,
 		WithImportTextItem = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Guid);
