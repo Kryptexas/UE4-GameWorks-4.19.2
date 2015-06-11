@@ -49,9 +49,12 @@ enum EDetailMode
 UENUM()
 enum ERelativeTransformSpace
 {
-	RTS_World, // World space transform
-	RTS_Actor, // Actor space transform
-	RTS_Component, // Component space transform
+	/** World space transform. */
+	RTS_World,
+	/** Actor space transform. */
+	RTS_Actor,
+	/** Component space transform. */
+	RTS_Component,
 };
 
 //

@@ -132,6 +132,7 @@ private:
 UENUM(BlueprintType)
 namespace ETouchIndex
 {
+	// The number of entries in ETouchIndex must match the number of touch keys defined in EKeys and NUM_TOUCH_KEYS above
 	enum Type
 	{
 		Touch1,
@@ -143,7 +144,7 @@ namespace ETouchIndex
 		Touch7,
 		Touch8,
 		Touch9,
-		Touch10 // The number of entries in ETouchIndex must match the number of touch keys defined in EKeys and NUM_TOUCH_KEYS above
+		Touch10
 	};
 }
 
@@ -419,7 +420,7 @@ private:
 
 };
 
-// various states of touch inputs
+/** Various states of touch inputs. */
 UENUM()
 namespace ETouchType
 {

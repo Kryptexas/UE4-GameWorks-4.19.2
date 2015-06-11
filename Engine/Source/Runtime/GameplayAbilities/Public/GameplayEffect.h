@@ -23,27 +23,30 @@ class UGameplayEffectExecutionCalculation;
 
 DECLARE_DELEGATE_RetVal_OneParam(bool, FActiveGameplayEffectQueryCustomMatch, const FActiveGameplayEffect&);
 
-/** Enumeration outlining the possible gameplay effect magnitude calculation policies */
+/** Enumeration outlining the possible gameplay effect magnitude calculation policies. */
 UENUM()
 enum class EGameplayEffectMagnitudeCalculation : uint8
 {
-	/** Use a simple, scalable float for the calculation */
+	/** Use a simple, scalable float for the calculation. */
 	ScalableFloat,
-	/** Perform a calculation based upon an attribute */
+	/** Perform a calculation based upon an attribute. */
 	AttributeBased,
-	/** Perform a custom calculation, capable of capturing and acting on multiple attributes, in either BP or native */
+	/** Perform a custom calculation, capable of capturing and acting on multiple attributes, in either BP or native. */
 	CustomCalculationClass,	
 	/** This magnitude will be set explicity by that code/blueprint that creates the spec. */
 	SetByCaller,
 };
 
-/** Enumeration outlining the possible attribute based float calculation policies */
+/** Enumeration outlining the possible attribute based float calculation policies. */
 UENUM()
 enum class EAttributeBasedFloatCalculationType : uint8
 {
-	AttributeMagnitude,			// Use the final evaluated magnitude of the attribute
-	AttributeBaseValue,			// Use the base value of the attribute
-	AttributeBonusMagnitude		// Use the "bonus" evaluated magnitude of the attribute: Equivalent to (FinalMag - BaseValue)
+	/** Use the final evaluated magnitude of the attribute. */
+	AttributeMagnitude,
+	/** Use the base value of the attribute. */
+	AttributeBaseValue,
+	/** Use the "bonus" evaluated magnitude of the attribute: Equivalent to (FinalMag - BaseValue). */
+	AttributeBonusMagnitude
 };
 
 /** 

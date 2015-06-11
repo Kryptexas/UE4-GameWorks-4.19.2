@@ -183,20 +183,20 @@ private:
 	{
 		DebugItem(FString Data, bool bInPoseSource) : DebugData(Data), bPoseSource(bInPoseSource) {}
 		
-		// This node items debug text to display
+		/** This node item's debug text to display. */
 		FString DebugData;
 
-		// Whether we are supplying a pose instead of modifying one (e.g. an playing animation)
+		/** Whether we are supplying a pose instead of modifying one (e.g. an playing animation). */
 		bool bPoseSource;
 
-		// Nodes that we are connected to
+		/** Nodes that we are connected to. */
 		TArray<FNodeDebugData> ChildNodeChain;
 	};
 
-	// This nodes final contribution weight (based on its own weight and the weight of its parents)
+	/** This nodes final contribution weight (based on its own weight and the weight of its parents). */
 	float AbsoluteWeight;
 
-	// Nodes that we are dependent on
+	/** Nodes that we are dependent on. */
 	TArray<DebugItem> NodeChain;
 
 public:
@@ -238,22 +238,22 @@ public:
 	const UAnimInstance* AnimInstance;
 };
 
-// The display mode of editable values on an animation node
+/** The display mode of editable values on an animation node. */
 UENUM()
 namespace EPinHidingMode
 {
 	enum Type
 	{
-		// Never show this property as a pin, it is only editable in the details panel (default for everything but FPoseLink properties)
+		/** Never show this property as a pin, it is only editable in the details panel (default for everything but FPoseLink properties). */
 		NeverAsPin,
 
-		// Hide this property by default, but allow the user to expose it as a pin via the details panel
+		/** Hide this property by default, but allow the user to expose it as a pin via the details panel. */
 		PinHiddenByDefault,
 
-		// Show this property as a pin by default, but allow the user to hide it via the details panel
+		/** Show this property as a pin by default, but allow the user to hide it via the details panel. */
 		PinShownByDefault,
 
-		// Always show this property as a pin; it never makes sense to edit it in the details panel (default for FPoseLink properties)
+		/** Always show this property as a pin; it never makes sense to edit it in the details panel (default for FPoseLink properties). */
 		AlwaysAsPin
 	};
 }
@@ -264,21 +264,21 @@ struct ENGINE_API FPoseLinkBase
 {
 	GENERATED_USTRUCT_BODY()
 
-	// Serialized link ID, used to build the non-serialized pointer map
+	/** Serialized link ID, used to build the non-serialized pointer map. */
 	UPROPERTY()
 	int32 LinkID;
 
 #if WITH_EDITORONLY_DATA
-	// The source link ID, used for debug visualization
+	/** The source link ID, used for debug visualization. */
 	UPROPERTY()
 	int32 SourceLinkID;
 #endif
 
 protected:
-	// The non serialized node pointer
+	/** The non serialized node pointer. */
 	struct FAnimNode_Base* LinkedNode;
 
-	// Flag to prevent reentry when dealing with circular trees
+	/** Flag to prevent reentry when dealing with circular trees. */
 	bool bProcessed;
 
 public:
@@ -293,12 +293,13 @@ public:
 	}
 
 	// Interface
+
 	void Initialize(const FAnimationInitializeContext& Context);
 	void CacheBones(const FAnimationCacheBonesContext& Context) ;
 	void Update(const FAnimationUpdateContext& Context);
 	void GatherDebugData(FNodeDebugData& DebugData);
 
-	// Try to re-establish the linked node pointer
+	/** Try to re-establish the linked node pointer. */
 	void AttemptRelink(const FAnimationBaseContext& Context);
 };
 

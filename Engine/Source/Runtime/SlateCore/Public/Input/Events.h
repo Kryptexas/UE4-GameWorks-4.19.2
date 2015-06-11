@@ -15,7 +15,7 @@ class SWindow;
 UENUM()
 enum class EFocusCause : uint8
 {
-	/** Focus was changed because of a mouse action */
+	/** Focus was changed because of a mouse action. */
 	Mouse,
 
 	/** Focus was changed in response to a navigation, such as the arrow keys, TAB key, controller DPad, ... */
@@ -24,13 +24,13 @@ enum class EFocusCause : uint8
 	/** Focus was changed because someone asked the application to change it. */
 	SetDirectly,
 
-	/** Focus was explicitly cleared via the escape key or other similar action */
+	/** Focus was explicitly cleared via the escape key or other similar action. */
 	Cleared,
 
-	/** Focus was changed because another widget lost focus, and focus moved to a new widget */
+	/** Focus was changed because another widget lost focus, and focus moved to a new widget. */
 	OtherWidgetLostFocus,
 
-	/** Focus was set in response to the owning window being activated */
+	/** Focus was set in response to the owning window being activated. */
 	WindowActivate,
 };
 

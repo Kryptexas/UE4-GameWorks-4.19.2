@@ -8,16 +8,16 @@
 UENUM()
 enum class EPowerUsageFrameRateLock : uint8
 {
-    /** Frame rate is not limited */
+    /** Frame rate is not limited. */
     PUFRL_None = 0 UMETA(DisplayName="None"),
         
-    /** Frame rate is limited to a maximum of 20 frames per second */
+    /** Frame rate is limited to a maximum of 20 frames per second. */
     PUFRL_20 = 20 UMETA(DisplayName="20 FPS"),
     
-    /** Frame rate is limited to a maximum of 30 frames per second */
+    /** Frame rate is limited to a maximum of 30 frames per second. */
     PUFRL_30 = 30 UMETA(DisplayName="30 FPS"),
     
-    /** Frame rate is limited to a maximum of 60 frames per second */
+    /** Frame rate is limited to a maximum of 60 frames per second. */
     PUFRL_60 = 60 UMETA(DisplayName="60 FPS"),
 };
 

@@ -27,15 +27,15 @@ struct FSplineMeshParams
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Start location of spline, in component space */
+	/** Start location of spline, in component space. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector StartPos;
 
-	/** Start tangent of spline, in component space */
+	/** Start tangent of spline, in component space. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector StartTangent;
 
-	/** X and Y scale applied to mesh at start of spline */
+	/** X and Y scale applied to mesh at start of spline. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D StartScale;
 
@@ -43,27 +43,27 @@ struct FSplineMeshParams
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	float StartRoll;
 
-	/** Starting offset of the mesh from the spline, in component space */
+	/** Starting offset of the mesh from the spline, in component space. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D StartOffset;
 
-	/** End location of spline, in component space */
+	/** End location of spline, in component space. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector EndPos;
 
-	/** End tangent of spline, in component space */
+	/** End tangent of spline, in component space. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	FVector EndTangent;
 
-	/** X and Y scale applied to mesh at end of spline */
+	/** X and Y scale applied to mesh at end of spline. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D EndScale;
 
-	/** Roll around spline applied at end */
+	/** Roll around spline applied at end. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	float EndRoll;
 
-	/** Ending offset of the mesh from the spline, in component space */
+	/** Ending offset of the mesh from the spline, in component space. */
 	UPROPERTY(EditAnywhere, Category=SplineMesh, AdvancedDisplay)
 	FVector2D EndOffset;
 

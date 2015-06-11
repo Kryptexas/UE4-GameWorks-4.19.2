@@ -46,7 +46,7 @@ class UGameplayCueSet;
  *	
  */
 
-/** Type of payload to pass along with this cue */
+/** Type of payload to pass along with this cue. */
 UENUM()
 enum class EGameplayCuePayloadType : uint8
 {
@@ -55,7 +55,7 @@ enum class EGameplayCuePayloadType : uint8
 	FromSpec,
 };
 
-/** Structure to keep track of pending gameplay cues that haven't been applied yet */
+/** Structure to keep track of pending gameplay cues that haven't been applied yet. */
 USTRUCT()
 struct FGameplayCuePendingExecute
 {

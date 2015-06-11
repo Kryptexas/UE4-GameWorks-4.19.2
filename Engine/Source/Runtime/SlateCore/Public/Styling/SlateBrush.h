@@ -62,16 +62,16 @@ namespace ESlateBrushMirrorType
 {
 	enum Type
 	{
-		/** Don't mirror anything, just draw the texture as it is */
+		/** Don't mirror anything, just draw the texture as it is. */
 		NoMirror,
 
-		/** Mirror the image horizontally */
+		/** Mirror the image horizontally. */
 		Horizontal,
 
-		/** Mirror the image vertically */
+		/** Mirror the image vertically. */
 		Vertical,
 
-		/** Mirror in both directions */
+		/** Mirror in both directions. */
 		Both
 	};
 }
@@ -85,13 +85,13 @@ namespace ESlateBrushImageType
 {
 	enum Type
 	{
-		/** No image is loaded.  Color only brushes, transparent brushes etc */
+		/** No image is loaded.  Color only brushes, transparent brushes etc. */
 		NoImage,
 
-		/** The image to be loaded is in full color */
+		/** The image to be loaded is in full color. */
 		FullColor,
 
-		/** The image is a special texture in linear space (usually a rendering resource such as a lookup table)*/
+		/** The image is a special texture in linear space (usually a rendering resource such as a lookup table). */
 		Linear,
 	};
 }

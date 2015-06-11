@@ -88,8 +88,11 @@ namespace EManifestFileHeader
 	enum Type
 	{
 		// Storage flags, can be raw or a combination of others.
-		STORED_RAW = 0x0, // Zero means raw data
-		STORED_COMPRESSED = 0x1, // Flag for compressed
+
+		/** Zero means raw data. */
+		STORED_RAW = 0x0,
+		/** Flag for compressed. */
+		STORED_COMPRESSED = 0x1,
 	};
 }
 

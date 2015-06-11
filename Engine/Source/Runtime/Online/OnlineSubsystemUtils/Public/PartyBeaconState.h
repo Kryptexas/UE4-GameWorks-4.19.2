@@ -9,29 +9,29 @@ namespace EPartyReservationResult
 {
 	enum Type
 	{
-		// Empty state
+		/** Empty state. */
 		NoResult,
-		// Pending request due to async operation, server will contact client shortly
+		/** Pending request due to async operation, server will contact client shortly. */
 		RequestPending,
-		// An unknown error happened
+		/** An unknown error happened. */
 		GeneralError,
-		// All available reservations are booked
+		/** All available reservations are booked. */
 		PartyLimitReached,
-		// Wrong number of players to join the session
+		/** Wrong number of players to join the session. */
 		IncorrectPlayerCount,
-		// No response from the host
+		/** No response from the host. */
 		RequestTimedOut,
-		// Already have a reservation entry for the requesting party leader
+		/** Already have a reservation entry for the requesting party leader. */
 		ReservationDuplicate,
-		// Couldn't find the party leader specified for a reservation update request 
+		/** Couldn't find the party leader specified for a reservation update request. */
 		ReservationNotFound,
-		// Space was available and it's time to join
+		/** Space was available and it's time to join. */
 		ReservationAccepted,
-		// The beacon is paused and not accepting new connections
+		/** The beacon is paused and not accepting new connections. */
 		ReservationDenied,
-		// This player is banned
+		/** This player is banned. */
 		ReservationDenied_Banned,
-		// The reservation request was canceled before being sent
+		/** The reservation request was canceled before being sent. */
 		ReservationRequestCanceled
 	};
 }

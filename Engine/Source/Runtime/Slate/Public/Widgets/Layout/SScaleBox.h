@@ -9,7 +9,7 @@ namespace EStretchDirection
 {
 	enum Type
 	{
-		/** Will scale the content up or down */
+		/** Will scale the content up or down. */
 		Both,
 		/** Will only make the content smaller, will never scale it larger than the content's desired size. */
 		DownOnly,
@@ -25,13 +25,13 @@ namespace EStretch
 	{
 		/** Does not scale the content. */
 		None,
-		/** Scales the content non-uniformly filling the entire space of the area */
+		/** Scales the content non-uniformly filling the entire space of the area. */
 		Fill,
 		/** Scales the content uniformly (preserving aspect ratio) until it can no longer scale the content without clipping it. */
 		ScaleToFit,
 		/** Scales the content uniformly (preserving aspect ratio), until all sides meet or exceed the size of the area.  Will result in clipping longer sides. */
 		ScaleToFill,
-		/** Scales the content by the scale specified by the user */
+		/** Scales the content by the scale specified by the user. */
 		UserSpecified
 	};
 }

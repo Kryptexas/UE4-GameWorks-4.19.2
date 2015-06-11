@@ -24,9 +24,9 @@ enum class EGameplayTaskState : uint8
 UENUM()
 enum class ETaskResourceOverlapPolicy : uint8
 {
-	// Pause overlapping same-priority tasks
+	/** Pause overlapping same-priority tasks. */
 	StartOnTop,
-	// Wait for other same-priority tasks to finish
+	/** Wait for other same-priority tasks to finish. */
 	StartAtEnd,
 };
 	

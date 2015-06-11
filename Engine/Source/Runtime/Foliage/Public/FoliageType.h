@@ -22,15 +22,15 @@ namespace EHasCustomNavigableGeometry
 UENUM()
 enum class EFoliageScaling : uint8
 {
-	// Foliage instances will have uniform X,Y and Z scales
+	/** Foliage instances will have uniform X,Y and Z scales. */
 	Uniform,
-	// Foliage instances will have random X,Y and Z scales
+	/** Foliage instances will have random X,Y and Z scales. */
 	Free,
-	// Locks the X and Y axis scale
+	/** Locks the X and Y axis scale. */
 	LockXY,
-	// Locks the X and Z axis scale
+	/** Locks the X and Z axis scale. */
 	LockXZ,
-	// Locks the Y and Z axis scale
+	/** Locks the Y and Z axis scale. */
 	LockYZ
 };
 

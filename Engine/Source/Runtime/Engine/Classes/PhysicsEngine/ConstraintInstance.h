@@ -16,17 +16,17 @@ namespace physx
 UENUM()
 enum ELinearConstraintMotion
 {
-	/** No constraint against this axis */ 
+	/** No constraint against this axis. */ 
 	LCM_Free	UMETA(DisplayName="Free"),
-	/** Limited freedom along this axis */ 
+	/** Limited freedom along this axis. */ 
 	LCM_Limited UMETA(DisplayName="Limited"),
-	/** Fully constraint against this axis */
+	/** Fully constraint against this axis. */
 	LCM_Locked UMETA(DisplayName="Locked"),
 
 	LCM_MAX,
 };
 
-/** Enum to indicate which frame we want */
+/** Enum to indicate which frame we want. */
 UENUM()
 namespace EConstraintFrame
 {
@@ -42,14 +42,14 @@ namespace EAngularDriveMode
 {
 	enum Type
 	{
-		//Follows the shortest arc between a pair of anuglar configurations (Ignored if any angular limits/locks are used)
+		/** Follows the shortest arc between a pair of anuglar configurations (Ignored if any angular limits/locks are used). */
 		SLERP,
-		//Path is decomposed into twist and swing. Doesn't follow shortest arc and may have gimbal lock. (Works with angular limits/locks)
+		/** Path is decomposed into twist and swing. Doesn't follow shortest arc and may have gimbal lock. (Works with angular limits/locks.) */
 		TwistAndSwing
 	};
 }
 
-/** Container for a physics representation of an object */
+/** Container for a physics representation of an object. */
 USTRUCT()
 struct ENGINE_API FConstraintInstance
 {
@@ -62,7 +62,7 @@ struct ENGINE_API FConstraintInstance
 	 */
 	int32 ConstraintIndex;
 
-	/** The component that created this instance */
+	/** The component that created this instance. */
 	UPROPERTY()
 	USceneComponent* OwnerComponent;
 

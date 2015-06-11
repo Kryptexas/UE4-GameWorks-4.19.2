@@ -36,15 +36,17 @@ namespace EGameplayModOp
 {
 	enum Type
 	{		
-		// Numeric
+		/** Numeric. */
 		Additive = 0		UMETA(DisplayName="Add"),
-		Multiplicitive		UMETA(DisplayName="Multiply"),
-		Division			UMETA(DisplayName="Divide"),
+		/** Numeric. */
+		Multiplicitive		UMETA(DisplayName = "Multiply"),
+		/** Numeric. */
+		Division			UMETA(DisplayName = "Divide"),
 
-		// Other
+		/** Other. */
 		Override 			UMETA(DisplayName="Override"),	// This should always be the first non numeric ModOp
 
-		// This must always be at the end
+		// This must always be at the end.
 		Max					UMETA(DisplayName="Invalid")
 	};
 }
@@ -73,25 +75,25 @@ namespace GameplayEffectUtilities
 }
 
 
-/** Enumeration for options of where to capture gameplay attributes from for gameplay effects */
+/** Enumeration for options of where to capture gameplay attributes from for gameplay effects. */
 UENUM()
 enum class EGameplayEffectAttributeCaptureSource : uint8
 {
-	// Source (caster) of the gameplay effect
+	/** Source (caster) of the gameplay effect. */
 	Source,	
-	// Target (recipient) of the gameplay effect
+	/** Target (recipient) of the gameplay effect. */
 	Target	
 };
 
-/** Enumeration for ways a single GameplayEffect asset can stack */
+/** Enumeration for ways a single GameplayEffect asset can stack. */
 UENUM()
 enum class EGameplayEffectStackingType : uint8
 {
-	// No stacking. Multiple applications of this GameplayEffect are treated as separate instances.
+	/** No stacking. Multiple applications of this GameplayEffect are treated as separate instances. */
 	None,
-	// Each caster has its own stack
+	/** Each caster has its own stack. */
 	AggregateBySource,
-	// Each target has its own stack
+	/** Each target has its own stack. */
 	AggregateByTarget,
 };
 

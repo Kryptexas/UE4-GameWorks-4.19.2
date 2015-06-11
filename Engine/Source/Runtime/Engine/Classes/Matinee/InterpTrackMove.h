@@ -9,9 +9,9 @@ class UInterpGroup;
 UENUM()
 enum EInterpTrackMoveRotMode
 {
-	/** Should take orientation from the . */
+	/** Should take orientation from the keyframe. */
 	IMR_Keyframed,
-	/** Point the X-Axis of the controlled  AActor  at the group specified by LookAtGroupName. */
+	/** Point the X-Axis of the controlled Actor at the group specified by LookAtGroupName. */
 	IMR_LookAtGroup,
 	/** Should look along the direction of the translation path, with Z always up. */
 	// IMR_LookAlongPath // TODO!
@@ -22,7 +22,7 @@ enum EInterpTrackMoveRotMode
 };
 
 /**
- * Array of group names to retrieve position and rotation data from instead of using the datastored in the keyframe.
+ * Array of group names to retrieve position and rotation data from instead of using the data stored in the keyframe.
  * A value of NAME_None means to use the PosTrack and EulerTrack data for the keyframe.
  * There needs to be the same amount of elements in this array as there are keyframes.
  */
