@@ -1132,34 +1132,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Subtitles)
 	uint32 bSubtitlesForcedOff:1;
 
-	/** Time in seconds (game time) we should wait between purging object references to objects that are pending kill */
-	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
-	float TimeBetweenPurgingPendingKillObjects;
-
-	/** Whether to allow background level streaming. */
-	UPROPERTY(EditAnywhere, config, Category=LevelStreaming)
-	uint32 bUseBackgroundLevelStreaming:1;
-
-	/** Maximum amount of time to spend doing asynchronous loading (ms per frame) */
-	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
-	float AsyncLoadingTimeLimit;
-
-	/** Whether to use the entire time limit even if blocked on I/O */
-	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
-	uint32 bAsyncLoadingUseFullTimeLimit:1;
-	
-	/** Additional time to spend asynchronous loading during a "high priority" load */
-	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
-	float PriorityAsyncLoadingExtraTime;
-
-	/** Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)*/
-	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
-	float LevelStreamingActorsUpdateTimeLimit;
-	
-	/** Batching granularity used to register actor components during level streaming */
-	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
-	int32 LevelStreamingComponentsRegistrationGranularity;
-
 	/** Script maximum loop iteration count used as a threshold to warn users about script execution runaway */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	int32 MaximumLoopIterationCount;

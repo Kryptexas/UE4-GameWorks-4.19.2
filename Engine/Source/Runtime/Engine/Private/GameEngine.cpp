@@ -38,6 +38,7 @@
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/GameMode.h"
 #include "GameDelegates.h"
+#include "Engine/CoreSettings.h"
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -376,10 +377,6 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	AsyncLoadingTimeLimit = 5.0f;
-	bAsyncLoadingUseFullTimeLimit = true;
-	PriorityAsyncLoadingExtraTime = 20.0f;
-
 	C_WorldBox = FColor(0, 0, 40, 255);
 	C_BrushWire = FColor(192, 0, 0, 255);
 	C_AddWire = FColor(127, 127, 255, 255);
@@ -849,7 +846,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
-		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, GetDefault<UStreamingSettings>()->bAsyncLoadingUseFullTimeLimit, GetDefault<UStreamingSettings>()->AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// -----------------------------------------------------

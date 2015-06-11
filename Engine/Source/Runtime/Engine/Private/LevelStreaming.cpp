@@ -13,6 +13,7 @@
 #endif
 #include "Engine/LevelStreamingKismet.h"
 #include "Components/BrushComponent.h"
+#include "Engine/CoreSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 
@@ -171,7 +172,7 @@ bool FStreamLevelAction::UpdateLevel( ULevelStreaming* LevelStreamingObject )
 		return true;
 	}
 	// Level shouldn't be loaded but is as background level streaming is enabled so we need to fire finished event regardless.
-	else if( LevelStreamingObject->GetLoadedLevel() && !LevelStreamingObject->bShouldBeLoaded && !GEngine->bUseBackgroundLevelStreaming )
+	else if (LevelStreamingObject->GetLoadedLevel() && !LevelStreamingObject->bShouldBeLoaded && !GetDefault<UStreamingSettings>()->bUseBackgroundLevelStreaming)
 	{
 		return true;
 	}

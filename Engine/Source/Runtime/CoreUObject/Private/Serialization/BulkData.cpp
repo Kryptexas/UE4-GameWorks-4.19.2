@@ -690,25 +690,22 @@ void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, in
 	}
 }
 
+int32 GMinimumBulkDataSizeForAsyncLoading = 131072;
+static FAutoConsoleVariableRef CVarMinimumBulkDataSizeForAsyncLoading(
+	TEXT("MinBulkDataSizeForAsyncLoading"),
+	GMinimumBulkDataSizeForAsyncLoading,
+	TEXT("Minimum time the time limit exceeded warning will be triggered by."),
+	ECVF_Default
+	);
+
 bool FUntypedBulkData::ShouldStreamBulkData()
 {
-	// Minimum bulk data size to start async loading
-	static struct FMinBulkDataSizeForAsyncLoadingSetting
-	{
-		int32 Value;
-		FMinBulkDataSizeForAsyncLoadingSetting()
-			: Value(131072) // 128K by default
-		{
-			GConfig->GetInt(TEXT("Core.System"), TEXT("MinBulkDataSizeForAsyncLoading"), Value, GEngineIni);
-		}
-	} MinBulkDataSizeForAsyncLoading;
-
 	const bool bForceStream = !!(BulkDataFlags & BULKDATA_ForceStreamPayload);
 
 	return (FPlatformProperties::RequiresCookedData() && !Filename.IsEmpty() &&
 		FPlatformProcess::SupportsMultithreading() && IsInGameThread() &&
-		(bForceStream || GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value) &&
-		MinBulkDataSizeForAsyncLoading.Value >= 0);
+		(bForceStream || GetBulkDataSize() > GMinimumBulkDataSizeForAsyncLoading) &&
+		GMinimumBulkDataSizeForAsyncLoading >= 0);
 }
 
 /**

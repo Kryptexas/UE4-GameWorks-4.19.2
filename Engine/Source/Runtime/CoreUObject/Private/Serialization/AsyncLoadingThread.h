@@ -109,7 +109,7 @@ public:
 				{
 					check(GConfig);
 					bool bConfigValue = true;
-					GConfig->GetBool(TEXT("Core.System"), TEXT("AsyncLoadingThreadEnabled"), bConfigValue, GEngineIni);
+					GConfig->GetBool(TEXT("/Script/Engine.StreamingSettings"), TEXT("AsyncLoadingThreadEnabled"), bConfigValue, GEngineIni);
 					bool bCommandLineNoAsyncThread = false;
 					Value = bConfigValue && FApp::ShouldUseThreadingForPerformance() && !FParse::Param(FCommandLine::Get(), TEXT("NoAsyncLoadingThread"));
 				}

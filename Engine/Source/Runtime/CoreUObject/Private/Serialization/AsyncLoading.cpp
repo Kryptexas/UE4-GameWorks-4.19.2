@@ -213,6 +213,30 @@ public:
 static TAutoPtr<FAsyncLoadingExec> GAsyncLoadingExec;
 #endif
 
+static int32 GWarnIfTimeLimitExceeded = 0;
+static FAutoConsoleVariableRef CVarWarnIfTimeLimitExceeded(
+	TEXT("WarnIfTimeLimitExceeded"),
+	GWarnIfTimeLimitExceeded,
+	TEXT("Enables log warning if time limit for time-sliced package streaming has been exceeded."),
+	ECVF_Default
+	);
+
+static float GTimeLimitExceededMultiplier = 1.5f;
+static FAutoConsoleVariableRef CVarTimeLimitExceededMultiplier(
+	TEXT("TimeLimitExceededMultiplier"),
+	GTimeLimitExceededMultiplier,
+	TEXT("Multiplier for time limit exceeded warning time threshold."),
+	ECVF_Default
+	);
+
+static float GTimeLimitExceededMinTime = 0.005f;
+static FAutoConsoleVariableRef CVarTimeLimitExceededMinTime(
+	TEXT("TimeLimitExceededMinTime"),
+	GTimeLimitExceededMinTime,
+	TEXT("Multiplier for time limit exceeded warning time threshold."),
+	ECVF_Default
+	);
+
 static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTimeLimit, float InTimeLimit, const TCHAR* InLastTypeOfWorkPerformed = nullptr, UObject* InLastObjectWorkWasPerformedOn = nullptr)
 {
 	bool bTimeLimitExceeded = false;
@@ -221,29 +245,10 @@ static FORCEINLINE bool IsTimeLimitExceeded(double InTickStartTime, bool bUseTim
 		double CurrentTime = FPlatformTime::Seconds();
 		bTimeLimitExceeded = CurrentTime - InTickStartTime > InTimeLimit;
 
-		// One time init for ini override if we should log a warning when time limit is exceeded
-		static struct FWarnIfTimeLimitExceeded
-		{
-			bool WarnignEnabled;
-			double TimeMultiplier;
-			double MinTime;
-			FWarnIfTimeLimitExceeded()
-				: WarnignEnabled(true)
-				, TimeMultiplier(1.0)
-				, MinTime(0.005)
-			{
-				check(GConfig);
-				GConfig->GetBool(TEXT("Core.System"), TEXT("WarnIfTimeLimitExceeded"), WarnignEnabled, GEngineIni);
-				GConfig->GetDouble(TEXT("Core.System"), TEXT("TimeLimitExceededMultiplier"), TimeMultiplier, GEngineIni);
-				GConfig->GetDouble(TEXT("Core.System"), TEXT("TimeLimitExceededMinTime"), MinTime, GEngineIni);
-			}
-		} WarnIfTimeLimitExceeded;
-
 		// Log single operations that take longer than time limit (but only in cooked builds)
-		if (FPlatformProperties::RequiresCookedData() && 
-			WarnIfTimeLimitExceeded.WarnignEnabled && 
-			(CurrentTime - InTickStartTime) > WarnIfTimeLimitExceeded.MinTime &&
-			(CurrentTime - InTickStartTime) > (WarnIfTimeLimitExceeded.TimeMultiplier * InTimeLimit))
+		if (GWarnIfTimeLimitExceeded && 
+			(CurrentTime - InTickStartTime) > GTimeLimitExceededMinTime &&
+			(CurrentTime - InTickStartTime) > (GTimeLimitExceededMultiplier * InTimeLimit))
 		{			
 			UE_LOG(LogStreaming, Warning, TEXT("IsTimeLimitExceeded: %s %s took (less than) %5.2f ms"),
 				InLastTypeOfWorkPerformed ? InLastTypeOfWorkPerformed : TEXT("unknown"),

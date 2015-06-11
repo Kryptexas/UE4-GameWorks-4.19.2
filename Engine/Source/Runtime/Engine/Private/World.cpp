@@ -79,6 +79,7 @@
 #include "Engine/LightMapTexture2D.h"
 #include "Engine/GameInstance.h"
 #include "UObject/UObjectThreadContext.h"
+#include "Engine/CoreSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
 DEFINE_LOG_CATEGORY(LogSpawn);
@@ -1582,7 +1583,7 @@ static bool IsTimeLimitExceeded( const TCHAR* CurrentTask, double StartTime, ULe
 	// We don't spread work across several frames in the Editor to avoid potential side effects.
 	if( Level->OwningWorld->IsGameWorld() == true )
 	{
-		double TimeLimit = GEngine->LevelStreamingActorsUpdateTimeLimit;
+		double TimeLimit = GetDefault<UStreamingSettings>()->LevelStreamingActorsUpdateTimeLimit;
 		double CurrentTime	= FPlatformTime::Seconds();
 		// Delta time in ms.
 		double DeltaTime	= (CurrentTime - StartTime) * 1000;
@@ -1784,7 +1785,7 @@ void UWorld::AddToWorld( ULevel* Level, const FTransform& LevelTransform )
 		const bool bRerunConstructionScript = !(FPlatformProperties::RequiresCookedData() || (IsGameWorld() && (Level->bWasDuplicatedForPIE || !bRerunConstructionDuringEditorStreaming)));
 		
 		// Incrementally update components.
-		int32 NumComponentsToUpdate = GEngine->LevelStreamingComponentsRegistrationGranularity;
+		int32 NumComponentsToUpdate = GetDefault<UStreamingSettings>()->LevelStreamingComponentsRegistrationGranularity;
 		do
 		{
 			Level->IncrementalUpdateComponents( (!IsGameWorld() || IsRunningCommandlet()) ? 0 : NumComponentsToUpdate, bRerunConstructionScript );
@@ -2362,7 +2363,7 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	bool bHasVisibilityRequestPending	= StreamingLevel->GetLoadedLevel() && StreamingLevel->GetLoadedLevel() == CurrentLevelPendingVisibility;
 		
 	// Figure out whether level should be loaded, visible and block on load if it should be loaded but currently isn't.
-	bool bShouldBeLoaded	= bHasVisibilityRequestPending || (!GEngine->bUseBackgroundLevelStreaming && !bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval);
+	bool bShouldBeLoaded = bHasVisibilityRequestPending || (!GetDefault<UStreamingSettings>()->bUseBackgroundLevelStreaming && !bShouldForceUnloadStreamingLevels && !StreamingLevel->bIsRequestingUnloadAndRemoval);
 	bool bShouldBeVisible	= bHasVisibilityRequestPending || bShouldForceVisibleStreamingLevels;
 	bool bShouldBlockOnLoad	= StreamingLevel->bShouldBlockOnLoad || StreamingLevel->ShouldBeAlwaysLoaded();
 
@@ -2395,7 +2396,7 @@ void UWorld::UpdateLevelStreamingInner(ULevelStreaming* StreamingLevel)
 	// See whether level is already loaded
 	if (bShouldBeLoaded)
 	{
-		const bool bBlockOnLoad = (!IsGameWorld() || !GEngine->bUseBackgroundLevelStreaming || bShouldBlockOnLoad);
+		const bool bBlockOnLoad = (!IsGameWorld() || !GetDefault<UStreamingSettings>()->bUseBackgroundLevelStreaming || bShouldBlockOnLoad);
 		// Request to load or duplicate existing level
 		StreamingLevel->RequestLevel(this, bAllowLevelLoadRequests, bBlockOnLoad);
 	}

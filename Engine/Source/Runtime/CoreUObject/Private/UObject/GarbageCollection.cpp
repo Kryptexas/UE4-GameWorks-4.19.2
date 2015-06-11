@@ -1187,11 +1187,34 @@ typedef void (*EditorPostReachabilityAnalysisCallbackType)();
 COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilityAnalysisCallback = NULL;
 
 // Allow parralel GC to be overriden to single threaded via console command.
-static const auto CVarAllowParallelGC = 
-IConsoleManager::Get().RegisterConsoleVariable(TEXT("AllowParallelGC"), (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0, TEXT("Used to control parallel GC."))->AsVariableInt();
+static int32 GAllowParallelGC = (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0;
+static FAutoConsoleVariableRef CVarAllowParallelGC(
+	TEXT("AllowParallelGC"),
+	GAllowParallelGC,
+	TEXT("sed to control parallel GC."),
+	ECVF_Default
+	);
 
 // This counts how many times GC was skipped
 static int32 GNumAttemptsSinceLastGC = 0;
+
+// Number of times GC can be skipped.
+static int32 GNumRetriesBeforeForcingGC = 0;
+static FAutoConsoleVariableRef CVarNumRetriesBeforeForcingGC(
+	TEXT("NumRetriesBeforeForcingGC"),
+	GNumRetriesBeforeForcingGC,
+	TEXT("Maximum number of times GC can be skipped if worker threads are currently modifying UObject state."),
+	ECVF_Default
+	);
+
+// Force flush streaming on GC console variable
+static int32 GFlushStreamingOnGC = 0;
+static FAutoConsoleVariableRef CVarFlushStreamingOnGC(
+	TEXT("FlushStreamingOnGC"),
+	GFlushStreamingOnGC,
+	TEXT("If enabled, streaming will be flushed each time garbage collection is triggered."),
+	ECVF_Default
+	);
 
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
@@ -1207,26 +1230,11 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Reset GC skip counter
 	GNumAttemptsSinceLastGC = 0;
 
-	// Helper class to register FlushAsyncLoadingCallback on first GC run.
-	struct FAddFlushAsyncLoadingCallback
+	// Flush streaming before GC if requested
+	if (GFlushStreamingOnGC)
 	{
-		FAddFlushAsyncLoadingCallback()
-		{
-			bool bFlushStreaming = false;
-			GConfig->GetBool(TEXT("Core.System"), TEXT("FlushStreamingOnGC"), bFlushStreaming, GEngineIni);
-			if (bFlushStreaming)
-			{
-				FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushAsyncLoadingCallback);
-			}
-		}
-		/** Wrapper function to handle default parameter when used as function pointer */
-		static void FlushAsyncLoadingCallback()
-		{
-			FlushAsyncLoading();
-		}
-	};
-	// Add FlushAsyncLoadingCallback the first time CollectGarbage is called if requested by ini settings
-	static FAddFlushAsyncLoadingCallback MaybeAddFlushAsyncLoadingCallback;
+		FlushAsyncLoading();
+	}
 
 	// Route callbacks so we can ensure that we are e.g. not in the middle of loading something by flushing
 	// the async loading, etc...
@@ -1292,7 +1300,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Temporarily forcing single-threaded GC in the editor until Modify() can be safely removed from HandleObjectReference.
 	const bool bForceSingleThreadedGC = !FApp::ShouldUseThreadingForPerformance() || !FPlatformProcess::SupportsMultithreading() ||
 #if PLATFORM_SUPPORTS_MULTITHREADED_GC
-		( FPlatformMisc::NumberOfCores() < 2 || CVarAllowParallelGC->GetValueOnGameThread() == 0 || PERF_DETAILED_PER_CLASS_GC_STATS );
+		( FPlatformMisc::NumberOfCores() < 2 || GAllowParallelGC == 0 || PERF_DETAILED_PER_CLASS_GC_STATS );
 #else	//PLATFORM_SUPPORTS_MULTITHREADED_GC
 		true;
 #endif	//PLATFORM_SUPPORTS_MULTITHREADED_GC
@@ -1360,18 +1368,7 @@ bool TryCollectGarbage(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	bool bCanRunGC = GGarbageCollectionGuardCritical.TryGCLock();
 	if (!bCanRunGC)
 	{
-		// One time init for ini override if we should log a warning when time limit is exceeded
-		static struct FForceGCSettings
-		{
-			int32 NumRetriesBeforeForcingGC;
-			FForceGCSettings()
-				: NumRetriesBeforeForcingGC(0) // 0 means 'never force GC'
-			{
-				check(GConfig);
-				GConfig->GetInt(TEXT("Core.System"), TEXT("NumRetriesBeforeForcingGC"), NumRetriesBeforeForcingGC, GEngineIni);
-			}
-		} ForceGCSettings;
-		if (ForceGCSettings.NumRetriesBeforeForcingGC > 0 && GNumAttemptsSinceLastGC > ForceGCSettings.NumRetriesBeforeForcingGC)
+		if (GNumRetriesBeforeForcingGC > 0 && GNumAttemptsSinceLastGC > GNumRetriesBeforeForcingGC)
 		{
 			// Force GC and block main thread
 			bCanRunGC = true;

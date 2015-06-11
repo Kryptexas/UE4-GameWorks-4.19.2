@@ -113,6 +113,7 @@
 #include "Engine/SimpleConstructionScript.h"
 
 #include "PhysicsPublic.h"
+#include "Engine/CoreSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -981,7 +982,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.	
-		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, GetDefault<UStreamingSettings>()->bAsyncLoadingUseFullTimeLimit, GetDefault<UStreamingSettings>()->AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// Look for realtime flags.

@@ -26,6 +26,7 @@
 #include "STaskGraph.h"
 #endif
 #include "ParallelFor.h"
+#include "Engine/CoreSettings.h"
 
 // this will log out all of the objects that were ticked in the FDetailedTickStats struct so you can isolate what is expensive
 #define LOG_DETAILED_DUMPSTATS 0
@@ -1081,7 +1082,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal || IsInSeamlessTravel())
 	{
 		// Force it to use the entire time slice, even if blocked on I/O
-		ProcessAsyncLoading(true, true, GEngine->PriorityAsyncLoadingExtraTime / 1000.0f);
+		ProcessAsyncLoading(true, true, GetDefault<UStreamingSettings>()->PriorityAsyncLoadingExtraTime / 1000.0f);
 	}
 
 	// Translate world origin if requested
@@ -1314,7 +1315,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
 		const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
-		const float TimeBetweenPurgingPendingKillObjects = bShouldUseLowFrequencyGC ? GEngine->TimeBetweenPurgingPendingKillObjects * 10 : GEngine->TimeBetweenPurgingPendingKillObjects;
+		const float TimeBetweenPurgingPendingKillObjects = bShouldUseLowFrequencyGC ? 
+			GetDefault<UGarbageCollectionSettings>()->TimeBetweenPurgingPendingKillObjects * 10 : 
+			GetDefault<UGarbageCollectionSettings>()->TimeBetweenPurgingPendingKillObjects;
 
 		// See if we should delay garbage collect for this frame
 		if (bShouldDelayGarbageCollect)
@@ -1463,7 +1466,7 @@ void UWorld::CleanupActors()
 
 void UWorld::ForceGarbageCollection( bool bForcePurge/*=false*/ )
 {
-	TimeSinceLastPendingKillPurge = 1.f + GEngine->TimeBetweenPurgingPendingKillObjects;
+	TimeSinceLastPendingKillPurge = 1.f + GetDefault<UGarbageCollectionSettings>()->TimeBetweenPurgingPendingKillObjects;
 	FullPurgeTriggered = FullPurgeTriggered || bForcePurge;
 }
 
