@@ -305,6 +305,19 @@ public:
 		}
 	}
 
+	/** Efficiently empties out the set but preserves all allocations and capacities */
+    void Reset()
+    {
+		// Reset the elements array.
+		Elements.Reset();
+
+		// Clear the references to the elements that have now been removed.
+		for(int32 HashIndex = 0;HashIndex < HashSize;HashIndex++)
+		{
+			GetTypedHash(HashIndex) = FSetElementId();
+		}
+    }
+
 	/** Shrinks the set's element storage to avoid slack. */
 	FORCEINLINE void Shrink()
 	{

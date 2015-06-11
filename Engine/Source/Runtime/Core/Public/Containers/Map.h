@@ -252,7 +252,7 @@ public:
     /** Efficiently empties out the map but preserves all allocations and capacities */
     FORCEINLINE void Reset()
     {
-        Empty(Num());
+        Pairs.Reset();
     }
 
 	/** Shrinks the pair set to avoid slack. */
