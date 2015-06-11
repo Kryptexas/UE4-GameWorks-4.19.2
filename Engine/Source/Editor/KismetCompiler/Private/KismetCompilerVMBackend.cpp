@@ -746,11 +746,11 @@ public:
 			&& !FunctionToCall->GetOuterUClass()->IsChildOf(UInterface::StaticClass())
 			&& FunctionToCall->GetOwnerClass()->GetName() == TEXT("KismetMathLibrary");
 
+		// Handle the function calling context if needed
+		FContextEmitter CallContextWriter(*this);
+
 		if (!bMathCall) // math call doesn't need context
 		{
-			// Handle the function calling context if needed
-			FContextEmitter CallContextWriter(*this);
-
 			// RValue property is used to clear value after Access Violation. See UObject::ProcessContextOpcod
 			// If the property from LHS is used, then the retured property (with CPF_ReturnParm) is cleared. But properties returned by ref are not cleared. 
 			UProperty* RValueProperty = nullptr; //Statement.LHS ? Statement.LHS->AssociatedVarProperty : nullptr;
