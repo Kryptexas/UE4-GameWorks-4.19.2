@@ -161,9 +161,9 @@ namespace HTML5LaunchHelper
 						MimeType = MimeTypeMapping[Extention];
 					}
 					// This is the crux of serving pre-compressed files. 
-					else if (Extention == ".gz" || Extention == ".data" || Extention == ".mem")
+					if (Extention == ".gz")
 					{
-						Context.Response.AddHeader("Content-Encoding", "gzip");
+					  Context.Response.AddHeader("Content-Encoding", "gzip");
 					}
 
 					byte[] buffer = new byte[source.Length];

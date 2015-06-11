@@ -291,7 +291,7 @@ window.onerror  = function(msg, url, line, column, error) {
         addLog( " downloading symbols file ");
         // get non minified symbols and demangle the callstack. 
 		$.ajax({
-			  url : "%CONFIG%.js.symbols",
+			  url : "%CONFIG%.js.symbols.gz",
 			  dataType: "text",
 			  success : function (data) {	
                   addLog(" symbols file downloaded, demangling..");
@@ -375,6 +375,12 @@ var Module = {
 		// state management
 		infoPrinted: false, 
 		lastcurrentDownloadedSize: 0,
+
+		// file location. 
+		locateFile : function (name){ 
+		      return name + ".gz";
+		},
+
 
 		// packaged data download, sets this information. 
 		setStatus: function(text) {
