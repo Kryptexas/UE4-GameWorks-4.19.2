@@ -830,6 +830,22 @@ bool UAbilitySystemComponent::TryActivateAbilitiesByTag(const FGameplayTagContai
 	return bSuccess;
 }
 
+bool UAbilitySystemComponent::TryActivateAbilityByClass(TSubclassOf<UGameplayAbility> InAbilityToActivate, bool bAllowRemoteActivation)
+{
+	bool bSuccess = false;
+
+	for (const FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
+	{
+		if (Spec.Ability == InAbilityToActivate.GetDefaultObject())
+		{
+			bSuccess |= TryActivateAbility(Spec.Handle, bAllowRemoteActivation);
+			break;
+		}
+	}
+
+	return bSuccess;
+}
+
 bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, bool bAllowRemoteActivation)
 {
 	FGameplayTagContainer FailureTags;

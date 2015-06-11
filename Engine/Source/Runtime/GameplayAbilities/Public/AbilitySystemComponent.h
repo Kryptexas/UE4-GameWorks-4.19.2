@@ -589,6 +589,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION(BlueprintCallable, Category = "Abilities")
 	bool TryActivateAbilitiesByTag(const FGameplayTagContainer& GameplayTagContainer, bool bAllowRemoteActivation = true);
 
+	/**
+	 * Attempts to activate the ability that is passed in. This will check costs and requirements before doing so.
+	 * Returns true if it thinks it activated, but it may return false positives due to failure later in activation.
+	 * If bAllowRemoteActivation is true, it will remotely activate local/server abilities, if false it will only try to locally activate the ability
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Abilities")
+	bool TryActivateAbilityByClass(TSubclassOf<UGameplayAbility> InAbilityToActivate, bool bAllowRemoteActivation = true);
+
 	/** 
 	 * Attempts to activate the given ability, will check costs and requirements before doing so.
 	 * Returns true if it thinks it activated, but it may return false positives due to failure later in activation.
