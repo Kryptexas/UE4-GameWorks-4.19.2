@@ -2274,6 +2274,14 @@ void UStaticMesh::EnforceLightmapRestrictions()
  */
 void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >& InOutAssetsWithMissingUVSets, TArray< FString >& InOutAssetsWithBadUVSets, TArray< FString >& InOutAssetsWithValidUVSets, bool bInVerbose )
 {
+	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
+	if (!bAllowStaticLighting)
+	{
+		// We do not need to check for lightmap UV problems when we do not allow static lighting
+		return;
+	}
+
 	struct FLocal
 	{
 		/**
