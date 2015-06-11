@@ -906,7 +906,11 @@ double FAsyncPackage::GetLoadStartTime() const
 void FAsyncPackage::ResetLoader()
 {
 	// Reset loader.
-	if (Linker)
+	if (bLoadHasFailed)
+	{
+		Linker = nullptr;
+	}
+	else if (Linker)
 	{
 		delete Linker;
 		Linker = nullptr;
