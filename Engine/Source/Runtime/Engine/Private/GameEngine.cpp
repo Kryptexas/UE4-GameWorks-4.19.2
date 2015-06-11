@@ -476,13 +476,13 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 			SwitchGameWindowToUseGameViewport();
 		}
 
-		UGameViewportClient::OnViewportCreated().Broadcast();
-
 		FString Error;
 		if(ViewportClient->SetupInitialLocalPlayer(Error) == NULL)
 		{
 			UE_LOG(LogEngine, Fatal,TEXT("%s"),*Error);
 		}
+
+		UGameViewportClient::OnViewportCreated().Broadcast();
 	}
 
 	GameInstance->StartGameInstance();

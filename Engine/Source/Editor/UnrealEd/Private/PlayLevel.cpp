@@ -3005,6 +3005,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					}
 				}
 			}
+
+			UGameViewportClient::OnViewportCreated().Broadcast();
 		}
 	}
 
