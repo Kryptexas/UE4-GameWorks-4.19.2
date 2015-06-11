@@ -984,7 +984,7 @@ public:
 	virtual ENamedThreads::Type GetCurrentThreadIfKnown(bool bLocalQueue) override
 	{
 		ENamedThreads::Type Result = GetCurrentThread();
-		if (Result >= 0 && Result < NumNamedThreads)
+		if (bLocalQueue && Result >= 0 && Result < NumNamedThreads)
 		{
 			Result = ENamedThreads::Type(int32(Result) | int32(ENamedThreads::LocalQueue));
 		}
