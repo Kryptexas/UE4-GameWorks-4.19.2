@@ -209,7 +209,7 @@ FString FRuntimeAssetCacheAsyncWorker::BuildCacheKey(const TCHAR* VersionString,
 
 FString FRuntimeAssetCacheAsyncWorker::BuildCacheKey(FRuntimeAssetCacheBuilderInterface* CacheBuilder)
 {
-	return BuildCacheKey(CacheBuilder->GetVersionString(), *CacheBuilder->GetBuilderSpecificCacheKeySuffix());
+	return BuildCacheKey(CacheBuilder->GetBuilderName(), *CacheBuilder->GetAssetUniqueName());
 }
 
 void FRuntimeAssetCacheAsyncWorker::FreeCacheSpace(FName Bucket, int32 NumberOfBytesToFree)
