@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2301132
-Availability:NoPublish
+﻿Availability:NoPublish
 Title:Interactive UE4 Basics チュートリアル
 Crumbs: %ROOT%, Shared/Tutorials
 Description:
@@ -297,7 +296,7 @@ WalkWay の位置調整
 
 
 
-[詳細] パネルに必要な値を直接入力することもできます。[詳細] パネルでは、[Transform] と呼ばれるカテゴリと、その下に [Location] と呼ばれるプロパティがあり、X に 210 、Y に 420 、Z に570 を入力することができます。
+[Details] パネルに必要な値を直接入力することもできます。[Details] パネルでは、[Transform] と呼ばれるカテゴリと、その下に [Location] と呼ばれるプロパティがあり、X に 210 、Y に 420 、Z に570 を入力することができます。
 
 ![](Stage1_13.png)
 
