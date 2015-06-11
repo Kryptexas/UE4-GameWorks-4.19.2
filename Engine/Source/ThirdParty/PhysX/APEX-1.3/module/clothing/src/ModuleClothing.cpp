@@ -654,8 +654,6 @@ void ModuleClothing::destroy()
 
 	Module::destroy();
 
-	releaseModuleProfiling();
-
 	mAssetAuthorableObjectFactories.clear(); // needs to be done before destructor!
 
 #ifdef PX_WINDOWS
@@ -666,6 +664,8 @@ void ModuleClothing::destroy()
 #endif
 
 	PX_DELETE(this);
+
+	releaseModuleProfiling();
 
 	if (traits)
 	{

@@ -20,6 +20,7 @@
 #include "CmScaling.h"
 #include "GuEntityReport.h"
 #include "GuHeightFieldUtil.h"
+#include "PsSort.h"
 
 using namespace physx;
 using namespace Gu;
@@ -133,18 +134,29 @@ static PxVec3 closestPtPointTriangle(const PxVec3& p, const PxVec3& a, const PxV
 
 ///////////////////////////////////////////////////////////////////////////////
 
+// PT: we use a separate structure to make sorting faster
+struct SortKey
+{
+	float		mSquareDist;
+	PxU32		mIndex;
+
+	PX_FORCE_INLINE bool operator < (const SortKey& data) const
+	{
+		return mSquareDist < data.mSquareDist;
+	}		
+};
+
 struct TriangleData
 {
-	PxVec3		delta;
-	FeatureCode	fc;
-	float		squareDist;
-	PxU32		triangleIndex;
-	PxU32		vref[3];
+	PxVec3		mDelta;
+	FeatureCode	mFC;
+	PxU32		mTriangleIndex;
+	PxU32		mVRef[3];
 };
 
 struct CachedTriangleIndices
 {
-	PxU32		vref[3];
+	PxU32		mVRef[3];
 };
 
 static PX_FORCE_INLINE bool validateSquareDist(PxReal squareDist)
@@ -157,9 +169,9 @@ static bool validateEdge(PxU32 vref0, PxU32 vref1, const CachedTriangleIndices* 
 	while(nbCachedTris--)
 	{
 		const CachedTriangleIndices& inds = *cachedTris++;
-		const PxU32 vi0 = inds.vref[0];
-		const PxU32 vi1 = inds.vref[1];
-		const PxU32 vi2 = inds.vref[2];
+		const PxU32 vi0 = inds.mVRef[0];
+		const PxU32 vi1 = inds.mVRef[1];
+		const PxU32 vi2 = inds.mVRef[2];
 
 		if(vi0==vref0)
 		{
@@ -185,15 +197,21 @@ static bool validateVertex(PxU32 vref, const CachedTriangleIndices* cachedTris, 
 	while(nbCachedTris--)
 	{
 		const CachedTriangleIndices& inds = *cachedTris++;
-		if(inds.vref[0]==vref || inds.vref[1]==vref || inds.vref[2]==vref)
+		if(inds.mVRef[0]==vref || inds.mVRef[1]==vref || inds.mVRef[2]==vref)
 			return false;
 	}
 	return true;
 }
 
-
 namespace
 {
+	class NullAllocator
+	{
+	public:
+		PX_FORCE_INLINE NullAllocator()								{				}
+		PX_FORCE_INLINE	void* allocate(size_t, const char*, int) 	{ return NULL;	}
+		PX_FORCE_INLINE	void deallocate(void*)						{				}
+	};
 
 struct SphereMeshContactGeneration
 {
@@ -202,9 +220,10 @@ struct SphereMeshContactGeneration
 	const PxTransform&		mTransform1;
 	ContactBuffer&			mContactBuffer;
 	const PxVec3&			mSphereCenterShape1Space;
-	PxF32					mInflatedRadius;
+	PxF32					mInflatedRadius2;
 	PxU32					mNbDelayed;
 	TriangleData			mSavedData[ContactBuffer::MAX_CONTACTS];
+	SortKey					mSortKey[ContactBuffer::MAX_CONTACTS];
 	PxU32					mNbCachedTris;
 	CachedTriangleIndices	mCachedTris[ContactBuffer::MAX_CONTACTS];
 
@@ -215,7 +234,7 @@ struct SphereMeshContactGeneration
 		mTransform1					(transform1),
 		mContactBuffer				(contactBuffer),
 		mSphereCenterShape1Space	(sphereCenterShape1Space),
-		mInflatedRadius				(inflatedRadius),
+		mInflatedRadius2			(inflatedRadius*inflatedRadius),
 		mNbDelayed					(0),
 		mNbCachedTris				(0)
 	{
@@ -224,9 +243,9 @@ struct SphereMeshContactGeneration
 	PX_FORCE_INLINE void cacheTriangle(PxU32 ref0, PxU32 ref1, PxU32 ref2)
 	{
 		const PxU32 nb = mNbCachedTris++;
-		mCachedTris[nb].vref[0] = ref0;
-		mCachedTris[nb].vref[1] = ref1;
-		mCachedTris[nb].vref[2] = ref2;
+		mCachedTris[nb].mVRef[0] = ref0;
+		mCachedTris[nb].mVRef[1] = ref1;
+		mCachedTris[nb].mVRef[2] = ref2;
 	}
 
 	PX_FORCE_INLINE void addContact(const PxVec3& d, PxReal squareDist, PxU32 triangleIndex)
@@ -257,17 +276,15 @@ struct SphereMeshContactGeneration
 
 	void processTriangle(PxU32 triangleIndex, const PxVec3& v0, const PxVec3& v1, const PxVec3& v2, const PxU32* vertInds)
 	{
-		const PxF32 r2 = mInflatedRadius * mInflatedRadius;
-
 		// PT: compute closest point between sphere center and triangle
 		PxReal u, v;
 		FeatureCode fc;
 		const PxVec3 cp = closestPtPointTriangle(mSphereCenterShape1Space, v0, v1, v2, u, v, fc);
 
 		// PT: compute 'delta' vector between closest point and sphere center
-		PxVec3 delta = cp - mSphereCenterShape1Space;
+		const PxVec3 delta = cp - mSphereCenterShape1Space;
 		const PxReal squareDist = delta.magnitudeSquared();
-		if(squareDist >= r2)
+		if(squareDist >= mInflatedRadius2)
 			return;
 
 		// PT: backface culling without the normalize
@@ -305,14 +322,17 @@ struct SphereMeshContactGeneration
 		{
 			if(mNbDelayed<ContactBuffer::MAX_CONTACTS)
 			{
-				TriangleData* saved = mSavedData + mNbDelayed++;
-				saved->delta			= d;
-				saved->vref[0]			= vertInds[0];
-				saved->vref[1]			= vertInds[1];
-				saved->vref[2]			= vertInds[2];
-				saved->fc				= fc;
-				saved->squareDist		= squareDist;
-				saved->triangleIndex	= triangleIndex;
+				const PxU32 index = mNbDelayed++;
+				mSortKey[index].mSquareDist = squareDist;
+				mSortKey[index].mIndex = index;
+
+				TriangleData* saved = mSavedData + index;
+				saved->mDelta			= d;
+				saved->mVRef[0]			= vertInds[0];
+				saved->mVRef[1]			= vertInds[1];
+				saved->mVRef[2]			= vertInds[2];
+				saved->mFC				= fc;
+				saved->mTriangleIndex	= triangleIndex;
 			}
 			else outputErrorMessage();
 		}
@@ -324,29 +344,20 @@ struct SphereMeshContactGeneration
 		if(!count)
 			return;
 
-		struct Local
-		{
-			static int compare(const void* c0, const void* c1)
-			{
-				const TriangleData* mc0 = (const TriangleData*)c0;
-				const TriangleData* mc1 = (const TriangleData*)c1;
-				return mc0->squareDist > mc1->squareDist;
-			}
-		};
-		TriangleData* touchedTris = mSavedData;
-		qsort(touchedTris, (size_t)count, sizeof(TriangleData), Local::compare);
+		Ps::sort(mSortKey, count, Ps::Less<SortKey>(), NullAllocator(), ContactBuffer::MAX_CONTACTS);
 
-		// PT: the single pass works thanks to the initial sorting, which makes us process edges
-		// before vertices in cases that would need a separate pass for vertices...
+		TriangleData* touchedTris = mSavedData;
 		for(PxU32 i=0;i<count;i++)
 		{
-			const PxU32 ref0 = touchedTris[i].vref[0];
-			const PxU32 ref1 = touchedTris[i].vref[1];
-			const PxU32 ref2 = touchedTris[i].vref[2];
+			const TriangleData& data = touchedTris[mSortKey[i].mIndex];
+
+			const PxU32 ref0 = data.mVRef[0];
+			const PxU32 ref1 = data.mVRef[1];
+			const PxU32 ref2 = data.mVRef[2];
 
 			bool generateContact = false;
 
-			switch(touchedTris[i].fc)
+			switch(data.mFC)
 			{
 				case FC_VERTEX0:
 					generateContact = ::validateVertex(ref0, mCachedTris, mNbCachedTris);
@@ -380,7 +391,7 @@ struct SphereMeshContactGeneration
 			};
 	
 			if(generateContact)
-				addContact(touchedTris[i].delta, touchedTris[i].squareDist, touchedTris[i].triangleIndex);
+				addContact(data.mDelta, mSortKey[i].mSquareDist, data.mTriangleIndex);
 
 			if(mNbCachedTris<ContactBuffer::MAX_CONTACTS)
 				cacheTriangle(ref0, ref1, ref2);
@@ -569,10 +580,10 @@ bool Gu::contactSphereHeightField(GU_CONTACT_METHOD_ARGS)
 	const PxHeightFieldGeometryLL& shapeMesh = shape1.get<const PxHeightFieldGeometryLL>();
 
 #ifdef __SPU__
-		const Gu::HeightField& hf = *Cm::memFetchAsync<const Gu::HeightField>(HeightFieldBuffer, Cm::MemFetchPtr(static_cast<Gu::HeightField*>(shapeMesh.heightField)), sizeof(Gu::HeightField), 1);
-		Cm::memFetchWait(1);
+	const Gu::HeightField& hf = *Cm::memFetchAsync<const Gu::HeightField>(HeightFieldBuffer, Cm::MemFetchPtr(static_cast<Gu::HeightField*>(shapeMesh.heightField)), sizeof(Gu::HeightField), 1);
+	Cm::memFetchWait(1);
 #if HF_TILED_MEMORY_LAYOUT
-		g_sampleCache.init((uintptr_t)(hf.getData().samples), hf.getData().tilesU);
+	g_sampleCache.init((uintptr_t)(hf.getData().samples), hf.getData().tilesU);
 #endif
 #else
 	const Gu::HeightField& hf = *static_cast<Gu::HeightField*>(shapeMesh.heightField);
@@ -580,10 +591,10 @@ bool Gu::contactSphereHeightField(GU_CONTACT_METHOD_ARGS)
 	Gu::HeightFieldUtil hfUtil(shapeMesh, hf);
 
 	const PxVec3 sphereCenterShape1Space = transform1.transformInv(transform0.p);
-	PxReal inflatedRadius = shapeSphere.radius + contactDistance;
-	PxVec3 inflatedRV3(inflatedRadius);
+	const PxReal inflatedRadius = shapeSphere.radius + contactDistance;
+	const PxVec3 inflatedRV3(inflatedRadius);
 
-	PxBounds3 bounds(sphereCenterShape1Space - inflatedRV3, sphereCenterShape1Space + inflatedRV3);
+	const PxBounds3 bounds(sphereCenterShape1Space - inflatedRV3, sphereCenterShape1Space + inflatedRV3);
 
 	SphereHeightfieldContactGenerationCallback blockCallback(hfUtil, shapeSphere, transform0, transform1, contactBuffer, sphereCenterShape1Space, inflatedRadius);
 

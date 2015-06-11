@@ -444,7 +444,7 @@ struct MultiQueryCallback : public PrunerCallback
 				hit.shape = as.shape;
 
 				// some additional processing only for sweep hits with initial overlap
-				if(HitTypeSupport<HitType>::IsSweep && HITDIST(hit) == 0.0f)
+				if(HitTypeSupport<HitType>::IsSweep && HITDIST(hit) == 0.0f && !(filteredHitFlags & PxHitFlag::eMTD))
 					// PT: necessary as some leaf routines are called with reversed params, thus writing +unitDir there.
 					// AP: apparently still necessary to also do in Gu because Gu can be used standalone (without SQ)
 					((PxSweepHit&)hit).normal = -input.getDir();

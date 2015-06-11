@@ -1554,7 +1554,7 @@ void PxsAABBManager::processBPResults(const PxsComputeAABBParams& params)
 				{
 					const PxcBpHandle aggregateId = updatedAggregates[i];
 					const Aggregate& aggregate = *mAggregateManager.getAggregate(aggregateId);
-					if(aggregate.selfCollide && aggregate.nbActive > 0)	
+					if(aggregate.performSelfCollision())
 					{
 						aggregatesNeedingSorted.set(aggregateId);
 						NumAggregatesToSort++;
@@ -2171,7 +2171,7 @@ void PxsAABBManager::selfCollideAggregates(const AggregateSortedData* aggregateS
 		const AggregateSortedData& aggregateSortedData = aggregateSortedDatas[aggregateId];
 		Aggregate* aggregate = mAggregateManager.getAggregate(aggregateId);
 		SelfCollideBitmap* selfCollideBitmap = &aggregate->selfCollBitmap;
-		if(aggregate->selfCollide && aggregate->nbElems>0)
+		if(aggregate->performSelfCollision())
 		{
 			selfCollideAggregate(aggregateSortedData, *aggregate, selfCollideBitmap);
 		}
@@ -2183,8 +2183,7 @@ void PxsAABBManager::selfCollideAggregates(const AggregateSortedData* aggregateS
 
 void PxsAABBManager::selfCollideAggregate(const AggregateSortedData& aggregateSortedData, const Aggregate& aggregate, SelfCollideBitmap* selfCollBitmap)
 {
-	PX_ASSERT(aggregate.selfCollide);
-	PX_ASSERT(aggregate.nbElems > 0);
+	PX_ASSERT(aggregate.performSelfCollision());
 
 	//A new bitmap of overlap pairs.
 	SelfCollideBitmap newBitmap;

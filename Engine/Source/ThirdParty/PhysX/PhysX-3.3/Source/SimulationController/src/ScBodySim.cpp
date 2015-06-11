@@ -362,13 +362,15 @@ void Sc::BodySim::postSwitchToKinematic()
 
 void Sc::BodySim::postSwitchToDynamic()
 {
+	InteractionScene& iScene = getInteractionScene();
+
 	if(mLLIslandHook.isManaged())
-		getInteractionScene().getLLIslandManager().setKinematic(mLLIslandHook, false);
+		iScene.getLLIslandManager().setKinematic(mLLIslandHook, false);
 
 	setForcesToDefaults(true);
 
 	if (getConstraintGroup())
-		getConstraintGroup()->rebuildProjectionTrees();
+		getConstraintGroup()->markForProjectionTreeRebuild(iScene.getOwnerScene().getProjectionManager());
 
 	// interactions need to get refiltered to make sure that former kinematic-kinematic and kinematic-static pairs get enabled
 	setActorsInteractionsDirty(CoreInteraction::CIF_DIRTY_BODY_KINEMATIC, NULL, PX_INTERACTION_FLAG_FILTERABLE);
@@ -690,7 +692,7 @@ PX_FORCE_INLINE void Sc::BodySim::initKinematicStateBase(BodyCore&)
 	// Need to be before setting setRigidBodyFlag::KINEMATIC
 
 	if (getConstraintGroup())
-		getConstraintGroup()->rebuildProjectionTrees();
+		getConstraintGroup()->markForProjectionTreeRebuild(getScene().getProjectionManager());
 }
 
 

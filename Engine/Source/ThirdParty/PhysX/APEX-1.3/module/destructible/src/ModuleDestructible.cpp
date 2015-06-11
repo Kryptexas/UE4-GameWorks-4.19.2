@@ -332,11 +332,11 @@ ModuleDestructible::~ModuleDestructible()
 {
 	m_destructibleSceneList.clear();
 
-	// This needs to happen after the scene list is cleared (actors do stuff)
-	releaseModuleProfiling();
-
 	PX_DELETE(mCachedData);
 	mCachedData = NULL;
+
+	// This needs to happen after the scene list is cleared (actors do stuff)
+	releaseModuleProfiling();
 }
 
 NxParameterized::Interface* ModuleDestructible::getDefaultModuleDesc()

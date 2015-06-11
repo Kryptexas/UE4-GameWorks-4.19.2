@@ -406,16 +406,6 @@ public:
 	virtual bool					isHardSleepingEnabled() const = 0;
 
 	/**
-		Puts the PxActor associated with the given chunk to sleep, or wakes it up, depending upon the value of the 'sleep' bool.
-			
-		\param chunkIndex	the chunk index within the actor
-		\param awake		if true, wakes the actor, otherwise puts the actor to sleep
-
-		Returns true iff successful.
-	*/
-	virtual	bool					setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake) = 0;
-
-	/**
 		Sets the override material.
 	*/
 	virtual void					setSkinnedOverrideMaterial(PxU32 submeshIndex, const char* overrideMaterialName) = 0;

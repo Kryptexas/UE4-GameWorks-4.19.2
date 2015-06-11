@@ -181,9 +181,9 @@ class PxsArticulation;
 struct PxcFsData
 {
 	PxsArticulation*	articulationX;																//4
-
-#if !defined(PX_X64) && !defined(PX_ARM64)
-	PxU32				pad0;																		//8
+	
+#if !defined(PX_P64)
+	PxU32				pad0;																		//8	
 #endif
 	PxU16				linkCount;						// number of links							//10
 	PxU16				jointVectorOffset;				// offset of read-only data					//12

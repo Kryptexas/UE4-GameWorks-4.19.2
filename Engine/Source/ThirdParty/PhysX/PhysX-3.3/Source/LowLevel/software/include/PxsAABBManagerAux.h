@@ -332,6 +332,11 @@ struct Aggregate
 		actorHeadID = PX_INVALID_BP_HANDLE;
 		userData	= NULL;
 	}
+
+	PX_FORCE_INLINE bool performSelfCollision() const
+	{
+		return (selfCollide && (nbActive > 0));
+	}
 };
 #if defined(PX_PS3) || defined(PX_X360) 
 PX_COMPILE_TIME_ASSERT(0==(sizeof(Aggregate) & 0x0f));

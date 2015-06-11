@@ -728,7 +728,7 @@ PxU32 normalizePartitions(Ps::Array<PxU32>& accumulatedConstraintsPerPartition, 
 			}
 		}
 	}
-
+	
 	PxU32 partitionCount = 0;
 	PxU32 lastPartitionCount = 0;
 	for (PxU32 a = 0; a < numPartitions; ++a)

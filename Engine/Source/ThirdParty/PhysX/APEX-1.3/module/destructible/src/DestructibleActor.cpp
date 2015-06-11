@@ -658,19 +658,49 @@ void DestructibleActor::wakeUp(void)
 void DestructibleActor::putToSleep(void)
 {
 	PX_ASSERT(mDestructibleScene);
-	if (mDestructibleScene && !mDestructibleScene->mUsingActiveTransforms)
+	if (mDestructibleScene)
 	{
 		mDestructibleScene->removeFromAwakeList(*this);
 	}
 }
 
+// TODO:		clean up mAwakeActorCount management with mUsingActiveTransforms
+// [APEX-671]	mind that un/referencedByActor() also call these functions
+
 void DestructibleActor::incrementWakeCount(void)
 {
-	if (!mAwakeActorCount)
+	if (mDestructibleScene && !mDestructibleScene->mUsingActiveTransforms)
 	{
-		wakeUp();
+		if (!mAwakeActorCount)
+		{
+			wakeUp();
+		}
+		mAwakeActorCount++;
 	}
-	mAwakeActorCount++;
+}
+
+void DestructibleActor::wakeForEvent()
+{
+	if (!mWakeForEvent)
+	{
+		mWakeForEvent = true;
+		if (mDestructibleScene->mUsingActiveTransforms)
+			wakeUp();
+		else
+			incrementWakeCount();
+	}
+}
+
+void DestructibleActor::resetWakeForEvent()
+{
+	if (mWakeForEvent)
+	{
+		mWakeForEvent = false;
+		if (mDestructibleScene->mUsingActiveTransforms)
+			putToSleep();
+		else
+			decrementWakeCount();
+	}
 }
 
 void DestructibleActor::decrementWakeCount(void)
@@ -685,7 +715,7 @@ void DestructibleActor::decrementWakeCount(void)
 #if NX_SDK_VERSION_MAJOR == 3 // the counter does still not work correctly with 2.8.4
 	PX_ASSERT(mDestructibleScene->mUsingActiveTransforms || mAwakeActorCount > 0);
 #endif
-	if (mAwakeActorCount > 0)
+	if (mAwakeActorCount > 0 && !mDestructibleScene->mUsingActiveTransforms)
 	{
 		mAwakeActorCount--;
 		if (!mAwakeActorCount)
@@ -2332,6 +2362,9 @@ void DestructibleActor::setRenderTMs(bool processChunkPoseForSyncing /*= false*/
 		// Iterate over all visible chunks
 		const physx::PxU16* indexPtr = mVisibleChunks.usedIndices();
 		const physx::PxU16* indexPtrStop = indexPtr + mVisibleChunks.usedCount();
+
+		// TODO: Here we update all chunks although we practically know the chunks (active transforms) that have moved. Improve. [APEX-670]
+
 		while (indexPtr < indexPtrStop)
 		{
 			const physx::PxU16 index = *indexPtr++;
@@ -2655,45 +2688,6 @@ void DestructibleActor::disableHardSleeping(bool wake)
 			}
 		}
 	}
-}
-
-bool DestructibleActor::setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake)
-{
-	NxActor* actor = getChunkActor(chunkIndex);
-	if (actor == NULL)
-	{
-		return false;
-	}
-
-	physx::PxScene* scene = actor->getScene();
-	if (scene == NULL)
-	{
-#if NX_SDK_VERSION_MAJOR == 3
-		// defer
-		if (mDestructibleScene != NULL)
-		{
-			mDestructibleScene->addForceToAddActorsMap(actor, ActorForceAtPosition(physx::PxVec3(0.0f), physx::PxVec3(0.0f), physx::PxForceMode::eFORCE, awake));
-			return true;
-		}
-#endif
-		return false;
-	}
-
-	// Actor has a scene, set sleep state now
-	if (awake)
-	{
-		actor->wakeUp();
-	}
-	else
-	{
-#if NX_SDK_VERSION_MAJOR == 2
-		actor->putToSleep();
-#elif NX_SDK_VERSION_MAJOR == 3
-		((PxRigidDynamic*)actor)->putToSleep();
-#endif
-	}
-
-	return true;
 }
 
 void DestructibleActor::setLODWeights(physx::PxF32 maxDistance, physx::PxF32 distanceWeight, physx::PxF32 maxAge, physx::PxF32 ageWeight, physx::PxF32 bias)

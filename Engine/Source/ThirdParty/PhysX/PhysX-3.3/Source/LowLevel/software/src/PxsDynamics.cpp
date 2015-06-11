@@ -4443,7 +4443,6 @@ void physx::PxsSolverCreateFinalizeConstraintsTask::runInternal()
 		PxsConstraintBatchHeader& header = mThreadContext.contactConstraintBatchHeaders[numHeaders++];
 		header.mStartIndex = a;
 
-		
 		PxU32 loopMax = PxMin(maxJ - a, 4u);
 		PxU16 j = 0;
 		if(loopMax > 0)

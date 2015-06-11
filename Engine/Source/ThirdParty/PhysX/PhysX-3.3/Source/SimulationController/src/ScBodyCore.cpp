@@ -155,23 +155,25 @@ void Sc::BodyCore::addSpatialAcceleration(Ps::Pool<SimStateData>* simStateDataPo
 	if(angAcc) velmod->accumulateAngularVelModPerSec(*angAcc);
 }
 
-void Sc::BodyCore::clearSpatialAcceleration()
+void Sc::BodyCore::clearSpatialAcceleration(bool force, bool torque)
 {
+	PX_ASSERT(force || torque);
+
 	//The dirty flag is stored separately in the BodySim so that we query the dirty flag before going to 
 	//the expense of querying the simStateData for the velmod values.
 	BodySim* sim = getSim();
 	if(sim)
-	{
 		sim->notifyClearSpatialAcceleration();
-	}
 
 	if(mSimStateData)
 	{
 		PX_ASSERT(mSimStateData->isVelMod());
 		VelocityMod* velmod = mSimStateData->getVelocityModData();
 		velmod->notifyClearAcceleration();
-		velmod->clearLinearVelModPerSec();
-		velmod->clearAngularVelModPerSec();
+		if(force)
+			velmod->clearLinearVelModPerSec();
+		if(torque)
+			velmod->clearAngularVelModPerSec();
 	}
 }
 
@@ -182,14 +184,10 @@ void Sc::BodyCore::addSpatialVelocity(Ps::Pool<SimStateData>* simStateDataPool, 
 	//the expense of querying the simStateData for the velmod values.
 	BodySim* sim = getSim();
 	if(sim)
-	{
 		sim->notifyAddSpatialVelocity();
-	}
 
 	if(!mSimStateData || !mSimStateData->isVelMod())
-	{
 		setupSimStateData(simStateDataPool, false);
-	}
 
 	VelocityMod* velmod = mSimStateData->getVelocityModData();
 	velmod->notifyAddVelocity();
@@ -197,23 +195,23 @@ void Sc::BodyCore::addSpatialVelocity(Ps::Pool<SimStateData>* simStateDataPool, 
 	if(angVelDelta) velmod->accumulateAngularVelModPerStep(*angVelDelta);
 }
 
-void Sc::BodyCore::clearSpatialVelocity()
+void Sc::BodyCore::clearSpatialVelocity(bool force, bool torque)
 {
 	//The dirty flag is stored separately in the BodySim so that we query the dirty flag before going to 
 	//the expense of querying the simStateData for the velmod values.
 	BodySim* sim = getSim();
 	if(sim)
-	{
 		sim->notifyClearSpatialVelocity();
-	}
 
 	if(mSimStateData)
 	{
 		PX_ASSERT(mSimStateData->isVelMod());
 		VelocityMod* velmod = mSimStateData->getVelocityModData();
 		velmod->notifyClearVelocity();
-		velmod->clearLinearVelModPerStep();
-		velmod->clearAngularVelModPerStep();
+		if(force)
+			velmod->clearLinearVelModPerStep();
+		if(torque)
+			velmod->clearAngularVelModPerStep();
 	}
 }
 
@@ -549,11 +547,4 @@ void Sc::BodyCore::onOriginShift(const PxVec3& shift)
 	}
 
 	b->onOriginShift(shift);
-}
-
-const PxRigidActor* ScGetPxRigidBodyFromPxsRigidCore(const PxsRigidCore* core)
-{
-	const size_t offset = size_t(&(reinterpret_cast<Sc::BodyCore*>(0)->getCore()));
-	const Sc::BodyCore* bodyCore = reinterpret_cast<const Sc::BodyCore*>(reinterpret_cast<const char*>(core)-offset);
-	return static_cast<const PxRigidBody*>(bodyCore->getPxActor());
 }

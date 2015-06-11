@@ -314,12 +314,6 @@ public:
 		return impl.useHardSleeping();
 	}
 
-	virtual	bool setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake)
-	{
-		NX_WRITE_ZONE();
-		return impl.setChunkPhysXActorAwakeState(chunkIndex, awake);
-	}
-
 #if NX_SDK_VERSION_MAJOR == 2
 	virtual physx::PxI32			rayCast(physx::PxF32& time, physx::PxVec3& normal, const NxRay& worldRay, NxDestructibleActorRaycastFlags::Enum flags, physx::PxI32 parentChunkIndex = NxModuleDestructibleConst::INVALID_CHUNK_INDEX) const
 	{

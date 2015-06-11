@@ -2152,15 +2152,11 @@ bool NpScene::checkCollisionInternal(bool block)
 
 bool NpScene::checkResults(bool block)
 {
-	NP_READ_CHECK(this);
-
 	return checkResultsInternal(block);
 }
 
 bool NpScene::checkCollision(bool block)
 {
-	NP_READ_CHECK(this);
-
 	return checkCollisionInternal(block);
 }
 

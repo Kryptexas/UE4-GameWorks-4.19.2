@@ -167,7 +167,6 @@ public:
 
 	void					enableHardSleeping();
 	void					disableHardSleeping(bool wake);
-	bool					setChunkPhysXActorAwakeState(physx::PxU32 chunkIndex, bool awake);
 
 	void					setLODWeights(physx::PxF32 maxDistance, physx::PxF32 distanceWeight, physx::PxF32 maxAge, physx::PxF32 ageWeight, physx::PxF32 bias);
 	const DestructibleActorParamNS::LODWeights_Type& getLODWeights(){ return reinterpret_cast<DestructibleActorParamNS::LODWeights_Type&>(mState->internalLODWeights); }
@@ -764,7 +763,7 @@ private:
 public:
 	bool						mInDeleteChunkMode;
 
-	physx::PxU32				mAwakeActorCount; // number of awake NxActors.
+	physx::PxU32				mAwakeActorCount; // number of awake NxActors. Should remain 0 when using ActiveTransforms.
 
 	physx::PxU32				mDamageEventReportIndex;
 
@@ -815,23 +814,8 @@ public:
 		return count ? &mReferencingActors[0] : NULL;
 	}
 
-	void				wakeForEvent()
-	{
-		if (!mWakeForEvent)
-		{
-			mWakeForEvent = true;
-			incrementWakeCount();
-		}
-	}
-
-	void				resetWakeForEvent()
-	{
-		if (mWakeForEvent)
-		{
-			mWakeForEvent = false;
-			decrementWakeCount();
-		}
-	}
+	void				wakeForEvent();
+	void				resetWakeForEvent();
 
 #if NX_SDK_VERSION_MAJOR == 2	// In 3.x this is put into the asset
 	physx::Array<NxConvexMesh*>*	mCollisionMeshes;

@@ -1806,7 +1806,10 @@ void Sc::Scene::stepSetupSimulate()
 	// Update timestamp
 	mGlobalTime += mDt;
 
-	mProjectionManager->buildGroups();
+	{
+		CM_PROFILE_ZONE_WITH_SUBSYSTEM(*this,Sim,projectionTreeUpdates);
+		mProjectionManager->processPendingUpdates(getInteractionScene().getLowLevelContext()->getScratchAllocator());
+	}
 
 	kinematicsSetup();
 	// Update all dirty interactions
@@ -1829,7 +1832,10 @@ void Sc::Scene::stepSetupCollide()
 	// Update timestamp
 	mGlobalTime += mDt;
 
-	mProjectionManager->buildGroups();
+	{
+		CM_PROFILE_ZONE_WITH_SUBSYSTEM(*this,Sim,projectionTreeUpdates);
+		mProjectionManager->processPendingUpdates(getInteractionScene().getLowLevelContext()->getScratchAllocator());
+	}
 
 	kinematicsSetup();
 	// Update all dirty interactions
@@ -2269,6 +2275,7 @@ void Sc::Scene::afterSolver(const PxU32 ccdPass)
 		pairSizes[0] = npc->getForceThresholdContactEventPairCount();
 		pairArrays[1] = npc->getAllPersistentContactEventPairs();  // need to get all because force threshold pairs can be in there too
 		pairSizes[1] = npc->getAllPersistentContactEventPairCount();
+
 		for(PxU32 j=0; j < 2; j++)
 		{
 			ShapeInstancePairLL*const* contactEventPairs = pairArrays[j];

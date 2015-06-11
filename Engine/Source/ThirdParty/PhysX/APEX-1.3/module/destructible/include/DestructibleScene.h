@@ -20,6 +20,7 @@
 #include "DestructibleStructure.h"
 #include "ModuleDestructible.h"
 #include "PsHashMap.h"
+#include "PsHashSet.h"
 
 #if NX_SDK_VERSION_MAJOR == 2
 #include "NxUserContactReport.h"
@@ -688,8 +689,9 @@ public:
 	// Bank of dormant (kinematic dynamic) actors
 	NxBank<DormantActorEntry, physx::PxU32>	mDormantActors;
 
-	// list of awake actors.
-	physx::Array<DestructibleActor*> mAwakeActors;
+	// list of awake destructible actors.
+	// with ActiveTransforms, only used as WakeForEvent and for updating in fetchResults
+	physx::shdfnd::HashSet<DestructibleActor*> mAwakeActors;
 	bool							mUsingActiveTransforms;
 #if NX_SDK_VERSION_MAJOR == 3
 	physx::Array<PxClientID>		mSceneClientIDs;

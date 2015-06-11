@@ -134,7 +134,7 @@ protected:
 					void				setCMassLocalPoseInternal(const PxTransform&);
 
 					void				addSpatialForce(const PxVec3* force, const PxVec3* torque, PxForceMode::Enum mode);
-					void				clearSpatialForce(PxForceMode::Enum mode);
+					void				clearSpatialForce(PxForceMode::Enum mode, bool force, bool torque);
 
 	PX_INLINE		void				updateBody2Actor(const PxTransform& newBody2Actor);
 
@@ -364,24 +364,19 @@ void NpRigidBodyTemplate<APIClass>::addSpatialForce(const PxVec3* force, const P
 }
 
 template<class APIClass>
-void NpRigidBodyTemplate<APIClass>::clearSpatialForce(PxForceMode::Enum mode)
+void NpRigidBodyTemplate<APIClass>::clearSpatialForce(PxForceMode::Enum mode, bool force, bool torque)
 {
 	PX_ASSERT(!(mBody.getFlags() & PxRigidBodyFlag::eKINEMATIC));
 
 	switch (mode)
 	{
 	case PxForceMode::eFORCE:
-		mBody.clearSpatialAcceleration();
-		break;
-
 	case PxForceMode::eACCELERATION:
-		mBody.clearSpatialAcceleration();
+		mBody.clearSpatialAcceleration(force, torque);
 		break;
 	case PxForceMode::eIMPULSE:
-		mBody.clearSpatialVelocity();
-		break;
 	case PxForceMode::eVELOCITY_CHANGE:
-		mBody.clearSpatialVelocity();
+		mBody.clearSpatialVelocity(force, torque);
 		break;
 	}
 }

@@ -275,9 +275,9 @@ void Sc::ConstraintSim::postFlagChange(PxConstraintFlags oldFlags, PxConstraintF
 			// Already part of a constraint group but not as a projection constraint -> re-generate projection tree
 			PX_ASSERT(b0 != NULL || b1 != NULL);
 			if (b0)
-				b0->getConstraintGroup()->rebuildProjectionTrees();
+				b0->getConstraintGroup()->markForProjectionTreeRebuild(mScene.getProjectionManager());
 			else
-				b1->getConstraintGroup()->rebuildProjectionTrees();
+				b1->getConstraintGroup()->markForProjectionTreeRebuild(mScene.getProjectionManager());
 		}
 		else
 		{
@@ -302,6 +302,8 @@ void Sc::ConstraintSim::postFlagChange(PxConstraintFlags oldFlags, PxConstraintF
 		}
 		else
 			mScene.getProjectionManager().removeFromPendingGroupUpdates(*this);  // Was part of a group which got invalidated
+
+		PX_ASSERT(!readFlag(ConstraintSim::ePENDING_GROUP_UPDATE));  // make sure the expected post-condition is met for all paths
 	}
 }
 
