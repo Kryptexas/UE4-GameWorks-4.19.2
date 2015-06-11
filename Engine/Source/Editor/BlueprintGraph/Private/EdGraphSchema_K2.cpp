@@ -1487,6 +1487,11 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 				if (InGraphPin->PinType.PinCategory != PC_Exec)
 				{
 					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteToVariable );
+
+					if (FBlueprintEditorUtils::DoesSupportLocalVariables(CurrentGraph))
+					{
+						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().PromoteToLocalVariable );
+					}
 				}
 	
 				if (PinHasSplittableStructType(InGraphPin) && InGraphNode->AllowSplitPins())

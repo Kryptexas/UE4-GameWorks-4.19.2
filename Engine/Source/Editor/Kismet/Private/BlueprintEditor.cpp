@@ -872,8 +872,13 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 		GraphEditorCommands = MakeShareable( new FUICommandList );
 		{
 			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().PromoteToVariable,
-				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnPromoteToVariable ),
-				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanPromoteToVariable )
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnPromoteToVariable, true ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanPromoteToVariable, true )
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().PromoteToLocalVariable,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnPromoteToVariable, false ),
+				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanPromoteToVariable, false )
 				);
 
 			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().SplitStructPin,
@@ -3393,30 +3398,34 @@ void FBlueprintEditor::DumpMessagesToCompilerLog(const TArray<TSharedRef<FTokeni
 	}
 }
 
-void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin )
+void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin, bool bInToMemberVariable )
 {
 	UEdGraphNode* PinNode = InTargetPin->GetOwningNode();
 	check(PinNode);
 	UEdGraph* GraphObj = PinNode->GetGraph();
 	check(GraphObj);
 
-	const FScopedTransaction Transaction( LOCTEXT("PromoteToVariable", "Promote To Variable") );
+	// Used for promoting to local variable
+	UEdGraph* FunctionGraph = nullptr;
+
+	const FScopedTransaction Transaction( bInToMemberVariable? LOCTEXT("PromoteToVariable", "Promote To Variable") : LOCTEXT("PromoteToLocalVariable", "Promote to Local Variable") );
 	InBlueprint->Modify();
 	GraphObj->Modify();
 
-	FString VarNameString = TEXT("NewVar");
-	FName VarName = FName(*VarNameString);
-
-	// Make sure the new name is valid
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint));
-	int32 Index = 0;
-	while (NameValidator->IsValid(VarName) != Ok)
+	FName VarName;
+	bool bWasSuccessful = false;
+	if (bInToMemberVariable)
 	{
-		VarName = FName(*FString::Printf(TEXT("%s%i"), *VarNameString, Index));
-		++Index;
+		VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewVar"));
+		bWasSuccessful = FBlueprintEditorUtils::AddMemberVariable( GetBlueprintObj(), VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
 	}
-
-	const bool bWasSuccessful = FBlueprintEditorUtils::AddMemberVariable( GetBlueprintObj(), VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
+	else
+	{
+		ensure(FBlueprintEditorUtils::DoesSupportLocalVariables(GraphObj));
+		VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"));
+		FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(GraphObj);
+		bWasSuccessful = FBlueprintEditorUtils::AddLocalVariable( GetBlueprintObj(), FunctionGraph, VarName, InTargetPin->PinType, InTargetPin->GetDefaultAsString() );
+	}
 
 	if (bWasSuccessful)
 	{
@@ -3434,7 +3443,14 @@ void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin
 			TemplateNode = NewObject<UK2Node_VariableSet>();
 		}
 
-		TemplateNode->VariableReference.SetSelfMember(VarName);
+		if (bInToMemberVariable)
+		{
+			TemplateNode->VariableReference.SetSelfMember(VarName);
+		}
+		else
+		{
+			TemplateNode->VariableReference.SetLocalMember(VarName, FunctionGraph->GetName(), FBlueprintEditorUtils::FindLocalVariableGuidByName(InBlueprint, FunctionGraph, VarName));
+		}
 		NodeInfo.NodeTemplate = TemplateNode;
 
 		// Set position of new node to be close to node we clicked on
@@ -3448,7 +3464,7 @@ void FBlueprintEditor::DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin
 	}
 }
 
-void FBlueprintEditor::OnPromoteToVariable()
+void FBlueprintEditor::OnPromoteToVariable(bool bInToMemberVariable)
 {
 	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
 	if (FocusedGraphEd.IsValid())
@@ -3459,11 +3475,11 @@ void FBlueprintEditor::OnPromoteToVariable()
 		check(GetBlueprintObj()->SkeletonGeneratedClass);
 		check(TargetPin);
 
-		DoPromoteToVariable( GetBlueprintObj(), TargetPin );
+		DoPromoteToVariable( GetBlueprintObj(), TargetPin, bInToMemberVariable );
 	}
 }
 
-bool FBlueprintEditor::CanPromoteToVariable() const
+bool FBlueprintEditor::CanPromoteToVariable(bool bInToMemberVariable) const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -3473,7 +3489,10 @@ bool FBlueprintEditor::CanPromoteToVariable() const
 	{
 		if (UEdGraphPin* Pin = FocusedGraphEd->GetGraphPinForMenu())
 		{
-			bCanPromote = K2Schema->CanPromotePinToVariable(*Pin);
+			if (bInToMemberVariable || (!bInToMemberVariable && FBlueprintEditorUtils::DoesSupportLocalVariables(FocusedGraphEd->GetCurrentGraph())))
+			{
+				bCanPromote = K2Schema->CanPromotePinToVariable(*Pin);
+			}
 		}
 	}
 	

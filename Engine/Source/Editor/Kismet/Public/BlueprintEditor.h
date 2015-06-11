@@ -465,10 +465,11 @@ public:
 	/** 
 	 * Perform the actual promote to variable action on the given pin in the given blueprint.
 	 *
-	 * @param	InBlueprint	The blueprint in which to create the variable.
-	 * @param	InTargetPin The pin on which to base the variable.
+	 * @param	InBlueprint				The blueprint in which to create the variable.
+	 * @param	InTargetPin				The pin on which to base the variable.
+	 * @param	bInToMemberVariable		TRUE if attempting to create a member variable, FALSE if the variable should be local
 	 */
-	void DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin );		
+	void DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin, bool bInToMemberVariable );		
 
 	/** Called when node is spawned by keymap */
 	void OnNodeSpawnedByKeymap();
@@ -641,8 +642,8 @@ protected:
 	UEdGraphPin* GetCurrentlySelectedPin() const;
 
 	// UI Action functionality
-	void OnPromoteToVariable();
-	bool CanPromoteToVariable() const;
+	void OnPromoteToVariable(bool bInToMemberVariable);
+	bool CanPromoteToVariable(bool bInToMemberVariable) const;
 
 	void OnSplitStructPin();
 	bool CanSplitStructPin() const;

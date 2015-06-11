@@ -495,7 +495,7 @@ namespace EditorBuildPromotionTestUtils
 		FBlueprintEditor* CurrentBlueprintEditor = (FBlueprintEditor*)OpenEditor;
 
 		UEdGraphPin* PinToPromote = Node->FindPin(PinName);
-		CurrentBlueprintEditor->DoPromoteToVariable(InBlueprint, PinToPromote);
+		CurrentBlueprintEditor->DoPromoteToVariable(InBlueprint, PinToPromote, true);
 	}
 
 	/**
