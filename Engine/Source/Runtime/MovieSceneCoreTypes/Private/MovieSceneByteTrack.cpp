@@ -49,3 +49,13 @@ bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& OutBy
 
 	return Section != NULL;
 }
+
+void UMovieSceneByteTrack::SetEnum(UEnum* InEnum)
+{
+	Enum = InEnum;
+}
+
+class UEnum* UMovieSceneByteTrack::GetEnum() const
+{
+	return Enum;
+}

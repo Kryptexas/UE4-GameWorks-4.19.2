@@ -40,5 +40,7 @@ public class Sequencer : ModuleRules
 				"WorkspaceMenuStructure"
 			}
 		);
+
+		CircularlyReferencedDependentModules.Add("MovieSceneTools");
 	}
 }

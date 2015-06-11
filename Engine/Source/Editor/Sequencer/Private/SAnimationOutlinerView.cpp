@@ -6,7 +6,10 @@
 #include "ScopedTransaction.h"
 #include "Sequencer.h"
 #include "MovieScene.h"
+#include "MovieSceneSection.h"
 #include "Engine/Selection.h"
+#include "ISequencerObjectBindingManager.h"
+#include "IKeyArea.h"
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
 
@@ -51,19 +54,86 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 				.Image( this, &SAnimationOutlinerTreeNode::OnGetExpanderImage)
 			]
 		]
+		// Label Slot
 		+ SHorizontalBox::Slot()
-		.AutoWidth()
 		.VAlign( VAlign_Center )
+		.FillWidth(3)
 		[
 			TextWidget
+		]
+		// Editor slot
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			// @todo Sequencer - Remove this box and width override.
+			SNew(SBox)
+			.WidthOverride(100)
+			[
+				DisplayNode->GenerateEditWidgetForOutliner()
+			]
+		]
+		// Previous key slot
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(3, 0, 0, 0)
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+			.Visibility(this, &SAnimationOutlinerTreeNode::GetKeyButtonVisibility)
+			.ToolTipText(LOCTEXT("PreviousKeyButton", "Set the time to the previous key"))
+			.OnClicked(this, &SAnimationOutlinerTreeNode::OnPreviousKeyClicked)
+			.ContentPadding(0)
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
+				.Text(FText::FromString(FString(TEXT("\xf060"))) /*fa-arrow-left*/)
+			]
+		]
+		// Add key slot
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+			.Visibility(this, &SAnimationOutlinerTreeNode::GetKeyButtonVisibility)
+			.ToolTipText(LOCTEXT("AddKeyButton", "Add a new key at the current time"))
+			.OnClicked(this, &SAnimationOutlinerTreeNode::OnAddKeyClicked)
+			.ContentPadding(0)
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
+				.Text(FText::FromString(FString(TEXT("\xf055"))) /*fa-plus-circle*/)
+			]
+		]
+		// Next key slot
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton")
+			.Visibility(this, &SAnimationOutlinerTreeNode::GetKeyButtonVisibility)
+			.ToolTipText(LOCTEXT("NextKeyButton", "Set the time to the next key"))
+			.OnClicked(this, &SAnimationOutlinerTreeNode::OnNextKeyClicked)
+			.ContentPadding(0)
+			[
+				SNew(STextBlock)
+				.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.7"))
+				.Text(FText::FromString(FString(TEXT("\xf061"))) /*fa-arrow-right*/)
+			]
 		];
-
 
 	ChildSlot
 	[
 		SNew( SBorder )
 		.VAlign( VAlign_Center )
-		.Padding(1.0f)
+		.Padding(0)
 		.BorderImage( this, &SAnimationOutlinerTreeNode::GetNodeBorderImage )
 		[
 			FinalWidget
@@ -73,6 +143,126 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 	SetVisibility( TAttribute<EVisibility>( this, &SAnimationOutlinerTreeNode::GetNodeVisibility ) );
 }
 
+void GetAllKeyAreas(TSharedPtr<FSequencerDisplayNode> DisplayNode, TSet<TSharedPtr<IKeyArea>>& KeyAreas)
+{
+	TArray<TSharedPtr<FSequencerDisplayNode>> NodesToCheck;
+	NodesToCheck.Add(DisplayNode);
+	while (NodesToCheck.Num() > 0)
+	{
+		TSharedPtr<FSequencerDisplayNode> NodeToCheck = NodesToCheck[0];
+		NodesToCheck.RemoveAt(0);
+
+		if (NodeToCheck->GetType() == ESequencerNode::Track)
+		{
+			TSharedPtr<FTrackNode> TrackNode = StaticCastSharedPtr<FTrackNode>(NodeToCheck);
+			TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
+			TrackNode->GetChildKeyAreaNodesRecursively(KeyAreaNodes);
+			for (TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes)
+			{
+				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
+				{
+					KeyAreas.Add(KeyArea);
+				}
+			}
+		}
+		else
+		{
+			if (NodeToCheck->GetType() == ESequencerNode::KeyArea)
+			{
+				TSharedPtr<FSectionKeyAreaNode> KeyAreaNode = StaticCastSharedPtr<FSectionKeyAreaNode>(NodeToCheck);
+				for (TSharedPtr<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas())
+				{
+					KeyAreas.Add(KeyArea);
+				}
+			}
+			for (TSharedRef<FSequencerDisplayNode> ChildNode : NodeToCheck->GetChildNodes())
+			{
+				NodesToCheck.Add(ChildNode);
+			}
+		}
+	}
+}
+
+FReply SAnimationOutlinerTreeNode::OnPreviousKeyClicked()
+{
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	float ClosestPreviousKeyDistance = MAX_FLT;
+	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
+	float PreviousTime = 0;
+	bool PreviousKeyFound = false;
+
+	TSet<TSharedPtr<IKeyArea>> KeyAreas;
+	GetAllKeyAreas(DisplayNode, KeyAreas);
+	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
+	{
+		for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
+		{
+			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
+			if (KeyTime < CurrentTime && CurrentTime - KeyTime < ClosestPreviousKeyDistance)
+			{
+				PreviousTime = KeyTime;
+				ClosestPreviousKeyDistance = CurrentTime - KeyTime;
+				PreviousKeyFound = true;
+			}
+		}
+	}
+
+	if (PreviousKeyFound)
+	{
+		Sequencer.SetGlobalTime(PreviousTime);
+	}
+	return FReply::Handled();
+}
+
+FReply SAnimationOutlinerTreeNode::OnNextKeyClicked()
+{
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	float ClosestNextKeyDistance = MAX_FLT;
+	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
+	float NextTime = 0;
+	bool NextKeyFound = false;
+
+	TSet<TSharedPtr<IKeyArea>> KeyAreas;
+	GetAllKeyAreas(DisplayNode, KeyAreas);
+	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
+	{
+		for (FKeyHandle& KeyHandle : KeyArea->GetUnsortedKeyHandles())
+		{
+			float KeyTime = KeyArea->GetKeyTime(KeyHandle);
+			if (KeyTime > CurrentTime && KeyTime - CurrentTime < ClosestNextKeyDistance)
+			{
+				NextTime = KeyTime;
+				ClosestNextKeyDistance = KeyTime - CurrentTime;
+				NextKeyFound = true;
+			}
+		}
+	}
+
+	if (NextKeyFound)
+	{
+		Sequencer.SetGlobalTime(NextTime);
+	}
+	return FReply::Handled();
+}
+
+FReply SAnimationOutlinerTreeNode::OnAddKeyClicked()
+{
+	FSequencer& Sequencer = DisplayNode->GetSequencer();
+	float CurrentTime = Sequencer.GetCurrentLocalTime(*Sequencer.GetFocusedMovieScene());
+
+	TSet<TSharedPtr<IKeyArea>> KeyAreas;
+	GetAllKeyAreas(DisplayNode, KeyAreas);
+
+	FScopedTransaction Transaction(LOCTEXT("AddKeys", "Add keys at current time"));
+	for (TSharedPtr<IKeyArea> KeyArea : KeyAreas)
+	{
+		UMovieSceneSection* OwningSection = KeyArea->GetOwningSection();
+		OwningSection->SetFlags(RF_Transactional);
+		OwningSection->Modify();
+		KeyArea->AddKeyUnique(CurrentTime);
+	}
+	return FReply::Handled();
+}
 
 FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
@@ -174,12 +364,17 @@ EVisibility SAnimationOutlinerTreeNode::GetExpanderVisibility() const
 	return DisplayNode->GetNumChildren() > 0 ? EVisibility::Visible : EVisibility::Hidden;
 }
 
+EVisibility SAnimationOutlinerTreeNode::GetKeyButtonVisibility() const
+{
+	return DisplayNode->GetType() == ESequencerNode::Object ? EVisibility::Hidden : EVisibility::Visible;
+}
+
 FText SAnimationOutlinerTreeNode::GetDisplayName() const
 {
 	return DisplayNode->GetDisplayName();
 }
 
-void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, TSharedRef<FSequencer> InSequencer )
+void SAnimationOutlinerView::Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> InRootNode, FSequencer* InSequencer )
 {
 	SAnimationOutlinerViewBase::Construct( SAnimationOutlinerViewBase::FArguments(), InRootNode );
 
@@ -261,9 +456,9 @@ void SAnimationOutlinerView::OnSelectionChanged( TSharedPtr<FSequencerDisplayNod
 
 		// Get the bound objects
 		TArray<UObject*> RuntimeObjects;
-		Sequencer.Pin()->GetRuntimeObjects( Sequencer.Pin()->GetFocusedMovieSceneInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
+		Sequencer->GetRuntimeObjects( Sequencer->GetFocusedMovieSceneInstance(), ObjectNode->GetObjectBinding(), RuntimeObjects );
 		
-		if( RuntimeObjects.Num() > 0 && Sequencer.Pin()->IsLevelEditorSequencer() )
+		if( RuntimeObjects.Num() > 0 && Sequencer->IsLevelEditorSequencer() )
 		{
 			const bool bNotifySelectionChanged = false;
 			const bool bDeselectBSP = true;

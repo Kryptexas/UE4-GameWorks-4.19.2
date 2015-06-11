@@ -8,12 +8,20 @@
 class SSequencerTrackArea : public SCompoundWidget
 {
 public:
+	DECLARE_DELEGATE_OneParam(FOnValueChanged, float)
+
 	SLATE_BEGIN_ARGS( SSequencerTrackArea )
 	{}
 		/** The range of time being viewed */
 		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
 		/** Percentage of horizontal space that the animation outliner takes up */
-		SLATE_ATTRIBUTE( float, OutlinerFillPercent )
+		SLATE_ATTRIBUTE( float, OutlinerFillPercentage )
+		/** Percentage of horizontal space that the section area takes up. */
+		SLATE_ATTRIBUTE( float, SectionFillPercentage )
+		/** Called whenever the outliner fill percentage is changed by a splitter. */
+		SLATE_EVENT( FOnValueChanged, OnOutlinerFillPercentageChanged )
+		/** Called whenever the section fill percentage is changed by a splitter. */
+		SLATE_EVENT( FOnValueChanged, OnSectionFillPercentageChanged )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer );
@@ -47,10 +55,17 @@ private:
 
 	/** Gets the fill value for the slot which contains the scrollbar.  This allows the scroll bar to move depending
 	  * whether or not the curve editor is visible. */
-	float GetScrollBarSlotFill() const;
+	float GetScrollBarFillPercentage() const;
 	/** Gets the fill value for the spacer slot which is to the right of the scrollbar.  This allows the scroll bar 
 	  * to move depending whether or not the curve editor is visible. */
-	float GetScrollBarSpacerSlotFill() const;
+	float GetScrollBarSpacerFillPercentage() const;
+
+	FMargin GetOutlinerPadding() const;
+
+	/** Called whenever the outliner fill percentage is changed by a splitter. */
+	void OutlinerFillPercentageChanged(float Value);
+	/** Called whenever the section fill percentage is changed by a splitter. */
+	void SectionFillPercentageChanged(float Value);
 
 private:
 	/** Scrollable area to display widgets */
@@ -58,7 +73,17 @@ private:
 	/** The current view range */
 	TAttribute< TRange<float> > ViewRange;
 	/** The fill percentage of the animation outliner */
-	TAttribute<float> OutlinerFillPercent;
+	TAttribute<float> OutlinerFillPercentage;
+	/** The fill percentage of the section area */
+	TAttribute<float> SectionFillPercentage;
+	/** Delegate to be called whenever the outliner fill percentage is changed */
+	FOnValueChanged OnOutlinerFillPercentageChanged;
+	/** Delegate to be called whenever the section fill percentage is changed */
+	FOnValueChanged OnSectionFillPercentageChanged;
+	/** Attribute representing the scrollbar fill percentage */
+	TAttribute<float> ScrollbarFillPercentage;
+	/** Attribute representing the spacer fill percentage which positions the scrollbar correctly. */
+	TAttribute<float> ScrollbarSpacerFillPercentage;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
 	/** The curve editor. */

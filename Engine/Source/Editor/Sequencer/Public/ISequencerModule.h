@@ -15,6 +15,8 @@ class ISequencerObjectBindingManager;
  */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<class FMovieSceneTrackEditor>, FOnCreateTrackEditor, TSharedRef<ISequencer> );
 
+DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SWidget>, FOnGetAddMenuContent, TSharedRef<ISequencer> );
+
 /** Parameters for initializing a Sequencer */
 struct FSequencerViewParams
 {
@@ -23,6 +25,8 @@ struct FSequencerViewParams
 
 	/** Initial Scrub Position */
 	float InitialScrubPosition;
+
+	FOnGetAddMenuContent OnGetAddMenuContent;
 
 	FSequencerViewParams()
 		: InitalViewRange( 0.0f, 5.0f )

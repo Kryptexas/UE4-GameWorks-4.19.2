@@ -4,7 +4,7 @@
 
 class IPropertyHandle;
 
-struct FKeyPropertyParams;
+class FPropertyChangedParams;
 
 /**
  * Tools for animatable property types such as floats ands vectors
@@ -32,36 +32,37 @@ public:
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL) override;
+	virtual UMovieSceneTrack* AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName) override;
 
 private:
 	/**
 	 * Called by the details panel when an animatable property changes
 	 *
 	 * @param InObjectsThatChanged	List of objects that changed
-	 * @param PropertyValue			Handle to the property value which changed
+	 * @param KeyPropertyParams		Parameters for the property change.
 	 */
 	template <typename Type, typename TrackType>
-	void OnAnimatedPropertyChanged( const FKeyPropertyParams& KeyPropertyParams );
+	void OnAnimatedPropertyChanged( const FPropertyChangedParams& KeyPropertyParams );
 
 	/**
 	 * Called by the details panel when an animatable vector property changes
 	 *
 	 * @param InObjectsThatChanged	List of objects that changed
-	 * @param PropertyValue			Handle to the property value which changed
+	 * @param KeyPropertyParams		Parameters for the property change.
 	 */
-	void OnAnimatedVectorPropertyChanged( const FKeyPropertyParams& KeyPropertyParams );
+	void OnAnimatedVectorPropertyChanged( const FPropertyChangedParams& KeyPropertyParams );
 	
 	/**
 	 * Called by the details panel when an animatable color property changes
 	 *
 	 * @param InObjectsThatChanged	List of objects that changed
-	 * @param PropertyValue			Handle to the property value which changed
+	 * @param KeyPropertyParams		Parameters for the property change.
 	 */
-	void OnAnimatedColorPropertyChanged( const FKeyPropertyParams& KeyPropertyParams );
+	void OnAnimatedColorPropertyChanged( const FPropertyChangedParams& KeyPropertyParams );
 	
 	/** Delegates for animatable property changed functions */
 	template <typename Type, typename TrackType>
-	void OnKeyProperty( float KeyTime, FKeyPropertyParams KeyPropertyParams, Type Value );
+	void OnKeyProperty( float KeyTime, FPropertyChangedParams KeyPropertyParams, Type Value );
 };
 
 

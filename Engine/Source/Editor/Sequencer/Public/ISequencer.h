@@ -4,6 +4,7 @@
 
 
 #include "Runtime/MovieSceneCore/Public/IMovieScenePlayer.h"
+#include "KeyPropertyParams.h"
 
 class UMovieScene;
 class FSequencerSelection;
@@ -118,9 +119,9 @@ public:
 	 */
 	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
-	virtual bool CanKeyProperty(const UClass& ObjectClass, const class IPropertyHandle& PropertyHandle) const = 0;
+	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const = 0;
 
-	virtual void KeyProperty( const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle ) = 0;
+	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) = 0;
 
 	virtual void NotifyMovieSceneDataChanged() = 0;
 

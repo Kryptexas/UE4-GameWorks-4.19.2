@@ -58,7 +58,8 @@ public class LevelEditor : ModuleRules
 				"WebBrowser",
                 "Persona",
                 "Kismet",
-				"KismetWidgets"
+				"KismetWidgets",
+				"Sequencer"
 			}
 		);
 

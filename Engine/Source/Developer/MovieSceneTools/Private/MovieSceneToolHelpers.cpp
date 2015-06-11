@@ -11,4 +11,66 @@
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
 #include "MovieSceneToolHelpers.h"
+#include "SFloatCurveKeyEditor.h"
+#include "SIntegralCurveKeyEditor.h"
+#include "SEnumCurveKeyEditor.h"
+
+void FFloatCurveKeyArea::AddKeyUnique(float Time)
+{
+	FKeyHandle CurrentKeyHandle = Curve->FindKey(Time);
+	if (Curve->IsKeyHandleValid(CurrentKeyHandle) == false)
+	{
+		if (OwningSection->GetStartTime() > Time)
+		{
+			OwningSection->SetStartTime(Time);
+		}
+		if (OwningSection->GetEndTime() < Time)
+		{
+			OwningSection->SetEndTime(Time);
+		}
+		Curve->AddKey(Time, Curve->Eval(Time), false, CurrentKeyHandle);
+	}
+}
+
+TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
+{
+	return SNew(SFloatCurveKeyEditor)
+		.Sequencer(Sequencer)
+		.OwningSection(OwningSection)
+		.Curve(Curve);
+};
+
+void FIntegralKeyArea::AddKeyUnique(float Time)
+{
+	FKeyHandle CurrentKey = Curve.FindKey(Time);
+	if (Curve.IsKeyHandleValid(CurrentKey) == false)
+	{
+		if (OwningSection->GetStartTime() > Time)
+		{
+			OwningSection->SetStartTime(Time);
+		}
+		if (OwningSection->GetEndTime() < Time)
+		{
+			OwningSection->SetEndTime(Time);
+		}
+		Curve.AddKey(Time, Curve.Evaluate(Time), CurrentKey);
+	}
+}
+
+TSharedRef<SWidget> FIntegralKeyArea::CreateKeyEditor(ISequencer* Sequencer)
+{
+	return SNew(SIntegralCurveKeyEditor)
+		.Sequencer(Sequencer)
+		.OwningSection(OwningSection)
+		.Curve(&Curve);
+};
+
+TSharedRef<SWidget> FEnumKeyArea::CreateKeyEditor(ISequencer* Sequencer)
+{
+	return SNew(SEnumCurveKeyEditor)
+		.Sequencer(Sequencer)
+		.OwningSection(OwningSection)
+		.Curve(&Curve)
+		.Enum(Enum);
+};
 

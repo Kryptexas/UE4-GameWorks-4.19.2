@@ -14,7 +14,8 @@ public class MovieSceneTools : ModuleRules
 				"CoreUObject",
 				"Engine",
                 "InputCore",
-				"UnrealEd"
+				"UnrealEd",
+				"Sequencer"
 			}
 		);
 

@@ -36,10 +36,10 @@ private:
 	 * @param InObjectsThatChanged	List of objects that changed
 	 * @param PropertyValue			Handle to the property value which changed
 	 */
-	void OnTransformChanged( const struct FKeyPropertyParams& PropertyKeyParams );
+	void OnTransformChanged( const class FPropertyChangedParams& PropertyChangedParams );
 
 	/** Called After OnMarginChanged if we actually can key the margin */
-	void OnKeyTransform( float KeyTime, const struct FKeyPropertyParams* PropertyKeyParams );
+	void OnKeyTransform( float KeyTime, const class FPropertyChangedParams* PropertyChangedParams );
 };
 
 

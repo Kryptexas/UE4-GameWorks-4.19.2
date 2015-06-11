@@ -48,6 +48,7 @@ public class UMGEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"MovieSceneCore",
+				"MovieSceneTools",
 				"Sequencer",
 				"DetailCustomizations",
                 "Settings",

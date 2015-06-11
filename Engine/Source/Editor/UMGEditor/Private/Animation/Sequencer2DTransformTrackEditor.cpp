@@ -85,34 +85,30 @@ TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMo
 }
 
 
-void F2DTransformTrackEditor::OnTransformChanged( const FKeyPropertyParams& PropertyKeyParams )
+void F2DTransformTrackEditor::OnTransformChanged( const FPropertyChangedParams& PropertyChangedParams )
 {
-	FName PropertyName = PropertyKeyParams.PropertyHandle->GetProperty()->GetFName();
-
 	AnimatablePropertyChanged
 	(
 		UMovieScene2DTransformTrack::StaticClass(), 
-		PropertyKeyParams.bRequireAutoKey,
-		FOnKeyProperty::CreateRaw(this, &F2DTransformTrackEditor::OnKeyTransform, &PropertyKeyParams ) 
+		PropertyChangedParams.bRequireAutoKey,
+		FOnKeyProperty::CreateRaw(this, &F2DTransformTrackEditor::OnKeyTransform, &PropertyChangedParams ) 
 	);
 }
 
 
-void F2DTransformTrackEditor::OnKeyTransform( float KeyTime, const FKeyPropertyParams* PropertyKeyParams )
+void F2DTransformTrackEditor::OnKeyTransform( float KeyTime, const FPropertyChangedParams* PropertyChangedParams )
 {
-	TArray<const void*> TransformValues;
-	PropertyKeyParams->PropertyHandle->AccessRawData( TransformValues );
+	FWidgetTransform TransformValue = *PropertyChangedParams->GetPropertyValue<FWidgetTransform>();
 
-	FName PropertyName = PropertyKeyParams->PropertyHandle->GetProperty()->GetFName();
+	FName PropertyName = PropertyChangedParams->PropertyPath.Last()->GetFName();
 
-	for( int32 ObjectIndex = 0; ObjectIndex < PropertyKeyParams->ObjectsThatChanged.Num(); ++ObjectIndex )
+	for( int32 ObjectIndex = 0; ObjectIndex < PropertyChangedParams->ObjectsThatChanged.Num(); ++ObjectIndex )
 	{
-		UObject* Object = PropertyKeyParams->ObjectsThatChanged[ObjectIndex];
-		FWidgetTransform TransformValue = *(const FWidgetTransform*)TransformValues[ObjectIndex];
+		UObject* Object = PropertyChangedParams->ObjectsThatChanged[ObjectIndex];
 
 		F2DTransformKey Key;
-		Key.bAddKeyEvenIfUnchanged = !PropertyKeyParams->bRequireAutoKey;
-		Key.CurveName = PropertyKeyParams->InnerStructPropertyName;
+		Key.bAddKeyEvenIfUnchanged = !PropertyChangedParams->bRequireAutoKey;
+		Key.CurveName = PropertyChangedParams->StructPropertyNameToKey;
 		Key.Value = TransformValue;
 
 		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
@@ -122,7 +118,7 @@ void F2DTransformTrackEditor::OnKeyTransform( float KeyTime, const FKeyPropertyP
 			if( ensure( Track ) )
 			{
 				UMovieScene2DTransformTrack* TransformTrack = CastChecked<UMovieScene2DTransformTrack>(Track);
-				TransformTrack->SetPropertyNameAndPath( PropertyName, PropertyKeyParams->PropertyPath );
+				TransformTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams->GetPropertyPathString() );
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
 				bool bSuccessfulAdd = TransformTrack->AddKeyToSection( KeyTime, Key );

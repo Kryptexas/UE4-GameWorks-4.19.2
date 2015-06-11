@@ -140,7 +140,6 @@ private:
 	TArray< TRange<float> > CachedFilteredRanges;
 };
 
-
 void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequencer > InSequencer )
 {
 	Sequencer = InSequencer;
@@ -166,9 +165,19 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	bMirrorLabels = true;
 	TSharedRef<ITimeSlider> BottomTimeSlider = SequencerWidgets.CreateTimeSlider( TimeSliderController, bMirrorLabels);
 
+	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
+
+	OutlinerFillPercentage = .25f;
+	SectionFillPercentage = .75f;
+	OutlinerFillPercentageAttribute.BindRaw(this, &SSequencer::GetOutlinerFillPercentage);
+	SectionFillPercentageAttribute.BindRaw(this, &SSequencer::GetSectionFillPercentage);
+
 	SAssignNew( TrackArea, SSequencerTrackArea, Sequencer.Pin().ToSharedRef() )
 		.ViewRange( InArgs._ViewRange )
-		.OutlinerFillPercent( this, &SSequencer::GetAnimationOutlinerFillPercentage );
+		.OutlinerFillPercentage( OutlinerFillPercentageAttribute )
+		.SectionFillPercentage( SectionFillPercentageAttribute )
+		.OnOutlinerFillPercentageChanged( this, &SSequencer::OnOutlinerFillPercentageChanged )
+		.OnSectionFillPercentageChanged( this, &SSequencer::OnSectionFillPercentageChanged );
 
 	ChildSlot
 	[
@@ -196,12 +205,11 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot()
-				// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
-				.Padding( FMargin(0) )
-				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
-				.VAlign(VAlign_Center)
+				SNew( SSplitter )
+				.Style( FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter" )
+				+ SSplitter::Slot()
+				.Value(OutlinerFillPercentageAttribute)
+				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
 				[
 					SNew( SBox )
 					.Padding( FMargin( 0,0,4,0) )
@@ -211,8 +219,9 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 						.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
 					]
 				]
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
+				+ SSplitter::Slot()
+				.Value(SectionFillPercentageAttribute)
+				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
 				[
 					SNew( SBorder )
 					// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
@@ -238,16 +247,19 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 				]
 				+ SOverlay::Slot()
 				[
-					SNew( SHorizontalBox )
+					SNew( SSplitter )
+					.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
 					.Visibility( EVisibility::HitTestInvisible )
-					+ SHorizontalBox::Slot()
-					.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
+					+ SSplitter::Slot()
+					.Value(OutlinerFillPercentageAttribute)
+					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
 					[
 						// Take up space but display nothing. This is required so that all areas dependent on time align correctly
 						SNullWidget::NullWidget
 					]
-					+ SHorizontalBox::Slot()
-					.FillWidth( 1.0f )
+					+ SSplitter::Slot()
+					.Value(SectionFillPercentageAttribute)
+					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
 					[
 						SNew(SShotFilterOverlay, Sequencer)
 						.ViewRange( InArgs._ViewRange )
@@ -261,15 +273,21 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot()
-				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
-				.HAlign(HAlign_Center)
+				SNew( SSplitter )
+				.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+				+ SSplitter::Slot()
+				.Value(OutlinerFillPercentageAttribute)
+				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
 				[
-					MakeTransportControls()
+					SNew(SBox)
+					.HAlign(HAlign_Center)
+					[
+						MakeTransportControls()
+					]
 				]
-				+ SHorizontalBox::Slot()
-				.FillWidth(1.0f)
+				+ SSplitter::Slot()
+				.Value(SectionFillPercentageAttribute)
+				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
 				[
 					SNew( SBorder )
 					// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
@@ -284,14 +302,17 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew( SHorizontalBox )
-				+ SHorizontalBox::Slot()
-				.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
+				SNew( SSplitter )
+				.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+				+ SSplitter::Slot()
+				.Value(OutlinerFillPercentageAttribute)
+				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
 				[
 					SNew( SSpacer )
 				]
-				+ SHorizontalBox::Slot()
-				.FillWidth( 1.0f )
+				+ SSplitter::Slot()
+				.Value(SectionFillPercentageAttribute)
+				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
 				[
 					SAssignNew( BreadcrumbTrail, SBreadcrumbTrail<FSequencerBreadcrumb> )
 					.Visibility(this, &SSequencer::GetBreadcrumbTrailVisibility)
@@ -311,6 +332,51 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 	ToolBarBuilder.BeginSection("Base Commands");
 	{
 		ToolBarBuilder.SetLabelVisibility(EVisibility::Visible);
+
+		if (OnGetAddMenuContent.IsBound())
+		{
+			ToolBarBuilder.AddWidget(
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &SSequencer::MakeAddMenu)
+				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+				.ContentPadding(FMargin(2.0f, 1.0f))
+				.HasDownArrow(false)
+				.ButtonContent()
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+						.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4, 0, 0, 0)
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+						.Text(LOCTEXT("AddButton", "Track"))
+					]
+
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					.Padding(4, 0, 0, 0)
+					[
+						SNew(STextBlock)
+						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+						.Text(FText::FromString(FString(TEXT("\xf0d7"))) /*fa-caret-down*/)
+					]
+				]);
+		}
+
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
 
 		if ( Sequencer.Pin()->IsLevelEditorSequencer() )
@@ -379,6 +445,11 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 	}
 
 	return ToolBarBuilder.MakeWidget();
+}
+
+TSharedRef<SWidget> SSequencer::MakeAddMenu()
+{
+	return OnGetAddMenuContent.Execute(Sequencer.Pin().ToSharedRef());
 }
 
 TSharedRef<SWidget> SSequencer::MakeSnapMenu()
@@ -538,16 +609,19 @@ void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 TSharedRef<SWidget> SSequencer::MakeSectionOverlay( TSharedRef<FSequencerTimeSliderController> TimeSliderController, const TAttribute< TRange<float> >& ViewRange, const TAttribute<float>& ScrubPosition, bool bTopOverlay )
 {
 	return
-		SNew( SHorizontalBox )
+		SNew( SSplitter )
+		.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
 		.Visibility( EVisibility::HitTestInvisible )
-		+ SHorizontalBox::Slot()
-		.FillWidth( TAttribute<float>( this, &SSequencer::GetAnimationOutlinerFillPercentage ) )
+		+ SSplitter::Slot()
+		.Value(OutlinerFillPercentageAttribute)
+		.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
 		[
 			// Take up space but display nothing. This is required so that all areas dependent on time align correctly
 			SNullWidget::NullWidget
 		]
-		+ SHorizontalBox::Slot()
-		.FillWidth( 1.0f )
+		+ SSplitter::Slot()
+		.Value(SectionFillPercentageAttribute)
+		.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
 		[
 			SNew( SSequencerSectionOverlay, TimeSliderController )
 			.DisplayScrubPosition( bTopOverlay )
@@ -888,6 +962,16 @@ EVisibility SSequencer::GetBreadcrumbTrailVisibility() const
 EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 {
 	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+void SSequencer::OnOutlinerFillPercentageChanged(float InOutlinerFillPercentage)
+{
+	OutlinerFillPercentage = InOutlinerFillPercentage;
+}
+
+void SSequencer::OnSectionFillPercentageChanged(float InSectionFillPercentage)
+{
+	SectionFillPercentage = InSectionFillPercentage;
 }
 
 #undef LOCTEXT_NAMESPACE

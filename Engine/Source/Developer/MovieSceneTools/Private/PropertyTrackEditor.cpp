@@ -11,6 +11,7 @@
 #include "MovieSceneColorTrack.h"
 #include "ScopedTransaction.h"
 #include "MovieSceneSection.h"
+#include "ISequencerObjectBindingManager.h"
 #include "ISequencerObjectChangeListener.h"
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
@@ -212,7 +213,7 @@ public:
 	virtual void GenerateSectionLayout( class ISectionLayoutBuilder& LayoutBuilder ) const override
 	{
 		UMovieSceneBoolSection* BoolSection = Cast<UMovieSceneBoolSection>( &SectionObject );
-		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FIntegralKeyArea( BoolSection->GetCurve() ) ) );
+		LayoutBuilder.SetSectionAsKeyArea( MakeShareable( new FIntegralKeyArea( BoolSection->GetCurve(), BoolSection ) ) );
 	}
 
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
@@ -277,14 +278,25 @@ public:
 class FBytePropertySection : public FPropertySection
 {
 public:
-	FBytePropertySection(UMovieSceneSection& InSectionObject, FName SectionName)
-		: FPropertySection(InSectionObject, SectionName) {}
+	FBytePropertySection(UMovieSceneSection& InSectionObject, FName SectionName, UEnum* Enum)
+		: FPropertySection(InSectionObject, SectionName)
+		, Enum(Enum) {}
 
 	virtual void GenerateSectionLayout(class ISectionLayoutBuilder& LayoutBuilder) const override
 	{
 		UMovieSceneByteSection* ByteSection = Cast<UMovieSceneByteSection>(&SectionObject);
-		LayoutBuilder.SetSectionAsKeyArea(MakeShareable(new FIntegralKeyArea(ByteSection->GetCurve())));
+		if (Enum != nullptr)
+		{
+			LayoutBuilder.SetSectionAsKeyArea(MakeShareable(new FEnumKeyArea(ByteSection->GetCurve(), ByteSection, Enum)));
+		}
+		else
+		{
+			LayoutBuilder.SetSectionAsKeyArea(MakeShareable(new FIntegralKeyArea(ByteSection->GetCurve(), ByteSection)));
+		}
 	}
+
+private:
+	UEnum* Enum;
 };
 
 FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
@@ -294,7 +306,7 @@ FPropertyTrackEditor::FPropertyTrackEditor( TSharedRef<ISequencer> InSequencer )
 	ISequencerObjectChangeListener& ObjectChangeListener = InSequencer->GetObjectChangeListener();
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_FloatProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<float, UMovieSceneFloatTrack> );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_BoolProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<bool, UMovieSceneBoolTrack> );
-	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_ByteProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<uint8, UMovieSceneByteTrack>);
+	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_ByteProperty ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedPropertyChanged<uint8, UMovieSceneByteTrack> );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector4 ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
 	ObjectChangeListener.GetOnAnimatablePropertyChanged( NAME_Vector2D ).AddRaw( this, &FPropertyTrackEditor::OnAnimatedVectorPropertyChanged );
@@ -348,7 +360,7 @@ TSharedRef<ISequencerSection> FPropertyTrackEditor::MakeSectionInterface( UMovie
 	TSharedRef<ISequencerSection> NewSection = TSharedRef<ISequencerSection>(
 		SectionClass == UMovieSceneColorTrack::StaticClass() ? new FColorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneBoolTrack::StaticClass() ? new FBoolPropertySection( SectionObject, Track->GetTrackName() ) :
-		SectionClass == UMovieSceneByteTrack::StaticClass() ? new FBytePropertySection(SectionObject, Track->GetTrackName()) :
+		SectionClass == UMovieSceneByteTrack::StaticClass() ? new FBytePropertySection(SectionObject, Track->GetTrackName(), Cast<UMovieSceneByteTrack>(SectionObject.GetOuter())->GetEnum()) :
 		SectionClass == UMovieSceneVectorTrack::StaticClass() ? new FVectorPropertySection( SectionObject, Track->GetTrackName() ) :
 		SectionClass == UMovieSceneFloatTrack::StaticClass() ? new FFloatPropertySection( SectionObject, Track->GetTrackName() ) :
 		new FPropertySection( SectionObject, Track->GetTrackName() )
@@ -369,23 +381,66 @@ void FPropertyTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAs
 	}
 }
 
-template <typename Type, typename TrackType>
-void FPropertyTrackEditor::OnAnimatedPropertyChanged(const FKeyPropertyParams& KeyPropertyParams )
+UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
-	// Get the value from the property 
-	Type Value;
-	FPropertyAccess::Result Result = KeyPropertyParams.PropertyHandle->GetValue( Value );
-	check( Result == FPropertyAccess::Success );
-	
-	AnimatablePropertyChanged(TrackType::StaticClass(), KeyPropertyParams.bRequireAutoKey,
-		FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<Type, TrackType>, KeyPropertyParams, Value) );
+	TArray<UObject*> RuntimeObjects;
+	Sequencer->GetObjectBindingManager()->GetRuntimeObjects(Sequencer->GetFocusedMovieSceneInstance(), OwnerObjectHandle, RuntimeObjects);
+
+	TSet<UEnum*> PropertyEnums;
+	for (UObject* RuntimeObject : RuntimeObjects)
+	{
+		UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(PropertyName);
+		if (Property != nullptr)
+		{
+			UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+			if (ByteProperty != nullptr && ByteProperty->Enum != nullptr)
+			{
+				PropertyEnums.Add(ByteProperty->Enum);
+			}
+		}
+	}
+
+	UEnum* TrackEnum;
+	if (PropertyEnums.Num() == 1)
+	{
+		TrackEnum = PropertyEnums.Array()[0];
+	}
+	else
+	{
+		TrackEnum = nullptr;
+	}
+	return TrackEnum;
 }
 
+UMovieSceneTrack* FPropertyTrackEditor::AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName)
+{
+	UMovieSceneTrack* NewTrack = FMovieSceneTrackEditor::AddTrack(FocusedMovieScene, ObjectHandle, TrackClass, UniqueTypeName);
+	if (NewTrack->GetClass() == UMovieSceneByteTrack::StaticClass())
+	{
+		UMovieSceneByteTrack* ByteTrack = Cast<UMovieSceneByteTrack>(NewTrack);
+		UEnum* TrackEnum = GetEnumForByteTrack(GetSequencer(), ObjectHandle, UniqueTypeName, ByteTrack);
+		if (TrackEnum != nullptr)
+		{
+			ByteTrack->SetEnum(TrackEnum);
+		}
+	}
+	return NewTrack;
+}
 
-void FPropertyTrackEditor::OnAnimatedVectorPropertyChanged(const FKeyPropertyParams& KeyPropertyParams)
+template <typename Type, typename TrackType>
+void FPropertyTrackEditor::OnAnimatedPropertyChanged(const FPropertyChangedParams& PropertyChangedParams )
+{
+	// Get the value from the property 
+	Type Value = *PropertyChangedParams.GetPropertyValue<Type>();;
+
+	AnimatablePropertyChanged(TrackType::StaticClass(), PropertyChangedParams.bRequireAutoKey,
+		FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<Type, TrackType>, PropertyChangedParams, Value) );
+}
+
+void FPropertyTrackEditor::OnAnimatedVectorPropertyChanged(const FPropertyChangedParams& PropertyChangedParams)
 {
 	bool bIsVector2D = false, bIsVector = false, bIsVector4 = false;
-	const UStructProperty* StructProp = Cast<const UStructProperty>(KeyPropertyParams.PropertyHandle->GetProperty());
+	const UStructProperty* StructProp = Cast<const UStructProperty>(PropertyChangedParams.PropertyPath.Last());
 	if (StructProp && StructProp->Struct)
 	{
 		FName StructName = StructProp->Struct->GetFName();
@@ -399,58 +454,43 @@ void FPropertyTrackEditor::OnAnimatedVectorPropertyChanged(const FKeyPropertyPar
 		return;
 	}
 
-
-
 	// Get the vector value from the property
-	FPropertyAccess::Result Result = FPropertyAccess::Fail;
-	const bool bRequiresAutoKey = KeyPropertyParams.bRequireAutoKey;
-
-
 	if (bIsVector2D)
 	{
 		FVectorKey<FVector2D> NewKey;
-		NewKey.CurveName = KeyPropertyParams.InnerStructPropertyName;
-		NewKey.bAddKeyEvenIfUnchanged = !bRequiresAutoKey;
+		NewKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+		NewKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
+		NewKey.Value = *PropertyChangedParams.GetPropertyValue<FVector2D>();
 
-		Result = KeyPropertyParams.PropertyHandle->GetValue( NewKey.Value );
-
-		FOnKeyProperty OnKeyPropertyDelegate = FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty<FVectorKey<FVector2D>, UMovieSceneVectorTrack>, KeyPropertyParams, NewKey );
-
-		check( Result == FPropertyAccess::Success );
-		AnimatablePropertyChanged(UMovieSceneVectorTrack::StaticClass(), bRequiresAutoKey, OnKeyPropertyDelegate );
+		FOnKeyProperty OnKeyPropertyDelegate = FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty<FVectorKey<FVector2D>, UMovieSceneVectorTrack>, PropertyChangedParams, NewKey );
+		AnimatablePropertyChanged(UMovieSceneVectorTrack::StaticClass(), PropertyChangedParams.bRequireAutoKey, OnKeyPropertyDelegate);
 	}
 	else if (bIsVector)
 	{
 		FVectorKey<FVector> NewKey;
-		NewKey.CurveName = KeyPropertyParams.InnerStructPropertyName;
-		NewKey.bAddKeyEvenIfUnchanged = !bRequiresAutoKey;
+		NewKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+		NewKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
+		NewKey.Value = *PropertyChangedParams.GetPropertyValue<FVector>();
 
-		Result = KeyPropertyParams.PropertyHandle->GetValue(NewKey.Value);
-
-		FOnKeyProperty OnKeyPropertyDelegate = FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FVectorKey<FVector>, UMovieSceneVectorTrack>, KeyPropertyParams, NewKey );
-
-		check( Result == FPropertyAccess::Success );
-		AnimatablePropertyChanged( UMovieSceneVectorTrack::StaticClass(),bRequiresAutoKey, OnKeyPropertyDelegate );
+		FOnKeyProperty OnKeyPropertyDelegate = FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FVectorKey<FVector>, UMovieSceneVectorTrack>, PropertyChangedParams, NewKey );
+		AnimatablePropertyChanged(UMovieSceneVectorTrack::StaticClass(), PropertyChangedParams.bRequireAutoKey, OnKeyPropertyDelegate);
 	}
 	else if (bIsVector4)
 	{
 		FVectorKey<FVector4> NewKey;
-		NewKey.CurveName = KeyPropertyParams.InnerStructPropertyName;
-		NewKey.bAddKeyEvenIfUnchanged = !bRequiresAutoKey;
+		NewKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+		NewKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
+		NewKey.Value = *PropertyChangedParams.GetPropertyValue<FVector4>();
 
-		Result = KeyPropertyParams.PropertyHandle->GetValue(NewKey.Value);
-
-		FOnKeyProperty OnKeyPropertyDelegate = FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FVectorKey<FVector4>, UMovieSceneVectorTrack>, KeyPropertyParams, NewKey );
-
-		check( Result == FPropertyAccess::Success );
-		AnimatablePropertyChanged(UMovieSceneVectorTrack::StaticClass(),bRequiresAutoKey, OnKeyPropertyDelegate );
+		FOnKeyProperty OnKeyPropertyDelegate = FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FVectorKey<FVector4>, UMovieSceneVectorTrack>, PropertyChangedParams, NewKey );
+		AnimatablePropertyChanged(UMovieSceneVectorTrack::StaticClass(), PropertyChangedParams.bRequireAutoKey, OnKeyPropertyDelegate );
 	}
 }
 
-void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FKeyPropertyParams& KeyPropertyParams )
+void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FPropertyChangedParams& PropertyChangedParams )
 {
 	bool bIsFColor = false, bIsFLinearColor = false, bIsSlateColor = false;
-	const UStructProperty* StructProp = Cast<const UStructProperty>(KeyPropertyParams.PropertyHandle->GetProperty());
+	const UStructProperty* StructProp = Cast<const UStructProperty>(PropertyChangedParams.PropertyPath.Last());
 	if (StructProp && StructProp->Struct)
 	{
 		FName StructName = StructProp->Struct->GetFName();
@@ -465,37 +505,16 @@ void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FKeyPropertyPara
 		return;
 	}
 
-
-
-	FName PropertyName = KeyPropertyParams.PropertyHandle->GetProperty()->GetFName();
-					
-	const UClass* PropertyClass = KeyPropertyParams.PropertyHandle->GetPropertyClass();
-
-	TSharedPtr<IPropertyHandle> ChildProperties[4] = {
-		KeyPropertyParams.PropertyHandle->GetChildHandle("R"),
-		KeyPropertyParams.PropertyHandle->GetChildHandle("G"),
-		KeyPropertyParams.PropertyHandle->GetChildHandle("B"),
-		KeyPropertyParams.PropertyHandle->GetChildHandle("A")
-	};
-
-	uint8 FColorChannels[4];
-	float FLinearColorChannels[4];
-	for (int32 i = 0; i < 4; ++i)
-	{
-		FPropertyAccess::Result Result = bIsFColor ?
-			ChildProperties[i]->GetValue(FColorChannels[i]) :
-			ChildProperties[i]->GetValue(FLinearColorChannels[i]);
-		check( Result == FPropertyAccess::Success );
-	}
+	FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
 
 	FLinearColor ColorValue;
 	if (bIsFColor)
 	{
-		ColorValue = FColor(FColorChannels[0], FColorChannels[1], FColorChannels[2], FColorChannels[3]).ReinterpretAsLinear();
+		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>()->ReinterpretAsLinear();
 	}
 	else
 	{
-		ColorValue = FLinearColor(FLinearColorChannels[0], FLinearColorChannels[1], FLinearColorChannels[2], FLinearColorChannels[3]);
+		ColorValue = *PropertyChangedParams.GetPropertyValue<FLinearColor>();
 	}
 
 	if( StructProp->HasMetaData("HideAlphaChannel") )
@@ -506,30 +525,30 @@ void FPropertyTrackEditor::OnAnimatedColorPropertyChanged(const FKeyPropertyPara
 
 	FColorKey Key;
 	Key.Value = ColorValue;
-	Key.CurveName = KeyPropertyParams.InnerStructPropertyName;
-	Key.bAddKeyEvenIfUnchanged = !KeyPropertyParams.bRequireAutoKey;
+	Key.CurveName = PropertyChangedParams.StructPropertyNameToKey;
+	Key.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
 	Key.bIsSlateColor = bIsSlateColor;
 
-	AnimatablePropertyChanged(UMovieSceneColorTrack::StaticClass(), KeyPropertyParams.bRequireAutoKey, FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FColorKey, UMovieSceneColorTrack>, KeyPropertyParams, Key) );
+	AnimatablePropertyChanged(UMovieSceneColorTrack::StaticClass(), PropertyChangedParams.bRequireAutoKey, FOnKeyProperty::CreateRaw(this, &FPropertyTrackEditor::OnKeyProperty<FColorKey, UMovieSceneColorTrack>, PropertyChangedParams, Key) );
 }
 
 
 template <typename Type, typename TrackType>
-void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FKeyPropertyParams KeyPropertyParams, Type Value )
+void FPropertyTrackEditor::OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams, Type Value )
 {
-	for( UObject* Object : KeyPropertyParams.ObjectsThatChanged )
+	for( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
 	{
 		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
 		if (ObjectHandle.IsValid())
 		{
-			FName PropertyName = KeyPropertyParams.PropertyHandle->GetProperty()->GetFName();
+			FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
 
 			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, TrackType::StaticClass(), PropertyName );
 			if( ensure( Track ) )
 			{
 				TrackType* TypedTrack = CastChecked<TrackType>(Track);
 
-				TypedTrack->SetPropertyNameAndPath( PropertyName, KeyPropertyParams.PropertyPath );
+				TypedTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams.GetPropertyPathString() );
 				// Find or add a new section at the auto-key time and changing the property same property
 				// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
 				bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, Value );

@@ -11,8 +11,14 @@
 void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer )
 {
 	ViewRange = InArgs._ViewRange;
-	OutlinerFillPercent = InArgs._OutlinerFillPercent;
+	OutlinerFillPercentage = InArgs._OutlinerFillPercentage;
+	SectionFillPercentage = InArgs._SectionFillPercentage;
+	OnOutlinerFillPercentageChanged = InArgs._OnOutlinerFillPercentageChanged;
+	OnSectionFillPercentageChanged = InArgs._OnSectionFillPercentageChanged;
 	Sequencer = InSequencer;
+
+	ScrollbarFillPercentage.BindRaw(this, &SSequencerTrackArea::GetScrollBarFillPercentage);
+	ScrollbarSpacerFillPercentage.BindRaw(this, &SSequencerTrackArea::GetScrollBarSpacerFillPercentage);
 
 	TSharedRef<SScrollBar> ScrollBar =
 		SNew(SScrollBar)
@@ -28,14 +34,18 @@ void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSeque
 		]
 		+ SOverlay::Slot()
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.FillWidth(OutlinerFillPercent)
+			SNew(SSplitter)
+			.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+			.Visibility(EVisibility::SelfHitTestInvisible)
+			+ SSplitter::Slot()
+			.Value(OutlinerFillPercentage)
+			.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencerTrackArea::OutlinerFillPercentageChanged))
 			[
 				SNew(SSpacer)
 			]
-			+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
+			+ SSplitter::Slot()
+			.Value(SectionFillPercentage)
+			.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencerTrackArea::SectionFillPercentageChanged))
 			[
 				SAssignNew(CurveEditor, SSequencerCurveEditor, InSequencer)
 				.Visibility( this, &SSequencerTrackArea::GetCurveEditorVisibility )
@@ -44,15 +54,20 @@ void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSeque
 		]
 		+ SOverlay::Slot()
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Right)
-			.FillWidth( TAttribute<float>( this, &SSequencerTrackArea::GetScrollBarSlotFill ) )
+			SNew(SSplitter)
+			.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+			.Visibility(EVisibility::SelfHitTestInvisible)
+			+ SSplitter::Slot()
+			.Value(ScrollbarFillPercentage)
 			[
-				ScrollBar
+				SNew(SBox)
+				.HAlign(HAlign_Right)
+				[
+					ScrollBar
+				]
 			]
-			+ SHorizontalBox::Slot()
-			.FillWidth( TAttribute<float>( this, &SSequencerTrackArea::GetScrollBarSpacerSlotFill ) )
+			+ SSplitter::Slot()
+			.Value(ScrollbarSpacerFillPercentage)
 			[
 				SNew( SSpacer )
 			]
@@ -103,17 +118,22 @@ void SSequencerTrackArea::GenerateWidgetForNode( TSharedRef<FSequencerDisplayNod
 {
 	ScrollBox->AddSlot()
 	[
-		SNew( SHorizontalBox )
-		+ SHorizontalBox::Slot()
-		.FillWidth( OutlinerFillPercent )
-		.Padding( FMargin(0.0f, 2.0f ) )
+		SNew( SSplitter )
+		.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+		+ SSplitter::Slot()
+		.Value(OutlinerFillPercentage)
+		.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencerTrackArea::OutlinerFillPercentageChanged))
 		[
-			// Generate a widget for the animation outliner portion of the node
-			Node->GenerateWidgetForOutliner( Sequencer.Pin().ToSharedRef() )
+			SNew(SBox)
+			.Padding(this, &SSequencerTrackArea::GetOutlinerPadding)
+			[
+				// Generate a widget for the animation outliner portion of the node
+				Node->GenerateContainerWidgetForOutliner()
+			]
 		]
-		+ SHorizontalBox::Slot()
-		.FillWidth( 1.0f )
-		.Padding( FMargin(0.0f, 2.0f) )
+		+ SSplitter::Slot()
+		.Value(SectionFillPercentage)
+		.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencerTrackArea::SectionFillPercentageChanged))
 		[
 			SNew(SBox)
 			.Visibility(this, &SSequencerTrackArea::GetSectionControlVisibility)
@@ -135,12 +155,27 @@ EVisibility SSequencerTrackArea::GetSectionControlVisibility() const
 	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Hidden : EVisibility::Visible;
 }
 
-float SSequencerTrackArea::GetScrollBarSlotFill() const
+float SSequencerTrackArea::GetScrollBarFillPercentage() const
 {
-	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? OutlinerFillPercent.Get() : 1.0f;
+	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? OutlinerFillPercentage.Get() : 1.0f;
 }
 
-float SSequencerTrackArea::GetScrollBarSpacerSlotFill() const
+float SSequencerTrackArea::GetScrollBarSpacerFillPercentage() const
 {
-	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? 1.0f : 0.0f;
+	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? SectionFillPercentage.Get() : 0.0f;
+}
+
+FMargin SSequencerTrackArea::GetOutlinerPadding() const
+{
+	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? FMargin(0, 0, 10, SequencerLayoutConstants::NodePadding) : FMargin(0, 0, 0, SequencerLayoutConstants::NodePadding);
+}
+
+void SSequencerTrackArea::OutlinerFillPercentageChanged(float Value)
+{
+	OnOutlinerFillPercentageChanged.ExecuteIfBound(Value);
+}
+
+void SSequencerTrackArea::SectionFillPercentageChanged(float Value)
+{
+	OnSectionFillPercentageChanged.ExecuteIfBound(Value);
 }

@@ -427,6 +427,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 				);
 		}
 
+		Set("FontAwesome.7", TTF_FONT("Fonts/FontAwesome", 7));
 		Set("FontAwesome.8", TTF_FONT("Fonts/FontAwesome", 8));
 		Set("FontAwesome.9", TTF_FONT("Fonts/FontAwesome", 9));
 		Set("FontAwesome.10", TTF_FONT("Fonts/FontAwesome", 10));
@@ -1599,8 +1600,16 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetPressed( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11), SelectionColor_Pressed ) )
 			.SetNormalPadding(FMargin(0, 1))
 			.SetPressedPadding(FMargin(0, 2, 0, 0));
-
 		Set( "Sequencer.AddKey.Details", DetailsKeyButton );
+
+		const FSplitterStyle OutlinerSplitterStyle = FSplitterStyle()
+			.SetHandleNormalBrush( FSlateNoResource() )
+			.SetHandleHighlightBrush( FSlateNoResource() );
+		Set( "Sequencer.AnimationOutliner.Splitter", OutlinerSplitterStyle );
+
+		const FSpinBoxStyle KeyEditorSpinBoxStyle = FSpinBoxStyle(GetWidgetStyle<FSpinBoxStyle>("SpinBox"))
+			.SetTextPadding(FMargin(2, 0));
+		Set( "Sequencer.AnimationOutliner.KeyEditorSpinBoxStyle", KeyEditorSpinBoxStyle );
 	}
 
 	// Foliage Edit Mode

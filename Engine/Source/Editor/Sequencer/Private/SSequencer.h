@@ -9,7 +9,7 @@ namespace SequencerLayoutConstants
 	/** Padding between each node */
 	const float NodePadding = 3.0f;
 	/** Height of each object node */
-	const float ObjectNodeHeight = 25.0f;
+	const float ObjectNodeHeight = 20.0f;
 	/** Height of each section area if there are no sections (note: section areas may be larger than this if they have children. This is the height of a section area with no children or all children hidden) */
 	const float SectionAreaDefaultHeight = 15.0f;
 	/** Height of each key area */
@@ -61,6 +61,8 @@ public:
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
 		/** Called when the user changes the scrub position */
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
+		/** Called to populate the add combo button in the toolbar. */
+		SLATE_EVENT( FOnGetAddMenuContent, OnGetAddMenuContent )
 	SLATE_END_ARGS()
 
 
@@ -91,8 +93,11 @@ private:
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
 
-	/** Makes the toolbar for the outline section. */
+	/** Makes the toolbar. */
 	TSharedRef<SWidget> MakeToolBar();
+
+	/** Makes the add menu for the toolbar. */
+	TSharedRef<SWidget> MakeAddMenu();
 
 	/** Makes the snapping menu for the toolbar. */
 	TSharedRef<SWidget> MakeSnapMenu();
@@ -134,9 +139,13 @@ private:
 
 	/**
 	 * @return The fill percentage of the animation outliner
-	 * @todo Sequencer Make this user adjustable
 	 */
-	float GetAnimationOutlinerFillPercentage() const { return .25f; }
+	float GetOutlinerFillPercentage() const { return OutlinerFillPercentage; }
+
+	/**
+	 * @return The fill percentage of the section area.
+	 */
+	float GetSectionFillPercentage() const { return SectionFillPercentage; }
 
 	/**
 	 * Creates an overlay for various components of the time slider that should be displayed on top or bottom of the section area
@@ -199,6 +208,12 @@ private:
 	/** Gets whether or not the curve editor toolbar should be visibe. */
 	EVisibility GetCurveEditorToolBarVisibility() const;
 
+	/** Called when the outliner fill percentage is changed by a splitter slot. */
+	void OnOutlinerFillPercentageChanged(float OutlinerFillPercentage);
+
+	/** Called when the section fill percentage is changed by a splitter slot. */
+	void OnSectionFillPercentageChanged(float SectionFillPercentage);
+
 private:
 	/** Section area widget */
 	TSharedPtr<class SSequencerTrackArea> TrackArea;
@@ -210,7 +225,18 @@ private:
 	TAttribute<bool> bShowBreadcrumbTrail;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
+	
+	/** The fill percentage of the outliner area. */
+	float OutlinerFillPercentage;
+	/** The fill percentage of the section area. */
+	float SectionFillPercentage;
+	/** An attribute for binding the fill percentage of the outliner area to a splitter slot. */
+	TAttribute<float>OutlinerFillPercentageAttribute;
+	/** An attribute for binding the fill percentage of the section area to a splitter slot. */
+	TAttribute<float>SectionFillPercentageAttribute;
 
 	/** Whether the active timer is currently registered */
 	bool bIsActiveTimerRegistered;
+
+	FOnGetAddMenuContent OnGetAddMenuContent;
 };

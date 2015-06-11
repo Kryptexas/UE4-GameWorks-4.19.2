@@ -14,6 +14,7 @@
 #include "IKeyArea.h"
 #include "ISequencerObjectBindingManager.h"
 
+#define LOCTEXT_NAMESPACE "SequencerDisplayNode"
 
 class SSequencerObjectTrack : public SLeafWidget
 {
@@ -214,9 +215,14 @@ void FSequencerDisplayNode::AddKeyAreaNode( FName KeyAreaName, const FText& Disp
 	KeyAreaNode->AddKeyArea( KeyArea );
 }
 
-TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForOutliner( TSharedRef<class FSequencer> Sequencer )
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateContainerWidgetForOutliner()
 {
-	return SNew( SAnimationOutlinerView, SharedThis( this ), Sequencer );
+	return SNew( SAnimationOutlinerView, SharedThis( this ), &GetSequencer() );
+}
+
+TSharedRef<SWidget> FSequencerDisplayNode::GenerateEditWidgetForOutliner()
+{
+	return SNew(SSpacer);
 }
 
 TSharedRef<SWidget> FSequencerDisplayNode::GenerateWidgetForSectionArea( const TAttribute< TRange<float> >& ViewRange )
@@ -336,6 +342,20 @@ bool FSectionKeyAreaNode::GetShotFilteredVisibilityToCache() const
 	return true;
 }
 
+TSharedRef<SWidget> FSectionKeyAreaNode::GenerateEditWidgetForOutliner()
+{
+	// @todo - Sequencer - Support multiple sections/key areas?
+	TArray<TSharedRef<IKeyArea>> KeyAreas = GetAllKeyAreas();
+	if (KeyAreas.Num() > 0)
+	{
+		if (KeyAreas[0]->CanCreateKeyEditor())
+		{
+			return KeyAreas[0]->CreateKeyEditor(&GetSequencer());
+		}
+	}
+	return FSequencerDisplayNode::GenerateEditWidgetForOutliner();
+}
+
 void FSectionKeyAreaNode::AddKeyArea( TSharedRef< IKeyArea> KeyArea )
 {
 	KeyAreas.Add( KeyArea );
@@ -387,6 +407,24 @@ void FTrackNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSecti
 	{
 		OutNodes.Add(TopLevelKeyNode.ToSharedRef());
 	}
+}
+
+TSharedRef<SWidget> FTrackNode::GenerateEditWidgetForOutliner()
+{
+	TSharedPtr<FSectionKeyAreaNode> KeyAreaNode = GetTopLevelKeyNode();
+	if (KeyAreaNode.IsValid())
+	{
+		// @todo - Sequencer - Support multiple sections/key areas?
+		TArray<TSharedRef<IKeyArea>> KeyAreas = KeyAreaNode->GetAllKeyAreas();
+		if (KeyAreas.Num() > 0)
+		{
+			if (KeyAreas[0]->CanCreateKeyEditor())
+			{
+				return KeyAreas[0]->CreateKeyEditor(&GetSequencer());
+			}
+		}
+	}
+	return FSequencerDisplayNode::GenerateEditWidgetForOutliner();
 }
 
 int32 FTrackNode::GetMaxRowIndex() const
@@ -454,6 +492,37 @@ bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
 	return !GetSequencer().IsShotFilteringOn() || GetSequencer().IsObjectUnfilterable(ObjectBinding) || HasVisibleChildren();
 }
 
+TSharedRef<SWidget> FObjectBindingNode::GenerateEditWidgetForOutliner()
+{
+	return
+		SNew(SComboButton)
+		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
+		.OnGetMenuContent(this, &FObjectBindingNode::OnGetAddPropertyTrackMenuContent)
+		.ContentPadding(FMargin(2, 0))
+		.ButtonContent()
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.8"))
+				.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(4, 0, 0, 0)
+			[
+				SNew(STextBlock)
+				.Font(FEditorStyle::GetFontStyle("Sequencer.AnimationOutliner.RegularFont"))
+				.Text(LOCTEXT("AddPropertyButton", "Property"))
+			]
+		];
+}
+
 TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FSequencer& ParentSequencer = GetSequencer();
@@ -477,6 +546,86 @@ TSharedPtr<SWidget> FObjectBindingNode::OnSummonContextMenu(const FGeometry& MyG
 	return MenuBuilder.MakeWidget();
 }
 
+void GetKeyablePropertyPaths(UClass* Class, UStruct* PropertySource, TArray<UProperty*>& PropertyPath, FSequencer& Sequencer, TArray<TArray<UProperty*>>& KeyablePropertyPaths)
+{
+	for (TFieldIterator<UProperty> PropertyIterator(PropertySource); PropertyIterator; ++PropertyIterator)
+	{
+		UProperty* Property = *PropertyIterator;
+		PropertyPath.Add(Property);
+		if (Sequencer.CanKeyProperty(FCanKeyPropertyParams(Class, PropertyPath)))
+		{
+			KeyablePropertyPaths.Add(PropertyPath);
+		}
+		else
+		{
+			UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+			if (StructProperty != nullptr)
+			{
+				GetKeyablePropertyPaths(Class, StructProperty->Struct, PropertyPath, Sequencer, KeyablePropertyPaths);
+			}
+		}
+		PropertyPath.RemoveAt(PropertyPath.Num() - 1);
+	}
+}
+
+TSharedRef<SWidget> FObjectBindingNode::OnGetAddPropertyTrackMenuContent()
+{
+	TArray<TArray<UProperty*>> KeyablePropertyPaths;
+	TArray<UObject*> BoundObjects;
+	FSequencer& Sequencer = GetSequencer();
+	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetRootMovieSceneInstance(), ObjectBinding, BoundObjects);
+	for (UObject* BoundObject : BoundObjects)
+	{
+		TArray<UProperty*> PropertyPath;
+		GetKeyablePropertyPaths(BoundObject->GetClass(), BoundObject->GetClass(), PropertyPath, Sequencer, KeyablePropertyPaths);
+	}
+
+	KeyablePropertyPaths.Sort([](const TArray<UProperty*>& A,const TArray<UProperty*>& B)
+	{
+		for (int32 IndexToCheck = 0; IndexToCheck < A.Num() && IndexToCheck < B.Num(); IndexToCheck++)
+		{
+			int32 CompareResult = A[IndexToCheck]->GetName().Compare(B[IndexToCheck]->GetName());
+			if (CompareResult != 0)
+			{
+				return CompareResult < 0;
+			}
+		}
+		// If a difference in name wasn't found, the shorter path should be first.
+		return A.Num() < B.Num();
+	});
+
+	FMenuBuilder AddTrackMenuBuilder(true, NULL);
+	for (TArray<UProperty*>& KeyablePropertyPath : KeyablePropertyPaths)
+	{
+		FUIAction AddTrackMenuAction(FExecuteAction::CreateSP(this, &FObjectBindingNode::AddTrackForProperty, KeyablePropertyPath));
+		TArray<FString> PropertyNames;
+		for (UProperty* Property : KeyablePropertyPath)
+		{
+			PropertyNames.Add(Property->GetName());
+		}
+		AddTrackMenuBuilder.AddMenuEntry(FText::FromString(FString::Join(PropertyNames, TEXT("."))), FText(), FSlateIcon(), AddTrackMenuAction);
+	}
+	return AddTrackMenuBuilder.MakeWidget();
+}
+
+void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
+{
+	FSequencer& Sequencer = GetSequencer();
+
+	TArray<UObject*> BoundObjects;
+	Sequencer.GetObjectBindingManager()->GetRuntimeObjects(Sequencer.GetRootMovieSceneInstance(), ObjectBinding, BoundObjects);
+
+	TArray<UObject*> KeyableBoundObjects;
+	for (UObject* BoundObject : BoundObjects)
+	{
+		if (Sequencer.CanKeyProperty(FCanKeyPropertyParams(BoundObject->GetClass(), PropertyPath)))
+		{
+			KeyableBoundObjects.Add(BoundObject);
+		}
+	}
+	Sequencer.KeyProperty(FKeyPropertyParams(KeyableBoundObjects, PropertyPath));
+}
+
 float FSectionCategoryNode::GetNodeHeight() const 
 {
 	return SequencerLayoutConstants::CategoryNodeHeight;
@@ -487,3 +636,5 @@ bool FSectionCategoryNode::GetShotFilteredVisibilityToCache() const
 	// this node is only visible if at least one child node is visible
 	return HasVisibleChildren();
 }
+
+#undef LOCTEXT_NAMESPACE

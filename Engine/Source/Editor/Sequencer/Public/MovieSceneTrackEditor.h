@@ -61,7 +61,7 @@ public:
 		}
 	}
 	
-	void AnimatablePropertyChanged( TSubclassOf<UMovieSceneTrack> TrackClass, bool bMustBeAutokeying, FOnKeyProperty OnKeyProperty )
+	void AnimatablePropertyChanged( TSubclassOf<class UMovieSceneTrack> TrackClass, bool bMustBeAutokeying, FOnKeyProperty OnKeyProperty )
 	{
 		check(OnKeyProperty.IsBound());
 
@@ -109,10 +109,15 @@ public:
 
 		if( !Type )
 		{
-			Type = MovieScene->AddTrack( TrackClass, ObjectHandle );
+			Type = AddTrack( MovieScene, ObjectHandle, TrackClass, UniqueTypeName );
 		}
 
 		return Type;
+	}
+
+	virtual UMovieSceneTrack* AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName)
+	{
+		return FocusedMovieScene->AddTrack(TrackClass, ObjectHandle);
 	}
 
 	UMovieSceneTrack* GetMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )

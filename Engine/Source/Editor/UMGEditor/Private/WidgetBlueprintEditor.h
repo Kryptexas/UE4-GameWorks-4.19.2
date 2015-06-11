@@ -175,6 +175,12 @@ private:
 	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
 
+	/** Populates the sequencer add menu. */
+	TSharedRef<SWidget> OnGetAnimationAddMenuContent(TSharedRef<ISequencer> Sequencer);
+
+	/** Adds the supplied UObject to the current animation. */
+	void AddObjectToAnimation(UObject* ObjectToAnimate);
+
 private:
 	/** The preview scene that owns the preview GUI */
 	FPreviewScene PreviewScene;

@@ -544,6 +544,7 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 		FSequencerViewParams ViewParams;
 		ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
 		ViewParams.InitialScrubPosition = 0;
+		ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FWidgetBlueprintEditor::OnGetAnimationAddMenuContent);
 
 		SequencerObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *UWidgetAnimation::GetNullAnimation()));
 
@@ -697,6 +698,91 @@ EWidgetDesignFlags::Type FWidgetBlueprintEditor::GetCurrentDesignerFlags() const
 	}
 
 	return Flags;
+}
+
+class FObjectAndDisplayName
+{
+public:
+	FObjectAndDisplayName(FText InDisplayName, UObject* InObject)
+	{
+		DisplayName = InDisplayName;
+		Object = InObject;
+	}
+
+	bool operator<(FObjectAndDisplayName const& Other) const
+	{
+		return DisplayName.CompareTo(Other.DisplayName) < 0;
+	}
+
+	FText DisplayName;
+	UObject* Object;
+
+};
+
+void GetBindableObjects(UWidget* RootWidget, TArray<FObjectAndDisplayName>& BindableObjects)
+{
+	TArray<UWidget*> ToTraverse;
+	ToTraverse.Add(RootWidget);
+	while (ToTraverse.Num() > 0)
+	{
+		UWidget* Widget = ToTraverse[0];
+		ToTraverse.RemoveAt(0);
+		BindableObjects.Add(FObjectAndDisplayName(FText::FromString(Widget->GetName()), Widget));
+
+		UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
+		if (UserWidget != nullptr)
+		{
+			TArray<FName> SlotNames;
+			UserWidget->GetSlotNames(SlotNames);
+			for (FName SlotName : SlotNames)
+			{
+				UWidget* Content = UserWidget->GetContentForSlot(SlotName);
+				if (Content != nullptr)
+				{
+					ToTraverse.Add(Content);
+				}
+			}
+		}
+
+		UPanelWidget* PanelWidget = Cast<UPanelWidget>(Widget);
+		if (PanelWidget != nullptr)
+		{
+			for (UPanelSlot* Slot : PanelWidget->GetSlots())
+			{
+				if (Slot->Content != nullptr)
+				{
+					FText SlotDisplayName = FText::Format(LOCTEXT("AddMenuSlotFormat", "{0} ({1} Slot)"), FText::FromString(Slot->Content->GetName()), FText::FromString(PanelWidget->GetName()));
+					BindableObjects.Add(FObjectAndDisplayName(SlotDisplayName, Slot));
+					ToTraverse.Add(Slot->Content);
+				}
+			}
+		}
+	}
+}
+
+TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TSharedRef<ISequencer> Sequencer)
+{
+	TArray<FObjectAndDisplayName> BindableObjects;
+	GetBindableObjects(GetPreview()->GetRootWidget(), BindableObjects);
+	BindableObjects.Sort();
+
+	FMenuBuilder AddMenuBuilder(true, NULL);
+	for (FObjectAndDisplayName& BindableObject : BindableObjects)
+	{
+		FGuid BoundObjectGuid = SequencerObjectBindingManager->FindGuidForObject(*Sequencer->GetFocusedMovieScene(), *BindableObject.Object);
+		if (BoundObjectGuid.IsValid() == false)
+		{
+			FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
+			AddMenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
+		}
+	}
+	return AddMenuBuilder.MakeWidget();
+}
+
+void FWidgetBlueprintEditor::AddObjectToAnimation(UObject* ObjectToAnimate)
+{
+	// @todo Sequencer - Make this kind of adding more explicit, this current setup seem a bit brittle.
+	Sequencer->GetHandleToObject(ObjectToAnimate);
 }
 
 #undef LOCTEXT_NAMESPACE

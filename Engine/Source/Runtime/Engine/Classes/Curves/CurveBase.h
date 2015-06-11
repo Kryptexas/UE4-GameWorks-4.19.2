@@ -592,6 +592,8 @@ public:
 	FIntegralKey& GetKey(FKeyHandle KeyHandle);
 	FIntegralKey GetKey(FKeyHandle KeyHandle) const;
 
+	FKeyHandle FindKey(float KeyTime) const;
+
 private:
 	/** The keys, ordered by time */
 	UPROPERTY()

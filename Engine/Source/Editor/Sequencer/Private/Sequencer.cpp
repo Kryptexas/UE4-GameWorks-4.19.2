@@ -77,7 +77,8 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 			.ViewRange( this, &FSequencer::OnGetViewRange )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
-			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged, false );
+			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged, false )
+			.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent);
 
 		// When undo occurs, get a notification so we can make sure our view is up to date
 		GEditor->RegisterForUndo(this);
@@ -370,7 +371,8 @@ void FSequencer::DeleteSection(class UMovieSceneSection* Section)
 	
 	if( bAnythingRemoved )
 	{
-		UpdateRuntimeInstances();
+		// Full refresh required just in case the last section was removed from any track.
+		NotifyMovieSceneDataChanged();
 	}
 }
 
@@ -1255,14 +1257,14 @@ void FSequencer::FilterToSelectedShotSections(bool bZoomToShotBounds)
 	FilterToShotSections(SelectedShotSections, bZoomToShotBounds);
 }
 
-bool FSequencer::CanKeyProperty(const UClass& ObjectClass, const IPropertyHandle& PropertyHandle) const
+bool FSequencer::CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const
 {
-	return ObjectChangeListener->IsTypeKeyable( ObjectClass, PropertyHandle );
+	return ObjectChangeListener->CanKeyProperty(CanKeyPropertyParams);
 } 
 
-void FSequencer::KeyProperty(const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle) 
+void FSequencer::KeyProperty(FKeyPropertyParams KeyPropertyParams) 
 {
-	ObjectChangeListener->KeyProperty( ObjectsToKey, PropertyHandle );
+	ObjectChangeListener->KeyProperty(KeyPropertyParams);
 }
 
 TSharedRef<ISequencerObjectBindingManager> FSequencer::GetObjectBindingManager() const

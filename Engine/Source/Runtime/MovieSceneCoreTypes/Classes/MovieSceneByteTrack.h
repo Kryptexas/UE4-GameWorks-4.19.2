@@ -8,10 +8,10 @@
 #include "MovieSceneByteTrack.generated.h"
 
 /**
- * Handles manipulation of float properties in a movie scene
+ * Handles manipulation of byte properties in a movie scene
  */
-UCLASS( MinimalAPI )
-class UMovieSceneByteTrack : public UMovieScenePropertyTrack
+UCLASS()
+class MOVIESCENECORETYPES_API UMovieSceneByteTrack : public UMovieScenePropertyTrack
 {
 	GENERATED_UCLASS_BODY()
 
@@ -38,4 +38,12 @@ public:
 	 * @return true if anything was evaluated. Note: if false is returned OutByte remains unchanged
 	 */
 	virtual bool Eval( float Position, float LastPostion, uint8& OutByte ) const;
+
+	void SetEnum(UEnum* Enum);
+
+	class UEnum* GetEnum() const;
+
+protected:
+	UPROPERTY()
+	UEnum* Enum;
 };

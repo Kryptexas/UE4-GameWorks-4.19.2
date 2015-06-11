@@ -1131,3 +1131,31 @@ FIntegralKey FIntegralCurve::GetKey(FKeyHandle KeyHandle) const
 	EnsureAllIndicesHaveHandles();
 	return Keys[GetIndex(KeyHandle)];
 }
+
+FKeyHandle FIntegralCurve::FindKey(float KeyTime) const
+{
+	int32 Start = 0;
+	int32 End = Keys.Num() - 1;
+
+	// Binary search since the keys are in sorted order
+	while (Start <= End)
+	{
+		int32 TestPos = Start + (End - Start) / 2;
+
+		float TestKeyTime = Keys[TestPos].Time;
+		if (TestKeyTime == KeyTime)
+		{
+			return GetKeyHandle(TestPos);
+		}
+		else if (TestKeyTime < KeyTime)
+		{
+			Start = TestPos + 1;
+		}
+		else
+		{
+			End = TestPos - 1;
+		}
+	}
+
+	return FKeyHandle();
+}

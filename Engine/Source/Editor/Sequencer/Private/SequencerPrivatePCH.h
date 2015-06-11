@@ -7,6 +7,7 @@
 
 #include "SBreadcrumbTrail.h"
 
+#include "KeyPropertyParams.h"
 #include "ISequencerModule.h"
 #include "ISequencerObjectChangeListener.h"
 #include "SequencerSelection.h"

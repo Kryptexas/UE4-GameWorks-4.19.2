@@ -54,9 +54,23 @@ private:
 	EVisibility GetExpanderVisibility() const;
 
 	/**
+	 * @return the visibility of the previous, next, and add key buttons. 
+	 */
+	EVisibility GetKeyButtonVisibility() const;
+
+	/**
 	 * @return The display name for this node.
 	 */
 	FText GetDisplayName() const;
+
+	/** Handles the previous key button being clicked. */
+	FReply OnPreviousKeyClicked();
+
+	/** Handles the next key button being clicked. */
+	FReply OnNextKeyClicked();
+
+	/** Handles the add key button being clicked. */
+	FReply OnAddKeyClicked();
 
 private:
 	/** Layout node the widget is visualizing */
@@ -88,7 +102,7 @@ public:
 	SLATE_END_ARGS()
 
 	/** Construct this widget.  Called by the SNew() Slate macro. */
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> RootNode, TSharedRef<FSequencer> InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencerDisplayNode> RootNode, FSequencer* InSequencer );
 
 	/** SAnimationOutlinerView destructor */
 	virtual ~SAnimationOutlinerView();
@@ -111,5 +125,5 @@ private:
 
 private:
 	/** Internal sequencer interface */
-	TWeakPtr<FSequencer> Sequencer;
+	FSequencer* Sequencer;
 };
