@@ -98,6 +98,16 @@ public:
 	}
 
 	/**
+	 * Returns the top-right position of the rectangle
+	 *
+	 * @return The top-right position.
+	 */
+	FVector2D GetTopRight() const
+	{
+		return FVector2D(Right, Top);
+	}
+
+	/**
 	 * Returns the bottom-right position of the rectangle
 	 * 
 	 * @return The bottom-right position.
@@ -105,6 +115,16 @@ public:
 	FVector2D GetBottomRight() const
 	{
 		return FVector2D( Right, Bottom );
+	}
+
+	/**
+	 * Returns the bottom-left position of the rectangle
+	 * 
+	 * @return The bottom-left position.
+	 */
+	FVector2D GetBottomLeft() const
+	{
+		return FVector2D( Left, Bottom );
 	}
 
 	/**

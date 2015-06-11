@@ -27,12 +27,23 @@ FVector2D RoundToInt(const FVector2D& Vec)
  */
 FSlateRotatedClipRectType ToSnappedRotatedRect(const FSlateRect& ClipRectInLayoutWindowSpace, const FSlateLayoutTransform& InverseLayoutTransform, const FSlateRenderTransform& RenderTransform)
 {
-	FSlateRotatedRect RotatedRect = TransformRect(Concatenate(InverseLayoutTransform, RenderTransform), FSlateRotatedRect(ClipRectInLayoutWindowSpace));
-	// Pixel snapping is done here by rounding the resulting floats to ints.
-	return FSlateRotatedClipRectType(
-		RoundToInt(RotatedRect.TopLeft), 
-		RoundToInt(RotatedRect.ExtentX), 
-		RoundToInt(RotatedRect.ExtentY));
+	auto Transform = Concatenate(InverseLayoutTransform, RenderTransform);
+
+	// Pixel snapping is done here by rounding the resulting floats to ints, we do this before
+	// calculating the extent of the clip box otherwise we'll get a smaller clip rect than a visual
+	// rect where each point is individually snapped.
+	FVector2D TopLeft = RoundToInt(TransformPoint(Transform, ClipRectInLayoutWindowSpace.GetTopLeft()));
+	FVector2D TopRight = RoundToInt(TransformPoint(Transform, ClipRectInLayoutWindowSpace.GetTopRight()));
+	FVector2D BottomLeft = RoundToInt(TransformPoint(Transform, ClipRectInLayoutWindowSpace.GetBottomLeft()));
+
+	// Calculate the distance between the vectors coming from the clip origin.
+	FVector2D ExtentX = TopRight - TopLeft;
+	FVector2D ExtentY = BottomLeft - TopLeft;
+
+	//NOTE: We explicitly do not re-snap the extent x/y, it wouldn't be correct to snap again in distance space
+	// even if two points are snapped, their distance wont necessarily be a whole number if those points are not
+	// axis aligned.
+	return FSlateRotatedClipRectType(TopLeft, ExtentX, ExtentY);
 }
 
 /**

@@ -6,9 +6,9 @@
 FSlateRotatedRect::FSlateRotatedRect() {}
 
 FSlateRotatedRect::FSlateRotatedRect(const FSlateRect& AlignedRect)
-	: TopLeft(FMath::RoundToInt(AlignedRect.Left), FMath::RoundToInt(AlignedRect.Top))
-	, ExtentX(FMath::RoundToInt(AlignedRect.Right) - FMath::RoundToInt(AlignedRect.Left), 0.0f)
-	, ExtentY(0.0f, FMath::RoundToInt(AlignedRect.Bottom) - FMath::RoundToInt(AlignedRect.Top))
+	: TopLeft(AlignedRect.Left, AlignedRect.Top)
+	, ExtentX(AlignedRect.Right - AlignedRect.Left, 0.0f)
+	, ExtentY(0.0f, AlignedRect.Bottom - AlignedRect.Top)
 {
 }
 
