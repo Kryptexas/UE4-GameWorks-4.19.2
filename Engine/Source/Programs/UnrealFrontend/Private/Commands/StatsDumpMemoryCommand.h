@@ -47,13 +47,4 @@ protected:
 
 	/** Filepath to the raw stats file. */
 	FString SourceFilepath;
-
-	/**
-	 *	Helper map, as a part of migration into stats2, stored as ThreadID -> StatID.
-	 *	Used during creating a thread sample, so we can use the real stat id and get data graph for this thread
-	 */
-	TMap<uint32, uint32> ThreadIDtoStatID;
-
-	/** Game thread id. */
-	uint32 GameThreadID;
 };

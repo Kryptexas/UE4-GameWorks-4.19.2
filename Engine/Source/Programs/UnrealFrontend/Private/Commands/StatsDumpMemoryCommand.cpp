@@ -386,7 +386,6 @@ void FStatsMemoryDumpCommand::ProcessMemoryOperations( const TMap<int64, FStatPa
 
 			const FStatPacket& StatPacket = *Frame.Packets[PacketIndex];
 			const FName& ThreadFName = StatsThreadStats.Threads.FindChecked( StatPacket.ThreadId );
-			const uint32 NewThreadID = ThreadIDtoStatID.FindChecked( StatPacket.ThreadId );
 
 			FStackState* StackState = StackStates.Find( ThreadFName );
 			if( !StackState )
@@ -703,42 +702,6 @@ void FStatsMemoryDumpCommand::GenerateMemoryUsageReport( const TMap<uint64, FAll
 	{
 		ProcessingUObjectAllocations( AllocationMap );
 		ProcessingScopedAllocations( AllocationMap );
-	}
-}
-
-void FStatsMemoryDumpCommand::CreateThreadsMapping()
-{
-	int32 UniqueID = 15;
-
-	for( auto It = StatsThreadStats.ShortNameToLongName.CreateConstIterator(); It; ++It )
-	{
-		const FStatMessage& LongName = It.Value();
-
-		const FName GroupName = LongName.NameAndInfo.GetGroupName();
-		
-		// Setup thread id to stat id.
-		if( GroupName == FStatConstants::NAME_ThreadGroup )
-		{
-			const FName StatName = It.Key();
-			UniqueID++;
-
-			uint32 ThreadID = 0;
-			for( auto ThreadsIt = StatsThreadStats.Threads.CreateConstIterator(); ThreadsIt; ++ThreadsIt )
-			{
-				if( ThreadsIt.Value() == StatName )
-				{
-					ThreadID = ThreadsIt.Key();
-					break;
-				}
-			}
-			ThreadIDtoStatID.Add( ThreadID, UniqueID );
-
-			// Game thread is always NAME_GameThread
-			if( StatName == NAME_GameThread )
-			{
-				GameThreadID = ThreadID;
-			}
-		}
 	}
 }
 
