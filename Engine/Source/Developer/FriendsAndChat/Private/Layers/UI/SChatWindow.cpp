@@ -293,7 +293,7 @@ private:
 			const TSharedRef<FFriendViewModel> FriendViewModel = ViewModel->GetFriendViewModel(*UniqueIDString, Username).ToSharedRef();
 			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle);
 
-			EntryMenu = FSlateApplication::Get().PushMenu(
+			FSlateApplication::Get().PushMenu(
 				SharedThis(this),
 				FWidgetPath(),
 				Widget,
@@ -458,9 +458,6 @@ private:
 	FCurveHandle FadeCurve;
 
 	FSlateHyperlinkRun::FOnClick OnHyperlinkClicked;
-
-	/** Reference to owner of the current pop-up. */
-	TWeakPtr<IMenu> EntryMenu;
 
 	static const float CHAT_HINT_UPDATE_THROTTLE;
 };
