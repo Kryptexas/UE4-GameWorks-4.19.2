@@ -93,6 +93,9 @@ public:
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const override;
 	virtual FSequencerSelection* GetSelection() override;
 
+	/** @return The current view range */
+	FAnimatedRange GetViewRange() const;
+
 	bool IsPerspectiveViewportPosessionEnabled() const { return bPerspectiveViewportPossessionEnabled; }
 
 	/**
@@ -274,9 +277,6 @@ protected:
 	 */
 	TRange<float> GetFilteringShotsTimeBounds() const;
 
-	/** @return The current view range */
-	virtual TRange<float> OnGetViewRange() const;
-
 	/** @return The current scrub position */
 	virtual float OnGetScrubPosition() const { return ScrubPosition; }
 
@@ -288,7 +288,7 @@ protected:
 	 *
 	 * @param	NewViewRange The new view range
 	 */
-	void OnViewRangeChanged( TRange<float> NewViewRange, bool bSmoothZoom );
+	void OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation = EViewRangeInterpolation::Animated );
 
 	/**
 	 * Called when the scrub position is changed by the user

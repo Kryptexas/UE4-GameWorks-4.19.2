@@ -56,7 +56,7 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 
 		ToolkitHost = InitParams.ToolkitHost;
 
-		LastViewRange = InitParams.ViewParams.InitalViewRange;
+		LastViewRange = TargetViewRange = InitParams.ViewParams.InitalViewRange;
 		ScrubPosition = InitParams.ViewParams.InitialScrubPosition;
 
 		ObjectChangeListener = InitParams.ObjectChangeListener;
@@ -74,10 +74,10 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 
 		// Make internal widgets
 		SequencerWidget = SNew( SSequencer, SharedThis( this ) )
-			.ViewRange( this, &FSequencer::OnGetViewRange )
+			.ViewRange( this, &FSequencer::GetViewRange )
 			.ScrubPosition( this, &FSequencer::OnGetScrubPosition )
 			.OnScrubPositionChanged( this, &FSequencer::OnScrubPositionChanged )
-			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged, false )
+			.OnViewRangeChanged( this, &FSequencer::OnViewRangeChanged )
 			.OnGetAddMenuContent(InitParams.ViewParams.OnGetAddMenuContent);
 
 		// When undo occurs, get a notification so we can make sure our view is up to date
@@ -113,9 +113,9 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 
 
 		ZoomAnimation = FCurveSequence();
-		ZoomCurve = ZoomAnimation.AddCurve(0.f, 0.35f, ECurveEaseFunction::QuadIn);
+		ZoomCurve = ZoomAnimation.AddCurve(0.f, 0.2f, ECurveEaseFunction::QuadIn);
 		OverlayAnimation = FCurveSequence();
-		OverlayCurve = OverlayAnimation.AddCurve(0.f, 0.35f, ECurveEaseFunction::QuadIn);
+		OverlayCurve = OverlayAnimation.AddCurve(0.f, 0.2f, ECurveEaseFunction::QuadIn);
 
 		// Update initial movie scene data
 		NotifyMovieSceneDataChanged();
@@ -485,10 +485,17 @@ void FSequencer::NotifyMovieSceneDataChanged()
 }
 
 
-TRange<float> FSequencer::OnGetViewRange() const
+FAnimatedRange FSequencer::GetViewRange() const
 {
-	return TRange<float>(FMath::Lerp(LastViewRange.GetLowerBoundValue(), TargetViewRange.GetLowerBoundValue(), ZoomCurve.GetLerp()),
+	FAnimatedRange AnimatedRange(FMath::Lerp(LastViewRange.GetLowerBoundValue(), TargetViewRange.GetLowerBoundValue(), ZoomCurve.GetLerp()),
 		FMath::Lerp(LastViewRange.GetUpperBoundValue(), TargetViewRange.GetUpperBoundValue(), ZoomCurve.GetLerp()));
+
+	if (ZoomAnimation.IsPlaying())
+	{
+		AnimatedRange.AnimationTarget = TargetViewRange;
+	}
+
+	return AnimatedRange;
 }
 
 bool FSequencer::IsAutoKeyEnabled() const 
@@ -856,18 +863,23 @@ TRange<float> FSequencer::GetFilteringShotsTimeBounds() const
 	return TRange<float>::Empty();
 }
 
-
-
-void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, bool bSmoothZoom )
+void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation )
 {
+	const float AnimationLengthSeconds = Interpolation == EViewRangeInterpolation::Immediate ? 0.f : 0.1f;
+
 	if (!NewViewRange.IsEmpty())
 	{
-		if (bSmoothZoom)
+		if (AnimationLengthSeconds != 0.f)
 		{
+			if (ZoomAnimation.GetCurve(0).DurationSeconds != AnimationLengthSeconds)
+			{
+				ZoomAnimation = FCurveSequence();
+				ZoomCurve = ZoomAnimation.AddCurve(0.f, AnimationLengthSeconds, ECurveEaseFunction::QuadIn);
+			}
+
 			if (!ZoomAnimation.IsPlaying())
 			{
 				LastViewRange = TargetViewRange;
-
 				ZoomAnimation.Play( SequencerWidget.ToSharedRef() );
 			}
 			TargetViewRange = NewViewRange;
@@ -1181,7 +1193,7 @@ void FSequencer::ZoomToSelectedSections()
 
 	if (!BoundsHull.IsEmpty() && !BoundsHull.IsDegenerate())
 	{
-		OnViewRangeChanged(BoundsHull, true);
+		OnViewRangeChanged(BoundsHull);
 	}
 }
 
@@ -1238,7 +1250,7 @@ void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieS
 	if( bZoomToShotBounds )
 	{
 		// zoom in
-		OnViewRangeChanged(GetTimeBounds(), true);
+		OnViewRangeChanged(GetTimeBounds());
 	}
 
 	SequencerWidget->UpdateBreadcrumbs(ActualShotSections);

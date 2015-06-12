@@ -286,17 +286,13 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonDown( const FGeometry& MyGeometr
 		OnSelectionChanged.ExecuteIfBound( DisplayNode );
 		return FReply::Handled();
 	}
-	else if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
-	{
-		return FReply::Handled().CaptureMouse(SharedThis(this));
-	}
 
 	return FReply::Unhandled();
 }
 
 FReply SAnimationOutlinerTreeNode::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && HasMouseCapture() )
+	if( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		TSharedPtr<SWidget> MenuContent = DisplayNode->OnSummonContextMenu(MyGeometry, MouseEvent);
 		if (MenuContent.IsValid())
@@ -311,10 +307,10 @@ FReply SAnimationOutlinerTreeNode::OnMouseButtonUp( const FGeometry& MyGeometry,
 				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
 				);
 			
-			return FReply::Handled().ReleaseMouseCapture().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
+			return FReply::Handled().SetUserFocus(MenuContent.ToSharedRef(), EFocusCause::SetDirectly);
 		}
 
-		return FReply::Handled().ReleaseMouseCapture();
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();

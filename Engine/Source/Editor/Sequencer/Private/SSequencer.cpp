@@ -13,6 +13,7 @@
 #include "MovieSceneTrackEditor.h"
 #include "SSequencerSectionOverlay.h"
 #include "SSequencerTrackArea.h"
+#include "SSequencerTrackOutliner.h"
 #include "SequencerNodeTree.h"
 #include "TimeSliderController.h"
 #include "DragAndDrop/AssetDragDropOp.h"
@@ -25,7 +26,9 @@
 #include "SSearchBox.h"
 #include "SNumericDropDown.h"
 #include "EditorWidgetsModule.h"
+#include "SequencerTrackLaneFactory.h"
 
+#include "SSequencerSplitterOverlay.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -167,17 +170,32 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	OnGetAddMenuContent = InArgs._OnGetAddMenuContent;
 
-	OutlinerFillPercentage = .25f;
-	SectionFillPercentage = .75f;
-	OutlinerFillPercentageAttribute.BindRaw(this, &SSequencer::GetOutlinerFillPercentage);
-	SectionFillPercentageAttribute.BindRaw(this, &SSequencer::GetSectionFillPercentage);
+	ColumnFillCoefficients[0] = .25f;
+	ColumnFillCoefficients[1] = .75f;
 
-	SAssignNew( TrackArea, SSequencerTrackArea, Sequencer.Pin().ToSharedRef() )
-		.ViewRange( InArgs._ViewRange )
-		.OutlinerFillPercentage( OutlinerFillPercentageAttribute )
-		.SectionFillPercentage( SectionFillPercentageAttribute )
-		.OnOutlinerFillPercentageChanged( this, &SSequencer::OnOutlinerFillPercentageChanged )
-		.OnSectionFillPercentageChanged( this, &SSequencer::OnSectionFillPercentageChanged );
+	TAttribute<float> FillCoefficient_0, FillCoefficient_1;
+	FillCoefficient_0.Bind(TAttribute<float>::FGetter::CreateSP(this, &SSequencer::GetColumnFillCoefficient, 0));
+	FillCoefficient_1.Bind(TAttribute<float>::FGetter::CreateSP(this, &SSequencer::GetColumnFillCoefficient, 1));
+
+	TSharedRef<SScrollBar> ScrollBar =
+		SNew(SScrollBar)
+		.Thickness(FVector2D(5.0f, 5.0f));
+
+	auto PinnedSequencer = Sequencer.Pin().ToSharedRef();
+
+	SAssignNew( TrackOutliner, SSequencerTrackOutliner );
+
+	SAssignNew( TrackArea, SSequencerTrackArea, TimeSliderController )
+		.Visibility( this, &SSequencer::GetTrackAreaVisibility );
+
+	SAssignNew( CurveEditor, SSequencerCurveEditor, PinnedSequencer, TimeSliderController )
+		.Visibility( this, &SSequencer::GetCurveEditorVisibility )
+		.ViewRange( FAnimatedRange::WrapAttribute(InArgs._ViewRange) );
+
+	const int32 				Column0	= 0,	Column1	= 1;
+	const int32 Row0	= 0,
+				Row1	= 1,
+				Row2	= 2;
 
 	ChildSlot
 	[
@@ -198,125 +216,165 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 				+SHorizontalBox::Slot()
 				.AutoWidth()
 				[
-					SNew( SSequencerCurveEditorToolBar, TrackArea->GetCurveEditor()->GetCommands() )
+					SNew( SSequencerCurveEditorToolBar, CurveEditor->GetCommands() )
 					.Visibility( this, &SSequencer::GetCurveEditorToolBarVisibility )
 				]
 			]
+
 			+ SVerticalBox::Slot()
-			.AutoHeight()
 			[
-				SNew( SSplitter )
-				.Style( FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter" )
-				+ SSplitter::Slot()
-				.Value(OutlinerFillPercentageAttribute)
-				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
+				SNew(SOverlay)
+
+				+ SOverlay::Slot()
 				[
-					SNew( SBox )
-					.Padding( FMargin( 0,0,4,0) )
+					SNew( SGridPanel )
+					.FillRow( 1, 1.f )
+					.FillColumn( 0, FillCoefficient_0 )
+					.FillColumn( 1, FillCoefficient_1 )
+
+					+ SGridPanel::Slot( Column0, Row0 )
+					.VAlign( VAlign_Center )
 					[
 						// Search box for searching through the outliner
 						SNew( SSearchBox )
 						.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
 					]
-				]
-				+ SSplitter::Slot()
-				.Value(SectionFillPercentageAttribute)
-				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
-				[
-					SNew( SBorder )
-					// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
-					.Padding( FMargin( 0.0f, 2.0f, 0.0f, 0.0f ) )
-					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-					.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+
+					+ SGridPanel::Slot( Column0, Row1 )
+					.ColumnSpan(2)
 					[
-						TopTimeSlider
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()
+						[
+							SNew( SOverlay )
+
+							+ SOverlay::Slot()
+							[
+								SNew( SScrollBox )
+								.ExternalScrollbar(ScrollBar)
+
+								+ SScrollBox::Slot()
+								[
+									SNew( SHorizontalBox )
+
+									+ SHorizontalBox::Slot()
+									.FillWidth( FillCoefficient_0 )
+									// Padding to allow space for the scroll bar
+									.Padding(FMargin(0,0,10.f,0))
+									[
+										TrackOutliner.ToSharedRef()
+									]
+
+									+ SHorizontalBox::Slot()
+									.FillWidth( FillCoefficient_1 )
+									[
+										TrackArea.ToSharedRef()
+									]
+								]
+							]
+
+							+ SOverlay::Slot()
+							.HAlign( HAlign_Right )
+							[
+								ScrollBar
+							]
+						]
+
+						+ SHorizontalBox::Slot()
+						.FillWidth( TAttribute<float>( this, &SSequencer::GetOutlinerSpacerFill ) )
+						[
+							SNew(SSpacer)
+						]
 					]
-				]
-			]
-			+ SVerticalBox::Slot()
-			.FillHeight(1.0f)
-			[
-				SNew( SOverlay )
-				+ SOverlay::Slot()
-				[
-					MakeSectionOverlay( TimeSliderController, InArgs._ViewRange, InArgs._ScrubPosition, false )
-				]
-				+ SOverlay::Slot()
-				[
-					TrackArea.ToSharedRef()
-				]
-				+ SOverlay::Slot()
-				[
-					SNew( SSplitter )
-					.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
-					.Visibility( EVisibility::HitTestInvisible )
-					+ SSplitter::Slot()
-					.Value(OutlinerFillPercentageAttribute)
-					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
-					[
-						// Take up space but display nothing. This is required so that all areas dependent on time align correctly
-						SNullWidget::NullWidget
-					]
-					+ SSplitter::Slot()
-					.Value(SectionFillPercentageAttribute)
-					.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
-					[
-						SNew(SShotFilterOverlay, Sequencer)
-						.ViewRange( InArgs._ViewRange )
-					]
-				]
-				+ SOverlay::Slot()
-				[
-					MakeSectionOverlay( TimeSliderController, InArgs._ViewRange, InArgs._ScrubPosition, true )
-				]
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew( SSplitter )
-				.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
-				+ SSplitter::Slot()
-				.Value(OutlinerFillPercentageAttribute)
-				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
-				[
-					SNew(SBox)
-					.HAlign(HAlign_Center)
+
+					+ SGridPanel::Slot( Column0, Row2 )
+					.HAlign( HAlign_Center )
 					[
 						MakeTransportControls()
 					]
-				]
-				+ SSplitter::Slot()
-				.Value(SectionFillPercentageAttribute)
-				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
-				[
-					SNew( SBorder )
-					// @todo Sequencer Do not change the paddings or the sliders scrub widgets wont line up
-					.Padding( FMargin( 0.0f, 0.0f, 0.0f, 2.0f ) )
-					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-					.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+
+					// Second column
+					+ SGridPanel::Slot( Column1, Row0 )
 					[
-						BottomTimeSlider
+						SNew( SBorder )
+						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+						.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+						.Padding(0)
+						[
+							TopTimeSlider
+						]
+					]
+
+					// Overlay that draws the tick lines
+					+ SGridPanel::Slot( Column1, Row1, SGridPanel::Layer(0) )
+					[
+						SNew( SSequencerSectionOverlay, TimeSliderController )
+						.Visibility( EVisibility::HitTestInvisible )
+						.DisplayScrubPosition( false )
+						.DisplayTickLines( true )
+					]
+
+					// Curve editor
+					+ SGridPanel::Slot( Column1, Row1 )
+					[
+						CurveEditor.ToSharedRef()
+					]
+
+					// Overlay that draws the scrub position
+					+ SGridPanel::Slot( Column1, Row1, SGridPanel::Layer(30) )
+					[
+						SNew( SSequencerSectionOverlay, TimeSliderController )
+						.Visibility( EVisibility::HitTestInvisible )
+						.DisplayScrubPosition( true )
+						.DisplayTickLines( false )
+					]
+
+					+ SGridPanel::Slot( Column1, Row2 )
+					[
+						SNew( SBorder )
+						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+						.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+						.Padding(0)
+						[
+							SNew(SVerticalBox)
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								BottomTimeSlider
+							]
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SAssignNew( BreadcrumbTrail, SBreadcrumbTrail<FSequencerBreadcrumb> )
+								.Visibility( this, &SSequencer::GetBreadcrumbTrailVisibility )
+								.OnCrumbClicked( this, &SSequencer::OnCrumbClicked )
+							]
+						]
 					]
 				]
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SNew( SSplitter )
-				.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
-				+ SSplitter::Slot()
-				.Value(OutlinerFillPercentageAttribute)
-				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
+
+				+ SOverlay::Slot()
 				[
-					SNew( SSpacer )
-				]
-				+ SSplitter::Slot()
-				.Value(SectionFillPercentageAttribute)
-				.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
-				[
-					SAssignNew( BreadcrumbTrail, SBreadcrumbTrail<FSequencerBreadcrumb> )
-					.Visibility(this, &SSequencer::GetBreadcrumbTrailVisibility)
-					.OnCrumbClicked( this, &SSequencer::OnCrumbClicked )
+					SNew( SSequencerSplitterOverlay )
+					.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
+					.Visibility(EVisibility::SelfHitTestInvisible)
+
+					+ SSplitter::Slot()
+					.Value( FillCoefficient_0 )
+					.OnSlotResized( SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnColumnFillCoefficientChanged, 0) )
+					[
+						SNew(SSpacer)
+					]
+
+					+ SSplitter::Slot()
+					.Value( FillCoefficient_1 )
+					.OnSlotResized( SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnColumnFillCoefficientChanged, 1) )
+					[
+						SNew(SSpacer)
+					]
 				]
 			]
 		]
@@ -556,8 +614,11 @@ void SSequencer::UpdateLayoutTree()
 {	
 	// Update the node tree
 	SequencerNodeTree->Update();
-	
-	TrackArea->Update( SequencerNodeTree );
+
+	FSequencerTrackLaneFactory Factory(TrackOutliner.ToSharedRef(), TrackArea.ToSharedRef(), Sequencer.Pin().ToSharedRef() );
+	Factory.Repopulate( *SequencerNodeTree );
+
+	CurveEditor->SetSequencerNodeTree(SequencerNodeTree);
 
 	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
 }
@@ -604,29 +665,6 @@ void SSequencer::ResetBreadcrumbs()
 void SSequencer::OnOutlinerSearchChanged( const FText& Filter )
 {
 	SequencerNodeTree->FilterNodes( Filter.ToString() );
-}
-
-TSharedRef<SWidget> SSequencer::MakeSectionOverlay( TSharedRef<FSequencerTimeSliderController> TimeSliderController, const TAttribute< TRange<float> >& ViewRange, const TAttribute<float>& ScrubPosition, bool bTopOverlay )
-{
-	return
-		SNew( SSplitter )
-		.Style(FEditorStyle::Get(), "Sequencer.AnimationOutliner.Splitter")
-		.Visibility( EVisibility::HitTestInvisible )
-		+ SSplitter::Slot()
-		.Value(OutlinerFillPercentageAttribute)
-		.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnOutlinerFillPercentageChanged))
-		[
-			// Take up space but display nothing. This is required so that all areas dependent on time align correctly
-			SNullWidget::NullWidget
-		]
-		+ SSplitter::Slot()
-		.Value(SectionFillPercentageAttribute)
-		.OnSlotResized(SSplitter::FOnSlotResized::CreateSP(this, &SSequencer::OnSectionFillPercentageChanged))
-		[
-			SNew( SSequencerSectionOverlay, TimeSliderController )
-			.DisplayScrubPosition( bTopOverlay )
-			.DisplayTickLines( !bTopOverlay )
-		];
 }
 
 float SSequencer::OnGetTimeSnapInterval() const
@@ -964,14 +1002,25 @@ EVisibility SSequencer::GetCurveEditorToolBarVisibility() const
 	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SSequencer::OnOutlinerFillPercentageChanged(float InOutlinerFillPercentage)
+float SSequencer::GetOutlinerSpacerFill() const
 {
-	OutlinerFillPercentage = InOutlinerFillPercentage;
+	const float Column1Coeff = GetColumnFillCoefficient(1);
+	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? Column1Coeff / (1 - Column1Coeff) : 0.f;
 }
 
-void SSequencer::OnSectionFillPercentageChanged(float InSectionFillPercentage)
+void SSequencer::OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex)
 {
-	SectionFillPercentage = InSectionFillPercentage;
+	ColumnFillCoefficients[ColumnIndex] = FillCoefficient;
+}
+
+EVisibility SSequencer::GetTrackAreaVisibility() const
+{
+	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+EVisibility SSequencer::GetCurveEditorVisibility() const
+{
+	return GetDefault<USequencerSettings>()->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 #undef LOCTEXT_NAMESPACE

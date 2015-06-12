@@ -12,6 +12,9 @@ namespace ScrubConstants
 
 	/**The smallest number of units between between major tick marks */
 	const float MinDisplayTickSpacing = 0.001f;
+
+	/**The fraction of the current view range to scroll per unit delta  */
+	const float ScrollPanFraction = 0.1f;
 }
 
 
@@ -382,27 +385,7 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				float NewViewOutputMin = LocalViewRangeMin - InputDelta.X;
 				float NewViewOutputMax = LocalViewRangeMax - InputDelta.X;
 
-				TOptional<float> LocalClampMin = TimeSliderArgs.ClampMin.Get();
-				TOptional<float> LocalClampMax = TimeSliderArgs.ClampMax.Get();
-
-				// Clamp the range if clamp values are set
-				if ( LocalClampMin.IsSet() && NewViewOutputMin < LocalClampMin.GetValue() )
-				{
-					NewViewOutputMin = LocalClampMin.GetValue();
-				}
-			
-				if ( LocalClampMax.IsSet() && NewViewOutputMax > LocalClampMax.GetValue() )
-				{
-					NewViewOutputMax = LocalClampMax.GetValue();
-				}
-
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax));
-
-				if( !TimeSliderArgs.ViewRange.IsBound() )
-				{	
-					// The  output is not bound to a delegate so we'll manage the value ourselves
-					TimeSliderArgs.ViewRange.Set( TRange<float>( NewViewOutputMin, NewViewOutputMax ) );
-				}
+				SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Immediate);
 			}
 		}
 		else if (MouseEvent.IsMouseButtonDown( EKeys::LeftMouseButton ))
@@ -450,49 +433,23 @@ void FSequencerTimeSliderController::CommitScrubPosition( float NewValue, bool b
 
 FReply FSequencerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> WidgetOwner, const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if ( TimeSliderArgs.AllowZoom )
+	TOptional<TRange<float>> NewTargetRange;
+
+	float MouseFractionX = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()).X / MyGeometry.GetLocalSize().X;
+	if ( TimeSliderArgs.AllowZoom && (MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown()) )
 	{
-		const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
-
+		const float ZoomDelta = -0.2f * MouseEvent.GetWheelDelta();
+		if (ZoomByDelta(ZoomDelta, MouseFractionX))
 		{
-			TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get();
-			float LocalViewRangeMax = LocalViewRange.GetUpperBoundValue();
-			float LocalViewRangeMin = LocalViewRange.GetLowerBoundValue();
-			const float OutputViewSize = LocalViewRangeMax - LocalViewRangeMin;
-			const float OutputChange = OutputViewSize * ZoomDelta;
-
-			float NewViewOutputMin = LocalViewRangeMin - (OutputChange * 0.5f);
-			float NewViewOutputMax = LocalViewRangeMax + (OutputChange * 0.5f);
-
-			if( FMath::Abs( OutputChange ) > 0.01f && NewViewOutputMin < NewViewOutputMax )
-			{
-				TOptional<float> LocalClampMin = TimeSliderArgs.ClampMin.Get();
-				TOptional<float> LocalClampMax = TimeSliderArgs.ClampMax.Get();
-
-				// Clamp the range if clamp values are set
-				if ( LocalClampMin.IsSet() && NewViewOutputMin < LocalClampMin.GetValue() )
-				{
-					NewViewOutputMin = LocalClampMin.GetValue();
-				}
-				
-				if ( LocalClampMax.IsSet() && NewViewOutputMax > LocalClampMax.GetValue() )
-				{
-					NewViewOutputMax = LocalClampMax.GetValue();
-				}
-
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax));
-
-				if( !TimeSliderArgs.ViewRange.IsBound() )
-				{	
-					// The  output is not bound to a delegate so we'll manage the value ourselves
-					TimeSliderArgs.ViewRange.Set( TRange<float>( NewViewOutputMin, NewViewOutputMax ) );
-				}
-			}
+			return FReply::Handled();
 		}
-
+	}
+	else if (MouseEvent.IsLeftShiftDown() || MouseEvent.IsRightShiftDown())
+	{
+		PanByDelta(-MouseEvent.GetWheelDelta());
 		return FReply::Handled();
 	}
-
+	
 	return FReply::Unhandled();
 }
 
@@ -550,5 +507,66 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 
 	return LayerId;
 }
+
+void FSequencerTimeSliderController::SetViewRange( float NewRangeMin, float NewRangeMax, EViewRangeInterpolation Interpolation )
+{
+	TOptional<float> LocalClampMin = TimeSliderArgs.ClampMin.Get();
+	TOptional<float> LocalClampMax = TimeSliderArgs.ClampMax.Get();
+
+	// Clamp the range if clamp values are set
+	if ( LocalClampMin.IsSet() && NewRangeMin < LocalClampMin.GetValue() )
+	{
+		NewRangeMin = LocalClampMin.GetValue();
+	}
+	
+	if ( LocalClampMax.IsSet() && NewRangeMax > LocalClampMax.GetValue() )
+	{
+		NewRangeMax = LocalClampMax.GetValue();
+	}
+
+	const TRange<float> NewRange(NewRangeMin, NewRangeMax);
+
+	TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound( NewRange, Interpolation );
+
+	if( !TimeSliderArgs.ViewRange.IsBound() )
+	{	
+		// The  output is not bound to a delegate so we'll manage the value ourselves (no animation)
+		TimeSliderArgs.ViewRange.Set( NewRange );
+	}
+}
+
+bool FSequencerTimeSliderController::ZoomByDelta( float InDelta, float MousePositionFraction )
+{
+	TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get().GetAnimationTarget();
+	float LocalViewRangeMax = LocalViewRange.GetUpperBoundValue();
+	float LocalViewRangeMin = LocalViewRange.GetLowerBoundValue();
+	const float OutputViewSize = LocalViewRangeMax - LocalViewRangeMin;
+	const float OutputChange = OutputViewSize * InDelta;
+
+	float NewViewOutputMin = LocalViewRangeMin - (OutputChange * MousePositionFraction);
+	float NewViewOutputMax = LocalViewRangeMax + (OutputChange * (1.f - MousePositionFraction));
+
+	if( FMath::Abs( OutputChange ) > 0.01f && NewViewOutputMin < NewViewOutputMax )
+	{
+		SetViewRange(NewViewOutputMin, NewViewOutputMax, EViewRangeInterpolation::Animated);
+		return true;
+	}
+
+	return false;
+}
+
+void FSequencerTimeSliderController::PanByDelta( float InDelta )
+{
+	TRange<float> LocalViewRange = TimeSliderArgs.ViewRange.Get().GetAnimationTarget();
+
+	float CurrentMin = LocalViewRange.GetLowerBoundValue();
+	float CurrentMax = LocalViewRange.GetUpperBoundValue();
+
+	// Adjust the delta to be a percentage of the current range
+	InDelta *= ScrubConstants::ScrollPanFraction * (CurrentMax - CurrentMin);
+
+	SetViewRange(CurrentMin + InDelta, CurrentMax + InDelta, EViewRangeInterpolation::Animated);
+}
+
 
 #undef LOCTEXT_NAMESPACE

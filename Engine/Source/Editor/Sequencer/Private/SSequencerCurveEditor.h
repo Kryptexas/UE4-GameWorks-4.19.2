@@ -2,10 +2,10 @@
 
 #pragma once
 
-class SCurveEditor;
+#include "SCurveEditor.h"
 
 /** A widget for displaying and managing an SCurveEditor in sequencer. */
-class SSequencerCurveEditor : public SCompoundWidget
+class SSequencerCurveEditor : public SCurveEditor
 {
 public:
 	SLATE_BEGIN_ARGS( SSequencerCurveEditor )
@@ -16,15 +16,19 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer );
+	void Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer, TSharedRef<class ITimeSliderController> InTimeSliderController );
 
 	/** Sets the sequencer node tree which supplies the curves. */
 	void SetSequencerNodeTree( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree );
-	
-	/** Gets the commands for building a toolbar for the curve editor. */
-	TSharedPtr<FUICommandList> GetCommands();
 
 	~SSequencerCurveEditor();
+
+protected:
+
+	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
+	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 
 private:
 	/** Builds and assigns a new curve owner to the FCurveEditor. */
@@ -52,8 +56,8 @@ private:
 
 	/** The sequencer which owns this widget. */
 	TWeakPtr<FSequencer> Sequencer;
-	/** The curve editor widget contained by this widget. */
-	TSharedPtr<SCurveEditor> CurveEditor;
+	/** The class responsible for time sliding on the curve editor */
+	TSharedPtr<class ITimeSliderController> TimeSliderController;
 	/** The visible time range displayed by the curve editor. */
 	TAttribute<TRange<float>> ViewRange;
 	/** The sequencer node tree which contains the key area nodes which supply the curves to edit. */

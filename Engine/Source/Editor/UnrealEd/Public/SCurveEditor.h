@@ -386,6 +386,7 @@ private:
 	/** Paints the marquee for selection */
 	void PaintMarquee(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
+protected:
 	// SWidget interface
 	UNREALED_API virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	UNREALED_API virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -394,6 +395,7 @@ private:
 	UNREALED_API virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
 	UNREALED_API virtual void   OnMouseCaptureLost() override;
 
+private:
 	/** Attempts to start a drag operation when the mouse moves. */
 	void TryStartDrag(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 

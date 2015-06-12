@@ -50,11 +50,10 @@ class SSequencer : public SCompoundWidget
 public:
 	DECLARE_DELEGATE_OneParam( FOnToggleBoolOption, bool )
 	SLATE_BEGIN_ARGS( SSequencer )
-		: _ViewRange( TRange<float>( 0.0f, 5.0f ) )
-		, _ScrubPosition( 1.0f )
+		: _ScrubPosition( 1.0f )
 	{}
 		/** The current view range (seconds) */
-		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
+		SLATE_ATTRIBUTE( FAnimatedRange, ViewRange )
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
 		/** Called when the user changes the view range */
@@ -140,22 +139,16 @@ private:
 	/**
 	 * @return The fill percentage of the animation outliner
 	 */
-	float GetOutlinerFillPercentage() const { return OutlinerFillPercentage; }
+	float GetColumnFillCoefficient(int32 ColumnIndex) const { return ColumnFillCoefficients[ColumnIndex]; }
 
-	/**
-	 * @return The fill percentage of the section area.
-	 */
-	float GetSectionFillPercentage() const { return SectionFillPercentage; }
+	/** Get the amount of space that the outliner spacer should fill */
+	float GetOutlinerSpacerFill() const;
 
-	/**
-	 * Creates an overlay for various components of the time slider that should be displayed on top or bottom of the section area
-	 * 
-	 * @param TimeSliderController	Time controller to route input to for adjustment of the time view
-	 * @param ViewRange		The current visible time range
-	 * @param ScrubPosition		The current scrub position
-	 * @param bTopOverlay		Whether or not the overlay is displayed on top or bottom of the section view
-	 */
-	TSharedRef<SWidget> MakeSectionOverlay( TSharedRef<class FSequencerTimeSliderController> TimeSliderController, const TAttribute< TRange<float> >& ViewRange, const TAttribute<float>& ScrubPosition, bool bTopOverlay );
+	/** Get the visibility of the curve area */
+	EVisibility GetCurveEditorVisibility() const;
+
+	/** Get the visibility of the track area */
+	EVisibility GetTrackAreaVisibility() const;
 
 	/** SWidget interface */
 	/** @todo Sequencer Basic drag and drop support.  Doesn't belong here most likely */
@@ -208,33 +201,25 @@ private:
 	/** Gets whether or not the curve editor toolbar should be visibe. */
 	EVisibility GetCurveEditorToolBarVisibility() const;
 
-	/** Called when the outliner fill percentage is changed by a splitter slot. */
-	void OnOutlinerFillPercentageChanged(float OutlinerFillPercentage);
-
-	/** Called when the section fill percentage is changed by a splitter slot. */
-	void OnSectionFillPercentageChanged(float SectionFillPercentage);
+	/** Called when a column fill percentage is changed by a splitter slot. */
+	void OnColumnFillCoefficientChanged(float FillCoefficient, int32 ColumnIndex);
 
 private:
+
 	/** Section area widget */
 	TSharedPtr<class SSequencerTrackArea> TrackArea;
+	/** Outliner widget */
+	TSharedPtr<class SSequencerTrackOutliner> TrackOutliner;
+	/** The curve editor. */
+	TSharedPtr<class SSequencerCurveEditor> CurveEditor;
 	/** Sequencer node tree for movie scene data */
 	TSharedPtr<class FSequencerNodeTree> SequencerNodeTree;
 	/** The breadcrumb trail widget for this sequencer */
 	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
-	/** Whether or not the breadcrumb trail should be shown. */
-	TAttribute<bool> bShowBreadcrumbTrail;
 	/** The main sequencer interface */
 	TWeakPtr<FSequencer> Sequencer;
-	
-	/** The fill percentage of the outliner area. */
-	float OutlinerFillPercentage;
-	/** The fill percentage of the section area. */
-	float SectionFillPercentage;
-	/** An attribute for binding the fill percentage of the outliner area to a splitter slot. */
-	TAttribute<float>OutlinerFillPercentageAttribute;
-	/** An attribute for binding the fill percentage of the section area to a splitter slot. */
-	TAttribute<float>SectionFillPercentageAttribute;
-
+	/** The fill coefficients of each column in the grid. */
+	float ColumnFillCoefficients[2];
 	/** Whether the active timer is currently registered */
 	bool bIsActiveTimerRegistered;
 

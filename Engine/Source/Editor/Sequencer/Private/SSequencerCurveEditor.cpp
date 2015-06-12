@@ -3,19 +3,20 @@
 #include "SequencerPrivatePCH.h"
 #include "SCurveEditor.h"
 #include "Sequencer.h"
+#include "TimeSliderController.h"
 
 #define LOCTEXT_NAMESPACE "SequencerCurveEditor"
 
-void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer )
+void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSequencer> InSequencer, TSharedRef<ITimeSliderController> InTimeSliderController )
 {
 	ViewRange = InArgs._ViewRange;
 	Sequencer = InSequencer;
+	TimeSliderController = InTimeSliderController;
 	NodeTreeSelectionChangedHandle = Sequencer.Pin()->GetSelection()->GetOnOutlinerNodeSelectionChanged()->AddSP(this, &SSequencerCurveEditor::NodeTreeSelectionChanged);
 	GetMutableDefault<USequencerSettings>()->GetOnCurveVisibilityChanged()->AddSP( this, &SSequencerCurveEditor::SequencerCurveVisibilityChanged );
 
-	ChildSlot
-	[
-		SAssignNew( CurveEditor, SCurveEditor )
+	SCurveEditor::Construct(
+		SCurveEditor::FArguments()
 		.ViewMinInput_Lambda( [this]{ return ViewRange.Get().GetLowerBoundValue(); } )
 		.ViewMaxInput_Lambda( [this]{ return ViewRange.Get().GetUpperBoundValue(); } )
 		.HideUI( false )
@@ -28,7 +29,55 @@ void SSequencerCurveEditor::Construct( const FArguments& InArgs, TSharedRef<FSeq
 		.TimelineLength( 0.0f )
 		.ShowCurveToolTips( this, &SSequencerCurveEditor::GetShowCurveEditorCurveToolTips )
 		.GridColor( FLinearColor( 0.3f, 0.3f, 0.3f, 0.3f ) )
-	];
+	);
+}
+
+FReply SSequencerCurveEditor::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	// Curve Editor takes precedence
+	FReply Reply = SCurveEditor::OnMouseButtonDown( MyGeometry, MouseEvent );
+	if ( Reply.IsEventHandled() )
+	{
+		return Reply;
+	}
+
+	return TimeSliderController->OnMouseButtonDown( AsShared(), MyGeometry, MouseEvent );
+}
+
+
+FReply SSequencerCurveEditor::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	// Curve Editor takes precedence
+	FReply Reply = SCurveEditor::OnMouseButtonUp( MyGeometry, MouseEvent );
+	if ( Reply.IsEventHandled() )
+	{
+		return Reply;
+	}
+
+	return TimeSliderController->OnMouseButtonUp( AsShared(), MyGeometry, MouseEvent );
+}
+
+
+FReply SSequencerCurveEditor::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	FReply Reply = SCurveEditor::OnMouseMove( MyGeometry, MouseEvent );
+	if ( Reply.IsEventHandled() )
+	{
+		return Reply;
+	}
+
+	return TimeSliderController->OnMouseMove( AsShared(), MyGeometry, MouseEvent );
+}
+
+FReply SSequencerCurveEditor::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	FReply Reply = TimeSliderController->OnMouseWheel( AsShared(), MyGeometry, MouseEvent );
+	if ( Reply.IsEventHandled() )
+	{
+		return Reply;
+	}
+
+	return SCurveEditor::OnMouseWheel( MyGeometry, MouseEvent );
 }
 
 template<class ParentNodeType>
@@ -55,7 +104,7 @@ void SSequencerCurveEditor::SetSequencerNodeTree( TSharedPtr<FSequencerNodeTree>
 void SSequencerCurveEditor::UpdateCurveOwner()
 {
 	CurveOwner = MakeShareable( new FSequencerCurveOwner( SequencerNodeTree ) );
-	CurveEditor->SetCurveOwner( CurveOwner.Get() );
+	SetCurveOwner( CurveOwner.Get() );
 }
 
 bool SSequencerCurveEditor::GetCurveSnapEnabled() const
@@ -97,11 +146,6 @@ void SSequencerCurveEditor::NodeTreeSelectionChanged()
 void SSequencerCurveEditor::SequencerCurveVisibilityChanged()
 {
 	UpdateCurveOwner();
-}
-
-TSharedPtr<FUICommandList> SSequencerCurveEditor::GetCommands()
-{
-	return CurveEditor->GetCommands();
 }
 
 SSequencerCurveEditor::~SSequencerCurveEditor()
