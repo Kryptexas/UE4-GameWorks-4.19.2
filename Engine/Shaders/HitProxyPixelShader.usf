@@ -19,7 +19,7 @@ void Main(
 	float4 InstanceHitProxyId : HIT_PROXY_ID,
 #endif
 	float4 PixelPosition	: TEXCOORD6,
-	in INPUT_POSITION_QUALIFIERS float4 SvPosition	: SV_Position,
+	in INPUT_POSITION_QUALIFIERS float4 SvPosition	: SV_Position
 	OPTIONAL_IsFrontFace
 	OPTIONAL_OutDepth
 	,out float4 OutColor		: SV_Target0

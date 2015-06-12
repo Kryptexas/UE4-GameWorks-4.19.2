@@ -18,7 +18,7 @@ float4 DistortionParams;
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	float4	PixelPosition	: TEXCOORD6,
-	in float4 SvPosition	: SV_Position,
+	in float4 SvPosition	: SV_Position
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
 	)

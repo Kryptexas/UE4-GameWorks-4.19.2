@@ -1543,7 +1543,7 @@ void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters)
 	#define OPTIONAL_IsFrontFace
 	static const FIsFrontFace bIsFrontFace = 1;
 #else
-	#define OPTIONAL_IsFrontFace in FIsFrontFace bIsFrontFace : FrontFaceSemantic
+	#define OPTIONAL_IsFrontFace , in FIsFrontFace bIsFrontFace : FrontFaceSemantic
 #endif
 
 /** Initializes the subset of Parameters that was not set in GetMaterialPixelParameters. */

@@ -597,10 +597,9 @@ void ApplyPixelDepthOffsetForBasePass(inout FMaterialPixelParameters MaterialPar
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position,
-
-	OPTIONAL_IsFrontFace,
-	out float4 OutColor		: SV_Target0
+	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
+	OPTIONAL_IsFrontFace
+	,out float4 OutColor		: SV_Target0
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
 	,out float4 OutGBufferA : SV_Target1 
 	,out float4 OutGBufferB : SV_Target2
