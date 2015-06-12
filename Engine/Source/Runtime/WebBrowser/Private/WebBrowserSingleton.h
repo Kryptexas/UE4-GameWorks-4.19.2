@@ -50,6 +50,10 @@ public:
 	// IWebBrowserSingleton Interface
 
 	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
+		TSharedPtr<FWebBrowserWindow>& BrowserWindowParent,
+		TSharedPtr<FWebBrowserWindowInfo>& BrowserWindowInfo) override;
+
+	TSharedPtr<IWebBrowserWindow> CreateBrowserWindow(
 		void* OSWindowHandle, 
 		FString InitialURL, 
 		uint32 Width, 
@@ -59,6 +63,7 @@ public:
 		TOptional<FString> ContentsToLoad = TOptional<FString>(), 
 		bool ShowErrorMessage = true,
 		FColor BackgroundColor = FColor(255, 255, 255, 255)) override;
+
 
 public:
 

@@ -14,7 +14,7 @@ SWebBrowser::SWebBrowser()
 {
 }
 
-void SWebBrowser::Construct(const FArguments& InArgs)
+void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrowserWindow>& InWebBrowserWindow)
 {
 	OnLoadCompleted = InArgs._OnLoadCompleted;
 	OnLoadError = InArgs._OnLoadError;
@@ -26,27 +26,32 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 	OnJSQueryCanceled = InArgs._OnJSQueryCanceled;
 	OnLoadUrl = InArgs._OnLoadUrl;
 	OnBeforePopup = InArgs._OnBeforePopup;
-
+	OnCreateWindow = InArgs._OnCreateWindow;
 	AddressBarUrl = FText::FromString(InArgs._InitialURL);
 
-	void* OSWindowHandle = nullptr;
-	if (InArgs._ParentWindow.IsValid())
+	BrowserWindow = InWebBrowserWindow;
+	if(!BrowserWindow.IsValid())
 	{
-		TSharedPtr<FGenericWindow> NativeWindow = InArgs._ParentWindow->GetNativeWindow();
-		OSWindowHandle = NativeWindow->GetOSWindowHandle();
+		void* OSWindowHandle = nullptr;
+		if (InArgs._ParentWindow.IsValid())
+		{
+			TSharedPtr<FGenericWindow> NativeWindow = InArgs._ParentWindow->GetNativeWindow();
+			OSWindowHandle = NativeWindow->GetOSWindowHandle();
+		}
+
+		BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(
+			OSWindowHandle,
+			InArgs._InitialURL,
+			InArgs._ViewportSize.Get().X,
+			InArgs._ViewportSize.Get().Y,
+			InArgs._SupportsTransparency,
+			InArgs._SupportsThumbMouseButtonNavigation,
+			InArgs._ContentsToLoad,
+			InArgs._ShowErrorMessage,
+			InArgs._BackgroundColor
+			);		
 	}
 
-	BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(
-		OSWindowHandle,
-		InArgs._InitialURL,
-		InArgs._ViewportSize.Get().X,
-		InArgs._ViewportSize.Get().Y,
-		InArgs._SupportsTransparency,
-		InArgs._SupportsThumbMouseButtonNavigation,
-		InArgs._ContentsToLoad,
-		InArgs._ShowErrorMessage,
-		InArgs._BackgroundColor
-	);
 
 	ChildSlot
 	[
@@ -138,6 +143,11 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 
 	if (BrowserWindow.IsValid())
 	{
+		if(OnCreateWindow.IsBound())
+		{
+			BrowserWindow->OnCreateWindow().BindSP(this, &SWebBrowser::HandleCreateWindow);		
+		}
+
 		BrowserWindow->OnDocumentStateChanged().AddSP(this, &SWebBrowser::HandleBrowserWindowDocumentStateChanged);
 		BrowserWindow->OnNeedsRedraw().AddSP(this, &SWebBrowser::HandleBrowserWindowNeedsRedraw);
 		BrowserWindow->OnTitleChanged().AddSP(this, &SWebBrowser::HandleTitleChanged);
@@ -271,7 +281,7 @@ FReply SWebBrowser::OnForwardClicked()
 FText SWebBrowser::GetReloadButtonText() const
 {
 	static FText ReloadText = LOCTEXT("Reload", "Reload");
-	static FText StopText = LOCTEXT("StopText", "StopText");
+	static FText StopText = LOCTEXT("StopText", "Stop");
 
 	if (BrowserWindow.IsValid())
 	{
@@ -428,6 +438,15 @@ void SWebBrowser::ExecuteJavascript(const FString& ScriptText)
 	{
 		BrowserWindow->ExecuteJavascript(ScriptText);
 	}
+}
+
+bool SWebBrowser::HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow)
+{
+	if(OnCreateWindow.IsBound())
+	{
+		return OnCreateWindow.Execute(NewBrowserWindow);
+	}
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

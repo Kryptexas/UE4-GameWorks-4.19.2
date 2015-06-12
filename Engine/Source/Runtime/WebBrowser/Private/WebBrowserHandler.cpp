@@ -60,7 +60,40 @@ void FWebBrowserHandler::OnAfterCreated(CefRefPtr<CefBrowser> Browser)
 
 	if (BrowserWindow.IsValid())
 	{
+
 		BrowserWindow->BindCefBrowser(Browser);
+	}
+	else
+	{
+		if(Browser->IsPopup())
+		{
+			TSharedPtr<FWebBrowserWindow> BrowserWindowParent = BrowserWindowParentPtr.Pin();
+			if(BrowserWindowParent.IsValid() && BrowserWindowParent->SupportsNewWindows())
+			{
+				TSharedPtr<FWebBrowserWindowInfo> NewBrowserWindowInfo = MakeShareable(new FWebBrowserWindowInfo(Browser, this));
+				TSharedPtr<IWebBrowserWindow> NewBrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow( 
+					BrowserWindowParent,
+					NewBrowserWindowInfo
+					);	
+
+				{
+					// @todo: At the moment we need to downcast since the handler does not support using the interface.
+					TSharedPtr<FWebBrowserWindow> HandlerSpecificBrowserWindow = StaticCastSharedPtr<FWebBrowserWindow>(NewBrowserWindow);
+					BrowserWindowPtr = HandlerSpecificBrowserWindow;
+				}
+
+				// Request a UI window for the browser.  If it is not created we do some cleanup.
+				bool bUIWindowCreated = BrowserWindowParent->RequestCreateWindow(NewBrowserWindow.ToSharedRef());
+				if(!bUIWindowCreated)
+				{
+					NewBrowserWindow->CloseBrowser();
+				}
+			}
+			else
+			{
+				Browser->GetHost()->CloseBrowser(true);
+			}
+		}
 	}
 }
 
@@ -85,16 +118,41 @@ bool FWebBrowserHandler::OnBeforePopup( CefRefPtr<CefBrowser> Browser,
 									   CefBrowserSettings& Settings,
 									   bool* NoJavascriptAccess )
 {
+
 	// By default, we ignore any popup requests unless they are handled by us in some way.
 	bool bSupressCEFWindowCreation = true;
-
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
+
 	if (BrowserWindow.IsValid())
 	{
 		bSupressCEFWindowCreation = BrowserWindow->OnCefBeforePopup(TargetUrl, TArgetFrameName);
+
+		if(!bSupressCEFWindowCreation)
+		{
+			if(BrowserWindow->SupportsNewWindows())
+			{
+				CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);
+				NewHandler->SetBrowserWindowParent(BrowserWindow);
+				Client = NewHandler;
+				
+				CefWindowHandle ParentWindowHandle = BrowserWindow->GetCefBrowser()->GetHost()->GetWindowHandle();
+
+				// Always use off screen rendering so we can integrate with our windows
+				WindowInfo.SetAsWindowless(ParentWindowHandle, BrowserWindow->UseTransparency());
+
+				// We need to rely on CEF to create our window so we set the WindowInfo, BrowserSettings, Client, and then return false
+				bSupressCEFWindowCreation = false;
+			}
+			else
+			{
+				bSupressCEFWindowCreation = true;
+			}
+		}
 	}
-	return bSupressCEFWindowCreation;
+
+	return bSupressCEFWindowCreation; 
 }
+
 
 void FWebBrowserHandler::OnLoadError(CefRefPtr<CefBrowser> Browser,
 	CefRefPtr<CefFrame> Frame,
@@ -238,6 +296,11 @@ CefRefPtr<CefResourceHandler> FWebBrowserHandler::GetResourceHandler( CefRefPtr<
 void FWebBrowserHandler::SetBrowserWindow(TSharedPtr<FWebBrowserWindow> InBrowserWindow)
 {
 	BrowserWindowPtr = InBrowserWindow;
+}
+
+void FWebBrowserHandler::SetBrowserWindowParent(TSharedPtr<FWebBrowserWindow> InBrowserWindow)
+{
+	BrowserWindowParentPtr = InBrowserWindow;
 }
 
 bool FWebBrowserHandler::OnProcessMessageReceived(CefRefPtr<CefBrowser> Browser,

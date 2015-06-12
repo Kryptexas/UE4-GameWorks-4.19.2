@@ -203,6 +203,9 @@ public:
 
 	/** Execute Javascript on the page. */
 	virtual void ExecuteJavascript(const FString& Script) = 0;
+	
+	/** Close this window so that it can no longer be used. */
+	virtual void CloseBrowser() = 0;
 
 public:
 
@@ -246,6 +249,10 @@ public:
 	/** A delegate that is invoked when a popup window is attempting to open. */
 	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
 	virtual FOnBeforePopupDelegate& OnBeforePopup() = 0;
+
+	/** A delegate this is invoked when an existing browser requests creation of a new browser window. */
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCreateWindow, const TWeakPtr<IWebBrowserWindow>& /*NewBrowserWindow*/)
+	virtual FOnCreateWindow& OnCreateWindow() = 0;
 
 protected:
 

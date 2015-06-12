@@ -122,6 +122,33 @@ FWebBrowserSingleton::~FWebBrowserSingleton()
 }
 
 TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
+	TSharedPtr<FWebBrowserWindow>& BrowserWindowParent,
+	TSharedPtr<FWebBrowserWindowInfo>& BrowserWindowInfo
+	)
+{
+#if WITH_CEF3
+
+	//  @todo: Width/Height should be obtained when requesting a UI window from user code which happens later.
+	int32 Width = 800;
+	int32 Height = 600;
+	TOptional<FString> ContentsToLoad;
+
+	bool bShowErrorMessage = BrowserWindowParent->IsShowingErrorMessages();
+	bool bThumbMouseButtonNavigation = BrowserWindowParent->IsThumbMouseButtonNavigationEnabled();
+	bool bUseTransparency = BrowserWindowParent->UseTransparency();
+	FString InitialURL = BrowserWindowInfo->Browser->GetMainFrame()->GetURL().ToWString().c_str();
+	TSharedPtr<FWebBrowserWindow> NewBrowserWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, bShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
+	
+	NewBrowserWindow->SetHandler(BrowserWindowInfo->Handler);
+	NewBrowserWindow->BindCefBrowser(BrowserWindowInfo->Browser);
+
+	WindowInterfaces.Add(NewBrowserWindow);
+	return NewBrowserWindow;
+#endif
+	return NULL;
+}
+
+TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 	void* OSWindowHandle, 
 	FString InitialURL, 
 	uint32 Width, 
@@ -134,7 +161,7 @@ TSharedPtr<IWebBrowserWindow> FWebBrowserSingleton::CreateBrowserWindow(
 {
 #if WITH_CEF3
 	// Create new window
-	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation));
+	TSharedPtr<FWebBrowserWindow> NewWindow(new FWebBrowserWindow(FIntPoint(Width, Height), InitialURL, ContentsToLoad, ShowErrorMessage, bThumbMouseButtonNavigation, bUseTransparency));
 
 	// WebBrowserHandler implements browser-level callbacks.
 	CefRefPtr<FWebBrowserHandler> NewHandler(new FWebBrowserHandler);

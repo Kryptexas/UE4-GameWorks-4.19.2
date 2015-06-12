@@ -13,7 +13,7 @@
 #include <AppKit/NSEvent.h>
 #endif
 
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TOptional<FString> InContentsToLoad, bool InShowErrorMessage, bool InThumbMouseButtonNavigation, bool InUseTransparency)
 	: DocumentState(EWebBrowserDocumentState::NoDocument)
 	, UpdatableTexture(nullptr)
 	, CurrentUrl(InUrl)
@@ -23,6 +23,7 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TO
 	, ContentsToLoad(InContentsToLoad)
 	, ShowErrorMessage(InShowErrorMessage)
 	, bThumbMouseButtonNavigation(InThumbMouseButtonNavigation)
+	, bUseTransparency(InUseTransparency)
 	, Cursor(EMouseCursor::Default)
 	, bIsHidden(false)
 	, bTickedLastFrame(true)
@@ -33,10 +34,6 @@ FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InUrl, TO
 	, bIgnoreKeyUpEvent(false)
 	, bIgnoreCharacterEvent(false)
 {
-	if (FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
-	{
-		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(1,1); // Texture will be resized on first paint call
-	}
 }
 
 FWebBrowserWindow::~FWebBrowserWindow()
@@ -420,6 +417,21 @@ bool FWebBrowserWindow::OnUnhandledKeyEvent(const CefKeyEvent& CefEvent)
 	return bWasHandled;
 }
 
+
+bool FWebBrowserWindow::SupportsNewWindows()
+{
+	return OnCreateWindow().IsBound() ? true : false;
+}
+
+bool FWebBrowserWindow::RequestCreateWindow( const TSharedRef<IWebBrowserWindow>& NewBrowserWindow )
+{
+	if(OnCreateWindow().IsBound())
+	{
+		return OnCreateWindow().Execute(TWeakPtr<IWebBrowserWindow>(NewBrowserWindow));
+	}
+	return false;
+}
+
 FReply FWebBrowserWindow::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	FReply Reply = FReply::Unhandled();
@@ -668,9 +680,9 @@ void FWebBrowserWindow::CloseBrowser()
 
 void FWebBrowserWindow::BindCefBrowser(CefRefPtr<CefBrowser> Browser)
 {
+	check(Browser.get() == nullptr || InternalCefBrowser.get() == nullptr || InternalCefBrowser->IsSame(Browser));
 	InternalCefBrowser = Browser;
 }
-
 
 CefRefPtr<CefBrowser> FWebBrowserWindow::GetCefBrowser()
 {
@@ -743,6 +755,11 @@ void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
 
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)
 {
+	if (UpdatableTexture == nullptr && FSlateApplication::IsInitialized() && FSlateApplication::Get().GetRenderer().IsValid())
+	{
+		UpdatableTexture = FSlateApplication::Get().GetRenderer()->CreateUpdatableTexture(Width,Height);
+	}
+
 	if (UpdatableTexture != nullptr)
 	{
 		int32 FirstRow = 0;

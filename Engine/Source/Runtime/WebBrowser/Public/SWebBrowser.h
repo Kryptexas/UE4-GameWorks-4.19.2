@@ -17,6 +17,7 @@ DECLARE_DELEGATE_TwoParams(FJSQueryResultDelegate, int, FString);
 DECLARE_DELEGATE_RetVal_FourParams(bool, FOnJSQueryReceivedDelegate, int64, FString, bool, FJSQueryResultDelegate);
 DECLARE_DELEGATE_OneParam(FOnJSQueryCanceledDelegate, int64);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&);
 
 class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget
@@ -89,6 +90,9 @@ public:
 		/** Called before a popup window happens */
 		SLATE_EVENT(FOnBeforePopupDelegate, OnBeforePopup)
 
+		/** Called when the browser requests the creation of a new window */
+		SLATE_EVENT(FOnCreateWindowDelegate, OnCreateWindow)
+
 		/** Called before browser navigation. */
 		SLATE_EVENT(FOnBeforeBrowse, OnBeforeNavigation)
 	
@@ -105,7 +109,7 @@ public:
 	 *
 	 * @param InArgs  Declaration from which to construct the widget.
 	 */
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedPtr<IWebBrowserWindow>& InWebBrowserWindow = nullptr);
 
 	/**
 	 * Load the specified URL.
@@ -217,7 +221,14 @@ private:
 	bool HandleBeforeNavigation(const FString& Url, bool bIsRedirect);
 	
 	bool HandleLoadUrl(const FString& Method, const FString& Url, FString& OutResponse);
-	
+
+	/**
+	 * A delegate that is executed when the browser requests window creation.
+	 *
+	 * @return true if if the window request was handled, false if the browser requesting the new window should be closed.
+	 */
+	bool HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow);
+
 	/** Callback for popup window permission */
 	bool HandleBeforePopup(FString URL, FString Target);
 
@@ -261,6 +272,9 @@ private:
 	
 	/** A delegate that is invoked when the browser attempts to pop up a new window */
 	FOnBeforePopupDelegate OnBeforePopup;
+
+	/** A delegate that is invoked when the browser requests a UI window for another browser it spawned */
+	FOnCreateWindowDelegate OnCreateWindow;
 
 	/** A delegate that is invoked prior to browser navigation */
 	FOnBeforeBrowse OnBeforeNavigation;

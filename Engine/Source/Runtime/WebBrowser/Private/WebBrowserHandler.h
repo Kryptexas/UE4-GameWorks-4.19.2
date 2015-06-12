@@ -48,6 +48,13 @@ public:
 	 * @param InBrowserWindow The browser window this will be handling.
 	 */
 	void SetBrowserWindow(TSharedPtr<FWebBrowserWindow> InBrowserWindow);
+	
+	/**
+	 * Pass in a pointer to our parent Browser Window.
+	 *
+	 * @param InBrowserWindow The parent browser window.
+	 */
+	void SetBrowserWindowParent(TSharedPtr<FWebBrowserWindow> InBrowserWindow);
 
 	/** Sets whether to show messages on loading errors. */
 	void SetShowErrorMessage(bool InShowErrorMessage)
@@ -187,6 +194,9 @@ private:
 
 	/** Weak Pointer to our Web Browser window so that events can be passed on while it's valid*/
 	TWeakPtr<FWebBrowserWindow> BrowserWindowPtr;
+	
+	/** Weak Pointer to the parent web browser window */
+	TWeakPtr<FWebBrowserWindow> BrowserWindowParentPtr;
 
 	/** Whether to show an error message in case of loading errors. */
 	bool ShowErrorMessage;

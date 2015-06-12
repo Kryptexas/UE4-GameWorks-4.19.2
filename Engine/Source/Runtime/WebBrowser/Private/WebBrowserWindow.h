@@ -24,6 +24,19 @@
 #endif
 
 /**
+ * Helper for containing items required for CEF browser window creation.
+ */
+struct  FWebBrowserWindowInfo
+{
+	FWebBrowserWindowInfo(CefRefPtr<CefBrowser> InBrowser, CefRefPtr<FWebBrowserHandler> InHandler) 
+		: Browser(InBrowser)
+		, Handler(InHandler)
+	{}
+	CefRefPtr<CefBrowser> Browser;
+	CefRefPtr<FWebBrowserHandler> Handler;
+};
+
+/**
  * Implementation of interface for dealing with a Web Browser window.
  */
 class FWebBrowserWindow
@@ -42,7 +55,7 @@ public:
 	 * @param InContentsToLoad Optional string to load as a web page.
 	 * @param InShowErrorMessage Whether to show an error message in case of loading errors.
 	 */
-	FWebBrowserWindow(FIntPoint ViewportSize, FString URL, TOptional<FString> ContentsToLoad, bool ShowErrorMessage, bool bThumbMouseButtonNavigation);
+	FWebBrowserWindow(FIntPoint ViewportSize, FString URL, TOptional<FString> ContentsToLoad, bool ShowErrorMessage, bool bThumbMouseButtonNavigation, bool bUseTransparency);
 
 	/** Virtual Destructor. */
 	virtual ~FWebBrowserWindow();
@@ -56,8 +69,17 @@ public:
 	*/
 	void SetHandler(CefRefPtr<FWebBrowserHandler> InHandler);
 
-	/** Close this window so that it can no longer be used. */
-	void CloseBrowser();
+	/**
+	 * Called to pass reference to the underlying CefBrowser as this is not created at the same time
+	 * as the FWebBrowserWindow.
+	 *
+	 * @param Browser The CefBrowser for this window.
+	 */
+	void BindCefBrowser(CefRefPtr<CefBrowser> Browser);
+
+	bool IsShowingErrorMessages() { return ShowErrorMessage; }
+	bool IsThumbMouseButtonNavigationEnabled() { return bThumbMouseButtonNavigation; }
+	bool UseTransparency() { return bUseTransparency; }
 
 public:
 
@@ -91,6 +113,7 @@ public:
 	virtual void Reload() override;
 	virtual void StopLoad() override;
 	virtual void ExecuteJavascript(const FString& Script) override;
+	virtual void CloseBrowser() override;
 
 	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnDocumentStateChanged, FOnDocumentStateChanged);
 	virtual FOnDocumentStateChanged& OnDocumentStateChanged() override
@@ -142,6 +165,11 @@ public:
 		return LoadUrlDelegate;
 	}
 
+	virtual FOnCreateWindow& OnCreateWindow() override
+	{
+		return CreateWindowDelegate;
+	}
+
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) override
 	{
 		return Cursor == EMouseCursor::Default ? FCursorReply::Unhandled() : FCursorReply::Cursor(Cursor);
@@ -153,14 +181,6 @@ public:
 	}
 
 private:
-
-	/**
-	 * Called to pass reference to the underlying CefBrowser as this is not created at the same time
-	 * as the FWebBrowserWindow.
-	 *
-	 * @param Browser The CefBrowser for this window.
-	 */
-	void BindCefBrowser(CefRefPtr<CefBrowser> Browser);
 
 	/**
 	 * Used to obtain the internal CEF browser.
@@ -269,6 +289,20 @@ private:
 	 */
 	bool OnUnhandledKeyEvent(const CefKeyEvent& CefEvent);
 
+
+	/** Specifies if window creation functionality is available. 
+	 *
+	 * @return true if window creation functionality was provided, false otherwise.  If false, RequestCreateWindow() will always return false.
+	 */
+	bool SupportsNewWindows();
+	
+	/** Called when the browser requests a new UI window
+	 *
+	 * @param NewBrowserWindow The web browser window to display in the new UI window.
+	 * @return true if the UI window was created, false otherwise.
+	 */
+	bool RequestCreateWindow(const TSharedRef<IWebBrowserWindow>& NewBrowserWindow);
+
 public:
 
 	// Trigger an OnBeforePopup event chain
@@ -355,6 +389,9 @@ private:
 	/** Whether to allow forward and back navigation via the mouse thumb buttons. */
 	bool bThumbMouseButtonNavigation;
 
+	/** Whether transparency is enabled. */
+	bool bUseTransparency;
+
 	/** Delegate for broadcasting title changes. */
 	FOnTitleChanged TitleChangedEvent;
 
@@ -378,6 +415,9 @@ private:
 
 	/** Delegate for notifying that a popup window is attempting to open. */
 	FOnBeforePopupDelegate BeforePopupDelegate;
+	
+	/** Delegate for handaling requests to create new windows. */
+	FOnCreateWindow CreateWindowDelegate;
 
 	/** Tracks the current mouse cursor */
 	EMouseCursor::Type Cursor;
