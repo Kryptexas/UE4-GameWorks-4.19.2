@@ -4,7 +4,11 @@ Crumbs:%ROOT%, Platforms/GearVR
 Description:Instructions on how to deploy projects form UE4 to use with the Samsung Gear VR Headset.
 Navigation:platform
 Platform:Gear VR
-Related:
+Related: Platforms\GearVR\Prerequisites
+Related: Platforms\GearVR\BestPractices
+Related: Platforms\GearVR\Debugging
+
+
 
 [VAR:Steps]
 [OBJECT:Navigation]
