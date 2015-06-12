@@ -379,6 +379,8 @@ void UAIPerceptionComponent::ProcessStimuli()
 		UE_VLOG(GetOwner(), LogAIPerception, Warning, TEXT("UAIPerceptionComponent::ProcessStimuli called without any Stimuli to process"));
 		return;
 	}
+
+	const bool bBroadcastEveryTargetUpdate = OnTargetPerceptionUpdated.IsBound();
 	
 	FStimulusToProcess* SourcedStimulus = StimuliToProcess.GetData();
 	TArray<AActor*> UpdatedActors;
@@ -419,12 +421,7 @@ void UAIPerceptionComponent::ProcessStimuli()
 		check(SourcedStimulus->Stimulus.Type.IsValid());
 
 		FAIStimulus& StimulusStore = PerceptualInfo->LastSensedStimuli[SourcedStimulus->Stimulus.Type];
-
-		// if the new stimulus is "valid" or it's info that "no longer sensed" and it used to be sensed successfully
-		if (SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false || SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed())
-		{
-			UpdatedActors.AddUnique(SourcedStimulus->Source);
-		}
+		const bool bActorInfoUpdated = SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false || SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed();
 
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
@@ -439,6 +436,16 @@ void UAIPerceptionComponent::ProcessStimuli()
 			// @note there some more valid info in SourcedStimulus->Stimulus regarding test that failed
 			// may be useful in future
 			StimulusStore.MarkNoLongerSensed();
+		}
+
+		// if the new stimulus is "valid" or it's info that "no longer sensed" and it used to be sensed successfully
+		if (bActorInfoUpdated)
+		{
+			UpdatedActors.AddUnique(SourcedStimulus->Source);
+			if (bBroadcastEveryTargetUpdate)
+			{
+				OnTargetPerceptionUpdated.Broadcast(SourcedStimulus->Source, StimulusStore);
+			}
 		}
 	}
 

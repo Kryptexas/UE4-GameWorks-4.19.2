@@ -26,7 +26,8 @@ protected:
 public:
 	UAISenseConfig(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	virtual TSubclassOf<UAISense> GetSenseImplementation() const { return UAISense::StaticClass(); }
+	virtual TSubclassOf<UAISense> GetSenseImplementation() const;
+
 	FAISenseID GetSenseID() const;
 	
 	float GetMaxAge() const { return MaxAge; }

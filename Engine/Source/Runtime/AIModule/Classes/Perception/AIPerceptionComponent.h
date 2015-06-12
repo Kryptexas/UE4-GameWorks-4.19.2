@@ -15,6 +15,7 @@ class UAIPerceptionSystem;
 class UAISenseConfig;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPerceptionUpdatedDelegate, TArray<AActor*>, UpdatedActors);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FActorPerceptionUpdatedDelegate, AActor*, Actor, FAIStimulus, Stimulus);
 
 struct AIMODULE_API FActorPerceptionInfo
 {
@@ -22,7 +23,7 @@ struct AIMODULE_API FActorPerceptionInfo
 
 	TArray<FAIStimulus> LastSensedStimuli;
 
-	/** if != MAX indicated the sense that takes precedense over other senses when it comes
+	/** if != MAX indicates the sense that takes precedense over other senses when it comes
 		to determining last stimulus location */
 	FAISenseID DominantSense;
 
@@ -255,6 +256,9 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	UPROPERTY(BlueprintAssignable)
 	FPerceptionUpdatedDelegate OnPerceptionUpdated;
+
+	UPROPERTY(BlueprintAssignable)
+	FActorPerceptionUpdatedDelegate OnTargetPerceptionUpdated;
 
 protected:
 
