@@ -4564,6 +4564,30 @@ FBPVariableDescription FBlueprintEditorUtils::DuplicateVariableDescription(UBlue
 	return NewVar;
 }
 
+void FBlueprintEditorUtils::SetDefaultValueOnUserDefinedStructProperty(UBlueprint* InBlueprint, FString InScopeName, FBPVariableDescription* InOutVariableDescription)
+{
+	if (InOutVariableDescription->VarType.PinSubCategoryObject.IsValid() && InOutVariableDescription->VarType.PinSubCategoryObject->IsA(UUserDefinedStruct::StaticClass()))
+	{
+		// Create a variable reference for the variable, so we can resolve it and use it to generate the default value
+		FMemberReference VariableReference;
+		VariableReference.SetLocalMember(InOutVariableDescription->VarName, InScopeName, InOutVariableDescription->VarGuid);
+		UStruct* FunctionScope = VariableReference.GetMemberScope(InBlueprint->SkeletonGeneratedClass);
+		UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(InBlueprint->SkeletonGeneratedClass);
+
+		TSharedPtr<FStructOnScope> StructData = MakeShareable(new FStructOnScope(FunctionScope));
+
+		// Create the default value for the property
+		FStructureEditorUtils::Fill_MakeStructureDefaultValue(VariableProperty, StructData->GetStructMemory());
+
+		// Export the default value as a string so we can store it with the variable description
+		FString DefaultValueString;
+		FBlueprintEditorUtils::PropertyValueToString(VariableProperty, StructData->GetStructMemory(), DefaultValueString);
+
+		// Set the default value
+		InOutVariableDescription->DefaultValue = DefaultValueString;
+	}
+}
+
 bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName InNewVarName, const FEdGraphPinType& InNewVarType, const FString& DefaultValue/*= FString()*/)
 {
 	if(InTargetGraph != NULL && InTargetGraph->GetSchema()->GetGraphType(InTargetGraph) == GT_Function)
@@ -4593,6 +4617,13 @@ bool FBlueprintEditorUtils::AddLocalVariable(UBlueprint* Blueprint, UEdGraph* In
 		FunctionEntryNodes[0]->LocalVariables.Add(NewVar);
 
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+		if (NewVar.DefaultValue.IsEmpty())
+		{
+			// Pull the description of the new variable, we will update it's default value with the default value from the user defined struct.
+			FBPVariableDescription* VariableDescription = &FunctionEntryNodes[0]->LocalVariables[FunctionEntryNodes[0]->LocalVariables.Num() - 1];
+			SetDefaultValueOnUserDefinedStructProperty(Blueprint, InTargetGraph->GetName(), VariableDescription);
+		}
 
 		return true;
 	}
@@ -4886,6 +4917,10 @@ void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, con
 							Variable.PropertyFlags &= ~(CPF_DisableEditOnTemplate);
 						}
 					}
+				}
+				else
+				{
+					SetDefaultValueOnUserDefinedStructProperty(InBlueprint, FunctionEntry->GetGraph()->GetName(), VariablePtr);
 				}
 
 				// Reconstruct all local variables referencing the modified one

@@ -702,6 +702,15 @@ public:
 	static UEdGraph* FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope);
 
 	/**
+	 * Helper function to set the default value of a user defined struct property's local variable description
+	 *
+	 * @param	InBlueprint					The Blueprint the local variable can be found in
+	 * @param	InScope	Name				Local variable's scope name
+	 * @param	InOutVariableDescription	Description of the variable, will be modified with the default value
+	 */
+	static void SetDefaultValueOnUserDefinedStructProperty(UBlueprint* InBlueprint, FString InScopeName, FBPVariableDescription* InOutVariableDescription);
+
+	/**
 	 * Adds a local variable to the function graph.  It cannot mask a member variable or a variable in any superclass.
 	 *
 	 * @param	NewVarName	Name of the new variable.
