@@ -125,6 +125,7 @@ void FMovieSceneAudioTrackInstance::PlaySound(UMovieSceneAudioSection* AudioSect
 	Component->SetSound(AudioSection->GetSound());
 	Component->SetVolumeMultiplier(1.f);
 	Component->SetPitchMultiplier(PitchMultiplier);
+	Component->bIsUISound = true;
 	Component->Play(Time - AudioSection->GetAudioStartTime());
 }
 
