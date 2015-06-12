@@ -105,6 +105,12 @@ namespace AutomationTool
 			{
 				SetUATSavedPath();
 			}
+
+			if (LocalRoot.EndsWith(":"))
+			{
+				LocalRoot += Path.DirectorySeparatorChar;
+			}
+
 			EngineSavedFolder = CommandUtils.GetEnvVar(EnvVarNames.EngineSavedFolder);
             CSVFile = CommandUtils.GetEnvVar(EnvVarNames.CSVFile);            
 			LogFolder = CommandUtils.GetEnvVar(EnvVarNames.LogFolder);
