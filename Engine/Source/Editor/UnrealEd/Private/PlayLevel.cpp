@@ -2898,7 +2898,10 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 				FOnSwitchWorldHack OnWorldSwitch = FOnSwitchWorldHack::CreateUObject( this, &UEditorEngine::OnSwitchWorldForSlatePieWindow );
 				PieWindow->SetOnWorldSwitchHack( OnWorldSwitch );
 
-				FSlateApplication::Get().AddWindow( PieWindow );
+				if (PlayInSettings->PIEAlwaysOnTop && FSlateApplication::Get().GetActiveTopLevelWindow().IsValid())
+					FSlateApplication::Get().AddWindowAsNativeChild(PieWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef(), true);
+				else
+					FSlateApplication::Get().AddWindow(PieWindow);
 
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew(SOverlay);
 

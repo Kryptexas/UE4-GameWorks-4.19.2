@@ -343,6 +343,9 @@ public:
 		// play in new window settings
 		IDetailCategoryBuilder& PlayInNewWindowCategory = LayoutBuilder.EditCategory("PlayInNewWindow");
 		{
+			PlayInNewWindowCategory.AddProperty("PIEAlwaysOnTop")
+				.DisplayName(LOCTEXT("PIEAlwaysOnTop", "Always On Top"));
+
 			// new window size
 			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowHeight));
 			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowWidth));
