@@ -955,11 +955,11 @@ bool FBuildDataGenerator::SaveOutFileData(const FString& SourceFile, const FSHAH
 	IFileManager& FileManager = IFileManager::Get();
 
 	const FString NewFilename = FBuildPatchUtils::GetFileNewFilename( EBuildPatchAppManifestVersion::GetLatestVersion(), FBuildPatchServicesModule::GetCloudDirectory(), FileGuid, FileHash );
-	bAlreadySaved = FPaths::FileExists( NewFilename );
+	bAlreadySaved = FPlatformFileManager::Get().GetPlatformFile().FileExists(*NewFilename);
 
 #if SAVE_OLD_FILEDATA_FILENAMES
 	const FString OldFilename = FBuildPatchUtils::GetFileOldFilename( FBuildPatchServicesModule::GetCloudDirectory(), FileGuid );
-	bAlreadySaved = bAlreadySaved && FPaths::FileExists( OldFilename );
+	bAlreadySaved = bAlreadySaved && FPlatformFileManager::Get().GetPlatformFile().FileExists(*OldFilename);
 #endif
 
 	if( !bAlreadySaved )

@@ -552,7 +552,7 @@ bool FBuildPatchInstaller::RunBackupAndMove()
 				const FString DestFilename = InstallDirectory / ConstructionFile;
 				const float FileIndexFloat = ConstructionFilesIt.GetIndex();
 				// Skip files not constructed
-				if (!FPaths::FileExists(SrcFilename))
+				if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*SrcFilename))
 				{
 					BuildProgress.SetStateProgress(EBuildPatchProgress::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
 					continue;
@@ -715,13 +715,13 @@ bool FBuildPatchInstaller::BackupFileIfNecessary(const FString& Filename, bool b
 		return true;
 	}
 	// Skip if no file to backup
-	const bool bInstalledFileExists = FPaths::FileExists(InstalledFilename);
+	const bool bInstalledFileExists = FPlatformFileManager::Get().GetPlatformFile().FileExists(*InstalledFilename);
 	if (!bInstalledFileExists)
 	{
 		return true;
 	}
 	// Skip if already backed up
-	const bool bAlreadyBackedUp = FPaths::FileExists(BackupFilename);
+	const bool bAlreadyBackedUp = FPlatformFileManager::Get().GetPlatformFile().FileExists(*BackupFilename);
 	if (bAlreadyBackedUp)
 	{
 		return true;

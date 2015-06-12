@@ -52,7 +52,7 @@ public:
 		, BuildManifest( InBuildManifest )
 	{
 		// Load data from previous resume file
-		bHasResumeData = FPaths::FileExists( ResumeDataFile );
+		bHasResumeData = FPlatformFileManager::Get().GetPlatformFile().FileExists(*ResumeDataFile);
 		GLog->Logf(TEXT("BuildPatchResumeData file found %d"), bHasResumeData);
 		if( bHasResumeData )
 		{
