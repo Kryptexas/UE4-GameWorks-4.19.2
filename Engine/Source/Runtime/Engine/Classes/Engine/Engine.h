@@ -1945,8 +1945,10 @@ public:
 
 	/**
 	 * Starts the FPS chart data capture.
+	 *
+	 * @param	Label		Label for this run
 	 */
-	virtual void StartFPSChart();
+	virtual void StartFPSChart( const FString& Label );
 
 	/**
 	 * Stops the FPS chart data capture.

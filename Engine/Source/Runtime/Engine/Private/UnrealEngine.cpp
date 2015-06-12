@@ -3218,7 +3218,8 @@ bool UEngine::HandleShowLogCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 bool UEngine::HandleStartFPSChartCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// start the chart data capture
-	StartFPSChart();
+	FString Label = FParse::Token(Cmd, 0);
+	StartFPSChart( Label );
 	return true;
 }
 

@@ -26,6 +26,9 @@ bool GEnableDataCapture = false;
 /** Start date/time of capture */
 FString GCaptureStartTime;
 
+/** User label set when starting the chart. */
+FString GFPSChartLabel;
+
 /** Start time of current FPS chart.										*/
 double			GFPSChartStartTime;
 
@@ -360,9 +363,13 @@ void UEngine::TickFPSChart( float DeltaSeconds )
 
 /**
  * Starts the FPS chart data capture
+ *
+ * @param	Label	Label for this run
  */
-void UEngine::StartFPSChart()
+void UEngine::StartFPSChart( const FString& Label )
 {
+	GFPSChartLabel = Label;
+
 	for( int32 BucketIndex=0; BucketIndex<ARRAY_COUNT(GFPSChart); BucketIndex++ )
 	{
 		GFPSChart[BucketIndex].Count = 0;
@@ -1045,10 +1052,8 @@ void UEngine::DumpFPSChart( const FString& InMapName, bool bForceDump )
 			DumpFrameTimesToStatsLog( TotalTime, DeltaTime, NumFrames, InMapName );
 
 			DumpFPSChartToHTML( TotalTime, DeltaTime, NumFrames, InMapName  );
-			DumpFPSChartToHTML( TotalTime, DeltaTime, NumFrames, "Global" );
+			DumpFPSChartToHTML( TotalTime, DeltaTime, NumFrames, GFPSChartLabel + "-" + GCaptureStartTime );
 		}
-
-
 	}
 }
 
