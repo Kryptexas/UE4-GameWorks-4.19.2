@@ -1,0 +1,17 @@
+﻿INTSourceChangelist:2291853
+Availability:Public
+Title: 动画编程
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:供动画系统的程序员阅读的信息。
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		要点知识
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Animation/AnimNodes "%Programming/Animation/AnimNodes:description%")
+	[/PARAM]
+[/OBJECT]

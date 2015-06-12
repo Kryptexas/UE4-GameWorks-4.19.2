@@ -1,0 +1,47 @@
+﻿INTSourceChangelist:2559390
+Availability: Public
+Title: Linux游戏开发
+Crumbs:%ROOT%, Platforms
+Description:为Linux平台开发游戏。
+Platform:Linux
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Linux要点知识
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
+	[/PARAM]
+[/OBJECT]
+
+	
+
+		
+
+	      
+
+	       
+
+	   
+
+	   
+
+	  
+
+		
+
+		
+
+		
+
+		
+
+		
+
