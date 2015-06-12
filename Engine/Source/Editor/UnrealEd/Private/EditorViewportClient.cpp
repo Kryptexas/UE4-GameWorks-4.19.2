@@ -173,6 +173,11 @@ FMatrix FViewportCameraTransform::ComputeOrbitMatrix() const
 	return Transform.ToMatrixNoScale() * FInverseRotationMatrix( FRotator(0,90.f,0) );
 }
 
+bool FViewportCameraTransform::IsPlaying()
+{
+	return TransitionCurve->IsPlaying();
+}
+
 /**The Maximum Mouse/Camera Speeds Setting supported */
 const uint32 FEditorViewportClient::MaxCameraSpeeds = 8;
 

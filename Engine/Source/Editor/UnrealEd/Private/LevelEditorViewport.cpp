@@ -2023,7 +2023,6 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 	UpdateViewForLockedActor();
 }
 
-
 void FLevelEditorViewportClient::UpdateViewForLockedActor()
 {
 	// We can't be locked to a matinee actor if this viewport doesn't allow matinee control
@@ -2038,35 +2037,45 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 	const AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	if( Actor != NULL )
 	{
-		// Update transform
-		if( Actor->GetAttachParentActor() != NULL )
+		// Check if the viewport is transitioning
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		if (ViewTransform.IsPlaying())
 		{
-			// Actor is parented, so use the actor to world matrix for translation and rotation information.
-			SetViewLocation( Actor->GetActorLocation() );
-			SetViewRotation( Actor->GetActorRotation() );				
+			// Move actor to the transitioned viewport
+			PerspectiveCameraMoved();
 		}
-		else if( Actor->GetRootComponent() != NULL )
+		else
 		{
-			// No attachment, so just use the relative location, so that we don't need to
-			// convert from a quaternion, which loses winding information.
-			SetViewLocation( Actor->GetRootComponent()->RelativeLocation );
-			SetViewRotation( Actor->GetRootComponent()->RelativeRotation );
-		}
-
-		if( bLockedCameraView )
-		{
-			// If this is a camera actor, then inherit some other settings
-			UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
-			if( CameraComponent != NULL )
+			// Update transform
+			if (Actor->GetAttachParentActor() != NULL)
 			{
-				bUseControllingActorViewInfo = true;
-				CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+				// Actor is parented, so use the actor to world matrix for translation and rotation information.
+				SetViewLocation(Actor->GetActorLocation());
+				SetViewRotation(Actor->GetActorRotation());
+			}
+			else if (Actor->GetRootComponent() != NULL)
+			{
+				// No attachment, so just use the relative location, so that we don't need to
+				// convert from a quaternion, which loses winding information.
+				SetViewLocation(Actor->GetRootComponent()->RelativeLocation);
+				SetViewRotation(Actor->GetRootComponent()->RelativeRotation);
+			}
 
-				// Post processing is handled by OverridePostProcessingSettings
-				ViewFOV = ControllingActorViewInfo.FOV;
-				AspectRatio = ControllingActorViewInfo.AspectRatio;
-				SetViewLocation(ControllingActorViewInfo.Location);
-				SetViewRotation(ControllingActorViewInfo.Rotation);
+			if (bLockedCameraView)
+			{
+				// If this is a camera actor, then inherit some other settings
+				UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
+				if (CameraComponent != NULL)
+				{
+					bUseControllingActorViewInfo = true;
+					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+
+					// Post processing is handled by OverridePostProcessingSettings
+					ViewFOV = ControllingActorViewInfo.FOV;
+					AspectRatio = ControllingActorViewInfo.AspectRatio;
+					SetViewLocation(ControllingActorViewInfo.Location);
+					SetViewRotation(ControllingActorViewInfo.Rotation);
+				}
 			}
 		}
 	}

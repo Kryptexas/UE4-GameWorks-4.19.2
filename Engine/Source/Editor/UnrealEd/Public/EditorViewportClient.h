@@ -189,6 +189,8 @@ public:
 		OrthoZoom = InOrthoZoom;
 	}
 
+	/** Check if transition curve is playing. */
+	bool IsPlaying();
 
 	/** @return The transform's location */
 	FORCEINLINE const FVector& GetLocation() const { return ViewLocation; }
@@ -221,10 +223,11 @@ public:
 	 * Computes a matrix to use for viewport location and rotation when orbiting
 	 */
 	FMatrix ComputeOrbitMatrix() const;
+
 private:
 	/** The time when a transition to the desired location began */
 	//double TransitionStartTime;
-	
+
 	/** Curve for animating between locations */
 	TSharedPtr<struct FCurveSequence> TransitionCurve;
 	/** Current viewport Position. */
