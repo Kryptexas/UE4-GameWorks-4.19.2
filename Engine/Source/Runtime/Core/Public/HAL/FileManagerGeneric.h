@@ -236,7 +236,7 @@ public:
 	{
 		return Pos;
 	}
-	virtual int64 TotalSize();
+	virtual int64 TotalSize() override;
 	virtual bool Close() final;
 	virtual void Serialize( void* V, int64 Length ) final;
 	virtual void Flush() final;

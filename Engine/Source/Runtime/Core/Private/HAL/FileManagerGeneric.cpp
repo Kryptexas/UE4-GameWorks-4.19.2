@@ -68,15 +68,15 @@ public:
 	{
 		Close();
 	}
-	virtual void Seek( int64 InPos )
+	virtual void Seek( int64 InPos ) override
 	{
 		Pos = InPos;
 	}
-	virtual int64 Tell()
+	virtual int64 Tell() override
 	{
 		return Pos;
 	}
-	virtual void Serialize( void* V, int64 Length )
+	virtual void Serialize( void* V, int64 Length ) override
 	{
 		Pos += Length;
 	}

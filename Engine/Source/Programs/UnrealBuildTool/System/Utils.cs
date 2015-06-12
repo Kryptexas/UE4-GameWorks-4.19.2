@@ -276,6 +276,30 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Runs a command line process, and returns simple StdOut output. This doesn't handle errors or return codes
+		/// </summary>
+		/// <returns>The entire StdOut generated from the process as a single trimmed string</returns>
+		/// <param name="Command">Command to run</param>
+		/// <param name="Args">Arguments to Command</param>
+		public static string RunLocalProcessAndReturnStdOut(string Command, string Args)
+		{
+			var StartInfo = new ProcessStartInfo(Command, Args);
+			StartInfo.UseShellExecute = false;
+			StartInfo.RedirectStandardOutput = true;
+			StartInfo.CreateNoWindow = true;
+
+			string FullOutput = "";
+			using (var LocalProcess = Process.Start(StartInfo))
+			{
+				StreamReader OutputReader = LocalProcess.StandardOutput;
+				// trim off any extraneous new lines, helpful for those one-line outputs
+				FullOutput = OutputReader.ReadToEnd().Trim();
+			}
+
+			return FullOutput;
+		}
+
+		/// <summary>
 		/// Given a list of supported platforms, returns a list of names of platforms that should not be supported
 		/// </summary>
 		/// <param name="SupportedPlatforms">List of supported platforms</param>
@@ -937,6 +961,11 @@ namespace UnrealBuildTool
         /// </summary>
         public static bool bIsVerbose { get { return bLogVerbose; } }
 
+		/// <summary>
+		/// A collection of strings that have been already written once
+		/// </summary>
+		private static List<string> WriteOnceSet = new List<string>();
+
         /// <summary>
         /// Allows code to check if the log system is ready yet.
         /// End users should NOT need to use this. It pretty much exists
@@ -1042,16 +1071,30 @@ namespace UnrealBuildTool
         /// </summary>
         /// <param name="StackFramesToSkip">Number of frames to skip to get to the originator of the log request.</param>
         /// <param name="CustomSource">Custom source string to use. Use the default if null.</param>
+		/// <param name="bWriteOnce">If true, this message will be written only once</param>
         /// <param name="Verbosity">Message verbosity level. We only meaningfully use values up to Verbose</param>
         /// <param name="Format">Message format string.</param>
         /// <param name="Args">Optional arguments</param>
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
-        private static void WriteLinePrivate(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
+        private static void WriteLinePrivate(int StackFramesToSkip, string CustomSource, bool bWriteOnce, TraceEventType Verbosity, string Format, params object[] Args)
         {
             if (!bIsInitialized)
             {
                 throw new BuildException("Tried to using Logging system before it was ready");
             }
+
+			// if we want this message only written one time, check if it was already written out
+			if (bWriteOnce)
+			{
+				string Formatted = string.Format(Format, Args);
+				if (WriteOnceSet.Contains(Formatted))
+				{
+					return;
+				}
+
+				WriteOnceSet.Add(Formatted);
+			}
+
             if (Verbosity < TraceEventType.Verbose || bLogVerbose)
             {
                 // Do console color highlighting here.
@@ -1115,7 +1158,7 @@ namespace UnrealBuildTool
         {
             if (Condition)
             {
-                WriteLinePrivate(1, null, Verbosity, Format, Args);
+				WriteLinePrivate(1, null, false, Verbosity, Format, Args);
             }
         }
 
@@ -1130,7 +1173,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void WriteLine(int StackFramesToSkip, TraceEventType Verbosity, string Format, params object[] Args)
         {
-            WriteLinePrivate(StackFramesToSkip + 1, null, Verbosity, Format, Args);
+            WriteLinePrivate(StackFramesToSkip + 1, null, false, Verbosity, Format, Args);
         }
 
         /// <summary>
@@ -1144,7 +1187,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void WriteLine(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
         {
-            WriteLinePrivate(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args);
+            WriteLinePrivate(StackFramesToSkip + 1, CustomSource, false, Verbosity, Format, Args);
         }
 
         /// <summary>
@@ -1156,7 +1199,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void WriteLine(TraceEventType Verbosity, string Format, params object[] Args)
         {
-            WriteLinePrivate(1, null, Verbosity, Format, Args);
+            WriteLinePrivate(1, null, false, Verbosity, Format, Args);
         }
 
         /// <summary>
@@ -1167,7 +1210,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceError(string Format, params object[] Args)
         {
-            WriteLinePrivate(1, null, TraceEventType.Error, Format, Args);
+			WriteLinePrivate(1, null, false, TraceEventType.Error, Format, Args);
         }
 
         /// <summary>
@@ -1179,7 +1222,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceVerbose(string Format, params object[] Args)
         {
-            WriteLinePrivate(1, null, TraceEventType.Verbose, Format, Args);
+			WriteLinePrivate(1, null, false, TraceEventType.Verbose, Format, Args);
         }
 
         /// <summary>
@@ -1190,7 +1233,7 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceInformation(string Format, params object[] Args)
         {
-            WriteLinePrivate(1, null, TraceEventType.Information, Format, Args);
+			WriteLinePrivate(1, null, false, TraceEventType.Information, Format, Args);
         }
 
         /// <summary>
@@ -1201,9 +1244,68 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         public static void TraceWarning(string Format, params object[] Args)
         {
-            WriteLinePrivate(1, null, TraceEventType.Warning, Format, Args);
+            WriteLinePrivate(1, null, false, TraceEventType.Warning, Format, Args);
         }
-    }
+
+		/// <summary>
+		/// Similar to Trace.WriteLin
+		/// </summary>
+		/// <param name="Verbosity"></param>
+		/// <param name="Format"></param>
+		/// <param name="Args"></param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void WriteLineOnce(TraceEventType Verbosity, string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, Verbosity, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes an error message to the console.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceErrorOnce(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, TraceEventType.Error, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes a verbose message to the console.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[Conditional("TRACE")]
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceVerboseOnce(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, TraceEventType.Verbose, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes a message to the console.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceInformationOnce(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, TraceEventType.Information, Format, Args);
+		}
+
+		/// <summary>
+		/// Writes a warning message to the console.
+		/// </summary>
+		/// <param name="Format">Message format string</param>
+		/// <param name="Args">Optional arguments</param>
+		[MethodImplAttribute(MethodImplOptions.NoInlining)]
+		public static void TraceWarningOnce(string Format, params object[] Args)
+		{
+			WriteLinePrivate(1, null, true, TraceEventType.Warning, Format, Args);
+		}
+
+
+	}
 
     #region StreamUtils
     public static class StreamUtils

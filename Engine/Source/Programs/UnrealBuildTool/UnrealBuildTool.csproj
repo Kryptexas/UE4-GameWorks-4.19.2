@@ -122,6 +122,7 @@
     <Compile Include="Mac\UEBuildMac.cs" />
     <Compile Include="Mac\MacProjectGenerator.cs" />
     <Compile Include="Mac\UEDeployMac.cs" />
+    <Compile Include="ToolChain\AppleToolChain.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Android\UEBuildAndroid.cs" />

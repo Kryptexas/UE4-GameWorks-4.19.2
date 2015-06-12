@@ -19,7 +19,7 @@ namespace UnrealBuildTool
 		{
 			RemoteToolChainPlatform = InPlatform;
 
-			// Register this tool chain for IOS
+			// Register this tool chain for the given platform
 			Log.TraceVerbose("        Registered for {0}", CPPPlatform.ToString());
 			UEToolChain.RegisterPlatformToolChain(CPPPlatform, this);
 		}

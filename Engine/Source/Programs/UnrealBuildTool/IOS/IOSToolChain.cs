@@ -15,7 +15,7 @@ using Ionic.Zlib;
 
 namespace UnrealBuildTool
 {
-	class IOSToolChain : RemoteToolChain
+	class IOSToolChain : AppleToolChain
 	{
 		public override void RegisterToolChain()
 		{
@@ -47,7 +47,10 @@ namespace UnrealBuildTool
 
 		/** Which developer directory to root from */
 		[XmlConfig]
-		public static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
+		private static string XcodeDeveloperDir = "xcode-select";
+
+		/** Directory for the developer binaries */
+		private static string ToolchainDir = "";
 
 		/** Location of the SDKs */
 		private static string BaseSDKDir;
@@ -75,6 +78,7 @@ namespace UnrealBuildTool
 			/** Location of the SDKs */
 			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
 			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
+			ToolchainDir = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/";
 		}
 
 		/** Hunt down the latest IOS sdk if desired */
@@ -82,92 +86,17 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			if (IOSSDKVersion == "latest")
-			{
-				try
-				{
-					string[] SubDirs = null;
-					if (Utils.IsRunningOnMono)
-					{
-						// on the Mac, we can just get the directory name
-						SubDirs = System.IO.Directory.GetDirectories(BaseSDKDir);
-						if (!ProjectFileGenerator.bGenerateProjectFiles)
-						{
-							Log.TraceInformation(String.Format("Directories : {0} {1}", SubDirs, SubDirs[0]));
-						}
-					}
-					else
-					{
-						Hashtable Results = RPCUtilHelper.Command("/", "ls", BaseSDKDir, null);
-						if (Results != null)
-						{
-							string Result = (string)Results["CommandOutput"];
-							SubDirs = Result.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-						}
-					}
+			// choose the XCode to use
+			SelectXcode(ref XcodeDeveloperDir);
 
-					// loop over the subdirs and parse out the version
-					float MaxSDKVersion = 0.0f;
-					string MaxSDKVersionString = null;
-					foreach (string SubDir in SubDirs)
-					{
-						string SubDirName = Path.GetFileNameWithoutExtension(SubDir);
-						if (SubDirName.StartsWith("iPhoneOS"))
-						{
-							// get the SDK version from the directory name
-							string SDKString = SubDirName.Replace("iPhoneOS", "");
-							float SDKVersion = 0.0f;
-							try
-							{
-								SDKVersion = float.Parse(SDKString, System.Globalization.CultureInfo.InvariantCulture);
-							}
-							catch (Exception)
-							{
-								// weirdly formatted SDKs
-								continue;
-							}
+			// make sure BaseSDKDir is up to date
+			PostReset();
 
-							// update largest SDK version number
-							if (SDKVersion > MaxSDKVersion)
-							{
-								MaxSDKVersion = SDKVersion;
-								MaxSDKVersionString = SDKString;
-							}
-						}
-					}
+			// choose the final SDK version
+			SelectSDK(BaseSDKDir, "iPhoneOS", ref IOSSDKVersion);
 
-					// convert back to a string with the exact format
-					if (MaxSDKVersionString != null)
-					{
-						IOSSDKVersion = MaxSDKVersionString;
-					}
-				}
-				catch (Exception Ex)
-				{
-					// on any exception, just use the backup version
-					Log.TraceInformation("Triggered an exception while looking for SDK directory in Xcode.app");
-					Log.TraceInformation("{0}", Ex.ToString());
-				}
-
-				if (IOSSDKVersion == "latest")
-				{
-					throw new BuildException("Unable to determine SDK version from Xcode, we cannot continue");
-				}
-			}
-
+			// convert to float for easy comparison
 			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
-
-			if (!ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-				{
-					Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersionFloat, RemoteServerName);
-				}
-				else
-				{
-					Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersionFloat);
-				}
-			}
 		}
 
 		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
@@ -247,6 +176,12 @@ namespace UnrealBuildTool
 			Result += " -Wno-unused-private-field";
 			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 	
+			if (IOSSDKVersionFloat >= 9.0)
+			{
+				Result += " -Wno-inconsistent-missing-override"; // too many missing overrides...
+				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
+			}
+
 			Result += " -c";
 
 			// What architecture(s) to build for
@@ -602,7 +537,7 @@ namespace UnrealBuildTool
 				// Add the source file path to the command-line.
 				FileArguments += string.Format(" \"{0}\"", ConvertPath(SourceFile.AbsolutePath), false);
 
-				string CompilerPath = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + IOSCompiler;
+				string CompilerPath = ToolchainDir + IOSCompiler;
 				if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{
 					CompileAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
@@ -624,7 +559,7 @@ namespace UnrealBuildTool
 
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
-			string LinkerPath = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/" + 
+			string LinkerPath = ToolchainDir + 
 				(LinkEnvironment.Config.bIsBuildingLibrary ? IOSArchiver : IOSLinker);
 
 			// Create an action that invokes the linker.
@@ -1012,8 +947,8 @@ namespace UnrealBuildTool
 				{
 					Process StripProcess = new Process();
 					StripProcess.StartInfo.WorkingDirectory = RemoteShadowDirectoryMac;
-					StripProcess.StartInfo.FileName = "/usr/bin/xcrun";
-					StripProcess.StartInfo.Arguments = "strip \"" + Target.OutputPath + "\"";
+					StripProcess.StartInfo.FileName = ToolchainDir + "strip";
+					StripProcess.StartInfo.Arguments = "\"" + Target.OutputPath + "\"";
 					StripProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
 					StripProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
 
@@ -1363,14 +1298,7 @@ namespace UnrealBuildTool
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)
 		{
-			File.Copy(SourceFileName, TargetFileName, true);
-
-			ProcessStartInfo StartInfo = new ProcessStartInfo();
-			StartInfo.FileName = Path.Combine(XcodeDeveloperDir, "usr/bin/xcrun");
-			StartInfo.Arguments = String.Format("strip \"{0}\" -S", TargetFileName);
-			StartInfo.UseShellExecute = false;
-			StartInfo.CreateNoWindow = true;
-			Utils.RunLocalProcessAndLogOutput(StartInfo);
+			StripSymbolsWithXcode(SourceFileName, TargetFileName, ToolchainDir);
 		}
 	};
 }

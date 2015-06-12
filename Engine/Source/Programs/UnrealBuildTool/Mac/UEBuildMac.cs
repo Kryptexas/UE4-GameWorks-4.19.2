@@ -163,6 +163,13 @@ namespace UnrealBuildTool
 
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
 		{
+			// Xcode 7 doesn't work currently with PCH files
+			if (MacToolChain.MacOSSDKVersion == "10.11")
+			{
+				Log.TraceInformation("=== Disabling PCH files due to Xcode 7 compiler bug! ===");
+				BuildConfiguration.bUsePCHFiles = false;
+			}
+
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				// @todo: Temporarily disable precompiled header files when building remotely due to errors

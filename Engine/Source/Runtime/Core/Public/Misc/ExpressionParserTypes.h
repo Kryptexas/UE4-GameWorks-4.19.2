@@ -371,7 +371,7 @@ struct TOperatorEvaluationEnvironment : IOperatorEvaluationEnvironment
 	{
 		return Operators.ExecPreUnary(Operator, R, Context);
 	}
-	virtual FExpressionResult ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L) const
+	virtual FExpressionResult ExecPostUnary(const FExpressionToken& Operator, const FExpressionToken& L) const override
 	{
 		return Operators.ExecPostUnary(Operator, L, Context);
 	}
