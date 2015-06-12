@@ -253,6 +253,8 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 
 				// Synchronize the game thread and the render thread so that the render thread doesn't get too far behind.
 				SlateApp.GetRenderer()->Sync();
+
+				FlushRenderingCommands();
 			}
 		}
 
