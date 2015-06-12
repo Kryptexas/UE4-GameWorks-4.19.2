@@ -41,6 +41,7 @@ namespace UnrealBuildTool.Rules
 					"MainFrame",
 					"UnrealEd",
                     "EditorWidgets",
+                    "SourceControl",
 				}
 			);
 		}
