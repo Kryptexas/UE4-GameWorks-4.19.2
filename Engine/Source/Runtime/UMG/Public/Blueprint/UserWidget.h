@@ -978,6 +978,12 @@ T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
 		return nullptr;
 	}
 
+	if (!OwningPlayer->Player)
+	{
+		FMessageLog("PIE").Error(LOCTEXT("NoPLayer", "CreateWidget cannot be used on Player Controller with no attached player."));
+		return nullptr;
+	}
+
 	// Assign the outer to the game instance if it exists, otherwise use the player controller's world
 	UWorld* World = OwningPlayer->GetWorld();
 	UObject* Outer = World->GetGameInstance() ? StaticCast<UObject*>(World->GetGameInstance()) : StaticCast<UObject*>(World);
