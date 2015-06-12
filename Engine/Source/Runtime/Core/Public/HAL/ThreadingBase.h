@@ -20,9 +20,9 @@ enum EThreadPriority
 
 	/** Below normal priority. */
 	TPri_BelowNormal,
-    
-    /** Highest priority. */
-    TPri_Highest
+	
+	/** Highest priority. */
+	TPri_Highest
 };
 
 
@@ -103,8 +103,39 @@ public:
 		return Wait(WaitTime.GetTotalMilliseconds(), bIgnoreThreadIdleStats);
 	}
 
+	/** Default constructor. */
+	FEvent()
+		: EventId( 0 )
+		, EventStartCycles( 0 )
+	{}
+
 	/** Virtual destructor. */
-	virtual ~FEvent() { }
+	virtual ~FEvent() 
+	{}
+
+	// DO NOT MODIFY THESE
+
+	/** Advances stats associated with this event. Used to monitor wait->trigger history. */
+	void AdvanceStats();
+
+protected:
+	/** Sends to the stats a special messages which encodes a wait for the event. */
+	void WaitForStats();
+
+	/** Send to the stats a special message which encodes a trigger for the event. */
+	void TriggerForStats();
+
+	/** Resets start cycles to 0. */
+	void ResetForStats();
+
+	/** Counter used to generate an unique id for the events. */
+	static uint32 EventUniqueId;
+
+	/** An unique id of this event. */
+	uint32 EventId;
+
+	/** Greater than 0, if the event called wait. */
+	uint32 EventStartCycles;
 };
 
 

@@ -29,6 +29,9 @@ const FString FStatConstants::StatsFileRawExtension = TEXT( ".ue4statsraw" );
 
 const FString FStatConstants::ThreadNameMarker = TEXT( "Thread_" );
 
+const FName FStatConstants::NAME_EventWaitWithId = FStatNameAndInfo( GET_STATFNAME( STAT_EventWaitWithId ), true ).GetRawName();
+const FName FStatConstants::NAME_EventTriggerWithId = FStatNameAndInfo( GET_STATFNAME( STAT_EventTriggerWithId ), true ).GetRawName();
+
 /*-----------------------------------------------------------------------------
 	FRawStatStackNode
 -----------------------------------------------------------------------------*/
@@ -697,10 +700,24 @@ void FStatsThreadState::ScanForAdvance(FStatPacketArray& NewData)
 	uint32 Count = 0;
 	for (int32 Index = 0; Index < NewData.Packets.Num(); Index++)
 	{
-
-		const int64 FrameNum = NewData.Packets[Index]->ThreadType == EThreadType::Renderer ? CurrentRenderFrame : CurrentGameFrame;
-		NewData.Packets[Index]->AssignFrame( FrameNum );
-		
+		const EThreadType::Type ThreadType = NewData.Packets[Index]->ThreadType;
+		if ( ThreadType == EThreadType::Renderer)
+		{
+			NewData.Packets[Index]->AssignFrame( CurrentRenderFrame );
+		}
+		else if (ThreadType == EThreadType::Game)
+		{
+			NewData.Packets[Index]->AssignFrame( CurrentGameFrame );
+		}
+		else if (ThreadType == EThreadType::Other)
+		{
+			// @see FThreadStats::DetectAndUpdateCurrentGameFrame 
+		}
+		else
+		{
+			checkf( 0, TEXT( "Unknown thread type" ) );
+		}
+				
 		const FStatMessagesArray& Data = NewData.Packets[Index]->StatMessages;
 		ScanForAdvance(Data);
 		Count += Data.Num();
@@ -745,15 +762,15 @@ void FStatsThreadState::ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FNam
 				Op != EStatOperation::ChildrenEnd &&
 				Op != EStatOperation::Leaf &&
 				Op != EStatOperation::AdvanceFrameEventGameThread &&
-				Op != EStatOperation::AdvanceFrameEventRenderThread /*&&
-				Op != EStatOperation::Memory*/
+				Op != EStatOperation::AdvanceFrameEventRenderThread
 				))
 			{
 				UE_LOG(LogStats, Fatal, TEXT( "Stat %s was not cleared every frame, but was used with a scope cycle counter." ), *Item.NameAndInfo.GetRawName().ToString() );
 			}
 			else
 			{
-				if( Op != EStatOperation::Memory )
+				// Ignore any memory or special messages, they shouldn't be treated as regular stats messages.
+				if( Op != EStatOperation::Memory && Op != EStatOperation::SpecialMessageMarker )
 				{
 					FStatMessage* Result = NotClearedEveryFrame.Find(Item.NameAndInfo.GetRawName());
 					if (!Result)
@@ -788,6 +805,7 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 		ShortNameToLongName.Empty();
 		Groups.Empty();
 		History.Empty();
+		EventsHistory.Empty();
 		return;
 	}
 
@@ -909,10 +927,17 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 	for (auto It = History.CreateIterator(); It; ++It)
 	{
 		int64 ThisFrame = It.Key();
-		FStatPacketArray& StatPacketArray = It.Value();
 		if (ThisFrame <= LastFullFrameMetaAndNonFrame && ThisFrame < MinFrameToKeep)
 		{
 			check(ThisFrame <= LastFullFrameMetaAndNonFrame);
+			It.RemoveCurrent();
+		}
+	}
+	for (auto It = EventsHistory.CreateIterator(); It; ++It)
+	{
+		int64 ThisFrame = It.Value().Frame;
+		if (ThisFrame <= LastFullFrameProcessed && ThisFrame < MinFrameToKeep)
+		{
 			It.RemoveCurrent();
 		}
 	}
@@ -1212,10 +1237,9 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 				check(Item.NameAndInfo.GetFlag(EStatMetaFlags::DummyAlwaysOne));  // we should never be sending short names to the stats anymore
 
 				EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
-
-				FName LongName = Item.NameAndInfo.GetRawName();
+				const FName LongName = Item.NameAndInfo.GetRawName();
 				if (Op == EStatOperation::CycleScopeStart || Op == EStatOperation::CycleScopeEnd)
-				{
+				{				
 					check(Item.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle));
 					if (Op == EStatOperation::CycleScopeStart)
 					{
@@ -1230,7 +1254,6 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 						Stack.Add(Result);
 						StartStack.Add(&Item);
 						Current = Result;
-
 					}
 					if (Op == EStatOperation::CycleScopeEnd)
 					{
@@ -1240,6 +1263,65 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 						verify(Current == Stack.Pop());
 						Current = Stack.Last();
 					}
+				}
+				// We are using here EStatOperation::SpecialMessageMarker to indicate custom stat messages
+				// At this moment only these messages are supported:
+				//	EventWaitWithId
+				//	EventTriggerWithId
+				else if( Op == EStatOperation::SpecialMessageMarker )
+				{
+					const FName RawName = Item.NameAndInfo.GetRawName();
+					const uint64 PacketEventIdAndCycles = Item.GetValue_Ptr();
+					const uint32 EventId = uint32(PacketEventIdAndCycles >> 32);
+					const uint32 EventCycles = uint32(PacketEventIdAndCycles & MAX_uint32);
+
+					if (FStatConstants::NAME_EventWaitWithId == RawName)
+					{
+						TArray<FStatNameAndInfo> EventWaitStack;
+						for (const auto& It : Stack)
+						{
+							EventWaitStack.Add( It->Meta.NameAndInfo );
+						}
+
+#if	UE_BUILD_DEBUG
+						// Debug check, detect duplicates.
+						FEventData* EventPtr = EventsHistory.Find( EventId );
+						if (EventPtr && EventPtr->WaitStackStats.Num() > 0)
+						{
+							int32 k = 0; k++;
+						}
+#endif // UE_BUILD_DEBUG
+
+						FEventData& EventStats = EventsHistory.FindOrAdd( EventId );
+						EventStats.WaitStackStats = EventWaitStack;
+						EventStats.Frame = EventStats.HasValidStacks() ? TargetFrame : 0; // Only to maintain history.
+					}
+
+					if (FStatConstants::NAME_EventTriggerWithId == RawName)
+					{
+						TArray<FStatNameAndInfo> EventTriggerStack;
+						for (const auto& It : Stack)
+						{
+							EventTriggerStack.Add( It->Meta.NameAndInfo );
+						}
+
+#if	UE_BUILD_DEBUG
+						// Debug check, detect duplicates.
+						FEventData* EventPtr = EventsHistory.Find( EventId );
+						if (EventPtr && EventPtr->TriggerStackStats.Num() > 0)
+						{
+							int32 k = 0; k++;
+						}
+#endif // UE_BUILD_DEBUG
+
+						FEventData& EventStats = EventsHistory.FindOrAdd( EventId );
+
+						EventStats.TriggerStackStats = EventTriggerStack;
+						EventStats.Duration = EventCycles;
+						EventStats.DurationMS = FPlatformTime::ToMilliseconds( EventCycles );
+						EventStats.Frame = EventStats.HasValidStacks() ? TargetFrame : 0; // Only to maintain history.
+					}
+
 				}
 				else if( Op == EStatOperation::Memory )
 				{

@@ -35,6 +35,12 @@ struct CORE_API FStatConstants
 
 	/** Indicates that the item is a thread. */
 	static const FString ThreadNameMarker;
+
+	/** A raw name for the event wait with id. */
+	static const FName NAME_EventWaitWithId;
+
+	/** A raw name for the event trigger with id. */
+	static const FName NAME_EventTriggerWithId;
 };
 
 namespace LexicalConversion
@@ -406,6 +412,37 @@ protected:
 	}
 };
 
+
+/** Holds information about event history, callstacks for the wait and the corresponding trigger. */
+struct FEventData
+{
+	/** Default constructor. */
+	FEventData()
+		: Frame( 0 )
+		, Duration( 0 )
+		, DurationMS( 0.0f )
+	{}
+
+	/**
+	 * @return true, if the wait and trigger stacks are not empty.
+	 */
+	bool HasValidStacks() const
+	{
+		return WaitStackStats.Num() > 0 && TriggerStackStats.Num() > 0;
+	}
+
+	/** Stack for the event's wait. */
+	TArray<FStatNameAndInfo> WaitStackStats;
+	/** Stat for the event's trigger. */
+	TArray<FStatNameAndInfo> TriggerStackStats;
+	/** Frame, used to remove older records from the history. */
+	int64 Frame;
+	/** Duration of the event's wait, in cycles. */
+	uint32 Duration;
+	/** Duration of the event's wait, in milliseconds. */
+	float DurationMS;
+};
+
 //@todo split header
 
 /**
@@ -574,6 +611,9 @@ public:
 
 	/** Map from a short name to the SetLongName message that defines the metadata and long name for this stat **/
 	TMap<FName, FStatMessage> ShortNameToLongName;
+
+	/** Map from the unique event id to the event stats. */
+	mutable TMap<uint32, FEventData> EventsHistory;
 
 	/** Map from memory pool to long name**/
 	TMap<FPlatformMemory::EMemoryCounterRegion, FName> MemoryPoolToCapacityLongName;

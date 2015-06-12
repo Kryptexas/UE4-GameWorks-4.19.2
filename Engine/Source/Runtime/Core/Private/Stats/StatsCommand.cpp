@@ -195,6 +195,139 @@ void DumpNonFrame(FStatsThreadState const& StatsData)
 	}
 }
 
+/** Returns stats based stack as human readable string. */
+static FString GetHumanReadableCallstack( const TArray<FStatNameAndInfo>& StatsStack )
+{
+	FString Result;
+
+	for (int32 Index = StatsStack.Num() - 1; Index >= 0; --Index)
+	{
+		const FStatNameAndInfo& NameAndInfo = StatsStack[Index];
+
+		const FString ShortName = NameAndInfo.GetShortName().GetPlainNameString();
+		FString Desc = NameAndInfo.GetDescription();
+		Desc.Trim();
+
+		// For threads use the thread name, as the description contains encoded thread id.
+		const FName GroupName = NameAndInfo.GetGroupName();
+		if (GroupName == TEXT( "STATGROUP_Threads" ))
+		{
+			Desc.Empty();
+		}
+
+		if (Desc.Len() == 0)
+		{
+			Result += ShortName;
+		}
+		else
+		{
+			Result += Desc;
+		}
+
+		if (Index > 0)
+		{
+			Result += TEXT( " <- " );
+		}
+	}
+
+	Result.ReplaceInline( TEXT( "STAT_" ), TEXT( "" ), ESearchCase::CaseSensitive );
+	return Result;
+}
+
+/** Dumps event history if specified thread name is the as for the printing event. Removes already listed events from the history. */
+void DumpEventsHistoryIfThreadValid( TArray<FEventData>& EventsHistoryForFrame, const FName ThreadName, float MinDurationToDisplay )
+{
+	bool bIgnoreGameAndRender = false;
+	if (ThreadName == NAME_None)
+	{
+		bIgnoreGameAndRender = true;
+	}
+
+	UE_LOG( LogStats, Log, TEXT( "Displaying events history for %s" ), *ThreadName.GetPlainNameString() );
+	for( int32 Index = 0; Index < EventsHistoryForFrame.Num(); ++Index )
+	{
+		const FEventData& EventStats = EventsHistoryForFrame[Index];
+		if (EventStats.DurationMS < MinDurationToDisplay)
+		{
+			break;
+		}
+		
+		const FName EventThreadName = EventStats.WaitStackStats[0].GetShortName();
+		if (EventThreadName == ThreadName || bIgnoreGameAndRender)
+		{
+			UE_LOG( LogStats, Log, TEXT( "Duration: %.2f MS" ), EventStats.DurationMS );
+			UE_LOG( LogStats, Log, TEXT( " Wait   : %s" ), *GetHumanReadableCallstack( EventStats.WaitStackStats ) );
+			UE_LOG( LogStats, Log, TEXT( " Trigger: %s" ), *GetHumanReadableCallstack( EventStats.TriggerStackStats ) );
+
+			EventsHistoryForFrame.RemoveAt( Index--, 1, false );
+		}	
+	}
+}
+
+static FDelegateHandle DumpEventsDelegateHandle;
+
+/** For the specified frame dumps events history to the log. */
+void DumpEvents( int64 TargetFrame, float DumpEventsCullMS, bool bDisplayAllThreads )
+{
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+
+	// Prepare data.
+	const TArray<FStatMessage> Data = Stats.GetCondensedHistory( TargetFrame );
+
+	// Events
+	struct FSortByDurationMS
+	{
+		FORCEINLINE bool operator()( const FEventData& A, const FEventData& B ) const
+		{
+			// Sort descending
+			return B.DurationMS < A.DurationMS;
+		}
+	};
+	
+	TArray<FEventData> EventsHistoryForFrame;
+	for( const auto& It : Stats.EventsHistory )
+	{
+		if (It.Value.Frame >= TargetFrame /*- STAT_FRAME_SLOP*/ && It.Value.HasValidStacks() && It.Value.DurationMS > DumpEventsCullMS)
+		{
+			EventsHistoryForFrame.Add( It.Value );
+		}
+	}
+
+	// Don't print the header if we don't have data.
+	if (EventsHistoryForFrame.Num() == 0)
+	{
+		return;
+	}
+
+	UE_LOG( LogStats, Log, TEXT( "----------------------------------------" ) );
+	UE_LOG( LogStats, Log, TEXT( "Events history: Single frame %lld, greater than %2.1f ms" ), TargetFrame, DumpEventsCullMS );
+	
+
+	EventsHistoryForFrame.Sort( FSortByDurationMS() );
+
+	// First print all events that wait on the game thread.
+	DumpEventsHistoryIfThreadValid( EventsHistoryForFrame, NAME_GameThread, DumpEventsCullMS );
+
+	// Second print all events that wait on the rendering thread.
+	DumpEventsHistoryIfThreadValid( EventsHistoryForFrame, NAME_RenderThread, DumpEventsCullMS );
+
+	if (bDisplayAllThreads)
+	{
+		// Print all the remaining events.
+		DumpEventsHistoryIfThreadValid( EventsHistoryForFrame, NAME_None, DumpEventsCullMS );
+	}
+
+	UE_LOG( LogStats, Log, TEXT( "----------------------------------------" ) );
+}
+
+void DumpEventsOnce( int64 TargetFrame, float DumpEventsCullMS, bool bDisplayAllThreads )
+{
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+	DumpEvents( TargetFrame, DumpEventsCullMS, bDisplayAllThreads );
+	StatsMasterEnableSubtract();
+	Stats.NewFrameDelegate.Remove( DumpEventsDelegateHandle );
+}
+
 void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 {
 	UE_LOG(LogStats, Log, TEXT("CPU Summary: Single Frame %lld ---------------------------------"), TargetFrame);
@@ -230,7 +363,7 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 		// The description of a thread group contains the thread name marker
 		const FString Desc = Item.NameAndInfo.GetDescription();
 		bool bIsThread = Desc.StartsWith( FStatConstants::ThreadNameMarker );
-		bool bIsStall = !bIsThread && Desc.StartsWith("CPU Stall");
+		bool bIsStall = !bIsThread && Desc.StartsWith("CPU Stall"); // TArray<FName> StallStats/StatMessages
 		
 		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
 		if ((Op == EStatOperation::ChildrenStart || Op == EStatOperation::ChildrenEnd ||  Op == EStatOperation::Leaf) && Item.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
@@ -423,6 +556,9 @@ static void DumpHitch(int64 Frame)
 		}
 
 		LastHitchFrame = Frame;
+
+		// Display events, but only the large ones.
+		DumpEvents( Frame, 1.0f, false );
 	}
 }
 
@@ -584,7 +720,7 @@ struct FHUDGroupManager
 		Params = InParams;
 		Params.bReset = bResetData;
 
-		if (Params.ShouldReset())
+		if( Params.ShouldReset() )
 		{
 			// Disable only stats groups, leave the fake FPS, Unit group untouched.
 			for (const auto& It : EnabledGroups)
@@ -598,8 +734,8 @@ struct FHUDGroupManager
 		}
 
 		ResizeFramesHistory( Params.MaxHistoryFrames.Get() );
-	
-		const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + Params.Group.Get().GetPlainNameString()));	
+
+		const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + Params.Group.Get().GetPlainNameString()));
 		const bool bResults = HandleToggleCommandBroadcast( MaybeGroupFName, bCurrentEnabled, bOthersEnabled );
 		if (!bResults)
 		{
@@ -757,21 +893,21 @@ struct FHUDGroupManager
 		}
 		else
 		{
-			TSet<FName> HierEnabledItems;
-			for (auto It = EnabledGroups.CreateConstIterator(); It; ++It)
-			{
-				HierEnabledItems.Append( It.Value().EnabledItems );
-			}
-			FGroupFilter Filter( HierEnabledItems );		
+		TSet<FName> HierEnabledItems;
+		for( auto It = EnabledGroups.CreateConstIterator(); It; ++It )
+		{
+			HierEnabledItems.Append( It.Value().EnabledItems );
+		}
+		FGroupFilter Filter(HierEnabledItems);
 
-			// Generate root stats stack for current frame.
-			Stats.UncondenseStackStats( TargetFrame, NewFrame.HierarchyInclusive, &Filter, &NewFrame.NonStackStats );
+		// Generate root stats stack for current frame.
+		Stats.UncondenseStackStats( TargetFrame, NewFrame.HierarchyInclusive, &Filter, &NewFrame.NonStackStats );
 
-			{
-				SCOPE_CYCLE_COUNTER( STAT_GetFlatAggregates );
-				Stats.GetInclusiveAggregateStackStats( TargetFrame, NewFrame.InclusiveAggregate, &Filter, false );
-				Stats.GetExclusiveAggregateStackStats( TargetFrame, NewFrame.ExclusiveAggregate, &Filter, false );
-			}
+		{
+			SCOPE_CYCLE_COUNTER(STAT_GetFlatAggregates);
+			Stats.GetInclusiveAggregateStackStats( TargetFrame, NewFrame.InclusiveAggregate, &Filter, false );
+			Stats.GetExclusiveAggregateStackStats( TargetFrame, NewFrame.ExclusiveAggregate, &Filter, false );
+		}
 		}
 
 		NewFrame.HierarchyInclusive.AddSelf();
@@ -901,7 +1037,7 @@ struct FHUDGroupManager
 
 			// Divide stats to get average values.
 			AggregatedHierarchyHistory.Divide( NumFrames );
-			AggregatedHierarchyHistory.CopyExclusivesFromSelf();	
+			AggregatedHierarchyHistory.CopyExclusivesFromSelf();
 			if (Params.CullMs.Get() != 0.0f)
 			{
 				AggregatedHierarchyHistory.CullByCycles( int64( Params.CullMs.Get() / FPlatformTime::ToMilliseconds( 1 ) ) );
@@ -936,41 +1072,41 @@ struct FHUDGroupManager
 				}
 				else
 				{
-					if (InternalGroup.DisplayMode & EStatDisplayMode::Hierarchical)
+				if( InternalGroup.DisplayMode & EStatDisplayMode::Hierarchical )
+				{
+					// Linearize stack stats for easier rendering.
+					LinearizeStackForItems( AggregatedHierarchyHistory, InternalGroup.EnabledItems, HudGroup.HierAggregate, HudGroup.Indentation, 0 );
+				}
+				
+				if( InternalGroup.DisplayMode & EStatDisplayMode::Flat )
+				{
+					// Copy flat stats
+					for( int32 Index = 0; Index < AggregatedFlatHistory.Num(); ++Index )
 					{
-						// Linearize stack stats for easier rendering.
-						LinearizeStackForItems( AggregatedHierarchyHistory, InternalGroup.EnabledItems, HudGroup.HierAggregate, HudGroup.Indentation, 0 );
-					}
-
-					if (InternalGroup.DisplayMode & EStatDisplayMode::Flat)
-					{
-						// Copy flat stats
-						for (int32 Index = 0; Index < AggregatedFlatHistory.Num(); ++Index)
-						{
-							const FComplexStatMessage& AggregatedStatMessage = AggregatedFlatHistory[Index];
-							const bool bIsNonStackStat = !AggregatedStatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsPackedCCAndDuration );
-							const bool bToBeAdded = InternalGroup.EnabledItems.Contains( AggregatedStatMessage.NameAndInfo.GetRawName() );
-							if (bToBeAdded)
-							{
-								new(HudGroup.FlatAggregate) FComplexStatMessage( AggregatedStatMessage );
-							}
-						}
-					}
-
-					// Copy non-stack stats assigned to memory and counter groups.
-					for (int32 Index = 0; Index < AggregatedNonStackStatsHistory.Num(); ++Index)
-					{
-						const FComplexStatMessage& AggregatedStatMessage = AggregatedNonStackStatsHistory[Index];
-						const bool bIsMemory = AggregatedStatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsMemory );
-						TArray<FComplexStatMessage>& Dest = bIsMemory ? HudGroup.MemoryAggregate : HudGroup.CountersAggregate;
-
+						const FComplexStatMessage& AggregatedStatMessage = AggregatedFlatHistory[Index];
+						const bool bIsNonStackStat = !AggregatedStatMessage.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration);
 						const bool bToBeAdded = InternalGroup.EnabledItems.Contains( AggregatedStatMessage.NameAndInfo.GetRawName() );
-						if (bToBeAdded)
+						if( bToBeAdded )
 						{
-							new(Dest)FComplexStatMessage( AggregatedStatMessage );
+							new(HudGroup.FlatAggregate) FComplexStatMessage( AggregatedStatMessage );
 						}
 					}
 				}
+
+				// Copy non-stack stats assigned to memory and counter groups.
+				for( int32 Index = 0; Index < AggregatedNonStackStatsHistory.Num(); ++Index )
+				{
+					const FComplexStatMessage& AggregatedStatMessage = AggregatedNonStackStatsHistory[Index];
+					const bool bIsMemory = AggregatedStatMessage.NameAndInfo.GetFlag( EStatMetaFlags::IsMemory );
+					TArray<FComplexStatMessage>& Dest = bIsMemory ? HudGroup.MemoryAggregate : HudGroup.CountersAggregate; 
+
+					const bool bToBeAdded = InternalGroup.EnabledItems.Contains( AggregatedStatMessage.NameAndInfo.GetRawName() );
+					if( bToBeAdded )
+					{
+						new(Dest) FComplexStatMessage(AggregatedStatMessage);
+					}	
+				}
+			}
 
 				// Replace thread encoded id with the thread name.
 				for (auto& HierIt : HudGroup.HierAggregate)
@@ -1072,7 +1208,6 @@ static int32 MaxDepth = MAX_int32;
 static FString NameFilter;
 static FDelegateHandle DumpFrameDelegateHandle;
 static FDelegateHandle DumpCPUDelegateHandle;
-static FDelegateHandle DumpMemoryDelegateHandle;
 
 static void DumpFrame(int64 Frame)
 {
@@ -1191,7 +1326,8 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 	Ar.Log( TEXT("    stat dumpframe -ms=.001 -root=shadow"));
 
 	Ar.Log( TEXT("stat dumpave|dumpmax|dumpsum  [-start | -stop | -num=30] [-ms=5.0] [-depth=maxint] - aggregate stats over multiple frames"));
-	Ar.Log( TEXT("stat dumphitches  - dumps hitches"));
+	Ar.Log( TEXT("stat dumphitches - toggles dumping hitches"));
+	Ar.Log( TEXT("stat dumpevents [-ms=0.2] [-all] - toggles dumping events history for slow events, -all adds other threads besides game and render"));
 	Ar.Log( TEXT("stat dumpnonframe - dumps non-frame stats, usually memory stats"));
 	Ar.Log( TEXT("stat dumpcpu - dumps cpu stats"));
 
@@ -1219,7 +1355,7 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 
 	Ar.Log( TEXT("stat toggledebug - toggles tracking the most memory expensive stats"));
 
-	Ar.Log( TEXT( "stat slow [-ms=1.0] [-depth=4] - display the game and render thread stats" ) );
+	Ar.Log( TEXT( "stat slow [-ms=1.0] [-depth=4] - toggles displaying the game and render thread stats" ) );
 
 	Ar.Log( TEXT("add -memoryprofiler in the command line to enable the memory profiling"));
 	Ar.Log( TEXT("stat stopfile - stops tracking all memory operations and writes the results to the file"));
@@ -1350,6 +1486,15 @@ static void StatCmd(FString InCmd)
 			UE_LOG(LogStats, Log, TEXT( "**************************** %d hitches    %8.0fms total hitch time" ), HitchIndex, TotalHitchTime);
 		}
 	}
+	else if (FParse::Command( &Cmd, TEXT( "DumpEvents" ) ))
+	{
+		float DumpEventsCullMS = 0.1f;
+		FParse::Value( Cmd, TEXT( "MS=" ), DumpEventsCullMS );
+		const bool bDisplayAllThreads = FParse::Param( Cmd, TEXT( "all" ) );
+
+		StatsMasterEnableAdd();
+		DumpEventsDelegateHandle = Stats.NewFrameDelegate.AddStatic( &DumpEventsOnce, DumpEventsCullMS, bDisplayAllThreads );
+	}
 	else if( FParse::Command( &Cmd, TEXT( "STARTFILE" ) ) )
 	{
 		FString Filename;
@@ -1427,7 +1572,7 @@ static void StatCmd(FString InCmd)
 	else if (FParse::Command( &Cmd, TEXT( "slow" ) ))
 	{
 		FStatSlowParams Params( Cmd );
-		FHUDGroupManager::Get( Stats ).HandleCommand( Params, true );
+		FHUDGroupManager::Get(Stats).HandleCommand(Params, true);
 	}
 	else
 #endif
@@ -1525,6 +1670,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else if( FParse::Command(&TempCmd,TEXT("DUMPHITCHES")) )
+		{
+		}
+		else if (FParse::Command( &TempCmd, TEXT( "DumpEvents" ) ))
 		{
 		}
 		else if( FParse::Command( &TempCmd, TEXT( "STOPFILE" ) ) )

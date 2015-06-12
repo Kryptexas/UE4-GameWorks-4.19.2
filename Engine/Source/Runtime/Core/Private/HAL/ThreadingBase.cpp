@@ -6,6 +6,9 @@
 #include "LockFreeList.h"
 #include "StatsData.h"
 
+DEFINE_STAT( STAT_EventWaitWithId );
+DEFINE_STAT( STAT_EventTriggerWithId );
+
 
 /** The global thread pool */
 FQueuedThreadPool* GThreadPool = nullptr;
@@ -168,6 +171,59 @@ FSingleThreadManager& FSingleThreadManager::Get()
 	return Singleton;
 }
 
+
+/*-----------------------------------------------------------------------------
+	FEvent, FScopedEvent
+-----------------------------------------------------------------------------*/
+
+uint32 FEvent::EventUniqueId = 0;
+
+void FEvent::AdvanceStats()
+{
+#if	STATS
+	EventId = FPlatformAtomics::InterlockedAdd( (int32*)&EventUniqueId, 1 );
+	EventStartCycles = 0;
+#endif // STATS
+}
+
+void FEvent::WaitForStats()
+{
+#if	STATS
+	// Only start counting on the first wait, trigger will "close" the history.
+	if( FThreadStats::IsCollectingData() && EventStartCycles == 0 )
+	{
+		FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
+		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | 0;
+		ThreadStats->AddMessage( GET_STATFNAME( STAT_EventWaitWithId ), EStatOperation::SpecialMessageMarker, PacketEventIdAndCycles );
+		EventStartCycles = FPlatformTime::Cycles();
+	}
+#endif // STATS
+}
+
+void FEvent::TriggerForStats()
+{
+#if	STATS
+	// Only add wait-trigger pairs.
+	if( EventStartCycles > 0 && FThreadStats::IsCollectingData() )
+	{
+		FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
+		const uint32 EndCycles = FPlatformTime::Cycles();
+		const int32 DeltaCycles = int32( EndCycles - EventStartCycles );
+		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | DeltaCycles;
+		ThreadStats->AddMessage( GET_STATFNAME( STAT_EventTriggerWithId ), EStatOperation::SpecialMessageMarker, PacketEventIdAndCycles );
+
+		AdvanceStats();
+	}
+#endif // STATS
+}
+
+void FEvent::ResetForStats()
+{
+#if	STATS
+	AdvanceStats();
+#endif // STATS
+}
+
 FScopedEvent::FScopedEvent()
 	: Event(FEventPool<EEventPoolTypes::AutoReset>::Get().GetEventFromPool())
 { }
@@ -322,8 +378,11 @@ protected:
 	{
 		while (!TimeToDie)
 		{
-			// Wait for some work to do
-			DoWorkEvent->Wait();
+			{				
+				DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FQueuedThread::Run.WaitForWork" ), STAT_FQueuedThread_Run_WaitForWork, STATGROUP_ThreadPoolAsyncTasks );
+				// Wait for some work to do
+				DoWorkEvent->Wait();
+			}
 			IQueuedWork* LocalQueuedWork = QueuedWork;
 			QueuedWork = nullptr;
 			FPlatformMisc::MemoryBarrier();
@@ -406,6 +465,8 @@ public:
 	 */
 	void DoWork(IQueuedWork* InQueuedWork)
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FQueuedThread::DoWork" ), STAT_FQueuedThread_DoWork, STATGROUP_ThreadPoolAsyncTasks );
+
 		check(QueuedWork == nullptr && "Can't do more than one task at a time");
 		// Tell the thread the work to be done
 		QueuedWork = InQueuedWork;
