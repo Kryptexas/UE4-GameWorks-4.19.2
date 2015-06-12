@@ -6,7 +6,7 @@
 
 #pragma once
 
-DECLARE_STATS_GROUP(TEXT("ThreadPool Async Tasks"), STATGROUP_ThreadPoolAsyncTasks, STATCAT_Advanced);
+
 
 /**
 	FAutoDeleteAsyncTask - template task for jobs that delete themselves when complete
@@ -29,10 +29,10 @@ DECLARE_STATS_GROUP(TEXT("ThreadPool Async Tasks"), STATGROUP_ThreadPoolAsyncTas
 			... do the work here
 		}
 
- 		FORCEINLINE TStatId GetStatId() const
- 		{
+		FORCEINLINE TStatId GetStatId() const
+		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(ExampleAutoDeleteAsyncTask, STATGROUP_ThreadPoolAsyncTasks);
- 		}
+		}
 	};
 
 	start an example job
@@ -268,6 +268,9 @@ class FAsyncTask
 	**/
 	void Start(bool bForceSynchronous, FQueuedThreadPool* InQueuedPool)
 	{
+		FScopeCycleCounter Scope( Task.GetStatId(), true );
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FAsyncTask::Start" ), STAT_FAsyncTask_Start, STATGROUP_ThreadPoolAsyncTasks );
+
 		FPlatformMisc::MemoryBarrier();
 		CheckIdle();  // can't start a job twice without it being completed first
 		WorkNotFinishedCounter.Increment();
@@ -364,6 +367,9 @@ class FAsyncTask
 		FPlatformMisc::MemoryBarrier();
 		if (QueuedPool)
 		{
+			FScopeCycleCounter Scope( Task.GetStatId() );
+			DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FAsyncTask::SyncCompletion" ), STAT_FAsyncTask_SyncCompletion, STATGROUP_ThreadPoolAsyncTasks );
+
 			check(DoneEvent); // if it is not done yet, we must have an event
 			DoneEvent->Wait();
 			QueuedPool = 0;

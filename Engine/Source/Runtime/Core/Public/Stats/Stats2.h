@@ -1038,7 +1038,7 @@ typedef TChunkedArray<FStatMessage,(uint32)EStatMessagesArrayConstants::MESSAGES
 */
 struct FStatPacket
 {
-	/** Assigned later, this is the frame number this packet is for. @see FStatsThreadState::ScanForAdvance */
+	/** Assigned later, this is the frame number this packet is for. @see FStatsThreadState::ScanForAdvance or FThreadStats::DetectAndUpdateCurrentGameFrame */
 	int64 Frame;
 	/** ThreadId this packet came from **/
 	uint32 ThreadId;
@@ -1238,6 +1238,8 @@ public:
 			const bool bFrameHasChanged = FStats::GameThreadStatsFrame > CurrentGameFrame;
 			if( bFrameHasChanged )
 			{
+				// Other threads are one frame behind so set the frame to the previous one.
+				Packet.AssignFrame( CurrentGameFrame );
 				CurrentGameFrame = FStats::GameThreadStatsFrame;
 				return true;
 			}
@@ -1727,6 +1729,11 @@ struct FStat_##StatName\
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, false, false, FPlatformMemory::MCR_Invalid); \
 	static DEFINE_STAT(StatId)
 
+/** FName stat that allows sending a string based data. */
+#define DECLARE_FNAME_STAT(CounterName,StatId,GroupId) \
+	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_FName, false, false, FPlatformMemory::MCR_Invalid); \
+	static DEFINE_STAT(StatId)
+
 /** This is a fake stat, mostly used to implement memory message or other custom stats that don't easily fit into the system. */
 #define DECLARE_PTR_STAT(CounterName,StatId,GroupId)\
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_Ptr, false, false, FPlatformMemory::MCR_Invalid); \
@@ -1982,6 +1989,7 @@ DECLARE_STATS_GROUP(TEXT("Streaming Details"),STATGROUP_StreamingDetails, STATCA
 DECLARE_STATS_GROUP(TEXT("Streaming"),STATGROUP_Streaming, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Target Platform"),STATGROUP_TargetPlatform, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Text"),STATGROUP_Text, STATCAT_Advanced);
+DECLARE_STATS_GROUP(TEXT("ThreadPool Async Tasks"),STATGROUP_ThreadPoolAsyncTasks, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Threading"),STATGROUP_Threading, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Threads"),STATGROUP_Threads, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("Tickables"),STATGROUP_Tickables, STATCAT_Advanced);
