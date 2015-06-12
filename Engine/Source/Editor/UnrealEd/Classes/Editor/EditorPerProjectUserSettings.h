@@ -30,6 +30,10 @@ class UEditorPerProjectUserSettings : public UObject
 	/** If enabled, behavior tree debugger will collect its data even when all behavior tree editor windows are closed */
 	UPROPERTY(EditAnywhere, config, Category = AI)
 	uint32 bAlwaysGatherBehaviorTreeDebuggerData : 1;
+
+	/** When enabled, Engine Version Number is displayed in the ProjectBadge */
+	UPROPERTY(EditAnywhere, config, Category = DeveloperTools, meta = (DisplayName = "Display Engine Version Number in Project Badge", ConfigRestartRequired = true))
+	bool bDisplayEngineVersionInBadge;
 	
 	/** When enabled, the application frame rate, memory and Unreal object count will be displayed in the main editor UI */
 	UPROPERTY(EditAnywhere, config, Category=Performance)
