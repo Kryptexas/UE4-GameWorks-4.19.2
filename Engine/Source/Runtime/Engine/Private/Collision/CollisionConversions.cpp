@@ -326,13 +326,17 @@ static FVector FindGeomOpposingNormal(PxGeometryType::Enum QueryGeomType, const 
 /** Set info in the HitResult (Actor, Component, PhysMaterial, BoneName, Item) based on the supplied shape and face index */
 static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRigidActor* PActor, const uint32 FaceIndex, FHitResult& OutResult, bool bReturnPhysMat)
 {
-	FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PShape->userData);
+	const FBodyInstance* BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
 	FDestructibleChunkInfo* ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PShape->userData);
 	UPrimitiveComponent* PrimComp = FPhysxUserData::Get<UPrimitiveComponent>(PShape->userData);
 
-	if ((BodyInst == NULL && ChunkInfo == NULL))
+	if(BodyInst)
 	{
-		BodyInst = FPhysxUserData::Get<FBodyInstance>(PActor->userData);
+		BodyInst = BodyInst->GetOriginalBodyInstance(PShape);
+	}
+
+	if (ChunkInfo == NULL)
+	{
 		ChunkInfo = FPhysxUserData::Get<FDestructibleChunkInfo>(PActor->userData);
 	}
 

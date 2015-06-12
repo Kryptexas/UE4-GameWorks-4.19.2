@@ -710,7 +710,6 @@ bool UPrimitiveComponent::WeldToImplementation(USceneComponent * InParent, FName
 			//root is simulated so we actually weld the body
 			FTransform RelativeTM = RootComponent == AttachParent ? GetRelativeTransform() : GetComponentToWorld().GetRelativeTransform(RootComponent->GetComponentToWorld());	//if direct parent we already have relative. Otherwise compute it
 			RootBI->Weld(BI, GetComponentToWorld());
-			BI->WeldParent = RootBI;
 
 			return true;
 		}
