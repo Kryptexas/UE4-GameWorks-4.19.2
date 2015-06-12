@@ -400,6 +400,11 @@ void UMovementComponent::SetPlaneConstraintOrigin(FVector PlaneOrigin)
 	PlaneConstraintOrigin = PlaneOrigin;
 }
 
+void UMovementComponent::SetPlaneConstraintEnabled(bool bEnabled)
+{
+	bConstrainToPlane = bEnabled;
+}
+
 const FVector& UMovementComponent::GetPlaneConstraintOrigin() const
 {
 	return PlaneConstraintOrigin;

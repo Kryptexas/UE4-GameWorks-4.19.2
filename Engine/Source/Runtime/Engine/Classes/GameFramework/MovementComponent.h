@@ -383,6 +383,10 @@ public:
 	/** Sets the origin of the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SetPlaneConstraintOrigin(FVector PlaneOrigin);
+	
+	/** Sets whether or not the plane constraint is enabled. */
+	UFUNCTION(BlueprintCallable, Category = "Components|Movement|Planar")
+	virtual void SetPlaneConstraintEnabled(bool bEnabled);
 
 	/** @return The normal of the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
