@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "EventPool.h"
-#include "Public/Modules/ModuleVersion.h"
+#include "EngineVersion.h"
 #include "Templates/Function.h"
 
 
@@ -33,7 +33,7 @@ void* FGenericPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcN
 int32 FGenericPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FPlatformProcess::GetBinaryFileVersion not implemented on this platform"));
-	return MODULE_API_VERSION;
+	return GCompatibleWithEngineVersion.GetChangelist();
 }
 
 uint32 FGenericPlatformProcess::GetCurrentProcessId()

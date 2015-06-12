@@ -32,6 +32,16 @@ public:
 	static FString GetBranchName();
 
 	/**
+	 * Gets the value of ENGINE_IS_PROMOTED_BUILD.
+	 */
+	static int32 GetEngineIsPromotedBuild();
+
+	/**
+	 * Gets the identifier for the unreal engine
+	 */
+	static FString GetEpicProductIdentifier();
+
+	/**
 	 * Gets the application's build configuration, i.e. Debug or Shipping.
 	 *
 	 * @return The build configuration.

@@ -10,7 +10,6 @@
 
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
-#include "Runtime/Launch/Resources/Version.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <time.h>
@@ -599,7 +598,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			TCHAR UserName[MAX_STRING_LEN];
 			FCString::Strncpy(UserName, FPlatformProcess::UserName(), MAX_STRING_LEN);
 			TCHAR GameName[MAX_STRING_LEN];
-			FCString::Strncpy(GameName, *FString::Printf(TEXT("%s %s"), TEXT(BRANCH_NAME), FApp::GetGameName()), MAX_STRING_LEN);
+			FCString::Strncpy(GameName, *FString::Printf(TEXT("%s %s"), *FApp::GetBranchName(), FApp::GetGameName()), MAX_STRING_LEN);
 			TCHAR PlatformName[MAX_STRING_LEN];
 #if PLATFORM_64BITS
 			FCString::Strncpy(PlatformName, TEXT("PC 64-bit"), MAX_STRING_LEN);

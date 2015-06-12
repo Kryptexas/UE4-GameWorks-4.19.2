@@ -5,8 +5,6 @@
 #include "ExceptionHandling.h"
 #include "UniquePtr.h"
 
-#include "../../Launch/Resources/Version.h"
-
 /** For FConfigFile in appInit							*/
 #include "ConfigCacheIni.h"
 #include "RemoteConfigIni.h"

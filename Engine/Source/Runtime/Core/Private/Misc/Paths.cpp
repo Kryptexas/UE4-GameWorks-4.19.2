@@ -3,7 +3,6 @@
 // Core includes.
 #include "CorePrivatePCH.h"
 #include "Misc/App.h"
-#include "Runtime/Launch/Resources/Version.h" 
 #include "EngineVersion.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPaths, Log, All);
@@ -28,7 +27,7 @@ FString FPaths::EngineUserDir()
 {
 	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
 	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT(EPIC_PRODUCT_IDENTIFIER), *GEngineVersion.ToString(EVersionComponent::Minor)) + TEXT("/");
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), *GEngineVersion.ToString(EVersionComponent::Minor)) + TEXT("/");
 	}
 	else
 	{
@@ -40,7 +39,7 @@ FString FPaths::EngineVersionAgnosticUserDir()
 {
 	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
 	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), TEXT(EPIC_PRODUCT_IDENTIFIER), TEXT("Common")) + TEXT("/");
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), TEXT("Common")) + TEXT("/");
 	}
 	else
 	{

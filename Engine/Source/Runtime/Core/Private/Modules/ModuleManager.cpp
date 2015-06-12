@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
-#include "ModuleVersion.h"
+#include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 #include "UProjectInfo.h"
 #include "ScopeExit.h"
@@ -1014,10 +1014,10 @@ const TCHAR *FModuleManager::GetUBTConfiguration()
 bool FModuleManager::CheckModuleCompatibility(const TCHAR* Filename)
 {
 	int32 ModuleApiVersion = FPlatformProcess::GetDllApiVersion(Filename);
-
-	if (ModuleApiVersion != MODULE_API_VERSION)
+	int32 CompiledInApiVersion = GCompatibleWithEngineVersion.GetChangelist();
+	if (ModuleApiVersion != CompiledInApiVersion)
 	{
-		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, MODULE_API_VERSION);
+		UE_LOG(LogModuleManager, Warning, TEXT("Found module file %s (API version %d), but it was incompatible with the current engine API version (%d). This is likely a stale module that must be recompiled."), Filename, ModuleApiVersion, CompiledInApiVersion);
 		return false;
 	}
 

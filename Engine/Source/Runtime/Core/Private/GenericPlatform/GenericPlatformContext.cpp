@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "GenericPlatform/GenericPlatformContext.h"
 #include "Misc/App.h"
-#include "Runtime/Launch/Resources/Version.h"
+#include "EngineVersion.h"
 #include "EngineBuildSettings.h"
 
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";
@@ -100,7 +100,7 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty(TEXT("PlatformName"), *NCachedCrashContextProperties::PlatformName);
 	AddCrashProperty(TEXT("PlatformNameIni"), *NCachedCrashContextProperties::PlatformNameIni);
 	AddCrashProperty( TEXT( "EngineMode" ), FPlatformMisc::GetEngineMode() );
-	AddCrashProperty( TEXT( "EngineVersion" ), ENGINE_VERSION_STRING );
+	AddCrashProperty( TEXT( "EngineVersion" ), *GEngineVersion.ToString() );
 	AddCrashProperty( TEXT( "CommandLine" ), FCommandLine::IsInitialized() ? FCommandLine::Get() : TEXT("") );
 	AddCrashProperty( TEXT( "LanguageLCID" ), FInternationalization::Get().GetCurrentCulture()->GetLCID() );
 	AddCrashProperty(TEXT("DefaultLocale"), *NCachedCrashContextProperties::DefaultLocale);

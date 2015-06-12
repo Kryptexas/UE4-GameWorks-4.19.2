@@ -8,8 +8,6 @@
 #include "ISourceControlLabel.h"
 #include "ISourceControlRevision.h"
 
-#include "../../../../Launch/Resources/Version.h"
-
 #ifndef MINIDUMPDIAGNOSTICS
 	#define MINIDUMPDIAGNOSTICS	0
 #endif
@@ -55,7 +53,7 @@ bool ICrashDebugHelper::Init()
 		// Default to BRANCH_NAME
 		else
 		{
-			DepotName = FString::Printf( TEXT( "%s" ), TEXT( BRANCH_NAME ) );
+			DepotName = FString::Printf( TEXT( "%s" ), *FApp::GetBranchName() );
 		}
 
 		CrashInfo.DepotName = DepotName.Replace( TEXT( "+" ), TEXT( "/" ) );
@@ -73,7 +71,7 @@ bool ICrashDebugHelper::Init()
 		// Default to BUILT_FROM_CHANGELIST.
 		else
 		{
-			BuiltFromCL = int32( BUILT_FROM_CHANGELIST );
+			BuiltFromCL = GEngineVersion.GetChangelist();
 		}
 
 		CrashInfo.BuiltFromCL = BuiltFromCL;

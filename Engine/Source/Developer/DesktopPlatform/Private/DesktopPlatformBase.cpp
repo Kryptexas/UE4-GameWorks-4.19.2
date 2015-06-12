@@ -5,7 +5,6 @@
 #include "UProjectInfo.h"
 #include "EngineVersion.h"
 #include "ModuleManager.h"
-#include "Runtime/Launch/Resources/Version.h"
 #include "Json.h"
 
 
@@ -877,7 +876,7 @@ FString FDesktopPlatformBase::GetEngineSavedConfigDirectory(const FString& Ident
 	FString UserDir;
 	if (IsStockEngineRelease(Identifier))
 	{
-		UserDir = FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FString(EPIC_PRODUCT_IDENTIFIER), *Identifier);
+		UserDir = FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), *Identifier);
 	}
 	else
 	{

@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "LinuxPlatformRunnableThread.h"
-#include "Public/Modules/ModuleVersion.h"
+#include "EngineVersion.h"
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
@@ -49,7 +49,7 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return MODULE_API_VERSION;
+	return GCompatibleWithEngineVersion.GetChangelist();
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()
