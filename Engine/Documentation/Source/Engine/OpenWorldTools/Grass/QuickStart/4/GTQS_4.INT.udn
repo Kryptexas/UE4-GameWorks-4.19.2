@@ -14,7 +14,7 @@ Version: 4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[How-To Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[Next Step](Engine\OpenWorldTools\Grass\QuickStart\5 "%Engine\OpenWorldTools\Grass\QuickStart\5:title%") 

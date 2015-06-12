@@ -13,7 +13,7 @@ For example the Procedural Foliage tool is great at simulating huge forests that
 However if you try and use the Procedural Foliage tool to make the Landscape Terrain look like it was densely covered in grass or flowers you will quickly find out that getting the results you want can be very time consuming. 
 To address this issue and give you the ability to densely spawn grass and flowers the Open World Tools have an optional tool called the **Grass Tool**.
 The Grass Tool allows you to define a Static Mesh to spawn wherever a certain Texture is painted on the Landscape terrain.
-In the following How - To we will cover all you need to know about using the Grass Tool in your levels.
+In the following Quick Start we will cover all you need to know about using the Grass Tool in your levels.
 
 ![](T_Grass_Intro.png)
 
