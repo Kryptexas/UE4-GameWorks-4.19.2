@@ -106,7 +106,7 @@ public:
 	UGarbageCollectionSettings();
 
 	UPROPERTY(EditAnywhere, config, Category = General, meta = (
-		DisplayName = "Time Between Purging Pending Kill Objects",
+		ConsoleVariable = "TimeBetweenPurgingPendingKillObjects", DisplayName = "Time Between Purging Pending Kill Objects",
 		ToolTip = "Time in seconds (game time) we should wait between purging object references to objects that are pending kill."))
 	float TimeBetweenPurgingPendingKillObjects;
 

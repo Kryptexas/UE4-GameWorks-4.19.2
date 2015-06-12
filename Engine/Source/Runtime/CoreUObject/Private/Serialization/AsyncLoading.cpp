@@ -233,7 +233,7 @@ static float GTimeLimitExceededMinTime = 0.005f;
 static FAutoConsoleVariableRef CVarTimeLimitExceededMinTime(
 	TEXT("TimeLimitExceededMinTime"),
 	GTimeLimitExceededMinTime,
-	TEXT("Multiplier for time limit exceeded warning time threshold."),
+	TEXT("Minimum time the time limit exceeded warning will be triggered by."),
 	ECVF_Default
 	);
 
