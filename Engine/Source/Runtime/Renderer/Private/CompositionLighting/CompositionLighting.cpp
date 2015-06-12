@@ -217,22 +217,6 @@ static FRenderingCompositeOutputRef AddPostProcessingAmbientOcclusion(FRHIComman
 	return FRenderingCompositeOutputRef(AmbientOcclusionPassMip0);
 }
 
-static void AddDeferredDecalsBeforeBasePass(FPostprocessContext& Context)
-{
-	FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(0));
-	Pass->SetInput(ePId_Input0, Context.FinalOutput);
-
-	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
-}
-
-static void AddDeferredDecalsBeforeLighting(FPostprocessContext& Context)
-{
-	FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(1));
-	Pass->SetInput(ePId_Input0, Context.FinalOutput);
-
-	Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
-}
-
 void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View)
 {
 	check(IsInRenderingThread());
@@ -251,7 +235,10 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 			!Context.View.Family->EngineShowFlags.ShaderComplexity &&
 			IsDBufferEnabled()) 
 		{
-			AddDeferredDecalsBeforeBasePass(Context);
+			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_BeforeBasePass));
+			Pass->SetInput(ePId_Input0, Context.FinalOutput);
+
+			Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 		}
 
 		// The graph setup should be finished before this line ----------------------------------------
@@ -287,13 +274,24 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 
 		FPostprocessContext Context(CompositeContext.Graph, View);
 
-		// Add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ----------
+		// Add the passes we want to add to the graph ----------
+		
+		if( Context.View.Family->EngineShowFlags.Decals)
+		{
+			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_AfterBasePass));
+			Pass->SetInput(ePId_Input0, Context.FinalOutput);
+
+			Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
+		}
 
 		// decals are before AmbientOcclusion so the decal can output a normal that AO is affected by
 		if( Context.View.Family->EngineShowFlags.Decals &&
 			!Context.View.Family->EngineShowFlags.VisualizeLightCulling)		// decal are distracting when looking at LightCulling
 		{
-			AddDeferredDecalsBeforeLighting(Context);
+			FRenderingCompositePass* Pass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDeferredDecals(DRS_BeforeLighting));
+			Pass->SetInput(ePId_Input0, Context.FinalOutput);
+
+			Context.FinalOutput = FRenderingCompositeOutputRef(Pass);
 		}
 
 		FRenderingCompositeOutputRef AmbientOcclusion;

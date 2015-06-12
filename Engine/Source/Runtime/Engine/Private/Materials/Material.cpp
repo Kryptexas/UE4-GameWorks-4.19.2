@@ -2494,7 +2494,7 @@ bool UMaterial::CanEditChange(const UProperty* InProperty) const
 	
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, ShadingModel))
 		{
-			return MaterialDomain == MD_Surface;
+			return MaterialDomain == MD_Surface || (MaterialDomain == MD_DeferredDecal && DecalBlendMode == DBM_Volumetric_DistanceFunction);
 		}
 
 		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UMaterial, DecalBlendMode))
@@ -3887,6 +3887,15 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 			case DBM_DBuffer_Roughness:
 				return InProperty == MP_Roughness
 					|| InProperty == MP_Opacity;
+
+			case DBM_Volumetric_DistanceFunction:
+				return InProperty == MP_EmissiveColor
+					|| InProperty == MP_Normal
+					|| InProperty == MP_Metallic
+					|| InProperty == MP_Specular
+					|| InProperty == MP_BaseColor
+					|| InProperty == MP_Roughness
+					|| InProperty == MP_OpacityMask;
 
 			default:
 				// if you create a new mode it needs to expose the right pins

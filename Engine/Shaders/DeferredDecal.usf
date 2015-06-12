@@ -4,16 +4,18 @@
 	DeferredDecal.usf: Pixel shader for computing a deferred decal.
 =============================================================================*/
 
-// DECAL_BLEND_MODE is set by C++ from EDecalBlendMode e.g. DBM_Translucent, DBM_TranslucentColorNormalRoughness, ...
+// DECAL_BLEND_MODE is set by C++ from EDecalBlendMode e.g. DECALBLENDMODEID_VOLUMETRIC, DECALBLENDMODEID_NORMAL, ...
 // DECAL_RENDERTARGET_COUNT is set by C++ e.g. 1: single RT, 2: two MRT, 3: three MRT
-// DECAL_RENDERSTAGE 0:before BasePass, 1: after base pass, before lighting
+// DECAL_RENDERSTAGE is set by C++ from EDecalRenderStage e.g. 0:before base pass, 1:after base pass, 2: before lighting
 
 #include "Common.usf"
 
 // from screen space position to decal space (for position)
 float4x4 ScreenToDecal;
-// from decal space to world space (for normals)
+// to transform position from decal space to world space, for normals use transpose of inverse
 float4x4 DecalToWorld;
+// to transform position from world space to decal space, for normals use transpose of inverse
+float4x4 WorldToDecal;
 
 #if DECAL_PROJECTION
 	#include "Material.usf"
@@ -50,13 +52,87 @@ void MainVS(
 	OutPosition = OutScreenPosition = mul(InPosition, FrustumComponentToClip);
 }
 
+float DistanceFunction(float4 ScreenPosition, float3 Pos)
+{
+	float3 SwizzlePos = Pos.zyx;
+
+#if DECAL_PROJECTION && DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC
+	
+	FMaterialPixelParameters MaterialParameters = MakeInitializedMaterialPixelParameters();
+#if NUM_MATERIAL_TEXCOORDS
+	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
+	{
+		MaterialParameters.TexCoords[CoordinateIndex] = SwizzlePos.xy * 0.5f + 0.5f;
+	}
+#endif
+
+	MaterialParameters.VertexColor = 1;
+	MaterialParameters.ScreenPosition = ScreenPosition;
+	MaterialParameters.LightVector = SwizzlePos * 0.5f + 0.5f;		// to be compatible with decals but *0.5+0.5 seems wrong
+	MaterialParameters.WorldPosition = 
+	MaterialParameters.WorldPosition_CamRelative = 
+	MaterialParameters.WorldPosition_NoOffsets = 
+	MaterialParameters.WorldPosition_NoOffsets_CamRelative = mul(DecalToWorld, float4(Pos, 1)).xyz;
+	MaterialParameters.CameraVector = normalize(View.ViewOrigin.xyz - MaterialParameters.WorldPosition);
+
+	// the material needs to output the distance from "Opacity" depending on LightVector (in 0..1 range)
+	return GetMaterialMaskInputRaw(MaterialParameters);
+
+#endif
+
+	return 0;
+}
+
+// @return t=0..1, -1: no hit
+float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
+{
+	const uint steps = 300; 
+
+	float t = 0;
+
+	float RayLength = length(EndPos - StartPos);
+	float3 Direction = normalize(EndPos - StartPos);
+
+	LOOP for(uint i = 0; i < steps; ++i)
+	{
+		float Distance = DistanceFunction(ScreenPosition, StartPos + t * Direction);
+
+		if(Distance <= i * 0.001f)
+		{
+			return t / RayLength;
+		}
+
+		t += Distance;
+	}
+
+	return -1;
+}
+
+// like explained here http://iquilezles.org/www/articles/derivative/derivative.htm
+float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos)
+{
+	float eps = 0.1f;
+
+	float2 e = float2(eps, 0);
+
+    return float3(DistanceFunction(ScreenPosition, OSPos + e.xyy) - DistanceFunction(ScreenPosition, OSPos - e.xyy),
+                  DistanceFunction(ScreenPosition, OSPos + e.yxy) - DistanceFunction(ScreenPosition, OSPos - e.yxy),
+                  DistanceFunction(ScreenPosition, OSPos + e.yyx) - DistanceFunction(ScreenPosition, OSPos - e.yyx));
+}
 
 
-#if DECAL_PROJECTION
 
 // decal pixel shader
+#if DECAL_PROJECTION
+
+#if DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC
+// should work, but doesn't 	EARLYDEPTHSTENCIL
+#endif
+
 void MainPS(
-	in float4 ScreenPosition : TEXCOORD0
+	in float4 ScreenPosition : TEXCOORD0			// is ClipPosition
+	
+	, in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
 
 #if DECAL_RENDERTARGET_COUNT > 0
 	, out float4 OutTarget0 : SV_Target0
@@ -73,30 +149,81 @@ void MainPS(
 #if DECAL_RENDERTARGET_COUNT > 3
 	, out float4 OutTarget3 : SV_Target3
 #endif
+
+	OPTIONAL_OutDepth
+
 	)
 {
-	half SceneW = PreviousDepth(ScreenPosition);
-	float4 DecalVector = mul(float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1), ScreenToDecal);
-	DecalVector.xyz /= DecalVector.w;
+	bool bVolumetric = DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC;
 
-	// clip content outside the decal
-	// not needed if we stencil out the decal but we do that only on large (screen space) ones
-	clip(DecalVector.xyz + 1.0f);
-	clip(1.0f - DecalVector.xyz);
+	float3 OSPosition;
+	float3 WSPosition;
 
-	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1), View.ScreenToWorld);
-	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-	float3 CameraVector = normalize(View.ViewOrigin.xyz - WorldPosition);
+	if(bVolumetric)
+	{
+		// LineBoxIntersect want's to clip a long ray so we provide one, this could be done differently as it limites the draw distance and reduces precision 
+		float SceneW = 100000000;
+
+		float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);		// is ProjectedClipPosition
+
+		ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);
+
+		float4 WorldPosHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
+
+		float3 WSStartRay = View.ViewOrigin.xyz;
+		float3 WSEndRay = WorldPosHom.xyz;
+
+		// in object/decal space
+		float4 OSStartRayHom = mul(float4(WSStartRay,1), WorldToDecal);
+		float4 OSEndRayHom = mul(float4(WSEndRay, 1), WorldToDecal);
+
+		float3 OSStartRay = OSStartRayHom.xyz / OSStartRayHom.w;
+		float3 OSEndRay = OSEndRayHom.xyz / OSEndRayHom.w;
+
+		float2 OSBoxMinMax = LineBoxIntersect(OSStartRay, OSEndRay, -1, 1);
+
+		float3 OSBoxStartRay = OSStartRay + OSBoxMinMax.x * (OSEndRay - OSStartRay);
+		float3 OSBoxEndRay = OSStartRay + OSBoxMinMax.y * (OSEndRay - OSStartRay);
+
+		float HitT = Raycast(ScreenPosition, OSBoxStartRay, OSBoxEndRay);
+
+		clip(HitT);
+
+		OSPosition = OSBoxStartRay + HitT * (OSBoxEndRay - OSBoxStartRay);
+		WSPosition = mul(float4(OSPosition, 1), DecalToWorld).xyz;
+
+		#if OUTPUT_PIXEL_DEPTH_OFFSET
+			float4 CSHitPos = mul(float4(WSPosition, 1), View.WorldToClip);
+			OutDepth = CSHitPos.z / CSHitPos.w;
+		#endif
+	}
+	else
+	{
+		half SceneW = PreviousDepth(ScreenPosition);
+		float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);	
+
+		float4 DecalVectorHom = mul(ProjectedScreenPosition, ScreenToDecal);
+		OSPosition = DecalVectorHom.xyz / DecalVectorHom.w;
+
+		// clip content outside the decal
+		// not needed if we stencil out the decal but we do that only on large (screen space) ones
+		clip(OSPosition.xyz + 1.0f);
+		clip(1.0f - OSPosition.xyz);
+
+		float4 WSPositionHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
+		WSPosition = WSPositionHom.xyz / WSPositionHom.w;
+	}
+
+	float3 CameraVector = normalize(View.ViewOrigin.xyz - WSPosition);
 
 	// can be optimized
-	DecalVector = DecalVector * 0.5f + 0.5f;
+	float3 DecalVector = OSPosition * 0.5f + 0.5f;
 
-	// can be optimized
 	// Swizzle so that DecalVector.xy are perpendicular to the projection direction and DecalVector.z is distance along the projection direction
-	DecalVector.xyz = DecalVector.zyx;
+	float3 SwizzlePos = DecalVector.zyx;
 
 	// By default, map textures using the vectors perpendicular to the projection direction
-	float2 DecalUVs = DecalVector.xy;
+	float2 DecalUVs = SwizzlePos.xy;
 
 	FMaterialPixelParameters MaterialParameters = MakeInitializedMaterialPixelParameters();
 #if NUM_MATERIAL_TEXCOORDS
@@ -108,21 +235,37 @@ void MainPS(
 	MaterialParameters.VertexColor = 1;
 	MaterialParameters.CameraVector = CameraVector;
 	MaterialParameters.ScreenPosition = ScreenPosition;
-	MaterialParameters.LightVector = DecalVector.xyz;
+	MaterialParameters.LightVector = SwizzlePos;
 	MaterialParameters.WorldPosition = 
 		MaterialParameters.WorldPosition_CamRelative = 
 		MaterialParameters.WorldPosition_NoOffsets = 
-		MaterialParameters.WorldPosition_NoOffsets_CamRelative = WorldPosition;
+		MaterialParameters.WorldPosition_NoOffsets_CamRelative = WSPosition;
 	
 	{
-		float3 Normal = GetMaterialNormal(MaterialParameters);
-	
-		// tangent/decal space to world space
+		if(bVolumetric)
+		{
+			// not normalized
+			float3 OSNormal = GradientNotNormalized(ScreenPosition, OSPosition);
+			
+			// not normalized
+			float3 WSNormal = mul(float4(OSNormal, 0), transpose(WorldToDecal)).xyz;
+
+			MaterialParameters.WorldNormal = normalize(WSNormal);
+		}
+		else
+		{
+			// not normalized
+			float3 MaterialNormal = GetMaterialNormal(MaterialParameters);
+
+			// tangent/decal space to world space
 #if MATERIAL_TANGENTSPACENORMAL
-		MaterialParameters.WorldNormal = normalize(mul(float4(-Normal.z, Normal.y, Normal.x, 0), DecalToWorld).xyz);
+			// normals are transformed by the tranposed of the inverse
+			// DecalToWorld becomes transpose(WorldToDecal)
+			MaterialParameters.WorldNormal = normalize(mul(float4(-MaterialNormal.z, MaterialNormal.y, MaterialNormal.x, 0), transpose(WorldToDecal)).xyz);
 #else
-		MaterialParameters.WorldNormal = normalize(Normal);
+			MaterialParameters.WorldNormal = normalize(MaterialNormal);
 #endif
+		}
 	}
 
 	MaterialParameters.ReflectionVector = -MaterialParameters.CameraVector + MaterialParameters.WorldNormal * dot(MaterialParameters.WorldNormal, MaterialParameters.CameraVector) * 2.0;
@@ -134,7 +277,7 @@ void MainPS(
 
 	float3 Color = 1;
 
-	#if DECAL_BLEND_MODE == 2
+	#if DECAL_BLEND_MODE == DECALBLENDMODEID_NORMAL
 		// -1..1 range to 0..1
 		Color = MaterialParameters.WorldNormal * 0.5f + 0.5f;
 	#else
@@ -151,7 +294,7 @@ void MainPS(
 #endif
 
 	// Z fade
-	Opacity *= saturate( 4 - 4 * abs( DecalVector.z * 2 - 1 ) );
+	Opacity *= saturate( 4 - 4 * abs( SwizzlePos.z * 2 - 1 ) );
 
 	// RETURN_COLOR not needed unless writing to SceneColor
 	OutTarget0 = float4(Color, Opacity);
@@ -187,7 +330,18 @@ void MainPS(
 	}
 	#elif DECAL_RENDERSTAGE == 1
 	{
-		// after base pass, before lighting (GBuffer)
+		// after base pass (GBuffer)
+
+		// static lighting isn't updated by decals so we don't need to update that render target
+		float4 OutTarget4 = 0;
+		float4 OutTarget5 = 0;
+		float4 OutTarget6 = 0;
+
+		EncodeGBuffer(Data, OutTarget1, OutTarget2, OutTarget3, OutTarget4, OutTarget5, OutTarget6);
+	}
+	#elif DECAL_RENDERSTAGE == 2
+	{
+		// before lighting (GBuffer)
 
 		// static lighting isn't updated by decals so we don't need to update that render target
 		float4 OutTarget4 = 0;
@@ -196,8 +350,7 @@ void MainPS(
 
 		EncodeGBuffer(Data, OutTarget1, OutTarget2, OutTarget3, OutTarget4, OutTarget5, OutTarget6);
 
-		#if DECAL_BLEND_MODE == 1
-			// Stain
+		#if DECAL_BLEND_MODE == DECALBLENDMODEID_STAIN
 			OutTarget3.rgb *= Opacity;
 		#endif
 
