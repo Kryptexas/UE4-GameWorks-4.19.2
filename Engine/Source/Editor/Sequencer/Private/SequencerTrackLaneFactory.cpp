@@ -2,6 +2,7 @@
 
 #include "SequencerPrivatePCH.h"
 
+#include "Sequencer.h"
 #include "SequencerTrackLaneFactory.h"
 #include "SSequencerTrackArea.h"
 #include "SSequencerTrackOutliner.h"

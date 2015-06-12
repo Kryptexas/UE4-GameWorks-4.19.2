@@ -3,6 +3,7 @@
 #pragma once
 
 #include "SCompoundWidget.h"
+#include "GameplayTagContainer.h"
 
 /** Main CollisionAnalyzer UI widget */
 class SGameplayCueEditor : public SCompoundWidget

@@ -13,6 +13,11 @@
 #include "GameplayTagsSettings.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "SSearchBox.h"
+#include "GameplayTagsModule.h"
+#include "AssetEditorManager.h"
+#include "AbilitySystemGlobals.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "SGameplayCueEditor"
 
