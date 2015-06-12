@@ -3528,17 +3528,17 @@ void FSlateApplication::GotoLineInSource(const FString& FileName, int32 LineNumb
 	}
 }
 
-void FSlateApplication::ForceRedrawWindow(TSharedRef<SWindow>& InWindowToDraw)
+void FSlateApplication::ForceRedrawWindow(const TSharedRef<SWindow>& InWindowToDraw)
 {
 	PrivateDrawWindows( InWindowToDraw );
 }
 
-bool FSlateApplication::TakeScreenshot(TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize)
+bool FSlateApplication::TakeScreenshot(const TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize)
 {
 	return TakeScreenshot(Widget, FIntRect(), OutColorData, OutSize);
 }
 
-bool FSlateApplication::TakeScreenshot(TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize)
+bool FSlateApplication::TakeScreenshot(const TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize)
 {
 	// We can't screenshot the widget unless there's a valid window handle to draw it in.
 	TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget);

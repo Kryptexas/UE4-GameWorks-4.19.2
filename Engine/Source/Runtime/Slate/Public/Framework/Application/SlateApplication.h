@@ -730,7 +730,7 @@ public:
 	/**
 	 * Forces the window to redraw immediately.
 	 */
-	void ForceRedrawWindow( TSharedRef<SWindow>& InWindowToDraw );
+	void ForceRedrawWindow( const TSharedRef<SWindow>& InWindowToDraw );
 
 	/**
 	 * Takes a screenshot of the widget writing the results into the color buffer provided.  Note that the format is BGRA.
@@ -738,7 +738,7 @@ public:
 	 * 
 	 * @return true if taking the screenshot was successful.
 	 */
-	bool TakeScreenshot(TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize);
+	bool TakeScreenshot(const TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize);
 
 	/**
 	 * Takes a screenshot of the widget writing the results into the color buffer provided, this version allows you to provide 
@@ -746,7 +746,7 @@ public:
 	 *
 	 * @return true if taking the screenshot was successful.
 	 */
-	bool TakeScreenshot(TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize);
+	bool TakeScreenshot(const TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize);
 
 protected:
 
