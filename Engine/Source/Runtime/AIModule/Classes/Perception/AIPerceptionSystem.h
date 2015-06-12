@@ -144,7 +144,7 @@ public:
 
 	FAISenseID RegisterSenseClass(TSubclassOf<UAISense> SenseClass);
 
-	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (HidePin = "WorldContext", DefaultToSelf = "WorldContext"))
 	static TSubclassOf<UAISense> GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus);
 	
 protected:
