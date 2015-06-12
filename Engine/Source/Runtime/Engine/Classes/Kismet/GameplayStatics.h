@@ -140,6 +140,14 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", AdvancedDisplay = "2"), Category="Game")
 	static void OpenLevel(UObject* WorldContextObject, FName LevelName, bool bAbsolute = true, FString Options = FString(TEXT("")));
 
+	/**
+	* Get the name of the currently-open level.
+	*
+	* @param bRemovePrefixString	remove any streaming- or editor- added prefixes from the level name.
+	*/
+	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject", AdvancedDisplay = "1"), Category = "Game")
+	static FString GetCurrentLevelName(UObject* WorldContextObject, bool bRemovePrefixString = true);
+
 	// --- Global functions ------------------------------
 
 	/** Returns the current GameMode or NULL if the GameMode can't be retrieved */

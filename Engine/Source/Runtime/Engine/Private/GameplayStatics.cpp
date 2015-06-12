@@ -518,6 +518,20 @@ void UGameplayStatics::OpenLevel(UObject* WorldContextObject, FName LevelName, b
 	GEngine->SetClientTravel( World, *Cmd, TravelType );
 }
 
+FString UGameplayStatics::GetCurrentLevelName(UObject* WorldContextObject, bool bRemovePrefixString)
+{
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	{
+		FString LevelName = World->GetMapName();
+		if (bRemovePrefixString)
+		{
+			LevelName.RemoveFromStart(World->StreamingLevelsPrefix);
+		}
+		return LevelName;
+	}
+	return FString();
+}
+
 FVector UGameplayStatics::GetActorArrayAverageLocation(const TArray<AActor*>& Actors)
 {
 	FVector LocationSum(0,0,0); // sum of locations
