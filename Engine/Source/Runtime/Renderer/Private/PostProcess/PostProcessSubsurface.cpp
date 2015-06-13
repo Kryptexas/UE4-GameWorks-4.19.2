@@ -293,7 +293,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 		Y += YStep;
 
 		uint32 Index = 0;
-		while (GSubsufaceProfileTextureObject.GetEntryString(Index++, Line))
+		while (GSubsurfaceProfileTextureObject.GetEntryString(Index++, Line))
 		{
 			Canvas.DrawShadowedString(X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 		}

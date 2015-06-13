@@ -348,7 +348,7 @@ void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
 
 			if (LocalSubsurfaceProfile)
 			{
-				AllocationId = GSubsufaceProfileTextureObject.AddOrUpdateProfile(Settings, LocalSubsurfaceProfile);
+				AllocationId = GSubsurfaceProfileTextureObject.AddOrUpdateProfile(Settings, LocalSubsurfaceProfile);
 
 				check(AllocationId >= 0 && AllocationId <= 255);
 			}

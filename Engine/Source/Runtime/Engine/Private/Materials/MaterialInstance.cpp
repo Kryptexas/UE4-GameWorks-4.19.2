@@ -164,7 +164,7 @@ bool FMaterialInstanceResource::GetScalarValue(
 		if (SubsurfaceProfileRT)
 		{
 			// can be optimized (cached)
-			AllocationId = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
+			AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
 		}
 		else
 		{

@@ -157,4 +157,4 @@ private:
 };
 
 // lives on the render thread
-extern ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsufaceProfileTextureObject;
+extern ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsurfaceProfileTextureObject;
