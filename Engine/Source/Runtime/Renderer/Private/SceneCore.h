@@ -37,6 +37,7 @@ public:
 	bool HasTranslucentObjectShadow() const { return bHasTranslucentObjectShadow; }
 	bool HasInsetObjectShadow() const { return bHasInsetObjectShadow; }
 	bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
+	bool IsES2DynamicPointLight() const { return bES2DynamicPointLight; }
 	FLightSceneInfo* GetLight() const { return LightSceneInfo; }
 	int32 GetLightId() const { return LightId; }
 	FPrimitiveSceneInfo* GetPrimitiveSceneInfo() const { return PrimitiveSceneInfo; }
@@ -98,6 +99,9 @@ private:
 
 	/** True if the primitive only shadows itself. */
 	uint32 bSelfShadowOnly : 1;
+
+	/** True this is an ES2 dynamic point light interaction. */
+	uint32 bES2DynamicPointLight : 1;	
 
 	/** Initialization constructor. */
 	FLightPrimitiveInteraction(FLightSceneInfo* InLightSceneInfo,FPrimitiveSceneInfo* InPrimitiveSceneInfo,

@@ -870,14 +870,14 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 		View->Family->EngineShowFlags.Wireframe ||
 #if WITH_EDITOR
 		(IsSelected() && !GLandscapeEditModeActive) ||
-		GLandscapeViewMode != ELandscapeViewMode::Normal
+		GLandscapeViewMode != ELandscapeViewMode::Normal ||
 #else
-		IsSelected()
+		IsSelected() ||
 #endif
-		)
+		 !IsStaticPathAvailable())
 	{
 		Result.bDynamicRelevance = true;
-}
+	}
 	else
 	{
 		Result.bStaticRelevance = true;
@@ -1559,11 +1559,11 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					GLandscapeDebugOptions.bDisableStatic ||
 					bIsWireframe ||
 #if WITH_EDITOR
-					(IsSelected() && !GLandscapeEditModeActive)
+					(IsSelected() && !GLandscapeEditModeActive) ||
 #else
-					IsSelected()
+					IsSelected() ||
 #endif
-					)
+					!IsStaticPathAvailable())
 				{
 					Mesh.MaterialRenderProxy = MaterialInterface->GetRenderProxy(false);
 

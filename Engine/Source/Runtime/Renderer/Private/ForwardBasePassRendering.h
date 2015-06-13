@@ -10,11 +10,26 @@
 #include "ShaderBaseClasses.h"
 #include "EditorCompositeParams.h"
 
+class FBasePassFowardDynamicPointLightInfo;
+
 enum EOutputFormat
 {
 	LDR_GAMMA_32,
 	HDR_LINEAR_32,
 	HDR_LINEAR_64,
+};
+
+#define MAX_BASEPASS_DYNAMIC_POINT_LIGHTS 4
+
+/* Info for dynamic point lights rendered in base pass */
+class FBasePassFowardDynamicPointLightInfo
+{
+public:
+	FBasePassFowardDynamicPointLightInfo(const FPrimitiveSceneProxy* InSceneProxy);
+
+	int32 NumDynamicPointLights;
+	FVector4 LightPositionAndInvRadius[MAX_BASEPASS_DYNAMIC_POINT_LIGHTS];
+	FVector4 LightColorAndFalloffExponent[MAX_BASEPASS_DYNAMIC_POINT_LIGHTS];
 };
 
 static bool ShouldCacheShaderByOutputFormat(EOutputFormat OutputFormat)
@@ -119,7 +134,7 @@ public:
 /**
  * The base type for pixel shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
  */
-template<typename LightMapPolicyType>
+template<typename LightMapPolicyType, int32 NumDynamicPointLights>
 class TBasePassForForwardShadingPSBaseType : public FMeshMaterialShader, public LightMapPolicyType::PixelParametersType
 {
 	DECLARE_SHADER_TYPE(TBasePassForForwardShadingPSBaseType,MeshMaterial);
@@ -128,13 +143,34 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCache(Platform,Material,VertexFactoryType);
+		// We compile the point light shader combinations based on the project settings
+		static auto* MobileDynamicPointLightsUseStaticBranchCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileDynamicPointLightsUseStaticBranch"));
+		static auto* MobileNumDynamicPointLightsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileNumDynamicPointLights"));
+		const bool bMobileDynamicPointLightsUseStaticBranch = (MobileDynamicPointLightsUseStaticBranchCVar->GetValueOnAnyThread() == 1);
+		const int32 MobileNumDynamicPointLights = MobileNumDynamicPointLightsCVar->GetValueOnAnyThread();
+		const bool bIsUnlit = Material->GetShadingModel() == MSM_Unlit;
+
+		return IsMobilePlatform(Platform) && LightMapPolicyType::ShouldCache(Platform, Material, VertexFactoryType) &&
+			(NumDynamicPointLights == 0 ||
+			(!bIsUnlit && NumDynamicPointLights == INT32_MAX && bMobileDynamicPointLightsUseStaticBranch) ||					// single shader for variable number of point lights
+			(!bIsUnlit && NumDynamicPointLights <= MobileNumDynamicPointLights && !bMobileDynamicPointLightsUseStaticBranch));	// unique 1...N point light shaders
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FMeshMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		LightMapPolicyType::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		if (NumDynamicPointLights == INT32_MAX)
+		{
+			OutEnvironment.SetDefine(TEXT("MAX_DYNAMIC_POINT_LIGHTS"), (uint32)MAX_BASEPASS_DYNAMIC_POINT_LIGHTS);
+			OutEnvironment.SetDefine(TEXT("VARIABLE_NUM_DYNAMIC_POINT_LIGHTS"), (uint32)1);
+		}
+		else
+		{
+			OutEnvironment.SetDefine(TEXT("MAX_DYNAMIC_POINT_LIGHTS"), (uint32)NumDynamicPointLights);
+			OutEnvironment.SetDefine(TEXT("VARIABLE_NUM_DYNAMIC_POINT_LIGHTS"), (uint32)0);
+			OutEnvironment.SetDefine(TEXT("NUM_DYNAMIC_POINT_LIGHTS"), (uint32)NumDynamicPointLights);
+		}
 	}
 
 	/** Initialization constructor. */
@@ -145,6 +181,12 @@ public:
 		ReflectionCubemap.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap"));
 		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));
 		EditorCompositeParams.Bind(Initializer.ParameterMap);
+		LightPositionAndInvRadiusParameter.Bind(Initializer.ParameterMap, TEXT("LightPositionAndInvRadius"));
+		LightColorAndFalloffExponentParameter.Bind(Initializer.ParameterMap, TEXT("LightColorAndFalloffExponent"));
+		if (NumDynamicPointLights == INT32_MAX)
+		{
+			NumDynamicPointLightsParameter.Bind(Initializer.ParameterMap, TEXT("NumDynamicPointLights"));
+		}
 	}
 	TBasePassForForwardShadingPSBaseType() {}
 
@@ -174,6 +216,20 @@ public:
 			SetTextureParameter(RHICmdList, PixelShader, ReflectionCubemap, ReflectionSampler, ReflectionTexture);
 		}
 
+		if (NumDynamicPointLights > 0)
+		{
+			FBasePassFowardDynamicPointLightInfo LightInfo(Proxy);
+
+			if (NumDynamicPointLights == INT32_MAX)
+			{
+				SetShaderValue(RHICmdList, PixelShader, NumDynamicPointLightsParameter, LightInfo.NumDynamicPointLights);
+			}
+
+			// Set dynamic point lights
+			SetShaderValueArray(RHICmdList, PixelShader, LightPositionAndInvRadiusParameter, LightInfo.LightPositionAndInvRadius, LightInfo.NumDynamicPointLights);
+			SetShaderValueArray(RHICmdList, PixelShader, LightColorAndFalloffExponentParameter, LightInfo.LightColorAndFalloffExponent, LightInfo.NumDynamicPointLights);
+		}
+
 		FMeshMaterialShader::SetMesh(RHICmdList, PixelShader,VertexFactory,View,Proxy,BatchElement,DitheredLODTransitionValue);		
 	}
 
@@ -184,6 +240,12 @@ public:
 		Ar << ReflectionCubemap;
 		Ar << ReflectionSampler;
 		Ar << EditorCompositeParams;
+		Ar << LightPositionAndInvRadiusParameter;
+		Ar << LightColorAndFalloffExponentParameter;
+		if (NumDynamicPointLights == INT32_MAX)
+		{
+			Ar << NumDynamicPointLightsParameter;
+		}
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -191,11 +253,14 @@ private:
 	FShaderResourceParameter ReflectionCubemap;
 	FShaderResourceParameter ReflectionSampler;
 	FEditorCompositingParameters EditorCompositeParams;
+	FShaderParameter LightPositionAndInvRadiusParameter;
+	FShaderParameter LightColorAndFalloffExponentParameter;
+	FShaderParameter NumDynamicPointLightsParameter;
 };
 
 
-template< typename LightMapPolicyType, EOutputFormat OutputFormat, bool bEnableSkyLight>
-class TBasePassForForwardShadingPS : public TBasePassForForwardShadingPSBaseType<LightMapPolicyType>
+template< typename LightMapPolicyType, EOutputFormat OutputFormat, bool bEnableSkyLight, int32 NumDynamicPointLights>
+class TBasePassForForwardShadingPS : public TBasePassForForwardShadingPSBaseType<LightMapPolicyType, NumDynamicPointLights>
 {
 	DECLARE_SHADER_TYPE(TBasePassForForwardShadingPS,MeshMaterial);
 public:
@@ -205,20 +270,20 @@ public:
 		// Only compile skylight version for lit materials on ES2 (Metal) or higher
 		const bool bShouldCacheBySkylight = !bEnableSkyLight || (Material->GetShadingModel() != MSM_Unlit);
 
-		return TBasePassForForwardShadingPSBaseType<LightMapPolicyType>::ShouldCache(Platform, Material, VertexFactoryType) && ShouldCacheShaderByOutputFormat(OutputFormat) && bShouldCacheBySkylight;
+		return TBasePassForForwardShadingPSBaseType<LightMapPolicyType, NumDynamicPointLights>::ShouldCache(Platform, Material, VertexFactoryType) && ShouldCacheShaderByOutputFormat(OutputFormat) && bShouldCacheBySkylight;
 	}
 	
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
 	{		
-		TBasePassForForwardShadingPSBaseType<LightMapPolicyType>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		TBasePassForForwardShadingPSBaseType<LightMapPolicyType, NumDynamicPointLights>::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("ENABLE_SKY_LIGHT"), (uint32)(bEnableSkyLight ? 1 : 0));
-		OutEnvironment.SetDefine( TEXT("USE_HDR_MOSAIC"), OutputFormat == HDR_LINEAR_32 ? 1u : 0u );
-		OutEnvironment.SetDefine( TEXT("OUTPUT_GAMMA_SPACE"), OutputFormat == LDR_GAMMA_32 ? 1u : 0u );
+		OutEnvironment.SetDefine(TEXT("USE_HDR_MOSAIC"), OutputFormat == HDR_LINEAR_32 ? 1u : 0u );
+		OutEnvironment.SetDefine(TEXT("OUTPUT_GAMMA_SPACE"), OutputFormat == LDR_GAMMA_32 ? 1u : 0u );
 	}
 	
 	/** Initialization constructor. */
 	TBasePassForForwardShadingPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		TBasePassForForwardShadingPSBaseType<LightMapPolicyType>(Initializer)
+		TBasePassForForwardShadingPSBaseType<LightMapPolicyType, NumDynamicPointLights>(Initializer)
 	{}
 
 	/** Default constructor. */
@@ -229,7 +294,7 @@ public:
 /**
  * Draws the emissive color and the light-map of a mesh.
  */
-template<typename LightMapPolicyType>
+template<typename LightMapPolicyType, int32 NumDynamicPointLights>
 class TBasePassForForwardShadingDrawingPolicy : public FMeshDrawingPolicy
 {
 public:
@@ -277,11 +342,11 @@ public:
 
 			if (bInEnableSkyLight)
 			{
-				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32, true> >(InVertexFactory->GetType());
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32, true, NumDynamicPointLights> >(InVertexFactory->GetType());
 			}
 			else
 			{
-				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32, false> >(InVertexFactory->GetType());
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_32, false, NumDynamicPointLights> >(InVertexFactory->GetType());
 			}
 		}
 		else if (IsMobileHDR())
@@ -290,11 +355,11 @@ public:
 
 			if (bInEnableSkyLight)
 			{
-				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64, true> >(InVertexFactory->GetType());
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64, true, NumDynamicPointLights> >(InVertexFactory->GetType());
 			}
 			else
 			{
-				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64, false> >(InVertexFactory->GetType());
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, HDR_LINEAR_64, false, NumDynamicPointLights> >(InVertexFactory->GetType());
 			}
 			
 		}
@@ -304,11 +369,11 @@ public:
 
 			if (bInEnableSkyLight)
 			{
-				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, true> >(InVertexFactory->GetType());
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, true, NumDynamicPointLights> >(InVertexFactory->GetType());
 			}
 			else
 			{
-				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, false> >(InVertexFactory->GetType());
+				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, false, NumDynamicPointLights> >(InVertexFactory->GetType());
 			}			
 		}
 
@@ -477,7 +542,7 @@ public:
 
 protected:
 	TBasePassForForwardShadingVSBaseType<LightMapPolicyType>* VertexShader;
-	TBasePassForForwardShadingPSBaseType<LightMapPolicyType>* PixelShader;
+	TBasePassForForwardShadingPSBaseType<LightMapPolicyType, NumDynamicPointLights>* PixelShader;
 
 	LightMapPolicyType LightMapPolicy;
 	EBlendMode BlendMode;
@@ -518,10 +583,24 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
+
+private:
+	// templated version of DrawDynamicMesh on number of point lights
+	template<int32 NumDynamicPointLights>
+	static void DrawDynamicMeshTempl(
+		FRHICommandList& RHICmdList,
+		const FViewInfo& View,
+		ContextType DrawingContext,
+		const FMeshBatch& Mesh,
+		const FMaterial* Material,
+		bool bBackFace,
+		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
+		FHitProxyId HitProxyId
+		);
 };
 
 /** Processes a base pass mesh using an unknown light map policy, and unknown fog density policy. */
-template<typename ProcessActionType>
+template<typename ProcessActionType, int32 NumDynamicPointLights>
 void ProcessBasePassMeshForForwardShading(
 	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
@@ -547,11 +626,11 @@ void ProcessBasePassMeshForForwardShading(
 				// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
 				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 				{
-					Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+					Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
 				}
 				else
 				{
-					Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+					Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
 				}
 			}
 			else
@@ -562,7 +641,7 @@ void ProcessBasePassMeshForForwardShading(
 
 				if (ShadowMapInteraction.GetType() == SMIT_Texture)
 				{
-					Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
+					Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>, NumDynamicPointLights >(
 						RHICmdList,
 						Parameters,
 						TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
@@ -570,7 +649,7 @@ void ProcessBasePassMeshForForwardShading(
 				}
 				else
 				{
-					Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction);
+					Action.template Process< TLightMapPolicy<LQ_LIGHTMAP>, NumDynamicPointLights >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction);
 				}
 			}
 
@@ -586,16 +665,16 @@ void ProcessBasePassMeshForForwardShading(
 			{
 				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 				{
-					Action.template Process<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy, 0>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
 				}
 				else
 				{
-					Action.template Process<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy, 0>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
 				}
 			}
 			else
 			{
-				Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHIndirectPolicy(), FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+				Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy, NumDynamicPointLights>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHIndirectPolicy(), FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
 			}
 
 			// Exit to avoid NoLightmapPolicy
@@ -606,11 +685,11 @@ void ProcessBasePassMeshForForwardShading(
 			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
 			if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
 			{
-				Action.template Process<FMovableDirectionalLightCSMLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMLightingPolicy(), FMovableDirectionalLightCSMLightingPolicy::ElementDataType());
+				Action.template Process<FMovableDirectionalLightCSMLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightCSMLightingPolicy(), FMovableDirectionalLightCSMLightingPolicy::ElementDataType());
 			}
 			else
 			{
-				Action.template Process<FMovableDirectionalLightLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
+				Action.template Process<FMovableDirectionalLightLightingPolicy, 0>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
 			}
 
 			// Exit to avoid NoLightmapPolicy
@@ -619,5 +698,5 @@ void ProcessBasePassMeshForForwardShading(
 	}
 
 	// Default to NoLightmapPolicy
-	Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
+	Action.template Process<FNoLightMapPolicy, 0>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 }

@@ -136,7 +136,7 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	bool bInIsShadowMapped,
 	bool bInHasTranslucentObjectShadow,
 	bool bInHasInsetObjectShadow
-	):
+	) :
 	LightSceneInfo(InLightSceneInfo),
 	PrimitiveSceneInfo(InPrimitiveSceneInfo),
 	LightId(InLightSceneInfo->Id),
@@ -146,7 +146,8 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	bUncachedStaticLighting(false),
 	bHasTranslucentObjectShadow(bInHasTranslucentObjectShadow),
 	bHasInsetObjectShadow(bInHasInsetObjectShadow),
-	bSelfShadowOnly(false)
+	bSelfShadowOnly(false),
+	bES2DynamicPointLight(false)
 {
 	// Determine whether this light-primitive interaction produces a shadow.
 	if(PrimitiveSceneInfo->Proxy->HasStaticLighting())
@@ -195,6 +196,15 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 	{
 		// Add the interaction to the light's interaction list.
 		PrevPrimitiveLink = &LightSceneInfo->DynamicPrimitiveList;
+
+		// ES2 dynamic point lights
+		if (PrimitiveSceneInfo->Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4 && LightSceneInfo->Proxy->GetLightType() == LightType_Point)
+		{
+			bES2DynamicPointLight = true;
+			PrimitiveSceneInfo->NumES2DynamicPointLights++;
+			// The forward renderer renders dynamic point lights as part of the base pass using the dynamic path only.
+			PrimitiveSceneInfo->Proxy->bDisableStaticPath = true;
+		}
 	}
 
 	NextPrimitive = *PrevPrimitiveLink;
@@ -229,6 +239,16 @@ FLightPrimitiveInteraction::~FLightPrimitiveInteraction()
 #endif
 	}
 #endif
+
+	// Track ES2 dynamic point light count
+	if (bES2DynamicPointLight)
+	{
+		PrimitiveSceneInfo->NumES2DynamicPointLights--;
+		if (PrimitiveSceneInfo->NumES2DynamicPointLights == 0)
+		{
+			PrimitiveSceneInfo->Proxy->bDisableStaticPath = false;
+		}
+	}
 
 	// Remove the interaction from the light's interaction list.
 	if(NextPrimitive)

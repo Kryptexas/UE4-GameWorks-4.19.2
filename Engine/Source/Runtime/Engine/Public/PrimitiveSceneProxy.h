@@ -419,6 +419,7 @@ public:
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
+	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -545,6 +546,9 @@ private:
 	/** Whether the primitive should be treated as part of the background for occlusion purposes. */
 	uint32 bTreatAsBackgroundForOcclusion : 1;
 
+	friend class FLightPrimitiveInteraction;
+	/** Whether the renderer needs us to temporarily use only the dynamic drawing path */
+	uint32 bDisableStaticPath : 1;
 protected:
 
 	/** Whether the primitive should be statically lit but has unbuilt lighting, and a preview should be used. */
@@ -731,7 +735,6 @@ private:
 	*	How many invalid lights for this primitive, just refer for scene outliner
 	*/
 	int32 NumUncachedStaticLightingInteractions;
-	friend class FLightPrimitiveInteraction;
 
 	/** this is used if world setting has EnableHierarchical LOD true */
 	int32 HierarchicalLODOverride;

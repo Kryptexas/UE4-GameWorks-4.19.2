@@ -13,6 +13,15 @@
 #include "BRDF.usf"
 #include "SHCommon.usf"
 #include "ShadowFilteringCommon.usf"
+#include "DynamicLightingCommon.usf"
+
+#if MAX_DYNAMIC_POINT_LIGHTS > 0
+#if VARIABLE_NUM_DYNAMIC_POINT_LIGHTS
+int NumDynamicPointLights;
+#endif
+float4 LightPositionAndInvRadius[MAX_DYNAMIC_POINT_LIGHTS];
+float4 LightColorAndFalloffExponent[MAX_DYNAMIC_POINT_LIGHTS];
+#endif
 
 /** Prenormalized capture of the scene that's closest to the object being rendered. */
 #if !MATERIAL_FULLY_ROUGH
@@ -201,7 +210,7 @@ void Main(
 			Shadow = DirectionalLightShadowing;
 		#endif
 			
-#if MOVABLE_DIRECTIONAL_LIGHT_CSM
+		#if MOVABLE_DIRECTIONAL_LIGHT_CSM
 		// Cascaded Shadow Map
 		{
 			FPCFSamplerSettings Settings;
@@ -229,14 +238,14 @@ void Main(
 			float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
 			Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 
-	#if 0
+		#if 0
 			half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
-	#else
+		#else
 			half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
-	#endif
+		#endif
 			Shadow = ShadowMap;
 		}
-#endif
+		#endif /* MOVABLE_DIRECTIONAL_LIGHT_CSM */
 
 		half NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
 		half RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
@@ -253,8 +262,32 @@ void Main(
 			// TODO: Also need to do specular.
 			Color += GetSkySHDiffuseSimple(MaterialParameters.WorldNormal) * View.SkyLightColor.rgb * DiffuseColor;    
 		#endif
-	#endif
-			 
+
+		#if MAX_DYNAMIC_POINT_LIGHTS > 0
+			#if VARIABLE_NUM_DYNAMIC_POINT_LIGHTS
+				for (int i = 0; i < NumDynamicPointLights; i++)
+			#else
+				for (int i = 0; i < NUM_DYNAMIC_POINT_LIGHTS; i++)
+			#endif
+			{
+				half3 ToLight = LightPositionAndInvRadius[i].xyz - MaterialParameters.WorldPosition;
+				half DistanceSqr = dot(ToLight, ToLight);
+				half3 L = ToLight * rsqrt(DistanceSqr);
+
+				half PointNoL = max(0, dot(MaterialParameters.WorldNormal, L));
+				half PointRoL = max(0, dot(MaterialParameters.ReflectionVector, L));
+
+				half DistanceAttenuation = RadialAttenuation(ToLight * LightPositionAndInvRadius[i].w, LightColorAndFalloffExponent[i].w);		
+				#if !MATERIAL_FULLY_ROUGH
+					Color += (DistanceAttenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, PointRoL));
+				#else
+					Color += (DistanceAttenuation * PointNoL) * LightColorAndFalloffExponent[i].rgb * DiffuseColor;
+				#endif
+			}
+		#endif
+
+	#endif /* !MATERIAL_SHADINGMODEL_UNLIT */
+		 
 	half Opacity = GetMaterialOpacity(MaterialParameters);
 	half3 Emissive = GetMaterialEmissive(MaterialParameters);
 

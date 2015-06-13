@@ -605,12 +605,13 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 	const bool bDrawComplexWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);
 
 	const bool bDrawMesh = (bInCollisionView) ? (bDrawComplexCollision) : 
-		(	IsRichView(ViewFamily) || HasViewDependentDPG()
-			|| EngineShowFlags.Collision
-			|| EngineShowFlags.Bounds
-			|| bProxyIsSelected 
-			|| IsHovered()
-			|| bIsLightmapSettingError ) ;
+	(	IsRichView(ViewFamily) || HasViewDependentDPG()
+		|| EngineShowFlags.Collision
+		|| EngineShowFlags.Bounds
+		|| bProxyIsSelected 
+		|| IsHovered()
+		|| bIsLightmapSettingError 
+		|| !IsStaticPathAvailable() );
 
 	// Draw polygon mesh if we are either not in a collision view, or are drawing it as collision.
 	if (EngineShowFlags.StaticMeshes && bDrawMesh)
@@ -920,7 +921,8 @@ FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView
 #endif
 		// Force down dynamic rendering path if invalid lightmap settings, so we can apply an error material in DrawRichMesh
 		(HasStaticLighting() && !HasValidSettingsForStaticLighting()) ||
-		HasViewDependentDPG() 
+		HasViewDependentDPG() ||
+		 !IsStaticPathAvailable()
 #if WITH_EDITOR
 		//only check these in the editor
 		|| IsSelected() || IsHovered()

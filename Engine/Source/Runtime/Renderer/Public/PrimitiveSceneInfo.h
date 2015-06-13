@@ -230,6 +230,9 @@ public:
 	/** The scene the primitive is in. */
 	FScene* Scene;
 
+	/** The number of dynamic point lights for ES2 */
+	int32 NumES2DynamicPointLights;
+
 	/** Initialization constructor. */
 	FPrimitiveSceneInfo(UPrimitiveComponent* InPrimitive,FScene* InScene);
 
