@@ -244,16 +244,6 @@ void UK2Node_CallArrayFunction::PropagateArrayTypeInfo(const UEdGraphPin* Source
 				{
 					CurrentPin->ResetDefaultValue();
 				}
-
-				// Verify that all previous connections to this pin are still valid with the new type
-				for (TArray<UEdGraphPin*>::TIterator ConnectionIt(CurrentPin->LinkedTo); ConnectionIt; ++ConnectionIt)
-				{
-					UEdGraphPin* ConnectedPin = *ConnectionIt;
-					if (!Schema->ArePinsCompatible(CurrentPin, ConnectedPin))
-					{
-						CurrentPin->BreakLinkTo(ConnectedPin);
-					}
-				}
 			}
 		}
 	}
