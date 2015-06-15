@@ -46,7 +46,6 @@ namespace UnrealBuildTool
 		public static string BuildIOSVersion = "7.0";
 
 		/** Which developer directory to root from */
-		[XmlConfig]
 		private static string XcodeDeveloperDir = "xcode-select";
 
 		/** Directory for the developer binaries */
@@ -85,14 +84,6 @@ namespace UnrealBuildTool
 
 			// convert to float for easy comparison
 			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
-		}
-
-		/// <summary>
-		/// Function to call to after reset default data.
-		/// </summary>
-		public static void PostReset()
-		{
-			SetupXcodePaths(false);
 		}
 
 		/** Hunt down the latest IOS sdk if desired */
