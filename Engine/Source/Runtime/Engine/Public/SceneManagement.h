@@ -784,6 +784,7 @@ public:
 	inline UTextureLightProfile* GetIESTexture() const { return IESTexture; }
 	inline FTexture* GetIESTextureResource() const { return IESTexture ? IESTexture->Resource : 0; }
 	inline const FMaterialRenderProxy* GetLightFunctionMaterial() const { return LightFunctionMaterial; }
+	inline bool IsMovable() const { return bMovable; }
 	inline bool HasStaticLighting() const { return bStaticLighting; }
 	inline bool HasStaticShadowing() const { return bStaticShadowing; }
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
@@ -874,6 +875,9 @@ protected:
 	 * We are safe to store a U pointer as those objects get deleted deferred, storing an FTexture pointer would crash if we recreate the texture 
 	 */
 	UTextureLightProfile* IESTexture;
+
+	/* True if the light's Mobility is set to Movable. */
+	const uint32 bMovable : 1;
 
 	/**
 	 * Return True if a light's parameters as well as its position is static during gameplay, and can thus use static lighting.

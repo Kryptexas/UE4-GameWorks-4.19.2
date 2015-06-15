@@ -68,12 +68,15 @@ IMPLEMENT_FORWARD_SHADING_BASEPASS_LIGHTMAPPED_SHADER_TYPE(FMovableDirectionalLi
 FBasePassFowardDynamicPointLightInfo::FBasePassFowardDynamicPointLightInfo(const FPrimitiveSceneProxy* InSceneProxy)
 : NumDynamicPointLights(0)
 {
+	static auto* MobileNumDynamicPointLightsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileNumDynamicPointLights"));
+	const int32 MobileNumDynamicPointLights = MobileNumDynamicPointLightsCVar->GetValueOnRenderThread();
+
 	if (InSceneProxy != nullptr)
 	{
-		for (FLightPrimitiveInteraction* LPI = InSceneProxy->GetPrimitiveSceneInfo()->LightList; LPI; LPI = LPI->GetNextLight())
+		for (FLightPrimitiveInteraction* LPI = InSceneProxy->GetPrimitiveSceneInfo()->LightList; LPI && NumDynamicPointLights < MobileNumDynamicPointLights; LPI = LPI->GetNextLight())
 		{
 			FLightSceneProxy* LightProxy = LPI->GetLight()->Proxy;
-			if (LightProxy->GetLightType() == LightType_Point)
+			if (LightProxy->GetLightType() == LightType_Point && LightProxy->IsMovable())
 			{
 				FVector NormalizedLightDirection;
 				FVector2D SpotAngles;
@@ -101,10 +104,6 @@ FBasePassFowardDynamicPointLightInfo::FBasePassFowardDynamicPointLightInfo(const
 				}
 
 				NumDynamicPointLights++;
-				if (NumDynamicPointLights == MAX_BASEPASS_DYNAMIC_POINT_LIGHTS)
-				{
-					break;
-				}
 			}
 		}
 	}
@@ -358,7 +357,10 @@ bool FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	// Only draw opaque materials.
 	if(!IsTranslucentBlendMode(BlendMode))
 	{
-		int32 NumDynamicPointLights = PrimitiveSceneProxy ? PrimitiveSceneProxy->GetPrimitiveSceneInfo()->NumES2DynamicPointLights : 0;
+		static auto* MobileNumDynamicPointLightsCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileNumDynamicPointLights"));
+		const int32 MobileNumDynamicPointLights = MobileNumDynamicPointLightsCVar->GetValueOnRenderThread();
+
+		int32 NumDynamicPointLights = PrimitiveSceneProxy ? FMath::Min<int32>(PrimitiveSceneProxy->GetPrimitiveSceneInfo()->NumES2DynamicPointLights, MobileNumDynamicPointLights) : 0;
 		const bool bIsUnlit = Material->GetShadingModel() == MSM_Unlit;
 
 		if (NumDynamicPointLights == 0 || bIsUnlit)

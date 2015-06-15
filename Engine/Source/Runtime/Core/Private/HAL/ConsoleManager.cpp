@@ -1605,7 +1605,7 @@ static TAutoConsoleVariable<int32> CVarMobileNumDynamicPointLights(
 	TEXT("r.MobileNumDynamicPointLights"),
 	4,
 	TEXT("The number of dynamic point lights to support on mobile devices. Setting this to 0 for games which do not require dynamic point lights will reduce the number of shaders generated."), 
-	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarMobileDynamicPointLightsUseStaticBranch(
 	TEXT("r.MobileDynamicPointLightsUseStaticBranch"),

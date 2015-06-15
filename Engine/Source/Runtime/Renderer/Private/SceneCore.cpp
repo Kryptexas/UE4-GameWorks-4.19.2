@@ -198,7 +198,7 @@ FLightPrimitiveInteraction::FLightPrimitiveInteraction(
 		PrevPrimitiveLink = &LightSceneInfo->DynamicPrimitiveList;
 
 		// ES2 dynamic point lights
-		if (PrimitiveSceneInfo->Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4 && LightSceneInfo->Proxy->GetLightType() == LightType_Point)
+		if (PrimitiveSceneInfo->Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4 && LightSceneInfo->Proxy->GetLightType() == LightType_Point && LightSceneInfo->Proxy->IsMovable())
 		{
 			bES2DynamicPointLight = true;
 			PrimitiveSceneInfo->NumES2DynamicPointLights++;
