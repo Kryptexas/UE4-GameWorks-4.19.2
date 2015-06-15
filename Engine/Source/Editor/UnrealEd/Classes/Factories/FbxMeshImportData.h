@@ -21,7 +21,6 @@ namespace EFBXNormalGenerationMethod
 		BuiltIn,
 		/** Use MikkTSpace to generate normals and tangents */
 		MikkTSpace,
-		MAX,
 	};
 }
 
