@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2576221
+﻿INTSourceChangelist:2585616
 Availability:Public
 Title:4.Grass ツールの使用
 Crumbs:
@@ -15,7 +15,7 @@ Version:4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\5 "%Engine\OpenWorldTools\Grass\QuickStart\5:title%") 
