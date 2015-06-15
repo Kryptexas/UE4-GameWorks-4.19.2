@@ -189,21 +189,21 @@ public:
 	void OnCurveSelected(UObject *Asset)
 	{
 		CurCurve = Cast<UCurveVector>(Asset);
-		FNiagaraDataObject *DataObj = Emitter->GetProperties()->ExternalConstants.FindDataObj(ConstantName);
+		UNiagaraDataObject *DataObj = Emitter->GetProperties()->ExternalConstants.FindDataObj(ConstantName);
 		if (!DataObj)
 		{
-			DataObj = new FNiagaraCurveDataObject(nullptr);
+			DataObj = NewObject<UNiagaraCurveDataObject>(Emitter->GetParentEffect());
 			Emitter->GetProperties()->ExternalConstants.SetOrAdd(ConstantName, DataObj);
 		}
 
-		FNiagaraCurveDataObject *CurveData = static_cast<FNiagaraCurveDataObject*>(DataObj);
+		UNiagaraCurveDataObject *CurveData = Cast<UNiagaraCurveDataObject>(DataObj);
 		CurveData->SetCurveObject(CurCurve);
 	}
 
 	UObject * GetCurve() const
 	{
-		FNiagaraDataObject *DataObj = Emitter->GetProperties()->ExternalConstants.FindDataObj(ConstantName);
-		FNiagaraCurveDataObject *CurveData = static_cast<FNiagaraCurveDataObject*>(DataObj);
+		UNiagaraDataObject *DataObj = Emitter->GetProperties()->ExternalConstants.FindDataObj(ConstantName);
+		UNiagaraCurveDataObject *CurveData = Cast<UNiagaraCurveDataObject>(DataObj);
 		if (CurveData)
 		{
 			return CurveData->GetCurveObject();

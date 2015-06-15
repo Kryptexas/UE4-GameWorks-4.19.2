@@ -5,26 +5,28 @@
 #include "NiagaraEffectRenderer.h"
 #include "VectorVM.h"
 
-FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) 
+FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, UNiagaraEffect *InEffect)
 : Age(0.0f)
 , Loops(0)
 , bIsEnabled(true)
 , SpawnRemainder(0.0f)
 , CachedBounds(ForceInit)
 , EffectRenderer(nullptr)
+, ParentEffect(InEffect)
 {
 	Props = InProps;
 
 	Init();
 }
 
-FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIFeatureLevel::Type InFeatureLevel)
+FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, UNiagaraEffect *InEffect, ERHIFeatureLevel::Type InFeatureLevel)
 	: Age(0.0f)
 	, Loops(0)
 	, bIsEnabled(true)
 	, SpawnRemainder(0.0f)
 	, CachedBounds(ForceInit)
 	, EffectRenderer(nullptr)
+	, ParentEffect(InEffect)
 {
 	Props = InProps;
 
@@ -274,7 +276,7 @@ void FNiagaraSimulation::RunVMScript(UNiagaraScript* Script, EUnusedAttributeBeh
 
 	//Fill constant table with required emitter constants and internal script constants.
 	TArray<FVector4> ConstantTable;
-	TArray<FNiagaraDataObject *>DataObjTable;
+	TArray<UNiagaraDataObject *>DataObjTable;
 	Script->ConstantData.FillConstantTable(Constants, ConstantTable, DataObjTable);
 
 	VectorVM::Exec(

@@ -263,7 +263,7 @@ TNiagaraExprPtr FNiagaraCompiler::CompilePin(UEdGraphPin* Pin)
 				break;
 			case ENiagaraDataType::Curve:
 			{
-				FNiagaraDataObject *Default = nullptr;
+				UNiagaraDataObject *Default = nullptr;
 				ConstantData.SetOrAddInternal(Var, Default);
 			}
 				break;
@@ -349,7 +349,7 @@ TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo
 
 TNiagaraExprPtr FNiagaraCompiler::GetExternalCurveConstant(const FNiagaraVariableInfo& Constant)
 {
-	SetOrAddConstant<FNiagaraDataObject*>(false, Constant, nullptr);
+	SetOrAddConstant<UNiagaraDataObject*>(false, Constant, nullptr);
 	return Expression_GetExternalConstant(Constant);
 }
 

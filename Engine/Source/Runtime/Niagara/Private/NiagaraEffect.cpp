@@ -62,7 +62,7 @@ void UNiagaraEffect::PreSave()
 
 TSharedPtr<FNiagaraSimulation> FNiagaraEffectInstance::AddEmitter(FNiagaraEmitterProperties *Properties)
 {
-	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties);
+	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties, Effect);
 	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(SimPtr);
 
 	Sim->SetRenderModuleType(RMT_Sprites, Component->GetWorld()->FeatureLevel);
@@ -90,7 +90,7 @@ void FNiagaraEffectInstance::InitEmitters(UNiagaraEffect *InAsset)
 	for (int i = 0; i < InAsset->GetNumEmitters(); i++)
 	{
 		FNiagaraEmitterProperties *Props = InAsset->GetEmitterProperties(i);
-		FNiagaraSimulation *Sim = new FNiagaraSimulation(Props);
+		FNiagaraSimulation *Sim = new FNiagaraSimulation(Props, InAsset);
 		Emitters.Add(MakeShareable(Sim));
 	}
 }

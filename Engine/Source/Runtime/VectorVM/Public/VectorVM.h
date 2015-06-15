@@ -4,7 +4,7 @@
 #include "Core.h"
 #include "CoreUObject.h"
 
-class FNiagaraDataObject;
+class UNiagaraDataObject;
 
 namespace VectorVM
 {
@@ -108,7 +108,7 @@ namespace VectorVM
 		VectorRegister** OutputRegisters,
 		int32 NumOutputRegisters,
 		FVector4 const* ConstantTable,
-		FNiagaraDataObject* *DataObjTable,
+		UNiagaraDataObject* *DataObjTable,
 		int32 NumVectors
 		);
 

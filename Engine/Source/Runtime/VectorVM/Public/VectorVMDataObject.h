@@ -1,37 +1,33 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once	
+#include "VectorVMDataObject.generated.h"
 
 
 
 /* Vector VM data object; encapsulates buffers, curves and other data in its derivatives
 *  for access by VectorVM kernels;
 */
-class FNiagaraDataObject
+UCLASS()
+class UNiagaraDataObject : public UObject
 {
+	GENERATED_UCLASS_BODY()
 public:
-	virtual FVector4 Sample(const FVector4& InCoords) const = 0;
-	virtual FVector4 Write(const FVector4& InCoords, const FVector4& InValue) = 0;
-
-	virtual void Serialize(FArchive &Ar)
-	{
-
-	}
-	friend FArchive& operator<<(FArchive& Ar, FNiagaraDataObject* M)
-	{
-		M->Serialize(Ar);
-		return Ar;
-	}
+	virtual FVector4 Sample(const FVector4& InCoords) const { return FVector4(0.0f, 0.0f, 0.0f, 0.0f); }
+	virtual FVector4 Write(const FVector4& InCoords, const FVector4& InValue) { return FVector4(0.0f, 0.0f, 0.0f, 0.0f); }
 };
 
 /* Curve object; encapsulates a curve for the VectorVM
 */
-class FNiagaraCurveDataObject : public FNiagaraDataObject
+UCLASS(MinimalAPI)
+class UNiagaraCurveDataObject : public UNiagaraDataObject
 {
+	GENERATED_UCLASS_BODY()
 private:
+	UPROPERTY()
 	class UCurveVector *CurveObj;
 public:
-	FNiagaraCurveDataObject(class UCurveVector *InCurve) : CurveObj(InCurve)
+	UNiagaraCurveDataObject(class UCurveVector *InCurve) : CurveObj(InCurve)
 	{
 	}
 
@@ -48,31 +44,20 @@ public:
 
 	UCurveVector *GetCurveObject()	{ return CurveObj; }
 	void SetCurveObject(UCurveVector *InCurve)	{ CurveObj = InCurve; }
-
-
-	virtual void Serialize(FArchive &Ar) override
-	{
-		Ar << CurveObj;
-	}
 };
 
 
 /* Curve object; encapsulates sparse volumetric data for the VectorVM
 */
-class FNiagaraSparseVolumeDataObject : public FNiagaraDataObject
+UCLASS(MinimalAPI, Transient)
+class UNiagaraSparseVolumeDataObject : public UNiagaraDataObject
 {
+	GENERATED_UCLASS_BODY()
 private:
 	TArray<FVector4> Data;
 	uint64 NumBuckets;
 	int32 Size;
 public:
-	FNiagaraSparseVolumeDataObject()
-	{
-		Size = 64;
-		NumBuckets = Size*Size*Size;
-		Data.AddZeroed(NumBuckets);
-	}
-
 	uint32 MakeHash(const FVector4& InCoords) const
 	{
 		FVector4 Coords = InCoords;

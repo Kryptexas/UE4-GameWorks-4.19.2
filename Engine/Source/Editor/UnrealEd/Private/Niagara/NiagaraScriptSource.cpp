@@ -130,7 +130,7 @@ void UNiagaraScriptSource::Compile()
 	{
 		EditorExposedVectorCurveConstant *Const = new EditorExposedVectorCurveConstant();
 		FNiagaraVariableInfo Info;
-		FNiagaraDataObject* Dummy;
+		UNiagaraDataObject* Dummy;
 		ExternalConsts.GetDataObjectConstant(ConstIdx, Dummy, Info);
 		Const->ConstName = Info.Name;
 		//Set default value for this too?

@@ -35,6 +35,24 @@ DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 
 
 
+UNiagaraDataObject::UNiagaraDataObject(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
+
+UNiagaraCurveDataObject::UNiagaraCurveDataObject(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
+
+UNiagaraSparseVolumeDataObject::UNiagaraSparseVolumeDataObject(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	Size = 64;
+	NumBuckets = Size*Size*Size;
+	//Data.AddZeroed(NumBuckets);
+	Data.Init(FVector4(0.1f, 0.1f, 0.1f, 0.1f), NumBuckets);
+}
 
 
 
@@ -51,7 +69,7 @@ struct FVectorVMContext
 	/** Pointer to the constant table. */
 	FVector4 const* RESTRICT ConstantTable;
 	/** Pointer to the data object constant table. */
-	FNiagaraDataObject * RESTRICT *DataObjConstantTable;
+	UNiagaraDataObject * RESTRICT *DataObjConstantTable;
 
 	/** The number of vectors to process. */
 	int32 NumVectors;
@@ -61,7 +79,7 @@ struct FVectorVMContext
 		const uint8* InCode,
 		VectorRegister** InRegisterTable,
 		const FVector4* InConstantTable,
-		FNiagaraDataObject** InDataObjTable,
+		UNiagaraDataObject** InDataObjTable,
 		int32 InNumVectors
 		)
 		: Code(InCode)
@@ -96,16 +114,16 @@ static VM_FORCEINLINE VectorRegister DecodeConstant(FVectorVMContext& Context)
 }
 
 /** Decode a constant from the bytecode. */
-static /*VM_FORCEINLINE*/ const FNiagaraDataObject *DecodeDataObjConstant(FVectorVMContext& Context)
+static /*VM_FORCEINLINE*/ const UNiagaraDataObject *DecodeDataObjConstant(FVectorVMContext& Context)
 {
-	const FNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
+	const UNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
 	return Obj;
 }
 
 /** Decode a constant from the bytecode. */
-static /*VM_FORCEINLINE*/ FNiagaraDataObject *DecodeWritableDataObjConstant(FVectorVMContext& Context)
+static /*VM_FORCEINLINE*/ UNiagaraDataObject *DecodeWritableDataObjConstant(FVectorVMContext& Context)
 {
-	FNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
+	UNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
 	return Obj;
 }
 
@@ -135,21 +153,21 @@ struct FConstantHandler
 /** Handles reading of a data object constant. */
 struct FDataObjectConstantHandler
 {
-	const FNiagaraDataObject *Constant;
+	const UNiagaraDataObject *Constant;
 	FDataObjectConstantHandler(FVectorVMContext& Context)
 		: Constant(DecodeDataObjConstant(Context))
 	{}
-	VM_FORCEINLINE const FNiagaraDataObject *Get(){ return Constant; }
+	VM_FORCEINLINE const UNiagaraDataObject *Get(){ return Constant; }
 };
 
 /** Handles reading of a data object constant. */
 struct FWritableDataObjectConstantHandler
 {
-	FNiagaraDataObject *Constant;
+	UNiagaraDataObject *Constant;
 	FWritableDataObjectConstantHandler(FVectorVMContext& Context)
 		: Constant(DecodeWritableDataObjConstant(Context))
 	{}
-	VM_FORCEINLINE FNiagaraDataObject *Get(){ return Constant; }
+	VM_FORCEINLINE UNiagaraDataObject *Get(){ return Constant; }
 };
 
 
@@ -599,7 +617,7 @@ struct FVectorKernelLessThan : public TBinaryVectorKernel<FVectorKernelLessThan>
 
 struct FVectorKernelSample : public TBinaryVectorKernelData<FVectorKernelSample>
 {
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const FNiagaraDataObject *Src0, VectorRegister Src1)
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const UNiagaraDataObject *Src0, VectorRegister Src1)
 	{
 		if (Src0)
 		{
@@ -612,7 +630,7 @@ struct FVectorKernelSample : public TBinaryVectorKernelData<FVectorKernelSample>
 
 struct FVectorKernelBufferWrite : public TTrinaryVectorKernelData<FVectorKernelBufferWrite>
 {
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, FNiagaraDataObject *Src0, VectorRegister Src1, VectorRegister Src2)
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, UNiagaraDataObject *Src0, VectorRegister Src1, VectorRegister Src2)
 	{
 		if (Src0)
 		{
@@ -670,6 +688,38 @@ struct FVectorKernelRandom : public TUnaryVectorKernel<FVectorKernelRandom>
 		*Dst = VectorMultiply(Result, Src0);
 	}
 };
+
+
+/* gaussian distribution random number (not working yet) */
+struct FVectorKernelRandomGauss : public TBinaryVectorKernel<FVectorKernelRandomGauss>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		const float rm = RAND_MAX;
+		VectorRegister Result = MakeVectorRegister(static_cast<float>(FMath::Rand()) / rm,
+			static_cast<float>(FMath::Rand()) / rm,
+			static_cast<float>(FMath::Rand()) / rm,
+			static_cast<float>(FMath::Rand()) / rm);
+
+		Result = VectorSubtract(Result, MakeVectorRegister(0.5f, 0.5f, 0.5f, 0.5f));
+		Result = VectorMultiply(MakeVectorRegister(3.0f, 3.0f, 3.0f, 3.0f), Result);
+
+		// taylor series gaussian approximation
+		const VectorRegister SPi2 = VectorReciprocal(VectorReciprocalSqrt(MakeVectorRegister(2 * PI, 2 * PI, 2 * PI, 2 * PI)));
+		VectorRegister Gauss = VectorReciprocal(SPi2);
+		VectorRegister Div = VectorMultiply(MakeVectorRegister(2.0f, 2.0f, 2.0f, 2.0f), SPi2);
+		Gauss = VectorSubtract(Gauss, VectorDivide(VectorMultiply(Result, Result), Div));
+		Div = VectorMultiply(MakeVectorRegister(8.0f, 8.0f, 8.0f, 8.0f), SPi2);
+		Gauss = VectorAdd(Gauss, VectorDivide(VectorPow(MakeVectorRegister(4.0f, 4.0f, 4.0f, 4.0f), Result), Div));
+		Div = VectorMultiply(MakeVectorRegister(48.0f, 48.0f, 48.0f, 48.0f), SPi2);
+		Gauss = VectorSubtract(Gauss, VectorDivide(VectorPow(MakeVectorRegister(6.0f, 6.0f, 6.0f, 6.0f), Result), Div));
+
+		Gauss = VectorDivide(Gauss, MakeVectorRegister(0.4f, 0.4f, 0.4f, 0.4f));
+		Gauss = VectorMultiply(Gauss, Src0);
+		*Dst = Gauss;
+	}
+};
+
 
 
 
@@ -919,7 +969,7 @@ void VectorVM::Exec(
 	VectorRegister** OutputRegisters,
 	int32 NumOutputRegisters,
 	FVector4 const* ConstantTable,
-	FNiagaraDataObject* *DataObjConstTable,
+	UNiagaraDataObject* *DataObjConstTable,
 	int32 NumVectors
 	)
 {

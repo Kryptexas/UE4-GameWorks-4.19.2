@@ -3,8 +3,8 @@
 #pragma once
 
 #include "NiagaraCommon.h"
+#include "VectorVMDataObject.h"
 #include "NiagaraConstantSet.generated.h"
-
 
 USTRUCT()
 struct FNiagaraConstantMap
@@ -15,7 +15,7 @@ private:
 	TMap<FNiagaraVariableInfo, float> ScalarConstants;
 	TMap<FNiagaraVariableInfo, FVector4> VectorConstants;
 	TMap<FNiagaraVariableInfo, FMatrix> MatrixConstants;
-	TMap<FNiagaraVariableInfo, class FNiagaraDataObject*> DataConstants;
+	TMap<FNiagaraVariableInfo, UNiagaraDataObject*> DataConstants;
 
 public:
 
@@ -44,7 +44,7 @@ public:
 		MatrixConstants.FindOrAdd(ID) = Mc;
 	}
 
-	void SetOrAdd(FNiagaraVariableInfo ID, FNiagaraDataObject* Cc)
+	void SetOrAdd(FNiagaraVariableInfo ID, UNiagaraDataObject* Cc)
 	{
 		check(ID.Type == ENiagaraDataType::Curve);
 		DataConstants.FindOrAdd(ID) = Cc;
@@ -65,7 +65,7 @@ public:
 		MatrixConstants.FindOrAdd(FNiagaraVariableInfo(Name, ENiagaraDataType::Matrix)) = Mc;
 	}
 
-	void SetOrAdd(FName Name, class FNiagaraDataObject* Cc)
+	void SetOrAdd(FName Name, UNiagaraDataObject* Cc)
 	{
 		DataConstants.FindOrAdd(FNiagaraVariableInfo(Name, ENiagaraDataType::Curve)) = Cc;
 	}
@@ -77,9 +77,9 @@ public:
 	const float* FindScalar(FNiagaraVariableInfo ID)const { return ScalarConstants.Find(ID); }
 	const FVector4* FindVector(FNiagaraVariableInfo ID)const { return VectorConstants.Find(ID); }
 	const FMatrix* FindMatrix(FNiagaraVariableInfo ID)const { return MatrixConstants.Find(ID); }
-	FNiagaraDataObject* FindDataObj(FNiagaraVariableInfo ID) const
+	UNiagaraDataObject* FindDataObj(FNiagaraVariableInfo ID) const
 	{
-		FNiagaraDataObject * const *Ptr = DataConstants.Find(ID);
+		UNiagaraDataObject * const *Ptr = DataConstants.Find(ID);
 		if (Ptr)
 		{
 			return *Ptr;
@@ -90,7 +90,7 @@ public:
 	float* FindScalar(FName Name) { return ScalarConstants.Find(FNiagaraVariableInfo(Name,ENiagaraDataType::Scalar)); }
 	FVector4* FindVector(FName Name) { return VectorConstants.Find(FNiagaraVariableInfo(Name, ENiagaraDataType::Vector)); }
 	FMatrix* FindMatrix(FName Name) { return MatrixConstants.Find(FNiagaraVariableInfo(Name, ENiagaraDataType::Matrix)); }
-	FNiagaraDataObject* FindDataObj(FName Name)const { return FindDataObj(FNiagaraVariableInfo(Name, ENiagaraDataType::Curve)); }
+	UNiagaraDataObject* FindDataObj(FName Name)const { return FindDataObj(FNiagaraVariableInfo(Name, ENiagaraDataType::Curve)); }
 
 	void Merge(FNiagaraConstantMap &InMap)
 	{
@@ -115,7 +115,7 @@ public:
 		}
 	}
 
-	const TMap<FNiagaraVariableInfo, class FNiagaraDataObject*> &GetDataConstants()	const
+	const TMap<FNiagaraVariableInfo, UNiagaraDataObject*> &GetDataConstants()	const
 	{ 
 		return DataConstants; 
 	}
@@ -124,7 +124,7 @@ public:
 	virtual bool Serialize(FArchive &Ar)
 	{
 		// TODO: can't serialize the data object constants at the moment; need to figure that out
-		Ar << ScalarConstants << VectorConstants << MatrixConstants;
+		Ar << ScalarConstants << VectorConstants << MatrixConstants << DataConstants;
 		return true;
 	}
 };
@@ -155,7 +155,7 @@ private:
 	UPROPERTY()
 	TArray<FMatrix> MatrixConstants;
 	//UPROPERTY()
-	TArray<FNiagaraDataObject*> DataObjectConstants;
+	TArray<UNiagaraDataObject*> DataObjectConstants;
 
 public:
 
@@ -186,7 +186,7 @@ public:
 		OutInfo = MatrixConstantsInfo[Index];
 		OutValue = MatrixConstants[Index];
 	}
-	void GetDataObjectConstant(int32 Index, FNiagaraDataObject*& OutValue, FNiagaraVariableInfo& OutInfo)const
+	void GetDataObjectConstant(int32 Index, UNiagaraDataObject*& OutValue, FNiagaraVariableInfo& OutInfo)const
 	{
 		OutInfo = DataObjectConstantsInfo[Index];
 		OutValue = DataObjectConstants[Index];
@@ -225,7 +225,7 @@ public:
 		}
 	}
 
-	void AppendBufferConstants(TArray<class FNiagaraDataObject*> &Objs) const
+	void AppendBufferConstants(TArray<class UNiagaraDataObject*> &Objs) const
 	{
 		Objs.Append(DataObjectConstants);
 	}
@@ -266,12 +266,12 @@ public:
 		}
 	}
 
-	void AppendExternalBufferConstants(TArray<class FNiagaraDataObject*> &DataObjs, const FNiagaraConstantMap& Externals) const
+	void AppendExternalBufferConstants(TArray<class UNiagaraDataObject*> &DataObjs, const FNiagaraConstantMap& Externals) const
 	{
 		for (int32 i = 0; i < DataObjectConstantsInfo.Num(); ++i)
 		{
 			FNiagaraVariableInfo CcID = DataObjectConstantsInfo[i];
-			FNiagaraDataObject* Data = Externals.FindDataObj(CcID);
+			UNiagaraDataObject* Data = Externals.FindDataObj(CcID);
 			DataObjs.Add(Data);
 		}
 	}
@@ -318,7 +318,7 @@ public:
 		}
 	}
 
-	void SetOrAdd(const FNiagaraVariableInfo& Constant, FNiagaraDataObject* Value)
+	void SetOrAdd(const FNiagaraVariableInfo& Constant, UNiagaraDataObject* Value)
 	{
 		int32 Idx = DataObjectConstantsInfo.Find(Constant);
 		if (Idx == INDEX_NONE)

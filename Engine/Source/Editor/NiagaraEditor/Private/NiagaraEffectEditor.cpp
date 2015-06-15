@@ -367,8 +367,8 @@ FReply FNiagaraEffectEditor::OnEmitterSelected(TSharedPtr<FNiagaraSimulation> Se
 	{
 		if (SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().Num())
 		{
-			FNiagaraDataObject *DataObj = SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().CreateConstIterator().Value();
-			TimeLine.Get()->SetCurve(static_cast<FNiagaraCurveDataObject*>(DataObj)->GetCurveObject());
+			UNiagaraDataObject *DataObj = SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().CreateConstIterator().Value();
+			TimeLine.Get()->SetCurve(static_cast<UNiagaraCurveDataObject*>(DataObj)->GetCurveObject());
 		}
 	}
 	return FReply::Handled();

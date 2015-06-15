@@ -95,8 +95,8 @@ public:
 struct FNiagaraSimulation
 {
 public:
-	explicit FNiagaraSimulation(FNiagaraEmitterProperties *InProps);
-	FNiagaraSimulation(FNiagaraEmitterProperties *Props, ERHIFeatureLevel::Type InFeatureLevel);
+	explicit FNiagaraSimulation(FNiagaraEmitterProperties *InProps, UNiagaraEffect *Effect);
+	FNiagaraSimulation(FNiagaraEmitterProperties *Props, UNiagaraEffect *Effect, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FNiagaraSimulation()
 	{}
 
@@ -123,6 +123,8 @@ public:
 
 	FNiagaraEmitterProperties *GetProperties()	{ return Props; }
 	void SetProperties(FNiagaraEmitterProperties *InProps);
+
+	UNiagaraEffect *GetParentEffect()	{ return ParentEffect; }
 
 	float NIAGARA_API GetTotalCPUTime();
 	int	NIAGARA_API GetTotalBytesUsed();
@@ -168,6 +170,7 @@ private:
 	FBox CachedBounds;
 
 	NiagaraEffectRenderer *EffectRenderer;
+	UNiagaraEffect *ParentEffect;
 
 	/** Calc number to spawn */
 	int32 CalcNumToSpawn(float DeltaSeconds)

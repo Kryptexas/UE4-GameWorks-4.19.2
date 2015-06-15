@@ -59,20 +59,24 @@ class FNiagaraEffectInstance
 {
 public:
 	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset, UNiagaraComponent *InComponent)
+		: Effect(InAsset)
 	{
 		Component = InComponent;
 		for (int32 i = 0; i < InAsset->GetNumEmitters(); i++)
 		{
-			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), Component->GetWorld()->FeatureLevel);
+			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), InAsset, Component->GetWorld()->FeatureLevel);
 			Emitters.Add(MakeShareable(Sim));
 		}
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
+		VolumeGrid = NewObject<UNiagaraSparseVolumeDataObject>();
 	}
 
 	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset)
 		: Component(nullptr)
+		, Effect(InAsset)
 	{
 		InitEmitters(InAsset);
+		VolumeGrid = NewObject<UNiagaraSparseVolumeDataObject>();
 	}
 
 	NIAGARA_API void InitEmitters(UNiagaraEffect *InAsset);
@@ -119,7 +123,7 @@ public:
 		Constants.SetOrAdd(ID, Value);
 	}
 
-	void SetConstant(FName ConstantName, FNiagaraDataObject *Value)
+	void SetConstant(FName ConstantName, UNiagaraDataObject *Value)
 	{
 		Constants.SetOrAdd(ConstantName, Value);
 	}
@@ -128,7 +132,7 @@ public:
 
 	void Tick(float DeltaSeconds)
 	{
-		Constants.SetOrAdd(FName(TEXT("EffectGrid")), &VolumeGrid); 
+		Constants.SetOrAdd(FName(TEXT("EffectGrid")), VolumeGrid); 
 
 		// pass the constants down to the emitter
 		// TODO: should probably just pass a pointer to the table
@@ -192,6 +196,7 @@ public:
 	FBox GetEffectBounds()	{ return EffectBounds;  }
 private:
 	UNiagaraComponent *Component;
+	UNiagaraEffect *Effect;
 	FBox EffectBounds;
 	float Age;
 
@@ -200,6 +205,5 @@ private:
 
 	TArray< TSharedPtr<FNiagaraSimulation> > Emitters;
 
-	FNiagaraSparseVolumeDataObject VolumeGrid;
-
+	UNiagaraSparseVolumeDataObject *VolumeGrid;
 };
