@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "TargetPlatform.h"
 #include "AnimTree.h"
 
@@ -18,12 +19,9 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_PHYSX
-	namespace
-	{
-		// Quaternion that converts Sphyls from UE space to PhysX space (negate Y, swap X & Z)
-		// This is equivalent to a 180 degree rotation around the normalized (1, 0, 1) axis
-		static const PxQuat U2PSphylBasis( PI, PxVec3( 1.0f / FMath::Sqrt( 2.0f ), 0.0f, 1.0f / FMath::Sqrt( 2.0f ) ) );
-	}
+	// Quaternion that converts Sphyls from UE space to PhysX space (negate Y, swap X & Z)
+	// This is equivalent to a 180 degree rotation around the normalized (1, 0, 1) axis
+	const physx::PxQuat U2PSphylBasis( PI, PxVec3( 1.0f / FMath::Sqrt( 2.0f ), 0.0f, 1.0f / FMath::Sqrt( 2.0f ) ) );
 #endif // WITH_PHYSX
 
 // CVars
@@ -372,7 +370,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
-					AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset);
+					PxShape* PShape = AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset, &SphereElem);
 				}
 			}
 			else
@@ -407,7 +405,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
-					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset, &BoxElem);
 				}
 			}
 			else
@@ -453,7 +451,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
-					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset, &SphylElem);
 				}
 			}
 			else
@@ -501,7 +499,7 @@ public:
 						ensure(PLocalPose.isValid());
 						{
 							const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
-							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset);
+							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, &ConvexElem);
 						}
 					}
 					else
@@ -549,7 +547,7 @@ public:
 				PElementTransform.p.z *= Scale3D.Z;
 
 				// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
-				if (!AttachShape_AssumesLocked(PTriMeshGeom, PElementTransform, MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
+				if (!AttachShape_AssumesLocked(PTriMeshGeom, PElementTransform, MaxContactOffset, nullptr, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
 				{
 					UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
 				}
@@ -563,13 +561,14 @@ public:
 
 private:
 
-	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
+	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FKShapeElem* ShapeElem, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
 	{
 		const PxMaterial* PMaterial = GetDefaultPhysMaterial(); 
 		PxShape* PNewShape = bShapeSharing ? GPhysXSDK->createShape(PGeom, *PMaterial, /*isExclusive =*/ false, PShapeFlags) : PDestActor->createShape(PGeom, *PMaterial, PShapeFlags);
 
 		if (PNewShape)
 		{
+			PNewShape->userData = ShapeElem ? ((void*) ShapeElem->GetUserData()) : nullptr;
 			PNewShape->setLocalPose(PLocalPose);
 
 			if (NewShapes)

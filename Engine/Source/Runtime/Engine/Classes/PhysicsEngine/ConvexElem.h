@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ShapeElem.h"
 #include "ConvexElem.generated.h"
 
 struct FDynamicMeshVertex;
@@ -13,7 +14,7 @@ namespace physx
 
 /** One convex hull, used for simplified collision. */
 USTRUCT()
-struct FKConvexElem
+struct FKConvexElem : public FKShapeElem
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -36,7 +37,8 @@ struct FKConvexElem
 	physx::PxConvexMesh*   ConvexMeshNegX;
 
 	FKConvexElem()
-		: ElemBox(0)
+		: FKShapeElem(EAggCollisionShape::Convex)
+		, ElemBox(0)
 		, Transform(FTransform::Identity)
 		, ConvexMesh(NULL)
 		, ConvexMeshNegX(NULL)
@@ -78,4 +80,6 @@ struct FKConvexElem
 	friend FArchive& operator<<(FArchive& Ar, FKConvexElem& Elem);
 
 	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
+
+	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
 };

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ShapeElem.h"
 #include "SphylElem.generated.h"
 
 class FMaterialRenderProxy;
@@ -9,7 +10,7 @@ class FPrimitiveDrawInterface;
 
 /** Capsule shape used for collision */
 USTRUCT()
-struct FKSphylElem
+struct FKSphylElem : public FKShapeElem
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -31,7 +32,8 @@ struct FKSphylElem
 	float Length;
 
 	FKSphylElem()
-	: Center( FVector::ZeroVector )
+	: FKShapeElem(EAggCollisionShape::Sphyl)
+	, Center( FVector::ZeroVector )
 	, Orientation( FQuat::Identity )
 	, Radius(1), Length(1)
 
@@ -40,7 +42,8 @@ struct FKSphylElem
 	}
 
 	FKSphylElem( float InRadius, float InLength )
-	: Center( FVector::ZeroVector )
+	: FKShapeElem(EAggCollisionShape::Sphyl)
+	, Center( FVector::ZeroVector )
 	, Orientation( FQuat::Identity )
 	, Radius(InRadius), Length(InLength)
 	{
@@ -78,4 +81,6 @@ struct FKSphylElem
 	ENGINE_API FBox CalcAABB(const FTransform& BoneTM, float Scale) const;
 
 	ENGINE_API void ScaleElem(FVector DeltaSize, float MinSize);
+
+	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
 };

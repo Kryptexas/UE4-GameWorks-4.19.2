@@ -995,6 +995,9 @@ public:
 	/** Returns the original owning body instance. This is needed for welding */
 	const FBodyInstance* GetOriginalBodyInstance(const physx::PxShape* PShape) const;
 
+	/** Returns the relative transform between root body and welded instance owned by the shape.*/
+	const FTransform& GetRelativeBodyTransform(const physx::PxShape* PShape) const;
+
 private:
 	/**
 	 *  Trace a box against just this bodyinstance
@@ -1047,9 +1050,20 @@ public:
 
 private:
 
+	struct FWeldInfo
+	{
+		FWeldInfo(FBodyInstance* InChildBI, const FTransform& InRelativeTM)
+		: ChildBI(InChildBI)
+		, RelativeTM(InRelativeTM)
+		{}
+
+		FBodyInstance* ChildBI;
+		FTransform RelativeTM;
+	};
+
 #if WITH_PHYSX
 	/** Used to map between shapes and welded bodies. We do not create entries if the owning body instance is root*/
-	TMap<physx::PxShape*, FBodyInstance*> ShapeToBodiesMap;
+	TMap<physx::PxShape*, FWeldInfo> ShapeToBodiesMap;
 
 #endif
 	bool bHasSharedShapes;
