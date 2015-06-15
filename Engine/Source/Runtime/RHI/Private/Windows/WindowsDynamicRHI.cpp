@@ -10,12 +10,12 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 	// command line overrides
 	const bool bForceD3D11 = FParse::Param(FCommandLine::Get(),TEXT("d3d11")) || FParse::Param(FCommandLine::Get(),TEXT("sm5")) || FParse::Param(FCommandLine::Get(),TEXT("dx11"));
 	const bool bForceD3D10 = FParse::Param(FCommandLine::Get(),TEXT("d3d10")) || FParse::Param(FCommandLine::Get(),TEXT("sm4")) || FParse::Param(FCommandLine::Get(),TEXT("dx10"));
-
 	const bool bForceOpenGL = FWindowsPlatformMisc::VerifyWindowsVersion(6, 0) == false || FParse::Param(FCommandLine::Get(), TEXT("opengl")) || FParse::Param(FCommandLine::Get(), TEXT("opengl3")) || FParse::Param(FCommandLine::Get(), TEXT("opengl4"));
+	const bool bForceVulkan = FParse::Param(FCommandLine::Get(), TEXT("vulkan"));
 
-	if (((bForceD3D11 ? 1 : 0) + (bForceD3D10 ? 1 : 0) + (bForceOpenGL ? 1 : 0)) > 1)
+	if (((bForceD3D11 ? 1 : 0) + (bForceD3D10 ? 1 : 0) + (bForceOpenGL ? 1 : 0) + (bForceVulkan ? 1 : 0)) > 1)
 	{
-		UE_LOG(LogRHI, Fatal,TEXT("-d3d11, -d3d10, and -opengl[3|4] mutually exclusive options, but more than one was specified on the command-line."));
+		UE_LOG(LogRHI, Fatal,TEXT("-d3d11, -d3d10, -vulkan and -opengl[3|4] mutually exclusive options, but more than one was specified on the command-line."));
 	}
 
 	// Load the dynamic RHI module.
@@ -27,6 +27,16 @@ FDynamicRHI* PlatformCreateDynamicRHI()
 		if (!DynamicRHIModule->IsSupported())
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("WindowsDynamicRHI", "RequiredOpenGL", "OpenGL 3.2 is required to run the engine."));
+			FPlatformMisc::RequestExit(1);
+			DynamicRHIModule = NULL;
+		}
+	}
+	else if (bForceVulkan)
+	{
+		DynamicRHIModule = &FModuleManager::LoadModuleChecked<IDynamicRHIModule>(TEXT("VulkanRHI"));
+		if (!DynamicRHIModule->IsSupported())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("WindowsDynamicRHI", "RequiredVulkan", "Vulkan Driver is required to run the engine."));
 			FPlatformMisc::RequestExit(1);
 			DynamicRHIModule = NULL;
 		}

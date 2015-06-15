@@ -487,7 +487,16 @@ namespace UnrealBuildTool
                 {
                     InModule.AddDynamicallyLoadedModule("ShaderFormatD3D");
                     InModule.AddDynamicallyLoadedModule("ShaderFormatOpenGL");
-                }
+
+//#todo-rco: Remove when public
+					{
+						string VulkanSDKPath = Environment.GetEnvironmentVariable("VulkanSDK");
+						if (!String.IsNullOrEmpty(VulkanSDKPath))
+						{
+							InModule.AddDynamicallyLoadedModule("VulkanShaderFormat");
+						}
+					}
+				}
 
                 if (InModule.ToString() == "D3D11RHI")
                 {
