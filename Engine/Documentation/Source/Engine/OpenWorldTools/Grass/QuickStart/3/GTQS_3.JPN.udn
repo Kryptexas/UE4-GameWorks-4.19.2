@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2576221
+﻿INTSourceChangelist:2585616
 Availability:Public
 Title:3.ランドスケープマテリアルと Grass ツール
 Crumbs:
@@ -15,7 +15,7 @@ Version:4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\4 "%Engine\OpenWorldTools\Grass\QuickStart\4:title%") 
@@ -73,6 +73,7 @@ UE4 のランドスケープテレインの動作方法に関する詳細を知�
 	1. マテリアルグラフで **Landscape Grass Output** ノードを選択してから、 **Details** パネルの **Grass Types** セクションで **+** アイコンを押して、 Grass Types 配列に新しいエレメントを追加します。 
 
 	![](T_Grass_Out_SetUp.gif)(convert:false)
+
 
 1. **コンテンツブラウザ** で前の手順で作成した **Grass_00** Landscape Grass Type を選びます。
 
