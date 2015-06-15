@@ -60,19 +60,24 @@ namespace UnrealBuildTool
 
 		public List<string> BuiltBinaries = new List<string>();
 
-		public override void SetUpGlobalEnvironment()
+		private static void SetupXcodePaths(bool bVerbose)
 		{
-			base.SetUpGlobalEnvironment();
-
-			SelectXcode(ref XcodeDeveloperDir);
+			SelectXcode(ref XcodeDeveloperDir, bVerbose);
 
 			BaseSDKDir = XcodeDeveloperDir + "Platforms/MacOSX.platform/Developer/SDKs";
 			ToolchainDir = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/";
 
-			SelectSDK(BaseSDKDir, "MacOSX", ref MacOSSDKVersion);
+			SelectSDK(BaseSDKDir, "MacOSX", ref MacOSSDKVersion, bVerbose);
 
 			// convert to float for easy comparison
 			MacOSSDKVersionFloat = float.Parse(MacOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
+		}
+
+		public override void SetUpGlobalEnvironment()
+		{
+			base.SetUpGlobalEnvironment();
+
+			SetupXcodePaths(true);
 		}
 
 		static string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
@@ -1435,6 +1440,8 @@ namespace UnrealBuildTool
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)
 		{
+			SetupXcodePaths(false);
+
 			StripSymbolsWithXcode(SourceFileName, TargetFileName, ToolchainDir);
 		}
 	};

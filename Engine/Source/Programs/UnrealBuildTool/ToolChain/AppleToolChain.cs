@@ -11,7 +11,7 @@ namespace UnrealBuildTool
 {
 	public abstract class AppleToolChain : RemoteToolChain
     {
-		protected void SelectXcode(ref string DeveloperDir)
+		protected static void SelectXcode(ref string DeveloperDir, bool bVerbose)
 		{
 			string Reason = "hardcoded";
 
@@ -46,14 +46,14 @@ namespace UnrealBuildTool
 				throw new BuildException("Selected Xcode ('{0}') doesn't exist, cannot continue.", DeveloperDir);
 			}
 
-			if (!DeveloperDir.StartsWith("/Applications/Xcode.app"))
+			if (bVerbose && !DeveloperDir.StartsWith("/Applications/Xcode.app"))
 			{
 				Log.TraceInformationOnce("Compiling with non-standard Xcode ({0}): {1}", Reason, DeveloperDir);
 			}
 
 		}
 
-		protected void SelectSDK(string BaseSDKDir, string OSPrefix, ref string PlatformSDKVersion)
+		protected static void SelectSDK(string BaseSDKDir, string OSPrefix, ref string PlatformSDKVersion, bool bVerbose)
 		{
 			if (PlatformSDKVersion == "latest")
 			{
@@ -136,7 +136,7 @@ namespace UnrealBuildTool
 				throw new BuildException("Invalid SDK {0}{1}.sdk, not found in {2}", OSPrefix, PlatformSDKVersion, BaseSDKDir);
 			}
 
-			if (!ProjectFileGenerator.bGenerateProjectFiles)
+			if (bVerbose && !ProjectFileGenerator.bGenerateProjectFiles)
 			{
 				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 				{

@@ -70,15 +70,29 @@ namespace UnrealBuildTool
 		/** Additional frameworks stored locally so we have access without LinkEnvironment */
 		public List<UEBuildFramework> RememberedAdditionalFrameworks = new List<UEBuildFramework>();
 
+		private static void SetupXcodePaths(bool bVerbose)
+		{
+			// choose the XCode to use
+			SelectXcode(ref XcodeDeveloperDir, bVerbose);
+
+			// update cached paths
+			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
+			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
+			ToolchainDir = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/";
+
+			// make sure SDK is selected
+			SelectSDK(BaseSDKDir, "iPhoneOS", ref IOSSDKVersion, bVerbose);
+
+			// convert to float for easy comparison
+			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
+		}
+
 		/// <summary>
 		/// Function to call to after reset default data.
 		/// </summary>
 		public static void PostReset()
 		{
-			/** Location of the SDKs */
-			BaseSDKDir = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/SDKs";
-			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
-			ToolchainDir = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/";
+			SetupXcodePaths(false);
 		}
 
 		/** Hunt down the latest IOS sdk if desired */
@@ -86,17 +100,7 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			// choose the XCode to use
-			SelectXcode(ref XcodeDeveloperDir);
-
-			// make sure BaseSDKDir is up to date
-			PostReset();
-
-			// choose the final SDK version
-			SelectSDK(BaseSDKDir, "iPhoneOS", ref IOSSDKVersion);
-
-			// convert to float for easy comparison
-			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
+			SetupXcodePaths(true);
 		}
 
 		public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
@@ -1298,6 +1302,8 @@ namespace UnrealBuildTool
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)
 		{
+			SetupXcodePaths(false);
+
 			StripSymbolsWithXcode(SourceFileName, TargetFileName, ToolchainDir);
 		}
 	};
