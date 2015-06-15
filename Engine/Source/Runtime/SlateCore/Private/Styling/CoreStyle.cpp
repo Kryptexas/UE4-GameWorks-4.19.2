@@ -1166,6 +1166,34 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set("SyntaxHighlight.NodeAttributeValue", FTextBlockStyle(SmallMonospacedText).SetColorAndOpacity(FLinearColor(FColor(0xffb46100)))); // orange
 	}
 
+	// Slate File Dialogs
+	{
+		Style->Set("SlateFileDialogs.Dialog", TTF_FONT("Fonts/Roboto-Regular", 10));
+		Style->Set("SlateFileDialogs.DialogBold", TTF_FONT("Fonts/Roboto-Bold", 10));
+		Style->Set("SlateFileDialogs.DialogLarge", TTF_FONT("Fonts/Roboto-Bold", 16));
+		Style->Set("SlateFileDialogs.DirectoryItem", TTF_FONT("Fonts/Roboto-Bold", 11));
+		Style->Set( "SlateFileDialogs.GroupBorder", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
+
+		Style->Set("SlateFileDialogs.Folder16", new IMAGE_BRUSH("Icons/icon_file_folder_16x", Icon16x16));
+		Style->Set("SlateFileDialogs.Folder24", new IMAGE_BRUSH("Icons/icon_file_folder_40x", Icon24x24));
+		Style->Set("SlateFileDialogs.WhiteBackground", new IMAGE_BRUSH("Common/Window/WindowWhite", Icon64x64));
+
+		Style->Set( "SlateFileDialogs.PathDelimiter", new IMAGE_BRUSH( "Common/SmallArrowRight", Icon10x10 ) );
+
+		Style->Set( "SlateFileDialogs.PathText", FTextBlockStyle(NormalText)
+			.SetFont( TTF_FONT( "Fonts/Roboto-Bold", 11 ) )
+			.SetColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f ) )
+			.SetHighlightColor( FLinearColor( 1.0f, 1.0f, 1.0f ) )
+			.SetShadowOffset( FVector2D( 1,1 ) )
+			.SetShadowColorAndOpacity( FLinearColor(0,0,0,0.9f) ) );
+
+		Style->Set("SlateFileDialogs.FlatButton", FButtonStyle(Button)
+			.SetNormal(FSlateNoResource())
+			.SetHovered(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, SelectionColor))
+			.SetPressed(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, SelectionColor_Pressed))
+			);
+	}
+
 	return Style;
 }
 
