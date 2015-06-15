@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2576224
+﻿INTSourceChangelist:2585616
 Availability:Public
 Title:1. 初期レベル設定
 Crumbs:
@@ -14,7 +14,7 @@ Version:4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\2 "%Engine\OpenWorldTools\Grass\QuickStart\2:title%") 
@@ -43,7 +43,7 @@ Version:4.8
 	 |プロパティ名 | 値 | 理由 |
 	|--------------|-------|---------|
 	|**Brush Size**    |65536.0| ランドスケープテレインに同時に影響をもたらすのに十分な大きさのブラシを作成します。|
-	|**Tool Strength** |0.01   | わずかなエフェクトを作成するために、 Tool Strength をとても低い値に設定してペイントすることで明暗度を追加します。|
+	|**Tool Strength** |0.01   | わずかなエフェクトを作成するために、 Tool Strength をとても低い値に設定してペイントすることで強度を増すことができます。|
 	|**Noise Scale**   |256    | Noise Scale を大きい値に設定すればするほどノイズがより滑らかになり、ランドスケープに適用するとよりナチュラルな見た目になります。|
 
 1. ランドスケープテレイン 全体を覆うようにランドスケープブラシをビューポートを配置してから、左マウスボタンを **3** 、 **4** 回押して、非常に微細なノイズをランドスケープサーフェスに追加します。 
@@ -52,7 +52,7 @@ Version:4.8
 	![](T_Noise_On_Landscape.png)
 
 	[region:note]
-	上記で処理したしたランドスケープの修正は、 Grass ツールがどのように動作するかを見せるためのアーティスト的な理由のみで微調整を行いました。必要に応じて、 Grass ツールを完全にフラットな状態のランドスケープテレインに使用することができます。
+	上記で処理したしたランドスケープの修正は、 Grass ツールがどのように動作するかを見せるために、単にアーティスト上の理由で微調整を行いました。必要に応じて、 Grass ツールを完全にフラットな状態のランドスケープテレインに使用することができます。
 	[/region]
 
 1. **モード** パネルの **Place** アイコンをクリックしてランドスケープツールを終了します。
