@@ -818,12 +818,12 @@ TSharedRef<SWidget> SMyBlueprint::OnCreateWidgetForAction(FCreateWidgetForAction
 
 void SMyBlueprint::GetChildGraphs(UEdGraph* InEdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions, FText ParentCategory)
 {
-	// Grab subgraphs
-	const UEdGraphSchema* Schema = InEdGraph->GetSchema();
-
 	// Grab display info
 	FGraphDisplayInfo EdGraphDisplayInfo;
-	Schema->GetGraphDisplayInformation(*InEdGraph, EdGraphDisplayInfo);
+	if (const UEdGraphSchema* Schema = InEdGraph ? InEdGraph->GetSchema() : nullptr)
+	{
+		Schema->GetGraphDisplayInformation(*InEdGraph, EdGraphDisplayInfo);
+	}
 	const FText EdGraphDisplayName = EdGraphDisplayInfo.DisplayName;
 
 	// Grab children graphs
@@ -832,9 +832,11 @@ void SMyBlueprint::GetChildGraphs(UEdGraph* InEdGraph, int32 const SectionId, FG
 		UEdGraph* Graph = *It;
 		check(Graph);
 
-		const UEdGraphSchema* ChildSchema = Graph->GetSchema();
 		FGraphDisplayInfo ChildGraphDisplayInfo;
-		ChildSchema->GetGraphDisplayInformation(*Graph, ChildGraphDisplayInfo);
+		if (const UEdGraphSchema* ChildSchema = Graph->GetSchema())
+		{
+			ChildSchema->GetGraphDisplayInformation(*Graph, ChildGraphDisplayInfo);
+		}
 
 		FText DisplayText = ChildGraphDisplayInfo.DisplayName;
 
@@ -893,9 +895,11 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* InEdGraph, int32 const Section
 	}
 
 	// grab the parent graph's name
-	UEdGraphSchema const* Schema = InEdGraph->GetSchema();
 	FGraphDisplayInfo EdGraphDisplayInfo;
-	Schema->GetGraphDisplayInformation(*InEdGraph, EdGraphDisplayInfo);
+	if (UEdGraphSchema const* Schema = InEdGraph->GetSchema())
+	{
+		Schema->GetGraphDisplayInformation(*InEdGraph, EdGraphDisplayInfo);
+	}
 	FText const EdGraphDisplayName = EdGraphDisplayInfo.DisplayName;
 	FText ActionCategory;
 	if (!ParentCategory.IsEmpty())
@@ -919,9 +923,11 @@ void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions)
 	if( TopLevelGraph )
 	{
 		// grab the parent graph's name
-		UEdGraphSchema const* Schema = TopLevelGraph->GetSchema();
 		FGraphDisplayInfo EdGraphDisplayInfo;
-		Schema->GetGraphDisplayInformation(*TopLevelGraph, EdGraphDisplayInfo);
+		if (UEdGraphSchema const* Schema = TopLevelGraph->GetSchema())
+		{
+			Schema->GetGraphDisplayInformation(*TopLevelGraph, EdGraphDisplayInfo);
+		}
 		FText const EdGraphDisplayName = EdGraphDisplayInfo.DisplayName;
 
 		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;

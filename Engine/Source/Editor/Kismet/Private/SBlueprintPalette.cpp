@@ -1540,7 +1540,10 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 			if (GraphAction->EdGraph != NULL)
 			{
 				FGraphDisplayInfo DisplayInfo;
-				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
+				if (auto GraphSchema = GraphAction->EdGraph->GetSchema())
+				{
+					GraphSchema->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
+				}
 
 				DocExcerptRef.DocLink = DisplayInfo.DocLink;
 				DocExcerptRef.DocExcerptName = DisplayInfo.DocExcerptName;
