@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2520707
+﻿INTSourceChangelist:2584537
 Availability:Public
 Title:Samsung Gear VR ベストプラクティス
 Crumbs:%ROOT%, Platforms
@@ -134,7 +134,7 @@ Gear VR プロジェクトを使ってメッシュを作成する場合、作成
 ### テクスチャに関する留意点
 Gear VR プロジェクトを使ってメッシュを作成する場合、作成しているものがプロジェクト全体に対して有害になることがないように、以下の点に留意してください。 
 
-* テクスチャは、[ECT2](http://en.wikipedia.org/wiki/Ericsson_Texture_Compression) テクスチャ圧縮フォーマットを使用します。
+* テクスチャは、**[ECT2](http://en.wikipedia.org/wiki/Ericsson_Texture_Compression) テクスチャ圧縮フォーマットを使用します。
 * テクスチャは X または Y のいずれかのディメンションが 2048 ピクセル以上には **なりません** 。
 * テクスチャ サイズは 2 のべき乗 (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048) **でなければなりません** 。
 * Gear VR では最高 512 MB までテクスチャをメモリへロードすることができますが、128 MB 以上はお勧めしません。
@@ -150,8 +150,8 @@ Gear VR のレベルで最高のパフォーマンスを出すには、絶妙な
 * 最高のパフォーマンスを得られるように、レベル ライティングが [ビルド](Engine/Rendering/LightingAndShadows/Lightmass) されていることを常に確認してください。赤字の「 **Lighting needs to be rebuilt** 」エラーメッセージが画面に表示された場合は、ライティングをビルドしなければなりません。
 * レベル内のすべてのライトは必ず [静的](Engine/Rendering/LightingAndShadows/LightMobility/StaticLights) に設定してください。他のライト オプションだとレンダリング負荷が非常に高くなってしまいます。
 * レベルに [事前計算されたビジビリティ](Engine/Actors/Volumes) が使われているか確認してください。使われていない場合はレベルに 1 つ追加し、レベルのワールド設定で有効にするためにライティングをリビルドするようにしてください。 
-* シーン全体の描画コールは、どのビューに対しても 100 以下でなければなりません。これは、PC の ES2 プレビュア [stat d3d11rhi](Engine/Performance/StatCommands) のデバイス [stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
-* レベルのトライアングル総数は、どのビューに対しても 100,000 を超えてはいけません。これは、PC の ES2 プレビュア [stat d3d11rhi](Engine/Performance/StatCommands) のデバイス [stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
+* シーン全体の描画コールは、どのビューに対しても 100 以下でなければなりません。これは、PC の ES2 プレビュア **[stat d3d11rhi](Engine/Performance/StatCommands) のデバイス **[stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
+* レベルのトライアングル総数は、どのビューに対しても 100,000 を超えてはいけません。これは、PC の ES2 プレビュア **[stat d3d11rhi](Engine/Performance/StatCommands) のデバイス **[stat openglrhi](Engine/Performance/StatCommands) で確認することができます。
 * 透過マテリアルとオパシティ マスク付マテリアルはレンダリング負荷が非常に高いので、レベル内での使い方にはくれぐれも注意してください。
 * [パフォーマンスおよびプロファイル](Engine/Performance) を必ず一読して、自分のレベルのパフォーマンスに関わる問題を早めに探知できるようにしてください。
 
