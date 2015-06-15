@@ -6,14 +6,6 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeModPlayer"
 
-void USoundNodeModPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	USoundNodeModPlayer* This = CastChecked<USoundNodeModPlayer>(InThis);
-	Super::AddReferencedObjects(This, Collector);
-
-	Collector.AddReferencedObject(This->SoundMod);
-}
-
 void USoundNodeModPlayer::LoadAsset()
 {
 	if (IsAsyncLoading())

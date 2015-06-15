@@ -17,6 +17,7 @@ private:
 	UPROPERTY(EditAnywhere, Category=WavePlayer, meta=(DisplayName="Sound Wave"))
 	TAssetPtr<USoundWave> SoundWaveAssetPtr;
 
+	UPROPERTY(transient)
 	USoundWave* SoundWave;
 
 	void OnSoundWaveLoaded(const FName& PackageName, UPackage * Package, EAsyncLoadingResult::Type Result);
@@ -30,8 +31,6 @@ public:
 	ENGINE_API void SetSoundWave(USoundWave* SoundWave);
 
 	// Begin UObject Interface
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif

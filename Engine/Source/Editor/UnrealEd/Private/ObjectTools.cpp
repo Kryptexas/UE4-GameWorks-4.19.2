@@ -1555,6 +1555,23 @@ namespace ObjectTools
 		// Allows deleting of sounds after they have been previewed
 		GEditor->ClearPreviewComponents();
 
+		// Ensure the audio manager is not holding on to any sounds
+		FAudioDeviceManager* AudioDeviceManager = GEditor->GetAudioDeviceManager();
+		if (AudioDeviceManager != nullptr)
+		{
+			AudioDeviceManager->UpdateActiveAudioDevices(false);
+
+			const int32 NumAudioDevices = AudioDeviceManager->GetNumActiveAudioDevices();
+			for (int32 DeviceIndex = 0; DeviceIndex < NumAudioDevices; DeviceIndex++)
+			{
+				FAudioDevice* AudioDevice = AudioDeviceManager->GetAudioDevice(DeviceIndex);
+				if (AudioDevice != nullptr)
+				{
+					AudioDevice->StopAllSounds();
+				}
+			}
+		}
+
 		const FScopedBusyCursor BusyCursor;
 
 		// Make sure packages being saved are fully loaded.

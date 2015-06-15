@@ -7,14 +7,6 @@
 
 #define LOCTEXT_NAMESPACE "SoundNodeWavePlayer"
 
-void USoundNodeWavePlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
-{
-	USoundNodeWavePlayer* This = CastChecked<USoundNodeWavePlayer>(InThis);
-	Super::AddReferencedObjects(This, Collector);
-
-	Collector.AddReferencedObject(This->SoundWave);
-}
-
 void USoundNodeWavePlayer::LoadAsset()
 {
 	if (IsAsyncLoading())

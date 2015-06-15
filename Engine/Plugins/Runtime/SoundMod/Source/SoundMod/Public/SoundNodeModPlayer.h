@@ -17,6 +17,7 @@ private:
 	UPROPERTY(EditAnywhere, Category=ModPlayer, meta=(DisplayName="Sound Mod"))
 	TAssetPtr<USoundMod> SoundModAssetPtr;
 
+	UPROPERTY(transient)
 	USoundMod* SoundMod;
 
 	UPROPERTY(EditAnywhere, Category=ModPlayer)
@@ -28,9 +29,6 @@ public:
 
 	USoundMod* GetSoundMod() const { return SoundMod; }
 	void SetSoundMod(USoundMod* SoundMod);
-
-	// Begin UObject Interface
-	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
