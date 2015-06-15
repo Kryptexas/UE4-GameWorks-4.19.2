@@ -529,7 +529,7 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 				// intercept the subtitles if the delegate is set
 				ActiveSound.AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, Duration );
 			}
-			else
+			else if( ActiveSound.World.IsValid() )
 			{
 				// otherwise, pass them on to the subtitle manager for display
 				// Subtitles are hashed based on the associated sound (wave instance).
