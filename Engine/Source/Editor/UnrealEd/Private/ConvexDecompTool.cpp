@@ -8,7 +8,7 @@
 #define USE_VHACD (PLATFORM_WINDOWS || PLATFORM_LINUX || PLATFORM_MAC)
 
 #include "UnrealEd.h"
-
+#include "PhysicsEngine/BodySetup.h"
 
 #if USE_VHACD
 

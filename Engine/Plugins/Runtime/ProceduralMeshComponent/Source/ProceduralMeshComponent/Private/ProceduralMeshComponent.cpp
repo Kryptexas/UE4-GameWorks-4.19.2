@@ -3,6 +3,7 @@
 #include "ProceduralMeshComponentPluginPrivatePCH.h"
 #include "ProceduralMeshComponent.h"
 #include "DynamicMeshBuilder.h"
+#include "PhysicsEngine/BodySetup.h"
 
 
 /** Resource array to pass  */

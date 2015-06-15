@@ -10,6 +10,7 @@
 // 
 #include "StaticMeshResources.h"
 #include "MeshPaintEdMode.h"
+#include "PhysicsEngine/BodySetup.h"
 // #include "Factories.h"
 // #include "ScopedTransaction.h"
 // #include "MeshPaintRendering.h"

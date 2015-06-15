@@ -48,6 +48,7 @@
 #include "FbxErrors.h"
 #include "Engine/StaticMeshSocket.h"
 #include "Engine/Polys.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "FbxStaticMeshImport"
 

@@ -18,6 +18,7 @@
 #include "EngineGlobals.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshSocket.h"
+#include "PhysicsEngine/BodySetup.h"
 #if WITH_EDITOR
 #include "LandscapeSplineRaster.h"
 #include "MessageLog.h"

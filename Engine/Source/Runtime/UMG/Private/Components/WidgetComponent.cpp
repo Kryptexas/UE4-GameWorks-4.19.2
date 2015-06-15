@@ -10,6 +10,7 @@
 #include "DynamicMeshBuilder.h"
 #include "Scalability.h"
 #include "WidgetLayoutLibrary.h"
+#include "PhysicsEngine/BodySetup.h"
 
 extern SLATECORE_API int32 bFoldTick;
 

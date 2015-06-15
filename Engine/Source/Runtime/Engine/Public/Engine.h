@@ -193,7 +193,6 @@
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Animation/AnimBlueprintGeneratedClass.h"
-#include "PhysicsEngine/BodySetup.h"
 #include "Camera/CameraAnim.h"
 #include "Camera/CameraAnimInst.h"
 #include "Camera/CameraModifier.h"

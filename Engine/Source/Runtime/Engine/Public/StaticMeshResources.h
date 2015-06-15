@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include "PhysicsEngine/BodySetup.h"
 #include "Engine/StaticMesh.h"
 #include "RawIndexBuffer.h"
 #include "TextureLayout3d.h"
 #include "LocalVertexFactory.h"
 #include "PrimitiveSceneProxy.h"
 #include "SceneManagement.h"
+#include "PhysicsEngine/BodySetupEnums.h"
 
 /**
  * The LOD settings to use for a group of static meshes.

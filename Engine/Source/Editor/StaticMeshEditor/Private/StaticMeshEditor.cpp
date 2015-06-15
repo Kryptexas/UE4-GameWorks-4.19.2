@@ -30,6 +30,7 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "Engine/Selection.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
