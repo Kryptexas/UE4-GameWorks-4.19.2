@@ -45,6 +45,9 @@ namespace AndroidTexFormat
 	static FName NameG8(TEXT("G8"));
 	static FName NameVU8(TEXT("VU8"));
 	static FName NameRGBA16F(TEXT("RGBA16F"));
+
+	// Error "formats" (uncompressed)
+	static FName NamePOTERROR(TEXT("POTERROR"));
 }
 
 
@@ -120,6 +123,12 @@ public:
 		return true;
 	}
 
+	virtual bool SupportsCompressedNonPOT( ) const
+	{
+		// most formats do support non-POT compressed textures
+		return true;
+	}
+
 #if WITH_ENGINE
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const override;
 
@@ -173,8 +182,9 @@ protected:
 	 *
 	 * @param Format - The format to add.
 	 * @param OutFormats - The collection of formats to add to.
+	 * @param bIsCompressedNonPOT - If this is true, the texture wants to be compressed but is not a power of 2
 	 */
-	void AddTextureFormatIfSupports( FName Format, TArray<FName>& OutFormats ) const;
+	void AddTextureFormatIfSupports( FName Format, TArray<FName>& OutFormats, bool bIsCompressedNonPOT=false ) const;
 
 	/**
 	 * Return true if this device has a supported set of extensions for this platform.
