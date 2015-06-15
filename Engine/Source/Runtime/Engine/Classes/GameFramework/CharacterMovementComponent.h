@@ -1165,6 +1165,9 @@ protected:
 	/** Switch collision settings for NavWalking mode (ignore world collisions) */
 	virtual void SetNavWalkingPhysics(bool bEnable);
 
+	/** Get Navigation data for the Character. Returns null if there is no associated nav data. */
+	const class ANavigationData* UCharacterMovementComponent::GetNavData() const;
+
 	/** 
 	 * Checks to see if the current location is not encroaching blocking geometry so the character can leave NavWalking.
 	 * Restores collision settings and adjusts character location to avoid getting stuck in geometry.
