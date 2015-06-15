@@ -61,6 +61,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_LookAt : public FAnimNode_SkeletalControlB
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl) 
 	TEnumAsByte<EAxisOption::Type>	LookAtAxis;
 
+	/** Whether or not to use Look up axis */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
+	bool bUseLookUpAxis;
+
+	/** Look up axis in local space */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl)
+	TEnumAsByte<EAxisOption::Type>	LookUpAxis;
+
 	/** Look at Clamp value in degree - if you're look at axis is Z, only X, Y degree of clamp will be used*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SkeletalControl, meta=(PinHiddenByDefault))
 	float LookAtClamp;
