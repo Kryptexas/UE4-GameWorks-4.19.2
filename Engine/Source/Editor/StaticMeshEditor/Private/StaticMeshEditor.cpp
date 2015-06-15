@@ -1526,6 +1526,8 @@ UStaticMesh* FStaticMeshEditor::GetFirstSelectedStaticMeshInContentBrowser() con
 
 void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
 {
+	ClearSelectedPrims();
+
 	StaticMesh = InStaticMesh;
 
 	//Init stat arrays.
