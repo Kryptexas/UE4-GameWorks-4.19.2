@@ -1121,7 +1121,7 @@ void BeginLoad()
 	if (ThreadContext.ObjBeginLoadCount == 0 && !IsInAsyncLoadingThread())
 	{
 		// Make sure we're finishing up all pending async loads, and trigger texture streaming next tick if necessary.
-		FlushAsyncLoading( NAME_None );
+		FlushAsyncLoading();
 
 		// Validate clean load state.
 		check(ThreadContext.ObjLoaded.Num() == 0);

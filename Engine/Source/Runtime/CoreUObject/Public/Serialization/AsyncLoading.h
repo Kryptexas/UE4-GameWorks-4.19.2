@@ -63,14 +63,6 @@ struct FAsyncPackage
 		return Desc.Name;
 	}
 
-	/**
-	 * Returns the type name associated with this package
-	 */
-	const FName &GetPackageType() const
-	{
-		return Desc.Type;
-	}
-
 	void AddCompletionCallback(const FLoadPackageAsyncDelegate& Callback, bool bInternal);
 
 	/** Gets the number of references to this package from other packages in the dependency tree. */

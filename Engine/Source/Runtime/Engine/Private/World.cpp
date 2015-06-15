@@ -2496,7 +2496,7 @@ void UWorld::UpdateLevelStreaming()
 	}
 }
 
-void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName ExcludeType)
+void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType)
 {
 	AWorldSettings* WorldSettings = GetWorldSettings();
 
@@ -2506,7 +2506,7 @@ void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName Exclu
 	UpdateLevelStreaming();
 
 	// Make sure all outstanding loads are taken care of, other than ones associated with the excluded type
-	FlushAsyncLoading(ExcludeType);
+	FlushAsyncLoading();
 
 	// Kick off making levels visible if loading finished by flushing.
 	UpdateLevelStreaming();
@@ -2524,7 +2524,7 @@ void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName Exclu
 			if (FlushLevelStreamingType == EFlushLevelStreamingType::Full)
 			{
 				// Make sure all outstanding loads are taken care of...
-				FlushAsyncLoading(NAME_None);
+				FlushAsyncLoading();
 			}
 	
 			// Update level streaming.
@@ -2543,6 +2543,11 @@ void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName Exclu
 	{
 		bRequestedBlockOnAsyncLoading = false;
 	}
+}
+
+void UWorld::FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName ExcludeType)
+{
+	FlushLevelStreaming(FlushType);
 }
 
 /**
@@ -4529,7 +4534,6 @@ void FSeamlessTravelHandler::StartLoadingDestination()
 		LoadPackageAsync(
 			URLMapPackageName, 
 			PendingTravelGuid.IsValid() ? &PendingTravelGuid : NULL,
-			NAME_None,
 			*URLMapPackageToLoadFrom,
 			FLoadPackageAsyncDelegate::CreateRaw(this, &FSeamlessTravelHandler::SeamlessTravelLoadCallback), 			
 			PackageFlags,

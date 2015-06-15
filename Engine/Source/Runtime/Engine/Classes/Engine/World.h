@@ -2420,9 +2420,19 @@ public:
 	 * on all async operation like updating components.
 	 *
 	 * @param FlushType					Whether to only flush level visibility operations (optional)
+	 */
+	void FlushLevelStreaming(EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full);
+
+	/**
+	 * [Deprecated] Flushes level streaming in blocking fashion and returns when all levels are loaded/ visible/ hidden
+	 * so further calls to UpdateLevelStreaming won't do any work unless state changes. Basically blocks
+	 * on all async operation like updating components.
+	 *
+	 * @param FlushType					Whether to only flush level visibility operations
 	 * @param ExcludeType				Exclude packages of this type from flushing
 	 */
-	void FlushLevelStreaming(EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None);
+	DEPRECATED(4.9, "FlushLevelStreaming override that takes ExcludeType parameter is deprecated.")
+	void FlushLevelStreaming(EFlushLevelStreamingType FlushType, FName ExcludeType);
 
 	/**
 	 * Triggers a call to ULevel::BuildStreamingData(this,NULL,NULL) within a few seconds.

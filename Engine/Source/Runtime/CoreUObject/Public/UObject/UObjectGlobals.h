@@ -281,7 +281,7 @@ namespace EAsyncLoadingResult
 DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/, EAsyncLoadingResult::Type /*Result*/)
 
 /**
- * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
+ * [Deprecated] Asynchronously load a package and all contained objects that match context flags. Non- blocking.
  *
  * @param	InName					Name of package to load
  * @param	InGuid					GUID of the package to load, or NULL for "don't care"
@@ -292,7 +292,21 @@ DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageNa
  * @param	InPIEInstanceID			PIE instance ID
  * @param	InPackagePriority		Loading priority
  */
-COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, FName InType = NAME_None, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
+DEPRECATED(4.9, "LoadPackageAsync override that takes package type parameter FName InType is deprecated.")
+COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
+
+/**
+* Asynchronously load a package and all contained objects that match context flags. Non- blocking.
+*
+* @param	InName					Name of package to load
+* @param	InGuid					GUID of the package to load, or NULL for "don't care"
+* @param	InPackageToLoadFrom		If non-null, this is another package name. We load from this package name, into a (probably new) package named PackageName
+* @param	InCompletionDelegate	Delegate to be invoked when the packages has finished streaming
+* @param	InFlags					Package flags
+* @param	InPIEInstanceID			PIE instance ID
+* @param	InPackagePriority		Loading priority
+*/
+COREUOBJECT_API void LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
 
 /**
 * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -392,12 +406,19 @@ COREUOBJECT_API FName MakeObjectNameFromActorLabel( const FString& InActorLabel,
  * @return true if object is referenced, false otherwise
  */
 COREUOBJECT_API bool IsReferenced( UObject*& Res, EObjectFlags KeepFlags, bool bCheckSubObjects = false, FReferencerInformationList* FoundReferences = NULL );
+
 /**
  * Blocks till all pending package/ linker requests are fulfilled.
- *
- * @param	ExcludeType		Do not flush packages associated with this specific type name
  */
-COREUOBJECT_API void FlushAsyncLoading( FName ExcludeType = NAME_None );
+COREUOBJECT_API void FlushAsyncLoading();
+
+/**
+* [Deprecated] Blocks till all pending package/ linker requests are fulfilled.
+*
+* @param	ExcludeType		Do not flush packages associated with this specific type name
+*/
+DEPRECATED(4.9, "FlushAsyncLoading override that takes package type parameter FName ExcludeType is deprecated.")
+COREUOBJECT_API void FlushAsyncLoading(FName ExcludeType);
 
 /**
  * @return number of active async load package requests
@@ -433,10 +454,9 @@ namespace EAsyncPackageState
  * @param	bUseTimeLimit	Whether to use a time limit
  * @param	bUseFullTimeLimit	If true, use the entire time limit even if blocked on I/O
  * @param	TimeLimit		Soft limit of time this function is allowed to consume
- * @param	ExcludeType		Do not process packages associated with this specific type name
  * @return The minimum state of any of the queued packages.
  */
-COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
+COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit);
 COREUOBJECT_API void BeginLoad();
 COREUOBJECT_API void EndLoad();
 

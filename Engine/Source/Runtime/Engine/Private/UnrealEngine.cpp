@@ -10040,7 +10040,7 @@ void UEngine::ConditionalCommitMapChange(FWorldContext &Context)
 		// Block on remaining async data.
 		if( !IsReadyForMapChange(Context) )
 		{
-			FlushAsyncLoading( NAME_None );
+			FlushAsyncLoading();
 			check( IsReadyForMapChange(Context) );
 		}
 		
