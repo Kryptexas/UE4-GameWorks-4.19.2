@@ -303,7 +303,8 @@ FText SAssetPicker::GetHighlightedText() const
 
 void SAssetPicker::SetSearchBoxText(const FText& InSearchText)
 {
-	if ( !InSearchText.EqualToCaseIgnored(TextFilter->GetRawFilterText()) )
+	// Has anything changed? (need to test case as the operators are case-sensitive)
+	if (!InSearchText.ToString().Equals(TextFilter->GetRawFilterText().ToString(), ESearchCase::CaseSensitive))
 	{
 		TextFilter->SetRawFilterText(InSearchText);
 		if (InSearchText.IsEmpty())

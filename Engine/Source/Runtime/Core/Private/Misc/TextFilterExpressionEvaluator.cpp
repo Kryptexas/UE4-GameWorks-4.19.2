@@ -407,19 +407,16 @@ bool FTextFilterExpressionEvaluator::SetFilterText(const FText& InFilterText)
 	using namespace TextFilterExpressionParser;
 	using TextFilterExpressionParser::FTextToken;
 
-	// Sanitize the new string
-	const FText NewText = FText::TrimPrecedingAndTrailing(InFilterText);
-
-	// Has anything changed?
-	if (NewText.EqualTo(FilterText))
+	// Has anything changed? (need to test case as the operators are case-sensitive)
+	if (FilterText.ToString().Equals(InFilterText.ToString(), ESearchCase::CaseSensitive))
 	{
 		return false;
 	}
 
 	FilterType = ETextFilterExpressionType::Invalid;
-	FilterText = NewText;
+	FilterText = InFilterText;
 
-	if (FilterText.IsEmpty())
+	if (FilterText.IsEmptyOrWhitespace())
 	{
 		// If the filter is empty, just clear out the compiled filter so we match everything
 		FilterType = ETextFilterExpressionType::Empty;
@@ -429,7 +426,7 @@ bool FTextFilterExpressionEvaluator::SetFilterText(const FText& InFilterText)
 	else
 	{
 		// Otherwise, re-parse the filter text into a compiled expression
-		auto LexResult = ExpressionParser::Lex(*NewText.ToString(), TokenDefinitions);
+		auto LexResult = ExpressionParser::Lex(*FilterText.ToString(), TokenDefinitions);
 		if (LexResult.IsValid())
 		{
 			auto& TmpLexTokens = LexResult.GetValue();
