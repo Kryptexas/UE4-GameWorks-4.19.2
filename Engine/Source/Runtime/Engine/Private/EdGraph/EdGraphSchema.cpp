@@ -509,7 +509,7 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	else
 	{
 		ResultPinName = Pin->PinFriendlyName;
-		bool bShowNodesAndPinsUnlocalized;
+		bool bShowNodesAndPinsUnlocalized = false;
 		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
 		if (bShowNodesAndPinsUnlocalized)
 		{
