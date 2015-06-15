@@ -192,19 +192,7 @@ public:
 	 * @param true if the property is a ClassType
 	 */
 	bool IsPropertyTypeOf( UClass* ClassType ) const ;
-
-
-	/**
-	 * @return Clamps the value as a float from meta data stored on the property
-	 */
-	float ClampFloatValueFromMetaData( float InValue ) const ;
-
-	/**
-	 * @return Clamps the value as an integer from meta data stored on the property
-	 */
-	int32 ClampIntValueFromMetaData( int32 InValue ) const ;
 	
-
 	/**
 	 * @return The property node used by this value
 	 */
@@ -352,11 +340,17 @@ public:
 
 	/** IPropertyHandle interface */
 	DECLARE_PROPERTY_ACCESSOR( bool )
+	DECLARE_PROPERTY_ACCESSOR( int8 )
+	DECLARE_PROPERTY_ACCESSOR( int16)
 	DECLARE_PROPERTY_ACCESSOR( int32 )
+	DECLARE_PROPERTY_ACCESSOR( int64 )
+	DECLARE_PROPERTY_ACCESSOR( uint8 )
+	DECLARE_PROPERTY_ACCESSOR( uint16 )
+	DECLARE_PROPERTY_ACCESSOR( uint32 )
+	DECLARE_PROPERTY_ACCESSOR( uint64 )
 	DECLARE_PROPERTY_ACCESSOR( float )
 	DECLARE_PROPERTY_ACCESSOR( FString )
 	DECLARE_PROPERTY_ACCESSOR( FName )
-	DECLARE_PROPERTY_ACCESSOR( uint8 )
 	DECLARE_PROPERTY_ACCESSOR( FVector )
 	DECLARE_PROPERTY_ACCESSOR( FVector2D )
 	DECLARE_PROPERTY_ACCESSOR( FVector4 )
@@ -426,8 +420,27 @@ class FPropertyHandleInt : public FPropertyHandleBase
 public:
 	FPropertyHandleInt( TSharedRef<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities );
 	static bool Supports( TSharedRef<FPropertyNode> PropertyNode );
-	virtual FPropertyAccess::Result GetValue( int32& OutValue ) const override;
-	virtual FPropertyAccess::Result SetValue( const int32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
+
+	virtual FPropertyAccess::Result GetValue(int8& OutValue ) const override;
+	virtual FPropertyAccess::Result SetValue(const int8& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) override;
+
+	virtual FPropertyAccess::Result GetValue(int16& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const int16& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
+
+	virtual FPropertyAccess::Result GetValue(int32& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const int32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
+
+	virtual FPropertyAccess::Result GetValue(int64& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const int64& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
+
+	virtual FPropertyAccess::Result GetValue(uint16& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const uint16& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
+
+	virtual FPropertyAccess::Result GetValue(uint32& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const uint32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
+
+	virtual FPropertyAccess::Result GetValue(uint64& OutValue) const override;
+	virtual FPropertyAccess::Result SetValue(const uint64& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags) override;
 };
 
 class FPropertyHandleFloat : public FPropertyHandleBase

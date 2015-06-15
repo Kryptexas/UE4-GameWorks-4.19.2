@@ -167,10 +167,16 @@ public:
 	 * @param OutValue	The value that will be set if successful
 	 * @return The result of attempting to get the value
 	 */
-	virtual FPropertyAccess::Result GetValue( int32& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( float& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( bool& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int8& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int16& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int32& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int64& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( uint8& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( uint16& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( uint32& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( uint64& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FString& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FName& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FVector& OutValue ) const = 0;
@@ -188,10 +194,16 @@ public:
 	 * @param InValue	The value to set
 	 * @return The result of attempting to set the value
 	 */
-	virtual FPropertyAccess::Result SetValue( const int32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const float& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const bool& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int8& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int16& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int64& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const uint8& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const uint16& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const uint32& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const uint64& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FString& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FName& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FVector& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;

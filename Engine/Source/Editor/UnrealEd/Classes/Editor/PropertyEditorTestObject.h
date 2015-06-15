@@ -92,13 +92,31 @@ class UPropertyEditorTestObject : public UObject
 {
     GENERATED_UCLASS_BODY()
 
-	// Integer
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
-	int32 IntProperty32;
 
-	// Byte
-	UPROPERTY(EditAnywhere, Category=BasicProperties)
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	int8 Int8Property;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	int16 Int16roperty;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	int32 Int32Property;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	int64 Int64Property;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
 	uint8 ByteProperty;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	uint16 UnsignedInt16Property;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	uint32 UnsignedInt32Property;
+
+	UPROPERTY(EditAnywhere, Category = BasicProperties)
+	uint64 UnsignedInt64Property;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	float FloatProperty;

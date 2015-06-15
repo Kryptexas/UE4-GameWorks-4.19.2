@@ -380,7 +380,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			//make sure we got the addresses correctly
 			if (!bSuccess)
 			{
-				UE_LOG( LogPropertyNode, Log, TEXT("Object is invalid %s"), *Property->GetName() );
+				UE_LOG( LogPropertyNode, Verbose, TEXT("Object is invalid %s"), *Property->GetName() );
 				return ObjectInvalid;
 			}
 
@@ -392,7 +392,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 				//make sure the data still exists
 				if (Addr==NULL)
 				{
-					UE_LOG( LogPropertyNode, Log, TEXT("Object is invalid %s"), *Property->GetName() );
+					UE_LOG( LogPropertyNode, Verbose, TEXT("Object is invalid %s"), *Property->GetName() );
 					return ObjectInvalid;
 				}
 

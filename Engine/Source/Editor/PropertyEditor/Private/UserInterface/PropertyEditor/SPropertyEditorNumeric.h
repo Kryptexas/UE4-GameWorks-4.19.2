@@ -191,18 +191,54 @@ private:
 		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UFloatProperty::StaticClass()); } 
 	};
 
-	template<typename U> 
-	struct TTypeToProperty<int32, U> 
-	{	
-		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UIntProperty::StaticClass()); } 
+	template<typename U>
+	struct TTypeToProperty<int8, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UInt8Property::StaticClass()); }
 	};
 
-	template<typename U> 
-	struct TTypeToProperty<uint8, U> 
-	{	
-		static bool Match(const UProperty* InProperty) { return (InProperty->IsA(UByteProperty::StaticClass()) && Cast<const UByteProperty>(InProperty)->Enum == NULL); } 
+	template<typename U>
+	struct TTypeToProperty<int16, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UInt16Property::StaticClass()); }
 	};
-				
+
+	template<typename U>
+	struct TTypeToProperty<int32, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UIntProperty::StaticClass()); }
+	};
+
+	template<typename U>
+	struct TTypeToProperty<int64, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UInt64Property::StaticClass()); }
+	};
+
+	template<typename U>
+	struct TTypeToProperty<uint8, U>
+	{
+		static bool Match(const UProperty* InProperty) { return (InProperty->IsA(UByteProperty::StaticClass()) && Cast<const UByteProperty>(InProperty)->Enum == NULL); }
+	};
+
+	template<typename U>
+	struct TTypeToProperty<uint16, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UUInt16Property::StaticClass()); }
+	};
+
+	template<typename U>
+	struct TTypeToProperty<uint32, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UUInt32Property::StaticClass()); }
+	};
+
+	template<typename U>
+	struct TTypeToProperty<uint64, U>
+	{
+		static bool Match(const UProperty* InProperty) { return InProperty->IsA(UUInt64Property::StaticClass()); }
+	};
+		
 	
 	/** @return The value or unset if properties with multiple values are viewed */
 	TOptional<NumericType> OnGetValue() const

@@ -885,7 +885,7 @@ bool FPropertyValueImpl::IsPropertyTypeOf( UClass* ClassType ) const
 	return false;
 }
 
-template< typename Type >
+template< typename Type>
 static Type ClampValueFromMetaData(Type InValue, FPropertyNode& InPropertyNode )
 {
 	UProperty* Property = InPropertyNode.GetProperty();
@@ -911,64 +911,51 @@ static Type ClampValueFromMetaData(Type InValue, FPropertyNode& InPropertyNode )
 			TTypeFromString<Type>::FromString(MaxValue, *MaxString);
 			RetVal = FMath::Min<Type>(MaxValue, RetVal);
 		}
+	}
 
-		const bool bIsInteger = Property->IsA(UIntProperty::StaticClass());
-		const bool bIsNonEnumByte = (Property->IsA(UByteProperty::StaticClass()) && Cast<const UByteProperty>(Property)->Enum == NULL);
+	return RetVal;
+}
 
-		if(bIsInteger || bIsNonEnumByte)
+template <typename Type>
+static Type ClampIntegerValueFromMetaData(Type InValue, FPropertyNode& InPropertyNode )
+{
+	Type RetVal = ClampValueFromMetaData<Type>( InValue, InPropertyNode );
+
+	UProperty* Property = InPropertyNode.GetProperty();
+
+
+	//if there is "Multiple" meta data, the selected number is a multiple
+	const FString& MultipleString = Property->GetMetaData(TEXT("Multiple"));
+	if (MultipleString.Len())
+	{
+		check(MultipleString.IsNumeric());
+		Type MultipleValue;
+		TTypeFromString<Type>::FromString(MultipleValue, *MultipleString);
+		if (MultipleValue != 0)
 		{
-			//if there is "Multiple" meta data, the selected number is a multiple
-			const FString& MultipleString = Property->GetMetaData(TEXT("Multiple"));
-			if(MultipleString.Len())
-			{
-				check(MultipleString.IsNumeric());
-				int32 MultipleValue = FCString::Atoi(*MultipleString);
-				if(MultipleValue!=0)
-				{
-					RetVal -= int32(RetVal)%MultipleValue;
-				}
-			}
+			RetVal -= Type(RetVal) % MultipleValue;
+		}
+	}
 
-			//enforce array bounds
-			const FString& ArrayClampString = Property->GetMetaData(TEXT("ArrayClamp"));
-			if(ArrayClampString.Len())
-			{
-				FObjectPropertyNode* ObjectPropertyNode = InPropertyNode.FindObjectItemParent();
-				if(ObjectPropertyNode && ObjectPropertyNode->GetNumObjects() == 1)
-				{
-					int32 LastValidIndex = GetArrayPropertyLastValidIndex(ObjectPropertyNode, ArrayClampString);
-					RetVal = FMath::Clamp<int32>(RetVal, 0, LastValidIndex);
-				}
-				else
-				{
-					UE_LOG(LogPropertyNode, Warning, TEXT("Array Clamping isn't supported in multi-select (Param Name: %s)"), *Property->GetName());
-				}
-			}
+	//enforce array bounds
+	const FString& ArrayClampString = Property->GetMetaData(TEXT("ArrayClamp"));
+	if (ArrayClampString.Len())
+	{
+		FObjectPropertyNode* ObjectPropertyNode = InPropertyNode.FindObjectItemParent();
+		if (ObjectPropertyNode && ObjectPropertyNode->GetNumObjects() == 1)
+		{
+			Type LastValidIndex = GetArrayPropertyLastValidIndex(ObjectPropertyNode, ArrayClampString);
+			RetVal = FMath::Clamp<Type>(RetVal, 0, LastValidIndex);
+		}
+		else
+		{
+			UE_LOG(LogPropertyNode, Warning, TEXT("Array Clamping isn't supported in multi-select (Param Name: %s)"), *Property->GetName());
 		}
 	}
 
 	return RetVal;
 }
 
-float FPropertyValueImpl::ClampFloatValueFromMetaData( float InValue ) const
-{
-	if( PropertyNode.IsValid() )
-	{
-		return ClampValueFromMetaData<float>( InValue, *PropertyNode.Pin() );
-	}
-
-	return InValue;
-}
-
-int32 FPropertyValueImpl::ClampIntValueFromMetaData( int32 InValue ) const
-{
-	if( PropertyNode.IsValid() )
-	{
-		return ClampValueFromMetaData<int32>( InValue, *PropertyNode.Pin() );
-	}
-
-	return InValue;
-}
 
 int32 FPropertyValueImpl::GetNumChildren() const
 {
@@ -1462,11 +1449,17 @@ FText FPropertyValueImpl::GetDisplayName() const
 	}
 
 IMPLEMENT_PROPERTY_ACCESSOR( bool )
+IMPLEMENT_PROPERTY_ACCESSOR( int8 )
+IMPLEMENT_PROPERTY_ACCESSOR( int16 )
 IMPLEMENT_PROPERTY_ACCESSOR( int32 )
+IMPLEMENT_PROPERTY_ACCESSOR( int64 )
+IMPLEMENT_PROPERTY_ACCESSOR( uint8 )
+IMPLEMENT_PROPERTY_ACCESSOR( uint16 )
+IMPLEMENT_PROPERTY_ACCESSOR( uint32 )
+IMPLEMENT_PROPERTY_ACCESSOR( uint64 )
 IMPLEMENT_PROPERTY_ACCESSOR( float )
 IMPLEMENT_PROPERTY_ACCESSOR( FString )
 IMPLEMENT_PROPERTY_ACCESSOR( FName )
-IMPLEMENT_PROPERTY_ACCESSOR( uint8 )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector2D )
 IMPLEMENT_PROPERTY_ACCESSOR( FVector4 )
@@ -2075,54 +2068,201 @@ bool FPropertyHandleInt::Supports( TSharedRef<FPropertyNode> PropertyNode )
 		return false;
 	}
 
-	const bool bIsInteger = Property->IsA(UIntProperty::StaticClass());
+	const bool bIsInteger = 
+			Property->IsA<UInt8Property>()
+		||	Property->IsA<UInt16Property>()
+		||  Property->IsA<UIntProperty>()
+		||	Property->IsA<UInt64Property>()
+		||  Property->IsA<UUInt16Property>()
+		||  Property->IsA<UUInt32Property>()
+		||  Property->IsA<UUInt64Property>();
+
 	// The value is an integer
 	return bIsInteger;
 }
 
-FPropertyAccess::Result FPropertyHandleInt::GetValue( int32& OutValue ) const
+template <typename PropertyClass, typename ValueType>
+ValueType GetIntegerValue(void* PropValue, FPropertyValueImpl& Implementation )
+{
+	check( Implementation.IsPropertyTypeOf( PropertyClass::StaticClass() ) );
+	return Implementation.GetPropertyValue<PropertyClass>(PropValue);
+}
+
+FPropertyAccess::Result FPropertyHandleInt::GetValue(int8& OutValue) const
+{
+	void* PropValue = NULL;
+	FPropertyAccess::Result Res = Implementation->GetValueData(PropValue);
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = GetIntegerValue<UInt8Property, int8>(PropValue, *Implementation);
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::GetValue(int16& OutValue) const
+{
+	void* PropValue = NULL;
+	FPropertyAccess::Result Res = Implementation->GetValueData(PropValue);
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = GetIntegerValue<UInt16Property, int16>(PropValue, *Implementation);
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::GetValue(int32& OutValue) const
+{
+	void* PropValue = NULL;
+	FPropertyAccess::Result Res = Implementation->GetValueData(PropValue);
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = GetIntegerValue<UIntProperty, int32>(PropValue, *Implementation);
+	}
+
+	return Res;
+}
+FPropertyAccess::Result FPropertyHandleInt::GetValue( int64& OutValue ) const
 {
 	void* PropValue = NULL;
 	FPropertyAccess::Result Res = Implementation->GetValueData( PropValue );
 
 	if( Res == FPropertyAccess::Success )
 	{
-		if( Implementation->IsPropertyTypeOf( UInt8Property::StaticClass() ) )
-		{
-			OutValue = Implementation->GetPropertyValue<UInt8Property>(PropValue);
-		}
-		else if( Implementation->IsPropertyTypeOf( UInt16Property::StaticClass() ) )
-		{
-			OutValue = Implementation->GetPropertyValue<UInt16Property>(PropValue);
-		}
-		else if( Implementation->IsPropertyTypeOf( UUInt16Property::StaticClass() ) )
-		{
-			OutValue = Implementation->GetPropertyValue<UUInt16Property>(PropValue);
-		}
-		else
-		{
-			//@todo need to handle all integer types. Also, this should be a template so we don't need a bunch of if statements
-			check(Implementation->IsPropertyTypeOf( UIntProperty::StaticClass() ));
-			OutValue = Implementation->GetPropertyValue<UIntProperty>(PropValue);
-		}
+		OutValue = GetIntegerValue<UInt64Property,int64>(PropValue, *Implementation);
 	}
 
 	return Res;
 }
 
+FPropertyAccess::Result FPropertyHandleInt::GetValue(uint16& OutValue) const
+{
+	void* PropValue = NULL;
+	FPropertyAccess::Result Res = Implementation->GetValueData(PropValue);
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = GetIntegerValue<UUInt16Property, uint16>(PropValue, *Implementation);
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::GetValue(uint32& OutValue) const
+{
+	void* PropValue = NULL;
+	FPropertyAccess::Result Res = Implementation->GetValueData(PropValue);
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = GetIntegerValue<UUInt32Property, uint32>(PropValue, *Implementation);
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::GetValue(uint64& OutValue) const
+{
+	void* PropValue = NULL;
+	FPropertyAccess::Result Res = Implementation->GetValueData(PropValue);
+
+	if (Res == FPropertyAccess::Success)
+	{
+		OutValue = GetIntegerValue<UUInt64Property, uint64>(PropValue, *Implementation);
+	}
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::SetValue(const int8& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FPropertyAccess::Result Res;
+	// Clamp the value from any meta data ranges stored on the property value
+	int8 FinalValue = ClampIntegerValueFromMetaData<int8>( NewValue, *Implementation->GetPropertyNode() );
+
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
+	Res = Implementation->ImportText(ValueStr, Flags);
+
+	return Res;
+}
+
+
+FPropertyAccess::Result FPropertyHandleInt::SetValue(const int16& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FPropertyAccess::Result Res;
+	// Clamp the value from any meta data ranges stored on the property value
+	int16 FinalValue = ClampIntegerValueFromMetaData<int16>(NewValue, *Implementation->GetPropertyNode());
+
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
+	Res = Implementation->ImportText(ValueStr, Flags);
+
+	return Res;
+}
+
+
 FPropertyAccess::Result FPropertyHandleInt::SetValue( const int32& NewValue, EPropertyValueSetFlags::Type Flags )
 {
 	FPropertyAccess::Result Res;
 	// Clamp the value from any meta data ranges stored on the property value
-	int32 FinalValue = Implementation->ClampIntValueFromMetaData( NewValue );
+	int32 FinalValue = ClampIntegerValueFromMetaData<int32>( NewValue, *Implementation->GetPropertyNode() );
 
-	//@todo this doesn't handle all int types
-	const FString ValueStr = FString::Printf( TEXT("%i"), FinalValue );
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
 	Res = Implementation->ImportText( ValueStr, Flags );
 
 	return Res;
 }
 
+FPropertyAccess::Result FPropertyHandleInt::SetValue(const int64& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FPropertyAccess::Result Res;
+
+	// Clamp the value from any meta data ranges stored on the property value
+	int64 FinalValue = ClampIntegerValueFromMetaData<int64>(NewValue, *Implementation->GetPropertyNode());
+
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
+	Res = Implementation->ImportText(ValueStr, Flags);
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::SetValue(const uint16& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FPropertyAccess::Result Res;
+	// Clamp the value from any meta data ranges stored on the property value
+	uint16 FinalValue = ClampIntegerValueFromMetaData<uint16>(NewValue, *Implementation->GetPropertyNode());
+
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
+	Res = Implementation->ImportText(ValueStr, Flags);
+
+	return Res;
+}
+
+
+FPropertyAccess::Result FPropertyHandleInt::SetValue(const uint32& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FPropertyAccess::Result Res;
+	// Clamp the value from any meta data ranges stored on the property value
+	uint32 FinalValue = ClampIntegerValueFromMetaData<uint32>(NewValue, *Implementation->GetPropertyNode());
+
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
+	Res = Implementation->ImportText(ValueStr, Flags);
+
+	return Res;
+}
+
+FPropertyAccess::Result FPropertyHandleInt::SetValue(const uint64& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	FPropertyAccess::Result Res;
+	// Clamp the value from any meta data ranges stored on the property value
+	uint64 FinalValue = ClampIntegerValueFromMetaData<uint64>(NewValue, *Implementation->GetPropertyNode());
+
+	const FString ValueStr = LexicalConversion::ToString(FinalValue);
+	Res = Implementation->ImportText(ValueStr, Flags);
+	return Res;
+}
 
 // float
 bool FPropertyHandleFloat::Supports( TSharedRef<FPropertyNode> PropertyNode )
@@ -2154,7 +2294,7 @@ FPropertyAccess::Result FPropertyHandleFloat::SetValue( const float& NewValue, E
 {
 	FPropertyAccess::Result Res;
 	// Clamp the value from any meta data ranges stored on the property value
-	float FinalValue = Implementation->ClampFloatValueFromMetaData( NewValue );
+	float FinalValue = ClampValueFromMetaData<float>( NewValue, *Implementation->GetPropertyNode() );
 
 	const FString ValueStr = FString::Printf( TEXT("%f"), FinalValue );
 	Res = Implementation->ImportText( ValueStr, Flags );
