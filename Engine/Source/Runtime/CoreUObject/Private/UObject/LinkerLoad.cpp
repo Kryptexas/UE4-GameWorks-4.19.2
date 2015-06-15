@@ -4688,8 +4688,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupExportMap()
 	}
 }
 
-void FLinkerLoad::InitLinkers()
+void FLinkerLoad::FlushCache()
 {
+	if (Loader)
+	{
+		Loader->FlushCache();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

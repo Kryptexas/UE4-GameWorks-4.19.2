@@ -1281,9 +1281,6 @@ class FLinkerLoad : public FLinker, public FArchiveUObject
 	// Variables.
 public:
 
-	/** Initialize everything related to linkers */
-	static void InitLinkers();
-
 	FORCEINLINE static ELinkerType::Type StaticType()
 	{
 		return ELinkerType::Load;
@@ -1509,6 +1506,9 @@ public:
 	 * If this archive is a FLinkerLoad or FLinkerSave, returns a pointer to the FLinker portion.
 	 */
 	virtual FLinker* GetLinker() override { return this; }
+
+	/** Flush Loader Cache */
+	virtual void FlushCache() override;
 
 	/**
 	 * Creates and returns a FLinkerLoad object.
