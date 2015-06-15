@@ -10,6 +10,7 @@
 #include "BlueprintEditorUtils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "DiffResults.h"
+#include "MathExpressionHandler.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -2432,6 +2433,12 @@ void UK2Node_MathExpression::GetMenuActions(FBlueprintActionDatabaseRegistrar& A
 
 		ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 	}
+}
+
+//------------------------------------------------------------------------------
+FNodeHandlingFunctor* UK2Node_MathExpression::CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const
+{
+	return new FKCHandler_MathExpression(CompilerContext);
 }
 
 //------------------------------------------------------------------------------

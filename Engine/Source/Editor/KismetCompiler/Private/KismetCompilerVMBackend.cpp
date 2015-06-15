@@ -667,7 +667,7 @@ public:
 		Writer << EX_EndStructConst;
 	}
 
-	void EmitFunctionCall(FKismetCompilerContext& CompilerContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+	void EmitFunctionCall(FKismetCompilerContext& CompilerContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement, UEdGraphNode* SourceNode)
 	{
 		UFunction* FunctionToCall = Statement.FunctionToCall;
 		check(FunctionToCall);
@@ -729,7 +729,10 @@ public:
 			UProperty* FuncParamProperty = *PropIt;
 			if (FuncParamProperty->HasAnyPropertyFlags(CPF_ReturnParm))
 			{
-				EmitDestinationExpression(Statement.LHS);
+				if (Statement.LHS)
+				{
+					EmitDestinationExpression(Statement.LHS);
+				}
 				bHasOutputValue = true;
 			}
 			else if (FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm) && !FuncParamProperty->HasAnyPropertyFlags(CPF_ConstParm))
@@ -808,8 +811,18 @@ public:
  				}
 				else
 				{
-					// Emit parameter term normally
-					EmitTerm(Term, FuncParamProperty);
+					if (Term->InlineGeneratedParameter)
+					{
+						ensure(!Term->InlineGeneratedParameter->bIsJumpTarget);
+						ensure(Term->InlineGeneratedParameter->Type == KCST_CallFunction);
+
+						GenerateCodeForStatement(CompilerContext, FunctionContext, *Term->InlineGeneratedParameter, SourceNode);
+					}
+					else
+					{
+						// Emit parameter term normally
+						EmitTerm(Term, FuncParamProperty);
+					}
 				}
 
 
@@ -1314,7 +1327,7 @@ public:
 			Writer << ((Statement.Type == KCST_DebugSite) ? EX_Tracepoint : EX_WireTracepoint);
 			break;
 		case KCST_CallFunction:
-			EmitFunctionCall(CompilerContext, FunctionContext, Statement);
+			EmitFunctionCall(CompilerContext, FunctionContext, Statement, SourceNode);
 			break;
 		case KCST_CallDelegate:
 			EmitCallDelegate(Statement);

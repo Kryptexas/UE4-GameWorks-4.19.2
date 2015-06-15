@@ -36,11 +36,14 @@ public:
 	virtual void PostPlacedNewNode() override;
 	virtual void ReconstructNode() override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  override;
+	virtual bool ShouldMergeChildGraphs() const override { return false; }
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
+	virtual bool IsNodePure() const { return true; }
 	// End of UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface

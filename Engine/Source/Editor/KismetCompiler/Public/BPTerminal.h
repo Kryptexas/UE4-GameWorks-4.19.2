@@ -4,6 +4,8 @@
 
 //////////////////////////////////////////////////////////////////////////
 
+struct FBlueprintCompiledStatement;
+
 /** A terminal in the graph (literal or variable reference) */
 struct FBPTerminal
 {
@@ -35,6 +37,9 @@ struct FBPTerminal
 	/** String representation of the default value of the property associated with this term (or path to object) */
 	FString PropertyDefault;
 
+	/** Used for MathExpression optimization. The parameter will be filled directly by a result of a function called inline. No local variable is necessary to pass the value. */
+	FBlueprintCompiledStatement* InlineGeneratedParameter;
+
 	FBPTerminal()
 		: bIsLiteral(false)
 		, bIsLocal(false)
@@ -42,10 +47,11 @@ struct FBPTerminal
 		, bIsSavePersistent(false)
 		, bIsStructContext(false)
 		, bPassedByReference(false)
-		, Source(NULL)
-		, Context(NULL)
-		, AssociatedVarProperty(NULL)
-		, ObjectLiteral(NULL)
+		, Source(nullptr)
+		, Context(nullptr)
+		, AssociatedVarProperty(nullptr)
+		, ObjectLiteral(nullptr)
+		, InlineGeneratedParameter(nullptr)
 	{
 	}
 
