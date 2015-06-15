@@ -2823,6 +2823,12 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 	// Collapse any remaining tunnels
 	for (TArray<UEdGraphNode*>::TIterator NodeIt(SourceGraph->Nodes); NodeIt; ++NodeIt)
 	{
+		UEdGraphNode* CurrentNode = *NodeIt;
+		if (!CurrentNode || !CurrentNode->ShouldMergeChildGraphs())
+		{
+			continue;
+		}
+
 		if (UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(*NodeIt))
 		{
 			UEdGraph* MacroGraph = MacroInstanceNode->GetMacroGraph();

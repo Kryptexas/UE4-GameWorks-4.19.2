@@ -436,6 +436,9 @@ public:
 
 	/** Return the matching "pass-through" pin for the given pin (if supported by this node) */
 	virtual UEdGraphPin* GetPassThroughPin(const UEdGraphPin* FromPin) const { return nullptr; }
+
+	/** If the node has a subgraph, should they be merged into the main graph? */
+	virtual bool ShouldMergeChildGraphs() const { return true; }
 #endif // WITH_EDITOR
 
 };

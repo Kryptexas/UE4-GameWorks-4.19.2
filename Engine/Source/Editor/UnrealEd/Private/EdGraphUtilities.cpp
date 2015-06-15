@@ -218,9 +218,13 @@ void FEdGraphUtilities::MergeChildrenGraphsIn(UEdGraph* MergeTarget, UEdGraph* P
 	{
 		UEdGraph* ChildGraph = ParentGraph->SubGraphs[Index];
 
+		auto NodeOwner = Cast<const UEdGraphNode>(ChildGraph->GetOuter());
+		const bool bNonVirtualGraph = NodeOwner ? NodeOwner->ShouldMergeChildGraphs() : true;
+
 		// Only merge children in with the same schema as the parent
 		const bool bSchemaMatches = ChildGraph->GetSchema()->GetClass()->IsChildOf(MergeTarget->GetSchema()->GetClass());
-		if (!bRequireSchemaMatch || bSchemaMatches)
+		const bool bDoMerge = bNonVirtualGraph && (!bRequireSchemaMatch || bSchemaMatches);
+		if (bDoMerge)
 		{
 			// Even if we don't require a match to recurse, we do to actually copy the nodes
 			if (bSchemaMatches)
