@@ -1,8 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2584537
+Availability:Public
 Title:Samsung Gear VR のデバッグ方法
-Crumbs:%ROOT%, Platforms
 Description:Gear VR ヘッドセット用アプリケーションのデバッグ方法
 Navigation:platform
+Crumbs:
 Platform:Gear VR
 Related:Platforms/Mobile/Performance
 Related:Engine/Performance
@@ -109,6 +110,7 @@ Android の公式文書に [Logcat](http://developer.android.com/tools/help/logc
 	![](T_Windows_CMD.png)
 
 1. **ADB Devices** をコマンドライン ウィンドウに入力して PC でスマートフォンが見えることを確認します。それから **Enter** キーを押して PC に付随しているディスプレイ デバイスを表示させます。
+
 	![](T_Windows_ADB_Devices.png)
 
 	[region:tip]
@@ -166,7 +168,8 @@ Wifi で接続すればプロジェクトのデプロイも可能ですが、USB
 	![](T_Windows_CMD.png)
 
 1. 以下のコマンドを入力して、スマートフォンの IP アドレスを確認し、必ず書き留めておいてください。使用する IP アドレスは、 **inet** の後の部分になります。
-	adb shell ip -f inet addr show wlan0
+
+		adb shell ip -f inet addr show wlan0
 
 	![](T_ADB_Phone_IP.png)
 
@@ -178,7 +181,7 @@ Wifi で接続すればプロジェクトのデプロイも可能ですが、USB
 
 1. ポートの設定が完了したら、次はスマートフォンを接続します。以下のコマンドを入力して [Enter] キーを押します。
 
-	adb connect 10.3.31.133 - デバイスの IP アドレスに変更してください。
+		adb connect 10.3.31.133 - デバイスの IP アドレスに変更してください。
 
 1. **connected to** というメッセージと自分のデバイスの IP アドレスが表示されているはずです。
 
