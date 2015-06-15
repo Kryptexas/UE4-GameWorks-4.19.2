@@ -12,6 +12,20 @@ enum EFBXNormalImportMethod
 	FBXNIM_MAX,
 };
 
+UENUM()
+namespace EFBXNormalGenerationMethod
+{
+	enum Type
+	{
+		/** Use the legacy built in method to generate normals (faster in some cases) */
+		BuiltIn,
+		/** Use MikkTSpace to generate normals and tangents */
+		MikkTSpace,
+		MAX,
+	};
+}
+
+
 /**
  * Import data and options used when importing any mesh from FBX
  */
@@ -27,6 +41,10 @@ class UFbxMeshImportData : public UFbxAssetImportData
 	/** Enabling this option will read the tangents(tangent,binormal,normal) from FBX file instead of generating them automatically. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=ImportSettings, meta=(ImportType="Mesh"))
 	TEnumAsByte<enum EFBXNormalImportMethod> NormalImportMethod;
+
+	/** Use the MikkTSpace tangent space generator for generating normals and tangents on the mesh */
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = ImportSettings, meta = (ImportType="StaticMesh"))
+	TEnumAsByte<enum EFBXNormalGenerationMethod::Type> NormalGenerationMethod;
 
 	bool CanEditChange( const UProperty* InProperty ) const override;
 };

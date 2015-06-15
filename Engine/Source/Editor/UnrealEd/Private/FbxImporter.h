@@ -118,6 +118,7 @@ struct FBXImportOptions
 	FRotator ImportRotation;
 	float ImportUniformScale;
 	EFBXNormalImportMethod NormalImportMethod;
+	EFBXNormalGenerationMethod::Type NormalGenerationMethod;
 	// Static Mesh options
 	bool bCombineToSingle;
 	EVertexColorImportOption::Type VertexColorImportOption;
@@ -126,6 +127,7 @@ struct FBXImportOptions
 	bool bGenerateLightmapUVs;
 	bool bOneConvexHullPerUCX;
 	bool bAutoGenerateCollision;
+	
 	FName StaticMeshLODGroup;
 	// Skeletal Mesh options
 	bool bImportMorph;
