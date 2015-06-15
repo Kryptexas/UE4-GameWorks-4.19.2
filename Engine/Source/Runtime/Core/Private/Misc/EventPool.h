@@ -15,13 +15,6 @@ enum class EEventPoolTypes
 	ManualReset
 };
 
-/** Helper class used to create a new stat id for events. */
-struct FEventStats
-{
-	/** Creates a new stats id that can be used for events. */
-	CORE_API static TStatId CreateStatID();
-};
-
 /**
  * Template class for event pools.
  *
@@ -66,6 +59,8 @@ public:
 			Result = FPlatformProcess::CreateSynchEvent((PoolType == EEventPoolTypes::ManualReset));
 			PRAGMA_ENABLE_DEPRECATION_WARNINGS
 		}
+
+		Result->AdvanceStats();
 
 		check(Result);
 		return Result;

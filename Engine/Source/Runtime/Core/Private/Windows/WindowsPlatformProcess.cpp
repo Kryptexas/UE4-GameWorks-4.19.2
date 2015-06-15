@@ -977,9 +977,9 @@ bool FWindowsPlatformProcess::ResolveNetworkPath( FString InUNCPath, FString& Ou
 
 void FWindowsPlatformProcess::Sleep( float Seconds )
 {
-	SCOPE_CYCLE_COUNTER(STAT_Sleep);
+	SCOPE_CYCLE_COUNTER( STAT_Sleep );
 	FThreadIdleStats::FScopeIdle Scope;
-	SleepNoStats(Seconds);
+	SleepNoStats( Seconds );
 }
 
 void FWindowsPlatformProcess::SleepNoStats(float Seconds)
@@ -1021,10 +1021,27 @@ FEvent* FWindowsPlatformProcess::CreateSynchEvent(bool bIsManualReset)
 
 bool FEventWin::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
-	FScopeCycleCounter Counter(StatID);
-	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
-	check(Event);
-	return (WaitForSingleObject(Event, WaitTime) == WAIT_OBJECT_0);
+	WaitForStats();
+
+	SCOPE_CYCLE_COUNTER( STAT_EventWait );
+	check( Event );
+
+	FThreadIdleStats::FScopeIdle Scope( bIgnoreThreadIdleStats );
+	return (WaitForSingleObject( Event, WaitTime ) == WAIT_OBJECT_0);
+}
+
+void FEventWin::Trigger()
+{
+	TriggerForStats();
+	check( Event );
+	SetEvent( Event );
+}
+
+void FEventWin::Reset()
+{
+	ResetForStats();
+	check( Event );
+	ResetEvent( Event );
 }
 
 #include "HideWindowsPlatformTypes.h"
