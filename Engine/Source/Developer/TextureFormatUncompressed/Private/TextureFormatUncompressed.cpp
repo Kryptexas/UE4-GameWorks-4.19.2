@@ -19,7 +19,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatUncompressed, Log, All);
 	op(VU8) \
 	op(RGBA16F) \
 	op(XGXR8) \
-	op(RGBA8)
+	op(RGBA8) \
+	op(POTERROR)
 
 #define DECL_FORMAT_NAME(FormatName) static FName GTextureFormatName##FormatName = FName(TEXT(#FormatName));
 ENUM_SUPPORTED_FORMATS(DECL_FORMAT_NAME);
@@ -181,6 +182,39 @@ class FTextureFormatUncompressed : public ITextureFormat
 			OutCompressedImage.PixelFormat = PF_FloatRGBA;
 			OutCompressedImage.RawData = Image.RawData;
 
+			return true;
+		}
+		else if (BuildSettings.TextureFormatName == GTextureFormatNamePOTERROR)
+		{
+			// load the error image data we will just repeat into the texture
+			TArray<uint8> ErrorData;
+			FFileHelper::LoadFileToArray(ErrorData, TEXT("../../../Engine/Content/MobileResources/PowerOfTwoError64x64.raw"));
+
+			// set output
+			OutCompressedImage.SizeX = InImage.SizeX;
+			OutCompressedImage.SizeY = InImage.SizeY;
+			OutCompressedImage.PixelFormat = PF_B8G8R8A8;
+
+			// allocate output memory
+			check(InImage.NumSlices == 1);
+			uint32 NumTexels = InImage.SizeX * InImage.SizeY;
+			OutCompressedImage.RawData.Empty(NumTexels * 4);
+			OutCompressedImage.RawData.AddUninitialized(NumTexels * 4);
+
+			// write out texels
+			uint8* Src = ErrorData.GetData();
+			uint8* Dest = (uint8*)OutCompressedImage.RawData.GetData();
+			for (int32 Y = 0; Y < InImage.SizeY; Y++)
+			{
+				for (int32 X = 0; X < InImage.SizeX * 4; X++)
+				{
+					int32 SrcX = X & (64 * 4 - 1);
+					int32 SrcY = Y & 63;
+					Dest[Y * InImage.SizeX * 4 + X] = Src[SrcY * 64 * 4 + SrcX];
+				}
+			}
+
+			
 			return true;
 		}
 		
