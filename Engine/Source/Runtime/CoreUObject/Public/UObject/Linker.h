@@ -1303,6 +1303,8 @@ public:
 #endif // WITH_EDITOR
 	/** The archive that actually reads the raw data from disk.																*/
 	FArchive*				Loader;
+	/** The async package associated with this linker */
+	struct FAsyncPackage* AsyncRoot;
 
 	/** OldClassName to NewClassName for ImportMap */
 	static TMap<FName, FName> ObjectNameRedirects;

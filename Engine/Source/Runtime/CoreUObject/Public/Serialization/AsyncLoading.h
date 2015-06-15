@@ -19,6 +19,7 @@ struct FAsyncPackage
 	 * Constructor
 	 */
 	FAsyncPackage(const FAsyncPackageDesc& InDesc);
+	~FAsyncPackage();
 
 	/**
 	 * Ticks the async loading code.
@@ -48,6 +49,11 @@ struct FAsyncPackage
 	 * Emulates ResetLoaders for the package's Linker objects, hence deleting it. 
 	 */
 	void ResetLoader();
+
+	/**
+	* Disassociates linker from this package
+	*/
+	void DetachLinker();
 
 	/**
 	 * Returns the name of the package to load.

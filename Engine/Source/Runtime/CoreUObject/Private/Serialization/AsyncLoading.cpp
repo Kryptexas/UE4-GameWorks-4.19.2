@@ -65,6 +65,7 @@ class FAsyncObjectsReferencer : FGCObject
 	FCriticalSection ReferencedObjectsCritical;
 #endif
 
+public:
 #if !UE_BUILD_SHIPPING
 	bool Contains(UObject* InObj)
 	{
@@ -75,7 +76,6 @@ class FAsyncObjectsReferencer : FGCObject
 	}
 #endif
 
-public:
 	/** Returns the one and only instance of this object */
 	static FAsyncObjectsReferencer& Get();
 	/** FGCObject interface */
@@ -869,6 +869,11 @@ FAsyncPackage::FAsyncPackage(const FAsyncPackageDesc& InDesc)
 {
 }
 
+FAsyncPackage::~FAsyncPackage()
+{
+	DetachLinker();
+}
+
 /**
  * @return Time load begun. This is NOT the time the load was requested in the case of other pending requests.
  */
@@ -883,13 +888,22 @@ double FAsyncPackage::GetLoadStartTime() const
 void FAsyncPackage::ResetLoader()
 {
 	// Reset loader.
-	if (bLoadHasFailed)
+	if (Linker)
 	{
+		check(Linker->AsyncRoot == this || Linker->AsyncRoot == nullptr);
+		Linker->AsyncRoot = nullptr;
+		delete Linker;
 		Linker = nullptr;
 	}
-	else if (Linker)
+}
+
+void FAsyncPackage::DetachLinker()
+{	
+	if (Linker)
 	{
-		delete Linker;
+		check(bLoadHasFinished || bLoadHasFailed);
+		check(Linker->AsyncRoot == this || Linker->AsyncRoot == nullptr);
+		Linker->AsyncRoot = nullptr;
 		Linker = nullptr;
 	}
 }
@@ -1140,6 +1154,10 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 #endif
 			Linker = FLinkerLoad::CreateLinkerAsync( Package, *PackageFileName, LinkerFlags );
 		}
+
+		// Associate this async package with the linker
+		check(Linker->AsyncRoot == nullptr);
+		Linker->AsyncRoot = this;
 
 		UE_LOG(LogStreaming, Verbose, TEXT("FAsyncPackage::CreateLinker for %s finished."), *Desc.NameToLoad.ToString());
 	}
