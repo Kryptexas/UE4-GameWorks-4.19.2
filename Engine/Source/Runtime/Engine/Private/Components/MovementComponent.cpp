@@ -623,7 +623,7 @@ float UMovementComponent::SlideAlongSurface(const FVector& Delta, float Time, co
 
 	if ((SlideDelta | Delta) > 0.f)
 	{
-		const FRotator Rotation = UpdatedComponent->GetComponentRotation();
+		const FQuat Rotation = UpdatedComponent->GetComponentQuat();
 		SafeMoveUpdatedComponent(SlideDelta, Rotation, true, Hit);
 
 		const float FirstHitPercent = Hit.Time;
