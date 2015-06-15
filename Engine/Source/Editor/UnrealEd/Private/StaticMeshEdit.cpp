@@ -981,7 +981,7 @@ void RestoreExistingMeshData(struct ExistingStaticMeshData* ExistingMeshDataPtr,
 		{
 			// If we didn't import anything, always keep collision.
 			bool bKeepCollision;
-			if(!NewMesh->BodySetup)
+			if(!NewMesh->BodySetup || NewMesh->BodySetup->AggGeom.GetElementCount() == 0)
 			{
 				bKeepCollision = true;
 			}
