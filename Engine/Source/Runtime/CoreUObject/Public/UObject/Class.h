@@ -18,16 +18,6 @@ COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogClass, Log, All);
 
 struct FPropertyTag;
 
-// A specifier with optional value
-struct FPropertySpecifier
-{
-public:
-	FString Key;
-	TArray<FString> Values;
-
-	COREUOBJECT_API FString ConvertToString() const;
-};
-
 /*-----------------------------------------------------------------------------
 	FRepRecord.
 -----------------------------------------------------------------------------*/

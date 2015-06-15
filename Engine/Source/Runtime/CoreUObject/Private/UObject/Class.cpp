@@ -21,45 +21,6 @@ DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
 
 //////////////////////////////////////////////////////////////////////////
-// FPropertySpecifier
-
-FString FPropertySpecifier::ConvertToString() const
-{
-	FString Result;
-
-	// Emit the specifier key
-	Result += Key;
-
-	// Emit the values if there are any
-	if (Values.Num())
-	{
-		Result += TEXT("=");
-
-		if (Values.Num() == 1)
-		{
-			// One value goes on it's own
-			Result += Values[0];
-		}
-		else
-		{
-			// More than one value goes in parens, separated by commas
-			Result += TEXT("(");
-			for (int32 ValueIndex = 0; ValueIndex < Values.Num(); ++ValueIndex)
-			{
-				if (ValueIndex > 0)
-				{
-					Result += TEXT(", ");
-				}
-				Result += Values[ValueIndex];
-			}
-			Result += TEXT(")");
-		}
-	}
-
-	return Result;
-}
-
-//////////////////////////////////////////////////////////////////////////
 
 /**
  * Shared function called from the various InitializePrivateStaticClass functions generated my the IMPLEMENT_CLASS macro.

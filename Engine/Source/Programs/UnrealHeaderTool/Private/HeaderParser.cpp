@@ -14,6 +14,14 @@
 #include "UnitConversion.h"
 #include "GeneratedCodeVersion.h"
 
+#include "Algo/FindSortedStringCaseInsensitive.h"
+
+#include "Specifiers/CheckedMetadataSpecifiers.h"
+#include "Specifiers/FunctionSpecifiers.h"
+#include "Specifiers/InterfaceSpecifiers.h"
+#include "Specifiers/StructSpecifiers.h"
+#include "Specifiers/VariableSpecifiers.h"
+
 double GPluginOverheadTime = 0.0;
 double GHeaderCodeGenTime = 0.0;
 
@@ -176,171 +184,209 @@ namespace
 
 		for (const auto& Specifier : Specifiers)
 		{
-			if (Specifier.Key == TEXT("BlueprintNativeEvent"))
+			switch ((EFunctionSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GFunctionSpecifierStrings, ARRAY_COUNT(GFunctionSpecifierStrings)))
 			{
-				if (FuncInfo.FunctionFlags & FUNC_Net)
+				default:
 				{
-					FError::Throwf(TEXT("BlueprintNativeEvent functions cannot be replicated!") );
+					FError::Throwf(TEXT("Unknown function specifier '%s'"), *Specifier.Key);
 				}
-				else if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && !(FuncInfo.FunctionFlags & FUNC_Native) )
-				{
-					// already a BlueprintImplementableEvent
-					FError::Throwf(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
-				}
-				else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
-				{
-					FError::Throwf(TEXT("A Private function cannot be a BlueprintNativeEvent!") );
-				}
+				break;
 
-				FuncInfo.FunctionFlags |= FUNC_Event;
-				FuncInfo.FunctionFlags |= FUNC_BlueprintEvent;
-			}
-			else if (Specifier.Key == TEXT("BlueprintImplementableEvent"))
-			{
-				if (FuncInfo.FunctionFlags & FUNC_Net)
+				case EFunctionSpecifier::BlueprintNativeEvent:
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent functions cannot be replicated!") );
-				}
-				else if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native) )
-				{
-					// already a BlueprintNativeEvent
-					FError::Throwf(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
-				}
-				else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
-				{
-					FError::Throwf(TEXT("A Private function cannot be a BlueprintImplementableEvent!") );
-				}
+					if (FuncInfo.FunctionFlags & FUNC_Net)
+					{
+						FError::Throwf(TEXT("BlueprintNativeEvent functions cannot be replicated!") );
+					}
+					else if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && !(FuncInfo.FunctionFlags & FUNC_Native) )
+					{
+						// already a BlueprintImplementableEvent
+						FError::Throwf(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
+					}
+					else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
+					{
+						FError::Throwf(TEXT("A Private function cannot be a BlueprintNativeEvent!") );
+					}
 
-				FuncInfo.FunctionFlags |= FUNC_Event;
-				FuncInfo.FunctionFlags |= FUNC_BlueprintEvent;
-				FuncInfo.FunctionFlags &= ~FUNC_Native;
-			}
-			else if (Specifier.Key == TEXT("Exec"))
-			{
-				FuncInfo.FunctionFlags |= FUNC_Exec;
-				if( FuncInfo.FunctionFlags & FUNC_Net )
-				{
-					FError::Throwf(TEXT("Exec functions cannot be replicated!") );
+					FuncInfo.FunctionFlags |= FUNC_Event;
+					FuncInfo.FunctionFlags |= FUNC_BlueprintEvent;
 				}
-			}
-			else if (Specifier.Key == TEXT("SealedEvent"))
-			{
-				FuncInfo.bSealedEvent = true;
-			}
-			else if (Specifier.Key == TEXT("Server"))
-			{
-				if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+				break;
+
+				case EFunctionSpecifier::BlueprintImplementableEvent:
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Client or Server"));
+					if (FuncInfo.FunctionFlags & FUNC_Net)
+					{
+						FError::Throwf(TEXT("BlueprintImplementableEvent functions cannot be replicated!") );
+					}
+					else if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native) )
+					{
+						// already a BlueprintNativeEvent
+						FError::Throwf(TEXT("A function cannot be both BlueprintNativeEvent and BlueprintImplementableEvent!") );
+					}
+					else if ( (FuncInfo.FunctionFlags & FUNC_Private) )
+					{
+						FError::Throwf(TEXT("A Private function cannot be a BlueprintImplementableEvent!") );
+					}
+
+					FuncInfo.FunctionFlags |= FUNC_Event;
+					FuncInfo.FunctionFlags |= FUNC_BlueprintEvent;
+					FuncInfo.FunctionFlags &= ~FUNC_Native;
 				}
+				break;
 
-				FuncInfo.FunctionFlags |= FUNC_Net;
-				FuncInfo.FunctionFlags |= FUNC_NetServer;
-
-				if (Specifier.Values.Num())
+				case EFunctionSpecifier::Exec:
 				{
-					FuncInfo.CppImplName = Specifier.Values[0];
+					FuncInfo.FunctionFlags |= FUNC_Exec;
+					if( FuncInfo.FunctionFlags & FUNC_Net )
+					{
+						FError::Throwf(TEXT("Exec functions cannot be replicated!") );
+					}
 				}
+				break;
 
-				if( FuncInfo.FunctionFlags & FUNC_Exec )
+				case EFunctionSpecifier::SealedEvent:
 				{
-					FError::Throwf(TEXT("Exec functions cannot be replicated!") );
+					FuncInfo.bSealedEvent = true;
 				}
-			}
-			else if (Specifier.Key == TEXT("Client"))
-			{
-				if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+				break;
+
+				case EFunctionSpecifier::Server:
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Client or Server"));
+					if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+					{
+						FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Client or Server"));
+					}
+
+					FuncInfo.FunctionFlags |= FUNC_Net;
+					FuncInfo.FunctionFlags |= FUNC_NetServer;
+
+					if (Specifier.Values.Num())
+					{
+						FuncInfo.CppImplName = Specifier.Values[0];
+					}
+
+					if( FuncInfo.FunctionFlags & FUNC_Exec )
+					{
+						FError::Throwf(TEXT("Exec functions cannot be replicated!") );
+					}
 				}
+				break;
 
-				FuncInfo.FunctionFlags |= FUNC_Net;
-				FuncInfo.FunctionFlags |= FUNC_NetClient;
-
-				if (Specifier.Values.Num())
+				case EFunctionSpecifier::Client:
 				{
-					FuncInfo.CppImplName = Specifier.Values[0];
+					if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+					{
+						FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Client or Server"));
+					}
+
+					FuncInfo.FunctionFlags |= FUNC_Net;
+					FuncInfo.FunctionFlags |= FUNC_NetClient;
+
+					if (Specifier.Values.Num())
+					{
+						FuncInfo.CppImplName = Specifier.Values[0];
+					}
 				}
-			}
-			else if (Specifier.Key == TEXT("NetMulticast"))
-			{
-				if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+				break;
+
+				case EFunctionSpecifier::NetMulticast:
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Multicast"));
-				}
+					if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+					{
+						FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Multicast"));
+					}
 
-				FuncInfo.FunctionFlags |= FUNC_Net;
-				FuncInfo.FunctionFlags |= FUNC_NetMulticast;
-			}
-			else if (Specifier.Key == TEXT("ServiceRequest"))
-			{
-				if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+					FuncInfo.FunctionFlags |= FUNC_Net;
+					FuncInfo.FunctionFlags |= FUNC_NetMulticast;
+				}
+				break;
+
+				case EFunctionSpecifier::ServiceRequest:
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as a ServiceRequest"));
+					if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+					{
+						FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as a ServiceRequest"));
+					}
+
+					FuncInfo.FunctionFlags |= FUNC_Net;
+					FuncInfo.FunctionFlags |= FUNC_NetReliable;
+					FuncInfo.FunctionFlags |= FUNC_NetRequest;
+					FuncInfo.FunctionExportFlags |= FUNCEXPORT_CustomThunk;
+
+					ParseNetServiceIdentifiers(FuncInfo, Specifier.Values);
 				}
+				break;
 
-				FuncInfo.FunctionFlags |= FUNC_Net;
-				FuncInfo.FunctionFlags |= FUNC_NetReliable;
-				FuncInfo.FunctionFlags |= FUNC_NetRequest;
-				FuncInfo.FunctionExportFlags |= FUNCEXPORT_CustomThunk;
-
-				ParseNetServiceIdentifiers(FuncInfo, Specifier.Values);
-			}
-			else if (Specifier.Key == TEXT("ServiceResponse"))
-			{
-				if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+				case EFunctionSpecifier::ServiceResponse:
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as a ServiceResponse"));
+					if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
+					{
+						FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as a ServiceResponse"));
+					}
+
+					FuncInfo.FunctionFlags |= FUNC_Net;
+					FuncInfo.FunctionFlags |= FUNC_NetReliable;
+					FuncInfo.FunctionFlags |= FUNC_NetResponse;
+
+					ParseNetServiceIdentifiers(FuncInfo, Specifier.Values);
 				}
+				break;
 
-				FuncInfo.FunctionFlags |= FUNC_Net;
-				FuncInfo.FunctionFlags |= FUNC_NetReliable;
-				FuncInfo.FunctionFlags |= FUNC_NetResponse;
-
-				ParseNetServiceIdentifiers(FuncInfo, Specifier.Values);
-			}
-			else if (Specifier.Key == TEXT("Reliable"))
-			{
-				FuncInfo.FunctionFlags |= FUNC_NetReliable;
-			}
-			else if (Specifier.Key == TEXT("Unreliable"))
-			{
-				bSpecifiedUnreliable = true;
-			}
-			else if (Specifier.Key == TEXT("CustomThunk"))
-			{
-				FuncInfo.FunctionExportFlags |= FUNCEXPORT_CustomThunk;
-			}
-			else if (Specifier.Key == TEXT("BlueprintCallable"))
-			{
-				FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
-			}
-			else if (Specifier.Key == TEXT("BlueprintPure"))
-			{
-				// This function can be called, and is also pure.
-				FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
-				FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
-			}
-			else if (Specifier.Key == TEXT("BlueprintAuthorityOnly"))
-			{
-				FuncInfo.FunctionFlags |= FUNC_BlueprintAuthorityOnly;
-			}
-			else if (Specifier.Key == TEXT("BlueprintCosmetic"))
-			{
-				FuncInfo.FunctionFlags |= FUNC_BlueprintCosmetic;
-			}
-			else if (Specifier.Key == TEXT("WithValidation"))
-			{
-				FuncInfo.FunctionFlags |= FUNC_NetValidate;
-
-				if (Specifier.Values.Num())
+				case EFunctionSpecifier::Reliable:
 				{
-					FuncInfo.CppValidationImplName = Specifier.Values[0];
+					FuncInfo.FunctionFlags |= FUNC_NetReliable;
 				}
-			}
-			else
-			{
-				FError::Throwf(TEXT("Unknown function specifier '%s'"), *Specifier.Key);
+				break;
+
+				case EFunctionSpecifier::Unreliable:
+				{
+					bSpecifiedUnreliable = true;
+				}
+				break;
+
+				case EFunctionSpecifier::CustomThunk:
+				{
+					FuncInfo.FunctionExportFlags |= FUNCEXPORT_CustomThunk;
+				}
+				break;
+
+				case EFunctionSpecifier::BlueprintCallable:
+				{
+					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
+				}
+				break;
+
+				case EFunctionSpecifier::BlueprintPure:
+				{
+					// This function can be called, and is also pure.
+					FuncInfo.FunctionFlags |= FUNC_BlueprintCallable;
+					FuncInfo.FunctionFlags |= FUNC_BlueprintPure;
+				}
+				break;
+
+				case EFunctionSpecifier::BlueprintAuthorityOnly:
+				{
+					FuncInfo.FunctionFlags |= FUNC_BlueprintAuthorityOnly;
+				}
+				break;
+
+				case EFunctionSpecifier::BlueprintCosmetic:
+				{
+					FuncInfo.FunctionFlags |= FUNC_BlueprintCosmetic;
+				}
+				break;
+
+				case EFunctionSpecifier::WithValidation:
+				{
+					FuncInfo.FunctionFlags |= FUNC_NetValidate;
+
+					if (Specifier.Values.Num())
+					{
+						FuncInfo.CppValidationImplName = Specifier.Values[0];
+					}
+				}
+				break;
 			}
 		}
 
@@ -624,53 +670,73 @@ namespace
 	 */
 	void ValidateMetaDataFormat(UField* Field, const FString& InKey, const FString& InValue)
 	{
-		if ((InKey == TEXT("UIMin")) || (InKey == TEXT("UIMax")) || (InKey == TEXT("ClampMin")) || (InKey == TEXT("ClampMax")))
+		switch ((ECheckedMetadataSpecifier)Algo::FindSortedStringCaseInsensitive(*InKey, GCheckedMetadataSpecifierStrings, ARRAY_COUNT(GCheckedMetadataSpecifierStrings)))
 		{
-			if (!InValue.IsNumeric())
+			default:
 			{
-				FError::Throwf(TEXT("Metadata value for '%s' is non-numeric : '%s'"), *InKey, *InValue);
+				// Don't need to validate this specifier
 			}
-		}
-		else if (InKey == /*FBlueprintMetadata::MD_Protected*/ TEXT("BlueprintProtected"))
-		{
-			if (UFunction* Function = Cast<UFunction>(Field))
-			{
-				if (Function->HasAnyFunctionFlags(FUNC_Static))
-				{
-					// Determine if it's a function library
-					UClass* Class = Cast<UClass>(Function->GetOuterUClass());
-					while (Class != nullptr && Class->GetSuperClass() != UObject::StaticClass())
-					{
-						Class = Class->GetSuperClass();
-					}
+			break;
 
-					if (Class != nullptr && Class->GetName() == TEXT("BlueprintFunctionLibrary"))
+			case ECheckedMetadataSpecifier::UIMin:
+			case ECheckedMetadataSpecifier::UIMax:
+			case ECheckedMetadataSpecifier::ClampMin:
+			case ECheckedMetadataSpecifier::ClampMax:
+			{
+				if (!InValue.IsNumeric())
+				{
+					FError::Throwf(TEXT("Metadata value for '%s' is non-numeric : '%s'"), *InKey, *InValue);
+				}
+			}
+			break;
+
+			case ECheckedMetadataSpecifier::BlueprintProtected:
+			{
+				if (UFunction* Function = Cast<UFunction>(Field))
+				{
+					if (Function->HasAnyFunctionFlags(FUNC_Static))
 					{
-						FError::Throwf(TEXT("%s doesn't make sense on static method '%s' in a blueprint function library"), *InKey, *Function->GetName());
+						// Determine if it's a function library
+						UClass* Class = Cast<UClass>(Function->GetOuterUClass());
+						while (Class != nullptr && Class->GetSuperClass() != UObject::StaticClass())
+						{
+							Class = Class->GetSuperClass();
+						}
+
+						if (Class != nullptr && Class->GetName() == TEXT("BlueprintFunctionLibrary"))
+						{
+							FError::Throwf(TEXT("%s doesn't make sense on static method '%s' in a blueprint function library"), *InKey, *Function->GetName());
+						}
 					}
 				}
 			}
-		}
-		else if (InKey == TEXT("DevelopmentStatus"))
-		{
-			const FString EarlyAccessValue(TEXT("EarlyAccess"));
-			const FString ExperimentalValue(TEXT("Experimental"));
-			if ((InValue != EarlyAccessValue) && (InValue != ExperimentalValue))
+			break;
+
+			case ECheckedMetadataSpecifier::DevelopmentStatus:
 			{
-				FError::Throwf(TEXT("'%s' metadata was '%s' but it must be %s or %s"), *InKey, *InValue, *ExperimentalValue, *EarlyAccessValue);
+				const FString EarlyAccessValue(TEXT("EarlyAccess"));
+				const FString ExperimentalValue(TEXT("Experimental"));
+				if ((InValue != EarlyAccessValue) && (InValue != ExperimentalValue))
+				{
+					FError::Throwf(TEXT("'%s' metadata was '%s' but it must be %s or %s"), *InKey, *InValue, *ExperimentalValue, *EarlyAccessValue);
+				}
 			}
-		}
-		else if (InKey == TEXT("Units"))
-		{
-			// Check for numeric property
-			if (!Cast<UNumericProperty>(Field))
+			break;
+
+			case ECheckedMetadataSpecifier::Units:
 			{
-				FError::Throwf(TEXT("'Units' meta data can only be applied to numeric properties"));
+				// Check for numeric property
+				if (!Cast<UNumericProperty>(Field))
+				{
+					FError::Throwf(TEXT("'Units' meta data can only be applied to numeric properties"));
+				}
+
+				if (!FUnitConversion::UnitFromString(*InValue))
+				{
+					FError::Throwf(TEXT("Unrecognized units (%s) specified for numeric property '%s'"), *InValue, *Field->GetDisplayNameText().ToString());
+				}
 			}
-			else if (!FUnitConversion::UnitFromString(*InValue))
-			{
-				FError::Throwf(TEXT("Unrecognized units (%s) specified for numeric property '%s'"), *InValue, *Field->GetDisplayNameText().ToString());
-			}
+			break;
 		}
 	}
 
@@ -1532,32 +1598,40 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 	const FString EffectiveStructName = *StructNameStripped;
 
 	// Process the list of specifiers
-	for (TArray<FPropertySpecifier>::TIterator SpecifierIt(SpecifiersFound); SpecifierIt; ++SpecifierIt)
+	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
-		const FString& Specifier = SpecifierIt->Key;
-
-		if (Specifier == TEXT("NoExport"))
+		switch ((EStructSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GStructSpecifierStrings, ARRAY_COUNT(GStructSpecifierStrings)))
 		{
-			//UE_LOG(LogCompile, Warning, TEXT("Struct named %s in %s is still marked noexport"), *EffectiveStructName, *(Class->GetName()));//@TODO: UCREMOVAL: Debug printing
-			StructFlags &= ~STRUCT_Native;
-			StructFlags |= STRUCT_NoExport;
-		}
-		else if (Specifier == TEXT("Atomic"))
-		{
-			StructFlags |= STRUCT_Atomic;
-		}
-		else if (Specifier == TEXT("Immutable"))
-		{
-			StructFlags |= STRUCT_Immutable | STRUCT_Atomic;
-
-			if (!FPaths::IsSamePath(Filename, GTypeDefinitionInfoMap[UObject::StaticClass()]->GetUnrealSourceFile().GetFilename()))
+			default:
 			{
-				FError::Throwf(TEXT("Immutable is being phased out in favor of SerializeNative, and is only legal on the mirror structs declared in UObject"));
+				FError::Throwf(TEXT("Unknown struct specifier '%s'"), *Specifier.Key);
 			}
-		}
-		else
-		{
-			FError::Throwf(TEXT("Unknown struct specifier '%s'"), *Specifier);
+			break;
+
+			case EStructSpecifier::NoExport:
+			{
+				//UE_LOG(LogCompile, Warning, TEXT("Struct named %s in %s is still marked noexport"), *EffectiveStructName, *(Class->GetName()));//@TODO: UCREMOVAL: Debug printing
+				StructFlags &= ~STRUCT_Native;
+				StructFlags |= STRUCT_NoExport;
+			}
+			break;
+
+			case EStructSpecifier::Atomic:
+			{
+				StructFlags |= STRUCT_Atomic;
+			}
+			break;
+
+			case EStructSpecifier::Immutable:
+			{
+				StructFlags |= STRUCT_Immutable | STRUCT_Atomic;
+
+				if (!FPaths::IsSamePath(Filename, GTypeDefinitionInfoMap[UObject::StaticClass()]->GetUnrealSourceFile().GetFilename()))
+				{
+					FError::Throwf(TEXT("Immutable is being phased out in favor of SerializeNative, and is only legal on the mirror structs declared in UObject"));
+				}
+			}
+			break;
 		}
 	}
 
@@ -2528,253 +2602,329 @@ void FHeaderParser::GetVarType
 	// Process the list of specifiers
 	bool bSeenEditSpecifier = false;
 	bool bSeenBlueprintEditSpecifier = false;
-	for (TArray<FPropertySpecifier>::TIterator SpecifierIt(SpecifiersFound); SpecifierIt; ++SpecifierIt)
+	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
-		const FString& Specifier = SpecifierIt->Key;
-
+		EVariableSpecifier SpecID = (EVariableSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GVariableSpecifierStrings, ARRAY_COUNT(GVariableSpecifierStrings));
 		if (VariableCategory == EVariableCategory::Member)
 		{
-			if (Specifier == TEXT("EditAnywhere"))
+			switch (SpecID)
 			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::EditAnywhere:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit;
-				bSeenEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("EditInstanceOnly"))
-			{
-				if (bSeenEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
-				}
-				Flags |= CPF_Edit|CPF_DisableEditOnTemplate;
-				bSeenEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("EditDefaultsOnly")) 
-			{
-				if (bSeenEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
-				}
-				Flags |= CPF_Edit|CPF_DisableEditOnInstance;
-				bSeenEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("VisibleAnywhere")) 
-			{
-				if (bSeenEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
-				}
-				Flags |= CPF_Edit|CPF_EditConst;
-				bSeenEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("VisibleInstanceOnly"))
-			{
-				if (bSeenEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
-				}
-				Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnTemplate;
-				bSeenEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("VisibleDefaultsOnly"))
-			{
-				if (bSeenEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
-				}
-				Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnInstance;
-				bSeenEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("BlueprintReadWrite"))
-			{
-				if (bSeenBlueprintEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier);
-				}
+				break;
 
-				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
-				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
-				if ((CurrentAccessSpecifier == ACCESS_Private) && !bAllowPrivateAccess)
+				case EVariableSpecifier::EditInstanceOnly:
 				{
-					FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit|CPF_DisableEditOnTemplate;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_BlueprintVisible;
-				bSeenBlueprintEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("BlueprintReadOnly"))
-			{
-				if (bSeenBlueprintEditSpecifier)
-				{
-					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier);
-				}
+				break;
 
-				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
-				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
-				if ((CurrentAccessSpecifier == ACCESS_Private) && !bAllowPrivateAccess)
+				case EVariableSpecifier::EditDefaultsOnly: 
 				{
-					FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit|CPF_DisableEditOnInstance;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_BlueprintVisible|CPF_BlueprintReadOnly;
-				bSeenBlueprintEditSpecifier = true;
-			}
-			else if (Specifier == TEXT("Config"))
-			{
-				Flags |= CPF_Config;
-			}
-			else if (Specifier == TEXT("GlobalConfig"))
-			{
-				Flags |= CPF_GlobalConfig | CPF_Config;
-			}
-			else if (Specifier == TEXT("Localized"))
-			{
-				FError::Throwf(TEXT("The Localized specifier is deprecated"));
-			}
-			else if (Specifier == TEXT("Transient"))
-			{
-				Flags |= CPF_Transient;
-			}
-			else if (Specifier == TEXT("DuplicateTransient"))
-			{
-				Flags |= CPF_DuplicateTransient;
-			}
-			else if (Specifier == TEXT("TextExportTransient"))
-			{
-				Flags |= CPF_TextExportTransient;
-			}
-			else if (Specifier == TEXT("NonPIETransient"))
-			{
-				UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
-				Flags |= CPF_NonPIEDuplicateTransient;
-			}
-			else if (Specifier == TEXT("NonPIEDuplicateTransient"))
-			{
-				Flags |= CPF_NonPIEDuplicateTransient;
-			}
-			else if (Specifier == TEXT("Export"))
-			{
-				Flags |= CPF_ExportObject;
-			}
-			else if (Specifier == TEXT("EditInline"))
-			{
-				FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
-			}
-			else if (Specifier == TEXT("NoClear"))
-			{
-				Flags |= CPF_NoClear;
-			}
-			else if (Specifier == TEXT("EditFixedSize"))
-			{
-				Flags |= CPF_EditFixedSize;
-			}
-			else if (Specifier == TEXT("Replicated") || Specifier == TEXT("ReplicatedUsing"))
-			{
-				if (!OwnerStruct->IsA<UScriptStruct>())
+				break;
+
+				case EVariableSpecifier::VisibleAnywhere: 
 				{
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit|CPF_EditConst;
+					bSeenEditSpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::VisibleInstanceOnly:
+				{
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnTemplate;
+					bSeenEditSpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::VisibleDefaultsOnly:
+				{
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnInstance;
+					bSeenEditSpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintReadWrite:
+				{
+					if (bSeenBlueprintEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+
+					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
+					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
+					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+					{
+						FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
+					}
+					Flags |= CPF_BlueprintVisible;
+					bSeenBlueprintEditSpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintReadOnly:
+				{
+					if (bSeenBlueprintEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+
+					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
+					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
+					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+					{
+						FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
+					}
+					Flags |= CPF_BlueprintVisible|CPF_BlueprintReadOnly;
+					bSeenBlueprintEditSpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::Config:
+				{
+					Flags |= CPF_Config;
+				}
+				break;
+
+				case EVariableSpecifier::GlobalConfig:
+				{
+					Flags |= CPF_GlobalConfig | CPF_Config;
+				}
+				break;
+
+				case EVariableSpecifier::Localized:
+				{
+					FError::Throwf(TEXT("The Localized specifier is deprecated"));
+				}
+				break;
+
+				case EVariableSpecifier::Transient:
+				{
+					Flags |= CPF_Transient;
+				}
+				break;
+
+				case EVariableSpecifier::DuplicateTransient:
+				{
+					Flags |= CPF_DuplicateTransient;
+				}
+				break;
+
+				case EVariableSpecifier::TextExportTransient:
+				{
+					Flags |= CPF_TextExportTransient;
+				}
+				break;
+
+				case EVariableSpecifier::NonPIETransient:
+				{
+					UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
+					Flags |= CPF_NonPIEDuplicateTransient;
+				}
+				break;
+
+				case EVariableSpecifier::NonPIEDuplicateTransient:
+				{
+					Flags |= CPF_NonPIEDuplicateTransient;
+				}
+				break;
+
+				case EVariableSpecifier::Export:
+				{
+					Flags |= CPF_ExportObject;
+				}
+				break;
+
+				case EVariableSpecifier::EditInline:
+				{
+					FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
+				}
+				break;
+
+				case EVariableSpecifier::NoClear:
+				{
+					Flags |= CPF_NoClear;
+				}
+				break;
+
+				case EVariableSpecifier::EditFixedSize:
+				{
+					Flags |= CPF_EditFixedSize;
+				}
+				break;
+
+				case EVariableSpecifier::Replicated:
+				case EVariableSpecifier::ReplicatedUsing:
+				{
+					if (OwnerStruct->IsA<UScriptStruct>())
+					{
+						FError::Throwf(TEXT("Struct members cannot be replicated"));
+					}
+
 					Flags |= CPF_Net;
 
 					// See if we've specified a rep notification function
-					if (Specifier == TEXT("ReplicatedUsing"))
+					if (SpecID == EVariableSpecifier::ReplicatedUsing)
 					{
-						RepCallbackName = FName(*RequireExactlyOneSpecifierValue(*SpecifierIt));
+						RepCallbackName = FName(*RequireExactlyOneSpecifierValue(Specifier));
 						Flags |= CPF_RepNotify;
 					}
 				}
-				else
+				break;
+
+				case EVariableSpecifier::NotReplicated:
 				{
-					FError::Throwf(TEXT("Struct members cannot be replicated"));
-				}
-			}
-			else if (Specifier == TEXT("NotReplicated"))
-			{
-				if (OwnerStruct->IsA<UScriptStruct>())
-				{
+					if (!OwnerStruct->IsA<UScriptStruct>())
+					{
+						FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
+					}
+
 					Flags |= CPF_RepSkip;
 				}
-				else
+				break;
+
+				case EVariableSpecifier::RepRetry:
 				{
-					FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
+					FError::Throwf(TEXT("'RepRetry' is deprecated."));
 				}
-			}
-			else if (Specifier == TEXT("RepRetry"))
-			{
-				FError::Throwf(TEXT("'RepRetry' is deprecated."));
-			}
-			else if (Specifier == TEXT("Interp"))
-			{
-				Flags |= CPF_Edit;
-				Flags |= CPF_BlueprintVisible;
-				Flags |= CPF_Interp;
-			}
-			else if (Specifier == TEXT("NonTransactional"))
-			{
-				Flags |= CPF_NonTransactional;
-			}
-			else if (Specifier == TEXT("Instanced"))
-			{
-				Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
-				AddEditInlineMetaData(MetaDataFromNewStyle);
-			}
-			else if (Specifier == TEXT("BlueprintAssignable"))
-			{
-				Flags |= CPF_BlueprintAssignable;
-			}
-			else if (Specifier == TEXT("BlueprintCallable"))
-			{
-				Flags |= CPF_BlueprintCallable;
-			}
-			else if (Specifier == TEXT("BlueprintAuthorityOnly"))
-			{
-				Flags |= CPF_BlueprintAuthorityOnly;
-			}
-			else if (Specifier == TEXT("AssetRegistrySearchable"))
-			{
-				Flags |= CPF_AssetRegistrySearchable;
-			}
-			else if (Specifier == TEXT("SimpleDisplay"))
-			{
-				Flags |= CPF_SimpleDisplay;
-			}
-			else if (Specifier == TEXT("AdvancedDisplay"))
-			{
-				Flags |= CPF_AdvancedDisplay;
-			}
-			else if (Specifier == TEXT("SaveGame"))
-			{
-				Flags |= CPF_SaveGame;
-			}
-			else
-			{
-				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier);
+				break;
+
+				case EVariableSpecifier::Interp:
+				{
+					Flags |= CPF_Edit;
+					Flags |= CPF_BlueprintVisible;
+					Flags |= CPF_Interp;
+				}
+				break;
+
+				case EVariableSpecifier::NonTransactional:
+				{
+					Flags |= CPF_NonTransactional;
+				}
+				break;
+
+				case EVariableSpecifier::Instanced:
+				{
+					Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
+					AddEditInlineMetaData(MetaDataFromNewStyle);
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintAssignable:
+				{
+					Flags |= CPF_BlueprintAssignable;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintCallable:
+				{
+					Flags |= CPF_BlueprintCallable;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintAuthorityOnly:
+				{
+					Flags |= CPF_BlueprintAuthorityOnly;
+				}
+				break;
+
+				case EVariableSpecifier::AssetRegistrySearchable:
+				{
+					Flags |= CPF_AssetRegistrySearchable;
+				}
+				break;
+
+				case EVariableSpecifier::SimpleDisplay:
+				{
+					Flags |= CPF_SimpleDisplay;
+				}
+				break;
+
+				case EVariableSpecifier::AdvancedDisplay:
+				{
+					Flags |= CPF_AdvancedDisplay;
+				}
+				break;
+
+				case EVariableSpecifier::SaveGame:
+				{
+					Flags |= CPF_SaveGame;
+				}
+				break;
+
+				default:
+				{
+					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+				}
+				break;
 			}
 		}
 		else
 		{
-			if (Specifier == TEXT("Const"))
+			switch (SpecID)
 			{
-				Flags |= CPF_ConstParm;
-			}
-			else if (Specifier == TEXT("Ref"))
-			{
-				Flags |= CPF_OutParm | CPF_ReferenceParm;
-			}
-			else if (Specifier == TEXT("NotReplicated"))
-			{
-				if (VariableCategory == EVariableCategory::ReplicatedParameter)
+				case EVariableSpecifier::Const:
 				{
-					VariableCategory = EVariableCategory::RegularParameter;
-					Flags |= CPF_RepSkip;
+					Flags |= CPF_ConstParm;
 				}
-				else
+				break;
+
+				case EVariableSpecifier::Ref:
 				{
-					FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
+					Flags |= CPF_OutParm | CPF_ReferenceParm;
 				}
-			}
-			else
-			{
-				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier);
+				break;
+
+				case EVariableSpecifier::NotReplicated:
+				{
+					if (VariableCategory == EVariableCategory::ReplicatedParameter)
+					{
+						VariableCategory = EVariableCategory::RegularParameter;
+						Flags |= CPF_RepSkip;
+					}
+					else
+					{
+						FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
+					}
+				}
+				break;
+
+				default:
+				{
+					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+				}
+				break;
 			}
 		}
 	}
@@ -4661,25 +4811,33 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	InterfaceClass->ClassFlags |= CLASS_Native;
 
 	// Process all of the interface specifiers
-	for (TArray<FPropertySpecifier>::TIterator SpecifierIt(SpecifiersFound); SpecifierIt; ++SpecifierIt)
+	for (const FPropertySpecifier& Specifier : SpecifiersFound)
 	{
-		const FString& Specifier = SpecifierIt->Key;
+		switch ((EInterfaceSpecifier)Algo::FindSortedStringCaseInsensitive(*Specifier.Key, GInterfaceSpecifierStrings, ARRAY_COUNT(GInterfaceSpecifierStrings)))
+		{
+			default:
+			{
+				FError::Throwf(TEXT("Unknown interface specifier '%s'"), *Specifier.Key);
+			}
+			break;
 
-		if (Specifier == TEXT("DependsOn"))
-		{
-			FError::Throwf(TEXT("The dependsOn specifier is deprecated. Please use #include \"ClassHeaderFilename.h\" instead."));
-		}
-		else if (Specifier == TEXT("MinimalAPI"))
-		{
-			InterfaceClass->ClassFlags |= CLASS_MinimalAPI;
-		}
-		else if (Specifier == TEXT("ConversionRoot"))
-		{
-			MetaData.Add(FName(TEXT("IsConversionRoot")), "true");
-		}
-		else
-		{
-			FError::Throwf(TEXT("Unknown interface specifier '%s'"), *Specifier);
+			case EInterfaceSpecifier::DependsOn:
+			{
+				FError::Throwf(TEXT("The dependsOn specifier is deprecated. Please use #include \"ClassHeaderFilename.h\" instead."));
+			}
+			break;
+
+			case EInterfaceSpecifier::MinimalAPI:
+			{
+				InterfaceClass->ClassFlags |= CLASS_MinimalAPI;
+			}
+			break;
+
+			case EInterfaceSpecifier::ConversionRoot:
+			{
+				MetaData.Add(FName(TEXT("IsConversionRoot")), "true");
+			}
+			break;
 		}
 	}
 
