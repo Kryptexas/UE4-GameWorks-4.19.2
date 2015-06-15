@@ -27,7 +27,7 @@ TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::Get()
 }
 
 FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
-	: FTickableObjectRenderThread(false)
+	: FTickableObjectRenderThread(false, true)
 	, SyncMechanism(NULL)
 	, MovieStreamingIsDone(1)
 	, LoadingIsDone(1)
@@ -249,6 +249,18 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 				// Gives widgets a chance to process any accumulated input
 				SlateApp.FinishedInputThisFrame();
 
+				float DeltaTime = SlateApp.GetDeltaTime();				
+
+				//pass this rather than doing ::Get() because the sharedptr isn't threadsafe.
+				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+					WaitingTickStreamer,
+					FDefaultGameMoviePlayer*, MoviePlayer, this,
+					float, DeltaTime, DeltaTime,
+					{
+					MoviePlayer->TickStreamer(DeltaTime);
+				}
+				);
+				
 				SlateApp.Tick();
 
 				// Synchronize the game thread and the render thread so that the render thread doesn't get too far behind.
@@ -311,24 +323,29 @@ bool FDefaultGameMoviePlayer::IsMovieStreamingFinished() const
 
 void FDefaultGameMoviePlayer::Tick( float DeltaTime )
 {
+	check(IsInRenderingThread());
 	if (LoadingScreenWindowPtr.IsValid() && RendererPtr.IsValid())
 	{
-		if (MovieStreamingIsPrepared() && !IsMovieStreamingFinished())
-		{
-			const bool bMovieIsDone = MovieStreamer->Tick(DeltaTime);
-			if (bMovieIsDone)
-			{
-				MovieStreamingIsDone.Set(1);
-			}
-		}
-
 		if (!IsLoadingFinished() && SyncMechanism)
 		{
 			if (SyncMechanism->IsSlateDrawPassEnqueued())
-			{
+			{				
+				TickStreamer(DeltaTime);
 				RendererPtr.Pin()->DrawWindows();
 				SyncMechanism->ResetSlateDrawPassEnqueued();
 			}
+		}
+	}
+}
+
+void FDefaultGameMoviePlayer::TickStreamer(float DeltaTime)
+{	
+	if (MovieStreamingIsPrepared() && !IsMovieStreamingFinished())
+	{
+		const bool bMovieIsDone = MovieStreamer->Tick(DeltaTime);		
+		if (bMovieIsDone)
+		{
+			MovieStreamingIsDone.Set(1);
 		}
 	}
 }

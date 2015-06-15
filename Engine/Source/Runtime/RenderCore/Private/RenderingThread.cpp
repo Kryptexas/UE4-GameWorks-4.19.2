@@ -183,15 +183,39 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 
 /** Static array of tickable objects that are ticked from rendering thread*/
 FTickableObjectRenderThread::FRenderingThreadTickableObjectsArray FTickableObjectRenderThread::RenderingThreadTickableObjects;
+FTickableObjectRenderThread::FRenderingThreadTickableObjectsArray FTickableObjectRenderThread::RenderingThreadHighFrequencyTickableObjects;
+
+void TickHighFrequencyTickables(double CurTime)
+{
+	static double LastHighFreqTime = FPlatformTime::Seconds();
+	float DeltaSecondsHighFreq = CurTime - LastHighFreqTime;
+
+	// tick any high frequency rendering thread tickables.
+	for (int32 ObjectIndex = 0; ObjectIndex < FTickableObjectRenderThread::RenderingThreadHighFrequencyTickableObjects.Num(); ObjectIndex++)
+	{
+		FTickableObjectRenderThread* TickableObject = FTickableObjectRenderThread::RenderingThreadHighFrequencyTickableObjects[ObjectIndex];
+		// make sure it wants to be ticked and the rendering thread isn't suspended
+		if (TickableObject->IsTickable())
+		{
+			STAT(FScopeCycleCounter(TickableObject->GetStatId());)
+				TickableObject->Tick(DeltaSecondsHighFreq);
+		}
+	}
+
+	LastHighFreqTime = CurTime;
+}
 
 void TickRenderingTickables()
 {
 	static double LastTickTime = FPlatformTime::Seconds();
+	
 
 	// calc how long has passed since last tick
 	double CurTime = FPlatformTime::Seconds();
 	float DeltaSeconds = CurTime - LastTickTime;
-	
+		
+	TickHighFrequencyTickables(CurTime);
+
 	if (DeltaSeconds < (1.f/GRenderingThreadMaxIdleTickFrequency))
 	{
 		return;
