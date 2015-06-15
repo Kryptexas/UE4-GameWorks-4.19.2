@@ -615,7 +615,10 @@ namespace BlueprintSearchMetaDataHelpers
 					InWriter->WriteObjectStart();
 
 					FGraphDisplayInfo DisplayInfo;
-					Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+					if (auto GraphSchema = Graph->GetSchema())
+					{
+						GraphSchema->GetGraphDisplayInformation(*Graph, DisplayInfo);
+					}
 					InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Name, DisplayInfo.PlainName);
 
 					FText GraphDescription = FBlueprintEditorUtils::GetGraphDescription(Graph);

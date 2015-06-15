@@ -231,9 +231,11 @@ void UEdGraph::GetAllChildrenGraphs(TArray<UEdGraph*>& Graphs) const
 	for (int32 i = 0; i < SubGraphs.Num(); ++i)
 	{
 		UEdGraph* Graph = SubGraphs[i];
-		checkf(Graph, *FString::Printf(TEXT("%s has invalid SubGraph array entry at %d"), *GetFullName(), i));
-		Graphs.Add(Graph);
-		Graph->GetAllChildrenGraphs(Graphs);
+		if (ensureMsgf(Graph, TEXT("%s has invalid SubGraph array entry at %d"), *GetFullName(), i))
+		{
+			Graphs.Add(Graph);
+			Graph->GetAllChildrenGraphs(Graphs);
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 }
