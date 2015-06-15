@@ -45,6 +45,15 @@ UNiagaraCurveDataObject::UNiagaraCurveDataObject(const FObjectInitializer& Objec
 {
 }
 
+FVector4 UNiagaraCurveDataObject::Sample(const FVector4& InCoords) const
+{
+	FVector Vec = CurveObj->GetVectorValue(InCoords.X);
+	return FVector4(Vec, 0.0f);
+}
+
+
+
+
 UNiagaraSparseVolumeDataObject::UNiagaraSparseVolumeDataObject(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
