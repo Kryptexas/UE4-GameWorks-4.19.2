@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2576224
+﻿INTSourceChangelist:2585616
 Availability:Public
 Title:2.Grass ツールアクタの作成と設定
 Crumbs:
@@ -15,7 +15,7 @@ Version:4.8
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[操作手順のホームページ](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
+		[Quick Start Home](Engine\OpenWorldTools\Grass\QuickStart "%Engine\OpenWorldTools\Grass\QuickStart:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[次の手順](Engine\OpenWorldTools\Grass\QuickStart\3 "%Engine\OpenWorldTools\Grass\QuickStart\3:title%") 
@@ -34,7 +34,7 @@ Version:4.8
 	![](T_Create_LS_Grass.png) 
 
 1. **ダブルクリック** して Landscape Grass Type を開いてから、 **Grass Varieties** 配列の右側にある **+** アイコンを押して、 **Grass Varieties** に新規アイテムを追加します。
-	
+
 	![](T_Add_New_GV.png)
 
 1. **Landscape Grass Type** アクタ内で **Grass Mesh** セクションを探して、入力ボックスに **None** をクリックして検索用語に **SM_FieldGrass_01** と入力します。 
@@ -51,7 +51,7 @@ Version:4.8
 	|--------------|-------|---------|
 	|**Grass Density**    |400.0     | 草を表現するには、草で密に覆われたランドスケープの作成が必要なため、大量のスタティックメッシュをスポーンしなくてはいけません。|
 	|**Use Grid**         |有効化   | スタティックメッシュをより自然に配置するために、配置位置をオフセットします。|
-	|**Random Rotation**  |有効化   | 動植物や草にランダムな回転を与えることによって、スタティックメッシュの同側面を常に表示することなく、シーンのビジュアルにバリケーションをもたせることができます。|
+	|**Random Rotation**  |有効化   | 動植物や草にランダムな回転を与えることによって、スタティックメッシュの同側面を常に表示することなく、シーンのビジュアルにバリエーションをもたせることができます。|
 	|**Align to Surface** |有効化   | 使用しているスタティックメッシュをランドスケープテレインのサーフェスと一致させます。|
 
 %Steps%
