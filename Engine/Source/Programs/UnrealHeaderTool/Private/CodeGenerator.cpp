@@ -3144,11 +3144,7 @@ void FNativeClassHeaderGenerator::ExportDelegateDefinitions(FUnrealSourceFile& S
 			WriteEventFunctionEpilogue(DelegateOutput, 0, Parameters, *DelegateName);
 		}
 
-		if (!bWrapperImplementationsOnly)
-		{
-			HeaderOutput.Log(DelegateOutput);
-		}
-		else
+		if (bWrapperImplementationsOnly)
 		{
 			FString MacroName = SourceFile.GetGeneratedMacroName(FunctionData.MacroLine, TEXT("_DELEGATE"));
 			WriteMacro(HeaderOutput, MacroName, DelegateOutput);
