@@ -150,6 +150,10 @@
 #define NUM_VF_PACKED_INTERPOLANTS						0
 #endif
 
+#ifndef INVARIANT
+#define INVARIANT										
+#endif
+
 #ifndef USE_CLEARCOAT
 #define USE_CLEARCOAT									0
 #endif
