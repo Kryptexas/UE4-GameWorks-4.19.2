@@ -14,10 +14,10 @@ UEditableText::UEditableText(const FObjectInitializer& ObjectInitializer)
 	SEditableText::FArguments Defaults;
 	WidgetStyle = *Defaults._Style;
 
-	ColorAndOpacity = FLinearColor::Black;
+	ColorAndOpacity_DEPRECATED = FLinearColor::Black;
 
 	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+	Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 
 	// Grab other defaults from slate arguments.
 	IsReadOnly = Defaults._IsReadOnly.Get();
@@ -41,7 +41,6 @@ TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
 	MyEditableText = SNew(SEditableText)
 	.Style(&WidgetStyle)
-	.Font(Font)
 	.MinDesiredWidth(MinimumDesiredWidth)
 	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
 	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
@@ -66,7 +65,6 @@ void UEditableText::SynchronizeProperties()
 	MyEditableText->SetHintText(HintTextBinding);
 	MyEditableText->SetIsReadOnly(IsReadOnly);
 	MyEditableText->SetIsPassword(IsPassword);
-	MyEditableText->SetColorAndOpacity(ColorAndOpacity);
 
 	// TODO UMG Complete making all properties settable on SEditableText
 }
@@ -160,6 +158,21 @@ void UEditableText::PostLoad()
 		{
 			WidgetStyle.CaretImage = CaretImage_DEPRECATED->Brush;
 			CaretImage_DEPRECATED = nullptr;
+		}
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_OVERRIDES)
+	{
+		if (Font_DEPRECATED.HasValidFont())
+		{
+			WidgetStyle.Font = Font_DEPRECATED;
+			Font_DEPRECATED = FSlateFontInfo();
+		}
+
+		if (ColorAndOpacity_DEPRECATED != FLinearColor::Black)
+		{
+			WidgetStyle.ColorAndOpacity = ColorAndOpacity_DEPRECATED;
+			ColorAndOpacity_DEPRECATED = FLinearColor::Black;
 		}
 	}
 }

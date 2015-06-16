@@ -224,8 +224,26 @@ public:
 protected:
 	const FEditableTextBoxStyle* Style;
 
+	/** Box widget that adds padding around the editable text */
+	TSharedPtr< SBox > PaddingBox;
+
 	/** Editable text widget */
 	TSharedPtr< SEditableText > EditableText;
+
+	/** Padding (overrides style) */
+	TAttribute<FMargin> PaddingOverride;
+
+	/** Font (overrides style) */
+	TAttribute<FSlateFontInfo> FontOverride;
+
+	/** Foreground color (overrides style) */
+	TAttribute<FSlateColor> ForegroundColorOverride;
+
+	/** Background color (overrides style) */
+	TAttribute<FSlateColor> BackgroundColorOverride;
+
+	/** Read-only foreground color (overrides style) */
+	TAttribute<FSlateColor> ReadOnlyForegroundColorOverride;
 
 	/** Read-only foreground color */
 	TAttribute<FSlateColor> ReadOnlyForegroundColor;

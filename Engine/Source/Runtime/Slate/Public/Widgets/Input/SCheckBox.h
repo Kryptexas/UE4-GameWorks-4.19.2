@@ -218,6 +218,18 @@ public:
 
 protected:
 
+	/** Rebuilds the checkbox based on the current ESlateCheckBoxType */
+	void BuildCheckBox(TSharedRef<SWidget> InContent);
+
+	/** Attribute getter for the foreground color */
+	FSlateColor OnGetForegroundColor() const;
+	/** Attribute getter for the padding */
+	FMargin OnGetPadding() const;
+	/** Attribute getter for the border background color */
+	FSlateColor OnGetBorderBackgroundColor() const;
+	/** Attribute getter for the checkbox type */
+	ESlateCheckBoxType::Type OnGetCheckBoxType() const;
+
 	/**
 	 * Gets the check image to display for the current state of the check box
 	 * @return	The name of the image to display
@@ -267,6 +279,18 @@ protected:
 	const FSlateBrush* UndeterminedHoveredImage;
 	/** Image to use when the checkbox is in an ambiguous state and pressed*/
 	const FSlateBrush* UndeterminedPressedImage;
+
+	/** Overrides padding in the widget style, if set */
+	TAttribute<FMargin> PaddingOverride;
+	/** Overrides foreground color in the widget style, if set */
+	TAttribute<FSlateColor> ForegroundColorOverride;
+	/** Overrides border background color in the widget style, if set */
+	TAttribute<FSlateColor> BorderBackgroundColorOverride;
+	/** Overrides checkbox type in the widget style, if set */
+	TOptional<ESlateCheckBoxType::Type> CheckBoxTypeOverride;
+
+	/** Horiz align setting if in togglebox mode */
+	EHorizontalAlignment HorizontalAlignment;
 
 	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
 	EButtonClickMethod::Type ClickMethod;

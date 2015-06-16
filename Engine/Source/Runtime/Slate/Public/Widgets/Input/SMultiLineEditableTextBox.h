@@ -185,6 +185,9 @@ public:
 		return EditableText->GetPlainText();
 	}
 
+	/** See attribute Style */
+	void SetStyle(const FEditableTextBoxStyle* InStyle);
+
 	/**
 	 * Sets the text string currently being edited 
 	 *
@@ -284,11 +287,50 @@ protected:
 	/** Editable text widget */
 	TSharedPtr< SMultiLineEditableText > EditableText;
 
+	/** Padding (overrides style) */
+	TAttribute<FMargin> PaddingOverride;
+
+	/** Horiz scrollbar padding (overrides style) */
+	TAttribute<FMargin> HScrollBarPaddingOverride;
+
+	/** Vert scrollbar padding (overrides style) */
+	TAttribute<FMargin> VScrollBarPaddingOverride;
+
+	/** Font (overrides style) */
+	TAttribute<FSlateFontInfo> FontOverride;
+
+	/** Foreground color (overrides style) */
+	TAttribute<FSlateColor> ForegroundColorOverride;
+
+	/** Background color (overrides style) */
+	TAttribute<FSlateColor> BackgroundColorOverride;
+
+	/** Read-only foreground color (overrides style) */
+	TAttribute<FSlateColor> ReadOnlyForegroundColorOverride;
+
 	/** Read-only foreground color */
 	TAttribute<FSlateColor> ReadOnlyForegroundColor;
 
 	/** Allows for inserting additional widgets that extend the functionality of the text box */
 	TSharedPtr<SHorizontalBox> Box;
+
+	/** Whether we have an externally supplied horizontal scrollbar or one created internally */
+	bool bHasExternalHScrollBar;
+
+	/** Horiz scrollbar */
+	TSharedPtr<SScrollBar> HScrollBar;
+
+	/** Box around the horiz scrollbar used for adding padding */
+	TSharedPtr<SBox> HScrollBarPaddingBox;
+
+	/** Whether we have an externally supplied vertical scrollbar or one created internally */
+	bool bHasExternalVScrollBar;
+
+	/** Vert scrollbar */
+	TSharedPtr<SScrollBar> VScrollBar;
+
+	/** Box around the vert scrollbar used for adding padding */
+	TSharedPtr<SBox> VScrollBarPaddingBox;
 
 	/** SomeWidget reporting */
 	TSharedPtr<class IErrorReportingWidget> ErrorReporting;

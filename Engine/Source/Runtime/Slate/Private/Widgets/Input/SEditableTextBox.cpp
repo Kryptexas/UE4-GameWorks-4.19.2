@@ -13,11 +13,17 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 	check (InArgs._Style);
 	SetStyle(InArgs._Style);
 
-	TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
-	TAttribute<FSlateFontInfo> Font = InArgs._Font.IsSet() ? InArgs._Font : InArgs._Style->Font;
-	TAttribute<FSlateColor> ForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
-	TAttribute<FSlateColor> BackgroundColor = InArgs._BackgroundColor.IsSet() ? InArgs._BackgroundColor : InArgs._Style->BackgroundColor;
-	ReadOnlyForegroundColor = InArgs._ReadOnlyForegroundColor.IsSet() ? InArgs._ReadOnlyForegroundColor : InArgs._Style->ReadOnlyForegroundColor;
+	PaddingOverride = InArgs._Padding;
+	FontOverride = InArgs._Font;
+	ForegroundColorOverride = InArgs._ForegroundColor;
+	BackgroundColorOverride = InArgs._BackgroundColor;
+	ReadOnlyForegroundColorOverride = InArgs._ReadOnlyForegroundColor;
+
+	TAttribute<FMargin> Padding = PaddingOverride.IsSet() ? PaddingOverride : InArgs._Style->Padding;
+	TAttribute<FSlateFontInfo> Font = FontOverride.IsSet() ? FontOverride : InArgs._Style->Font;
+	TAttribute<FSlateColor> ForegroundColor = ForegroundColorOverride.IsSet() ? ForegroundColorOverride : InArgs._Style->ForegroundColor;
+	TAttribute<FSlateColor> BackgroundColor = BackgroundColorOverride.IsSet() ? BackgroundColorOverride : InArgs._Style->BackgroundColor;
+	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : InArgs._Style->ReadOnlyForegroundColor;
 
 	SBorder::Construct( SBorder::FArguments()
 		.BorderImage( this, &SEditableTextBox::GetBorderImage )
@@ -32,7 +38,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 			.HAlign(HAlign_Fill)
 			.FillWidth(1)
 			[
-				SNew( SBox )
+				SAssignNew(PaddingBox, SBox)
 				.Padding( Padding )
 				[
 					SAssignNew( EditableText, SEditableText )
@@ -78,6 +84,31 @@ void SEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
 	{
 		FArguments Defaults;
 		Style = Defaults._Style;
+	}
+
+	if (!PaddingOverride.IsSet() && PaddingBox.IsValid())
+	{
+		PaddingBox->SetPadding(Style->Padding);
+	}
+
+	if (!FontOverride.IsSet() && EditableText.IsValid())
+	{
+		EditableText->SetFont(Style->Font);
+	}
+
+	if (!ForegroundColorOverride.IsSet())
+	{
+		SetForegroundColor(Style->ForegroundColor);
+	}
+
+	if (!BackgroundColorOverride.IsSet())
+	{
+		SetBorderBackgroundColor(Style->BackgroundColor);
+	}
+
+	if (!ReadOnlyForegroundColorOverride.IsSet())
+	{
+		ReadOnlyForegroundColor = Style->ReadOnlyForegroundColor;
 	}
 
 	BorderImageNormal = &Style->BackgroundImageNormal;
@@ -211,30 +242,32 @@ void SEditableTextBox::SetIsPassword(TAttribute< bool > InIsPassword)
 
 void SEditableTextBox::SetFont(const TAttribute<FSlateFontInfo>& InFont)
 {
-	TAttribute<FSlateFontInfo> Font = InFont.IsSet() ? InFont : Style->Font;
+	FontOverride = InFont;
 
-	EditableText->SetFont(Font);
+	EditableText->SetFont(FontOverride.IsSet() ? FontOverride : Style->Font);
 }
 
 
 void SEditableTextBox::SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor)
 {
-	TAttribute<FSlateColor> ForegroundColor = InForegroundColor.IsSet() ? InForegroundColor : Style->ForegroundColor;
+	ForegroundColorOverride = InForegroundColor;
 
-	SetForegroundColor(ForegroundColor);
+	SetForegroundColor(ForegroundColorOverride.IsSet() ? ForegroundColorOverride : Style->ForegroundColor);
 }
 
 void SEditableTextBox::SetTextBoxBackgroundColor(const TAttribute<FSlateColor>& InBackgroundColor)
 {
-	TAttribute<FSlateColor> BackgroundColor = InBackgroundColor.IsSet() ? InBackgroundColor : Style->BackgroundColor;
+	BackgroundColorOverride = InBackgroundColor;
 
-	SetBorderBackgroundColor(BackgroundColor);
+	SetBorderBackgroundColor(BackgroundColorOverride.IsSet() ? BackgroundColorOverride : Style->BackgroundColor);
 }
 
 
 void SEditableTextBox::SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor)
 {
-	ReadOnlyForegroundColor = InReadOnlyForegroundColor.IsSet() ? InReadOnlyForegroundColor : Style->ReadOnlyForegroundColor;
+	ReadOnlyForegroundColorOverride = InReadOnlyForegroundColor;
+
+	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : Style->ReadOnlyForegroundColor;
 }
 
 

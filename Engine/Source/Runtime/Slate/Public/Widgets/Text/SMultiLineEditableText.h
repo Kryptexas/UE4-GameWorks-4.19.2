@@ -140,6 +140,13 @@ public:
 	 */
 	void SetHintText(const TAttribute< FText >& InHintText);
 
+	/**
+	* Sets the font used to draw the text
+	*
+	* @param  InNewFont	The new font to use
+	*/
+	void SetFont(const TAttribute< FSlateFontInfo >& InNewFont);
+
 	virtual bool GetIsReadOnly() const override;
 	virtual void ClearSelection() override;
 

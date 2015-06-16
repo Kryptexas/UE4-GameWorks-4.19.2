@@ -16,7 +16,7 @@ UMultiLineEditableText::UMultiLineEditableText(const FObjectInitializer& ObjectI
 	bAutoWrapText = true;
 	
 	static ConstructorHelpers::FObjectFinder<UFont> RobotoFontObj(TEXT("/Engine/EngineFonts/Roboto"));
-	Font = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
+	Font_DEPRECATED = FSlateFontInfo(RobotoFontObj.Object, 12, FName("Bold"));
 }
 
 void UMultiLineEditableText::ReleaseSlateResources(bool bReleaseChildren)
@@ -30,7 +30,6 @@ TSharedRef<SWidget> UMultiLineEditableText::RebuildWidget()
 {
 	MyMultiLineEditableText = SNew(SMultiLineEditableText)
 	.TextStyle(&WidgetStyle)
-	.Font(Font)
 	.Justification(Justification)
 	.WrapTextAt( WrapTextAt )
 	.AutoWrapText( bAutoWrapText )
@@ -91,6 +90,18 @@ void UMultiLineEditableText::HandleOnTextChanged(const FText& InText)
 void UMultiLineEditableText::HandleOnTextCommitted(const FText& InText, ETextCommit::Type CommitMethod)
 {
 	OnTextCommitted.Broadcast(InText, CommitMethod);
+}
+
+void UMultiLineEditableText::PostLoad()
+{
+	if (GetLinkerUE4Version() < VER_UE4_DEPRECATE_UMG_STYLE_OVERRIDES)
+	{
+		if (Font_DEPRECATED.HasValidFont())
+		{
+			WidgetStyle.Font = Font_DEPRECATED;
+			Font_DEPRECATED = FSlateFontInfo();
+		}
+	}
 }
 
 #if WITH_EDITOR

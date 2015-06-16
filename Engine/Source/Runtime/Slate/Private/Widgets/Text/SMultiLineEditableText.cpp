@@ -417,6 +417,13 @@ void SMultiLineEditableText::SetHintText(const TAttribute< FText >& InHintText)
 	}
 }
 
+void SMultiLineEditableText::SetFont(const TAttribute< FSlateFontInfo >& InNewFont)
+{
+	TextStyle.SetFont(InNewFont.Get());
+
+	// @todo: Chris.Wood - this doesn't update the font (needs the TextLayout updating?)
+}
+
 void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).

@@ -36,6 +36,15 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	BorderImageHovered = &InArgs._Style->BackgroundImageHovered;
 	BorderImageFocused = &InArgs._Style->BackgroundImageFocused;
 	BorderImageReadOnly = &InArgs._Style->BackgroundImageReadOnly;
+
+	PaddingOverride = InArgs._Padding;
+	HScrollBarPaddingOverride = InArgs._HScrollBarPadding;
+	VScrollBarPaddingOverride = InArgs._VScrollBarPadding;
+	FontOverride = InArgs._Font;
+	ForegroundColorOverride = InArgs._ForegroundColor;
+	BackgroundColorOverride = InArgs._BackgroundColor;
+	ReadOnlyForegroundColorOverride = InArgs._ReadOnlyForegroundColor;
+
 	TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
 	TAttribute<FMargin> HScrollBarPadding = InArgs._HScrollBarPadding.IsSet() ? InArgs._HScrollBarPadding : InArgs._Style->HScrollBarPadding;
 	TAttribute<FMargin> VScrollBarPadding = InArgs._VScrollBarPadding.IsSet() ? InArgs._VScrollBarPadding : InArgs._Style->VScrollBarPadding;
@@ -44,7 +53,8 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 	TAttribute<FSlateColor> BackgroundColor = InArgs._BackgroundColor.IsSet() ? InArgs._BackgroundColor : InArgs._Style->BackgroundColor;
 	ReadOnlyForegroundColor = InArgs._ReadOnlyForegroundColor.IsSet() ? InArgs._ReadOnlyForegroundColor : InArgs._Style->ReadOnlyForegroundColor;
 
-	TSharedPtr<SScrollBar> HScrollBar = InArgs._HScrollBar;
+	bHasExternalHScrollBar = InArgs._HScrollBar.IsValid();
+	HScrollBar = InArgs._HScrollBar;
 	if (!HScrollBar.IsValid())
 	{
 		// Create and use our own scrollbar
@@ -55,7 +65,8 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 			.Thickness(FVector2D(5.0f, 5.0f));
 	}
 	
-	TSharedPtr<SScrollBar> VScrollBar = InArgs._VScrollBar;
+	bHasExternalVScrollBar = InArgs._VScrollBar.IsValid();
+	VScrollBar = InArgs._VScrollBar;
 	if (!VScrollBar.IsValid())
 	{
 		// Create and use our own scrollbar
@@ -115,17 +126,23 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 
 				+SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(HScrollBarPadding)
 				[
-					AsWidgetRef( HScrollBar )
+					SAssignNew(HScrollBarPaddingBox, SBox)
+					.Padding(HScrollBarPadding)
+					[
+						AsWidgetRef( HScrollBar )
+					]
 				]
 			]
 
 			+SHorizontalBox::Slot()
 			.AutoWidth()
-			.Padding(VScrollBarPadding)
 			[
-				AsWidgetRef( VScrollBar )
+				SAssignNew(VScrollBarPaddingBox, SBox)
+				.Padding(VScrollBarPadding)
+				[
+					AsWidgetRef( VScrollBar )
+				]
 			]
 		]
 	);
@@ -143,6 +160,62 @@ void SMultiLineEditableTextBox::Construct( const FArguments& InArgs )
 
 }
 
+void SMultiLineEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
+{
+	check(InStyle);
+	Style = InStyle;
+
+	if (!PaddingOverride.IsSet())
+	{
+		SetPadding(Style->Padding);
+	}
+
+	if (!HScrollBarPaddingOverride.IsSet() && HScrollBarPaddingBox.IsValid())
+	{
+		HScrollBarPaddingBox->SetPadding(Style->HScrollBarPadding);
+	}
+
+	if (!VScrollBarPaddingOverride.IsSet() && VScrollBarPaddingBox.IsValid())
+	{
+		VScrollBarPaddingBox->SetPadding(Style->VScrollBarPadding);
+	}
+
+	if (!FontOverride.IsSet() && EditableText.IsValid())
+	{
+		EditableText->SetFont(Style->Font);
+	}
+
+	if (!ForegroundColorOverride.IsSet())
+	{
+		SetForegroundColor(Style->ForegroundColor);
+	}
+
+	if (!BackgroundColorOverride.IsSet())
+	{
+		SetBorderBackgroundColor(Style->BackgroundColor);
+	}
+
+	if (!ReadOnlyForegroundColorOverride.IsSet())
+	{
+		ReadOnlyForegroundColor = Style->ReadOnlyForegroundColor;
+	}
+
+	if (!bHasExternalHScrollBar && HScrollBar.IsValid())
+	{
+		HScrollBar->SetStyle(&Style->ScrollBarStyle);
+	}
+
+	if (!bHasExternalVScrollBar && VScrollBar.IsValid())
+	{
+		VScrollBar->SetStyle(&Style->ScrollBarStyle);
+	}
+
+	BorderImageNormal = &InStyle->BackgroundImageNormal;
+	BorderImageHovered = &InStyle->BackgroundImageHovered;
+	BorderImageFocused = &InStyle->BackgroundImageFocused;
+	BorderImageReadOnly = &InStyle->BackgroundImageReadOnly;
+}
+
 void SMultiLineEditableTextBox::SetText( const TAttribute< FText >& InNewText )
 {
 	EditableText->SetText( InNewText );
@@ -155,21 +228,23 @@ void SMultiLineEditableTextBox::SetHintText( const TAttribute< FText >& InHintTe
 
 void SMultiLineEditableTextBox::SetTextBoxForegroundColor(const TAttribute<FSlateColor>& InForegroundColor)
 {
-	TAttribute<FSlateColor> ForegroundColor = InForegroundColor.IsSet() ? InForegroundColor : Style->ForegroundColor;
+	ForegroundColorOverride = InForegroundColor;
 
-	SetForegroundColor(ForegroundColor);
+	SetForegroundColor(ForegroundColorOverride.IsSet() ? ForegroundColorOverride : Style->ForegroundColor);
 }
 
 void SMultiLineEditableTextBox::SetTextBoxBackgroundColor(const TAttribute<FSlateColor>& InBackgroundColor)
 {
-	TAttribute<FSlateColor> BackgroundColor = InBackgroundColor.IsSet() ? InBackgroundColor : Style->BackgroundColor;
+	BackgroundColorOverride = InBackgroundColor;
 
-	SetBorderBackgroundColor(BackgroundColor);
+	SetBorderBackgroundColor(BackgroundColorOverride.IsSet() ? BackgroundColorOverride : Style->BackgroundColor);
 }
 
 void SMultiLineEditableTextBox::SetReadOnlyForegroundColor(const TAttribute<FSlateColor>& InReadOnlyForegroundColor)
 {
-	ReadOnlyForegroundColor = InReadOnlyForegroundColor.IsSet() ? InReadOnlyForegroundColor : Style->ReadOnlyForegroundColor;
+	ReadOnlyForegroundColorOverride = InReadOnlyForegroundColor;
+
+	ReadOnlyForegroundColor = ReadOnlyForegroundColorOverride.IsSet() ? ReadOnlyForegroundColorOverride : Style->ReadOnlyForegroundColor;
 }
 
 void SMultiLineEditableTextBox::SetError( const FText& InError )

@@ -48,20 +48,20 @@ public:
 	FGetText HintTextDelegate;
 
 	/** Font color and opacity (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FSlateFontInfo Font;
+	UPROPERTY()
+	FSlateFontInfo Font_DEPRECATED;
 
 	/** Text color and opacity (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FLinearColor ForegroundColor;
+	UPROPERTY()
+	FLinearColor ForegroundColor_DEPRECATED;
 
 	/** The color of the background/border around the editable text (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FLinearColor BackgroundColor;
+	UPROPERTY()
+	FLinearColor BackgroundColor_DEPRECATED;
 
 	/** Text color and opacity when read-only (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FLinearColor ReadOnlyForegroundColor;
+	UPROPERTY()
+	FLinearColor ReadOnlyForegroundColor_DEPRECATED;
 
 	/** Sets whether this text box can actually be modified interactively by the user */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
@@ -76,8 +76,8 @@ public:
 	float MinimumDesiredWidth;
 
 	/** Padding between the box/border and the text widget inside (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FMargin Padding;
+	UPROPERTY()
+	FMargin Padding_DEPRECATED;
 
 	/** Workaround as we lose focus when the auto completion closes. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)

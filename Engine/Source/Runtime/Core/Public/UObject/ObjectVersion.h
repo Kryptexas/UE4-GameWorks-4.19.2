@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -528,6 +528,9 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_TEXTURE_LEGACY_GAMMA,
 	// Added WithSerializer for basic native structures like FVector, FColor etc to improve serialization performance
 	VER_UE4_ADDED_NATIVE_SERIALIZATION_FOR_IMMUTABLE_STRUCTURES,
+	// Deprecated attributes that override the style on UMG widgets
+	VER_UE4_DEPRECATE_UMG_STYLE_OVERRIDES,
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
