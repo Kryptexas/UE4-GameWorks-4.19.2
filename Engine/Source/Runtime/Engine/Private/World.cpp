@@ -895,10 +895,6 @@ void UWorld::InitWorld(const InitializationValues IVS)
 	// Spawned on demand by this function.
 	DefaultPhysicsVolume = GetDefaultPhysicsVolume();
 
-	// update default values when world is restarted
-	DefaultPhysicsVolume->TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
-	DefaultPhysicsVolume->FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
-
 	// Find gravity
 	if (GetPhysicsScene())
 	{
@@ -3369,14 +3365,24 @@ void UWorld::SetPhysicsScene(FPhysScene* InScene)
 	}
 }
 
-
 APhysicsVolume* UWorld::GetDefaultPhysicsVolume() const
 {
 	// Create on demand.
-	if (!DefaultPhysicsVolume)
+	if (DefaultPhysicsVolume == nullptr)
 	{
+		// Try WorldSettings first
+		AWorldSettings* WorldSettings = GetWorldSettings();
+		UClass* DefaultPhysicsVolumeClass = WorldSettings->DefaultPhysicsVolumeClass;
+
+		// Fallback on DefaultPhysicsVolume static
+		if (DefaultPhysicsVolumeClass == nullptr)
+		{
+			DefaultPhysicsVolumeClass = ADefaultPhysicsVolume::StaticClass();
+		}
+
+		// Spawn volume
 		UWorld* MutableThis = const_cast<UWorld*>(this);
-		MutableThis->DefaultPhysicsVolume = MutableThis->SpawnActor<APhysicsVolume>(ADefaultPhysicsVolume::StaticClass());
+		MutableThis->DefaultPhysicsVolume = MutableThis->SpawnActor<APhysicsVolume>(DefaultPhysicsVolumeClass);
 		MutableThis->DefaultPhysicsVolume->Priority = -1000000;
 	}
 	return DefaultPhysicsVolume;

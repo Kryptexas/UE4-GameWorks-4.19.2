@@ -294,6 +294,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bGlobalGravitySet"))
 	float GlobalGravityZ;
 
+	// level specific default physics volume
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadOnly, Category=Physics, AdvancedDisplay)
+	TSubclassOf<class ADefaultPhysicsVolume> DefaultPhysicsVolumeClass;
+
 	// optional level specific collision handler
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, AdvancedDisplay)
 	TSubclassOf<class UPhysicsCollisionHandler>	PhysicsCollisionHandlerClass;

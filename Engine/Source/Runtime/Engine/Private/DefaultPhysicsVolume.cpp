@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/DefaultPhysicsVolume.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 ADefaultPhysicsVolume::ADefaultPhysicsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -11,6 +12,10 @@ ADefaultPhysicsVolume::ADefaultPhysicsVolume(const FObjectInitializer& ObjectIni
 	// Not allowed to be selected or edited within Unreal Editor
 	bEditable = false;
 #endif // WITH_EDITORONLY_DATA
+
+	// update default values when world is restarted
+	TerminalVelocity = UPhysicsSettings::Get()->DefaultTerminalVelocity;
+	FluidFriction = UPhysicsSettings::Get()->DefaultFluidFriction;
 }
 
 void ADefaultPhysicsVolume::Destroyed()

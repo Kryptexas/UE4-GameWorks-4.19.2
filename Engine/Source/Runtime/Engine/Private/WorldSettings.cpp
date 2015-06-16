@@ -12,6 +12,7 @@
 #include "MapErrors.h"
 #include "Particles/ParticleEventManager.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
@@ -45,6 +46,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 
 	WorldToMeters = 100.f;
 
+	DefaultPhysicsVolumeClass = ADefaultPhysicsVolume::StaticClass();
 	GameNetworkManagerClass = AGameNetworkManager::StaticClass();
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 	bReplicates = true;
