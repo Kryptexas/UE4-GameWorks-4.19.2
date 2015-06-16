@@ -508,6 +508,7 @@ void UK2Node_CallFunction::GetPinHoverText(const UEdGraphPin& Pin, FString& Hove
 	{
 		for (auto& P : Pins)
 		{
+			P->PinToolTip.Empty();
 			GeneratePinTooltip(*P);
 		}
 
