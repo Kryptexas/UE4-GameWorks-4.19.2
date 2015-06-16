@@ -292,9 +292,34 @@ float3 GetPrevWorldPosition_NoOffsets(FMaterialVertexParameters Parameters)
 }
 
 //TODO(bug UE-17131): We should compute world displacement for the previous frame
+float3 GetWorldPosition(FMaterialTessellationParameters Parameters)
+{
+	return Parameters.WorldPosition + View.PreViewTranslation;
+}
+
 float3 GetWorldPosition_NoOffsets(FMaterialTessellationParameters Parameters)
 {
 	return Parameters.WorldPosition;
+}
+
+float3 GetWorldPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition;
+}
+
+float3 GetWorldPosition_NoOffsets(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition_NoOffsets;
+}
+
+float3 GetWorldPosition_CamRelative(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition_CamRelative;
+}
+
+float3 GetWorldPosition_NoOffsets_CamRelative(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition_NoOffsets_CamRelative;
 }
 
 #if DECAL_RENDERSTAGE && NUM_MATERIAL_TEXCOORDS

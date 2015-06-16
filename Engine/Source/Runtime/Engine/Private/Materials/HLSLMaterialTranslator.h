@@ -2081,57 +2081,67 @@ protected:
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
-		if (ShaderFrequency == SF_Pixel)
+		const TCHAR * WorldPositionSuffix = nullptr; 
+
+		// If this material has no expressions for world position offset or world displacement, the non-offset world position will
+		// be exactly the same as the offset one, so there is no point bringing in the extra code.
+		// Also, we can't access the full offset world position in anything other than the pixel shader, because it won't have
+		// been calculated yet
+		switch (WorldPositionIncludedOffsets)
 		{
-			// If this material has no expressions for world position offset or world displacement, the non-offset world position will
-			// be exactly the same as the offset one, so there is no point bringing in the extra code.
-			// Also, we can't access the full offset world position in anything other than the pixel shader, because it won't have
-			// been calculated yet
-			bool bNonOffsetWorldPositionAvailable = Material->MaterialMayModifyMeshPosition();
-
-			switch (WorldPositionIncludedOffsets)
+		case WPT_Default:
 			{
-			case WPT_Default:
-				{
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition"));
-				}
-
-			case WPT_ExcludeAllShaderOffsets:
-				{
-					bNeedsWorldPositionExcludingShaderOffsets = true;
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition_NoOffsets"));
-				}
-
-			case WPT_CameraRelative:
-				{
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition_CamRelative"));
-				}
-
-			case WPT_CameraRelativeNoOffsets:
-				{
-					bNeedsWorldPositionExcludingShaderOffsets = true;
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition_NoOffsets_CamRelative"));
-				}
-
-			default:
-				{
-					Errorf(TEXT("Encountered unknown world position type '%d'"), WorldPositionIncludedOffsets);
-					return INDEX_NONE;
-				}
+				WorldPositionSuffix = TEXT("");
+				break;
 			}
+
+		case WPT_ExcludeAllShaderOffsets:
+			{
+				bNeedsWorldPositionExcludingShaderOffsets = true;
+				WorldPositionSuffix = TEXT("_NoOffsets");
+				break;
+			}
+
+		case WPT_CameraRelative:
+			{
+				if (ShaderFrequency != SF_Pixel)
+				{
+					return Errorf(TEXT("Cannot access camera relative world position outside of the pixel shader"));
+				}
+
+				WorldPositionSuffix = TEXT("_CamRelative");
+				break;
+			}
+
+		case WPT_CameraRelativeNoOffsets:
+			{
+				if (ShaderFrequency != SF_Pixel)
+				{
+					return Errorf(TEXT("Cannot access camera relative world position outside of the pixel shader"));
+				}
+
+				bNeedsWorldPositionExcludingShaderOffsets = true;
+				WorldPositionSuffix = TEXT("_NoOffsets_CamRelative");
+				break;
+			}
+
+		default:
+			{
+				Errorf(TEXT("Encountered unknown world position type '%d'"), WorldPositionIncludedOffsets);
+				return INDEX_NONE;
+			}
+		}
+
+		check(WorldPositionSuffix);
+		
+		if (bCompilingPreviousFrame && ShaderFrequency == SF_Vertex)
+		{
+			//TODO(bug UE-17131): We should compute world displacement for the previous frame
+			return AddInlinedCodeChunk(MCT_Float3, TEXT("GetPrevWorldPosition%s(Parameters)"), WorldPositionSuffix);
 		}
 		else
 		{
-			if (bCompilingPreviousFrame && ShaderFrequency == SF_Vertex)
-			{
-				// Only if not in a pixel shader...
-				return AddInlinedCodeChunk(MCT_Float3, TEXT("GetPrevWorldPosition_NoOffsets(Parameters)"));
-			}
-			else
-			{
-				// If not in a pixel shader, only the normal WorldPosition is available
-				return AddInlinedCodeChunk(MCT_Float3, TEXT("GetWorldPosition_NoOffsets(Parameters)"));
-			}
+			return AddInlinedCodeChunk(MCT_Float3, TEXT("GetWorldPosition%s(Parameters)"), WorldPositionSuffix);
 		}
 	}
 
