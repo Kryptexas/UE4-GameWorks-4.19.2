@@ -155,7 +155,13 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 	FSoundQualityInfo QualityInfo = { 0 };
 
 	Buffer->DecompressionState = CoreAudioDevice->CreateCompressedAudioInfo(Wave);
-	
+
+	// If the buffer was precached as native, the resource data will have been lost and we need to re-initialize it
+	if (Wave->ResourceData == nullptr)
+	{
+		Wave->InitAudioResource(CoreAudioDevice->GetRuntimeFormat(Wave));
+	}
+
 	if (Buffer->DecompressionState->ReadCompressedInfo( Wave->ResourceData, Wave->ResourceSize, &QualityInfo ))
 	{
 		// Clear out any dangling pointers

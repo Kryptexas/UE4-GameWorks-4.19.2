@@ -356,6 +356,12 @@ FXAudio2SoundBuffer* FXAudio2SoundBuffer::CreateQueuedBuffer( FXAudio2Device* XA
 	// Always create a new buffer for real time decompressed sounds
 	FXAudio2SoundBuffer* Buffer = new FXAudio2SoundBuffer( XAudio2Device, SoundFormat_PCMRT );
 
+	// If the buffer was precached as native, the resource data will have been lost and we need to re-initialize it
+	if (Wave->ResourceData == nullptr)
+	{
+		Wave->InitAudioResource(XAudio2Device->GetRuntimeFormat(Wave));
+	}
+
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
 

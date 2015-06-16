@@ -195,6 +195,8 @@ public:
 		case ERealtimeAudioTaskType::Decompress:
 			if (bSkipFirstBuffer)
 			{
+				// If we're using cached data we need to skip the first two reads from the data
+				AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );
 				AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );
 			}
 			bLooped = AudioBuffer->ReadCompressedData( ( uint8* )AudioData, bLoopingMode );

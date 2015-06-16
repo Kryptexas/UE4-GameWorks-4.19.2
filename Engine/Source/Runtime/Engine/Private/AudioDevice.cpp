@@ -2365,7 +2365,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			{
 				if (SoundWave->DecompressionType == DTYPE_RealTime)
 				{
-					SoundWave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc( MONO_PCM_BUFFER_SIZE * SoundWave->NumChannels );
+					SoundWave->CachedRealtimeFirstBuffer = (uint8*)FMemory::Malloc( MONO_PCM_BUFFER_SIZE * SoundWave->NumChannels * 2 );
 				}
 				SoundWave->AudioDecompressor = new FAsyncAudioDecompress(SoundWave);
 				SoundWave->AudioDecompressor->StartBackgroundTask();

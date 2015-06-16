@@ -212,11 +212,6 @@ public:
 	virtual void Pause( void );
 	
 	/**
-	 * Handles feeding new data to a real time decompressed sound
-	 */
-	void HandleRealTimeSource( void );
-	
-	/**
 	 * Queries the status of the currently associated wave instance.
 	 *
 	 * @return	true if the wave instance/ source has finished playback and false if it is 
@@ -249,6 +244,16 @@ protected:
 		AsynchronousSkipFirstFrame
 	};
 
+	/**
+	 * Handles feeding new data to a real time decompressed sound
+	 */
+	void HandleRealTimeSourceData(bool bLooped);
+
+	/**
+	 * Handles feeding new data to a real time decompressed sound
+	 */
+	void HandleRealTimeSource(bool bBlockForData);
+
 	/** Decompress USoundWave procedure to generate more PCM data. Returns true/false: did audio loop? */
 	bool ReadMorePCMData( const int32 BufferIndex, EDataReadMode DataReadMode );
 
@@ -273,7 +278,7 @@ protected:
 	/** Which sound buffer should be written to next - used for double buffering. */
 	bool						bStreamedSound;
 	/** A pair of sound buffers to allow notification when a sound loops. */
-	CoreAudioBuffer				CoreAudioBuffers[2];
+	CoreAudioBuffer				CoreAudioBuffers[3];
 	/** Set when we wish to let the buffers play themselves out */
 	bool						bBuffersToFlush;
 

@@ -108,6 +108,7 @@ void FCoreAudioSoundSource::FreeResources( void )
 		// ... free the buffers
 		FMemory::Free( ( void* )CoreAudioBuffers[0].AudioData );
 		FMemory::Free( ( void* )CoreAudioBuffers[1].AudioData );
+		FMemory::Free( ( void* )CoreAudioBuffers[2].AudioData );
 		
 		// Buffers without a valid resource ID are transient and need to be deleted.
 		if( Buffer )
@@ -190,7 +191,7 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioSubmitBuffersTime );
 
-	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffer ) * 2 );
+	FMemory::Memzero( CoreAudioBuffers, sizeof( CoreAudioBuffer ) * 3 );
 
 	bStreamedSound = true;
 
@@ -203,6 +204,9 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 	CoreAudioBuffers[1].AudioData = (uint8*)FMemory::Malloc(BufferSize);
 	CoreAudioBuffers[1].AudioDataSize = BufferSize;
 
+	CoreAudioBuffers[2].AudioData = (uint8*)FMemory::Malloc(BufferSize);
+	CoreAudioBuffers[2].AudioDataSize = BufferSize;
+
 	NumActiveBuffers = 0;
 	BufferInUse = 0;
 	
@@ -211,16 +215,18 @@ void FCoreAudioSoundSource::SubmitPCMRTBuffers( void )
 	if (WaveInstance->WaveData && WaveInstance->WaveData->CachedRealtimeFirstBuffer && WaveInstance->StartTime == 0.f)
 	{
 		FMemory::Memcpy((uint8*)CoreAudioBuffers[0].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer, BufferSize);
+		FMemory::Memcpy((uint8*)CoreAudioBuffers[1].AudioData, WaveInstance->WaveData->CachedRealtimeFirstBuffer + BufferSize, BufferSize);
 		bSkipFirstBuffer = true;
-		NumActiveBuffers = 1;
+		NumActiveBuffers = 2;
 	}
 	else
 	{
 		ReadMorePCMData(0, EDataReadMode::Synchronous);
+		ReadMorePCMData(1, EDataReadMode::Synchronous);
 	}
 
 	// Start the async population of the next buffer
-	ReadMorePCMData(1, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous));
+	ReadMorePCMData(2, (bSkipFirstBuffer ? EDataReadMode::AsynchronousSkipFirstFrame : EDataReadMode::Asynchronous));
 }
 
 /**
@@ -501,17 +507,49 @@ void FCoreAudioSoundSource::Pause( void )
 	}
 }
 
+void FCoreAudioSoundSource::HandleRealTimeSourceData(bool bLooped)
+{
+	// Have we reached the end of the compressed sound?
+	if( bLooped )
+	{
+		switch( WaveInstance->LoopingMode )
+		{
+			case LOOP_Never:
+				// Play out any queued buffers - once there are no buffers left, the state check at the beginning of IsFinished will fire
+				bBuffersToFlush = true;
+				break;
+				
+			case LOOP_WithNotification:
+				// If we have just looped, and we are programmatically looping, send notification
+				WaveInstance->NotifyFinished();
+				break;
+				
+			case LOOP_Forever:
+				// Let the sound loop indefinitely
+				break;
+		}
+	}
+}
+
 /**
  * Handles feeding new data to a real time decompressed sound
  */
-void FCoreAudioSoundSource::HandleRealTimeSource()
+void FCoreAudioSoundSource::HandleRealTimeSource(bool bBlockForData)
 {
-	bool bLooped = false;
-	const int32 BufferIndex = 1 - BufferInUse;
+	const bool bGetMoreData = bBlockForData || (RealtimeAsyncTask == nullptr);
+	int32 BufferIndex = (BufferInUse + NumActiveBuffers) % 3;
 	if (RealtimeAsyncTask)
 	{
-		if (RealtimeAsyncTask->IsDone())
+		const bool bTaskDone = RealtimeAsyncTask->IsDone();
+		if (bTaskDone || bBlockForData)
 		{
+			bool bLooped = false;
+
+			if (!bTaskDone)
+			{
+				RealtimeAsyncTask->EnsureCompletion();
+			}
+
 			switch(RealtimeAsyncTask->GetTask().GetTaskType())
 			{
 			case ERealtimeAudioTaskType::Decompress:
@@ -531,35 +569,24 @@ void FCoreAudioSoundSource::HandleRealTimeSource()
 
 			delete RealtimeAsyncTask;
 			RealtimeAsyncTask = nullptr;
+
+			HandleRealTimeSourceData(bLooped);
+
+			if (++BufferIndex > 2)
+			{
+				BufferIndex = 0;
+			}
 		}
 	}
-	else
+
+	if (bGetMoreData)
 	{
 		// Get the next bit of streaming data
-		bLooped = ReadMorePCMData(BufferIndex, EDataReadMode::Asynchronous);
-	}
+		const bool bLooped = ReadMorePCMData(BufferIndex, EDataReadMode::Asynchronous);
 
-	if (RealtimeAsyncTask == nullptr)
-	{
-		// Have we reached the end of the compressed sound?
-		if( bLooped )
+		if (RealtimeAsyncTask == nullptr)
 		{
-			switch( WaveInstance->LoopingMode )
-			{
-				case LOOP_Never:
-					// Play out any queued buffers - once there are no buffers left, the state check at the beginning of IsFinished will fire
-					bBuffersToFlush = true;
-					break;
-				
-				case LOOP_WithNotification:
-					// If we have just looped, and we are programmatically looping, send notification
-					WaveInstance->NotifyFinished();
-					break;
-				
-				case LOOP_Forever:
-					// Let the sound loop indefinitely
-					break;
-			}
+			HandleRealTimeSourceData(bLooped);
 		}
 	}
 }
@@ -590,10 +617,10 @@ bool FCoreAudioSoundSource::IsFinished( void )
 		}
 
 		// Service any real time sounds
-		if( bStreamedSound && !bBuffersToFlush && NumActiveBuffers < 2)
+		if( bStreamedSound && !bBuffersToFlush && NumActiveBuffers < 3)
 		{
 			// Continue feeding new sound data (unless we are waiting for the sound to finish)
-			HandleRealTimeSource();
+			HandleRealTimeSource(NumActiveBuffers < 2);
 		}
 
 		return( false );
@@ -1086,7 +1113,10 @@ OSStatus FCoreAudioSoundSource::CoreAudioConvertCallback( AudioConverterRef Conv
 		if( Source->bStreamedSound )
 		{
 			Source->NumActiveBuffers--;
-			Source->BufferInUse = 1 - Source->BufferInUse;
+			if (++Source->BufferInUse > 2)
+			{
+				Source->BufferInUse = 0;
+			}
 		}
 		else if( Source->WaveInstance )
 		{

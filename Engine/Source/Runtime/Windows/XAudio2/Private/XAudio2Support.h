@@ -322,7 +322,12 @@ public:
 	/**
 	 * Handles feeding new data to a real time decompressed sound
 	 */
-	void HandleRealTimeSource();
+	void HandleRealTimeSource(bool bBlockForData);
+
+	/**
+	 * Handles pushing fetched real time source data to the hardware
+	 */
+	void HandleRealTimeSourceData(bool bLooped);
 
 	/**
 	 * Queries the status of the currently associated wave instance.
@@ -454,7 +459,7 @@ protected:
 	/** Which sound buffer should be written to next - used for double buffering. */
 	int32							CurrentBuffer;
 	/** A pair of sound buffers to allow notification when a sound loops. */
-	XAUDIO2_BUFFER				XAudio2Buffers[2];
+	XAUDIO2_BUFFER				XAudio2Buffers[3];
 	/** Additional buffer info for XWMA sounds */
 	XAUDIO2_BUFFER_WMA			XAudio2BufferXWMA[1];
 	/** Set when we wish to let the buffers play themselves out */
