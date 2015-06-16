@@ -41,6 +41,9 @@ struct CORE_API FStatConstants
 
 	/** A raw name for the event trigger with id. */
 	static const FName NAME_EventTriggerWithId;
+
+	/** A raw name for the stat marker. */
+	static const FName NAME_NamedMarker;
 };
 
 namespace LexicalConversion

@@ -1359,6 +1359,8 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 
 	Ar.Log( TEXT("add -memoryprofiler in the command line to enable the memory profiling"));
 	Ar.Log( TEXT("stat stopfile - stops tracking all memory operations and writes the results to the file"));
+
+	Ar.Log( TEXT("stat namedmarker #markername# - adds a custom marker to the stats stream"));
 }
 
 // @TODO yrx 2014-12-01 Move to StatsFile.cpp/.h
@@ -1555,12 +1557,29 @@ static void StatCmd(FString InCmd)
 	{
 		FStatsThreadState::GetLocalState().ToggleFindMemoryExtensiveStats();
 	}
-	else if ( FParse::Command( &Cmd, TEXT( "memoryprofiler" ) ) )
+	else if ( FParse::Command( &Cmd, TEXT( "namedmarker" ) ) )
 	{
-		if( FParse::Command( &Cmd, TEXT( "snapshot" ) ) )
+		FString MarkerName;
+		FParse::Token( Cmd, MarkerName, false );
+		
+		struct FLocal
 		{
-			// Put a snapshot marker in the raw stats.
-			// #YRX_STATS 2014-12-03 
+			static void OnGameThread( FString InMarkerName )
+			{
+				const FName NAME_Marker = FName( *InMarkerName );
+				STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, NAME_Marker );
+				UE_LOG( LogStats, Log, TEXT( "Added from console STAT_NamedMarker: %s" ), *InMarkerName );
+			}
+		};
+
+		if (!MarkerName.IsEmpty())
+		{
+			// This will be executed on the game thread.
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady
+			(
+				FSimpleDelegateGraphTask::FDelegate::CreateStatic( &FLocal::OnGameThread, MarkerName ),
+				TStatId(), nullptr, ENamedThreads::GameThread
+			);
 		}
 	}
 	// @see FStatHierParams
@@ -1703,6 +1722,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else if( FParse::Command( &TempCmd, TEXT( "slow" ) ) )
+		{
+		}
+		else if (FParse::Command( &TempCmd, TEXT( "namedmarker" ) ))
 		{
 		}
 		else

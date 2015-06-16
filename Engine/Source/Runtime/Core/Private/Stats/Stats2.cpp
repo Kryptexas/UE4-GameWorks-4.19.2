@@ -33,6 +33,7 @@ DECLARE_CYCLE_STAT(TEXT("Flush Raw Stats"),STAT_FlushRawStats,STATGROUP_StatSyst
 DECLARE_MEMORY_STAT( TEXT("Stats Descriptions"), STAT_StatDescMemory, STATGROUP_StatSystem );
 
 DEFINE_STAT(STAT_FrameTime);
+DEFINE_STAT(STAT_NamedMarker);
 
 /*-----------------------------------------------------------------------------
 	FStats2
@@ -1073,6 +1074,8 @@ void FThreadStats::CheckForCollectingStartupStats()
 		FStatsMallocProfilerProxy::Get()->SetState( true );
 		DirectStatsCommand( TEXT( "stat startfileraw" ), true );
 	}
+
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT("CheckForCollectingStartupStats") );
 }
 
 void FThreadStats::ExplicitFlush(bool DiscardCallstack)

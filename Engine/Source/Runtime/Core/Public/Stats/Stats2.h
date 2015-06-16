@@ -600,12 +600,9 @@ private:
 	/** ST_int64 and IsPackedCCAndDuration. */
 	uint32	CCAndDuration[2];
 	/** For FName. */
-	const TCHAR* GetName() const
+	CORE_API const FString GetName() const
 	{
-		// Based on DebugFName
-		static TCHAR TempName[256];
-		FCString::Strcpy( TempName, *FName::SafeString( (int32)Cycles ) );
-		return TempName;
+		return FName::SafeString( (int32)Cycles );
 	}
 };
 
@@ -1784,6 +1781,11 @@ struct FStat_##StatName\
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_int64, false, false, FPlatformMemory::MCR_Invalid); \
 	extern API DEFINE_STAT(StatId);
 
+/** FName stat that allows sending a string based data. */
+#define DECLARE_FNAME_STAT_EXTERN(CounterName,StatId,GroupId, API) \
+	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_FName, false, false, FPlatformMemory::MCR_Invalid); \
+	extern API DEFINE_STAT(StatId);
+
 /** This is a fake stat, mostly used to implement memory message or other custom stats that don't easily fit into the system. */
 #define DECLARE_PTR_STAT_EXTERN(CounterName,StatId,GroupId, API) \
 	DECLARE_STAT(CounterName,StatId,GroupId,EStatDataType::ST_Ptr, false, false, FPlatformMemory::MCR_Invalid); \
@@ -1890,7 +1892,14 @@ struct FStat_##StatName\
 {\
 	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Set, double(Value));\
 }
-
+#define STAT_ADD_CUSTOMMESSAGE_NAME(Stat,Value) \
+{\
+	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::SpecialMessageMarker, FName(Value));\
+}
+#define STAT_ADD_CUSTOMMESSAGE_PTR(Stat,Value) \
+{\
+	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::SpecialMessageMarker, uint64(Value));\
+}
 
 #define SET_CYCLE_COUNTER_FName(Stat,Cycles) \
 {\
@@ -2016,6 +2025,6 @@ DECLARE_STATS_GROUP(TEXT("UObjects"),STATGROUP_UObjects, STATCAT_Advanced);
 DECLARE_STATS_GROUP(TEXT("User"),STATGROUP_User, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FrameTime"),STAT_FrameTime,STATGROUP_Engine, CORE_API);
-
+DECLARE_FNAME_STAT_EXTERN(TEXT("NamedMarker"),STAT_NamedMarker,STATGROUP_StatSystem, CORE_API);
 
 #endif

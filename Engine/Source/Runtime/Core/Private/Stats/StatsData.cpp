@@ -31,6 +31,7 @@ const FString FStatConstants::ThreadNameMarker = TEXT( "Thread_" );
 
 const FName FStatConstants::NAME_EventWaitWithId = FStatNameAndInfo( GET_STATFNAME( STAT_EventWaitWithId ), true ).GetRawName();
 const FName FStatConstants::NAME_EventTriggerWithId = FStatNameAndInfo( GET_STATFNAME( STAT_EventTriggerWithId ), true ).GetRawName();
+const FName FStatConstants::NAME_NamedMarker = FStatNameAndInfo( GET_STATFNAME( STAT_NamedMarker ), true ).GetRawName(); 
 
 /*-----------------------------------------------------------------------------
 	FRawStatStackNode
@@ -1268,60 +1269,69 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 				// At this moment only these messages are supported:
 				//	EventWaitWithId
 				//	EventTriggerWithId
+				//	StatMarker
 				else if( Op == EStatOperation::SpecialMessageMarker )
 				{
+					//const FName EncName = Item.NameAndInfo.GetEncodedName();
 					const FName RawName = Item.NameAndInfo.GetRawName();
+
 					const uint64 PacketEventIdAndCycles = Item.GetValue_Ptr();
 					const uint32 EventId = uint32(PacketEventIdAndCycles >> 32);
 					const uint32 EventCycles = uint32(PacketEventIdAndCycles & MAX_uint32);
 
-					if (FStatConstants::NAME_EventWaitWithId == RawName)
+					if (RawName == FStatConstants::NAME_EventWaitWithId || RawName==FStatConstants::NAME_EventTriggerWithId)
 					{
-						TArray<FStatNameAndInfo> EventWaitStack;
-						for (const auto& It : Stack)
+						if (FStatConstants::NAME_EventWaitWithId == RawName)
 						{
-							EventWaitStack.Add( It->Meta.NameAndInfo );
-						}
+							TArray<FStatNameAndInfo> EventWaitStack;
+							for (const auto& It : Stack)
+							{
+								EventWaitStack.Add( It->Meta.NameAndInfo );
+							}
 
 #if	UE_BUILD_DEBUG
-						// Debug check, detect duplicates.
-						FEventData* EventPtr = EventsHistory.Find( EventId );
-						if (EventPtr && EventPtr->WaitStackStats.Num() > 0)
-						{
-							int32 k = 0; k++;
-						}
+							// Debug check, detect duplicates.
+							FEventData* EventPtr = EventsHistory.Find( EventId );
+							if (EventPtr && EventPtr->WaitStackStats.Num() > 0)
+							{
+								int32 k = 0; k++;
+							}
 #endif // UE_BUILD_DEBUG
 
-						FEventData& EventStats = EventsHistory.FindOrAdd( EventId );
-						EventStats.WaitStackStats = EventWaitStack;
-						EventStats.Frame = EventStats.HasValidStacks() ? TargetFrame : 0; // Only to maintain history.
-					}
-
-					if (FStatConstants::NAME_EventTriggerWithId == RawName)
-					{
-						TArray<FStatNameAndInfo> EventTriggerStack;
-						for (const auto& It : Stack)
-						{
-							EventTriggerStack.Add( It->Meta.NameAndInfo );
+							FEventData& EventStats = EventsHistory.FindOrAdd( EventId );
+							EventStats.WaitStackStats = EventWaitStack;
+							EventStats.Frame = EventStats.HasValidStacks() ? TargetFrame : 0; // Only to maintain history.
 						}
+
+						if (FStatConstants::NAME_EventTriggerWithId == RawName)
+						{
+							TArray<FStatNameAndInfo> EventTriggerStack;
+							for (const auto& It : Stack)
+							{
+								EventTriggerStack.Add( It->Meta.NameAndInfo );
+							}
 
 #if	UE_BUILD_DEBUG
-						// Debug check, detect duplicates.
-						FEventData* EventPtr = EventsHistory.Find( EventId );
-						if (EventPtr && EventPtr->TriggerStackStats.Num() > 0)
-						{
-							int32 k = 0; k++;
-						}
+							// Debug check, detect duplicates.
+							FEventData* EventPtr = EventsHistory.Find( EventId );
+							if (EventPtr && EventPtr->TriggerStackStats.Num() > 0)
+							{
+								int32 k = 0; k++;
+							}
 #endif // UE_BUILD_DEBUG
 
-						FEventData& EventStats = EventsHistory.FindOrAdd( EventId );
+							FEventData& EventStats = EventsHistory.FindOrAdd( EventId );
 
-						EventStats.TriggerStackStats = EventTriggerStack;
-						EventStats.Duration = EventCycles;
-						EventStats.DurationMS = FPlatformTime::ToMilliseconds( EventCycles );
-						EventStats.Frame = EventStats.HasValidStacks() ? TargetFrame : 0; // Only to maintain history.
+							EventStats.TriggerStackStats = EventTriggerStack;
+							EventStats.Duration = EventCycles;
+							EventStats.DurationMS = FPlatformTime::ToMilliseconds( EventCycles );
+							EventStats.Frame = EventStats.HasValidStacks() ? TargetFrame : 0; // Only to maintain history.
+						}
 					}
+					else if (RawName == FStatConstants::NAME_NamedMarker)
+					{
 
+					}
 				}
 				else if( Op == EStatOperation::Memory )
 				{

@@ -193,7 +193,7 @@ void FEvent::WaitForStats()
 	if( FThreadStats::IsCollectingData() && EventStartCycles == 0 )
 	{
 		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | 0;
-		FThreadStats::AddMessage( GET_STATFNAME( STAT_EventWaitWithId ), EStatOperation::SpecialMessageMarker, PacketEventIdAndCycles );
+		STAT_ADD_CUSTOMMESSAGE_PTR( STAT_EventWaitWithId, PacketEventIdAndCycles );
 		EventStartCycles = FPlatformTime::Cycles();
 	}
 #endif // STATS
@@ -208,7 +208,7 @@ void FEvent::TriggerForStats()
 		const uint32 EndCycles = FPlatformTime::Cycles();
 		const int32 DeltaCycles = int32( EndCycles - EventStartCycles );
 		const uint64 PacketEventIdAndCycles = ((uint64)EventId << 32) | DeltaCycles;
-		FThreadStats::AddMessage( GET_STATFNAME( STAT_EventTriggerWithId ), EStatOperation::SpecialMessageMarker, PacketEventIdAndCycles );
+		STAT_ADD_CUSTOMMESSAGE_PTR( STAT_EventTriggerWithId, PacketEventIdAndCycles );
 
 		AdvanceStats();
 	}
