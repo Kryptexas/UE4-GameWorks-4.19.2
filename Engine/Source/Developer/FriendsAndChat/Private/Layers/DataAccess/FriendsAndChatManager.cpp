@@ -1410,7 +1410,7 @@ TSharedPtr<FFriendViewModel> FFriendsAndChatManager::GetFriendViewModel(const TS
 	}
 	if(FoundFriend.IsValid())
 	{
-		FriendViewModelFactory->Create(FoundFriend.ToSharedRef());
+		return FriendViewModelFactory->Create(FoundFriend.ToSharedRef());
 	}
 	return nullptr;
 }
