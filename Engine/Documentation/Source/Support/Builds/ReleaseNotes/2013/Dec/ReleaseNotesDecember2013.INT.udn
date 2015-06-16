@@ -90,7 +90,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 			![](FolderColors03.png)
 
 * **Package Auto-Save Restoration**
-	* You can now restore packages from the previous editing sessions auto-saves.
+	* You can now restore packages from the previous editing session's auto-saves.
 	* If the editor detects that it did not shut-down cleanly, it will present you will a dialog on start-up to let you choose which packages you'd like to restore.
 
 		![](PackageAutoSaveRestoration.png)
@@ -138,7 +138,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * **Animation Retargeting**
 	* Recently support has been added for Animation Retargeting! 
 	* What is animation retargeting?
-		* Animation retargeting is the ability to use animations made for a specific character, and play them on a character of different proportions. This is important: the characters have to share a common Skeleton for this to work (same bone names and hierarchy), only the bind pose can be different.
+		* Animation retargeting is the ability to use animations made for a specific character, and play them on a character of different proportions. This is important: the characters have to share a common Skeleton for this to work (same bone names and hierarchy); only the bind pose can be different.
 	* We have 3 different settings for bone translation retargeting which can be set on the Skeleton Tree window in Persona:
 		* **Skeleton**: Bone Translation comes from the Target Skeleton's bind pose.
 		* **Animation**: Bone Translation comes from the animation data, unchanged.
@@ -161,11 +161,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 #### Editor and Tools
 * Added easier way to check the type of DragDrop operation with DragDropEvent.GetOperationAs<FMyDragDrop>();
 * Added the OnVisualizeTooltip() event that allows for scoped, custom tooltip handling.
-* Added an editor user settings ini option to prefix the project name watermark in the level editor for disambiguation when frequently switching between branches.
+* Added an editor user settings in option to prefix the project name watermark in the level editor for disambiguation when frequently switching between branches.
 * Added custom mesh previews for material thumbnails. Choose your preview mesh in the details panel of the material editor then in the Content Browser, enter thumbnail edit mode and change the material's preview primitive to the teapot.
 * Rocket users now have the ability to send quick feedback from the editor.
 * Added option to preserve non-uniform scaling when snapping.
-* Cooking paths are now in per-game Editor preferences.
+* Cooking paths are now in per-game Editor Preferences.
 * Added folders to Content Browser.
 * Added thin window border to Slate windows.
 * Added interactive actor 'eyedropper' picker for picking actors in the scene.
