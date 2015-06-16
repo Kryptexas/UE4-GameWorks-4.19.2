@@ -742,7 +742,8 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 
 	{
 		// Enables toggle of HDR Mosaic mode without recompile of all PC shaders during ES2 emulation.
-		ViewUniformShaderParameters.HdrMosaic = IsMobileHDR32bpp() ? 1.0f : 0.0f;
+		const bool bUseMosaic = IsMobileHDR32bpp() && !bIsSceneCapture;
+		ViewUniformShaderParameters.HdrMosaic = bUseMosaic ? 1.0f : 0.0f;
 	}
 	
 	FVector2D OneScenePixelUVSize = FVector2D(1.0f / BufferSize.X, 1.0f / BufferSize.Y);

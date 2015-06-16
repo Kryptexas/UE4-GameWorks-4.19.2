@@ -542,7 +542,7 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 
 	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, true);
 
-	bool bUseMosaic = IsMobileHDR32bpp();
+	bool bUseMosaic = IsMobileHDR32bpp() && !View->bIsSceneCapture;
 
 	// Must early exit if gamma only.
 	if(Bitmask == TonemapperGammaOnly)

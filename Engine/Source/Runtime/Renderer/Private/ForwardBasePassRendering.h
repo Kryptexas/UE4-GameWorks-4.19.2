@@ -328,6 +328,7 @@ public:
 		bool bInEnableSkyLight,
 		bool bOverrideWithShaderComplexity,
 		ERHIFeatureLevel::Type FeatureLevel,
+		bool bUseMosaic,
 		bool bInEnableEditorPrimitiveDepthTest = false
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
@@ -336,7 +337,7 @@ public:
 		SceneTextureMode(InSceneTextureMode),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest)
 	{
-		if (IsMobileHDR32bpp())
+		if (bUseMosaic)
 		{
 			VertexShader = InMaterialResource.GetShader<TBasePassForForwardShadingVS<LightMapPolicyType, HDR_LINEAR_64> >(InVertexFactory->GetType());
 
