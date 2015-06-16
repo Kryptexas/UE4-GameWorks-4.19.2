@@ -275,6 +275,7 @@ void FInputScaleBiasCustomization::CustomizeHeader(TSharedRef<class IPropertyHan
 	[
 		SNew(STextBlock)
 		.Text(StructPropertyHandle->GetPropertyDisplayName())
+		.Font(IDetailLayoutBuilder::GetDetailFont())
 	]
 	.ValueContent()
 	[
