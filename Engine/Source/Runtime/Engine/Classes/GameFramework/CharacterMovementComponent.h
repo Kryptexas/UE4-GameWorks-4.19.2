@@ -566,10 +566,16 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultWaterMovementMode;
 
-	/** Ground movement mode to switch to after falling */
+private:
+	/**
+	 * Ground movement mode to switch to after falling and resuming ground movement.
+	 * Only allowed values are: MOVE_Walking, MOVE_NavWalking.
+	 * @see SetGroundMovementMode(), GetGroundMovementMode()
+	 */
 	UPROPERTY(Transient)
 	TEnumAsByte<enum EMovementMode> GroundMovementMode;
 
+public:
 	/**
 	 * If true, walking movement always maintains horizontal velocity when moving up ramps, which causes movement up ramps to be faster parallel to the ramp surface.
 	 * If false, then walking movement maintains velocity magnitude parallel to the ramp surface.
@@ -800,6 +806,23 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual void SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode = 0);
+
+	/**
+	 * Set movement mode to use when returning to walking movement (either MOVE_Walking or MOVE_NavWalking).
+	 * If movement mode is currently one of Walking or NavWalking, this will also change the current movement mode (via SetMovementMode())
+	 * if the new mode is not the current ground mode.
+	 * 
+	 * @param  NewGroundMovementMode New ground movement mode. Must be either MOVE_Walking or MOVE_NavWalking, other values are ignored.
+	 * @see GroundMovementMode
+	 */
+	 void SetGroundMovementMode(EMovementMode NewGroundMovementMode);
+
+	/**
+	 * Get current GroundMovementMode value.
+	 * @return current GroundMovementMode
+	 * @see GroundMovementMode, SetGroundMovementMode()
+	 */
+	 EMovementMode GetGroundMovementMode() const { return GroundMovementMode; }
 
 protected:
 

@@ -620,6 +620,25 @@ void UCharacterMovementComponent::SetDefaultMovementMode()
 	}
 }
 
+void UCharacterMovementComponent::SetGroundMovementMode(EMovementMode NewGroundMovementMode)
+{
+	// Enforce restriction that it's either Walking or NavWalking.
+	if (NewGroundMovementMode != MOVE_Walking && NewGroundMovementMode != MOVE_NavWalking)
+	{
+		return;
+	}
+
+	// Set new value
+	GroundMovementMode = NewGroundMovementMode;
+
+	// Possibly change movement modes if already on ground and choosing the other ground mode.
+	const bool bOnGround = (MovementMode == MOVE_Walking || MovementMode == MOVE_NavWalking);
+	if (bOnGround && MovementMode != NewGroundMovementMode)
+	{
+		SetMovementMode(NewGroundMovementMode);
+	}
+}
+
 void UCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode)
 {
 	if (NewMovementMode != MOVE_Custom)
@@ -732,45 +751,46 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	}
 
 	CharacterOwner->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+	ensureOnce(GroundMovementMode == MOVE_Walking || GroundMovementMode == MOVE_NavWalking);
 };
 
 
-uint8 UCharacterMovementComponent::PackNetworkMovementMode() const
+namespace PackedMovementModeConstants
 {
 	const uint32 GroundShift = FMath::CeilLogTwo(MOVE_MAX);
 	const uint8 CustomModeThr = 2 * (1 << GroundShift);
+	const uint8 GroundMask = (1 << GroundShift) - 1;
+}
 
+uint8 UCharacterMovementComponent::PackNetworkMovementMode() const
+{
 	if (MovementMode != MOVE_Custom)
 	{
+		ensureOnce(GroundMovementMode == MOVE_Walking || GroundMovementMode == MOVE_NavWalking);
 		const uint8 GroundModeBit = (GroundMovementMode == MOVE_Walking ? 0 : 1);
-		return uint8(MovementMode.GetValue()) | (GroundModeBit << GroundShift);
+		return uint8(MovementMode.GetValue()) | (GroundModeBit << PackedMovementModeConstants::GroundShift);
 	}
 	else
 	{
-		return CustomMovementMode + CustomModeThr;
+		return CustomMovementMode + PackedMovementModeConstants::CustomModeThr;
 	}
 }
 
 
 void UCharacterMovementComponent::UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode, TEnumAsByte<EMovementMode>& OutGroundMode) const
 {
-	const uint32 GroundShift = FMath::CeilLogTwo(MOVE_MAX);
-	const uint8 CustomModeThr = 2 * (1 << GroundShift);
-
-	if (ReceivedMode < CustomModeThr)
+	if (ReceivedMode < PackedMovementModeConstants::CustomModeThr)
 	{
-		const uint8 GroundMask = (1 << GroundShift) - 1;
-
-		OutMode = TEnumAsByte<EMovementMode>(ReceivedMode & GroundMask);
+		OutMode = TEnumAsByte<EMovementMode>(ReceivedMode & PackedMovementModeConstants::GroundMask);
 		OutCustomMode = 0;
-		const uint8 GroundModeBit = (ReceivedMode >> GroundShift);
+		const uint8 GroundModeBit = (ReceivedMode >> PackedMovementModeConstants::GroundShift);
 		OutGroundMode = TEnumAsByte<EMovementMode>(GroundModeBit == 0 ? MOVE_Walking : MOVE_NavWalking);
 	}
 	else
 	{
 		OutMode = MOVE_Custom;
-		OutCustomMode = ReceivedMode - CustomModeThr;
-		OutGroundMode = DefaultLandMovementMode;
+		OutCustomMode = ReceivedMode - PackedMovementModeConstants::CustomModeThr;
+		OutGroundMode = MOVE_Walking;
 	}
 }
 
@@ -781,6 +801,7 @@ void UCharacterMovementComponent::ApplyNetworkMovementMode(const uint8 ReceivedM
 	TEnumAsByte<EMovementMode> NetGroundMode(MOVE_None);
 	uint8 NetCustomMode(0);
 	UnpackNetworkMovementMode(ReceivedMode, NetMovementMode, NetCustomMode, NetGroundMode);
+	ensureOnce(NetGroundMode == MOVE_Walking || NetGroundMode == MOVE_NavWalking);
 
 	GroundMovementMode = NetGroundMode;
 	SetMovementMode(NetMovementMode, NetCustomMode);
