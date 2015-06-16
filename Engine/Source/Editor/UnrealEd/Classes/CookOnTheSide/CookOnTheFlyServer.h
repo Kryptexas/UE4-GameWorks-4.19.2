@@ -421,6 +421,7 @@ private:
 		TMap<FName, TArray<FName>> PlatformList;
 		mutable FCriticalSection SynchronizationObject;
 	public:
+		const TArray<FName> &GetQueue() const { return Queue;  }
 		void EnqueueUnique(const FFilePlatformRequest& Request, bool ForceEnqueFront = false)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -588,6 +589,17 @@ private:
 	FString OutputDirectoryOverride;
 	//////////////////////////////////////////////////////////////////////////
 	// Cook by the book options
+	struct FChildCooker
+	{
+		FChildCooker() : ReadPipe(nullptr), ReturnCode(-1), bFinished(false) { }
+
+		FProcHandle ProcessHandle;
+		FString ResponseFileName;
+		FString BaseResponseFileName;
+		void* ReadPipe;
+		int32 ReturnCode;
+		bool bFinished;
+	};
 	struct FCookByTheBookOptions
 	{
 	public:
@@ -599,7 +611,8 @@ private:
 			CookStartTime( 0.0 ), 
 			bErrorOnEngineContentUse(false),
 			bForceEnableCompressedPackages(false),
-			bForceDisableCompressedPackages(false)
+			bForceDisableCompressedPackages(false),
+			bIsChildCooker(false)
 		{ }
 
 		/** Should we test for UObject leaks */
@@ -634,6 +647,8 @@ private:
 		/** force this cook by the book to enable \ disable package compression */
 		bool bForceEnableCompressedPackages;
 		bool bForceDisableCompressedPackages;
+		bool bIsChildCooker;
+		TArray<FChildCooker> ChildCookers;
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -766,16 +781,18 @@ public:
 		FString DLCName;
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
+		FString ChildCookFileName; // if we are the child cooker 
 		bool bGenerateStreamingInstallManifests; 
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
-
+		int32 NumProcesses;
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
 			bGenerateStreamingInstallManifests(false),
 			bGenerateDependenciesForMaps(false),
-			bErrorOnEngineContentUse(false)
+			bErrorOnEngineContentUse(false),
+			NumProcesses(0)
 		{ }
 	};
 
@@ -897,6 +914,14 @@ public:
 	 */
 	void MarkPackageDirtyForCooker( UPackage *Package );
 
+	/**
+	 * MaybeMarkPackageAsAlreadyLoaded
+	 * Mark the package as already loaded if we have already cooked the package for all requested target platforms
+	 * this hints to the objects on load that we don't need to load all our bulk data
+	 * 
+	 * @param Package to mark as not requiring reload
+	 */
+	void MaybeMarkPackageAsAlreadyLoaded(UPackage* Package);
 
 
 private:
@@ -908,7 +933,7 @@ private:
 	 */
 	void CollectFilesToCook(TArray<FName>& FilesInPath, 
 		const TArray<FString>& CookMaps, const TArray<FString>& CookDirectories, const TArray<FString>& CookCultures, 
-		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev);
+		const TArray<FString>& IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev, const FString& ChildCookFilename);
 
 	/**
 	 * AddFileToCook add file to cook list 
@@ -921,6 +946,22 @@ private:
 	void CookByTheBookFinished();
 
 	/**
+	 * StartChildCookers to help out with cooking
+	 * only valid in cook by the book (not from the editor)
+	 * 
+	 * @param NumChildCookersToSpawn, number of child cookers we want to use
+	 */
+	void StartChildCookers(int32 NumChildCookersToSpawn, const TArray<FName>& TargetPlatformNames );
+
+	/**
+	 * TickChildCookers
+	 * output the information form the child cookers to the main cooker output
+	 * 
+	 * @return return true if all child cookers are finished
+	 */
+	bool TickChildCookers();
+
+	/**
 	 * Get all the packages which are listed in asset registry passed in.  
 	 *
 	 * @param AssetRegistryPath path of the assetregistry.bin file to read
@@ -928,6 +969,20 @@ private:
 	 * @return true if successfully read false otherwise
 	 */
 	bool GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const;
+
+	/**
+	 * IsChildCooker, 
+	 * returns if this cooker is a sue chef for some other master chef.
+	 */
+	bool IsChildCooker() const
+	{
+		if (IsCookByTheBookMode())
+		{
+			return CookByTheBookOptions->bIsChildCooker;
+		}
+		return false;
+	}
+
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -983,6 +1038,7 @@ private:
 
 	/**
 	 * GetDependencies
+	 * get package dependencies according to the asset registry
 	 * 
 	 * @param Packages List of packages to use as the root set for dependency checking
 	 * @param Found return value, all objects which package is dependent on
@@ -990,12 +1046,49 @@ private:
 	void GetDependentPackages( const TSet<UPackage*>& Packages, TSet<FName>& Found);
 
 	/**
+	 * GetDependencies
+	 * get package dependencies according to the asset registry
+	 *
+	 * @param Root set of packages to use when looking for dependencies
+	 * @param FoundPackages list of packages which were found
+	 */
+	void GetDependentPackages(const TSet<FName>& RootPackages, TSet<FName>& FoundPackages);
+	/**
 	 * GenerateManifestInfo
 	 * generate the manifest information for a given package
 	 *
 	 * @param Package package to generate manifest information for
 	 */
 	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
+
+
+	/**
+	 * GenerateManifestInfo
+	 * generate manfiest information for the given package and add it to the manifest
+	 * this version is teh same as GenerateManifestInfo which takes in a UPackageObject except that doesn't require the package to be loaded
+	 *
+	 * @param Package name of the package to generate the manifest information for
+	 * @param TargetPlatformNames to add the manifest information to
+	 */
+	void GenerateManifestInfo(const FName& Package, const TArray<FName>& TargetPlatformNames);
+
+	/**
+	 * ContainsWorld
+	 * use the asset registry to determine if a Package contains a UWorld or ULevel object
+	 * 
+	 * @param PackageName to return if it contains the a UWorld object or a ULevel
+	 * @return true if the Package contains a UWorld or ULevel false otherwise
+	 */
+	bool ContainsMap(const FName& PackageName) const;
+
+	/**
+	 * AddDependenciesToManifest
+	 * Add the dependencies of this package to the cooked package manifest
+	 * use information from the asset registry to generate this information
+	 *
+	 * @params StandardFilename of the package which we want dependencies to be copied over
+	 */
+	void AddDependenciesToManifest(const FName& StandardFilename, const FName& LastLoadedMapName, const TSet<FName>& Dependencies, const TArray<FName>& TargetPlatformNames);
 
 	/**
 	 * GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook

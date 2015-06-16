@@ -1053,6 +1053,12 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FString DLCName;
 	FParse::Value( *Params, TEXT("DLCNAME="), DLCName);
 
+	FString ChildCookFile;
+	FParse::Value(*Params, TEXT("cookchild="), ChildCookFile);
+
+	int32 NumProcesses = 0;
+	FParse::Value(*Params, TEXT("multiprocesscooker="), NumProcesses);
+
 	FString BasedOnReleaseVersion;
 	FParse::Value( *Params, TEXT("BasedOnReleaseVersion="), BasedOnReleaseVersion);
 
@@ -1175,7 +1181,8 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.bErrorOnEngineContentUse = bErrorOnEngineContentUse;
 	StartupOptions.bGenerateDependenciesForMaps = Switches.Contains(TEXT("GenerateDependenciesForMaps"));
 	StartupOptions.bGenerateStreamingInstallManifests = bGenerateStreamingInstallManifests;
-
+	StartupOptions.ChildCookFileName = ChildCookFile;
+	StartupOptions.NumProcesses = NumProcesses;
 
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 
