@@ -1418,6 +1418,10 @@ FText UK2Node_CallFunction::GetKeywordsForFunction(const UFunction* Function)
 		Args.Add(TEXT("MetadataKeywords"), MetadataKeywords);
 		ResultKeywords = FText::Format(FText::FromString("{Name} {MetadataKeywords}"), Args);
 	}
+	else
+	{
+		ResultKeywords = FText::FromString(Keywords);
+	}
 
 	return ResultKeywords;
 }
