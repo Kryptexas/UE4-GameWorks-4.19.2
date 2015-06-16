@@ -15,6 +15,21 @@ public:
 	)
 	{}
 	
+	/** Toggle play */
+	TSharedPtr< FUICommandInfo > TogglePlay;
+
+	/** Play forward */
+	TSharedPtr< FUICommandInfo > PlayForward;
+
+	/** Rewind */
+	TSharedPtr< FUICommandInfo > Rewind;
+
+	/** Step forward */
+	TSharedPtr< FUICommandInfo > StepForward;
+
+	/** Step backward */
+	TSharedPtr< FUICommandInfo > StepBackward;
+
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
 

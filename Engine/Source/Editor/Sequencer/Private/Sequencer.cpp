@@ -716,10 +716,10 @@ void FSequencer::DestroySpawnablesForAllMovieScenes()
 	}
 }
 
-FReply FSequencer::OnPlay()
+FReply FSequencer::OnPlay(bool bTogglePlay)
 {
-	if( PlaybackState == EMovieScenePlayerStatus::Playing ||
-		PlaybackState == EMovieScenePlayerStatus::Recording )
+	if( (PlaybackState == EMovieScenePlayerStatus::Playing ||
+		 PlaybackState == EMovieScenePlayerStatus::Recording) && bTogglePlay )
 	{
 		PlaybackState = EMovieScenePlayerStatus::Stopped;
 		// Update on stop (cleans up things like sounds that are playing)
@@ -1352,6 +1352,31 @@ void FSequencer::DeleteSelectedItems()
 	}
 }
 
+void FSequencer::TogglePlay()
+{
+	OnPlay();
+}
+
+void FSequencer::PlayForward()
+{
+	OnPlay(false);
+}
+
+void FSequencer::Rewind()
+{
+	OnStepToBeginning();
+}
+
+void FSequencer::StepForward()
+{
+	OnStepForward();
+}
+
+void FSequencer::StepBackward()
+{
+	OnStepBackward();
+}
+
 void FSequencer::SetKey()
 {
 	USelection* CurrentSelection = GEditor->GetSelectedActors();
@@ -1373,7 +1398,6 @@ void FSequencer::SetKey()
 	}
 }
 
-
 void FSequencer::BindSequencerCommands()
 {
 	const FSequencerCommands& Commands = FSequencerCommands::Get();
@@ -1381,6 +1405,26 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		FGenericCommands::Get().Delete,
 		FExecuteAction::CreateSP( this, &FSequencer::DeleteSelectedItems ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.TogglePlay,
+		FExecuteAction::CreateSP( this, &FSequencer::TogglePlay ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.PlayForward,
+		FExecuteAction::CreateSP( this, &FSequencer::PlayForward ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.Rewind,
+		FExecuteAction::CreateSP( this, &FSequencer::Rewind ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.StepForward,
+		FExecuteAction::CreateSP( this, &FSequencer::StepForward ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.StepBackward,
+		FExecuteAction::CreateSP( this, &FSequencer::StepBackward ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.SetKey,

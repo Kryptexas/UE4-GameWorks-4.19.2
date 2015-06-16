@@ -231,7 +231,7 @@ public:
 	void OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors );
 
 	/** Functions to push on to the transport controls we use */
-	FReply OnPlay();
+	FReply OnPlay(bool bTogglePlay=true);
 	FReply OnRecord();
 	FReply OnStepForward();
 	FReply OnStepBackward();
@@ -314,6 +314,13 @@ protected:
 	/** Called when a user executes the delete command to delete sections or keys */
 	void DeleteSelectedItems();
 	
+	/** Transport controls */
+	void TogglePlay();
+	void PlayForward();
+	void Rewind();
+	void StepForward();
+	void StepBackward();
+
 	/** Manually sets a key for the selected objects at the current time */
 	void SetKey();
 

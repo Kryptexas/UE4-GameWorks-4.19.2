@@ -173,7 +173,7 @@ void FSequencerAssetEditor::AttachTransportControlsToViewports()
 		TSharedRef<FSequencer> SequencerRef = Sequencer.ToSharedRef();
 
 		FTransportControlArgs TransportControlArgs;
-		TransportControlArgs.OnForwardPlay.BindSP(SequencerRef, &FSequencer::OnPlay);
+		TransportControlArgs.OnForwardPlay.BindSP(SequencerRef, &FSequencer::OnPlay, true);
 		TransportControlArgs.OnRecord.BindSP(SequencerRef, &FSequencer::OnRecord);
 		TransportControlArgs.OnForwardStep.BindSP(SequencerRef, &FSequencer::OnStepForward);
 		TransportControlArgs.OnBackwardStep.BindSP(SequencerRef, &FSequencer::OnStepBackward);
