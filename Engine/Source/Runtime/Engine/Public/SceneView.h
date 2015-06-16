@@ -847,7 +847,7 @@ public:
 	/**
 	 * GetWorld->IsPaused() && !Simulate
 	 * Simulate is excluded as the camera can move which invalidates motionblur
-	 * /
+	 */
 	bool bWorldIsPaused;
 
 	/** Gamma correction used when rendering this family. Default is 1.0 */
