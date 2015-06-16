@@ -126,6 +126,7 @@
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
+#include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialExpressionViewSize.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialExpressionDistanceToNearestSurface.h"
@@ -4608,6 +4609,44 @@ void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions)
 	OutCaptions.Add(TEXT("ScreenPosition"));
 }
 
+UMaterialExpressionViewProperty::UMaterialExpressionViewProperty(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Property = MEVP_FieldOfView;
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+	bShaderInputData = true;
+}
+
+int32 UMaterialExpressionViewProperty::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	return Compiler->ViewProperty(Property);
+}
+
+void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) const
+{
+#if WITH_EDITOR
+	const UEnum* ViewPropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedViewProperty"));
+	check(ViewPropertyEnum);
+
+	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameText(Property).ToString();
+#else
+	const FString PropertyDisplayName = TEXT("");
+#endif
+
+	OutCaptions.Add(FString(TEXT("View.")) + PropertyDisplayName);
+}
+
 UMaterialExpressionViewSize::UMaterialExpressionViewSize(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -4628,7 +4667,7 @@ UMaterialExpressionViewSize::UMaterialExpressionViewSize(const FObjectInitialize
 
 int32 UMaterialExpressionViewSize::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->ViewSize();
+	return Compiler->ViewProperty(MEVP_ViewSize);
 }
 
 void UMaterialExpressionViewSize::GetCaption(TArray<FString>& OutCaptions) const
@@ -4656,7 +4695,7 @@ UMaterialExpressionSceneTexelSize::UMaterialExpressionSceneTexelSize(const FObje
 
 int32 UMaterialExpressionSceneTexelSize::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->SceneTexelSize();
+	return Compiler->ViewProperty(MEVP_TexelSize);
 }
 
 void UMaterialExpressionSceneTexelSize::GetCaption(TArray<FString>& OutCaptions) const

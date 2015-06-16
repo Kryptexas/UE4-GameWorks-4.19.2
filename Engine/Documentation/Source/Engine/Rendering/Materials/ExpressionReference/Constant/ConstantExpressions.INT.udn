@@ -199,4 +199,21 @@ The VertexColor expression is the access point for the material to the outputs o
 
 The network above would utilize color and alpha data directly from a Particle System. Such networks are ideal for special effects such as sparks.
 
+(#ViewProperty)
+## View Property
 
+The ViewProperty expression outputs a view dependant constant property such as the field of view or the render target size. The view property to be accessed can be configured, and the type of the output depends on the configured accessed property.
+
+[REGION:fullwidth]
+![ViewPropertyExample.png](ViewPropertyExample.png)
+[/REGION]
+
+Here is the example with a field of view of 50 degrees.
+[REGION:fullwidth]
+![ViewPropertyExampleFOV50.png](ViewPropertyExampleFOV50.png)
+[/REGION]
+
+Here is the same example with a field of view of 90 degrees.
+[REGION:fullwidth]
+![ViewPropertyExampleFOV90.png](ViewPropertyExampleFOV90.png)
+[/REGION]

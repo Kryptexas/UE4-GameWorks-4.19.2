@@ -278,6 +278,14 @@ Engine/Rendering/Materials/ExpressionReference/Coordinates#vertexnormalws
 [/VAR]
 [/EXCERPT:UMaterialExpressionVertexNormalWS]
 
+[EXCERPT:UMaterialExpressionViewProperty]
+The ViewProperty expression outputs a view dependant constant property. The view property to be accessed can be configured, and the type of the output depends on the configured accessed property.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Constant#viewproperty
+[/VAR]
+[/EXCERPT:UMaterialExpressionViewProperty]
+
 [EXCERPT:UMaterialExpressionViewSize]
 The ViewSize expression outputs a 2D vector giving the size of the current view in pixels. This is useful for causing various changes in your materials based on the current resolution of the screen. 
 
