@@ -1870,6 +1870,10 @@ namespace UnrealBuildTool
 					{
 						FilteredBinaries.Add(DLLBinary);
 					}
+					else if(!PrecompiledBinaries.Contains(DLLBinary))
+					{
+						PrecompiledBinaries.Add(DLLBinary);
+					}
 				}
 
 				// Copy the result into the final list

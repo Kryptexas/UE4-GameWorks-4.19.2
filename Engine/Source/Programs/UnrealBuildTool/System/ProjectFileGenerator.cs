@@ -568,7 +568,7 @@ namespace UnrealBuildTool
 					var IntelliSenseTargetFiles = new List<Tuple<ProjectFile, string>>();
 					{
 						// Engine targets
-						if( EngineProject != null && !bGeneratingRocketProjectFiles )
+						if( EngineProject != null)
 						{
 							foreach( var ProjectTarget in EngineProject.ProjectTargets )
 							{
@@ -1713,12 +1713,6 @@ namespace UnrealBuildTool
 					IsEngineTarget = true;
 				}
 
-				if (IsEngineTarget && bGeneratingRocketProjectFiles)
-				{
-					// Rocket project file must never include engine targets.
-					continue;
-				}
-
 				bool WantProjectFileForTarget = true;
 				if(TargetFileRelativeToEngineDirectory.StartsWith(Path.Combine("Source", "Programs"), StringComparison.InvariantCultureIgnoreCase))
 				{
@@ -1808,6 +1802,13 @@ namespace UnrealBuildTool
 						{
 							EngineProject = ProjectFile;
 							BaseFolder = EngineRelativePath;
+							if (bGeneratingRocketProjectFiles)
+							{
+								// Allow engine projects to be created but not built for Rocket
+								EngineProject.IsForeignProject = false;
+								EngineProject.IsGeneratedProject = true;
+								EngineProject.IsStubProject = true;
+							}
 						}
 						else
 						{
