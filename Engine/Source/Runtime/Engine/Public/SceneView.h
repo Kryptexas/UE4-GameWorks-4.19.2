@@ -844,7 +844,10 @@ public:
 	/** if true then results of scene rendering are copied/resolved to the RenderTarget. */
 	bool bResolveScene;
 
-	/** from GetWorld->IsPaused() */
+	/**
+	 * GetWorld->IsPaused() && !Simulate
+	 * Simulate is excluded as the camera can move which invalidates motionblur
+	 * /
 	bool bWorldIsPaused;
 
 	/** Gamma correction used when rendering this family. Default is 1.0 */

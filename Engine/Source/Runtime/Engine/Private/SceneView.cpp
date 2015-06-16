@@ -19,6 +19,10 @@
 #include "Classes/Engine/RendererSettings.h"
 #include "LightPropagationVolumeBlendable.h"
 
+#if WITH_EDITOR
+	#include "UnrealEd.h"
+#endif
+
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FPrimitiveUniformShaderParameters,TEXT("Primitive"));
@@ -1543,7 +1547,16 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 
 			if (World->IsPaused())
 			{
-				bWorldIsPaused = true;
+				bool bCameraCanMove = false;
+
+#if WITH_EDITOR
+				// to fix UE-17047 Motion Blur exaggeration when Paused in Simulate
+				bCameraCanMove = GEditor && GEditor->bIsSimulatingInEditor;
+#endif
+				if(!bCameraCanMove)
+				{
+					bWorldIsPaused = true;
+				}
 			}
 		}
 	}
