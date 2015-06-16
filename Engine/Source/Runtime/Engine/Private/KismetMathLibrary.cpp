@@ -1082,6 +1082,11 @@ FTransform UKismetMathLibrary::ConvertTransformToRelative(const FTransform& Worl
 	return LocalTransform.GetRelativeTransformReverse(WorldTransform);
 }
 
+FTransform UKismetMathLibrary::InvertTransform(const FTransform& T)
+{
+	return T.Inverse();
+}
+
 FTransform UKismetMathLibrary::TLerp(const FTransform& A, const FTransform& B, float Alpha)
 {
 	FTransform Result;
