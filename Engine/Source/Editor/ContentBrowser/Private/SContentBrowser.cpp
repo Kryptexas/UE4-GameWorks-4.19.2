@@ -1290,6 +1290,9 @@ void SContentBrowser::OnPathClicked( const FString& CrumbData )
 		TArray<FString> SelectedPaths;
 		SelectedPaths.Add(CrumbData);
 		PathViewPtr->SetSelectedPaths(SelectedPaths);
+
+		PathSelected(CrumbData);
+		
 		SourcesChanged(SelectedPaths, TArray<FCollectionNameType>());
 	}
 }
