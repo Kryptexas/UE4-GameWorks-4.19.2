@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2572470
-Availability:Public
+﻿Availability:Public
 Title:14.ビヘイビアツリーのビルド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:ステップ 14ビヘイビアツリーのビルド
@@ -79,7 +78,7 @@ Description:ステップ 14ビヘイビアツリーのビルド
 
 	![](addAgro.png)
 
-1. **Selector** ノードの **Agro Check** ボックスを選択し、 **[Details]** パネルを使って **Target to Follow** プロパティを「TargetToFollow」に、 **Target Location** を [TargetLocation] に設定し、 **インターバル** を 「0.5」、 **ランダムな偏差** を 「0.0」に調整します。
+1. **Selector** ノードの **Agro Check** ボックスを選択し、 **[Details (詳細)]** パネルを使って **Target to Follow** プロパティを「TargetToFollow」に、 **Target Location (ターゲットの位置)** を [TargetLocation] に設定し、 **Interval (インターバル)** を 「0.5」、 **Random Deviation (ランダムな偏差)** を 「0.0」に調整します。
 
 	[REGION:raw]
 	![](setAgroCheck.png)
@@ -99,25 +98,25 @@ Description:ステップ 14ビヘイビアツリーのビルド
 
 	_左から右に以下のようになります。**Rapid Move To**、**Move To**、**Wait**、**Move To**._
 
-1. 一番左にある **Move To** ノードを選び、 **[Details]** パネルを使って、 **Blackboard Key** プロパティを [TargetLocation] に設定します。
+1. 一番左にある **Move To** ノードを選び、 **[Details (詳細)]** パネルを使って、 **Blackboard Key** プロパティを [TargetLocation] に設定します。
 1. 一番右にある **Move To** ノードの **Blackboard Key** プロパティを [HomeLocation] に設定します。
 
 	[REGION:raw]
 	![](adjustMoveTo.png)
 	[/REGION]
 
-1. **Wait** ノードを選択し、 **[Details]** パネルを使って **Wait Time** プロパティを [2.5] に設定します。
+1. **Wait** ノードを選択し、 **[Details (詳細)]** パネルを使って **Wait Time** プロパティを [2.5] に設定します。
 
 	[REGION:raw]
 	![](adjustWait.png)
 	[/REGION]
 
-1. **RapidMoveTo** ノードを選択し、 **[Details]** パネルを使って **Target to Follow** プロパティを [TargetToFollow] に設定します。
+1. **RapidMoveTo** ノードを選択し、 **[Details (詳細)]** パネルを使って **Target to Follow** プロパティを [TargetToFollow] に設定します。
 
 ### デコレーターを追加する
 
-1. 下側の **Selector** ノードを **右クリック** して、 **[Add Decorators..]** -> **[Blackboard]** を選択します。
-1. 下側の **Selector** ノードを **右クリック** して、 **[Add Decorators..]** -> **[Close Enough]** を選択します。
+1. 下側の **Selector** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Blackboard]** を選択します。
+1. 下側の **Selector** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Close Enough]** を選択します。
 
 	[REGION:raw]
 	![](addDecorator1.png)
@@ -130,9 +129,9 @@ Description:ステップ 14ビヘイビアツリーのビルド
 	![](setBB1.png)
 	[/REGION]
 
-1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..]** -> **[Blackboard]** を選択します。
-1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..]** -> **[Reached Move Goal]** を選択します。
-1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..]** -> **[Blackboard]** を選択します。
+1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Blackboard]** を選択します。
+1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Reached Move Goal]** を選択します。
+1. **Sequence** ノードを **右クリック** して、 **[Add Decorators..(デコレータを追加)]** -> **[Blackboard]** を選択します。
 
 	上記のデコレーターをすべて追加すると、ノードブロック全体はこのようになります。
 
