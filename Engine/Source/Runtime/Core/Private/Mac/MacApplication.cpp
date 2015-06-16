@@ -1071,6 +1071,8 @@ void FMacApplication::OnApplicationWillResignActive()
 		}
 	}
 
+	SetHighPrecisionMouseMode(false, nullptr);
+
 	((FMacCursor*)Cursor.Get())->UpdateVisibility();
 
 	// If editor thread doesn't have the focus, don't suck up too much CPU time.
