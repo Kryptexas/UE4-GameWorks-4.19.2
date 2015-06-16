@@ -692,7 +692,7 @@ public:
 			case EStatDataType::ST_FName:
 			{
 				FStatNameAndInfo Payload( ReadFName( Ar, bHasFNameMap ) );
-				Result.GetValue_FName() = Payload.GetRawName();
+				Result.GetValue_FMinimalName() = NameToMinimalName( Payload.GetRawName() );
 				break;
 			}
 
