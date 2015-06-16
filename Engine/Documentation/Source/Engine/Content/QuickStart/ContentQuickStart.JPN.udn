@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2465567
+﻿INTSourceChangelist:2584756
 Availability:Public
 Title:アーティスト向けクイックスタート
 Crumbs:%ROOT%, GettingStarted
-Description:コンテンツ クリエイター向けアンリアルエンジン入門
+Description:コンテンツクリエイター向けアンリアルエンジン入門
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,10 +39,10 @@ Description:コンテンツ クリエイター向けアンリアルエンジン�
 [/VAR]
 
 
-![](MaterialsHeader.png)
+![](MaterialsHeader_1.png)
 
 
-このクイックスタートガイドでは、メッシュやテクスチャをインポートし、マテリアルを作成し、それを **スタティックメッシュ アクタ** に適用します。これは焦点を絞ったチュートリアルであり、基本を段階的に説明します。途中の多くの場面で、掘り下げた質問に対応するページへのリンクもご利用いただけます。
+このクイックスタートガイドでは、メッシュやテクスチャをインポートし、マテリアルを作成し、それを **スタティックメッシュ アクタ** に適用します。この集中型チュートリアルは、主要ポイントを段階的に説明します。途中のあらゆる場面で、掘り下げた質問に対応するページへのリンクもご利用いただけます。
 
 
 
@@ -51,7 +51,7 @@ Description:コンテンツ クリエイター向けアンリアルエンジン�
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ステップ
+		手順
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
