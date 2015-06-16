@@ -81,6 +81,12 @@ int32 UPluginCommandlet::Main(const FString& Params)
 					if (IPluginManager::Get().FindPlugin(PluginName).IsValid() || CmdLineSwitches.Contains(TEXT("FORCE")))
 					{
 						bSetPluginState = IProjectManager::Get().SetPluginEnabled(PluginName, bEnable, FailReason);
+
+						// Try to save the project file
+						if (!IProjectManager::Get().SaveCurrentProjectToDisk(FailReason))
+						{
+							bSetPluginState = false;
+						}
 					}
 					else
 					{

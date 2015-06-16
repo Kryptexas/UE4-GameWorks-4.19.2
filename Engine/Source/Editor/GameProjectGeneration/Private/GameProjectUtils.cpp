@@ -652,6 +652,16 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 {
 	if ( FPaths::IsProjectFilePathSet() )
 	{
+		if (IProjectManager::Get().IsCurrentProjectDirty())
+		{
+			FText FailMessage;
+			TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
+			if (!IProjectManager::Get().SaveCurrentProjectToDisk(FailMessage))
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, FailMessage);
+			}
+		}
+
 		FProjectStatus ProjectStatus;
 		if (IProjectManager::Get().QueryStatusForCurrentProject(ProjectStatus))
 		{

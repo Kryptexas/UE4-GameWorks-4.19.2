@@ -387,7 +387,6 @@ void SPluginTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 		}
 	}
 
-	FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
 	FText FailMessage;
 
 	if (!IProjectManager::Get().SetPluginEnabled(Plugin->GetName(), bNewEnabledState, FailMessage, PluginDescriptor.MarketplaceURL))
@@ -396,14 +395,23 @@ void SPluginTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 	}
 	else
 	{
-		FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
-		if(Plugin->IsEnabled() == bNewEnabledState)
+		FGameProjectGenerationModule::Get().TryMakeProjectFileWriteable(FPaths::GetProjectFilePath());
+
+		if (!IProjectManager::Get().SaveCurrentProjectToDisk(FailMessage))
 		{
-			PluginBrowserModule.PendingEnablePlugins.Remove(Plugin->GetName());
+			FMessageDialog::Open(EAppMsgType::Ok, FailMessage);
 		}
 		else
 		{
-			PluginBrowserModule.PendingEnablePlugins.FindOrAdd(Plugin->GetName()) = bNewEnabledState;
+			FPluginBrowserModule& PluginBrowserModule = FPluginBrowserModule::Get();
+			if(Plugin->IsEnabled() == bNewEnabledState)
+			{
+				PluginBrowserModule.PendingEnablePlugins.Remove(Plugin->GetName());
+			}
+			else
+			{
+				PluginBrowserModule.PendingEnablePlugins.FindOrAdd(Plugin->GetName()) = bNewEnabledState;
+			}
 		}
 	}
 
