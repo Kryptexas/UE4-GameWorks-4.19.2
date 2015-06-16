@@ -124,7 +124,7 @@ public:
 
 	virtual void Trigger() override
 	{
-		//TriggerForStats();
+		TriggerForStats();
 
 		check(bInitialized);
 
@@ -151,7 +151,7 @@ public:
 
 	virtual void Reset() override
 	{
-		//ResetForStats();
+		ResetForStats();
 
 		check(bInitialized);
 		LockEventMutex();

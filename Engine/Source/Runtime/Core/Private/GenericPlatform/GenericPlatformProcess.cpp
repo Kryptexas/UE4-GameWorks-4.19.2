@@ -301,7 +301,7 @@ void FGenericPlatformProcess::ConditionalSleep(const TFunctionRef<bool()>& Condi
 
 bool FPThreadEvent::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
-	//WaitForStats();
+	WaitForStats();
 
 	SCOPE_CYCLE_COUNTER(STAT_EventWait);
 	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
