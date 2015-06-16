@@ -1070,7 +1070,7 @@ struct FStatPacket
 
 	/** constructor **/
 	FStatPacket()
-		: Frame(0)
+		: Frame(1)
 		, ThreadId(0)
 		, ThreadType(EThreadType::Invalid)
 		, bBrokenCallstacks(false)
