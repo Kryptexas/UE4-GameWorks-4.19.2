@@ -645,6 +645,43 @@ void GetObjectsWithOuter(const class UObjectBase* Outer, TArray<UObject *>& Resu
 	}
 }
 
+void ForEachObjectWithOuter(const class UObjectBase* Outer, TFunctionRef<void (UObject*)> Operation, bool bIncludeNestedObjects, EObjectFlags ExclusionFlags)
+{
+	// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
+	ExclusionFlags |= RF_Unreachable;
+	if (!IsInAsyncLoadingThread())
+	{
+		ExclusionFlags = EObjectFlags(ExclusionFlags | RF_AsyncLoading);
+	}
+	FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+	FHashTableLock HashLock(ThreadHash);
+	TArray<TSet<UObjectBase*> const*> AllInners;
+
+	if (TSet<UObjectBase*> const* Inners = ThreadHash.ObjectOuterMap.Find(Outer))
+	{
+		AllInners.Add(Inners);
+	}
+	while (AllInners.Num())
+	{
+		TSet<UObjectBase*> const* Inners = AllInners.Pop();
+		for (TSet<UObjectBase*>::TConstIterator It(*Inners); It; ++It)
+		{
+			UObject *Object = static_cast<UObject*>(*It);
+			if (!Object->HasAnyFlags(ExclusionFlags))
+			{
+				Operation(Object);
+				if (bIncludeNestedObjects)
+				{
+					if (TSet<UObjectBase*> const* ObjectInners = ThreadHash.ObjectOuterMap.Find(Object))
+					{
+						AllInners.Add(ObjectInners);
+					}
+				}
+			}
+		}
+	}
+}
+
 UObjectBase* FindObjectWithOuter(class UObjectBase* Outer, class UClass* ClassToLookFor, FName NameToLookFor)
 {
 	SCOPE_CYCLE_COUNTER( STAT_Hash_FindObjectWithOuter );
@@ -749,6 +786,43 @@ void GetObjectsOfClass(UClass* ClassToLookFor, TArray<UObject *>& Results, bool 
 	GetObjectsOfClassThreadSafe( FUObjectHashTables::Get(), ClassesToSearch, Results, ExclusionFlags );
 
 	check( Results.Num() <= GetUObjectArray().GetObjectArrayNum() ); // otherwise we have a cycle in the outer chain, which should not be possible
+}
+
+void ForEachObjectOfClass(UClass* ClassToLookFor, TFunctionRef<void (UObject*)> Operation, bool bIncludeDerivedClasses, EObjectFlags AdditionalExcludeFlags)
+{
+	// We don't want to return any objects that are currently being background loaded unless we're using the object iterator during async loading.
+	EObjectFlags ExclusionFlags = RF_Unreachable;
+	if (!IsInAsyncLoadingThread())
+	{
+		ExclusionFlags |= RF_AsyncLoading;
+	}
+	ExclusionFlags |= AdditionalExcludeFlags;
+
+	FUObjectHashTables& ThreadHash = FUObjectHashTables::Get();
+	FHashTableLock HashLock(ThreadHash);
+
+	TSet<UClass*> ClassesToSearch;
+	ClassesToSearch.Add( ClassToLookFor );
+	if( bIncludeDerivedClasses )
+	{
+		RecursivelyPopulateDerivedClasses( ThreadHash, ClassToLookFor, ClassesToSearch );
+	}
+
+	for (auto ClassIt = ClassesToSearch.CreateConstIterator(); ClassIt; ++ClassIt)
+	{
+		TSet<UObjectBase*> const* List = ThreadHash.ClassToObjectListMap.Find(*ClassIt);
+		if (List)
+		{
+			for (auto ObjectIt = List->CreateConstIterator(); ObjectIt; ++ObjectIt)
+			{
+				UObject *Object = static_cast<UObject*>(*ObjectIt);
+				if (!Object->HasAnyFlags(ExclusionFlags))
+				{
+					Operation(Object);
+				}
+			}
+		}
+	}
 }
 
 void GetDerivedClasses(UClass* ClassToLookFor, TArray<UClass *>& Results, bool bRecursive)
