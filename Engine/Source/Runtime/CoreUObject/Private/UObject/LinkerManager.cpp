@@ -108,7 +108,8 @@ void FLinkerManager::ResetLoaders(UObject* InPkg)
 			}
 			// Detach linker, also removes from array and sets LinkerRoot to NULL.
 			LinkerToReset->LoadAndDetachAllBulkData();
-			delete LinkerToReset;
+			LinkerToReset->Detach();
+			RemoveLinker(LinkerToReset);
 			LinkerToReset = nullptr;
 		}
 	}
@@ -121,7 +122,8 @@ void FLinkerManager::ResetLoaders(UObject* InPkg)
 		{
 			// Detach linker, also removes from array and sets LinkerRoot to NULL.
 			Linker->LoadAndDetachAllBulkData();
-			delete Linker;
+			Linker->Detach();
+			RemoveLinker(Linker);
 		}
 	}
 }
@@ -174,4 +176,41 @@ void FLinkerManager::DissociateImportsAndForcedExports()
 		}	
 		ForcedExportCount = 0;
 	}	
+}
+
+void FLinkerManager::DeleteLinkers()
+{
+	check(IsInGameThread());
+
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FLinkerManager_DeleteLinkers);
+
+	TArray<FLinkerLoad*> CleanupArray;
+	{
+#if THREADSAFE_UOBJECTS
+		FScopeLock PendingCleanupListLock(&PendingCleanupListCritical);
+#endif
+		CleanupArray = PendingCleanupList.Array();
+		PendingCleanupList.Empty();
+	}
+
+	// Note that even though DeleteLinkers can only be called on the main thread,
+	// we store the IsDeleteingLinkers in TLS so that we're sure nothing on
+	// another thread can delete linkers except FLinkerManager at the time
+	// we enter this loop.
+	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	for (FLinkerLoad* Linker : CleanupArray)
+	{
+		delete Linker;
+	}
+}
+
+void FLinkerManager::RemoveLinker(FLinkerLoad* Linker)
+{
+#if THREADSAFE_UOBJECTS
+	FScopeLock PendingCleanupListLock(&PendingCleanupListCritical);
+#endif
+	if (Linker && !PendingCleanupList.Contains(Linker))
+	{
+		PendingCleanupList.Add(Linker);
+	}
 }

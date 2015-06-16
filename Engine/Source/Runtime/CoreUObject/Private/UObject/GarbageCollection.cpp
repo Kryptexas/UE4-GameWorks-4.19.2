@@ -1224,6 +1224,8 @@ static FAutoConsoleVariableRef CVarFlushStreamingOnGC(
 	ECVF_Default
 	);
 
+COREUOBJECT_API void DeleteLoaders();
+
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
  *
@@ -1362,6 +1364,9 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	{
 		IncrementalPurgeGarbage( false );	
 	}
+
+	// Destroy all pending delete linkers
+	DeleteLoaders();
 
 	// Route callbacks to verify GC assumptions
 	FCoreUObjectDelegates::PostGarbageCollect.Broadcast();
