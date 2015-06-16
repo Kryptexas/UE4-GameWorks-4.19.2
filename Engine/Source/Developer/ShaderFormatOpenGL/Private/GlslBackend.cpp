@@ -936,22 +936,25 @@ class ir_gen_glsl_visitor : public ir_visitor
 						);
 				}
 
-				if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
+				if (bIsES)
 				{
-					ralloc_asprintf_append(buffer, "highp ");
-				}
-				else if (!GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_HALF)
-				{
-					ralloc_asprintf_append(buffer, "mediump ");
-				}
-				else if (var->type->inner_type->is_integer())
-				{
-					ralloc_asprintf_append(buffer, "highp ");
-				}
-				else
-				{
-					// we missed a type
-					check(false);
+					if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
+					{
+						ralloc_asprintf_append(buffer, "highp ");
+					}
+					else if (!GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_HALF)
+					{
+						ralloc_asprintf_append(buffer, "mediump ");
+					}
+					else if (var->type->inner_type->is_integer())
+					{
+						ralloc_asprintf_append(buffer, "highp ");
+					}
+					else
+					{
+						// we missed a type
+						check(false);
+					}
 				}
 				print_type_pre(var->type);
 			}
@@ -976,32 +979,35 @@ class ir_gen_glsl_visitor : public ir_visitor
 					mode_str[var->mode],
 					interp_str[var->interpolation]
 					);
-				if (var->type->is_sampler())
+				if (bIsES)
 				{
-					if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
+					if (var->type->is_sampler())
+					{
+						if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
+						{
+							ralloc_asprintf_append(buffer, "highp ");
+						}
+						else if (!GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_HALF)
+						{
+							ralloc_asprintf_append(buffer, "mediump ");
+						}
+						else // shadow samplers, integer textures etc
+						{
+							ralloc_asprintf_append(buffer, "highp ");
+						}
+					}
+					else if (GDefaultPrecisionIsHalf && (var->type->base_type == GLSL_TYPE_FLOAT || (var->type->is_array() && var->type->element_type()->base_type == GLSL_TYPE_FLOAT)))
 					{
 						ralloc_asprintf_append(buffer, "highp ");
 					}
-					else if (!GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_HALF)
+					else if (!GDefaultPrecisionIsHalf && (var->type->base_type == GLSL_TYPE_HALF || (var->type->is_array() && var->type->element_type()->base_type == GLSL_TYPE_HALF)))
 					{
 						ralloc_asprintf_append(buffer, "mediump ");
 					}
-					else // shadow samplers, integer textures etc
+					else if (var->type->is_integer())
 					{
 						ralloc_asprintf_append(buffer, "highp ");
 					}
-				}
-				else if (GDefaultPrecisionIsHalf && (var->type->base_type == GLSL_TYPE_FLOAT || (var->type->is_array() && var->type->element_type()->base_type == GLSL_TYPE_FLOAT)))
-				{
-					ralloc_asprintf_append(buffer, "highp ");
-				}
-				else if (!GDefaultPrecisionIsHalf && (var->type->base_type == GLSL_TYPE_HALF || (var->type->is_array() && var->type->element_type()->base_type == GLSL_TYPE_HALF)))
-				{
-					ralloc_asprintf_append(buffer, "mediump ");
-				}
-				else if (var->type->is_integer())
-				{
-					ralloc_asprintf_append(buffer, "highp ");
 				}
 
 				if (bGenerateLayoutLocations && var->explicit_location)
@@ -2157,13 +2163,20 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 			if (s->length == 0)
 			{
-				ralloc_asprintf_append(buffer, "\thighp float glsl_doesnt_like_empty_structs;\n");
+				if (bIsES)
+				{
+					ralloc_asprintf_append(buffer, "\thighp float glsl_doesnt_like_empty_structs;\n");
+				}
+				else
+				{
+					ralloc_asprintf_append(buffer, "\tfloat glsl_doesnt_like_empty_structs;\n");
+				}
 			}
 			else
 			{
 				for (unsigned j = 0; j < s->length; j++)
 				{
-					ralloc_asprintf_append(buffer, "\t%s ", (state->language_version == 310) ? "highp" : "") ;
+					ralloc_asprintf_append(buffer, "\t%s ", (state->language_version == 310 && bIsES) ? "highp" : "") ;
 					print_type_pre(s->fields.structure[j].type);
 					ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].name);
 					print_type_post(s->fields.structure[j].type);
@@ -2204,7 +2217,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 					{
 						for (unsigned j = 0; j < type->length; j++)
 						{
-							ralloc_asprintf_append(buffer, "\t%s",  (state->language_version == 310) ? "highp" : "");
+							ralloc_asprintf_append(buffer, "\t%s",  (state->language_version == 310 && bIsES) ? "highp" : "");
 							print_type_pre(type->fields.structure[j].type);
 							ralloc_asprintf_append(buffer, " %s", type->fields.structure[j].name);
 							print_type_post(type->fields.structure[j].type);
@@ -2225,7 +2238,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 						//EHart - name-mangle variables to prevent colliding names
 						ralloc_asprintf_append(buffer, "#define %s %s%s\n", var->name, var->name, block_name);
 
-						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310) ? "highp " : "");
+						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bIsES) ? "highp " : "");
 						print_type_pre(var->type);
 						ralloc_asprintf_append(buffer, " %s", var->name);
 						print_type_post(var->type);
@@ -2870,7 +2883,7 @@ public:
 			ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
-		if ((state->language_version == 310) && (ShaderTarget == fragment_shader))
+		if ((state->language_version == 310) && (ShaderTarget == fragment_shader) && bIsES)
 		{
 			ralloc_asprintf_append(buffer, "precision %s float;\n", "highp");
 			ralloc_asprintf_append(buffer, "precision %s int;\n", "highp");
