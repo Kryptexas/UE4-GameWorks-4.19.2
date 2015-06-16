@@ -535,10 +535,6 @@ public:
 				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
 			}
 
-			PxTransform PElementTransform = U2PTransform(RelativeTM);
-			
-
-
 			if (PTriMeshGeom.isValid())
 			{
 				PxTransform PElementTransform = U2PTransform(RelativeTM);
