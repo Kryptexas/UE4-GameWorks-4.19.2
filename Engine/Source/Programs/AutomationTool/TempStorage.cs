@@ -940,7 +940,7 @@ namespace AutomationTool
             var LocalManifest = LocalTempStorageManifestFilename(Env, StorageBlockName);
             if (FileExists_NoExceptions(LocalManifest))
             {
-                Log("Found local manifest {0}", LocalManifest);
+                LogVerbose("Found local manifest {0}", LocalManifest);
                 var Local = new TempStorageManifest();
                 Local.Load(LocalManifest);
                 Files = Local.GetFiles(BaseFolder);
@@ -961,7 +961,7 @@ namespace AutomationTool
             {
                 throw new AutomationException("base folder {0} should end with a separator", BlockPath);
             }
-            Log("Attempting to retrieve from {0}", BlockPath);
+            LogVerbose("Attempting to retrieve from {0}", BlockPath);
             if (!DirectoryExists_NoExceptions(BlockPath))
             {
                 throw new AutomationException("Storage Block Does Not Exists! {0}", BlockPath);
@@ -990,7 +990,7 @@ namespace AutomationTool
                     var DestFile = CombinePaths(BaseFolder, RelativeFile);
                     if (FileExists_NoExceptions(true, DestFile))
                     {
-                        Log("Dest file {0} already exists, deleting and overwriting", DestFile);
+                        LogVerbose("Dest file {0} already exists, deleting and overwriting", DestFile);
                         DeleteFile(DestFile);
                     }
                     CopyFile(Filename, DestFile, true);
@@ -1022,7 +1022,7 @@ namespace AutomationTool
                     var DestFile = CombinePaths(BaseFolder, RelativeFile);
                     if (FileExists_NoExceptions(true, DestFile))
                     {
-                        Log("Dest file {0} already exists, deleting and overwriting", DestFile);
+                        LogVerbose("Dest file {0} already exists, deleting and overwriting", DestFile);
                         DeleteFile(DestFile);
                     }
                     SrcFiles.Add(Filename);

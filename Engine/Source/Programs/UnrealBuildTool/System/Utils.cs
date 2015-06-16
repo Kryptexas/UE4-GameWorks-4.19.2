@@ -1046,6 +1046,16 @@ namespace UnrealBuildTool
             return Severity <= TraceEventType.Error ? "ERROR: " : Severity == TraceEventType.Warning ? "WARNING: " : "";
         }
 
+		/// <summary>
+		/// Converts a TraceEventType into a message code
+		/// </summary>
+		/// <param name="EventType"></param>
+		/// <returns></returns>
+		private static int GetMessageCode(TraceEventType Severity)
+		{
+			return (int)Severity;
+		}
+
         /// <summary>
         /// Formats message for logging. Enforces the configured options.
         /// </summary>
@@ -1058,12 +1068,13 @@ namespace UnrealBuildTool
         [MethodImplAttribute(MethodImplOptions.NoInlining)]
         private static string FormatMessage(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
         {
-            return string.Format("{0}{1}{2}{3}",
+            return string.Format("{4}{0}{1}{2}{3}",
                     Timer != null ? String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed) : "",
                     bLogSources ? string.Format("{0}: ", string.IsNullOrEmpty(CustomSource) ? GetSource(StackFramesToSkip) : CustomSource) : "",
                     bLogSeverity ? GetSeverityPrefix(Verbosity) : "",
                     // If there are no extra args, don't try to format the string, in case it has any format control characters in it (our LOCTEXT strings tend to).
-                    Args.Length > 0 ? string.Format(Format, Args) : Format);
+                    Args.Length > 0 ? string.Format(Format, Args) : Format,
+					GetMessageCode(Verbosity).ToString("X3"));
         }
 
         /// <summary>
@@ -1095,7 +1106,7 @@ namespace UnrealBuildTool
 				WriteOnceSet.Add(Formatted);
 			}
 
-            if (Verbosity < TraceEventType.Verbose || bLogVerbose)
+//            if (Verbosity < TraceEventType.Verbose || bLogVerbose)
             {
                 // Do console color highlighting here.
                 ConsoleColor DefaultColor = ConsoleColor.Gray;

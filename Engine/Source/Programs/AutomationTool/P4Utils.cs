@@ -468,7 +468,7 @@ namespace AutomationTool
 			// Init AllowSubmit
 			// If we do not specify on the commandline if submitting is allowed or not, this is 
 			// depending on whether we run locally or on a build machine.
-			Log("Initializing AllowSubmit.");
+			LogVerbose("Initializing AllowSubmit.");
 			if (GlobalCommandLine.Submit || GlobalCommandLine.NoSubmit)
 			{
 				AllowSubmit = GlobalCommandLine.Submit;
@@ -477,10 +477,10 @@ namespace AutomationTool
 			{
 				AllowSubmit = Automation.IsBuildMachine;
 			}
-			Log("AllowSubmit={0}", AllowSubmit);
+			LogVerbose("AllowSubmit={0}", AllowSubmit);
 
 			// Init P4Enabled
-			Log("Initializing P4Enabled.");
+			LogVerbose("Initializing P4Enabled.");
 			if (Automation.IsBuildMachine)
 			{
 				P4Enabled = !GlobalCommandLine.NoP4;
@@ -495,8 +495,8 @@ namespace AutomationTool
 				P4Enabled = GlobalCommandLine.P4 || bRequireP4;
 				P4CLRequired = GlobalCommandLine.P4 || bRequireCL;
 			}
-			Log("P4Enabled={0}", P4Enabled);
-			Log("P4CLRequired={0}", P4CLRequired);
+			LogVerbose("P4Enabled={0}", P4Enabled);
+			LogVerbose("P4CLRequired={0}", P4CLRequired);
 		}
 
 		/// <summary>
@@ -517,7 +517,7 @@ namespace AutomationTool
 					var RequireP4Attributes = Command.GetCustomAttributes(typeof(RequireP4Attribute), true);	
 					if (!CommandUtils.IsNullOrEmpty(RequireP4Attributes))
 					{
-						Log("Command {0} requires P4 functionality.", Command.Name);
+						LogWarning("Command {0} requires P4 functionality.", Command.Name);
 						bRequireP4 = true;
 
 						var DoesNotNeedP4CLAttributes = Command.GetCustomAttributes(typeof(DoesNotNeedP4CLAttribute), true);

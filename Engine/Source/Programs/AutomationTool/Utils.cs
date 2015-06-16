@@ -34,7 +34,7 @@ namespace AutomationTool
 			}
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "GetEnvironmentVariable {0}={1}", VarName, Value);
+				Log.WriteLine(TraceEventType.Verbose, "GetEnvironmentVariable {0}={1}", VarName, Value);
 			}
 			return Value;
 		}
@@ -48,7 +48,7 @@ namespace AutomationTool
 		{
 			if( !bQuiet)
 			{ 
-				Log.WriteLine(TraceEventType.Information, "SafeCreateDirectory {0}", Path);
+				Log.WriteLine(TraceEventType.Verbose, "SafeCreateDirectory {0}", Path);
 			}
 
 			bool Result = true;
@@ -76,7 +76,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "SafeDeleteFile {0}", Path);
+				Log.WriteLine(TraceEventType.Verbose, "SafeDeleteFile {0}", Path);
 			}
 			int MaxAttempts = bQuiet ? 1 : 10;
 			int Attempts = 0;
@@ -116,7 +116,7 @@ namespace AutomationTool
 			{
 				if (bQuiet)
 				{
-					Log.WriteLine(TraceEventType.Information, "Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
+					Log.WriteLine(TraceEventType.Verbose, "Failed to delete file {0} in {1} attempts.", Path, MaxAttempts);
 				}
 				else
 				{
@@ -137,7 +137,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "RecursivelyDeleteDirectory {0}", Path);
+				Log.WriteLine(TraceEventType.Verbose, "RecursivelyDeleteDirectory {0}", Path);
 			}
 			// Delete all files. This will also delete read-only files.
 			var FilesInDirectory = Directory.EnumerateFiles(Path);
@@ -173,7 +173,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "SafeDeleteEmptyDirectory {0}", Path);
+				Log.WriteLine(TraceEventType.Verbose, "SafeDeleteEmptyDirectory {0}", Path);
 			}
 			const int MaxAttempts = 10;
 			int Attempts = 0;
@@ -218,7 +218,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "SafeDeleteDirectory {0}", Path);
+				Log.WriteLine(TraceEventType.Verbose, "SafeDeleteDirectory {0}", Path);
 			}
 			if (Directory.Exists(Path))
 			{
@@ -240,7 +240,7 @@ namespace AutomationTool
 		{
 			if( !bQuiet )
 			{ 
-				Log.WriteLine(TraceEventType.Information, "SafeRenameFile {0} {1}", OldName, NewName);
+				Log.WriteLine(TraceEventType.Verbose, "SafeRenameFile {0} {1}", OldName, NewName);
 			}
 			const int MaxAttempts = 10;
 			int Attempts = 0;
@@ -330,7 +330,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "SafeCopyFile {0} {1}", SourceName, TargetName);
+				Log.WriteLine(TraceEventType.Verbose, "SafeCopyFile {0} {1}", SourceName, TargetName);
 			}
 			const int MaxAttempts = 10;
 			int Attempts = 0;
@@ -409,7 +409,7 @@ namespace AutomationTool
 		/// <returns>An array containing all lines read from the file or null if the file could not be read.</returns>
 		public static string[] SafeReadAllLines(string Filename)
 		{
-			Log.WriteLine(TraceEventType.Information, "SafeReadAllLines {0}", Filename);
+			Log.WriteLine(TraceEventType.Verbose, "SafeReadAllLines {0}", Filename);
 			string[] Result = null;
 			try
 			{
@@ -430,7 +430,7 @@ namespace AutomationTool
 		/// <returns>String containing all text read from the file or null if the file could not be read.</returns>
 		public static string SafeReadAllText(string Filename)
 		{
-			Log.WriteLine(TraceEventType.Information, "SafeReadAllLines {0}", Filename);
+			Log.WriteLine(TraceEventType.Verbose, "SafeReadAllLines {0}", Filename);
 			string Result = null;
 			try
 			{
@@ -455,7 +455,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "FindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.WriteLine(TraceEventType.Verbose, "FindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 
 			// On Linux, filter out symlinks since we (usually) create them to fix mispelled case-sensitive filenames in content, and if they aren't filtered, 
@@ -500,7 +500,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "FindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.WriteLine(TraceEventType.Verbose, "FindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			return Directory.GetDirectories(Path, SearchPattern, Recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 		}
@@ -516,7 +516,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "SafeFindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.WriteLine(TraceEventType.Verbose, "SafeFindFiles {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			string[] Files = null;
 			try
@@ -542,7 +542,7 @@ namespace AutomationTool
 		{
 			if (!bQuiet)
 			{
-				Log.WriteLine(TraceEventType.Information, "SafeFindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
+				Log.WriteLine(TraceEventType.Verbose, "SafeFindDirectories {0} {1} {2}", Path, SearchPattern, Recursive);
 			}
 			string[] Directories = null;
 			try
@@ -571,7 +571,7 @@ namespace AutomationTool
 				Result = File.Exists(Path);
 				if (!bQuiet)
 				{
-					Log.WriteLine(TraceEventType.Information, "SafeFileExists {0}={1}", Path, Result);
+					Log.WriteLine(TraceEventType.Verbose, "SafeFileExists {0}={1}", Path, Result);
 				}
 			}
 			catch (Exception Ex)
@@ -597,7 +597,7 @@ namespace AutomationTool
 				Result = Directory.Exists(Path);
 				if (!bQuiet)
 				{
-					Log.WriteLine(TraceEventType.Information, "SafeDirectoryExists {0}={1}", Path, Result);
+					Log.WriteLine(TraceEventType.Verbose, "SafeDirectoryExists {0}={1}", Path, Result);
 				}
 			}
 			catch (Exception Ex)
@@ -616,7 +616,7 @@ namespace AutomationTool
 		/// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool SafeWriteAllLines(string Path, string[] Text)
 		{
-			Log.WriteLine(TraceEventType.Information, "SafeWriteAllLines {0}", Path);
+			Log.WriteLine(TraceEventType.Verbose, "SafeWriteAllLines {0}", Path);
 			bool Result = false;
 			try
 			{
@@ -639,7 +639,7 @@ namespace AutomationTool
 		/// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool SafeWriteAllText(string Path, string Text)
 		{
-			Log.WriteLine(TraceEventType.Information, "SafeWriteAllText {0}", Path);
+			Log.WriteLine(TraceEventType.Verbose, "SafeWriteAllText {0}", Path);
 			bool Result = false;
 			try
 			{
@@ -662,7 +662,7 @@ namespace AutomationTool
 		/// <returns>True if the operation was successful, false otherwise.</returns>
 		public static bool SafeWriteAllBytes(string Path, byte[] Bytes)
 		{
-			Log.WriteLine(TraceEventType.Information, "SafeWriteAllBytes {0}", Path);
+			Log.WriteLine(TraceEventType.Verbose, "SafeWriteAllBytes {0}", Path);
 			bool Result = false;
 			try
 			{

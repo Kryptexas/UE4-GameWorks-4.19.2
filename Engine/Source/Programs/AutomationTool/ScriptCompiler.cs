@@ -280,7 +280,7 @@ namespace AutomationTool
 						continue;
 					}
 					// Load the assembly into our app domain
-					CommandUtils.Log("Loading script DLL: {0}", ScriptsDLLFilename);
+					CommandUtils.LogVerbose("Loading script DLL: {0}", ScriptsDLLFilename);
 					try
 					{
 						var Dll = AppDomain.CurrentDomain.Load(AssemblyName.GetAssemblyName(ScriptsDLLFilename));

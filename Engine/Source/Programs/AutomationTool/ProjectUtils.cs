@@ -317,7 +317,7 @@ namespace AutomationTool
 			// Get all ini files
 			if (!String.IsNullOrWhiteSpace(RawProjectPath))
 			{
-				CommandUtils.Log("Loading ini files for {0}", RawProjectPath);
+				CommandUtils.LogVerbose("Loading ini files for {0}", RawProjectPath);
 
 				var EngineDirectory = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 				foreach (UnrealTargetPlatform TargetPlatformType in Enum.GetValues(typeof(UnrealTargetPlatform)))
@@ -405,13 +405,13 @@ namespace AutomationTool
 			var RulesFolder = GetRulesAssemblyFolder();
 			if (!String.IsNullOrEmpty(Properties.RawProjectPath))
 			{
-				CommandUtils.Log("Looking for targets for project {0}", Properties.RawProjectPath);
+				CommandUtils.LogVerbose("Looking for targets for project {0}", Properties.RawProjectPath);
 
 				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
 
 				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath);
 				GameFolders.Add(FullProjectPath);
-				CommandUtils.Log("Searching for target rule files in {0}", FullProjectPath);
+				CommandUtils.LogVerbose("Searching for target rule files in {0}", FullProjectPath);
 			}
 			else
 			{
@@ -648,29 +648,29 @@ namespace AutomationTool
             }
             public void Dump(List<UnrealTargetPlatform> InHostPlatforms)
             {
-                CommandUtils.Log("    ShortName:    " + GameName);
-                CommandUtils.Log("      FilePath          : " + FilePath);
-                CommandUtils.Log("      bIsCodeBasedProject  : " + (Properties.bIsCodeBasedProject ? "YES" : "NO"));
-                CommandUtils.Log("      bUsesSteam  : " + (Properties.bUsesSteam ? "YES" : "NO"));
-                CommandUtils.Log("      bUsesCEF3   : " + (Properties.bUsesCEF3 ? "YES" : "NO"));
-                CommandUtils.Log("      bUsesSlate  : " + (Properties.bUsesSlate ? "YES" : "NO"));
+                CommandUtils.LogVerbose("    ShortName:    " + GameName);
+				CommandUtils.LogVerbose("      FilePath          : " + FilePath);
+				CommandUtils.LogVerbose("      bIsCodeBasedProject  : " + (Properties.bIsCodeBasedProject ? "YES" : "NO"));
+				CommandUtils.LogVerbose("      bUsesSteam  : " + (Properties.bUsesSteam ? "YES" : "NO"));
+				CommandUtils.LogVerbose("      bUsesCEF3   : " + (Properties.bUsesCEF3 ? "YES" : "NO"));
+				CommandUtils.LogVerbose("      bUsesSlate  : " + (Properties.bUsesSlate ? "YES" : "NO"));
                 foreach (var HostPlatform in InHostPlatforms)
                 {
-                    CommandUtils.Log("      For Host : " + HostPlatform.ToString());
+					CommandUtils.LogVerbose("      For Host : " + HostPlatform.ToString());
                     if (Properties.bIsCodeBasedProject)
                     {
-                        CommandUtils.Log("          Promoted  : " + (Options(HostPlatform).bIsPromotable ? "YES" : "NO"));
-                        CommandUtils.Log("          SeparatePromotable  : " + (Options(HostPlatform).bSeparateGamePromotion ? "YES" : "NO"));
-                        CommandUtils.Log("          Test With Shared  : " + (Options(HostPlatform).bTestWithShared ? "YES" : "NO"));
+						CommandUtils.LogVerbose("          Promoted  : " + (Options(HostPlatform).bIsPromotable ? "YES" : "NO"));
+						CommandUtils.LogVerbose("          SeparatePromotable  : " + (Options(HostPlatform).bSeparateGamePromotion ? "YES" : "NO"));
+						CommandUtils.LogVerbose("          Test With Shared  : " + (Options(HostPlatform).bTestWithShared ? "YES" : "NO"));
                     }
-                    CommandUtils.Log("          Targets {0}:", Properties.Targets.Count);
+					CommandUtils.LogVerbose("          Targets {0}:", Properties.Targets.Count);
                     foreach (var ThisTarget in Properties.Targets)
                     {
-                        CommandUtils.Log("            TargetName          : " + ThisTarget.Value.TargetName);
-                        CommandUtils.Log("              Type          : " + ThisTarget.Key.ToString());
-                        CommandUtils.Log("              bUsesSteam  : " + (ThisTarget.Value.Rules.bUsesSteam ? "YES" : "NO"));
-                        CommandUtils.Log("              bUsesCEF3   : " + (ThisTarget.Value.Rules.bUsesCEF3 ? "YES" : "NO"));
-                        CommandUtils.Log("              bUsesSlate  : " + (ThisTarget.Value.Rules.bUsesSlate ? "YES" : "NO"));
+						CommandUtils.LogVerbose("            TargetName          : " + ThisTarget.Value.TargetName);
+						CommandUtils.LogVerbose("              Type          : " + ThisTarget.Key.ToString());
+						CommandUtils.LogVerbose("              bUsesSteam  : " + (ThisTarget.Value.Rules.bUsesSteam ? "YES" : "NO"));
+						CommandUtils.LogVerbose("              bUsesCEF3   : " + (ThisTarget.Value.Rules.bUsesCEF3 ? "YES" : "NO"));
+						CommandUtils.LogVerbose("              bUsesSlate  : " + (ThisTarget.Value.Rules.bUsesSlate ? "YES" : "NO"));
                         if (Array.IndexOf(MonolithicKinds, ThisTarget.Key) >= 0)
                         {
                             var Platforms = ThisTarget.Value.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
@@ -681,13 +681,13 @@ namespace AutomationTool
                                 var Configs = ThisTarget.Value.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, Plat);
                                 foreach (var Config in Configs)
                                 {
-                                    CommandUtils.Log("                Config  : " + Plat.ToString() + " " + Config.ToString());
+									CommandUtils.LogVerbose("                Config  : " + Plat.ToString() + " " + Config.ToString());
                                 }
                             }
 
                         }
                     }
-                    CommandUtils.Log("      Programs {0}:", Properties.Programs.Count);
+					CommandUtils.LogVerbose("      Programs {0}:", Properties.Programs.Count);
                     foreach (var ThisTarget in Properties.Programs)
                     {
                         bool bInternalToolOnly;
@@ -695,12 +695,12 @@ namespace AutomationTool
 						bool CrossCompile;
                         bool Tool = ThisTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalToolOnly, out SeparateNode, out CrossCompile);
 
-                        CommandUtils.Log("            TargetName                    : " + ThisTarget.TargetName);
-                        CommandUtils.Log("              Build With Editor           : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
-                        CommandUtils.Log("              Build With Tools            : " + (Tool && !bInternalToolOnly ? "YES" : "NO"));
-                        CommandUtils.Log("              Build With Internal Tools   : " + (Tool && bInternalToolOnly ? "YES" : "NO"));
-                        CommandUtils.Log("              Separate Node               : " + (Tool && SeparateNode ? "YES" : "NO"));
-						CommandUtils.Log("              Cross Compile               : " + (Tool && CrossCompile ? "YES" : "NO"));
+						CommandUtils.LogVerbose("            TargetName                    : " + ThisTarget.TargetName);
+						CommandUtils.LogVerbose("              Build With Editor           : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
+						CommandUtils.LogVerbose("              Build With Tools            : " + (Tool && !bInternalToolOnly ? "YES" : "NO"));
+						CommandUtils.LogVerbose("              Build With Internal Tools   : " + (Tool && bInternalToolOnly ? "YES" : "NO"));
+						CommandUtils.LogVerbose("              Separate Node               : " + (Tool && SeparateNode ? "YES" : "NO"));
+						CommandUtils.LogVerbose("              Cross Compile               : " + (Tool && CrossCompile ? "YES" : "NO"));
                     }
                 }
             }

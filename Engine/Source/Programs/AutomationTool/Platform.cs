@@ -34,7 +34,7 @@ namespace AutomationTool
 				Platform ExistingInstance;
 				if (AllPlatforms.TryGetValue(TargetType, out ExistingInstance) == false)
 				{
-					Log("Creating placeholder platform for target: {0}", TargetType);
+					LogVerbose("Creating placeholder platform for target: {0}", TargetType);
 					AllPlatforms.Add(TargetType, new Platform(TargetType));
 				}
 			}
@@ -42,7 +42,7 @@ namespace AutomationTool
 
 		private static void CreatePlatformsFromAssembly(Assembly ScriptAssembly)
 		{
-			Log("Looking for platforms in {0}", ScriptAssembly.Location);
+			LogVerbose("Looking for platforms in {0}", ScriptAssembly.Location);
 			Type[] AllTypes = null;
 			try
 			{
@@ -64,7 +64,7 @@ namespace AutomationTool
 					}
 					else
 					{
-						Log("No Loader Exceptions available.");
+						LogError("No Loader Exceptions available.");
 					}
 				}
 				// Re-throw, this is still a critical error!
@@ -74,7 +74,7 @@ namespace AutomationTool
 			{
 				if (PotentialPlatformType != typeof(Platform) && typeof(Platform).IsAssignableFrom(PotentialPlatformType) && !PotentialPlatformType.IsAbstract)
 				{
-					Log("Creating platform {0} from {1}.", PotentialPlatformType.Name, ScriptAssembly.Location);
+					LogVerbose("Creating platform {0} from {1}.", PotentialPlatformType.Name, ScriptAssembly.Location);
 					var PlatformInstance = Activator.CreateInstance(PotentialPlatformType) as Platform;
 					Platform ExistingInstance;
 					if (!AllPlatforms.TryGetValue(PlatformInstance.PlatformType, out ExistingInstance))
@@ -134,7 +134,7 @@ namespace AutomationTool
         public virtual void GetConnectedDevices(ProjectParams Params, out List<string> Devices)
         {
             Devices = null;
-            Log(System.Diagnostics.TraceEventType.Warning, "{0} does not implement GetConnectedDevices", PlatformType);
+            LogWarning("{0} does not implement GetConnectedDevices", PlatformType);
         }
 
 
@@ -146,7 +146,7 @@ namespace AutomationTool
 		/// <param name="SC"></param>
 		public virtual void Deploy(ProjectParams Params, DeploymentContext SC)
 		{
-			Log(System.Diagnostics.TraceEventType.Warning, "{0} does not implement Deploy...", PlatformType);
+			LogWarning("{0} does not implement Deploy...", PlatformType);
 		}
 
 		/// <summary>

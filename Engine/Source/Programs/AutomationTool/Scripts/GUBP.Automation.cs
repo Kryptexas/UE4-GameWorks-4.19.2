@@ -4148,11 +4148,11 @@ public class GUBP : BuildCommand
         }
         if (Result)
         {
-            Log("***** GUBP Trigger Node was already triggered {0} -> {1} : {2}", GUBPNodes[NodeToDo].GetFullName(), GameNameIfAny, NodeStoreName);
+            LogVerbose("***** GUBP Trigger Node was already triggered {0} -> {1} : {2}", GUBPNodes[NodeToDo].GetFullName(), GameNameIfAny, NodeStoreName);
         }
         else
         {
-            Log("***** GUBP Trigger Node was NOT yet triggered {0} -> {1} : {2}", GUBPNodes[NodeToDo].GetFullName(), GameNameIfAny, NodeStoreName);
+            LogVerbose("***** GUBP Trigger Node was NOT yet triggered {0} -> {1} : {2}", GUBPNodes[NodeToDo].GetFullName(), GameNameIfAny, NodeStoreName);
         }
         GUBPNodesCompleted.Add(NodeToDo, Result);
         return Result;
@@ -4161,7 +4161,7 @@ public class GUBP : BuildCommand
     {
         if (ParseParam("FakeEC"))
         {
-            Log("***** Would have ran ectool {0}", Args);
+            LogWarning("***** Would have ran ectool {0}", Args);
             return "We didn't actually run ectool";
         }
         else
@@ -5347,7 +5347,7 @@ public class GUBP : BuildCommand
         }
         else if (!LocalOnly && !HaveSharedTempStorage(false))
         {
-            Log("Looks like we want to use shared temp storage, but since we don't have it, we won't use it.");
+            LogWarning("Looks like we want to use shared temp storage, but since we don't have it, we won't use it.");
             LocalOnly = true;
         }
 
@@ -5381,7 +5381,7 @@ public class GUBP : BuildCommand
                 }
                 if (!FileExists_NoExceptions(P4IndexFileLocal))
                 {
-                    Log("{0} doesn't exist, checking in a new one", P4IndexFileP4);
+                    LogVerbose("{0} doesn't exist, checking in a new one", P4IndexFileP4);
                     WriteAllText(P4IndexFileLocal, "-1 0");
                     int WorkingCL = -1;
                     try
@@ -5393,7 +5393,7 @@ public class GUBP : BuildCommand
                     }
                     catch (Exception)
                     {
-                        Log("Add of CIS counter failed, assuming it now exists.");
+                        LogWarning("Add of CIS counter failed, assuming it now exists.");
                         if (WorkingCL > 0)
                         {
 							P4.DeleteChange(WorkingCL);
@@ -5403,7 +5403,7 @@ public class GUBP : BuildCommand
 				P4.Sync("-f " + P4IndexFileP4 + "#head");
                 if (!FileExists_NoExceptions(P4IndexFileLocal))
                 {
-                    Log("{0} doesn't exist, checking in a new one", P4IndexFileP4);
+                    LogVerbose("{0} doesn't exist, checking in a new one", P4IndexFileP4);
                     WriteAllText(P4IndexFileLocal, "-1 0");
                     int WorkingCL = -1;
                     try
@@ -5415,7 +5415,7 @@ public class GUBP : BuildCommand
                     }
                     catch (Exception)
                     {
-                        Log("Add of CIS counter failed, assuming it now exists.");
+                        LogWarning("Add of CIS counter failed, assuming it now exists.");
                         if (WorkingCL > 0)
                         {
                             P4.DeleteChange(WorkingCL);
@@ -5457,7 +5457,7 @@ public class GUBP : BuildCommand
                 }
                 {
                     var Line = String.Format("{0} {1}", NewIndex, NowMinutes);
-                    Log("Attempting to write {0} with {1}", P4IndexFileP4, Line);
+                    LogVerbose("Attempting to write {0} with {1}", P4IndexFileP4, Line);
                     int WorkingCL = -1;
                     try
                     {
@@ -5471,7 +5471,7 @@ public class GUBP : BuildCommand
                     }
                     catch (Exception)
                     {
-                        Log("Edit of CIS counter failed, assuming someone else checked in, retrying.");
+                        LogWarning("Edit of CIS counter failed, assuming someone else checked in, retrying.");
                         if (WorkingCL > 0)
                         {
 							P4.DeleteChange(WorkingCL);
@@ -5487,21 +5487,21 @@ public class GUBP : BuildCommand
             Log("Setting TimeIndex to {0}", TimeIndex);
         }
 
-        Log("************************* CL:			                    {0}", CL); 
-        Log("************************* P4Enabled:			            {0}", P4Enabled);
+        LogVerbose("************************* CL:			                    {0}", CL);
+		LogVerbose("************************* P4Enabled:			            {0}", P4Enabled);
         foreach (var HostPlatform in HostPlatforms)
         {
-            Log("*************************   HostPlatform:		            {0}", HostPlatform.ToString()); 
+			LogVerbose("*************************   HostPlatform:		            {0}", HostPlatform.ToString()); 
         }
-        Log("************************* StoreName:		                {0}", StoreName.ToString());
-        Log("************************* bCleanLocalTempStorage:		    {0}", bCleanLocalTempStorage);
-        Log("************************* bSkipTriggers:		            {0}", bSkipTriggers);
-        Log("************************* bSaveSharedTempStorage:		    {0}", bSaveSharedTempStorage);
-        Log("************************* bSignBuildProducts:		        {0}", bSignBuildProducts);
-        Log("************************* bFake:           		        {0}", bFake);
-        Log("************************* bFakeEC:           		        {0}", bFakeEC);
-        Log("************************* bHistory:           		        {0}", bHistory);
-        Log("************************* TimeIndex:           		    {0}", TimeIndex);        
+		LogVerbose("************************* StoreName:		                {0}", StoreName.ToString());
+		LogVerbose("************************* bCleanLocalTempStorage:		    {0}", bCleanLocalTempStorage);
+		LogVerbose("************************* bSkipTriggers:		            {0}", bSkipTriggers);
+		LogVerbose("************************* bSaveSharedTempStorage:		    {0}", bSaveSharedTempStorage);
+		LogVerbose("************************* bSignBuildProducts:		        {0}", bSignBuildProducts);
+		LogVerbose("************************* bFake:           		        {0}", bFake);
+		LogVerbose("************************* bFakeEC:           		        {0}", bFakeEC);
+		LogVerbose("************************* bHistory:           		        {0}", bHistory);
+		LogVerbose("************************* TimeIndex:           		    {0}", TimeIndex);        
 
 
         GUBPNodes = new Dictionary<string, GUBPNode>();        
@@ -5554,7 +5554,7 @@ public class GUBP : BuildCommand
         ActivePlatforms = SupportedPlatforms;
         foreach (var Plat in ActivePlatforms)
         {
-            Log("Active Platform: {0}", Plat.ToString());
+            LogVerbose("Active Platform: {0}", Plat.ToString());
         }
 
         if (HostPlatforms.Count >= 2)
@@ -5689,7 +5689,7 @@ public class GUBP : BuildCommand
                     var Proj = Branch.FindGame(Codeless.Key);
                     if (Proj == null)
                     {
-                        Log(System.Diagnostics.TraceEventType.Information, "{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
+                        Log(System.Diagnostics.TraceEventType.Verbose, "{0} was listed as a codeless project by GUBP_NonCodeProjects_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
                     }
                     else if (Proj.Properties.bIsCodeBasedProject)
                     {
@@ -5728,7 +5728,7 @@ public class GUBP : BuildCommand
                     }
                     else
                     {
-                        Log(System.Diagnostics.TraceEventType.Information, "{0} was listed as a codeless formal build GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
+                        Log(System.Diagnostics.TraceEventType.Verbose, "{0} was listed as a codeless formal build GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly, however it does not exist in this branch.", Codeless.Key);
                     }
                 }
             }
@@ -6480,13 +6480,13 @@ public class GUBP : BuildCommand
                         }
                         All += Dep;
                     }
-                    Log("  {0}: {1}      {2}", Node, Note, All);
+                    LogVerbose("  {0}: {1}      {2}", Node, Note, All);
                     FullNodeList.Add(Node, Note);
                     FullNodeDirectDependencies.Add(Node, All);
                 }
                 else
                 {
-                    Log("  {0}: {1} [Aggregate]", Node, Note);
+                    LogVerbose("  {0}: {1} [Aggregate]", Node, Note);
                 }
             }
             var DependencyFinish = DateTime.Now.ToString();
@@ -6532,7 +6532,7 @@ public class GUBP : BuildCommand
             {				
                 if (NodeSpec.Equals("Noop", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    Log("Request for Noop node, done.");
+                    LogVerbose("Request for Noop node, done.");
                     PrintRunTime();
                     return;
                 }
@@ -6618,7 +6618,7 @@ public class GUBP : BuildCommand
         }
         if (NodesToDo.Count == 0)
         {
-            Log("No nodes specified, adding all nodes");
+            LogVerbose("No nodes specified, adding all nodes");
             foreach (var Node in GUBPNodes)
             {
                 NodesToDo.Add(Node.Key);
@@ -6626,7 +6626,7 @@ public class GUBP : BuildCommand
         }
         else if (TimeIndex != 0)
         {
-            Log("Check to make sure we didn't ask for nodes that will be culled by time index");
+            LogVerbose("Check to make sure we didn't ask for nodes that will be culled by time index");
             foreach (var NodeToDo in NodesToDo)
             {
                 if (TimeIndex % (1 << GUBPNodes[NodeToDo].DependentCISFrequencyQuantumShift()) != 0)
@@ -6636,10 +6636,10 @@ public class GUBP : BuildCommand
             }
         }
 
-        Log("Desired Nodes");
+        LogVerbose("Desired Nodes");
         foreach (var NodeToDo in NodesToDo)
         {
-            Log("  {0}", NodeToDo);			
+            LogVerbose("  {0}", NodeToDo);			
         }
         // if we are doing related to, then find things that depend on the selected nodes
         if (bRelatedToNode)
@@ -6729,18 +6729,18 @@ public class GUBP : BuildCommand
 		}		
 		if (TimeIndex != 0)
 		{
-			Log("Culling based on time index");
+			LogVerbose("Culling based on time index");
 			var NewNodesToDo = new HashSet<string>();
 			foreach (var NodeToDo in NodesToDo)
 			{
 				if (TimeIndex % (1 << GUBPNodes[NodeToDo].DependentCISFrequencyQuantumShift()) == 0)
 				{
-					Log("  Keeping {0}", NodeToDo);
+					LogVerbose("  Keeping {0}", NodeToDo);
 					NewNodesToDo.Add(NodeToDo);
 				}
 				else
 				{
-					Log("  Rejecting {0}", NodeToDo);
+					LogVerbose("  Rejecting {0}", NodeToDo);
 				}
 			}
 			NodesToDo = NewNodesToDo;
@@ -6757,7 +6757,7 @@ public class GUBP : BuildCommand
 				}
 				else
 				{
-					Log(" Rejecting {0} because -NoLinux was requested", NodeToDo);
+					LogVerbose(" Rejecting {0} because -NoLinux was requested", NodeToDo);
 				}
 			}
 			NodesToDo = NewNodesToDo;
@@ -6838,19 +6838,19 @@ public class GUBP : BuildCommand
         }
 		if (bPreflightBuild)
 		{
-			Log("Culling triggers and downstream for preflight builds ");
+			LogVerbose("Culling triggers and downstream for preflight builds ");
 			var NewNodesToDo = new HashSet<string>();
 			foreach (var NodeToDo in NodesToDo)
 			{
 				var TriggerDot = GetControllingTriggerDotName(NodeToDo);
 				if (TriggerDot == "" && !GUBPNodes[NodeToDo].TriggerNode())
 				{
-					Log("  Keeping {0}", NodeToDo);
+					LogVerbose("  Keeping {0}", NodeToDo);
 					NewNodesToDo.Add(NodeToDo);
 				}
 				else
 				{
-					Log("  Rejecting {0}", NodeToDo);
+					LogVerbose("  Rejecting {0}", NodeToDo);
 				}
 			}
 			NodesToDo = NewNodesToDo;
@@ -6859,17 +6859,17 @@ public class GUBP : BuildCommand
         GUBPNodesCompleted = new Dictionary<string, bool>();
         GUBPNodesHistory = new Dictionary<string, NodeHistory>();
 
-        Log("******* Caching completion");
+        LogVerbose("******* Caching completion");
         {
             var StartTime = DateTime.UtcNow;
             foreach (var Node in NodesToDo)
             {
-                Log("** {0}", Node);
+                LogVerbose("** {0}", Node);
                 NodeIsAlreadyComplete(Node, LocalOnly); // cache these now to avoid spam later
                 GetControllingTriggerDotName(Node);
             }
             var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-            Log("Took {0}s to cache completion for {1} nodes", BuildDuration / 1000, NodesToDo.Count);
+			LogVerbose("Took {0}s to cache completion for {1} nodes", BuildDuration / 1000, NodesToDo.Count);
         }
         /*if (CLString != "" && StoreName.Contains(CLString) && !ParseParam("NoHistory"))
         {
@@ -6904,7 +6904,7 @@ public class GUBP : BuildCommand
             }
         }
 
-        Log("*********** Desired And Dependent Nodes, in order.");
+        LogVerbose("*********** Desired And Dependent Nodes, in order.");
         PrintNodes(this, OrdereredToDo, LocalOnly, UnfinishedTriggers);		
         //check sorting
         {

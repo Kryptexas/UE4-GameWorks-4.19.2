@@ -159,18 +159,18 @@ namespace AutomationTool
 
 		void LogSettings()
 		{
-			Log.TraceInformation("Command Environment settings:");
-			Log.TraceInformation("CmdExe={0}", CmdExe);
-			Log.TraceInformation("EngineSavedFolder={0}", EngineSavedFolder);
-			Log.TraceInformation("HasCapabilityToCompile={0}", HasCapabilityToCompile);
-			Log.TraceInformation("LocalRoot={0}", LocalRoot);
-			Log.TraceInformation("LogFolder={0}", LogFolder);			
-			Log.TraceInformation("MountExe={0}", MountExe);
-			Log.TraceInformation("MsBuildExe={0}", MsBuildExe);
-			Log.TraceInformation("MsDevExe={0}", MsDevExe);
-			Log.TraceInformation("RobocopyExe={0}", RobocopyExe);
-			Log.TraceInformation("TimestampAsString={0}", TimestampAsString);
-			Log.TraceInformation("UATExe={0}", UATExe);			
+			Log.TraceVerbose("Command Environment settings:");
+			Log.TraceVerbose("CmdExe={0}", CmdExe);
+			Log.TraceVerbose("EngineSavedFolder={0}", EngineSavedFolder);
+			Log.TraceVerbose("HasCapabilityToCompile={0}", HasCapabilityToCompile);
+			Log.TraceVerbose("LocalRoot={0}", LocalRoot);
+			Log.TraceVerbose("LogFolder={0}", LogFolder);
+			Log.TraceVerbose("MountExe={0}", MountExe);
+			Log.TraceVerbose("MsBuildExe={0}", MsBuildExe);
+			Log.TraceVerbose("MsDevExe={0}", MsDevExe);
+			Log.TraceVerbose("RobocopyExe={0}", RobocopyExe);
+			Log.TraceVerbose("TimestampAsString={0}", TimestampAsString);
+			Log.TraceVerbose("UATExe={0}", UATExe);			
 		}
 
 		#region Compiler Setup
@@ -190,7 +190,7 @@ namespace AutomationTool
 			catch (Exception)
 			{
 				// Something went wrong, we can't compile.
-				Log.WriteLine(TraceEventType.Information, "SetFrameworkVars failed. Assuming no compilation capability.");
+				Log.WriteLine(TraceEventType.Warning, "SetFrameworkVars failed. Assuming no compilation capability.");
 				HasCapabilityToCompile = false;
 			}
 
@@ -202,8 +202,8 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(TraceEventType.Information, Ex.Message);
-					Log.WriteLine(TraceEventType.Information, "Assuming no compilation capability.");
+					Log.WriteLine(TraceEventType.Warning, Ex.Message);
+					Log.WriteLine(TraceEventType.Warning, "Assuming no compilation capability.");
 					HasCapabilityToCompile = false;
 					MsBuildExe = "";
 				}
@@ -217,15 +217,15 @@ namespace AutomationTool
 				}
 				catch (Exception Ex)
 				{
-					Log.WriteLine(TraceEventType.Information, Ex.Message);
-					Log.WriteLine(TraceEventType.Information, "Assuming no solution compilation capability.");
+					Log.WriteLine(TraceEventType.Warning, Ex.Message);
+					Log.WriteLine(TraceEventType.Warning, "Assuming no solution compilation capability.");
 					MsDevExe = "";
 				}
 			}
 
-			Log.TraceInformation("CompilationEvironment.HasCapabilityToCompile={0}", HasCapabilityToCompile);
-			Log.TraceInformation("CompilationEvironment.MsBuildExe={0}", MsBuildExe);
-			Log.TraceInformation("CompilationEvironment.MsDevExe={0}", MsDevExe);
+			Log.TraceVerbose("CompilationEvironment.HasCapabilityToCompile={0}", HasCapabilityToCompile);
+			Log.TraceVerbose("CompilationEvironment.MsBuildExe={0}", MsBuildExe);
+			Log.TraceVerbose("CompilationEvironment.MsDevExe={0}", MsDevExe);
 		}
 
 		#endregion
