@@ -3029,6 +3029,8 @@ void UWorld::InitializeActorsForPlay(const FURL& InURL, bool bResetTime)
 	{
 		UE_LOG(LogWorld, Log, TEXT("Bringing up level for play took: %f"), FPlatformTime::Seconds() - StartTime );
 	}
+
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(InURL.Map + TEXT( " - Bringing Up" )) );
 }
 
 void UWorld::BeginPlay()
