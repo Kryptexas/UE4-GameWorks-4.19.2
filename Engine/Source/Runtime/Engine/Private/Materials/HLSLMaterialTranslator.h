@@ -2591,6 +2591,18 @@ protected:
 	{
 		MaterialCompilationOutput.bNeedsSceneTextures = true;
 
+		if(SceneTextureId == PPI_SceneColor && Material->GetMaterialDomain() != MD_Surface)
+		{
+			if(Material->GetMaterialDomain() == MD_PostProcess)
+			{
+				Errorf(TEXT("SceneColor lookups are only available when MaterialDomain = Surface. PostProcessMaterials should use the SceneTexture PostProcessInput0."));
+			}
+			else
+			{
+				Errorf(TEXT("SceneColor lookups are only available when MaterialDomain = Surface."));
+			}
+		}
+
 		if(bTextureLookup)
 		{
 			bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs
@@ -2626,6 +2638,11 @@ protected:
 		if (ShaderFrequency != SF_Pixel)
 		{
 			return NonPixelShaderExpressionError();
+		}
+
+		if(Material->GetMaterialDomain() != MD_Surface)
+		{
+			Errorf(TEXT("SceneColor lookups are only available when MaterialDomain = Surface."));
 		}
 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
