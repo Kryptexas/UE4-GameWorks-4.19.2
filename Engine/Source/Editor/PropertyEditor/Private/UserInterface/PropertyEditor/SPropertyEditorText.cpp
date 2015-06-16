@@ -116,7 +116,11 @@ void SPropertyEditorText::OnTextCommitted( const FText& NewText, ETextCommit::Ty
 	const TSharedRef< FPropertyNode > PropertyNode = PropertyEditor->GetPropertyNode();
 	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
 
-	PropertyHandle->SetValueFromFormattedString( NewText.ToString() );
+	FText CurrentText;
+	if( PropertyHandle->GetValueAsFormattedText( CurrentText ) != FPropertyAccess::MultipleValues || NewText.ToString() != FPropertyEditor::MultipleValuesDisplayName )
+	{
+		PropertyHandle->SetValueFromFormattedString( NewText.ToString() );
+	}
 }
 
 static FText ValidateNameLength( const FText& Text )
