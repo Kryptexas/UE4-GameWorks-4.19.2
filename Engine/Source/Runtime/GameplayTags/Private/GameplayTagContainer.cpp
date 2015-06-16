@@ -823,6 +823,16 @@ bool FGameplayTagQuery::Matches(FGameplayTagContainer const& Tags) const
 	return QE.Eval(Tags);
 }
 
+bool FGameplayTagQuery::IsEmpty() const
+{
+	return (QueryTokenStream.Num() == 0);
+}
+
+void FGameplayTagQuery::Clear()
+{
+	*this = FGameplayTagQuery::EmptyQuery;
+}
+
 void FGameplayTagQuery::GetQueryExpr(FGameplayTagQueryExpression& OutExpr) const
 {
 	// build the FExpr tree from the token stream and return it
@@ -1011,92 +1021,190 @@ void FGameplayTagQuery::BuildFromEditableQuery(UEditableGameplayTagQuery& Editab
 	QueryTokenStream.Reset();
 	TagDictionary.Reset();
 
+	Description = EditableQuery.Description;
+	FString* const StringRepresentation = Description.IsEmpty() ? &Description : nullptr;
+
 	// add stream version first
 	QueryTokenStream.Add(EGameplayTagQueryStreamVersion::LatestVersion);
-
-	EditableQuery.EmitTokens(QueryTokenStream, TagDictionary);
+	EditableQuery.EmitTokens(QueryTokenStream, TagDictionary, StringRepresentation);
 }
 
-void UEditableGameplayTagQuery::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQuery::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
+	if (DebugString)
+	{
+		// start with a fresh string
+		DebugString->Empty();
+	}
+
 	if (RootExpression)
 	{
 		TokenStream.Add(1);		// true if has a root expression
-		RootExpression->EmitTokens(TokenStream, TagDictionary);
+		RootExpression->EmitTokens(TokenStream, TagDictionary, DebugString);
 	}
 	else
 	{
 		TokenStream.Add(0);		// false if no root expression
+		DebugString->Append(TEXT("undefined"));
 	}
 }
 
-void UEditableGameplayTagQueryExpression::EmitTagTokens(FGameplayTagContainer const& TagsToEmit, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression::EmitTagTokens(FGameplayTagContainer const& TagsToEmit, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	uint8 const NumTags = (uint8)TagsToEmit.Num();
 	TokenStream.Add(NumTags);
+
+	bool bFirstTag = true;
 
 	for (auto T : TagsToEmit)
 	{
 		int32 TagIdx = TagDictionary.AddUnique(T);
 		check(TagIdx <= 255);
 		TokenStream.Add((uint8)TagIdx);
+
+		if (DebugString)
+		{
+			if (bFirstTag == false)
+			{
+				DebugString->Append(TEXT(","));
+			}
+
+			DebugString->Append(TEXT(" "));
+			DebugString->Append(T.ToString());
+		}
+
+		bFirstTag = false;
 	}
 }
 
-void UEditableGameplayTagQueryExpression::EmitExprListTokens(TArray<UEditableGameplayTagQueryExpression*> const& ExprList, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression::EmitExprListTokens(TArray<UEditableGameplayTagQueryExpression*> const& ExprList, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	uint8 const NumExprs = (uint8)ExprList.Num();
 	TokenStream.Add(NumExprs);
-	int32 const NumExprsStreamLocation = TokenStream.Num() - 1;		// so we can fill in the actual number of written exprs later
 
+	bool bFirstExpr = true;
+	
 	for (auto E : ExprList)
 	{
+		if (DebugString)
+		{
+			if (bFirstExpr == false)
+			{
+				DebugString->Append(TEXT(","));
+			}
+
+			DebugString->Append(TEXT(" "));
+		}
+
 		if (E)
 		{
-			E->EmitTokens(TokenStream, TagDictionary);
+			E->EmitTokens(TokenStream, TagDictionary, DebugString);
 		}
 		else
 		{
 			// null expression
 			TokenStream.Add(EGameplayTagQueryExprType::Undefined);
+			DebugString->Append(TEXT("undefined"));
 		}
+
+		bFirstExpr = false;
 	}
 }
 
-void UEditableGameplayTagQueryExpression_AnyTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const 
+void UEditableGameplayTagQueryExpression_AnyTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	TokenStream.Add(EGameplayTagQueryExprType::AnyTagsMatch);
-	EmitTagTokens(Tags, TokenStream, TagDictionary);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" ANY("));
+	}
+
+	EmitTagTokens(Tags, TokenStream, TagDictionary, DebugString);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" )"));
+	}
 }
 
-void UEditableGameplayTagQueryExpression_AllTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression_AllTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	TokenStream.Add(EGameplayTagQueryExprType::AllTagsMatch);
-	EmitTagTokens(Tags, TokenStream, TagDictionary);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" ALL("));
+	}
+	
+	EmitTagTokens(Tags, TokenStream, TagDictionary, DebugString);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" )"));
+	}
 }
 
-void UEditableGameplayTagQueryExpression_NoTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression_NoTagsMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	TokenStream.Add(EGameplayTagQueryExprType::NoTagsMatch);
-	EmitTagTokens(Tags, TokenStream, TagDictionary);
+	EmitTagTokens(Tags, TokenStream, TagDictionary, DebugString);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" )"));
+	}
 }
 
-void UEditableGameplayTagQueryExpression_AnyExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression_AnyExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	TokenStream.Add(EGameplayTagQueryExprType::AnyExprMatch);
-	EmitExprListTokens(Expressions, TokenStream, TagDictionary);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" ANY("));
+	}
+
+	EmitExprListTokens(Expressions, TokenStream, TagDictionary, DebugString);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" )"));
+	}
 }
 
-void UEditableGameplayTagQueryExpression_AllExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression_AllExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	TokenStream.Add(EGameplayTagQueryExprType::AllExprMatch);
-	EmitExprListTokens(Expressions, TokenStream, TagDictionary);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" ALL("));
+	}
+
+	EmitExprListTokens(Expressions, TokenStream, TagDictionary, DebugString);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" )"));
+	}
 }
 
-void UEditableGameplayTagQueryExpression_NoExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const
+void UEditableGameplayTagQueryExpression_NoExprMatch::EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const
 {
 	TokenStream.Add(EGameplayTagQueryExprType::NoExprMatch);
-	EmitExprListTokens(Expressions, TokenStream, TagDictionary);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" NONE("));
+	}
+
+	EmitExprListTokens(Expressions, TokenStream, TagDictionary, DebugString);
+
+	if (DebugString)
+	{
+		DebugString->Append(TEXT(" )"));
+	}
 }
 #endif	// WITH_EDITOR
 

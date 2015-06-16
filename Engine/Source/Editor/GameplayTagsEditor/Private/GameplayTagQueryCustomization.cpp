@@ -37,10 +37,36 @@ void FGameplayTagQueryCustomization::CustomizeHeader(TSharedRef<class IPropertyH
 				.Text(this, &FGameplayTagQueryCustomization::GetEditButtonText)
 				.OnClicked(this, &FGameplayTagQueryCustomization::OnEditButtonClicked)
 			]
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SButton)
+				.IsEnabled(!StructPropertyHandle->GetProperty()->HasAnyPropertyFlags(CPF_EditConst))
+				.Text(LOCTEXT("GameplayTagQueryCustomization_Clear", "Clear All"))
+				.OnClicked(this, &FGameplayTagQueryCustomization::OnClearAllButtonClicked)
+				.Visibility(this, &FGameplayTagQueryCustomization::GetClearAllVisibility)
+			]
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(SBorder)
+			.Padding(4.0f)
+			.Visibility(this, &FGameplayTagQueryCustomization::GetQueryDescVisibility)
+			[
+				SNew(STextBlock)
+				.Text(this, &FGameplayTagQueryCustomization::GetQueryDescText)
+				.AutoWrapText(true)
+			]
 		]
 	];
 
 	GEditor->RegisterForUndo(this);
+}
+
+FText FGameplayTagQueryCustomization::GetQueryDescText() const
+{
+	return FText::FromString(QueryDescription);
 }
 
 FText FGameplayTagQueryCustomization::GetEditButtonText() const
@@ -51,6 +77,61 @@ FText FGameplayTagQueryCustomization::GetEditButtonText() const
 		? LOCTEXT("GameplayTagQueryCustomization_View", "View...")
 		: LOCTEXT("GameplayTagQueryCustomization_Edit", "Edit...");
 }
+
+FReply FGameplayTagQueryCustomization::OnClearAllButtonClicked()
+{
+	for (auto& EQ : EditableQueries)
+	{
+		if (EQ.TagQuery)
+		{
+			EQ.TagQuery->Clear();
+		}
+	}
+
+	RefreshQueryDescription();
+
+	return FReply::Handled();
+}
+
+EVisibility FGameplayTagQueryCustomization::GetClearAllVisibility() const
+{
+	bool bAtLeastOneQueryIsNonEmpty = false;
+
+	for (auto& EQ : EditableQueries)
+	{
+		if (EQ.TagQuery && EQ.TagQuery->IsEmpty() == false)
+		{
+			bAtLeastOneQueryIsNonEmpty = true;
+			break;
+		}
+	}
+
+	return bAtLeastOneQueryIsNonEmpty ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+EVisibility FGameplayTagQueryCustomization::GetQueryDescVisibility() const
+{
+	return QueryDescription.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible;
+}
+
+void FGameplayTagQueryCustomization::RefreshQueryDescription()
+{
+	// Rebuild Editable Containers as container references can become unsafe
+	BuildEditableQueryList();
+
+	// Clear the list
+	QueryDescription.Empty();
+
+	if (EditableQueries.Num() > 1)
+	{
+		QueryDescription = TEXT("Multiple Selected");
+	}
+	else if ( (EditableQueries.Num() == 1) && (EditableQueries[0].TagQuery != nullptr) )
+	{
+		QueryDescription = EditableQueries[0].TagQuery->GetDescription();
+	}
+}
+
 
 FReply FGameplayTagQueryCustomization::OnEditButtonClicked()
 {
@@ -141,6 +222,8 @@ void FGameplayTagQueryCustomization::CloseWidgetWindow()
  	{
  		GameplayTagQueryWidgetWindow->RequestDestroyWindow();
 		GameplayTagQueryWidgetWindow = nullptr;
+
+		RefreshQueryDescription();
  	}
 }
 

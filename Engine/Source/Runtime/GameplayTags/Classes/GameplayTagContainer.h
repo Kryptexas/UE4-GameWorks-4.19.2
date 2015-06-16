@@ -410,6 +410,10 @@ private:
 	UPROPERTY()
 	TArray<uint8> QueryTokenStream;
 
+	/** Human-readable string describing the query */
+	UPROPERTY()
+	FString Description;
+
 	/** Returns a gameplay tag from the tag dictionary */
 	FGameplayTag GetTagFromIndex(int32 TagIdx) const
 	{
@@ -417,15 +421,25 @@ private:
 		return TagDictionary[TagIdx];
 	}
 
+
 public:
 	/** Returns true if the given tags match this query, or false otherwise. */
 	bool Matches(FGameplayTagContainer const& Tags) const;
+
+	/** Returns true if this query is empty, false otherwise. */
+	bool IsEmpty() const;
+
+	/** Resets this query to its default empty state. */
+	void Clear();
 
 	/** Creates this query with the given root expression. */
 	void BuildQuery(struct FGameplayTagQueryExpression& RootQueryExpr);
 
 	/** Builds a FGameplayTagQueryExpression from this query. */
 	void GetQueryExpr(struct FGameplayTagQueryExpression& OutExpr) const;
+
+	/** Returns description string. */
+	FString GetDescription() const { return Description; };
 	
 #if WITH_EDITOR
 	/** Creates this query based on the given EditableQuery object */
@@ -536,13 +550,18 @@ class GAMEPLAYTAGS_API UEditableGameplayTagQuery : public UObject
 	GENERATED_BODY()
 
 public:
+
+	/** User-supplied description, shown in property details. Auto-generated description is shown if not supplied. */
+	UPROPERTY(EditDefaultsOnly, Category = Query)
+	FString Description;
+
 	/** The base expression of this query. */
 	UPROPERTY(EditDefaultsOnly, Instanced, Category = Query)
 	class UEditableGameplayTagQueryExpression* RootExpression;
 
 #if WITH_EDITOR
 	/** Converts this editor query construct into the runtime-usable token stream. */
-	void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
+	void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString=nullptr) const;
 #endif  // WITH_EDITOR
 };
 
@@ -554,11 +573,11 @@ class GAMEPLAYTAGS_API UEditableGameplayTagQueryExpression : public UObject
 #if WITH_EDITOR
 public:
 	/** Converts this editor query construct into the runtime-usable token stream. */
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const {};
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString=nullptr) const {};
 
 protected:
- 	void EmitTagTokens(FGameplayTagContainer const& TagsToEmit, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
- 	void EmitExprListTokens(TArray<UEditableGameplayTagQueryExpression*> const& ExprList, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const;
+	void EmitTagTokens(FGameplayTagContainer const& TagsToEmit, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const;
+	void EmitExprListTokens(TArray<UEditableGameplayTagQueryExpression*> const& ExprList, TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString) const;
 #endif  // WITH_EDITOR
 };
 
@@ -571,7 +590,7 @@ public:
 	FGameplayTagContainer Tags;
 
 #if WITH_EDITOR
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString = nullptr) const override;
 #endif  // WITH_EDITOR
 };
 
@@ -584,7 +603,7 @@ public:
 	FGameplayTagContainer Tags;
 
 #if WITH_EDITOR
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString = nullptr) const override;
 #endif  // WITH_EDITOR
 };
 
@@ -597,7 +616,7 @@ public:
 	FGameplayTagContainer Tags;
 
 #if WITH_EDITOR
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString = nullptr) const override;
 #endif  // WITH_EDITOR
 };
 
@@ -610,7 +629,7 @@ public:
 	TArray<UEditableGameplayTagQueryExpression*> Expressions;
 
 #if WITH_EDITOR
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString = nullptr) const override;
 #endif  // WITH_EDITOR
 };
 
@@ -623,7 +642,7 @@ public:
 	TArray<UEditableGameplayTagQueryExpression*> Expressions;
 
 #if WITH_EDITOR
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString = nullptr) const override;
 #endif  // WITH_EDITOR
 };
 
@@ -636,7 +655,7 @@ public:
 	TArray<UEditableGameplayTagQueryExpression*> Expressions;
 
 #if WITH_EDITOR
-	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary) const override;
+	virtual void EmitTokens(TArray<uint8>& TokenStream, TArray<FGameplayTag>& TagDictionary, FString* DebugString = nullptr) const override;
 #endif  // WITH_EDITOR
 };
 

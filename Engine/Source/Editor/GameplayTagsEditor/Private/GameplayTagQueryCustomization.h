@@ -29,6 +29,19 @@ private:
 	/** Overridden to do nothing */
 	FText GetEditButtonText() const;
 
+	/** Called when the "clear all" button is clicked */
+	FReply OnClearAllButtonClicked();
+
+	/** Returns the visibility of the "clear all" button (collapsed when there are no tags) */
+	EVisibility GetClearAllVisibility() const;
+
+	/** Returns the visibility of the tags list box (collapsed when there are no tags) */
+	EVisibility GetQueryDescVisibility() const;
+
+	void RefreshQueryDescription();
+
+	FText GetQueryDescText() const;
+
 	void CloseWidgetWindow();
 
 	/** Build List of Editable Queries */
@@ -42,5 +55,7 @@ private:
 
 	/** The Window for the GameplayTagWidget */
 	TSharedPtr<SWindow> GameplayTagQueryWidgetWindow;
+
+	FString QueryDescription;
 };
 
