@@ -17,7 +17,7 @@ when creating textures:
 
 In addition, texture settings need to be set up properly to work on mobile platforms:
 
-* Only TC_Default or TC_NormalMap (and TC_Greyscale?) values are used in the **Compression Settings**.
+* It is recommended that you only use  **TC_Default** or **TC_NormalMap** in the **Compression Settings** as any other setting could cause your Texture to take up more memory than expected on your target device.
 * The **sRGB** property should be enabled.
  
 ## Texture Usage in Materials
