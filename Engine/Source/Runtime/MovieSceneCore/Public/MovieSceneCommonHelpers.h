@@ -26,15 +26,6 @@ public:
 	* @return The found section or null
 	*/
 	static UMovieSceneSection* FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
-
-	/*
-	* Gather all key indices bounded within a section 
-	*
-	* @param Section The section to gather keys for
-	* @param Curve The curve to gather keys for
-	* @param KeyIndices The set of indices
-	*/
-	static void GatherAllKeyIndicesInSection(const UMovieSceneSection* Section, const FIndexedCurve& Curve, TSet<int32>& KeyIndices);
 };
 
 /**

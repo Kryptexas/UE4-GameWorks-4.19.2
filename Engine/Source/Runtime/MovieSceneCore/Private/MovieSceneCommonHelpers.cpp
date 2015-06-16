@@ -89,22 +89,6 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 	return ClosestSection ? ClosestSection : EarliestSection;
 }
 
-void MovieSceneHelpers::GatherAllKeyIndicesInSection(const UMovieSceneSection* Section, const FIndexedCurve& Curve, TSet<int32>& KeyIndices)
-{
-	KeyIndices.Empty();
-
-	float StartTime = Section->GetStartTime();
-	float EndTime = Section->GetEndTime();
-
-	///@todo this probably isn't efficient?
-	for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
-	{
-		float Time = Curve.GetKeyTime(It.Key());
-		if (Time >= StartTime && Time <= EndTime)
-			KeyIndices.Add(It.Value());
-	}
-}
-
 FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
     : PropertyPath( InPropertyPath )
 	, PropertyName( InPropertyName )
