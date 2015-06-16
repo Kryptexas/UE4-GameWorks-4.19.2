@@ -12,6 +12,7 @@
 struct FIOSPlatformTypes : public FGenericPlatformTypes
 {
 	typedef size_t				SIZE_T;
+	typedef ssize_t				SSIZE_T;
 	typedef decltype(NULL)		TYPE_OF_NULL;
 	typedef char16_t			CHAR16;
 };

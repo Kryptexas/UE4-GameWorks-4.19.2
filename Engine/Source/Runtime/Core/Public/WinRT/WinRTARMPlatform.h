@@ -18,6 +18,7 @@ struct FWinRTTypes : public FGenericPlatformTypes
 	// defined in windefs.h, even though this is equivalent, the compiler doesn't think so
 	typedef unsigned long	DWORD;
 	typedef unsigned long	SIZE_T;
+	typedef long			SSIZE_T;
 };
 
 typedef FWinRTTypes FPlatformTypes;

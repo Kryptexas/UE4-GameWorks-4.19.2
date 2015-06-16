@@ -621,6 +621,7 @@ typedef FPlatformTypes::CHAR32		UTF32CHAR;	///< A 32-bit character containing a 
 typedef FPlatformTypes::UPTRINT UPTRINT;		///< An unsigned integer the same size as a pointer
 typedef FPlatformTypes::PTRINT PTRINT;			///< A signed integer the same size as a pointer
 typedef FPlatformTypes::SIZE_T SIZE_T;			///< An unsigned integer the same size as a pointer, the same as UPTRINT
+typedef FPlatformTypes::SSIZE_T SSIZE_T;		///< An integer the same size as a pointer, the same as PTRINT
 
 typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;		///< The type of the NULL constant.
 typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR;	///< The type of the C++ nullptr keyword.
