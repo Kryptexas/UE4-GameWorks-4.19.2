@@ -19,6 +19,22 @@ public:
 	*/
 	static UMovieSceneSection* FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
 
+	/**
+	* Finds the nearest section to the given time
+	*
+	* @param Time	The time to find a section at
+	* @return The found section or null
+	*/
+	static UMovieSceneSection* FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
+
+	/*
+	* Gather all key indices bounded within a section 
+	*
+	* @param Section The section to gather keys for
+	* @param Curve The curve to gather keys for
+	* @param KeyIndices The set of indices
+	*/
+	static void GatherAllKeyIndicesInSection(const UMovieSceneSection* Section, const FIndexedCurve& Curve, TSet<int32>& KeyIndices);
 };
 
 /**
@@ -28,7 +44,7 @@ public:
 class MOVIESCENECORE_API FTrackInstancePropertyBindings
 {
 public:
-	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath );
+	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName = FName());
 
 	/**
 	 * Calls the setter function for a specific runtime object

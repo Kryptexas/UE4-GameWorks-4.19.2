@@ -30,6 +30,22 @@ TArray<UMovieSceneSection*> MovieSceneHelpers::GetTraversedSections( const TArra
 
 UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time )
 {
+	for( int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex )
+	{
+		UMovieSceneSection* Section = Sections[SectionIndex];
+
+		//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
+		if( Section->IsTimeWithinSection( Time ) )
+		{
+			return Section;
+		}
+	}
+
+	return NULL;
+}
+
+UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time )
+{
 	// Only update the section if the position is within the time span of the section
 	// Or if there are no sections at the time, the left closest section to the time
 	// Or in the case that Time is before all sections, take the section with the earliest start time
@@ -73,17 +89,38 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 	return ClosestSection ? ClosestSection : EarliestSection;
 }
 
+void MovieSceneHelpers::GatherAllKeyIndicesInSection(const UMovieSceneSection* Section, const FIndexedCurve& Curve, TSet<int32>& KeyIndices)
+{
+	KeyIndices.Empty();
 
-FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath )
+	float StartTime = Section->GetStartTime();
+	float EndTime = Section->GetEndTime();
+
+	///@todo this probably isn't efficient?
+	for (auto It(Curve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = Curve.GetKeyTime(It.Key());
+		if (Time >= StartTime && Time <= EndTime)
+			KeyIndices.Add(It.Value());
+	}
+}
+
+FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
     : PropertyPath( InPropertyPath )
 	, PropertyName( InPropertyName )
 {
-	
-	static const FString Set(TEXT("Set"));
+	if (InFunctionName != FName())
+	{
+		FunctionName = InFunctionName;
+	}
+	else
+	{
+		static const FString Set(TEXT("Set"));
 
-	const FString FunctionString = Set + PropertyName.ToString();
+		const FString FunctionString = Set + PropertyName.ToString();
 
-	FunctionName = FName(*FunctionString);
+		FunctionName = FName(*FunctionString);
+	}
 }
 
 void FTrackInstancePropertyBindings::CallFunction( UObject* InRuntimeObject, void* FunctionParams )

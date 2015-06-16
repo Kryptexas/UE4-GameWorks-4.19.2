@@ -27,7 +27,7 @@ bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key )
 {
 	bIsSlateColor = Key.bIsSlateColor;
 
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime( Sections, Time );
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
 	if (!NearestSection || Key.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value))
 	{
 		Modify();

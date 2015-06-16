@@ -24,7 +24,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneBoolTrack::CreateInstance()
 
 bool UMovieSceneBoolTrack::AddKeyToSection( float Time, bool Value )
 {
-	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindSectionAtTime( Sections, Time );
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
 	if (!NearestSection || CastChecked<UMovieSceneBoolSection>(NearestSection)->NewKeyIsNewData(Time, Value))
 	{
 		Modify();
