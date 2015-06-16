@@ -23,6 +23,8 @@ FSlateMaterialShaderPS::FSlateMaterialShaderPS(const FMaterialShaderType::Compil
 {
 	ShaderParams.Bind(Initializer.ParameterMap, TEXT("ShaderParams"));
 	GammaValues.Bind(Initializer.ParameterMap, TEXT("GammaValues"));
+	AdditionalTextureParameter.Bind(Initializer.ParameterMap, TEXT("ElementTexture"));
+	TextureParameterSampler.Bind(Initializer.ParameterMap, TEXT("ElementTextureSampler"));
 }
 
 void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams )
@@ -60,6 +62,10 @@ void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FS
 
 }
 
+void FSlateMaterialShaderPS::SetAdditionalTexture( FRHICommandList& RHICmdList, const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState )
+{
+	SetTextureParameter(RHICmdList, GetPixelShader(), AdditionalTextureParameter, TextureParameterSampler, SamplerState, InTexture );
+}
 
 void FSlateMaterialShaderPS::SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma)
 {
@@ -73,6 +79,8 @@ bool FSlateMaterialShaderPS::Serialize(FArchive& Ar)
 	bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 	Ar << GammaValues;
 	Ar << ShaderParams;
+	Ar << TextureParameterSampler;
+	Ar << AdditionalTextureParameter;
 	return bShaderHasOutdatedParameters;
 }
 
@@ -85,3 +93,5 @@ IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,true);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,false);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border,true);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border,false);
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Font, true);
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Font, false);

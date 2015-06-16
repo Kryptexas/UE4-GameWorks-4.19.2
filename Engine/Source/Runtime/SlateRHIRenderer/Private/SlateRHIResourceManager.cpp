@@ -33,7 +33,7 @@ TSharedPtr<FSlateUTextureResource> FDynamicResourceMap::GetUTextureResource( UTe
 	return nullptr;
 }
 
-TSharedPtr<FSlateMaterialResource> FDynamicResourceMap::GetMaterialResource( UMaterialInterface* Material ) const
+TSharedPtr<FSlateMaterialResource> FDynamicResourceMap::GetMaterialResource( const UMaterialInterface* Material ) const
 {
 	return MaterialMap.FindRef( Material );
 }
@@ -56,7 +56,7 @@ void FDynamicResourceMap::AddUTextureResource( UTexture2D* TextureObject, TShare
 	}
 }
 
-void FDynamicResourceMap::AddMaterialResource( UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InMaterialResource )
+void FDynamicResourceMap::AddMaterialResource( const UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InMaterialResource )
 {
 	check( Material == InMaterialResource->GetMaterialObject() );
 	MaterialMap.Add(Material, InMaterialResource);
@@ -78,7 +78,7 @@ void FDynamicResourceMap::RemoveUTextureResource( UTexture2D* TextureObject )
 	}
 }
 
-void FDynamicResourceMap::RemoveMaterialResource( UMaterialInterface* Material )
+void FDynamicResourceMap::RemoveMaterialResource( const UMaterialInterface* Material )
 {
 	MaterialMap.Remove(Material);
 }
@@ -433,7 +433,8 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 	}
 	else if (InBrush.GetResourceObject() && InBrush.GetResourceObject()->IsA<UMaterialInterface>())
 	{
-		Texture = GetMaterialResource(InBrush);
+		FSlateMaterialResource* Resource = GetMaterialResource(InBrush.GetResourceObject(), InBrush.ImageSize, nullptr);
+		Texture = Resource->SlateProxy;
 	}
 	else if( InBrush.IsDynamicallyLoaded() || ( InBrush.HasUObject() ) )
 	{
@@ -447,6 +448,18 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 	}
 
 	return Texture;
+}
+
+FSlateShaderResource* FSlateRHIResourceManager::GetFontShaderResource( uint32 FontAtlasIndex, FSlateShaderResource* FontTextureAtlas, const class UObject* FontMaterial )
+{
+	if( FontMaterial == nullptr )
+	{
+		return FontTextureAtlas;
+	}
+	else
+	{
+		return GetMaterialResource( FontMaterial, FVector2D::ZeroVector, FontTextureAtlas );
+	}
 }
 
 ISlateAtlasProvider* FSlateRHIResourceManager::GetTextureAtlasProvider()
@@ -649,27 +662,25 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	return nullptr;
 }
 
-FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const FSlateBrush& InBrush)
+FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask )
 {
 	check(IsThreadSafeForSlateRendering());
 
-	const FName ResourceName = InBrush.GetResourceName();
-
-	UMaterialInterface* Material = CastChecked<UMaterialInterface>(InBrush.GetResourceObject());
+	const UMaterialInterface* Material = CastChecked<UMaterialInterface>(InMaterial);
 
 	TSharedPtr<FSlateMaterialResource> MaterialResource = DynamicResourceMap.GetMaterialResource(Material);
-	if (!MaterialResource.IsValid())
+	if (!MaterialResource.IsValid() || MaterialResource->GetTextureMaskResource() != TextureMask )
 	{
 		// Get a resource from the free list if possible
 		if(MaterialResourceFreeList.Num() > 0)
 		{
 			MaterialResource = MaterialResourceFreeList.Pop();
 		
-			MaterialResource->UpdateMaterial( *Material, InBrush.ImageSize );
+			MaterialResource->UpdateMaterial( *Material, ImageSize, TextureMask );
 		}
 		else
 		{
-			MaterialResource = MakeShareable(new FSlateMaterialResource(*Material, InBrush.ImageSize));
+			MaterialResource = MakeShareable(new FSlateMaterialResource(*Material, ImageSize, TextureMask));
 		}
 		
 		DynamicResourceMap.AddMaterialResource(Material, MaterialResource.ToSharedRef());
@@ -678,10 +689,10 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const F
 	{
 		// Keep the resource up to date
 		MaterialResource->UpdateRenderResource(Material->GetRenderProxy(false, false));
-		MaterialResource->SlateProxy->ActualSize = InBrush.ImageSize.IntPoint();
+		MaterialResource->SlateProxy->ActualSize = ImageSize.IntPoint();
 	}
 
-	return MaterialResource->SlateProxy;
+	return MaterialResource.Get();
 }
 
 void FSlateRHIResourceManager::OnAppExit()

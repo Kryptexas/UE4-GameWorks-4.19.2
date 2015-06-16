@@ -1243,13 +1243,17 @@ void FSlateFontCache::FlushObject( const UObject* const InObject )
 	}
 }
 
-void FSlateFontCache::ConditionalFlushCache()
+bool FSlateFontCache::ConditionalFlushCache()
 {
+	bool bFlushed = false;
 	if( bFlushRequested )
 	{
 		FlushCache();
+		bFlushed = true;
 		bFlushRequested = false;
 	}
+
+	return bFlushed;
 }
 
 void FSlateFontCache::UpdateCache()

@@ -265,7 +265,7 @@ public:
 	/** 
 	 * Flush the cache if needed
 	 */
-	void ConditionalFlushCache();
+	bool ConditionalFlushCache();
 
 	/**
 	 * Updates the texture used for rendering

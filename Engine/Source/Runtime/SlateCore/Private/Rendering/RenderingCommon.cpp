@@ -88,3 +88,23 @@ FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const 
 	Position[1] = FMath::RoundToInt(WindowPosition.Y);
 }
 
+
+FSlateVertex::FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoord, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect )
+	: ClipRect( InClipRect )
+	, Color( InColor )
+{
+
+	TexCoords[0] = InTexCoord.X;
+	TexCoords[1] = InTexCoord.Y;
+	TexCoords[2] = InTexCoord.Z;
+	TexCoords[3] = InTexCoord.W;
+
+	MaterialTexCoords[0] = InMaterialTexCoords.X;
+	MaterialTexCoords[1] = InMaterialTexCoords.Y;
+
+	const FVector2D WindowPosition = TransformPoint(RenderTransform, InLocalPosition);
+
+	// Pixel snapping here.
+	Position[0] = FMath::RoundToInt(WindowPosition.X);
+	Position[1] = FMath::RoundToInt(WindowPosition.Y);
+}

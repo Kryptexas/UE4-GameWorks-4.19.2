@@ -19,6 +19,7 @@ struct VertexOut
 VertexOut Main(
 	in float2 InPosition : POSITION,
 	in float4 InTextureCoordinates : TEXCOORD0,
+	in float2 MaterialTexCoords : TEXCOORD3,
 	in float2 InClipOrigin : TEXCOORD1,
 	in float4 InClipExtents : TEXCOORD2,
 	in float4 InColor : COLOR0

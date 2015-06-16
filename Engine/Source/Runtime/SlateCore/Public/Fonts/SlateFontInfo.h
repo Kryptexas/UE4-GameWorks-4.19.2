@@ -18,6 +18,10 @@ struct SLATECORE_API FSlateFontInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(AllowedClasses="Font", DisplayName="Font Family"))
 	const UObject* FontObject;
 
+	/** The material to use when rendering this font */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=SlateStyleRules, meta=(AllowedClasses="MaterialInterface"))
+	const UObject* FontMaterial;
+
 	/** The composite font data to use (valid when used with a Slate style set in C++) */
 	TSharedPtr<const FCompositeFont> CompositeFont;
 
@@ -109,6 +113,7 @@ public:
 	bool operator==( const FSlateFontInfo& Other ) const 
 	{
 		return FontObject == Other.FontObject
+			&& FontMaterial == Other.FontMaterial
 			&& CompositeFont == Other.CompositeFont 
 			&& TypefaceFontName == Other.TypefaceFontName
 			&& Size == Other.Size;
@@ -149,6 +154,7 @@ public:
 	{
 		uint32 Hash = 0;
 		Hash = HashCombine(Hash, GetTypeHash(FontInfo.FontObject));
+		Hash = HashCombine(Hash, GetTypeHash(FontInfo.FontMaterial));
 		Hash = HashCombine(Hash, GetTypeHash(FontInfo.CompositeFont));
 		Hash = HashCombine(Hash, GetTypeHash(FontInfo.TypefaceFontName));
 		Hash = HashCombine(Hash, GetTypeHash(FontInfo.Size));

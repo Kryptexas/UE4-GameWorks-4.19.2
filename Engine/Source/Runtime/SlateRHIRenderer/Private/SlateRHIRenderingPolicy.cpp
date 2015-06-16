@@ -407,6 +407,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 		if( !RenderBatch.CustomDrawer.IsValid() )
 		{
+			check(RenderBatch.NumIndices > 0);
+
 			if( !ShaderResource || ShaderResource->GetType() != ESlateShaderResource::Material ) 
 			{
 				FSlateElementPS* PixelShader = GetTexturePixelShader(ShaderType, DrawEffects);
@@ -490,9 +492,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams);
 				PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
 
-
-				check(RenderBatch.NumIndices > 0);
-
 				uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3;
 
 				// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
@@ -515,7 +514,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					SceneView = &CreateSceneView(SceneViewContext, BackBuffer, ViewProjectionMatrix);
 				}
 
-				FMaterialRenderProxy* MaterialRenderProxy = ((FSlateMaterialResource*)ShaderResource)->GetRenderProxy();
+				FSlateMaterialResource* MaterialShaderResource = (FSlateMaterialResource*)ShaderResource;
+				FMaterialRenderProxy* MaterialRenderProxy = MaterialShaderResource->GetRenderProxy();
 
 				const FMaterial* Material = MaterialRenderProxy->GetMaterial(SceneView->GetFeatureLevel());
 
@@ -533,10 +533,21 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
 					PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
+					
+					FSlateShaderResource* MaskResource = MaterialShaderResource->GetTextureMaskResource();
+					if( MaskResource )
+					{
+						RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_InverseDestAlpha, BF_One>::GetRHI());
+
+						FTexture2DRHIRef TextureRHI;
+						TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)MaskResource)->GetTypedResource();
+
+			
+						PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
+					}
 
 					VertexShader->SetViewProjection( RHICmdList, ViewProjectionMatrix );
 
-					check(RenderBatch.NumIndices > 0);
 
 					uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3;
 
@@ -670,21 +681,31 @@ FSlateMaterialShaderPS* FSlateRHIRenderingPolicy::GetMaterialPixelShader( const 
 	case ESlateShader::Default:
 		if (bDrawDisabled)
 		{
-			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<0, true>::StaticType);
+			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<ESlateShader::Default, true>::StaticType);
 		}
 		else
 		{
-			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<0, false>::StaticType);
+			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<ESlateShader::Default, false>::StaticType);
 		}
 		break;
 	case ESlateShader::Border:
 		if (bDrawDisabled)
 		{
-			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<1, true>::StaticType);
+			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<ESlateShader::Border, true>::StaticType);
 		}
 		else
 		{
-			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<1, false>::StaticType);
+			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<ESlateShader::Border, false>::StaticType);
+		}
+		break;
+	case ESlateShader::Font:
+		if(bDrawDisabled)
+		{
+			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<ESlateShader::Font, true>::StaticType);
+		}
+		else
+		{
+			FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderPS<ESlateShader::Font, false>::StaticType);
 		}
 		break;
 	default:

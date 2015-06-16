@@ -17,7 +17,7 @@ public:
 
 	TSharedPtr<FSlateUTextureResource> GetUTextureResource( UTexture2D* TextureObject ) const;
 
-	TSharedPtr<FSlateMaterialResource> GetMaterialResource( UMaterialInterface* Material ) const;
+	TSharedPtr<FSlateMaterialResource> GetMaterialResource( const UMaterialInterface* Material ) const;
 
 	void AddUTextureResource( UTexture2D* TextureObject, TSharedRef<FSlateUTextureResource> InResource );
 	void RemoveUTextureResource( UTexture2D* TextureObject );
@@ -25,8 +25,8 @@ public:
 	void AddDynamicTextureResource( FName ResourceName, TSharedRef<FSlateDynamicTextureResource> InResource);
 	void RemoveDynamicTextureResource( FName ResourceName );
 
-	void AddMaterialResource( UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InResource );
-	void RemoveMaterialResource( UMaterialInterface* Material );
+	void AddMaterialResource( const UMaterialInterface* Material, TSharedRef<FSlateMaterialResource> InResource );
+	void RemoveMaterialResource( const UMaterialInterface* Material );
 
 	void Empty();
 
@@ -98,6 +98,7 @@ public:
 
 	/** FSlateShaderResourceManager interface */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
+	virtual FSlateShaderResource* GetFontShaderResource( uint32 FontAtlasIndex, FSlateShaderResource* FontTextureAtlas, const class UObject* FontMaterial ) override;
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 
 	/**
@@ -184,9 +185,9 @@ private:
 	/**
 	 * Returns a rendering resource for a material
 	 *
-	 * @param InBrush	Slate brush for the material
+	 * @param InMaterial	The material object
 	 */
-	FSlateShaderResourceProxy* GetMaterialResource( const FSlateBrush& InBrush );
+	FSlateMaterialResource* GetMaterialResource( const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask );
 
 	/**
 	 * Called when the application exists before the UObject system shuts down so we can free object resources

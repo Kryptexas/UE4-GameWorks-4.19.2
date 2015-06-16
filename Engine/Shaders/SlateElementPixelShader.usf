@@ -33,12 +33,12 @@ float2 GammaValues;
 /** Per element params */
 float4 ShaderParams;
 
-#if !USE_MATERIALS
+//#if !USE_MATERIALS
 /** Texture for the element */
 Texture2D ElementTexture;
 SamplerState ElementTextureSampler;
 
-#endif
+//#endif
 
 
 float3 GammaCorrect(float3 InColor)
@@ -63,23 +63,33 @@ struct VertexOut
 	float4 TextureCoordinates : TEXCOORD0;
 	float4 ClipOriginAndPos : TEXCOORD1;
 	float4 ClipExtents : TEXCOORD2;
+	float2 MaterialTexCoords : TEXCOORD3;
 };
 	
 #if USE_MATERIALS
-float4 GetMaterialColor( VertexOut InVertex, float2 UV )
+float4 GetMaterialColor( VertexOut InVertex, float2 CustomUV )
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
 	CalcMaterialParameters(Parameters, InVertex.Position, true, InVertex.Position);
 
-#if NUM_MATERIAL_TEXCOORDS == 1
-	Parameters.TexCoords[0] = UV;
-#elif NUM_MATERIAL_TEXCOORDS == 2
-	Parameters.TexCoords[0] = UV;
-	Parameters.TexCoords[1] = InVertex.TextureCoordinates.xy;
-#elif NUM_MATERIAL_TEXCOORDS == 3
-	Parameters.TexCoords[0] = UV;
-	Parameters.TexCoords[1] = InVertex.TextureCoordinates.xy;
-	Parameters.TexCoords[2] = InVertex.TextureCoordinates.zw;
+#if SHADER_TYPE == ST_Font
+	#if NUM_MATERIAL_TEXCOORDS == 1
+		Parameters.TexCoords[0] = InVertex.TextureCoordinates.zw;
+	#elif NUM_MATERIAL_TEXCOORDS == 2
+		Parameters.TexCoords[0] = InVertex.TextureCoordinates.zw;
+		Parameters.TexCoords[1] = InVertex.MaterialTexCoords;
+	#endif
+#else
+	#if NUM_MATERIAL_TEXCOORDS == 1
+		Parameters.TexCoords[0] = CustomUV;
+	#elif NUM_MATERIAL_TEXCOORDS == 2
+		Parameters.TexCoords[0] = CustomUV;
+		Parameters.TexCoords[1] = InVertex.TextureCoordinates.xy;
+	#elif NUM_MATERIAL_TEXCOORDS == 3
+		Parameters.TexCoords[0] = CustomUV;
+		Parameters.TexCoords[1] = InVertex.TextureCoordinates.xy;
+		Parameters.TexCoords[2] = InVertex.TextureCoordinates.zw;
+	#endif
 #endif
 
 	Parameters.VertexColor = InVertex.Color;
@@ -133,8 +143,15 @@ float4 GetColor( VertexOut InVertex, float2 UV )
 #if SHADER_TYPE == ST_Font
 float4 GetFontElementColor( VertexOut InVertex )
 {
-	float4 OutColor = InVertex.Color;
+#if USE_MATERIALS
+	float4 BaseColor = GetMaterialColor( InVertex, float2(0,0) )*InVertex.Color;
+#else
+	float4 BaseColor = InVertex.Color;
+#endif
+	float4 OutColor = BaseColor;
+
 	OutColor.a *= Texture2DSample_A8(ElementTexture, ElementTextureSampler, InVertex.TextureCoordinates.xy);
+
 	return OutColor;
 }
 #endif

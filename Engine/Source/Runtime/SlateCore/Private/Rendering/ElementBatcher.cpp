@@ -564,7 +564,8 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 	float MaxHeight = CharacterList.GetMaxHeight();
 
 	uint32 FontTextureIndex = 0;
-	FSlateShaderResource* FontTexture = nullptr;
+	FSlateShaderResource* FontAtlasTexture = nullptr;
+	FSlateShaderResource* FontShaderResource = nullptr;
 
 	FSlateElementBatch* ElementBatch = nullptr;
 	TArray<FSlateVertex>* BatchVertices = nullptr;
@@ -589,9 +590,14 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 
 	LineX = PosX;
 	
+	const bool bIsFontMaterial = InPayload.FontInfo.FontMaterial != nullptr;
+
 	FColor FinalColor = GetElementColor( InPayload.Tint, nullptr );
 
-	for( int32 CharIndex = 0; CharIndex < Text.Len(); ++CharIndex )
+	uint32 NumChars = Text.Len();
+
+	uint32 NumLines = 1;
+	for( uint32 CharIndex = 0; CharIndex < NumChars; ++CharIndex )
 	{
 		const TCHAR CurrentChar = Text[ CharIndex ];
 
@@ -603,18 +609,23 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 			PosY += MaxHeight;
 			// Carriage return 
 			LineX = PosX;
+
+			++NumLines;
+
 		}
 		else
 		{
 			const FCharacterEntry& Entry = CharacterList[ CurrentChar ];
 
-			if( FontTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
+			if( FontAtlasTexture == nullptr || Entry.TextureIndex != FontTextureIndex )
 			{
 				// Font has a new texture for this glyph. Refresh the batch we use and the index we are currently using
 				FontTextureIndex = Entry.TextureIndex;
 
-				FontTexture = FontCache.GetSlateTextureResource( FontTextureIndex );
-				ElementBatch = &FindBatchForElement( Layer, FShaderParams(), FontTexture, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
+				FontAtlasTexture = FontCache.GetSlateTextureResource( FontTextureIndex );
+				FontShaderResource = ResourceManager.GetFontShaderResource( FontTextureIndex, FontAtlasTexture, InPayload.FontInfo.FontMaterial );
+
+				ElementBatch = &FindBatchForElement( Layer, FShaderParams(), FontShaderResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Font, InDrawEffects, ESlateBatchDrawFlag::None, DrawElement.GetScissorRect() );
 
 				BatchVertices = &BatchData->GetBatchVertexList(*ElementBatch);
 				BatchIndices = &BatchData->GetBatchIndexList(*ElementBatch);
@@ -622,8 +633,8 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 				VertexOffset = BatchVertices->Num();
 				IndexOffset = BatchIndices->Num();
 				
-				InvTextureSizeX = 1.0f/FontTexture->GetWidth();
-				InvTextureSizeY = 1.0f/FontTexture->GetHeight();
+				InvTextureSizeX = 1.0f/FontAtlasTexture->GetWidth();
+				InvTextureSizeY = 1.0f/FontAtlasTexture->GetHeight();
 			}
 
 			const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
@@ -673,11 +684,25 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 					// The start index of these vertices in the index buffer
 					uint32 IndexStart = VertexOffset;
 
+					float Ut = 0.0f, Vt = 0.0f, UtMax = 0.0f, VtMax = 0.0f;
+					if( bIsFontMaterial )
+					{
+						float DistAlpha = (float)CharIndex/NumChars;
+						float DistAlphaNext = (float)(CharIndex+1)/NumChars;
+
+						// This creates a set of UV's that goes from 0-1, from left to right of the string in U and 0-1 baseline to baseline top to bottom in V
+						Ut = FMath::Lerp(0.0f, 1.0f, DistAlpha);
+						Vt = FMath::Lerp(0.0f, 1.0f, UpperLeft.Y/(MaxHeight*NumLines));
+
+						UtMax = FMath::Lerp(0.0f, 1.0f, DistAlphaNext);
+						VtMax = FMath::Lerp(0.0f, 1.0f, LowerLeft.Y/(MaxHeight*NumLines));
+					}
+
 					// Add four vertices to the list of verts to be added to the vertex buffer
-					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, UpperLeft,								FVector2D(U,V),				FinalColor, RenderClipRect );
-					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, FVector2D(LowerRight.X,UpperLeft.Y),	FVector2D(U+SizeU, V),		FinalColor, RenderClipRect );
-					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, FVector2D(UpperLeft.X,LowerRight.Y),	FVector2D(U, V+SizeV),		FinalColor, RenderClipRect );
-					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, LowerRight,								FVector2D(U+SizeU, V+SizeV),FinalColor, RenderClipRect );
+					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, UpperLeft,								FVector4(U,V,				Ut,Vt),			FVector2D(0.0f,0.0f), FinalColor, RenderClipRect );
+					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, FVector2D(LowerRight.X,UpperLeft.Y),	FVector4(U+SizeU, V,		UtMax,Vt),		FVector2D(1.0f,0.0f), FinalColor, RenderClipRect );
+					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, FVector2D(UpperLeft.X,LowerRight.Y),	FVector4(U, V+SizeV,		Ut,VtMax),		FVector2D(0.0f,1.0f), FinalColor, RenderClipRect );
+					BatchVerticesRef[ VertexOffset++ ] = FSlateVertex( RenderTransform, LowerRight,								FVector4(U+SizeU, V+SizeV,	UtMax,VtMax),	FVector2D(1.0f,1.0f), FinalColor, RenderClipRect );
 
 					BatchIndicesRef[IndexOffset++] = IndexStart + 0;
 					BatchIndicesRef[IndexOffset++] = IndexStart + 1;
