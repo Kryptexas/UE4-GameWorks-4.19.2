@@ -500,12 +500,10 @@ bool FCollection::CheckoutCollection(FText& OutError)
 		return false;
 	}
 
-	FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SourceFilename);
+	const FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SourceFilename);
 	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(AbsoluteFilename, EStateCacheUsage::ForceUpdate);
 
 	bool bSuccessfullyCheckedOut = false;
-	TArray<FString> FilesToBeCheckedOut;
-	FilesToBeCheckedOut.Add(AbsoluteFilename);
 
 	if (SourceControlState.IsValid() && SourceControlState->IsDeleted())
 	{
@@ -522,7 +520,7 @@ bool FCollection::CheckoutCollection(FText& OutError)
 	// If not at the head revision, sync up
 	if (SourceControlState.IsValid() && !SourceControlState->IsCurrent())
 	{
-		if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) == ECommandResult::Failed )
+		if ( SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), AbsoluteFilename) == ECommandResult::Failed )
 		{
 			// Could not sync up with the head revision
 			OutError = LOCTEXT("Error_SCCSync", "Failed to sync collection to the head revision.");
@@ -558,7 +556,12 @@ bool FCollection::CheckoutCollection(FText& OutError)
 
 	if(SourceControlState.IsValid())
 	{
-		if(SourceControlState->IsAdded() || SourceControlState->IsCheckedOut())
+		if(!SourceControlState->IsSourceControlled())
+		{
+			// Not yet in the depot. We'll add it when we call CheckinCollection
+			bSuccessfullyCheckedOut = true;
+		}
+		else if(SourceControlState->IsAdded() || SourceControlState->IsCheckedOut())
 		{
 			// Already checked out or opened for add
 			bSuccessfullyCheckedOut = true;
@@ -566,19 +569,10 @@ bool FCollection::CheckoutCollection(FText& OutError)
 		else if(SourceControlState->CanCheckout())
 		{
 			// In depot and needs to be checked out
-			bSuccessfullyCheckedOut = (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut) == ECommandResult::Succeeded);
+			bSuccessfullyCheckedOut = (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), AbsoluteFilename) == ECommandResult::Succeeded);
 			if (!bSuccessfullyCheckedOut)
 			{
 				OutError = LOCTEXT("Error_SCCCheckout", "Failed to check out collection.");
-			}
-		}
-		else if(!SourceControlState->IsSourceControlled())
-		{
-			// Not yet in the depot. Add it.
-			bSuccessfullyCheckedOut = (SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut) == ECommandResult::Succeeded);
-			if (!bSuccessfullyCheckedOut)
-			{
-				OutError = LOCTEXT("Error_SCCAdd", "Failed to add new collection to source control.");
 			}
 		}
 		else if(!SourceControlState->IsCurrent())
@@ -623,8 +617,20 @@ bool FCollection::CheckinCollection(FText& OutError)
 		return false;
 	}
 
-	FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SourceFilename);
+	const FString AbsoluteFilename = FPaths::ConvertRelativePathToFull(SourceFilename);
 	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(AbsoluteFilename, EStateCacheUsage::ForceUpdate);
+
+	if (SourceControlState.IsValid() && !SourceControlState->IsSourceControlled())
+	{
+		// Not yet in the depot. Add it.
+		const bool bWasAdded = (SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), AbsoluteFilename) == ECommandResult::Succeeded);
+		if (!bWasAdded)
+		{
+			OutError = LOCTEXT("Error_SCCAdd", "Failed to add new collection to source control.");
+			return false;
+		}
+		SourceControlState = SourceControlProvider.GetState(AbsoluteFilename, EStateCacheUsage::ForceUpdate);
+	}
 
 	if ( SourceControlState.IsValid() && !(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded()) )
 	{
