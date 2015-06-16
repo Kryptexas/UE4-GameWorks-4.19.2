@@ -1,7 +1,7 @@
 Availability: Public
-Title:1. Importing Content into UE4 Projects
+Title:1. Setting up your Project.
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:An overview of the important external content file types usable in Unreal Engine 4.
+Description:Learn how to set up your project in Unreal Engine 4.
 
 
 [VAR:Steps]
@@ -21,20 +21,34 @@ Description:An overview of the important external content file types usable in U
 
 %Steps%
 
-Before we get started with importing content, we must first familiarize ourselves with the Unreal Engine 4 (UE4) **Project**. 
+This is what you'll see when you launch UE4 (pictured below).
 
-A **Project** is a self-contained unit that holds all the content and code that make up an individual game and coincides with a set of directories on your disk. For example, in the image below the Hierarchy Tree of the [](Engine/Content/Browser) contains the same directory structure found inside your Project folder on your disk. 
+![](UnrealProjectBrowser.png)
 
-![](ProjectHierarchy.png)
+Setting up your project is easy!
 
-[REGION:note]
-If you are unfamiliar with how to create a new game project, refer to the [](Engine/Basics/Projects/Browser) documentation for more information. 
-[/REGION]
+>1. Click the **New Project** tab from the Unreal Project Browser. 
+>2. Click the **Blueprint** tab and select **Blank**.
+>3. Select a location for your project to be stored: ![](ProjectLocation.png).
+>4. Name your project: ![](ProjectName.png).
+>5. Click on the **Create Project** button: ![](CreateProjectButton.png).
 
-While we can import assets manually, UE4 does auto-import any assets that are added to the directory structure on your disk. If UE4 is running while you add an asset to your project's directory, it will import it immediately (otherwise it will import it when UE4 is next run). Ultimately, all of your files will automatically appear in the **Content Browser** inside UE4 in a location determined by your Project's directory structure. 
+From now on, UE4 will save all of your content as a **Project** on the disk. As you complete this tutorial, UE4 will organize all of your meshes and textures for you.
+
+![](ContentBrowserWSC.png)
+
+The **Content Browser** (pictured above) is a great way to navigate through your project's directory structure.
+
+You can also find content by navigating through the **Project** folder located on the hard drive (pictured below).
+
+![](ProjectHierarchy.jpg)
+
+By now, you should be comfortable creating projects and browsing through content in UE4.
+
+&#x2713; [_Click here if you want a refresher on the Project Browser._](Engine/Basics/Projects/Browser "%Engine/Basics/Projects/Browser:description%")
 
 [REGION:tip]
-Tip: Save any content created outside of UE4 to your UE4 Project's directory so that it is automatically imported.
+*UE4 automatically imports content added to a Project's directory.*
 [/REGION]
 
 <!--

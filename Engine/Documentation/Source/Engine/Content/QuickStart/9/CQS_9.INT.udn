@@ -1,0 +1,53 @@
+Availability: Public
+Title:5. On your own!
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:Now that you've learned how to set-up a project, create materials, and apply materials to a Static Mesh Actor; try to do some exercises on your own.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/8 "%Engine/Content/QuickStart/8:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Using what you know, create a new **Material** similar to this graph:
+
+![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+
+The Main Material node settings simulate a plastic material.
+
+Add __Basic_Asset1__ to the level, apply the Material to it, and update the Material to apply a "Brick" Normal Map Texture. 
+
+![](NormalMapAdded.jpg)
+
+For more information on topics covered in this Quick Start Guide, refer to the [__Unreal Editor Manual__](Engine "%Engine:description%").
+
+For information on importing different types of content, refer to: 
+
+* Information on the FBX pipeline (in general): [__%Engine/Content/FBX:title%__](Engine/Content/FBX "%Engine/Content/FBX:description%").
+* Information on the FBX Skeletal Mesh pipeline: [__%Engine/Content/FBX/SkeletalMeshes:title%__](Engine/Content/FBX/SkeletalMeshes "%Engine/Content/FBX/SkeletalMeshes:description%").
+* Information on the FBX Animation pipeline: [__%Engine/Content/FBX/Animations:title%__](Engine/Content/FBX/Animations "%Engine/Content/FBX/Animations:description%").
+* Information on the FBX Morph Target pipeline: [__%Engine/Content/FBX/MorphTargets:title%__](Engine/Content/FBX/MorphTargets "%Engine/Content/FBX/MorphTargets:description%").
+* Information on the FBX Material pipeline: [__%Engine/Content/FBX/Materials:title%__](Engine/Content/FBX/Materials "%Engine/Content/FBX/Materials:description%").
+* Information on Importing Audio: [__%Engine/Audio/WAV:title%__](Engine/Audio/WAV "%Engine/Audio/WAV:description%").
+
+For specifics covered in this Quick Start Guide, refer to:
+
+* Information on Supported Image Types: [__%Engine/Content/Types/Textures/Importing:title%__](Engine/Content/Types/Textures/Importing "%Engine/Content/Types/Textures/Importing%").
+* Information on Materials: [__%Engine/Rendering/Materials:title%__](Engine/Rendering/Materials "%Engine/Rendering/Materials%").
+* Information on the Content Browser: [__%Engine\Content\Browser:title%__](Engine\Content\Browser "%Engine\Content\Browser%").
+* Information on the Static Mesh Editor: [__%Engine/Content/Types/StaticMeshes/Editor:title%__](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor%").
+
+%Steps%
+
+

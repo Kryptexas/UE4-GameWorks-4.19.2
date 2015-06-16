@@ -1,7 +1,7 @@
 Availability: Public
-Title:2. Importing Meshes via .FBX
+Title:How to Add Content to UE4 Projects.
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Here we will go through the process of exporting/importing meshes into Unreal Engine 4. 
+Description:Learn how to import content using multiple methods.
 
 
 [VAR:Steps]
@@ -22,13 +22,110 @@ Description:Here we will go through the process of exporting/importing meshes in
 
 %Steps%
 
+At this point, you should have created a new UE4 **Project** (pictured below).
+
+![](NewUE4Project.png)
+
+There are a few ways to add content to your UE4 project:
+
+>1. [Using the Content Browser's **Import** function.](#Bookmark1)
+>2. [**Dragging** files from your hard drive into the Content Browser.](#Bookmark2)
+>3. [**Saving** files into the Project directory from external programs (e.g. Photoshop).](#Bookmark3)
+
+## 1. Importing with the Content Browser
+
+(#Bookmark1)
+
+The **Content Browser** is located in the lower-left corner of the Editor interface (pictured below).
+
+![](ContentBrowser.jpg)
+
+**Clicking** on the **Content Browser's** ![](ImportButton.jpg) button opens a file dialog, enabling you to add assets to your project.
+
+## 2. Importing using Click and Drag
+
+(#Bookmark2)
+
+**Dragging** files from your hard drive into the **Content Browser** (pictured below) is another way of adding content to your project.
+
+![](CnD_importAll.jpg)
+
+### When Importing Meshes
+
+![](FBXImportOptions.png)
+
+UE4 prompts you to define import options for FBX/OBJ files (pictured above).
+
+### When Importing Textures
+
+UE4 batch imports [__supported__](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") image files for you.
+
+If you see the following pop-up message:
+
+![](TextureImportMessage.png)
+
+UE4 just prevented you from importing an unsupported image file.
+
+Also, if you see the following pop-up message:
+
+![](nonpoweoftwowarning.png)
+
+UE4 is telling you that odd-sized images aren't streamed or mipmapped.
+
+## 3. Importing from an External Program
+
+(#Bookmark3)
+
+Although we're using Photoshop in this example, you can follow along with any image editor of your choice.
+
+### While Running Photoshop
+
+Click **File** and **Save As**.
+
+![](photoshop_export1.jpg)
+
+### Inside the ‘Save As' Dialog Box
+
+Locating your UE4 Project Directory and Content folder, enter a filename (using a supported format), then click Save.
+
+![](photoshop_export2.jpg)
+
+### Browsing to your Content Folder
+
+You'll see that your file has been added.
+
+![](photoshop_export6.jpg)
+
+If the Editor is open, the Processing outstanding content changes message will appear (pictured below).
+
+![](photoshop_export4.jpg)
+
+### Reviewing your Content Browser
+
+Confirm that UE4 created a corresponding *.uasset file.
+
+![](photoshop_export5.jpg)
+
+At this point, you've learned how to add content using three methods.
+
+* [Importing with the **Content Browser**.](#Bookmark1)
+* [Importing using **Click and Drag**.](#Bookmark2)
+* [Importing from an **External Program**.](#Bookmark3)
+
+&#x2713; [_Click here if you don't have your own meshes to import._](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+[REGION:tip]
+*Naming conventions matter! Be consistent when naming files.*
+[/REGION]
+
+<!--
 If you have assets to import, you can jump to the [Mesh Preparation](#meshpreparation) section below. 
 
 If you do not have any assets or access to a modeling package, you can download some sample assets below:
 
 * [Sample Assets](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
 
-Extract these to a location on your computer then drag the **Basic_Asset1** and **Basic Asset2** into the **Content** folder of your UE4 Project. 
+Extract these to a location on your computer then drag the **Basic_Asset1** and **Basic_Asset2** into the **Content** folder of your UE4 Project. 
 
  ![](ExplorerImport.png)(w:640)
 
@@ -77,6 +174,7 @@ Extract these to a location on your computer then drag the **Basic_Asset1** and 
 For more information on the FBX pipeline, see the [](Engine/Content/FBX) documentation.
 [/REGION]
 
+-->
 
 
 <!--

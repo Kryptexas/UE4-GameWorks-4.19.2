@@ -1,7 +1,7 @@
 Availability: Public
-Title:3. Importing Images and Creating Materials
+Title:Preparing Meshes for Import.
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:This page provides an overview of the different types of images supported and how to import as well as how to Create Materials in Unreal Engine 4. 
+Description:Learn how to prepare your meshes for import in Maya and/or 3DS Max.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -21,6 +21,53 @@ Description:This page provides an overview of the different types of images supp
 
 %Steps%
 
+[REGION:note]
+**If you have your own meshes to import, this section is for you.**
+[/REGION]
+
+## Mesh Preparation
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+Well done! You've learned how to prepare meshes for import into UE4.
+
+&#x2713; [_Click here if you want to learn more about the FBX content pipeline._](Engine/Content/FBX "FBX Content Pipeline Documentation").
+
+[REGION:tip]
+*Clean modeling improves a game's performance.*
+[/REGION]
+
+<!--
 
 Image files imported into Unreal Engine 4 (UE4) are primarily used in [Materials](Engine/Rendering/Materials), but can also be used in the Landscape Editor and various paint tools as height maps or paint brush masks. In some cases, they can be applied directly to the HUD. Some formats have very specific uses, for example, the file types of .hdr and some formats of .dds are used for **Cubemaps** while .raw files can be imported as a height map into the Landscape Editor.
 
@@ -228,7 +275,7 @@ Using the two textures you imported earlier or any other textures you happened t
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
 In the next step, we will apply the Material created on this page to a Static Mesh. 
-	
+-->	
 <!--
 
 [REGION:note]

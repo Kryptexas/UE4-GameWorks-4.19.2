@@ -1,7 +1,7 @@
 Availability: Public
 Title:Artist Quick Start
 Crumbs:%ROOT%, GettingStarted
-Description:Get started with Unreal Engine 4 as a Content Creator.
+Description:Learn how to get started with Unreal Engine 4 as a content creator.
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -41,9 +41,15 @@ Description:Get started with Unreal Engine 4 as a Content Creator.
 ![](MaterialsHeader_1.png)
 
 
-Over the course of this quick start guide, you will import meshes and textures, make a material and apply it to a **Static Mesh Actor**. This will be a focused tutorial, walking you through the basics. At many points however, links to more documentation will be available to answer any deeper questions you may have.
+Creating visual scenes with Unreal Engine 4 (UE4) can be rewarding (and fun!).
 
+##GOALS
+By the end of this quick start guide, you'll be able to:
+* **Setup a Project.**
+* **Create Materials.**
+* **Apply Materials to a Static Mesh Actor.**
 
+&#x2713; [_Click here if you want to learn more about UE4's Project Browser._](Engine/Basics/Projects/Browser "Project Browser Documentation")
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
@@ -55,14 +61,19 @@ Over the course of this quick start guide, you will import meshes and textures, 
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
-	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
-	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
-	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
-	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
-	* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	* [1. SETTING UP YOUR PROJECT](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+		* [How to add content to UE4 projects.](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+		* [Preparing meshes for import.](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+		* [Importing meshes.](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+		* [Importing textures.](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	* [2. CREATING MATERIALS](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	* [3. EDITING MATERIALS](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [4. APPLYING MATERIALS TO STATIC MESH ACTORS](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [5. ON YOUR OWN!](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/6:description%")
 	[/PARAM]
 [/OBJECT]
 
-
+[REGION:quote]
+Save often, save early!
+[/REGION]
 

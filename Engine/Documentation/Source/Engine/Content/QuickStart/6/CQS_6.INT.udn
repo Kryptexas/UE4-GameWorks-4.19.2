@@ -1,7 +1,7 @@
 Availability: Public
-Title:6. On Your Own!
+Title:2. Creating Materials.
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Create and apply your own Material as well as links to additional topics covered in the Artist Quick Start Guide.
+Description:Now that you've set-up your project, learn how to create materials.
 
 
 
@@ -16,11 +16,72 @@ Description:Create and apply your own Material as well as links to additional to
 		[Quick Start Home](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
+		[Next Step](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
+
+Materials are assets applied to meshes, contributing to a scene's visual aesthetic.
+
+&#x2713; [_Click here if you want to learn more about the Material Editor._](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%")
+
+Materials are created with two common methods:
+
+* Relying on **existing textures** to create materials.
+* Using the **Material Editor**.
+
+##Creating Materials with Textures
+
+1.	Navigate to your **Content Browser** where your sample assets are located. **Right-click** on **T_Rock_04_D** and choose **Create Material** from the **Texture Actions** menu (pictured below).
+
+	![](createMaterial.jpg)
+	
+1.	Enter a name for your newly created **Material**.
+
+	![](materialNaming.jpg)
+
+1.	Your **Material** is now ready to be used.
+
+	![](MaterialCreated.jpg)
+
+1.	**Double-clicking** the Material will open the [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") (pictured below).
+
+	![](MaterialEditor.jpg)
+
+	Our example uses a single Texture Sample node pointing to our **T_Rock_04_D** texture. Read our [__Material - How To__](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with Material Nodes.
+
+##Creating New Material with the Material Editor
+
+1.	Navigate to your **Content Browser**, click **Add New**, and select **Material** (pictured below).
+
+	![](newMaterial.jpg)
+
+	_Alternatively, you can **Right-click** in an empty space within the **Content Browser.**_
+	
+1.	Enter a name for your newly created **Material**.
+
+	![](materialNaming.jpg)
+
+	_If you'd like to rename your material, Right-click on the asset and select Rename._
+
+1.	**Double-clicking** the Material will open the Material Editor [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") (pictured below).
+
+	![](materialEditorInterface.jpg)
+
+	_At this point, the Material Editor only contains the **Main Material Node.**_
+
+You've just created new materials for your project using two methods:
+
+* Using **existing textures** to create new materials.
+* Working in the **Material Editor** to create new materials.
+
+[REGION:tip]
+*Size your textures using powers of two.*
+[/REGION]
+
+<!--
 
 Now using what you know, create a new **Material** similar to this graph:
 
@@ -61,6 +122,6 @@ As for specifics covered in this quick start:
 
 * For more information on the Static Mesh Editor, see: [Static Mesh Editor](Engine/Content/Types/StaticMeshes/Editor)
 
-
+-->
 
 %Steps%

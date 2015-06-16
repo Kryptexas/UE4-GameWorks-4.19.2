@@ -1,7 +1,7 @@
 Availability: Public
-Title:4. Applying Materials
+Title:Importing Meshes.
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:Now that we have imported a texture, we will create a Material and apply it to a Static Mesh. 
+Description:Learn how to import meshes into your Unreal Engine 4 project.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,6 +20,37 @@ Description:Now that we have imported a texture, we will create a Material and a
 [/VAR]
 
 %Steps%
+
+[REGION:note]
+**If you don't have meshes to import, we've got you covered.**
+[/REGION]
+
+1. Download sample assets from the following link:
+	* [__Sample Assets__](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+1. Extract the downloaded assets to a location on your computer.
+
+1. Drag **Basic_Asset1** and **Basic_Asset2** into the **Content** folder of your project's directory (pictured below).
+
+	![](ExplorerImport.jpg)
+
+1. Entering the Editor, the **FBX Import Options** dialog box appears. Clicking **Import** or **Import All** will add your mesh to the Project.
+
+	![](FBX_ImportOptions.jpg)
+
+1. Now that you've imported your asset, drag-and-drop the mesh from the **Content Browser** into your level.
+
+	![](ImportMesh.jpg)
+
+Now that you've added meshes to your level, you're ready to add another important asset: Images!
+
+&#x2713; [_Click here if you want to refresh yourself on adding content to a UE4 project._](Engine/Content/QuickStart/4 "How to add content to UE4 projects.")
+
+[REGION:tip]
+*The Marketplace (accessible from the 'Epic Launcher') is a great place to find and share content.*
+[/REGION]
+
+<!--
 
 On this page, we will take the **Material** created in the previous step and apply it to the Static Mesh we imported. 
 
@@ -86,6 +117,8 @@ Let us change the Material for our Static Mesh Actor.
 1.	You can also drag-and-drop a Material onto a Static Mesh Actor in the level to apply a new Material. 
 
 	![](draganddropMaterial.png)
+
+-->
 		
 <!--
 
@@ -210,9 +243,8 @@ Using the two textures you imported earlier or any other textures you happened t
 
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
--->
-
 In the next step, we will learn about the different methods of manually importing assets. 
+-->
 
 %Steps%
 

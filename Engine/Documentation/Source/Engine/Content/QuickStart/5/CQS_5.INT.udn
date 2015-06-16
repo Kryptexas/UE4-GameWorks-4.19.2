@@ -1,7 +1,7 @@
 Availability: Public
-Title:5. Manually Importing Content
+Title:Importing Textures.
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:In this section we take a look at the options for manually importing content into Unreal Engine 4. 
+Description:Learn how to import textures into your Unreal Engine 4 project.
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -20,6 +20,43 @@ Description:In this section we take a look at the options for manually importing
 [/VAR]
 
 %Steps%
+
+[REGION:note]
+**If you don't have images to import, we've got you covered.**
+[/REGION]
+
+1. Download sample assets from the following link:
+* [__Sample Assets__](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+1. Extract the downloaded assets to a location on your computer.
+
+1. Drag **T_Rock_04_D** and **T_Rock_04_n** into the **Content** folder of your project's directory (pictured below).
+
+	![](ExplorerImport2.jpg)
+
+1. If the Editor is open, the **Processing outstanding content changes** message will appear (pictured below).
+
+	![](photoshop_export4.jpg)
+
+1. Confirm that UE4 created a corresponding __*.uasset file__.
+
+	![](photoshop_export5.jpg)
+
+Congratulations! You're done setting up your UE4 Project.
+
+You've learned how to: 
+
+* **Setup your project.**
+* **Add meshes to your project.**
+* **Add textures to your project.**
+
+&#x2713; [_Click here if you want to refresh yourself on adding content to a UE4 project._](Engine/Content/QuickStart/4 "How to add content to UE4 projects.")
+
+[REGION:tip]
+*Organize your assets so that you can easily find them.*
+[/REGION]
+
+<!--
 
 There are two methods for manually importing content into Unreal Engine 4:
 * Using the **Content Browser's** Import function. 
@@ -78,6 +115,7 @@ Remember to click the ![](saveAllbutton.png) button after importing your assets 
 [/REGION]
 
 In the next step, you will be asked to create/apply your own Materials and links to additional documentation will be provided. 
+-->
 
 <!--
 To apply a **Material** to a **Static Mesh**:

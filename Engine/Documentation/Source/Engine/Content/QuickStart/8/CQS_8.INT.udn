@@ -1,0 +1,112 @@
+Availability: Public
+Title:4. Applying Materials to Static Mesh Actors.
+Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
+Description:Learn how to apply materials to static mesh actors in this section.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Engine/Content/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Engine/Content/QuickStart/9 "%Engine/Content/QuickStart/9:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+You're now ready to bring things together!
+
+The objective of this step is to apply our **Material** to the Static Mesh we imported. Specifically, you'll learn how to:
+
+* [Set an Actor's default material.](#Bookmark1)
+* [Change materials used by an Actor.](#Bookmark2)
+
+##Setting an Actor's Default Material
+
+(#Bookmark1)
+
+This section will show you how to set a Static Mesh Actor’s default material. The default material will be used whenever an Actor is placed in the level.
+
+1.	From the **Content Browser**, **Double-click** the asset you imported earlier in this guide.
+
+	![](ContentBrowserAsset.jpg)
+
+	The [__Static Mesh Editor__](Engine/Content/Types/StaticMeshes/Editor "%Engine/Content/Types/StaticMeshes/Editor:description%") will load your asset for editing (pictured below).
+
+	![](StaticMeshEditor.jpg)
+
+1.	In the **Details** panel under **LOD0**, **Left-click** the Material drop-down menu (pictured below).
+
+	![](Element0.jpg)
+
+1.	Select the **Rock Material** you created earlier. The material should be available in the selection window (pictured below).
+
+	![](SelectMaterial.jpg)
+	
+	Your **Preview Pane** will update to reflect the newly applied material (pictured below).
+
+	![](NewDefaultMaterial.jpg)
+
+1.	Clicking the **Save** button first, close the **Material Editor**.
+
+1.	From the **Content Browser**, drag-and-drop the newly textured Static Mesh Actor into your level.
+
+	![](NewMaterialInLevel.jpg)
+
+	_The specified **Material** will be used anytime you place this asset in the level._
+
+##Changing Material Used by an Actor
+
+(#Bookmark2)
+
+When we placed a **Static Mesh** object in our level, we created an instance of our object (an [__Actor__](Engine/Actors "%Engine/Actors:description%")). For every instance of that Actor, we're able to specify its Material.
+
+Here’s how you change a **Static Mesh Actor's** Material.
+
+1.	Select your **Static Mesh Actor**.
+
+	![](StaticMeshSelected.jpg)
+
+1.	From the **Details** panel, locate the **Materials** section, and click the **Materials** dropdown menu.
+
+	![](ActorMaterial.jpg)
+
+1.	From the pop-up menu, select a different Material.
+
+	![](TutorialMaterial.jpg)
+
+	_Downloading [__Starter Content__](Engine/Content/Packs "%Engine/Content/Packs:description%") will give you additional Material options._
+
+1.	Alternatively, drag-and-drop a new Material onto the **Static Mesh Actor** (pictured below).
+
+	![](draganddropMaterial.jpg)
+
+You've just applied materials to your Static Mesh Actors by:
+
+* Setting your Actor's **Default Material**.
+* **Changing Material** used by your Actor.
+
+We've now reached the end of the Artist Quick Start Guide. By now, you should have the skills needed to:
+
+* **Setup a Project.**
+* **Create Materials.**
+* **Apply Materials to a Static Mesh Actor.**
+
+Awesome work!
+
+&#x2713; _Are you ready to do some exercises on your own?_
+
+[REGION:tip]
+*The 'Rule of Thirds' typically improves scene composition.*
+[/REGION]
+
+%Steps%
+
+
