@@ -3632,8 +3632,6 @@ void StaticUObjectInit()
 	UE_LOG(LogInit, Log, TEXT("Object subsystem initialized") );
 }
 
-COREUOBJECT_API void DeleteLoaders();
-
 //
 // Shut down the object manager.
 //

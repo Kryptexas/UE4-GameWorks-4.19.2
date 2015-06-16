@@ -327,7 +327,7 @@ void ResetLoaders(UObject* InPkg)
 }
 
 /** Deletes all linkers that have finished loading */
-COREUOBJECT_API void DeleteLoaders()
+void DeleteLoaders()
 {
 	FLinkerManager::Get().DeleteLinkers();
 }

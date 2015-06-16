@@ -2252,10 +2252,6 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	return bIdleMode;
 }
 
-#if WITH_COREUOBJECT
-COREUOBJECT_API void DeleteLoaders();
-#endif
-
 void FEngineLoop::Tick()
 {
 	// Ensure we aren't starting a frame while loading or playing a loading movie

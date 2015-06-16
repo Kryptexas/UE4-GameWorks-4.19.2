@@ -194,14 +194,16 @@ void FLinkerManager::DeleteLinkers()
 	}
 
 	// Note that even though DeleteLinkers can only be called on the main thread,
-	// we store the IsDeleteingLinkers in TLS so that we're sure nothing on
+	// we store the IsDeletingLinkers in TLS so that we're sure nothing on
 	// another thread can delete linkers except FLinkerManager at the time
 	// we enter this loop.
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	ThreadContext.IsDeletingLinkers = true;
 	for (FLinkerLoad* Linker : CleanupArray)
 	{
 		delete Linker;
 	}
+	ThreadContext.IsDeletingLinkers = false;
 }
 
 void FLinkerManager::RemoveLinker(FLinkerLoad* Linker)

@@ -718,6 +718,8 @@ FLinkerLoad::~FLinkerLoad()
 	FLinkerManager::Get().GetLiveLinkers().Remove(this);
 #endif
 
+	UE_CLOG(!FUObjectThreadContext::Get().IsDeletingLinkers, LogLinker, Fatal, TEXT("Linkers can only be deleted by FLinkerManager."));
+
 	// Detaches linker.
 	Detach();
 

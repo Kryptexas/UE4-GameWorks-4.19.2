@@ -2262,6 +2262,9 @@ typedef uint32 ELazyLoaderFlags;
 /** Resets linkers on packages after they have finished loading */
 COREUOBJECT_API void ResetLoaders( UObject* InOuter );
 
+/** Deletes all linkers that have finished loading */
+COREUOBJECT_API void DeleteLoaders();
+
 /**
  * Dissociates all linker import and forced export object references. This currently needs to 
  * happen as the referred objects might be destroyed at any time.
