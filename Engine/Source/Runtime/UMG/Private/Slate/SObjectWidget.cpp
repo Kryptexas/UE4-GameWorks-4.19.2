@@ -146,6 +146,8 @@ FReply SObjectWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& In
 		{
 			return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 		}
+
+		return Result;
 	}
 
 	return FReply::Unhandled();
@@ -160,6 +162,8 @@ FReply SObjectWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKe
 		{
 			return SCompoundWidget::OnKeyUp(MyGeometry, InKeyEvent);
 		}
+
+		return Result;
 	}
 
 	return FReply::Unhandled();
@@ -174,6 +178,8 @@ FReply SObjectWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FA
 		{
 			return SCompoundWidget::OnAnalogValueChanged(MyGeometry, InAnalogInputEvent);
 		}
+
+		return Result;
 	}
 
 	return FReply::Unhandled();
