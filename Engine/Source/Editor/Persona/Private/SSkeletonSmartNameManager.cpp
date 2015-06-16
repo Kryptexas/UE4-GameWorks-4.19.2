@@ -244,10 +244,12 @@ void SSkeletonSmartNameManager::GenerateDisplayedList(const FText& FilterText)
 		for(FSmartNameMapping::UID Uid : UidList)
 		{
 			bool bAddToList = true;
+
+			FName CurrentName;
+			Mapping->GetName(Uid, CurrentName);
+
 			if(!FilterText.IsEmpty())
 			{
-				FName CurrentName;
-				Mapping->GetName(Uid, CurrentName);
 
 				if(!CurrentName.ToString().Contains(*FilterText.ToString()))
 				{
@@ -257,10 +259,19 @@ void SSkeletonSmartNameManager::GenerateDisplayedList(const FText& FilterText)
 			
 			if(bAddToList)
 			{
-				DisplayedInfoList.Add(FDisplayedSmartNameInfo::Make(CurrentSkeleton, ContainerName, Uid));
+				DisplayedInfoList.Add(FDisplayedSmartNameInfo::Make(CurrentSkeleton, ContainerName, Uid, CurrentName));
 			}
 		}
 
+		struct FSortSmartNamesAlphabetically
+		{
+			bool operator()(const TSharedPtr<FDisplayedSmartNameInfo>& A, const TSharedPtr<FDisplayedSmartNameInfo>& B) const
+			{
+				return (A.Get()->SmartName.Compare(B.Get()->SmartName) < 0);
+			}
+		};
+
+		DisplayedInfoList.Sort(FSortSmartNamesAlphabetically());
 		ListWidget->RequestListRefresh();
 	}
 }

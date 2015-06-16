@@ -14,6 +14,25 @@ DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
 DECLARE_DELEGATE( FOnUpdatePanel )
 DECLARE_DELEGATE_RetVal( float, FOnGetScrubValue )
 
+struct FSmartNameSortItem
+{
+	FName SmartName;
+	USkeleton::AnimCurveUID ID;
+
+	FSmartNameSortItem(const FName& InSmartName, const USkeleton::AnimCurveUID& InID)
+		: SmartName(InSmartName)
+		, ID(InID)
+	{}
+};
+
+struct FSmartNameSortItemSortOp
+{
+	bool operator()(const FSmartNameSortItem& A, const FSmartNameSortItem& B) const
+	{
+		return (A.SmartName.Compare(B.SmartName) < 0);
+	}
+};
+
 //////////////////////////////////////////////////////////////////////////
 // SAnimCurvePanel
 

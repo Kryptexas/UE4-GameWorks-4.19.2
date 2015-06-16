@@ -1010,20 +1010,33 @@ void SAnimCurvePanel::FillMetadataEntryMenu(FMenuBuilder& Builder)
 	Mapping->FillUidArray(CurveUids);
 
 	Builder.BeginSection(NAME_None, LOCTEXT("MetadataMenu_ListHeading", "Available Names"));
-	for(USkeleton::AnimCurveUID Id : CurveUids)
 	{
-		if(!Sequence->RawCurveData.GetCurveData(Id))
+		TArray<FSmartNameSortItem> SmartNameList;
+
+		for (USkeleton::AnimCurveUID Id : CurveUids)
 		{
-			FName CurveName;
-			if(Mapping->GetName(Id, CurveName))
+			if (!Sequence->RawCurveData.GetCurveData(Id))
+			{
+				FName CurveName;
+				if (Mapping->GetName(Id, CurveName))
+				{
+					SmartNameList.Add(FSmartNameSortItem(CurveName, Id));
+				}
+			}
+		}
+
+		{
+			SmartNameList.Sort(FSmartNameSortItemSortOp());
+
+			for (FSmartNameSortItem SmartNameItem : SmartNameList)
 			{
 				const FText Description = LOCTEXT("NewMetadataSubMenu_ToolTip", "Add an existing metadata curve");
-				const FText Label = FText::FromName(CurveName);
+				const FText Label = FText::FromName(SmartNameItem.SmartName);
 
 				FUIAction UIAction;
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimCurvePanel::AddMetadataEntry,
-					Id);
+					SmartNameItem.ID);
 
 				Builder.AddMenuEntry(Label, Description, FSlateIcon(), UIAction);
 			}
@@ -1051,20 +1064,33 @@ void SAnimCurvePanel::FillVariableCurveMenu(FMenuBuilder& Builder)
 	Mapping->FillUidArray(CurveUids);
 
 	Builder.BeginSection(NAME_None, LOCTEXT("VariableMenu_ListHeading", "Available Names"));
-	for(USkeleton::AnimCurveUID Id : CurveUids)
 	{
-		if(!Sequence->RawCurveData.GetCurveData(Id))
+		TArray<FSmartNameSortItem> SmartNameList;
+
+		for (USkeleton::AnimCurveUID Id : CurveUids)
 		{
-			FName CurveName;
-			if(Mapping->GetName(Id, CurveName))
+			if (!Sequence->RawCurveData.GetCurveData(Id))
+			{
+				FName CurveName;
+				if (Mapping->GetName(Id, CurveName))
+				{
+					SmartNameList.Add(FSmartNameSortItem(CurveName, Id));
+				}
+			}
+		}
+
+		{
+			SmartNameList.Sort(FSmartNameSortItemSortOp());
+
+			for (FSmartNameSortItem SmartNameItem : SmartNameList)
 			{
 				const FText Description = LOCTEXT("NewVariableSubMenu_ToolTip", "Add an existing variable curve");
-				const FText Label = FText::FromName(CurveName);
+				const FText Label = FText::FromName(SmartNameItem.SmartName);
 
 				FUIAction UIAction;
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimCurvePanel::AddVariableCurve,
-					Id);
+					SmartNameItem.ID);
 
 				Builder.AddMenuEntry(Label, Description, FSlateIcon(), UIAction);
 			}
