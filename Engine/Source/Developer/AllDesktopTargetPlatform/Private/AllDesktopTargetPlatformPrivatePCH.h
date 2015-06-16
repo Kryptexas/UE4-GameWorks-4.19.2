@@ -29,5 +29,5 @@
 /* Private includes
  *****************************************************************************/
 
-#include "DesktopTargetPlatform.h"
+#include "AllDesktopTargetPlatform.h"
  

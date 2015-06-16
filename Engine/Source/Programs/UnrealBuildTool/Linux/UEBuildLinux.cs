@@ -327,7 +327,7 @@ namespace UnrealBuildTool
                     InModule.AddDynamicallyLoadedModule("LinuxTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("LinuxServerTargetPlatform");
-					InModule.AddDynamicallyLoadedModule("DesktopTargetPlatform");
+					InModule.AddDynamicallyLoadedModule("AllDesktopTargetPlatform");
                 }
 
                 if (bBuildShaderFormats)

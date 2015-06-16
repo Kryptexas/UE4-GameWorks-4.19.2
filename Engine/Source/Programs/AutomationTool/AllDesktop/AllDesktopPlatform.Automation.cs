@@ -11,10 +11,10 @@ using AutomationTool;
 using UnrealBuildTool;
 using Ionic.Zip;
 
-public class DesktopPlatform : Platform
+public class AllDesktopPlatform : Platform
 {
-	public DesktopPlatform()
-		: base(UnrealTargetPlatform.Desktop)
+	public AllDesktopPlatform()
+		: base(UnrealTargetPlatform.AllDesktop)
 	{
 	}
 
@@ -112,7 +112,7 @@ public class DesktopPlatform : Platform
 	/// <returns>Cook platform string.</returns>
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
 	{
-		return "Desktop";
+		return "AllDesktop";
 	}
 
 	public override bool DeployPakInternalLowerCaseFilenames()

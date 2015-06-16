@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	DesktopTargetPlatform.h: Declares the FDesktopTargetPlatform class.
+	AllDesktopTargetPlatform.h: Declares the FDesktopTargetPlatform class.
 =============================================================================*/
 
 #pragma once
@@ -10,12 +10,12 @@
 #include "StaticMeshResources.h"
 #endif // WITH_ENGINE
 
-class FDesktopPlatformProperties : public FGenericPlatformProperties
+class FAllDesktopPlatformProperties : public FGenericPlatformProperties
 {
 public:
 	static FORCEINLINE const char* PlatformName()
 	{
-		return "Desktop";
+		return "AllDesktop";
 	}
 	static FORCEINLINE const char* IniPlatformName()
 	{
@@ -35,20 +35,20 @@ public:
 /**
  * FDesktopTargetPlatform, abstraction for cooking iOS platforms
  */
-class FDesktopTargetPlatform
-	: public TTargetPlatformBase<FDesktopPlatformProperties>
+class FAllDesktopTargetPlatform
+	: public TTargetPlatformBase<FAllDesktopPlatformProperties>
 {
 public:
 
 	/**
 	 * Default constructor.
 	 */
-	FDesktopTargetPlatform();
+	FAllDesktopTargetPlatform();
 
 	/**
 	 * Destructor.
 	 */
-	~FDesktopTargetPlatform();
+	~FAllDesktopTargetPlatform();
 
 public:
 
@@ -100,7 +100,7 @@ public:
 
 	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
 	{
-		return TTargetPlatformBase<FDesktopPlatformProperties>::SupportsFeature(Feature);
+		return TTargetPlatformBase<FAllDesktopPlatformProperties>::SupportsFeature(Feature);
 	}
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const override
@@ -141,13 +141,13 @@ public:
 #endif // WITH_ENGINE
 
 
-	DECLARE_DERIVED_EVENT(FDesktopTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
+	DECLARE_DERIVED_EVENT(FAllDesktopTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) override
 	{
 		return DeviceDiscoveredEvent;
 	}
 
-	DECLARE_DERIVED_EVENT(FDesktopTargetPlatform, ITargetPlatform::FOnTargetDeviceLost, FOnTargetDeviceLost);
+	DECLARE_DERIVED_EVENT(FAllDesktopTargetPlatform, ITargetPlatform::FOnTargetDeviceLost, FOnTargetDeviceLost);
 	virtual FOnTargetDeviceLost& OnDeviceLost( ) override
 	{
 		return DeviceLostEvent;

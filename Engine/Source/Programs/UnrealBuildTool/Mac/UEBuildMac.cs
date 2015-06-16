@@ -113,7 +113,7 @@ namespace UnrealBuildTool
 					InModule.AddDynamicallyLoadedModule("MacNoEditorTargetPlatform");
 					InModule.AddDynamicallyLoadedModule("MacClientTargetPlatform");
 					InModule.AddDynamicallyLoadedModule("MacServerTargetPlatform");
-					InModule.AddDynamicallyLoadedModule("DesktopTargetPlatform");
+					InModule.AddDynamicallyLoadedModule("AllDesktopTargetPlatform");
 				}
 
                 if (bBuildShaderFormats)

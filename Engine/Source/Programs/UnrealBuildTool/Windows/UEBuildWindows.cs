@@ -480,7 +480,7 @@ namespace UnrealBuildTool
                     InModule.AddDynamicallyLoadedModule("WindowsNoEditorTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("WindowsServerTargetPlatform");
                     InModule.AddDynamicallyLoadedModule("WindowsClientTargetPlatform");
-					InModule.AddDynamicallyLoadedModule("DesktopTargetPlatform");
+					InModule.AddDynamicallyLoadedModule("AllDesktopTargetPlatform");
                 }
 
                 if (bBuildShaderFormats)

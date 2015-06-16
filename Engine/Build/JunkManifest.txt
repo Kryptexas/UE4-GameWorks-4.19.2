@@ -72,3 +72,6 @@ Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win64\*-TwitchLiveStreaming*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-Android_ES31TargetPlatform.dylib
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\MacOS\UnrealFrontend-Android_ES31TargetPlatform.dylib
 Engine\Binaries\Win64\Android\*Android_ES31*.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-DesktopTargetPlatform.dylib
+Engine\Binaries\Mac\UnrealFrontend.app\Contents\MacOS\UnrealFrontend-DesktopTargetPlatform.dylib
+Engine\Binaries\Win64\*-DesktopTargetPlatform*.*

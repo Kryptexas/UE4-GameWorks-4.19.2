@@ -1,16 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	DesktopTargetPlatform.cpp: Implements the FDesktopTargetPlatform class.
+	AllDesktopTargetPlatform.cpp: Implements the FDesktopTargetPlatform class.
 =============================================================================*/
 
-#include "DesktopTargetPlatformPrivatePCH.h"
+#include "AllDesktopTargetPlatformPrivatePCH.h"
 #include "IProjectManager.h"
 
-/* FDesktopTargetPlatform structors
+/* FAllDesktopTargetPlatform structors
  *****************************************************************************/
 
-FDesktopTargetPlatform::FDesktopTargetPlatform()
+FAllDesktopTargetPlatform::FAllDesktopTargetPlatform()
 {
 #if WITH_ENGINE
 	// use non-platform specific settings
@@ -21,7 +21,7 @@ FDesktopTargetPlatform::FDesktopTargetPlatform()
 }
 
 
-FDesktopTargetPlatform::~FDesktopTargetPlatform()
+FAllDesktopTargetPlatform::~FAllDesktopTargetPlatform()
 {
 }
 
@@ -33,7 +33,7 @@ FDesktopTargetPlatform::~FDesktopTargetPlatform()
 #if WITH_ENGINE
 
 
-void FDesktopTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
+void FAllDesktopTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	static FName NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
 	static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
@@ -53,19 +53,19 @@ void FDesktopTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutForm
 }
 
 
-void FDesktopTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
+void FAllDesktopTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
 {
 	GetAllPossibleShaderFormats(OutFormats);
 }
 
-void FDesktopTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const
+void FAllDesktopTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FName>& OutFormats ) const
 {
 	// just use the standard texture format name for this texture (without DX11 texture support)
 	OutFormats.Add(GetDefaultTextureFormatName(Texture, EngineSettings, false));
 }
 
 
-FName FDesktopTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
+FName FAllDesktopTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 {
 	static FName NAME_OGG(TEXT("OGG"));
 	static FName NAME_OPUS(TEXT("OPUS"));

@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class DesktopTargetPlatform : ModuleRules
+public class AllDesktopTargetPlatform : ModuleRules
 {
-	public DesktopTargetPlatform(TargetInfo Target)
+	public AllDesktopTargetPlatform(TargetInfo Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
 			new string[]

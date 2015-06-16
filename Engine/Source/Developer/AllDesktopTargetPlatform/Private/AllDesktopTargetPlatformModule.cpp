@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "DesktopTargetPlatformPrivatePCH.h"
+#include "AllDesktopTargetPlatformPrivatePCH.h"
 
 /**
  * Holds the target platform singleton.
@@ -11,14 +11,14 @@ static ITargetPlatform* Singleton = NULL;
 /**
  * Module for a generic target platform for desktop platforms
  */
-class FDesktopTargetPlatformModule : public ITargetPlatformModule
+class FAllDesktopTargetPlatformModule : public ITargetPlatformModule
 {
 public:
 
 	/**
 	 * Destructor.
 	 */
-	~FDesktopTargetPlatformModule()
+	FAllDesktopTargetPlatformModule()
 	{
 		Singleton = NULL;
 	}
@@ -32,7 +32,7 @@ public:
 	{
 		if (Singleton == NULL)
 		{
-			Singleton = new FDesktopTargetPlatform();
+			Singleton = new FAllDesktopTargetPlatform();
 		}
 
 		return Singleton;
@@ -54,4 +54,4 @@ public:
 	// End IModuleInterface interface
 };
 
-IMPLEMENT_MODULE( FDesktopTargetPlatformModule, DesktopTargetPlatform);
+IMPLEMENT_MODULE( FAllDesktopTargetPlatformModule, AllDesktopTargetPlatform);

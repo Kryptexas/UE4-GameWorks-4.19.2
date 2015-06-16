@@ -27,7 +27,7 @@ namespace UnrealBuildTool
 		Android,
 		HTML5,
         Linux,
-		Desktop,
+		AllDesktop,
 	}
 
 	public enum UnrealPlatformGroup
@@ -46,7 +46,7 @@ namespace UnrealBuildTool
           */
         Device, 
         Simulator,
-		Desktop,
+		AllDesktop,
 	}
 
 	public enum UnrealTargetConfiguration
