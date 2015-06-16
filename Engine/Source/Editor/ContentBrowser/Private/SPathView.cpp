@@ -623,8 +623,12 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 
 			if ( bSelectedAtLeastOnePath )
 			{
+				// Send the first selected item with the notification
+				const TArray<TSharedPtr<FTreeItem>> SelectedItems = TreeViewPtr->GetSelectedItems();
+				check(SelectedItems.Num() > 0);
+
 				// Signal a single selection changed event to let any listeners know that paths have changed
-				TreeSelectionChanged( TSharedPtr<FTreeItem>(), ESelectInfo::Direct );
+				TreeSelectionChanged( SelectedItems[0], ESelectInfo::Direct );
 			}
 		}
 		else
@@ -632,8 +636,12 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 			// If all assets are already discovered, just select paths the best we can
 			SetSelectedPaths(NewSelectedPaths);
 
+			// Send the first selected item with the notification
+			const TArray<TSharedPtr<FTreeItem>> SelectedItems = TreeViewPtr->GetSelectedItems();
+			check(SelectedItems.Num() > 0);
+
 			// Signal a single selection changed event to let any listeners know that paths have changed
-			TreeSelectionChanged( TSharedPtr<FTreeItem>(), ESelectInfo::Direct );
+			TreeSelectionChanged( SelectedItems[0], ESelectInfo::Direct );
 		}
 	}
 }
