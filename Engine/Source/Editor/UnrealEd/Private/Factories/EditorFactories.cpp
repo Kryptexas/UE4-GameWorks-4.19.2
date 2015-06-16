@@ -6481,6 +6481,24 @@ UObject* UCurveFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName
 }
 
 /*------------------------------------------------------------------------------
+	UCurveFloatFactory implementation.
+------------------------------------------------------------------------------*/
+
+UCurveFloatFactory::UCurveFloatFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bCreateNew = true;
+	bEditAfterNew = true;
+	SupportedClass = UCurveFloat::StaticClass();
+	CurveClass = UCurveFloat::StaticClass();
+}
+
+bool UCurveFloatFactory::ConfigureProperties()
+{
+	return true;
+}
+
+/*------------------------------------------------------------------------------
 	UCurveImportFactory implementation.
 ------------------------------------------------------------------------------*/
 
