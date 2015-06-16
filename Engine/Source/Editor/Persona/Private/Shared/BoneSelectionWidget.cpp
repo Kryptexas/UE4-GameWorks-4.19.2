@@ -4,6 +4,7 @@
 #include "PersonaPrivatePCH.h"
 #include "BoneSelectionWidget.h"
 #include "SSearchBox.h"
+#include "Editor/PropertyEditor/Public/DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "SBoneSelectionWidget"
 
