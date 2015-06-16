@@ -2548,6 +2548,11 @@ public:
 	 */
 	void DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld = nullptr );
 
+	/** 
+	 * Marks all objects that have this World as an Outer as pending kill
+	 */
+	void MarkObjectsPendingKill();
+
 	/**
 	 *  Interface to allow WorldSettings to request immediate garbage collection
 	 */

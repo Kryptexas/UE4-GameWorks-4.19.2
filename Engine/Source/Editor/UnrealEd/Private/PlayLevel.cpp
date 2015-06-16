@@ -158,24 +158,7 @@ void UEditorEngine::EndPlayMap()
 	}
 	CleanupGameViewport();
 
-	// Gather all the worlds relevant to the PIE levels we are ending
-	TSet<UWorld*> CurrentPlayWorlds;
-	for (const FWorldContext& ThisContext : WorldList)
-	{
-		if (ThisContext.WorldType == EWorldType::PIE && ThisContext.World())
-		{
-			for (auto LevelIt(ThisContext.World()->GetLevelIterator()); LevelIt; ++LevelIt)
-			{
-				if (const ULevel* Level = *LevelIt)
-				{
-					CurrentPlayWorlds.Add(CastChecked<UWorld>(Level->GetOuter()));
-				}
-			}
-		}
-	}
-
 	// find objects like Textures in the playworld levels that won't get garbage collected as they are marked RF_Standalone
-	// mark everything else contained in the PIE worlds to be deleted
 	for( FObjectIterator It; It; ++It )
 	{
 		UObject* Object = *It;
@@ -190,23 +173,21 @@ void UEditorEngine::EndPlayMap()
 			// Close any asset editors that are currently editing this object
 			FAssetEditorManager::Get().CloseAllEditorsForAsset(Object);
 		}
-		else if (!Object->IsPendingKill())
-		{
-			UWorld* InWorld = Object->GetTypedOuter<UWorld>();
-			if (InWorld && CurrentPlayWorlds.Contains(InWorld))
-			{
-				Object->MarkPendingKill();
-			}
-		}
 	}
 
 	// Clean up each world individually
 	TArray<FName> OnlineIdentifiers;
+	TArray<UWorld*> WorldsBeingCleanedUp;
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
 		FWorldContext &ThisContext = WorldList[WorldIdx];
 		if (ThisContext.WorldType == EWorldType::PIE)
 		{
+			if (ThisContext.World())
+			{
+				WorldsBeingCleanedUp.Add(ThisContext.World());
+			}
+
 			TeardownPlaySession(ThisContext);
 			
 			// Cleanup online subsystems instantiated during PIE
@@ -262,6 +243,17 @@ void UEditorEngine::EndPlayMap()
 	EditorWorld->bAllowAudioPlayback = true;
 	EditorWorld = NULL;
 
+	// mark everything contained in the PIE worlds to be deleted
+	for (UWorld* World : WorldsBeingCleanedUp)
+	{
+		for (auto LevelIt(World->GetLevelIterator()); LevelIt; ++LevelIt)
+		{
+			if (const ULevel* Level = *LevelIt)
+			{
+				CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
+			}
+		}
+	}
 	// Garbage Collect
 	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 

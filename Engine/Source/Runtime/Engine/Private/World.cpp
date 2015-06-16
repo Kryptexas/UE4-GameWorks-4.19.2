@@ -1082,6 +1082,15 @@ void UWorld::DestroyWorld( bool bInformEngineOfWorld, UWorld* NewWorld )
 	}
 }
 
+void UWorld::MarkObjectsPendingKill()
+{
+	auto MarkObjectPendingKill = [](UObject* Object)
+	{
+		Object->MarkPendingKill();
+	};
+	ForEachObjectWithOuter(this, MarkObjectPendingKill, true, RF_PendingKill);
+}
+
 UWorld* UWorld::CreateWorld(const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName, UPackage* InWorldPackage, bool bAddToRoot, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	if (InFeatureLevel >= ERHIFeatureLevel::Num)
@@ -2097,32 +2106,12 @@ void FLevelStreamingGCHelper::PrepareStreamedOutLevelsForGC()
 			LevelPackageNames.Add( LevelPackage->GetFName() );
 
 			// Mark level as pending kill so references to it get deleted.
-			Level->GetOuter()->MarkPendingKill();
-			Level->MarkPendingKill();
+			UWorld* LevelWorld = CastChecked<UWorld>(Level->GetOuter());
+			LevelWorld->MarkObjectsPendingKill();
+			LevelWorld->MarkPendingKill();
 			if (LevelPackage->MetaData)
 			{
 				LevelPackage->MetaData->MarkPendingKill();
-			}
-
-			// Mark all model components as pending kill so GC deletes references to them.
-			for( int32 ModelComponentIndex=0; ModelComponentIndex<Level->ModelComponents.Num(); ModelComponentIndex++ )
-			{
-				UModelComponent* ModelComponent = Level->ModelComponents[ModelComponentIndex];
-				if( ModelComponent )
-				{
-					ModelComponent->MarkPendingKill();
-				}
-			}
-
-			// Mark all actors and their components as pending kill so GC will delete references to them.
-			for( int32 ActorIndex=0; ActorIndex<Level->Actors.Num(); ActorIndex++ )
-			{
-				AActor* Actor = Level->Actors[ActorIndex];
-				if (Actor != NULL)
-				{
-					Actor->MarkComponentsAsPendingKill();
-					Actor->MarkPendingKill();
-				}
 			}
 		}
 	}
@@ -4770,22 +4759,12 @@ UWorld* FSeamlessTravelHandler::Tick()
 			GWorld = NULL;
 
 			// mark everything else contained in the world to be deleted
-			TSet<UWorld*> CurrentWorlds;
 			for (auto LevelIt(CurrentWorld->GetLevelIterator()); LevelIt; ++LevelIt)
 			{
 				const ULevel* Level = *LevelIt;
 				if (Level)
 				{
-					CurrentWorlds.Add(CastChecked<UWorld>(Level->GetOuter()));
-				}
-			}
-
-			for (TObjectIterator<UObject> It(RF_PendingKill); It; ++It)
-			{
-				UWorld* InWorld = It->GetTypedOuter<UWorld>();
-				if (InWorld && CurrentWorlds.Contains(InWorld))
-				{
-					It->MarkPendingKill();
+					CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
 				}
 			}
 
