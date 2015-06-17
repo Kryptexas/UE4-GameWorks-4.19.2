@@ -7,7 +7,7 @@
 /* Vector VM data object; encapsulates buffers, curves and other data in its derivatives
 *  for access by VectorVM kernels;
 */
-UCLASS()
+UCLASS(EditInlineNew, MinimalAPI)
 class UNiagaraDataObject : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -18,17 +18,13 @@ public:
 
 /* Curve object; encapsulates a curve for the VectorVM
 */
-UCLASS(MinimalAPI)
+UCLASS(EditInlineNew, MinimalAPI)
 class UNiagaraCurveDataObject : public UNiagaraDataObject
 {
 	GENERATED_UCLASS_BODY()
-private:
-	UPROPERTY()
+	
+	UPROPERTY(EditAnywhere, Category="Curve")
 	class UCurveVector *CurveObj;
-public:
-	UNiagaraCurveDataObject(class UCurveVector *InCurve) : CurveObj(InCurve)
-	{
-	}
 
 	FVector4 Sample(const FVector4& InCoords) const;
 	virtual FVector4 Write(const FVector4& InCoords, const FVector4& InValue) override
@@ -43,7 +39,7 @@ public:
 
 /* Volume data object; encapsulates volumetric data for VectorVM
 */
-UCLASS(MinimalAPI, Transient)
+UCLASS(EditInlineNew, MinimalAPI, Transient)
 class UNiagaraSparseVolumeDataObject : public UNiagaraDataObject
 {
 	GENERATED_UCLASS_BODY()

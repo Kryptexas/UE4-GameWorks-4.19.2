@@ -26,6 +26,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = Constant)
 	FMatrix MatrixDefault;
 
+	UPROPERTY(Instanced, EditAnywhere, Category = Constant)
+	UNiagaraDataObject* DataObjectDefault;
+
 	/** Allows code to explicitly disable exposing of certain inputs e.g. system constants such as Delta Time. */
 	UPROPERTY()
 	uint32 bCanBeExposed:1;

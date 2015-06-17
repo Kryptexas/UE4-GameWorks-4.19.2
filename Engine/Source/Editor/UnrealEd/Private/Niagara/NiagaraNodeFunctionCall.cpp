@@ -22,6 +22,8 @@ void UNiagaraNodeFunctionCall::PostEditChangeProperty(struct FPropertyChangedEve
 		ReallocatePins();
 	}
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	GetGraph()->NotifyGraphChanged();
 }
 
 void UNiagaraNodeFunctionCall::ReallocatePins()

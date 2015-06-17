@@ -22,12 +22,12 @@ class UNiagaraMovieSceneSection : public UMovieSceneSection
 public:
 	FText GetEmitterName()	{ return EmitterName; }
 	void SetEmitterName(FText InName)	{ EmitterName = InName; }
-	void SetEmitterProps(const FNiagaraEmitterProperties *Props)	{ EmitterProps = Props; }
+	void SetEmitterProps(TWeakObjectPtr<const UNiagaraEmitterProperties> Props)	{ EmitterProps = Props; }
 
-	const FNiagaraEmitterProperties *GetEmitterProps() const	{ return EmitterProps; }
+	TWeakObjectPtr<const UNiagaraEmitterProperties> GetEmitterProps() const	{ return EmitterProps; }
 private:
 	FText EmitterName;
-	const FNiagaraEmitterProperties *EmitterProps;
+	TWeakObjectPtr<const UNiagaraEmitterProperties> EmitterProps;
 };
 
 /**
@@ -139,20 +139,24 @@ class UEmitterMovieSceneTrack : public UMovieSceneTrack
 public:
 
 	/** UMovieSceneTrack interface */
-	virtual FName GetTrackName() const override { return *Emitter->GetProperties()->Name; }
+	virtual FName GetTrackName() const override { return *Emitter->GetProperties()->EmitterName; }
 	void SetEmitter(TSharedPtr<FNiagaraSimulation> InEmitter)
 	{
-		Emitter = InEmitter;
-		const FNiagaraEmitterProperties *EmitterProps = InEmitter->GetProperties();
+		if (InEmitter.IsValid())
+		{
+			Emitter = InEmitter;
+			if (const UNiagaraEmitterProperties* EmitterProps = InEmitter->GetProperties().Get())
+			{
+				UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->EmitterName);
+				Section->SetEmitterProps(EmitterProps);
 
-		UNiagaraMovieSceneSection *Section = NewObject<UNiagaraMovieSceneSection>(this, *Emitter->GetProperties()->Name);
-		Section->SetEmitterProps(EmitterProps);
+				Section->SetStartTime(EmitterProps->StartTime);
+				Section->SetEndTime(EmitterProps->EndTime);
+				Section->SetEmitterName(FText::FromString(EmitterProps->EmitterName));
 
-		Section->SetStartTime(EmitterProps->StartTime);
-		Section->SetEndTime(EmitterProps->EndTime);
-		Section->SetEmitterName(FText::FromString(EmitterProps->Name));
-
-		Sections.Add(Section);
+				Sections.Add(Section);
+			}
+		}
 	}
 
 	virtual void RemoveAllAnimationData() override	{};

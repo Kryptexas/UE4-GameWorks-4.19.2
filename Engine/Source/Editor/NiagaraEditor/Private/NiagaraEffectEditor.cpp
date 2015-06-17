@@ -13,6 +13,7 @@
 const FName FNiagaraEffectEditor::UpdateTabId(TEXT("NiagaraEditor_Effect"));
 const FName FNiagaraEffectEditor::ViewportTabID(TEXT("NiagaraEffectEditor_Viewport"));
 const FName FNiagaraEffectEditor::EmitterEditorTabID(TEXT("NiagaraEffectEditor_EmitterEditor"));
+const FName FNiagaraEffectEditor::DevEmitterEditorTabID(TEXT("NiagaraEffectEditor_DevEmitterEditor"));
 const FName FNiagaraEffectEditor::CurveEditorTabID(TEXT("NiagaraEffectEditor_CurveEditor"));
 const FName FNiagaraEffectEditor::SequencerTabID(TEXT("NiagaraEffectEditor_Sequencer"));
 
@@ -29,6 +30,10 @@ void FNiagaraEffectEditor::RegisterTabSpawners(const TSharedRef<class FTabManage
 
 	TabManager->RegisterTabSpawner(EmitterEditorTabID, FOnSpawnTab::CreateSP(this, &FNiagaraEffectEditor::SpawnTab_EmitterList))
 		.SetDisplayName(LOCTEXT("Emitters", "Emitters"))
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
+
+	TabManager->RegisterTabSpawner(DevEmitterEditorTabID, FOnSpawnTab::CreateSP(this, &FNiagaraEffectEditor::SpawnTab_DevEmitterList))
+		.SetDisplayName(LOCTEXT("DevEmitters", "Emitters_Dev"))
 		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 
 	TabManager->RegisterTabSpawner(CurveEditorTabID, FOnSpawnTab::CreateSP(this, &FNiagaraEffectEditor::SpawnTab_CurveEd))
@@ -54,6 +59,7 @@ void FNiagaraEffectEditor::UnregisterTabSpawners(const TSharedRef<class FTabMana
 	TabManager->UnregisterTabSpawner(UpdateTabId);
 	TabManager->UnregisterTabSpawner(ViewportTabID);
 	TabManager->UnregisterTabSpawner(EmitterEditorTabID);
+	TabManager->UnregisterTabSpawner(DevEmitterEditorTabID);
 	TabManager->UnregisterTabSpawner(CurveEditorTabID);
 	TabManager->UnregisterTabSpawner(SequencerTabID);
 }
@@ -123,6 +129,7 @@ void FNiagaraEffectEditor::InitNiagaraEffectEditor(const EToolkitMode::Type Mode
 					FTabManager::NewStack()
 					->SetSizeCoefficient(0.3f)
 					->AddTab(EmitterEditorTabID, ETabState::OpenedTab)
+					->AddTab(DevEmitterEditorTabID, ETabState::OpenedTab)
 				)
 			)
 			->Split
@@ -166,6 +173,14 @@ FLinearColor FNiagaraEffectEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor(0.0f, 0.0f, 0.2f, 0.5f);
 }
 
+void FNiagaraEffectEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged)
+{
+	//Rebuild the effect after every edit.
+// 	if (EffectInstance)
+// 	{
+// 		EffectInstance->Init();
+// 	}
+}
 
 /** Create new tab for the supplied graph - don't call this directly, call SExplorer->FindTabForGraph.*/
 TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(UNiagaraEffect* InEffect)
@@ -202,7 +217,7 @@ TSharedRef<SNiagaraEffectEditorWidget> FNiagaraEffectEditor::CreateEditorWidget(
 		
 		
 	// Make the effect editor widget
-	return SNew(SNiagaraEffectEditorWidget).EffectObj(InEffect).EffectInstance(EffectInstance);
+	return SNew(SNiagaraEffectEditorWidget).EffectObj(InEffect).EffectInstance(EffectInstance).EffectEditor(this);
 }
 
 
@@ -253,6 +268,20 @@ TSharedRef<SDockTab> FNiagaraEffectEditor::SpawnTab_EmitterList(const FSpawnTabA
 		SNew(SDockTab)
 		[
 			SAssignNew(EmitterEditorWidget, SNiagaraEffectEditorWidget).EffectInstance(EffectInstance).EffectEditor(this)
+		];
+
+
+	return SpawnedTab;
+}
+
+TSharedRef<SDockTab> FNiagaraEffectEditor::SpawnTab_DevEmitterList(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId().TabType == DevEmitterEditorTabID);
+
+	TSharedRef<SDockTab> SpawnedTab =
+		SNew(SDockTab)
+		[
+			SAssignNew(DevEmitterEditorWidget, SNiagaraEffectEditorWidget).EffectInstance(EffectInstance).EffectEditor(this).bForDev(true)
 		];
 
 
@@ -352,23 +381,70 @@ FReply FNiagaraEffectEditor::OnAddEmitterClicked()
 {
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
 
-	FNiagaraEmitterProperties *Props = Effect->AddEmitterProperties();
+	UNiagaraEmitterProperties *Props = Effect->AddEmitterProperties();
 	TSharedPtr<FNiagaraSimulation> NewEmitter = EffectInstance->AddEmitter(Props);
 	Effect->CreateEffectRendererProps(NewEmitter);
 	Viewport->SetPreviewEffect(EffectInstance);
 	EmitterEditorWidget->UpdateList();
+	DevEmitterEditorWidget->UpdateList();
+	
+	Effect->MarkPackageDirty();
+
+	return FReply::Handled();
+}
+
+FReply FNiagaraEffectEditor::OnDuplicateEmitterClicked(TSharedPtr<FNiagaraSimulation> Emitter)
+{
+	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>("NiagaraEditor");
+
+	if (UNiagaraEmitterProperties* ToDupe = Emitter->GetProperties().Get())
+	{
+		UNiagaraEmitterProperties *Props = CastChecked<UNiagaraEmitterProperties>(StaticDuplicateObject(ToDupe,Effect,NULL));
+		Effect->AddEmitterProperties(Props);
+		TSharedPtr<FNiagaraSimulation> NewEmitter = EffectInstance->AddEmitter(Props);
+		Effect->CreateEffectRendererProps(NewEmitter);
+		Viewport->SetPreviewEffect(EffectInstance);
+		EmitterEditorWidget->UpdateList();
+		DevEmitterEditorWidget->UpdateList();
+
+		Effect->MarkPackageDirty();
+	}
+	return FReply::Handled();
+}
+
+FReply FNiagaraEffectEditor::OnDeleteEmitterClicked(TSharedPtr<FNiagaraSimulation> Emitter)
+{
+	if (UNiagaraEmitterProperties* ToDelete = Emitter->GetProperties().Get())
+	{
+		Effect->DeleteEmitterProperties(ToDelete);
+		EffectInstance->DeleteEmitter(Emitter);
+		Viewport->SetPreviewEffect(EffectInstance);
+		EmitterEditorWidget->UpdateList();
+		DevEmitterEditorWidget->UpdateList();
+
+		Effect->MarkPackageDirty();
+	}
 	return FReply::Handled();
 }
 
 
 FReply FNiagaraEffectEditor::OnEmitterSelected(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType)
 {
-	if (SelectedItem.Get() != nullptr)
+ 	if (SelectedItem.Get() != nullptr)
 	{
-		if (SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().Num())
+		if (UNiagaraEmitterProperties* PinnedProps = SelectedItem->GetProperties().Get())
 		{
-			UNiagaraDataObject *DataObj = SelectedItem->GetProperties()->ExternalConstants.GetDataConstants().CreateConstIterator().Value();
-			TimeLine.Get()->SetCurve(static_cast<UNiagaraCurveDataObject*>(DataObj)->GetCurveObject());
+			if (PinnedProps->UpdateScriptProps.ExternalConstants.GetNumDataObjectConstants() > 0)
+			{
+				FNiagaraVariableInfo VarInfo;
+				UNiagaraDataObject* DataObj;
+				PinnedProps->UpdateScriptProps.ExternalConstants.GetDataObjectConstant(0, DataObj, VarInfo);
+
+				if (UNiagaraCurveDataObject* CurvObj = Cast<UNiagaraCurveDataObject>(DataObj))
+				{
+					TimeLine.Get()->SetCurve(CurvObj->GetCurveObject());
+				}
+			}
 		}
 	}
 	return FReply::Handled();

@@ -5,6 +5,7 @@
 #include "NiagaraEditorCommon.h"
 
 class UNiagaraNode;
+class UNiagaraDataObject;
 
 //Interface for Niagara compilers.
 class UNREALED_API INiagaraCompiler
@@ -25,6 +26,9 @@ public:
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default) = 0;
 	/** Creates an expression which fetches the named constant. */
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default) = 0;
+	/** Creates an expression which fetches the named CURVE. */
+	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default) = 0;
+
 	/** Creates an expression which fetches the named constant. */
 	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default) = 0;
 	/** Creates an expression which fetches the named constant. */
@@ -32,7 +36,7 @@ public:
 	/** Creates an expression which fetches the named constant. */
 	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default) = 0;
 	/** Creates an expression which fetches the named CURVE. */
-	virtual TNiagaraExprPtr GetExternalCurveConstant(const FNiagaraVariableInfo& Constant) = 0;
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default) = 0;
 
 	/** Creates an expression which writes the result of SourceExpression to the named attribute. */
 	virtual TNiagaraExprPtr Output(const FNiagaraVariableInfo& Attr, TNiagaraExprPtr& SourceExpression) = 0;

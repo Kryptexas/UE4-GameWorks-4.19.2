@@ -22,14 +22,15 @@ class NIAGARA_API UNiagaraEffect : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	FNiagaraEmitterProperties* AddEmitterProperties();
+	UNiagaraEmitterProperties* AddEmitterProperties(UNiagaraEmitterProperties *Props = nullptr);
+	void DeleteEmitterProperties(UNiagaraEmitterProperties *Props);
 
 	void Init()
 	{
 	}
 
 
-	FNiagaraEmitterProperties *GetEmitterProperties(int Idx)
+	UNiagaraEmitterProperties *GetEmitterProperties(int Idx)
 	{
 		check(Idx < EmitterProps.Num());
 		return EmitterProps[Idx];
@@ -42,15 +43,10 @@ public:
 
 	void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
 
-	virtual void PostLoad() override; 
-	virtual void PreSave() override;
-
 private:
-	// serialized array of emitter properties
-	UPROPERTY()
-	TArray<FNiagaraEmitterProperties>EmitterPropsSerialized;
 
-	TArray<FNiagaraEmitterProperties*> EmitterProps;
+	UPROPERTY()
+	TArray<UNiagaraEmitterProperties*> EmitterProps;
 };
 
 
@@ -106,7 +102,8 @@ public:
 		Age = 0.0f;
 	}
 
-	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(FNiagaraEmitterProperties *Properties);
+	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(UNiagaraEmitterProperties *Properties);
+	NIAGARA_API void DeleteEmitter(TSharedPtr<FNiagaraSimulation> Emitter);
 
 	void SetConstant(FNiagaraVariableInfo ID, const float Value)
 	{
@@ -128,58 +125,7 @@ public:
 		Constants.SetOrAdd(ConstantName, Value);
 	}
 
-
-
-	void Tick(float DeltaSeconds)
-	{
-		Constants.SetOrAdd(FName(TEXT("EffectGrid")), VolumeGrid); 
-
-		// pass the constants down to the emitter
-		// TODO: should probably just pass a pointer to the table
-		EffectBounds.Init();
-
-		for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
-		{
-			FNiagaraEmitterProperties *Props = it->GetProperties();
-
-			int Duration = Props->EndTime - Props->StartTime;
-			int LoopedStartTime = Props->StartTime + Duration*it->GetLoopCount();
-			int LoopedEndTime = Props->EndTime + Duration*it->GetLoopCount();
-
-			// manage emitter lifetime
-			//
-			if (	(Props->StartTime == 0.0f && Props->EndTime == 0.0f)
-					|| (LoopedStartTime<Age && LoopedEndTime>Age)
-				)
-			{
-				it->SetTickState(NTS_Running);
-			}
-			else
-			{
-				// if we're past end time, manage looping; we reset the emitters age constant
-				// if it has one
-				if (Props->NumLoops > 1 && it->GetLoopCount()<Props->NumLoops)
-				{
-					it->LoopRestart();
-				}
-				else
-				{
-					it->SetTickState(NTS_Dieing);
-				}
-			}
-
-			if (it->GetTickState() != NTS_Dead && it->GetTickState() != NTS_Suspended)
-			{
-				it->SetConstants(Constants);
-				it->GetConstants().Merge(it->GetProperties()->ExternalConstants);
-				it->Tick(DeltaSeconds);
-			}
-
-			EffectBounds += it->GetEffectRenderer()->GetBounds();
-		}
-
-		Age += DeltaSeconds;
-	}
+	void Tick(float DeltaSeconds);
 
 	NIAGARA_API void RenderModuleupdate();
 

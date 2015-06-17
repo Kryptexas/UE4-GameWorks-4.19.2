@@ -23,6 +23,7 @@ public class NiagaraEditor : ModuleRules
                 "Niagara",
                 "MovieSceneCore",
 				"Sequencer",
+				"PropertyEditor",
 			}
 		);
 
@@ -30,6 +31,7 @@ public class NiagaraEditor : ModuleRules
             new string[] {
 				"Engine",
                 "Niagara",
+				"PropertyEditor",
             }
         );
 
@@ -44,6 +46,7 @@ public class NiagaraEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
             new string[] {
                 "WorkspaceMenuStructure",
+				"PropertyEditor",
                 }
             );
 	}

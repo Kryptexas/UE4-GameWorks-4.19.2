@@ -28,79 +28,93 @@ enum EEmitterRenderModuleType
 };
 
 
+USTRUCT()
+struct FNiagaraEmitterScriptProperties
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Script")
+	UNiagaraScript *Script;
+
+	UPROPERTY(EditAnywhere, Category = "Script", meta = (ShowOnlyInnerProperties))
+	FNiagaraConstants ExternalConstants;
+
+	void Init(UNiagaraEmitterProperties* EmitterProps)
+	{
+		if (Script)
+		{
+			ExternalConstants.Init(EmitterProps, this);
+		}
+		else
+		{
+			ExternalConstants.Empty();
+		}
+	}
+};
 
 
 /** 
  *	FniagaraEmitterProperties stores the attributes of an FNiagaraSimulation
  *	that need to be serialized and are used for its initialization 
  */
-USTRUCT()
-struct FNiagaraEmitterProperties
+UCLASS(MinimalAPI)
+class UNiagaraEmitterProperties : public UObject
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_UCLASS_BODY()
 public:
-	FNiagaraEmitterProperties() : 
-		bIsEnabled(true),
-		SpawnRate(50),
-		UpdateScript(nullptr),
-		SpawnScript(nullptr),
-		Material(nullptr), 
-		RenderModuleType(RMT_Sprites),
-		StartTime(0.0f),
-		EndTime(0.0f),
-		RendererProperties(nullptr),
-		NumLoops(0)
+	void Init()
 	{
-		Name = FString(TEXT("New Emitter"));
+		SpawnScriptProps.Init(this);
+		UpdateScriptProps.Init(this);
 	}
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
-	FString Name;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+
+	//Begin UObject Interface
+	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
+	void PostLoad();
+	void Serialize(FArchive& Ar);
+	//End UObject Interface
+
+	UPROPERTY(EditAnywhere, Category = "Emitter")
+	FString EmitterName;
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	bool bIsEnabled;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	float SpawnRate;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
-	UNiagaraScript *UpdateScript;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
-	UNiagaraScript *SpawnScript;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	UMaterial *Material;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	TEnumAsByte<EEmitterRenderModuleType> RenderModuleType;
 
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	float StartTime;
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	float EndTime;
-
 
 	UPROPERTY()
 	class UNiagaraEffectRendererProperties *RendererProperties;
 
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
-	FNiagaraConstantMap ExternalConstants;		// these are the update script constants from the effect editor; will be added to the emitter's constant map
-
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
-	FNiagaraConstantMap ExternalSpawnConstants;		// these are the spawn script constants from the effect editor; will be added to the emitter's constant map
-
-	UPROPERTY(EditAnywhere, Category = "Emitter Properties")
+	UPROPERTY(EditAnywhere, Category = "Emitter")
 	int32 NumLoops;
+
+	UPROPERTY(EditAnywhere, Category = "Emitter", meta = (ShowOnlyInnerProperties))
+	FNiagaraEmitterScriptProperties UpdateScriptProps;
+
+	UPROPERTY(EditAnywhere, Category = "Emitter", meta = (ShowOnlyInnerProperties))
+	FNiagaraEmitterScriptProperties SpawnScriptProps;
 };
 
-
-
 /**
-* A niagara particle simulation.
+* A Niagara particle simulation.
 */
 struct FNiagaraSimulation
 {
 public:
-	explicit FNiagaraSimulation(FNiagaraEmitterProperties *InProps, UNiagaraEffect *Effect);
-	FNiagaraSimulation(FNiagaraEmitterProperties *Props, UNiagaraEffect *Effect, ERHIFeatureLevel::Type InFeatureLevel);
+	explicit FNiagaraSimulation(TWeakObjectPtr<UNiagaraEmitterProperties> InProps, UNiagaraEffect* Effect);
+	FNiagaraSimulation(TWeakObjectPtr<UNiagaraEmitterProperties> Props, UNiagaraEffect* Effect, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FNiagaraSimulation()
 	{}
 
-	void Init();
+	NIAGARA_API void Init();
 
 	void Tick(float DeltaSeconds);
 
@@ -121,16 +135,14 @@ public:
 
 	int32 GetNumParticles()	{ return Data.GetNumParticles(); }
 
-	FNiagaraEmitterProperties *GetProperties()	{ return Props; }
-	void SetProperties(FNiagaraEmitterProperties *InProps);
+	TWeakObjectPtr<UNiagaraEmitterProperties> GetProperties()	{ return Props; }
+	void SetProperties(TWeakObjectPtr<UNiagaraEmitterProperties> InProps);
 
 	UNiagaraEffect *GetParentEffect()	{ return ParentEffect; }
 
 	float NIAGARA_API GetTotalCPUTime();
 	int	NIAGARA_API GetTotalBytesUsed();
 
-	void NIAGARA_API SetSpawnScript(UNiagaraScript* Script);
-	void NIAGARA_API SetUpdateScript(UNiagaraScript* Script);
 	void NIAGARA_API SetEnabled(bool bEnabled);
 
 	float GetAge() { return Age; }
@@ -145,7 +157,7 @@ public:
 	ENiagaraTickState NIAGARA_API GetTickState()	{ return TickState; }
 	void NIAGARA_API SetTickState(ENiagaraTickState InState)	{ TickState = InState; }
 private:
-	FNiagaraEmitterProperties *Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
+	TWeakObjectPtr<UNiagaraEmitterProperties> Props;		// points to an entry in the array of FNiagaraProperties stored in the EffectInstance (itself pointing to the effect's properties)
 
 	/* The age of the emitter*/
 	float Age;

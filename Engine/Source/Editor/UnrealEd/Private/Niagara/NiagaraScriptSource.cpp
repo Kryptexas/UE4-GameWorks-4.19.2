@@ -106,8 +106,10 @@ void UNiagaraScriptSource::Compile()
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 	NiagaraEditorModule.CompileScript(ScriptOwner);
 
-	FNiagaraConstants& ExternalConsts = ScriptOwner->ConstantData.ExternalConstants;
+	FNiagaraConstants& ExternalConsts = ScriptOwner->ConstantData.ExposedConstants;
 
+	//Build the constant list. 
+	//This is mainly just jumping through some hoops for the custom UI. Should be removed and have the UI just read directly from the constants stored in the UScript.
 	const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(NodeGraph->GetSchema());
 	ExposedVectorConstants.Empty();
 	for (int32 ConstIdx = 0; ConstIdx < ExternalConsts.GetNumVectorConstants(); ConstIdx++)
@@ -130,9 +132,13 @@ void UNiagaraScriptSource::Compile()
 	{
 		EditorExposedVectorCurveConstant *Const = new EditorExposedVectorCurveConstant();
 		FNiagaraVariableInfo Info;
-		UNiagaraDataObject* Dummy;
-		ExternalConsts.GetDataObjectConstant(ConstIdx, Dummy, Info);
+		UNiagaraDataObject* Obj;
+		ExternalConsts.GetDataObjectConstant(ConstIdx, Obj, Info);
 		Const->ConstName = Info.Name;
+		if (UNiagaraCurveDataObject* CurvObj = Cast<UNiagaraCurveDataObject>(Obj))
+		{
+			Const->Value = CurvObj->CurveObj;
+		}
 		//Set default value for this too?
 		ExposedVectorCurveConstants.Add(MakeShareable(Const));
 	}

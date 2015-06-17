@@ -13,7 +13,10 @@ struct FNiagaraScriptConstantData
 
 	/** The set of external constants for this script. */
 	UPROPERTY()
-	FNiagaraConstants ExternalConstants;
+	FDeprecatedNiagaraConstants ExternalConstants_DEPRECATED;
+
+	UPROPERTY()
+	FNiagaraConstants ExposedConstants;
 
 	/** The set of internal constants for this script. */
 	UPROPERTY()
@@ -21,7 +24,7 @@ struct FNiagaraScriptConstantData
 
 	void Empty()
 	{
-		ExternalConstants.Empty();
+		ExposedConstants.Empty();
 		InternalConstants.Empty();
 	}
 
@@ -31,8 +34,8 @@ struct FNiagaraScriptConstantData
 		//First up in the table comes the External constants in scalar->vector->matrix order.
 		//Only fills the constants actually used by the script.
 		OutConstantTable.Empty();
-		ExternalConstants.AppendToConstantsTable(OutConstantTable, ExternalConstantsMap);
-		ExternalConstants.AppendExternalBufferConstants(DataObjTable, ExternalConstantsMap);
+		ExposedConstants.AppendToConstantsTable(OutConstantTable, ExternalConstantsMap);
+		ExposedConstants.AppendExternalBufferConstants(DataObjTable, ExternalConstantsMap);
 		//Next up add all the internal constants from the script.
 		InternalConstants.AppendToConstantsTable(OutConstantTable);
 		InternalConstants.AppendBufferConstants(DataObjTable);
@@ -47,7 +50,7 @@ struct FNiagaraScriptConstantData
 	template<typename T>
 	void SetOrAddExternal(const FNiagaraVariableInfo& Constant, const T& Value)
 	{
-		ExternalConstants.SetOrAdd(Constant, Value);
+		ExposedConstants.SetOrAdd(Constant, Value);
 	}
 
 	/**
@@ -56,11 +59,11 @@ struct FNiagaraScriptConstantData
 	*/
 	void GetTableIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutConstantIdx, int32& OutComponentIndex, ENiagaraDataType& OutType)const
 	{
-		int32 Base = bInternal ? ExternalConstants.GetTableSize() : 0;
+		int32 Base = bInternal ? ExposedConstants.GetTableSize() : 0;
 		int32 ConstIdx = INDEX_NONE;
 		int32 CompIdx = INDEX_NONE;
 		ENiagaraDataType Type;
-		const FNiagaraConstants& Consts = bInternal ? InternalConstants : ExternalConstants;
+		const FNiagaraConstants& Consts = bInternal ? InternalConstants : ExposedConstants;
 
 		ConstIdx = Consts.GetAbsoluteIndex_Scalar(Constant);
 		Type = ENiagaraDataType::Scalar;

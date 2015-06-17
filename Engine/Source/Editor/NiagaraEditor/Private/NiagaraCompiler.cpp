@@ -331,6 +331,12 @@ TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo
 	SetOrAddConstant(false, Constant, Default);
 	return Expression_GetExternalConstant(Constant);
 }
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default)
+{
+	UNiagaraDataObject* DefaultDupe = Default ? CastChecked<UNiagaraDataObject>(StaticDuplicateObject(Default, Script, NULL, ~RF_Transient)) : nullptr;
+	SetOrAddConstant(false, Constant, DefaultDupe);
+	return Expression_GetExternalConstant(Constant);
+}
 TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default)
 {
 	SetOrAddConstant(true, Constant, Default);
@@ -346,11 +352,11 @@ TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo
 	SetOrAddConstant(true, Constant, Default);
 	return Expression_GetInternalConstant(Constant);
 }
-
-TNiagaraExprPtr FNiagaraCompiler::GetExternalCurveConstant(const FNiagaraVariableInfo& Constant)
+TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default)
 {
-	SetOrAddConstant<UNiagaraDataObject*>(false, Constant, nullptr);
-	return Expression_GetExternalConstant(Constant);
+	UNiagaraDataObject* DefaultDupe = Default ? CastChecked<UNiagaraDataObject>(StaticDuplicateObject(Default, Script, NULL, ~RF_Transient)) : nullptr;
+	SetOrAddConstant(true, Constant, DefaultDupe);
+	return Expression_GetInternalConstant(Constant);
 }
 
 // TODO: Refactor this (and some other stuff) into a preprocessing step for use by any compiler?
@@ -413,9 +419,12 @@ bool FNiagaraCompiler::MergeInFunctionNodes()
 				FName OutputName(*FuncCallOutputPin->PinName);
 				for (UEdGraphPin* LinkTo : FuncCallOutputPin->LinkedTo)
 				{
-					check(LinkTo->Direction == EGPD_Input);
-					FReconnectionInfo& OutputConnection = OutputConnections.FindOrAdd(OutputName);
-					OutputConnection.To.Add(LinkTo);
+					if (LinkTo)
+					{
+						check(LinkTo->Direction == EGPD_Input);
+						FReconnectionInfo& OutputConnection = OutputConnections.FindOrAdd(OutputName);
+						OutputConnection.To.Add(LinkTo);
+					}
 				}
 			}
 

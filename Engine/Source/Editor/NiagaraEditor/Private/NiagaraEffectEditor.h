@@ -12,7 +12,7 @@
 
 /** Viewer/editor for a NiagaraEffect
 */
-class FNiagaraEffectEditor : public INiagaraEffectEditor
+class FNiagaraEffectEditor : public INiagaraEffectEditor, public FNotifyHook
 {
 
 public:
@@ -44,6 +44,10 @@ public:
 		return MakeShareable(new FNiagaraTrackEditor(InSequencer) );
 	}
 
+	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
+
+	FReply OnDeleteEmitterClicked(TSharedPtr<FNiagaraSimulation> Emitter);
+	FReply OnDuplicateEmitterClicked(TSharedPtr<FNiagaraSimulation> Emitter);
 private:
 	/** Create widget for graph editing */
 	TSharedRef<class SNiagaraEffectEditorWidget> CreateEditorWidget(UNiagaraEffect* InEffect);
@@ -53,10 +57,12 @@ private:
 
 	TSharedPtr<SNiagaraEffectEditorViewport>	Viewport;
 	TSharedPtr<SNiagaraEffectEditorWidget>	EmitterEditorWidget;
+	TSharedPtr<SNiagaraEffectEditorWidget>	DevEmitterEditorWidget;
 	TSharedPtr< SNiagaraTimeline > TimeLine;
-
+	
 	TSharedRef<SDockTab> SpawnTab_Viewport(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_EmitterList(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_DevEmitterList(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_CurveEd(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Sequencer(const FSpawnTabArgs& Args);
 
@@ -85,6 +91,7 @@ private:
 	static const FName UpdateTabId;
 	static const FName ViewportTabID;
 	static const FName EmitterEditorTabID;
+	static const FName DevEmitterEditorTabID;
 	static const FName CurveEditorTabID;
 	static const FName SequencerTabID;
 };

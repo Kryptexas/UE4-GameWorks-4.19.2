@@ -12,6 +12,7 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 , MatrixDefault(FMatrix::Identity)
 , bCanBeExposed(true)
 , bExposeWhenConstant(true)
+, DataObjectDefault(nullptr)
 {
 }
 
@@ -122,6 +123,8 @@ void UNiagaraNodeInput::ReallocatePins()
 #endif
 	}
 	OldPins.Empty();
+
+	GetGraph()->NotifyGraphChanged();
 }
 
 void UNiagaraNodeInput::AllocateDefaultPins()
@@ -186,18 +189,18 @@ void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<FNiagar
 			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, FloatDefault), Pins[0]));	break;
 			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, VectorDefault), Pins[0]));	break;
 			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, MatrixDefault), Pins[0]));	break;
-			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;
+			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, DataObjectDefault), Pins[0]));	break;
 			}
 		}
 		else
 		{
-			//treat this input as an external constant.
+			//treat this input as an internal constant.
 			switch (Input.Type)
 			{
 			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, FloatDefault), Pins[0]));	break;
 			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, VectorDefault), Pins[0]));	break;
 			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, MatrixDefault), Pins[0]));	break;
-			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;//Internal curve Constant?
+			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, DataObjectDefault), Pins[0]));	break;//Internal curve Constant?
 			}
 		}
 	}
