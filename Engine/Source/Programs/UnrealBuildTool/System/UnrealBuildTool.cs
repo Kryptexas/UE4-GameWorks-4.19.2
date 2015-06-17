@@ -2772,12 +2772,18 @@ namespace UnrealBuildTool
 		public override void WriteLine(string message)
 		{
 			// strip off the message code
-			int Code = Convert.ToInt32(message.Substring(0, 3), 16);
-
-			// filter based on the message code
-			if (Code < (int)TraceEventType.Verbose || Log.bIsVerbose)
+			int Code = 0;
+			if (Int32.TryParse(message.Substring(0, 3), System.Globalization.NumberStyles.HexNumber, null, out Code))
 			{
-				base.WriteLine(message.Substring(3));
+				// filter based on the message code
+				if (Code < (int)TraceEventType.Verbose || Log.bIsVerbose)
+				{
+					base.WriteLine(message.Substring(3));
+				}
+			}
+			else
+			{
+				base.WriteLine(message);
 			}
 		}
 
