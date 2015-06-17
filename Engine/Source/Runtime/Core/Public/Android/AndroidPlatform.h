@@ -26,7 +26,6 @@ typedef FAndroidTypes FPlatformTypes;
 
 // Base defines, must define these for the platform, there are no defaults
 #define PLATFORM_DESKTOP				0
-#define PLATFORM_64BITS					0
 #define PLATFORM_CAN_SUPPORT_EDITORONLY_DATA	0
 
 // Base defines, defaults are commented out

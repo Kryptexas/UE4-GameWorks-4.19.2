@@ -29,7 +29,7 @@ namespace UnrealBuildTool.Rules
 				}
 				);
 
-			if (Target.Platform == UnrealTargetPlatform.Android && Target.Architecture == "-armv7")
+			if (Target.Platform == UnrealTargetPlatform.Android)
 			{
 				PrivateDependencyModuleNames.AddRange(new string[] { "LibOVRMobile" });
 			}

@@ -863,7 +863,7 @@ void SSplitter2x2::ResizeChildren( const FGeometry& MyGeometry, const TArray<FLa
 		NewSizeBL.X = BotLeftSize.X + Delta.X;
 
 		//workaround PS4 compiler crash.
-#if PLATFORM_PS4
+#if PLATFORM_PS4 || PLATFORM_ANDROID_X64
 		volatile float workaround = 0.0f;
 		NewSizeTR.X = TopRightSize.X - Delta.X + workaround;
 #else

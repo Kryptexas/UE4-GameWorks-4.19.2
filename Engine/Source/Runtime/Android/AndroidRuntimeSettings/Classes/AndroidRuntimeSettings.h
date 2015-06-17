@@ -203,9 +203,9 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86"))
 	bool bBuildForX86;
 
-//	// Enable x86-64 support?
-//	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86_64 [aka x64]"))
-//	bool bBuildForX8664;
+	// Enable x86-64 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support x86_64 [aka x64]"))
+	bool bBuildForX8664;
 
 	// Enable ES2 support? [CURRENTLY FOR FULL SOURCE GAMES ONLY]
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support OpenGL ES2"))

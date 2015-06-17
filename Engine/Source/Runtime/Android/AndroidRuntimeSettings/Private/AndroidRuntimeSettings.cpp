@@ -18,7 +18,7 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	// Ensure that at least one architecture is supported
-	if (!bBuildForArmV7 && !bBuildForX86)// && !bBuildForArm64 && !bBuildForX8664)
+	if (!bBuildForArmV7 && !bBuildForX86 && !bBuildForX8664)// && !bBuildForArm64)
 	{
 		bBuildForArmV7 = true;
 	}

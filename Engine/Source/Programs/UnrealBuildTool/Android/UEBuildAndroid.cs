@@ -130,7 +130,8 @@ namespace UnrealBuildTool
             NDKPath = NDKPath.Replace("\"", "");
 
             // need a supported llvm
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
             {
@@ -350,19 +351,21 @@ namespace UnrealBuildTool
 
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
-			// we want gcc toolchain 4.8, but fall back to 4.6 for now if it doesn't exist
+			// we want gcc toolchain 4.9, but fall back to 4.8 or 4.6 for now if it doesn't exist
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 			NDKPath = NDKPath.Replace("\"", "");
 
-			string GccVersion = "4.8";
-			if (!Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
+			string GccVersion = "4.6";
+			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
 			{
-				GccVersion = "4.6";
+				GccVersion = "4.9";
+			}
+			else if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
+			{
+				GccVersion = "4.8";
 			}
 
-
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_DESKTOP=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_64BITS=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_CAN_SUPPORT_EDITORONLY_DATA=0");
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_OGGVORBIS=1");
@@ -372,14 +375,6 @@ namespace UnrealBuildTool
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_ANDROID=1");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID=1");
-			switch (GetActiveArchitecture())
-			{
-				case "-armv7":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_ARM=1");		break;
-				case "-arm64":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_ARM64=1");	break;
-				case "-x86":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_X86=1");		break;
-				case "-x64":	InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_X64=1");		break;
-				default:		InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("ANDROID_ARM=1");		break;
-			}
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
@@ -390,17 +385,23 @@ namespace UnrealBuildTool
 			
 			// the toolchain will actually filter these out
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a/include");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64/include");
 
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64");
 
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
 
             // Add path to statically compiled version of cxa_demangle
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/arm64-v8a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x64");
 
 			//@TODO: Tegra Gfx Debugger
 //			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
