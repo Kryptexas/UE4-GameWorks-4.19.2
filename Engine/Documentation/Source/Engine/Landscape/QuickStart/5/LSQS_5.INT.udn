@@ -60,11 +60,11 @@ To fix this, we need to create three **Landscape Layer Info Objects**, one for e
 
 	![](T_Landscape_Target_Layers.png)
 
-1. To the right of the names, there is an icon of a **Plus Sign.** Clicking on the Plus sign icon will bring up another menu that will ask what type of layer you would like to add. For this example, please pick the **Weight-Blended Layer(normal)** option.
+1. To the right of the names, there is an icon of a **Plus Sign.** Clicking on the Plus sign icon will bring up another menu that will ask what type of layer you would like to add. For this example, please pick the **Weight-Blended Layer (normal)** option.
 	
 	![](T_Landscape_Blend_Layer.png)
 
-1. When you select the **Weight-Blended Layer(normal)** option, you will be prompted with a pop-up box that is asking you where you want to save the newly created **Landscape Layer Info Objects**. Select the **Resources** folder that is under the **Landscape folder** and then press the **OK** button.
+1. When you select the **Weight-Blended Layer (normal)** option, you will be prompted with a pop-up box that is asking you where you want to save the newly created **Landscape Layer Info Objects**. Select the **Resources** folder that is under the **Landscape folder** and then press the **OK** button.
 	
 	![](T_Landscape_Layer_Info_Save.png)
 
