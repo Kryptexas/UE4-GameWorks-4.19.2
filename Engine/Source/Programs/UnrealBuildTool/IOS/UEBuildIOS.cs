@@ -27,6 +27,8 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static string ShippingArchitectures = "armv7,arm64";
 
+		private bool bInitializedProject = false;
+
 		public string GetRunTimeVersion()
 		{
 			return RunTimeIOSVersion;
@@ -141,99 +143,104 @@ namespace UnrealBuildTool
 
 		public override void SetUpProjectEnvironment(UnrealTargetPlatform InPlatform)
 		{
-			base.SetUpProjectEnvironment(InPlatform);
-
-			// update the configuration based on the project file
-			// look in ini settings for what platforms to compile for
-			ConfigCacheIni Ini = new ConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
-			string MinVersion = "IOS_6";
-			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
+			if (!bInitializedProject)
 			{
-				switch (MinVersion)
+				base.SetUpProjectEnvironment(InPlatform);
+
+				// update the configuration based on the project file
+				// look in ini settings for what platforms to compile for
+				ConfigCacheIni Ini = new ConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
+				string MinVersion = "IOS_6";
+				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
 				{
-					case "IOS_61":
-						RunTimeIOSVersion = "6.1";
-						break;
-					case "IOS_7":
-						RunTimeIOSVersion = "7.0";
-						break;
-					case "IOS_8":
-						RunTimeIOSVersion = "8.0";
-						break;
+					switch (MinVersion)
+					{
+						case "IOS_61":
+							RunTimeIOSVersion = "6.1";
+							break;
+						case "IOS_7":
+							RunTimeIOSVersion = "7.0";
+							break;
+						case "IOS_8":
+							RunTimeIOSVersion = "8.0";
+							break;
+					}
 				}
-			}
 
-			bool biPhoneAllowed = true;
-			bool biPadAllowed = true;
-			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPhone", out biPhoneAllowed);
-			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPad", out biPadAllowed);
-			if (biPhoneAllowed && biPadAllowed)
-			{
-				RunTimeIOSDevices = "1,2";
-			}
-			else if (biPadAllowed)
-			{
-				RunTimeIOSDevices = "2";
-			}
-			else if (biPhoneAllowed)
-			{
-				RunTimeIOSDevices = "1";
-			}
+				bool biPhoneAllowed = true;
+				bool biPadAllowed = true;
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPhone", out biPhoneAllowed);
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bSupportsIPad", out biPadAllowed);
+				if (biPhoneAllowed && biPadAllowed)
+				{
+					RunTimeIOSDevices = "1,2";
+				}
+				else if (biPadAllowed)
+				{
+					RunTimeIOSDevices = "2";
+				}
+				else if (biPhoneAllowed)
+				{
+					RunTimeIOSDevices = "1";
+				}
 
-			List<string> ProjectArches = new List<string>();
-			bool bBuild = true;
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("arm64");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7s");
-			}
+				List<string> ProjectArches = new List<string>();
+				bool bBuild = true;
+				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bBuild) && bBuild)
+				{
+					ProjectArches.Add("armv7");
+				}
+				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bBuild) && bBuild)
+				{
+					ProjectArches.Add("arm64");
+				}
+				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bBuild) && bBuild)
+				{
+					ProjectArches.Add("armv7s");
+				}
 
-			// force armv7 if something went wrong
-			if (ProjectArches.Count == 0)
-			{
-				ProjectArches.Add("armv7");
-			}
-			NonShippingArchitectures = ProjectArches[0];
-			for (int Index = 1; Index < ProjectArches.Count; ++Index)
-			{
-				NonShippingArchitectures += "," + ProjectArches[Index];
-			}
+				// force armv7 if something went wrong
+				if (ProjectArches.Count == 0)
+				{
+					ProjectArches.Add("armv7");
+				}
+				NonShippingArchitectures = ProjectArches[0];
+				for (int Index = 1; Index < ProjectArches.Count; ++Index)
+				{
+					NonShippingArchitectures += "," + ProjectArches[Index];
+				}
 
-			ProjectArches.Clear();
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("arm64");
-			}
-			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bBuild) && bBuild)
-			{
-				ProjectArches.Add("armv7s");
-			}
+				ProjectArches.Clear();
+				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bBuild) && bBuild)
+				{
+					ProjectArches.Add("armv7");
+				}
+				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bBuild) && bBuild)
+				{
+					ProjectArches.Add("arm64");
+				}
+				if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bBuild) && bBuild)
+				{
+					ProjectArches.Add("armv7s");
+				}
 
-			// force armv7 if something went wrong
-			if (ProjectArches.Count == 0)
-			{
-				ProjectArches.Add("armv7");
-				ProjectArches.Add("arm64");
-			}
-			ShippingArchitectures = ProjectArches[0];
-			for (int Index = 1; Index < ProjectArches.Count; ++Index)
-			{
-				ShippingArchitectures += "," + ProjectArches[Index];
-			}
+				// force armv7 if something went wrong
+				if (ProjectArches.Count == 0)
+				{
+					ProjectArches.Add("armv7");
+					ProjectArches.Add("arm64");
+				}
+				ShippingArchitectures = ProjectArches[0];
+				for (int Index = 1; Index < ProjectArches.Count; ++Index)
+				{
+					ShippingArchitectures += "," + ProjectArches[Index];
+				}
 
-			// determine if we need to generate the dsym
-			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+				// determine if we need to generate the dsym
+				Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateSYMFile", out BuildConfiguration.bGeneratedSYMFile);
+
+				bInitializedProject = true;
+			}
 		}
 
 		/**
