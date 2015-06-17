@@ -682,6 +682,11 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 	bDirectoryHasChanged = false;
 	DirectoryWatcher = nullptr;
 
+	if (CurrentPath.Get().Len() > 0 && !CurrentPath.Get().EndsWith("/"))
+	{
+		CurrentPath = CurrentPath.Get() + TEXT("/");
+	}
+ 
 #if ENABLE_DIRECTORY_WATCHER	
 	if (!FModuleManager::Get().IsModuleLoaded("DirectoryWatcher"))
 	{
