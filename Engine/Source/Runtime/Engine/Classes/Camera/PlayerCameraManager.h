@@ -595,7 +595,7 @@ public:
 	 * @param NewViewTarget - New viewtarget actor.
 	 * @param TransitionParams - Optional parameters to define the interpolation from the old viewtarget to the new. Transition will be instant by default.
 	 */
-	void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
+	virtual void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
 	
 	/** 
 	 * Called to give PlayerCameraManager a chance to adjust view rotation updates before they are applied. 
