@@ -753,7 +753,7 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked()
 		{
 			if (ISourceControlModule::Get().IsEnabled())
 			{
-				if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultNeedsCheckoutMessage", "The default configuration file for these settings is currently not checked out. Would you like to check it out from source control?")) != EAppReturnType::Yes)
+				if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("SaveAsDefaultNeedsCheckoutMessage", "The default configuration file for these settings is currently not checked out. Would you like to check it out from source control? \n\nIf checked into source control this would affect other developers.")) != EAppReturnType::Yes)
 				{
 					return FReply::Handled();
 				}
@@ -773,7 +773,7 @@ FReply SSettingsEditor::HandleSetAsDefaultButtonClicked()
 
 		SelectedSection->SaveDefaults();
 
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SaveAsDefaultsSucceededMessage", "The default configuration file for these settings was updated successfully."));
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("SaveAsDefaultsSucceededMessage", "The default configuration file for these settings was updated successfully. \n\nIf checked into source control this would affect other developers."));
 	}
 
 	return FReply::Handled();
