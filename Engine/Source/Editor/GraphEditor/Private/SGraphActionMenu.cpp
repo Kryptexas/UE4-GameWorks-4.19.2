@@ -969,7 +969,7 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 	}
 
 	TSharedPtr<SHorizontalBox> RowContainer;
-	TableRow->SetContent
+	TableRow->SetRowContent
 	( 
 		SAssignNew(RowContainer, SHorizontalBox)
 	);
