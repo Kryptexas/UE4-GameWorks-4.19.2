@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516509
+﻿INTSourceChangelist:2589290
 Availability:Public
 Title:ランドスケープ UI のリファレンス
 Crumbs:%ROOT%, Engine, Engine/Landscape
@@ -41,7 +41,7 @@ Description:ランドスケープツールのユーザーインターフェー�
 [/VAR]
 
 [VAR:AplhaBrush]
-![](Engine/Landscape\icon_Landscape_Brush_Alpha_40x.png)(convert:false) | **Alpha Brush** | 筆さばきで、マスクイメージを配置します。マスクとなる選択イメージの中から使用するチャネルを選ぶことができます。 |
+![](Engine/Landscape\icon_Landscape_Brush_Alpha_40x.png)(convert:false) | **Alpha Brush** | ブラシ ストロークで、マスクイメージの向きを合わせます。マスクとなる選択イメージの中から使用するチャンネルを選ぶことができます。 |
 [/VAR]
 
 [VAR:PatBrush]
@@ -49,11 +49,11 @@ Description:ランドスケープツールのユーザーインターフェー�
 [/VAR]
 
 [VAR:CompBrush]
-![](Engine/Landscape\icon_Landscape_Brush_Component_40x.png)(convert:false) | **Component Brush** | これは全コンポーネントを上下に動かすことでランドスケープ コンポーネントでのみ機能します。ブラシのサイズは一回で影響を受けるセクション数を定義します。
+![](Engine/Landscape\icon_Landscape_Brush_Component_40x.png)(convert:false) | **Component Brush** | これは全コンポーネントを上下に動かすことでランドスケープ コンポーネントでのみ機能します。ブラシのサイズによって一回で影響を受けるセクション数が決まります。
 [/VAR]
 
 [VAR:GizBrush]
-![](Engine/Landscape\icon_Landscape_Brush_Gizmo_40x.png)(convert:false)  | **Gizmo Brush** | コピーあるいは貼り付け領域を定義します。通常のコピー/貼り付けと異なり、「.raw」 と 「.r16」 ファイルからギズモ内に貼り付けるデータをインポートすることもできます。 |
+![](Engine/Landscape\icon_Landscape_Brush_Gizmo_40x.png)(convert:false)  | **Gizmo Brush** | コピー元あるいは貼り付け先の領域を定義します。通常のコピー/貼り付けと異なり、「.raw」 と 「.r16」 ファイルからギズモ内に貼り付けるデータをインポートすることもできます。 |
 [/VAR]
 
 [VAR:SmoothFalloff]
@@ -97,7 +97,7 @@ Description:ランドスケープツールのユーザーインターフェー�
 [/VAR]
 
 [VAR:ErosionTool]
-![](Engine/Landscape\icon_Landscape_Tool_Erosion_40x.png)(convert:false) | **Erosion Tool** | このツールは、高さマップの高さを調整するために熱による浸食のシミュレーションを使用します。高度が高いところから低いところまでの土壌の動きをシミュレートします。高度の差異が大きくなると、浸食が大きくなります。このツールでは、より自然でランダムな外観を作成するために、必要に応じて、浸食に加えてノイズ エフェクトを適用することもできます。 |
+![](Engine/Landscape\icon_Landscape_Tool_Erosion_40x.png)(convert:false) | **Erosion Tool** | このツールは、高さマップの高さを調整するために熱による浸食のシミュレーションを使用します。高度が高いところから低いところまでの土壌の動きをシミュレートします。高度差が大きくなると、浸食が大きくなります。このツールでは、より自然でランダムな外観を作成するために、必要に応じて、浸食に加えてノイズ エフェクトを適用することもできます。 |
 [/VAR]
 
 [VAR:HydroTool]
