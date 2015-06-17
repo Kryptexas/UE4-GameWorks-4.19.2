@@ -3643,6 +3643,9 @@ void StaticExit()
 		return;
 	}
 
+	// Delete all linkers are pending destroy
+	DeleteLoaders();
+
 	// Cleanup root.
 	if (GObjTransientPkg != NULL)
 	{
@@ -3719,8 +3722,7 @@ void StaticExit()
 	UObjectBaseShutdown();
 	// Empty arrays to prevent falsely-reported memory leaks.
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
-	// Delete all linkers are pending destroy
-	DeleteLoaders();
+
 	UE_LOG(LogExit, Log, TEXT("Object subsystem successfully closed.") );
 }
 
