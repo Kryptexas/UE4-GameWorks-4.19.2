@@ -117,7 +117,7 @@ if [ -e /etc/os-release ]; then
     if [ "$MISSING" = true ]; then
       echo "Attempting to install missing packages: $DEPS"
       set -x
-      sudo pacman -Sy --needed --noconfirm $DEPS
+      sudo pacman -S --needed --noconfirm $DEPS
       set +x
     fi
   fi
