@@ -32,7 +32,7 @@ The objective of this step is to apply our **Material** to the Static Mesh we im
 
 (#Bookmark1)
 
-This section will show you how to set a Static Mesh Actor’s default material. The default material will be used whenever an Actor is placed in the level.
+This section will show you how to set a Static Mesh Actorï¿½s default material. The default material will be used whenever an Actor is placed in the level.
 
 1.	From the **Content Browser**, **Double-click** the asset you imported earlier in this guide.
 
@@ -68,7 +68,7 @@ This section will show you how to set a Static Mesh Actor’s default material. Th
 
 When we placed a **Static Mesh** object in our level, we created an instance of our object (an [__Actor__](Engine/Actors "%Engine/Actors:description%")). For every instance of that Actor, we're able to specify its Material.
 
-Here’s how you change a **Static Mesh Actor's** Material.
+Hereï¿½s how you change a **Static Mesh Actor's** Material.
 
 1.	Select your **Static Mesh Actor**.
 

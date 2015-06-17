@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:4. Creating Blend Spaces
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
 Description:In this step we are going to set up Blend Spaces for our movement states so we can blend between animations when moving in different directions. 

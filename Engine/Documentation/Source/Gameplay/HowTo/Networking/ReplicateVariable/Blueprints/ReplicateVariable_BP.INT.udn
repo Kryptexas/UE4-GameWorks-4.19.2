@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:How to Replicate Variables in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
 Description:Guide to using Replicated and RepNotify Variables in Blueprints.

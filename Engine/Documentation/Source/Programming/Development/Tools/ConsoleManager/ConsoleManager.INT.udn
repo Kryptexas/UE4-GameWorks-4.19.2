@@ -87,7 +87,7 @@ Getting the state of console variables created with `RegisterConsoleVariableRef`
 	// get the value on the game thread
 	int32 MyVar = CVarRefractionQuality.GetValueOnGameThread();
 
-Using Getter functions (ie. !GetInt(), !GetFloat(), !GetString()) to determine a console variable’s state results in a slightly slower implementation (virtual function call, possibly cache miss, etc.).
+Using Getter functions (ie. !GetInt(), !GetFloat(), !GetString()) to determine a console variableï¿½s state results in a slightly slower implementation (virtual function call, possibly cache miss, etc.).
 For best performance you should use same type the variable was registered with. In order to get the pointer to the variable, you can either store the return
 argument of the register function or call `FindConsoleVariable` just before you need the variable. Example:
 

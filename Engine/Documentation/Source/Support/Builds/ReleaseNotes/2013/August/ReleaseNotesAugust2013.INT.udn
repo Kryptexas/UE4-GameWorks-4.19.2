@@ -54,7 +54,7 @@ Template:ReleaseNotes.html
 	![](safe1.png)(w:420)
 	* Normal selection still works with LMB, and click the RMB to bring the UI right back. 
 	![](safe2.png)(w:420)  ![](safe3.png)(w:420)
-		* You can even combine the HideUI function with Game View to completely clear the viewport, as seen above…
+		* You can even combine the HideUI function with Game View to completely clear the viewport, as seen aboveï¿½
 	* Safe Frames: If a camera actor is selected and the following criteria are met, the editor viewports now render safe frames based on the camera's aspect ratio setting:
 		* Game View must be off.
 		* The Safe Frames Show flag is on (**Show > Advanced**).

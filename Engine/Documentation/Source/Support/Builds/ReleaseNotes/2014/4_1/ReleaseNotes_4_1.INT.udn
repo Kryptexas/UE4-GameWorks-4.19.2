@@ -255,7 +255,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 * **DiCoJamesTan (James Tan)**
     * [Fix attachment bug with ChildActorComponent ](https://github.com/EpicGames/UnrealEngine/pull/20)
 
-* **fxtentacle (Hajo Nils Krabbenhöft)**
+* **fxtentacle (Hajo Nils Krabbenhï¿½ft)**
     * [Fix Azimuth & Elevation calculation on Mac](https://github.com/EpicGames/UnrealEngine/pull/9)
 
 * **Kamayuq**
@@ -338,7 +338,7 @@ We'd like to thank all of the amazing developers who contributed code in this re
 
 * New: Install multiple versions of Unreal Engine side-by-side.
 * Use the Launcher's new Version Selector drop-down to choose which version you want to install and run!
-* New: You can now uninstall the engine versions right through the launcher using a new ‘Uninstall' button on the main UI.
+* New: You can now uninstall the engine versions right through the launcher using a new ï¿½Uninstall' button on the main UI.
 * New: Launcher Marketplace pages now show download size.
 * New: The Marketplace now supports different versions of items.
 * New: The EULA is now shown and accepted through the launcher.

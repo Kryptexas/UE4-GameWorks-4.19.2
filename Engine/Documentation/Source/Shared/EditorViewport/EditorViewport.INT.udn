@@ -53,7 +53,8 @@ Enables scale mode in the 3D viewport. This will allow you to select and scale A
 Engine/UI/LevelEditor/Viewports/ViewportControls#transformcontrols
 [/VAR]
 
-[/EXCERPT:ScaleMode]
+[/EXCERPT:ScaleMode]
+
 
 
 

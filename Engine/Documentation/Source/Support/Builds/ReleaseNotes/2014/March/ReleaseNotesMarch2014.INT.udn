@@ -231,7 +231,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 		Applications that utilize the messaging system can be quite difficult to debug due to the highly asynchronous nature of a messaging system. 
 
-	* At this point the Messaging Debugger still has to be considered 'experimental – use at your own risk' and must be explicitly activated in the Editor Preferences:		
+	* At this point the Messaging Debugger still has to be considered 'experimental ï¿½ use at your own risk' and must be explicitly activated in the Editor Preferences:		
 		
 		![](MessagingDebugger1.png) ![](MessagingDebugger2.png)
 
@@ -253,7 +253,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 	* We now have a preview shadow indicator in the form of text that shows up in shadows.  
 
-		_Built – distance field shadow maps_	
+		_Built ï¿½ distance field shadow maps_	
 		
 		![](PreviewShadows01.png)
 
@@ -708,7 +708,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 #### Blueprints
 * Better categorizing of blueprint nodes in the blueprint palette/context menu.
-	* We've made an initial pass to clean up the node categorization (aiming to slim down the number of categories, while making nodes more discoverable)… while it's not perfect, we continue to iterate on it, bettering it as we go.
+	* We've made an initial pass to clean up the node categorization (aiming to slim down the number of categories, while making nodes more discoverable)ï¿½ while it's not perfect, we continue to iterate on it, bettering it as we go.
 * Blueprint component variables are now assigned to the "Default" category.
 * Array properties will now ensure that internal type information has been fully loaded prior to serializing elements of the array into an object instance.
 * Removed an unnecessary assertion during Blueprint asset loading.

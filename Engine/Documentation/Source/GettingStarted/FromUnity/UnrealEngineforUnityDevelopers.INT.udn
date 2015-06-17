@@ -305,7 +305,7 @@ To use the Gameplay Framework, you really just need to learn the customized buil
 
 ## How to write code in UE4
 
-### So, I'm used to programming in MonoDevelop…
+### So, I'm used to programming in MonoDevelopï¿½
 
 For Blueprint scripting, you will only need Unreal Editor -- everything is built in!  To write code in C++, download the [free version of Visual Studio](http://go.microsoft.com/fwlink/?LinkId=525621) on Windows, or [install Xcode](https://itunes.apple.com/us/app/xcode/id497799835?mt=12) on Mac.  When you first create a new project (or add code to an existing project), UE4 will **automatically create Visual Studio project files **for you.  You can open Visual Studio by **double-clicking** on a C++ class inside **Content Browser**, or by clicking the "Open Visual Studio" button in the main File menu.
 

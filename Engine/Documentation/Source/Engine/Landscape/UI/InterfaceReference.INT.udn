@@ -173,7 +173,7 @@ This document contains references to all of the icons for the **Landscape** syst
 [EXCERPT:LSREF002]
 [REGION:raw]
 | ----- | ----- | ---- |
-| ![](Engine/Landscape\icon_Landscape_Mode_Sculpt_40x.png)(convert:false) | [**Sculpt**](Engine/Landscape/Editing/SculptMode) | This mode allows you to sculpt the look of your Landscape heightmap so that it fits your project’s needs. 
+| ![](Engine/Landscape\icon_Landscape_Mode_Sculpt_40x.png)(convert:false) | [**Sculpt**](Engine/Landscape/Editing/SculptMode) | This mode allows you to sculpt the look of your Landscape heightmap so that it fits your projectï¿½s needs. 
 | ^ |  |  |
 %Ind% %SculptTool%
 %Ind% %SmoothTool%

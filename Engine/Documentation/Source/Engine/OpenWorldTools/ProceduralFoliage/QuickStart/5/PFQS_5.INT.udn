@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 5. Implementing Procedural Foliage Blocking Volumes
 Crumbs:
 Description:In this step we will set up a blocking volume to restrict where foliage can spawn.

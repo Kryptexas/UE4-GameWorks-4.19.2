@@ -186,7 +186,7 @@ Template:ReleaseNotes.html
 		* **Improved latency**:  We currently do a dual update, once on the game thread, and once again immediately before rendering, to orient the camera position to the Rift's current orientation, but there's still some optimizations that can be done.  The interface that the Rift plugin uses for last-minute updating on the render thread can also be used generically, so if games want to decrease their apparent latency even without the Rift, they can potentially do another input read and adjustment using the same interface.
 
 * **Screen Space Light Shafts for PC and Console**
-	* There are two different light shaft features – a **fog-occluding method** and an **additive/bloom method**. These cost separately, so it's best to only enable the one you want.
+	* There are two different light shaft features ï¿½ a **fog-occluding method** and an **additive/bloom method**. These cost separately, so it's best to only enable the one you want.
 	* **Occlusion**
 		* The occlusion method creates a mask from the depths of the objects on the screen, blurs it away from the light, and uses it to mask fog and atmosphere.  
 		* The sun can be slightly off the screen and still get occlusion light shafts, however they currently fade out as you approach a 90 degree angle from the sun.  Only _Directional Lights_ can use the occlusion method.

@@ -59,7 +59,7 @@ The **Panel** category contains useful **Widgets** for controlling layouts and p
 | **Grid Panel** | This is a panel that evenly divides up available space between all of its children widgets. |
 | **Horizontal Box** | Allows child widgets to be laid out in a flow horizontally. |
 | **Overlay** | Allows widgets to be stacked on top of each other and uses a simple flow layout for content on each layer.  |
-| **Scale Box** | Allows you to place content with a desired size and have it scale to meet the constraints placed on this box’s allotted area. If you needed to have a background image scale to fill an area but not become distorted with different aspect rations, or if you need to auto fit some text to an area, this is the control for you. |
+| **Scale Box** | Allows you to place content with a desired size and have it scale to meet the constraints placed on this boxï¿½s allotted area. If you needed to have a background image scale to fill an area but not become distorted with different aspect rations, or if you need to auto fit some text to an area, this is the control for you. |
 | **Scroll Box** | An arbitrary scrollable collection of widgets. This is great for presenting 10-100 widgets in a list. This does not support virtualization. |
 | **Uniform Grid Panel** | A panel that evenly divides up available space between all of its children. |
 | **Vertical Box** | A vertical box widget is a layout panel allowing child widgets to be automatically laid out vertically. This is great for stacking widgets on top of each other and keeping widgets aligned vertically.|

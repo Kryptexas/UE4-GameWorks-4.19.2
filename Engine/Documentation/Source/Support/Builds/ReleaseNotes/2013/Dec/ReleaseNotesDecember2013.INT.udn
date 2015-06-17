@@ -230,7 +230,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * Added detailed path finding debug in ANavigationTestingActor.
 * Added a generic mechanism for locking AI resources (like movement and brain) indicating source of lock. See IAIResourceInterface for details.
 * Animation Retargeting Improvement: Skeleton supports multiple base poses for retargeting.
-	* Base pose is different reference poses of the skeleton – i.e. from different size of meshes.
+	* Base pose is different reference poses of the skeleton ï¿½ i.e. from different size of meshes.
 	* When retargeting is used in your system, some animations need to have correct base pose (based on what mesh it was animated from) in order to retarget correctly.  
 
 
@@ -664,7 +664,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* There have been several improvements and bug fixes to Oculus Rift support, including fixes to certain post process and screen-space effects that previously did not render when in stereoscopic view.
 * All new game template projects now have a simplified source file layout.
 * Moving Platformergame into Samples as a code-based SampleGames directory test.
-	* We'll make an effort to move all code-based example games from the main directory down into a new Games subdirectory under Samples. Games will be the current SampleGames folder – renamed. (e.g. CURRENTLY  //depot/UE4/PlatformerGame/ ? //depot/UE4/Samples/SampleGames/PlatformerGame/ )  (The final location being something like //depot/UE4/Samples/Games/PlatformerGame/)
+	* We'll make an effort to move all code-based example games from the main directory down into a new Games subdirectory under Samples. Games will be the current SampleGames folder ï¿½ renamed. (e.g. CURRENTLY  //depot/UE4/PlatformerGame/ ? //depot/UE4/Samples/SampleGames/PlatformerGame/ )  (The final location being something like //depot/UE4/Samples/Games/PlatformerGame/)
 * Trying to return a value from a RPC Client/Server function is now detected as a compile error.
 * **Component movement optimizations**
 	* Repeated calls to MoveComponent can defer most of the work until the sequence of moves is committed, by encapsulating the MoveComponent calls within a FScopedMovementUpdate() object.
@@ -690,7 +690,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * Added a new menu entry to manage notifies to allow deletion of custom notifies.
 * Behavior Trees core and tools are still WIP.
 * Animation System Improvement
-	* Physics Animation: Added BlueprintCallable Physics Weight functions – SetPhysicsWeight/AccumulatePhysicsWeight
+	* Physics Animation: Added BlueprintCallable Physics Weight functions ï¿½ SetPhysicsWeight/AccumulatePhysicsWeight
 	* BlendSpace Node allows to set Position/Looping via Pin.
 	* IK node displays effector/joint location.
 * Physics: Default setting has been tweaked to improve ragdoll.

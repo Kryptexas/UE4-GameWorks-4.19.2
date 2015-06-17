@@ -18,7 +18,7 @@ Engine/Landscape/Creation
 [/EXCERPT:NewLandscape_QuadsPerSection]
 
 [EXCERPT:NewLandscape_SectionsPerComponent]
-Sections Per Component helps with the Landscapes LOD.  Each section is the basic unit for the Landscape LOD. One component could have 2 x 2 sections which mean’s that is possible that one component could be rendering four different LOD’s at once. With a larger section size you get the added benefit of reduced CPU calculation time. However you could run into issues with the Landscape rendering to many vertices at once. This is could be especially prevalent when using very large areas of Landscape.  These problems could be even worse on mobile devices because of the limited amount of draw calls you can have due to hardware limitations.
+Sections Per Component helps with the Landscapes LOD.  Each section is the basic unit for the Landscape LOD. One component could have 2 x 2 sections which meanï¿½s that is possible that one component could be rendering four different LODï¿½s at once. With a larger section size you get the added benefit of reduced CPU calculation time. However you could run into issues with the Landscape rendering to many vertices at once. This is could be especially prevalent when using very large areas of Landscape.  These problems could be even worse on mobile devices because of the limited amount of draw calls you can have due to hardware limitations.
 NewLandscape_SectionsPerComponent    
 [VAR:ToolTipFullLink]
 Engine/Landscape/Creation
