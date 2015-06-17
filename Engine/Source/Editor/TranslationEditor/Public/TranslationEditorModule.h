@@ -23,10 +23,12 @@ public:
 	 *
 	 * @param ProjectName				Name of the project to translate
 	 * @param TranslationTargetLanguage	Language to translate to
+	 * @param LocalizationTargetGuid	Unique ID for this Localization Target
+	 * @param OutLoadedSuccessfully		Whether or not the translation editor was able to load successfully from the .manifest and .archive files
 	 * 
 	 * @return	Interface to the new translation editor
 	 */
-	virtual TSharedRef<FTranslationEditor> CreateTranslationEditor(const FString& ManifestFile, const FString& ArchiveFile, const FGuid& LocalizationTargetGuid);
+	virtual TSharedRef<FTranslationEditor> CreateTranslationEditor(const FString& ManifestFile, const FString& ArchiveFile, const FGuid& LocalizationTargetGuid, bool& OutLoadedSuccessfully);
 
 	/** Gets the extensibility managers for outside entities to extend translation editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }

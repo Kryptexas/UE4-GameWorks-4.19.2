@@ -1469,6 +1469,8 @@ void FTranslationEditor::ImportFromPoFile(FString FileToImport)
 	ImportSettings->PortableObjectName = FPaths::GetCleanFilename(FileToImport);
 	LastImportFilePath = FPaths::GetPath(FileToImport);
 
+	FMessageLog TranslationEditorMessageLog("TranslationEditor");
+
 	// Write translation data first to ensure all changes are exported
 	bool bHadError = !(DataManager->WriteTranslationData(true));
 
@@ -1483,7 +1485,6 @@ void FTranslationEditor::ImportFromPoFile(FString FileToImport)
 		// Using .ini config saving means these settings will be saved in the GetClass()->GetPathName() section
 		TArray<FString> ConfigSections;
 		ConfigSections.Add(ImportSettings->GetClass()->GetPathName());
-		FMessageLog TranslationEditorMessageLog("TranslationEditor");
 
 		for (FString& ConfigSection : ConfigSections)
 		{
@@ -1534,13 +1535,7 @@ void FTranslationEditor::ImportFromPoFile(FString FileToImport)
 
 		GWarn->EndSlowTask();
 
-		if (bHadError)
-		{
-			TranslationEditorMessageLog.Error(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"));
-			TranslationEditorMessageLog.Notify(LOCTEXT("FailedToExportLocalization", "Failed to export localization!"), EMessageSeverity::Info, true);
-			TranslationEditorMessageLog.Open(EMessageSeverity::Error);
-		}
-		else
+		if (!bHadError)
 		{
 			DataManager->LoadFromArchive(DataManager->GetAllTranslationsArray(), true, true);
 
@@ -1551,6 +1546,14 @@ void FTranslationEditor::ImportFromPoFile(FString FileToImport)
 			ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "TranslationBeforeImport"));
 			ChangedOnImportPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
 		}
+	}
+
+	if (bHadError)
+	{
+		FText FailedToImport = LOCTEXT("FailedToImportLocalization", "Failed to import localization data!");
+		TranslationEditorMessageLog.Error(FailedToImport);
+		TranslationEditorMessageLog.Notify(FailedToImport, EMessageSeverity::Info, true);
+		TranslationEditorMessageLog.Open(EMessageSeverity::Error);
 	}
 }
 

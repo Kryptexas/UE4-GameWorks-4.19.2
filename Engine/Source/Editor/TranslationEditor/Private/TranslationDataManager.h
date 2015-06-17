@@ -76,7 +76,14 @@ public:
 	/** Save the specified translations */
 	static bool SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave);
 
+	/** Whether or not we successfully loaded the .manifest and .archive */
+	bool GetLoadedSuccessfully()
+	{
+		return bLoadedSuccessfully;
+	}
+
 private:
+
 	/** Read text file into a JSON file */
 	static TSharedPtr<FJsonObject> ReadJSONTextFile( const FString& InFilePath ) ;
 
@@ -124,4 +131,7 @@ private:
 
 	/** Files that are already checked out from Perforce **/
 	TArray<FString> CheckedOutFiles;
+
+	/** Whether or not we successfully loaded the .manifest and .archive */
+	bool bLoadedSuccessfully;
 };

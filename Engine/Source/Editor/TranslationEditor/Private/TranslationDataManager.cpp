@@ -21,6 +21,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogTranslationEditor, Log, All);
 FTranslationDataManager::FTranslationDataManager( const FString& InManifestFilePath, const FString& InArchiveFilePath )
 : ManifestFilePath(InManifestFilePath)
 , ArchiveFilePath(InArchiveFilePath)
+, bLoadedSuccessfully(true)
 {
 	GWarn->BeginSlowTask(LOCTEXT("LoadingTranslationData", "Loading Translation Data..."), true);
 	TArray<UTranslationUnit*> TranslationUnits;
@@ -33,6 +34,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 
 		if (ManifestEntriesCount < 1)
 		{
+			bLoadedSuccessfully = false;
 			FFormatNamedArguments Arguments;
 			Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
 			Arguments.Add( TEXT("ManifestEntriesCount"), FText::AsNumber(ManifestEntriesCount) );
@@ -80,6 +82,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 		}
 		else  // ArchivePtr.IsValid() is false
 		{
+			bLoadedSuccessfully = false;
 			FFormatNamedArguments Arguments;
 			Arguments.Add( TEXT("ArchiveFilePath"), FText::FromString(ArchiveFilePath) );
 			FMessageLog TranslationEditorMessageLog("TranslationEditor");
@@ -90,6 +93,7 @@ FTranslationDataManager::FTranslationDataManager( const FString& InManifestFileP
 	}
 	else  // ManifestAtHeadRevisionPtr.IsValid() is false
 	{
+		bLoadedSuccessfully = false;
 		FFormatNamedArguments Arguments;
 		Arguments.Add( TEXT("ManifestFilePath"), FText::FromString(ManifestFilePath) );
 		FMessageLog TranslationEditorMessageLog("TranslationEditor");
@@ -168,64 +172,69 @@ TSharedPtr<FJsonObject> FTranslationDataManager::ReadJSONTextFile(const FString&
 
 bool FTranslationDataManager::WriteTranslationData(bool bForceWrite /*= false*/)
 {
-	check (ArchivePtr.IsValid());
-	TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
+	bool bSuccess = false;
 
-	bool bNeedsWrite = false;
-
-	for (UTranslationUnit* TranslationUnit : Untranslated)
+	// If the archive hasn't been loaded correctly, don't try and write anything
+	if (ArchivePtr.IsValid())
 	{
-		if (TranslationUnit != nullptr)
+		TSharedRef< FInternationalizationArchive > Archive = ArchivePtr.ToSharedRef();
+
+		bool bNeedsWrite = false;
+
+		for (UTranslationUnit* TranslationUnit : Untranslated)
 		{
-			const FLocItem SearchSource(TranslationUnit->Source);
-			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
-			FString TranslationToWrite = TranslationUnit->Translation;
-			if (!TranslationToWrite.Equals(OldTranslation))
+			if (TranslationUnit != nullptr)
 			{
-				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
-				bNeedsWrite = true;
+				const FLocItem SearchSource(TranslationUnit->Source);
+				FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
+				FString TranslationToWrite = TranslationUnit->Translation;
+				if (!TranslationToWrite.Equals(OldTranslation))
+				{
+					Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
+					bNeedsWrite = true;
+				}
 			}
 		}
-	}
 
-	for (UTranslationUnit* TranslationUnit : Review)
-	{
-		if (TranslationUnit != nullptr)
+		for (UTranslationUnit* TranslationUnit : Review)
 		{
-			const FLocItem SearchSource(TranslationUnit->Source);
-			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
-			FString TranslationToWrite = TranslationUnit->Translation;
-			if (TranslationUnit->HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation))
+			if (TranslationUnit != nullptr)
 			{
-				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
-				bNeedsWrite = true;
+				const FLocItem SearchSource(TranslationUnit->Source);
+				FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
+				FString TranslationToWrite = TranslationUnit->Translation;
+				if (TranslationUnit->HasBeenReviewed && !TranslationToWrite.Equals(OldTranslation))
+				{
+					Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
+					bNeedsWrite = true;
+				}
 			}
 		}
-	}
 
-	for (UTranslationUnit* TranslationUnit : Complete)
-	{
-		if (TranslationUnit != nullptr)
+		for (UTranslationUnit* TranslationUnit : Complete)
 		{
-			const FLocItem SearchSource(TranslationUnit->Source);
-			FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
-			FString TranslationToWrite = TranslationUnit->Translation;
-			if (!TranslationToWrite.Equals(OldTranslation))
+			if (TranslationUnit != nullptr)
 			{
-				Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
-				bNeedsWrite = true;
+				const FLocItem SearchSource(TranslationUnit->Source);
+				FString OldTranslation = Archive->FindEntryBySource(TranslationUnit->Namespace, SearchSource, nullptr)->Translation.Text;
+				FString TranslationToWrite = TranslationUnit->Translation;
+				if (!TranslationToWrite.Equals(OldTranslation))
+				{
+					Archive->SetTranslation(TranslationUnit->Namespace, TranslationUnit->Source, TranslationToWrite, nullptr);
+					bNeedsWrite = true;
+				}
 			}
 		}
-	}
 
-	bool bSuccess = true;
+		bSuccess = true;
 
-	if (bForceWrite || bNeedsWrite)
-	{
-		TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable( new FJsonObject );
-		ArchiveSerializer.SerializeArchive( Archive, FinalArchiveJsonObj );
+		if (bForceWrite || bNeedsWrite)
+		{
+			TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable(new FJsonObject);
+			ArchiveSerializer.SerializeArchive(Archive, FinalArchiveJsonObj);
 
-		bSuccess = WriteJSONToTextFile( FinalArchiveJsonObj, ArchiveFilePath );
+			bSuccess = WriteJSONToTextFile(FinalArchiveJsonObj, ArchiveFilePath);
+		}
 	}
 
 	return bSuccess;

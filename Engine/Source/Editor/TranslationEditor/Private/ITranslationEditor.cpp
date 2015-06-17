@@ -14,8 +14,15 @@ void ITranslationEditor::OpenTranslationEditor(const FString& InManifestFile, co
 	if (!OpenTranslationEditors.Contains(InArchiveFile))
 	{
 		FTranslationEditorModule& TranslationEditorModule = FModuleManager::LoadModuleChecked<FTranslationEditorModule>("TranslationEditor");
-		ITranslationEditor* NewTranslationEditor = (ITranslationEditor*)&(TranslationEditorModule.CreateTranslationEditor(InManifestFile, InArchiveFile, LocalizationTargetGuid).Get());
+		bool bLoadedSuccessfully = false;
+		ITranslationEditor* NewTranslationEditor = (ITranslationEditor*)&(TranslationEditorModule.CreateTranslationEditor(InManifestFile, InArchiveFile, LocalizationTargetGuid, bLoadedSuccessfully).Get());
+
 		NewTranslationEditor->RegisterTranslationEditor();
+
+		if (!bLoadedSuccessfully)
+		{
+			NewTranslationEditor->CloseWindow();
+		}
 	}
 	else
 	{
