@@ -75,7 +75,8 @@ public:
 	TSharedRef<FMovieSceneInstance> GetInstanceForSubMovieSceneSection( UMovieSceneSection& SubMovieSceneSection ) const override;
 	virtual void AddNewShot(FGuid CameraGuid) override;
 	virtual void AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence) override;
-	virtual bool IsAutoKeyEnabled() const override;
+	virtual bool GetAutoKeyEnabled() const override;
+	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) override;
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieScene& MovieScene) override;
 	virtual float GetGlobalTime() override;

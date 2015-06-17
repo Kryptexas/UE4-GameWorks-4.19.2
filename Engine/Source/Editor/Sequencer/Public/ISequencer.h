@@ -56,7 +56,10 @@ public:
 	virtual void AddSubMovieScene( UMovieScene* SubMovieScene ) = 0;
 
 	/** @return Returns whether auto-key is enabled in this sequencer */
-	virtual bool IsAutoKeyEnabled() const = 0;
+	virtual bool GetAutoKeyEnabled() const = 0;
+
+	/** Sets whether autokey is enabled in this sequencer. */
+	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) = 0;
 
 	/** @return Returns whether sequencer is currently recording live data from simulated actors */
 	virtual bool IsRecordingLive() const = 0;

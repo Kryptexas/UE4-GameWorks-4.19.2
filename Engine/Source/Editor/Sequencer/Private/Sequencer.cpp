@@ -498,9 +498,14 @@ FAnimatedRange FSequencer::GetViewRange() const
 	return AnimatedRange;
 }
 
-bool FSequencer::IsAutoKeyEnabled() const 
+bool FSequencer::GetAutoKeyEnabled() const 
 {
 	return bAllowAutoKey;
+}
+
+void FSequencer::SetAutoKeyEnabled(bool bAutoKeyEnabled)
+{
+	bAllowAutoKey = bAutoKeyEnabled;
 }
 
 bool FSequencer::IsRecordingLive() const 
