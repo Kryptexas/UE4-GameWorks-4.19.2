@@ -29,7 +29,8 @@ public:
 		CurrentSkyBentNormal(FVector4(0, 0, 1, 1)),
 		bHasEverUpdatedSingleSample(false),
 		bPointSample(true),
-		bIsDirty(false)
+		bIsDirty(false),
+		bUnbuiltPreview(false)
 	{
 		for (int32 VectorIndex = 0; VectorIndex < ARRAY_COUNT(TargetSamplePacked); VectorIndex++)
 		{
@@ -89,6 +90,8 @@ public:
 	/** Whether the primitive allocation is dirty and should be updated regardless of having moved. */
 	bool bIsDirty;
 
+	bool bUnbuiltPreview;
+
 	void SetDirty() 
 	{ 
 		bIsDirty = true; 
@@ -99,7 +102,7 @@ public:
 		return MinTexel.X >= 0 && MinTexel.Y >= 0 && MinTexel.Z >= 0 && AllocationTexelSize > 0;
 	}
 
-	void SetParameters(FIntVector InMinTexel, int32 InAllocationTexelSize, FVector InScale, FVector InAdd, FVector InMinUV, FVector InMaxUV, bool bInPointSample)
+	void SetParameters(FIntVector InMinTexel, int32 InAllocationTexelSize, FVector InScale, FVector InAdd, FVector InMinUV, FVector InMaxUV, bool bInPointSample, bool bInUnbuiltPreview)
 	{
 		Add = InAdd;
 		Scale = InScale;
@@ -109,6 +112,7 @@ public:
 		AllocationTexelSize = InAllocationTexelSize;
 		bIsDirty = false;
 		bPointSample = bInPointSample;
+		bUnbuiltPreview = bInUnbuiltPreview;
 	}
 };
 
