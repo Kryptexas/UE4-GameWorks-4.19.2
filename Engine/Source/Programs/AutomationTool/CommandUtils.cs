@@ -1907,9 +1907,9 @@ namespace AutomationTool
                 {
                     File.AppendAllText(CmdEnv.CSVFile, CSVBuilder.ToString());
                 }
-                catch
+                catch (Exception e)
                 {
-                    Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file.");
+                    Log(System.Diagnostics.TraceEventType.Warning, "Could not append to csv file ({0}) : {1}", CmdEnv.CSVFile, e.ToString());
                 }
             }
         }
