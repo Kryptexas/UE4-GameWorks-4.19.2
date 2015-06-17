@@ -127,7 +127,6 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 	bPackValid = false;
 	// Create a pak platform file and mount the feature pack file.
 	FPakPlatformFile PakPlatformFile;
-	FString CommandLine;
 	PakPlatformFile.Initialize(&FPlatformFileManager::Get().GetPlatformFile(), TEXT(""));
 	FString MountPoint = "root:/";
 	PakPlatformFile.Mount(*InFeaturePackPath, 0, *MountPoint);
@@ -188,7 +187,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 			FText::FromString(LocalizedAssetTypesObject->GetStringField("Text"))));
 	}
 	
-	// Parse asset types field
+	// Parse search tags field
 	if( ManifestObject->HasField("SearchTags")==true)
 	{
 		for (TSharedPtr<FJsonValue> AssetTypesValue : ManifestObject->GetArrayField("SearchTags"))
@@ -201,8 +200,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 	}
 
 	// Parse class types field
-	ClassTypes = ManifestObject->GetStringField("ClassTypes");
-	
+	ClassTypes = ManifestObject->GetStringField("ClassTypes");	
 	
 	// Parse initial focus asset if we have one - this is not required
 	if (ManifestObject->HasTypedField<EJson::String>("FocusAsset") == true)
@@ -232,6 +230,7 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 		RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Cannot find thumbnail %s."), *InFeaturePackPath, *ThumbnailFile ));
 	}
 
+	// parse the screenshots field
 	const TArray<TSharedPtr<FJsonValue>> ScreenshotFilenameArray = ManifestObject->GetArrayField("Screenshots");
 	for (const TSharedPtr<FJsonValue> ScreenshotFilename : ScreenshotFilenameArray)
 	{
@@ -243,6 +242,39 @@ FFeaturePackContentSource::FFeaturePackContentSource(FString InFeaturePackPath, 
 		else
 		{
 			RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Cannot find screenshot %s."), *InFeaturePackPath, *ScreenshotFilename->AsString() ));
+		}
+	}
+
+	// Parse additional packs data
+	if (ManifestObject->HasTypedField<EJson::Array>("AdditionalFeaturePacks") == true)
+	{		
+		UEnum* DetailEnum = FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT("EFeaturePackDetailLevel"));
+		for (TSharedPtr<FJsonValue> AdditionalFeaturePackValue : ManifestObject->GetArrayField("AdditionalFeaturePacks"))
+		{
+			TSharedPtr<FJsonObject> EachAdditionalPack = AdditionalFeaturePackValue->AsObject();
+			FString MountName = EachAdditionalPack->GetStringField("MountName");
+
+			TArray<EFeaturePackDetailLevel>	Levels;
+			for (TSharedPtr<FJsonValue> DetailValue: EachAdditionalPack->GetArrayField("DetailLevels"))
+			{
+				const FString DetailString = DetailValue->AsString();
+				int32 Index = DetailEnum->FindEnumIndex(FName(*DetailString));
+				EFeaturePackDetailLevel EachLevel = Index != INDEX_NONE ? (EFeaturePackDetailLevel)Index : EFeaturePackDetailLevel::Standard;
+				Levels.AddUnique(EachLevel);
+			}
+			int32 PackIndex = AdditionalFeaturePacks.Add(FFeaturePackLevelSet(
+				MountName,
+				Levels));
+			// Check that the additional feature packs listed exist
+			FFeaturePackLevelSet& NewSet = AdditionalFeaturePacks[PackIndex];
+			for (int32 iLevel = 0; iLevel < NewSet.DetailLevels.Num() ; iLevel++)
+			{
+				FString FullPath = FPaths::FeaturePackDir() + NewSet.GetFeaturePackNameForLevel(NewSet.DetailLevels[iLevel]);	
+				if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath))
+				{
+					RecordAndLogError( FString::Printf(TEXT("Error in Feature pack %s. Cannot find additional pack %s."), *FullPath));
+				}
+			}		
 		}
 	}
 
@@ -330,6 +362,27 @@ bool FFeaturePackContentSource::InstallToProject(FString InstallPath)
 				ToSave.AddUnique(ImportedObject->GetOutermost());
 			}
 			FEditorFileUtils::PromptForCheckoutAndSave( ToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false );
+
+			// Now copy files in any additional packs (These are for the shared assets)
+ 			EFeaturePackDetailLevel RequiredLevel = EFeaturePackDetailLevel::High;
+ 			for (int32 iExtraPack = 0; iExtraPack < AdditionalFeaturePacks.Num(); iExtraPack++)
+ 			{
+				FString DestinationFolder = FPaths::GameDir();
+				FString FullPath = FPaths::FeaturePackDir() + AdditionalFeaturePacks[iExtraPack].GetFeaturePackNameForLevel(RequiredLevel);
+ 				if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*FullPath))
+ 				{
+ 					FString InsertPath = DestinationFolder + *AdditionalFeaturePacks[iExtraPack].MountName;
+
+					TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPath, true);
+					if (NewContentSource->IsDataValid() == true)
+					{
+						bool bHasSourceFiles = false;
+						TArray<FString> FilesCopied;
+						NewContentSource->CopyAdditionalFilesToFolder(DestinationFolder, FilesCopied, bHasSourceFiles);
+					}
+ 				}
+ 			}
+
 			bResult = true;
 			
 			// Focus on a specific asset if we want to.
@@ -471,6 +524,88 @@ FLocalizedTextArray FFeaturePackContentSource::ChooseLocalizedTextArray(TArray<F
 	return Default;
 }
 
+bool FFeaturePackContentSource::GetAdditionalFilesForPack(TArray<FString>& FileList, bool& bContainsSource)
+{
+	bool bParsedFiles = false;
+	if (bPackValid == false)
+	{
+		RecordAndLogError(FString::Printf(TEXT("Cannot extract files from invalid Pack %s"), *FeaturePackPath));
+	}
+	else
+	{
+		// Create a pak platform file and mount the feature pack file.
+		FPakPlatformFile PakPlatformFile;
+		PakPlatformFile.Initialize(&FPlatformFileManager::Get().GetPlatformFile(), TEXT(""));
+		FString MountPoint = "root:/";
+		PakPlatformFile.Mount(*FeaturePackPath, 0, *MountPoint);
+
+		// Gets the manifest file as a JSon string
+		TArray<uint8> ManifestBuffer;
+		if (LoadPakFileToBuffer(PakPlatformFile, FPaths::Combine(*MountPoint, TEXT("Config/Config.ini")), ManifestBuffer) == false)
+		{
+			RecordAndLogError(FString::Printf(TEXT("Error in Feature pack %s. Cannot find Config.ini"), *FeaturePackPath));			
+		}
+		else
+		{
+			FString ConfigFileString;
+			FFileHelper::BufferToString(ConfigFileString, ManifestBuffer.GetData(), ManifestBuffer.Num());
+			bParsedFiles = ExtractListOfAdditionalFiles(ConfigFileString, FileList, bContainsSource);
+		}
+	}
+	return bParsedFiles;
+}
+
+bool FFeaturePackContentSource::ExtractListOfAdditionalFiles(const FString& ConfigFileAsString,TArray<FString>& FileList, bool& bContainsSource) const
+{
+	FConfigFile PackConfig;
+	PackConfig.ProcessInputFileContents(ConfigFileAsString);
+	FConfigSection* AdditionalFilesSection = PackConfig.Find("AdditionalFilesToAdd");
+	
+	bContainsSource = false;
+	bool bParsedAdditionFiles = false;
+	if (AdditionalFilesSection)
+	{
+		bParsedAdditionFiles = true;
+		for (auto FilePair : *AdditionalFilesSection)
+		{
+			if (FilePair.Key.ToString().Contains("Files"))
+			{
+				FString Filename = FPaths::GetCleanFilename(FilePair.Value);
+				FString Directory = FPaths::RootDir() / FPaths::GetPath(FilePair.Value);
+				FPaths::MakeStandardFilename(Directory);
+				FPakFile::MakeDirectoryFromPath(Directory);
+
+				if (Filename.Contains(TEXT("*")))
+				{
+					TArray<FString> FoundFiles;
+					IFileManager::Get().FindFilesRecursive(FoundFiles, *Directory, *Filename, true, false);
+					FileList.Append(FoundFiles);
+					if (!bContainsSource)
+					{
+						for (const FString& FoundFile : FoundFiles)
+						{
+							if (FoundFile.StartsWith(TEXT("Source/")) || FoundFile.Contains(TEXT("/Source/")))
+							{
+								bContainsSource = true;
+								break;
+							}
+						}
+					}
+				}
+				else
+				{
+					FileList.Add(Directory / Filename);
+					if (!bContainsSource && (FileList.Last().StartsWith(TEXT("Source/")) || FileList.Last().Contains(TEXT("/Source/"))))
+					{
+						bContainsSource = true;
+					}
+				}
+			}
+		}
+	}
+	return bParsedAdditionFiles;
+}
+
 void FFeaturePackContentSource::ImportPendingPacks()
 { 
 	bool bAddPacks;
@@ -552,6 +687,37 @@ void FFeaturePackContentSource::RecordAndLogError(const FString& ErrorString)
 {
 	UE_LOG(LogFeaturePack, Warning, TEXT("%s"), *ErrorString);
 	ParseErrors.Add(ErrorString);
+}
+
+void FFeaturePackContentSource::CopyAdditionalFilesToFolder( const FString& DestinationFolder, TArray<FString>& FilesCopied, bool &bHasSourceFiles )
+{
+	FString ContentIdent = TEXT("Content/");
+	TArray<FString> FilesToAdd;
+	GetAdditionalFilesForPack(FilesToAdd, bHasSourceFiles);
+	for (int32 iFile = 0; iFile < FilesToAdd.Num(); ++iFile)
+	{
+		FString EachFile = FilesToAdd[iFile];
+		int32 ContentIndex;
+		ContentIndex = EachFile.Find(*ContentIdent);
+		if (ContentIndex != INDEX_NONE)
+		{
+			FString ContentFile = EachFile.RightChop(ContentIndex);
+			FString GameFolder = EachFile.Left(ContentIndex - 1);
+			int32 NameStart = GameFolder.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+			GameFolder = GameFolder.RightChop(NameStart);
+			FPaths::NormalizeFilename(ContentFile);
+			ContentFile.InsertAt(ContentIdent.Len() - 1, GameFolder);
+			FString FinalDestination = DestinationFolder / ContentFile;
+			if (IFileManager::Get().Copy(*FinalDestination, *EachFile) == COPY_OK)
+			{
+				FilesCopied.Add(FinalDestination);
+			}
+			else
+			{
+				UE_LOG(LogFeaturePack, Warning, TEXT("Failed to copy %s to %s"), *EachFile, *FinalDestination);
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE 

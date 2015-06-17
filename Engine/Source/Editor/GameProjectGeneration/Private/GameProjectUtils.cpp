@@ -27,7 +27,7 @@
 #include "HotReloadInterface.h"
 #include "SVerbChoiceDialog.h"
 #include "SourceCodeNavigation.h"
-///#include "AssetToolsModule.h"
+#include "FeaturePackContentSource.h"
 
 #include "SOutputLogDialog.h"
 
@@ -43,6 +43,8 @@ static_assert(PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE > 0, 
 
 TWeakPtr<SNotificationItem> GameProjectUtils::UpdateGameProjectNotification = NULL;
 TWeakPtr<SNotificationItem> GameProjectUtils::WarningProjectNameNotification = NULL;
+
+FString GameProjectUtils::DefaultFeaturePackExtension(TEXT(".upack"));	
 
 FText FNewClassInfo::GetClassName() const
 {
@@ -603,7 +605,9 @@ void GameProjectUtils::GetStarterContentFiles(TArray<FString>& OutFilenames)
 {
 	FString const SrcFolder = FPaths::FeaturePackDir();
 	
-	IFileManager::Get().FindFilesRecursive(OutFilenames, *SrcFolder, TEXT("*.upack"), /*Files=*/true, /*Directories=*/false);
+	FString SearchPath = TEXT("*");
+	SearchPath += DefaultFeaturePackExtension;
+	IFileManager::Get().FindFilesRecursive(OutFilenames, *SrcFolder, *SearchPath, /*Files=*/true, /*Directories=*/false);
 }
 
 bool GameProjectUtils::CreateProject(const FProjectInformation& InProjectInfo, FText& OutFailReason, FText& OutFailLog)
@@ -1514,6 +1518,13 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FProjectInformation& InPr
 		DeleteCreatedFiles(DestFolder, CreatedFiles);
 		return false;
 	}
+
+	if( AddSharedContentToProject(InProjectInfo, CreatedFiles, OutFailReason ) == false )
+	{
+		DeleteCreatedFiles(DestFolder, CreatedFiles);
+		return false;
+	}
+
 	
 	SlowTask.EnterProgressFrame();
 
@@ -3422,25 +3433,15 @@ bool GameProjectUtils::InsertFeaturePacksIntoINIFile(const FProjectInformation& 
 		FString StarterPack;
 		if (InProjectInfo.TargetedHardware == EHardwareClass::Mobile)
 		{
-			StarterPack = TEXT("InsertPack=(PackSource=\"MobileStarterContent.upack\",PackName=\"StarterContent\")");
+			StarterPack = TEXT("InsertPack=(PackSource=\"MobileStarterContent") + DefaultFeaturePackExtension + TEXT(",PackName=\"StarterContent\")");
 		}
 		else
 		{
-			StarterPack = TEXT("InsertPack=(PackSource=\"StarterContent.upack\",PackName=\"StarterContent\")");
+			StarterPack = TEXT("InsertPack=(PackSource=\"StarterContent")  + DefaultFeaturePackExtension + TEXT(",PackName=\"StarterContent\")");
 		}
 		PackList.Add(StarterPack);
 	}
-
-	// Now any packs specified in the template def.
-	UTemplateProjectDefs* TemplateDefs = LoadTemplateDefs(SrcFolder);
-	if (TemplateDefs != NULL)
-	{
-		for (int32 iPack = 0; iPack < TemplateDefs->PacksToInclude.Num(); ++iPack)
-		{
-			PackList.Add(TemplateDefs->PacksToInclude[iPack]);
-		}
-	}
-
+	
 	if (PackList.Num() != 0)
 	{
 		FString FileOutput;
@@ -3467,6 +3468,83 @@ bool GameProjectUtils::InsertFeaturePacksIntoINIFile(const FProjectInformation& 
 		}
 	}
 
+	return true;
+}
+
+bool GameProjectUtils::AddSharedContentToProject(const FProjectInformation &InProjectInfo, TArray<FString> &CreatedFiles, FText& OutFailReason)
+{
+	//const FString TemplateName = FPaths::GetBaseFilename(InProjectInfo.TemplateFile);
+	const FString SrcFolder = FPaths::GetPath(InProjectInfo.TemplateFile);
+	const FString DestFolder = FPaths::GetPath(InProjectInfo.ProjectFilename);
+
+	const FString ProjectConfigPath = DestFolder / TEXT("Config");
+	const FString IniFilename = ProjectConfigPath / TEXT("DefaultGame.ini");
+	
+	// Now any packs specified in the template def.
+	UTemplateProjectDefs* TemplateDefs = LoadTemplateDefs(SrcFolder);
+	if (TemplateDefs != NULL)
+	{
+		EFeaturePackDetailLevel RequiredDetail = EFeaturePackDetailLevel::High;
+		if (InProjectInfo.TargetedHardware == EHardwareClass::Mobile)
+		{
+			RequiredDetail = EFeaturePackDetailLevel::Standard;
+		}
+		
+		for (int32 iPack = 0; iPack < TemplateDefs->SharedContentPacks.Num(); ++iPack)
+		{
+			FFeaturePackLevelSet EachPack = TemplateDefs->SharedContentPacks[iPack];
+			EFeaturePackDetailLevel EachRequiredDetail = RequiredDetail;
+			
+			if (EachPack.DetailLevels.Num() == 1)
+			{
+				// If theres only only detail level override the requirement with that
+				EachRequiredDetail = EachPack.DetailLevels[0];
+			}
+			else if (EachPack.DetailLevels.Num() == 0) 
+			{
+				// We need at least one level !
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("FullPackFilename"), FText::FromString(EachPack.MountName));
+				OutFailReason = FText::Format(LOCTEXT("NoLevelsDefined", "No detail levels defined in template pack '{FullPackFilename}'."), Args);
+				return false;
+			}
+
+			for (int32 iDetail = 0; iDetail < EachPack.DetailLevels.Num() ; iDetail++)
+			{
+				if (EachPack.DetailLevels[iDetail] == EachRequiredDetail)
+				{
+					// Build the Packname from the mount and detail
+					FString DetailString;
+					UEnum::GetValueAsString(TEXT("/Script/GameProjectGeneration.ETemplateDetailLevel"), EachRequiredDetail, DetailString);
+					
+					FString FullPackFilename = FPaths::FeaturePackDir() + EachPack.MountName +  DetailString + DefaultFeaturePackExtension;
+					if (FPaths::FileExists(FullPackFilename) == false)
+					{
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("FullPackFilename"), FText::FromString(FullPackFilename));
+						OutFailReason = FText::Format(LOCTEXT("CantFindPack", "Cannot find template pack '{FullPackFilename}'."), Args);
+						return false;
+					}
+					TUniquePtr<FFeaturePackContentSource> NewContentSource = MakeUnique<FFeaturePackContentSource>(FullPackFilename, true);
+					if (NewContentSource->IsDataValid() == true)
+					{						
+						FString DestinationFolder = DestFolder;
+						FPaths::NormalizeDirectoryName(DestinationFolder);
+						bool bHasSourceFiles = false;
+						TArray<FString> FilesCopied;
+						NewContentSource->CopyAdditionalFilesToFolder(DestinationFolder, FilesCopied, bHasSourceFiles);						
+					}
+					else
+					{
+						FFormatNamedArguments Args;
+						Args.Add(TEXT("PackName"), FText::FromString(FullPackFilename));
+						OutFailReason = FText::Format(LOCTEXT("PackParseError", "Error parsing template pack '{PackName}'."), Args);
+						return false;
+					}
+				}
+			}
+		}
+	}
 	return true;
 }
 

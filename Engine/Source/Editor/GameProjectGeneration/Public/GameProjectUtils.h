@@ -253,6 +253,16 @@ private:
 	/** Insert any required feature packs into the DefaultGame.ini file */
 	static bool InsertFeaturePacksIntoINIFile(const FProjectInformation& InProjectInfo, FText& OutFailReason);
 
+	/* 
+	 * Insert the addition files from any feature packs specified in the temapalte defs file
+	 * @param InProjectInfo		Project infor to add content for
+	 * @param CreatedFiles		List of files we copied
+	 * @param OutFailReason		Failure reason (if any)
+	 *
+	 * @returns true if no errors
+	 */
+	static bool AddSharedContentToProject(const FProjectInformation &InProjectInfo, TArray<FString> &CreatedFiles, FText& OutFailReason);
+
 	/** Returns list of starter content files */
 	static void GetStarterContentFiles(TArray<FString>& OutFilenames);
 
@@ -460,4 +470,5 @@ private:
 
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;
 	static TWeakPtr<SNotificationItem> WarningProjectNameNotification;
+	static FString DefaultFeaturePackExtension;	
 };

@@ -42,6 +42,8 @@
 #include "Lightmass/LightmappedSurfaceCollection.h"
 #include "IProjectManager.h"
 #include "FeaturePackContentSource.h"
+#include "TemplateProjectDefs.h"
+#include "GameProjectUtils.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -253,6 +255,9 @@ void FUnrealEdMisc::OnInit()
 
 	// Check for automated build/submit option
 	const bool bDoAutomatedMapBuild = FParse::Param( ParsedCmdLine, TEXT("AutomatedMapBuild") );
+
+	// This adds mount points for the template shared resources if we are editing a template project.
+	MountTemplateSharedPaths();
 
 	// Load startup map (conditionally)
 	SlowTask.EnterProgressFrame(60);
@@ -1621,6 +1626,61 @@ void FUnrealEdMisc::OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo)
 		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), ChordName));
 		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveChord()->GetInputText().ToString()));
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), ChordAttribs);
+	}
+}
+
+void FUnrealEdMisc::MountTemplateSharedPaths()
+{
+	FString TemplateFilename = FPaths::GetPath(FPaths::GetProjectFilePath());
+	UTemplateProjectDefs* TemplateInfo = GameProjectUtils::LoadTemplateDefs(TemplateFilename);
+	
+	if( TemplateInfo != nullptr )
+	{
+		// Which detail level do we want to mount for editing
+		EFeaturePackDetailLevel EditDetail = EFeaturePackDetailLevel::Standard;
+		
+		// Extract the mount names and insert mount points for each of the shared packs
+		TArray<FString> AddedMountSources;
+		for (int32 iShared = 0; iShared < TemplateInfo->SharedContentPacks.Num() ; iShared++)
+		{
+			EFeaturePackDetailLevel EachEditDetail = EditDetail;
+			FFeaturePackLevelSet EachPack = TemplateInfo->SharedContentPacks[iShared];
+			if (EachPack.DetailLevels.Num() == 1)
+			{
+				// If theres only only detail level override the requirement with that
+				EachEditDetail = EachPack.DetailLevels[0];
+				UE_LOG(LogUnrealEdMisc, Warning, TEXT("Only 1 detail level defined for %s in %s."), *EachPack.MountName, *TemplateFilename );
+			}
+			else if (EachPack.DetailLevels.Num() == 0)
+			{
+				// If no levels are supplied, assume standard
+				UE_LOG(LogUnrealEdMisc, Warning, TEXT("No detail levels defined for %s in %s."), *EachPack.MountName, *TemplateFilename );
+				continue;
+			}
+			for (int32 iDetail = 0; iDetail < EachPack.DetailLevels.Num(); iDetail++)
+			{
+				if (EachPack.DetailLevels[iDetail] == EachEditDetail)
+				{
+					FString DetailString;
+					UEnum::GetValueAsString(TEXT("/Script/FeaturePackContentSource.EPackDetailLevel"), EachEditDetail, DetailString);
+					FString ShareMountName = EachPack.MountName;
+					if (AddedMountSources.Find(ShareMountName) == INDEX_NONE)
+					{
+						FString RelativePath = FString::Printf(TEXT("../../../Templates/TemplateResources/%s/%s/Content"), *DetailString, *ShareMountName);
+						if( FPaths::DirectoryExists(RelativePath))
+						{
+							FString MountName = FString::Printf(TEXT("/Game/%s/"), *ShareMountName);						
+							FPackageName::RegisterMountPoint(*MountName, *RelativePath);
+							AddedMountSources.Add(ShareMountName);
+						}
+						else
+						{
+							UE_LOG(LogUnrealEdMisc, Warning, TEXT("Cannot find path %s to mount for %s resource in %s."), *RelativePath, *EachPack.MountName, *TemplateFilename );
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

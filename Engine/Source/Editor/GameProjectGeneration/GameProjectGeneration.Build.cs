@@ -8,6 +8,11 @@ public class GameProjectGeneration : ModuleRules
 	{
         PrivateIncludePaths.AddRange(new string[] { "GameProjectGeneration/Private", "GameProjectGeneration/Public", "GameProjectGeneration/Classes" });
 
+		PublicDependencyModuleNames.AddRange(
+			new string[] {
+				"HardwareTargeting",
+			}
+		);
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
@@ -15,6 +20,8 @@ public class GameProjectGeneration : ModuleRules
 				"ContentBrowser",
                 "DesktopPlatform",
                 "MainFrame",
+				"AddContentDialog",
+				"HardwareTargeting",
             }
 		);
 
@@ -38,6 +45,7 @@ public class GameProjectGeneration : ModuleRules
 				"UnrealEd",
 				"DesktopPlatform",
                 "HardwareTargeting",
+				"AddContentDialog",
 			}
 		);
 

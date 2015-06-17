@@ -43,7 +43,10 @@ public:
 
 	/** Initalizes various systems */
 	virtual void OnInit();
-	
+
+	/* Check if this we are editing a template project, and if so mount any shared resource paths it uses */
+	void MountTemplateSharedPaths();
+
 	/* Cleans up various systems */
 	virtual void OnExit();
 

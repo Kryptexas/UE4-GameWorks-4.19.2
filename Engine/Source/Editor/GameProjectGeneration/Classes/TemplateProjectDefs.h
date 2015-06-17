@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "FeaturePackContentSource.h"
 #include "TemplateProjectDefs.generated.h"
 
 // does not require reflection exposure
@@ -102,6 +103,10 @@ class UTemplateProjectDefs : public UObject
 	/* Optional list of feature packs to include */
 	UPROPERTY(config)
 	TArray<FString> PacksToInclude;
+
+	/* Shared feature packs. The files in these packs listed in these structures marked as 'additionalfiles' will be copied on project generation*/
+	UPROPERTY(config)
+	TArray<FFeaturePackLevelSet> SharedContentPacks;
 
 	/** Fixes up all strings in this definitions object to replace \%TEMPLATENAME\% with the supplied template name and \%PROJECTNAME\% with the supplied project name */
 	void FixupStrings(const FString& TemplateName, const FString& ProjectName);

@@ -132,6 +132,7 @@ public class UnrealEd : ModuleRules
                 "MaterialUtilities",
                 "LocalizationService",
 				"AddContentDialog",
+				"GameProjectGeneration",
 			}
 		);
 
