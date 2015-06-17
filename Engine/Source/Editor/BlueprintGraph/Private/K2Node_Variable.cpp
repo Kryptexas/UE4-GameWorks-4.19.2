@@ -449,20 +449,32 @@ FText UK2Node_Variable::GetToolTipHeading() const
 {
 	FText Heading = Super::GetToolTipHeading();
 
-	UProperty const* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
-	if (VariableProperty && VariableProperty->HasAllPropertyFlags(CPF_Net))
+	// attempt to reflect the node's GetCornerIcon() with some tooltip documentation 
+	FText IconTag;
+	if ( UProperty const* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode()) )
 	{
-		FText ReplicatedTag = LOCTEXT("ReplicatedVar", "Replicated");
-		if (Heading.IsEmpty())
+		if (VariableProperty->HasAllPropertyFlags(CPF_Net | CPF_EditorOnly))
 		{
-			Heading = ReplicatedTag;
+			IconTag = LOCTEXT("ReplicatedEditorOnlyVar", "Editor-Only | Replicated");
 		}
-		else 
+		else if (VariableProperty->HasAnyPropertyFlags(CPF_Net))
 		{
-			Heading = FText::Format(FText::FromString("{0}\n{1}"), ReplicatedTag, Heading);
+			IconTag = LOCTEXT("ReplicatedVar", "Replicated");
+		}
+		else if (VariableProperty->HasAnyPropertyFlags(CPF_EditorOnly))
+		{
+			IconTag = LOCTEXT("EditorOnlyVar", "Editor-Only");
 		}
 	}
 
+	if (Heading.IsEmpty())
+	{
+		return IconTag;
+	}
+	else if (!IconTag.IsEmpty())
+	{
+		Heading = FText::Format(FText::FromString("{0}\n{1}"), IconTag, Heading);
+	}
 	return Heading;
 }
 
@@ -627,10 +639,16 @@ bool UK2Node_Variable::RemapRestrictedLinkReference(FName OldVariableName, FName
 
 FName UK2Node_Variable::GetCornerIcon() const
 {
-	const UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
-	if (VariableProperty && VariableProperty->HasAllPropertyFlags(CPF_Net))
+	if (const UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode()))
 	{
-		return TEXT("Graph.Replication.Replicated");
+		if (VariableProperty->HasAllPropertyFlags(CPF_Net))
+		{
+			return TEXT("Graph.Replication.Replicated");
+		}
+		else if (VariableProperty->HasAllPropertyFlags(CPF_EditorOnly))
+		{
+			return TEXT("Graph.Editor.EditorOnlyIcon");
+		}
 	}
 
 	return Super::GetCornerIcon();

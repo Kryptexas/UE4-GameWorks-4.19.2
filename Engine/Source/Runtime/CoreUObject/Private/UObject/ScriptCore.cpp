@@ -1097,13 +1097,27 @@ IMPLEMENT_VM_FUNCTION( EX_LocalVariable, execLocalVariable );
 
 void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
 {
-	UProperty* VarProperty = Stack.ReadProperty();
-	Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(this);
+	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
+	Stack.MostRecentProperty = VarProperty;
 
-	if (RESULT_PARAM)
+	if (VarProperty == nullptr)
 	{
-		VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+		Stack.MostRecentPropertyAddress = nullptr;
 	}
+	else
+	{
+		Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(this);
+
+		if (RESULT_PARAM)
+		{
+			VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+		}
+	}
+
+	
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceVariable, execInstanceVariable );
 
@@ -1616,6 +1630,7 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 				// Stack.MostRecentProperty will be NULL under the following conditions:
 				//   1. the context expression was a function call which returned an object
 				//   2. the context expression was a literal object reference
+				//   3. the context expression was an instance variable that no longer exists (it was editor-only, etc.)
 				static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Accessed None"));
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 			}
