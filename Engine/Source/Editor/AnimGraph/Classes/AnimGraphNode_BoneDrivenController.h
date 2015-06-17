@@ -8,7 +8,7 @@
 #include "AnimGraphNode_BoneDrivenController.generated.h"
 
 /**
- * This is the 'source version' of of a bone driven controller, which copies part of the state from one bone to another
+ * This is the 'source version' of a bone driven controller, which maps part of the state from one bone to another (e.g., 2 * source.x -> target.z)
  */
 UCLASS()
 class ANIMGRAPH_API UAnimGraphNode_BoneDrivenController : public UAnimGraphNode_SkeletalControlBase
@@ -25,6 +25,11 @@ public:
 	virtual FText GetTooltipText() const override;
 	// End of UEdGraphNode interface
 
+	// UAnimGraphNode_Base interface
+	virtual void ValidateAnimNodeDuringCompilation(USkeleton* ForSkeleton, FCompilerResultsLog& MessageLog) override;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
+	// End of UAnimGraphNode_Base interface
+
 	// UAnimGraphNode_SkeletalControlBase interface
 	virtual void Draw(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelMeshComp) const override;
 	// End of UAnimGraphNode_SkeletalControlBase interface
@@ -34,6 +39,9 @@ protected:
 	// UAnimGraphNode_SkeletalControlBase protected interface
 	virtual FText GetControllerDescription() const override;
 	// End of UAnimGraphNode_SkeletalControlBase protected interface
+
+	// Should non-curve mapping values be shown (multipler, range)?
+	EVisibility AreNonCurveMappingValuesVisible() const;
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

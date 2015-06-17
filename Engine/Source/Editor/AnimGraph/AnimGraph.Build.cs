@@ -25,6 +25,7 @@ public class AnimGraph : ModuleRules
 				"SlateCore",
 				"UnrealEd",
                 "GraphEditor",
+				"PropertyEditor"
 			}
 		);
 

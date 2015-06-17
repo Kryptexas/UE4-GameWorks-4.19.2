@@ -8,11 +8,11 @@
 
 FAnimNode_BoneDrivenController::FAnimNode_BoneDrivenController()
 	: SourceComponent(EComponentType::None)
-	, TargetComponent(EComponentType::None)
 	, Multiplier(1.0f)
 	, bUseRange(false)
 	, RangeMin(-1.0f)
 	, RangeMax(1.0f)
+	, TargetComponent(EComponentType::None)
 {
 }
 
@@ -32,7 +32,7 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	check(OutBoneTransforms.Num() == 0);
 	
 	// Early out if we're not driving from or to anything
-	if(SourceComponent == EComponentType::None || TargetComponent == EComponentType::None || Multiplier == 0.0f)
+	if ((SourceComponent == EComponentType::None) || (TargetComponent == EComponentType::None))
 	{
 		return;
 	}
@@ -40,43 +40,57 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	// Get the Local space transform and the ref pose transform to see how the transform for the source bone has changed
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	const FTransform& SourceOrigRef = BoneContainer.GetRefPoseArray()[SourceBone.BoneIndex];
-	FTransform SourceCurr = MeshBases.GetLocalSpaceTransform(SourceBone.GetCompactPoseIndex(BoneContainer));
+	const FTransform SourceCurr = MeshBases.GetLocalSpaceTransform(SourceBone.GetCompactPoseIndex(BoneContainer));
 
-	// Difference from the ref pose
-	FVector RotationDiff = (SourceCurr.GetRotation() * SourceOrigRef.GetRotation().Inverse()).Euler();
-	FVector TranslationDiff = SourceCurr.GetLocation() - SourceOrigRef.GetLocation();
-	FVector CurrentScale = SourceCurr.GetScale3D();
-	FVector RefScale = SourceOrigRef.GetScale3D();
-	float ScaleDiff = FMath::Max3(CurrentScale[0], CurrentScale[1], CurrentScale[2]) - FMath::Max3(RefScale[0], RefScale[1], RefScale[2]);
+	// Resolve source value
+	float SourceValue = 0.0f;
+	if (SourceComponent < EComponentType::RotationX)
+	{
+		const FVector TranslationDiff = SourceCurr.GetLocation() - SourceOrigRef.GetLocation();
+		SourceValue = TranslationDiff[(int32)(SourceComponent - EComponentType::TranslationX)];
+	}
+	else if (SourceComponent < EComponentType::Scale)
+	{
+		const FVector RotationDiff = (SourceCurr.GetRotation() * SourceOrigRef.GetRotation().Inverse()).Euler();
+		SourceValue = RotationDiff[(int32)(SourceComponent - EComponentType::RotationX)];
+	}
+	else
+	{
+		const FVector CurrentScale = SourceCurr.GetScale3D();
+		const FVector RefScale = SourceOrigRef.GetScale3D();
+		const float ScaleDiff = FMath::Max3(CurrentScale[0], CurrentScale[1], CurrentScale[2]) - FMath::Max3(RefScale[0], RefScale[1], RefScale[2]);
+		SourceValue = ScaleDiff;
+	}
 	
+	// Determine the resulting value
+	float FinalDriverValue = SourceValue;
+	if (DrivingCurve != nullptr)
+	{
+		// Remap thru the curve if set
+		FinalDriverValue = DrivingCurve->GetFloatValue(FinalDriverValue);
+	}
+	else
+	{
+		// Apply the fixed function remapping/clamping
+		FinalDriverValue *= Multiplier;
+		if (bUseRange)
+		{
+			FinalDriverValue = FMath::Clamp(FinalDriverValue, RangeMin, RangeMax);
+		}
+	}
+
 	// Difference to apply after processing
 	FVector NewRotDiff(FVector::ZeroVector);
 	FVector NewTransDiff(FVector::ZeroVector);
 	float NewScaleDiff = 0.0f;
 
-	float* SourcePtr = nullptr;
-	float* DestPtr = nullptr;
-
-	// Resolve source value
-	if(SourceComponent < EComponentType::RotationX)
-	{
-		SourcePtr = &TranslationDiff[(int32)(SourceComponent - EComponentType::TranslationX)];
-	}
-	else if(SourceComponent < EComponentType::Scale)
-	{
-		SourcePtr = &RotationDiff[(int32)(SourceComponent - EComponentType::RotationX)];
-	}
-	else
-	{
-		SourcePtr = &ScaleDiff;
-	}
-	
 	// Resolve target value
-	if(TargetComponent < EComponentType::RotationX)
+	float* DestPtr = nullptr;
+	if (TargetComponent < EComponentType::RotationX)
 	{
 		DestPtr = &NewTransDiff[(int32)(TargetComponent - EComponentType::TranslationX)];
 	}
-	else if(TargetComponent < EComponentType::Scale)
+	else if (TargetComponent < EComponentType::Scale)
 	{
 		DestPtr = &NewRotDiff[(int32)(TargetComponent - EComponentType::RotationX)];
 	}
@@ -85,31 +99,24 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 		DestPtr = &NewScaleDiff;
 	}
 
-	// Set the value; clamped to the given range if necessary.
-	if(bUseRange)
-	{
-		*DestPtr = FMath::Clamp(*SourcePtr * Multiplier, RangeMin, RangeMax);
-	}
-	else
-	{
-		*DestPtr = *SourcePtr * Multiplier;
-	}
+	// Set the value
+	*DestPtr = FinalDriverValue;
 
 	// Build final transform difference
-	FTransform FinalDiff(FQuat::MakeFromEuler(NewRotDiff), NewTransDiff, FVector(NewScaleDiff));
+	const FTransform FinalDiff(FQuat::MakeFromEuler(NewRotDiff), NewTransDiff, FVector(NewScaleDiff));
 
-	FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
+	const FCompactPoseBoneIndex TargetBoneIndex = TargetBone.GetCompactPoseIndex(BoneContainer);
 
 	// Starting point for the new transform
 	FTransform NewLocal = MeshBases.GetLocalSpaceTransform(TargetBoneIndex);
 	NewLocal.AccumulateWithAdditiveScale3D(FinalDiff);
 
 	// If we have a parent, concatenate the transform, otherwise just take the new transform
-	FCompactPoseBoneIndex PIdx = MeshBases.GetPose().GetParentBoneIndex(TargetBoneIndex);
+	const FCompactPoseBoneIndex ParentIndex = MeshBases.GetPose().GetParentBoneIndex(TargetBoneIndex);
 
-	if(PIdx != INDEX_NONE)
+	if (ParentIndex != INDEX_NONE)
 	{
-		const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(PIdx);
+		const FTransform& ParentTM = MeshBases.GetComponentSpaceTransform(ParentIndex);
 		
 		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, NewLocal * ParentTM));
 	}
@@ -117,7 +124,6 @@ void FAnimNode_BoneDrivenController::EvaluateBoneTransforms(USkeletalMeshCompone
 	{
 		OutBoneTransforms.Add(FBoneTransform(TargetBoneIndex, NewLocal));
 	}
-
 }
 
 bool FAnimNode_BoneDrivenController::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones)
