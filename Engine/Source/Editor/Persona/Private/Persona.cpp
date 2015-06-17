@@ -1674,6 +1674,17 @@ bool FPersona::CanRemovePosePin() const
 	return true;
 }
 
+void FPersona::RecompileAnimBlueprintIfDirty()
+{
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		if (!Blueprint->IsUpToDate())
+		{
+			Compile();
+		}
+	}
+}
+
 void FPersona::Compile()
 {
 	// Note if we were debugging the preview

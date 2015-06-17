@@ -2030,16 +2030,13 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
 	// if it's recording, it won't be able to see the message
 	// so disable it
-	if( Persona->Recorder.InRecording() )
+	if (Persona->Recorder.InRecording())
 	{
 		Persona->Recorder.StopRecord(true);
 	}
-	else if(UBlueprint* Blueprint = Persona->GetBlueprintObj())
+	else 
 	{
-		if(!Blueprint->IsUpToDate())
-		{
-			FKismetEditorUtilities::CompileBlueprint(Blueprint);
-		}
+		Persona->RecompileAnimBlueprintIfDirty();
 	}
 
 	return FReply::Handled();

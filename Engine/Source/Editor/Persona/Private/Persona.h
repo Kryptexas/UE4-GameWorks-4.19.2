@@ -207,6 +207,8 @@ public:
 	/** Refresh Preview Instance Track Curves **/
 	void RefreshPreviewInstanceTrackCurves();
 
+	void RecompileAnimBlueprintIfDirty();
+
 protected:
 	// FBlueprintEditor interface
 	//virtual void CreateDefaultToolbar() override;
