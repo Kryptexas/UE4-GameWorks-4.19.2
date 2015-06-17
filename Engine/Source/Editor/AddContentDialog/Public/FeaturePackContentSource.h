@@ -127,6 +127,9 @@ public:
 	virtual TArray<TSharedPtr<FImageData>> GetScreenshotData() const override;
 
 	virtual bool InstallToProject(FString InstallPath) override;
+
+	void InsertAdditionalFeaturePacks();
+
 	virtual bool IsDataValid() const override;
 	
 	virtual ~FFeaturePackContentSource();
