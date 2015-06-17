@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static public int Initialize(string InMacName)
+		static public RemoteToolChain.RemoteToolChainErrorCode Initialize(string InMacName)
 		{
 			MacName = InMacName;
 
@@ -109,7 +109,7 @@ namespace UnrealBuildTool
 						if (RemoteToolChain.ResolvedSSHAuthentication == null)
 						{
 							Log.TraceError("SSH authentication required a key, but one was not found. Use Editor to setup remote authentication!");
-							return 100;
+							return RemoteToolChain.RemoteToolChainErrorCode.MissingSSHKey;
 						}
 						// ask for current time, free memory and num CPUs
 						string[] Commands = new string[] 
@@ -122,7 +122,7 @@ namespace UnrealBuildTool
 						if ((Int64)Results["ExitCode"] != 0)
 						{
 							Log.TraceError("Failed to run init commands on {0}. Output = {1}", MacName, Results["CommandOutput"]);
-							return 101;
+							return RemoteToolChain.RemoteToolChainErrorCode.SSHCommandFailed;
 						}
 
 						string[] Lines = ((string)Results["CommandOutput"]).Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
@@ -158,16 +158,16 @@ namespace UnrealBuildTool
 				{
 					Log.TraceVerbose("SSH Initialize exception {0}", Ex.ToString());
 					Log.TraceError("Failed to run init commands on {0}", MacName);
-					return 101;
+					return RemoteToolChain.RemoteToolChainErrorCode.SSHCommandFailed;
 				}
 			}
  			else
  			{
 				Log.TraceError("Failed to ping Mac named {0}", MacName);
-				return 102;
+				return RemoteToolChain.RemoteToolChainErrorCode.ServerNotResponding;
  			}
 
-			return 0;
+			return RemoteToolChain.RemoteToolChainErrorCode.NoError;
 		}
 
 		/**
