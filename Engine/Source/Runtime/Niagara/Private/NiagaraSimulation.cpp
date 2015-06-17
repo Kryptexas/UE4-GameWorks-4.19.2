@@ -364,11 +364,13 @@ UNiagaraEmitterProperties::UNiagaraEmitterProperties(const FObjectInitializer& I
 {
 }
 
+#if WITH_EDITOR
 void UNiagaraEmitterProperties::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	Init();
 }
+#endif
 
 void UNiagaraEmitterProperties::PostLoad()
 {

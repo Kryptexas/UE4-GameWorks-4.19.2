@@ -10,9 +10,9 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 , FloatDefault(1.0f)
 , VectorDefault(1.0f, 1.0f, 1.0f, 1.0f)
 , MatrixDefault(FMatrix::Identity)
+, DataObjectDefault(nullptr)
 , bCanBeExposed(true)
 , bExposeWhenConstant(true)
-, DataObjectDefault(nullptr)
 {
 }
 

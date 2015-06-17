@@ -393,17 +393,17 @@ void FNiagaraConstants::SetOrAdd(FName Name, UNiagaraDataObject* Value)
 
 float* FNiagaraConstants::FindScalar(FName Name)
 {
-	auto* C = ScalarConstants.FindByPredicate([&](const FNiagaraConstants_Float& C){ return C.Name == Name; });
+	auto* C = ScalarConstants.FindByPredicate([&](const FNiagaraConstants_Float& Constant){ return Constant.Name == Name; });
 	return C ? &C->Value : nullptr;
 }
 FVector4* FNiagaraConstants::FindVector(FName Name)
 {
-	auto* C = VectorConstants.FindByPredicate([&](const FNiagaraConstants_Vector& C){ return C.Name == Name; });
+	auto* C = VectorConstants.FindByPredicate([&](const FNiagaraConstants_Vector& Constant){ return Constant.Name == Name; });
 	return C ? &C->Value : nullptr;
 }
 FMatrix* FNiagaraConstants::FindMatrix(FName Name)
 {
-	auto* C = MatrixConstants.FindByPredicate([&](const FNiagaraConstants_Matrix& C){ return C.Name == Name; });
+	auto* C = MatrixConstants.FindByPredicate([&](const FNiagaraConstants_Matrix& Constant){ return Constant.Name == Name; });
 	return C ? &C->Value : nullptr;
 }
 UNiagaraDataObject* FNiagaraConstants::FindDataObj(FName Name)
