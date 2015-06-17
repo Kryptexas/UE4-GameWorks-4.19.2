@@ -1872,13 +1872,6 @@ static TAutoConsoleVariable<int32> CVarRenderTargetPoolMin(
 	TEXT("Default is 200 MB."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-static TAutoConsoleVariable<float> CVarShadowDistanceFieldPenumbraSize(
-	TEXT("r.Shadow.DistanceFieldPenumbraSize"),
-	0.05f,
-	TEXT("Controls the size of the uniform penumbra produced by static shadowing.\n")
-	TEXT("This is a fraction of MaxTransitionDistanceWorldSpace in BaseLightmass.ini."),
-	ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<int32> CVarIdleWhenNotForeground(
 	TEXT("t.IdleWhenNotForeground"), 0,
 	TEXT("Prevents the engine from taking any CPU or GPU time while not the foreground app."),

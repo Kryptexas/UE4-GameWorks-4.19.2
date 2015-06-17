@@ -530,6 +530,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADDED_NATIVE_SERIALIZATION_FOR_IMMUTABLE_STRUCTURES,
 	// Deprecated attributes that override the style on UMG widgets
 	VER_UE4_DEPRECATE_UMG_STYLE_OVERRIDES,
+	// Shadowmap penumbra size stored
+	VER_UE4_STATIC_SHADOWMAP_PENUMBRA_SIZE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
