@@ -10,11 +10,11 @@ Description:Expressions that output a vector value, such as a position or normal
 [EXCERPT:ActorPositionWS]
 ## ActorPositionWS
 
-ActorPositionWS outputs 3vector (RGB) data representing the location of the object with this material on it in world space. 
+ActorPositionWS outputs Vector3 (RGB) data representing the location of the object with this material on it in world-space. 
 
 ![](ActorPositionColors.png)(w:434) ![](ActorPositionNetwork.png)(w:490)
 
-In this example, you can see that ActorPositionWS is being fed directly into the Base Color of the material. As a result, each of the spheres with the material applied to them show a different color as they are moved to different locations in 3D space. Note that the result of the ActorPositionWS node is being divided by 1600 to create a nice blend in color, rather than a pop.
+In this example, you can see that ActorPositionWS is being fed directly into the Base Color of the material. As a result, each of the spheres with the material applied to them show a different color as they are moved to different locations in 3D space. Note that the result of the ActorPositionWS node is being divided by 1600 to create a nice blend-in color, rather than a pop.
 
 [/EXCERPT:ActorPositionWS]
 
@@ -52,9 +52,9 @@ The CameraVector expression outputs a three-channel vector value representing th
 
 
 ## LightVector
-
+[REGION:warning]
 **This expression is deprecated in Unreal Engine 4 as lighting calculations are now deferred.**
-
+[/REGION:warning]
 <!--
 The LightVector expression is a three-channel vector value representing the direction of the light with respect to the surface.
 
@@ -81,7 +81,7 @@ In the example above, you can see that the colors of the objects correspond to t
 ## ObjectOrientation
 
 
-The ObjectOrientation expression outputs the world-space up vector of the object. In other words, this is the direction the local positive Z-axis of the object the material is applied to is pointing.
+The ObjectOrientation expression outputs the world-space up vector of the object. In other words, the object's local positive z-axis is pointing in this direction.
 
 ![ObjectOrientationExample.png](ObjectOrientationExample.png)
 [/EXCERPT:ObjectOrientation]
@@ -91,7 +91,7 @@ The ObjectOrientation expression outputs the world-space up vector of the object
 ## ObjectPositionWS
 
 
-The ObjectPositionWS expression outputs the world-space center position of the object's bounds.  This is useful for creating spherical lighting for foliage, for example.
+The ObjectPositionWS expression outputs the world-space center position of the object's bounds.  For example, this is useful for creating spherical lighting for foliage.
 
 
 ![](WorldPositionWSScene.png)(w:460) ![](WorldPositionNetwork.png)(w:470)
@@ -128,7 +128,7 @@ The ReflectionVectorWS expression is similar in spirit to [CameraVectorWS](#Came
 ## VertexNormalWS
 
 
-The VertexNormalWS expression outputs the world space vertex normal. It can only be used in material inputs that are executed in the vertex shader, like WorldPositionOffset.  This is useful for making a mesh grow or shrink.  Note that offsetting position along the normal will cause the geometry to split apart along UV seams.
+The VertexNormalWS expression outputs the world-space vertex normal. It can only be used in material inputs that are executed in the vertex shader, like WorldPositionOffset.  This is useful for making a mesh grow or shrink.  Note that offsetting position along the normal will cause the geometry to split apart along UV seams.
 
 [REGION:fullwidth]
 ![VertexNormalWSExample.png](VertexNormalWSExample.png)

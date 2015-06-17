@@ -30,13 +30,13 @@ You can quickly create a Constant node by holding the **1** key and clicking in 
 [EXCERPT:Constant2vector]
 ## Constant2Vector
 
-The Constant2Vector expression outputs a two-channel vector value, in other words, two constants numbers.
+The Constant2Vector expression outputs a two-channel vector value, in other words, two constant numbers.
 
 | Item | Description |
 | -------- | ----------- |
 | [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value of the red, or first, channel of the vector the expression outputs. |
-| **G** | Specifies the float value of the green, or second, channel of the vector the expression outputs. |
+| **R** | Specifies the float value of the red (first) channel of the vector the expression outputs. |
+| **G** | Specifies the float value of the green (second) channel of the vector the expression outputs. |
 
 **Examples:** (0.4, 0.6), (1.05, -0.3)
 
@@ -60,9 +60,9 @@ The Constant3Vector expression outputs a three-channel vector value, in other wo
 | Item | Description |
 | -------- | ----------- |
 | [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value of the red, or first, channel of the vector the expression outputs. |
-| **G** | Specifies the float value of the green, or second, channel of the vector the expression outputs. |
-| **B** | Specifies the float value of the blue, or third, channel of the vector the expression outputs. |
+| **R** | Specifies the float value of the red (first) channel of the vector the expression outputs. |
+| **G** | Specifies the float value of the green (second) channel of the vector the expression outputs. |
+| **B** | Specifies the float value of the blue (third) channel of the vector the expression outputs. |
 
 
 **Examples:** (0.4, 0.6, 0.0), (1.05, -0.3, 0.3)
@@ -85,10 +85,10 @@ The Constant4Vector expression outputs a four-channel vector value, in other wor
 | Item | Description |
 | -------- | ----------- |
 | [REGION:tablesection]Properties[/REGION] ||
-| **R** | Specifies the float value of the red, or first, channel of the vector the expression outputs. |
-| **G** | Specifies the float value of the green, or second, channel of the vector the expression outputs. |
-| **B** | Specifies the float value of the blue, or third, channel of the vector the expression outputs. |
-| **A** | Specifies the float value of the alpha, or fourth, channel of the vector the expression outputs. |
+| **R** | Specifies the float value of the red (first) channel of the vector the expression outputs. |
+| **G** | Specifies the float value of the green (second) channel of the vector the expression outputs. |
+| **B** | Specifies the float value of the blue (third) channel of the vector the expression outputs. |
+| **A** | Specifies the float value of the alpha (fourth) channel of the vector the expression outputs. |
 
 **Examples:** (0.4, 0.6, 0.0, 1.0), (1.05, -0.3, 0.3, 0.5)
 
