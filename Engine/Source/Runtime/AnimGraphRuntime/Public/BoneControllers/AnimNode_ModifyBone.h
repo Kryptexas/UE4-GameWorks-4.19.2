@@ -9,13 +9,13 @@ UENUM()
 enum EBoneModificationMode
 {
 	/** The modifier ignores this channel (keeps the existing bone translation, rotation, or scale). */
-	BMM_Ignore,
+	BMM_Ignore UMETA(DisplayName = "Ignore"),
 
 	/** The modifier replaces the existing translation, rotation, or scale. */
-	BMM_Replace,
+	BMM_Replace UMETA(DisplayName = "Replace Existing"),
 
 	/** The modifier adds to the existing translation, rotation, or scale. */
-	BMM_Additive
+	BMM_Additive UMETA(DisplayName = "Add to Existing")
 };
 
 /**
