@@ -2,6 +2,7 @@
 
 #include "NiagaraPrivate.h"
 #include "NiagaraConstantSet.h"
+#include "NiagaraSimulation.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FNiagaraConstantMap
