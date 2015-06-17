@@ -115,6 +115,8 @@ private:
 	FAsyncPackageDesc Desc;
 	/** Linker which is going to have its exports and imports loaded									*/
 	FLinkerLoad*				Linker;
+	/** Package which is going to have its exports and imports loaded									*/
+	UPackage*				LinkerRoot;
 	/** Call backs called when we finished loading this package											*/
 	TArray<FCompletionCallback>	CompletionCallbacks;
 	/** Pending Import packages - we wait until all of them have been fully loaded. */

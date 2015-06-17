@@ -41,7 +41,13 @@ class FAsyncLoadingThread : public FRunnable
 #endif
 	/** [GAME THREAD] Event used to signal there's queued packages to stream */
 	TArray<FAsyncPackage*> LoadedPackagesToProcess;
-	
+#if THREADSAFE_UOBJECTS
+	/** [ASYNC/GAME THREAD] Critical section for LoadedPackagesToProcess list. 
+	 * Note this is only required for looking up existing packages on the async loading thread 
+	 */
+	FCriticalSection LoadedPackagesToProcessCritical;
+#endif
+
 	/** [ASYNC THREAD] Array of packages that are being preloaded */
 	TArray<FAsyncPackage*> AsyncPackages;
 #if THREADSAFE_UOBJECTS
@@ -295,6 +301,11 @@ private:
 	* [ASYNC THREAD] Creates async packages from the queued requests
 	*/
 	int32 CreateAsyncPackagesFromQueue();
+
+	/**
+	* [ASYNC THREAD] Finds existing async package and adds the new request's completion callback to it.
+	*/
+	FAsyncPackage* FindExistingPackageAndAddCompletionCallback(FAsyncPackageDesc* PackageRequest, TArray<FAsyncPackage*>& PackageList);
 
 	/**
 	* [ASYNC THREAD] Adds a package to a list of packages that have finished loading on the async thread
