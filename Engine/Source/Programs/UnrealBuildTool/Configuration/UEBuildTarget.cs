@@ -1085,7 +1085,10 @@ namespace UnrealBuildTool
 				{
 					if(Directory.Exists(Binary.Config.IntermediateDirectory))
 					{
-						CleanDirectory(Binary.Config.IntermediateDirectory);
+						if (!UnrealBuildTool.RunningRocket() || !Utils.IsFileUnderDirectory(Binary.Config.IntermediateDirectory, BuildConfiguration.RelativeEnginePath))
+						{
+							CleanDirectory(Binary.Config.IntermediateDirectory);
+						}
 					}
 				}
 
