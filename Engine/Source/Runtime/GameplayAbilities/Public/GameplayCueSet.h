@@ -73,6 +73,6 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	static FGameplayTag	BaseGameplayCueTag();
 
 protected:
-	virtual bool HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+	virtual bool HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
 	virtual void BuildAccelerationMap_Internal();	
 };
