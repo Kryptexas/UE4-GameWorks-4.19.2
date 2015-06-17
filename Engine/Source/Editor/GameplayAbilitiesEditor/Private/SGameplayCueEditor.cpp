@@ -341,7 +341,7 @@ FReply SGameplayCuePickerDialog::OnClassPickerConfirmed()
 
 FString SGameplayCueEditor::GetPathNameForGameplayCueTag(FString GameplayCueTagName)
 {
-	FString NewDefaultPathName = FString::Printf(TEXT("/GC_%s"), *GameplayCueTagName);
+	FString NewDefaultPathName = FString::Printf(TEXT("/Game/GC_%s"), *GameplayCueTagName);
 	auto PathDel = IGameplayAbilitiesEditorModule::Get().GetGameplayCueNotifyPathDelegate();
 	if (PathDel.IsBound())
 	{
