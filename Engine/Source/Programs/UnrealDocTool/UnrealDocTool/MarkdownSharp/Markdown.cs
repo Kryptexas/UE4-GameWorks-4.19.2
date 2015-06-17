@@ -1073,7 +1073,7 @@ namespace MarkdownSharp
                         {
                             key = "description",
                             value = metadataValue
-                        })));
+                        })) + Environment.NewLine);
                 }
                 else
                 {
@@ -1083,7 +1083,7 @@ namespace MarkdownSharp
                             {
                                 key = metadataRow.Key,
                                 value = metadataValue
-                            })));
+                            })) + Environment.NewLine);
                 }
             }
 
@@ -1173,13 +1173,25 @@ namespace MarkdownSharp
                             new
                             {
                                 versions = data.ProcessedDocumentCache.Metadata.EngineVersions,
-                                versionCount = data.ProcessedDocumentCache.Metadata.EngineVersions.Count
+                                versionCount = data.ProcessedDocumentCache.Metadata.EngineVersions.Count,
+                                language = data.CurrentFolderDetails.Language,
+                                relativeHtmlPath = data.CurrentFolderDetails.RelativeHTMLPath
                             })),
                         skilllevels = Templates.SkillLevels.Render(Hash.FromAnonymousObject(
                             new
                             {
                                 skilllevels = data.ProcessedDocumentCache.Metadata.SkillLevels,
-                                skilllevelCount = data.ProcessedDocumentCache.Metadata.SkillLevels.Count
+                                skilllevelCount = data.ProcessedDocumentCache.Metadata.SkillLevels.Count,
+                                language = data.CurrentFolderDetails.Language,
+                                relativeHtmlPath = data.CurrentFolderDetails.RelativeHTMLPath
+                            })),
+                        tags = Templates.Tags.Render(Hash.FromAnonymousObject(
+                            new
+                            {
+                                tags = data.ProcessedDocumentCache.Metadata.Tags,
+                                tagsCount = data.ProcessedDocumentCache.Metadata.Tags.Count,
+                                language = data.CurrentFolderDetails.Language,
+                                relativeHtmlPath = data.CurrentFolderDetails.RelativeHTMLPath
                             })),
                         errors = ThisIsPreview
                                      ? Templates.ErrorDetails.Render(Hash.FromAnonymousObject(

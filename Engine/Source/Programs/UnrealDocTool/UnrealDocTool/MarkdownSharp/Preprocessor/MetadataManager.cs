@@ -5,9 +5,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using DotLiquid;
+using System.Globalization;
 
 namespace MarkdownSharp.Preprocessor
 {
+    public class EngineVersion
+    {
+        public String VersionNumber = "";
+        public String DisplayLabel = "";
+
+        public EngineVersion(String version, String label)
+        {
+            VersionNumber = version;
+            DisplayLabel = label;
+        }
+    }
+    public class EngineVersionDrop : Drop
+    {
+
+    }
     public class MetadataManager
     {
         public PreprocessedData Data { get; private set; }
@@ -86,12 +102,17 @@ namespace MarkdownSharp.Preprocessor
 
                 if (metaDataCategoryLowerCase == "version")
                 {
-                    EngineVersions.Add(metaValue);
+                    EngineVersions.Add(Hash.FromAnonymousObject(new { version = metaValue, label = metaValue.Replace('.', '_') }));
                 }
 
                 if (metaDataCategoryLowerCase == "skilllevel")
                 {
                     SkillLevels.Add(metaValue);
+                }
+
+                if (metaDataCategoryLowerCase == "tags")
+                {
+                    Tags.Add(CultureInfo.CurrentCulture.TextInfo.ToTitleCase(metaValue));
                 }
             }
 
@@ -155,8 +176,9 @@ namespace MarkdownSharp.Preprocessor
             CrumbsLinks = new List<string>();
             RelatedLinks = new List<Hash>();
             PrereqLinks = new List<Hash>();
-            EngineVersions = new List<String>();
+            EngineVersions = new List<Hash>();
             SkillLevels = new List<String>();
+            Tags = new List<String>();
 
             var changes = new List<PreprocessingTextChange>();
 
@@ -218,8 +240,9 @@ namespace MarkdownSharp.Preprocessor
         public List<string> CrumbsLinks { get; set; }
         public List<Hash> RelatedLinks { get; set; }
         public List<Hash> PrereqLinks { get; set; }
-        public List<String> EngineVersions { get; set; }
+        public List<Hash> EngineVersions { get; set; }
         public List<String> SkillLevels { get; set; }
+        public List<String> Tags { get; set; }
         public string DocumentTitle { get; set; }
         public string SEOTitle { get; set; }
 

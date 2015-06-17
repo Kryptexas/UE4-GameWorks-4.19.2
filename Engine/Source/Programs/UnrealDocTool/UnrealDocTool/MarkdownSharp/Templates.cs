@@ -360,6 +360,11 @@ namespace MarkdownSharp
             get { return GetCached("SkillLevel.html"); }
         }
 
+        public static TemplateFile Tags
+        {
+            get { return GetCached("Tag.html"); }
+        }
+
         public static TemplateFile MissingTemplate
         {
             get { return new TemplateFile(); }
