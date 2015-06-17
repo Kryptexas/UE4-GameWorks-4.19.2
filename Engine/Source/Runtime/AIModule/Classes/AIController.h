@@ -12,6 +12,7 @@
 #include "Perception/AIPerceptionListenerInterface.h"
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "GameplayTaskOwnerInterface.h"
+#include "GenericTeamAgentInterface.h"
 #include "AIController.generated.h"
 
 class APawn;
@@ -74,7 +75,7 @@ struct FFocusKnowledge
  */
 
 UCLASS(ClassGroup = AI, BlueprintType, Blueprintable)
-class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface
+class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
@@ -344,6 +345,15 @@ public:
 	// INavAgentInterface
 	//----------------------------------------------------------------------//
 	virtual bool IsFollowingAPath() const override;
+
+	//----------------------------------------------------------------------//
+	// IGenericTeamAgentInterface
+	//----------------------------------------------------------------------//
+private:
+	FGenericTeamId TeamID;
+public:
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override { return TeamID; }
 
 	//----------------------------------------------------------------------//
 	// IGameplayTaskOwnerInterface

@@ -45,6 +45,7 @@ AAIController::AAIController(const FObjectInitializer& ObjectInitializer)
 
 	bSkipExtraLOSChecks = true;
 	bWantsPlayerState = false;
+	TeamID = FGenericTeamId::NoTeam;
 }
 
 void AAIController::Tick(float DeltaTime)
@@ -932,4 +933,16 @@ UAIPerceptionComponent* AAIController::GetAIPerceptionComponent()
 const UAIPerceptionComponent* AAIController::GetAIPerceptionComponent() const 
 {
 	return PerceptionComponent;
+}
+
+//----------------------------------------------------------------------//
+// IGenericTeamAgentInterface
+//----------------------------------------------------------------------//
+void AAIController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	if (TeamID != NewTeamID)
+	{
+		TeamID = NewTeamID;
+		// @todo notify perception system that a controller changed team ID
+	}
 }
