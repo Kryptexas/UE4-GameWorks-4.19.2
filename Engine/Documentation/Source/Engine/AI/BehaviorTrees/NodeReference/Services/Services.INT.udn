@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: Behavior Tree Node Reference: Services
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree Service nodes.
@@ -22,4 +22,9 @@ The Default Focus creates a short cut to accessing an Actor in your Blueprints a
 [REGION:note]
 As of 4.4 the Blackboard Key will appear to accept Vector Blackboard Keys, these will do nothing as the Set/Clear/Get Focus Actor functions operate on an Actor.
 [/REGION]
+
+
+
+
+
 

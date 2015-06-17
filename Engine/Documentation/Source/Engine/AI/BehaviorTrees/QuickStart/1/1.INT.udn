@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title: 1. Essential Setup
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 1. Essential Setup
@@ -40,3 +40,8 @@ If you need further explanation of starting a new project, see the [Project Brow
 
 [/EXCERPT:AIProjectStart]
 %Steps%
+
+
+
+
+

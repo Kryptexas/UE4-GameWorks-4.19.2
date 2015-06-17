@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:5. Creating / Scripting an In-Game Pause Menu
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:Here we will create an in-game pause menu which will allow us to pause or exit our game. 
@@ -180,6 +180,10 @@ The next section will provide you with additional information on working with **
 ---
 
 %Steps%
+
+
+
+
 
 
 

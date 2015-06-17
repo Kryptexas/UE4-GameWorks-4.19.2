@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 12. Make a Task
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 12. Make a Task
@@ -599,3 +599,8 @@ Here is what is going on in this graph:
 	   NodeGuid=F90931054D514458FE3DDA997BE5C7C2
 	End Object
 [/VAR]
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Static Mesh Editor UI
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Types/StaticMeshes
 Description:Tool used to preview the look, collision, and UVs as well as set and manipulate the properties of StaticMesh assets.
@@ -149,5 +149,10 @@ For information about the basics of using this panel, see the [Editor Details Pa
 * **Alt+J** - Position camera to the Top Orthographic view. 
 * **Alt+K** - Position camera to the Side Orthographic view. 
 * **Alt+G** - Position camera to the Perspective view.
+
+
+
+
+
 
 

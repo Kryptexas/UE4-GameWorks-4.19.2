@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Working with Models in UE4
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
 Description:Working with SpeedTree models in Unreal Engine 4.
@@ -24,3 +24,8 @@ Add wind to the scene by adding a wind direction source object (Select **Window*
 ### Level of Detail
 
 LOD transitions are based on screen space area in UE4. These values are edited by editing the Static Mesh asset associated with the SpeedTree model. Default values are chosen upon import that work for typical situations.
+
+
+
+
+

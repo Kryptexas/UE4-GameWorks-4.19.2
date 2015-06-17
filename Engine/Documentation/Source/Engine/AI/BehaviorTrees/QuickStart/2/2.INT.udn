@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 2. Create a Nav Mesh Bounds Volume
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 2. Create a Nav Mesh Bounds Volume
@@ -52,3 +52,8 @@ The NavMesh in Unreal has a number of functions that work well with Behavior Tre
 %Steps%
 
 [VAR:arrow]![](Engine\AI\EnvironmentQuerySystem\QuickStart\arrow_button.png)[/VAR]
+
+
+
+
+

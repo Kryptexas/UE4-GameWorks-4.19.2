@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Vertex Animation Tool
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: User guide for the 3D Max Vertex Animation tool set.
@@ -161,3 +161,8 @@ The memory usage for each frame per vert is as follows :
 
 * Vertex Offset Texture: 8 bytes per vertex per frame (each pixel)
 * Normal Texture: 4 bytes per vertex per frame (each pixel)
+
+
+
+
+

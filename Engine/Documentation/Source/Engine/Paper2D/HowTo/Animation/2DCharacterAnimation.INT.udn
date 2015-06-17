@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Setting up an Animation State Machine
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:How to set up and play different animations for a 2D character based on different states. 
@@ -166,6 +166,11 @@ As mentioned, in order to add additional animation states to this setup you woul
 
 
 	
+
+
+
+
+
 
 
 

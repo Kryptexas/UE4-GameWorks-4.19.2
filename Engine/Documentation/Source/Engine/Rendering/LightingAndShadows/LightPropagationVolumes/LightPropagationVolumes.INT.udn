@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Light Propagation Volumes
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:System for dynamically generating global illumination.
@@ -211,3 +211,7 @@ Properties of the current LPV implementation:
 [/OBJECT]
 [/EXCERPT:VisualizeSlider]
 -->
+
+
+
+

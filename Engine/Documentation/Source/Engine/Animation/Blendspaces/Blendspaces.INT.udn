@@ -159,3 +159,8 @@ Each item in the Sample Data array has the following properties:
 | -------- | ----------- |
 | **Animation** | The AnimationSequence asset to blend to. |
 | **Sample Value** | The input values (X and Y corresponding to the Blend Parameters) where the **Animation** has full influence. |
+
+
+
+
+

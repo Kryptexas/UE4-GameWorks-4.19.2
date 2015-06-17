@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: Behavior Tree Node Reference: Decorators
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree Decorator nodes.
@@ -248,3 +248,8 @@ The Time Limit decorator will give a branch or node a set amount of time to fini
 | **Time Limit** | The time limit before the node fails out, in seconds. |
 | **Observer Aborts** | [INCLUDE:#subprop3] |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
+
+
+
+
+

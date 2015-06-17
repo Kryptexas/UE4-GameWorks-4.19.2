@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: Material Editor - How To use a Subsurface Profile in your Materials 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description: Setting up Materials to use Subsurface Profiles as they offer a better way to render skin and wax like surfaces.
@@ -201,6 +201,10 @@ Combining a Material Instance with a Subsurface profile is a great way to get th
 * A Material Instance allows you to tweak values in real time which makes seeing your results much quicker. 
 * You can use the **Opacity** input  to dampen the Subsurface contribution to the surface. However it is recommended that you keep this value at 1 and adjust the parameters inside the the Subsurface Profile. Only adjust this value if you find that you can not get the results you are looking for when adjusting the Subsurface Profile.
 * The **Value** slider of each color picker controls the influence of the Subsurface effect. The closer that this value is set toward white, the more prominent the effect will be. While the closer the value is set to black, the less visible the effect will be.
+
+
+
+
 
 
 

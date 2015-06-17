@@ -82,3 +82,8 @@ While **Walkable Slope Behavior** is set to "Decrease Walkable Slope":
 
 * A value of 0.0 in the **Walkable Slope Angle** will result in the Character being unable to walk across the **Physics Body** surface. This can result in some odd behavior for mostly flat surfaces, as the character will skate across them but will not be able to change direction.
 * A value of 90.0 in the **Walkable Slope Angle** is essentially the same as **No Change** in the **Walkable Slope Behavior** property.
+
+
+
+
+

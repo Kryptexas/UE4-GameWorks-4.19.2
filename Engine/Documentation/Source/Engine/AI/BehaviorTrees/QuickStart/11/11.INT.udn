@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 11. Make a Service
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 11. Make a Service
@@ -1849,3 +1849,8 @@ Here is what is going on in this graph:
 	   NodeGuid=B9509E964D83708F1D879CB7BE225B27
 	End Object
 [/VAR]
+
+
+
+
+

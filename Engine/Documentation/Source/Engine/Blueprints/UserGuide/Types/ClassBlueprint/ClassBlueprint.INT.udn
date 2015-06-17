@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Blueprint Class
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
 Description:These define a new class or type of Actor which can then be placed as instances that behave like any other type of Actor.
@@ -138,5 +138,10 @@ These are essentially a replacement for archetypes and can be used to allow desi
 _Data-Only Blueprints_ are edited in a compact property editor, but can also be "converted" to full _Blueprints_ by simply adding code, 
 variables, or components using the full **Blueprint Editor**.
 [/EXCERPT:DataBlueprint]
+
+
+
+
+
 
 

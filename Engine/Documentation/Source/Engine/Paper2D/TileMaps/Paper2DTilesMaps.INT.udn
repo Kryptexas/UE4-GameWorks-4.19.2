@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Paper 2D Tile Sets / Tile Maps
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Overview of how to create Tile Sets and Tile Maps for use within Paper 2D. 
@@ -265,6 +265,11 @@ Below is an example of a typical workflow for creating a Tile Map.
 
 
 	
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:6. On Your Own!
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:Take what you have learned and polish up your level, then continue on to read related topics. 
@@ -58,3 +58,8 @@ As for specifics covered in this quick start:
 * For more information on Lighting, see: [**Lighting Quick Start Guide**](Engine/Rendering/LightingAndShadows/QuickStart)
 
 %Steps%
+
+
+
+
+

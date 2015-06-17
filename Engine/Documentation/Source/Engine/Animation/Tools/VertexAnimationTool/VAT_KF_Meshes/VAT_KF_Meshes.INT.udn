@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Vertex Animation Tool - Key Framed Meshes
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: User guide for the 3Ds Max Vertex Animation tool set.
@@ -111,6 +111,11 @@ After that is completed you can then close down the Material Graph Editor.
 Once this has been completed you will now see the mesh "playing" the animation.
 
 	![](VAT_KFM_Final_Effect.gif)(convert:false)
+
+
+
+
+
 
 
 

@@ -85,3 +85,8 @@ The simplest form of declaration for a BlueprintCallable Function is similar to 
 | **BlueprintImplementableEvent** | This is the primary way we allow native functions to call up into Blueprints.  They are like virtual functions that you implement in the Blueprint themselves.  If there is no implementation, the function call is ignored.  It is important to note that if a BlueprintImplementableEvent does not  have a return value or an out parameter, it will appear as an event, available by **right-clicking** and selecting it in the event graph of the Blueprint.  If it does have a return value or any out parameters, it will be listed in the **My Blueprints** tab, and can then be overridden by **right-clicking** and selecting "implement" function.  Note that BlueprintImplementableEvents do not  have a native implementation of the function. |
 | **BlueprintNativeEvent** | These are the same as above, except there is a native default implementation of the function that is called if the Blueprint does not override the function.  This is useful for things where you want some sort of default behaviour if the Blueprint does not implement it, but want the Blueprint to be able to override the functionality if desired.  These are more costly, so we only put them in where the functionality is needed.  When you override the BlueprintNativeEvent, you can still call the native implementation, if desired, by **right-clicking** on the event or function entry node, and selecting "Add call to parent". |
 
+
+
+
+
+

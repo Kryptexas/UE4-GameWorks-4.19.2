@@ -112,3 +112,7 @@ physical locations of 'ProcessedReports' and 'ProcessedVideos' in the Report Pro
 The RegisterPII application maps the anonymous machine Guid from the Windows Error Report to a known user and machine name. It should only be run for developers to ease tracking down of crashes, as collecting such data for end users is illegal.
 PII stands for Personally Identifiable Information which is described here http://en.wikipedia.org/wiki/Personally_identifiable_information
 
+
+
+
+

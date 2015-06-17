@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:4. Scripting the Main Menu
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
 Description:In this step we will script the functionality for our Main Menu and load into game. 
@@ -119,6 +119,10 @@ In the next step we will add an in-game pause menu so that the player can pause 
 ---
 
 %Steps%
+
+
+
+
 
 
 

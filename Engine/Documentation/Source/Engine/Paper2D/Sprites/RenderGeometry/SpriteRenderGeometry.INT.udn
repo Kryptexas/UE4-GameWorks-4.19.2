@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Sprite Source Region and Render Geometry
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
 Description:Displays and allows editing of the texture Source Region and Sprite Render Geometry. 
@@ -50,3 +50,8 @@ closely match the shape of the opaque pixels of the Sprite.
 The more closely the render geometry matches the opaque pixels of the Sprite, the less potential there is for overdraw 
 of transparent pixels which can be a serious performance drain.
 [/REGION]
+
+
+
+
+

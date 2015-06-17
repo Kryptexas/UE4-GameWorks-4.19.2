@@ -222,3 +222,7 @@ Adding Emissive Glow to any Material is very cheap and effective way to simulate
 However keep in mind that when using Emissive Glow the Emissive Glow will not illuminate dynamic objects, like characters, the same way that lights will. 
 Also remember to tweak the Bloom setting on the Post Process volume if your glow is too intense. 
 
+
+
+
+

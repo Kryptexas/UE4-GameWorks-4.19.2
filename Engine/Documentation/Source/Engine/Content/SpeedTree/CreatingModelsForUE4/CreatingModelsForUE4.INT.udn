@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Creating Models for UE4
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
 Description:Creating SpeedTree Models for Unreal Engine 4
@@ -46,3 +46,8 @@ SpeedTree will compute a per-vertex ambient occlusion value for your model. Thes
 ## Add Collision Object to the Model
 
 A series of spheres and capsules can be added to the model to use as collision volumes in UE4. The quickest way to get started with collision objects is by selecting "Tools -> Generate collision primitives…" and letting SpeedTree add some automatically. Click here for more information.
+
+
+
+
+

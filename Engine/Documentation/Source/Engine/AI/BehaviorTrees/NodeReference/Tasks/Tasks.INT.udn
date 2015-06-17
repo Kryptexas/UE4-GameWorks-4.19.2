@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: Behavior Tree Node Reference: Tasks
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Reference for the Behavior Tree Task nodes.
@@ -90,3 +90,8 @@ Works just like the Wait Task node, except it will pull a Blackboard value for h
 | -------- | ----------- |
 | **Blackboard Key** | The float Blackboard Key to reference for how long to wait. |
 | **Node Name** | The name the node should display in the Behavior Tree graph. |
+
+
+
+
+

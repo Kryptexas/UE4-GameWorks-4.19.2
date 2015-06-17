@@ -222,3 +222,8 @@ The **Hierarchy** Pane shows a hierarchical view of the Bones of the Skeletal Me
 [REGION:note]
 As of version 4.5,  PhAT allows you to copy a **Physics Body** from one bone to another based on the left/right naming convention.  If you use an `_L` `_R` naming convention on your joints, hitting the **M** key will copy the **Physics Body** to the bone that shares the same name, but has the opposing suffix.  However, this only copies the Physics Body and does not currently copy constraints. Also note that currently this does not mirror rotations.
 [/REGION:note]
+
+
+
+
+

@@ -27,3 +27,8 @@ _Above a CameraComponent (Camera) and SpringArmComponent (red line) are used to 
 
 You can adjust several camera related properites on the SpringArmComponent such as the **TargetArmLength** which is the natural length of the spring arm when there are no collisions, **Probe Size** or how big should the probe sphere be when checking for collisions, as well as things like **CameraLag** useful if you want the camera to lag slightly behind the object it is attached to. 
 
+
+
+
+
+

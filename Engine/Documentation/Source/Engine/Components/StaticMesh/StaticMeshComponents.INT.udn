@@ -20,3 +20,8 @@ Below, a **StaticMeshComponent** representing a light fixture along with a **Spo
 Another example is in the form of a door where two **StaticMeshComponents** are placed side-by-side. Through script you could move one (or both) to open a pathway. 
 
 ![](static_mesh2.png)(w:720)
+
+
+
+
+

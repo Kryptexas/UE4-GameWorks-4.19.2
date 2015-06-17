@@ -137,3 +137,8 @@ This is just a simple setup. If you examine the Physics Asset for the Vehicle in
 ![](goodPA.png)
 
 Outside of the wheels, all of those collision bodies exist on the root joint of the vehicle. They prevent the wheels from getting jammed on certain game elements, and also prevents the meshes of the wheels from clipping through walls and railings.
+
+
+
+
+

@@ -113,3 +113,8 @@ Here are some points to consider as a programmer creating a Blueprint-exposed AP
 		 */
 		UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetActorTransform"), Category="Utilities|Transformation")
 		FTransform GetTransform() const;
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Computing Lightmap UV Coordinates
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Content/Speedtree
 Description:Computing SpeedTree Model Lightmap UV Coordinates in Unreal Engine 4.
@@ -59,3 +59,8 @@ Our algorithm aggressively tries to fit everything in the resolution you have se
 ## Step 4: Pick the Lightmap Resolution in Unreal Engine 4
 
 When you import the model in UE4, it will have a default lightmap resolution of 128 like all Static Meshes. Select the mesh asset and enter the ligthmap resolution you used here. When you build lighting in UE4, you should have amazing results on some of the hardest types of geometry to lightmap!
+
+
+
+
+

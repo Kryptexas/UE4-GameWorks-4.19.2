@@ -178,3 +178,7 @@ Texture Masking is a very powerful concept that once mastered will allow you to 
 Remember that you only have 4 available channels to use with one Mask Texture so use the channels wisely. 
 Also do not forget to disable sRGB on your Mask Textures as it can greatly help to increase the Mask's sharpness.
 
+
+
+
+

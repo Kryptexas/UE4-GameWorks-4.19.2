@@ -17,3 +17,8 @@ This makes **SkeletalMeshComponents** ideal for things like characters, creature
 ![](mesh_component.png)
 
 Above, a **SkeletalMeshComponent** is used with a **Character Blueprint** to create a playable character. In addition to specifying the **Skeletal Mesh** asset to use, you can also define the **Animation Mode** for the mesh to use (either an [Animation Blueprint](Engine/Animation/AnimBlueprints) or an [Animation Asset](Engine/Animation/Sequences)). 
+
+
+
+
+

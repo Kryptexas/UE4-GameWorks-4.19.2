@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Paint Mode
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:Guide to the Landscape tool's Paint mode.
@@ -211,3 +211,8 @@ When you are reducing a weight-blended layer by holding down **Ctrl + Shift** wh
 
 
 [INCLUDE:Engine/Landscape#landscape002]
+
+
+
+
+

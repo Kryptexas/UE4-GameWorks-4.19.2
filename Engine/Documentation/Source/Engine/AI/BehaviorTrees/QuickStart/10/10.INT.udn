@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 10. Behavior Tree Basics
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 10. Behavior Tree Basics
@@ -53,3 +53,8 @@ While Selector and Sequence nodes will have a number of children under them, the
 
 
 %Steps%
+
+
+
+
+

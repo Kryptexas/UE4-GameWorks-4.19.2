@@ -16,3 +16,8 @@ The **AudioComponent** allows you to add a [Sound Wave](Engine/Audio/WAV) or [So
 For example, say you wanted a particle effect that resembles a fire in your level. While the particle effect alone can be used to convey the visuals of a fire, by adding an **AudioComponent** as a sub-Actor to it that plays an audio asset of a crackling fire, the fire effect will be that much more convincing. 
 
 You can change several of the properties or settings of the **AudioComponent** through **Blueprints** or **C++** during runtime such as fading the audio in or out, playing or stopping it entirely, adjusting the volume and other settings which can be found on the [Sound Actors](Engine/Audio/SoundActors) page under the different properties sections. 
+
+
+
+
+

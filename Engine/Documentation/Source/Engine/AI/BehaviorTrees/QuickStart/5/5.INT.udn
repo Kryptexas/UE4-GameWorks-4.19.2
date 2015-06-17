@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 5. Setup the Blackboard Asset
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 5. Setup the Blackboard Asset
@@ -39,3 +39,8 @@ The **Blackboard** asset stores all of the data needed for a specific instance o
 
 
 %Steps%
+
+
+
+
+

@@ -26,7 +26,7 @@ Skeletal Mesh Actors are placed in maps using standard Actor placement methods; 
 
 **Drag & Drop**
 
-You can drag & drop Skeletal Mesh Actor’s right from the **Content Browser** right into the level you are working with by following these few simple steps. 
+You can drag & drop Skeletal Mesh Actorï¿½s right from the **Content Browser** right into the level you are working with by following these few simple steps. 
 1. In the **Content Browser**, locate the Skeletal Mesh you want to add to the map as a Skeletal Mesh Actor.
 
 1. **Left-click** on the Skeletal Mesh in the **Content Browser** and drag the mouse (while holding the **Left Mouse Button** down) from the **Content Browser** to the location in the viewport where you want to place the mesh. The location does not need to be exact. You can always reposition and rotate the mesh afterwards.   
@@ -102,3 +102,8 @@ Once your Physics Asset has been created, it is not time to assign it to your me
 You can also override Physics Assets in your level by simply selecting your Skeletal Mesh and then under the **Physics** section of the **Details** panel, you can supply a new Physics Asset in the **Physics Asset Override** section.
 
 ![](SkeletalMeshActor_Add_Physics_Assets_In_Level.png)
+
+
+
+
+

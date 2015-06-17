@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Environment Query System User Guide
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:This document covers the interface and most commonly used workflows of the Environment Query System within Behavior Trees.
@@ -275,3 +275,8 @@ It ends up looking like this:
 [REGION:note]
 The one thing this example should do is use the **Context Locations** passed in from the **Do Item Generation** to modify where the circle is generated. This wasn't done just do to image size constraints.
 [/REGION]
+
+
+
+
+

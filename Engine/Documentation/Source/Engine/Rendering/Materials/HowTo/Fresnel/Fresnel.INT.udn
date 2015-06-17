@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Material - How To Use Fresnel in your Materials
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
 Description:A How To Guide for using the Fresnel Material node. 
@@ -229,5 +229,9 @@ Here are some examples of using the Fresnel node to do other things than just ri
 Adding Fresnel to a Material is a great way to help better illuminate a character's silhouette or to help show an energy shield special effect. 
 Remember that Fresnel works based off of viewing angle and surface normal's, so if you want to add some interesting detail to the Fresnel try using a Normal map that has a little random noise in it. 
 Also do not forget that you can use Fresnel Material Expression to help blend between two different inputs which is very handy for visual effects like fire or smoke.
+
+
+
+
 
 

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 9. Place the Character
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 9. Place the Character
@@ -35,3 +35,8 @@ We need to place our AI_Character into the level so it can interact with the pla
 [/EXCERPT:s9]
 
 %Steps%
+
+
+
+
+

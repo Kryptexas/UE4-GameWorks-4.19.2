@@ -77,3 +77,8 @@ Another technical detail to be aware of is the way collision callbacks behave wh
 ## Uses
 
 Sub-stepping will significantly improve the quality of complex physics assets, such as those used for rag doll. However, you should always weigh the improvement in quality to the CPU cost, and what is truly important to your game.
+
+
+
+
+

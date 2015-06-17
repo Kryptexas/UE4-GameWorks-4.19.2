@@ -96,3 +96,7 @@ Using the Bump Offset Material Expression is a cheap and very effective way to a
 However keep in mind that the Bump Offset Material Expression only gives the illusion of extra depth information and because of this the effect could break down / not work in situations 
 where the player / user can move their camera in such a way that it is parallel to the surface that has the Bump Offset effect applied to. 
 
+
+
+
+

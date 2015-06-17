@@ -233,3 +233,7 @@ Transparency is a very powerful tool that can help to make your 3D projects real
 However, like with every powerful tool, care must be taken to make sure that power is kept in check. 
 Remember to try and keep the number of Transparent objects that use reflections to a minimum whenever possible. 
 Also make sure to constantly check Shader Complexity mode both in the editor and during game play to make sure that Transparency overdraw is kept to a minimum. 
+
+
+
+

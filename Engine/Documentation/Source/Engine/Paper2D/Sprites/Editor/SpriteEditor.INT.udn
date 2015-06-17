@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Sprite Editor Reference
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Tool for previewing and editing UPaperSprite assets
@@ -108,4 +108,9 @@ Editing Sprites inside the **Sprite Editor** is done through either the properti
 * For Sprite Source Region editing, see the [Edit Source Region](Engine\Paper2D\Sprites\RenderGeometry#definingthesourceregion) documentation. 
 * For Sprite Collision editing, see the [Edit Collision](Engine\Paper2D\Sprites\Collision) documentation. 
 * For Sprite Render Geometry editing, see the [Edit RenderGeom](Engine\Paper2D\Sprites\RenderGeometry) documentation. 
+
+
+
+
+
 

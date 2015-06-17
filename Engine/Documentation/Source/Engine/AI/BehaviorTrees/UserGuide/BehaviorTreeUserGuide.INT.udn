@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: Behavior Tree User Guide
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Behavior Tree Editor User Guide
@@ -208,5 +208,10 @@ Or you can **double-click** the Service in the **Content Browser**.
 You can **double-click** a placed Decorator in the Behavior Tree editor to open it in the Blueprint Editor.
 
 Or you can **double-click** the Decorator in the **Content Browser**.
+
+
+
+
+
 
 

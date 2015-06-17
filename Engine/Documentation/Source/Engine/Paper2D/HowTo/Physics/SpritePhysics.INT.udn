@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Applying 2D Physics
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Examples of implementing physics for 2D games. 
@@ -45,6 +45,11 @@ For our sprite, we can apply constraints from the **Details** panel in addition 
 
 
 Depending upon the type of 2D game you are making, varying settings can be used to restrict how physics are applied to your object. 
+
+
+
+
+
 
 
 

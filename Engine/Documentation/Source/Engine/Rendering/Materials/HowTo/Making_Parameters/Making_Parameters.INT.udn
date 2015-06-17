@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Material Editor - How To make Material Parameters
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
 Description:A How To Guide for Setting Up and using Material Parameters
@@ -92,6 +92,10 @@ Where the real power of Material Parameters comes into play is when you use them
 
 Material Parameters are a very powerful and extremely useful tool that when combined with Material Instances offer you a way to add an almost endless amount of variation to your Materials. 
 However keep in mind that in order to use Material Parameters you have to use a Material Instances. 
+
+
+
+
 
 
 

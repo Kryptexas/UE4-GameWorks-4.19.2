@@ -53,7 +53,7 @@ Once created, you should see your repository in the tree view.
 
 ### Server on your Local Network
 You can set up a server on your local network for people to use to collaborate with one another. 
-To do this, follow the steps above on the server and connect using the server’s URL from your clients.
+To do this, follow the steps above on the server and connect using the serverï¿½s URL from your clients.
 
 ### Secure Access
 Many users like to use a secure connection to access their repositories. These connections have URLs starting with **https://** and have a number of things to be aware of when setting them up.
@@ -94,7 +94,7 @@ If you are trying to edit a project that someone else has already created, you c
 [/region]
 
 
-To create your working copy, you should **Check Out** the (assumed empty) root of your repository. To do this, **Right-Click** on your project’s folder in Windows Explorer and select **SVN Checkout**.
+To create your working copy, you should **Check Out** the (assumed empty) root of your repository. To do this, **Right-Click** on your projectï¿½s folder in Windows Explorer and select **SVN Checkout**.
 
 ![](SC_SVN_Checkout.png)
 
@@ -138,7 +138,7 @@ Because of how the Mac stores security information such as passwords, you may ne
 You may need to perform these steps if you see errors in your logs like:
 
 	E175002: Unexpected HTTP status 400 'Bad Request' on '/projectname/'
-	E175002: Unexpected HTTP status 405 'Method Not Allowed' on '/projectname/’
+	E175002: Unexpected HTTP status 405 'Method Not Allowed' on '/projectname/ï¿½
 	E215004: Authentication failed and interactive prompting is disabled; see the --force-interactive option
 	E215004: No more credentials or we tried too many times.
 
@@ -158,5 +158,10 @@ Substituting your username and repository URL appropriately. This should then pr
 	Password for 'me':
 
 Enter your password and it will be stored in the keychain. After this, the Editor should be able to connect correctly to your server following the regular instructions above.
+
+
+
+
+
 
 

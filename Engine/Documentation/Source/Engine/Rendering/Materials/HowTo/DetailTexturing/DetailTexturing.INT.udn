@@ -210,3 +210,7 @@ However like with every powerful tool care must be taken to make sure that this 
 Keep in mind that Detail Texturing can only help to hide pixilation to a certain point. 
 Things like allowing the players camera to zoom in on objects could negate any benefits gained from Detail Texturing. 
 Also remember that adding Detail Texturing could add two or more additional Texture lookups to your Material which could present some performance / memory issues, especially on mobile platforms. 
+
+
+
+

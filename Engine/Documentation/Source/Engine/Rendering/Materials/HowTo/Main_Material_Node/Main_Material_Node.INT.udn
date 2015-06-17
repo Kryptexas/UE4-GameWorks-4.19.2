@@ -147,3 +147,7 @@ The Main Material node plays a huge role in how Materials will be displayed and 
 No matter how many Material Expression nodes a Material uses the effects of those nodes will not be seen until they are input into the Main Material node.
 Also keep in mind that if the Material is not doing what you want it to do, make sure that you have the correct options set in the **Details** panel.
 
+
+
+
+

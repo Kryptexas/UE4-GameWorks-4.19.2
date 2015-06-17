@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:4. Edit Placed Actors
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:With some Actors in the Level, it's now time to add some variation.
@@ -52,3 +52,8 @@ Now change the **Material** on one of your placed **Static Mesh Actors** by firs
 	_Try changing the color of your lights and adding more Materials to your Actors._
 
 %Steps%
+
+
+
+
+

@@ -51,7 +51,7 @@ You can also add Material Expressions by **Right-Clicking** anywhere in the Mate
 
 ### Keyboard Shortcuts
 
-There are a number of Keyboard shortcuts that you can use to help you quickly place down Material Expressions that are most commonly used. You can change what key spawns what Material Expression by going to **Edit -> Editor Preferences -> Keyboard Shortcuts -> Material Editor–Spawn Nodes**.
+There are a number of Keyboard shortcuts that you can use to help you quickly place down Material Expressions that are most commonly used. You can change what key spawns what Material Expression by going to **Edit -> Editor Preferences -> Keyboard Shortcuts -> Material Editorï¿½Spawn Nodes**.
 
 ![](Placing_Functions_Setting_Shortcuts.gif)(convert:false)
 
@@ -138,3 +138,7 @@ No matter what type of Material you are building, the Material will always be ma
 Keep in mind that when adjusting Material Functions that are currently in use, you can run the risk of breaking other Materials and Material Instances that use that Material Function.
 Also if you are unsure what a specific Material Expression node does, you can always do a quick internet search for the name of the Material Expressions node.
 Because most of the Material Expressions nodes are pure HLSL code, node just in node forum, the official Microsoft documentation on HLSL can sometimes help you figure out what the Material Expressions might do.
+
+
+
+

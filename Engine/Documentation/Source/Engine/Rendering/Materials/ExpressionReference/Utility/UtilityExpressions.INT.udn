@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Utility Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that perform various utility operations on one or more inputs.
@@ -332,6 +332,10 @@ Was used as a normal texture (left top) and used with the described material exp
 The technique works best in magnification and with blurred input content. Compression hurts the quality a lot so try to use uncompressed low resolution textures.
 
 [/EXCERPT:AntialiasedTextureMask]
+
+
+
+
 
 
 

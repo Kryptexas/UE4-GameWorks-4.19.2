@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 8. Controller Blueprint: Run the Behavior Tree
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 8. Controller Blueprint: Run the Behavior Tree
@@ -47,3 +47,8 @@ Finally, we just have to run our **Behavior Tree** with a single node.
 
 
 %Steps%
+
+
+
+
+

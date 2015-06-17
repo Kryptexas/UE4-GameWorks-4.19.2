@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 7. AI Controller Blueprint: Initial Blackboard Values
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 7. AI Controller Blueprint: Initial Blackboard Values
@@ -74,3 +74,8 @@ Now we need to set the "HomeLocation" key on the **Blackboard**. This is a more 
 In the next step we'll continue editing this graphs and add to this graph to make the AI Controller run the desired Behavior Tree.
 
 %Steps%
+
+
+
+
+

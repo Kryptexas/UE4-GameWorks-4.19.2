@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Vertex Animation Tool - Timeline Meshes
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description: User guide for the 3Ds Max Vertex Animation tool set.
@@ -164,3 +164,8 @@ If you are unfamiliar with how Materials work inside UE4 please refer to the [](
 1. From the **Content Browser** select the Teapot mesh that was imported and drag it from the Content Browser into the level. Then once the Teapot mesh is in the level, select the Material that was created, **MAT_Vertex_Animation**, and apply it to the Teapot mesh by dragging it from the Content Browser on to the Teapot mesh that is placed in the level.
 
 	![](VAT_Final_Effect.gif)(convert:false)
+
+
+
+
+

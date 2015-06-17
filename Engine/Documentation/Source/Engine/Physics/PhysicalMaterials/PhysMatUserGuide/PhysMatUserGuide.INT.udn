@@ -180,3 +180,8 @@ The **Phys Material Override** property exists on everything with a **Physics** 
 * Since Skeletal Meshes Physics Assets always return Simple Collision, you can use this to override all Physical Materials on a placed Skeletal Mesh Actor.
 
 This has no effect on Complex Collision traces.
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 13. Make a Decorator
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:13. Make a Decorator
@@ -601,3 +601,8 @@ This will make it so the Behavior Tree is not constantly cycling to the **RapidM
 	   NodeGuid=7E75B438413B960D40E5A68DECD346A2
 	End Object
 [/VAR]
+
+
+
+
+

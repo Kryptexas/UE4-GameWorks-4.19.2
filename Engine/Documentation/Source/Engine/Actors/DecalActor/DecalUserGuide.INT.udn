@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Decal Actor User Guide
 Crumbs:%ROOT%, Engine, Engine/Actors
 Description:A guide to using the Deferred Decal actor.
@@ -143,3 +143,8 @@ Now this node is so expensive from a computing point of view, that it doesn't ha
 
 * DecalMipmapLevel doesn't support UV
 * DecalMipmapLevel doesn't work with anysotropic filtering
+
+
+
+
+

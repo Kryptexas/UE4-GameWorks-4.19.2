@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:5. Running the Build Process
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
 Description:With a number of Actors placed and customized, one of the final steps for creating any level is the Build Process.
@@ -54,3 +54,8 @@ By now you have noticed the "Preview" labels in the shadows and the light leakin
 Finally, remember that **Player Start** you placed? If you hit the ![**Play**](Engine\QuickStart\6\play_button.png) button, you will be able to fly around your level using the **Mouse** and **WASD** keys. While in Play mode, your game is actually running and the renderer is exactly the same thing you would see in a stand alone client.
 
 %Steps%
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 4. Setup the Character Blueprint
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 4. Setup the Character Blueprint
@@ -71,3 +71,8 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 
 %Steps%
+
+
+
+
+
