@@ -970,8 +970,8 @@ FBoolConfigValueHelper::FBoolConfigValueHelper(const TCHAR* Section, const TCHAR
 #if WITH_HOT_RELOAD_CTORS
 bool GIsRetrievingVTablePtr = false;
 
-void EnsureRetrievingVTablePtr()
+void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature)
 {
-	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("This should be used only during vtable ptr retrieval process."));
+	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("The %s constructor is for internal usage only for hot-reload purposes. Please do NOT use it."), CtorSignature);
 }
 #endif // WITH_HOT_RELOAD_CTORS

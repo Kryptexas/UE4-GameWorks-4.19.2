@@ -1350,7 +1350,7 @@ FConfigCacheIni::FConfigCacheIni(EConfigCacheType InType)
 #if WITH_HOT_RELOAD_CTORS
 FConfigCacheIni::FConfigCacheIni()
 {
-	EnsureRetrievingVTablePtr();
+	EnsureRetrievingVTablePtrDuringCtor(TEXT("FConfigCacheIni()"));
 }
 #endif // WITH_HOT_RELOAD_CTORS
 

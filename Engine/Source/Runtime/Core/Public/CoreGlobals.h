@@ -309,8 +309,11 @@ extern CORE_API TArray<FScriptTraceStackNode> GScriptStack;
 
 #if WITH_HOT_RELOAD_CTORS
 /**
- * Ensures that current thread is during retrieval of vtable ptr
- * of some UClass.
+ * Ensures that current thread is during retrieval of vtable ptr of some
+ * UClass.
+ *
+ * @param CtorSignature The signature of the ctor currently running to
+ *		construct proper error message.
  */
-CORE_API void EnsureRetrievingVTablePtr();
+CORE_API void EnsureRetrievingVTablePtrDuringCtor(const TCHAR* CtorSignature);
 #endif // WITH_HOT_RELOAD_CTORS

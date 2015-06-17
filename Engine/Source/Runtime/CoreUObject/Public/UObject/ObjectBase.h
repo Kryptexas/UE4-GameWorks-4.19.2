@@ -138,7 +138,7 @@ public:
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	COREUOBJECT_API FVTableHelper()
 	{
-		EnsureRetrievingVTablePtr();
+		EnsureRetrievingVTablePtrDuringCtor(TEXT("FVTableHelper()"));
 	}
 };
 #endif // WITH_HOT_RELOAD_CTORS

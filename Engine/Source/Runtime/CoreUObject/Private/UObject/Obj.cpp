@@ -55,7 +55,7 @@ UObject::UObject( EStaticConstructor, EObjectFlags InFlags )
 #if WITH_HOT_RELOAD_CTORS
 UObject::UObject(FVTableHelper& Helper)
 {
-	EnsureRetrievingVTablePtr();
+	EnsureRetrievingVTablePtrDuringCtor(TEXT("UObject(FVTableHelper& Helper)"));
 
 	static struct FUseVTableConstructorsCache
 	{

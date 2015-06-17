@@ -163,7 +163,7 @@ public:
 		: Object(new ObjectType())
 		, SharedReferenceCount(Object)
 	{
-		EnsureRetrievingVTablePtr();
+		EnsureRetrievingVTablePtrDuringCtor(TEXT("TSharedRef()"));
 		Init(Object);
 	}
 #endif // WITH_HOT_RELOAD_CTORS

@@ -143,7 +143,7 @@ struct FEngineShowFlags
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	FEngineShowFlags()
 	{
-		EnsureRetrievingVTablePtr();
+		EnsureRetrievingVTablePtrDuringCtor(TEXT("FEngineShowFlags()"));
 		Init(ESFIM_Game);
 	}
 #endif // WITH_HOT_RELOAD_CTORS
