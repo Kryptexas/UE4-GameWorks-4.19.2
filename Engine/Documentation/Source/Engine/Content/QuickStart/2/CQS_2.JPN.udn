@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2466505
+﻿INTSourceChangelist:2589385
 Availability:Public
-Title:2..FBX でメッシュをインポートする
+Title:UE4 プロジェクトへのコンテンツの追加
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:アンリアル エンジン 4 へメッシュをエクスポート / インポートするプロセスを説明します。 
+Description:コンテンツをインポートする幾つかの方法を学びましょう。
 
 
 [VAR:Steps]
@@ -23,13 +23,110 @@ Description:アンリアル エンジン 4 へメッシュをエクスポート 
 
 %Steps%
 
+この時点で、UE4 **Project** (下の画像) が新規作成されているはずです。
+
+![](NewUE4Project.png)
+
+コンテンツを UE4 プロジェクトに追加する方法は何通りかあります。
+
+>1. [コンテンツ ブラウザの **インポート** 機能を使う](#Bookmark1)
+>2. [ハードドライブからコンテンツ ブラウザへファイルを **ドラッグ** する](#Bookmark2)
+>3. [(Photoshop などの) 外部プログラムからプロジェクト ディレクトリへ直接ファイルを **保存する**](#Bookmark3)
+
+##1. コンテンツ ブラウザでインポートする
+
+(#Bookmark1)
+
+エディタ インターフェース (下の画像) の左隅下に **コンテンツ ブラウザ** があります。
+
+![](ContentBrowser.jpg)
+
+**コンテンツ ブラウザの** ![](ImportButton.jpg) ボタンを **クリックすると** ファイル ダイアログが開き、プロジェクトにアセットを追加できるようになります。
+
+##2. クリック＆ドラッグでインポートする
+
+(#Bookmark2)
+
+ハードディスクから **コンテンツ ブラウザ** (下の画像) へファイルを直接 **ドラッグ** する方法でもプロジェクトへコンテンツを追加できます。
+
+![](CnD_importAll.jpg)
+
+### メッシュをインポートすると
+
+![](FBXImportOptions.png)
+
+FBX/OBJ ファイルに対するインポート オプションを定義するように UE4 から求められます (下の画像)。
+
+### テクスチャをインポートすると
+
+UE4 は、[サポート対象](Engine/Content/Types/Textures/Importing "Click HERE to learn more about supported images.") 画像ファイルをバッチ処理でインポートします。
+
+次のようなメッセージが表示されることがあります。
+
+![](TextureImportMessage.png)
+
+サポート対象外の画像ファイルがインポートされないようにしているのです。
+
+また、次のメッセージがでた場合は、
+
+![](nonpoweoftwowarning.png)
+
+不適切なサイズの画像のストリーミングまたはミップマップが行われていることを表しています。
+
+##3. 外部プログラムからインポートする
+
+(#Bookmark3)
+
+この例では Photoshop を使用していますが、好きな画像エディタを使うことができます。
+
+### Photoshop の実行中
+
+**[File (ファイル)]** から **[Save As (名前をつけて保存)]** をクリックします。
+
+![](photoshop_export1.jpg)
+
+### �Save As のダイアログ ボックスが表示されたら
+
+UE4 Project Directory の Content フォルダに (サポートされている形式で) ファイル名を入力し、[Save (保存)] をクリックします。
+
+![](photoshop_export2.jpg)
+
+###Content フォルダをブラウズする
+
+ファイルが追加されていることが分かります。
+
+![](photoshop_export6.jpg)
+
+エディタが開いていると、「Processing outstanding content changes (未処理のコンテンツ変更を処理中)」というメッセージが表示されます (下の画像)。
+
+![](photoshop_export4.jpg)
+
+### コンテンツ ブラウザをレビューする
+
+対応する *.uasset ファイルが UE4 で作成されていることを確認してください。
+
+![](photoshop_export5.jpg)
+
+ここまでで、コンテンツは次の 3 通りの方法で追加できるということを学習しました。
+
+* [**コンテンツ ブラウザ** でインポートする](#Bookmark1)
+* [**クリック＆ドラッグ** でインポートする](#Bookmark2)
+* [**外部プログラムからインポートする](#Bookmark3)
+
+&#x2713; [インポートするメッシュがない場合はここをクリック](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+[REGION:tip]
+*命名規則は重要です！一貫したファイル名を付けましょう。*
+[/REGION]
+
+<!--
 インポートするアセットが既にある場合、以下の [メッシュを準備する](#メッシュを準備する) セクションへ進んでください。 
 
 何もアセットがない場合、あるいはモデリング パッケージにアクセスしたい場合は、以下のサンプル アセットをダウンロードしてください。
 
 * [サンプル アセット](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip)
 
-サンプル アセットをコンピューター上に展開し、 **Basic_Asset1** と **Basic Asset2** を UE4 Project の「 **コンテンツ** 」フォルダにドラッグします。 
+サンプル アセットをコンピューター上に展開し、 **Basic_Asset1** と **Basic_Asset2** を UE4 Project の **Content** フォルダにドラッグします。 
 
  ![](ExplorerImport.png)(w:640)
 
@@ -78,6 +175,7 @@ Description:アンリアル エンジン 4 へメッシュをエクスポート 
 FBX パイプラインの情報については、 [](Engine/Content/FBX) ドキュメントを参照してください。
 [/REGION]
 
+-->
 
 
 <!--
