@@ -3,6 +3,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
+#include "K2Node_CallFunction.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_FunctionEntry"
 
@@ -259,6 +260,16 @@ FString UK2Node_FunctionEntry::GetDeprecationMessage() const
 	}
 
 	return Super::GetDeprecationMessage();
+}
+
+FText UK2Node_FunctionEntry::GetTooltipText() const
+{
+	UFunction* Function = FindField<UFunction>(SignatureClass, SignatureName);
+	if (Function)
+	{
+		return FText::FromString(UK2Node_CallFunction::GetDefaultTooltipForFunction(Function));
+	}
+	return Super::GetTooltipText();
 }
 
 void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)

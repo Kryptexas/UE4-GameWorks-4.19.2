@@ -39,6 +39,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual bool IsDeprecated() const override;
 	virtual FString GetDeprecationMessage() const override;
+	virtual FText GetTooltipText() const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
