@@ -81,25 +81,40 @@ void UMovieSceneVectorSection::AddKeyToNamedCurve(float Time, FName CurveName, c
 	}
 }
 
-void UMovieSceneVectorSection::MoveSection( float DeltaTime )
+void UMovieSceneVectorSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
 
-	Super::MoveSection( DeltaTime );
+	Super::MoveSection( DeltaTime, KeyHandles );
 
 	for (int32 i = 0; i < ChannelsUsed; ++i)
 	{
-		Curves[i].ShiftCurve(DeltaTime);
+		Curves[i].ShiftCurve(DeltaTime, KeyHandles);
 	}
 }
 
-void UMovieSceneVectorSection::DilateSection( float DilationFactor, float Origin )
+void UMovieSceneVectorSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
-	Super::DilateSection(DilationFactor, Origin);
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 
 	for (int32 i = 0; i < ChannelsUsed; ++i)
 	{
-		Curves[i].ScaleCurve(Origin, DilationFactor);
+		Curves[i].ScaleCurve(Origin, DilationFactor, KeyHandles);
+	}
+}
+
+void UMovieSceneVectorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
+	for (int32 i = 0; i < ChannelsUsed; ++i)
+	{
+		for (auto It(Curves[i].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Curves[i].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
 	}
 }

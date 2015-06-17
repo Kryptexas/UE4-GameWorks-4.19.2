@@ -326,9 +326,11 @@ public:
 
 	/** Shifts all keys forwards or backwards in time by an even amount, preserving order */
 	void ShiftCurve(float DeltaTime);
+	void ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles);
 	
 	/** Scales all keys about an origin, preserving order */
 	void ScaleCurve(float ScaleOrigin, float ScaleFactor);
+	void ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles);
 
 	/** Set the interp mode of the specified key */
 	void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode NewInterpMode);
@@ -584,9 +586,11 @@ public:
 	
 	/** Shifts all keys forwards or backwards in time by an even amount, preserving order */
 	void ShiftCurve(float DeltaTime);
+	void ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles);
 	
 	/** Scales all keys about an origin, preserving order */
 	void ScaleCurve(float ScaleOrigin, float ScaleFactor);
+	void ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles);
 
 	/** Functions for getting keys based on handles */
 	FIntegralKey& GetKey(FKeyHandle KeyHandle);

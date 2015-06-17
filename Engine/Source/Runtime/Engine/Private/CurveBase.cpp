@@ -460,19 +460,37 @@ float FRichCurve::GetKeyValue(FKeyHandle KeyHandle) const
 
 void FRichCurve::ShiftCurve(float DeltaTime)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ShiftCurve(DeltaTime, KeyHandles);
+}
+
+void FRichCurve::ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time += DeltaTime;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, GetKeyTime(KeyHandle)+DeltaTime);
+		}
 	}
 }
 
 void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ScaleCurve(ScaleOrigin, ScaleFactor, KeyHandles);
+}
+
+void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time = (Keys[KeyIndex].Time - ScaleOrigin) * ScaleFactor + ScaleOrigin;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, (GetKeyTime(KeyHandle) - ScaleOrigin) * ScaleFactor + ScaleOrigin);
+		}
 	}
 }
 
@@ -1104,19 +1122,37 @@ float FIntegralCurve::GetKeyTime(FKeyHandle KeyHandle) const
 
 void FIntegralCurve::ShiftCurve(float DeltaTime)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ShiftCurve(DeltaTime, KeyHandles);
+}
+
+void FIntegralCurve::ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time += DeltaTime;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, GetKeyTime(KeyHandle) + DeltaTime);
+		}
 	}
 }
 
 void FIntegralCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ScaleCurve(ScaleOrigin, ScaleFactor, KeyHandles);
+}
+
+void FIntegralCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time = (Keys[KeyIndex].Time - ScaleOrigin) * ScaleFactor + ScaleOrigin;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, (GetKeyTime(KeyHandle) - ScaleOrigin) * ScaleFactor + ScaleOrigin);
+		}
 	}
 }
 

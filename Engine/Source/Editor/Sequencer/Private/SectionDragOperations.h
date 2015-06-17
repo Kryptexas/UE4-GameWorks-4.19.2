@@ -102,6 +102,8 @@ private:
 	TWeakObjectPtr<UMovieSceneSection> Section;
 	/** true if dragging  the end of the section, false if dragging the start */
 	bool bDraggingByEnd;
+	/** The exact key handles that we're dragging */
+	TSet<FKeyHandle> DraggedKeyHandles;
 };
 
 /**
@@ -127,6 +129,8 @@ private:
 	TWeakObjectPtr<UMovieSceneSection> Section;
 	/** Local mouse position when dragging the section */
 	FVector2D DragOffset;
+	/** The exact key handles that we're dragging */
+	TSet<FKeyHandle> DraggedKeyHandles;
 };
 
 /**

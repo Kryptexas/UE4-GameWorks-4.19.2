@@ -10,32 +10,61 @@ UMovieScene3DTransformSection::UMovieScene3DTransformSection( const FObjectIniti
 
 }
 
-void UMovieScene3DTransformSection::MoveSection( float DeltaTime )
+void UMovieScene3DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::MoveSection( DeltaTime );
+	Super::MoveSection( DeltaTime, KeyHandles );
 
 	// Move all the curves in this section
 	for( int32 Axis = 0; Axis < 3; ++Axis )
 	{
-		Translation[Axis].ShiftCurve( DeltaTime );
-		Rotation[Axis].ShiftCurve( DeltaTime );
-		Scale[Axis].ShiftCurve( DeltaTime );
+		Translation[Axis].ShiftCurve( DeltaTime, KeyHandles );
+		Rotation[Axis].ShiftCurve( DeltaTime, KeyHandles );
+		Scale[Axis].ShiftCurve( DeltaTime, KeyHandles );
 	}
 }
 
-void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float Origin )
+void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::DilateSection(DilationFactor, Origin);
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 
 	for( int32 Axis = 0; Axis < 3; ++Axis )
 	{
-		Translation[Axis].ScaleCurve( Origin, DilationFactor );
-		Rotation[Axis].ScaleCurve( Origin, DilationFactor );
-		Scale[Axis].ScaleCurve( Origin, DilationFactor );
+		Translation[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
+		Rotation[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
+		Scale[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
 	}
 }
 
-	
+void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
+	for (int32 Axis = 0; Axis < 3; ++Axis)
+	{
+		for (auto It(Translation[Axis].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Translation[Axis].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
+		for (auto It(Rotation[Axis].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Rotation[Axis].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
+		for (auto It(Scale[Axis].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Scale[Axis].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
+	}
+}	
 
 bool UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
 {

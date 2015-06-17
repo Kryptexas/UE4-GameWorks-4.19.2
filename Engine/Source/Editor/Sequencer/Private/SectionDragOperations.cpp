@@ -147,12 +147,18 @@ void FResizeSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTra
 	if( Section.IsValid() )
 	{
 		BeginTransaction( *Section, NSLOCTEXT("Sequencer", "DragSectionEdgeTransaction", "Resize section") );
+
+		DraggedKeyHandles.Empty();
+
+		Section->GetKeyHandles(DraggedKeyHandles);
 	}
 }
 
 void FResizeSection::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
 	EndTransaction();
+
+	DraggedKeyHandles.Empty();
 }
 
 void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode )
@@ -201,7 +207,7 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 			{
 				float NewSize = NewTime - Section->GetStartTime();
 				float DilationFactor = NewSize / Section->GetTimeSize();
-				Section->DilateSection(DilationFactor, Section->GetStartTime());
+				Section->DilateSection(DilationFactor, Section->GetStartTime(), DraggedKeyHandles);
 			}
 			else
 			{
@@ -218,7 +224,7 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 			{
 				float NewSize = Section->GetEndTime() - NewTime;
 				float DilationFactor = NewSize / Section->GetTimeSize();
-				Section->DilateSection(DilationFactor, Section->GetEndTime());
+				Section->DilateSection(DilationFactor, Section->GetEndTime(), DraggedKeyHandles);
 			}
 			else
 			{
@@ -242,12 +248,18 @@ void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrack
 		BeginTransaction( *Section, NSLOCTEXT("Sequencer", "MoveSectionTransaction", "Move Section") );
 		
 		DragOffset = LocalMousePos;
+
+		DraggedKeyHandles.Empty();
+
+		Section->GetKeyHandles(DraggedKeyHandles);
 	}
 }
 
 void FMoveSection::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
 	EndTransaction();
+
+	DraggedKeyHandles.Empty();
 
 	if (Section.IsValid())
 	{
@@ -329,7 +341,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 		if (bDeltaX && bDeltaY &&
 			!Section->OverlapsWithSections(MovieSceneSections, TargetRowIndex - Section->GetRowIndex(), DeltaTime))
 		{
-			Section->MoveSection(DeltaTime);
+			Section->MoveSection(DeltaTime, DraggedKeyHandles);
 			Section->SetRowIndex(TargetRowIndex);
 		}
 		else
@@ -344,7 +356,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 			{
 				if (!Section->OverlapsWithSections(MovieSceneSections, 0, DeltaTime))
 				{
-					Section->MoveSection(DeltaTime);
+					Section->MoveSection(DeltaTime, DraggedKeyHandles);
 				}
 				else
 				{
@@ -355,7 +367,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 					float RightMovementMaximum = SectionBoundaries.GetUpperBoundValue() - Section->GetEndTime();
 
 					// Tell the section to move itself and any data it has
-					Section->MoveSection( FMath::Clamp(DeltaTime, LeftMovementMaximum, RightMovementMaximum) );
+					Section->MoveSection( FMath::Clamp(DeltaTime, LeftMovementMaximum, RightMovementMaximum), DraggedKeyHandles );
 				}
 			}
 		}

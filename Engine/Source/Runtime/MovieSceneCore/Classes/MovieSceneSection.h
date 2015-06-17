@@ -81,8 +81,9 @@ public:
 	 * Moves the section by a specific amount of time
 	 *
 	 * @param DeltaTime	The distance in time to move the curve
+	 * @param KeyHandles The key handles to operate on
 	 */
-	virtual void MoveSection( float DeltaTime )
+	virtual void MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 	{
 		Modify();
 
@@ -93,10 +94,11 @@ public:
 	/**
 	 * Dilates the section by a specific factor
 	 *
-	 * @param DilationFactor The multipler which scales this section
+	 * @param DilationFactor The multiplier which scales this section
 	 * @param bFromStart Whether to dilate from the beginning or end (whichever stays put)
+	 * @param KeyHandles The key handles to operate on
 	 */
-	virtual void DilateSection( float DilationFactor, float Origin )
+	virtual void DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 	{
 		Modify();
 
@@ -104,6 +106,13 @@ public:
 		EndTime = (EndTime - Origin) * DilationFactor + Origin;
 	}
 	
+	/**
+	 * Get the key handles for the keys on the curves within this section
+	 *
+	 * @param KeyHandles The key handles of the keys on the curves within this section
+	 */
+	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const {};
+
 	/**
 	 * Gets all snap times for this section
 	 *

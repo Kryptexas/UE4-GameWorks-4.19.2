@@ -25,19 +25,23 @@ TRange<float> UMovieSceneAudioSection::GetAudioTrueRange() const
 	return !Sound ? TRange<float>::Empty() : TRange<float>(AudioStartTime, AudioStartTime + Sound->GetDuration() * AudioDilationFactor);
 }
 
-void UMovieSceneAudioSection::MoveSection( float DeltaTime )
+void UMovieSceneAudioSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::MoveSection(DeltaTime);
+	Super::MoveSection(DeltaTime, KeyHandles);
 
 	AudioStartTime += DeltaTime;
 }
 
-void UMovieSceneAudioSection::DilateSection( float DilationFactor, float Origin )
+void UMovieSceneAudioSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	AudioStartTime = (AudioStartTime - Origin) * DilationFactor + Origin;
 	AudioDilationFactor *= DilationFactor;
 
-	Super::DilateSection(DilationFactor, Origin);
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
+}
+
+void UMovieSceneAudioSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
 }
 
 void UMovieSceneAudioSection::GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const

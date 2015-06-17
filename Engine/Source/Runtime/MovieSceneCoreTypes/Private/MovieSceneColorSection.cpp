@@ -9,26 +9,59 @@ UMovieSceneColorSection::UMovieSceneColorSection( const FObjectInitializer& Obje
 {
 }
 
-void UMovieSceneColorSection::MoveSection( float DeltaTime )
+void UMovieSceneColorSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::MoveSection( DeltaTime );
+	Super::MoveSection( DeltaTime, KeyHandles );
 
 	// Move all the curves in this section
-	RedCurve.ShiftCurve(DeltaTime);
-	GreenCurve.ShiftCurve(DeltaTime);
-	BlueCurve.ShiftCurve(DeltaTime);
-	AlphaCurve.ShiftCurve(DeltaTime);
+	RedCurve.ShiftCurve(DeltaTime, KeyHandles);
+	GreenCurve.ShiftCurve(DeltaTime, KeyHandles);
+	BlueCurve.ShiftCurve(DeltaTime, KeyHandles);
+	AlphaCurve.ShiftCurve(DeltaTime, KeyHandles);
 }
 
-void UMovieSceneColorSection::DilateSection( float DilationFactor, float Origin )
+void UMovieSceneColorSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::DilateSection(DilationFactor, Origin);
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 
-	RedCurve.ScaleCurve(Origin, DilationFactor);
-	GreenCurve.ScaleCurve(Origin, DilationFactor);
-	BlueCurve.ScaleCurve(Origin, DilationFactor);
-	AlphaCurve.ScaleCurve(Origin, DilationFactor);
+	RedCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+	GreenCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+	BlueCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+	AlphaCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+}
 
+void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
+	for (auto It(RedCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = RedCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+	for (auto It(GreenCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = GreenCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+	for (auto It(BlueCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = BlueCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+	for (auto It(AlphaCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = AlphaCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+			KeyHandles.Add(It.Key());
+	}
 }
 
 FLinearColor UMovieSceneColorSection::Eval( float Position, const FLinearColor& DefaultColor ) const

@@ -14,19 +14,33 @@ bool UMovieSceneBoolSection::Eval( float Position ) const
 	return !!BoolCurve.Evaluate(Position);
 }
 
-void UMovieSceneBoolSection::MoveSection( float DeltaPosition )
+void UMovieSceneBoolSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::MoveSection( DeltaPosition );
+	Super::MoveSection( DeltaPosition, KeyHandles );
 
-	BoolCurve.ShiftCurve(DeltaPosition);
+	BoolCurve.ShiftCurve(DeltaPosition, KeyHandles);
 }
 
-void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin )
+void UMovieSceneBoolSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::DilateSection(DilationFactor, Origin);
-	
-	BoolCurve.ScaleCurve(Origin, DilationFactor);
+	float StartTime = GetStartTime();
+	float EndTime = GetEndTime();
 
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
+	
+	BoolCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+}
+
+void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
+	for (auto It(BoolCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = BoolCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
 }
 
 void UMovieSceneBoolSection::AddKey( float Time, bool Value )
