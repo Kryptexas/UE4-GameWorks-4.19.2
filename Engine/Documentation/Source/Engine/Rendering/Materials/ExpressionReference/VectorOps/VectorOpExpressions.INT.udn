@@ -34,10 +34,10 @@ The ComponentMask expression allows you to select a specific subset of channels 
 | Item | Description |
 | -------- | ----------- |
 | [REGION:tablesection]Properties[/REGION] ||
-| **R** | If checked, the red, or first, channel of the input value will be passed through to the output. |
-| **G** | If checked, the green, or second, channel of the input value will be passed through to the output. |
-| **B** | If checked, the blue, or third, channel of the input value will be passed through to the output. |
-| **A** | If checked, the alpha, or fourth, channel of the input value will be passed through to the output. |
+| **R** | If checked, the red (first) channel of the input value will be passed through to the output. |
+| **G** | If checked, the green (second) channel of the input value will be passed through to the output. |
+| **B** | If checked, the blue (third) channel of the input value will be passed through to the output. |
+| **A** | If checked, the alpha (fourth) channel of the input value will be passed through to the output. |
 
 
 **Examples:** ComponentMask with an input of (0.2,0.8,1.4) and the R and B channels checked will output (0.2,1.4).
