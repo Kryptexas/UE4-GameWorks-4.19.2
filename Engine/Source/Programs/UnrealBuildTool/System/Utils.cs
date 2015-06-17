@@ -1627,4 +1627,41 @@ namespace UnrealBuildTool
 	}
 
 	#endregion
+
+	#region FilteredConsoleTraceListener
+
+	/// <summary>
+	///  Filtered Console Trace Listener
+	///  </summary>
+	public class FilteredConsoleTraceListener : TextWriterTraceListener
+	{
+		public FilteredConsoleTraceListener()
+			: base(Console.OpenStandardOutput())
+		{ }
+
+		#region TraceListener Interface
+
+		public override void WriteLine(string message)
+		{
+			// strip off the message code
+			int Code = 0;
+			if (Int32.TryParse(message.Substring(0, 3), System.Globalization.NumberStyles.HexNumber, null, out Code))
+			{
+				// filter the message based on the code
+				if (Code < (int)TraceEventType.Verbose || Log.bIsVerbose)
+				{
+					// filter based on the message code
+					base.WriteLine(message.Substring(3));
+				}
+			}
+			else
+			{
+				base.WriteLine(message);
+			}
+		}
+
+		#endregion
+	}
+	#endregion
+
 }

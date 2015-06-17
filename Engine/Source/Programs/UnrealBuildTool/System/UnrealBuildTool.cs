@@ -857,7 +857,7 @@ namespace UnrealBuildTool
                 bColorConsoleOutput: true,
                 TraceListeners: new[] 
                 {
-                    new UnfilteredConsoleTraceListener(),
+                    new FilteredConsoleTraceListener(),
                     !string.IsNullOrEmpty(BuildConfiguration.LogFilename) ? new TextWriterTraceListener(new StreamWriter(new FileStream(BuildConfiguration.LogFilename, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) { AutoFlush = true }) : null,
                 });
         }
@@ -2755,40 +2755,4 @@ namespace UnrealBuildTool
 			}
 		}
     }
-
-	#region UnfilteredConsoleTraceListener
-
-	/// <summary>
-	///  Unfiltered Console Trace Listener
-	///  </summary>
-	class UnfilteredConsoleTraceListener : TextWriterTraceListener
-	{
-		public UnfilteredConsoleTraceListener()
-			: base(Console.OpenStandardOutput())
-		{ }
-
-		#region TraceListener Interface
-
-		public override void WriteLine(string message)
-		{
-			// strip off the message code
-			int Code = 0;
-			if (Int32.TryParse(message.Substring(0, 3), System.Globalization.NumberStyles.HexNumber, null, out Code))
-			{
-				// filter based on the message code
-				if (Code < (int)TraceEventType.Verbose || Log.bIsVerbose)
-				{
-					base.WriteLine(message.Substring(3));
-				}
-			}
-			else
-			{
-				base.WriteLine(message);
-			}
-		}
-
-		#endregion
-	}
-	#endregion
-
 }

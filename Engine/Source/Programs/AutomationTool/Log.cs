@@ -36,7 +36,7 @@ namespace AutomationTool
                 bColorConsoleOutput: true,
                 TraceListeners: new TraceListener[]
                 {
-                    new FilteredConsoleTraceListener(),
+                    new UnrealBuildTool.FilteredConsoleTraceListener(),
                     // could return null, but InitLogging handles this gracefully.
                     CreateLogFileListener(out LogFilename),
                     //@todo - this is only used by GUBP nodes. Ideally we don't waste this 20MB if we are not running GUBP.
@@ -262,42 +262,6 @@ namespace AutomationTool
         #endregion
 	}
 
-	#endregion
-
-	#region FilteredConsoleTraceListener
-
-	/// <summary>
-	///  Filtered Console Trace Listener
-	///  </summary>
-	class FilteredConsoleTraceListener : TextWriterTraceListener
-	{
-		public FilteredConsoleTraceListener()
-			: base(Console.OpenStandardOutput())
-		{ }
-
-		#region TraceListener Interface
-
-		public override void WriteLine(string message)
-		{
-			// strip off the message code
-			int Code = 0;
-			if (Int32.TryParse(message.Substring(0, 3), System.Globalization.NumberStyles.HexNumber, null, out Code))
-			{
-				// filter the message based on the code
-				if (Code < (int)TraceEventType.Verbose || UnrealBuildTool.Log.bIsVerbose)
-				{
-					// filter based on the message code
-					base.WriteLine(message.Substring(3));
-				}
-			}
-			else
-			{
-				base.WriteLine(message);
-			}
-		}
-
-		#endregion
-	}
 	#endregion
 
 }
