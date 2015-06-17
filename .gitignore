@@ -146,6 +146,7 @@
 /Engine/Source/ThirdParty/**/*.tga
 /Engine/Source/ThirdParty/**/*.tiff
 /Engine/Source/ThirdParty/**/*.icns
+/Engine/Source/ThirdParty/**/*.dat
 
 # Ignore PLCrashReporter binaries
 /Engine/Source/ThirdParty/PLCrashReporter/**/bin/**
