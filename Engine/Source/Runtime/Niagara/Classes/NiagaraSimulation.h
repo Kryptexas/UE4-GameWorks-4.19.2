@@ -69,9 +69,9 @@ public:
 	}
 
 	//Begin UObject Interface
-	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
-	void PostLoad();
-	void Serialize(FArchive& Ar);
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)override;
+	virtual void PostLoad()override;
+	virtual void Serialize(FArchive& Ar)override;
 	//End UObject Interface
 
 	UPROPERTY(EditAnywhere, Category = "Emitter")
