@@ -40,6 +40,8 @@ namespace UnrealBuildTool.Rules
 					"GraphEditor",
 					"MainFrame",
 					"UnrealEd",
+                    "WorkspaceMenuStructure",
+                    "ContentBrowser",
                     "EditorWidgets",
                     "SourceControl",
 				}
