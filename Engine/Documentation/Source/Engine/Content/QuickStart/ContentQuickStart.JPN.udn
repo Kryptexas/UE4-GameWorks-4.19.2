@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2584756
+﻿INTSourceChangelist:2589385
 Availability:Public
 Title:アーティスト向けクイックスタート
 Crumbs:%ROOT%, GettingStarted
-Description:コンテンツクリエイター向けアンリアルエンジン入門
+Description:コンテンツ クリエイター向けアンリアルエンジン入門
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -42,28 +42,39 @@ Description:コンテンツクリエイター向けアンリアルエンジン�
 ![](MaterialsHeader_1.png)
 
 
-このクイックスタートガイドでは、メッシュやテクスチャをインポートし、マテリアルを作成し、それを **スタティックメッシュ アクタ** に適用します。この集中型チュートリアルは、主要ポイントを段階的に説明します。途中のあらゆる場面で、掘り下げた質問に対応するページへのリンクもご利用いただけます。
+アンリアル エンジン 4 (UE4) を使ったビジュアル シーンの作成はやりがいがあります (しかも楽しい！)。
 
+## 目標
+このクイックスタートでは、以下の操作の習得を目標にしています。
+* **プロジェクトの設定**
+* **マテリアルの作成**
+* **マテリアルの Static Mesh アクタへの適用**
 
+&#x2713; [UE4 のプロジェクト ブラウザについての詳細はここをクリックしてください](Engine/Basics/Projects/Browser "Project Browser Documentation")
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		手順
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
-	* [](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
-	* [](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
-	* [](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
-	* [](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
-	* [](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	* [1. プロジェクトの設定](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+		* [UE4 プロジェクトへのコンテンツの追加](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+		* [インポートするメッシュの準備](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+		* [メッシュのインポート](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+		* [テクスチャのインポート](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+	* [2. マテリアルの作成](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
+	* [3. マテリアルの編集](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [4. Static Mesh アクタへのマテリアルの適用](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
+	* [5. 応用編](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/6:description%")
 	[/PARAM]
 [/OBJECT]
 
-
+[REGION:quote]
+保存はこまめに、そして早目にしましょう！
+[/REGION]
 
