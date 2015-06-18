@@ -1603,8 +1603,11 @@ void FFriendsAndChatManager::OnPresenceReceived(const FUniqueNetId& UserId, cons
 				FString InviteSessionID = It.Value()->GetGameSessionId().IsValid() ? It.Value()->GetGameSessionId()->ToString() : TEXT("");
 				if ((CurrentSessionID == InviteSessionID) || (GetOnlineStatus() != EOnlinePresenceState::Offline && !It.Value()->IsOnline()))
 				{
-					// Already in the same session so remove
-					InvitesToRemove.Add(It.Key());
+					if (!CurrentSessionID.IsEmpty())
+					{
+						// Already in the same session so remove
+						InvitesToRemove.Add(It.Key());
+					}
 				}
 			}
 			for (auto It = InvitesToRemove.CreateConstIterator(); It; ++It)
