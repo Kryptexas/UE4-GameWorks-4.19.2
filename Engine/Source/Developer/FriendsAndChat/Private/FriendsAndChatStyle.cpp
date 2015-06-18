@@ -106,19 +106,19 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 
 	// Name Style
 	const FTextBlockStyle GlobalChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.DefaultChatColor);
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GlobalChatColor);
 
 	const FTextBlockStyle GameChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameChatColor);
 
 	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyChatColor);
 
 	const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
-		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
+		.SetFont(FriendStyle.FriendsNormalFontStyle.FriendsFontNormalBold)
 		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisplerChatColor);
 
 	const FButtonStyle UserNameButton = FButtonStyle()

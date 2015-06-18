@@ -33,6 +33,7 @@ public:
 			.AutoWidth()
 			[
 			 	SNew(SBox)
+				.Visibility(ViewModel->AllowMarkup() ? EVisibility::Visible : EVisibility::Collapsed)
 			 	.WidthOverride(HightOverride)
 			 	[
 					SNew(SButton)

@@ -40,6 +40,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetDefaultChatColor(const FLinearColor& In
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetGlobalChatColor(const FLinearColor& InFontColor)
+{
+	GlobalChatColor = InFontColor;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetWhisplerChatColor(const FLinearColor& InFontColor)
 {
 	WhisplerChatColor = InFontColor;

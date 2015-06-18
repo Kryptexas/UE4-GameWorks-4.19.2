@@ -6,6 +6,7 @@
 #include "SFriendsToolTip.h"
 #include "SFriendsList.h"
 #include "SFriendsAndChatCombo.h"
+#include "SAutoTextScroller.h"
 
 #define LOCTEXT_NAMESPACE "SFriendItem"
 
@@ -90,9 +91,8 @@ public:
 								.VAlign(VAlign_Top)
 								.AutoHeight()
 								[
-									SNew(STextBlock)
-									.Font(FriendFontStyle.FriendsFontSmallBold)
-									.ColorAndOpacity(FriendFontStyle.DefaultDullFontColor)
+									SNew(SAutoTextScroller)
+									.FontStyle(&FriendFontStyle)
 									.Text(ViewModelPtr, &FFriendViewModel::GetFriendLocation)
 								]
 							]

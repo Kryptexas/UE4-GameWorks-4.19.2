@@ -157,7 +157,7 @@ public:
 	virtual bool SendMessage(const FText NewMessage, const FText PlainText) override
 	{
 		bool bSuccess = true;
-		if (!MarkupService->ValidateSlashMarkup(NewMessage.ToString(), PlainText.ToString()))
+		if (!AllowMarkup() || !MarkupService->ValidateSlashMarkup(NewMessage.ToString(), PlainText.ToString()))
 		{
 			if(!PlainText.IsEmptyOrWhitespace())
 			{
@@ -459,10 +459,13 @@ public:
 
 	virtual void ValidateChatInput(const FText Message, const FText PlainText)
 	{
-		MarkupService->SetInputText(Message.ToString(), PlainText.ToString());
-		if(!Message.IsEmpty())
+		if (AllowMarkup())
 		{
-			ChatDisplayService->ChatEntered();
+			MarkupService->SetInputText(Message.ToString(), PlainText.ToString());
+			if (!Message.IsEmpty())
+			{
+				ChatDisplayService->ChatEntered();
+			}
 		}
 	}
 
@@ -501,6 +504,21 @@ public:
 // 		}
 	}
 
+	virtual bool AllowMarkup() override
+	{
+		return true;
+	}
+	
+	virtual bool MultiChat() override
+	{
+		return true;
+	}
+
+	virtual void SetFocus() override
+	{
+		ChatDisplayService->SetFocus();
+	}
+
 	virtual bool IsActive() const override
 	{
 		return bIsActive;
@@ -536,7 +554,7 @@ public:
 
 	virtual FReply HandleChatKeyEntry(const FKeyEvent& KeyEvent) override
 	{
-		return MarkupService->HandleChatKeyEntry(KeyEvent);
+		return AllowMarkup() ? MarkupService->HandleChatKeyEntry(KeyEvent) : FReply::Unhandled();
 	}
 
 	DECLARE_DERIVED_EVENT(FChatViewModelImpl, FChatViewModel::FChatListSetFocus, FChatListSetFocus);
@@ -702,6 +720,17 @@ private:
 		}
 		return Changed;
 	}
+
+	virtual bool AllowMarkup() override
+	{
+		return false;
+	}
+
+	virtual bool MultiChat() override
+	{
+		return false;
+	}
+	
 	// End FChatViewModelImpl 
 
 

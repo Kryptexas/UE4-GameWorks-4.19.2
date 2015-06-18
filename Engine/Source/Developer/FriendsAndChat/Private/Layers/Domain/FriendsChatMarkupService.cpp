@@ -16,6 +16,12 @@ class FFriendsChatMarkupServiceFactoryImpl;
 
 struct FProcessedInput
 {
+	FProcessedInput()
+		: ChatChannel(EChatMessageType::Invalid)
+		, NeedsTip(false)
+		, FoundMatch(false)
+	{}
+
 	EChatMessageType::Type ChatChannel;
 	FString Message;
 	bool NeedsTip;

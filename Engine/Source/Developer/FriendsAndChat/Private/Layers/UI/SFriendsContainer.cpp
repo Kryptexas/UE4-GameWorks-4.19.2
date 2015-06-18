@@ -371,7 +371,7 @@ private:
 							SNew(SBox)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendBoxVisibility)
 							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Left)
+							.HAlign(HAlign_Fill)
 							.Padding(0)
 							[
 								SAssignNew(FriendNameTextBox, SEditableTextBox)

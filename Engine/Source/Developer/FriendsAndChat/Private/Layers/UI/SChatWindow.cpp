@@ -34,8 +34,10 @@ public:
 			);
 
 		OnHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateSP(SharedThis(this), &SChatWindowImpl::HandleNameClicked);
+		OnChannelHyperlinkClicked = FSlateHyperlinkRun::FOnClick::CreateSP(SharedThis(this), &SChatWindowImpl::HandleChannelClicked);
 
 		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("UserName"), OnHyperlinkClicked));
+		RichTextMarshaller->AppendInlineDecorator(FHyperlinkDecorator::Create(TEXT("Channel"), OnChannelHyperlinkClicked));
 		RichTextMarshaller->AppendInlineDecorator(FImageDecorator::Create(TEXT("img"), &FFriendsAndChatModuleStyle::Get()));
 
 		TimeTransparency = 0.0f;
@@ -130,7 +132,7 @@ public:
 									.Style(&FriendStyle.FriendsChatStyle.ChatEntryTextStyle)
 									.TextStyle(&FriendStyle.FriendsChatStyle.TextStyle)
 								 	.FriendStyle(&FriendStyle)
-									.Marshaller(RichTextMarshaller.ToSharedRef())
+									.Marshaller(RichTextMarshaller)
 									.HintText(InArgs._ActivationHintText)
 								]
 								+SVerticalBox::Slot()
@@ -138,7 +140,7 @@ public:
 								[
 									SNew(SBorder)
 									.Padding(FMargin(10, 10))
-									.VAlign(VAlign_Center)									
+									.VAlign(VAlign_Center)
 									.Visibility(this, &SChatWindowImpl::GetLostConnectionVisibility)
 									.BorderImage(&FriendStyle.FriendsChatStyle.ChatContainerBackground)
 									.BorderBackgroundColor(FLinearColor(FColor(255, 255, 255, 128)))
@@ -162,7 +164,7 @@ public:
 
 	virtual void HandleWindowActivated() override
 	{
-		FSlateApplication::Get().SetKeyboardFocus(ChatTextBox, EFocusCause::WindowActivate);
+		ViewModel->SetFocus();
 		ViewModel->SetIsActive(true);
 	}
 
@@ -303,6 +305,17 @@ private:
 		}
 	}
 
+	void HandleChannelClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
+	{
+		const FString* ChannelString = Metadata.Find(TEXT("Command"));
+
+		if (ChannelString)
+		{
+			ViewModel->SetOutgoingMessageChannel(EChatMessageType::EnumFromString(*ChannelString));
+			ViewModel->SetFocus();
+		}
+	}
+
 	FText FormatListMessageText(TSharedRef<FChatItemViewModel> ChatItem, bool bGrouped)
 	{
 		const FText& TextToSet = ChatItem->GetMessage();
@@ -314,18 +327,19 @@ private:
 		{
 		case EChatMessageType::Global: 
 			HyperlinkStyle = TEXT("UserNameTextStyle.GlobalHyperlink"); 
-			Args.Add(TEXT("ChannelImage"), FText::FromString(TEXT("GlobalChatIcon")));
+			Args.Add(TEXT("RoomName"), FText::FromString(TEXT("[g]")));
 			break;
 		case EChatMessageType::Whisper: 
 			HyperlinkStyle = TEXT("UserNameTextStyle.Whisperlink"); 
-			Args.Add(TEXT("ChannelImage"), FText::FromString(TEXT("WhisperChatIcon")));
+			Args.Add(TEXT("RoomName"), FText::FromString(TEXT("[w]")));
 			break;
 		case EChatMessageType::Game: 
 			HyperlinkStyle = TEXT("UserNameTextStyle.GameHyperlink"); 
-			Args.Add(TEXT("ChannelImage"), FText::FromString(TEXT("PartyChatIcon")));
+			Args.Add(TEXT("RoomName"), FText::FromString(TEXT("[p]")));
 			break;
 		}
 
+		Args.Add(TEXT("Channel"), FText::FromString(EChatMessageType::ShortcutString(ChatItem->GetMessageType())));
 		Args.Add(TEXT("RecipientName"), ChatItem->GetRecipientName());
 		if(ChatItem->GetRecipientID().IsValid())
 		{
@@ -349,20 +363,41 @@ private:
 		}
 		else
 		{
-			if (ChatItem->IsFromSelf())
+			if (!ViewModel->MultiChat())
 			{
-				if(ChatItem->GetMessageType() == EChatMessageType::Whisper)
+				if (ChatItem->IsFromSelf())
 				{
-					ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "<img src=\"{ChannelImage}\"/>{SenderName} to <a id=\"UserName\" uid=\"{RecipientID}\" Username=\"{RecipientName}\" style=\"{NameStyle}\">{RecipientName}</> {MessageTime}: {Message}"), Args);
+					ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{MessageTime} {SenderName} : {Message}"), Args);
 				}
 				else
 				{
-					ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "<img src=\"{ChannelImage}\"/>{SenderName} {MessageTime}: {Message}"), Args);
+					ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{MessageTime} <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> : {Message}"), Args);
 				}
 			}
 			else
 			{
-				ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "<img src=\"{ChannelImage}\"/> <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> {MessageTime}: {Message}"), Args);
+				if (ChatItem->GetMessageType() == EChatMessageType::Whisper)
+				{
+					if (ChatItem->IsFromSelf())
+					{
+						ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{MessageTime} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> to <a id=\"UserName\" uid=\"{RecipientID}\" Username=\"{RecipientName}\" style=\"{NameStyle}\">{RecipientName}</> : {Message}"), Args);
+					}
+					else
+					{
+						ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{MessageTime} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> from <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> : {Message}"), Args);
+					}
+				}
+				else
+				{
+					if (ChatItem->IsFromSelf())
+					{
+						ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{MessageTime} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> {SenderName} : {Message}"), Args);
+					}
+					else
+					{
+						ListMessage = FText::Format(NSLOCTEXT("FChatItemViewModel", "DisplayNameAndMessage", "{MessageTime} <a id=\"Channel\" Command=\"{Channel}\" style=\"{NameStyle}\">{RoomName}</> <a id=\"UserName\" uid=\"{SenderID}\" Username=\"{SenderName}\" style=\"{NameStyle}\">{SenderName}</> : {Message}"), Args);
+					}
+				}
 			}
 		}
 		return ListMessage;
@@ -458,6 +493,7 @@ private:
 	FCurveHandle FadeCurve;
 
 	FSlateHyperlinkRun::FOnClick OnHyperlinkClicked;
+	FSlateHyperlinkRun::FOnClick OnChannelHyperlinkClicked;
 
 	static const float CHAT_HINT_UPDATE_THROTTLE;
 };
