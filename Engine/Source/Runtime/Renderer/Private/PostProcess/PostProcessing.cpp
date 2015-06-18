@@ -2020,7 +2020,16 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 
 			FPooledRenderTargetDesc Desc;
 
-			Desc.Extent = View.Family->RenderTarget->GetSizeXY();
+			if (View.Family->RenderTarget->GetRenderTargetTexture())
+			{
+				Desc.Extent.X = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeX();
+				Desc.Extent.Y = View.Family->RenderTarget->GetRenderTargetTexture()->GetSizeY();
+			}
+			else
+			{
+				Desc.Extent = View.Family->RenderTarget->GetSizeXY();
+			}
+
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = PF_B8G8R8A8;
 			Desc.NumMips = 1;

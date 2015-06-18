@@ -119,17 +119,15 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 
 bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
-	if (Viewport.GetCustomPresent())
+	if (bPresent && Viewport.GetCustomPresent())
 	{
-		Viewport.GetCustomPresent()->Present(SyncInterval);
+		bPresent = Viewport.GetCustomPresent()->Present(SyncInterval);
 	}
-	else
+	if (bPresent)
 	{
 		AndroidEGL::GetInstance()->SwapBuffers();
 	}
-//	return true;
-	//Do not want WaitForFrameEventCompletion
-	return false;
+	return bPresent;
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)

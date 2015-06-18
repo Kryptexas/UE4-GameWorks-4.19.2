@@ -115,7 +115,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FViewInfo& View = Views[0];
 
 	const bool bGammaSpace = !IsMobileHDR();
-	const bool bRequiresUpscale = ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
+	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
 	const bool bRenderToScene = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View);
 
 	if (bGammaSpace && !bRenderToScene)
@@ -198,17 +198,6 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Finish rendering for each view, or the full stereo buffer if enabled
 		if (ViewFamily.bResolveScene)
 		{
-			if (ViewFamily.EngineShowFlags.StereoRendering)
-			{
-				check(Views.Num() > 1);
-
-				//@todo ES2 stereo post: until we get proper stereo postprocessing for ES2, process the stereo buffer as one view
-				FIntPoint OriginalMax0 = Views[0].ViewRect.Max;
-				Views[0].ViewRect.Max = Views[1].ViewRect.Max;
-				GPostProcessing.ProcessES2(RHICmdList, Views[0], bOnChipSunMask);
-				Views[0].ViewRect.Max = OriginalMax0;
-			}
-			else
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
 				SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
@@ -222,7 +211,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	else if (bRenderToScene)
 	{
-		BasicPostProcess(RHICmdList, View, bRequiresUpscale, FSceneRenderer::ShouldCompositeEditorPrimitives(View));
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			BasicPostProcess(RHICmdList, Views[ViewIndex], bRequiresUpscale, FSceneRenderer::ShouldCompositeEditorPrimitives(Views[ViewIndex]));
+		}
 	}
 	RenderFinish(RHICmdList);
 }
