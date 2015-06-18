@@ -331,3 +331,30 @@ FBlendStateRHIRef FOpenGLDynamicRHI::RHICreateBlendState(const FBlendStateInitia
 	FShaderCache::LogBlendState(Initializer, BlendState);
 	return BlendState;
 }
+
+//!AB: moved from the header, since it was causing linker error when the header is included externally
+void FOpenGLRHIState::InitializeResources(int32 NumCombinedTextures, int32 NumComputeUAVUnits)
+{
+	check(!ShaderParameters);
+	FOpenGLCommonState::InitializeResources(NumCombinedTextures, NumComputeUAVUnits);
+	ShaderParameters = new FOpenGLShaderParameterCache[CrossCompiler::NUM_SHADER_STAGES];
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(FOpenGL::GetMaxVertexUniformComponents() * 4 * sizeof(float));
+	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(FOpenGL::GetMaxPixelUniformComponents() * 4 * sizeof(float));
+	ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].InitializeResources(FOpenGL::GetMaxGeometryUniformComponents() * 4 * sizeof(float));
+		
+	if ( FOpenGL::SupportsTessellation() )
+	{
+		ShaderParameters[CrossCompiler::SHADER_STAGE_HULL].InitializeResources(FOpenGL::GetMaxHullUniformComponents() * 4 * sizeof(float));
+		ShaderParameters[CrossCompiler::SHADER_STAGE_DOMAIN].InitializeResources(FOpenGL::GetMaxDomainUniformComponents() * 4 * sizeof(float));
+	}
+
+	if ( FOpenGL::SupportsComputeShaders() )
+	{
+		ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].InitializeResources(FOpenGL::GetMaxComputeUniformComponents() * 4 * sizeof(float));
+	}
+
+	for (int32 Frequency = 0; Frequency < SF_NumFrequencies; ++Frequency)
+	{
+		DirtyUniformBuffers[Frequency] = MAX_uint16;
+	}
+}

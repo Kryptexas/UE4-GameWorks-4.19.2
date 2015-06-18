@@ -1433,7 +1433,7 @@ public:
 	bool InputEnabled() const { return bInputEnabled; }
 
 	/** @return true if we fully tick when paused (and if our tick function is enabled when paused).	 */
-	bool ShouldPerformFullTickWhenPaused() const { return bShouldPerformFullTickWhenPaused; }
+	bool ShouldPerformFullTickWhenPaused() const;
 
 	/** returns whether the client has completely loaded the server's current world (valid on server only) */
 	bool HasClientLoadedCurrentWorld();

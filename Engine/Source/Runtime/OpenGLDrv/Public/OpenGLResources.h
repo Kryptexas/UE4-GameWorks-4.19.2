@@ -822,7 +822,7 @@ private:
 
 // Textures.
 template<typename BaseType>
-class TOpenGLTexture : public BaseType, public FOpenGLTextureBase
+class OPENGLDRV_API TOpenGLTexture : public BaseType, public FOpenGLTextureBase
 {
 public:
 
@@ -994,7 +994,7 @@ private:
 	const uint32 bCubemap : 1;
 };
 
-class FOpenGLBaseTexture2D : public FRHITexture2D
+class OPENGLDRV_API FOpenGLBaseTexture2D : public FRHITexture2D
 {
 public:
 	FOpenGLBaseTexture2D(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,uint32 InNumSamples, uint32 InArraySize, EPixelFormat InFormat,uint32 InFlags)
@@ -1315,8 +1315,8 @@ protected:
 	bool OwnsResource;
 };
 
-void OpenGLTextureDeleted( FRHITexture* Texture );
-void OpenGLTextureAllocated( FRHITexture* Texture , uint32 Flags);
+void OPENGLDRV_API OpenGLTextureDeleted(FRHITexture* Texture);
+void OPENGLDRV_API OpenGLTextureAllocated( FRHITexture* Texture , uint32 Flags);
 
 extern void ReleaseOpenGLFramebuffers(FOpenGLDynamicRHI* Device, FTextureRHIParamRef TextureRHI);
 

@@ -267,7 +267,7 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 	frame->PoseToOrientationAndPosition(cameraPose, Orient, Pos);
 
 	OutOrientation = Orient;
-	OutOrigin = Pos;
+	OutOrigin = Pos + frame->Settings->PositionOffset;
 }
 
 bool FOculusRiftHMD::IsInLowPersistenceMode() const
@@ -875,7 +875,7 @@ void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPas
 			// The HMDPosition already has HMD orientation applied.
 			// Apply rotational difference between HMD orientation and ViewRotation
 			// to HMDPosition vector. 
-			const FVector vEyePosition = DeltaControlOrientation.RotateVector(HmdToEyeOffset);
+			const FVector vEyePosition = DeltaControlOrientation.RotateVector(HmdToEyeOffset) + frame->Settings->PositionOffset;
 			ViewLocation += vEyePosition;
 			
 			//UE_LOG(LogHMD, Log, TEXT("DLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
@@ -1631,6 +1631,7 @@ void FOculusRiftHMD::OnBeginPlay()
 	// This call make sense when 'Play' is used from the Editor;
 	if (GIsEditor)
 	{
+		Settings->PositionOffset = FVector::ZeroVector;
 		Settings->BaseOrientation = FQuat::Identity;
 		Settings->BaseOffset = FVector::ZeroVector;
 		Settings->WorldToMetersScale = 100.f;

@@ -18,6 +18,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #include "OVR_CAPI.h"
 
+/*#ifndef OVR_SKIP_GL_SYSTEM_INC 
 #if defined(OVR_OS_WIN32)
     #include <Windows.h>
     #include <gl/GL.h>
@@ -26,7 +27,9 @@ otherwise accompanies this software in either electronic or hard copy form.
 #else
     #include <GL/gl.h>
 #endif
+#endif // OVR_SKIP_GL_SYSTEM_INC */
 
+typedef unsigned int GLuint;
 
 #if defined(_MSC_VER)
     #pragma warning(push)

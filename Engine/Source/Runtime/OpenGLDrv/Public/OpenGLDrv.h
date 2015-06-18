@@ -282,7 +282,7 @@ struct FOpenGLGPUProfiler : public FGPUProfiler
 
 
 /** The interface which is implemented by the dynamically bound RHI. */
-class FOpenGLDynamicRHI : public FDynamicRHI, public IRHICommandContext
+class OPENGLDRV_API FOpenGLDynamicRHI : public FDynamicRHI, public IRHICommandContext
 {
 public:
 
@@ -555,6 +555,8 @@ public:
 
 	FOpenGLSamplerState* GetPointSamplerState() const { return (FOpenGLSamplerState*)PointSamplerState.GetReference(); }
 
+	FRHITexture* CreateOpenGLTexture(uint32 SizeX, uint32 SizeY, bool CubeTexture, bool ArrayTexture, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 ArraySize, uint32 Flags, FResourceBulkDataInterface* BulkData = NULL);
+
 private:
 
 	/** Counter incremented each time RHIBeginScene is called. */
@@ -602,7 +604,6 @@ private:
 	friend FOpenGLGPUProfiler;
 //	FOpenGLEventQuery FrameSyncEvent;
 
-	FRHITexture* CreateOpenGLTexture(uint32 SizeX,uint32 SizeY,bool CubeTexture, bool ArrayTexture, uint8 Format,uint32 NumMips,uint32 NumSamples, uint32 ArraySize, uint32 Flags, FResourceBulkDataInterface* BulkData = NULL);
 	GLuint GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTargets, FOpenGLTextureBase** RenderTargets, uint32* ArrayIndices, uint32* MipmapLevels, FOpenGLTextureBase* DepthStencilTarget);
 
 	void InitializeStateResources();

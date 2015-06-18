@@ -1711,7 +1711,7 @@ void SWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 		NativeWindow->SetWindowMode( NewWindowMode );
 	
-		FVector2D vp = GetViewportSize();
+		const FVector2D vp = (NewWindowMode == EWindowMode::WindowedMirror) ? GetSizeInScreen() : GetViewportSize();
 		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(SharedThis(this), vp.X, vp.Y);
 
 		if( TitleArea.IsValid() )

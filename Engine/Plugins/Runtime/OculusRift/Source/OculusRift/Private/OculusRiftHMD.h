@@ -18,7 +18,7 @@
 
 #if PLATFORM_WINDOWS
 	#define OVR_D3D_VERSION 11
-//	#define OVR_GL
+	#define OVR_GL
 #elif PLATFORM_MAC
 	#define OVR_VISION_ENABLED
     #define OVR_GL
@@ -202,6 +202,7 @@ public:
 	FCustomPresent()
 		: FRHICustomPresent(nullptr)
 		, Hmd(nullptr)
+		, MirrorTexture(nullptr)
 		, bInitialized(false)
 		, bNeedReAllocateTextureSet(true)
 		, bNeedReAllocateMirrorTexture(true)
@@ -211,11 +212,16 @@ public:
 	bool IsInitialized() const { return bInitialized; }
 
 	virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) = 0;
+	virtual void FinishRendering() = 0;
+
+	// Resets Viewport-specific pointers (BackBufferRT, SwapChain).
+	virtual void OnBackBufferResize() override;
 
 	virtual void Reset() = 0;
 	virtual void Shutdown() = 0;
 
-	virtual FTexture2DRHIRef GetMirrorTexture() = 0;
+	// Returns true if Engine should perform its own Present.
+	virtual bool Present(int32& SyncInterval) override;
 
 	virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI, FGameFrame* InRenderFrame);
 	FGameFrame* GetRenderFrame() const { check(IsInRenderingThread()); return static_cast<FGameFrame*>(RenderContext->RenderFrame.Get()); }
@@ -229,6 +235,8 @@ public:
 
 	bool AreTexturesMarkedAsInvalid() const { return bNeedReAllocateTextureSet; }
 
+	virtual FTexture2DRHIRef GetMirrorTexture() { return MirrorTextureRHI; }
+
 	// Allocates render target texture
 	// If returns false then a default RT texture will be used.
 	virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples) = 0;
@@ -239,6 +247,11 @@ protected:
 protected: // data
 	ovrHmd				Hmd;
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
+
+	// Mirror texture
+	ovrTexture*			MirrorTexture;
+	FTexture2DRHIRef	MirrorTextureRHI;
+
 	bool				bInitialized : 1;
 	bool				bNeedReAllocateTextureSet : 1;
 	bool				bNeedReAllocateMirrorTexture : 1;
@@ -369,22 +382,14 @@ public:
 	public:
 		D3D11Bridge(ovrHmd Hmd);
 
-		// Implementation of FRHICustomPresent
-		// Resets Viewport-specific pointers (BackBufferRT, SwapChain).
-		virtual void OnBackBufferResize() override;
-		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int32& SyncInterval) override;
-
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
 		{
 			Reset();
 		}
-
-		virtual FTexture2DRHIRef GetMirrorTexture() override { return MirrorTextureRHI; }
 
 		virtual void SetHmd(ovrHmd InHmd) override;
 
@@ -395,10 +400,6 @@ public:
 	protected: // data
 		TRefCountPtr<class FD3D11Texture2DSet>	ColorTextureSet;
 		TRefCountPtr<class FD3D11Texture2DSet>	DepthTextureSet;
-
-		// Mirror texture
-		ovrTexture*							MirrorTexture;
-		FTexture2DRHIRef					MirrorTextureRHI;
 	};
 
 #endif
@@ -407,26 +408,27 @@ public:
 	class OGLBridge : public FCustomPresent
 	{
 	public:
-		OGLBridge();
-
-		// Implementation of FRHICustomPresent
-		// Resets Viewport-specific resources.
-		virtual void OnBackBufferResize() override;
-		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int& SyncInterval) override;
+		OGLBridge(ovrHmd Hmd);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
 		{
 			Reset();
 		}
 
+		virtual void SetHmd(ovrHmd InHmd) override;
+
+		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
+
+	protected:
+		void Init(ovrHmd InHmd);
+		void Reset_RenderThread();
 	protected: // data
-		ovrGLConfig			Cfg;
-		ovrGLTexture		EyeTexture[2];
+		TRefCountPtr<class FOpenGLTexture2DSet>	ColorTextureSet;
+		TRefCountPtr<class FOpenGLTexture2DSet>	DepthTextureSet;
 	};
 #endif // OVR_GL
 

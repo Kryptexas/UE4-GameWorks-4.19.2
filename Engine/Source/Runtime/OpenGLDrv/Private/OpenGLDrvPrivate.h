@@ -308,7 +308,7 @@ struct FOpenGLTextureFormat
 
 };
 
-extern FOpenGLTextureFormat GOpenGLTextureFormats[PF_MAX];
+extern FOpenGLTextureFormat OPENGLDRV_API GOpenGLTextureFormats[PF_MAX];
 
 inline uint32 FindMaxMipmapLevel(uint32 Size)
 {
@@ -479,7 +479,7 @@ inline uint32 CalcDynamicBufferSize(uint32 Size)
 void InitDefaultGLContextState(void);
 
 /** Vertex declaration for just one FVector4 position. */
-class FVector4VertexDeclaration : public FRenderResource
+class FOpenGLVector4VertexDeclaration : public FRenderResource
 {
 public:
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
@@ -495,7 +495,7 @@ public:
 	}
 };
 
-extern TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
+extern TGlobalResource<FOpenGLVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
 
 extern bool GUseEmulatedUniformBuffers;
 

@@ -136,6 +136,7 @@ void FD3D11Texture2DSet::ReleaseResources(ovrHmd Hmd)
 {
 	if (TextureSet)
 	{
+		UE_LOG(LogHMD, Log, TEXT("Freeing textureSet 0x%p"), TextureSet);
 		ovrHmd_DestroySwapTextureSet(Hmd, TextureSet);
 		TextureSet = nullptr;
 	}
@@ -324,7 +325,6 @@ static FD3D11Texture2D* D3D11CreateTexture2DAlias(
 FOculusRiftHMD::D3D11Bridge::D3D11Bridge(ovrHmd Hmd)
 	: FCustomPresent()
 {
-	MirrorTexture = nullptr;
 	Init(Hmd);
 }
 
@@ -344,8 +344,6 @@ void FOculusRiftHMD::D3D11Bridge::Init(ovrHmd InHmd)
 	Hmd = InHmd;
 	bInitialized = true;
 }
-
-//FTexture2DRHIRef FOculusRiftHMD::D3D11Bridge::AllocateRenderTargetTexture(int32 TexWidth, int32 TexHeight, EPixelFormat Format)
 
 bool FOculusRiftHMD::D3D11Bridge::AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
 {
@@ -419,17 +417,12 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering(FHMDViewExtension& InRenderCont
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 
-	FIntPoint ActualMirrorWindowSize(0, 0);
-	if (RenderContext->Hmd)
-	{
-		ActualMirrorWindowSize.X = (FrameSettings->MirrorWindowSize.X == 0) ? RenderContext->Hmd->Resolution.w : FrameSettings->MirrorWindowSize.X;
-		ActualMirrorWindowSize.Y = (FrameSettings->MirrorWindowSize.Y == 0) ? RenderContext->Hmd->Resolution.h : FrameSettings->MirrorWindowSize.Y;
-	}
+	const FVector2D ActualMirrorWindowSize = CurrentFrame->WindowSize;
 	// detect if mirror texture needs to be re-allocated or freed
 	if (Hmd && MirrorTextureRHI && (bNeedReAllocateMirrorTexture || Hmd != RenderContext->Hmd ||
 		(FrameSettings->Flags.bMirrorToWindow && (
 		FrameSettings->MirrorWindowMode != FSettings::eMirrorWindow_Distorted ||
-		ActualMirrorWindowSize != FIntPoint(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY()))) || 
+		ActualMirrorWindowSize != FVector2D(MirrorTextureRHI->GetSizeX(), MirrorTextureRHI->GetSizeY()))) ||
 		!FrameSettings->Flags.bMirrorToWindow ))
 	{
 		check(MirrorTexture);
@@ -567,30 +560,10 @@ void FOculusRiftHMD::D3D11Bridge::Reset()
 	bInitialized = false;
 }
 
-void FOculusRiftHMD::D3D11Bridge::OnBackBufferResize()
-{
-	// if we are in the middle of rendering: prevent from calling EndFrame
-	if (RenderContext.IsValid())
-	{
-		RenderContext->bFrameBegun = false;
-	}
-}
-
-bool FOculusRiftHMD::D3D11Bridge::Present(int32& SyncInterval)
-{
-	check(IsInRenderingThread());
-
-	if (!RenderContext.IsValid())
-	{
-		return true; // use regular Present; this frame is not ready yet
-	}
-
-	SyncInterval = 0; // turn off VSync for the 'normal Present'.
-	bool bHostPresent = RenderContext->GetFrameSettings()->Flags.bMirrorToWindow;
-
-	FinishRendering();
-	return bHostPresent;
-}
+#if PLATFORM_WINDOWS
+	// It is required to undef WINDOWS_PLATFORM_TYPES_GUARD for any further D3D11 / GL private includes
+	#undef WINDOWS_PLATFORM_TYPES_GUARD
+#endif
 
 #endif // #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 

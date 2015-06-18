@@ -16,6 +16,7 @@ FHMDSettings::FHMDSettings() :
 	, MirrorWindowSize(0, 0)
 	, BaseOffset(0, 0, 0)
 	, BaseOrientation(FQuat::Identity)
+	, PositionOffset(FVector::ZeroVector)
 {
 	Flags.Raw = 0;
 	Flags.bHMDEnabled = true;
@@ -586,6 +587,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 				{
 					Settings->Flags.bVSync = Settings->Flags.bSavedVSync;
 					Flags.bApplySystemOverridesOnStereo = true;
+					Flags.bNeedUpdateHmdCaps = true;
 				}
 				Settings->Flags.bOverrideVSync = false;
 				return true;
@@ -597,6 +599,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 					Settings->Flags.bVSync = true;
 					Settings->Flags.bOverrideVSync = true;
 					Flags.bApplySystemOverridesOnStereo = true;
+					Flags.bNeedUpdateHmdCaps = true;
 					return true;
 				}
 				else if (FParse::Command(&Cmd, TEXT("OFF")) || FParse::Command(&Cmd, TEXT("0")))
@@ -604,6 +607,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 					Settings->Flags.bVSync = false;
 					Settings->Flags.bOverrideVSync = true;
 					Flags.bApplySystemOverridesOnStereo = true;
+					Flags.bNeedUpdateHmdCaps = true;
 					return true;
 				}
 				else if (FParse::Command(&Cmd, TEXT("TOGGLE")) || FParse::Command(&Cmd, TEXT("")))
@@ -611,6 +615,7 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 					Settings->Flags.bVSync = !Settings->Flags.bVSync;
 					Settings->Flags.bOverrideVSync = true;
 					Flags.bApplySystemOverridesOnStereo = true;
+					Flags.bNeedUpdateHmdCaps = true;
 					Ar.Logf(TEXT("VSync is currently %s"), (Settings->Flags.bVSync) ? TEXT("ON") : TEXT("OFF"));
 					return true;
 				}
@@ -744,6 +749,15 @@ bool FHeadMountedDisplay::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 				Settings->Flags.bDrawCubes = !Settings->Flags.bDrawCubes;
 				return true;
 			}
+		}
+		else if (FParse::Command(&Cmd, TEXT("POSOFF")))
+		{
+			FString StrX = FParse::Token(Cmd, 0);
+			FString StrY = FParse::Token(Cmd, 0);
+			FString StrZ = FParse::Token(Cmd, 0);
+			Settings->PositionOffset.X = FCString::Atof(*StrX);
+			Settings->PositionOffset.Y = FCString::Atof(*StrY);
+			Settings->PositionOffset.Z = FCString::Atof(*StrZ);
 		}
 	}
 #endif //!UE_BUILD_SHIPPING

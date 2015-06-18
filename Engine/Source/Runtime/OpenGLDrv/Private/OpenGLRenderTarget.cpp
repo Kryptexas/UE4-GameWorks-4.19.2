@@ -23,6 +23,7 @@ class FOpenGLFramebufferKey
 	struct RenderTargetInfo
 	{
 		FOpenGLTextureBase* Texture;
+		GLuint				Resource;
 		uint32				MipmapLevel;
 		uint32				ArrayIndex;
 	};
@@ -43,14 +44,15 @@ public:
 		uint32 RenderTargetIndex;
 		for( RenderTargetIndex = 0; RenderTargetIndex < InNumRenderTargets; ++RenderTargetIndex )
 		{
+			FMemory::Memzero(RenderTargets[RenderTargetIndex]); // since memcmp is used, we need to zero memory
 			RenderTargets[RenderTargetIndex].Texture = InRenderTargets[RenderTargetIndex];
+			RenderTargets[RenderTargetIndex].Resource = (InRenderTargets[RenderTargetIndex]) ? InRenderTargets[RenderTargetIndex]->Resource : 0;
 			RenderTargets[RenderTargetIndex].MipmapLevel = InRenderTargetMipmapLevels[RenderTargetIndex];
 			RenderTargets[RenderTargetIndex].ArrayIndex = (InRenderTargetArrayIndices == NULL || InRenderTargetArrayIndices[RenderTargetIndex] == -1) ? ALL_SLICES : InRenderTargetArrayIndices[RenderTargetIndex];
 		}
 		for( ; RenderTargetIndex < MaxSimultaneousRenderTargets; ++RenderTargetIndex )
 		{
-			RenderTargets[RenderTargetIndex].Texture = 0;
-			RenderTargets[RenderTargetIndex].MipmapLevel = 0;
+			FMemory::Memzero(RenderTargets[RenderTargetIndex]); // since memcmp is used, we need to zero memory
 			RenderTargets[RenderTargetIndex].ArrayIndex = ALL_SLICES;
 		}
 	}

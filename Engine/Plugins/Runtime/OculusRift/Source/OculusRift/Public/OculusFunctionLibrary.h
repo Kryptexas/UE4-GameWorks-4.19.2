@@ -153,6 +153,29 @@ class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category = "Input|OculusLibrary")
 	static void GetPlayerCameraManagerFollowHmd(bool& bFollowHmdOrientation, bool& bFollowHmdPosition);
 
+	/**
+	 * Sets 'base rotation' - the rotation that will be subtracted from
+	 * the actual HMD orientation.
+	 * The position offset might be added to current HMD position,
+	 * effectively moving the virtual camera by the specified offset. The addition
+	 * occurs after the HMD orientation and position are applied.
+	 *
+	 * @param BaseRot			(in) Rotator object with base rotation
+	 * @param PosOffset			(in) the vector to be added to HMD position.
+	 * @param Options			(in) specifies either position, orientation or both should be set.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary", meta = (DeprecatedFunction, DeprecationMessage = "A hack, proper camera positioning should be used"))
+	static void SetBaseRotationAndPositionOffset(FRotator BaseRot, FVector PosOffset, EOrientPositionSelector::Type Options);
+
+	/**
+	 * Returns current base rotation and position offset.
+	 *
+	 * @param OutRot			(out) Rotator object with base rotation
+	 * @param OutPosOffset		(out) the vector with previously set position offset.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Input|OculusLibrary", meta = (DeprecatedFunction, DeprecationMessage = "A hack, proper camera positioning should be used"))
+	static void GetBaseRotationAndPositionOffset(FRotator& OutRot, FVector& OutPosOffset);
+
 protected:
 	static class FOculusRiftHMD* GetOculusHMD();
 };

@@ -99,7 +99,7 @@ namespace OpenGLConsoleVariables
 		ECVF_ReadOnly|ECVF_RenderThreadSafe);
 };
 
-TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
+TGlobalResource<FOpenGLVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
 
 #if PLATFORM_64BITS
 #define INDEX_TO_VOID(Index) (void*)((uint64)(Index))

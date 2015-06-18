@@ -1007,7 +1007,7 @@ void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewport
 	if (Window.IsValid())
 	{
 		Window->SetIndependentViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
-		const FVector2D vp = Window->GetViewportSize();
+		const FVector2D vp = (Window->GetWindowMode() == EWindowMode::WindowedMirror) ? Window->GetSizeInScreen() : Window->GetViewportSize();
 		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
 		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);
 	}

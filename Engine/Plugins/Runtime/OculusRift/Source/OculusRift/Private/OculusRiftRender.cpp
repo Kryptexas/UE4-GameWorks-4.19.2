@@ -26,7 +26,6 @@ void FOculusRiftHMD::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 {
 	check(IsInRenderingThread());
 
-	//const FIntPoint TargetSize(DstTexture->GetSizeX(), DstTexture->GetSizeY());
 	if (DstRect.IsEmpty())
 	{
 		DstRect = FIntRect(0, 0, DstTexture->GetSizeX(), DstTexture->GetSizeY());
@@ -117,7 +116,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	FViewExtension& RenderContext = *this;
 	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
 
-	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
+	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || !ViewFamily.RenderTarget->GetRenderTargetTexture())
 	{
 		return;
 	}
@@ -221,9 +220,8 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		// The HMDPosition already has HMD orientation applied.
 		// Apply rotational difference between HMD orientation and ViewRotation
 		// to HMDPosition vector. 
-		// PositionOffset should be already applied to View.ViewLocation on GT in PlayerCameraUpdate.
 		const FVector DeltaPosition = CurrentEyePosition - View.BaseHmdLocation;
-		const FVector vEyePosition = DeltaControlOrientation.RotateVector(DeltaPosition);
+		const FVector vEyePosition = DeltaControlOrientation.RotateVector(DeltaPosition) + CurrentFrame->Settings->PositionOffset;
 		View.ViewLocation += vEyePosition;
 
 		//UE_LOG(LogHMD, Log, TEXT("VDLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
@@ -555,6 +553,13 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 
 	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
 
+	TSharedPtr<SWindow> Window;
+	if (ViewportWidget && !IsFullscreenAllowed())
+	{
+		FWidgetPath WidgetPath;
+		TSharedRef<SWidget> Widget = ViewportWidget->AsShared();
+		Window = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
+	}
 	if (!Settings->IsStereoEnabled())
 	{
 		if ((!bUseSeparateRenderTarget || GIsEditor) && ViewportRHI)
@@ -582,6 +587,7 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	check(CurrentFrame);
 
 	CurrentFrame->ViewportSize = InViewport.GetSizeXY();
+	CurrentFrame->WindowSize = Window->GetSizeInScreen();
 
 	check(pCustomPresent);
 
@@ -635,6 +641,31 @@ void FCustomPresent::MarkTexturesInvalid()
 		// Wait for all resources to be released
 		FlushRenderingCommands();
 	}
+}
+
+void FCustomPresent::OnBackBufferResize()
+{
+	// if we are in the middle of rendering: prevent from calling EndFrame
+	if (RenderContext.IsValid())
+	{
+		RenderContext->bFrameBegun = false;
+	}
+}
+
+bool FCustomPresent::Present(int32& SyncInterval)
+{
+	check(IsInRenderingThread());
+
+	if (!RenderContext.IsValid())
+	{
+		return true; // use regular Present; this frame is not ready yet
+	}
+
+	SyncInterval = 0; // turn off VSync for the 'normal Present'.
+	bool bHostPresent = RenderContext->GetFrameSettings()->Flags.bMirrorToWindow;
+
+	FinishRendering();
+	return bHostPresent;
 }
 
 #endif // OCULUS_RIFT_SUPPORTED_PLATFORMS

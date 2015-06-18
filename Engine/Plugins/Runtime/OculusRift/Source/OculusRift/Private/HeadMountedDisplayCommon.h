@@ -179,6 +179,10 @@ public:
 	/** Viewports for each eye, in render target texture coordinates */
 	FIntRect				EyeRenderViewport[2];
 
+	/** Deprecated position offset */
+	FVector					PositionOffset;
+
+
 	FHMDSettings();
 	virtual ~FHMDSettings() {}
 
@@ -208,6 +212,7 @@ public:
 	FVector					LastHmdPosition;    // contains last APPLIED ON GT HMD position
 
 	FIntPoint				ViewportSize;		// full final viewport size (window size, backbuffer size)
+	FVector2D				WindowSize;			// actual window size
 
 	union
 	{
