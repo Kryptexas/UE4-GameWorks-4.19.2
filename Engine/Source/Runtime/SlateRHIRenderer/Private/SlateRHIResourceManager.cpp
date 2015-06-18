@@ -5,7 +5,6 @@
 #include "SlateNativeTextureResource.h"
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
-#include "ImageUtils.h"
 
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Texture Atlases"), STAT_SlateNumTextureAtlases, STATGROUP_SlateMemory);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Non-Atlased Textures"), STAT_SlateNumNonAtlasedTextures, STATGROUP_SlateMemory);
@@ -110,7 +109,6 @@ void FDynamicResourceMap::ReleaseResources()
 
 
 FSlateRHIResourceManager::FSlateRHIResourceManager()
-	: BadResourceTexture(nullptr)
 {
 	FCoreDelegates::OnPreExit.AddRaw( this, &FSlateRHIResourceManager::OnAppExit );
 
@@ -517,40 +515,25 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	const FName ResourceName = InBrush.GetResourceName();
 	if ( ResourceName.IsValid() && ResourceName != NAME_None )
 	{
-		if ( UObject* ResourceObject = InBrush.GetResourceObject() )
+		if( InBrush.GetResourceObject() != nullptr )
 		{
-			if ( !ResourceObject->IsA<UTexture2D>() )
-			{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				static TSet<UObject*> FailedTextures;
-				if ( !FailedTextures.Contains(ResourceObject) )
-				{
-					FailedTextures.Add(ResourceObject);
-					ensureMsgf(false, TEXT("Slate RHI Error - Invalid Texture2D '%s'."), *ResourceName.ToString());
-				}
-				ResourceObject = GetBadResourceTexture();
-#else
-				return nullptr;
-#endif
-			}
-
-			UTexture2D* TextureObject = Cast<UTexture2D>(ResourceObject);
+			UTexture2D* TextureObject = CastChecked<UTexture2D>(InBrush.GetResourceObject());
 
 			TSharedPtr<FSlateUTextureResource> TextureResource = DynamicResourceMap.GetUTextureResource(TextureObject);
 
-			if ( !TextureResource.IsValid() )
+			if(!TextureResource.IsValid())
 			{
 				TextureResource = MakeDynamicUTextureResource(TextureObject);
-				if ( TextureResource.IsValid() )
+				if(TextureResource.IsValid())
 				{
 					INC_DWORD_STAT_BY(STAT_SlateNumDynamicTextures, 1);
 				}
 			}
 
-			if ( TextureResource.IsValid() )
+			if(TextureResource.IsValid())
 			{
 				UTexture2D* Texture2DObject = TextureResource->TextureObject;
-				if ( Texture2DObject && !AccessedUTextures.Contains(Texture2DObject) && Texture2DObject->Resource )
+				if(Texture2DObject && !AccessedUTextures.Contains(Texture2DObject) && Texture2DObject->Resource)
 				{
 					// Set the texture rendering resource that should be used.  The UTexture resource could change at any time so we must do this each frame
 					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UpdateSlateUTextureResource,
@@ -562,11 +545,11 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 							RenderTexture->LastRenderTime = FApp::GetCurrentTime();
 
 							// Refresh FTexture
-							InUTextureResource->UpdateRenderResource(RenderTexture);
+							InUTextureResource->UpdateRenderResource( RenderTexture );
 
 						});
 
-
+				
 					AccessedUTextures.Add(Texture2DObject);
 				}
 
@@ -599,7 +582,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	}
 
 	// dynamic texture was not found or loaded
-	return nullptr;
+	return  nullptr;
 }
 
 FSlateShaderResourceProxy* FSlateRHIResourceManager::GetMaterialResource(const FSlateBrush& InBrush)
@@ -802,15 +785,4 @@ void FSlateRHIResourceManager::ReloadTextures()
 
 	// Reload everythng
 	LoadUsedTextures();
-}
-
-UTexture* FSlateRHIResourceManager::GetBadResourceTexture()
-{
-	if ( BadResourceTexture == nullptr )
-	{
-		BadResourceTexture = FImageUtils::CreateCheckerboardTexture(FColor(255, 0, 255), FColor(255, 255, 0));
-		BadResourceTexture->AddToRoot();
-	}
-
-	return BadResourceTexture;
 }
