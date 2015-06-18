@@ -534,7 +534,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_STATIC_SHADOWMAP_PENUMBRA_SIZE,
 	// Fix BC on Niagara effects from the data object and dev UI changes.
 	VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX,
-
+	// Fixed the default orientation of widget component so it faces down +x
+	VER_UE4_FIXED_DEFAULT_ORIENTATION_OF_WIDGET_COMPONENT,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

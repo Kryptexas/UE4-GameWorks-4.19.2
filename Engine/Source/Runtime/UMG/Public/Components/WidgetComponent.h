@@ -136,6 +136,14 @@ public:
 	/** Get the fake window we create for widgets displayed in the world. */
 	TSharedPtr< SWindow > GetVirtualWindow() const;
 	
+	/** Whether or not this component uses legacy default rotation */
+	bool IsUsingLegacyRotation() const { return bUseLegacyRotation; }
+
+	/** Updates the actual material being used */
+	void UpdateMaterialInstance();
+	
+	/** Sets the widget class used to generate the widget for this component */
+	void SetWidgetClass(TSubclassOf<UUserWidget> InWidgetClass);
 protected:
 	/** The coordinate space in which to render the widget */
 	UPROPERTY(EditAnywhere, Category=UI)
@@ -235,6 +243,8 @@ protected:
 	UPROPERTY(Transient, DuplicateTransient)
 	UMaterialInstanceDynamic* MaterialInstance;
 
+	UPROPERTY()
+	bool bUseLegacyRotation;
 protected:
 
 	/** The grid used to find actual hit actual widgets once input has been translated to the components local space */
