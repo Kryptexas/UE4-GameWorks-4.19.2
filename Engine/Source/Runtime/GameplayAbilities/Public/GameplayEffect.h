@@ -516,7 +516,7 @@ enum class EGameplayEffectStackingPeriodPolicy : uint8
  *	The GameplayEffect definition. This is the data asset defined in the editor that drives everything.
  *  This is only blueprintable to allow for templating gameplay effects. Gameplay effects should NOT contain blueprint graphs.
  */
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, meta = (ShortTooltip="A GameplayEffect modifies attributes and tags."))
 class GAMEPLAYABILITIES_API UGameplayEffect : public UObject, public IGameplayTagAssetInterface
 {
 
