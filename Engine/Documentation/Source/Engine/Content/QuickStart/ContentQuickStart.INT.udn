@@ -63,10 +63,10 @@ By the end of this quick start guide, you'll be able to:
 	[/PARAM]
 	[PARAM:links]
 	* [1. SETTING UP YOUR PROJECT](Engine/Content/QuickStart/1 "%Engine/Content/QuickStart/1:description%")
-		* [How to add content to UE4 projects.](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
-		* [Preparing meshes for import.](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
-		* [Importing meshes.](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
-		* [Importing textures.](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
+		* [%Engine/Content/QuickStart/2:title%](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%")
+		* [%Engine/Content/QuickStart/3:title%](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:description%")
+		* [%Engine/Content/QuickStart/4:title%](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:description%")
+		* [%Engine/Content/QuickStart/5:title%](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:description%")
 	* [2. CREATING MATERIALS](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%")
 	* [3. EDITING MATERIALS](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:description%")
 	* [4. APPLYING MATERIALS TO STATIC MESH ACTORS](Engine/Content/QuickStart/8 "%Engine/Content/QuickStart/8:description%")
