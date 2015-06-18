@@ -1720,7 +1720,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
 
-		FGlslCodeBackend GlslBackEnd(CCFlags);
+		FGlslCodeBackend GlslBackEnd(CCFlags, HlslCompilerTarget);
 		FGlslLanguageSpec GlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
 
 		int32 Result = 0;

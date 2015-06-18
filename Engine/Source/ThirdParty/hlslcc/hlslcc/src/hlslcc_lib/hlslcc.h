@@ -79,9 +79,15 @@ class FCodeBackend
 protected:
 	// Built from EHlslCompileFlag
 	const unsigned int HlslCompileFlags;
+	const EHlslCompileTarget Target;
 
 public:
-	FCodeBackend(unsigned int InHlslCompileFlags) : HlslCompileFlags(InHlslCompileFlags) {}
+	FCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) :
+		HlslCompileFlags(InHlslCompileFlags),
+		Target(InTarget)
+	{
+	}
+
 	virtual ~FCodeBackend() {}
 
 	/**

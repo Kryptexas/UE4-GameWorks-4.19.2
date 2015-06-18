@@ -496,6 +496,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 	// Code generation flags
 	bool bIsES;
+	bool bEmitPrecision;
 	_mesa_glsl_parser_targets ShaderTarget;
 
 	bool bGenerateLayoutLocations;
@@ -936,7 +937,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 						);
 				}
 
-				if (bIsES)
+				if (bEmitPrecision)
 				{
 					if (GDefaultPrecisionIsHalf && var->type->inner_type->base_type == GLSL_TYPE_FLOAT)
 					{
@@ -979,7 +980,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 					mode_str[var->mode],
 					interp_str[var->interpolation]
 					);
-				if (bIsES)
+				if (bEmitPrecision)
 				{
 					if (var->type->is_sampler())
 					{
@@ -2163,7 +2164,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 
 			if (s->length == 0)
 			{
-				if (bIsES)
+				if (bEmitPrecision)
 				{
 					ralloc_asprintf_append(buffer, "\thighp float glsl_doesnt_like_empty_structs;\n");
 				}
@@ -2176,7 +2177,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 			{
 				for (unsigned j = 0; j < s->length; j++)
 				{
-					ralloc_asprintf_append(buffer, "\t%s ", (state->language_version == 310 && bIsES) ? "highp" : "") ;
+					ralloc_asprintf_append(buffer, "\t%s ", (state->language_version == 310 && bEmitPrecision) ? "highp" : "") ;
 					print_type_pre(s->fields.structure[j].type);
 					ralloc_asprintf_append(buffer, " %s", s->fields.structure[j].name);
 					print_type_post(s->fields.structure[j].type);
@@ -2217,7 +2218,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 					{
 						for (unsigned j = 0; j < type->length; j++)
 						{
-							ralloc_asprintf_append(buffer, "\t%s",  (state->language_version == 310 && bIsES) ? "highp" : "");
+							ralloc_asprintf_append(buffer, "\t%s",  (state->language_version == 310 && bEmitPrecision) ? "highp" : "");
 							print_type_pre(type->fields.structure[j].type);
 							ralloc_asprintf_append(buffer, " %s", type->fields.structure[j].name);
 							print_type_post(type->fields.structure[j].type);
@@ -2238,7 +2239,7 @@ class ir_gen_glsl_visitor : public ir_visitor
 						//EHart - name-mangle variables to prevent colliding names
 						ralloc_asprintf_append(buffer, "#define %s %s%s\n", var->name, var->name, block_name);
 
-						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bIsES) ? "highp " : "");
+						ralloc_asprintf_append(buffer, "\t%s", (state->language_version == 310 && bEmitPrecision) ? "highp " : "");
 						print_type_pre(var->type);
 						ralloc_asprintf_append(buffer, " %s", var->name);
 						print_type_post(var->type);
@@ -2818,9 +2819,10 @@ class ir_gen_glsl_visitor : public ir_visitor
 public:
 
 	/** Constructor. */
-	ir_gen_glsl_visitor(bool bInIsES, _mesa_glsl_parser_targets InShaderTarget, bool bInGenerateLayoutLocations)
+	ir_gen_glsl_visitor(bool bInIsES, bool bInEmitPrecision, _mesa_glsl_parser_targets InShaderTarget, bool bInGenerateLayoutLocations)
 		: early_depth_stencil(false)
 		, bIsES(bInIsES)
+		, bEmitPrecision(bInEmitPrecision)
 		, ShaderTarget(InShaderTarget)
 		, bGenerateLayoutLocations(bInGenerateLayoutLocations)
 		, buffer(0)
@@ -2858,7 +2860,7 @@ public:
 		char* code_buffer = ralloc_asprintf(mem_ctx, "");
 		buffer = &code_buffer;
 
-		if (bIsES && !(ShaderTarget == vertex_shader))
+		if (bEmitPrecision && !(ShaderTarget == vertex_shader))
 		{
 			// TODO: Improve this...
 			
@@ -2883,7 +2885,7 @@ public:
 			ralloc_asprintf_append(buffer, "#endif\n");
 		}
 
-		if ((state->language_version == 310) && (ShaderTarget == fragment_shader) && bIsES)
+		if ((state->language_version == 310) && (ShaderTarget == fragment_shader) && bEmitPrecision)
 		{
 			ralloc_asprintf_append(buffer, "precision %s float;\n", "highp");
 			ralloc_asprintf_append(buffer, "precision %s int;\n", "highp");
@@ -3112,7 +3114,8 @@ char* FGlslCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* stat
 
 	const bool bGroupFlattenedUBs = ((HlslCompileFlags & HLSLCC_GroupFlattenedUniformBuffers) == HLSLCC_GroupFlattenedUniformBuffers);
 	const bool bGenerateLayoutLocations = state->bGenerateLayoutLocations;
-	ir_gen_glsl_visitor visitor(state->bGenerateES, state->target, bGenerateLayoutLocations);
+	const bool bEmitPrecision = (Target == HCT_FeatureLevelES2 || Target == HCT_FeatureLevelES3_1 || Target == HCT_FeatureLevelES3_1Ext);
+	ir_gen_glsl_visitor visitor(state->bGenerateES, bEmitPrecision, state->target, bGenerateLayoutLocations);
 	const char* code = visitor.run(ir, state, bGroupFlattenedUBs);
 	return _strdup(code);
 }

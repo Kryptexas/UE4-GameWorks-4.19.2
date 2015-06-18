@@ -66,7 +66,7 @@ static void dprintf(const char* Format, ...)
 
 struct FGlslCodeBackend : public FCodeBackend
 {
-	FGlslCodeBackend(unsigned int InHlslCompileFlags) : FCodeBackend(InHlslCompileFlags) {}
+	FGlslCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) : FCodeBackend(InHlslCompileFlags, InTarget) {}
 
 	// Returns false if any issues
 	virtual bool GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) override
@@ -349,7 +349,7 @@ int main( int argc, char** argv)
 	Flags |= Options.bExpandExpressions ? HLSLCC_ExpandSubexpressions : 0;
 	Flags |= Options.bSeparateShaderObjects ? HLSLCC_SeparateShaderObjects : 0;
 
-	FGlslCodeBackend GlslCodeBackend(Flags);
+	FGlslCodeBackend GlslCodeBackend(Flags, Options.Target);
 	FGlslLanguageSpec GlslLanguageSpec;//(Options.Target == HCT_FeatureLevelES2);
 
 	FCodeBackend* CodeBackend = &GlslCodeBackend;

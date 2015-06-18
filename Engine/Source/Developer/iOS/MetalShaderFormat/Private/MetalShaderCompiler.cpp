@@ -941,7 +941,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		// Required as we added the RemoveUniformBuffersFromSource() function (the cross-compiler won't be able to interpret comments w/o a preprocessor)
 		CCFlags &= ~HLSLCC_NoPreprocess;
 
-		FMetalCodeBackend MetalBackEnd(CCFlags);
+		FMetalCodeBackend MetalBackEnd(CCFlags, HlslCompilerTarget);
 		FMetalLanguageSpec MetalLanguageSpec;
 
 		int32 Result = 0;

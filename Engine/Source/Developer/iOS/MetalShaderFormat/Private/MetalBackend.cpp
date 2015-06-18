@@ -2897,8 +2897,8 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	return true;
 }
 
-FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags) :
-	FCodeBackend(InHlslCompileFlags)
+FMetalCodeBackend::FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget) :
+	FCodeBackend(InHlslCompileFlags, InTarget)
 {
 }
 

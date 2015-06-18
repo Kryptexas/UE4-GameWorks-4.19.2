@@ -34,7 +34,7 @@ struct FBuffers;
 // Generates Metal compliant code from IR tokens
 struct FMetalCodeBackend : public FCodeBackend
 {
-	FMetalCodeBackend(unsigned int InHlslCompileFlags);
+	FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget);
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override;
 
