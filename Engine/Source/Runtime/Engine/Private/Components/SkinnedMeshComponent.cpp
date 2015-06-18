@@ -1309,8 +1309,6 @@ void USkinnedMeshComponent::QuerySupportedSockets(TArray<FComponentSocketDescrip
 {
 	if (SkeletalMesh != NULL)
 	{
-		//@TODO: need to make this work in the game too
-#if WITH_EDITOR
 		// Grab all the mesh and skeleton sockets
 		const TArray<USkeletalMeshSocket*> AllSockets = SkeletalMesh->GetActiveSocketList();
 
@@ -1321,7 +1319,6 @@ void USkinnedMeshComponent::QuerySupportedSockets(TArray<FComponentSocketDescrip
 				new (OutSockets) FComponentSocketDescription(Socket->SocketName, EComponentSocketType::Socket);
 			}
 		}
-#endif
 
 		// Now grab the bones, which can behave exactly like sockets
 		for (int32 BoneIdx = 0; BoneIdx < SkeletalMesh->RefSkeleton.GetNum(); ++BoneIdx)
