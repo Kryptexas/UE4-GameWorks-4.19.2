@@ -17,18 +17,21 @@ struct FNiagaraScriptConstantData
 	UPROPERTY()
 	FDeprecatedNiagaraConstants InternalConstants_DEPRECATED;
 
+	/** Constants driven by the system. Named New for BC reasons. Once all data is updated beyond VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX. Get rid of the deprecated consts and rename the New. */
 	UPROPERTY()
-	FNiagaraConstants ExposedConstants;
+	FNiagaraConstants ExternalConstantsNew;
 
-	/** The set of internal constants for this script. */
+	/** The set of internal constants for this script. Named New for BC reasons. Once all data is updated beyond VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX. Get rid of the deprecated consts and rename the New. */
 	UPROPERTY()
-	FNiagaraConstants InternalConstants;
+	FNiagaraConstants InternalConstantsNew;
 
 	void Empty()
 	{
-		ExposedConstants.Empty();
-		InternalConstants.Empty();
+		ExternalConstantsNew.Empty();
+		InternalConstantsNew.Empty();
 	}
+
+	FNiagaraConstants& GetExternalConstants(){ return ExternalConstantsNew; }
 
 	/** Fill a constants table ready for use in an update or spawn. */
 	void FillConstantTable(const FNiagaraConstantMap& ExternalConstantsMap, TArray<FVector4>& OutConstantTable, TArray<UNiagaraDataObject *> &DataObjTable) const
@@ -36,23 +39,23 @@ struct FNiagaraScriptConstantData
 		//First up in the table comes the External constants in scalar->vector->matrix order.
 		//Only fills the constants actually used by the script.
 		OutConstantTable.Empty();
-		ExposedConstants.AppendToConstantsTable(OutConstantTable, ExternalConstantsMap);
-		ExposedConstants.AppendExternalBufferConstants(DataObjTable, ExternalConstantsMap);
+		ExternalConstantsNew.AppendToConstantsTable(OutConstantTable, ExternalConstantsMap);
+		ExternalConstantsNew.AppendExternalBufferConstants(DataObjTable, ExternalConstantsMap);
 		//Next up add all the internal constants from the script.
-		InternalConstants.AppendToConstantsTable(OutConstantTable);
-		InternalConstants.AppendBufferConstants(DataObjTable);
+		InternalConstantsNew.AppendToConstantsTable(OutConstantTable);
+		InternalConstantsNew.AppendBufferConstants(DataObjTable);
 	}
 
 	template<typename T>
 	void SetOrAddInternal(const FNiagaraVariableInfo& Constant, const T& Value)
 	{
-		InternalConstants.SetOrAdd(Constant, Value);
+		InternalConstantsNew.SetOrAdd(Constant, Value);
 	}
 
 	template<typename T>
 	void SetOrAddExternal(const FNiagaraVariableInfo& Constant, const T& Value)
 	{
-		ExposedConstants.SetOrAdd(Constant, Value);
+		ExternalConstantsNew.SetOrAdd(Constant, Value);
 	}
 
 	/**
@@ -61,11 +64,11 @@ struct FNiagaraScriptConstantData
 	*/
 	void GetTableIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutConstantIdx, int32& OutComponentIndex, ENiagaraDataType& OutType)const
 	{
-		int32 Base = bInternal ? ExposedConstants.GetTableSize() : 0;
+		int32 Base = bInternal ? ExternalConstantsNew.GetTableSize() : 0;
 		int32 ConstIdx = INDEX_NONE;
 		int32 CompIdx = INDEX_NONE;
 		ENiagaraDataType Type;
-		const FNiagaraConstants& Consts = bInternal ? InternalConstants : ExposedConstants;
+		const FNiagaraConstants& Consts = bInternal ? InternalConstantsNew : ExternalConstantsNew;
 
 		ConstIdx = Consts.GetAbsoluteIndex_Scalar(Constant);
 		Type = ENiagaraDataType::Scalar;

@@ -207,7 +207,7 @@ void FNiagaraConstants::Init(UNiagaraEmitterProperties* EmitterProps, FNiagaraEm
 	check(EmitterProps);
 
 	//Copy the script constants, retaining any altered values.
-	FNiagaraConstants& ScriptConstants = ScriptProps->Script->ConstantData.ExposedConstants;
+	const FNiagaraConstants& ScriptConstants = ScriptProps->Script->ConstantData.GetExternalConstants();
 
 	TArray<FNiagaraConstants_Float> NewScalarConstants = ScriptConstants.ScalarConstants;
 	for (auto& Override : ScalarConstants)
@@ -240,10 +240,10 @@ void FNiagaraConstants::Init(UNiagaraEmitterProperties* EmitterProps, FNiagaraEm
 	}
 	MatrixConstants = NewMatrixConstants;
 
-	TArray<FNiagaraConstants_DataObject>& ScriptDataObjectConstants = ScriptConstants.DataObjectConstants;
+	const TArray<FNiagaraConstants_DataObject>& ScriptDataObjectConstants = ScriptConstants.DataObjectConstants;
 	TArray<FNiagaraConstants_DataObject> OldDataObjectConstants = DataObjectConstants;
 	DataObjectConstants.Empty();
-	for (FNiagaraConstants_DataObject& ScriptConst : ScriptDataObjectConstants)
+	for (const FNiagaraConstants_DataObject& ScriptConst : ScriptDataObjectConstants)
 	{
 		int32 OverrideIdx = OldDataObjectConstants.IndexOfByPredicate([&](const FNiagaraConstants_DataObject& C){ return ScriptConst.Name == C.Name && ScriptConst.Value && C.Value &&ScriptConst.Value->GetClass() == C.Value->GetClass(); });
 		

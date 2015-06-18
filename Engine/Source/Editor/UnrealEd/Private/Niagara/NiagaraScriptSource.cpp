@@ -106,7 +106,7 @@ void UNiagaraScriptSource::Compile()
 	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
 	NiagaraEditorModule.CompileScript(ScriptOwner);
 
-	FNiagaraConstants& ExternalConsts = ScriptOwner->ConstantData.ExposedConstants;
+	FNiagaraConstants& ExternalConsts = ScriptOwner->ConstantData.GetExternalConstants();
 
 	//Build the constant list. 
 	//This is mainly just jumping through some hoops for the custom UI. Should be removed and have the UI just read directly from the constants stored in the UScript.
