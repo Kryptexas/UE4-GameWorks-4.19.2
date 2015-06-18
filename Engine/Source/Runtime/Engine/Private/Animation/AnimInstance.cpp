@@ -49,6 +49,8 @@ DEFINE_STAT(STAT_SkinnedMeshCompTick);
 DEFINE_STAT(STAT_TickUpdateRate);
 DEFINE_STAT(STAT_PerformAnimEvaluation);
 DEFINE_STAT(STAT_PostAnimEvaluation);
+DEFINE_STAT(STAT_BlueprintUpdateAnimation);
+DEFINE_STAT(STAT_NativeUpdateAnimation);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Init Time"), STAT_AnimInitTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimInitTime);
@@ -413,8 +415,14 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		SyncGroups[GroupIndex].Reset();
 	}
 
-	NativeUpdateAnimation(DeltaSeconds);
-	BlueprintUpdateAnimation(DeltaSeconds);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
+		NativeUpdateAnimation(DeltaSeconds);
+	}
+	{
+		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
+		BlueprintUpdateAnimation(DeltaSeconds);
+	}
 
 	// update weight before all nodes update comes in
 	Montage_UpdateWeight(DeltaSeconds);
