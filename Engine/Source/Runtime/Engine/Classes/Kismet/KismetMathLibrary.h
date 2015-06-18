@@ -762,6 +762,26 @@ class ENGINE_API UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="make construct build rotate rotation"))
 	static FRotator RotatorFromAxisAndAngle(FVector Axis, float Angle);
 
+	/**
+	* Clamps an angle to the range of [0, 360].
+	*
+	* @param Angle The angle to clamp.
+	* @return The clamped angle.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Math|Rotator")
+	static float ClampAxis(float Angle);
+
+	/**
+	* Clamps an angle to the range of [-180, 180].
+	*
+	* @param Angle The Angle to clamp.
+	* @return The clamped angle.
+	*/
+	UFUNCTION(BlueprintPure, Category="Math|Rotator")
+	static float NormalizeAxis(float Angle);
+
+
+
 	//
 	//	LinearColor functions
 	//

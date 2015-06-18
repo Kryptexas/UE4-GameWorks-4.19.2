@@ -1017,6 +1017,16 @@ FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 }
 
 
+float UKismetMathLibrary::ClampAxis(float Angle)
+{
+	return FRotator::ClampAxis(Angle);
+}
+
+float UKismetMathLibrary::NormalizeAxis(float Angle)
+{
+	return FRotator::NormalizeAxis(Angle);
+}
+
 FRotator UKismetMathLibrary::RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed)
 {
 	return FMath::RInterpTo( Current, Target, DeltaTime, InterpSpeed);
