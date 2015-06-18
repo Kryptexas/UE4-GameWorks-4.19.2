@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2591123
+Availability:Docs
 Title: 被写界深度
 Crumbs:%ROOT%, Resources, Resources/Showcases/PostProcessing
 Description:UE4 に同梱されているマチネのポストプロセス処理として紹介するDOF (Depth of field:被写界深度) の利用概要
@@ -7,13 +8,13 @@ Description:UE4 に同梱されているマチネのポストプロセス処理�
 
 ### DOF (Depth of field:被写界深度)
 
-DOF (Depth of field:被写界深度) はカメラの開口サイズに起因して画像の表面や背景にぶれの発生をシミュレートします。この場合、最終エフェクトを表示するために全ての設定が事実上調整されています。またこれらのプロパティは密接に関係して機能するため、DOF の使用時と未使用時のデモのみを紹介します。
+DOF (Depth of field:被写界深度) はカメラの開口サイズによって画像の表面や背景にブラーの発生をシミュレートします。この場合、最終エフェクトを表示するために全ての設定が事実上調整されています。またこれらのプロパティは密接に関係して機能するため、DOF の使用時と未使用時のデモのみを紹介します。
 
 ![](DOFSettings.png)
 
 | **プロパティ** | **このシーンでの使用** | **使用前 /使用後** |
 |---|---|:---:|
-| **Depth of Field Properties** | この DOF は、極小の被写体に焦点を当てた際に発生する現実的なブラー効果を表面と背景にもたらします。<br><br>DOF設定に関する詳細は [Depth of Field section of the Post Process Effects documentation](Engine/Rendering\PostProcessEffects\DepthOfField) を参照してください。  | [INCLUDE:#DOF] |
+| **Depth of Field Properties** | この DOF は、極小の被写体に焦点を当てた際に発生する現実的なブラー効果を表面と背景にもたらします。<br><br>DOF設定に関する詳細は [ポストプロセス エフェクトのドキュメントの被写界深度のセクション](Engine/Rendering\PostProcessEffects\DepthOfField) を参照してください。  | [INCLUDE:#DOF] |
 
 
 
