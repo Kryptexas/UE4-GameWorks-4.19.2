@@ -645,6 +645,14 @@ public:
 	DECLARE_EVENT_OneParam( UEditorEngine, FOnEndTransformObject, UObject& );
 	FOnEndTransformObject& OnEndObjectMovement() { return OnEndObjectTransformEvent; }
 
+	/** Editor-only event triggered before the camera viewed through the viewport is moved by an editor system */
+	DECLARE_EVENT_OneParam( UEditorEngine, FOnBeginTransformCamera, UObject& );
+	FOnBeginTransformCamera& OnBeginCameraMovement() { return OnBeginCameraTransformEvent; }
+
+	/** Editor-only event triggered after the camera viewed through the viewport has been moved by an editor system */
+	DECLARE_EVENT_OneParam( UEditorEngine, FOnEndTransformCamera, UObject& );
+	FOnEndTransformCamera& OnEndCameraMovement() { return OnEndCameraTransformEvent; }
+
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
 		should be set to true if recording features are needed. */
@@ -664,6 +672,20 @@ public:
 	* @param Object	The actor or component that moved
 	*/
 	void BroadcastEndObjectMovement(UObject& Object) const { OnEndObjectTransformEvent.Broadcast(Object); }
+
+	/**
+	* Called before the camera viewed through the viewport is moved by the editor
+	*
+	* @param Object	The camera that will be moved
+	*/
+	void BroadcastBeginCameraMovement(UObject& Object) const { OnBeginCameraTransformEvent.Broadcast(Object); }
+
+	/**
+	* Called when the camera viewed through the viewport has been moved by the editor
+	*
+	* @param Object	The camera that moved
+	*/
+	void BroadcastEndCameraMovement(UObject& Object) const { OnEndCameraTransformEvent.Broadcast(Object); }
 
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
 	void BroadcastObjectReimported(UObject* InObject);
@@ -2548,6 +2570,12 @@ private:
 
 	/** Delegate broadcast when an actor or component has been moved, rotated, or scaled */
 	FOnEndTransformObject OnEndObjectTransformEvent;
+
+	/** Delegate broadcast when the camera viewed through the viewport is about to be moved */
+	FOnBeginTransformCamera OnBeginCameraTransformEvent;
+
+	/** Delegate broadcast when the camera viewed through the viewport has been moved */
+	FOnEndTransformCamera OnEndCameraTransformEvent;
 
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */

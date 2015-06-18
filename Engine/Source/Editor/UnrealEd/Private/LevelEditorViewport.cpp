@@ -1711,6 +1711,38 @@ bool FLevelEditorViewportClient::ShouldLockPitch() const
 	return FEditorViewportClient::ShouldLockPitch() || !ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) ;
 }
 
+void FLevelEditorViewportClient::BeginCameraMovement(bool bHasMovement)
+{
+	// If there's new movement broadcast it
+	if (bHasMovement)
+	{
+		if (!bIsCameraMoving)
+		{
+			if (!bIsCameraMovingOnTick)
+			{
+				GEditor->BroadcastBeginCameraMovement(*GetActiveActorLock());
+			}
+			bIsCameraMoving = true;
+		}
+	}
+	else
+	{
+		bIsCameraMoving = false;
+	}
+}
+
+void FLevelEditorViewportClient::EndCameraMovement()
+{
+	// If there was movement and it has now stopped, broadcast it
+	if (bIsCameraMovingOnTick)
+	{
+		if (!bIsCameraMoving)
+		{
+			GEditor->BroadcastEndCameraMovement(*GetActiveActorLock());
+		}
+	}
+}
+
 void FLevelEditorViewportClient::PerspectiveCameraMoved()
 {
 	// Update the locked actor (if any) from the camera

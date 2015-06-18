@@ -272,6 +272,8 @@ FEditorViewportClient::FEditorViewportClient(FEditorModeTools* InModeTools, FPre
 	, bUsesDrawHelper(true)
 	, bIsSimulateInEditorViewport(false)
 	, bCameraLock(false)
+	, bIsCameraMoving(false)
+	, bIsCameraMovingOnTick(false)
 	, EditorViewportWidget(InEditorViewportWidget)
 	, PreviewScene(InPreviewScene)
 	, MovingPreviewLightSavedScreenPos(ForceInitToZero)
@@ -936,12 +938,16 @@ void FEditorViewportClient::Tick(float DeltaTime)
 
 	if( !bIsAnimating )
 	{
+		bIsCameraMovingOnTick = bIsCameraMoving;
+
 		// Update any real-time camera movement
 		UpdateCameraMovement( DeltaTime );
 
 		UpdateMouseDelta();
 		
 		UpdateGestureDelta();
+
+		EndCameraMovement();
 	}
 
 	if ( bIsTracking )
@@ -1439,6 +1445,26 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 		EditorMovementDeltaUpperBound = .15f;
 #endif
 
+		// Check whether the camera is being moved by the mouse or keyboard
+		bool bHasMovement = bIsTracking;
+
+		if ((*CameraUserImpulseData).RotateYawVelocityModifier != 0.0f ||
+			(*CameraUserImpulseData).RotatePitchVelocityModifier != 0.0f ||
+			(*CameraUserImpulseData).RotateRollVelocityModifier != 0.0f ||
+			(*CameraUserImpulseData).MoveForwardBackwardImpulse != 0.0f ||
+			(*CameraUserImpulseData).MoveRightLeftImpulse != 0.0f ||
+			(*CameraUserImpulseData).MoveUpDownImpulse != 0.0f ||
+			(*CameraUserImpulseData).ZoomOutInImpulse != 0.0f ||
+			(*CameraUserImpulseData).RotateYawImpulse != 0.0f ||
+			(*CameraUserImpulseData).RotatePitchImpulse != 0.0f ||
+			(*CameraUserImpulseData).RotateRollImpulse != 0.0f
+			)
+		{
+			bHasMovement = true;
+		}
+
+		BeginCameraMovement(bHasMovement);
+
 		CameraController->UpdateSimulation(
 			*CameraUserImpulseData,
 			FMath::Min(DeltaTime, EditorMovementDeltaUpperBound),
@@ -1783,6 +1809,10 @@ void FEditorViewportClient::UpdateMouseDelta()
 			{
 				if ( ShouldOrbitCamera() )
 				{
+					bool bHasMovement = !DragDelta.IsNearlyZero();
+
+					BeginCameraMovement(bHasMovement);
+
 					FVector TempDrag;
 					FRotator TempRot;
 					InputAxisForOrbit( Viewport, DragDelta, TempDrag, TempRot );
@@ -1795,6 +1825,10 @@ void FEditorViewportClient::UpdateMouseDelta()
 
 					if ( ShouldPanOrDollyCamera() )
 					{
+						bool bHasMovement = !Drag.IsNearlyZero() || !Rot.IsNearlyZero();
+
+						BeginCameraMovement(bHasMovement);
+
 						if( !IsOrtho())
 						{
 							const float CameraSpeed = GetCameraSpeed();

@@ -1203,6 +1203,10 @@ private:
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 
+	/** Handle the camera about to be moved or stopped **/
+	virtual void BeginCameraMovement(bool bIsCameraMoving) {}
+	virtual void EndCameraMovement() {}
+
 public:
 	static const uint32 MaxCameraSpeeds;
 
@@ -1379,6 +1383,12 @@ protected:
 
 	/** Camera Lock or not **/
 	bool bCameraLock;
+
+	/** Is the camera moving? **/
+	bool bIsCameraMoving;
+
+	/** Is the camera moving at the beginning of the tick? **/
+	bool bIsCameraMovingOnTick;
 
 	/** Draw helper for rendering common editor functionality like the grid */
 	FEditorCommonDrawHelper DrawHelper;
