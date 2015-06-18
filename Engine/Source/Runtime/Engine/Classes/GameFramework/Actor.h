@@ -116,7 +116,7 @@ public:
 	UPROPERTY()
 	uint32 bNetStartup:1;
 
-	/** If ture, this actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed. */
+	/** If true, this actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed. */
 	UPROPERTY(Category=Replication, EditDefaultsOnly, BlueprintReadOnly)
 	uint32 bOnlyRelevantToOwner:1;
 
