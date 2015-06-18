@@ -46,6 +46,9 @@ FCurlHttpRequest::FCurlHttpRequest(CURLM * InMultiHandle)
 			curl_easy_setopt(EasyHandle, CURLOPT_SSL_VERIFYPEER, 0L);
 		}
 
+		// allow http redirects to be followed
+		curl_easy_setopt(EasyHandle, CURLOPT_FOLLOWLOCATION, 1L);
+
 		// required for all multi-threaded handles
 		curl_easy_setopt(EasyHandle, CURLOPT_NOSIGNAL, 1L);
 
