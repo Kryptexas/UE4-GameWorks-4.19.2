@@ -1204,7 +1204,7 @@ private:
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 
 	/** Handle the camera about to be moved or stopped **/
-	virtual void BeginCameraMovement(bool bIsCameraMoving) {}
+	virtual void BeginCameraMovement(bool bHasMovement) {}
 	virtual void EndCameraMovement() {}
 
 public:
