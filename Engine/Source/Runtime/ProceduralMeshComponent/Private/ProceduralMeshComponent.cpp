@@ -1,9 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. 
 
-#include "ProceduralMeshComponentPluginPrivatePCH.h"
+#include "ProceduralMeshComponentPrivatePCH.h"
 #include "ProceduralMeshComponent.h"
 #include "DynamicMeshBuilder.h"
-#include "PhysicsEngine/BodySetup.h"
 
 
 /** Resource array to pass  */
@@ -29,7 +28,7 @@ private:
 };
 
 /** Vertex Buffer */
-class FProcMeshVertexBuffer : public FVertexBuffer 
+class FProcMeshVertexBuffer : public FVertexBuffer
 {
 public:
 	TArray<FDynamicMeshVertex> Vertices;
@@ -48,7 +47,7 @@ public:
 };
 
 /** Index Buffer */
-class FProcMeshIndexBuffer : public FIndexBuffer 
+class FProcMeshIndexBuffer : public FIndexBuffer
 {
 public:
 	TArray<int32> Indices;
@@ -56,11 +55,11 @@ public:
 	virtual void InitRHI() override
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32),Indices.Num() * sizeof(int32),BUF_Static, CreateInfo);
+		IndexBufferRHI = RHICreateIndexBuffer(sizeof(int32), Indices.Num() * sizeof(int32), BUF_Static, CreateInfo);
 
 		// Write the indices to the index buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI,0,Indices.Num() * sizeof(int32),RLM_WriteOnly);
-		FMemory::Memcpy(Buffer,Indices.GetData(),Indices.Num() * sizeof(int32));
+		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
+		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 };
@@ -93,7 +92,7 @@ public:
 	/** Init function that can be called on any thread, and will do the right thing (enqueue command if called on main thread) */
 	void Init(const FProcMeshVertexBuffer* VertexBuffer)
 	{
-		if(IsInRenderingThread())
+		if (IsInRenderingThread())
 		{
 			Init_RenderThread(VertexBuffer);
 		}
@@ -101,9 +100,9 @@ public:
 		{
 			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 				InitProcMeshVertexFactory,
-				FProcMeshVertexFactory*,VertexFactory,this,
-				const FProcMeshVertexBuffer*,VertexBuffer,VertexBuffer,
-			{
+				FProcMeshVertexFactory*, VertexFactory, this,
+				const FProcMeshVertexBuffer*, VertexBuffer, VertexBuffer,
+				{
 				VertexFactory->Init_RenderThread(VertexBuffer);
 			});
 		}
@@ -124,7 +123,7 @@ public:
 	FProcMeshVertexFactory VertexFactory;
 
 	FProcMeshProxySection()
-	: Material(NULL)
+		: Material(NULL)
 	{}
 };
 
@@ -143,7 +142,7 @@ public:
 		for (int SectionIdx = 0; SectionIdx < NumSections; SectionIdx++)
 		{
 			FProcMeshSection& SrcSection = Component->ProcMeshSections[SectionIdx];
-			if(SrcSection.ProcIndexBuffer.Num() > 0 && SrcSection.ProcVertexBuffer.Num() > 0)
+			if (SrcSection.ProcIndexBuffer.Num() > 0 && SrcSection.ProcVertexBuffer.Num() > 0)
 			{
 				FProcMeshProxySection* NewSection = new FProcMeshProxySection();
 
@@ -194,7 +193,7 @@ public:
 	{
 		for (FProcMeshProxySection* Section : Sections)
 		{
-			if(Section != nullptr)
+			if (Section != nullptr)
 			{
 				Section->VertexBuffer.ReleaseResource();
 				Section->IndexBuffer.ReleaseResource();
@@ -223,7 +222,7 @@ public:
 		// Iterate over sections
 		for (const FProcMeshProxySection* Section : Sections)
 		{
-			if(Section != nullptr)
+			if (Section != nullptr)
 			{
 				FMaterialRenderProxy* MaterialProxy = bWireframe ? WireframeMaterialInstance : Section->Material->GetRenderProxy(IsSelected());
 
@@ -283,14 +282,14 @@ public:
 		return !MaterialRelevance.bDisableDepthTest;
 	}
 
-	virtual uint32 GetMemoryFootprint( void ) const 
-	{ 
-		return( sizeof( *this ) + GetAllocatedSize() ); 
+	virtual uint32 GetMemoryFootprint(void) const
+	{
+		return(sizeof(*this) + GetAllocatedSize());
 	}
 
-	uint32 GetAllocatedSize( void ) const 
-	{ 
-		return( FPrimitiveSceneProxy::GetAllocatedSize() ); 
+	uint32 GetAllocatedSize(void) const
+	{
+		return(FPrimitiveSceneProxy::GetAllocatedSize());
 	}
 
 private:
@@ -303,15 +302,15 @@ private:
 //////////////////////////////////////////////////////////////////////////
 
 
-UProceduralMeshComponent::UProceduralMeshComponent( const FObjectInitializer& ObjectInitializer )
-	: Super( ObjectInitializer )
+UProceduralMeshComponent::UProceduralMeshComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 }
 
 void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision)
 {
 	// Ensure sections array is long enough
-	ProcMeshSections.SetNum(SectionIndex+1, false);
+	ProcMeshSections.SetNum(SectionIndex + 1, false);
 
 	// Reset this section (in case it already existed)
 	FProcMeshSection& NewSection = ProcMeshSections[SectionIndex];
@@ -321,7 +320,7 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 	const int32 NumVerts = Vertices.Num();
 	NewSection.ProcVertexBuffer.Reset();
 	NewSection.ProcVertexBuffer.AddUninitialized(NumVerts);
-	for(int32 VertIdx=0; VertIdx<NumVerts; VertIdx++)
+	for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
 	{
 		FProcMeshVertex& Vertex = NewSection.ProcVertexBuffer[VertIdx];
 
@@ -339,7 +338,7 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 	const int32 NumTriIndices = Triangles.Num();
 	NewSection.ProcIndexBuffer.Reset();
 	NewSection.ProcIndexBuffer.AddUninitialized(NumTriIndices);
-	for (int32 IndexIdx = 0; IndexIdx < NumTriIndices; IndexIdx++)	
+	for (int32 IndexIdx = 0; IndexIdx < NumTriIndices; IndexIdx++)
 	{
 		NewSection.ProcIndexBuffer[IndexIdx] = FMath::Min(Triangles[IndexIdx], NumVerts - 1);
 	}
@@ -353,7 +352,7 @@ void UProceduralMeshComponent::CreateMeshSection(int32 SectionIndex, const TArra
 
 void UProceduralMeshComponent::ClearMeshSection(int32 SectionIndex)
 {
-	if(SectionIndex < ProcMeshSections.Num())
+	if (SectionIndex < ProcMeshSections.Num())
 	{
 		ProcMeshSections[SectionIndex].Reset();
 		UpdateLocalBounds();
@@ -374,12 +373,12 @@ void UProceduralMeshComponent::UpdateLocalBounds()
 {
 	FBox LocalBox(0);
 
-	for(const FProcMeshSection& Section : ProcMeshSections)
+	for (const FProcMeshSection& Section : ProcMeshSections)
 	{
 		LocalBox += Section.SectionLocalBox;
 	}
 
-	LocalBounds = LocalBox.IsValid ? FBoxSphereBounds(LocalBox) : FBoxSphereBounds(FVector(0,0,0), FVector(0,0,0),0); // fallback to reset box sphere bounds
+	LocalBounds = LocalBox.IsValid ? FBoxSphereBounds(LocalBox) : FBoxSphereBounds(FVector(0, 0, 0), FVector(0, 0, 0), 0); // fallback to reset box sphere bounds
 }
 
 FPrimitiveSceneProxy* UProceduralMeshComponent::CreateSceneProxy()
@@ -406,7 +405,7 @@ bool UProceduralMeshComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionDat
 	{
 		FProcMeshSection& Section = ProcMeshSections[SectionIdx];
 		// Do we have collision enabled?
-		if(Section.bEnableCollision)
+		if (Section.bEnableCollision)
 		{
 			// Copy vert data
 			for (int32 VertIdx = 0; VertIdx < Section.ProcVertexBuffer.Num(); VertIdx++)
@@ -443,7 +442,7 @@ bool UProceduralMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriData) 
 {
 	for (const FProcMeshSection& Section : ProcMeshSections)
 	{
-		if(Section.ProcIndexBuffer.Num() >= 3 && Section.bEnableCollision)
+		if (Section.ProcIndexBuffer.Num() >= 3 && Section.bEnableCollision)
 		{
 			return true;
 		}
@@ -487,7 +486,7 @@ void UProceduralMeshComponent::UpdateCollision()
 #endif // WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 
 	// Create new instance state if desired
-	if(bCreatePhysState)
+	if (bCreatePhysState)
 	{
 		CreatePhysicsState();
 	}

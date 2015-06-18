@@ -4,36 +4,36 @@
 #include "Components/MeshComponent.h"
 #include "ProceduralMeshComponent.generated.h"
 
-/** 
- *	Struct used to specify a tangent vector for a vertex 
- *	The Y tangent is computed from the cross product of the vertex normal (Tangent Z) and the TangentX member.
- */
+/**
+*	Struct used to specify a tangent vector for a vertex
+*	The Y tangent is computed from the cross product of the vertex normal (Tangent Z) and the TangentX member.
+*/
 USTRUCT(BlueprintType)
 struct FProcMeshTangent
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Direction of X tangent for this vertex */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tangent)
-	FVector TangentX;
+		/** Direction of X tangent for this vertex */
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tangent)
+		FVector TangentX;
 
 	/** Bool that indicates whether we should flip the Y tangent when we compute it using cross product */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Tangent)
-	bool bFlipTangentY;
+		bool bFlipTangentY;
 
 	FProcMeshTangent()
-	: TangentX(1.f, 0.f, 0.f)
-	, bFlipTangentY(false)
+		: TangentX(1.f, 0.f, 0.f)
+		, bFlipTangentY(false)
 	{}
 
 	FProcMeshTangent(float X, float Y, float Z)
-	: TangentX(X, Y, Z)
-	, bFlipTangentY(false)
+		: TangentX(X, Y, Z)
+		, bFlipTangentY(false)
 	{}
 
 	FProcMeshTangent(FVector InTangentX, bool bInFlipTangentY)
-	: TangentX(InTangentX)
-	, bFlipTangentY(bInFlipTangentY)
+		: TangentX(InTangentX)
+		, bFlipTangentY(bInFlipTangentY)
 	{}
 };
 
@@ -43,28 +43,28 @@ struct FProcMeshVertex
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-	FVector Position;
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
+		FVector Position;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-	FVector Normal;
+		FVector Normal;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-	FProcMeshTangent Tangent;
+		FProcMeshTangent Tangent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-	FColor Color;
+		FColor Color;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vertex)
-	FVector2D UV0;
+		FVector2D UV0;
 
 
 	FProcMeshVertex()
-	: Position(0.f, 0.f, 0.f)
-	, Normal(0.f, 0.f, 1.f)
-	, Tangent(FVector(1.f, 0.f, 0.f), false)
-	, Color(255, 255, 255)
-	, UV0(0.f, 0.f)
+		: Position(0.f, 0.f, 0.f)
+		, Normal(0.f, 0.f, 1.f)
+		, Tangent(FVector(1.f, 0.f, 0.f), false)
+		, Color(255, 255, 255)
+		, UV0(0.f, 0.f)
 	{}
 };
 
@@ -74,22 +74,22 @@ struct FProcMeshSection
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Vertex buffer for this section */
-	UPROPERTY()
-	TArray<FProcMeshVertex> ProcVertexBuffer;
+		/** Vertex buffer for this section */
+		UPROPERTY()
+		TArray<FProcMeshVertex> ProcVertexBuffer;
 	/** Index buffer for this section */
 	UPROPERTY()
-	TArray<int32> ProcIndexBuffer;
+		TArray<int32> ProcIndexBuffer;
 	/** Local bounding box of section */
 	UPROPERTY()
-	FBox SectionLocalBox;
+		FBox SectionLocalBox;
 	/** Should we build collision data for triangles in this section */
 	UPROPERTY()
-	bool bEnableCollision;
+		bool bEnableCollision;
 
 	FProcMeshSection()
-	: SectionLocalBox(0)
-	, bEnableCollision(false)
+		: SectionLocalBox(0)
+		, bEnableCollision(false)
 	{}
 
 	/** Reset this section, clear all mesh info. */
@@ -102,36 +102,36 @@ struct FProcMeshSection
 	}
 };
 
-/** 
- *	Component that allows you to specify custom triangle mesh geometry 
- *	Beware! This feature is experimental and may be substantially changed in future releases.
- */
-UCLASS(hidecategories=(Object,LOD), meta=(BlueprintSpawnableComponent), Experimental, ClassGroup=Experimental)
+/**
+*	Component that allows you to specify custom triangle mesh geometry
+*	Beware! This feature is experimental and may be substantially changed in future releases.
+*/
+UCLASS(hidecategories = (Object, LOD), meta = (BlueprintSpawnableComponent), Experimental, ClassGroup = Experimental)
 class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_UCLASS_BODY()
 
-	/** 
-	 *	Create/replace a section for this procedural mesh component.
-	 *	@param	SectionIndex		Index of the section to create or replace.
-	 *	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
-	 *	@param	Triangles			Index buffer indicating which vertices make up each triangle. Length must be a multiple of 3.
-	 *	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
-	 *	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
-	 *	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
-	 *	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
-	 *	@param	bCreateCollision	Indicates whether collision should be created for this section. This adds significant cost.
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta=(AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents" ))
-	void CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
+		/**
+		*	Create/replace a section for this procedural mesh component.
+		*	@param	SectionIndex		Index of the section to create or replace.
+		*	@param	Vertices			Vertex buffer of all vertex positions to use for this mesh section.
+		*	@param	Triangles			Index buffer indicating which vertices make up each triangle. Length must be a multiple of 3.
+		*	@param	Normals				Optional array of normal vectors for each vertex. If supplied, must be same length as Vertices array.
+		*	@param	UV0					Optional array of texture co-ordinates for each vertex. If supplied, must be same length as Vertices array.
+		*	@param	VertexColors		Optional array of colors for each vertex. If supplied, must be same length as Vertices array.
+		*	@param	Tangents			Optional array of tangent vector for each vertex. If supplied, must be same length as Vertices array.
+		*	@param	bCreateCollision	Indicates whether collision should be created for this section. This adds significant cost.
+		*/
+		UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh", meta = (AutoCreateRefTerm = "Normals,UV0,VertexColors,Tangents"))
+		void CreateMeshSection(int32 SectionIndex, const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector>& Normals, const TArray<FVector2D>& UV0, const TArray<FColor>& VertexColors, const TArray<FProcMeshTangent>& Tangents, bool bCreateCollision);
 
 	/** Clear a section of the procedural mesh. Other sections do not change index. */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
-	void ClearMeshSection(int32 SectionIndex);
+		void ClearMeshSection(int32 SectionIndex);
 
 	/** Clear all mesh sections and reset to empty state */
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
-	void ClearAllMeshSections();
+		void ClearAllMeshSections();
 
 
 	// Begin Interface_CollisionDataProvider Interface
@@ -167,11 +167,11 @@ private:
 
 	/** Array of sections of mesh */
 	UPROPERTY()
-	TArray<FProcMeshSection> ProcMeshSections;
+		TArray<FProcMeshSection> ProcMeshSections;
 
 	/** Local space bounds of mesh */
 	UPROPERTY()
-	FBoxSphereBounds LocalBounds;
+		FBoxSphereBounds LocalBounds;
 
 
 	friend class FProceduralMeshSceneProxy;

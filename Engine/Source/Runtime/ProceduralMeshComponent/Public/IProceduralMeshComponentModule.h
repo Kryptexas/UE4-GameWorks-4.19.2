@@ -8,7 +8,7 @@
 /**
  * The public interface to this module
  */
-class IProceduralMeshComponentPlugin : public IModuleInterface
+class IProceduralMeshComponent : public IModuleInterface
 {
 
 public:
@@ -19,9 +19,9 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline IProceduralMeshComponentPlugin& Get()
+	static inline IProceduralMeshComponent& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IProceduralMeshComponentPlugin >( "ProceduralMeshComponentPlugin" );
+		return FModuleManager::LoadModuleChecked< IProceduralMeshComponent >( "ProceduralMeshComponent" );
 	}
 
 	/**
@@ -31,7 +31,7 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "ProceduralMeshComponentPlugin" );
+		return FModuleManager::Get().IsModuleLoaded( "ProceduralMeshComponent" );
 	}
 };
 

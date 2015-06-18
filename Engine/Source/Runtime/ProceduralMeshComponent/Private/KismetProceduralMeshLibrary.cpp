@@ -1,8 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. 
 
-#include "ProceduralMeshComponentPluginPrivatePCH.h"
+#include "ProceduralMeshComponentPrivatePCH.h"
 #include "KismetProceduralMeshLibrary.h"
-
 
 
 UKismetProceduralMeshLibrary::UKismetProceduralMeshLibrary(const FObjectInitializer& ObjectInitializer)
@@ -26,19 +25,19 @@ void UKismetProceduralMeshLibrary::CreateGridMeshTriangles(int32 NumX, int32 Num
 {
 	Triangles.Reset();
 
-	if(NumX >= 2 && NumY >= 2)
+	if (NumX >= 2 && NumY >= 2)
 	{
 		// Build Quads
-		for(int XIdx=0; XIdx<NumX-1; XIdx++)
+		for (int XIdx = 0; XIdx < NumX - 1; XIdx++)
 		{
-			for (int YIdx = 0; YIdx < NumY-1; YIdx++)
+			for (int YIdx = 0; YIdx < NumY - 1; YIdx++)
 			{
-				const int32 I0 = (XIdx+0)*NumY + (YIdx+0);
-				const int32 I1 = (XIdx+1)*NumY + (YIdx+0);
-				const int32 I2 = (XIdx+1)*NumY + (YIdx+1);
-				const int32 I3 = (XIdx+0)*NumY + (YIdx+1);
+				const int32 I0 = (XIdx + 0)*NumY + (YIdx + 0);
+				const int32 I1 = (XIdx + 1)*NumY + (YIdx + 0);
+				const int32 I2 = (XIdx + 1)*NumY + (YIdx + 1);
+				const int32 I3 = (XIdx + 0)*NumY + (YIdx + 1);
 
-				if(bWinding)
+				if (bWinding)
 				{
 					ConvertQuadToTriangles(Triangles, I0, I1, I2, I3);
 				}
@@ -72,10 +71,10 @@ void UKismetProceduralMeshLibrary::GenerateBoxMesh(FVector BoxRadius, TArray<FVe
 	const int32 NumVerts = 24; // 6 faces x 4 verts per face
 
 	Vertices.Reset();
-	Vertices.AddUninitialized(NumVerts); 
+	Vertices.AddUninitialized(NumVerts);
 
 	Normals.Reset();
-	Normals.AddUninitialized(NumVerts); 
+	Normals.AddUninitialized(NumVerts);
 
 	Tangents.Reset();
 	Tangents.AddUninitialized(NumVerts);
@@ -141,7 +140,7 @@ void UKismetProceduralMeshLibrary::GenerateBoxMesh(FVector BoxRadius, TArray<FVe
 void FindVertOverlaps(int32 TestVertIndex, const TArray<FVector>& Verts, TArray<int32>& VertOverlaps)
 {
 	// Check if Verts is empty or test is outside range
-	if(TestVertIndex < Verts.Num())
+	if (TestVertIndex < Verts.Num())
 	{
 		const FVector TestVert = Verts[TestVertIndex];
 
@@ -159,7 +158,7 @@ void FindVertOverlaps(int32 TestVertIndex, const TArray<FVector>& Verts, TArray<
 
 void UKismetProceduralMeshLibrary::CalculateTangentsForMesh(const TArray<FVector>& Vertices, const TArray<int32>& Triangles, const TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents)
 {
-	if(Vertices.Num() == 0)
+	if (Vertices.Num() == 0)
 	{
 		return;
 	}
@@ -189,7 +188,7 @@ void UKismetProceduralMeshLibrary::CalculateTangentsForMesh(const TArray<FVector
 		for (int32 CornerIdx = 0; CornerIdx < 3; CornerIdx++)
 		{
 			// Find vert index (clamped within range)
-			int32 VertIndex = FMath::Min(Triangles[(TriIdx * 3) + CornerIdx], NumVerts - 1); 
+			int32 VertIndex = FMath::Min(Triangles[(TriIdx * 3) + CornerIdx], NumVerts - 1);
 
 			CornerIndex[CornerIdx] = VertIndex;
 			P[CornerIdx] = Vertices[VertIndex];
