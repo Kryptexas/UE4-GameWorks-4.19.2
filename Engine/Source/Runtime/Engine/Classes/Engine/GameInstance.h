@@ -185,6 +185,13 @@ public:
 	/** Start playing back a previously recorded replay. */
 	virtual void PlayReplay(const FString& Name);
 
+	/**
+	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)
+	 *
+	 * @param UserString a string that uniquely identifies the user, usually his or her FUniqueNetId
+	 */
+	virtual void AddUserToReplay(const FString& UserString);
+
 	FTimerManager* TimerManager;
 
 	/** @return online session management object associated with this game instance */

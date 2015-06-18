@@ -800,6 +800,16 @@ void UGameInstance::PlayReplay(const FString& Name)
 	}
 }
 
+void UGameInstance::AddUserToReplay(const FString& UserString)
+{
+	UWorld* CurrentWorld = GetWorld();
+
+	if ( CurrentWorld != nullptr && CurrentWorld->DemoNetDriver != nullptr )
+	{
+		CurrentWorld->DemoNetDriver->AddUserToReplay( UserString );
+	}
+}
+
 TSubclassOf<UOnlineSession> UGameInstance::GetOnlineSessionClass()
 {
 	return UOnlineSession::StaticClass();
