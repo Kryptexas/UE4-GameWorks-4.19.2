@@ -208,4 +208,13 @@ public:
 		TArray<UObject*>& OutAssetsToSync,
 		FVector& OutProxyLocation
 		) = 0;
+
+	/**
+	* CalculateRawMeshTangents
+	*
+	* @param OutRawMesh - InOut raw Mesh for calculating tangents
+	* @return void
+	*/
+	virtual void CalculateRawMeshTangents(FRawMesh& OutRawMesh, const FMeshBuildSettings& BuildSettings) = 0;
+
 };
