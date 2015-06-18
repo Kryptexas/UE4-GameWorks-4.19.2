@@ -3490,10 +3490,20 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 
 	UWorld* World = GetWorld();
 	check(World);
-	// Bail out if there is no template, there are no instances, or we're running a dedicated server and we don't update on those
-	if ((Template == NULL) || (EmitterInstances.Num() == 0) || (Template->Emitters.Num() == 0) || 
-		((bUpdateOnDedicatedServer == false) && (GetNetMode() == NM_DedicatedServer)))
+	// Bail out if there is no template or there are no instances, or we're running a dedicated server and we don't update on those
+	if ((Template == NULL) || (EmitterInstances.Num() == 0) || (Template->Emitters.Num() == 0))
 	{
+		return;
+	}
+
+	// Bail out if we are running on a dedicated server and we don't want to update on those
+	if ((bUpdateOnDedicatedServer == false) && (GetNetMode() == NM_DedicatedServer))
+	{
+		if (bAutoDestroy)
+		{
+			// We need to destroy the component if the user is expecting us to do it automatically otherwise this component will live forever because HasCompleted() will never get checked
+			DestroyComponent();
+		}
 		return;
 	}
 
