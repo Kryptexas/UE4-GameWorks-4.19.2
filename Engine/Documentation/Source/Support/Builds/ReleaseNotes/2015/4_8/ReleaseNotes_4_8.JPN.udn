@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2586092
-Availability:Public
+﻿Availability:Public
 Title:アンリアル エンジン 4.8 リリース ノート
 Crumbs: %ROOT%, Engine
 Description:4.8 リリースノート
@@ -40,7 +39,7 @@ Description:4.8 リリースノート
 -->
 [/PUBLISH:Licensee]
 
-今回のリリースには、アンリアル・エンジンの素晴らしいコミュニティのデベロッパーの方々から寄せられた 189 個の優れた変更が含まれています。アンリアル エンジン 4.8 に貢献をいただいた以下の皆様に謝意を表します。
+今回のリリースには、アンリアル・エンジンの素晴らしいコミュニティのデベロッパーの方々から寄せられた 189 個の優れた変更が含まれています。アンリアル エンジン 4.8 に貢献をいただいた以下の皆様に謝意を表します (以下、敬称略)。
 
 3dluvr, Adrian Gasinski (gasnica), Adrian Irwin (adrianirwin), Albino Rodrigues (Bino-), Alexander O'Mara (AlexanderOMara), Andrew Zhilin (zoon), Angelo Miner (angjminer), Artem V. Navrotskiy (bozaro), Ash Matheson (Nuclearfossil), Audiokinetic Inc. (audiokinetic), Ben Rog-Wilhelm(zorbathut), BhaaL (BhaaLseN), Black Phoenix (PheonixBlack), Błażej Szczygieł (zaps166), Cengiz Terzibas (yaakuro), Christopher P. Yarger (cpyarger), codetackler, Craig Wilson (hamo2k1), Dainius Masiliūnas (GreatEmerald), Daniel Mahashin (dmahashin), Daniel Zeligman (dzeligman), David Palacios (hevedy), Derek van Vliet (derekvanvliet), devbm, Dewitt Buckingham (DaJoker29), Eugene Elkin (eelkin2000), Ezekiel Warren (zaucy), gatools, Henrik Danielsson (TwoD), Jackson Egan (Sneagan), JaredTherriault, Jason (Abatron), Jason Maskell (TamedTornado), Jay Mattis (braindx), jdh84, Jeff Rous (JeffRous), Jefferson Pinheiro (Ixiguis), Jeremy (OPTIPlanet), jlamarche, Joshua Sheard (jsheard), karolz, Kazumasa Ohashi (KazumasaOhashi), Korshikov Anton (tnako), korypostma, Lee Berger (MrCrowbar), Leon Rosengarten (lion03), Leszek Godlewski (inequation), Lucas Dohring (nykac), Lukasz Baran (iniside), Luna Duclos (PSG-Luna), Marat Radchenko (slonopotamus), Marc Kamradt (MarcKamradt), Marco Antonio Alvarez (surakin), marynate, Maurice Laveaux (mlaveaux), Michael Allar (Allar), nsf, Omar Pakker (Omar007), Paul Eremeeff (PaulEremeeff), Pierdek, PjotrSvetachov, radu-danciu, Rama (EverNewJoy), Rene Rivera (grafikrobot), Richárd Németh (hsdxpro), Richard Biely (richardbiely), Robert Chubb (SaxonRah), Robert Williams (Rottbott), Salamanderrake, Sasha Petrovich (xulture), Satheesh (ryanjon2040), Sebastian Köcke (byte3), Sébastien Rombauts (SRombauts), Stephen Whittle (stephenwhittle), Simon Taylor (simontaylor81), Spencer Brown (JedTheKrampus), thk123, Thomas Mayer (tommybear), threadlock, Tobias Mollstam (mollstam), Tore Lervik (hallatore), Will Stahl (merlin91), x414e54, Yohann Martel (ymartel06), zombiesnu
 
@@ -554,9 +553,7 @@ SSH を使用してリモートの Mac で iOS Code Projects をビルドする�
 
 * TryCollectGarbage 関数を導入しました。これは、FGCScopeGuard スコープ内でワーカースレッドがコードを実行していればガーベジ コレクションをスキップします。TryCollectGarbage がレベルをティックするコードでデフォルトで使用されるようになりました。
 
-* 'stat levels' を介してアクセス可能な非同期読み込みパーセンテージは、PostLoad を考慮するようになりました。 
-
-**訳注：以下の Release Notes 以降は、非常に技術的な部分が含まれるため翻訳を省略します。**
+* 'stat levels' を介してアクセス可能な非同期読み込みパーセンテージは、PostLoad を考慮するようになりました。 **訳注：以下の Release Notes 以降は、非常に技術的な部分が含まれるため翻訳を省略します。**
 
 ## Release Notes 
 
@@ -6928,20 +6925,20 @@ SSH を使用してリモートの Mac で iOS Code Projects をビルドする�
 * We're planning to enable async loading thread by default in future releases so it's a good time to start looking through gameplay C++ code to make sure that all UObject-derived class constructors, as well as all overrides of UObject::Serialize and UObject::PostInitProperties functions are thread-safe.
 
     * The most common pitfall is accessing global managers (singletons) from those functions without guaranteeing thread safety of the operations performed on them.
-
 	![image alt text](image_63.png)
 
-    * Another common issue is accessing static or global variables from constructors and/or changing their value.
 
+    * Another common issue is accessing static or global variables from constructors and/or changing their value.
 	![image alt text](image_64.png)
 
-    * One should also be careful about accessing any objects not owned by the object currently being constructed/serialized as these operations can be performed simultaneously from multiple threads.
 
+    * One should also be careful about accessing any objects not owned by the object currently being constructed/serialized as these operations can be performed simultaneously from multiple threads.
 	![image alt text](image_65.png)
 
-    * It's also dangerous to hold references to objects not owned by the currently constructed/serialized object on the stack (inside of a function) without referencing it through a UProperty or surrounding the scope of the function where they are used with FGCScopeGuard object.
 
+    * It's also dangerous to hold references to objects not owned by the currently constructed/serialized object on the stack (inside of a function) without referencing it through a UProperty or surrounding the scope of the function where they are used with FGCScopeGuard object.
 	![image alt text](image_66.png)
+
 
 ### Editor and Tools
 
