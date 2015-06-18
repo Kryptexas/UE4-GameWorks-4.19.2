@@ -613,8 +613,30 @@ EActiveTimerReturnType SSequencer::EnsureSlateTickDuringPlayback(double InCurren
 	return EActiveTimerReturnType::Stop;
 }
 
+void RestoreSelectionState(const TArray<TSharedRef<FSequencerDisplayNode>>& DisplayNodes, TSet<FString>& SelectedPathNames, FSequencerSelection* SequencerSelection)
+{
+	for (TSharedRef<FSequencerDisplayNode> DisplayNode : DisplayNodes)
+	{
+		if (SelectedPathNames.Contains(DisplayNode->GetPathName()))
+		{
+			SequencerSelection->AddToSelection(DisplayNode);
+		}
+		for (TSharedRef<FSequencerDisplayNode> ChildDisplayNode : DisplayNode->GetChildNodes())
+		{
+			RestoreSelectionState(DisplayNode->GetChildNodes(), SelectedPathNames, SequencerSelection);
+		}
+	}
+}
+
 void SSequencer::UpdateLayoutTree()
-{	
+{
+	// Cache the selected path names so selection can be restored after the update.
+	TSet<FString> SelectedPathNames;
+	for (TSharedRef<const FSequencerDisplayNode> SelectedDisplayNode : Sequencer.Pin()->GetSelection()->GetSelectedOutlinerNodes()->Array())
+	{
+		SelectedPathNames.Add(SelectedDisplayNode->GetPathName());
+	}
+
 	// Update the node tree
 	SequencerNodeTree->Update();
 
@@ -622,6 +644,9 @@ void SSequencer::UpdateLayoutTree()
 	Factory.Repopulate( *SequencerNodeTree );
 
 	CurveEditor->SetSequencerNodeTree(SequencerNodeTree);
+
+	// Restore the selection state.
+	RestoreSelectionState(SequencerNodeTree->GetRootNodes(), SelectedPathNames, Sequencer.Pin()->GetSelection());
 
 	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
 }

@@ -372,7 +372,6 @@ private:
 
 	void OnSelectionChanged( TSharedPtr<FWidgetAnimationListItem> InSelectedItem, ESelectInfo::Type SelectionInfo )
 	{
-		UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		UWidgetAnimation* WidgetAnimation;
 		if( InSelectedItem.IsValid() )
 		{
@@ -382,7 +381,12 @@ private:
 		{
 			WidgetAnimation = UWidgetAnimation::GetNullAnimation();
 		}
-		BlueprintEditor.Pin()->ChangeViewedAnimation( *WidgetAnimation );
+
+		const UWidgetAnimation* CurrentWidgetAnimation = BlueprintEditor.Pin()->RefreshCurrentAnimation();
+		if (WidgetAnimation != CurrentWidgetAnimation)
+		{
+			BlueprintEditor.Pin()->ChangeViewedAnimation( *WidgetAnimation );
+		}
 	}
 
 	TSharedPtr<SWidget> OnContextMenuOpening() const
