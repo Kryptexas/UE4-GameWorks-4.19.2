@@ -19,7 +19,7 @@ const TSet<TWeakObjectPtr<UMovieSceneSection>>* FSequencerSelection::GetSelected
 	return &SelectedSections;
 }
 
-const TSet<TSharedRef<const FSequencerDisplayNode>>* FSequencerSelection::GetSelectedOutlinerNodes() const
+const TSet<TSharedRef<FSequencerDisplayNode>>* FSequencerSelection::GetSelectedOutlinerNodes() const
 {
 	return &SelectedOutlinerNodes;
 }
@@ -58,7 +58,7 @@ void FSequencerSelection::AddToSelection(UMovieSceneSection* Section)
 	OnSectionSelectionChanged.Broadcast();
 }
 
-void FSequencerSelection::AddToSelection(TSharedRef<const FSequencerDisplayNode> OutlinerNode)
+void FSequencerSelection::AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode)
 {
 	SelectedOutlinerNodes.Add(OutlinerNode);
 	ActiveSelection = EActiveSelection::OutlinerNode;

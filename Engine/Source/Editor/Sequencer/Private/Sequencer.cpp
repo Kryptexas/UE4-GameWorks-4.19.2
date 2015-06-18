@@ -149,7 +149,6 @@ FSequencer::~FSequencer()
 	GEditor->UnregisterForUndo( this );
 
 	DestroySpawnablesForAllMovieScenes();
-	
 	ObjectBindingManager.Reset();
 
 	TrackEditors.Empty();
@@ -1382,6 +1381,16 @@ void FSequencer::StepBackward()
 	OnStepBackward();
 }
 
+void FSequencer::ToggleExpandCollapseNodes()
+{
+	SequencerWidget->ToggleExpandCollapseSelectedNodes();
+}
+
+void FSequencer::ToggleExpandCollapseNodesAndDescendants()
+{
+	SequencerWidget->ToggleExpandCollapseSelectedNodes(true);
+}
+
 void FSequencer::SetKey()
 {
 	USelection* CurrentSelection = GEditor->GetSelectedActors();
@@ -1430,6 +1439,14 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.StepBackward,
 		FExecuteAction::CreateSP( this, &FSequencer::StepBackward ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleExpandCollapseNodes,
+		FExecuteAction::CreateSP(this, &FSequencer::ToggleExpandCollapseNodes));
+
+	SequencerCommandBindings->MapAction(
+		Commands.ToggleExpandCollapseNodesAndDescendants,
+		FExecuteAction::CreateSP(this, &FSequencer::ToggleExpandCollapseNodesAndDescendants));
 
 	SequencerCommandBindings->MapAction(
 		Commands.SetKey,

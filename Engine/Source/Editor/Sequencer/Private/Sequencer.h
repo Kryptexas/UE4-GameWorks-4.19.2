@@ -322,6 +322,12 @@ protected:
 	void StepForward();
 	void StepBackward();
 
+	/** Expand or collapse selected nodes */
+	void ToggleExpandCollapseNodes();
+
+	/** Expand or collapse selected nodes and descendants*/
+	void ToggleExpandCollapseNodesAndDescendants();
+
 	/** Manually sets a key for the selected objects at the current time */
 	void SetKey();
 

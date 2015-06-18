@@ -30,6 +30,12 @@ public:
 	/** Step backward */
 	TSharedPtr< FUICommandInfo > StepBackward;
 
+	/** Expand/collapse nodes */
+	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodes;
+
+	/** Expand/collapse nodes and descendants */
+	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodesAndDescendants;
+
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
 

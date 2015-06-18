@@ -33,7 +33,7 @@ public:
 	const TSet<TWeakObjectPtr<UMovieSceneSection>>* GetSelectedSections() const;
 
 	/** Gets a set of the selected outliner nodes. */
-	const TSet<TSharedRef<const FSequencerDisplayNode>>* GetSelectedOutlinerNodes() const;
+	const TSet<TSharedRef<FSequencerDisplayNode>>* GetSelectedOutlinerNodes() const;
 
 	/** 
 	 * Gets the currently active selection.  This is used to determine which selection actions
@@ -48,7 +48,7 @@ public:
 	void AddToSelection(UMovieSceneSection* Section);
 
 	/** Adds an outliner node to the selection */
-	void AddToSelection(TSharedRef<const FSequencerDisplayNode> OutlinerNode);
+	void AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
 
 	/** Returns whether or not the key is selected. */
 	bool IsSelected(FSelectedKey Key) const;
@@ -83,7 +83,7 @@ public:
 private:
 	TSet<FSelectedKey> SelectedKeys;
 	TSet<TWeakObjectPtr<UMovieSceneSection>> SelectedSections;
-	TSet<TSharedRef<const FSequencerDisplayNode>> SelectedOutlinerNodes;
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedOutlinerNodes;
 
 	FOnSelectionChanged OnKeySelectionChanged;
 	FOnSelectionChanged OnSectionSelectionChanged;

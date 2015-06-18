@@ -88,6 +88,10 @@ public:
 	/** Deletes selected nodes out of the sequencer node tree */
 	void DeleteSelectedNodes();
 
+	/** Expand or collapse selected nodes out of the sequencer node tree */
+	void ToggleExpandCollapseSelectedNodes(bool bDescendants = false);
+	void ExpandCollapseNode(TSharedRef<FSequencerDisplayNode> SelectedNode, bool bDescendants, bool bExpand);
+
 private:
 	/** Empty active timer to ensure Slate ticks during Sequencer playback */
 	EActiveTimerReturnType EnsureSlateTickDuringPlayback(double InCurrentTime, float InDeltaTime);	
