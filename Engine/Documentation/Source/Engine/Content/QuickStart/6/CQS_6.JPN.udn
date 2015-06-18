@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2465039
+﻿INTSourceChangelist:2589385
 Availability:Public
-Title:6.自分自身のマテリアルを作成し適用する
+Title:2. マテリアルの作成
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:自分自身のマテリアルの作成と適用、およびアーティスト向けクイックスタートガイドで説明した追加トピックスへのリンク
+Description:プロジェクトを設定したので、次はマテリアルの作成方法を学習しましょう。
 
 
 
@@ -17,17 +17,78 @@ Description:自分自身のマテリアルの作成と適用、およびアー�
 		[クイックスタート ホーム](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
+		[次のステップ](Engine/Content/QuickStart/7 "%Engine/Content/QuickStart/7:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
+マテリアルはメッシュに適用されるアセットで、シーンに見た目の美しさを加えます。
+
+&#x2713; [プロジェクト ブラウザ上にリフレッシャーを希望する場合は、ここをクリックしてください](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%")
+
+マテリアルの作成方法には、一般的なものが 2 通りあります。
+
+* **既存テクスチャ** に依存する
+* **マテリアル エディタ** を使う
+
+## テクスチャでマテリアルを作成する
+
+1.	サンプル アセットが保存されている **コンテンツ ブラウザ** へ移動します。**T_Rock_04_D** を **右クリック** し **Texture Actions** メニューから **[Create Material (マテリアルを作成)]** を選択します (下の画像)。
+
+	![](createMaterial.jpg)
+
+1.	作成した **マテリアル** の名前を入力します。
+
+	![](materialNaming.jpg)
+
+1.	これで **マテリアル** が使える状態になりました。
+
+	![](MaterialCreated.jpg)
+
+1.	マテリアルを **ダブルクリック** すると、[＿マテリアル エディタ＿](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") が開きます (下の画像)。
+
+	![](MaterialEditor.jpg)
+
+	このサンプルでは、**T_Rock_04_D** テクスチャに対して 1 つしか Texture Sample ノードを使用していません。マテリアル ノードの操作については、[＿マテリアル操作ガイド＿](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") を参照してください。
+
+## マテリアル エディタでマテリアルを作成する
+
+1.	**コンテンツ ブラウザ** へ移動して **[Add New (新規追加)]** をクリックし、 **Material** を選びます (下の画像)。
+
+	![](newMaterial.jpg)
+
+	_または、**コンテンツ ブラウザ** の空いている場所を右クリックすることもできます。_
+
+1.	作成した **マテリアル** の名前を入力します。
+
+	![](materialNaming.jpg)
+
+	_マテリアルの名前を変更したい場合は、アセットを右クリックして [Rename (名前変更)] を選択します。_
+
+1.	マテリアルを **ダブルクリック** すると、[＿マテリアル エディタ＿](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%") が開きます (下の画像)。
+
+	![](materialEditorInterface.jpg)
+
+	_この時点では、マテリアル エディタには **Main Material Node** しか含まれていません。_
+
+2 通りの方法を使ってプロジェクト用にマテリアルを作成しました。
+
+* **既存のテクスチャ** を使用する
+* **マテリアル エディタ** を操作する
+
+[REGION:tip]
+*べき乗をつかってテクスチャ サイズを調整します。*
+[/REGION]
+
+<!--
+
 知っていることを活用して、このグラフと同様の **マテリアル** を新規作成します。
 
 ![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
 
-メインのマテリアル ノードには特別な設定はなにもありません。単なるプラスチックの マテリアル です。 
+メインのマテリアル ノードは、特別な設定もない、単なるプラスチックの マテリアルです。 
 
 _Basic_Asset1_ をレベルへ追加し、それにマテリアルを適用し、マテリアルを更新して "Brick" のノーマル マップ テクスチャを追加します。 
 
@@ -62,6 +123,6 @@ _Basic_Asset1_ をレベルへ追加し、それにマテリアルを適用し�
 
 * スタティック メッシュ エディタの情報については、 [Static Mesh Editor](Engine/Content/Types/StaticMeshes/Editor) を参照してください。
 
-
+-->
 
 %Steps%
