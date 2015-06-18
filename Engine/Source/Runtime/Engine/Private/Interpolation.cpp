@@ -482,7 +482,10 @@ void AMatineeActor::Reverse()
 
 void AMatineeActor::Stop()
 {
-	bPendingStop = true;
+	if (bIsPlaying)
+	{
+		bPendingStop = true;
+	}
 }
 
 void AMatineeActor::Pause()
