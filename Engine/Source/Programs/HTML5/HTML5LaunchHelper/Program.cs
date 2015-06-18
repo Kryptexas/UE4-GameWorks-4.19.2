@@ -515,7 +515,7 @@ namespace HTML5LaunchHelper
 
 			if ( Args.Browser != "" )
 			{
-				if(!File.Exists(Args.Browser))
+				if ((!File.Exists(Args.Browser) && !IsRunningOnMac()) || (!Directory.Exists(Args.Browser) && IsRunningOnMac()))
 				{
 					System.Console.WriteLine("Browser Not found, Please check -Browser= option");
 					return 0;
