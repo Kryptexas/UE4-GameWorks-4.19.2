@@ -390,8 +390,6 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 				SNew( SBox )
 				.WidthOverride( MultiBoxConstants::MenuIconSize )
 				.HeightOverride( MultiBoxConstants::MenuIconSize )
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
 				[
 					IconWidget
 				]
