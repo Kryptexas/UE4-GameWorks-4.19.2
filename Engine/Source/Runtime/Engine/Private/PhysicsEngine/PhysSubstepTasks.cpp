@@ -255,13 +255,15 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 {
 #if WITH_PHYSX
 #if WITH_APEX
+	SCOPED_APEX_SCENE_WRITE_LOCK(PAScene);
 	PxScene * PScene = PAScene->getPhysXScene();
 #else
 	PxScene * PScene = PAScene;
+	SCOPED_SCENE_WRITE_LOCK(PScene);
 #endif
 	
 	/** Note: We lock the entire scene before iterating. The assumption is that removing an FBodyInstance from the map will also be wrapped by this lock */
-	SCOPED_SCENE_WRITE_LOCK(PScene);
+	
 	
 	PhysTargetMap& Targets = PhysTargetBuffers[!External];
 
