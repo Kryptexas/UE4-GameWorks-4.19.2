@@ -77,6 +77,11 @@ public:
 		ContentBorder->SetContent(InContent);
 	}
 
+	virtual void SetRowContent(TSharedRef< SWidget > InContent) override
+	{
+		ContentBorder->SetContent(InContent);
+	}
+
 private:
 	TSharedPtr<SBorder> ContentBorder;
 };
