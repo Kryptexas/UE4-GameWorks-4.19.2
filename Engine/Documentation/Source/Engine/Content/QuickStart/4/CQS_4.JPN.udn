@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2511975
+﻿INTSourceChangelist:2589385
 Availability:Public
-Title:4.マテリアルを適用する
+Title:メッシュのインポート
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:テクスチャをインポートしたら、次はマテリアルを作成してスタティックメッシュに適用します。 
+Description:メッシュをアンリアル エンジン 4 プロジェクトへインポートする方法を学習しましょう。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,13 +22,44 @@ Description:テクスチャをインポートしたら、次はマテリアル�
 
 %Steps%
 
-このページでは、前のステップで作成した **マテリアル** をインポートしたスタティックメッシュに適用します。 
+[REGION:note]
+**インポートするメッシュがない場合は、ここで用意しましょう。**
+[/REGION]
+
+1. 次のリンクからサンプル アセットをダウンロードしてください。
+	* [_サンプル アセット_](Engine/Content/QuickStart/3/QuickStartSampleAssets.zip "Quick Start Sample Assets Download Link")
+
+1. ダウンロードしたアセットを PC の位置に展開します。
+
+1. **Basic_Asset1** と **Basic_Asset2** をプロジェクトのディレクトリにある **Content** フォルダ (下の画像) にドラッグします。
+
+	![](ExplorerImport.jpg)
+
+1. エディタを開くと、**FBX Import Options** ダイアログ ボックスが表示されます。**[Import (インポート)]** または **[Import All (すべてインポート)]** をクリックして、メッシュをプロジェクトに追加します。
+
+	![](FBX_ImportOptions.jpg)
+
+1. アセットがインポートされたら、メッシュを **コンテンツ ブラウザ** からレベルへドラッグ＆ドロップします。
+
+	![](ImportMesh.jpg)
+
+メッシュがレベルに追加されたら、もうひとつの重要なアセットを追加していきます。画像です！
+
+&#x2713; [コンテンツを UE4 プロジェクトに追加して更新したい場合はここをクリック](Engine/Content/QuickStart/4 "How to add content to UE4 projects.")
+
+[REGION:tip]
+*マーケットプレイス (Epic Launcher からアクセスできます) はコンテンツを探したり共有する最適の場所です。*
+[/REGION]
+
+<!--
+
+このページでは、前のステップで作成した **マテリアル** を、インポートしたスタティックメッシュに適用します。 
 
 ## デフォルトのマテリアルを設定する 
 
 このセクションでは、レベル内に配置された時にスタティックメッシュに使用するデフォルトのマテリアルを割り当てます。 
 
-1.	**コンテンツ ブラウザ** で、ステップ 2 の中でインポートしたアセットを **ダブルクリック** します。
+1.	**コンテンツ ブラウザ** で、ステップ 2 でインポートしたアセットを **ダブルクリック** します。
 
 	![](ContentBrowserAsset.png)
 
@@ -37,14 +68,14 @@ Description:テクスチャをインポートしたら、次はマテリアル�
 	[/REGION]
 
 	以下の画像のように、[スタティックメッシュ](Engine/Content/Types/StaticMeshes/Editor) エディタ内で開きます。
-	[REGION:lightbox]
 
+	[REGION:lightbox]
 	[![](StaticMeshEditor.png)(w:600)](StaticMeshEditor.png)
 	[/REGION:lightbox]
 
 	_画像をクリックしてフルサイズで表示_
 
-1.	**[Details]** パネルの **[Default Value]** で [Material] ドロップダウン メニューをクリックします。 
+1.	**[Details (詳細)]** パネルの **[Default Value (デフォルト値)]** で [Material] ドロップダウン メニューをクリックします。 
 
 	![](Element0.png)
 
@@ -56,7 +87,7 @@ Description:テクスチャをインポートしたら、次はマテリアル�
 
 	![](NewDefaultMaterial.png)
 
-1.	**[Save]** ボタンをクリックして、 **Material Editor** を閉じます。 
+1.	**[Save (保存)]** ボタンをクリックして、 **Material Editor** を閉じます。 
 
 1.	**コンテンツ ブラウザ** で、スタティックメッシュをレベルへドラッグします。 
 
@@ -74,7 +105,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	![](StaticMeshSelected.png)
 
-1.	**[Details]** パネル (エディタの右下のウィンドウ) の **[Materials]** セクションで、[Material] ドロップダウン ボックスをクリックします。 
+1.	**[Details (詳細)]** パネル (エディタの右下のウィンドウ) の **[Materials]** セクションで、[Material] ドロップダウン ボックスをクリックします。 
 
 	![](ActorMaterial.png)
 
@@ -87,8 +118,10 @@ Static Mesh アクタのマテリアルを変えてみます。
 1.	新規マテリアルを適用するために、レベル内の Static Mesh アクタ上にマテリアルをドロップ＆ドラッグすることもできます。 
 
 	![](draganddropMaterial.png)
-		<!--
 
+-->
+
+<!--
 
 [INCLUDE:Shared/Glossary/M/#Glossary_Material]
 
@@ -97,12 +130,12 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 マテリアルを作成するには以下の操作を行います。
 
-1. **Content Browser** で **[Add New]** をクリックし、 _[Basic Assets]_ から **Material** を選択します。 
+1. **コンテンツ ブラウザ** で **[Add New (新規追加)]** をクリックし、 _[Basic Assets]_ から **Material** を選択します。 
 
 	![](newMaterial.png)
 
 	[REGION:tip]
-	**[Add New]** ボタンをクリックする代わりに **コンテンツ ブラウザ** 内の空いているスペースを **右クリック** してコンテキスト メニューを呼び出すこともできます。 
+	**[Add New (新規追加)]** ボタンをクリックする代わりに **コンテンツ ブラウザ** 内の空いているスペースを **右クリック** してコンテキスト メニューを呼び出すこともできます。 
 	[/REGION]
 
 1. 新しいマテリアルが選択され、 **コンテンツ ブラウザ** で名前を入力できるようになります。
@@ -110,10 +143,9 @@ Static Mesh アクタのマテリアルを変えてみます。
 1. このケースでは、名前を「Rock」、またはこれから使用する赤い岩状のテクスチャを表すような名前にします。
 	![](Engine/Content/QuickStart/5/materialNaming.png)
 
-	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename]** を選択します。
+	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename (名前変更)]** を選択します。
 
-	1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
-
+1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
 
 	![](Engine/Content/QuickStart/5/materialEditorInterface.png)(w:840)
 
@@ -134,7 +166,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	_グラフエリア内にはこのノードしかありません。マテリアルに因んだ名前が付けられます。選択されるとハイライトされます。_
 
-1. **[Details] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
+1. **[Details (詳細)] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
 
 	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
 
@@ -145,14 +177,14 @@ Static Mesh アクタのマテリアルを変えてみます。
 1. テクスチャをグラフに入れる必要があります。方法は何通りかありますが、ここではショートカットを使用します。**[T]** キーを押して エディタのグラフ エリアを **クリック** します。**Texture Sample** ノードが作成されます。
 
 	[REGION:tip]
-	マテリアル エディタのキーボード ショートカットの一覧は**[Edit Menu]** -> **[Editor Preferences]** -> **[Keyboard Shortcuts]** -> **[Material Editor]** および **[Material Editor - Spawn Nodes]** カテゴリでご覧いただけます。
+	マテリアル エディタのキーボード ショートカットの一覧は**[Edit Menu (編集メニュー)]** -> **[Editor Preferences (エディタの環境設定)]** -> **[Keyboard Shortcuts (キーボードのショートカット)]** -> **[Material Editor]** および **[Material Editor - Spawn Nodes]** カテゴリでご覧いただけます。
 	[/REGION]
 
 1. テクスチャは最低 2 つ必要です。もう 1 つの **Texture Sample** ノードでこのプロセスを繰り返します。
 
 	![](textureSampleNodes.png)
 
-1. Texture Sample ノードをどれか 1 つ選択すると、 **Material Expression Texture Base** カテゴリの **[Details] パネル** に **Texture** という名前のプロパティがあります。[None] とラベルされたプルダウンを **左クリック** して **[T_Rock_04_D]** というカラーテクスチャを選択します。
+1. Texture Sample ノードをどれか 1 つ選択すると、 **Material Expression Texture Base** カテゴリの **[Details (詳細)] パネル** に **Texture** という名前のプロパティがあります。[None] とラベルされたプルダウンを **左クリック** して **[T_Rock_04_D]** というカラーテクスチャを選択します。
 
 	![](Engine/Content/QuickStart/5/textureNone.png)
 
@@ -180,7 +212,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 1. Constant (スカラ型浮動小数点) および Constant3Vector (アルファ チャンネルなしのカラー) が必要になります。
 
-	**[1]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、 Constant を簡単に作ることができます。全部で Constant が **3** つできました。
+	**[1]** キーを押したまま **[Graph]** パネル内で **左クリック** すると、 Constant を簡単に作ることができます。全部で Constant を **3** 個作成します。
 
 	![](Engine/Content/QuickStart/5/Constants.png)
 
@@ -198,7 +230,7 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	![](Engine/Content/QuickStart/5/allNodesConnectedNoVal.png)
 
-1. **Constant** を選択して **[Details]** パネルの **Value** パラメータを変更することで、それぞれの値の調節が可能になります。
+1. **Constant** を選択して **[Details (詳細)]** パネルの **Value** パラメータを変更することで、それぞれの値の調節が可能になります。
 
 	* Metallic/Specular Value = 0.0
 	* Roughness Value = 0.8
@@ -211,9 +243,8 @@ Static Mesh アクタのマテリアルを変えてみます。
 
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
+次のステップでは、手動でアセットをインポートする方法について学びます。 
 -->
-
-次のステップ では、手動でアセットをインポートする方法について学びます。 
 
 %Steps%
 
