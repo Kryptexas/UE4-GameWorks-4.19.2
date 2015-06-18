@@ -2435,10 +2435,37 @@ void UK2Node_MathExpression::GetMenuActions(FBlueprintActionDatabaseRegistrar& A
 	}
 }
 
+
 //------------------------------------------------------------------------------
 FNodeHandlingFunctor* UK2Node_MathExpression::CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_MathExpression(CompilerContext);
+}
+
+//------------------------------------------------------------------------------
+bool UK2Node_MathExpression::ShouldExpandInsteadCompile() const
+{
+	const int32 TunnelNodesNum = 2;
+	if (!BoundGraph || (TunnelNodesNum >= BoundGraph->Nodes.Num()))
+	{
+		return true;
+	}
+
+	if ((TunnelNodesNum + 1) == BoundGraph->Nodes.Num())
+	{
+		TArray<UEdGraphNode*> InnerNodes = BoundGraph->Nodes;
+		InnerNodes.RemoveSingleSwap(GetEntryNode(), false);
+		InnerNodes.RemoveSingleSwap(GetExitNode(), false);
+		const bool bTheOnlyNodeIsNotAFunctionCall = (1 == InnerNodes.Num())
+			&& (nullptr != InnerNodes[0])
+			&& !InnerNodes[0]->IsA<UK2Node_CallFunction>();
+		if (bTheOnlyNodeIsNotAFunctionCall)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 //------------------------------------------------------------------------------

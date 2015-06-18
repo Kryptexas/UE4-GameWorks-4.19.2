@@ -36,14 +36,14 @@ public:
 	virtual void PostPlacedNewNode() override;
 	virtual void ReconstructNode() override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  override;
-	virtual bool ShouldMergeChildGraphs() const override { return false; }
+	virtual bool ShouldMergeChildGraphs() const override { return ShouldExpandInsteadCompile(); }
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	virtual bool IsNodePure() const { return true; }
+	virtual bool IsNodePure() const { return !ShouldExpandInsteadCompile(); }
 	// End of UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface
@@ -51,6 +51,9 @@ public:
 	// End UK2Node_EditablePinBase interface
 
 private:
+	/* Returns true, when the node can/should not be optimized.*/
+	bool ShouldExpandInsteadCompile() const;
+
 	/**
 	* Clears this node's sub-graph, and then takes the supplied string and
 	* parses, and converts it into a series of new graph nodes.
