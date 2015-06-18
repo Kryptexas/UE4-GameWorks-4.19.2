@@ -52,9 +52,42 @@ struct FNiagaraEmitterScriptProperties
 	}
 };
 
+//This struct now only exists for backwards compatibility and should be removed once effects are updated.
+USTRUCT()
+struct FDeprecatedNiagaraEmitterProperties
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY()
+	FString Name;
+	UPROPERTY()
+	bool bIsEnabled;
+	UPROPERTY()
+	float SpawnRate;
+	UPROPERTY()
+	UNiagaraScript *UpdateScript;
+	UPROPERTY()
+	UNiagaraScript *SpawnScript;
+	UPROPERTY()
+	UMaterial *Material;
+	UPROPERTY()
+	TEnumAsByte<EEmitterRenderModuleType> RenderModuleType;
+	UPROPERTY()
+	float StartTime;
+	UPROPERTY()
+	float EndTime;
+	UPROPERTY()
+	class UNiagaraEffectRendererProperties *RendererProperties;
+	UPROPERTY()
+	FNiagaraConstantMap ExternalConstants;		// these are the update script constants from the effect editor; will be added to the emitter's constant map
+	UPROPERTY()
+	FNiagaraConstantMap ExternalSpawnConstants;		// these are the spawn script constants from the effect editor; will be added to the emitter's constant map
+	UPROPERTY()
+	int32 NumLoops;
+};
 
 /** 
- *	FniagaraEmitterProperties stores the attributes of an FNiagaraSimulation
+ *	UNiagaraEmitterProperties stores the attributes of an FNiagaraSimulation
  *	that need to be serialized and are used for its initialization 
  */
 UCLASS(MinimalAPI)
@@ -68,12 +101,12 @@ public:
 		UpdateScriptProps.Init(this);
 	}
 
+	void InitFromOldStruct(FDeprecatedNiagaraEmitterProperties& OldStruct);
+
 	//Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	virtual void PostLoad()override;
-	virtual void Serialize(FArchive& Ar)override;
 	//End UObject Interface
 
 	UPROPERTY(EditAnywhere, Category = "Emitter")

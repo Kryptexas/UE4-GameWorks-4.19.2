@@ -42,6 +42,24 @@ void UNiagaraEffect::CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Si
 	}
 }
 
+void UNiagaraEffect::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX)
+	{
+		int32 NumEmitters = EmitterPropsSerialized_DEPRECATED.Num();
+		for (int32 i = 0; i < NumEmitters; ++i)
+		{
+			UNiagaraEmitterProperties* NewProps = NewObject<UNiagaraEmitterProperties>(this);
+			NewProps->InitFromOldStruct(EmitterPropsSerialized_DEPRECATED[i]);
+			AddEmitterProperties(NewProps);
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 TSharedPtr<FNiagaraSimulation> FNiagaraEffectInstance::AddEmitter(UNiagaraEmitterProperties *Properties)
 {
 	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties, Effect);

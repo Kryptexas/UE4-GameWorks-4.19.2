@@ -532,6 +532,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DEPRECATE_UMG_STYLE_OVERRIDES,
 	// Shadowmap penumbra size stored
 	VER_UE4_STATIC_SHADOWMAP_PENUMBRA_SIZE,
+	// Fix BC on Niagara effects from the data object and dev UI changes.
+	VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

@@ -372,13 +372,20 @@ void UNiagaraEmitterProperties::PostEditChangeProperty(struct FPropertyChangedEv
 }
 #endif
 
-void UNiagaraEmitterProperties::PostLoad()
+void UNiagaraEmitterProperties::InitFromOldStruct(FDeprecatedNiagaraEmitterProperties& OldStruct)
 {
-	Super::PostLoad();
-}
+	EmitterName = OldStruct.Name;
+	bIsEnabled = OldStruct.bIsEnabled;
+	SpawnRate = OldStruct.SpawnRate;
+	UpdateScriptProps.Script = OldStruct.UpdateScript;
+	SpawnScriptProps.Script = OldStruct.SpawnScript;
+	Material = OldStruct.Material;
+	RenderModuleType = OldStruct.RenderModuleType;
+	StartTime = OldStruct.StartTime;
+	EndTime = OldStruct.EndTime;
+	RendererProperties = OldStruct.RendererProperties;
 
-void UNiagaraEmitterProperties::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
+	UpdateScriptProps.ExternalConstants.InitFromOldMap(OldStruct.ExternalConstants);
+	SpawnScriptProps.ExternalConstants.InitFromOldMap(OldStruct.ExternalSpawnConstants);
+	NumLoops = OldStruct.NumLoops;
 }

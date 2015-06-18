@@ -7,6 +7,16 @@
 //////////////////////////////////////////////////////////////////////////
 // FNiagaraConstantMap
 
+template<>
+struct TStructOpsTypeTraits<FNiagaraConstantMap> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializer = true
+	};
+};
+IMPLEMENT_STRUCT(NiagaraConstantMap);
+
 void FNiagaraConstantMap::Empty()
 {
 	ScalarConstants.Empty();
@@ -137,6 +147,21 @@ void FNiagaraConstantMap::Merge(FNiagaraConstantMap &InMap)
 	}
 }
 
+const TMap<FNiagaraVariableInfo, float> &FNiagaraConstantMap::GetScalarConstants()	const
+{
+	return ScalarConstants;
+}
+
+const TMap<FNiagaraVariableInfo, FVector4> &FNiagaraConstantMap::GetVectorConstants()	const
+{
+	return VectorConstants;
+}
+
+const TMap<FNiagaraVariableInfo, FMatrix> &FNiagaraConstantMap::GetMatrixConstants()	const
+{
+	return MatrixConstants;
+}
+
 const TMap<FNiagaraVariableInfo, class UNiagaraDataObject*> &FNiagaraConstantMap::GetDataConstants()	const
 {
 	return DataConstants;
@@ -235,6 +260,35 @@ void FNiagaraConstants::Init(UNiagaraEmitterProperties* EmitterProps, FNiagaraEm
 			//Otherwise, duplicate the data from the script.
 			DataObjectConstants[AddIndex].Value = CastChecked<UNiagaraDataObject>(StaticDuplicateObject(ScriptConst.Value, EmitterProps, NULL));
 		}
+	}
+}
+
+/** 
+Copies constants in from the script as usual but allows overrides from old data in an FNiagaraConstantMap.
+Only used for BC. DO NOT USE.
+*/
+void FNiagaraConstants::InitFromOldMap(FNiagaraConstantMap& OldMap)
+{
+	const TMap<FNiagaraVariableInfo, float>& OldScalarConsts = OldMap.GetScalarConstants();
+	const TMap<FNiagaraVariableInfo, FVector4>& OldVectorConsts = OldMap.GetVectorConstants();
+	const TMap<FNiagaraVariableInfo, FMatrix>& OldMatrixConsts = OldMap.GetMatrixConstants();
+	const TMap<FNiagaraVariableInfo, UNiagaraDataObject*>& OldDataObjectConstants = OldMap.GetDataConstants();
+
+	for (const TPair<FNiagaraVariableInfo, float> Pair : OldScalarConsts)
+	{
+		ScalarConstants.Add(FNiagaraConstants_Float(Pair.Key.Name, Pair.Value));
+	}
+	for (const TPair<FNiagaraVariableInfo, FVector4>& Pair : OldVectorConsts)
+	{
+		VectorConstants.Add(FNiagaraConstants_Vector(Pair.Key.Name, Pair.Value));
+	}
+	for (const TPair<FNiagaraVariableInfo, FMatrix>& Pair : OldMatrixConsts)
+	{
+		MatrixConstants.Add(FNiagaraConstants_Matrix(Pair.Key.Name, Pair.Value));
+	}
+	for (const TPair<FNiagaraVariableInfo, UNiagaraDataObject*>& Pair : OldDataObjectConstants)
+	{
+		DataObjectConstants.Add(FNiagaraConstants_DataObject(Pair.Key.Name, Pair.Value));
 	}
 }
 

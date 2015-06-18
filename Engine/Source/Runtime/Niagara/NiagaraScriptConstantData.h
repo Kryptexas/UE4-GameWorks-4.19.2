@@ -14,6 +14,8 @@ struct FNiagaraScriptConstantData
 	/** The set of external constants for this script. */
 	UPROPERTY()
 	FDeprecatedNiagaraConstants ExternalConstants_DEPRECATED;
+	UPROPERTY()
+	FDeprecatedNiagaraConstants InternalConstants_DEPRECATED;
 
 	UPROPERTY()
 	FNiagaraConstants ExposedConstants;

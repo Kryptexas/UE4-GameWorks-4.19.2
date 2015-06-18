@@ -8,9 +8,11 @@
 
 struct FNiagaraConstants;
 
-/** Runtime storage for emitter overridden constants. */
+/** Runtime storage for emitter overridden constants. Only now a USTRUCT still to support BC */
+USTRUCT()
 struct FNiagaraConstantMap
 {
+	GENERATED_USTRUCT_BODY()
 private:
 	TMap<FNiagaraVariableInfo, float> ScalarConstants;
 	TMap<FNiagaraVariableInfo, FVector4> VectorConstants;
@@ -50,7 +52,22 @@ public:
 	void Merge(FNiagaraConstants &InConstants);
 	void Merge(FNiagaraConstantMap &InMap);
 
+	const TMap<FNiagaraVariableInfo, float> &GetScalarConstants()	const;
+	const TMap<FNiagaraVariableInfo, FVector4> &GetVectorConstants()	const;
+	const TMap<FNiagaraVariableInfo, FMatrix> &GetMatrixConstants()	const;
 	const TMap<FNiagaraVariableInfo, class UNiagaraDataObject*> &GetDataConstants()	const;
+
+
+	virtual bool Serialize(FArchive &Ar)
+	{
+		// TODO: can't serialize the data object constants at the moment; need to figure that out
+		Ar << ScalarConstants << VectorConstants << MatrixConstants;
+		if (Ar.UE4Ver() >= VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX)
+		{
+			Ar << DataConstants;
+		}
+		return true;
+	}
 };
 
 USTRUCT()
@@ -196,6 +213,12 @@ public:
 	const int32 GetNumDataObjectConstants()const{ return DataObjectConstants.Num(); }
 
 	NIAGARA_API void Init(class UNiagaraEmitterProperties* EmitterProps, struct FNiagaraEmitterScriptProperties* ScriptProps);
+
+	/**
+	Copies constants in from the script as usual but allows overrides from old data in an FNiagaraConstantMap.
+	Only used for BC. DO NOT USE.
+	*/
+	NIAGARA_API void InitFromOldMap(FNiagaraConstantMap& OldMap);
 
 	/** Fills the entire constants set into the constant table. */
 	void AppendToConstantsTable(TArray<FVector4>& ConstantsTable)const;

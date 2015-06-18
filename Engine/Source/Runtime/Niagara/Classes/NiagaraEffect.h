@@ -43,7 +43,12 @@ public:
 
 	void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
 
+	//Begin UObject Interface
+	virtual void Serialize(FArchive& Ar);
+	//End UObject Interface
 private:
+	UPROPERTY()
+	TArray<FDeprecatedNiagaraEmitterProperties>EmitterPropsSerialized_DEPRECATED;
 
 	UPROPERTY()
 	TArray<UNiagaraEmitterProperties*> EmitterProps;
