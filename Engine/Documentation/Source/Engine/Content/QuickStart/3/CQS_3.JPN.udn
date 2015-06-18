@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2500409
+﻿INTSourceChangelist:2589385
 Availability:Public
-Title:3.画像をインポートしてマテリアルを作成する
+Title:インポートするメッシュの準備
 Crumbs:%ROOT%, GettingStarted, Engine/Content/QuickStart
-Description:アンリアル エンジン 4 でサポートされている各種画像タイプと、マテリアルのインポートおよび作成方法の概要です。 
+Description:Maya あるいは 3DS Max にインポートするメッシュの準備方法を学びましょう。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,6 +22,53 @@ Description:アンリアル エンジン 4 でサポートされている各種�
 
 %Steps%
 
+[REGION:note]
+**インポートするメッシュがある場合は、このセクションへ進んでください。**
+[/REGION]
+
+## メッシュを準備する
+
+%Globals:DCCSelect%
+
+[INCLUDE:Engine/Content/FBX#versionwarning]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	maya
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#mayaexport]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	DCC
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	max
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:Engine/Content/FBX/StaticMeshes#maxexport]
+	[/PARAM]
+[/OBJECT]
+
+完了UE4 にインポートするメッシュの準備方法について学習しました。
+
+&#x2713; [FBX コンテンツ パイプラインについての詳細はここをクリック](Engine/Content/FBX "FBX Content Pipeline Documentation")。
+
+[REGION:tip]
+*モデリングを整理するとゲームのパフォーマンスがあがります。*
+[/REGION]
+
+<!--
 
 アンリアル エンジン 4 からインポートされた画像ファイルは主に [マテリアル](Engine/Rendering/Materials) で使用されますが、ハイトマップやペイント ブラシ マスクとしてランドスケープ エディタや各種ペイントツールでも使用することができます。直接画像を HUD に適用できるケースもあります。.raw ファイルはハイトマップとしてランドスケープ エディタへインポートすることが可能ですが、.hdr ファイル タイプと .dds 形式は **Cubemaps** に使用されるなど、用途が非常に特殊な形式のものもあります。
 
@@ -53,7 +100,7 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 
 このセクションでは、Photoshop (または同等の画像エディタ) からアセットを自動インポートする手順について説明します。 
 
-1. 画像エディタで **[File]** 、次に **[Save As]** をクリックします。 
+1. 画像エディタで **[File (ファイル)]** 、次に **[Save As (名前をつけて保存)]** をクリックします。 
 
 	![](photoshop_export1.png)
 
@@ -128,9 +175,10 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 1. 新しいマテリアルが選択され、 **コンテンツ ブラウザ** で名前を入力できるようになります。
 
 1. このケースでは、名前を「 **Rock** 」と付けます。 
+
 	![](Engine/Content/QuickStart/5/materialNaming.png)
 
-	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename]** を選択します。
+	マテリアルに名前を付ける前にどこか他の場所をクリックしてしまった場合は、 **右クリック** して **[Rename (名前変更)]** を選択します。
 
 1. 作成されたマテリアルを **ダブルクリック** すると、 **マテリアル エディタ** が開きます。
 
@@ -150,7 +198,7 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 
 	グラフエリア内にはこのノードしかありません。マテリアルに因んだ名前が付けられます。選択されるとハイライトされます。
 
-1. **[Details] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
+1. **[Details (詳細)] パネル** で **Shading Model** を **Default Lit** から **Subsurface** へ変更します。
 
 	![](Engine/Content/QuickStart/5/subsurfaceEnable.png)
 
@@ -228,7 +276,7 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 	![](Engine/Content/QuickStart/5/preview_All.png) 
 
 次のステップでは、このページで作成したマテリアルをスタティックメッシュに適用します。 
-
+-->	
 <!--
 
 [REGION:note]
@@ -250,7 +298,7 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 
 **コンテンツブラウザの** ![Import](Engine/Content/QuickStart/4/import_button.png) ボタンを使用するとファイル ダイアログが開き、アセットをアンリアル エンジン 4 へインポートすることが可能になります。前のステップで既にアセットをダウンロードしていれば、それを今からインポートをしてみましょう。
 
-1. **コンテンツ ブラウザ** の [Import] ボタンをクリックします。
+1. **コンテンツ ブラウザ** の [Import (インポート)] ボタンをクリックします。
 1. ダウンロードしたサンプル コンテンツを展開した位置を表示します。
 1. 2 つの FBX ファイル、「Basic_Asset1.fbx」と「Basic_Asset2.fbx」を選択します。
 1. **[Open]** をクリックします。
@@ -263,7 +311,7 @@ Photoshop などの画像エディタをお持ちでない場合、 CIMP 、 Pix
 
 	![](Engine\Content\FBX\ImportOptions\StaticMeshImportOptions.png)
 
-1. デフォルト設定を使用して **[Import All]** をクリックして、同じ設定のアセットを両方ともインポートします。
+1. デフォルト設定を使用して **[Import All (すべてインポート)]** をクリックして、同じ設定のアセットを両方ともインポートします。
 1. 今、**コンテンツ ブラウザ** の中には、箱のような形のアセット、トーラスノットの形をしたアセット、あと **Material** アセットが 2 つの合計 4 つのアセットがあるはずです。 
 
 	![](Engine/Content/QuickStart/4/CB_w2assets.png)
