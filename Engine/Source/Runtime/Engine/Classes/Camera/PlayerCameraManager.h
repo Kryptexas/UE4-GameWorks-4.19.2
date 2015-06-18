@@ -264,6 +264,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Debug)
 	FVector FreeCamOffset;
 
+	/** Offset to view target (used in certain CameraStyles) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	FVector ViewTargetOffset;
+
 	/** Current camera fade alpha range, where X = starting alpha and Y = final alpha (when bEnableFading == true) */
 	FVector2D FadeAlpha;
 
