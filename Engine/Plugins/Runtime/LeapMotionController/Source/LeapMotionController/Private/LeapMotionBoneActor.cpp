@@ -16,7 +16,6 @@ ALeapMotionBoneActor::ALeapMotionBoneActor(const class FObjectInitializer& Objec
 
 	// Initialize root primitive component. It only serves as a reference point. Collision & visual meshes are offset from it.
 	USphereComponent* SphereComponent = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("RootSphereComponent"));
-	SphereComponent->SetSimulatePhysics(true);
 	SphereComponent->SetSphereRadius(0.001);
 	SphereComponent->SetPhysicsMaxAngularVelocity(7200.0f);
 	SphereComponent->SetCollisionProfileName(UCollisionProfile::CustomCollisionProfileName);
