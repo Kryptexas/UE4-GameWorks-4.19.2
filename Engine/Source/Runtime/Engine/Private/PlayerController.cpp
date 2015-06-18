@@ -2388,11 +2388,15 @@ void APlayerController::SetIgnoreMoveInput( bool bNewMoveInput )
 	//`Log("IgnoreMove: " $ IgnoreMoveInput);
 }
 
+void APlayerController::ResetIgnoreMoveInput()
+{
+	IgnoreMoveInput = 0;
+}
+
 bool APlayerController::IsMoveInputIgnored() const
 {
 	return (IgnoreMoveInput > 0);
 }
-
 
 void APlayerController::SetIgnoreLookInput( bool bNewLookInput )
 {
@@ -2400,11 +2404,15 @@ void APlayerController::SetIgnoreLookInput( bool bNewLookInput )
 	//`Log("IgnoreLook: " $ IgnoreLookInput);
 }
 
+void APlayerController::ResetIgnoreLookInput()
+{
+	IgnoreLookInput = 0;
+}
+
 bool APlayerController::IsLookInputIgnored() const
 {
 	return (IgnoreLookInput > 0);
 }
-
 
 void APlayerController::SetViewTargetWithBlend(AActor* NewViewTarget, float BlendTime, EViewTargetBlendFunction BlendFunc, float BlendExp, bool bLockOutgoing)
 {
