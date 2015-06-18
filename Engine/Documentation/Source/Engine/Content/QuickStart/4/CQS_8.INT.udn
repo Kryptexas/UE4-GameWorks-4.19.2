@@ -28,7 +28,7 @@ The objective of this step is to apply our **Material** to the Static Mesh we im
 * [Set an Actor's default material.](#Bookmark1)
 * [Change materials used by an Actor.](#Bookmark2)
 
-##Setting an Actor's Default Material
+## Setting an Actor's Default Material
 
 (#Bookmark1)
 
@@ -62,7 +62,7 @@ This section will show you how to set a Static Mesh Actor's default material. Th
 
 	_The specified **Material** will be used anytime you place this asset in the level._
 
-##Changing Material Used by an Actor
+## Changing Material Used by an Actor
 
 (#Bookmark2)
 

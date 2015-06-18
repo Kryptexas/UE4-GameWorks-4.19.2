@@ -3,6 +3,8 @@ Title:Artist Quick Start
 Crumbs:%ROOT%, GettingStarted
 Description:Learn how to get started with Unreal Engine 4 as a content creator.
 prereq:Engine/Basics/Projects/Browser
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -42,9 +44,11 @@ prereq:Engine/Basics/Projects/Browser
 ![](MaterialsHeader_1.png)
 
 
-Creating visual scenes with Unreal Engine 4 (UE4) can be rewarding (and fun!).
+## Goal
 
-## Goals
+Unreal Engine 4 (UE4) empowers developers to easily add content to their games. Our aim is to provide content creators with information needed to quickly get started with UE4. By the end of this quick start guide, content creators will know how to use the **Project Browser** to create new projects; navigate the **Content Browser** to find and add content; know where to find information on the **FBX Content Pipeline**; and use the **Material Editor** to modify **Materials** before applying them to a **Static Mesh Actor**.
+
+## Objective
 
 By the end of this quick start guide, you'll be able to:
 

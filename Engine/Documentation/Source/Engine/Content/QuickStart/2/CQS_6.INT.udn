@@ -30,7 +30,7 @@ Materials are created with two common methods:
 * Relying on **existing textures** to create materials.
 * Using the **Material Editor**.
 
-##Creating Materials with Textures
+## Creating Materials with Textures
 
 1.	Navigate to your **Content Browser** where your sample assets are located. **Right-click** on **T_Rock_04_D** and choose **Create Material** from the **Texture Actions** menu (pictured below).
 
@@ -50,7 +50,7 @@ Materials are created with two common methods:
 
 	Our example uses a single Texture Sample node pointing to our **T_Rock_04_D** texture. Read our [__Material - How To__](Engine/Rendering/Materials/HowTo "%Engine/Rendering/Materials/HowTo:description%") documentation if you want to learn more about working with Material Nodes.
 
-##Creating New Material with the Material Editor
+## Creating New Material with the Material Editor
 
 1.	Navigate to your **Content Browser**, click **Add New**, and select **Material** (pictured below).
 
