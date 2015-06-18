@@ -268,7 +268,7 @@ private:
 
 private:
 	/** Adds a new key to the curve. */
-	void AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition);
+	void AddNewKey(FGeometry InMyGeometry, FVector2D ScreenPosition, TSharedPtr<TArray<TSharedPtr<FCurveViewModel>>> CurvesToAddKeysTo, bool bAddKeysInline);
 
 	/** Test if the curve is exists, and if it being displayed on this widget */
 	bool		IsValidCurve(FRichCurve* Curve) const;
