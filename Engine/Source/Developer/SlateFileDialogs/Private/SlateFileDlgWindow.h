@@ -5,7 +5,7 @@
 #include "STextComboBox.h"
 #include "SBreadcrumbTrail.h"
 #include "SInlineEditableTextBlock.h"
-
+#include "SlateFileDialogsStyles.h"
 #include "DirectoryWatcherModule.h"
 
 #define LOCTEXT_NAMESPACE "SlateFileDialogsNamespace"
@@ -53,6 +53,8 @@ public:
 		Project = 3
 	};
 
+	FSlateFileDlgWindow(FSlateFileDialogsStyle *InStyleSet);
+
 	bool OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath,
 		const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex);
 
@@ -68,6 +70,8 @@ public:
 private:	
 	TSharedPtr<class SSlateFileOpenDlg> DialogWidget;
 	FString CurrentDirectory;
+
+	FSlateFileDialogsStyle* StyleSet;
 };
 
 
@@ -101,7 +105,8 @@ public:
 		_bSaveFile(false),
 		_OutNames(nullptr),
 		_OutFilterIndex(nullptr),
-		_ParentWindow(nullptr)
+		_ParentWindow(nullptr),
+		_StyleSet(nullptr)
 	{}
 
 	SLATE_ATTRIBUTE(FString, CurrentPath)
@@ -114,12 +119,13 @@ public:
 	SLATE_ATTRIBUTE(TArray<FString> *, OutNames)
 	SLATE_ATTRIBUTE(int32 *, OutFilterIndex)
 	SLATE_ATTRIBUTE(TWeakPtr<SWindow>, ParentWindow)
+	SLATE_ATTRIBUTE(FSlateFileDialogsStyle *, StyleSet)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
 	FSlateFileDlgWindow::EResult GetResponse() { return UserResponse; }
 	void SetOutNames(TArray<FString> *Ptr) { OutNames = Ptr; }
-	void SetOutFilterIndex(int32 *FilterIndex) { OutFilterIndex = FilterIndex; }
+	void SetOutFilterIndex(int32 *InOutFilterIndex) { OutFilterIndex = InOutFilterIndex; }
 	void SetDefaultFile(FString DefaultFile);
 
 private:	
@@ -143,6 +149,12 @@ private:
 	FReply OnDirSublevelClick(int32 Level);
 	void OnDirectoryChanged(const TArray <FFileChangeData> &FileChanges);	
 	void OnFileNameCommitted(const FText & InText, ETextCommit::Type InCommitType);
+
+	void OnNewDirectoryCommitted(const FText & InText, ETextCommit::Type InCommitType);
+	FReply OnNewDirectoryClick();
+	bool OnNewDirectoryTextChanged(const FText &InText, FText &ErrorMsg);
+	FReply OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::EResult ButtonID);
+
 	bool GetFilterExtension(FString &OutString);
 	void ParseFilters();
 
@@ -154,25 +166,30 @@ private:
 	TSharedPtr<STextComboBox> FilterCombo;
 	TSharedPtr<SHorizontalBox> FilterHBox;
 	TSharedPtr<SInlineEditableTextBlock> SaveFilenameEditBox;
+	TSharedPtr<SInlineEditableTextBlock> NewDirectoryEditBox;
 	TSharedPtr<SBox> SaveFilenameSizeBox;
 	TSharedPtr<STextBlock> WindowTitle;
 	TSharedPtr<SListView<TSharedPtr<FFileEntry>>> ListView;
 	TSharedPtr<SBreadcrumbTrail<FString>> PathBreadcrumbTrail;
-	
+
+	TSharedPtr<SButton> NewDirCancelButton;
+	TSharedPtr<SBox> NewDirectorySizeBox;
+	TSharedPtr<STextBlock> DirErrorMsg;
+
 	TArray<TSharedPtr<FString>> FilterNameArray;
 	TArray<TSharedPtr<FString>> FilterListArray;
 
 	int32 FilterIndex;
 
 	FSlateFileDlgWindow::EResult	 UserResponse;
-		
+
 	bool bNeedsBuilding;
 	bool bRebuildDirPath;
 	bool bDirectoryHasChanged;
 
 	int32 DirNodeIndex;
 	FString SaveFilename;
-		
+
 	TAttribute<TWeakPtr<SWindow>> ParentWindow;
 	TAttribute<FString> CurrentPath;
 	TAttribute<FString> Filters;
@@ -183,10 +200,12 @@ private:
 	TAttribute<bool> bDirectoriesOnly;
 	TAttribute<bool> bSaveFile;
 	TAttribute<FText> AcceptText;
-	
+	TAttribute<FSlateFileDialogsStyle *> StyleSet;
+
 	IDirectoryWatcher *DirectoryWatcher;
 	FDelegateHandle OnDialogDirectoryChangedDelegateHandle;
 	FString RegisteredPath;
+	FString NewDirectoryName;
 };
 
 
@@ -198,6 +217,7 @@ public:
 	
 	SLATE_BEGIN_ARGS(SSlateFileDialogRow) { }
 	SLATE_ARGUMENT(SSlateFileDialogItemPtr, DialogItem)
+	SLATE_ATTRIBUTE(FSlateFileDialogsStyle *, StyleSet)
 	SLATE_END_ARGS()
 
 
@@ -206,6 +226,7 @@ public:
 		check(InArgs._DialogItem.IsValid());
 		
 		DialogItem = InArgs._DialogItem;
+		StyleSet = InArgs._StyleSet;
 		
 		SMultiColumnTableRow<SSlateFileDialogItemPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
@@ -213,7 +234,7 @@ public:
 	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
-		FSlateFontInfo ItemFont = FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog");
+		FSlateFontInfo ItemFont = StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog");
 		struct EVisibility FolderIconVisibility = DialogItem->bIsDirectory ? EVisibility::Visible : EVisibility::Hidden;
 
 		if (ColumnName == TEXT("Pathname"))
@@ -227,7 +248,7 @@ public:
 					.Padding(FMargin(5.0f, 2.0f))
 					[
 						SNew(SImage)
-						.Image(FCoreStyle::Get().GetBrush("SlateFileDialogs.Folder16"))
+						.Image(StyleSet.Get()->GetBrush("SlateFileDialogs.Folder16"))
 						.Visibility(FolderIconVisibility)
 					]
 
@@ -261,9 +282,10 @@ public:
 	}	
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-	
+
 private:
 	SSlateFileDialogItemPtr DialogItem;
+	TAttribute<FSlateFileDialogsStyle *> StyleSet;
 };
 
 #undef LOCTEXT_NAMESPACE

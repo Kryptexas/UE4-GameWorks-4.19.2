@@ -216,6 +216,10 @@ private:
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
+FSlateFileDlgWindow::FSlateFileDlgWindow(FSlateFileDialogsStyle *InStyleSet)
+{
+	StyleSet = InStyleSet;
+}
 
 bool FSlateFileDlgWindow::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath,
 		const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
@@ -235,7 +239,8 @@ bool FSlateFileDlgWindow::OpenFileDialog(const void* ParentWindowHandle, const F
 		.ParentWindow(ModalWindow)
 		.CurrentPath(DefaultPath)
 		.Filters(FileTypes)
-		.WindowTitleText(DialogTitle);
+		.WindowTitleText(DialogTitle)
+		.StyleSet(StyleSet);
 	
 	DialogWidget->SetOutNames(&OutFilenames);
 	DialogWidget->SetOutFilterIndex(&OutFilterIndex);
@@ -276,8 +281,9 @@ bool FSlateFileDlgWindow::OpenDirectoryDialog(const void* ParentWindowHandle, co
 		.bMultiSelectEnabled(false)
 		.ParentWindow(ModalWindow)
 		.bDirectoriesOnly(true)
-		.CurrentPath(DefaultPath)			
-		.WindowTitleText(DialogTitle);
+		.CurrentPath(DefaultPath)
+		.WindowTitleText(DialogTitle)
+		.StyleSet(StyleSet);
 
 	DialogWidget->SetOutNames(&TempOut);
 	DialogWidget->SetOutFilterIndex(&DummyIndex);
@@ -317,8 +323,9 @@ bool FSlateFileDlgWindow::SaveFileDialog(const void* ParentWindowHandle, const F
 		.bSaveFile(true)
 		.AcceptText(LOCTEXT("SlateFileDialogsSave","Save"))
 		.CurrentPath(DefaultPath)
-		.Filters(FileTypes)			
-		.WindowTitleText(DialogTitle);
+		.Filters(FileTypes)
+		.WindowTitleText(DialogTitle)
+		.StyleSet(StyleSet);
 
 	DialogWidget->SetOutNames(&OutFilenames);
 	DialogWidget->SetOutFilterIndex(&DummyIndex);
@@ -348,6 +355,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 	OutFilterIndex = InArgs._OutFilterIndex;
 	UserResponse = FSlateFileDlgWindow::Cancel;
 	ParentWindow = InArgs._ParentWindow;
+	StyleSet = InArgs._StyleSet;
 	AcceptText = InArgs._AcceptText;
 	DirNodeIndex = -1;
 	FilterIndex = 0;
@@ -361,7 +369,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
 			.Padding(FMargin(20.0f,20.0f))
-			.BorderImage(FCoreStyle::Get().GetBrush("SlateFileDialogs.GroupBorder"))
+			.BorderImage(StyleSet.Get()->GetBrush("SlateFileDialogs.GroupBorder"))
 			[
 				SNew(SVerticalBox)
 
@@ -373,7 +381,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 				[
 					SAssignNew(WindowTitle, STextBlock)
 					.Text(WindowTitleText)
-					.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.DialogLarge"))
+					.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.DialogLarge"))
 					.Justification(ETextJustify::Center)
 				]
 
@@ -381,18 +389,101 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 				.HAlign(HAlign_Fill)
 				.VAlign(VAlign_Fill)
 				.AutoHeight()
-				.Padding(FMargin(0.0f, 0.0f, 0.0f, 20.0f))
+				.Padding(FMargin(0.0f, 0.0f, 0.0f, 10.0f))
 				[
 					SAssignNew(PathBreadcrumbTrail, SBreadcrumbTrail<FString>)
 					.ButtonContentPadding(FMargin(2.0f, 2.0f))
-					.ButtonStyle(FCoreStyle::Get(), "SlateFileDialogs.FlatButton")
-					.DelimiterImage(FCoreStyle::Get().GetBrush("SlateFileDialogs.PathDelimiter"))
-					.TextStyle(FCoreStyle::Get(), "SlateFileDialogs.PathText")
+					.ButtonStyle(StyleSet.Get()->Get(), "SlateFileDialogs.FlatButton")
+					.DelimiterImage(StyleSet.Get()->GetBrush("SlateFileDialogs.PathDelimiter"))
+					.TextStyle(StyleSet.Get()->Get(), "SlateFileDialogs.PathText")
 					.ShowLeadingDelimiter(false)
 					.InvertTextColorOnHover(false)
 					.OnCrumbClicked(this, &SSlateFileOpenDlg::OnPathClicked)
 					.GetCrumbMenuContent(this, &SSlateFileOpenDlg::OnGetCrumbDelimiterContent)
 					.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserPath")))
+				]
+
+				+ SVerticalBox::Slot() // new directory
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				.AutoHeight()
+				.Padding(FMargin(0.0f, 0.0f, 0.0f, 10.0f))
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0.0f))
+					.AutoWidth()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.OnClicked(this, &SSlateFileOpenDlg::OnNewDirectoryClick)
+						.ContentPadding(FMargin(0.0f))
+						[
+							SNew(SImage)
+							.Image(StyleSet.Get()->GetBrush("SlateFileDialogs.NewFolder24"))
+						]
+					]
+
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(20.0f, 0.0f, 0.0f, 0.0f))
+					.AutoWidth()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					[
+						SAssignNew(NewDirectorySizeBox, SBox)
+						.Padding(FMargin(0.0f))
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Fill)
+						.WidthOverride(300.0f)
+						.Visibility(EVisibility::Hidden)
+						[
+							SNew(SBorder)
+							.HAlign(HAlign_Fill)
+							.VAlign(VAlign_Fill)
+							.Padding(FMargin(5.0f,0.0f))
+							.BorderBackgroundColor(FLinearColor(0.1f, 0.1f, 0.1f, 1.0f))
+							.BorderImage(StyleSet.Get()->GetBrush("SlateFileDialogs.WhiteBackground"))
+							[
+								SAssignNew(NewDirectoryEditBox, SInlineEditableTextBlock)
+								.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
+								.IsReadOnly(false)
+								.Text(FText::FromString(""))
+								.OnTextCommitted(this, &SSlateFileOpenDlg::OnNewDirectoryCommitted)
+								.OnVerifyTextChanged(this, &SSlateFileOpenDlg::OnNewDirectoryTextChanged)
+							]
+						]
+					]
+
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(20.0f, 0.0f, 0.0f, 0.0f))
+					.AutoWidth()
+					[
+						SAssignNew(NewDirCancelButton, SButton)
+						.ContentPadding(FMargin(5.0f, 5.0f))
+						.OnClicked(this, &SSlateFileOpenDlg::OnNewDirectoryAcceptCancelClick, FSlateFileDlgWindow::Cancel)
+						.Text(LOCTEXT("SlateFileDialogsCancel","Cancel"))
+						.Visibility(EVisibility::Hidden)
+					]					
+				]
+
+				+ SVerticalBox::Slot() // new directory
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				.AutoHeight()
+				.Padding(FMargin(0.0f, 0.0f, 0.0f, 10.0f))
+				[
+					SAssignNew(DirErrorMsg, STextBlock)
+					.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.DialogBold"))
+					.Justification(ETextJustify::Left)
+					.ColorAndOpacity(FLinearColor::Yellow)
+					.Text(LOCTEXT("SlateFileDialogsDirError", "Unable to create directory!"))
+					.Visibility(EVisibility::Collapsed)
 				]
 
 				+ SVerticalBox::Slot()
@@ -423,16 +514,16 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 							.ContentPadding(FMargin(2.0f))
 							[
 								SNew(SHorizontalBox)
-			
+
 								+ SHorizontalBox::Slot()
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
 								.AutoWidth()
 								[
 									SNew(SImage)
-									.Image(FCoreStyle::Get().GetBrush("SlateFileDialogs.Folder24"))
+									.Image(StyleSet.Get()->GetBrush("SlateFileDialogs.Folder24"))
 								]
-			
+
 								+ SHorizontalBox::Slot()
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
@@ -440,7 +531,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 								[
 									SNew(STextBlock)
 									.Text(FString("Projects"))
-									.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"))
+									.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
 									.Justification(ETextJustify::Left)
 								]
 							]
@@ -466,7 +557,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 								.AutoWidth()
 								[
 									SNew(SImage)
-									.Image(FCoreStyle::Get().GetBrush("SlateFileDialogs.Folder24"))
+									.Image(StyleSet.Get()->GetBrush("SlateFileDialogs.Folder24"))
 								]
 
 								+ SHorizontalBox::Slot()
@@ -476,7 +567,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 								[
 									SNew(STextBlock)
 									.Text(FString("Engine"))
-									.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"))
+									.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
 									.Justification(ETextJustify::Left)
 								]
 							]
@@ -504,7 +595,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Fill)
 						.Padding(FMargin(10.0f))
 						.BorderBackgroundColor(FLinearColor(0.10f, 0.10f, 0.10f, 1.0f))
-						.BorderImage(FCoreStyle::Get().GetBrush("SlateFileDialogs.WhiteBackground"))
+						.BorderImage(StyleSet.Get()->GetBrush("SlateFileDialogs.WhiteBackground"))
 						[
 							SAssignNew(ListView, SListView<TSharedPtr<FFileEntry>>) // file list scroll
 							.ListItemsSource(&LineItemArray)
@@ -516,11 +607,11 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 							(
 								SNew(SHeaderRow)
 								.Visibility(EVisibility::Visible)
-								
+
 								+ SHeaderRow::Column("Pathname")
 									.DefaultLabel(LOCTEXT("SlateFileDialogsNameHeader", "Name"))
 									.FillWidth(1.0f)
-								
+
 								+ SHeaderRow::Column("ModDate")
 									.DefaultLabel(LOCTEXT("SlateFileDialogsModDateHeader", "Date Modified"))
 									.FixedWidth(170.0f)
@@ -556,7 +647,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 						[
 							SNew(STextBlock)
 							.Text(FString("Save Filename:"))
-							.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"))
+							.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
 							.Justification(ETextJustify::Left)
 						]
 
@@ -577,10 +668,10 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 								.VAlign(VAlign_Fill)
 								.Padding(FMargin(5.0f,0.0f))
 								.BorderBackgroundColor(FLinearColor(0.1f, 0.1f, 0.1f, 1.0f))
-								.BorderImage(FCoreStyle::Get().GetBrush("SlateFileDialogs.WhiteBackground"))
+								.BorderImage(StyleSet.Get()->GetBrush("SlateFileDialogs.WhiteBackground"))
 								[
 									SAssignNew(SaveFilenameEditBox, SInlineEditableTextBlock)
-									.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"))
+									.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
 									.IsReadOnly(false)
 									.Text(FText::FromString(""))
 									.OnTextCommitted(this, &SSlateFileOpenDlg::OnFileNameCommitted)
@@ -614,7 +705,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 						[
 							SNew(STextBlock)
 							.Text(FString("Filter:"))
-							.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"))
+							.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
 							.Justification(ETextJustify::Left)
 						]
 
@@ -633,7 +724,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 								.ContentPadding(FMargin(4.0f, 2.0f))
 								//.MaxListHeight(100.0f)
 								.OptionsSource(&FilterNameArray)
-								.Font(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"))
+								.Font(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"))
 								.OnSelectionChanged(this, &SSlateFileOpenDlg::OnFilterChanged)
 							]
 						]
@@ -686,13 +777,13 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 	{
 		CurrentPath = CurrentPath.Get() + TEXT("/");
 	}
- 
+
 #if ENABLE_DIRECTORY_WATCHER	
 	if (!FModuleManager::Get().IsModuleLoaded("DirectoryWatcher"))
 	{
 		FModuleManager::Get().LoadModule("DirectoryWatcher");
 	}
-	
+
 	FDirectoryWatcherModule &DirWatcherModule = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher"));
 	DirectoryWatcher = DirWatcherModule.Get();
 #endif
@@ -773,7 +864,7 @@ void SSlateFileOpenDlg::RefreshCrumbs()
 		{
 			BuiltPath = "/";
 			PathBreadcrumbTrail->PushCrumb(FText::FromString(BuiltPath), BuiltPath);
-	
+
 			for (int32 i = 1; i < DirectoryNodesArray.Num(); i++)
 			{
 				BuiltPath = BuiltPath + DirectoryNodesArray[i].Label + TEXT("/");
@@ -806,7 +897,7 @@ void SSlateFileOpenDlg::OnPathMenuItemClicked( FString ClickedPath )
 	CurrentPath = ClickedPath;
 	bRebuildDirPath = true;
 	bNeedsBuilding = true;
-
+	
 	RefreshCrumbs();
 }
 
@@ -972,7 +1063,7 @@ FReply SSlateFileOpenDlg::OnAcceptCancelClick(FSlateFileDlgWindow::EResult Butto
 
 FReply SSlateFileOpenDlg::OnDirSublevelClick(int32 Level)
 {
-	DirectoryNodesArray[DirNodeIndex].TextBlock->SetFont(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.Dialog"));
+	DirectoryNodesArray[DirNodeIndex].TextBlock->SetFont(StyleSet.Get()->GetFontStyle("SlateFileDialogs.Dialog"));
 
 	FString NewPath = TEXT("/");
 
@@ -984,9 +1075,9 @@ FReply SSlateFileOpenDlg::OnDirSublevelClick(int32 Level)
 	CurrentPath = NewPath;
 	bRebuildDirPath = false;
 	bNeedsBuilding = true;
-	
+
 	DirNodeIndex = Level;
-	DirectoryNodesArray[DirNodeIndex].TextBlock->SetFont(FCoreStyle::Get().GetFontStyle("SlateFileDialogs.DialogBold"));
+	DirectoryNodesArray[DirNodeIndex].TextBlock->SetFont(StyleSet.Get()->GetFontStyle("SlateFileDialogs.DialogBold"));
 
 	return FReply::Handled();
 }
@@ -996,7 +1087,7 @@ FReply SSlateFileOpenDlg::OnDirSublevelClick(int32 Level)
 void SSlateFileOpenDlg::Tick(const FGeometry &AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
+	
 	if (DirectoryWatcher)
 	{
 		DirectoryWatcher->Tick(InDeltaTime);
@@ -1037,7 +1128,7 @@ void SSlateFileOpenDlg::ReadDir(bool bIsRefresh)
 		DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(RegisteredPath, OnDialogDirectoryChangedDelegateHandle);
 		RegisteredPath = TEXT("");
 	}
-
+	
 	IFileManager& FileManager = IFileManager::Get();
 
 	FilesArray.Empty();
@@ -1052,7 +1143,7 @@ void SSlateFileOpenDlg::ReadDir(bool bIsRefresh)
 	FSlateFileDialogVisitor DirVisitor(FilesArray, FoldersArray, FilterList);
 
 	FileManager.IterateDirectory(*CurrentPath.Get(), DirVisitor);
-
+	
 	FilesArray.Sort(FFileEntry::ConstPredicate);
 	FoldersArray.Sort(FFileEntry::ConstPredicate);
 
@@ -1077,7 +1168,7 @@ void SSlateFileOpenDlg::OnDirectoryChanged(const TArray <FFileChangeData> &FileC
 void SSlateFileOpenDlg::RebuildFileTable()
 {
 	LineItemArray.Empty();
-
+	
 	// directory entries
 	for (int32 i = 0; i < FoldersArray.Num(); i++)
 	{
@@ -1099,7 +1190,8 @@ TSharedRef<ITableRow> SSlateFileOpenDlg::OnGenerateWidgetForList(TSharedPtr<FFil
 		const TSharedRef<STableViewBase> &OwnerTable)
 {
 	return SNew(SSlateFileDialogRow, OwnerTable)
-			.DialogItem(Item);
+			.DialogItem(Item)
+			.StyleSet(StyleSet.Get());
 }
 
 
@@ -1149,7 +1241,7 @@ void SSlateFileOpenDlg::OnFileNameCommitted(const FText & InText, ETextCommit::T
 		if (GetFilterExtension(Extension))
 		{
 			// append extension to filename if user left it off
-			if (!SaveFilename.EndsWith(Extension, ESearchCase::CaseSensitive))
+			if (!SaveFilename.EndsWith(Extension, ESearchCase::CaseSensitive) && Extension.Compare(".*") != 0)
 			{
 				SaveFilename = SaveFilename + Extension;
 			}
@@ -1172,7 +1264,7 @@ void SSlateFileOpenDlg::OnItemSelected(TSharedPtr<FFileEntry> Item, ESelectInfo:
 		if (!bDirectoriesOnly.Get())
 		{
 			TArray<TSharedPtr<FFileEntry>> SelectedItems = ListView->GetSelectedItems();
-			
+
 			for (int32 i = 0; i < SelectedItems.Num(); i++)
 			{
 				if (SelectedItems[i]->bIsDirectory)
@@ -1262,6 +1354,73 @@ bool SSlateFileOpenDlg::GetFilterExtension(FString &OutString)
 	OutString = FString(FilterExt);
 
 	return (i > 0);
+}
+
+
+void SSlateFileOpenDlg::OnNewDirectoryCommitted(const FText & InText, ETextCommit::Type InCommitType)
+{
+	if (InCommitType == ETextCommit::OnEnter)
+	{
+		OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::Accept);	
+	}
+	else
+	{
+		OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::Cancel);
+	}
+}
+
+
+FReply SSlateFileOpenDlg::OnNewDirectoryClick()
+{
+	NewDirectorySizeBox->SetVisibility(EVisibility::Visible);
+	NewDirCancelButton->SetVisibility(EVisibility::Visible);
+	NewDirectoryEditBox->SetText(FString(""));
+	
+	FSlateApplication::Get().SetKeyboardFocus(NewDirectoryEditBox);	
+	NewDirectoryEditBox->EnterEditingMode();
+	
+	DirErrorMsg->SetVisibility(EVisibility::Collapsed);
+	
+	return FReply::Handled().SetUserFocus(NewDirectoryEditBox.ToSharedRef(), EFocusCause::SetDirectly);
+}
+
+
+bool SSlateFileOpenDlg::OnNewDirectoryTextChanged(const FText &InText, FText &ErrorMsg)
+{
+	NewDirectoryName = InText.ToString();
+	return true;
+}
+
+
+FReply SSlateFileOpenDlg::OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::EResult ButtonID)
+{
+	if (ButtonID == FSlateFileDlgWindow::Accept)
+	{
+		NewDirectoryName.Trim();
+		NewDirectoryName.TrimTrailing();
+
+		if (NewDirectoryName.Len() > 0)
+		{
+			IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+			FString DirPath = CurrentPath.Get() + NewDirectoryName;
+
+			if (!PlatformFile.CreateDirectory(*DirPath))
+			{
+				DirErrorMsg->SetVisibility(EVisibility::Visible);				
+				return FReply::Handled();
+			}
+
+			bDirectoryHasChanged = true;
+		}
+	}
+
+	NewDirectorySizeBox->SetVisibility(EVisibility::Hidden);
+	NewDirCancelButton->SetVisibility(EVisibility::Hidden);
+	DirErrorMsg->SetVisibility(EVisibility::Collapsed);
+
+	NewDirectoryEditBox->SetText(FString(""));
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE
