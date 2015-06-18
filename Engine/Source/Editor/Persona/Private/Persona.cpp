@@ -3166,6 +3166,34 @@ void FPersona::OnBlueprintPreCompile(UBlueprint* BlueprintToCompile)
 	}
 }
 
+void FPersona::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled /*= false*/)
+{
+	FBlueprintEditor::OnBlueprintChangedImpl(InBlueprint, bIsJustBeingCompiled);
+
+	UObject* CurrentDebugObject = GetBlueprintObj()->GetObjectBeingDebugged();
+	const bool bIsDebuggingPreview = (PreviewComponent != NULL) && PreviewComponent->IsAnimBlueprintInstanced() && (PreviewComponent->AnimScriptInstance == CurrentDebugObject);
+
+	if(PreviewComponent != NULL)
+	{
+		if(PreviewComponent->AnimScriptInstance == NULL)
+		{
+			// try reinitialize animation if it doesn't exist
+			PreviewComponent->InitAnim(true);
+		}
+
+		if(bIsDebuggingPreview)
+		{
+			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
+		}
+	}
+
+	// calls PostCompile to copy proper values between anim nodes
+	if(Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->PostCompile();
+	}
+}
+
 static class FMeshHierarchyCmd : private FSelfRegisteringExec
 {
 public:
