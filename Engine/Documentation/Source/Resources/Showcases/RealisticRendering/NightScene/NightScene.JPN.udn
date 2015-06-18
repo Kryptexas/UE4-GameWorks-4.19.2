@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2345306
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:夜景の光源処理
 Crumbs:%ROOT%, Resources,  Resources/Showcases, Resources/Showcases/RealisticRendering
@@ -18,9 +18,9 @@ Related:Resources/ContentExamples/Lighting/4_2
 
 夜景には 3 タイプの光源処理が使用されています。
 
-1. **Directional Light Stationary** - シーンに月明かりを照らします。主にバルコニーに照らされるライトです。
-1. **Spot Light Static** - ウィンドウのすぐ外側に配置され部屋をあちこち移動するアンビエント(環境) をシミュレートします。
-1. **Spot Light Stationary** - 部屋に飾られている額縁の上と、角に置かれたランプ内により多くの光を配置して、ランプシェードの上下の光をシミュレートします。
+1. **Directional Light Stationary** - （指向性ライト固定）シーンに月明かりを照らします。主にバルコニーに照らされるライトです。
+1. **Spot Light Static** - （スポットライト静的）ウィンドウのすぐ外側に配置され部屋全体で反射するアンビエント(環境) をシミュレートします。
+1. **Spot Light Stationary** - （スポットライト固定）部屋に飾られている額縁の上と、角に置かれたランプ内により多くの光を配置して、ランプシェードの上下の光をシミュレートします。
 
 
 ## 設定の配慮
