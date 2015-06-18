@@ -1165,6 +1165,7 @@ bool UKismetSystemLibrary::ComponentOverlapComponents_NEW(UPrimitiveComponent* C
 
 	static FName ComponentOverlapComponentsName(TEXT("ComponentOverlapComponents"));
 	FComponentQueryParams Params(ComponentOverlapComponentsName);	
+	Params.bTraceAsyncScene = true;
 	Params.AddIgnoredActors(ActorsToIgnore);
 
 	TArray<FOverlapResult> Overlaps;
