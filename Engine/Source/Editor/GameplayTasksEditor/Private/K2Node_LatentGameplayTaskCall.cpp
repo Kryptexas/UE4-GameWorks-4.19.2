@@ -53,78 +53,41 @@ bool UK2Node_LatentGameplayTaskCall::CanCreateUnderSpecifiedSchema(const UEdGrap
 
 void UK2Node_LatentGameplayTaskCall::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	// these nested loops are combing over the same classes/functions the
-	// FBlueprintActionDatabase does; ideally we save on perf and fold this in
-	// with FBlueprintActionDatabase, but we want to keep the modules separate
-	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	struct GetMenuActions_Utils
 	{
-		UClass* Class = *ClassIt;
-		if (!Class->IsChildOf<UGameplayTask>() || Class->HasAnyClassFlags(CLASS_Abstract) 
-			|| HasDedicatedNodeClass(Class))
+		static void SetNodeFunc(UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, TWeakObjectPtr<UFunction> FunctionPtr)
 		{
-			continue;
-		}
-		
-		for (TFieldIterator<UFunction> FuncIt(Class, EFieldIteratorFlags::ExcludeSuper); FuncIt; ++FuncIt)
-		{
-			UFunction* Function = *FuncIt;
-			if (!Function->HasAnyFunctionFlags(FUNC_Static))
+			UK2Node_LatentGameplayTaskCall* AsyncTaskNode = CastChecked<UK2Node_LatentGameplayTaskCall>(NewNode);
+			if (FunctionPtr.IsValid())
 			{
-				continue;
-			}
-
-			// to keep from needlessly instantiating a UBlueprintNodeSpawner, first   
-			// check to make sure that the registrar is looking for actions of this type
-			// (could be regenerating actions for a specific asset, and therefore the 
-			// registrar would only accept actions corresponding to that asset)
-			if (!ActionRegistrar.IsOpenForRegistration(Function))
-			{
-				continue;
-			}
-
-			//// check if function's expected world context object's class is of this BP's type
-			//// we can also accept ones that are not hidden
-			//UObjectProperty* WorldContextProperty = Cast<UObjectProperty>(Function->PropertyLink);
-			//if (ActionRegistrar.GetActionKeyFilter() != nullptr
-			//	&& WorldContextProperty != nullptr
-			//	&& ActionRegistrar.GetActionKeyFilter()->GetClass()->IsChildOf(WorldContextProperty->GetClass()) == false)
-			//{
-			//	continue;
-			//}
-
-			UObjectProperty* ReturnProperty = Cast<UObjectProperty>(Function->GetReturnProperty());
-			// see if the function is a static factory method for online proxies
-			bool const bIsProxyFactoryMethod = (ReturnProperty != nullptr) && ReturnProperty->PropertyClass->IsChildOf<UGameplayTask>();
-			
-			if (bIsProxyFactoryMethod)
-			{
-				UBlueprintNodeSpawner* NodeSpawner = UBlueprintFunctionNodeSpawner::Create(Function);
-				check(NodeSpawner != nullptr);
-				NodeSpawner->NodeClass = GetClass();
-				
-				auto CustomizeAcyncNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UFunction> FunctionPtr)
-				{
-					UK2Node_LatentGameplayTaskCall* AsyncTaskNode = CastChecked<UK2Node_LatentGameplayTaskCall>(NewNode);
-					if (FunctionPtr.IsValid())
-					{
-						UFunction* Func = FunctionPtr.Get();
-						UObjectProperty* ReturnProp = CastChecked<UObjectProperty>(Func->GetReturnProperty());
+				UFunction* Func = FunctionPtr.Get();
+				UObjectProperty* ReturnProp = CastChecked<UObjectProperty>(Func->GetReturnProperty());
 						
-						AsyncTaskNode->ProxyFactoryFunctionName = Func->GetFName();
-						AsyncTaskNode->ProxyFactoryClass        = Func->GetOuterUClass();
-						AsyncTaskNode->ProxyClass               = ReturnProp->PropertyClass;
-					}
-				};
-				
-				TWeakObjectPtr<UFunction> FunctionPtr = Function;
-				NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeAcyncNodeLambda, FunctionPtr);
-				
-				// @TODO: since this can't be folded into FBlueprintActionDatabase, we
-				//        need a way to associate these spawners with a certain class
-				ActionRegistrar.AddBlueprintAction(Function, NodeSpawner);
+				AsyncTaskNode->ProxyFactoryFunctionName = Func->GetFName();
+				AsyncTaskNode->ProxyFactoryClass        = Func->GetOuterUClass();
+				AsyncTaskNode->ProxyClass               = ReturnProp->PropertyClass;
 			}
 		}
-	}
+	};
+
+	UClass* NodeClass = GetClass();
+	ActionRegistrar.RegisterClassFactoryActions<UGameplayTask>( FBlueprintActionDatabaseRegistrar::FMakeFuncSpawnerDelegate::CreateLambda([NodeClass](const UFunction* FactoryFunc)->UBlueprintNodeSpawner*
+	{
+		UBlueprintNodeSpawner* NodeSpawner = nullptr;
+		
+		UClass* FuncClass = FactoryFunc->GetOwnerClass();
+		if (!UK2Node_LatentGameplayTaskCall::HasDedicatedNodeClass(FuncClass))
+		{
+			NodeSpawner = UBlueprintFunctionNodeSpawner::Create(FactoryFunc);
+			check(NodeSpawner != nullptr);
+			NodeSpawner->NodeClass = NodeClass;
+
+			TWeakObjectPtr<UFunction> FunctionPtr = FactoryFunc;
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(GetMenuActions_Utils::SetNodeFunc, FunctionPtr);
+
+		}
+		return NodeSpawner;
+	}) );
 }
 
 // -------------------------------------------------

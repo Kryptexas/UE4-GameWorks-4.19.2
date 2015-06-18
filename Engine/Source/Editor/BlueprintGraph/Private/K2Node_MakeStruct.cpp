@@ -287,53 +287,43 @@ UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UE
 
 void UK2Node_MakeStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
-	auto SetNodeStructLambda = [](UEdGraphNode* NewNode, UField const* /*StructField*/, TWeakObjectPtr<UScriptStruct> NonConstStructPtr)
+	struct GetMenuActions_Utils
 	{
-		UK2Node_MakeStruct* MakeNode = CastChecked<UK2Node_MakeStruct>(NewNode);
-		MakeNode->StructType = NonConstStructPtr.Get();
-	};
-
-	auto CategoryOverrideLambda = [](FBlueprintActionContext const& Context, IBlueprintNodeBinder::FBindingSet const& /*Bindings*/, FBlueprintActionUiSpec* UiSpecOut, TWeakObjectPtr<UScriptStruct> StructPtr)
-	{
-		for (UEdGraphPin* Pin : Context.Pins)
+		static void SetNodeStruct(UEdGraphNode* NewNode, UField const* /*StructField*/, TWeakObjectPtr<UScriptStruct> NonConstStructPtr)
 		{
-			UScriptStruct* PinStruct = Cast<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
-			if ((PinStruct != nullptr) && (StructPtr.Get() == PinStruct) && (Pin->Direction == EGPD_Input))
+			UK2Node_MakeStruct* MakeNode = CastChecked<UK2Node_MakeStruct>(NewNode);
+			MakeNode->StructType = NonConstStructPtr.Get();
+		}
+
+		static void OverrideCategory(FBlueprintActionContext const& Context, IBlueprintNodeBinder::FBindingSet const& /*Bindings*/, FBlueprintActionUiSpec* UiSpecOut, TWeakObjectPtr<UScriptStruct> StructPtr)
+		{
+			for (UEdGraphPin* Pin : Context.Pins)
 			{
-				UiSpecOut->Category = LOCTEXT("EmptyCategory", "|");
-				break;
+				UScriptStruct* PinStruct = Cast<UScriptStruct>(Pin->PinType.PinSubCategoryObject.Get());
+				if ((PinStruct != nullptr) && (StructPtr.Get() == PinStruct) && (Pin->Direction == EGPD_Input))
+				{
+					UiSpecOut->Category = LOCTEXT("EmptyCategory", "|");
+					break;
+				}
 			}
 		}
 	};
 
-	for (TObjectIterator<UScriptStruct> StructIt; StructIt; ++StructIt)
+	UClass* NodeClass = GetClass();
+	ActionRegistrar.RegisterStructActions( FBlueprintActionDatabaseRegistrar::FMakeStructSpawnerDelegate::CreateLambda([NodeClass](const UScriptStruct* Struct)->UBlueprintNodeSpawner*
 	{
-		UScriptStruct const* Struct = (*StructIt);
-		if (!CanBeMade(Struct, false))
+		UBlueprintFieldNodeSpawner* NodeSpawner = nullptr;
+		
+		if (UK2Node_MakeStruct::CanBeMade(Struct, /*bIncludeEditOnly =*/false))
 		{
-			continue;
+			NodeSpawner = UBlueprintFieldNodeSpawner::Create(NodeClass, Struct);
+			check(NodeSpawner != nullptr);
+			TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
+			NodeSpawner->SetNodeFieldDelegate     = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(GetMenuActions_Utils::SetNodeStruct, NonConstStructPtr);
+			NodeSpawner->DynamicUiSignatureGetter = UBlueprintFieldNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(GetMenuActions_Utils::OverrideCategory, NonConstStructPtr);
 		}
-
-		// to keep from needlessly instantiating a UBlueprintNodeSpawners, first   
-		// check to make sure that the registrar is looking for actions of this type
-		// (could be regenerating actions for a specific asset, and therefore the 
-		// registrar would only accept actions corresponding to that asset)
-		if (!ActionRegistrar.IsOpenForRegistration(Struct))
-		{
-			continue;
-		}
-
-		UBlueprintFieldNodeSpawner* NodeSpawner = UBlueprintFieldNodeSpawner::Create(GetClass(), Struct);
-		check(NodeSpawner != nullptr);
-		TWeakObjectPtr<UScriptStruct> NonConstStructPtr = Struct;
-		NodeSpawner->SetNodeFieldDelegate = UBlueprintFieldNodeSpawner::FSetNodeFieldDelegate::CreateStatic(SetNodeStructLambda, NonConstStructPtr);
-		NodeSpawner->DynamicUiSignatureGetter = UBlueprintFieldNodeSpawner::FUiSpecOverrideDelegate::CreateStatic(CategoryOverrideLambda, NonConstStructPtr);
-
-		// this struct could belong to a class, or is a user defined struct 
-		// (asset), that's why we want to make sure to register it along with 
-		// the action (so the action knows to refresh when the class/asset is).
-		ActionRegistrar.AddBlueprintAction(Struct, NodeSpawner);
-	}
+		return NodeSpawner;
+	}) );
 }
 
 FText UK2Node_MakeStruct::GetMenuCategory() const
