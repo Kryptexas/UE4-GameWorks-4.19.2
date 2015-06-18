@@ -2,6 +2,8 @@
 
 #include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheSceneProxy.h"
+#include "GeometryCacheComponent.h"
+#include "GeometryCacheMeshData.h"
 
 FGeometryCacheSceneProxy::FGeometryCacheSceneProxy(UGeometryCacheComponent* Component) : FPrimitiveSceneProxy(Component)
 , MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))

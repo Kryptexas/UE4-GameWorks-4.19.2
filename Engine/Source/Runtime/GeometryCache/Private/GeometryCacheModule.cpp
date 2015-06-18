@@ -5,6 +5,7 @@
 #include "AssetTypeActions_GeometryCache.h"
 
 #include "GeometryCacheModule.h"
+#include "GeometryCacheComponent.h"
 
 IMPLEMENT_MODULE(FGeometryCacheModule, GeometryCache)
 

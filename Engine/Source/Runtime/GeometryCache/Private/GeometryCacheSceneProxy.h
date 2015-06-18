@@ -86,7 +86,7 @@ class GEOMETRYCACHE_API FGeometryCacheSceneProxy : public FPrimitiveSceneProxy
 {
 public:
 	// QQ interfaces/comments
-	FGeometryCacheSceneProxy(UGeometryCacheComponent* Component);
+	FGeometryCacheSceneProxy(class UGeometryCacheComponent* Component);
 
 	virtual ~FGeometryCacheSceneProxy();
 
