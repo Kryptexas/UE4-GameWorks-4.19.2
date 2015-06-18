@@ -453,6 +453,16 @@ void UPrimitiveComponent::SetMassScale(FName BoneName, float InMassScale)
 	}
 }
 
+float UPrimitiveComponent::GetMassScale(FName BoneName /*= NAME_None*/) const
+{
+	if (FBodyInstance* BI = GetBodyInstance(BoneName))
+	{
+		return BI->GetMassScale();
+	}
+
+	return 0.0f;
+}
+
 void UPrimitiveComponent::SetAllMassScale(float InMassScale)
 {
 	SetMassScale(NAME_None, InMassScale);
