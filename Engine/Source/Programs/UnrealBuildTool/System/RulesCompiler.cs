@@ -472,6 +472,12 @@ namespace UnrealBuildTool
 		public UnrealTargetConfiguration UndecoratedConfiguration = UnrealTargetConfiguration.Development;
 
 		/// <summary>
+		/// Build all the plugins that we can find, even if they're not enabled. This is particularly useful for content-only projects, 
+		/// where you're building the UE4Editor target but running it with a game that enables a plugin.
+		/// </summary>
+		public bool bBuildAllPlugins = false;
+
+		/// <summary>
 		/// A list of additional plugins which need to be included in this target. This allows referencing non-optional plugin modules
 		/// which cannot be disabled, and allows building against specific modules in program targets which do not fit the categories
 		/// in ModuleHostType.

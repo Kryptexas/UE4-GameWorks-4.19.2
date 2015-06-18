@@ -8,6 +8,7 @@ public class UE4EditorTarget : TargetRules
 	public UE4EditorTarget( TargetInfo Target )
 	{
 		Type = TargetType.Editor;
+		bBuildAllPlugins = true;
 	}
 
 	public override void SetupBinaries(

@@ -2625,7 +2625,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set the list of plugins that should be built
-			if (bPrecompile && TargetType != TargetRules.TargetType.Program)
+			if ((bPrecompile && TargetType != TargetRules.TargetType.Program) || Rules.bBuildAllPlugins)
 			{
 				BuildPlugins = new List<PluginInfo>(ValidPlugins);
 			}
