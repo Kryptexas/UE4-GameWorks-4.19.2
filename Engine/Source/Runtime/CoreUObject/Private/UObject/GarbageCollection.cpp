@@ -1173,6 +1173,8 @@ COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilit
 static const auto CVarAllowParallelGC = 
 IConsoleManager::Get().RegisterConsoleVariable(TEXT("AllowParallelGC"), (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0, TEXT("Used to control parallel GC."))->AsVariableInt();
 
+COREUOBJECT_API void DeleteLoaders();
+
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
  *
@@ -1314,6 +1316,9 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	{
 		IncrementalPurgeGarbage( false );	
 	}
+
+	// Destroy all pending delete linkers
+	DeleteLoaders();
 
 	// Route callbacks to verify GC assumptions
 	FCoreUObjectDelegates::PostGarbageCollect.Broadcast();

@@ -9,6 +9,7 @@
 #include "Serialization/DeferredMessageLog.h"
 #include "Serialization/AsyncPackage.h"
 #include "UObject/UObjectThreadContext.h"
+#include "UObject/LinkerManager.h"
 #include "Serialization/AsyncLoadingThread.h"
 
 /*-----------------------------------------------------------------------------
@@ -870,7 +871,8 @@ void FAsyncPackage::ResetLoader()
 	// Reset loader.
 	if (Linker)
 	{
-		delete Linker;
+		Linker->Detach();
+		FLinkerManager::Get().RemoveLinker(Linker);
 		Linker = nullptr;
 	}
 }

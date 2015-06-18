@@ -2228,6 +2228,10 @@ bool FEngineLoop::ShouldUseIdleMode() const
 	return bIdleMode;
 }
 
+#if WITH_COREUOBJECT
+COREUOBJECT_API void DeleteLoaders();
+#endif
+
 void FEngineLoop::Tick()
 {
 	// Ensure we aren't starting a frame while loading or playing a loading movie
@@ -2464,6 +2468,11 @@ void FEngineLoop::Tick()
 
 			// Delete the objects which were enqueued for deferred cleanup before the previous frame.
 			delete PreviousPendingCleanupObjects;
+
+			// Destroy all linkers pending delete
+#if WITH_COREUOBJECT
+			DeleteLoaders();
+#endif
 
 			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 

@@ -1730,16 +1730,19 @@ private:
 #endif
 	void DetachAllBulkData(bool bEnsureBulkDataIsLoaded);
 public:
+
 	/**
-	 * Detaches linker from bulk data/ exports and removes itself from array of loaders.
-	 *
-	 * @param	bEnsureAllBulkDataIsLoaded	Whether to load all bulk data first before detaching.
+	 * Detaches linker from bulk data.
 	 */
 	void LoadAndDetachAllBulkData();
 
+	/**
+	* Detaches linker from bulk data/ exports and removes itself from array of loaders.
+	*/
+	void Detach();
+
 private:
 
-	void Detach();
 	void Seek( int64 InPos ) override;
 	int64 Tell() override;
 	int64 TotalSize() override;
@@ -2168,6 +2171,7 @@ typedef uint32 ELazyLoaderFlags;
 	Global functions
 -----------------------------------------------------------------------------*/
 
+/** Resets linkers on packages after they have finished loading */
 COREUOBJECT_API void ResetLoaders( UObject* InOuter );
 
 /**

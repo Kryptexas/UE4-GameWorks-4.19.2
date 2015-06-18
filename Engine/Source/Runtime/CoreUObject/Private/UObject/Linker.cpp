@@ -313,17 +313,18 @@ FLinker::~FLinker()
 	Global functions
 -----------------------------------------------------------------------------*/
 
-//
-// Empty the loaders.
-//
-void ResetLoaders( UObject* InPkg )
+void ResetLoaders(UObject* InPkg)
 {
 	// Make sure we're not in the middle of loading something in the background.
 	FlushAsyncLoading();
 	FLinkerManager::Get().ResetLoaders(InPkg);
 }
 
-
+/** Deletes all linkers that have finished loading */
+COREUOBJECT_API void DeleteLoaders()
+{
+	FLinkerManager::Get().DeleteLinkers();
+}
 
 /**
  * Dissociates all linker import and forced export object references. This currently needs to 
