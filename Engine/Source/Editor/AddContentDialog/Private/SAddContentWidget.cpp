@@ -282,8 +282,8 @@ TSharedRef<SWidget> SAddContentWidget::CreateContentSourceDetail(TSharedPtr<FCon
 TSharedRef<SWidget> SAddContentWidget::CreateScreenshotCarousel(TSharedPtr<FContentSourceViewModel> ContentSource)
 {
 	return SNew(SWidgetCarouselWithNavigation<TSharedPtr<FSlateBrush>>)
-		.NavigationBarStyle(FWidgetCarouselModuleStyle::Get(), "CarouselNavigationButton")
-		.NavigationButtonStyle(FWidgetCarouselModuleStyle::Get(), "CarouselNavigationBar")
+		.NavigationBarStyle(FWidgetCarouselModuleStyle::Get(), "CarouselNavigationBar")
+		.NavigationButtonStyle(FWidgetCarouselModuleStyle::Get(), "CarouselNavigationButton")
 		.OnGenerateWidget(this, &SAddContentWidget::CreateScreenshotWidget)
 		.WidgetItemsSource(ContentSource->GetScreenshotBrushes());
 }
