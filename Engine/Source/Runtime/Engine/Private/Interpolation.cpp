@@ -377,6 +377,12 @@ AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 	ReplicationForceIsPlaying = 0;
 }
 
+void AMatineeActor::PostLoad()
+{
+	SetReplicates(!bClientSideOnly);
+	Super::PostLoad();
+}
+
 FName AMatineeActor::GetFunctionNameForEvent(FName EventName,bool bUseCustomEventName)
 {
 	FName EventFuncName;
@@ -1019,6 +1025,11 @@ bool AMatineeActor::IsMatineeCompatibleWithPlayer( APlayerController* InPC ) con
 		}
 	}
 
+	if (bReplicates == false && InPC->IsLocalController() == false)
+	{
+		bBindPlayerToMatinee = false;
+	}
+
 	return bBindPlayerToMatinee;
 }
 
@@ -1176,7 +1187,10 @@ void AMatineeActor::EnableCinematicMode(bool bEnable)
 		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
 			APlayerController *PC = *Iterator;
-			PC->SetCinematicMode(bEnable, bHidePlayer, bHideHud, bDisableMovementInput, bDisableLookAtInput);
+			if (bReplicates || PC->IsLocalController())
+			{
+				PC->SetCinematicMode(bEnable, bHidePlayer, bHideHud, bDisableMovementInput, bDisableLookAtInput);
+			}
 		}
 	}
 }
