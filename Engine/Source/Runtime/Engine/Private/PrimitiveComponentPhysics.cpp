@@ -457,7 +457,7 @@ float UPrimitiveComponent::GetMassScale(FName BoneName /*= NAME_None*/) const
 {
 	if (FBodyInstance* BI = GetBodyInstance(BoneName))
 	{
-		return BI->GetMassScale();
+		return BI->MassScale;
 	}
 
 	return 0.0f;
