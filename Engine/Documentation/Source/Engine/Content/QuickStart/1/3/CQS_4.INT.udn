@@ -6,7 +6,7 @@ Description:Learn how to import meshes into your Unreal Engine 4 project.
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/Content/QuickStart/3 "%Engine/Content/QuickStart/3:title%")
+		[Previous Step](Engine/Content/QuickStart/1/2 "%Engine/Content/QuickStart/1/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -14,7 +14,7 @@ Description:Learn how to import meshes into your Unreal Engine 4 project.
 		[Quick Start Home](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/Content/QuickStart/5 "%Engine/Content/QuickStart/5:title%")
+		[Next Step](Engine/Content/QuickStart/1/4 "%Engine/Content/QuickStart/1/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

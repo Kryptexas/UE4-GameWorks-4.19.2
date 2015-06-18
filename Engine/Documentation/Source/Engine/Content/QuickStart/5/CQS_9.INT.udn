@@ -6,7 +6,7 @@ Description:Now that you've learned how to set-up a project, create materials, a
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/Content/QuickStart/8 "%Engine/Content/QuickStart/8:title%")
+		[Previous Step](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -22,7 +22,7 @@ Description:Now that you've learned how to set-up a project, create materials, a
 
 Using what you know, create a new **Material** similar to this graph:
 
-![](Engine/Content/QuickStart/5/PlasticMaterialNetwork.png)
+![](Engine/Content/QuickStart/1/4/PlasticMaterialNetwork.png)
 
 The Main Material node settings simulate a plastic material.
 

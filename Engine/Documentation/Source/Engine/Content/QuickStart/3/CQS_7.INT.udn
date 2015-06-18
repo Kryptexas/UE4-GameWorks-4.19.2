@@ -6,7 +6,7 @@ Description:Learn how to edit materials in this section.
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:title%")
+		[Previous Step](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -14,7 +14,7 @@ Description:Learn how to edit materials in this section.
 		[Quick Start Home](Engine/Content/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/Content/QuickStart/8 "%Engine/Content/QuickStart/8:title%")
+		[Next Step](Engine/Content/QuickStart/4 "%Engine/Content/QuickStart/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -23,7 +23,7 @@ Description:Learn how to edit materials in this section.
 
 You can define a Material's color, shininess, transparency, and much more in the [__Material Editor__](Engine/Rendering/Materials/Editor "%Engine/Rendering/Materials/Editor:description%").
 
-Using the two textures you imported in the [__Creating Materials Section__](Engine/Content/QuickStart/6 "%Engine/Content/QuickStart/6:description%"), it's time to edit the **Rock Material** you created.
+Using the two textures you imported in the [__Creating Materials Section__](Engine/Content/QuickStart/2 "%Engine/Content/QuickStart/2:description%"), it's time to edit the **Rock Material** you created.
 
 1.	**Select** the Main Material Node in the center of the Material Graph. The Material Editor will highlight the node for you when you select it (pictured below).
 
