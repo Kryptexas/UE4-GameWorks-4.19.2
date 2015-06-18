@@ -47,6 +47,7 @@ Creating visual scenes with Unreal Engine 4 (UE4) can be rewarding (and fun!).
 By the end of this quick start guide, you'll be able to:
 * **Setup a Project.**
 * **Create Materials.**
+* **Edit Materials.**
 * **Apply Materials to a Static Mesh Actor.**
 
 &#x2713; [_Click here if you want to learn more about UE4's Project Browser._](Engine/Basics/Projects/Browser "Project Browser Documentation")

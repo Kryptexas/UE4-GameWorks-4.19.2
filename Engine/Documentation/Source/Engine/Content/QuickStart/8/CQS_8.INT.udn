@@ -95,13 +95,14 @@ You've just applied materials to your Static Mesh Actors by:
 
 We've now reached the end of the Artist Quick Start Guide. By now, you should have the skills needed to:
 
-* **Setup a Project.**
-* **Create Materials.**
-* **Apply Materials to a Static Mesh Actor.**
+&#x2713; [**Setup a Project.**](Engine/Content/QuickStart/1)  
+&#x2713; [**Create Materials.**](Engine/Content/QuickStart/6)  
+&#x2713; [**Edit Materials.**](Engine/Content/QuickStart/7)  
+&#x2713; [**Apply Materials to a Static Mesh Actor.**](Engine/Content/QuickStart/8)
 
 Awesome work!
 
-&#x2713; _Are you ready to do some exercises on your own?_
+* _Are you ready to do some exercises on your own?_
 
 [REGION:tip]
 *The 'Rule of Thirds' typically improves scene composition.*
