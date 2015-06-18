@@ -150,7 +150,7 @@ Whether visible or not, all aspects of the interface that can be accessed for ea
 [/OBJECT]
 
 [REGION:note]
-**Graph** mode will only be available if you have opened an Animation Blueprint from within the **Content Browser**. For all other animation asset types (Skeletons, Animation Sequences, etc.) you will will only see Skeleton, Mesh, and Animation. This is due to the fact that you may have multiple Animation Blueprints associated with a single Skeleton and Animation setup.
+**Graph** mode will only be available if you have opened an Animation Blueprint from within the **Content Browser**. For all other animation asset types (Skeletons, Animation Sequences, etc.) you will only see Skeleton, Mesh, and Animation. This is due to the fact that you may have multiple Animation Blueprints associated with a single Skeleton and Animation setup.
 [/REGION]
 
 
