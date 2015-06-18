@@ -716,7 +716,7 @@ public:
 	}
 
 	/** Set the entire content of this row, replacing any extra UI (such as the expander arrows for tree views) that was added by ConstructChildren */
-	void SetRowContent(TSharedRef< SWidget > InContent)
+	virtual void SetRowContent(TSharedRef< SWidget > InContent)
 	{
 		this->Content = InContent;
 		InnerContentSlot = nullptr;
