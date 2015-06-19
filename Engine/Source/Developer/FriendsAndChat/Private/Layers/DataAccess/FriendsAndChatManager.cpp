@@ -1921,6 +1921,7 @@ void FFriendsAndChatManager::OnPartyMemberJoined(const FUniqueNetId& LocalUserId
 
 void FFriendsAndChatManager::OnPartyMemberExited(const FUniqueNetId& LocalUserId, const FOnlinePartyId& PartyId, const FUniqueNetId& MemberId, const EMemberExitedReason Reason)
 {
+	RequestRecentPlayersListRefresh();
 	//ToDo - NickDavies - re-add party 
 	// If no longer in an active party, make party chat unavailable & no longer the default output channel
 	//GetChatViewModel()->UpdateInPartyUI();
