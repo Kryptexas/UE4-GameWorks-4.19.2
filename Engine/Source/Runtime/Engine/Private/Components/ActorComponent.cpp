@@ -653,7 +653,6 @@ void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick T
 	{
 		FScopeCycleCounterUObject ComponentScope(Target);
 		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());
-	    checkSlow(Target && (!EnableParent || Target->IsPendingKill() || ((FActorTickFunction*)EnableParent)->Target == Target->GetOwner())); // components that get renamed into other outers will have this wrong and hence will not necessarily tick after their actor, or use their actor as an enable parent
 	    Target->ConditionalTickComponent(DeltaTime, TickType, *this);	
 	}
 }

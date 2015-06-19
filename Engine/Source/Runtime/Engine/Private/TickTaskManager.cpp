@@ -425,7 +425,7 @@ public:
 		{
 			FTickFunction* TickFunction = *It;
 			TickFunction->CompletionHandle = NULL; // might as well NULL this out to allow these handles to be recycled
-			if (TickFunction->bTickEvenWhenPaused && TickFunction->bTickEnabled && (!TickFunction->EnableParent || TickFunction->EnableParent->bTickEnabled))
+			if (TickFunction->bTickEvenWhenPaused && TickFunction->bTickEnabled)
 			{
 				TickFunction->TickVisitedGFrameCounter = GFrameCounter;
 				TickFunction->TickQueuedGFrameCounter = GFrameCounter;
@@ -789,7 +789,6 @@ FTickFunction::FTickFunction()
 	, bTickEnabled(true)
 	, TickVisitedGFrameCounter(0)
 	, TickQueuedGFrameCounter(0)
-	, EnableParent(NULL)
 	, TickTaskLevel(NULL)
 {
 }
@@ -886,7 +885,7 @@ void FTickFunction::QueueTickFunction(FTickTaskSequencer& TTS, const struct FTic
 	if (TickVisitedGFrameCounter != GFrameCounter)
 	{
 		TickVisitedGFrameCounter = GFrameCounter;
-		if (bTickEnabled && (!EnableParent || EnableParent->bTickEnabled))
+		if (bTickEnabled)
 		{
 			ETickingGroup MaxPrerequisiteTickGroup =  ETickingGroup(0);
 

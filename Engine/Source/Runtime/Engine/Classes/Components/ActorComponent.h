@@ -415,7 +415,6 @@ public:
 	/** 
 	 * Set up a tick function for a component in the standard way. 
 	 * Tick after the actor. Don't tick if the actor is static, or if the actor is a template or if this is a "NeverTick" component.
-	 * Owner is the EnableParent.
 	 * I tick while paused if only if my owner does.
 	 * @param	TickFunction - structure holding the specific tick function
 	 * @return  true if this component met the criteria for actually being ticked.

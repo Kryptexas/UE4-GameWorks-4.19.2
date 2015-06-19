@@ -174,7 +174,7 @@ private:
 	uint32 bRegistered:1;
 
 	/** 
-	 * If false, this tick will not fire, nor will any other tick that has this tick function as an EnableParent. 
+	 * If false, this tick will not fire
 	 * CAUTION: Do not set this directly
 	 **/
 	uint32 bTickEnabled:1;
@@ -193,11 +193,6 @@ private:
 	TArray<struct FTickPrerequisite> Prerequisites;
 
 public:
-	/** 
-	 * If the "EnableParent" is not enabled, then this tick function is implicitly disabled as well. 
-	 * Caution, there is no protection on this strong pointer. It is assumed your enable parent will not be destroyed before you are.
-	 **/
-	FTickFunction*								EnableParent;
 	/** Back pointer to the FTickTaskLevel containing this tick function if it is registered **/
 	class FTickTaskLevel*						TickTaskLevel;
 
