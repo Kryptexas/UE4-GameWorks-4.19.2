@@ -73,7 +73,7 @@ void FOnlineSubsystemModule::StartupModule()
 		}
 		else
 		{
-			UE_LOG(LogOnline, Warning, TEXT("Unable to load default OnlineSubsystem module %s, using NULL interface"), *InterfaceString);
+			UE_LOG(LogOnline, Log, TEXT("Unable to load default OnlineSubsystem module %s, using NULL interface"), *InterfaceString);
 			InterfaceString = TEXT("Null");
 			InterfaceName = FName(*InterfaceString);
 
