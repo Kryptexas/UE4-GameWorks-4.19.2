@@ -1136,6 +1136,12 @@ bool FOculusRiftHMD::InitDevice()
 
 	FSettings* CurrentSettings = GetSettings();
 
+	ovrResult DetectResult = ovrHmd_Detect();
+	if (!OVR_SUCCESS(DetectResult))
+	{
+		return false;
+	}
+
 	ovrResult result = ovrHmd_Create(0, &Hmd);
 	if (OVR_SUCCESS(result) && Hmd)
 	{
