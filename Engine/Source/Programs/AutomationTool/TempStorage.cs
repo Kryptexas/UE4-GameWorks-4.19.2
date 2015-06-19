@@ -62,7 +62,7 @@ namespace AutomationTool
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/EnvVarsToXML.exe");
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || (Name == "Engine/Binaries/DotNET/EnvVarsToXML.exe.config");					
 
-                    // Lets just allow all mac warnings to be slient
+                    // Lets just allow all mac warnings to be silent
                     bSilentOkToBeDifferent = bSilentOkToBeDifferent || Name.Contains("Engine/Binaries/Mac");
 
                     System.Diagnostics.TraceEventType LogType = bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error;
@@ -132,7 +132,7 @@ namespace AutomationTool
                     int Retry = 0;
                     while (!bFound && Retry < 60)
                     {
-                        CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "*** Mac temp storage retry {0}", Filename);
+                        CommandUtils.Log(System.Diagnostics.TraceEventType.Information, "*** Mac temp storage retry {0}", Filename);
                         System.Threading.Thread.Sleep(10000);
                         bFound = FileExists_NoExceptions(bQuiet, Filename);
 						Retry++;
@@ -156,7 +156,7 @@ namespace AutomationTool
 					int Retry = 0;
 					while (!bFound && Retry < 60)
 					{
-						CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "*** Mac temp storage retry {0}", Directoryname);
+						CommandUtils.Log(System.Diagnostics.TraceEventType.Information, "*** Mac temp storage retry {0}", Directoryname);
 						System.Threading.Thread.Sleep(10000);
 						bFound = DirectoryExists_NoExceptions(Directoryname);
 						Retry++;
