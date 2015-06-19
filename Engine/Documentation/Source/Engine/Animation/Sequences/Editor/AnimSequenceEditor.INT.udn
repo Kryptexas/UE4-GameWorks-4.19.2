@@ -115,13 +115,13 @@ When multiple notifies are copied, by **right-clicking** in the timeline to brin
 
 ![](CopyPasteMenu.png)
 
-**Paste Multiple Relative** : Paste at the mouse cursor retaining relative spacing between notifies regardless of animation length. This means that the notify group should look like it is spaced the same as before the copy; even if the animation is shorter or longer. 
+**Paste Multiple Relative:** Paste at the mouse cursor retaining relative spacing between notifies regardless of animation length. This means that the notify group should look like it is spaced the same as before the copy; even if the animation is shorter or longer. 
 
-**Paste Multiple Absolute** : Paste at the mouse cursor retaining absolute spacing. The notifies will retain their exact time spacing meaning that they will fire at exactly the same intervals but the group is not scaled to shorter or longer animations. 
+**Paste Multiple Absolute:** Paste at the mouse cursor retaining absolute spacing. The notifies will retain their exact time spacing meaning that they will fire at exactly the same intervals but the group is not scaled to shorter or longer animations. 
 
-**Paste at Original Time** : Puts all of the nodes exactly where they were when they were copied. 
+**Paste at Original Time:** Puts all of the nodes exactly where they were when they were copied. 
 
-Addtional Notes: 
+Additional Notes: 
 * Any paste operation that would put any of the notifies off the right edge of the track will still succeed but the notifies will be clamped into the track. 
 * Pasting at the mouse cursor uses the most top-left point in the selection as a reference point for placing the nodes. 
 * Pasting a group that would pass below the bottom of the notify panel will add as many tracks as necessary to contain the group automatically. 
