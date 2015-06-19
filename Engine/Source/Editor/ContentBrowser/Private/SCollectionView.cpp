@@ -5,6 +5,8 @@
 #include "CollectionAssetManagement.h"
 #include "CollectionViewTypes.h"
 #include "CollectionContextMenu.h"
+#include "DragAndDrop/AssetDragDropOp.h"
+#include "DragAndDrop/CollectionDragDropOp.h"
 #include "ObjectTools.h"
 #include "SourcesViewWidgets.h"
 #include "ContentBrowserModule.h"
@@ -62,10 +64,13 @@ void SCollectionView::Construct( const FArguments& InArgs )
 	OnCollectionSelected = InArgs._OnCollectionSelected;
 	bAllowCollectionButtons = InArgs._AllowCollectionButtons;
 	bAllowRightClickMenu = InArgs._AllowRightClickMenu;
+	bAllowCollectionDrag = InArgs._AllowCollectionDrag;
+	bDraggedOver = false;
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	CollectionManagerModule.Get().OnCollectionCreated().AddSP( this, &SCollectionView::HandleCollectionCreated );
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SCollectionView::HandleCollectionRenamed );
+	CollectionManagerModule.Get().OnCollectionReparented().AddSP( this, &SCollectionView::HandleCollectionReparented );
 	CollectionManagerModule.Get().OnCollectionDestroyed().AddSP( this, &SCollectionView::HandleCollectionDestroyed );
 
 	Commands = TSharedPtr< FUICommandList >(new FUICommandList);
@@ -86,7 +91,7 @@ void SCollectionView::Construct( const FArguments& InArgs )
 	FOnContextMenuOpening CollectionListContextMenuOpening;
 	if ( InArgs._AllowContextMenu )
 	{
-		CollectionListContextMenuOpening = FOnContextMenuOpening::CreateSP( this, &SCollectionView::MakeCollectionListContextMenu );
+		CollectionListContextMenuOpening = FOnContextMenuOpening::CreateSP( this, &SCollectionView::MakeCollectionTreeContextMenu );
 	}
 
 	PreventSelectionChangedDelegateCount = 0;
@@ -139,20 +144,21 @@ void SCollectionView::Construct( const FArguments& InArgs )
 				SNew(SSeparator)
 			]
 
-			// Collections list
+			// Collections tree
 			+SVerticalBox::Slot()
 			.FillHeight(1.f)
 			[
-				SAssignNew(CollectionListPtr, SListView< TSharedPtr<FCollectionItem> >)
-				.ListItemsSource(&FilteredCollectionItems)
-				.OnGenerateRow( this, &SCollectionView::GenerateCollectionRow )
+				SAssignNew(CollectionTreePtr, STreeView< TSharedPtr<FCollectionItem> >)
+				.TreeItemsSource(&VisibleRootCollectionItems)
+				.OnGenerateRow(this, &SCollectionView::GenerateCollectionRow)
+				.OnGetChildren(this, &SCollectionView::GetCollectionItemChildren)
 				.ItemHeight(18)
 				.SelectionMode(ESelectionMode::Multi)
 				.OnSelectionChanged(this, &SCollectionView::CollectionSelectionChanged)
-				.OnContextMenuOpening( CollectionListContextMenuOpening )
+				.OnContextMenuOpening(CollectionListContextMenuOpening)
 				.OnItemScrolledIntoView(this, &SCollectionView::CollectionItemScrolledIntoView)
 				.ClearSelectionOnClick(false)
-				.Visibility(this, &SCollectionView::GetCollectionListVisibility)
+				.Visibility(this, &SCollectionView::GetCollectionTreeVisibility)
 			];
 
 	TSharedPtr< SWidget > Content;
@@ -192,7 +198,26 @@ void SCollectionView::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		Content.ToSharedRef()
+		SNew(SOverlay)
+
+		// Main content
+		+SOverlay::Slot()
+		[
+			Content.ToSharedRef()
+		]
+
+		// Drop target overlay
+		+SOverlay::Slot()
+		[
+			SNew(SBorder)
+			.Padding(0)
+			.Visibility(EVisibility::HitTestInvisible)
+			.BorderImage(this, &SCollectionView::GetCollectionViewDropTargetBorder)
+			.BorderBackgroundColor(FLinearColor::Yellow)
+			[
+				SNullWidget::NullWidget
+			]
+		]
 	];
 
 	UpdateCollectionItems();
@@ -205,6 +230,30 @@ void SCollectionView::HandleCollectionCreated( const FCollectionNameType& Collec
 
 void SCollectionView::HandleCollectionRenamed( const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection )
 {
+	// If the original collection was expanded, we want to pass that expansion state onto its new entry
+	bool bWasExpanded = false;
+	{
+		TSharedPtr<FCollectionItem> OriginalCollectionItem = AvailableCollections.FindRef(OriginalCollection);
+		if (OriginalCollectionItem.IsValid())
+		{
+			bWasExpanded = CollectionTreePtr->IsItemExpanded(OriginalCollectionItem);
+		}
+	}
+
+	UpdateCollectionItems();
+
+	if (bWasExpanded)
+	{
+		TSharedPtr<FCollectionItem> NewCollectionItem = AvailableCollections.FindRef(NewCollection);
+		if (NewCollectionItem.IsValid())
+		{
+			CollectionTreePtr->SetItemExpansion(NewCollectionItem, true);
+		}
+	}
+}
+
+void SCollectionView::HandleCollectionReparented( const FCollectionNameType& Collection, const TOptional<FCollectionNameType>& OldParent, const TOptional<FCollectionNameType>& NewParent )
+{
 	UpdateCollectionItems();
 }
 
@@ -215,49 +264,149 @@ void SCollectionView::HandleCollectionDestroyed( const FCollectionNameType& Coll
 
 void SCollectionView::UpdateCollectionItems()
 {
-	CollectionItems.Empty();
-
-	// Load the collection manager module
-	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-
-	// Get collections of all types
-	for (int32 TypeIdx = 0; TypeIdx < ECollectionShareType::CST_All; ++TypeIdx)
+	struct FGatherCollectionItems
 	{
-		ECollectionShareType::Type CollectionType = ECollectionShareType::Type(TypeIdx);
-
-		//Never display system collections
-		if ( CollectionType == ECollectionShareType::CST_System )
+		FGatherCollectionItems()
+			: CollectionManagerModule(FCollectionManagerModule::GetModule())
 		{
-			continue;
 		}
 
-		TArray<FName> CollectionNames;
-		CollectionManagerModule.Get().GetCollectionNames(CollectionType, CollectionNames);
-		
-		for (int32 CollectionIdx = 0; CollectionIdx < CollectionNames.Num(); ++CollectionIdx)
+		void GatherCollectionItems(FAvailableCollectionsMap& OutAvailableCollections)
 		{
-			const FName& CollectionName = CollectionNames[CollectionIdx];
-			CollectionItems.Add( MakeShareable(new FCollectionItem(CollectionName, CollectionType)) );
+			OutAvailableCollections.Reset();
+
+			TArray<FCollectionNameType> RootCollections;
+			CollectionManagerModule.Get().GetRootCollections(RootCollections);
+
+			ProcessGatheredCollectionsAndRecurse(RootCollections, nullptr, OutAvailableCollections);
+		}
+
+		void GatherChildCollectionItems(const TSharedPtr<FCollectionItem>& InParentCollectionItem, FAvailableCollectionsMap& OutAvailableCollections)
+		{
+			TArray<FCollectionNameType> ChildCollections;
+			CollectionManagerModule.Get().GetChildCollections(InParentCollectionItem->CollectionName, InParentCollectionItem->CollectionType, ChildCollections);
+
+			ProcessGatheredCollectionsAndRecurse(ChildCollections, InParentCollectionItem, OutAvailableCollections);
+		}
+
+		void ProcessGatheredCollectionsAndRecurse(const TArray<FCollectionNameType>& InCollections, const TSharedPtr<FCollectionItem>& InParentCollectionItem, FAvailableCollectionsMap& OutAvailableCollections)
+		{
+			for (const FCollectionNameType& Collection : InCollections)
+			{
+				// Never display system collections
+				if (Collection.Type == ECollectionShareType::CST_System)
+				{
+					continue;
+				}
+
+				TSharedPtr<FCollectionItem> CollectionItem = MakeShareable(new FCollectionItem(Collection.Name, Collection.Type));
+				OutAvailableCollections.Add(Collection, CollectionItem);
+
+				if (InParentCollectionItem.IsValid())
+				{
+					// Fixup the parent and child pointers
+					InParentCollectionItem->ChildCollections.Add(CollectionItem);
+					CollectionItem->ParentCollection = InParentCollectionItem;
+				}
+
+				// Recurse
+				GatherChildCollectionItems(CollectionItem, OutAvailableCollections);
+			}
+		}
+
+		FCollectionManagerModule& CollectionManagerModule;
+	};
+
+	// Backup the current selection and expansion state of our collections
+	// We're about to re-create the tree, so we'll need to re-apply this again afterwards
+	TArray<FCollectionNameType> SelectedCollections;
+	TArray<FCollectionNameType> ExpandedCollections;
+	{
+		const auto SelectedCollectionItems = CollectionTreePtr->GetSelectedItems();
+		SelectedCollections.Reserve(SelectedCollectionItems.Num());
+		for (const TSharedPtr<FCollectionItem>& SelectedCollectionItem : SelectedCollectionItems)
+		{
+			SelectedCollections.Add(FCollectionNameType(SelectedCollectionItem->CollectionName, SelectedCollectionItem->CollectionType));
+		}
+	}
+	{
+		TSet<TSharedPtr<FCollectionItem>> ExpandedCollectionItems;
+		CollectionTreePtr->GetExpandedItems(ExpandedCollectionItems);
+		ExpandedCollections.Reserve(ExpandedCollectionItems.Num());
+		for (const TSharedPtr<FCollectionItem>& ExpandedCollectionItem : ExpandedCollectionItems)
+		{
+			ExpandedCollections.Add(FCollectionNameType(ExpandedCollectionItem->CollectionName, ExpandedCollectionItem->CollectionType));
 		}
 	}
 
-	CollectionItems.Sort( FCollectionItem::FCompareFCollectionItemByName() );
+	FGatherCollectionItems GatherCollectionItems;
+	GatherCollectionItems.GatherCollectionItems(AvailableCollections);
 
 	UpdateFilteredCollectionItems();
+
+	// Restore selection and expansion
+	SetSelectedCollections(SelectedCollections, false);
+	SetExpandedCollections(ExpandedCollections);
 }
 
 void SCollectionView::UpdateFilteredCollectionItems()
 {
-	FilteredCollectionItems.Reset();
-	for ( const auto& CollectionItem : CollectionItems )
+	VisibleCollections.Reset();
+	VisibleRootCollectionItems.Reset();
+
+	auto AddVisibleCollection = [&](const TSharedPtr<FCollectionItem>& InCollectionItem)
 	{
-		if ( CollectionItemTextFilter->PassesFilter(*CollectionItem) )
+		VisibleCollections.Add(FCollectionNameType(InCollectionItem->CollectionName, InCollectionItem->CollectionType));
+		if (!InCollectionItem->ParentCollection.IsValid())
 		{
-			FilteredCollectionItems.Add(CollectionItem);
+			VisibleRootCollectionItems.AddUnique(InCollectionItem);
+		}
+	};
+
+	auto AddVisibleCollectionRecursive = [&](const TSharedPtr<FCollectionItem>& InCollectionItem)
+	{
+		TSharedPtr<FCollectionItem> CollectionItemToAdd = InCollectionItem;
+		do
+		{
+			AddVisibleCollection(CollectionItemToAdd);
+			CollectionItemToAdd = CollectionItemToAdd->ParentCollection.Pin();
+		}
+		while(CollectionItemToAdd.IsValid());
+	};
+
+	// Do we have an active filter to test against?
+	if (CollectionItemTextFilter->GetRawFilterText().IsEmpty())
+	{
+		// No filter, just mark everything as visible
+		for (const auto& AvailableCollectionInfo : AvailableCollections)
+		{
+			AddVisibleCollection(AvailableCollectionInfo.Value);
+		}
+	}
+	else
+	{
+		TArray<TSharedRef<FCollectionItem>> CollectionsToExpandTo;
+
+		// Test everything against the filter - a visible child needs to make sure its parents are also marked as visible
+		for (const auto& AvailableCollectionInfo : AvailableCollections)
+		{
+			const TSharedPtr<FCollectionItem>& CollectionItem = AvailableCollectionInfo.Value;
+			if (CollectionItemTextFilter->PassesFilter(*CollectionItem))
+			{
+				AddVisibleCollectionRecursive(CollectionItem);
+				CollectionsToExpandTo.Add(CollectionItem.ToSharedRef());
+			}
+		}
+
+		// Make sure all matching items have their parents expanded so they can be seen
+		for (const TSharedRef<FCollectionItem>& CollectionItem : CollectionsToExpandTo)
+		{
+			ExpandParentItems(CollectionItem);
 		}
 	}
 
-	CollectionListPtr->RequestListRefresh();
+	VisibleRootCollectionItems.Sort(FCollectionItem::FCompareFCollectionItemByName());
+	CollectionTreePtr->RequestTreeRefresh();
 }
 
 void SCollectionView::SetCollectionsSearchFilterText( const FText& InSearchText )
@@ -271,31 +420,53 @@ FText SCollectionView::GetCollectionsSearchFilterText() const
 	return CollectionItemTextFilter->GetRawFilterText();
 }
 
-void SCollectionView::SetSelectedCollections(const TArray<FCollectionNameType>& CollectionsToSelect)
+void SCollectionView::SetSelectedCollections(const TArray<FCollectionNameType>& CollectionsToSelect, const bool bEnsureVisible)
 {
 	// Prevent the selection changed delegate since the invoking code requested it
 	FScopedPreventSelectionChangedDelegate DelegatePrevention( SharedThis(this) );
 
 	// Expand the collections area if we are indeed selecting at least one collection
-	if ( CollectionsToSelect.Num() > 0 && CollectionsExpandableAreaPtr.IsValid() )
+	if ( bEnsureVisible && CollectionsToSelect.Num() > 0 && CollectionsExpandableAreaPtr.IsValid() )
 	{
 		CollectionsExpandableAreaPtr->SetExpanded(true);
 	}
 
-	// Clear the selection to start, then add the selected paths as they are found
-	CollectionListPtr->ClearSelection();
+	// Clear the selection to start, then add the selected items as they are found
+	CollectionTreePtr->ClearSelection();
 
-	for ( auto CollectionIt = CollectionItems.CreateConstIterator(); CollectionIt; ++CollectionIt )
+	for (const FCollectionNameType& CollectionToSelect : CollectionsToSelect)
 	{
-		const TSharedPtr<FCollectionItem>& Item = *CollectionIt;
-		for ( auto SelectionIt = CollectionsToSelect.CreateConstIterator(); SelectionIt; ++SelectionIt )
+		TSharedPtr<FCollectionItem> CollectionItemToSelect = AvailableCollections.FindRef(CollectionToSelect);
+		if (CollectionItemToSelect.IsValid())
 		{
-			const FCollectionNameType& Selection = *SelectionIt;
-			if ( Item->CollectionName == Selection.Name && Item->CollectionType == Selection.Type )
+			if (bEnsureVisible)
 			{
-				CollectionListPtr->SetItemSelection(Item, true);
-				CollectionListPtr->RequestScrollIntoView(Item);
+				ExpandParentItems(CollectionItemToSelect.ToSharedRef());
+				CollectionTreePtr->RequestScrollIntoView(CollectionItemToSelect);
 			}
+
+			CollectionTreePtr->SetItemSelection(CollectionItemToSelect, true);
+
+			// If the selected collection doesn't pass our current filter, we need to clear it
+			if (bEnsureVisible && !CollectionItemTextFilter->PassesFilter(FCollectionItem(CollectionItemToSelect->CollectionName, CollectionItemToSelect->CollectionType)))
+			{
+				SearchBoxPtr->SetText(FText::GetEmpty());
+			}
+		}
+	}
+}
+
+void SCollectionView::SetExpandedCollections(const TArray<FCollectionNameType>& CollectionsToExpand)
+{
+	// Clear the expansion to start, then add the expanded items as they are found
+	CollectionTreePtr->ClearExpandedItems();
+
+	for (const FCollectionNameType& CollectionToExpand : CollectionsToExpand)
+	{
+		TSharedPtr<FCollectionItem> CollectionItemToExpand = AvailableCollections.FindRef(CollectionToExpand);
+		if (CollectionItemToExpand.IsValid())
+		{
+			CollectionTreePtr->SetItemExpansion(CollectionItemToExpand, true);
 		}
 	}
 }
@@ -306,14 +477,14 @@ void SCollectionView::ClearSelection()
 	FScopedPreventSelectionChangedDelegate DelegatePrevention( SharedThis(this) );
 
 	// Clear the selection to start, then add the selected paths as they are found
-	CollectionListPtr->ClearSelection();
+	CollectionTreePtr->ClearSelection();
 }
 
 TArray<FCollectionNameType> SCollectionView::GetSelectedCollections() const
 {
 	TArray<FCollectionNameType> RetArray;
 
-	TArray<TSharedPtr<FCollectionItem>> Items = CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> Items = CollectionTreePtr->GetSelectedItems();
 	for ( int32 ItemIdx = 0; ItemIdx < Items.Num(); ++ItemIdx )
 	{
 		const TSharedPtr<FCollectionItem>& Item = Items[ItemIdx];
@@ -336,79 +507,105 @@ void SCollectionView::ApplyHistoryData( const FHistoryData& History )
 	// Prevent the selection changed delegate because it would add more history when we are just setting a state
 	FScopedPreventSelectionChangedDelegate DelegatePrevention( SharedThis(this) );
 
-	CollectionListPtr->ClearSelection();
+	CollectionTreePtr->ClearSelection();
 	for ( auto HistoryIt = History.SourcesData.Collections.CreateConstIterator(); HistoryIt; ++HistoryIt)
 	{
-		const FName Name = (*HistoryIt).Name;
-		ECollectionShareType::Type Type = (*HistoryIt).Type;
-		for ( auto CollectionIt = CollectionItems.CreateConstIterator(); CollectionIt; ++CollectionIt)
+		TSharedPtr<FCollectionItem> CollectionHistoryItem = AvailableCollections.FindRef(FCollectionNameType((*HistoryIt).Name, (*HistoryIt).Type));
+		if (CollectionHistoryItem.IsValid())
 		{
-			if ( (*CollectionIt)->CollectionName == Name && (*CollectionIt)->CollectionType == Type )
-			{
-				CollectionListPtr->SetItemSelection(*CollectionIt, true);
-				break;
-			}
+			ExpandParentItems(CollectionHistoryItem.ToSharedRef());
+			CollectionTreePtr->RequestScrollIntoView(CollectionHistoryItem);
+			CollectionTreePtr->SetItemSelection(CollectionHistoryItem, true);
 		}
 	}
 }
 
 void SCollectionView::SaveSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString) const
 {
-	FString SelectedCollectionsString;
-	TArray< TSharedPtr<FCollectionItem> > CollectionSelectedItems = CollectionListPtr->GetSelectedItems();
-	for ( auto CollectionIt = CollectionSelectedItems.CreateConstIterator(); CollectionIt; ++CollectionIt )
+	auto SaveCollectionsArrayToIni = [&](const FString& InSubKey, const TArray<TSharedPtr<FCollectionItem>>& InCollectionItems)
 	{
-		if ( SelectedCollectionsString.Len() > 0 )
+		FString CollectionsString;
+
+		for (const TSharedPtr<FCollectionItem>& CollectionItem : InCollectionItems)
 		{
-			SelectedCollectionsString += TEXT(",");
+			if (CollectionsString.Len() > 0)
+			{
+				CollectionsString += TEXT(",");
+			}
+
+			CollectionsString += CollectionItem->CollectionName.ToString();
+			CollectionsString += TEXT("?");
+			CollectionsString += FString::FromInt(CollectionItem->CollectionType);
 		}
 
-		const TSharedPtr<FCollectionItem>& Collection = *CollectionIt;
-		SelectedCollectionsString += Collection->CollectionName.ToString() + TEXT("?") + FString::FromInt(Collection->CollectionType);
-	}
+		GConfig->SetString(*IniSection, *(SettingsString + InSubKey), *CollectionsString, IniFilename);
+	};
+
 	const bool IsCollectionsExpanded = CollectionsExpandableAreaPtr.IsValid() ? CollectionsExpandableAreaPtr->IsExpanded() : true;
 	GConfig->SetBool(*IniSection, *(SettingsString + TEXT(".CollectionsExpanded")), IsCollectionsExpanded, IniFilename);
-	GConfig->SetString(*IniSection, *(SettingsString + TEXT(".SelectedCollections")), *SelectedCollectionsString, IniFilename);
+	SaveCollectionsArrayToIni(TEXT(".SelectedCollections"), CollectionTreePtr->GetSelectedItems());
+	{
+		TSet<TSharedPtr<FCollectionItem>> ExpandedCollectionItems;
+		CollectionTreePtr->GetExpandedItems(ExpandedCollectionItems);
+		SaveCollectionsArrayToIni(TEXT(".ExpandedCollections"), ExpandedCollectionItems.Array());
+	}
 }
 
 void SCollectionView::LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString)
 {
+	auto LoadCollectionsArrayFromIni = [&](const FString& InSubKey) -> TArray<FCollectionNameType>
+	{
+		TArray<FCollectionNameType> RetCollectionsArray;
+
+		FString CollectionsArrayString;
+		if (GConfig->GetString(*IniSection, *(SettingsString + InSubKey), CollectionsArrayString, IniFilename))
+		{
+			TArray<FString> CollectionStrings;
+			CollectionsArrayString.ParseIntoArray(CollectionStrings, TEXT(","), /*bCullEmpty*/true);
+
+			for (const FString& CollectionString : CollectionStrings)
+			{
+				FString CollectionName;
+				FString CollectionTypeString;
+				if (CollectionString.Split(TEXT("?"), &CollectionName, &CollectionTypeString))
+				{
+					const int32 CollectionType = FCString::Atoi(*CollectionTypeString);
+					if (CollectionType >= 0 && CollectionType < ECollectionShareType::CST_All)
+					{
+						RetCollectionsArray.Add(FCollectionNameType(FName(*CollectionName), ECollectionShareType::Type(CollectionType)));
+					}
+				}
+			}
+		}
+
+		return RetCollectionsArray;
+	};
+
 	// Collection expansion state
 	bool bCollectionsExpanded = false;
-	if ( CollectionsExpandableAreaPtr.IsValid() && GConfig->GetBool(*IniSection, *(SettingsString + TEXT(".CollectionsExpanded")), bCollectionsExpanded, IniFilename) )
+	if (CollectionsExpandableAreaPtr.IsValid() && GConfig->GetBool(*IniSection, *(SettingsString + TEXT(".CollectionsExpanded")), bCollectionsExpanded, IniFilename))
 	{
 		CollectionsExpandableAreaPtr->SetExpanded(bCollectionsExpanded);
 	}
 
 	// Selected Collections
-	FString SelectedCollectionsString;
-	TArray<FCollectionNameType> NewSelectedCollections;
-	if ( GConfig->GetString(*IniSection, *(SettingsString + TEXT(".SelectedCollections")), SelectedCollectionsString, IniFilename) )
+	TArray<FCollectionNameType> NewSelectedCollections = LoadCollectionsArrayFromIni(TEXT(".SelectedCollections"));
+	if (NewSelectedCollections.Num() > 0)
 	{
-		TArray<FString> NewSelectedCollectionStrings;
-		SelectedCollectionsString.ParseIntoArray(NewSelectedCollectionStrings, TEXT(","), /*bCullEmpty*/true);
+		SetSelectedCollections(NewSelectedCollections);
 
-		for ( auto CollectionIt = NewSelectedCollectionStrings.CreateConstIterator(); CollectionIt; ++CollectionIt )
+		const TArray<TSharedPtr<FCollectionItem>> SelectedCollectionItems = CollectionTreePtr->GetSelectedItems();
+		if (SelectedCollectionItems.Num() > 0)
 		{
-			FString CollectionName;
-			FString CollectionTypeString;
-			if ( (*CollectionIt).Split(TEXT("?"), &CollectionName, &CollectionTypeString) )
-			{
-				int32 CollectionType = FCString::Atoi(*CollectionTypeString);
-
-				if ( CollectionType >= 0 && CollectionType < ECollectionShareType::CST_All )
-				{
-					new(NewSelectedCollections) FCollectionNameType(FName(*CollectionName), ECollectionShareType::Type(CollectionType) );
-				}
-			}
+			CollectionSelectionChanged(SelectedCollectionItems[0], ESelectInfo::Direct);
 		}
 	}
 
-	if ( NewSelectedCollections.Num() > 0 )
+	// Expanded Collections
+	TArray<FCollectionNameType> NewExpandedCollections = LoadCollectionsArrayFromIni(TEXT(".ExpandedCollections"));
+	if (NewExpandedCollections.Num() > 0)
 	{
-		// Select the collections
-		SetSelectedCollections(NewSelectedCollections);
-		CollectionSelectionChanged( TSharedPtr<FCollectionItem>(), ESelectInfo::Direct );
+		SetExpandedCollections(NewExpandedCollections);
 	}
 }
 
@@ -418,6 +615,40 @@ FReply SCollectionView::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent&
 	{
 		return FReply::Handled();
 	}
+	return FReply::Unhandled();
+}
+
+void SCollectionView::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+{
+	ValidateDragDropOnCollectionTree(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
+}
+
+void SCollectionView::OnDragLeave( const FDragDropEvent& DragDropEvent )
+{
+	bDraggedOver = false;
+}
+
+FReply SCollectionView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+{
+	ValidateDragDropOnCollectionTree(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
+	return (bDraggedOver) ? FReply::Handled() : FReply::Unhandled();
+}
+
+FReply SCollectionView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+{
+	if (ValidateDragDropOnCollectionTree(MyGeometry, DragDropEvent, bDraggedOver)) // updates bDraggedOver
+	{
+		bDraggedOver = false;
+		return HandleDragDropOnCollectionTree(MyGeometry, DragDropEvent);
+	}
+
+	if (bDraggedOver)
+	{
+		// We were able to handle this operation, but could not due to another error - still report this drop as handled so it doesn't fall through to other widgets
+		bDraggedOver = false;
+		return FReply::Handled();
+	}
+
 	return FReply::Unhandled();
 }
 
@@ -494,11 +725,10 @@ void SCollectionView::CreateCollectionItem( ECollectionShareType::Type Collectio
 		NewItem->bRenaming = true;
 		NewItem->bNewCollection = true;
 
-		CollectionItems.Add( NewItem );
-		CollectionItems.Sort( FCollectionItem::FCompareFCollectionItemByName() );
+		AvailableCollections.Add( FCollectionNameType(NewItem->CollectionName, NewItem->CollectionType), NewItem );
 		UpdateFilteredCollectionItems();
-		CollectionListPtr->RequestScrollIntoView(NewItem);
-		CollectionListPtr->SetSelection( NewItem );
+		CollectionTreePtr->RequestScrollIntoView(NewItem);
+		CollectionTreePtr->SetSelection( NewItem );
 	}
 }
 
@@ -507,54 +737,149 @@ void SCollectionView::RenameCollectionItem( const TSharedPtr<FCollectionItem>& I
 	if ( ensure(ItemToRename.IsValid()) )
 	{
 		ItemToRename->bRenaming = true;
-		CollectionListPtr->RequestScrollIntoView(ItemToRename);
+		CollectionTreePtr->RequestScrollIntoView(ItemToRename);
 	}
 }
 
-void SCollectionView::RemoveCollectionItems( const TArray<TSharedPtr<FCollectionItem>>& ItemsToRemove )
+void SCollectionView::DeleteCollectionItems( const TArray<TSharedPtr<FCollectionItem>>& ItemsToDelete )
 {
-	TArray<TSharedPtr<FCollectionItem>> SelectedItems = CollectionListPtr->GetSelectedItems();
-
-	// Remove all the items, while keeping track of the number of selected items that were removed.
-	int32 LastSelectedItemIdx = INDEX_NONE;
-	int32 NumSelectedItemsRemoved = 0;
-	for (int32 RemoveIdx = 0; RemoveIdx < ItemsToRemove.Num(); ++RemoveIdx)
+	if (ItemsToDelete.Num() == 0)
 	{
-		const TSharedPtr<FCollectionItem>& ItemToRemove = ItemsToRemove[RemoveIdx];
+		return;
+	}
 
-		int32 ItemIdx = INDEX_NONE;
-		if ( CollectionItems.Find(ItemToRemove, ItemIdx) )
+	// Before we delete anything (as this will trigger a tree update) we need to work out what our new selection should be in the case that 
+	// all of the selected items are removed
+	const TArray<TSharedPtr<FCollectionItem>> PreviouslySelectedItems = CollectionTreePtr->GetSelectedItems();
+
+	// Get the first selected item that will be deleted so we can find a suitable new selection
+	TSharedPtr<FCollectionItem> FirstSelectedItemDeleted;
+	for (const auto& ItemToDelete : ItemsToDelete)
+	{
+		if (PreviouslySelectedItems.Contains(ItemToDelete))
 		{
-			if ( SelectedItems.Contains(ItemToRemove) )
-			{
-				NumSelectedItemsRemoved++;
-				LastSelectedItemIdx = ItemIdx;
-			}
-
-			CollectionItems.RemoveAt(ItemIdx);
+			FirstSelectedItemDeleted = ItemToDelete;
+			break;
 		}
 	}
 
-	FScopedPreventSelectionChangedDelegate DelegatePrevention(SharedThis(this));
-	CollectionListPtr->ClearSelection();
-
-	// If we removed all the selected items and there is at least one other item, select it
-	if ( LastSelectedItemIdx > INDEX_NONE && NumSelectedItemsRemoved > 0 && NumSelectedItemsRemoved >= SelectedItems.Num() && CollectionItems.Num() > 1 )
+	// Build up an array of potential new selections (in the case that we're deleting everything that's selected)
+	// Earlier items should be considered first, we base this list on the first selected item that will be deleted, and include previous siblings, and then all parents and roots
+	TArray<FCollectionNameType> PotentialNewSelections;
+	if (FirstSelectedItemDeleted.IsValid())
 	{
-		// The last selected item idx will refer to the next item in the list now that it has been removed.
-		// If the removed item was the last item in the list, select the new last item
-		const int32 NewSelectedItemIdx = FMath::Min(LastSelectedItemIdx, CollectionItems.Num() - 1);
-		
-		CollectionListPtr->SetSelection(CollectionItems[NewSelectedItemIdx]);
+		TSharedPtr<FCollectionItem> RootSelectedItemDeleted = FirstSelectedItemDeleted;
+		TSharedPtr<FCollectionItem> ParentCollectionItem = FirstSelectedItemDeleted->ParentCollection.Pin();
+
+		if (ParentCollectionItem.IsValid())
+		{
+			// Add all the siblings until we find the item that will be deleted
+			for (const auto& ChildItemWeakPtr : ParentCollectionItem->ChildCollections)
+			{
+				TSharedPtr<FCollectionItem> ChildItem = ChildItemWeakPtr.Pin();
+				if (ChildItem.IsValid())
+				{
+					if (ChildItem == FirstSelectedItemDeleted)
+					{
+						break;
+					}
+					
+					// We add siblings as the start, as the closest sibling should be the first match
+					PotentialNewSelections.Insert(FCollectionNameType(ChildItem->CollectionName, ChildItem->CollectionType), 0);
+				}
+			}
+
+			// Now add this parent, and all other parents too
+			do
+			{
+				PotentialNewSelections.Add(FCollectionNameType(ParentCollectionItem->CollectionName, ParentCollectionItem->CollectionType));
+				RootSelectedItemDeleted = ParentCollectionItem;
+				ParentCollectionItem = ParentCollectionItem->ParentCollection.Pin();
+			}
+			while (ParentCollectionItem.IsValid());
+		}
+
+		if (RootSelectedItemDeleted.IsValid())
+		{
+			// Add all the root level items before this one
+			const int32 InsertionPoint = PotentialNewSelections.Num();
+			for (const auto& RootItem : VisibleRootCollectionItems)
+			{
+				if (RootItem == RootSelectedItemDeleted)
+				{
+					break;
+				}
+				
+				// Add each root item at the insertion point, as the closest item should be a better match
+				PotentialNewSelections.Insert(FCollectionNameType(RootItem->CollectionName, RootItem->CollectionType), InsertionPoint);
+			}
+		}
 	}
 
-	// Refresh the list
-	UpdateFilteredCollectionItems();
+	// Delete all given collections
+	int32 NumSelectedItemsDeleted = 0;
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+	for (const TSharedPtr<FCollectionItem>& ItemToDelete : ItemsToDelete)
+	{
+		if (CollectionManagerModule.Get().DestroyCollection(ItemToDelete->CollectionName, ItemToDelete->CollectionType))
+		{
+			if (PreviouslySelectedItems.Contains(ItemToDelete))
+			{
+				++NumSelectedItemsDeleted;
+			}
+		}
+		else
+		{
+			// Display a warning
+			const FVector2D& CursorPos = FSlateApplication::Get().GetCursorPos();
+			FSlateRect MessageAnchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
+			ContentBrowserUtils::DisplayMessage(
+				FText::Format( LOCTEXT("CollectionDestroyFailed", "Failed to destroy collection. {0}"), CollectionManagerModule.Get().GetLastError() ),
+				MessageAnchor,
+				CollectionTreePtr.ToSharedRef()
+				);
+		}
+	}
+
+	// DestroyCollection will have triggered a notification that will have updated the tree, we now need to apply a suitable selection...
+
+	// Did this delete change the list of selected items?
+	if (NumSelectedItemsDeleted > 0 || PreviouslySelectedItems.Num() == 0)
+	{
+		// If we removed everything that was selected, we need to try and find a suitable replacement...
+		if (NumSelectedItemsDeleted >= PreviouslySelectedItems.Num() && VisibleCollections.Num() > 1)
+		{
+			// Include the first visible item as an absolute last resort should everything else suitable have been removed from the tree
+			PotentialNewSelections.Add(*VisibleCollections.CreateConstIterator());
+
+			// Check the potential new selections array and try and select the first one that's still visible in the tree
+			TArray<FCollectionNameType> NewItemSelection;
+			for (const FCollectionNameType& PotentialNewSelection : PotentialNewSelections)
+			{
+				if (VisibleCollections.Contains(PotentialNewSelection))
+				{
+					NewItemSelection.Add(PotentialNewSelection);
+					break;
+				}
+			}
+
+			SetSelectedCollections(NewItemSelection, true);
+		}
+
+		// Broadcast the new selection
+		const TArray<TSharedPtr<FCollectionItem>> UpdatedSelectedItems = CollectionTreePtr->GetSelectedItems();
+		CollectionSelectionChanged((UpdatedSelectedItems.Num() > 0) ? UpdatedSelectedItems[0] : nullptr, ESelectInfo::Direct);
+	}
 }
 
-EVisibility SCollectionView::GetCollectionListVisibility() const
+EVisibility SCollectionView::GetCollectionTreeVisibility() const
 {
-	return CollectionItems.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
+	return AvailableCollections.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+const FSlateBrush* SCollectionView::GetCollectionViewDropTargetBorder() const
+{
+	return bDraggedOver ? FEditorStyle::GetBrush("ContentBrowser.CollectionTreeDragDropBorder") : FEditorStyle::GetBrush("NoBorder");
 }
 
 TSharedRef<ITableRow> SCollectionView::GenerateCollectionRow( TSharedPtr<FCollectionItem> CollectionItem, const TSharedRef<STableViewBase>& OwnerTable )
@@ -572,34 +897,255 @@ TSharedRef<ITableRow> SCollectionView::GenerateCollectionRow( TSharedPtr<FCollec
 		OnCollectionCheckStateChangedDelegate.BindSP(this, &SCollectionView::OnCollectionCheckStateChanged, CollectionItem);
 	}
 
-	TSharedPtr< STableRow< TSharedPtr<FTreeItem> > > TableRow = SNew( STableRow< TSharedPtr<FTreeItem> >, OwnerTable );
+	TSharedPtr< STableRow< TSharedPtr<FCollectionItem> > > TableRow = SNew( STableRow< TSharedPtr<FCollectionItem> >, OwnerTable )
+		.OnDragDetected(this, &SCollectionView::OnCollectionDragDetected);
+
 	TableRow->SetContent
 		(
-			SNew(SCollectionListItem)
+			SNew(SCollectionTreeItem)
 			.ParentWidget(SharedThis(this))
 			.CollectionItem(CollectionItem)
 			.OnNameChangeCommit(this, &SCollectionView::CollectionNameChangeCommit)
 			.OnVerifyRenameCommit(this, &SCollectionView::CollectionVerifyRenameCommit)
-			.OnAssetsDragDropped(this, &SCollectionView::CollectionAssetsDropped)
-			.IsSelected( TableRow.Get(), &STableRow< TSharedPtr<FTreeItem> >::IsSelectedExclusively )
-			.IsReadOnly(this, &SCollectionView::IsCollectionNotRenamable)
-			.HighlightText( this, &SCollectionView::GetCollectionsSearchFilterText)
-			.IsCheckBoxEnabled( IsCollectionCheckBoxEnabledAttribute )
-			.IsCollectionChecked( IsCollectionCheckedAttribute )
-			.OnCollectionCheckStateChanged( OnCollectionCheckStateChangedDelegate )
+			.OnValidateDragDrop(this, &SCollectionView::ValidateDragDropOnCollectionItem)
+			.OnHandleDragDrop(this, &SCollectionView::HandleDragDropOnCollectionItem)
+			.IsSelected(TableRow.Get(), &STableRow< TSharedPtr<FCollectionItem> >::IsSelectedExclusively)
+			.IsReadOnly(this, &SCollectionView::IsCollectionNameReadOnly)
+			.HighlightText(this, &SCollectionView::GetCollectionsSearchFilterText)
+			.IsCheckBoxEnabled(IsCollectionCheckBoxEnabledAttribute)
+			.IsCollectionChecked(IsCollectionCheckedAttribute)
+			.OnCollectionCheckStateChanged(OnCollectionCheckStateChangedDelegate)
 		);
 
 	return TableRow.ToSharedRef();
 }
 
-TSharedPtr<SWidget> SCollectionView::MakeCollectionListContextMenu()
+void SCollectionView::GetCollectionItemChildren( TSharedPtr<FCollectionItem> InParentItem, TArray< TSharedPtr<FCollectionItem> >& OutChildItems ) const
+{
+	for (const auto& ChildItemWeakPtr : InParentItem->ChildCollections)
+	{
+		TSharedPtr<FCollectionItem> ChildItem = ChildItemWeakPtr.Pin();
+		if (ChildItem.IsValid() && VisibleCollections.Contains(FCollectionNameType(ChildItem->CollectionName, ChildItem->CollectionType)))
+		{
+			OutChildItems.Add(ChildItem);
+		}
+	}
+	OutChildItems.Sort(FCollectionItem::FCompareFCollectionItemByName());
+}
+
+FReply SCollectionView::OnCollectionDragDetected(const FGeometry& Geometry, const FPointerEvent& MouseEvent)
+{
+	if (bAllowCollectionDrag && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	{
+		const TArray<FCollectionNameType> SelectedCollections = GetSelectedCollections();
+		if (SelectedCollections.Num() > 0)
+		{
+			TSharedRef<FCollectionDragDropOp> DragDropOp = FCollectionDragDropOp::New(SelectedCollections);
+			CurrentCollectionDragDropOp = DragDropOp;
+			return FReply::Handled().BeginDragDrop(DragDropOp);
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+bool SCollectionView::ValidateDragDropOnCollectionTree(const FGeometry& Geometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation)
+{
+	OutIsKnownDragOperation = false;
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return false;
+	}
+
+	if (Operation->IsOfType<FCollectionDragDropOp>())
+	{
+		OutIsKnownDragOperation = true;
+		return true;
+	}
+
+	return false;
+}
+
+FReply SCollectionView::HandleDragDropOnCollectionTree(const FGeometry& Geometry, const FDragDropEvent& DragDropEvent)
+{
+	// Should have already called ValidateDragDropOnCollectionTree prior to calling this...
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	check(Operation.IsValid());
+
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	if (Operation->IsOfType<FCollectionDragDropOp>())
+	{
+		TSharedPtr<FCollectionDragDropOp> DragDropOp = StaticCastSharedPtr<FCollectionDragDropOp>(Operation);
+		
+		// Reparent all of the collections in the drag drop so that they are root level items
+		for (const FCollectionNameType& NewChildCollection : DragDropOp->Collections)
+		{
+			if (!CollectionManagerModule.Get().ReparentCollection(
+					NewChildCollection.Name, NewChildCollection.Type,
+					NAME_None, ECollectionShareType::CST_All
+					))
+			{
+				ContentBrowserUtils::DisplayMessage(CollectionManagerModule.Get().GetLastError(), Geometry.GetClippingRect(), SharedThis(this));
+			}
+		}
+
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+bool SCollectionView::ValidateDragDropOnCollectionItem(TSharedRef<FCollectionItem> CollectionItem, const FGeometry& Geometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation)
+{
+	OutIsKnownDragOperation = false;
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return false;
+	}
+
+	bool bIsValidDrag = false;
+	TOptional<EMouseCursor::Type> NewDragCursor;
+
+	if (Operation->IsOfType<FCollectionDragDropOp>())
+	{
+		TSharedPtr<FCollectionDragDropOp> DragDropOp = StaticCastSharedPtr<FCollectionDragDropOp>(Operation);
+
+		OutIsKnownDragOperation = true;
+
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+		
+		bIsValidDrag = true;
+		for (const FCollectionNameType& PotentialChildCollection : DragDropOp->Collections)
+		{
+			bIsValidDrag = CollectionManagerModule.Get().IsValidParentCollection(
+				PotentialChildCollection.Name, PotentialChildCollection.Type,
+				CollectionItem->CollectionName, CollectionItem->CollectionType
+				);
+
+			if (!bIsValidDrag)
+			{
+				DragDropOp->SetToolTip(CollectionManagerModule.Get().GetLastError(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")));
+				break;
+			}
+		}
+
+		// If we are dragging over a child collection item, then this view as a whole should not be marked as dragged over
+		bDraggedOver = false;
+	}
+	else if (Operation->IsOfType<FAssetDragDropOp>())
+	{
+		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+		OutIsKnownDragOperation = true;
+		bIsValidDrag = DragDropOp->AssetData.Num() > 0;
+	}
+
+	// Set the default slashed circle if this drag is invalid and a drag operation hasn't set NewDragCursor to something custom
+	if (!bIsValidDrag && !NewDragCursor.IsSet())
+	{
+		NewDragCursor = EMouseCursor::SlashedCircle;
+	}
+	Operation->SetCursorOverride(NewDragCursor);
+
+	return bIsValidDrag;
+}
+
+FReply SCollectionView::HandleDragDropOnCollectionItem(TSharedRef<FCollectionItem> CollectionItem, const FGeometry& Geometry, const FDragDropEvent& DragDropEvent)
+{
+	// Should have already called ValidateDragDropOnCollectionItem prior to calling this...
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	check(Operation.IsValid());
+
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+	if (Operation->IsOfType<FCollectionDragDropOp>())
+	{
+		TSharedPtr<FCollectionDragDropOp> DragDropOp = StaticCastSharedPtr<FCollectionDragDropOp>(Operation);
+		
+		// Make sure our drop item is marked as expanded so that we'll be able to see the newly added children
+		CollectionTreePtr->SetItemExpansion(CollectionItem, true);
+
+		// Reparent all of the collections in the drag drop so that they are our immediate children
+		for (const FCollectionNameType& NewChildCollection : DragDropOp->Collections)
+		{
+			if (!CollectionManagerModule.Get().ReparentCollection(
+					NewChildCollection.Name, NewChildCollection.Type,
+					CollectionItem->CollectionName, CollectionItem->CollectionType
+					))
+			{
+				ContentBrowserUtils::DisplayMessage(CollectionManagerModule.Get().GetLastError(), Geometry.GetClippingRect(), SharedThis(this));
+			}
+		}
+
+		return FReply::Handled();
+	}
+	else if (Operation->IsOfType<FAssetDragDropOp>())
+	{
+		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+			
+		TArray<FName> ObjectPaths;
+		ObjectPaths.Reserve(DragDropOp->AssetData.Num());
+		for (const FAssetData& AssetData : DragDropOp->AssetData)
+		{
+			ObjectPaths.Add(AssetData.ObjectPath);
+		}
+
+		int32 NumAdded = 0;
+		FText Message;
+		if (CollectionManagerModule.Get().AddToCollection(CollectionItem->CollectionName, CollectionItem->CollectionType, ObjectPaths, &NumAdded))
+		{
+			if (DragDropOp->AssetData.Num() == 1)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("AssetName"), FText::FromName(DragDropOp->AssetData[0].AssetName));
+				Args.Add(TEXT("CollectionName"), FText::FromName(CollectionItem->CollectionName));
+				Message = FText::Format(LOCTEXT("CollectionAssetsAdded", "Added {AssetName} to {CollectionName}"), Args);
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Number"), NumAdded);
+				Args.Add(TEXT("CollectionName"), FText::FromName(CollectionItem->CollectionName));
+				Message = FText::Format(LOCTEXT("CollectionAssetsAdded", "Added {Number} asset(s) to {CollectionName}"), Args);
+			}
+		}
+		else
+		{
+			Message = CollectionManagerModule.Get().GetLastError();
+		}
+
+		// Added items to the collection or failed. Either way, display the message.
+		ContentBrowserUtils::DisplayMessage(Message, Geometry.GetClippingRect(), SharedThis(this));
+
+		return FReply::Handled();
+	}
+
+	return FReply::Unhandled();
+}
+
+void SCollectionView::ExpandParentItems(const TSharedRef<FCollectionItem>& InCollectionItem)
+{
+	for (TSharedPtr<FCollectionItem> CollectionItemToExpand = InCollectionItem->ParentCollection.Pin(); 
+		CollectionItemToExpand.IsValid(); 
+		CollectionItemToExpand = CollectionItemToExpand->ParentCollection.Pin()
+		)
+	{
+		CollectionTreePtr->SetItemExpansion(CollectionItemToExpand, true);
+	}
+}
+
+TSharedPtr<SWidget> SCollectionView::MakeCollectionTreeContextMenu()
 {
 	if ( !bAllowRightClickMenu )
 	{
 		return NULL;
 	}
 
-	return CollectionContextMenu->MakeCollectionListContextMenu(Commands);
+	return CollectionContextMenu->MakeCollectionTreeContextMenu(Commands);
 }
 
 bool SCollectionView::IsCollectionCheckBoxEnabled( TSharedPtr<FCollectionItem> CollectionItem ) const
@@ -651,40 +1197,6 @@ void SCollectionView::CollectionSelectionChanged( TSharedPtr< FCollectionItem > 
 	}
 }
 
-void SCollectionView::CollectionAssetsDropped(const TArray<FAssetData>& AssetList, const TSharedPtr<FCollectionItem>& CollectionItem, FText& OutMessage)
-{
-	TArray<FName> ObjectPaths;
-
-	for ( auto AssetIt = AssetList.CreateConstIterator(); AssetIt; ++AssetIt )
-	{
-		ObjectPaths.Add((*AssetIt).ObjectPath);
-	}
-
-	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-	int32 NumAdded = 0;
-	if ( CollectionManagerModule.Get().AddToCollection(CollectionItem->CollectionName, CollectionItem->CollectionType, ObjectPaths, &NumAdded) )
-	{
-		if ( AssetList.Num() == 1 )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("AssetName"), FText::FromName(AssetList[0].AssetName) );
-			Args.Add( TEXT("CollectionName"), FText::FromName(CollectionItem->CollectionName) );
-			OutMessage = FText::Format( LOCTEXT("CollectionAssetsAdded", "Added {AssetName} to {CollectionName}"), Args );
-		}
-		else
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("Number"), NumAdded );
-			Args.Add( TEXT("CollectionName"), FText::FromName(CollectionItem->CollectionName) );
-			OutMessage = FText::Format( LOCTEXT("CollectionAssetsAdded", "Added {Number} asset(s) to {CollectionName}"), Args );
-		}
-	}
-	else
-	{
-		OutMessage = CollectionManagerModule.Get().GetLastError();
-	}
-}
-
 void SCollectionView::CollectionItemScrolledIntoView( TSharedPtr<FCollectionItem> CollectionItem, const TSharedPtr<ITableRow>& Widget )
 {
 	if ( CollectionItem->bRenaming && Widget.IsValid() && Widget->GetContent().IsValid() )
@@ -693,8 +1205,22 @@ void SCollectionView::CollectionItemScrolledIntoView( TSharedPtr<FCollectionItem
 	}
 }
 
-bool SCollectionView::IsCollectionNotRenamable() const
+bool SCollectionView::IsCollectionNameReadOnly() const
 {
+	// We can't rename collections while they're being dragged
+	TSharedPtr<FCollectionDragDropOp> DragDropOp = CurrentCollectionDragDropOp.Pin();
+	if (DragDropOp.IsValid())
+	{
+		TArray<TSharedPtr<FCollectionItem>> SelectedCollectionItems = CollectionTreePtr->GetSelectedItems();
+		for (const auto& SelectedCollectionItem : SelectedCollectionItems)
+		{
+			if (DragDropOp->Collections.Contains(FCollectionNameType(SelectedCollectionItem->CollectionName, SelectedCollectionItem->CollectionType)))
+			{
+				return true;
+			}
+		}
+	}
+
 	CollectionContextMenu->UpdateProjectSourceControl();
 	return !CollectionContextMenu->CanRenameSelectedCollections();
 }
@@ -702,7 +1228,7 @@ bool SCollectionView::IsCollectionNotRenamable() const
 bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionItem >& CollectionItem, const FString& NewName, bool bChangeConfirmed, FText& OutWarningMessage )
 {
 	// There should only ever be one item selected when renaming
-	check(CollectionListPtr->GetNumItemsSelected() == 1);
+	check(CollectionTreePtr->GetNumItemsSelected() == 1);
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	ECollectionShareType::Type CollectionType = CollectionItem->CollectionType;
@@ -717,7 +1243,7 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 		// If we can canceled the name change when creating a new asset, we want to silently remove it
 		if ( !bChangeConfirmed )
 		{
-			CollectionItems.Remove(CollectionItem);
+			AvailableCollections.Remove(FCollectionNameType(CollectionItem->CollectionName, CollectionItem->CollectionType));
 			UpdateFilteredCollectionItems();
 			return false;
 		}
@@ -725,7 +1251,7 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 		if ( !CollectionManagerModule.Get().CreateCollection(NewNameFinal, CollectionType) )
 		{
 			// Failed to add the collection, remove it from the list
-			CollectionItems.Remove(CollectionItem);
+			AvailableCollections.Remove(FCollectionNameType(CollectionItem->CollectionName, CollectionItem->CollectionType));
 			UpdateFilteredCollectionItems();
 
 			OutWarningMessage = FText::Format( LOCTEXT("CreateCollectionFailed", "Failed to create the collection. {0}"), CollectionManagerModule.Get().GetLastError());
@@ -755,33 +1281,23 @@ bool SCollectionView::CollectionNameChangeCommit( const TSharedPtr< FCollectionI
 		}
 	}
 
-	// Make sure we are sorted
-	CollectionItems.Sort( FCollectionItem::FCompareFCollectionItemByName() );
-
 	// At this point CollectionItem is no longer a member of the CollectionItems list (as the list is repopulated by
 	// UpdateCollectionItems, which is called by a broadcast from CollectionManagerModule::RenameCollection, above).
 	// So search again for the item by name and type.
-
-	auto FindCollectionItemPredicate = [CollectionType, &NewNameFinal] (const TSharedPtr<FCollectionItem>& Item)
-	{
-		return ( Item->CollectionType == CollectionType &&
-				 Item->CollectionName == NewNameFinal );
-	};
-
-	auto NewCollectionItemPtr = CollectionItems.FindByPredicate( FindCollectionItemPredicate );
+	auto NewCollectionItemPtr = AvailableCollections.Find( FCollectionNameType(NewNameFinal, CollectionType) );
 
 	// Reselect the path to notify that the selection has changed
 	{
 		FScopedPreventSelectionChangedDelegate DelegatePrevention( SharedThis(this) );
-		CollectionListPtr->ClearSelection();
+		CollectionTreePtr->ClearSelection();
 	}
 
 	// Set the selection
 	if (NewCollectionItemPtr)
 	{
 		const auto& NewCollectionItem = *NewCollectionItemPtr;
-		CollectionListPtr->RequestScrollIntoView(NewCollectionItem);
-		CollectionListPtr->SetItemSelection(NewCollectionItem, true);
+		CollectionTreePtr->RequestScrollIntoView(NewCollectionItem);
+		CollectionTreePtr->SetItemSelection(NewCollectionItem, true);
 	}
 
 	return true;

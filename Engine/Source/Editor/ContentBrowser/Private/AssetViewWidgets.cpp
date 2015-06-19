@@ -60,6 +60,150 @@ FReply FAssetViewModeUtils::OnViewModeKeyDown( const TSet< TSharedPtr<FAssetView
 
 
 ///////////////////////////////
+// FAssetViewModeUtils
+///////////////////////////////
+
+TSharedRef<SWidget> FAssetViewItemHelper::CreateListItemContents(SAssetListItem* const InListItem, const TSharedRef<SWidget>& InThumbnail, FName& OutItemShadowBorder)
+{
+	return CreateListTileItemContents(InListItem, InThumbnail, OutItemShadowBorder);
+}
+
+TSharedRef<SWidget> FAssetViewItemHelper::CreateTileItemContents(SAssetTileItem* const InTileItem, const TSharedRef<SWidget>& InThumbnail, FName& OutItemShadowBorder)
+{
+	return CreateListTileItemContents(InTileItem, InThumbnail, OutItemShadowBorder);
+}
+
+template <typename T>
+TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const InTileOrListItem, const TSharedRef<SWidget>& InThumbnail, FName& OutItemShadowBorder)
+{
+	TSharedRef<SOverlay> ItemContentsOverlay = SNew(SOverlay);
+
+	if (InTileOrListItem->IsFolder())
+	{
+		OutItemShadowBorder = FName("NoBorder");
+
+		TSharedPtr<FAssetViewFolder> AssetFolderItem = StaticCastSharedPtr<FAssetViewFolder>(InTileOrListItem->AssetItem);
+
+		const bool bIsDeveloperFolder = AssetFolderItem->bDeveloperFolder;
+
+		ECollectionShareType::Type CollectionFolderShareType = ECollectionShareType::CST_All;
+		const bool bIsCollectionFolder = ContentBrowserUtils::IsCollectionPath(AssetFolderItem->FolderPath, nullptr, &CollectionFolderShareType);
+
+		const FSlateBrush* FolderBaseImage = bIsDeveloperFolder 
+			? FEditorStyle::GetBrush("ContentBrowser.ListViewDeveloperFolderIcon.Base") 
+			: FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Base");
+
+		const FSlateBrush* FolderTintImage = bIsDeveloperFolder 
+			? FEditorStyle::GetBrush("ContentBrowser.ListViewDeveloperFolderIcon.Mask") 
+			: FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Mask");
+
+		// Folder base
+		ItemContentsOverlay->AddSlot()
+		[
+			SNew(SImage)
+			.Image(FolderBaseImage)
+			.ColorAndOpacity(InTileOrListItem, &T::GetAssetColor)
+		];
+
+		if (bIsCollectionFolder)
+		{
+			FLinearColor IconColor = FLinearColor::White;
+			switch(CollectionFolderShareType)
+			{
+			case ECollectionShareType::CST_Local:
+				IconColor = FColor(196, 15, 24);
+				break;
+			case ECollectionShareType::CST_Private:
+				IconColor = FColor(192, 196, 0);
+				break;
+			case ECollectionShareType::CST_Shared:
+				IconColor = FColor(0, 136, 0);
+				break;
+			default:
+				break;
+			}
+
+			auto GetCollectionIconBoxSize = [InTileOrListItem]() -> FOptionalSize
+			{
+				return FOptionalSize(InTileOrListItem->GetThumbnailBoxSize().Get() * 0.3f);
+			};
+
+			auto GetCollectionIconBrush = [=]() -> const FSlateBrush*
+			{
+				const TCHAR* IconSizeSuffix = (GetCollectionIconBoxSize().Get() <= 16.0f) ? TEXT(".Small") : TEXT(".Large");
+				return FEditorStyle::GetBrush(ECollectionShareType::GetIconStyleName(CollectionFolderShareType, IconSizeSuffix));
+			};
+
+			// Collection share type
+			ItemContentsOverlay->AddSlot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SBox)
+				.WidthOverride_Lambda(GetCollectionIconBoxSize)
+				.HeightOverride_Lambda(GetCollectionIconBoxSize)
+				[
+					SNew(SImage)
+					.Image_Lambda(GetCollectionIconBrush)
+					.ColorAndOpacity(IconColor)
+				]
+			];
+		}
+
+		// Folder tint
+		ItemContentsOverlay->AddSlot()
+		[
+			SNew(SImage)
+			.Image(FolderTintImage)
+		];
+	}
+	else
+	{
+		OutItemShadowBorder = FName("ContentBrowser.ThumbnailShadow");
+
+		// The actual thumbnail
+		ItemContentsOverlay->AddSlot()
+		[
+			InThumbnail
+		];
+
+		// Tools for thumbnail edit mode
+		ItemContentsOverlay->AddSlot()
+		[
+			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
+			.SmallView(true)
+			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
+		];
+
+		// Source control state
+		ItemContentsOverlay->AddSlot()
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Top)
+		[
+			SNew(SBox)
+			.WidthOverride(InTileOrListItem, &T::GetSCCImageSize)
+			.HeightOverride(InTileOrListItem, &T::GetSCCImageSize)
+			[
+				SNew(SImage)
+				.Image(InTileOrListItem, &T::GetSCCStateImage)
+			]
+		];
+
+		// Dirty state
+		ItemContentsOverlay->AddSlot()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SImage)
+			.Image(InTileOrListItem, &T::GetDirtyImage)
+		];
+	}
+
+	return ItemContentsOverlay;
+}
+
+
+///////////////////////////////
 // Asset view modes
 ///////////////////////////////
 
@@ -188,19 +332,15 @@ TSharedPtr<IToolTip> SAssetViewItem::GetToolTip()
 	return ShouldAllowToolTip.Get() ? SCompoundWidget::GetToolTip() : NULL;
 }
 
-bool SAssetViewItem::ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) const
+bool SAssetViewItem::ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation ) const
 {
-	return IsFolder() && DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
+	OutIsKnownDragOperation = false;
+	return IsFolder() && DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath, OutIsKnownDragOperation);
 }
 
 void SAssetViewItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	if (ValidateDragDrop(MyGeometry, DragDropEvent))
-	{
-		bDraggedOver = true;
-	}
+	ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
 }
 	
 void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
@@ -227,23 +367,16 @@ void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SAssetViewItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	if (ValidateDragDrop(MyGeometry, DragDropEvent))
-	{
-		bDraggedOver = true;
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
+	ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
+	return (bDraggedOver) ? FReply::Handled() : FReply::Unhandled();
 }
 
 FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	if (ValidateDragDrop(MyGeometry, DragDropEvent))
+	if (ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver)) // updates bDraggedOver
 	{
+		bDraggedOver = false;
+
 		check(AssetItem->GetType() == EAssetItemType::Folder);
 
 		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
@@ -270,6 +403,13 @@ FReply SAssetViewItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 			OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->FolderPath);
 			return FReply::Handled();
 		}
+	}
+
+	if (bDraggedOver)
+	{
+		// We were able to handle this operation, but could not due to another error - still report this drop as handled so it doesn't fall through to other widgets
+		bDraggedOver = false;
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
@@ -925,7 +1065,6 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	ItemHeight = InArgs._ItemHeight;
 
 	const float ThumbnailPadding = InArgs._ThumbnailPadding;
-	bool bIsDeveloperFolder = false;
 
 	TSharedPtr<SWidget> Thumbnail;
 	if ( AssetItem.IsValid() && AssetThumbnail.IsValid() )
@@ -944,6 +1083,9 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	{
 		Thumbnail = SNew(SImage) .Image( FEditorStyle::GetDefaultBrush() );
 	}
+
+	FName ItemShadowBorderName;
+	TSharedRef<SWidget> ItemContents = FAssetViewItemHelper::CreateListItemContents(this, Thumbnail.ToSharedRef(), ItemShadowBorderName);
 
 	ChildSlot
 	[
@@ -967,66 +1109,9 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 					// Drop shadow border
 					SNew(SBorder)
 					.Padding(4.f)
-					.BorderImage( IsFolder() ? FEditorStyle::GetBrush("NoBorder") : FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
+					.BorderImage(FEditorStyle::GetBrush(ItemShadowBorderName))
 					[
-						SNew(SOverlay)
-				
-						// Folder base
-						+SOverlay::Slot()
-						[
-							SNew(SImage)
-							.Visibility(IsFolder() ? EVisibility::Visible : EVisibility::Collapsed)
-							.Image( bIsDeveloperFolder ? FEditorStyle::GetBrush("ContentBrowser.ListViewDeveloperFolderIcon.Base") : FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Base") )
-							.ColorAndOpacity(this, &SAssetViewItem::GetAssetColor)
-						]
-
-						// Folder tint
-						+SOverlay::Slot()
-						[
-							SNew(SImage)
-							.Visibility(IsFolder() ? EVisibility::Visible : EVisibility::Collapsed)
-							.Image( bIsDeveloperFolder ? FEditorStyle::GetBrush("ContentBrowser.ListViewDeveloperFolderIcon.Mask") : FEditorStyle::GetBrush("ContentBrowser.ListViewFolderIcon.Mask") )
-						]
-
-						// The actual thumbnail
-						+SOverlay::Slot()
-						[
-							SNew(SHorizontalBox)
-							.Visibility(IsFolder() ? EVisibility::Collapsed : EVisibility::Visible)
-							+SHorizontalBox::Slot()
-							[
-								Thumbnail.ToSharedRef()
-							]
-						]
-
-						+SOverlay::Slot()
-						[
-							SNew(SThumbnailEditModeTools, AssetThumbnail)
-							.SmallView(true)
-							.Visibility(this, &SAssetListItem::GetThumbnailEditModeUIVisibility)
-						]
-
-						// Source control state
-						+SOverlay::Slot()
-						.HAlign(HAlign_Right)
-						.VAlign(VAlign_Top)
-						[
-							SNew( SBox )
-							.WidthOverride( this, &SAssetListItem::GetSCCImageSize )
-							.HeightOverride( this, &SAssetListItem::GetSCCImageSize )
-							[
-								SNew(SImage).Image( this, &SAssetListItem::GetSCCStateImage )
-							]
-						]
-
-						// Dirty state
-						+SOverlay::Slot()
-						.HAlign(HAlign_Left)
-						.VAlign(VAlign_Bottom)
-						[
-							SNew(SImage)
-							.Image( this, &SAssetListItem::GetDirtyImage )
-						]
+						ItemContents
 					]
 				]
 			]
@@ -1155,15 +1240,8 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 		Thumbnail = SNew(SImage) .Image( FEditorStyle::GetDefaultBrush() );
 	}
 
-	bool bIsDeveloperFolder = false;
-
-	if(AssetItem.IsValid())
-	{
-		if(AssetItem->GetType() == EAssetItemType::Folder)
-		{
-			bIsDeveloperFolder = StaticCastSharedPtr<FAssetViewFolder>(AssetItem)->bDeveloperFolder;
-		}
-	}
+	FName ItemShadowBorderName;
+	TSharedRef<SWidget> ItemContents = FAssetViewItemHelper::CreateTileItemContents(this, Thumbnail.ToSharedRef(), ItemShadowBorderName);
 
 	ChildSlot
 	[
@@ -1188,69 +1266,9 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 					// Drop shadow border
 					SNew(SBorder)
 					.Padding(4.f)
-					.BorderImage(IsFolder() ? FEditorStyle::GetBrush("NoBorder") : FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow"))
+					.BorderImage(FEditorStyle::GetBrush(ItemShadowBorderName))
 					[
-						SNew(SOverlay)
-
-						// Folder base
-						+SOverlay::Slot()
-						[
-							SNew(SImage)
-							.Visibility(IsFolder() ? EVisibility::Visible : EVisibility::Collapsed)
-							.Image( bIsDeveloperFolder ? FEditorStyle::GetBrush("ContentBrowser.TileViewDeveloperFolderIcon.Base") : FEditorStyle::GetBrush("ContentBrowser.TileViewFolderIcon.Base") )
-							.ColorAndOpacity(this, &SAssetViewItem::GetAssetColor)
-						]
-
-						// Folder tint
-						+SOverlay::Slot()
-						[
-							SNew(SImage)
-							.Visibility(IsFolder() ? EVisibility::Visible : EVisibility::Collapsed)
-							.Image( bIsDeveloperFolder ? FEditorStyle::GetBrush("ContentBrowser.TileViewDeveloperFolderIcon.Mask") : FEditorStyle::GetBrush("ContentBrowser.TileViewFolderIcon.Mask") )
-						]
-
-						// The actual thumbnail
-						+SOverlay::Slot()
-						[
-							SNew(SHorizontalBox)
-							.Visibility(IsFolder() ? EVisibility::Collapsed : EVisibility::Visible)
-							+SHorizontalBox::Slot()
-							[
-								Thumbnail.ToSharedRef()
-							]
-						]
-
-						// Tools for thumbnail edit mode
-						+SOverlay::Slot()
-						[
-							SNew(SThumbnailEditModeTools, AssetThumbnail)
-							.Visibility(this, &SAssetTileItem::GetThumbnailEditModeUIVisibility)
-						]
-
-						// Source control state
-						+SOverlay::Slot()
-						.HAlign(HAlign_Right)
-						.VAlign(VAlign_Top)
-						.Padding(FMargin(0, 2, 2, 0))
-						[
-							SNew( SBox )
-							.WidthOverride( this, &SAssetTileItem::GetSCCImageSize )
-							.HeightOverride( this, &SAssetTileItem::GetSCCImageSize )
-							[
-								SNew(SImage)
-								.Image( this, &SAssetTileItem::GetSCCStateImage )
-							]
-						]
-
-						// Dirty state
-						+SOverlay::Slot()
-						.HAlign(HAlign_Left)
-						.VAlign(VAlign_Bottom)
-						.Padding(FMargin(2, 0, 0, 2))
-						[
-							SNew(SImage)
-							.Image( this, &SAssetTileItem::GetDirtyImage )
-						]
+						ItemContents
 					]
 				]
 			]

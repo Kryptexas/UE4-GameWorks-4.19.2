@@ -455,6 +455,7 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 							SAssignNew(CollectionViewPtr, SCollectionView)
 							.OnCollectionSelected(this, &SContentBrowser::CollectionSelected)
 							.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("ContentBrowserCollections")))
+							.AllowCollectionDrag(true)
 							.AllowQuickAssetManagement(true)
 						]
 					]
@@ -1087,12 +1088,28 @@ void SContentBrowser::SourcesChanged(const TArray<FString>& SelectedPaths, const
 
 void SContentBrowser::FolderEntered(const FString& FolderPath)
 {
-	// set the path view to the incoming path
-	TArray<FString> SelectedPaths;
-	SelectedPaths.Add(FolderPath);
-	PathViewPtr->SetSelectedPaths(SelectedPaths);
+	// Have we entered a sub-collection folder?
+	FName CollectionName;
+	ECollectionShareType::Type CollectionFolderShareType = ECollectionShareType::CST_All;
+	if (ContentBrowserUtils::IsCollectionPath(FolderPath, &CollectionName, &CollectionFolderShareType))
+	{
+		const FCollectionNameType SelectedCollection(CollectionName, CollectionFolderShareType);
 
-	PathSelected(FolderPath);
+		TArray<FCollectionNameType> Collections;
+		Collections.Add(SelectedCollection);
+		CollectionViewPtr->SetSelectedCollections(Collections);
+
+		CollectionSelected(SelectedCollection);
+	}
+	else
+	{
+		// set the path view to the incoming path
+		TArray<FString> SelectedPaths;
+		SelectedPaths.Add(FolderPath);
+		PathViewPtr->SetSelectedPaths(SelectedPaths);
+
+		PathSelected(FolderPath);
+	}
 }
 
 void SContentBrowser::PathSelected(const FString& FolderPath)

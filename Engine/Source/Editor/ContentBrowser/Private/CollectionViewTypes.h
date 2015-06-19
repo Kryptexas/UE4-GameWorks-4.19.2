@@ -19,6 +19,12 @@ struct FCollectionItem
 	/** The type of the collection */
 	ECollectionShareType::Type CollectionType;
 
+	/** Pointer to our parent collection (if any) */
+	TWeakPtr<FCollectionItem> ParentCollection;
+
+	/** Array of pointers to our child collections (if any) */
+	TArray<TWeakPtr<FCollectionItem>> ChildCollections;
+
 	/** If true, will set up an inline rename after next ScrollIntoView */
 	bool bRenaming;
 
@@ -35,6 +41,8 @@ struct FCollectionItem
 	FCollectionItem(const FName& InCollectionName, const ECollectionShareType::Type& InCollectionType)
 		: CollectionName(InCollectionName)
 		, CollectionType(InCollectionType)
+		, ParentCollection()
+		, ChildCollections()
 		, bRenaming(false)
 		, bNewCollection(false)
 	{}

@@ -126,7 +126,7 @@ bool AssetDataTestComplexExpression(FAssetFilterType Asset, const FName& InKey, 
 		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 		TArray<FName> AssetCollectionNames;
-		CollectionManagerModule.Get().GetCollectionsContainingObject(Asset.ObjectPath, ECollectionShareType::CST_All, AssetCollectionNames);
+		CollectionManagerModule.Get().GetCollectionsContainingObject(Asset.ObjectPath, ECollectionShareType::CST_All, AssetCollectionNames, ECollectionRecursionFlags::SelfAndChildren);
 
 		bool bFoundMatch = false;
 		for (const FName& AssetCollectionName : AssetCollectionNames)

@@ -5,70 +5,62 @@
 
 #define LOCTEXT_NAMESPACE "CollectionManager"
 
-
-enum ECollectionFileVersion
-{
-	// The initial version for collection files
-	COLLECTION_VER_INITIAL								= 1,
-
-	// The automatic version count. This must always be at the end of the enum
-	COLLECTION_VER_AUTOMATIC_VERSION_PLUS_ONE
-};
-
 struct FCollectionUtils
 {
-	static void AppendCollectionToArray(const TSet<FName>& InAssetSet, TArray<FName>& OutAssetArray)
+	static void AppendCollectionToArray(const TSet<FName>& InObjectSet, TArray<FName>& OutObjectArray)
 	{
-		OutAssetArray.Reserve(OutAssetArray.Num() + InAssetSet.Num());
-		for (const FName& AssetName : InAssetSet)
+		OutObjectArray.Reserve(OutObjectArray.Num() + InObjectSet.Num());
+		for (const FName& ObjectName : InObjectSet)
 		{
-			OutAssetArray.Add(AssetName);
+			OutObjectArray.Add(ObjectName);
 		}
-	}
-
-	static TArray<FName> CreateCollectionArray(const TSet<FName>& InAssetSet)
-	{
-		TArray<FName> AssetArray;
-		AppendCollectionToArray(InAssetSet, AssetArray);
-		return AssetArray;
 	}
 };
 
-FCollection::FCollection()
+FCollection::FCollection(const FString& InFilename, bool InUseSCC)
 {
+	ensure(InFilename.Len() > 0);
 
-}
-
-FCollection::FCollection(FName InCollectionName, const FString& SourceFolder, const FString& CollectionExtension, bool InUseSCC)
-{
-	CollectionName = InCollectionName;
-	bUseSCC = InUseSCC;
-
-	// Initialize the file version to the most recent
-	FileVersion = COLLECTION_VER_AUTOMATIC_VERSION_PLUS_ONE - 1;
-
-	if ( ensure(SourceFolder.Len()) )
-	{
-		SourceFilename = SourceFolder / CollectionName.ToString() + TEXT(".") + CollectionExtension;
-		SourceFilename.ReplaceInline(TEXT("//"), TEXT("/"));
-	}
-}
-
-bool FCollection::LoadFromFile(const FString& InFilename, bool InUseSCC)
-{
-	Clear();
-
-	FString FullFileContentsString;
-	if ( !FFileHelper::LoadFileToString(FullFileContentsString, *InFilename) )
-	{
-		return false;
-	}
-
-	// Initialize the FCollection and set up the collection name
 	bUseSCC = InUseSCC;
 	SourceFilename = InFilename;
 	CollectionName = FName(*FPaths::GetBaseFilename(InFilename));
-		
+
+	CollectionGuid = FGuid::NewGuid();
+
+	// Initialize the file version to the most recent
+	FileVersion = ECollectionVersion::CurrentVersion;
+}
+
+TSharedRef<FCollection> FCollection::Clone(const FString& InFilename, bool InUseSCC, ECollectionCloneMode InCloneMode) const
+{
+	TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(*this));
+
+	// Set the new collection name and path
+	NewCollection->bUseSCC = InUseSCC;
+	NewCollection->SourceFilename = InFilename;
+	NewCollection->CollectionName = FName(*FPaths::GetBaseFilename(InFilename));
+
+	// Create a new GUID?
+	if (InCloneMode == ECollectionCloneMode::Unique)
+	{
+		NewCollection->CollectionGuid = FGuid::NewGuid();
+	}
+
+	return NewCollection;
+}
+
+bool FCollection::Load(FText& OutError)
+{
+	ObjectSet.Empty();
+	DiskSnapshot = FCollectionSnapshot();
+
+	FString FullFileContentsString;
+	if (!FFileHelper::LoadFileToString(FullFileContentsString, *SourceFilename))
+	{
+		OutError = FText::Format(LOCTEXT("LoadError_FailedToLoadFile", "Failed to load the collection '{0}' from disk."), FText::FromString(SourceFilename));
+		return false;
+	}
+
 	// Normalize line endings and parse into array
 	TArray<FString> FileContents;
 	FullFileContentsString.ReplaceInline(TEXT("\r"), TEXT(""));
@@ -106,6 +98,7 @@ bool FCollection::LoadFromFile(const FString& InFilename, bool InUseSCC)
 	if ( !LoadHeaderPairs(HeaderPairs) )
 	{
 		// Bad header
+		OutError = FText::Format(LOCTEXT("LoadError_BadHeader", "The collection file '{0}' contains a bad header and could not be loaded."), FText::FromString(SourceFilename));
 		return false;
 	}
 
@@ -127,9 +120,9 @@ bool FCollection::LoadFromFile(const FString& InFilename, bool InUseSCC)
 				AddAssetToCollection(FName(*Line));
 			}
 		}
-
-		DiskAssetSet = AssetSet;
 	}
+
+	DiskSnapshot.TakeSnapshot(*this);
 
 	return true;
 }
@@ -171,7 +164,7 @@ bool FCollection::Save(FText& OutError)
 
 	// Start with the header
 	TMap<FString,FString> HeaderPairs;
-	GenerateHeaderPairs(HeaderPairs);
+	SaveHeaderPairs(HeaderPairs);
 	for (const auto& HeaderPair : HeaderPairs)
 	{
 		FileOutput += HeaderPair.Key + TEXT(":") + HeaderPair.Value + LINE_TERMINATOR;
@@ -186,13 +179,13 @@ bool FCollection::Save(FText& OutError)
 	else
 	{
 		// Write out the set as a sorted array to keep things in a known order for diffing
-		TArray<FName> AssetList = FCollectionUtils::CreateCollectionArray(AssetSet);
-		AssetList.Sort();
+		TArray<FName> ObjectList = ObjectSet.Array();
+		ObjectList.Sort();
 
-		// Static collection. Save a flat list of all assets in the collection.
-		for (const FName& AssetName : AssetList)
+		// Static collection. Save a flat list of all objects in the collection.
+		for (const FName& ObjectName : ObjectList)
 		{
-			FileOutput += AssetName.ToString() + LINE_TERMINATOR;
+			FileOutput += ObjectName.ToString() + LINE_TERMINATOR;
 		}
 	}
 
@@ -251,7 +244,10 @@ bool FCollection::Save(FText& OutError)
 
 	if ( bSaveSuccessful )
 	{
-		DiskAssetSet = AssetSet;
+		// Files are always saved at the latest version as loading should take care of data upgrades
+		FileVersion = ECollectionVersion::CurrentVersion;
+
+		DiskSnapshot.TakeSnapshot(*this);
 	}
 
 	GWarn->EndSlowTask();
@@ -288,7 +284,7 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 
 	if ( bSuccessfullyDeleted )
 	{
-		DiskAssetSet.Empty();
+		DiskSnapshot = FCollectionSnapshot();
 	}
 
 	return bSuccessfullyDeleted;
@@ -297,10 +293,9 @@ bool FCollection::DeleteSourceFile(FText& OutError)
 bool FCollection::AddAssetToCollection(FName ObjectPath)
 {
 	// @todo collection Does this apply to dynamic collections?
-	if ( !AssetSet.Contains(ObjectPath) )
+	if (!ObjectSet.Contains(ObjectPath))
 	{
-		AssetSet.Add(ObjectPath);
-
+		ObjectSet.Add(ObjectPath);
 		return true;
 	}
 
@@ -310,17 +305,17 @@ bool FCollection::AddAssetToCollection(FName ObjectPath)
 bool FCollection::RemoveAssetFromCollection(FName ObjectPath)
 {
 	// @todo collection Does this apply to dynamic collections?
-	return AssetSet.Remove(ObjectPath) > 0;
+	return ObjectSet.Remove(ObjectPath) > 0;
 }
 
 void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	for (const FName& AssetName : AssetSet)
+	for (const FName& ObjectName : ObjectSet)
 	{
-		if (!AssetName.ToString().StartsWith(TEXT("/Script/")))
+		if (!ObjectName.ToString().StartsWith(TEXT("/Script/")))
 		{
-			Assets.Add(AssetName);
+			Assets.Add(ObjectName);
 		}
 	}
 }
@@ -328,11 +323,11 @@ void FCollection::GetAssetsInCollection(TArray<FName>& Assets) const
 void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	for (const FName& AssetName : AssetSet)
+	for (const FName& ObjectName : ObjectSet)
 	{
-		if (AssetName.ToString().StartsWith(TEXT("/Script/")))
+		if (ObjectName.ToString().StartsWith(TEXT("/Script/")))
 		{
-			Classes.Add(AssetName);
+			Classes.Add(ObjectName);
 		}
 	}
 }
@@ -340,22 +335,13 @@ void FCollection::GetClassesInCollection(TArray<FName>& Classes) const
 void FCollection::GetObjectsInCollection(TArray<FName>& Objects) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	FCollectionUtils::AppendCollectionToArray(AssetSet, Objects);
+	FCollectionUtils::AppendCollectionToArray(ObjectSet, Objects);
 }
 
 bool FCollection::IsObjectInCollection(FName ObjectPath) const
 {
 	// @todo collection Does this apply to dynamic collections?
-	return AssetSet.Contains(ObjectPath);
-}
-
-void FCollection::Clear()
-{
-	CollectionName = NAME_None;
-	bUseSCC = false;
-	SourceFilename = TEXT("");
-	AssetSet.Empty();
-	DiskAssetSet.Empty();
+	return ObjectSet.Contains(ObjectPath);
 }
 
 bool FCollection::IsDynamic() const
@@ -363,10 +349,10 @@ bool FCollection::IsDynamic() const
 	// @todo collection Dynamic collections
 	return false;
 }
-	
+
 bool FCollection::IsEmpty() const
 {
-	return AssetSet.Num() == 0;
+	return ObjectSet.Num() == 0;
 }
 
 void FCollection::PrintCollection() const
@@ -381,22 +367,23 @@ void FCollection::PrintCollection() const
 		UE_LOG(LogCollectionManager, Log, TEXT("    ============================="));
 
 		// Print the set as a sorted array to keep things in a sane order
-		TArray<FName> AssetList = FCollectionUtils::CreateCollectionArray(AssetSet);
-		AssetList.Sort();
+		TArray<FName> ObjectList = ObjectSet.Array();
+		ObjectList.Sort();
 
-		for (const FName& AssetName : AssetList)
+		for (const FName& ObjectName : ObjectList)
 		{
-			UE_LOG(LogCollectionManager, Log, TEXT("        %s"), *AssetName.ToString());
+			UE_LOG(LogCollectionManager, Log, TEXT("        %s"), *ObjectName.ToString());
 		}
 	}
 }
 
-void FCollection::GenerateHeaderPairs(TMap<FString,FString>& OutHeaderPairs)
+void FCollection::SaveHeaderPairs(TMap<FString,FString>& OutHeaderPairs) const
 {
 	// These pairs will appear at the top of the file followed by a newline
-	ensure(FileVersion > 0);
-	OutHeaderPairs.Add(TEXT("FileVersion"), FString::FromInt(FileVersion));
+	OutHeaderPairs.Add(TEXT("FileVersion"), FString::FromInt(ECollectionVersion::CurrentVersion)); // Files are always saved at the latest version as loading should take care of data upgrades
 	OutHeaderPairs.Add(TEXT("Type"), IsDynamic() ? TEXT("Dynamic") : TEXT("Static"));
+	OutHeaderPairs.Add(TEXT("Guid"), CollectionGuid.ToString(EGuidFormats::DigitsWithHyphens));
+	OutHeaderPairs.Add(TEXT("ParentGuid"), ParentCollectionGuid.ToString(EGuidFormats::DigitsWithHyphens));
 }
 
 bool FCollection::LoadHeaderPairs(const TMap<FString,FString>& InHeaderPairs)
@@ -417,14 +404,30 @@ bool FCollection::LoadHeaderPairs(const TMap<FString,FString>& InHeaderPairs)
 		return false;
 	}
 
-	FileVersion = FCString::Atoi(**Version);
+	FileVersion = (ECollectionVersion::Type)FCString::Atoi(**Version);
+
+	if (FileVersion >= ECollectionVersion::AddedCollectionGuid)
+	{
+		const FString* GuidStr = InHeaderPairs.Find(TEXT("Guid"));
+		if ( !GuidStr || !FGuid::Parse(*GuidStr, CollectionGuid) )
+		{
+			// Guid is required
+			return false;
+		}
+
+		const FString* ParentGuidStr = InHeaderPairs.Find(TEXT("ParentGuid"));
+		if ( !ParentGuidStr || !FGuid::Parse(*ParentGuidStr, ParentCollectionGuid) )
+		{
+			ParentCollectionGuid = FGuid();
+		}
+	}
 
 	if ( *Type == TEXT("Dynamic") )
 	{
 		// @todo Set this file up to be dynamic
 	}
 
-	return FileVersion > 0;
+	return FileVersion > 0 && FileVersion <= ECollectionVersion::CurrentVersion;
 }
 
 void FCollection::MergeWithCollection(const FCollection& Other)
@@ -436,45 +439,45 @@ void FCollection::MergeWithCollection(const FCollection& Other)
 	else
 	{
 		// Gather the differences from the file on disk
-		TArray<FName> AssetsAdded;
-		TArray<FName> AssetsRemoved;
-		GetDifferencesFromDisk(AssetsAdded, AssetsRemoved);
+		TArray<FName> ObjectsAdded;
+		TArray<FName> ObjectsRemoved;
+		GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
 
 		// Copy asset list from other collection
-		DiskAssetSet = Other.DiskAssetSet;
-		AssetSet = DiskAssetSet;
+		DiskSnapshot = Other.DiskSnapshot;
+		ObjectSet = DiskSnapshot.ObjectSet;
 
-		// Add the assets that were added before the merge
-		for (const FName& AddedAssetName : AssetsAdded)
+		// Add the objects that were added before the merge
+		for (const FName& AddedObjectName : ObjectsAdded)
 		{
-			AssetSet.Add(AddedAssetName);
+			ObjectSet.Add(AddedObjectName);
 		}
 
-		// Remove the assets that were removed before the merge
-		for (const FName& RemovedAssetName : AssetsRemoved)
+		// Remove the objects that were removed before the merge
+		for (const FName& RemovedObjectName : ObjectsRemoved)
 		{
-			AssetSet.Remove(RemovedAssetName);
+			ObjectSet.Remove(RemovedObjectName);
 		}
 	}
 }
 
-void FCollection::GetDifferencesFromDisk(TArray<FName>& AssetsAdded, TArray<FName>& AssetsRemoved)
+void FCollection::GetObjectDifferencesFromDisk(TArray<FName>& ObjectsAdded, TArray<FName>& ObjectsRemoved)
 {
-	// Find the assets that were removed since the disk list
-	for (const FName& DiskAssetName : DiskAssetSet)
+	// Find the objects that were removed since the disk list
+	for (const FName& DiskObjectName : DiskSnapshot.ObjectSet)
 	{
-		if (!AssetSet.Contains(DiskAssetName))
+		if (!ObjectSet.Contains(DiskObjectName))
 		{
-			AssetsRemoved.Add(DiskAssetName);
+			ObjectsRemoved.Add(DiskObjectName);
 		}
 	}
 
-	// Find the assets that were added since the disk list
-	for (const FName& MemoryAssetName : AssetSet)
+	// Find the objects that were added since the disk list
+	for (const FName& MemoryObjectName : ObjectSet)
 	{
-		if (!DiskAssetSet.Contains(MemoryAssetName))
+		if (!DiskSnapshot.ObjectSet.Contains(MemoryObjectName))
 		{
-			AssetsAdded.Add(MemoryAssetName);
+			ObjectsAdded.Add(MemoryObjectName);
 		}
 	}
 }
@@ -528,21 +531,15 @@ bool FCollection::CheckoutCollection(FText& OutError)
 		}
 
 		// Check to see if the file exists at the head revision
-		if ( IFileManager::Get().FileSize(*SourceFilename) < 0 )
-		{
-			// File was deleted at head...
-			// Just add our changes to an empty list so we can mark it for add
-			FCollection NewCollection;
-			MergeWithCollection(NewCollection);
-		}
-		else
+		if ( IFileManager::Get().FileExists(*SourceFilename) )
 		{
 			// File found! Load it and merge with our local changes
-			FCollection NewCollection;
-			if ( !NewCollection.LoadFromFile(SourceFilename, false) )
+			FText LoadErrorText;
+			FCollection NewCollection(SourceFilename, false);
+			if ( !NewCollection.Load(LoadErrorText) )
 			{
 				// Failed to load the head revision file so it isn't safe to delete it
-				OutError = LOCTEXT("Error_SCCBadHead", "Failed to load the collection at the head revision.");
+				OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection at the head revision. {0}"), LoadErrorText);
 				return false;
 			}
 
@@ -640,92 +637,87 @@ bool FCollection::CheckinCollection(FText& OutError)
 
 	// Form an appropriate summary for the changelist
 	const FText CollectionNameText = FText::FromName( CollectionName );
-	FText ChangelistDesc = FText::Format( LOCTEXT("CollectionGenericModifiedDesc", "Modified collection: {0}"), CollectionNameText );
-	if ( SourceControlState.IsValid() && SourceControlState->IsAdded() )
+	FTextBuilder ChangelistDescBuilder;
+
+	if (SourceControlState.IsValid() && SourceControlState->IsAdded())
 	{
-		ChangelistDesc = FText::Format( LOCTEXT("CollectionAddedNewDesc", "Added collection"), CollectionNameText);
-	}
-	else if ( IsDynamic() )
-	{
-		// @todo collection Change description for dynamic collections
+		ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionAddedNewDesc", "Added collection '{0}'"), CollectionNameText);
 	}
 	else
 	{
-		// Gather differences from disk
-		TArray<FName> AssetsAdded;
-		TArray<FName> AssetsRemoved;
-		GetDifferencesFromDisk(AssetsAdded, AssetsRemoved);
-
-		AssetsAdded.Sort();
-		AssetsRemoved.Sort();
-
-		// Clear description
-		ChangelistDesc = FText::GetEmpty();
-
-		// Report added files
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("AssetAdded"), AssetsAdded.Num() > 0 ? FText::FromName( AssetsAdded[0] ) : NSLOCTEXT( "Core", "None", "None" ) );
-		Args.Add( TEXT("NumberAdded"), FText::AsNumber( FMath::Max( AssetsAdded.Num() - 1, 0 ) ));
-		Args.Add( TEXT("CollectionName"), CollectionNameText );
-
-		if ( AssetsRemoved.Num() == 0 )
+		if (IsDynamic())
 		{
-			if (AssetsAdded.Num() == 1)
-			{
-				ChangelistDesc = FText::Format( LOCTEXT("CollectionAddedSingleDesc", "Added {AssetAdded} to collection: {CollectionName}"), Args );
-			}
-			else if (AssetsAdded.Num() > 1)
-			{
-				ChangelistDesc = FText::Format( LOCTEXT("CollectionAddedMultipleDesc", "Added {AssetAdded} and {NumberAdded} other(s) to collection: {CollectionName}"), Args );
-			}
+			// @todo collection Change description for dynamic collections
 		}
 		else
 		{
-			Args.Add( TEXT("AssetRemoved"), FText::FromName( AssetsRemoved[0] ) );
-			Args.Add( TEXT("NumberRemoved"), FText::AsNumber( AssetsRemoved.Num() - 1 ) );
+			// Gather differences from disk
+			TArray<FName> ObjectsAdded;
+			TArray<FName> ObjectsRemoved;
+			GetObjectDifferencesFromDisk(ObjectsAdded, ObjectsRemoved);
 
-			if ( AssetsAdded.Num() == 1 )
+			ObjectsAdded.Sort();
+			ObjectsRemoved.Sort();
+
+			// Report added files
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("FirstObjectAdded"), ObjectsAdded.Num() > 0 ? FText::FromName(ObjectsAdded[0]) : NSLOCTEXT("Core", "None", "None"));
+			Args.Add(TEXT("NumberAdded"), FText::AsNumber(ObjectsAdded.Num()));
+			Args.Add(TEXT("FirstObjectRemoved"), ObjectsRemoved.Num() > 0 ? FText::FromName(ObjectsRemoved[0]) : NSLOCTEXT("Core", "None", "None"));
+			Args.Add(TEXT("NumberRemoved"), FText::AsNumber(ObjectsRemoved.Num()));
+			Args.Add(TEXT("CollectionName"), CollectionNameText);
+
+			if (ObjectsAdded.Num() == 1)
 			{
-				if ( AssetsRemoved.Num() == 1 )
-				{
-					ChangelistDesc = FText::Format( LOCTEXT("CollectionRemovedSingle_AddedSingleDesc", "Added {AssetAdded} to collection: {CollectionName} : Removed {AssetRemoved} from collection: {CollectionName}"), Args );
-				}
-				else if (AssetsRemoved.Num() > 1)
-				{
-					ChangelistDesc = FText::Format( LOCTEXT("CollectionRemovedMultiple_AddedSingleDesc", "Added {AssetAdded} to collection: {CollectionName} : Removed {AssetRemoved} and {NumberRemoved} other(s) from collection: {CollectionName}"), Args );
-				}
+				ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionAddedSingleDesc", "Added '{FirstObjectAdded}' to collection '{CollectionName}'"), Args);
 			}
-			else if (AssetsAdded.Num() > 1)
+			else if (ObjectsAdded.Num() > 1)
 			{
-				if ( AssetsRemoved.Num() == 1 )
+				ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionAddedMultipleDesc", "Added {NumberAdded} objects to collection '{CollectionName}':"), Args);
+
+				ChangelistDescBuilder.Indent();
+				for (const FName& AddedObjectName : ObjectsAdded)
 				{
-					ChangelistDesc = FText::Format( LOCTEXT("CollectionRemovedSingle_AddedMultpleDesc", "Added {AssetAdded} and {NumberAdded} other(s) to collection: {CollectionName} : Removed {AssetRemoved} from collection: {CollectionName}"), Args );
+					ChangelistDescBuilder.AppendLine(FText::FromName(AddedObjectName));
 				}
-				else if (AssetsRemoved.Num() > 1)
-				{
-					ChangelistDesc = FText::Format( LOCTEXT("CollectionRemovedMultiple_AddedMultpleDesc", "Added {AssetAdded} and {NumberAdded} other(s) to collection: {CollectionName} : Removed {AssetRemoved} and {NumberRemoved} other(s) from collection: {CollectionName}"), Args );
-				}
+				ChangelistDescBuilder.Unindent();
 			}
-			else
+
+			if ( ObjectsRemoved.Num() == 1 )
 			{
-				if ( AssetsRemoved.Num() == 1 )
-				{
-					ChangelistDesc = FText::Format( LOCTEXT("CollectionRemovedSingleDesc", "Removed {AssetRemoved} from collection: {CollectionName}"), Args );
-				}
-				else if (AssetsRemoved.Num() > 1)
-				{
-					ChangelistDesc = FText::Format( LOCTEXT("CollectionRemovedMultipleDesc", "Removed {AssetRemoved} and {NumberRemoved} other(s) from collection: {CollectionName}"), Args );
-				}
+				ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionRemovedSingleDesc", "Removed '{FirstObjectRemoved}' from collection '{CollectionName}'"), Args);
 			}
+			else if (ObjectsRemoved.Num() > 1)
+			{
+				ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionRemovedMultipleDesc", "Removed {NumberRemoved} objects from collection '{CollectionName}'"), Args);
+
+				ChangelistDescBuilder.Indent();
+				for (const FName& RemovedObjectName : ObjectsRemoved)
+				{
+					ChangelistDescBuilder.AppendLine(FText::FromName(RemovedObjectName));
+				}
+				ChangelistDescBuilder.Unindent();
+			}
+		}
+
+		// Parent change?
+		if (DiskSnapshot.ParentCollectionGuid != ParentCollectionGuid)
+		{
+			ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionChangedParentDesc", "Changed the parent of collection '{0}'"), CollectionNameText);
+		}
+
+		// Version bump?
+		if (FileVersion < ECollectionVersion::CurrentVersion)
+		{
+			ChangelistDescBuilder.AppendLineFormat(LOCTEXT("CollectionUpgradedDesc", "Upgraded collection '{0}' (was version {1}, now version {2})"), CollectionNameText, FText::AsNumber(FileVersion), FText::AsNumber(ECollectionVersion::CurrentVersion));
 		}
 	}
 
-	if ( ChangelistDesc.IsEmpty() )
+	FText ChangelistDesc = ChangelistDescBuilder.ToText();
+	if (ChangelistDesc.IsEmpty())
 	{
-		// No files were added or removed
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("CollectionName"), CollectionNameText );
-		ChangelistDesc = FText::Format( LOCTEXT("CollectionNotModifiedDesc", "Collection not modified: {CollectionName}"), Args );
+		// No changes could be detected
+		ChangelistDesc = FText::Format(LOCTEXT("CollectionNotModifiedDesc", "Collection '{0}' not modified"), CollectionNameText);
 	}
 
 	// Finally check in the file
@@ -843,20 +835,20 @@ bool FCollection::DeleteFromSourceControl(FText& OutError)
 		}
 
 		// Check to see if the file exists at the head revision
-		if ( IFileManager::Get().FileSize(*SourceFilename) < 0 )
+		if ( !IFileManager::Get().FileExists(*SourceFilename) )
 		{
 			// File was already deleted, consider this a success
 			GWarn->EndSlowTask();
 			return true;
 		}
 			
-		FCollection NewCollection;
-				
-		if ( !NewCollection.LoadFromFile(SourceFilename, false) )
+		FCollection NewCollection(SourceFilename, false);
+		FText LoadErrorText;
+		if ( !NewCollection.Load(LoadErrorText) )
 		{
 			// Failed to load the head revision file so it isn't safe to delete it
 			GWarn->EndSlowTask();
-			OutError = LOCTEXT("Error_SCCBadHead", "Failed to load the collection at the head revision.");
+			OutError = FText::Format(LOCTEXT("Error_SCCBadHead", "Failed to load the collection at the head revision. {0}"), LoadErrorText);
 			return false;
 		}
 

@@ -27,13 +27,14 @@ struct FSourcesData
 			// Collection manager module should already be loaded since it may cause a hitch on the first search
 			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
+			// Include objects from child collections if we're recursing
+			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
+
 			for ( int32 CollectionIdx = 0; CollectionIdx < Collections.Num(); ++CollectionIdx )
 			{
 				// Find the collection
 				const FCollectionNameType& CollectionNameType = Collections[CollectionIdx];
-
-				CollectionManagerModule.Get().GetAssetsInCollection(CollectionNameType.Name, CollectionNameType.Type, ObjectPathsFromCollections);
-				CollectionManagerModule.Get().GetClassesInCollection(CollectionNameType.Name, CollectionNameType.Type, ObjectPathsFromCollections);
+				CollectionManagerModule.Get().GetObjectsInCollection(CollectionNameType.Name, CollectionNameType.Type, ObjectPathsFromCollections, CollectionRecursionMode);
 			}
 		}
 		Filter.ObjectPaths = ObjectPathsFromCollections;

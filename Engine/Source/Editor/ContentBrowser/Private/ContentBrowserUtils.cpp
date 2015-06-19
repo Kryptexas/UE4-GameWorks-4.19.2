@@ -1274,6 +1274,32 @@ bool ContentBrowserUtils::IsClassPath(const FString& InPath)
 	return InPath.StartsWith(ClassesRootPrefix);
 }
 
+bool ContentBrowserUtils::IsCollectionPath(const FString& InPath, FName* OutCollectionName, ECollectionShareType::Type* OutCollectionShareType)
+{
+	static const FString CollectionsRootPrefix = TEXT("/Collections");
+	if (InPath.StartsWith(CollectionsRootPrefix))
+	{
+		TArray<FString> PathParts;
+		InPath.ParseIntoArray(PathParts, TEXT("/"));
+		check(PathParts.Num() > 2);
+
+		// The second part of the path is the share type name
+		if (OutCollectionShareType)
+		{
+			*OutCollectionShareType = ECollectionShareType::FromString(*PathParts[1]);
+		}
+
+		// The third part of the path is the collection name
+		if (OutCollectionName)
+		{
+			*OutCollectionName = FName(*PathParts[2]);
+		}
+
+		return true;
+	}
+	return false;
+}
+
 void ContentBrowserUtils::CountPathTypes(const TArray<FString>& InPaths, int32& OutNumAssetPaths, int32& OutNumClassPaths)
 {
 	OutNumAssetPaths = 0;

@@ -1376,11 +1376,14 @@ void SAssetView::RefreshSourceItems()
 
 		if ( bFilterAllowsClasses )
 		{
+			// Include objects from child collections if we're recursing
+			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
+
 			TArray< FName > ClassPaths;
 			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 			for (int32 Index = 0; Index < SourcesData.Collections.Num(); Index++)
 			{
-				CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths );
+				CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths, CollectionRecursionMode );
 			}
 
 			for (int32 Index = 0; Index < ClassPaths.Num(); Index++)
@@ -1665,21 +1668,25 @@ void SAssetView::RefreshFolders()
 
 	const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	for(const FName& PackagePath : AssetPathsToShow)
-	{		
+	{
 		TArray<FString> SubPaths;
-		AssetRegistryModule.Get().GetSubPaths(PackagePath.ToString(), SubPaths, false);
-		for(const FString& SubPath : SubPaths)
+		for(const FName& PackagePath : AssetPathsToShow)
 		{
-			// If this is a developer folder, and we don't want to show them try the next path
-			if(!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(SubPath))
-			{
-				continue;
-			}
+			SubPaths.Reset();
+			AssetRegistryModule.Get().GetSubPaths(PackagePath.ToString(), SubPaths, false);
 
-			if(!Folders.Contains(SubPath))
+			for(const FString& SubPath : SubPaths)
 			{
-				FoldersToAdd.Add(SubPath);
+				// If this is a developer folder, and we don't want to show them try the next path
+				if(!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(SubPath))
+				{
+					continue;
+				}
+
+				if(!Folders.Contains(SubPath))
+				{
+					FoldersToAdd.Add(SubPath);
+				}
 			}
 		}
 	}
@@ -1698,6 +1705,25 @@ void SAssetView::RefreshFolders()
 		TArray<FString> MatchingFolders;
 		NativeClassHierarchy->GetMatchingFolders(ClassFilter, MatchingFolders);
 		FoldersToAdd.Append(MatchingFolders);
+	}
+
+	// Add folders for any child collections of the currently selected collections
+	if(SourcesData.Collections.Num() > 0)
+	{
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+		
+		TArray<FCollectionNameType> ChildCollections;
+		for(const FCollectionNameType& Collection : SourcesData.Collections)
+		{
+			ChildCollections.Reset();
+			CollectionManagerModule.Get().GetChildCollections(Collection.Name, Collection.Type, ChildCollections);
+
+			for(const FCollectionNameType& ChildCollection : ChildCollections)
+			{
+				// Use "Collections" as the root of the path to avoid this being confused with other asset view folders - see ContentBrowserUtils::IsCollectionPath
+				FoldersToAdd.Add(FString::Printf(TEXT("/Collections/%s/%s"), ECollectionShareType::ToString(ChildCollection.Type), *ChildCollection.Name.ToString()));
+			}
+		}
 	}
 
 	if(FoldersToAdd.Num() > 0)
@@ -2174,11 +2200,14 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 
 		if ( SourcesData.Collections.Num() > 0 )
 		{
+			// Include objects from child collections if we're recursing
+			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
+
 			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 			TArray< FName > CollectionObjectPaths;
-			for (int Index = 0; Index < SourcesData.Collections.Num(); Index++)
+			for (const FCollectionNameType& Collection : SourcesData.Collections)
 			{
-				CollectionManagerModule.Get().GetObjectsInCollection(SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, CollectionObjectPaths);
+				CollectionManagerModule.Get().GetObjectsInCollection(Collection.Name, Collection.Type, CollectionObjectPaths, CollectionRecursionMode);
 			}
 
 			for ( int32 AssetDataIdx = InOutAssetDataList.Num() - 1; AssetDataIdx >= 0; --AssetDataIdx )
@@ -3148,6 +3177,12 @@ bool SAssetView::CanOpenContextMenu() const
 	// If there were no valid assets found, but some invalid assets were found, deny the context menu
 	if ( SelectedAssets.Num() == 0 && bAtLeastOneTemporaryItemFound )
 	{
+		return false;
+	}
+
+	if ( SelectedAssets.Num() == 0 && SourcesData.Collections.Num() > 0 )
+	{
+		// Don't allow a context menu when we're viewing a collection and have no assets selected
 		return false;
 	}
 

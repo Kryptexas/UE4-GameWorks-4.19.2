@@ -168,6 +168,9 @@ namespace ContentBrowserUtils
 	/** Check to see whether the given path is rooted against a class directory */
 	bool IsClassPath(const FString& InPath);
 
+	/** Check to see whether the given path is rooted against a collection directory, optionally extracting the collection name and share type from the path */
+	bool IsCollectionPath(const FString& InPath, FName* OutCollectionName = nullptr, ECollectionShareType::Type* OutCollectionShareType = nullptr);
+
 	/** Given an array of paths, work out how many are rooted against class roots, and how many are rooted against asset roots */
 	void CountPathTypes(const TArray<FString>& InPaths, int32& OutNumAssetPaths, int32& OutNumClassPaths);
 

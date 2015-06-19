@@ -26,7 +26,7 @@ void FCollectionContextMenu::BindCommands(TSharedPtr< FUICommandList > InCommand
 		));
 }
 
-TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionListContextMenu(TSharedPtr< FUICommandList > InCommandList)
+TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionTreeContextMenu(TSharedPtr< FUICommandList > InCommandList)
 {
 	// Get all menu extenders for this context menu from the content browser module
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
@@ -46,7 +46,7 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionListContextMenu(TShare
 
 	UpdateProjectSourceControl();
 
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 
 	MenuBuilder.BeginSection("CollectionOptions", LOCTEXT("CollectionListOptionsMenuHeading", "Collection Options"));
 	{
@@ -58,20 +58,20 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionListContextMenu(TShare
 			);
 
 		// Only add rename/delete if at least one collection is selected
-		if ( CollectionList.Num() )
+		if ( SelectedCollections.Num() )
 		{
 			bool bAnyManagedBySCC = false;
 		
-			for (int32 CollectionIdx = 0; CollectionIdx < CollectionList.Num(); ++CollectionIdx)
+			for (int32 CollectionIdx = 0; CollectionIdx < SelectedCollections.Num(); ++CollectionIdx)
 			{
-				if ( CollectionList[CollectionIdx]->CollectionType != ECollectionShareType::CST_Local )
+				if ( SelectedCollections[CollectionIdx]->CollectionType != ECollectionShareType::CST_Local )
 				{
 					bAnyManagedBySCC = true;
 					break;
 				}
 			}
 
-			if ( CollectionList.Num() == 1 )
+			if ( SelectedCollections.Num() == 1 )
 			{
 				// Share Type
 				MenuBuilder.AddSubMenu(
@@ -95,7 +95,7 @@ TSharedPtr<SWidget> FCollectionContextMenu::MakeCollectionListContextMenu(TShare
 					)
 				);
 
-			if ( CollectionList.Num() == 1 )
+			if ( SelectedCollections.Num() == 1 )
 			{
 				// If any colors have already been set, display color options as a sub menu
 				if ( CollectionViewUtils::HasCustomColors() )
@@ -275,11 +275,11 @@ void FCollectionContextMenu::UpdateProjectSourceControl()
 
 bool FCollectionContextMenu::CanRenameSelectedCollections() const
 {
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 	
-	if(CollectionList.Num() == 1)
+	if(SelectedCollections.Num() == 1)
 	{
-		return !(CollectionList[0]->CollectionType != ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
+		return !(SelectedCollections[0]->CollectionType != ECollectionShareType::CST_Local) || (bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable());
 	}
 	
 	return false;
@@ -302,16 +302,16 @@ void FCollectionContextMenu::ExecuteSetCollectionShareType(ECollectionShareType:
 		return;
 	}
 
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 
-	if ( !ensure(CollectionList.Num() == 1) )
+	if ( !ensure(SelectedCollections.Num() == 1) )
 	{
 		return;
 	}
 
 	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
-	CollectionManagerModule.Get().RenameCollection(CollectionList[0]->CollectionName, CollectionList[0]->CollectionType, CollectionList[0]->CollectionName, CollectionType);
+	CollectionManagerModule.Get().RenameCollection(SelectedCollections[0]->CollectionName, SelectedCollections[0]->CollectionType, SelectedCollections[0]->CollectionName, CollectionType);
 }
 
 void FCollectionContextMenu::ExecuteRenameCollection()
@@ -321,14 +321,14 @@ void FCollectionContextMenu::ExecuteRenameCollection()
 		return;
 	}
 
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 
-	if ( !ensure(CollectionList.Num() == 1) )
+	if ( !ensure(SelectedCollections.Num() == 1) )
 	{
 		return;
 	}
 
-	CollectionView.Pin()->RenameCollectionItem(CollectionList[0]);
+	CollectionView.Pin()->RenameCollectionItem(SelectedCollections[0]);
 }
 
 void FCollectionContextMenu::ExecuteDestroyCollection()
@@ -338,19 +338,19 @@ void FCollectionContextMenu::ExecuteDestroyCollection()
 		return;
 	}
 
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 
 	FText Prompt;
-	if ( CollectionList.Num() == 1 )
+	if ( SelectedCollections.Num() == 1 )
 	{
-		Prompt = FText::Format(LOCTEXT("CollectionDestroyConfirm_Single", "Delete {0}?"), FText::FromName(CollectionList[0]->CollectionName));
+		Prompt = FText::Format(LOCTEXT("CollectionDestroyConfirm_Single", "Delete {0}?"), FText::FromName(SelectedCollections[0]->CollectionName));
 	}
 	else
 	{
-		Prompt = FText::Format(LOCTEXT("CollectionDestroyConfirm_Multiple", "Delete {0} Collections?"), FText::AsNumber(CollectionList.Num()));
+		Prompt = FText::Format(LOCTEXT("CollectionDestroyConfirm_Multiple", "Delete {0} Collections?"), FText::AsNumber(SelectedCollections.Num()));
 	}
 
-	FOnClicked OnYesClicked = FOnClicked::CreateSP( this, &FCollectionContextMenu::ExecuteDestroyCollectionConfirmed, CollectionList );
+	FOnClicked OnYesClicked = FOnClicked::CreateSP( this, &FCollectionContextMenu::ExecuteDestroyCollectionConfirmed, SelectedCollections );
 	ContentBrowserUtils::DisplayConfirmationPopup(
 		Prompt,
 		LOCTEXT("CollectionDestroyConfirm_Yes", "Delete"),
@@ -361,36 +361,7 @@ void FCollectionContextMenu::ExecuteDestroyCollection()
 
 FReply FCollectionContextMenu::ExecuteDestroyCollectionConfirmed(TArray<TSharedPtr<FCollectionItem>> CollectionList)
 {
-	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
-
-	TArray<TSharedPtr<FCollectionItem>> ItemsToRemove;
-	for (int32 CollectionIdx = 0; CollectionIdx < CollectionList.Num(); ++CollectionIdx)
-	{
-		const TSharedPtr<FCollectionItem>& CollectionItem = CollectionList[CollectionIdx];
-
-		if ( CollectionManagerModule.Get().DestroyCollection(CollectionItem->CollectionName, CollectionItem->CollectionType) )
-		{
-			// Refresh the list now that the collection has been removed
-			ItemsToRemove.Add(CollectionItem);
-		}
-		else
-		{
-			// Display a warning
-			const FVector2D& CursorPos = FSlateApplication::Get().GetCursorPos();
-			FSlateRect MessageAnchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
-			ContentBrowserUtils::DisplayMessage(
-				FText::Format( LOCTEXT("CollectionDestroyFailed", "Failed to destroy collection. {0}"), CollectionManagerModule.Get().GetLastError() ),
-				MessageAnchor,
-				CollectionView.Pin()->CollectionListPtr.ToSharedRef()
-				);
-		}
-	}
-
-	if ( ItemsToRemove.Num() > 0 )
-	{
-		CollectionView.Pin()->RemoveCollectionItems(ItemsToRemove);
-	}
-
+	CollectionView.Pin()->DeleteCollectionItems(CollectionList);
 	return FReply::Handled();
 }
 
@@ -448,17 +419,17 @@ bool FCollectionContextMenu::CanExecuteSetCollectionShareType(ECollectionShareTy
 		return false;
 	}
 
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 
-	if ( !ensure(CollectionList.Num() == 1) )
+	if ( !ensure(SelectedCollections.Num() == 1) )
 	{
 		return false;
 	}
 
 	const bool bIsSourceControlAvailable = bProjectUnderSourceControl && ISourceControlModule::Get().IsEnabled() && ISourceControlModule::Get().GetProvider().IsAvailable();
-	const bool bIsCurrentTypeLocal = CollectionList[0]->CollectionType == ECollectionShareType::CST_Local;
+	const bool bIsCurrentTypeLocal = SelectedCollections[0]->CollectionType == ECollectionShareType::CST_Local;
 	const bool bIsNewTypeLocal = CollectionType == ECollectionShareType::CST_Local;
-	const bool bIsNewShareTypeDifferent = CollectionList[0]->CollectionType != CollectionType;
+	const bool bIsNewShareTypeDifferent = SelectedCollections[0]->CollectionType != CollectionType;
 
 	return bIsNewShareTypeDifferent && ((bIsCurrentTypeLocal && bIsNewTypeLocal) || bIsSourceControlAvailable);
 }
@@ -470,14 +441,14 @@ bool FCollectionContextMenu::IsSetCollectionShareTypeChecked(ECollectionShareTyp
 		return false;
 	}
 
-	TArray<TSharedPtr<FCollectionItem>> CollectionList = CollectionView.Pin()->CollectionListPtr->GetSelectedItems();
+	TArray<TSharedPtr<FCollectionItem>> SelectedCollections = CollectionView.Pin()->CollectionTreePtr->GetSelectedItems();
 
-	if ( !ensure(CollectionList.Num() == 1) )
+	if ( !ensure(SelectedCollections.Num() == 1) )
 	{
 		return false;
 	}
 
-	return CollectionList[0]->CollectionType == CollectionType;
+	return SelectedCollections[0]->CollectionType == CollectionType;
 }
 
 bool FCollectionContextMenu::CanExecuteRenameCollection() const

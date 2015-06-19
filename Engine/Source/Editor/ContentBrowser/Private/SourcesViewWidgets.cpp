@@ -7,6 +7,7 @@
 
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
+#include "DragAndDrop/CollectionDragDropOp.h"
 #include "DragDropHandler.h"
 #include "ContentBrowserUtils.h"
 #include "CollectionViewUtils.h"
@@ -97,20 +98,17 @@ SAssetTreeItem::~SAssetTreeItem()
 	}
 }
 
-bool SAssetTreeItem::ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) const
+bool SAssetTreeItem::ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation ) const
 {
+	OutIsKnownDragOperation = false;
+
 	TSharedPtr<FTreeItem> TreeItemPinned = TreeItem.Pin();
-	return TreeItemPinned.IsValid() && DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, TreeItemPinned->FolderPath);
+	return TreeItemPinned.IsValid() && DragDropHandler::ValidateDragDropOnAssetFolder(MyGeometry, DragDropEvent, TreeItemPinned->FolderPath, OutIsKnownDragOperation);
 }
 
 void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	if (ValidateDragDrop(MyGeometry, DragDropEvent))
-	{
-		bDraggedOver = true;
-	}
+	ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
 }
 
 void SAssetTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
@@ -132,23 +130,16 @@ void SAssetTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SAssetTreeItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	if (ValidateDragDrop(MyGeometry, DragDropEvent))
-	{
-		bDraggedOver = true;
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
+	ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
+	return (bDraggedOver) ? FReply::Handled() : FReply::Unhandled();
 }
 
 FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	if (ValidateDragDrop(MyGeometry, DragDropEvent))
+	if (ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver)) // updates bDraggedOver
 	{
+		bDraggedOver = false;
+
 		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
 		if (!Operation.IsValid())
 		{
@@ -173,6 +164,13 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 			OnFilesDragDropped.ExecuteIfBound(DragDropOp->GetFiles(), TreeItem.Pin());
 			return FReply::Handled();
 		}
+	}
+
+	if (bDraggedOver)
+	{
+		// We were able to handle this operation, but could not due to another error - still report this drop as handled so it doesn't fall through to other widgets
+		bDraggedOver = false;
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
@@ -310,23 +308,24 @@ const FSlateBrush* SAssetTreeItem::GetBorderImage() const
 
 
 //////////////////////////
-// SCollectionListItem
+// SCollectionTreeItem
 //////////////////////////
 
-void SCollectionListItem::Construct( const FArguments& InArgs )
+void SCollectionTreeItem::Construct( const FArguments& InArgs )
 {
 	ParentWidget = InArgs._ParentWidget;
 	CollectionItem = InArgs._CollectionItem;
 	OnBeginNameChange = InArgs._OnBeginNameChange;
 	OnNameChangeCommit = InArgs._OnNameChangeCommit;
 	OnVerifyRenameCommit = InArgs._OnVerifyRenameCommit;
-	OnAssetsDragDropped = InArgs._OnAssetsDragDropped;
+	OnValidateDragDrop = InArgs._OnValidateDragDrop;
+	OnHandleDragDrop = InArgs._OnHandleDragDrop;
 	bDraggedOver = false;
 
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage(this, &SCollectionListItem::GetBorderImage)
+		.BorderImage(this, &SCollectionTreeItem::GetBorderImage)
 		.Padding(0)
 		[
 			SNew(SHorizontalBox)
@@ -352,7 +351,7 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 				// Type Icon
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush( ECollectionShareType::GetIconStyleName(InArgs._CollectionItem->CollectionType) ) )
-				.ColorAndOpacity( this, &SCollectionListItem::GetCollectionColor )
+				.ColorAndOpacity( this, &SCollectionTreeItem::GetCollectionColor )
 			]
 
 			+SHorizontalBox::Slot()
@@ -360,12 +359,12 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 			.VAlign(VAlign_Center)
 			[
 				SAssignNew(InlineRenameWidget, SInlineEditableTextBlock)
-				.Text( this, &SCollectionListItem::GetNameText )
+				.Text( this, &SCollectionTreeItem::GetNameText )
 				.HighlightText( InArgs._HighlightText )
 				.Font( FEditorStyle::GetFontStyle("ContentBrowser.SourceListItemFont") )
-				.OnBeginTextEdit(this, &SCollectionListItem::HandleBeginNameChange)
-				.OnTextCommitted(this, &SCollectionListItem::HandleNameCommitted)
-				.OnVerifyTextChanged(this, &SCollectionListItem::HandleVerifyNameChanged)
+				.OnBeginTextEdit(this, &SCollectionTreeItem::HandleBeginNameChange)
+				.OnTextCommitted(this, &SCollectionTreeItem::HandleNameCommitted)
+				.OnVerifyTextChanged(this, &SCollectionTreeItem::HandleVerifyNameChanged)
 				.IsSelected( InArgs._IsSelected )
 				.IsReadOnly( InArgs._IsReadOnly )
 			]
@@ -379,7 +378,7 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 	}
 }
 
-SCollectionListItem::~SCollectionListItem()
+SCollectionTreeItem::~SCollectionTreeItem()
 {
 	if(InlineRenameWidget.IsValid())
 	{
@@ -387,67 +386,72 @@ SCollectionListItem::~SCollectionListItem()
 	}
 }
 
-void SCollectionListItem::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+void SCollectionTreeItem::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	// Cache this widget's geometry so it can pop up warnings over itself
 	CachedGeometry = AllottedGeometry;
 }
 
-void SCollectionListItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+bool SCollectionTreeItem::ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation ) const
 {
-	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
-	if ( DragDropOp.IsValid() )
-	{
-		bool bCanDrop = DragDropOp->AssetData.Num() > 0;
+	OutIsKnownDragOperation = false;
 
-		if (bCanDrop)
-		{
-			bDraggedOver = true;
-		}
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+	if (OnValidateDragDrop.IsBound() && CollectionItemPtr.IsValid())
+	{
+		return OnValidateDragDrop.Execute( CollectionItemPtr.ToSharedRef(), MyGeometry, DragDropEvent, OutIsKnownDragOperation );
 	}
+
+	return false;
 }
 
-void SCollectionListItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
+void SCollectionTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
+	ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
+}
+
+void SCollectionTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
+{
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (Operation.IsValid())
+	{
+		Operation->SetCursorOverride(TOptional<EMouseCursor::Type>());
+
+		if (Operation->IsOfType<FCollectionDragDropOp>() || Operation->IsOfType<FAssetDragDropOp>())
+		{
+			TSharedPtr<FDecoratedDragDropOp> DragDropOp = StaticCastSharedPtr<FDecoratedDragDropOp>(Operation);
+			DragDropOp->ResetToDefaultToolTip();
+		}
+	}
+
 	bDraggedOver = false;
 }
 
-FReply SCollectionListItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+FReply SCollectionTreeItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
-	if (DragDropOp.IsValid())
-	{
-		bool bCanDrop = DragDropOp->AssetData.Num() > 0;
-
-		if (bCanDrop)
-		{
-			return FReply::Handled();
-		}
-	}
-
-	return FReply::Unhandled();
+	ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver); // updates bDraggedOver
+	return (bDraggedOver) ? FReply::Handled() : FReply::Unhandled();
 }
 
-FReply SCollectionListItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
+FReply SCollectionTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	bDraggedOver = false;
-
-	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
-	if (DragDropOp.IsValid() && ensure(CollectionItem.IsValid()))
+	if (ValidateDragDrop(MyGeometry, DragDropEvent, bDraggedOver) && OnHandleDragDrop.IsBound()) // updates bDraggedOver
 	{
-		FText Message;
-		OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, CollectionItem.Pin(), Message);
+		bDraggedOver = false;
+		return OnHandleDragDrop.Execute( CollectionItem.Pin().ToSharedRef(), MyGeometry, DragDropEvent );
+	}
 
-		// Added items to the collection or failed. Either way, display the message.
-		ContentBrowserUtils::DisplayMessage(Message, CachedGeometry.GetClippingRect(), SharedThis(this));
-
+	if (bDraggedOver)
+	{
+		// We were able to handle this operation, but could not due to another error - still report this drop as handled so it doesn't fall through to other widgets
+		bDraggedOver = false;
 		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
 }
 
-void SCollectionListItem::HandleBeginNameChange( const FText& OldText )
+void SCollectionTreeItem::HandleBeginNameChange( const FText& OldText )
 {
 	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
 
@@ -461,7 +465,7 @@ void SCollectionListItem::HandleBeginNameChange( const FText& OldText )
 	}
 }
 
-void SCollectionListItem::HandleNameCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
+void SCollectionTreeItem::HandleNameCommitted( const FText& NewText, ETextCommit::Type CommitInfo )
 {
 	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
 
@@ -485,7 +489,7 @@ void SCollectionListItem::HandleNameCommitted( const FText& NewText, ETextCommit
 	}
 }
 
-bool SCollectionListItem::HandleVerifyNameChanged( const FText& NewText, FText& OutErrorMessage )
+bool SCollectionTreeItem::HandleVerifyNameChanged( const FText& NewText, FText& OutErrorMessage )
 {
 	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
 
@@ -497,7 +501,7 @@ bool SCollectionListItem::HandleVerifyNameChanged( const FText& NewText, FText& 
 	return true;
 }
 
-FText SCollectionListItem::GetNameText() const
+FText SCollectionTreeItem::GetNameText() const
 {
 	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
 
@@ -511,7 +515,7 @@ FText SCollectionListItem::GetNameText() const
 	}
 }
 
-FSlateColor SCollectionListItem::GetCollectionColor() const
+FSlateColor SCollectionTreeItem::GetCollectionColor() const
 {
 	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
 
@@ -527,7 +531,7 @@ FSlateColor SCollectionListItem::GetCollectionColor() const
 	return CollectionViewUtils::GetDefaultColor();
 }
 
-const FSlateBrush* SCollectionListItem::GetBorderImage() const
+const FSlateBrush* SCollectionTreeItem::GetBorderImage() const
 {
 	return bDraggedOver ? FEditorStyle::GetBrush("Menu.Background") : FEditorStyle::GetBrush("NoBorder");
 }

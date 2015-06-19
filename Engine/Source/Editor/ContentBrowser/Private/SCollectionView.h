@@ -22,6 +22,7 @@ public:
 		, _AllowRightClickMenu(true)
 		, _AllowCollapsing(true)
 		, _AllowContextMenu(true)
+		, _AllowCollectionDrag(false)
 		, _AllowQuickAssetManagement(false)
 		{}
 
@@ -34,6 +35,9 @@ public:
 		SLATE_ARGUMENT( bool, AllowCollapsing )
 		SLATE_ARGUMENT( bool, AllowContextMenu )
 
+		/** If true, the user will be able to drag collections from this view */
+		SLATE_ARGUMENT( bool, AllowCollectionDrag )
+
 		/** If true, check boxes that let you quickly add/remove the current selection from a collection will be displayed */
 		SLATE_ARGUMENT( bool, AllowQuickAssetManagement )
 
@@ -43,7 +47,10 @@ public:
 	void Construct( const FArguments& InArgs );
 
 	/** Selects the specified collections */
-	void SetSelectedCollections(const TArray<FCollectionNameType>& CollectionsToSelect);
+	void SetSelectedCollections(const TArray<FCollectionNameType>& CollectionsToSelect, const bool bEnsureVisible = true);
+
+	/** Expands the specified collections */
+	void SetExpandedCollections(const TArray<FCollectionNameType>& CollectionsToExpand);
 
 	/** Clears selection of all collections */
 	void ClearSelection();
@@ -64,6 +71,10 @@ public:
 	void LoadSettings(const FString& IniFilename, const FString& IniSection, const FString& SettingsString);
 
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
+	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 
 private:
 
@@ -88,17 +99,41 @@ private:
 	/** Sets up an inline rename for the specified collection */
 	void RenameCollectionItem( const TSharedPtr<FCollectionItem>& ItemToRename );
 
-	/** Remove a collection item from the list */
-	void RemoveCollectionItems( const TArray<TSharedPtr<FCollectionItem>>& ItemsToRemove );
+	/** Delete the given collections */
+	void DeleteCollectionItems( const TArray<TSharedPtr<FCollectionItem>>& ItemsToDelete );
 
-	/** Returns the visibility of the collection list */
-	EVisibility GetCollectionListVisibility() const;
+	/** Returns the visibility of the collection tree */
+	EVisibility GetCollectionTreeVisibility() const;
 
-	/** Creates a list item for the collection list */
+	/** Get the border of the collection tree */
+	const FSlateBrush* GetCollectionViewDropTargetBorder() const;
+
+	/** Creates a list item for the collection tree */
 	TSharedRef<ITableRow> GenerateCollectionRow( TSharedPtr<FCollectionItem> CollectionItem, const TSharedRef<STableViewBase>& OwnerTable );
 
-	/** Makes the context menu for the collection list */
-	TSharedPtr<SWidget> MakeCollectionListContextMenu();
+	/** Get the tree view children for the given item */
+	void GetCollectionItemChildren( TSharedPtr<FCollectionItem> InParentItem, TArray< TSharedPtr<FCollectionItem> >& OutChildItems ) const;
+
+	/** Handle starting a drag and drop operation for the currently selected collections */
+	FReply OnCollectionDragDetected(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
+
+	/** Validate a drag drop operation on our collection tree */
+	bool ValidateDragDropOnCollectionTree(const FGeometry& Geometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation);
+
+	/** Handle dropping something on collection tree */
+	FReply HandleDragDropOnCollectionTree(const FGeometry& Geometry, const FDragDropEvent& DragDropEvent);
+
+	/** Validate a drag drop operation on one of our collection items */
+	bool ValidateDragDropOnCollectionItem(TSharedRef<FCollectionItem> CollectionItem, const FGeometry& Geometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation);
+
+	/** Handle dropping something on one of our collections */
+	FReply HandleDragDropOnCollectionItem(TSharedRef<FCollectionItem> CollectionItem, const FGeometry& Geometry, const FDragDropEvent& DragDropEvent);
+
+	/** Recursively expand the parent items of this collection to ensure that it is visible */
+	void ExpandParentItems(const TSharedRef<FCollectionItem>& InCollectionItem);
+
+	/** Makes the context menu for the collection tree */
+	TSharedPtr<SWidget> MakeCollectionTreeContextMenu();
 
 	/** Whether the check box of the given collection item is currently enabled */
 	bool IsCollectionCheckBoxEnabled( TSharedPtr<FCollectionItem> CollectionItem ) const;
@@ -112,14 +147,11 @@ private:
 	/** Handler for collection list selection changes */
 	void CollectionSelectionChanged( TSharedPtr< FCollectionItem > CollectionItem, ESelectInfo::Type SelectInfo );
 
-	/** Handler for the user dropping assets on a collection */
-	void CollectionAssetsDropped(const TArray<FAssetData>& AssetList, const TSharedPtr<FCollectionItem>& CollectionItem, FText& OutMessage);
-
 	/** Handles focusing a collection item widget after it has been created with the intent to rename */
 	void CollectionItemScrolledIntoView( TSharedPtr<FCollectionItem> CollectionItem, const TSharedPtr<ITableRow>& Widget );
 
 	/** Checks whether the selected collection is not allowed to be renamed */
-	bool IsCollectionNotRenamable() const;
+	bool IsCollectionNameReadOnly() const;
 
 	/** Handler for when a name was given to a collection. Returns false if the rename or create failed and sets OutWarningMessage depicting what happened. */
 	bool CollectionNameChangeCommit( const TSharedPtr< FCollectionItem >& CollectionItem, const FString& NewName, bool bChangeConfirmed, FText& OutWarningMessage );
@@ -133,10 +165,13 @@ private:
 	/** Handles an on collection renamed event */
 	void HandleCollectionRenamed( const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection );
 
+	/** Handles an on collection reparented event */
+	void HandleCollectionReparented( const FCollectionNameType& Collection, const TOptional<FCollectionNameType>& OldParent, const TOptional<FCollectionNameType>& NewParent );
+
 	/** Handles an on collection destroyed event */
 	void HandleCollectionDestroyed( const FCollectionNameType& Collection );
 
-	/** Updates the collections shown in the list view */
+	/** Updates the collections shown in the tree view */
 	void UpdateCollectionItems();
 
 	/** Update the visible collections based on the active filter text */
@@ -173,14 +208,18 @@ private:
 	/** The collection list search box */
 	TSharedPtr< SSearchBox > SearchBoxPtr;
 
-	/** The collection list widget */
-	TSharedPtr< SListView< TSharedPtr<FCollectionItem>> > CollectionListPtr;
+	/** The collection tree widget */
+	TSharedPtr< STreeView< TSharedPtr<FCollectionItem> > > CollectionTreePtr;
 
-	/** The list of available collections */
-	TArray< TSharedPtr<FCollectionItem> > CollectionItems;
+	/** A map of collection keys to their associated collection items - this map contains all available collections, even those that aren't currently visible */
+	typedef TMap< FCollectionNameType, TSharedPtr<FCollectionItem> > FAvailableCollectionsMap;
+	FAvailableCollectionsMap AvailableCollections;
 
-	/** The list of visible collections based on the current filter */
-	TArray< TSharedPtr<FCollectionItem> > FilteredCollectionItems;
+	/** A set of collections that are currently visible, including parents that are only visible due to their children */
+	TSet< FCollectionNameType > VisibleCollections;
+
+	/** The list of root items to show in the collections tree - this will be filtered as required */
+	TArray< TSharedPtr<FCollectionItem> > VisibleRootCollectionItems;
 
 	/** The filter to apply to the available collections */
 	typedef TTextFilter<const FCollectionItem&> FCollectionItemTextFilter;
@@ -201,6 +240,12 @@ private:
 	/** If true, the user will be able to access the right click menu of a collection */
 	bool bAllowRightClickMenu;
 
+	/** If true, the user will be able to drag collections from this view */
+	bool bAllowCollectionDrag;
+
+	/** True when a drag is over this view with a valid operation for drop */
+	bool bDraggedOver;
+
 	/** If > 0, the selection changed delegate will not be called. Used to update the tree from an external source or in certain bulk operations. */
 	int32 PreventSelectionChangedDelegateCount;
 
@@ -209,4 +254,10 @@ private:
 
 	/** Handles the collection management for the currently selected assets (if available) */
 	TSharedPtr<FCollectionAssetManagement> QuickAssetManagement;
+
+	/**
+	 * This is set after this view has initiated a drag and drop for some collections in our tree.
+	 * We keep a weak pointer to this so we can tell if that drag and drop is still ongoing, and if so, what collections it affects 
+	 */
+	TWeakPtr<class FCollectionDragDropOp> CurrentCollectionDragDropOp;
 };

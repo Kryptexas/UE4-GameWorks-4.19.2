@@ -815,26 +815,15 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 		{
 			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
-			// Get collections of all types
 			TArray<FCollectionNameType> AvailableCollections;
-			for (int32 TypeIdx = 0; TypeIdx < ECollectionShareType::CST_All; ++TypeIdx)
-			{
-				const ECollectionShareType::Type CollectionType = ECollectionShareType::Type(TypeIdx);
+			CollectionManagerModule.Get().GetRootCollections(AvailableCollections);
 
-				// Never display system collections
-				if (CollectionType == ECollectionShareType::CST_System)
-				{
-					continue;
-				}
+			CreateManageCollectionsSubMenu(SubMenuBuilder, QuickAssetManagement, MoveTemp(AvailableCollections));
+		}
 
-				TArray<FName> CollectionNames;
-				CollectionManagerModule.Get().GetCollectionNames(CollectionType, CollectionNames);
-
-				for (const FName& CollectionName : CollectionNames)
-				{
-					AvailableCollections.Add(FCollectionNameType(CollectionName, CollectionType));
-				}
-			}
+		static void CreateManageCollectionsSubMenu(FMenuBuilder& SubMenuBuilder, TSharedRef<FCollectionAssetManagement> QuickAssetManagement, TArray<FCollectionNameType> AvailableCollections)
+		{
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 
 			AvailableCollections.Sort([](const FCollectionNameType& One, const FCollectionNameType& Two) -> bool
 			{
@@ -843,18 +832,47 @@ bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
 
 			for (const FCollectionNameType& AvailableCollection : AvailableCollections)
 			{
-				SubMenuBuilder.AddMenuEntry(
-					FText::FromName(AvailableCollection.Name), 
-					ECollectionShareType::GetDescription(AvailableCollection.Type), 
-					FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(AvailableCollection.Type)), 
-					FUIAction(
-						FExecuteAction::CreateStatic(&FManageCollectionsContextMenu::OnCollectionClicked, QuickAssetManagement, AvailableCollection),
-						FCanExecuteAction::CreateStatic(&FManageCollectionsContextMenu::IsCollectionEnabled, QuickAssetManagement, AvailableCollection),
-						FGetActionCheckState::CreateStatic(&FManageCollectionsContextMenu::GetCollectionCheckState, QuickAssetManagement, AvailableCollection)
-						), 
-					NAME_None, 
-					EUserInterfaceActionType::ToggleButton
-					);
+				// Never display system collections
+				if (AvailableCollection.Type == ECollectionShareType::CST_System)
+				{
+					continue;
+				}
+
+				TArray<FCollectionNameType> AvailableChildCollections;
+				CollectionManagerModule.Get().GetChildCollections(AvailableCollection.Name, AvailableCollection.Type, AvailableChildCollections);
+
+				if (AvailableChildCollections.Num() > 0)
+				{
+					SubMenuBuilder.AddSubMenu(
+						FText::FromName(AvailableCollection.Name), 
+						ECollectionShareType::GetDescription(AvailableCollection.Type), 
+						FNewMenuDelegate::CreateStatic(&FManageCollectionsContextMenu::CreateManageCollectionsSubMenu, QuickAssetManagement, AvailableChildCollections),
+						FUIAction(
+							FExecuteAction::CreateStatic(&FManageCollectionsContextMenu::OnCollectionClicked, QuickAssetManagement, AvailableCollection),
+							FCanExecuteAction::CreateStatic(&FManageCollectionsContextMenu::IsCollectionEnabled, QuickAssetManagement, AvailableCollection),
+							FGetActionCheckState::CreateStatic(&FManageCollectionsContextMenu::GetCollectionCheckState, QuickAssetManagement, AvailableCollection)
+							), 
+						NAME_None, 
+						EUserInterfaceActionType::ToggleButton,
+						false,
+						FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(AvailableCollection.Type))
+						);
+				}
+				else
+				{
+					SubMenuBuilder.AddMenuEntry(
+						FText::FromName(AvailableCollection.Name), 
+						ECollectionShareType::GetDescription(AvailableCollection.Type), 
+						FSlateIcon(FEditorStyle::GetStyleSetName(), ECollectionShareType::GetIconStyleName(AvailableCollection.Type)), 
+						FUIAction(
+							FExecuteAction::CreateStatic(&FManageCollectionsContextMenu::OnCollectionClicked, QuickAssetManagement, AvailableCollection),
+							FCanExecuteAction::CreateStatic(&FManageCollectionsContextMenu::IsCollectionEnabled, QuickAssetManagement, AvailableCollection),
+							FGetActionCheckState::CreateStatic(&FManageCollectionsContextMenu::GetCollectionCheckState, QuickAssetManagement, AvailableCollection)
+							), 
+						NAME_None, 
+						EUserInterfaceActionType::ToggleButton
+						);
+				}
 			}
 		}
 

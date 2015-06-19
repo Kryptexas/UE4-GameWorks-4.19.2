@@ -11,8 +11,8 @@ public:
 	/** Bind menu selection commands to the command list */
 	void BindCommands(TSharedPtr< FUICommandList > InCommandList);
 
-	/** Makes the collection list context menu widget */
-	TSharedPtr<SWidget> MakeCollectionListContextMenu(TSharedPtr< FUICommandList > InCommandList);
+	/** Makes the collection tree context menu widget */
+	TSharedPtr<SWidget> MakeCollectionTreeContextMenu(TSharedPtr< FUICommandList > InCommandList);
 
 	/** Makes the new collection submenu */
 	void MakeNewCollectionSubMenu(FMenuBuilder& MenuBuilder);

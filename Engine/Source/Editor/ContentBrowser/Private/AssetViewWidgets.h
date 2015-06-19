@@ -7,10 +7,24 @@ DECLARE_DELEGATE_FourParams( FOnRenameCommit, const TSharedPtr<FAssetViewItem>& 
 DECLARE_DELEGATE_RetVal_FourParams( bool, FOnVerifyRenameCommit, const TSharedPtr<FAssetViewItem>& /*AssetItem*/, const FText& /*NewName*/, const FSlateRect& /*MessageAnchor*/, FText& /*OutErrorMessage*/)
 DECLARE_DELEGATE_OneParam( FOnItemDestroyed, const TSharedPtr<FAssetViewItem>& /*AssetItem*/);
 
+class SAssetListItem;
+class SAssetTileItem;
+
 namespace FAssetViewModeUtils 
 {
 	FReply OnViewModeKeyDown( const TSet< TSharedPtr<FAssetViewItem> >& SelectedItems, const FKeyEvent& InKeyEvent );
 }
+
+struct FAssetViewItemHelper
+{
+public:
+	static TSharedRef<SWidget> CreateListItemContents(SAssetListItem* const InListItem, const TSharedRef<SWidget>& InThumbnail, FName& OutItemShadowBorder);
+	static TSharedRef<SWidget> CreateTileItemContents(SAssetTileItem* const InTileItem, const TSharedRef<SWidget>& InThumbnail, FName& OutItemShadowBorder);
+
+private:
+	template <typename T>
+	static TSharedRef<SWidget> CreateListTileItemContents(T* const InTileOrListItem, const TSharedRef<SWidget>& InThumbnail, FName& OutItemShadowBorder);
+};
 
 /** The tile view mode of the asset view */
 class SAssetTileView : public STileView<TSharedPtr<FAssetViewItem>>
@@ -126,7 +140,7 @@ public:
 
 protected:
 	/** Used by OnDragEnter, OnDragOver, and OnDrop to check and update the validity of the drag operation */
-	bool ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) const;
+	bool ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool& OutIsKnownDragOperation ) const;
 
 	/** Handles starting a name change */
 	virtual void HandleBeginNameChange( const FText& OriginalText );
@@ -266,7 +280,7 @@ protected:
 	/** Delegate for when a list of files is dropped on this item (if it is a folder) from an external source */
 	FOnFilesDragDropped OnFilesDragDropped;
 
-	/** Whether an item is dragged over us or not */
+	/** True when a drag is over this item with a drag operation that we know how to handle. The operation itself may not be valid to drop. */
 	bool bDraggedOver;
 
 	/** Cached brush for the source control state */
@@ -277,6 +291,8 @@ protected:
 /** An item in the asset list view */
 class SAssetListItem : public SAssetViewItem
 {
+	friend struct FAssetViewItemHelper;
+
 public:
 	SLATE_BEGIN_ARGS( SAssetListItem )
 		: _ThumbnailPadding(0)
@@ -383,6 +399,8 @@ private:
 /** An item in the asset tile view */
 class SAssetTileItem : public SAssetViewItem
 {
+	friend struct FAssetViewItemHelper;
+
 public:
 	SLATE_BEGIN_ARGS( SAssetTileItem )
 		: _ThumbnailPadding(0)

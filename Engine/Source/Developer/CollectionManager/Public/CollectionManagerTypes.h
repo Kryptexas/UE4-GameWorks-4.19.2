@@ -80,21 +80,43 @@ struct ECollectionShareType
 		return FText::GetEmpty();
 	}
 
-	static FName GetIconStyleName(const Type InType)
+	static FName GetIconStyleName(const Type InType, const TCHAR* InSizeSuffix = TEXT(".Small"))
 	{
 		switch (InType)
 		{
 		case CST_Local:
-			return FName("ContentBrowser.Local");
+			return FName(*FString::Printf(TEXT("ContentBrowser.Local%s"), InSizeSuffix));
 		case CST_Private:
-			return FName("ContentBrowser.Private");
+			return FName(*FString::Printf(TEXT("ContentBrowser.Private%s"), InSizeSuffix));
 		case CST_Shared:
-			return FName("ContentBrowser.Shared");
+			return FName(*FString::Printf(TEXT("ContentBrowser.Shared%s"), InSizeSuffix));
 		default:
 			break;
 		}
 		return NAME_None;
 	}
+};
+
+/** Controls how the collections manager will recurse when performing work against a given collection */
+struct ECollectionRecursionFlags
+{
+	typedef uint8 Flags;
+	enum Flag
+	{
+		/** Include the current collection when performing work */
+		Self = 1<<0,
+		/** Include the parent collections when performing work */
+		Parents = 1<<1,
+		/** Include the child collections when performing work */
+		Children = 1<<2,
+
+		/** Include parent collections in addition to the current collection */
+		SelfAndParents = Self | Parents,
+		/** Include child collections in addition to the current collection */
+		SelfAndChildren = Self | Children,
+		/** Include parent and child collections in addition to the current collection */
+		All = Self | Parents | Children,
+	};
 };
 
 /** A name/type pair to uniquely identify a collection */

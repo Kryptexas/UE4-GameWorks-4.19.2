@@ -26,6 +26,16 @@ bool FCollectionManager::HasCollections() const
 	return CachedCollections.Num() > 0;
 }
 
+void FCollectionManager::GetCollections(TArray<FCollectionNameType>& OutCollections) const
+{
+	OutCollections.Reserve(CachedCollections.Num());
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
+		OutCollections.Add(CollectionKey);
+	}
+}
+
 void FCollectionManager::GetCollectionNames(ECollectionShareType::Type ShareType, TArray<FName>& CollectionNames) const
 {
 	for (const auto& CachedCollection : CachedCollections)
@@ -33,8 +43,114 @@ void FCollectionManager::GetCollectionNames(ECollectionShareType::Type ShareType
 		const FCollectionNameType& CollectionKey = CachedCollection.Key;
 		if (ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type)
 		{
-			CollectionNames.Add(CollectionKey.Name);
+			CollectionNames.AddUnique(CollectionKey.Name);
 		}
+	}
+}
+
+void FCollectionManager::GetRootCollections(TArray<FCollectionNameType>& OutCollections) const
+{
+	OutCollections.Reserve(CachedCollections.Num());
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
+		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
+
+		// A root collection either has no parent GUID, or a parent GUID that cannot currently be found - the check below handles both
+		if (!CachedCollectionNamesFromGuids.Contains(Collection->GetParentCollectionGuid()))
+		{
+			OutCollections.Add(CollectionKey);
+		}
+	}
+}
+
+void FCollectionManager::GetRootCollectionNames(ECollectionShareType::Type ShareType, TArray<FName>& CollectionNames) const
+{
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
+		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
+
+		if (ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type)
+		{
+			// A root collection either has no parent GUID, or a parent GUID that cannot currently be found - the check below handles both
+			if (!CachedCollectionNamesFromGuids.Contains(Collection->GetParentCollectionGuid()))
+			{
+				CollectionNames.AddUnique(CollectionKey.Name);
+			}
+		}
+	}
+}
+
+void FCollectionManager::GetChildCollections(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FCollectionNameType>& OutCollections) const
+{
+	auto GetChildCollectionsInternal = [this, &OutCollections](const FCollectionNameType& InCollectionKey)
+	{
+		const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
+		if (CollectionRefPtr)
+		{
+			const auto* ChildCollectionGuids = CachedHierarchy.Find((*CollectionRefPtr)->GetCollectionGuid());
+			if (ChildCollectionGuids)
+			{
+				for (const FGuid& ChildCollectionGuid : *ChildCollectionGuids)
+				{
+					const FCollectionNameType* const ChildCollectionKeyPtr = CachedCollectionNamesFromGuids.Find(ChildCollectionGuid);
+					if (ChildCollectionKeyPtr)
+					{
+						OutCollections.Add(*ChildCollectionKeyPtr);
+					}
+				}
+			}
+		}
+	};
+
+	if (ShareType == ECollectionShareType::CST_All)
+	{
+		// Asked for all share types, find children in the specified collection name in any cache
+		for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
+		{
+			GetChildCollectionsInternal(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)));
+		}
+	}
+	else
+	{
+		GetChildCollectionsInternal(FCollectionNameType(CollectionName, ShareType));
+	}
+}
+
+void FCollectionManager::GetChildCollectionNames(FName CollectionName, ECollectionShareType::Type ShareType, ECollectionShareType::Type ChildShareType, TArray<FName>& CollectionNames) const
+{
+	auto GetChildCollectionsInternal = [this, &ChildShareType, &CollectionNames](const FCollectionNameType& InCollectionKey)
+	{
+		const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
+		if (CollectionRefPtr)
+		{
+			const auto* ChildCollectionGuids = CachedHierarchy.Find((*CollectionRefPtr)->GetCollectionGuid());
+			if (ChildCollectionGuids)
+			{
+				for (const FGuid& ChildCollectionGuid : *ChildCollectionGuids)
+				{
+					const FCollectionNameType* const ChildCollectionKeyPtr = CachedCollectionNamesFromGuids.Find(ChildCollectionGuid);
+					if (ChildCollectionKeyPtr && (ChildShareType == ECollectionShareType::CST_All || ChildShareType == ChildCollectionKeyPtr->Type))
+					{
+						CollectionNames.AddUnique(ChildCollectionKeyPtr->Name);
+					}
+				}
+			}
+		}
+	};
+
+	if (ShareType == ECollectionShareType::CST_All)
+	{
+		// Asked for all share types, find children in the specified collection name in any cache
+		for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
+		{
+			GetChildCollectionsInternal(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)));
+		}
+	}
+	else
+	{
+		GetChildCollectionsInternal(FCollectionNameType(CollectionName, ShareType));
 	}
 }
 
@@ -61,145 +177,161 @@ bool FCollectionManager::CollectionExists(FName CollectionName, ECollectionShare
 	}
 }
 
-bool FCollectionManager::GetAssetsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& AssetsPaths) const
+bool FCollectionManager::GetAssetsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& AssetsPaths, ECollectionRecursionFlags::Flags RecursionMode) const
 {
-	auto GetAssetsInCollectionInternal = [this, &AssetsPaths](const FCollectionNameType& InCollectionKey) -> bool
+	bool bFoundAssets = false;
+
+	auto GetAssetsInCollectionWorker = [&](const FCollectionNameType& InCollectionKey, ECollectionRecursionFlags::Flag InReason) -> ERecursiveWorkerFlowControl
 	{
 		const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
 		if (CollectionRefPtr)
 		{
 			(*CollectionRefPtr)->GetAssetsInCollection(AssetsPaths);
-			return true;
+			bFoundAssets = true;
 		}
-		return false;
+		return ERecursiveWorkerFlowControl::Continue;
 	};
 
 	if (ShareType == ECollectionShareType::CST_All)
 	{
 		// Asked for all share types, find assets in the specified collection name in any cache
-		bool bFoundAssets = false;
 		for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
 		{
-			bFoundAssets |= GetAssetsInCollectionInternal(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)));
+			RecursionHelper_DoWork(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)), RecursionMode, GetAssetsInCollectionWorker);
 		}
-		return bFoundAssets;
 	}
 	else
 	{
-		return GetAssetsInCollectionInternal(FCollectionNameType(CollectionName, ShareType));
+		RecursionHelper_DoWork(FCollectionNameType(CollectionName, ShareType), RecursionMode, GetAssetsInCollectionWorker);
 	}
+
+	return bFoundAssets;
 }
 
-bool FCollectionManager::GetClassesInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ClassPaths) const
+bool FCollectionManager::GetClassesInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ClassPaths, ECollectionRecursionFlags::Flags RecursionMode) const
 {
-	auto GetClassesInCollectionInternal = [this, &ClassPaths](const FCollectionNameType& InCollectionKey) -> bool
+	bool bFoundClasses = false;
+
+	auto GetClassesInCollectionWorker = [&](const FCollectionNameType& InCollectionKey, ECollectionRecursionFlags::Flag InReason) -> ERecursiveWorkerFlowControl
 	{
 		const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
 		if (CollectionRefPtr)
 		{
 			(*CollectionRefPtr)->GetClassesInCollection(ClassPaths);
-			return true;
+			bFoundClasses = true;
 		}
-		return false;
+		return ERecursiveWorkerFlowControl::Continue;
 	};
 
 	if (ShareType == ECollectionShareType::CST_All)
 	{
 		// Asked for all share types, find classes in the specified collection name in any cache
-		bool bFoundAssets = false;
 		for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
 		{
-			bFoundAssets |= GetClassesInCollectionInternal(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)));
+			RecursionHelper_DoWork(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)), RecursionMode, GetClassesInCollectionWorker);
 		}
-		return bFoundAssets;
 	}
 	else
 	{
-		return GetClassesInCollectionInternal(FCollectionNameType(CollectionName, ShareType));
+		RecursionHelper_DoWork(FCollectionNameType(CollectionName, ShareType), RecursionMode, GetClassesInCollectionWorker);
 	}
+
+	return bFoundClasses;
 }
 
-bool FCollectionManager::GetObjectsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ObjectPaths) const
+bool FCollectionManager::GetObjectsInCollection(FName CollectionName, ECollectionShareType::Type ShareType, TArray<FName>& ObjectPaths, ECollectionRecursionFlags::Flags RecursionMode) const
 {
-	auto GetObjectsInCollectionInternal = [this, &ObjectPaths](const FCollectionNameType& InCollectionKey) -> bool
+	bool bFoundObjects = false;
+
+	auto GetObjectsInCollectionWorker = [&](const FCollectionNameType& InCollectionKey, ECollectionRecursionFlags::Flag InReason) -> ERecursiveWorkerFlowControl
 	{
 		const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
 		if (CollectionRefPtr)
 		{
 			(*CollectionRefPtr)->GetObjectsInCollection(ObjectPaths);
-			return true;
+			bFoundObjects = true;
 		}
-		return false;
+		return ERecursiveWorkerFlowControl::Continue;
 	};
 
 	if (ShareType == ECollectionShareType::CST_All)
 	{
-		// Asked for all share types, find objects in the specified collection name in any cache
-		bool bFoundAssets = false;
+		// Asked for all share types, find classes in the specified collection name in any cache
 		for (int32 CacheIdx = 0; CacheIdx < ECollectionShareType::CST_All; ++CacheIdx)
 		{
-			bFoundAssets |= GetObjectsInCollectionInternal(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)));
+			RecursionHelper_DoWork(FCollectionNameType(CollectionName, ECollectionShareType::Type(CacheIdx)), RecursionMode, GetObjectsInCollectionWorker);
 		}
-		return bFoundAssets;
 	}
 	else
 	{
-		return GetObjectsInCollectionInternal(FCollectionNameType(CollectionName, ShareType));
+		RecursionHelper_DoWork(FCollectionNameType(CollectionName, ShareType), RecursionMode, GetObjectsInCollectionWorker);
 	}
+
+	return bFoundObjects;
 }
 
-void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames) const
+void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, ECollectionShareType::Type ShareType, TArray<FName>& OutCollectionNames, ECollectionRecursionFlags::Flags RecursionMode) const
 {
-	const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
-	if (ObjectCollectionsPtr)
+	const auto* ObjectCollectionInfosPtr = CachedObjects.Find(ObjectPath);
+	if (ObjectCollectionInfosPtr)
 	{
-		for (const FCollectionNameType& CollectionKey : *ObjectCollectionsPtr)
+		for (const FObjectCollectionInfo& ObjectCollectionInfo : *ObjectCollectionInfosPtr)
 		{
-			if (ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type)
+			if ((ShareType == ECollectionShareType::CST_All || ShareType == ObjectCollectionInfo.CollectionKey.Type) && (RecursionMode & ObjectCollectionInfo.Reason) != 0)
 			{
-				OutCollectionNames.Add(CollectionKey.Name);
+				OutCollectionNames.Add(ObjectCollectionInfo.CollectionKey.Name);
 			}
 		}
 	}
 }
 
-void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, TArray<FCollectionNameType>& OutCollections) const
+void FCollectionManager::GetCollectionsContainingObject(FName ObjectPath, TArray<FCollectionNameType>& OutCollections, ECollectionRecursionFlags::Flags RecursionMode) const
 {
-	const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
-	if (ObjectCollectionsPtr)
+	const auto* ObjectCollectionInfosPtr = CachedObjects.Find(ObjectPath);
+	if (ObjectCollectionInfosPtr)
 	{
-		OutCollections.Append(*ObjectCollectionsPtr);
+		OutCollections.Reserve(OutCollections.Num() + ObjectCollectionInfosPtr->Num());
+		for (const FObjectCollectionInfo& ObjectCollectionInfo : *ObjectCollectionInfosPtr)
+		{
+			if ((RecursionMode & ObjectCollectionInfo.Reason) != 0)
+			{
+				OutCollections.Add(ObjectCollectionInfo.CollectionKey);
+			}
+		}
 	}
 }
 
-void FCollectionManager::GetCollectionsContainingObjects(const TArray<FName>& ObjectPaths, TMap<FCollectionNameType, TArray<FName>>& OutCollectionsAndMatchedObjects) const
+void FCollectionManager::GetCollectionsContainingObjects(const TArray<FName>& ObjectPaths, TMap<FCollectionNameType, TArray<FName>>& OutCollectionsAndMatchedObjects, ECollectionRecursionFlags::Flags RecursionMode) const
 {
 	for (const FName& ObjectPath : ObjectPaths)
 	{
-		const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
-		if (ObjectCollectionsPtr)
+		const auto* ObjectCollectionInfosPtr = CachedObjects.Find(ObjectPath);
+		if (ObjectCollectionInfosPtr)
 		{
-			for (const FCollectionNameType& CollectionKey : *ObjectCollectionsPtr)
+			for (const FObjectCollectionInfo& ObjectCollectionInfo : *ObjectCollectionInfosPtr)
 			{
-				TArray<FName>& MatchedObjects = OutCollectionsAndMatchedObjects.FindOrAdd(CollectionKey);
-				MatchedObjects.Add(ObjectPath);
+				if ((RecursionMode & ObjectCollectionInfo.Reason) != 0)
+				{
+					TArray<FName>& MatchedObjects = OutCollectionsAndMatchedObjects.FindOrAdd(ObjectCollectionInfo.CollectionKey);
+					MatchedObjects.Add(ObjectPath);
+				}
 			}
 		}
 	}
 }
 
-FString FCollectionManager::GetCollectionsStringForObject(FName ObjectPath, ECollectionShareType::Type ShareType) const
+FString FCollectionManager::GetCollectionsStringForObject(FName ObjectPath, ECollectionShareType::Type ShareType, ECollectionRecursionFlags::Flags RecursionMode) const
 {
-	const auto* ObjectCollectionsPtr = CachedObjects.Find(ObjectPath);
-	if (ObjectCollectionsPtr)
+	const auto* ObjectCollectionInfosPtr = CachedObjects.Find(ObjectPath);
+	if (ObjectCollectionInfosPtr)
 	{
 		TArray<FString> CollectionNameStrings;
 
-		for (const FCollectionNameType& CollectionKey : *ObjectCollectionsPtr)
+		for (const FObjectCollectionInfo& ObjectCollectionInfo : *ObjectCollectionInfosPtr)
 		{
-			if (ShareType == ECollectionShareType::CST_All || ShareType == CollectionKey.Type)
+			if ((ShareType == ECollectionShareType::CST_All || ShareType == ObjectCollectionInfo.CollectionKey.Type) && (RecursionMode & ObjectCollectionInfo.Reason) != 0)
 			{
-				CollectionNameStrings.Add(CollectionKey.Name.ToString());
+				CollectionNameStrings.Add(ObjectCollectionInfo.CollectionKey.Name.ToString());
 			}
 		}
 
@@ -249,10 +381,10 @@ bool FCollectionManager::CreateCollection(FName CollectionName, ECollectionShare
 	}
 
 	// Try to add the collection
-	bool bUseSCC = ShouldUseSCC(ShareType);
-	FString SourceFolder = CollectionFolders[ShareType];
+	const bool bUseSCC = ShouldUseSCC(ShareType);
+	const FString CollectionFilename = GetCollectionFilename(CollectionName, ShareType);
 
-	TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(CollectionName, SourceFolder, CollectionExtension, bUseSCC));
+	TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(CollectionFilename, bUseSCC));
 	if (!AddCollection(NewCollection, ShareType))
 	{
 		// Failed to add the collection, it already exists
@@ -283,46 +415,158 @@ bool FCollectionManager::RenameCollection(FName CurrentCollectionName, ECollecti
 		return false;
 	}
 
-	// Get the object paths for the assets in the collection
-	TArray<FName> ObjectPaths;
-	if (!GetAssetsInCollection(CurrentCollectionName, CurrentShareType, ObjectPaths))
+	const FCollectionNameType OriginalCollectionKey(CurrentCollectionName, CurrentShareType);
+	const FCollectionNameType NewCollectionKey(NewCollectionName, NewShareType);
+
+	TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(OriginalCollectionKey);
+	if (!CollectionRefPtr)
 	{
-		// Failed to get assets in the current collection
+		// The collection doesn't exist
+		LastError = LOCTEXT("Error_DoesntExist", "The collection doesn't exist.");
 		return false;
 	}
 
-	// Create a new collection
-	if (!CreateCollection(NewCollectionName, NewShareType))
+	// Add the new collection
+	TSharedPtr<FCollection> NewCollection;
 	{
-		// Failed to create collection
-		return false;
-	}
+		const bool bUseSCC = ShouldUseSCC(NewShareType);
+		const FString NewCollectionFilename = GetCollectionFilename(NewCollectionName, NewShareType);
 
-	if (ObjectPaths.Num() > 0)
-	{
-		// Add all the objects from the old collection to the new collection
-		if (!AddToCollection(NewCollectionName, NewShareType, ObjectPaths))
+		// Create an exact copy of the collection using its new path - this will preserve its GUID and avoid losing hierarchy data
+		NewCollection = (*CollectionRefPtr)->Clone(NewCollectionFilename, bUseSCC, ECollectionCloneMode::Exact);
+		if (!AddCollection(NewCollection.ToSharedRef(), NewShareType))
 		{
-			// Failed to add paths to the new collection. Destroy the collection we created.
-			DestroyCollection(NewCollectionName, NewShareType);
+			// Failed to add the collection, it already exists
+			LastError = LOCTEXT("Error_AlreadyExists", "The collection already exists.");
+			return false;
+		}
+
+		if (!NewCollection->Save(LastError))
+		{
+			// Collection failed to save, remove it from the cache
+			RemoveCollection(NewCollection.ToSharedRef(), NewShareType);
+
+			// Restore the original GUID mapping since AddCollection replaced it
+			CachedCollectionNamesFromGuids.Add((*CollectionRefPtr)->GetCollectionGuid(), OriginalCollectionKey);
+
 			return false;
 		}
 	}
 
-	// Delete the old collection
-	if (!DestroyCollection(CurrentCollectionName, CurrentShareType))
+	// Remove the old collection
 	{
-		// Failed to destroy the old collection. Destroy the collection we created.
-		DestroyCollection(NewCollectionName, NewShareType);
-		return false;
+		if ((*CollectionRefPtr)->DeleteSourceFile(LastError))
+		{
+			RemoveCollection(*CollectionRefPtr, CurrentShareType);
+
+			// Re-add the new GUID mapping since RemoveCollection removed it
+			CachedCollectionNamesFromGuids.Add(NewCollection->GetCollectionGuid(), NewCollectionKey);
+		}
+		else
+		{
+			// Failed to remove the old collection, so remove the collection we created.
+			NewCollection->DeleteSourceFile(LastError);
+			RemoveCollection(NewCollection.ToSharedRef(), NewShareType);
+
+			// Restore the original GUID mapping since RemoveCollection removed it
+			CachedCollectionNamesFromGuids.Add((*CollectionRefPtr)->GetCollectionGuid(), OriginalCollectionKey);
+
+			return false;
+		}
 	}
 
 	RebuildCachedObjects();
 
 	// Success
-	const FCollectionNameType OriginalCollectionKey(CurrentCollectionName, CurrentShareType);
-	const FCollectionNameType NewCollectionKey(NewCollectionName, NewShareType);
 	CollectionRenamedEvent.Broadcast(OriginalCollectionKey, NewCollectionKey);
+	return true;
+}
+
+bool FCollectionManager::ReparentCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ParentCollectionName, ECollectionShareType::Type ParentShareType)
+{
+	if (!ensure(ShareType < ECollectionShareType::CST_All) || (!ParentCollectionName.IsNone() && !ensure(ParentShareType < ECollectionShareType::CST_All)))
+	{
+		// Bad share type
+		LastError = LOCTEXT("Error_Internal", "There was an internal error.");
+		return false;
+	}
+
+	const FCollectionNameType CollectionKey(CollectionName, ShareType);
+	TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(CollectionKey);
+	if (!CollectionRefPtr)
+	{
+		// The collection doesn't exist
+		LastError = LOCTEXT("Error_DoesntExist", "The collection doesn't exist.");
+		return false;
+	}
+
+	const FGuid OldParentGuid = (*CollectionRefPtr)->GetParentCollectionGuid();
+	FGuid NewParentGuid;
+
+	TOptional<FCollectionNameType> OldParentCollectionKey;
+	TOptional<FCollectionNameType> NewParentCollectionKey;
+
+	if (!ParentCollectionName.IsNone())
+	{
+		// Find and set the new parent GUID
+		NewParentCollectionKey = FCollectionNameType(ParentCollectionName, ParentShareType);
+		TSharedRef<FCollection>* const ParentCollectionRefPtr = CachedCollections.Find(NewParentCollectionKey.GetValue());
+		if (!ParentCollectionRefPtr)
+		{
+			// The collection doesn't exist
+			LastError = LOCTEXT("Error_DoesntExist", "The collection doesn't exist.");
+			return false;
+		}
+
+		// Does the parent collection need saving in order to have a stable GUID?
+		if ((*ParentCollectionRefPtr)->GetCollectionVersion() < ECollectionVersion::AddedCollectionGuid)
+		{
+			// Try and re-save the parent collection now
+			if (!(*ParentCollectionRefPtr)->Save(LastError))
+			{
+				return false;
+			}
+		}
+
+		if (!IsValidParentCollection(CollectionName, ShareType, ParentCollectionName, ParentShareType))
+		{
+			// IsValidParentCollection fills in LastError itself
+			return false;
+		}
+
+		NewParentGuid = (*ParentCollectionRefPtr)->GetCollectionGuid();
+	}
+
+	// Anything changed?
+	if (OldParentGuid == NewParentGuid)
+	{
+		return true;
+	}
+
+	(*CollectionRefPtr)->SetParentCollectionGuid(NewParentGuid);
+
+	// Try and save with the new parent GUID
+	if (!(*CollectionRefPtr)->Save(LastError))
+	{
+		// Failed to save... rollback the collection to use its old parent GUID
+		(*CollectionRefPtr)->SetParentCollectionGuid(OldParentGuid);
+		return false;
+	}
+
+	// Find the old parent so we can notify about the change
+	{
+		const FCollectionNameType* const OldParentCollectionKeyPtr = CachedCollectionNamesFromGuids.Find(OldParentGuid);
+		if (OldParentCollectionKeyPtr)
+		{
+			OldParentCollectionKey = *OldParentCollectionKeyPtr;
+		}
+	}
+
+	RebuildCachedHierarchy();
+	RebuildCachedObjects();
+
+	// Success
+	CollectionReparentedEvent.Broadcast(CollectionKey, OldParentCollectionKey, NewParentCollectionKey);
 	return true;
 }
 
@@ -348,6 +592,7 @@ bool FCollectionManager::DestroyCollection(FName CollectionName, ECollectionShar
 	{
 		RemoveCollection(*CollectionRefPtr, ShareType);
 
+		RebuildCachedHierarchy();
 		RebuildCachedObjects();
 
 		CollectionDestroyedEvent.Broadcast(CollectionKey);
@@ -512,7 +757,7 @@ bool FCollectionManager::EmptyCollection(FName CollectionName, ECollectionShareT
 	}
 
 	TArray<FName> ObjectPaths;
-	if (!GetAssetsInCollection(CollectionName, ShareType, ObjectPaths))
+	if (!GetObjectsInCollection(CollectionName, ShareType, ObjectPaths))
 	{
 		// Failed to load collection
 		return false;
@@ -552,7 +797,7 @@ bool FCollectionManager::IsCollectionEmpty(FName CollectionName, ECollectionShar
 	return true;
 }
 
-bool FCollectionManager::IsObjectInCollection(FName ObjectPath, FName CollectionName, ECollectionShareType::Type ShareType) const
+bool FCollectionManager::IsObjectInCollection(FName ObjectPath, FName CollectionName, ECollectionShareType::Type ShareType, ECollectionRecursionFlags::Flags RecursionMode) const
 {
 	if (!ensure(ShareType < ECollectionShareType::CST_All))
 	{
@@ -561,14 +806,57 @@ bool FCollectionManager::IsObjectInCollection(FName ObjectPath, FName Collection
 		return true;
 	}
 
-	const FCollectionNameType CollectionKey(CollectionName, ShareType);
-	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(CollectionKey);
-	if (CollectionRefPtr)
+	bool bFoundObject = false;
+
+	auto IsObjectInCollectionWorker = [&](const FCollectionNameType& InCollectionKey, ECollectionRecursionFlags::Flag InReason) -> ERecursiveWorkerFlowControl
 	{
-		return (*CollectionRefPtr)->IsObjectInCollection(ObjectPath);
+		const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
+		if (CollectionRefPtr)
+		{
+			bFoundObject = (*CollectionRefPtr)->IsObjectInCollection(ObjectPath);
+		}
+		return (bFoundObject) ? ERecursiveWorkerFlowControl::Stop : ERecursiveWorkerFlowControl::Continue;
+	};
+
+	RecursionHelper_DoWork(FCollectionNameType(CollectionName, ShareType), RecursionMode, IsObjectInCollectionWorker);
+
+	return bFoundObject;
+}
+
+bool FCollectionManager::IsValidParentCollection(FName CollectionName, ECollectionShareType::Type ShareType, FName ParentCollectionName, ECollectionShareType::Type ParentShareType) const
+{
+	if (!ensure(ShareType < ECollectionShareType::CST_All) || (!ParentCollectionName.IsNone() && !ensure(ParentShareType < ECollectionShareType::CST_All)))
+	{
+		// Bad share type
+		LastError = LOCTEXT("Error_Internal", "There was an internal error.");
+		return true;
 	}
 
-	return false;
+	if (ParentCollectionName.IsNone())
+	{
+		// Clearing the parent is always valid
+		return true;
+	}
+
+	bool bValidParent = true;
+
+	auto IsValidParentCollectionWorker = [&](const FCollectionNameType& InCollectionKey, ECollectionRecursionFlags::Flag InReason) -> ERecursiveWorkerFlowControl
+	{
+		const bool bMatchesCollectionBeingReparented = (CollectionName == InCollectionKey.Name && ShareType == InCollectionKey.Type);
+		if (bMatchesCollectionBeingReparented)
+		{
+			bValidParent = false;
+			LastError = (InReason == ECollectionRecursionFlags::Self) 
+				? LOCTEXT("InvalidParent_CannotParentToSelf", "A collection cannot be parented to itself") 
+				: LOCTEXT("InvalidParent_CannotParentToChildren", "A collection cannot be parented to its children");
+			return ERecursiveWorkerFlowControl::Stop;
+		}
+		return ERecursiveWorkerFlowControl::Continue;
+	};
+
+	RecursionHelper_DoWork(FCollectionNameType(ParentCollectionName, ParentShareType), ECollectionRecursionFlags::SelfAndParents, IsValidParentCollectionWorker);
+
+	return bValidParent;
 }
 
 void FCollectionManager::LoadCollections()
@@ -587,22 +875,24 @@ void FCollectionManager::LoadCollections()
 		for (const FString& BaseFilename : Filenames)
 		{
 			const FString Filename = CollectionFolder / BaseFilename;
-
-			TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection());
 			const bool bUseSCC = ShouldUseSCC(ECollectionShareType::Type(CacheIdx));
-			if (NewCollection->LoadFromFile(Filename, bUseSCC))
+
+			FText LoadErrorText;
+			TSharedRef<FCollection> NewCollection = MakeShareable(new FCollection(Filename, bUseSCC));
+			if (NewCollection->Load(LoadErrorText))
 			{
 				AddCollection(NewCollection, ECollectionShareType::Type(CacheIdx));
 			}
 			else
 			{
-				UE_LOG(LogCollectionManager, Warning, TEXT("Failed to load collection file %s"), *Filename);
+				UE_LOG(LogCollectionManager, Warning, TEXT("%s"), *LoadErrorText.ToString());
 			}
 		}
 	}
 
 	UE_LOG(LogCollectionManager, Log, TEXT( "Loaded %d collections in %0.6f seconds" ), CachedCollections.Num() - PrevNumCollections, FPlatformTime::Seconds() - LoadStartTime);
 
+	RebuildCachedHierarchy();
 	RebuildCachedObjects();
 }
 
@@ -618,21 +908,86 @@ void FCollectionManager::RebuildCachedObjects()
 		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
 
 		TArray<FName> ObjectsInCollection;
-		Collection->GetObjectsInCollection(ObjectsInCollection);
+		CachedCollection.Value->GetObjectsInCollection(ObjectsInCollection);
 
-		for (const FName& ObjectPath : ObjectsInCollection)
+		if (ObjectsInCollection.Num() > 0)
 		{
-			auto& ObjectCollections = CachedObjects.FindOrAdd(ObjectPath);
-			ObjectCollections.AddUnique(CollectionKey);
+			auto RebuildCachedObjectsWorker = [&](const FCollectionNameType& InCollectionKey, ECollectionRecursionFlags::Flag InReason) -> ERecursiveWorkerFlowControl
+			{
+				// The worker reason will tell us why this collection is being processed (eg, because it is a parent of the collection we told it to DoWork on),
+				// however, the reason this object exists in that parent collection is because a child collection contains it, and this is the reason we need
+				// to put into the FObjectCollectionInfo, since that's what we'll test against later when we do the "do my children contain this object"? test
+				// That's why we flip the reason logic here...
+				ECollectionRecursionFlags::Flag ReasonObjectInCollection = InReason;
+				switch (InReason)
+				{
+				case ECollectionRecursionFlags::Parents:
+					ReasonObjectInCollection = ECollectionRecursionFlags::Children;
+					break;
+				case ECollectionRecursionFlags::Children:
+					ReasonObjectInCollection = ECollectionRecursionFlags::Parents;
+					break;
+				default:
+					break;
+				}
+
+				for (const FName& ObjectPath : ObjectsInCollection)
+				{
+					auto& ObjectCollectionInfos = CachedObjects.FindOrAdd(ObjectPath);
+					FObjectCollectionInfo* ObjectInfoPtr = ObjectCollectionInfos.FindByPredicate([&](const FObjectCollectionInfo& InCollectionInfo) { return InCollectionInfo.CollectionKey == InCollectionKey; });
+					if (ObjectInfoPtr)
+					{
+						ObjectInfoPtr->Reason |= ReasonObjectInCollection;
+					}
+					else
+					{
+						ObjectCollectionInfos.Add(FObjectCollectionInfo(InCollectionKey, ReasonObjectInCollection));
+					}
+				}
+				return ERecursiveWorkerFlowControl::Continue;
+			};
+
+			// Recursively process all collections so that they know they contain these objects (and why!)
+			RecursionHelper_DoWork(CollectionKey, ECollectionRecursionFlags::All, RebuildCachedObjectsWorker);
 		}
 	}
 
-	UE_LOG(LogCollectionManager, Log, TEXT( "Rebuilt the cache for %d objects in %0.6f seconds" ), CachedObjects.Num(), FPlatformTime::Seconds() - LoadStartTime);
+	UE_LOG(LogCollectionManager, Log, TEXT( "Rebuilt the object cache for %d collections in %0.6f seconds (found %d objects)" ), CachedCollections.Num(), FPlatformTime::Seconds() - LoadStartTime, CachedObjects.Num());
+}
+
+void FCollectionManager::RebuildCachedHierarchy()
+{
+	const double LoadStartTime = FPlatformTime::Seconds();
+
+	CachedHierarchy.Empty();
+
+	for (const auto& CachedCollection : CachedCollections)
+	{
+		const FCollectionNameType& CollectionKey = CachedCollection.Key;
+		const TSharedRef<FCollection>& Collection = CachedCollection.Value;
+
+		// Make sure this is a known parent GUID before adding it to the map
+		const FGuid& ParentCollectionGuid = Collection->GetParentCollectionGuid();
+		if (CachedCollectionNamesFromGuids.Contains(ParentCollectionGuid))
+		{
+			auto& CollectionChildren = CachedHierarchy.FindOrAdd(ParentCollectionGuid);
+			CollectionChildren.AddUnique(Collection->GetCollectionGuid());
+		}
+	}
+
+	UE_LOG(LogCollectionManager, Log, TEXT( "Rebuilt the hierarchy cache for %d collections in %0.6f seconds" ), CachedCollections.Num(), FPlatformTime::Seconds() - LoadStartTime);
 }
 
 bool FCollectionManager::ShouldUseSCC(ECollectionShareType::Type ShareType) const
 {
 	return ShareType != ECollectionShareType::CST_Local && ShareType != ECollectionShareType::CST_System;
+}
+
+FString FCollectionManager::GetCollectionFilename(const FName& InCollectionName, const ECollectionShareType::Type InCollectionShareType) const
+{
+	FString CollectionFilename = CollectionFolders[InCollectionShareType] / InCollectionName.ToString() + TEXT(".") + CollectionExtension;
+	FPaths::NormalizeFilename(CollectionFilename);
+	return CollectionFilename;
 }
 
 bool FCollectionManager::AddCollection(const TSharedRef<FCollection>& CollectionRef, ECollectionShareType::Type ShareType)
@@ -651,6 +1006,7 @@ bool FCollectionManager::AddCollection(const TSharedRef<FCollection>& Collection
 	}
 
 	CachedCollections.Add(CollectionKey, CollectionRef);
+	CachedCollectionNamesFromGuids.Add(CollectionRef->GetCollectionGuid(), CollectionKey);
 	return true;
 }
 
@@ -663,7 +1019,69 @@ bool FCollectionManager::RemoveCollection(const TSharedRef<FCollection>& Collect
 	}
 
 	const FCollectionNameType CollectionKey(CollectionRef->GetCollectionName(), ShareType);
+	CachedCollectionNamesFromGuids.Remove(CollectionRef->GetCollectionGuid());
 	return CachedCollections.Remove(CollectionKey) > 0;
+}
+
+void FCollectionManager::RecursionHelper_DoWork(const FCollectionNameType& InCollectionKey, const ECollectionRecursionFlags::Flags InRecursionMode, const FRecursiveWorkerFunc& InWorkerFunc) const
+{
+	if ((InRecursionMode & ECollectionRecursionFlags::Self) && InWorkerFunc(InCollectionKey, ECollectionRecursionFlags::Self) == ERecursiveWorkerFlowControl::Stop)
+	{
+		return;
+	}
+
+	if ((InRecursionMode & ECollectionRecursionFlags::Parents) && RecursionHelper_DoWorkOnParents(InCollectionKey, InWorkerFunc) == ERecursiveWorkerFlowControl::Stop)
+	{
+		return;
+	}
+
+	if ((InRecursionMode & ECollectionRecursionFlags::Children) && RecursionHelper_DoWorkOnChildren(InCollectionKey, InWorkerFunc) == ERecursiveWorkerFlowControl::Stop)
+	{
+		return;
+	}
+}
+
+FCollectionManager::ERecursiveWorkerFlowControl FCollectionManager::RecursionHelper_DoWorkOnParents(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const
+{
+	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
+	if (CollectionRefPtr)
+	{
+		const FCollectionNameType* const ParentCollectionKeyPtr = CachedCollectionNamesFromGuids.Find((*CollectionRefPtr)->GetParentCollectionGuid());
+		if (ParentCollectionKeyPtr)
+		{
+			if (InWorkerFunc(*ParentCollectionKeyPtr, ECollectionRecursionFlags::Parents) == ERecursiveWorkerFlowControl::Stop || RecursionHelper_DoWorkOnParents(*ParentCollectionKeyPtr, InWorkerFunc) == ERecursiveWorkerFlowControl::Stop)
+			{
+				return ERecursiveWorkerFlowControl::Stop;
+			}
+		}
+	}
+
+	return ERecursiveWorkerFlowControl::Continue;
+}
+
+FCollectionManager::ERecursiveWorkerFlowControl FCollectionManager::RecursionHelper_DoWorkOnChildren(const FCollectionNameType& InCollectionKey, const FRecursiveWorkerFunc& InWorkerFunc) const
+{
+	const TSharedRef<FCollection>* const CollectionRefPtr = CachedCollections.Find(InCollectionKey);
+	if (CollectionRefPtr)
+	{
+		const TArray<FGuid>* const ChildCollectionGuids = CachedHierarchy.Find((*CollectionRefPtr)->GetCollectionGuid());
+		if (ChildCollectionGuids)
+		{
+			for (const FGuid& ChildCollectionGuid : *ChildCollectionGuids)
+			{
+				const FCollectionNameType* const ChildCollectionKeyPtr = CachedCollectionNamesFromGuids.Find(ChildCollectionGuid);
+				if (ChildCollectionKeyPtr)
+				{
+					if (InWorkerFunc(*ChildCollectionKeyPtr, ECollectionRecursionFlags::Children) == ERecursiveWorkerFlowControl::Stop || RecursionHelper_DoWorkOnChildren(*ChildCollectionKeyPtr, InWorkerFunc) == ERecursiveWorkerFlowControl::Stop)
+					{
+						return ERecursiveWorkerFlowControl::Stop;
+					}
+				}
+			}
+		}
+	}
+
+	return ERecursiveWorkerFlowControl::Continue;
 }
 
 #undef LOCTEXT_NAMESPACE
