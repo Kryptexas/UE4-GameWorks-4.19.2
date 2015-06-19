@@ -6078,7 +6078,7 @@ void UInterpTrackColorProp::UpdateTrack(float NewPosition, UInterpTrackInst* TrI
 	FLinearColor DefaultLinearColor = DefaultColor;
 	FVector DefaultColorAsVector(DefaultLinearColor.R, DefaultLinearColor.G, DefaultLinearColor.B);
 	FVector NewVectorValue = VectorTrack.Eval( NewPosition, DefaultColorAsVector );
-	FColor NewColorValue = FLinearColor(NewVectorValue.X, NewVectorValue.Y, NewVectorValue.Z);
+	FColor NewColorValue = FLinearColor(NewVectorValue.X, NewVectorValue.Y, NewVectorValue.Z).ToFColor(true);
 	*PropInst->ColorProp = NewColorValue;
 
 	// If we have a custom callback for this property, call that

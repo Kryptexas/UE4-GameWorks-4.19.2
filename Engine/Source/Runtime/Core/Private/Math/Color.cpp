@@ -18,6 +18,7 @@ const FLinearColor FLinearColor::Yellow(1.f,1.f,0);
 
 const FColor FColor::White(255,255,255);
 const FColor FColor::Black(0,0,0);
+const FColor FColor::Transparent(0, 0, 0, 0);
 const FColor FColor::Red(255,0,0);
 const FColor FColor::Green(0,255,0);
 const FColor FColor::Blue(0,0,255);
@@ -374,7 +375,7 @@ FColor FColor::MakeRedToGreenColorFromScalar(float Scalar)
 void ComputeAndFixedColorAndIntensity(const FLinearColor& InLinearColor,FColor& OutColor,float& OutIntensity)
 {
 	float MaxComponent = FMath::Max(DELTA,FMath::Max(InLinearColor.R,FMath::Max(InLinearColor.G,InLinearColor.B)));
-	OutColor = InLinearColor / MaxComponent;
+	OutColor = ( InLinearColor / MaxComponent ).ToFColor(true);
 	OutIntensity = MaxComponent;
 }
 

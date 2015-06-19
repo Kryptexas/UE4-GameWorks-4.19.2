@@ -1977,7 +1977,7 @@ struct FFoliagePaintBucketTriangle
 			y = 1.f - y;
 		}
 
-		OutBaryVertexColor = (1.f - x - y) * VertexColor[0] + x * VertexColor[1] + y * VertexColor[2];
+		OutBaryVertexColor = ( ( 1.f - x - y ) * VertexColor[0] + x * VertexColor[1] + y * VertexColor[2] ).ToFColor(true);
 		OutPoint = Vertex + x * Vector1 + y * Vector2;
 	}
 

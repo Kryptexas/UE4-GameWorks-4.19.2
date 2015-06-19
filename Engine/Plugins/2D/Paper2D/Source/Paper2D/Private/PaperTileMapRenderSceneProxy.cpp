@@ -157,10 +157,10 @@ void FPaperTileMapRenderSceneProxy::DrawStaggeredGridLines(FPrimitiveDrawInterfa
 		XBottom -= XExcess;
 		YBottom -= XExcess * 2;
 
- 		if (XBottom == TileMap->MapWidth)
- 		{
+		if (XBottom == TileMap->MapWidth)
+		{
 			YBottom -= ((TileMap->MapHeight & 1) != 0) ? 0 : 1;
- 		}
+		}
 
 		// Bottom center
 		Poly.Reset();
@@ -287,7 +287,7 @@ void FPaperTileMapRenderSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 							const bool bPerHullColor = false;
 							const bool bDrawSimpleSolid = false;
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, bDrawWireSelected, IsHovered()), CollisionMaterialInstance, bPerHullColor, bDrawSimpleSolid, UseEditorDepthTest(), ViewIndex, Collector);
+							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, bDrawWireSelected, IsHovered()).ToFColor(true), CollisionMaterialInstance, bPerHullColor, bDrawSimpleSolid, UseEditorDepthTest(), ViewIndex, Collector);
 						}
 					}
 				}

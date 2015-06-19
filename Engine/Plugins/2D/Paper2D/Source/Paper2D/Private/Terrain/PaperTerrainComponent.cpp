@@ -539,10 +539,10 @@ void UPaperTerrainComponent::OnSplineEdited()
 					const UPaperSprite* Sprite = RuleHelper.ValidBodies[BodyIndex];
 					const float Width = RuleHelper.ValidBodyWidths[BodyIndex];
 
- 					if ((NumSegments > 0) && ((Width * 0.5f) > DistanceBudget))
- 					{
- 						break;
- 					}
+					if ((NumSegments > 0) && ((Width * 0.5f) > DistanceBudget))
+					{
+						break;
+					}
 					new (Segment.Stamps) FTerrainSpriteStamp(Sprite, Position + (Width * 0.5f), /*bIsEndCap=*/ false);
 
 					DistanceBudget -= Width;
@@ -553,10 +553,10 @@ void UPaperTerrainComponent::OnSplineEdited()
 				const float UsedSpace = (BodyDistance - DistanceBudget);
 				const float OverallScaleFactor = BodyDistance / UsedSpace;
 				
- 				// Stretch body segments
+				// Stretch body segments
 				float PositionCorrectionSum = 0.0f;
- 				for (int32 Index = 0; Index < NumSegments; ++Index)
- 				{
+				for (int32 Index = 0; Index < NumSegments; ++Index)
+				{
 					FTerrainSpriteStamp& Stamp = Segment.Stamps[Index + (Segment.Stamps.Num() - NumSegments)];
 					
 					const float WidthChange = (OverallScaleFactor - 1.0f) * Stamp.NominalWidth;
@@ -565,7 +565,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 
 					Stamp.Scale = OverallScaleFactor;
 					Stamp.Time += PositionCorrectionSum;
- 				}
+				}
 			}
 			else
 			{
@@ -637,7 +637,7 @@ void UPaperTerrainComponent::OnSplineEdited()
 				FSpriteDrawCallRecord& FillDrawCall = *new (MaterialBatch.Records) FSpriteDrawCallRecord();
 				FillDrawCall.BuildFromSprite(FillSprite);
 				FillDrawCall.RenderVerts.Empty();
-				FillDrawCall.Color = TerrainColor;
+				FillDrawCall.Color = TerrainColor.ToFColor(true);
 				FillDrawCall.Destination = PaperAxisZ * 0.1f;
 
 				const FVector2D TextureSize = GetSpriteRenderDataBounds2D(FillSprite->BakedRenderData).GetSize();
@@ -818,7 +818,7 @@ void UPaperTerrainComponent::SpawnSegments(const TArray<FTerrainSegment>& Terrai
 
 				FSpriteDrawCallRecord& Record = *new (MaterialBatch.Records) FSpriteDrawCallRecord();
 				Record.BuildFromSprite(NewSprite);
-				Record.Color = TerrainColor;
+				Record.Color = TerrainColor.ToFColor(true);
 
 				// Work out if the sprite is likely to be bent > X deg (folded over itself)
 				const FVector ForwardVector(1, 0, 0);
@@ -1015,12 +1015,14 @@ void UPaperTerrainComponent::SetTerrainColor(FLinearColor NewColor)
 	{
 		TerrainColor = NewColor;
 
+		FColor TerrainGammaSpaceColor = TerrainColor.ToFColor(true);
+
 		// Update the color in the game-thread copy of the render geometry
 		for (FPaperTerrainSpriteGeometry& Batch : GeneratedSpriteGeometry)
 		{
 			for (FSpriteDrawCallRecord& DrawCall : Batch.Records)
 			{
-				DrawCall.Color = TerrainColor;
+				DrawCall.Color = TerrainGammaSpaceColor;
 			}
 		}
 

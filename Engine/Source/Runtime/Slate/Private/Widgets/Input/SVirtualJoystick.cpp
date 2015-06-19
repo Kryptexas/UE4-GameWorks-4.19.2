@@ -108,7 +108,7 @@ int32 SVirtualJoystick::OnPaint( const FPaintArgs& Args, const FGeometry& Allott
 
 	if (bVisible)
 	{
-		FColor ColorAndOpacitySRGB = InWidgetStyle.GetColorAndOpacityTint();
+		FLinearColor ColorAndOpacitySRGB = InWidgetStyle.GetColorAndOpacityTint();
 		ColorAndOpacitySRGB.A = FMath::RoundToInt(255.f * CurrentOpacity);
 
 		for (int32 ControlIndex = 0; ControlIndex < Controls.Num(); ControlIndex++)

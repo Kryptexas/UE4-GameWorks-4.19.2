@@ -271,7 +271,7 @@ void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sec
 		}
 	}
 
- 	Vertices.Empty(EstimatedNumVerts);
+	Vertices.Empty(EstimatedNumVerts);
 
 	UMaterialInterface* TileMapMaterial = GetMaterial(0);
 	if (TileMapMaterial == nullptr)
@@ -297,7 +297,7 @@ void UPaperTileMapComponent::RebuildRenderData(TArray<FSpriteRenderSection>& Sec
 			}
 		}
 
-		const FColor DrawColor(TileMapColor * Layer->GetLayerColor());
+		const FColor DrawColor(( TileMapColor * Layer->GetLayerColor() ).ToFColor(true));
 
 #if WITH_EDITORONLY_DATA
 		if (!Layer->ShouldRenderInEditor())

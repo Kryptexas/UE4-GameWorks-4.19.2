@@ -1263,7 +1263,7 @@ void UNavigationPath::DrawDebug(UCanvas* Canvas, APlayerController*)
 
 void UNavigationPath::EnableDebugDrawing(bool bShouldDrawDebugData, FLinearColor PathColor)
 {
-	DebugDrawingColor = PathColor;
+	DebugDrawingColor = PathColor.ToFColor(true);
 
 	if (bDebugDrawingEnabled == bShouldDrawDebugData)
 	{

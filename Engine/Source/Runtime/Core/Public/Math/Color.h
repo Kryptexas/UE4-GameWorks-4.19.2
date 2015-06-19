@@ -427,18 +427,6 @@ public:
 		A = InA;
 
 	}
-	
-	// fast, for more accuracy use FLinearColor::ToFColor()
-	// TODO: doesn't handle negative colors well, implicit constructor can cause
-	// accidental conversion (better use .ToFColor(true))
-	FColor(const FLinearColor& C)
-		// put these into the body for proper ordering with INTEL vs non-INTEL_BYTE_ORDER
-	{
-		R = FMath::Clamp(FMath::TruncToInt(FMath::Pow(C.R,1.0f / 2.2f) * 255.0f),0,255);
-		G = FMath::Clamp(FMath::TruncToInt(FMath::Pow(C.G,1.0f / 2.2f) * 255.0f),0,255);
-		B = FMath::Clamp(FMath::TruncToInt(FMath::Pow(C.B,1.0f / 2.2f) * 255.0f),0,255);
-		A = FMath::Clamp(FMath::TruncToInt(       C.A              * 255.0f),0,255);
-	}
 
 	FORCEINLINE explicit FColor( uint32 InColor )
 	{ 
@@ -577,12 +565,24 @@ public:
 	/** Some pre-inited colors, useful for debug code */
 	static CORE_API const FColor White;
 	static CORE_API const FColor Black;
+	static CORE_API const FColor Transparent;
 	static CORE_API const FColor Red;
 	static CORE_API const FColor Green;
 	static CORE_API const FColor Blue;
 	static CORE_API const FColor Yellow;
 	static CORE_API const FColor Cyan;
 	static CORE_API const FColor Magenta;
+
+private:
+	/**
+	 * Please use .ToFColor(true) on FLinearColor if you wish to convert from FLinearColor to FColor,
+	 * with proper sRGB conversion applied.
+	 */
+	explicit FColor(const FLinearColor& LinearColor)
+	{
+		// Do not implement or make public.  We don't want people needlessly and implicitly converting between
+		// FLinearColor and FColor.  It's not a free conversion.
+	}
 };
 
 FORCEINLINE uint32 GetTypeHash( const FColor& Color )
@@ -590,9 +590,10 @@ FORCEINLINE uint32 GetTypeHash( const FColor& Color )
 	return Color.DWColor();
 }
 
-FORCEINLINE uint32 GetTypeHash( const FLinearColor& Color )
+FORCEINLINE uint32 GetTypeHash( const FLinearColor& LinearColor )
 {
-	return GetTypeHash(FColor(Color));
+	// Note: this assumes there's no padding in FLinearColor that could contain uncompared data.
+	return FCrc::MemCrc_DEPRECATED(&LinearColor, sizeof(FLinearColor));
 }
 
 

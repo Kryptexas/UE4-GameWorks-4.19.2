@@ -1253,7 +1253,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FLinearColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
 		}
 	}
 
@@ -1316,7 +1316,7 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FLinearColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
 		}
 
 		// draw hits
@@ -1852,7 +1852,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FLinearColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
 		}
 	}
 
@@ -1943,7 +1943,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 		else
 		{
 			// no hit means all red
-			::DrawDebugLine(World, Start, End, FLinearColor::Red, bPersistent, LifeTime);
+			::DrawDebugLine(World, Start, End, FColor::Red, bPersistent, LifeTime);
 		}
 
 		// draw hits
@@ -2529,7 +2529,7 @@ void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector co
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if(World != nullptr)
 	{
-		::DrawDebugLine(World, LineStart, LineEnd, Color, false, LifeTime, SDPG_World, Thickness);
+		::DrawDebugLine(World, LineStart, LineEnd, Color.ToFColor(true), false, LifeTime, SDPG_World, Thickness);
 	}
 }
 
@@ -2539,7 +2539,7 @@ void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector c
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
-		::DrawDebugPoint(World, Position, Size, PointColor, false, LifeTime, SDPG_World);
+		::DrawDebugPoint(World, Position, Size, PointColor.ToFColor(true), false, LifeTime, SDPG_World);
 	}
 }
 
@@ -2549,7 +2549,7 @@ void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector c
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	if (World != nullptr)
 	{
-		::DrawDebugDirectionalArrow(World, LineStart, LineEnd, ArrowSize, Color, false, LifeTime, SDPG_World);
+		::DrawDebugDirectionalArrow(World, LineStart, LineEnd, ArrowSize, Color.ToFColor(true), false, LifeTime, SDPG_World);
 	}
 }
 
@@ -2676,7 +2676,7 @@ void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const F
 	if( World != nullptr && FrustumTransform.IsRotationNormalized() )
 	{
 		FMatrix FrustumToWorld =  FrustumTransform.ToMatrixWithScale();
-		::DrawDebugFrustum(World, FrustumToWorld, FrustumColor, false, Duration, SDPG_World);
+		::DrawDebugFrustum(World, FrustumToWorld, FrustumColor.ToFColor(true), false, Duration, SDPG_World);
 	}
 }
 
@@ -2687,7 +2687,7 @@ void UKismetSystemLibrary::DrawDebugCamera(const ACameraActor* CameraActor, FLin
 	{
 		FVector CamLoc = CameraActor->GetActorLocation();
 		FRotator CamRot = CameraActor->GetActorRotation();
-		::DrawDebugCamera(CameraActor->GetWorld(), CameraActor->GetActorLocation(), CameraActor->GetActorRotation(), CameraActor->GetCameraComponent()->FieldOfView, 1.0f, CameraColor, false, Duration, SDPG_World);
+		::DrawDebugCamera(CameraActor->GetWorld(), CameraActor->GetActorLocation(), CameraActor->GetActorRotation(), CameraActor->GetCameraComponent()->FieldOfView, 1.0f, CameraColor.ToFColor(true), false, Duration, SDPG_World);
 	}
 }
 

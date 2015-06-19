@@ -362,7 +362,7 @@ void UAtmosphericFogComponent::SetDefaultBrightness(float NewBrightness)
 /** Set color of the light */
 void UAtmosphericFogComponent::SetDefaultLightColor(FLinearColor NewLightColor)
 {
-	FColor NewColor(NewLightColor);
+	FColor NewColor(NewLightColor.ToFColor(true));
 	if( DefaultLightColor != NewColor )
 	{
 		DefaultLightColor = NewColor;

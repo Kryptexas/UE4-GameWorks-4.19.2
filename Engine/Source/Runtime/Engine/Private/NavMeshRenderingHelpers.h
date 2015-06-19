@@ -644,7 +644,7 @@ FORCEINLINE void CacheArc(TArray<FDebugRenderSceneProxy::FDebugLine>& DebugLines
 		const float u = i * ArcPtsScale;
 		const FVector Pt = EvalArc(Start, Dir, Length*Height, u);
 
-		DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Prev, Pt, Color));
+		DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Prev, Pt, Color.ToFColor(true)));
 		Prev = Pt;
 	}
 }
@@ -657,8 +657,8 @@ FORCEINLINE void CacheArrowHead(TArray<FDebugRenderSceneProxy::FDebugLine>& Debu
 	Ax = FVector::CrossProduct(Az, Ay);
 
 	FHitProxyId HitProxyId;
-	DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Tip, FVector(Tip.X + Ay.X*Size + Ax.X*Size/3, Tip.Y + Ay.Y*Size + Ax.Y*Size/3, Tip.Z + Ay.Z*Size + Ax.Z*Size/3), Color));
-	DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Tip, FVector(Tip.X + Ay.X*Size - Ax.X*Size/3, Tip.Y + Ay.Y*Size - Ax.Y*Size/3, Tip.Z + Ay.Z*Size - Ax.Z*Size/3), Color));
+	DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Tip, FVector(Tip.X + Ay.X*Size + Ax.X*Size / 3, Tip.Y + Ay.Y*Size + Ax.Y*Size / 3, Tip.Z + Ay.Z*Size + Ax.Z*Size / 3), Color.ToFColor(true)));
+	DebugLines.Add(FDebugRenderSceneProxy::FDebugLine(Tip, FVector(Tip.X + Ay.X*Size - Ax.X*Size / 3, Tip.Y + Ay.Y*Size - Ax.Y*Size / 3, Tip.Z + Ay.Z*Size - Ax.Z*Size / 3), Color.ToFColor(true)));
 }
 
 FORCEINLINE void DrawWireCylinder(TArray<FDebugRenderSceneProxy::FDebugLine>& DebugLines,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z,FColor Color,float Radius,float HalfHeight,int32 NumSides,uint8 DepthPriority, float LineThickness=0)

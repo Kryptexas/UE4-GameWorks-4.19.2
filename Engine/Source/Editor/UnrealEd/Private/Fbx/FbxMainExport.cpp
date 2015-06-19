@@ -887,7 +887,7 @@ FbxDouble3 SetMaterialComponent(FColorMaterialInput& MatInput)
 		else if (Cast<UMaterialExpressionVectorParameter>(MatInput.Expression))
 		{
 			UMaterialExpressionVectorParameter* Expr = Cast<UMaterialExpressionVectorParameter>(MatInput.Expression);
-			FinalColor = Expr->DefaultValue;
+			FinalColor = Expr->DefaultValue.ToFColor(true);
 		}
 		else if (Cast<UMaterialExpressionConstant3Vector>(MatInput.Expression))
 		{

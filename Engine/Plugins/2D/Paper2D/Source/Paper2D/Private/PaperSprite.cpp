@@ -356,7 +356,7 @@ void FSpriteDrawCallRecord::BuildFromSprite(const UPaperSprite* Sprite)
 		BaseTexture = Sprite->GetBakedTexture();
 		Sprite->GetBakedAdditionalSourceTextures(/*out*/ AdditionalTextures);
 
-		Color = FLinearColor::White;
+		Color = FLinearColor::White.ToFColor(true);
 
 		RenderVerts = Sprite->BakedRenderData;
 	}
@@ -1293,17 +1293,17 @@ void UPaperSprite::FindContours(const FIntPoint& ScanPos, const FIntPoint& ScanS
 								// Move to the next pixel
 
 								// Check to see if we closed the loop
- 								if ((CX == X) && (CY == Y))
- 								{
+								if ((CX == X) && (CY == Y))
+								{
 // 									// If we went thru the boundary pixel more than two times, or
 // 									// entered it from the same way we started, then we're done
 // 									++EnteredStartingSquareCount;
 // 									if ((EnteredStartingSquareCount > 2) || (NeighborPhase == 0))
 // 									{
 									//@TODO: Not good enough, will early out too soon some of the time!
- 										bInsideBoundary = true;
- 										break;
- 									}
+										bInsideBoundary = true;
+										break;
+									}
 // 								}
 
 								BoundaryImage.SetPixel(CX, CY, NeighborPhase+1);

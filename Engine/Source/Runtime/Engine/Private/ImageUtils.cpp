@@ -73,7 +73,7 @@ void FImageUtils::ImageResize(int32 SrcWidth, int32 SrcHeight, const TArray<FCol
 				LinearStepColor /= (float)PixelCount;
 
 				// Convert back from linear space to gamma space.
-				FinalColor = FColor(LinearStepColor);
+				FinalColor = LinearStepColor.ToFColor(true);
 			}
 			else
 			{

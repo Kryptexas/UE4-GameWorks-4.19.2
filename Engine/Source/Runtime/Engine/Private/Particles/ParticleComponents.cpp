@@ -3578,8 +3578,8 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			if (ShouldComputeLODFromGameThread())
 			{
 				bool bCalculateLODLevel = 
- 					(bOverrideLODMethod == true) ? (LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : 
- 					 	(Template ? (Template->LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : false);
+					(bOverrideLODMethod == true) ? (LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : 
+						(Template ? (Template->LODMethod == PARTICLESYSTEMLODMETHOD_Automatic) : false);
 				if (bCalculateLODLevel == true)
 				{
 					FVector EffectPosition = GetComponentLocation();
@@ -4041,7 +4041,7 @@ void UParticleSystemComponent::ResetParticles(bool bEmptyInstances)
 
 	UWorld* OwningWorld = GetWorld();
 
- 	const bool bIsGameWorld = OwningWorld ? OwningWorld->IsGameWorld() : !GIsEditor;
+	const bool bIsGameWorld = OwningWorld ? OwningWorld->IsGameWorld() : !GIsEditor;
 
 	// Remove instances from scene.
 	for( int32 InstanceIndex=0; InstanceIndex<EmitterInstances.Num(); InstanceIndex++ )
@@ -5159,7 +5159,7 @@ void UParticleSystemComponent::SetColorParameter(FName Name, FLinearColor Param)
 	}
 	ForceAsyncWorkCompletion(STALL);
 
-	FColor NewColor(Param);
+	FColor NewColor(Param.ToFColor(true));
 
 	// First see if an entry for this name already exists
 	for (int32 i = 0; i < InstanceParameters.Num(); i++)

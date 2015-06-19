@@ -262,7 +262,7 @@ void ADirectionalLight::PostLoad()
 #if WITH_EDITORONLY_DATA
 	if(ArrowComponent != nullptr)
 	{
-		ArrowComponent->ArrowColor = GetLightColor();
+		ArrowComponent->ArrowColor = GetLightColor().ToFColor(true);
 	}
 #endif
 }
@@ -308,7 +308,7 @@ void ADirectionalLight::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 	if(ArrowComponent != nullptr)
 	{
-		ArrowComponent->ArrowColor = GetLightColor();
+		ArrowComponent->ArrowColor = GetLightColor().ToFColor(true);
 	}
 }
 #endif // WITH_EDITOR

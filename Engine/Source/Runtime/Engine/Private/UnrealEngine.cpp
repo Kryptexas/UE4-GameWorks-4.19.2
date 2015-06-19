@@ -5723,7 +5723,7 @@ bool UEngine::GetStatValueColoration(const FString& StatName, float Value, FColo
 						FVector BV(B.R, B.G, B.B);
 
 						FVector OutColorV = FMath::Lerp( AV, BV, Alpha );
-						OutColor = FLinearColor(OutColorV.X, OutColorV.Y, OutColorV.Z);
+						OutColor = FLinearColor(OutColorV.X, OutColorV.Y, OutColorV.Z).ToFColor(true);
 					}
 
 					return true;

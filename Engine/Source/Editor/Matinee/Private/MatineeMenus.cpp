@@ -2338,7 +2338,7 @@ void FMatinee::OnContextSetColor()
 		FVector CurrentColorVector = ColorPropTrack->VectorTrack.Points[SelKey.KeyIndex].OutVal;
 		static FColor CurrentColor;
 
-		CurrentColor = FColor(FLinearColor(CurrentColorVector.X, CurrentColorVector.Y, CurrentColorVector.Z));
+		CurrentColor = FLinearColor(CurrentColorVector.X, CurrentColorVector.Y, CurrentColorVector.Z).ToFColor(true);
 
 		TArray<FColor*> FColorArray;
 		FColorArray.Add(&CurrentColor);

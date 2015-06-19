@@ -500,7 +500,7 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 )
 {
 	// set a default color
-	if (TextColor == FLinearColor::Transparent)
+	if (TextColor == FColor::Transparent)
 	{
 		TextColor = FColor::White;
 	}

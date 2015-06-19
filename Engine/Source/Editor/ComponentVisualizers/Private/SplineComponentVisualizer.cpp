@@ -161,8 +161,8 @@ void FSplineComponentVisualizer::DrawVisualization(const UActorComponent* Compon
 		const bool bIsSplineEditable = SplineComp->bSplineHasBeenEdited || SplineComp->SplineInfo.Points == Archetype->SplineInfo.Points;
 
 		const FColor ReadOnlyColor = FColor(255, 0, 255, 255);
-		const FColor NormalColor = bIsSplineEditable ? FColor(SplineComp->EditorUnselectedSplineSegmentColor) : ReadOnlyColor;
-		const FColor SelectedColor = bIsSplineEditable ? FColor(SplineComp->EditorSelectedSplineSegmentColor) : ReadOnlyColor;
+		const FColor NormalColor = bIsSplineEditable ? FColor(SplineComp->EditorUnselectedSplineSegmentColor.ToFColor(true)) : ReadOnlyColor;
+		const FColor SelectedColor = bIsSplineEditable ? FColor(SplineComp->EditorSelectedSplineSegmentColor.ToFColor(true)) : ReadOnlyColor;
 		const float GrabHandleSize = 12.0f;
 		const float TangentHandleSize = 10.0f;
 

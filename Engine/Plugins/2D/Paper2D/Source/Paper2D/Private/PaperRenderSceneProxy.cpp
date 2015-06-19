@@ -106,7 +106,7 @@ class FDummyPaperSpriteVertexBuffer : public FPaperSpriteVertexBuffer
 public:
 	FDummyPaperSpriteVertexBuffer()
 	{
-		Vertices.Emplace(FVector::ZeroVector, FVector2D::ZeroVector, FLinearColor::Black);
+		Vertices.Emplace(FVector::ZeroVector, FVector2D::ZeroVector, FColor::Black);
 	}
 };
 static TGlobalResource<FDummyPaperSpriteVertexBuffer> GDummyMaterialSpriteVertexBuffer;
@@ -320,12 +320,12 @@ void FPaperRenderSceneProxy::DebugDrawBodySetup(const FSceneView* View, int32 Vi
 
 			Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
 
-			BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor, SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
+			BodySetup->AggGeom.GetAggGeom(GeomTransform, WireframeColor.ToFColor(true), SolidMaterialInstance, false, true, UseEditorDepthTest(), ViewIndex, Collector);
 		}
 		else
 		{
 			// wireframe
-			BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, IsSelected(), IsHovered()), nullptr, (Owner == nullptr), false, UseEditorDepthTest(), ViewIndex, Collector);
+			BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(CollisionColor, IsSelected(), IsHovered()).ToFColor(true), nullptr, ( Owner == nullptr ), false, UseEditorDepthTest(), ViewIndex, Collector);
 		}
 	}
 }

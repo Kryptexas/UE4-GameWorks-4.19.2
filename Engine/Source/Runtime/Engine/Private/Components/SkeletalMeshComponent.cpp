@@ -273,8 +273,8 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
 
 		InitializeAnimScriptInstance(bForceReinit);
 
-        //Make sure we have a valid pose		
-        TickAnimation(0.f); 
+		//Make sure we have a valid pose		
+		TickAnimation(0.f); 
 
 		RefreshBoneTransforms();
 		UpdateComponentToWorld();
@@ -1524,8 +1524,8 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 				float ConeLength = EndToStart.Size();
 				float Angle = FMath::RadiansToDegrees(FMath::Atan(SphereRadius / ConeLength));
 
-				DrawDebugCanvasWireSphere(Canvas, End, LineColor, SphereRadius, 10);
-				DrawDebugCanvasWireCone(Canvas, FTransform(FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End)), ConeLength, Angle, 4, LineColor);
+				DrawDebugCanvasWireSphere(Canvas, End, LineColor.ToFColor(true), SphereRadius, 10);
+				DrawDebugCanvasWireCone(Canvas, FTransform(FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End)), ConeLength, Angle, 4, LineColor.ToFColor(true));
 			}
 
 			RenderAxisGizmo(BoneTM, Canvas);

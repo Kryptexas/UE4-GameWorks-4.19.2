@@ -374,17 +374,17 @@ float UKismetMathLibrary::GridSnap_Float(float Location, float GridSize)
 
 float UKismetMathLibrary::GetPI()
 {
-    return PI;
+	return PI;
 }
 
 float UKismetMathLibrary::DegreesToRadians(float A)
 {
-    return FMath::DegreesToRadians(A);
+	return FMath::DegreesToRadians(A);
 }
 
 float UKismetMathLibrary::RadiansToDegrees(float A)
 {
-    return FMath::RadiansToDegrees(A);
+	return FMath::RadiansToDegrees(A);
 }
 
 
@@ -1679,7 +1679,7 @@ FLinearColor UKismetMathLibrary::Conv_ColorToLinearColor(FColor InColor)
 
 FColor UKismetMathLibrary::Conv_LinearColorToColor(FLinearColor InLinearColor)
 {
-	return FColor(InLinearColor);
+	return InLinearColor.ToFColor(true);
 }
 
 FTransform UKismetMathLibrary::Conv_VectorToTransform(FVector InTranslation)

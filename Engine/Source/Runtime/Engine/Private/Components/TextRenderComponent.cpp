@@ -581,8 +581,6 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 	float FirstLineHeight = -1; // Only kept around for legacy positioning support
 	float StartY = 0;
 
-	FLinearColor ActualColor = TextRenderColor;
-
 	const float CharIncrement = ( (float)Font->Kerning + HorizSpacingAdjust ) * XScale;
 
 	float LineX = 0;
@@ -650,10 +648,10 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 				FVector TangentY(0, 0, -1);
 				FVector TangentZ(1, 0, 0);
 
-				int32 V00 = OutVertices.Add( FDynamicMeshVertex( V0, TangentX, TangentZ, FVector2D(U, V), ActualColor));
-				int32 V10 = OutVertices.Add( FDynamicMeshVertex( V1, TangentX, TangentZ, FVector2D(U + SizeU,	V),	ActualColor));
-				int32 V01 = OutVertices.Add( FDynamicMeshVertex( V2, TangentX, TangentZ, FVector2D(U,	V + SizeV), ActualColor));
-				int32 V11 = OutVertices.Add( FDynamicMeshVertex( V3, TangentX, TangentZ, FVector2D(U + SizeU,	V + SizeV), ActualColor));
+				int32 V00 = OutVertices.Add(FDynamicMeshVertex(V0, TangentX, TangentZ, FVector2D(U, V), TextRenderColor));
+				int32 V10 = OutVertices.Add(FDynamicMeshVertex(V1, TangentX, TangentZ, FVector2D(U + SizeU, V), TextRenderColor));
+				int32 V01 = OutVertices.Add(FDynamicMeshVertex(V2, TangentX, TangentZ, FVector2D(U, V + SizeV), TextRenderColor));
+				int32 V11 = OutVertices.Add(FDynamicMeshVertex(V3, TangentX, TangentZ, FVector2D(U + SizeU, V + SizeV), TextRenderColor));
 
 				check(V00 < 65536);
 				check(V10 < 65536);

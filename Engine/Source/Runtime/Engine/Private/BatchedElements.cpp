@@ -72,7 +72,7 @@ void FBatchedElements::AddPoint(const FVector& Position,float Size,const FLinear
 	FBatchedPoint* Point = new(Points) FBatchedPoint;
 	Point->Position = Position;
 	Point->Size = Size;
-	Point->Color = OpaqueColor;
+	Point->Color = OpaqueColor.ToFColor(true);
 	Point->HitProxyId = HitProxyId;
 }
 
@@ -468,23 +468,23 @@ void FBatchedElements::PrepareShaders(
 	else
 	{
 		TShaderMapRef<FSimpleElementVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
-		    
-	    if (bHitTesting)
-	    {
+			
+		if (bHitTesting)
+		{
 			TShaderMapRef<FSimpleElementHitProxyPS> HitTestingPixelShader(GetGlobalShaderMap(FeatureLevel));
 			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, HitTestingBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 				*VertexShader, *HitTestingPixelShader);
 
 			HitTestingPixelShader->SetParameters(RHICmdList, Texture);
 			SetHitTestingBlendState(RHICmdList, BlendMode);
-		    
-	    }
-	    else
-	    {
-		    if (BlendMode == SE_BLEND_Masked)
-		    {
-			    // use clip() in the shader instead of alpha testing as cards that don't support floating point blending
-			    // also don't support alpha testing to floating point render targets
+			
+		}
+		else
+		{
+			if (BlendMode == SE_BLEND_Masked)
+			{
+				// use clip() in the shader instead of alpha testing as cards that don't support floating point blending
+				// also don't support alpha testing to floating point render targets
 				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 
 				if (Texture->bSRGB)
@@ -505,78 +505,78 @@ void FBatchedElements::PrepareShaders(
 					MaskedPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
 					MaskedPixelShader->SetParameters(RHICmdList, Texture, Gamma, GBatchedElementAlphaRefVal / 255.0f, BlendMode);
 				}
-		    }
-		    // render distance field elements
-		    else if (
-			    BlendMode == SE_BLEND_MaskedDistanceField || 
-			    BlendMode == SE_BLEND_MaskedDistanceFieldShadowed ||
-			    BlendMode == SE_BLEND_TranslucentDistanceField	||
-			    BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed)
-		    {
-			    float AlphaRefVal = GBatchedElementAlphaRefVal;
-			    if (BlendMode == SE_BLEND_TranslucentDistanceField ||
-				    BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed)
-			    {
-				    // enable alpha blending and disable clip ref value for translucent rendering
+			}
+			// render distance field elements
+			else if (
+				BlendMode == SE_BLEND_MaskedDistanceField || 
+				BlendMode == SE_BLEND_MaskedDistanceFieldShadowed ||
+				BlendMode == SE_BLEND_TranslucentDistanceField	||
+				BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed)
+			{
+				float AlphaRefVal = GBatchedElementAlphaRefVal;
+				if (BlendMode == SE_BLEND_TranslucentDistanceField ||
+					BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed)
+				{
+					// enable alpha blending and disable clip ref value for translucent rendering
 					RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha>::GetRHI());
-				    AlphaRefVal = 0.0f;
-			    }
-			    else
-			    {
-				    // clip is done in shader so just render opaque
+					AlphaRefVal = 0.0f;
+				}
+				else
+				{
+					// clip is done in shader so just render opaque
 					RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-			    }
-			    
+				}
+				
 				TShaderMapRef<FSimpleElementDistanceFieldGammaPS> DistanceFieldPixelShader(GetGlobalShaderMap(FeatureLevel));
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, DistanceFieldBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *DistanceFieldPixelShader );			
 
-			    // @todo - expose these as options for batch rendering
-			    static FVector2D ShadowDirection(-1.0f/Texture->GetSizeX(),-1.0f/Texture->GetSizeY());
-			    static FLinearColor ShadowColor(FLinearColor::Black);
-			    const float ShadowSmoothWidth = (GBatchedElementSmoothWidth * 2) / Texture->GetSizeX();
-			    
-			    const bool EnableShadow = (
-				    BlendMode == SE_BLEND_MaskedDistanceFieldShadowed || 
-				    BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed
-				    );
-			    
-			    DistanceFieldPixelShader->SetParameters(
+				// @todo - expose these as options for batch rendering
+				static FVector2D ShadowDirection(-1.0f/Texture->GetSizeX(),-1.0f/Texture->GetSizeY());
+				static FLinearColor ShadowColor(FLinearColor::Black);
+				const float ShadowSmoothWidth = (GBatchedElementSmoothWidth * 2) / Texture->GetSizeX();
+				
+				const bool EnableShadow = (
+					BlendMode == SE_BLEND_MaskedDistanceFieldShadowed || 
+					BlendMode == SE_BLEND_TranslucentDistanceFieldShadowed
+					);
+				
+				DistanceFieldPixelShader->SetParameters(
 					RHICmdList, 
-				    Texture,
-				    Gamma,
-				    AlphaRefVal / 255.0f,
-				    GBatchedElementSmoothWidth,
-				    EnableShadow,
-				    ShadowDirection,
-				    ShadowColor,
-				    ShadowSmoothWidth,
-				    (GlowInfo != NULL) ? *GlowInfo : FDepthFieldGlowInfo(),
-				    BlendMode
-				    );
-		    }
+					Texture,
+					Gamma,
+					AlphaRefVal / 255.0f,
+					GBatchedElementSmoothWidth,
+					EnableShadow,
+					ShadowDirection,
+					ShadowColor,
+					ShadowSmoothWidth,
+					(GlowInfo != NULL) ? *GlowInfo : FDepthFieldGlowInfo(),
+					BlendMode
+					);
+			}
 			else if(BlendMode == SE_BLEND_TranslucentAlphaOnly)
 			{
 				SetBlendState(RHICmdList, BlendMode);
 
 				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
-			    {
+				{
 					TShaderMapRef<FSimpleElementAlphaOnlyPS> AlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, AlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *AlphaOnlyPixelShader);
 
 					AlphaOnlyPixelShader->SetParameters(RHICmdList, Texture);
 					AlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
-			    }
-			    else
-			    {
+				}
+				else
+				{
 					TShaderMapRef<FSimpleElementGammaAlphaOnlyPS> GammaAlphaOnlyPixelShader(GetGlobalShaderMap(FeatureLevel));
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, GammaAlphaOnlyShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *GammaAlphaOnlyPixelShader);
 
 					GammaAlphaOnlyPixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
 					GammaAlphaOnlyPixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
-			    }
+				}
 			}
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
@@ -587,20 +587,20 @@ void FBatchedElements::PrepareShaders(
 				ColorChannelMaskPixelShader->SetParameters(RHICmdList, Texture, ColorWeights, GammaToUse );
 			}
 			else
-		    {
+			{
 				SetBlendState(RHICmdList, BlendMode);
-    
-			    if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
-			    {
+	
+				if (FMath::Abs(Gamma - 1.0f) < KINDA_SMALL_NUMBER)
+				{
 					TShaderMapRef<FSimpleElementPS> PixelShader(GetGlobalShaderMap(FeatureLevel));
 					SetGlobalBoundShaderState(RHICmdList, FeatureLevel, SimpleBoundShaderState, GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 						*VertexShader, *PixelShader);
 
 					PixelShader->SetParameters(RHICmdList, Texture);
 					PixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
-			    }
-			    else
-			    {
+				}
+				else
+				{
 					FSimpleElementGammaBasePS* BasePixelShader;
 					FGlobalBoundShaderState* BoundShaderState;
 
@@ -622,9 +622,9 @@ void FBatchedElements::PrepareShaders(
 
 					BasePixelShader->SetParameters(RHICmdList, Texture, Gamma, BlendMode);
 					BasePixelShader->SetEditorCompositingParameters(RHICmdList, View, DepthTexture);
-			    }
-		    }
-	    }
+				}
+			}
+		}
 
 		// Set the simple element vertex shader parameters
 		VertexShader->SetParameters(RHICmdList, Transform, bSwitchVerticalAxis);

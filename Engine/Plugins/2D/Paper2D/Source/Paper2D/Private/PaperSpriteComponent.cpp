@@ -67,7 +67,7 @@ FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 	{
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
-		DrawCall.Color = SpriteColor;
+		DrawCall.Color = SpriteColor.ToFColor(true);
 		NewProxy->SetSprite_RenderThread(DrawCall, SourceSprite->AlternateMaterialSplitIndex);
 	}
 	return NewProxy;
@@ -108,7 +108,7 @@ void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 	{
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
-		DrawCall.Color = SpriteColor;
+		DrawCall.Color = SpriteColor.ToFColor(true);
 		const int32 SplitIndex = (SourceSprite != nullptr) ? SourceSprite->AlternateMaterialSplitIndex : INDEX_NONE;
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(

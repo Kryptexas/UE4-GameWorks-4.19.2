@@ -664,7 +664,7 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 			CursorBackground,
 			MyClippingRect,
 			DrawEffects,
-			FColor(FLinearColor::White).WithAlpha(20)
+			FLinearColor::White.CopyWithNewOpacity(0.08f)
 			);
 
 		// Draw a line for the scrub position
@@ -680,7 +680,7 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 			LinePoints,
 			MyClippingRect,
 			DrawEffects,
-			FColor(FLinearColor::White).WithAlpha(100),
+			FLinearColor::White.CopyWithNewOpacity(0.39f),
 			false
 			);
 

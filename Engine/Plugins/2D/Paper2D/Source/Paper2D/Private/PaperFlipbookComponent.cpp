@@ -87,7 +87,7 @@ FPrimitiveSceneProxy* UPaperFlipbookComponent::CreateSceneProxy()
 
 	FSpriteDrawCallRecord DrawCall;
 	DrawCall.BuildFromSprite(SpriteToSend);
-	DrawCall.Color = SpriteColor;
+	DrawCall.Color = SpriteColor.ToFColor(true);
 	NewProxy->SetDrawCall_RenderThread(DrawCall);
 	return NewProxy;
 }
@@ -342,7 +342,7 @@ void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SpriteToSend);
-		DrawCall.Color = SpriteColor;
+		DrawCall.Color = SpriteColor.ToFColor(true);
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 				FSendPaperRenderComponentDynamicData,
