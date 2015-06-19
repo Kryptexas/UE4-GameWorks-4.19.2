@@ -577,12 +577,11 @@ private:
 	/**
 	 * Please use .ToFColor(true) on FLinearColor if you wish to convert from FLinearColor to FColor,
 	 * with proper sRGB conversion applied.
+	 *
+	 * Note: Do not implement or make public.  We don't want people needlessly and implicitly converting between
+	 * FLinearColor and FColor.  It's not a free conversion.
 	 */
-	explicit FColor(const FLinearColor& LinearColor)
-	{
-		// Do not implement or make public.  We don't want people needlessly and implicitly converting between
-		// FLinearColor and FColor.  It's not a free conversion.
-	}
+	explicit FColor(const FLinearColor& LinearColor);
 };
 
 FORCEINLINE uint32 GetTypeHash( const FColor& Color )

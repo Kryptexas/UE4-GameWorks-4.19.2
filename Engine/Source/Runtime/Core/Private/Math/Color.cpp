@@ -330,7 +330,7 @@ FLinearColor FLinearColor::MakeRandomColor()
 
 FColor FColor::MakeRandomColor()
 {
-	return FColor(FLinearColor::MakeRandomColor());
+	return FLinearColor::MakeRandomColor().ToFColor(true);
 }
 
 FLinearColor FLinearColor::MakeFromColorTemperature( float Temp )
