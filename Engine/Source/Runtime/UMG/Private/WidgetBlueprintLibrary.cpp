@@ -123,7 +123,7 @@ void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVecto
 	}
 }
 
-void UWidgetBlueprintLibrary::DrawLine(UPARAM(ref) FPaintContext& Context, FVector2D PositionA, FVector2D PositionB, float Thickness, FLinearColor Tint, bool bAntiAlias)
+void UWidgetBlueprintLibrary::DrawLine(UPARAM(ref) FPaintContext& Context, FVector2D PositionA, FVector2D PositionB, FLinearColor Tint, bool bAntiAlias)
 {
 	Context.MaxLayer++;
 
@@ -142,7 +142,7 @@ void UWidgetBlueprintLibrary::DrawLine(UPARAM(ref) FPaintContext& Context, FVect
 		bAntiAlias);
 }
 
-void UWidgetBlueprintLibrary::DrawLines(UPARAM(ref) FPaintContext& Context, const TArray<FVector2D>& Points, float Thickness, FLinearColor Tint, bool bAntiAlias)
+void UWidgetBlueprintLibrary::DrawLines(UPARAM(ref) FPaintContext& Context, const TArray<FVector2D>& Points, FLinearColor Tint, bool bAntiAlias)
 {
 	Context.MaxLayer++;
 

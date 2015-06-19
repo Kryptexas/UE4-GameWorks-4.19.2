@@ -56,8 +56,8 @@ public:
 	 * @param Thickness		How many pixels thick this line should be.
 	 * @param Tint			Color to render the line.
 	 */
-	UFUNCTION(BlueprintCallable, meta=( AdvancedDisplay = "5" ), Category="Painting" )
-	static void DrawLine(UPARAM(ref) FPaintContext& Context, FVector2D PositionA, FVector2D PositionB, float Thickness = 1.0f, FLinearColor Tint = FLinearColor::White, bool bAntiAlias = true);
+	UFUNCTION(BlueprintCallable, meta=( AdvancedDisplay = "4" ), Category="Painting" )
+	static void DrawLine(UPARAM(ref) FPaintContext& Context, FVector2D PositionA, FVector2D PositionB, FLinearColor Tint = FLinearColor::White, bool bAntiAlias = true);
 
 	/**
 	 * Draws several line segments.
@@ -66,8 +66,8 @@ public:
 	 * @param Thickness		How many pixels thick this line should be.
 	 * @param Tint			Color to render the line.
 	 */
-	UFUNCTION(BlueprintCallable, meta=( AdvancedDisplay = "4" ), Category="Painting" )
-	static void DrawLines(UPARAM(ref) FPaintContext& Context, const TArray<FVector2D>& Points, float Thickness = 1.0f, FLinearColor Tint = FLinearColor::White, bool bAntiAlias = true);
+	UFUNCTION(BlueprintCallable, meta=( AdvancedDisplay = "3" ), Category="Painting" )
+	static void DrawLines(UPARAM(ref) FPaintContext& Context, const TArray<FVector2D>& Points, FLinearColor Tint = FLinearColor::White, bool bAntiAlias = true);
 
 	/**
 	 * Draws text.
