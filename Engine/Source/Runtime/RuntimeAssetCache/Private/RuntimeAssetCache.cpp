@@ -99,10 +99,10 @@ bool FRuntimeAssetCache::ClearCache()
 	return bResult;
 }
 
-bool FRuntimeAssetCache::ClearCache(FName Bucket)
+bool FRuntimeAssetCache::ClearCache(FName BucketName)
 {
 	/** Tell backend to clean bucket up. */
-	bool bResult = FRuntimeAssetCacheBackend::Get().ClearCache(Bucket);
+	bool bResult = FRuntimeAssetCacheBackend::Get().ClearCache(BucketName);
 
 	if (!bResult)
 	{
