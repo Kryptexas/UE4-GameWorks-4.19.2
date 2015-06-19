@@ -52,7 +52,8 @@ bool FOnlineVoiceImpl::Init()
 		bSuccess = SessionInt && IdentityInt;
 	}
 
-	if (bSuccess && !OnlineSubsystem->IsDedicated())
+	const bool bIntentionallyDisabled = OnlineSubsystem->IsDedicated() || GIsBuildMachine;
+	if (bSuccess && !bIntentionallyDisabled)
 	{
 		VoiceEngine = MakeShareable(new FVoiceEngineImpl(OnlineSubsystem));
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
@@ -63,7 +64,10 @@ bool FOnlineVoiceImpl::Init()
 
 	if (!bSuccess)
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to initialize voice interface"));
+		if (!bIntentionallyDisabled)
+		{
+			UE_LOG(LogVoice, Warning, TEXT("Failed to initialize voice interface"));
+		}
 
 		LocalTalkers.Empty();
 		RemoteTalkers.Empty();
