@@ -134,6 +134,7 @@ public:
 	// AActor interface end
 
 	bool IsSuccessful() const { return Result == EFunctionalTestResult::Succeeded; }
+	bool IsRunning() const { return !!bIsRunning; }
 
 protected:
 	void GoToObservationPoint();
@@ -142,7 +143,7 @@ public:
 	FFunctionalTestDoneSignature TestFinishedObserver;
 
 protected:
-	uint32 bIsRunning;
+	uint32 bIsRunning : 1;
 	float TotalTime;
 
 public:

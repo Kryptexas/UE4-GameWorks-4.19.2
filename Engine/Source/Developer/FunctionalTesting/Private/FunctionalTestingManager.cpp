@@ -139,6 +139,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 
 void UFunctionalTestingManager::OnEndPIE(const bool bIsSimulating)
 {
+	FEditorDelegates::EndPIE.RemoveAll(this);
 	RemoveFromRoot();
 }
 
@@ -275,6 +276,7 @@ void UFunctionalTestingManager::AllTestsDone()
 	else
 	{
 		bFinished = true;
+		FEditorDelegates::EndPIE.RemoveAll(this);
 		AddLogItem(LOCTEXT("TestDone", "DONE."));
 		RemoveFromRoot();
 	}
@@ -335,8 +337,16 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 				TestsLeft[Index]->TestFinishedObserver = TestFinishedObserver;
 				if (TestsLeft[Index]->StartTest())
 				{
-					bTestSuccessfullyTriggered = true;
-					break;
+					if (TestsLeft[Index]->IsRunning() == true)
+					{
+						bTestSuccessfullyTriggered = true;
+						break;
+					}
+					else
+					{
+						// test finished instantly, remove it
+						bRemove = true;
+					}
 				}
 				else
 				{
