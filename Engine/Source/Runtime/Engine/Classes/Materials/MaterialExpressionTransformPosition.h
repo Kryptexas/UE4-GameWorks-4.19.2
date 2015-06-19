@@ -8,9 +8,18 @@
 UENUM()
 enum EMaterialPositionTransformSource
 {
-	TRANSFORMPOSSOURCE_Local UMETA(DisplayName="Local"),
-	TRANSFORMPOSSOURCE_World UMETA(DisplayName="World"),
-	TRANSFORMPOSSOURCE_View  UMETA(DisplayName="View"),
+	/** Local space */
+	TRANSFORMPOSSOURCE_Local UMETA(DisplayName="Local Space"),
+	
+	/** World space with no shader offsets applied */
+	TRANSFORMPOSSOURCE_World UMETA(DisplayName="World Space (No Shader Offsets)"),
+	
+	/** World space with all shader offsets applied */
+	TRANSFORMPOSSOURCE_TranslatedWorld  UMETA(DisplayName="World Space"),
+
+	/** View space */
+	TRANSFORMPOSSOURCE_View  UMETA(DisplayName="View Space"),
+	
 	TRANSFORMPOSSOURCE_MAX,
 };
 
