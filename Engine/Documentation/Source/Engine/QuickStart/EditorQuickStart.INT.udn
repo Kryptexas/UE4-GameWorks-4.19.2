@@ -2,6 +2,8 @@ Availability:Public
 Title:Level Designer Quick Start
 Crumbs: %ROOT%, GettingStarted
 Description: Getting up and running with the basics of the Unreal Editor.
+SkillLevel: Beginner
+Version: 4.8
 
 [VAR:Topic]
 [OBJECT:Topic]
