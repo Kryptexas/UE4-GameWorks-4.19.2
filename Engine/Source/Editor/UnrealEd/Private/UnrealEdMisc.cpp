@@ -1662,7 +1662,7 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 				if (EachPack.DetailLevels[iDetail] == EachEditDetail)
 				{
 					FString DetailString;
-					UEnum::GetValueAsString(TEXT("/Script/FeaturePackContentSource.EPackDetailLevel"), EachEditDetail, DetailString);
+					UEnum::GetValueAsString(TEXT("/Script/AddContentDialog.EFeaturePackDetailLevel"), EachEditDetail, DetailString);
 					FString ShareMountName = EachPack.MountName;
 					if (AddedMountSources.Find(ShareMountName) == INDEX_NONE)
 					{
