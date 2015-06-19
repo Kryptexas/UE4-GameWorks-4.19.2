@@ -1,7 +1,7 @@
 Availability:Public
-Title: Unreal Editor Interface
+Title: Unreal Editor Manual
 Crumbs:%ROOT%, Engine
-Description:A breakdown of the various parts of the Unreal Editor user interface, along with key principles on how the interface works.
+Description:A breakdown of the Unreal Editor user interface, along with key principles on how the interface works.
 Navigation:topic
 
 [EXCERPT:LevelEditor]
@@ -32,7 +32,7 @@ Navigation:topic
 	![](%ROOT%/editor_icon.png)(convert:false)
 [/PARAM]
 [PARAM:title]
-	Editor Reference
+	%Engine/UI:title%
 [/PARAM]
 [PARAM:description]
 	%Engine/UI:description%
